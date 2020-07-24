@@ -27,8 +27,7 @@ namespace GenotypeLikelihoods{
 //--------------------------------------------------------------------
 class TRecalibrationEMDataTable{
 private:
-	size_t counts;
-	bool countsAssembled;
+	uint64_t counts;
 	bool initialized;
 
 	void assembleCounts();
@@ -55,22 +54,28 @@ public:
 };
 
 class TRecalibrationEMDataTables{
-public:
-	int numReadGroups;
-	int maxQual;
-	TRecalibrationEMDataTable** tables; //tables[readGroup][first/second]
-	unsigned int totalCounts;
+private:
+	uint16_t _numReadGroups;
+	uint16_t _maxQual;
+	TRecalibrationEMDataTable** _tables; //tables[readGroup][first/second]
+	uint64_t _totalCounts;
+	bool _initialized;
 
+public:
+	TRecalibrationEMDataTables();
 	TRecalibrationEMDataTables(const int NumReadGroups, const int MaxQual, const int MaxFragmentLength, const int MQ);
 	~TRecalibrationEMDataTables();
 
 	void clear();
+	void init(const int NumReadGroups, const int MaxQual, const int MaxFragmentLength, const int MaxMQ);
+	void reset();
 	void add(const BAM::TBase & base);
 	void add(const TSiteStorage & site);
-	void assembleCountsPerReadGroup();
 	void fillVectorWithUsedQualities(const int readGroupId, const bool isSecondMate, std::vector<uint16_t> & Q);
-	TRecalibrationEMDataTable* getTable(const int readGroupId, const bool isSecondMate);
-	TRecalibrationEMDataTable* getTable(const int readGroupId, const int isSecondMate);
+
+	uint64_t size();
+	TRecalibrationEMDataTable* table(const int readGroupId, const bool isSecondMate);
+	TRecalibrationEMDataTable* table(const int readGroupId, const int isSecondMate);
 };
 
 

@@ -190,7 +190,7 @@ public:
 //------------------------------------------------------
 class TCallerAllelePresence:public TCaller{
 private:
-	TGenotypePosteriorProbabilities posterior;
+	TGenotypeProbabilities posterior;
 	double allelePostProb[4];
 	Base MAP;
 
@@ -248,7 +248,7 @@ public:
 //------------------------------------------------------
 class TCallerBayes:public TCallerDiploid{
 private:
-	TGenotypePosteriorProbabilities posterior;
+	TGenotypeProbabilities posterior;
 
 	void callGenotype(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
 	void callGenotypeKnownAlleles(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);

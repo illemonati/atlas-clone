@@ -59,30 +59,19 @@ public:
 
 */
 
-
-//--------------------------------------------------------------------
-// TRecalibrationEMSite
-// Object to store all data at one site.
-// Inhertis from TSiteStorage, but adds functions to calculate specific probabilities.
-//--------------------------------------------------------------------
-class TRecalibrationEMSite:public TSiteStorage{
-private:
-
-public:
-
-};
-
 //--------------------------------------------------------------------
 // TRecalibrationEMWindow
 //--------------------------------------------------------------------
 class TRecalibrationEMWindow{
 private:
-	std::vector<TRecalibrationEMSite> sites;
+	std::vector<TSiteStorage> sites;
 	TGenotypeDistribution* genoDist;
 
 
 	//tmp variables
-	TBaseData _baseLikelihoods;
+
+
+
 public:
 
 	double freqs[4]; //base frequencies
@@ -99,7 +88,7 @@ public:
 
 
 	void setGenotypeDistribution(TGenotypeDistribution* GenoDist){ genoDist = GenoDist; };
-
+	const TBaseData& expectedBaseFrequencies(){ return genoDist->baseFrequencies(); };
 
 
 	//------------ OLD -----------------
@@ -111,8 +100,8 @@ public:
 	void setEuqalBaseFrequencies();
 	//------------ END OLD -----------------
 
-	std::vector<TRecalibrationEMSite>::iterator begin(){ return sites.begin(); };
-	std::vector<TRecalibrationEMSite>::iterator end(){ return sites.end(); };
+	std::vector<TSiteStorage>::iterator begin(){ return sites.begin(); };
+	std::vector<TSiteStorage>::iterator end(){ return sites.end(); };
 };
 
 //--------------------------------------------------------------------
@@ -125,8 +114,10 @@ protected:
 	BAM::TReadGroupMap* _readGroupMap;
 	TPostMortemDamage _pmd;
 	TSequencingErrorModels models;
-	std::vector<TRecalibrationEMWindow*> windows;
+	std::vector<TRecalibrationEMWindow> windows;
 	std::vector<TRecalibrationEMWindow*>::iterator curWindow;
+	TRecalibrationEMDataTables dataTables;
+
 
 	//variables for estimation
 	bool equalBaseFrequencies;
@@ -137,14 +128,19 @@ protected:
 	unsigned int minRequiredObservations;
 	std::string recalFile; //file name in case a file with model is provided
 	TSequencingErrorCovariateDefinition covariateDefitionForEstimation;
-	double* tmpEpsilon;
-	bool tmpEpsilonInitialized;
 	unsigned int maxDepth; //sites with higher depth will be ignored
 
 	void _initializeModels();
 	void _runEM(std::string outputName, bool & writeTmpTables);
 	void _runNewtonRaphson();
-	void _initializTmpVariablesForEstimation();
+
+	//functions to estimate theta_epsilon (sequencing error rates)
+	void _calculate_EMWeights_epsilon(std::vector<TBaseData> & EMWeights);
+	double _calculate_Q_beta(const std::vector<TBaseData> & EM_weights_bbar_given_d);
+	void _calculate_J_F_beta(const std::vector<TBaseData> & EM_weights_bbar_given_d);
+
+	void _updateEM_theta_epsilon();
+
 
 public:
 	TRecalibrationEMEstimator(TParameters & args, BAM::TReadGroups* ReadGroups, TLog* Logfile, BAM::TReadGroupMap* ReadGroupMap);
@@ -153,8 +149,6 @@ public:
 			delete *curWindow;
 		}
 		windows.clear();
-		if(tmpEpsilonInitialized)
-			delete[] tmpEpsilon;
 	};
 
 	//functions to add data

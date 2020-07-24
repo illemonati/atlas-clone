@@ -157,11 +157,11 @@ public:
 
 
 //--------------------------------------------------------------------
-// TGenotypePosteriorProbabilities
+// TGenotypeProbabilities
 //--------------------------------------------------------------------
-class TGenotypePosteriorProbabilities:public TGenotypeData{
+class TGenotypeProbabilities:public TGenotypeData{
 public:
-	TGenotypePosteriorProbabilities();
+	TGenotypeProbabilities();
 	void reset();
 	void fill(const TGenotypeData & likelihoods, const TGenotypeData & prior);
 	double probHomozygous();

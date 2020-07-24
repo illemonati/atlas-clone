@@ -306,13 +306,13 @@ void TGenotypeLikelihoods::addNames(std::vector<std::string> & vec, const TGenot
 };
 
 //--------------------------------------------------------------------
-// TGenotypePosteriorProbabilities
+// TGenotypeProbabilities
 //--------------------------------------------------------------------
-void TGenotypePosteriorProbabilities::reset(){
+void TGenotypeProbabilities::reset(){
 	set(0.1);
 };
 
-void TGenotypePosteriorProbabilities::fill(const TGenotypeData & likelihoods, const TGenotypeData & prior){
+void TGenotypeProbabilities::fill(const TGenotypeData & likelihoods, const TGenotypeData & prior){
 	//calculate normalized genotype probabilities according to Bayes rule
 	_data[AA] = likelihoods.at(AA) * prior.at(AA);
 	_data[AC] = likelihoods.at(AC) * prior.at(AC);
@@ -328,15 +328,15 @@ void TGenotypePosteriorProbabilities::fill(const TGenotypeData & likelihoods, co
 	normalize();
 };
 
-double TGenotypePosteriorProbabilities::probHomozygous(){
+double TGenotypeProbabilities::probHomozygous(){
 	return _data[AA] + _data[CC] + _data[GG] + _data[TT];
 };
 
-double TGenotypePosteriorProbabilities::probHeterozygous(){
+double TGenotypeProbabilities::probHeterozygous(){
 	return 1.0 - _data[AA] - _data[CC] - _data[GG] - _data[TT];
 };
 
-void TGenotypePosteriorProbabilities::addNames(std::vector<std::string> & vec, const TGenotypeMap & genoMap) const{
+void TGenotypeProbabilities::addNames(std::vector<std::string> & vec, const TGenotypeMap & genoMap) const{
 	for(uint16_t g=0; g<genoMap.numGenotypes; ++g){
 		vec.push_back("P(" + genoMap.getGenotypeString(g) + "|D)");
 	}

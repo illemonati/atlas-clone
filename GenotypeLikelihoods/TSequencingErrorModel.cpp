@@ -204,12 +204,12 @@ TSequencingErrorCovariateDefinition TSequencingErrorCovariateList::getCovariateD
 // TSequencingErrorRho
 //--------------------------------------------------------------------
 TSequencingErrorRho::TSequencingErrorRho(){
-	for(int b=0; b<4; ++b){
-		for(int a=0; a<4; ++a){
+	for(int a=0; a<4; ++a){
+		for(int b=0; b<4; ++b){
 			if(a==b){
-				rho[b][a] = 0.0;
+				rho[a][b] = 0.0;
 			} else {
-				rho[b][a] = 1.0 / 3.0;
+				rho[a][b] = 1.0 / 3.0;
 			}
 		}
 	}
@@ -218,21 +218,66 @@ TSequencingErrorRho::TSequencingErrorRho(){
 void TSequencingErrorRho::fillBaseLikelihoods(const Base base, const double epsilon, TBaseData & baseLikelihoods) const{
 	baseLikelihoods[base] = 1.0 - epsilon;
 	if(base == A){
-		baseLikelihoods[C] = epsilon * rho[A][C];
-		baseLikelihoods[G] = epsilon * rho[A][G];
-		baseLikelihoods[T] = epsilon * rho[A][T];
+		baseLikelihoods[C] = epsilon * rho[C][A];
+		baseLikelihoods[G] = epsilon * rho[G][A];
+		baseLikelihoods[T] = epsilon * rho[T][A];
 	} else if(base == C){
-		baseLikelihoods[A] = epsilon * rho[C][A];
-		baseLikelihoods[G] = epsilon * rho[C][G];
-		baseLikelihoods[T] = epsilon * rho[C][T];
+		baseLikelihoods[A] = epsilon * rho[A][C];
+		baseLikelihoods[G] = epsilon * rho[G][C];
+		baseLikelihoods[T] = epsilon * rho[T][C];
 	} else if(base == G){
-		baseLikelihoods[A] = epsilon * rho[G][A];
-		baseLikelihoods[C] = epsilon * rho[G][C];
-		baseLikelihoods[T] = epsilon * rho[G][T];
+		baseLikelihoods[A] = epsilon * rho[A][G];
+		baseLikelihoods[C] = epsilon * rho[C][G];
+		baseLikelihoods[T] = epsilon * rho[T][G];
 	} else {
-		baseLikelihoods[A] = epsilon * rho[T][A];
-		baseLikelihoods[C] = epsilon * rho[T][C];
-		baseLikelihoods[G] = epsilon * rho[T][G];
+		baseLikelihoods[A] = epsilon * rho[A][T];
+		baseLikelihoods[C] = epsilon * rho[C][T];
+		baseLikelihoods[G] = epsilon * rho[G][T];
+	}
+};
+
+void TSequencingErrorRho::prepareEstimationFromEMWeights(){
+	for(int b=0; b<4; ++b){
+		for(int a=0; a<4; ++a){
+			rho[a][b] = 0.0;
+		}
+	}
+};
+
+void TSequencingErrorRho::addBaseForEstimation(const Base & base, const TBaseData & EMWeights){
+	//use a==b to store denominator
+	if(base == A){
+		rho[A][base] += 1.0 - EMWeights[A];
+		rho[C][base] += EMWeights[C];
+		rho[G][base] += EMWeights[G];
+		rho[T][base] += EMWeights[T];
+	} else if(base == C){
+		rho[A][base] += EMWeights[A];
+		rho[C][base] += 1.0 - EMWeights[C];
+		rho[G][base] += EMWeights[G];
+		rho[T][base] += EMWeights[T];
+	} else if(base == G){
+		rho[A][base] += EMWeights[A];
+		rho[C][base] += EMWeights[C];
+		rho[G][base] += 1.0 - EMWeights[G];
+		rho[T][base] += EMWeights[T];
+	} else {
+		rho[A][base] += EMWeights[A];
+		rho[C][base] += EMWeights[C];
+		rho[G][base] += EMWeights[G];
+		rho[T][base] += 1.0 - EMWeights[T];
+	}
+};
+
+void TSequencingErrorRho::estimate(){
+	//a==b is denominator
+	for(int a=0; a<4; ++a){
+		for(int b=0; b<4; ++b){
+			if(a!=b){
+				rho[a][b] /= rho[a][a];
+			}
+		}
+		rho[a][a] = 0.0;
 	}
 };
 
@@ -241,7 +286,7 @@ void TSequencingErrorRho::fillBaseLikelihoods(const Base base, const double epsi
 //--------------------------------------------------------------------
 TSequencingErrorModel::TSequencingErrorModel(TSequencingErrorCovariateDefinition & covariateMap, TLog* Logfile){
 	logfile = Logfile;
-	setEMParamsToZero();
+	setNewtonRaphosnParamsToZero();
 
 	//create covariates
 	_covariates.createCovariatesAndIntercept(covariateMap);
@@ -249,7 +294,7 @@ TSequencingErrorModel::TSequencingErrorModel(TSequencingErrorCovariateDefinition
 
 TSequencingErrorModel::TSequencingErrorModel(TSequencingErrorCovariateDefinition & covariateMap, TRecalibrationEMDataTable* dataTable, TLog* Logfile){
 	logfile = Logfile;
-	setEMParamsToZero();
+	setNewtonRaphosnParamsToZero();
 
 	//create covariates
 	_covariates.createCovariatesAndIntercept(covariateMap, dataTable);
@@ -328,8 +373,24 @@ TSequencingErrorCovariateDefinition TSequencingErrorModel::getCovariateDefinitio
 };
 
 //-------------------------------------------------
+//functions to estimate rho
+//-------------------------------------------------
+void TSequencingErrorModel::prepareRhoEstimationFromEMWeights(){
+	rho.prepareEstimationFromEMWeights();
+};
+
+void TSequencingErrorModel::addBaseForRhoEstimation(BAM::TBase & base, const TBaseData & EMWeights){
+	rho.addBaseForEstimation(base.base, EMWeights);
+};
+
+void TSequencingErrorModel::estimateRho(){
+	rho.estimate();
+};
+
+//-------------------------------------------------
 //functions for estimation
-void TSequencingErrorModel::setEMParamsToZero(){
+//-------------------------------------------------
+void TSequencingErrorModel::setNewtonRaphosnParamsToZero(){
 	_Jacobian.resize(_covariates.numParameters, _covariates.numParameters);
 	_F.resize(_covariates.numParameters);
 	_JxF.resize(_covariates.numParameters, 1);
@@ -351,6 +412,15 @@ void TSequencingErrorModel::setQToZero(){
 	}
 };
 
+void TSequencingErrorModel::addToQ(const BAM::TBase & base, const TBaseData & EM_weights_bbar_given_d){
+	if(!_NRconverged){
+		//get error rate
+		double eps = getErrorRate(base);
+		//calculate sum_bbar [ Ind(bbar=d)log(1-eps) + Ind(bbar!=d)log(eps) ]
+		_Q += EM_weights_bbar_given_d[ base.base ] * log(1.0 - eps) + (1.0 - EM_weights_bbar_given_d[ base.base ]) * log(eps);
+	}
+};
+
 void TSequencingErrorModel::addToQ(TRecalibrationEMReadData & data, const Base & knownGenotype){
 	if(!_NRconverged){
 		double eps = getErrorRate(data);
@@ -358,21 +428,13 @@ void TSequencingErrorModel::addToQ(TRecalibrationEMReadData & data, const Base &
 	}
 };
 
-void TSequencingErrorModel::addToQ(TRecalibrationEMReadData & data, double* P_g_given_d_oldBeta){
-	if(!_NRconverged){
-		//get error rate
-		double eps = getErrorRate(data);
+void TSequencingErrorModel::addToFandJacobian(const BAM::TBase & base, const TBaseData & EM_weights_bbar_given_d){
+	// 1) Calculate epsilon
+	//--------------------
+	double eps = getErrorRate(base);
 
-		//add this data for all genotypes
-		_Q += P_g_given_d_oldBeta[0] * _calcQ(eps, A, data);
-		_Q += P_g_given_d_oldBeta[1] * _calcQ(eps, C, data);
-		_Q += P_g_given_d_oldBeta[2] * _calcQ(eps, G, data);
-		_Q += P_g_given_d_oldBeta[3] * _calcQ(eps, T, data);
-	}
-};
-
-void TSequencingErrorModel::addToFandJacobian(const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian){
-	//fill derivatives
+	// 2 ) fill derivatives
+	//--------------------
 	_firstDerivatives.restart();
 	_secondDerivatives.restart();
 
@@ -381,23 +443,28 @@ void TSequencingErrorModel::addToFandJacobian(const TRecalibrationEMReadData & d
 
 	//fill derivatives of covariates
 	for(const auto & cov : _covariates.covariates){
-		cov->fillDerivatives(data, _firstDerivatives, _secondDerivatives);
+		cov->fillDerivatives(base, _firstDerivatives, _secondDerivatives);
 	}
 
-	//add first derivatives to F and Jacobian
+	// 3) add derivatives to F and Jacobian
+	//calculate weights
+	double weight1 = (1.0 - EM_weights_bbar_given_d[base.base])*(1.0 - eps) - EM_weights_bbar_given_d[base.base] * eps;
+	double weight2 = (1.0 - eps) * eps;
+
+	//add first derivatives
 	for(TRecalibrationEMFirstDerivativesIterator it = _firstDerivatives.begin(); it != _firstDerivatives.end(); ++it){
 		//add to F
-		_F(it->index) += weightF * it->derivative;
+		_F(it->index) += weight1 * it->derivative;
 
 		//add to J
 		for(TRecalibrationEMFirstDerivativesIterator it2 = it; it2 != _firstDerivatives.end(); ++it2){
-			_Jacobian(it->index, it2->index) += weightJacobian * it->derivative * it2->derivative;
+			_Jacobian(it->index, it2->index) += weight2 * it->derivative * it2->derivative;
 		}
 	}
 
 	//add second derivatives to Jacobian (happens to have the same weigth as F!)
 	for(auto& it : _secondDerivatives){
-		_Jacobian(it.index1, it.index2) += weightF * it.derivative;
+		_Jacobian(it.index1, it.index2) += weight1 * it.derivative;
 	}
 
 	++_numSitesAdded;

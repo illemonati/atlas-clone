@@ -20,15 +20,16 @@ namespace GenotypeLikelihoods{
 class TGenotypeDistribution{
 protected:
 
-	TBaseData baseFrequencies;
+	TBaseData _baseFrequencies; //reflects expected base frequencies under the model
+	TGenotypeProbabilities _genotypeFrequencies;
 
 public:
 	TGenotypeDistribution(){};
 	virtual ~TGenotypeDistribution(){};
 
-	virtual const TBaseData& baseLikelihoods(){
-		throw std::runtime_error("void TGenotypeDistribution::const TBaseData& baseLikelihoods(): not implemented for base class!");
-	};
+	const TBaseData& baseFrequencies(){ return _baseFrequencies; };
+	const TGenotypeProbabilities& genotypeFrequencies(){ return _genotypeFrequencies; };
+
 
 };
 
@@ -43,7 +44,7 @@ private:
 public:
 	TGenotypeDistribution_haploid();
 
-	const TBaseData& baseLikelihoods(){ return baseFrequencies; };
+
 
 
 };

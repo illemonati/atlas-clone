@@ -103,11 +103,17 @@ public:
 //--------------------------------------------------------------------
 class TSequencingErrorRho{
 private:
-	std::array< std::array<double, 4>, 4 > rho;
+	std::array< std::array<double, 4>, 4 > rho;  //rho[true base][observed base]
 
 public:
 	TSequencingErrorRho();
+	//TODO: need function to read in
 	void fillBaseLikelihoods(const Base base, const double epsilon, TBaseData & baseLikelihoods) const;
+
+	//functions used to estimate
+	void prepareEstimationFromEMWeights();
+	void addBaseForEstimation(const Base & base, const TBaseData & EMWeights);
+	void estimate();
 };
 
 //--------------------------------------------------------------------
@@ -121,7 +127,7 @@ private:
 	TSequencingErrorCovariateList _covariates;
 	TSequencingErrorRho rho;
 
-	//Newton Raphson Parameters
+	//Newton Raphson Parameters to estimate betas
 	double _Q, _oldQ;
 	arma::mat _Jacobian;
 	arma::vec _F;
@@ -134,11 +140,6 @@ private:
 
 	void _initializeDerivatives();
 	double _calcEpsilon(const double eta) const;
-	inline double _calcQ(const double & eps, const Base & genotype, TRecalibrationEMReadData & data) const{
-		double B = 1.33333333333333333333 * data.D[genotype] - 1.0;
-		double P_d_given_g_beta = B * eps - data.D[genotype] + 1.0;
-		return log(P_d_given_g_beta);
-	};
 
 public:
 	TSequencingErrorModel(TSequencingErrorCovariateDefinition & covariateMap, TLog* Logfile);
@@ -147,12 +148,18 @@ public:
 	bool checkParameterRange(TRecalibrationEMDataTable* dataTable, std::string & error);
 	uint16_t numParameters(){ return _covariates.numParameters; };
 
-	void setEMParamsToZero();
+	//functions to estimate rho
+	void prepareRhoEstimationFromEMWeights();
+	void addBaseForRhoEstimation(BAM::TBase & base, const TBaseData & EMWeights);
+	void estimateRho();
+
+	//functions to estimate betas
+	void setNewtonRaphosnParamsToZero();
 	void setQToZero();
+	void addToQ(const BAM::TBase & base, const TBaseData & EM_weights_bbar_given_d);
 	void addToQ(TRecalibrationEMReadData & data, const Base & knownGenotype);
-	void addToQ(TRecalibrationEMReadData & data, double* P_g_given_d_oldBeta);
 	double curQ(){ return _Q; };
-	void addToFandJacobian(const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian);
+	void addToFandJacobian(const BAM::TBase & base, const TBaseData & EM_weights_bbar_given_d);
 	bool solveJxF();
 	void proposeNewParameters(double & lambda);
 	bool acceptProposedParametersBasedOnQ();

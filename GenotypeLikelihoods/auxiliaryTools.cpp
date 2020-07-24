@@ -19,7 +19,6 @@ TRecalibrationEMDataTable::TRecalibrationEMDataTable(){
 	maxPos = 0;
 	counts = 0;
 	initialized = false;
-	countsAssembled = false;
 	qualities = nullptr;
 	fragmentLengths = nullptr;
 	MQ = nullptr;
@@ -55,21 +54,13 @@ void TRecalibrationEMDataTable::initialize(const int MaxQual, const int MaxFragm
 };
 
 void TRecalibrationEMDataTable::add(const BAM::TBase & base){
+	++counts;
 	++qualities[base.originalQuality_phredInt];
 	++fragmentLengths[base.fragmentLength];
 	++MQ[base.mappingQuality];
 	if(maxPos < base.distFrom5Prime)
 		maxPos = base.distFrom5Prime;
-};
 
-void TRecalibrationEMDataTable::assembleCounts(){
-	if(!countsAssembled){
-		counts = 0;
-		for(int i=0; i<maxQual; ++i){
-			counts += qualities[i];
-		}
-		countsAssembled = true;
-	}
 };
 
 void TRecalibrationEMDataTable::clear(){
@@ -77,13 +68,11 @@ void TRecalibrationEMDataTable::clear(){
 	for(int q=0; q<maxQual; ++q)
 		qualities[q] = 0;
 	counts = 0;
-	countsAssembled = false;
 };
 
-size_t TRecalibrationEMDataTable::size(){
-	assembleCounts();
+uint64_t TRecalibrationEMDataTable::size(){
 	return counts;
-}
+};
 
 void TRecalibrationEMDataTable::fillVectorWithUsedQualities(std::vector<uint16_t> & Q){
 	Q.clear();
@@ -113,64 +102,87 @@ void TRecalibrationEMDataTable::fillVectorWithUsedMQ(std::vector<uint16_t> & MQ)
 };
 
 //--------------------------------------------------------------------
+TRecalibrationEMDataTables::TRecalibrationEMDataTables(){
+	_initialized = false;
+	_numReadGroups = 0;
+	_maxQual = 0;
+	_tables = nullptr;
+	_totalCounts = 0;
+};
 
 TRecalibrationEMDataTables::TRecalibrationEMDataTables(const  int NumReadGroups, const int MaxQual, const int MaxFragmentLength, const int MaxMQ){
-	numReadGroups = NumReadGroups;
-	maxQual = MaxQual;
-
-	tables = new TRecalibrationEMDataTable*[numReadGroups];
-	for(int rg = 0; rg<numReadGroups; ++rg){
-		tables[rg] = new TRecalibrationEMDataTable[2];
-		tables[rg][0].initialize(maxQual, MaxFragmentLength, MaxMQ);
-		tables[rg][1].initialize(maxQual, MaxFragmentLength, MaxMQ) ;
-	}
-
-	clear();
+	_initialized = false;
+	init(NumReadGroups, MaxQual, MaxFragmentLength, MaxMQ);
 };
 
 TRecalibrationEMDataTables::~TRecalibrationEMDataTables(){
-	for(int rg = 0; rg<numReadGroups; ++rg){
-		delete[] tables[rg];
+	clear();
+};
+
+void TRecalibrationEMDataTables::init(const int NumReadGroups, const int MaxQual, const int MaxFragmentLength, const int MaxMQ){
+	//empty if already initialized
+	if(_initialized){
+		clear();
 	}
 
-	delete[] tables;
+	//crate storage
+	_numReadGroups = NumReadGroups;
+	_maxQual = MaxQual;
+
+	_tables = new TRecalibrationEMDataTable*[_numReadGroups];
+	for(int rg = 0; rg<_numReadGroups; ++rg){
+		_tables[rg] = new TRecalibrationEMDataTable[2];
+		_tables[rg][0].initialize(_maxQual, MaxFragmentLength, MaxMQ);
+		_tables[rg][1].initialize(_maxQual, MaxFragmentLength, MaxMQ) ;
+	}
+
+	_initialized = true;
+
+	//set to zero
+	reset();
 };
 
 void TRecalibrationEMDataTables::clear(){
-	for(int rg = 0; rg<numReadGroups; ++rg){
-		tables[rg][0].clear();
-		tables[rg][1].clear();
+	for(int rg = 0; rg<_numReadGroups; ++rg){
+		delete[] _tables[rg];
 	}
-	totalCounts = 0;
+
+	delete[] _tables;
+};
+
+void TRecalibrationEMDataTables::reset(){
+	for(int rg = 0; rg<_numReadGroups; ++rg){
+		_tables[rg][0].clear();
+		_tables[rg][1].clear();
+	}
+	_totalCounts = 0;
 };
 
 void TRecalibrationEMDataTables::add(const BAM::TBase & base){
-	tables[base.readGroupID][(int) base.isSecondMate()].add(base);
+	++_totalCounts;
+	_tables[base.readGroupID][(int) base.isSecondMate()].add(base);
 };
 
 void TRecalibrationEMDataTables::add(const TSiteStorage & site){
 	for(std::vector<BAM::TBase>::const_iterator b = site.cbegin(); b != site.cend(); ++b){
-		tables[b->readGroupID][(int) b->isSecondMate()].add(*b);
-	}
-};
-
-void TRecalibrationEMDataTables::assembleCountsPerReadGroup(){
-	totalCounts = 0;
-	for(int rg = 0; rg<numReadGroups; ++rg){
-		totalCounts = tables[rg][0].size() + tables[rg][1].size();
+		_tables[b->readGroupID][(int) b->isSecondMate()].add(*b);
 	}
 };
 
 void TRecalibrationEMDataTables::fillVectorWithUsedQualities(const int readGroupId, const bool isSecondMate, std::vector<uint16_t> & Q){
-	tables[readGroupId][(int) isSecondMate].fillVectorWithUsedQualities(Q);
+	_tables[readGroupId][(int) isSecondMate].fillVectorWithUsedQualities(Q);
 };
 
-TRecalibrationEMDataTable* TRecalibrationEMDataTables::getTable(const int readGroupId, const bool isSecondMate){
-	return &tables[readGroupId][(int) isSecondMate];
+uint64_t TRecalibrationEMDataTables::size(){
+	return _totalCounts;
 };
 
-TRecalibrationEMDataTable* TRecalibrationEMDataTables::getTable(const int readGroupId, const int isSecondMate){
-	return &tables[readGroupId][isSecondMate];
+TRecalibrationEMDataTable* TRecalibrationEMDataTables::table(const int readGroupId, const bool isSecondMate){
+	return &_tables[readGroupId][(int) isSecondMate];
+};
+
+TRecalibrationEMDataTable* TRecalibrationEMDataTables::table(const int readGroupId, const int isSecondMate){
+	return &_tables[readGroupId][isSecondMate];
 };
 //--------------------------------------------------------------------
 // TRecalibrationEMReadGroupIndex

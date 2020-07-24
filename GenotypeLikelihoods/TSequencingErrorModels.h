@@ -75,7 +75,6 @@ public:
 	void warningForMissingReadGroups() const;
 
 	//calculate error rates
-	double getErrorRate(const TRecalibrationEMReadData & data) const;
 	double getErrorRate(const BAM::TBase & base) const;
 	uint8_t getPhredInt(const BAM::TBase & base) const;
 	void recalibrate(BAM::TBase & base) const;
@@ -83,11 +82,16 @@ public:
 	void recalibrate(std::vector<BAM::TBase> & bases) const;
 	void calculateBaseLikelihoods(const BAM::TBase & base, TBaseData & baseLikelihoods) const;
 
-	//function to estimate
-	void setEMParamsToZero();
-	void addToFandJacobian(const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian);
+	//functions to estimate rho
+	void prepareRhoEstimationFromEMWeights();
+	void addBaseForRhoEstimation(BAM::TBase & base, const TBaseData & EMWeights);
+	void estimateRho();
+
+	//functions to estimate beta
+	void setNewtonRaphsonParamsToZero();
+	void addToFandJacobian(const BAM::TBase & base, const TBaseData & EM_weights_bbar_given_d);
 	void setQToZero();
-	void addToQ(TRecalibrationEMReadData & data, double* P_g_given_d_oldBeta);
+	void addToQ(const BAM::TBase & base, const TBaseData & EM_weights_bbar_given_d);
 	void addToQ(TRecalibrationEMReadData & data, const Base & knownGenotype);
 	double curQ();
 	bool solveJxF();

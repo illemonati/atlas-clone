@@ -30,7 +30,7 @@ private:
 
 	//tmp variables
 	GenotypeLikelihoods::TGenotypeData _prior;
-	GenotypeLikelihoods::TGenotypePosteriorProbabilities _posterior;
+	GenotypeLikelihoods::TGenotypeProbabilities _posterior;
 	GenotypeLikelihoods::TBaseData _baseFreq;
 
 	void _handleWindow();

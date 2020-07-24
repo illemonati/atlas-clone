@@ -152,7 +152,7 @@ void TSequencingErrorModels::addModelsFromFile(const std::string filename, TReca
 	for(auto& def: modelDefs){
 		//if read group is pooled, only create model using the values of the first read group of the pool
 		if(!modelExists(def)){
-			addModel(def.readGroupId, def.isSecondMate, def.covariates, dataTables->getTable(def.readGroupId, def.isSecondMate));
+			addModel(def.readGroupId, def.isSecondMate, def.covariates, dataTables->table(def.readGroupId, def.isSecondMate));
 		}
 	}
 	logfile->done();
@@ -264,15 +264,6 @@ void TSequencingErrorModels::warningForMissingReadGroups() const{
 
 //functions to get error rates
 //-------------------------------------------------------
-
-double TSequencingErrorModels::getErrorRate(const TRecalibrationEMReadData & data) const{
-	if(doRecalibration){
-		return models[ readGroupIndex.index(data) ].getErrorRate(data);
-	} else {
-		return qualMap.phredIntToError(data.qualityAsPhredInt);
-	}
-};
-
 double TSequencingErrorModels::getErrorRate(const BAM::TBase & base) const{
 	if(base.base == N){
 		return 1.0;
@@ -348,16 +339,35 @@ void TSequencingErrorModels::calculateBaseLikelihoods(const BAM::TBase & base, T
 };
 
 
-// functions for estimation
+//functions to estimate rho
 //-------------------------------------------------------------------
-void TSequencingErrorModels::setEMParamsToZero(){
+//functions to estimate rho
+void TSequencingErrorModels::prepareRhoEstimationFromEMWeights(){
 	for(auto& model : models){
-		model.setEMParamsToZero();
+		model.prepareRhoEstimationFromEMWeights();
 	}
 };
 
-void TSequencingErrorModels::addToFandJacobian(const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian){
-	models[ readGroupIndex.index(data) ].addToFandJacobian(data, weightF, weightJacobian);
+void TSequencingErrorModels::addBaseForRhoEstimation(BAM::TBase & base, const TBaseData & EMWeights){
+	models[ readGroupIndex.index(base) ].addBaseForRhoEstimation(base, EMWeights);
+};
+
+void TSequencingErrorModels::estimateRho(){
+	for(auto& model : models){
+		model.estimateRho();
+	}
+};
+
+//functions to estimate beta
+//-------------------------------------------------------------------
+void TSequencingErrorModels::setNewtonRaphsonParamsToZero(){
+	for(auto& model : models){
+		model.setNewtonRaphosnParamsToZero();
+	}
+};
+
+void TSequencingErrorModels::addToFandJacobian(const BAM::TBase & base, const TBaseData & EM_weights_bbar_given_d){
+	models[ readGroupIndex.index(base) ].addToFandJacobian(base, EM_weights_bbar_given_d);
 };
 
 void TSequencingErrorModels::setQToZero(){
@@ -366,12 +376,8 @@ void TSequencingErrorModels::setQToZero(){
 	}
 };
 
-void TSequencingErrorModels::addToQ(TRecalibrationEMReadData & data, double* P_g_given_d_oldBeta){
-	models[ readGroupIndex.index(data) ].addToQ(data, P_g_given_d_oldBeta);
-};
-
-void TSequencingErrorModels::addToQ(TRecalibrationEMReadData & data, const Base & knownGenotype){
-	models[ readGroupIndex.index(data) ].addToQ(data, knownGenotype);
+void TSequencingErrorModels::addToQ(const BAM::TBase & base, const TBaseData & EM_weights_bbar_given_d){
+	models[ readGroupIndex.index(base) ].addToQ(base, EM_weights_bbar_given_d);
 };
 
 double TSequencingErrorModels::curQ(){

@@ -163,7 +163,7 @@ void TRecalibrationEMSite::_addToJacobianAndF(TSequencingErrorModels & models, d
 	}
 
 	//fill F and Jacobian
-	for(int g=0; g<4; ++g){TSiteStorage
+	for(int g=0; g<4; ++g){
 		for(unsigned int k=0; k<numReads; ++k){
 			//calc weights
 			double B = calcB(data[k].D[g]);
@@ -210,6 +210,7 @@ void TRecalibrationEMSite::addToJacobianAndF(TSequencingErrorModels & models, do
 	}
 };
 */
+
 
 //---------------------------------------------------------------
 //TRecalibrationEMWindow
@@ -300,8 +301,6 @@ void TRecalibrationEMWindow::setEuqalBaseFrequencies(){
 //---------------------------------------------------------------
 TRecalibrationEMEstimator::TRecalibrationEMEstimator(TParameters & args, BAM::TReadGroups* ReadGroups, TLog* Logfile, BAM::TReadGroupMap* ReadGroupMap){
 	logfile = Logfile;
-	tmpEpsilon = NULL;
-	tmpEpsilonInitialized = false;
 	maxDepth = -1;
 
 	//read groups
@@ -350,14 +349,14 @@ TRecalibrationEMEstimator::TRecalibrationEMEstimator(TParameters & args, BAM::TR
 void TRecalibrationEMEstimator::_initializeModels(){
 	//count data available for recal
 	logfile->listFlush("Counting data available for recal ...");
-	TRecalibrationEMDataTables dataTables(_readGroups->size(), 500, 1000, 500);
+	dataTables.init(_readGroups->size(), 500, 1000, 500);
 	addToDataTable(dataTables);
 	int numSitesWithData = numSites();
 	logfile->done();
 
 	logfile->conclude("Number of sites with data: " + toString(numSitesWithData));
 	logfile->conclude("Number of sites with depth > 1: " + toString(numSitesDepthTwoOrMore()));
-	logfile->conclude("Number of observations: " + toString(dataTables.totalCounts));
+	logfile->conclude("Number of observations: " + toString(dataTables._totalCounts));
 	if(numSitesWithData < 100) throw "Less than 100 sites available for recalibration - aborting estimation!";
 
 	//initialize models based on data tables?
@@ -384,7 +383,7 @@ void TRecalibrationEMEstimator::_initializeModels(){
 	int numModelsWithoutData = 0;
 	for(uint16_t rg = 0; rg < _readGroupMap->getNumReadGroups(); ++rg){
 		for(int mate = 0; mate < 2; ++mate){
-			TRecalibrationEMDataTable* table = dataTables.getTable(rg, mate);
+			TRecalibrationEMDataTable* table = dataTables.table(rg, mate);
 			if(table->size() > 0){
 				models.addModel(rg, mate, covariateDefitionForEstimation, table);
 				if(table->size() < minRequiredObservations)
@@ -407,11 +406,11 @@ void TRecalibrationEMEstimator::_initializeModels(){
 
 		for(size_t rg = 0; rg < _readGroups->size(); ++rg){
 			int index = _readGroupMap->getIndex(rg);
-			TRecalibrationEMDataTable* table = dataTables.getTable(index, false);
+			TRecalibrationEMDataTable* table = dataTables.table(index, false);
 			if(table->size() > 0 && table->size() < minRequiredObservations)
 				logfile->list(_readGroups->getName(rg)  + " (first mate): only " + toString(table->size()) + " observations.");
 
-			table = dataTables.getTable(index, true);
+			table = dataTables.table(index, true);
 			if(table->size() > 0 && table->size() < minRequiredObservations)
 				logfile->list(_readGroups->getName(rg)  + " (second mate): only " + toString(table->size()) + " observations.");
 		}
@@ -448,9 +447,6 @@ void TRecalibrationEMEstimator::performEstimationKnownGenotypes(std::string outp
 	//initialize models
 	_initializeModels();
 
-	//initialize tmp variables in windows and model
-	_initializTmpVariablesForEstimation();
-
 	//run Newton-Raphson optimization
 	_runNewtonRaphson();
 
@@ -461,19 +457,168 @@ void TRecalibrationEMEstimator::performEstimationKnownGenotypes(std::string outp
 	logfile->done();
 };
 
+void TRecalibrationEMEstimator::_calculate_EMWeights_epsilon(std::vector<TBaseData> & EMWeights){
+	//make sure EM-weight storage is of appropriate size
+	EMWeights.resize(dataTables.size());
 
-void TRecalibrationEMEstimator::calculateEMWeights(TSiteStorage & site){
+	//loop over all bases and calculate EM-weights
+	size_t index = 0;
+	for(auto& w : windows){
+		TBaseData& baseFreq = w.expectedBaseFrequencies();
+		for(auto& s : w){
+			for(auto& b : s){
+				TBaseData noPMD;
+				models.calculateBaseLikelihoods(b, noPMD);
+				_pmd.calculateBaseLikelihoods(b, noPMD, EMWeights[index]);
+				EMWeights[index] *= baseFreq;
+				EMWeights[index].normalize();
+
+				//increment index
+				++index;
+			}
+		}
+	}
+};
+
+double TRecalibrationEMEstimator::_calculate_Q_beta(const std::vector<TBaseData> & EM_weights_bbar_given_d){
+	models.setQToZero();
+
+	//loop over all bases and add them to Q
+	size_t index = 0;
+	for(auto& w : windows){
+		for(auto& s : w){
+			for(auto& b : s){
+				models.addToQ(b, EM_weights_bbar_given_d[index]);
+				++index;
+			}
+		}
+	}
+
+	//return total Q
+	return models.curQ();
+};
+
+void TRecalibrationEMEstimator::_calculate_J_F_beta(const std::vector<TBaseData> & EM_weights_bbar_given_d){
+	logfile->listFlush("Calculating Jacobian and gradient ...");
+	models.setNewtonRaphsonParamsToZero();
+
+	size_t index = 0;
+	for(auto& w : windows){
+		for(auto& s : w){
+			for(auto& b : s){
+				models.addToFandJacobian(b, EM_weights_bbar_given_d[index]);
+				++index;
+			}
+		}
+	}
+
+	//solve J^-1 x F
+	models.solveJxF();
+	logfile->done();
+};
 
 
-	_pmd.calculateBaseLikelihoods(site,  _baseLikelihoods)
+
+void TRecalibrationEMEstimator::_updateEM_theta_epsilon(){
+	logfile->startIndent("Updating sequencing error models (theta_epsilon):");
+
+	// 1) calculate EM weights
+	//-------------------------
+	std::vector<TBaseData> EM_weights_bbar_given_d;
+	_calculate_EMWeights_epsilon(EM_weights_bbar_given_d);
+
+	// 2) update rho
+	size_t index = 0;
+	for(auto& w : windows){
+		for(auto& s : w){
+			for(auto& b : s){
+				models.addToFandJacobian(b, EM_weights_bbar_given_d[index]);
+				++index;
+			}
+		}
+	}
+
+	// 3) Calculate Q_beta at current location
+	double curQ = _calculate_Q_beta(EM_weights_bbar_given_d);
+
+	// 4) Use Newton-Raphson to optimize
+	logfile->startNumbering("Optimizing Q_beta using a Newton-Raphson algorithm:");
+
+	for(int i=0; i<NewtonRaphsonNumIterations; ++i){
+		logfile->startIndent("Running Newton-Raphson iteration " + toString(i+1) + ":");
+
+		// a) fill Jacobin and F
+		_calculate_J_F_beta(EM_weights_bbar_given_d);
+
+		// b) update parameters using backtracking
+		double lambda = 1.0;
+		int log2_lambda = 0;
+		int numUpdatedModels = 0;
+		int numUpdatedModels_old;
+
+		while(numUpdatedModels < models.numModels() && lambda > 1.0E-20){
+			//propose move
+			logfile->listFlush("Proposing move with log2(lambda) = " + toString(log2_lambda) + " ... ");
+			models.proposeNewParameters(lambda);
+
+			//calculate Q at new location
+			double Q = _calculate_Q_beta(EM_weights_bbar_given_d);
+
+			//check if we accept or backtrack
+			numUpdatedModels_old = numUpdatedModels;
+			numUpdatedModels = models.acceptProposedParametersBasedOnQ();
+			logfile->write(toString(numUpdatedModels) + "/" + toString(models.numModels()) + " models converged.");
+
+			if(numUpdatedModels > numUpdatedModels_old){
+				logfile->conclude("Q_beta was increased from " + toString(curQ) + " to " + toString(Q));
+			}
+			curQ = Q;
+
+			//backtrack
+			lambda = lambda / 2.0; //backtrack;
+			--log2_lambda;
+		}
+
+		if(numUpdatedModels < models.numModels()){
+			logfile->conclude("Some models did not improve even with log2(lambda) = " + toString(log2_lambda) + ", aborting Newton-Raphson.");
+		}
+
+		// c) adjust parameters post estimation
+		models.adjustParametersPostEstimation();
+
+		// d) get largest gradient (F) to check if we break NR optimization
+		double maxF = models.getSteepestGradient();
+		logfile->conclude("max(F) = " + toString(maxF));
+		logfile->endIndent();
+		if(maxF < NewtonRaphsonMaxF || numUpdatedModels == 0) break;
+	}
+	logfile->endIndent();
+};
+
+void TRecalibrationEMEstimator::_calculateLL_fullModel(){
+
+	size_t index = 0;
+	for(auto& w : windows){
+		TGenotypeProbabilities& genoFreq = w.expectedBaseFrequencies();
+		for(auto& s : w){
+			for(auto& b : s){
+				TBaseData noPMD, withPMD;
+				models.calculateBaseLikelihoods(b, noPMD);
+				_pmd.calculateBaseLikelihoods(b, noPMD, withPMD);
+
+
+
+				//increment index
+				++index;
+			}
+		}
+	}
+
 };
 
 void TRecalibrationEMEstimator::_runEM(std::string outputName, bool & writeTmpTables){
 	//run EM
-	logfile->startNumbering("Running EM algorithm to find MLE recalibration parameters:");
-
-	//initialize tmp variables in windows and model
-	_initializTmpVariablesForEstimation();
+	logfile->startNumbering("Running EM algorithm:");
 
 	double LL, deltaLL, oldLL = 0.0;
 	std::ofstream out;
@@ -483,7 +628,11 @@ void TRecalibrationEMEstimator::_runEM(std::string outputName, bool & writeTmpTa
 	for(int iter = 0; iter < numEMIterations; ++iter){
 		logfile->number("EM Iteration:"); logfile->addIndent();
 
-		//calculate EM weights
+		//update theta_epsilon (sequencing errors)
+		_updateEM_theta_epsilon();
+
+		//calculate LL
+
 
 
 		//calculate EM weights P(g|d, theta_eps') for all sites and calculate LL
@@ -493,16 +642,6 @@ void TRecalibrationEMEstimator::_runEM(std::string outputName, bool & writeTmpTa
 			LL += curWindow->fill_P_g_given_d_beta_AND_calcLL(models, tmpEpsilon);
 		logfile->done();
 		logfile->conclude("Current Log Likelihood = " + toString(LL));
-
-		//DEBUG--------------------------------------------------------
-		//calc and print LL
-		//logfile->conclude("DEBUG LL = " + toString(calcLL()));
-		//DEBUG--------------------------------------------------------
-
-		//DEBUG--------------------------------------------------------
-		//calc Q surface for current old params
-		//calcQSurface(outputName + "_Qsurface_EMiteration_" + toString(iter) + ".txt", 21);
-		//DEBUG--------------------------------------------------------
 
 		//check if we break based on LL
 		if(iter > 0){
@@ -548,7 +687,7 @@ void TRecalibrationEMEstimator::_runNewtonRaphson(){
 
 		//fill Jacobin and F: loop over all sites
 		logfile->listFlush("Calculating Jacobian and gradient ...");
-		models.setEMParamsToZero();
+		models.setNewtonRaphsonParamsToZero();
 		for(curWindow = windows.begin(); curWindow != windows.end(); ++curWindow)
 			(*curWindow)->addToJacobianAndF(models, tmpEpsilon);
 
@@ -603,25 +742,6 @@ void TRecalibrationEMEstimator::_runNewtonRaphson(){
 		if(maxF < NewtonRaphsonMaxF || numUpdatedModels == 0) break;
 	}
 	logfile->endIndent();
-};
-
-void TRecalibrationEMEstimator::_initializTmpVariablesForEstimation(){
-	//initialize tmp epsilon
-	if(!tmpEpsilonInitialized){
-		int maxDepth = 0;
-		for(TRecalibrationEMWindow* curWindow : windows){
-			int tmp = curWindow->getMaxDepth();
-			if(tmp > maxDepth)
-				maxDepth = tmp;
-		}
-
-		//now crate array
-		tmpEpsilon = new double[maxDepth];
-		tmpEpsilonInitialized = true;
-	}
-
-	//initialize variables in models
-	models.setEMParamsToZero();
 };
 
 void TRecalibrationEMEstimator::addNewWindow(const TBaseData & freqs){
