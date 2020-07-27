@@ -157,7 +157,6 @@ public:
 	void setNewtonRaphosnParamsToZero();
 	void setQToZero();
 	void addToQ(const BAM::TBase & base, const TBaseData & EM_weights_bbar_given_d);
-	void addToQ(TRecalibrationEMReadData & data, const Base & knownGenotype);
 	double curQ(){ return _Q; };
 	void addToFandJacobian(const BAM::TBase & base, const TBaseData & EM_weights_bbar_given_d);
 	bool solveJxF();

@@ -296,7 +296,7 @@ void TSequencingErrorModels::recalibrate(BAM::TBase & base) const{
 
 void TSequencingErrorModels::recalibrate(std::vector<BAM::TBase> & bases, const uint16_t length) const{
 	if(doRecalibration){
-		TSequencingErrorModel& model = models[ readGroupIndex.index(bases[0]) ];
+		const TSequencingErrorModel& model = models[ readGroupIndex.index(bases[0]) ];
 		for(uint16_t i=0; i<length; ++i){
 			if(bases[i].base == N){
 				bases[i].recalibratedQualityAsPhredInt = 0;
@@ -313,7 +313,7 @@ void TSequencingErrorModels::recalibrate(std::vector<BAM::TBase> & bases, const 
 
 void TSequencingErrorModels::recalibrate(std::vector<BAM::TBase> & bases) const{
 	if(doRecalibration){
-		TSequencingErrorModel& model = models[ readGroupIndex.index(bases[0]) ];
+		const TSequencingErrorModel& model = models[ readGroupIndex.index(bases[0]) ];
 		for(auto& b : bases){
 			if(b.base == N){
 				b.recalibratedQualityAsPhredInt = 0;

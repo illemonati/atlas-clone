@@ -11,8 +11,8 @@
 #include <fstream>
 #include <set>
 #include <map>
-#include "commonutilities/TLog.h"
-#include "commonutilities/stringFunctions.h"
+#include "TLog.h"
+#include "stringFunctions.h"
 
 #include "TFastaBuffer.h"
 #include "TChromosomes.h"

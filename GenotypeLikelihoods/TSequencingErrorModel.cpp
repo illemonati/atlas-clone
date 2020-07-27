@@ -15,7 +15,7 @@ namespace GenotypeLikelihoods{
 //--------------------------------------------------------------------
 bool TSequencingErrorCovariateDefinition::parse(const std::string & modelString, std::string & error){
 	std::vector<std::string> tmp;
-	fillVectorFromStringAnySkipEmpty(modelString, tmp, ";");
+	fillVectorFromString(modelString, tmp, ';', true);
 	for(std::string s : tmp){
 		size_t pos = s.find('=');
 		if(pos == std::string::npos){
@@ -247,25 +247,25 @@ void TSequencingErrorRho::prepareEstimationFromEMWeights(){
 void TSequencingErrorRho::addBaseForEstimation(const Base & base, const TBaseData & EMWeights){
 	//use a==b to store denominator
 	if(base == A){
-		rho[A][base] += 1.0 - EMWeights[A];
-		rho[C][base] += EMWeights[C];
-		rho[G][base] += EMWeights[G];
-		rho[T][base] += EMWeights[T];
+		rho[A][base] += 1.0 - EMWeights.at(A);
+		rho[C][base] += EMWeights.at(C);
+		rho[G][base] += EMWeights.at(G);
+		rho[T][base] += EMWeights.at(T);
 	} else if(base == C){
-		rho[A][base] += EMWeights[A];
-		rho[C][base] += 1.0 - EMWeights[C];
-		rho[G][base] += EMWeights[G];
-		rho[T][base] += EMWeights[T];
+		rho[A][base] += EMWeights.at(A);
+		rho[C][base] += 1.0 - EMWeights.at(C);
+		rho[G][base] += EMWeights.at(G);
+		rho[T][base] += EMWeights.at(T);
 	} else if(base == G){
-		rho[A][base] += EMWeights[A];
-		rho[C][base] += EMWeights[C];
-		rho[G][base] += 1.0 - EMWeights[G];
-		rho[T][base] += EMWeights[T];
+		rho[A][base] += EMWeights.at(A);
+		rho[C][base] += EMWeights.at(C);
+		rho[G][base] += 1.0 - EMWeights.at(G);
+		rho[T][base] += EMWeights.at(T);
 	} else {
-		rho[A][base] += EMWeights[A];
-		rho[C][base] += EMWeights[C];
-		rho[G][base] += EMWeights[G];
-		rho[T][base] += 1.0 - EMWeights[T];
+		rho[A][base] += EMWeights.at(A);
+		rho[C][base] += EMWeights.at(C);
+		rho[G][base] += EMWeights.at(G);
+		rho[T][base] += 1.0 - EMWeights.at(T);
 	}
 };
 
@@ -346,17 +346,6 @@ double TSequencingErrorModel::getErrorRate(const BAM::TBase & base) const{
 	return _calcEpsilon(eta);
 };
 
-double TSequencingErrorModel::getErrorRate(const TRecalibrationEMReadData & data) const{
-	//eta = bta[0] + SUM_i f(q[i]), where the functions are implemented as covariate function
-	double eta = _covariates.intercept.getEtaTerm();
-
-	for(auto & cov : _covariates.covariates){
-		eta += cov->getEtaTerm(data);
-	}
-
-	return _calcEpsilon(eta);
-};
-
 void TSequencingErrorModel::fillBaseLikelihoods(const BAM::TBase & base, TBaseData & baseLikelihoods) const{
 	//first calculate epsilon
 	double eta = _covariates.intercept.getEtaTerm();
@@ -417,14 +406,7 @@ void TSequencingErrorModel::addToQ(const BAM::TBase & base, const TBaseData & EM
 		//get error rate
 		double eps = getErrorRate(base);
 		//calculate sum_bbar [ Ind(bbar=d)log(1-eps) + Ind(bbar!=d)log(eps) ]
-		_Q += EM_weights_bbar_given_d[ base.base ] * log(1.0 - eps) + (1.0 - EM_weights_bbar_given_d[ base.base ]) * log(eps);
-	}
-};
-
-void TSequencingErrorModel::addToQ(TRecalibrationEMReadData & data, const Base & knownGenotype){
-	if(!_NRconverged){
-		double eps = getErrorRate(data);
-		_Q += _calcQ(eps, knownGenotype, data);
+		_Q += EM_weights_bbar_given_d.at( base.base ) * log(1.0 - eps) + (1.0 - EM_weights_bbar_given_d.at( base.base )) * log(eps);
 	}
 };
 
@@ -448,7 +430,7 @@ void TSequencingErrorModel::addToFandJacobian(const BAM::TBase & base, const TBa
 
 	// 3) add derivatives to F and Jacobian
 	//calculate weights
-	double weight1 = (1.0 - EM_weights_bbar_given_d[base.base])*(1.0 - eps) - EM_weights_bbar_given_d[base.base] * eps;
+	double weight1 = (1.0 - EM_weights_bbar_given_d.at(base.base))*(1.0 - eps) - EM_weights_bbar_given_d.at(base.base) * eps;
 	double weight2 = (1.0 - eps) * eps;
 
 	//add first derivatives

@@ -17,8 +17,8 @@ void TSite::clear(){
 	_referenceBase = N;
 };
 
-void TSite::add(const BAM::TBase * base){
-	_bases.emplace_back(base);
+void TSite::add(BAM::TBase* base){
+	_bases.push_back(base);
 };
 
 void TSite::addToBaseFrequencies(TBaseData & frequencies) const{
@@ -92,6 +92,14 @@ void TSite::countFwdRev(int* frCounts) const{
 //-------------------------------------------------------
 //TSiteStorage
 //-------------------------------------------------------
+TSiteStorage::TSiteStorage(const TSite & site){
+	_referenceBase = site.refBase();
+	_genotype = site.genotype();
+	for(std::vector<BAM::TBase*>::const_iterator b = site.cbegin(); b != site.cend(); ++b){
+		_bases.emplace_back(**b);
+	}
+};
+
 void TSiteStorage::clear(){
 	_bases.clear();
 	_referenceBase = N;

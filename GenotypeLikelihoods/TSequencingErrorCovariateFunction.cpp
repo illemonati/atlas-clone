@@ -153,7 +153,7 @@ double TSequencingErrorCovariateFunction_intercept::getEtaTerm() const{
 	return _betas[0];
 };
 
-double TSequencingErrorCovariateFunction_intercept::getEtaTerm(const uint16_t val){
+double TSequencingErrorCovariateFunction_intercept::getEtaTerm(const uint16_t val) const{
 	return _betas[0];
 };
 
@@ -161,7 +161,7 @@ void TSequencingErrorCovariateFunction_intercept::fillDerivatives(TRecalibration
 	first.add(_firstParameterIndex, 1.0);
 };
 
-void TSequencingErrorCovariateFunction_intercept::fillDerivatives(const uint16_t & val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second){
+void TSequencingErrorCovariateFunction_intercept::fillDerivatives(const uint16_t & val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second) const{
 	first.add(_firstParameterIndex, 1.0);
 };
 
@@ -214,15 +214,15 @@ void TSequencingErrorCovariateFunction_polynomial::fillDerivatives(const uint16_
 //--------------------------------------------------------------
 TProbitTmpStorage::TProbitTmpStorage(const std::vector<double> & betas, const uint16_t q){
 	double z = betas[1] + betas[2] * (double) q;
-	_cumulDens_Phi[q] = TNormalDistr::cumulativeDistrFunction(z);
-	_normalDens_phi[q] = TNormalDistr::density(z);
-	_eta[q] = _cumulDens_Phi[q] * betas[0];
-	_normalDens_q[q] = _normalDens_phi[q] * (double) q;
-	_normalDens_Beta1[q] = _normalDens_phi[q] * betas[0];
-	_normalDens_Beta1_q[q] = _normalDens_Beta1[q] * (double) q;
-	_normalDens_Beta1_z[q] = _normalDens_Beta1[q] * z;
-	_normalDens_Beta1_q_z[q] = _normalDens_Beta1_q[q] * z;
-	_normalDens_Beta1_q2_z[q] = _normalDens_Beta1_q_z[q] * (double) q;
+	_cumulDens_Phi = TNormalDistr::cumulativeDistrFunction(z);
+	_normalDens_phi = TNormalDistr::density(z);
+	_eta = _cumulDens_Phi * betas[0];
+	_normalDens_q = _normalDens_phi * (double) q;
+	_normalDens_Beta1 = _normalDens_phi * betas[0];
+	_normalDens_Beta1_q = _normalDens_Beta1 * (double) q;
+	_normalDens_Beta1_z = _normalDens_Beta1 * z;
+	_normalDens_Beta1_q_z = _normalDens_Beta1_q * z;
+	_normalDens_Beta1_q2_z = _normalDens_Beta1_q_z * (double) q;
 };
 
 void TRecalibrationEMCovariateFunction_probit::_init(const uint16_t MaxValue){
@@ -236,7 +236,7 @@ void TRecalibrationEMCovariateFunction_probit::_init(const uint16_t MaxValue){
 
 	//prepare tmp storage for phi and Phi
 	if(MaxValue < 1){
-		MaxValue = 128;
+		_maxValue = 128;
 	}
 	_expandTmpStorage(MaxValue);
 };

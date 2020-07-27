@@ -26,15 +26,19 @@ namespace GenotypeLikelihoods{
 class TSite_base{
 protected:
 	Base _referenceBase;
+	Genotype _genotype;
 
 public:
 	TSite_base(){
 		_referenceBase = N;
+		_genotype = NN;
 	};
 
 	void setRefBase(const Base ref){ _referenceBase = ref; };
-	Base getRefBase() const {return _referenceBase;};
+	Base refBase() const {return _referenceBase;};
 
+	void setGenotype(const Genotype genotype){ _genotype = genotype; };
+	Genotype genotype() const{ return _genotype; };
 };
 
 //----------------------------------------------------------------------------------------------------------------------------------
@@ -55,11 +59,14 @@ public:
 	const BAM::TBase& at(size_t i) const{ return *_bases[i]; };
 	BAM::TBase& operator[](size_t i){ return *_bases[i]; };
 
-	void add(const BAM::TBase * base);
+	void add(BAM::TBase * base);
 	void addToBaseFrequencies(TBaseData & frequencies) const;
+
 	bool empty() const{ return _bases.empty(); };
 	uint32_t depth() const;
 	uint32_t refDepth() const;
+	std::string getBases(const TGenotypeMap & genoMap) const;
+	std::string getQualities(const TQualityMap & qualMap) const;
 
 	void countAlleles(TBaseCounts & alleleCounts) const;
 	void countMates(int* mateCounts) const;
@@ -78,11 +85,12 @@ public:
 // Used in routines that need to keep sites in memory beyond scope of windows.
 // Standard way of using is to first read data into TSites, then to filter sites and "copy" the data of TSite into TSiteStorage
 //----------------------------------------------------------------------------------------------------------------------------------
-class TSiteStorage:TSite_base{
+class TSiteStorage:public TSite_base{
 protected:
 	std::vector<BAM::TBase> _bases;
 
 public:
+	TSiteStorage(const TSite & site);
 	void clear();
 
 	const BAM::TBase& at(size_t i) const{ return _bases[i]; };
@@ -92,8 +100,6 @@ public:
 	void add(const BAM::TBase & base);
 
 	void addToBaseFrequencies(TBaseData & frequencies) const;
-	std::string getBases(const TGenotypeMap & genoMap) const;
-	std::string getQualities(const TQualityMap & qualMap) const;
 	bool empty() const{ return _bases.empty(); };
 	uint32_t depth() const;
 

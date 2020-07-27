@@ -48,6 +48,7 @@ public:
 
 	bool sameChr(const TGenomePosition other) const;
 
+	bool operator==(const TGenomePosition other) const;
 	bool operator<(const TGenomePosition other) const;
 	bool operator<(const TGenomeWindow other) const;
 	bool operator>(const TGenomeWindow other) const;

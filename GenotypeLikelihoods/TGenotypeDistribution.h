@@ -8,7 +8,7 @@
 #ifndef GENOTYPELIKELIHOODS_TGENOTYPEDISTRIBUTION_H_
 #define GENOTYPELIKELIHOODS_TGENOTYPEDISTRIBUTION_H_
 
-#include "auxiliaryTools.h"
+#include "TGenotypeData.h"
 
 namespace GenotypeLikelihoods{
 
@@ -27,8 +27,12 @@ public:
 	TGenotypeDistribution(){};
 	virtual ~TGenotypeDistribution(){};
 
+	virtual void reset(){};
+
 	const TBaseData& baseFrequencies(){ return _baseFrequencies; };
 	const TGenotypeProbabilities& genotypeFrequencies(){ return _genotypeFrequencies; };
+
+	void fillBaseFrequences(TBaseData & baseFreq, const Genotype genotype);
 
 
 };
@@ -44,7 +48,7 @@ private:
 public:
 	TGenotypeDistribution_haploid();
 
-
+	void reset();
 
 
 };

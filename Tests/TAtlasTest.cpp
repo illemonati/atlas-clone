@@ -515,7 +515,7 @@ bool TAtlasTest_allelicDepth::checkAllelicDepthTable(){
 		//read line into vector
 		++numLines;
 		std::vector<std::string> line;
-		fillVectorFromLineWhiteSpaceSkipEmpty(in, line);
+		fillVectorFromLineWhiteSpace(in, line, true);
 
 		//skip empty
 		if(line.size() == 0) continue;

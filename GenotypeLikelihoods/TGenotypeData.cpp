@@ -305,7 +305,6 @@ void TGenotypeLikelihoods::addNames(std::vector<std::string> & vec, const TGenot
 	}
 };
 
-
 //--------------------------------------------------------------------
 // TGenotypeLikelihoodsHaploid
 //--------------------------------------------------------------------
@@ -313,15 +312,24 @@ TGenotypeLikelihoodsHaploid::TGenotypeLikelihoodsHaploid(){
 	reset();
 };
 
+void TGenotypeLikelihoodsHaploid::reset(){
+	//initialize to 1.0
+	_data[AA] = 1.0; _data[CC] = 1.0; _data[GG] = 1.0; _data[TT] = 1.0;
+
+	//initialize het to minimum
+	_data[AC] = _MINLIKELIHOODVALUE; _data[AG] = _MINLIKELIHOODVALUE; _data[AT] = _MINLIKELIHOODVALUE;
+	_data[CG] = _MINLIKELIHOODVALUE; _data[CT] = _MINLIKELIHOODVALUE; _data[GT] = _MINLIKELIHOODVALUE;
+};
+
 void TGenotypeLikelihoodsHaploid::fill(const std::vector<TBaseData> & bases, const size_t size){
 	//allows for vector to be longer than what is to be used
 	//initialize het to minimum
-	_data[AC] = 1E-100; _data[AG] = 1E-100; _data[AT] = 1E-100;
-	_data[CG] = 1E-100; _data[CT] = 1E-100; _data[GT] = 1E-100;
+	_data[AC] = _MINLIKELIHOODVALUE; _data[AG] = _MINLIKELIHOODVALUE; _data[AT] = _MINLIKELIHOODVALUE;
+	_data[CG] = _MINLIKELIHOODVALUE; _data[CT] = _MINLIKELIHOODVALUE; _data[GT] = _MINLIKELIHOODVALUE;
 
 	//do in log if depth is high
 	if(bases.size() > 50){
-		//initialize: set het to minimum
+		//initialize
 		_data[AA] = 0.0; _data[CC] = 0.0; _data[GG] = 0.0; _data[TT] = 0.0;
 
 
@@ -346,7 +354,7 @@ void TGenotypeLikelihoodsHaploid::fill(const std::vector<TBaseData> & bases, con
 		_data[TT] = exp(_data[TT] - max);
 	} else { //on natural scale
 		//initialize
-		set(1.0);
+		_data[AA] = 1.0; _data[CC] = 1.0; _data[GG] = 1.0; _data[TT] = 1.0;
 
 		for(size_t i=0; i<size; ++i){
 			_data[AA] *= bases[i].at(A);
@@ -357,10 +365,11 @@ void TGenotypeLikelihoodsHaploid::fill(const std::vector<TBaseData> & bases, con
 	}
 };
 
-void TGenotypeLikelihoods::addNames(std::vector<std::string> & vec, const TGenotypeMap & genoMap) const{
-	for(uint16_t g=0; g<genoMap.numGenotypes; ++g){
-		vec.push_back("P(D|" + genoMap.getGenotypeString(g) + ")");
-	}
+double TGenotypeLikelihoodsHaploid::weightedSum(const TGenotypeData & weights){
+	return _data[AA] * weights.at(AA)
+			+ _data[CC] * weights.at(CC)
+			+ _data[GG] * weights.at(GG)
+			+ _data[TT] * weights.at(TT);
 };
 
 //--------------------------------------------------------------------
@@ -399,7 +408,6 @@ void TGenotypeProbabilities::addNames(std::vector<std::string> & vec, const TGen
 		vec.push_back("P(" + genoMap.getGenotypeString(g) + "|D)");
 	}
 };
-
 
 }; // end namespace
 

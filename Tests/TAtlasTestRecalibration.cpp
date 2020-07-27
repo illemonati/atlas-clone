@@ -33,7 +33,7 @@ void TAtlasTest_recalSimulation::setVariables(TParameters & params, TLog* Logfil
 	qualityDist = params.getParameterStringWithDefault("recal_qualityDist", "normal(" + toString(meanQual) + "," + toString(sdphredInt) + ")[" + toString(minPhredInt) + "," + toString(maxPhredInt) + "]");
 //	recalParamString = params.getParameterStringWithDefault("recal_recalParams", "2,0,0.1,0.001,1{20}");
 	recalParamString = params.getParameterStringWithDefault("recal_recalParams","0.908163,0.22877,-0.0160425,0.170256,0.120439,1.50259,1.55807,0.607032,0.775844,1.1983,3.52317,-0.0538213,0.392298,1.07254,1.41819,-0.387901,0.949369,1.17807,1.3996,0.0631075,0.834644,1.08996,2.29066,-0.102391");
-	fillVectorFromStringAnySkipEmpty(recalParamString, tmpVec, ",");
+	fillVectorFromStringAny(recalParamString, tmpVec, ",", true);
 	repeatIndexes(tmpVec, trueParams);
 	recalParamsFileName = filenameTag + "_true_recalibrationEM.txt";
 	poolRGFileName = filenameTag + "_poolThese.txt";
@@ -289,7 +289,7 @@ bool TAtlasTest_BQSRSimulation::checkBQSRQualityFile(){
 	while(in.good() && !in.eof()){
 		//read line into vector
 		++numLines;
-		fillVectorFromLineWhiteSpaceSkipEmpty(in, line);
+		fillVectorFromLineWhiteSpace(in, line, true);
 		QualityScoreAsPhredInt = convertString<int>(line[1]);
 		EmpiricalQuality = convertString<double>(line[3]);
 		Log10Observations = convertString<double>(line[4]);
@@ -364,7 +364,7 @@ bool TAtlasTest_BQSRSimulation::checkBQSRPositionFile(){
 	while(in.good() && !in.eof()){
 		//read line into vector
 		++numLines;
-		fillVectorFromLineWhiteSpaceSkipEmpty(in, line);
+		fillVectorFromLineWhiteSpace(in, line, true);
 		Position = convertString<int>(line[1]);
 		Scaling = convertString<double>(line[3]);
 		Log10Observations = convertString<double>(line[4]);
@@ -514,7 +514,7 @@ void TAtlasTest_qualityTransformationRecalBinned::setVariables(TParameters & par
 	qualDistString = "(10,15,20,30)";
 	qualityDist =  new Simulations::TSimulatorQualityDistBinned(qualDistString, randomGenerator);
 	recalObject = new Simulations::TSimulatorQualityTransformationRecal(recalParamString, maxReadLength, qualityDist, randomGenerator);
-	fillVectorFromStringAnySkipEmpty(qualDistString, qualDistVec, ",");
+	fillVectorFromStringAny(qualDistString, qualDistVec, ",", true);
 };
 
 bool TAtlasTest_qualityTransformationRecalBinned::run(TParameters & params, TLog* Logfile, TTaskList* TaskList){

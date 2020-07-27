@@ -314,7 +314,7 @@ TSimulatorQualityTransformationBQSR::TSimulatorQualityTransformationBQSR(const s
 	meanPhred = qualityDist->mean();
 	sdPhred = qualityDist->sd();
 	std::vector<std::string> vec;
-	fillVectorFromStringAnySkipEmpty(s, vec, ",");
+	fillVectorFromStringAny(s, vec, ",", true);
 	phi1 = convertString<int>(vec[0]);
 	phi2 = convertString<double>(vec[1]);
 	logfile->list("Simulating BQSR quality effect with phi1 = " + toString(phi1) + " and phi2 = " + toString(phi2));

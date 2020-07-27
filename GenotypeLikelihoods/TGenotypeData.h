@@ -14,6 +14,8 @@
 
 namespace GenotypeLikelihoods{
 
+#define _MINLIKELIHOODVALUE 1.0E-200
+
 /*
 //---------------------------------------------------------------
 //TBaseFrequencies
@@ -132,7 +134,7 @@ public:
 	virtual void reset();
 	void add(const TGenotypeData & other);
 	double sum();
-	double weightedSum(const TGenotypeData & weights);
+	virtual double weightedSum(const TGenotypeData & weights);
 	void normalize();
 
 	virtual void addNames(std::vector<std::string> & vec, const TGenotypeMap & genoMap) const;
@@ -162,7 +164,9 @@ class TGenotypeLikelihoodsHaploid:public TGenotypeLikelihoods{
 public:
 	TGenotypeLikelihoodsHaploid();
 
+	void reset();
 	void fill(const std::vector<TBaseData> & bases, const size_t size);
+	double weightedSum(const TGenotypeData & weights);
 };
 
 //--------------------------------------------------------------------

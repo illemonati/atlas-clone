@@ -8,8 +8,9 @@
 #ifndef TBASE_H_
 #define TBASE_H_
 
-#include "TGenotypeMap.h"
 #include <bitset>
+
+enum Base : uint8_t {A=0, C, G, T, N};
 
 namespace BAM{
 

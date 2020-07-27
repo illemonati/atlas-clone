@@ -150,11 +150,11 @@ public:
 
 class TRecalibrationEMCovariateFunction_probit:public TSequencingErrorCovariateFunction{
 protected:
-	unsigned int _maxValue;
 	uint16_t _secondParameterIndex;
 	uint16_t _thirdParameterIndex;
 
 	//tmp storage
+	mutable unsigned int _maxValue;
 	mutable std::vector<TProbitTmpStorage> _tmpStorage;
 
 	void _init(const uint16_t Maxvalue);

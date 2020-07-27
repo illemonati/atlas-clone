@@ -31,7 +31,7 @@ void TSequencingErrorCovariate::_parseModuleString(const std::string & str, std:
 		if(pos == std::string::npos){
 			throw "Wrong format for recal function '" + str + "': missing ']'! " + format;
 		}
-		fillVectorFromStringAnySkipEmpty(str.substr(pos+1, pos2-pos-1), values, ",");
+		fillVectorFromStringAny(str.substr(pos+1, pos2-pos-1), values, ",", true);
 	} else {
 		type = str;
 	}
@@ -44,7 +44,7 @@ void TSequencingErrorCovariate::_parseModuleString(const std::string & str, std:
 		if(pos == std::string::npos){
 			throw "Wrong format for recal function '" + str + "': missing ')'! " + format;
 		}
-		fillVectorFromStringAnySkipEmpty(type.substr(pos+1, pos2-pos-1), args, ",");
+		fillVectorFromStringAny(type.substr(pos+1, pos2-pos-1), args, ",", true);
 
 		//extract type
 		type = type.substr(0, pos);

@@ -17,7 +17,7 @@ namespace GenotypeLikelihoods{
 
 
 class TGenotypeLikelihoodCalculator{
-private:
+protected:
 	bool _initialized;
 	TLog* _logfile;
 	BAM::TReadGroups* _readGroups;
