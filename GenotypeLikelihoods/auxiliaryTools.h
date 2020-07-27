@@ -30,8 +30,6 @@ private:
 	uint64_t counts;
 	bool initialized;
 
-	void assembleCounts();
-
 public:
 	int maxQual, maxFragmentLength, maxMQ;
 	uint16_t maxPos;

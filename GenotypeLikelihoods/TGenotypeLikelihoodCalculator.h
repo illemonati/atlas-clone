@@ -50,11 +50,33 @@ public:
 	uint8_t getPhredIntWithPMD(const BAM::TBase & base) const;
 	void recalibrate(BAM::TBase & base) const;
 	void recalibrateWithPMD(BAM::TBase & base) const;
+
+	//are vector versions used??
 	void recalibrate(std::vector<BAM::TBase> & bases) const;
 	void recalibrateWithPMD(std::vector<BAM::TBase> & bases) const;
-
-	void calculateGenotypeLikelihoods(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) const;
 	double calculateLogPMDS(const BAM::TBase & base, const Base ref, const double pi) const; //TODO: move to PMDS class?
+
+	//functions performed on sites. Templates used to deal with TSite (pointers to TBase) or TSiteStorage (stores TBase)
+	template <typename T>
+	void calculateGenotypeLikelihoods(const T & site, TGenotypeLikelihoods & genotypeLikelihoods) const{
+		//ensure base likelihoods have proper size
+		if(_baseLikelihoods.size() < site.depth()){
+			_baseLikelihoods.resize(site.depth());
+		}
+
+		if(site.empty()){
+			genotypeLikelihoods.reset();
+		} else {
+			//calculate base likelihoods P(d|b, D, epsilon) = \sum_{\bar{b}} P(\bar{b}|b, D)P(d|\bar{b}, \epsilon)
+			for(size_t i=0; i<site.depth(); ++i){
+				_sequencingErrorModels.calculateBaseLikelihoods(site.at(i), _baseLikelihoodsNoPMD);
+				_pmd.calculateBaseLikelihoods(site.at(i), _baseLikelihoodsNoPMD, _baseLikelihoods[i]);
+			}
+
+			//calculate genotype likelihoods
+			genotypeLikelihoods.fill(_baseLikelihoods, site.depth());
+		}
+	};
 };
 
 

@@ -305,6 +305,64 @@ void TGenotypeLikelihoods::addNames(std::vector<std::string> & vec, const TGenot
 	}
 };
 
+
+//--------------------------------------------------------------------
+// TGenotypeLikelihoodsHaploid
+//--------------------------------------------------------------------
+TGenotypeLikelihoodsHaploid::TGenotypeLikelihoodsHaploid(){
+	reset();
+};
+
+void TGenotypeLikelihoodsHaploid::fill(const std::vector<TBaseData> & bases, const size_t size){
+	//allows for vector to be longer than what is to be used
+	//initialize het to minimum
+	_data[AC] = 1E-100; _data[AG] = 1E-100; _data[AT] = 1E-100;
+	_data[CG] = 1E-100; _data[CT] = 1E-100; _data[GT] = 1E-100;
+
+	//do in log if depth is high
+	if(bases.size() > 50){
+		//initialize: set het to minimum
+		_data[AA] = 0.0; _data[CC] = 0.0; _data[GG] = 0.0; _data[TT] = 0.0;
+
+
+		//add to log genotype data
+		for(size_t i=0; i<size; ++i){
+			_data[AA] += log(bases[i].at(A));
+			_data[CC] += log(bases[i].at(C));
+			_data[GG] += log(bases[i].at(G));
+			_data[TT] += log(bases[i].at(T));
+		}
+
+		//find max
+		double max = _data[AA];
+		if(_data[CC] > max) max = _data[CC];
+		if(_data[GG] > max) max = _data[GG];
+		if(_data[TT] > max) max = _data[TT];
+
+		//standardize and de-log
+		_data[AA] = exp(_data[AA] - max);
+		_data[CC] = exp(_data[CC] - max);
+		_data[GG] = exp(_data[GG] - max);
+		_data[TT] = exp(_data[TT] - max);
+	} else { //on natural scale
+		//initialize
+		set(1.0);
+
+		for(size_t i=0; i<size; ++i){
+			_data[AA] *= bases[i].at(A);
+			_data[CC] *= bases[i].at(C);
+			_data[GG] *= bases[i].at(G);
+			_data[TT] *= bases[i].at(T);
+		}
+	}
+};
+
+void TGenotypeLikelihoods::addNames(std::vector<std::string> & vec, const TGenotypeMap & genoMap) const{
+	for(uint16_t g=0; g<genoMap.numGenotypes; ++g){
+		vec.push_back("P(D|" + genoMap.getGenotypeString(g) + ")");
+	}
+};
+
 //--------------------------------------------------------------------
 // TGenotypeProbabilities
 //--------------------------------------------------------------------

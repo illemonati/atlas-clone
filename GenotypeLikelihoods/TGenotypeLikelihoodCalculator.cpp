@@ -107,6 +107,18 @@ void TGenotypeLikelihoodCalculator::recalibrateWithPMD(std::vector<BAM::TBase> &
 	}
 };
 
+double TGenotypeLikelihoodCalculator::calculateLogPMDS(const BAM::TBase & base, const Base ref, const double pi) const{
+	//get base likelihoods
+	_sequencingErrorModels.calculateBaseLikelihoods(base, _baseLikelihoodsNoPMD);
+	_pmd.calculateBaseLikelihoods(base, _baseLikelihoodsNoPMD, _baseLikelihoods[0]);
+
+	//calculate PMDS: true base in read == ref with prob. (1-pi) and different with prob. pi/3
+	_tmpBaseData.set(ref, pi);
+
+	return log(_baseLikelihoods[0].weightedSum(_tmpBaseData) / _baseLikelihoodsNoPMD.weightedSum(_tmpBaseData));
+};
+
+/*
 void TGenotypeLikelihoodCalculator::calculateGenotypeLikelihoods(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) const{
 	//ensure base likelihoods have proper size
 	if(_baseLikelihoods.size() < site.depth()){
@@ -126,17 +138,8 @@ void TGenotypeLikelihoodCalculator::calculateGenotypeLikelihoods(const TSite & s
 		genotypeLikelihoods.fill(_baseLikelihoods, site.depth());
 	}
 };
+*/
 
-double TGenotypeLikelihoodCalculator::calculateLogPMDS(const BAM::TBase & base, const Base ref, const double pi) const{
-	//get base likelihoods
-	_sequencingErrorModels.calculateBaseLikelihoods(base, _baseLikelihoodsNoPMD);
-	_pmd.calculateBaseLikelihoods(base, _baseLikelihoodsNoPMD, _baseLikelihoods[0]);
-
-	//calculate PMDS: true base in read == ref with prob. (1-pi) and different with prob. pi/3
-	_tmpBaseData.set(ref, pi);
-
-	return log(_baseLikelihoods[0].weightedSum(_tmpBaseData) / _baseLikelihoodsNoPMD.weightedSum(_tmpBaseData));
-};
 
 
 }; //end namespace

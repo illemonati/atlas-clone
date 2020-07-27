@@ -149,12 +149,21 @@ public:
 
 	void operator=(const TGenotypeLikelihoods & other);
 
-	void fill(const std::vector<TBaseData> & bases);
-	void fill(const std::vector<TBaseData> & bases, const size_t size);
+	virtual void fill(const std::vector<TBaseData> & bases);
+	virtual void fill(const std::vector<TBaseData> & bases, const size_t size);
 
 	void addNames(std::vector<std::string> & vec, const TGenotypeMap & genoMap) const;
 };
 
+//--------------------------------------------------------------------
+// TGenotypeLikelihoodsHaploid
+//--------------------------------------------------------------------
+class TGenotypeLikelihoodsHaploid:public TGenotypeLikelihoods{
+public:
+	TGenotypeLikelihoodsHaploid();
+
+	void fill(const std::vector<TBaseData> & bases, const size_t size);
+};
 
 //--------------------------------------------------------------------
 // TGenotypeProbabilities

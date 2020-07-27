@@ -13,6 +13,7 @@
 #include "TSequencingErrorModels.h"
 #include "TSite.h"
 #include "TGenotypeDistribution.h"
+#include "TGenotypeLikelihoodCalculator.h"
 
 namespace GenotypeLikelihoods{
 
@@ -107,17 +108,11 @@ public:
 //--------------------------------------------------------------------
 // TRecalibrationEMEstimator
 //--------------------------------------------------------------------
-class TRecalibrationEMEstimator{
+class TRecalibrationEMEstimator:public TGenotypeLikelihoodCalculator{
 protected:
-	TLog* logfile;
-	BAM::TReadGroups* _readGroups;
-	BAM::TReadGroupMap* _readGroupMap;
-	TPostMortemDamage _pmd;
-	TSequencingErrorModels models;
 	std::vector<TRecalibrationEMWindow> windows;
 	std::vector<TRecalibrationEMWindow*>::iterator curWindow;
 	TRecalibrationEMDataTables dataTables;
-
 
 	//variables for estimation
 	bool equalBaseFrequencies;

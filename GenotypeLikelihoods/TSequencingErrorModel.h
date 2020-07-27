@@ -173,7 +173,6 @@ public:
 	TSequencingErrorCovariateDefinition getCovariateDefinition() const;
 
 	double getErrorRate(const BAM::TBase & base) const;
-	double getErrorRate(const TRecalibrationEMReadData & data) const; //TODO: REMOVE!
 };
 
 
