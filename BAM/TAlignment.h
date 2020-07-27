@@ -23,12 +23,11 @@ namespace BAM{
 //-----------------------------------------------------
 //TAlignment
 //-----------------------------------------------------
-class TAlignment{
+class TAlignment:public TGenomePosition{
 private:
 	//Alignment data
 	std::string _name;
 	TSamFlags _flags;
-	TGenomePosition _genomicPosition;
 	uint16_t _mappingQuality;
 	TCigar _cigar;
 	TGenomePosition _mateGenomicPosition;
@@ -90,7 +89,6 @@ public:
 	void addReference(TFastaBuffer & fasta);
 	void setHasChanged(){ _changed = true; };
 	void setName(const std::string Name){ _name = Name; };
-	void setGenomicPosition(const uint32_t RefID, const uint32_t Position){ _genomicPosition.update(RefID, Position); };
 	void setMappingQuality(const uint16_t Mappingquality){ _mappingQuality = Mappingquality; };
 	void setMateGenomicPosition(const uint32_t RefID, const uint32_t Position){ _mateGenomicPosition.update(RefID, Position); };
 	void setInsertSize(const int32_t InsertSize){ _insertSize_TLEN = InsertSize; };
@@ -100,9 +98,6 @@ public:
 
 	//getters
 	std::string name() const{ return _name; };
-	uint32_t position() const{ return _genomicPosition.position(); };
-	uint32_t refID() const{ return _genomicPosition.refID(); };
-	const BAM::TGenomePosition& genomicPosition() const{ return _genomicPosition; };
 	uint32_t matePosition() const{ return _mateGenomicPosition.position(); };
 	uint32_t mateRefID() const{ return _mateGenomicPosition.refID(); };
 	const BAM::TGenomePosition& mateGenomicPosition() const{ return _mateGenomicPosition; };
@@ -125,13 +120,6 @@ public:
 	//looping
 	std::vector<TBase>::iterator begin(){ return _bases.begin(); };
 	std::vector<TBase>::iterator end(){ return _bases.end(); };
-
-	bool operator<(const TAlignment & other) const{
-		return this->_genomicPosition < other._genomicPosition;
-	};
-	bool operator<(const BAM::TGenomePosition & other) const{
-		return this->_genomicPosition < other;
-	};
 
 	//filters and other functions to modify data
 	void filterForBaseQuality(TQualityFilter & qualFilter);

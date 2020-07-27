@@ -74,6 +74,14 @@ bool TGenomePosition::sameChr(const TGenomePosition other) const{
 	return _refID == other.refID();
 };
 
+bool TGenomePosition::operator==(const TGenomePosition other) const{
+	if(this->_refID == other._refID && this->_position == other._position){
+		return true;
+	} else {
+		return false;
+	}
+};
+
 bool TGenomePosition::operator<(const TGenomePosition other) const{
 	//are they on the same chromosome?
 	if(this->_refID < other._refID){

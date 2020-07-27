@@ -25,7 +25,6 @@ TAlignment::TAlignment(){
 };
 
 void TAlignment::clear(){
-	_genomicPosition.clear();
 	_name.clear();
 	_cigar.clear();
 	_mateGenomicPosition.clear();
@@ -58,7 +57,7 @@ void TAlignment::fill(const	std::string Name,
 	//copy data
 	_name = Name;
 	_flags = Flags;
-	_genomicPosition.update(RefID, Position);
+	update(RefID, Position);
 	_mappingQuality = MappingQuality;
 	_cigar = Cigar;
 	_mateGenomicPosition.update(MateRefID, MatePosition);
@@ -180,7 +179,7 @@ void TAlignment::_parseBasesQualities(const TGenotypeMap & genoMap, const TQuali
 	//calculate relevant fragment length
 
 	//update length and last aligned position
-	_lastAlignedPositionWithRespectToRef = _genomicPosition + (p - 1);
+	_lastAlignedPositionWithRespectToRef = *this + (p - 1);
 	_lastAlignedPos = p - 1; //why -1? -> same reason as above
 };
 
@@ -250,7 +249,7 @@ void TAlignment::_fillContext(){
 };
 
 void TAlignment::addReference(TFastaBuffer & fasta){
-	fasta.fill(_genomicPosition, _lastAlignedPositionWithRespectToRef, _referenceSequence);
+	fasta.fill(*this, _lastAlignedPositionWithRespectToRef, _referenceSequence);
 	_hasReference = true;
 };
 

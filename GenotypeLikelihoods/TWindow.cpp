@@ -13,7 +13,6 @@ namespace GenotypeLikelihoods{
 //TWindow_base
 //-------------------------------------------------------
 TWindow_base::TWindow_base(){
-	_sites = NULL;
 	_depth = 0;
 	_fractionSitesNoData = 0.0;
 	_fractionRefIsN = 0.0;
@@ -121,7 +120,7 @@ void TWindow_base::_calcDepth(){
 			} else if(depthPerSite > 1){
 				++plentyData;
 			}
-			if(s._referenceBase == N){
+			if(s.refBase() == N){
 				++_fractionRefIsN;
 			}
 		}
@@ -208,10 +207,9 @@ void TWindow_base::addReferenceBaseToSites(TSiteSubset & subset){
 		if(subset.hasPositionsInWindow(*this)){
 			//now only run over sites listed in that window
 			std::set<TSiteSubsetSite> thesePositions = subset.getPositionInWindow(*this);
-			int pos;
 			for(auto& it : thesePositions){
-				pos = it._genomicPosition - startPos;
-				_sites[pos].setRefBase(it._ref);
+				uint32_t pos = it.position() - _start;
+				_sites[pos].setRefBase(it.ref());
 			}
 		}
 		referenceBaseAdded = true;
@@ -225,7 +223,7 @@ void TWindow_base::applyMask(BAM::TBed & mask, bool doInverseMasking){
 		auto it = mask.lower_bound(*this);
 		while(it != mask.end() && this->overlaps(*it)){
 			//mask until start of BED window
-			for(; pos < it->start() & pos < _end; ++pos){
+			for(; pos < it->start() && pos < _end; ++pos){
 				_sites[pos - _start].clear();
 			}
 			//jump to end of BED window
@@ -236,10 +234,10 @@ void TWindow_base::applyMask(BAM::TBed & mask, bool doInverseMasking){
 			_sites[pos - _start].clear();
 		}
 	} else {
-		//mas all sites in BED
+		//mask all sites in BED
 		auto it = mask.lower_bound(*this);
 		while(it != mask.end() && this->overlaps(*it)){
-			for(uint32_t s = it->start(); s < it->end() & s < _end; ++s){
+			for(uint32_t s = it->start(); s < it->end() && s < _end; ++s){
 				_sites[s - _start].clear();
 			}
 			++it;
@@ -273,8 +271,8 @@ void TWindow_base::estimateBaseFrequencies(TBaseData & baseFreq) const{
 
 void TWindow_base::applyDepthFilter(const size_t minDepth, const size_t maxDepth){
 	for(unsigned int i=0; i<size(); ++i){
-		if(_sites[i]._hasData){
-			if(_sites[i]._bases.size() < minDepth || _sites[i]._bases.size() > maxDepth)
+		if(!_sites[i].empty()){
+			if(_sites[i].depth() < minDepth || _sites[i].depth() > maxDepth)
 				_sites[i].clear();
 		}
 	}
@@ -328,7 +326,7 @@ void TWindow::_cleanUpUsedAlignments(){
 	if(usedAlignments.size() > 0){
 		//go through alignments
 		for(std::vector<BAM::TAlignment*>::iterator alignmentIt=usedAlignments.begin(); alignmentIt != usedAlignments.end();){
-			if((*alignmentIt)->position < _end && (*alignmentIt)->lastAlignedPositionWithRespectToRef >= _start && (*alignmentIt)->refID() == _refID){
+			if((*alignmentIt)->position() < _end && (*alignmentIt)->lastAlignedPositionWithRespectToRef().position() >= _start && (*alignmentIt)->refID() == _refID){
 				++alignmentIt;
 			} else{
 				(*alignmentIt)->clear();
@@ -355,7 +353,7 @@ void TWindow::update(const uint32_t RefID, const uint32_t Start, const uint32_t 
 void TWindow::printStacks(){
 	std::cout << "USED ALIGMENTS:";
 	for(BAM::TAlignment* alignmentIt : usedAlignments)
-		std::cout << " " << alignmentIt << " : " << alignmentIt->name << " pos " << alignmentIt->position;
+		std::cout << " " << alignmentIt << " : " << alignmentIt->name() << " pos " << alignmentIt->position();
 	std::cout << std::endl;
 
 	std::cout << "EMPTY ALIGMENTS:";
@@ -366,25 +364,25 @@ void TWindow::printStacks(){
 
 void TWindow::_checkAlignmentForFillingSites(BAM::TAlignment* alignmentIt){
 	//check if alignment start is inside window
-	if(alignmentIt->position >= _end){
+	if(alignmentIt->position() >= _end){
 		throw "alignment should be assigned to next window!";
 	}
 };
 
 void TWindow::_setFirstPositionWithinWindow(BAM::TAlignment* alignmentIt, uint16_t & p){
 	//genomic position of alignment as seen from window perspective
-	uint32_t firstPos = alignmentIt->position - startPos;
+	uint32_t firstPos = alignmentIt->position() - _start;
 
 	//set position in read
 	p = 0;
 
 	//is the beginning of the read part of previous window? increase starting p for adding bases!
 	if(firstPos < 0){
-		while(p < alignmentIt->parsedLength() && (alignmentIt->positionInRef(p)) < startPos){
+		while(p < alignmentIt->parsedLength() && (alignmentIt->positionInRef(p)) < _start){
 			++p;
 		}
 		if(p == alignmentIt->parsedLength()){
-			throw "alignment should be assigned to previous window! Name: " + alignmentIt->name + ". In window " + toString(startPos) + "-" + toString(_end) + ". with position " + toString(alignmentIt->position);
+			throw "alignment should be assigned to previous window! Name: " + alignmentIt->name() + ". In window " + toString(_start) + "-" + toString(_end) + ". with position " + toString(alignmentIt->position());
 		}
 	}
 };
@@ -401,7 +399,7 @@ void TWindow::_fillSites(BAM::TAlignment* alignmentIt, std::vector<TSite> & site
 	//p is at first position of read in window
 	for(; p < alignmentIt->parsedLength(); ++p){
 		if(alignmentIt->isAlignedAtInternalPos(p) && alignmentIt->base(p).base != N){
-			uint32_t internalPos = alignmentIt->positionInRef(p)- startPos;
+			uint32_t internalPos = alignmentIt->positionInRef(p)- _start;
 
 			//if read extends past window length
 			if(internalPos >= size()) break; //since part of the read maps to next window
@@ -456,16 +454,16 @@ void TWindow::_fillSitesSubset(BAM::TAlignment* alignmentIt, std::vector<TSite> 
 	auto it = thesePos.begin();
 	for(; p < alignmentIt->parsedLength(); ++p){
 		if(alignmentIt->isAlignedAtInternalPos(p) && alignmentIt->base(p).base != N){
-			uint32_t internalPos = alignmentIt->positionInRef(p)- startPos;
+			uint32_t internalPos = alignmentIt->positionInRef(p) - _start;
 
 			//if read extends past window length
 			if(internalPos >= size()) break; //since part of the read maps to next window
 
 			//find position in thesePos
-			while(it != thesePos.end() && it->_genomicPosition < alignmentIt->positionInRef(p)) ++it;
+			while(it != thesePos.end() && it->position() < alignmentIt->positionInRef(p)) ++it;
 
 			//add
-			if(it != thesePos.end() && it->_genomicPosition == alignmentIt->positionInRef(p) && sites[internalPos].depth() < readUpToDepth){
+			if(it != thesePos.end() && it->position() == alignmentIt->positionInRef(p) && sites[internalPos].depth() < readUpToDepth){
 				sites[internalPos].add(&alignmentIt->base(p));
 			}
 		}

@@ -12,14 +12,18 @@ namespace GenotypeLikelihoods{
 //-------------------------------------------------
 // TSiteSubsetSite
 //-------------------------------------------------
-TSiteSubsetSite::TSiteSubsetSite(const BAM::TGenomePosition Position, const Base Ref, const Base Alt){
-	_genomicPosition = Position;
+TSiteSubsetSite::TSiteSubsetSite(const uint32_t refID, const uint32_t position, const Base Ref, const Base Alt):TGenomePosition(refID, position){
+	_ref = Ref;
+	_alt = Alt;
+};
+
+TSiteSubsetSite::TSiteSubsetSite(const BAM::TGenomePosition Position, const Base Ref, const Base Alt):TGenomePosition(Position){
 	_ref = Ref;
 	_alt = Alt;
 };
 
 void TSiteSubsetSite::write(TOutputFile & out) const{
-	out << _genomicPosition << _ref << _alt << std::endl;
+	out << _refID << _position << _ref << _alt << std::endl;
 };
 
 //-------------------------------------------------
@@ -63,7 +67,7 @@ void TSiteSubset::_readFile(const std::string Filename, const BAM::TChromosomes 
 		_checkAlleles(chr.name, pos, ref, alt, line[2], line[3]);
 
 		//add site
-		auto it = _sites.emplace(BAM::TGenomePosition(chr.refID, pos), ref, alt);
+		_sites.emplace(chr.refID, pos, ref, alt);
 	}
 
 	//report
@@ -109,7 +113,7 @@ void TSiteSubset::_readFile(const std::string Filename, const BAM::TChromosomes 
 		}
 
 		//add site
-		auto it = _sites.emplace(BAM::TGenomePosition(chr.refID, pos), ref, alt);
+		_sites.emplace(chr.refID, pos, ref, alt);
 	}
 
 	//report
@@ -142,7 +146,7 @@ void TSiteSubset::write(const std::string Filename) const{
 
 bool TSiteSubset::hasPositionsInWindow(const BAM::TGenomeWindow & Window) const{
 	auto it = _sites.lower_bound(Window);
-	if(it == _sites.end() || it > Window){
+	if(it == _sites.end() || *it < Window){
 		return false;
 	} else {
 		return true;

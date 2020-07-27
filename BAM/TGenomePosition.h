@@ -23,7 +23,7 @@ namespace BAM{
 class TGenomeWindow;
 
 class TGenomePosition{
-private:
+protected:
 	uint32_t _refID;
 	uint32_t _position;
 
@@ -59,7 +59,7 @@ public:
 // TGenomeWindow
 //-----------------------------------------------------
 class TGenomeWindow{
-private:
+protected:
 	uint32_t _refID;
 	uint32_t _start, _end; //end not included: [start, end)
 

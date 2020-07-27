@@ -140,7 +140,7 @@ void TThetaEstimatorData::add(const GenotypeLikelihoods::TSite & site, GenotypeL
 	++totNumSitesAdded;
 
 	//add if site has data
-	if(site._hasData){
+	if(!site.empty()){
 		++numSitesWithData;
 		cumulativeDepth += site.depth();
 
@@ -166,7 +166,6 @@ void TThetaEstimatorData::fillP_G(GenotypeLikelihoods::TGenotypeData & P_G, cons
 	P_G.set(0.0);
 
 	//calculate P_g for each site
-	double* d;
 	begin();
 	do{
 		P_g_oneSite.fill(curGenotypeLikelihoods(), pGenotype);
@@ -176,7 +175,6 @@ void TThetaEstimatorData::fillP_G(GenotypeLikelihoods::TGenotypeData & P_G, cons
 
 double TThetaEstimatorData::calcLogLikelihood(const GenotypeLikelihoods::TGenotypeData & pGenotype){
 	double LL = 0.0;
-	double* d;
 	begin();
 	do{
 		LL += log(curGenotypeLikelihoods().weightedSum(pGenotype));

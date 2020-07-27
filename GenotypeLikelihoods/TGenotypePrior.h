@@ -78,6 +78,7 @@ public:
 class TGenotypePriorTheta:public TGenotypePrior{
 private:
 	TThetaEstimator* thetaEstimator;
+
 	TThetaOutputFile out;
 	TLog* logfile;
 	double defaultTheta;
@@ -131,6 +132,8 @@ public:
 		thetaEstimator->fillPGenotype(genotypePrior);
 
 		//write results to file
+		window.writeCoordinates(out, chromosomes);
+		out.write()
 		out.write(window->_chrName, window->startPos, window->endPos);
 		logfile->endIndent();
 	};

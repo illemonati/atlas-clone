@@ -233,10 +233,9 @@ void TThetaEstimator::add(const GenotypeLikelihoods::TSite & site, GenotypeLikel
 
 void TThetaEstimator::add(const TWindow & window, const TGenotypeLikelihoodCalculator & glCalculator){
 	TGenotypeLikelihoods genoLik;
-	for(auto it = window.cbegin(); it != window.cend(); ++it){
-		const TSite& s = *(*it);
-		glCalculator.calculateGenotypeLikelihoods(s, genoLik);
-		add(s, genoLik);
+	for(std::vector<TSite>::const_iterator it = window.cbegin(); it != window.cend(); ++it){
+		glCalculator.calculateGenotypeLikelihoods(*it, genoLik);
+		add(*it, genoLik);
 	}
 };
 
@@ -499,7 +498,7 @@ void TThetaEstimator::setTheta(const double Theta){
 
 void TThetaEstimator::setBaseFreq(const GenotypeLikelihoods::TBaseData & BaseFreq){
 	for(int i=0; i<4; ++i)
-		theta.baseFreq[i] = BaseFreq[i];
+		theta.baseFreq[i] = BaseFreq.at(i);
 }
 
 void TThetaEstimator::addToHeader(std::vector<std::string> & header, std::string prefix){

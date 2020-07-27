@@ -121,8 +121,8 @@ public:
 //---------------------------------------------------------------
 class TThetaEstimatorDataVector:public TThetaEstimatorData{
 private:
-	std::vector<GenotypeLikelihoods::TGenotypeData> sites;
-	std::vector<GenotypeLikelihoods::TGenotypeData>::iterator siteIt;
+	std::vector<GenotypeLikelihoods::TGenotypeLikelihoods> sites;
+	std::vector<GenotypeLikelihoods::TGenotypeLikelihoods>::iterator siteIt;
 
 	void saveSite(GenotypeLikelihoods::TGenotypeLikelihoods & genoLik);
 	void emptyStorage();
