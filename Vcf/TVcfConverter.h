@@ -96,6 +96,7 @@ private:
     void writeData(TPopulationLikehoodLocus & data) override ;
     void storePosteriorGenotypes(TPopulationLikehoodLocus & data);
     float computePosteriorGenotype(TPopulationLikehoodLocus & data, uint32_t i);
+    float calculateMeanOfMeanPosteriorGenotypes(TPopulationLikehoodLocus & data, const float * meanPostGenoForOneLocus);
     std::vector<float *> genotypes;
 
 public:

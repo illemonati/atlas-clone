@@ -268,16 +268,36 @@ void TVcfToLFMMPostGeno::writeData(TPopulationLikehoodLocus & data){
 
 void TVcfToLFMMPostGeno::storePosteriorGenotypes(TPopulationLikehoodLocus & data){
     auto * meanPostGenoForOneLocus = new float[samples.numSamples()];
+    // first compute mean posterior genotype for all samples with data
     for (uint32_t i = 0; i < samples.numSamples(); i++){
         meanPostGenoForOneLocus[i] = computePosteriorGenotype(data, i);
+    }
+    // now go over all samples again and impute samples with missing data with the mean of the mean posterior genotype
+    float meanPostGeno = calculateMeanOfMeanPosteriorGenotypes(data, meanPostGenoForOneLocus);
+    for (uint32_t i = 0; i < samples.numSamples(); i++){
+        if (data[i].isMissing)
+            meanPostGenoForOneLocus[i] = meanPostGeno;
     }
     genotypes.emplace_back(meanPostGenoForOneLocus);
 }
 
+float TVcfToLFMMPostGeno::calculateMeanOfMeanPosteriorGenotypes(TPopulationLikehoodLocus & data, const float * meanPostGenoForOneLocus){
+    float sum = 0.;
+    float c = 0.;
+    for (uint32_t i = 0; i < samples.numSamples(); i++){
+        if (!data[i].isMissing) {
+            sum += meanPostGenoForOneLocus[i];
+            c++;
+        }
+    }
+    return sum / c;
+}
+
 float TVcfToLFMMPostGeno::computePosteriorGenotype(TPopulationLikehoodLocus & data, uint32_t i){
-    if (data[i].isMissing)
-        throw std::runtime_error("Missing data at sample " + samples.getNameFromOrderedIndex(i) + " and locus " + reader->chr() + ":" + toString(reader->position())
-        + "! LFMM2 does not accept missing genotypes, please impute your VCF file first.");
+    if (data[i].isMissing){
+        // skip for the moment, will be imputed in second round
+        return 1.0;
+    }
     // if locus is haploid -> llG2 will be ~0 -> gives same result as if I ignored it -> will not treat haploid data in a special way
     // first convert glf to genotype likelihood
     double llG0 = glfConverter.toScaledLikelihood(data[i][0]);
