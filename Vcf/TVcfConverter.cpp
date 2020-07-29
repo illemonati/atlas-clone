@@ -605,6 +605,110 @@ void TVcfToVcf::writeHeader(){
 };
 
 /***************************************
+ * 									   *
+ *    Extract from VCF                 *
+ * 									   *
+ ***************************************/
+
+TVcfExtract::TVcfExtract(TParameters &Params, TLog *Logfile) : TVcfConverter(Logfile, Params) {
+    file = nullptr;
+}
+
+TVcfExtract::~TVcfExtract() {
+    delete file;
+}
+
+void TVcfExtract::initOutputFiles(){
+    std::string end;
+    switch (whatToExtract) {
+        case genotypes: end = ".genotypes"; break;
+        case depth: end = ".depth"; break;
+        case refAndAlt: end = ".refAndAlt"; break;
+    }
+    file = new TOutputFilePlain(_outname + end);
+}
+
+void TVcfExtract::_fillHeaderIndividuals(std::vector <std::string> & header){
+    for (uint32_t s = 0; s < samples.numSamples(); s++)
+        header.push_back(samples.getNameFromOrderedIndex(s));
+}
+
+void TVcfExtract::writeHeader(){
+    //header string
+    std::vector <std::string> header = {"position"};
+    switch (whatToExtract) {
+        // individual-specific? -> write header of sample names
+        case genotypes:
+            _fillHeaderIndividuals(header);
+            break;
+        case depth:
+            _fillHeaderIndividuals(header);
+            break;
+         // same for all individuals? --> add more cases here, if ever needed
+        case refAndAlt:
+            header.emplace_back("refAllele"); header.emplace_back("altAllele");
+    }
+    file->writeHeader(header);
+}
+
+void TVcfExtract::writePosition(){
+    (*file) << reader->chr() + "_" + toString(reader->position());
+}
+
+void TVcfExtract::_writeDepth(uint32_t s){
+    (*file) << reader->depth(samples, s);
+}
+
+void TVcfExtract::_writeGenotype(uint32_t s){
+    int genotype = static_cast<int>(reader->genotype(samples, s));
+    if (genotype == 3) // missing
+        (*file) << "NA";
+    else
+        (*file) << genotype;
+}
+
+void TVcfExtract::_writeRefAndAlt(){
+    (*file) << reader->refAllele() << reader->altAllele();
+}
+
+void TVcfExtract::writeData(TPopulationLikehoodLocus & data){
+    writePosition();
+    switch (whatToExtract) {
+        case genotypes:
+            for (uint32_t s = 0; s < samples.numSamples(); s++)
+                _writeGenotype(s);
+            break;
+        case depth:
+            for (uint32_t s = 0; s < samples.numSamples(); s++)
+                _writeDepth(s);
+            break;
+        case refAndAlt:
+            _writeRefAndAlt();
+            break;
+    }
+    file->endLine();
+}
+
+void TVcfExtract::vcfExtract(TParameters & Params){
+    // what to extract?
+    std::string type = Params.getParameterString("extract");
+    if (type == "genotypes") {
+        whatToExtract = genotypes;
+    } else if (type == "depth"){
+        whatToExtract = depth;
+    } else if (type == "refAndAlt") {
+        whatToExtract = refAndAlt;
+    } // ... add more stuff here, if ever needed
+    else throw "Unknown type '" + type + "' for parameter 'extract'! Specify either 'genotypes' or 'depth' or 'refAndAlt'.";
+
+    // read Vcf and write output
+    readVcfAndWriteFile(Params);
+
+    // clean up
+    file->close();
+}
+
+/***************************************
  * 					                   *
  * 	STITCH output Vcf reader           *
  * 			                    	   *
@@ -616,23 +720,27 @@ void TVcfToVcf::writeHeader(){
 TStitchVcfReader::TStitchVcfReader(){
     _vcfOpen = false;
     _vcf = nullptr;
+    _numSamples = 0;
 }
 
 TStitchVcfReader::~TStitchVcfReader() {
-    _vcf->close();
-    if (_vcfOpen)
+    if (_vcfOpen) {
+        _vcf->close();
         delete _vcf;
+    }
 }
 
 void TStitchVcfReader::openVcf(const std::string &vcfFilename) {
-    if (!_vcfOpen)
+    if (!_vcfOpen) {
         _vcf = new gz::igzstream(vcfFilename.c_str());
+        _vcfOpen = true;
+    }
     if(!_vcf || _vcf->fail() || !_vcf->good()) throw "Failed to open file '" + vcfFilename + "'!";
-    _vcfOpen = true;
 }
 
 void TStitchVcfReader::parseVCFHeader(std::vector<std::string>& sampleNames){
     std::string temp, buf;
+    std::vector<std::string> tmp;
 
     // read header and stop after that
     while(!_vcf->eof() && _vcf->peek()=='#'){
@@ -645,11 +753,14 @@ void TStitchVcfReader::parseVCFHeader(std::vector<std::string>& sampleNames){
                 buf=extractBeforeWhiteSpace(temp);
                 trimString(buf);
                 temp.erase(0,1);
-                if(i >= 9) sampleNames.push_back(buf); // col 9 is the first col with sample names
+                if(i >= 9) tmp.push_back(buf); // col 9 is the first col with sample names
                 ++i;
             }
         }
     }
+
+    _numSamples = tmp.size();
+    sampleNames.insert(sampleNames.end(), tmp.begin(), tmp.end()); // append tmp to sampleNames
 }
 
 bool TStitchVcfReader::read(){
@@ -700,6 +811,25 @@ double TStitchVcfReader::HWE_pVal(){
     return stringToDouble(actualScore);
 }
 
+void TStitchVcfReader::genotypes(std::vector<std::string>& genotypes){
+    // parse posterior genotypes
+    auto it = _oneLine.begin(); it += 9; // jump to first data col
+    for (; it < _oneLine.end(); it++){
+        // get GT field (before first :) -> contains something like 0/1
+        std::string tmp = extractBefore(*it, ":");
+
+        // separate genotypes
+        if (tmp == "./.") // missing
+            genotypes.emplace_back("NA");
+        else {
+            std::string tmp2 = extractBefore(tmp, "/");
+            tmp.erase(0, 1); // erase /
+            int genotype = stringToInt(tmp) + stringToInt(tmp2);
+            genotypes.push_back(toString(genotype));
+        }
+    }
+}
+
 void TStitchVcfReader::posteriorGenotypes(std::vector<std::string>& posteriorGenotypes){
     // parse posterior genotypes
     std::string gt0, gt1, gt2, buf;
@@ -722,6 +852,45 @@ void TStitchVcfReader::posteriorGenotypes(std::vector<std::string>& posteriorGen
         posteriorGenotypes.push_back(gt2);
     }
 }
+
+void TStitchVcfReader::maxPosteriorGenotypes(std::vector<std::string>& maxPosteriorGenotypes){
+    // parse posterior genotypes
+    std::vector<std::string> vecPosteriorGenotypes;
+    posteriorGenotypes(vecPosteriorGenotypes);
+
+    // now decide which is the maximum posterior genotype for each sample
+    for (int i = 0; i < _numSamples*3; i+=3){
+        double gt0 = stringToDouble(vecPosteriorGenotypes.at(i));
+        double gt1 = stringToDouble(vecPosteriorGenotypes.at(i+1));
+        double gt2 = stringToDouble(vecPosteriorGenotypes.at(i+2));
+
+        double max;
+        if (gt0 >= gt1 && gt0 >= gt2)
+            max = gt0;
+        else if (gt1 >= gt0 && gt1 >= gt2)
+            max = gt1;
+        else
+            max = gt2;
+        maxPosteriorGenotypes.push_back(toString(max));
+    }
+}
+
+void TStitchVcfReader::meanPosteriorGenotypes(std::vector<std::string>& meanPosteriorGenotypes){
+    // parse posterior genotypes
+    std::vector<std::string> vecPosteriorGenotypes;
+    posteriorGenotypes(vecPosteriorGenotypes);
+
+    // now compute the mean posterior genotype for each sample
+    for (int i = 0; i < _numSamples*3; i+=3){
+        double gt0 = stringToDouble(vecPosteriorGenotypes.at(i));
+        double gt1 = stringToDouble(vecPosteriorGenotypes.at(i+1));
+        double gt2 = stringToDouble(vecPosteriorGenotypes.at(i+2));
+
+        double mean = 0 * gt0 + 1. * gt1 + 2. * gt2;
+        meanPosteriorGenotypes.push_back(toString(mean));
+    }
+}
+
 /***************************************
  * 					                   *
  * 	STITCH output Vcf to beagle        *
@@ -820,5 +989,182 @@ void TStitchVcfToPosfile::parseVCF(){
             posfile << reader.chr() << reader.pos() << reader.refAllele() << reader.altAllele();
             posfile.endLine();
         }
+    }
+}
+
+/***************************************
+ * 					                   *
+ * 	STITCH output Vcf extract stuff    *
+ * 			                    	   *
+ ***************************************/
+
+TStitchVcfExtract::TStitchVcfExtract(TParameters &Params, TLog *logfile) {
+    // open input vcf
+    std::string vcfFilename = Params.getParameterString("vcf");
+    logfile->startIndent("Reading vcf '" + vcfFilename + "'.");
+    reader.openVcf(vcfFilename);
+
+    // what to extract?
+    std::string type = Params.getParameterString("extract");
+    if (type == "genotypes") {
+        whatToExtract = genotypes;
+    } else if (type == "posteriorGenotypes"){
+        whatToExtract = posteriorGenotypes;
+    } else if (type == "maxPostGenotype") {
+        whatToExtract = maxPostGenotype;
+    } // ... add more stuff here, if ever needed
+    else throw "Unknown type '" + type + "' for parameter 'extract'! Specify either 'genotypes' or 'posteriorGenotypes' or 'maxPostGenotype'.";
+
+
+    // open output file
+    std::string tmp = extractBeforeLast(vcfFilename, ".vcf");
+    std::string outname = Params.getParameterStringWithDefault("out", tmp);
+    logfile->list("Writing output files with prefix '" + outname + "'.");
+    std::string end;
+    switch (whatToExtract) {
+        case genotypes: end = ".genotypes"; break;
+        case posteriorGenotypes: end = ".posteriorGenotypes"; break;
+        case maxPostGenotype: end = ".maxPostGenotype"; break;
+    }
+    file.open(outname + end);
+
+    // parse header
+    parseVCFHeader();
+    parseVCF();
+
+    file.close();
+}
+
+void TStitchVcfExtract::parseVCFHeader(){
+    std::vector <std::string> header = {"position"};
+    reader.parseVCFHeader(header);
+    // write header
+    switch (whatToExtract) {
+        case genotypes: file.writeHeader(header); break;
+        case maxPostGenotype: file.writeHeader(header); break;
+        case posteriorGenotypes:
+            // write header where each sample appears 3x
+            std::vector<std::string> expandedHeader = {"position"};
+            for (int i = 1; i < header.size(); i++){ // skip first element of header (= position)
+                for (int r = 0; r < 3; r++)
+                    expandedHeader.push_back(header[i]);
+            }
+            file.writeHeader(expandedHeader);
+            break;
+    }
+}
+
+void TStitchVcfExtract::_writeGenotypes(){
+    // fill genotypes
+    std::vector<std::string> genotypes;
+    reader.genotypes(genotypes);
+    // now write
+    file.write(genotypes);
+}
+
+void TStitchVcfExtract::_writeMaxPosteriorGenotypes(){
+    std::vector<std::string> postGeno;
+    reader.maxPosteriorGenotypes(postGeno);
+    file.write(postGeno);
+}
+
+void TStitchVcfExtract::_writePosteriorGenotypes(){
+    std::vector<std::string> postGeno;
+    reader.posteriorGenotypes(postGeno);
+    file.write(postGeno);
+}
+
+void TStitchVcfExtract::parseVCF(){
+    // parse rest
+    while (reader.read()){
+        // write position
+        file << reader.chr() + "_" + reader.pos();
+
+        switch (whatToExtract) {
+            case genotypes:
+                _writeGenotypes();
+                break;
+            case maxPostGenotype:
+                _writeMaxPosteriorGenotypes();
+                break;
+            case posteriorGenotypes:
+                _writePosteriorGenotypes();
+                break;
+        }
+        file.endLine();
+    }
+}
+
+/****************************************************
+ * 									                *
+ * 	STITCH output Vcf to LFMM (posterior genotypes) *
+ * 									                *
+ ****************************************************/
+
+
+TStitchVcfToLFMMPostGeno::TStitchVcfToLFMMPostGeno(TParameters &Params, TLog *logfile) {
+    // open input vcf
+    std::string vcfFilename = Params.getParameterString("vcf");
+    logfile->startIndent("Reading vcf '" + vcfFilename + "'.");
+    reader.openVcf(vcfFilename);
+
+    // open output files
+    std::string tmp = extractBeforeLast(vcfFilename, ".vcf");
+    std::string outname = Params.getParameterStringWithDefault("out", tmp);
+    logfile->list("Writing output files with prefix '" + outname + "'.");
+    file.open(outname + ".lfmm");
+    fileLociNames.open(outname + ".lfmm.kept_loci");
+
+    // parse header
+    parseVCFHeader();
+    parseVCF();
+
+    // now write!
+    _write();
+
+    file.close();
+    fileLociNames.close();
+}
+
+void TStitchVcfToLFMMPostGeno::parseVCFHeader(){
+    std::vector <std::string> header;
+    reader.parseVCFHeader(header);
+}
+
+void TStitchVcfToLFMMPostGeno::_write() {
+    _writeMeanPosteriorGenotypes();
+    _writeLociNames();
+}
+
+void TStitchVcfToLFMMPostGeno::_writeLociNames(){
+    fileLociNames.noHeader(loci_names.size());
+    for (auto it = loci_names.begin(); it < loci_names.end(); it++)
+        fileLociNames << *it;
+    fileLociNames.endLine();
+}
+
+void TStitchVcfToLFMMPostGeno::_writeMeanPosteriorGenotypes(){
+    // we only know now how many loci there are
+    file.noHeader(_genotypes.size());
+
+    int numLoci = _genotypes.size();
+    for (uint32_t i = 0; i < reader.numSamples(); i++){
+        for (int l = 0; l < numLoci; l++) {
+            file << _genotypes[l][i];
+        }
+        file.endLine();
+    }
+}
+
+void TStitchVcfToLFMMPostGeno::parseVCF(){
+    // parse
+    while (reader.read()){
+        // store mean posterior genotypes for later
+        std::vector<std::string> meanPostGenoForOneLocus;
+        reader.meanPosteriorGenotypes(meanPostGenoForOneLocus);
+        _genotypes.emplace_back(meanPostGenoForOneLocus);
+
+        // write loci names to file
+        loci_names.emplace_back(reader.chr() + ":" + reader.pos());
     }
 }

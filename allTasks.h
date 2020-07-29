@@ -692,6 +692,16 @@ public:
     };
 };
 
+class TTask_VCFExtract :public TTask_atlas{
+public:
+    TTask_VCFExtract(){ _explanation = "Extracting certain fields from a VCF file."; };
+
+    void run(TParameters & parameters, TLog* logfile){
+        TVcfExtract vcfExtract(parameters, logfile);
+        vcfExtract.vcfExtract(parameters);
+    };
+};
+
 class TTask_VCFToGenotypeTruthSetFile:public TTask_atlas{
 public:
     TTask_VCFToGenotypeTruthSetFile(){ _explanation = "Converting a VCF file to genotype truth sets."; };
@@ -748,6 +758,22 @@ public:
     TTask_StitchVCFToPosfile() {_explanation = "Converting a VCF file (produced by STITCH) to posfile (input for STITCH).";};
     void run(TParameters & parameters, TLog* logfile){
         TStitchVcfToPosfile stitchVcfToPosfile(parameters, logfile);
+    };
+};
+
+class TTask_StitchVCFExtract : public TTask_atlas {
+public:
+    TTask_StitchVCFExtract() {_explanation = "Converting a VCF file (produced by STITCH) to a file containing genotypes / posterior genotypes / mean posterior genotypes.";};
+    void run(TParameters & parameters, TLog* logfile){
+        TStitchVcfExtract stitchVcfExtract(parameters, logfile);
+    };
+};
+
+class TTask_StitchVCFToLFMM : public TTask_atlas {
+public:
+    TTask_StitchVCFToLFMM() {_explanation = "Converting a VCF file (produced by STITCH) to a LFMM file with mean posterior genotypes.";};
+    void run(TParameters & parameters, TLog* logfile){
+        TStitchVcfToLFMMPostGeno stitchVcfToLfmmPostGeno(parameters, logfile);
     };
 };
 

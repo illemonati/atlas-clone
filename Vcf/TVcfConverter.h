@@ -6,6 +6,7 @@
 #define ATLAS_TVCFCONVERTER_H
 
 #include <memory>
+#include <vector>
 #include "stringFunctions.h"
 #include "TLog.h"
 #include "TParameters.h"
@@ -163,11 +164,39 @@ public:
 	virtual ~TVcfToVcf(){};
 };
 
+class TVcfExtract : protected TVcfConverter {
+private:
+    TOutputFilePlain * file;
+
+    enum Types {
+        genotypes,
+        depth,
+        refAndAlt
+    };
+    Types whatToExtract;
+
+    // write
+    void writeHeader() override;
+    void _writeRefAndAlt();
+    void _writeDepth(uint32_t s);
+    void _writeGenotype(uint32_t s);
+    void writeData(TPopulationLikehoodLocus & data) override;
+    void writePosition();
+    void initOutputFiles() override;
+    void _fillHeaderIndividuals(std::vector <std::string> & header);
+
+public:
+    TVcfExtract(TParameters &Params, TLog *Logfile);
+    ~TVcfExtract();
+    void vcfExtract(TParameters & Params);
+};
+
 class TStitchVcfReader {
 private:
     gz::igzstream * _vcf;
     bool _vcfOpen;
     std::vector<std::string> _oneLine;
+    uint32_t _numSamples;
 
 public:
     TStitchVcfReader();
@@ -176,13 +205,17 @@ public:
     void openVcf(const std::string& vcfFilename);
     bool read();
     void parseVCFHeader(std::vector<std::string>& sampleNames);
+    void genotypes(std::vector<std::string>& genotypes);
     void posteriorGenotypes(std::vector<std::string>& posteriorGenotypes);
+    void maxPosteriorGenotypes(std::vector<std::string>& maxPosteriorGenotypes);
+    void meanPosteriorGenotypes(std::vector<std::string>& meanPosteriorGenotypes);
     std::string chr();
     std::string pos();
     std::string refAllele();
     std::string altAllele();
     double infoScore();
     double HWE_pVal();
+    uint32_t numSamples() const{return _numSamples;};
 };
 
 class TStitchVcfToBeagle {
@@ -212,6 +245,48 @@ private:
 public:
     TStitchVcfToPosfile(TParameters & Params, TLog * logfile);
     ~TStitchVcfToPosfile(){};
+};
+
+class TStitchVcfExtract {
+    // extracts genotypes / posterior genotypes / maxPosteriorGenotypes from STITCH output vcf
+private:
+    enum Types {
+        genotypes,
+        posteriorGenotypes,
+        maxPostGenotype
+    };
+    Types whatToExtract;
+
+    TOutputFilePlain file;
+    TStitchVcfReader reader;
+    void parseVCF();
+    void parseVCFHeader();
+    void _writeGenotypes();
+    void _writePosteriorGenotypes();
+    void _writeMaxPosteriorGenotypes();
+
+public:
+    TStitchVcfExtract(TParameters & Params, TLog * logfile);
+    ~TStitchVcfExtract(){};
+};
+
+class TStitchVcfToLFMMPostGeno {
+    // converts a stitch output VCF to a LFMM with the mean posterior genotypes
+private:
+    std::vector<std::vector<std::string>> _genotypes;
+    std::vector<std::string> loci_names;
+    TOutputFilePlain file;
+    TOutputFilePlain fileLociNames;
+    TStitchVcfReader reader;
+    void parseVCF();
+    void parseVCFHeader();
+    void _write();
+    void _writeLociNames();
+    void _writeMeanPosteriorGenotypes();
+
+public:
+    TStitchVcfToLFMMPostGeno(TParameters & Params, TLog * logfile);
+    ~TStitchVcfToLFMMPostGeno(){};
 };
 
 #endif //ATLAS_TVCFCONVERTER_H

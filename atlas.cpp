@@ -67,6 +67,7 @@ void addTaks(TMain & main) {
 	main.addRegularTask("VCFToBeagle", new TTask_VCFToBeagle());
     main.addRegularTask("VCFToLFMM", new TTask_VCFToLFMM());
     main.addRegularTask("VCFToPosFile", new TTask_VCFToPosFile());
+    main.addRegularTask("VCFExtract", new TTask_VCFExtract());
     main.addRegularTask("VCFToGenotypeTruthSetFile", new TTask_VCFToGenotypeTruthSetFile());
     main.addRegularTask("VCFFixInt", new TTask_VCFFixInt());
 	main.addRegularTask("VCFCompare", new TTask_VCFCompare());
@@ -79,7 +80,9 @@ void addTaks(TMain & main) {
 	main.addDebugTask("polymorphicWindows", new TTask_identifyPolymorphicWindows());
 	main.addDebugTask("testBED", new TTask_testBED()); //TODO: write as test!
 	main.addDebugTask("stitchVCFToBeagle", new TTask_StitchVCFToBeagle());
+    main.addDebugTask("stitchVCFToLFMM", new TTask_StitchVCFToLFMM());
     main.addDebugTask("stitchVCFToPosfile", new TTask_StitchVCFToPosfile());
+    main.addDebugTask("stitchVCFExtract", new TTask_StitchVCFExtract());
 };
 
 void addTests(TMain & main){
