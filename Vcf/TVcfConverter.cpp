@@ -581,28 +581,34 @@ void TVcfToGenotypeTruthSetFile::vcfToGenotypeTruthSetFile(TParameters & Params)
     genFile->close();
 }
 
-/***************************************
- * 					*
- * 	Vcf to Vcf (filter, convert,...)*
- * 					*
- ***************************************/
-
+/****************************************
+ * 					                    *
+ * 	Vcf to Vcf (filter)                 *
+ * 					                    *
+ ****************************************/
 
 TVcfToVcf::TVcfToVcf(TParameters &Params, TLog *Logfile) : TVcfConverter(Logfile, Params){
-	//open output file
-	std::string filename = _outname + (std::string) "_filtered.vcf.gz";
-	gz::ogzstream out(filename.c_str());
-	if(!out) throw "Failed to open outputfile '" + filename + "'!";
-	reader->setOutStream(out);
 };
+
+void TVcfToVcf::initOutputFiles(){
+    //open output file
+    std::string filename = _outname + "_filtered.vcf.gz";
+    reader->openOutputStream(filename, true);
+}
 
 void TVcfToVcf::writeData(TPopulationLikehoodLocus & data){
 	reader->writeVCFLine();
 };
 
 void TVcfToVcf::writeHeader(){
+    // TODO: order of header lines differ from input vcf, as lines are stored in map and are sorted alphabetically -> is this a problem?
 	reader->writeUnknownHeader();
 };
+
+void TVcfToVcf::vcfToVcf(TParameters & Params){
+    // read Vcf and write output
+    readVcfAndWriteFile(Params);
+}
 
 /***************************************
  * 									   *

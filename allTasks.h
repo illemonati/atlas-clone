@@ -662,6 +662,16 @@ public:
 	};
 };
 
+class TTask_VCFToVCF:public TTask_atlas{
+public:
+    TTask_VCFToVCF(){ _explanation = "Converting a VCF file to anther VCF, with various filtering options."; };
+
+    void run(TParameters & parameters, TLog* logfile){
+        TVcfToVcf tVcfToVcf(parameters, logfile);
+        tVcfToVcf.vcfToVcf(parameters);
+    };
+};
+
 class TTask_VCFToLFMM:public TTask_atlas{
 public:
     TTask_VCFToLFMM(){ _explanation = "Converting a VCF file to LFMM format"; };

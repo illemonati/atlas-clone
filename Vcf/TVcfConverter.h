@@ -155,13 +155,15 @@ public:
 
 class TVcfToVcf: public TVcfConverter {
 private:
-	void writeRefAndAlt();
 	void writeHeader() override;
 	void writeData(TPopulationLikehoodLocus & data) override;
+    void initOutputFiles() override;
 
 public:
 	TVcfToVcf(TParameters &Params, TLog *Logfile);
-	virtual ~TVcfToVcf(){};
+	~TVcfToVcf()= default;
+
+	void vcfToVcf(TParameters & Params);
 };
 
 class TVcfExtract : protected TVcfConverter {

@@ -65,6 +65,7 @@ void addTaks(TMain & main) {
 	main.addRegularTask("VCFAssessAllelicBalance", new TTask_VCFDiagnostics());
 	main.addRegularTask("VCFToInvariantBed", new TTask_VCFToInvariantBed());
 	main.addRegularTask("VCFToBeagle", new TTask_VCFToBeagle());
+    main.addRegularTask("VCFToVCF", new TTask_VCFToVCF());
     main.addRegularTask("VCFToLFMM", new TTask_VCFToLFMM());
     main.addRegularTask("VCFToPosFile", new TTask_VCFToPosFile());
     main.addRegularTask("VCFExtract", new TTask_VCFExtract());

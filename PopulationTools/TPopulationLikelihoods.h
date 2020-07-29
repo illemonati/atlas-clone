@@ -142,7 +142,8 @@ public:
 	uint32_t getMinNumSamplesWithData(){return minNumSamplesWithData; };
 	void writeUnknownHeader(){ vcfFile.writeHeaderVCF_4_0(); };
 	int variantQuality(){ return vcfFile.variantQuality(); };
-	void setOutStream(std::ostream & os){ vcfFile.setOutStream(os); };
+    void openOutputStream(std::string & Filename, bool zipped){vcfFile.openOutputStream(Filename, zipped);};
+    void setOutStream(std::ostream & os){ vcfFile.setOutStream(os); };
 	void writeVCFLine(){ vcfFile.writeLine(); };
 };
 
