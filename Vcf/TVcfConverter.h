@@ -126,6 +126,7 @@ public:
 class TVcfToGenotypeTruthSetFile : public TVcfConverter {
 private:
     TBed ** bedFiles;
+    bool bedFilesOpen;
     TOutputFilePlain * genFile;
 
     // posfile?

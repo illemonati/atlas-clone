@@ -391,6 +391,7 @@ TVcfToGenotypeTruthSetFile::TVcfToGenotypeTruthSetFile(TParameters &Params, TLog
     //      - genotypes encoded as 0,1,2 or NA
     genFile = nullptr;
     bedFiles = nullptr;
+    bedFilesOpen = false;
     positionPreviousLocus = 0;
     minDistanceToPreviousLocus = 0;
     numSamplesPerLocus = 0;
@@ -399,9 +400,11 @@ TVcfToGenotypeTruthSetFile::TVcfToGenotypeTruthSetFile(TParameters &Params, TLog
 
 TVcfToGenotypeTruthSetFile::~TVcfToGenotypeTruthSetFile() {
     delete genFile;
-    for(uint32_t s = 0; s < samples.numSamples(); s++)
-        delete bedFiles[s];
-    delete [] bedFiles;
+    if (bedFilesOpen) {
+        for (uint32_t s = 0; s < samples.numSamples(); s++)
+            delete bedFiles[s];
+        delete [] bedFiles;
+    }
 }
 
 void TVcfToGenotypeTruthSetFile::writeHeader(){
@@ -420,6 +423,7 @@ void TVcfToGenotypeTruthSetFile::initOutputFiles() {
     for(uint32_t s = 0; s < samples.numSamples(); s++) {
         bedFiles[s] = new TBed;
     }
+    bedFilesOpen = true;
 
     // check if minNumSamplesWithData-Filter of TPopulationLikelihoods is zero
     // (even if all samples have missing data, we still need to keep the locus, because otherwise
