@@ -17,8 +17,8 @@ TBamSample::TBamSample(const double Prob, const std::string OutName){
 	_outName = OutName;
 };
 
-void TBamSample::open(BAM::TBamFile & bamFile){
-	_out.open(_outName, bamFile);
+void TBamSample::open(BAM::TBamFile & bamFile, TGenotypeMap & genoMap, TQualityMap & qualMap){
+	_out.open(_outName, bamFile, &genoMap, &qualMap);
 };
 
 void TBamSample::close(TLog* logfile){
@@ -52,7 +52,7 @@ void TBamSample::downsampleRead(BAM::TAlignment & alignment, TRandomGenerator & 
 	alignment.downsampleAlignment(_prob, randomGenerator);
 
 	//write
-	_out.writeAlignment(alignment, genoMap, qualMap);
+	_out.writeAlignment(alignment);
 };
 
 //-----------------------------------------
@@ -64,7 +64,7 @@ TBamDownsampler_base::TBamDownsampler_base(TParameters & Parameters, TLog* Logfi
 
 void TBamDownsampler_base::_readVectorOfDownsamplingProbabilities(TParameters & Params){
 	//read downsampling rates
-	Parameters.fillParameterIntoProbabilityVector("prob", _probs, ',');
+	Params.fillParameterIntoProbabilityVector("prob", _probs, ',');
 
 	//get unique names
 	std::map <double, int> fracNames;
@@ -85,7 +85,7 @@ void TBamDownsampler_base::_readVectorOfDownsamplingProbabilities(TParameters & 
 //-----------------------------------------
 TBamDownsampler::TBamDownsampler(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TBamDownsampler_base(Parameters, Logfile, RandomGenerator){
 	//read downsampling rates
-	_readVectorOfDownsamplingProbabilities(Params);
+	_readVectorOfDownsamplingProbabilities(Parameters);
 
 	//report
 	_logfile->list("Will accept reads with probabilities (parameter 'prob'): " + concatenateString(_probs, ", "));
@@ -99,7 +99,7 @@ TBamDownsampler::TBamDownsampler(TParameters & Parameters, TLog* Logfile, TRando
 
 	//open bam files for writing
 	for(auto& s : _bamSamples){
-		s.open(_bamFile);
+		s.open(_bamFile, _genoMap, _qualMap);
 	}
 };
 
@@ -152,7 +152,7 @@ void TBamReadDownsampler::downsample(){
 //-----------------------------------------
 TBamSeparator::TBamSeparator(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TBamDownsampler_base(Parameters, Logfile, RandomGenerator){
 	//read downsampling rates
-	_readVectorOfDownsamplingProbabilities(Params);
+	_readVectorOfDownsamplingProbabilities(Parameters);
 
 	//check that sum <= 1.0
 	double sum = 0.0;
@@ -176,10 +176,10 @@ void TBamSeparator::separate(){
 	std::vector<BAM::TOutputBamFile> out;
 	for(auto& n : _names){
 		std::string filename = _outputName + "_downsampled_" + n + ".bam";
-		out.emplace_back(filename, _bamFile);
+		out.emplace_back(filename, _bamFile, &_genoMap, &_qualMap);
 	}
 
-	//preapre lists to keep track of mates
+	//Prepare lists to keep track of mates
 	std::map<std::string, uint16_t> _mateWasWritten;
 	BAM::TAlignmentList _discard;
 

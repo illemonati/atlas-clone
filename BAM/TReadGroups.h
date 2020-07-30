@@ -44,32 +44,34 @@ public:
 	uint16_t id; //internal ID
 
 	std::string name_ID;
-	std::string barcodeSequence_BC;
-	std::string sequencingCenter_CN;
-	std::string description_DS;
-	std::string productionDate_DT;
-	std::string flowOrder_FO;
-	std::string keySequence_KS;
-    std::string library_LB;
-    std::string program_PG;
-    std::string predictedInsertSize_PI;
-    std::string sequencingTechnology_PL;
-    std::string platformModel_PM;
-    std::string platformUnit_PU;
-    std::string sample_SM;
+	mutable std::string barcodeSequence_BC;
+	mutable std::string sequencingCenter_CN;
+	mutable std::string description_DS;
+	mutable std::string productionDate_DT;
+	mutable std::string flowOrder_FO;
+	mutable std::string keySequence_KS;
+	mutable std::string library_LB;
+	mutable std::string program_PG;
+	mutable std::string predictedInsertSize_PI;
+	mutable std::string sequencingTechnology_PL;
+	mutable std::string platformModel_PM;
+	mutable std::string platformUnit_PU;
+	mutable std::string sample_SM;
 
     //flags
-    bool inUse; 						//read groups not in use are ignored when reading
-    bool writeToHeader;                 //is false if read group is not in use or replaced by new one
+    mutable bool inUse; 						//read groups not in use are ignored when reading
+    mutable bool writeToHeader;                 //is false if read group is not in use or replaced by new one
 
     TReadGroup(const uint16_t ID, const std::string Name);
     TReadGroup(const TReadGroup & other) = default;
     TReadGroup* getPointer(){ return this; };
     std::string compileSamHeader() const;
 
-    bool operator<(const TReadGroup & right);
-    bool operator<(const std::string & right);
+    bool operator<(const TReadGroup & right) const;
+    bool operator<(const std::string & right) const;
 };
+
+bool operator<(const std::string & left, const TReadGroup & right);
 
 //---------------------------------------------------------------
 //TReadGroups
@@ -77,7 +79,7 @@ public:
 class TReadGroups{
 private:
 	std::set<TReadGroup, std::less<>> _readGroups;
-	std::vector<TReadGroup*> _readGroupsById;
+	std::vector<const TReadGroup*> _readGroupsById;
 	bool _limitReadGroups;
 
 	void _fillLookupFromId();
@@ -87,13 +89,13 @@ public:
 	~TReadGroups(){};
 
 	void clear();
-	TReadGroup& add(const std::string name);
-	TReadGroup& addAlternativeRG(const std::string Name, const std::string original);
+	const TReadGroup& add(const std::string name);
+	const TReadGroup& addAlternativeRG(const std::string Name, const std::string original);
 	uint16_t size() const;
 
 	uint16_t getId(const std::string & name) const;
 	const std::string& getName (const uint16_t readGroupId) const;
-	TReadGroup& getReadGroup(const std::string & name);
+	const TReadGroup& getReadGroup(const std::string & name);
 	bool readGroupExists(const std::string & name) const;
 	bool readGroupInUse(const uint16_t & readGroupId) const;
 	bool readGroupInUse(const std::string name) const;

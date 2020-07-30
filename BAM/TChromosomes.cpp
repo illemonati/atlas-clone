@@ -14,7 +14,7 @@ namespace BAM{
 // TChromosome
 //---------------------------------------------------------
 std::string TChromosome::compileSamHeader() const{
-	std::string header = "@SQ\tSN:" + name + "\tLN:" + length;
+	std::string header = "@SQ\tSN:" + name + "\tLN:" + toString(length);
 
 	if(!alternateLocus.empty()){
 		header += "\tAH:" + alternateLocus;
@@ -56,7 +56,7 @@ void TChromosomes::appendChromosome(const std::string name, const uint32_t lengt
 	_chromosomes.emplace_back(_chromosomes.size(), name, length);
 };
 
-TChromosome& TChromosomes::_find(const std::string chrName) const{
+const TChromosome& TChromosomes::_find(const std::string chrName) const{
 	for(auto& c : _chromosomes){
 		if(c.name == chrName)
 			return c;
@@ -152,13 +152,13 @@ void TChromosomes::_specifyPloidy(const std::string & ploidyFileName, TLog* logf
 		throw "Failed to open file '" + ploidyFileName + "'!";
 
 	logfile->startIndent("Setting ploidy for following chromosomes:");
-	int numChrInFile = 0;
+	uint32_t numChrInFile = 0;
 	while(ploidyFile.good() && !ploidyFile.eof()){
 		//read line
 		std::string line;
 		std::getline(ploidyFile, line);
 		std::vector<std::string> vec;
-		fillVectorFromStringWhiteSpaceSkipEmpty(line, vec);
+		fillVectorFromStringWhiteSpace(line, vec, true);
 
 		//skip empty lines
 		if(vec.size() > 0){
@@ -199,31 +199,8 @@ void TChromosomes::_setToHaploid(const std::vector<std::string> & chrNames, TLog
 	logfile->endIndent();
 };
 
-//move
-void TChromosomes::begin(){
-	_curChr = _chromosomes.begin();
-};
-
-bool TChromosomes::next(){
-	++_curChr;
-	return _curChr != _chromosomes.end();
-};
-
-bool TChromosomes::end() const{
-	return _curChr == _chromosomes.end();
-};
-
-void TChromosomes::jumpToEnd(){
-	_curChr = _chromosomes.end();
-};
-
 //getters
-uint32_t TChromosomes::size() const{
-	return _chromosomes.size();
-}
-
 uint32_t TChromosomes::referenceLength() const{
-	int chrNum = 0;
 	long totLength = 0;
 	for(auto& c : _chromosomes){
 		if(c.inUse)
@@ -244,69 +221,32 @@ const TChromosome& TChromosomes::getChromosome(const std::string chrName) const{
 	return _find(chrName);
 };
 
-const TChromosome& TChromosomes::curChromosome() const{
-	return *_curChr;
-};
-
-
 uint32_t TChromosomes::refID(const std::string chrName) const{
-	return _find(chrName).refID;
+	return _find(chrName).refID();
 };
 
-uint32_t TChromosomes::curRefID() const{
-	return _curChr->refID;
-};
-
-
-uint32_t TChromosomes::length(const uint32_t RefID) const{
+uint32_t TChromosomes::length(const uint32_t & RefID) const{
 	return _chromosomes[RefID].length;
 };
 
-uint32_t TChromosomes::curLength() const{
-	return _curChr->length;
-};
-
-
-std::string TChromosomes::name(const uint32_t RefID) const{
+std::string TChromosomes::name(const uint32_t & RefID) const{
 	return _chromosomes[RefID].name;
 };
 
-std::string TChromosomes::curName() const{
-	return _curChr->name;
-};
-
-
-bool TChromosomes::inUse(const uint32_t RefID) const{
+bool TChromosomes::inUse(const uint32_t & RefID) const{
 	return _chromosomes[RefID].inUse;
 };
 
-bool TChromosomes::curInUse() const{
-	return _curChr->inUse;
-};
-
-
-uint8_t TChromosomes::ploidy(const uint32_t RefID) const{
+uint8_t TChromosomes::ploidy(const uint32_t & RefID) const{
 	return _chromosomes[RefID].ploidy;
 };
 
-uint8_t TChromosomes::curPloidy() const{
-	return _curChr->ploidy;
-};
-
-const TGenomePosition& TChromosomes::chrStart(const uint32_t RefID) const{
+const TGenomePosition& TChromosomes::chrStart(const uint32_t & RefID) const{
 	return _chromosomes[RefID].chrStart;
 };
 
-const TGenomePosition& TChromosomes::curChrStart() const{
-	return _curChr->chrStart;
-};
-
-const TGenomePosition& TChromosomes::chrEnd(const uint32_t RefID) const{
+const TGenomePosition& TChromosomes::chrEnd(const uint32_t & RefID) const{
 	return _chromosomes[RefID].chrEnd;
-};
-
-const TGenomePosition& TChromosomes::curChrEnd() const{
-	return _curChr->chrEnd;
 };
 
 std::string TChromosomes::compileSamHeader() const{

@@ -53,7 +53,6 @@ public:
 	TRecalibrationEMEstimator(TParameters & args, BAM::TReadGroups* ReadGroups, TLog* Logfile, BAM::TReadGroupMap* ReadGroupMap);
 
 	//functions to add data
-	void addNewWindow(const TBaseData & freqs);
 	void addSite(const TSite & site);
 	size_t numSites();
 	size_t numSitesDepthTwoOrMore();
@@ -64,8 +63,6 @@ public:
 	void initializeFromFile(const std::string string);
 	void performEstimation(std::string outputName, bool & writeTmpTables);
 	void performEstimationKnownGenotypes(std::string outputName, bool & writeTmpTables);
-
-
 
 	void writeCurrentEstimates(std::string filename);
 	double calcLL();

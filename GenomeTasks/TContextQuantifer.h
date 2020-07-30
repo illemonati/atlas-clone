@@ -10,6 +10,7 @@
 
 #include "TGenome.h"
 #include "counters.h"
+#include "TTask.h"
 
 namespace GenomeTasks{
 

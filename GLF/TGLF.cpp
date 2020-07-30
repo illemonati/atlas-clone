@@ -104,7 +104,7 @@ void TGlfWriter::newChromosome(const BAM::TChromosome & chromosome){
 		write(&zero8, sizeof(uint8_t));
 
 	//save cur info
-	curChr.update(chromosome.name, chromosome.refID, chromosome.length, chromosome.ploidy);
+	curChr.update(chromosome.name, chromosome.refID(), chromosome.length, chromosome.ploidy);
 
 	//write new chromosome: length of label, label, refId, length of ref sequence, ploidy
 	uint32_t labelLength = curChr.name.size();

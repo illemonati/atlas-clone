@@ -77,9 +77,9 @@ void TAllelicDepthCounts::_freeStorage(){
 };
 
 
-void TAllelicDepthCounts::addSite(const std::vector<uint32_t> & alleleCounts){
-	if(alleleCounts[A] < _size && alleleCounts[C] < _size && alleleCounts[G] < _size && alleleCounts[T] < _size)
-		++_counts[alleleCounts[A]][alleleCounts[C]][alleleCounts[G]][alleleCounts[T]];
+void TAllelicDepthCounts::addSite(const GenotypeLikelihoods::TBaseCounts & alleleCounts){
+	if(alleleCounts.at(A) < _size && alleleCounts.at(C) < _size && alleleCounts.at(G) < _size && alleleCounts.at(T) < _size)
+		++_counts[alleleCounts.at(A)][alleleCounts.at(C)][alleleCounts.at(G)][alleleCounts.at(T)];
 };
 
 
@@ -168,7 +168,7 @@ TAllelicDepth::TAllelicDepth(TParameters & Parameters, TLog* Logfile, TRandomGen
 
 void TAllelicDepth::_handleWindow(){
 	_logfile->listFlushTime("Adding sites to allelic depth table ...");
-	std::vector<uint32_t> alleleCounts
+	GenotypeLikelihoods::TBaseCounts alleleCounts;
 	for(auto& s : _window){
 		s.countAlleles(alleleCounts);
 		_counts.addSite(alleleCounts);

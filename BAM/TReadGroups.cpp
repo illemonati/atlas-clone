@@ -100,12 +100,16 @@ std::string TReadGroup::compileSamHeader() const{
 	return header;
 };
 
-bool TReadGroup::operator<(const TReadGroup & right){
+bool TReadGroup::operator<(const TReadGroup & right) const{
 	return name_ID < right.name_ID;
 };
 
-bool TReadGroup::operator<(const std::string & right){
+bool TReadGroup::operator<(const std::string & right) const{
 	return name_ID < right;
+};
+
+bool operator<(const std::string & left, const TReadGroup & right){
+	return left < right.name_ID;
 };
 
 //---------------------------------------------------------------
@@ -122,22 +126,23 @@ void TReadGroups::clear(){
 
 void TReadGroups::_fillLookupFromId(){
 	_readGroupsById.resize(_readGroups.size());
-	for(auto& rg : _readGroups){
-		_readGroupsById[rg.id] = &rg;
+	for(const TReadGroup& rg : _readGroups){
+		int id = rg.id;
+		_readGroupsById[id] = &rg;
 	}
 };
 
-TReadGroup& TReadGroups::add(const std::string name){
-	auto rg = _readGroups.emplace(_readGroups.size(), name);
+const TReadGroup& TReadGroups::add(const std::string name){
+	const auto rg = _readGroups.emplace(_readGroups.size(), name);
 	if(rg.second){
 		_fillLookupFromId();
 	}
-	return rg.first;
+	return *rg.first;
 };
 
-TReadGroup& TReadGroups::addAlternativeRG(const std::string Name, const std::string original){
+const TReadGroup& TReadGroups::addAlternativeRG(const std::string Name, const std::string original){
 	//getId original
-	TReadGroup& rg = getReadGroup(original);
+	const TReadGroup& rg = getReadGroup(original);
 
 	//make sure new name does not yet exist
 	if(readGroupExists(Name)){
@@ -157,7 +162,7 @@ TReadGroup& TReadGroups::addAlternativeRG(const std::string Name, const std::str
 		_fillLookupFromId();
 	}
 
-	return r.first;
+	return *r.first;
 };
 
 uint16_t TReadGroups::size() const{
@@ -177,10 +182,10 @@ uint16_t TReadGroups::getId(const std::string & name) const{
 	throw "Read Group '" + name + "' is not present in header of bam file!";
 };
 
-TReadGroup& TReadGroups::getReadGroup(const std::string & name){
+const TReadGroup& TReadGroups::getReadGroup(const std::string & name){
 	auto rg = _readGroups.find(name);
 	if(rg != _readGroups.end())
-		return rg;
+		return *rg;
 	throw "Read Group '" + name + "' is not present in header of bam file!";
 };
 
@@ -215,7 +220,7 @@ void TReadGroups::filterReadGroups(std::string readGroupList){
 
 	//set those in list to true
 	for(auto& r : readGroupsInUse){
-		auto& rg = _readGroups.find(r);
+		const auto& rg = _readGroups.find(r);
 		if(rg == _readGroups.end())
 			throw "Read Group '" + r + "' is not present in header of bam file!";
 		rg->inUse = true;
@@ -316,7 +321,7 @@ void TReadGroupMap::_fillFromFile(std::string filename, TLog* logfile){
 	std::string readGroup;
 	while(file.good() && !file.eof()){
 		++lineNum;
-		fillVectorFromLineWhiteSpaceSkipEmpty(file, vec);
+		fillVectorFromLineWhiteSpace(file, vec, true);
 		if(!vec.empty()){
 			if(vec.size() < 2) throw "Wrong number of entries on line " + toString(lineNum) + " in file '" + filename + "'! Read groups cannot be merged with themselves!";
 			//add to new header

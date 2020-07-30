@@ -96,20 +96,27 @@ public:
 	void setReadGroup(const uint16_t readGroupId);
 	void setIsReverseStrand(const bool IsReverse){ _flags.setIsReverseStrand(IsReverse); };
 
-	//getters
-	std::string name() const{ return _name; };
-	uint32_t matePosition() const{ return _mateGenomicPosition.position(); };
-	uint32_t mateRefID() const{ return _mateGenomicPosition.refID(); };
-	const BAM::TGenomePosition& mateGenomicPosition() const{ return _mateGenomicPosition; };
+	//getters: position
 	uint32_t lastAlingedInternalPos() const{ return _lastAlignedPos; };
 	TGenomePosition lastAlignedPositionWithRespectToRef() const{ return _lastAlignedPositionWithRespectToRef; };
 	bool isAlignedAtInternalPos(const uint32_t internalPosition) const;
 	char referenceAtInternalPos(const uint32_t internalPosition) const;
-	uint32_t positionInRef(const uint32_t internalPosition) const;
+	TGenomePosition positionInRef(const uint32_t internalPosition) const;
+	const BAM::TGenomePosition& mateGenomicPosition() const{ return _mateGenomicPosition; };
+	uint32_t matePosition() const{ return _mateGenomicPosition.position(); };
+	uint32_t mateRefID() const{ return _mateGenomicPosition.refID(); };
+
+	std::string name() const{ return _name; };
 	uint16_t readGroupId() const { return _readGroupID; };
-	uint16_t parsedLength() const{ return _cigar.lengthSequenced(); };
+	uint16_t parsedLength() const;
 	int32_t insertSize() const{ return _insertSize_TLEN; };
-	TBase& base(const uint32_t internalPos){ return _bases[internalPos]; };
+	uint16_t mappingQuality() const{ return _mappingQuality; };
+	uint16_t flags() const{ return _flags.asInt(); };
+	const TCigar& cigar() const{ return _cigar; };
+
+	TBase& operator[](const uint32_t internalPos){ return _bases[internalPos]; };
+	const TBase& at(const uint32_t internalPos) const { return _bases[internalPos]; };
+
 	std::string sequence(const TGenotypeMap & genoMap, const TQualityMap & qualMap) const;
 	std::string qualities(const TGenotypeMap & genoMap, const TQualityMap & qualMap) const;
 	bool isReverseStrand() const{ return _flags.isReverseStrand(); };

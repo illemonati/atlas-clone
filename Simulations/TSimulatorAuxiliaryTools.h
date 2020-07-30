@@ -111,7 +111,6 @@ private:
 
 public:
 	TSimulatorBamFiles(uint32_t NumFiles, const std::string Outname, const std::vector<std::string> & ReadGroupNames, const std::vector<TSimulatorChromosome> & Chromosomes, TLog* Logfile, TGenotypeMap & GenoMap, TQualityMap & QualMap);
-	~TSimulatorBamFiles();
 
 	void close();
 	TSimulatorBamFile& operator[](size_t i);

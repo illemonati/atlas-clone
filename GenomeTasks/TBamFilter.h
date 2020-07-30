@@ -8,7 +8,6 @@
 #ifndef TBAMFILTER_H_
 #define TBAMFILTER_H_
 
-#include "TReadList.h"
 #include "TGenome.h"
 #include "TTask.h"
 
@@ -21,9 +20,9 @@ enum ReadGroupType : uint8_t { unchanged=0, single, mixed, paired};
 
 struct TAlignmentMergerReadGroupSetting{
 	uint16_t readGroupId;
-	uint16_t altReadGroupId;
-	ReadGroupType type;
-	uint16_t maxCycles;
+	mutable uint16_t altReadGroupId;
+	mutable ReadGroupType type;
+	mutable uint16_t maxCycles;
 
 	TAlignmentMergerReadGroupSetting(const uint16_t ReadGroupId, const ReadGroupType Type, const uint16_t MaxCycles){
 		readGroupId = ReadGroupId;
@@ -32,11 +31,11 @@ struct TAlignmentMergerReadGroupSetting{
 		maxCycles = MaxCycles;
 	};
 
-	bool operator<(const TAlignmentMergerReadGroupSetting & left, const TAlignmentMergerReadGroupSetting & right){ return left.readGroupId < right.readGroupId; };
-	bool operator<(const TAlignmentMergerReadGroupSetting & left, const uint16_t & right){ return left.readGroupId < right; };
-	bool operator<(const uint16_t & left, const TAlignmentMergerReadGroupSetting & right){ return left < right.readGroupId; };
-
+	bool operator<(const TAlignmentMergerReadGroupSetting & right) const { return readGroupId < right.readGroupId; };
+	bool operator<(const uint16_t right) const { return readGroupId < right; };
 };
+
+bool operator<(const uint16_t left, const TAlignmentMergerReadGroupSetting & right);
 
 class TAlignmentMergerReadGroupSettings{
 private:
@@ -48,7 +47,7 @@ public:
 	TAlignmentMergerReadGroupSettings(){};
 
 	void initialize(TParameters & Params, TLog* logfile, BAM::TReadGroups & readGroups);
-	void setAllAsUnchanged(BAM::TReadGroups & readGroups);
+	void setAllAsUnchanged(const BAM::TReadGroups & readGroups);
 	bool needTruncation() const;
 	bool needsMerging() const;
 	ReadGroupType getType(const uint16_t readGroupId) const;
@@ -84,11 +83,11 @@ public:
 	~TAlignmentStorage();
 
 	bool empty();
-	TAlignmentInStorage& begin();
-	TAlignmentInStorage& end();
+	TAlignmentInStorage begin();
+	TAlignmentInStorage end();
 	void emplace_back(BAM::TAlignment* alignment, const bool ready);
-	TAlignmentInStorage& find(const std::string & name);
-	TAlignmentInStorage& erase(TAlignmentInStorage it);
+	TAlignmentInStorage find(const std::string & name);
+	TAlignmentInStorage erase(TAlignmentInStorage it);
 	void clear();
 };
 
@@ -114,7 +113,7 @@ protected:
 	void _writeAlignment(TAlignmentInStorage & it);
 	void _writeOrFilterAsOrphan(TAlignmentInStorage & it);
 	void _writeAll();
-	void _writeUpTo(const int position);
+	void _writeUpTo(const BAM::TGenomePosition & position);
 
 	BAM::TAlignment* _parseIntoNewAlignment();
 	virtual void _handleMates(BAM::TAlignment* alignment, TAlignmentInStorage & mate);
@@ -132,7 +131,7 @@ public:
 //-----------------------------------------
 class TAlignmentMerger{
 protected:
-	virtual void _mergeBases(TBase & alignment, TBase & mate, const TQualityMap & qualMap){};
+	virtual void _mergeBases(BAM::TBase & alignment, BAM::TBase & mate, const TQualityMap & qualMap){};
 
 public:
 	TAlignmentMerger(){};
@@ -146,8 +145,8 @@ protected:
 	TRandomGenerator* _randomGenerator;
 	bool _adaptQuality;
 
-	void _mergeBasesCore(TBase & bestBase, TBase & worstBase, const TQualityMap & qualMap);
-	virtual void _mergeBases(TBase & alignment, TBase & mate, const TQualityMap & qualMap);
+	void _mergeBasesCore(BAM::TBase & bestBase, BAM::TBase & worstBase, const TQualityMap & qualMap);
+	virtual void _mergeBases(BAM::TBase & alignment, BAM::TBase & mate, const TQualityMap & qualMap);
 
 public:
 	TAlignmentMerger_randomBase(TRandomGenerator* RandomGenerator, const bool AdaptQuality);
@@ -158,7 +157,7 @@ class TAlignmentMerger_randomRead:public TAlignmentMerger_randomBase{
 private:
 	bool _keepMate;
 
-	void _mergeBases(TBase & alignment, TBase & mate, const TQualityMap & qualMap);
+	void _mergeBases(BAM::TBase & alignment, BAM::TBase & mate, const TQualityMap & qualMap);
 	bool _merge(BAM::TAlignment* alignment, BAM::TAlignment* mate);
 
 public:
@@ -169,7 +168,7 @@ public:
 
 class TAlignmentMerger_highestQuality:public TAlignmentMerger_randomBase{
 private:
-	void _mergeBases(TBase & alignment, TBase & mate, const TQualityMap & qualMap);
+	void _mergeBases(BAM::TBase & alignment, BAM::TBase & mate, const TQualityMap & qualMap);
 public:
 	TAlignmentMerger_highestQuality(TRandomGenerator* RandomGenerator, const bool AdaptQuality);
 };

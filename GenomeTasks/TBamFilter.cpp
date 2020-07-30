@@ -10,6 +10,10 @@
 namespace GenomeTasks{
 
 
+bool operator<(const uint16_t left, const TAlignmentMergerReadGroupSetting & right){
+	return left < right.readGroupId;
+};
+
 //-----------------------------------------
 // TAlignmentMergerReadGroupSettings
 //-----------------------------------------
@@ -32,17 +36,17 @@ void TAlignmentMergerReadGroupSettings::initialize(TParameters & Params, TLog* l
 			logfile->listFlush("Parsing read group names from parameter 'pairedReadGroups' ...");
 
 			//get IDs
-			std::set<uint16_t> pairedIds;
+			std::set<uint16_t, std::less<>> pairedIds;
 			for(auto n : vec){
 				pairedIds.emplace(readGroups.getId(n));
 			}
 
 			//add as unchanged or paired
 			for(uint16_t rg=0; rg<readGroups.size(); ++rg){
-				if(pairedIds.find(rg)){
-					_settings.emplace(rg, paired, 0);
-				} else {
+				if(pairedIds.find(rg) == pairedIds.end()){
 					_settings.emplace(rg, unchanged, 0);
+				} else {
+					_settings.emplace(rg, paired, 0);
 				}
 			}
 			logfile->done();
@@ -67,8 +71,8 @@ void TAlignmentMergerReadGroupSettings::initialize(TParameters & Params, TLog* l
 		//read file with read group settings
 		std::string readGroupSettingsFile = Params.getParameterString("readGroupSettings");
 		logfile->listFlush("Reading single end read groups from file '" + readGroupSettingsFile + "' ...");
-		TInputFile in(readGroupSettingsFile);
-		if(in.numColumns() != 3){
+		TInputFile in(readGroupSettingsFile, false);
+		if(in.numCols() != 3){
 			throw "Wrong number of entries in file '" + readGroupSettingsFile + "': need three columns corresponding to the read group name, read group type and max cycles!";
 		}
 
@@ -85,7 +89,7 @@ void TAlignmentMergerReadGroupSettings::initialize(TParameters & Params, TLog* l
 				uint16_t maxCycles = 0;
 				if(vec[2] != "NA" || vec[2] != "-"){
 					if(!stringContainsOnlyNumbers(vec[1])){
-						throw "Error reading file '" + in.name() + "' on line " + in.lineNumber() + ": max cycles should be a number!";
+						throw "Error reading file '" + in.name() + "' on line " + toString(in.lineNumber()) + ": max cycles should be a number!";
 					}
 					maxCycles = convertString<int>(vec[2]);
 				}
@@ -100,7 +104,7 @@ void TAlignmentMergerReadGroupSettings::initialize(TParameters & Params, TLog* l
 					_settings.emplace(rgId, unchanged, 0);
 				} else if(vec[1] == "single"){
 					if(maxCycles < 1){
-						throw "Error reading file '" + in.name() + "' on line " + in.lineNumber() + ": max cycles must be > 0 for read groups of type 'single'!";
+						throw "Error reading file '" + in.name() + "' on line " + toString(in.lineNumber()) + ": max cycles must be > 0 for read groups of type 'single'!";
 					}
 
 					//add to settings and create truncated read group
@@ -109,7 +113,7 @@ void TAlignmentMergerReadGroupSettings::initialize(TParameters & Params, TLog* l
 
 				} else if(vec[1] == "mixed"){
 					if(maxCycles < 1){
-						throw "Error reading file '" + in.name() + "' on line " + in.lineNumber() + ": max cycles must be > 0 for read groups of type 'mixed'!";
+						throw "Error reading file '" + in.name() + "' on line " + toString(in.lineNumber()) + ": max cycles must be > 0 for read groups of type 'mixed'!";
 					}
 
 					//add to settings and create truncated read group
@@ -119,7 +123,7 @@ void TAlignmentMergerReadGroupSettings::initialize(TParameters & Params, TLog* l
 				} else if(vec[1] == "paired"){
 					_settings.emplace(rgId, paired, 0);
 				} else {
-					throw "Error reading file '" + in.name() + "' on line " + in.lineNumber() + ": Unknown read group type '" + vec[1] + "'! Expected 'unchanged', 'single', 'mixed' or 'paired'.";
+					throw "Error reading file '" + in.name() + "' on line " + toString(in.lineNumber()) + ": Unknown read group type '" + vec[1] + "'! Expected 'unchanged', 'single', 'mixed' or 'paired'.";
 				}
 			}
 		}
@@ -152,7 +156,7 @@ void TAlignmentMergerReadGroupSettings::_printSummary(TLog* logfile){
 	if(counts[paired] > 0   ){ logfile->conclude(counts[paired] + " paired read groups to be merged."); }
 };
 
-void TAlignmentMergerReadGroupSettings::setAllAsUnchanged(BAM::TReadGroups & readGroups){
+void TAlignmentMergerReadGroupSettings::setAllAsUnchanged(const BAM::TReadGroups & readGroups){
 	_settings.clear();
 	for(uint16_t rg=0; rg < readGroups.size(); ++rg){
 		if(readGroups.readGroupInUse(rg)){
@@ -186,7 +190,7 @@ uint16_t TAlignmentMergerReadGroupSettings::getMaxCycles(const uint16_t readGrou
 };
 
 const TAlignmentMergerReadGroupSetting& TAlignmentMergerReadGroupSettings::getSettings(const uint16_t readGroupId) const{
-	return _settings.find(readGroupId);
+	return *_settings.find(readGroupId);
 };
 
 //-----------------------------------------
@@ -241,11 +245,11 @@ bool TAlignmentStorage::empty(){
 	return _storage.empty();
 };
 
-TAlignmentInStorage& TAlignmentStorage::begin(){
+TAlignmentInStorage TAlignmentStorage::begin(){
 	return _storage.begin();
 };
 
-TAlignmentInStorage& TAlignmentStorage::end(){
+TAlignmentInStorage TAlignmentStorage::end(){
 	return _storage.end();
 };
 
@@ -253,9 +257,9 @@ void TAlignmentStorage::emplace_back(BAM::TAlignment* alignment, const bool read
 	_storage.emplace_back(alignment, ready);
 };
 
-TAlignmentInStorage& TAlignmentStorage::find(const std::string & name){
+TAlignmentInStorage TAlignmentStorage::find(const std::string & name){
 	for(auto it=_storage.begin(); it!=_storage.end(); ++it){
-		if(it->alignment->_name() == name){
+		if(it->alignment->name() == name){
 			return it;
 		}
 	}
@@ -263,7 +267,7 @@ TAlignmentInStorage& TAlignmentStorage::find(const std::string & name){
 	return _storage.end();
 };
 
-TAlignmentInStorage& TAlignmentStorage::erase(TAlignmentInStorage it){
+TAlignmentInStorage TAlignmentStorage::erase(TAlignmentInStorage it){
 	return _storage.erase(it);
 };
 
@@ -310,7 +314,7 @@ TBamFilter::TBamFilter(TParameters & Params, TLog* Logfile, TRandomGenerator* Ra
 	}
 
 	//set all read groups to unchanged
-	_rgSettings.setAllAsUnchanged(_bamFile._readGroups);
+	_rgSettings.setAllAsUnchanged(_bamFile.readGroups());
 };
 
 void TBamFilter::_openBamFileForWriting(){
@@ -319,7 +323,7 @@ void TBamFilter::_openBamFileForWriting(){
 
 void TBamFilter::_writeAlignment(TAlignmentInStorage & it){
 	//save the alignment to the bam file
-	_outBam.writeAlignment(*(it->alignment), _genoMap, _qualMap);
+	_outBam.writeAlignment(*(it->alignment));
 	//delete it->alignment;
 	it = _alignmentStorage.erase(it);
 };
@@ -351,10 +355,10 @@ void TBamFilter::_writeAll(){
 	_blacklist.clear();
 };
 
-void TBamFilter::_writeUpTo(const int position){
+void TBamFilter::_writeUpTo(const BAM::TGenomePosition & position){
 	//writes all that are ready or too far away
 	TAlignmentInStorage it = _alignmentStorage.begin();
-	while(it != _alignmentStorage.end() && (it->ready || position - it->alignment->position() > _maxDistanceBetweenMates)){
+	while(it != _alignmentStorage.end() && (it->ready || position - *it->alignment > _maxDistanceBetweenMates)){
 		_writeOrFilterAsOrphan(it);
 	}
 };
@@ -477,7 +481,7 @@ uint16_t TAlignmentMerger::merge(BAM::TAlignment & alignment, BAM::TAlignment & 
 	//deletions and insertions are kept as is. these positions are not compared
 
 	//check if reads overlap
-	if(alignment.position() > mate.lastAlignedPositionWithRespectToRef()){
+	if(alignment > mate.lastAlignedPositionWithRespectToRef()){
 		return 0;
 	}
 
@@ -485,7 +489,7 @@ uint16_t TAlignmentMerger::merge(BAM::TAlignment & alignment, BAM::TAlignment & 
 	uint16_t numOverlap = 0;
 
 	//go through alignments
-	int fwdP = 0; int revP = 0;
+	uint32_t fwdP = 0; uint32_t revP = 0;
 	while(fwdP <= alignment.lastAlingedInternalPos() && revP <= mate.lastAlingedInternalPos()){
 		//make sure we compare at the same position in respect to ref
 		if(!alignment.isAlignedAtInternalPos(fwdP)){
@@ -499,7 +503,7 @@ uint16_t TAlignmentMerger::merge(BAM::TAlignment & alignment, BAM::TAlignment & 
 		} else {
 			//at same position: merge
 			++numOverlap;
-			_mergeBases(alignment.base(fwdP), mate.base(revP), qualMap);
+			_mergeBases(alignment[fwdP], mate[revP], qualMap);
 
 			//advance in both reads
 			++fwdP; ++revP;
@@ -522,7 +526,7 @@ TAlignmentMerger_randomBase::TAlignmentMerger_randomBase(TRandomGenerator* Rando
 	_adaptQuality = AdaptQuality;
 };
 
-void TAlignmentMerger_randomBase::_mergeBasesCore(TBase & bestBase, TBase & worstBase, const TQualityMap & qualMap){
+void TAlignmentMerger_randomBase::_mergeBasesCore(BAM::TBase & bestBase, BAM::TBase & worstBase, const TQualityMap & qualMap){
 	if(_adaptQuality){
 		GenotypeLikelihoods::TBaseData likelihood(bestBase.base, qualMap.phredIntToError(bestBase.recalibratedQualityAsPhredInt));
 		likelihood *= GenotypeLikelihoods::TBaseData(worstBase.base, qualMap.phredIntToError(worstBase.recalibratedQualityAsPhredInt));
@@ -535,7 +539,7 @@ void TAlignmentMerger_randomBase::_mergeBasesCore(TBase & bestBase, TBase & wors
 	worstBase.base = N;
 };
 
-void TAlignmentMerger_randomBase::_mergeBases(TBase & alignment, TBase & mate, const TQualityMap & qualMap){
+void TAlignmentMerger_randomBase::_mergeBases(BAM::TBase & alignment, BAM::TBase & mate, const TQualityMap & qualMap){
 	if(_randomGenerator->pickOneOfTwo()){
 		_mergeBasesCore(mate, alignment, qualMap);
 	} else {
@@ -549,7 +553,7 @@ TAlignmentMerger_randomRead::TAlignmentMerger_randomRead(TRandomGenerator* Rando
 	_keepMate = false;
 };
 
-void TAlignmentMerger_randomRead::_mergeBases(TBase & alignment, TBase & mate, const TQualityMap & qualMap){
+void TAlignmentMerger_randomRead::_mergeBases(BAM::TBase & alignment, BAM::TBase & mate, const TQualityMap & qualMap){
 	if(_keepMate){
 		_mergeBasesCore(mate, alignment, qualMap);
 	} else {
@@ -566,7 +570,7 @@ uint16_t TAlignmentMerger_randomRead::merge(BAM::TAlignment & alignment, BAM::TA
 //---------------------------------
 TAlignmentMerger_highestQuality::TAlignmentMerger_highestQuality(TRandomGenerator* RandomGenerator, const bool AdaptQuality):TAlignmentMerger_randomBase(RandomGenerator, AdaptQuality){};
 
-void TAlignmentMerger_randomRead::_mergeBases(TBase & alignment, TBase & mate, const TQualityMap & qualMap){
+void TAlignmentMerger_highestQuality::_mergeBases(BAM::TBase & alignment, BAM::TBase & mate, const TQualityMap & qualMap){
 	if(mate.recalibratedQualityAsPhredInt > alignment.recalibratedQualityAsPhredInt){
 		_mergeBasesCore(mate, alignment, qualMap);
 	} else if(alignment.recalibratedQualityAsPhredInt > mate.recalibratedQualityAsPhredInt){
@@ -582,7 +586,7 @@ void TAlignmentMerger_randomRead::_mergeBases(TBase & alignment, TBase & mate, c
 //-----------------------------------------
 TAlignmentSplitMerger::TAlignmentSplitMerger(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator):TBamFilter(Params, Logfile, RandomGenerator){
 	//parse read group settings
-	_rgSettings.initialize(Params, Logfile, _bamFile._readGroups);
+	_rgSettings.initialize(Params, Logfile, _bamFile.readGroupsMutable());
 
 	//other settings
 	_numReadsMerged = 0;
@@ -652,7 +656,7 @@ void TAlignmentSplitMerger::_handleMates(BAM::TAlignment* alignment, TAlignmentI
 	ReadGroupType type = _rgSettings.getType(alignment->readGroupId());
 
 	if(type == single){
-		throw "Paired reads found in single-end read group '" + _bamFile._readGroups.getName(alignment->readGroupId()) + "'! Is this a 'mixed' read group?";
+		throw "Paired reads found in single-end read group '" + _bamFile.readGroups().getName(alignment->readGroupId()) + "'! Is this a 'mixed' read group?";
 	} else if(!alignment->isProperPair()){
 		//not a proper pair: mark mate as as improper too
 		mate->setAsNonProperPair();
@@ -730,14 +734,14 @@ void TOverlapQuantifier::quantifyOverlap(){
 		//check if first alignment in storage is too far away from current alignment
 		//if yes, first alignment in storage is considered an orphan
 		TAlignmentInStorage it = _alignmentStorage.begin();
-		while(it != _alignmentStorage.end() && _bamFile.curPosition() - it->alignment->position() > _bamFile.maxReadLength()){
+		while(it != _alignmentStorage.end() && (_bamFile.curPosition() - *it->alignment) > _bamFile.maxReadLength()){
 			it = _alignmentStorage.erase(it);
 		}
 
 		//check if read passed filters and is proper pair
 		if(_bamFile.curPassedQC() && _bamFile.curIsProperPair()){
 			//parse alignment
-			BAM::TAlignment* alignment;
+			BAM::TAlignment* alignment = new BAM::TAlignment;
 			_bamFile.fill(*alignment);
 
 			//check if mate is in storage.
@@ -769,7 +773,7 @@ void TOverlapQuantifier::quantifyOverlap(){
 
 	//write distribution
 	std::string filename = _outputName + "_overlapStats.txt";
-	_logfile->listFlush("Writing distribution of fragment length adn overlap to file '" + filename + "' ...");
+	_logfile->listFlush("Writing distribution of fragment length and overlap to file '" + filename + "' ...");
 	TOutputFile out(filename, {"fragmentLength", "overlap"});
 	overlapDist.write(out);
 	out.close();

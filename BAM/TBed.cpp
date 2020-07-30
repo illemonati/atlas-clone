@@ -8,9 +8,9 @@ namespace BAM{
 // base class to store a list of windows
 //-------------------------------------------------------------
 
-std::set<TBedChromosome, std::less<>>::iterator TBed_base::addChromosome(const std::string Chr){
+std::set<TBedChromosome, std::less<>>::iterator TBed_base::addChromosome(const std::string & Chr){
 	//get chromosome id
-	auto& it = _chromosomes.find(Chr);
+	auto it = _chromosomes.find(Chr);
 	if(it == _chromosomes.end()){
 		_chromosomeNames[_chromosomes.size()] = Chr;
 		_chromosomes.emplace(_chromosomes.size(), Chr);
@@ -19,14 +19,14 @@ std::set<TBedChromosome, std::less<>>::iterator TBed_base::addChromosome(const s
 };
 
 void TBed_base::addChromosomes(const TChromosomes & Chromosomes){
-	for(auto c = Chromosomes.cbegin(); c != Chromosomes.end(); ++c){
-		auto it = _chromosomes.emplace(c->refID, c->name);
+	for(std::vector<TChromosome>::const_iterator c = Chromosomes.cbegin(); c != Chromosomes.cend(); ++c){
+		auto it = _chromosomes.emplace(c->refID(), c->name);
 		if(it.second){
 			//insert succeeded: add name
-			_chromosomeNames[c->refID] = c->name;
+			_chromosomeNames[c->refID()] = c->name;
 		} else {
 			//insert failed as element already exists: check if refID is correct!
-			if(it.first->refId != c->refID){
+			if(it.first->refId != c->refID()){
 				throw std::runtime_error("void TBed::addChromosomes(const TChromosomes & Chromosomes): chromosome already exists, but with different ID!");
 			}
 		}
@@ -42,7 +42,7 @@ bool TBed_base::hasWindowsOnChr(const std::string Chr){
 };
 
 uint32_t TBed_base::getRefID(const std::string Chr){
-	auto& it = _chromosomes.find(Chr);
+	auto it = _chromosomes.find(Chr);
 	if(it == _chromosomes.end()){
 		throw std::runtime_error("uint32_t TBed_base::getRefID(const std::string Chr): chromosome '" + Chr + "' does not exist!");
 	}
@@ -50,11 +50,15 @@ uint32_t TBed_base::getRefID(const std::string Chr){
 };
 
 std::string TBed_base::getChromosomeName(const uint32_t refId){
-	auto& it = _chromosomeNames.find(refId);
+	auto it = _chromosomeNames.find(refId);
 	if(it == _chromosomeNames.end()){
-		throw std::runtime_error("std::string TBed_base::getChromosomeName(const uint32_t refId): ref ID '" + refId + "' does not exist!");
+		throw std::runtime_error("std::string TBed_base::getChromosomeName(const uint32_t refId): ref ID '" + toString(refId) + "' does not exist!");
 	}
-	return *it;
+	return it->second;
+};
+
+bool operator<(const std::string & Name, const TBedChromosome & Chr){
+	return Name < Chr.name;
 };
 
 //-------------------------------------------------------------
@@ -62,7 +66,7 @@ std::string TBed_base::getChromosomeName(const uint32_t refId){
 //-------------------------------------------------------------
 void TBed::add(TGenomeWindow Window){
 	//check if chromosome exists
-	if(!_chromosomeNames.find(Window.refID())){
+	if(_chromosomeNames.find(Window.refID()) == _chromosomeNames.end()){
 		throw std::runtime_error("void TBed::add(TGenomeWindow Window): chromosome with refID " + toString(Window.refID()) + " does not exist!");
 	} else {
 		//insert on chromosome that already has windows
@@ -88,7 +92,7 @@ void TBed::add(TGenomeWindow Window){
 	}
 };
 
-void TBed::add(TGenomePosition Position){
+void TBed::add(const TGenomePosition & Position){
 	add(TGenomeWindow(Position));
 };
 
@@ -102,7 +106,7 @@ void TBed::add(const uint32_t RefID, const uint32_t Pos){
 
 void TBed::add(const std::string Chr, const uint32_t Pos){
 	addChromosome(Chr);
-	auto& it = _chromosomes.find(Chr);
+	auto it = _chromosomes.find(Chr);
 	add(TGenomeWindow(it->refId, Pos));
 };
 
@@ -134,7 +138,7 @@ void TBed::add(const std::string Filename, const TChromosomes & Chromosomes){
 	std::vector<std::string> vec;
 	while(in.read(vec)){
 		//parse data
-		uint32_t refId = Chromosomes.getChromosome(vec[0]);
+		uint32_t refId = Chromosomes.refID(vec[0]);
 		uint32_t start = convertStringCheck<uint32_t>(vec[1]);
 		uint32_t end = convertStringCheck<uint32_t>(vec[2]);
 
@@ -149,9 +153,9 @@ void TBed::write(const std::string Filename) const{
 	for(auto& it: _bed){
 		auto c = _chromosomeNames.find(it.refID());
 		if(c == _chromosomeNames.end()){
-			throw std::runtime_error("void TBed::write(const std::string Filename) const: chromosome with refID " + toString(it.refID) + " does not exist!");
+			throw std::runtime_error("void TBed::write(const std::string Filename) const: chromosome with refID " + toString(it.refID()) + " does not exist!");
 		}
-		out << c->second << it.start() << it.end() << std::endl;
+		out << c->second << it.fromOnChr() << it.toOnChr() << std::endl;
 	}
 };
 
@@ -179,7 +183,7 @@ bool TBed::exists(const TGenomeWindow window) const{
 	}
 
 	//now check for end
-	if(it->_end == window.end()){
+	if(it->to() == window.to()){
 		return true;
 	} else {
 		return false;
@@ -193,14 +197,14 @@ void TGenomeWindowList::add(const TGenomeWindow Window){
 	_list.insert(Window);
 };
 
-void TGenomeWindowList::add(const std::string Filename, TChromosomes & Chromosomes){
+void TGenomeWindowList::add(const std::string Filename, const TChromosomes & Chromosomes){
 	//add windows from file
 	TInputFile in(Filename, false);
 
 	std::vector<std::string> vec;
 	while(in.read(vec)){
 		//parse data
-		uint32_t refId = Chromosomes.getChromosome(vec[0]);
+		uint32_t refId = Chromosomes.refID(vec[0]);
 		uint32_t start = convertStringCheck<uint32_t>(vec[1]);
 		uint32_t end = convertStringCheck<uint32_t>(vec[2]);
 
@@ -208,12 +212,12 @@ void TGenomeWindowList::add(const std::string Filename, TChromosomes & Chromosom
 	}
 };
 
-void TGenomeWindowList::write(const std::string Filename, TChromosomes & Chromosomes) const{
+void TGenomeWindowList::write(const std::string Filename, const TChromosomes & Chromosomes) const{
 	TOutputFile out(Filename);
 	out.noHeader(3);
 
 	for(auto& it:  _list){
-		out << Chromosomes.name(it.refID()) << it.start() << it.end() << std::endl;
+		out << Chromosomes.name(it.refID()) << it.fromOnChr() << it.toOnChr() << std::endl;
 	}
 };
 
@@ -241,7 +245,7 @@ bool TGenomeWindowList::exists(const TGenomeWindow window) const{
 	}
 
 	//now check for end
-	if(it->_end == window.end()){
+	if(it->to() == window.to()){
 		return true;
 	} else {
 		return false;
@@ -255,6 +259,21 @@ bool TGenomeWindowList::hasWindowsOnChr(uint32_t refId) const{
 	}
 	return true;
 };
+
+uint32_t TGenomeWindowList::numWindowsOnChr(const uint32_t refId) const{
+	auto it = _list.find(TGenomePosition(refId, 0));
+	if(it == _list.end() || it->refID() > refId){
+		return 0;
+	} else {
+		uint32_t num = 0;
+		while(it->refID() == refId){
+			++num;
+			++it;
+		}
+		return num;
+	}
+};
+
 /*
 //---------------------------------------
 // TBedChromosome

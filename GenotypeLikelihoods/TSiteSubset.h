@@ -62,7 +62,6 @@ private:
 public:
 	TSiteSubset(const std::string Filename, const BAM::TChromosomes & Chromosomes, const TGenotypeMap & GenoMap, TLog* Logfile, bool InvariantSites);
 	TSiteSubset(const std::string Filename, const BAM::TChromosomes & Chromosomes, const TGenotypeMap & GenoMap, TLog* Logfile, bool InvariantSites, BAM::TFastaBuffer & Reference);
-	void setChr(const std::string chr);
 	void write(const std::string Filename) const;
 	bool hasPositionsInWindow(const BAM::TGenomeWindow & Window) const;
 	std::set<TSiteSubsetSite> getPositionInWindow(const BAM::TGenomeWindow & Window) const;

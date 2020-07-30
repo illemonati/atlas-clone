@@ -172,7 +172,7 @@ void TSimulatorBamFile::open(const std::string Filename,
 	}
 	BAM::TReadGroups readGroups;
 	for(auto it = ReadGroupNames.cbegin(); it != ReadGroupNames.cend(); ++it){
-		BAM::TReadGroup& rg = readGroups.add(*it);
+		const BAM::TReadGroup& rg = readGroups.add(*it);
 		rg.sequencingCenter_CN = __GLOBAL_APPLICATION_NAME__ + " " + __GLOBAL_APPLICATION_VERSION__;
 		rg.description_DS = "Simulated with commit " + __GLOBAL_APPLICATION_COMMIT__;
 		rg.sample_SM = SampleName;

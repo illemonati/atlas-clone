@@ -375,6 +375,10 @@ double TGenotypeLikelihoodsHaploid::weightedSum(const TGenotypeData & weights){
 //--------------------------------------------------------------------
 // TGenotypeProbabilities
 //--------------------------------------------------------------------
+TGenotypeProbabilities::TGenotypeProbabilities(){
+	reset();
+};
+
 void TGenotypeProbabilities::reset(){
 	set(0.1);
 };

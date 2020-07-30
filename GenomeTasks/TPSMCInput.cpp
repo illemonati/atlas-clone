@@ -6,6 +6,7 @@
  */
 
 #include "TPSMCInput.h"
+#include "TThetaEstimator.h"
 
 namespace GenomeTasks{
 
@@ -16,7 +17,7 @@ TPSMCInput::TPSMCInput(TParameters & Parameters, TLog* Logfile, TRandomGenerator
 	_theta = Parameters.getParameterDoubleWithDefault("theta", 0.001);
 	_logfile->list("Using theta = " + toString(_theta) + ". (parameter 'theta')");
 
-	_thetaEstimator = std::make_unique<TThetaEstimator>(_logfile, _randomGenerator);
+	_thetaEstimator = std::make_unique<GenotypeLikelihoods::TThetaEstimator>(_logfile, _randomGenerator);
 	_thetaEstimator->setTheta(_theta);
 
 	_confidence = Parameters.getParameterDoubleWithDefault("confidence", 0.99);
@@ -28,7 +29,7 @@ TPSMCInput::TPSMCInput(TParameters & Parameters, TLog* Logfile, TRandomGenerator
 	_blockSize = Parameters.getParameterIntWithDefault("block", 100);
 	//make sure window size is a multiple of block length!
 	if(_windowSize % _blockSize != 0) throw "Window size is not a multiple of block size!";
-	_nBlocks = _window.length / _blockSize;
+	_nBlocks = _window.size() / _blockSize;
 
 	//open output file
 	std::string outputFileName = _outputName + ".psmcfa";
@@ -49,33 +50,33 @@ void TPSMCInput::_handleWindow(){
 	_thetaEstimator->setBaseFreq(_baseFreq);
 
 	//call heterozygosity in blocks
-	for(int b=0; b<_nBlocks; ++b){
+	for(uint32_t b=0; b<_nBlocks; ++b){
 		uint32_t blockStart = b * _blockSize;
 		double logPHomo = 0.0;
 
-		for(int i=0; i<_blockSize; ++i){
-			if(_window[blockStart + i]._hasData){
-				_genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(_window[blockStart + 1]._bases, _genoLik);
+		for(uint32_t i=0; i<_blockSize; ++i){
+			if(!_window[blockStart + i].empty()){
+				_genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(_window[blockStart + 1], _genoLik);
 				_posterior.fill(_genoLik, _prior);
 				logPHomo += log(_posterior.probHomozygous());
 			}
 		}
 
-			//check if we are heterozygous
-			if(logPHomo > _logConfidence){
-				_out << 'T';
-			} else if(logPHomo < _logConfidenceHet){
-				_out << 'K';
-			} else {
-				_out << 'N';
-			}
-
-			//do we add a new line?
-			if(_nCharOnLine == 59){
-				_nCharOnLine = 0;
-				_out << '\n';
-			} else ++_nCharOnLine;
+		//check if we are heterozygous
+		if(logPHomo > _logConfidence){
+			_out << 'T';
+		} else if(logPHomo < _logConfidenceHet){
+			_out << 'K';
+		} else {
+			_out << 'N';
 		}
+
+		//do we add a new line?
+		if(_nCharOnLine == 59){
+			_nCharOnLine = 0;
+			_out << '\n';
+		} else ++_nCharOnLine;
+	}
 
 	_logfile->doneTime();
 };

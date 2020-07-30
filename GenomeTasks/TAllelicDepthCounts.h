@@ -35,7 +35,7 @@ public:
 
 	void resize(const uint32_t MaxAllelicDepth);
 	void clear();
-	void addSite(const std::vector<uint32_t> & alleleCounts);
+	void addSite(const GenotypeLikelihoods::TBaseCounts & alleleCounts);
 	void addSiteZeroDepth();
 	void write(const std::string filename, bool printEmpty);
 };

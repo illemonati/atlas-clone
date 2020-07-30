@@ -42,7 +42,7 @@ public:
 	void keep();
 	bool filters() const{ return !_keep; };
 	void setReason(const std::string reason);
-	void setLog(const TBamFileLog* Log);
+	void setLog(TBamFileLog* Log);
 	void filterOut(const std::string & alignmentName, const bool & isReverseStrand);
 	void summary(TLog* logfile);
 };

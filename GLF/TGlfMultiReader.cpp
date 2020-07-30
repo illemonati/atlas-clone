@@ -644,7 +644,7 @@ void TGlfMultiReader::fillSampleNamesOfActiveFiles(std::vector<std::string> & ve
 
 Base TGlfMultiReader::refBase(){
 	if(hasReference){
-		return genoMap.getBase(fastaBuffer.refAt(_curRefId, _position));
+		return fastaBuffer.refAt(BAM::TGenomePosition(_curRefId, _position));
 	} else return N;
 };
 

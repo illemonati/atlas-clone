@@ -18,8 +18,7 @@ TDepthWriter::TDepthWriter(TParameters & Parameters, TLog* Logfile, TRandomGener
 
 void TDepthWriter::_handleWindow(){
 	_logfile->listFlush("Writing sequencing depth estimates to file ...");
-	_window.writeCoordinates(_out);
-	_out <<  _window.depth() << std::endl;
+	_out << _window << _window.depth() << std::endl;
 	_logfile->done();
 
 	_logfile->listFlush("Adding per site depth to distribution ...");

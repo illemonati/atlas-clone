@@ -521,7 +521,7 @@ void TAlleleCountEstimator::transformFormat(TParameters & params){
 	std::getline(file, line);
 	std::vector<std::string> tmp_vec;
 	std::vector<std::string> populationNames;
-	fillVectorFromStringWhiteSpaceSkipEmpty(line, tmp_vec);
+	fillVectorFromStringWhiteSpace(line, tmp_vec, true);
 	for(unsigned int i=2; i<tmp_vec.size(); ++i){
 		populationNames.push_back(tmp_vec[i]);
 	}
@@ -539,7 +539,7 @@ void TAlleleCountEstimator::transformFormat(TParameters & params){
 	while(file.good() && !file.eof()){
 		std::vector<std::string> vec;
 		std::getline(file, line);
-		fillVectorFromStringWhiteSpaceSkipEmpty(line, vec);
+		fillVectorFromStringWhiteSpace(line, vec, true);
 		//write chromosome and position
 		if(vec.size() > 0){
 			alleleCountFile->writePosition(vec[0], vec[1]);

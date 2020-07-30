@@ -18,10 +18,10 @@ TEstimateTheta_base::TEstimateTheta_base(TParameters & Parameters, TLog* Logfile
 
 };
 
-void TEstimateTheta_base::_addSites(TWindow_base & window, GenotypeLikelihoods::TThetaEstimator & thetaEstimator){
+void TEstimateTheta_base::_addSites(GenotypeLikelihoods::TWindow_base & window, GenotypeLikelihoods::TThetaEstimator & thetaEstimator){
 	_logfile->listFlushTime("Calculating genotype likelihoods ...");
 	for(auto& s : window){
-		_genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(s._bases, _genoLik);
+		_genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(s, _genoLik);
 		thetaEstimator.add(s, _genoLik);
 	}
 	_logfile->doneTime();
@@ -60,7 +60,7 @@ bool TEstimateTheta::_estimateTheta(){
 void TEstimateTheta::_handleWindow(){
 	_logfile->startIndent("Estimating Theta:");
 	if(_estimateTheta() || _printAll){
-		_thetaOut.write(_window._chrName, _window.startPos, _window.endPos);
+		_thetaOut.write(_window);
 	}
 	_thetaEstimator.clear();
 	_logfile->endIndent();
@@ -113,7 +113,7 @@ void TEstimateThetaGenomeWide::_bootstrapThetaEstimation(){
 	TTimer timer;
 
 	//loop over bootstraps
-	for(int s=0; s<_numBootstraps; ++s){
+	for(uint32_t s=0; s<_numBootstraps; ++s){
 		_logfile->startIndent("Bootstrap " + toString(s+1) + " of " + toString(_numBootstraps) + ":");
 
 		//run bootstrap
@@ -172,7 +172,7 @@ void TEstimateThetaLLSurface::_handleWindow(){
 	_addSites();
 
 	//open file
-	std::string filename = _outputName + _window.chrName() + "_" + toString(_window.startPos) + "_LLsurface.txt";
+	std::string filename = _outputName + _window.chrName() + "_" + toString(_window.from().position()) + "_LLsurface.txt";
 	_logfile->listFlushTime("Writing LL surface to file '" + filename + "' ...");
 	TOutputFile out(filename);
 
@@ -264,7 +264,7 @@ void TEstimateThetaDownsamplingQC::_handleWindow(){
 	}
 
 	//write output
-	_thetaOut.write(_window._chrName, _window.startPos, _window.endPos);
+	_thetaOut.write(_window);
 
 	//clear
 	_thetaEstimator.clear();
@@ -280,53 +280,43 @@ void TEstimateThetaDownsamplingQC::runQC(){
 //-----------------------------------
 // TEstimateThetaRatio
 //-----------------------------------
-TEstimateThetaRatio::TEstimateThetaRatio(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_windows(Parameters, Logfile, RandomGenerator){
+TEstimateThetaRatio::TEstimateThetaRatio(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):
+		TGenome_windows(Parameters, Logfile, RandomGenerator),
+		_thetaEstimatorRatio(Parameters, Logfile, RandomGenerator){
 	//read the two regions to be used
 	_logfile->startIndent("Reading regions:");
 	_initializeRegion(Parameters, _region1, '1');
 	_initializeRegion(Parameters, _region1, '2');
 };
 
-void TEstimateThetaRatio::_initializeRegion(TParameters & Parameters, BAM::TBedReaderWindows* region, const char num){
-	_logfile->startIndent("Region " + num + ":");
+void TEstimateThetaRatio::_initializeRegion(TParameters & Parameters, BAM::TBed & region, const char num){
+	_logfile->startIndent((std::string) "Region " + num + ":");
 	std::string regionsFile = Parameters.getParameterString("regions" + num);
-	_logfile->list("Will read regions from file '" + regionsFile  + ". (parameter 'region" + num + "')");
-	uint32_t siteLimit = 0;
-	if(Parameters.parameterExists("siteLimit" + num)){
-		siteLimit = Parameters.getParameterInt("siteLimit" + num);
-		_logfile->list("Will only consider the first ", siteLimit, " sites. (parameter 'siteLimit" + num + "')");
-		if(siteLimit < 10)
-			throw "Site limit cannot be smaller than 10!";
-	} else {
-		_logfile->list("Will consider all sites in regions file. (use 'siteLimit" + num + "' to limit)");
-	}
-	region = new BAM::TBedReaderWindows(regionsFile, _windowSize, _bamFile._chromosomes, siteLimit,_logfile);
+	_logfile->list((std::string) "Reading regions " + num + " from file '" + regionsFile  + " (parameter 'region" + num + "') ...");
+	region.add(regionsFile, _bamFile.chromosomes());
 	_logfile->done();
+	_logfile->conclude("Read " + toString(region.size()) + " sites on " + toString(region.numChromosomesWithWindows()) + " chromosomes.");
 };
 
-void TEstimateThetaRatio::_addSites(GenotypeLikelihoods::TThetaEstimatorData & data, BAM::TBedReaderWindows & regions){
-	if(regions.hasPositionsInWindow(_window.startPos)){
-		GenotypeLikelihoods::TGenotypeLikelihoods genoLik;
-		std::vector<uint32_t> thesePos = regions.getPositionInWindow(_window.startPos);
-		for(auto& p : thesePos){
-		uint32_t internalPos = p - _window.startPos;
-			if(internalPos < _window.length){
-				_genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(_window._sites[internalPos]._bases, genoLik);
-				data.add(_window._sites[internalPos], genoLik);
-			}
+void TEstimateThetaRatio::_addSites(GenotypeLikelihoods::TThetaEstimatorData & data, BAM::TBed & region){
+	auto it = region.lower_bound(_window);
+
+	while(it != region.end() && _window.overlaps(*it)){
+		for(BAM::TGenomePosition s = std::max(it->from(), _window.from()); s < it->to() && s < _window.to(); ++s){
+			GenotypeLikelihoods::TGenotypeLikelihoods genoLik;
+			_genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(_window[s - _window.from()], genoLik);
+			data.add(_window[s - _window.from()], genoLik);
 		}
+		++it;
 	}
 };
 
 void TEstimateThetaRatio::_handleWindow(){
-	_region1->setChr(_window._chrName);
-	_region2->setChr(_window._chrName);
-
 	//adding sites to estimator
 	_logfile->listFlushTime("Calculating genotype likelihoods ...");
 	try{
-		_addSites(*_thetaEstimatorRatio.pointerToDataContainer(), *_region1);
-		_addSites(*_thetaEstimatorRatio.pointerToDataContainer2(), *_region2);
+		_addSites(*_thetaEstimatorRatio.pointerToDataContainer(), _region1);
+		_addSites(*_thetaEstimatorRatio.pointerToDataContainer2(), _region2);
 	} catch(...){
 		throw "Failed to allocate sufficient memory to store the data for so many sites. Consider selecting fewer regions or limiting to sites with a minimal depth (>=2 recommended).";
 	}

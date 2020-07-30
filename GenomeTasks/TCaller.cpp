@@ -32,6 +32,9 @@ TCaller::TCaller(TRandomGenerator* RandomGenerator){
 	//set acceptable tags
 	setAcceptableFields(&VCFInfoFields, "DP");
 	setAcceptableFields(&VCFGenotypeFields, "GT,DP,AD");
+
+	//prior
+	genotypePrior = nullptr;
 	_usesPrior = false;
 	priorSet = false;
 
@@ -52,7 +55,7 @@ TCaller::~TCaller(){
 //-------------------------------------------------------------------------------------------
 void TCaller::setAcceptableFields(VCF::TVCFFieldVector* fields, std::string tags){
 	std::vector<std::string> vec;
-	fillVectorFromStringAnySkipEmpty(tags, vec, ",");
+	fillVectorFromStringAny(tags, vec, ",", true);
 	for(std::vector<std::string>::iterator it = vec.begin(); it != vec.end(); ++it)
 		fields->acceptField(*it);
 };
@@ -72,7 +75,7 @@ void TCaller::printInfoFields(std::vector<std::string> & tags){
 
 void TCaller::printInfoFields(std::string tags){
 	std::vector<std::string> vec;
-	fillVectorFromStringAnySkipEmpty(tags, vec, ",");
+	fillVectorFromStringAny(tags, vec, ",", true);
 	printInfoFields(vec);
 };
 
@@ -85,7 +88,7 @@ void TCaller::printGenotypeFields(std::vector<std::string> & tags){
 
 void TCaller::printGenotypeFields(std::string tags){
 	std::vector<std::string> vec;
-	fillVectorFromStringAnySkipEmpty(tags, vec, ",");
+	fillVectorFromStringAny(tags, vec, ",", true);
 	printGenotypeFields(vec);
 };
 
@@ -195,7 +198,7 @@ void TCaller::fillInfoFieldFunctionPointers(){
 };
 
 std::string TCaller::getVCFInfoString_DP(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){
-	return "DP=" + toString(site._bases.size());
+	return "DP=" + toString(site.depth());
 };
 
 //-------------------------------------------------------------------------------------------
@@ -245,7 +248,7 @@ std::string TCaller::getVCFGenotypeString_GT(const TSite & site, TGenotypeLikeli
 };
 
 std::string TCaller::getVCFGenotypeString_DP(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){
-	return toString(site._bases.size());
+	return toString(site.depth());
 };
 
 std::string TCaller::getVCFGenotypeString_AD(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){
@@ -298,7 +301,7 @@ void TCaller::writeCallToVCF(const std::string & chr, const long pos, const TSit
 	vcf << chr << '\t' << pos + 1 << "\t.\t"; //all internal positions are zero-based!
 
 	//write reference and alternative alleles
-	vcf << site._referenceBase << "\t";
+	vcf << site.refBase() << "\t";
 	writeAlternativeAllelesToVCF();
 
 	//write (no) variant quality and (no) filter
@@ -319,7 +322,7 @@ void TCaller::writeCallToVCF(const std::string & chr, const long pos, const TSit
 
 void TCaller::writeMissingDataToVCF(const TSite & site){
 	if(_printSitesWithNoData)
-		vcf << "\t.\t" << site._referenceBase << "\t.\t.\t.\t.\tGT:DP\t" << missingGenotype << ":0";
+		vcf << "\t.\t" << site.refBase() << "\t.\t.\t.\t.\tGT:DP\t" << missingGenotype << ":0";
 };
 
 void TCaller::clearAfterCall(){
@@ -347,10 +350,10 @@ void TCaller::callGenotypeKnownAlleles(const TSite & site, TGenotypeLikelihoods 
 
 void TCaller::call(const std::string & chr, const long pos, const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){
 	//set reference base from site
-	referenceBase = genoMap.toBase(site._referenceBase);
+	referenceBase = genoMap.toBase(site.refBase());
 
 	//check if there is data
-	if(!site._hasData || (referenceBase == N && !_allowTriallelicSites))
+	if(site.empty() || (referenceBase == N && !_allowTriallelicSites))
 		writeMissingDataToVCF(site);
 	else {
 		//call
@@ -363,9 +366,9 @@ void TCaller::call(const std::string & chr, const long pos, const TSite & site, 
 
 void TCaller::call(const std::string & chr, const long pos, const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods, const char & firstAllele, const char & secondAllele){
 	//check if there is data
-	if(site._hasData){
+	if(!site.empty()){
 		//set reference base from site
-		referenceBase = genoMap.toBase(site._referenceBase);
+		referenceBase = genoMap.toBase(site.refBase());
 
 		//call
 		if(referenceBase == genoMap.toBase(firstAllele))
@@ -396,7 +399,7 @@ TCallerRandomBase::TCallerRandomBase(TRandomGenerator* RandomGenerator):TCaller(
 
 void TCallerRandomBase::callGenotype(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){
 	//randomly pick a base
-	Base allele = site._bases[randomGenerator->pickOne(site._bases.size())]->base;
+	Base allele = site.at(randomGenerator->pickOne(site.depth())).base;
 
 	//decide on alt
 	if(allele == referenceBase){
@@ -476,7 +479,7 @@ TCallerAllelePresence::TCallerAllelePresence(TRandomGenerator* RandomGenerator):
 	_usesPrior = true;
 
 	//initialize allele counts
-	MAP = -1;
+	MAP = N;
 };
 
 void TCallerAllelePresence::fillPosteriors(TGenotypeLikelihoods & genotypeLikelihoods){
@@ -951,12 +954,11 @@ TCall::~TCall(){
 };
 
 void TCall::_initializeGenotypePrior(TParameters & Parameters){
-	TGenotypePrior* prior;
 	_logfile->startIndent("Initializing genotype prior:");
 	//read prior from parameters
 	std::string priorMethod = Parameters.getParameterStringWithDefault("prior", "theta");
 	if(priorMethod == "unif"){
-		prior = new TGenotypePriorUniform();
+		_prior = new TGenotypePriorUniform();
 		_logfile->list("Will use a uniform prior with equal weights for all genotypes.");
 	} else if(priorMethod == "theta"){
 		if(Parameters.parameterExists("fixedTheta")){
@@ -967,16 +969,16 @@ void TCall::_initializeGenotypePrior(TParameters & Parameters){
 				_logfile->list("Will use equal base frequencies.");
 			else
 				_logfile->list("Will estimate base frequencies individually for each window.");
-			prior = new TGenotypePriorFixedTheta(theta, equalBaseFreq, _logfile, _randomGenerator);
+			_prior = new TGenotypePriorFixedTheta(theta, equalBaseFreq, _logfile, _randomGenerator);
 		} else {
 			_logfile->list("Will use a prior based on theta and base frequencies estimated individually for each window.");
 			std::string thetaOuputName = _outputName + "_theta_estimates.txt.gz";
 			if(Parameters.parameterExists("defaultTheta")){
 				double defaultTheta = Parameters.getParameterDouble("defaultTheta");
 				_logfile->list("Will use a default theta of ", defaultTheta, " for windows with limited data.");
-				prior = new TGenotypePriorTheta(Parameters, thetaOuputName, defaultTheta, _logfile, _randomGenerator);
+				_prior = new TGenotypePriorTheta(Parameters, thetaOuputName, defaultTheta, _logfile, _randomGenerator);
 			} else
-				prior = new TGenotypePriorTheta(Parameters, thetaOuputName, _logfile, _randomGenerator);
+				_prior = new TGenotypePriorTheta(Parameters, thetaOuputName, _logfile, _randomGenerator);
 		}
 	} else throw "Unknown prior type '" + priorMethod + "'!";
 	_logfile->endIndent();
@@ -984,38 +986,39 @@ void TCall::_initializeGenotypePrior(TParameters & Parameters){
 
 void TCall::_call(){
 	uint32_t pos = 0;
-	for(auto it = _window.begin(); it != _window.end(); ++it, ++pos){
-		_genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(*it, _genoLik);
-		_caller->call(_window.chrName(), _window.posInRef(pos), *it, _genoLik);
+	for(auto& s : _window){
+		_genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(s, _genoLik);
+		_caller->call(_window.chrName(), _window.positionOnChr(pos), s, _genoLik);
+		++pos;
 	}
 };
 
 void TCall::_callKnwonAlleles(){
 	//check if we need to process this window
-	if(_subset->hasPositionsInWindow(_window.startPos(), _window.endPos())){
+	if(_subset->hasPositionsInWindow(_window)){
 		//add reference to sites
 		_window.addReferenceBaseToSites(*_subset);
 
 		//only run over sites listed in that window
-		std::set<TSiteSubsetSite> thesePositions = _subset->getPositionInWindow(_window.startPos(), _window.endPos());
+		std::set<TSiteSubsetSite> thesePositions = _subset->getPositionInWindow(_window);
 		for(auto& it : thesePositions){
 			//calculate genotype likelihoods
-			uint32_t internalPos = it.position() - _window.startPos;
-			TSite& site = _window._sites[internalPos];
-			site.setRefBase(it._ref);
+			uint32_t internalPos = it - _window.from();
+			TSite& site = _window[internalPos];
+			site.setRefBase(it.ref());
 			_genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(site, _genoLik);
-			_caller->call(_window.chrName(), _window.posInRef(internalPos), site, _genoLik, it.ref(), it.alt());
+			_caller->call(_window.chrName(), _window.positionOnChr(internalPos), site, _genoLik, it.ref(), it.alt());
 		}
 	}
 };
 
 
 void TCall::_handleWindow(){
-	if(_window._passedFilters || _caller->printSitesWithNoData()){
+	if(_window.passedFilters() || _caller->printSitesWithNoData()){
 		//update genotype prior
 		GenotypeLikelihoods::TBaseData freq;
 		_window.estimateBaseFrequencies(freq);
-		_prior->update(_window, _logfile);
+		_prior->update(_window, _logfile, _genotypeLikelihoodCalculator);
 
 		//call
 		_logfile->listFlushTime("Calling genotypes ...");

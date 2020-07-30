@@ -113,6 +113,10 @@ std::string TSamProgram::compileSamHeader() const{
 	return header + '\n';
 };
 
+bool operator<(const std::string & left, const TSamProgram & right){
+	return left < right.id();
+};
+
 //---------------------------------
 // TSamHeader
 // main class to interact with

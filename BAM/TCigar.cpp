@@ -6,6 +6,7 @@
  */
 
 #include "TCigar.h"
+#include "stringFunctions.h"
 
 namespace BAM{
 
@@ -40,7 +41,8 @@ void TCigar::add(const char & Type, const uint32_t & Length){
 			_lengthSoftClippedRight += Length;
 		}
 	} else if(Type != 'N' && Type != 'H' && Type != 'P'){
-		throw "Unknown CIGAR operation '" + Type + "'!";
+		std::string error = "Unknown CIGAR operation '";
+		throw error + Type + "'!";
 	}
 
 	//add to vector

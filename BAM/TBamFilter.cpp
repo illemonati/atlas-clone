@@ -48,7 +48,7 @@ void TBamFileFilter::setReason(const std::string reason){
 	_reason = reason;
 };
 
-void TBamFileFilter::setLog(const TBamFileLog* Log){
+void TBamFileFilter::setLog(TBamFileLog* Log){
 	_log = Log;
 	_updateLog = true;
 };

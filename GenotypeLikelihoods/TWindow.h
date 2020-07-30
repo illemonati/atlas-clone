@@ -31,7 +31,7 @@ class TWindow_base:public BAM::TGenomeWindow{
 protected:
 	std::vector<TSite> _sites;
 	uint32_t _numReadsInWindow;
-	//std::string _chrName;
+	std::string _chrName;
 
 	TGenotypeMap genoMap;
 	bool referenceBaseAdded;
@@ -44,8 +44,6 @@ protected:
 
 	bool _passedFilters;
 
-	void _setCoordinates(BAM::TGenomeWindow & Coordinates);
-
 	//TODO: make as much as possible private
 public:
 	//unsigned int startPos;
@@ -53,18 +51,20 @@ public:
 	//unsigned int length;
 
 	TWindow_base();
-	TWindow_base(TWindow_base & other);
+	TWindow_base(TWindow & other, const int readUpToDepth, const double downsamplingProb, TRandomGenerator* randomGenerator);
 	virtual ~TWindow_base();
 
-	void stealFromOther(TWindow_base & other);
-	TWindow_base(TWindow & other, const int readUpToDepth, const double downsamplingProb, TRandomGenerator* randomGenerator);
+	//Allow to set chromosome name when jumping
+	virtual void move(const uint32_t RefID, const uint32_t From, const uint32_t To, const std::string ChrName);
+	virtual void move(const BAM::TGenomePosition & From, const BAM::TGenomePosition & To, const std::string ChrName);
+	virtual void move(const BAM::TGenomeWindow & Window, const std::string ChrName);
+	void setChrName(const std::string ChrName);
+
+	//void stealFromOther(TWindow_base & other);
 	void downsampleFromOther(TWindow & other, const int readUpToDepth, const double downsamplingProb, TRandomGenerator* randomGenerator);
 	void downsampleFromOther(TWindow & other, TSiteSubset & subset, const int readUpToDepth, const double downsamplingProb, TRandomGenerator* randomGenerator);
-
-	//virtual void move(const BAM::TGenomeWindow Coordinates, TLog* logfile);
-	BAM::TAlignment* swapUsedForEmptyAlignment(BAM::TAlignment* usedAlignment);
-	void initSites(long newLength);
 	void clear();
+
 	void addReferenceBaseToSites(BAM::TFastaBuffer & reference);
 	void addReferenceBaseToSites(TSiteSubset & subset);
 	void applyMask(BAM::TBed & mask, bool doInverseMasking);
@@ -73,11 +73,12 @@ public:
 	void applyDepthFilter(const size_t minDepth, const size_t maxDepth);
 
 	//getters
-	//const BAM::TGenomeWindow& coordinates() const{ return _coordinates; };
 	TSite& operator[](uint32_t internalPos){ return _sites[internalPos]; };
-//	const std::string& chrName() const{ return _chrName; };
-	uint32_t refId() const{ return _refID; };
-	uint32_t posInRef(uint32_t internalPos) const{ return _start + internalPos; };
+	const std::string& chrName() const{ return _chrName; };
+	BAM::TGenomePosition position(uint32_t internalPos) const{ return _from + internalPos; };
+	uint32_t positionOnChr(uint32_t internalPos) const{ return _from.position() + internalPos; };
+
+	uint32_t numReadsInWindow() const { return _numReadsInWindow; };
 	double depth();
 	double fractionSitesNoData();
 	double fractionDepthAtLeastTwo();
@@ -92,9 +93,9 @@ public:
 	std::vector<TSite>::iterator end(){ return _sites.end(); };
 	std::vector<TSite>::const_iterator cbegin() const{ return _sites.cbegin(); };
 	std::vector<TSite>::const_iterator cend() const{ return _sites.cend(); };
-
-	void writeCoordinates(TOutputFile & out, const BAM::TChromosomes & Chromosomes);
 };
+
+std::ostream& operator<<(std::ostream& os, const TWindow_base & window);
 
 //---------------------------------------------------------------
 //TWindow
@@ -110,15 +111,13 @@ private:
 	void _clearAllUsedAlignments();
 
 	//functions to fill sites from alignments
-	void _checkAlignmentForFillingSites(BAM::TAlignment* alignmentIt);
-	void _setFirstPositionWithinWindow(BAM::TAlignment* alignmentIt, uint16_t & p);
+	uint32_t _findFirstPositionWithinWindow(const BAM::TAlignment & alignment);
 
-	void _fillSites(BAM::TAlignment* alignmentIt, std::vector<TSite> & sites, const unsigned int & readUpToDepth);
-	void _fillSitesSubset(BAM::TAlignment* alignmentIt, std::vector<TSite> & sites, std::set<TSiteSubsetSite> & thesePos, const unsigned int & readUpToDepth);
-
+	void _fillSites(BAM::TAlignment & alignment, std::vector<TSite> & sites, const uint32_t & readUpToDepth);
 	void _fillSites(std::vector<TSite> & sites, const uint32_t & readUpToDepth);
 	int _fillSitesDownsampling(std::vector<TSite> & sites, const uint32_t & readUpToDepth, const double downsamplingProb, TRandomGenerator* randomGenerator);
 
+	void _fillSitesSubset(BAM::TAlignment & alignmentIt, std::vector<TSite> & sites, std::set<TSiteSubsetSite> & thesePos, const unsigned int & readUpToDepth);
 	void _fillSitesSubset(std::vector<TSite> & sites, TSiteSubset & subset, const uint32_t & readUpToDepth);
 	int _fillSitesSubsetDownsampling(std::vector<TSite> & sites, TSiteSubset & subset, const uint32_t & readUpToDepth, const double downsamplingProb, TRandomGenerator* randomGenerator);
 
@@ -126,7 +125,11 @@ public:
 	TWindow();
 	~TWindow();
 
-	void update(const uint32_t RefID, const uint32_t Start, const uint32_t End);
+	//overlaod moving to take care of alignemnts
+	void move(const uint32_t RefID, const uint32_t Start, const uint32_t End, const std::string ChrName);
+	void move(const BAM::TGenomeWindow & Window, const std::string ChrName);
+
+
 	void review();
 	void printStacks();
 

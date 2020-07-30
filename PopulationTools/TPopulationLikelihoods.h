@@ -53,9 +53,9 @@ public:
 	bool hasSamples(){ return _hasSamples; };
 	uint32_t numSamples(){ return _numSamples; };
 	int numPopulations(){ return _numPopulations; };
-	std::string getPopulationName(int index);
+	std::string getPopulationName(uint32_t population);
 	uint32_t getPopulationIndex(const std::string name);
-	uint32_t numSamplesInPop(int population){ return numSamplesPerPop[population]; };
+	uint32_t numSamplesInPop(uint32_t population){ return numSamplesPerPop[population]; };
 	void readSamples(std::string filename, TLog* logfile);
 	void readSamplesFromVCFNames(std::vector<std::string> & vcfSampleNames);
 	bool sampleIsUsed(const std::string & name);

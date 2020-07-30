@@ -53,8 +53,7 @@ void TSequencingErrorModels::_readRecalFile(const std::string filename, std::vec
 	//parse file to read details for each read group
 	while(file.good() && !file.eof()){
 		++lineNum;
-		fillVectorFromLineWhiteSpaceSkipEmpty(file, vec);
-
+		fillVectorFromLineWhiteSpace(file, vec, true);
 		//skip empty lines
 		if(vec.size() > 0){
 			if(vec.size() != 3)

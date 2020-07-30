@@ -38,6 +38,7 @@ public:
 	};
 };
 
+bool operator<(const std::string & Name, const TBedChromosome & Chr);
 
 //-------------------------------------------------------------
 // TBed_base
@@ -68,7 +69,7 @@ protected:
 
 public:
 
-	std::set<TBedChromosome, std::less<>>::iterator addChromosome(const std::string Chr);
+	std::set<TBedChromosome, std::less<>>::iterator addChromosome(const std::string & Chr);
 	void addChromosomes(const TChromosomes & Chromosomes);
 	uint32_t numChromosomesWithWindows() const;
 	bool hasWindowsOnChr(const std::string Chr);
@@ -76,6 +77,7 @@ public:
 	uint32_t getRefID(const std::string Chr);
 	std::string getChromosomeName(const uint32_t refId);
 };
+
 
 //-------------------------------------------------------------
 // TBed
@@ -91,7 +93,7 @@ public:
 	TBed(const std::string Filename, const TChromosomes & Chromosomes){ add(Filename, Chromosomes); };
 
 	void add(TGenomeWindow Window);
-	void add(TGenomePosition Position);
+	void add(const TGenomePosition & Position);
 	void add(const uint32_t Chr, const uint32_t Pos);
 	void add(const std::string Chr, const uint32_t Pos);
 
@@ -122,14 +124,13 @@ public:
 class TGenomeWindowList:public TBed_base{
 private:
 	std::multiset<TGenomeWindow> _list;
-	std::set<TBedChromosome, std::less<>> _chromosomes;
 
 public:
 	TGenomeWindowList(){};
 
 	void add(const TGenomeWindow Window);
-	void add(const std::string Filename, TChromosomes & Chromosomes);
-	void write(const std::string Filename, TChromosomes & Chromosomes) const;
+	void add(const std::string Filename,  const TChromosomes & Chromosomes);
+	void write(const std::string Filename, const TChromosomes & Chromosomes) const;
 
 	bool empty() const{ return _list.empty(); };
 	uint64_t size() const;
@@ -138,6 +139,7 @@ public:
 
 	bool exists(const TGenomeWindow Window) const;
 	bool hasWindowsOnChr(uint32_t refId) const;
+	uint32_t numWindowsOnChr(const uint32_t refId) const;
 
 	//loop
 	std::multiset<TGenomeWindow>::iterator begin(){ return _list.begin(); };

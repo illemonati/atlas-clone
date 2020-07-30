@@ -45,10 +45,11 @@ TCreateDepthBedMask::TCreateDepthBedMask(TParameters & Parameters, TLog* Logfile
 
 void TCreateDepthBedMask::_handleWindow(){
 	uint32_t p = 0;
-	for(auto s = _window.begin(); s!=_window.end(); ++s){
-		if(s->depth() < _minDepthForMask || s->depth() > _maxDepthForMask){
-			_bed.addSite(_window.posInRef(p));
+	for(auto& s : _window){
+		if(s.depth() < _minDepthForMask || s.depth() > _maxDepthForMask){
+			_bed.add(_window.from() + p);
 		}
+		++p;
 	}
 };
 
@@ -69,13 +70,14 @@ TCreateInvariantBedMask::TCreateInvariantBedMask(TParameters & Parameters, TLog*
 
 void TCreateInvariantBedMask::_handleWindow(){
 	uint32_t p = 0;
-	for(auto s = _window.begin(); s!=_window.end(); ++s){
-		if(s->depth() >= _minDepthForMask){
-			s->countAlleles(_baseCounts);
+	for(auto& s : _window){
+		if(s.depth() >= _minDepthForMask){
+			s.countAlleles(_baseCounts);
 			if(_baseCounts.numAlleles() == 1){
-				_bed.addSite(_window.posInRef(p));
+				_bed.add(_window.from() + p);
 			}
 		}
+		++p;
 	}
 };
 
@@ -96,13 +98,14 @@ TCreateVariantBedMask::TCreateVariantBedMask(TParameters & Parameters, TLog* Log
 
 void TCreateVariantBedMask::_handleWindow(){
 	uint32_t p = 0;
-	for(auto s = _window.begin(); s!=_window.end(); ++s){
-		if(s->depth() >= _minDepthForMask){
-			s->countAlleles(_baseCounts);
+	for(auto& s : _window){
+		if(s.depth() >= _minDepthForMask){
+			s.countAlleles(_baseCounts);
 			if(_baseCounts.numAlleles() > 1){
-				_bed.addSite(_window.posInRef(p));
+				_bed.add(_window.from() + p);
 			}
 		}
+		++p;
 	}
 };
 
@@ -125,12 +128,13 @@ TCreateNonRefBedMask::TCreateNonRefBedMask(TParameters & Parameters, TLog* Logfi
 
 void TCreateNonRefBedMask::_handleWindow(){
 	uint32_t p = 0;
-	for(auto s = _window.begin(); s!=_window.end(); ++s){
-		if(s->depth() >= _minDepthForMask){
-			if(s->refDepth() < s->depth()){
-				_bed.addSite(_window.posInRef(p));
+	for(auto& s : _window){
+		if(s.depth() >= _minDepthForMask){
+			if(s.refDepth() < s.depth()){
+				_bed.add(_window.from() + p);
 			}
 		}
+		++p;
 	}
 };
 

@@ -18,15 +18,16 @@ namespace GenomeTasks{
 // TEstimateRecalibration_base
 //-----------------------------------------------------------
 class TEstimateRecalibration_base:public TGenome_windows{
-private:
+protected:
 	std::unique_ptr<GenotypeLikelihoods::TRecalibrationEMEstimator> recalObjectEM;
-	std::unique_ptr<BAM::TReadGroupMap> _readGroupMap;
+	BAM::TReadGroupMap* _readGroupMap;
 	GenotypeLikelihoods::TBaseData _baseFreq;
 
 	void _handleWindow();
 
 public:
 	TEstimateRecalibration_base(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	virtual ~TEstimateRecalibration_base();
 };
 
 

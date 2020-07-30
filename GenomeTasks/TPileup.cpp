@@ -34,7 +34,7 @@ TPileup::TPileup(TParameters & Parameters, TLog* Logfile, TRandomGenerator* Rand
 	//check if unknown fields were given
 	if(!fields.empty()){
 		if(fields.size() == 1){
-			throw "Unknown field '" + fields[0] + "'! Valid fields are 'depth', 'bases', 'qualities', 'alleles', 'mates' and 'strands'.";
+			throw "Unknown field '" + *fields.begin() + "'! Valid fields are 'depth', 'bases', 'qualities', 'alleles', 'mates' and 'strands'.";
 		} else {
 			bool first = true;
 			std::string f;
@@ -96,7 +96,7 @@ TPileup::TPileup(TParameters & Parameters, TLog* Logfile, TRandomGenerator* Rand
 };
 
 void TPileup::_parseField(std::set<std::string> & fields, const std::string tag, bool & flag, const std::string explanation){
-	if(fields.find(tag)){
+	if(fields.find(tag) != fields.end()){
 		flag = true;
 		_logfile->list(explanation + " (" + tag + ")");
 			fields.erase(fields.find(tag));
@@ -109,15 +109,15 @@ void TPileup::_handleWindow(){
 	_logfile->listFlushTime("Writing pileup ...");
 
 	uint32_t pos = 0;
-	for(auto it = _window.begin(); it != _window.endPos(); ++it, ++pos){
+	for(auto it = _window.begin(); it != _window.end(); ++it, ++pos){
 		GenotypeLikelihoods::TSite& site = *it;
 
-		out << _window._chrName;
-		out << _window.posInRef(pos);
+		out << _window.chrName();
+		out << _window.position(pos).position();
 
 		//reference
 		if(_reference.hasReference()){
-			out << site._referenceBase;
+			out << site.refBase();
 		}
 
 		//depth
@@ -152,7 +152,7 @@ void TPileup::_handleWindow(){
 		}
 
 		if(_printLikelihoods){
-			_genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(site._bases, _genoLik);
+			_genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(site, _genoLik);
 			_genoLik.write(out);
 		}
 

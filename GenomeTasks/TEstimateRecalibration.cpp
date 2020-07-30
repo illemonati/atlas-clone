@@ -30,33 +30,36 @@ TEstimateRecalibration_base::TEstimateRecalibration_base(TParameters & Parameter
 	if(Parameters.parameterExists("poolReadGroups")){
 		std::string poolReadGroupsFile = Parameters.getParameterString("poolReadGroups");
 		_logfile->startIndent("Will pool read groups (parameter 'poolReadGroups'):");
-		_readGroupMap = std::make_unique<BAM::TReadGroupMap>(&(_bamFile._readGroups), poolReadGroupsFile, _logfile);
+		_readGroupMap = new BAM::TReadGroupMap(&(_bamFile.readGroupsMutable()), poolReadGroupsFile, _logfile);
 		_logfile->endIndent();
 	} else  {
 		_logfile->list("Will estimate recalibration parameters for each read group. (use 'poolReadGroups' to pool)");
-		_readGroupMap = std::make_unique<BAM::TReadGroupMap>(&(_bamFile._readGroups));
+		_readGroupMap = new BAM::TReadGroupMap(&(_bamFile.readGroupsMutable()));
 	}
 
 	//initialize recal estimator
-	recalObjectEM = std::make_unique<GenotypeLikelihoods::TRecalibrationEMEstimator>(Parameters, _bamFile._readGroups, _logfile, _readGroupMap);
+	recalObjectEM = std::make_unique<GenotypeLikelihoods::TRecalibrationEMEstimator>(Parameters, &(_bamFile.readGroupsMutable()), _logfile, _readGroupMap);
+};
+
+TEstimateRecalibration_base::~TEstimateRecalibration_base(){
+	delete _readGroupMap;
 };
 
 void TEstimateRecalibration_base::_handleWindow(){
 	//add sites to recal estimator
 	_window.estimateBaseFrequencies(_baseFreq);
-	recalObjectEM->addNewWindow(_baseFreq);
 	if(_subset){
-		std::set<TSiteSubsetSite> thesePositions = _subset->getPositionInWindow(_window.startPos);
+		std::set<GenotypeLikelihoods::TSiteSubsetSite> thesePositions = _subset->getPositionInWindow(_window);
 		for(auto& it : thesePositions){
-			uint32_t internalPos = it.position - _window.startPos;
-			if(_window[internalPos]._hasData && it.ref==it.alt){
-				recalObjectEM->addSite(_window[internalPos], _qualMap);
+			uint32_t internalPos = it - _window.from();
+			if(!_window[internalPos].empty() && it.ref() == it.alt()){
+				recalObjectEM->addSite(_window[internalPos]);
 			}
 		}
 	} else {
 		for(auto& s : _window){
-			if(s._hasData){
-				recalObjectEM->addSite(s, _qualMap);
+			if(!s.empty()){
+				recalObjectEM->addSite(s);
 			}
 		}
 	}

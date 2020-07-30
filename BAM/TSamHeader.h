@@ -32,12 +32,7 @@ private:
 	std::string _subSorting_SS;
 
 public:
-	TSamHeader_HD(){
-		_version_VN = "1.6";
-		_sortOrder_SO = "unknown";
-		_grouping_GO = "none";
-		_subSorting_SS = "";
-	};
+	TSamHeader_HD();
 
 	void setVersion(const std::string Version){ _version_VN = Version; };
 	void setSortOrder(const std::string SortOrder);
@@ -75,6 +70,7 @@ public:
 	TSamProgram(const std::string ID, const std::string Name, const std::string CommandLine, const std::string Description, const std::string Version);
 	void addPrevious(const TSamProgram & Previous) const;
 	void addNext(const TSamProgram & Next) const;
+	std::string id() const{ return _ID; };
 	std::string compileSamHeader() const;
 
 	bool operator<(const TSamProgram & other) const{
@@ -84,6 +80,8 @@ public:
 		return this->_ID < other;
 	};
 };
+
+bool operator<(const std::string & left, const TSamProgram & right);
 
 //---------------------------------
 // TSamHeader

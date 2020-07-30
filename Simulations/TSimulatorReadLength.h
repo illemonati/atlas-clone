@@ -36,7 +36,7 @@ struct TReadLength{
 class TReadLengthDistribution{
 protected:
 	TRandomGenerator* _randomGenerator;
-	int _meanLength;
+	uint32_t _meanLength;
 	double _cumulAtMin;
 
 	double* _positionProbs; //normalized (1 - cumulDensity)
@@ -49,7 +49,7 @@ public:
 	double operator[](const uint32_t position) const{ return _positionProbs[position]; };
 
 	virtual TReadLength sample();
-	virtual int max(){return _meanLength;};
+	virtual uint32_t max(){return _meanLength;};
 	virtual double mean(){return _meanLength;};
 	virtual double probAcceptance(){return 1.0 - _cumulAtMin;};
 	virtual void printDetails(TLog* logfile);
@@ -60,7 +60,7 @@ class TSimulatorReadLengthGamma:public TReadLengthDistribution{
 protected:
 	double _meanLength;
 	double _alpha, _beta;
-	uint16_t _min, _maxPlusOne;
+	uint32_t _min, _maxPlusOne;
 	bool _initialized;
 
 	double* _gammaDensity;
@@ -80,7 +80,7 @@ public:
 		}
 	};
 	TReadLength sample();
-	virtual int max(){return _maxPlusOne - 1;};
+	virtual uint32_t max(){return _maxPlusOne - 1;};
 	virtual double mean(){return _meanLength;};
 	virtual void printDetails(TLog* logfile);
 };

@@ -20,6 +20,10 @@ TThetaEstimator_base::TThetaEstimator_base(TLog* Logfile, TRandomGenerator* Rand
 	data = NULL;
 	dataInitialized = false;
 	extraVerbose = false;
+
+	initialTheta = 0.01;
+	initThetaNumSearchIterations = 10;
+	initThetaSearchFactor = 100;
 };
 
 TThetaEstimator_base::TThetaEstimator_base(TParameters & params, TLog* Logfile, TRandomGenerator* RandomGenerator){
@@ -551,7 +555,7 @@ void TThetaEstimator::calcLikelihoodSurface(TOutputFile & out, const uint32_t & 
 	double maxLogTheta = -1.0;
 	double stepSize = (maxLogTheta - minLogTheta) / ((double) steps - 1.0);
 
-	for(int i=0; i<steps; ++i){
+	for(uint32_t i=0; i<steps; ++i){
 		//calc theta and expTheta
 		theta.setLogTheta(minLogTheta + stepSize*i);
 

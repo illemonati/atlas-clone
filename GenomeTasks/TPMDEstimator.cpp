@@ -17,7 +17,7 @@ TPMDEstimator::TPMDEstimator(TParameters & Parameters, TLog* Logfile, TRandomGen
 	_openReference(true);
 
 	//prepare maps
-	_readGroupMap = new BAM::TReadGroupMap(&_bamFile._readGroups, Parameters.getParameterString("poolReadGroups", false), _logfile);
+	_readGroupMap = new BAM::TReadGroupMap(&_bamFile.readGroupsMutable(), Parameters.getParameterString("poolReadGroups", false), _logfile);
 
 	//prepare PMD table
 	_maxLengthForInference = Parameters.getParameterIntWithDefault("length", 50);
@@ -29,14 +29,14 @@ TPMDEstimator::TPMDEstimator(TParameters & Parameters, TLog* Logfile, TRandomGen
 	} else {
 		_logfile->startIndent("Will estimate exponential PMD models: (use 'onlyEmpiric' to turn off)");
 		_eps = Parameters.getParameterDoubleWithDefault("eps", 0.001);
-		_logfile->list("Will conider the Newton-Raphson algorithm to have converged if the likelihood difference < " + toString(_eps) + ". (parameter 'eps')");
+		_logfile->list("Will consider the Newton-Raphson algorithm to have converged if the likelihood difference < " + toString(_eps) + ". (parameter 'eps')");
 		_numNRIterations = Parameters.getParameterIntWithDefault("numNRIterations", 100);
 		_logfile->list("Will run up to " + toString(_numNRIterations) + " Newton-Raphson iterations. (parameter 'numNRIterations)");
 		_logfile->endIndent();
 		_estimateExponential = true;
 	}
 
-	_pmdTables.initialize(&_bamFile._readGroups, _maxLengthForInference, _bamFile.maxReadLength(), _readGroupMap);
+	_pmdTables.initialize(&_bamFile.readGroupsMutable(), _maxLengthForInference, _bamFile.maxReadLength(), _readGroupMap);
 };
 
 TPMDEstimator::~TPMDEstimator(){

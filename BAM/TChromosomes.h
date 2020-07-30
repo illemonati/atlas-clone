@@ -24,7 +24,6 @@ namespace BAM{
 //---------------------------------------------------------
 class TChromosome{
 public:
-	uint32_t refID;
 	std::string name; //SN field
 	uint32_t length; //LS field
 	uint8_t ploidy;
@@ -42,15 +41,20 @@ public:
 	std::string uri; //UR field;
 
 	TChromosome(const uint32_t RefID, const std::string Name, const uint32_t Length){
-		refID = RefID;
 		name = Name;
 		length = Length;
 		ploidy = 2; //default: diploid
 		inUse = true;
 
 		//set TGenomePosition
-		chrStart.update(refID, 0);
-		chrStart.update(refID, length); //end is not included
+		chrStart.update(RefID, 0);
+		chrStart.update(RefID, length); //end is not included
+	};
+
+	uint32_t refID() const { return chrStart.refID(); };
+
+	bool operator<(const TChromosome & other){
+		return chrStart < other.chrStart;
 	};
 
 	std::string compileSamHeader() const;
@@ -76,9 +80,9 @@ inline bool operator<(const TGenomeWindow & win, const TChromosome & chr){
 class TChromosomes{
 private:
 	std::vector<TChromosome> _chromosomes;
-	std::vector<TChromosome>::iterator _curChr;
+	mutable std::vector<TChromosome>::iterator _curChr;
 
-	TChromosome& _find(const std::string chrName) const;
+	const TChromosome& _find(const std::string chrName) const;
 	void _setAllNotInUse();
 	void _useSpecifiedChr(const std::vector<std::string> & chrNames);
 	void _useUpTo(const std::string & name);
@@ -100,48 +104,33 @@ public:
 	void useSpecifiedChr(const std::vector<std::string> & chrNames);
 	void writeUsedChromosomes(TLog* logfile);
 
-	TChromosome& operator[](uint32_t RefID){ return _chromosomes[RefID]; };
-	const TChromosome& at(uint32_t RefID){ return _chromosomes[RefID]; };
-
-	//move
-	void begin();
-	bool next();
-	void jumpTo(const uint32_t refId);
-	bool end() const;
-	void jumpToEnd();
-
-	//loop
+	//iterate
+	std::vector<TChromosome>::iterator begin(){ return _chromosomes.begin(); };
+	std::vector<TChromosome>::iterator begin(const uint32_t & RefID){ return _chromosomes.begin() + RefID; };
+	std::vector<TChromosome>::iterator end(){ return _chromosomes.end(); };
 	std::vector<TChromosome>::const_iterator cbegin() const{ return _chromosomes.cbegin(); };
+	std::vector<TChromosome>::const_iterator cbegin(const uint32_t & RefID) const{ return _chromosomes.begin() + RefID; };
 	std::vector<TChromosome>::const_iterator cend() const{ return _chromosomes.cend(); };
 
 	//getters
-	uint32_t size() const;
+	uint32_t size() const { return _chromosomes.size(); };
 	uint32_t referenceLength() const;
+
+	//getters by name
 	bool exists(const std::string name) const;
-
 	const TChromosome& getChromosome(const std::string chrName) const;
-	const TChromosome& curChromosome() const;
-
 	uint32_t refID(const std::string chrName) const;
-	uint32_t curRefID() const;
 
-	uint32_t length(const uint32_t RefID) const;
-	uint32_t curLength() const;
-
-	std::string name(const uint32_t RefID) const;
-	std::string curName() const;
-
-	bool inUse(const uint32_t RefID) const;
-	bool curInUse() const;
-
-	uint8_t ploidy(const uint32_t RefID) const;
-	uint8_t curPloidy() const;
-
-	const TGenomePosition& chrStart(const uint32_t RefID) const;
-	const TGenomePosition& curChrStart() const;
-
-	const TGenomePosition& chrEnd(const uint32_t RefID) const;
-	const TGenomePosition& curChrEnd() const;
+	//getters by refID
+	bool exists(const uint32_t & RefID) const{ return RefID < size(); };
+	TChromosome& operator[](const uint32_t & RefID){ return _chromosomes[RefID]; };
+	const TChromosome& at(const uint32_t & RefID){ return _chromosomes[RefID]; };
+	uint32_t length(const uint32_t & RefID) const;
+	std::string name(const uint32_t & RefID) const;
+	bool inUse(const uint32_t & RefID) const;
+	uint8_t ploidy(const uint32_t & RefID) const;
+	const TGenomePosition& chrStart(const uint32_t & RefID) const;
+	const TGenomePosition& chrEnd(const uint32_t & RefID) const;
 
 	std::string compileSamHeader() const;
 };

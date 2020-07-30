@@ -56,7 +56,7 @@ void TSiteSubset::_readFile(const std::string Filename, const BAM::TChromosomes 
 	while(in.read(line)){
 		//get chromosome: throws error if chromosome does not exist
 		const BAM::TChromosome& chr = Chromosomes.getChromosome(line[0]);
-		_refIDUsed.emplace(chr.refID);
+		_refIDUsed.emplace(chr.refID());
 
 		//extract positions
 		uint32_t pos = convertStringCheck<uint32_t>(line[1]) - 1; //make 0-based
@@ -67,7 +67,7 @@ void TSiteSubset::_readFile(const std::string Filename, const BAM::TChromosomes 
 		_checkAlleles(chr.name, pos, ref, alt, line[2], line[3]);
 
 		//add site
-		_sites.emplace(chr.refID, pos, ref, alt);
+		_sites.emplace(chr.refID(), pos, ref, alt);
 	}
 
 	//report
@@ -90,7 +90,7 @@ void TSiteSubset::_readFile(const std::string Filename, const BAM::TChromosomes 
 	while(in.read(line)){
 		//get chromosome: throws error if chromosome does not exist
 		const BAM::TChromosome& chr = Chromosomes.getChromosome(line[0]);
-		_refIDUsed.emplace(chr.refID);
+		_refIDUsed.emplace(chr.refID());
 
 		//extract positions
 		uint32_t pos = convertStringCheck<uint32_t>(line[1]) - 1; //make 0-based
@@ -101,7 +101,7 @@ void TSiteSubset::_readFile(const std::string Filename, const BAM::TChromosomes 
 		_checkAlleles(chr.name, pos, ref, alt, line[2], line[3]);
 
 		//check with reference
-		BAM::TGenomePosition genoPos(chr.refID, pos);
+		BAM::TGenomePosition genoPos(chr.refID(), pos);
 		Base trueRef = Reference.refAt(genoPos);
 		if(trueRef != ref && trueRef != alt){
 			//conflict with fasta
@@ -113,7 +113,7 @@ void TSiteSubset::_readFile(const std::string Filename, const BAM::TChromosomes 
 		}
 
 		//add site
-		_sites.emplace(chr.refID, pos, ref, alt);
+		_sites.emplace(chr.refID(), pos, ref, alt);
 	}
 
 	//report

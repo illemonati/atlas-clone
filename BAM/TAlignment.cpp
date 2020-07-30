@@ -21,7 +21,6 @@ TAlignment::TAlignment(){
 	_sequenceAndQualitiesChanged = false;
 	_hasReference = false;
 	_lastAlignedPos = 0;
-	_lastAlignedPositionWithRespectToRef = 0;
 };
 
 void TAlignment::clear(){
@@ -279,9 +278,9 @@ char TAlignment::referenceAtInternalPos(const uint32_t internalPosition) const{
 	return _referenceSequence[_alignedPosition[internalPosition]];
 };
 
-uint32_t TAlignment::positionInRef(const uint32_t internalPosition) const{
+TGenomePosition TAlignment::positionInRef(const uint32_t internalPosition) const{
 	//only makes sense if position is aligned!
-	return position() + _alignedPosition[internalPosition];
+	return *this + _alignedPosition[internalPosition];
 };
 
 uint16_t TAlignment::parsedLength() const{
@@ -448,6 +447,7 @@ void TAlignment::print(TGenotypeMap & genoMap, TQualityMap & qualMap){
 	std::cout << "QUAL:\t";
 	for(auto& b : _bases){
 		std::cout << (char) qualMap.phredIntToQuality(b.recalibratedQualityAsPhredInt);
+	}
 	std::cout << std::endl;
 
 	//print aligned pos
@@ -476,7 +476,7 @@ void TAlignment::print(TGenotypeMap & genoMap, TQualityMap & qualMap){
 
 	//print dist from 5'
 	std::cout << "dist 5':\t";
-	bool first = true;
+	first = true;
 	for(auto& b : _bases){
 		if(first){
 			first = false;

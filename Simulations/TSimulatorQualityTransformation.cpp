@@ -373,9 +373,9 @@ void TSimulatorQualityTransformationBQSR::fillQBetaQBetaP(){
 	QBetaQBetaP.resize( maxPhredIntPlusOne , std::vector<double>( maxReadLength , init_value ) );
 	errorBetaQBetaP.resize( maxPhredIntPlusOne , std::vector<double>( maxReadLength , init_value ) );
 
-	for(int q = 0; q < maxPhredIntPlusOne; ++ q){
+	for(uint32_t q = 0; q < maxPhredIntPlusOne; ++ q){
 		betaQq = returnTrueError(q);
-		for(int p = 0; p<maxReadLength; ++p){
+		for(uint32_t p = 0; p<maxReadLength; ++p){
 			errorBetaQBetaP[q][p] = (betaQq) * returnBetaPp(p);
 			QBetaQBetaP[q][p] = qualityMap.errorToPhred(errorBetaQBetaP[q][p]);
 		}
@@ -388,7 +388,7 @@ void TSimulatorQualityTransformationBQSR::fillWeights(double & kappa_cur, double
 	//w at minQual
 	w[minPhredInt] = TNormalDistr::cumulativeDistrFunction((double) minPhredInt + 0.5, kappa_cur, lambda_cur);
 	//w at intermediate Q
-	for(int q = (minPhredInt + 1); q < maxPhredInt; ++q){
+	for(uint32_t q = (minPhredInt + 1); q < maxPhredInt; ++q){
 		double start = TNormalDistr::cumulativeDistrFunction((double) q - 0.5, kappa_cur, lambda_cur);
 		double end   = TNormalDistr::cumulativeDistrFunction((double) q + 0.5, kappa_cur, lambda_cur);
 		w[q] = end - start;
@@ -402,9 +402,9 @@ void TSimulatorQualityTransformationBQSR::fillWeights(double & kappa_cur, double
 double TSimulatorQualityTransformationBQSR::returnCurMean(){
 	double curMean = 0.0;
 
-	for(int q = minPhredInt; q < maxPhredIntPlusOne; ++ q){
+	for(uint32_t q = minPhredInt; q < maxPhredIntPlusOne; ++ q){
 		double sumP = 0.0;
-		for(int p = 0; p<maxReadLength; ++p){
+		for(uint32_t p = 0; p<maxReadLength; ++p){
 			sumP += QBetaQBetaP[q][p] * (*readLengthDist)[p];
 		}
 		curMean += sumP * w[q];
@@ -415,8 +415,8 @@ double TSimulatorQualityTransformationBQSR::returnCurMean(){
 
 double TSimulatorQualityTransformationBQSR::returnCurSD(double & kappa){
 	float lambda = 0.0;
-	for(int q = minPhredInt; q < maxPhredIntPlusOne; ++ q){
-		for(int p = 0; p<readLengthDist->max(); ++p){
+	for(uint32_t q = minPhredInt; q < maxPhredIntPlusOne; ++ q){
+		for(uint32_t p = 0; p<readLengthDist->max(); ++p){
 			lambda += ((QBetaQBetaP[q][p] - kappa) * (QBetaQBetaP[q][p] - kappa) * (*readLengthDist)[p] * w[q]);
 		}
 	}

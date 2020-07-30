@@ -22,7 +22,7 @@ protected:
 	GenotypeLikelihoods::TThetaEstimator _thetaEstimator;
 	GenotypeLikelihoods::TThetaOutputFile _thetaOut;
 
-	void _addSites(TWindow_base & window, GenotypeLikelihoods::TThetaEstimator & thetaEstimator);
+	void _addSites(GenotypeLikelihoods::TWindow_base & window, GenotypeLikelihoods::TThetaEstimator & thetaEstimator);
 	void _addSites();
 
 public:
@@ -84,7 +84,7 @@ private:
 	bool _printFullData;
 
 	//tmp
-	TWindow_base destination;
+	GenotypeLikelihoods::TWindow_base destination;
 
 	void _handleWindow();
 public:
@@ -98,12 +98,11 @@ public:
 class TEstimateThetaRatio:public TGenome_windows{
 private:
 	GenotypeLikelihoods::TThetaEstimatorRatio _thetaEstimatorRatio;
-	BAM::TBedReaderWindows* _region1;
-	BAM::TBedReaderWindows* _region2;
+	BAM::TBed _region1;
+	BAM::TBed _region2;
 
-
-	void _initializeRegion(TParameters & Parameters, BAM::TBedReaderWindows* region, const char num);
-	void _addSites(GenotypeLikelihoods::TThetaEstimatorData & data, BAM::TBedReaderWindows & regions);
+	void _initializeRegion(TParameters & Parameters, BAM::TBed & region, const char num);
+	void _addSites(GenotypeLikelihoods::TThetaEstimatorData & data, BAM::TBed & regions);
 	void _handleWindow();
 
 public:
@@ -115,6 +114,7 @@ public:
 // Tasks
 //--------------------------------------
 class TThetaTask:public TTask{
+public:
 	TThetaTask(){ _citations.insert("Kousathanas et al. (2017) Genetics"); };
 };
 

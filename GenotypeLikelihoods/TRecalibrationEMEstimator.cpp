@@ -190,10 +190,6 @@ uint64_t TRecalibrationEMEstimator::cumulativeDepth(){
 	return cumulDepth;
 };
 
-void TRecalibrationEMEstimator::writeCurrentEstimates(const std::string filename){
-	_sequencingErrorModels.writeRecalFile(filename);
-};
-
 //----------------------------
 //Functions for estimation
 //----------------------------
@@ -419,5 +415,25 @@ void TRecalibrationEMEstimator::_runEM(std::string outputName, bool & writeTmpTa
 	//finalize
 	_logfile->endNumbering();
 };
+
+//----------------------------
+// Other functions
+//----------------------------
+void TRecalibrationEMEstimator::writeCurrentEstimates(const std::string filename){
+	_sequencingErrorModels.writeRecalFile(filename);
+};
+
+double TRecalibrationEMEstimator::calcLL(){
+	throw std::runtime_error("double TRecalibrationEMEstimator::calcLL() not yet implemented!");
+};
+
+void TRecalibrationEMEstimator::calcLikelihoodSurface(std::string filename, int numMarginalGridPoints){
+	throw std::runtime_error("void TRecalibrationEMEstimator::calcLikelihoodSurface(std::string filename, int numMarginalGridPoints) not yet implemented!");
+};
+
+void TRecalibrationEMEstimator::calcQSurface(std::string filename, int numMarginalGridPoints){
+	throw std::runtime_error("TRecalibrationEMEstimator::calcQSurface(std::string filename, int numMarginalGridPoints) not yet implemented!");
+};
+
 
 }; //end namespace

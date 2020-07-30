@@ -16,13 +16,6 @@ namespace BAM{
 TGenomePosition::TGenomePosition(const uint32_t RefID, const uint32_t Position){
 	_refID = RefID;
 	_position = Position;
-}
-
-TGenomePosition::TGenomePosition(const TGenomePosition & other) = default;
-
-void TGenomePosition::clear(){
-	_refID = 0;
-	_position = 0;
 };
 
 void TGenomePosition::update(const uint32_t RefID, const uint32_t Position){
@@ -39,11 +32,11 @@ void TGenomePosition::operator=(const TGenomePosition & other){
 	update(other);
 };
 
-TGenomePosition TGenomePosition::operator+(const uint32_t length) const{
+TGenomePosition TGenomePosition::operator+(const uint32_t & length) const{
 	return TGenomePosition(_refID, _position + length);
 };
 
-TGenomePosition TGenomePosition::operator-(const uint32_t length) const{
+TGenomePosition TGenomePosition::operator-(const uint32_t & length) const{
 	if(length > _position){
 		return TGenomePosition(_refID, 0);
 	} else {
@@ -51,18 +44,18 @@ TGenomePosition TGenomePosition::operator-(const uint32_t length) const{
 	}
 };
 
-int32_t TGenomePosition::operator-(const TGenomePosition other){
+int32_t TGenomePosition::operator-(const TGenomePosition & other) const{
 	if(!sameChr(other)){
 		throw std::runtime_error("TGenomePosition operator-(const TGenomePosition other): positions are not on same chromosome!");
 	}
 	return _position - other._position;
 };
 
-void TGenomePosition::operator+=(const uint32_t length){
+void TGenomePosition::operator+=(const uint32_t & length){
 	_position += length;
 };
 
-void TGenomePosition::operator-=(const uint32_t length){
+void TGenomePosition::operator-=(const uint32_t & length){
 	if(length > _position){
 		_position = 0;
 	} else {
@@ -70,11 +63,20 @@ void TGenomePosition::operator-=(const uint32_t length){
 	}
 };
 
-bool TGenomePosition::sameChr(const TGenomePosition other) const{
+void TGenomePosition::operator++(){
+	++_position;
+};
+
+void TGenomePosition::operator--(){
+	if(_position > 0)
+		--_position;
+};
+
+bool TGenomePosition::sameChr(const TGenomePosition & other) const{
 	return _refID == other.refID();
 };
 
-bool TGenomePosition::operator==(const TGenomePosition other) const{
+bool TGenomePosition::operator==(const TGenomePosition & other) const{
 	if(this->_refID == other._refID && this->_position == other._position){
 		return true;
 	} else {
@@ -82,7 +84,7 @@ bool TGenomePosition::operator==(const TGenomePosition other) const{
 	}
 };
 
-bool TGenomePosition::operator<(const TGenomePosition other) const{
+bool TGenomePosition::operator<(const TGenomePosition & other) const{
 	//are they on the same chromosome?
 	if(this->_refID < other._refID){
 		return true;
@@ -94,17 +96,38 @@ bool TGenomePosition::operator<(const TGenomePosition other) const{
 	}
 };
 
-bool TGenomePosition::operator<(const TGenomeWindow other) const{
+bool TGenomePosition::operator>(const TGenomePosition & other) const{
+	//are they on the same chromosome?
+	if(this->_refID > other._refID){
+		return true;
+	} else if(this->_refID < other._refID){
+		return false;
+	} else {
+		//on same chromosome: check position
+		return this->_position > other._position;
+	}
+};
+
+bool TGenomePosition::operator>=(const TGenomePosition & other) const{
+	if(*this == other){
+		return true;
+	}
+	return *this > other;
+};
+
+bool TGenomePosition::operator<=(const TGenomePosition & other) const{
+	if(*this == other){
+		return true;
+	}
+	return *this < other;
+};
+
+bool TGenomePosition::operator<(const TGenomeWindow & other) const{
 	return other > *this;
 };
 
-bool TGenomePosition::operator>(const TGenomeWindow other) const{
+bool TGenomePosition::operator>(const TGenomeWindow & other) const{
 	return other < *this;
-};
-
-TOutputFile& TGenomePosition::operator<<(TOutputFile & out) const{
-	out << _refID << _position;
-	return out;
 };
 
 //-----------------------------------------------------
@@ -120,161 +143,153 @@ TGenomeWindow::TGenomeWindow(const uint32_t RefID, const uint32_t Start){
 };
 
 TGenomeWindow::TGenomeWindow(const TGenomePosition & position){
-	_refID = position.refID();
-	_start = position.position();
-	_end = position.position() + 1;
+	_from = position;
+	_to = position + 1;
+};
+
+TGenomeWindow::TGenomeWindow(const TGenomePosition & From, const TGenomePosition & To){
+	update(From, To);
 };
 
 void TGenomeWindow::clear(){
-	_refID = 0;
-	_start=0;
-	_end = 1;
+	_from.update(0,0);
+	_to = _from;
 };
 
-void TGenomeWindow::update(const uint32_t RefID, const uint32_t Start, const uint32_t End){
-	_refID = RefID;
-	if(End <= Start){
+void TGenomeWindow::update(const uint32_t RefID, const uint32_t From, const uint32_t To){
+	if(From <= To){
 		throw std::runtime_error("TGenomeWindow(const uint32_t RefID, const uint32_t Start, const uint32_t End): End <= Start!");
 	}
-	_start = Start;
-	_end = End;
+	_from.update(RefID, From);
+	_to.update(RefID, To);
+};
+
+void TGenomeWindow::update(const TGenomePosition & From, const TGenomePosition & To){
+	if(From.refID() != To.refID()){
+		throw std::runtime_error("TGenomeWindow(const TGenomePosition & From, const TGenomePosition & To): Chromosomes do not match!");
+	}
+	if(From <= To){
+		throw std::runtime_error("TGenomeWindow(const TGenomePosition & From, const TGenomePosition & To): From <= To!");
+	}
+	_from = From;
+	_to = To;
 };
 
 void TGenomeWindow::update(const TGenomeWindow & other){
-	_refID = other._refID;
-	_start = other._start;
-	_end = other._end();
+	_from = other.from();
+	_to = other.to();
 };
 
 TGenomeWindow TGenomeWindow::operator+(const uint32_t length) const{
-	return TGenomeWindow(_refID, _start + length, _end + length);
+	return TGenomeWindow(_from + length, _to + length);
 };
 
 TGenomeWindow TGenomeWindow::operator-(const uint32_t length) const{
-	if(length > _start){
-		if(length > _end){
-			return TGenomeWindow(_refID, 0, 1);
+	if(length > _from.position()){
+		if(length > _to.position()){
+			return TGenomeWindow(_from.refID(), 0, 1);
 		} else {
-			return TGenomeWindow(_refID, 0, _end - length);
+			return TGenomeWindow(_from.refID(), 0, _to.position() - length);
 		}
 	} else {
-		return TGenomeWindow(_refID, _start - length, _end - length);
+		return TGenomeWindow(_from.refID(), _from.position() - length, _to.position() - length);
 	}
 };
 
-bool TGenomeWindow::within(const TGenomePosition other) const{
+bool TGenomeWindow::within(const TGenomePosition & other) const{
 	//checks if other window is entirely within
-	return _refID == other.refID() && _start <= other.position() && _end >= other.position();
+	return _from <= other && _to >= other;
 };
 
-bool TGenomeWindow::within(const TGenomeWindow other) const{
+bool TGenomeWindow::within(const TGenomeWindow & other) const{
 	//checks if other window is entirely within
-	return _refID == other.refID() && _start <= other.start() && _end >= other.end();
+	return _from.refID() == other.refID() && _from <= other.from() && _to >= other.to();
 };
 
-bool TGenomeWindow::overlaps(const TGenomeWindow other) const{
+bool TGenomeWindow::overlaps(const TGenomeWindow & other) const{
 	//check if other window overlaps
-	if(refID != other.refID()){
+	if(_from.refID() != other.refID()){
 		return false;
 	}
 	//on same chr: do they overlap?
-	return (_start <= other._end && _start > other._end)
-		|| (other._start <= _end && other._start > _start)
+	return (_from <= other.to() && _from > other.to())
+		|| (other.from() <= _to && other.from() > _from)
 		|| within(other)
 		|| other.within(*this);
 };
 
-TGenomeWindow TGenomeWindow::merge(const TGenomeWindow other){
+/*
+TGenomeWindow TGenomeWindow::merge(const TGenomeWindow & other){
 	if(!overlaps(other)){
 		throw std::runtime_error("TGenomeWindow merge(const TGenomeWindow other): windows do not overlap!");
 	}
-	return TGenomeWindow(_refID, std::min(_start, other._start), std::max(_end, other._end));
+	return TGenomeWindow(_refID, std::min(_from, other._from), std::max(_to, other._to));
 };
+*/
 
 bool TGenomeWindow::mergeWith(const TGenomeWindow & other){
 	if(!overlaps(other)){
 		return false;
 	}
-	_start = std::min(_start, other._start);
-	_end = std::max(_end, other._end);
+
+	if(_from > other.from()){
+		_from = other.from();
+	}
+	if(_to < other.to()){
+		_to = other.to();
+	}
 	return true;
 };
 
-void TGenomeWindow::operator+=(const uint32_t length){
-	_start += length;
-	_end += length;
+void TGenomeWindow::operator+=(const uint32_t & length){
+	_from += length;
+	_to += length;
 };
 
-void TGenomeWindow::operator-=(const uint32_t length){
-	if(length > _start){
-		_start = 0;
-		if(length > _end){
-			_end = 1;
+void TGenomeWindow::operator-=(const uint32_t & length){
+	if(length > _from.position()){
+		_from.update(_from.refID(), 0);
+		if(length > _to.position()){
+			_to.update(_to.refID(), 1);
 		} else {
-			_end -= length;
+			_to -= length;
 		}
 	} else {
-		_start -= length;
-		_end -= length;
+		_from -= length;
+		_to -= length;
 	}
+};
+
+void TGenomeWindow::resize(const uint32_t & newLength){
+	_to = _from + newLength;
 };
 
 bool TGenomeWindow::operator<(const TGenomePosition & pos) const{
 	//checks if position is after window end
-	//are they on the same chromosome?
-	if(this->_refID < pos.refID()){
-		return true;
-	} else if(this->_refID > pos.refID()){
-		return false;
-	} else {
-		//on same chromosome: check position
-		return this->_end <= pos._position;
-	}
+	return _to <= pos;
 };
 
 bool TGenomeWindow::operator>(const TGenomePosition & pos) const{
 	//checks if position is before window start
-	//are they on the same chromosome?
-	if(this->_refID < pos._refID){
-		return true;
-	} else if(this->_refID > pos._refID){
-		return false;
-	} else {
-		//on same chromosome: check position
-		return this->_start > pos._position;
-	}
+	return pos < _from;
 };
 
 bool TGenomeWindow::operator<(const TGenomeWindow & other) const{
 	//checks if start is < other.start
-	//are they on the same chromosome?
-	if(this->_refID < other._refID){
-		return true;
-	} else if(this->_refID > other._refID){
-		return false;
-	} else {
-		//on same chromosome: check position
-		return this->_start < other._start;
-	}
+	return _from < other.from();
 };
 
 bool TGenomeWindow::operator>(const TGenomeWindow & other) const{
 	//chesk if start is > other.start
-	//are they on the same chromosome?
-	if(this->_refID < other._refID){
-		return true;
-	} else if(this->_refID > other._refID){
-		return false;
-	} else {
-		//on same chromosome: check position
-		return this->_start > other._start;
-	}
+	return _from > other.from();
 };
 
+/*
 TOutputFile& TGenomeWindow::operator<<(TOutputFile & out) const{
 	out << _refID << _start << _end;
 	return out;
 };
+*/
 
 }; //end namespace
 

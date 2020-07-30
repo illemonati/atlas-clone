@@ -26,16 +26,16 @@ TWriteGLF::TWriteGLF(TParameters & Parameters, TLog* Logfile, TRandomGenerator* 
 
 void TWriteGLF::_handleWindow(){
 	if(_chrChangedWindow){
-		_writer.newChromosome(_chromosomes.curChromosome());
+		_writer.newChromosome(*_curChromosome);
 	}
 
 	//TODO: calculate root mean squared mapping qualities for sites (now just passing 0). Would be helpful in VCFs as well
 	_logfile->listFlushTime("Adding window to GLF file ...");
 	uint32_t pos = 0;
 	for(auto& s : _window){
-		if(s._hasData || _printAll){
-			_genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(s._bases, _genoLik);
-			_writer.writeSite(_window.posInRef(pos), s.depth(), 0, _genoLik);
+		if(!s.empty() || _printAll){
+			_genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(s, _genoLik);
+			_writer.writeSite(_window.positionOnChr(pos), s.depth(), 0, _genoLik);
 		}
 		++pos;
 	}

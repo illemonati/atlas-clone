@@ -26,7 +26,7 @@ public:
 
 	virtual ~TGenotypePrior(){};
 
-	virtual void update(const TWindow & window, TLog* logfile){};
+	virtual void update(const TWindow & window, TLog* logfile, const TGenotypeLikelihoodCalculator & glCalculator){};
 	TGenotypeData* getPointerToPrior(){ return &genotypePrior; };
 	double operator[](const Genotype genotype){ return genotypePrior[genotype]; };
 	double operator[](const uint8_t genotype){ return genotypePrior[genotype]; };
@@ -62,7 +62,7 @@ public:
 		delete thetaEstimator;
 	};
 
-	void update(const TWindow & window, TLog* logfile){
+	void update(const TWindow & window, TLog* logfile, const TGenotypeLikelihoodCalculator & glCalculator){
 		if(!equalBaseFreq){
 			logfile->listFlush("Estimating base frequencies for prior ...");
 			GenotypeLikelihoods::TBaseData freq;
@@ -130,12 +130,6 @@ public:
 
 		//update prior
 		thetaEstimator->fillPGenotype(genotypePrior);
-
-		//write results to file
-		window.writeCoordinates(out, chromosomes);
-		out.write()
-		out.write(window->_chrName, window->startPos, window->endPos);
-		logfile->endIndent();
 	};
 };
 

@@ -96,7 +96,7 @@ protected:
 	virtual void callGenotype(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
 	virtual void callGenotypeKnownAlleles(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
 
-	template <typename T> uint8_t TCaller::pickIndexWithHighestMetric(T* metric, const uint8_t size){
+	template <typename T> uint8_t pickIndexWithHighestMetric(T* metric, const uint8_t size){
 		//find maximum
 		double maxMetric = 0.0;
 		for(uint8_t i=0; i<size; ++i){
@@ -115,7 +115,7 @@ protected:
 		return vec[randomGenerator->pickOne(vec.size())];
 	};
 
-	template <typename T> uint8_t TCaller::pickIndexWithSecondHighestMetric(T* metric, const uint8_t size, const uint8_t excludeIndex){
+	template <typename T> uint8_t pickIndexWithSecondHighestMetric(T* metric, const uint8_t size, const uint8_t excludeIndex){
 		//find maximum
 		double max = 0.0;
 		for(uint8_t i=0; i<size; ++i){

@@ -6,19 +6,16 @@
  */
 
 
-#include <TDuplicateQuantifier.h>
+#include "TDuplicateQuantifier.h"
 
 namespace GenomeTasks{
 
 //----------------------------------------------
 // TDuplicateQuantifyer
 //----------------------------------------------
-TDuplicateQuantifier::TDuplicateQuantifier(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator){
-	_curChrLength = 0;
-	_curPos = 0;
-};
+TDuplicateQuantifier::TDuplicateQuantifier(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_filtered(Parameters, Logfile, RandomGenerator){};
 
-void TDuplicateQuantifier::_addCurCounts(const uint32_t nextPos){
+void TDuplicateQuantifier::_addCurCounts(const BAM::TGenomePosition & nextPos){
 	//add current counts and zero for all positions until nextPos
 	uint32_t steps = nextPos - _curPos - 1;
 	uint32_t sum = 0;
@@ -32,16 +29,13 @@ void TDuplicateQuantifier::_addCurCounts(const uint32_t nextPos){
 };
 
 void TDuplicateQuantifier::_handleAlignments(){
-	if(_bamFile.chrChanged()){
-		//write last
-	}
-
 	//add to counts
 	if(_bamFile.chrChanged()){
-		if(_curChrLength > 0){
-			_addCurCounts(_curChrLength);
+		if(_curChrEnd.position() > 0){
+			_addCurCounts(_curChrEnd);
 		}
-		_curPos = 0;
+		_curPos = _bamFile.curChromosome().chrStart;
+		_curChrEnd = _bamFile.curChromosome().chrEnd;
 		std::fill(_countsAtPos.begin(), _countsAtPos.end(), 0);
 	}
 
@@ -60,10 +54,9 @@ void TDuplicateQuantifier::_handleAlignments(){
 void TDuplicateQuantifier::estimateDuplicationCounts(){
 	//assembles distribution of how often a read is duplicated
 	//now: just how many reads start at the same positions
-	_curChrLength = 0;
-	_curPos = 0;
-	_countsPerReadGroup.resize(_bamFile._readGroups.size());
-	_countsAtPos.resize(_bamFile._readGroups.size());
+	_curChrEnd.clear();
+	_countsPerReadGroup.resize(_bamFile.numReadGroups());
+	_countsAtPos.resize(_bamFile.numReadGroups());
 
 	//iterate through BAM file
 	_traverseBAMPassedQC();
@@ -75,7 +68,7 @@ void TDuplicateQuantifier::estimateDuplicationCounts(){
 	_countsCombined.write(out, "allReadGroups");
 
 	std::vector<std::string> readGroupNames;
-	_bamFile._readGroups.fillVectorWithNames(readGroupNames);
+	_bamFile.readGroups().fillVectorWithNames(readGroupNames);
 	_countsPerReadGroup.write(out, readGroupNames);
 	_logfile->done();
 };

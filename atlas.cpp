@@ -92,16 +92,16 @@ void addTaks(TMain & main) {
 
 	//Population tools
 	main.addRegularTask("printGLF", new TTask_printGLF());
-	main.addRegularTask("majorMinor", new TTask_majorMinor());
-	main.addRegularTask("geneticDist", new TTask_estimateDist());
-	main.addRegularTask("alleleCounts", new TTask_estimateAlleleCounts());
-	main.addRegularTask("alleleCountLikelihoods", new TTask_writeAlleleCountLikelihoods);
-	main.addRegularTask("transformAlleleCountFormat", new TTask_transformAlleleCountFormat());
-	main.addRegularTask("alleleFreq", new TTask_estimateAlleleFreq());
-	main.addRegularTask("compareAlleleFreq", new TTask_compareAlleleFreq());
-	main.addRegularTask("alleleFreqLikelihoods", new TTask_alleleFreqLikelihoods());
-	main.addRegularTask("inbreeding", new TTask_estimateInbreeding());
-	main.addRegularTask("polymorphicWindows", new TTask_identifyPolymorphicWindows());
+	main.addRegularTask("majorMinor", new PopulationTools::TTask_majorMinor());
+	main.addRegularTask("geneticDist", new PopulationTools::TTask_estimateDist());
+	main.addRegularTask("alleleCounts", new PopulationTools::TTask_estimateAlleleCounts());
+	main.addRegularTask("alleleCountLikelihoods", new PopulationTools::TTask_writeAlleleCountLikelihoods);
+	main.addRegularTask("transformAlleleCountFormat", new PopulationTools::TTask_transformAlleleCountFormat());
+	main.addRegularTask("alleleFreq", new PopulationTools::TTask_estimateAlleleFreq());
+	main.addRegularTask("compareAlleleFreq", new PopulationTools::TTask_compareAlleleFreq());
+	main.addRegularTask("alleleFreqLikelihoods", new PopulationTools::TTask_alleleFreqLikelihoods());
+	main.addRegularTask("inbreeding", new PopulationTools::TTask_estimateInbreeding());
+	main.addRegularTask("polymorphicWindows", new PopulationTools::TTask_identifyPolymorphicWindows());
 
 	//VCF
 	main.addRegularTask("VCFDiagnositics", new VCF::TTask_VCFDiagnostics());
@@ -116,7 +116,7 @@ void addTaks(TMain & main) {
 	// Use main.addDebugTask to add a debug task (not shown in list of available tasks)
 	main.addDebugTask("recalLL", new GenomeTasks::TTask_recalLL());
 	main.addDebugTask("thetaLLSurface", new GenomeTasks::TTask_thetaLLSurface());
-	main.addDebugTask("inbreedingLikelihood", new TTask_inbreedingLikelihood());
+	main.addDebugTask("inbreedingLikelihood", new PopulationTools::TTask_inbreedingLikelihood());
 
 	//main.addDebugTask("testBED", new TTask_testBED()); //TODO: write as test!
 

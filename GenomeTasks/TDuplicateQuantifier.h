@@ -24,10 +24,10 @@ private:
 	TCountDistribution _countsCombined;
 
 	std::vector<uint32_t> _countsAtPos;
-	uint32_t _curPos;
-	uint32_t _curChrLength;
+	BAM::TGenomePosition _curPos;
+	BAM::TGenomePosition _curChrEnd;
 
-	void _addCurCounts(const uint32_t nextPos);
+	void _addCurCounts(const BAM::TGenomePosition & nextPos);
 	void _handleAlignments();
 
 public:

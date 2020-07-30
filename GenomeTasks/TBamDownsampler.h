@@ -29,7 +29,7 @@ private:
 public:
 	TBamSample(const double Prob, const std	::string OutName);
 
-	void open(BAM::TBamFile & bamFile);
+	void open(BAM::TBamFile & bamFile, TGenotypeMap & genoMap, TQualityMap & qualMap);
 	void close(TLog* logfile);
 
 	void sample(BAM::TBamFile & bamfile, TRandomGenerator & randomGenerator);
@@ -40,11 +40,11 @@ public:
 // TBamDownsampler_base
 //-----------------------------------------
 class TBamDownsampler_base:public TGenome_basic{
-private:
+protected:
 	std::vector<double> _probs;
 	std::vector<std::string> _names;
 
-	void _readVectorOfDownsamplingProbabilities(TParameters & Parameters,;
+	void _readVectorOfDownsamplingProbabilities(TParameters & Parameters);
 
 public:
 	TBamDownsampler_base(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
@@ -67,7 +67,7 @@ public:
 //-----------------------------------------
 // TBamReadDownsampler
 //-----------------------------------------
-class TBamReadDownsampler:TBamDownsampler{
+class TBamReadDownsampler:public TBamDownsampler{
 private:
 
 public:

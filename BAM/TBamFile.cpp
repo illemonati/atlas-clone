@@ -23,16 +23,11 @@ TBamFile::TBamFile(){
 
 	//current alignment
 	_curReadGroupID = 0;
-	_previousAlignmentPos = 0;
-	_previousAlignmentChr = -1;
 	_chrChanged = false;
-
-	//writing
-	_openForWriting = false;
 
 	//set filters to default
 	_QCFiltersPassed = false;
-	_maxReadLength = 65536;
+	_maxReadLength = 65535;
 	_keepAll = true; //by default, keep all reads
 
 	//blacklist
@@ -342,7 +337,7 @@ void TBamFile::_fillReadGroups(TReadGroups & ReadGroups){
 	//now add one by one
 	for(auto it = _bamHeader.ReadGroups.Begin(); it != _bamHeader.ReadGroups.End(); ++it){
 		//add read group
-		TReadGroup& rg = ReadGroups.add(it->ID);
+		const TReadGroup& rg = ReadGroups.add(it->ID);
 
 		//now copy rest
 		rg.description_DS = it->Description;
@@ -367,11 +362,11 @@ void TBamFile::open(const std::string Filename, const bool IndexNotRequired, TLo
 
 	//open BAM file
 	if (!_bamReader.Open(Filename))
-		throw "Failed to open BAM file '" + filename + "'!";
+		throw "Failed to open BAM file '" + Filename + "'!";
 
 	//load index file
 	if(!_bamReader.LocateIndex() && !IndexNotRequired)
-		throw "No index file found for BAM file '" + filename + "'!";
+		throw "No index file found for BAM file '" + Filename + "'!";
 	_open = true;
 
 	//initialize bam stuff
@@ -382,8 +377,9 @@ void TBamFile::open(const std::string Filename, const bool IndexNotRequired, TLo
 	//initialize read groups
 	_fillReadGroups(_readGroups);
 
-	//initialize chromosomes
+	//initialize chromosomes and set cur chromosome to end
 	_fillChromosomes(_chromosomes);
+	_curChromosome = _chromosomes.end();
 
 	//parse CIGAR
 	_curCigar.clear();
@@ -440,32 +436,47 @@ void TBamFile::_applyFilters(){
 };
 
 bool TBamFile::readNextAlignment(){
+	//check if we limit reads
 	if(_limitNumReads && _numAlignmentRead >=_maxNumReadsToRead){
 		return false;
 	}
 
+	//store previous position
+	_previousAlignmentPosition = _curAlignmentPosition;
+
+	//get next alignment
 	if(!_bamReader.GetNextAlignment(_curBamAlignment)){
 		return false;
 	}
 
 	//check if chromosome changed
-	if(_curBamAlignment.RefID != _chromosomes.curRefID()){
-		_previousAlignmentPos = 0;
-		_previousAlignmentChr = _curBamAlignment.RefID;
-
+	if(_curChromosome == _chromosomes.end() || _curBamAlignment.RefID != _curChromosome->refID()){
 		//advance chromosomes
-		_chromosomes.jumpTo(_curBamAlignment.RefID);
+		while(_curBamAlignment.RefID != _curChromosome->refID()){
+			++_curChromosome;
+
+			if(_curChromosome == _chromosomes.end()){
+				//is chromosome not in header?
+				if(!_chromosomes.exists(_curBamAlignment.RefID)){
+					throw "Chromosome with refID " + toString(_curBamAlignment.RefID) + " is missing from BAm header!";
+				} else {
+					throw "BAM file not sorted!";
+				}
+			}
+		}
 
 		//if not in use: jump to next in use
-		if(!_chromosomes.curInUse()){
-			while(!_chromosomes.curInUse()){
-				if(!_chromosomes.next()){
+		if(!_curChromosome->inUse){
+			while(!_curChromosome->inUse){
+				++_curChromosome;
+
+				if(_curChromosome == _chromosomes.end()){
 					return false;
 				}
 			}
 
 			//jump reader and read first alignment
-			jump(_chromosomes.curChrStart());
+			jump(_curChromosome->chrStart);
 			if(!_bamReader.GetNextAlignment(_curBamAlignment)){
 				return false;
 			}
@@ -475,12 +486,15 @@ bool TBamFile::readNextAlignment(){
 		_chrChanged = false;
 	}
 
+	//get current position and update counter
+	_curAlignmentPosition.update(_curBamAlignment.RefID, _curBamAlignment.Position);
 	++_numAlignmentRead;
 
+
 	//check if BAM file is sorted
-	if(_curBamAlignment.Position < _previousAlignmentPos)
-		throw "BAM file must be sorted by position! Alignment '" + _curBamAlignment.Name + "' is at position " + toString(_curBamAlignment.Position) + ", which is before the position of the previous alignment (" + toString(_previousAlignmentPos) + ")";
-	_previousAlignmentPos = _curBamAlignment.Position;
+	if(_curAlignmentPosition < _previousAlignmentPosition){
+		throw "BAM file must be sorted by position! Alignment '" + _curBamAlignment.Name + "' is at position " + toString(_curBamAlignment.Position) + ", which is before the position of the previous alignment (" + toString(_previousAlignmentPosition.position()) + ")";
+	}
 
 	//check read length
 	if(_curBamAlignment.AlignedBases.size() > _maxReadLength)
@@ -540,7 +554,7 @@ bool TBamFile::readNextAlignmentThatPassesFilters(TAlignment & alignment){
 };
 
 bool TBamFile::jump(const TGenomePosition Position){
-	_previousAlignmentPos = -1;
+	_previousAlignmentPosition.clear();
 	return _bamReader.Jump(Position.refID(), Position.position());
 };
 
@@ -548,7 +562,7 @@ void TBamFile::rewind(){
 	_bamReader.Rewind();
 	_numAlignmentRead = 0;
 	_numAlignmentsPassedQC = 0;
-	_previousAlignmentPos = -1;
+	_previousAlignmentPosition.clear();
 };
 
 //--------------------------------------------------------
@@ -625,10 +639,6 @@ void TBamFile::curSetNewReadGroup(const uint16_t id){
 	}
 };
 
-void TBamFile::curFilterOut(){
-	_externalFilter.filterOut(_curBamAlignment.Name, _curBamAlignment.IsReverseStrand());
-};
-
 void TBamFile::curAddSamField(const std::string tag, const std::string value){
 	if(_curBamAlignment.HasTag(tag)){
 		_curBamAlignment.EditTag(tag, "Z", value);
@@ -680,7 +690,7 @@ void TBamFile::printSummary(){
 };
 
 void TBamFile::startProgressReporting(uint32_t Frequency){
-	if(!open){
+	if(!_open){
 		throw "Can not start progress reporting of BAM file: BAM file not open!";
 	}
 
@@ -693,7 +703,7 @@ void TBamFile::startProgressReporting(uint32_t Frequency){
 
 void TBamFile::printProgress(){
 	if(_numAlignmentRead - _lastProgressPrinted >= _progressFrequency){
-		_logfile->list("Parsed " + _millionReadsRead() + " million reads (est. " + to_string_with_precision(positionInFile() * 100, 2) + "%) in " + _timer.minutes() + " min.");
+		_logfile->list("Parsed " + _millionReadsRead() + " million reads (est. " + to_string_with_precision(positionInFile() * 100, 2) + "%) in " + toString(_timer.minutes()) + " min.");
 		_lastProgressPrinted = _numAlignmentRead;
 	}
 };
@@ -705,10 +715,9 @@ void TBamFile::printEndWithSummary(){
 };
 
 void TBamFile::printEndNoEndIndent(){
-	_logfile->list("Reached end of BAM file in " + _timer.minutes() + " min.");
-	_logfile->conclude("Parsed a total of " + _millionReadsRead() + " million reads in " + _timer.minutes() + " min.");
+	_logfile->list("Reached end of BAM file in " + toString(_timer.minutes()) + " min.");
+	_logfile->conclude("Parsed a total of " + _millionReadsRead() + " million reads in " + toString(_timer.minutes()) + " min.");
 };
-
 
 //-----------------------------------------------------
 //TOutputBamFile
@@ -806,12 +815,12 @@ void TOutputBamFile::_writeAlignment(const TAlignment & alignment){
 	//create bamAlignment and then write
 	BamTools::BamAlignment _tmpBamAlignment;
 
-	_tmpBamAlignment.Name = alignment._name;
-	_tmpBamAlignment.AlignmentFlag = alignment._flags.asInt();
+	_tmpBamAlignment.Name = alignment.name();
+	_tmpBamAlignment.AlignmentFlag = alignment.flags();
 	_tmpBamAlignment.RefID = alignment.refID();
 	_tmpBamAlignment.Position = alignment.position();
-	_tmpBamAlignment.InsertSize = alignment._insertSize_TLEN;
-	_tmpBamAlignment.MapQuality = alignment._mappingQuality;
+	_tmpBamAlignment.InsertSize = alignment.insertSize();
+	_tmpBamAlignment.MapQuality = alignment.mappingQuality();
 
 	if(alignment.isPaired()){
 		_tmpBamAlignment.MateRefID = alignment.mateRefID();
@@ -819,7 +828,7 @@ void TOutputBamFile::_writeAlignment(const TAlignment & alignment){
 	}
 
 	//CIGAR
-	for(auto& it : alignment._cigar){
+	for(const auto& it : alignment.cigar()){
 		_tmpBamAlignment.CigarData.emplace_back(it.type, it.length);
 	}
 
@@ -828,7 +837,7 @@ void TOutputBamFile::_writeAlignment(const TAlignment & alignment){
 	_tmpBamAlignment.Qualities = alignment.qualities(*_genoMap, *_qualityMap);
 
 	//add read group information
-	_tmpBamAlignment.AddTag("RG", "Z", _readGroups->getName(alignment._readGroupID));
+	_tmpBamAlignment.AddTag("RG", "Z", _readGroups->getName(alignment.readGroupId()));
 
 	//and now write
 	if(!_bamWriter.SaveAlignment(_tmpBamAlignment))

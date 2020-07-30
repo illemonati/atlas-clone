@@ -126,7 +126,7 @@ void TSimulatorReadLengthGamma::initiate(TLog* logfile){
 	//1) calc density and get weighted average
 	//first set all bins < _min to zero
 	double totalArea = 0.0;
-	for(int i=0; i < _min; ++i)	_gammaDensity[i] = 0;
+	for(uint32_t i=0; i < _min; ++i)	_gammaDensity[i] = 0;
 
 	//then calculate densities for all bins <_max
 	for(int i=_min; i<(_maxPlusOne-1); ++i){
@@ -141,25 +141,25 @@ void TSimulatorReadLengthGamma::initiate(TLog* logfile){
 	//normalize densities (needed because truncated at _min)
 	//also calc mean read length
 	_meanLength = 0.0;
-	for(int i=_min; i<_maxPlusOne; ++i){
+	for(uint32_t i=_min; i<_maxPlusOne; ++i){
 		_gammaDensity[i] /= totalArea;
 		_meanLength += i * _gammaDensity[i];
 	}
 
 	//2) make table for cumulative gamma distribution
 	_gammaCumulDensity[0] = _gammaDensity[0];
-	for(int i=1; i < _maxPlusOne; ++i)	_gammaCumulDensity[i] = _gammaCumulDensity[i-1] + _gammaDensity[i];
+	for(uint32_t i=1; i < _maxPlusOne; ++i)	_gammaCumulDensity[i] = _gammaCumulDensity[i-1] + _gammaDensity[i];
 
 	//3) distribution of position probabilities (=normalized 1 - cumul)
 	_positionProbs[0] = 1.0; //position 1 is always present in read
 	double sum = _positionProbs[0];
-	for(int i=1; i < _maxPlusOne; ++i){
+	for(uint32_t i=1; i < _maxPlusOne; ++i){
 		_positionProbs[i] = 1.0 -  _gammaCumulDensity[i-1];
 		sum += _positionProbs[i];
 	}
 
 	//normalize
-	for(int i=0; i < _maxPlusOne; ++i)
+	for(uint32_t i=0; i < _maxPlusOne; ++i)
 		_positionProbs[i] /= sum;
 
 	if(_gammaCumulDensity[_min] > 0.5)

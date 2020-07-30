@@ -34,7 +34,7 @@ void TSoftClippingStatsFile::open(const std::string filename, const bool PrintSe
 };
 
 void TSoftClippingStatsFile::write(const BAM::TBamFile & bamFile){
-	_out << bamFile.curName() << bamFile.curPosition();
+	_out << bamFile.curName() << bamFile.curChromosome().name << bamFile.curPosition().position();
 	const BAM::TCigar& cigar = bamFile.curCIGAR();
 
 	_out << cigar.lengthSoftClippedLeft() << cigar.lengthSequenced() << cigar.lengthSoftClippedRight();
@@ -137,14 +137,12 @@ void TAssessSoftClipping::assess(){
 //--------------------------------------------------------
 // TRemoveSoftClippedBases
 //--------------------------------------------------------
-TRemoveSoftClippedBases::TRemoveSoftClippedBases(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_filtered(Parameters, Logfile, RandomGenerator){
-
-};
+TRemoveSoftClippedBases::TRemoveSoftClippedBases(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_filtered(Parameters, Logfile, RandomGenerator){};
 
 void TRemoveSoftClippedBases::removeSoftclippedBases(){
 	std::string filename = _outputName + "_softClippedBasesRemoved.bam";
 	_logfile->list("Writing reads after soft-clip trimming to file '" + filename + "'.");
-	BAM::TOutputBamFile out(filename, _bamFile);
+	BAM::TOutputBamFile out(filename, _bamFile, &_genoMap, &_qualMap);
 
 	//other temp variables
 	BAM::TAlignment alignment;
@@ -160,7 +158,7 @@ void TRemoveSoftClippedBases::removeSoftclippedBases(){
 			alignment.removeSoftClippedBases();
 
 			//write
-			out.writeAlignment(alignment, _genoMap, _qualMap);
+			out.writeAlignment(alignment);
 		} else {
 			_bamFile.writeCurAlignment(out);
 		}

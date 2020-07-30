@@ -54,6 +54,9 @@ public:
 	void setReverseStrand(const bool status){ flags[0] = status; };
 	void setSecondMate(const bool status){ flags[1] = status; };
 	void setAligned(const bool status){ flags[2] = status; };
+
+	bool operator==(const Base & b){ return base == b; };
+	bool operator!=(const Base & b){ return base != b; };
 };
 
 };

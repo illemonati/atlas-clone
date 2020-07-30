@@ -221,25 +221,25 @@ public:
 //---------------------------------------------------------------
 class TThetaOutputFile{
 protected:
-	TOutputFile out;
-	std::vector<TThetaEstimator*> thetaEstimators;
-	std::vector<std::string> prefixes;
+	TOutputFile _out;
+	std::vector<TThetaEstimator*> _thetaEstimators;
+	std::vector<std::string> _prefixes;
 
-	void writeHeader(){
+	void _writeHeader(){
 		std::vector<std::string> header = {"Chr", "start", "end"};
 
 		//add headers of all estimators
-		for(size_t i = 0; i < thetaEstimators.size(); ++i){
-			thetaEstimators[i]->addToHeader(header, prefixes[i]);
+		for(size_t i = 0; i < _thetaEstimators.size(); ++i){
+			_thetaEstimators[i]->addToHeader(header, _prefixes[i]);
 		}
-		out.writeHeader(header);
+		_out.writeHeader(header);
 	};
 
-	void writeEstimates(){
-		for(TThetaEstimator* est: thetaEstimators){
-			est->writeResultsToFile(out);
+	void _writeEstimates(){
+		for(TThetaEstimator* est: _thetaEstimators){
+			est->writeResultsToFile(_out);
 		}
-		out << std::endl;
+		_out << std::endl;
 	};
 
 public:
@@ -258,20 +258,21 @@ public:
 		close();
 	};
 
+	TOutputFile& file(){ return _out; };
 
 	void addEstimator(TThetaEstimator* Estimator, const std::string Prefix){
-		if(out.isOpen()){
+		if(_out.isOpen()){
 			throw "Can not add estimators to an open TThetaOutputFile!";
 		}
-		thetaEstimators.push_back(Estimator);
-		prefixes.push_back(Prefix);
+		_thetaEstimators.push_back(Estimator);
+		_prefixes.push_back(Prefix);
 	};
 
 	void open(const std::string Filename, TLog* logfile){
 		logfile->list("Will write theta estimates to file '" + Filename + "'.");
-		out.open(Filename);
-		writeHeader();
-		out.setPrecision(9);
+		_out.open(Filename);
+		_writeHeader();
+		_out.setPrecision(9);
 	};
 
 	void open(TThetaEstimator* Estimator, const std::string Filename, TLog* logfile){
@@ -280,17 +281,17 @@ public:
 	};
 
 	void close(){
-		out.close();
+		_out.close();
 	};
 
-	void write(const std::string & chr, const long & start, const long & end){
-		out << chr << start << end;
-		writeEstimates();
+	void write(const TWindow_base & window){
+		_out << window;
+		_writeEstimates();
 	};
 
 	void write(const std::string & chr, const std::string & start, const std::string & end){
-		out << chr << start << end;
-		writeEstimates();
+		_out << chr << start << end;
+		_writeEstimates();
 	};
 };
 

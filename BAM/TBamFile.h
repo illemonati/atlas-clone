@@ -34,6 +34,7 @@ private:
 
  	//header
  	TChromosomes _chromosomes;
+ 	std::vector<TChromosome>::iterator _curChromosome;
  	TReadGroups _readGroups;
  	TSamHeader _samHeader;
 
@@ -47,8 +48,7 @@ private:
  	BamTools::BamAlignment _curBamAlignment;
  	uint16_t _curReadGroupID;
  	TCigar _curCigar;
- 	uint32_t _previousAlignmentPos;
- 	int _previousAlignmentChr; //negative at beginning to trigger chr change on first read
+ 	TGenomePosition _curAlignmentPosition, _previousAlignmentPosition;
  	bool _chrChanged;
 
 	//alignment filters
@@ -74,7 +74,6 @@ private:
  	TBamFileFilterRange _fragmentLengthfilter;
  	TBamFileFilter _externalFilter;
 
-	void setFilters(TParameters & params, TLog* logfile);
 	void _fillSamHeader(TSamHeader & SamHeader);
 	void _fillChromosomes(TChromosomes & chromosomes);
 	void _fillReadGroups(TReadGroups & readGroups);
@@ -95,14 +94,17 @@ private:
 
 public:
 	TBamFile();
-	~TBamFile();
 
-	//access header info
+	//access header info READ ONLY
 	const TChromosomes& chromosomes() const{ return _chromosomes; };
 	const TReadGroups& readGroups() const { return _readGroups; };
 	const TSamHeader samHeader() const{ return _samHeader; };
 
+	//modify header info: know what you do!
+	TReadGroups& readGroupsMutable(){ return _readGroups; };
+
 	//filters
+	void setFilters(TParameters & params, TLog* logfile);
 	void setLimits(TParameters & params, TLog* logfile);
 	void setKeepAll();
 	void limitReadLength(const int MaxReadLength);
@@ -149,8 +151,9 @@ public:
 
 	//getters for cur alignment
 	const std::string curName() const{ return _curBamAlignment.Name; };
-	uint32_t curPosition() const{ return _curBamAlignment.Position; };
-	const TChromosome& curChromosome() const{ return _chromosomes.curChromosome(); };
+	TGenomePosition curPosition() const { return _curAlignmentPosition; };
+	uint32_t refID() const{ return _curChromosome->refID(); };
+	const TChromosome& curChromosome() const{ return *_curChromosome; };
 	const TCigar& curCIGAR() const{ return _curCigar; };
 	uint16_t curReadGroupID() const{ return _curReadGroupID; };
 	bool chrChanged() const{ return _chrChanged; };
@@ -177,6 +180,7 @@ public:
 	uint16_t maxReadLength(){ return _maxReadLength; };
 	uint64_t numAlignmentsRead(){ return _numAlignmentRead; };
 	double positionInFile(){ return (double) _bamReader.tell() / (double) _fileSize; };
+	uint16_t numReadGroups() const{ return _readGroups.size(); };
 
 	//progress reporting
 	//TODO: try to make general and include in common utilities
@@ -186,6 +190,15 @@ public:
 	void printProgress();
 	void printEndWithSummary();
 	void printEndNoEndIndent();
+
+	//comparisons
+	bool operator==(const TGenomePosition & Position) const{ return _curAlignmentPosition == Position; };
+	bool operator<(const TGenomePosition & Position) const{ return _curAlignmentPosition < Position; };
+	bool operator>(const TGenomePosition & Position) const{ return _curAlignmentPosition > Position; };
+	bool operator<(const TGenomeWindow & Window) const{ return _curAlignmentPosition < Window; };
+	bool operator>(const TGenomeWindow & Window) const{ return _curAlignmentPosition > Window; };
+	bool operator<(const TChromosome & Chromosome) const{ return _curAlignmentPosition < Chromosome.chrStart; };
+	bool operator>(const TChromosome & Chromosome) const{ return _curAlignmentPosition > Chromosome.chrEnd; };
 };
 
 //----------------------------------------------------
@@ -198,7 +211,7 @@ private:
  	std::string _outputFilename;
  	BamTools::BamWriter _bamWriter;
  	bool _openForWriting;
- 	TReadGroups* const _readGroups;
+ 	const TReadGroups* _readGroups;
  	TGenotypeMap* _genoMap;
  	TQualityMap* _qualityMap;
 
@@ -212,7 +225,7 @@ public:
  	TOutputBamFile(const std::string filename, const TBamFile & original, TGenotypeMap* GenoMap, TQualityMap* QualityMap);
  	~TOutputBamFile();
 
- 	void open(const std::string Filename, const TSamHeader & Header, const TChromosomes & Chromosomes, const TReadGroups & ReadGroups,  TGenotypeMap* GenoMap, TQualityMap* QualityMap);
+ 	void open(const std::string Filename, const TSamHeader & Header, const TChromosomes & Chromosomes, const TReadGroups & ReadGroups, TGenotypeMap* GenoMap, TQualityMap* QualityMap);
 	void open(const std::string Filename, const TBamFile & Original, TGenotypeMap* GenoMap, TQualityMap* QualityMap);
 	bool isOpen() const{ return _openForWriting; };
 	void close(TLog* logfile);
