@@ -55,10 +55,12 @@ class TVcfToLFMM : protected TVcfConverter {
 protected:
     TOutputFilePlain * lfmmFile;
     TOutputFilePlain * lociNamesFile;
+    TOutputFilePlain * sampleNamesFile;
     std::vector<std::string> loci_names;
 
     void writeHeader() override;
     void storeLocusNames();
+    void writeSampleNames();
     void writeLociNames();
     void initOutputFiles() override;
 
@@ -278,13 +280,16 @@ class TStitchVcfToLFMMPostGeno {
 private:
     std::vector<std::vector<std::string>> _genotypes;
     std::vector<std::string> loci_names;
+    std::vector <std::string> sample_names;
     TOutputFilePlain file;
     TOutputFilePlain fileLociNames;
+    TOutputFilePlain fileSampleNames;
     TStitchVcfReader reader;
     void parseVCF();
     void parseVCFHeader();
     void _write();
     void _writeLociNames();
+    void _writeSampleNames();
     void _writeMeanPosteriorGenotypes();
 
 public:

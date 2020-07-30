@@ -153,6 +153,7 @@ void TVcfToBeagle::vcfToBeagle(TParameters & Params){
 TVcfToLFMM::TVcfToLFMM(TLog *Logfile, TParameters &Params) : TVcfConverter(Logfile, Params){
     lfmmFile = nullptr;
     lociNamesFile = nullptr;
+    sampleNamesFile = nullptr;
 }
 
 TVcfToLFMM::~TVcfToLFMM(){
@@ -160,6 +161,7 @@ TVcfToLFMM::~TVcfToLFMM(){
     lociNamesFile->close();
     delete lociNamesFile;
     delete lfmmFile;
+    delete sampleNamesFile;
 }
 
 void TVcfToLFMM::writeHeader(){
@@ -169,6 +171,7 @@ void TVcfToLFMM::writeHeader(){
 void TVcfToLFMM::initOutputFiles() {
     lfmmFile = new TOutputFilePlain(_outname + ".lfmm");
     lociNamesFile = new TOutputFilePlain(_outname + ".lfmm.kept_loci");
+    sampleNamesFile = new TOutputFilePlain(_outname + ".lfmm.kept_samples");
 }
 
 void TVcfToLFMM::storeLocusNames(){
@@ -182,11 +185,19 @@ void TVcfToLFMM::writeLociNames(){
     lociNamesFile->endLine();
 }
 
+void TVcfToLFMM::writeSampleNames(){
+    sampleNamesFile->noHeader(samples.numSamples());
+    for (uint32_t i = 0; i < samples.numSamples(); i++)
+        *(sampleNamesFile) << samples.getNameFromOrderedIndex(i);
+    sampleNamesFile->endLine();
+}
+
 void TVcfToLFMM::prepareAndReadVcf(TParameters & Params){
     // read Vcf and store output
     readVcfAndWriteFile(Params);
 
     writeLociNames();
+    writeSampleNames();
 }
 
 /***************************************
@@ -231,6 +242,7 @@ void TVcfToLFMMCalledGeno::vcfToLFMM(TParameters & Params){
     // clean up
     lfmmFile->close();
     lociNamesFile->close();
+    sampleNamesFile->close();
 }
 
 /***************************************
@@ -258,6 +270,7 @@ void TVcfToLFMMPostGeno::vcfToLFMM(TParameters & Params){
     // clean up
     lfmmFile->close();
     lociNamesFile->close();
+    sampleNamesFile->close();
 }
 
 void TVcfToLFMMPostGeno::writeData(TPopulationLikehoodLocus & data){
@@ -1124,6 +1137,7 @@ TStitchVcfToLFMMPostGeno::TStitchVcfToLFMMPostGeno(TParameters &Params, TLog *lo
     logfile->list("Writing output files with prefix '" + outname + "'.");
     file.open(outname + ".lfmm");
     fileLociNames.open(outname + ".lfmm.kept_loci");
+    fileSampleNames.open(outname + ".lfmm.kept_samples");
 
     // parse header
     parseVCFHeader();
@@ -1134,16 +1148,17 @@ TStitchVcfToLFMMPostGeno::TStitchVcfToLFMMPostGeno(TParameters &Params, TLog *lo
 
     file.close();
     fileLociNames.close();
+    fileSampleNames.close();
 }
 
 void TStitchVcfToLFMMPostGeno::parseVCFHeader(){
-    std::vector <std::string> header;
-    reader.parseVCFHeader(header);
+    reader.parseVCFHeader(sample_names);
 }
 
 void TStitchVcfToLFMMPostGeno::_write() {
     _writeMeanPosteriorGenotypes();
     _writeLociNames();
+    _writeSampleNames();
 }
 
 void TStitchVcfToLFMMPostGeno::_writeLociNames(){
@@ -1151,6 +1166,14 @@ void TStitchVcfToLFMMPostGeno::_writeLociNames(){
     for (auto it = loci_names.begin(); it < loci_names.end(); it++)
         fileLociNames << *it;
     fileLociNames.endLine();
+}
+
+void TStitchVcfToLFMMPostGeno::_writeSampleNames(){
+    fileSampleNames.noHeader(reader.numSamples());
+
+    for (auto it = sample_names.begin(); it < sample_names.end(); it++)
+        fileSampleNames << *it;
+    fileSampleNames.endLine();
 }
 
 void TStitchVcfToLFMMPostGeno::_writeMeanPosteriorGenotypes(){
