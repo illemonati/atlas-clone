@@ -37,8 +37,8 @@ public:
 	uint32_t refID() const{ return _refID; };
 	uint32_t position() const{ return _position; };
 
-	void update(const uint32_t RefID, const uint32_t Position);
-	void update(const TGenomePosition & other);
+	void move(const uint32_t RefID, const uint32_t Position);
+	void move(const TGenomePosition & other);
 
 	void operator=(const TGenomePosition & other);
 	TGenomePosition operator+(const uint32_t & length) const;
@@ -58,9 +58,9 @@ public:
 	bool operator<=(const TGenomePosition & other) const;
 	bool operator<(const TGenomeWindow & other) const;
 	bool operator>(const TGenomeWindow & other) const;
-
-	//TOutputFile& operator<<(TOutputFile & out) const;
 };
+
+std::ostream& operator<<(std::ostream& os, const TGenomePosition & position);
 
 //-----------------------------------------------------
 // TGenomeWindow
@@ -71,7 +71,7 @@ protected:
 
 public:
 	TGenomeWindow(){ clear(); };
-	virtual ~TGenomeWindow(){ _from.update(0,0); _to.update(0, 1); };
+	virtual ~TGenomeWindow(){ _from.move(0,0); _to.move(0, 1); };
 	TGenomeWindow(const uint32_t RefID, const uint32_t From, const uint32_t To);
 	TGenomeWindow(const uint32_t RefID, const uint32_t From);
 	TGenomeWindow(const TGenomePosition & position);
@@ -87,11 +87,12 @@ public:
 	uint32_t toOnChr() const{ return _to.position(); };
 	uint32_t size() const{ return _to.position() - _from.position(); };
 
-	virtual void update(const uint32_t RefID, const uint32_t Start, const uint32_t End);
-	virtual void update(const TGenomePosition & From, const TGenomePosition & To);
-	virtual void update(const TGenomeWindow & other);
+	virtual void move(const uint32_t RefID, const uint32_t Start, const uint32_t End);
+	virtual void move(const TGenomePosition & From, const uint32_t & Length);
+	virtual void move(const TGenomePosition & From, const TGenomePosition & To);
+	virtual void move(const TGenomeWindow & other);
 
-	void operator=(const TGenomeWindow & other){ update(other); };
+	void operator=(const TGenomeWindow & other){ move(other); };
 	TGenomeWindow operator+(const uint32_t length) const;
 	TGenomeWindow operator-(const uint32_t length) const;
 
@@ -111,11 +112,9 @@ public:
 	bool operator>(const TGenomePosition & pos) const;
 	bool operator<(const TGenomeWindow & other) const;
 	bool operator>(const TGenomeWindow & other) const;
-
-
-	//TOutputFile& operator<<(TOutputFile & out) const;
 };
 
+std::ostream& operator<<(std::ostream& os, const TGenomeWindow & window);
 
 }; //to namespace
 

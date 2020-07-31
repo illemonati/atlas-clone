@@ -52,7 +52,8 @@ public:
 	~TFastaBuffer(){};
 
 	void initialize(std::string fastaFile, TGenotypeMap* GenoMap, const uint32_t BufferSize=1000000);
-	bool hasReference() const{ return _hasReference; };
+	bool hasReference() const { return _hasReference; };
+	explicit operator bool() const { return _hasReference; }
 
 	void fill(const TGenomeWindow & Window, std::string & ref) const;
 	void fill(const TGenomePosition & Position, const uint32_t & Length, std::string & ref) const;

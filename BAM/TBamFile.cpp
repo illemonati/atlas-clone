@@ -76,7 +76,7 @@ void TBamFile::limitReadLength(const int MaxReadLength){
 void TBamFile::setFilters(TParameters & params, TLog* logfile){
 	//max read length
 	int MaxReadLength = params.getParameterIntWithDefault("maxReadLength", 200);
-	logfile->list("Expect no read to be longer than " + toString(MaxReadLength) + ". (parameter 'maxReadLength')");
+	logfile->list("Expect no read to be longer than " + toString(MaxReadLength) + " bp. (parameter 'maxReadLength')");
 	limitReadLength(MaxReadLength);
 
 	//alignment filters
@@ -359,9 +359,11 @@ void TBamFile::_fillReadGroups(TReadGroups & ReadGroups){
 //--------------------------------------------------------
 void TBamFile::open(const std::string Filename, const bool IndexNotRequired, TLog* Logfile){
 	_logfile = Logfile;
+	_filename = Filename;
 
 	//open BAM file
-	if (!_bamReader.Open(Filename))
+	_logfile->listFlushDots("Opening BAm file '" + _filename);
+	if (!_bamReader.Open(_filename))
 		throw "Failed to open BAM file '" + Filename + "'!";
 
 	//load index file
@@ -381,18 +383,14 @@ void TBamFile::open(const std::string Filename, const bool IndexNotRequired, TLo
 	_fillChromosomes(_chromosomes);
 	_curChromosome = _chromosomes.end();
 
-	//parse CIGAR
-	_curCigar.clear();
-	for(auto& it : _curBamAlignment.CigarData){
-		_curCigar.add(it.Type, it.Length);
-	}
-
 	//get file size
 	_bamReader.Jump(_chromosomes.size() - 1, 0);
 	BamTools::BamAlignment bamAlignment;
 	_bamReader.GetNextAlignment(bamAlignment);
 	_fileSize = _bamReader.tell();
 	_bamReader.Rewind();
+
+	_logfile->done();
 };
 
 void TBamFile::close(){
@@ -451,7 +449,11 @@ bool TBamFile::readNextAlignment(){
 
 	//check if chromosome changed
 	if(_curChromosome == _chromosomes.end() || _curBamAlignment.RefID != _curChromosome->refID()){
-		//advance chromosomes
+		//advance chromosome
+		if(_curChromosome == _chromosomes.end()){
+			_curChromosome = _chromosomes.begin();
+		}
+
 		while(_curBamAlignment.RefID != _curChromosome->refID()){
 			++_curChromosome;
 
@@ -487,7 +489,7 @@ bool TBamFile::readNextAlignment(){
 	}
 
 	//get current position and update counter
-	_curAlignmentPosition.update(_curBamAlignment.RefID, _curBamAlignment.Position);
+	_curAlignmentPosition.move(_curBamAlignment.RefID, _curBamAlignment.Position);
 	++_numAlignmentRead;
 
 
@@ -504,6 +506,12 @@ bool TBamFile::readNextAlignment(){
 	std::string readGroup;
 	_curBamAlignment.GetTag("RG", readGroup);
 	_curReadGroupID = _readGroups.getId(readGroup);
+
+	//parse CIGAR
+	_curCigar.clear();
+	for(auto& it : _curBamAlignment.CigarData){
+		_curCigar.add(it.Type, it.Length);
+	}
 
 	//apply filters
 	_applyFilters();

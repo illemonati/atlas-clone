@@ -171,6 +171,7 @@ protected:
 
 public:
 	TGenome_windows(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	~TGenome_windows();
 };
 
 }; //end namespace

@@ -16,7 +16,7 @@ void TFastaBuffer::_moveTo(const TGenomePosition Position) const{
 		throw "Can not move reference: no FASTA file provided!";
 	}
 
-	_coordinates.update(Position, Position + _bufferSize);
+	_coordinates.move(Position, Position + _bufferSize);
 
 	if(!_reference.GetSequence(_coordinates.refID(), _coordinates.fromOnChr(), _coordinates.toOnChr(), _referenceSequence))
 		throw "Problem reading " + toString(_coordinates.refID()) + ":" + toString(_coordinates.fromOnChr()) + "-" + toString(_coordinates.toOnChr()) + " from fasta file! Are you using the correct fasta file?";

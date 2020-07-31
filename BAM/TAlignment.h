@@ -70,18 +70,18 @@ public:
 
 	//clear, fill and parse
 	void clear();
-	void fill(const	std::string Name,
-			  const TSamFlags Flags,
-			  const uint32_t RefID,
-			  const uint32_t Position,
-			  const uint16_t MappingQuality,
-			  const TCigar Cigar,
-			  const uint32_t MateRefID,
-			  const uint32_t MatePosition,
-			  const int32_t InsertSize_TLEN,
-			  const std::string Sequence,
-			  const std::string Qualities,
-			  const uint16_t ReadGroupId);
+	void fill(const	std::string & Name,
+			  const TSamFlags & Flags,
+			  const uint32_t & RefID,
+			  const uint32_t & Position,
+			  const uint16_t & MappingQuality,
+			  const TCigar & Cigar,
+			  const uint32_t & MateRefID,
+			  const uint32_t & MatePosition,
+			  const int32_t & InsertSize_TLEN,
+			  const std::string & Sequence,
+			  const std::string & Qualities,
+			  const uint16_t & ReadGroupId);
 	void parse(const TGenotypeMap & genoMap, const TQualityMap & qualityMap);
 	void parse(const TGenotypeMap & genoMap, const TQualityMap & qualityMap, const GenotypeLikelihoods::TSequencingErrorModels & seqErrorModels);
 
@@ -90,7 +90,7 @@ public:
 	void setHasChanged(){ _changed = true; };
 	void setName(const std::string Name){ _name = Name; };
 	void setMappingQuality(const uint16_t Mappingquality){ _mappingQuality = Mappingquality; };
-	void setMateGenomicPosition(const uint32_t RefID, const uint32_t Position){ _mateGenomicPosition.update(RefID, Position); };
+	void setMateGenomicPosition(const uint32_t RefID, const uint32_t Position){ _mateGenomicPosition.move(RefID, Position); };
 	void setInsertSize(const int32_t InsertSize){ _insertSize_TLEN = InsertSize; };
 	void setSequenceQualities(const TCigar Cigar, const std::string Sequence, const std::string Qualities);
 	void setReadGroup(const uint16_t readGroupId);
@@ -139,7 +139,7 @@ public:
 	void downsampleAlignment(const double fraction, TRandomGenerator& randomGenerator);
 
 	//debug functions
-	void print(TGenotypeMap & genoMap, TQualityMap & qualMap);
+	void print(const TGenotypeMap & genoMap, const TQualityMap & qualMap);
 };
 
 }; //end namespace

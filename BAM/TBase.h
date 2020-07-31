@@ -9,6 +9,7 @@
 #define TBASE_H_
 
 #include <bitset>
+#include <iostream>
 
 enum Base : uint8_t {A=0, C, G, T, N};
 
@@ -34,17 +35,7 @@ public:
 	uint8_t mappingQuality;
 	Base context;
 
-	TBase(){
-		base = N;
-		originalQuality_phredInt = 0;
-		recalibratedQualityAsPhredInt = 0;
-		distFrom5Prime = -1;
-		distFrom3Prime = -1;
-		readGroupID = -1;
-		context = N;
-		mappingQuality = 0;
-		fragmentLength = 0;
-	};
+	TBase();
 
 	//set and get flags
 	bool isReverseStrand() const { return flags[0]; };
@@ -58,6 +49,9 @@ public:
 	bool operator==(const Base & b){ return base == b; };
 	bool operator!=(const Base & b){ return base != b; };
 };
+
+std::ostream& operator<<(std::ostream& os, const TBase & base);
+std::ostream& operator<<(std::ostream& os, const Base & base);
 
 };
 

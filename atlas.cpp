@@ -154,7 +154,7 @@ void addTests(TMain & main){
 //Main function
 //---------------------------------------------------------------------------
 int main(int argc, char* argv[]){
-	TMain main("Atlas", "0.9", "https://bitbucket.org/wegmannlab/atlas");
+	TMain main("Atlas", "0.9", "https://bitbucket.org/wegmannlab/atlas", "daniel.wegmann@unifr.ch");
 
 
 	//add existing tasks

@@ -18,18 +18,18 @@ TGenomePosition::TGenomePosition(const uint32_t RefID, const uint32_t Position){
 	_position = Position;
 };
 
-void TGenomePosition::update(const uint32_t RefID, const uint32_t Position){
+void TGenomePosition::move(const uint32_t RefID, const uint32_t Position){
 	_refID = RefID;
 	_position = Position;
 };
 
-void TGenomePosition::update(const TGenomePosition & other){
+void TGenomePosition::move(const TGenomePosition & other){
 	_refID = other._refID;
 	_position = other._position;
 };
 
 void TGenomePosition::operator=(const TGenomePosition & other){
-	update(other);
+	move(other);
 };
 
 TGenomePosition TGenomePosition::operator+(const uint32_t & length) const{
@@ -130,16 +130,21 @@ bool TGenomePosition::operator>(const TGenomeWindow & other) const{
 	return other < *this;
 };
 
+std::ostream& operator<<(std::ostream& os, const TGenomePosition & position){
+	os << position.refID() << ":" << position.position();
+	return os;
+};
+
 //-----------------------------------------------------
 // TGenomeWindow
 //-----------------------------------------------------
 TGenomeWindow::TGenomeWindow(const uint32_t RefID, const uint32_t Start, const uint32_t End){
-	update(RefID, Start, End);
+	move(RefID, Start, End);
 };
 
 //inserts a window of length one
 TGenomeWindow::TGenomeWindow(const uint32_t RefID, const uint32_t Start){
-	update(RefID, Start, Start+1);
+	move(TGenomePosition(RefID, Start), 1);
 };
 
 TGenomeWindow::TGenomeWindow(const TGenomePosition & position){
@@ -148,34 +153,39 @@ TGenomeWindow::TGenomeWindow(const TGenomePosition & position){
 };
 
 TGenomeWindow::TGenomeWindow(const TGenomePosition & From, const TGenomePosition & To){
-	update(From, To);
+	move(From, To);
 };
 
 void TGenomeWindow::clear(){
-	_from.update(0,0);
+	_from.move(0,0);
 	_to = _from;
 };
 
-void TGenomeWindow::update(const uint32_t RefID, const uint32_t From, const uint32_t To){
+void TGenomeWindow::move(const uint32_t RefID, const uint32_t From, const uint32_t To){
 	if(From <= To){
 		throw std::runtime_error("TGenomeWindow(const uint32_t RefID, const uint32_t Start, const uint32_t End): End <= Start!");
 	}
-	_from.update(RefID, From);
-	_to.update(RefID, To);
+	_from.move(RefID, From);
+	_to.move(RefID, To);
 };
 
-void TGenomeWindow::update(const TGenomePosition & From, const TGenomePosition & To){
+void TGenomeWindow::move(const TGenomePosition & From, const uint32_t & Length){
+	_from = From;
+	_to = _from + Length;
+};
+
+void TGenomeWindow::move(const TGenomePosition & From, const TGenomePosition & To){
 	if(From.refID() != To.refID()){
 		throw std::runtime_error("TGenomeWindow(const TGenomePosition & From, const TGenomePosition & To): Chromosomes do not match!");
 	}
-	if(From <= To){
-		throw std::runtime_error("TGenomeWindow(const TGenomePosition & From, const TGenomePosition & To): From <= To!");
+	if(To <= From){
+		throw std::runtime_error("TGenomeWindow(const TGenomePosition & From, const TGenomePosition & To): To <= From!");
 	}
 	_from = From;
 	_to = To;
 };
 
-void TGenomeWindow::update(const TGenomeWindow & other){
+void TGenomeWindow::move(const TGenomeWindow & other){
 	_from = other.from();
 	_to = other.to();
 };
@@ -248,9 +258,9 @@ void TGenomeWindow::operator+=(const uint32_t & length){
 
 void TGenomeWindow::operator-=(const uint32_t & length){
 	if(length > _from.position()){
-		_from.update(_from.refID(), 0);
+		_from.move(_from.refID(), 0);
 		if(length > _to.position()){
-			_to.update(_to.refID(), 1);
+			_to.move(_to.refID(), 1);
 		} else {
 			_to -= length;
 		}
@@ -284,12 +294,10 @@ bool TGenomeWindow::operator>(const TGenomeWindow & other) const{
 	return _from > other.from();
 };
 
-/*
-TOutputFile& TGenomeWindow::operator<<(TOutputFile & out) const{
-	out << _refID << _start << _end;
-	return out;
+std::ostream& operator<<(std::ostream& os, const TGenomeWindow & window){
+	os << window.from() << "-" << window.to();
+	return os;
 };
-*/
 
 }; //end namespace
 

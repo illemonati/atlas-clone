@@ -127,7 +127,7 @@ void TBedReaderWindows::readFile(const TChromosomes & chromosomeList, uint32_t s
 		std::string line;
 		std::getline(*myStream, line);
 
-		fillVectorFromStringWhiteSpaceSkipEmpty(line, vec);
+		fillVectorFromStringWhiteSpace(line, vec, true);
 
 		//skip empty lines
 		if(vec.size() > 0){

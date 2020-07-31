@@ -13,6 +13,17 @@ namespace BAM{
 //---------------------------------------------------------
 // TChromosome
 //---------------------------------------------------------
+TChromosome::TChromosome(const uint32_t RefID, const std::string Name, const uint32_t Length){
+	name = Name;
+	length = Length;
+	ploidy = 2; //default: diploid
+	inUse = true;
+
+	//set TGenomePosition
+	chrStart.move(RefID, 0);
+	chrEnd.move(RefID, length); //end is not included
+};
+
 std::string TChromosome::compileSamHeader() const{
 	std::string header = "@SQ\tSN:" + name + "\tLN:" + toString(length);
 

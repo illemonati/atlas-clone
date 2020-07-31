@@ -19,7 +19,7 @@ TPileup::TPileup(TParameters & Parameters, TLog* Logfile, TRandomGenerator* Rand
 	out.open(filename);
 
 	//parse output fields
-	_logfile->startIndent("Will print the following fields (parameter 'fields'):");
+	_logfile->startIndent("Will print the following pileup fields (parameter 'fields'):");
 	std::set<std::string> fields;
 	Parameters.fillParameterIntoSetWithDefault("fields", fields, ',', "depth,bases,qualities,alleles,mates,strands,likelihoods");
 
@@ -29,7 +29,8 @@ TPileup::TPileup(TParameters & Parameters, TLog* Logfile, TRandomGenerator* Rand
 	_parseField(fields, "alleles", _printAlleles, "allele counts");
 	_parseField(fields, "mates", _printMates, "mate information");
 	_parseField(fields, "strands", _printStrand, "strand information");
-	_parseField(fields, "likelihoods", _printLikelihoods, "genotype likelihoods (likelihoods)");
+	_parseField(fields, "likelihoods", _printLikelihoods, "genotype likelihoods");
+	_logfile->endIndent();
 
 	//check if unknown fields were given
 	if(!fields.empty()){
@@ -47,16 +48,16 @@ TPileup::TPileup(TParameters & Parameters, TLog* Logfile, TRandomGenerator* Rand
 				}
 				f += i + "'";
 			}
-			throw "Unknown fields: " + f + "! Valid fields are 'depth', 'bases', 'qualities', 'alleles', 'mates' and 'strands'.";
+			throw "Unknown fields: " + f + "! Valid fields are 'depth', 'bases', 'qualities', 'alleles', 'mates',  'strands' and 'likelihoods'.";
 		}
 	}
 
 	//compile header
 	std::vector<std::string> header = {"chromosome", "position"};
-	if(_reference.hasReference()){ header.push_back("reference"); }
+	if(_reference){ header.push_back("reference"); }
 	if(_printDepth){
 		header.push_back("depth");
-		if(_reference.hasReference()){
+		if(_reference){
 			header.push_back("refDepth");
 		}
 	}
@@ -67,8 +68,10 @@ TPileup::TPileup(TParameters & Parameters, TLog* Logfile, TRandomGenerator* Rand
 		header.push_back("numC");
 		header.push_back("numG");
 		header.push_back("numT");
-		header.push_back("numRef");
-		header.push_back("numNonRef");
+		if(_reference){
+			header.push_back("numRef");
+			header.push_back("numNonRef");
+		}
 		header.push_back("numAlleles");
 	}
 	if(_printMates){
@@ -113,17 +116,17 @@ void TPileup::_handleWindow(){
 		GenotypeLikelihoods::TSite& site = *it;
 
 		out << _window.chrName();
-		out << _window.position(pos).position();
+		out << _window.positionOnChr(pos);
 
 		//reference
-		if(_reference.hasReference()){
+		if(_reference){
 			out << site.refBase();
 		}
 
 		//depth
 		if(_printDepth){
 			out << site.depth();
-			if(_reference.hasReference()){
+			if(_reference){
 				out << site.refDepth();
 			}
 		}
@@ -138,7 +141,10 @@ void TPileup::_handleWindow(){
 		if(_printAlleles){
 			site.countAlleles(_alleleCounts);
 			out << _alleleCounts[A] << _alleleCounts[C] << _alleleCounts[G] << _alleleCounts[T];
-			out << _alleleCounts.numAlleles();
+			if(_reference){
+				out << _alleleCounts[site.refBase()] << _alleleCounts.size() - _alleleCounts[site.refBase()];
+			}
+			out << (int) _alleleCounts.numAlleles();
 		}
 
 		if(_printMates){

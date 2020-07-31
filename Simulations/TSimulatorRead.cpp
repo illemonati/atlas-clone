@@ -254,7 +254,7 @@ void TSimulatorSingleEndRead::simulate(Base* haplotype, const uint32_t refID, co
 	_simulateBasesQualities(_alignment, haplotype, pos, readLength, readIsContaminated, isReverse, _qualityTransform);
 
 	//write bam alignment
-	_alignment.update(refID, pos);
+	_alignment.move(refID, pos);
 	_alignment.setName(_getNextReadName());
 	bamFile.saveAlignment(_alignment);
 };
@@ -354,7 +354,7 @@ void TSimulatorPairedEndReads::simulate(Base* haplotype, const uint32_t refID, c
 	_simulateBasesQualities(_alignment, haplotype, pos, readLength, readIsContaminated, false, _qualityTransform);
 
 	//write bam alignment
-	_alignment.update(refID, pos);
+	_alignment.move(refID, pos);
 	_alignment.setName(_getNextReadName());
 	bamFile.saveAlignment(_alignment);
 
@@ -382,7 +382,7 @@ void TSimulatorPairedEndReads::simulate(Base* haplotype, const uint32_t refID, c
 	_simulateBasesQualities(*secondMate, haplotype, matePos, readLength, readIsContaminated, true, qualityTransform_secondMate);
 
 	//fill bam alignment
-	secondMate->update(refID, matePos);
+	secondMate->move(refID, matePos);
 	secondMate->setName(_alignment.name());
 
 	//write if it starts at same position as first, and keep for writing later otherwiese

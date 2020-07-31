@@ -55,7 +55,8 @@ public:
 	virtual ~TWindow_base();
 
 	//Allow to set chromosome name when jumping
-	virtual void move(const uint32_t RefID, const uint32_t From, const uint32_t To, const std::string ChrName);
+	//virtual void move(const uint32_t RefID, const uint32_t & From, const uint32_t & To, const std::string ChrName);
+	virtual void move(const BAM::TGenomePosition & From, const uint32_t & Length, const std::string ChrName);
 	virtual void move(const BAM::TGenomePosition & From, const BAM::TGenomePosition & To, const std::string ChrName);
 	virtual void move(const BAM::TGenomeWindow & Window, const std::string ChrName);
 	void setChrName(const std::string ChrName);
@@ -96,6 +97,7 @@ public:
 };
 
 std::ostream& operator<<(std::ostream& os, const TWindow_base & window);
+TOutputFile& operator<<(TOutputFile& out, const TWindow_base & window);
 
 //---------------------------------------------------------------
 //TWindow
@@ -125,10 +127,14 @@ public:
 	TWindow();
 	~TWindow();
 
-	//overlaod moving to take care of alignemnts
-	void move(const uint32_t RefID, const uint32_t Start, const uint32_t End, const std::string ChrName);
+	//Overload moving to take care of alignemnts
+	//void move(const uint32_t RefID, const uint32_t Start, const uint32_t End, const std::string ChrName);
+	void move(const BAM::TGenomePosition & From, const uint32_t & Length, const std::string ChrName);
+	void move(const BAM::TGenomePosition & From, const BAM::TGenomePosition & To, const std::string ChrName);
 	void move(const BAM::TGenomeWindow & Window, const std::string ChrName);
-
+	void operator+=(const uint32_t & length);
+	void operator-=(const uint32_t & length);
+	void resize(const uint32_t & newLength);
 
 	void review();
 	void printStacks();

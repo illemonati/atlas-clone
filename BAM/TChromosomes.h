@@ -40,17 +40,7 @@ public:
 	std::string topology; //TP field;
 	std::string uri; //UR field;
 
-	TChromosome(const uint32_t RefID, const std::string Name, const uint32_t Length){
-		name = Name;
-		length = Length;
-		ploidy = 2; //default: diploid
-		inUse = true;
-
-		//set TGenomePosition
-		chrStart.update(RefID, 0);
-		chrStart.update(RefID, length); //end is not included
-	};
-
+	TChromosome(const uint32_t RefID, const std::string Name, const uint32_t Length);
 	uint32_t refID() const { return chrStart.refID(); };
 
 	bool operator<(const TChromosome & other){

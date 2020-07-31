@@ -37,18 +37,18 @@ void TAlignment::clear(){
 // functions to fill alignment
 //--------------------------------------
 //function used by TBamFile to fill alignment
-void TAlignment::fill(const	std::string Name,
-		  const TSamFlags Flags,
-		  const uint32_t RefID,
-		  const uint32_t Position,
-		  const uint16_t MappingQuality,
-		  const TCigar Cigar,
-		  const uint32_t MateRefID,
-		  const uint32_t MatePosition,
-		  const int32_t InsertSize_TLEN,
-		  const std::string Sequence,
-		  const std::string Qualities,
-		  const uint16_t ReadGroupId){
+void TAlignment::fill(const	std::string & Name,
+		  const TSamFlags & Flags,
+		  const uint32_t & RefID,
+		  const uint32_t & Position,
+		  const uint16_t & MappingQuality,
+		  const TCigar & Cigar,
+		  const uint32_t & MateRefID,
+		  const uint32_t & MatePosition,
+		  const int32_t & InsertSize_TLEN,
+		  const std::string & Sequence,
+		  const std::string & Qualities,
+		  const uint16_t & ReadGroupId){
 
 	//empty alignment
 	clear();
@@ -56,10 +56,10 @@ void TAlignment::fill(const	std::string Name,
 	//copy data
 	_name = Name;
 	_flags = Flags;
-	update(RefID, Position);
+	move(RefID, Position);
 	_mappingQuality = MappingQuality;
 	_cigar = Cigar;
-	_mateGenomicPosition.update(MateRefID, MatePosition);
+	_mateGenomicPosition.move(MateRefID, MatePosition);
 	_insertSize_TLEN = InsertSize_TLEN;
 	_sequence = Sequence;
 	_qualities = Qualities;
@@ -96,7 +96,6 @@ void TAlignment::parse(const TGenotypeMap & genoMap, const TQualityMap & quality
 	_parsed = true;
 	_sequenceAndQualitiesChanged = false;
 };
-
 
 void TAlignment::parse(const TGenotypeMap & genoMap, const TQualityMap & qualityMap, const GenotypeLikelihoods::TSequencingErrorModels & seqErrorModels){
 	parse(genoMap, qualityMap);
@@ -432,8 +431,8 @@ void TAlignment::downsampleAlignment(const double fractionToKeep, TRandomGenerat
 //--------------------------------------------
 //functions to write / print alignment
 //--------------------------------------------
-void TAlignment::print(TGenotypeMap & genoMap, TQualityMap & qualMap){
-	std::cout << "NAME:\t" << _name << std::endl;
+void TAlignment::print(const TGenotypeMap & genoMap, const TQualityMap & qualMap){
+	std::cout << std::endl << "NAME:\t" << _name << std::endl;
 	std::cout << "LEN:\t" << _bases.size() << std::endl;
 
 	//print bases
