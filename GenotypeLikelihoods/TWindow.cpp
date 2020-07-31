@@ -378,6 +378,7 @@ void TWindow::_clearAllUsedAlignments(){
 		alignmentIt = usedAlignments.erase(alignmentIt);
 	}
 };
+
 /*
 void TWindow::move(const uint32_t RefID, const uint32_t Start, const uint32_t End, const std::string ChrName){
 	TWindow_base::move(RefID, Start, End, ChrName);
