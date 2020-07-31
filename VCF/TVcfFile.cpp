@@ -28,7 +28,15 @@ TVcfFile_base::TVcfFile_base(){
 	outputStreamOpend=false;
 };
 
-void TVcfFile_base::openStream(std::string & Filename, bool zipped){
+void TVcfFile_base::openStream(const std::string & filename){
+	if(filename.find(".gz") == std::string::npos){
+		openStream(filename, true);
+	} else {
+		openStream(filename, false);
+	}
+};
+
+void TVcfFile_base::openStream(const std::string & Filename, const bool & zipped){
 	//open stream
 	filename = Filename;
 	if(zipped) myStream = new gz::igzstream(filename.c_str());
@@ -49,16 +57,16 @@ void TVcfFile_base::openStream(std::string & Filename, bool zipped){
 
 	//parse header
 	parseHeaderVCF_4_0();
-}
+};
 
-void TVcfFile_base::openOutputStream(std::string & Filename, bool zipped){
+void TVcfFile_base::openOutputStream(const std::string & Filename, const bool & zipped){
 	//open stream
 	outputFilename = Filename;
 	if(zipped) myOutStream = new gz::ogzstream(outputFilename.c_str());
 	else myOutStream = new std::ofstream(outputFilename.c_str());
 	if(!(*myOutStream)) throw "Failed to open file '" + outputFilename + "'!";
 	outputStreamOpend = true;
-}
+};
 
 void TVcfFile_base::setOutStream(std::ostream & os){
 	myOutStream = &os;

@@ -149,12 +149,6 @@ private:
 	TPopulationLikehoodLocus storage;
 	TGlfConverter glfConverter;
 
-	//to measure run time
-	struct timeval start;
-
-	//data on loci
-	//long _numLoci;
-
 	void _openVCF(TParameters & Parameters);
 	void _closeVCF();
 	std::vector<std::string> _composeHeaderAlleleFreq(bool writeGenoFreq, bool doBayesian, TAlleleFreqEstimatorBayes* BHWEstimator);
