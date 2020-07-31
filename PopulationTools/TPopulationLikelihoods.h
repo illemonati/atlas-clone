@@ -77,7 +77,7 @@ class TPopulationLikelihoodReader{
 protected:
 	bool _initialized;
 	TLog* logfile;
-	TQualityMap phredToGTLMap;
+	BAM::TQualityMap phredToGTLMap;
 	VCF::TVcfFileSingleLine vcfFile;
 	bool vcfOpen;
 

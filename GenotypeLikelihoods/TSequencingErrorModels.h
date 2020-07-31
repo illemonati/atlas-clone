@@ -51,7 +51,7 @@ private:
 	void _writeParameters(TOutputFile & out, const std::string & readGroupName, const int & readGroup, bool isSecondMate) const;
 
 public:
-	TQualityMap qualMap; //make available to others
+	BAM::TQualityMap qualMap; //make available to others
 	TSequencingErrorModels();
 
 	//add model for recalibration: no dataTable provided

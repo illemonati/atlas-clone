@@ -66,7 +66,7 @@ public:
 	uint32_t depth() const;
 	uint32_t refDepth() const;
 	std::string getBases(const TGenotypeMap & genoMap) const;
-	std::string getQualities(const TQualityMap & qualMap) const;
+	std::string getQualities(const BAM::TQualityMap & qualMap) const;
 
 	void countAlleles(TBaseCounts & alleleCounts) const;
 	void countMates(int* mateCounts) const;

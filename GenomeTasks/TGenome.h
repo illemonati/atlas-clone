@@ -38,7 +38,7 @@ protected:
 	std::string _outputName;
 
 	TGenotypeMap _genoMap;
-	TQualityMap _qualMap;
+	BAM::TQualityMap _qualMap;
 
 	virtual void _openBamForWriting(const std::string filename, BAM::TOutputBamFile & outBam);
 
@@ -82,7 +82,7 @@ protected:
 
 	//filters
 	bool _applyQualityFilter;
-	TQualityFilter _qualityFilter;
+	BAM::TQualityFilter _qualityFilter;
 	bool _applyContextFilter;
 	std::map<BaseContext,int> _ignoreTheseContexts;
 

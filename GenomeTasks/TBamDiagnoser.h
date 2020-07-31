@@ -21,7 +21,7 @@ namespace GenomeTasks{
 
 class TBamDiagnoser:public TGenome_basic{
 private:
-	TQualityFilter qualFilter;
+	BAM::TQualityFilter qualFilter;
 	std::vector<std::string> _readGroupNames;
 
 	void _writeHistogram(const TCountDistributionVector & distVec, const std::string header, const std::string name);

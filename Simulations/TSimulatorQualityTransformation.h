@@ -95,7 +95,7 @@ class TSimulatorQualityTransformation{
 protected:
 	TSimulatorQualityDist* qualityDist;
 	TRandomGenerator* randomGenerator;
-	TQualityMap qualityMap;
+	BAM::TQualityMap qualityMap;
 
 	//tmp vars
 	int p;

@@ -39,7 +39,7 @@ std::string TSite::getBases(const TGenotypeMap & genoMap) const{
 	return s;
 };
 
-std::string TSite::getQualities(const TQualityMap & qualMap) const{
+std::string TSite::getQualities(const BAM::TQualityMap & qualMap) const{
 	if(empty()) return "-";
 	std::string s = "";
 	for(auto& b : _bases){

@@ -30,7 +30,7 @@ protected:
 
 	//lookup stuff
 	TGenotypeMap genoMap;
-	TQualityMap qualMap;
+	BAM::TQualityMap qualMap;
 	VCF::TVCFInfoFields VCFInfoFields;
 	VCF::TVCFGenotypeFields VCFGenotypeFields;
 	TRandomGenerator* randomGenerator;

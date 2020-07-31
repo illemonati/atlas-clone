@@ -155,7 +155,7 @@ void TSimulatorBamFile::open(const std::string Filename,
 							 const std::vector<TSimulatorChromosome> & Chromosomes,
 							 TLog* Logfile,
 							 TGenotypeMap & GenoMap,
-							 TQualityMap & QualMap){
+							 BAM::TQualityMap & QualMap){
 	Logfile->listFlush("Opening BAM file '" + Filename + "' ...");
 
 	if(_outBam.isOpen())
@@ -192,7 +192,7 @@ void TSimulatorBamFile::close(TLog* Logfile){
 	_outBam.close(Logfile);
 };
 
-TSimulatorBamFiles::TSimulatorBamFiles(uint32_t NumFiles, const std::string Outname, const std::vector<std::string> & ReadGroupNames, const std::vector<TSimulatorChromosome> & Chromosomes, TLog* Logfile, TGenotypeMap & GenoMap, TQualityMap & QualMap){
+TSimulatorBamFiles::TSimulatorBamFiles(uint32_t NumFiles, const std::string Outname, const std::vector<std::string> & ReadGroupNames, const std::vector<TSimulatorChromosome> & Chromosomes, TLog* Logfile, TGenotypeMap & GenoMap, BAM::TQualityMap & QualMap){
 	if(NumFiles < 1) throw "Can not open less than one BAM file!";
 	_logfile = Logfile;
 	_files.resize(NumFiles);

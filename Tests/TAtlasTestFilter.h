@@ -31,7 +31,7 @@ private:
 	bool filterSoftClips;
 
 
-	TQualityMap qualMap;
+	BAM::TQualityMap qualMap;
 	std::vector<std::string> shouldKeep;
 	std::vector<std::string> trueIgnoredReadMessages;
 

@@ -476,7 +476,7 @@ void TBamFilter::traverseBAM(){
 //-----------------------------------------
 // TAlignmentMergerType
 //-----------------------------------------
-uint16_t TAlignmentMerger::merge(BAM::TAlignment & alignment, BAM::TAlignment & mate, const TQualityMap & qualMap){
+uint16_t TAlignmentMerger::merge(BAM::TAlignment & alignment, BAM::TAlignment & mate, const BAM::TQualityMap & qualMap){
 	//NOTE: mate is earlier!
 	//deletions and insertions are kept as is. these positions are not compared
 
@@ -526,7 +526,7 @@ TAlignmentMerger_randomBase::TAlignmentMerger_randomBase(TRandomGenerator* Rando
 	_adaptQuality = AdaptQuality;
 };
 
-void TAlignmentMerger_randomBase::_mergeBasesCore(BAM::TBase & bestBase, BAM::TBase & worstBase, const TQualityMap & qualMap){
+void TAlignmentMerger_randomBase::_mergeBasesCore(BAM::TBase & bestBase, BAM::TBase & worstBase, const BAM::TQualityMap & qualMap){
 	if(_adaptQuality){
 		GenotypeLikelihoods::TBaseData likelihood(bestBase.base, qualMap.phredIntToError(bestBase.recalibratedQualityAsPhredInt));
 		likelihood *= GenotypeLikelihoods::TBaseData(worstBase.base, qualMap.phredIntToError(worstBase.recalibratedQualityAsPhredInt));
@@ -539,7 +539,7 @@ void TAlignmentMerger_randomBase::_mergeBasesCore(BAM::TBase & bestBase, BAM::TB
 	worstBase.base = N;
 };
 
-void TAlignmentMerger_randomBase::_mergeBases(BAM::TBase & alignment, BAM::TBase & mate, const TQualityMap & qualMap){
+void TAlignmentMerger_randomBase::_mergeBases(BAM::TBase & alignment, BAM::TBase & mate, const BAM::TQualityMap & qualMap){
 	if(_randomGenerator->pickOneOfTwo()){
 		_mergeBasesCore(mate, alignment, qualMap);
 	} else {
@@ -553,7 +553,7 @@ TAlignmentMerger_randomRead::TAlignmentMerger_randomRead(TRandomGenerator* Rando
 	_keepMate = false;
 };
 
-void TAlignmentMerger_randomRead::_mergeBases(BAM::TBase & alignment, BAM::TBase & mate, const TQualityMap & qualMap){
+void TAlignmentMerger_randomRead::_mergeBases(BAM::TBase & alignment, BAM::TBase & mate, const BAM::TQualityMap & qualMap){
 	if(_keepMate){
 		_mergeBasesCore(mate, alignment, qualMap);
 	} else {
@@ -561,7 +561,7 @@ void TAlignmentMerger_randomRead::_mergeBases(BAM::TBase & alignment, BAM::TBase
 	}
 };
 
-uint16_t TAlignmentMerger_randomRead::merge(BAM::TAlignment & alignment, BAM::TAlignment & mate, const TQualityMap & qualMap){
+uint16_t TAlignmentMerger_randomRead::merge(BAM::TAlignment & alignment, BAM::TAlignment & mate, const BAM::TQualityMap & qualMap){
 	_keepMate = _randomGenerator->pickOneOfTwo();
 	return TAlignmentMerger::merge(alignment, mate, qualMap);
 };
@@ -570,7 +570,7 @@ uint16_t TAlignmentMerger_randomRead::merge(BAM::TAlignment & alignment, BAM::TA
 //---------------------------------
 TAlignmentMerger_highestQuality::TAlignmentMerger_highestQuality(TRandomGenerator* RandomGenerator, const bool AdaptQuality):TAlignmentMerger_randomBase(RandomGenerator, AdaptQuality){};
 
-void TAlignmentMerger_highestQuality::_mergeBases(BAM::TBase & alignment, BAM::TBase & mate, const TQualityMap & qualMap){
+void TAlignmentMerger_highestQuality::_mergeBases(BAM::TBase & alignment, BAM::TBase & mate, const BAM::TQualityMap & qualMap){
 	if(mate.recalibratedQualityAsPhredInt > alignment.recalibratedQualityAsPhredInt){
 		_mergeBasesCore(mate, alignment, qualMap);
 	} else if(alignment.recalibratedQualityAsPhredInt > mate.recalibratedQualityAsPhredInt){

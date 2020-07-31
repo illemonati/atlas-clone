@@ -46,7 +46,7 @@ private:
 	int chrLength;
 	std::vector<int> depths;
 	TGenotypeMap genoMap;
-	TQualityMap qualMap;
+	BAM::TQualityMap qualMap;
 	std::string filenameTag;
 	std::string bamFileName;
 	std::string fastaName;
@@ -70,7 +70,7 @@ public:
 class TAtlasTest_allelicDepth:public TAtlasTest{
 private:
 	int phredError;
-	TQualityMap qualMap;
+	BAM::TQualityMap qualMap;
 	std::string filenameTag;
 	std::string bamFileName;
 	std::string readGroupName;

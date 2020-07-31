@@ -197,7 +197,7 @@ public:
 class TRecalibrationEMQualityTransformationMap:public TRecalibrationEMTransformationMap{
 public:
 	TRecalibrationEMQualityTransformationMap(){
-		TQualityMap qualiMap;
+		BAM::TQualityMap qualiMap;
 
 		initialize(qualiMap.minPhredInt);
 
