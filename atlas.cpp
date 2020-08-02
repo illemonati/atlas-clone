@@ -8,7 +8,7 @@
 #include "TMain.h"
 
 //BAM
-#include "TBamFilter.h"
+#include "GenomeTasks/TBamFilter.h"
 #include "TReadGroupMerger.h"
 #include "TPileup.h"
 #include "TBamDiagnoser.h"

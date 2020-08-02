@@ -4,8 +4,6 @@
 
 #include "TVcfConverter.h"
 
-#include <TPopulationLikelihoods.h>
-
 namespace VCF{
 
 //------------------------------------------
