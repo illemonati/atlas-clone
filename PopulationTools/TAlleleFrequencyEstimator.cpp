@@ -549,7 +549,7 @@ void TAlleleFreqEstimator::_writeEstimatesOnePop(TOutputFile & out, TGenotypeFre
 
 void TAlleleFreqEstimator::_openVCF(TParameters & Parameters){
 	if(vcfRead)
-			throw "VCF already read!";
+		throw "VCF already read!";
 
 	//read samples
 	if(Parameters.parameterExists("samples"))
@@ -572,7 +572,6 @@ void TAlleleFreqEstimator::_openVCF(TParameters & Parameters){
 		samples.readSamplesFromVCFNames(reader.getSampleVCFNames());
 
 	//initialize variables for vcf-file
-	gettimeofday(&start, NULL);
 	storage.resize(samples.numSamples());
 };
 

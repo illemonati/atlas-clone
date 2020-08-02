@@ -56,8 +56,10 @@ public:
 			throw "Can not automatically write VCF: no output stream has been opened!";
 		automaticallyWriteVcf = true;
 	};
-	void openStream(std::string & filename, bool zipped);
-	void openOutputStream(std::string & filename, bool zipped);
+
+	void openStream(const std::string & filename);
+	void openStream(const std::string & filename, const bool & zipped);
+	void openOutputStream(const std::string & filename, const bool & zipped);
 	void setOutStream(std::ostream & is);
 
 	//which parsers to use?

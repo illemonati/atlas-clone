@@ -411,15 +411,8 @@ void TPopulationLikelihoodReader::openVCF(std::string vcfFilename){
 	}
 
 	//open input stream
-	bool isZipped = false;
-	if(vcfFilename.find(".gz") == std::string::npos){
-		logfile->startIndent("Reading vcf from file '" + vcfFilename + "'.");
-	} else {
-		logfile->startIndent("Reading vcf from gzipped file '" + vcfFilename + "'.");
-		isZipped = true;
-	}
-
-	vcfFile.openStream(vcfFilename, isZipped);
+	logfile->startIndent("Reading vcf from file '" + vcfFilename + "'.");
+	vcfFile.openStream(vcfFilename);
 
 	//enable parsers
 	vcfFile.enablePositionParsing();
