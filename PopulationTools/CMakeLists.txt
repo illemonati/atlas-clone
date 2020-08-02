@@ -8,6 +8,7 @@ add_library(${PROJECT_NAME}
         TAlleleFrequencyEstimator.cpp TAlleleFrequencyEstimator.h
         TDistanceEstimator.cpp TDistanceEstimator.h
         TGenotypeFrequencies.cpp TGenotypeFrequencies.h
+        THardyWeinbergTest.cpp THardyWeinbergTest.h
         TInbreedingEstimator.cpp TInbreedingEstimator.h
         TMajorMinor.cpp TMajorMinor.h
         TPolymorhicWindowIdentifier.cpp TPolymorhicWindowIdentifier.h
