@@ -17,28 +17,34 @@
 namespace PopulationTools{
 
 
-
 //------------------------------------------------
-//THWHetProbDB
+//THWHetProb
 // Stores the probabilities P(N_AB = n|N, n_A, n_B),
 // i.e the probabilities of observing n hets among N individuals if the allele frequencies are n_A + n_B = N
 //------------------------------------------------
 class THWHetProb{
 private:
-	uint32_t _maxNumHet;
-
-	bool _odd; //indicates whether the numbe ro fpossible hets are even or odd
 	std::vector<double> _probs;
+	uint32_t _maxNumHetPlusOne;
+	bool _onlyOdd, _onlyEven;
 
 public:
+	THWHetProb();
 	THWHetProb(const uint32_t & N, const uint32_t & n_A);
 
-	const uint32_t& maxNumHet() const { return _maxNumHet; };
-	const bool& odd() const { return _odd; };
+	void clear();
+	THWHetProb& operator=(const THWHetProb & other);
+	void extend(const THWHetProb & other);
+	bool onlyOdd() const { return _onlyOdd; };
+	bool onlyEven() const { return _onlyEven; };
+	uint32_t maxNumHet() const { return _maxNumHetPlusOne - 1; };
 	const double& operator[](const uint32_t & i) const { return _probs[i]; };
+	double sum(const uint32_t & upTo);
 };
 
-
+//------------------------------------------------
+//THWHetProbDB
+//------------------------------------------------
 class THWHetProbVector{
 private:
 	uint32_t _N;
@@ -57,7 +63,6 @@ public:
 	const THWHetProb& getProbs(const uint32_t & N, const uint32_t & n_A);
 };
 
-
 //------------------------------------------------
 //THWGenotypes
 //------------------------------------------------
@@ -70,24 +75,9 @@ public:
 
 	void clear();
 	void add(const uint8_t & genotype);
-	uint32_t N();
-	uint32_t n_A();
-};
-
-//------------------------------------------------
-//THWProbsMultiPop
-//------------------------------------------------
-class THWProbsMultiPop{
-private:
-	std::vector<double> _probs;
-	uint32_t _maxNumHet;
-	uint32_t _curMaxNumHetPlusOne;
-
-public:
-	THWProbsMultiPop();
-
-	void initialize(const uint32_t & maxNumHet, const THWHetProb & probs);
-	void extend(const THWHetProb & probs);
+	uint32_t N() const;
+	uint32_t n_A() const;
+	uint32_t n_AB() const;
 };
 
 //------------------------------------------------
@@ -104,8 +94,8 @@ public:
 	void clear();
 	void resize(const uint16_t & numPops);
 	void add(const uint16_t & pop, const uint8_t & genotyp);
-
-	void runTest();
+	void addToHeader(std::vector<std::string> & header);
+	void runTest(TOutputFile & out);
 };
 
 //------------------------------------------------

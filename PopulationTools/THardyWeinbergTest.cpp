@@ -11,15 +11,20 @@ namespace PopulationTools{
 
 
 //------------------------------------------------
-//THWHetProbDB
+//THWHetProb
 //------------------------------------------------
+THWHetProb::THWHetProb(){
+	clear();
+};
+
 THWHetProb::THWHetProb(const uint32_t & N, const uint32_t & n_A){
 	//max num het
-	_maxNumHet = n_A;
-	if(_maxNumHet > N / 2.0){
-		_maxNumHet = 2*N - n_A;
+	_maxNumHetPlusOne = n_A + 1;
+	if(_maxNumHetPlusOne > N / 2.0){
+		_maxNumHetPlusOne = 2*N - n_A + 1;
 	}
-	_odd = n_A % 2;
+	_onlyOdd = n_A % 2;
+	_onlyEven = !_onlyOdd;
 
 	//tmp variables
 	uint32_t n_B = 2*N - n_A;
@@ -27,9 +32,9 @@ THWHetProb::THWHetProb(const uint32_t & N, const uint32_t & n_A){
 	double logTwoNFactorial = TFactorial::factorialLog(2*N);
 
 	//fill probabilities
-	_probs.resize(_maxNumHet + 1);
-	bool calcProb = !_odd;
-	for(uint32_t n_AB = 0; n_AB<=_maxNumHet; ++n_AB){
+	_probs.resize(_maxNumHetPlusOne);
+	bool calcProb = _onlyEven;
+	for(uint32_t n_AB = 0; n_AB<_maxNumHetPlusOne; ++n_AB){
 		if(calcProb){
 			uint32_t n_AA = (n_A - n_AB) / 2;
 			uint32_t n_BB = N - n_AB - n_AA;
@@ -43,6 +48,115 @@ THWHetProb::THWHetProb(const uint32_t & N, const uint32_t & n_A){
 		calcProb = !calcProb;
 	}
 };
+
+void THWHetProb::clear(){
+	_maxNumHetPlusOne = 0;
+	_onlyOdd = false;
+	_onlyEven = false;
+};
+
+void THWHetProb::extend(const THWHetProb & other){
+	uint32_t otherMaxNumHetPlusOne = other.maxNumHet() + 1;
+
+	//create new storage
+	uint32_t newMaxHetPlusOne = _maxNumHetPlusOne + other.maxNumHet();
+	std::vector<double> newProbs(newMaxHetPlusOne);
+	std::fill(newProbs.begin(), newProbs.end(), 0.0);
+
+	//combine: depends on odd even in both
+	if(_onlyOdd){
+		if(other.onlyOdd()){
+			for(uint32_t i = 1; i<otherMaxNumHetPlusOne; i+=2){
+				for(uint32_t j = 1; j<_maxNumHetPlusOne; j+=2){
+					newProbs[j+i] += _probs[j] * other[i];
+				}
+			}
+		} else if(other.onlyEven()){
+			for(uint32_t i = 0; i<otherMaxNumHetPlusOne; i+=2){
+				for(uint32_t j = 1; j<_maxNumHetPlusOne; j+=2){
+					newProbs[j+i] += _probs[j] * other[i];
+				}
+			}
+		} else {
+			for(uint32_t i = 0; i<otherMaxNumHetPlusOne; ++i){
+				for(uint32_t j = 1; j<_maxNumHetPlusOne; j+=2){
+					newProbs[j+i] += _probs[j] * other[i];
+				}
+			}
+		}
+	} else if(_onlyEven){
+		if(other.onlyOdd()){
+			for(uint32_t i = 1; i<otherMaxNumHetPlusOne; i+=2){
+				for(uint32_t j = 0; j<_maxNumHetPlusOne; j+=2){
+					newProbs[j+i] += _probs[j] * other[i];
+				}
+			}
+		} else if(other.onlyEven()){
+			for(uint32_t i = 0; i<otherMaxNumHetPlusOne; i+=2){
+				for(uint32_t j = 0; j<_maxNumHetPlusOne; j+=2){
+					newProbs[j+i] += _probs[j] * other[i];
+				}
+			}
+		} else {
+			for(uint32_t i = 0; i<otherMaxNumHetPlusOne; ++i){
+				for(uint32_t j = 0; j<_maxNumHetPlusOne; j+=2){
+					newProbs[j+i] += _probs[j] * other[i];
+				}
+			}
+		}
+	} else {
+		if(other.onlyOdd()){
+			for(uint32_t i = 1; i<otherMaxNumHetPlusOne; i+=2){
+				for(uint32_t j = 0; j<_maxNumHetPlusOne; ++j){
+					newProbs[j+i] += _probs[j] * other[i];
+				}
+			}
+		} else if(other.onlyEven()){
+			for(uint32_t i = 0; i<otherMaxNumHetPlusOne; i+=2){
+				for(uint32_t j = 0; j<_maxNumHetPlusOne; ++j){
+					newProbs[j+i] += _probs[j] * other[i];
+				}
+			}
+		} else {
+			for(uint32_t i = 0; i<otherMaxNumHetPlusOne; ++i){
+				for(uint32_t j = 0; j<_maxNumHetPlusOne; ++j){
+					newProbs[j+i] += _probs[j] * other[i];
+				}
+			}
+		}
+	}
+
+	//update storage
+	std::swap(_probs, newProbs);
+	_maxNumHetPlusOne = newMaxHetPlusOne;
+	_onlyOdd = _onlyOdd && other.onlyOdd();
+	_onlyEven = _onlyEven && other.onlyEven();
+
+	//probabilities should sum to one. Make sure they do.
+	double sum = 0.0;
+	for(auto& i : _probs){
+		sum += i;
+	}
+
+	std::cout << "SUM = " << sum << std::endl;
+
+	for(auto& i : _probs){
+		i /= sum;
+	}
+};
+
+double THWHetProb::sum(const uint32_t & upTo){
+	double sum = 0.0;
+	for(uint32_t i = 0; i<=upTo; ++i){
+		sum += _probs[i];
+	}
+	return sum;
+};
+
+//------------------------------------------------
+//THWHetProbDB
+//------------------------------------------------
+
 
 THWHetProbVector::THWHetProbVector(const uint32_t & N){
 	_N = N;
@@ -80,11 +194,11 @@ void THWGenotypes::add(const uint8_t & genotype){
 	++_genoCounts[genotype];
 };
 
-uint32_t THWGenotypes::N(){
+uint32_t THWGenotypes::N() const{
 	return _genoCounts[0] + _genoCounts[1] + _genoCounts[2];
 };
 
-uint32_t THWGenotypes::n_A(){
+uint32_t THWGenotypes::n_A() const{
 	if(_genoCounts[0] < _genoCounts[2]){
 		return 2*_genoCounts[0] + _genoCounts[1];
 	} else {
@@ -92,34 +206,8 @@ uint32_t THWGenotypes::n_A(){
 	}
 };
 
-
-//------------------------------------------------
-//THWProbsMultiPop
-//------------------------------------------------
-THWProbsMultiPop::THWProbsMultiPop(){
-	_maxNumHet = 0;
-	_curMaxNumHetPlusOne = 0;
-};
-
-void THWProbsMultiPop::initialize(const uint32_t & maxNumHet, const THWHetProb & probs){
-	_maxNumHet = maxNumHet;
-	_probs.resize(_maxNumHet);
-	std::fill(_probs.begin(), _probs.end(), 0.0);
-
-	//copy from probs
-	for(uint32_t i = probs.odd(); i<probs.maxNumHet(); i+=2){
-		_probs[i] = probs[i];
-	};
-	_curMaxNumHetPlusOne = probs.maxNumHet() + 1;
-};
-
-void THWProbsMultiPop::extend(const THWHetProb & probs){
-	//calculate P(N_AB = n | N_1, N_2, ..., n_A1.n_A2, ...) given these probs for one population less
-	for(uint32_t i = probs.odd(); i<probs.maxNumHet(); i+=2){
-		for(uint32_t j = 0; j<_curMaxNumHetPlusOne; ++i){
-
-		}
-	}
+uint32_t THWGenotypes::n_AB() const{
+	return _genoCounts[1];
 };
 
 //------------------------------------------------
@@ -143,7 +231,14 @@ void THWPopulations::add(const uint16_t & pop, const uint8_t & genotyp){
 	_populations[pop].add(genotyp);
 };
 
-void THWPopulations::runTest(){
+void THWPopulations::addToHeader(std::vector<std::string> & header){
+	header.push_back("N");
+	header.push_back("n_AB");
+	header.push_back("pLess");
+	header.push_back("pMore");
+};
+
+void THWPopulations::runTest(TOutputFile & out){
 	// do dynamic programming to get probabilities
 
 	//get max num het across populations
@@ -152,15 +247,31 @@ void THWPopulations::runTest(){
 		maxNumHet += p.n_A();
 	}
 
-	//prepare storage
-	std::vector<double> probs(maxNumHet+1, 0.0);
-
 	//loop over populations to calculate P(N_AB = n | N_1, N_2, ..., n_A1.n_A2, ...) using dynamic programming
-	//initialize with first population
-	auto p = _populations.begin();
-	const THWHetProb& popProbs = _probDB.getProbs(p->N(), p->n_A());
+	//first do those with even and odd num hets separately
+	THWHetProb probs, probsEven;
+	uint32_t obsNumHet = 0;
+	uint32_t obsN = 0;
 
-}
+	//loop over populations
+	for(auto& p : _populations){
+		obsNumHet += p.n_AB();
+		obsN += p.N();
+		const THWHetProb& popProbs = _probDB.getProbs(p.N(), p.n_A());
+		if(popProbs.onlyOdd()){
+			probs.extend(popProbs);
+		} else {
+			probsEven.extend(popProbs);
+		}
+	}
+
+	//combine even and odd
+	probs.extend(probsEven);
+
+	//calculate p-values
+	double pLess = probs.sum(obsNumHet);
+	out << obsN << obsNumHet << pLess << 1.0 - pLess + probs[obsNumHet];
+};
 
 //------------------------------------------------
 //THardyWeinbergTest
@@ -195,6 +306,11 @@ THardyWeinbergTest::THardyWeinbergTest(TParameters & Parameters, TLog* logfile, 
 };
 
 void THardyWeinbergTest::testForHardyWeinberg(){
+	//open output file
+	std::vector<std::string> header = {"chr", "position"};
+	_populations.addToHeader(header);
+	TOutputFile out;
+
 	//traverse VCF
 	while(_vcfFile.next()){
 		//reset counts
