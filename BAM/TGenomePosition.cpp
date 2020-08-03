@@ -143,13 +143,13 @@ std::ostream& operator<<(std::ostream& os, const TGenomePosition & position){
 //-----------------------------------------------------
 // TGenomeWindow
 //-----------------------------------------------------
-TGenomeWindow::TGenomeWindow(const uint32_t RefID, const uint32_t Start, const uint32_t End){
-	move(RefID, Start, End);
+TGenomeWindow::TGenomeWindow(const uint32_t& RefID, const uint32_t& From, const uint32_t& To){
+	move(RefID, From, To);
 };
 
 //inserts a window of length one
-TGenomeWindow::TGenomeWindow(const uint32_t RefID, const uint32_t Start){
-	move(TGenomePosition(RefID, Start), 1);
+TGenomeWindow::TGenomeWindow(const uint32_t& RefID, const uint32_t& From){
+	move(TGenomePosition(RefID, From), 1);
 };
 
 TGenomeWindow::TGenomeWindow(const TGenomePosition & position){
@@ -162,13 +162,13 @@ TGenomeWindow::TGenomeWindow(const TGenomePosition & From, const TGenomePosition
 };
 
 void TGenomeWindow::clear(){
-	_from.move(0,0);
+	_from.clear();
 	_to = _from;
 };
 
-void TGenomeWindow::move(const uint32_t RefID, const uint32_t From, const uint32_t To){
-	if(From <= To){
-		throw std::runtime_error("TGenomeWindow(const uint32_t RefID, const uint32_t Start, const uint32_t End): End <= Start!");
+void TGenomeWindow::move(const uint32_t& RefID, const uint32_t& From, const uint32_t& To){
+	if(To <= From){
+		throw std::runtime_error("TGenomeWindow(const uint32_t RefID, const uint32_t Start, const uint32_t End): To <= From!");
 	}
 	_from.move(RefID, From);
 	_to.move(RefID, To);
@@ -195,11 +195,11 @@ void TGenomeWindow::move(const TGenomeWindow & other){
 	_to = other.to();
 };
 
-TGenomeWindow TGenomeWindow::operator+(const uint32_t length) const{
+TGenomeWindow TGenomeWindow::operator+(const uint32_t& length) const{
 	return TGenomeWindow(_from + length, _to + length);
 };
 
-TGenomeWindow TGenomeWindow::operator-(const uint32_t length) const{
+TGenomeWindow TGenomeWindow::operator-(const uint32_t& length) const{
 	if(length > _from.position()){
 		if(length > _to.position()){
 			return TGenomeWindow(_from.refID(), 0, 1);
@@ -212,11 +212,12 @@ TGenomeWindow TGenomeWindow::operator-(const uint32_t length) const{
 };
 
 bool TGenomeWindow::within(const TGenomePosition & other) const{
-	//checks if other window is entirely within
+	//checks if other position is entirely within
 	return _from <= other && _to >= other;
 };
 
 bool TGenomeWindow::within(const TGenomeWindow & other) const{
+    // TODO: name misleading -> window1.within(window2) -> I read this as "is window1 within window2"? But it means "is window2 within window1"?
 	//checks if other window is entirely within
 	return _from.refID() == other.refID() && _from <= other.from() && _to >= other.to();
 };
@@ -227,7 +228,7 @@ bool TGenomeWindow::overlaps(const TGenomeWindow & other) const{
 		return false;
 	}
 	//on same chr: do they overlap?
-	return (_from <= other.to() && _from > other.to())
+	return (_from <= other.to() && _from > other.from())
 		|| (other.from() <= _to && other.from() > _from)
 		|| within(other)
 		|| other.within(*this);
@@ -281,6 +282,7 @@ void TGenomeWindow::resize(const uint32_t & newLength){
 
 bool TGenomeWindow::operator<(const TGenomePosition & pos) const{
 	//checks if position is after window end
+	// TODO: ok that here < vs <=? Shouldn't operator be <= too?
 	return _to <= pos;
 };
 
@@ -290,12 +292,12 @@ bool TGenomeWindow::operator>(const TGenomePosition & pos) const{
 };
 
 bool TGenomeWindow::operator<(const TGenomeWindow & other) const{
-	//checks if start is < other.start
+	//checks if from is < other.from
 	return _from < other.from();
 };
 
 bool TGenomeWindow::operator>(const TGenomeWindow & other) const{
-	//chesk if start is > other.start
+	//checks if from is > other.from
 	return _from > other.from();
 };
 
