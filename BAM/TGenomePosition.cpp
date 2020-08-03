@@ -240,17 +240,8 @@ bool TGenomeWindow::overlapsOrExtends(const TGenomeWindow & other) const{
 		|| (other.from() <= _from && other.to() >= _from);
 };
 
-/*
-TGenomeWindow TGenomeWindow::merge(const TGenomeWindow & other){
-	if(!overlaps(other)){
-		throw std::runtime_error("TGenomeWindow merge(const TGenomeWindow other): windows do not overlap!");
-	}
-	return TGenomeWindow(_refID, std::min(_from, other._from), std::max(_to, other._to));
-};
-*/
-
 bool TGenomeWindow::mergeWith(const TGenomeWindow & other){
-	if(!overlaps(other)){
+	if(!overlapsOrExtends(other)){
 		return false;
 	}
 
@@ -307,7 +298,7 @@ bool TGenomeWindow::operator>(const TGenomeWindow & other) const{
 };
 
 TGenomeWindow merge(const TGenomeWindow & first, const TGenomeWindow & second){
-	if(!first.overlaps(second)){
+	if(!first.overlapsOrExtends(second)){
 		throw std::runtime_error("TGenomeWindow merge(const TGenomeWindow other): windows do not overlap!");
 	}
 	return TGenomeWindow(std::min(first.from(), second.from()), std::max(first.to(), second.to()));
