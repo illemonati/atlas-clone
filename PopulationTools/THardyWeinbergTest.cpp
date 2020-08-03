@@ -204,7 +204,9 @@ void THWGenotypes::clear(){
 };
 
 void THWGenotypes::add(const uint8_t & genotype){
-	++_genoCounts[genotype];
+	if(genotype < 3){
+		++_genoCounts[genotype];
+	}
 };
 
 uint32_t THWGenotypes::N() const{
@@ -344,39 +346,46 @@ void THardyWeinbergTest::testForHardyWeinberg(){
 	//progress
 	TTimer timer;
 	uint64_t lineCounter = 0;
+	uint64_t numFiltered = 0;
 
 	//traverse VCF
 	_logfile->startIndent("Traversing VCF file:");
 	while(_vcfFile.next()){
 		++lineCounter;
 
-		//reset counts
-		_populations.clear();
+		//exclude multiallelic
+		if(_vcfFile.getNumAlleles() == 2){
+			//reset counts
+			_populations.clear();
 
-		//write position
-		out << _vcfFile.chr() << _vcfFile.position();
+			//write position
+			out << _vcfFile.chr() << _vcfFile.position();
 
-		//add data at current line
-		for(uint32_t s = 0; s<_samples.numSamples(); ++s){
-			uint32_t vcfIndex = _samples.VCF_order(s);
-			if(!_vcfFile.sampleIsMissing(vcfIndex)){
-				_populations.add(_samples.popIndex(s), _vcfFile.sampleGenotype(vcfIndex));
+			//add data at current line
+			for(uint32_t s = 0; s<_samples.numSamples(); ++s){
+				uint32_t vcfIndex = _samples.VCF_order(s);
+				if(!_vcfFile.sampleIsMissing(vcfIndex)){
+					_populations.add(_samples.popIndex(s), _vcfFile.sampleGenotype(vcfIndex));
+				}
 			}
-		}
 
-		//perform test
-		_populations.runTest(out);
+			//perform test
+			_populations.runTest(out);
 
-		//progress / limit lines
-		if(lineCounter % 10000 == 0){
-			_logfile->list("Parsed " + toString(lineCounter) + " lines in " + timer.formattedTime());
-		}
-		if(_limitLines && lineCounter == _maxNumLines){
-			break;
+			//progress / limit lines
+			if(lineCounter % 10000 == 0){
+				_logfile->list("Parsed " + toString(lineCounter) + " lines in " + timer.formattedTime());
+			}
+			if(_limitLines && lineCounter == _maxNumLines){
+				break;
+			}
+		} else {
+			++numFiltered;
 		}
 	}
 	_logfile->list("Reached end of VCf file.");
 	_logfile->conclude("Parsed " + toString(lineCounter) + " lines in " + timer.formattedTime());
+	_logfile->conclude("Ignored ", numFiltered, " multi allelic sites.");
 	_logfile->endIndent();
 
 	//close file
