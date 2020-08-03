@@ -29,9 +29,14 @@ TVcfFile_base::TVcfFile_base(){
 };
 
 void TVcfFile_base::openStream(const std::string & filename){
-	if(filename.find("vcf.gz") == std::string::npos){
+
+	std::cout << "LOOKING AT FILE '" << filename << "' : " << std::flush;
+
+	if(readAfterLast(filename, '.') == "gz"){
+		std::cout << "IS ZIPPED!!!" << std::endl;
 		openStream(filename, false);
 	} else {
+		std::cout << "NOT ZIPPED!!!" << std::endl;
 		openStream(filename, true);
 	}
 };
