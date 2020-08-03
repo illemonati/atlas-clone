@@ -29,7 +29,7 @@ TVcfFile_base::TVcfFile_base(){
 };
 
 void TVcfFile_base::openStream(const std::string & filename){
-	if(filename.find(".gz") == std::string::npos){
+	if(filename.find("vcf.gz") == std::string::npos){
 		openStream(filename, false);
 	} else {
 		openStream(filename, true);
