@@ -66,7 +66,7 @@ std::ostream& operator<<(std::ostream& os, const TGenomePosition & position);
 //-----------------------------------------------------
 class TGenomeWindow{
 protected:
-	TGenomePosition _from, _to;
+	TGenomePosition _from, _to; //NOTE: position _to is NOT included. Window is [from, to).
 
 public:
 	TGenomeWindow(){ clear(); };
@@ -97,9 +97,9 @@ public:
 
 	bool sameChr(const TGenomeWindow & other) const{ return refID() == other.refID(); };
 	bool within(const TGenomePosition & other) const;
-	bool within(const TGenomeWindow & other) const;
+	bool contains(const TGenomeWindow & other) const;
 	bool overlaps(const TGenomeWindow & other) const;
-	//TGenomeWindow merge(const TGenomeWindow & other);
+	bool overlapsOrExtends(const TGenomeWindow & other) const;
 	bool mergeWith(const TGenomeWindow & other);
 
 	//move / expand
@@ -113,6 +113,7 @@ public:
 	bool operator>(const TGenomeWindow & other) const;
 };
 
+TGenomeWindow merge(const TGenomeWindow & first, const TGenomeWindow & second);
 std::ostream& operator<<(std::ostream& os, const TGenomeWindow & window);
 
 }; //to namespace

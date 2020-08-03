@@ -524,52 +524,52 @@ TEST(TGenomeWindowTest, sameChr){
     EXPECT_FALSE(window1.sameChr(window2));
 }
 
-TEST(TGenomeWindowTest, within_position){
+TEST(TGenomeWindowTest, contains_position){
     BAM::TGenomeWindow window(1, 10, 20);
 
     // these are ok
     BAM::TGenomePosition pos(1, 15);
-    EXPECT_TRUE(window.within(pos));
+    EXPECT_TRUE(window.contains(pos));
     pos.move(1, 10);
-    EXPECT_TRUE(window.within(pos));
+    EXPECT_TRUE(window.contains(pos));
     pos.move(1, 20);
-    EXPECT_TRUE(window.within(pos));
+    EXPECT_TRUE(window.contains(pos));
 
     // position is outside
     pos.move(1, 9);
-    EXPECT_FALSE(window.within(pos));
+    EXPECT_FALSE(window.contains(pos));
     pos.move(1, 21);
-    EXPECT_FALSE(window.within(pos));
+    EXPECT_FALSE(window.contains(pos));
 
     // chromosome is different
     pos.move(2, 15);
-    EXPECT_FALSE(window.within(pos));
+    EXPECT_FALSE(window.contains(pos));
 }
 
-TEST(TGenomeWindowTest, within_window){
+TEST(TGenomeWindowTest, cotains_window){
     BAM::TGenomeWindow window1(1, 10, 20);
 
     // these are ok
     BAM::TGenomeWindow window2(1, 11, 19);
-    EXPECT_TRUE(window1.within(window2));
+    EXPECT_TRUE(window1.contains(window2));
     window2.move(1, 10, 19);
-    EXPECT_TRUE(window1.within(window2));
+    EXPECT_TRUE(window1.contains(window2));
     window2.move(1, 11, 20);
-    EXPECT_TRUE(window1.within(window2));
+    EXPECT_TRUE(window1.contains(window2));
     window2.move(1, 10, 20);
-    EXPECT_TRUE(window1.within(window2));
+    EXPECT_TRUE(window1.contains(window2));
 
     // positions are outside
     window2.move(1, 9, 19);
-    EXPECT_FALSE(window1.within(window2));
+    EXPECT_FALSE(window1.contains(window2));
     window2.move(1, 10, 21);
-    EXPECT_FALSE(window1.within(window2));
+    EXPECT_FALSE(window1.contains(window2));
     window2.move(1, 9, 21);
-    EXPECT_FALSE(window1.within(window2));
+    EXPECT_FALSE(window1.contains(window2));
 
     // chromosome is different
     window2.move(2, 11, 19);
-    EXPECT_FALSE(window1.within(window2));
+    EXPECT_FALSE(window1.contains(window2));
 }
 
 TEST(TGenomeWindowTest, overlaps){

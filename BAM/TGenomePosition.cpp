@@ -216,9 +216,8 @@ bool TGenomeWindow::within(const TGenomePosition & other) const{
 	return _from <= other && _to >= other;
 };
 
-bool TGenomeWindow::within(const TGenomeWindow & other) const{
-    // TODO: name misleading -> window1.within(window2) -> I read this as "is window1 within window2"? But it means "is window2 within window1"?
-	//checks if other window is entirely within
+bool TGenomeWindow::contains(const TGenomeWindow & other) const{
+    //checks if other window is entirely within
 	return _from.refID() == other.refID() && _from <= other.from() && _to >= other.to();
 };
 
@@ -228,10 +227,17 @@ bool TGenomeWindow::overlaps(const TGenomeWindow & other) const{
 		return false;
 	}
 	//on same chr: do they overlap?
-	return (_from <= other.to() && _from > other.from())
-		|| (other.from() <= _to && other.from() > _from)
-		|| within(other)
-		|| other.within(*this);
+	return (_from <= other.from() && _to > other.from()) || (other.from() <= _from && other.to() > _from);
+};
+
+bool TGenomeWindow::overlapsOrExtends(const TGenomeWindow & other) const{
+	//check if other window overlaps, or are consecutive (no gap)
+	if(_from.refID() != other.refID()){
+		return false;
+	}
+	//on same chr: do they overlap?
+	return (_from <= other.from() && _to >= other.from())
+		|| (other.from() <= _from && other.to() >= _from);
 };
 
 /*
@@ -282,7 +288,6 @@ void TGenomeWindow::resize(const uint32_t & newLength){
 
 bool TGenomeWindow::operator<(const TGenomePosition & pos) const{
 	//checks if position is after window end
-	// TODO: ok that here < vs <=? Shouldn't operator be <= too?
 	return _to <= pos;
 };
 
@@ -299,6 +304,13 @@ bool TGenomeWindow::operator<(const TGenomeWindow & other) const{
 bool TGenomeWindow::operator>(const TGenomeWindow & other) const{
 	//checks if from is > other.from
 	return _from > other.from();
+};
+
+TGenomeWindow merge(const TGenomeWindow & first, const TGenomeWindow & second){
+	if(!first.overlaps(second)){
+		throw std::runtime_error("TGenomeWindow merge(const TGenomeWindow other): windows do not overlap!");
+	}
+	return TGenomeWindow(std::min(first.from(), second.from()), std::max(first.to(), second.to()));
 };
 
 std::ostream& operator<<(std::ostream& os, const TGenomeWindow & window){

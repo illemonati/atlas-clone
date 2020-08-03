@@ -41,7 +41,7 @@ void TFastaBuffer::initialize(std::string fastaFile, TGenotypeMap* GenoMap, cons
 
 void TFastaBuffer::fill(const TGenomeWindow & Window, std::string & ref) const{
 	//move buffer, if necessary
-	if(!_coordinates.within(Window)){
+	if(!_coordinates.contains(Window)){
 		//adjust buffer size?
 		if(Window.size() > _bufferSize){
 			_bufferSize = Window.size();
