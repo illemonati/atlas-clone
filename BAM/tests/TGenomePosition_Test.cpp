@@ -532,13 +532,11 @@ TEST(TGenomeWindowTest, contains_position){
     EXPECT_TRUE(window.contains(pos));
     pos.move(1, 10);
     EXPECT_TRUE(window.contains(pos));
-    pos.move(1, 20);
-    EXPECT_TRUE(window.contains(pos));
 
     // position is outside
-    pos.move(1, 9);
+    pos.move(1, 20);
     EXPECT_FALSE(window.contains(pos));
-    pos.move(1, 21);
+    pos.move(1, 9);
     EXPECT_FALSE(window.contains(pos));
 
     // chromosome is different
@@ -546,7 +544,7 @@ TEST(TGenomeWindowTest, contains_position){
     EXPECT_FALSE(window.contains(pos));
 }
 
-TEST(TGenomeWindowTest, cotains_window){
+TEST(TGenomeWindowTest, contains_window){
     BAM::TGenomeWindow window1(1, 10, 20);
 
     // these are ok
@@ -563,8 +561,6 @@ TEST(TGenomeWindowTest, cotains_window){
     window2.move(1, 9, 19);
     EXPECT_FALSE(window1.contains(window2));
     window2.move(1, 10, 21);
-    EXPECT_FALSE(window1.contains(window2));
-    window2.move(1, 9, 21);
     EXPECT_FALSE(window1.contains(window2));
 
     // chromosome is different
@@ -588,13 +584,9 @@ TEST(TGenomeWindowTest, overlaps){
     // overlaps on left side
     window2.move(1, 5, 11);
     EXPECT_TRUE(window1.overlaps(window2));
-    window2.move(1, 5, 10);
-    EXPECT_TRUE(window1.overlaps(window2));
 
     // overlaps on right side
     window2.move(1, 19, 25);
-    EXPECT_TRUE(window1.overlaps(window2));
-    window2.move(1, 20, 25);
     EXPECT_TRUE(window1.overlaps(window2));
 
     // overlaps on both sides
@@ -602,6 +594,10 @@ TEST(TGenomeWindowTest, overlaps){
     EXPECT_TRUE(window1.overlaps(window2));
 
     // positions don't overlap
+    window2.move(1, 20, 25); // extends, but doesnt overlap
+    EXPECT_FALSE(window1.overlaps(window2));
+    window2.move(1, 5, 10);
+    EXPECT_FALSE(window1.overlaps(window2)); // extends, but doesnt overlap
     window2.move(1, 5, 7);
     EXPECT_FALSE(window1.overlaps(window2));
     window2.move(1, 21, 25);
@@ -610,6 +606,46 @@ TEST(TGenomeWindowTest, overlaps){
     // chromosome is different
     window2.move(2, 11, 19);
     EXPECT_FALSE(window1.overlaps(window2));
+}
+
+TEST(TGenomeWindowTest, overlapsOrExtends){
+    BAM::TGenomeWindow window1(1, 10, 20);
+
+    // fully within
+    BAM::TGenomeWindow window2(1, 11, 19);
+    EXPECT_TRUE(window1.overlapsOrExtends(window2));
+    window2.move(1, 10, 19);
+    EXPECT_TRUE(window1.overlapsOrExtends(window2));
+    window2.move(1, 11, 20);
+    EXPECT_TRUE(window1.overlapsOrExtends(window2));
+    window2.move(1, 10, 20);
+    EXPECT_TRUE(window1.overlapsOrExtends(window2));
+
+    // overlaps on left side
+    window2.move(1, 5, 11);
+    EXPECT_TRUE(window1.overlapsOrExtends(window2));
+    window2.move(1, 5, 10);
+    EXPECT_TRUE(window1.overlapsOrExtends(window2));
+
+    // overlaps on right side
+    window2.move(1, 19, 25);
+    EXPECT_TRUE(window1.overlapsOrExtends(window2));
+    window2.move(1, 20, 25); // extends
+    EXPECT_TRUE(window1.overlapsOrExtends(window2));
+
+    // overlaps on both sides
+    window2.move(1, 9, 21);
+    EXPECT_TRUE(window1.overlapsOrExtends(window2));
+
+    // positions don't overlap
+    window2.move(1, 5, 7);
+    EXPECT_FALSE(window1.overlapsOrExtends(window2));
+    window2.move(1, 21, 25);
+    EXPECT_FALSE(window1.overlapsOrExtends(window2));
+
+    // chromosome is different
+    window2.move(2, 11, 19);
+    EXPECT_FALSE(window1.overlapsOrExtends(window2));
 }
 
 TEST(TGenomeWindowTest, mergeWith){
@@ -627,13 +663,29 @@ TEST(TGenomeWindowTest, mergeWith){
 
     // overlaps on left side
     window1.move(1, 10, 20);
+    window2.move(1, 5, 15);
+    EXPECT_TRUE(window1.mergeWith(window2));
+    EXPECT_EQ(window1.refID(), 1);
+    EXPECT_EQ(window1.fromOnChr(), 5);
+    EXPECT_EQ(window1.toOnChr(), 20);
+
+    // extends on left side
+    window1.move(1, 10, 20);
     window2.move(1, 5, 10);
     EXPECT_TRUE(window1.mergeWith(window2));
     EXPECT_EQ(window1.refID(), 1);
     EXPECT_EQ(window1.fromOnChr(), 5);
     EXPECT_EQ(window1.toOnChr(), 20);
 
-    // overlaps on left side
+    // overlaps on right side
+    window1.move(1, 10, 20);
+    window2.move(1, 15, 25);
+    EXPECT_TRUE(window1.mergeWith(window2));
+    EXPECT_EQ(window1.refID(), 1);
+    EXPECT_EQ(window1.fromOnChr(), 10);
+    EXPECT_EQ(window1.toOnChr(), 25);
+
+    // extends on right side
     window1.move(1, 10, 20);
     window2.move(1, 20, 25);
     EXPECT_TRUE(window1.mergeWith(window2));
@@ -810,6 +862,60 @@ TEST(TGenomeWindowTest, operator_largerWindow){
     // window1 is on a larger chromosome than window2
     window2.move(0, 25, 30);
     EXPECT_TRUE(window1 > window2);
+}
+
+TEST(TGenomeWindowTest, merge){
+    BAM::TGenomeWindow window1(1, 10, 20);
+
+    // fully within
+    BAM::TGenomeWindow window2(1, 11, 19);
+    BAM::TGenomeWindow res = merge(window1, window2);
+    EXPECT_EQ(res.refID(), 1);
+    EXPECT_EQ(res.fromOnChr(), 10);
+    EXPECT_EQ(res.toOnChr(), 20);
+
+    // overlaps on left side
+    window2.move(1, 5, 15);
+    res = merge(window1, window2);
+    EXPECT_EQ(res.refID(), 1);
+    EXPECT_EQ(res.fromOnChr(), 5);
+    EXPECT_EQ(res.toOnChr(), 20);
+
+    // extends on left side
+    window2.move(1, 5, 10);
+    res = merge(window1, window2);
+    EXPECT_EQ(res.refID(), 1);
+    EXPECT_EQ(res.fromOnChr(), 5);
+    EXPECT_EQ(res.toOnChr(), 20);
+
+    // overlaps on right side
+    window2.move(1, 15, 25);
+    res = merge(window1, window2);
+    EXPECT_EQ(res.refID(), 1);
+    EXPECT_EQ(res.fromOnChr(), 10);
+    EXPECT_EQ(res.toOnChr(), 25);
+
+    // extends on right side
+    window2.move(1, 20, 25);
+    res = merge(window1, window2);
+    EXPECT_EQ(res.refID(), 1);
+    EXPECT_EQ(res.fromOnChr(), 10);
+    EXPECT_EQ(res.toOnChr(), 25);
+
+    // overlaps on both sides
+    window2.move(1, 9, 21);
+    res = merge(window1, window2);
+    EXPECT_EQ(res.refID(), 1);
+    EXPECT_EQ(res.fromOnChr(), 9);
+    EXPECT_EQ(res.toOnChr(), 21);
+
+    // positions don't overlap -> nothing happens
+    window2.move(1, 5, 9);
+    EXPECT_THROW(merge(window1, window2), std::runtime_error);
+
+    // chromosome is different -> nothing happens
+    window2.move(2, 19, 25);
+    EXPECT_THROW(merge(window1, window2), std::runtime_error);
 }
 
 TEST(TGenomeWindowTest, operator_stream){
