@@ -40,6 +40,7 @@ public:
 	uint32_t maxNumHet() const { return _maxNumHetPlusOne - 1; };
 	const double& operator[](const uint32_t & i) const { return _probs[i]; };
 	double sum(const uint32_t & upTo);
+	void print();
 };
 
 //------------------------------------------------
@@ -105,10 +106,13 @@ class THardyWeinbergTest{
 private:
 	TLog* _logfile;
 	TRandomGenerator* _randonGenerator;
+	std::string _outname;
 
 	//vcf-file
 	std::string _vcfFilename;
 	VCF::TVcfFileSingleLine _vcfFile;
+	bool _limitLines;
+	uint64_t _maxNumLines;
 
 	//samples
 	TPopulationSamples _samples;
@@ -129,7 +133,7 @@ public:
 //--------------------------------------
 class TTask_testHardyWeinberg:public TTask{
 public:
-	TTask_testHardyWeinberg(){ _explanation = "Testing for HardyWeinberg (Multi-population)"; };
+	TTask_testHardyWeinberg(){ _explanation = "Testing for Hardy-Weinberg equilibrium across mMultiple populations"; };
 
 	void run(TParameters & Parameters, TLog* Logfile){
 		THardyWeinbergTest HW_test(Parameters, Logfile, _randomGenerator);

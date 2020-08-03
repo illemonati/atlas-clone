@@ -30,9 +30,9 @@ TVcfFile_base::TVcfFile_base(){
 
 void TVcfFile_base::openStream(const std::string & filename){
 	if(filename.find(".gz") == std::string::npos){
-		openStream(filename, true);
-	} else {
 		openStream(filename, false);
+	} else {
+		openStream(filename, true);
 	}
 };
 

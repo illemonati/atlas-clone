@@ -17,42 +17,50 @@ THWHetProb::THWHetProb(){
 	clear();
 };
 
-THWHetProb::THWHetProb(const uint32_t & N, const uint32_t & n_A){
-	//max num het
-	_maxNumHetPlusOne = n_A + 1;
-	if(_maxNumHetPlusOne > N / 2.0){
-		_maxNumHetPlusOne = 2*N - n_A + 1;
-	}
-	_onlyOdd = n_A % 2;
-	_onlyEven = !_onlyOdd;
+THWHetProb::THWHetProb(const uint32_t & numInd_N, const uint32_t & alleleFreq_n_A){
+	if(alleleFreq_n_A > 0 && alleleFreq_n_A < 2*numInd_N){
+		//max num het
+		_maxNumHetPlusOne = std::min(alleleFreq_n_A, 2*numInd_N - alleleFreq_n_A) + 1;
+		_onlyOdd = alleleFreq_n_A % 2;
+		_onlyEven = !_onlyOdd;
 
-	//tmp variables
-	uint32_t n_B = 2*N - n_A;
-	double logNFactorial = TFactorial::factorialLog(N);
-	double logTwoNFactorial = TFactorial::factorialLog(2*N);
+		//tmp variables
+		uint32_t n_B = 2*numInd_N - alleleFreq_n_A;
+		double logNFactorial = TFactorial::factorialLog(numInd_N);
+		double logTwoNFactorial = TFactorial::factorialLog(2*numInd_N);
 
-	//fill probabilities
-	_probs.resize(_maxNumHetPlusOne);
-	bool calcProb = _onlyEven;
-	for(uint32_t n_AB = 0; n_AB<_maxNumHetPlusOne; ++n_AB){
-		if(calcProb){
-			uint32_t n_AA = (n_A - n_AB) / 2;
-			uint32_t n_BB = N - n_AB - n_AA;
+		//fill probabilities
+		_probs.resize(_maxNumHetPlusOne);
 
-			_probs[n_AB] = n_AB * 0.6931472
-					     + logNFactorial - TFactorial::factorialLog(n_AA) - TFactorial::factorialLog(n_AB) - TFactorial::factorialLog(n_BB)
-					     + TFactorial::factorialLog(n_A) + TFactorial::factorialLog(n_B) - logTwoNFactorial;
+		if(_maxNumHetPlusOne == 1){
+			_probs[0] = 1.0;
 		} else {
-			_probs[n_AB] = 0.0;
+			bool calcProb = _onlyEven;
+			for(uint32_t n_AB = 0; n_AB<_maxNumHetPlusOne; ++n_AB){
+				if(calcProb){
+					uint32_t n_AA = (alleleFreq_n_A - n_AB) / 2;
+					uint32_t n_BB = numInd_N - n_AB - n_AA;
+
+					_probs[n_AB] = exp(n_AB * 0.6931472
+								 + logNFactorial - TFactorial::factorialLog(n_AA) - TFactorial::factorialLog(n_AB) - TFactorial::factorialLog(n_BB)
+								 + TFactorial::factorialLog(alleleFreq_n_A) + TFactorial::factorialLog(n_B) - logTwoNFactorial);
+				} else {
+					_probs[n_AB] = 0.0;
+				}
+				calcProb = !calcProb;
+			}
 		}
-		calcProb = !calcProb;
+	} else {
+		clear();
 	}
 };
 
 void THWHetProb::clear(){
-	_maxNumHetPlusOne = 0;
+	_maxNumHetPlusOne = 1;
 	_onlyOdd = false;
 	_onlyEven = false;
+	_probs.resize(_maxNumHetPlusOne);
+	_probs[0] = 1.0;
 };
 
 void THWHetProb::extend(const THWHetProb & other){
@@ -138,8 +146,6 @@ void THWHetProb::extend(const THWHetProb & other){
 		sum += i;
 	}
 
-	std::cout << "SUM = " << sum << std::endl;
-
 	for(auto& i : _probs){
 		i /= sum;
 	}
@@ -153,11 +159,15 @@ double THWHetProb::sum(const uint32_t & upTo){
 	return sum;
 };
 
+void THWHetProb::print(){
+	for(uint32_t i=0; i<_maxNumHetPlusOne; ++i){
+		std::cout << "P(n_AB = " << i << ") = " << _probs[i] << std::endl;
+	}
+};
+
 //------------------------------------------------
 //THWHetProbDB
 //------------------------------------------------
-
-
 THWHetProbVector::THWHetProbVector(const uint32_t & N){
 	_N = N;
 };
@@ -169,6 +179,7 @@ const THWHetProb& THWHetProbVector::getProbs(const uint32_t & n_A){
 		//create
 		it = _probs.emplace(std::piecewise_construct, std::make_tuple(n_A), std::make_tuple(_N, n_A)).first;
 	}
+
 	return it->second;
 };
 
@@ -187,7 +198,9 @@ const THWHetProb& THWProbDB::getProbs(const uint32_t & N, const uint32_t & n_A){
 //THWGenotypes
 //------------------------------------------------
 void THWGenotypes::clear(){
-	_genoCounts.fill(0);
+	_genoCounts[0] = 0;
+	_genoCounts[1] = 0;
+	_genoCounts[2] = 0;
 };
 
 void THWGenotypes::add(const uint8_t & genotype){
@@ -270,7 +283,7 @@ void THWPopulations::runTest(TOutputFile & out){
 
 	//calculate p-values
 	double pLess = probs.sum(obsNumHet);
-	out << obsN << obsNumHet << pLess << 1.0 - pLess + probs[obsNumHet];
+	out << obsN << obsNumHet << pLess << 1.0 - pLess + probs[obsNumHet] << std::endl;
 };
 
 //------------------------------------------------
@@ -287,7 +300,7 @@ THardyWeinbergTest::THardyWeinbergTest(TParameters & Parameters, TLog* logfile, 
 
 	//open VCF
 	_vcfFilename = Parameters.getParameterString("vcf");
-	_logfile->startIndent("Reading vcf from file '" + _vcfFilename + "'.");
+	_logfile->list("Reading vcf from file '" + _vcfFilename + "'.");
 	_vcfFile.openStream(_vcfFilename);
 
 	//enable parsers
@@ -303,18 +316,43 @@ THardyWeinbergTest::THardyWeinbergTest(TParameters & Parameters, TLog* logfile, 
 	} else {
 		_samples.readSamplesFromVCFNames(_vcfFile.parser.samples);
 	}
+
+	//resize populations
+	_populations.resize(_samples.numPopulations());
+
+	//get output name
+	std::string tmp = extractBeforeLast(_vcfFilename, ".vcf");
+	_outname = Parameters.getParameterStringWithDefault("out", tmp);
+
+	//limit lines?
+	_limitLines = Parameters.parameterExists("limitLines");
+	if(_limitLines){
+		_maxNumLines = Parameters.getParameterLong("limitLines");
+	}
 };
 
 void THardyWeinbergTest::testForHardyWeinberg(){
 	//open output file
+	std::string filename = _outname + "_HWTest.txt.gz";
+	_logfile->list("Writing HW test results to file '" + filename + "'.");
 	std::vector<std::string> header = {"chr", "position"};
 	_populations.addToHeader(header);
-	TOutputFile out;
+	TOutputFile out(filename, header);
+
+	//progress
+	TTimer timer;
+	uint64_t lineCounter = 0;
 
 	//traverse VCF
+	_logfile->startIndent("Traversing VCF file:");
 	while(_vcfFile.next()){
+		++lineCounter;
+
 		//reset counts
 		_populations.clear();
+
+		//write position
+		out << _vcfFile.chr() << _vcfFile.position();
 
 		//add data at current line
 		for(uint32_t s = 0; s<_samples.numSamples(); ++s){
@@ -325,8 +363,19 @@ void THardyWeinbergTest::testForHardyWeinberg(){
 		}
 
 		//perform test
+		_populations.runTest(out);
 
+		//progress / limit lines
+		if(lineCounter % 10000 == 0){
+			_logfile->list("Parsed " + toString(lineCounter) + " lines in " + timer.formattedTime());
+		}
+		if(_limitLines && lineCounter == _maxNumLines){
+			break;
+		}
 	}
+	_logfile->list("Reached end of VCf file.");
+	_logfile->conclude("Parsed " + toString(lineCounter) + " lines in " + timer.formattedTime());
+	_logfile->endIndent();
 };
 
 

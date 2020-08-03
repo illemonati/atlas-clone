@@ -38,6 +38,7 @@
 #include "TAlleleFrequencyEstimator.h"
 #include "TInbreedingEstimator.h"
 #include "TPolymorhicWindowIdentifier.h"
+#include "THardyWeinbergTest.h"
 
 //VCF
 #include "TVcfCompare.h"
@@ -109,6 +110,7 @@ void addTaks(TMain & main) {
 	main.addRegularTask("convertVCF", new VCF::TTask_VcfConverter());
     main.addRegularTask("VCFFixInt", new VCF::TTask_VCFFixInt());
 	main.addRegularTask("VCFCompare", new VCF::TTask_VcfCompare());
+	main.addRegularTask("testHardyWeinberg", new PopulationTools::TTask_testHardyWeinberg);
 
 	//simulations
 	main.addRegularTask("simulate", new Simulations::TTask_simulate());
