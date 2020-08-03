@@ -34,7 +34,8 @@ private:
 	std::map<std::string, uint32_t> populations; // name and pop index
 	std::map<std::string, uint32_t> samples; //name and pop index
 	std::map<std::string, uint32_t> sampleOrder; //stores order of samples such that samples of the same population are together
-	uint32_t* _VCF_order;
+	uint32_t* _VCF_order; //matches sample index to VCF order
+	uint32_t* _samplePopIndex; //matches sample index to population index;
 	bool _VCF_order_initialized;
 
 	void _init();
@@ -64,7 +65,8 @@ public:
 	std::string getNameFromOrderedIndex(uint32_t index);
 	void addOrderedSampleNamesToVector(std::vector<std::string> & vec);
 	void fillVCFOrder(std::vector<std::string> & vcfSampleNames);
-	uint32_t VCF_order(const uint32_t & index){ return _VCF_order[index]; };
+	uint32_t VCF_order(const uint32_t & index) const { return _VCF_order[index]; };
+	uint32_t popIndex(const uint32_t & index) const { return _samplePopIndex[index]; };
 	uint8_t* getPointerToDataInPop(uint8_t* data, uint32_t population){ return &data[3*startIndexPerPop[population]]; };
 	uint32_t numSamplesMissingInPop(bool* sampleMissing, uint32_t population);
 	uint32_t numSamplesWithDataInPop(bool* sampleMissing, uint32_t population);

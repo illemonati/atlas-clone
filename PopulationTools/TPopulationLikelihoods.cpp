@@ -29,6 +29,7 @@ TPopulationSamples::~TPopulationSamples(){
 	if(_hasSamples){
 		delete[] numSamplesPerPop;
 		delete[] startIndexPerPop;
+		delete[] _samplePopIndex;
 	}
 	if(_VCF_order_initialized)
 		delete[] _VCF_order;
@@ -141,6 +142,7 @@ void TPopulationSamples::fillSampleOrder(){
 		_hasSamples = true;
 		numSamplesPerPop = new uint32_t[_numPopulations];
 		startIndexPerPop = new uint32_t[_numPopulations];
+		_samplePopIndex = new uint32_t[_numSamples];
 		//put samples in order by populations
 		int nextIndex = 0;
 		for(uint32_t p=0; p<_numPopulations; ++p){
@@ -149,6 +151,7 @@ void TPopulationSamples::fillSampleOrder(){
 			for(std::map<std::string, uint32_t>::iterator it = samples.begin(); it != samples.end(); ++it){
 				if(it->second == p){
 					sampleOrder.emplace(it->first, nextIndex);
+					_samplePopIndex[nextIndex] = p;
 					++nextIndex;
 					++numSamplesPerPop[p];
 				}
