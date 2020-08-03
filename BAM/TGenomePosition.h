@@ -14,11 +14,10 @@
 
 namespace BAM{
 
-
 //-----------------------------------------------------
 // TGenomePosition
 //-----------------------------------------------------
-//forward declerations;
+//forward declarations;
 
 class TGenomeWindow;
 
@@ -29,7 +28,7 @@ protected:
 
 public:
 	TGenomePosition(){ clear(); };
-	TGenomePosition(const uint32_t RefID, const uint32_t Position);
+	TGenomePosition(const uint32_t& RefID, const uint32_t& Position);
 	TGenomePosition(const TGenomePosition & other) = default;
 
 	void clear(){  _refID = 0; _position = 0; };
@@ -37,10 +36,10 @@ public:
 	uint32_t refID() const{ return _refID; };
 	uint32_t position() const{ return _position; };
 
-	void move(const uint32_t RefID, const uint32_t Position);
+	void move(const uint32_t& RefID, const uint32_t& Position);
 	void move(const TGenomePosition & other);
 
-	void operator=(const TGenomePosition & other);
+	TGenomePosition& operator=(const TGenomePosition & other);
 	TGenomePosition operator+(const uint32_t & length) const;
 	TGenomePosition operator-(const uint32_t & length) const;
 	int32_t operator-(const TGenomePosition & other) const;

@@ -13,12 +13,12 @@ namespace BAM{
 //-----------------------------------------------------
 // TGenomePosition
 //-----------------------------------------------------
-TGenomePosition::TGenomePosition(const uint32_t RefID, const uint32_t Position){
+TGenomePosition::TGenomePosition(const uint32_t& RefID, const uint32_t& Position){
 	_refID = RefID;
 	_position = Position;
 };
 
-void TGenomePosition::move(const uint32_t RefID, const uint32_t Position){
+void TGenomePosition::move(const uint32_t& RefID, const uint32_t& Position){
 	_refID = RefID;
 	_position = Position;
 };
@@ -28,8 +28,11 @@ void TGenomePosition::move(const TGenomePosition & other){
 	_position = other._position;
 };
 
-void TGenomePosition::operator=(const TGenomePosition & other){
+TGenomePosition& TGenomePosition::operator=(const TGenomePosition & other){
+    // correct way to overload = is to return lhs by reference, see
+    // https://github.com/isocpp/CppCoreGuidelines/blob/master/CppCoreGuidelines.md#c62-make-copy-assignment-safe-for-self-assignment
 	move(other);
+    return *this;
 };
 
 TGenomePosition TGenomePosition::operator+(const uint32_t & length) const{
@@ -48,6 +51,8 @@ int32_t TGenomePosition::operator-(const TGenomePosition & other) const{
 	if(!sameChr(other)){
 		throw std::runtime_error("TGenomePosition operator-(const TGenomePosition other): positions are not on same chromosome!");
 	}
+	if (other._position > _position)
+	    return 0;
 	return _position - other._position;
 };
 
