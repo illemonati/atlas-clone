@@ -145,6 +145,10 @@ public:
     void openOutputStream(std::string & Filename, bool zipped){vcfFile.openOutputStream(Filename, zipped);};
     void setOutStream(std::ostream & os){ vcfFile.setOutStream(os); };
 	void writeVCFLine(){ vcfFile.writeLine(); };
+	double getMAF(TSampleLikelihoods* data, TPopulationSamples & samples, TGlfConverter & glfConverter) {
+	    genoFrequencies.estimate(data, samples.numSamples(), glfConverter, epsilonF);
+	    return genoFrequencies.MAF;
+    }
 };
 
 class TPopulationLikelihoodReaderLocus:public TPopulationLikelihoodReader{

@@ -138,6 +138,7 @@ private:
     long positionPreviousLocus;
     int numSamplesPerLocus;
     std::string curChr;
+    double minMAF;
 
     void writeHeader() override;
     void writeData(TPopulationLikehoodLocus & data) override;

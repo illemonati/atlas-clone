@@ -276,7 +276,6 @@ void TVcfToLFMMPostGeno::vcfToLFMM(TParameters & Params){
 void TVcfToLFMMPostGeno::writeData(TPopulationLikehoodLocus & data){
     // LFMM has individuals as rows and loci as columns -> we need to store these values first and then write
     storePosteriorGenotypes(data);
-    storeLocusNames();
 }
 
 void TVcfToLFMMPostGeno::storePosteriorGenotypes(TPopulationLikehoodLocus & data){
@@ -291,7 +290,19 @@ void TVcfToLFMMPostGeno::storePosteriorGenotypes(TPopulationLikehoodLocus & data
         if (data[i].isMissing)
             meanPostGenoForOneLocus[i] = meanPostGeno;
     }
-    genotypes.emplace_back(meanPostGenoForOneLocus);
+
+    // check if all samples have the same meanPosteriorGenotype -> if yes, exclude this locus, as this causes trouble with correlations later
+    bool allEqual = true;
+    for (int i = 0; i < samples.numSamples() - 1; i++){
+        if (meanPostGenoForOneLocus[i] != meanPostGenoForOneLocus[i + 1]) {
+            allEqual = false;
+            break;
+        }
+    }
+    if (!allEqual){ // only store if not all are equal
+        genotypes.emplace_back(meanPostGenoForOneLocus);
+        storeLocusNames();
+    }
 }
 
 float TVcfToLFMMPostGeno::calculateMeanOfMeanPosteriorGenotypes(TPopulationLikehoodLocus & data, const float * meanPostGenoForOneLocus){
@@ -408,6 +419,7 @@ TVcfToGenotypeTruthSetFile::TVcfToGenotypeTruthSetFile(TParameters &Params, TLog
     positionPreviousLocus = 0;
     minDistanceToPreviousLocus = 0;
     numSamplesPerLocus = 0;
+    minMAF = 0.;
     curChr = "";
 }
 
@@ -487,7 +499,7 @@ void TVcfToGenotypeTruthSetFile::filterIndividuals(TPopulationLikehoodLocus & da
             return;
     }
 
-    if (distanceToPreviousLocus >= minDistanceToPreviousLocus) { // check if distance is big enough
+    if (distanceToPreviousLocus >= minDistanceToPreviousLocus && reader->getMAF(data.samples(), samples, glfConverter) >= minMAF) { // check if distance is big enough and if MAF is ok
         // idea: TPopulationLikelihoods will filter on minDepth and set all samples with < minDepth as missing
         // here, we check how many individuals have > minDepth; we rank them and only keep numSamplesPerLocus of them
         for (uint32_t s = 0; s < samples.numSamples(); ++s) {
@@ -578,6 +590,8 @@ void TVcfToGenotypeTruthSetFile::vcfToGenotypeTruthSetFile(TParameters & Params)
     resetDistance();
     numSamplesPerLocus = Params.getParameterIntWithDefault("numSamples", 5);
     logfile->list("Will keep up to " + toString(numSamplesPerLocus) + " individuals per locus (parameter 'numSamples').");
+    minMAF = Params.getParameterIntWithDefault("minMAFForGenFile", 0);
+    logfile->list("Will keep loci that have a minimal minor allele frequency (MAF) of " + toString(minMAF) + " (parameter 'minMAFForGenFile').");
     std::string fileNamePosfile = Params.getParameterStringWithDefault("posfile", "");
     if (!fileNamePosfile.empty())
         readPosfileIntoMemory(fileNamePosfile);
@@ -1195,9 +1209,12 @@ void TStitchVcfToLFMMPostGeno::parseVCF(){
         // store mean posterior genotypes for later
         std::vector<std::string> meanPostGenoForOneLocus;
         reader.meanPosteriorGenotypes(meanPostGenoForOneLocus);
-        _genotypes.emplace_back(meanPostGenoForOneLocus);
-
-        // write loci names to file
-        loci_names.emplace_back(reader.chr() + ":" + reader.pos());
+        // check if all samples have the same meanPosteriorGenotypes -> if yes, exclude locus, because this causes problems when calculating correlations later
+        if (!std::equal(meanPostGenoForOneLocus.begin() + 1, meanPostGenoForOneLocus.end(), meanPostGenoForOneLocus.begin())){
+            //not all equal -> store
+            _genotypes.emplace_back(meanPostGenoForOneLocus);
+            // write loci names to file
+            loci_names.emplace_back(reader.chr() + ":" + reader.pos());
+        }
     }
 }
