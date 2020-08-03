@@ -376,6 +376,9 @@ void THardyWeinbergTest::testForHardyWeinberg(){
 	_logfile->list("Reached end of VCf file.");
 	_logfile->conclude("Parsed " + toString(lineCounter) + " lines in " + timer.formattedTime());
 	_logfile->endIndent();
+
+	//close file
+	out.close();
 };
 
 
