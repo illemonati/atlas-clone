@@ -328,6 +328,8 @@ THardyWeinbergTest::THardyWeinbergTest(TParameters & Parameters, TLog* logfile, 
 	_limitLines = Parameters.parameterExists("limitLines");
 	if(_limitLines){
 		_maxNumLines = Parameters.getParameterLong("limitLines");
+	} else {
+		_maxNumLines = 0;
 	}
 };
 
