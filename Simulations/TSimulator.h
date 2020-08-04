@@ -39,6 +39,7 @@ protected:
 	double maxReadLength;
 
 	//chromosomes
+	//BAM::TChromosomes chromosomes;
 	std::vector<TSimulatorChromosome> chromosomes;
 	bool writeTrueGenotypes;
 	bool writeVariantInvariantBedFiles;
