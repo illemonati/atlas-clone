@@ -71,10 +71,10 @@ public:
 
 	std::set<TBedChromosome, std::less<>>::iterator addChromosome(const std::string & Chr);
 	void addChromosomes(const TChromosomes & Chromosomes);
-	uint32_t numChromosomesWithWindows() const;
-	bool hasWindowsOnChr(const std::string Chr);
+	virtual uint32_t numChromosomesWithWindows() const;
+	bool hasWindowsOnChr(const std::string& Chr);
 	bool hasWindowsOnChr(const uint32_t refId);
-	uint32_t getRefID(const std::string Chr);
+	uint32_t getRefID(const std::string& Chr);
 	std::string getChromosomeName(const uint32_t refId);
 };
 
@@ -95,24 +95,24 @@ public:
 	void add(TGenomeWindow Window);
 	void add(const TGenomePosition & Position);
 	void add(const uint32_t Chr, const uint32_t Pos);
-	void add(const std::string Chr, const uint32_t Pos);
+	void add(const std::string& Chr, const uint32_t Pos);
 
-	void add(const std::string Filename);
-	void add(const std::string Filename, const TChromosomes & Chromosomes);
-	void write(const std::string Filename) const;
+	void add(const std::string& Filename);
+	void add(const std::string& Filename, const TChromosomes & Chromosomes);
+	void write(const std::string& Filename) const;
 
 	uint64_t size() const;
 	uint64_t length() const;
 	uint32_t numChromosomesWithWindows() const;
 
-	bool exists(const TGenomeWindow Window) const;
+	bool exists(const TGenomeWindow& Window) const;
 
 	//loop
 	std::set<TGenomeWindow>::iterator lower_bound(const TGenomeWindow & Window){ return _bed.lower_bound(Window); };
 	std::set<TGenomeWindow>::iterator begin(){ return _bed.begin(); };
 	std::set<TGenomeWindow>::iterator end(){ return _bed.end(); };
 
-	std::set<TGenomeWindow>::iterator begin(const uint32_t refId){ return _bed.find(TGenomePosition(refId, 0)); };
+	std::set<TGenomeWindow>::iterator begin(const uint32_t refId){ return _bed.lower_bound(TGenomePosition(refId, 0)); };
 	std::set<TGenomeWindow>::iterator end(const uint32_t refId){ return _bed.lower_bound(TGenomePosition(refId+1, 0)); };
 };
 
