@@ -213,12 +213,16 @@ uint32_t THWGenotypes::N() const{
 	return _genoCounts[0] + _genoCounts[1] + _genoCounts[2];
 };
 
-uint32_t THWGenotypes::n_A() const{
+uint32_t THWGenotypes::MAF() const{
 	if(_genoCounts[0] < _genoCounts[2]){
 		return 2*_genoCounts[0] + _genoCounts[1];
 	} else {
 		return 2*_genoCounts[2] + _genoCounts[1];
 	}
+};
+
+uint32_t THWGenotypes::n_A() const{
+	return 2*_genoCounts[0] + _genoCounts[1];
 };
 
 uint32_t THWGenotypes::n_AB() const{
@@ -248,6 +252,8 @@ void THWPopulations::add(const uint16_t & pop, const uint8_t & genotyp){
 
 void THWPopulations::addToHeader(std::vector<std::string> & header){
 	header.push_back("N");
+	header.push_back("n_A");
+	header.push_back("MAF");
 	header.push_back("n_AB");
 	header.push_back("pLess");
 	header.push_back("pMore");
@@ -266,11 +272,13 @@ void THWPopulations::runTest(TOutputFile & out){
 	//first do those with even and odd num hets separately
 	THWHetProb probs, probsEven;
 	uint32_t obsNumHet = 0;
+	uint32_t obsNumA = 0;
 	uint32_t obsN = 0;
 
 	//loop over populations
 	for(auto& p : _populations){
 		obsNumHet += p.n_AB();
+		obsNumA += p.n_A();
 		obsN += p.N();
 		const THWHetProb& popProbs = _probDB.getProbs(p.N(), p.n_A());
 		if(popProbs.onlyOdd()){
@@ -285,7 +293,8 @@ void THWPopulations::runTest(TOutputFile & out){
 
 	//calculate p-values
 	double pLess = probs.sum(obsNumHet);
-	out << obsN << obsNumHet << pLess << 1.0 - pLess + probs[obsNumHet] << std::endl;
+	double MAF = std::min(obsNumA, 2*obsN - obsNumA) / (double) (obsN * 2.0);
+	out << obsN << obsNumA << MAF << obsNumHet << pLess << 1.0 - pLess + probs[obsNumHet] << std::endl;
 };
 
 //------------------------------------------------

@@ -77,6 +77,7 @@ public:
 	void clear();
 	void add(const uint8_t & genotype);
 	uint32_t N() const;
+	uint32_t MAF() const;
 	uint32_t n_A() const;
 	uint32_t n_AB() const;
 };
