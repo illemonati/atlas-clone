@@ -363,7 +363,7 @@ void THardyWeinbergTest::testForHardyWeinberg(){
 		++lineCounter;
 
 		//exclude multiallelic
-		if(_vcfFile.getNumAlleles() == 2){
+		if(_vcfFile.isBialleleicSNP()){
 			//reset counts
 			_populations.clear();
 
@@ -394,7 +394,7 @@ void THardyWeinbergTest::testForHardyWeinberg(){
 	}
 	_logfile->list("Reached end of VCf file.");
 	_logfile->conclude("Parsed " + toString(lineCounter) + " lines in " + timer.formattedTime());
-	_logfile->conclude("Ignored ", numFiltered, " multi allelic sites.");
+	_logfile->conclude("Ignored ", numFiltered, " sites that were not bi-allelic SNPs.");
 	_logfile->endIndent();
 
 	//close file

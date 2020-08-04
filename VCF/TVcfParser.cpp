@@ -380,15 +380,13 @@ void TVcfParser::parseVariant(TVcfLine & line){
 				if(buf.length() == 1){
 					var=buf.c_str()[0];
 					if(var!='A' && var!='G' && var!='C' && var!='T') throw "Unknown alternative allele '" + toString(var) + "' in VCF file on line " + toString(line.lineNumber) + "!";
+					if(!line.addVariant(var)){
+						throw (std::string) "Allele '" + var + "' given multiple times in VCF file on line " + toString(line.lineNumber) + "!";
+					}
 				} else {
 					if(buf=="<NON_REF>") var = 'X';
 					else var= 'I'; //insertion
 				}
-				if(!line.addVariant(var)){
-					if(var != 'I' && var != 'X'){
-	                    throw (std::string) "Allele '" + var + "' given multiple times in VCF file on line " + toString(line.lineNumber) + "!";
-	                }
-	            }
 			}
 		}
 		line.variantParsed=true;

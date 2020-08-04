@@ -119,6 +119,7 @@ public:
 	void parseInfo(){ parser.parseSamples(tempLine); };
 	void parseFormat(){ parser.parseFormat(tempLine); };
 	void parseSamples(){ parser.parseSamples(tempLine); };
+
 	//other stuff
 	TVcfLine* pointerToVcfLine(){return &tempLine;};
 	void updateInfo(std::string Id, std::string Data);
@@ -132,6 +133,7 @@ public:
 	void fillGenotypeLikelihoods(unsigned int sample, float* gtl);
 	void fillPhredScore(unsigned int sample, uint8_t & gtl_0, uint8_t & gtl_1, uint8_t & gtl_2);
 	void fillLog10GenotypeLikelihoods(unsigned int sample, double & gtl_0, double & gtl_1, double & gtl_2);
+
 	//variant info
 	uint64_t position();
 	uint64_t positionZeroBased();
@@ -142,7 +144,9 @@ public:
 	char getRefAllele();
 	char getFirstAltAllele();
 	char getAllele(int num);
-	//sampel info
+	bool isBialleleicSNP();
+
+	//sample info
 	void setSampleMissing(unsigned int sample);
 	void setSampleHasUndefinedGenotype(unsigned int sample);
 	void updateField(std::string tag, std::string & Data, unsigned int sample);

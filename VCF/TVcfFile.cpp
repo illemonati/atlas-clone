@@ -328,7 +328,15 @@ char TVcfFileSingleLine::getFirstAltAllele(){
 }
 char TVcfFileSingleLine::getAllele(int num){
 	return parser.getAllele(tempLine, num);
-}
+};
+
+bool TVcfFileSingleLine::isBialleleicSNP(){
+	if(parser.getNumAlleles(tempLine)==2){
+		char alt = parser.getAllele(tempLine, 1);
+		return alt=='A' || alt=='C' || alt=='G' || alt=='T';
+	}
+	return false;
+};
 
 bool TVcfFileSingleLine::variantQualityIsMissing(){
 	return parser.variantQualityIsMissing(tempLine);
