@@ -386,6 +386,7 @@ void TVcfParser::parseVariant(TVcfLine & line){
 				} else {
 					if(buf=="<NON_REF>") var = 'X';
 					else var= 'I'; //insertion
+					line.addVariant(var);
 				}
 			}
 		}
