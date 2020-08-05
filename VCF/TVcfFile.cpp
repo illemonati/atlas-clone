@@ -332,8 +332,9 @@ char TVcfFileSingleLine::getAllele(int num){
 
 bool TVcfFileSingleLine::isBialleleicSNP(){
 	if(parser.getNumAlleles(tempLine)==2){
+		char ref = parser.getAllele(tempLine, 0);
 		char alt = parser.getAllele(tempLine, 1);
-		return alt=='A' || alt=='C' || alt=='G' || alt=='T';
+		return (ref=='A' || ref=='C' || ref=='G' || ref=='T') && (alt=='A' || alt=='C' || alt=='G' || alt=='T');
 	}
 	return false;
 };
