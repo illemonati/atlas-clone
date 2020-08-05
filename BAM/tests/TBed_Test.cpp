@@ -676,3 +676,263 @@ TEST(TBedTest, end_refID){
     EXPECT_EQ(it->fromOnChr(), 55);
     EXPECT_EQ(it->toOnChr(), 100);
 }
+
+//-----------------------------------------------------
+// TGenomeWindowList
+//-----------------------------------------------------
+
+TEST(TGenomeWindowListTest, add_TGenomeWindow_nonOverlapping){
+    // create genomeWindowList
+    BAM::TGenomeWindowList genomeWindowList;
+
+    //        |----------------------|
+    //        10                     20
+    //                                                 |---------------------------------|
+    //                                                 25                                50
+
+    genomeWindowList.add(BAM::TGenomeWindow(0, 10, 20));
+    genomeWindowList.add(BAM::TGenomeWindow(0, 25, 50));
+
+    // check if windows were NOT merged
+    EXPECT_TRUE(genomeWindowList.exists(BAM::TGenomeWindow(0, 10, 20)));
+    EXPECT_TRUE(genomeWindowList.exists(BAM::TGenomeWindow(0, 25, 50)));
+}
+
+TEST(TGenomeWindowListTest, add_TGenomeWindow_overlapsOneDownstream){
+    // create genomeWindowList
+    BAM::TGenomeWindowList genomeWindowList;
+
+    //        |----------------------|
+    //        10                     20
+    //                     |---------------------------------|
+    //                     15                                30
+
+    genomeWindowList.add(BAM::TGenomeWindow(0, 10, 20));
+    genomeWindowList.add(BAM::TGenomeWindow(0, 15, 30));
+
+    // check if windows were NOT merged
+    EXPECT_TRUE(genomeWindowList.exists(BAM::TGenomeWindow(0, 10, 20)));
+    EXPECT_TRUE(genomeWindowList.exists(BAM::TGenomeWindow(0, 15, 30)));
+}
+
+TEST(TGenomeWindowListTest, add_TGenomeWindow_overlapsOneUpstream){
+    // create genomeWindowList
+    BAM::TGenomeWindowList genomeWindowList;
+
+    //                     |----------------------|
+    //                      10                     20
+    //        |---------------------------|
+    //        5                          15
+
+    genomeWindowList.add(BAM::TGenomeWindow(0, 10, 20));
+    genomeWindowList.add(BAM::TGenomeWindow(0, 5, 15));
+
+    // check if windows were NOT merged
+    EXPECT_TRUE(genomeWindowList.exists(BAM::TGenomeWindow(0, 10, 20)));
+    EXPECT_TRUE(genomeWindowList.exists(BAM::TGenomeWindow(0, 5, 15)));
+}
+
+TEST(TGenomeWindowListTest, add_TGenomeWindow_differentChr){
+    // create genomeWindowList
+    BAM::TGenomeWindowList genomeWindowList;
+
+    //                     |----------------------|
+    //                  chr1:10                chr1:20
+    //        |---------------------------|
+    //     chr2:5                        chr2:15
+
+    genomeWindowList.add(BAM::TGenomeWindow(0, 10, 20));
+    genomeWindowList.add(BAM::TGenomeWindow(1, 5, 15));
+
+    // check if windows were NOT merged
+    EXPECT_TRUE(genomeWindowList.exists(BAM::TGenomeWindow(0, 10, 20)));
+    EXPECT_TRUE(genomeWindowList.exists(BAM::TGenomeWindow(1, 5, 15)));
+}
+
+TEST(TGenomeWindowListTest, add_Filename_Chromosomes){
+    // create genomeWindowList
+    BAM::TGenomeWindowList genomeWindowList;
+
+    // create TChromosomes
+    BAM::TChromosomes chrs;
+    chrs.appendChromosome("chr1", 10);
+    chrs.appendChromosome("chr5", 10);
+    chrs.appendChromosome("chr2", 10);
+
+    // write input bed file
+    writeInputBed();
+
+    genomeWindowList.add("bed.bed", chrs);
+
+    // check if windows were merged
+    EXPECT_TRUE(genomeWindowList.exists(BAM::TGenomeWindow(0, 1, 2)));
+    EXPECT_TRUE(genomeWindowList.exists(BAM::TGenomeWindow(0, 10, 20)));
+    EXPECT_TRUE(genomeWindowList.exists(BAM::TGenomeWindow(0, 30, 40)));
+    EXPECT_TRUE(genomeWindowList.exists(BAM::TGenomeWindow(0, 50, 60)));
+    EXPECT_TRUE(genomeWindowList.exists(BAM::TGenomeWindow(0, 15, 35)));
+    EXPECT_TRUE(genomeWindowList.exists(BAM::TGenomeWindow(2, 55, 100))); // refID is 2, because chr2 has refID=2 in TChromosomes chrs
+
+    // remove file
+    remove("bed.bed");
+}
+
+
+TEST(TGenomeWindowListTest, write){
+    // create genomeWindowList
+    BAM::TGenomeWindowList genomeWindowList;
+
+    // create TChromosomes
+    BAM::TChromosomes chrs;
+    chrs.appendChromosome("chr1", 10);
+    chrs.appendChromosome("chr5", 10);
+    chrs.appendChromosome("chr2", 10);
+
+    genomeWindowList.add(BAM::TGenomeWindow(0, 10, 20));
+    genomeWindowList.add(BAM::TGenomeWindow(0, 30, 40));
+    genomeWindowList.add(BAM::TGenomeWindow(0, 50, 60));
+    genomeWindowList.add(BAM::TGenomeWindow(0, 15, 35));
+    genomeWindowList.add(BAM::TGenomeWindow(0, 1, 2));
+    genomeWindowList.add(BAM::TGenomeWindow(1, 55, 100));
+
+    genomeWindowList.write("bed.bed", chrs);
+
+    // open a second genomeWindowList and read bed as input
+    BAM::TGenomeWindowList genomeWindowList2;
+
+    genomeWindowList2.add("bed.bed", chrs);
+
+    // check if windows were merged
+    EXPECT_TRUE(genomeWindowList2.exists(BAM::TGenomeWindow(0, 1, 2)));
+    EXPECT_TRUE(genomeWindowList2.exists(BAM::TGenomeWindow(0, 10, 20)));
+    EXPECT_TRUE(genomeWindowList2.exists(BAM::TGenomeWindow(0, 30, 40)));
+    EXPECT_TRUE(genomeWindowList2.exists(BAM::TGenomeWindow(0, 50, 60)));
+    EXPECT_TRUE(genomeWindowList2.exists(BAM::TGenomeWindow(0, 15, 35)));
+    EXPECT_TRUE(genomeWindowList2.exists(BAM::TGenomeWindow(1, 55, 100)));
+
+    // remove file
+    remove("bed.bed");
+}
+
+TEST(TGenomeWindowListTest, size_length){
+    // create genomeWindowList
+    BAM::TGenomeWindowList genomeWindowList;
+
+    genomeWindowList.add(BAM::TGenomeWindow(0, 10, 20));
+    genomeWindowList.add(BAM::TGenomeWindow(0, 30, 40));
+    genomeWindowList.add(BAM::TGenomeWindow(0, 50, 60));
+    genomeWindowList.add(BAM::TGenomeWindow(0, 15, 35));
+    genomeWindowList.add(BAM::TGenomeWindow(0, 1, 2));
+    genomeWindowList.add(BAM::TGenomeWindow(1, 55, 100));
+
+    EXPECT_EQ(genomeWindowList.size(), 6); // 6 windows
+    EXPECT_EQ(genomeWindowList.length(), 96);
+}
+
+TEST(TGenomeWindowListTest, getters){
+    // create genomeWindowList
+    BAM::TGenomeWindowList genomeWindowList;
+
+    genomeWindowList.add(BAM::TGenomeWindow(0, 10, 20));
+    genomeWindowList.add(BAM::TGenomeWindow(0, 30, 40));
+    genomeWindowList.add(BAM::TGenomeWindow(0, 50, 60));
+    genomeWindowList.add(BAM::TGenomeWindow(0, 15, 35));
+    genomeWindowList.add(BAM::TGenomeWindow(0, 1, 2));
+    genomeWindowList.add(BAM::TGenomeWindow(1, 55, 100));
+    genomeWindowList.add(BAM::TGenomeWindow(3, 10, 100));
+
+    // numChromosomesWithWindows
+    EXPECT_EQ(genomeWindowList.numChromosomesWithWindows(), 3);
+
+    // hasWindowsOnChr
+    EXPECT_TRUE(genomeWindowList.hasWindowsOnChr(0));
+    EXPECT_TRUE(genomeWindowList.hasWindowsOnChr(1));
+    EXPECT_TRUE(genomeWindowList.hasWindowsOnChr(3));
+    EXPECT_FALSE(genomeWindowList.hasWindowsOnChr(2));
+
+    // numWindowsOnChr
+    EXPECT_EQ(genomeWindowList.numWindowsOnChr(0), 5);
+    EXPECT_EQ(genomeWindowList.numWindowsOnChr(1), 1);
+    EXPECT_EQ(genomeWindowList.numWindowsOnChr(3), 1);
+    EXPECT_EQ(genomeWindowList.numWindowsOnChr(2), 0);
+}
+
+TEST(TGenomeWindowListTest, empty){
+    // create genomeWindowList
+    BAM::TGenomeWindowList genomeWindowList;
+    EXPECT_TRUE(genomeWindowList.empty());
+
+    genomeWindowList.add(BAM::TGenomeWindow(0, 10, 20));
+    EXPECT_FALSE(genomeWindowList.empty());
+}
+
+TEST(TGenomeWindowListTest, begin){
+    // create bed and add chromosome
+    BAM::TGenomeWindowList genomeWindowList;
+
+    genomeWindowList.add(BAM::TGenomeWindow(3, 10, 100));
+    genomeWindowList.add(BAM::TGenomeWindow(0, 10, 20));
+    genomeWindowList.add(BAM::TGenomeWindow(0, 30, 40));
+    genomeWindowList.add(BAM::TGenomeWindow(0, 50, 60));
+    genomeWindowList.add(BAM::TGenomeWindow(1, 55, 100));
+    genomeWindowList.add(BAM::TGenomeWindow(0, 15, 35));
+    genomeWindowList.add(BAM::TGenomeWindow(0, 1, 2));
+
+    auto it = genomeWindowList.begin();
+    EXPECT_EQ(it->refID(), 0);
+    EXPECT_EQ(it->fromOnChr(), 1);
+    EXPECT_EQ(it->toOnChr(), 2);
+}
+
+TEST(TGenomeWindowListTest, end){
+    // create bed and add chromosome
+    BAM::TGenomeWindowList genomeWindowList;
+
+    genomeWindowList.add(BAM::TGenomeWindow(3, 10, 100));
+    genomeWindowList.add(BAM::TGenomeWindow(0, 10, 20));
+    genomeWindowList.add(BAM::TGenomeWindow(0, 30, 40));
+    genomeWindowList.add(BAM::TGenomeWindow(0, 50, 60));
+    genomeWindowList.add(BAM::TGenomeWindow(1, 55, 100));
+    genomeWindowList.add(BAM::TGenomeWindow(0, 15, 35));
+    genomeWindowList.add(BAM::TGenomeWindow(0, 1, 2));
+
+    auto it = genomeWindowList.end();
+    it--;
+    EXPECT_EQ(it->refID(), 3);
+    EXPECT_EQ(it->fromOnChr(), 10);
+    EXPECT_EQ(it->toOnChr(), 100);
+}
+
+
+TEST(TGenomeWindowListTest, loop){
+    // create bed and add chromosome
+    BAM::TGenomeWindowList genomeWindowList;
+
+    genomeWindowList.add(BAM::TGenomeWindow(3, 10, 100));
+    genomeWindowList.add(BAM::TGenomeWindow(0, 10, 20));
+    genomeWindowList.add(BAM::TGenomeWindow(1, 55, 100));
+    genomeWindowList.add(BAM::TGenomeWindow(0, 1, 2));
+
+    int i = 0;
+    for (auto it = genomeWindowList.begin(); it != genomeWindowList.end(); it++, i++){
+        // just check if entries are correct (different for each loop)
+        if (i == 0){
+            EXPECT_EQ(it->refID(), 0);
+            EXPECT_EQ(it->fromOnChr(), 1);
+            EXPECT_EQ(it->toOnChr(), 2);
+        } else if (i == 1){
+            EXPECT_EQ(it->refID(), 0);
+            EXPECT_EQ(it->fromOnChr(), 10);
+            EXPECT_EQ(it->toOnChr(), 20);
+        } else if (i == 2){
+            EXPECT_EQ(it->refID(), 1);
+            EXPECT_EQ(it->fromOnChr(), 55);
+            EXPECT_EQ(it->toOnChr(), 100);
+        } else {
+            EXPECT_EQ(it->refID(), 3);
+            EXPECT_EQ(it->fromOnChr(), 10);
+            EXPECT_EQ(it->toOnChr(), 100);
+        }
+    }
+}
+
+

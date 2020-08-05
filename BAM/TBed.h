@@ -88,7 +88,7 @@ private:
 	std::set<TGenomeWindow, std::less<>> _bed;
 
 public:
-	TBed(){};
+	TBed()= default;
 	TBed(const std::string Filename){ add(Filename); };
 	TBed(const std::string Filename, const TChromosomes & Chromosomes){ add(Filename, Chromosomes); };
 
@@ -126,9 +126,9 @@ private:
 	std::multiset<TGenomeWindow> _list;
 
 public:
-	TGenomeWindowList(){};
+	TGenomeWindowList()= default;
 
-	void add(const TGenomeWindow Window);
+	void add(const TGenomeWindow& Window);
 	void add(const std::string Filename,  const TChromosomes & Chromosomes);
 	void write(const std::string Filename, const TChromosomes & Chromosomes) const;
 
@@ -137,7 +137,7 @@ public:
 	uint64_t length() const;
 	uint32_t numChromosomesWithWindows() const;
 
-	bool exists(const TGenomeWindow Window) const;
+	bool exists(const TGenomeWindow& Window) const;
 	bool hasWindowsOnChr(uint32_t refId) const;
 	uint32_t numWindowsOnChr(const uint32_t refId) const;
 

@@ -195,13 +195,13 @@ bool TBed::exists(const TGenomeWindow& window) const{
 //-----------------------------------------------------
 // TGenomeWindowList
 //-----------------------------------------------------
-void TGenomeWindowList::add(const TGenomeWindow Window){
+void TGenomeWindowList::add(const TGenomeWindow& Window){
 	_list.insert(Window);
 };
 
 void TGenomeWindowList::add(const std::string Filename, const TChromosomes & Chromosomes){
 	//add windows from file
-	TInputFile in(Filename, false);
+	TInputFile in(Filename, 3);
 
 	std::vector<std::string> vec;
 	while(in.read(vec)){
@@ -239,7 +239,7 @@ uint32_t TGenomeWindowList::numChromosomesWithWindows() const{
 	return _numChromosomesWithWindows(_list);
 };
 
-bool TGenomeWindowList::exists(const TGenomeWindow window) const{
+bool TGenomeWindowList::exists(const TGenomeWindow& window) const{
 	//search entry according to chr and start
 	auto it = _list.find(window);
 	if(it == _list.end()){
@@ -255,15 +255,15 @@ bool TGenomeWindowList::exists(const TGenomeWindow window) const{
 };
 
 bool TGenomeWindowList::hasWindowsOnChr(uint32_t refId) const{
-	auto it = _list.find(TGenomePosition(refId, 0));
-	if(it == _list.end() || it->refID() > refId){
+	auto it = _list.lower_bound(TGenomePosition(refId, 0));
+    if(it == _list.end() || it->refID() > refId){
 		return false;
 	}
 	return true;
 };
 
 uint32_t TGenomeWindowList::numWindowsOnChr(const uint32_t refId) const{
-	auto it = _list.find(TGenomePosition(refId, 0));
+	auto it = _list.lower_bound(TGenomePosition(refId, 0));
 	if(it == _list.end() || it->refID() > refId){
 		return 0;
 	} else {
