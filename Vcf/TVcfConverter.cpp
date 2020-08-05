@@ -838,6 +838,15 @@ double TStitchVcfReader::infoScore(){
     return stringToDouble(actualScore);
 }
 
+double TStitchVcfReader::estimatedAlleleFrequency(){
+    std::string infoField = _oneLine[7];
+    std::string EAF = extractBefore(infoField, ";");
+    std::string alleleFreq = extractAfter(EAF, "=");
+
+    return stringToDouble(alleleFreq);
+}
+
+
 double TStitchVcfReader::HWE_pVal(){
     std::string infoField = _oneLine[7];
     std::string tmp1 = extractAfter(infoField, ";"); // get rid of first ;
@@ -1153,6 +1162,10 @@ TStitchVcfToLFMMPostGeno::TStitchVcfToLFMMPostGeno(TParameters &Params, TLog *lo
     fileLociNames.open(outname + ".lfmm.kept_loci");
     fileSampleNames.open(outname + ".lfmm.kept_samples");
 
+    // filter on MAF?
+    minMAF = Params.getParameterDoubleWithDefault("minMAF", 0.);
+    logfile->list("Will filter on a minimal minor allele frequency (MAF) of " + toString(minMAF) + " (parameter 'minMAF').");
+
     // parse header
     parseVCFHeader();
     parseVCF();
@@ -1211,10 +1224,14 @@ void TStitchVcfToLFMMPostGeno::parseVCF(){
         reader.meanPosteriorGenotypes(meanPostGenoForOneLocus);
         // check if all samples have the same meanPosteriorGenotypes -> if yes, exclude locus, because this causes problems when calculating correlations later
         if (!std::equal(meanPostGenoForOneLocus.begin() + 1, meanPostGenoForOneLocus.end(), meanPostGenoForOneLocus.begin())){
-            //not all equal -> store
-            _genotypes.emplace_back(meanPostGenoForOneLocus);
-            // write loci names to file
-            loci_names.emplace_back(reader.chr() + ":" + reader.pos());
+            //not all equal
+            double MAF = reader.estimatedAlleleFrequency();
+            if(MAF > 0.5) MAF = 1.0 - MAF;
+            if (MAF >= minMAF) { // filter on MAF
+                _genotypes.emplace_back(meanPostGenoForOneLocus);
+                // write loci names to file
+                loci_names.emplace_back(reader.chr() + ":" + reader.pos());
+            }
         }
     }
 }

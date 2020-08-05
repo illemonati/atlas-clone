@@ -221,6 +221,7 @@ public:
     std::string altAllele();
     double infoScore();
     double HWE_pVal();
+    double estimatedAlleleFrequency();
     uint32_t numSamples() const{return _numSamples;};
 };
 
@@ -286,6 +287,9 @@ private:
     TOutputFilePlain fileLociNames;
     TOutputFilePlain fileSampleNames;
     TStitchVcfReader reader;
+
+    double minMAF;
+
     void parseVCF();
     void parseVCFHeader();
     void _write();
