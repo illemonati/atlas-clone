@@ -141,9 +141,9 @@ public:
 	bool variantQualityIsMissing();
 	double variantQuality();
 	int getNumAlleles();
-	char getRefAllele();
-	char getFirstAltAllele();
-	char getAllele(int num);
+	std::string getRefAllele();
+	std::string getFirstAltAllele();
+	std::string getAllele(int num);
 	bool isBialleleicSNP();
 
 	//sample info
@@ -156,9 +156,9 @@ public:
 	bool sampleIsDiploid(unsigned int sample);
 	bool sampleIsHomoRef(unsigned int sample);
 	bool sampleIsHeteroRefNonref(unsigned int sample);
-	char getFirstAlleleOfSample(unsigned int num);
+	std::string getFirstAlleleOfSample(unsigned int num);
 	Base getFirstAlleleOfSample(unsigned int num, TGenotypeMap & genoMap);
-	char getSecondAlleleOfSample(unsigned int num);
+	std::string getSecondAlleleOfSample(unsigned int num);
 	Base getSecondAlleleOfSample(unsigned int num, TGenotypeMap & genoMap);
 	short sampleGenotype(const unsigned int & num);
 	Genotype sampleGenotype(const unsigned int & num, TGenotypeMap & genoMap);

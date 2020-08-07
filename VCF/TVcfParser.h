@@ -141,7 +141,7 @@ public:
 	double variantQuality;
 	bool variantQualityMissing;
 
-	std::vector<char> variants; //entry at 0 is reference
+	std::vector<std::string> variants; //entry at 0 is reference
 	std::map<std::string, std::vector<std::string> > info;
 	std::vector<std::string> formatOrdered;
 	std::map<std::string, int> format;
@@ -156,8 +156,8 @@ public:
 	TVcfLine(std::string & line, unsigned int & numCols, long & LineNumber);
 	~TVcfLine(){};
 	void update(std::string & line, unsigned int & numCols, long & LineNumber);
-	bool variantExists(char & var);
-	bool addVariant(char var);
+	bool variantExists(const std::string & var);
+	bool addVariant(const std::string & var);
 	void writeVariant(std::ostream & out);
 };
 
@@ -211,9 +211,9 @@ public:
 	std::string getChr(TVcfLine & line);
 	uint64_t getPos(TVcfLine & line);
 	int getNumAlleles(TVcfLine & line);
-	char getRefAllele(TVcfLine & line);
-	char getFirstAltAllele(TVcfLine & line);
-	char getAllele(TVcfLine & line, int num);
+	std::string getRefAllele(TVcfLine & line);
+	std::string getFirstAltAllele(TVcfLine & line);
+	std::string getAllele(TVcfLine & line, int num);
 	bool variantQualityIsMissing(TVcfLine & line);
 	double variantQuality(TVcfLine & line);
 
@@ -228,8 +228,8 @@ public:
 	bool sampleIsDiploid(TVcfLine & line, unsigned int & sample);
 	bool sampleIsHomoRef(TVcfLine & line, unsigned int & sample);
 	bool sampleIsHeteroRefNonref(TVcfLine & line, unsigned int & sample);
-	char getFirstAlleleOfSample(TVcfLine & line, const unsigned int & sample);
-	char getSecondAlleleOfSample(TVcfLine & line, const unsigned int & sample);
+	std::string getFirstAlleleOfSample(TVcfLine & line, const unsigned int & sample);
+	std::string getSecondAlleleOfSample(TVcfLine & line, const unsigned int & sample);
 	//std::string sampleGenotype(TVcfLine & line, unsigned int & sample);
 	short sampleGenotype(TVcfLine & line, const unsigned int & sample);
 	bool sampleIsMissing(TVcfLine & line, unsigned int & sample);
