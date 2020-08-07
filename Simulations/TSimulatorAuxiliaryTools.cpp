@@ -152,7 +152,7 @@ void TSimulatorReference::setChr(std::string ChrName, long ChrLength){
 void TSimulatorBamFile::open(const std::string Filename,
 		                     const std::string SampleName,
 							 const std::vector<std::string> & ReadGroupNames,
-							 const std::vector<TSimulatorChromosome> & Chromosomes,
+							 const BAM::TChromosomes & Chromosomes,
 							 TLog* Logfile,
 							 TGenotypeMap & GenoMap,
 							 BAM::TQualityMap & QualMap){
@@ -192,7 +192,7 @@ void TSimulatorBamFile::close(TLog* Logfile){
 	_outBam.close(Logfile);
 };
 
-TSimulatorBamFiles::TSimulatorBamFiles(uint32_t NumFiles, const std::string Outname, const std::vector<std::string> & ReadGroupNames, const std::vector<TSimulatorChromosome> & Chromosomes, TLog* Logfile, TGenotypeMap & GenoMap, BAM::TQualityMap & QualMap){
+TSimulatorBamFiles::TSimulatorBamFiles(uint32_t NumFiles, const std::string Outname, const std::vector<std::string> & ReadGroupNames, const BAM::TChromosomes & Chromosomes, TLog* Logfile, TGenotypeMap & GenoMap, BAM::TQualityMap & QualMap){
 	if(NumFiles < 1) throw "Can not open less than one BAM file!";
 	_logfile = Logfile;
 	_files.resize(NumFiles);
@@ -229,7 +229,7 @@ TSimulatorHaplotypes::TSimulatorHaplotypes(int NumIndividuals){
 	numInd = NumIndividuals;
 	haplotypes = NULL;
 	initialized = false;
-	curLength = 0;
+	_length = 0;
 	storageLength = 0;
 	trueGenoVCFOpend = false;
 };
@@ -259,11 +259,11 @@ void TSimulatorHaplotypes::freeStorage(){
 	}
 };
 
-void TSimulatorHaplotypes::setLength(uint64_t length){
+void TSimulatorHaplotypes::setLength(uint32_t length){
 	if(length > storageLength){
 		allocateStorage(length);
 	}
-	curLength = length;
+	_length = length;
 };
 
 void TSimulatorHaplotypes::openTrueGenotypeVCF(std::string filename){
@@ -297,14 +297,14 @@ Base** TSimulatorHaplotypes::getHaplotypesOfIndividual(int i){
 	return haplotypes[i];
 };
 
-void TSimulatorHaplotypes::writeTrueGenotypes(TSimulatorChromosome & chromosome, Base* ref, TGenotypeMap & genoMap){
+void TSimulatorHaplotypes::writeTrueGenotypes(const std::string & chrName, Base* ref, TGenotypeMap & genoMap){
 	//prepare allele storage
 	TSimulatorAlleleIndex index;
 	std::string genoString;
 
-	for(uint64_t l=0; l<curLength; ++l){
+	for(uint64_t l=0; l<_length; ++l){
 		//chromosome name, position and ID
-		trueGenoVCF << chromosome.name << '\t' << l+1 << "\t.\t";
+		trueGenoVCF << chrName << '\t' << l+1 << "\t.\t";
 
 		//assemble alleles and genotypes
 		genoString.clear();
@@ -490,24 +490,24 @@ void TSimulatorVariantInvariantBedFiles::close(){
 	}
 };
 
-void TSimulatorVariantInvariantBedFiles::write(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome){
+void TSimulatorVariantInvariantBedFiles::write(TSimulatorHaplotypes & haplotypes, const std::string & chrName){
 	//0-based
 	uint64_t invariantStart = 0;
-	for(uint64_t l=0; l<chromosome.length; ++l){
+	for(uint64_t l=0; l<haplotypes.length(); ++l){
 		if(haplotypes.isPolymoprhic(l)){
 			//write invariant
 			if(invariantStart < l)
-				invariantSitesFile << chromosome.name << "\t" << invariantStart << "\t" << l << "\n";
+				invariantSitesFile << chrName << "\t" << invariantStart << "\t" << l << "\n";
 			invariantStart = l+1;
 
 			//write variant
-			variantSitesFile << chromosome.name << "\t" << l << "\t" << l+1 << "\n";
+			variantSitesFile << chrName << "\t" << l << "\t" << l+1 << "\n";
 		}
 	}
 
 	//write last invariant interval
-	if(invariantStart < chromosome.length)
-		invariantSitesFile << chromosome.name << "\t" << invariantStart << "\t" << chromosome.length << "\n";
+	if(invariantStart < haplotypes.length())
+		invariantSitesFile << chrName << "\t" << invariantStart << "\t" << haplotypes.length() << "\n";
 };
 
 }; //end namespace

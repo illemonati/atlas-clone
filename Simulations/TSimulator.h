@@ -39,8 +39,8 @@ protected:
 	double maxReadLength;
 
 	//chromosomes
-	//BAM::TChromosomes chromosomes;
-	std::vector<TSimulatorChromosome> chromosomes;
+	BAM::TChromosomes chromosomes;
+	//std::vector<TSimulatorChromosome> chromosomes;
 	bool writeTrueGenotypes;
 	bool writeVariantInvariantBedFiles;
 	TSimulatorReference referenceObj;
@@ -75,9 +75,9 @@ protected:
 	void initializeReadGroupFrequencies(TParameters & params);
 
 	//functions to simulate
-	virtual void simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref){ throw "simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref) not implemented for base class TSimulator!"; };
-	virtual void simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref){ throw "simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref) not implemented for base class TSimulator!"; };
-	void simulateReadsFromHaplotypes(std::vector<TSimulatorChromosome>::iterator & thisChr, Base** haplotypes, TSimulatorBamFile & bamFile, std::string extraProgressText);
+	virtual void simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, Base* ref){ throw "simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref) not implemented for base class TSimulator!"; };
+	virtual void simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, Base* ref){ throw "simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref) not implemented for base class TSimulator!"; };
+	void simulateReadsFromHaplotypes(const BAM::TChromosome & thisChr, Base** haplotypes, TSimulatorBamFile & bamFile, std::string extraProgressText);
 	//void writeRead(const long & pos, short* haplotype, TSimulatorBamFile & bamFile);
 
 	//from SFS
@@ -98,8 +98,8 @@ public:
 	void setBaseFreq(std::vector<float> & freq);
 	void setQualityTransformation(std::vector<double> & Betas);
 	void initializeChromosomes(TParameters & params, TLog* logfile);
-	void initializeChromosomes(int numChr, long chrLength, bool haploid);
-	void initializeChromosomes(std::vector<long> & chrLength, std::vector<bool> haploid);
+	void initializeChromosomes(const uint32_t & numChr, const uint32_t & chrLength, const uint8_t & ploidy);
+	void initializeChromosomes(std::vector<uint32_t> & chrLength, std::vector<uint8_t> haploid);
 
 	void runSimulations();
 };
@@ -112,8 +112,8 @@ private:
 	std::vector<double> thetas;
 	TSimulatorMutationtable mutTable;
 
-	void simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref);
-	void simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref);
+	void simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, Base* ref);
+	void simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, Base* ref);
 
 
 public:
@@ -140,8 +140,8 @@ private:
 	void fillTables();
 	void deleteTables();
 
-	void simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref);
-	void simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref);
+	void simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, Base* ref);
+	void simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, Base* ref);
 
 public:
 
@@ -161,8 +161,8 @@ private:
 
 	void initializeSFS(std::vector<double> & thetas);
 	void initializeSFS(std::vector<std::string> & sfsFileNames, bool folded);
-	void simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref);
-	void simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref);
+	void simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, Base* ref);
+	void simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, Base* ref);
 
 public:
 	TSimulatorSFS(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGenerator);
@@ -192,8 +192,8 @@ private:
 	void fillCumulGenoProb(const double & f);
 	void simulateSite(TSimulatorHardyWeinbergSite & site, const std::string & chr, const uint64_t & pos, Base* & ref);
 	void fillhaplotypesMonomoprhic(TSimulatorHaplotypes & haplotypes, const uint64_t & locus, TSimulatorHardyWeinbergSite & site);
-	void simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref);
-	void simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref);
+	void simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, Base* ref);
+	void simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, Base* ref);
 
 public:
 	TSimulatorHardyWeinberg(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGenerator);

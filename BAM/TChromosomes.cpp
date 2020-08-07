@@ -13,10 +13,18 @@ namespace BAM{
 //---------------------------------------------------------
 // TChromosome
 //---------------------------------------------------------
-TChromosome::TChromosome(const uint32_t RefID, const std::string Name, const uint32_t Length){
+TChromosome::TChromosome(const uint32_t & RefID, const std::string & Name, const uint32_t & Length){
+	_initialize(RefID, Name, Length, 2);
+};
+
+TChromosome::TChromosome(const uint32_t & RefID, const std::string & Name, const uint32_t & Length, const uint8_t & Ploidy){
+	_initialize(RefID, Name, Length, Ploidy);
+};
+
+void TChromosome::_initialize(const uint32_t & RefID, const std::string & Name, const uint32_t & Length, const uint8_t & Ploidy){
 	name = Name;
 	length = Length;
-	ploidy = 2; //default: diploid
+	ploidy = Ploidy;
 	inUse = true;
 
 	//set TGenomePosition
@@ -63,8 +71,12 @@ void TChromosomes::clear(){
 	_curChr = _chromosomes.end();
 };
 
-void TChromosomes::appendChromosome(const std::string name, const uint32_t length){
+void TChromosomes::appendChromosome(const std::string & name, const uint32_t & length){
 	_chromosomes.emplace_back(_chromosomes.size(), name, length);
+};
+
+void TChromosomes::appendChromosome(const std::string & name, const uint32_t & length, const uint8_t & ploidy){
+	_chromosomes.emplace_back(_chromosomes.size(), name, length, ploidy);
 };
 
 const TChromosome& TChromosomes::_find(const std::string chrName) const{
