@@ -248,7 +248,11 @@ bool TVcfSample::parse(std::string s, const int genotypeCol){
 			setGenotype(convertString<int>(gt));
 		} else if(gt.length() == 3 && (gt[1] == '/' || gt[1] == '|')){
 			setGenotype(gt[0] - '0', gt[2] - '0'); //turn into int by removing char of 0
-		} else return false;
+		} else {
+			setMissingGenotype();
+			isHaploid = false;
+			//return false;
+		}
 	}
 
 	return true;
@@ -391,6 +395,13 @@ void TVcfParser::parseVariant(TVcfLine & line){
 			}
 		}
 		line.variantParsed=true;
+
+
+		std::cout << " num alleles = " << line.variants.size();
+		for(auto& v : line.variants){
+			std::cout << " " << v;
+		}
+		std::cout << std::endl;
 	}
 };
 
