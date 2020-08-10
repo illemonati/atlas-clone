@@ -147,7 +147,7 @@ void TGenome_parsed::_setContextFilter(TParameters & params){
 				throw "Context " + c + " does not consist of two bases! (parameter 'maskContext')";
 			}
 			//ave context
-			BaseContext co = _genoMap.toContext(c[0], c[1]);
+			GenotypeLikelihoods::BaseContext co = _genoMap.toContext(c[0], c[1]);
 			_ignoreTheseContexts.emplace(co, 1);
 			_logfile->list(_genoMap.getContextString(co));
 		}

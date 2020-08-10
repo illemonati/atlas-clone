@@ -8,7 +8,7 @@
 #ifndef TATLASTESTPMD_H_
 #define TATLASTESTPMD_H_
 
-#include "TAtlasTest.h"
+#include "../TestUtilities/TAtlasTest.h"
 
 
 class TAtlasTest_PMDEmpiric:public TAtlasTest{

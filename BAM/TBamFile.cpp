@@ -737,7 +737,7 @@ TOutputBamFile::TOutputBamFile(){
 	_qualityMap = nullptr;
 };
 
-TOutputBamFile::TOutputBamFile(const std::string Filename, const TBamFile & Original, TGenotypeMap* GenoMap, TQualityMap* QualityMap){
+TOutputBamFile::TOutputBamFile(const std::string Filename, const TBamFile & Original, GenotypeLikelihoods::TGenotypeMap* GenoMap, TQualityMap* QualityMap){
 	_openForWriting = false;
 	open(Filename, Original.samHeader(), Original.chromosomes(), Original.readGroups(), GenoMap, QualityMap);
 };
@@ -746,7 +746,7 @@ TOutputBamFile::~TOutputBamFile(){
 	closeNoIndex();
 };
 
-void TOutputBamFile::open(const std::string Filename, const TSamHeader & Header, const TChromosomes & Chromosomes, const TReadGroups & ReadGroups, TGenotypeMap* GenoMap, TQualityMap* QualityMap){
+void TOutputBamFile::open(const std::string Filename, const TSamHeader & Header, const TChromosomes & Chromosomes, const TReadGroups & ReadGroups, GenotypeLikelihoods::TGenotypeMap* GenoMap, TQualityMap* QualityMap){
 	closeNoIndex();
 
 	_outputFilename = Filename;
@@ -771,7 +771,7 @@ void TOutputBamFile::open(const std::string Filename, const TSamHeader & Header,
 	_openForWriting = true;
 };
 
-void TOutputBamFile::open(const std::string Filename, const TBamFile & Original, TGenotypeMap* GenoMap, TQualityMap* QualityMap){
+void TOutputBamFile::open(const std::string Filename, const TBamFile & Original, GenotypeLikelihoods::TGenotypeMap* GenoMap, TQualityMap* QualityMap){
 	open(Filename, Original.samHeader(), Original.chromosomes(), Original.readGroups(), GenoMap, QualityMap);
 };
 
@@ -791,6 +791,20 @@ void TOutputBamFile::close(TLog* logfile){
 		reader.Close();
 		logfile->done();
 
+		_openForWriting = false;
+	}
+};
+
+void TOutputBamFile::close(){
+	if(_openForWriting){
+		_bamWriter.Close();
+		BamTools::BamReader reader;
+
+		// create index for BAM file
+		reader.CreateIndex(BamTools::BamIndex::STANDARD);
+
+		//close BAM file
+		reader.Close();
 		_openForWriting = false;
 	}
 };

@@ -154,7 +154,7 @@ void TSimulatorBamFile::open(const std::string Filename,
 							 const std::vector<std::string> & ReadGroupNames,
 							 const BAM::TChromosomes & Chromosomes,
 							 TLog* Logfile,
-							 TGenotypeMap & GenoMap,
+							 GenotypeLikelihoods::TGenotypeMap & GenoMap,
 							 BAM::TQualityMap & QualMap){
 	Logfile->listFlush("Opening BAM file '" + Filename + "' ...");
 
@@ -166,10 +166,6 @@ void TSimulatorBamFile::open(const std::string Filename,
 
 	//create header, read group and chromosome objects
 	BAM::TSamHeader header("1.6", "coordinate", "none");
-	BAM::TChromosomes chr;
-	for(auto it = Chromosomes.cbegin(); it != Chromosomes.cend(); ++it){
-		chr.appendChromosome(it->name, it->length);
-	}
 	BAM::TReadGroups readGroups;
 	for(auto it = ReadGroupNames.cbegin(); it != ReadGroupNames.cend(); ++it){
 		const BAM::TReadGroup& rg = readGroups.add(*it);
@@ -179,7 +175,7 @@ void TSimulatorBamFile::open(const std::string Filename,
 		rg.sequencingTechnology_PL = "ILLUMINA";
 	}
 
-	_outBam.open(Filename, header, chr, readGroups, &GenoMap, &QualMap);
+	_outBam.open(Filename, header, Chromosomes, readGroups, &GenoMap, &QualMap);
 
 	Logfile->done();
 };
@@ -192,7 +188,7 @@ void TSimulatorBamFile::close(TLog* Logfile){
 	_outBam.close(Logfile);
 };
 
-TSimulatorBamFiles::TSimulatorBamFiles(uint32_t NumFiles, const std::string Outname, const std::vector<std::string> & ReadGroupNames, const BAM::TChromosomes & Chromosomes, TLog* Logfile, TGenotypeMap & GenoMap, BAM::TQualityMap & QualMap){
+TSimulatorBamFiles::TSimulatorBamFiles(uint32_t NumFiles, const std::string Outname, const std::vector<std::string> & ReadGroupNames, const BAM::TChromosomes & Chromosomes, TLog* Logfile, GenotypeLikelihoods::TGenotypeMap & GenoMap, BAM::TQualityMap & QualMap){
 	if(NumFiles < 1) throw "Can not open less than one BAM file!";
 	_logfile = Logfile;
 	_files.resize(NumFiles);
@@ -297,7 +293,7 @@ Base** TSimulatorHaplotypes::getHaplotypesOfIndividual(int i){
 	return haplotypes[i];
 };
 
-void TSimulatorHaplotypes::writeTrueGenotypes(const std::string & chrName, Base* ref, TGenotypeMap & genoMap){
+void TSimulatorHaplotypes::writeTrueGenotypes(const std::string & chrName, Base* ref, GenotypeLikelihoods::TGenotypeMap & genoMap){
 	//prepare allele storage
 	TSimulatorAlleleIndex index;
 	std::string genoString;

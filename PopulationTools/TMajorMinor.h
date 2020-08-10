@@ -23,7 +23,7 @@ namespace PopulationTools{
 //-----------------------------------------------
 class TMajorMinorEstimatorBase{
 protected:
-	TGenotypeMap genoMap; //TODO: pass?
+	GenotypeLikelihoods::TGenotypeMap genoMap; //TODO: pass?
 	TRandomGenerator* randomGenerator;
 
 	TPopulationLikehoodLocus genotypeLikelihoods;

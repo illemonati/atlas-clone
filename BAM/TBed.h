@@ -68,7 +68,7 @@ protected:
 	};
 
 public:
-
+	virtual ~TBed_base() = default;
 	std::set<TBedChromosome, std::less<>>::iterator addChromosome(const std::string & Chr);
 	void addChromosomes(const TChromosomes & Chromosomes);
 	virtual uint32_t numChromosomesWithWindows() const;

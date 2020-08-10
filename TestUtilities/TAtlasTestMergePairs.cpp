@@ -5,7 +5,7 @@
  *      Author: linkv
  */
 
-#include "TAtlasTestMergePairs.h"
+#include "../TestUtilities/TAtlasTestMergePairs.h"
 
 
 TAtlasTest_mergePairs::TAtlasTest_mergePairs():TAtlasTest(){

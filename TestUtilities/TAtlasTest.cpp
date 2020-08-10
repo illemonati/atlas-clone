@@ -6,7 +6,7 @@
  */
 
 
-#include "TAtlasTest.h"
+#include "../TestUtilities/TAtlasTest.h"
 
 //------------------------------------------
 //TAtlasTest

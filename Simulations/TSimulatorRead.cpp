@@ -12,7 +12,7 @@ namespace Simulations{
 //----------------------------------
 //TSimulatorSingleEndRead
 //----------------------------------
-TSimulatorSingleEndRead::TSimulatorSingleEndRead(std::string readGroupName, int readGroupNumber, int MaxPrintPhredInt, TRandomGenerator* RandomGenerator, TGenotypeMap & GenoMap):_genoMap(GenoMap){
+TSimulatorSingleEndRead::TSimulatorSingleEndRead(std::string readGroupName, int readGroupNumber, int MaxPrintPhredInt, TRandomGenerator* RandomGenerator, GenotypeLikelihoods::TGenotypeMap & GenoMap):_genoMap(GenoMap){
 	_type = "single-end";
 
 	//set variables
@@ -222,12 +222,8 @@ void TSimulatorSingleEndRead::_simulateBasesQualities(BAM::TAlignment & alignmen
 	//simulate qualities and errors
 	qualityTransform->simulateQualitiesAndErrors(bases, phredIntQualities, readLength.read, isReverse);
 
-	_cigar.clear();
-	_cigar.add('M', readLength.read);
-
-	std::string queryBases, qualities;
-
 	//copy bases and qualities
+	std::string queryBases, qualities;
 	for(int p=0; p<readLength.read; ++p){
 		queryBases += _genoMap.baseToChar[bases[p]];
 		qualities += (char) (std::min(phredIntQualities[p], _maxPrintPhredInt) + 33);
@@ -235,7 +231,7 @@ void TSimulatorSingleEndRead::_simulateBasesQualities(BAM::TAlignment & alignmen
 
 	//fill alignment
 	//TODO: verify that it should be negative in case of single end!
-	alignment.setSequenceQualities(_cigar, queryBases, qualities);
+	alignment.setSequenceQualitiesOnlyMatches(queryBases, qualities);
 	alignment.setIsReverseStrand(isReverse);
 	if(isReverse){
 		alignment.setInsertSize(-readLength.fragment);
@@ -289,7 +285,7 @@ void TSimulatorSingleEndRead::printDetails(TLog* logfile){
 //----------------------------------
 // TSimulatorPairedEndReads
 //----------------------------------
-TSimulatorPairedEndReads::TSimulatorPairedEndReads(std::string readGroupName, int readGroupNumber, int MaxPrintQual, TRandomGenerator* RandomGenerator, TGenotypeMap & GenoMap)
+TSimulatorPairedEndReads::TSimulatorPairedEndReads(std::string readGroupName, int readGroupNumber, int MaxPrintQual, TRandomGenerator* RandomGenerator, GenotypeLikelihoods::TGenotypeMap & GenoMap)
 :TSimulatorSingleEndRead(readGroupName, readGroupNumber, MaxPrintQual, RandomGenerator, GenoMap){
 	_type = "paired-end";
 	qualityTransform_secondMate = NULL;

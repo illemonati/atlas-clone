@@ -22,7 +22,7 @@ TGenoToPhiMap::TGenoToPhiMap(){
 
 	//case aa/aa
 	for(uint8_t b=0; b<4; ++b){
-		Genotype G = genoMap.toGenotype(b, b);
+		GenotypeLikelihoods::Genotype G = genoMap.toGenotype(b, b);
 		genoToPhiMap[G][G] = 0;
 	}
 
@@ -31,8 +31,8 @@ TGenoToPhiMap::TGenoToPhiMap(){
 		for(uint8_t b2=0; b2<4; ++b2){
 			if(b2 != b1){
 				//aa/ab and ab/aa
-				Genotype G1 = genoMap.toGenotype(b1, b1);
-				Genotype G2 = genoMap.toGenotype(b1, b2);
+				GenotypeLikelihoods::Genotype G1 = genoMap.toGenotype(b1, b1);
+				GenotypeLikelihoods::Genotype G2 = genoMap.toGenotype(b1, b2);
 				genoToPhiMap[G1][G2] = 1;
 				genoToPhiMap[G2][G1] = 2;
 
@@ -47,7 +47,7 @@ TGenoToPhiMap::TGenoToPhiMap(){
 	//case ab/ab
 	for(uint8_t b1=0; b1<3; ++b1){
 		for(uint8_t b2=b1+1; b2<4; ++b2){
-			Genotype G = genoMap.toGenotype(b1, b2);
+			GenotypeLikelihoods::Genotype G = genoMap.toGenotype(b1, b2);
 			genoToPhiMap[G][G] = 4;
 		}
 	}
@@ -58,8 +58,8 @@ TGenoToPhiMap::TGenoToPhiMap(){
 			if(b2 != b1){
 				for(uint8_t b3=0; b3<4; ++b3){
 					if(b3 != b1 && b3 != b2){
-						Genotype G1 = genoMap.toGenotype(b1, b2);
-						Genotype G2 = genoMap.toGenotype(b1, b3);
+						GenotypeLikelihoods::Genotype G1 = genoMap.toGenotype(b1, b2);
+						GenotypeLikelihoods::Genotype G2 = genoMap.toGenotype(b1, b3);
 						genoToPhiMap[G1][G2] = 5;
 					}
 				}
@@ -72,8 +72,8 @@ TGenoToPhiMap::TGenoToPhiMap(){
 		for(uint8_t b2=0; b2<3; ++b2){
 			for(uint8_t b3=b2+1; b3<4; ++b3){
 				if(b2 != b1 && b3 != b1){
-					Genotype G1 = genoMap.toGenotype(b1, b1);
-					Genotype G2 = genoMap.toGenotype(b2, b3);
+					GenotypeLikelihoods::Genotype G1 = genoMap.toGenotype(b1, b1);
+					GenotypeLikelihoods::Genotype G2 = genoMap.toGenotype(b2, b3);
 					genoToPhiMap[G1][G2] = 6;
 					genoToPhiMap[G2][G1] = 7;
 				}
@@ -82,12 +82,12 @@ TGenoToPhiMap::TGenoToPhiMap(){
 	}
 
 	//case ab/cd
-	genoToPhiMap[AC][GT] = 8;
-	genoToPhiMap[AG][CT] = 8;
-	genoToPhiMap[AT][CG] = 8;
-	genoToPhiMap[CG][AT] = 8;
-	genoToPhiMap[CT][AG] = 8;
-	genoToPhiMap[GT][AC] = 8;
+	genoToPhiMap[GenotypeLikelihoods::AC][GenotypeLikelihoods::GT] = 8;
+	genoToPhiMap[GenotypeLikelihoods::AG][GenotypeLikelihoods::CT] = 8;
+	genoToPhiMap[GenotypeLikelihoods::AT][GenotypeLikelihoods::CG] = 8;
+	genoToPhiMap[GenotypeLikelihoods::CG][GenotypeLikelihoods::AT] = 8;
+	genoToPhiMap[GenotypeLikelihoods::CT][GenotypeLikelihoods::AG] = 8;
+	genoToPhiMap[GenotypeLikelihoods::GT][GenotypeLikelihoods::AC] = 8;
 
 
 	//test (seemed correct on 24/8/2017)

@@ -29,11 +29,11 @@ private:
 public:
 	TBamSample(const double Prob, const std	::string OutName);
 
-	void open(BAM::TBamFile & bamFile, TGenotypeMap & genoMap, BAM::TQualityMap & qualMap);
+	void open(BAM::TBamFile & bamFile, 	GenotypeLikelihoods::TGenotypeMap & genoMap, BAM::TQualityMap & qualMap);
 	void close(TLog* logfile);
 
 	void sample(BAM::TBamFile & bamfile, TRandomGenerator & randomGenerator);
-	void downsampleRead(BAM::TAlignment & alignment, TRandomGenerator & randomGenerator, const TGenotypeMap & genoMap, const BAM::TQualityMap & qualMap);
+	void downsampleRead(BAM::TAlignment & alignment, TRandomGenerator & randomGenerator, const 	GenotypeLikelihoods::TGenotypeMap & genoMap, const BAM::TQualityMap & qualMap);
 };
 
 //-----------------------------------------

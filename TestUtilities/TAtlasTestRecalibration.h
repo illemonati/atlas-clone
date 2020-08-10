@@ -8,8 +8,8 @@
 #ifndef TATLASTESTRECALIBRATION_H_
 #define TATLASTESTRECALIBRATION_H_
 
-#include "TAtlasTest.h"
 #include "TSimulatorQualityTransformation.h"
+#include "../TestUtilities/TAtlasTest.h"
 
 //------------------------------------------
 //TAtlasTest_recalSimulation

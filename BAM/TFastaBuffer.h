@@ -22,7 +22,7 @@ namespace BAM{
 
 class TFastaBuffer{
 private:
-	TGenotypeMap* _genoMap;
+	GenotypeLikelihoods::TGenotypeMap* _genoMap;
 	bool _hasReference;
 
 	//tmp storage (mutable)
@@ -41,17 +41,17 @@ public:
 		_genoMap = nullptr;
 	};
 
-	TFastaBuffer(std::string fastaFile, TGenotypeMap* GenoMap){
+	TFastaBuffer(std::string fastaFile, GenotypeLikelihoods::TGenotypeMap* GenoMap){
 		initialize(fastaFile, GenoMap);
 	};
 
-	TFastaBuffer(std::string fastaFile, TGenotypeMap* GenoMap, const uint32_t BufferSize){
+	TFastaBuffer(std::string fastaFile, GenotypeLikelihoods::TGenotypeMap* GenoMap, const uint32_t BufferSize){
 		initialize(fastaFile, GenoMap, BufferSize);
 	};
 
 	~TFastaBuffer(){};
 
-	void initialize(std::string fastaFile, TGenotypeMap* GenoMap, const uint32_t BufferSize=1000000);
+	void initialize(std::string fastaFile, GenotypeLikelihoods::TGenotypeMap* GenoMap, const uint32_t BufferSize=1000000);
 	bool hasReference() const { return _hasReference; };
 	explicit operator bool() const { return _hasReference; }
 

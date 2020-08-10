@@ -118,7 +118,7 @@ private:
 	int maxQualPlusOne;
 	int numContext;
 	int*** transformedQuality; //index are [qual][pos][context]
-	TGenotypeMap genoMap;
+	GenotypeLikelihoods::TGenotypeMap genoMap;
 
 	//private functions
 	void fillTransformationTable(const std::string & modelTag, std::vector<std::string> & values, int maxReadLength);

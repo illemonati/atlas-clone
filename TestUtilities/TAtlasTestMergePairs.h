@@ -8,7 +8,7 @@
 #ifndef TATLASTESTMERGEPAIRS_H_
 #define TATLASTESTMERGEPAIRS_H_
 
-#include "TAtlasTest.h"
+#include "../TestUtilities/TAtlasTest.h"
 
 class TAtlasTest_mergePairs:public TAtlasTest{
 protected:

@@ -57,12 +57,12 @@ private:
 	std::string _referenceSequence;
 
 	//functions to read and parse
-	void _parseBasesQualities(const TGenotypeMap & genoMap, const TQualityMap & qualityMap);
+	void _parseBasesQualities(const GenotypeLikelihoods::TGenotypeMap & genoMap, const TQualityMap & qualityMap);
 	void _setDistancesFromEnds();
 	void _fillContext();
 
 	//functions to modify data
-	void _updateSequenceAndQualities(const TGenotypeMap & genoMap, const TQualityMap & qualMap) const;
+	void _updateSequenceAndQualities(const GenotypeLikelihoods::TGenotypeMap & genoMap, const TQualityMap & qualMap) const;
 
 public:
 	TAlignment();
@@ -82,8 +82,8 @@ public:
 			  const std::string & Sequence,
 			  const std::string & Qualities,
 			  const uint16_t & ReadGroupId);
-	void parse(const TGenotypeMap & genoMap, const TQualityMap & qualityMap);
-	void parse(const TGenotypeMap & genoMap, const TQualityMap & qualityMap, const GenotypeLikelihoods::TSequencingErrorModels & seqErrorModels);
+	void parse(const GenotypeLikelihoods::TGenotypeMap & genoMap, const TQualityMap & qualityMap);
+	void parse(const GenotypeLikelihoods::TGenotypeMap & genoMap, const TQualityMap & qualityMap, const GenotypeLikelihoods::TSequencingErrorModels & seqErrorModels);
 
 	//setters
 	void addReference(TFastaBuffer & fasta);
@@ -93,6 +93,7 @@ public:
 	void setMateGenomicPosition(const uint32_t RefID, const uint32_t Position){ _mateGenomicPosition.move(RefID, Position); };
 	void setInsertSize(const int32_t InsertSize){ _insertSize_TLEN = InsertSize; };
 	void setSequenceQualities(const TCigar Cigar, const std::string Sequence, const std::string Qualities);
+	void setSequenceQualitiesOnlyMatches(const std::string Sequence, const std::string Qualities);
 	void setReadGroup(const uint16_t readGroupId);
 	void setIsReverseStrand(const bool IsReverse){ _flags.setIsReverseStrand(IsReverse); };
 
@@ -117,8 +118,8 @@ public:
 	TBase& operator[](const uint32_t internalPos){ return _bases[internalPos]; };
 	const TBase& at(const uint32_t internalPos) const { return _bases[internalPos]; };
 
-	std::string sequence(const TGenotypeMap & genoMap, const TQualityMap & qualMap) const;
-	std::string qualities(const TGenotypeMap & genoMap, const TQualityMap & qualMap) const;
+	std::string sequence(const GenotypeLikelihoods::TGenotypeMap & genoMap, const TQualityMap & qualMap) const;
+	std::string qualities(const GenotypeLikelihoods::TGenotypeMap & genoMap, const TQualityMap & qualMap) const;
 	bool isReverseStrand() const{ return _flags.isReverseStrand(); };
 	bool isPaired() const{ return _flags.isPaired(); };
 	bool isProperPair() const{ return _flags.isProperPair(); };
@@ -130,7 +131,7 @@ public:
 
 	//filters and other functions to modify data
 	void filterForBaseQuality(TQualityFilter & qualFilter);
-	void filterForContext(const std::map<BaseContext,int> & ignoreTheseContexts, const TGenotypeMap & genoMap);
+	void filterForContext(const std::map<GenotypeLikelihoods::BaseContext,int> & ignoreTheseContexts, const GenotypeLikelihoods::TGenotypeMap & genoMap);
 	void trimRead(const int & trimmingLength3Prime, const int & trimmingLength5Prime);
 	void removeSoftClippedBases();
 	void binQualityScores(TQualityMap & qualityMap);
@@ -139,7 +140,7 @@ public:
 	void downsampleAlignment(const double fraction, TRandomGenerator& randomGenerator);
 
 	//debug functions
-	void print(const TGenotypeMap & genoMap, const TQualityMap & qualMap);
+	void print(const GenotypeLikelihoods::TGenotypeMap & genoMap, const TQualityMap & qualMap);
 };
 
 }; //end namespace

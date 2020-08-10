@@ -23,7 +23,7 @@ namespace Simulations{
 class TSimulatorSingleEndRead{
 protected:
 	TRandomGenerator* _randomGenerator;
-	TGenotypeMap& _genoMap;
+	GenotypeLikelihoods::TGenotypeMap& _genoMap;
 
 	std::string _type;
 	int _maxPrintPhredInt;
@@ -54,7 +54,6 @@ protected:
 	TSimulatorReference* contaminationSource;
 
 	//alignment
-	BAM::TCigar _cigar;
 	BAM::TSamFlags _flags;
 	BAM::TAlignment _alignment;
 	Base* bases;
@@ -67,7 +66,7 @@ protected:
 	void _simulateBasesQualities(BAM::TAlignment & alignment, Base* haplotype, const uint64_t pos, const TReadLength & readLength, const bool readIsContaminated, const bool isReverse, TSimulatorQualityTransformation* qualityTransform);
 
 public:
-	TSimulatorSingleEndRead(std::string readGroupName, int readGroupNumber, int MaxPrintQual, TRandomGenerator* RandomGenerator, TGenotypeMap & GenoMap);
+	TSimulatorSingleEndRead(std::string readGroupName, int readGroupNumber, int MaxPrintQual, TRandomGenerator* RandomGenerator, GenotypeLikelihoods::TGenotypeMap & GenoMap);
 	virtual ~TSimulatorSingleEndRead();
 
 	bool checkInitialization();
@@ -108,7 +107,7 @@ private:
 	TSimulatorQualityTransformation* qualityTransform_secondMate;
 
 public:
-	TSimulatorPairedEndReads(std::string readGroupName, int readGroupNumber, int MaxPrintQual, TRandomGenerator* RandomGenerator, TGenotypeMap & GenoMap);
+	TSimulatorPairedEndReads(std::string readGroupName, int readGroupNumber, int MaxPrintQual, TRandomGenerator* RandomGenerator, GenotypeLikelihoods::TGenotypeMap & GenoMap);
 	~TSimulatorPairedEndReads();
 
 	void setQualityTransformation(TSimulatorQualityTransformParameters & parameters, TLog* logfile);

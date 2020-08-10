@@ -16,12 +16,14 @@
 
 namespace PopulationTools{
 
+using namespace GenotypeLikelihoods;
+
 //--------------------------------------------
 //TPhiToGenoMap
 //--------------------------------------------
 class TGenoToPhiMap{
 public:
-	TGenotypeMap genoMap;
+	GenotypeLikelihoods::TGenotypeMap genoMap;
 	int**   genoToPhiMap;
 
 	TGenoToPhiMap();
@@ -34,7 +36,7 @@ public:
 	int& operator()(int & g1, int & g2){
 		return genoToPhiMap[g1][g2];
 	};
-	int& operator()(Genotype & g1, Genotype & g2){
+	int& operator()(GenotypeLikelihoods::Genotype & g1, GenotypeLikelihoods::Genotype & g2){
 		return genoToPhiMap[g1][g2];
 	};
 };
@@ -44,7 +46,7 @@ public:
 //--------------------------------------------
 class TGenocombinationToBaseMap{
 public:
-	TGenotypeMap genoMap;
+	GenotypeLikelihoods::TGenotypeMap genoMap;
 	bool*** genotypeCombinationHasBase;
 
 	TGenocombinationToBaseMap();
@@ -60,7 +62,7 @@ public:
 	bool& operator()(int & g1, int & g2, int & base){
 		return genotypeCombinationHasBase[g1][g2][base];
 	};
-	bool& operator()(Genotype & g1, Genotype & g2, Base & b){
+	bool& operator()(GenotypeLikelihoods::Genotype & g1, GenotypeLikelihoods::Genotype & g2, Base & b){
 		return genotypeCombinationHasBase[g1][g2][b];
 	};
 };
@@ -99,7 +101,7 @@ public:
 class TEMforDistanceEstimation{
 private:
 	TLog* logfile;
-	TGenotypeMap genoMap;
+	GenotypeLikelihoods::TGenotypeMap genoMap;
 	TGenoToPhiMap genoToPhiMap;
 	TGenocombinationToBaseMap genoToBaseMap;
 	//TQualityMap phredToLik;

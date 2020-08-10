@@ -60,11 +60,11 @@ void TGenotypeComparisonTable::addSecondMissing(const Base b1){
 };
 
 //add diploid genotypes
-void TGenotypeComparisonTable::add(Genotype g1, Genotype g2){
+void TGenotypeComparisonTable::add(GenotypeLikelihoods::Genotype g1, GenotypeLikelihoods::Genotype g2){
 	++counts[firstDiploidIndex + g1][firstDiploidIndex + g2];
 };
 
-void TGenotypeComparisonTable::addOtherMissing(const int sample, const Genotype g){
+void TGenotypeComparisonTable::addOtherMissing(const int sample, const GenotypeLikelihoods::Genotype g){
 	if(sample == 0){
 		++counts[firstDiploidIndex + g][missingIndex];
 	} else {
@@ -72,26 +72,26 @@ void TGenotypeComparisonTable::addOtherMissing(const int sample, const Genotype 
 	}
 };
 
-void TGenotypeComparisonTable::addFirstMissing(Genotype g2){
+void TGenotypeComparisonTable::addFirstMissing(GenotypeLikelihoods::Genotype g2){
 	++counts[missingIndex][firstDiploidIndex + g2];
 };
 
-void TGenotypeComparisonTable::addSecondMissing(Genotype g1){
+void TGenotypeComparisonTable::addSecondMissing(GenotypeLikelihoods::Genotype g1){
 	++counts[firstDiploidIndex + g1][missingIndex];
 };
 
 
 //add haploid / diploid combination of genotypes
-void TGenotypeComparisonTable::add(const Genotype g1, const Base b2){
+void TGenotypeComparisonTable::add(const GenotypeLikelihoods::Genotype g1, const Base b2){
 	++counts[firstDiploidIndex + g1][b2];
 };
 
-void TGenotypeComparisonTable::add(const Base b1, const Genotype g2){
+void TGenotypeComparisonTable::add(const Base b1, const GenotypeLikelihoods::Genotype g2){
 	++counts[b1][firstDiploidIndex + g2];
 };
 
 //write
-void TGenotypeComparisonTable::write(const std::string filename, TGenotypeMap & genoMap){
+void TGenotypeComparisonTable::write(const std::string filename, GenotypeLikelihoods::TGenotypeMap & genoMap){
 	//open output file
 	TOutputFile out(filename);
 

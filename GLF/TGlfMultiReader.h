@@ -23,9 +23,8 @@ struct TMultiGLFDataSample{
 
 class TMultiGLFData{
 private:
-	TGenotypeMap genoMap;
+	GenotypeLikelihoods::TGenotypeMap genoMap;
 	TGlfConverter converter;
-
 
 	void _free();
 
@@ -53,7 +52,7 @@ private:
 	bool _usePhredScaledLikelihoods;
 
 	TRandomGenerator* randomGenerator;
-	TGenotypeMap genoMap;
+	GenotypeLikelihoods::TGenotypeMap genoMap;
 	TGlfConverter converter;
 	gz::ogzstream vcf;
 	bool vcfOpened;
@@ -89,7 +88,7 @@ private:
 	std::vector<std::string> GLFNames;
 	TGlfReader* GLFs;
 	bool readersOpened;
-	TGenotypeMap genoMap;
+	GenotypeLikelihoods::TGenotypeMap genoMap;
 
 	void _openGLFs(TLog* logfile);
 

@@ -5,13 +5,12 @@
  *      Author: vivian
  */
 
-#ifndef TESTS_TVCFTEST_H_
-#define TESTS_TVCFTEST_H_
-
-#include "TAtlasTest.h"
+#ifndef TESTUTILITIES_TVCFTEST_H_
+#define TESTUTILITIES_TVCFTEST_H_
 
 #include <vector>
 #include <map>
+#include "../TestUtilities/TAtlasTest.h"
 
 class TAtlasTest_invariantBed:public TAtlasTest{
 private:
@@ -31,4 +30,4 @@ public:
 
 };
 
-#endif /* TESTS_TVCFTEST_H_ */
+#endif /* TESTUTILITIES_TVCFTEST_H_ */

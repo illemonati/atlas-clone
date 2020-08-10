@@ -5,10 +5,10 @@
  *      Author: vivian
  */
 
-#ifndef TESTS_TATLASTESTFILTER_H_
-#define TESTS_TATLASTESTFILTER_H_
+#ifndef TESTUTILITIES_TATLASTESTFILTER_H_
+#define TESTUTILITIES_TATLASTESTFILTER_H_
 
-#include "TAtlasTest.h"
+#include "../TestUtilities/TAtlasTest.h"
 
 class TAtlasTest_filter:public TAtlasTest{
 private:
@@ -51,4 +51,4 @@ public:
 };
 
 
-#endif /* TESTS_TATLASTESTFILTER_H_ */
+#endif /* TESTUTILITIES_TATLASTESTFILTER_H_ */

@@ -5,7 +5,7 @@
  *      Author: vivian
  */
 
-#include "TAtlasTestFilter.h"
+#include "../TestUtilities/TAtlasTestFilter.h"
 
 TAtlasTest_filter::TAtlasTest_filter():TAtlasTest(){
 	_name = "testFilter";

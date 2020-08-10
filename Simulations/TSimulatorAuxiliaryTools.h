@@ -31,7 +31,7 @@ private:
 	long _oldOffset;
 	bool _fastaOpen;
 	std::string _filename;
-	TGenotypeMap _genoMap;
+	GenotypeLikelihoods::TGenotypeMap _genoMap;
 
 	//reference storage
 	Base* _ref;
@@ -74,12 +74,12 @@ private:
 
 public:
 	TSimulatorBamFile(){};
-	TSimulatorBamFile(const std::string Filename, const std::string SampleName, const std::vector<std::string> & ReadGroupNames, const BAM::TChromosomes & Chromosomes, TLog* Logfile, TGenotypeMap & GenoMap, BAM::TQualityMap & QualMap){
+	TSimulatorBamFile(const std::string Filename, const std::string SampleName, const std::vector<std::string> & ReadGroupNames, const BAM::TChromosomes & Chromosomes, TLog* Logfile, GenotypeLikelihoods::TGenotypeMap & GenoMap, BAM::TQualityMap & QualMap){
 		open(Filename, SampleName, ReadGroupNames, Chromosomes, Logfile, GenoMap, QualMap);
 	};
 	~TSimulatorBamFile();
 
-	void open(const std::string Filename, const std::string SampleName, const std::vector<std::string> & ReadGroupNames, const BAM::TChromosomes & Chromosomes, TLog* Logfile, TGenotypeMap & GenoMap, BAM::TQualityMap & QualMap);
+	void open(const std::string Filename, const std::string SampleName, const std::vector<std::string> & ReadGroupNames, const BAM::TChromosomes & Chromosomes, TLog* Logfile, GenotypeLikelihoods::TGenotypeMap & GenoMap, BAM::TQualityMap & QualMap);
 
 	void saveAlignment(const BAM::TAlignment & Alignment){
 		_outBam.writeAlignment(Alignment);
@@ -94,7 +94,7 @@ private:
 	TLog* _logfile;
 
 public:
-	TSimulatorBamFiles(uint32_t NumFiles, const std::string Outname, const std::vector<std::string> & ReadGroupNames, const BAM::TChromosomes & Chromosomes, TLog* Logfile, TGenotypeMap & GenoMap, BAM::TQualityMap & QualMap);
+	TSimulatorBamFiles(uint32_t NumFiles, const std::string Outname, const std::vector<std::string> & ReadGroupNames, const BAM::TChromosomes & Chromosomes, TLog* Logfile, GenotypeLikelihoods::TGenotypeMap & GenoMap, BAM::TQualityMap & QualMap);
 
 	void close();
 	TSimulatorBamFile& operator[](size_t i);
@@ -135,7 +135,7 @@ public:
 		}
 	};
 
-	void writeRefAltToVCF(gz::ogzstream & VCF, TGenotypeMap & genoMap){
+	void writeRefAltToVCF(gz::ogzstream & VCF, GenotypeLikelihoods::TGenotypeMap & genoMap){
 		VCF << genoMap.baseToChar[refBase] << '\t';
 		if(nextIndex == 1) //no alt
 			VCF << ".";
@@ -179,7 +179,7 @@ public:
 	Base** getHaplotypesFirstIndividual(){
 		return haplotypes[0];
 	};
-	void writeTrueGenotypes(const std::string & chrName, Base* ref, TGenotypeMap & genoMap);
+	void writeTrueGenotypes(const std::string & chrName, Base* ref, GenotypeLikelihoods::TGenotypeMap & genoMap);
 	int size(){ return numInd; };
 	Base& operator()(int ind, int hap, uint64_t site){
 		return haplotypes[ind][hap][site];

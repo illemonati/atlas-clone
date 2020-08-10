@@ -24,6 +24,8 @@
 #include "TChromosomes.h"
 #include "TTask.h"
 
+using namespace GenotypeLikelihoods;
+
 //----------------------------------------------------
 // TGlfConverter
 // class to converted likelihoods to uint16 and back

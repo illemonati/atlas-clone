@@ -324,7 +324,7 @@ void TGlfMultiReader::openGLFs(TParameters & params, TLog* logfile){
 		while(in.good() && !in.eof()){
 			std::string line;
 			std::getline(in, line);
-			fillVectorFromStringWhiteSpaceSkipEmpty(line, vec);
+			fillVectorFromStringWhiteSpace(line, vec, true);
 			//skip empty lines
 			if(vec.size() > 0){
 				GLFNames.push_back(vec[0]);

@@ -212,7 +212,7 @@ private:
  	BamTools::BamWriter _bamWriter;
  	bool _openForWriting;
  	const TReadGroups* _readGroups;
- 	TGenotypeMap* _genoMap;
+ 	GenotypeLikelihoods::TGenotypeMap* _genoMap;
  	TQualityMap* _qualityMap;
 
  	std::multiset<TAlignment, std::less<>> _futureAlignments;
@@ -222,13 +222,14 @@ private:
 
 public:
  	TOutputBamFile();
- 	TOutputBamFile(const std::string filename, const TBamFile & original, TGenotypeMap* GenoMap, TQualityMap* QualityMap);
+ 	TOutputBamFile(const std::string filename, const TBamFile & original, GenotypeLikelihoods::TGenotypeMap* GenoMap, TQualityMap* QualityMap);
  	~TOutputBamFile();
 
- 	void open(const std::string Filename, const TSamHeader & Header, const TChromosomes & Chromosomes, const TReadGroups & ReadGroups, TGenotypeMap* GenoMap, TQualityMap* QualityMap);
-	void open(const std::string Filename, const TBamFile & Original, TGenotypeMap* GenoMap, TQualityMap* QualityMap);
+ 	void open(const std::string Filename, const TSamHeader & Header, const TChromosomes & Chromosomes, const TReadGroups & ReadGroups, GenotypeLikelihoods::TGenotypeMap* GenoMap, TQualityMap* QualityMap);
+	void open(const std::string Filename, const TBamFile & Original, GenotypeLikelihoods::TGenotypeMap* GenoMap, TQualityMap* QualityMap);
 	bool isOpen() const{ return _openForWriting; };
 	void close(TLog* logfile);
+	void close();
 	void closeNoIndex();
 	void writeAlignment(const TAlignment & alignment);
 };

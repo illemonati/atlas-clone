@@ -74,7 +74,7 @@ void TAlignment::fill(const	std::string & Name,
 	}
 };
 
-void TAlignment::parse(const TGenotypeMap & genoMap, const TQualityMap & qualityMap){
+void TAlignment::parse(const GenotypeLikelihoods::TGenotypeMap & genoMap, const TQualityMap & qualityMap){
 	//first parse bases and qualities
 	_parseBasesQualities(genoMap, qualityMap);
 
@@ -97,7 +97,7 @@ void TAlignment::parse(const TGenotypeMap & genoMap, const TQualityMap & quality
 	_sequenceAndQualitiesChanged = false;
 };
 
-void TAlignment::parse(const TGenotypeMap & genoMap, const TQualityMap & qualityMap, const GenotypeLikelihoods::TSequencingErrorModels & seqErrorModels){
+void TAlignment::parse(const GenotypeLikelihoods::TGenotypeMap & genoMap, const TQualityMap & qualityMap, const GenotypeLikelihoods::TSequencingErrorModels & seqErrorModels){
 	parse(genoMap, qualityMap);
 
 	//recalibrate
@@ -105,7 +105,7 @@ void TAlignment::parse(const TGenotypeMap & genoMap, const TQualityMap & quality
 	_sequenceAndQualitiesChanged = seqErrorModels.recalibrationChangesQualities();
 };
 
-void TAlignment::_parseBasesQualities(const TGenotypeMap & genoMap, const TQualityMap & qualityMap){
+void TAlignment::_parseBasesQualities(const GenotypeLikelihoods::TGenotypeMap & genoMap, const TQualityMap & qualityMap){
 	//initialize
 	_bases.resize(_cigar.lengthSequenced());
 	_alignedPosition.resize(_cigar.lengthSequenced());
@@ -253,9 +253,22 @@ void TAlignment::addReference(TFastaBuffer & fasta){
 
 void TAlignment::setSequenceQualities(const TCigar Cigar, const std::string Sequence, const std::string Qualities){
 	if(Cigar.lengthSequenced() != Sequence.length() || Cigar.lengthSequenced() != Qualities.length()){
-		throw "Failed to set sequence and qualities of TAlignment: length of CIGAR, Sequences and Qualities does not match!";
+		throw std::runtime_error("Failed to set sequence and qualities of TAlignment: length of CIGAR, Sequences and Qualities does not match!");
 	}
 	_cigar = Cigar;
+	_sequence = Sequence;
+	_qualities = Qualities;
+};
+
+void TAlignment::setSequenceQualitiesOnlyMatches(const std::string Sequence, const std::string Qualities){
+	if(Sequence.length() != Qualities.length()){
+		throw std::runtime_error("Failed to set sequence and qualities of TAlignment: length of CIGAR, Sequences and Qualities does not match!");
+	}
+	//compile CIGAR
+	_cigar.clear();
+	_cigar.add('M', Sequence.length());
+
+	//set sequence and qualities
 	_sequence = Sequence;
 	_qualities = Qualities;
 };
@@ -290,7 +303,7 @@ uint16_t TAlignment::parsedLength() const{
 	}
 };
 
-void TAlignment::_updateSequenceAndQualities(const TGenotypeMap & genoMap, const TQualityMap & qualMap) const{
+void TAlignment::_updateSequenceAndQualities(const GenotypeLikelihoods::TGenotypeMap & genoMap, const TQualityMap & qualMap) const{
 	if(_sequenceAndQualitiesChanged){
 		//update according to what is stored in bases
 		_sequence.clear();
@@ -305,12 +318,12 @@ void TAlignment::_updateSequenceAndQualities(const TGenotypeMap & genoMap, const
 	}
 };
 
-std::string TAlignment::sequence(const TGenotypeMap & genoMap, const TQualityMap & qualMap) const{
+std::string TAlignment::sequence(const GenotypeLikelihoods::TGenotypeMap & genoMap, const TQualityMap & qualMap) const{
 	_updateSequenceAndQualities(genoMap, qualMap);
 	return _sequence;
 };
 
-std::string TAlignment::qualities(const TGenotypeMap & genoMap, const TQualityMap & qualMap) const{
+std::string TAlignment::qualities(const GenotypeLikelihoods::TGenotypeMap & genoMap, const TQualityMap & qualMap) const{
 	_updateSequenceAndQualities(genoMap, qualMap);
 	return _qualities;
 };
@@ -331,10 +344,10 @@ void TAlignment::filterForBaseQuality(TQualityFilter & qualFilter){
 	_changed = true;
 };
 
-void TAlignment::filterForContext(const std::map<BaseContext,int> & ignoreTheseContexts, const TGenotypeMap & genoMap){
+void TAlignment::filterForContext(const std::map<GenotypeLikelihoods::BaseContext,int> & ignoreTheseContexts, const GenotypeLikelihoods::TGenotypeMap & genoMap){
 	//set base to N if outside quality filter
 	for(auto& b : _bases){
-		BaseContext c = genoMap.toContext(b.base, b.context);
+		GenotypeLikelihoods::BaseContext c = genoMap.toContext(b.base, b.context);
 		if(ignoreTheseContexts.find(c) != ignoreTheseContexts.end()){
 			b.base = N;
 			b.recalibratedQualityAsPhredInt = 0;
@@ -431,7 +444,7 @@ void TAlignment::downsampleAlignment(const double fractionToKeep, TRandomGenerat
 //--------------------------------------------
 //functions to write / print alignment
 //--------------------------------------------
-void TAlignment::print(const TGenotypeMap & genoMap, const TQualityMap & qualMap){
+void TAlignment::print(const GenotypeLikelihoods::TGenotypeMap & genoMap, const TQualityMap & qualMap){
 	std::cout << std::endl << "NAME:\t" << _name << std::endl;
 	std::cout << "LEN:\t" << _bases.size() << std::endl;
 

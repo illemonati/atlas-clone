@@ -5,7 +5,7 @@
  *      Author: vivian
  */
 
-#include "TVcfTest.h"
+#include "../TestUtilities/TVcfTest.h"
 
 TAtlasTest_invariantBed::TAtlasTest_invariantBed():TAtlasTest(){
 	_name = "invariantBed";

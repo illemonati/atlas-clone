@@ -13,7 +13,7 @@ add_subdirectory(GenotypeLikelihoods)
 add_subdirectory(GLF)
 add_subdirectory(PopulationTools)
 add_subdirectory(Simulations)
-add_subdirectory(Tests)
+add_subdirectory(TestUtilities)
 
 # add the executable
 add_executable(${PROJECT_NAME} atlas.cpp)
@@ -37,7 +37,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC ${ARMADILLO_INCLUDE_DIRS}
         "${PROJECT_SOURCE_DIR}/GLF"
         "${PROJECT_SOURCE_DIR}/PopulationTools"
         "${PROJECT_SOURCE_DIR}/Simulations"
-        "${PROJECT_SOURCE_DIR}/Tests"
+        "${PROJECT_SOURCE_DIR}/TestUtilities"
         )
 
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_11)

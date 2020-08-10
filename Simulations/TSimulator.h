@@ -51,7 +51,7 @@ protected:
 	std::vector<double> _cumulSimGroupFrequenies;
 
 	//Quality transformation
-	TGenotypeMap _genoMap;
+	GenotypeLikelihoods::TGenotypeMap _genoMap;
 	BAM::TQualityMap _qualMap;
 
 	//helper tools

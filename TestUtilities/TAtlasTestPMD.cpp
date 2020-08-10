@@ -5,7 +5,7 @@
  *      Author: vivian
  */
 
-#include "TAtlasTestPMD.h"
+#include "../TestUtilities/TAtlasTestPMD.h"
 
 
 TAtlasTest_PMDEmpiric::TAtlasTest_PMDEmpiric():TAtlasTest(){

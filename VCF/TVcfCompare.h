@@ -39,17 +39,17 @@ public:
 	void addSecondMissing(const Base b1);
 
 	//add diploid genotypes
-	void add(const Genotype g1, const Genotype g2);
-	void addOtherMissing(const int sample, const Genotype g);
-	void addFirstMissing(const Genotype g2);
-	void addSecondMissing(const Genotype g1);
+	void add(const GenotypeLikelihoods::Genotype g1, const GenotypeLikelihoods::Genotype g2);
+	void addOtherMissing(const int sample, const GenotypeLikelihoods::Genotype g);
+	void addFirstMissing(const GenotypeLikelihoods::Genotype g2);
+	void addSecondMissing(const GenotypeLikelihoods::Genotype g1);
 
 	//add haploid / diploid combination of genotypes
-	void add(const Genotype g1, const Base b2);
-	void add(const Base b1, const Genotype g2);
+	void add(const GenotypeLikelihoods::Genotype g1, const Base b2);
+	void add(const Base b1, const GenotypeLikelihoods::Genotype g2);
 
 	//write output
-	void write(const std::string filename, TGenotypeMap & genoMap);
+	void write(const std::string filename, GenotypeLikelihoods::TGenotypeMap & genoMap);
 };
 
 //--------------------------------------------------------------
@@ -79,8 +79,8 @@ public:
 	bool eof(){ return vcfFile->eof; };
 	bool isMissing(){ return vcfFile->sampleIsMissing(sampleIndex); };
 	bool isDiploid(){ return vcfFile->sampleIsDiploid(sampleIndex); };
-	Genotype genotype(TGenotypeMap & genoMap){ return vcfFile->sampleGenotype(sampleIndex, genoMap); };
-	Base base(TGenotypeMap & genoMap){ return vcfFile->getFirstAlleleOfSample(sampleIndex, genoMap); };
+	GenotypeLikelihoods::Genotype genotype(GenotypeLikelihoods::TGenotypeMap & genoMap){ return vcfFile->sampleGenotype(sampleIndex, genoMap); };
+	Base base(GenotypeLikelihoods::TGenotypeMap & genoMap){ return vcfFile->getFirstAlleleOfSample(sampleIndex, genoMap); };
 	std::string chr(){ return vcfFile->chr(); };
 	long position(){ return vcfFile->position(); };
 	bool chrParsed(const std::string chr);
@@ -92,7 +92,7 @@ public:
 class TVcfCompare{
 private:
 	TLog* logfile;
-	TGenotypeMap genoMap;
+	GenotypeLikelihoods::TGenotypeMap genoMap;
 
 	std::vector<TVcfComapreVCF> vcfFiles;
 

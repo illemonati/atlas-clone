@@ -37,7 +37,7 @@ protected:
 	TRandomGenerator* _randomGenerator;
 	std::string _outputName;
 
-	TGenotypeMap _genoMap;
+	GenotypeLikelihoods::TGenotypeMap _genoMap;
 	BAM::TQualityMap _qualMap;
 
 	virtual void _openBamForWriting(const std::string filename, BAM::TOutputBamFile & outBam);
@@ -84,7 +84,7 @@ protected:
 	bool _applyQualityFilter;
 	BAM::TQualityFilter _qualityFilter;
 	bool _applyContextFilter;
-	std::map<BaseContext,int> _ignoreTheseContexts;
+	std::map<GenotypeLikelihoods::BaseContext,int> _ignoreTheseContexts;
 
 	//functions for initialization
 	void _setReadTrimming(TParameters & params);

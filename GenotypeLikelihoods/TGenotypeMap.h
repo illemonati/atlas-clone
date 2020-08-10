@@ -12,6 +12,8 @@
 #include "TBase.h"
 #include <math.h>
 
+namespace GenotypeLikelihoods{
+
 enum Genotype : uint8_t {AA=0, AC, AG, AT, CC, CG, CT, GG, GT, TT, NN};
 enum BaseContext : uint8_t {cAA=0, cAC, cAG, cAT, cCA, cCC, cCG, cCT, cGA, cGC, cGG, cGT, cTA, cTC, cTG, cTT, cNA, cNC, cNG, cNT, cAN, cCN, cGN, cTN, cNN}; //N means unknown base or "nothing", i.e. end of read
 
@@ -404,5 +406,7 @@ public:
 		}
 	};
 };
+
+}; // end namespace
 
 #endif /* TGENOTYPEMAP_H_ */

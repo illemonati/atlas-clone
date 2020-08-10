@@ -17,7 +17,7 @@ TBamSample::TBamSample(const double Prob, const std::string OutName){
 	_outName = OutName;
 };
 
-void TBamSample::open(BAM::TBamFile & bamFile, TGenotypeMap & genoMap, BAM::TQualityMap & qualMap){
+void TBamSample::open(BAM::TBamFile & bamFile, 	GenotypeLikelihoods::TGenotypeMap & genoMap, BAM::TQualityMap & qualMap){
 	_out.open(_outName, bamFile, &genoMap, &qualMap);
 };
 
@@ -44,7 +44,7 @@ void TBamSample::sample(BAM::TBamFile & bamFile, TRandomGenerator & randomGenera
 	}
 };
 
-void TBamSample::downsampleRead(BAM::TAlignment & alignment, TRandomGenerator & randomGenerator, const TGenotypeMap & genoMap, const BAM::TQualityMap & qualMap){
+void TBamSample::downsampleRead(BAM::TAlignment & alignment, TRandomGenerator & randomGenerator, const 	GenotypeLikelihoods::TGenotypeMap & genoMap, const BAM::TQualityMap & qualMap){
 	//parse again to get original bases and qualities
 	alignment.parse(genoMap, qualMap);
 

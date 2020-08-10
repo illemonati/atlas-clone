@@ -45,7 +45,7 @@ private:
 	int readLength;
 	int chrLength;
 	std::vector<int> depths;
-	TGenotypeMap genoMap;
+	GenotypeLikelihoods::TGenotypeMap genoMap;
 	BAM::TQualityMap qualMap;
 	std::string filenameTag;
 	std::string bamFileName;
