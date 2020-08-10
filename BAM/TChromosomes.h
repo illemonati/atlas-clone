@@ -23,6 +23,9 @@ namespace BAM{
 // TChromosome
 //---------------------------------------------------------
 class TChromosome{
+private:
+	void _initialize(const uint32_t & RefID, const std::string & Name, const uint32_t & Length, const uint8_t & Ploidy);
+
 public:
 	std::string name; //SN field
 	uint32_t length; //LS field
@@ -40,7 +43,10 @@ public:
 	std::string topology; //TP field;
 	std::string uri; //UR field;
 
-	TChromosome(const uint32_t RefID, const std::string Name, const uint32_t Length);
+	TChromosome(const uint32_t & RefID, const std::string & Name, const uint32_t & Length);
+	TChromosome(const uint32_t & RefID, const std::string & Name, const uint32_t & Length, const uint8_t & Ploidy);
+
+
 	uint32_t refID() const { return chrStart.refID(); };
 
 	bool operator<(const TChromosome & other){
@@ -79,12 +85,12 @@ private:
 	void _specifyPloidy(const std::string & ploidyFileName, TLog* logfile);
 	void _setToHaploid(const std::vector<std::string> & chrNames, TLog* logfile);
 
-
 public:
 	TChromosomes(){};
 
 	void clear();
-	void appendChromosome(const std::string name, const uint32_t length);
+	void appendChromosome(const std::string & name, const uint32_t & length);
+	void appendChromosome(const std::string & name, const uint32_t & length, const uint8_t & ploidy);
 
 	void limitAndSetPloidy(TParameters & params, TLog* logfile);
 	void limitChr(TParameters & params, TLog* logfile);

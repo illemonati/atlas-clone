@@ -93,7 +93,7 @@ void VcfDiagnostics::vcfToInvariantBed(){
 			curChr = vcfFile.chr();
 			updateStart = false;
 		}
-		if(bases.find(vcfFile.getRefAllele()) == bases.end()) {//!= 'A' && vcfFile.getRefAllele() != 'C' && vcfFile.getRefAllele() != 'G' && vcfFile.getRefAllele() != 'T'
+		if(bases.find(vcfFile.getRefAllele()[0]) == bases.end()) {//!= 'A' && vcfFile.getRefAllele() != 'C' && vcfFile.getRefAllele() != 'G' && vcfFile.getRefAllele() != 'T'
 			continue; //ignore indels
 		}
 
@@ -109,10 +109,10 @@ void VcfDiagnostics::vcfToInvariantBed(){
 		}
 
 		int indCounter = 0;
-		char allele = vcfFile.getFirstAlleleOfSample(0);
+		char allele = vcfFile.getFirstAlleleOfSample(0)[0];
 		for(int ind=0; ind<vcfFile.numSamples(); ++ind){
 			++indCounter;
-			if(vcfFile.getFirstAlleleOfSample(ind) != allele || vcfFile.getSecondAlleleOfSample(ind) != allele){
+			if(vcfFile.getFirstAlleleOfSample(ind)[0] != allele || vcfFile.getSecondAlleleOfSample(ind)[0] != allele){
 				//there was a variant site, is previous site invariant? -> write to file
 				if(previousStartIsVariant == false && counter != 1){
 					bedFile << vcfFile.chr() << "\t" << curStartRegion - 1 << "\t" << vcfFile.position() - 1 << std::endl;

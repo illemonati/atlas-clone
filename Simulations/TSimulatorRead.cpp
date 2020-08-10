@@ -244,7 +244,7 @@ void TSimulatorSingleEndRead::_simulateBasesQualities(BAM::TAlignment & alignmen
 	}
 };
 
-void TSimulatorSingleEndRead::simulate(Base* haplotype, const uint32_t refID, const uint32_t & pos, TSimulatorBamFile & bamFile){
+void TSimulatorSingleEndRead::simulate(Base* haplotype, const uint32_t & refID, const uint32_t & pos, TSimulatorBamFile & bamFile){
 	//pick a fragment and read length, strand and contamination
 	TReadLength readLength = _readLengthDist->sample();
 	bool isReverse = _randomGenerator->getRand() < 0.5;

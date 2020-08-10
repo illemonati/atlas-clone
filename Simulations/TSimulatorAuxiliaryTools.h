@@ -19,24 +19,6 @@
 namespace Simulations{
 
 //---------------------------------------------------------
-//TSimulatorChromosome
-//---------------------------------------------------------
-class TSimulatorChromosome{
-public:
-	std::string name;
-	uint64_t length;
-	bool haploid;
-	int refID;
-
-	TSimulatorChromosome(std::string Name, int RefID, long Length, bool Haploid){
-		name = Name;
-		refID = RefID;
-		length = Length;
-		haploid = Haploid;
-	};
-};
-
-//---------------------------------------------------------
 //TSimulatorReference
 //---------------------------------------------------------
 class TSimulatorReference{
@@ -92,12 +74,12 @@ private:
 
 public:
 	TSimulatorBamFile(){};
-	TSimulatorBamFile(const std::string Filename, const std::string SampleName, const std::vector<std::string> & ReadGroupNames, const std::vector<TSimulatorChromosome> & Chromosomes, TLog* Logfile, TGenotypeMap & GenoMap, BAM::TQualityMap & QualMap){
+	TSimulatorBamFile(const std::string Filename, const std::string SampleName, const std::vector<std::string> & ReadGroupNames, const BAM::TChromosomes & Chromosomes, TLog* Logfile, TGenotypeMap & GenoMap, BAM::TQualityMap & QualMap){
 		open(Filename, SampleName, ReadGroupNames, Chromosomes, Logfile, GenoMap, QualMap);
 	};
 	~TSimulatorBamFile();
 
-	void open(const std::string Filename, const std::string SampleName, const std::vector<std::string> & ReadGroupNames, const std::vector<TSimulatorChromosome> & Chromosomes, TLog* Logfile, TGenotypeMap & GenoMap, BAM::TQualityMap & QualMap);
+	void open(const std::string Filename, const std::string SampleName, const std::vector<std::string> & ReadGroupNames, const BAM::TChromosomes & Chromosomes, TLog* Logfile, TGenotypeMap & GenoMap, BAM::TQualityMap & QualMap);
 
 	void saveAlignment(const BAM::TAlignment & Alignment){
 		_outBam.writeAlignment(Alignment);
@@ -112,7 +94,7 @@ private:
 	TLog* _logfile;
 
 public:
-	TSimulatorBamFiles(uint32_t NumFiles, const std::string Outname, const std::vector<std::string> & ReadGroupNames, const std::vector<TSimulatorChromosome> & Chromosomes, TLog* Logfile, TGenotypeMap & GenoMap, BAM::TQualityMap & QualMap);
+	TSimulatorBamFiles(uint32_t NumFiles, const std::string Outname, const std::vector<std::string> & ReadGroupNames, const BAM::TChromosomes & Chromosomes, TLog* Logfile, TGenotypeMap & GenoMap, BAM::TQualityMap & QualMap);
 
 	void close();
 	TSimulatorBamFile& operator[](size_t i);
@@ -171,15 +153,14 @@ public:
 class TSimulatorHaplotypes{
 private:
 	int numInd;
-	uint64_t curLength;
-	uint64_t storageLength;
+	uint32_t _length;
+	uint32_t storageLength;
 	bool initialized;
 	Base*** haplotypes;
 
 	//write true genotypes to VCF
 	gz::ogzstream trueGenoVCF;
 	bool trueGenoVCFOpend;
-
 
 	void allocateStorage(uint64_t length);
 	void freeStorage();
@@ -190,14 +171,15 @@ public:
 		freeStorage();
 	};
 
-	void setLength(uint64_t length);
+	void setLength(uint32_t length);
+	uint32_t length() const{ return _length; };
 	void openTrueGenotypeVCF(std::string filename);
 	void closeTrueGenotypeVCF();
 	Base** getHaplotypesOfIndividual(int i);
 	Base** getHaplotypesFirstIndividual(){
 		return haplotypes[0];
 	};
-	void writeTrueGenotypes(TSimulatorChromosome & chromosome, Base* ref, TGenotypeMap & genoMap);
+	void writeTrueGenotypes(const std::string & chrName, Base* ref, TGenotypeMap & genoMap);
 	int size(){ return numInd; };
 	Base& operator()(int ind, int hap, uint64_t site){
 		return haplotypes[ind][hap][site];
@@ -247,7 +229,7 @@ public:
 
 	void open(std::string outname);
 
-	void write(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome);
+	void write(TSimulatorHaplotypes & haplotypes, const std::string & chrName);
 };
 
 }; //end namespace

@@ -88,7 +88,7 @@ public:
 		return _readLengthDist->max();
 	};
 
-	virtual void simulate(Base* haplotype, const uint32_t refID, const uint32_t & pos, TSimulatorBamFile & bamFile);
+	virtual void simulate(Base* haplotype, const uint32_t & refID, const uint32_t & pos, TSimulatorBamFile & bamFile);
 
 	void printDetails(TLog* logfile);
 	virtual void writeUnwrittenAlignments(const long & pos, TSimulatorBamFile & bamFile){};

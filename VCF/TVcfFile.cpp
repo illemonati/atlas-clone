@@ -320,21 +320,21 @@ std::string TVcfFileSingleLine::chr(){
 int TVcfFileSingleLine::getNumAlleles(){
 	return parser.getNumAlleles(tempLine);
 }
-char TVcfFileSingleLine::getRefAllele(){
+std::string TVcfFileSingleLine::getRefAllele(){
 	return parser.getRefAllele(tempLine);
 }
-char TVcfFileSingleLine::getFirstAltAllele(){
+std::string TVcfFileSingleLine::getFirstAltAllele(){
 	return parser.getFirstAltAllele(tempLine);
 }
-char TVcfFileSingleLine::getAllele(int num){
+std::string TVcfFileSingleLine::getAllele(int num){
 	return parser.getAllele(tempLine, num);
 };
 
 bool TVcfFileSingleLine::isBialleleicSNP(){
 	if(parser.getNumAlleles(tempLine)==2){
-		char ref = parser.getAllele(tempLine, 0);
-		char alt = parser.getAllele(tempLine, 1);
-		return (ref=='A' || ref=='C' || ref=='G' || ref=='T') && (alt=='A' || alt=='C' || alt=='G' || alt=='T');
+		std::string ref = parser.getAllele(tempLine, 0);
+		std::string alt = parser.getAllele(tempLine, 1);
+		return (ref=="A" || ref=="C" || ref=="G" || ref=="T") && (alt=="A" || alt=="C" || alt=="G" || alt=="T");
 	}
 	return false;
 };
@@ -377,20 +377,20 @@ bool TVcfFileSingleLine::sampleIsHeteroRefNonref(unsigned int sample){
 float TVcfFileSingleLine::sampleGenotypeQuality(unsigned int sample){
 	return parser.sampleGenotypeQuality(tempLine, sample);
 }
-char TVcfFileSingleLine::getFirstAlleleOfSample(unsigned int num){
+std::string TVcfFileSingleLine::getFirstAlleleOfSample(unsigned int num){
 	return parser.getFirstAlleleOfSample(tempLine, num);
 }
 
 Base TVcfFileSingleLine::getFirstAlleleOfSample(unsigned int num, TGenotypeMap & genoMap){
-	return genoMap.toBase(parser.getFirstAlleleOfSample(tempLine, num));
+	return genoMap.toBase(parser.getFirstAlleleOfSample(tempLine, num)[0]);
 };
 
-char TVcfFileSingleLine::getSecondAlleleOfSample(unsigned int num){
+std::string TVcfFileSingleLine::getSecondAlleleOfSample(unsigned int num){
 	return parser.getSecondAlleleOfSample(tempLine, num);
 }
 
 Base TVcfFileSingleLine::getSecondAlleleOfSample(unsigned int num, TGenotypeMap & genoMap){
-	return genoMap.toBase(parser.getSecondAlleleOfSample(tempLine, num));
+	return genoMap.toBase(parser.getSecondAlleleOfSample(tempLine, num)[0]);
 }
 
 short TVcfFileSingleLine::sampleGenotype(const unsigned int & num){
@@ -399,7 +399,7 @@ short TVcfFileSingleLine::sampleGenotype(const unsigned int & num){
 }
 
 Genotype TVcfFileSingleLine::sampleGenotype(const unsigned int & num, TGenotypeMap & genoMap){
-	return genoMap.toGenotype(parser.getFirstAlleleOfSample(tempLine, num), parser.getSecondAlleleOfSample(tempLine, num));
+	return genoMap.toGenotype(parser.getFirstAlleleOfSample(tempLine, num)[0], parser.getSecondAlleleOfSample(tempLine, num)[0]);
 }
 
 // int TVcfFileSingleLine::sampleDepth(unsigned int sample){

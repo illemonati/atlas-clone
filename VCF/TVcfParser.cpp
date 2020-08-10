@@ -248,7 +248,11 @@ bool TVcfSample::parse(std::string s, const int genotypeCol){
 			setGenotype(convertString<int>(gt));
 		} else if(gt.length() == 3 && (gt[1] == '/' || gt[1] == '|')){
 			setGenotype(gt[0] - '0', gt[2] - '0'); //turn into int by removing char of 0
-		} else return false;
+		} else {
+			setMissingGenotype();
+			isHaploid = false;
+			//return false;
+		}
 	}
 
 	return true;
@@ -315,21 +319,21 @@ void TVcfLine::update(std::string & line, unsigned int & numCols, long & LineNum
 	if(data.size() != numCols) throw "Wrong number of columns (" + toString(data.size()) + " instead of " + toString(numCols) + ") in VCF file on line " + toString(lineNumber) + "!";
 }
 
-bool TVcfLine::variantExists(char & var){
-	for(std::vector<char>::iterator it=variants.begin(); it!=variants.end(); ++it){
+bool TVcfLine::variantExists(const std::string & var){
+	for(std::vector<std::string>::iterator it=variants.begin(); it!=variants.end(); ++it){
 		if(*it==var) return true;
 	}
 	return false;
 }
 
-bool TVcfLine::addVariant(char var){
+bool TVcfLine::addVariant(const std::string & var){
 	if(variantExists(var)) return false;
 	else variants.push_back(var);
 	return true;
 }
 
 void TVcfLine::writeVariant(std::ostream & out){
-	std::vector<char>::iterator it=variants.begin();
+	std::vector<std::string>::iterator it=variants.begin();
 	out << *it << "\t";
 	if(variants.size()>1){
 		++it; out << *it; ++it;
@@ -361,36 +365,21 @@ void TVcfParser::parseVariant(TVcfLine & line){
 	if(!line.variantParsed){
 //		std::cout << "parsing " << line.data[cols.Pos] << std::endl;
 		//parse reference bases
-		if(line.data[cols.Ref].length() ==1){
-			line.variants.push_back(line.data[cols.Ref].c_str()[0]);
-			if(line.variants[0]!='A' && line.variants[0]!='G' && line.variants[0]!='C' && line.variants[0]!='T' && line.variants[0]!='N')
-				throw "Unknown reference allele '" + line.data[cols.Ref] + "' in VCF file on line " + toString(line.lineNumber) + "!";
-		}else{
-			line.variants.push_back('D'); // for deletions
-			//throw "Unknown reference allele '" + line.data[cols.Ref] + "' in VCF file on line " +toString(line.lineNumber) + "!";
-		}
+		line.variants.push_back(line.data[cols.Ref]);
 
 		//alternative bases can be a comma separated list
 		std::string buf;
-		char var;
 		if(line.data[cols.Alt]!="."){ //only if there are alternative bases
 			while(!line.data[cols.Alt].empty()){
-				buf=extractBefore(line.data[cols.Alt], ',');
+				buf = extractBefore(line.data[cols.Alt], ',');
 				line.data[cols.Alt].erase(0,1);
-				if(buf.length() == 1){
-					var=buf.c_str()[0];
-					if(var!='A' && var!='G' && var!='C' && var!='T') throw "Unknown alternative allele '" + toString(var) + "' in VCF file on line " + toString(line.lineNumber) + "!";
-					if(!line.addVariant(var)){
-						throw (std::string) "Allele '" + var + "' given multiple times in VCF file on line " + toString(line.lineNumber) + "!";
-					}
-				} else {
-					if(buf=="<NON_REF>") var = 'X';
-					else var= 'I'; //insertion
-					line.addVariant(var);
+				if(buf=="<NON_REF>") buf = "X";
+				if(!line.addVariant(buf)){
+					throw (std::string) "Allele '" + buf + "' given multiple times in VCF file on line " + toString(line.lineNumber) + "!";
 				}
 			}
 		}
-		line.variantParsed=true;
+		line.variantParsed = true;
 	}
 };
 
@@ -732,21 +721,21 @@ int TVcfParser::getNumAlleles(TVcfLine & line){
 	return line.variants.size();
 }
 
-char TVcfParser::getRefAllele(TVcfLine & line){
+std::string TVcfParser::getRefAllele(TVcfLine & line){
 	if(!line.variantParsed){
 		throw "Position has not been parsed!";
 	}
 	return line.variants[0];
 }
 
-char TVcfParser::getFirstAltAllele(TVcfLine & line){
+std::string TVcfParser::getFirstAltAllele(TVcfLine & line){
 	if(!line.variantParsed){
 		throw "Position has not been parsed!";
 	}
 	return line.variants[1];
 }
 
-char TVcfParser::getAllele(TVcfLine & line, int num){
+std::string TVcfParser::getAllele(TVcfLine & line, int num){
 	if(!line.variantParsed){
 		throw "Position has not been parsed!";
 	}
@@ -827,11 +816,11 @@ bool TVcfParser::sampleIsHeteroRefNonref(TVcfLine & line, unsigned int & sample)
 	return false;
 }
 
-char TVcfParser::getFirstAlleleOfSample(TVcfLine & line, const unsigned int & sample){
+std::string TVcfParser::getFirstAlleleOfSample(TVcfLine & line, const unsigned int & sample){
 	return line.variants[line.samples[sample].genotype.first];
 }
 
-char TVcfParser::getSecondAlleleOfSample(TVcfLine & line, const unsigned int & sample){
+std::string TVcfParser::getSecondAlleleOfSample(TVcfLine & line, const unsigned int & sample){
 	return line.variants[line.samples[sample].genotype.second];
 }
 

@@ -363,7 +363,7 @@ void THardyWeinbergTest::testForHardyWeinberg(){
 		++lineCounter;
 
 		//exclude multiallelic
-		if(_vcfFile.isBialleleicSNP()){
+		if(_vcfFile.getNumAlleles() == 2){
 			//reset counts
 			_populations.clear();
 
