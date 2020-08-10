@@ -93,8 +93,8 @@ protected:
 
 	//call
 	void _countAlleles(const TSite & site);
-	virtual void _callGenotype(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
-	virtual void _callGenotypeKnownAlleles(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
+	virtual bool _callGenotype(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
+	virtual bool _callGenotypeKnownAlleles(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
 
 	template <typename T> uint8_t _pickIndexWithHighestMetric(T* metric, const uint8_t size){
 		//find maximum
@@ -166,8 +166,8 @@ public:
 //------------------------------------------------------
 class TCallerRandomBase:public TCaller{
 private:
-	void _callGenotype(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
-	void _callGenotypeKnownAlleles(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
+	bool _callGenotype(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
+	bool _callGenotypeKnownAlleles(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
 
 public:
 	TCallerRandomBase(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
@@ -180,11 +180,27 @@ class TCallerMajorityBase:public TCaller{
 private:
 	uint32_t _downsampleDepth;
 
-	void _callGenotype(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
-	void _callGenotypeKnownAlleles(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
+	bool _callGenotype(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
+	void _callGenotypeKnownAlleles(const TBaseCounts & AlleleCounts);
+	bool _callGenotypeKnownAlleles(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
 
 public:
 	TCallerMajorityBase(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
+};
+
+//------------------------------------------------------
+// TCallerConsensify
+//------------------------------------------------------
+class TCallerConsensify:public TCaller{
+private:
+	uint32_t _downsampleDepth;
+
+	bool _callGenotype(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
+	void _callGenotypeKnownAlleles(const TBaseCounts & AlleleCounts);
+	bool _callGenotypeKnownAlleles(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
+
+public:
+	TCallerConsensify(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
 };
 
 //------------------------------------------------------
@@ -197,8 +213,8 @@ private:
 	Base MAP;
 
 	void fillPosteriors(TGenotypeLikelihoods & genotypeLikelihoods);
-	void _callGenotype(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
-	void _callGenotypeKnownAlleles(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
+	bool _callGenotype(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
+	bool _callGenotypeKnownAlleles(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
 	std::string _getVCFGenotypeString_GQ(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
 	std::string _getVCFGenotypeString_AP(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
 
@@ -235,8 +251,8 @@ public:
 //------------------------------------------------------
 class TCallerMLE:public TCallerDiploid{
 private:
-	void _callGenotype(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
-	void _callGenotypeKnownAlleles(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
+	bool _callGenotype(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
+	bool _callGenotypeKnownAlleles(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
 	std::string _getVCFGenotypeString_GQ(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
 	std::string _getVCFGenotypeString_GL(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
 	std::string _getVCFGenotypeString_PL(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
@@ -252,8 +268,8 @@ class TCallerBayes:public TCallerDiploid{
 private:
 	TGenotypeProbabilities posterior;
 
-	void _callGenotype(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
-	void _callGenotypeKnownAlleles(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
+	bool _callGenotype(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
+	bool _callGenotypeKnownAlleles(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
 	std::string _getVCFGenotypeString_GQ(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
 	std::string _getVCFGenotypeString_GP(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
 	std::string getVCFGenotypeString_PP(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);

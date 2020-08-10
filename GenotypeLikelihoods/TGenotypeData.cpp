@@ -140,14 +140,21 @@ void TBaseCounts::fillCumulativeFrequencies(TBaseData & freq){
 
 void TBaseCounts::downsample(const uint32_t & max, TRandomGenerator & RandomGenerator){
 	TBaseData probs;
-	fillCumulativeFrequencies(probs);
-
 	TBaseCounts newCounts;
 
 	for(uint32_t i=0; i<max; ++i){
+		fillCumulativeFrequencies(probs);
 		uint8_t b = RandomGenerator.pickOne(4, probs.data());
-
+		++newCounts[b];
+		--_counts[b];
 	}
+
+	//set counts
+	_counts[A] = newCounts[A];
+	_counts[C] = newCounts[C];
+	_counts[G] = newCounts[G];
+	_counts[T] = newCounts[T];
+	_counts[N] = 0;
 };
 
 //--------------------------------------------------------------------

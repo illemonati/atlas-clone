@@ -135,6 +135,7 @@ protected:
 	//site filters
 	bool _applyDepthFilter;
 	uint32_t _readUpToDepth, _minDepth, _maxDepth;
+
 	bool _filterCpG;
 
 	//tmp variables

@@ -76,7 +76,7 @@ public:
 	void operator+=(const TBaseData & other);
 	void operator*=(const TBaseData & other);
 
-	double* data(){ return &_data[0]; };
+	double* data(){ return _data; };
 	double& operator[](const Base base){ return _data[base];};
 	double& operator[](const uint8_t base){ return _data[base];};
 	double at(const Base base) const{ return _data[base]; };
@@ -107,8 +107,8 @@ public:
 	uint32_t& operator[](const uint8_t base){ return _counts[base]; };
 	uint32_t at(const Base base) const{ return _counts[base]; };
 	uint32_t at(const uint8_t base) const{ return _counts[base]; };
+	uint32_t* data(){ return _counts; };
 
-	uint32_t* pointerToCounts(){ return _counts; };
 	void add(const Base base){ ++_counts[base]; };
 	uint32_t size() const;
 	uint8_t numAlleles() const;
