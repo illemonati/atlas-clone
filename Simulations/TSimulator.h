@@ -26,68 +26,62 @@ namespace Simulations{
 //---------------------------------------------------------
 class TSimulator{
 protected:
-	TLog* logfile;
-	TRandomGenerator* randomGenerator;
-	std::string outname;
+	TLog* _logfile;
+	TRandomGenerator* _randomGenerator;
+	std::string _outname;
 
 	//general simulation parameters
-	int sampleSize;
-	double referenceDivergence;
-	float cumulRef[4];
-	double seqDepth;
-	double averageReadLength;
-	double maxReadLength;
+	int _sampleSize;
+	double _referenceDivergence;
+	float _cumulRef[4];
+	double _seqDepth;
+	double _averageReadLength;
+	double _maxReadLength;
 
 	//chromosomes
-	BAM::TChromosomes chromosomes;
-	//std::vector<TSimulatorChromosome> chromosomes;
-	bool writeTrueGenotypes;
-	bool writeVariantInvariantBedFiles;
-	TSimulatorReference referenceObj;
+	BAM::TChromosomes _chromosomes;
+	bool _writeTrueGenotypes;
+	bool _writeVariantInvariantBedFiles;
+	TSimulatorReference _referenceObj;
 
 	//read simulator
-	std::vector<TSimulatorSingleEndRead*> readSimulators;
-	std::vector<std::string> readGroupNames;
-	std::vector<double> simGroupFrequencies;
-	std::vector<double> cumulSimGroupFrequenies;
+	std::vector<TSimulatorSingleEndRead*> _readSimulators;
+	std::vector<std::string> _readGroupNames;
+	std::vector<double> _simGroupFrequencies;
+	std::vector<double> _cumulSimGroupFrequenies;
 
 	//Quality transformation
-	TGenotypeMap genoMap;
-	BAM::TQualityMap qualMap;
+	TGenotypeMap _genoMap;
+	BAM::TQualityMap _qualMap;
 
 	//helper tools
-	char toBase[4] = {'A', 'C', 'G', 'T'};
-	float baseFreq[4];
-	float cumulBaseFreq[4];
-	bool refInitialized;
+	char _toBase[4] = {'A', 'C', 'G', 'T'};
+	float _baseFreq[4];
+	float _cumulBaseFreq[4];
+	bool _refInitialized;
 
 	//function to initialize read groups
-	void initializeCommonSettings(TParameters & params);
-	void saveToMap(std::string & name, std::string args, std::map<std::string, std::string> & map, std::string & filename);
-	void initializeReadLengthDistribution(TParameters & params, bool & perReadGroup, std::map<std::string, std::string> & readLengthMap);
-	void initializeQualityDistribution(TParameters & params, bool & perReadGroup, std::map<std::string, std::string> & qualityDistMap);
-	void initializeQualityTransformations(TParameters & params, bool & perReadGroup, std::map<std::string, TSimulatorQualityTransformParameters > & qualTransformMap);
-	void initializePMD(TParameters & params, bool & perReadGroup, std::map<std::string, std::pair<std::string, std::string> > & pmdMap);
-	void initializeContamination(TParameters & params, bool & perReadGroup, std::map<std::string, double> & contaminationMap);
-	void addToReadGroupVector(std::vector<std::string> & vec, const std::string & rg);
-	void initializeReadGroup(const std::string & readLengthString, std::string & readGroupName, int rgNumber, int maxPrintQual);
-	void initializeReadSimulator(TParameters & params);
-	void initializeReadGroupFrequencies(TParameters & params);
+	void _initializeCommonSettings(TParameters & params);
+	void _saveToMap(std::string & name, std::string args, std::map<std::string, std::string> & map, std::string & filename);
+	void _initializeReadLengthDistribution(TParameters & params, bool & perReadGroup, std::map<std::string, std::string> & readLengthMap);
+	void _initializeQualityDistribution(TParameters & params, bool & perReadGroup, std::map<std::string, std::string> & qualityDistMap);
+	void _initializeQualityTransformations(TParameters & params, bool & perReadGroup, std::map<std::string, TSimulatorQualityTransformParameters > & qualTransformMap);
+	void _initializePMD(TParameters & params, bool & perReadGroup, std::map<std::string, std::pair<std::string, std::string> > & pmdMap);
+	void _initializeContamination(TParameters & params, bool & perReadGroup, std::map<std::string, double> & contaminationMap);
+	void _addToReadGroupVector(std::vector<std::string> & vec, const std::string & rg);
+	void _initializeReadGroup(const std::string & readLengthString, std::string & readGroupName, int rgNumber, int maxPrintQual);
+	void _initializeReadSimulator(TParameters & params);
+	void _initializeReadGroupFrequencies(TParameters & params);
 
 	//functions to simulate
-	virtual void simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, Base* ref){ throw "simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref) not implemented for base class TSimulator!"; };
-	virtual void simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, Base* ref){ throw "simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref) not implemented for base class TSimulator!"; };
-	void simulateReadsFromHaplotypes(const BAM::TChromosome & thisChr, Base** haplotypes, TSimulatorBamFile & bamFile, std::string extraProgressText);
-	//void writeRead(const long & pos, short* haplotype, TSimulatorBamFile & bamFile);
-
-	//from SFS
-	//void fillMutationTable(float** & mutTable);
-	//void simulateHaplotypes(TSimulatorHaplotypes & haplotypes, SFS* sfs, float** & mutTable, Base* ref);
+	virtual void _simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, TSimulatorReference & ref){ throw "_simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref) not implemented for base class TSimulator!"; };
+	virtual void _simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, TSimulatorReference & ref){ throw "_simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref) not implemented for base class TSimulator!"; };
+	void _simulateReadsFromHaplotypes(const BAM::TChromosome & thisChr, Base** haplotypes, TSimulatorBamFile & bamFile, std::string extraProgressText);
 
 public:
 	TSimulator(TLog* Logfile, TRandomGenerator* RandomGenerator);
 	virtual ~TSimulator(){
-		for(TSimulatorSingleEndRead* readSimIt: readSimulators)
+		for(TSimulatorSingleEndRead* readSimIt: _readSimulators)
 			delete readSimIt;
 	};
 
@@ -112,8 +106,8 @@ private:
 	std::vector<double> thetas;
 	TSimulatorMutationtable mutTable;
 
-	void simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, Base* ref);
-	void simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, Base* ref);
+	void _simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, TSimulatorReference & ref);
+	void _simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, TSimulatorReference & ref);
 
 
 public:
@@ -138,8 +132,8 @@ private:
 	void fillTables();
 	void deleteTables();
 
-	void simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, Base* ref);
-	void simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, Base* ref);
+	void _simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, TSimulatorReference & ref);
+	void _simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, TSimulatorReference & ref);
 
 public:
 
@@ -155,10 +149,10 @@ private:
 	std::vector<SFS*> sfs;
 	TSimulatorMutationtable mutTable;
 
-	void initializeSFS(std::vector<double> & thetas);
-	void initializeSFS(std::vector<std::string> & sfsFileNames, bool folded);
-	void simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, Base* ref);
-	void simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, Base* ref);
+	void _initializeSFS(std::vector<double> & thetas);
+	void _initializeSFS(std::vector<std::string> & sfsFileNames, bool folded);
+	void _simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, TSimulatorReference & ref);
+	void _simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, TSimulatorReference & ref);
 
 public:
 	TSimulatorSFS(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGenerator);
@@ -183,11 +177,11 @@ private:
 	bool writeTrueAlleleFreq;
 	TOutputFile trueFreqFile;
 
-	void fillCumulGenoProb(const double & f);
-	void simulateSite(TSimulatorHardyWeinbergSite & site, const std::string & chr, const uint64_t & pos, Base* & ref);
-	void fillhaplotypesMonomoprhic(TSimulatorHaplotypes & haplotypes, const uint64_t & locus, TSimulatorHardyWeinbergSite & site);
-	void simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, Base* ref);
-	void simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, Base* ref);
+	void _fillCumulGenoProb(const double & f);
+	void _simulateSite(TSimulatorHardyWeinbergSite & site, const std::string & chr, const uint64_t & pos, TSimulatorReference & ref);
+	void _fillhaplotypesMonomoprhic(TSimulatorHaplotypes & haplotypes, const uint64_t & locus, TSimulatorHardyWeinbergSite & site);
+	void _simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, TSimulatorReference & ref);
+	void _simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, TSimulatorReference & ref);
 
 public:
 	TSimulatorHardyWeinberg(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGenerator);

@@ -10,14 +10,14 @@
 //--------------------------------
 //Class to store and SFS
 //--------------------------------
-SFS::SFS(int numChr){
-	rescaled = false;
-	initDimension(numChr + 1);
+SFS::SFS(const uint32_t & numChr){
+	_rescaled = false;
+	_initDimension(numChr + 1);
 	monoFrac = 0.0;
-}
+};
 
-SFS::SFS(std::string filename){
-	storageInitialized = false;
+SFS::SFS(const std::string & filename){
+	_storageInitialized = false;
 	std::ifstream file(filename.c_str());
 	if(!file)
 		throw "Failed to open SFS file '" + filename + "'!";
@@ -25,10 +25,10 @@ SFS::SFS(std::string filename){
 	fillVectorFromLineWhiteSpace(file, vec, true, true);
 
 	//init dimension
-	initDimension(vec.size());
+	_initDimension(vec.size());
 
 	//now store as fraction
-	int i=0;
+	uint32_t i=0;
 	float sum = 0;
 	for(std::vector<double>::iterator it=vec.begin(); it!=vec.end(); ++it, ++i){
 		sfs[i] = *it;
@@ -36,41 +36,41 @@ SFS::SFS(std::string filename){
 	}
 	for(i=0; i<dimension; ++i)
 		sfs[i] = sfs[i] / sum;
-	rescaled = false;
+	_rescaled = false;
 	monoFrac = sfs[0];
-	fillCumulative();
-}
+	_fillCumulative();
+};
 
-SFS::SFS(SFS* other, float MonoFrac){
+SFS::SFS(SFS* other, const float & MonoFrac){
 	//construct from other SFS, but rescale SFS to have a specific fraction of monomorphic sites
-	storageInitialized = false;
-	initDimension(other->dimension);
+	_storageInitialized = false;
+	_initDimension(other->dimension);
 
 	//now copy and rescale
-	rescaled = true;
+	_rescaled = true;
 	monoFrac = MonoFrac;
 	float sum = 0.0;
 	sfs[0] = monoFrac;
-	for(int i=1; i<dimension; ++i){
+	for(uint32_t i=1; i<dimension; ++i){
 		sfs[i] = other->sfs[i];
 		sum += sfs[i];
 	}
 	sum = sum / (1.0 - monoFrac);
-	for(int i=1; i<dimension; ++i){
+	for(uint32_t i=1; i<dimension; ++i){
 		sfs[i] = sfs[i] / sum;
 	}
-	fillCumulative();
-}
+	_fillCumulative();
+};
 
-SFS::SFS(int numChr, float theta){
-	storageInitialized = false;
-	rescaled = false;
-	initDimension(numChr  + 1);
+SFS::SFS(const uint32_t & numChr, const float & theta){
+	_storageInitialized = false;
+	_rescaled = false;
+	_initDimension(numChr  + 1);
 
 	//generate sfs from theta
 	float sum = 0;
 	sfsFrequencies[0] = 0.0;
-	for(int i=1; i<dimension; ++i){
+	for(uint32_t i=1; i<dimension; ++i){
 		sfs[i] = theta / (float) i;
 		sum += sfs[i];
 		sfsFrequencies[i] = (float) i / (float) numChr;
@@ -80,113 +80,112 @@ SFS::SFS(int numChr, float theta){
 
 	sfs[0] = 1.0 - sum;
 	monoFrac = sfs[0];
-	fillCumulative();
+	_fillCumulative();
 };
 
-SFS::SFS(int numChr, int onlyThisBin){
-	storageInitialized = false;
-	rescaled = false;
-	initDimension(numChr  + 1);
+SFS::SFS(const uint32_t & numChr, const uint32_t & onlyThisBin){
+	_storageInitialized = false;
+	_rescaled = false;
+	_initDimension(numChr  + 1);
 
 	//set all to zero except this one bin
-	for(int i=0; i<dimension; ++i){
+	for(uint32_t i=0; i<dimension; ++i){
 		sfs[i] = 0.0;
 	}
 	sfs[onlyThisBin] = 1.0;
 	monoFrac = sfs[0];
-	fillCumulative();
-}
+	_fillCumulative();
+};
 
-
-void SFS::initDimension(int size){
+void SFS::_initDimension(const uint32_t & size){
 	dimension = size;
 	dimensionUnfolded = dimension;
 	numChromosomes = dimension - 1;
-	initStorage();
-	fillFrequencies();
-}
+	_initStorage();
+	_fillFrequencies();
+};
 
-void SFS::initStorage(){
-	clear();
+void SFS::_initStorage(){
+	_clear();
 	sfs = new float[dimension];
 	sfsCumulative = new float[dimension];
 	sfsFrequencies = new float[dimension];
-	storageInitialized = true;
-}
+	_storageInitialized = true;
+};
 
-void SFS::clear(){
-	if(storageInitialized){
+void SFS::_clear(){
+	if(_storageInitialized){
 		delete[] sfs;
 		delete[] sfsCumulative;
 		delete[] sfsFrequencies;
-		storageInitialized = false;
+		_storageInitialized = false;
 	}
-}
+};
 
-void SFS::fillFrequencies(){
+void SFS::_fillFrequencies(){
 	sfsFrequencies[0] = 0.0;
-	for(int i=1; i<dimension; ++i){
+	for(uint32_t i=1; i<dimension; ++i){
 		sfsFrequencies[i] = (float) i / (float) numChromosomes;
 	}
-}
+};
 
-void SFS::fillCumulative(){
+void SFS::_fillCumulative(){
 	sfsCumulative[0] = sfs[0];
-	for(int i=1; i<dimension; ++i){
+	for(uint32_t i=1; i<dimension; ++i){
 		sfsCumulative[i] = sfsCumulative[i-1] + sfs[i];
 	}
 	sfsCumulative[numChromosomes] = 1.0;
-}
+};
 
-void SFS::writeToFile(std::string & filename, bool writeLog){
+void SFS::writeToFile(const std::string & filename, const bool & writeLog){
 	std::ofstream out(filename.c_str());
 	if(!out)
 		throw "Failed to open file '" + filename + "' for writing!";
 
 	if(writeLog){
 		out << log(sfs[0]);
-		for(int i=1; i<dimension; ++i){
+		for(uint32_t i=1; i<dimension; ++i){
 			out << " " << log(sfs[i]);
 		}
 	} else {
 		out << sfs[0];
-		for(int i=1; i<dimension; ++i){
+		for(uint32_t i=1; i<dimension; ++i){
 			out << " " << sfs[i];
 		}
 	}
 	out << "\n";
 	out.close();
-}
+};
 
 double SFS::calcLLOneSite(float* gl){
 	double LL = 0.0;
-	for(int i=0; i<dimension; ++i){
+	for(uint32_t i=0; i<dimension; ++i){
 		LL += exp(gl[i]) * sfs[i];
 	}
 
 	return log(LL);
-}
+};
 
 double SFS::getRandomFrequency(TRandomGenerator* randomGenerator){
 	return sfsFrequencies[randomGenerator->pickOne(dimension, sfsCumulative)];
-}
+};
 
-int SFS::getRandomAlleleCount(TRandomGenerator* randomGenerator){
+uint32_t SFS::getRandomAlleleCount(TRandomGenerator* randomGenerator){
 	return randomGenerator->pickOne(dimension, sfsCumulative);
-}
+};
 
 //--------------------------------------
 //SFSfolded
 //--------------------------------------
-SFSfolded::SFSfolded(int numChr, float theta):SFS(numChr){
-	storageInitialized = false;
-	rescaled = false;
-	initDimension(numChr  + 1);
+SFSfolded::SFSfolded(const uint32_t & numChr, const float & theta):SFS(numChr){
+	_storageInitialized = false;
+	_rescaled = false;
+	_initDimension(numChr  + 1);
 
 	//generate sfs from theta
 	float sum = 0;
 	sfsFrequencies[0] = 0.0;
-	for(int i=1; i<dimension; ++i){
+	for(uint32_t i=1; i<dimension; ++i){
 		sfs[i] = theta / (float) i + theta / (float) (numChromosomes - i);
 		sum += sfs[i];
 		sfsFrequencies[i] = (float) i / (float) numChr;
@@ -196,28 +195,28 @@ SFSfolded::SFSfolded(int numChr, float theta):SFS(numChr){
 
 	sfs[0] = 1.0 - sum;
 	monoFrac = sfs[0];
-	fillCumulative();
-}
+	_fillCumulative();
+};
 
-void SFSfolded::initDimension(int size){
+void SFSfolded::_initDimension(const uint32_t & size){
 	dimension = size;
 	dimensionUnfolded = 2 * dimension - 1;
 	numChromosomes = dimensionUnfolded - 1;
-	initStorage();
-	fillFrequencies();
-}
+	_initStorage();
+	_fillFrequencies();
+};
 
 double SFSfolded::calcLLOneSite(float* gl){
 	double LL = 0.0;
-	for(int i=0; i<dimension; ++i)
+	for(uint32_t i=0; i<dimension; ++i)
 		LL += exp(gl[i]) * sfs[i];
 
 	int j = dimension-1;
-	for(int i=dimension; i<dimensionUnfolded; ++i, --j)
+	for(uint32_t i=dimension; i<dimensionUnfolded; ++i, --j)
 		LL += exp(gl[i]) * sfs[j];
 
 	return log(LL);
-}
+};
 
 
 

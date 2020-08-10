@@ -13,24 +13,24 @@ namespace Simulations{
 //TSimulator
 //---------------------------------------------------
 TSimulator::TSimulator(TLog* Logfile, TRandomGenerator* RandomGenerator){
-	logfile = Logfile;
-	randomGenerator = RandomGenerator;
+	_logfile = Logfile;
+	_randomGenerator = RandomGenerator;
 
 	//set basic things to empty
-	refInitialized = false;
-	writeTrueGenotypes = false;
-	writeVariantInvariantBedFiles = false;
-	sampleSize = 0;
-	seqDepth = 0;
-	averageReadLength = 0;
-	maxReadLength = 0;
-	referenceDivergence = 0.0;
+	_refInitialized = false;
+	_writeTrueGenotypes = false;
+	_writeVariantInvariantBedFiles = false;
+	_sampleSize = 0;
+	_seqDepth = 0;
+	_averageReadLength = 0;
+	_maxReadLength = 0;
+	_referenceDivergence = 0.0;
 };
 
-void TSimulator::initializeCommonSettings(TParameters & params){
+void TSimulator::_initializeCommonSettings(TParameters & params){
 	//depth
 	float depth = params.getParameterDoubleWithDefault("depth", 10.0);
-	logfile->list("Will simulate to an average depth of " + toString(depth) + ".");
+	_logfile->list("Will simulate to an average depth of " + toString(depth) + ".");
 	setDepth(depth);
 
 	//base frequencies
@@ -41,53 +41,53 @@ void TSimulator::initializeCommonSettings(TParameters & params){
 	setBaseFreq(freq);
 
 	//reference divergence
-	referenceDivergence = params.getParameterDoubleWithDefault("refDiv", 0.01);
-	logfile->list("Will simulate data with reference divergence = " + toString(referenceDivergence) + ".");
+	_referenceDivergence = params.getParameterDoubleWithDefault("refDiv", 0.01);
+	_logfile->list("Will simulate data with reference divergence = " + toString(_referenceDivergence) + ".");
 
 	//fill cumul table for reference divergence
-	cumulRef[0] = 1.0 - referenceDivergence;
-	cumulRef[1] = cumulRef[0] + referenceDivergence / 3.0;
-	cumulRef[2] = cumulRef[1] + referenceDivergence / 3.0;
-	cumulRef[3] = 1.0;
+	_cumulRef[0] = 1.0 - _referenceDivergence;
+	_cumulRef[1] = _cumulRef[0] + _referenceDivergence / 3.0;
+	_cumulRef[2] = _cumulRef[1] + _referenceDivergence / 3.0;
+	_cumulRef[3] = 1.0;
 
 	//read groups
-	initializeReadSimulator(params);
+	_initializeReadSimulator(params);
 
 	//chromosomes
-	initializeChromosomes(params, logfile);
+	initializeChromosomes(params, _logfile);
 
 	//extra output on sites
-	writeTrueGenotypes = params.parameterExists("writeTrueGenotypes");
-	writeVariantInvariantBedFiles = params.parameterExists("writeVariantBED");
+	_writeTrueGenotypes = params.parameterExists("writeTrueGenotypes");
+	_writeVariantInvariantBedFiles = params.parameterExists("writeVariantBED");
 
 	//output name
-	outname = params.getParameterStringWithDefault("out", "ATLAS_simulations");
-	logfile->list("Will write output files with tag '" + outname + "'.");
+	_outname = params.getParameterStringWithDefault("out", "ATLAS_simulations");
+	_logfile->list("Will write output files with tag '" + _outname + "'.");
 
 	//open FASTA file for reference sequences
-	std::string filename = outname + ".fasta";
-	referenceObj.initialize(filename, logfile);
+	std::string filename = _outname + ".fasta";
+	_referenceObj.initialize(filename, _logfile);
 };
 
 //--------------------------------------------------------------
 //Function to initialize read groups
 //--------------------------------------------------------------
-void TSimulator::saveToMap(std::string & name, std::string args, std::map<std::string, std::string> & map, std::string & filename){
+void TSimulator::_saveToMap(std::string & name, std::string args, std::map<std::string, std::string> & map, std::string & filename){
 	//save, but check if name already exists!
 	if(map.find(name) != map.end())
 			throw "Duplicated read group name '" + name + "'in file '" + filename + "'!";
 	map.emplace(name, args);
 };
 
-void TSimulator::initializeReadLengthDistribution(TParameters & params, bool & perReadGroup, std::map<std::string, std::string> & readLengthMap){
-	logfile->startIndent("Reading read length distribution:");
+void TSimulator::_initializeReadLengthDistribution(TParameters & params, bool & perReadGroup, std::map<std::string, std::string> & readLengthMap){
+	_logfile->startIndent("Reading read length distribution:");
 	std::string s = params.getParameterStringWithDefault("readLength", "single:fixed(100)");
 
 	//check if it is a file
 	size_t pos = s.find("(");
 	if(pos == std::string::npos){
 		//is a file
-		logfile->listFlush("Reading distribution(s) from file '" + s + "' ...");
+		_logfile->listFlush("Reading distribution(s) from file '" + s + "' ...");
 		std::ifstream file(s.c_str());
 		if(!file)
 			throw "Failed to open read-length file '" + s + "!\nEither provide a valid read length distribution, or a valid file name listing this distribution for each read group.";
@@ -114,30 +114,30 @@ void TSimulator::initializeReadLengthDistribution(TParameters & params, bool & p
 					throw "Failed to understand read length distribution '" + vec[1] + "': keyword single or paired missing!";
 
 				//save to map
-				saveToMap(vec[0], vec[1], readLengthMap, s);
+				_saveToMap(vec[0], vec[1], readLengthMap, s);
 			}
 		}
-		logfile->done();
-		logfile->conclude("Read distributions for " + toString(readLengthMap.size()) + " read groups.");
+		_logfile->done();
+		_logfile->conclude("Read distributions for " + toString(readLengthMap.size()) + " read groups.");
 		perReadGroup = true;
 	} else {
 		//is a function on the command line
-		logfile->list("Will use '" + s + " for all read groups.");
+		_logfile->list("Will use '" + s + " for all read groups.");
 		readLengthMap.emplace("-", s);
 		perReadGroup = false;
 	}
-	logfile->endIndent();
+	_logfile->endIndent();
 };
 
-void TSimulator::initializeQualityDistribution(TParameters & params, bool & perReadGroup, std::map<std::string, std::string> & qualityDistMap){
-	logfile->startIndent("Reading quality distribution:");
+void TSimulator::_initializeQualityDistribution(TParameters & params, bool & perReadGroup, std::map<std::string, std::string> & qualityDistMap){
+	_logfile->startIndent("Reading quality distribution:");
 	std::string s = params.getParameterStringWithDefault("qualityDist", "normal(30,10)[0,93]");
 
 	//check if it is a specific function
 	size_t pos = s.find("(");
 	if(pos == std::string::npos){
 		//is a file
-		logfile->listFlush("Reading distribution(s) from file '" + s + "' ...");
+		_logfile->listFlush("Reading distribution(s) from file '" + s + "' ...");
 		std::ifstream file(s.c_str());
 		if(!file)
 			throw "Failed to open quality distribution file '" + s + "!\nEither provide a valid quality distribution, or a valid file name listing this distribution for each read group.";
@@ -160,22 +160,22 @@ void TSimulator::initializeQualityDistribution(TParameters & params, bool & perR
 					throw "Found " + toString(vec.size()) + " instead of 2 columns in '" + s + "' on line " + toString(lineNum) + "!\n Expect 1) read group name and 2) function string.";
 
 				//save to map
-				saveToMap(vec[0], vec[1], qualityDistMap, s);
+				_saveToMap(vec[0], vec[1], qualityDistMap, s);
 			}
 		}
-		logfile->done();
-		logfile->conclude("Read distributions for " + toString(qualityDistMap.size()) + " read groups.");
+		_logfile->done();
+		_logfile->conclude("Read distributions for " + toString(qualityDistMap.size()) + " read groups.");
 		perReadGroup = true;
 	} else {
 		//is a function on the command line
-		logfile->list("Will use '" + s + "' for all read groups.");
+		_logfile->list("Will use '" + s + "' for all read groups.");
 		qualityDistMap.emplace("-", s);
 		perReadGroup = false;
 	}
-	logfile->endIndent();
+	_logfile->endIndent();
 }
 
-void TSimulator::initializeQualityTransformations(TParameters & params, bool & perReadGroup, std::map<std::string, TSimulatorQualityTransformParameters > & qualTransformMap){
+void TSimulator::_initializeQualityTransformations(TParameters & params, bool & perReadGroup, std::map<std::string, TSimulatorQualityTransformParameters > & qualTransformMap){
 	//initialize quality transformation
 	//Currently we allow for five options:
 	//  1) recal transformation initialized from the command line (one for all read groups)//
@@ -186,7 +186,7 @@ void TSimulator::initializeQualityTransformations(TParameters & params, bool & p
 
 	//map has format: < readGroup, < type, args > >
 
-	logfile->startIndent("Reading quality transformation:");
+	_logfile->startIndent("Reading quality transformation:");
 	std::vector<std::string> string_vec;
 
 	//tmp vars
@@ -206,7 +206,7 @@ void TSimulator::initializeQualityTransformations(TParameters & params, bool & p
 		if(pos != std::string::npos){
 
 			//save to map
-			logfile->list("Will use '" + recalString + "' for all read groups.");
+			_logfile->list("Will use '" + recalString + "' for all read groups.");
 			qualTransformMap["-"] = TSimulatorQualityTransformParameters("recal", recalString, recalString);
 			perReadGroup = false;
 		}
@@ -215,7 +215,7 @@ void TSimulator::initializeQualityTransformations(TParameters & params, bool & p
 		//----------------------------
 		else {
 			//check if file exists
-			logfile->listFlush("Reading transformation(s) from file '" + recalString + "' ...");
+			_logfile->listFlush("Reading transformation(s) from file '" + recalString + "' ...");
 			std::ifstream recalFile(recalString.c_str());
 			if(!recalFile)
 				throw "Failed to open recal file '" + recalString + "!\nEither provide a valid file name or a string of the format model[quality parameters;position parameters; context parameters].";
@@ -276,8 +276,8 @@ void TSimulator::initializeQualityTransformations(TParameters & params, bool & p
 					}
 				}
 			}
-			logfile->done();
-			logfile->conclude("Read transformations for " + toString(qualTransformMap.size()) + " read groups.");
+			_logfile->done();
+			_logfile->conclude("Read transformations for " + toString(qualTransformMap.size()) + " read groups.");
 			perReadGroup = true;
 		}
 	}
@@ -299,7 +299,7 @@ void TSimulator::initializeQualityTransformations(TParameters & params, bool & p
 			BQSRString.erase(pos, 1);
 
 			//save to map
-			logfile->list("Will use '" + BQSRString + "' for all read groups.");
+			_logfile->list("Will use '" + BQSRString + "' for all read groups.");
 			qualTransformMap["-"] = TSimulatorQualityTransformParameters("BQSR", BQSRString, BQSRString);
 			perReadGroup = false;
 		} else throw "Failed to understand BQSR string: missing '['!\nEither provide a valid file name or the BQSR parameters as '[phi1,phi2,revIntercept]";
@@ -310,23 +310,23 @@ void TSimulator::initializeQualityTransformations(TParameters & params, bool & p
 	else {
 		//Option 5: no transformation
 		//---------------------------------------------------------------------
-		logfile->list("Will print original quality scores for all read groups.");
+		_logfile->list("Will print original quality scores for all read groups.");
 		qualTransformMap["-"] = TSimulatorQualityTransformParameters("none", "-", "-");
 		perReadGroup = false;
 	}
-	logfile->endIndent();
+	_logfile->endIndent();
 };
 
 
-void TSimulator::initializePMD(TParameters & params, bool & perReadGroup, std::map<std::string, std::pair<std::string, std::string> > & pmdMap){
+void TSimulator::_initializePMD(TParameters & params, bool & perReadGroup, std::map<std::string, std::pair<std::string, std::string> > & pmdMap){
 	//map has format: < readGroup, < pmdCT, pmdGA > >
 
-	logfile->startIndent("Reading PMD:");
+	_logfile->startIndent("Reading PMD:");
 	//Check if PMD is provided in a file
 	if(params.parameterExists("pmdFile")){
 		//read from file for each read group
 		std::string filename = params.getParameterString("pmdFile");
-		logfile->listFlush("Reading PMD from file '" + filename + "' ...");
+		_logfile->listFlush("Reading PMD from file '" + filename + "' ...");
 		std::ifstream file(filename.c_str());
 		if(!file) throw "Failed to open PMD file '" + filename + "'!";
 
@@ -359,8 +359,8 @@ void TSimulator::initializePMD(TParameters & params, bool & perReadGroup, std::m
 		//close file
 		file.close();
 
-		logfile->done();
-		logfile->conclude("Read PMD for " + toString(pmdMap.size()) + " read groups.");
+		_logfile->done();
+		_logfile->conclude("Read PMD for " + toString(pmdMap.size()) + " read groups.");
 		perReadGroup = true;
 	}
 
@@ -385,25 +385,25 @@ void TSimulator::initializePMD(TParameters & params, bool & perReadGroup, std::m
 			pmdMap["-"] = std::pair<std::string, std::string>(pmdCTString, pmdGAString);
 			perReadGroup = false;
 		}
-		logfile->list("Will use PMD as provided on the command line for all read groups.");
+		_logfile->list("Will use PMD as provided on the command line for all read groups.");
 	}
-	logfile->endIndent();
+	_logfile->endIndent();
 };
 
-void TSimulator::initializeContamination(TParameters & params, bool & perReadGroup, std::map<std::string, double> & contaminationMap){
-	logfile->startIndent("Reading contamination:");
+void TSimulator::_initializeContamination(TParameters & params, bool & perReadGroup, std::map<std::string, double> & contaminationMap){
+	_logfile->startIndent("Reading contamination:");
 	std::string s = params.getParameterStringWithDefault("contamination", "0.0");
 
 	//check if it is a single number or a file
 	if(stringIsProbablyANumber(s)){
 		//is a numberon the command line
 		double rate = convertString<double>(s);
-		logfile->list("Will use a contamination rate of " + toString(rate) + " for all read groups.");
+		_logfile->list("Will use a contamination rate of " + toString(rate) + " for all read groups.");
 		contaminationMap.emplace("-", rate);
 		perReadGroup = false;
 	} else {
 		//is a file
-		logfile->listFlush("Reading contamination from file '" + s + "' ...");
+		_logfile->listFlush("Reading contamination from file '" + s + "' ...");
 		std::ifstream file(s.c_str());
 		if(!file)
 			throw "Failed to open quality distribution file '" + s + "!\nEither provide a valid quality distribution, or a valid file name listing this distribution for each read group.";
@@ -432,111 +432,111 @@ void TSimulator::initializeContamination(TParameters & params, bool & perReadGro
 				contaminationMap.emplace(vec[0], rate);
 			}
 		}
-		logfile->done();
-		logfile->conclude("Read distributions for " + toString(contaminationMap.size()) + " read groups.");
+		_logfile->done();
+		_logfile->conclude("Read distributions for " + toString(contaminationMap.size()) + " read groups.");
 		perReadGroup = true;
 	}
-	logfile->endIndent();
+	_logfile->endIndent();
 }
 
-void TSimulator::addToReadGroupVector(std::vector<std::string> & vec, const std::string & rg){
+void TSimulator::_addToReadGroupVector(std::vector<std::string> & vec, const std::string & rg){
 	//add read group if it does not exist yet
 	if(std::find(vec.begin(), vec.end(), rg) == vec.end())
 		vec.push_back(rg);
 };
 
-void TSimulator::initializeReadGroup(const std::string & readLengthString, std::string & readGroupName, int rgNumber, int maxPrintQual){
+void TSimulator::_initializeReadGroup(const std::string & readLengthString, std::string & readGroupName, int rgNumber, int maxPrintQual){
 	//single or paired end? Is indicated at beginning of readLengthString!
 	if(readLengthString.find("single:") == 0){
-		readSimulators.push_back(new TSimulatorSingleEndRead(readGroupName, rgNumber, maxPrintQual, randomGenerator, genoMap));
+		_readSimulators.push_back(new TSimulatorSingleEndRead(readGroupName, rgNumber, maxPrintQual, _randomGenerator, _genoMap));
 	} else if(readLengthString.find("paired:") == 0){
-		readSimulators.push_back(new TSimulatorPairedEndReads(readGroupName, rgNumber, maxPrintQual, randomGenerator, genoMap));
+		_readSimulators.push_back(new TSimulatorPairedEndReads(readGroupName, rgNumber, maxPrintQual, _randomGenerator, _genoMap));
 	} else
 		throw "Unable to understand read length string '" + readLengthString + "'!";
 
 	//add read Length distribution
 	std::string readLengthDist = readAfterLast(readLengthString,':');
-	readSimulators.back()->setReadLengthDistribution(readLengthDist, logfile);
+	_readSimulators.back()->setReadLengthDistribution(readLengthDist, _logfile);
 };
 
-void TSimulator::initializeReadSimulator(TParameters & params){
+void TSimulator::_initializeReadSimulator(TParameters & params){
 	// A) read length
 	//---------------
 	std::map<std::string, std::string> readLengthMap;
 	bool readLengthPerReadGroup = false;
-	initializeReadLengthDistribution(params, readLengthPerReadGroup, readLengthMap);
+	_initializeReadLengthDistribution(params, readLengthPerReadGroup, readLengthMap);
 
 	//add read group names to list
 	if(readLengthPerReadGroup){
 		for(std::map<std::string, std::string>::iterator it=readLengthMap.begin(); it!=readLengthMap.end(); ++it)
-			addToReadGroupVector(readGroupNames, it->first);
+			_addToReadGroupVector(_readGroupNames, it->first);
 	}
 
 	// B) initialize quality distribution
 	//-----------------------------------
 	std::map<std::string, std::string> qualityMap;
 	bool qualityPerReadGroup = false;
-	initializeQualityDistribution(params, qualityPerReadGroup, qualityMap);
+	_initializeQualityDistribution(params, qualityPerReadGroup, qualityMap);
 
 	//add read group names to list
 	if(qualityPerReadGroup){
 		for(std::map<std::string, std::string>::iterator it=qualityMap.begin(); it!=qualityMap.end(); ++it)
-			addToReadGroupVector(readGroupNames, it->first);
+			_addToReadGroupVector(_readGroupNames, it->first);
 	}
 
 	// C) initialize quality transformation
 	//-------------------------------------
 	std::map<std::string, TSimulatorQualityTransformParameters > qualTransformMap;
 	bool qualTransformPerReadGroup = false;
-	initializeQualityTransformations(params, qualTransformPerReadGroup, qualTransformMap);
+	_initializeQualityTransformations(params, qualTransformPerReadGroup, qualTransformMap);
 
 	//add read group names to list
 	if(qualTransformPerReadGroup){
 		for(std::map<std::string, TSimulatorQualityTransformParameters >::iterator it=qualTransformMap.begin(); it!=qualTransformMap.end(); ++it)
-			addToReadGroupVector(readGroupNames, it->first);
+			_addToReadGroupVector(_readGroupNames, it->first);
 	}
 
 	// D) initialize PMD
 	//------------------
 	std::map<std::string, std::pair<std::string, std::string> > pmdMap;
 	bool pmdPerReadGroup = false;
-	initializePMD(params, pmdPerReadGroup, pmdMap);
+	_initializePMD(params, pmdPerReadGroup, pmdMap);
 
 	//add read group names to list
 	if(pmdPerReadGroup){
 		for(std::map<std::string, std::pair<std::string, std::string> >::iterator it=pmdMap.begin(); it!=pmdMap.end(); ++it)
-			addToReadGroupVector(readGroupNames, it->first);
+			_addToReadGroupVector(_readGroupNames, it->first);
 	}
 
 	// E) initialize contamination
 	//----------------------------
 	std::map<std::string, double> contaminationMap;
 	bool contaminationPerReadGroup = false;
-	initializeContamination(params, contaminationPerReadGroup, contaminationMap);
+	_initializeContamination(params, contaminationPerReadGroup, contaminationMap);
 
 	//add read group names to list
 	if(contaminationPerReadGroup){
 		for(std::map<std::string, double>::iterator it=contaminationMap.begin(); it!=contaminationMap.end(); ++it)
-			addToReadGroupVector(readGroupNames, it->first);
+			_addToReadGroupVector(_readGroupNames, it->first);
 	}
 
 	// F) other things
 	//----------------
 	int maxPrintQual = params.getParameterIntWithDefault("maxPrintQual", 93);
-	logfile->list("Will print quality scores up to " + toString(maxPrintQual) + ".");
-	logfile->endIndent();
+	_logfile->list("Will print quality scores up to " + toString(maxPrintQual) + ".");
+	_logfile->endIndent();
 
 	//now check for read groups: which ones do we simulate?
 	//-----------------------------------------------------
 	//Option 1: at least one file was given specifying multiple read groups
-	if(readGroupNames.size() > 0){
+	if(_readGroupNames.size() > 0){
 		//create read groups as specified in the files
-		logfile->startIndent("Initializing " + toString(readGroupNames.size()) + " read groups:");
+		_logfile->startIndent("Initializing " + toString(_readGroupNames.size()) + " read groups:");
 
 		//now initialize
 		int rgNumber = 1;
-		for(std::vector<std::string>::iterator it=readGroupNames.begin(); it!=readGroupNames.end(); ++it, ++rgNumber){
-			logfile->startIndent("Initializing readgroup '" + *it + "':");
+		for(std::vector<std::string>::iterator it=_readGroupNames.begin(); it!=_readGroupNames.end(); ++it, ++rgNumber){
+			_logfile->startIndent("Initializing readgroup '" + *it + "':");
 
 			// A) read length
 			if(readLengthPerReadGroup){
@@ -544,18 +544,18 @@ void TSimulator::initializeReadSimulator(TParameters & params){
 				if(rlIt == readLengthMap.end())
 					throw "Read length distribution not specified for read group '" + *it + "'!";
 
-				initializeReadGroup(rlIt->second, *it, rgNumber, maxPrintQual);
+				_initializeReadGroup(rlIt->second, *it, rgNumber, maxPrintQual);
 			} else
-				initializeReadGroup(readLengthMap.begin()->second, *it, rgNumber, maxPrintQual);
+				_initializeReadGroup(readLengthMap.begin()->second, *it, rgNumber, maxPrintQual);
 
 			// B) quality dist
 			if(qualityPerReadGroup){
 				std::map<std::string, std::string>::iterator qIt = qualityMap.find(*it);
 				if(qIt == qualityMap.end())
 					throw "Read quality distribution not specified for read group '" + *it + "'!";
-				readSimulators.back()->setReadLengthDistribution(qIt->second, logfile);
+				_readSimulators.back()->setReadLengthDistribution(qIt->second, _logfile);
 			} else
-				readSimulators.back()->setQualityDistribution(qualityMap.begin()->second);
+				_readSimulators.back()->setQualityDistribution(qualityMap.begin()->second);
 
 			// C) quality transformation
 			if(qualTransformPerReadGroup){
@@ -563,15 +563,15 @@ void TSimulator::initializeReadSimulator(TParameters & params){
 				if(qtIt == qualTransformMap.end()){
 					//initialize without transformation
 					TSimulatorQualityTransformParameters tp("none", "-", "-");
-					readSimulators.back()->setQualityTransformation(tp, logfile);
+					_readSimulators.back()->setQualityTransformation(tp, _logfile);
 				} else
-					readSimulators.back()->setQualityTransformation(qtIt->second, logfile);
+					_readSimulators.back()->setQualityTransformation(qtIt->second, _logfile);
 			} else{
-				if(readSimulators.back()->type() == "single"){
+				if(_readSimulators.back()->type() == "single"){
 					TSimulatorQualityTransformParameters tp(qualTransformMap.begin()->second.type, qualTransformMap.begin()->second.parameters_firstMate, "-");
-					readSimulators.back()->setQualityTransformation(tp, logfile);
+					_readSimulators.back()->setQualityTransformation(tp, _logfile);
 				} else
-					readSimulators.back()->setQualityTransformation(qualTransformMap.begin()->second, logfile);
+					_readSimulators.back()->setQualityTransformation(qualTransformMap.begin()->second, _logfile);
 
 			}
 
@@ -581,25 +581,25 @@ void TSimulator::initializeReadSimulator(TParameters & params){
 				if(pmdIt == pmdMap.end()){
 					//initialize without transformation
 					std::string type="none";
-					readSimulators.back()->setPMD(type, type);
+					_readSimulators.back()->setPMD(type, type);
 				} else
-					readSimulators.back()->setPMD(pmdIt->second.first, pmdIt->second.second);
+					_readSimulators.back()->setPMD(pmdIt->second.first, pmdIt->second.second);
 			} else
-				readSimulators.back()->setPMD(pmdMap.begin()->second.first, pmdMap.begin()->second.second);
+				_readSimulators.back()->setPMD(pmdMap.begin()->second.first, pmdMap.begin()->second.second);
 
 			// E) contamination
 			if(contaminationPerReadGroup){
 				std::map<std::string, double>::iterator contaminationIt = contaminationMap.find(*it);
 				if(contaminationIt != contaminationMap.end())
-					readSimulators.back()->setContamination(contaminationIt->second, &referenceObj);
+					_readSimulators.back()->setContamination(contaminationIt->second, &_referenceObj);
 			} else
-				readSimulators.back()->setContamination(contaminationMap.begin()->second, &referenceObj);
+				_readSimulators.back()->setContamination(contaminationMap.begin()->second, &_referenceObj);
 
 			//check and print
-			readSimulators.back()->printDetails(logfile);
-			logfile->endIndent();
+			_readSimulators.back()->printDetails(_logfile);
+			_logfile->endIndent();
 		}
-		logfile->endIndent();
+		_logfile->endIndent();
 	}
 	
 	//Option 2: everything provided on command line
@@ -607,76 +607,76 @@ void TSimulator::initializeReadSimulator(TParameters & params){
 		//If everything was provided on the command line, allow for replicate read groups
 		int numRG = params.getParameterIntWithDefault("numReadGroups", 1);
 		std::string name;
-		logfile->startIndent("Initializing " + toString(numRG) + " identical read group(s):");
+		_logfile->startIndent("Initializing " + toString(numRG) + " identical read group(s):");
 
 		//now initialize
 		for(int i=0; i<numRG; ++i){
 			name = "SimReadGroup" + toString(i+1);
-			readGroupNames.push_back(name);
-			logfile->startIndent("Initializing read group '" + name + "':");
-			initializeReadGroup(readLengthMap.begin()->second, name, i+1, maxPrintQual);
-			readSimulators.back()->setQualityDistribution(qualityMap.begin()->second);
-			readSimulators.back()->setQualityTransformation(qualTransformMap.begin()->second, logfile);
-			readSimulators.back()->setPMD(pmdMap.begin()->second.first, pmdMap.begin()->second.second);
-			readSimulators.back()->setContamination(contaminationMap.begin()->second, &referenceObj);
+			_readGroupNames.push_back(name);
+			_logfile->startIndent("Initializing read group '" + name + "':");
+			_initializeReadGroup(readLengthMap.begin()->second, name, i+1, maxPrintQual);
+			_readSimulators.back()->setQualityDistribution(qualityMap.begin()->second);
+			_readSimulators.back()->setQualityTransformation(qualTransformMap.begin()->second, _logfile);
+			_readSimulators.back()->setPMD(pmdMap.begin()->second.first, pmdMap.begin()->second.second);
+			_readSimulators.back()->setContamination(contaminationMap.begin()->second, &_referenceObj);
 
 			//check and print
-			readSimulators.back()->printDetails(logfile);
-			logfile->endIndent();
+			_readSimulators.back()->printDetails(_logfile);
+			_logfile->endIndent();
 		}
 	}
 
 	//initialize read group frequencies frequencies
-	initializeReadGroupFrequencies(params);
+	_initializeReadGroupFrequencies(params);
 };
 
-void TSimulator::initializeReadGroupFrequencies(TParameters & params){
-	cumulSimGroupFrequenies.reserve(readSimulators.size());
-	simGroupFrequencies.reserve(readSimulators.size());
+void TSimulator::_initializeReadGroupFrequencies(TParameters & params){
+	_cumulSimGroupFrequenies.reserve(_readSimulators.size());
+	_simGroupFrequencies.reserve(_readSimulators.size());
 	if(params.parameterExists("readGroupFreq")){
 		//read frequencies
 		std::vector<std::string> vec;
 		params.fillParameterIntoVector("readGroupFreq", vec, true);
 		std::vector<double> freq;
 		repeatIndexes(vec, freq);
-		if(freq.size() != readSimulators.size())
+		if(freq.size() != _readSimulators.size())
 			throw "Provided read group frequencies do not match number of read groups!";
 
 		//normalize and print
 		double sum = 0;
-		for(size_t i=1; i<readSimulators.size(); ++i)
+		for(size_t i=1; i<_readSimulators.size(); ++i)
 			sum += freq[i];
 
-		logfile->startIndent("Will simulate read groups with the following frequencies:");
-		for(size_t i=1; i<readSimulators.size(); ++i){
-			simGroupFrequencies[i] = freq[i] / sum;
-			logfile->list(toString(simGroupFrequencies[i]) + " " + readSimulators[i]->name());
+		_logfile->startIndent("Will simulate read groups with the following frequencies:");
+		for(size_t i=1; i<_readSimulators.size(); ++i){
+			_simGroupFrequencies[i] = freq[i] / sum;
+			_logfile->list(toString(_simGroupFrequencies[i]) + " " + _readSimulators[i]->name());
 		}
-		logfile->endIndent();
+		_logfile->endIndent();
 
 		//fill cumulative
-		cumulSimGroupFrequenies[0] = simGroupFrequencies[0];
-		for(size_t i=1; i<readSimulators.size(); ++i)
-			cumulSimGroupFrequenies[i] = cumulSimGroupFrequenies[i-1] + simGroupFrequencies[i];
-		cumulSimGroupFrequenies[readSimulators.size() - 1] = 1.0; //ensure last entry is 1.0
+		_cumulSimGroupFrequenies[0] = _simGroupFrequencies[0];
+		for(size_t i=1; i<_readSimulators.size(); ++i)
+			_cumulSimGroupFrequenies[i] = _cumulSimGroupFrequenies[i-1] + _simGroupFrequencies[i];
+		_cumulSimGroupFrequenies[_readSimulators.size() - 1] = 1.0; //ensure last entry is 1.0
 	} else{
 		//equal frequencies
-		logfile->list("Will simulate reads equally distributed among read groups.");
-		for(size_t i=0; i<readSimulators.size(); ++i){
-			simGroupFrequencies[i] = (double) 1.0 / (double) readSimulators.size();
-			cumulSimGroupFrequenies[i] = (double) (i+1) / (double) readSimulators.size();
+		_logfile->list("Will simulate reads equally distributed among read groups.");
+		for(size_t i=0; i<_readSimulators.size(); ++i){
+			_simGroupFrequencies[i] = (double) 1.0 / (double) _readSimulators.size();
+			_cumulSimGroupFrequenies[i] = (double) (i+1) / (double) _readSimulators.size();
 		}
 	}
 
 	//precalculate some stuff
-	averageReadLength = 0;
-	maxReadLength = 0;
+	_averageReadLength = 0;
+	_maxReadLength = 0;
 	int i=0;
 
-	for(TSimulatorSingleEndRead* readSimsIt : readSimulators){
-		averageReadLength += simGroupFrequencies[i] * readSimsIt->meanReadLength();
-		if(readSimsIt->maxReadLength() > maxReadLength)
-			maxReadLength = readSimsIt->maxReadLength();
+	for(TSimulatorSingleEndRead* readSimsIt : _readSimulators){
+		_averageReadLength += _simGroupFrequencies[i] * readSimsIt->meanReadLength();
+		if(readSimsIt->maxReadLength() > _maxReadLength)
+			_maxReadLength = readSimsIt->maxReadLength();
 		i++;
 	}
 }
@@ -731,50 +731,50 @@ void TSimulator::initializeChromosomes(TParameters & params, TLog* logfile){
 };
 
 void TSimulator::initializeChromosomes(const uint32_t & numChr, const uint32_t & chrLength, const uint8_t & ploidy){
-	chromosomes.clear();
-	for(int i=0; i<numChr; ++i){
-		chromosomes.appendChromosome("chr" + toString(i+1), chrLength, ploidy);
+	_chromosomes.clear();
+	for(uint32_t i=0; i<numChr; ++i){
+		_chromosomes.appendChromosome("chr" + toString(i+1), chrLength, ploidy);
 	}
 };
 
 void TSimulator::initializeChromosomes(std::vector<uint32_t> & chrLength, std::vector<uint8_t> haploid){
-	chromosomes.clear();
-	for(unsigned int i=0; i<chrLength.size(); ++i){
-		chromosomes.appendChromosome("chr" + toString(i+1), chrLength[i], haploid[i]);
+	_chromosomes.clear();
+	for(size_t i=0; i<chrLength.size(); ++i){
+		_chromosomes.appendChromosome("chr" + toString(i+1), chrLength[i], haploid[i]);
 	}
 };
 
 void TSimulator::setDepth(float depth){
-	seqDepth = depth;
+	_seqDepth = depth;
 };
 
 void TSimulator::setBaseFreq(std::vector<float> & freq){
 	float sum = 0.0;
 	for(int i=0; i<4; ++i){
-		baseFreq[i] = freq[i];
-		sum += baseFreq[i];
+		_baseFreq[i] = freq[i];
+		sum += _baseFreq[i];
 	}
 	for(int i=0; i<4; ++i){
-		baseFreq[i] /= sum;
+		_baseFreq[i] /= sum;
 	}
-	cumulBaseFreq[0] = baseFreq[0];
-	cumulBaseFreq[1] = cumulBaseFreq[0] + baseFreq[1];
-	cumulBaseFreq[2] = cumulBaseFreq[1] + baseFreq[2];
-	cumulBaseFreq[3] = 1.0;
+	_cumulBaseFreq[0] = _baseFreq[0];
+	_cumulBaseFreq[1] = _cumulBaseFreq[0] + _baseFreq[1];
+	_cumulBaseFreq[2] = _cumulBaseFreq[1] + _baseFreq[2];
+	_cumulBaseFreq[3] = 1.0;
 
-	logfile->list("Simulating with base frequencies A:" + toString(baseFreq[0]) + " C:" + toString(baseFreq[1])+ " G:" + toString(baseFreq[1])+ " T:" + toString(baseFreq[1]));
+	_logfile->list("Simulating with base frequencies A:" + toString(_baseFreq[0]) + " C:" + toString(_baseFreq[1])+ " G:" + toString(_baseFreq[1])+ " T:" + toString(_baseFreq[1]));
 };
 
 //--------------------------------------------------------------
 //Run simulations
 //--------------------------------------------------------------
-void TSimulator::simulateReadsFromHaplotypes(const BAM::TChromosome & thisChr, Base** haplotypes, TSimulatorBamFile & bamFile, std::string extraProgressText){
+void TSimulator::_simulateReadsFromHaplotypes(const BAM::TChromosome & thisChr, Base** haplotypes, TSimulatorBamFile & bamFile, std::string extraProgressText){
 	//Initialize probabilities to simulate reads
 	uint64_t numReads;
-	if(averageReadLength == 0) numReads = 0;
-	else numReads = thisChr.length * seqDepth / averageReadLength;
+	if(_averageReadLength == 0) numReads = 0;
+	else numReads = thisChr.length * _seqDepth / _averageReadLength;
 
-	uint64_t chrLengthForStart = thisChr.length - maxReadLength + 1;
+	uint64_t chrLengthForStart = thisChr.length - _maxReadLength + 1;
 	double probReadPerSite = 1.0 / (double) chrLengthForStart;
 	uint64_t numReadsSimulated = 0;
 	uint32_t numReadsHere;
@@ -784,163 +784,163 @@ void TSimulator::simulateReadsFromHaplotypes(const BAM::TChromosome & thisChr, B
 	int oldProg = 0;
 	std::string progressString = "Simulating about " + toString(numReads) + " reads" + extraProgressText + " ...";
 
-	logfile->listFlush(progressString);
+	_logfile->listFlush(progressString);
 
 	//now simulate
 	for(uint32_t l=0; l<chrLengthForStart; ++l){
 		//write unwritten alignments
-		for(TSimulatorSingleEndRead* rs : readSimulators)
+		for(TSimulatorSingleEndRead* rs : _readSimulators)
 			rs->writeUnwrittenAlignments(l, bamFile);
 
 		//draw random number to get number of reads starting at this position
-		numReadsHere = randomGenerator->getBiomialRand(probReadPerSite, numReads);
+		numReadsHere = _randomGenerator->getBiomialRand(probReadPerSite, numReads);
 		//now simulate
 		if(numReadsHere > 0){
 			numReadsSimulated += numReadsHere;
 			for(uint32_t r=0; r<numReadsHere; ++r){
-				int rg = randomGenerator->pickOne(readSimulators.size(), cumulSimGroupFrequenies.data());
-				readSimulators[rg]->simulate(haplotypes[randomGenerator->pickOne(2)], thisChr.refID(), l, bamFile);
+				int rg = _randomGenerator->pickOne(_readSimulators.size(), _cumulSimGroupFrequenies.data());
+				_readSimulators[rg]->simulate(haplotypes[_randomGenerator->pickOne(2)], thisChr.refID(), l, bamFile);
 			}
 
 			//report progress
 			prog = 100.0 * (float) numReadsSimulated / (float) numReads;
 			if(prog > oldProg){
 				oldProg = prog;
-				logfile->listOverFlush(progressString + "(" + toString(prog) + "%)");
+				_logfile->listOverFlush(progressString + "(" + toString(prog) + "%)");
 			}
 		}
 	}
 	//write unwritten alignments
-	for(TSimulatorSingleEndRead* rs : readSimulators)
+	for(TSimulatorSingleEndRead* rs : _readSimulators)
 		rs->writeUnwrittenAlignments(thisChr.length, bamFile);
 
-	logfile->overList(progressString + " done!  ");
-	logfile->conclude("Simulated a total of " + toString(numReadsSimulated) + " reads.");
+	_logfile->overList(progressString + " done!  ");
+	_logfile->conclude("Simulated a total of " + toString(numReadsSimulated) + " reads.");
 };
 
 void TSimulator::runSimulations(){
 	//open bam files
-	TSimulatorBamFiles bamFiles(sampleSize, outname, readGroupNames, chromosomes, logfile, genoMap, qualMap);
+	TSimulatorBamFiles bamFiles(_sampleSize, _outname, _readGroupNames, _chromosomes, _logfile, _genoMap, _qualMap);
 
 	//prepare haplotypes and
-	TSimulatorHaplotypes haplotypes(sampleSize);
+	TSimulatorHaplotypes haplotypes(_sampleSize);
 
 	//open files to store extra info on sites
-	if(writeTrueGenotypes){
+	if(_writeTrueGenotypes){
 		//open file for true genotypes
-		std::string filename = outname + "_trueGenotypes.vcf.gz";
+		std::string filename = _outname + "_trueGenotypes.vcf.gz";
 		haplotypes.openTrueGenotypeVCF(filename);
 	}
 
 	TSimulatorVariantInvariantBedFiles bedFiles;
-	if(writeVariantInvariantBedFiles)
-		bedFiles.open(outname);
+	if(_writeVariantInvariantBedFiles)
+		bedFiles.open(_outname);
 
 	//simulate sequences
-	for(auto& chr : chromosomes){
-		logfile->startIndent("Simulating chromosome " + chr.name + ":");
+	for(auto& chr : _chromosomes){
+		_logfile->startIndent("Simulating chromosome " + chr.name + ":");
 
 		//update reference storage and update haplotype lengths
-		referenceObj.setChr(chr.name, chr.length);
+		_referenceObj.setChr(chr.name, chr.length);
 		haplotypes.setLength(chr.length);
 
 		//simulate genotypes
-		logfile->listFlush("Simulating genotypes ...");
+		_logfile->listFlush("Simulating genotypes ...");
 		if(chr.ploidy == 1)
-			simulateHaplotypesHaploid(haplotypes, chr, referenceObj.getPointerToRef());
+			_simulateHaplotypesHaploid(haplotypes, chr, _referenceObj);
 		else
-			simulateHaplotypesDiploid(haplotypes, chr, referenceObj.getPointerToRef());
-		logfile->done();
+			_simulateHaplotypesDiploid(haplotypes, chr, _referenceObj);
+		_logfile->done();
 
 		//write true genotypes
-		if(writeTrueGenotypes){
-			logfile->listFlush("Writing true genotypes ...");
-			haplotypes.writeTrueGenotypes(chr.name, referenceObj.getPointerToRef(), genoMap);
-			logfile->done();
+		if(_writeTrueGenotypes){
+			_logfile->listFlush("Writing true genotypes ...");
+			haplotypes.writeTrueGenotypes(chr.name, _referenceObj.getPointerToRef(), _genoMap);
+			_logfile->done();
 		}
 
 		//write BED files
-		if(writeVariantInvariantBedFiles)
+		if(_writeVariantInvariantBedFiles)
 			bedFiles.write(haplotypes, chr.name);
 
 		//now simulate and write reads
-		logfile->startIndent("Simulating reads:");
-		for(int i=0; i<sampleSize; ++i)
-			simulateReadsFromHaplotypes(chr, haplotypes.getHaplotypesOfIndividual(i), bamFiles[i], " for individual " + toString(i+1));
-		logfile->endIndent();
+		_logfile->startIndent("Simulating reads:");
+		for(int i=0; i<_sampleSize; ++i)
+			_simulateReadsFromHaplotypes(chr, haplotypes.getHaplotypesOfIndividual(i), bamFiles[i], " for individual " + toString(i+1));
+		_logfile->endIndent();
 
 		//end of chromosome
-		logfile->endIndent();
+		_logfile->endIndent();
 	}
 
 	//close stuff
 	bamFiles.close();
-	logfile->endIndent();
+	_logfile->endIndent();
 	haplotypes.closeTrueGenotypeVCF();
-	referenceObj.close();
+	_referenceObj.close();
 };
 
 //---------------------------------------------------------
 //TSimulatorOneIndividual
 //---------------------------------------------------------
 TSimulatorOneIndividual::TSimulatorOneIndividual(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGenerator):TSimulator(Logfile, RandomGenerator){
-	logfile->startIndent("Reading parameters to simulate a single individual:");
+	_logfile->startIndent("Reading parameters to simulate a single individual:");
 
 	//first common stuff
-	initializeCommonSettings(params);
-	sampleSize = 1;
+	_initializeCommonSettings(params);
+	_sampleSize = 1;
 
 	//now theta
 	std::vector<std::string> tmp;
 	params.fillParameterIntoVectorWithDefault("theta", tmp, ',', "0.001");
 	repeatIndexes(tmp, thetas);
 	if(thetas.size() == 1){
-		logfile->list("Will simulate a single individual with theta = " + toString(thetas[0]) + ".");
-		for(unsigned int i=1; i<chromosomes.size(); ++i)
+		_logfile->list("Will simulate a single individual with theta = " + toString(thetas[0]) + ".");
+		for(unsigned int i=1; i<_chromosomes.size(); ++i)
 			thetas.push_back(thetas[0]);
 	} else {
-		logfile->list("Will simulate a single individual with chromosome specific thetas " + concatenateString(thetas, ", "));
+		_logfile->list("Will simulate a single individual with chromosome specific thetas " + concatenateString(thetas, ", "));
 	}
 
 	//one theta per chromosome
-	if(thetas.size() != chromosomes.size())
+	if(thetas.size() != _chromosomes.size())
 		throw "Number of theta values provided does not match number of chromosomes to simulate!";
 
 	//done
-	logfile->endIndent();
+	_logfile->endIndent();
 };
 
 TSimulatorOneIndividual::~TSimulatorOneIndividual(){
 	thetas.clear();
 };
 
-void TSimulatorOneIndividual::simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, Base* ref){
+void TSimulatorOneIndividual::_simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, TSimulatorReference & ref){
 	//fill mutation table
-	mutTable.fill(baseFreq, thetas[chromosome.refID()]);
+	mutTable.fill(_baseFreq, thetas[chromosome.refID()]);
 
 	for(uint64_t l=0; l<chromosome.length; ++l){
-		haplotypes(0,0,l) = static_cast<Base>(randomGenerator->pickOne(4, cumulBaseFreq));
-		haplotypes(0,1,l) = static_cast<Base>(randomGenerator->pickOne(4, mutTable[haplotypes(0,0,l)]));
+		haplotypes(0,0,l) = static_cast<Base>(_randomGenerator->pickOne(4, _cumulBaseFreq));
+		haplotypes(0,1,l) = static_cast<Base>(_randomGenerator->pickOne(4, mutTable[haplotypes(0,0,l)]));
 
 		//decide on reference sequence
 		if(haplotypes(0,0,l) == haplotypes(0,1,l))
-			ref[l] = static_cast<Base> ((haplotypes(0,0,l) + randomGenerator->pickOne(4, cumulRef)) % 4);
+			ref[l] = static_cast<Base> ((haplotypes(0,0,l) + _randomGenerator->pickOne(4, _cumulRef)) % 4);
 		else
-			ref[l] = static_cast<Base> (haplotypes(0,randomGenerator->pickOne(2),l));
+			ref[l] = static_cast<Base> (haplotypes(0,_randomGenerator->pickOne(2),l));
 	}
 };
 
-void TSimulatorOneIndividual::simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, Base* ref){
+void TSimulatorOneIndividual::_simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, TSimulatorReference & ref){
 	//fill mutation table
-	mutTable.fill(baseFreq, thetas[chromosome.refID()]);
+	mutTable.fill(_baseFreq, thetas[chromosome.refID()]);
 
 	//now simulate genotypes
 	for(uint64_t l=0; l<chromosome.length; ++l){
-		haplotypes(0,0,l) = static_cast<Base> (randomGenerator->pickOne(4, cumulBaseFreq));
+		haplotypes(0,0,l) = static_cast<Base> (_randomGenerator->pickOne(4, _cumulBaseFreq));
 		haplotypes(0,1,l) = haplotypes(0,0,l);
 
 		//decide on ref
-		ref[l] = static_cast<Base> ((haplotypes(0,0,l) + randomGenerator->pickOne(4, cumulRef)) % 4);
+		ref[l] = static_cast<Base> ((haplotypes(0,0,l) + _randomGenerator->pickOne(4, _cumulRef)) % 4);
 	}
 };
 
@@ -948,11 +948,11 @@ void TSimulatorOneIndividual::simulateHaplotypesHaploid(TSimulatorHaplotypes & h
 //TSimulatorPairOfIndividuals
 //---------------------------------------------------------
 TSimulatorPairOfIndividuals::TSimulatorPairOfIndividuals(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGenerator):TSimulator(Logfile, RandomGenerator){
-	logfile->startIndent("Reading parameters to simulate two individuals with a specific genetic distance:");
+	_logfile->startIndent("Reading parameters to simulate two individuals with a specific genetic distance:");
 
 	//first common stuff
-	initializeCommonSettings(params);
-	sampleSize = 2;
+	_initializeCommonSettings(params);
+	_sampleSize = 2;
 
 	//Initialize phis
 	std::vector<std::string> tmp;
@@ -967,19 +967,18 @@ TSimulatorPairOfIndividuals::TSimulatorPairOfIndividuals(TLog* Logfile, TParamet
 	for(std::vector<double>::iterator it=phis.begin(); it!=phis.end(); ++it)
 		sum += *it;
 	if(sum != 1.0){
-		logfile->list("Normalizing phi to sum to one (currently summing to " + toString(sum) + ").");
+		_logfile->list("Normalizing phi to sum to one (currently summing to " + toString(sum) + ").");
 		for(std::vector<double>::iterator it=phis.begin(); it!=phis.end(); ++it)
 			*it /= sum;
 	}
-	logfile->list("Used phi are: " + concatenateString(phis, ", "));
+	_logfile->list("Used phi are: " + concatenateString(phis, ", "));
 
 	//initializes tables
 	fillTables();
 
 	//done
-	logfile->endIndent();
+	_logfile->endIndent();
 };
-
 
 void TSimulatorPairOfIndividuals::fillTables(){
 	//file cumulative frequencies of cases (phis)
@@ -1009,7 +1008,7 @@ void TSimulatorPairOfIndividuals::fillTables(){
 	genoTrans[0] = new Base*[4];
 	sum = 0.0;
 	for(a=0; a<4; ++a){
-		sum += baseFreq[a];
+		sum += _baseFreq[a];
 		cumulGenoCombinationFreq[0][a] = sum;
 		genoTrans[0][a] = new Base[4];
 		genoTrans[0][a][0] = static_cast<Base>(a);
@@ -1026,7 +1025,7 @@ void TSimulatorPairOfIndividuals::fillTables(){
 	for(a=0; a<4; ++a){
 		for(b=0; b<4; ++b){
 			if(a!=b){
-				sum += baseFreq[a] * baseFreq[b];
+				sum += _baseFreq[a] * _baseFreq[b];
 				cumul[index] = sum;
 				++index;
 			}
@@ -1068,7 +1067,7 @@ void TSimulatorPairOfIndividuals::fillTables(){
 	genoTrans[4] = new Base*[6];
 	for(a=0; a<3; ++a){
 		for(b=a+1; b<4; ++b){
-			sum += baseFreq[a] * baseFreq[b];
+			sum += _baseFreq[a] * _baseFreq[b];
 			cumul[index] = sum;
 			genoTrans[4][index] = new Base[4];
 			genoTrans[4][index][0] = static_cast<Base>(a); genoTrans[4][index][1] = static_cast<Base>(b); genoTrans[4][index][2] = static_cast<Base>(a); genoTrans[4][index][3] = static_cast<Base>(b);
@@ -1098,7 +1097,7 @@ void TSimulatorPairOfIndividuals::fillTables(){
 			if(a!=b){
 				for(c=0; c<4; ++c){
 					if(c!=a && c!=b){
-						sum += baseFreq[a] * baseFreq[b] * baseFreq[c];
+						sum += _baseFreq[a] * _baseFreq[b] * _baseFreq[c];
 						cumul[index] = sum;
 						genoTrans[5][index] = new Base[4];
 						genoTrans[5][index][0] = static_cast<Base>(a); genoTrans[5][index][1] = static_cast<Base>(b); genoTrans[5][index][2] = static_cast<Base>(a); genoTrans[5][index][3] = static_cast<Base>(c);
@@ -1129,7 +1128,7 @@ void TSimulatorPairOfIndividuals::fillTables(){
 			if(a!=b){
 				for(c=0; c<4; ++c){
 					if(c!=a && c!=b){
-						sum += baseFreq[a] * baseFreq[b] * baseFreq[c];
+						sum += _baseFreq[a] * _baseFreq[b] * _baseFreq[c];
 						cumul[index] = sum;
 						++index;
 					}
@@ -1236,9 +1235,9 @@ void TSimulatorPairOfIndividuals::deleteTables(){
 	}
 };
 
-void TSimulatorPairOfIndividuals::simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, Base* ref){
+void TSimulatorPairOfIndividuals::_simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, TSimulatorReference & ref){
 	//first run diploid
-	simulateHaplotypesDiploid(haplotypes, chromosome, ref);
+	_simulateHaplotypesDiploid(haplotypes, chromosome, ref);
 
 	//now set homozygous
 	for(uint64_t l=0; l<chromosome.length; ++l){
@@ -1248,17 +1247,17 @@ void TSimulatorPairOfIndividuals::simulateHaplotypesHaploid(TSimulatorHaplotypes
 	}
 };
 
-void TSimulatorPairOfIndividuals::simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, Base* ref){
+void TSimulatorPairOfIndividuals::_simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, TSimulatorReference & ref){
 	//run across loci
 	for(uint64_t l=0; l<chromosome.length; ++l){
 		//pick a case
-		int c = randomGenerator->pickOne(9, cumulGenoCaseFrequencies);
+		int c = _randomGenerator->pickOne(9, cumulGenoCaseFrequencies);
 
 		//pick genotypes
-		int g = randomGenerator->pickOne(numGenotypeCombinations[c], cumulGenoCombinationFreq[c]);
+		int g = _randomGenerator->pickOne(numGenotypeCombinations[c], cumulGenoCombinationFreq[c]);
 
 		//pick order
-		int o = randomGenerator->pickOne(4);
+		int o = _randomGenerator->pickOne(4);
 
 		//assign to haplotypes
 		haplotypes(0,0,l) = genoTrans[c][g][orderLookup[o][0]];
@@ -1268,9 +1267,9 @@ void TSimulatorPairOfIndividuals::simulateHaplotypesDiploid(TSimulatorHaplotypes
 
 		//simulate reference
 		if(c == 0){
-			ref[l] = static_cast<Base>((genoTrans[c][g][0] + randomGenerator->pickOne(4, cumulRef)) % 4);
+			ref[l] = static_cast<Base>((genoTrans[c][g][0] + _randomGenerator->pickOne(4, _cumulRef)) % 4);
 		} else {
-			int r = randomGenerator->pickOne(4);
+			int r = _randomGenerator->pickOne(4);
 			ref[l] = genoTrans[c][g][r];
 		}
 	}
@@ -1280,18 +1279,18 @@ void TSimulatorPairOfIndividuals::simulateHaplotypesDiploid(TSimulatorHaplotypes
 //TSimulatorSFS
 //---------------------------------------------------------
 TSimulatorSFS::TSimulatorSFS(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGenerator):TSimulator(Logfile, RandomGenerator){
-	logfile->startIndent("Reading parameters to simulate a population sample given an SFS:");
+	_logfile->startIndent("Reading parameters to simulate a population sample given an SFS:");
 
 	//first common stuff
-	initializeCommonSettings(params);
+	_initializeCommonSettings(params);
 
 	//sample size
-	sampleSize = params.getParameterIntWithDefault("sampleSize", 10);
+	_sampleSize = params.getParameterIntWithDefault("sampleSize", 10);
 
 	//read SFS
-	logfile->startIndent("Initializing SFS:");
+	_logfile->startIndent("Initializing SFS:");
 	if(params.parameterExists("sfs")){
-		logfile->startIndent("Reading SFS from files:");
+		_logfile->startIndent("Reading SFS from files:");
 
 		std::vector<std::string> tmp;
 		std::vector<std::string> sfsFileNames;
@@ -1300,17 +1299,17 @@ TSimulatorSFS::TSimulatorSFS(TLog* Logfile, TParameters & params, TRandomGenerat
 
 		//if a single SFS is given: use it for all chromosomes
 		if(sfsFileNames.size() == 1){
-			for(size_t i=1; i<chromosomes.size(); ++i)
+			for(size_t i=1; i<_chromosomes.size(); ++i)
 				sfsFileNames.emplace_back(sfsFileNames[0]);
 		}
 
 		//check if numbe rof chromosomes given matches number of chromosomes
-		if(sfsFileNames.size() != chromosomes.size())
+		if(sfsFileNames.size() != _chromosomes.size())
 			throw "Number of SFS files does not match number of chromosomes!";
 
 		//initialize SFS from files
 		bool folded = params.parameterExists("folded");
-		initializeSFS(sfsFileNames, folded);
+		_initializeSFS(sfsFileNames, folded);
 	} else if(params.parameterExists("theta")){
 		//parse theta from command line
 		std::vector<std::string> tmp;
@@ -1318,21 +1317,21 @@ TSimulatorSFS::TSimulatorSFS(TLog* Logfile, TParameters & params, TRandomGenerat
 		std::vector<double> thetas;
 		repeatIndexes(tmp, thetas);
 		if(thetas.size() == 1){
-			logfile->list("Will simulate from SFS with theta = " + toString(thetas[0]) + ".");
-			for(unsigned int i=1; i<chromosomes.size(); ++i)
+			_logfile->list("Will simulate from SFS with theta = " + toString(thetas[0]) + ".");
+			for(unsigned int i=1; i<_chromosomes.size(); ++i)
 				thetas.push_back(thetas[0]);
 		} else {
-			logfile->list("Will simulate data from chromosome specific SFS with thetas " + concatenateString(thetas, ", "));
+			_logfile->list("Will simulate data from chromosome specific SFS with thetas " + concatenateString(thetas, ", "));
 		}
-		initializeSFS(thetas);
+		_initializeSFS(thetas);
 	} else throw "Either argument sfs or theta must be provided to simulate population samples!";
 
 
 	//fill mutation table
-	mutTable.fill(baseFreq);
+	mutTable.fill(_baseFreq);
 
 	//done
-	logfile->endIndent();
+	_logfile->endIndent();
 };
 
 TSimulatorSFS::~TSimulatorSFS(){
@@ -1341,67 +1340,67 @@ TSimulatorSFS::~TSimulatorSFS(){
 		delete *it;
 };
 
-void TSimulatorSFS::initializeSFS(std::vector<double> & thetas){
-	if(thetas.size() != chromosomes.size())
+void TSimulatorSFS::_initializeSFS(std::vector<double> & thetas){
+	if(thetas.size() != _chromosomes.size())
 		throw "Number of theta values does not match number of chromosomes!";
 
 	//generate SFS for each chromosome
-	logfile->listFlush("Initializing SFS ...");
+	_logfile->listFlush("Initializing SFS ...");
 	std::string filename;
 	std::vector<double>::iterator thetaIt = thetas.begin();
-	for(auto& chr : chromosomes){
-		sfs.push_back(new SFS(chr.ploidy * sampleSize, (float) *thetaIt));
+	for(auto& chr : _chromosomes){
+		sfs.push_back(new SFS(chr.ploidy * _sampleSize, (float) *thetaIt));
 
 		//save true SFS
-		filename = outname + "_trueSFS_chr" + toString(chr.refID()) + ".txt";
+		filename = _outname + "_trueSFS_chr" + toString(chr.refID()) + ".txt";
 		(*sfs.rbegin())->writeToFile(filename);
 		++thetaIt;
 	}
-	logfile->done();
-	logfile->conclude("True SFS written to '" + outname + "_trueSFS_chr*.txt'.");
+	_logfile->done();
+	_logfile->conclude("True SFS written to '" + _outname + "_trueSFS_chr*.txt'.");
 };
 
-void TSimulatorSFS::initializeSFS(std::vector<std::string> & sfsFileNames, bool folded){
-	if(sfsFileNames.size() != chromosomes.size())
+void TSimulatorSFS::_initializeSFS(std::vector<std::string> & sfsFileNames, bool folded){
+	if(sfsFileNames.size() != _chromosomes.size())
 		throw "Number of SFS files does not match number of chromosomes!";
 
 	//read the SFS of each chromosome from the corresponding file
 	std::vector<SFS*> sfs;
 	std::vector<std::string>::iterator it = sfsFileNames.begin();
-	for(auto& chr : chromosomes){
-		logfile->listFlush("Reading the sfs of chromosome '" + chr.name + "' from file '" + *it + "' ...");
+	for(auto& chr : _chromosomes){
+		_logfile->listFlush("Reading the sfs of chromosome '" + chr.name + "' from file '" + *it + "' ...");
 		if(folded) sfs.push_back(new SFSfolded(*it));
 		else sfs.push_back(new SFS(*it));
-		logfile->done();
+		_logfile->done();
 
-		uint32_t nChr = chr.ploidy * sampleSize;
-		if((*sfs.rbegin())->numChromosomes != nChr)
+		uint32_t nChr = chr.ploidy * _sampleSize;
+		if(sfs.back()->numChromosomes != nChr){
 			throw "SFS does not match sample size! It contains data for " + toString((*sfs.rbegin())->numChromosomes) + " instead of " + toString(nChr) + " chromosomes.";
-
+		}
 		++it;
 	}
 };
 
 static inline int is_odd(int x){ return x % 2 != 0; }
 
-void TSimulatorSFS::simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, Base* ref){
+void TSimulatorSFS::_simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, TSimulatorReference & ref){
 	//now simulate haplotypes
 	for(uint32_t l=0; l<chromosome.length; ++l){
 		//pick alleles
-		Base ancestral = static_cast<Base>(randomGenerator->pickOne(4, cumulBaseFreq));
-		Base derived = static_cast<Base>(randomGenerator->pickOne(4, mutTable[ancestral]));
+		Base ancestral = static_cast<Base>(_randomGenerator->pickOne(4, _cumulBaseFreq));
+		Base derived = static_cast<Base>(_randomGenerator->pickOne(4, mutTable[ancestral]));
 
 		//pick derived allele frequency
-		int alleleCount = sfs[chromosome.refID()]->getRandomAlleleCount(randomGenerator);
+		int alleleCount = sfs[chromosome.refID()]->getRandomAlleleCount(_randomGenerator);
 
 		//pick haplotypes that are derived
 		int numNeeded = alleleCount;
-		for(int i=0; i<sampleSize; ++i){
-			if(randomGenerator->getRand() < (double) numNeeded / (double) (sampleSize - i)){
+		for(int i=0; i<_sampleSize; ++i){
+			if(_randomGenerator->getRand() < (double) numNeeded / (double) (_sampleSize - i)){
 				haplotypes(i,0,l) = derived;
 				--numNeeded;
 				if(numNeeded == 0){
-					for(int j=i+1; j<sampleSize; ++j){
+					for(int j=i+1; j<_sampleSize; ++j){
 						haplotypes(i,0,l) = ancestral;
 						haplotypes(i,1,l) = ancestral;
 					}
@@ -1416,41 +1415,41 @@ void TSimulatorSFS::simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes,
 
 		//decide on reference sequence
 		if(alleleCount > 0){
-			if(randomGenerator->getRand() < (double) alleleCount / (double) sampleSize)
+			if(_randomGenerator->getRand() < (double) alleleCount / (double) _sampleSize)
 				ref[l] = derived;
 			else
 				ref[l] = ancestral;
 		} else
-			ref[l] = static_cast<Base>((ancestral + randomGenerator->pickOne(4, cumulRef)) % 4);
+			ref[l] = static_cast<Base>((ancestral + _randomGenerator->pickOne(4, _cumulRef)) % 4);
 	}
 
 };
 
-void TSimulatorSFS::simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, Base* ref){
-	int numHaplotypes = 2 * sampleSize;
+void TSimulatorSFS::_simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, TSimulatorReference & ref){
+	int numHaplotypes = 2 * _sampleSize;
 	for(uint64_t l=0; l<chromosome.length; ++l){
 		//pick alleles
-		Base ancestral = static_cast<Base>(randomGenerator->pickOne(4, cumulBaseFreq));
-		Base derived = static_cast<Base>(randomGenerator->pickOne(4, mutTable[ancestral]));
+		Base ancestral = static_cast<Base>(_randomGenerator->pickOne(4, _cumulBaseFreq));
+		Base derived = static_cast<Base>(_randomGenerator->pickOne(4, mutTable[ancestral]));
 
 		//pick derived allele frequency
-		int alleleCount = sfs[chromosome.refID()]->getRandomAlleleCount(randomGenerator);
+		int alleleCount = sfs[chromosome.refID()]->getRandomAlleleCount(_randomGenerator);
 		//oo << alleleCount << "\n";
 
 		//pick haplotypes that are derived
 		if(alleleCount == 0){
-			for(int i=0; i<sampleSize; ++i){
+			for(int i=0; i<_sampleSize; ++i){
 				haplotypes(i,0,l) = ancestral;
 				haplotypes(i,1,l) = ancestral;
 			}
 
 			//decide on reference sequence
-			ref[l] = static_cast<Base>((ancestral + randomGenerator->pickOne(4, cumulRef)) % 4);
+			ref[l] = static_cast<Base>((ancestral + _randomGenerator->pickOne(4, _cumulRef)) % 4);
 		} else {
 			int numNeeded = alleleCount;
 			for(int i=0; i<numHaplotypes; ++i){
 				double prob = (double) numNeeded / (double) (numHaplotypes - i);
-				if(randomGenerator->getRand() < prob){
+				if(_randomGenerator->getRand() < prob){
 					haplotypes(i / 2, is_odd(i), l) = derived;
 					--numNeeded;
 					if(numNeeded == 0){
@@ -1463,7 +1462,7 @@ void TSimulatorSFS::simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes,
 			}
 
 			//decide on reference sequence
-			if(randomGenerator->getRand() < (double) alleleCount / (double) numHaplotypes)
+			if(_randomGenerator->getRand() < (double) alleleCount / (double) numHaplotypes)
 				ref[l] = derived;
 			else
 				ref[l] = ancestral;
@@ -1475,62 +1474,62 @@ void TSimulatorSFS::simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes,
 //TSimulatorHardyWeinberg
 //---------------------------------------------------------
 TSimulatorHardyWeinberg::TSimulatorHardyWeinberg(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGenerator):TSimulator(Logfile, RandomGenerator){
-	logfile->startIndent("Reading parameters to simulate a population sample under Hardy-Weinberg equilibrium:");
+	_logfile->startIndent("Reading parameters to simulate a population sample under Hardy-Weinberg equilibrium:");
 
 	//first common stuff
-	initializeCommonSettings(params);
+	_initializeCommonSettings(params);
 
 	//sample size
-	sampleSize = params.getParameterIntWithDefault("sampleSize", 10);
+	_sampleSize = params.getParameterIntWithDefault("sampleSize", 10);
 
 	//parameters of beta distribution
 	fracPoly = params.getParameterDoubleWithDefault("fracPoly", 0.1);
-	logfile->list("Will simulate " + toString(fracPoly) + " of all sites as polymorphic.");
+	_logfile->list("Will simulate " + toString(fracPoly) + " of all sites as polymorphic.");
 	alpha = params.getParameterDoubleWithDefault("alpha", 0.5);
 	if(alpha <= 0.0) throw "Alpha must be > 0!";
 	beta = params.getParameterDoubleWithDefault("beta", 0.5);
 	if(beta <= 0.0) throw "Beta must be > 0!";
-	logfile->list("Polymoprhic sites will have derived allele frequencies f~Beta(" + toString(alpha) + ", " + toString(beta) + ").");
+	_logfile->list("Polymoprhic sites will have derived allele frequencies f~Beta(" + toString(alpha) + ", " + toString(beta) + ").");
 	F = params.getParameterDoubleWithDefault("F", 0.0);
-	if(F > 0.0) logfile->list("Will use an inbreeding coefficient of " + toString(F) + ".");
+	if(F > 0.0) _logfile->list("Will use an inbreeding coefficient of " + toString(F) + ".");
 	if(F < 0.0 || F > 1.0) throw "Inbreeding coefficient F must be within [0,1]!";
 
 	//write true allele freq?
 	writeTrueAlleleFreq = false;
 	if(params.parameterExists("writeTrueAlleleFreq")){
-		std::string alleleFreqFile = outname + "_trueAlleleFreq.txt.gz";
-		logfile->list("Will write true allele frequencies to file '" + alleleFreqFile + "'.");
+		std::string alleleFreqFile = _outname + "_trueAlleleFreq.txt.gz";
+		_logfile->list("Will write true allele frequencies to file '" + alleleFreqFile + "'.");
 		trueFreqFile.open(alleleFreqFile);
 		trueFreqFile.writeHeader({"Chr", "Pos", "Ancestral", "Derived", "derivedFreq", "MAF"});
 		writeTrueAlleleFreq = true;
 	}
 
 	//fill mutation table
-	mutTable.fill(baseFreq);
+	mutTable.fill(_baseFreq);
 
 	//done
-	logfile->endIndent();
+	_logfile->endIndent();
 };
 
-void TSimulatorHardyWeinberg::fillCumulGenoProb(const double & f){
+void TSimulatorHardyWeinberg::_fillCumulGenoProb(const double & f){
 	double oneMinus_f = 1.0 - f;
 	cumulGenoProb[0] = F * oneMinus_f + (1.0 - F) * oneMinus_f * oneMinus_f;
 	cumulGenoProb[1] = cumulGenoProb[0] + (1.0 - F) * 2.0 * f * oneMinus_f;
 	cumulGenoProb[2] = 1.0;
 };
 
-void TSimulatorHardyWeinberg::simulateSite(TSimulatorHardyWeinbergSite & site, const std::string & chr, const uint64_t & pos, Base* & ref){
+void TSimulatorHardyWeinberg::_simulateSite(TSimulatorHardyWeinbergSite & site, const std::string & chr, const uint64_t & pos, TSimulatorReference & ref){
 	//simulate bases
-	site.reference = static_cast<Base>(randomGenerator->pickOne(4, cumulBaseFreq));
-	site.alternative = static_cast<Base>(randomGenerator->pickOne(4, mutTable[site.reference]));
+	site.reference = static_cast<Base>(_randomGenerator->pickOne(4, _cumulBaseFreq));
+	site.alternative = static_cast<Base>(_randomGenerator->pickOne(4, mutTable[site.reference]));
 
 	//is the site polymorphic?
-	if(randomGenerator->getRand() < fracPoly){
+	if(_randomGenerator->getRand() < fracPoly){
 		site.isPolymorphic = true;
-		site.f = randomGenerator->getBetaRandom(alpha, beta);
+		site.f = _randomGenerator->getBetaRandom(alpha, beta);
 
 		//reference is a random sample from pop with frequency f: flip if ref is alt!
-		if(randomGenerator->getRand() < site.f){
+		if(_randomGenerator->getRand() < site.f){
 			Base tmp = site.reference;
 			site.reference = site.alternative;
 			site.alternative = tmp;
@@ -1540,7 +1539,7 @@ void TSimulatorHardyWeinberg::simulateSite(TSimulatorHardyWeinbergSite & site, c
 		site.isPolymorphic = false;
 
 		//is reference diverged?
-		if(randomGenerator->getRand() < referenceDivergence){
+		if(_randomGenerator->getRand() < _referenceDivergence){
 			site.f = 1.0;
 		} else {
 			site.f = 0.0;
@@ -1552,7 +1551,7 @@ void TSimulatorHardyWeinberg::simulateSite(TSimulatorHardyWeinbergSite & site, c
 
 	//write true frequency: pos is 1 based!
 	if(writeTrueAlleleFreq){
-		trueFreqFile << chr << pos+1 << toBase[site.reference] << toBase[site.alternative] << site.f;
+		trueFreqFile << chr << pos+1 << _toBase[site.reference] << _toBase[site.alternative] << site.f;
 		if(site.f < 0.5){
 			trueFreqFile << site.f << std::endl;
 		} else {
@@ -1561,34 +1560,34 @@ void TSimulatorHardyWeinberg::simulateSite(TSimulatorHardyWeinbergSite & site, c
 	}
 };
 
-void TSimulatorHardyWeinberg::fillhaplotypesMonomoprhic(TSimulatorHaplotypes & haplotypes, const uint64_t & locus, TSimulatorHardyWeinbergSite & site){
+void TSimulatorHardyWeinberg::_fillhaplotypesMonomoprhic(TSimulatorHaplotypes & haplotypes, const uint64_t & locus, TSimulatorHardyWeinbergSite & site){
 	if(site.f == 0.0){
-		for(int i=0; i<sampleSize; ++i){
+		for(int i=0; i<_sampleSize; ++i){
 			haplotypes(i,0,locus) = site.reference;
 			haplotypes(i,1,locus) = site.reference;
 		}
 	} else {
-		for(int i=0; i<sampleSize; ++i){
+		for(int i=0; i<_sampleSize; ++i){
 			haplotypes(i,0,locus) = site.alternative;
 			haplotypes(i,1,locus) = site.alternative;
 		}
 	}
 };
 
-void TSimulatorHardyWeinberg::simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, Base* ref){
+void TSimulatorHardyWeinberg::_simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, TSimulatorReference & ref){
 	//storage
 	TSimulatorHardyWeinbergSite site;
 
 	//now simulate haplotypes
 	for(uint64_t l=0; l<chromosome.length; ++l){
 		//simulate site
-		simulateSite(site, chromosome.name, l, ref);
+		_simulateSite(site, chromosome.name, l, ref);
 
 		//polymoprhic or not?
 		if(site.isPolymorphic){
 			//simulate genotypes
-			for(int i=0; i<sampleSize; ++i){
-				if(randomGenerator->getRand() < site.f){
+			for(int i=0; i<_sampleSize; ++i){
+				if(_randomGenerator->getRand() < site.f){
 					haplotypes(i,0,l) = site.alternative;
 					haplotypes(i,1,l) = site.alternative;
 				} else {
@@ -1597,32 +1596,32 @@ void TSimulatorHardyWeinberg::simulateHaplotypesHaploid(TSimulatorHaplotypes & h
 				}
 			}
 		} else {
-			fillhaplotypesMonomoprhic(haplotypes, l, site);
+			_fillhaplotypesMonomoprhic(haplotypes, l, site);
 		}
 	}
 };
 
-void TSimulatorHardyWeinberg::simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, Base* ref){
+void TSimulatorHardyWeinberg::_simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, TSimulatorReference & ref){
 	//storage
 	TSimulatorHardyWeinbergSite site;
 
 	//now simulate haplotypes
 	for(uint64_t l=0; l<chromosome.length; ++l){
 		//simulate site
-		simulateSite(site, chromosome.name, l, ref);
+		_simulateSite(site, chromosome.name, l, ref);
 
 		//polymoprhic or not?
 		if(site.isPolymorphic){
-			fillCumulGenoProb(site.f);
+			_fillCumulGenoProb(site.f);
 
 			//simulate genotypes
-			for(int i=0; i<sampleSize; ++i){
-				int geno = randomGenerator->pickOne(3, cumulGenoProb);
+			for(int i=0; i<_sampleSize; ++i){
+				int geno = _randomGenerator->pickOne(3, cumulGenoProb);
 				if(geno == 0){
 					haplotypes(i,0,l) = site.reference;
 					haplotypes(i,1,l) = site.reference;
 				} else if(geno == 1){
-					if(randomGenerator->getRand() < 0.5){
+					if(_randomGenerator->getRand() < 0.5){
 						haplotypes(i,0,l) = site.reference;
 						haplotypes(i,1,l) = site.alternative;
 					} else {
@@ -1635,7 +1634,7 @@ void TSimulatorHardyWeinberg::simulateHaplotypesDiploid(TSimulatorHaplotypes & h
 				}
 			}
 		} else {
-			fillhaplotypesMonomoprhic(haplotypes, l, site);
+			_fillhaplotypesMonomoprhic(haplotypes, l, site);
 		}
 	}
 };
