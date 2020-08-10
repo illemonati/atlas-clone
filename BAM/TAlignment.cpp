@@ -9,8 +9,19 @@
 
 namespace BAM{
 
+TAlignment::TAlignment(const uint32_t& RefID, const uint32_t& Position):TGenomePosition(RefID, Position){
+	_initialize();
+};
+
+TAlignment::TAlignment(const TGenomePosition & other):TGenomePosition(other){
+	_initialize();
+};
+
 TAlignment::TAlignment(){
-	//details
+	_initialize();
+};
+
+void TAlignment::_initialize(){
 	_empty = true;
 	_readGroupID = 0;
 	_fragmentLength = 0;

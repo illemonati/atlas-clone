@@ -111,6 +111,8 @@ public:
 	//getters
 	uint32_t size() const { return _chromosomes.size(); };
 	uint32_t referenceLength() const;
+	uint32_t minLength() const;
+	uint32_t maxLength() const;
 
 	//getters by name
 	bool exists(const std::string name) const;

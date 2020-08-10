@@ -56,6 +56,8 @@ private:
 	bool _hasReference;
 	std::string _referenceSequence;
 
+	void _initialize();
+
 	//functions to read and parse
 	void _parseBasesQualities(const GenotypeLikelihoods::TGenotypeMap & genoMap, const TQualityMap & qualityMap);
 	void _setDistancesFromEnds();
@@ -65,8 +67,9 @@ private:
 	void _updateSequenceAndQualities(const GenotypeLikelihoods::TGenotypeMap & genoMap, const TQualityMap & qualMap) const;
 
 public:
+	TAlignment(const uint32_t& RefID, const uint32_t& Position);
+	TAlignment(const TGenomePosition & other);
 	TAlignment();
-	//TAlignment(const TAlignment & Alignment); //TODO: check that copy constructor works automatically. It should!
 
 	//clear, fill and parse
 	void clear();

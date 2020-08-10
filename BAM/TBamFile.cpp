@@ -362,7 +362,7 @@ void TBamFile::open(const std::string Filename, const bool IndexNotRequired, TLo
 	_filename = Filename;
 
 	//open BAM file
-	_logfile->listFlushDots("Opening BAm file '" + _filename);
+	_logfile->listFlushDots("Opening BAM file '" + _filename);
 	if (!_bamReader.Open(_filename))
 		throw "Failed to open BAM file '" + Filename + "'!";
 

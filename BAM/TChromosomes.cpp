@@ -224,12 +224,32 @@ void TChromosomes::_setToHaploid(const std::vector<std::string> & chrNames, TLog
 
 //getters
 uint32_t TChromosomes::referenceLength() const{
-	long totLength = 0;
+	uint32_t totLength = 0;
 	for(auto& c : _chromosomes){
 		if(c.inUse)
 			totLength += c.length;
 	}
 	return totLength;
+};
+
+uint32_t TChromosomes::minLength() const{
+	uint32_t minLen = _chromosomes[0].length;
+	for(auto& c : _chromosomes){
+		if(c.length < minLen){
+			minLen = c.length;
+		}
+	}
+	return minLen;
+};
+
+uint32_t TChromosomes::maxLength() const{
+	uint32_t maxLen = _chromosomes[0].length;
+	for(auto& c : _chromosomes){
+		if(c.length > maxLen){
+			maxLen = c.length;
+		}
+	}
+	return maxLen;
 };
 
 bool TChromosomes::exists(const std::string chrName) const{
