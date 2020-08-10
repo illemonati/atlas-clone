@@ -15,118 +15,118 @@ namespace Simulations{
 //TSimulatorReference
 //---------------------------------------------------
 TSimulatorReference::TSimulatorReference(){
-	logfile = NULL;
-	chrName = "";
-	ref = NULL;
-	storageInitialized = false;
-	storageLength = 0;
-	fastaOpen = false;
-	oldOffset = 0;
-	chrLength = 0;
-	needsWriting = false;
+	_logfile = NULL;
+	_chrName = "";
+	_ref = NULL;
+	_storageInitialized = false;
+	_storageLength = 0;
+	_fastaOpen = false;
+	_oldOffset = 0;
+	_chrLength = 0;
+	_needsWriting = false;
 };
 
 TSimulatorReference::TSimulatorReference(std::string Filename, TLog* Logfile){
-	chrName = "";
-	ref = NULL;
-	storageInitialized = false;
-	storageLength = 0;
-	fastaOpen = false;
-	chrLength = 0;
-	needsWriting = false;
+	_chrName = "";
+	_ref = NULL;
+	_storageInitialized = false;
+	_storageLength = 0;
+	_fastaOpen = false;
+	_chrLength = 0;
+	_needsWriting = false;
 
 	initialize(Filename, Logfile);
 };
 
 void TSimulatorReference::initialize(std::string Filename, TLog* Logfile){
-	filename = Filename;
-	logfile = Logfile;
+	_filename = Filename;
+	_logfile = Logfile;
 
-	openFastaFile();
+	_openFastaFile();
 };
 
 void TSimulatorReference::close(){
-	if(chrName != "" && needsWriting)
-		writeRefToFasta();
-	closeFastaFile();
-	freeStorage();
+	if(_chrName != "" && _needsWriting)
+		_writeRefToFasta();
+	_closeFastaFile();
+	_freeStorage();
 };
 
-void TSimulatorReference::openFastaFile(){
+void TSimulatorReference::_openFastaFile(){
 	//open FASTA file for reference sequences
-	logfile->list("Will write reference sequence to '" + filename + "'.");
-	fasta.open(filename.c_str());
-	if(!fasta)
-		throw "Failed to open file '" + filename + "' for writing!";
-	filename += ".fai";
-	fastaIndex.open(filename.c_str());
-	if(!fastaIndex)
-		throw "Failed to open file '" + filename + "' for writing!";
-	oldOffset = 0;
-	fastaOpen = true;
+	_logfile->list("Will write reference sequence to '" + _filename + "'.");
+	_fasta.open(_filename.c_str());
+	if(!_fasta)
+		throw "Failed to open file '" + _filename + "' for writing!";
+	_filename += ".fai";
+	_fastaIndex.open(_filename.c_str());
+	if(!_fastaIndex)
+		throw "Failed to open file '" + _filename + "' for writing!";
+	_oldOffset = 0;
+	_fastaOpen = true;
 };
 
-void TSimulatorReference::closeFastaFile(){
-	if(fastaOpen){
-		fasta.close();
-		fastaIndex.close();
+void TSimulatorReference::_closeFastaFile(){
+	if(_fastaOpen){
+		_fasta.close();
+		_fastaIndex.close();
 	}
-	fastaOpen = false;
+	_fastaOpen = false;
 };
 
-void TSimulatorReference::writeRefToFasta(){
-	if(fastaOpen){
+void TSimulatorReference::_writeRefToFasta(){
+	if(_fastaOpen){
 		//write to fasta
-		fasta << ">" << chrName;
-		for(int l=0; l<chrLength; ++l){
+		_fasta << ">" << _chrName;
+		for(int l=0; l<_chrLength; ++l){
 			if(l % 70 == 0)
-				fasta << "\n";
-			fasta << genoMap.baseToChar[ref[l]];
+				_fasta << "\n";
+			_fasta << _genoMap.baseToChar[_ref[l]];
 
 			//std::cout << "Writing base " << ref[l] << " -> " << toBase[ref[l]] << " to fasta..." << std::endl;
 
 		}
-		fasta << "\n";
+		_fasta << "\n";
 
 		//add to index
-		std::string tmp = chrName;
-		oldOffset += chrName.size() + 2;
-		fastaIndex << extractBeforeWhiteSpace(tmp) << "\t" << chrLength << "\t" << oldOffset << "\t70\t71\n";
-		oldOffset += chrLength + (int) (chrLength / 70);
-		if(chrLength % 70 != 0) oldOffset += 1;
+		std::string tmp = _chrName;
+		_oldOffset += _chrName.size() + 2;
+		_fastaIndex << extractBeforeWhiteSpace(tmp) << "\t" << _chrLength << "\t" << _oldOffset << "\t70\t71\n";
+		_oldOffset += _chrLength + (int) (_chrLength / 70);
+		if(_chrLength % 70 != 0) _oldOffset += 1;
 
-		needsWriting = false;
+		_needsWriting = false;
 	} else
 		throw "Can not write to FASTA file: file was never opened!";
 };
 
-void TSimulatorReference::allocateStorage(long length){
-	freeStorage();
+void TSimulatorReference::_allocateStorage(long length){
+	_freeStorage();
 
 	//allocate storage
-	ref = new Base[length];
-	storageInitialized = true;
-	storageLength = length;
+	_ref = new Base[length];
+	_storageInitialized = true;
+	_storageLength = length;
 };
 
-void TSimulatorReference::freeStorage(){
-	if(storageInitialized){
-		delete[] ref;
-		storageInitialized = false;
+void TSimulatorReference::_freeStorage(){
+	if(_storageInitialized){
+		delete[] _ref;
+		_storageInitialized = false;
 	}
 };
 
 void TSimulatorReference::setChr(std::string ChrName, long ChrLength){
 	//write if not yet written
-	if(chrName != "" && needsWriting)
-		writeRefToFasta();
+	if(_chrName != "" && _needsWriting)
+		_writeRefToFasta();
 
 	//move to new chr
-	chrName = ChrName;
-	if(ChrLength > storageLength)
-		allocateStorage(ChrLength);
-	chrLength = ChrLength;
-	needsWriting = true;
+	_chrName = ChrName;
+	if(ChrLength > _storageLength)
+		_allocateStorage(ChrLength);
+	_chrLength = ChrLength;
+	_needsWriting = true;
 };
 
 //void TSimulatorReference::simulateReferenceSequenceCurChromosome(TRandomGenerator * randomGenerator, float* cumulBaseFreq){

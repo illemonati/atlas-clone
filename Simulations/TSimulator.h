@@ -119,8 +119,6 @@ private:
 public:
 	TSimulatorOneIndividual(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGenerator);
 	~TSimulatorOneIndividual();
-
-	void runSimulations();
 };
 
 
@@ -147,8 +145,6 @@ public:
 
 	TSimulatorPairOfIndividuals(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGenerator);
 	~TSimulatorPairOfIndividuals(){ deleteTables(); };
-
-	void runSimulations();
 };
 
 //---------------------------------------------------------
@@ -167,8 +163,6 @@ private:
 public:
 	TSimulatorSFS(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGenerator);
 	~TSimulatorSFS();
-
-	void runSimulations();
 };
 
 //---------------------------------------------------------
@@ -198,8 +192,6 @@ private:
 public:
 	TSimulatorHardyWeinberg(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGenerator);
 	~TSimulatorHardyWeinberg(){};
-
-	void runSimulations();
 };
 
 

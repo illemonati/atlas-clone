@@ -41,30 +41,30 @@ public:
 //---------------------------------------------------------
 class TSimulatorReference{
 private:
-	TLog* logfile;
+	TLog* _logfile;
 
 	//fasta file
-	std::ofstream fasta;
-	std::ofstream fastaIndex;
-	long oldOffset;
-	bool fastaOpen;
-	std::string filename;
-	TGenotypeMap genoMap;
+	std::ofstream _fasta;
+	std::ofstream _fastaIndex;
+	long _oldOffset;
+	bool _fastaOpen;
+	std::string _filename;
+	TGenotypeMap _genoMap;
 
 	//reference storage
-	Base* ref;
-	bool storageInitialized;
-	long storageLength;
-	long chrLength;
-	std::string chrName;
-	bool needsWriting;
+	Base* _ref;
+	bool _storageInitialized;
+	long _storageLength;
+	long _chrLength;
+	std::string _chrName;
+	bool _needsWriting;
 
-	void allocateStorage(long length);
-	void freeStorage();
+	void _allocateStorage(long length);
+	void _freeStorage();
 
-	void openFastaFile();
-	void closeFastaFile();
-	void writeRefToFasta();
+	void _openFastaFile();
+	void _closeFastaFile();
+	void _writeRefToFasta();
 
 public:
 	TSimulatorReference();
@@ -78,7 +78,9 @@ public:
 
 	void setChr(std::string ChrName, long ChrLength);
 //	void simulateReferenceSequenceCurChromosome(TRandomGenerator * randomGenerator, float* cumulBaseFreq);
-	Base* getPointerToRef(){ return ref; };
+	Base* getPointerToRef(){ return _ref; };
+
+	Base& operator[](const uint32_t & index){ return _ref[index]; };
 };
 
 //---------------------------------------------------------
