@@ -9,6 +9,7 @@ add_library(${PROJECT_NAME}
         TAtlasTestPMD.cpp TAtlasTestPMD.h
         TAtlasTestRecalibration.cpp TAtlasTestRecalibration.h
         TVcfTest.cpp TVcfTest.h
+        TTestBamFile.cpp TTestBamFile.h
         )
 
 include_directories(".")

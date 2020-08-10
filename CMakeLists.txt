@@ -53,8 +53,8 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
 ################## google tests ####################
 
+add_subdirectory(BAM/tests)
 
-include_directories(commonutilities/)
 
 # The gtest/gtest_main targets carry header search path
 # dependencies automatically when using CMake 2.8.11 or
@@ -66,7 +66,23 @@ if(CMAKE_VERSION VERSION_LESS 2.8.11)
 endif()
 
 # Now simply link against gtest or gtest_main as needed. Eg
-set(TEST_SOURCES BAM/tests/TGenomePosition_Test.cpp BAM/tests/TBed_Test.cpp)
+set(TEST_SOURCES BAM/tests/TGenomePosition_Test.cpp BAM/tests/TBed_Test.cpp BAM/tests/TBamFile_Test.cpp)
 add_executable(testAtlas ${TEST_SOURCES})
 target_link_libraries(testAtlas PUBLIC gtest_main gmock_main VCFLib PopulationToolsLib BAMLib GenomeTasksLib GenotypeLikelihoodsLib GLFLib SimulationsLib TestsLib commonutilities bamtoolsLib ${ZLIB_LIBRARIES} ${ARMADILLO_LIBRARIES})
+
+
+target_include_directories(testAtlas PUBLIC ${ARMADILLO_INCLUDE_DIRS}
+        "${PROJECT_BINARY_DIR}"
+        "${PROJECT_SOURCE_DIR}/commonutilities"
+        "${PROJECT_SOURCE_DIR}/bamtools"
+        "${PROJECT_SOURCE_DIR}/VCF"
+        "${PROJECT_SOURCE_DIR}/GenotypeLikelihoods"
+        "${PROJECT_SOURCE_DIR}/BAM"
+        "${PROJECT_SOURCE_DIR}/GenomeTasks"
+        "${PROJECT_SOURCE_DIR}/GLF"
+        "${PROJECT_SOURCE_DIR}/PopulationTools"
+        "${PROJECT_SOURCE_DIR}/Simulations"
+        "${PROJECT_SOURCE_DIR}/TestUtilities"
+        )
+
 add_test(NAME example_test COMMAND testAtlas)
