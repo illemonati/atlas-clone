@@ -107,6 +107,12 @@ public:
 	void addComment(const std::string Comment){ _comments_CO.push_back(Comment); };
 	std::string compileSamHeader(const TReadGroups & ReadGroups) const;
 	std::string compileSamHeader(const TReadGroups & ReadGroups, const TChromosomes & Chromosomes) const;
+
+    //getters
+    std::string version() const{ return _HD.version(); };
+    std::string sortOrder() const{ return _HD.sortOrder(); };
+    std::string grouping() const{ return _HD.grouping(); };
+    std::string subSorting() const{ return _HD.subSorting(); };
 };
 
 }; //end namespace

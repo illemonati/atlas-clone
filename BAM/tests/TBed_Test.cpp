@@ -2,7 +2,7 @@
 // Created by caduffm on 8/4/20.
 //
 
-#include "../TBed.h"
+#include "TBed.h"
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
 

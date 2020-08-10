@@ -25,13 +25,13 @@ TTestBamFile::TTestBamFile(const std::string & Filename, const std::vector<uint3
 };
 
 void TTestBamFile::_initialize(const std::vector<uint32_t> ChrLength, const uint32_t & NumReadGroups){
-	BAM::TSamHeader header("1.6", "coordinate", "none");
+	_header.set("1.6", "coordinate", "none", "none");
 	_initializeChromosomes(ChrLength);
 	_initializeReadGroups(NumReadGroups);
 
 	//tmp vars
 	_dummySequence =  "AAACCCGGGTTTACGTTGCAAACGTGGCCGTGACACCGTCGACAGGTGCCACACAGTGGCAAATTGGCCGGTGCAAACCAAACCAAGGTTGCCCG";
-	_dummyQualities = "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
+	_dummyQualities = "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
 	_dummyMaxLength = _dummySequence.length();
 	_dummyBasePos = 0;
 	_dummyQualPos = 0;
