@@ -25,78 +25,78 @@ using namespace GenotypeLikelihoods;
 class TCaller{
 protected:
 	//caller specific defaults
-	std::string callerName;
-	std::string filenameExtention;
+	std::string _callerName;
+	std::string _filenameExtention;
 
 	//lookup stuff
-	TGenotypeMap genoMap;
-	BAM::TQualityMap qualMap;
-	VCF::TVCFInfoFields VCFInfoFields;
-	VCF::TVCFGenotypeFields VCFGenotypeFields;
-	TRandomGenerator* randomGenerator;
+	TGenotypeMap _genoMap;
+	BAM::TQualityMap _qualMap;
+	VCF::TVCFInfoFields _VCFInfoFields;
+	VCF::TVCFGenotypeFields _VCFGenotypeFields;
+	TRandomGenerator* _randomGenerator;
 
 	//output choices
 	bool _printSitesWithNoData;
 	bool _printAltIfHomoRef;
 	bool _allowTriallelicSites;
-	std::string missingGenotype;
+	std::string _missingGenotype;
 
 	//output file
-	std::string filename;
-	gz::ogzstream vcf;
-	bool vcfOpen;
-	std::string genotypeFormatString;
+	std::string _filename;
+	gz::ogzstream _vcf;
+	bool _vcfOpen;
+	std::string _genotypeFormatString;
 
 	//temp variables for calling
-	std::string calledGenotype;
-	std::vector<Base> genotypesWithHighestMetric;
+	std::string _calledGenotype;
+	std::vector<Base> _genotypesWithHighestMetric;
 	Base referenceBase;
-	std::vector<Base> altAlleles; //order of Base enums: A, C, G, T, N
-	TBaseCounts alleleCounts;
-	bool allelesCounted;
+	std::vector<Base> _altAlleles; //order of Base enums: A, C, G, T, N
+	TBaseCounts _alleleCounts;
+	bool _allelesCounted;
 
 	//genotype prior
 	bool _usesPrior;
-	TGenotypeData* genotypePrior; //for callers using a prior. Note: all callers accept priors, but may not use them.
-	bool priorSet;
+	TGenotypeData* _genotypePrior; //for callers using a prior. Note: all callers accept priors, but may not use them.
+	bool _priorSet;
 
 	//functions regarding VCF file
-	void setAcceptableFields(VCF::TVCFFieldVector* fields, std::string tags);
-	void printField(VCF::TVCFFieldVector* fields, std::string tag);
-	void writeVCFHeader(const std::string & sampleName);
+	void _setAcceptableFields(VCF::TVCFFieldVector* fields, std::string tags);
+	void _printField(VCF::TVCFFieldVector* fields, std::string tag);
+	void _writeVCFHeader(const std::string & sampleName);
 
 	//function to write info fields
-	std::vector< std::string (TCaller::*)(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) > VCFInfoFunctionsVec;
-	void fillInfoFieldFunctionPointers();
-	virtual std::string getVCFInfoString_DP(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
+	std::vector< std::string (TCaller::*)(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) > _VCFInfoFunctionsVec;
+	void _fillInfoFieldFunctionPointers();
+	virtual std::string _getVCFInfoString_DP(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
 
 	//functions to write genotype fields
-	std::vector< std::string (TCaller::*)(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) > VCFGenotypeFunctionsVec;
-	void fillGenotypeFieldFunctionPointers();
-	virtual std::string getVCFGenotypeString_GT(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
-	virtual std::string getVCFGenotypeString_DP(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
-	virtual std::string getVCFGenotypeString_GQ(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){ throw "Function std::string getVCFGenotypeString_GQ(const const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) not defined for base class TCaller!"; };
-	virtual std::string getVCFGenotypeString_AD(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
-	virtual std::string getVCFGenotypeString_AP(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){ throw "Function std::string getVCFGenotypeString_AP(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) not defined for base class TCaller!"; };
-	virtual std::string getVCFGenotypeString_GL(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){ throw "Function std::string getVCFGenotypeString_GL(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) not defined for base class TCaller!"; };
-	virtual std::string getVCFGenotypeString_PL(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){ throw "Function std::string getVCFGenotypeString_PL(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) not defined for base class TCaller!"; };
-	virtual std::string getVCFGenotypeString_GP(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){ throw "Function std::string getVCFGenotypeString_GP(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) not defined for base class TCaller!"; };
-	virtual std::string getVCFGenotypeString_AB(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){ throw "Function std::string getVCFGenotypeString_AB(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) not defined for base class TCaller!"; };
-	virtual std::string getVCFGenotypeString_AI(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){ throw "Function std::string getVCFGenotypeString_AI(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) not defined for base class TCaller!"; };
+	std::vector< std::string (TCaller::*)(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) > _VCFGenotypeFunctionsVec;
+	void _fillGenotypeFieldFunctionPointers();
+	virtual std::string _getVCFGenotypeString_GT(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
+	virtual std::string _getVCFGenotypeString_DP(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
+	virtual std::string _getVCFGenotypeString_GQ(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){ throw std::runtime_error("Function std::string getVCFGenotypeString_GQ(const const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) not defined for base class TCaller!"); };
+	virtual std::string _getVCFGenotypeString_AD(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
+	virtual std::string _getVCFGenotypeString_AP(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){ throw std::runtime_error("Function std::string getVCFGenotypeString_AP(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) not defined for base class TCaller!"); };
+	virtual std::string _getVCFGenotypeString_GL(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){ throw std::runtime_error("Function std::string getVCFGenotypeString_GL(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) not defined for base class TCaller!"); };
+	virtual std::string _getVCFGenotypeString_PL(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){ throw std::runtime_error("Function std::string getVCFGenotypeString_PL(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) not defined for base class TCaller!"); };
+	virtual std::string _getVCFGenotypeString_GP(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){ throw std::runtime_error("Function std::string getVCFGenotypeString_GP(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) not defined for base class TCaller!"); };
+	virtual std::string _getVCFGenotypeString_AB(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){ throw std::runtime_error("Function std::string getVCFGenotypeString_AB(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) not defined for base class TCaller!"); };
+	virtual std::string _getVCFGenotypeString_AI(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){ throw std::runtime_error("Function std::string getVCFGenotypeString_AI(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) not defined for base class TCaller!"); };
 
 	//write VCF
-	std::string composeVCFString(std::vector<std::string (TCaller::*)(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods)> & vec, const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
-	virtual void writeAlternativeAllelesToVCF();
-	void writeCallToVCF(const std::string & chr, const long pos, const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
-	void writeMissingDataToVCF(const TSite & site);
-	virtual void clearAfterCall();
+	std::string _composeVCFString(std::vector<std::string (TCaller::*)(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods)> & vec, const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
+	virtual void _writeAlternativeAllelesToVCF();
+	void _writeCallToVCF(const std::string & chr, const long pos, const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
+	void _writeMissingDataToVCF(const TSite & site);
+	virtual void _clearAfterCall();
 
 	//call
-	void countAlleles(const TSite & site);
-	virtual void callGenotype(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
-	virtual void callGenotypeKnownAlleles(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
+	void _countAlleles(const TSite & site);
+	virtual void _callGenotype(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
+	virtual void _callGenotypeKnownAlleles(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
 
-	template <typename T> uint8_t pickIndexWithHighestMetric(T* metric, const uint8_t size){
+	template <typename T> uint8_t _pickIndexWithHighestMetric(T* metric, const uint8_t size){
 		//find maximum
 		double maxMetric = 0.0;
 		for(uint8_t i=0; i<size; ++i){
@@ -112,10 +112,10 @@ protected:
 		}
 
 		//return random index among those at max
-		return vec[randomGenerator->pickOne(vec.size())];
+		return vec[_randomGenerator->pickOne(vec.size())];
 	};
 
-	template <typename T> uint8_t pickIndexWithSecondHighestMetric(T* metric, const uint8_t size, const uint8_t excludeIndex){
+	template <typename T> uint8_t _pickIndexWithSecondHighestMetric(T* metric, const uint8_t size, const uint8_t excludeIndex){
 		//find maximum
 		double max = 0.0;
 		for(uint8_t i=0; i<size; ++i){
@@ -131,14 +131,14 @@ protected:
 		}
 
 		//return random index among those at max
-		return vec[randomGenerator->pickOne(vec.size())];
+		return vec[_randomGenerator->pickOne(vec.size())];
 	};
 
 public:
-	TCaller(TRandomGenerator* RandomGenerator);
+	TCaller(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
 	virtual ~TCaller();
 
-	std::string name() const{ return callerName; };
+	std::string name() const{ return _callerName; };
 
 	//set which fields to print
 	void printInfoFields(std::vector<std::string> & tags);
@@ -146,7 +146,7 @@ public:
 	void printGenotypeFields(std::vector<std::string> & tags);
 	void printGenotypeFields(std::string tags);
 
-	//open / close vcf file
+	//open / close _vcf file
 	void openVCF(const std::string Filename, const std::string sampleName, TLog* logfile);
 	void closeVCF();
 
@@ -156,7 +156,7 @@ public:
 
 	//prior
 	bool usesPrior(){ return _usesPrior; };
-	void setPrior(TGenotypeData* prior){ genotypePrior = prior; priorSet = true; };
+	void setPrior(TGenotypeData* prior){ _genotypePrior = prior; _priorSet = true; };
 	void call(const std::string & chr, const long pos, const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
 	void call(const std::string & chr, const long pos, const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods, const char & firstAllele, const char & secondAllele);
 };
@@ -166,11 +166,11 @@ public:
 //------------------------------------------------------
 class TCallerRandomBase:public TCaller{
 private:
-	void callGenotype(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
-	void callGenotypeKnownAlleles(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
+	void _callGenotype(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
+	void _callGenotypeKnownAlleles(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
 
 public:
-	TCallerRandomBase(TRandomGenerator* RandomGenerator);
+	TCallerRandomBase(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
 };
 
 //------------------------------------------------------
@@ -178,11 +178,13 @@ public:
 //------------------------------------------------------
 class TCallerMajorityBase:public TCaller{
 private:
-	void callGenotype(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
-	void callGenotypeKnownAlleles(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
+	uint32_t _downsampleDepth;
+
+	void _callGenotype(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
+	void _callGenotypeKnownAlleles(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
 
 public:
-	TCallerMajorityBase(TRandomGenerator* RandomGenerator);
+	TCallerMajorityBase(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
 };
 
 //------------------------------------------------------
@@ -195,13 +197,13 @@ private:
 	Base MAP;
 
 	void fillPosteriors(TGenotypeLikelihoods & genotypeLikelihoods);
-	void callGenotype(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
-	void callGenotypeKnownAlleles(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
-	std::string getVCFGenotypeString_GQ(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
-	std::string getVCFGenotypeString_AP(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
+	void _callGenotype(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
+	void _callGenotypeKnownAlleles(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
+	std::string _getVCFGenotypeString_GQ(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
+	std::string _getVCFGenotypeString_AP(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
 
 public:
-	TCallerAllelePresence(TRandomGenerator* RandomGenerator);
+	TCallerAllelePresence(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
 };
 
 //------------------------------------------------------
@@ -215,17 +217,17 @@ protected:
 	TGenotypeData tmpGenoData;
 	TBinomPValue _binomP;
 
-	void clearAfterCall();
+	void _clearAfterCall();
 	void callGenotypeFromMetric(TGenotypeData & metric);
 	void callGenotypeFromMetricKnownAlleles(const TGenotypeData & metric, std::vector<int> & indeces);
 	void callGenotypeFromMetricKnownAllelesUpdateIndex(const TGenotypeData & metric);
 	std::string getPerGenotypeMetricString(TGenotypeData & metric);
 	void calculateImbalance(const TSite & site);
-	std::string getVCFGenotypeString_AB(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
-	std::string getVCFGenotypeString_AI(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
+	std::string _getVCFGenotypeString_AB(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
+	std::string _getVCFGenotypeString_AI(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
 
 public:
-	TCallerDiploid(TRandomGenerator* RandomGenerator);
+	TCallerDiploid(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
 };
 
 //------------------------------------------------------
@@ -233,14 +235,14 @@ public:
 //------------------------------------------------------
 class TCallerMLE:public TCallerDiploid{
 private:
-	void callGenotype(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
-	void callGenotypeKnownAlleles(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
-	std::string getVCFGenotypeString_GQ(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
-	std::string getVCFGenotypeString_GL(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
-	std::string getVCFGenotypeString_PL(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
+	void _callGenotype(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
+	void _callGenotypeKnownAlleles(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
+	std::string _getVCFGenotypeString_GQ(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
+	std::string _getVCFGenotypeString_GL(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
+	std::string _getVCFGenotypeString_PL(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
 
 public:
-	TCallerMLE(TRandomGenerator* RandomGenerator);
+	TCallerMLE(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
 };
 
 //------------------------------------------------------
@@ -250,14 +252,14 @@ class TCallerBayes:public TCallerDiploid{
 private:
 	TGenotypeProbabilities posterior;
 
-	void callGenotype(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
-	void callGenotypeKnownAlleles(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
-	std::string getVCFGenotypeString_GQ(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
-	std::string getVCFGenotypeString_GP(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
+	void _callGenotype(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
+	void _callGenotypeKnownAlleles(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
+	std::string _getVCFGenotypeString_GQ(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
+	std::string _getVCFGenotypeString_GP(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
 	std::string getVCFGenotypeString_PP(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
 
 public:
-	TCallerBayes(TRandomGenerator* RandomGenerator);
+	TCallerBayes(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
 };
 
 //------------------------------------------------------
