@@ -130,6 +130,33 @@ void TBaseCounts::fillFrequencies(TBaseData & freq){
 	freq[T] = _counts[T] / tot;
 };
 
+void TBaseCounts::fillCumulativeFrequencies(TBaseData & freq){
+	double tot = size() - _counts[N];
+	freq[A] = _counts[A] / tot;
+	freq[C] = freq[A] + _counts[C] / tot;
+	freq[G] = freq[C] + _counts[G] / tot;
+	freq[T] = 1.0;
+};
+
+void TBaseCounts::downsample(const uint32_t & max, TRandomGenerator & RandomGenerator){
+	TBaseData probs;
+	TBaseCounts newCounts;
+
+	for(uint32_t i=0; i<max; ++i){
+		fillCumulativeFrequencies(probs);
+		uint8_t b = RandomGenerator.pickOne(4, probs.data());
+		++newCounts[b];
+		--_counts[b];
+	}
+
+	//set counts
+	_counts[A] = newCounts[A];
+	_counts[C] = newCounts[C];
+	_counts[G] = newCounts[G];
+	_counts[T] = newCounts[T];
+	_counts[N] = 0;
+};
+
 //--------------------------------------------------------------------
 // TGenotypeData
 //--------------------------------------------------------------------

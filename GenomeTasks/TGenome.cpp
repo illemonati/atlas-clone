@@ -294,6 +294,7 @@ void TGenome_windows::_setSiteFilters(TParameters & params){
 		_logfile->list("Will keep sites regardless of depth. (use 'minDepth' or 'maxDepth' to filter)");
 	}
 
+
 	//CpG filter
 	if(params.parameterExists("filterCpG")){
 		_filterCpG = true;
