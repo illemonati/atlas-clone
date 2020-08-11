@@ -91,7 +91,7 @@ void TBed::add(TGenomeWindow Window){
     }
 
     //incorporate downstream as long as there is overlap
-    while(Window.mergeWith(*it)){
+    while(it != _bed.end() && Window.mergeWith(*it)){
         it = _bed.erase(it);
     }
 
@@ -268,7 +268,7 @@ uint32_t TGenomeWindowList::numWindowsOnChr(const uint32_t refId) const{
 		return 0;
 	} else {
 		uint32_t num = 0;
-		while(it->refID() == refId){
+		while(it != _list.end() && it->refID() == refId){
 			++num;
 			++it;
 		}

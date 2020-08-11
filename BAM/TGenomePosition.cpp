@@ -231,8 +231,6 @@ bool TGenomeWindow::overlaps(const TGenomeWindow & other) const{
 };
 
 bool TGenomeWindow::overlapsOrExtends(const TGenomeWindow & other) const{
-	//std::cout << "this: [" << _from << ", " << _to << ") --- other: [" << other.from() << ", " << other.to() << ")" << std::endl;
-
 	//check if other window overlaps, or are consecutive (no gap)
 	if(_from.refID() != other.refID()){
 		return false;
