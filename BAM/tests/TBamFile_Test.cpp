@@ -2,12 +2,13 @@
 #include "TBamFile.h"
 #include "TTestBamFile.h"
 #include "TAlignment.h"
+#include "TGenome.h"
 
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
 
 //-------------------------------------------------------------
-// TBamFile
+// TBamFile - simple writing and reading
 //-------------------------------------------------------------
 
 class TBamFile_Test_ReadWrite : public ::testing::Test {
@@ -164,4 +165,98 @@ TEST_F(TBamFile_Test_ReadWrite, alignments){
     }
 
     EXPECT_EQ(alignmentWritten, outputBam->endWrittenAlignments());
+}
+
+
+//-------------------------------------------------------------
+// TBamFile - windows
+//-------------------------------------------------------------
+
+class TGenomeWindow_Test : public GenomeTasks::TGenome_windows {
+protected:
+    std::vector<uint32_t> _depth;
+    std::vector<GenotypeLikelihoods::TWindow> _windows_visited;
+
+    void _handleWindow() override{
+        _windows_visited.emplace_back(_window);
+        _depth.emplace_back(_window.depth());
+    };
+public:
+    TGenomeWindow_Test(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator) : GenomeTasks::TGenome_windows(Params, Logfile, RandomGenerator) {};
+
+    void traverse(){
+        _traverseBAMWindows();
+    }
+};
+
+class TBamFile_Test_Windows : public ::testing::Test {
+protected:
+    TLog _logfile;
+    TRandomGenerator _randomGenerator;
+    TParameters _parameters;
+
+public:
+    std::unique_ptr<TestUtilities::TTestBamFile> outputBam;
+    std::unique_ptr<TGenomeWindow_Test> genomeWindow;
+    std::string filename = "testBAM.bam";
+
+    void write(){
+        //settings
+        std::vector<uint32_t> chrLength = {250, 50, 199, 80};
+        uint32_t numReadGroups = 2;
+
+        //open BAM file for writing
+        outputBam = std::make_unique<TestUtilities::TTestBamFile>(filename, chrLength, numReadGroups);
+
+        //write alignments
+
+        // 1) overlapping alignments inside one window
+        outputBam->writeDummyAlignment('A', '1', BAM::TGenomePosition(0, 0), 20);
+        outputBam->writeDummyAlignment('C', '2', BAM::TGenomePosition(0, 10), 20);
+        outputBam->writeDummyAlignment('G', '3', BAM::TGenomePosition(0, 20), 20);
+
+        // 2) alignments overlap 2 windows
+        outputBam->writeDummyAlignment('T', '4', BAM::TGenomePosition(0, 80), 20);
+        outputBam->writeDummyAlignment('A', '5', BAM::TGenomePosition(0, 90), 20);
+        outputBam->writeDummyAlignment('C', '6', BAM::TGenomePosition(0, 95), 20);
+        outputBam->writeDummyAlignment('G', '7', BAM::TGenomePosition(0, 100), 20);
+
+        // 3) one alignment inside 1 window
+        outputBam->writeDummyAlignment('T', '8', BAM::TGenomePosition(0, 220), 20);
+
+        // 4) only 1 window per chromosome
+        outputBam->writeDummyAlignment('A', '9', BAM::TGenomePosition(1, 10), 20);
+
+        // 5) empty window
+        outputBam->writeDummyAlignment('C', '0', BAM::TGenomePosition(2, 10), 20);
+
+        // 6) empty chromosome
+
+        outputBam->closeOutput();
+    }
+
+    void read(){
+        // first set window size in parameters
+        _parameters.addParameter("window", "100");
+        _parameters.addParameter("bam", filename);
+        _parameters.addParameter("indexNotRequired", "false");
+        _parameters.addParameter("maxReadLength", "20");
+
+        // create instance of TGenomeWindow
+        genomeWindow = std::make_unique<TGenomeWindow_Test>(_parameters, &_logfile, &_randomGenerator);
+
+        // now traverse bam file
+        genomeWindow->traverse();
+    }
+
+    void SetUp() override{
+        write();
+        read();
+    }
+
+    void TearDown() override {};
+};
+
+TEST_F(TBamFile_Test_Windows, bdu){
+    EXPECT_EQ(4,4);
 }

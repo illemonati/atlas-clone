@@ -35,10 +35,12 @@ private:
 	uint32_t _dummyLength, _dummyMinLength, _dummyMaxLength;
 	bool _dummyIsReverseStrand;
 	uint32_t _dummyReadGroup;
-	BAM::TGenomePosition _dummyPosition;
 	std::string _dummyCigarChars; uint32_t _dummyCigarPos;
+    void _iterateReadGroupAndReverseStrand();
+    void _iterateCigar(BAM::TCigar & cigar, uint32_t length);
+    void _iterateLength();
 
-	//other
+    //other
 	BAM::TQualityMap _qualMap;
 	GenotypeLikelihoods::TGenotypeMap _genoMap;
 
@@ -56,13 +58,20 @@ public:
 	void openOutput(const std::string & Filename);
 	void closeOutput();
 	void writeAlignment(const BAM::TAlignment & alignment);
+	// write dummy alignments where sequence and qualities are shuffled all the time
 	void writeDummyAlignment(const BAM::TGenomePosition & position, const uint32_t & length, const BAM::TCigar & cigar, const uint32_t & readGroup, const bool & isReverseStrand);
 	void writeDummyAlignment(const BAM::TGenomePosition & position, const uint32_t & length, const BAM::TCigar & cigar);
     void writeDummyAlignment(const BAM::TGenomePosition & position, const uint32_t & length);
     void writeDummyAlignment(const BAM::TGenomePosition & position);
-	void writeDummyAlignments(const uint32_t & numAlignments);
+    void writeDummyAlignments(const uint32_t & numAlignments);
 
-	//getters
+    // write dummy alignments where sequence and qualities are same within one alignment
+    void writeDummyAlignment(const char& oneBase, const char& oneQual, const BAM::TGenomePosition & position, const uint32_t & length, const BAM::TCigar & cigar, const uint32_t & readGroup, const bool & isReverseStrand);
+    void writeDummyAlignment(const char& oneBase, const char& oneQual, const BAM::TGenomePosition & position, const uint32_t & length, const BAM::TCigar & cigar);
+    void writeDummyAlignment(const char& oneBase, const char& oneQual, const BAM::TGenomePosition & position, const uint32_t & length);
+    void writeDummyAlignment(const char& oneBase, const char& oneQual, const BAM::TGenomePosition & position);
+
+    //getters
 	std::string filename()const { return _filename; };
 	BAM::TSamHeader& header(){ return _header; };
 	BAM::TChromosomes& chromosomes(){ return _chromosomes; };
