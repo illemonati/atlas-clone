@@ -10,7 +10,7 @@
 // TBamFile
 //-------------------------------------------------------------
 
-class TBamFile_Test_Easy : public ::testing::Test {
+class TBamFile_Test_ReadWrite : public ::testing::Test {
 protected:
     std::string _filename = "testBAM.bam";
     TLog _logfile;
@@ -48,7 +48,7 @@ public:
     void TearDown() override {};
 };
 
-TEST_F(TBamFile_Test_Easy, chromosomes){
+TEST_F(TBamFile_Test_ReadWrite, chromosomes){
     // get chromosomes
     BAM::TChromosomes chromosomesWritten = outputBam->chromosomes();
     BAM::TChromosomes chromosomesRead = inputBam->chromosomes();
@@ -67,7 +67,7 @@ TEST_F(TBamFile_Test_Easy, chromosomes){
     }
 }
 
-TEST_F(TBamFile_Test_Easy, samHeader){
+TEST_F(TBamFile_Test_ReadWrite, samHeader){
     // get header
     BAM::TSamHeader headerWritten = outputBam->header();
     BAM::TSamHeader headerRead = inputBam->samHeader();
@@ -79,7 +79,7 @@ TEST_F(TBamFile_Test_Easy, samHeader){
     EXPECT_EQ(headerWritten.subSorting(), headerRead.subSorting());
 }
 
-TEST_F(TBamFile_Test_Easy, readGroups){
+TEST_F(TBamFile_Test_ReadWrite, readGroups){
     // get read groups
     BAM::TReadGroups readGroupsWritten = outputBam->readGroups();
     BAM::TReadGroups readGroupsRead = inputBam->readGroups();
@@ -98,7 +98,7 @@ TEST_F(TBamFile_Test_Easy, readGroups){
     }
 }
 
-TEST_F(TBamFile_Test_Easy, alignments){
+TEST_F(TBamFile_Test_ReadWrite, alignments){
     // read
     BAM::TAlignment alignmentRead;
     auto alignmentWritten = outputBam->beginWrittenAlignments();
