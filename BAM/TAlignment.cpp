@@ -70,13 +70,17 @@ void TAlignment::fill(const	std::string & Name,
 	move(RefID, Position);
 	_mappingQuality = MappingQuality;
 	_cigar = Cigar;
-	_mateGenomicPosition.move(MateRefID, MatePosition);
 	_insertSize_TLEN = InsertSize_TLEN;
 	_sequence = Sequence;
 	_qualities = Qualities;
 	_readGroupID = ReadGroupId;
 	_empty = false;
 
+	if (_flags.isPaired()){
+        _mateGenomicPosition.move(MateRefID, MatePosition);
+    } else {
+        _mateGenomicPosition.move(0, 0); // 0 is not paired
+    }
 	//set fragment length
 	if(_flags.isProperPair()){
 		_fragmentLength = abs(_insertSize_TLEN) + _cigar.lengthInserted() - _cigar.lengthDeleted();

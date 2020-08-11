@@ -84,9 +84,9 @@ void TTestBamFile::writeDummyAlignment(const BAM::TGenomePosition & position, co
 	while(s.length() < length){
 		s += _dummySequence.substr(0, length - s.length());
 	}
-	std::string q = _dummySequence.substr(_dummyQualPos, length);
+	std::string q = _dummyQualities.substr(_dummyQualPos, length);
 	while(q.length() < length){
-		q += _dummySequence.substr(0, length - q.length());
+		q += _dummyQualities.substr(0, length - q.length());
 	}
 
 	//iterate positions
