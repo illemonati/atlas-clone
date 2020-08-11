@@ -298,6 +298,10 @@ void TGenome_windows::_setSiteFilters(TParameters & params){
 	_downsampleDepth = params.getParameterIntWithDefault("downsample", 0);
 	if(_downsampleDepth > 0){
 		_logfile->list("Will downsample sites to a depth <= ", _downsampleDepth, ". (parameter 'downsample')");
+		if(_downsampleDepth >= _maxDepth){
+			_logfile->warning("Downsample depth is >= max depth: no downsampling will occur.");
+		}
+		subsamplePicker = std::make_unique<TSubsamplePicker>(_randomGenerator, 30);
 	}
 
 	//CpG filter
@@ -608,7 +612,7 @@ void TGenome_windows::_applyWindowFilters(GenotypeLikelihoods::TWindow_base & wi
 			window.maskCpG(_reference);
 		}
 		if(_downsampleDepth > 0){
-
+			window.downsample(_downsampleDepth, *subsamplePicker);
 		};
 
 		//report

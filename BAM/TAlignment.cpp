@@ -167,7 +167,6 @@ void TAlignment::_parseBasesQualities(const GenotypeLikelihoods::TGenotypeMap & 
 				}
 				break;
 
-
 			// for 'D' - deletion: just add to position
 			case ('D') :
 				p += cigarIter.length;

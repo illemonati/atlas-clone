@@ -283,6 +283,12 @@ void TWindow_base::maskCpG(BAM::TFastaBuffer & reference){
 	}
 };
 
+void TWindow_base::downsample(const uint32_t & maxDepth, const TSubsamplePicker & picker){
+	for(auto& s : _sites){
+		s.downsample(maxDepth, picker);
+	}
+};
+
 void TWindow_base::estimateBaseFrequencies(TBaseData & baseFreq) const{
 	//estimate initial base frequencies
 	baseFreq.set(0.0);

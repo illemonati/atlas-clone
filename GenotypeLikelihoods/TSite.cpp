@@ -30,6 +30,23 @@ void TSite::addToBaseFrequencies(TBaseData & frequencies) const{
 	}
 };
 
+void TSite::downsample(const uint32_t & maxDepth, const TSubsamplePicker & picker){
+	//only subsample if depth > maxDepth
+	if(_bases.size() > maxDepth){
+		//select subsample
+		const auto& subsample = picker.pick(_bases.size(), maxDepth);
+
+		//copy bases to new vector
+		std::vector<BAM::TBase*> newBases;
+		for(auto& it : subsample){
+			newBases.emplace_back(_bases[it]);
+		}
+
+		//swap vectors
+		_bases = newBases;
+	}
+};
+
 std::string TSite::getBases(const TGenotypeMap & genoMap) const{
 	if(empty()) return "-";
 	std::string s = "";
@@ -47,7 +64,6 @@ std::string TSite::getQualities(const BAM::TQualityMap & qualMap) const{
 	}
 	return s;
 };
-
 
 uint32_t TSite::depth() const{
 	return _bases.size();

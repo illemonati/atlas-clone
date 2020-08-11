@@ -135,8 +135,9 @@ protected:
 	//site filters
 	bool _applyDepthFilter;
 	uint32_t _readUpToDepth, _minDepth, _maxDepth;
-	uint32_t _downsampleDepth;
 	bool _filterCpG;
+	uint32_t _downsampleDepth;
+	std::unique_ptr<TSubsamplePicker> subsamplePicker;
 
 	//tmp variables
 	BAM::TAlignment* _oldAlignment;
