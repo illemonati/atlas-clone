@@ -5,6 +5,7 @@
  *      Author: wegmannd
  */
 
+#include <TSubsamplePicker.h>
 #include "TMain.h"
 
 //BAM
@@ -29,8 +30,6 @@
 #include "TCaller.h"
 #include "TEstimateTheta.h"
 #include "TWriteGLF.h"
-
-//population tools
 #include "TGLF.h"
 #include "TMajorMinor.h"
 #include "TDistanceEstimator.h"
@@ -119,9 +118,6 @@ void addTaks(TMain & main) {
 	main.addDebugTask("recalLL", new GenomeTasks::TTask_recalLL());
 	main.addDebugTask("thetaLLSurface", new GenomeTasks::TTask_thetaLLSurface());
 	main.addDebugTask("inbreedingLikelihood", new PopulationTools::TTask_inbreedingLikelihood());
-
-	//main.addDebugTask("testBED", new TTask_testBED()); //TODO: write as test!
-
 };
 
 void addTests(TMain & main){

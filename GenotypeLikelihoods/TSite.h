@@ -13,11 +13,14 @@
 #include "TQualityMap.h"
 #include "TGenotypeMap.h"
 #include "TGenotypeData.h"
+#include "TSubsamplePicker.h"
 
 namespace GenotypeLikelihoods{
 
 #define maxQualToPrint 1000
 #define maxQualToPrintNaturalScale 1E-100
+
+//TODO: write as templated classes
 
 //----------------------------------------------------------------------------------------------------------------------------------
 // TSite_base
@@ -61,6 +64,7 @@ public:
 
 	void add(BAM::TBase * base);
 	void addToBaseFrequencies(TBaseData & frequencies) const;
+	void downsample(const uint32_t & maxDepth, const TSubsamplePicker & picker);
 
 	bool empty() const{ return _bases.empty(); };
 	uint32_t depth() const;
