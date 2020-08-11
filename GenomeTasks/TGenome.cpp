@@ -294,6 +294,11 @@ void TGenome_windows::_setSiteFilters(TParameters & params){
 		_logfile->list("Will keep sites regardless of depth. (use 'minDepth' or 'maxDepth' to filter)");
 	}
 
+	//downsample?
+	_downsampleDepth = params.getParameterIntWithDefault("downsample", 0);
+	if(_downsampleDepth > 0){
+		_logfile->list("Will downsample sites to a depth <= ", _downsampleDepth, ". (parameter 'downsample')");
+	}
 
 	//CpG filter
 	if(params.parameterExists("filterCpG")){
@@ -602,6 +607,9 @@ void TGenome_windows::_applyWindowFilters(GenotypeLikelihoods::TWindow_base & wi
 		if(_filterCpG){
 			window.maskCpG(_reference);
 		}
+		if(_downsampleDepth > 0){
+
+		};
 
 		//report
 		window.dataSummary(_logfile);
