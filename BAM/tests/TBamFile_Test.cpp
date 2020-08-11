@@ -11,9 +11,11 @@
 //-------------------------------------------------------------
 
 class TBamFile_Test_Easy : public ::testing::Test {
-private:
+protected:
     std::string _filename = "testBAM.bam";
     TLog _logfile;
+    GenotypeLikelihoods::TGenotypeMap genoMap;
+    BAM::TQualityMap qualMap;
 
 public:
     std::unique_ptr<TestUtilities::TTestBamFile> outputBam;
@@ -98,14 +100,66 @@ TEST_F(TBamFile_Test_Easy, readGroups){
 
 TEST_F(TBamFile_Test_Easy, alignments){
     // read
-    auto it = outputBam->beginWrittenAlignments();
-    while (inputBam->readNextAlignment()){
-        EXPECT_EQ(it->name(), inputBam->curName());
-        EXPECT_EQ(it->readGroupId(), inputBam->curReadGroupID());
-        EXPECT_EQ(it->mappingQuality(), inputBam->curMappingQuality());
+    BAM::TAlignment alignmentRead;
+    auto alignmentWritten = outputBam->beginWrittenAlignments();
+    while (inputBam->readNextAlignment(alignmentRead)){
+        // check positions of alignment
+        EXPECT_EQ(alignmentWritten->lastAlingedInternalPos(), alignmentRead.lastAlingedInternalPos());
+        EXPECT_EQ(alignmentWritten->lastAlignedPositionWithRespectToRef(), alignmentRead.lastAlignedPositionWithRespectToRef());
+        // TODO: 	bool isAlignedAtInternalPos(const uint32_t internalPosition) const;
+        // TODO: 	char referenceAtInternalPos(const uint32_t internalPosition) const;
+        // TODO: 	TGenomePosition positionInRef(const uint32_t internalPosition) const;
+        EXPECT_EQ(alignmentWritten->mateGenomicPosition(), alignmentRead.mateGenomicPosition());
+        EXPECT_EQ(alignmentWritten->matePosition(), alignmentRead.matePosition());
+        EXPECT_EQ(alignmentWritten->mateRefID(), alignmentRead.mateRefID());
 
-        it++;
+        // basic attributes of TAlignment
+        EXPECT_EQ(alignmentWritten->name(), alignmentRead.name());
+        EXPECT_EQ(alignmentWritten->readGroupId(), alignmentRead.readGroupId());
+        EXPECT_EQ(alignmentWritten->parsedLength(), alignmentRead.parsedLength());
+        EXPECT_EQ(alignmentWritten->insertSize(), alignmentRead.insertSize());
+        EXPECT_EQ(alignmentWritten->mappingQuality(), alignmentRead.mappingQuality());
+        EXPECT_EQ(alignmentWritten->flags(), alignmentRead.flags());
+
+        // cigar attributes
+        EXPECT_EQ(alignmentWritten->cigar().lengthAligned(), alignmentRead.cigar().lengthAligned());
+        EXPECT_EQ(alignmentWritten->cigar().lengthInserted(), alignmentRead.cigar().lengthInserted());
+        EXPECT_EQ(alignmentWritten->cigar().lengthDeleted(), alignmentRead.cigar().lengthDeleted());
+        EXPECT_EQ(alignmentWritten->cigar().lengthSoftClippedLeft(), alignmentRead.cigar().lengthSoftClippedLeft());
+        EXPECT_EQ(alignmentWritten->cigar().lengthSoftClippedRight(), alignmentRead.cigar().lengthSoftClippedRight());
+        EXPECT_EQ(alignmentWritten->cigar().lengthSoftClipped(), alignmentRead.cigar().lengthSoftClipped());
+        EXPECT_EQ(alignmentWritten->cigar().lengthSequenced(), alignmentRead.cigar().lengthSequenced());
+        EXPECT_EQ(alignmentWritten->cigar().lengthRead(), alignmentRead.cigar().lengthRead());
+
+        // sequence attributes of alignment
+        EXPECT_EQ(alignmentWritten->sequence(genoMap, qualMap), alignmentRead.sequence(genoMap, qualMap));
+        EXPECT_EQ(alignmentWritten->qualities(genoMap, qualMap), alignmentRead.qualities(genoMap, qualMap));
+        EXPECT_EQ(alignmentWritten->isReverseStrand(), alignmentRead.isReverseStrand());
+        EXPECT_EQ(alignmentWritten->isPaired(), alignmentRead.isPaired());
+        EXPECT_EQ(alignmentWritten->isProperPair(), alignmentRead.isProperPair());
+        EXPECT_EQ(alignmentWritten->isParsed(), alignmentRead.isParsed());
+
+        // go over all bases of alignment and check if they are equal
+        auto baseRead = alignmentRead.begin();
+        for (auto baseWritten = alignmentWritten->begin(); baseWritten != alignmentWritten->end(); baseWritten++, baseRead++){
+            // all attributes of TBase
+            EXPECT_EQ(baseWritten->originalQuality_phredInt, baseRead->originalQuality_phredInt);
+            EXPECT_EQ(baseWritten->recalibratedQualityAsPhredInt, baseRead->recalibratedQualityAsPhredInt);
+            EXPECT_EQ(baseWritten->distFrom3Prime, baseRead->distFrom3Prime);
+            EXPECT_EQ(baseWritten->distFrom5Prime, baseRead->distFrom5Prime);
+            EXPECT_EQ(baseWritten->readGroupID, baseRead->readGroupID);
+            EXPECT_EQ(baseWritten->fragmentLength, baseRead->fragmentLength);
+            EXPECT_EQ(baseWritten->mappingQuality, baseRead->mappingQuality);
+            EXPECT_EQ(baseWritten->isReverseStrand(), baseRead->isReverseStrand());
+            EXPECT_EQ(baseWritten->isAligned(), baseRead->isAligned());
+            EXPECT_EQ(baseWritten->isSecondMate(), baseRead->isSecondMate());
+            EXPECT_TRUE(baseWritten->base == baseRead->base);
+            EXPECT_TRUE(baseWritten->context == baseRead->context);
+        }
+        EXPECT_EQ(baseRead, alignmentRead.end());
+
+        alignmentWritten++;
     }
 
-    EXPECT_EQ(it, outputBam->endWrittenAlignments());
+    EXPECT_EQ(alignmentWritten, outputBam->endWrittenAlignments());
 }
