@@ -36,6 +36,7 @@ private:
 	bool _dummyIsReverseStrand;
 	uint32_t _dummyReadGroup;
 	BAM::TGenomePosition _dummyPosition;
+	std::string _dummyCigarChars; uint32_t _dummyCigarPos;
 
 	//other
 	BAM::TQualityMap _qualMap;
@@ -55,9 +56,10 @@ public:
 	void openOutput(const std::string & Filename);
 	void closeOutput();
 	void writeAlignment(const BAM::TAlignment & alignment);
-	void writeDummyAlignment(const BAM::TGenomePosition & position, const uint32_t & length, const uint32_t & readGroup, const bool & isReverseStrand);
-	void writeDummyAlignment(const BAM::TGenomePosition & position, const uint32_t & length);
-	void writeDummyAlignment(const BAM::TGenomePosition & position);
+	void writeDummyAlignment(const BAM::TGenomePosition & position, const uint32_t & length, const BAM::TCigar & cigar, const uint32_t & readGroup, const bool & isReverseStrand);
+	void writeDummyAlignment(const BAM::TGenomePosition & position, const uint32_t & length, const BAM::TCigar & cigar);
+    void writeDummyAlignment(const BAM::TGenomePosition & position, const uint32_t & length);
+    void writeDummyAlignment(const BAM::TGenomePosition & position);
 	void writeDummyAlignments(const uint32_t & numAlignments);
 
 	//getters
