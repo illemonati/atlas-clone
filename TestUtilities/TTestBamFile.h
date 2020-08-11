@@ -59,15 +59,15 @@ public:
 	void closeOutput();
 	void writeAlignment(const BAM::TAlignment & alignment);
 	// write dummy alignments where sequence and qualities are shuffled all the time
-	void writeDummyAlignment(const BAM::TGenomePosition & position, const uint32_t & length, const BAM::TCigar & cigar, const uint32_t & readGroup, const bool & isReverseStrand);
-	void writeDummyAlignment(const BAM::TGenomePosition & position, const uint32_t & length, const BAM::TCigar & cigar);
+	void writeDummyAlignment(const BAM::TGenomePosition & position, const BAM::TCigar & cigar, const uint32_t & readGroup, const bool & isReverseStrand);
+	void writeDummyAlignment(const BAM::TGenomePosition & position, const BAM::TCigar & cigar);
     void writeDummyAlignment(const BAM::TGenomePosition & position, const uint32_t & length);
     void writeDummyAlignment(const BAM::TGenomePosition & position);
     void writeDummyAlignments(const uint32_t & numAlignments);
 
     // write dummy alignments where sequence and qualities are same within one alignment
-    void writeDummyAlignment(const char& oneBase, const char& oneQual, const BAM::TGenomePosition & position, const uint32_t & length, const BAM::TCigar & cigar, const uint32_t & readGroup, const bool & isReverseStrand);
-    void writeDummyAlignment(const char& oneBase, const char& oneQual, const BAM::TGenomePosition & position, const uint32_t & length, const BAM::TCigar & cigar);
+    void writeDummyAlignment(const char& oneBase, const char& oneQual, const BAM::TGenomePosition & position, const BAM::TCigar & cigar, const uint32_t & readGroup, const bool & isReverseStrand);
+    void writeDummyAlignment(const char& oneBase, const char& oneQual, const BAM::TGenomePosition & position, const BAM::TCigar & cigar);
     void writeDummyAlignment(const char& oneBase, const char& oneQual, const BAM::TGenomePosition & position, const uint32_t & length);
     void writeDummyAlignment(const char& oneBase, const char& oneQual, const BAM::TGenomePosition & position);
 

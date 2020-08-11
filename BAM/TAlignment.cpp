@@ -267,7 +267,7 @@ void TAlignment::addReference(TFastaBuffer & fasta){
 
 void TAlignment::setSequenceQualities(const TCigar Cigar, const std::string Sequence, const std::string Qualities){
 	if(Cigar.lengthRead() != Sequence.length() || Cigar.lengthRead() != Qualities.length()){
-		throw std::runtime_error("Failed to set sequence and qualities of TAlignment: length of CIGAR, Sequences and Qualities does not match!");
+		throw std::runtime_error("TAlignment::setSequenceQualities(const TCigar Cigar, const std::string Sequence, const std::string Qualities): Failed to set sequence and qualities of TAlignment: length of CIGAR, Sequences and Qualities does not match!");
 	}
 	_cigar = Cigar;
 	_sequence = Sequence;
@@ -276,7 +276,7 @@ void TAlignment::setSequenceQualities(const TCigar Cigar, const std::string Sequ
 
 void TAlignment::setSequenceQualitiesOnlyMatches(const std::string Sequence, const std::string Qualities){
 	if(Sequence.length() != Qualities.length()){
-		throw std::runtime_error("Failed to set sequence and qualities of TAlignment: length of CIGAR, Sequences and Qualities does not match!");
+		throw std::runtime_error("TAlignment::setSequenceQualitiesOnlyMatches(const std::string Sequence, const std::string Qualities): Failed to set sequence and qualities of TAlignment: length of CIGAR, Sequences and Qualities does not match!");
 	}
 	//compile CIGAR
 	_cigar.clear();

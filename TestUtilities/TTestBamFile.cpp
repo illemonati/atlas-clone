@@ -109,15 +109,15 @@ void TTestBamFile::writeAlignment(const BAM::TAlignment & alignment){
 	_bamFile.writeAlignment(alignment);
 };
 
-void TTestBamFile::writeDummyAlignment(const BAM::TGenomePosition & position, const uint32_t & length, const BAM::TCigar & cigar, const uint32_t & readGroup, const bool & isReverseStrand){
+void TTestBamFile::writeDummyAlignment(const BAM::TGenomePosition & position, const BAM::TCigar & cigar, const uint32_t & readGroup, const bool & isReverseStrand){
 	//extract sequence / qualities
-	std::string s = _dummySequence.substr(_dummyBasePos, length);
-	while(s.length() < length){
-		s += _dummySequence.substr(0, length - s.length());
+	std::string s = _dummySequence.substr(_dummyBasePos, cigar.lengthRead());
+	while(s.length() < cigar.lengthRead()){
+		s += _dummySequence.substr(0, cigar.lengthRead() - s.length());
 	}
-	std::string q = _dummyQualities.substr(_dummyQualPos, length);
-	while(q.length() < length){
-		q += _dummyQualities.substr(0, length - q.length());
+	std::string q = _dummyQualities.substr(_dummyQualPos, cigar.lengthRead());
+	while(q.length() < cigar.lengthRead()){
+		q += _dummyQualities.substr(0, cigar.lengthRead() - q.length());
 	}
 
 	//iterate positions
@@ -132,8 +132,8 @@ void TTestBamFile::writeDummyAlignment(const BAM::TGenomePosition & position, co
     writeAlignment(alignment);
 };
 
-void TTestBamFile::writeDummyAlignment(const BAM::TGenomePosition & position, const uint32_t & length, const BAM::TCigar & cigar){
-    writeDummyAlignment(position, length, cigar, _dummyReadGroup, _dummyIsReverseStrand);
+void TTestBamFile::writeDummyAlignment(const BAM::TGenomePosition & position, const BAM::TCigar & cigar){
+    writeDummyAlignment(position, cigar, _dummyReadGroup, _dummyIsReverseStrand);
 
     //iterate
     _iterateReadGroupAndReverseStrand();
@@ -145,7 +145,7 @@ void TTestBamFile::writeDummyAlignment(const BAM::TGenomePosition & position, co
     _iterateCigar(cigar, length);
 
     // now write
-	writeDummyAlignment(position, length, cigar);
+	writeDummyAlignment(position, cigar);
 };
 
 void TTestBamFile::writeDummyAlignment(const BAM::TGenomePosition & position){
@@ -181,11 +181,11 @@ void TTestBamFile::writeDummyAlignments(const uint32_t & numAlignments){
 }
 
 void TTestBamFile::writeDummyAlignment(const char &oneBase, const char &oneQual, const BAM::TGenomePosition &position,
-                                  const uint32_t &length, const BAM::TCigar &cigar, const uint32_t &readGroup,
+                                  const BAM::TCigar &cigar, const uint32_t &readGroup,
                                   const bool &isReverseStrand) {
     // expand oneBase to string
-    std::string seq = repeatChar(oneBase, length);
-    std::string qual = repeatChar(oneQual, length);
+    std::string seq(cigar.lengthRead(), oneBase);
+    std::string qual(cigar.lengthRead(), oneQual);
 
     //write alignment
     BAM::TAlignment alignment(position);
@@ -196,8 +196,8 @@ void TTestBamFile::writeDummyAlignment(const char &oneBase, const char &oneQual,
 };
 
 
-void TTestBamFile::writeDummyAlignment(const char& oneBase, const char& oneQual, const BAM::TGenomePosition & position, const uint32_t & length, const BAM::TCigar & cigar){
-    writeDummyAlignment(oneBase, oneQual, position, length, cigar, _dummyReadGroup, _dummyIsReverseStrand);
+void TTestBamFile::writeDummyAlignment(const char& oneBase, const char& oneQual, const BAM::TGenomePosition & position, const BAM::TCigar & cigar){
+    writeDummyAlignment(oneBase, oneQual, position, cigar, _dummyReadGroup, _dummyIsReverseStrand);
 
     //iterate
     _iterateReadGroupAndReverseStrand();
@@ -209,7 +209,7 @@ void TTestBamFile::writeDummyAlignment(const char &oneBase, const char &oneQual,
     BAM::TCigar cigar;
     _iterateCigar(cigar, length);
 
-    writeDummyAlignment(oneBase, oneQual, position, length, cigar);
+    writeDummyAlignment(oneBase, oneQual, position, cigar);
 };
 
 void TTestBamFile::writeDummyAlignment(const char &oneBase, const char &oneQual, const BAM::TGenomePosition &position) {
