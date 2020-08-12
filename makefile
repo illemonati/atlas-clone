@@ -3,6 +3,11 @@
 SRC = $(wildcard *.cpp) $(wildcard *.C) $(wildcard BAM/*.cpp) $(wildcard bamtools/api/*.cpp) $(wildcard bamtools/api/algorithms/*.cpp) $(wildcard bamtools/api/internal/bam/*.cpp) $(wildcard bamtools/api/internal/index/*.cpp) $(wildcard bamtools/api/internal/io/*.cpp) $(wildcard bamtools/api/internal/sam/*.cpp) $(wildcard bamtools/api/internal/utils/*.cpp) $(wildcard bamtools/utils/*.cpp) $(wildcard commonutilities/*.cpp) $(wildcard commonutilities/IntegrationTests/*.cpp) $(wildcard GenomeTasks/*.cpp) $(wildcard GenotypeLikelihoods/*.cpp) $(wildcard GLF/*.cpp) $(wildcard PopulationTools/*.cpp) $(wildcard Simulations/*.cpp) $(wildcard TestUtilities/*.cpp) $(wildcard VCF/*.cpp) 
 GIT_HEADER = commonutilities/gitversion.cpp
 
+# check if commonutilities/gitversion.cpp already exists (if it doesn't, add it to SRC)
+ifeq (,$(findstring $(GIT_HEADER),$(SRC)))
+    SRC += $(GIT_HEADER)
+endif
+
 OBJ = $(SRC:%.cpp=%.o)
 BIN = atlas
 
