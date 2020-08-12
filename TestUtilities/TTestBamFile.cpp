@@ -193,6 +193,24 @@ void TTestBamFile::writeDummyAlignment(const char &oneBase, const char &oneQual,
     alignment.setReadGroup(readGroup);
     alignment.setIsReverseStrand(isReverseStrand);
     writeAlignment(alignment);
+
+
+    /*
+    std::cout << "----------------------------------" << std::endl;
+    std::cout << "refID = " << position.refID() << std::endl;
+    std::cout << "position = " << position.position() << std::endl;
+    std::cout << "length = " << cigar.lengthRead() << std::endl;
+    std::cout << "seq = " << seq << std::endl;
+    std::cout << "qual = " << qual << std::endl;
+    std::string cigg;
+    for (auto & it : cigar){
+        std::string cigger(it.length, it.type);
+        cigg += cigger;
+    }
+    std::cout << "cigar = " << cigg << std::endl;
+    std::cout << "readGroup = " << (int) readGroup << std::endl;
+    std::cout << "isReverseStrand = " << isReverseStrand << std::endl;
+    */
 };
 
 

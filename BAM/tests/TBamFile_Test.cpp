@@ -174,19 +174,26 @@ TEST_F(TBamFile_Test_ReadWrite, alignments){
 
 class TGenomeWindow_Test : public GenomeTasks::TGenome_windows {
 protected:
-    std::vector<uint32_t> _depth;
-    std::vector<GenotypeLikelihoods::TWindow> _windows_visited;
+    std::vector<GenotypeLikelihoods::TWindow * > _windows_visited;
 
     void _handleWindow() override{
-        _windows_visited.emplace_back(_window);
-        _depth.emplace_back(_window.depth());
+        _windows_visited.emplace_back(&_window);
     };
+
 public:
     TGenomeWindow_Test(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator) : GenomeTasks::TGenome_windows(Params, Logfile, RandomGenerator) {};
 
     void traverse(){
         _traverseBAMWindows();
     }
+
+    // size
+    uint32_t numWindows(){ return _windows_visited.size(); };
+    // loop
+    std::vector<GenotypeLikelihoods::TWindow * >::iterator begin(){ return _windows_visited.begin(); };
+    std::vector<GenotypeLikelihoods::TWindow * >::iterator end(){ return _windows_visited.end(); };
+    // access
+    GenotypeLikelihoods::TWindow* & operator[](uint32_t pos){ return _windows_visited[pos]; };
 };
 
 class TBamFile_Test_Windows : public ::testing::Test {
@@ -257,6 +264,6 @@ public:
     void TearDown() override {};
 };
 
-TEST_F(TBamFile_Test_Windows, bdu){
-    EXPECT_EQ(4,4);
+TEST_F(TBamFile_Test_Windows, numWindows){
+    EXPECT_EQ(genomeWindow->numWindows(),7);
 }

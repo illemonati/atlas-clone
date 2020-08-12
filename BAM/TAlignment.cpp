@@ -122,10 +122,10 @@ void TAlignment::parse(const GenotypeLikelihoods::TGenotypeMap & genoMap, const 
 
 void TAlignment::_parseBasesQualities(const GenotypeLikelihoods::TGenotypeMap & genoMap, const TQualityMap & qualityMap){
 	//initialize
-	_bases.resize(_cigar.lengthSequenced());
-	_alignedPosition.resize(_cigar.lengthSequenced());
+	_bases.resize(_cigar.lengthRead());
+	_alignedPosition.resize(_cigar.lengthRead());
 	int d = 0; //index regarding data structures and inside read
-	int p = 0; //index regarding reference position (!= k for indels)
+	int p = 0; //index regarding reference position (!= d for indels)
 
 	//loop over cigar operations
 	for(auto& cigarIter : _cigar){
@@ -144,7 +144,7 @@ void TAlignment::_parseBasesQualities(const GenotypeLikelihoods::TGenotypeMap & 
 				}
 				break;
 
-			//for 'S' - soft clip: ignore bases, but increase k
+			//for 'S' - soft clip: ignore bases, but increase d
 			case ('S') :
 				//add bases to softclipped entries
 				for(unsigned int i=0; i<cigarIter.length; ++i, ++d){
