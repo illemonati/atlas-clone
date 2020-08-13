@@ -210,13 +210,10 @@ void TWindow_base::dataSummary(TLog* Logfile){
 };
 
 bool TWindow_base::filter(const double maxFracMissing, const double maxRefN, TLog* Logfile){
-	if (_numReadsInWindow > 0) _calcDepth();
+	_calcDepth();
 
 	//filter window
-	if (_numReadsInWindow == 0){
-        Logfile->conclude("No data in window -> skipping this window.");
-        _passedFilters = false;
-	} else if(_fractionSitesNoData > maxFracMissing){
+	if(_fractionSitesNoData > maxFracMissing){
 		Logfile->conclude("Level of missing data > threshold of " + toString(maxFracMissing) + " -> skipping this window.");
 		_passedFilters = false;
 	} else if(maxRefN < 1.0 && referenceBaseAdded == true){
