@@ -246,7 +246,6 @@ public:
         // first set window size in parameters
         _parameters.addParameter("window", "100");
         _parameters.addParameter("bam", filename);
-        _parameters.addParameter("indexNotRequired", "false");
         _parameters.addParameter("maxReadLength", "20");
 
         // create instance of TGenomeWindow

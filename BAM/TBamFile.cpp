@@ -798,12 +798,14 @@ void TOutputBamFile::close(TLog* logfile){
 void TOutputBamFile::close(){
 	if(_openForWriting){
 		_bamWriter.Close();
-		BamTools::BamReader reader;
 
-		// create index for BAM file
+		// create index of BAM file
+		BamTools::BamReader reader;
+		if(!reader.Open(_outputFilename))
+            throw "Failed to open BAM file '" + _outputFilename + "' for indexing!";
 		reader.CreateIndex(BamTools::BamIndex::STANDARD);
 
-		//close BAM file
+        //close BAM file
 		reader.Close();
 		_openForWriting = false;
 	}
