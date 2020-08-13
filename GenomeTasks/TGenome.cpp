@@ -207,6 +207,8 @@ TGenome_windows::TGenome_windows(TParameters & Params, TLog* Logfile, TRandomGen
 		_chromosomes(_bamFile.chromosomes()){
 	//reading parameters regarding windows
 	_logfile->startIndent("Parsing window settings:");
+	_oldAlignmentMustBeConsidered = false;
+	_oldAlignmentInitialized = false;
 	_setWindowParameters(Params);
 	_setParsingLimits(Params);
 	_setWindowFilters(Params);
@@ -360,7 +362,6 @@ void TGenome_windows::_openSiteSubset(const std::string paramName){
 
 void TGenome_windows::_setCountersBeginningOfChromosome(){
 	_chrChangedWindow = true;
-	_oldAlignmentMustBeConsidered = false;
 	_windowNumber = 1;
 };
 
@@ -372,8 +373,9 @@ bool TGenome_windows::_incrementWindow(GenotypeLikelihoods::TWindow_base & windo
 	//Move to next chromosome if 1) we are at begininning of BAM (_curchromosome at end), 2) we are beyond _curChromosome or 3) reached window limit
 	if(_curChromosome == _chromosomes.cend() || window.from() >= _curChromosome->chrEnd || _windowNumber > _limitWindows){
 		//move to next chromosome
-		if(_curChromosome == _chromosomes.cend()){
+		if(_curChromosome == _chromosomes.cend()){ // beginning of chromosome
 			_curChromosome = _chromosomes.cbegin();
+			_oldAlignmentMustBeConsidered = false;
 		} else {
 			++_curChromosome;
 		}
@@ -478,11 +480,13 @@ bool TGenome_windows::_moveToNextPredefinedWindow(GenotypeLikelihoods::TWindow_b
 		//same chromosome: jump only if we are far away
 		if(_bamFile.curPosition() > window.from() || _bamFile.curPosition() < window.from() - _bamFile.maxReadLength()){
 			_bamFile.jump(window.from() - _bamFile.maxReadLength());
+			_oldAlignmentMustBeConsidered = false;
 		}
 	} else {
 		//different chromosome: jump
 		_bamFile.jump(window.from() - _bamFile.maxReadLength());
-	}
+        _oldAlignmentMustBeConsidered = false;
+    }
 
 	//return true as we continue reading
 	return true;
