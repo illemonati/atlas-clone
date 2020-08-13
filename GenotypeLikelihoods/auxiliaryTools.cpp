@@ -163,7 +163,7 @@ void TRecalibrationEMDataTables::add(const BAM::TBase & base){
 	_tables[base.readGroupID][(int) base.isSecondMate()].add(base);
 };
 
-void TRecalibrationEMDataTables::add(const TSiteStorage & site){
+void TRecalibrationEMDataTables::add(const TSite & site){
 	for(std::vector<BAM::TBase>::const_iterator b = site.cbegin(); b != site.cend(); ++b){
 		_tables[b->readGroupID][(int) b->isSecondMate()].add(*b);
 	}

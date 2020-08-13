@@ -44,7 +44,7 @@ public:
 	void initialize(const int MaxQual, const int MaxFragmentLength, const int MQ);
 	void clear();
 	void add(const BAM::TBase & base);
-	void add(const TSiteStorage & site);
+	void add(const TSite & site);
 	size_t size();
 	void fillVectorWithUsedQualities(std::vector<uint16_t> & Q);
 	void fillVectorWithUsedFragmentLengths(std::vector<uint16_t> & lengths);
@@ -68,7 +68,7 @@ public:
 	void init(const int NumReadGroups, const int MaxQual, const int MaxFragmentLength, const int MaxMQ);
 	void reset();
 	void add(const BAM::TBase & base);
-	void add(const TSiteStorage & site);
+	void add(const TSite & site);
 	void fillVectorWithUsedQualities(const int readGroupId, const bool isSecondMate, std::vector<uint16_t> & Q);
 
 	uint64_t size();

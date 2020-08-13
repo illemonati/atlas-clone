@@ -22,7 +22,7 @@ namespace GenotypeLikelihoods{
 //--------------------------------------------------------------------
 class TRecalibrationEMEstimator:public TGenotypeLikelihoodCalculator{
 private:
-	std::vector<TSiteStorage> _sites;
+	std::vector<TSite> _sites;
 	TGenotypeDistribution* _genoDist;
 	TRecalibrationEMDataTables _dataTables;
 
