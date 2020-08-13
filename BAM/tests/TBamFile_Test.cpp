@@ -264,5 +264,5 @@ public:
 };
 
 TEST_F(TBamFile_Test_Windows, numWindows){
-    EXPECT_EQ(genomeWindow->numWindows(),7);
+    EXPECT_EQ(genomeWindow->numWindows(),5); // 5 of 7 windows contain data
 }

@@ -371,7 +371,7 @@ bool TGenome_windows::_incrementWindow(GenotypeLikelihoods::TWindow_base & windo
 	//Move to next chromosome if 1) we are at begininning of BAM (_curchromosome at end), 2) we are beyond _curChromosome or 3) reached window limit
 	if(_curChromosome == _chromosomes.cend() || window.from() >= _curChromosome->chrEnd || _windowNumber > _limitWindows){
 		//move to next chromosome
-		if(_curChromosome == _chromosomes.cend()){
+		if(_curChromosome == _chromosomes.cend()){ // beginning of chromosome
 			_curChromosome = _chromosomes.cbegin();
 		} else {
 			++_curChromosome;
@@ -483,7 +483,7 @@ bool TGenome_windows::_moveToNextPredefinedWindow(GenotypeLikelihoods::TWindow_b
 		//different chromosome: jump
 		_bamFile.jump(window.from() - _bamFile.maxReadLength());
 		_oldAlignment->clear();
-	}
+    }
 
 	//return true as we continue reading
 	return true;
