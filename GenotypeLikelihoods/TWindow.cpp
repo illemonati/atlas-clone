@@ -188,22 +188,25 @@ double TWindow_base::fractionRefIsN(){
 void TWindow_base::dataSummary(TLog* Logfile){
 	_calcDepth();
 	Logfile->conclude("Read data from " + toString(_numReadsInWindow) + " reads.");
-	Logfile->conclude("Sequencing depth is " + toString(_depth));
+	Logfile->conclude("Sequencing depth is " + toString(_depth) + ".");
 	Logfile->conclude(toString(_fractionDepthAtLeastTwo * 100) + "% of all sites are covered at least twice.");
 	Logfile->conclude(toString(_fractionSitesNoData * 100) + "% of all sites have no data.");
 };
 
 bool TWindow_base::filter(const double maxFracMissing, const double maxRefN, TLog* Logfile){
-	_calcDepth();
+	if (_numReadsInWindow > 0) _calcDepth();
 
 	//filter window
-	if(_fractionSitesNoData > maxFracMissing){
-		Logfile->conclude("Level of missing data > threshold of " + toString(maxFracMissing) + " -> skipping this window");
+	if (_numReadsInWindow == 0){
+        Logfile->conclude("No data in window -> skipping this window.");
+        _passedFilters = false;
+	} else if(_fractionSitesNoData > maxFracMissing){
+		Logfile->conclude("Level of missing data > threshold of " + toString(maxFracMissing) + " -> skipping this window.");
 		_passedFilters = false;
 	} else if(maxRefN < 1.0 && referenceBaseAdded == true){
-		Logfile->conclude(toString(_fractionRefIsN * 100) + "% of all reference bases are 'N'");
+		Logfile->conclude(toString(_fractionRefIsN * 100) + "% of all reference bases are 'N'.");
 		if(_fractionRefIsN > maxRefN){
-			Logfile->conclude("Fraction of 'N' in reference > threshold of " + toString(maxRefN) + " -> skipping this window");
+			Logfile->conclude("Fraction of 'N' in reference > threshold of " + toString(maxRefN) + " -> skipping this window.");
 			_passedFilters = false;
 		}
 	} else {

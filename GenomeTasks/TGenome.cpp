@@ -618,15 +618,12 @@ void TGenome_windows::_applyWindowFilters(GenotypeLikelihoods::TWindow_base & wi
 		if(_downsampleDepth > 0){
 			window.downsample(_downsampleDepth, *subsamplePicker);
 		};
-
-		//report
-		window.dataSummary(_logfile);
-
-		//filter window
-		window.filter(_maxMissing, _maxRefN, _logfile);
-	} else {
-		_logfile->conclude("No data in this window.");
 	}
+
+    //filter window
+    window.filter(_maxMissing, _maxRefN, _logfile);
+	if (window.passedFilters())
+        window.dataSummary(_logfile);
 };
 
 void TGenome_windows::_traverseBAMWindows(){
