@@ -174,10 +174,10 @@ TEST_F(TBamFile_Test_ReadWrite, alignments){
 
 class TGenomeWindow_Test : public GenomeTasks::TGenome_windows {
 protected:
-    std::vector<GenotypeLikelihoods::TWindow> _windows_visited;
+    std::vector<BAM::TGenomeWindow> _windows_visited;
 
     void _handleWindow() override{
-        _windows_visited.emplace_back(_window);
+        _windows_visited.emplace_back(this->_window);
     };
 
 public:
@@ -190,10 +190,10 @@ public:
     // size
     uint32_t numWindows(){ return _windows_visited.size(); };
     // loop
-    std::vector<GenotypeLikelihoods::TWindow >::iterator begin(){ return _windows_visited.begin(); };
-    std::vector<GenotypeLikelihoods::TWindow >::iterator end(){ return _windows_visited.end(); };
+    std::vector<BAM::TGenomeWindow >::iterator begin(){ return _windows_visited.begin(); };
+    std::vector<BAM::TGenomeWindow >::iterator end(){ return _windows_visited.end(); };
     // access
-    GenotypeLikelihoods::TWindow& operator[](uint32_t pos){ return _windows_visited[pos]; };
+    BAM::TGenomeWindow& operator[](uint32_t pos){ return _windows_visited[pos]; };
 };
 
 class TBamFile_Test_Windows : public ::testing::Test {

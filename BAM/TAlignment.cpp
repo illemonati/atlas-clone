@@ -311,7 +311,7 @@ TGenomePosition TAlignment::positionInRef(const uint32_t internalPosition) const
 
 uint16_t TAlignment::parsedLength() const{
 	if(_parsed){
-		return _cigar.lengthSequenced();
+		return _cigar.lengthRead();
 	} else {
 		return 0;
 	}

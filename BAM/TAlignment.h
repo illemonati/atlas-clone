@@ -50,7 +50,7 @@ private:
 
 	//per base data
 	std::vector<TBase> _bases;
-	std::vector<uint16_t> _alignedPosition;
+	std::vector<int> _alignedPosition;
 
 	//reference
 	bool _hasReference;
