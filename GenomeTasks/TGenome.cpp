@@ -213,12 +213,12 @@ TGenome_windows::TGenome_windows(TParameters & Params, TLog* Logfile, TRandomGen
 	_setMasks(Params);
 	_setSiteFilters(Params);
 	_logfile->endIndent();
+
+	_oldAlignment = new BAM::TAlignment;
 };
 
 TGenome_windows::~TGenome_windows(){
-	if(_oldAlignmentInitialized){
-		delete _oldAlignment;
-	}
+	delete _oldAlignment;
 };
 
 void TGenome_windows::_setWindowParameters(TParameters & params){
@@ -360,7 +360,6 @@ void TGenome_windows::_openSiteSubset(const std::string paramName){
 
 void TGenome_windows::_setCountersBeginningOfChromosome(){
 	_chrChangedWindow = true;
-	_oldAlignmentMustBeConsidered = false;
 	_windowNumber = 1;
 };
 
@@ -478,10 +477,12 @@ bool TGenome_windows::_moveToNextPredefinedWindow(GenotypeLikelihoods::TWindow_b
 		//same chromosome: jump only if we are far away
 		if(_bamFile.curPosition() > window.from() || _bamFile.curPosition() < window.from() - _bamFile.maxReadLength()){
 			_bamFile.jump(window.from() - _bamFile.maxReadLength());
+			_oldAlignment->clear();
 		}
 	} else {
 		//different chromosome: jump
 		_bamFile.jump(window.from() - _bamFile.maxReadLength());
+		_oldAlignment->clear();
 	}
 
 	//return true as we continue reading
@@ -542,36 +543,22 @@ void TGenome_windows::_readAlignmentsIntoWindow(GenotypeLikelihoods::TWindow & w
 	//measure runtime
 	_logfile->listFlushTime("Reading data ...");
 
-	//check if old alignment is to be used.
-	if(_oldAlignmentMustBeConsidered){
-		if(*_oldAlignment >= window.to()){
-			throw std::runtime_error("TGenome_windows::_readAlignmentsIntoWindow(GenotypeLikelihoods::TWindow & window): old alignment is after window!");
-		}
-
-		_oldAlignmentMustBeConsidered = false;
-		if(_oldAlignment->lastAlignedPositionWithRespectToRef() >= window.from())
-			_oldAlignment = window.swapUsedForEmptyAlignment(_oldAlignment);
+	//make sure oldAligment is set
+	if(_oldAlignment->isEmpty()){
+		_bamFile.readNextAlignment(*_oldAlignment);
+		_parseAlignment(*_oldAlignment);
 	}
 
-	//read alignments
-	int counter = 0;
-	while(_bamFile.readNextAlignment(*_oldAlignment)){
-		++counter;
-
-		//parse alignment
-		_parseAlignment(*_oldAlignment);
-
-		//check if alignment starts after current window end -> break
-		if(*_oldAlignment >= window.to()){
-			_oldAlignmentMustBeConsidered = true;
-			break;
-		}
-
+	while(_oldAlignment < window.to()){
 		//check if alignment contains part of the window
 		//if read continues outside of window, this is dealt with by window object
 		if(_oldAlignment->lastAlignedPositionWithRespectToRef() >= window.from()){
 			_oldAlignment = window.swapUsedForEmptyAlignment(_oldAlignment);
 		}
+
+		//read next alignment
+		_bamFile.readNextAlignment(*_oldAlignment);
+		_parseAlignment(*_oldAlignment);
 	}
 
 	//fill sites
@@ -585,13 +572,13 @@ void TGenome_windows::_readAlignmentsIntoWindow(GenotypeLikelihoods::TWindow & w
 
 	//report
 	_logfile->doneTime();
-	_logfile->conclude("Read ", counter, " alignments.");
 
 	//apply filters
 	_applyWindowFilters(window);
 };
 
 void TGenome_windows::_applyWindowFilters(GenotypeLikelihoods::TWindow_base & window){
+	//apply site-specific filters
 	if(window.numReadsInWindow() > 0){
 		//apply masks and filters
 		if(_doMasking){
@@ -614,12 +601,14 @@ void TGenome_windows::_applyWindowFilters(GenotypeLikelihoods::TWindow_base & wi
 		if(_downsampleDepth > 0){
 			window.downsample(_downsampleDepth, *subsamplePicker);
 		};
+	}
 
-		//report
+	//apply filters on window
+	window.filter(_maxMissing, _maxRefN, _logfile);
+
+	//report
+	if(window.numReadsInWindow() > 0){
 		window.dataSummary(_logfile);
-
-		//filter window
-		window.filter(_maxMissing, _maxRefN, _logfile);
 	} else {
 		_logfile->conclude("No data in this window.");
 	}
@@ -631,8 +620,7 @@ void TGenome_windows::_traverseBAMWindows(){
 	//initializing
 	_hasWindowIndent = false;
 	_curChromosome = _chromosomes.cend(); //set chromosome to end to trigger restart.
-	_oldAlignment = new BAM::TAlignment;
-	_oldAlignmentInitialized = true;
+	_oldAlignment->clear();
 
 	//iterate through windows
 	while(_readDataInNextWindow(_window)){

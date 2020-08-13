@@ -55,11 +55,15 @@ public:
 	virtual ~TWindow_base();
 
 	//Allow to set chromosome name when jumping
-	//virtual void move(const uint32_t RefID, const uint32_t & From, const uint32_t & To, const std::string ChrName);
 	virtual void move(const BAM::TGenomePosition & From, const uint32_t & Length, const std::string ChrName);
 	virtual void move(const BAM::TGenomePosition & From, const BAM::TGenomePosition & To, const std::string ChrName);
 	virtual void move(const BAM::TGenomeWindow & Window, const std::string ChrName);
 	void setChrName(const std::string ChrName);
+
+	//move / expand on same chromosome
+	virtual void operator+=(const uint32_t & length);
+	virtual void operator-=(const uint32_t & length);
+	virtual void resize(const uint32_t & newLength);
 
 	//void stealFromOther(TWindow_base & other);
 	void downsampleFromOther(TWindow & other, const int readUpToDepth, const double downsamplingProb, TRandomGenerator* randomGenerator);
