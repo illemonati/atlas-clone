@@ -123,10 +123,11 @@ public:
 
 	std::string sequence(const GenotypeLikelihoods::TGenotypeMap & genoMap, const TQualityMap & qualMap) const;
 	std::string qualities(const GenotypeLikelihoods::TGenotypeMap & genoMap, const TQualityMap & qualMap) const;
+	bool isEmpty() const { return _empty; };
+	bool isParsed() const{ return _parsed; };
 	bool isReverseStrand() const{ return _flags.isReverseStrand(); };
 	bool isPaired() const{ return _flags.isPaired(); };
 	bool isProperPair() const{ return _flags.isProperPair(); };
-	bool isParsed() const{ return _parsed; };
 
 	//looping
 	std::vector<TBase>::iterator begin(){ return _bases.begin(); };

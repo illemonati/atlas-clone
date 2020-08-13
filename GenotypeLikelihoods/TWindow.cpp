@@ -103,6 +103,22 @@ void TWindow_base::setChrName(const std::string ChrName){
 	_chrName = ChrName;
 };
 
+void TWindow_base::operator+=(const uint32_t & length){
+	TGenomeWindow::operator +=(length);
+	clear();
+};
+
+void TWindow_base::operator-=(const uint32_t & length){
+	TGenomeWindow::operator -=(length);
+	clear();
+};
+
+void TWindow_base::resize(const uint32_t & newLength){
+	TGenomeWindow::resize(newLength);
+	clear();
+};
+
+
 void TWindow_base::downsampleFromOther(TWindow & other, const int readUpToDepth, const double downsamplingProb, TRandomGenerator* randomGenerator){
 	clear();
 
@@ -194,13 +210,10 @@ void TWindow_base::dataSummary(TLog* Logfile){
 };
 
 bool TWindow_base::filter(const double maxFracMissing, const double maxRefN, TLog* Logfile){
-	if (_numReadsInWindow > 0) _calcDepth();
+	_calcDepth();
 
 	//filter window
-	if (_numReadsInWindow == 0){
-        Logfile->conclude("No data in window -> skipping this window.");
-        _passedFilters = false;
-	} else if(_fractionSitesNoData > maxFracMissing){
+	if(_fractionSitesNoData > maxFracMissing){
 		Logfile->conclude("Level of missing data > threshold of " + toString(maxFracMissing) + " -> skipping this window.");
 		_passedFilters = false;
 	} else if(maxRefN < 1.0 && referenceBaseAdded == true){
@@ -411,17 +424,17 @@ void TWindow::move(const BAM::TGenomeWindow & Window, const std::string ChrName)
 };
 
 void TWindow::operator+=(const uint32_t & length){
-	TGenomeWindow::operator +=(length);
+	TWindow_base::operator +=(length);
 	_cleanUpUsedAlignments();
 };
 
 void TWindow::operator-=(const uint32_t & length){
-	TGenomeWindow::operator -=(length);
+	TWindow_base::operator -=(length);
 	_cleanUpUsedAlignments();
 };
 
 void TWindow::resize(const uint32_t & newLength){
-	TGenomeWindow::resize(newLength);
+	TWindow_base::resize(newLength);
 	_cleanUpUsedAlignments();
 };
 

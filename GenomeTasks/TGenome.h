@@ -141,8 +141,6 @@ protected:
 
 	//tmp variables
 	BAM::TAlignment* _oldAlignment;
-	bool _oldAlignmentInitialized;
-	bool _oldAlignmentMustBeConsidered;
 	bool _hasWindowIndent;
 	TTimer _windowTimer;
 
