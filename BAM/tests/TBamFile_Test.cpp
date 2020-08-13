@@ -178,9 +178,12 @@ protected:
 
     void _handleWindow() override{
         _windows_visited.emplace_back(this->_window);
+        depth.emplace_back(_window.depth());
     };
 
 public:
+    std::vector<double> depth;
+
     TGenomeWindow_Test(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator) : GenomeTasks::TGenome_windows(Params, Logfile, RandomGenerator) {};
 
     void traverse(){
@@ -209,7 +212,7 @@ public:
 
     void write(){
         //settings
-        std::vector<uint32_t> chrLength = {250, 50, 199, 80};
+        std::vector<uint32_t> chrLength = {250, 50, 199, 80, 77};
         uint32_t numReadGroups = 2;
 
         //open BAM file for writing
@@ -217,27 +220,41 @@ public:
 
         //write alignments
 
-        // 1) overlapping alignments inside one window
-        outputBam->writeDummyAlignment('A', '1', BAM::TGenomePosition(0, 0), 20);
-        outputBam->writeDummyAlignment('C', '2', BAM::TGenomePosition(0, 10), 20);
-        outputBam->writeDummyAlignment('G', '3', BAM::TGenomePosition(0, 20), 20);
+        // 1) overlapping alignments inside one window, cigar is all M
+        BAM::TCigar onlyMCigar;
+        onlyMCigar.add('M', 20);
+        outputBam->writeDummyAlignment('A', '1', BAM::TGenomePosition(0, 0), onlyMCigar);
+        outputBam->writeDummyAlignment('C', '2', BAM::TGenomePosition(0, 10), onlyMCigar);
+        outputBam->writeDummyAlignment('G', '3', BAM::TGenomePosition(0, 20), onlyMCigar);
 
         // 2) alignments overlap 2 windows
-        outputBam->writeDummyAlignment('T', '4', BAM::TGenomePosition(0, 80), 20);
-        outputBam->writeDummyAlignment('A', '5', BAM::TGenomePosition(0, 90), 20);
-        outputBam->writeDummyAlignment('C', '6', BAM::TGenomePosition(0, 95), 20);
-        outputBam->writeDummyAlignment('G', '7', BAM::TGenomePosition(0, 100), 20);
+        outputBam->writeDummyAlignment('T', '4', BAM::TGenomePosition(0, 80), onlyMCigar);
+        outputBam->writeDummyAlignment('A', '5', BAM::TGenomePosition(0, 90), onlyMCigar);
+        outputBam->writeDummyAlignment('C', '6', BAM::TGenomePosition(0, 95), onlyMCigar);
+        outputBam->writeDummyAlignment('G', '7', BAM::TGenomePosition(0, 100), onlyMCigar);
 
         // 3) one alignment inside 1 window
-        outputBam->writeDummyAlignment('T', '8', BAM::TGenomePosition(0, 220), 20);
+        outputBam->writeDummyAlignment('T', '8', BAM::TGenomePosition(0, 220), onlyMCigar);
 
         // 4) only 1 window per chromosome
-        outputBam->writeDummyAlignment('A', '9', BAM::TGenomePosition(1, 10), 20);
+        outputBam->writeDummyAlignment('A', '9', BAM::TGenomePosition(1, 10), onlyMCigar);
 
         // 5) empty window
-        outputBam->writeDummyAlignment('C', '0', BAM::TGenomePosition(2, 10), 20);
+        outputBam->writeDummyAlignment('C', '0', BAM::TGenomePosition(2, 10), onlyMCigar);
 
         // 6) empty chromosome
+
+        // 7) cigar strings more complicated (with soft-clips, insertions and deletions)
+        BAM::TCigar mixedCigar;
+        mixedCigar.add('S', 3);
+        mixedCigar.add('M', 5);
+        mixedCigar.add('D', 5);
+        mixedCigar.add('I', 5);
+        mixedCigar.add('S', 2);
+        outputBam->writeDummyAlignment('A', '1', BAM::TGenomePosition(4, 0), mixedCigar);
+        outputBam->writeDummyAlignment('C', '2', BAM::TGenomePosition(4, 4), mixedCigar);
+        outputBam->writeDummyAlignment('G', '3', BAM::TGenomePosition(4, 8), mixedCigar);
+
 
         outputBam->closeOutput();
     }
@@ -264,5 +281,59 @@ public:
 };
 
 TEST_F(TBamFile_Test_Windows, numWindows){
-    EXPECT_EQ(genomeWindow->numWindows(),5); // 5 of 7 windows contain data
+    EXPECT_EQ(genomeWindow->numWindows(),6); // 6 of 8 windows contain data and are stored
+}
+
+TEST_F(TBamFile_Test_Windows, refIDWindows){
+    // do windows store correct refID?
+
+    // 1. chr (cases 1), 2) and 3))
+    EXPECT_EQ((*genomeWindow)[0].refID(), 0);
+    EXPECT_EQ((*genomeWindow)[1].refID(), 0);
+    EXPECT_EQ((*genomeWindow)[2].refID(), 0);
+
+    // 2. chr (case 4))
+    EXPECT_EQ((*genomeWindow)[3].refID(), 1);
+
+    // 3. chr (case 5))
+    EXPECT_EQ((*genomeWindow)[4].refID(), 2);
+
+    // 5. chr (case 7))
+    EXPECT_EQ((*genomeWindow)[5].refID(), 2);
+}
+
+TEST_F(TBamFile_Test_Windows, positionsWindows){
+    // do windows store correct positions? I.e., if chromosome is shorter than window, is window correctly adjusted?
+
+    // 1. chr (cases 1), 2) and 3))
+    EXPECT_EQ((*genomeWindow)[0].fromOnChr(), 0); EXPECT_EQ((*genomeWindow)[0].toOnChr(), 100);
+    EXPECT_EQ((*genomeWindow)[1].fromOnChr(), 100); EXPECT_EQ((*genomeWindow)[1].toOnChr(), 200);
+    EXPECT_EQ((*genomeWindow)[2].fromOnChr(), 200); EXPECT_EQ((*genomeWindow)[2].toOnChr(), 250);
+
+    // 2. chr (case 4))
+    EXPECT_EQ((*genomeWindow)[3].fromOnChr(), 0); EXPECT_EQ((*genomeWindow)[3].toOnChr(), 50);
+
+    // 3. chr (case 5))
+    EXPECT_EQ((*genomeWindow)[4].fromOnChr(), 0); EXPECT_EQ((*genomeWindow)[4].toOnChr(), 100);
+
+    // 5. chr (case 7))
+    EXPECT_EQ((*genomeWindow)[5].fromOnChr(), 0); EXPECT_EQ((*genomeWindow)[5].toOnChr(), 77);
+}
+
+TEST_F(TBamFile_Test_Windows, depthPerWindow){
+    // do windows store correct positions? I.e., if chromosome is shorter than window, is window correctly adjusted?
+
+    // 1. chr (cases 1), 2) and 3))
+    EXPECT_EQ(genomeWindow->depth[0], 0.95);
+    EXPECT_EQ(genomeWindow->depth[1], 0.45);
+    EXPECT_EQ(genomeWindow->depth[2], 0.4);
+
+    // 2. chr (case 4))
+    EXPECT_EQ(genomeWindow->depth[3], 0.4);
+
+    // 3. chr (case 5))
+    EXPECT_EQ(genomeWindow->depth[4], 0.2);
+
+    // 5. chr (case 7))
+    EXPECT_EQ(genomeWindow->depth[5], 0.1948052);
 }
