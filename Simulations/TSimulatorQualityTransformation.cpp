@@ -64,14 +64,13 @@ TSimulatorQualityDistBinned::TSimulatorQualityDistBinned(std::string & s, TRando
 
 	numQualBins = qualBins.size();
 	randomGenerator = RandomGenerator;
-
-}
+};
 
 void TSimulatorQualityDistBinned::sample(int* qualities, const int & len){
 	for(int i=0; i<len; ++i){
 		qualities[i] = qualBins[randomGenerator->pickOne(numQualBins)];
 	}
-}
+};
 
 void TSimulatorQualityDistBinned::printDetails(TLog* logfile){
 	std::string tmpS = concatenateString(qualBins, ",");
@@ -79,8 +78,7 @@ void TSimulatorQualityDistBinned::printDetails(TLog* logfile){
 };
 
 TSimulatorQualityDistNormal::TSimulatorQualityDistNormal(std::string & s, TRandomGenerator* RandomGenerator):TSimulatorQualityDist(){
-	densitiesInitialized = false;
-	randomGenerator = RandomGenerator;
+	_randomGenerator = RandomGenerator;
 
 	parseFunctionString(s);
 	_maxPlusOne = _max + 1;
@@ -89,8 +87,7 @@ TSimulatorQualityDistNormal::TSimulatorQualityDistNormal(std::string & s, TRando
 };
 
 TSimulatorQualityDistNormal::TSimulatorQualityDistNormal(double & mean, double & sd, int min, int max, TRandomGenerator* RandomGenerator):TSimulatorQualityDist(){
-	densitiesInitialized = false;
-	randomGenerator = RandomGenerator;
+	_randomGenerator = RandomGenerator;
 
 	_mean = mean;
 	_sd = sd;
@@ -100,7 +97,6 @@ TSimulatorQualityDistNormal::TSimulatorQualityDistNormal(double & mean, double &
 
 	fillDensities();
 };
-
 
 void TSimulatorQualityDistNormal::parseFunctionString(std::string & s){
 	std::string orig = s;
@@ -145,41 +141,39 @@ void TSimulatorQualityDistNormal::parseFunctionString(std::string & s){
 
 void TSimulatorQualityDistNormal::fillDensities(){
 	//fill densities
-	size = _maxPlusOne - _min;
-	densities = new double[size];
-	cumulDensities = new double[size];
+	_size = _maxPlusOne - _min;
+	_densities.resize(_size);
+	_cumulDensities.resize(_size);
 
 	double nextDens = TNormalDistr::cumulativeDistrFunction(_min-0.5, _mean, _sd);
 	double prevDens;
 	double sum = 0;
-	for(int i=0; i<size; ++i){
+	for(int i=0; i<_size; ++i){
 		prevDens = nextDens;
 		nextDens = TNormalDistr::cumulativeDistrFunction(_min + i + 0.5, _mean, _sd);
-		densities[i] =  nextDens - prevDens;
-		sum += densities[i];
+		_densities[i] =  nextDens - prevDens;
+		sum += _densities[i];
 	}
 
 	//normalize
-	for(int i=0; i<size; ++i)
-		densities[i] /= sum;
+	for(int i=0; i<_size; ++i)
+		_densities[i] /= sum;
 
 	//fill cumulative
-	cumulDensities[0] = densities[0];
-	for(int i=1; i<size; ++i)
-		cumulDensities[i] = cumulDensities[i-1] + densities[i];
-	cumulDensities[size-1] = 1.0;
-
-	densitiesInitialized = true;
+	_cumulDensities[0] = _densities[0];
+	for(int i=1; i<_size; ++i)
+		_cumulDensities[i] = _cumulDensities[i-1] + _densities[i];
+	_cumulDensities[_size-1] = 1.0;
 }
 
 int TSimulatorQualityDistNormal::sample(){
-	tmpInt = randomGenerator->pickOne(size, cumulDensities);
+	tmpInt = _randomGenerator->pickOne(_cumulDensities);
 	return tmpInt + _min;
 };
 
 void TSimulatorQualityDistNormal::sample(int* qualities, const int & len){
 	for(tmpInt=0; tmpInt<len; ++tmpInt){
-		qualities[tmpInt] = randomGenerator->pickOne(size, cumulDensities) + _min;
+		qualities[tmpInt] = _randomGenerator->pickOne(_cumulDensities) + _min;
 	}
 };
 
@@ -250,15 +244,15 @@ TSimulatorQualityTransformationRecal::TSimulatorQualityTransformationRecal(const
 
 void TSimulatorQualityTransformationRecal::fillTransformationTable(const std::string & modelTag, std::vector<std::string> & values, int maxReadLength){
 	//set size
-	maxReadLengthPlusOne = maxReadLength + 1;
+	_maxReadLengthPlusOne = maxReadLength + 1;
 	maxQualPlusOne = qualityDist->max() + 1;
 	numContext = genoMap.numContextsNotN;
 
 	//allocate table
 	transformedQuality = new int**[maxQualPlusOne];
 	for(int q=0; q<maxQualPlusOne; ++q){
-		transformedQuality[q] = new int*[maxReadLengthPlusOne];
-		for(int p=0; p<maxReadLengthPlusOne; ++p)
+		transformedQuality[q] = new int*[_maxReadLengthPlusOne];
+		for(int p=0; p<_maxReadLengthPlusOne; ++p)
 			transformedQuality[q][p] = new int[numContext];
 	}
 
@@ -270,7 +264,7 @@ void TSimulatorQualityTransformationRecal::fillTransformationTable(const std::st
 
 void TSimulatorQualityTransformationRecal::clearTransformationTable(){
 	for(int q=0; q<maxQualPlusOne; ++q){
-		for(p=0; p<maxReadLengthPlusOne; ++p)
+		for(p=0; p<_maxReadLengthPlusOne; ++p)
 			delete[] transformedQuality[q][p];
 		delete[] transformedQuality[q];
 	}
@@ -298,232 +292,6 @@ void TSimulatorQualityTransformationRecal::simulateQualitiesAndErrors(Base* base
 		for(p=0; p<len; ++p){
 			qualities[p] = transformedQuality[qualities[p]][p][genoMap.contextMap[previousBase][bases[p]]];
 			previousBase = bases[p];
-		}
-	}
-};
-
-//------------------------------------
-//TSimulatorQualityTransformationBQSR
-//------------------------------------
-TSimulatorQualityTransformationBQSR::TSimulatorQualityTransformationBQSR(const std::string & s, TReadLengthDistribution* ReadLengthDist, TLog* logfile, TSimulatorQualityDist* QualityDist, TRandomGenerator* RandomGenerator): TSimulatorQualityTransformation(QualityDist, RandomGenerator){
-	readLengthDist = ReadLengthDist;
-	maxReadLength = readLengthDist->max();
-	minPhredInt = 1;
-	maxPhredInt = 42;
-	maxPhredIntPlusOne = maxPhredInt + 1;
-	meanPhred = qualityDist->mean();
-	sdPhred = qualityDist->sd();
-	std::vector<std::string> vec;
-	fillVectorFromStringAny(s, vec, ",", true);
-	phi1 = convertString<int>(vec[0]);
-	phi2 = convertString<double>(vec[1]);
-	logfile->list("Simulating BQSR quality effect with phi1 = " + toString(phi1) + " and phi2 = " + toString(phi2));
-
-	revIntercept = convertString<double>(vec[2]);
-	if(revIntercept < 0.0) throw("revIntercept cannot be negative!");
-	else if(revIntercept == 1.0){
-		m = 0.0;
-		intercept = 1.0;
-		logfile->list("revIntercept is set to 1 -> Simulating only BQSR quality effect.");
-	} else {
-		calculateSlopeIntercept();
-
-		//check if beta_q * beta_p ever results in error > 1 (if yes increase minPhredInt)
-		double betaQq = returnTrueError(minPhredInt);
-		while (betaQq * revIntercept > 1.0){
-			++minPhredInt;
-			betaQq = returnTrueError(minPhredInt);
-		}
-
-		//report
-		logfile->list("Simulating BQSR fake qualities to range from " + toString(minPhredInt) + " to " + toString(maxPhredInt));
-		logfile->list("Simulating BQSR position effect of quality distortion with slope  = " + toString(m) + " and intercept = " + toString(intercept));
-	}
-
-//	parseBQSRQualInput(params);
-	setFakePhredDistribution(logfile); //first find kappa and lambda
-	fakePhredDist = new TSimulatorQualityDistNormal(kappa, lambda, minPhredInt, maxPhredInt, RandomGenerator);
-
-}
-
-void TSimulatorQualityTransformationBQSR::calculateSlopeIntercept(){
-	double sum = 0.0;
-	//gamma density starts at 0 but p at 1!
-	for(uint32_t p=0; p<maxReadLength ; ++p)
-		sum += (double) (p+1) * (*readLengthDist)[p];
-
-	m = (1.0 - revIntercept) / (sum - maxReadLength);
-	intercept = revIntercept - m * (double) maxReadLength;
-
-	if(intercept < 0) throw "The value given for the reverse intercept results in a negative intercept!";
-}
-
-int TSimulatorQualityTransformationBQSR::sampleFakePhredInt(){
-	int qualPhredInt = round(randomGenerator->getNormalRandom(kappa, lambda));
-	if(qualPhredInt > 93) qualPhredInt = 93;
-	if(qualPhredInt < 0) qualPhredInt = 0;
-	return qualPhredInt;
-}
-
-
-void TSimulatorQualityTransformationBQSR::fillQBetaQBetaP(){
-	double init_value = -1.0;
-	double betaQq;
-
-	QBetaQBetaP.resize( maxPhredIntPlusOne , std::vector<double>( maxReadLength , init_value ) );
-	errorBetaQBetaP.resize( maxPhredIntPlusOne , std::vector<double>( maxReadLength , init_value ) );
-
-	for(uint32_t q = 0; q < maxPhredIntPlusOne; ++ q){
-		betaQq = returnTrueError(q);
-		for(uint32_t p = 0; p<maxReadLength; ++p){
-			errorBetaQBetaP[q][p] = (betaQq) * returnBetaPp(p);
-			QBetaQBetaP[q][p] = qualityMap.errorToPhred(errorBetaQBetaP[q][p]);
-		}
-	}
-}
-
-void TSimulatorQualityTransformationBQSR::fillWeights(double & kappa_cur, double & lambda_cur){
-	w = new double[maxPhredIntPlusOne];
-
-	//w at minQual
-	w[minPhredInt] = TNormalDistr::cumulativeDistrFunction((double) minPhredInt + 0.5, kappa_cur, lambda_cur);
-	//w at intermediate Q
-	for(uint32_t q = (minPhredInt + 1); q < maxPhredInt; ++q){
-		double start = TNormalDistr::cumulativeDistrFunction((double) q - 0.5, kappa_cur, lambda_cur);
-		double end   = TNormalDistr::cumulativeDistrFunction((double) q + 0.5, kappa_cur, lambda_cur);
-		w[q] = end - start;
-	}
-
-	//w at maxQual
-	w[maxPhredInt] = 1.0 - TNormalDistr::cumulativeDistrFunction((double) maxPhredInt - 0.5, kappa_cur, lambda_cur);
-	weightsInitialized = true;
-}
-
-double TSimulatorQualityTransformationBQSR::returnCurMean(){
-	double curMean = 0.0;
-
-	for(uint32_t q = minPhredInt; q < maxPhredIntPlusOne; ++ q){
-		double sumP = 0.0;
-		for(uint32_t p = 0; p<maxReadLength; ++p){
-			sumP += QBetaQBetaP[q][p] * (*readLengthDist)[p];
-		}
-		curMean += sumP * w[q];
-	}
-
-	return(curMean);
-}
-
-double TSimulatorQualityTransformationBQSR::returnCurSD(double & kappa){
-	float lambda = 0.0;
-	for(uint32_t q = minPhredInt; q < maxPhredIntPlusOne; ++ q){
-		for(uint32_t p = 0; p<readLengthDist->max(); ++p){
-			lambda += ((QBetaQBetaP[q][p] - kappa) * (QBetaQBetaP[q][p] - kappa) * (*readLengthDist)[p] * w[q]);
-		}
-	}
-	return(sqrt(lambda));
-}
-
-double TSimulatorQualityTransformationBQSR::returnDelta(double & curMean, double & curSD){
-	double delta;
-	delta = (curMean - meanPhred)*(curMean - meanPhred) + (curSD - sdPhred)*(curSD - sdPhred);
-	return(delta);
-}
-
-//---------------------------------
-
-void TSimulatorQualityTransformationBQSR::setFakePhredDistribution(TLog* logfile){
-	double kappa_cur = meanPhred;
-	double lambda_cur = sdPhred;
-	double delta_cur, delta_old;
-	double mean_cur, sd_cur;
-	double stepSize;
-
-	std::ofstream out;
-	std::string filename = "path_simulation.txt";
-	out.open(filename.c_str());
-	out << "kappa\tlambda\tdelta\n";
-
-	fillQBetaQBetaP();
-	fillWeights(kappa_cur, lambda_cur);
-	mean_cur = returnCurMean();
-	sd_cur = returnCurSD(mean_cur);
-
-	delta_cur = returnDelta(mean_cur, sd_cur);
-	out << kappa_cur << "\t" << lambda_cur << "\t" << delta_cur << std::endl;
-
-	int nTurns = 10;
-	int nIter = 50;
-
-	logfile->startIndent("Estimating mean (kappa) and sd (lambda) for distorted quality score distribution");
-
-	//optimize one param at a time, update, optimize again
-
-	for(int t=0; t<nTurns; ++t){
-		//update kappa
-		stepSize = 5.0;
-		for(int i=0; i<nIter; ++i){
-			//move and calc error
-			delta_old = delta_cur;
-			kappa_cur += stepSize;
-			fillWeights(kappa_cur, lambda_cur);
-			mean_cur = returnCurMean();
-			sd_cur = returnCurSD(mean_cur);
-			delta_cur = returnDelta(mean_cur, sd_cur);
-			if(delta_cur > delta_old)
-				stepSize = -stepSize/exp(1.0);
-		}
-
-		//update lambda
-		stepSize = 1.0;
-		for(int i=0; i<nIter; ++i){
-			//move and calc error
-			delta_old = delta_cur;
-			lambda_cur += stepSize;
-			fillWeights(kappa_cur, lambda_cur);
-			mean_cur = returnCurMean();
-			sd_cur = returnCurSD(mean_cur);
-			delta_cur = returnDelta(mean_cur, sd_cur);
-			if(delta_cur > delta_old)
-				stepSize = -stepSize/exp(1.0);
-		}
-
-
-	//	logfile->list("Current estimates: kappa = " + toString(kappa_cur) + ", lambda = " + toString(lambda_cur) + ", delta = " + toString(delta_cur) + " corresponding to a true qual dist = N(" + toString(mean_cur) + "," + toString(sd_cur) + ")");
-		out << kappa_cur << "\t" << lambda_cur << "\t" << delta_cur << std::endl;
-
-	}
-
-	logfile->endIndent();
-
-	logfile->conclude("The final estimates for kappa = " + toString(kappa_cur) + " and lambda = " + toString(lambda_cur) + ". This result in a true quality score distribution = N(" + toString(mean_cur) + "," + toString(sd_cur) + ") with delta = " + toString(delta_cur) + ".");
-	if(delta_cur >= 0.25) logfile->warning("Current parameter values for phi1, meanQual and sdQual do not allow for accurate estimation of kappa and lambda!");
-	kappa = kappa_cur;
-	lambda = lambda_cur;
-}
-
-double TSimulatorQualityTransformationBQSR::returnTrueError(const int & fakePhredInt){
-	return(pow(10.0, -1.0/10.0 * phi2 * (double) fakePhredInt) + qualityMap.phredIntToErrorMap[phi1]);
-};
-
-double TSimulatorQualityTransformationBQSR::returnBetaPp(const int & pos){
-	return(m * (double) (pos+1) + intercept);
-};
-
-void TSimulatorQualityTransformationBQSR::simulateQualitiesAndErrors(Base* bases, int* phredIntQualities, const int & len, const bool isReverseStrand){
-	//for loop that simulates errors according to true qual and returns the fake qualities for bam file
-	fakePhredDist->sample(phredIntQualities,len);
-
-	if(isReverseStrand){
-		for(p=0; p<len; ++p){
-			if(randomGenerator->getRand() < errorBetaQBetaP[phredIntQualities[p]][len - p - 1]){
-				bases[p] = static_cast<Base>( (bases[p] + randomGenerator->pickOne(3) + 1) % 4);
-			}
-		}
-	} else {
-		for(p=0; p<len; ++p){
-			if(randomGenerator->getRand() < errorBetaQBetaP[phredIntQualities[p]][p]){
-				bases[p] = static_cast<Base>( (bases[p] + randomGenerator->pickOne(3) + 1) % 4);
-			}
 		}
 	}
 };

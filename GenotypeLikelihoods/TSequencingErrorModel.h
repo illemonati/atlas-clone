@@ -30,6 +30,7 @@ struct TSequencingErrorCovariateDef{
 };
 
 typedef std::vector<TSequencingErrorCovariateDef>::iterator TRecalibrationEMModelCovariateDefinitionIterator;
+
 class TSequencingErrorCovariateDefinition{
 private:
 	std::vector<TSequencingErrorCovariateDef> covariateFunctions;  //<covariate, function>
@@ -54,6 +55,39 @@ public:
 };
 
 //--------------------------------------------------------------------
+// TSequencingErrorRhoStorage
+//--------------------------------------------------------------------
+class TSequencingErrorRhoStorage{
+protected:
+	std::array< std::array<double, 4>, 4 > rho;
+
+public:
+	TSequencingErrorRhoStorage();
+	TSequencingErrorRhoStorage(const TSequencingErrorRhoStorage & other);
+	TSequencingErrorRhoStorage(const std::string & def, std::string & error);
+	void operator=(const TSequencingErrorRhoStorage & other);
+	double operator()(const uint8_t & from, const uint8_t & to);
+	void reset();
+	bool set(const std::string & def, std::string & error);
+	void set(const std::string & def);
+	std::string getDefinition() const;
+};
+
+//--------------------------------------------------------------------
+// TSequencingErrorRho
+//--------------------------------------------------------------------
+class TSequencingErrorRho:public TSequencingErrorRhoStorage{
+public:
+	void operator=(const TSequencingErrorRhoStorage & other);
+	void fillBaseLikelihoods(const Base base, const double epsilon, TBaseData & baseLikelihoods) const;
+
+	//functions used to estimate
+	void prepareEstimationFromEMWeights();
+	void addBaseForEstimation(const Base & base, const TBaseData & EMWeights);
+	void estimate();
+};
+
+//--------------------------------------------------------------------
 // TSequencingErrorModelDefinition
 // class to store model definition. Used when parsing files
 //--------------------------------------------------------------------
@@ -62,19 +96,37 @@ public:
 	uint16_t readGroupId;
 	bool isSecondMate;
 	TSequencingErrorCovariateDefinition covariates;
+	TSequencingErrorRhoStorage rho;
+
+	TSequencingErrorModelDefinition(){
+		readGroupId = 0;
+		isSecondMate = false;
+	};
 
 	TSequencingErrorModelDefinition(const uint16_t ReadGroupId, const bool IsSecondMate){
 		readGroupId = ReadGroupId;
 		isSecondMate = IsSecondMate;
 	};
 
-	bool parseModel(const std::string modelString, std::string & error){
-		return(covariates.parse(modelString, error));
+	bool parseCovariates(const std::string & covariateString, std::string & error){
+		return(covariates.parse(covariateString, error));
+	};
+
+	bool parseRho(const std::string & rhoString, std::string & error){
+		return rho.set(rhoString, error);
+	};
+
+	bool parse(const std::string & covariateString, const std::string & rhoString, std::string & error){
+		if(!parseCovariates(covariateString, error)){
+			return false;
+		}
+		return parseRho(rhoString, error);
 	};
 };
 
 //--------------------------------------------------------------------
 // TSequencingErrorCovariateList
+// class to store all covariates of an error model
 //--------------------------------------------------------------------
 class TSequencingErrorCovariateList{
 private:
@@ -97,25 +149,6 @@ public:
 	TSequencingErrorCovariateDefinition getCovariateDefinition() const;
 };
 
-
-//--------------------------------------------------------------------
-// TSequencingErrorRho
-//--------------------------------------------------------------------
-class TSequencingErrorRho{
-private:
-	std::array< std::array<double, 4>, 4 > rho;  //rho[true base][observed base]
-
-public:
-	TSequencingErrorRho();
-	//TODO: need function to read in
-	void fillBaseLikelihoods(const Base base, const double epsilon, TBaseData & baseLikelihoods) const;
-
-	//functions used to estimate
-	void prepareEstimationFromEMWeights();
-	void addBaseForEstimation(const Base & base, const TBaseData & EMWeights);
-	void estimate();
-};
-
 //--------------------------------------------------------------------
 // TSequencingErrorModel
 //--------------------------------------------------------------------
@@ -125,7 +158,7 @@ private:
 
 	//parameters: coavraites and rho
 	TSequencingErrorCovariateList _covariates;
-	TSequencingErrorRho rho;
+	TSequencingErrorRho _rho;
 
 	//Newton Raphson Parameters to estimate betas
 	double _Q, _oldQ;
@@ -142,8 +175,8 @@ private:
 	double _calcEpsilon(const double eta) const;
 
 public:
-	TSequencingErrorModel(TSequencingErrorCovariateDefinition & covariateMap, TLog* Logfile);
-	TSequencingErrorModel(TSequencingErrorCovariateDefinition & covariateMap, TRecalibrationEMDataTable* dataTable, TLog* Logfile);
+	TSequencingErrorModel(TSequencingErrorModelDefinition & modelDef, TLog* Logfile);
+	TSequencingErrorModel(TSequencingErrorModelDefinition & modelDef, TRecalibrationEMDataTable* dataTable, TLog* Logfile);
 
 	bool checkParameterRange(TRecalibrationEMDataTable* dataTable, std::string & error);
 	uint16_t numParameters(){ return _covariates.numParameters; };
@@ -169,11 +202,11 @@ public:
 	void printJxFToStdOut();
 
 	void fillBaseLikelihoods(const BAM::TBase & base, TBaseData & baseLikelihoods) const;
-	TSequencingErrorCovariateDefinition getCovariateDefinition() const;
+	std::string getCovariateDefinition() const;
+	std::string getRhoDefinition() const;
 
 	double getErrorRate(const BAM::TBase & base) const;
 };
-
 
 }; //end namespace
 

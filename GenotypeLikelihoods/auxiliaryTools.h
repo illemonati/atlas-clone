@@ -18,6 +18,7 @@
 #include "TReadGroups.h"
 #include <algorithm>
 #include "TFile.h"
+#include <set>
 
 namespace GenotypeLikelihoods{
 
@@ -86,6 +87,7 @@ private:
 	BAM::TReadGroups* readGroups;
 	BAM::TReadGroupMap* readGroupMap;
 	bool initialized;
+
 	int** readGroupIndex;
 	bool** readGroupInUse;
 

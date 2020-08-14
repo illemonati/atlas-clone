@@ -59,28 +59,19 @@ public:
 	void printDetails(TLog* logfile);
 };
 
-
 //Class of a normal distribution
 class TSimulatorQualityDistNormal:public TSimulatorQualityDist{
-public:
-//private:
+private:
 	//densities
-	int size;
-	double* densities;
-	double* cumulDensities;
-	bool densitiesInitialized;
+	int _size;
+	std::vector<double> _densities;
+	std::vector<double> _cumulDensities;
 
-	TRandomGenerator* randomGenerator;
+	TRandomGenerator* _randomGenerator;
 
-//public:
+public:
 	TSimulatorQualityDistNormal(std::string & s, TRandomGenerator* RandomGenerator);
 	TSimulatorQualityDistNormal(double & mean, double & sd, int min, int max, TRandomGenerator* RandomGenerator);;
-	~TSimulatorQualityDistNormal(){
-		if(densitiesInitialized){
-			delete[] densities;
-			delete[] cumulDensities;
-		}
-	};
 	void parseFunctionString(std::string & s);
 	void fillDensities();
 	int sample();
@@ -114,7 +105,7 @@ public:
 class TSimulatorQualityTransformationRecal:public TSimulatorQualityTransformation{
 private:
 	//TRecalibrationEMModel model;
-	int maxReadLengthPlusOne;
+	int _maxReadLengthPlusOne;
 	int maxQualPlusOne;
 	int numContext;
 	int*** transformedQuality; //index are [qual][pos][context]
@@ -139,62 +130,6 @@ public:
 	void simulateQualitiesAndErrors(Base* bases, int* qualities, const int & len, const bool isReverseStrand);
 	void printDetails(TLog* logfile);
 };
-
-
-//------------------------------------
-//TSimulatorQualityTransformationBQSR
-//------------------------------------
-class TSimulatorQualityTransformationBQSR:public TSimulatorQualityTransformation{
-private:
-	//quality params
-	TReadLengthDistribution* readLengthDist;
-	int phi1;
-	double phi2;
-	uint32_t maxReadLength;
-	uint32_t minPhredInt, maxPhredInt, maxPhredIntPlusOne;
-	double meanPhred, sdPhred;
-	double trueQual;
-	TSimulatorQualityDistNormal* fakePhredDist;
-	double kappa, lambda;
-
-	//position params
-	double revIntercept;
-	double intercept;
-	double m;
-
-	//optimization algorithm params
-	double* w;
-	bool weightsInitialized;
-	std::vector< std::vector<double> > errorBetaQBetaP;
-	std::vector< std::vector<double> > QBetaQBetaP;
-
-	//quality functions
-	void parseBQSRQualInput(TParameters & params);
-	double returnTrueError(const int & trueQual);
-	void setFakePhredDistribution(TLog* logfile);
-	int sampleFakePhredInt();
-
-	//position functions
-	void calculateSlopeIntercept();
-	double returnBetaPp(const int & pos);
-
-	//optimization algorithm functions
-	void fillWeights(double & kappa_cur, double & lambda_cur);
-	void fillQBetaQBetaP();
-	double returnCurMean();
-	double returnCurSD(double & kappa);
-	double returnDelta(double & curMean, double & curSD);
-
-public:
-	TSimulatorQualityTransformationBQSR(const std::string & s, TReadLengthDistribution* ReadLengthDist, TLog* logfile, TSimulatorQualityDist* QualityDist, TRandomGenerator* RandomGenerator);
-	virtual ~TSimulatorQualityTransformationBQSR(){
-		delete fakePhredDist;
-		if(weightsInitialized)
-			delete[] w;
-	};
-	void simulateQualitiesAndErrors(Base* bases, int* qualities, const int & len, const bool isReverseStrand);
-};
-
 
 //---------------------------------------------------------
 //TSimulatorQualityTransformParameters

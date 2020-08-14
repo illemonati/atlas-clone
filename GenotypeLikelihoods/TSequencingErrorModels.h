@@ -41,11 +41,8 @@ private:
 
 	void _init(BAM::TReadGroups* ReadGroups,  BAM::TReadGroupMap* ReadGroupMap, TLog* Logfile);
 
-	void _readRecalFile(const std::string filename, std::vector<TSequencingErrorModelDefinition> & modelDefs);
-
-	void _createModelsFromString(const std::string & s);
-	void _createModelsFromFile(std::string filename);
-	void _addModel(const uint16_t readGroupId, const bool isSecondMate, TSequencingErrorCovariateDefinition & covariateFunctions);
+	void _readRecalFile(const std::string & filename, std::vector<TSequencingErrorModelDefinition> & modelDefs);
+	void _addModel(TSequencingErrorModelDefinition & modelDef);
 	void _addNoRecalModelIfMissing();
 
 	void _writeParameters(TOutputFile & out, const std::string & readGroupName, const int & readGroup, bool isSecondMate) const;
@@ -55,12 +52,12 @@ public:
 	TSequencingErrorModels();
 
 	//add model for recalibration: no dataTable provided
-	void createModels(std::string string, BAM::TReadGroups* ReadGroups,  BAM::TReadGroupMap* ReadGroupMap, TLog* Logfile);
+	void createModels(const std::string & filename, BAM::TReadGroups* ReadGroups,  BAM::TReadGroupMap* ReadGroupMap, TLog* Logfile);
 	void createEmptyModels(BAM::TReadGroups* ReadGroups,  BAM::TReadGroupMap* ReadGroupMap, TLog* Logfile);
 
 	//add models for estimation: dataTable provided
 	void prepareModelsForEstimation(BAM::TReadGroups* ReadGroups,  BAM::TReadGroupMap* ReadGroupMap, TLog* Logfile);
-	void addModel(const uint16_t readGroupId, const bool isSecondMate, TSequencingErrorCovariateDefinition & covariates, TRecalibrationEMDataTable* dataTable);
+	void addModel(TSequencingErrorModelDefinition & covariates, TRecalibrationEMDataTable* dataTable);
 	void addModelsFromFile(std::string filename, TRecalibrationEMDataTables* dataTables);
 	void removeModel(int readGroupId, bool isSecondMate);
 

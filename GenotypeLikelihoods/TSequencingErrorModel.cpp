@@ -201,9 +201,29 @@ TSequencingErrorCovariateDefinition TSequencingErrorCovariateList::getCovariateD
 }
 
 //--------------------------------------------------------------------
-// TSequencingErrorRho
+// TSequencingErrorRhoStorage
 //--------------------------------------------------------------------
-TSequencingErrorRho::TSequencingErrorRho(){
+TSequencingErrorRhoStorage::TSequencingErrorRhoStorage(){
+	reset();
+};
+
+TSequencingErrorRhoStorage::TSequencingErrorRhoStorage(const std::string & def, std::string & error){
+	set(def, error);
+};
+
+TSequencingErrorRhoStorage::TSequencingErrorRhoStorage(const TSequencingErrorRhoStorage & other){
+	rho = other.rho;
+};
+
+void TSequencingErrorRhoStorage::operator=(const TSequencingErrorRhoStorage & other){
+	rho = other.rho;
+};
+
+double TSequencingErrorRhoStorage::operator()(const uint8_t & from, const uint8_t & to){
+	return rho[from][to];
+};
+
+void TSequencingErrorRhoStorage::reset(){
 	for(int a=0; a<4; ++a){
 		for(int b=0; b<4; ++b){
 			if(a==b){
@@ -213,6 +233,67 @@ TSequencingErrorRho::TSequencingErrorRho(){
 			}
 		}
 	}
+};
+
+bool TSequencingErrorRhoStorage::set(const std::string & def, std::string & error){
+	std::vector<std::string> vec;
+	std::string s = def;
+	fillVectorFromString(def, vec, ';');
+	if(vec.size() != 4){
+		error = "Rho matrix has " + toString(vec.size()) + " instead of 4 rows!";
+		return false;
+	}
+
+	//parse rows
+	std::vector<double> r;
+	for(size_t a = 0; a<vec.size(); ++a){
+		std::string& row = vec[a];
+		trimString(row, "()");
+		fillVectorFromString(row, r, ',');
+		if(r.size() != 4){
+			error = "Rho matrix has " + toString(r.size()) + " instead of 4 columns for row " + toString(a+1) + "!";
+			return false;
+		}
+
+		//fill
+		for(size_t b=0; b<4; ++b){
+			if(a == b){
+				rho[a][b] = 0.0;
+			} else {
+				rho[a][b] = r[b];
+			}
+		}
+		++a;
+	}
+
+	return true;
+};
+
+std::string TSequencingErrorRhoStorage::getDefinition() const{
+	std::string def;
+	for(int a=0; a<4; ++a){
+		if(a>0){
+			def += ";";
+		}
+		for(int b=0; b<4; ++b){
+			if(b>0){
+				def += ",";
+			}
+			if(a!=b){
+				def += toString(rho[a][b]);
+			} else {
+				def += "-";
+			}
+		}
+	}
+	return def;
+};
+
+//--------------------------------------------------------------------
+// TSequencingErrorRho
+//--------------------------------------------------------------------
+void TSequencingErrorRho::operator=(const TSequencingErrorRhoStorage & other){
+	TSequencingErrorRhoStorage::operator =(other);
 };
 
 void TSequencingErrorRho::fillBaseLikelihoods(const Base base, const double epsilon, TBaseData & baseLikelihoods) const{
@@ -284,20 +365,22 @@ void TSequencingErrorRho::estimate(){
 //--------------------------------------------------------------------
 // TSequencingErrorModel
 //--------------------------------------------------------------------
-TSequencingErrorModel::TSequencingErrorModel(TSequencingErrorCovariateDefinition & covariateMap, TLog* Logfile){
+TSequencingErrorModel::TSequencingErrorModel(TSequencingErrorModelDefinition & modelDef, TLog* Logfile){
 	logfile = Logfile;
 	setNewtonRaphosnParamsToZero();
 
 	//create covariates
-	_covariates.createCovariatesAndIntercept(covariateMap);
+	_covariates.createCovariatesAndIntercept(modelDef.covariates);
+	_rho = modelDef.rho;
 };
 
-TSequencingErrorModel::TSequencingErrorModel(TSequencingErrorCovariateDefinition & covariateMap, TRecalibrationEMDataTable* dataTable, TLog* Logfile){
+TSequencingErrorModel::TSequencingErrorModel(TSequencingErrorModelDefinition & modelDef, TRecalibrationEMDataTable* dataTable, TLog* Logfile){
 	logfile = Logfile;
 	setNewtonRaphosnParamsToZero();
 
 	//create covariates
-	_covariates.createCovariatesAndIntercept(covariateMap, dataTable);
+	_covariates.createCovariatesAndIntercept(modelDef.covariates, dataTable);
+	_rho = modelDef.rho;
 };
 
 bool TSequencingErrorModel::checkParameterRange(TRecalibrationEMDataTable* dataTable, std::string & error){
@@ -354,26 +437,30 @@ void TSequencingErrorModel::fillBaseLikelihoods(const BAM::TBase & base, TBaseDa
 	}
 
 	//then calculate base likelihoods
-	rho.fillBaseLikelihoods(base.base, _calcEpsilon(eta), baseLikelihoods);
+	_rho.fillBaseLikelihoods(base.base, _calcEpsilon(eta), baseLikelihoods);
 };
 
-TSequencingErrorCovariateDefinition TSequencingErrorModel::getCovariateDefinition() const{
-	return _covariates.getCovariateDefinition();
+std::string TSequencingErrorModel::getCovariateDefinition() const{
+	return _covariates.getCovariateDefinition().getModelString();
+};
+
+std::string TSequencingErrorModel::getRhoDefinition() const{
+	return _rho.getDefinition();
 };
 
 //-------------------------------------------------
 //functions to estimate rho
 //-------------------------------------------------
 void TSequencingErrorModel::prepareRhoEstimationFromEMWeights(){
-	rho.prepareEstimationFromEMWeights();
+	_rho.prepareEstimationFromEMWeights();
 };
 
 void TSequencingErrorModel::addBaseForRhoEstimation(BAM::TBase & base, const TBaseData & EMWeights){
-	rho.addBaseForEstimation(base.base, EMWeights);
+	_rho.addBaseForEstimation(base.base, EMWeights);
 };
 
 void TSequencingErrorModel::estimateRho(){
-	rho.estimate();
+	_rho.estimate();
 };
 
 //-------------------------------------------------

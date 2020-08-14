@@ -34,7 +34,7 @@ private:
 	double _NewtonRaphsonMaxF;
 	unsigned int _minRequiredObservations;
 	std::string _recalFile; //file name in case a file with model is provided
-	TSequencingErrorCovariateDefinition _covariateDefitionForEstimation;
+	TSequencingErrorModelDefinition _modelDefitionForEstimation;
 
 	void _initializeModels();
 	void _runEM(std::string outputName, bool & writeTmpTables);
