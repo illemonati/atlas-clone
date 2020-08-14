@@ -549,10 +549,17 @@ void TGenome_windows::_readAlignmentsIntoWindow(GenotypeLikelihoods::TWindow & w
 		_parseAlignment(*_oldAlignment);
 	}
 
-	while(_oldAlignment < window.to()){
-		//check if alignment contains part of the window
+	while(*(_oldAlignment) < window.to()){
+	    std::cout << std::endl;
+	    std::cout << "old alignment = " << _oldAlignment->refID() << ":" << _oldAlignment->position() << std::endl;
+        std::cout << "window to = " << window.to().refID() << ":" << window.to().position() << std::endl;
+
+        //check if alignment contains part of the window
 		//if read continues outside of window, this is dealt with by window object
-		if(_oldAlignment->lastAlignedPositionWithRespectToRef() >= window.from()){
+        std::cout << "old alignment = " << _oldAlignment->lastAlignedPositionWithRespectToRef().refID() << ":" << _oldAlignment->lastAlignedPositionWithRespectToRef().position() << std::endl;
+        std::cout << "window from = " << window.from().refID() << ":" << window.from().position() << std::endl;
+        if(_oldAlignment->lastAlignedPositionWithRespectToRef() >= window.from()){
+		    std::cout << "_oldAlignment->lastAlignedPositionWithRespectToRef() >= window.from()" << std::endl;
 			_oldAlignment = window.swapUsedForEmptyAlignment(_oldAlignment);
 		}
 

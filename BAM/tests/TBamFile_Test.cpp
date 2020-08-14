@@ -212,7 +212,7 @@ public:
 
     void write(){
         //settings
-        std::vector<uint32_t> chrLength = {250, 50, 199, 80, 77};
+        std::vector<uint32_t> chrLength = {250, 50, 199, 80, 177};
         uint32_t numReadGroups = 2;
 
         //open BAM file for writing
@@ -255,6 +255,8 @@ public:
         outputBam->writeDummyAlignment('C', '2', BAM::TGenomePosition(4, 4), mixedCigar);
         outputBam->writeDummyAlignment('G', '3', BAM::TGenomePosition(4, 8), mixedCigar);
 
+        // 8) last window is empty
+
 
         outputBam->closeOutput();
     }
@@ -281,7 +283,7 @@ public:
 };
 
 TEST_F(TBamFile_Test_Windows, numWindows){
-    EXPECT_EQ(genomeWindow->numWindows(),6); // 6 of 8 windows contain data and are stored
+    EXPECT_EQ(genomeWindow->numWindows(),9);
 }
 
 TEST_F(TBamFile_Test_Windows, refIDWindows){
@@ -297,9 +299,14 @@ TEST_F(TBamFile_Test_Windows, refIDWindows){
 
     // 3. chr (case 5))
     EXPECT_EQ((*genomeWindow)[4].refID(), 2);
-
-    // 5. chr (case 7))
     EXPECT_EQ((*genomeWindow)[5].refID(), 2);
+
+    // 4. chr (case6))
+    EXPECT_EQ((*genomeWindow)[6].refID(), 2);
+
+    // 5. chr (case 7) and 8))
+    EXPECT_EQ((*genomeWindow)[7].refID(), 2);
+    EXPECT_EQ((*genomeWindow)[8].refID(), 2);
 }
 
 TEST_F(TBamFile_Test_Windows, positionsWindows){
@@ -315,9 +322,14 @@ TEST_F(TBamFile_Test_Windows, positionsWindows){
 
     // 3. chr (case 5))
     EXPECT_EQ((*genomeWindow)[4].fromOnChr(), 0); EXPECT_EQ((*genomeWindow)[4].toOnChr(), 100);
+    EXPECT_EQ((*genomeWindow)[5].fromOnChr(), 100); EXPECT_EQ((*genomeWindow)[5].toOnChr(), 199);
 
-    // 5. chr (case 7))
-    EXPECT_EQ((*genomeWindow)[5].fromOnChr(), 0); EXPECT_EQ((*genomeWindow)[5].toOnChr(), 77);
+    // 4. chr (case6))
+    EXPECT_EQ((*genomeWindow)[6].fromOnChr(), 0); EXPECT_EQ((*genomeWindow)[6].toOnChr(), 80);
+
+    // 5. chr (case 7) and 8))
+    EXPECT_EQ((*genomeWindow)[7].fromOnChr(), 0); EXPECT_EQ((*genomeWindow)[7].toOnChr(), 100);
+    EXPECT_EQ((*genomeWindow)[8].fromOnChr(), 100); EXPECT_EQ((*genomeWindow)[8].toOnChr(), 177);
 }
 
 TEST_F(TBamFile_Test_Windows, depthPerWindow){
@@ -333,7 +345,12 @@ TEST_F(TBamFile_Test_Windows, depthPerWindow){
 
     // 3. chr (case 5))
     EXPECT_EQ(genomeWindow->depth[4], 0.2);
+    EXPECT_EQ(genomeWindow->depth[5], 0.);
 
-    // 5. chr (case 7))
-    EXPECT_EQ(genomeWindow->depth[5], 0.1948052);
+    // 4. chr (case6))
+    EXPECT_EQ(genomeWindow->depth[6], 0.);
+
+    // 5. chr (case 7) and 8))
+    EXPECT_EQ(genomeWindow->depth[7], 0.1948052);
+    EXPECT_EQ(genomeWindow->depth[8], 0.1948052);
 }
