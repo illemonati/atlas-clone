@@ -115,9 +115,10 @@ void TSequencingErrorCovariateList::_clear(){
 
 void TSequencingErrorCovariateList::createCovariatesAndIntercept(TSequencingErrorCovariateDefinition & covariateMap, TRecalibrationEMDataTable* dataTable){
 	//include intercept
-	std::vector<std::string> vec = {covariateMap.intercept};
-	intercept.initialize(0, vec);
-
+	if(!covariateMap.intercept.empty()){
+		std::vector<std::string> vec = {covariateMap.intercept};
+		intercept.initialize(0, vec);
+	}
 
 	//create covariates
 	numParameters = intercept.numParameters();

@@ -540,10 +540,13 @@ bool TGenome_windows::_readDataInNextWindow(GenotypeLikelihoods::TWindow & windo
 };
 
 bool TGenome_windows::_readAndParseAlignment(BAM::TAlignment & alignment){
-    bool passed = _bamFile.readNextAlignment(alignment);
+    if(!_bamFile.readNextAlignmentThatPassesFilters(alignment)){
+    	return false;
+    }
+
     _parseAlignment(alignment);
-    return passed;
-}
+    return true;
+};
 
 void TGenome_windows::_readAlignmentsIntoWindow(GenotypeLikelihoods::TWindow & window){
 	//measure runtime

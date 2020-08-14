@@ -133,6 +133,10 @@ TSequencingErrorCovariateFunction_intercept::TSequencingErrorCovariateFunction_i
 	_initializValues(values);
 };
 
+void TSequencingErrorCovariateFunction_intercept::initialize(const uint16_t FirstParameterIndex){
+	_init();
+};
+
 void TSequencingErrorCovariateFunction_intercept::initialize(const uint16_t FirstParameterIndex, std::vector<std::string> & values){
 	_initializValues(values);
 };

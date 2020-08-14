@@ -60,7 +60,6 @@ void TRecalibrationEMDataTable::add(const BAM::TBase & base){
 	++MQ[base.mappingQuality];
 	if(maxPos < base.distFrom5Prime)
 		maxPos = base.distFrom5Prime;
-
 };
 
 void TRecalibrationEMDataTable::clear(){

@@ -101,6 +101,7 @@ public:
 	TSequencingErrorCovariateFunction_intercept(const uint16_t FirstParameterIndex);
 	TSequencingErrorCovariateFunction_intercept(const uint16_t FirstParameterIndex, std::vector<std::string> & values);
 
+	void initialize(const uint16_t FirstParameterIndex);
 	void initialize(const uint16_t FirstParameterIndex, std::vector<std::string> & values);
 	void setIntercept(const double val);
 	void addToIntercept(const double val);

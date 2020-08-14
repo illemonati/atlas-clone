@@ -134,9 +134,7 @@ void TSequencingErrorModels::addModel(TSequencingErrorModelDefinition & modelDef
 		}
 	} else {
 		readGroupIndex.setAsUsed(modelDef.readGroupId, modelDef.isSecondMate);
-
 		models.emplace_back(modelDef, dataTable, logfile);
-
 		totNumParameters += models.back().numParameters();
 	}
 };
