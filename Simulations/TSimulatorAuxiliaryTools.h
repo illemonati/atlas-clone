@@ -70,6 +70,8 @@ public:
 //---------------------------------------------------------
 class TSimulatorBamFile{
 private:
+	BAM::TSamHeader _header;
+	BAM::TReadGroups _readGroups;
 	BAM::TOutputBamFile _outBam;
 
 public:

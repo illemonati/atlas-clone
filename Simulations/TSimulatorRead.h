@@ -66,7 +66,7 @@ protected:
 	void _simulateBasesQualities(BAM::TAlignment & alignment, Base* haplotype, const uint64_t pos, const TReadLength & readLength, const bool readIsContaminated, const bool isReverse, TSimulatorQualityTransformation* qualityTransform);
 
 public:
-	TSimulatorSingleEndRead(std::string readGroupName, int readGroupNumber, int MaxPrintQual, TRandomGenerator* RandomGenerator, GenotypeLikelihoods::TGenotypeMap & GenoMap);
+	TSimulatorSingleEndRead(std::string readGroupName, int readGroupID, int MaxPrintQual, TRandomGenerator* RandomGenerator, GenotypeLikelihoods::TGenotypeMap & GenoMap);
 	virtual ~TSimulatorSingleEndRead();
 
 	bool checkInitialization();

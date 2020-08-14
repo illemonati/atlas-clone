@@ -180,9 +180,7 @@ void TSimulator::_initializeQualityTransformations(TParameters & params, bool & 
 	//Currently we allow for five options:
 	//  1) recal transformation initialized from the command line (one for all read groups)//
 	//  2) read-group specific recal transformation provided via a recal file	//
-	//  3) BQSR transformation initialized from the command line (one for all read groups)
-	//  4) read-group specific BQSR transformation from a file (NOT IMPLEMENTED!)
-	//  5) no quality transformation
+	//  3) no quality transformation
 
 	//map has format: < readGroup, < type, args > >
 
@@ -280,29 +278,6 @@ void TSimulator::_initializeQualityTransformations(TParameters & params, bool & 
 			_logfile->conclude("Read transformations for " + toString(qualTransformMap.size()) + " read groups.");
 			perReadGroup = true;
 		}
-	}
-
-	//BQSR
-	//****
-	else if(params.parameterExists("BQSRTransformation")){
-		std::string BQSRString = params.getParameterString("BQSRTransformation");
-		pos = BQSRString.find_first_of('[');
-
-		//Option 3: BQSR from numbers: a single one valid for all read groups.
-		//---------------------------------------------------------------------
-		if(pos != std::string::npos){
-			BQSRString.erase(0, pos+1);
-			pos = BQSRString.find_first_of(']');
-			if(pos == std::string::npos)
-				throw "Failed to understand BQSR string: missing '['!\nEither provide a valid file name or the BQSR parameters as '[phi1,phi2,revIntercept]";
-
-			BQSRString.erase(pos, 1);
-
-			//save to map
-			_logfile->list("Will use '" + BQSRString + "' for all read groups.");
-			qualTransformMap["-"] = TSimulatorQualityTransformParameters("BQSR", BQSRString, BQSRString);
-			perReadGroup = false;
-		} else throw "Failed to understand BQSR string: missing '['!\nEither provide a valid file name or the BQSR parameters as '[phi1,phi2,revIntercept]";
 	}
 
 	//No transformation
@@ -534,7 +509,7 @@ void TSimulator::_initializeReadSimulator(TParameters & params){
 		_logfile->startIndent("Initializing " + toString(_readGroupNames.size()) + " read groups:");
 
 		//now initialize
-		int rgNumber = 1;
+		int rgNumber = 0;
 		for(std::vector<std::string>::iterator it=_readGroupNames.begin(); it!=_readGroupNames.end(); ++it, ++rgNumber){
 			_logfile->startIndent("Initializing readgroup '" + *it + "':");
 
@@ -614,7 +589,7 @@ void TSimulator::_initializeReadSimulator(TParameters & params){
 			name = "SimReadGroup" + toString(i+1);
 			_readGroupNames.push_back(name);
 			_logfile->startIndent("Initializing read group '" + name + "':");
-			_initializeReadGroup(readLengthMap.begin()->second, name, i+1, maxPrintQual);
+			_initializeReadGroup(readLengthMap.begin()->second, name, i, maxPrintQual);
 			_readSimulators.back()->setQualityDistribution(qualityMap.begin()->second);
 			_readSimulators.back()->setQualityTransformation(qualTransformMap.begin()->second, _logfile);
 			_readSimulators.back()->setPMD(pmdMap.begin()->second.first, pmdMap.begin()->second.second);

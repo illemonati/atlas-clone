@@ -35,7 +35,7 @@ void TSequencingErrorModels::_init(BAM::TReadGroups* ReadGroups,  BAM::TReadGrou
 
 //general function to add and remove models
 //-----------------------------------------
-void TSequencingErrorModels::_readRecalFile(const std::string filename, std::vector<TSequencingErrorModelDefinition> & modelDefs){
+void TSequencingErrorModels::_readRecalFile(const std::string & filename, std::vector<TSequencingErrorModelDefinition> & modelDefs){
 	//read parameters from file
 	logfile->listFlush("Reading recalibration models from '" + filename + "' ...");
 
@@ -57,7 +57,7 @@ void TSequencingErrorModels::_readRecalFile(const std::string filename, std::vec
 		//skip empty lines
 		if(vec.size() > 0){
 			if(vec.size() != 3)
-				throw "Wrong number of entries in file '" + filename + "' on line " + toString(lineNum) + ": expected 3 (read group, mate, recal model) but found " + toString(vec.size()) + "!";
+				throw "Wrong number of entries in file '" + filename + "' on line " + toString(lineNum) + ": expected 4 (read group, mate, covariates, rho) but found " + toString(vec.size()) + "!";
 
 			//check if read group exists
 			if(!readGroups->readGroupExists(vec[0])){
@@ -78,7 +78,7 @@ void TSequencingErrorModels::_readRecalFile(const std::string filename, std::vec
 					//save
 					modelDefs.emplace_back(rg, isSecondMate);
 					std::string error;
-					if(!modelDefs.back().parseModel(vec[2], error)){
+					if(!modelDefs.back().parse(vec[2], vec[3], error)){
 						throw error + " in file '" + filename + "' on line " + toString(lineNum) + "!";
 					}
 				}
@@ -108,18 +108,18 @@ void TSequencingErrorModels::prepareModelsForEstimation(BAM::TReadGroups* ReadGr
 	_init(ReadGroups, ReadGroupMap, Logfile);
 };
 
-void TSequencingErrorModels::addModel(const uint16_t readGroupId, const bool isSecondMate, TSequencingErrorCovariateDefinition & covariates, TRecalibrationEMDataTable* dataTable){
-	if(readGroupIndex.inUse(readGroupId,isSecondMate)){
+void TSequencingErrorModels::addModel(TSequencingErrorModelDefinition & modelDef, TRecalibrationEMDataTable* dataTable){
+	if(readGroupIndex.inUse(modelDef.readGroupId,modelDef.isSecondMate)){
 		//check model
 		std::string error;
-		if(!models[readGroupIndex.index(readGroupId, isSecondMate)].checkParameterRange(dataTable, error)){
+		if(!models[readGroupIndex.index(modelDef.readGroupId, modelDef.isSecondMate)].checkParameterRange(dataTable, error)){
 			//get names of matching read groups
 			std::vector<std::string> rgNames;
-			readGroupMap->fillNamesOfReadgroups(readGroupId, rgNames);
+			readGroupMap->fillNamesOfReadgroups(modelDef.readGroupId, rgNames);
 
 			//compile error
 			error += " for ";
-			if(isSecondMate){
+			if(modelDef.isSecondMate){
 				error += "second";
 			} else {
 				error += "first";
@@ -133,9 +133,9 @@ void TSequencingErrorModels::addModel(const uint16_t readGroupId, const bool isS
 			throw error;
 		}
 	} else {
-		readGroupIndex.setAsUsed(readGroupId, isSecondMate);
+		readGroupIndex.setAsUsed(modelDef.readGroupId, modelDef.isSecondMate);
 
-		models.emplace_back(covariates, dataTable, logfile);
+		models.emplace_back(modelDef, dataTable, logfile);
 
 		totNumParameters += models.back().numParameters();
 	}
@@ -151,7 +151,7 @@ void TSequencingErrorModels::addModelsFromFile(const std::string filename, TReca
 	for(auto& def: modelDefs){
 		//if read group is pooled, only create model using the values of the first read group of the pool
 		if(!modelExists(def)){
-			addModel(def.readGroupId, def.isSecondMate, def.covariates, dataTables->table(def.readGroupId, def.isSecondMate));
+			addModel(def, dataTables->table(def.readGroupId, def.isSecondMate));
 		}
 	}
 	logfile->done();
@@ -160,50 +160,9 @@ void TSequencingErrorModels::addModelsFromFile(const std::string filename, TReca
 
 // Functions to add models for recalibration: no dataTable is provided
 //-------------------------------------------------------------------
-void TSequencingErrorModels::createModels(std::string s, BAM::TReadGroups* ReadGroups,  BAM::TReadGroupMap* ReadGroupMap, TLog* Logfile){
+void TSequencingErrorModels::createModels(const std::string & filename, BAM::TReadGroups* ReadGroups,  BAM::TReadGroupMap* ReadGroupMap, TLog* Logfile){
 	_init(ReadGroups, ReadGroupMap, Logfile);
 
-	//initialize from string or file
-	size_t pos = s.find_first_of('=');
-	if(pos == std::string::npos){
-		_createModelsFromFile(s);
-	} else {
-		_createModelsFromString(s);
-	}
-};
-
-void TSequencingErrorModels::createEmptyModels(BAM::TReadGroups* ReadGroups,  BAM::TReadGroupMap* ReadGroupMap, TLog* Logfile){
-	_init(ReadGroups, ReadGroupMap, Logfile);
-	_addNoRecalModelIfMissing();
-};
-
-void TSequencingErrorModels::_addModel(const uint16_t readGroupId, const bool isSecondMate, TSequencingErrorCovariateDefinition & covariateFunctions){
-	if(!readGroupIndex.inUse(readGroupId,isSecondMate)){
-		readGroupIndex.setAsUsed(readGroupId, isSecondMate);
-		models.emplace_back(covariateFunctions, logfile);
-		totNumParameters += models.back().numParameters();
-	}
-};
-
-void TSequencingErrorModels::_createModelsFromString(const std::string & s){
-	//s has format model[param1, param2, param3, ...]
-	logfile->startIndent("Initializing recal with string '" + s + "' for all read groups:");
-
-	std::string error;
-	TSequencingErrorCovariateDefinition modelDef(s, error);
-	if(!error.empty()){
-		throw error + "!";
-	}
-
-	//initialize same model for all read groups
-	std::pair<int, bool> missingReadGroupInfo;
-	while(readGroupIndex.nextNotInUse(missingReadGroupInfo))
-		_addModel(missingReadGroupInfo.first, missingReadGroupInfo.second, modelDef);
-
-	logfile->endIndent();
-};
-
-void TSequencingErrorModels::_createModelsFromFile(std::string filename){
 	//read recal file
 	std::vector<TSequencingErrorModelDefinition> modelDefs;
 	_readRecalFile(filename, modelDefs);
@@ -213,7 +172,7 @@ void TSequencingErrorModels::_createModelsFromFile(std::string filename){
 	for(auto& def: modelDefs){
 		//if read group is pooled, only create model using the values of the first read group of the pool
 		if(!modelExists(def)){
-			_addModel(def.readGroupId, def.isSecondMate, def.covariates);
+			_addModel(def);
 		}
 	}
 	logfile->done();
@@ -225,6 +184,18 @@ void TSequencingErrorModels::_createModelsFromFile(std::string filename){
 	_addNoRecalModelIfMissing();
 };
 
+void TSequencingErrorModels::createEmptyModels(BAM::TReadGroups* ReadGroups,  BAM::TReadGroupMap* ReadGroupMap, TLog* Logfile){
+	_init(ReadGroups, ReadGroupMap, Logfile);
+	_addNoRecalModelIfMissing();
+};
+
+void TSequencingErrorModels::_addModel(TSequencingErrorModelDefinition & modelDef){
+	if(!readGroupIndex.inUse(modelDef.readGroupId, modelDef.isSecondMate)){
+		readGroupIndex.setAsUsed(modelDef.readGroupId, modelDef.isSecondMate);
+		models.emplace_back(modelDef, logfile);
+		totNumParameters += models.back().numParameters();
+	}
+};
 
 // functions for reporting / writing
 //-------------------------------------------------------------------
@@ -235,12 +206,15 @@ bool TSequencingErrorModels::hasReadGroupsWithoutModel() const{
 void TSequencingErrorModels::_addNoRecalModelIfMissing(){
 	//create no-recal model: only covariate is quality and beta is 1
 	std::string error; //needed by TSequencingErrorCovariateDefinition to write errors to
-	TSequencingErrorCovariateDefinition noRecal("quality=polynomial[1]", error);
+	TSequencingErrorModelDefinition noRecal;
+	noRecal.parseCovariates("quality=polynomial[1]", error);
 
 	//report read groups for which no recal model was given and initialize them as "no_recal" model
 	std::pair<int, bool> missingReadGroupInfo;
 	while(readGroupIndex.nextNotInUse(missingReadGroupInfo)){
-		_addModel(missingReadGroupInfo.first, missingReadGroupInfo.second, noRecal);
+		noRecal.readGroupId = missingReadGroupInfo.first;
+		noRecal.isSecondMate = missingReadGroupInfo.second;
+		_addModel(noRecal);
 	}
 };
 
@@ -434,7 +408,7 @@ double TSequencingErrorModels::getSteepestGradient(){
 void TSequencingErrorModels::writeRecalFile(const std::string filename) const{
 	//open file and write header
 	TOutputFile out(filename);
-	out.writeHeader({"ReadGroup", "Mate", "Model"});
+	out.writeHeader({"ReadGroup", "Mate", "Covariates", "Rho"});
 
 	//add models
 	for(size_t r=0; r<readGroups->size(); ++r){
@@ -453,8 +427,10 @@ void TSequencingErrorModels::_writeParameters(TOutputFile & out, const std::stri
 		out << readGroupName;
 		if(isSecondMate) out << "second";
 		else out << "first";
-		TSequencingErrorCovariateDefinition def = models[ readGroupIndex.index(readGroup, isSecondMate) ].getCovariateDefinition();
-		out << def.getModelString() << std::endl;
+
+		auto& model = models[ readGroupIndex.index(readGroup, isSecondMate) ];
+
+		out << model.getCovariateDefinition() << model.getRhoDefinition() << std::endl;
 	}
 };
 

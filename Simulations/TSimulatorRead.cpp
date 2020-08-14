@@ -12,7 +12,7 @@ namespace Simulations{
 //----------------------------------
 //TSimulatorSingleEndRead
 //----------------------------------
-TSimulatorSingleEndRead::TSimulatorSingleEndRead(std::string readGroupName, int readGroupNumber, int MaxPrintPhredInt, TRandomGenerator* RandomGenerator, GenotypeLikelihoods::TGenotypeMap & GenoMap):_genoMap(GenoMap){
+TSimulatorSingleEndRead::TSimulatorSingleEndRead(std::string readGroupName, int readGroupID, int MaxPrintPhredInt, TRandomGenerator* RandomGenerator, GenotypeLikelihoods::TGenotypeMap & GenoMap):_genoMap(GenoMap){
 	_type = "single-end";
 
 	//set variables
@@ -38,7 +38,7 @@ TSimulatorSingleEndRead::TSimulatorSingleEndRead(std::string readGroupName, int 
 
 	//initialize bamAlignment
 	_name = readGroupName;
-	_readGroupID = readGroupNumber;
+	_readGroupID = readGroupID;
 	_readNamePrefix = "ATL:0:A:1:" + toString(_readGroupID) + ":"; //"<instrument>:<run number>:<flowcell ID>:<lane>:<tile>:"  Still need to add "<x-pos>:<y-pos>"
 	_readXPos = 1;
 	_readYPos = 1;
@@ -133,11 +133,8 @@ void TSimulatorSingleEndRead::setQualityTransformation(TSimulatorQualityTransfor
 		if(parameters.parameters_firstMate == "-")
 			throw "Quality transformation for first mate not provided!";
 
-		if(parameters.type == "recal")
+		if(parameters.type == "recal"){
 			_qualityTransform = new TSimulatorQualityTransformationRecal(parameters.parameters_firstMate, _readLengthDist->max(), _qualityDist, _randomGenerator);
-		else if(parameters.type == "BQSR"){
-			if(_qualDistType != "normal") throw "Cannot apply BQSR transformation to any quality distribution besides 'normal'!";
-			_qualityTransform = new TSimulatorQualityTransformationBQSR(parameters.parameters_firstMate, _readLengthDist, logfile, _qualityDist, _randomGenerator);
 		} else
 			throw "Unknown quality transformation type '" + parameters.type + "'!";
 	}
@@ -327,10 +324,6 @@ void TSimulatorPairedEndReads::setQualityTransformation(TSimulatorQualityTransfo
 		if(parameters.type == "recal"){
 			_qualityTransform = new TSimulatorQualityTransformationRecal(parameters.parameters_firstMate, _readLengthDist->max(), _qualityDist, _randomGenerator);
 			qualityTransform_secondMate = new TSimulatorQualityTransformationRecal(parameters.parameters_secondMate, _readLengthDist->max(), _qualityDist, _randomGenerator);
-		} else if(parameters.type == "BQSR"){
-			if(_qualDistType != "normal") throw "Cannot apply BQSR transformation to any quality distribution besides 'normal'!";
-			_qualityTransform = new TSimulatorQualityTransformationBQSR(parameters.parameters_firstMate, _readLengthDist, logfile, _qualityDist, _randomGenerator);
-			qualityTransform_secondMate = new TSimulatorQualityTransformationBQSR(parameters.parameters_secondMate, _readLengthDist, logfile, _qualityDist, _randomGenerator);
 		} else
 			throw "Unknown quality transformation type '" + parameters.type + "'!";
 	}

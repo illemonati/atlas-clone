@@ -82,9 +82,6 @@ void TSimulatorReference::_writeRefToFasta(){
 			if(l % 70 == 0)
 				_fasta << "\n";
 			_fasta << _genoMap.baseToChar[_ref[l]];
-
-			//std::cout << "Writing base " << ref[l] << " -> " << toBase[ref[l]] << " to fasta..." << std::endl;
-
 		}
 		_fasta << "\n";
 
@@ -165,17 +162,16 @@ void TSimulatorBamFile::open(const std::string Filename,
 		throw "Can not open a BAM file without specified chromosomes!";
 
 	//create header, read group and chromosome objects
-	BAM::TSamHeader header("1.6", "coordinate", "none");
-	BAM::TReadGroups readGroups;
+	_header.set("1.6", "coordinate", "none");
 	for(auto it = ReadGroupNames.cbegin(); it != ReadGroupNames.cend(); ++it){
-		const BAM::TReadGroup& rg = readGroups.add(*it);
+		const BAM::TReadGroup& rg = _readGroups.add(*it);
 		rg.sequencingCenter_CN = __GLOBAL_APPLICATION_NAME__ + " " + __GLOBAL_APPLICATION_VERSION__;
 		rg.description_DS = "Simulated with commit " + __GLOBAL_APPLICATION_COMMIT__;
 		rg.sample_SM = SampleName;
 		rg.sequencingTechnology_PL = "ILLUMINA";
 	}
 
-	_outBam.open(Filename, header, Chromosomes, readGroups, &GenoMap, &QualMap);
+	_outBam.open(Filename, _header, Chromosomes, _readGroups, &GenoMap, &QualMap);
 
 	Logfile->done();
 };

@@ -358,7 +358,7 @@ void TBamFilter::_writeAll(){
 void TBamFilter::_writeUpTo(const BAM::TGenomePosition & position){
 	//writes all that are ready or too far away
 	TAlignmentInStorage it = _alignmentStorage.begin();
-	while(it != _alignmentStorage.end() && (it->ready || position - *it->alignment > _maxDistanceBetweenMates)){
+	while(it != _alignmentStorage.end() && (it->ready || abs(position - *it->alignment) > _maxDistanceBetweenMates)){
 		_writeOrFilterAsOrphan(it);
 	}
 };

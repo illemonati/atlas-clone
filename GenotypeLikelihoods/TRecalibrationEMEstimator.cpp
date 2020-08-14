@@ -38,7 +38,7 @@ TRecalibrationEMEstimator::TRecalibrationEMEstimator(TParameters & args, BAM::TR
 
 	//parse model string
 	std::string error;
-	if(!_covariateDefitionForEstimation.parse(modelTagForEstimation, error)){
+	if(!_modelDefitionForEstimation.parseCovariates(modelTagForEstimation, error)){
 		throw error + "!";
 	}
 
@@ -110,7 +110,9 @@ void TRecalibrationEMEstimator::_initializeModels(){
 		for(int mate = 0; mate < 2; ++mate){
 			TRecalibrationEMDataTable* table = _dataTables.table(rg, mate);
 			if(table->size() > 0){
-				_sequencingErrorModels.addModel(rg, mate, _covariateDefitionForEstimation, table);
+				_modelDefitionForEstimation.readGroupId = rg;
+				_modelDefitionForEstimation.isSecondMate = mate;
+				_sequencingErrorModels.addModel(_modelDefitionForEstimation, table);
 				if(table->size() < _minRequiredObservations)
 					++numModelsWithLittleData;
 			} else {
@@ -153,7 +155,6 @@ void TRecalibrationEMEstimator::_initializeModels(){
 void TRecalibrationEMEstimator::initializeFromFile(const std::string string){
 	_sequencingErrorModels.createModels(string, _readGroups, _readGroupMap, _logfile);
 };
-
 
 //----------------------------
 //Functions to add data

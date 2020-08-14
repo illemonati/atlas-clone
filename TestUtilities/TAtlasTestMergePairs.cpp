@@ -563,14 +563,14 @@ void TAtlasTest_mergePairs::setToFwdMate(BamTools::BamAlignment & bamAlignment){
 	bamAlignment.SetIsMateReverseStrand(true);
 	bamAlignment.SetIsFirstMate(true);
 	bamAlignment.SetIsSecondMate(false);
-}
+};
 
 void TAtlasTest_mergePairs::setToRevMate(BamTools::BamAlignment & bamAlignment){
 	bamAlignment.SetIsReverseStrand(true);
 	bamAlignment.SetIsMateReverseStrand(false);
 	bamAlignment.SetIsFirstMate(false);
 	bamAlignment.SetIsSecondMate(true);
-}
+};
 
 bool TAtlasTest_mergePairs::basicChecks(BamTools::BamAlignment & bamAlignment, const int pairNumber){
 	if(bamAlignment.QueryBases.size() != bamAlignment.Qualities.size()){
@@ -585,7 +585,7 @@ bool TAtlasTest_mergePairs::basicChecks(BamTools::BamAlignment & bamAlignment, c
 	}
 
 	return true;
-}
+};
 
 bool TAtlasTest_mergePairs::checkMergedBAMFile(){
 	//BamFile stuff
