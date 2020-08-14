@@ -24,7 +24,6 @@ namespace GenotypeLikelihoods{
 //----------------------------------------------------------------------------------------------------------------------------------
 // TSite
 // Class that stores bases.
-// Used in routines based in windows that store alignments with bases (no need to copy memory).
 //----------------------------------------------------------------------------------------------------------------------------------
 class TSite {
 protected:
