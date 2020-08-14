@@ -140,7 +140,7 @@ protected:
 	std::unique_ptr<TSubsamplePicker> subsamplePicker;
 
 	//tmp variables
-	BAM::TAlignment* _oldAlignment;
+	BAM::TAlignment* _curAlignment;
 	bool _hasWindowIndent;
 	TTimer _windowTimer;
 
@@ -164,7 +164,8 @@ protected:
 	bool _moveWindow(GenotypeLikelihoods::TWindow_base & window);
 	void _readAlignmentsIntoWindow(GenotypeLikelihoods::TWindow & window);
 	void _applyWindowFilters(GenotypeLikelihoods::TWindow_base & window);
-	bool _readDataInNextWindow(GenotypeLikelihoods::TWindow & window);
+    bool _readAndParseAlignment(BAM::TAlignment & alignment);
+    bool _readDataInNextWindow(GenotypeLikelihoods::TWindow & window);
 
 	void _traverseBAMWindows();
 	virtual void _handleWindow(){ throw "_handleWindow() not implemented for base class TGenome_windows!"; };

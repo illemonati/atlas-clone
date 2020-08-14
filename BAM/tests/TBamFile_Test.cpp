@@ -302,11 +302,11 @@ TEST_F(TBamFile_Test_Windows, refIDWindows){
     EXPECT_EQ((*genomeWindow)[5].refID(), 2);
 
     // 4. chr (case6))
-    EXPECT_EQ((*genomeWindow)[6].refID(), 2);
+    EXPECT_EQ((*genomeWindow)[6].refID(), 3);
 
     // 5. chr (case 7) and 8))
-    EXPECT_EQ((*genomeWindow)[7].refID(), 2);
-    EXPECT_EQ((*genomeWindow)[8].refID(), 2);
+    EXPECT_EQ((*genomeWindow)[7].refID(), 4);
+    EXPECT_EQ((*genomeWindow)[8].refID(), 4);
 }
 
 TEST_F(TBamFile_Test_Windows, positionsWindows){
@@ -351,6 +351,6 @@ TEST_F(TBamFile_Test_Windows, depthPerWindow){
     EXPECT_EQ(genomeWindow->depth[6], 0.);
 
     // 5. chr (case 7) and 8))
-    EXPECT_EQ(genomeWindow->depth[7], 0.1948052);
-    EXPECT_EQ(genomeWindow->depth[8], 0.1948052);
+    EXPECT_EQ(genomeWindow->depth[7], 0.15);
+    EXPECT_EQ(genomeWindow->depth[8], 0.);
 }
