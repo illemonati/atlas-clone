@@ -214,11 +214,11 @@ TGenome_windows::TGenome_windows(TParameters & Params, TLog* Logfile, TRandomGen
 	_setSiteFilters(Params);
 	_logfile->endIndent();
 
-	_oldAlignment = new BAM::TAlignment;
+        _curAlignment = new BAM::TAlignment;
 };
 
 TGenome_windows::~TGenome_windows(){
-	delete _oldAlignment;
+	delete _curAlignment;
 };
 
 void TGenome_windows::_setWindowParameters(TParameters & params){
@@ -477,12 +477,12 @@ bool TGenome_windows::_moveToNextPredefinedWindow(GenotypeLikelihoods::TWindow_b
 		//same chromosome: jump only if we are far away
 		if(_bamFile.curPosition() > window.from() || _bamFile.curPosition() < window.from() - _bamFile.maxReadLength()){
 			_bamFile.jump(window.from() - _bamFile.maxReadLength());
-			_oldAlignment->clear();
+			_curAlignment->clear();
 		}
 	} else {
 		//different chromosome: jump
 		_bamFile.jump(window.from() - _bamFile.maxReadLength());
-		_oldAlignment->clear();
+		_curAlignment->clear();
     }
 
 	//return true as we continue reading
@@ -539,33 +539,31 @@ bool TGenome_windows::_readDataInNextWindow(GenotypeLikelihoods::TWindow & windo
 	return true;
 };
 
+bool TGenome_windows::_readAndParseAlignment(BAM::TAlignment & alignment){
+    bool passed = _bamFile.readNextAlignment(alignment);
+    _parseAlignment(alignment);
+    return passed;
+}
+
 void TGenome_windows::_readAlignmentsIntoWindow(GenotypeLikelihoods::TWindow & window){
 	//measure runtime
 	_logfile->listFlushTime("Reading data ...");
 
 	//make sure oldAligment is set
-	if(_oldAlignment->isEmpty()){
-		_bamFile.readNextAlignment(*_oldAlignment);
-		_parseAlignment(*_oldAlignment);
+	if(_curAlignment->isEmpty()){
+	    _readAndParseAlignment(*_curAlignment);
 	}
 
-	while(*(_oldAlignment) < window.to()){
-	    std::cout << std::endl;
-	    std::cout << "old alignment = " << _oldAlignment->refID() << ":" << _oldAlignment->position() << std::endl;
-        std::cout << "window to = " << window.to().refID() << ":" << window.to().position() << std::endl;
-
+	while(*(_curAlignment) < window.to()){
         //check if alignment contains part of the window
 		//if read continues outside of window, this is dealt with by window object
-        std::cout << "old alignment = " << _oldAlignment->lastAlignedPositionWithRespectToRef().refID() << ":" << _oldAlignment->lastAlignedPositionWithRespectToRef().position() << std::endl;
-        std::cout << "window from = " << window.from().refID() << ":" << window.from().position() << std::endl;
-        if(_oldAlignment->lastAlignedPositionWithRespectToRef() >= window.from()){
-		    std::cout << "_oldAlignment->lastAlignedPositionWithRespectToRef() >= window.from()" << std::endl;
-			_oldAlignment = window.swapUsedForEmptyAlignment(_oldAlignment);
+        if(_curAlignment->lastAlignedPositionWithRespectToRef() >= window.from()){
+            _curAlignment = window.swapUsedForEmptyAlignment(_curAlignment);
 		}
 
 		//read next alignment
-		_bamFile.readNextAlignment(*_oldAlignment);
-		_parseAlignment(*_oldAlignment);
+        if (!_readAndParseAlignment(*_curAlignment))
+            break;
 	}
 
 	//fill sites
@@ -627,7 +625,7 @@ void TGenome_windows::_traverseBAMWindows(){
 	//initializing
 	_hasWindowIndent = false;
 	_curChromosome = _chromosomes.cend(); //set chromosome to end to trigger restart.
-	_oldAlignment->clear();
+	_curAlignment->clear();
 
 	//iterate through windows
 	while(_readDataInNextWindow(_window)){

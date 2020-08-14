@@ -177,12 +177,29 @@ protected:
     std::vector<BAM::TGenomeWindow> _windows_visited;
 
     void _handleWindow() override{
+        // store sites
+        std::vector<GenotypeLikelihoods::TSite> tmp;
+        for (auto & it : _window)
+            tmp.emplace_back(it);
+        sites.emplace_back(tmp);
+        // store BAM::TGenomeWindow
         _windows_visited.emplace_back(this->_window);
+        // store GenotypeLikelihoods::TWindow attributes
         depth.emplace_back(_window.depth());
+        fractionSitesNoData.emplace_back(_window.fractionSitesNoData());
+        fractionDepthAtLeastTwo.emplace_back(_window.fractionDepthAtLeastTwo());
+        numSitesWithData.emplace_back(_window.numSitesWithData());
+        numReadsInWindow.emplace_back(_window.numReadsInWindow());
     };
 
 public:
+    // storage
     std::vector<double> depth;
+    std::vector<double> fractionSitesNoData;
+    std::vector<double> fractionDepthAtLeastTwo;
+    std::vector<uint32_t> numSitesWithData;
+    std::vector<uint32_t> numReadsInWindow;
+    std::vector<std::vector<GenotypeLikelihoods::TSite>> sites;
 
     TGenomeWindow_Test(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator) : GenomeTasks::TGenome_windows(Params, Logfile, RandomGenerator) {};
 
@@ -206,6 +223,9 @@ protected:
     TParameters _parameters;
 
 public:
+    GenotypeLikelihoods::TGenotypeMap genoMap;
+    BAM::TQualityMap qualMap;
+
     std::unique_ptr<TestUtilities::TTestBamFile> outputBam;
     std::unique_ptr<TGenomeWindow_Test> genomeWindow;
     std::string filename = "testBAM.bam";
@@ -302,11 +322,11 @@ TEST_F(TBamFile_Test_Windows, refIDWindows){
     EXPECT_EQ((*genomeWindow)[5].refID(), 2);
 
     // 4. chr (case6))
-    EXPECT_EQ((*genomeWindow)[6].refID(), 2);
+    EXPECT_EQ((*genomeWindow)[6].refID(), 3);
 
     // 5. chr (case 7) and 8))
-    EXPECT_EQ((*genomeWindow)[7].refID(), 2);
-    EXPECT_EQ((*genomeWindow)[8].refID(), 2);
+    EXPECT_EQ((*genomeWindow)[7].refID(), 4);
+    EXPECT_EQ((*genomeWindow)[8].refID(), 4);
 }
 
 TEST_F(TBamFile_Test_Windows, positionsWindows){
@@ -333,7 +353,7 @@ TEST_F(TBamFile_Test_Windows, positionsWindows){
 }
 
 TEST_F(TBamFile_Test_Windows, depthPerWindow){
-    // do windows store correct positions? I.e., if chromosome is shorter than window, is window correctly adjusted?
+    // is depth per window correctly calculated?
 
     // 1. chr (cases 1), 2) and 3))
     EXPECT_EQ(genomeWindow->depth[0], 0.95);
@@ -351,6 +371,286 @@ TEST_F(TBamFile_Test_Windows, depthPerWindow){
     EXPECT_EQ(genomeWindow->depth[6], 0.);
 
     // 5. chr (case 7) and 8))
-    EXPECT_EQ(genomeWindow->depth[7], 0.1948052);
-    EXPECT_EQ(genomeWindow->depth[8], 0.1948052);
+    EXPECT_EQ(genomeWindow->depth[7], 0.15); // only M count for depth; S, I and D of cigar are ignored
+    EXPECT_EQ(genomeWindow->depth[8], 0.);
+}
+
+TEST_F(TBamFile_Test_Windows, fractionSitesNoData_PerWindow){
+    // 1. chr (cases 1), 2) and 3))
+    EXPECT_EQ(genomeWindow->fractionSitesNoData[0], 0.4);
+    EXPECT_EQ(genomeWindow->fractionSitesNoData[1], 0.8);
+    EXPECT_EQ(genomeWindow->fractionSitesNoData[2], 0.6);
+
+    // 2. chr (case 4))
+    EXPECT_EQ(genomeWindow->fractionSitesNoData[3], 0.6);
+
+    // 3. chr (case 5))
+    EXPECT_EQ(genomeWindow->fractionSitesNoData[4], 0.8);
+    EXPECT_EQ(genomeWindow->fractionSitesNoData[5], 1.);
+
+    // 4. chr (case6))
+    EXPECT_EQ(genomeWindow->fractionSitesNoData[6], 1.);
+
+    // 5. chr (case 7) and 8))
+    EXPECT_EQ(genomeWindow->fractionSitesNoData[7], 0.87);
+    EXPECT_EQ(genomeWindow->fractionSitesNoData[8], 1.);
+}
+
+TEST_F(TBamFile_Test_Windows, fractionDepthAtLeastTwo_PerWindow){
+    // 1. chr (cases 1), 2) and 3))
+    EXPECT_EQ(genomeWindow->fractionDepthAtLeastTwo[0], 0.3);
+    EXPECT_EQ(genomeWindow->fractionDepthAtLeastTwo[1], 0.15);
+    EXPECT_EQ(genomeWindow->fractionDepthAtLeastTwo[2], 0.);
+
+    // 2. chr (case 4))
+    EXPECT_EQ(genomeWindow->fractionDepthAtLeastTwo[3], 0.);
+
+    // 3. chr (case 5))
+    EXPECT_EQ(genomeWindow->fractionDepthAtLeastTwo[4], 0.);
+    EXPECT_EQ(genomeWindow->fractionDepthAtLeastTwo[5], 0.);
+
+    // 4. chr (case6))
+    EXPECT_EQ(genomeWindow->fractionDepthAtLeastTwo[6], 0.);
+
+    // 5. chr (case 7) and 8))
+    EXPECT_EQ(genomeWindow->fractionDepthAtLeastTwo[7], 0.02);
+    EXPECT_EQ(genomeWindow->fractionDepthAtLeastTwo[8], 0.);
+}
+
+TEST_F(TBamFile_Test_Windows, numSitesWithData_PerWindow){
+    // 1. chr (cases 1), 2) and 3))
+    EXPECT_EQ(genomeWindow->numSitesWithData[0], 60);
+    EXPECT_EQ(genomeWindow->numSitesWithData[1], 20);
+    EXPECT_EQ(genomeWindow->numSitesWithData[2], 20);
+
+    // 2. chr (case 4))
+    EXPECT_EQ(genomeWindow->numSitesWithData[3], 20);
+
+    // 3. chr (case 5))
+    EXPECT_EQ(genomeWindow->numSitesWithData[4], 20);
+    EXPECT_EQ(genomeWindow->numSitesWithData[5], 0);
+
+    // 4. chr (case6))
+    EXPECT_EQ(genomeWindow->numSitesWithData[6], 0);
+
+    // 5. chr (case 7) and 8))
+    EXPECT_EQ(genomeWindow->numSitesWithData[7], 13);
+    EXPECT_EQ(genomeWindow->numSitesWithData[8], 0);
+}
+
+TEST_F(TBamFile_Test_Windows, numReadsInWindow_PerWindow){
+    // 1. chr (cases 1), 2) and 3))
+    EXPECT_EQ(genomeWindow->numReadsInWindow[0], 6);
+    EXPECT_EQ(genomeWindow->numReadsInWindow[1], 3);
+    EXPECT_EQ(genomeWindow->numReadsInWindow[2], 1);
+
+    // 2. chr (case 4))
+    EXPECT_EQ(genomeWindow->numReadsInWindow[3], 1);
+
+    // 3. chr (case 5))
+    EXPECT_EQ(genomeWindow->numReadsInWindow[4], 1);
+    EXPECT_EQ(genomeWindow->numReadsInWindow[5], 0);
+
+    // 4. chr (case6))
+    EXPECT_EQ(genomeWindow->numReadsInWindow[6], 0);
+
+    // 5. chr (case 7) and 8))
+    EXPECT_EQ(genomeWindow->numReadsInWindow[7], 3);
+    EXPECT_EQ(genomeWindow->numReadsInWindow[8], 0);
+}
+
+TEST_F(TBamFile_Test_Windows, sites_getBases){
+    // 1. chr (cases 1), 2) and 3))
+    int c = 0;
+    for (const auto& site : genomeWindow->sites[0]){ // first window
+        if (c < 10)
+            EXPECT_EQ(site.getBases(genoMap), "A");
+        else if (c >= 10 && c < 20)
+            EXPECT_EQ(site.getBases(genoMap), "AC");
+        else if (c >= 20 && c < 30)
+            EXPECT_EQ(site.getBases(genoMap), "CG");
+        else if (c >= 30 && c < 40)
+            EXPECT_EQ(site.getBases(genoMap), "G");
+        else if (c >= 80 && c < 90)
+            EXPECT_EQ(site.getBases(genoMap), "T");
+        else if (c >= 90 && c < 95)
+            EXPECT_EQ(site.getBases(genoMap), "TA");
+        else if (c >= 95 && c < 100)
+            EXPECT_EQ(site.getBases(genoMap), "TAC");
+        else
+            EXPECT_EQ(site.getBases(genoMap), "-");
+        c++;
+    }
+    c = 0;
+    for (const auto& site : genomeWindow->sites[1]){ // second window
+        if (c < 10)
+            EXPECT_EQ(site.getBases(genoMap), "ACG");
+        else if (c >= 10 && c < 15)
+            EXPECT_EQ(site.getBases(genoMap), "CG");
+        else if (c >= 15 && c < 20)
+            EXPECT_EQ(site.getBases(genoMap), "G");
+        else
+            EXPECT_EQ(site.getBases(genoMap), "-");
+        c++;
+    }
+    c = 0;
+    for (const auto& site : genomeWindow->sites[2]){ // third window
+        if (c >= 20 && c < 40)
+            EXPECT_EQ(site.getBases(genoMap), "T");
+        else
+            EXPECT_EQ(site.getBases(genoMap), "-");
+        c++;
+    }
+
+    // 2. chr (case 4))
+    c = 0;
+    for (const auto& site : genomeWindow->sites[3]){ // 4. window
+        if (c >= 10 && c < 30)
+            EXPECT_EQ(site.getBases(genoMap), "A");
+        else
+            EXPECT_EQ(site.getBases(genoMap), "-");
+        c++;
+    }
+
+    // 3. chr (case 5))
+    c = 0;
+    for (const auto& site : genomeWindow->sites[4]){ // 5. window
+        if (c >= 10 && c < 30)
+            EXPECT_EQ(site.getBases(genoMap), "C");
+        else
+            EXPECT_EQ(site.getBases(genoMap), "-");
+        c++;
+    }
+    c = 0;
+    for (const auto& site : genomeWindow->sites[5]){ // 6. window
+        EXPECT_EQ(site.getBases(genoMap), "-");
+        c++;
+    }
+
+    // 4. chr (case6))
+    c = 0;
+    for (const auto& site : genomeWindow->sites[6]){ // 7. window
+        EXPECT_EQ(site.getBases(genoMap), "-");
+        c++;
+    }
+
+    // 5. chr (case 7) and 8))
+    c = 0;
+    for (const auto& site : genomeWindow->sites[7]){ // 8. window
+        if (c >= 0 && c < 4)
+            EXPECT_EQ(site.getBases(genoMap), "A");
+        else if (c == 4)
+            EXPECT_EQ(site.getBases(genoMap), "AC");
+        else if (c >= 5 && c < 8)
+            EXPECT_EQ(site.getBases(genoMap), "C");
+        else if (c == 8)
+            EXPECT_EQ(site.getBases(genoMap), "CG");
+        else if (c >= 9 && c < 13)
+            EXPECT_EQ(site.getBases(genoMap), "G");
+        else
+            EXPECT_EQ(site.getBases(genoMap), "-");
+        c++;
+    }
+    c = 0;
+    for (const auto& site : genomeWindow->sites[8]){ // 9. window
+        EXPECT_EQ(site.getBases(genoMap), "-");
+    }
+}
+
+TEST_F(TBamFile_Test_Windows, sites_getQualities){
+    // 1. chr (cases 1), 2) and 3))
+    int c = 0;
+    for (const auto& site : genomeWindow->sites[0]){ // first window
+        if (c < 10)
+            EXPECT_EQ(site.getQualities(qualMap), "1");
+        else if (c >= 10 && c < 20)
+            EXPECT_EQ(site.getQualities(qualMap), "12");
+        else if (c >= 20 && c < 30)
+            EXPECT_EQ(site.getQualities(qualMap), "23");
+        else if (c >= 30 && c < 40)
+            EXPECT_EQ(site.getQualities(qualMap), "3");
+        else if (c >= 80 && c < 90)
+            EXPECT_EQ(site.getQualities(qualMap), "4");
+        else if (c >= 90 && c < 95)
+            EXPECT_EQ(site.getQualities(qualMap), "45");
+        else if (c >= 95 && c < 100)
+            EXPECT_EQ(site.getQualities(qualMap), "456");
+        else
+            EXPECT_EQ(site.getQualities(qualMap), "-");
+        c++;
+    }
+    c = 0;
+    for (const auto& site : genomeWindow->sites[1]){ // second window
+        if (c < 10)
+            EXPECT_EQ(site.getQualities(qualMap), "567");
+        else if (c >= 10 && c < 15)
+            EXPECT_EQ(site.getQualities(qualMap), "67");
+        else if (c >= 15 && c < 20)
+            EXPECT_EQ(site.getQualities(qualMap), "7");
+        else
+            EXPECT_EQ(site.getQualities(qualMap), "-");
+        c++;
+    }
+    c = 0;
+    for (const auto& site : genomeWindow->sites[2]){ // third window
+        if (c >= 20 && c < 40)
+            EXPECT_EQ(site.getQualities(qualMap), "8");
+        else
+            EXPECT_EQ(site.getQualities(qualMap), "-");
+        c++;
+    }
+
+    // 2. chr (case 4))
+    c = 0;
+    for (const auto& site : genomeWindow->sites[3]){ // 4. window
+        if (c >= 10 && c < 30)
+            EXPECT_EQ(site.getQualities(qualMap), "9");
+        else
+            EXPECT_EQ(site.getQualities(qualMap), "-");
+        c++;
+    }
+
+    // 3. chr (case 5))
+    c = 0;
+    for (const auto& site : genomeWindow->sites[4]){ // 5. window
+        if (c >= 10 && c < 30)
+            EXPECT_EQ(site.getQualities(qualMap), "0");
+        else
+            EXPECT_EQ(site.getQualities(qualMap), "-");
+        c++;
+    }
+    c = 0;
+    for (const auto& site : genomeWindow->sites[5]){ // 6. window
+        EXPECT_EQ(site.getQualities(qualMap), "-");
+        c++;
+    }
+
+    // 4. chr (case6))
+    c = 0;
+    for (const auto& site : genomeWindow->sites[6]){ // 7. window
+        EXPECT_EQ(site.getQualities(qualMap), "-");
+        c++;
+    }
+
+    // 5. chr (case 7) and 8))
+    c = 0;
+    for (const auto& site : genomeWindow->sites[7]){ // 8. window
+        if (c >= 0 && c < 4)
+            EXPECT_EQ(site.getQualities(qualMap), "1");
+        else if (c == 4)
+            EXPECT_EQ(site.getQualities(qualMap), "12");
+        else if (c >= 5 && c < 8)
+            EXPECT_EQ(site.getQualities(qualMap), "2");
+        else if (c == 8)
+            EXPECT_EQ(site.getQualities(qualMap), "23");
+        else if (c >= 9 && c < 13)
+            EXPECT_EQ(site.getQualities(qualMap), "3");
+        else
+            EXPECT_EQ(site.getQualities(qualMap), "-");
+        c++;
+    }
+    c = 0;
+    for (const auto& site : genomeWindow->sites[8]){ // 9. window
+        EXPECT_EQ(site.getQualities(qualMap), "-");
+    }
 }
