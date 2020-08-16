@@ -420,16 +420,11 @@ void TBamFile::_applyFilters(){
 						 && _mappingQualityFilter.pass(_curBamAlignment.MapQuality, _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
 						 && _blacklistFilter.pass(_blacklist.isInBlacklist(_curBamAlignment.Name), _curBamAlignment.Name, _curBamAlignment.IsSecondMate());
 
-		std::cout << "_QCFiltersPassed = " << _QCFiltersPassed << std::flush;
-
-
 		//fragment length
 		if(_QCFiltersPassed){
 			_QCFiltersPassed = _fragmentLengthfilter.pass(curFragmentLength(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
-					        && _longerThanFragmentFilter.pass(_curBamAlignment.InsertSize < _curCigar.lengthAligned(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate());
+					        && _longerThanFragmentFilter.pass(_curBamAlignment.IsProperPair() && _curBamAlignment.InsertSize < _curCigar.lengthAligned(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate());
 		}
-
-		std::cout << ", _QCFiltersPassed = " << _longerThanFragmentFilter.pass(_curBamAlignment.InsertSize < _curCigar.lengthAligned(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate()) << std::endl;
 	}
 
 	//update counter
