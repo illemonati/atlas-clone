@@ -50,8 +50,10 @@ void TFastaBuffer::fill(const TGenomeWindow & Window, std::string & ref) const{
 		//move
 		_moveTo(Window.from());
 	}
-};
 
+	//copy to string
+	ref.assign(_referenceSequence, Window - _coordinates, Window.size());
+};
 
 void TFastaBuffer::fill(const TGenomePosition & Position, const uint32_t & Length, std::string & ref) const{
 	//move buffer, if necessary
@@ -61,6 +63,9 @@ void TFastaBuffer::fill(const TGenomePosition & Position, const uint32_t & Lengt
 		}
 		_moveTo(Position);
 	}
+
+	//copy to string
+	ref.assign(_referenceSequence, Position - _coordinates, Length);
 };
 
 void TFastaBuffer::fill(const TGenomePosition & Start, const TGenomePosition & End, std::string & ref) const{

@@ -56,6 +56,10 @@ int32_t TGenomePosition::operator-(const TGenomePosition & other) const{
 	return _position - other._position;
 };
 
+int32_t TGenomePosition::operator-(const TGenomeWindow & other) const{
+	return operator -(other.from());
+};
+
 void TGenomePosition::operator+=(const uint32_t & length){
 	_position += length;
 };
@@ -209,6 +213,14 @@ TGenomeWindow TGenomeWindow::operator-(const uint32_t& length) const{
 	} else {
 		return TGenomeWindow(_from.refID(), _from.position() - length, _to.position() - length);
 	}
+};
+
+uint32_t TGenomeWindow::operator-(const TGenomeWindow & other) const{
+	return _from - other.from();
+};
+
+uint32_t TGenomeWindow::operator-(const TGenomePosition & other) const{
+	return _from - other;
 };
 
 bool TGenomeWindow::within(const TGenomePosition & other) const{

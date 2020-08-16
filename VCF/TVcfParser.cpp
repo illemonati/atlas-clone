@@ -35,7 +35,7 @@ TVcfHeaderLine::TVcfHeaderLine(std::string & Line){
 		temp.erase(0,1);
 
 		//check tag
-		if(tag=="ID") id=temp;
+		if(tag=="ID") _id=temp;
 		else if(tag=="Number"){
 			numberString=temp;
 			if(temp==".") number=99999;
@@ -54,9 +54,9 @@ TVcfHeaderLine::TVcfHeaderLine(std::string & Line){
 
 	//throw error
 	if(type!=FLAG && number<1) "Error when parsing vcf header, unknown 'Number' in line '"+ Line +"'!";
-	if(id.empty() || number==-1 || type==UNKNOWN || desc.empty()){
+	if(_id.empty() || number==-1 || type==UNKNOWN || desc.empty()){
 		std::string errorMessage="Error when parsing vcf header, missing tag in line '" + Line + "':";
-		if(id.empty()) errorMessage+=" id is empty!";
+		if(_id.empty()) errorMessage+=" id is empty!";
 		if(number < 1) errorMessage+=" number is not a number!";
 		if(type==UNKNOWN) errorMessage+=" unknown type!";
 		if(desc.empty()) errorMessage+=" description is empty!";
@@ -66,7 +66,7 @@ TVcfHeaderLine::TVcfHeaderLine(std::string & Line){
 }
 
 TVcfHeaderLine::TVcfHeaderLine(std::string & ID, std::string & Number, VCF_TYPE & Type, std::string & Desc){
-	id=ID;
+	_id=ID;
 	numberString=Number;
 	if(numberString==".") number=99999;
 	else number=convertString<int>(Number);
@@ -105,13 +105,13 @@ std::string TVcfHeaderLine::getStringfromType(VCF_TYPE & type){
 }
 
 void TVcfHeaderLine::init(){
-	id="";
+	_id="";
 	number=-1;
 	type=UNKNOWN;
 	desc="";
 }
 std::string TVcfHeaderLine::getString(){
-	return "<ID=" + id + ",Number=" + numberString + ",Type=" + typeString + ",Description=\"" + desc + "\">";
+	return "<ID=" + _id + ",Number=" + numberString + ",Type=" + typeString + ",Description=\"" + desc + "\">";
 }
 //--------------------------------------------------------------------
 /*
@@ -398,7 +398,7 @@ void TVcfParser::parseQuality(TVcfLine & line){
 
 void TVcfParser::addInfo(std::string & Line){
 	TVcfHeaderLine l(Line);
-	info[l.id]=l;
+	info[l._id]=l;
 }
 void TVcfParser::updateInfo(std::string ID, std::string Number, VCF_TYPE Type, std::string Desc){
 	//check if id exists
@@ -406,7 +406,7 @@ void TVcfParser::updateInfo(std::string ID, std::string Number, VCF_TYPE Type, s
 	if(it==info.end()){
 		//add new info
 		TVcfHeaderLine l(ID, Number, Type, Desc);
-		info[l.id]=l;
+		info[l._id]=l;
 	} else {
 		//update
 		it->second.update(Number, Type, Desc);
@@ -415,7 +415,7 @@ void TVcfParser::updateInfo(std::string ID, std::string Number, VCF_TYPE Type, s
 
 void TVcfParser::addFormat(std::string & Line){
 	TVcfHeaderLine l(Line);
-	format[l.id]=l;
+	format[l._id]=l;
 }
 
 void TVcfParser::addSample(std::string & Name){

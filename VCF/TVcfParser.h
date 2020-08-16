@@ -19,7 +19,7 @@ namespace VCF{
 
 //TODO: use header info to check entries
 
-enum VCF_TYPE {UNKNOWN, INTEGER, FLOAT, FLAG, CHAR,  STRING};
+	enum VCF_TYPE {UNKNOWN, INTEGER, FLOAT, FLAG, CHAR,  STRING};
 
 struct GTLikelihoods{
 	float AA;
@@ -72,7 +72,7 @@ public:
 //---------------------------------------------------------------------------------------------------------
 class TVcfHeaderLine{
 public:
-	std::string id;
+	std::string _id;
 	int number;
 	std::string numberString;
 	VCF_TYPE type;

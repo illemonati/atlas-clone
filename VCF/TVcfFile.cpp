@@ -88,7 +88,8 @@ void TVcfFile_base::parseHeaderVCF_4_0(){
 				buf=extractBeforeWhiteSpace(temp);
 				trimString(buf);
 				temp.erase(0,1);
-				if(i<parser.cols.FirstInd) parser.cols.set(buf, i);				else parser.addSample(buf);
+				if(i<parser.cols.FirstInd) parser.cols.set(buf, i);
+				else parser.addSample(buf);
 				++i;
 			}
 			numCols=i;

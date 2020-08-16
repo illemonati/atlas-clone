@@ -43,6 +43,7 @@ public:
 	TGenomePosition operator+(const uint32_t & length) const;
 	TGenomePosition operator-(const uint32_t & length) const;
 	int32_t operator-(const TGenomePosition & other) const;
+	int32_t operator-(const TGenomeWindow & other) const;
 	void operator+=(const uint32_t & length);
 	void operator-=(const uint32_t & length);
 	void operator++();
@@ -94,6 +95,8 @@ public:
 	TGenomeWindow& operator=(const TGenomeWindow & other){ move(other); return *this; };
 	TGenomeWindow operator+(const uint32_t& length) const;
 	TGenomeWindow operator-(const uint32_t& length) const;
+	uint32_t operator-(const TGenomeWindow & other) const;
+	uint32_t operator-(const TGenomePosition & other) const;
 
 	bool sameChr(const TGenomeWindow & other) const{ return refID() == other.refID(); };
 	bool within(const TGenomePosition & other) const;
