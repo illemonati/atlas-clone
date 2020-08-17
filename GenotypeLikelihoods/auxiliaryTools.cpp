@@ -163,6 +163,7 @@ void TRecalibrationEMDataTables::add(const BAM::TBase & base){
 };
 
 void TRecalibrationEMDataTables::add(const TSite & site){
+	_totalCounts += site.depth();
 	for(std::vector<BAM::TBase>::const_iterator b = site.cbegin(); b != site.cend(); ++b){
 		_tables[b->readGroupID][(int) b->isSecondMate()].add(*b);
 	}
@@ -350,5 +351,78 @@ void TRecalibrationEMReadGroupIndex::warningForMissingReadGroups(TLog* logfile) 
 	}
 };
 
+
+//--------------------------------------------------------------------
+// TRecalibrationEMFirstDerivative
+//--------------------------------------------------------------------
+TRecalibrationEMFirstDerivatives::TRecalibrationEMFirstDerivatives(size_t Size){
+
+	std::cout << "---------------> RESIZE = " << Size << std::endl;
+
+	resize(Size);
+};
+
+void TRecalibrationEMFirstDerivatives::resize(size_t Size){
+	_derivatives.resize(Size);
+};
+
+size_t TRecalibrationEMFirstDerivatives::size() const{
+	return _derivatives.size();
+};
+
+void  TRecalibrationEMFirstDerivatives::restart(){
+	_cur = _derivatives.begin();
+};
+
+void TRecalibrationEMFirstDerivatives::add(const uint16_t & parameterIndex, const double & derivative){
+
+	std::cout << "ADDED index = " << parameterIndex << std::endl;
+
+	_cur->index = parameterIndex;
+	_cur->derivative = derivative;
+	++_cur;
+};
+
+TRecalibrationEMFirstDerivativesIterator TRecalibrationEMFirstDerivatives::begin(){
+	return _derivatives.begin();
+};
+
+TRecalibrationEMFirstDerivativesIterator TRecalibrationEMFirstDerivatives::end(){
+	return _derivatives.end();
+};
+
+//--------------------------------------------------------------------
+// TRecalibrationEMSecondDerivatives
+//--------------------------------------------------------------------
+TRecalibrationEMSecondDerivatives::TRecalibrationEMSecondDerivatives(size_t Size){
+	resize(Size);
+};
+
+void TRecalibrationEMSecondDerivatives::resize(size_t Size){
+	_derivatives.resize(Size);
+};
+
+size_t TRecalibrationEMSecondDerivatives::size() const{
+	return _derivatives.size();
+};
+
+void  TRecalibrationEMSecondDerivatives::restart(){
+	_cur = _derivatives.begin();
+};
+
+void TRecalibrationEMSecondDerivatives::add(const uint16_t & parameterIndex1, const uint16_t & parameterIndex2, const double & derivative){
+	_cur->index1 = parameterIndex1;
+	_cur->index2 = parameterIndex2;
+	_cur->derivative = derivative;
+	++_cur;
+};
+
+TRecalibrationEMSecondDerivativesIterator TRecalibrationEMSecondDerivatives::begin(){
+	return _derivatives.begin();
+};
+
+TRecalibrationEMSecondDerivativesIterator TRecalibrationEMSecondDerivatives::end(){
+	return _derivatives.end();
+};
 
 }; //end namespace

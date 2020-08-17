@@ -182,8 +182,6 @@ void TRecalibrationEMEstimator::addToDataTable(TRecalibrationEMDataTables & data
 	for(auto& s : _sites){
 		_dataTables.add(s);
 	}
-
-	std::cout << "SIZE = " << _dataTables.size() << std::endl;
 };
 
 uint64_t TRecalibrationEMEstimator::cumulativeDepth(){
@@ -222,9 +220,6 @@ void TRecalibrationEMEstimator::_fillRelevantBaseFrequencies(TBaseData & baseFre
 void TRecalibrationEMEstimator::_calculate_EMWeights_epsilon(std::vector<TBaseData> & EMWeights){
 	//make sure EM-weight storage is of appropriate size
 	EMWeights.resize(_dataTables.size());
-
-	std::cout << "SIZE = " << _dataTables.size() << std::endl;
-
 	//loop over all bases and calculate EM-weights
 	size_t index = 0;
 	for(auto& s : _sites){
@@ -234,18 +229,9 @@ void TRecalibrationEMEstimator::_calculate_EMWeights_epsilon(std::vector<TBaseDa
 
 		//calculate weights per base
 		for(auto& b : s){
-
-			std::cout << "------- a-----------" << std::endl;
-
 			TBaseData noPMD;
 			_sequencingErrorModels.calculateBaseLikelihoods(b, noPMD);
-
-			std::cout << "------- b-----------: index = " << index << std::endl;
-
 			_pmd.calculateBaseLikelihoods(b, noPMD, EMWeights[index]);
-
-			std::cout << "------- c-----------" << std::endl;
-
 			EMWeights[index] *= baseFreq;
 			EMWeights[index].normalize();
 

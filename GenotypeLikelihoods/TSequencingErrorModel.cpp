@@ -505,16 +505,28 @@ void TSequencingErrorModel::addToFandJacobian(const BAM::TBase & base, const TBa
 
 	// 2 ) fill derivatives
 	//--------------------
+
+	std::cout << "--------------- A --------------" << std::endl;
+
 	_firstDerivatives.restart();
 	_secondDerivatives.restart();
+
+	std::cout << "SIZE = " << _firstDerivatives.size() << std::endl;
 
 	//fill derivatives of intercept
 	_covariates.intercept.fillDerivatives(0.0, _firstDerivatives, _secondDerivatives);
 
+	std::cout << "--------------- B --------------" << std::endl;
+
 	//fill derivatives of covariates
 	for(const auto & cov : _covariates.covariates){
+
+		std::cout << "cov = " << cov->name() << std::endl;
+
 		cov->fillDerivatives(base, _firstDerivatives, _secondDerivatives);
 	}
+
+	std::cout << "--------------- C --------------" << std::endl;
 
 	// 3) add derivatives to F and Jacobian
 	//calculate weights

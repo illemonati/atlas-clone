@@ -232,7 +232,6 @@ void TSequencingErrorModels::warningForMissingReadGroups() const{
 	readGroupIndex.warningForMissingReadGroups(logfile);
 };
 
-
 //functions to get error rates
 //-------------------------------------------------------
 double TSequencingErrorModels::getErrorRate(const BAM::TBase & base) const{
