@@ -21,7 +21,7 @@ TRecalibrationEMEstimator::TRecalibrationEMEstimator(TParameters & args, BAM::TR
 	_readGroupMap = ReadGroupMap;
 
 	//genotype distribution: currently only allow for haploid
-	_genoDist = new TGenotypeDistribution_haploid;
+	_genoDist = std::make_unique<TGenotypeDistribution_haploid>();
 
 	//recal models
 	_logfile->startIndent("Settings regarding the EM algorithm:");
@@ -69,7 +69,6 @@ TRecalibrationEMEstimator::TRecalibrationEMEstimator(TParameters & args, BAM::TR
 	}
 	_logfile->endIndent();
 };
-
 
 void TRecalibrationEMEstimator::_initializeModels(){
 	//count data available for recal
@@ -279,10 +278,14 @@ void TRecalibrationEMEstimator::_updateEM_theta_epsilon(){
 
 	// 1) calculate EM weights
 	//-------------------------
+	_logfile->listFlushDots("Calculating EM weights");
 	std::vector<TBaseData> EM_weights_bbar_given_d;
 	_calculate_EMWeights_epsilon(EM_weights_bbar_given_d);
+	_logfile->done();
 
 	// 2) update rho
+	//-------------------------
+	_logfile->listFlushDots("Updating rho");
 	size_t index = 0;
 	for(auto& s : _sites){
 		for(auto& b : s){
@@ -290,11 +293,17 @@ void TRecalibrationEMEstimator::_updateEM_theta_epsilon(){
 			++index;
 		}
 	}
+	_logfile->done();
 
 	// 3) Calculate Q_beta at current location
+	//-------------------------
+	_logfile->listFlushDots("Calculating Q_beta at current location");
 	double curQ = _calculate_Q_beta(EM_weights_bbar_given_d);
+	_logfile->done();
+	_logfile->conclude("Q_beta = ", curQ);
 
 	// 4) Use Newton-Raphson to optimize
+	//-------------------------
 	_logfile->startNumbering("Optimizing Q_beta using a Newton-Raphson algorithm:");
 
 	for(int i=0; i<_NewtonRaphsonNumIterations; ++i){
@@ -344,7 +353,10 @@ void TRecalibrationEMEstimator::_updateEM_theta_epsilon(){
 		_logfile->conclude("max(F) = " + toString(maxF));
 		_logfile->endIndent();
 		if(maxF < _NewtonRaphsonMaxF || numUpdatedModels == 0) break;
+
+		_logfile->endIndent();
 	}
+	_logfile->endNumbering();
 	_logfile->endIndent();
 };
 

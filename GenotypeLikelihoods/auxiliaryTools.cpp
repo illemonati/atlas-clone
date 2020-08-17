@@ -351,14 +351,10 @@ void TRecalibrationEMReadGroupIndex::warningForMissingReadGroups(TLog* logfile) 
 	}
 };
 
-
 //--------------------------------------------------------------------
 // TRecalibrationEMFirstDerivative
 //--------------------------------------------------------------------
 TRecalibrationEMFirstDerivatives::TRecalibrationEMFirstDerivatives(size_t Size){
-
-	std::cout << "---------------> RESIZE = " << Size << std::endl;
-
 	resize(Size);
 };
 
@@ -375,9 +371,6 @@ void  TRecalibrationEMFirstDerivatives::restart(){
 };
 
 void TRecalibrationEMFirstDerivatives::add(const uint16_t & parameterIndex, const double & derivative){
-
-	std::cout << "ADDED index = " << parameterIndex << std::endl;
-
 	_cur->index = parameterIndex;
 	_cur->derivative = derivative;
 	++_cur;

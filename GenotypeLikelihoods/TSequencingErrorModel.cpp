@@ -368,20 +368,24 @@ void TSequencingErrorRho::estimate(){
 //--------------------------------------------------------------------
 TSequencingErrorModel::TSequencingErrorModel(TSequencingErrorModelDefinition & modelDef, TLog* Logfile){
 	logfile = Logfile;
-	setNewtonRaphosnParamsToZero();
 
 	//create covariates
 	_covariates.createCovariatesAndIntercept(modelDef.covariates);
 	_rho = modelDef.rho;
+
+	//prepare Newton-Raphson variables
+	setNewtonRaphosnParamsToZero();
 };
 
 TSequencingErrorModel::TSequencingErrorModel(TSequencingErrorModelDefinition & modelDef, TRecalibrationEMDataTable* dataTable, TLog* Logfile){
 	logfile = Logfile;
-	setNewtonRaphosnParamsToZero();
 
 	//create covariates
 	_covariates.createCovariatesAndIntercept(modelDef.covariates, dataTable);
 	_rho = modelDef.rho;
+
+	//prepare Newton-Raphson variables
+	setNewtonRaphosnParamsToZero();
 };
 
 bool TSequencingErrorModel::checkParameterRange(TRecalibrationEMDataTable* dataTable, std::string & error){
@@ -505,28 +509,16 @@ void TSequencingErrorModel::addToFandJacobian(const BAM::TBase & base, const TBa
 
 	// 2 ) fill derivatives
 	//--------------------
-
-	std::cout << "--------------- A --------------" << std::endl;
-
 	_firstDerivatives.restart();
 	_secondDerivatives.restart();
-
-	std::cout << "SIZE = " << _firstDerivatives.size() << std::endl;
 
 	//fill derivatives of intercept
 	_covariates.intercept.fillDerivatives(0.0, _firstDerivatives, _secondDerivatives);
 
-	std::cout << "--------------- B --------------" << std::endl;
-
 	//fill derivatives of covariates
 	for(const auto & cov : _covariates.covariates){
-
-		std::cout << "cov = " << cov->name() << std::endl;
-
 		cov->fillDerivatives(base, _firstDerivatives, _secondDerivatives);
 	}
-
-	std::cout << "--------------- C --------------" << std::endl;
 
 	// 3) add derivatives to F and Jacobian
 	//calculate weights

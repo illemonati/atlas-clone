@@ -140,17 +140,14 @@ class TRecalibrationEMTransformationMap{
 protected:
 	uint16_t size;
 	uint16_t max;
-	double* map;
-	bool initialized;
+	std::vector<double> map;
 
 public:
 	TRecalibrationEMTransformationMap(){
-		initialized = false;
 		clear();
 	};
 
-	TRecalibrationEMTransformationMap(const uint16_t Max){
-		initialized = false;
+	TRecalibrationEMTransformationMap(const uint16_t & Max){
 		initialize(Max);
 	};
 
@@ -159,42 +156,35 @@ public:
 	};
 
 	void clear(){
-		if(initialized){
-			delete[] map;
-			initialized = false;
-		}
 		max = 0;
 		size = 0;
-		map = nullptr;
+		map.clear();
 	};
 
-	void initialize(const uint16_t Max){
+	void initialize(const uint16_t & Max){
 		max = Max;
 		size = Max + 1;
-		map = new double[size];
-		for(int i=0; i<size; i++){
-			map[i] = 0.0;
-		}
+		map.resize(Max + 1);
+		std::fill(map.begin(), map.end(), 0.0);
 	};
 
-	void set(const uint16_t x, const double value){
+	void set(const uint16_t & x, const double & value){
 		map[x] = value;
 	};
 
-	bool checkRange(const uint16_t val){
+	bool checkRange(const uint16_t & val) const{
 		if(val <= max) return true;
 		else return false;
 	};
 
-	double operator[](const int x){
+	double operator[](const int & x){
 		return map[x];
 	};
 
-	double get(const int x){
+	double get(const int & x) const{
 		return map[x];
 	};
 };
-
 
 class TRecalibrationEMQualityTransformationMap:public TRecalibrationEMTransformationMap{
 public:
