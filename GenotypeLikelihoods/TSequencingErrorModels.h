@@ -98,6 +98,7 @@ public:
 	double getSteepestGradient();
 
 	void writeRecalFile(const std::string filename) const;
+	void print() const;
 };
 
 }; //end namespace

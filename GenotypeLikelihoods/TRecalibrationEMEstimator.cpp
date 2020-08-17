@@ -26,7 +26,8 @@ TRecalibrationEMEstimator::TRecalibrationEMEstimator(TParameters & args, BAM::TR
 	//recal models
 	_logfile->startIndent("Settings regarding the EM algorithm:");
 	std::string recalFile = args.getParameterString("recal", false);
-	std::string modelTagForEstimation = args.getParameterStringWithDefault("model", "quality=polynomial(2);position=polynomial(2);context=specific");
+	std::string modelTagForEstimation = args.getParameterStringWithDefault("model", "quality:polynomial(2);position:polynomial(2);context:specific");
+
 
 	//initialize from file?
 	if(recalFile.empty()){
@@ -286,25 +287,30 @@ void TRecalibrationEMEstimator::_updateEM_theta_epsilon(){
 	// 2) update rho
 	//-------------------------
 	_logfile->listFlushDots("Updating rho");
+	_sequencingErrorModels.prepareRhoEstimationFromEMWeights();
 	size_t index = 0;
 	for(auto& s : _sites){
 		for(auto& b : s){
-			_sequencingErrorModels.addToFandJacobian(b, EM_weights_bbar_given_d[index]);
+			_sequencingErrorModels.addBaseForRhoEstimation(b, EM_weights_bbar_given_d[index]);
 			++index;
 		}
 	}
+	_sequencingErrorModels.estimateRho();
 	_logfile->done();
 
 	// 3) Calculate Q_beta at current location
 	//-------------------------
+	/*
 	_logfile->listFlushDots("Calculating Q_beta at current location");
 	double curQ = _calculate_Q_beta(EM_weights_bbar_given_d);
 	_logfile->done();
 	_logfile->conclude("Q_beta = ", curQ);
+	*/
 
 	// 4) Use Newton-Raphson to optimize
 	//-------------------------
-	_logfile->startNumbering("Optimizing Q_beta using a Newton-Raphson algorithm:");
+	/*
+	_logfile->startIndent("Optimizing Q_beta using a Newton-Raphson algorithm:");
 
 	for(int i=0; i<_NewtonRaphsonNumIterations; ++i){
 		_logfile->startIndent("Running Newton-Raphson iteration " + toString(i+1) + ":");
@@ -323,8 +329,14 @@ void TRecalibrationEMEstimator::_updateEM_theta_epsilon(){
 			_logfile->listFlush("Proposing move with log2(lambda) = " + toString(log2_lambda) + " ... ");
 			_sequencingErrorModels.proposeNewParameters(lambda);
 
+			std::cout << std::endl;
+			_sequencingErrorModels.print();
+			std::cout << std::endl;
+
 			//calculate Q at new location
 			double Q = _calculate_Q_beta(EM_weights_bbar_given_d);
+
+			std::cout << "curQ = " << curQ << ", newQ = " << Q << std::endl;
 
 			//check if we accept or backtrack
 			numUpdatedModels_old = numUpdatedModels;
@@ -334,7 +346,6 @@ void TRecalibrationEMEstimator::_updateEM_theta_epsilon(){
 			if(numUpdatedModels > numUpdatedModels_old){
 				_logfile->conclude("Q_beta was increased from " + toString(curQ) + " to " + toString(Q));
 			}
-			curQ = Q;
 
 			//backtrack
 			lambda = lambda / 2.0; //backtrack;
@@ -356,7 +367,8 @@ void TRecalibrationEMEstimator::_updateEM_theta_epsilon(){
 
 		_logfile->endIndent();
 	}
-	_logfile->endNumbering();
+	_logfile->endIndent();
+	*/
 	_logfile->endIndent();
 };
 

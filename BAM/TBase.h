@@ -48,6 +48,8 @@ public:
 
 	bool operator==(const Base & b){ return base == b; };
 	bool operator!=(const Base & b){ return base != b; };
+
+	void print();
 };
 
 std::ostream& operator<<(std::ostream& os, const TBase & base);

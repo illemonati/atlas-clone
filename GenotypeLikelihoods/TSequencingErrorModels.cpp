@@ -431,4 +431,19 @@ void TSequencingErrorModels::_writeParameters(TOutputFile & out, const std::stri
 	}
 };
 
+void TSequencingErrorModels::print() const{
+	for(size_t r=0; r<readGroups->size(); ++r){
+		int index = readGroupMap->getIndex(r);
+		if(readGroupIndex.inUse(index, false)){
+			auto& model = models[ readGroupIndex.index(index, false) ];
+			std::cout << "Model rg = " << index << ", first: " << model.getCovariateDefinition() << "\t" << model.getRhoDefinition() << std::endl;
+
+		}
+		if(readGroupIndex.inUse(index, true)){
+			auto& model = models[ readGroupIndex.index(index, true) ];
+			std::cout << "Model rg = " << index << ", second: " << model.getCovariateDefinition() << "\t" << model.getRhoDefinition() << std::endl;
+		}
+	}
+};
+
 }; //end namespace

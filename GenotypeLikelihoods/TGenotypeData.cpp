@@ -83,7 +83,6 @@ double TBaseData::weightedSum(const TBaseData & weights) const{
 		   + _data[C] * weights.at(C)
 		   + _data[G] * weights.at(G)
 	       + _data[T] * weights.at(T);
-
 };
 
 void TBaseData::normalize(){
@@ -92,6 +91,11 @@ void TBaseData::normalize(){
 	_data[C] /= tot;
 	_data[G] /= tot;
 	_data[T] /= tot;
+};
+
+std::ostream& operator<<(std::ostream& os, const TBaseData & baseData){
+	os << "A: " << baseData.at(A) << ", C: " << baseData.at(C) << ", G: " << baseData.at(G) << ", T: " << baseData.at(T);
+	return os;
 };
 
 //--------------------------------------------------------------------

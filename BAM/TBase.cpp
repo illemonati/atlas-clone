@@ -21,6 +21,18 @@ TBase::TBase(){
 	fragmentLength = 0;
 };
 
+void TBase::print(){
+	std::cout << "base: " << base << std::endl;
+	std::cout << "originalQuality_phredInt: " << originalQuality_phredInt << std::endl;
+	std::cout << "recalibratedQualityAsPhredInt: " << recalibratedQualityAsPhredInt << std::endl;
+	std::cout << "distFrom5Prime: " << distFrom5Prime << std::endl;
+	std::cout << "distFrom3Prime: " << distFrom3Prime << std::endl;
+	std::cout << "readGroupID: " << readGroupID << std::endl;
+	std::cout << "context: " << context << std::endl;
+	std::cout << "mappingQuality: " << mappingQuality << std::endl;
+	std::cout << "fragmentLength: " << fragmentLength << std::endl;
+};
+
 std::ostream& operator<<(std::ostream& os, const TBase & base){
 	os << base.base;
 	return os;

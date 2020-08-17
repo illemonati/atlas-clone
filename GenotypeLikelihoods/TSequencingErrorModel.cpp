@@ -17,7 +17,7 @@ bool TSequencingErrorCovariateDefinition::parse(const std::string & modelString,
 	std::vector<std::string> tmp;
 	fillVectorFromString(modelString, tmp, ';', true);
 	for(std::string s : tmp){
-		size_t pos = s.find('=');
+		size_t pos = s.find(':');
 		if(pos == std::string::npos){
 			//intercept?
 			size_t pos_1 = s.find('[');
@@ -59,7 +59,7 @@ std::string TSequencingErrorCovariateDefinition::getModelString(){
 	std::string modelString = "intercept[" + intercept + "]";
 	for(auto& it : covariateFunctions){
 
-		modelString += ";" + it.covariate + "=" + it.function;
+		modelString += ";" + it.covariate + ":" + it.function;
 	}
 	return modelString;
 };
@@ -327,40 +327,52 @@ void TSequencingErrorRho::prepareEstimationFromEMWeights(){
 };
 
 void TSequencingErrorRho::addBaseForEstimation(const Base & base, const TBaseData & EMWeights){
-	//use a==b to store denominator
 	if(base == A){
-		rho[A][base] += 1.0 - EMWeights.at(A);
-		rho[C][base] += EMWeights.at(C);
-		rho[G][base] += EMWeights.at(G);
-		rho[T][base] += EMWeights.at(T);
+		rho[C][A] += EMWeights.at(C);
+		rho[G][A] += EMWeights.at(G);
+		rho[T][A] += EMWeights.at(T);
 	} else if(base == C){
-		rho[A][base] += EMWeights.at(A);
-		rho[C][base] += 1.0 - EMWeights.at(C);
-		rho[G][base] += EMWeights.at(G);
-		rho[T][base] += EMWeights.at(T);
+		rho[A][C] += EMWeights.at(A);
+		rho[G][C] += EMWeights.at(G);
+		rho[T][C] += EMWeights.at(T);
 	} else if(base == G){
-		rho[A][base] += EMWeights.at(A);
-		rho[C][base] += EMWeights.at(C);
-		rho[G][base] += 1.0 - EMWeights.at(G);
-		rho[T][base] += EMWeights.at(T);
+		rho[A][G] += EMWeights.at(A);
+		rho[C][G] += EMWeights.at(C);
+		rho[T][G] += EMWeights.at(T);
 	} else {
-		rho[A][base] += EMWeights.at(A);
-		rho[C][base] += EMWeights.at(C);
-		rho[G][base] += EMWeights.at(G);
-		rho[T][base] += 1.0 - EMWeights.at(T);
+		rho[A][T] += EMWeights.at(A);
+		rho[C][T] += EMWeights.at(C);
+		rho[G][T] += EMWeights.at(G);
 	}
 };
 
 void TSequencingErrorRho::estimate(){
-	//a==b is denominator
+	//calculate denominators
+	std::vector<double> denom(4, 0.0);
 	for(int a=0; a<4; ++a){
 		for(int b=0; b<4; ++b){
 			if(a!=b){
-				rho[a][b] /= rho[a][a];
+				denom[a] += rho[a][b];
 			}
 		}
-		rho[a][a] = 0.0;
 	}
+
+	//scale rho
+	for(int a=0; a<4; ++a){
+		for(int b=0; b<4; ++b){
+			if(a!=b){
+				rho[a][b] /= denom[a];
+			}
+		}
+	}
+
+	//set denominators = 0.0
+	for(int a=0; a<4; ++a){
+		rho[a][a] = 0.0;
+		std::cout << "sum = " << rho[a][A] + rho[a][C] + rho[a][G] + rho[a][T] << std::endl;
+	}
+
+	std::cout << getDefinition() << std::endl;
 };
 
 //--------------------------------------------------------------------
@@ -559,6 +571,10 @@ bool TSequencingErrorModel::solveJxF(){
 		//scale F and J by 1/#sites
 		_Jacobian = _Jacobian / (double) _numSitesAdded;
 		_F = _F / (double) _numSitesAdded;
+
+		std::cout << "DEBUG!!!" << std::endl;
+		printJacobianToStdOut();
+		printFToStdOut();
 
 		//now solve J^-1 x F
 		return solve(_JxF, _Jacobian, _F);

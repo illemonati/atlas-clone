@@ -59,7 +59,7 @@ public:
 //--------------------------------------------------------------------
 class TSequencingErrorRhoStorage{
 protected:
-	std::array< std::array<double, 4>, 4 > rho;
+	std::array< std::array<double, 4>, 4 > rho; //[from][to]
 
 public:
 	TSequencingErrorRhoStorage();

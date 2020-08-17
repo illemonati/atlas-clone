@@ -17,50 +17,6 @@ namespace GenotypeLikelihoods{
 
 #define _MINLIKELIHOODVALUE 1.0E-200
 
-/*
-//---------------------------------------------------------------
-//TBaseFrequencies
-//---------------------------------------------------------------
-class TBaseFrequencies{
-public:
-	double freq[4];
-	bool wasNormalized;
-
-	TBaseFrequencies(){
-		for(int i = 0; i < 4; ++i) freq[i] = 0.0;
-		wasNormalized = false;
-	};
-	void add(Base B, double & weight){
-		freq[B] += weight;
-	};
-	void addNoRef(Base B, double weight){
-		freq[B] += weight;
-	};
-	void normalize(){
-		if(!wasNormalized){
-			double sum = 0.0;
-			for(int i = 0; i < 4; ++i) sum += freq[i];
-			sum += 4.0;
-			for(int i = 0; i < 4; ++i) freq[i] = (freq[i] + 1.0) / sum;
-			wasNormalized = true;
-		}
-	};
-	void setEqualBaseFreq(){
-		for(int i = 0; i < 4; ++i) freq[i] = 0.25;
-	};
-	void clear(){
-		for(int i = 0; i < 4; ++i) freq[i] = 0.0;
-		wasNormalized = false;
-	};
-	void print() const{
-		std::cout << "freq(A) = " << freq[0] << ", freq(C) = " << freq[1] << ", freq(G) = " << freq[2] << ", freq(T) = " << freq[3] << std::endl;
-	};
-	double& operator[](int pos){
-		return freq[pos];
-	};
-};
-*/
-
 //--------------------------------------------------------------------
 // TBaseData
 //--------------------------------------------------------------------
@@ -91,6 +47,9 @@ public:
 	double weightedSum(const TBaseData & weights) const;
 	void normalize();
 };
+
+std::ostream& operator<<(std::ostream& os, const TBaseData & baseData);
+
 
 //--------------------------------------------------------------------
 // TBaseCounts
