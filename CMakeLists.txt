@@ -53,9 +53,6 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
 ################## google tests ####################
 
-add_subdirectory(BAM/tests)
-
-
 # The gtest/gtest_main targets carry header search path
 # dependencies automatically when using CMake 2.8.11 or
 # later. Otherwise we have to add them here ourselves.
