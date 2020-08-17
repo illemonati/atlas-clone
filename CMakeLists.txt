@@ -53,9 +53,6 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
 ################## google tests ####################
 
-add_subdirectory(BAM/tests)
-
-
 # The gtest/gtest_main targets carry header search path
 # dependencies automatically when using CMake 2.8.11 or
 # later. Otherwise we have to add them here ourselves.
@@ -66,7 +63,7 @@ if(CMAKE_VERSION VERSION_LESS 2.8.11)
 endif()
 
 # Now simply link against gtest or gtest_main as needed. Eg
-set(TEST_SOURCES BAM/tests/TGenomePosition_Test.cpp BAM/tests/TBed_Test.cpp BAM/tests/TBamFile_Test.cpp)
+set(TEST_SOURCES BAM/tests/TGenomePosition_Test.cpp BAM/tests/TBed_Test.cpp BAM/tests/TBamFile_Test.cpp GenotypeLikelihoods/tests/TGenotypeLikelihoodCalculator_Test.cpp)
 add_executable(testAtlas ${TEST_SOURCES})
 target_link_libraries(testAtlas PUBLIC gtest_main gmock_main VCFLib PopulationToolsLib BAMLib GenomeTasksLib GenotypeLikelihoodsLib GLFLib SimulationsLib TestsLib commonutilities bamtoolsLib ${ZLIB_LIBRARIES} ${ARMADILLO_LIBRARIES})
 
