@@ -229,10 +229,10 @@ void TRecalibrationEMEstimator::_calculate_EMWeights_epsilon(std::vector<TBaseDa
 
 		//calculate weights per base
 		for(auto& b : s){
-			TBaseData noPMD;
-			_sequencingErrorModels.calculateBaseLikelihoods(b, noPMD);
-			_pmd.calculateBaseLikelihoods(b, noPMD, EMWeights[index]);
-			EMWeights[index] *= baseFreq;
+			TBaseData PMD;
+			_pmd.calculateBaseLikelihoods(b, baseFreq, PMD);
+			_sequencingErrorModels.calculateBaseLikelihoods(b, EMWeights[index]);
+			EMWeights[index] *= PMD;
 			EMWeights[index].normalize();
 
 			//increment index
@@ -286,6 +286,7 @@ void TRecalibrationEMEstimator::_updateEM_theta_epsilon(){
 
 	// 2) update rho
 	//-------------------------
+	/*
 	_logfile->listFlushDots("Updating rho");
 	_sequencingErrorModels.prepareRhoEstimationFromEMWeights();
 	size_t index = 0;
@@ -297,19 +298,17 @@ void TRecalibrationEMEstimator::_updateEM_theta_epsilon(){
 	}
 	_sequencingErrorModels.estimateRho();
 	_logfile->done();
+	*/
 
 	// 3) Calculate Q_beta at current location
 	//-------------------------
-	/*
 	_logfile->listFlushDots("Calculating Q_beta at current location");
 	double curQ = _calculate_Q_beta(EM_weights_bbar_given_d);
 	_logfile->done();
 	_logfile->conclude("Q_beta = ", curQ);
-	*/
 
 	// 4) Use Newton-Raphson to optimize
 	//-------------------------
-	/*
 	_logfile->startIndent("Optimizing Q_beta using a Newton-Raphson algorithm:");
 
 	for(int i=0; i<_NewtonRaphsonNumIterations; ++i){
@@ -368,7 +367,6 @@ void TRecalibrationEMEstimator::_updateEM_theta_epsilon(){
 		_logfile->endIndent();
 	}
 	_logfile->endIndent();
-	*/
 	_logfile->endIndent();
 };
 

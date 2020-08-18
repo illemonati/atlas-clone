@@ -369,10 +369,7 @@ void TSequencingErrorRho::estimate(){
 	//set denominators = 0.0
 	for(int a=0; a<4; ++a){
 		rho[a][a] = 0.0;
-		std::cout << "sum = " << rho[a][A] + rho[a][C] + rho[a][G] + rho[a][T] << std::endl;
 	}
-
-	std::cout << getDefinition() << std::endl;
 };
 
 //--------------------------------------------------------------------
@@ -535,12 +532,16 @@ void TSequencingErrorModel::addToFandJacobian(const BAM::TBase & base, const TBa
 	// 3) add derivatives to F and Jacobian
 	//calculate weights
 	double weight1 = (1.0 - EM_weights_bbar_given_d.at(base.base))*(1.0 - eps) - EM_weights_bbar_given_d.at(base.base) * eps;
+
+	std::cout << "weight1 = " << weight1 << ", EM_weight = " << EM_weights_bbar_given_d.at(base.base) << ", eps = " << eps << std::endl;
+
 	double weight2 = (1.0 - eps) * eps;
 
 	//add first derivatives
 	for(TRecalibrationEMFirstDerivativesIterator it = _firstDerivatives.begin(); it != _firstDerivatives.end(); ++it){
 		//add to F
-		_F(it->index) += weight1 * it->derivative;
+		//_F(it->index) += weight1 * it->derivative;
+		_F(it->index) += 1.0;
 
 		//add to J
 		for(TRecalibrationEMFirstDerivativesIterator it2 = it; it2 != _firstDerivatives.end(); ++it2){
