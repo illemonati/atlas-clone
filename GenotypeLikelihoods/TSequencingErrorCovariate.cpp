@@ -115,11 +115,7 @@ void TSequencingErrorCovariate_quality::addFunction(const size_t FirstParameterI
 
 		//if no values are provided, set first beta = 1
 		if(values.empty()){
-			//_function->setBeta(0, 1.0);
-			_function->setBeta(0, 0.1);
-
-			std::cout << "DEBUG!!!" << std::endl;
-
+			_function->setBeta(0, 1.0);
 		}
 	} else if(type == SequencingErrorCovariateFunction_specific){
 		std::vector<uint16_t> usedQualities;

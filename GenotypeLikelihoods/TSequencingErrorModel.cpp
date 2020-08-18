@@ -540,8 +540,7 @@ void TSequencingErrorModel::addToFandJacobian(const BAM::TBase & base, const TBa
 	//add first derivatives
 	for(TRecalibrationEMFirstDerivativesIterator it = _firstDerivatives.begin(); it != _firstDerivatives.end(); ++it){
 		//add to F
-		//_F(it->index) += weight1 * it->derivative;
-		_F(it->index) += 1.0;
+		_F(it->index) += weight1 * it->derivative;
 
 		//add to J
 		for(TRecalibrationEMFirstDerivativesIterator it2 = it; it2 != _firstDerivatives.end(); ++it2){

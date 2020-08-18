@@ -52,9 +52,11 @@ public:
 	void print();
 };
 
-std::ostream& operator<<(std::ostream& os, const TBase & base);
+}; //end namespace
+
+
+std::ostream& operator<<(std::ostream& os, const BAM::TBase & base);
 std::ostream& operator<<(std::ostream& os, const Base & base);
 
-};
 
 #endif /* TBASE_H_ */

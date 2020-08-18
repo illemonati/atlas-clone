@@ -352,7 +352,7 @@ bool TCaller::_callGenotypeKnownAlleles(const TSite & site, TGenotypeLikelihoods
 
 void TCaller::call(const std::string & chr, const long pos, const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){
 	//set reference base from site
-	referenceBase = _genoMap.toBase(site.refBase());
+	referenceBase = site.refBase();
 
 	//check if there is data
 	if(site.empty() || (referenceBase == N && !_allowTriallelicSites) || !_callGenotype(site, genotypeLikelihoods))
@@ -772,7 +772,6 @@ void TCallerDiploid::callGenotypeFromMetricKnownAllelesUpdateIndex(const TGenoty
 std::string TCallerDiploid::getPerGenotypeMetricString(TGenotypeData & metric){
 	//if you have alleles R, A, B, C then the order of the PL is: RR, RA, AA | RB, AB, BB | RC, AC, BC, CC
 	//plot missing value (.) for all metrics involving the reference if the reference is N
-
 	std::string ret;
 	//first for reference base
 	if(referenceBase == N)
@@ -867,7 +866,7 @@ std::string TCallerDiploid::_getVCFGenotypeString_AI(const TSite & site, TGenoty
 TCallerMLE::TCallerMLE(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TCallerDiploid(Parameters, Logfile, RandomGenerator){
 	//caller settings
 	_callerName = "MLE Caller";
-	_filenameExtention = "_MaximumLikelihood.vcf";
+	_filenameExtention = "_maximumLikelihood.vcf";
 	Logfile->list("Will use the " + _callerName + ".");
 
 	//parse VCF fields
@@ -915,7 +914,7 @@ std::string TCallerMLE::_getVCFGenotypeString_PL(const TSite & site, TGenotypeLi
 TCallerBayes::TCallerBayes(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TCallerDiploid(Parameters, Logfile, RandomGenerator){
 	//caller settings
 	_callerName = "Bayesian Caller";
-	_filenameExtention = "_MaximumAPosteriori.vcf";
+	_filenameExtention = "_maximumAPosteriori.vcf";
 	_usesPrior = true;
 	Logfile->list("Will use the " + _callerName + ".");
 
@@ -999,7 +998,7 @@ TCall::TCall(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGe
 	//open output file
 	std::string sampleName = Parameters.getParameterStringWithDefault("indName", _outputName);
 	_logfile->list("Will use sample name '" + sampleName + "'. (parameter 'sampleName')");
-	_caller->openVCF(_outputName, sampleName, _logfile);
+	_caller->openVCF(_outputName + "_calls", sampleName, _logfile);
 
 	//limit to sites with known alleles?
 	if(Parameters.parameterExists("alleles")){

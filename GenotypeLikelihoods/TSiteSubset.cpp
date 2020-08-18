@@ -49,7 +49,7 @@ void TSiteSubset::_readFile(const std::string Filename, const BAM::TChromosomes 
 	Logfile->listFlushTime("Reading sites to be used from '" + Filename + "' ...");
 
 	//open file
-	TInputFile in(Filename, false);
+	TInputFile in(Filename, 4);
 
 	//read file and add sites
 	std::vector<std::string> line;
@@ -79,7 +79,7 @@ void TSiteSubset::_readFile(const std::string Filename, const BAM::TChromosomes 
 	Logfile->listFlushTime("Reading sites to be used from '" + Filename + "' ...");
 
 	//open file
-	TInputFile in(Filename, false);
+	TInputFile in(Filename, 4);
 
 	//conflicts with ref
 	bool conflictsFound = false;

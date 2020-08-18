@@ -818,7 +818,7 @@ void TPostMortemDamage::initialize(TParameters & params, BAM::TReadGroups & Read
 	} else if(params.parameterExists("pmdFile")){
 		initializeFromFile(ReadGroups, params.getParameterString("pmdFile"), logfile);
 	} else {
-		logfile->list("Assuming there is no PMD in the data.");
+		logfile->list("Assuming there is no PMD in the data. (use 'pmd' to add PMD definitions)");
 	}
 };
 
