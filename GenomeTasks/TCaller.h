@@ -99,7 +99,7 @@ protected:
 
 	template <typename T> uint8_t _pickIndexWithHighestMetric(const T & metric){
 		//find maximum
-		double maxMetric = metric.max();
+		double maxMetric = *std::max(metric.cbegin(), metric.cend());
 
 		//get vec of all index at maximum
 		std::vector<uint8_t> vec;
@@ -114,12 +114,12 @@ protected:
 
 	template <typename T> uint8_t _pickIndexWithSecondHighestMetric(const T & metric, const uint8_t excludeIndex){
 		//find maximum
-		double max = metric.max();
+		double maxMetric = *std::max(metric.cbegin(), metric.cend());
 
 		//get vec of all index at maximum
 		std::vector<uint8_t> vec;
 		for(uint8_t i=0; i<metric.size(); ++i){
-			if(i != excludeIndex && metric[i] == max)
+			if(i != excludeIndex && metric[i] == maxMetric)
 				vec.push_back(i);
 		}
 

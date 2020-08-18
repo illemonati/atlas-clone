@@ -578,23 +578,34 @@ bool TCallerConsensify::_callGenotype(const TSite & site, TGenotypeLikelihoods &
 };
 
 bool TCallerConsensify::_callGenotypeKnownAlleles(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){
+	if(site.depth() > _downsampleDepth){
+		throw std::runtime_error("bool TCallerConsensify::_callGenotype(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods): depth > _downsampleDepth!");
+	}
+
 	//get per allele counts
 	_countAlleles(site);
 
-	if(_alleleCounts.at(referenceBase) > _alleleCounts.at(_altAlleles[0])){
-		_calledGenotype = "0";
-	} else if(_alleleCounts.at(referenceBase) < _alleleCounts.at(_altAlleles[0])){
-		_calledGenotype = "1";
-	} else {
-		//equal counts: pick at random
-		if(_randomGenerator->getRand() < 0.5)
-			_calledGenotype = "0";
-		else
-			_calledGenotype = "1";
+	//call majority
+	uint8_t majorityIndex = _pickIndexWithHighestMetric(_alleleCounts);
+
+	//check if we have sufficient depth to call
+	if(_alleleCounts[majorityIndex] < _minMajorityDepth){
+		return false;
 	}
 
-	return true;
+	//check if allele fits
+	//NOTE: _allowKnownAllelesCallsDifferentFromBestCall has no effect
+	if(majorityIndex == referenceBase){
+		_calledGenotype = "0";
+		return true;
+	} else if(majorityIndex == _altAlleles[0]){
+		_calledGenotype = "1";
+		return true;
+	} else {
+		return false;
+	}
 };
+
 /////////////////////////////////////////////////////////
 // TCallerAllelePresence
 /////////////////////////////////////////////////////////

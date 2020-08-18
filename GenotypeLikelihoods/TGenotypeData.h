@@ -17,6 +17,32 @@ namespace GenotypeLikelihoods{
 
 #define _MINLIKELIHOODVALUE 1.0E-200
 
+//TODO: use template base class for all
+
+//--------------------------------------------------------------------
+// TData_base
+//--------------------------------------------------------------------
+
+/*
+template <typename T, > class TData_base{
+protected:
+	T _data;
+
+public:
+
+	template <typename T> double& operator[](const T & index){ return _data[index];};
+	template <typename T> const double& operator[](const T & index){ return _data[index];};
+
+	void operator=(const TData_base & other);
+	void operator+=(const TData_base & other);
+	void operator*=(const TData_base & other);
+
+	size_t size() const { return _data.size(); };
+	double min() const;
+	double max() const;
+};
+*/
+
 //--------------------------------------------------------------------
 // TBaseData
 //--------------------------------------------------------------------
@@ -51,10 +77,11 @@ public:
 	double max() const;
 	double weightedSum(const TBaseData & weights) const;
 	void normalize();
+
 	std::array<double, 4>::iterator begin(){ return _data.begin(); };
-	const std::array<double, 4>::const_iterator cbegin(){ return _data.cbegin(); };
+	const std::array<double, 4>::const_iterator cbegin() const { return _data.cbegin(); };
 	std::array<double, 4>::iterator end(){ return _data.end(); };
-	const std::array<double, 4>::const_iterator cend(){ return _data.cend(); };
+	const std::array<double, 4>::const_iterator cend() const { return _data.cend(); };
 };
 
 std::ostream& operator<<(std::ostream& os, const TBaseData & baseData);
@@ -66,16 +93,18 @@ std::ostream& operator<<(std::ostream& os, const TBaseData & baseData);
 //--------------------------------------------------------------------
 class TBaseCounts{
 private:
-	uint32_t _counts[5];
+	std::array<uint32_t, 5> _counts;
 public:
 	TBaseCounts();
 
 	void reset();
 	uint32_t& operator[](const Base base){ return _counts[base]; };
 	uint32_t& operator[](const uint8_t base){ return _counts[base]; };
+	const uint32_t& operator[](const Base base) const { return _counts[base]; };
+	const uint32_t& operator[](const uint8_t base) const { return _counts[base]; };
 	uint32_t at(const Base base) const{ return _counts[base]; };
 	uint32_t at(const uint8_t base) const{ return _counts[base]; };
-	uint32_t* data(){ return _counts; };
+	uint32_t* data(){ return _counts.data(); };
 
 	void add(const Base base){ ++_counts[base]; };
 	uint32_t size() const;
@@ -83,6 +112,11 @@ public:
 	void fillFrequencies(TBaseData & freq);
 	void fillCumulativeFrequencies(TBaseData & freq);
 	void downsample(const uint32_t & max, TRandomGenerator & RandomGenerator);
+
+	std::array<uint32_t, 5>::iterator begin(){ return _counts.begin(); };
+	const std::array<uint32_t, 5>::const_iterator cbegin() const { return _counts.cbegin(); };
+	std::array<uint32_t, 5>::iterator end(){ return _counts.end(); };
+	const std::array<uint32_t, 5>::const_iterator cend() const { return _counts.cend(); };
 };
 
 //--------------------------------------------------------------------
@@ -103,6 +137,8 @@ public:
 	void operator=(const TGenotypeData & other);
 	double& operator[](const Genotype genotype){ return _data[genotype]; };
 	double& operator[](const uint8_t genotype){ return _data[genotype]; };
+	const double& operator[](const Genotype genotype) const { return _data[genotype]; };
+	const double& operator[](const uint8_t genotype) const { return _data[genotype]; };
 	double at(const Genotype genotype) const { return _data[genotype]; };
 	double at(const uint8_t genotype) const { return _data[genotype]; };
 	double* pointerToData(){ return _data.data(); };
@@ -116,9 +152,9 @@ public:
 	virtual double weightedSum(const TGenotypeData & weights);
 	void normalize();
 	std::array<double, 10>::iterator begin(){ return _data.begin(); };
-	std::array<double, 10>::const_iterator cbegin(){ return _data.cbegin(); };
+	std::array<double, 10>::const_iterator cbegin() const{ return _data.cbegin(); };
 	std::array<double, 10>::iterator end(){ return _data.end(); };
-	std::array<double, 10>::const_iterator cend(){ return _data.cend(); };
+	std::array<double, 10>::const_iterator cend() const{ return _data.cend(); };
 
 	virtual void addNames(std::vector<std::string> & vec, const TGenotypeMap & genoMap) const;
 	void write(TOutputFile & out) const;
