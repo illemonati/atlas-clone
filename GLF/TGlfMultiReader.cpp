@@ -178,7 +178,7 @@ void TGlfMultiReaderVcf::writeDiploidIndividualToVCF(TMultiGLFDataSample & sampl
 		if(sample.genotypeLikelihoodsGLF[altHomIndex] == minQual) mleGenotypes.push_back(4);
 
 		//write MLE genoytpe
-		int mleGeno = mleGenotypes[randomGenerator->pickOne(mleGenotypes.size())];
+		int mleGeno = mleGenotypes[randomGenerator->sample(mleGenotypes.size())];
 		vcf << '\t' << genotypeStrings[mleGeno] << ':';
 
 		//write genotype quality

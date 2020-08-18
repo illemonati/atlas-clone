@@ -78,6 +78,14 @@ double TBaseData::sum() const{
 	return _data[A] + _data[C] + _data[G] + _data[T];
 };
 
+double TBaseData::min() const{
+	return *std::min_element(_data.begin(), _data.end());
+};
+
+double TBaseData::max() const{
+	return *std::max_element(_data.begin(), _data.end());
+};
+
 double TBaseData::weightedSum(const TBaseData & weights) const{
 	return   _data[A] * weights.at(A)
 		   + _data[C] * weights.at(C)
@@ -212,8 +220,16 @@ void TGenotypeData::add(const TGenotypeData & other){
 	_data[TT] += other.at(TT);
 };
 
-double TGenotypeData::sum(){
+double TGenotypeData::sum() const{
 	return _data[AA] + _data[AC] + _data[AG] + _data[AT] + _data[CC] + _data[CG] + _data[CT] + _data[GG] + _data[GT] + _data[TT];
+};
+
+double TGenotypeData::min() const{
+	return *std::min_element(_data.begin(), _data.end());
+};
+
+double TGenotypeData::max() const{
+	return *std::max_element(_data.begin(), _data.end());
 };
 
 double TGenotypeData::weightedSum(const TGenotypeData & weights){

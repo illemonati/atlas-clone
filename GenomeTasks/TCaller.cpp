@@ -24,6 +24,7 @@ TCaller::TCaller(TParameters & Parameters, TLog* Logfile, TRandomGenerator* Rand
 	_printSitesWithNoData = false;
 	_printAltIfHomoRef = true;
 	_allowTriallelicSites = true;
+	_allowKnownAllelesCallsDifferentFromBestCall = true;
 	_missingGenotype = ".";
 
 	//vcf file
@@ -140,6 +141,14 @@ void TCaller::initializeOutput(TParameters & Parameters, TLog* Logfile){
 	} else {
 		_allowTriallelicSites = true;
 		Logfile->list("Will allow for genotypes with two alternative alleles. (use 'noTriallelic' to suppress)");
+	}
+
+	if(Parameters.parameterExists("noCallsViolatingBest")){
+		_allowKnownAllelesCallsDifferentFromBestCall = false;
+		Logfile->list("Will not call genotypes from known alleles that conflict with best call across all genotypes. (parameter 'noCallsViolatingBest')");
+	} else {
+		_allowKnownAllelesCallsDifferentFromBestCall = true;
+		Logfile->list("Will call genotypes from known alleles even if they differ from best call across all genotypes. (use 'noCallsViolatingBest' to suppress)");
 	}
 }
 
@@ -261,7 +270,6 @@ std::string TCaller::_getVCFGenotypeString_AD(const TSite & site, TGenotypeLikel
 		ret += ',' + toString(_alleleCounts[a]);
 	return ret;
 };
-
 
 //-------------------------------------------------------------------------------------------
 // writing VCF
@@ -403,7 +411,7 @@ TCallerRandomBase::TCallerRandomBase(TParameters & Parameters, TLog* Logfile, TR
 
 bool TCallerRandomBase::_callGenotype(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){
 	//randomly pick a base
-	Base allele = site.at(_randomGenerator->pickOne(site.depth())).base;
+	Base allele = site.at(_randomGenerator->sample(site.depth())).base;
 
 	//decide on alt
 	if(allele == referenceBase){
@@ -417,18 +425,31 @@ bool TCallerRandomBase::_callGenotype(const TSite & site, TGenotypeLikelihoods &
 };
 
 bool TCallerRandomBase::_callGenotypeKnownAlleles(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){
-	//randomly pick a base among known alleles
-	_countAlleles(site);
-	double probRef = (double) _alleleCounts[referenceBase] / (double) (_alleleCounts[referenceBase] + _alleleCounts[_altAlleles[0]]);
+	if(_allowKnownAllelesCallsDifferentFromBestCall){
+		//pick among known alleles only
+		_countAlleles(site);
+		double probRef = (double) _alleleCounts[referenceBase] / (double) (_alleleCounts[referenceBase] + _alleleCounts[_altAlleles[0]]);
 
-	//pick among known alleles
-	if(_randomGenerator->getRand() < probRef){
-		_calledGenotype = "0";
+		//pick among known alleles
+		if(_randomGenerator->getRand() < probRef){
+			_calledGenotype = "0";
+		} else {
+			_calledGenotype = "1";
+		}
+		return true;
 	} else {
-		_calledGenotype = "1";
+		//pick among all alleles and check
+		Base allele = site.at(_randomGenerator->sample(site.depth())).base;
+		if(allele == referenceBase){
+			_calledGenotype = "0";
+			return true;
+		} else if(allele == _altAlleles[0]){
+			_calledGenotype = "1";
+			return true;
+		} else {
+			return false;
+		}
 	}
-
-	return true;
 };
 
 /////////////////////////////////////////////////////////
@@ -442,12 +463,6 @@ TCallerMajorityBase::TCallerMajorityBase(TParameters & Parameters, TLog* Logfile
 
 	//parse VCF fields
 	initializeOutput(Parameters, Logfile);
-
-	//do we downsample?
-	_downsampleDepth = Parameters.getParameterIntWithDefault("downsampleDepth", 0);
-	if(_downsampleDepth > 0){
-		Logfile->list("Will downsample reads to " + toString(_downsampleDepth) + "x prior to calling. (parameter 'downsampleDepth')");
-	}
 };
 
 bool TCallerMajorityBase::_callGenotype(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){
@@ -455,25 +470,14 @@ bool TCallerMajorityBase::_callGenotype(const TSite & site, TGenotypeLikelihoods
 	_countAlleles(site);
 
 	//call majority
-	uint8_t majorityIndex;
-	if(_downsampleDepth == 0 || site.depth() == _downsampleDepth){
-		majorityIndex = _pickIndexWithHighestMetric(_alleleCounts.data(), 4);
-	} else {
-		if(site.depth() < _downsampleDepth){
-			return false;
-		} else {
-			TBaseCounts downsample = _alleleCounts;
-			downsample.downsample(_downsampleDepth, *_randomGenerator);
-			majorityIndex = _pickIndexWithHighestMetric(downsample.data(), 4);
-		}
-	}
+	uint8_t majorityIndex = _pickIndexWithHighestMetric(_alleleCounts);
 
 	//decide on alt
 	if(majorityIndex == referenceBase){
 		_calledGenotype = "0";
 
 		//find second most common as alternative allele
-		uint8_t second = _pickIndexWithSecondHighestMetric(_alleleCounts.data(), 4, majorityIndex);
+		uint8_t second = _pickIndexWithSecondHighestMetric(_alleleCounts, majorityIndex);
 		_altAlleles.push_back(_genoMap.toBase(second));
 	} else {
 		_altAlleles.push_back(_genoMap.toBase(majorityIndex));
@@ -483,10 +487,103 @@ bool TCallerMajorityBase::_callGenotype(const TSite & site, TGenotypeLikelihoods
 	return true;
 };
 
-void TCallerMajorityBase::_callGenotypeKnownAlleles(const TBaseCounts & AlleleCounts){
-	if(AlleleCounts.at(referenceBase) > AlleleCounts.at(_altAlleles[0])){
+bool TCallerMajorityBase::_callGenotypeKnownAlleles(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){
+	//get per allele counts
+	_countAlleles(site);
+
+	if(_allowKnownAllelesCallsDifferentFromBestCall){
+		//pick among known alleles only
+		if(_alleleCounts.at(referenceBase) > _alleleCounts.at(_altAlleles[0])){
+			_calledGenotype = "0";
+		} else if(_alleleCounts.at(referenceBase) < _alleleCounts.at(_altAlleles[0])){
+			_calledGenotype = "1";
+		} else {
+			//equal counts: pick at random
+			if(_randomGenerator->getRand() < 0.5){
+				_calledGenotype = "0";
+			} else {
+				_calledGenotype = "1";
+			}
+		}
+		return true;
+	} else {
+		//pick among all alleles and check
+		//call majority
+		uint8_t majorityIndex = _pickIndexWithHighestMetric(_alleleCounts);
+
+		//decide on call
+		if(majorityIndex == referenceBase){
+			_calledGenotype = "0";
+			return true;
+		} else if(majorityIndex == _altAlleles[0]){
+			_calledGenotype = "1";
+			return true;
+		} else {
+			return false;
+		}
+	}
+};
+
+/////////////////////////////////////////////////////////
+// TCallerConsensify
+/////////////////////////////////////////////////////////
+TCallerConsensify::TCallerConsensify(const uint32_t & DownsampleDepth, TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TCaller(Parameters, Logfile, RandomGenerator){
+	//general caller settings
+	_callerName = "Consensify Base Caller";
+	_filenameExtention = "_consensifyBase.vcf";
+	Logfile->list("Will use the " + _callerName + ".");
+
+	//parse VCF fields
+	initializeOutput(Parameters, Logfile);
+
+	//check downsample depth
+	if(DownsampleDepth < 1){
+		throw "Consensify caller requires downsampling of reads! Use 'downsample' to specify.";
+	}
+	_downsampleDepth = DownsampleDepth;
+	_minMajorityDepth = ceil(_downsampleDepth / 2.0);
+
+	Logfile->list("Will call based on a majority out of " + toString(_downsampleDepth) + " bases. (parameter 'downsample')");
+};
+
+bool TCallerConsensify::_callGenotype(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){
+	if(site.depth() > _downsampleDepth){
+		throw std::runtime_error("bool TCallerConsensify::_callGenotype(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods): depth > _downsampleDepth!");
+	}
+
+	//get per allele counts
+	_countAlleles(site);
+
+	//call majority
+	uint8_t majorityIndex = _pickIndexWithHighestMetric(_alleleCounts);
+
+	//check if we have sufficient depth to call
+	if(_alleleCounts[majorityIndex] < _minMajorityDepth){
+		return false;
+	}
+
+	//decide on alt
+	if(majorityIndex == referenceBase){
 		_calledGenotype = "0";
-	} else if(AlleleCounts.at(referenceBase) < AlleleCounts.at(_altAlleles[0])){
+
+		//find second most common as alternative allele
+		uint8_t second = _pickIndexWithSecondHighestMetric(_alleleCounts, majorityIndex);
+		_altAlleles.push_back(_genoMap.toBase(second));
+	} else {
+		_altAlleles.push_back(_genoMap.toBase(majorityIndex));
+		_calledGenotype = "1";
+	}
+
+	return true;
+};
+
+bool TCallerConsensify::_callGenotypeKnownAlleles(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){
+	//get per allele counts
+	_countAlleles(site);
+
+	if(_alleleCounts.at(referenceBase) > _alleleCounts.at(_altAlleles[0])){
+		_calledGenotype = "0";
+	} else if(_alleleCounts.at(referenceBase) < _alleleCounts.at(_altAlleles[0])){
 		_calledGenotype = "1";
 	} else {
 		//equal counts: pick at random
@@ -495,27 +592,9 @@ void TCallerMajorityBase::_callGenotypeKnownAlleles(const TBaseCounts & AlleleCo
 		else
 			_calledGenotype = "1";
 	}
-};
-
-bool TCallerMajorityBase::_callGenotypeKnownAlleles(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){
-	//get per allele counts
-	_countAlleles(site);
-
-	//now pick major among known alleles
-	if(_downsampleDepth == 0 || site.depth() == _downsampleDepth){
-		_callGenotypeKnownAlleles(_alleleCounts);
-	} else {
-		if(site.depth() < _downsampleDepth){
-			return false;
-		}
-		TBaseCounts downsample = _alleleCounts;
-		downsample.downsample(_downsampleDepth, *_randomGenerator);
-		_callGenotypeKnownAlleles(downsample);
-	}
 
 	return true;
 };
-
 /////////////////////////////////////////////////////////
 // TCallerAllelePresence
 /////////////////////////////////////////////////////////
@@ -552,14 +631,14 @@ bool TCallerAllelePresence::_callGenotype(const TSite & site, TGenotypeLikelihoo
 	fillPosteriors(genotypeLikelihoods);
 
 	//find MAP
-	MAP = _genoMap.toBase(_pickIndexWithHighestMetric(allelePostProb, 4));
+	MAP = _genoMap.toBase(_pickIndexWithHighestMetric(allelePostProb));
 
 	//decide on alt
 	if(MAP == referenceBase){
 		_calledGenotype = "0";
 
 		//find second most common as alternative allele
-		uint8_t second = _pickIndexWithSecondHighestMetric(allelePostProb, 4, MAP);
+		uint8_t second = _pickIndexWithSecondHighestMetric(allelePostProb, MAP);
 		_altAlleles.push_back(_genoMap.toBase(second));
 	} else {
 		_altAlleles.push_back(MAP);
@@ -576,11 +655,20 @@ bool TCallerAllelePresence::_callGenotypeKnownAlleles(const TSite & site, TGenot
 	fillPosteriors(genotypeLikelihoods);
 
 	//find MAP
-	double allelePostProbKnownAlleles[2];
-	allelePostProbKnownAlleles[0] = allelePostProb[referenceBase];
-	allelePostProbKnownAlleles[1] = allelePostProb[_altAlleles[0]];
+	uint8_t highest;
+	if(allelePostProb[referenceBase] > allelePostProb[_altAlleles[0]]){
+		highest = 0;
+	} else if(allelePostProb[referenceBase] > allelePostProb[_altAlleles[0]]){
+		highest = 1;
+	} else {
+		highest = _randomGenerator->sample(2);
+	}
 
-	int highest = _pickIndexWithHighestMetric(allelePostProbKnownAlleles, 2);
+	if(!_allowKnownAllelesCallsDifferentFromBestCall){
+		if(allelePostProb[highest] < allelePostProb.max()){
+			return false;
+		}
+	}
 
 	//decide on genotype (index 0 is ref base)
 	if(highest == 0){
@@ -625,8 +713,8 @@ void TCallerDiploid::_clearAfterCall(){
 };
 
 void TCallerDiploid::callGenotypeFromMetric(TGenotypeData & metric){
-	indexOfMax = _pickIndexWithHighestMetric(metric.pointerToData(), 10);
-	indexOfSecond = _pickIndexWithSecondHighestMetric(metric.pointerToData(), 10, indexOfMax);
+	indexOfMax = _pickIndexWithHighestMetric(metric);
+	indexOfSecond = _pickIndexWithSecondHighestMetric(metric, indexOfMax);
 
 	//decide on alternative alleles
 	if(_genoMap.genotypeToBase[indexOfMax][0] == referenceBase){
@@ -736,10 +824,10 @@ void TCallerDiploid::callGenotypeFromMetricKnownAlleles(const TGenotypeData & me
 		vec.push_back("1/1");
 	}
 
-	_calledGenotype = vec[_randomGenerator->pickOne(vec.size())];
+	_calledGenotype = vec[_randomGenerator->sample(vec.size())];
 };
 
-void TCallerDiploid::callGenotypeFromMetricKnownAllelesUpdateIndex(const TGenotypeData & metric){
+bool TCallerDiploid::callGenotypeFromMetricKnownAllelesUpdateIndex(const TGenotypeData & metric){
 	//initialize
 	std::vector<std::string> gt;
 	gt.push_back("0/0");
@@ -756,17 +844,25 @@ void TCallerDiploid::callGenotypeFromMetricKnownAllelesUpdateIndex(const TGenoty
 	indecesKnownAlleleGenotypes[1] = het;
 	indecesKnownAlleleGenotypes[2] = homAlt;
 
-	double metricKnownAlleles[3];
+	std::array<double, 3> metricKnownAlleles;
 	metricKnownAlleles[0] = metric.at(homRef);
 	metricKnownAlleles[1] = metric.at(het);
 	metricKnownAlleles[2] = metric.at(homAlt);
 
-	int best = _pickIndexWithHighestMetric(metricKnownAlleles, 3);
-	int secondBest = _pickIndexWithSecondHighestMetric(metricKnownAlleles, 3, indexOfMax);
+	uint8_t best = _pickIndexWithHighestMetric(metricKnownAlleles);
+	uint8_t secondBest = _pickIndexWithSecondHighestMetric(metricKnownAlleles, indexOfMax);
 
 	indexOfMax = indecesKnownAlleleGenotypes[best];
 	_calledGenotype = gt[best];
 	indexOfSecond = indecesKnownAlleleGenotypes[secondBest];
+
+	if(!_allowKnownAllelesCallsDifferentFromBestCall){
+		//check if call matches metric of best call
+		if(metric[indexOfMax] < metric.max()){
+			return false;
+		}
+	}
+	return true;
 };
 
 std::string TCallerDiploid::getPerGenotypeMetricString(TGenotypeData & metric){
@@ -881,8 +977,7 @@ bool TCallerMLE::_callGenotype(const TSite & site, TGenotypeLikelihoods & genoty
 };
 
 bool TCallerMLE::_callGenotypeKnownAlleles(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){
-	callGenotypeFromMetricKnownAllelesUpdateIndex(genotypeLikelihoods);
-	return true;
+	return callGenotypeFromMetricKnownAllelesUpdateIndex(genotypeLikelihoods);
 };
 
 std::string TCallerMLE::_getVCFGenotypeString_GQ(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){
@@ -943,8 +1038,7 @@ bool TCallerBayes::_callGenotypeKnownAlleles(const TSite & site, TGenotypeLikeli
 	posterior.fill(genotypeLikelihoods, *_genotypePrior);
 
 	//call
-	callGenotypeFromMetricKnownAllelesUpdateIndex(posterior);
-	return true;
+	return callGenotypeFromMetricKnownAllelesUpdateIndex(posterior);
 };
 
 std::string TCallerBayes::_getVCFGenotypeString_GQ(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){
@@ -972,6 +1066,8 @@ TCall::TCall(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGe
 		_caller = new TCallerRandomBase(Parameters, _logfile, _randomGenerator);
 	} else if(method == "majorityBase"){
 		_caller = new TCallerMajorityBase(Parameters, _logfile, _randomGenerator);
+	} else if(method == "consensify"){
+		_caller = new TCallerConsensify(_downsampleDepth, Parameters, _logfile, _randomGenerator);
 	} else if(method == "allelePresence"){
 		_caller = new TCallerAllelePresence(Parameters, _logfile, _randomGenerator);
 	} else if(method == "MLE"){

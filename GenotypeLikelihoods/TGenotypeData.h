@@ -22,7 +22,7 @@ namespace GenotypeLikelihoods{
 //--------------------------------------------------------------------
 class TBaseData{
 private:
-	double _data[4];
+	std::array<double, 4> _data;
 
 public:
 	TBaseData();
@@ -32,9 +32,12 @@ public:
 	void operator+=(const TBaseData & other);
 	void operator*=(const TBaseData & other);
 
-	double* data(){ return _data; };
+	size_t size() const { return 4; };
+	double* data(){ return _data.data(); };
 	double& operator[](const Base base){ return _data[base];};
 	double& operator[](const uint8_t base){ return _data[base];};
+	const double& operator[](const Base base) const { return _data[base];};
+	const double& operator[](const uint8_t base) const { return _data[base];};
 	double at(const Base base) const{ return _data[base]; };
 	double at(const uint8_t base) const{ return _data[base]; };
 
@@ -44,8 +47,14 @@ public:
 	void add(const TBaseData & other);
 	void add(const Base base, const double value);
 	double sum() const;
+	double min() const;
+	double max() const;
 	double weightedSum(const TBaseData & weights) const;
 	void normalize();
+	std::array<double, 4>::iterator begin(){ return _data.begin(); };
+	const std::array<double, 4>::const_iterator cbegin(){ return _data.cbegin(); };
+	std::array<double, 4>::iterator end(){ return _data.end(); };
+	const std::array<double, 4>::const_iterator cend(){ return _data.cend(); };
 };
 
 std::ostream& operator<<(std::ostream& os, const TBaseData & baseData);
@@ -82,7 +91,7 @@ public:
 //--------------------------------------------------------------------
 class TGenotypeData{
 protected:
-	double _data[10];
+	std::array<double, 10> _data;
 
 	void _copyFrom(const TGenotypeData & other);
 
@@ -90,19 +99,26 @@ public:
 	TGenotypeData(){};
 	virtual ~TGenotypeData(){};
 
+	size_t size() const { return 10; };
 	void operator=(const TGenotypeData & other);
 	double& operator[](const Genotype genotype){ return _data[genotype]; };
 	double& operator[](const uint8_t genotype){ return _data[genotype]; };
 	double at(const Genotype genotype) const { return _data[genotype]; };
 	double at(const uint8_t genotype) const { return _data[genotype]; };
-	double* pointerToData(){ return _data; };
+	double* pointerToData(){ return _data.data(); };
 
 	void set(const double val);
 	virtual void reset();
 	void add(const TGenotypeData & other);
-	double sum();
+	double sum() const;
+	double min() const;
+	double max() const;
 	virtual double weightedSum(const TGenotypeData & weights);
 	void normalize();
+	std::array<double, 10>::iterator begin(){ return _data.begin(); };
+	std::array<double, 10>::const_iterator cbegin(){ return _data.cbegin(); };
+	std::array<double, 10>::iterator end(){ return _data.end(); };
+	std::array<double, 10>::const_iterator cend(){ return _data.cend(); };
 
 	virtual void addNames(std::vector<std::string> & vec, const TGenotypeMap & genoMap) const;
 	void write(TOutputFile & out) const;
