@@ -411,7 +411,7 @@ TCallerRandomBase::TCallerRandomBase(TParameters & Parameters, TLog* Logfile, TR
 
 bool TCallerRandomBase::_callGenotype(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){
 	//randomly pick a base
-	Base allele = site.at(_randomGenerator->sample(site.depth())).base;
+	Base allele = site[_randomGenerator->sample(site.depth())].base;
 
 	//decide on alt
 	if(allele == referenceBase){
@@ -439,7 +439,7 @@ bool TCallerRandomBase::_callGenotypeKnownAlleles(const TSite & site, TGenotypeL
 		return true;
 	} else {
 		//pick among all alleles and check
-		Base allele = site.at(_randomGenerator->sample(site.depth())).base;
+		Base allele = site[_randomGenerator->sample(site.depth())].base;
 		if(allele == referenceBase){
 			_calledGenotype = "0";
 			return true;
@@ -493,9 +493,9 @@ bool TCallerMajorityBase::_callGenotypeKnownAlleles(const TSite & site, TGenotyp
 
 	if(_allowKnownAllelesCallsDifferentFromBestCall){
 		//pick among known alleles only
-		if(_alleleCounts.at(referenceBase) > _alleleCounts.at(_altAlleles[0])){
+		if(_alleleCounts[referenceBase] > _alleleCounts[_altAlleles[0]]){
 			_calledGenotype = "0";
-		} else if(_alleleCounts.at(referenceBase) < _alleleCounts.at(_altAlleles[0])){
+		} else if(_alleleCounts[referenceBase] < _alleleCounts[_altAlleles[0]]){
 			_calledGenotype = "1";
 		} else {
 			//equal counts: pick at random
@@ -819,19 +819,19 @@ void TCallerDiploid::callGenotypeFromMetricKnownAlleles(const TGenotypeData & me
 	int homAlt = _genoMap.toGenotype(_altAlleles[0], _altAlleles[0]);
 
 	//find max
-	double max = metric.at(homRef);
-	if(metric.at(het) > max) max = metric.at(het);
-	if(metric.at(homAlt) > max) max = metric.at(homAlt);
+	double max = metric[homRef];
+	if(metric[het] > max) max = metric[het];
+	if(metric[homAlt] > max) max = metric[homAlt];
 
 	//fill vector of all
 	std::vector<std::string> vec;
-	if(metric.at(homRef) == max){
+	if(metric[homRef] == max){
 		vec.push_back("0/0");
 	}
-	if(metric.at(het) == max){
+	if(metric[het] == max){
 		vec.push_back("0/1");
 	}
-	if(metric.at(homAlt) == max){
+	if(metric[homAlt] == max){
 		vec.push_back("1/1");
 	}
 
@@ -856,9 +856,9 @@ bool TCallerDiploid::callGenotypeFromMetricKnownAllelesUpdateIndex(const TGenoty
 	indecesKnownAlleleGenotypes[2] = homAlt;
 
 	std::array<double, 3> metricKnownAlleles;
-	metricKnownAlleles[0] = metric.at(homRef);
-	metricKnownAlleles[1] = metric.at(het);
-	metricKnownAlleles[2] = metric.at(homAlt);
+	metricKnownAlleles[0] = metric[homRef];
+	metricKnownAlleles[1] = metric[het];
+	metricKnownAlleles[2] = metric[homAlt];
 
 	uint8_t best = _pickIndexWithHighestMetric(metricKnownAlleles);
 	uint8_t secondBest = _pickIndexWithSecondHighestMetric(metricKnownAlleles, indexOfMax);

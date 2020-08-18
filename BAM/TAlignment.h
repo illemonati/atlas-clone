@@ -119,7 +119,7 @@ public:
 	const TCigar& cigar() const{ return _cigar; };
 
 	TBase& operator[](const uint32_t internalPos){ return _bases[internalPos]; };
-	const TBase& at(const uint32_t internalPos) const { return _bases[internalPos]; };
+	const TBase& operator[](const uint32_t internalPos) const { return _bases[internalPos]; };
 
 	std::string sequence(const GenotypeLikelihoods::TGenotypeMap & genoMap, const TQualityMap & qualMap) const;
 	std::string qualities(const GenotypeLikelihoods::TGenotypeMap & genoMap, const TQualityMap & qualMap) const;

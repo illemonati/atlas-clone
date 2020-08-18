@@ -502,7 +502,7 @@ void TThetaEstimator::setTheta(const double Theta){
 
 void TThetaEstimator::setBaseFreq(const GenotypeLikelihoods::TBaseData & BaseFreq){
 	for(int i=0; i<4; ++i)
-		theta.baseFreq[i] = BaseFreq.at(i);
+		theta.baseFreq[i] = BaseFreq[i];
 }
 
 void TThetaEstimator::addToHeader(std::vector<std::string> & header, std::string prefix){

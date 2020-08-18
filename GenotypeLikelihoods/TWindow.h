@@ -80,6 +80,7 @@ public:
 
 	//getters
 	TSite& operator[](uint32_t internalPos){ return _sites[internalPos]; };
+	const TSite& operator[](uint32_t internalPos) const { return _sites[internalPos]; };
 	const std::string& chrName() const{ return _chrName; };
 	BAM::TGenomePosition position(uint32_t internalPos) const{ return _from + internalPos; };
 	uint32_t positionOnChr(uint32_t internalPos) const{ return _from.position() + internalPos; };

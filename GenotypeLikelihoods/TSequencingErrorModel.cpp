@@ -328,21 +328,21 @@ void TSequencingErrorRho::prepareEstimationFromEMWeights(){
 
 void TSequencingErrorRho::addBaseForEstimation(const Base & base, const TBaseData & EMWeights){
 	if(base == A){
-		rho[C][A] += EMWeights.at(C);
-		rho[G][A] += EMWeights.at(G);
-		rho[T][A] += EMWeights.at(T);
+		rho[C][A] += EMWeights[C];
+		rho[G][A] += EMWeights[G];
+		rho[T][A] += EMWeights[T];
 	} else if(base == C){
-		rho[A][C] += EMWeights.at(A);
-		rho[G][C] += EMWeights.at(G);
-		rho[T][C] += EMWeights.at(T);
+		rho[A][C] += EMWeights[A];
+		rho[G][C] += EMWeights[G];
+		rho[T][C] += EMWeights[T];
 	} else if(base == G){
-		rho[A][G] += EMWeights.at(A);
-		rho[C][G] += EMWeights.at(C);
-		rho[T][G] += EMWeights.at(T);
+		rho[A][G] += EMWeights[A];
+		rho[C][G] += EMWeights[C];
+		rho[T][G] += EMWeights[T];
 	} else {
-		rho[A][T] += EMWeights.at(A);
-		rho[C][T] += EMWeights.at(C);
-		rho[G][T] += EMWeights.at(G);
+		rho[A][T] += EMWeights[A];
+		rho[C][T] += EMWeights[C];
+		rho[G][T] += EMWeights[G];
 	}
 };
 
@@ -507,7 +507,7 @@ void TSequencingErrorModel::addToQ(const BAM::TBase & base, const TBaseData & EM
 		//get error rate
 		double eps = getErrorRate(base);
 		//calculate sum_bbar [ Ind(bbar=d)log(1-eps) + Ind(bbar!=d)log(eps) ]
-		_Q += EM_weights_bbar_given_d.at( base.base ) * log(1.0 - eps) + (1.0 - EM_weights_bbar_given_d.at( base.base )) * log(eps);
+		_Q += EM_weights_bbar_given_d[ base.base ] * log(1.0 - eps) + (1.0 - EM_weights_bbar_given_d[ base.base ]) * log(eps);
 	}
 };
 
@@ -531,9 +531,9 @@ void TSequencingErrorModel::addToFandJacobian(const BAM::TBase & base, const TBa
 
 	// 3) add derivatives to F and Jacobian
 	//calculate weights
-	double weight1 = (1.0 - EM_weights_bbar_given_d.at(base.base))*(1.0 - eps) - EM_weights_bbar_given_d.at(base.base) * eps;
+	double weight1 = (1.0 - EM_weights_bbar_given_d[base.base])*(1.0 - eps) - EM_weights_bbar_given_d[base.base] * eps;
 
-	std::cout << "weight1 = " << weight1 << ", EM_weight = " << EM_weights_bbar_given_d.at(base.base) << ", eps = " << eps << std::endl;
+	std::cout << "weight1 = " << weight1 << ", EM_weight = " << EM_weights_bbar_given_d[base.base] << ", eps = " << eps << std::endl;
 
 	double weight2 = (1.0 - eps) * eps;
 

@@ -69,8 +69,8 @@ public:
 		} else {
 			//calculate base likelihoods P(d|b, D, epsilon) = \sum_{\bar{b}} P(\bar{b}|b, D)P(d|\bar{b}, \epsilon)
 			for(size_t i=0; i<site.depth(); ++i){
-				_sequencingErrorModels.calculateBaseLikelihoods(site.at(i), _baseLikelihoodsNoPMD);
-				_pmd.calculateBaseLikelihoods(site.at(i), _baseLikelihoodsNoPMD, _baseLikelihoods[i]);
+				_sequencingErrorModels.calculateBaseLikelihoods(site[i], _baseLikelihoodsNoPMD);
+				_pmd.calculateBaseLikelihoods(site[i], _baseLikelihoodsNoPMD, _baseLikelihoods[i]);
 			}
 
 			//calculate genotype likelihoods
