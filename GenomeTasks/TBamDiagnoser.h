@@ -38,7 +38,7 @@ public:
 //--------------------------------------
 class TTask_BAMDiagnostics:public TTask{
 public:
-	TTask_BAMDiagnostics(){ _explanation = "Printing pileup from BAM file"; };
+	TTask_BAMDiagnostics(){ _explanation = "Estimating approximate depth, read length frequencies and mapping quality frequencies"; };
 
 	void run(TParameters & Parameters, TLog* Logfile){
 		TBamDiagnoser diagnoser(Parameters, Logfile, _randomGenerator);
