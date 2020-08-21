@@ -376,7 +376,7 @@ void TSequencingErrorRho::estimate(){
 // TSequencingErrorModel
 //--------------------------------------------------------------------
 TSequencingErrorModel::TSequencingErrorModel(TSequencingErrorModelDefinition & modelDef, TLog* Logfile){
-	logfile = Logfile;
+	_logfile = Logfile;
 
 	//create covariates
 	_covariates.createCovariatesAndIntercept(modelDef.covariates);
@@ -387,7 +387,7 @@ TSequencingErrorModel::TSequencingErrorModel(TSequencingErrorModelDefinition & m
 };
 
 TSequencingErrorModel::TSequencingErrorModel(TSequencingErrorModelDefinition & modelDef, TRecalibrationEMDataTable* dataTable, TLog* Logfile){
-	logfile = Logfile;
+	_logfile = Logfile;
 
 	//create covariates
 	_covariates.createCovariatesAndIntercept(modelDef.covariates, dataTable);
@@ -531,7 +531,7 @@ void TSequencingErrorModel::addToFandJacobian(const BAM::TBase & base, const TBa
 
 	// 3) add derivatives to F and Jacobian
 	//calculate weights
-	double weight1 = (1.0 - EM_weights_bbar_given_d[base.base])*(1.0 - eps) - EM_weights_bbar_given_d[base.base] * eps;
+	double weight1 = 1.0 - eps - EM_weights_bbar_given_d[base.base];
 
 	std::cout << "weight1 = " << weight1 << ", EM_weight = " << EM_weights_bbar_given_d[base.base] << ", eps = " << eps << std::endl;
 
