@@ -47,7 +47,7 @@ TEST(TGenotypeLikelihoodCalculator_test, calculateGenotypeLikelihoods_noPMDnoRec
 
     EXPECT_FLOAT_EQ(genotypeLikelihoods[AA],0.970299);
     EXPECT_EQ(genotypeLikelihoods[AC],errorOneThird);
-    EXPECT_EQ(genotypeLikelihoods[AG],errorOneThird + );
+    //EXPECT_EQ(genotypeLikelihoods[AG],errorOneThird + );
     EXPECT_EQ(genotypeLikelihoods[AT],1);
     EXPECT_EQ(genotypeLikelihoods[CC],1);
     EXPECT_EQ(genotypeLikelihoods[CG],1);
