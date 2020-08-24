@@ -195,6 +195,7 @@ double TSequencingErrorCovariateFunction_polynomial::getEtaTerm(const uint16_t v
 	double valAsDouble = _getAsDouble(val);
 	double tmp = valAsDouble;
 	double sum = _betas[0] * tmp;
+
 	for(size_t i=1; i<_numParameters; ++i){
 		tmp *= valAsDouble;
 		sum += _betas[i] * tmp;

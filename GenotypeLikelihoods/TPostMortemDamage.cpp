@@ -713,8 +713,8 @@ void TPMDDoubleStrand::initializeFunction(std::string pmdString, PMDType type){
 
 void TPMDDoubleStrand::fillBaseLikelihoods(const BAM::TBase & base, const TBaseData & baseLikelihoodsNoPMD, TBaseData & baseLikelihoods) const{
 	//no PMD for A and C
-	baseLikelihoods[A] = baseLikelihoodsNoPMD.at(A);
-	baseLikelihoods[T] = baseLikelihoodsNoPMD.at(T);
+	baseLikelihoods[A] = baseLikelihoodsNoPMD[A];
+	baseLikelihoods[T] = baseLikelihoodsNoPMD[T];
 
 	//get relevant PMD probabilities
 	double pmdProb_CT, pmdProb_GA;
@@ -727,8 +727,8 @@ void TPMDDoubleStrand::fillBaseLikelihoods(const BAM::TBase & base, const TBaseD
 	}
 
 	//add PMD
-	baseLikelihoods[C] = (1.0 - pmdProb_CT) * baseLikelihoodsNoPMD.at(C) + pmdProb_CT * baseLikelihoodsNoPMD.at(T);
-	baseLikelihoods[G] = (1.0 - pmdProb_GA) * baseLikelihoodsNoPMD.at(G) + pmdProb_GA * baseLikelihoodsNoPMD.at(A);
+	baseLikelihoods[C] = (1.0 - pmdProb_CT) * baseLikelihoodsNoPMD[C] + pmdProb_CT * baseLikelihoodsNoPMD[T];
+	baseLikelihoods[G] = (1.0 - pmdProb_GA) * baseLikelihoodsNoPMD[G] + pmdProb_GA * baseLikelihoodsNoPMD[A];
 };
 
 //------------------------------------------------------
@@ -818,7 +818,7 @@ void TPostMortemDamage::initialize(TParameters & params, BAM::TReadGroups & Read
 	} else if(params.parameterExists("pmdFile")){
 		initializeFromFile(ReadGroups, params.getParameterString("pmdFile"), logfile);
 	} else {
-		logfile->list("Assuming there is no PMD in the data.");
+		logfile->list("Assuming there is no PMD in the data. (use 'pmd' to add PMD definitions)");
 	}
 };
 

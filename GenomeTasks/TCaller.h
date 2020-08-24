@@ -39,6 +39,7 @@ protected:
 	bool _printSitesWithNoData;
 	bool _printAltIfHomoRef;
 	bool _allowTriallelicSites;
+	bool _allowKnownAllelesCallsDifferentFromBestCall;
 	std::string _missingGenotype;
 
 	//output file
@@ -96,42 +97,34 @@ protected:
 	virtual bool _callGenotype(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
 	virtual bool _callGenotypeKnownAlleles(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
 
-	template <typename T> uint8_t _pickIndexWithHighestMetric(T* metric, const uint8_t size){
+	template <typename T> uint8_t _pickIndexWithHighestMetric(const T & metric){
 		//find maximum
-		double maxMetric = 0.0;
-		for(uint8_t i=0; i<size; ++i){
-			if(metric[i] > maxMetric)
-				maxMetric = metric[i];
-		}
+		double maxMetric = *std::max(metric.cbegin(), metric.cend());
 
 		//get vec of all index at maximum
 		std::vector<uint8_t> vec;
-		for(uint8_t i=0; i<size; ++i){
+		for(uint8_t i=0; i<metric.size(); ++i){
 			if(metric[i] == maxMetric)
 				vec.push_back(i);
 		}
 
 		//return random index among those at max
-		return vec[_randomGenerator->pickOne(vec.size())];
+		return vec[_randomGenerator->sample(vec.size())];
 	};
 
-	template <typename T> uint8_t _pickIndexWithSecondHighestMetric(T* metric, const uint8_t size, const uint8_t excludeIndex){
+	template <typename T> uint8_t _pickIndexWithSecondHighestMetric(const T & metric, const uint8_t excludeIndex){
 		//find maximum
-		double max = 0.0;
-		for(uint8_t i=0; i<size; ++i){
-			if(i != excludeIndex && metric[i] > max)
-				max = metric[i];
-		}
+		double maxMetric = *std::max(metric.cbegin(), metric.cend());
 
 		//get vec of all index at maximum
 		std::vector<uint8_t> vec;
-		for(uint8_t i=0; i<size; ++i){
-			if(i != excludeIndex && metric[i] == max)
+		for(uint8_t i=0; i<metric.size(); ++i){
+			if(i != excludeIndex && metric[i] == maxMetric)
 				vec.push_back(i);
 		}
 
 		//return random index among those at max
-		return vec[_randomGenerator->pickOne(vec.size())];
+		return vec[_randomGenerator->sample(vec.size())];
 	};
 
 public:
@@ -178,10 +171,7 @@ public:
 //------------------------------------------------------
 class TCallerMajorityBase:public TCaller{
 private:
-	uint32_t _downsampleDepth;
-
 	bool _callGenotype(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
-	void _callGenotypeKnownAlleles(const TBaseCounts & AlleleCounts);
 	bool _callGenotypeKnownAlleles(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
 
 public:
@@ -193,14 +183,14 @@ public:
 //------------------------------------------------------
 class TCallerConsensify:public TCaller{
 private:
-	uint32_t _downsampleDepth;
+	uint32_t _downsampleDepth, _minMajorityDepth;
 
 	bool _callGenotype(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
 	void _callGenotypeKnownAlleles(const TBaseCounts & AlleleCounts);
 	bool _callGenotypeKnownAlleles(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
 
 public:
-	TCallerConsensify(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TCallerConsensify(const uint32_t & DownsampleDepth, TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
 };
 
 //------------------------------------------------------
@@ -209,7 +199,7 @@ public:
 class TCallerAllelePresence:public TCaller{
 private:
 	TGenotypeProbabilities posterior;
-	double allelePostProb[4];
+	TBaseData allelePostProb;
 	Base MAP;
 
 	void fillPosteriors(TGenotypeLikelihoods & genotypeLikelihoods);
@@ -236,7 +226,7 @@ protected:
 	void _clearAfterCall();
 	void callGenotypeFromMetric(TGenotypeData & metric);
 	void callGenotypeFromMetricKnownAlleles(const TGenotypeData & metric, std::vector<int> & indeces);
-	void callGenotypeFromMetricKnownAllelesUpdateIndex(const TGenotypeData & metric);
+	bool callGenotypeFromMetricKnownAllelesUpdateIndex(const TGenotypeData & metric);
 	std::string getPerGenotypeMetricString(TGenotypeData & metric);
 	void calculateImbalance(const TSite & site);
 	std::string _getVCFGenotypeString_AB(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);

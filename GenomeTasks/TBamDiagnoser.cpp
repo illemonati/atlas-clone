@@ -18,7 +18,7 @@ TBamDiagnoser::TBamDiagnoser(TParameters & Parameters, TLog* Logfile, TRandomGen
 
 void TBamDiagnoser::_writeHistogram(const TCountDistributionVector & distVec, const std::string header, const std::string name){
 	// 1) read length
-	std::string filename = _outputName + "_" + header + "Historgram.txt";
+	std::string filename = _outputName + "_" + header + "Histogram.txt";
 	_logfile->listFlush("Writing " + name + " histogram to '" + filename + "' ...");
 	TOutputFile out(filename, {"readGroup", header, "count"});
 
@@ -36,8 +36,8 @@ void TBamDiagnoser::diagnose(){
     //initialize counters
     uint32_t numRG = _bamFile.readGroups().size();
 
-    TCountVector totalReads(numRG);
-    TCountVector passedQC(numRG);
+    TCountDistribution totalReads(numRG);
+    TCountDistribution passedQC(numRG);
     TCountDistributionVector readLength(numRG);
     TCountDistributionVector usableLength(numRG);
     TCountDistributionVector softClippedLength(numRG);

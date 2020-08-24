@@ -29,7 +29,7 @@ TGenotypeLikelihoodCalculator::~TGenotypeLikelihoodCalculator(){
 
 void TGenotypeLikelihoodCalculator::init(TParameters & params, BAM::TReadGroups* ReadGroups, TLog* Logfile){
 	if(_initialized){
-		throw "TGenotypeLikelihoodCalculator has alre<ady been initialized!";
+		throw "TGenotypeLikelihoodCalculator has already been initialized!";
 	}
 	_logfile = Logfile;
 	_readGroups = ReadGroups;
@@ -42,7 +42,7 @@ void TGenotypeLikelihoodCalculator::init(TParameters & params, BAM::TReadGroups*
 	if(params.parameterExists("recal")){
 		_sequencingErrorModels.createModels(params.getParameterString("recal"), _readGroups, _readGroupMap, _logfile);
 	} else {
-		_logfile->list("Assuming that error rates in BAM files are correct (no recalibration).");
+		_logfile->list("Assuming that error rates in BAM files are correct. (use 'recal' to add recalibration parameters)");
 	}
 
 	//initialize storage to minimum size

@@ -502,7 +502,7 @@ void TThetaEstimator::setTheta(const double Theta){
 
 void TThetaEstimator::setBaseFreq(const GenotypeLikelihoods::TBaseData & BaseFreq){
 	for(int i=0; i<4; ++i)
-		theta.baseFreq[i] = BaseFreq.at(i);
+		theta.baseFreq[i] = BaseFreq[i];
 }
 
 void TThetaEstimator::addToHeader(std::vector<std::string> & header, std::string prefix){
@@ -769,7 +769,7 @@ bool TThetaEstimatorRatio::updateBaseFrequencies(TThetaEstimatorData* thisData, 
 	//make sure frequencies are not outside [0,1]
 	int numOutsideRange = 1;
 	while(numOutsideRange > 0){
-		int thisFreq = randomGenerator->pickOne(4);
+		int thisFreq = randomGenerator->sample(4);
 		double delta = randomGenerator->getNormalRandom(0.0, thisSdProposalKernel);
 		tmpBaseFreq[thisFreq] = thisTheta.baseFreq[thisFreq] + delta;
 

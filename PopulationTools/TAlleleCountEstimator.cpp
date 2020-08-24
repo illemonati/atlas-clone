@@ -314,7 +314,7 @@ int TSiteAlleleFrequencyLikelihoods::getMLAlleleCount(TRandomGenerator & randomG
 	}
 
 	//now choose randomly among those ate MLE
-	return MLEs[randomGenerator.pickOne(MLEs.size())];
+	return MLEs[randomGenerator.sample(MLEs.size())];
 };
 
 //-------------------------------------------------

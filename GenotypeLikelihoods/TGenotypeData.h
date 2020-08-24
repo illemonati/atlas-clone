@@ -18,25 +18,81 @@ namespace GenotypeLikelihoods{
 #define _MINLIKELIHOODVALUE 1.0E-200
 
 //--------------------------------------------------------------------
+// TData_base
+//--------------------------------------------------------------------
+template <typename T, size_t S> class TData_base{
+protected:
+	std::array<T, S> _data;
+
+public:
+	TData_base() = default;
+	TData_base(const T & val){ set(val); };
+	virtual ~TData_base(){};
+	template <typename U> T& operator[](const U & index){ return _data[index]; };
+	template <typename U> const T& operator[](const U & index) const { return _data[index]; };
+	size_t size() const { return _data.size(); };
+	T* pointerToData(){ return _data.data(); };
+	size_t sizeOf() const { return sizeof(T) * S; };
+
+	virtual void set(const T & val){
+		std::fill(begin(), end(), val);
+	};
+
+	virtual void reset(){
+		set({});
+	};
+
+	virtual void operator+=(const TData_base & other){
+		for(size_t i = 0; i<_data.size(); ++i){
+			_data[i] += other[i];
+		}
+	};
+
+	virtual void operator*=(const TData_base & other){
+		for(size_t i = 0; i<_data.size(); ++i){
+			_data[i] *= other[i];
+		}
+	};
+
+	virtual void add(const TData_base & other){
+		*this += other;
+	};
+
+	T min() const{
+		return *std::min_element(_data.begin(), _data.end());
+	};
+
+	T max() const{
+		return *std::max_element(_data.begin(), _data.end());
+	};
+
+	virtual T sum() const{
+		T s{};
+		for(auto& i : _data){
+			s += i;
+		}
+		return s;
+	};
+
+	auto begin(){ return _data.begin(); };
+	auto cbegin() const { return _data.cbegin(); };
+	auto end(){ return _data.end(); };
+	auto cend() const { return _data.cend(); };
+};
+
+
+//--------------------------------------------------------------------
 // TBaseData
 //--------------------------------------------------------------------
-class TBaseData{
-private:
-	double _data[4];
-
+class TBaseData:public TData_base<double, 4>{
 public:
 	TBaseData();
 	TBaseData(const double val);
 	TBaseData(const Base trueBase, const double error);
+
 	void operator=(const TBaseData & other);
 	void operator+=(const TBaseData & other);
 	void operator*=(const TBaseData & other);
-
-	double* data(){ return _data; };
-	double& operator[](const Base base){ return _data[base];};
-	double& operator[](const uint8_t base){ return _data[base];};
-	double at(const Base base) const{ return _data[base]; };
-	double at(const uint8_t base) const{ return _data[base]; };
 
 	void set(const double val);
 	void set(const Base trueBase, const double error);
@@ -55,21 +111,16 @@ std::ostream& operator<<(std::ostream& os, const TBaseData & baseData);
 // TBaseCounts
 //TODO:: merge with base frequencies?
 //--------------------------------------------------------------------
-class TBaseCounts{
-private:
-	uint32_t _counts[5];
+class TBaseCounts:public TData_base<uint32_t, 5>{
 public:
 	TBaseCounts();
 
 	void reset();
-	uint32_t& operator[](const Base base){ return _counts[base]; };
-	uint32_t& operator[](const uint8_t base){ return _counts[base]; };
-	uint32_t at(const Base base) const{ return _counts[base]; };
-	uint32_t at(const uint8_t base) const{ return _counts[base]; };
-	uint32_t* data(){ return _counts; };
 
-	void add(const Base base){ ++_counts[base]; };
-	uint32_t size() const;
+	void add(const Base base){ ++_data[base]; };
+	inline uint32_t sum() const{
+		return _data[A] + _data[C] + _data[G] + _data[T] + _data[N];
+	};
 	uint8_t numAlleles() const;
 	void fillFrequencies(TBaseData & freq);
 	void fillCumulativeFrequencies(TBaseData & freq);
@@ -80,27 +131,21 @@ public:
 // TGenotypeData
 // base class for likelihoods, prior and posterior
 //--------------------------------------------------------------------
-class TGenotypeData{
+class TGenotypeData:public TData_base<double, 10>{
 protected:
-	double _data[10];
-
-	void _copyFrom(const TGenotypeData & other);
+	//void _copyFrom(const TGenotypeData & other);
 
 public:
 	TGenotypeData(){};
 	virtual ~TGenotypeData(){};
 
 	void operator=(const TGenotypeData & other);
-	double& operator[](const Genotype genotype){ return _data[genotype]; };
-	double& operator[](const uint8_t genotype){ return _data[genotype]; };
-	double at(const Genotype genotype) const { return _data[genotype]; };
-	double at(const uint8_t genotype) const { return _data[genotype]; };
-	double* pointerToData(){ return _data; };
-
 	void set(const double val);
 	virtual void reset();
 	void add(const TGenotypeData & other);
-	double sum();
+	inline double sum() const{
+		return _data[AA] + _data[AC] + _data[AG] + _data[AT] + _data[CC] + _data[CG] + _data[CT] + _data[GG] + _data[GT] + _data[TT];
+	};
 	virtual double weightedSum(const TGenotypeData & weights);
 	void normalize();
 
@@ -115,8 +160,6 @@ public:
 class TGenotypeLikelihoods:public TGenotypeData{
 public:
 	TGenotypeLikelihoods();
-
-	void operator=(const TGenotypeLikelihoods & other);
 
 	virtual void fill(const std::vector<TBaseData> & bases);
 	virtual void fill(const std::vector<TBaseData> & bases, const size_t size);

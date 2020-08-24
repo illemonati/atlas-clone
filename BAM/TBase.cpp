@@ -33,14 +33,16 @@ void TBase::print(){
 	std::cout << "fragmentLength: " << fragmentLength << std::endl;
 };
 
-std::ostream& operator<<(std::ostream& os, const TBase & base){
+}; //end namespace
+
+std::ostream& operator<<(std::ostream& os, const BAM::TBase & base){
 	os << base.base;
 	return os;
 };
 
 std::ostream& operator<<(std::ostream& os, const Base & base){
 	if(base == A){
-		os << "A";
+		os << 'A';
 	} else if(base == C){
 		os << 'C';
 	} else if(base == G){
@@ -53,5 +55,5 @@ std::ostream& operator<<(std::ostream& os, const Base & base){
 	return os;
 };
 
-}; //end namespace
+
 

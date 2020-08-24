@@ -68,7 +68,7 @@ TSimulatorQualityDistBinned::TSimulatorQualityDistBinned(std::string & s, TRando
 
 void TSimulatorQualityDistBinned::sample(int* qualities, const int & len){
 	for(int i=0; i<len; ++i){
-		qualities[i] = qualBins[randomGenerator->pickOne(numQualBins)];
+		qualities[i] = qualBins[randomGenerator->sample(numQualBins)];
 	}
 };
 
@@ -199,7 +199,7 @@ void TSimulatorQualityTransformation::simulateQualitiesAndErrors(Base* bases, in
 	//add errors
 	for(p=0; p<len; ++p){
 		if(randomGenerator->getRand() < qualityMap.phredIntToErrorMap[qualities[p]])
-			bases[p] = static_cast<Base>((bases[p] + randomGenerator->pickOne(3) + 1) % 4);
+			bases[p] = static_cast<Base>((bases[p] + randomGenerator->sample(3) + 1) % 4);
 	}
 };
 

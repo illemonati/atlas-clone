@@ -154,7 +154,7 @@ public:
 //--------------------------------------------------------------------
 class TSequencingErrorModel{
 private:
-	TLog* logfile;
+	TLog* _logfile;
 
 	//parameters: coavraites and rho
 	TSequencingErrorCovariateList _covariates;

@@ -774,7 +774,7 @@ void TSimulator::_simulateReadsFromHaplotypes(const BAM::TChromosome & thisChr, 
 			numReadsSimulated += numReadsHere;
 			for(uint32_t r=0; r<numReadsHere; ++r){
 				int rg = _randomGenerator->pickOne(_readSimulators.size(), _cumulSimGroupFrequenies.data());
-				_readSimulators[rg]->simulate(haplotypes[_randomGenerator->pickOne(2)], thisChr.refID(), l, bamFile);
+				_readSimulators[rg]->simulate(haplotypes[_randomGenerator->sample(2)], thisChr.refID(), l, bamFile);
 			}
 
 			//report progress
@@ -901,7 +901,7 @@ void TSimulatorOneIndividual::_simulateHaplotypesDiploid(TSimulatorHaplotypes & 
 		if(haplotypes(0,0,l) == haplotypes(0,1,l))
 			ref[l] = static_cast<Base> ((haplotypes(0,0,l) + _randomGenerator->pickOne(4, _cumulRef)) % 4);
 		else
-			ref[l] = static_cast<Base> (haplotypes(0,_randomGenerator->pickOne(2),l));
+			ref[l] = static_cast<Base> (haplotypes(0,_randomGenerator->sample(2),l));
 	}
 };
 
@@ -1232,7 +1232,7 @@ void TSimulatorPairOfIndividuals::_simulateHaplotypesDiploid(TSimulatorHaplotype
 		int g = _randomGenerator->pickOne(numGenotypeCombinations[c], cumulGenoCombinationFreq[c]);
 
 		//pick order
-		int o = _randomGenerator->pickOne(4);
+		int o = _randomGenerator->sample(4);
 
 		//assign to haplotypes
 		haplotypes(0,0,l) = genoTrans[c][g][orderLookup[o][0]];
@@ -1244,7 +1244,7 @@ void TSimulatorPairOfIndividuals::_simulateHaplotypesDiploid(TSimulatorHaplotype
 		if(c == 0){
 			ref[l] = static_cast<Base>((genoTrans[c][g][0] + _randomGenerator->pickOne(4, _cumulRef)) % 4);
 		} else {
-			int r = _randomGenerator->pickOne(4);
+			int r = _randomGenerator->sample(4);
 			ref[l] = genoTrans[c][g][r];
 		}
 	}

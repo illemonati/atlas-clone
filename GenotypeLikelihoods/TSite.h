@@ -45,8 +45,8 @@ public:
 	void clear();
 
 	// access
-	const BAM::TBase& at(size_t i) const{ return _bases[i]; };
 	BAM::TBase& operator[](size_t i){ return _bases[i]; };
+	const BAM::TBase& operator[](size_t i) const { return _bases[i]; };
 
 	// reference base
     void setRefBase(const Base ref){ _referenceBase = ref; };
