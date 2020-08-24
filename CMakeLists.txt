@@ -63,8 +63,8 @@ if(CMAKE_VERSION VERSION_LESS 2.8.11)
 endif()
 
 # Now simply link against gtest or gtest_main as needed. Eg
-set(TEST_SOURCES BAM/tests/TGenomePosition_Test.cpp BAM/tests/TBed_Test.cpp BAM/tests/TBamFile_Test.cpp GenotypeLikelihoods/tests/TGenotypeLikelihoodCalculator_Test.cpp)
-add_executable(testAtlas ${TEST_SOURCES})
+set(TEST_SOURCES BAM/tests/TGenomePosition_Test.cpp BAM/tests/TBed_Test.cpp BAM/tests/TBamFile_Test.cpp GenotypeLikelihoods/tests/TGenotypeLikelihoodCalculator_Test.cpp GenotypeLikelihoods/tests/TSequencingErrorModels_Test.cpp GenotypeLikelihoods/tests/TPostMortemDamate_Test.cpp)
+add_executable(testAtlas ${TEST_SOURCES} GenotypeLikelihoods/tests/test.cpp GenotypeLikelihoods/tests/TSequencingErrorModels_Test.cpp)
 target_link_libraries(testAtlas PUBLIC gtest_main gmock_main VCFLib PopulationToolsLib BAMLib GenomeTasksLib GenotypeLikelihoodsLib GLFLib SimulationsLib TestsLib commonutilities bamtoolsLib ${ZLIB_LIBRARIES} ${ARMADILLO_LIBRARIES})
 
 

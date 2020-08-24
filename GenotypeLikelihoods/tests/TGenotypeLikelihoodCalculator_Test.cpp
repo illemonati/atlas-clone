@@ -40,21 +40,19 @@ TEST(TGenotypeLikelihoodCalculator_test, calculateGenotypeLikelihoods_noPMDnoRec
     float errorOneThird = 0.01 / 3;
     base.base = A;
     site.add(base);
-    site.add(base);
-    site.add(base);
 
     calculator.calculateGenotypeLikelihoods(site, genotypeLikelihoods);
 
-    EXPECT_FLOAT_EQ(genotypeLikelihoods[AA],0.970299);
-    EXPECT_EQ(genotypeLikelihoods[AC],errorOneThird);
-    EXPECT_EQ(genotypeLikelihoods[AG],errorOneThird + );
-    EXPECT_EQ(genotypeLikelihoods[AT],1);
-    EXPECT_EQ(genotypeLikelihoods[CC],1);
-    EXPECT_EQ(genotypeLikelihoods[CG],1);
-    EXPECT_EQ(genotypeLikelihoods[CT],1);
-    EXPECT_EQ(genotypeLikelihoods[GG],1);
-    EXPECT_EQ(genotypeLikelihoods[GG],1);
-    EXPECT_EQ(genotypeLikelihoods[TT],1);
+    EXPECT_FLOAT_EQ(genotypeLikelihoods[AA],oneMinusError);
+    EXPECT_EQ(genotypeLikelihoods[AC],0.5 - errorOneThird);
+    EXPECT_EQ(genotypeLikelihoods[AG], (oneMinusError + errorOneThird) / 2.0);
+    EXPECT_EQ(genotypeLikelihoods[AT],0.5 - errorOneThird);
+    EXPECT_EQ(genotypeLikelihoods[CC], errorOneThird);
+    EXPECT_EQ(genotypeLikelihoods[CG],(2.0  * errorOneThird) / 2.0);
+    EXPECT_EQ(genotypeLikelihoods[CT], errorOneThird);
+    EXPECT_EQ(genotypeLikelihoods[GG], errorOneThird);
+    EXPECT_EQ(genotypeLikelihoods[GT],(2.0 * errorOneThird) / 2.0);
+    EXPECT_EQ(genotypeLikelihoods[TT], errorOneThird);
 }
 
 //vec[AA] *= oneMinusError;
@@ -68,6 +66,7 @@ TEST(TGenotypeLikelihoodCalculator_test, calculateGenotypeLikelihoods_noPMDnoRec
 //double tmp = (PMD_GA * oneMinusError + (2.0 - PMD_GA) * errorOneThird) / 2.0;
 //vec[CG] *= tmp;
 //vec[GT] *= tmp;
+
 
 TEST(TGenotypeLikelihoodCalculator_test, calculateGenotypeLikelihoods_PMD){
 
