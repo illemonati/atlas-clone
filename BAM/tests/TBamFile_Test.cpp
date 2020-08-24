@@ -3,6 +3,7 @@
 #include "TTestBamFile.h"
 #include "TAlignment.h"
 #include "TGenome.h"
+#include "TBamDiagnoser.h"
 
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
@@ -659,8 +660,8 @@ TEST_F(TBamFile_Test_Windows, sites_getQualities){
 // TBamFile - filters
 // TBamDiagnoser
 //-------------------------------------------------------------
-/*
-class TBamFile_Test_Windows : public ::testing::Test {
+
+class TBamDiagnoser_Test : public ::testing::Test {
 protected:
     TLog _logfile;
     TRandomGenerator _randomGenerator;
@@ -671,78 +672,40 @@ public:
     BAM::TQualityMap qualMap;
 
     std::unique_ptr<TestUtilities::TTestBamFile> outputBam;
-    std::unique_ptr<TGenomeWindow_Test> genomeWindow;
     std::string filename = "testBAM.bam";
 
     void write(){
         //settings
-        std::vector<uint32_t> chrLength = {250, 50, 199, 80, 177};
-        uint32_t numReadGroups = 2;
+        std::vector<uint32_t> chrLength = {1000, 2000, 3000};
+        uint32_t numReadGroups = 5;
 
         //open BAM file for writing
         outputBam = std::make_unique<TestUtilities::TTestBamFile>(filename, chrLength, numReadGroups);
 
         //write alignments
-
-        // 1) overlapping alignments inside one window, cigar is all M
-        BAM::TCigar onlyMCigar;
-        onlyMCigar.add('M', 20);
-        outputBam->writeDummyAlignment('A', '1', BAM::TGenomePosition(0, 0), onlyMCigar);
-        outputBam->writeDummyAlignment('C', '2', BAM::TGenomePosition(0, 10), onlyMCigar);
-        outputBam->writeDummyAlignment('G', '3', BAM::TGenomePosition(0, 20), onlyMCigar);
-
-        // 2) alignments overlap 2 windows
-        outputBam->writeDummyAlignment('T', '4', BAM::TGenomePosition(0, 80), onlyMCigar);
-        outputBam->writeDummyAlignment('A', '5', BAM::TGenomePosition(0, 90), onlyMCigar);
-        outputBam->writeDummyAlignment('C', '6', BAM::TGenomePosition(0, 95), onlyMCigar);
-        outputBam->writeDummyAlignment('G', '7', BAM::TGenomePosition(0, 100), onlyMCigar);
-
-        // 3) one alignment inside 1 window
-        outputBam->writeDummyAlignment('T', '8', BAM::TGenomePosition(0, 220), onlyMCigar);
-
-        // 4) only 1 window per chromosome
-        outputBam->writeDummyAlignment('A', '9', BAM::TGenomePosition(1, 10), onlyMCigar);
-
-        // 5) empty window
-        outputBam->writeDummyAlignment('C', '0', BAM::TGenomePosition(2, 10), onlyMCigar);
-
-        // 6) empty chromosome
-
-        // 7) cigar strings more complicated (with soft-clips, insertions and deletions)
-        BAM::TCigar mixedCigar;
-        mixedCigar.add('S', 3);
-        mixedCigar.add('M', 5);
-        mixedCigar.add('D', 5);
-        mixedCigar.add('I', 5);
-        mixedCigar.add('S', 2);
-        outputBam->writeDummyAlignment('A', '1', BAM::TGenomePosition(4, 0), mixedCigar);
-        outputBam->writeDummyAlignment('C', '2', BAM::TGenomePosition(4, 4), mixedCigar);
-        outputBam->writeDummyAlignment('G', '3', BAM::TGenomePosition(4, 8), mixedCigar);
-
-        // 8) last window is empty
-
-
+        outputBam->writeDummyAlignments(1000);
         outputBam->closeOutput();
     }
 
-    void read(){
-        // first set window size in parameters
-        _parameters.addParameter("window", "100");
+    void read(){ // called by every test, as parameters (= filters) are different
+        // set bam parameters
         _parameters.addParameter("bam", filename);
-        _parameters.addParameter("maxReadLength", "20");
 
-        // create instance of TGenomeWindow
-        genomeWindow = std::make_unique<TGenomeWindow_Test>(_parameters, &_logfile, &_randomGenerator);
-
-        // now traverse bam file
-        genomeWindow->traverse();
+        // create instance of TTask_BAMDiagnostics
+        GenomeTasks::TTask_BAMDiagnostics diagnoser;
+        diagnoser.run(_parameters, &_logfile);
     }
 
     void SetUp() override{
         write();
-        read();
     }
 
     void TearDown() override {};
 };
-*/
+
+TEST_F(TBamDiagnoser_Test, noFilters){
+    // read bam file
+    read();
+
+
+}

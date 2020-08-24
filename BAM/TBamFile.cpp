@@ -192,9 +192,9 @@ void TBamFile::setFilters(TParameters & params, TLog* logfile){
 
 		//blacklist
 		if(params.parameterExists("blacklist")){
-			std::string blaclistFilename = params.getParameterString("blacklist");
-			logfile->list("Will filter out reads present in the file '" + blaclistFilename + "'. (parameter 'blacklist')");
-			_blacklist.addFromFile(blaclistFilename);
+			std::string blacklistFilename = params.getParameterFilename("blacklist");
+			logfile->list("Will filter out reads present in the file '" + blacklistFilename + "'. (parameter 'blacklist')");
+			_blacklist.addFromFile(blacklistFilename);
 			_blacklistFilter.filter("was in provided blacklist");
 		} else {
 			_blacklistFilter.keep();
@@ -224,9 +224,9 @@ void TBamFile::setFilters(TParameters & params, TLog* logfile){
 			int MinFragmentLength = params.getParameterIntWithDefault("minFragmentLength", 0);
 			int MaxFragmentLength = params.getParameterIntWithDefault("maxFragmentLength", 1000);
 			if(MinFragmentLength < 0)
-				throw "minFragmentLength '" + toString(MinFragmentLength) + "' must be >0 0!";
-			if(MinFragmentLength < 0)
-				throw "minFragmentLength '" + toString(MinFragmentLength) + "' must be >0 0!";
+				throw "minFragmentLength '" + toString(MinFragmentLength) + "' must be >0!";
+			if(MaxFragmentLength < 0)
+				throw "maxFragmentLength '" + toString(MaxFragmentLength) + "' must be >0!";
 			if(MinFragmentLength > MaxFragmentLength)
 				throw "minFragmentLength must be <= maxFragmentLength!";
 
@@ -234,7 +234,7 @@ void TBamFile::setFilters(TParameters & params, TLog* logfile){
 			logfile->list("Will filter out reads with fragment length outside the range [" + toString(MinFragmentLength) + ", " + toString(MaxFragmentLength) + "]. (parameters 'minFragmentLength', 'maxFragmentLength')");
 		} else {
 			_fragmentLengthfilter.keep();
-			logfile->list("Will keep reads reagrless of their fragment length. (use 'minFragmentLength', 'maxFragmentLength' to limit)");
+			logfile->list("Will keep reads reagrdless of their fragment length. (use 'minFragmentLength', 'maxFragmentLength' to limit)");
 		}
 	}
 	logfile->endIndent();
@@ -263,7 +263,7 @@ void TBamFile::openBamLog(TParameters & params, TLog* logfile){
 			logFilename = extractBeforeLast(logFilename, ".");
 			logFilename += ".bamlog.txt.gz";
 		}
-		logfile->list("Will all filtered out reads to '" + logFilename + "'.");
+		logfile->list("Will write all filtered out reads to '" + logFilename + "'.");
 		_bamLog = new TBamFileLog(logFilename);
 		_updateLog = true;
 
@@ -669,8 +669,8 @@ void TBamFile::curAddSamField(const std::string tag, const float value){
 void TBamFile::printSummaryNoEndIndent(){
 	_logfile->startIndent("Summary of parsed reads from BAM file '" + _filename + "':");
 	_logfile->list("Total number of reads read: " + toString(_numAlignmentRead));
-	_logfile->list("Reads that passed filters: " + toString(_numAlignmentsPassedQC) + "(" + toPercentString((double) _numAlignmentsPassedQC / (double) _numAlignmentRead, 1) + ")");
-	_logfile->list("Reads that were filtered out: " + toString(_numAlignmentRead - _numAlignmentsPassedQC) + "(" + toPercentString((double) _numAlignmentRead - _numAlignmentsPassedQC / (double) _numAlignmentRead, 1) + ")");
+	_logfile->list("Reads that passed filters: " + toString(_numAlignmentsPassedQC) + " (" + toPercentString((double) _numAlignmentsPassedQC / (double) _numAlignmentRead, 1) + "%)");
+	_logfile->list("Reads that were filtered out: " + toString(_numAlignmentRead - _numAlignmentsPassedQC) + " (" + toPercentString(((double) _numAlignmentRead - _numAlignmentsPassedQC) / (double) _numAlignmentRead, 1) + "%)");
 
 	_duplicateFilter.summary(_logfile);
 	_softClippedFilter.summary(_logfile);
