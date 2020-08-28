@@ -64,9 +64,9 @@ public:
 	// write dummy alignments where sequence and qualities are shuffled all the time
 	void writeDummyAlignment(const BAM::TGenomePosition & position, const BAM::TCigar & cigar, const uint32_t & readGroup, const bool & isReverseStrand, const bool & complicatedSamFlag = false);
 	void writeDummyAlignment(const BAM::TGenomePosition & position, const BAM::TCigar & cigar, const bool & complicatedSamFlag = false);
-    void writeDummyAlignment(const BAM::TGenomePosition & position, const uint32_t & length, const bool & complicatedSamFlag = false);
-    void writeDummyAlignment(const BAM::TGenomePosition & position, const bool & complicatedSamFlag = false);
-    void writeDummyAlignments(const uint32_t & numAlignments, const bool & complicatedSamFlag = false);
+	void writeDummyAlignment(const BAM::TGenomePosition & position, const uint32_t & length, const bool & complicatedSamFlag = false);
+	void writeDummyAlignment(const BAM::TGenomePosition & position, const bool & complicatedSamFlag = false);
+	void writeDummyAlignments(const uint32_t & numAlignments, const bool & complicatedSamFlag = false);
 
     // write dummy alignments where sequence and qualities are same within one alignment
     void writeDummyAlignment(const char& oneBase, const char& oneQual, const BAM::TGenomePosition & position, const BAM::TCigar & cigar, const uint32_t & readGroup, const bool & isReverseStrand);

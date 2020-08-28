@@ -166,13 +166,13 @@ public:
 	bool curIsPaired() const{ return _curBamAlignment.IsPaired(); };
 	bool curIsProperPair() const{ return _curBamAlignment.IsProperPair(); };
 	bool curIsReverseStrand() const{ return _curBamAlignment.IsReverseStrand(); };
-    bool curIsDuplicate() const{ return _curBamAlignment.IsDuplicate(); };
-    bool curIsMapped() const{ return _curBamAlignment.IsMapped(); };
-    bool curIsSecondary() const{ return !_curBamAlignment.IsPrimaryAlignment(); };
-    bool curIsSupplementary() const{ return _curBamAlignment.IsSupplementary(); };
-    bool curIsFirstMate() const{ return _curBamAlignment.IsFirstMate(); };
-    bool curIsSecondMate() const{ return _curBamAlignment.IsSecondMate(); };
-    bool curIsOnBlackList() const{ return _blacklist.isInBlacklist(_curBamAlignment.Name); };
+	bool curIsDuplicate() const{ return _curBamAlignment.IsDuplicate(); };
+	bool curIsMapped() const{ return _curBamAlignment.IsMapped(); };
+	bool curIsSecondary() const{ return !_curBamAlignment.IsPrimaryAlignment(); };
+	bool curIsSupplementary() const{ return _curBamAlignment.IsSupplementary(); };
+	bool curIsFirstMate() const{ return _curBamAlignment.IsFirstMate(); };
+	bool curIsSecondMate() const{ return _curBamAlignment.IsSecondMate(); };
+	bool curIsOnBlackList() const{ return _blacklist.isInBlacklist(_curBamAlignment.Name); };
 	std::string curQuerySequence(const uint16_t start, const uint16_t length) const;
 
 	//modify cur alignment
