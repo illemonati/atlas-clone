@@ -125,7 +125,7 @@ void TAlignmentList::clear(){
 	_list.clear();
 };
 
-bool TAlignmentList::isInBlacklist(const std::string & alignment){
+bool TAlignmentList::isInBlacklist(const std::string & alignment) const{
 	return _list.find(alignment) != _list.end();
 };
 

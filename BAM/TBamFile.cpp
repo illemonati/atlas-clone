@@ -14,7 +14,6 @@ namespace BAM{
 //-----------------------------------------------------
 TBamFile::TBamFile(){
 	_open = false;
-	_maxReadLength = 200;
 	_fileSize = 0;
 	_numAlignmentRead = 0;
 	_numAlignmentsPassedQC = 0;
@@ -234,7 +233,7 @@ void TBamFile::setFilters(TParameters & params, TLog* logfile){
 			logfile->list("Will filter out reads with fragment length outside the range [" + toString(MinFragmentLength) + ", " + toString(MaxFragmentLength) + "]. (parameters 'minFragmentLength', 'maxFragmentLength')");
 		} else {
 			_fragmentLengthfilter.keep();
-			logfile->list("Will keep reads reagrdless of their fragment length. (use 'minFragmentLength', 'maxFragmentLength' to limit)");
+			logfile->list("Will keep reads regardless of their fragment length. (use 'minFragmentLength', 'maxFragmentLength' to limit)");
 		}
 	}
 	logfile->endIndent();
@@ -460,7 +459,7 @@ bool TBamFile::readNextAlignment(){
 			if(_curChromosome == _chromosomes.end()){
 				//is chromosome not in header?
 				if(!_chromosomes.exists(_curBamAlignment.RefID)){
-					throw "Chromosome with refID " + toString(_curBamAlignment.RefID) + " is missing from BAm header!";
+					throw "Chromosome with refID " + toString(_curBamAlignment.RefID) + " is missing from BAM header!";
 				} else {
 					throw "BAM file not sorted!";
 				}

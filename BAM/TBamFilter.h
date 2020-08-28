@@ -77,7 +77,7 @@ public:
 	void add(const std::string & alignment);
 	void remove(const std::string & alignment);
 	void clear();
-	bool isInBlacklist(const std::string & alignment);
+	bool isInBlacklist(const std::string & alignment) const;
 };
 
 }; //end namespace

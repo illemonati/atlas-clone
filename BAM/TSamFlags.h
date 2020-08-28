@@ -49,6 +49,19 @@ public:
 	bool isDuplicate() const{ return _flags[10]; };
 	bool isSupplementary() const{ return _flags[11]; };
 
+	// valid combination?
+	bool isValid() const{
+	    if (!isPaired()){
+	        if (isProperPair() || mateIsUnmapped() || mateIsReverseStrand() || isFirstMate() || isSecondMate()) // flags about mates etc. are undefined if not paired
+                return false;
+	    }
+	    if (isUnmapped()) {
+	        if (isProperPair() || isSecondary() || isSupplementary())
+                return false;
+	    }
+        return true;
+	}
+
 	//setters
 	void set(const uint16_t & Flags){ _flags = std::bitset<16>(Flags); };
 	void operator=(const uint16_t & Flags){ _flags = std::bitset<16>(Flags); };

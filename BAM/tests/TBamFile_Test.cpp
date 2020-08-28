@@ -658,21 +658,116 @@ TEST_F(TBamFile_Test_Windows, sites_getQualities){
 
 //-------------------------------------------------------------
 // TBamFile - filters
-// TBamDiagnoser
 //-------------------------------------------------------------
 
-class TBamDiagnoser_Test : public ::testing::Test {
+class TBamFilter : public GenomeTasks::TGenome_filtered {
+    // class very similar to TBamDiagnoser, but inherits from TGenome_filtered -> can apply all filters
+    // TODO: discuss with Dan -> maybe, TBamDiagnoser should do exactly this
+public:
+    // distributions
+    TCountDistribution totalReads;
+
+    TCountDistribution duplicates;
+    TCountDistribution improperPairs;
+    TCountDistribution passedQC;
+    TCountDistribution unmapped;
+    TCountDistribution secondary;
+    TCountDistribution supplementary;
+    TCountDistribution readGroup;
+    TCountDistribution fwdStrand;
+    TCountDistribution revStrand;
+    TCountDistribution firstMate;
+    TCountDistribution secondMate;
+    TCountDistribution blackList;
+
+    TCountDistributionVector readLength;
+    TCountDistributionVector usableLength;
+    TCountDistributionVector softClippedLength;
+    TCountDistributionVector mappingQuality;
+    TCountDistributionVector fragmentLength;
+
+    BAM::TQualityFilter qualFilter;
+    std::vector<std::string> readGroupNames;
+
+    void _handleAlignment() override {
+        //get read group
+        uint16_t curReadGroup = _bamFile.curReadGroupID();
+
+        //add to counters
+        totalReads.add(curReadGroup);
+
+        duplicates.add(curReadGroup, _bamFile.curIsDuplicate());
+        improperPairs.add(curReadGroup, _bamFile.curIsPaired() && !_bamFile.curIsProperPair());
+        passedQC.add(curReadGroup, _bamFile.curPassedQC());
+        unmapped.add(curReadGroup, !_bamFile.curIsMapped());
+        secondary.add(curReadGroup, _bamFile.curIsSecondary());
+        supplementary.add(curReadGroup, _bamFile.curIsSupplementary());
+        readGroup.add(curReadGroup);
+        fwdStrand.add(curReadGroup, !_bamFile.curIsReverseStrand());
+        revStrand.add(curReadGroup, _bamFile.curIsReverseStrand());
+        firstMate.add(curReadGroup, _bamFile.curIsFirstMate());
+        secondMate.add(curReadGroup, _bamFile.curIsSecondMate());
+        blackList.add(curReadGroup, _bamFile.curIsOnBlackList());
+
+        readLength.add(curReadGroup, _bamFile.curCIGAR().lengthRead());
+        usableLength.add(curReadGroup, _bamFile.curUsableAlignedLength(qualFilter));
+        softClippedLength.add(curReadGroup, _bamFile.curCIGAR().lengthSoftClipped());
+        mappingQuality.add(curReadGroup, _bamFile.curMappingQuality());
+
+        //fragment length: only once
+        if(!_bamFile.curIsReverseStrand()){
+            fragmentLength.add(curReadGroup, _bamFile.curFragmentLength());
+        }
+    }
+
+    TBamFilter(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator) : TGenome_filtered(Parameters, Logfile, RandomGenerator){
+        //settings
+        qualFilter.set(Parameters, _logfile);
+        _bamFile.readGroups().fillVectorWithNames(readGroupNames);
+    };
+
+    void filter(){
+        //initialize counters
+        uint32_t numRG = _bamFile.readGroups().size();
+
+        // resize distributions
+        totalReads.resize(numRG);
+
+        duplicates.resize(numRG);
+        improperPairs.resize(numRG);
+        passedQC.resize(numRG);
+        unmapped.resize(numRG);
+        secondary.resize(numRG);
+        supplementary.resize(numRG);
+        readGroup.resize(numRG);
+        fwdStrand.resize(numRG);
+        revStrand.resize(numRG);
+        firstMate.resize(numRG);
+        secondMate.resize(numRG);
+        blackList.resize(numRG);
+
+        readLength.resize(numRG);
+        usableLength.resize(numRG);
+        softClippedLength.resize(numRG);
+        mappingQuality.resize(numRG);
+        fragmentLength.resize(numRG);
+
+        //now parse through bam file
+        _traverseBAMPassedQC();
+    };
+};
+
+class TBamFilter_Test : public ::testing::Test {
 protected:
     TLog _logfile;
     TRandomGenerator _randomGenerator;
     TParameters _parameters;
 
 public:
-    GenotypeLikelihoods::TGenotypeMap genoMap;
-    BAM::TQualityMap qualMap;
-
     std::unique_ptr<TestUtilities::TTestBamFile> outputBam;
     std::string filename = "testBAM.bam";
+
+    std::unique_ptr<TBamFilter> bamFilter;
 
     void write(){
         //settings
@@ -683,7 +778,8 @@ public:
         outputBam = std::make_unique<TestUtilities::TTestBamFile>(filename, chrLength, numReadGroups);
 
         //write alignments
-        outputBam->writeDummyAlignments(1000);
+        outputBam->writeDummyAlignments(2000, true);
+
         outputBam->closeOutput();
     }
 
@@ -691,21 +787,64 @@ public:
         // set bam parameters
         _parameters.addParameter("bam", filename);
 
-        // create instance of TTask_BAMDiagnostics
-        GenomeTasks::TTask_BAMDiagnostics diagnoser;
-        diagnoser.run(_parameters, &_logfile);
+        // create instance of TBamFilter
+        bamFilter = std::make_unique<TBamFilter>(_parameters, &_logfile, &_randomGenerator);
+        bamFilter->filter();
     }
 
     void SetUp() override{
         write();
     }
-
-    void TearDown() override {};
 };
 
-TEST_F(TBamDiagnoser_Test, noFilters){
-    // read bam file
+TEST_F(TBamFilter_Test, maxReadLength){
+    // 1) filter: maxReadLength
+    _parameters.addParameter("maxReadLength", "20");
+    // throws error as soon as read that is longer than maxReadLength is parsed
+    EXPECT_THROW(try { read(); } catch(...){throw std::runtime_error("Catched error string");}, std::runtime_error);
+}
+
+TEST_F(TBamFilter_Test, keepDuplicates){
+    // 2) do not filter: 'keepDuplicates'
+    _parameters.addParameter("keepDuplicates");
     read();
 
+    EXPECT_TRUE(bamFilter->duplicates.counts() > 0);
+}
 
+TEST_F(TBamFilter_Test, doNotkeepDuplicates){
+    // 2) filter: do not specify 'keepDuplicates'
+    read();
+
+    EXPECT_TRUE(bamFilter->duplicates.counts() == 0);
+}
+
+TEST_F(TBamFilter_Test, filterSoftClips){
+    // 3) filter: 'filterSoftClips'
+    _parameters.addParameter("filterSoftClips");
+    read();
+
+    EXPECT_TRUE(bamFilter->softClippedLength.counts() == 0);
+}
+
+TEST_F(TBamFilter_Test, doNotfilterSoftClips){
+    // 3) do not filter: 'filterSoftClips'
+    read();
+
+    EXPECT_TRUE(bamFilter->softClippedLength.counts() > 0);
+}
+
+TEST_F(TBamFilter_Test, keepImproperPairs){
+    // 2) do not filter: 'keepImproperPairs'
+    _parameters.addParameter("keepImproperPairs");
+    read();
+
+    EXPECT_TRUE(bamFilter->improperPairs.counts() > 0);
+}
+
+TEST_F(TBamFilter_Test, doNotkeepImproperPairs){
+    // 2) filter: do not specify 'keepImproperPairs'
+    read();
+
+    EXPECT_TRUE(bamFilter->improperPairs.counts() == 0);
 }

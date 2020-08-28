@@ -42,6 +42,7 @@ void TTestBamFile::_initialize(const std::vector<uint32_t> ChrLength, const uint
 	_dummyIsReverseStrand = false;
 	_dummyCigarChars = "MID";
 	_dummyCigarPos = 0;
+	_dummyFlag = 0;
 };
 
 void TTestBamFile::_initializeChromosomes(const std::vector<uint32_t> ChrLength){
@@ -91,6 +92,19 @@ void TTestBamFile::_iterateLength(){
     }
 }
 
+void TTestBamFile::_iterateFlags() {
+    // sam flags are bits -> can be summed to one value; increasing this value means a different combination of bits
+    // there are 12 flags -> 2^12 = 4096 - 1 = 4095 is the last valid combination
+    if (_dummyFlag.asInt() < 4095){
+        _dummyFlag = _dummyFlag.asInt() + 1;
+        while (!_dummyFlag.isValid()){ // some sums are invalid -> only accept valid sums
+            _dummyFlag = _dummyFlag.asInt() + 1;
+            if (_dummyFlag.asInt() >= 4095)
+                _dummyFlag = 0;
+        }
+    } else _dummyFlag = 0;
+}
+
 void TTestBamFile::openOutput(const std::string & Filename){
 	//open BAM file for writing
 	_filename = Filename;
@@ -109,7 +123,7 @@ void TTestBamFile::writeAlignment(const BAM::TAlignment & alignment){
 	_bamFile.writeAlignment(alignment);
 };
 
-void TTestBamFile::writeDummyAlignment(const BAM::TGenomePosition & position, const BAM::TCigar & cigar, const uint32_t & readGroup, const bool & isReverseStrand){
+void TTestBamFile::writeDummyAlignment(const BAM::TGenomePosition & position, const BAM::TCigar & cigar, const uint32_t & readGroup, const bool & isReverseStrand, const bool & complicatedSamFlag){
 	//extract sequence / qualities
 	std::string s = _dummySequence.substr(_dummyBasePos, cigar.lengthRead());
 	while(s.length() < cigar.lengthRead()){
@@ -128,33 +142,38 @@ void TTestBamFile::writeDummyAlignment(const BAM::TGenomePosition & position, co
 	BAM::TAlignment alignment(position);
     alignment.setSequenceQualities(cigar, s, q);
     alignment.setReadGroup(readGroup);
-    alignment.setIsReverseStrand(isReverseStrand);
+    if (complicatedSamFlag) {
+        alignment.setSamFlags(BAM::TSamFlags(_dummyFlag));
+        _iterateFlags();
+    } else
+        alignment.setIsReverseStrand(isReverseStrand);
+
     writeAlignment(alignment);
 };
 
-void TTestBamFile::writeDummyAlignment(const BAM::TGenomePosition & position, const BAM::TCigar & cigar){
-    writeDummyAlignment(position, cigar, _dummyReadGroup, _dummyIsReverseStrand);
+void TTestBamFile::writeDummyAlignment(const BAM::TGenomePosition & position, const BAM::TCigar & cigar, const bool & complicatedSamFlag){
+    writeDummyAlignment(position, cigar, _dummyReadGroup, _dummyIsReverseStrand, complicatedSamFlag);
 
     //iterate
     _iterateReadGroupAndReverseStrand();
 };
 
-void TTestBamFile::writeDummyAlignment(const BAM::TGenomePosition & position, const uint32_t & length){
+void TTestBamFile::writeDummyAlignment(const BAM::TGenomePosition & position, const uint32_t & length, const bool & complicatedSamFlag){
     // iterate over order of M, I and D
     BAM::TCigar cigar;
     _iterateCigar(cigar, length);
 
     // now write
-	writeDummyAlignment(position, cigar);
+	writeDummyAlignment(position, cigar, complicatedSamFlag);
 };
 
-void TTestBamFile::writeDummyAlignment(const BAM::TGenomePosition & position){
-	writeDummyAlignment(position, _dummyLength);
+void TTestBamFile::writeDummyAlignment(const BAM::TGenomePosition & position, const bool & complicatedSamFlag){
+	writeDummyAlignment(position, _dummyLength, complicatedSamFlag);
 
 	_iterateLength();
 };
 
-void TTestBamFile::writeDummyAlignments(const uint32_t & numAlignments){
+void TTestBamFile::writeDummyAlignments(const uint32_t & numAlignments, const bool & complicatedSamFlag){
 	//get distance between alignments
 	uint32_t usableLength = _chromosomes.referenceLength() - _chromosomes.size() * _dummyMaxLength;
 	uint32_t dist = usableLength / ((double) numAlignments + 1);
@@ -176,7 +195,7 @@ void TTestBamFile::writeDummyAlignments(const uint32_t & numAlignments){
 
 			position = chr->chrStart;
 		}
-		writeDummyAlignment(position);
+		writeDummyAlignment(position, complicatedSamFlag);
 	}
 }
 

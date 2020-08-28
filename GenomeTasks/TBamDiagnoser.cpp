@@ -10,7 +10,7 @@
 
 namespace GenomeTasks{
 
-TBamDiagnoser::TBamDiagnoser(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_filtered(Parameters, Logfile, RandomGenerator){
+TBamDiagnoser::TBamDiagnoser(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_basic(Parameters, Logfile, RandomGenerator){
 	//settings
 	qualFilter.set(Parameters, _logfile);
 	_bamFile.readGroups().fillVectorWithNames(_readGroupNames);
@@ -29,30 +29,6 @@ void TBamDiagnoser::_writeHistogram(const TCountDistributionVector & distVec, co
 	_logfile->done();
 };
 
-void TBamDiagnoser::_handleAlignment() {
-    //get read group
-    uint16_t readGroup = _bamFile.curReadGroupID();
-    _totalReads.add(readGroup);
-
-    //passed filters?
-    // if(_bamFile.curPassedQC()){ // todo: need this check?
-        _passedQC.add(readGroup);
-
-        //add to counters
-        _readLength.add(readGroup, _bamFile.curCIGAR().lengthRead());
-        _usableLength.add(readGroup, _bamFile.curUsableAlignedLength(qualFilter));
-        _softClippedLength.add(readGroup, _bamFile.curCIGAR().lengthSoftClipped());
-        _mappingQuality.add(readGroup, _bamFile.curMappingQuality());
-
-        //fragment length: only for proper pairs and only once
-        //if(_bamFile.curIsProperPair()){ // todo: need this check?
-            if(!_bamFile.curIsReverseStrand()){ // todo: need this check?
-                _fragmentLength.add(readGroup, _bamFile.curFragmentLength());
-            }
-        //}
-    // }
-}
-
 void TBamDiagnoser::diagnose(){
     //calculate length of genome
     double totLengthOfGenome = (double) _bamFile.chromosomes().referenceLength();
@@ -60,18 +36,47 @@ void TBamDiagnoser::diagnose(){
     //initialize counters
     uint32_t numRG = _bamFile.readGroups().size();
 
-    // resize distributions
-    _totalReads.resize(numRG);
-    _passedQC.resize(numRG);
-    _readLength.resize(numRG);
-    _usableLength.resize(numRG);
-    _softClippedLength.resize(numRG);
-    _mappingQuality.resize(numRG);
-    _fragmentLength.resize(numRG);
+    TCountDistribution totalReads(numRG);
+    TCountDistribution passedQC(numRG);
+    TCountDistributionVector readLength(numRG);
+    TCountDistributionVector usableLength(numRG);
+    TCountDistributionVector softClippedLength(numRG);
+    TCountDistributionVector mappingQuality(numRG);
+    TCountDistributionVector fragmentLength(numRG);
 
 	//now parse through bam file
-	_traverseBAMPassedQC();
-	_logfile->list("Approximate sequencing depth was estimated at " + toString((double) _usableLength.sum() / (double) totLengthOfGenome));
+	_bamFile.startProgressReporting();
+	while(_bamFile.readNextAlignment()){
+		//get read group
+		uint16_t readGroup = _bamFile.curReadGroupID();
+		totalReads.add(readGroup);
+
+		//passed filters?
+		if(_bamFile.curPassedQC()){
+			passedQC.add(readGroup);
+
+			//add to counters
+			readLength.add(readGroup, _bamFile.curCIGAR().lengthRead());
+			usableLength.add(readGroup, _bamFile.curUsableAlignedLength(qualFilter));
+			softClippedLength.add(readGroup, _bamFile.curCIGAR().lengthSoftClipped());
+			mappingQuality.add(readGroup, _bamFile.curMappingQuality());
+
+			//fragment length: only for proper pairs and only once
+			if(_bamFile.curIsProperPair()){
+				if(!_bamFile.curIsReverseStrand()){
+					fragmentLength.add(readGroup, _bamFile.curFragmentLength());
+				}
+			}
+		}
+
+        //report progress
+        _bamFile.printProgress();
+    }
+
+	//report end
+	_bamFile.printEndWithSummary();
+
+	_logfile->list("Approximate sequencing depth was estimated at " + toString((double) usableLength.sum() / (double) totLengthOfGenome));
 
 	//writing output files
 	_logfile->startIndent("Writing output files:");
@@ -83,22 +88,22 @@ void TBamDiagnoser::diagnose(){
 
 	//write for combined
 	out << "allReadGroups";
-	out << _totalReads.counts() << _passedQC.counts() << (double) _passedQC.counts() / (double) _totalReads.counts();
-	out << _readLength.mean() << _readLength.max();
-	out << _fragmentLength.counts() << _fragmentLength.mean();
-	out << _softClippedLength.countsLargerZero() << _softClippedLength.mean();
-	out << _usableLength.mean() << (double) _usableLength.sum() / (double) totLengthOfGenome;
-	out << _mappingQuality.mean() << std::endl;
+	out << totalReads.counts() << passedQC.counts() << (double) passedQC.counts() / (double) totalReads.counts();
+	out << readLength.mean() << readLength.max();
+	out << fragmentLength.counts() << fragmentLength.mean();
+	out << softClippedLength.countsLargerZero() << softClippedLength.mean();
+	out << usableLength.mean() << (double) usableLength.sum() / (double) totLengthOfGenome;
+	out << mappingQuality.mean() << std::endl;
 
 	//write per read group
-	for(uint32_t rg = 0; rg < numRG; ++rg){
+	for(uint16_t rg = 0; rg < numRG; ++rg){
 		out << _bamFile.readGroups().getName(rg);
-		out << _totalReads[rg] << _passedQC[rg] << (double) _passedQC[rg] / (double) _totalReads[rg];
-		out << _readLength.mean() << _readLength.max();
-		out << _fragmentLength[rg].counts() << _fragmentLength.mean();
-		out << _softClippedLength[rg].countsLargerZero() << _softClippedLength[rg].mean();
-		out << _usableLength[rg].mean() << (double) _usableLength[rg].sum() / (double) totLengthOfGenome;
-		out << _mappingQuality[rg].mean() << std::endl;
+		out << totalReads[rg] << passedQC[rg] << (double) passedQC[rg] / (double) totalReads[rg];
+		out << readLength.mean() << readLength.max();
+		out << fragmentLength[rg].counts() << fragmentLength.mean();
+		out << softClippedLength[rg].countsLargerZero() << softClippedLength[rg].mean();
+		out << usableLength[rg].mean() << (double) usableLength[rg].sum() / (double) totLengthOfGenome;
+		out << mappingQuality[rg].mean() << std::endl;
 	}
 	out.close();
 	_logfile->done();
@@ -106,11 +111,11 @@ void TBamDiagnoser::diagnose(){
 	//TODO: write file used by split merge
 
 	//writing distributions
-	_writeHistogram(_readLength, "readLength", "read length");
-	_writeHistogram(_usableLength, "usableLength", "usable length");
-	_writeHistogram(_softClippedLength, "softClippedLength", "soft clipped length");
-	_writeHistogram(_fragmentLength, "fragmentLength", "fragment length");
-	_writeHistogram(_mappingQuality, "mappingQuality", "mapping quality");
+	_writeHistogram(readLength, "readLength", "read length");
+	_writeHistogram(usableLength, "usableLength", "usable length");
+	_writeHistogram(softClippedLength, "softClippedLength", "soft clipped length");
+	_writeHistogram(fragmentLength, "fragmentLength", "fragment length");
+	_writeHistogram(mappingQuality, "mappingQuality", "mapping quality");
 
     _logfile->endIndent(); //end writing output files
 };

@@ -36,9 +36,12 @@ private:
 	bool _dummyIsReverseStrand;
 	uint32_t _dummyReadGroup;
 	std::string _dummyCigarChars; uint32_t _dummyCigarPos;
+	BAM::TSamFlags _dummyFlag;
+
     void _iterateReadGroupAndReverseStrand();
     void _iterateCigar(BAM::TCigar & cigar, uint32_t length);
     void _iterateLength();
+    void _iterateFlags();
 
     //other
 	BAM::TQualityMap _qualMap;
@@ -59,11 +62,11 @@ public:
 	void closeOutput();
 	void writeAlignment(const BAM::TAlignment & alignment);
 	// write dummy alignments where sequence and qualities are shuffled all the time
-	void writeDummyAlignment(const BAM::TGenomePosition & position, const BAM::TCigar & cigar, const uint32_t & readGroup, const bool & isReverseStrand);
-	void writeDummyAlignment(const BAM::TGenomePosition & position, const BAM::TCigar & cigar);
-    void writeDummyAlignment(const BAM::TGenomePosition & position, const uint32_t & length);
-    void writeDummyAlignment(const BAM::TGenomePosition & position);
-    void writeDummyAlignments(const uint32_t & numAlignments);
+	void writeDummyAlignment(const BAM::TGenomePosition & position, const BAM::TCigar & cigar, const uint32_t & readGroup, const bool & isReverseStrand, const bool & complicatedSamFlag = false);
+	void writeDummyAlignment(const BAM::TGenomePosition & position, const BAM::TCigar & cigar, const bool & complicatedSamFlag = false);
+    void writeDummyAlignment(const BAM::TGenomePosition & position, const uint32_t & length, const bool & complicatedSamFlag = false);
+    void writeDummyAlignment(const BAM::TGenomePosition & position, const bool & complicatedSamFlag = false);
+    void writeDummyAlignments(const uint32_t & numAlignments, const bool & complicatedSamFlag = false);
 
     // write dummy alignments where sequence and qualities are same within one alignment
     void writeDummyAlignment(const char& oneBase, const char& oneQual, const BAM::TGenomePosition & position, const BAM::TCigar & cigar, const uint32_t & readGroup, const bool & isReverseStrand);
