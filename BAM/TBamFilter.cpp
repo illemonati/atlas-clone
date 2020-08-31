@@ -106,7 +106,7 @@ TAlignmentList::TAlignmentList(const std::string filename){
 };
 
 void TAlignmentList::addFromFile(const std::string filename){
-	TInputFile in(filename, false);
+	TInputFile in(filename, 1);
 	std::vector<std::string> vec;
 	while(in.read(vec)){
 		add(vec[0]);

@@ -32,6 +32,7 @@ void TTestBamFile::_initialize(const std::vector<uint32_t> ChrLength, const uint
 	//tmp vars
 	_dummySequence =  "AAACCCGGGTTTACGTTGCAAACGTGGCCGTGACACCGTCGACAGGTGCCACACAGTGGCAAATTGGCCGGTGCAAACCAAACCAAGGTTGCCCG";
 	_dummyQualities = "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
+    _dummyMapQual = 0;
 	_dummyMaxLength = _dummySequence.length();
 	_dummyBasePos = 0;
 	_dummyQualPos = 0;
@@ -43,6 +44,7 @@ void TTestBamFile::_initialize(const std::vector<uint32_t> ChrLength, const uint
 	_dummyCigarChars = "MID";
 	_dummyCigarPos = 0;
 	_dummyFlag = 0;
+    _counter = 0;
 };
 
 void TTestBamFile::_initializeChromosomes(const std::vector<uint32_t> ChrLength){
@@ -62,6 +64,32 @@ void TTestBamFile::_initializeReadGroups(const uint32_t & NumReadGroups){
 		rg.sequencingTechnology_PL = "ILLUMINA";
 	}
 };
+
+std::string TTestBamFile::_constructSequence(uint32_t length){
+    std::string s = _dummySequence.substr(_dummyBasePos, length);
+    while(s.length() < length){
+        s += _dummySequence.substr(0, length - s.length());
+    }
+    // iterate positions
+    _dummyBasePos = (_dummyBasePos + 1) % _dummySequence.length();
+
+    return s;
+}
+
+std::string TTestBamFile::_constructSequenceQualities(uint32_t length){
+    std::string q = _dummyQualities.substr(_dummyQualPos, length);
+    while(q.length() < length){
+        q += _dummyQualities.substr(0, length - q.length());
+    }
+    // iterate positions
+    _dummyQualPos = (_dummyQualPos  + 3) % _dummyQualities.length();
+
+    return q;
+}
+
+void TTestBamFile::_iterateMappingQuality(){
+    _dummyMapQual = (_dummyMapQual + 4) % 255;
+}
 
 void TTestBamFile::_iterateReadGroupAndReverseStrand(){
     _dummyReadGroup = (_dummyReadGroup + 1) % _readGroups.size();
@@ -97,7 +125,7 @@ void TTestBamFile::_iterateFlags() {
     // there are 12 flags -> 2^12 = 4096 - 1 = 4095 is the last valid combination
     if (_dummyFlag.asInt() < 4095){
         _dummyFlag = _dummyFlag.asInt() + 1;
-        while (!_dummyFlag.isValid()){ // some sums are invalid -> only accept valid sums
+        while (!_dummyFlag.isValid() && _dummyFlag.isPaired()){ // some sums are invalid -> only accept valid sums. Also, we only want to simulate single-end reads in here
             _dummyFlag = _dummyFlag.asInt() + 1;
             if (_dummyFlag.asInt() >= 4095)
                 _dummyFlag = 0;
@@ -115,32 +143,21 @@ void TTestBamFile::closeOutput(){
 	_bamFile.close();
 };
 
-void TTestBamFile::writeAlignment(const BAM::TAlignment & alignment){
+void TTestBamFile::_storeAlignment(const BAM::TAlignment & alignment){
 	//store for later comparisons
 	_writtenAlignments.emplace_back(alignment);
-
-	//write to BAM
-	_bamFile.writeAlignment(alignment);
 };
 
-void TTestBamFile::writeDummyAlignment(const BAM::TGenomePosition & position, const BAM::TCigar & cigar, const uint32_t & readGroup, const bool & isReverseStrand, const bool & complicatedSamFlag){
-	//extract sequence / qualities
-	std::string s = _dummySequence.substr(_dummyBasePos, cigar.lengthRead());
-	while(s.length() < cigar.lengthRead()){
-		s += _dummySequence.substr(0, cigar.lengthRead() - s.length());
-	}
-	std::string q = _dummyQualities.substr(_dummyQualPos, cigar.lengthRead());
-	while(q.length() < cigar.lengthRead()){
-		q += _dummyQualities.substr(0, cigar.lengthRead() - q.length());
-	}
+void TTestBamFile::writeAlignment(const BAM::TAlignment & alignment){
+    //write to BAM
+    _bamFile.writeAlignment(alignment);
+};
 
-	//iterate positions
-	_dummyBasePos = (_dummyBasePos + 1) % _dummySequence.length();
-	_dummyQualPos = (_dummyQualPos  + 3) % _dummyQualities.length();
-
-	//write alignment
-	BAM::TAlignment alignment(position);
-    alignment.setSequenceQualities(cigar, s, q);
+BAM::TAlignment TTestBamFile::_constructAlignment(const std::string & sequence, const std::string & qualities, const BAM::TGenomePosition & position, const BAM::TCigar & cigar, const uint32_t & readGroup, const bool & isReverseStrand, const bool & complicatedSamFlag){
+    BAM::TAlignment alignment(position);
+    alignment.setName("alignment_" + toString(_counter));
+    alignment.setSequenceQualities(cigar, sequence, qualities);
+    alignment.setMappingQuality(_dummyMapQual);
     alignment.setReadGroup(readGroup);
     if (complicatedSamFlag) {
         alignment.setSamFlags(BAM::TSamFlags(_dummyFlag));
@@ -148,7 +165,24 @@ void TTestBamFile::writeDummyAlignment(const BAM::TGenomePosition & position, co
     } else
         alignment.setIsReverseStrand(isReverseStrand);
 
+    return alignment;
+}
+
+void TTestBamFile::writeDummyAlignment(const BAM::TGenomePosition & position, const BAM::TCigar & cigar, const uint32_t & readGroup, const bool & isReverseStrand, const bool & complicatedSamFlag){
+	//extract sequence / qualities
+	std::string s = _constructSequence(cigar.lengthRead());
+    std::string q = _constructSequenceQualities(cigar.lengthRead());
+
+	// iterate mapping quality
+	_iterateMappingQuality();
+
+	// fill alignment
+    BAM::TAlignment alignment = _constructAlignment(s, q, position, cigar, readGroup, isReverseStrand, complicatedSamFlag);
+
+    // store and write
+    _storeAlignment(alignment);
     writeAlignment(alignment);
+    _counter++;
 };
 
 void TTestBamFile::writeDummyAlignment(const BAM::TGenomePosition & position, const BAM::TCigar & cigar, const bool & complicatedSamFlag){
@@ -173,15 +207,20 @@ void TTestBamFile::writeDummyAlignment(const BAM::TGenomePosition & position, co
 	_iterateLength();
 };
 
+uint32_t TTestBamFile::_computeDistanceBetweenAlignments(const uint32_t & numAlignments){
+    uint32_t usableLength = _chromosomes.referenceLength() - _chromosomes.size() * _dummyMaxLength;
+    uint32_t dist = usableLength / ((double) numAlignments + 1);
+    if(dist > _chromosomes.minLength() - _dummyMaxLength){
+        dist = _chromosomes.minLength() - _dummyMaxLength;
+    }
+    return dist;
+}
+
 void TTestBamFile::writeDummyAlignments(const uint32_t & numAlignments, const bool & complicatedSamFlag){
 	//get distance between alignments
-	uint32_t usableLength = _chromosomes.referenceLength() - _chromosomes.size() * _dummyMaxLength;
-	uint32_t dist = usableLength / ((double) numAlignments + 1);
-	if(dist > _chromosomes.minLength() - _dummyMaxLength){
-		dist = _chromosomes.minLength() - _dummyMaxLength;
-	}
+    uint32_t dist = _computeDistanceBetweenAlignments(numAlignments);
 
-	BAM::TGenomePosition position;
+    BAM::TGenomePosition position;
 	auto chr = _chromosomes.begin();
 
 	for(uint32_t i=0; i<numAlignments; ++i){
@@ -256,5 +295,119 @@ void TTestBamFile::writeDummyAlignment(const char &oneBase, const char &oneQual,
     _iterateLength();
 };
 
+//--------------------------------------
+// TTestBamFilePairedEnd
+//--------------------------------------
+
+TTestBamFilePairedEnd::TTestBamFilePairedEnd(const std::vector<uint32_t> ChrLength, const uint32_t &NumReadGroups) : TTestBamFile(ChrLength, NumReadGroups){
+    _dummyFlag = 1;
+}
+
+TTestBamFilePairedEnd::TTestBamFilePairedEnd(const std::string &Filename, const std::vector<uint32_t> ChrLength,
+                                             const uint32_t &NumReadGroups) : TTestBamFile(Filename, ChrLength, NumReadGroups) {
+    _dummyFlag = 1;
+
+}
+
+void TTestBamFilePairedEnd::_iterateFlags() {
+    // sam flags are bits -> can be summed to one value; increasing this value means a different combination of bits
+    // there are 12 flags -> 2^12 = 4096 - 1 = 4095 is the last valid combination
+    if (_dummyFlag.asInt() < 4095){
+        _dummyFlag = _dummyFlag.asInt() + 1;
+        while (!_dummyFlag.isValid() && !_dummyFlag.isPaired()){ // some sums are invalid -> only accept valid sums. Also, we only want to simulate paired-end reads in here
+            _dummyFlag = _dummyFlag.asInt() + 1;
+            if (_dummyFlag.asInt() >= 4095)
+                _dummyFlag = 0;
+        }
+    } else _dummyFlag = 1;
+
+    // manually set mate1 and mate2 flags
+    if (!_dummyIsReverseStrand) {
+        _dummyFlag.setIsRead1(true);
+        _dummyFlag.setIsRead2(false);
+    }
+    else {
+        _dummyFlag.setIsRead1(false);
+        _dummyFlag.setIsRead2(true);
+    }
+}
+
+void TTestBamFilePairedEnd::writeDummyAlignment(const BAM::TGenomePosition & position, const BAM::TCigar & cigar, const uint32_t & readGroup, const bool & isReverseStrand, const bool & complicatedSamFlag){
+    //extract sequence / qualities
+    std::string s = _constructSequence(cigar.lengthRead());
+    std::string q = _constructSequenceQualities(cigar.lengthRead());
+
+    // iterate mapping quality
+    _iterateMappingQuality();
+
+    BAM::TAlignment alignment = _constructAlignment(s, q, position, cigar, readGroup, isReverseStrand, complicatedSamFlag);
+
+    // store, but DON'T write! We don't know information about mate yet
+    _storeAlignment(alignment);
+    _counter++;
+};
+
+void TTestBamFilePairedEnd::writeDummyAlignments(const uint32_t & numAlignments, const bool & complicatedSamFlag){
+    if (numAlignments % 2 != 0)
+        throw std::runtime_error("In function 'void TTestBamFilePairedEnd::writeDummyAlignments(const uint32_t & numAlignments, const bool & complicatedSamFlag)': For simplicity, numAlignments should be an even number!");
+
+    //get distance between alignments
+    uint32_t dist = _computeDistanceBetweenAlignments(numAlignments);
+
+    BAM::TGenomePosition position;
+    auto chr = _chromosomes.begin();
+
+    for(uint32_t i=0; i<numAlignments; ++i){
+        // we always simulate mate1 - mate2 of the same read (no shuffling among reads, as this is not relevant for bam filter)
+        //iterate position
+        position += dist;
+        if(position + _dummyLength > chr->chrEnd){
+            ++chr;
+            if(chr == _chromosomes.end()){
+                throw std::runtime_error("void TTestBamFile::writeDummyAlignments(const uint32_t & numAlignments): chromosome reached end!");
+            }
+
+            position = chr->chrStart;
+        }
+        TestUtilities::TTestBamFile::writeDummyAlignment(position, complicatedSamFlag); // just store for the moment
+    }
+
+    std::vector<bool> used(_writtenAlignments.size(), false);
+
+    for (uint32_t i = 0; i < numAlignments/2.; i++){
+        // pick first mate: first alignment that has not been used yet
+        uint32_t indexMate1 = 0;
+        for (uint32_t j = 0; j < used.size(); j++){
+            if (!used[j]){
+                used[j] = true;
+                indexMate1 = j;
+                break;
+            }
+        }
+        BAM::TAlignment & mate1 = _writtenAlignments[indexMate1];
+
+        // pick second mate: take last position that is still on same chromosome as mate1 and is not used -> that way, fragment lengths will vary a lot
+        uint32_t indexMate2 = 0;
+        for (uint32_t j = _writtenAlignments.size() - 1; j >= 0; j--){
+            if (_writtenAlignments[j].refID() == mate1.refID() && !used[j]) {
+                used[j] = true;
+                indexMate2 = j;
+                break;
+            }
+        }
+        BAM::TAlignment & mate2 = _writtenAlignments[indexMate2];
+
+        // set mate information
+        mate1.setMateGenomicPosition(mate2.refID(), mate2.position());
+        mate1.setInsertSize(mate2.position() - mate1.position());
+        mate2.setMateGenomicPosition(mate1.refID(), mate1.position());
+        mate2.setInsertSize(mate2.position() - mate1.position());
+    }
+
+    // finally: write
+    for (auto & alignment : _writtenAlignments){
+        writeAlignment(alignment);
+    }
+}
 
 }; //end namespace

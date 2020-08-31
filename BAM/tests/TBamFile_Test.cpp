@@ -673,12 +673,13 @@ public:
     TCountDistribution unmapped;
     TCountDistribution secondary;
     TCountDistribution supplementary;
+    TCountDistribution longerThanFragmentLength;
     TCountDistribution readGroup;
     TCountDistribution fwdStrand;
     TCountDistribution revStrand;
     TCountDistribution firstMate;
     TCountDistribution secondMate;
-    TCountDistribution blackList;
+    std::vector<std::string> names; // for blacklist
 
     TCountDistributionVector readLength;
     TCountDistributionVector usableLength;
@@ -702,12 +703,13 @@ public:
         unmapped.add(curReadGroup, !_bamFile.curIsMapped());
         secondary.add(curReadGroup, _bamFile.curIsSecondary());
         supplementary.add(curReadGroup, _bamFile.curIsSupplementary());
+        longerThanFragmentLength.add(curReadGroup, _bamFile.curIsLongerThanFragment());
         readGroup.add(curReadGroup);
         fwdStrand.add(curReadGroup, !_bamFile.curIsReverseStrand());
         revStrand.add(curReadGroup, _bamFile.curIsReverseStrand());
         firstMate.add(curReadGroup, _bamFile.curIsFirstMate());
         secondMate.add(curReadGroup, _bamFile.curIsSecondMate());
-        blackList.add(curReadGroup, _bamFile.curIsOnBlackList());
+        names.push_back(_bamFile.curName());
 
         readLength.add(curReadGroup, _bamFile.curCIGAR().lengthRead());
         usableLength.add(curReadGroup, _bamFile.curUsableAlignedLength(qualFilter));
@@ -739,12 +741,12 @@ public:
         unmapped.resize(numRG);
         secondary.resize(numRG);
         supplementary.resize(numRG);
+        longerThanFragmentLength.resize(numRG);
         readGroup.resize(numRG);
         fwdStrand.resize(numRG);
         revStrand.resize(numRG);
         firstMate.resize(numRG);
         secondMate.resize(numRG);
-        blackList.resize(numRG);
 
         readLength.resize(numRG);
         usableLength.resize(numRG);
@@ -769,13 +771,16 @@ public:
 
     std::unique_ptr<TBamFilter> bamFilter;
 
-    void write(){
+    void write(bool paired){
         //settings
         std::vector<uint32_t> chrLength = {1000, 2000, 3000};
         uint32_t numReadGroups = 5;
 
         //open BAM file for writing
-        outputBam = std::make_unique<TestUtilities::TTestBamFile>(filename, chrLength, numReadGroups);
+        if (paired)
+            outputBam = std::make_unique<TestUtilities::TTestBamFilePairedEnd>(filename, chrLength, numReadGroups);
+        else
+            outputBam = std::make_unique<TestUtilities::TTestBamFile>(filename, chrLength, numReadGroups);
 
         //write alignments
         outputBam->writeDummyAlignments(2000, true);
@@ -791,13 +796,10 @@ public:
         bamFilter = std::make_unique<TBamFilter>(_parameters, &_logfile, &_randomGenerator);
         bamFilter->filter();
     }
-
-    void SetUp() override{
-        write();
-    }
 };
 
 TEST_F(TBamFilter_Test, maxReadLength){
+    write(false);
     // 1) filter: maxReadLength
     _parameters.addParameter("maxReadLength", "20");
     // throws error as soon as read that is longer than maxReadLength is parsed
@@ -805,6 +807,7 @@ TEST_F(TBamFilter_Test, maxReadLength){
 }
 
 TEST_F(TBamFilter_Test, keepDuplicates){
+    write(false);
     // 2) do not filter: 'keepDuplicates'
     _parameters.addParameter("keepDuplicates");
     read();
@@ -813,6 +816,7 @@ TEST_F(TBamFilter_Test, keepDuplicates){
 }
 
 TEST_F(TBamFilter_Test, doNotkeepDuplicates){
+    write(false);
     // 2) filter: do not specify 'keepDuplicates'
     read();
 
@@ -820,6 +824,7 @@ TEST_F(TBamFilter_Test, doNotkeepDuplicates){
 }
 
 TEST_F(TBamFilter_Test, filterSoftClips){
+    write(false);
     // 3) filter: 'filterSoftClips'
     _parameters.addParameter("filterSoftClips");
     read();
@@ -828,6 +833,7 @@ TEST_F(TBamFilter_Test, filterSoftClips){
 }
 
 TEST_F(TBamFilter_Test, doNotfilterSoftClips){
+    write(false);
     // 3) do not filter: 'filterSoftClips'
     read();
 
@@ -835,6 +841,7 @@ TEST_F(TBamFilter_Test, doNotfilterSoftClips){
 }
 
 TEST_F(TBamFilter_Test, keepImproperPairs){
+    write(true);
     // 2) do not filter: 'keepImproperPairs'
     _parameters.addParameter("keepImproperPairs");
     read();
@@ -843,6 +850,7 @@ TEST_F(TBamFilter_Test, keepImproperPairs){
 }
 
 TEST_F(TBamFilter_Test, doNotkeepImproperPairs){
+    write(true);
     // 2) filter: do not specify 'keepImproperPairs'
     read();
 
@@ -850,6 +858,7 @@ TEST_F(TBamFilter_Test, doNotkeepImproperPairs){
 }
 
 TEST_F(TBamFilter_Test, keepUnmappedReads){
+    write(false);
     // 3) do not filter: 'keepUnmappedReads'
     _parameters.addParameter("keepUnmappedReads");
     read();
@@ -858,6 +867,7 @@ TEST_F(TBamFilter_Test, keepUnmappedReads){
 }
 
 TEST_F(TBamFilter_Test, doNotKeepUnmappedReads){
+    write(false);
     // 3) filter: do not specify 'keepUnmappedReads'
     read();
 
@@ -865,6 +875,7 @@ TEST_F(TBamFilter_Test, doNotKeepUnmappedReads){
 }
 
 TEST_F(TBamFilter_Test, keepFailedQC){
+    write(false);
     // 3) do not filter: 'keepFailedQC'
     _parameters.addParameter("keepFailedQC");
     read();
@@ -873,6 +884,7 @@ TEST_F(TBamFilter_Test, keepFailedQC){
 }
 
 TEST_F(TBamFilter_Test, doNotKeepFailedQC){
+    write(false);
     // 3) filter: do not specify 'keepFailedQC'
     read();
 
@@ -880,6 +892,7 @@ TEST_F(TBamFilter_Test, doNotKeepFailedQC){
 }
 
 TEST_F(TBamFilter_Test, keepSecondaryReads){
+    write(false);
     // 4) do not filter: 'keepSecondaryReads'
     _parameters.addParameter("keepSecondaryReads");
     read();
@@ -888,6 +901,7 @@ TEST_F(TBamFilter_Test, keepSecondaryReads){
 }
 
 TEST_F(TBamFilter_Test, doNotKeepSecondaryReads){
+    write(false);
     // 4) filter: do not specify 'keepSecondaryReads'
     read();
 
@@ -895,6 +909,7 @@ TEST_F(TBamFilter_Test, doNotKeepSecondaryReads){
 }
 
 TEST_F(TBamFilter_Test, keepSupplementaryReads){
+    write(false);
     // 5) do not filter: 'keepSupplementaryReads'
     _parameters.addParameter("keepSupplementaryReads");
     read();
@@ -903,6 +918,7 @@ TEST_F(TBamFilter_Test, keepSupplementaryReads){
 }
 
 TEST_F(TBamFilter_Test, doNotKeepSupplementaryReads){
+    write(false);
     // 5) filter: do not specify 'keepSupplementaryReads'
     read();
 
@@ -910,16 +926,236 @@ TEST_F(TBamFilter_Test, doNotKeepSupplementaryReads){
 }
 
 TEST_F(TBamFilter_Test, keepReadsLongerThanFragment){
+    write(true);
     // 6) do not filter: 'keepReadsLongerThanFragment'
     _parameters.addParameter("keepReadsLongerThanFragment");
     read();
 
-    EXPECT_TRUE(bamFilter->fragmentLength.counts() > 0);
+    EXPECT_TRUE(bamFilter->longerThanFragmentLength.counts() > 0);
 }
 
 TEST_F(TBamFilter_Test, doNotKeepReadsLongerThanFragmens){
+    write(true);
     // 6) filter: do not specify 'keepReadsLongerThanFragment'
     read();
 
-    EXPECT_TRUE(bamFilter->fragmentLength.counts() == 0);
+    EXPECT_TRUE(bamFilter->longerThanFragmentLength.counts() == 0);
+}
+
+TEST_F(TBamFilter_Test, keepOnlyFwd){
+    write(false);
+    // 7) filter: 'keepOnlyFwd', remove all reverse reads
+    _parameters.addParameter("keepOnlyFwd");
+    read();
+
+    EXPECT_TRUE(bamFilter->fwdStrand.counts() > 0);
+    EXPECT_TRUE(bamFilter->revStrand.counts() == 0);
+}
+
+TEST_F(TBamFilter_Test, keepOnlyRev){
+    write(false);
+    // 7) filter: 'keepOnlyRev', remove all forward reads
+    _parameters.addParameter("keepOnlyRev");
+    read();
+
+    EXPECT_TRUE(bamFilter->revStrand.counts() > 0);
+    EXPECT_TRUE(bamFilter->fwdStrand.counts() == 0);
+}
+
+TEST_F(TBamFilter_Test, keepOnlyFirst){
+    write(true);
+    // 8) filter: 'keepOnlyFirst', remove all second mates
+    _parameters.addParameter("keepImproperPairs");
+    _parameters.addParameter("keepOnlyFirst");
+    read();
+
+    EXPECT_TRUE(bamFilter->firstMate.counts() > 0);
+    EXPECT_TRUE(bamFilter->secondMate.counts() == 0);
+}
+
+TEST_F(TBamFilter_Test, keepOnlySecond){
+    write(true);
+    // 8) filter: 'keepOnlySecond', remove all first mates
+    _parameters.addParameter("keepImproperPairs");
+    _parameters.addParameter("keepOnlySecond");
+    read();
+
+    EXPECT_TRUE(bamFilter->secondMate.counts() > 0);
+    EXPECT_TRUE(bamFilter->firstMate.counts() == 0);
+}
+
+TEST_F(TBamFilter_Test, blacklist){
+    write(false);
+    // 9) filter: 'blacklist'
+
+    // generate blacklist
+    TOutputFile blackList("blacklist.txt", 1);
+    for (int i = 0; i < 200; i++){ // add first 200 reads to blacklist
+        blackList << "alignment_" + toString(i) << std::endl;
+    }
+    blackList.close();
+
+    // remove all other filters
+    _parameters.addParameter("blacklist", "blacklist.txt");
+    _parameters.addParameter("keepDuplicates");
+    _parameters.addParameter("keepImproperPairs");
+    _parameters.addParameter("keepUnmappedReads");
+    _parameters.addParameter("keepFailedQC");
+    _parameters.addParameter("keepSecondaryReads");
+    _parameters.addParameter("keepSupplementaryReads");
+    _parameters.addParameter("keepReadsLongerThanFragment");
+
+    read();
+
+    for (auto & it : bamFilter->names){
+        // all alignments 0-199 should have been removed
+       int alignmentNum = convertString<int>(extractAfter(it, "_"));
+       EXPECT_TRUE(alignmentNum >= 200);
+    }
+}
+
+TEST_F(TBamFilter_Test, minMQ){
+    write(false);
+    // 10) filter: 'minMQ'
+    _parameters.addParameter("minMQ", "100");
+    // disable all other filters
+    _parameters.addParameter("keepDuplicates");
+    _parameters.addParameter("keepImproperPairs");
+    _parameters.addParameter("keepUnmappedReads");
+    _parameters.addParameter("keepFailedQC");
+    _parameters.addParameter("keepSecondaryReads");
+    _parameters.addParameter("keepSupplementaryReads");
+    _parameters.addParameter("keepReadsLongerThanFragment");
+
+    read();
+
+    for (int id = 0; id < bamFilter->mappingQuality.size(); id++){
+        EXPECT_TRUE(bamFilter->mappingQuality[id].min() >= 100);
+    }
+}
+
+TEST_F(TBamFilter_Test, maxMQ){
+    write(false);
+    // 10) filter: 'maxMQ'
+    _parameters.addParameter("maxMQ", "100");
+    // disable all other filters
+    _parameters.addParameter("keepDuplicates");
+    _parameters.addParameter("keepImproperPairs");
+    _parameters.addParameter("keepUnmappedReads");
+    _parameters.addParameter("keepFailedQC");
+    _parameters.addParameter("keepSecondaryReads");
+    _parameters.addParameter("keepSupplementaryReads");
+    _parameters.addParameter("keepReadsLongerThanFragment");
+
+    read();
+
+    for (int id = 0; id < bamFilter->mappingQuality.size(); id++){
+        EXPECT_TRUE(bamFilter->mappingQuality[id].max() <= 100);
+    }
+}
+
+TEST_F(TBamFilter_Test, minMQ_maxMQ){
+    write(false);
+    // 10) filter: 'maxMQ'
+    _parameters.addParameter("minMQ", "80");
+    _parameters.addParameter("maxMQ", "100");
+    // disable all other filters
+    _parameters.addParameter("keepDuplicates");
+    _parameters.addParameter("keepImproperPairs");
+    _parameters.addParameter("keepUnmappedReads");
+    _parameters.addParameter("keepFailedQC");
+    _parameters.addParameter("keepSecondaryReads");
+    _parameters.addParameter("keepSupplementaryReads");
+    _parameters.addParameter("keepReadsLongerThanFragment");
+
+    read();
+
+    for (int id = 0; id < bamFilter->mappingQuality.size(); id++){
+        EXPECT_TRUE(bamFilter->mappingQuality[id].min() >= 80);
+        EXPECT_TRUE(bamFilter->mappingQuality[id].max() <= 100);
+    }
+}
+
+TEST_F(TBamFilter_Test, minFragmentLength){
+    write(true);
+    // 11) filter: 'minFragmentLength'
+    _parameters.addParameter("minFragmentLength", "100");
+    // disable all other filters
+    _parameters.addParameter("keepDuplicates");
+    _parameters.addParameter("keepImproperPairs");
+    _parameters.addParameter("keepUnmappedReads");
+    _parameters.addParameter("keepFailedQC");
+    _parameters.addParameter("keepSecondaryReads");
+    _parameters.addParameter("keepSupplementaryReads");
+    _parameters.addParameter("keepReadsLongerThanFragment");
+
+    read();
+
+    for (int id = 0; id < bamFilter->mappingQuality.size(); id++){
+        EXPECT_TRUE(bamFilter->fragmentLength[id].min() >= 100);
+    }
+}
+
+TEST_F(TBamFilter_Test, maxFragmentLength){
+    write(true);
+    // 11) filter: 'maxFragmentLength'
+    _parameters.addParameter("maxFragmentLength", "100");
+    // disable all other filters
+    _parameters.addParameter("keepDuplicates");
+    _parameters.addParameter("keepImproperPairs");
+    _parameters.addParameter("keepUnmappedReads");
+    _parameters.addParameter("keepFailedQC");
+    _parameters.addParameter("keepSecondaryReads");
+    _parameters.addParameter("keepSupplementaryReads");
+    _parameters.addParameter("keepReadsLongerThanFragment");
+
+    read();
+
+    for (int id = 0; id < bamFilter->mappingQuality.size(); id++){
+        EXPECT_TRUE(bamFilter->fragmentLength[id].max() <= 100);
+    }
+}
+
+TEST_F(TBamFilter_Test, minFragmentLength_maxFragmentLength){
+    write(true);
+    // 11) filter: 'minFragmentLength' and 'maxFragmentLength'
+    _parameters.addParameter("minFragmentLength", "80");
+    _parameters.addParameter("maxFragmentLength", "100");
+    // disable all other filters
+    _parameters.addParameter("keepDuplicates");
+    _parameters.addParameter("keepImproperPairs");
+    _parameters.addParameter("keepUnmappedReads");
+    _parameters.addParameter("keepFailedQC");
+    _parameters.addParameter("keepSecondaryReads");
+    _parameters.addParameter("keepSupplementaryReads");
+    _parameters.addParameter("keepReadsLongerThanFragment");
+
+    read();
+
+    for (int id = 0; id < bamFilter->mappingQuality.size(); id++){
+        EXPECT_TRUE(bamFilter->fragmentLength[id].min() >= 80);
+        EXPECT_TRUE(bamFilter->fragmentLength[id].max() <= 100);
+    }
+}
+
+TEST_F(TBamFilter_Test, readGroups){
+    write(false);
+    // 12) filter: 'readGroup'
+    _parameters.addParameter("readGroup", "ReadGroup0,ReadGroup1,ReadGroup2");
+
+    // remove all other filters
+    _parameters.addParameter("keepDuplicates");
+    _parameters.addParameter("keepImproperPairs");
+    _parameters.addParameter("keepUnmappedReads");
+    _parameters.addParameter("keepFailedQC");
+    _parameters.addParameter("keepSecondaryReads");
+    _parameters.addParameter("keepSupplementaryReads");
+    _parameters.addParameter("keepReadsLongerThanFragment");
+
+    read();
+
+    EXPECT_NO_THROW(bamFilter->readGroup[0]);
+    EXPECT_NO_THROW(bamFilter->readGroup[1]);
+    EXPECT_NO_THROW(bamFilter->readGroup[2]);
+    EXPECT_THROW(bamFilter->readGroup[3], std::runtime_error);
 }

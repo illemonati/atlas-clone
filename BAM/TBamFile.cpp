@@ -194,22 +194,22 @@ void TBamFile::setFilters(TParameters & params, TLog* logfile){
 			std::string blacklistFilename = params.getParameterFilename("blacklist");
 			logfile->list("Will filter out reads present in the file '" + blacklistFilename + "'. (parameter 'blacklist')");
 			_blacklist.addFromFile(blacklistFilename);
-			_blacklistFilter.filter("was in provided blacklist");
+			_blacklistFilter.filter("Was in provided blacklist");
 		} else {
 			_blacklistFilter.keep();
 		}
 
 		//Mapping quality filter
 		if(params.parameterExists("minMQ") || params.parameterExists("maxMQ")){
-			int MinMQ = params.getParameterInt("minMQ", 0);
-			int MaxMQ = params.getParameterInt("maxMQ", 254);
+			int MinMQ = params.getParameterIntWithDefault("minMQ", 0);
+			int MaxMQ = params.getParameterIntWithDefault("maxMQ", 254);
 
 			if(MinMQ < 0 || MinMQ > 254)
 				throw "minMQ '" + toString(MinMQ) + "' is outside the accepted range [0,254]!";
 			if(MaxMQ < 0 || MaxMQ > 254)
 				throw "maxMQ '" + toString(MaxMQ) + "' is outside the accepted range [0,254]!";
 			if(MaxMQ < MinMQ)
-				throw "maxMQ must be <= minMQ";
+				throw "minMQ must be <= maxMQ";
 
 			_mappingQualityFilter.filter(MinMQ, MaxMQ, "Mapping quality outside [" + toString(MinMQ) + ", " + toString(MaxMQ) + "]");
 			logfile->list("Will filter out reads with mapping quality outside the range [" + toString(MinMQ) + ", " + toString(MaxMQ) + "]. (parameters 'minMQ', 'maxMQ')");
@@ -229,10 +229,10 @@ void TBamFile::setFilters(TParameters & params, TLog* logfile){
 			if(MinFragmentLength > MaxFragmentLength)
 				throw "minFragmentLength must be <= maxFragmentLength!";
 
-			_fragmentLengthfilter.filter(MinFragmentLength, MaxFragmentLength, "Fragment length outside [" + toString(MinFragmentLength) + ", " + toString(MaxFragmentLength) + "]");
+			_fragmentLengthFilter.filter(MinFragmentLength, MaxFragmentLength, "Fragment length outside [" + toString(MinFragmentLength) + ", " + toString(MaxFragmentLength) + "]");
 			logfile->list("Will filter out reads with fragment length outside the range [" + toString(MinFragmentLength) + ", " + toString(MaxFragmentLength) + "]. (parameters 'minFragmentLength', 'maxFragmentLength')");
 		} else {
-			_fragmentLengthfilter.keep();
+			_fragmentLengthFilter.keep();
 			logfile->list("Will keep reads regardless of their fragment length. (use 'minFragmentLength', 'maxFragmentLength' to limit)");
 		}
 	}
@@ -282,7 +282,7 @@ void TBamFile::openBamLog(TParameters & params, TLog* logfile){
 		_secondMateFilter.setLog(_bamLog);
 		_blacklistFilter.setLog(_bamLog);
 		_mappingQualityFilter.setLog(_bamLog);
-		_fragmentLengthfilter.setLog(_bamLog);
+		_fragmentLengthFilter.setLog(_bamLog);
 		_externalFilter.setLog(_bamLog);
 	}
 };
@@ -421,8 +421,8 @@ void TBamFile::_applyFilters(){
 
 		//fragment length
 		if(_QCFiltersPassed){
-			_QCFiltersPassed = _fragmentLengthfilter.pass(curFragmentLength(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
-					        && _longerThanFragmentFilter.pass(_curBamAlignment.IsProperPair() && _curBamAlignment.InsertSize < _curCigar.lengthAligned(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate());
+			_QCFiltersPassed = _fragmentLengthFilter.pass(curFragmentLength(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
+                               && _longerThanFragmentFilter.pass(_curBamAlignment.IsProperPair() && _curBamAlignment.InsertSize < _curCigar.lengthAligned(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate());
 		}
 	}
 
@@ -686,7 +686,7 @@ void TBamFile::printSummaryNoEndIndent(){
 	_secondMateFilter.summary(_logfile);
 	_blacklistFilter.summary(_logfile);
 	_mappingQualityFilter.summary(_logfile);
-	_fragmentLengthfilter.summary(_logfile);
+	_fragmentLengthFilter.summary(_logfile);
 	_externalFilter.summary(_logfile);
 };
 

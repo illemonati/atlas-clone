@@ -71,7 +71,7 @@ private:
  	TBamFileFilterBool _secondMateFilter;
  	TBamFileFilterBool _blacklistFilter;
  	TBamFileFilterRange _mappingQualityFilter;
- 	TBamFileFilterRange _fragmentLengthfilter;
+ 	TBamFileFilterRange _fragmentLengthFilter;
  	TBamFileFilter _externalFilter;
 
 	void _fillSamHeader(TSamHeader & SamHeader);
@@ -130,7 +130,7 @@ public:
  	bool secondMateFilterEnabled() const{ return _secondMateFilter.filters(); };
  	bool blacklistFilterEnabled() const{ return _blacklistFilter.filters(); };
  	bool mappingQualityFilterEnabled() const{ return _mappingQualityFilter.filters(); };
- 	bool fragmentLengthfilterEnabled() const{ return _fragmentLengthfilter.filters(); };
+ 	bool fragmentLengthfilterEnabled() const{ return _fragmentLengthFilter.filters(); };
  	bool externalFilterEnabled() const{ return _externalFilter.filters(); };
 
 	//reading
@@ -171,9 +171,9 @@ public:
 	bool curIsFailedQC() const { return _curBamAlignment.IsFailedQC(); };
 	bool curIsSecondary() const{ return !_curBamAlignment.IsPrimaryAlignment(); };
 	bool curIsSupplementary() const{ return _curBamAlignment.IsSupplementary(); };
+	bool curIsLongerThanFragment() const {return _curBamAlignment.IsProperPair() && _curBamAlignment.InsertSize < _curCigar.lengthAligned(); };
 	bool curIsFirstMate() const{ return _curBamAlignment.IsFirstMate(); };
 	bool curIsSecondMate() const{ return _curBamAlignment.IsSecondMate(); };
-	bool curIsOnBlackList() const{ return _blacklist.isInBlacklist(_curBamAlignment.Name); };
 	std::string curQuerySequence(const uint16_t start, const uint16_t length) const;
 
 	//modify cur alignment

@@ -84,7 +84,7 @@ void TBamDiagnoser::diagnose(){
 	//writing read group summary
 	std::string filename = _outputName + "_diagnostics.txt";
 	_logfile->listFlush("Writing general diagnostics to '" + filename + "' ...");
-	TOutputFile out(filename, {"readGroup", "reads", "passedQC", "fracPassedQC", "avgReadLength", "maxReadLength", "properPairs", "avgFragmentLength", "softClipped", "avgSoftClippedLength", "avgUsableAligneLength", "approximatDepth", "avgMappingQuality"});
+	TOutputFile out(filename, {"readGroup", "reads", "passedQC", "fracPassedQC", "avgReadLength", "maxReadLength", "properPairs", "avgFragmentLength", "softClipped", "avgSoftClippedLength", "avgUsableAlignedLength", "approximateDepth", "avgMappingQuality"});
 
 	//write for combined
 	out << "allReadGroups";
