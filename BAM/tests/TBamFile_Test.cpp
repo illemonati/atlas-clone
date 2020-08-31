@@ -669,7 +669,7 @@ public:
 
     TCountDistribution duplicates;
     TCountDistribution improperPairs;
-    TCountDistribution passedQC;
+    TCountDistribution failedQC;
     TCountDistribution unmapped;
     TCountDistribution secondary;
     TCountDistribution supplementary;
@@ -698,7 +698,7 @@ public:
 
         duplicates.add(curReadGroup, _bamFile.curIsDuplicate());
         improperPairs.add(curReadGroup, _bamFile.curIsPaired() && !_bamFile.curIsProperPair());
-        passedQC.add(curReadGroup, _bamFile.curPassedQC());
+        failedQC.add(curReadGroup, _bamFile.curIsFailedQC());
         unmapped.add(curReadGroup, !_bamFile.curIsMapped());
         secondary.add(curReadGroup, _bamFile.curIsSecondary());
         supplementary.add(curReadGroup, _bamFile.curIsSupplementary());
@@ -735,7 +735,7 @@ public:
 
         duplicates.resize(numRG);
         improperPairs.resize(numRG);
-        passedQC.resize(numRG);
+        failedQC.resize(numRG);
         unmapped.resize(numRG);
         secondary.resize(numRG);
         supplementary.resize(numRG);
@@ -847,4 +847,79 @@ TEST_F(TBamFilter_Test, doNotkeepImproperPairs){
     read();
 
     EXPECT_TRUE(bamFilter->improperPairs.counts() == 0);
+}
+
+TEST_F(TBamFilter_Test, keepUnmappedReads){
+    // 3) do not filter: 'keepUnmappedReads'
+    _parameters.addParameter("keepUnmappedReads");
+    read();
+
+    EXPECT_TRUE(bamFilter->unmapped.counts() > 0);
+}
+
+TEST_F(TBamFilter_Test, doNotKeepUnmappedReads){
+    // 3) filter: do not specify 'keepUnmappedReads'
+    read();
+
+    EXPECT_TRUE(bamFilter->unmapped.counts() == 0);
+}
+
+TEST_F(TBamFilter_Test, keepFailedQC){
+    // 3) do not filter: 'keepFailedQC'
+    _parameters.addParameter("keepFailedQC");
+    read();
+
+    EXPECT_TRUE(bamFilter->failedQC.counts() > 0);
+}
+
+TEST_F(TBamFilter_Test, doNotKeepFailedQC){
+    // 3) filter: do not specify 'keepFailedQC'
+    read();
+
+    EXPECT_TRUE(bamFilter->failedQC.counts() == 0);
+}
+
+TEST_F(TBamFilter_Test, keepSecondaryReads){
+    // 4) do not filter: 'keepSecondaryReads'
+    _parameters.addParameter("keepSecondaryReads");
+    read();
+
+    EXPECT_TRUE(bamFilter->secondary.counts() > 0);
+}
+
+TEST_F(TBamFilter_Test, doNotKeepSecondaryReads){
+    // 4) filter: do not specify 'keepSecondaryReads'
+    read();
+
+    EXPECT_TRUE(bamFilter->secondary.counts() == 0);
+}
+
+TEST_F(TBamFilter_Test, keepSupplementaryReads){
+    // 5) do not filter: 'keepSupplementaryReads'
+    _parameters.addParameter("keepSupplementaryReads");
+    read();
+
+    EXPECT_TRUE(bamFilter->supplementary.counts() > 0);
+}
+
+TEST_F(TBamFilter_Test, doNotKeepSupplementaryReads){
+    // 5) filter: do not specify 'keepSupplementaryReads'
+    read();
+
+    EXPECT_TRUE(bamFilter->supplementary.counts() == 0);
+}
+
+TEST_F(TBamFilter_Test, keepReadsLongerThanFragment){
+    // 6) do not filter: 'keepReadsLongerThanFragment'
+    _parameters.addParameter("keepReadsLongerThanFragment");
+    read();
+
+    EXPECT_TRUE(bamFilter->fragmentLength.counts() > 0);
+}
+
+TEST_F(TBamFilter_Test, doNotKeepReadsLongerThanFragmens){
+    // 6) filter: do not specify 'keepReadsLongerThanFragment'
+    read();
+
+    EXPECT_TRUE(bamFilter->fragmentLength.counts() == 0);
 }

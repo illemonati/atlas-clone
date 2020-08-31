@@ -168,6 +168,7 @@ public:
 	bool curIsReverseStrand() const{ return _curBamAlignment.IsReverseStrand(); };
 	bool curIsDuplicate() const{ return _curBamAlignment.IsDuplicate(); };
 	bool curIsMapped() const{ return _curBamAlignment.IsMapped(); };
+	bool curIsFailedQC() const { return _curBamAlignment.IsFailedQC(); };
 	bool curIsSecondary() const{ return !_curBamAlignment.IsPrimaryAlignment(); };
 	bool curIsSupplementary() const{ return _curBamAlignment.IsSupplementary(); };
 	bool curIsFirstMate() const{ return _curBamAlignment.IsFirstMate(); };
