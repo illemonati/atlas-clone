@@ -320,16 +320,6 @@ void TTestBamFilePairedEnd::_iterateFlags() {
                 _dummyFlag = 0;
         }
     } else _dummyFlag = 1;
-
-    // manually set mate1 and mate2 flags
-    if (!_dummyIsReverseStrand) {
-        _dummyFlag.setIsRead1(true);
-        _dummyFlag.setIsRead2(false);
-    }
-    else {
-        _dummyFlag.setIsRead1(false);
-        _dummyFlag.setIsRead2(true);
-    }
 }
 
 void TTestBamFilePairedEnd::writeDummyAlignment(const BAM::TGenomePosition & position, const BAM::TCigar & cigar, const uint32_t & readGroup, const bool & isReverseStrand, const bool & complicatedSamFlag){
@@ -347,61 +337,56 @@ void TTestBamFilePairedEnd::writeDummyAlignment(const BAM::TGenomePosition & pos
     _counter++;
 };
 
+BAM::TAlignment & TTestBamFilePairedEnd::_pickFirstMate(std::vector<bool> & used){
+    // pick first mate: first alignment that has not been used yet
+    uint32_t indexMate1 = 0;
+    for (uint32_t j = 0; j < _writtenAlignments.size(); j++){
+        if (!used[j]){
+            used[j] = true;
+            indexMate1 = j;
+            break;
+        }
+    }
+    return _writtenAlignments[indexMate1];
+}
+
+BAM::TAlignment & TTestBamFilePairedEnd::_pickSecondMate(uint32_t refIDMate1, std::vector<bool> & used){
+    // pick second mate: take last position that is still on same chromosome as mate1 and is not used -> that way, fragment lengths will vary a lot
+    uint32_t indexMate2 = 0;
+    for (uint32_t j = _writtenAlignments.size() - 1; j >= 0; j--){
+        if (_writtenAlignments[j].refID() == refIDMate1 && !used[j]) {
+            used[j] = true;
+            indexMate2 = j;
+            break;
+        }
+    }
+    return _writtenAlignments[indexMate2];
+}
+
+
 void TTestBamFilePairedEnd::writeDummyAlignments(const uint32_t & numAlignments, const bool & complicatedSamFlag){
     if (numAlignments % 2 != 0)
         throw std::runtime_error("In function 'void TTestBamFilePairedEnd::writeDummyAlignments(const uint32_t & numAlignments, const bool & complicatedSamFlag)': For simplicity, numAlignments should be an even number!");
 
-    //get distance between alignments
-    uint32_t dist = _computeDistanceBetweenAlignments(numAlignments);
+    // create alignments and store
+    TestUtilities::TTestBamFile::writeDummyAlignments(numAlignments, complicatedSamFlag);
 
-    BAM::TGenomePosition position;
-    auto chr = _chromosomes.begin();
-
-    for(uint32_t i=0; i<numAlignments; ++i){
-        // we always simulate mate1 - mate2 of the same read (no shuffling among reads, as this is not relevant for bam filter)
-        //iterate position
-        position += dist;
-        if(position + _dummyLength > chr->chrEnd){
-            ++chr;
-            if(chr == _chromosomes.end()){
-                throw std::runtime_error("void TTestBamFile::writeDummyAlignments(const uint32_t & numAlignments): chromosome reached end!");
-            }
-
-            position = chr->chrStart;
-        }
-        TestUtilities::TTestBamFile::writeDummyAlignment(position, complicatedSamFlag); // just store for the moment
-    }
-
+    // now match forward and reverse read
     std::vector<bool> used(_writtenAlignments.size(), false);
-
     for (uint32_t i = 0; i < numAlignments/2.; i++){
-        // pick first mate: first alignment that has not been used yet
-        uint32_t indexMate1 = 0;
-        for (uint32_t j = 0; j < used.size(); j++){
-            if (!used[j]){
-                used[j] = true;
-                indexMate1 = j;
-                break;
-            }
-        }
-        BAM::TAlignment & mate1 = _writtenAlignments[indexMate1];
-
-        // pick second mate: take last position that is still on same chromosome as mate1 and is not used -> that way, fragment lengths will vary a lot
-        uint32_t indexMate2 = 0;
-        for (uint32_t j = _writtenAlignments.size() - 1; j >= 0; j--){
-            if (_writtenAlignments[j].refID() == mate1.refID() && !used[j]) {
-                used[j] = true;
-                indexMate2 = j;
-                break;
-            }
-        }
-        BAM::TAlignment & mate2 = _writtenAlignments[indexMate2];
+        BAM::TAlignment & mate1 = _pickFirstMate(used);
+        BAM::TAlignment & mate2 = _pickSecondMate(mate1.refID(), used);
 
         // set mate information
         mate1.setMateGenomicPosition(mate2.refID(), mate2.position());
         mate1.setInsertSize(mate2.position() - mate1.position());
+        mate1.setIsReverseStrand(false);
+        mate1.setIsRead1(true); mate1.setIsRead2(false);
+
         mate2.setMateGenomicPosition(mate1.refID(), mate1.position());
         mate2.setInsertSize(mate2.position() - mate1.position());
+        mate2.setIsReverseStrand(true);
+        mate2.setIsRead1(false); mate2.setIsRead2(true);
     }
 
     // finally: write

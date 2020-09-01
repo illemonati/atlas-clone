@@ -101,6 +101,9 @@ class TTestBamFilePairedEnd : public TTestBamFile {
 protected:
     void _iterateFlags() override;
 
+    BAM::TAlignment & _pickFirstMate(std::vector<bool> & used);
+    BAM::TAlignment & _pickSecondMate(uint32_t refIDMate1, std::vector<bool> & used);
+
 public:
     TTestBamFilePairedEnd(const std::vector<uint32_t> ChrLength, const uint32_t & NumReadGroups);
     TTestBamFilePairedEnd(const std::string & Filename, const std::vector<uint32_t> ChrLength, const uint32_t & NumReadGroups);

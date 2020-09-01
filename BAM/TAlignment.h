@@ -99,7 +99,9 @@ public:
 	void setSequenceQualitiesOnlyMatches(const std::string Sequence, const std::string Qualities);
 	void setReadGroup(const uint16_t readGroupId);
 	void setIsReverseStrand(const bool IsReverse){ _flags.setIsReverseStrand(IsReverse); };
-	void setSamFlags(const BAM::TSamFlags Flags){_flags = Flags; };
+    void setIsRead1(const bool IsRead1){ _flags.setIsRead1(IsRead1); };
+    void setIsRead2(const bool IsRead2){ _flags.setIsRead2(IsRead2); };
+    void setSamFlags(const BAM::TSamFlags Flags){_flags = Flags; };
 
 	//getters: position
 	uint32_t lastAlingedInternalPos() const{ return _lastAlignedPos; };

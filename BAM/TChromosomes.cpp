@@ -79,12 +79,20 @@ void TChromosomes::appendChromosome(const std::string & name, const uint32_t & l
 	_chromosomes.emplace_back(_chromosomes.size(), name, length, ploidy);
 };
 
-const TChromosome& TChromosomes::_find(const std::string chrName) const{
+TChromosome& TChromosomes::_find(const std::string chrName){
 	for(auto& c : _chromosomes){
 		if(c.name == chrName)
 			return c;
 	}
 	throw "Chromosome '" + chrName + "' not found in BAM header!";
+};
+
+const TChromosome& TChromosomes::_find(const std::string chrName) const{
+    for(auto& c : _chromosomes){
+        if(c.name == chrName)
+            return c;
+    }
+    throw "Chromosome '" + chrName + "' not found in BAM header!";
 };
 
 void TChromosomes::_setAllNotInUse(){
@@ -100,7 +108,7 @@ void TChromosomes::limitAndSetPloidy(TParameters & params, TLog* logfile){
 
 void TChromosomes::limitChr(TParameters & params, TLog* logfile){
 	if(params.parameterExists("chr")){
-		logfile->startIndent("Will limit analysis to the following chromosomes (parameter 'chr':");
+		logfile->startIndent("Will limit analysis to the following chromosomes (parameter 'chr'):");
 		std::vector<std::string> vec;
 		fillVectorFromString(params.getParameterString("chr"), vec, ',');
 		_useSpecifiedChr(vec);
@@ -109,7 +117,7 @@ void TChromosomes::limitChr(TParameters & params, TLog* logfile){
 		if(params.parameterExists("limitChr")){
 			std::string limitName = params.getParameterString("limitChr");
 			logfile->list("Will limit analysis to all chromosomes up to and including " + limitName + ". (parameter 'limitChr')");
-			_useUpTo(limitName);
+            _useUpToAndIncluding(limitName);
 		}
 	}
 };
@@ -121,21 +129,21 @@ void TChromosomes::_useSpecifiedChr(const std::vector<std::string> & chrNames){
 	//set matching to to true
 	for(auto& it : chrNames){
 		//find chromosome
-		auto c = _find(it);
+		TChromosome & c = _find(it);
 		c.inUse = true;
 	}
 };
 
-void TChromosomes::_useUpTo(const std::string & name){
+void TChromosomes::_useUpToAndIncluding(const std::string & name){
 	_find(name);
 
 	//set in use
 	bool use = true;
 	for(auto& it : _chromosomes){
-		if(it.name == name){
-			use = false;
-		}
 		it.inUse = use;
+        if(it.name == name){
+            use = false;
+        }
 	}
 };
 
@@ -185,7 +193,7 @@ void TChromosomes::_specifyPloidy(const std::string & ploidyFileName, TLog* logf
 
 		//skip empty lines
 		if(vec.size() > 0){
-			auto c = _find(vec[0]);
+            TChromosome & c = _find(vec[0]);
 			c.ploidy = convertString<int>(vec[1]);
 
 			//report
@@ -210,7 +218,7 @@ void TChromosomes::_specifyPloidy(const std::string & ploidyFileName, TLog* logf
 void TChromosomes::_setToHaploid(const std::vector<std::string> & chrNames, TLog* logfile){
 	logfile->startIndent("Setting the following chromosomes to be haploid:");
 	for(auto& it : chrNames){
-		auto c = _find(it);
+        TChromosome & c = _find(it);
 		c.ploidy = 1;
 		logfile->list(c.name);
 	}

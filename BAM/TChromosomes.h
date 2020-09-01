@@ -78,10 +78,11 @@ private:
 	std::vector<TChromosome> _chromosomes;
 	mutable std::vector<TChromosome>::iterator _curChr;
 
-	const TChromosome& _find(const std::string chrName) const;
-	void _setAllNotInUse();
+	TChromosome& _find(const std::string chrName);
+    const TChromosome& _find(const std::string chrName) const;
+    void _setAllNotInUse();
 	void _useSpecifiedChr(const std::vector<std::string> & chrNames);
-	void _useUpTo(const std::string & name);
+	void _useUpToAndIncluding(const std::string & name);
 	void _specifyPloidy(const std::string & ploidyFileName, TLog* logfile);
 	void _setToHaploid(const std::vector<std::string> & chrNames, TLog* logfile);
 
