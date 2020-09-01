@@ -51,7 +51,7 @@ void TTestGLFFile::_iterateRMSMappingQual() {
 
 void TTestGLFFile::_iteratePosition() {
     _dummyDist = (_dummyDist + 7) % _dummyMaxDist;
-    _dummyPos += _dummyDist;
+    _dummyPos += _dummyDist + 1; // + 1 because % can return 0, but then we would like distance of 1
 
     // next chromosome?
     if (BAM::TGenomePosition(_dummyCurChr->refID(), _dummyPos) > _dummyCurChr->chrEnd){
@@ -93,8 +93,10 @@ void TTestGLFFile::_iterateGenotypeLikelihoods(uint32_t curDepth) {
 
 void TTestGLFFile::writeDummySites(const uint32_t &numSites) {
     // compute maximal distance between sites (such that positions never exceed the last position of the last chromosome)
-    uint32_t usableLength = _chromosomes.referenceLength() - _chromosomes.size();
-    _dummyMaxDist = usableLength / ((double) numSites + 1);
+    uint32_t usableLength = _chromosomes.referenceLength();
+    if (numSites > usableLength)
+        throw std::runtime_error("Too many sizes (" + toString(numSites) + ") for chromosomes of total length " + toString(usableLength) + "!");
+    _dummyMaxDist = usableLength / numSites;
     if(_dummyMaxDist > _chromosomes.minLength() - 1){
         _dummyMaxDist = _chromosomes.minLength() - 1;
     }
@@ -128,7 +130,14 @@ void TTestGLFFile::writeDummySite(long pos, uint32_t depth, GenotypeLikelihoods:
 }
 
 void TTestGLFFile::writeSite(long pos, uint32_t depth, GenotypeLikelihoods::TGenotypeLikelihoods &genotypeLikelihoods, uint8_t RMS_mappingQual) {
+    // write to glf
     _glfFile.writeSite(pos, depth, RMS_mappingQual, genotypeLikelihoods);
+
+    // ... and store, for later comparisons
+    _writtenPositions.push_back(pos);
+    _writtenDepths.push_back(depth);
+    _writtenGenotypeLikelihoods.push_back(genotypeLikelihoods);
+    _writtenRMSMappingQualities.push_back(RMS_mappingQual);
 }
 
 void TTestGLFFile::writeNewChromosome(const BAM::TChromosome & chromosome) {
