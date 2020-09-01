@@ -118,6 +118,26 @@ double TGenotypeLikelihoodCalculator::calculateLogPMDS(const BAM::TBase & base, 
 	return log(_baseLikelihoods[0].weightedSum(_tmpBaseData) / _baseLikelihoodsNoPMD.weightedSum(_tmpBaseData));
 };
 
+void TGenotypeLikelihoodCalculator::calculateGenotypeLikelihoods(const TSite &site, TGenotypeLikelihoods &genotypeLikelihoods) const {
+    //ensure base likelihoods have proper size
+    if(_baseLikelihoods.size() < site.depth()){
+        _baseLikelihoods.resize(site.depth());
+    }
+
+    if(site.empty()){
+        genotypeLikelihoods.reset();
+    } else {
+        //calculate base likelihoods P(d|b, D, epsilon) = \sum_{\bar{b}} P(\bar{b}|b, D)P(d|\bar{b}, \epsilon)
+        for(size_t i=0; i<site.depth(); ++i){
+            _sequencingErrorModels.calculateBaseLikelihoods(site[i], _baseLikelihoodsNoPMD);
+            _pmd.calculateBaseLikelihoods(site[i], _baseLikelihoodsNoPMD, _baseLikelihoods[i]);
+        }
+
+        //calculate genotype likelihoods
+        genotypeLikelihoods.fill(_baseLikelihoods, site.depth());
+    }
+}
+
 /*
 void TGenotypeLikelihoodCalculator::calculateGenotypeLikelihoods(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) const{
 	//ensure base likelihoods have proper size
