@@ -10,7 +10,7 @@ add_library(${PROJECT_NAME}
         TAtlasTestRecalibration.cpp TAtlasTestRecalibration.h
         TVcfTest.cpp TVcfTest.h
         TTestBamFile.cpp TTestBamFile.h
-        )
+        TTestGLFFile.cpp TTestGLFFile.h)
 
 include_directories(".")
 include_directories(../BAM/)

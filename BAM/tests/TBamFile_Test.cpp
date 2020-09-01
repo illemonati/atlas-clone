@@ -1033,6 +1033,9 @@ TEST_F(TBamFilter_Test, blacklist){
        int alignmentNum = convertString<int>(extractAfter(it, "_"));
        EXPECT_TRUE(alignmentNum >= 200);
     }
+
+    // remove blacklist file
+    remove("blacklist.txt");
 }
 
 TEST_F(TBamFilter_Test, minMQ){

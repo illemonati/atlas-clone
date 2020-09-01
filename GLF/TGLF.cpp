@@ -11,148 +11,146 @@
 // TGlfConverter
 //----------------------------------------------------
 TGlfConverter::TGlfConverter(){
-	maxVal = 65535;
-	minLikelihood = pow(10.0, (double) maxVal / -1000.0);
+    _maxVal = 65535;
+    _minLikelihood = pow(10.0, (double) _maxVal / -1000.0);
 
 	//fill map
-	likelihoodMap.resize(maxVal+1);
-	for(int i=0; i<=maxVal; i++){
-		likelihoodMap[i] = pow(10.0, (double) i / -1000.0);
+	_likelihoodMap.resize(_maxVal + 1);
+	for(int i=0; i<=_maxVal; i++){
+        _likelihoodMap[i] = pow(10.0, (double) i / -1000.0);
 	}
 };
 
-uint16_t TGlfConverter::toGlfFormat(double scaledLikelihood){
-	if(scaledLikelihood < minLikelihood){
-		return maxVal;
+uint16_t TGlfConverter::toGlfFormat(double scaledLikelihood) const{
+	if(scaledLikelihood < _minLikelihood){
+		return _maxVal;
 	} else {
 		return round(-1000.0 * log10(scaledLikelihood));
 	}
 };
 
-uint16_t TGlfConverter::log10ToGlfFormat(double log10ScaledLikelihood){
+uint16_t TGlfConverter::log10ToGlfFormat(double log10ScaledLikelihood) const{
 	uint32_t tmp = round(-1000.0 * log10ScaledLikelihood);
-	if(tmp > maxVal) return maxVal;
+	if(tmp > _maxVal) return _maxVal;
 	else return tmp;
 };
 
-uint16_t TGlfConverter::phredToGlfFormat(uint8_t phred){
+uint16_t TGlfConverter::phredToGlfFormat(uint8_t phred) const{
 	return phred * 100;
 };
 
-double TGlfConverter::toScaledLikelihood(uint16_t glfValue){
-	if(glfValue > maxVal) return minLikelihood;
-	return likelihoodMap[glfValue];
+double TGlfConverter::toScaledLikelihood(uint16_t glfValue) const{
+	if(glfValue > _maxVal) return _minLikelihood;
+	return _likelihoodMap[glfValue];
 };
 
-uint8_t TGlfConverter::toPhred(uint16_t glfValue){
+uint8_t TGlfConverter::toPhred(uint16_t glfValue) const{
 	uint16_t tmp = round(glfValue / 100.0);
 	if(tmp > 255) return 255;
 	return tmp;
 };
 
-double TGlfConverter::toLog10(uint16_t glfValue){
+double TGlfConverter::toLog10(uint16_t glfValue) const{
 	return glfValue / -1000.0;
 };
 
-double TGlfConverter::toLog(uint16_t glfValue){
-	return glfValue * logOf10DividedByMinus1000;
+double TGlfConverter::toLog(uint16_t glfValue) const{
+	return glfValue * _logOf10DividedByMinus1000;
 };
 
 //---------------------------------
 //TGlfWriter
 //---------------------------------
-//PRIVATE
-void TGlfWriter::init(){
-	glfValues = new uint16_t[curChr.maxNumLikelihoodValues];
-	oldPos = 0;
-	recordType1 = one8 << 4;
+void TGlfWriter::_init(){
+    _glfValues = new uint16_t[_curChr.maxNumLikelihoodValues];
+    _oldPos = 0;
+    _recordType1 = _one8 << 4;
 };
 
-void TGlfWriter::writeHeader(){
-	write(version.c_str(), 4*sizeof(char));
+void TGlfWriter::_writeHeader(){
+    _write(_version.c_str(), 4 * sizeof(char));
 
-	if(header.length() > 0){
-		uint32_t labelLength = header.size();
-		write(&labelLength, sizeof(uint32_t));
-		write(header.c_str(), labelLength * sizeof(char));
+	if(_header.length() > 0){
+		uint32_t labelLength = _header.size();
+        _write(&labelLength, sizeof(uint32_t));
+        _write(_header.c_str(), labelLength * sizeof(char));
 	} else
-		write(&zero32, sizeof(uint32_t));
+        _write(&_zero32, sizeof(uint32_t));
 };
 
-//PUBLIC
-void TGlfWriter::open(std::string Filename){
+void TGlfWriter::open(const std::string& Filename){
 	open(Filename, "");
 };
 
-void TGlfWriter::open(std::string Filename, std::string Header){
-	filename = Filename;
-	gzfp = NULL;
-	gzfp = gzopen(filename.c_str(),"wb");
+void TGlfWriter::open(const std::string& Filename, const std::string& Header){
+    _filename = Filename;
+    _gzfp = nullptr;
+    _gzfp = gzopen(_filename.c_str(), "wb");
 
-	if(gzfp == NULL)
-		throw "Failed to open file '" + filename + "' for writing!";
-	isOpen = true;
-	curChr.clear();
+	if(_gzfp == nullptr)
+		throw "Failed to open file '" + _filename + "' for writing!";
+    _isOpen = true;
+	_curChr.clear();
 
 	//write header
-	header = Header;
-	writeHeader();
+	_header = Header;
+    _writeHeader();
 };
 
 void TGlfWriter::newChromosome(const BAM::TChromosome & chromosome){
-	if(curChr.name != "")
-		write(&zero8, sizeof(uint8_t));
+	if(!_curChr.name.empty())
+        _write(&_zero8, sizeof(uint8_t));
 
 	//save cur info
-	curChr.update(chromosome.name, chromosome.refID(), chromosome.length, chromosome.ploidy);
+	_curChr.update(chromosome.name, chromosome.refID(), chromosome.length, chromosome.ploidy);
 
 	//write new chromosome: length of label, label, refId, length of ref sequence, ploidy
-	uint32_t labelLength = curChr.name.size();
-	write(&labelLength, sizeof(uint32_t));
-	write(curChr.name.c_str(), curChr.name.length() * sizeof(char));
-	write(&curChr.refId, sizeof(uint32_t));
-	write(&curChr.length, sizeof(uint32_t));
-	write(&curChr.ploidy, sizeof(uint8_t)); // I get an "uninitialized varable" error with valgrind. Why?
+	uint32_t labelLength = _curChr.name.size();
+    _write(&labelLength, sizeof(uint32_t));
+    _write(_curChr.name.c_str(), _curChr.name.length() * sizeof(char));
+    _write(&_curChr.refId, sizeof(uint32_t));
+    _write(&_curChr.length, sizeof(uint32_t));
+    _write(&_curChr.ploidy, sizeof(uint8_t)); // I get an "uninitialized variable" error with valgrind. Why?
 
 	//set oldPos and curChr
-	oldPos = 0;
+	_oldPos = 0;
 };
 
 void TGlfWriter::writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual, GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods){
 	//record type
 	//TODO: add reference?
-	write(&recordType1, sizeof(uint8_t));
+    _write(&_recordType1, sizeof(uint8_t));
 
 	//offset
-	offset = pos - oldPos;
-	oldPos = pos;
-	write(&offset, sizeof(uint32_t));
+	_offset = pos - _oldPos;
+    _oldPos = pos;
+    _write(&_offset, sizeof(uint32_t));
 
 	//calculate likelihoods in GLF format
 	//Note: genotype likelihoods are given for the 10 diploid genotypes!!
 	//TODO: maybe do in GLFChromosomes?
-	if(curChr.ploidy == 1){
+	if(_curChr.ploidy == 1){
 		double maxLL = genotypeLikelihoods[AA];
 		if(genotypeLikelihoods[CC] > maxLL) maxLL = genotypeLikelihoods[CC];
 		if(genotypeLikelihoods[GG] > maxLL) maxLL = genotypeLikelihoods[GG];
 		if(genotypeLikelihoods[TT] > maxLL) maxLL = genotypeLikelihoods[TT];
 
 		//normalize and scale to uint16
-		glfValues[0] = converter.toGlfFormat(genotypeLikelihoods[AA] / maxLL);
-		glfValues[1] = converter.toGlfFormat(genotypeLikelihoods[CC] / maxLL);
-		glfValues[2] = converter.toGlfFormat(genotypeLikelihoods[GG] / maxLL);
-		glfValues[3] = converter.toGlfFormat(genotypeLikelihoods[TT] / maxLL);
+		_glfValues[0] = _converter.toGlfFormat(genotypeLikelihoods[AA] / maxLL);
+        _glfValues[1] = _converter.toGlfFormat(genotypeLikelihoods[CC] / maxLL);
+        _glfValues[2] = _converter.toGlfFormat(genotypeLikelihoods[GG] / maxLL);
+        _glfValues[3] = _converter.toGlfFormat(genotypeLikelihoods[TT] / maxLL);
 	} else {
 		//maxLL
 		double maxLL = genotypeLikelihoods[0];
-		for(int i=1; i<curChr.numLikelihoodValues; ++i){
+		for(int i=1; i < _curChr.numLikelihoodValues; ++i){
 			if(genotypeLikelihoods[i] > maxLL)
 				maxLL = genotypeLikelihoods[i];
 		}
 
 		//normalize and scale to uint16
-		for(int i=0; i<curChr.numLikelihoodValues; ++i){
-			glfValues[i] = converter.toGlfFormat(genotypeLikelihoods[i] / maxLL);
+		for(int i=0; i < _curChr.numLikelihoodValues; ++i){
+            _glfValues[i] = _converter.toGlfFormat(genotypeLikelihoods[i] / maxLL);
 		}
 	}
 
@@ -163,43 +161,43 @@ void TGlfWriter::writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual, Ge
 	//write depth as uint16_t
 	if(depth > 65535) depth = 65535;
 	uint16_t tmp = depth;
-	write(&tmp, sizeof(uint16_t));
+    _write(&tmp, sizeof(uint16_t));
 
 	//root mean square of mapping qualities
-	write(&RMS_mappingQual, sizeof(uint8_t));
+    _write(&RMS_mappingQual, sizeof(uint8_t));
 
 	//genotype likelihoods
-	write(glfValues, curChr.numLikelihoodValues*sizeof(uint16_t));
+    _write(_glfValues, _curChr.numLikelihoodValues * sizeof(uint16_t));
 };
 
 //---------------------------------
 //TGlfReader
 //---------------------------------
 //PRIVATE
-void TGlfReader::init(){
-	isOpen = false;
-	reachedEndOfChr = true;
-	recordType = 99;
-	offset = 0;
+void TGlfReader::_init(){
+    _isOpen = false;
+    _reachedEndOfChr = true;
+    _recordType = 99;
+	_offset = 0;
 	_position = 0;
 	//maxLL = 0;
 	_depth = 0;
 	_RMS_mappingQual = 0;
-	positionInFile = 0;
-	tmpInt8 = 0;
+    _positionInFile = 0;
+    _tmpInt8 = 0;
 	_lenRead = 0;
 	_eof = true;
 
-	_genotypeLikelihoodsGLF_missingData = new uint16_t[curChr.maxNumLikelihoodValues];
-	for(int i=0; i<curChr.maxNumLikelihoodValues; ++i)
+	_genotypeLikelihoodsGLF_missingData = new uint16_t[_curChr.maxNumLikelihoodValues];
+	for(int i=0; i < _curChr.maxNumLikelihoodValues; ++i)
 		_genotypeLikelihoodsGLF_missingData[i] = 0;
 };
 
 TGlfChromosome* TGlfReader::pointerToChr(uint32_t refId){
-	if(curChr.refId == refId){
-		return &curChr;
+	if(_curChr.refId == refId){
+		return &_curChr;
 	} else {
-		std::map< uint32_t, TGlfChromosome >::iterator it = _chromosomesAlreadyParsed.find(refId);
+		auto it = _chromosomesAlreadyParsed.find(refId);
 		if(it == _chromosomesAlreadyParsed.end()){
 			return nullptr;
 		} else {
@@ -214,37 +212,37 @@ bool TGlfReader::fillPointerToChr(uint32_t refId, TGlfChromosome* & chr){
 	else return true;
 };
 
-bool TGlfReader::readChr(){
+bool TGlfReader::_readChr(){
 	//store current chromosome name in list of chromosomes parsed
-	if(curChr.name != "")
-		_chromosomesAlreadyParsed.emplace(curChr.refId, curChr);
+	if(!_curChr.name.empty())
+		_chromosomesAlreadyParsed.emplace(_curChr.refId, _curChr);
 
 	//read chromosome info
 	//name
 	uint32_t len;
-	if(!read(&len, sizeof(uint32_t))){
+	if(!_read(&len, sizeof(uint32_t))){
 		_eof = true;
 		return false;
 	}
 	char* tmp = new char[len];
-	read(tmp, len*sizeof(char));
+    _read(tmp, len * sizeof(char));
 	std::string name(tmp, len);
 	delete[] tmp;
 
 	//refId
 	uint16_t refId;
-	read(&refId, sizeof(uint32_t));
+    _read(&refId, sizeof(uint32_t));
 
 	//length
 	uint32_t length;
-	read(&length, sizeof(uint32_t));
+    _read(&length, sizeof(uint32_t));
 
 	//ploidy
 	uint8_t ploidy;
-	read(&ploidy, sizeof(uint8_t));
+    _read(&ploidy, sizeof(uint8_t));
 
 	//update
-	curChr.update(name, refId, length, ploidy);
+	_curChr.update(name, refId, length, ploidy);
 
 	//set first position = 0
 	_position = 0;
@@ -252,107 +250,107 @@ bool TGlfReader::readChr(){
 	return true;
 };
 
-bool TGlfReader::readRecordType(){
-	if(!read(&tmpInt8, sizeof(uint8_t))){
+bool TGlfReader::_readRecordType(){
+	if(!_read(&_tmpInt8, sizeof(uint8_t))){
 		_eof = true;
 		return false;
 	}
-	recordType = tmpInt8 >> 4;
-	if(recordType > 1) throw "Unknown record type in file '" + filename + "'!";
+    _recordType = _tmpInt8 >> 4;
+	if(_recordType > 1) throw "Unknown record type in file '" + _filename + "'!";
 	return true;
 };
 
-void TGlfReader::readSNPRecord(){
+void TGlfReader::_readSNPRecord(){
 	//read data of a single position
 	//offset
-	read(&offset, sizeof(uint32_t));
-	_position += offset;
+    _read(&_offset, sizeof(uint32_t));
+	_position += _offset;
 
 	//maxLL and depth (both uint16)
 	//read(&maxLL, sizeof(uint16_t));
-	read(&_depth, sizeof(uint16_t));
+    _read(&_depth, sizeof(uint16_t));
 
 	//root mean square of mapping qualities
-	read(&_RMS_mappingQual, sizeof(uint8_t));
+    _read(&_RMS_mappingQual, sizeof(uint8_t));
 	//RMS_mappingQual = (int) tmpInt8; DO WE NEED THIS??
 
 	//genotype likelihoods
-	read(_genotypeLikelihoodsGLF, curChr.numLikelihoodValues*sizeof(uint16_t));
+    _read(_genotypeLikelihoodsGLF, _curChr.numLikelihoodValues * sizeof(uint16_t));
 };
 
 
 //PUBLIC
-void TGlfReader::setFilename(std::string Filename){
-	filename = Filename;
+void TGlfReader::setFilename(const std::string& Filename){
+    _filename = Filename;
 };
 
-void TGlfReader::open(std::string Filename){
+void TGlfReader::open(const std::string& Filename){
 	setFilename(Filename);
-	open();
+    _open();
 };
 
-void TGlfReader::open(){
-	gzfp = NULL;
-	gzfp = gzopen(filename.c_str(),"rb");
+void TGlfReader::_open(){
+    _gzfp = nullptr;
+    _gzfp = gzopen(_filename.c_str(), "rb");
 
-	if(gzfp == NULL)
-		throw "Failed to open file '" + filename + "' for reading!";
-	isOpen = true;
-	curChr.clear();
-	positionInFile = 0;
+	if(_gzfp == nullptr)
+		throw "Failed to open file '" + _filename + "' for reading!";
+    _isOpen = true;
+	_curChr.clear();
+    _positionInFile = 0;
 
 	//parse header
 	//version
 	char buffer[4];
-	read(buffer, 4*sizeof(char));
+    _read(buffer, 4 * sizeof(char));
 	std::string fileVersion;
 	fileVersion.assign(buffer, 4);
 
-	if(fileVersion != version)
-		throw "Non-supported GLF version '" + fileVersion + "! Currently only version '" + version + "' is supported.";
-	version = fileVersion;
+	if(fileVersion != _version)
+		throw "Non-supported GLF version '" + fileVersion + "! Currently only version '" + _version + "' is supported.";
+    _version = fileVersion;
 
-	read(&HeaderLen, sizeof(uint32_t));
+    _read(&_HeaderLen, sizeof(uint32_t));
 
-	if(HeaderLen > 0){
-		char* header = new char[HeaderLen];
-		read(&header, HeaderLen*sizeof(char));
+	if(_HeaderLen > 0){
+		char* header = new char[_HeaderLen];
+        _read(&header, _HeaderLen * sizeof(char));
 	}
 	_eof = false;
 
 	//read info of first chromosome
 	_chromosomesAlreadyParsed.clear();
-	readChr();
+    _readChr();
 };
 
 void TGlfReader::rewind(){
 	//go back to beginning of file
 	close();
-	open();
+    _open();
 };
 
 bool TGlfReader::readNext(){
 	//read record type
-	if(!readRecordType()) return false;
-	if(recordType == 0){
-		readChr();
+	if(!_readRecordType()) return false;
+	if(_recordType == 0){
+        _readChr();
 		return readNext();
-	} else if(recordType == 1){
-		readSNPRecord();
+	} else if(_recordType == 1){
+        _readSNPRecord();
 		return true;
-	} else throw "Unknown record type in file '" + filename + "'!";
+	} else throw "Unknown record type in file '" + _filename + "'!";
 };
 
 bool TGlfReader::jumpToEndOfChr(){
 	//read record type
-	if(!readRecordType()) return false;
+	if(!_readRecordType()) return false;
 
 	//tmp variables
-	while(recordType != 0){
+	while(_recordType != 0){
 		//skipRecord();
-		readSNPRecord();
+        _readSNPRecord();
 
-		if(!readRecordType()) return false;
+		if(!_readRecordType()) return false;
 	}
 
 	return true;
@@ -362,22 +360,22 @@ bool TGlfReader::jumpToNextChr(){
 	if(!jumpToEndOfChr()){
 		return false;
 	}
-	readChr();
+    _readChr();
 	return readNext();
 };
 
 bool TGlfReader::readNextWindow(std::vector<uint16_t*> & genoLikelihoods, const uint32_t refId, const uint32_t start, const uint32_t end){
 	//Assumes that windows are read in order: no jumping back!
 	if(_eof) return false;
-	if(refId < curChr.refId) return false;
+	if(refId < _curChr.refId) return false;
 
 	//move to correct chromosome
-	while(curChr.refId < refId){
+	while(_curChr.refId < refId){
 		jumpToNextChr();
 	}
 
 	//jump to first position in window
-	while(_position < start && curChr.refId == refId){
+	while(_position < start && _curChr.refId == refId){
 		readNext();
 	}
 
@@ -389,19 +387,19 @@ bool TGlfReader::readNextWindow(std::vector<uint16_t*> & genoLikelihoods, const 
 	uint32_t i = start;
 	int index = 0;
 
-	while(_position < end && curChr.refId == refId){
+	while(_position < end && _curChr.refId == refId){
 		//fill in missing positions before
 		for(; i<_position; ++i, ++index)
-			memcpy(genoLikelihoods[index], _genotypeLikelihoodsGLF_missingData, curChr.numLikelihoodValues*sizeof(uint16_t));
+			memcpy(genoLikelihoods[index], _genotypeLikelihoodsGLF_missingData, _curChr.numLikelihoodValues * sizeof(uint16_t));
 
-		memcpy(genoLikelihoods[index], _genotypeLikelihoodsGLF, curChr.numLikelihoodValues*sizeof(uint16_t));
+		memcpy(genoLikelihoods[index], _genotypeLikelihoodsGLF, _curChr.numLikelihoodValues * sizeof(uint16_t));
 		++index; ++i;
 
 		//read next record
 		readNext();
-		if(curChr.refId != refId){
+		if(_curChr.refId != refId){
 			for(; i<end; ++i, ++index)
-				memcpy(genoLikelihoods[index], _genotypeLikelihoodsGLF_missingData, curChr.numLikelihoodValues*sizeof(uint16_t));
+				memcpy(genoLikelihoods[index], _genotypeLikelihoodsGLF_missingData, _curChr.numLikelihoodValues * sizeof(uint16_t));
 		}
 	}
 
@@ -410,40 +408,40 @@ bool TGlfReader::readNextWindow(std::vector<uint16_t*> & genoLikelihoods, const 
 
 void TGlfReader::fillGenotypeLikelihoodsGLF(uint16_t* destination){
 	//assumes pointer points to
-	memcpy(destination, _genotypeLikelihoodsGLF, curChr.numLikelihoodValues*sizeof(uint16_t));
+	memcpy(destination, _genotypeLikelihoodsGLF, _curChr.numLikelihoodValues * sizeof(uint16_t));
 };
 
 void TGlfReader::fillGenotypeLikelihoods(double* destination, TGlfConverter* converter){
-	for(int i=0; i<curChr.numLikelihoodValues; ++i){
+	for(int i=0; i < _curChr.numLikelihoodValues; ++i){
 		destination[i] = converter->toScaledLikelihood(_genotypeLikelihoodsGLF[i]);
 	}
 };
 
 //printing
 void TGlfReader::printChr(){
-	std::cout << "CHROMOSOME: '" << curChr.name << "' of length " << curChr.length << " and ploidy " << (int) curChr.ploidy << "\n";
+	std::cout << "CHROMOSOME: '" << _curChr.name << "' of length " << _curChr.length << " and ploidy " << (int) _curChr.ploidy << "\n";
 };
 
 void TGlfReader::printSite(){
 	//std::cout << curChr.name << "\t" << position << "\t" << maxLL << "\t" << depth << "\t" << RMS_mappingQual;
-	std::cout << curChr.name << "\t" << _position << "\t" << _depth << "\t" << _RMS_mappingQual;
-	for(int i=0; i<curChr.numLikelihoodValues; ++i)
+	std::cout << _curChr.name << "\t" << _position << "\t" << _depth << "\t" << _RMS_mappingQual;
+	for(int i=0; i < _curChr.numLikelihoodValues; ++i)
 		std::cout << "\t" << unsigned(_genotypeLikelihoodsGLF[i]);
 	std::cout << "\n";
 };
 
 void TGlfReader::printToEnd(){ //For debugging
 	//first print header
-	std::cout << version << "\n";
-	std::cout << header << "\n";
+	std::cout << _version << "\n";
+	std::cout << _header << "\n";
 	printChr();
 
 	//now parse file
-	std::string oldChr = curChr.name;
+	std::string oldChr = _curChr.name;
 	while(readNext()){
-		if(oldChr != curChr.name){
+		if(oldChr != _curChr.name){
 			printChr();
-			oldChr = curChr.name;
+			oldChr = _curChr.name;
 		}
 		printSite();
 	}

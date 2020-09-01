@@ -8,17 +8,14 @@
 #ifndef TGLF_H_
 #define TGLF_H_
 
-#include <stdio.h>
-#include <zlib.h>
+#include <cstring>
 #include "gzstream.h"
 #include <algorithm>
-#include <string.h>
-#include <TPopulationLikelihoodLocus.h>
 #include <vector>
+#include <TPopulationLikelihoodLocus.h>
 #include "TParameters.h"
 #include "stringFunctions.h"
 #include "TGenotypeMap.h"
-#include "TRandomGenerator.h"
 #include "TFastaBuffer.h"
 #include "TGenotypeData.h"
 #include "TChromosomes.h"
@@ -32,23 +29,23 @@ using namespace GenotypeLikelihoods;
 //----------------------------------------------------
 class TGlfConverter{
 private:
-	uint16_t maxVal;
-	double minLikelihood;
-	std::vector<double> likelihoodMap;
-	double logOf10DividedByMinus1000 = log(10) / -1000.0;
+	uint16_t _maxVal;
+	double _minLikelihood;
+	std::vector<double> _likelihoodMap;
+	double _logOf10DividedByMinus1000 = log(10.) / -1000.;
 
 public:
 	TGlfConverter();
 
-	uint16_t maxValue(){ return maxVal; };
-	uint16_t toGlfFormat(double scaledLikelihood);
-	uint16_t log10ToGlfFormat(double log10ScaledLikelihood);
-	uint16_t phredToGlfFormat(uint8_t phred);
-	double toScaledLikelihood(uint16_t glfValue);
-	double operator[](uint16_t glfValue){ return toScaledLikelihood(glfValue); }
-	uint8_t toPhred(uint16_t glfValue);
-	double toLog10(uint16_t glfValue);
-	double toLog(uint16_t glfValue);
+	uint16_t maxValue() const{ return _maxVal; };
+	uint16_t toGlfFormat(double scaledLikelihood) const;
+	uint16_t log10ToGlfFormat(double log10ScaledLikelihood) const;
+	uint16_t phredToGlfFormat(uint8_t phred) const;
+	double toScaledLikelihood(uint16_t glfValue) const;
+	double operator[](uint16_t glfValue) const { return toScaledLikelihood(glfValue); }
+	uint8_t toPhred(uint16_t glfValue) const;
+	double toLog10(uint16_t glfValue) const;
+	double toLog(uint16_t glfValue) const;
 };
 
 //----------------------------------------------------
@@ -58,7 +55,7 @@ public:
 //----------------------------------------------------
 class TGlfChromosome{
 private:
-	void setPloidy(uint8_t Ploidy){
+	void _setPloidy(uint8_t Ploidy){
 		if(Ploidy < 1 || Ploidy > 2)
 			throw "Currently GLFs only support ploidies 1 and 2 (not " + toString(Ploidy) + ")!";
 		ploidy = Ploidy;
@@ -88,21 +85,23 @@ public:
 		name = "";
 	};
 
-	TGlfChromosome(std::string Name, uint32_t Length, uint8_t Ploidy){
+	TGlfChromosome(const std::string& Name, uint32_t Length, uint8_t Ploidy){
 		name = Name;
 		length = Length;
-		setPloidy(Ploidy);
+		refId = 0;
+		maxNumLikelihoodValues = 10;
+        _setPloidy(Ploidy);
 	};
 
 	TGlfChromosome(const TGlfChromosome & other){
 		update(other);
 	};
 
-	void update(const std::string Name, const uint16_t RefId, const uint32_t Length, const uint8_t Ploidy){
+	void update(const std::string& Name, const uint16_t RefId, const uint32_t Length, const uint8_t Ploidy){
 		name = Name;
 		refId = RefId;
 		length = Length;
-		setPloidy(Ploidy);
+        _setPloidy(Ploidy);
 	};
 
 	void update(const TGlfChromosome & other){
@@ -127,62 +126,62 @@ public:
 //----------------------------------------------------
 class TGlfHandle{
 protected:
-	std::string filename;
-	gzFile gzfp;
-	bool isOpen;
-	uint32_t offset;
-	std::string version;
-	uint8_t zero8, one8;
-	uint32_t zero32;
-	std::string header;
-	uint64_t positionInFile;
-	TGlfChromosome curChr;
+	std::string _filename;
+	gzFile _gzfp;
+	bool _isOpen;
+	uint32_t _offset;
+	std::string _version;
+	uint8_t _zero8, _one8;
+	uint32_t _zero32;
+	std::string _header;
+	uint64_t _positionInFile;
+	TGlfChromosome _curChr;
 
 public:
 	TGlfHandle(){
-		isOpen = false;
-		gzfp = NULL;
-		offset = 0;
-		version = "GLF2"; //change to next version if older files will not work!
-		zero8 = 0;
-		one8 = 1;
-		zero32 = 0;
-		positionInFile = 0;
+        _isOpen = false;
+        _gzfp = nullptr;
+        _offset = 0;
+        _version = "GLF2"; //change to next version if older files will not work!
+		_zero8 = 0;
+        _one8 = 1;
+        _zero32 = 0;
+        _positionInFile = 0;
 	};
 
 	void close(){
-		if(isOpen){
-			gzclose(gzfp);
-			isOpen = false;
+		if(_isOpen){
+			gzclose(_gzfp);
+            _isOpen = false;
 		}
 	};
 
 	std::string name(){
-		return filename;
+		return _filename;
 	};
 
-	std::string chr(){
-		return curChr.name;
+	std::string chr() const{
+		return _curChr.name;
 	};
 
-	uint32_t refId(){
-		return curChr.refId;
+	uint32_t refId() const{
+		return _curChr.refId;
 	};
 
-	uint32_t chrLength(){
-		return curChr.length;
+	uint32_t chrLength() const{
+		return _curChr.length;
 	};
 
-	bool chrIsHaploid(){
-		return curChr.ploidy == 1;
+	bool chrIsHaploid() const{
+		return _curChr.ploidy == 1;
 	};
 
-	uint8_t chrPloidy(){
-		return curChr.ploidy;
+	uint8_t chrPloidy() const{
+		return _curChr.ploidy;
 	};
 
-	uint8_t chrNumLikelihoodvalues(){
-		return curChr.numLikelihoodValues;
+	uint8_t chrNumLikelihoodvalues() const{
+		return _curChr.numLikelihoodValues;
 	};
 };
 
@@ -191,36 +190,36 @@ public:
 //----------------------------------------------------
 class TGlfWriter:public TGlfHandle{
 private:
-	long oldPos;
-	uint8_t recordType1;
-	uint16_t* glfValues; //tmp used for writing
-	TGlfConverter converter;
+	long _oldPos;
+	uint8_t _recordType1;
+	uint16_t* _glfValues; //tmp used for writing
+	TGlfConverter _converter;
 
-	void init();
-	void writeHeader();
+	void _init();
+	void _writeHeader();
 
 	template <typename T>
-	inline void write(const T* buf, size_t len){
-		positionInFile += gzwrite(gzfp, buf, len);
+	inline void _write(const T* buf, size_t len){
+        _positionInFile += gzwrite(_gzfp, buf, len);
 	};
 
 public:
 	TGlfWriter(){
-		init();
+        _init();
 	};
-	TGlfWriter(std::string Filename){
-		init();
+	TGlfWriter(const std::string& Filename){
+        _init();
 		open(Filename, "");
 	};
 
 	~TGlfWriter(){
 		close();
-		delete[] glfValues;
+		delete[] _glfValues;
 	};
 
 	//open & close streams
-	void open(std::string Filename);
-	void open(std::string Filename, std::string Header);
+	void open(const std::string& Filename);
+	void open(const std::string& Filename, const std::string& Header);
 	void newChromosome(const BAM::TChromosome & chromosome);
 	void writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual, GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods);
 };
@@ -231,16 +230,15 @@ public:
 //----------------------------------------------------
 class TGlfReader:public TGlfHandle{
 private:
-	bool reachedEndOfChr;
-	uint32_t HeaderLen;
-	uint32_t offset;
-	uint8_t tmpInt8;
-	int SNPRecordSize;
-	uint8_t tmpRecordStorage[19];
+	bool _reachedEndOfChr;
+	uint32_t _HeaderLen;
+	uint8_t _tmpInt8;
+	int _SNPRecordSize;
+	uint8_t _tmpRecordStorage[19];
 	int _lenRead;
 	bool _eof;
 
-	int recordType;
+	int _recordType;
 	uint32_t _position;
 	uint16_t _depth;
 	int _RMS_mappingQual;
@@ -249,28 +247,28 @@ private:
 	uint16_t* _genotypeLikelihoodsGLF_missingData;
 	std::map< uint32_t, TGlfChromosome > _chromosomesAlreadyParsed;
 
-	void init();
+	void _init();
 	template <typename T>
-	inline bool read(T* buf, size_t len){
-		_lenRead = gzread(gzfp, buf, len);
+	inline bool _read(T* buf, size_t len){
+		_lenRead = gzread(_gzfp, buf, len);
 		if(!_lenRead) return false;
-		positionInFile += _lenRead;
+        _positionInFile += _lenRead;
 		return true;
 	};
-	void open();
-	bool readChr();
-	bool readRecordType();
-	void readSNPRecord();
-	inline void skipRecord(){
-		read(&tmpRecordStorage, SNPRecordSize); //just parse data of one SNP record into garbage
+	void _open();
+	bool _readChr();
+	bool _readRecordType();
+	void _readSNPRecord();
+	inline void _skipRecord(){
+        _read(&_tmpRecordStorage, _SNPRecordSize); //just parse data of one SNP record into garbage
 	};
 
 public:
 	TGlfReader(){
-		init();
+        _init();
 	};
-	TGlfReader(std::string Filename){
-		init();
+	TGlfReader(const std::string& Filename){
+        _init();
 		open(Filename);
 	};
 	~TGlfReader(){
@@ -279,16 +277,16 @@ public:
 	};
 
 	//get details
-	bool eof(){ return _eof;};
+	bool eof() const{ return _eof;};
 	TGlfChromosome* pointerToChr(uint32_t refId);
 	bool fillPointerToChr(uint32_t refId, TGlfChromosome* & chr);
-	uint32_t position(){ return _position; };
-	uint16_t depth(){ return _depth; };
+	uint32_t position() const{ return _position; };
+	uint16_t depth() const{ return _depth; };
 	uint16_t* pointerToGenotypeLikelihoodsGLF(){ return _genotypeLikelihoodsGLF; };
 
 	//open file and parse header
-	void setFilename(std::string Filename);
-	void open(std::string Filename);
+	void setFilename(const std::string& Filename);
+	void open(const std::string& Filename);
 	void rewind();
 	bool readNext();
 	bool jumpToEndOfChr();
