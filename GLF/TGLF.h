@@ -180,7 +180,7 @@ public:
 		return _curChr.ploidy;
 	};
 
-	uint8_t chrNumLikelihoodvalues() const{
+	uint8_t chrNumLikelihoodValues() const{
 		return _curChr.numLikelihoodValues;
 	};
 };
