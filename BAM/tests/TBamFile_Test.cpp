@@ -674,7 +674,6 @@ public:
     TCountDistribution secondary;
     TCountDistribution supplementary;
     TCountDistribution longerThanFragmentLength;
-    TCountDistribution readGroup;
     TCountDistribution fwdStrand;
     TCountDistribution revStrand;
     TCountDistribution firstMate;
@@ -686,6 +685,9 @@ public:
     TCountDistributionVector softClippedLength;
     TCountDistributionVector mappingQuality;
     TCountDistributionVector fragmentLength;
+
+    TCountDistribution readGroup;
+    TCountDistributionVector refIDs;
 
     BAM::TQualityFilter qualFilter;
     std::vector<std::string> readGroupNames;
@@ -704,7 +706,6 @@ public:
         secondary.add(curReadGroup, _bamFile.curIsSecondary());
         supplementary.add(curReadGroup, _bamFile.curIsSupplementary());
         longerThanFragmentLength.add(curReadGroup, _bamFile.curIsLongerThanFragment());
-        readGroup.add(curReadGroup);
         fwdStrand.add(curReadGroup, !_bamFile.curIsReverseStrand());
         revStrand.add(curReadGroup, _bamFile.curIsReverseStrand());
         firstMate.add(curReadGroup, _bamFile.curIsFirstMate());
@@ -715,6 +716,9 @@ public:
         usableLength.add(curReadGroup, _bamFile.curUsableAlignedLength(qualFilter));
         softClippedLength.add(curReadGroup, _bamFile.curCIGAR().lengthSoftClipped());
         mappingQuality.add(curReadGroup, _bamFile.curMappingQuality());
+
+        readGroup.add(curReadGroup);
+        refIDs.add(curReadGroup, _bamFile.curPosition().refID());
 
         //fragment length: only once
         if(!_bamFile.curIsReverseStrand()){
@@ -742,7 +746,6 @@ public:
         secondary.resize(numRG);
         supplementary.resize(numRG);
         longerThanFragmentLength.resize(numRG);
-        readGroup.resize(numRG);
         fwdStrand.resize(numRG);
         revStrand.resize(numRG);
         firstMate.resize(numRG);
@@ -753,6 +756,9 @@ public:
         softClippedLength.resize(numRG);
         mappingQuality.resize(numRG);
         fragmentLength.resize(numRG);
+
+        readGroup.resize(numRG);
+        refIDs.resize(numRG);
 
         //now parse through bam file
         _traverseBAMPassedQC();
@@ -1140,7 +1146,7 @@ TEST_F(TBamFilter_Test, minFragmentLength_maxFragmentLength){
 
 TEST_F(TBamFilter_Test, readGroups){
     write(false);
-    // 12) filter: 'readGroup'
+    // 13) filter: 'readGroup'
     _parameters.addParameter("readGroup", "ReadGroup0,ReadGroup1,ReadGroup2");
 
     // remove all other filters
@@ -1154,8 +1160,50 @@ TEST_F(TBamFilter_Test, readGroups){
 
     read();
 
-    EXPECT_NO_THROW(bamFilter->readGroup[0]);
-    EXPECT_NO_THROW(bamFilter->readGroup[1]);
-    EXPECT_NO_THROW(bamFilter->readGroup[2]);
-    EXPECT_THROW(bamFilter->readGroup[3], std::runtime_error);
+    EXPECT_TRUE(bamFilter->readGroup[0] > 0);
+    EXPECT_TRUE(bamFilter->readGroup[1] > 0);
+    EXPECT_TRUE(bamFilter->readGroup[2] > 0);
+    EXPECT_TRUE(bamFilter->readGroup[3] == 0); // filtered out
+    EXPECT_TRUE(bamFilter->readGroup[4] == 0); // filtered out
+}
+
+TEST_F(TBamFilter_Test, limitReads){
+    write(false);
+    // 14) filter: 'limitReads'
+    _parameters.addParameter("limitReads", "50");
+
+    // remove all other filters
+    _parameters.addParameter("keepDuplicates");
+    _parameters.addParameter("keepImproperPairs");
+    _parameters.addParameter("keepUnmappedReads");
+    _parameters.addParameter("keepFailedQC");
+    _parameters.addParameter("keepSecondaryReads");
+    _parameters.addParameter("keepSupplementaryReads");
+    _parameters.addParameter("keepReadsLongerThanFragment");
+
+    read();
+
+    EXPECT_TRUE(bamFilter->readGroup.counts() == 50);
+}
+
+TEST_F(TBamFilter_Test, chr){
+    write(false);
+    // 15) filter: 'chr'
+    _parameters.addParameter("chr", "Chr1,Chr2");
+
+    // remove all other filters
+    _parameters.addParameter("keepDuplicates");
+    _parameters.addParameter("keepImproperPairs");
+    _parameters.addParameter("keepUnmappedReads");
+    _parameters.addParameter("keepFailedQC");
+    _parameters.addParameter("keepSecondaryReads");
+    _parameters.addParameter("keepSupplementaryReads");
+    _parameters.addParameter("keepReadsLongerThanFragment");
+
+    read();
+
+    for (int id = 0; id < bamFilter->refIDs.size(); id++){
+        EXPECT_TRUE(bamFilter->refIDs[id].min() == 0);
+        EXPECT_TRUE(bamFilter->refIDs[id].max() == 2);
+    }
 }
