@@ -230,6 +230,7 @@ public:
 //----------------------------------------------------
 class TGlfReader:public TGlfHandle{
 private:
+    // file parsing
 	bool _reachedEndOfChr;
 	uint32_t _HeaderLen;
 	uint8_t _tmpInt8;
@@ -238,30 +239,36 @@ private:
 	int _lenRead;
 	bool _eof;
 
+	// about site
 	int _recordType;
 	uint32_t _position;
 	uint16_t _depth;
 	int _RMS_mappingQual;
 	uint16_t _genotypeLikelihoodsGLF[10];
-
 	uint16_t* _genotypeLikelihoodsGLF_missingData;
+
+	// about chromosomes
 	std::map< uint32_t, TGlfChromosome > _chromosomesAlreadyParsed;
 
+	// initializing
 	void _init();
-	template <typename T>
-	inline bool _read(T* buf, size_t len){
-		_lenRead = gzread(_gzfp, buf, len);
-		if(!_lenRead) return false;
-        _positionInFile += _lenRead;
-		return true;
-	};
 	void _open();
+
+	// read
+    template <typename T> inline bool _read(T* buf, size_t len){
+        _lenRead = gzread(_gzfp, buf, len);
+        if(!_lenRead) return false;
+        _positionInFile += _lenRead;
+        return true;
+    };
 	bool _readChr();
 	bool _readRecordType();
 	void _readSNPRecord();
 	inline void _skipRecord(){
         _read(&_tmpRecordStorage, _SNPRecordSize); //just parse data of one SNP record into garbage
 	};
+
+    bool _jumpToEndOfChr();
 
 public:
 	TGlfReader(){
@@ -283,17 +290,18 @@ public:
 	uint32_t position() const{ return _position; };
 	uint16_t depth() const{ return _depth; };
 	uint16_t* pointerToGenotypeLikelihoodsGLF(){ return _genotypeLikelihoodsGLF; };
+    void fillGenotypeLikelihoodsGLF(uint16_t* destination);
+    void fillGenotypeLikelihoods(double* destination, TGlfConverter* converter);
 
 	//open file and parse header
 	void setFilename(const std::string& Filename);
 	void open(const std::string& Filename);
 	void rewind();
+
+	// parse file
 	bool readNext();
-	bool jumpToEndOfChr();
 	bool jumpToNextChr();
 	bool readNextWindow(std::vector<uint16_t*> & genoLikelihoods, const uint32_t refId, const uint32_t start, const uint32_t end);
-	void fillGenotypeLikelihoodsGLF(uint16_t* destination);
-	void fillGenotypeLikelihoods(double* destination, TGlfConverter* converter);
 
 	//printing
 	void printChr();

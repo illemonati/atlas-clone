@@ -7,23 +7,33 @@
 namespace TestUtilities {
 
 TTestGLFFile::TTestGLFFile(const std::vector<uint32_t>& ChrLength) {
-    _initialize(ChrLength);
+    std::vector<uint8_t> chrPloidy(ChrLength.size(), 2); // all diploid
+    _initialize(ChrLength, chrPloidy);
 }
 
 
 TTestGLFFile::TTestGLFFile(const std::string &Filename, const std::vector<uint32_t>& ChrLength) {
-    _initialize(ChrLength);
+    std::vector<uint8_t> chrPloidy(ChrLength.size(), 2); // all diploid
+    _initialize(ChrLength, chrPloidy);
 
     openOutput(Filename);
 }
 
-void TTestGLFFile::_initialize(const std::vector<uint32_t>& ChrLength) {
-    uint32_t refID = 0;
-    for(auto& len : ChrLength){
-        ++refID;
-        _chromosomes.appendChromosome("Chr" + toString(refID), len);
+TTestGLFFile::TTestGLFFile(const std::string &Filename, const std::vector<uint32_t>& ChrLength, const std::vector<uint8_t>& ChrPloidy) {
+    _initialize(ChrLength, ChrPloidy);
+
+    openOutput(Filename);
+}
+
+void TTestGLFFile::_initialize(const std::vector<uint32_t>& ChrLength, const std::vector<uint8_t>& ChrPloidy) {
+    if (ChrLength.size() != ChrPloidy.size())
+        throw std::runtime_error("In function '': Size of ChrLength should match size of ChrPloidy!");
+
+    uint32_t refID = 1;
+    for (size_t chr = 0; chr < ChrLength.size(); chr++, refID++){
+        _chromosomes.appendChromosome("Chr" + toString(refID), ChrLength[chr], ChrPloidy[chr]);
     }
-    _dummyCurChr = _chromosomes.begin();
+    _dummyCurChr = _chromosomes.begin() - 1;
 
     _dummyDepth = 0; _dummyMaxDepth = 50;
     _dummyPos = 0; _dummyDist = 0; _dummyMaxDist = 0;
@@ -55,13 +65,7 @@ void TTestGLFFile::_iteratePosition() {
 
     // next chromosome?
     if (BAM::TGenomePosition(_dummyCurChr->refID(), _dummyPos) > _dummyCurChr->chrEnd){
-        ++_dummyCurChr;
-        if(_dummyCurChr == _chromosomes.end()){
-            throw std::runtime_error("void TTestBamFile::writeDummyAlignments(const uint32_t & numAlignments): chromosome reached end!");
-        }
-
-        _dummyPos = _dummyCurChr->chrStart.position();
-        writeNewChromosome(*_dummyCurChr);
+        writeNewChromosome();
     }
 }
 
@@ -88,7 +92,10 @@ void TTestGLFFile::_iterateGenotypeLikelihoods(uint32_t curDepth) {
     }
 
     // fill genotype likelihood
-    _dummyGenotypeLikelihoods.fill(bases);
+    if (_dummyCurChr->ploidy == 1)
+        _dummyGenotypeLikelihoodsHaploid.fill(bases, bases.size());
+    else
+        _dummyGenotypeLikelihoods.fill(bases);
 }
 
 void TTestGLFFile::writeDummySites(const uint32_t &numSites) {
@@ -101,17 +108,20 @@ void TTestGLFFile::writeDummySites(const uint32_t &numSites) {
         _dummyMaxDist = _chromosomes.minLength() - 1;
     }
 
-    // write first chromosome
-    writeNewChromosome(*_dummyCurChr);
+    // write first site
+    writeNewChromosome();
+    writeDummySite(_dummyPos);
 
     // go over all sites, simulate some data and write
-    for(uint32_t i=0; i<numSites; ++i){
+    for(uint32_t i=1; i<numSites; ++i){
         _iteratePosition();
         writeDummySite(_dummyPos);
     }
 }
 
 void TTestGLFFile::writeDummySite(long pos) {
+    if (pos > _dummyCurChr->length)
+        throw std::runtime_error("In function 'void TTestGLFFile::writeDummySite(long pos)': pos (" + toString(pos) + ") > length (" + toString(_dummyCurChr->length) + ") of chromosome!");
     writeDummySite(pos, _dummyDepth);
 
     _iterateDepth();
@@ -120,7 +130,10 @@ void TTestGLFFile::writeDummySite(long pos) {
 void TTestGLFFile::writeDummySite(long pos, uint32_t depth) {
     _iterateGenotypeLikelihoods(depth);
 
-    writeDummySite(pos, depth, _dummyGenotypeLikelihoods);
+    if (_dummyCurChr->ploidy == 1)
+        writeDummySite(pos, depth, _dummyGenotypeLikelihoodsHaploid);
+    else
+        writeDummySite(pos, depth, _dummyGenotypeLikelihoods);
 }
 
 void TTestGLFFile::writeDummySite(long pos, uint32_t depth, GenotypeLikelihoods::TGenotypeLikelihoods &genotypeLikelihoods){
@@ -133,28 +146,32 @@ void TTestGLFFile::writeSite(long pos, uint32_t depth, GenotypeLikelihoods::TGen
     // write to glf
     _glfFile.writeSite(pos, depth, RMS_mappingQual, genotypeLikelihoods);
 
+    // store missing pos (useful when reading GLF in windows)
+    if (!_writtenPositions.empty() && _dummyCurChr->refID() == _writtenPositions.back().refID()){
+        uint32_t lastWrittenPos = _writtenPositions.back().position();
+        for (uint32_t p = lastWrittenPos + 1; p < pos; p++){
+            GenotypeLikelihoods::TGenotypeLikelihoods gtEmpty;
+            _writtenGenotypeLikelihoodsWithMissingSites.push_back(gtEmpty);
+        }
+    }
+
     // ... and store, for later comparisons
-    _writtenPositions.push_back(pos);
+    _writtenPositions.emplace_back(_dummyCurChr->refID(), pos);
     _writtenDepths.push_back(depth);
     _writtenGenotypeLikelihoods.push_back(genotypeLikelihoods);
+    _writtenGenotypeLikelihoodsWithMissingSites.push_back(genotypeLikelihoods);
     _writtenRMSMappingQualities.push_back(RMS_mappingQual);
 }
 
-void TTestGLFFile::writeNewChromosome(const BAM::TChromosome & chromosome) {
-    _glfFile.newChromosome(chromosome);
+void TTestGLFFile::writeNewChromosome() {
+    ++_dummyCurChr;
+    if(_dummyCurChr == _chromosomes.end()){
+        throw std::runtime_error("void TTestBamFile::writeDummyAlignments(const uint32_t & numAlignments): chromosome reached end!");
+    }
+
+    _dummyPos = _dummyCurChr->chrStart.position() + 1; // TODO: are positions in glf file indeed 1-based???
+
+    _glfFile.newChromosome(*_dummyCurChr);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 }; // end namespace

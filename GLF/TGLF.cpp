@@ -173,7 +173,6 @@ void TGlfWriter::writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual, Ge
 //---------------------------------
 //TGlfReader
 //---------------------------------
-//PRIVATE
 void TGlfReader::_init(){
     _isOpen = false;
     _reachedEndOfChr = true;
@@ -279,7 +278,6 @@ void TGlfReader::_readSNPRecord(){
 };
 
 
-//PUBLIC
 void TGlfReader::setFilename(const std::string& Filename){
     _filename = Filename;
 };
@@ -341,7 +339,7 @@ bool TGlfReader::readNext(){
 	} else throw "Unknown record type in file '" + _filename + "'!";
 };
 
-bool TGlfReader::jumpToEndOfChr(){
+bool TGlfReader::_jumpToEndOfChr(){
 	//read record type
 	if(!_readRecordType()) return false;
 
@@ -357,7 +355,7 @@ bool TGlfReader::jumpToEndOfChr(){
 };
 
 bool TGlfReader::jumpToNextChr(){
-	if(!jumpToEndOfChr()){
+	if(!_jumpToEndOfChr()){
 		return false;
 	}
     _readChr();
@@ -381,25 +379,45 @@ bool TGlfReader::readNextWindow(std::vector<uint16_t*> & genoLikelihoods, const 
 
 	//have we passed window?
 	if(_position >= end)
-		return false; //no data
+        return false; //no data
 
 	//We are at first position in window with data
 	uint32_t i = start;
 	int index = 0;
 
-	while(_position < end && _curChr.refId == refId){
-		//fill in missing positions before
-		for(; i<_position; ++i, ++index)
-			memcpy(genoLikelihoods[index], _genotypeLikelihoodsGLF_missingData, _curChr.numLikelihoodValues * sizeof(uint16_t));
+	std::cout << "\t\t\t i = " << (int) i << std::endl;
+	std::cout << "\t\t\t index = " << index << std::endl;
 
-		memcpy(genoLikelihoods[index], _genotypeLikelihoodsGLF, _curChr.numLikelihoodValues * sizeof(uint16_t));
+	while(_position < end && _curChr.refId == refId){
+	    std::cout << "\t\t\t position = " << (int) _position << std::endl;
+		//fill in missing positions before
+        std::cout << "\t\t\t fill in missing positions before..." << std::endl;
+        for(; i<_position; ++i, ++index)
+			memcpy(genoLikelihoods[index], _genotypeLikelihoodsGLF_missingData, _curChr.numLikelihoodValues * sizeof(uint16_t));
+        std::cout << "\t\t\t done!" << std::endl;
+
+        std::cout << "\t\t\t i = " << (int) i << std::endl;
+        std::cout << "\t\t\t index = " << index << std::endl;
+
+        std::cout << "\t\t\t fill in positions..." << std::endl;
+        memcpy(genoLikelihoods[index], _genotypeLikelihoodsGLF, _curChr.numLikelihoodValues * sizeof(uint16_t));
 		++index; ++i;
+        std::cout << "\t\t\t done!" << std::endl;
+        std::cout << "\t\t\t i = " << (int) i << std::endl;
+        std::cout << "\t\t\t index = " << index << std::endl;
 
 		//read next record
-		readNext();
-		if(_curChr.refId != refId){
-			for(; i<end; ++i, ++index)
+        std::cout << "\t\t\t read next record..." << std::endl;
+        if (!readNext())
+            return false;
+        std::cout << "position = " << (int) _position << std::endl;
+        std::cout << "\t\t\t done!" << std::endl;
+        if(_curChr.refId != refId){
+            std::cout << "\t\t\t _curChr.refId != refId" << std::endl;
+            for(; i<end; ++i, ++index)
 				memcpy(genoLikelihoods[index], _genotypeLikelihoodsGLF_missingData, _curChr.numLikelihoodValues * sizeof(uint16_t));
+            std::cout << "\t\t\t i = " << (int) i << std::endl;
+            std::cout << "\t\t\t index = " << index << std::endl;
 		}
 	}
 

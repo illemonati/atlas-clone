@@ -883,7 +883,7 @@ void TDistanceEstimator::estimateDistanceInWindows(TEMforDistanceEstimation & EM
 
 	//parse GLFs in windows
 	logfile->startIndent("Will estimate distance in windows of size " + toString(windowLen) + ":");
-	while(g1.eof() && g2.eof()){
+	while(!g1.eof() && !g2.eof()){
 		//move to new chromosome
 		curRefId = g1.refId();
 		curChr = g1.chr();
@@ -900,7 +900,7 @@ void TDistanceEstimator::estimateDistanceInWindows(TEMforDistanceEstimation & EM
 
 			//read data
 			isGood1 = g1.readNextWindow(genoQual1, curRefId, windowStart, windowEnd);
-			if(isGood1 || g1.eof()){
+			if(isGood1 || !g1.eof()){
 				isGood2 = g2.readNextWindow(genoQual2, curRefId, windowStart, windowEnd);
 				if(isGood2){
 					//estimate distance
