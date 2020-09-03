@@ -38,6 +38,12 @@ void TTestGLFFile::_initialize(const std::vector<uint32_t>& ChrLength, const std
     _dummyDepth = 0; _dummyMaxDepth = 50;
     _dummyPos = 0; _dummyDist = 0; _dummyMaxDist = 0;
     _dummy_RMS_mappingQual = 0; _dummyMax_RMS_mappingQual = 20;
+
+    // initialize all entries of _writtenGenotypeLikelihoodsWithMissingSites with missing
+    for (int pos = 0; pos < _chromosomes.referenceLength(); pos++){
+        GenotypeLikelihoods::TGenotypeLikelihoods gtEmpty;
+        _writtenGenotypeLikelihoodsWithMissingSites.push_back(gtEmpty);
+    }
 }
 
 void TTestGLFFile::openOutput(const std::string & Filename){
@@ -143,23 +149,23 @@ void TTestGLFFile::writeDummySite(long pos, uint32_t depth, GenotypeLikelihoods:
 }
 
 void TTestGLFFile::writeSite(long pos, uint32_t depth, GenotypeLikelihoods::TGenotypeLikelihoods &genotypeLikelihoods, uint8_t RMS_mappingQual) {
+    if (pos <= 0)
+        throw std::runtime_error("Positions in GLF must be >= 1!");
     // write to glf
     _glfFile.writeSite(pos, depth, RMS_mappingQual, genotypeLikelihoods);
 
-    // store missing pos (useful when reading GLF in windows)
-    if (!_writtenPositions.empty() && _dummyCurChr->refID() == _writtenPositions.back().refID()){
-        uint32_t lastWrittenPos = _writtenPositions.back().position();
-        for (uint32_t p = lastWrittenPos + 1; p < pos; p++){
-            GenotypeLikelihoods::TGenotypeLikelihoods gtEmpty;
-            _writtenGenotypeLikelihoodsWithMissingSites.push_back(gtEmpty);
-        }
+    long positionInGenome = pos - 1;
+    for (auto & chr : _chromosomes){
+        if (chr.refID() == _dummyCurChr->refID()) break;
+        positionInGenome += chr.length;
     }
 
+    std::cout << "position in genome = " << positionInGenome << std::endl;
     // ... and store, for later comparisons
     _writtenPositions.emplace_back(_dummyCurChr->refID(), pos);
     _writtenDepths.push_back(depth);
     _writtenGenotypeLikelihoods.push_back(genotypeLikelihoods);
-    _writtenGenotypeLikelihoodsWithMissingSites.push_back(genotypeLikelihoods);
+    _writtenGenotypeLikelihoodsWithMissingSites[positionInGenome] = genotypeLikelihoods;
     _writtenRMSMappingQualities.push_back(RMS_mappingQual);
 }
 
