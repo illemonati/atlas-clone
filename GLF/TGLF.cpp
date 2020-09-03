@@ -186,6 +186,7 @@ void TGlfReader::_init(){
     _tmpInt8 = 0;
 	_lenRead = 0;
 	_eof = true;
+    _readGenotypeLikelihoodsGLF = false;
 
 	_genotypeLikelihoodsGLF_missingData = new uint16_t[_curChr.maxNumLikelihoodValues];
 	for(int i=0; i < _curChr.maxNumLikelihoodValues; ++i)
@@ -275,6 +276,7 @@ void TGlfReader::_readSNPRecord(){
 
 	//genotype likelihoods
     _read(_genotypeLikelihoodsGLF, _curChr.numLikelihoodValues * sizeof(uint16_t));
+    _readGenotypeLikelihoodsGLF = true;
 };
 
 
@@ -363,19 +365,19 @@ bool TGlfReader::jumpToNextChr(){
 };
 
 bool TGlfReader::readNextWindow(std::vector<uint16_t*> & genoLikelihoods, const uint32_t refId, const uint32_t start, const uint32_t end){
-	//Assumes that windows are read in order: no jumping back!
 	if(_eof) return false;
-	if(refId < _curChr.refId) return false;
 
 	//move to correct chromosome
 	while(_curChr.refId < refId){
-		jumpToNextChr();
-	}
+        if (!jumpToNextChr())
+            return false; // chromosome id doesn't exist (reached eof)
+    }
 
 	//jump to first position in window
 	while(_position < start && _curChr.refId == refId){
-		readNext();
-	}
+		if (!readNext())
+            return false;
+    }
 
 	//have we passed window?
 	if(_position >= end)
@@ -385,41 +387,41 @@ bool TGlfReader::readNextWindow(std::vector<uint16_t*> & genoLikelihoods, const 
 	uint32_t i = start;
 	int index = 0;
 
-	std::cout << "\t\t\t i = " << (int) i << std::endl;
-	std::cout << "\t\t\t index = " << index << std::endl;
-
-	while(_position < end && _curChr.refId == refId){
-	    std::cout << "\t\t\t position = " << (int) _position << std::endl;
-		//fill in missing positions before
-        std::cout << "\t\t\t fill in missing positions before..." << std::endl;
-        for(; i<_position; ++i, ++index)
-			memcpy(genoLikelihoods[index], _genotypeLikelihoodsGLF_missingData, _curChr.numLikelihoodValues * sizeof(uint16_t));
-        std::cout << "\t\t\t done!" << std::endl;
-
-        std::cout << "\t\t\t i = " << (int) i << std::endl;
-        std::cout << "\t\t\t index = " << index << std::endl;
-
-        std::cout << "\t\t\t fill in positions..." << std::endl;
-        memcpy(genoLikelihoods[index], _genotypeLikelihoodsGLF, _curChr.numLikelihoodValues * sizeof(uint16_t));
-		++index; ++i;
-        std::cout << "\t\t\t done!" << std::endl;
-        std::cout << "\t\t\t i = " << (int) i << std::endl;
-        std::cout << "\t\t\t index = " << index << std::endl;
-
-		//read next record
-        std::cout << "\t\t\t read next record..." << std::endl;
+	// if there is a position 0 on the first chromosome parsed and windows starts right there
+	// -> we will not have read anything -> do this now
+    if (!_readGenotypeLikelihoodsGLF){
         if (!readNext())
             return false;
-        std::cout << "position = " << (int) _position << std::endl;
-        std::cout << "\t\t\t done!" << std::endl;
-        if(_curChr.refId != refId){
-            std::cout << "\t\t\t _curChr.refId != refId" << std::endl;
+    }
+
+    //Assumes that windows are read in order: no jumping back!
+    if(refId < _curChr.refId){
+        return false;
+    }
+
+	while(_position < end && _curChr.refId == refId) {
+        //fill in missing positions before
+        for (; i < _position; ++i, ++index)
+            memcpy(genoLikelihoods[index], _genotypeLikelihoodsGLF_missingData,_curChr.numLikelihoodValues * sizeof(uint16_t));
+
+        // fill in genotype likelihoods of current position
+        memcpy(genoLikelihoods[index], _genotypeLikelihoodsGLF, _curChr.numLikelihoodValues * sizeof(uint16_t));
+		++index; ++i;
+
+		//read next record
+		if (!readNext())
+		    break; // reached eof
+        if(_curChr.refId != refId){ // reached next chromosome
             for(; i<end; ++i, ++index)
 				memcpy(genoLikelihoods[index], _genotypeLikelihoodsGLF_missingData, _curChr.numLikelihoodValues * sizeof(uint16_t));
-            std::cout << "\t\t\t i = " << (int) i << std::endl;
-            std::cout << "\t\t\t index = " << index << std::endl;
 		}
 	}
+
+	// fill sites that were in the end of the window
+    for(; i<end; ++i, ++index) {
+        memcpy(genoLikelihoods[index], _genotypeLikelihoodsGLF_missingData,
+           _curChr.numLikelihoodValues * sizeof(uint16_t));
+    }
 
 	return true;
 };

@@ -70,7 +70,7 @@ void TTestGLFFile::_iteratePosition() {
     _dummyPos += _dummyDist + 1; // + 1 because % can return 0, but then we would like distance of 1
 
     // next chromosome?
-    if (BAM::TGenomePosition(_dummyCurChr->refID(), _dummyPos) > _dummyCurChr->chrEnd){
+    if (BAM::TGenomePosition(_dummyCurChr->refID(), _dummyPos) >= _dummyCurChr->chrEnd){
         writeNewChromosome();
     }
 }
@@ -126,8 +126,6 @@ void TTestGLFFile::writeDummySites(const uint32_t &numSites) {
 }
 
 void TTestGLFFile::writeDummySite(long pos) {
-    if (pos > _dummyCurChr->length)
-        throw std::runtime_error("In function 'void TTestGLFFile::writeDummySite(long pos)': pos (" + toString(pos) + ") > length (" + toString(_dummyCurChr->length) + ") of chromosome!");
     writeDummySite(pos, _dummyDepth);
 
     _iterateDepth();
@@ -149,18 +147,17 @@ void TTestGLFFile::writeDummySite(long pos, uint32_t depth, GenotypeLikelihoods:
 }
 
 void TTestGLFFile::writeSite(long pos, uint32_t depth, GenotypeLikelihoods::TGenotypeLikelihoods &genotypeLikelihoods, uint8_t RMS_mappingQual) {
-    if (pos <= 0)
-        throw std::runtime_error("Positions in GLF must be >= 1!");
+    if (pos < 0 || pos >= _dummyCurChr->length)
+        throw std::runtime_error("Position " + toString(pos) + " is outside interval [0, lengthChr)!");
     // write to glf
     _glfFile.writeSite(pos, depth, RMS_mappingQual, genotypeLikelihoods);
 
-    long positionInGenome = pos - 1;
+    long positionInGenome = pos;
     for (auto & chr : _chromosomes){
         if (chr.refID() == _dummyCurChr->refID()) break;
         positionInGenome += chr.length;
     }
 
-    std::cout << "position in genome = " << positionInGenome << std::endl;
     // ... and store, for later comparisons
     _writtenPositions.emplace_back(_dummyCurChr->refID(), pos);
     _writtenDepths.push_back(depth);
@@ -175,7 +172,7 @@ void TTestGLFFile::writeNewChromosome() {
         throw std::runtime_error("void TTestBamFile::writeDummyAlignments(const uint32_t & numAlignments): chromosome reached end!");
     }
 
-    _dummyPos = _dummyCurChr->chrStart.position() + 1; // TODO: are positions in glf file indeed 1-based???
+    _dummyPos = _dummyCurChr->chrStart.position();
 
     _glfFile.newChromosome(*_dummyCurChr);
 }

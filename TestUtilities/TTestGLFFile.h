@@ -73,6 +73,7 @@ public:
     std::vector<GenotypeLikelihoods::TGenotypeLikelihoods>::iterator endGenotypeLikelihoods(){ return _writtenGenotypeLikelihoods.end(); };
     std::vector<GenotypeLikelihoods::TGenotypeLikelihoods>::iterator beginGenotypeLikelihoodsWithMissingSites(){ return _writtenGenotypeLikelihoodsWithMissingSites.begin(); };
     std::vector<GenotypeLikelihoods::TGenotypeLikelihoods>::iterator endGenotypeLikelihoodsWithMissingSites(){ return _writtenGenotypeLikelihoodsWithMissingSites.end(); };
+    GenotypeLikelihoods::TGenotypeLikelihoods genotypeLikelihoodsWithMissingSites(uint32_t index){ return _writtenGenotypeLikelihoodsWithMissingSites[index]; };
     std::vector<BAM::TGenomePosition>::iterator beginPositions(){ return _writtenPositions.begin(); };
     std::vector<BAM::TGenomePosition>::iterator endPositions(){ return _writtenPositions.end(); };
     BAM::TGenomePosition position(uint32_t index){ return _writtenPositions[index]; };
