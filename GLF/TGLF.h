@@ -238,7 +238,6 @@ private:
 	uint8_t _tmpRecordStorage[19];
 	int _lenRead;
 	bool _eof;
-	bool _readGenotypeLikelihoodsGLF;
 
 	// about site
 	int _recordType;

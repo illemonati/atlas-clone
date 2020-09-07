@@ -98,8 +98,7 @@ void TGlfWriter::open(const std::string& Filename, const std::string& Header){
 };
 
 void TGlfWriter::newChromosome(const BAM::TChromosome & chromosome){
-	if(!_curChr.name.empty())
-        _write(&_zero8, sizeof(uint8_t));
+    _write(&_zero8, sizeof(uint8_t));
 
 	//save cur info
 	_curChr.update(chromosome.name, chromosome.refID(), chromosome.length, chromosome.ploidy);
@@ -186,7 +185,6 @@ void TGlfReader::_init(){
     _tmpInt8 = 0;
 	_lenRead = 0;
 	_eof = true;
-    _readGenotypeLikelihoodsGLF = false;
 
 	_genotypeLikelihoodsGLF_missingData = new uint16_t[_curChr.maxNumLikelihoodValues];
 	for(int i=0; i < _curChr.maxNumLikelihoodValues; ++i)
@@ -276,7 +274,6 @@ void TGlfReader::_readSNPRecord(){
 
 	//genotype likelihoods
     _read(_genotypeLikelihoodsGLF, _curChr.numLikelihoodValues * sizeof(uint16_t));
-    _readGenotypeLikelihoodsGLF = true;
 };
 
 
@@ -320,6 +317,9 @@ void TGlfReader::_open(){
 
 	//read info of first chromosome
 	_chromosomesAlreadyParsed.clear();
+	_readRecordType();
+	if (_recordType != 0)
+	    throw "GLF file does not start with chromosome entry. The GLF format has changed with ATLAS 1.0, are you using GLF files produced with an earlier version?";
     _readChr();
 };
 
@@ -374,7 +374,9 @@ bool TGlfReader::readNextWindow(std::vector<uint16_t*> & genoLikelihoods, const 
     }
 
 	//jump to first position in window
-	while(_position < start && _curChr.refId == refId){
+    // if there is a position 0 on the first chromosome parsed and windows starts right there
+    // -> we will not have read anything -> do this now
+	while(_recordType == 0 || (_position < start && _curChr.refId == refId)){
 		if (!readNext())
             return false;
     }
@@ -386,13 +388,6 @@ bool TGlfReader::readNextWindow(std::vector<uint16_t*> & genoLikelihoods, const 
 	//We are at first position in window with data
 	uint32_t i = start;
 	int index = 0;
-
-	// if there is a position 0 on the first chromosome parsed and windows starts right there
-	// -> we will not have read anything -> do this now
-    if (!_readGenotypeLikelihoodsGLF){
-        if (!readNext())
-            return false;
-    }
 
     //Assumes that windows are read in order: no jumping back!
     if(refId < _curChr.refId){
@@ -444,7 +439,8 @@ void TGlfReader::printChr(){
 
 void TGlfReader::printSite(){
 	//std::cout << curChr.name << "\t" << position << "\t" << maxLL << "\t" << depth << "\t" << RMS_mappingQual;
-	std::cout << _curChr.name << "\t" << _position << "\t" << _depth << "\t" << _RMS_mappingQual;
+	// print position as 1-based, internally it is 0-based
+	std::cout << _curChr.name << "\t" << _position + 1 << "\t" << _depth << "\t" << _RMS_mappingQual;
 	for(int i=0; i < _curChr.numLikelihoodValues; ++i)
 		std::cout << "\t" << unsigned(_genotypeLikelihoodsGLF[i]);
 	std::cout << "\n";

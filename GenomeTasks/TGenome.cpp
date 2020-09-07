@@ -13,26 +13,36 @@ namespace GenomeTasks{
 // TGenome_basic
 // A base class without filters and genotype likelihoods
 //---------------------------------------------------------------
+TGenome_basic::TGenome_basic(){
+    _logfile = nullptr;
+    _params = nullptr;
+    _randomGenerator = nullptr;
+};
+
 TGenome_basic::TGenome_basic(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator){
-	_logfile = Logfile;
-	_params = &Params;
-	_randomGenerator = RandomGenerator;
+    _initialize(Params, Logfile, RandomGenerator);
+};
 
-	//open bam file
-	//TODO: deal with index in better way: let tasks decide if they need an index or not
-	_bamFile.open(Params.getParameterString("bam"), Params.parameterExists("indexNotRequired"), _logfile);
-	_bamFile.setLimits(Params, _logfile);
+void TGenome_basic::_initialize(TParameters &Params, TLog *Logfile, TRandomGenerator *RandomGenerator) {
+    _logfile = Logfile;
+    _params = &Params;
+    _randomGenerator = RandomGenerator;
 
-	//outputname
-	if(Params.parameterExists("out")){
-		_outputName = Params.getParameterString("out");
-		_logfile->list("Writing output files with prefix '" + _outputName + "'. (parameter 'out')");
-	} else {
-		//guess from BAM filename.
-		_outputName = _bamFile.filename();
-		_outputName = extractBeforeLast(_outputName, ".");
-		_logfile->list("Writing output files with prefix '" + _outputName + "'. (specify with 'out')");
-	}
+    //open bam file
+    //TODO: deal with index in better way: let tasks decide if they need an index or not
+    _bamFile.open(Params.getParameterString("bam"), Params.parameterExists("indexNotRequired"), _logfile);
+    _bamFile.setLimits(Params, _logfile);
+
+    //outputname
+    if(Params.parameterExists("out")){
+        _outputName = Params.getParameterString("out");
+        _logfile->list("Writing output files with prefix '" + _outputName + "'. (parameter 'out')");
+    } else {
+        //guess from BAM filename.
+        _outputName = _bamFile.filename();
+        _outputName = extractBeforeLast(_outputName, ".");
+        _logfile->list("Writing output files with prefix '" + _outputName + "'. (specify with 'out')");
+    }
 };
 
 void TGenome_basic::_openBamForWriting(const std::string filename, BAM::TOutputBamFile & outBam){
@@ -62,6 +72,8 @@ void TGenome_basic::_openBamForWriting(const std::string filename, BAM::TOutputB
 // TGenome_filtered
 // A base class without genotype likelihoods but BAM filters enabled
 //---------------------------------------------------------------
+TGenome_filtered::TGenome_filtered():TGenome_basic(){};
+
 TGenome_filtered::TGenome_filtered(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_basic(Params, Logfile, RandomGenerator){
 	_bamFile.setFilters(Params, _logfile);
 };

@@ -41,10 +41,12 @@ protected:
 	BAM::TQualityMap _qualMap;
 
 	virtual void _openBamForWriting(const std::string filename, BAM::TOutputBamFile & outBam);
+	void _initialize(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
 
 public:
-	TGenome_basic(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
-	virtual ~TGenome_basic(){};
+    TGenome_basic();
+    TGenome_basic(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
+    virtual ~TGenome_basic(){};
 };
 
 //---------------------------------------------------------------
@@ -57,7 +59,8 @@ protected:
 	virtual void _handleAlignment(){ throw "_handleAlignment() not implemented for base class TGenome_filtered!"; };
 
 public:
-	TGenome_filtered(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
+    TGenome_filtered();
+    TGenome_filtered(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
 };
 
 
