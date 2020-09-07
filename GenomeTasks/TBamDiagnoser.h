@@ -19,18 +19,27 @@ namespace GenomeTasks{
 // A class to get basic characteristics of a BAM file
 //-------------------------------------------
 
-class TBamDiagnoser:public TGenome_basic{
+class TBamDiagnoser:public TGenome_filtered{
 private:
-	BAM::TQualityFilter qualFilter;
+	BAM::TQualityFilter _qualFilter;
 	std::vector<std::string> _readGroupNames;
 
-	void _writeHistogram(const TCountDistributionVector & distVec, const std::string header, const std::string name);
+    // distributions
+    TCountDistribution _totalReads;
+    TCountDistribution _passedQC;
+    TCountDistributionVector _readLength;
+    TCountDistributionVector _usableLength;
+    TCountDistributionVector _softClippedLength;
+    TCountDistributionVector _mappingQuality;
+    TCountDistributionVector _fragmentLength;
+
+	void _writeHistogram(const TCountDistributionVector & distVec, const std::string& header, const std::string& name);
+    void _handleAlignment() override;
 
 public:
 	TBamDiagnoser(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
 
 	void diagnose();
-
 };
 
 //--------------------------------------
