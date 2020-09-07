@@ -592,7 +592,7 @@ TPMDDoubleStrand::TPMDDoubleStrand(TParameters & params, TLog* logfile):TPMDDoub
 };
 
 TPMDDoubleStrand::TPMDDoubleStrand(const TPMDDoubleStrand & other){
-	initialize(other);
+    initialize(other);
 };
 
 TPMDDoubleStrand::TPMDDoubleStrand(TPMDDoubleStrand && other){
@@ -613,7 +613,7 @@ TPMDDoubleStrand::~TPMDDoubleStrand(){
 };
 
 void TPMDDoubleStrand::initialize(TParameters & params, TLog* logfile){
-	if(params.parameterExists("pmd")){
+    if(params.parameterExists("pmd")){
 		std::string pmdString = params.getParameterString("pmd");
 		logfile->list("Initializing PMD for both C->T and G->A with function '" + pmdString +"'.");
 		initializeFunction(pmdString, pmdGA);
@@ -621,6 +621,8 @@ void TPMDDoubleStrand::initialize(TParameters & params, TLog* logfile){
 		logfile->conclude(getFunctionString(pmdCT));
 		if(params.parameterExists("pmdCT")) logfile->warning("Ignoring argument 'pmdCT'!");
 		if(params.parameterExists("pmdGA")) logfile->warning("Ignoring argument 'pmdGA'!");
+
+		std::cout << "here in initialize double strand" << std::endl;
 	} else {
 		//first C->T
 		if(params.parameterExists("pmdCT")){
@@ -655,10 +657,13 @@ void TPMDDoubleStrand::initializeFunction(std::string pmdString, PMDType type){
 	// Exponential[a,b,c]
 	std::string example = "Use either Skoglund[p,c], Exponential[a,b,c] or Empiric[0.2,0.3,...]";
 
-	//check if function was initialized abefore
+    TPMDFunction* myFunctions[2];
+    bool functionsInitialized[2];
+
+    //check if function was initialized abefore
 	if(functionsInitialized[type]) throw "PMD function has been initialized previously!";
 
-	//check if it is none
+    //check if it is none
 	if(pmdString == "none"){
 		myFunctions[type] = new TPMDFunction();
 	} else {
@@ -709,6 +714,8 @@ void TPMDDoubleStrand::initializeFunction(std::string pmdString, PMDType type){
 		}
 	}
 	functionsInitialized[type] = true;
+
+	std::cout << "done initializing function" << std::endl;
 };
 
 void TPMDDoubleStrand::fillBaseLikelihoods(const BAM::TBase & base, const TBaseData & baseLikelihoodsNoPMD, TBaseData & baseLikelihoods) const{
@@ -811,6 +818,9 @@ void TPostMortemDamage::initialize(TParameters & params, BAM::TReadGroups & Read
 		logfile->startIndent("Initializing one PMD function for all read groups:");
 		_pmdObjects.resize(ReadGroups.size());
 		_pmdObjects[0].initialize(params, logfile);
+
+		std::cout << "here in initialize" << std::endl;
+
 		for(size_t i=1; i<ReadGroups.size(); ++i)
 			_pmdObjects[i].initialize(_pmdObjects[0]);
 		_hasPMD = true;

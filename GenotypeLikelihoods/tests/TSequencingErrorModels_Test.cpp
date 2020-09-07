@@ -11,8 +11,7 @@
 
 using namespace GenotypeLikelihoods;
 
-TEST(TSequencingErrorModels_test, baseA){
-    //TPostMortemDamage _pmd;
+TEST(TSequencingErrorModels_test, oneBase){
     TSequencingErrorModels _sequencingErrorModels;
     TBaseData _baseLikelihoods;
     TGenotypeMap genoMap;
@@ -22,26 +21,17 @@ TEST(TSequencingErrorModels_test, baseA){
     float oneMinusError = 0.99;
     float errorOneThird = 0.01 / 3.0;
     std::vector<char> bases = {'A', 'C', 'G', 'T'};
-    base.base = A;
 
-    _sequencingErrorModels.calculateBaseLikelihoods(base, _baseLikelihoods);
+    for(int b = 0; b < bases.size(); ++b){
+        base.base = genoMap.getBaseOnlyCapitals(bases[b]);
+        _sequencingErrorModels.calculateBaseLikelihoods(base, _baseLikelihoods);
 
-    for(int first = 0; first < bases.size(); ++first){
-        for(int second = 0; second < bases.size(); ++second) {
-            //genotypes containing A
-            if(first == 0 || second == 0){
-                if(first == second){
-                    //std::cout << "equal: first " << first << " second " << second << " oneMinusError " << oneMinusError << std::endl;
-                    EXPECT_FLOAT_EQ(_baseLikelihoods[genoMap.toGenotype(bases[first], bases[second])], oneMinusError);
-                } else {
-                    EXPECT_FLOAT_EQ(_baseLikelihoods[genoMap.toGenotype(bases[first], bases[second])], 0.5 * (errorOneThird + oneMinusError));
-                    std::cout << "NOT equal: first " << first << " second " << second << " error " << 0.5 * (errorOneThird + oneMinusError) << std::endl;
-                }
-            }
-
-            //genotypes not containing A
-            else {
-                EXPECT_FLOAT_EQ(_baseLikelihoods[genoMap.toGenotype(bases[first], bases[second])], errorOneThird);
+        for(int trueBase = 0; trueBase < bases.size(); ++trueBase){
+            //true base is A
+            if(trueBase == b){
+                EXPECT_FLOAT_EQ(_baseLikelihoods[trueBase], oneMinusError);
+            } else {
+                EXPECT_FLOAT_EQ(_baseLikelihoods[trueBase], errorOneThird);
             }
         }
     }
