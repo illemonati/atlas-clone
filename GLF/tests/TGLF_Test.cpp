@@ -473,6 +473,10 @@ public:
                 if (isGood || inputGLF->eof()) {
                     // store if window contains data
                     genotypeLikelihoods_perWindow.push_back(genoLikelihoods_oneWindow);
+                } else { // delete
+                    for(int i=0; i<windowLen; ++i) {
+                        delete[] genoLikelihoods_oneWindow[i];
+                    }
                 }
                 //move window
                 windowStart = windowEnd;
@@ -569,6 +573,61 @@ TEST_F(TGLF_Test_WriteRead_Windows, genotypeLikelihoods_writeWithMissingWindows)
         normalizeByMax_Diploid(*writtenGTL);
         for (int g = 0; g < 10; g++) { // go over all 10 possible genotypes
             EXPECT_EQ(converter.toGlfFormat((*writtenGTL)[g]), genotypeLikelihoods_perWindow[3][s][g]);
+        }
+        writtenGTL++;
+    }
+}
+
+TEST_F(TGLF_Test_WriteRead_Windows, oneWindow_writeAll){
+    write(200);
+
+    //open GLF for reading
+    inputGLF = std::make_unique<TGlfReader>(_filename);
+
+    // resize storage
+    std::vector<uint16_t*> genoLikelihoods_oneWindow(windowLen);
+    for(int i=0; i<windowLen; ++i){
+        genoLikelihoods_oneWindow[i] = new uint16_t[10];
+    }
+    inputGLF->readNextWindow(genoLikelihoods_oneWindow, 1, 100, 120);
+    genotypeLikelihoods_perWindow.push_back(genoLikelihoods_oneWindow);
+
+    // check if written and read genotype likelihoods are equal
+    auto writtenGTL = outputGLF->beginGenotypeLikelihoodsWithMissingSites() + 200;
+    for (auto & window : genotypeLikelihoods_perWindow){
+        for (auto genotypeLikelihood_read : window){
+            // need to normalize the written likelihoods by maximal LL in order to compare
+            normalizeByMax_Diploid(*writtenGTL);
+            for (int g = 0; g < 10; g++){ // go over all 10 possible genotypes
+                // compare in GLF format (quite a large imprecision when going from likelihood -> GLF likelihood -> likelihood)
+                EXPECT_EQ(converter.toGlfFormat((*writtenGTL)[g]), genotypeLikelihood_read[g]);
+            }
+            writtenGTL++;
+        }
+    }
+}
+
+TEST_F(TGLF_Test_WriteRead_Windows, oneWindow_writeWithMissingSites){
+    writeWithMissingSites();
+
+    //open GLF for reading
+    inputGLF = std::make_unique<TGlfReader>(_filename);
+
+    // resize storage
+    std::vector<uint16_t*> genoLikelihoods_oneWindow(windowLen);
+    for(int i=0; i<windowLen; ++i){
+        genoLikelihoods_oneWindow[i] = new uint16_t[10];
+    }
+    inputGLF->readNextWindow(genoLikelihoods_oneWindow, 3, 180, 200);
+    genotypeLikelihoods_perWindow.push_back(genoLikelihoods_oneWindow);
+
+    // check if written and read genotype likelihoods are equal
+    // fourth window: chromosome 4, 180-199
+    auto writtenGTL = outputGLF->beginGenotypeLikelihoodsWithMissingSites() + 480;
+    for (int s = 0; s < 20; s++) {
+        normalizeByMax_Diploid(*writtenGTL);
+        for (int g = 0; g < 10; g++) { // go over all 10 possible genotypes
+            EXPECT_EQ(converter.toGlfFormat((*writtenGTL)[g]), genotypeLikelihoods_perWindow[0][s][g]);
         }
         writtenGTL++;
     }

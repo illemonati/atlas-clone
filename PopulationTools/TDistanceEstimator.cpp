@@ -889,20 +889,20 @@ void TDistanceEstimator::estimateDistanceInWindows(TEMforDistanceEstimation & EM
 		curChr = g1.chr();
 		curChrLen = g1.chrLength();
 		windowStart = 0;
-		windowEnd = windowLen + 1;
+		windowEnd = windowLen;
 
 		logfile->startNumbering("Chromosome " + curChr + ":");
 
 		//parse all windows of chromosome
-		while(windowStart < curChrLen){
+		while(windowStart < curChrLen && !g1.eof() && !g2.eof()){
 			logfile->number("Window [" + toString(windowStart) + ", " + toString(windowEnd) + ")");
 			logfile->addIndent();
 
 			//read data
 			isGood1 = g1.readNextWindow(genoQual1, curRefId, windowStart, windowEnd);
-			if(isGood1 || !g1.eof()){
+			if(isGood1 || g1.eof()){
 				isGood2 = g2.readNextWindow(genoQual2, curRefId, windowStart, windowEnd);
-				if(isGood2){
+				if(isGood2 || g2.eof()){
 					//estimate distance
 					EM_object.estimatePhiWithEM(genoQual1, genoQual2);
 
