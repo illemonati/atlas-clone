@@ -622,7 +622,6 @@ void TPMDDoubleStrand::initialize(TParameters & params, TLog* logfile){
 		if(params.parameterExists("pmdCT")) logfile->warning("Ignoring argument 'pmdCT'!");
 		if(params.parameterExists("pmdGA")) logfile->warning("Ignoring argument 'pmdGA'!");
 
-		std::cout << "here in initialize double strand" << std::endl;
 	} else {
 		//first C->T
 		if(params.parameterExists("pmdCT")){
@@ -657,9 +656,6 @@ void TPMDDoubleStrand::initializeFunction(std::string pmdString, PMDType type){
 	// Exponential[a,b,c]
 	std::string example = "Use either Skoglund[p,c], Exponential[a,b,c] or Empiric[0.2,0.3,...]";
 
-    TPMDFunction* myFunctions[2];
-    bool functionsInitialized[2];
-
     //check if function was initialized abefore
 	if(functionsInitialized[type]) throw "PMD function has been initialized previously!";
 
@@ -675,6 +671,7 @@ void TPMDDoubleStrand::initializeFunction(std::string pmdString, PMDType type){
 
 		//switch between functions
 		if(name == "Empiric"){
+		    std::cout << "in empiric" << std::endl;
 			std::string::size_type endPos = pmdString.find_first_of(']');
 			if(endPos == std::string::npos || endPos != pmdString.length()-1) throw "Can not initialize post mortem damage function '" + pmdString + "': wrong format!\n" + example;
 			std::string list = pmdString.substr(pos+1, endPos-pos-1);
@@ -714,8 +711,6 @@ void TPMDDoubleStrand::initializeFunction(std::string pmdString, PMDType type){
 		}
 	}
 	functionsInitialized[type] = true;
-
-	std::cout << "done initializing function" << std::endl;
 };
 
 void TPMDDoubleStrand::fillBaseLikelihoods(const BAM::TBase & base, const TBaseData & baseLikelihoodsNoPMD, TBaseData & baseLikelihoods) const{
@@ -818,8 +813,6 @@ void TPostMortemDamage::initialize(TParameters & params, BAM::TReadGroups & Read
 		logfile->startIndent("Initializing one PMD function for all read groups:");
 		_pmdObjects.resize(ReadGroups.size());
 		_pmdObjects[0].initialize(params, logfile);
-
-		std::cout << "here in initialize" << std::endl;
 
 		for(size_t i=1; i<ReadGroups.size(); ++i)
 			_pmdObjects[i].initialize(_pmdObjects[0]);
