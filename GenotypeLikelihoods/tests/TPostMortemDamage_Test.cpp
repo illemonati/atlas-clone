@@ -61,28 +61,34 @@ TEST(TPostMortemDamage_test, baseAWithPMD){
     params.addParameter("pmd", "Empiric[0.5]");
     _pmd.initialize(params, ReadGroups, &logfile);
 
-    std::cout << "here!!" << std::endl;
-
     //initialize base
     base.originalQuality_phredInt = 20;
     float oneMinusError = 0.99;
     float errorOneThird = 0.01 / 3;
     std::vector<char> bases = {'A', 'C', 'G', 'T'};
     base.base = A;
+    _baseLikelihoods.resize(1);
 
-//
-//    //calculate likelihoods
-//    _baseLikelihoods.resize(1);
-//    _sequencingErrorModels.calculateBaseLikelihoods(base, _baseLikelihoodsNoPMD);
-//    _pmd.calculateBaseLikelihoods(base, _baseLikelihoodsNoPMD, _baseLikelihoods[0]);
+    for(int b = 0; b < bases.size(); ++b){
+        //calculate base likelihoods
+        base.base = genoMap.getBaseOnlyCapitals(bases[b]);
+        base.readGroupID = 0;
+        base.setReverseStrand(false);
 
-//    for(int first = 0; first < bases.size(); ++first){
-//        for(int second = 0; second < bases.size(); ++second){
-//            if(first == second){
-//                EXPECT_EQ(_baseLikelihoods[genoMap.toGenotype(bases[first], bases[second])], oneMinusError);
+        _sequencingErrorModels.calculateBaseLikelihoods(base, _baseLikelihoodsNoPMD);
+        _pmd.calculateBaseLikelihoods(base, _baseLikelihoodsNoPMD, _baseLikelihoods[0]);
+
+        for(int trueBase = 0; trueBase < bases.size(); ++trueBase){
+            //true base is A
+            if(trueBase == b && (trueBase == A || trueBase == T)) {
+                EXPECT_FLOAT_EQ(_baseLikelihoods[0][trueBase], oneMinusError);
+            } else if(trueBase == b && (trueBase == C)){
+                EXPECT_FLOAT_EQ(_baseLikelihoods[0][trueBase], (1.0 - 0.5) * 0.5 + 0.5 * _baseLikelihoodsNoPMD[T]);
+            } else if(trueBase == b && (trueBase == G)){
+                EXPECT_FLOAT_EQ(_baseLikelihoods[0][trueBase], (1.0 - 0.5) * 0.5 + 0.5 * _baseLikelihoodsNoPMD[A]);
 //            } else {
-//                EXPECT_EQ(_baseLikelihoods[genoMap.toGenotype(bases[first], bases[second])], errorOneThird);
-//            }
-//        }
-//    }
+//                EXPECT_FLOAT_EQ(_baseLikelihoods[0][trueBase], errorOneThird);
+            }
+        }
+    }
 }
