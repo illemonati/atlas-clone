@@ -820,7 +820,7 @@ TEST_F(TBamFilter_Test, maxReadLength){
     // 1) filter: maxReadLength
     _parameters.addParameter("maxReadLength", "20");
     // throws error as soon as read that is longer than maxReadLength is parsed
-    EXPECT_THROW(try { read(); } catch(...){throw std::runtime_error("Catched error string");}, std::runtime_error);
+    EXPECT_THROW(try { read(); } catch(...){throw std::runtime_error("Caught error string");}, std::runtime_error);
 }
 
 TEST_F(TBamFilter_Test, keepDuplicates){
@@ -830,14 +830,31 @@ TEST_F(TBamFilter_Test, keepDuplicates){
     _parameters.addParameter("keepDuplicates");
     read();
 
+    EXPECT_EQ(bamFilter->totalReads.counts(), numReads);
     EXPECT_TRUE(bamFilter->duplicates.counts() > 0);
 }
 
 TEST_F(TBamFilter_Test, doNotkeepDuplicates){
     write(false);
     // 2) filter: do not specify 'keepDuplicates'
+    _parameters.addParameter("keepImproperPairs");
+    _parameters.addParameter("keepUnmappedReads");
+    _parameters.addParameter("keepFailedQC");
+    _parameters.addParameter("keepSecondaryReads");
+    _parameters.addParameter("keepSupplementaryReads");
+    _parameters.addParameter("keepReadsLongerThanFragment");
     read();
 
+    // count number of duplicates in simulated alignments
+    uint32_t numDupWritten = 0;
+    for (auto a = outputBam->beginWrittenAlignments(); a != outputBam->endWrittenAlignments(); a++){
+        // get sam flag of alignment as int and convert
+        BAM::TSamFlags samFlags(a->flags());
+        if (samFlags.isDuplicate())
+            numDupWritten++;
+    }
+
+    EXPECT_EQ(bamFilter->totalReads.counts(), numReads - numDupWritten);
     EXPECT_TRUE(bamFilter->duplicates.counts() == 0);
 }
 
@@ -848,6 +865,14 @@ TEST_F(TBamFilter_Test, filterSoftClips){
     _parameters.addParameter("filterSoftClips");
     read();
 
+    // count number of soft clips in simulated alignments
+    uint32_t numSoftClipsWritten = 0;
+    for (auto a = outputBam->beginWrittenAlignments(); a != outputBam->endWrittenAlignments(); a++){
+        if (a->cigar().lengthSoftClipped() > 0)
+            numSoftClipsWritten++;
+    }
+
+    EXPECT_EQ(bamFilter->totalReads.counts(), numReads - numSoftClipsWritten);
     EXPECT_TRUE(bamFilter->softClippedLength.counts() == 0);
 }
 
@@ -857,6 +882,7 @@ TEST_F(TBamFilter_Test, doNotfilterSoftClips){
     // 3) do not filter: 'filterSoftClips'
     read();
 
+    EXPECT_EQ(bamFilter->totalReads.counts(), numReads);
     EXPECT_TRUE(bamFilter->softClippedLength.counts() > 0);
 }
 
