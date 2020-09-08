@@ -893,14 +893,31 @@ TEST_F(TBamFilter_Test, keepImproperPairs){
     _parameters.addParameter("keepImproperPairs");
     read();
 
+    EXPECT_EQ(bamFilter->totalReads.counts(), numReads);
     EXPECT_TRUE(bamFilter->improperPairs.counts() > 0);
 }
 
 TEST_F(TBamFilter_Test, doNotkeepImproperPairs){
     write(true);
     // 2) filter: do not specify 'keepImproperPairs'
+    _parameters.addParameter("keepDuplicates");
+    _parameters.addParameter("keepUnmappedReads");
+    _parameters.addParameter("keepFailedQC");
+    _parameters.addParameter("keepSecondaryReads");
+    _parameters.addParameter("keepSupplementaryReads");
+    _parameters.addParameter("keepReadsLongerThanFragment");
     read();
 
+    // count number of improper pairs in simulated alignments
+    uint32_t numImproperWritten = 0;
+    for (auto a = outputBam->beginWrittenAlignments(); a != outputBam->endWrittenAlignments(); a++){
+        // get sam flag of alignment as int and convert
+        BAM::TSamFlags samFlags(a->flags());
+        if (!samFlags.isProperPair())
+            numImproperWritten++;
+    }
+
+    EXPECT_EQ(bamFilter->totalReads.counts(), numReads - numImproperWritten);
     EXPECT_TRUE(bamFilter->improperPairs.counts() == 0);
 }
 
@@ -911,14 +928,31 @@ TEST_F(TBamFilter_Test, keepUnmappedReads){
     _parameters.addParameter("keepUnmappedReads");
     read();
 
+    EXPECT_EQ(bamFilter->totalReads.counts(), numReads);
     EXPECT_TRUE(bamFilter->unmapped.counts() > 0);
 }
 
 TEST_F(TBamFilter_Test, doNotKeepUnmappedReads){
     write(false);
     // 3) filter: do not specify 'keepUnmappedReads'
+    _parameters.addParameter("keepDuplicates");
+    _parameters.addParameter("keepImproperPairs");
+    _parameters.addParameter("keepFailedQC");
+    _parameters.addParameter("keepSecondaryReads");
+    _parameters.addParameter("keepSupplementaryReads");
+    _parameters.addParameter("keepReadsLongerThanFragment");
     read();
 
+    // count number of unmapped reads in simulated alignments
+    uint32_t numUnmappedWritten = 0;
+    for (auto a = outputBam->beginWrittenAlignments(); a != outputBam->endWrittenAlignments(); a++){
+        // get sam flag of alignment as int and convert
+        BAM::TSamFlags samFlags(a->flags());
+        if (samFlags.isUnmapped())
+            numUnmappedWritten++;
+    }
+
+    EXPECT_EQ(bamFilter->totalReads.counts(), numReads - numUnmappedWritten);
     EXPECT_TRUE(bamFilter->unmapped.counts() == 0);
 }
 
@@ -929,14 +963,31 @@ TEST_F(TBamFilter_Test, keepFailedQC){
     _parameters.addParameter("keepFailedQC");
     read();
 
+    EXPECT_EQ(bamFilter->totalReads.counts(), numReads);
     EXPECT_TRUE(bamFilter->failedQC.counts() > 0);
 }
 
 TEST_F(TBamFilter_Test, doNotKeepFailedQC){
     write(false);
     // 3) filter: do not specify 'keepFailedQC'
+    _parameters.addParameter("keepDuplicates");
+    _parameters.addParameter("keepImproperPairs");
+    _parameters.addParameter("keepUnmappedReads");
+    _parameters.addParameter("keepSecondaryReads");
+    _parameters.addParameter("keepSupplementaryReads");
+    _parameters.addParameter("keepReadsLongerThanFragment");
     read();
 
+    // count number of failed QC reads in simulated alignments
+    uint32_t numFailedQCWritten = 0;
+    for (auto a = outputBam->beginWrittenAlignments(); a != outputBam->endWrittenAlignments(); a++){
+        // get sam flag of alignment as int and convert
+        BAM::TSamFlags samFlags(a->flags());
+        if (samFlags.isQCFailed())
+            numFailedQCWritten++;
+    }
+
+    EXPECT_EQ(bamFilter->totalReads.counts(), numReads - numFailedQCWritten);
     EXPECT_TRUE(bamFilter->failedQC.counts() == 0);
 }
 
@@ -947,14 +998,31 @@ TEST_F(TBamFilter_Test, keepSecondaryReads){
     _parameters.addParameter("keepSecondaryReads");
     read();
 
+    EXPECT_EQ(bamFilter->totalReads.counts(), numReads);
     EXPECT_TRUE(bamFilter->secondary.counts() > 0);
 }
 
 TEST_F(TBamFilter_Test, doNotKeepSecondaryReads){
     write(false);
     // 4) filter: do not specify 'keepSecondaryReads'
+    _parameters.addParameter("keepDuplicates");
+    _parameters.addParameter("keepImproperPairs");
+    _parameters.addParameter("keepUnmappedReads");
+    _parameters.addParameter("keepFailedQC");
+    _parameters.addParameter("keepSupplementaryReads");
+    _parameters.addParameter("keepReadsLongerThanFragment");
     read();
 
+    // count number of secondary reads in simulated alignments
+    uint32_t numSecReadsWritten = 0;
+    for (auto a = outputBam->beginWrittenAlignments(); a != outputBam->endWrittenAlignments(); a++){
+        // get sam flag of alignment as int and convert
+        BAM::TSamFlags samFlags(a->flags());
+        if (samFlags.isSecondary())
+            numSecReadsWritten++;
+    }
+
+    EXPECT_EQ(bamFilter->totalReads.counts(), numReads - numSecReadsWritten);
     EXPECT_TRUE(bamFilter->secondary.counts() == 0);
 }
 
@@ -965,14 +1033,31 @@ TEST_F(TBamFilter_Test, keepSupplementaryReads){
     _parameters.addParameter("keepSupplementaryReads");
     read();
 
+    EXPECT_EQ(bamFilter->totalReads.counts(), numReads);
     EXPECT_TRUE(bamFilter->supplementary.counts() > 0);
 }
 
 TEST_F(TBamFilter_Test, doNotKeepSupplementaryReads){
     write(false);
     // 5) filter: do not specify 'keepSupplementaryReads'
+    _parameters.addParameter("keepDuplicates");
+    _parameters.addParameter("keepImproperPairs");
+    _parameters.addParameter("keepUnmappedReads");
+    _parameters.addParameter("keepFailedQC");
+    _parameters.addParameter("keepSecondaryReads");
+    _parameters.addParameter("keepReadsLongerThanFragment");
     read();
 
+    // count number of supplementary reads in simulated alignments
+    uint32_t numSupplementaryWritten = 0;
+    for (auto a = outputBam->beginWrittenAlignments(); a != outputBam->endWrittenAlignments(); a++){
+        // get sam flag of alignment as int and convert
+        BAM::TSamFlags samFlags(a->flags());
+        if (samFlags.isSupplementary())
+            numSupplementaryWritten++;
+    }
+
+    EXPECT_EQ(bamFilter->totalReads.counts(), numReads - numSupplementaryWritten);
     EXPECT_TRUE(bamFilter->supplementary.counts() == 0);
 }
 
@@ -983,14 +1068,33 @@ TEST_F(TBamFilter_Test, keepReadsLongerThanFragment){
     _parameters.addParameter("keepReadsLongerThanFragment");
     read();
 
+    EXPECT_EQ(bamFilter->totalReads.counts(), numReads);
     EXPECT_TRUE(bamFilter->longerThanFragmentLength.counts() > 0);
 }
 
 TEST_F(TBamFilter_Test, doNotKeepReadsLongerThanFragmens){
     write(true);
     // 6) filter: do not specify 'keepReadsLongerThanFragment'
+    _parameters.addParameter("keepDuplicates");
+    _parameters.addParameter("keepImproperPairs");
+    _parameters.addParameter("keepUnmappedReads");
+    _parameters.addParameter("keepFailedQC");
+    _parameters.addParameter("keepSecondaryReads");
+    _parameters.addParameter("keepSupplementaryReads");
     read();
 
+    // count number of reads that are longer than fragments in simulated alignments
+    uint32_t numLongerWritten = 0;
+    for (auto a = outputBam->beginWrittenAlignments(); a != outputBam->endWrittenAlignments(); a++){
+        uint32_t insertSize;
+        if (a->matePosition() > a->position())
+            insertSize = a->matePosition() - a->position();
+        else insertSize = a->position() - a->matePosition();
+        if (a->isProperPair() && insertSize < a->cigar().lengthAligned())
+            numLongerWritten++;
+    }
+
+    EXPECT_EQ(bamFilter->totalReads.counts(), numReads - numLongerWritten);
     EXPECT_TRUE(bamFilter->longerThanFragmentLength.counts() == 0);
 }
 
@@ -1001,6 +1105,14 @@ TEST_F(TBamFilter_Test, keepOnlyFwd){
     _parameters.addParameter("keepOnlyFwd");
     read();
 
+    // count number of reverse reads in simulated alignments
+    uint32_t numRevWritten = 0;
+    for (auto a = outputBam->beginWrittenAlignments(); a != outputBam->endWrittenAlignments(); a++){
+        if (a->isReverseStrand())
+            numRevWritten++;
+    }
+
+    EXPECT_EQ(bamFilter->totalReads.counts(), numReads - numRevWritten);
     EXPECT_TRUE(bamFilter->fwdStrand.counts() > 0);
     EXPECT_TRUE(bamFilter->revStrand.counts() == 0);
 }
@@ -1012,6 +1124,14 @@ TEST_F(TBamFilter_Test, keepOnlyRev){
     _parameters.addParameter("keepOnlyRev");
     read();
 
+    // count number of forward reads in simulated alignments
+    uint32_t numFwdWritten = 0;
+    for (auto a = outputBam->beginWrittenAlignments(); a != outputBam->endWrittenAlignments(); a++){
+        if (!a->isReverseStrand())
+            numFwdWritten++;
+    }
+
+    EXPECT_EQ(bamFilter->totalReads.counts(), numReads - numFwdWritten);
     EXPECT_TRUE(bamFilter->revStrand.counts() > 0);
     EXPECT_TRUE(bamFilter->fwdStrand.counts() == 0);
 }
@@ -1023,6 +1143,16 @@ TEST_F(TBamFilter_Test, keepOnlyFirst){
     _parameters.addParameter("keepOnlyFirst");
     read();
 
+    // count number of second mates in simulated alignments
+    uint32_t numSecondWritten = 0;
+    for (auto a = outputBam->beginWrittenAlignments(); a != outputBam->endWrittenAlignments(); a++){
+        // get sam flag of alignment as int and convert
+        BAM::TSamFlags samFlags(a->flags());
+        if (samFlags.isSecondMate())
+            numSecondWritten++;
+    }
+
+    EXPECT_EQ(bamFilter->totalReads.counts(), numReads - numSecondWritten);
     EXPECT_TRUE(bamFilter->firstMate.counts() > 0);
     EXPECT_TRUE(bamFilter->secondMate.counts() == 0);
 }
@@ -1034,6 +1164,16 @@ TEST_F(TBamFilter_Test, keepOnlySecond){
     _parameters.addParameter("keepOnlySecond");
     read();
 
+    // count number of first mates in simulated alignments
+    uint32_t numFirstWritten = 0;
+    for (auto a = outputBam->beginWrittenAlignments(); a != outputBam->endWrittenAlignments(); a++){
+        // get sam flag of alignment as int and convert
+        BAM::TSamFlags samFlags(a->flags());
+        if (samFlags.isFirstMate())
+            numFirstWritten++;
+    }
+
+    EXPECT_EQ(bamFilter->totalReads.counts(), numReads - numFirstWritten);
     EXPECT_TRUE(bamFilter->secondMate.counts() > 0);
     EXPECT_TRUE(bamFilter->firstMate.counts() == 0);
 }
@@ -1050,10 +1190,10 @@ TEST_F(TBamFilter_Test, blacklist){
     }
     blackList.close();
 
-    // remove all other filters
     _parameters.addParameter("blacklist", "blacklist.txt");
     read();
 
+    EXPECT_EQ(bamFilter->totalReads.counts(), numReads - 200);
     for (auto & it : bamFilter->names){
         // all alignments 0-199 should have been removed
        int alignmentNum = convertString<int>(extractAfter(it, "_"));
@@ -1071,6 +1211,14 @@ TEST_F(TBamFilter_Test, minMQ){
     _parameters.addParameter("minMQ", "100");
     read();
 
+    // count number of reads with lower MQ in simulated alignments
+    uint32_t numReadsWithSmallerMQWritten = 0;
+    for (auto a = outputBam->beginWrittenAlignments(); a != outputBam->endWrittenAlignments(); a++){
+        if (a->mappingQuality() < 100)
+            numReadsWithSmallerMQWritten++;
+    }
+
+    EXPECT_EQ(bamFilter->totalReads.counts(), numReads - numReadsWithSmallerMQWritten);
     for (int id = 0; id < bamFilter->mappingQuality.size(); id++){
         EXPECT_TRUE(bamFilter->mappingQuality[id].min() >= 100);
     }
@@ -1083,6 +1231,15 @@ TEST_F(TBamFilter_Test, maxMQ){
     _parameters.addParameter("maxMQ", "100");
     read();
 
+    // count number of reads with higher MQ in simulated alignments
+    uint32_t numReadsWithLargerMQWritten = 0;
+    for (auto a = outputBam->beginWrittenAlignments(); a != outputBam->endWrittenAlignments(); a++){
+        if (a->mappingQuality() > 100)
+            numReadsWithLargerMQWritten++;
+    }
+
+    EXPECT_EQ(bamFilter->totalReads.counts(), numReads - numReadsWithLargerMQWritten);
+
     for (int id = 0; id < bamFilter->mappingQuality.size(); id++){
         EXPECT_TRUE(bamFilter->mappingQuality[id].max() <= 100);
     }
@@ -1091,10 +1248,19 @@ TEST_F(TBamFilter_Test, maxMQ){
 TEST_F(TBamFilter_Test, minMQ_maxMQ){
     write(false);
     _disableAllFilters();
-    // 10) filter: 'maxMQ'
+    // 10) filter: 'minMQ' and 'maxMQ'
     _parameters.addParameter("minMQ", "80");
     _parameters.addParameter("maxMQ", "100");
     read();
+
+    // count number of reads with lower and higher MQ in simulated alignments
+    uint32_t numReadsWithOutsideMQWritten = 0;
+    for (auto a = outputBam->beginWrittenAlignments(); a != outputBam->endWrittenAlignments(); a++){
+        if (a->mappingQuality() < 80 || a->mappingQuality() > 100)
+            numReadsWithOutsideMQWritten++;
+    }
+
+    EXPECT_EQ(bamFilter->totalReads.counts(), numReads - numReadsWithOutsideMQWritten);
 
     for (int id = 0; id < bamFilter->mappingQuality.size(); id++){
         EXPECT_TRUE(bamFilter->mappingQuality[id].min() >= 80);
@@ -1107,7 +1273,26 @@ TEST_F(TBamFilter_Test, minFragmentLength){
     _disableAllFilters();
     // 11) filter: 'minFragmentLength'
     _parameters.addParameter("minFragmentLength", "100");
+    _parameters.addParameter("maxFragmentLength", "10000000000"); // set maxFragmentLength to something big, because default is 1000 and we have more than this
+
     read();
+
+    // count number of reads with lower fragment length in simulated alignments
+    uint32_t numReadsWithSmallerFragLengthWritten = 0;
+    for (auto a = outputBam->beginWrittenAlignments(); a != outputBam->endWrittenAlignments(); a++){
+        // calculate insert size
+        uint32_t insertSize;
+        if (a->matePosition() > a->position())
+            insertSize = a->matePosition() - a->position();
+        else insertSize = a->position() - a->matePosition();
+        if (a->isProperPair()) {
+            if (insertSize + a->cigar().lengthInserted() - a->cigar().lengthDeleted() < 100)
+                numReadsWithSmallerFragLengthWritten++;
+        } else if (a->cigar().lengthSequenced() < 100)
+            numReadsWithSmallerFragLengthWritten++;
+    }
+
+    EXPECT_EQ(bamFilter->totalReads.counts(), numReads - numReadsWithSmallerFragLengthWritten);
 
     for (int id = 0; id < bamFilter->mappingQuality.size(); id++){
         EXPECT_TRUE(bamFilter->fragmentLength[id].min() >= 100);
@@ -1121,6 +1306,23 @@ TEST_F(TBamFilter_Test, maxFragmentLength){
     _parameters.addParameter("maxFragmentLength", "100");
     read();
 
+    // count number of reads with lower fragment length in simulated alignments
+    uint32_t numReadsWithLargerFragLengthWritten = 0;
+    for (auto a = outputBam->beginWrittenAlignments(); a != outputBam->endWrittenAlignments(); a++){
+        // calculate insert size
+        uint32_t insertSize;
+        if (a->matePosition() > a->position())
+            insertSize = a->matePosition() - a->position();
+        else insertSize = a->position() - a->matePosition();
+        if (a->isProperPair()) {
+            if (insertSize + a->cigar().lengthInserted() - a->cigar().lengthDeleted() > 100)
+                numReadsWithLargerFragLengthWritten++;
+        } else if (a->cigar().lengthSequenced() > 100)
+            numReadsWithLargerFragLengthWritten++;
+    }
+
+    EXPECT_EQ(bamFilter->totalReads.counts(), numReads - numReadsWithLargerFragLengthWritten);
+
     for (int id = 0; id < bamFilter->mappingQuality.size(); id++){
         EXPECT_TRUE(bamFilter->fragmentLength[id].max() <= 100);
     }
@@ -1133,6 +1335,24 @@ TEST_F(TBamFilter_Test, minFragmentLength_maxFragmentLength){
     _parameters.addParameter("minFragmentLength", "80");
     _parameters.addParameter("maxFragmentLength", "100");
     read();
+
+
+    // count number of reads with lower fragment length in simulated alignments
+    uint32_t numReadsWithOutsideFragLengthWritten = 0;
+    for (auto a = outputBam->beginWrittenAlignments(); a != outputBam->endWrittenAlignments(); a++){
+        // calculate insert size
+        uint32_t insertSize;
+        if (a->matePosition() > a->position())
+            insertSize = a->matePosition() - a->position();
+        else insertSize = a->position() - a->matePosition();
+        if (a->isProperPair()) {
+            if (insertSize + a->cigar().lengthInserted() - a->cigar().lengthDeleted() < 80 || insertSize + a->cigar().lengthInserted() - a->cigar().lengthDeleted() > 100)
+                numReadsWithOutsideFragLengthWritten++;
+        } else if (a->cigar().lengthSequenced() < 80 || a->cigar().lengthSequenced() > 100)
+            numReadsWithOutsideFragLengthWritten++;
+    }
+
+    EXPECT_EQ(bamFilter->totalReads.counts(), numReads - numReadsWithOutsideFragLengthWritten);
 
     for (int id = 0; id < bamFilter->mappingQuality.size(); id++){
         if (!bamFilter->fragmentLength[id].empty()) {
@@ -1149,6 +1369,15 @@ TEST_F(TBamFilter_Test, readGroups){
     _parameters.addParameter("readGroup", "ReadGroup0,ReadGroup1,ReadGroup2");
     read();
 
+    // count number of reads with read group ID 3 or 4 in simulated alignments
+    uint32_t numReadGroups34 = 0;
+    for (auto a = outputBam->beginWrittenAlignments(); a != outputBam->endWrittenAlignments(); a++){
+        if (a->readGroupId() == 3 || a->readGroupId() == 4)
+            numReadGroups34++;
+    }
+
+    EXPECT_EQ(bamFilter->totalReads.counts(), numReads - numReadGroups34);
+
     EXPECT_TRUE(bamFilter->readGroup[0] > 0);
     EXPECT_TRUE(bamFilter->readGroup[1] > 0);
     EXPECT_TRUE(bamFilter->readGroup[2] > 0);
@@ -1163,7 +1392,7 @@ TEST_F(TBamFilter_Test, limitReads){
     _parameters.addParameter("limitReads", "50");
     read();
 
-    EXPECT_TRUE(bamFilter->readGroup.counts() == 50);
+    EXPECT_TRUE(bamFilter->totalReads.counts() == 50);
 }
 
 TEST_F(TBamFilter_Test, chr){
@@ -1177,6 +1406,15 @@ TEST_F(TBamFilter_Test, chr){
     for (auto it = outputBam->beginWrittenAlignments(); it != outputBam->endWrittenAlignments(); it++){
         writtenRefIDs.add(it->refID());
     }
+
+    // count number of reads with chromosome 3 in simulated alignments
+    uint32_t numReadsChr3Written = 0;
+    for (auto a = outputBam->beginWrittenAlignments(); a != outputBam->endWrittenAlignments(); a++){
+        if (a->refID() == 2)
+            numReadsChr3Written++;
+    }
+
+    EXPECT_EQ(bamFilter->totalReads.counts(), numReads - numReadsChr3Written);
 
     EXPECT_EQ(writtenRefIDs[0], bamFilter->refIDs[0]);
     EXPECT_EQ(writtenRefIDs[1], bamFilter->refIDs[1]);
@@ -1194,6 +1432,15 @@ TEST_F(TBamFilter_Test, limitChr){
     for (auto it = outputBam->beginWrittenAlignments(); it != outputBam->endWrittenAlignments(); it++){
         writtenRefIDs.add(it->refID());
     }
+
+    // count number of reads with chromosome 3 in simulated alignments
+    uint32_t numReadsChr3Written = 0;
+    for (auto a = outputBam->beginWrittenAlignments(); a != outputBam->endWrittenAlignments(); a++){
+        if (a->refID() == 2)
+            numReadsChr3Written++;
+    }
+
+    EXPECT_EQ(bamFilter->totalReads.counts(), numReads - numReadsChr3Written);
 
     EXPECT_EQ(writtenRefIDs[0], bamFilter->refIDs[0]);
     EXPECT_EQ(writtenRefIDs[1], bamFilter->refIDs[1]);

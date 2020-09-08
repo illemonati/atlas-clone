@@ -314,7 +314,7 @@ void TTestBamFilePairedEnd::_iterateFlags() {
     // there are 12 flags -> 2^12 = 4096 - 1 = 4095 is the last valid combination
     if (_dummyFlag.asInt() < 4095){
         _dummyFlag = _dummyFlag.asInt() + 1;
-        while (!_dummyFlag.isValid() && !_dummyFlag.isPaired()){ // some sums are invalid -> only accept valid sums. Also, we only want to simulate paired-end reads in here
+        while (!_dummyFlag.isValid() || !_dummyFlag.isPaired()){ // some sums are invalid -> only accept valid sums. Also, we only want to simulate paired-end reads in here
             _dummyFlag = _dummyFlag.asInt() + 1;
             if (_dummyFlag.asInt() >= 4095)
                 _dummyFlag = 0;
