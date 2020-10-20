@@ -22,7 +22,9 @@ TSamHeader_HD::TSamHeader_HD(){
 
 void TSamHeader_HD::setSortOrder(const std::string SortOrder){
 	//check if valid
-	if(SortOrder == "unknown" || SortOrder == "unsorted" || SortOrder == "queryname" || SortOrder == "coordinate"){
+	if(SortOrder.empty()){
+		_sortOrder_SO = "unknown";
+	} else if(SortOrder == "unknown" || SortOrder == "unsorted" || SortOrder == "queryname" || SortOrder == "coordinate"){
 		_sortOrder_SO = SortOrder;
 	} else {
 		throw "Unknow BAM sort order '" + SortOrder + "'! Must be either 'unknown', 'unsorted', 'queryname' or 'coordinate'.";
@@ -31,7 +33,9 @@ void TSamHeader_HD::setSortOrder(const std::string SortOrder){
 
 void TSamHeader_HD::setGrouping(const std::string Grouping){
 	//check if valid
-	if(Grouping == "none" || Grouping == "query" || Grouping == "reference"){
+	if(Grouping.empty()){
+		_grouping_GO = "none";
+	} else if(Grouping == "none" || Grouping == "query" || Grouping == "reference"){
 		_grouping_GO = Grouping;
 	} else {
 		throw "Unknow BAM grouping '" + Grouping + "'! Must be either 'none', 'query', or 'reference'.";
