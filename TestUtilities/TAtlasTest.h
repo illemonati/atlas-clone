@@ -9,8 +9,8 @@
 #define TATLASTEST_H_
 
 #include "TTaskList.h"
-#include "../commonutilities/IntegrationTests/TTest.h"
-#include "../commonutilities/gzstream.h"
+#include "TTest.h"
+#include "gzstream.h"
 #include "../bamtools/api/BamWriter.h"
 #include "../bamtools/api/BamReader.h"
 #include "../bamtools/api/SamHeader.h"

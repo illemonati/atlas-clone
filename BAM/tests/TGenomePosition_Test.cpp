@@ -3,8 +3,7 @@
 //
 
 #include "TGenomePosition.h"
-#include "gtest/gtest.h"
-#include "gmock/gmock.h"
+#include "TestCase.h"
 
 //-----------------------------------------------------
 // TGenomePosition

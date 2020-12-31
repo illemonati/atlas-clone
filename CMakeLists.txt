@@ -1,91 +1,114 @@
-project(atlas LANGUAGES CXX)
+# Project
+project(atlas)
 
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.0.0)
 set(CMAKE_CXX_STANDARD 14)
 
-# add libraries (each containing an own CMakeLists.txt)
+# add libraries
 add_subdirectory(commonutilities)
-add_subdirectory(VCF)
-add_subdirectory(bamtools)
-add_subdirectory(BAM)
-add_subdirectory(GenomeTasks)
-add_subdirectory(GenotypeLikelihoods)
-add_subdirectory(GLF)
-add_subdirectory(PopulationTools)
-add_subdirectory(Simulations)
-add_subdirectory(TestUtilities)
-
-# add the executable
-add_executable(${PROJECT_NAME} atlas.cpp)
 
 # locate external libraries
 find_package(ZLIB REQUIRED)
 find_package(Armadillo REQUIRED)
 
-# link libraries
-target_link_libraries(${PROJECT_NAME} PUBLIC VCFLib PopulationToolsLib BAMLib GenomeTasksLib GenotypeLikelihoodsLib GLFLib SimulationsLib TestsLib commonutilities bamtoolsLib ${ZLIB_LIBRARIES} ${ARMADILLO_LIBRARIES})
-
-# add the binary tree to the search path for include files
-target_include_directories(${PROJECT_NAME} PUBLIC ${ARMADILLO_INCLUDE_DIRS}
-        "${PROJECT_BINARY_DIR}"
-        "${PROJECT_SOURCE_DIR}/commonutilities"
-        "${PROJECT_SOURCE_DIR}/bamtools"
-        "${PROJECT_SOURCE_DIR}/VCF"
-        "${PROJECT_SOURCE_DIR}/GenotypeLikelihoods"
-        "${PROJECT_SOURCE_DIR}/BAM"
-        "${PROJECT_SOURCE_DIR}/GenomeTasks"
-        "${PROJECT_SOURCE_DIR}/GLF"
-        "${PROJECT_SOURCE_DIR}/PopulationTools"
-        "${PROJECT_SOURCE_DIR}/Simulations"
-        "${PROJECT_SOURCE_DIR}/TestUtilities"
+set(LINK_LIBRARIES
+        coreLib
+        commonutilities
+        ${ZLIB_LIBRARIES}
+        ${ARMADILLO_LIBRARIES}
         )
 
-target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_11)
+include_directories(
+        BAM
+        bamtools
+        GenomeTasks
+        GenotypeLikelihoods
+        GLF
+        PopulationTools
+        Simulations
+        TestUtilities
+        VCF
+        commonutilities/core
+        commonutilities/core/IntegrationTests
+        ${ARMADILLO_INCLUDE_DIRS}
+)
 
-# compile commands
+#######################
+# Create core library
+#######################
+# assemble list of cpp and h files in all source folders
+file(GLOB_RECURSE BAMTOOLS bamtools/*)
+file(GLOB CORE_SOURCES BAM/*.h BAM/*.cpp
+                               GenomeTasks/*.h GenomeTasks/*.cpp
+                               GenotypeLikelihoods/*.h GenotypeLikelihoods/*.cpp
+                               GLF/*.h GLF/*.cpp
+                               PopulationTools/*.h PopulationTools/*.cpp
+                               Simulations/*.h Simulations/*.cpp
+                               TestUtilities/*.h TestUtilities/*.cpp
+                               VCF/*.h VCF/*.cpp
+        )
+list(APPEND CORE_SOURCES ${BAMTOOLS})
+
+#Core library
+add_library(coreLib STATIC ${CORE_SOURCES})
+
+#######################
+# Executable
+#######################
+
+# add executable to be built
+add_executable(${PROJECT_NAME}
+        atlas.cpp
+        )
+
+# link libraries
+target_link_libraries(${PROJECT_NAME} PUBLIC
+        ${LINK_LIBRARIES}
+        )
+
+# add the binary tree to the search path for include files
+target_include_directories(${PROJECT_NAME} PUBLIC)
+
+# compile commands: by default, compile in Release mode
+# type 'cmake -DCMAKE_BUILD_TYPE=Debug ..' in terminal for compiling in Debug mode
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif()
 
-set(CMAKE_CXX_FLAGS_DEBUG "-g")
-set(CMAKE_CXX_FLAGS_RELEASE "-O3")
-
-
-################## google tests ####################
-
-# The gtest/gtest_main targets carry header search path
-# dependencies automatically when using CMake 2.8.11 or
-# later. Otherwise we have to add them here ourselves.
-if(CMAKE_VERSION VERSION_LESS 2.8.11)
-    include_directories("${gtest_SOURCE_DIR}/include"
-            "${gmock_SOURCE_DIR}/include"
-            )
-endif()
-
-# Now simply link against gtest or gtest_main as needed. Eg
-set(TEST_SOURCES BAM/tests/TGenomePosition_Test.cpp
-        BAM/tests/TBed_Test.cpp
-        BAM/tests/TBamFile_Test.cpp
-        #GenotypeLikelihoods/tests/TGenotypeLikelihoodCalculator_Test.cpp
-        #GenotypeLikelihoods/tests/TSequencingErrorModels_Test.cpp
-        #GenotypeLikelihoods/tests/TPostMortemDamage_Test.cpp
-        GLF/tests/TGLF_Test.cpp)
-add_executable(testAtlas ${TEST_SOURCES})
-target_link_libraries(testAtlas PUBLIC gtest_main gmock_main VCFLib PopulationToolsLib BAMLib GenomeTasksLib GenotypeLikelihoodsLib GLFLib SimulationsLib TestsLib commonutilities bamtoolsLib ${ZLIB_LIBRARIES} ${ARMADILLO_LIBRARIES})
-
-
-target_include_directories(testAtlas PUBLIC ${ARMADILLO_INCLUDE_DIRS}
-        "${PROJECT_BINARY_DIR}"
-        "${PROJECT_SOURCE_DIR}/commonutilities"
-        "${PROJECT_SOURCE_DIR}/bamtools"
-        "${PROJECT_SOURCE_DIR}/VCF"
-        "${PROJECT_SOURCE_DIR}/GenotypeLikelihoods"
-        "${PROJECT_SOURCE_DIR}/BAM"
-        "${PROJECT_SOURCE_DIR}/GenomeTasks"
-        "${PROJECT_SOURCE_DIR}/GLF"
-        "${PROJECT_SOURCE_DIR}/PopulationTools"
-        "${PROJECT_SOURCE_DIR}/Simulations"
-        "${PROJECT_SOURCE_DIR}/TestUtilities"
+#######################
+# Tests
+#######################
+#assemble list of test cpp and h files
+file(GLOB_RECURSE TEST_SOURCES
+        BAM/tests/*.h BAM/tests/*.cpp
+        bamtools/tests/*
+        GenomeTasks/tests/*.h GenomeTasks/tests/*.cpp
+        GenotypeLikelihoods/tests/*.h GenotypeLikelihoods/tests/*.cpp
+        GLF/tests/*.h GLF/tests/*.cpp
+        PopulationTools/tests/*.h PopulationTools/tests/*.cpp
+        Simulations/tests/*.h Simulations/tests/*.cpp
+        TestUtilities/tests/*.h TestUtilities/tests/*.cpp
+        VCF/tests/*.h VCF/tests/*.cpp
         )
 
-add_test(NAME example_test COMMAND testAtlas)
+add_executable("${PROJECT_NAME}_unitTests" ${TEST_SOURCES})
+
+target_link_libraries("${PROJECT_NAME}_unitTests" PUBLIC
+        gtest_main
+        gmock_main
+        ${LINK_LIBRARIES}
+        )
+
+target_include_directories("${PROJECT_NAME}_unitTests" PUBLIC
+        "${PROJECT_BINARY_DIR}" #google tests will be cloned in there
+        BAM/tests
+        bamtools/tests
+        GenomeTasks/tests
+        GenotypeLikelihoods/tests
+        GLF/tests
+        PopulationTools/tests
+        Simulations/tests
+        TestUtilities/tests
+        VCF/tests
+        commonutilities/tests
+        )

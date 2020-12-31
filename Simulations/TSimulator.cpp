@@ -768,7 +768,7 @@ void TSimulator::_simulateReadsFromHaplotypes(const BAM::TChromosome & thisChr, 
 			rs->writeUnwrittenAlignments(l, bamFile);
 
 		//draw random number to get number of reads starting at this position
-		numReadsHere = _randomGenerator->getBiomialRand(probReadPerSite, numReads);
+		numReadsHere = _randomGenerator->getBinomialRand(probReadPerSite, numReads);
 		//now simulate
 		if(numReadsHere > 0){
 			numReadsSimulated += numReadsHere;

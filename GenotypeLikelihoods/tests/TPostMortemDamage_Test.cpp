@@ -5,9 +5,8 @@
 #include "TPostMortemDamage.h"
 #include "TSequencingErrorModels.h"
 #include "TGenotypeMap.h"
+#include "TestCase.h"
 
-#include "gtest/gtest.h"
-#include "gmock/gmock.h"
 
 using namespace GenotypeLikelihoods;
 

@@ -4,9 +4,7 @@
 
 #include "TGLF.h"
 #include "TTestGLFFile.h"
-
-#include "gtest/gtest.h"
-#include "gmock/gmock.h"
+#include "TestCase.h"
 
 //-------------------------------------------------------------
 // TGLF_Test_ReadWrite

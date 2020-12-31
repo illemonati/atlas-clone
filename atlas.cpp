@@ -48,12 +48,12 @@
 #include "TSimulator.h"
 
 //tests
-#include "TestUtilities/TAtlasTest.h"
-#include "TestUtilities/TAtlasTestFilter.h"
-#include "TestUtilities/TAtlasTestMergePairs.h"
-#include "TestUtilities/TAtlasTestPMD.h"
-#include "TestUtilities/TAtlasTestRecalibration.h"
-#include "TestUtilities/TVcfTest.h"
+#include "TAtlasTest.h"
+#include "TAtlasTestFilter.h"
+#include "TAtlasTestMergePairs.h"
+#include "TAtlasTestPMD.h"
+#include "TAtlasTestRecalibration.h"
+#include "TVcfTest.h"
 
 void addTaks(TMain & main) {
     // Use main.addRegularTask to add a regular task (shown in list of available tasks)
