@@ -1,7 +1,7 @@
 #make file for atlas
 
-SRC = $(wildcard *.cpp) $(wildcard *.C) $(wildcard BAM/*.cpp) $(wildcard bamtools/api/*.cpp) $(wildcard bamtools/api/algorithms/*.cpp) $(wildcard bamtools/api/internal/bam/*.cpp) $(wildcard bamtools/api/internal/index/*.cpp) $(wildcard bamtools/api/internal/io/*.cpp) $(wildcard bamtools/api/internal/sam/*.cpp) $(wildcard bamtools/api/internal/utils/*.cpp) $(wildcard bamtools/utils/*.cpp) $(wildcard commonutilities/*.cpp) $(wildcard commonutilities/IntegrationTests/*.cpp) $(wildcard GenomeTasks/*.cpp) $(wildcard GenotypeLikelihoods/*.cpp) $(wildcard GLF/*.cpp) $(wildcard PopulationTools/*.cpp) $(wildcard Simulations/*.cpp) $(wildcard TestUtilities/*.cpp) $(wildcard VCF/*.cpp) 
-GIT_HEADER = commonutilities/gitversion.cpp
+SRC = $(wildcard *.cpp) $(wildcard *.C) $(wildcard BAM/*.cpp) $(wildcard bamtools/api/*.cpp) $(wildcard bamtools/api/algorithms/*.cpp) $(wildcard bamtools/api/internal/bam/*.cpp) $(wildcard bamtools/api/internal/index/*.cpp) $(wildcard bamtools/api/internal/io/*.cpp) $(wildcard bamtools/api/internal/sam/*.cpp) $(wildcard bamtools/api/internal/utils/*.cpp) $(wildcard bamtools/utils/*.cpp) $(wildcard commonutilities/core/*.cpp) $(wildcard commonutilities/core/IntegrationTests/*.cpp) $(wildcard GenomeTasks/*.cpp) $(wildcard GenotypeLikelihoods/*.cpp) $(wildcard GLF/*.cpp) $(wildcard PopulationTools/*.cpp) $(wildcard Simulations/*.cpp) $(wildcard TestUtilities/*.cpp) $(wildcard VCF/*.cpp) 
+GIT_HEADER = commonutilities/core/gitversion.cpp
 
 # check if commonutilities/gitversion.cpp already exists (if it doesn't, add it to SRC)
 ifeq (,$(findstring $(GIT_HEADER),$(SRC)))
@@ -37,7 +37,7 @@ $(GIT_HEADER): .git/HEAD .git/COMMIT_EDITMSG .git/index
 
 
 %.o: %.cpp
-	$(CXX) -O3 -c -I. -IBAM -Ibamtools -Icommonutilities -IGenomeTasks -IGenotypeLikelihoods -IGLF -IPopulationTools -ISimulations -ITestUtilities -IVCF $(OBJFLAG)  $< -o $@
+	$(CXX) -O3 -c -I. -IBAM -Ibamtools -Icommonutilities/core -Icommonutilities/core/IntegrationTests -IGenomeTasks -IGenotypeLikelihoods -IGLF -IPopulationTools -ISimulations -ITestUtilities -IVCF $(OBJFLAG)  $< -o $@
 
 
 .PHONY : clean
