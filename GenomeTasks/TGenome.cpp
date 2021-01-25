@@ -654,6 +654,9 @@ void TGenome_windows::_traverseBAMWindows(){
 	}
 
 	_logfile->endIndent();
+
+	//report
+	_bamFile.printEndWithSummary();
 };
 
 }; //end namespace
