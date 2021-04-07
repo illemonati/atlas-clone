@@ -188,6 +188,7 @@ void TMajorMinor::estimateMajorMinor(TParameters & params){
 	//open GLF files
 	TGlfMultiReader glfReader(params, logfile);
 	glfReader.setAllActive();
+	//TODO: add printAll option
 	glfReader.onlyJumpToPositionsWithData();
 
 	//add reference, if provided
