@@ -653,19 +653,19 @@ bool TPopulationLikelihoodReaderLocus::_readNextLineFromVCF(){
 		std::string temp;
 		getline(*trueFreq, temp);
 		std::vector<std::string> tmp;
-		fillVectorFromString(temp, tmp, "\t");
+		fillVectorFromString(temp, tmp, '\t');
 		if(tmp.size() != 3)
 			throw "wrong number of columns in true allele frequency file!";
 		std::string chr = tmp[0];
-		uint64_t pos = stringToLong(tmp[1]);
-		_trueAlleleFrequency = stringToDouble(tmp[2]);
+		uint32_t pos = convertString<uint32_t>(tmp[1]);
+		_trueAlleleFrequency = convertString<double>(tmp[2]);
 		//check if positions match (allele file is 0-based)
 		while(pos < vcfFile.position() - 1){
 			getline(*trueFreq, temp);
-			fillVectorFromString(temp, tmp, "\t");
+			fillVectorFromString(temp, tmp, '\t');
 			if(tmp.size() != 3)
 				throw "wrong number of columns in true allele frequency file!";
-			pos = stringToInt(tmp[1]);
+			pos = convertString<uint32_t>(tmp[1]);
 		}
 		if(pos > vcfFile.position() - 1)
 			throw "current vcf pos=" + toString(vcfFile.position()) + " is not equal to current trueAlleleFreq position=" + toString(pos);

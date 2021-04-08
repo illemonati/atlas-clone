@@ -187,7 +187,7 @@ void TAlignmentParser::setWindowParameters(TParameters & params){
 	//check if it is a number
 	if(stringContainsOnly(tmp, "1234567890.Ee-+")){
 		windowsPredefined = false;
-		windowSize = stringToInt(tmp);
+		windowSize = convertString<int>(tmp);
 		logfile->list("Setting window size to " + toString(windowSize) + ". (parameter 'window')");
 		if(windowSize < maxReadLength)
 			throw "Window size " + tmp + " out of range! Windows must be at least as large as the max read length (" + toString(maxReadLength) + " bp)!";

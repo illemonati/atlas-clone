@@ -186,7 +186,7 @@ void TGenome::bootstrapTetaEstimation(int numBootstraps, TThetaEstimator & theta
 	gettimeofday(&startTime, NULL);
 
 	//open output file
-	TOutputFileZipped bootstrapOut;
+	TOutputFile bootstrapOut;
 	std::string bootstrapFilename = outputName + "_theta_bootstraps.txt.gz";
 	logfile->list("Writing theta bootstraps to '" + bootstrapFilename + "'");
 	bootstrapOut.open(bootstrapFilename.c_str());
@@ -1257,7 +1257,7 @@ void TGenome::splitSingleEndReadGroups(TParameters & params){
 		if(!vec.empty()){
 			if(vec.size() != 2) throw "Wrong number of entries on line " + toString(lineNum) + " in file '" + filename + "'!";
 			readGroupId = alignmentParser.readGroups.find(vec[0]);
-			len = stringToInt(vec[1]);
+			len = convertString<int>(vec[1]);
 			if(len < 1) throw "Max length of read group '" + vec[0] + "' is < 1!";
 
 			//add a new readgroup for the truncated reads to the header
@@ -1510,7 +1510,7 @@ void TGenome::parseSplitMergeReadGroupSettings(TParameters & params, std::map<in
 					alignmentParser.bamHeader.ReadGroups.Add(readGroupTruncated);
 
 					int truncatedReadGroupId = alignmentParser.readGroups.find(readGroupTruncated);
-					int len = stringToInt(vec[2]);
+					int len = convertString<int>(vec[2]);
 					if(len < 1) throw "Max length of read group '" + vec[0] + "' is < 1!";
 					RGSettings.emplace(readGroupId, TReadGroupMaxLength(len, truncatedReadGroupId, readGroupTruncated, 1));
 
@@ -1523,7 +1523,7 @@ void TGenome::parseSplitMergeReadGroupSettings(TParameters & params, std::map<in
 					alignmentParser.bamHeader.ReadGroups.Add(readGroupTruncated);
 
 					int truncatedReadGroupId = alignmentParser.readGroups.addTruncatedOrMergedRG(alignmentParser.bamHeader, vec[0], readGroupTruncated);
-					int len = stringToInt(vec[2]);
+					int len = convertString<int>(vec[2]);
 					if(len < 1) throw "Max length of read group '" + vec[0] + "' is < 1!";
 					RGSettings.emplace(readGroupId, TReadGroupMaxLength(len, truncatedReadGroupId, readGroupTruncated, 0));
 
@@ -2648,7 +2648,7 @@ void TGenome::printMateInformationPerSite(TParameters & params){
 	//open output file
 	std::string outputFileName = outputName + "_mateInformation.txt.gz";
 	logfile->list("Writing mate information to file '" + outputFileName + "'.");
-	TOutputFileZipped out(outputFileName);
+	TOutputFile out(outputFileName);
 	out.writeHeader({"chr", "pos", "depth", "numA", "numC", "numG", "numT", "numAlleles", "numFirstMate", "numSecondMate", "numFwd", "numRev"});
 
 	//prepare windows
@@ -2671,7 +2671,7 @@ void TGenome::printMateInformationPerSite(TParameters & params){
 void TGenome::contextStats(TParameters & params){
 	std::string outputFileName = outputName + "_contextInformation.txt.gz";
 	logfile->list("Writing context information to file '" + outputFileName + "'.");
-	TOutputFileZipped out(outputFileName);
+	TOutputFile out(outputFileName);
 	out.writeHeader({"quality","cAA", "cAC", "cAG", "cAT", "cCA", "cCC", "cCG", "cCT", "cGA", "cGC", "cGG", "cGT", "cTA", "cTC", "cTG", "cTT", "cNA", "cNC", "cNG", "cNT", "cAN", "cCN", "cGN", "cTN", "cNN"}); //N means unknwon base or "nothing", i.e. end of read or del
 	int numContext = 25;
 

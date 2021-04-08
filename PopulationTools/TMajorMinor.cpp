@@ -52,7 +52,7 @@ void TMajorMinorEstimatorBase::chooseBestAllelicCombinationAmongThoseWithEqualSc
 		if(L10L_perCombination[i] == L10L)
 			best_combinations.push_back(i);
 	}
-	bestAllelicCombination = best_combinations[randomGenerator->pickOne(best_combinations.size())];
+	bestAllelicCombination = best_combinations[randomGenerator->sample(best_combinations.size())];
 };
 
 void TMajorMinorEstimatorBase::findMLAllelicCombination(TMultiGLFData & data, TGlfConverter & glfConverter){
@@ -185,8 +185,8 @@ TMajorMinor::TMajorMinor(TLog* Logfile, TParameters & params, TRandomGenerator* 
 void TMajorMinor::estimateMajorMinor(TParameters & params){
 	//open GLF files
 	TGlfMultiReader glfReader(params, logfile);
-	glfReader.setAllActive();
 	glfReader.onlyJumpToPositionsWithData();
+	glfReader.setAllActive();
 
 	//add reference, if provided
 	if(params.parameterExists("fasta")){

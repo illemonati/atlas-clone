@@ -182,7 +182,7 @@ private:
 	double cumulGenoProb[3];
 	TSimulatorMutationtable mutTable;
 	bool writeTrueAlleleFreq;
-	TOutputFileZipped trueFreqFile;
+	TOutputFile trueFreqFile;
 
 	void fillCumulGenoProb(const double & f);
 	void simulateSite(TSimulatorHardyWeinbergSite & site, const std::string & chr, const uint64_t & pos, Base* & ref);

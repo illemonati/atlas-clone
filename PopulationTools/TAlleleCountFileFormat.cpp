@@ -109,9 +109,9 @@ void TTreeMixFile::writeCounts(int count, int numAlleles, int populationNum){
 
 void TTreeMixFile::writeCounts(std::string count, std::string numAlleles, int populationNum){
 	if(populationNum == 0)
-		outFile << count << "," << stringToInt(numAlleles) - stringToInt(count);
+		outFile << count << "," << convertString<int>(numAlleles) - convertString<int>(count);
 	else
-		outFile << " " << count << "," << stringToInt(numAlleles) - stringToInt(count);
+		outFile << " " << count << "," << convertString<int>(numAlleles) - convertString<int>(count);
 };
 
 

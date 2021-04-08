@@ -100,7 +100,7 @@ TVcfToBeagle::~TVcfToBeagle() {
 }
 
 void TVcfToBeagle::initOutputFiles(){
-    beagleFile = new TOutputFileZipped(_outname + ".beagle.gz");
+    beagleFile = new TOutputFile(_outname + ".beagle.gz");
 }
 
 void TVcfToBeagle::writeHeader(){
@@ -167,8 +167,8 @@ void TVcfToLFMM::writeHeader(){
 }
 
 void TVcfToLFMM::initOutputFiles() {
-    lfmmFile = new TOutputFilePlain(_outname + ".lfmm");
-    lociNamesFile = new TOutputFilePlain(_outname + ".lfmm.kept_loci");
+    lfmmFile = new TOutputFile(_outname + ".lfmm");
+    lociNamesFile = new TOutputFile(_outname + ".lfmm.kept_loci");
 }
 
 void TVcfToLFMM::storeLocusNames(){
@@ -322,7 +322,7 @@ void TVcfToPosFile::writeHeader(){
 }
 
 void TVcfToPosFile::initOutputFiles() {
-    posFile = new TOutputFilePlain(_outname + ".pos");
+    posFile = new TOutputFile(_outname + ".pos");
 }
 
 void TVcfToPosFile::writePosition(){
@@ -394,7 +394,7 @@ void TVcfToGenotypeTruthSetFile::writeHeader(){
 }
 
 void TVcfToGenotypeTruthSetFile::initOutputFiles() {
-    genFile = new TOutputFilePlain(_outname + ".gen");
+    genFile = new TOutputFile(_outname + ".gen");
     // initialize bed files (we now know how many samples there are)
     bedFiles = new TBed * [samples.numSamples()];
     for(uint32_t s = 0; s < samples.numSamples(); s++) {

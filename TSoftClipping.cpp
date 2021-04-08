@@ -160,7 +160,7 @@ void TSoftClippingMatrixStorage::write(std::string filename){
 	++maxLengthForWriting;
 
 	//open table file
-	TOutputFilePlain out(filename);
+	TOutputFile out(filename);
 
 	//write header
 	std::vector<std::string> header = {"readLength"};

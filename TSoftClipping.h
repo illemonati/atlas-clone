@@ -36,7 +36,7 @@ public:
 //--------------------------------------------------------
 class TSoftClippingStatsFile{
 private:
-	TOutputFileZipped out;
+	TOutputFile out;
 	bool printSoftClippedSequences;
 
 

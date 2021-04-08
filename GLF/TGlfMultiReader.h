@@ -140,6 +140,7 @@ public:
 	void setDepthFilter(int MinDepth, TLog* logfile);
 	void addReference(BamTools::Fasta* Reference);
 	void onlyJumpToPositionsWithData(){ _onlyJumpToPositionsWithData = true; };
+	bool getOnlyJumpToPositionsWithData(){ return _onlyJumpToPositionsWithData; };
 
 	//set active / inactive
 	void setActive(const int index);

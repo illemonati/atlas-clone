@@ -15,12 +15,12 @@
 TSimulatorQualityDist::TSimulatorQualityDist(std::string & s){
 	size_t pos = s.find("(");
 	if(pos == std::string::npos)
-		_max = stringToIntCheck(s);
+		_max = convertStringCheck<int>(s);
 	else if(pos == 0){
 		pos = s.find(')');
 		if(pos == std::string::npos || pos != s.size() - 1)
 			throw "Failed to understand fixed quality '" + s + "'!";
-		_max = stringToIntCheck(s.substr(1,pos - 1));
+		_max = convertStringCheck<int>(s.substr(1,pos - 1));
 	} else
 		throw "Failed to understand fixed quality '" + s + "'!";
 
@@ -68,7 +68,7 @@ TSimulatorQualityDistBinned::TSimulatorQualityDistBinned(std::string & s, TRando
 
 void TSimulatorQualityDistBinned::sample(int* qualities, const int & len){
 	for(int i=0; i<len; ++i){
-		qualities[i] = qualBins[randomGenerator->pickOne(numQualBins)];
+		qualities[i] = qualBins[randomGenerator->sample(numQualBins)];
 	}
 }
 
@@ -111,7 +111,7 @@ void TSimulatorQualityDistNormal::parseFunctionString(std::string & s){
 	unsigned int pos = s.find(",");
 	if(pos == std::string::npos)
 		throw "Fail to understand function '" + orig + "': use format normal(mean,sd)[min,max].";
-	_mean = stringToDouble(s.substr(0,pos));
+	_mean = convertString<double>(s.substr(0,pos));
 	if(_mean < 0)
 		throw "Fail to understand function '" + orig + "': mean must be > 0.";
 	s.erase(0,pos+1);
@@ -119,7 +119,7 @@ void TSimulatorQualityDistNormal::parseFunctionString(std::string & s){
 	pos = s.find(")");
 	if(pos == std::string::npos)
 		throw "Fail to understand function '" + orig + "': use format normal(mean,sd)[min,max].";
-	_sd = stringToDouble(s.substr(0,pos));
+	_sd = convertString<double>(s.substr(0,pos));
 	if(_sd < 0)
 			throw "Fail to understand function '" + orig + "': sd must be > 0.";
 	s.erase(0,pos+1);
@@ -130,14 +130,14 @@ void TSimulatorQualityDistNormal::parseFunctionString(std::string & s){
 	pos = s.find(",");
 	if(pos == std::string::npos)
 		throw "Fail to understand function '" + orig + "': use format normal(mean,sd)[min,max].";
-	_min = stringToDouble(s.substr(0,pos));
+	_min = convertString<int>(s.substr(0,pos));
 	if(_min < 0)
 		throw "Fail to understand function '" + orig + "': min must be >= 0!";
 	s.erase(0,pos+1);
 	pos = s.find("]");
 	if(pos == std::string::npos)
 		throw "Fail to understand function '" + orig + "': use format normal(mean,sd)[min,max].";
-	_max = stringToDouble(s.substr(0,pos));
+	_max = convertString<int>(s.substr(0,pos));
 	if(_max < _min)
 			throw "Fail to understand function '" + orig + "': max must be >= min!";
 };
@@ -148,12 +148,14 @@ void TSimulatorQualityDistNormal::fillDensities(){
 	densities = new double[size];
 	cumulDensities = new double[size];
 
-	double nextDens = randomGenerator->normalCumulativeDistributionFunction(_min-0.5, _mean, _sd);
+
+
+	double nextDens = TNormalDistrSD::cumulativeDistrFunction(_min-0.5, _mean, _sd);
 	double prevDens;
 	double sum = 0;
 	for(int i=0; i<size; ++i){
 		prevDens = nextDens;
-		nextDens = randomGenerator->normalCumulativeDistributionFunction(_min + i + 0.5, _mean, _sd);
+		nextDens = TNormalDistrSD::cumulativeDistrFunction(_min + i + 0.5, _mean, _sd);
 		densities[i] =  nextDens - prevDens;
 		sum += densities[i];
 	}
@@ -204,7 +206,7 @@ void TSimulatorQualityTransformation::simulateQualitiesAndErrors(Base* bases, in
 	//add errors
 	for(p=0; p<len; ++p){
 		if(randomGenerator->getRand() < qualityMap.phredIntToErrorMap[qualities[p]])
-			bases[p] = static_cast<Base>((bases[p] + randomGenerator->pickOne(3) + 1) % 4);
+			bases[p] = static_cast<Base>((bases[p] + randomGenerator->sample(3) + 1) % 4);
 	}
 };
 
@@ -232,7 +234,7 @@ TSimulatorQualityTransformationRecal::TSimulatorQualityTransformationRecal(std::
 	if(pos == std::string::npos)
 		throw "Failed to understand recal string: missing ']'!\nEither provide a valid file name or a string of format 'modelTag[quality parameters; position parameters; context parameters]'.";
 	std::vector<std::string> tmpVec, vec;
-	fillVectorFromString(string.substr(0, pos), tmpVec, ";");
+	fillVectorFromString(string.substr(0, pos), tmpVec, ';');
 	if(tmpVec.size() != 3)
 		throw "Failed to understand recal string: wrong number of parameter sets (" + toString(tmpVec.size()) + " instead of 3)!\nEither provide a valid file name or a string of format 'modelTag[quality parameters; position parameters; context parameters]'.";
 
@@ -312,11 +314,11 @@ TSimulatorQualityTransformationBQSR::TSimulatorQualityTransformationBQSR(const s
 	sdPhred = qualityDist->sd();
 	std::vector<std::string> vec;
 	fillVectorFromStringAnySkipEmpty(s, vec, ",");
-	phi1 = stringToInt(vec[0]);
-	phi2 = stringToDouble(vec[1]);
+	phi1 = convertString<int>(vec[0]);
+	phi2 = convertString<double>(vec[1]);
 	logfile->list("Simulating BQSR quality effect with phi1 = " + toString(phi1) + " and phi2 = " + toString(phi2));
 
-	revIntercept = stringToDouble(vec[2]);
+	revIntercept = convertString<double>(vec[2]);
 	if(revIntercept < 0.0) throw("revIntercept cannot be negative!");
 	else if(revIntercept == 1.0){
 		m = 0.0;
@@ -383,17 +385,18 @@ void TSimulatorQualityTransformationBQSR::fillWeights(double & kappa_cur, double
 	w = new double[maxPhredIntPlusOne];
 
 	//w at minQual
-	w[minPhredInt] = randomGenerator->normalCumulativeDistributionFunction(((double) minPhredInt + 0.5), kappa_cur, lambda_cur);
+	w[minPhredInt] = TNormalDistr::cumulativeDistrFunction((double) minPhredInt + 0.5, kappa_cur, lambda_cur);
 
 	//w at intermediate Q
 	for(int q = (minPhredInt + 1); q < maxPhredInt; ++q){
-		double start = randomGenerator->normalCumulativeDistributionFunction((double) q - 0.5, kappa_cur, lambda_cur);
-		double end = randomGenerator->normalCumulativeDistributionFunction((double) q + 0.5, kappa_cur, lambda_cur);
+
+		double start = TNormalDistr::cumulativeDistrFunction((double) q - 0.5, kappa_cur, lambda_cur);
+		double end = TNormalDistr::cumulativeDistrFunction((double) q + 0.5, kappa_cur, lambda_cur);
 		w[q] = end - start;
 	}
 
 	//w at maxQual
-	w[maxPhredInt] = 1.0 - randomGenerator->normalCumulativeDistributionFunction(((double) maxPhredInt - 0.5), kappa_cur, lambda_cur);
+	w[maxPhredInt] = 1.0 - TNormalDistr::cumulativeDistrFunction((double) maxPhredInt - 0.5, kappa_cur, lambda_cur);
 	weightsInitialized = true;
 }
 
@@ -514,13 +517,13 @@ void TSimulatorQualityTransformationBQSR::simulateQualitiesAndErrors(Base* bases
 	if(isReverseStrand){
 		for(p=0; p<len; ++p){
 			if(randomGenerator->getRand() < errorBetaQBetaP[phredIntQualities[p]][len - p - 1]){
-				bases[p] = static_cast<Base>( (bases[p] + randomGenerator->pickOne(3) + 1) % 4);
+				bases[p] = static_cast<Base>( (bases[p] + randomGenerator->sample(3) + 1) % 4);
 			}
 		}
 	} else {
 		for(p=0; p<len; ++p){
 			if(randomGenerator->getRand() < errorBetaQBetaP[phredIntQualities[p]][p]){
-				bases[p] = static_cast<Base>( (bases[p] + randomGenerator->pickOne(3) + 1) % 4);
+				bases[p] = static_cast<Base>( (bases[p] + randomGenerator->sample(3) + 1) % 4);
 			}
 		}
 	}

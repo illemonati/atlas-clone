@@ -20,7 +20,7 @@ TChromosomes::TChromosomes(BamTools::SamHeader* BamHeader){
 	uint16_t num = 0;
 	for(BamTools::SamSequenceIterator chrIt=bamHeader->Sequences.Begin(); chrIt!=bamHeader->Sequences.End(); ++chrIt, ++num){
 		names.push_back(chrIt->Name);
-		lengths.push_back(stringToLong(chrIt->Length));
+		lengths.push_back(convertString<uint32_t>(chrIt->Length));
 		isInUse.push_back(true);
 		ploidies.push_back(2);
 		nameMap.emplace(chrIt->Name, num);
@@ -71,7 +71,7 @@ void TChromosomes::specifyPloidy(std::ifstream & ploidyFile, TLog* logfile){
 		if(vec.size() > 0){
 			if(nameMap.find(vec[0]) == nameMap.end())
 				throw "Chromosome " + vec[0] + " not found in BAM header!";
-			ploidies[nameMap.find(vec[0])->second] = stringToInt(vec[1]);
+			ploidies[nameMap.find(vec[0])->second] = convertString<int>(vec[1]);
 			logfile->list(vec[0] + ": " + toString(ploidies[nameMap.find(vec[0])->second]));
 		}
 	}
@@ -124,7 +124,7 @@ uint32_t TChromosomes::referenceLength(){
 	int chrNum = 0;
 	long totLength = 0;
 	for(BamTools::SamSequenceIterator chrIterator = bamHeader->Sequences.Begin(); chrIterator!=bamHeader->Sequences.End(); ++chrIterator, ++chrNum)
-	    if(isInUse[chrNum]) totLength += stringToLong(chrIterator->Length);
+	    if(isInUse[chrNum]) totLength += convertString<uint32_t>(chrIterator->Length);
 	return totLength;
 };
 

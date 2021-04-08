@@ -225,7 +225,7 @@ void TRecalibrationEMModel_Base::printJxFToStdOut(){
 	std::cout << std::endl << std::endl << "JxF:" << std::endl << JxF << std::endl << std::endl;
 };
 
-void TRecalibrationEMModel_Base::writeParametersToFile(TOutputFilePlain & out){
+void TRecalibrationEMModel_Base::writeParametersToFile(TOutputFile & out){
 	out << _name;
 	out << getQualityString();
 	out << getPositionString();
@@ -1589,7 +1589,7 @@ void TRecalibrationEMModels::_createModelsFromString(std::string & s, TReadGroup
 	if(pos == std::string::npos)
 		throw "Failed to understand recal string: missing ']'!\nEither provide a valid file name or a string of format 'modelTag[quality parameters; position parameters; context parameters]'.";
 	std::vector<std::string> tmpVec;
-	fillVectorFromString(s.substr(0, pos), tmpVec, ";");
+	fillVectorFromString(s.substr(0, pos), tmpVec, ';');
 
 	//if(tmpVec.size() != 3)
 	//	throw "Failed to understand recal string: wrong number of parameter sets (" + toString(tmpVec.size()) + " instead of 3)!\nEither provide a valid file name or a string of format 'modelTag[quality parameters; position parameters; context parameters]'.";
@@ -1772,11 +1772,11 @@ double TRecalibrationEMModels::getSteepestGradient(){
 	return maxF;
 };
 
-void TRecalibrationEMModels::writeHeader(TOutputFilePlain & out){
+void TRecalibrationEMModels::writeHeader(TOutputFile & out){
 	out.writeHeader({"readGroup", "mate", "model", "quality", "position", "context"});
 };
 
-void TRecalibrationEMModels::writeParameters(TOutputFilePlain & out, TReadGroups & readGroups, TReadGroupMap & ReadGroupMap){
+void TRecalibrationEMModels::writeParameters(TOutputFile & out, TReadGroups & readGroups, TReadGroupMap & ReadGroupMap){
 	for(size_t r=0; r<readGroups.size(); ++r){
 		int index = ReadGroupMap[r];
 		if(readGroupIndex.inUse(index, false)){
@@ -1788,7 +1788,7 @@ void TRecalibrationEMModels::writeParameters(TOutputFilePlain & out, TReadGroups
 	}
 };
 
-void TRecalibrationEMModels::_writeParameters(TOutputFilePlain & out, const std::string & readGroupName, const int & readGroup, bool isSecondMate){
+void TRecalibrationEMModels::_writeParameters(TOutputFile & out, const std::string & readGroupName, const int & readGroup, bool isSecondMate){
 	if(readGroupIndex.inUse(readGroup, isSecondMate)){
 		out << readGroupName;
 		if(isSecondMate) out << "second";

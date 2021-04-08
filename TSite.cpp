@@ -243,7 +243,7 @@ void TSite::calculateNormalizedGenotypeLikelihoodsAndQuality(TRandomGenerator & 
 		}
 	}
 	//select best allele at random if there are multiple options
-	MLGenotype = MLEs[randomGenerator.pickOne(MLEs.size())];
+	MLGenotype = MLEs[randomGenerator.sample(MLEs.size())];
 	quality = quality - maxGenotypeProb;
 };
 

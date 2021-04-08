@@ -47,7 +47,7 @@ void TBQSR_cell_base::set(float error, std::string & NumObservations){
 	if(curEstimate <= 0.0) curEstimate = 0.000000001;
 	if(curEstimate >= 1.0) curEstimate = 0.9;
 	if(NumObservations == "-") numObservations = 0;
-	else numObservations = pow(10.0, stringToDouble(NumObservations));
+	else numObservations = pow(10.0, convertString<double>(NumObservations));
 };
 
 float TBQSR_cell_base::getD(TBase* base, Base & RefBase){
@@ -679,7 +679,7 @@ double TRecalibrationBQSRStorage::getMaxValueFromFile(std::string filename, int 
 		if(vec.size() > 0){
 			if(vec.size() != numCol) throw "Found " + toString(vec.size()) + " instead of " + toString(numCol) + " columns in '" + filename + "' on line " + toString(lineNum) + "!";
 			//get quality
-			double m = stringToDouble(vec[col]);
+			double m = convertString<double>(vec[col]);
 			if(!maxInitialized)
 				max = m;
 			else if(m > max) max = m;
@@ -741,8 +741,8 @@ void TRecalibrationBQSR::_initializeBQSRReadGroupQualityTableFromFile(std::strin
 			int readGroup = _readGroups->find(vec[0]);
 
 			if(readGroup >= 0){ //returns -1 if read group does not exist
-				int q = stringToInt(vec[1]);
-				double phredEmpiric = stringToDouble(vec[3]);
+				int q = convertString<int>(vec[1]);
+				double phredEmpiric = convertString<double>(vec[3]);
 				storage.qualityCells[readGroup][qualityIndex->getIndexFromPhredInt(q)].set(_qualityMap.phredToError(phredEmpiric), vec[4]);
 			} else throw "readGroup " + vec[0] + " does not exist in BAM file header!";
 		}
@@ -783,8 +783,8 @@ void TRecalibrationBQSR::_initializeBQSRReadGroupPositionTableFromFile(std::stri
 		if(vec.size() > 0 && _readGroups->readGroupExists(vec[0])){
 			//set quality and empirical error rate
 			int readGroup = _readGroups->find(vec[0]);
-			int p = stringToInt(vec[1]);
-			double alpha = stringToDouble(vec[3]);
+			int p = convertString<int>(vec[1]);
+			double alpha = convertString<double>(vec[3]);
 			storage.positionCells[readGroup][p-1].set(alpha, vec[4]);
 		}
 	}
@@ -828,8 +828,8 @@ void TRecalibrationBQSR::_initializeBQSRReadGroupPositionReverseTableFromFile(st
 			if(_readGroups->readGroupExists(vec[0])){
 				//set quality and empirical error rate
 				int readGroup = _readGroups->find(vec[0]);
-				int p = stringToInt(vec[1]);
-				double alpha = stringToDouble(vec[3]);
+				int p = convertString<int>(vec[1]);
+				double alpha = convertString<double>(vec[3]);
 				storage.positionReverseCells[readGroup][p-1].set(alpha, vec[4]);
 			}
 		}
@@ -869,7 +869,7 @@ void TRecalibrationBQSR::_initializeBQSRReadGroupContextTableFromFile(std::strin
 				//set quality and empirical error rate
 				int readGroup = _readGroups->find(vec[0]);
 				int context = storage._genoMap.getContext(vec[1][0], vec[1][1]);
-				double alpha = stringToDouble(vec[3]);
+				double alpha = convertString<double>(vec[3]);
 				storage.contextCells[readGroup][context].set(alpha, vec[4]);
 			}
 		}
@@ -1010,8 +1010,8 @@ void TRecalibrationBQSREstimator::_fillBQSRReadGroupQualityTableFromFile(std::st
 			if(_readGroups->readGroupExists(vec[0])){
 				//get read group and match it to internal read group ID
 				int readGroupIndex = _readGroupMap->getIndex(_readGroups->find(vec[0]));
-				int q = stringToInt(vec[1]);
-				float phredEmpiric = _qualityMap.phredToError(stringToDouble(vec[3]));
+				int q = convertString<int>(vec[1]);
+				float phredEmpiric = _qualityMap.phredToError(convertString<double>(vec[3]));
 				storage.qualityCells[readGroupIndex][qualityIndex->getIndexFromPhredInt(q)].set(phredEmpiric);
 			}
 		}
@@ -1074,9 +1074,9 @@ void TRecalibrationBQSREstimator::_fillBQSRReadGroupPositionTableFromFile(std::s
 			if(_readGroups->readGroupExists(vec[0])){
 				//set quality and empirical error rate
 				int readGroup = _readGroups->find(vec[0]);
-				int p = stringToInt(vec[1]);
+				int p = convertString<int>(vec[1]);
 				if(p <= storage.maxPos){
-					double alpha = stringToDouble(vec[3]);
+					double alpha = convertString<double>(vec[3]);
 					storage.positionCells[readGroup][p-1].set(alpha, vec[4]);
 				}
 			}
@@ -1145,9 +1145,9 @@ void TRecalibrationBQSREstimator::_fillBQSRReadGroupPositionReverseTableFromFile
 			if(_readGroups->readGroupExists(vec[0])){
 				//set quality and empirical error rate
 				int readGroup = _readGroups->find(vec[0]);
-				int p = stringToInt(vec[1]);
+				int p = convertString<int>(vec[1]);
 				if(p <= storage.maxPosReverse){
-					double alpha = stringToDouble(vec[3]);
+					double alpha = convertString<double>(vec[3]);
 					storage.positionReverseCells[readGroup][p-1].set(alpha, vec[4]);
 				}
 			}
@@ -1204,7 +1204,7 @@ void TRecalibrationBQSREstimator::_fillBQSRReadGroupContextTableFromFile(std::st
 				//set quality and empirical error rate
 				int readGroup = _readGroups->find(vec[0]);
 				int context = storage._genoMap.getContext(vec[1][0], vec[1][1]);
-				double alpha = stringToDouble(vec[3]);
+				double alpha = convertString<double>(vec[3]);
 				storage.contextCells[readGroup][context].set(alpha, vec[4]);
 			}
 		}

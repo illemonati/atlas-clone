@@ -356,7 +356,7 @@ void TAlleleFreqEstimatorBayes::composeHeader(std::vector<std::string> & header,
 	header.push_back("freqAltHW_CI" + toString(credibleInterval) + "_upper_" + popName);
 };
 
-void TAlleleFreqEstimatorBayes::estimateAndWrite(const TSampleLikelihoods* storage, const uint32_t numSamplesInPop, TOutputFileZipped & out){
+void TAlleleFreqEstimatorBayes::estimateAndWrite(const TSampleLikelihoods* storage, const uint32_t numSamplesInPop, TOutputFile & out){
 	out << estimate(storage, numSamplesInPop); //MAP
 	out << lowerCredibleInterval();
 	out << upperCredibleInterval();
@@ -515,13 +515,13 @@ std::vector<std::string> TAlleleFreqEstimator::_composeHeaderAlleleFreq(bool wri
 };
 
 
-void TAlleleFreqEstimator::_writeBayesianEstimatesOnePop(TOutputFileZipped & out, TSampleLikelihoods* samples, const uint32_t numSamples, TAlleleFreqEstimatorBayes* BHWEstimator){
+void TAlleleFreqEstimator::_writeBayesianEstimatesOnePop(TOutputFile & out, TSampleLikelihoods* samples, const uint32_t numSamples, TAlleleFreqEstimatorBayes* BHWEstimator){
 	out << BHWEstimator->estimate(samples, numSamples); //MAP
 	out << BHWEstimator->lowerCredibleInterval();
 	out << BHWEstimator->upperCredibleInterval();
 };
 
-void TAlleleFreqEstimator::_writeEstimatesOnePop(TOutputFileZipped & out, TGenotypeFrequencies & genoFrequencies, double alleleFrequency, TSampleLikelihoods* samples, uint32_t numSamples, TAlleleFreqEstimatorHardyWeinberg & MLHWEstimator, TAlleleFreqEstimatorBayes* BHWEstimator, double epsF, bool writeGenoFreq, bool doBayesian){
+void TAlleleFreqEstimator::_writeEstimatesOnePop(TOutputFile & out, TGenotypeFrequencies & genoFrequencies, double alleleFrequency, TSampleLikelihoods* samples, uint32_t numSamples, TAlleleFreqEstimatorHardyWeinberg & MLHWEstimator, TAlleleFreqEstimatorBayes* BHWEstimator, double epsF, bool writeGenoFreq, bool doBayesian){
 	//write num samples with data
 	out << genoFrequencies.numDiploid();
 	out << genoFrequencies.numHaploid();
@@ -612,7 +612,7 @@ void TAlleleFreqEstimator::estimateAlleleFreq(TParameters & Parameters, TRandomG
 	std::string tmp = extractBeforeLast(vcfFilename, ".vcf");
 	std::string outputName = Parameters.getParameterStringWithDefault("out", tmp) + "_alleleFreq.txt.gz";
 	logfile->list("Will write allele frequencies to file '" + outputName + "'.");
-	TOutputFileZipped out(outputName);
+	TOutputFile out(outputName);
 
 	//write header
 	out.writeHeader(_composeHeaderAlleleFreq(writeGenoFreq, doBayesian, BHWEstimator));
@@ -702,7 +702,7 @@ void TAlleleFreqEstimator::compareAlleleFreq(TParameters & Parameters, TRandomGe
 	std::string tmp = extractBeforeLast(vcfFilename, ".vcf");
 	std::string outputName = Parameters.getParameterStringWithDefault("out", tmp);
 	logfile->list("Will write allele frequencies to file '" + outputName  + "_alleleFreqComparison.txt.gz" + "'.");
-	TOutputFileZipped out(outputName + "_alleleFreqComparison.txt.gz");
+	TOutputFile out(outputName + "_alleleFreqComparison.txt.gz");
 	out.writeHeader(_composeHeaderAlleleFreqComparison(BHWEstimator));
 
 	//write MCMC to file?
@@ -770,7 +770,7 @@ void TAlleleFreqEstimator::writeAlleleFrequencyLikelihoods(TParameters & Paramet
 	std::string outputName = Parameters.getParameterStringWithDefault("out", tmp) + "_alleleFreqLikelihoods";
 	logfile->list("Will write allele frequencies to files '" + outputName + "[POP].txt.gz'.");
 
-	std::vector<TOutputFileZipped> out(samples.numPopulations());
+	std::vector<TOutputFile> out(samples.numPopulations());
 	if(samples.numPopulations() == 1){
 		out[0].open(outputName + ".txt.gz");
 		out[0].writeHeader(header);

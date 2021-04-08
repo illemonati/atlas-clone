@@ -91,7 +91,7 @@ void TGenotypeComparisonTable::add(const Base b1, const Genotype g2){
 //write
 void TGenotypeComparisonTable::write(const std::string filename, TGenotypeMap & genoMap){
 	//open output file
-	TOutputFilePlain out(filename);
+	TOutputFile out(filename);
 
 	//write header
 	std::vector<std::string> header = {"vcf1/vcf2"};
@@ -311,7 +311,7 @@ void TVCFCompare::compareVCFFiles(TParameters & parameters){
 	//write positions that differ
 	std::string out = parameters.getParameterString("out", false);
 	bool writeDifferences = parameters.parameterExists("writeDifferences");
-	TOutputFileZipped diffFile;
+	TOutputFile diffFile;
 	if(writeDifferences){
 		std::string filename = out + "_differences.txt.gz";
 		logfile->list("Writing sites with different calls to file '" + filename + "'.");

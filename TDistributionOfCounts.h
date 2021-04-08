@@ -57,7 +57,7 @@ public:
 
 	void writeCounts(std::string filename){
 		//open file
-		TOutputFilePlain out(filename);
+		TOutputFile out(filename);
 		out.writeHeader({whatIsCounted, "counts"});
 
 		//write bins
@@ -70,7 +70,7 @@ public:
 
 	void writeNormalizedCounts(std::string filename){
 		//open file
-		TOutputFilePlain out(filename);
+		TOutputFile out(filename);
 		out.writeHeader({whatIsCounted, "density"});
 
 		//get sum
@@ -86,7 +86,7 @@ public:
 
 	void writeCumulativeCounts(std::string filename){
 		//open file
-		TOutputFilePlain out(filename);
+		TOutputFile out(filename);
 		out.writeHeader({whatIsCounted, "cumulativeCounts"});
 
 		//write bins
@@ -102,7 +102,7 @@ public:
 
 	void writeNormalizedCumulativeCounts(std::string filename){
 		//open file
-		TOutputFilePlain out(filename);
+		TOutputFile out(filename);
 		out.writeHeader({whatIsCounted, "cumulativeDensity"});
 
 		//get sum
@@ -121,7 +121,7 @@ public:
 
 	void writeQuantiles(std::string filename){
 		//open file
-		TOutputFilePlain out(filename);
+		TOutputFile out(filename);
 		out.writeHeader({"quantile", whatIsCounted});
 
 		//normalized cumulative distribution and quantiles

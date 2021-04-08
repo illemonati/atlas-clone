@@ -28,13 +28,13 @@ protected:
     void readOutputName(TParameters & Params);
 public:
     TVcfConverter(TLog * Logfile, TParameters & Params);
-    ~TVcfConverter();
+    virtual ~TVcfConverter();
     void readVcfAndWriteFile(TParameters & Params);
 };
 
 class TVcfToBeagle : protected TVcfConverter {
 private:
-    TOutputFileZipped * beagleFile;
+    TOutputFile * beagleFile;
     std::map<char, int> baseToNumber;
     // beagle
     void writeHeader() override;
@@ -51,8 +51,8 @@ public:
 
 class TVcfToLFMM : protected TVcfConverter {
 protected:
-    TOutputFilePlain * lfmmFile;
-    TOutputFilePlain * lociNamesFile;
+    TOutputFile * lfmmFile;
+    TOutputFile * lociNamesFile;
     std::vector<std::string> loci_names;
 
     void writeHeader() override;
@@ -75,7 +75,7 @@ protected:
 
 public:
     TVcfToLFMM(TLog *Logfile, TParameters &Params);
-    ~TVcfToLFMM();
+    virtual ~TVcfToLFMM();
 };
 
 class TVcfToLFMMCalledGeno : public TVcfToLFMM {
@@ -86,7 +86,7 @@ private:
 
 public:
     TVcfToLFMMCalledGeno(TParameters &Params, TLog *Logfile);
-    ~TVcfToLFMMCalledGeno();
+    virtual ~TVcfToLFMMCalledGeno();
     void vcfToLFMM(TParameters & Params);
 };
 
@@ -99,14 +99,14 @@ private:
 
 public:
     TVcfToLFMMPostGeno(TParameters &Params, TLog *Logfile);
-    ~TVcfToLFMMPostGeno();
+    virtual ~TVcfToLFMMPostGeno();
     void vcfToLFMM(TParameters & Params);
 
 };
 
 class TVcfToPosFile : public TVcfConverter {
 private:
-    TOutputFilePlain * posFile;
+    TOutputFile * posFile;
     // beagle
     void writeHeader() override;
     void writeRefAndAlt();
@@ -123,7 +123,7 @@ public:
 class TVcfToGenotypeTruthSetFile : public TVcfConverter {
 private:
     TBed ** bedFiles;
-    TOutputFilePlain * genFile;
+    TOutputFile * genFile;
 
     int minDistanceToPreviousLocus;
     long positionPreviousLocus;

@@ -71,7 +71,7 @@ void TSiteSubsetChr::findOrCreateWindow(const long & pos){
 };
 
 void TSiteSubsetChr::addPosition(std::vector<std::string> & tmp, const std::string & chr, bool invariantSites){
-	long pos = stringToLong(tmp[1]); // - 1; //make 0-based
+	long pos = convertString<uint32_t>(tmp[1]); // - 1; //make 0-based
 	char ref = tmp[3][0];
 	char alt = tmp[4][0];
 
@@ -99,7 +99,7 @@ void TSiteSubsetChr::addPosition(std::vector<std::string> & tmp, const std::stri
 };
 
 bool TSiteSubsetChr::addPosition(std::vector<std::string> & tmp, const std::string & chr, BamTools::Fasta & reference, std::string & error, bool invariantSites){
-	long pos = stringToLong(tmp[1]) - 1; //make 0-based
+	long pos = convertString<uint32_t>(tmp[1]) - 1; //make 0-based
 	char ref = tmp[2][0];
 	char alt = tmp[3][0];
 

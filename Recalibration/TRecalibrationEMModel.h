@@ -82,7 +82,7 @@ public:
 
 	virtual double calcEpsilon(const TRecalibrationEMReadData & data){ throw "double calcEpsilon(TRecalibrationEMReadData & data) not defined for TRecalibrationEMModel_Base!"; };
 	virtual void addToFandJacobian(const TRecalibrationEMReadData & data, const double & weightF, const double & weightJacobian){ throw "void addToFandJacobian(...) not defined for TRecalibrationEMModel_Base!"; };
-	void writeParametersToFile(TOutputFilePlain & out);
+	void writeParametersToFile(TOutputFile & out);
 	std::string getModelString();
 	virtual std::string getQualityString(); //default function assuming quadratic model
 	virtual std::string getPositionString(); //default function assuming quadratic model
@@ -226,7 +226,7 @@ private:
 	void _createModelsFromString(std::string & string, TReadGroups & readGroups);
 	void _createModelsFromFile(std::string filename, TReadGroups & readGroups, TReadGroupMap & readGroupMap);
 
-	void _writeParameters(TOutputFilePlain & out, const std::string & readGroupName, const int & readGroup, bool isSecondMate);
+	void _writeParameters(TOutputFile & out, const std::string & readGroupName, const int & readGroup, bool isSecondMate);
 
 public:
 	TRecalibrationEMModels(int numReadGroups, TLog* Logfile);
@@ -268,8 +268,8 @@ public:
 	void rejectProposedParameters();
 
 	double getSteepestGradient();
-	void writeHeader(TOutputFilePlain & out);
-	void writeParameters(TOutputFilePlain & out, TReadGroups & readGroups, TReadGroupMap & ReadGroupMap);
+	void writeHeader(TOutputFile & out);
+	void writeParameters(TOutputFile & out, TReadGroups & readGroups, TReadGroupMap & ReadGroupMap);
 	inline double getErrorRate(TBase & base){
 		return models[ readGroupIndex.index(base.readGroup, base.isSecondMate) ]->getErrorRate(base);
 	};

@@ -64,8 +64,8 @@ void TBedReaderChromosome::findOrCreateWindow(const long & pos){
 }
 
 void TBedReaderChromosome::addPosition(std::vector<std::string> & tmp, int & numPositionsAdded){
-	long start = stringToLong(tmp[1]);
-	long end = stringToLong(tmp[2]);
+	long start = convertString<uint32_t>(tmp[1]);
+	long end = convertString<uint32_t>(tmp[2]);
 
 	//add to counter
 	numPositionsAdded += end - start;

@@ -395,7 +395,7 @@ void TSimulator::initializeContamination(TParameters & params, bool & perReadGro
 	//check if it is a single number or a file
 	if(stringIsProbablyANumber(s)){
 		//is a numberon the command line
-		double rate = stringToDouble(s);
+		double rate = convertString<double>(s);
 		logfile->list("Will use a contamination rate of " + toString(rate) + " for all read groups.");
 		contaminationMap.emplace("-", rate);
 		perReadGroup = false;
@@ -426,7 +426,7 @@ void TSimulator::initializeContamination(TParameters & params, bool & perReadGro
 				//save to map
 				if(contaminationMap.find(vec[0]) != contaminationMap.end())
 						throw "Duplicated read group name '" + vec[0] + "'in file '" + s + "'!";
-				double rate = stringToDouble(s);
+				double rate = convertString<double>(s);
 				contaminationMap.emplace(vec[0], rate);
 			}
 		}
@@ -796,12 +796,12 @@ void TSimulator::simulateReadsFromHaplotypes(std::vector<TSimulatorChromosome>::
 			rs->writeUnwrittenAlignments(l, bamFile);
 
 		//draw random number to get number of reads starting at this position
-		numReadsHere = randomGenerator->getBiomialRand(probReadPerSite, numReads);
+		numReadsHere = randomGenerator->getBinomialRand(probReadPerSite, numReads);
 		//now simulate
 		if(numReadsHere > 0){
 			numReadsSimulated += numReadsHere;
 			for(uint32_t r=0; r<numReadsHere; ++r){
-				readSimulators[randomGenerator->pickOne(readSimulators.size(), cumulSimGroupFrequenies.data())]->simulate(haplotypes[randomGenerator->pickOne(2)], l, bamFile);
+				readSimulators[randomGenerator->pickOne(readSimulators.size(), cumulSimGroupFrequenies.data())]->simulate(haplotypes[randomGenerator->sample(2)], l, bamFile);
 			}
 
 			//report progress
@@ -929,7 +929,7 @@ void TSimulatorOneIndividual::simulateHaplotypesDiploid(TSimulatorHaplotypes & h
 		if(haplotypes(0,0,l) == haplotypes(0,1,l))
 			ref[l] = static_cast<Base> ((haplotypes(0,0,l) + randomGenerator->pickOne(4, cumulRef)) % 4);
 		else
-			ref[l] = static_cast<Base> (haplotypes(0,randomGenerator->pickOne(2),l));
+			ref[l] = static_cast<Base> (haplotypes(0,randomGenerator->sample(2),l));
 	}
 };
 
@@ -1261,7 +1261,7 @@ void TSimulatorPairOfIndividuals::simulateHaplotypesDiploid(TSimulatorHaplotypes
 		int g = randomGenerator->pickOne(numGenotypeCombinations[c], cumulGenoCombinationFreq[c]);
 
 		//pick order
-		int o = randomGenerator->pickOne(4);
+		int o = randomGenerator->sample(4);
 
 		//assign to haplotypes
 		haplotypes(0,0,l) = genoTrans[c][g][orderLookup[o][0]];
@@ -1273,7 +1273,7 @@ void TSimulatorPairOfIndividuals::simulateHaplotypesDiploid(TSimulatorHaplotypes
 		if(c == 0){
 			ref[l] = static_cast<Base>((genoTrans[c][g][0] + randomGenerator->pickOne(4, cumulRef)) % 4);
 		} else {
-			int r = randomGenerator->pickOne(4);
+			int r = randomGenerator->sample(4);
 			ref[l] = genoTrans[c][g][r];
 		}
 	}

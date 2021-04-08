@@ -810,13 +810,13 @@ bool TInbreedingEstimator::updateP(const TSampleLikelihoods* data, const long lo
 		if(randomGenerator->getRand() < p.probMovingToModel0){
 			//propose model0
 			double gammaNat = Gamma.getNaturalScaleValue();
-			double logH = 2.0 * randomGenerator->gammaln(gammaNat)
+			double logH = 2.0 * gammaLog(gammaNat)
 					+ pi.getLogOneMinusPi()
 					- p.logProbMovingToModelP
 					+ p.logPDFExp(locusNum)
 					- (gammaNat-1.0) * log(p[locusNum])
 					- (gammaNat-1.0) * log(1.0-p[locusNum])
-					- randomGenerator->gammaln(2.0*gammaNat)
+					- gammaLog(2.0*gammaNat)
 					- pi.getLogPi()
 					- p.logProbMovingToModel0 //if prob is zero we never get here
 					+ logLikelihoodAllInds(data, likelihoods.curSampleSize(), 0.0, F.F(), likelihoods.glfConverter)
@@ -871,13 +871,13 @@ bool TInbreedingEstimator::updateP(const TSampleLikelihoods* data, const long lo
 			if(newP < 0)
 				throw "proposed negative newP in move from model0 to modelP: " + toString(newP);
 			double gammaNat = Gamma.getNaturalScaleValue();
-			double logH = - 2.0 * randomGenerator->gammaln(gammaNat)
+			double logH = - 2.0 * gammaLog(gammaNat)
 					- pi.getLogOneMinusPi()
 					+ p.logProbMovingToModelP
 					- p.logPDFExp(newP)
 					+ (gammaNat-1.0) * log(newP)
 					+ (gammaNat-1.0) * log(1.0-newP)
-					+ randomGenerator->gammaln(2.0*gammaNat)
+					+ gammaLog(2.0*gammaNat)
 					+ pi.getLogPi()
 					- logLikelihoodAllInds(data, likelihoods.curSampleSize(), 0.0, F.F(), likelihoods.glfConverter)
 					+ logLikelihoodAllInds(data, likelihoods.curSampleSize(), newP, F.F(), likelihoods.glfConverter);
@@ -923,10 +923,10 @@ bool TInbreedingEstimator::updateGamma(){
 	// compute log hastings ratio
 	double diffGammas = newGamma - Gamma.getNaturalScaleValue();
 	double logH = (double) p.getNumLociInModelP() *
-			(randomGenerator->gammaln(2.0*newGamma)
-			+ 2.0*randomGenerator->gammaln(Gamma.getNaturalScaleValue())
-			- randomGenerator->gammaln(2.0*Gamma.getNaturalScaleValue())
-			- 2.0*randomGenerator->gammaln(newGamma)
+			(gammaLog(2.0*newGamma)
+			+ 2.0*gammaLog(Gamma.getNaturalScaleValue())
+			- gammaLog(2.0*Gamma.getNaturalScaleValue())
+			- 2.0*gammaLog(newGamma)
 			)
 			+ diffGammas * sumLogFreq
 			+ diffGammas * sumLogOneMinusFreq;
@@ -1043,7 +1043,7 @@ double TInbreedingEstimator::logProbPGivenGamma(){
 	//add beta density
 	double gammaMinusOne = Gamma.getNaturalScaleValue() - 1.0;
 	posteriorProbability += gammaMinusOne * sumLogFreq + gammaMinusOne * sumLogOneMinusFreq;
-	posteriorProbability += (double) p.getNumLociInModelP() * (randomGenerator->gammaln(2.0*Gamma.getNaturalScaleValue()) - 2.0*randomGenerator->gammaln(Gamma.getNaturalScaleValue()));
+	posteriorProbability += (double) p.getNumLociInModelP() * (gammaLog(2.0*Gamma.getNaturalScaleValue()) - 2.0*gammaLog(Gamma.getNaturalScaleValue()));
 
 	return posteriorProbability;
 };
@@ -1545,10 +1545,10 @@ void TInbreedingEstimator::checkHastingsRatios(){
 
 	double diffGammas = newGamma - Gamma.getNaturalScaleValue();
 	logH = (double) p.getNumLociInModelP() *
-			(randomGenerator->gammaln(2.0*newGamma)
-			+ 2.0*randomGenerator->gammaln(Gamma.getNaturalScaleValue())
-			- randomGenerator->gammaln(2.0*Gamma.getNaturalScaleValue())
-			- 2.0*randomGenerator->gammaln(newGamma)
+			(gammaLog(2.0*newGamma)
+			+ 2.0*gammaLog(Gamma.getNaturalScaleValue())
+			- gammaLog(2.0*Gamma.getNaturalScaleValue())
+			- 2.0*gammaLog(newGamma)
 			)
 			+ diffGammas * sumLogFreq
 			+ diffGammas * sumLogOneMinusFreq;

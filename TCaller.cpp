@@ -354,7 +354,7 @@ template <typename T> int TCaller::pickIndexWithHighestMetric(T* metric, const i
 	}
 
 	//return random index among those at max
-	return vec[randomGenerator->pickOne(vec.size())];
+	return vec[randomGenerator->sample(vec.size())];
 };
 
 template <typename T> int TCaller::pickIndexWithSecondHighestMetric(T* metric, const int size, const int excludeIndex){
@@ -373,7 +373,7 @@ template <typename T> int TCaller::pickIndexWithSecondHighestMetric(T* metric, c
 	}
 
 	//return random index among those at max
-	return vec[randomGenerator->pickOne(vec.size())];
+	return vec[randomGenerator->sample(vec.size())];
 };
 
 
@@ -392,7 +392,7 @@ TCallerRandomBase::TCallerRandomBase(TRandomGenerator* RandomGenerator):TCaller(
 
 void TCallerRandomBase::callGenotype(TSite & site){
 	//randomly pick a base
-	int allele = site.bases[randomGenerator->pickOne(site.bases.size())]->getBaseAsEnum();
+	int allele = site.bases[randomGenerator->sample(site.bases.size())]->getBaseAsEnum();
 
 	//decide on alt
 	if(allele == referenceBase){
@@ -673,7 +673,7 @@ void TCallerDiploid::callGenotypeFromMetricKnownAlleles(double* metric, std::vec
 		vec.push_back("1/1");
 	}
 
-	calledGenotype = vec[randomGenerator->pickOne(vec.size())];
+	calledGenotype = vec[randomGenerator->sample(vec.size())];
 }
 
 void TCallerDiploid::callGenotypeFromMetricKnownAllelesUpdateIndex(double* metric){
@@ -760,7 +760,7 @@ void TCallerDiploid::calculateImbalance(TSite & site){
 					AB = '.'; AI = '.';
 				} else {
 					AB = toString(alleleCounts[referenceBase] / sum);
-					AI = toString(randomGenerator->binomPValue(alleleCounts[referenceBase], alleleCounts[altAlleles[0]]));
+					AI = toString(binomP.binomPValue(alleleCounts[referenceBase], alleleCounts[altAlleles[0]]));
 				}
 			} else {
 				if(genoMap.genotypeToBase[indexOfMax][0] != genoMap.genotypeToBase[indexOfMax][1]){ //is het
@@ -769,7 +769,7 @@ void TCallerDiploid::calculateImbalance(TSite & site){
 						AB = '.'; AI = '.';
 					} else {
 						AB = toString(alleleCounts[genoMap.genotypeToBase[indexOfMax][0]] / sum);
-						AI = toString(randomGenerator->binomPValue(alleleCounts[genoMap.genotypeToBase[indexOfMax][0]], alleleCounts[genoMap.genotypeToBase[indexOfMax][1]]));
+						AI = toString(binomP.binomPValue(alleleCounts[genoMap.genotypeToBase[indexOfMax][0]], alleleCounts[genoMap.genotypeToBase[indexOfMax][1]]));
 					}
 				} else { // is homo -> do it against the second alternative allele
 					double sum = (double) alleleCounts[altAlleles[0]] + alleleCounts[altAlleles[1]];
@@ -777,7 +777,7 @@ void TCallerDiploid::calculateImbalance(TSite & site){
 						AB = '.'; AI = '.';
 					} else {
 						AB = toString(alleleCounts[altAlleles[0]] / sum);
-						AI = toString(randomGenerator->binomPValue(alleleCounts[altAlleles[0]], alleleCounts[altAlleles[1]]));
+						AI = toString(binomP.binomPValue(alleleCounts[altAlleles[0]], alleleCounts[altAlleles[1]]));
 					}
 				}
 			}

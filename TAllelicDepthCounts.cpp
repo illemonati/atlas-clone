@@ -64,7 +64,7 @@ void TAllelicDepthCounts::addSiteZeroDepth(){
 
 void TAllelicDepthCounts::write(const std::string filename, bool printEmpty){
 	//open file
-	TOutputFileZipped out(filename);
+	TOutputFile out(filename);
 
 	//write header
 	out.writeHeader({"A", "C", "G", "T", "Depth", "majorAllele", "majorDepth","minorAllele", "minorDepth","Counts"});

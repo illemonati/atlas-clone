@@ -348,7 +348,7 @@ void TWindow_base::printDepthPerSite(gz::ogzstream & out, const std::string & ch
 	}
 };
 
-void TWindow_base::printMateInformationPerSite(TOutputFileZipped & out, const std::string & chr){
+void TWindow_base::printMateInformationPerSite(TOutputFile & out, const std::string & chr){
 	int* alleleCounts = new int[4];
 	int* mateCounts = new int[2];
 	int* frCounts = new int[2];

@@ -86,7 +86,7 @@ bool TBedChromosome::reachedEnd(){
 	return false;
 };
 
-void TBedChromosome::write(TOutputFilePlain & out, const std::string & chrName){
+void TBedChromosome::write(TOutputFile & out, const std::string & chrName){
 	for(_windowIt=_windows.begin(); _windowIt!=_windows.end(); ++_windowIt){
 		out << chrName << _windowIt->first << _windowIt->second << std::endl;
 	}
@@ -134,7 +134,7 @@ void TBed::readFile(const std::string filename){
 			}
 
 			//add positions
-			_chrIt->second.addWindow(stringToLong(vec[1]), stringToLong(vec[2]));
+			_chrIt->second.addWindow(convertString<uint32_t>(vec[1]), convertString<uint32_t>(vec[2]));
 		}
 	}
 
@@ -278,7 +278,7 @@ int TBed::getNumWindowsOnCurChr(){
 };
 
 void TBed::write(const std::string filename){
-	TOutputFilePlain out(filename);
+	TOutputFile out(filename);
 	out.noHeader(3);
 
 	for(auto& it:  _chromosomes){

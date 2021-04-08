@@ -66,7 +66,7 @@ TVcfHeaderLine::TVcfHeaderLine(std::string & ID, std::string & Number, VCF_TYPE 
 	id=ID;
 	numberString=Number;
 	if(numberString==".") number=99999;
-	else number=stringToInt(Number);
+	else number=convertString<int>(Number);
 	type=Type;
 	typeString=getStringfromType(type);
 	desc=Desc;
@@ -76,7 +76,7 @@ TVcfHeaderLine::TVcfHeaderLine(std::string & ID, std::string & Number, VCF_TYPE 
 void TVcfHeaderLine::update(std::string & Number, VCF_TYPE & Type, std::string & Desc){
 	numberString=Number;
 	if(numberString==".") number=99999;
-	else number=stringToInt(Number);
+	else number=convertString<int>(Number);
 	type=Type;
 	typeString=getStringfromType(type);
 	desc=Desc;
@@ -242,7 +242,7 @@ bool TVcfSample::parse(std::string s, const int genotypeCol){
 			setMissingGenotype();
 			isHaploid = false;
 		} else if(gt.length() == 1){
-			setGenotype(stringToInt(gt));
+			setGenotype(convertString<int>(gt));
 		} else if(gt.length() == 3 && (gt[1] == '/' || gt[1] == '|')){
 			setGenotype(gt[0] - '0', gt[2] - '0'); //turn into int by removing char of 0
 		} else return false;
@@ -348,7 +348,7 @@ void TVcfParser::parsePosition(TVcfLine & line){
 
 		//just use string
 		line.chr=line.data[cols.Chr];
-		line.pos=stringToLong(line.data[cols.Pos]);
+		line.pos=convertString<uint32_t>(line.data[cols.Pos]);
 		if(line.pos<=0) throw "Unknown position '" + line.data[cols.Pos] + "' in VCF file on line " +toString(line.lineNumber) + "!";
 		line.positionParsed=true;
 	}
@@ -399,7 +399,7 @@ void TVcfParser::parseQuality(TVcfLine & line){
 			line.variantQuality = -1.0;
 		} else {
 			line.variantQualityMissing = false;
-			line.variantQuality = stringToDouble(line.data[cols.Qual]);
+			line.variantQuality = convertString<double>(line.data[cols.Qual]);
 		}
 		line.qualityParsed = true;
 	}
@@ -488,12 +488,12 @@ GTLikelihoods TVcfParser::genotypeLikelihoods(TVcfLine & line, unsigned int & s)
 
 
 		//std::string a=d.extract_sub_str(',');
-		stringToDouble(extractBefore(d, ','));
-		gt.AA=dePhred(stringToDouble(extractBefore(d, ',')));
+		convertString<double>(extractBefore(d, ','));
+		gt.AA=dePhred(convertString<double>(extractBefore(d, ',')));
 		d.erase(0,1);
-		gt.AB=dePhred(stringToDouble(extractBefore(d, ',')));
+		gt.AB=dePhred(convertString<double>(extractBefore(d, ',')));
 		d.erase(0,1);
-		gt.BB=dePhred(stringToDouble(d));
+		gt.BB=dePhred(convertString<double>(d));
 	}
 	return gt;
 }
@@ -507,11 +507,11 @@ GTLikelihoods TVcfParser::genotypeLikelihoodsPhred(TVcfLine & line, unsigned int
 		int col=getFormatCol(line, "PL");
 		std::string d = line.samples[s].data[col];
 
-		gt.AA=stringToDouble(extractBefore(d, ','));
+		gt.AA=convertString<double>(extractBefore(d, ','));
 		d.erase(0,1);
-		gt.AB=stringToDouble(extractBefore(d, ','));
+		gt.AB=convertString<double>(extractBefore(d, ','));
 		d.erase(0,1);
-		gt.BB=stringToDouble(d);
+		gt.BB=convertString<double>(d);
 	}
 	return gt;
 }
@@ -524,12 +524,12 @@ void TVcfParser::fillGenotypeLikelihoods(TVcfLine & line, unsigned int & s, floa
 		int col=getFormatCol(line, "PL");
 		std::string d = line.samples[s].data[col];
 		//std::string a=d.extract_sub_str(',');
-		//stringToDouble(extractBefore(d, ','));
-		gtl[0] = dePhred(stringToDouble(extractBefore(d, ',')));
+		//convertString<double>(extractBefore(d, ','));
+		gtl[0] = dePhred(convertString<double>(extractBefore(d, ',')));
 		d.erase(0,1);
-		gtl[1] = dePhred(stringToDouble(extractBefore(d, ',')));
+		gtl[1] = dePhred(convertString<double>(extractBefore(d, ',')));
 		d.erase(0,1);
-		gtl[2] = dePhred(stringToDouble(extractBefore(d, ',')));
+		gtl[2] = dePhred(convertString<double>(extractBefore(d, ',')));
 	}
 }
 
@@ -537,7 +537,7 @@ void TVcfParser::savePhredScore(std::string & phredString, uint8_t & phred){
 	if(phredString == "inf" )
 			phred = 255;
 	else {
-		int tmp = stringToInt(phredString);
+		int tmp = convertString<int>(phredString);
 		if(tmp < 0)
 			throw "Negative value in PL field!";
 		if(tmp > 255)
@@ -547,7 +547,7 @@ void TVcfParser::savePhredScore(std::string & phredString, uint8_t & phred){
 };
 
 double TVcfParser::readGL(std::string & GLString){
-	double tmp = stringToDouble(GLString);
+	double tmp = convertString<double>(GLString);
 	if(tmp > 0){
 		throw "Positive value in GL field!";
 	}
@@ -860,7 +860,7 @@ float TVcfParser::sampleGenotypeQuality(TVcfLine & line, unsigned int & sample){
 	if(col<0) col=getFormatCol(line, "RGQ");
 	if(col<0) throw "Column 'GQ' is missing at position " + toString(line.pos) + " on " + line.chr + "!";
 //	std::cerr << " qual=" << line.samples[sample].data[col] << std::endl;
-	return stringToDouble(line.samples[sample].data[col]);
+	return convertString<double>(line.samples[sample].data[col]);
 }
 
 int TVcfParser::phred(double x){

@@ -653,7 +653,7 @@ long TRecalibrationEMEstimator::cumulativeDepth(){
 };
 
 void TRecalibrationEMEstimator::writeCurrentEstimates(std::string filename){
-	TOutputFilePlain out(filename);
+	TOutputFile out(filename);
 	models->writeHeader(out);
 	models->writeParameters(out, *_readGroups, *_readGroupMap);
 };

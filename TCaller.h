@@ -176,6 +176,7 @@ protected:
 	int indexOfMax, indexOfSecond;
 	std::string AB, AI;
 	bool imbalanceCalculated;
+	TBinomPValue binomP;
 
 	void clearAfterCall();
 	void callGenotypeFromMetric(double* metric);

@@ -290,9 +290,9 @@ bool TAtlasTest_BQSRSimulation::checkBQSRQualityFile(){
 		//read line into vector
 		++numLines;
 		fillVectorFromLineWhiteSpaceSkipEmpty(in, line);
-		QualityScoreAsPhredInt = stringToInt(line[1]);
-		EmpiricalQuality = stringToDouble(line[3]);
-		Log10Observations = stringToDouble(line[4]);
+		QualityScoreAsPhredInt = convertString<int>(line[1]);
+		EmpiricalQuality = convertString<double>(line[3]);
+		Log10Observations = convertString<double>(line[4]);
 		if(Log10Observations >= 5.5 && fabs(EmpiricalQuality - trueQual(phi1, phi2, QualityScoreAsPhredInt)) > acceptedDelta){
 			++unacceptablesCount;
 		}
@@ -365,9 +365,9 @@ bool TAtlasTest_BQSRSimulation::checkBQSRPositionFile(){
 		//read line into vector
 		++numLines;
 		fillVectorFromLineWhiteSpaceSkipEmpty(in, line);
-		Position = stringToInt(line[1]);
-		Scaling = stringToDouble(line[3]);
-		Log10Observations = stringToDouble(line[4]);
+		Position = convertString<int>(line[1]);
+		Scaling = convertString<double>(line[3]);
+		Log10Observations = convertString<double>(line[4]);
 		if(Log10Observations > 4.5 && fabs(trueScaling(Position) - Scaling) >= 0.1) ++unacceptablesCount;
 	}
 	if(unacceptablesCount > 0){

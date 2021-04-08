@@ -195,8 +195,8 @@ void VcfDiagnostics::assessAllelicImbalance(TParameters & Params){
 				std::vector<std::string> tmp;
 				std::string tag="AD";
 				fillVectorFromString(vcfFile.getSampleContentAt(tag, i), tmp, ',');
-				int numRef = stringToInt(tmp[0]);
-				int numAlt = stringToInt(tmp[1]);
+				int numRef = convertString<int>(tmp[0]);
+				int numAlt = convertString<int>(tmp[1]);
 				if(numRef == 0 || numAlt == 0)
 					throw "Call at position " + toString(vcfFile.position()) + " is heterozygous but reference or alternative allelic depth is 0!";
 				if(vcfFile.depthAsIntNoCheckForMissingSample("DP", i) > maxDP){
@@ -205,7 +205,7 @@ void VcfDiagnostics::assessAllelicImbalance(TParameters & Params){
 				}
 
 				//add count to correct table
-				int quality = stringToInt(vcfFile.getSampleContentAt("GQ", i));
+				int quality = convertString<int>(vcfFile.getSampleContentAt("GQ", i));
 				int index = findLastPassedFilterIndex(quality, qualities);
 				for(int i=0; i<(index+1); ++i){
 					++(countTables.at(i))->table[numRef][numAlt];

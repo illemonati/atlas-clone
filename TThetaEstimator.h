@@ -223,7 +223,7 @@ public:
 //---------------------------------------------------------------
 class TThetaOutputFile{
 protected:
-	TOutputFileZipped out;
+	TOutputFile out;
 	std::vector<TThetaEstimator*> thetaEstimators;
 	std::vector<std::string> prefixes;
 

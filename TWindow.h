@@ -83,7 +83,7 @@ public:
 	void calcDepthPerSite(long * siteDepth, size_t maxCov);
 	void countDepthPerSite(TDistributionOfCounts & counts);
 	void printDepthPerSite(gz::ogzstream & out, const std::string & chr);
-	void printMateInformationPerSite(TOutputFileZipped & out, const std::string & chr);
+	void printMateInformationPerSite(TOutputFile & out, const std::string & chr);
 	void countAlleles(TAllelicDepthCounts & counts);
 	void writeNonConservedBed(std::ofstream & output);
 	void contextStats(int** contextCounts, TQualityMap & qualMap);

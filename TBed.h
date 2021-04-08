@@ -47,7 +47,7 @@ public:
 	uint64_t curStart(){ return _windowIt->first; };
 	uint64_t curEnd(){ return _windowIt->second; };
 	uint64_t curLength(){ return _windowIt->second - _windowIt->first; };
-	void write(TOutputFilePlain & out, const std::string & chrName);
+	void write(TOutputFile & out, const std::string & chrName);
 };
 
 typedef std::map<std::string, TBedChromosome> TBedChrMap;
