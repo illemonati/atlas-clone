@@ -3,6 +3,7 @@ project(atlas)
 
 cmake_minimum_required(VERSION 3.0.0)
 set(CMAKE_CXX_STANDARD 14)
+list(APPEND CMAKE_PREFIX_PATH "/software/include" "/software/lib64")
 
 # compile commands: by default, compile in Release mode
 # type 'cmake -DCMAKE_BUILD_TYPE=Debug ..' in terminal for compiling in Debug mode
