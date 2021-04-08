@@ -150,12 +150,12 @@ void TSimulatorQualityDistNormal::fillDensities(){
 
 
 
-	double nextDens = TNormalDistrSD::cumulativeDistrFunction(_min-0.5, _mean, _sd);
+	double nextDens = TNormalDistr::cumulativeDistrFunction(_min-0.5, _mean, _sd);
 	double prevDens;
 	double sum = 0;
 	for(int i=0; i<size; ++i){
 		prevDens = nextDens;
-		nextDens = TNormalDistrSD::cumulativeDistrFunction(_min + i + 0.5, _mean, _sd);
+		nextDens = TNormalDistr::cumulativeDistrFunction(_min + i + 0.5, _mean, _sd);
 		densities[i] =  nextDens - prevDens;
 		sum += densities[i];
 	}
