@@ -107,6 +107,9 @@ void TGlfMultiReaderVcf::_openVCF(const std::string & filename, const std::strin
 };
 
 void TGlfMultiReaderVcf::_closeVCF(){
+	if(vcf.fail()){
+		throw "Failed to properly close file. Is there enough disk space?";
+	}
 	vcf.close();
 	vcfOpened = false;
 };
@@ -162,6 +165,11 @@ void TGlfMultiReaderVcf::writeSite(const std::string & chrName, const uint32_t &
 
 	//end of line
 	vcf << '\n';
+
+	//check if writing failed
+	if(vcf.fail()){
+		throw "Failed to write to file. Is there enough disk space?";
+	}
 };
 
 void TGlfMultiReaderVcf::writeDiploidIndividualToVCF(TMultiGLFDataSample & sample){
