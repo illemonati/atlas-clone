@@ -67,8 +67,8 @@ TSimulatorReadLengthGamma::TSimulatorReadLengthGamma(std::string & s, TRandomGen
 TSimulatorReadLengthGamma::TSimulatorReadLengthGamma(TRandomGenerator* RandomGenerator):TReadLengthDistribution(RandomGenerator){
 	_alpha = -1.0;
 	_beta = -1.0;
-	_min = -1.0;
-	_maxPlusOne = -1.0;
+	_min = 0;
+	_maxPlusOne = 1;
 	_meanLength = -1.0;
 
 	_gammaDensity = NULL;
