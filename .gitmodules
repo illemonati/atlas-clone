@@ -2,3 +2,6 @@
 	path = commonutilities
 	url = https://bitbucket.org/WegmannLab/commonutilities.git
 	branch = master
+[submodule "mcmcframework"]
+	path = mcmcframework
+	url = git@bitbucket.org:wegmannlab/mcmcframework.git

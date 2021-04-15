@@ -12,6 +12,7 @@ endif()
 
 # add libraries
 add_subdirectory(commonutilities)
+add_subdirectory(mcmcframework)
 
 # locate external libraries
 find_package(ZLIB REQUIRED)
@@ -20,6 +21,7 @@ find_package(Armadillo REQUIRED)
 set(LINK_LIBRARIES
         coreLib
         commonutilities
+        mcmcframework
         ${ZLIB_LIBRARIES}
         ${ARMADILLO_LIBRARIES}
         )
@@ -34,8 +36,8 @@ include_directories(
         Simulations
         TestUtilities
         VCF
-        commonutilities/core
-        commonutilities/core/IntegrationTests
+        commonutilities/core        
+        mcmcframework/core        
         ${ARMADILLO_INCLUDE_DIRS}
 )
 
@@ -111,4 +113,5 @@ target_include_directories("${PROJECT_NAME}_unitTests" PUBLIC
         TestUtilities/tests
         VCF/tests
         commonutilities/tests
+        mcmcframework/tests
         )
