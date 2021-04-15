@@ -199,20 +199,25 @@ public:
 		//initialize simulator
 		TSimulator* simulator;
 		std::string method = Parameters.getParameterStringWithDefault("type", "one");
-		if(method == "one")
+		if(method == "one"){
+			Logfile->startIndent("Simulating a single individual (parameter type=one):");
 			simulator = new TSimulatorOneIndividual(Logfile, Parameters, _randomGenerator);
-		else if(method == "pair")
+		} else if(method == "pair"){
+			Logfile->startIndent("Simulating a pair of individual (parameter type=pair):");
 			simulator = new TSimulatorPairOfIndividuals(Logfile, Parameters, _randomGenerator);
-		else if(method == "SFS")
+		} else if(method == "SFS"){
+			Logfile->startIndent("Simulating individuals from an SFS (parameter type=SFS):");
 			simulator = new TSimulatorSFS(Logfile, Parameters, _randomGenerator);
-		else if(method == "HW")
+		} else if(method == "HW"){
+			Logfile->startIndent("Simulating a individuals under Hardy-Weinberg (parameter type=HW):");
 			simulator = new TSimulatorHardyWeinberg(Logfile, Parameters, _randomGenerator);
-		else throw "Unknown simulation method '" + method + "'!";
+		}else throw "Unknown simulation method '" + method + "'!";
 
 		//now run simulations
 		simulator->runSimulations();
 
 		//clean up
+		Logfile->endIndent();
 		delete simulator;
 	};
 };

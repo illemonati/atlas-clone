@@ -44,7 +44,7 @@ public:
 	void setReason(const std::string reason);
 	void setLog(TBamFileLog* Log);
 	void filterOut(const std::string & alignmentName, const bool & isReverseStrand);
-	void summary(TLog* logfile);
+	void summary(TLog* logfile, const uint64_t & total);
 };
 
 class TBamFileFilterBool:public TBamFileFilter{

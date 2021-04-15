@@ -88,6 +88,10 @@ private:
 	gz::ogzstream vcf;
 	bool vcfOpened;
 
+	//settings
+	uint32_t minSamplesWithData;
+	uint32_t minVariantQuality;
+
 public:
 	TMajorMinor(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGenerator);
 	~TMajorMinor(){};

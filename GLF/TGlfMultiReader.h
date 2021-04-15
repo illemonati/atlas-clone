@@ -139,7 +139,8 @@ public:
 	void closeGLF();
 	void setDepthFilter(int MinDepth, TLog* logfile);
 	void addReference(const std::string FastaFile);
-	void onlyJumpToPositionsWithData(){ _onlyJumpToPositionsWithData = true; };
+	void onlyJumpToPositionsWithData(const bool & set = true){ _onlyJumpToPositionsWithData = set; };
+
 
 	//set active / inactive
 	void setActive(const int index);

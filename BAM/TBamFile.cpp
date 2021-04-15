@@ -668,26 +668,32 @@ void TBamFile::curAddSamField(const std::string tag, const float value){
 void TBamFile::printSummaryNoEndIndent(){
 	_logfile->startIndent("Summary of parsed reads from BAM file '" + _filename + "':");
 	_logfile->list("Total number of reads read: " + toString(_numAlignmentRead));
-	_logfile->list("Reads that passed filters: " + toString(_numAlignmentsPassedQC) + " (" + toPercentString((double) _numAlignmentsPassedQC / (double) _numAlignmentRead, 1) + "%)");
-	_logfile->list("Reads that were filtered out: " + toString(_numAlignmentRead - _numAlignmentsPassedQC) + " (" + toPercentString(((double) _numAlignmentRead - _numAlignmentsPassedQC) / (double) _numAlignmentRead, 1) + "%)");
+	_logfile->list("Reads that passed filters: " + toString(_numAlignmentsPassedQC) + " (" + toPercentString(_numAlignmentsPassedQC, _numAlignmentRead, 3) + "%)");
+	uint64_t numFiltered = _numAlignmentRead - _numAlignmentsPassedQC;
+	_logfile->list("Reads that were filtered out: " + toString(numFiltered) + " (" + toPercentString(numFiltered, _numAlignmentRead, 3) + "%)");
 
-	_duplicateFilter.summary(_logfile);
-	_softClippedFilter.summary(_logfile);
-	_improperPairsFilter.summary(_logfile);
-	_unmappedFilter.summary(_logfile);
-	_failedQCFilter.summary(_logfile);
-	_secondaryFilter.summary(_logfile);
-	_supplementaryFilter.summary(_logfile);
-	_longerThanFragmentFilter.summary(_logfile);
-	_readGroupFilter.summary(_logfile);
-	_fwdStrandFilter.summary(_logfile);
-	_revStrandFilter.summary(_logfile);
-	_firstMateFilter.summary(_logfile);
-	_secondMateFilter.summary(_logfile);
-	_blacklistFilter.summary(_logfile);
-	_mappingQualityFilter.summary(_logfile);
-	_fragmentLengthFilter.summary(_logfile);
-	_externalFilter.summary(_logfile);
+	if(numFiltered > 0){
+		_logfile->addIndent();
+
+		_duplicateFilter.summary(_logfile, numFiltered);
+		_softClippedFilter.summary(_logfile, numFiltered);
+		_improperPairsFilter.summary(_logfile, numFiltered);
+		_unmappedFilter.summary(_logfile, numFiltered);
+		_failedQCFilter.summary(_logfile, numFiltered);
+		_secondaryFilter.summary(_logfile, numFiltered);
+		_supplementaryFilter.summary(_logfile, numFiltered);
+		_longerThanFragmentFilter.summary(_logfile, numFiltered);
+		_readGroupFilter.summary(_logfile, numFiltered);
+		_fwdStrandFilter.summary(_logfile, numFiltered);
+		_revStrandFilter.summary(_logfile, numFiltered);
+		_firstMateFilter.summary(_logfile, numFiltered);
+		_secondMateFilter.summary(_logfile, numFiltered);
+		_blacklistFilter.summary(_logfile, numFiltered);
+		_mappingQualityFilter.summary(_logfile, numFiltered);
+		_fragmentLengthFilter.summary(_logfile, numFiltered);
+		_externalFilter.summary(_logfile, numFiltered);
+		_logfile->endIndent();
+	}
 };
 
 void TBamFile::printSummary(){

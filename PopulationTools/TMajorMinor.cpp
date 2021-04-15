@@ -182,14 +182,14 @@ TMajorMinor::TMajorMinor(TLog* Logfile, TParameters & params, TRandomGenerator* 
 	vcfOpened = false;
 	hasReference = false;
 	randomGenerator = RandomGenerator;
+	minSamplesWithData = 1;
+	minVariantQuality = 0;
 };
 
 void TMajorMinor::estimateMajorMinor(TParameters & params){
 	//open GLF files
 	TGlfMultiReader glfReader(params, logfile);
 	glfReader.setAllActive();
-	//TODO: add printAll option
-	glfReader.onlyJumpToPositionsWithData();
 
 	//add reference, if provided
 	if(params.parameterExists("fasta")){
@@ -205,23 +205,42 @@ void TMajorMinor::estimateMajorMinor(TParameters & params){
 	TMajorMinorEstimatorBase* MMEstimator;
 	double maxF = params.getParameterDoubleWithDefault("maxF", 0.0000001);
 	if(method == "Skotte"){
-		logfile->list("Will estimate major / minor alleles using the Skotte method with maxF " + toString(maxF) + ".");
+		logfile->list("Will estimate major / minor alleles using the Skotte method with maxF " + toString(maxF) + ". (parameters method and maxF)");
 		MMEstimator = new TMajorMinorEstimatorSkotte(randomGenerator, maxF);
 	} else if(method == "MLE"){
-		logfile->list("Will estimate major / minor alleles using the MLE method with maxF " + toString(maxF) + ".");
+		logfile->list("Will estimate major / minor alleles using the MLE method with maxF " + toString(maxF) + ". (parameters method and maxF)");
 		MMEstimator = new TMajorMinorEstimatorMLE(randomGenerator, maxF);
 	} else throw "Unknown MajorMinor method '" + method + "'!";
-	bool usePhredLikelihoods = params.parameterExists("phredLik");
 
-	//think about filters
-	int minSamplesWithData = params.getParameterIntWithDefault("minSamplesWithData", 1);
-	if(minSamplesWithData <= 0)
-		throw "minSamplesWithData must be >= 1!";
-	if(minSamplesWithData > 0)
-		logfile->list("Will only print sites for which at least " + toString(minSamplesWithData) + " samples have data.");
-	int minVariantQuality = params.getParameterIntWithDefault("minVariantQual", 0);
-	if(minVariantQuality > 0)
-		logfile->list("Will only print sites with variant quality >= " + toString(minVariantQuality) + " samples have data.");
+	bool usePhredLikelihoods = params.parameterExists("phredLik");
+	if(usePhredLikelihoods){
+		logfile->list("Will write phred-scaled likelihoods. (parameter phredLik)");
+	} else {
+		logfile->list("Will write raw likelihoods. (use phredLik to phred-scale)");
+	}
+
+	//read filters
+	if(params.parameterExists("printAll")){
+		logfile->list("Will all sites and samples. (parameter printAll)");
+		minSamplesWithData = 0;
+		minVariantQuality = 0;
+	} else {
+		minSamplesWithData = params.getParameterIntWithDefault("minSamplesWithData", 1);
+		if(minSamplesWithData > 0){
+			logfile->list("Will only print sites for which at least " + toString(minSamplesWithData) + " samples have data. (parameter minSamplesWithData)");
+		}
+
+		minVariantQuality = params.getParameterIntWithDefault("minVariantQual", 0);
+		if(minVariantQuality > 0){
+			logfile->list("Will only print sites with variant quality >= " + toString(minVariantQuality) + " samples have data. (parameter minVariantQual)");
+		}
+	}
+
+	if(minSamplesWithData > 0){
+		glfReader.onlyJumpToPositionsWithData(true);
+	} else {
+		glfReader.onlyJumpToPositionsWithData(false);
+	}
 
 	//limit input
 	long limitSites = params.getParameterDoubleWithDefault("limitSites", 0);
