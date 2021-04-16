@@ -36,7 +36,8 @@ include_directories(
         Simulations
         TestUtilities
         VCF
-        commonutilities/core        
+        commonutilities/core
+        commonutilities/core/IntegrationTests        
         mcmcframework/core        
         ${ARMADILLO_INCLUDE_DIRS}
 )
