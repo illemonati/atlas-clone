@@ -223,15 +223,20 @@ void TRecalibrationEMEstimator::_calculate_EMWeights_epsilon(std::vector<TBaseDa
 	//loop over all bases and calculate EM-weights
 	size_t index = 0;
 	for(auto& s : _sites){
-		//get relevant base frequencies: from known genotype or distribution if genotype is unknown
+		//get relevant base frequencies P(b): from known genotype or distribution if genotype is unknown
 		TBaseData baseFreq;
 		_fillRelevantBaseFrequencies(baseFreq, s.genotype());
 
 		//calculate weights per base
 		for(auto& b : s){
+			//calculate P(bbar) = \sum_b P(bbar|b)P(b)
 			TBaseData PMD;
 			_pmd.calculateBaseLikelihoods(b, baseFreq, PMD);
+
+			//calculate P(d|bbar)
 			_sequencingErrorModels.calculateBaseLikelihoods(b, EMWeights[index]);
+
+			//calculate P(d|bbar) \propto P(d|bbar)P(bbar)
 			EMWeights[index] *= PMD;
 			EMWeights[index].normalize();
 
@@ -407,7 +412,7 @@ void TRecalibrationEMEstimator::_runEM(std::string outputName, bool & writeTmpTa
 		//update theta_epsilon (sequencing errors)
 		_updateEM_theta_epsilon();
 
-		//TODO: update other parameters
+		//TODO: update other parameters -> refactor to be modular
 
 		//calculate LL
 		double LL = _calculateLL_fullModel();

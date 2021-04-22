@@ -599,6 +599,7 @@ void TSimulator::_initializeReadSimulator(TParameters & params){
 			_readSimulators.back()->printDetails(_logfile);
 			_logfile->endIndent();
 		}
+		_logfile->endIndent();
 	}
 
 	//initialize read group frequencies frequencies
@@ -1459,15 +1460,19 @@ TSimulatorHardyWeinberg::TSimulatorHardyWeinberg(TLog* Logfile, TParameters & pa
 
 	//parameters of beta distribution
 	fracPoly = params.getParameterDoubleWithDefault("fracPoly", 0.1);
-	_logfile->list("Will simulate " + toString(fracPoly) + " of all sites as polymorphic.");
+	_logfile->list("Will simulate " + toString(fracPoly) + " of all sites as polymorphic. (parameter fracPoly)");
 	alpha = params.getParameterDoubleWithDefault("alpha", 0.5);
 	if(alpha <= 0.0) throw "Alpha must be > 0!";
 	beta = params.getParameterDoubleWithDefault("beta", 0.5);
 	if(beta <= 0.0) throw "Beta must be > 0!";
-	_logfile->list("Polymoprhic sites will have derived allele frequencies f~Beta(" + toString(alpha) + ", " + toString(beta) + ").");
+	_logfile->list("Polymoprhic sites will have derived allele frequencies f~Beta(" + toString(alpha) + ", " + toString(beta) + "). (parameters alpha, beta)");
 	F = params.getParameterDoubleWithDefault("F", 0.0);
-	if(F > 0.0) _logfile->list("Will use an inbreeding coefficient of " + toString(F) + ".");
-	if(F < 0.0 || F > 1.0) throw "Inbreeding coefficient F must be within [0,1]!";
+	if(F == 0.0){
+		_logfile->list("Will assume no inbreeding. (parameter F=0)");
+	} else {
+		_logfile->list("Will use an inbreeding coefficient of " + toString(F) + ". (parameter F)");
+		if(F < 0.0 || F > 1.0) throw "Inbreeding coefficient F must be within [0,1]!";
+	}
 
 	//write true allele freq?
 	writeTrueAlleleFreq = false;

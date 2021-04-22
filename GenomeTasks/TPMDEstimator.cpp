@@ -44,28 +44,11 @@ TPMDEstimator::~TPMDEstimator(){
 };
 
 void TPMDEstimator::_handleAlignment(){
-	//check if it is forward or reverse strand!
-	if(_alignment.isReverseStrand()){
-		int d = 0;
-		for(auto& b : _alignment){
-			if(b.isAligned() && b.base != N){
-				Base ref = _genoMap.flipBase(_alignment.referenceAtInternalPos(d));
-				Base read = _genoMap.baseToFlippedBase[b.base];
-				_pmdTables.addFromFivePrime(b.readGroupID, b.distFrom5Prime, ref, read);
-				_pmdTables.addFromThreePrime(b.readGroupID, b.distFrom3Prime, ref, read);
-			}
-			++d;
-		}
-	} else {
-		int d = 0;
-		for(auto& b : _alignment){
-			if(b.isAligned() && b.base != N){
-				Base ref = _genoMap.toBase(_alignment.referenceAtInternalPos(d));
-				_pmdTables.addFromFivePrime(b.readGroupID, b.distFrom5Prime, ref, b.base);
-				_pmdTables.addFromThreePrime(b.readGroupID, b.distFrom3Prime, ref, b.base);
-			}
-			++d;
-		}
+	uint32_t d = 0;
+	for(auto& b : _alignment){
+		Base ref = _genoMap.flipBase(_alignment.referenceAtInternalPos(d));
+		_pmdTables.add(b, ref);
+		++d;
 	}
 };
 

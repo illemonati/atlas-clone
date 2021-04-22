@@ -103,6 +103,8 @@ public:
 	//looping over
 	std::set<TReadGroup, std::less<>>::iterator begin(){ return _readGroups.begin(); };
 	std::set<TReadGroup, std::less<>>::iterator end(){ return _readGroups.end(); };
+	std::set<TReadGroup, std::less<>>::iterator cbegin() const{ return _readGroups.cbegin(); };
+	std::set<TReadGroup, std::less<>>::iterator cend() const{ return _readGroups.cend(); };
 
 	void filterReadGroups(std::string readGroupList);
 	void removeFromHeader(const std::string name);

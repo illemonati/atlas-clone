@@ -88,105 +88,105 @@ void TBamFile::setFilters(TParameters & params, TLog* logfile){
 		//duplicates
 		if(params.parameterExists("keepDuplicates")){
 			_duplicateFilter.keep();
-			logfile->list("Will keep duplicate reads. (parameter 'keepDuplicates')");
+			logfile->list("Duplicate reads: keep. (parameter 'keepDuplicates')");
 		} else {
 			_duplicateFilter.filter("Duplicate");
-			logfile->list("Will filter out duplicate reads. (use 'keepDuplicates' to keep)");
+			logfile->list("Duplicate reads: filter out. (use 'keepDuplicates' to keep)");
 		}
 
 		//soft clips
 		if(params.parameterExists("filterSoftClips")){
 			_softClippedFilter.filter("Soft clipped");
-			logfile->list("Will filter out soft clipped reads. (parameter 'filterSoftClips')");
+			logfile->list("Soft clipped reads: filter out. (parameter 'filterSoftClips')");
 		} else {
 			_softClippedFilter.keep();
-			logfile->list("Will keep soft clipped reads. (use 'filterSoftClips' to filter out)");
+			logfile->list("Soft clipped reads: keep. (use 'filterSoftClips' to filter out)");
 		}
 
 		//improper pairs
 		if(params.parameterExists("keepImproperPairs")){
 			_improperPairsFilter.keep();
-			logfile->list("Will keep improper pairs. (parameter 'keepImproperPairs')");
+			logfile->list("Improper pairs: keep. (parameter 'keepImproperPairs')");
 		} else {
 			_improperPairsFilter.filter("Improper pair");
-			logfile->list("Will filter out improper pairs. (use 'keepImproperPairs' to keep)");
+			logfile->list("Improper pairs: filter out. (use 'keepImproperPairs' to keep)");
 		}
 
 		//unmapped reads
 		if(params.parameterExists("keepUnmappedReads")){
 			_unmappedFilter.keep();
-			logfile->list("Will keep unmapped reads. (parameter 'keepUnmappedReads')");
+			logfile->list("Unmapped reads: keep. (parameter 'keepUnmappedReads')");
 		} else {
 			_unmappedFilter.filter("Unmapped");
-			logfile->list("Will filter out unmapped reads. (use 'keepUnmappedReads' to keep)");
+			logfile->list("Unmapped reads: filter out. (use 'keepUnmappedReads' to keep)");
 		}
 
 		//failed QC
 		if(params.parameterExists("keepFailedQC")){
 			_failedQCFilter.keep();
-			logfile->list("Will keep reads that failed QC. (parameter 'keepFailedQC')");
+			logfile->list("Failed QC: keep. (parameter 'keepFailedQC')");
 		} else {
 			_failedQCFilter.filter("Failed QC");
-			logfile->list("Will filter out reads that failed QC. (use 'keepFailedQC' to keep)");
+			logfile->list("Failed QC: filter out. (use 'keepFailedQC' to keep)");
 		}
 
 		//secondary reads
 		if(params.parameterExists("keepSecondaryReads")){
 			_secondaryFilter.keep();
-			logfile->list("Will keep secondary reads. (parameter 'keepSecondaryReads')");
+			logfile->list("Secondary reads: keep. (parameter 'keepSecondaryReads')");
 		} else {
 			_secondaryFilter.filter("Secondary alignment");
-			logfile->list("Will filter out secondary reads. (use 'keepSecondaryReads' to keep)");
+			logfile->list("Secondary reads: filter out. (use 'keepSecondaryReads' to keep)");
 		}
 
 		//supplementary reads
 		if(params.parameterExists("keepSupplementaryReads")){
 			_supplementaryFilter.keep();
-			logfile->list("Will keep supplementary reads. (parameter 'keepSupplementaryReads')");
+			logfile->list("Supplementary reads: keep. (parameter 'keepSupplementaryReads')");
 		} else {
 			_supplementaryFilter.filter("Supplementary alignment");
-			logfile->list("Will filter out supplementary reads. (use 'keepSupplementaryReads' to keep)");
+			logfile->list("Supplementary reads: filter out. (use 'keepSupplementaryReads' to keep)");
 		}
 
 		//fragment length
 		if(params.parameterExists("keepReadsLongerThanFragment")){
 			_longerThanFragmentFilter.keep();
-			logfile->list("Will keep reads that are longer than the fragment size. (parameter 'keepReadsLongerThanFragment')");
+			logfile->list("Reads longer than fragment size: keep. (parameter 'keepReadsLongerThanFragment')");
 		} else {
 			_longerThanFragmentFilter.filter("Longer than fragment");
-			logfile->list("Will filter out reads that are longer than the fragment size. (use 'keepReadsLongerThanFragment' to keep)");
+			logfile->list("Reads longer than fragment size: filter out. (use 'keepReadsLongerThanFragment' to keep)");
 		}
 
 		//strand
 		if(params.parameterExists("keepOnlyFwd")){
 			_fwdStrandFilter.keep();
 			_revStrandFilter.filter("Reverse strand");
-			logfile->list("Will keep only forward mapping reads. (parameter 'keepOnlyFwd')");
+			logfile->list("Strand: keep only forward. (parameter 'keepOnlyFwd')");
 		}
 		else if(params.parameterExists("keepOnlyRev")){
 			_fwdStrandFilter.filter("Forward strand");
 			_revStrandFilter.keep();
-			logfile->list("Will keep only reverse mapping reads. (parameter 'keepOnlyRev')");
+			logfile->list("Strand: keep only reverse. (parameter 'keepOnlyRev')");
 		} else {
 			_fwdStrandFilter.keep();
 			_revStrandFilter.keep();
-			logfile->list("Will keep forward and reverse mapping reads. (use 'keepOnlyFwd' or 'keepOnlyRev' to limit)");
+			logfile->list("Strand: keep forward and reverse. (use 'keepOnlyFwd' or 'keepOnlyRev' to limit)");
 		}
 
 		//mate
 		if(params.parameterExists("keepOnlyFirst")){
 			_firstMateFilter.keep();
 			_secondMateFilter.filter("Second mate");
-			logfile->list("Will keep only the first mates. (parameter 'keepOnlyFirst')");
+			logfile->list("Mate: keep only first. (parameter 'keepOnlyFirst')");
 		}
 		else if(params.parameterExists("keepOnlySecond")){
 			_firstMateFilter.filter("First mate");
 			_secondMateFilter.keep();
-			logfile->list("Will keep only the second mates. (parameter 'keepOnlySecond')");
+			logfile->list("Mate: keep only second. (parameter 'keepOnlySecond')");
 		} else {
 			_firstMateFilter.keep();
 			_secondMateFilter.keep();
-			logfile->list("Will keep first and second mates. (use 'keepOnlyFirst' or 'keepOnlySecond' to limit)");
+			logfile->list("Mate: keep first and second. (use 'keepOnlyFirst' or 'keepOnlySecond' to limit)");
 		}
 
 		//blacklist
@@ -212,10 +212,10 @@ void TBamFile::setFilters(TParameters & params, TLog* logfile){
 				throw "minMQ must be <= maxMQ";
 
 			_mappingQualityFilter.filter(MinMQ, MaxMQ, "Mapping quality outside [" + toString(MinMQ) + ", " + toString(MaxMQ) + "]");
-			logfile->list("Will filter out reads with mapping quality outside the range [" + toString(MinMQ) + ", " + toString(MaxMQ) + "]. (parameters 'minMQ', 'maxMQ')");
+			logfile->list("Mapping quality: restrict to range [" + toString(MinMQ) + ", " + toString(MaxMQ) + "]. (parameters 'minMQ', 'maxMQ')");
 		} else {
 			_mappingQualityFilter.keep();
-			logfile->list("Will keep reads regardless of their mapping quality. (use 'minMQ' and 'maxMQ' to limit)");
+			logfile->list("Mapping quality: keep all. (use 'minMQ' and 'maxMQ' to limit)");
 		}
 
 		//Fragment length filter
@@ -230,10 +230,10 @@ void TBamFile::setFilters(TParameters & params, TLog* logfile){
 				throw "minFragmentLength must be <= maxFragmentLength!";
 
 			_fragmentLengthFilter.filter(MinFragmentLength, MaxFragmentLength, "Fragment length outside [" + toString(MinFragmentLength) + ", " + toString(MaxFragmentLength) + "]");
-			logfile->list("Will filter out reads with fragment length outside the range [" + toString(MinFragmentLength) + ", " + toString(MaxFragmentLength) + "]. (parameters 'minFragmentLength', 'maxFragmentLength')");
+			logfile->list("Fragment length: restrict to range [" + toString(MinFragmentLength) + ", " + toString(MaxFragmentLength) + "]. (parameters 'minFragmentLength', 'maxFragmentLength')");
 		} else {
 			_fragmentLengthFilter.keep();
-			logfile->list("Will keep reads regardless of their fragment length. (use 'minFragmentLength', 'maxFragmentLength' to limit)");
+			logfile->list("Fragment length: keep all. (use 'minFragmentLength', 'maxFragmentLength' to limit)");
 		}
 	}
 	logfile->endIndent();

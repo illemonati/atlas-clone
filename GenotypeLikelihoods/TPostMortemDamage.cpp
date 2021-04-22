@@ -17,118 +17,18 @@
 
 namespace GenotypeLikelihoods{
 
-//---------------------------------------------------------------
-//TPMDTable
-//---------------------------------------------------------------
 
-void TPMDTable::calculateSums(){
-	if(!sumsCalculated){
-		sums = new long*[maxLength];
-		for(int p=0; p<maxLength; ++p){
-			sums[p] = new long[4];
-			for(int i=0; i<4; ++i){
-				sums[p][i] = counts[p][i][0];
-				for(int j=1; j<4; ++j){
-					sums[p][i] += counts[p][i][j];
-				}
-			}
-		}
-		sumsCalculated = true;
-	}
-};
-
-void TPMDTable::deleteSums(){
-	for(int p=0; p<maxLength; ++p){
-		delete[] sums[p];
-	}
-	delete[] sums;
-	sumsCalculated = false;
-}
-
-TPMDTable::TPMDTable(int MaxLength){
-	maxLength = MaxLength;
-	sumsCalculated = false;
-	sums = NULL;
-
-	//init counts
-	counts = new long**[maxLength];
-	for(int p=0; p<maxLength; ++p){
-		counts[p] = new long*[5];
-		for(int i=0; i<5; ++i){
-			counts[p][i] = new long[5];
-			for(int j=0; j<5; ++j){
-				counts[p][i][j] = 0;
-			}
-		}
-	}
-};
-
-TPMDTable::~TPMDTable(){
-	for(int p=0; p<maxLength; ++p){
-		for(int i=0; i<5; ++i){
-			delete[] counts[p][i];
-		}
-		delete[] counts[p];
-	}
-	delete[] counts;
-	if(sumsCalculated) deleteSums();
-};
-
-void TPMDTable::empty(){
-	for(int p=0; p<maxLength; ++p){
-		for(int i=0; i<5; ++i){
-			for(int j=0; j<5; ++j){
-				counts[p][i][j] = 0;
-			}
-		}
-	}
-};
-
-void TPMDTable::add(const int & pos, const Base & ref, const Base & read){
-	if(pos < 0)
-		throw "position in TPMDTable add function is < 0! (" + toString(pos) + ")";;
-	if(pos < maxLength)
-		++counts[pos][ref][read];
-};
-
-void TPMDTable::writeTable(std::ofstream & out, std::string prefix){
-	calculateSums();
-
-	//now print out
-	for(int i=0; i<4; ++i){
-		for(int j=0; j<4; ++j){
-			out <<	prefix << genoMap.getBaseAsChar(i) << "->" << genoMap.getBaseAsChar(j);
-			for(int p=0; p<maxLength; ++p){
-				if(sums[p][i] < 1) out << "\t0.0";
-				else out << "\t" << (double) counts[p][i][j] / (double) sums[p][i];
-			}
-			out << "\n";
-		}
-	}
-};
-
-void TPMDTable::writeTableWithCounts(std::ofstream & out, std::string prefix){
-	for(int i=0; i<4; ++i){
-		for(int j=0; j<4; ++j){
-			out <<	prefix << genoMap.getBaseAsChar(i) << "->" << genoMap.getBaseAsChar(j);
-			for(int p=0; p<maxLength; ++p){
-				out << "\t" << (double) counts[p][i][j];
-			}
-			out << "\n";
-		}
-	}
-};
 
 std::string TPMDTable::getPMDString(Base first, Base second){
 	calculateSums();
 	std::string s = "Empiric[";
 	double tmpFirstToSecond, tmpSecondToFirst;  //tmpRefRead
-	for(int p=0; p<maxLength; ++p){
+	for(int p=0; p<_maxLength; ++p){
 		if(p>0) s += ",";
-		if(sums[p][second] < 1 || sums[p][first] < 1) s += "0.0";
+		if(_sums[p][second] < 1 || _sums[p][first] < 1) s += "0.0";
 		else {
-			tmpFirstToSecond = (double) counts[p][first][second] / (double) sums[p][first];
-			tmpSecondToFirst = (double) counts[p][second][first] / (double) sums[p][second];
+			tmpFirstToSecond = (double) _counts[p][first][second] / (double) _sums[p][first];
+			tmpSecondToFirst = (double) _counts[p][second][first] / (double) _sums[p][second];
 			s += toString(std::max(0.0, (tmpFirstToSecond - tmpSecondToFirst)/(1.0 - tmpSecondToFirst)));
 		}
 	}
@@ -175,7 +75,7 @@ void TPMDTable::fillFAndJacobian(arma::vec & F, arma::mat & J, Base & from, Base
 	double weight, weightJ, tmp;
 	double expMinusAlphaP;
 	double dExpMinusAlphaP;
-	for(int p=0; p<maxLength; ++p){
+	for(int p=0; p<_maxLength; ++p){
 		//exp
 		expMinusAlphaP = exp(-oldParams[2] * p);
 		dExpMinusAlphaP = oldParams[1] * expMinusAlphaP;
@@ -183,7 +83,7 @@ void TPMDTable::fillFAndJacobian(arma::vec & F, arma::mat & J, Base & from, Base
 		//first term
 		//----------
 		tmp = oldParams[0] + dExpMinusAlphaP;
-		weight = counts[p][from][to] / tmp;
+		weight = _counts[p][from][to] / tmp;
 		weightJ = weight / tmp;
 
 		//add to F
@@ -202,7 +102,7 @@ void TPMDTable::fillFAndJacobian(arma::vec & F, arma::mat & J, Base & from, Base
 		//second term
 		//-----------
 		tmp = (1.0 - oldParams[0] - dExpMinusAlphaP);
-		weight = (sums[p][from] - counts[p][from][to]) / tmp;
+		weight = (_sums[p][from] - _counts[p][from][to]) / tmp;
 		weightJ = weight / tmp;
 
 		//add to F
@@ -231,15 +131,15 @@ void TPMDTable::fillF(arma::vec & F, Base & from, Base & to, double* oldParams){
 	double weight;
 	double expMinusAlphaP;
 	double dExpMinusAlphaP;
-	for(int p=0; p<maxLength; ++p){
+	for(int p=0; p<_maxLength; ++p){
 		//exp
 		expMinusAlphaP = exp(-oldParams[2] * (double) p);
 		dExpMinusAlphaP = oldParams[1] * expMinusAlphaP;
 
 		//first term
 		//----------
-		weight = counts[p][from][to] / (oldParams[0] + dExpMinusAlphaP);
-		weight -= (sums[p][from] - counts[p][from][to]) / (1.0 - oldParams[0] - dExpMinusAlphaP);
+		weight = _counts[p][from][to] / (oldParams[0] + dExpMinusAlphaP);
+		weight -= (_sums[p][from] - _counts[p][from][to]) / (1.0 - oldParams[0] - dExpMinusAlphaP);
 
 		//add to F
 		F(0) += weight;
@@ -251,10 +151,10 @@ void TPMDTable::fillF(arma::vec & F, Base & from, Base & to, double* oldParams){
 double TPMDTable::calcLL(Base & from, Base & to, double* oldParams){
 	double LL = 0.0;
 	double dExpMinusAlphaP;
-	for(int p=0; p<maxLength; ++p){
+	for(int p=0; p<_maxLength; ++p){
 		dExpMinusAlphaP = oldParams[1] * exp(-oldParams[2] * p);
-		LL += counts[p][from][to] * log(oldParams[0] + dExpMinusAlphaP)
-			+ (sums[p][from] - counts[p][from][to]) * log(1.0 - oldParams[0] - dExpMinusAlphaP);
+		LL += _counts[p][from][to] * log(oldParams[0] + dExpMinusAlphaP)
+			+ (_sums[p][from] - _counts[p][from][to]) * log(1.0 - oldParams[0] - dExpMinusAlphaP);
 	}
 	return LL;
 }
@@ -273,8 +173,8 @@ std::string TPMDTable::fitExponentialModel(Base from, Base to, int & numNRIterat
 
 	//find last entry with counts
 	int lastPositionToConsiderPlusOne = -1;
-	for(int p=maxLength-1; p >= 0; --p){
-		if(sums[p][from] > 100){
+	for(int p=_maxLength-1; p >= 0; --p){
+		if(_sums[p][from] > 100){
 			lastPositionToConsiderPlusOne = p;
 			break;
 		}
@@ -283,7 +183,7 @@ std::string TPMDTable::fitExponentialModel(Base from, Base to, int & numNRIterat
 
 	if(lastPositionToConsiderPlusOne < 10) throw "Not sufficient data for PMD estimation in read group '" + readGroupName + "': less than the ten first positions have > 100 data points!";
 	for(int p=0; p<lastPositionToConsiderPlusOne; ++p){
-		if(sums[p][from] == 0){
+		if(_sums[p][from] == 0){
 			throw "Not sufficient data for PMD estimation in read group '" + readGroupName + "': no observations for some reference alleles! Consider reducing the considered length.";
 		}
 	}
@@ -307,7 +207,7 @@ std::string TPMDTable::fitExponentialModel(Base from, Base to, int & numNRIterat
 	arma::vec y(lastPositionToConsiderPlusOne);
 	double sumYSquared = 0.0;
 	for(int p=0; p<lastPositionToConsiderPlusOne; ++p){
-		y(p) = (double) counts[p][from][to] / (double) sums[p][from];
+		y(p) = (double) _counts[p][from][to] / (double) _sums[p][from];
 		sumYSquared += y(p) * y(p);
 	}
 
@@ -384,8 +284,8 @@ std::string TPMDTable::fitExponentialModel(Base from, Base to, int & numNRIterat
 	// c = (alpha - mu) / (1 - mu)
 	double mu = 0.0; double sum = 0.0;
 	for(int p=0; p<lastPositionToConsiderPlusOne; ++p){
-		mu += counts[p][to][from];
-		sum += sums[p][to];
+		mu += _counts[p][to][from];
+		sum += _sums[p][to];
 	}
 	mu = mu / sum;
 
@@ -403,105 +303,6 @@ std::string TPMDTable::fitExponentialModel(Base from, Base to, int & numNRIterat
 	//if(a < 0) logfile->warning("Read group " + readGroupName + " was estimated to have an exponential damage pattern with a < 0! This may be due to a lack of data");
 	return "Exponential[" + toString(a) + "," + toString(b) + "," + toString(c) + "]";
 }
-
-//---------------------------------------------------------------
-//TPMDTables
-//---------------------------------------------------------------
-TPMDTables::TPMDTables(){
-	readGroups = nullptr;
-	maxReadLength = 0;
-	readGroupMap = nullptr;
-	origNumReadGroups = 0;
-	numReadGroups = 0;
-	forward = nullptr;
-	reverse = nullptr;
-	_initialized = false;
-};
-
-TPMDTables::TPMDTables(BAM::TReadGroups* ReadGroups, int maxLengthForInference, int MaxReadLength, BAM::TReadGroupMap* ReadGroupMap){
-	initialize(ReadGroups, maxLengthForInference, MaxReadLength, ReadGroupMap);
-};
-
-TPMDTables::~TPMDTables(){
-	if(_initialized){
-		for(int i=0; i<numReadGroups; ++i){
-			delete forward[i];
-			delete reverse[i];
-		}
-		delete[] forward;
-		delete[] reverse;
-	}
-};
-
-void TPMDTables::initialize(BAM::TReadGroups* ReadGroups, int maxLengthForInference, int MaxReadLength, BAM::TReadGroupMap* ReadGroupMap){
-	readGroups = ReadGroups;
-	maxReadLength = MaxReadLength;
-	readGroupMap = ReadGroupMap;
-	origNumReadGroups = readGroupMap->getOrigNumReadGroups();
-	numReadGroups = readGroupMap->getNumReadGroups();
-	forward = new TPMDTable*[numReadGroups];
-	reverse = new TPMDTable*[numReadGroups];
-	for(int i=0; i<numReadGroups; ++i){
-		forward[i] = new TPMDTable(maxLengthForInference);
-		reverse[i] = new TPMDTable(maxLengthForInference);
-	}
-	_initialized = true;
-};
-
-void TPMDTables::addFromFivePrime(const uint16_t readGroup, const uint16_t pos, const Base & ref, const Base & read){
-	forward[readGroupMap->getIndex(readGroup)]->add(pos, ref, read);
-};
-
-void TPMDTables::addFromThreePrime(const uint16_t readGroup, const uint16_t pos, const Base & ref, const Base & read){
-	reverse[readGroupMap->getIndex(readGroup)]->add(pos, ref, read);
-};
-
-void TPMDTables::writePMDFile(std::string filename){
-	std::ofstream out(filename.c_str());
-	if(!out) throw "Failed to open file '" + filename + "'!";
-
-	//loop over all read groups
-	for(int i=0; i<origNumReadGroups; ++i){
-		if(readGroups->readGroupInUse(i)){
-			uint16_t index = readGroupMap->getIndex(i);
-			out << readGroups->getName(i) << "\tCT\t" << forward[index]->getPMDString(C, T) << "\n";
-			out << readGroups->getName(i) << "\tGA\t" << reverse[index]->getPMDString(G, A) << "\n";
-			out << readGroups->getName(i) << "\tGT\t" << forward[index]->getPMDString(G, T) << "\n";
-			out << readGroups->getName(i) << "\tCA\t" << reverse[index]->getPMDString(C, A) << "\n";
-		}
-	}
-	out.close();
-}
-
-void TPMDTables::writeTable(std::string filename){
-	std::ofstream out(filename.c_str());
-	if(!out) throw "Failed to open file '" + filename + "'!";
-
-	//loop over all read groups
-	for(int i=0; i<origNumReadGroups; ++i){
-		if(readGroups->readGroupInUse(i)){
-			uint16_t index = readGroupMap->getIndex(i);
-			forward[index]->writeTable(out, readGroups->getName(i) + "\tforward\t");
-			reverse[index]->writeTable(out, readGroups->getName(i) + "\treverse\t");
-		}
-	}
-	out.close();
-};
-
-void TPMDTables::writeTableWithCounts(std::string filename){
-	std::ofstream out(filename.c_str());
-	if(!out) throw "Failed to open file '" + filename + "'!";
-
-	//loop over all read groups
-	for(int i=0; i<origNumReadGroups; ++i){
-		if(readGroups->readGroupInUse(i)){
-			uint16_t index = readGroupMap->getIndex(i);
-			forward[index]->writeTableWithCounts(out, readGroups->getName(i) + "\tforward\t");
-			reverse[index]->writeTableWithCounts(out, readGroups->getName(i) + "\treverse\t");
-		}
-	}
-	out.close();
-};
 
 void TPMDTables::fitExponentialModel(int numNRIterations, double eps, std::string & filename, TLog* logfile){
 	//TODO: do not have to fit exponential for all RG that are pooled
@@ -522,197 +323,187 @@ void TPMDTables::fitExponentialModel(int numNRIterations, double eps, std::strin
 //---------------------------------------------------------------
 //TPMDFunction
 //---------------------------------------------------------------
-TPMDSkoglund::TPMDSkoglund(double & Lambda, double & C){
-	lambda = Lambda; c = C;
-};
-double TPMDSkoglund::getProb(const uint16_t & pos) const{
-	//Note: distance is zero based!
-	return c + pow(1.0 - lambda, (double) pos) * lambda;
-};
-std::string TPMDSkoglund::getString() const{
-	return "P(pmd|pos) = p * (1 - p)^pos + c = " + toString(lambda) + " * (1 - " + toString(lambda) + ")^pos + " + toString(c);
+void TPMDFunction::_parseParameters(const std::string & string){
+	//expect string of the form NAME[P1,P2,...]
+	//extract P1, P2, ... as a vector of doubles
+	std::string tmp = readAfter(string, '[');
+	fillVectorFromString(extractBefore(tmp, '['), _parameters, ',', true, true);
 };
 
 //---------------------------------------------------------------
-TPMDExponential::TPMDExponential(double & A, double & B, double & C){
-	a = A; b = B; c = C;
-}
-double TPMDExponential::getProb(const uint16_t & pos) const{
-	//Note: distance is zero based!
-	return a * exp(- (double) pos * b) + c;
-};
-std::string TPMDExponential::getString() const{
-	return "P(pmd|pos) = a * exp(- pos * b) + c = " + toString(a) + "* exp(- pos * " + toString(b) + ") + " + toString(c);
-};
-
+// TPMDFunctionNoPMD
 //---------------------------------------------------------------
-TPMDEmpiric::TPMDEmpiric(std::string & values, std::string & example){
-	std::vector<double> vec;
-	fillVectorFromString(values, vec, ',');
-	length = vec.size();
-	if(length < 1) throw "Can not initialize post mortem damage function 'Empiric[" + values + "]': wrong format!\n" + example;
-	//probs = std::vector<double>;
-	for(int i=0; i<length; ++i){
-		probs.push_back(vec[i]);
+TPMDFunctionNoPMD::TPMDFunctionNoPMD(const std::string & string){
+	_parseParameters(string);
+
+	if(_parameters.size() != 0){
+		throw "Cannot initialize PMD function '" + PMDFunctionName_none + "': expected 0 but found " + toString(_parameters.size()) + " parameters!";
 	}
-	last = probs[length-1];
 };
 
-TPMDEmpiric::TPMDEmpiric(std::vector<double> Probs){
-	setName();
-	probs = Probs;
-	length = probs.size();
-	last = probs[length-1];
+//---------------------------------------------------------------
+// TPMDFunctionSkoglund
+//---------------------------------------------------------------
+TPMDFunctionSkoglund::TPMDFunctionSkoglund(const std::string & string){
+	_parseParameters(string);
+
+	if(_parameters.empty()){
+		//parameters missing: set to no PMD
+		_parameters = {0.0, 0.0};
+	} else {
+		//parameters are provided
+		if(_parameters.size() != 2){
+			throw "Cannot initialize PMD function '" + PMDFunctionName_Skoglund + "': expected 2 (" + example() + ") but found " + toString(_parameters.size()) + " parameters!";
+		}
+
+		if(_parameters[0] < 0.0 || _parameters[0] > 1.0){
+			throw "Cannot initialize PMD function '" + PMDFunctionName_Skoglund + "': p is outside [0,1]!";
+		}
+		if(_parameters[1] < 0.0){
+			throw "Cannot initialize PMD function '" + PMDFunctionName_Skoglund + "': c must be >0!";
+		}
+	}
 };
 
-double TPMDEmpiric::getProb(const uint16_t & pos) const{
-	if(pos < length) return probs[pos];
-	else return last;
+double TPMDFunctionSkoglund::prob(const uint16_t & pos) const {
+	//Note: distance is zero based!
+	return pow(1.0 - _parameters[0], (double) pos) * _parameters[0] + _parameters[1];
 };
 
-std::string TPMDEmpiric::getString() const{
-	std::string s = "P(pmd|pos) = {" + toString(probs[0]);
-	for(int i=1; i<length; ++i) s += "," + toString(probs[i]);
-	return  s +"}";
+//---------------------------------------------------------------
+// TPMDFunctionExponential
+//--------------------------------------------------------------
+TPMDFunctionExponential::TPMDFunctionExponential(const std::string & string){
+	_parseParameters(string);
+
+	if(_parameters.empty()){
+		//parameters missing: set to no PMD
+		_parameters = {0.0, 0.0, 0.0};
+	} else {
+		//parameters are provided
+		if(_parameters.size() != 2){
+			throw "Cannot initialize PMD function '" + PMDFunctionName_exponential + "': expected 3 (" + example() + ") but found " + toString(_parameters.size()) + " parameters!";
+		}
+
+		if(_parameters[1] < 0.0){
+			throw "Cannot initialize PMD function '" + PMDFunctionName_exponential + "': b must be >0!";
+		}
+
+		if(_parameters[2] < 0.0){
+			throw "Cannot initialize PMD function '" + PMDFunctionName_exponential + "': c must be >0!";
+		}
+	}
+};
+
+void TPMDFunctionExponential::learn(const TPMDTable & table, const Base & from, const Base & to){
+	//resize parameters
+	_parameters.resize(table.size() + 1); //include extra bin for sites beyond size (available in PMDTables)
+
+	//extract counts in PMD direction and the inverse direction
+	const countVec& pmdCounts = table[from][to];
+	const countVec& pmdSums = table[from].sums();
+	const countVec& invCounts = table[to][from];
+	const countVec& invSums = table[to].sums();
+
+
+
+};
+
+double TPMDFunctionExponential::prob(const uint16_t & pos) const{
+	//Note: distance is zero based!
+	return _parameters[0] * exp(-_parameters[1] * (double) pos) + _parameters[2];
+};
+
+//---------------------------------------------------------------
+// TPMDFunctionEmpiric
+//---------------------------------------------------------------
+TPMDFunctionEmpiric::TPMDFunctionEmpiric(const std::string & string){
+	_parseParameters(string);
+
+	if(_parameters.empty()){
+		//parameters missing: set to no PMD
+		_parameters = {0.0};
+	} else {
+		//parameters are provided
+		for(auto& d : _parameters){
+			if(d < 0.0 || d > 1.0){
+				throw "Cannot initialize post mortem damage function '" + PMDFunctionName_empiric + "': some probabilities are outside [0,1]!";
+			}
+		}
+	}
+};
+
+void TPMDFunctionEmpiric::learn(const TPMDTable & table, const Base & from, const Base & to){
+	//resize parameters
+	_parameters.resize(table.size() + 1); //include extra bin for sites beyond size (available in PMDTables)
+
+	//extract counts in PMD direction and the inverse direction
+	const countVec& pmdCounts = table[from][to];
+	const countVec& pmdSums = table[from].sums();
+	const countVec& invCounts = table[to][from];
+	const countVec& invSums = table[to].sums();
+
+	for(int p=0; p <= _parameters.size(); ++p){
+		if(pmdSums[p] == 0 || invSums[p] == 0){
+			_parameters[p] = 0.0;
+		} else {
+			double pmd = (double) pmdCounts[p] / pmdSums[p];
+			double inv = (double) invCounts[p] / invSums[p];
+
+			_parameters[p] = std::max(0.0, (pmd - inv)/(1.0 - inv)));
+		}
+	}
+};
+
+double TPMDFunctionEmpiric::prob(const uint16_t & pos) const{
+	if(pos < _parameters.size()) return _parameters[pos];
+	else return _parameters.back();
 };
 
 //------------------------------------------------------
 //TPMDDoubleStrand
 //------------------------------------------------------
-TPMDDoubleStrand::TPMDDoubleStrand(){
-	myFunctions[pmdCT] = nullptr;
-	functionsInitialized[pmdCT] = false;
-
-	myFunctions[pmdGA] = nullptr;
-	functionsInitialized[pmdGA] = false;
-};
-
-TPMDDoubleStrand::TPMDDoubleStrand(TParameters & params, TLog* logfile):TPMDDoubleStrand(){
-	initialize(params, logfile);
-};
-
-TPMDDoubleStrand::TPMDDoubleStrand(const TPMDDoubleStrand & other){
-    initialize(other);
-};
-
-TPMDDoubleStrand::TPMDDoubleStrand(TPMDDoubleStrand && other){
-	myFunctions[pmdCT] = other.myFunctions[pmdCT];
-	functionsInitialized[pmdCT] = other.functionsInitialized[pmdCT];
-	other.myFunctions[pmdCT] = nullptr;
-	other.functionsInitialized[pmdCT] = false;
-
-	myFunctions[pmdGA] = other.myFunctions[pmdGA];
-	functionsInitialized[pmdGA] = other.functionsInitialized[pmdGA];
-	other.myFunctions[pmdGA] = nullptr;
-	other.functionsInitialized[pmdGA] = false;
-};
-
-TPMDDoubleStrand::~TPMDDoubleStrand(){
-	if(functionsInitialized[pmdCT]) delete myFunctions[pmdCT];
-	if(functionsInitialized[pmdGA]) delete myFunctions[pmdGA];
-};
-
-void TPMDDoubleStrand::initialize(TParameters & params, TLog* logfile){
-    if(params.parameterExists("pmd")){
-		std::string pmdString = params.getParameterString("pmd");
-		logfile->list("Initializing PMD for both C->T and G->A with function '" + pmdString +"'.");
-		initializeFunction(pmdString, pmdGA);
-		initializeFunction(pmdString, pmdCT);
-		logfile->conclude(getFunctionString(pmdCT));
-		if(params.parameterExists("pmdCT")) logfile->warning("Ignoring argument 'pmdCT'!");
-		if(params.parameterExists("pmdGA")) logfile->warning("Ignoring argument 'pmdGA'!");
-
-	} else {
-		//first C->T
-		if(params.parameterExists("pmdCT")){
-			std::string pmdStringCT = params.getParameterString("pmdCT");
-			logfile->list("Initializing post mortem C->T damage with function '" + pmdStringCT +"'.");
-			initializeFunction(pmdStringCT, pmdCT);
-			logfile->conclude(getFunctionString(pmdCT));
-		} else myFunctions[pmdCT] = new TPMDFunction();
-
-		//second G->A
-		if(params.parameterExists("pmdGA")){
-			std::string pmdStringGA = params.getParameterString("pmdGA");
-			logfile->list("Initializing post mortem G->A damage with function '" + pmdStringGA +"'.");
-			initializeFunction(pmdStringGA, pmdGA);
-			logfile->conclude(getFunctionString(pmdGA));
-		} else myFunctions[pmdGA] = new TPMDFunction();
-	}
-};
-
-void TPMDDoubleStrand::initialize(const TPMDDoubleStrand & other){
-	for(int i=0; i<2; ++i){
-		if(functionsInitialized[i]) throw "PMD function has been initialized previously!";
-		other.myFunctions[i]->getCopy(myFunctions[i]);
-		functionsInitialized[i] = true;
-	}
-};
-
-void TPMDDoubleStrand::initializeFunction(std::string pmdString, PMDType type){
-	//parse string to get model.  options are
+void TPMDType::_initializeFunction(const std::string & pmdString, std::unique_ptr<TPMDFunction> & ptr){
+	//parse string to get model. Options are
 	// none
-	// Skoglund[lambda,c]
+	// Empiric[0.5,0.3,...]
+	// Skoglund[p,c]
 	// Exponential[a,b,c]
-	std::string example = "Use either Skoglund[p,c], Exponential[a,b,c] or Empiric[0.2,0.3,...]";
 
-    //check if function was initialized abefore
-	if(functionsInitialized[type]) throw "PMD function has been initialized previously!";
+	//extract function name
+	std::string name = readBefore(pmdString , '[');
 
-    //check if it is none
-	if(pmdString == "none"){
-		myFunctions[type] = new TPMDFunction();
+	if(name == PMDFunctionName_none){
+		ptr = std::make_unique<TPMDFunctionNoPMD>(pmdString);
+	} else if(name == PMDFunctionName_Skoglund){
+		ptr = std::make_unique<TPMDFunctionSkoglund>(pmdString);
+	} else if(name == PMDFunctionName_exponential){
+		ptr = std::make_unique<TPMDFunctionExponential>(pmdString);
+	} else if(name == PMDFunctionName_empiric){
+		ptr = std::make_unique<TPMDFunctionEmpiric>(pmdString);
 	} else {
-		std::string::size_type pos = pmdString.find_first_of('[');
-		if(pos == std::string::npos) throw "Can not initialize post mortem damage function '" + pmdString + "': wrong format!\n" + example;
-		std::string name = pmdString.substr(0,pos);
-		std::vector<std::string> pmdStringVec;
-		fillVectorFromStringWhiteSpace(pmdString, pmdStringVec);
-
-		//switch between functions
-		if(name == "Empiric"){
-			std::string::size_type endPos = pmdString.find_first_of(']');
-			if(endPos == std::string::npos || endPos != pmdString.length()-1) throw "Can not initialize post mortem damage function '" + pmdString + "': wrong format!\n" + example;
-			std::string list = pmdString.substr(pos+1, endPos-pos-1);
-			myFunctions[type] = new TPMDEmpiric(list, example);
-		} else {
-			//prepare first value
-			std::string tmp = pmdString.substr(pos+1, pmdString.length() - pos - 1);
-			pos = tmp.find_first_of(',');
-			if(pos == std::string::npos) throw "Can not initialize post mortem damage function '" + pmdString + "': wrong format!\n" + example;
-			double first = atof(tmp.substr(0, pos).c_str());
-
-			if(name == "Skoglund"){
-				//get lambda and
-				if(first < 0.0) throw "Can not initialize Skoglund function with lambda < 0!";
-				if(first > 1.0) throw "Can not initialize Skoglund function with lambda > 1!";
-				double c = atof(tmp.substr(pos+1).c_str());
-				if(c < 0.0) throw "Can not initialize Skoglund function with c < 0!";
-				myFunctions[type] = new TPMDSkoglund(first, c);
-			} else if(name == "Exponential"){
-				//get b
-				tmp = tmp.substr(pos+1);
-				pos = tmp.find_first_of(',');
-				if(pos == std::string::npos) throw "Can not initialize post mortem damage function '" + pmdString + "': wrong format!\n" + example;
-				double b = atof(tmp.substr(0, pos).c_str());
-				if(b < 0.0) throw "Can not initialize Exponential function with b < 0!";
-
-				//get c
-				double c = atof(tmp.substr(pos+1).c_str());
-				if(c < 0.0) throw "Can not initialize Exponential function with c < 0!";
-
-				//test if it can be > 1
-				//if(first + c > 1) throw "Can not initialize Exponential function with a + c > 1!";
-
-				//initialze
-				myFunctions[type] = new TPMDExponential(first, b, c);
-			} else throw "Can not initialize post mortem damage function '" + pmdString + "': wrong name!\n" + example;
-		}
+		throw "Cannot initialize PMD function: unknown function '" + name + "'!. Use either " + PMDFunctionName_none + ", " + PMDFunctionName_Skoglund + ", " + PMDFunctionName_exponential + " or " + PMDFunctionName_empiric + ".";
 	}
-	functionsInitialized[type] = true;
 };
 
-void TPMDDoubleStrand::fillBaseLikelihoods(const BAM::TBase & base, const TBaseData & baseLikelihoodsNoPMD, TBaseData & baseLikelihoods) const{
+TPMDTypeDoubleStrand::TPMDTypeDoubleStrand(const std::string & string){
+	//expect string pmdCT;pmdGA
+	std::vector<std::string> tmp;
+	fillVectorFromString(string, tmp, ';');
+	if(tmp.size() != 2){
+		throw "Cannot initialize PMD type " + PMDTypeName_doubleStrand + ": expect 2 functions but found " + tmp.size() + "!\nFunctions should be separated by ';'.\nProvided string: '" + string + "'.";
+	}
+
+	_initializeFunction(tmp[0], pmdCT);
+	_initializeFunction(tmp[1], pmdGA);
+};
+
+std::string TPMDTypeDoubleStrand::functionString() const{
+	return pmdCT->string() + ";" + pmdGA->string();
+};
+
+void TPMDTypeDoubleStrand::fillBaseLikelihoods(const BAM::TBase & base, const TBaseData & baseLikelihoodsNoPMD, TBaseData & baseLikelihoods) const{
+	//Note: distances are as in original fragment (not BAM file), i.e. in direction of sequencing
 	//no PMD for A and C
 	baseLikelihoods[A] = baseLikelihoodsNoPMD[A];
 	baseLikelihoods[T] = baseLikelihoodsNoPMD[T];
@@ -720,11 +511,11 @@ void TPMDDoubleStrand::fillBaseLikelihoods(const BAM::TBase & base, const TBaseD
 	//get relevant PMD probabilities
 	double pmdProb_CT, pmdProb_GA;
 	if(!base.isReverseStrand()){
-		pmdProb_CT = myFunctions[pmdCT]->getProb(base.distFrom5Prime);
-		pmdProb_GA = myFunctions[pmdCT]->getProb(base.distFrom3Prime);
+		pmdProb_CT = pmdCT->prob(base.distFrom5Prime);
+		pmdProb_GA = pmdGA->prob(base.distFrom3Prime);
 	} else {
-		pmdProb_CT = myFunctions[pmdCT]->getProb(base.distFrom3Prime);
-		pmdProb_GA = myFunctions[pmdCT]->getProb(base.distFrom5Prime);
+		pmdProb_CT = pmdCT->prob(base.distFrom3Prime);
+		pmdProb_GA = pmdGA->prob(base.distFrom5Prime);
 	}
 
 	//add PMD
@@ -739,67 +530,61 @@ TPostMortemDamage::TPostMortemDamage(){
 	_hasPMD = false;
 };
 
-PMDType TPostMortemDamage::getEnumPMDType(std::string pmdType){
-	if(pmdType == "CT")
-		return pmdCT;
-	else if(pmdType == "GA")
-		return pmdGA;
-	else if(pmdType == "GT")
-		return pmdGT;
-	else if(pmdType == "CA")
-		return pmdCA;
-	else {
-		throw "unknown pmdType: " + pmdType + "!";
+void TPostMortemDamage::writeToFile(const BAM::TReadGroups & ReadGroups, const std::string filename){
+	std::vector<std::string> header = {"ReadGroup", "Type", "Functions"};
+	TOutputFile out(filename, header);
+
+	//write for each read group
+	for(auto& r = ReadGroups.cbegin(); r != ReadGroups.cend(); ++r){
+		out << r->name_ID << _pmdObjects[r->id]->type() << _pmdObjects[r->id]->functionString() << std::endl;
 	}
 };
 
-void TPostMortemDamage::initializeFromFile(BAM::TReadGroups & ReadGroups, const std::string filename, TLog* logfile){
+void TPostMortemDamage::_createPMDType(const std::string & type, const std::string & functions, std::unique_ptr<TPMDType> & ptr){
+	//switch type
+	if(type == PMDTypeName_none){
+		ptr = std::make_unique<TPMDTypeNone>();
+	} else if(type == PMDTypeName_doubleStrand){
+		ptr = std::make_unique<TPMDTypeDoubleStrand>(functions);
+	} else {
+		throw "Cannot initialize PMD: unknown PMD type '" + type + "'!"
+			 +"\nUse " + PMDTypeName_none + " or " + PMDTypeName_doubleStrand + ".";
+	}
+};
+
+void TPostMortemDamage::_initializeFromFile(BAM::TReadGroups & ReadGroups, const std::string filename, TLog* logfile){
 	//create an array of TPMD objects for each read group
+	//also works if no parameters are provided (e.g. for estimation)
 	_pmdObjects.resize(ReadGroups.size());
 
 	//read from file for each read group
-	logfile->listFlush("Initializing PMD from file '" + filename + "' ...");
-	std::ifstream file(filename.c_str());
-	if(!file) throw "Failed to open PMD file '" + filename + "'!";
-
-	//parse file that has structure: readGroup PMD(CT) PMD(GA)
-	int lineNum = 0;
-	std::string line;
-	std::vector<std::string> vec;
-	uint16_t readGroupId;
-	while(file.good() && !file.eof()){
-		++lineNum;
-		//skip empty lines or those that start with //
-		std::getline(file, line);
-		line = extractBefore(line, "//");
-		trimString(line);
-		if(!line.empty()){
-			fillVectorFromStringWhiteSpace(line, vec,true);
-			if(vec.size() != 3) throw "Found " + toString(vec.size()) + " instead of 3 columns in '" + filename + "' on line " + toString(lineNum) + "!";
-			if(ReadGroups.readGroupExists(vec[0])){ //ignore if it does not exist
-				//get read group and PMD type
-				readGroupId = ReadGroups.getId(vec[0]);
-				PMDType pmdType = getEnumPMDType(vec[1]);
-				//initialize functions
-				_pmdObjects[readGroupId].initializeFunction(vec[2], pmdType);
-			}
-		}
+	TInputFile in(filename, header);
+	if(in.numCols() != 3){
+		throw "PMD file has the wrong format: expect three columns (read group, PMD type, PMD Functions) but found " + toString(in.numCols()) + "!";
 	}
 
-	//close file
-	file.close();
+	//parse file that has structure: ReadGroup, Type, Functions
+	std::vector<std::string> vec;
+	while(in.read(vec)){
+		if(ReadGroups.readGroupExists(vec[0])){ //ignore if it does not exist
+			//get read group
+			uint16_t readGroupId = ReadGroups.getId(vec[0]);
+
+			//create type
+			_createPMDType(vec[1], vec[2], _pmdObjects[readGroupId]);
+		}
+	}
 	logfile->done();
 
 	//test if we have a function for all read groups
 	for(uint16_t i=0; i<ReadGroups.size(); ++i){
-		if(!_pmdObjects[i].functionInitialized(pmdCT)) throw "PMD C->T for read group '" + ReadGroups.getName(i) + "' is missing in file '" + filename + "'!";
-		if(!_pmdObjects[i].functionInitialized(pmdGA)) throw "PMD G->A for read group '" + ReadGroups.getName(i) + "' is missing in file '" + filename + "'!";
+		if(!_pmdObjects[i]) throw "PMD not defined for read group '" + ReadGroups.getName(i) + "' in file '" + filename + "'!";
 	}
 
 	//check if there is PMD for at least one read group
 	_hasPMD = false;
 	for(auto& p : _pmdObjects){
-		if(p.hasDamage()){
+		if(p->hasDamage()){
 			_hasPMD = true;
 			break;
 		}
@@ -807,26 +592,42 @@ void TPostMortemDamage::initializeFromFile(BAM::TReadGroups & ReadGroups, const 
 };
 
 void TPostMortemDamage::initialize(TParameters & params, BAM::TReadGroups & ReadGroups, TLog* logfile){
-	if(params.parameterExists("pmd") || params.parameterExists("pmdCT") || params.parameterExists("pmdGA")){
-		//all read groups have the same pmd
-		logfile->startIndent("Initializing one PMD function for all read groups:");
-		_pmdObjects.resize(ReadGroups.size());
-		_pmdObjects[0].initialize(params, logfile);
+	if(params.parameterExists("pmd")){
+		std::string pmdString = params.getParameterString("pmd");
 
-		for(size_t i=1; i<ReadGroups.size(); ++i)
-			_pmdObjects[i].initialize(_pmdObjects[0]);
-		_hasPMD = true;
-		logfile->endIndent();
-	} else if(params.parameterExists("pmdFile")){
-		initializeFromFile(ReadGroups, params.getParameterString("pmdFile"), logfile);
+		//expect either a file name or a type of the form "type:functions"
+		//check if it is a file
+		if(stringContains(pmdString, ":")){
+			//not a file: initialize all read groups have the same pmd
+			logfile->startIndent("PMD function used for all read groups (parameter pmd):");
+
+			std::vector<std::string> tmp;
+			fillVectorFromString(pmdString, tmp, ':');
+			if(tmp.size() != 2){
+				throw "Unable to understand PMD string '" + pmdString + "': expect format type:functions.";
+			}
+
+			_pmdObjects.resize(ReadGroups.size());
+			for(size_t i=0; i<ReadGroups.size(); ++i){
+				_createPMDType(tmp[0], tmp[1], _pmdObjects[i]);
+			}
+			_hasPMD = true;
+			logfile->list(_pmdObjects[0]->type() + ":" + _pmdObjects[0]->functionString());
+			logfile->endIndent();
+		} else {
+			//probably a file
+			logfile->listFlush("Initializing PMD from file '" + pmdString + "' (parameter pmd) ...");
+			_initializeFromFile(ReadGroups, pmdString, logfile);
+			logfile->done();
+		}
 	} else {
 		logfile->list("Assuming there is no PMD in the data. (use 'pmd' to add PMD definitions)");
 	}
 };
 
 void TPostMortemDamage::calculateBaseLikelihoods(const BAM::TBase & base, const TBaseData & baseLikelihoodsNoPMD, TBaseData & baseLikelihoods) const{
-	if(_hasPMD && _pmdObjects[ base.readGroupID ].hasDamage()){
-		_pmdObjects[ base.readGroupID ].fillBaseLikelihoods(base, baseLikelihoodsNoPMD, baseLikelihoods);
+	if(_hasPMD){
+		_pmdObjects[ base.readGroupID ]->fillBaseLikelihoods(base, baseLikelihoodsNoPMD, baseLikelihoods);
 	} else {
 		//just copy
 		baseLikelihoods = baseLikelihoodsNoPMD;

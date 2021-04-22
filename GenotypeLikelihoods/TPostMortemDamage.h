@@ -8,208 +8,162 @@
 #ifndef TPOSTMORTEMDAMAGE_H_
 #define TPOSTMORTEMDAMAGE_H_
 
-#include <math.h>
-#include "TReadGroups.h"
-#include "TGenotypeMap.h"
+
+#include "TPMDTables.h"
 #include "TSite.h"
-#include "auxiliaryTools.h"
+//#include "auxiliaryTools.h"
+
+#include <math.h>
 #include <algorithm>
-#include "TBase.h"
 #define ARMA_DONT_PRINT_ERRORS
 #include <armadillo>
 
 
 namespace GenotypeLikelihoods{
 
-enum PMDType {pmdCT=0, pmdGA, pmdGT, pmdCA};
+#define PMDFunctionName_none "none"
+#define PMDFunctionName_empiric "Empiric"
+#define PMDFunctionName_exponential "Exponential"
+#define PMDFunctionName_Skoglund "Skoglund"
 
-
-//---------------------------------------------------------------
-//TPMDTable
-//---------------------------------------------------------------
-class TPMDTable{
-private:
-	long*** counts; //they are [read group][reference][read]
-	long** sums;
-	bool sumsCalculated;
-	int maxLength;
-	TGenotypeMap genoMap;
-
-	void calculateSums();
-	void deleteSums();
-	void fillFAndJacobian(arma::vec & F, arma::mat & J, Base & from, Base & to, double* oldParams);
-	void fillF(arma::vec & F, Base & from, Base & to, double* oldParams);
-	double calcLL(Base & from, Base & to, double* oldParams);
-
-public:
-	TPMDTable(int MaxLength);
-	~TPMDTable();
-	void empty();
-	void add(const int & pos, const Base & ref, const Base & read);
-	void writeTable(std::ofstream & out, std::string prefix);
-	void writeTableWithCounts(std::ofstream & out, std::string prefix);
-	std::string getPMDString(const Base first, const Base second);
-	std::string fitExponentialModel(Base from, Base to, int & numNRIterations, double & eps, std::string readGroupName, int maxReadLength, TLog* logfile);
-};
-
-class TPMDTables{
-private:
-	BAM::TReadGroupMap* readGroupMap;
-	BAM::TReadGroups* readGroups;
-	int maxReadLength;
-	int origNumReadGroups;
-	int numReadGroups;
-	TPMDTable** forward;
-	TPMDTable** reverse;
-	bool _initialized;
-
-public:
-	TPMDTables();
-	TPMDTables(BAM::TReadGroups* ReadGroups, int maxLengthForInference, int MaxReadLength, BAM::TReadGroupMap* ReadGroupMapObject);
-	~TPMDTables();
-
-	void initialize(BAM::TReadGroups* ReadGroups, int maxLengthForInference, int MaxReadLength, BAM::TReadGroupMap* ReadGroupMapObject);
-
-	void addFromFivePrime(const uint16_t readGroup, const uint16_t pos, const Base & ref, const Base & read);
-	void addFromThreePrime(const uint16_t readGroup, const uint16_t pos, const Base & ref, const Base & read);
-	void writePMDFile(std::string filename);
-	void writeTable(std::string filename);
-	void writeTableWithCounts(std::string filename);
-	void fitExponentialModel(int numNRIterations, double eps, std::string & filename, TLog* logfile);
-};
+#define PMDTypeName_none "none"
+#define PMDTypeName_singleStrand "singleStrand"
+#define PMDTypeName_doubleStrand "doubleStrand"
 
 
 //---------------------------------------------------------------
 //TPMDFunction
 //---------------------------------------------------------------
-//Note: Base class is to be used when there is no PMD!
+//pure abstract base class
 class TPMDFunction{
 protected:
-	std::string functionName;
+	std::vector<double> _parameters;
+	void _parseParameters(const std::string & s);
 
-	virtual void setName(){ functionName = "noPMD"; };
 public:
-	TPMDFunction(){ setName(); };
-	TPMDFunction(TPMDFunction & other){
-		setName();
-	};
-	virtual ~TPMDFunction(){};
-	virtual void getCopy(TPMDFunction* & pointer){
-		pointer = new TPMDFunction();
-	};
-	virtual double getProb(const uint16_t & pos) const{
-		return 0.0;
-	};
-	virtual std::string getString() const{ return "P(pmd|pos) = 0.0"; };
-	virtual std::string getFunctionName() const{ return functionName; };
-	virtual bool hasDamage() const{ return false; };
+	TPMDFunction() = default;
+	virtual ~TPMDFunction() = default;
+
+	virtual bool hasDamage() const = 0;
+	virtual std::string name() const = 0;
+	virtual std::string example() = 0;
+
+	virtual void learn(const TPMDTable & table, const Base & from, const Base & to) = 0;
+	std::string string(){ return name() + "[" + concatenateString(_parameters, ",") + "]"; };
+
+	virtual double prob(const uint16_t & pos) const = 0;
 };
 
-class TPMDSkoglund:public TPMDFunction{
-private:
-	double lambda, c;
-
-protected:
-	void setName(){ functionName = "Skoglund"; };
-
+class TPMDFunctionNoPMD: public TPMDFunction{
 public:
-	TPMDSkoglund(double & Lambda, double & C);
-	TPMDSkoglund(TPMDSkoglund & other){
-		setName();
-		lambda = other.lambda;
-		c = other.lambda;
-	};
-	~TPMDSkoglund(){};
-	void getCopy(TPMDFunction* & pointer){
-		pointer = new TPMDSkoglund(lambda, c);
-	};
-	double getProb(const uint16_t & pos) const;
-	std::string getString() const;
-	bool hasDamage() const{ return true; };
+	TPMDFunctionNoPMD(const std::string & string);
+	~TPMDFunctionNoPMD() = default;
+
+	bool hasDamage() const override { return false; };
+	std::string name() const override { return PMDFunctionName_none; };
+	std::string example(){ return PMDFunctionName_none; };
+
+	void learn(const TPMDTable & table, const Base & from, const Base & to){};
+
+	double prob(const uint16_t & pos) const override { return 0.0; };
 };
 
-class TPMDExponential:public TPMDFunction{
-private:
-	double a,b,c;
-
-protected:
-	void setName(){ functionName = "Exponential"; };
-
+class TPMDFunctionSkoglund:public TPMDFunction{
 public:
-	TPMDExponential(double & A, double & B, double & C);
-	TPMDExponential(TPMDExponential & other){
-		setName();
-		a = other.a;
-		b = other.b;
-		c = other.c;
-	};
-	~TPMDExponential(){};
-	void getCopy(TPMDFunction* & pointer){
-		pointer = new TPMDExponential(a, b, c);
-	};
-	double getProb(const uint16_t & pos) const;
-	std::string getString() const;
-	bool hasDamage() const{ return true; };
+	TPMDFunctionSkoglund(const std::string & string);
+	~TPMDFunctionSkoglund() = default;
+
+	bool hasDamage() const override { return true; };
+	std::string name() const override { return PMDFunctionName_Skoglund; };
+	std::string example(){ return std::string(PMDFunctionName_Skoglund) + "[p,c]"; };
+
+	void learn(const TPMDTable & table, const Base & from, const Base & to);
+
+	double prob(const uint16_t & pos) const override;
 };
 
-class TPMDEmpiric:public TPMDFunction{
-private:
-	int length;
-	std::vector<double> probs;
-	double last;
+class TPMDFunctionExponential:public TPMDFunction{
+public:
+	TPMDFunctionExponential(const std::string & string);
+	~TPMDFunctionExponential() = default;
 
+	bool hasDamage() const override { return true; };
+	std::string name() const override { return PMDFunctionName_exponential; };
+	std::string example(){ return std::string(PMDFunctionName_exponential) + "[a,b,c]"; };
+
+	void learn(const TPMDTable & table, const Base & from, const Base & to);
+
+	double prob(const uint16_t & pos) const override;
+};
+
+class TPMDFunctionEmpiric:public TPMDFunction{
+public:
+	TPMDFunctionEmpiric(const std::string & string);
+	~TPMDFunctionEmpiric(){};
+
+	bool hasDamage() const override { return true; };
+	std::string name() const override { return PMDFunctionName_empiric; };
+	std::string example(){ return std::string(PMDFunctionName_empiric) + "[p1,p2,...]"; };
+
+	void learn(const TPMDTable & table, const Base & from, const Base & to);
+
+	double prob(const uint16_t & pos) const override;
+};
+
+//------------------------------------------------
+// TPMDType
+// pure abstract base class
+//------------------------------------------------
+class TPMDType{
 protected:
-	void setName(){ functionName = "Empiric"; };
+	void _initializeFunction(const std::string & pmdString, std::unique_ptr<TPMDFunction> & ptr);
 
 public:
-	TPMDEmpiric(std::string & values, std::string & example);
-	TPMDEmpiric(std::vector<double> Probs);
-	~TPMDEmpiric(){};
-	void getCopy(TPMDFunction* & pointer){
-		pointer = new TPMDEmpiric(probs);
+	TPMDType() = default;
+	virtual ~TPMDType() = default;
+
+	virtual bool hasDamage() const = 0;
+	virtual std::string type() const = 0;
+	virtual std::string functionString() const = 0;
+
+	virtual void fillBaseLikelihoods(const BAM::TBase & base, const TBaseData & baseLikelihoodsNoPMD, TBaseData & baseLikelihoods) const = 0;
+};
+
+//------------------------------------------------
+// TPMDTypeNone
+//------------------------------------------------
+class TPMDTypeNone: public TPMDType{
+public:
+	TPMDTypeNone() = default;
+	~TPMDTypeNone() = default;
+
+	bool hasDamage() const override { return false; };
+	std::string type() const override { return PMDTypeName_none; };
+	std::string functionString() const override { return "none"; };
+
+	void fillBaseLikelihoods(const BAM::TBase & base, const TBaseData & baseLikelihoodsNoPMD, TBaseData & baseLikelihoods) const override {
+		//just copy
+		baseLikelihoods = baseLikelihoodsNoPMD;
 	};
-	double getProb(const uint16_t & pos) const;
-	std::string getString() const;
-	bool hasDamage() const{ return true; };
 };
 
 //------------------------------------------------------
-//TPMDDoubleStrand
+//TPMDTypeDoubleStrand
 //------------------------------------------------------
-class TPMDDoubleStrand{
+class TPMDTypeDoubleStrand:public TPMDType{
 private:
-	TPMDFunction* myFunctions[2];
-	bool functionsInitialized[2];
+	std::unique_ptr<TPMDFunction> pmdCT;
+	std::unique_ptr<TPMDFunction> pmdGA;
 
 public:
-	TPMDDoubleStrand();
-	TPMDDoubleStrand(TParameters & params, TLog* logfile);
-	TPMDDoubleStrand(const TPMDDoubleStrand & other);
-	TPMDDoubleStrand(TPMDDoubleStrand && other);
+	TPMDTypeDoubleStrand(const std::string & string);
+	~TPMDTypeDoubleStrand() = default;
 
-	~TPMDDoubleStrand();
+	bool hasDamage() const override { return pmdCT->hasDamage() || pmdGA->hasDamage(); };
+	std::string type() const override { return PMDTypeName_doubleStrand; };
+	std::string functionString() const override;
 
-	void initialize(TParameters & params, TLog* logfile);
-	void initialize(const TPMDDoubleStrand & other);
-	void initializeFunction(std::string pmdString, PMDType type);
-
-	//for getProb: distance is zero based!!! TODO: remove these functions
-	double getProb(const uint16_t pos, PMDType type) const{ return myFunctions[type]->getProb(pos); };
-	double getProbFivePrime(const uint16_t pos) const{ return myFunctions[pmdCT]->getProb(pos); };
-	double getProbThreePrime(const uint16_t pos) const{ return myFunctions[pmdGA]->getProb(pos); };
-
-	std::string getFunctionString(PMDType type) const{ return myFunctions[type]->getString(); };
-	bool functionInitialized(PMDType type) const{
-		return functionsInitialized[type];
-	};
-	bool hasDamage() const{ return myFunctions[pmdCT]->hasDamage() || myFunctions[pmdGA]->hasDamage(); };
-	bool hasDamageCT() const{ return myFunctions[pmdCT]->hasDamage(); };
-	bool hasDamageGA() const{ return myFunctions[pmdGA]->hasDamage(); };
-
-	void fillBaseLikelihoods(const BAM::TBase & base, const TBaseData & baseLikelihoodsNoPMD, TBaseData & baseLikelihoods) const;
-
-//	double getProbPMD(int readGroup, Base & ref, Base & read, double & pmdCT, double & pmdGA, double & errorRate);
-//	double getProbNoPMD(int readGroup, Base & ref, Base & read, double & pmdCT, double & pmdGA, double & errorRate);
+	void fillBaseLikelihoods(const BAM::TBase & base, const TBaseData & baseLikelihoodsNoPMD, TBaseData & baseLikelihoods) const override;
 };
 
 //------------------------------------------------------
@@ -217,16 +171,21 @@ public:
 //------------------------------------------------------
 class TPostMortemDamage{
 private:
-	std::vector<TPMDDoubleStrand> _pmdObjects;
+	std::vector< std::unique_ptr<TPMDType> > _pmdObjects;
 	bool _hasPMD;
 
-	PMDType getEnumPMDType(std::string pmdType);
-	void initializeFromFile(BAM::TReadGroups & ReadGroups, const std::string filename, TLog* logfile);
+	void _createPMDType(const std::string & type, const std::string & functions, std::unique_ptr<TPMDType> & ptr);
+	void _initializeFromFile(BAM::TReadGroups & ReadGroups, const std::string filename, TLog* logfile);
+
 
 public:
 	TPostMortemDamage();
 	bool hasPMD() const{ return _hasPMD; };
+
 	void initialize(TParameters & params, BAM::TReadGroups & ReadGroups, TLog* logfile);
+
+	void writeToFile(const BAM::TReadGroups & ReadGroups, const std::string filename);
+
 	void calculateBaseLikelihoods(const BAM::TBase & base, const TBaseData & baseLikelihoodsNoPMD, TBaseData & baseLikelihoods) const;
 };
 

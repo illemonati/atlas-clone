@@ -112,11 +112,11 @@ void TGenome_parsed::_openReference(bool required){
 	if(!_reference.hasReference()){
 		if(_params->parameterExists("fasta")){
 			std::string fastaFile = _params->getParameterString("fasta");
-			_logfile->list("Reading reference sequence from '" + fastaFile + "'");
+			_logfile->list("Reading reference sequence from '" + fastaFile + "'. (parameter fasta)");
 			_reference.initialize(fastaFile, &_genoMap);
 		} else {
 			if(required){
-				throw "No reference provided! Use parameter 'fasta' to provide a reference fasta file.";
+				throw "No reference provided! (Use parameter fasta to provide a reference)";
 			}
 		}
 	}
@@ -243,10 +243,11 @@ void TGenome_windows::_setWindowParameters(TParameters & params){
 	if(stringIsProbablyANumber(tmp)){
 		_windowSize = convertString<int>(tmp);
 		_logfile->list("Setting window size to " + toString(_windowSize) + ". (parameter 'window')");
-		if(_windowSize < _bamFile.maxReadLength())
+		if(_windowSize < _bamFile.maxReadLength()){
 			throw "Window size " + tmp + " out of range! Windows must be at least as large as the max read length (" + toString(_bamFile.maxReadLength()) + " bp). (use parameter 'maxReadLength' to change)!";
+		}
 	} else {
-		_logfile->listFlush("Limiting analysis to windows defined in BED file '" + tmp + "'...");
+		_logfile->listFlush("Limiting analysis to windows defined in BED file '" + tmp + "' (parameter window) ...");
 		_predefinedWindows.add(tmp, _chromosomes);
 		_logfile->done();
 		_logfile->conclude("Read " + toString(_predefinedWindows.size()) + " of cumulative length " + toString(_predefinedWindows.length()) + " bp on " + toString(_predefinedWindows.numChromosomesWithWindows()) + " chromosomes.");

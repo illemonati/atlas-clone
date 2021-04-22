@@ -116,7 +116,7 @@ void TPileup::_handleWindow(){
 		GenotypeLikelihoods::TSite& site = *it;
 
 		out << _window.chrName();
-		out << _window.positionOnChr(pos);
+		out << _window.positionOnChr(pos) + 1; //positions are zero-based internally
 
 		//reference
 		if(_reference){

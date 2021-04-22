@@ -69,7 +69,7 @@ void TFastaBuffer::fill(const TGenomePosition & Position, const uint32_t & Lengt
 };
 
 void TFastaBuffer::fill(const TGenomePosition & Start, const TGenomePosition & End, std::string & ref) const{
-	fill(Start, Start - End + 1, ref);
+	fill(Start, End - Start + 1, ref);
 };
 
 /*
