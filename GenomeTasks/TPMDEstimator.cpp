@@ -21,22 +21,11 @@ TPMDEstimator::TPMDEstimator(TParameters & Parameters, TLog* Logfile, TRandomGen
 
 	//prepare PMD table
 	_maxLengthForInference = Parameters.getParameterIntWithDefault("length", 50);
-	_logfile->list("Estimating PMD at the first " + toString(_maxLengthForInference) + " positions.");
-
-	if(Parameters.parameterExists("onlyEmpiric")){
-		_logfile->list("Not fitting exponential models. (parameter 'onlyEmpiric')");
-		_estimateExponential = false;
-	} else {
-		_logfile->startIndent("Will estimate exponential PMD models: (use 'onlyEmpiric' to turn off)");
-		_eps = Parameters.getParameterDoubleWithDefault("eps", 0.001);
-		_logfile->list("Will consider the Newton-Raphson algorithm to have converged if the likelihood difference < " + toString(_eps) + ". (parameter 'eps')");
-		_numNRIterations = Parameters.getParameterIntWithDefault("numNRIterations", 100);
-		_logfile->list("Will run up to " + toString(_numNRIterations) + " Newton-Raphson iterations. (parameter 'numNRIterations)");
-		_logfile->endIndent();
-		_estimateExponential = true;
-	}
-
+	_logfile->list("Estimating PMD from the first " + toString(_maxLengthForInference) + " positions.");
 	_pmdTables.initialize(&_bamFile.readGroupsMutable(), _maxLengthForInference, _bamFile.maxReadLength(), _readGroupMap);
+
+	//create PMD objects
+	_pmd.initialize(Parameters, _bamFile.readGroupsMutable(), Logfile);
 };
 
 TPMDEstimator::~TPMDEstimator(){
@@ -53,30 +42,45 @@ void TPMDEstimator::_handleAlignment(){
 };
 
 void TPMDEstimator::estimatePMD(){
-	//traverse BAM
-	_traverseBAMPassedQC();
+	//check if PMD must be estimated
+	if(!_pmd.hasPMD()){
+		_logfile->list("Data has no PMD. Aborting estimation.");
+	} else {
+		//estimate PMD
+		//traverse BAM
+		_traverseBAMPassedQC();
 
-	//print tables and data
-	std::string filename = _outputName + "_PMD_Table.txt";
-	_logfile->listFlush("Writing PMD table to '" + filename + "' ...");
-	_pmdTables.writeTable(filename);
-	_logfile->done();
-	filename = _outputName + "_PMD_Table_counts.txt";
-	_logfile->listFlush("Writing PMD table of counts to '" + filename + "' ...");
-	_pmdTables.writeTableWithCounts(filename);
-	_logfile->done();
-	filename = _outputName + "_PMD_input_Empiric.txt";
-	_logfile->listFlush("Writing PMD input file to '" + filename + "' ...");
-	_pmdTables.writePMDFile(filename);
-	_logfile->done();
+		//print PMD tables
+		_logfile->startIndent("Writing PMD tables:");
 
-	//estimate exponential model
-	if(_estimateExponential){
-		filename = _outputName + "_PMD_input_Exponential.txt";
-		_logfile->listFlush("Estimating PMD exponential models and writing them to '" + filename + "' ...");
-		_pmdTables.fitExponentialModel(_numNRIterations, _eps, filename, _logfile);
+		//counts
+		filename = _outputName + "_PMD_counts.txt";
+		_logfile->listFlush("Writing PMD counts to '" + filename + "' ...");
+		_pmdTables.write(filename, false);
 		_logfile->done();
+
+		//normalized counts
+		std::string filename = _outputName + "_PMD_countsNormalized.txt";
+		_logfile->listFlush("Writing PMD normalized counts to '" + filename + "' ...");
+		_pmdTables.writeTable(filename);
+		_logfile->done();
+		_logfile->endIndent();
+
+		//estimate models
+		_logfile->startIndent("Estimating PMD functions:");
+
+
+			_logfile->listFlush("Estimating PMD exponential models and writing them to '" + filename + "' ...");
+			_pmdTables.fitExponentialModel(_numNRIterations, _eps, filename, _logfile);
+			_logfile->done();
+
+			_logfile->endIndent();
+		}
 	}
+
+	//writing PMD file
+	std::string filename = _outputName + "_ PMD.txt";
+	_pmd.writeToFile(_bamFile.readGroupsMutable(), filename);
 };
 
 }; // end namespace

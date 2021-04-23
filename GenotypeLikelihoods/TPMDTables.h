@@ -29,7 +29,8 @@ class TPMDCounts{
 private:
 	countVec _counts[4]; //_counts[A,C,G,T][position] are counts to (read)
 	countVec _sums; //_sums[b] = sum_b _counts[b][p]
-	uint16_t _size; //pos-specific up 0, 1, ..., _size - 1, then lumped into an extra bin
+	uint16_t _size; //pos-specific for 0, 1, ..., _size - 2, then lumped into an extra bin (_size-1)
+	uint16_t _sizeMinusOne;
 
 	void _add(const uint16_t & pos, const Base & read);
 	void _writeNormalizedOne(TOutputFile & out, countVec & these);
@@ -37,13 +38,16 @@ private:
 public:
 	TPMDCounts(){
 		_size = 0;
+		_sizeMinusOne = 0;
 	};
+	TPMDCounts(const TPMDCounts & other) = default;
 	~TPMDCounts() = default;
 
 	uint16_t size() const { return _size; }
 	void resize(const uint16_t & Size);
 	void empty();
 	void add(const uint16_t & pos, const Base & read);
+	void add(const TPMDCounts & other);
 
 	const countVec& operator[](const Base & b) const{
 		return _counts[b];
@@ -117,6 +121,7 @@ public:
 	~TPMDTables(){};
 
 	void initialize(BAM::TReadGroups* ReadGroups, int maxLengthForInference, int MaxReadLength, BAM::TReadGroupMap* ReadGroupMapObject);
+	const TPMDTableReadGroup& operator[](const uint16_t & ReadGroupID) const;
 
 	void add(const BAM::TBase & base, const Base & reference);
 	void write(std::string filename, const bool & normalize);

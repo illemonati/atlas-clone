@@ -34,7 +34,7 @@ public:
 //--------------------------------------
 class TTask_depthWriter:public TTask{
 public:
-	TTask_depthWriter(){ _explanation = "Estimating the distribution fo depth amogn sites and writing depth per window"; };
+	TTask_depthWriter(){ _explanation = "Estimating the distribution of depth among sites and writing depth per window"; };
 
 	void run(TParameters & Parameters, TLog* Logfile){
 		TDepthWriter depthWriter(Parameters, Logfile, _randomGenerator);

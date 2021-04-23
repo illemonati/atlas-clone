@@ -23,9 +23,7 @@ private:
 	uint16_t _maxLengthForInference;
 	BAM::TReadGroupMap* _readGroupMap;
 	GenotypeLikelihoods::TPMDTables _pmdTables;
-	bool _estimateExponential;
-	double _eps;
-	uint16_t _numNRIterations;
+	GenotypeLikelihoods::TPostMortemDamage _pmd;
 
 	void _handleAlignment();
 

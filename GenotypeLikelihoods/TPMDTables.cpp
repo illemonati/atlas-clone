@@ -18,11 +18,11 @@ void TPMDCounts::_add(const uint16_t & pos, const Base & read){
 };
 void TPMDCounts::resize(const uint16_t & Size){
 	_size = Size;
-	_counts[A].resize(_size + 1, 0);
-	_counts[G].resize(_size + 1, 0);
-	_counts[C].resize(_size + 1, 0);
-	_counts[T].resize(_size + 1, 0);
-	_sums.resize(_size + 1, 0);
+	_counts[A].resize(_size, 0);
+	_counts[G].resize(_size, 0);
+	_counts[C].resize(_size, 0);
+	_counts[T].resize(_size, 0);
+	_sums.resize(_size, 0);
 };
 
 void TPMDCounts::empty(){
@@ -34,15 +34,27 @@ void TPMDCounts::empty(){
 };
 
 void TPMDCounts::add(const uint16_t & pos, const Base & read){
-	if(pos < _size){
+	if(pos < _sizeMinusOne){
 		_add(pos, read);
 	} else {
-		_add(_size, read);
+		_add(_sizeMinusOne, read);
+	}
+};
+
+void TPMDCounts::add(const TPMDCounts & other){
+	if(_size != other._size){
+		for(uint16_t i = 0; i< _size; ++i){
+			_counts[A][i] += other._counts[A][i];
+			_counts[C][i] += other._counts[C][i];
+			_counts[G][i] += other._counts[G][i];
+			_counts[T][i] += other._counts[T][i];
+			_sums[i] += other._sums[i];
+		}
 	}
 };
 
 void TPMDCounts::_writeNormalizedOne(TOutputFile & out, countVec & these){
-	for(uint16_t i = 0; i<= _size; ++i){
+	for(uint16_t i = 0; i< _size; ++i){
 		out << (double) these[i] / (double) _sums[i];
 	}
 	out << std::endl;
@@ -161,6 +173,10 @@ void TPMDTables::initialize(BAM::TReadGroups* ReadGroups, int tableLength, int M
 	numReadGroups = readGroupMap->getNumReadGroups();
 
 	_tables.resize(numReadGroups, TPMDTableReadGroup(_tableLength));
+};
+
+const TPMDTableReadGroup& TPMDTables::operator[](const uint16_t & ReadGroupID) const{
+	return _tables[readGroupMap->getIndex(ReadGroupID)];
 };
 
 void TPMDTables::add(const BAM::TBase & base, const Base & reference){
