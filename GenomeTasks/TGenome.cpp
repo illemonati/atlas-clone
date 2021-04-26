@@ -93,7 +93,6 @@ void TGenome_filtered::_traverseBAMPassedQC(){
 	_bamFile.printEndWithSummary();
 };
 
-
 //---------------------------------------------------------------
 // TGenome_parsed
 // A base class with BAM filters and recalibration

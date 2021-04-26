@@ -50,9 +50,12 @@ void TCigar::add(const char & Type, const uint32_t & Length){
 };
 
 void TCigar::removeSoftClips(){
-	for(auto it = _cigar.begin(); it!=_cigar.end(); ++it){
+	auto it = _cigar.begin();
+	while(it!=_cigar.end()){
 		if(it->type == 'S'){
 			it = _cigar.erase(it);
+		} else {
+			++it;
 		}
 	}
 
