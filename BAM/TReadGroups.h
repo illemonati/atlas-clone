@@ -92,6 +92,7 @@ public:
 	const TReadGroup& add(const std::string name);
 	const TReadGroup& addAlternativeRG(const std::string Name, const std::string original);
 	uint16_t size() const;
+	bool empty() const;
 
 	uint16_t getId(const std::string & name) const;
 	const std::string& getName (const uint16_t readGroupId) const;

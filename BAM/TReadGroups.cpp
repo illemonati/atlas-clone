@@ -169,6 +169,10 @@ uint16_t TReadGroups::size() const{
 	return _readGroups.size();
 };
 
+bool TReadGroups::empty() const{
+	return _readGroups.empty();
+};
+
 const std::string& TReadGroups::getName(uint16_t readGroupId) const{
 	if(readGroupId < 0 || readGroupId >= _readGroups.size()) throw "No read group with number " + toString(readGroupId) + "!";
 

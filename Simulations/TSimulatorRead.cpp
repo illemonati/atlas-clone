@@ -12,7 +12,11 @@ namespace Simulations{
 //----------------------------------
 //TSimulatorSingleEndRead
 //----------------------------------
-TSimulatorSingleEndRead::TSimulatorSingleEndRead(std::string readGroupName, int readGroupID, int MaxPrintPhredInt, TRandomGenerator* RandomGenerator, GenotypeLikelihoods::TGenotypeMap & GenoMap):_genoMap(GenoMap){
+TSimulatorSingleEndRead::TSimulatorSingleEndRead(std::string readGroupName,
+												 int readGroupID,
+												 int MaxPrintPhredInt,
+												 TRandomGenerator* RandomGenerator,
+												 GenotypeLikelihoods::TGenotypeMap & GenoMap):_genoMap(GenoMap){
 	_type = "single-end";
 
 	//set variables

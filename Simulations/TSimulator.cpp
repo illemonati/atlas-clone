@@ -79,14 +79,28 @@ void TSimulator::_saveToMap(std::string & name, std::string args, std::map<std::
 	map.emplace(name, args);
 };
 
-void TSimulator::_initializeReadLengthDistribution(TParameters & params, bool & perReadGroup, std::map<std::string, std::string> & readLengthMap){
+void TSimulator::_initializeReadLengthDistribution(TParameters & params){
 	_logfile->startIndent("Reading read length distribution:");
 	std::string s = params.getParameterStringWithDefault("readLength", "single:fixed(100)");
 
-	//check if it is a file
-	size_t pos = s.find("(");
-	if(pos == std::string::npos){
-		//is a file
+	//We allow for two options:
+	//  1) initialized from the command line (one for all read groups)
+	//  2) read-group specific as given in a file
+
+	//check if it is a file (should not contain a ':')
+	size_t pos = s.find(":");
+	if(pos != std::string::npos){
+		//Option 1: a single read length distribution for all
+		//---------------------------------------------------------------------
+		//is a function on the command line
+		_logfile->list("Will use '" + s + " for all read groups.");
+
+
+		//Option 2: read group specific, given in a file
+		//---------------------------------------------------------------------
+
+
+		// is a file
 		_logfile->listFlush("Reading distribution(s) from file '" + s + "' ...");
 		std::ifstream file(s.c_str());
 		if(!file)
@@ -121,10 +135,7 @@ void TSimulator::_initializeReadLengthDistribution(TParameters & params, bool & 
 		_logfile->conclude("Read distributions for " + toString(readLengthMap.size()) + " read groups.");
 		perReadGroup = true;
 	} else {
-		//is a function on the command line
-		_logfile->list("Will use '" + s + " for all read groups.");
-		readLengthMap.emplace("-", s);
-		perReadGroup = false;
+
 	}
 	_logfile->endIndent();
 };
@@ -177,7 +188,7 @@ void TSimulator::_initializeQualityDistribution(TParameters & params, bool & per
 
 void TSimulator::_initializeQualityTransformations(TParameters & params, bool & perReadGroup, std::map<std::string, TSimulatorQualityTransformParameters > & qualTransformMap){
 	//initialize quality transformation
-	//Currently we allow for five options:
+	//Currently we allow for three options:
 	//  1) recal transformation initialized from the command line (one for all read groups)//
 	//  2) read-group specific recal transformation provided via a recal file	//
 	//  3) no quality transformation

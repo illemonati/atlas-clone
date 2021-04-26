@@ -21,6 +21,8 @@
 
 namespace Simulations{
 
+//TODO: add cross-contamination between samples or RGs? That would be easier to model contamination that the way it is done now as it would allow for contaminated reads to have different characteristsics.
+
 //---------------------------------------------------------
 //TSimulator
 //---------------------------------------------------------
@@ -43,6 +45,14 @@ protected:
 	bool _writeTrueGenotypes;
 	bool _writeVariantInvariantBedFiles;
 	TSimulatorReference _referenceObj;
+
+	//simulation tools
+	BAM::TReadGroups _readGroups;
+	std::vector<TReadLengthDistribution*> _readLengthDistribution;
+	bool _readLengthDistribitionReadGroupSpecific;
+	std::vector<TSimulatorQualityDist*> _qualityDistributions;
+	bool _qualityDistribitionReadGroupSpecific;
+	TPostMortemDamage _PMD;
 
 	//read simulator
 	std::vector<TSimulatorSingleEndRead*> _readSimulators;

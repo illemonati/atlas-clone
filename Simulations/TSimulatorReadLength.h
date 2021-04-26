@@ -95,6 +95,22 @@ public:
 	void printDetails(TLog* logfile);
 };
 
+//-------------------------------------
+// TReadLengthDistributions
+//-------------------------------------
+class TReadLengthDistributions{
+private:
+	std::vector<TReadLengthDistribution*> _distributions;
+	bool _readGroupSpecific;
+
+public:
+	TReadLengthDistributions();
+	~TReadLengthDistributions() = default;
+
+};
+
+
+
 }; //end namespace
 
 #endif /* TSIMULATORREADLENGTH_H_ */

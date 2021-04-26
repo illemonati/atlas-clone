@@ -24,6 +24,7 @@ private:
 	BAM::TReadGroupMap* _readGroupMap;
 	GenotypeLikelihoods::TPMDTables _pmdTables;
 	GenotypeLikelihoods::TPostMortemDamage _pmd;
+	GenotypeLikelihoods::TPMDEstimationParameters _estimationParameters;
 
 	void _handleAlignment();
 

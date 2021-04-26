@@ -34,7 +34,7 @@ TPMDFunctionNoPMD::TPMDFunctionNoPMD(const std::string & string){
 	_parseParameters(string);
 
 	if(_parameters.size() != 0){
-		throw "Cannot initialize PMD function '" + PMDFunctionName_none + "': expected 0 but found " + toString(_parameters.size()) + " parameters!";
+		throw "Cannot initialize PMD function '" + (std::string) PMDFunctionName_none + "': expected 0 but found " + toString(_parameters.size()) + " parameters!";
 	}
 };
 
@@ -81,19 +81,19 @@ TPMDFunctionExponential::TPMDFunctionExponential(const std::string & string){
 	} else {
 		//parameters are provided
 		if(_parameters.size() != 2){
-			throw "Cannot initialize PMD function '" + PMDFunctionName_exponential + "': expected 4 (" + example() + ") but found " + toString(_parameters.size()) + " parameters!";
+			throw "Cannot initialize PMD function '" + (std::string) PMDFunctionName_exponential + "': expected 4 (" + example() + ") but found " + toString(_parameters.size()) + " parameters!";
 		}
 
 		if(_parameters[0] < 1.0){
-			throw "Cannot initialize PMD function '" + PMDFunctionName_exponential + "': last position must be > 0!";
+			throw "Cannot initialize PMD function '" + (std::string) PMDFunctionName_exponential + "': last position must be > 0!";
 		}
 
 		if(_parameters[2] < 0.0){
-			throw "Cannot initialize PMD function '" + PMDFunctionName_exponential + "': b must be > 0!";
+			throw "Cannot initialize PMD function '" + (std::string) PMDFunctionName_exponential + "': b must be > 0!";
 		}
 
 		if(_parameters[3] < 0.0){
-			throw "Cannot initialize PMD function '" + PMDFunctionName_exponential + "': c must be > 0!";
+			throw "Cannot initialize PMD function '" + (std::string) PMDFunctionName_exponential + "': c must be > 0!";
 		}
 	}
 
@@ -329,7 +329,7 @@ void TPMDFunctionExponential::learn(const TPMDTable & Table, const Base & from, 
 	mu = mu / sum;
 
 	//store parameters, including lastPosition
-	_parameters = { _lastPosition,
+	_parameters = { (double) _lastPosition,
 					Parameters[1] / (1.0 - mu),
 					Parameters[2],
 				   (Parameters[0] - mu) / (1.0 - mu) };
@@ -368,7 +368,7 @@ TPMDFunctionEmpiric::TPMDFunctionEmpiric(const std::string & string){
 		//parameters are provided
 		for(auto& d : _parameters){
 			if(d < 0.0 || d > 1.0){
-				throw "Cannot initialize post mortem damage function '" + PMDFunctionName_empiric + "': some probabilities are outside [0,1]!";
+				throw "Cannot initialize post mortem damage function '" + (std::string) PMDFunctionName_empiric + "': some probabilities are outside [0,1]!";
 			}
 		}
 	}
@@ -434,7 +434,8 @@ TPMDTypeDoubleStrand::TPMDTypeDoubleStrand(const std::string & string){
 	std::vector<std::string> tmp;
 	fillVectorFromString(string, tmp, ';');
 	if(tmp.size() != 2){
-		throw "Cannot initialize PMD type " + PMDTypeName_doubleStrand + ": expect 2 functions but found " + tmp.size() + "!\nFunctions should be separated by ';'.\nProvided string: '" + string + "'.";
+		throw "Cannot initialize PMD type " + (std::string)  PMDTypeName_doubleStrand + ": expect 2 functions but found " + toString(tmp.size()) + "!"
+			+ "\nFunctions should be separated by ';'.\nProvided string: '" + string + "'.";
 	}
 
 	_initializeFunction(tmp[0], _pmdCT);
@@ -445,14 +446,22 @@ std::string TPMDTypeDoubleStrand::functionString() const{
 	return _pmdCT->string() + ";" + _pmdGA->string();
 };
 
+void TPMDTypeDoubleStrand::parseEstimationParameters(TPMDEstimationParameters & EstimationParameters, TParameters & Params, TLog* Logfile){
+	_pmdCT->parseEstimationParameters(EstimationParameters, Params, Logfile);
+	_pmdGA->parseEstimationParameters(EstimationParameters, Params, Logfile);
+};
+
 void TPMDTypeDoubleStrand::estimate(const TPMDTableReadGroup & PMDTable, const TPMDEstimationParameters & EstimationParameters){
 	//Note: TPMDTables stores bases as during sequencing (not as after mapping)
 	//Assumption: C->T pattern is the same for forward and reverse reads from their respective 5-prime ends.
 	TPMDTable from5(PMDTable[forward5]);
+	from5.add(PMDTable[reverse5]);
+	_pmdCT->learn(from5, C, T, EstimationParameters);
 
 	//Assumption: G->A pattern is the same for forward and reverse reads from their respective 3-prime ends.
-
-	_pmdCT->learn(PMDTable[forward3], C, T, EstimationParameters);
+	TPMDTable from3(PMDTable[forward3]);
+	from3.add(PMDTable[reverse3]);
+	_pmdGA->learn(from3, G, A, EstimationParameters);
 };
 
 void TPMDTypeDoubleStrand::fillBaseLikelihoods(const BAM::TBase & base, const TBaseData & baseLikelihoodsNoPMD, TBaseData & baseLikelihoods) const{
@@ -481,6 +490,7 @@ void TPMDTypeDoubleStrand::fillBaseLikelihoods(const BAM::TBase & base, const TB
 //------------------------------------------------------
 TPostMortemDamage::TPostMortemDamage(){
 	_hasPMD = false;
+	_readGroupSpecific = false;
 };
 
 void TPostMortemDamage::writeToFile(const BAM::TReadGroups & ReadGroups, const std::string filename){
@@ -488,8 +498,24 @@ void TPostMortemDamage::writeToFile(const BAM::TReadGroups & ReadGroups, const s
 	TOutputFile out(filename, header);
 
 	//write for each read group
-	for(auto& r = ReadGroups.cbegin(); r != ReadGroups.cend(); ++r){
-		out << r->name_ID << _pmdObjects[r->id]->type() << ":" << _pmdObjects[r->id]->functionString() << std::endl;
+	if(_readGroupSpecific){
+		//we have on ePMD object per read group
+		for(auto r = ReadGroups.cbegin(); r != ReadGroups.cend(); ++r){
+			out << r->name_ID << _pmdObjects[r->id]->type() << ":" << _pmdObjects[r->id]->functionString() << std::endl;
+		}
+	} else {
+		//there is a single PMD object shared for all
+		for(auto r = ReadGroups.cbegin(); r != ReadGroups.cend(); ++r){
+			out << r->name_ID << _pmdObjects[0]->type() << ":" << _pmdObjects[0]->functionString() << std::endl;
+		}
+	}
+};
+
+void TPostMortemDamage::_openPMDFile(TInputFile & in, const std::string & filename){
+	//read from file for each read group
+	in.open(filename, header);
+	if(in.numCols() != 3){
+		throw "PMD file has the wrong format: expect three columns (read group, PMD type, PMD Functions) but found " + toString(in.numCols()) + "!";
 	}
 };
 
@@ -505,16 +531,33 @@ void TPostMortemDamage::_createPMDType(const std::string & type, const std::stri
 	}
 };
 
-void TPostMortemDamage::_initializeFromFile(const BAM::TReadGroups & ReadGroups, const std::string filename, TLog* logfile){
+void TPostMortemDamage::_initializeFromString(const std::string & pmdString, TLog* logfile){
+	//not a file: initialize all read groups have the same pmd
+	logfile->startIndent("PMD function used for all read groups (parameter pmd):");
+
+	std::vector<std::string> tmp;
+	fillVectorFromString(pmdString, tmp, ':');
+	if(tmp.size() != 2){
+		throw "Unable to understand PMD string '" + pmdString + "': expect format type:functions.";
+	}
+
+	_pmdObjects.resize(1);
+	_createPMDType(tmp[0], tmp[1], _pmdObjects[0]);
+	_readGroupSpecific = false;
+	_hasPMD = _pmdObjects[0]->hasDamage();
+
+	//repport
+	logfile->list(_pmdObjects[0]->type() + ":" + _pmdObjects[0]->functionString());
+	logfile->endIndent();
+};
+
+void TPostMortemDamage::_initializeFromFileMatchReadGroups(const BAM::TReadGroups & ReadGroups, const std::string & filename, TLog* logfile){
 	//create an array of TPMD objects for each read group
 	//also works if no parameters are provided (e.g. for estimation)
 	_pmdObjects.resize(ReadGroups.size());
 
-	//read from file for each read group
-	TInputFile in(filename, header);
-	if(in.numCols() != 3){
-		throw "PMD file has the wrong format: expect three columns (read group, PMD type, PMD Functions) but found " + toString(in.numCols()) + "!";
-	}
+	TInputFile in;
+	_openPMDFile(in, filename);
 
 	//parse file that has structure: ReadGroup, Type, Functions
 	std::vector<std::string> vec;
@@ -533,7 +576,40 @@ void TPostMortemDamage::_initializeFromFile(const BAM::TReadGroups & ReadGroups,
 	for(uint16_t i=0; i<ReadGroups.size(); ++i){
 		if(!_pmdObjects[i]) throw "PMD not defined for read group '" + ReadGroups.getName(i) + "' in file '" + filename + "'!";
 	}
+};
 
+void TPostMortemDamage::_initializeFromFile(BAM::TReadGroups & ReadGroups, const std::string & filename, TLog* logfile){
+	//create an array of TPMD objects for each read group
+	//also works if no parameters are provided (e.g. for estimation)
+	_pmdObjects.resize(ReadGroups.size());
+
+	TInputFile in;
+	_openPMDFile(in, filename);
+
+	//parse file that has structure: ReadGroup, Type, Functions
+	std::vector<std::string> vec;
+	while(in.read(vec)){
+		if(!ReadGroups.readGroupExists(vec[0])){
+			//add read group
+			ReadGroups.add(vec[0]);
+			_pmdObjects.resize(ReadGroups.size() + 1);
+		}
+
+		//get read group
+		uint16_t readGroupId = ReadGroups.getId(vec[0]);
+
+		//create type
+		_createPMDType(vec[1], vec[2], _pmdObjects[readGroupId]);
+	}
+	logfile->done();
+
+	//test if we have a function for all read groups
+	for(uint16_t i=0; i<ReadGroups.size(); ++i){
+		if(!_pmdObjects[i]) throw "PMD not defined for read group '" + ReadGroups.getName(i) + "' in file '" + filename + "'!";
+	}
+};
+
+void TPostMortemDamage::_setHasDamage(){
 	//check if there is PMD for at least one read group
 	_hasPMD = false;
 	for(auto& p : _pmdObjects){
@@ -544,6 +620,36 @@ void TPostMortemDamage::_initializeFromFile(const BAM::TReadGroups & ReadGroups,
 	}
 };
 
+void TPostMortemDamage::initialize(TParameters & params, BAM::TReadGroups & ReadGroups, TLog* logfile){
+	if(params.parameterExists("pmd")){
+		std::string pmdString = params.getParameterString("pmd");
+
+		//expect either a file name or a type of the form "type:functions"
+		//check if it is a file
+		if(stringContains(pmdString, ":")){
+			_initializeFromString(pmdString, logfile);
+		} else {
+			//probably a file
+			logfile->listFlush("Initializing PMD from file '" + pmdString + "' (parameter pmd) ...");
+
+			//check how to deal with read groups:
+			//if read groups are empty, fill them from file (used by simulator)
+			//if they exist, match them
+			if(ReadGroups.empty()){
+				_initializeFromFile(ReadGroups, pmdString, logfile);
+			} else {
+				_initializeFromFileMatchReadGroups(ReadGroups, pmdString, logfile);
+			}
+			logfile->done();
+
+			//check if there is PMD for at least one read group
+			_setHasDamage();
+		}
+	} else {
+		logfile->list("Assuming there is no PMD in the data. (use 'pmd' to add PMD definitions)");
+	}
+};
+
 void TPostMortemDamage::initialize(TParameters & params, const BAM::TReadGroups & ReadGroups, TLog* logfile){
 	if(params.parameterExists("pmd")){
 		std::string pmdString = params.getParameterString("pmd");
@@ -551,46 +657,48 @@ void TPostMortemDamage::initialize(TParameters & params, const BAM::TReadGroups 
 		//expect either a file name or a type of the form "type:functions"
 		//check if it is a file
 		if(stringContains(pmdString, ":")){
-			//not a file: initialize all read groups have the same pmd
-			logfile->startIndent("PMD function used for all read groups (parameter pmd):");
-
-			std::vector<std::string> tmp;
-			fillVectorFromString(pmdString, tmp, ':');
-			if(tmp.size() != 2){
-				throw "Unable to understand PMD string '" + pmdString + "': expect format type:functions.";
-			}
-
-			_pmdObjects.resize(ReadGroups.size());
-			for(size_t i=0; i<ReadGroups.size(); ++i){
-				_createPMDType(tmp[0], tmp[1], _pmdObjects[i]);
-			}
-			_hasPMD = true;
-			logfile->list(_pmdObjects[0]->type() + ":" + _pmdObjects[0]->functionString());
-			logfile->endIndent();
+			_initializeFromString(pmdString, logfile);
 		} else {
 			//probably a file
 			logfile->listFlush("Initializing PMD from file '" + pmdString + "' (parameter pmd) ...");
-			_initializeFromFile(ReadGroups, pmdString, logfile);
+
+			//check how to deal with read groups:
+			_initializeFromFileMatchReadGroups(ReadGroups, pmdString, logfile);
 			logfile->done();
+
+			//check if there is PMD for at least one read group
+			_setHasDamage();
 		}
 	} else {
 		logfile->list("Assuming there is no PMD in the data. (use 'pmd' to add PMD definitions)");
 	}
 };
 
+
+void TPostMortemDamage::parseEstimationParameters(TPMDEstimationParameters & EstimationParameters, TParameters & Params, TLog* Logfile){
+	for(auto& p : _pmdObjects){
+		p->parseEstimationParameters(EstimationParameters, Params, Logfile);
+	}
+};
+
 void TPostMortemDamage::estimate(const TPMDTables & PMDTables, const BAM::TReadGroups & ReadGroups, TLog* Logfile, const TPMDEstimationParameters & EstimationParameters){
 	Logfile->startIndent("Estimating PMD functions:");
 	for(uint16_t r = 0; r < _pmdObjects.size(); ++r){
-
+		if(_pmdObjects[r]->hasDamage()){
+			Logfile->listFlush("Estimating PMD for read group '" + ReadGroups.getName(r) + "' ...");
+			_pmdObjects[r]->estimate(PMDTables, EstimationParameters);
+		}
 	};
-
-
 	Logfile->endIndent();
 };
 
 void TPostMortemDamage::calculateBaseLikelihoods(const BAM::TBase & base, const TBaseData & baseLikelihoodsNoPMD, TBaseData & baseLikelihoods) const{
 	if(_hasPMD){
-		_pmdObjects[ base.readGroupID ]->fillBaseLikelihoods(base, baseLikelihoodsNoPMD, baseLikelihoods);
+		if(_readGroupSpecific){
+			_pmdObjects[ base.readGroupID ]->fillBaseLikelihoods(base, baseLikelihoodsNoPMD, baseLikelihoods);
+		} else {
+			_pmdObjects[0]->fillBaseLikelihoods(base, baseLikelihoodsNoPMD, baseLikelihoods);
+		}
 	} else {
 		//just copy
 		baseLikelihoods = baseLikelihoodsNoPMD;

@@ -77,6 +77,17 @@ void TPMDCounts::write(TOutputFile & out, const std::vector<std::string> & prefi
 //---------------------------------------------------------------
 //TPMDTable
 //---------------------------------------------------------------
+TPMDTable::TPMDTable(const uint16_t & Size){
+	resize(Size);
+};
+
+TPMDTable::TPMDTable(const TPMDTable & other){
+	_counts[A] = other._counts[A];
+	_counts[C] = other._counts[C];
+	_counts[G] = other._counts[G];
+	_counts[T] = other._counts[T];
+};
+
 void TPMDTable::resize(const uint16_t & Size){
 	_counts[A].resize(Size);
 	_counts[C].resize(Size);
@@ -93,6 +104,13 @@ void TPMDTable::empty(){
 
 void TPMDTable::add(const uint16_t & pos, const Base & ref, const Base & read){
 	_counts[ref].add(pos, read);
+};
+
+void TPMDTable::add(const TPMDTable & other){
+	_counts[A].add(other[A]);
+	_counts[C].add(other[C]);
+	_counts[G].add(other[G]);
+	_counts[T].add(other[T]);
 };
 
 void TPMDTable::write(TOutputFile & out, std::vector<std::string> & prefix, const bool & normalized){

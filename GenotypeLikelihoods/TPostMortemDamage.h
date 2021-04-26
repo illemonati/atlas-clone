@@ -176,7 +176,8 @@ public:
 	virtual std::string type() const = 0;
 	virtual std::string functionString() const = 0;
 
-	virtual void estimate(const TPMDTables & PMDTables, const TPMDEstimationParameters & EstimationParameters) = 0;
+	virtual void parseEstimationParameters(TPMDEstimationParameters & EstimationParameters, TParameters & Params, TLog* Logfile){};
+	virtual void estimate(const TPMDTables & PMDTables, const TPMDEstimationParameters & EstimationParameters){};
 
 	virtual void fillBaseLikelihoods(const BAM::TBase & base, const TBaseData & baseLikelihoodsNoPMD, TBaseData & baseLikelihoods) const = 0;
 };
@@ -192,8 +193,6 @@ public:
 	bool hasDamage() const override { return false; };
 	std::string type() const override { return PMDTypeName_none; };
 	std::string functionString() const override { return "none"; };
-
-	void estimate(const TPMDTables & PMDTables, const TPMDEstimationParameters & EstimationParameters);
 
 	void fillBaseLikelihoods(const BAM::TBase & base, const TBaseData & baseLikelihoodsNoPMD, TBaseData & baseLikelihoods) const override {
 		//just copy
@@ -217,7 +216,8 @@ public:
 	std::string type() const override { return PMDTypeName_doubleStrand; };
 	std::string functionString() const override;
 
-	void estimate(const TPMDTables & PMDTables, const TPMDEstimationParameters & EstimationParameters);
+	void parseEstimationParameters(TPMDEstimationParameters & EstimationParameters, TParameters & Params, TLog* Logfile);
+	void estimate(const TPMDTableReadGroup & PMDTable, const TPMDEstimationParameters & EstimationParameters);
 
 	void fillBaseLikelihoods(const BAM::TBase & base, const TBaseData & baseLikelihoodsNoPMD, TBaseData & baseLikelihoods) const override;
 };
@@ -229,17 +229,22 @@ class TPostMortemDamage{
 private:
 	std::vector< std::unique_ptr<TPMDType> > _pmdObjects;
 	bool _hasPMD;
+	bool _readGroupSpecific;
 
+	void _openPMDFile(TInputFile & in, const std::string & filename);
 	void _createPMDType(const std::string & type, const std::string & functions, std::unique_ptr<TPMDType> & ptr);
-	void _initializeFromFile(const BAM::TReadGroups & ReadGroups, const std::string filename, TLog* logfile);
-
+	void _initializeFromString(const std::string & pmdString, TLog* logfile);
+	void _initializeFromFileMatchReadGroups(const BAM::TReadGroups & ReadGroups, const std::string & filename, TLog* logfile);
+	void _initializeFromFile(BAM::TReadGroups & ReadGroups, const std::string & filename, TLog* logfile);
+	void _setHasDamage();
 
 public:
 	TPostMortemDamage();
 	bool hasPMD() const{ return _hasPMD; };
 
-	void initialize(TParameters & params, const BAM::TReadGroups & ReadGroups, TLog* logfile);
+	void initialize(TParameters & params, BAM::TReadGroups & ReadGroups, TLog* logfile);
 
+	void parseEstimationParameters(TPMDEstimationParameters & EstimationParameters, TParameters & Params, TLog* Logfile);
 	void estimate(const TPMDTables & PMDTables, const BAM::TReadGroups & ReadGroups, TLog* logfile, const TPMDEstimationParameters & EstimationParameters);
 
 	void writeToFile(const BAM::TReadGroups & ReadGroups, const std::string filename);

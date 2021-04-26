@@ -67,14 +67,16 @@ private:
 	TPMDCounts _counts[4]; //_counts[A,C,G,T] are counts from (ref)
 
 public:
-	TPMDTable();
+	TPMDTable() = default;
 	TPMDTable(const uint16_t & Size);
+	TPMDTable(const TPMDTable & other);
 	~TPMDTable() = default;
 
 	uint16_t size() const { return _counts[0].size(); };
 	void resize(const uint16_t & Size);
 	void empty();
 	void add(const uint16_t & pos, const Base & ref, const Base & read);
+	void add(const TPMDTable & other);
 
 	const TPMDCounts& operator[](const Base & b) const{
 		return _counts[b];
@@ -97,6 +99,10 @@ public:
 	void resize(const uint16_t & MaxLength);
 	void empty();
 	void add(const BAM::TBase & base, const Base & reference);
+
+	const TPMDTable& operator[](const PMDTableType & Type) const{
+		return _tables[Type];
+	};
 
 	void write(TOutputFile & out, std::vector<std::string> & prefix, const bool & normalized);
 };
