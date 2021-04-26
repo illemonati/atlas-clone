@@ -125,7 +125,7 @@ void TAlignment::_parseBasesQualities(const GenotypeLikelihoods::TGenotypeMap & 
 	_bases.resize(_cigar.lengthRead());
 	_alignedPosition.resize(_cigar.lengthRead());
 	int d = 0; //index regarding data structures and inside read
-	int p = 0; //index regarding reference position (!= d for indels)
+	int p = 0; //index regarding reference position (!= d for soft clipping & indels)
 
 	//loop over cigar operations
 	for(auto& cigarIter : _cigar){
@@ -144,7 +144,7 @@ void TAlignment::_parseBasesQualities(const GenotypeLikelihoods::TGenotypeMap & 
 				}
 				break;
 
-			//for 'S' - soft clip: ignore bases, but increase d
+			//for 'S' - soft clip: copy by set aligned = false
 			case ('S') :
 				//add bases to softclipped entries
 				for(unsigned int i=0; i<cigarIter.length; ++i, ++d){
@@ -157,7 +157,7 @@ void TAlignment::_parseBasesQualities(const GenotypeLikelihoods::TGenotypeMap & 
 				}
 				break;
 
-			//for 'I' - insertion: copy bases, but put aligned pos to -1
+			//for 'I' - insertion: copy bases, but put aligned  = false
 			case ('I')      :
 				for(unsigned int i=0; i<cigarIter.length; ++i, ++d){
 					_bases[d].base = genoMap.toBase(_sequence[d]);
@@ -385,6 +385,9 @@ void TAlignment::trimRead(const int & trimmingLength3Prime, const int & trimming
 };
 
 void TAlignment::removeSoftClippedBases(){
+	//make sure read is parsed
+	if(!_parsed) throw std::runtime_error("void TAlignment::removeSoftClippedBases(): Read was not parsed!");
+
 	//check if there is softclipping
 	if(_cigar.lengthSoftClipped() > 0){
 		auto bIter = _bases.begin();
@@ -392,7 +395,7 @@ void TAlignment::removeSoftClippedBases(){
 			if(cigarIter.type == 'S'){
 				//remove bases
 				bIter = _bases.erase(bIter, bIter + cigarIter.length);
-			} else {
+			} else if(cigarIter.type == 'M' || cigarIter.type == '=' || cigarIter.type == 'X' || cigarIter.type == 'I'){
 				//just advance position
 				bIter += cigarIter.length;
 			}
@@ -409,7 +412,7 @@ void TAlignment::removeSoftClippedBases(){
 
 void TAlignment::binQualityScores(TQualityMap & qualityMap){
 	//make sure read is parsed
-	if(!_parsed) throw "Read was not parsed!";
+	if(!_parsed) throw std::runtime_error("void TAlignment::binQualityScores(TQualityMap & qualityMap): Read was not parsed!");
 
 	//bin quality scores as done by Illumina
 	for(auto& b : _bases){

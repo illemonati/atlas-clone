@@ -90,30 +90,22 @@ TAssessSoftClipping::TAssessSoftClipping(TParameters & Parameters, TLog* Logfile
 	}
 };
 
-void TAssessSoftClipping::assess(){
-	//prepare counters
-	TCountDistributionVector left, right, total;
+void TAssessSoftClipping::_handleAlignment(){
+	//add to counters
+	const BAM::TCigar& cigar = _bamFile.curCIGAR();
+	left.add(cigar.lengthRead(), cigar.lengthSoftClippedLeft());
+	right.add(cigar.lengthRead(), cigar.lengthSoftClippedRight());
+	total.add(cigar.lengthRead(), cigar.lengthSoftClippedLeft()+cigar.lengthSoftClippedRight());
 
-	//now parse through bam file and write alignments
-	_bamFile.startProgressReporting();
-	while(_bamFile.readNextAlignmentThatPassesFilters()){
-		//add to counters
-		const BAM::TCigar& cigar = _bamFile.curCIGAR();
-		left.add(cigar.lengthRead(), cigar.lengthSoftClippedLeft());
-		right.add(cigar.lengthRead(), cigar.lengthSoftClippedRight());
-		total.add(cigar.lengthRead(), cigar.lengthSoftClippedLeft()+cigar.lengthSoftClippedRight());
-
-		//write to file
-		if(cigar.lengthSoftClipped() > 0 || _printAll){
-			statFile.write(_bamFile);
-		}
-
-		//report progress
-		_bamFile.printProgress();
+	//write to file
+	if(cigar.lengthSoftClipped() > 0 || _printAll){
+		statFile.write(_bamFile);
 	}
+};
 
-	//report summary of BAM
-	_bamFile.printEndWithSummary();
+void TAssessSoftClipping::assess(){
+	//now parse through bam file and write alignments
+	_traverseBAMPassedQC();
 
 	//write counts
 	_logfile->startIndent("Writing soft clipping distributions:");
@@ -137,41 +129,31 @@ void TAssessSoftClipping::assess(){
 //--------------------------------------------------------
 // TRemoveSoftClippedBases
 //--------------------------------------------------------
-TRemoveSoftClippedBases::TRemoveSoftClippedBases(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_filtered(Parameters, Logfile, RandomGenerator){};
+TRemoveSoftClippedBases::TRemoveSoftClippedBases(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_parsed(Parameters, Logfile, RandomGenerator){};
+
+void TRemoveSoftClippedBases::_handleAlignment(){
+	if(_bamFile.curCIGAR().lengthSoftClipped() > 0){
+		//remove softclipped reads
+		_alignment.removeSoftClippedBases();
+
+		//write
+		_outBam.writeAlignment(_alignment);
+	} else {
+		//just write current alignment
+		_bamFile.writeCurAlignment(_outBam);
+	}
+};
 
 void TRemoveSoftClippedBases::removeSoftclippedBases(){
 	std::string filename = _outputName + "_softClippedBasesRemoved.bam";
 	_logfile->list("Writing reads after soft-clip trimming to file '" + filename + "'.");
-	BAM::TOutputBamFile out(filename, _bamFile, &_genoMap, &_qualMap);
+	_openBamForWriting(filename, _outBam);
 
-	//other temp variables
-	BAM::TAlignment alignment;
+	//traverse BAM
+	_traverseBAMPassedQC();
 
-	//now parse through bam file and write alignments
-	_bamFile.startProgressReporting();
-	while(_bamFile.readNextAlignmentThatPassesFilters()){
-		if(_bamFile.curCIGAR().lengthSoftClipped() > 0){
-			//parse alignment
-			_bamFile.fill(alignment);
-
-			//remove softclipped reads
-			alignment.removeSoftClippedBases();
-
-			//write
-			out.writeAlignment(alignment);
-		} else {
-			_bamFile.writeCurAlignment(out);
-		}
-
-		//report progress
-		_bamFile.printProgress();
-	}
-
-	//report summary
-	_bamFile.printEndWithSummary();
-
-	//close bam writer
-	out.close(_logfile);
+	//report
+	_outBam.close(_logfile);
 };
 
 }; // end namespace

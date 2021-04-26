@@ -38,7 +38,10 @@ private:
 	bool _writeAlignments;
 	bool _printAll;
 
+	TCountDistributionVector left, right, total;
 	TSoftClippingStatsFile statFile;
+
+	void _handleAlignment();
 
 public:
 	TAssessSoftClipping(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
@@ -48,7 +51,10 @@ public:
 //--------------------------------------------------------
 // TRemoveSoftClippedBases
 //--------------------------------------------------------
-class TRemoveSoftClippedBases:public TGenome_filtered{
+class TRemoveSoftClippedBases:public TGenome_parsed{
+private:
+	BAM::TOutputBamFile _outBam;
+	void _handleAlignment();
 public:
 	TRemoveSoftClippedBases(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
 	void removeSoftclippedBases();
