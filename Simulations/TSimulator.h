@@ -49,11 +49,9 @@ protected:
 
 	//simulation tools
 	BAM::TReadGroups _readGroups;
-	std::vector<TReadLengthDistribution*> _readLengthDistribution;
-	bool _readLengthDistribitionReadGroupSpecific;
-	std::vector<TSimulatorQualityDist*> _qualityDistributions;
-	bool _qualityDistribitionReadGroupSpecific;
 	GenotypeLikelihoods::TPostMortemDamage _PMD;
+	BAM::TReadGroupMap _readGroupMap; //needed by recal REALLYY??????
+	GenotypeLikelihoods::TSequencingErrorModels _recal;
 
 	//read simulator
 	std::vector<TSimulatorSingleEndRead*> _readSimulators;
@@ -76,10 +74,9 @@ protected:
 	void _initializeReadGroup(const std::string & readLengthString, const BAM::TReadGroup & ReadGroup);
 	void _initializeReadGroupsFromReadLengthDistribution(TParameters & params, const std::string & ParameterName, const std::string & DefaultValue, const std::string & Name);
 	void _initializeDistribution(TParameters & params, const std::string & ParameterName, const std::string & DefaultValue, const std::string & Name, void (TSimulatorSingleEndRead::*function)(std::string string));
+	void _initializePMD(TParameters & params, const std::string & ParameterName, const std::string & Name);
+	void _initializeQualityTransformations(TParameters & params, const std::string & ParameterName, const std::string & Name);
 
-
-	void _initializeQualityTransformations(TParameters & params, bool & perReadGroup, std::map<std::string, TSimulatorQualityTransformParameters > & qualTransformMap);
-	void _initializePMD(TParameters & params, bool & perReadGroup, std::map<std::string, std::pair<std::string, std::string> > & pmdMap);
 	void _initializeContamination(TParameters & params, bool & perReadGroup, std::map<std::string, double> & contaminationMap);
 	void _addToReadGroupVector(std::vector<std::string> & vec, const std::string & rg);
 	void _addReadGroupsIfFile(const std::string & ParameterName, TParameters & Parameters, BAM::TReadGroups & ReadGroups);

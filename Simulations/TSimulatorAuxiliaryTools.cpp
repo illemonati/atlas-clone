@@ -17,9 +17,6 @@ namespace Simulations{
 TSimulatorReference::TSimulatorReference(){
 	_logfile = NULL;
 	_chrName = "";
-	_ref = NULL;
-	_storageInitialized = false;
-	_storageLength = 0;
 	_fastaOpen = false;
 	_oldOffset = 0;
 	_chrLength = 0;
@@ -28,9 +25,6 @@ TSimulatorReference::TSimulatorReference(){
 
 TSimulatorReference::TSimulatorReference(std::string Filename, TLog* Logfile){
 	_chrName = "";
-	_ref = NULL;
-	_storageInitialized = false;
-	_storageLength = 0;
 	_fastaOpen = false;
 	_chrLength = 0;
 	_needsWriting = false;
@@ -41,7 +35,6 @@ TSimulatorReference::TSimulatorReference(std::string Filename, TLog* Logfile){
 void TSimulatorReference::initialize(std::string Filename, TLog* Logfile){
 	_filename = Filename;
 	_logfile = Logfile;
-
 	_openFastaFile();
 };
 
@@ -49,7 +42,6 @@ void TSimulatorReference::close(){
 	if(_chrName != "" && _needsWriting)
 		_writeRefToFasta();
 	_closeFastaFile();
-	_freeStorage();
 };
 
 void TSimulatorReference::_openFastaFile(){
@@ -98,19 +90,8 @@ void TSimulatorReference::_writeRefToFasta(){
 };
 
 void TSimulatorReference::_allocateStorage(long length){
-	_freeStorage();
-
 	//allocate storage
-	_ref = new Base[length];
-	_storageInitialized = true;
-	_storageLength = length;
-};
-
-void TSimulatorReference::_freeStorage(){
-	if(_storageInitialized){
-		delete[] _ref;
-		_storageInitialized = false;
-	}
+	_ref.resize(length);
 };
 
 void TSimulatorReference::setChr(std::string ChrName, long ChrLength){
@@ -120,9 +101,8 @@ void TSimulatorReference::setChr(std::string ChrName, long ChrLength){
 
 	//move to new chr
 	_chrName = ChrName;
-	if(ChrLength > _storageLength)
-		_allocateStorage(ChrLength);
 	_chrLength = ChrLength;
+	_ref.resize(_chrLength);
 	_needsWriting = true;
 };
 

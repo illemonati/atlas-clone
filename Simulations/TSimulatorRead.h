@@ -13,6 +13,7 @@
 #include "TSimulatorReadLength.h"
 #include "TPostMortemDamage.h"
 #include "TSimulatorAuxiliaryTools.h"
+#include "TSimulatorQuality.h"
 #include "TSimulatorQualityTransformation.h"
 #include "TReadGroups.h"
 
@@ -25,10 +26,10 @@ class TSimulatorSingleEndRead{
 protected:
 	TRandomGenerator* _randomGenerator;
 	GenotypeLikelihoods::TGenotypeMap& _genoMap;
+	BAM::TQualityMap& _qualMap;
 
 	const BAM::TReadGroup& _readGroup;
 	std::string _type;
-	int _maxPrintPhredInt;
 	std::string _readNamePrefix;
 	int _readXPos, _readYPos;
 	bool _isInitialized;
@@ -40,12 +41,11 @@ protected:
 	std::unique_ptr<TSimulatorQualityDist> _qualityDist;
 	std::unique_ptr<TSimulatorQualityDist> _mappingQualityDist;
 
-	std::string _qualDistType;
 	TSimulatorQualityTransformation* _qualityTransform;
 	bool _qualityTransformInitialized;
 
 	//PMD
-	GenotypeLikelihoods::TPMDTypeDoubleStrand _pmdObject;
+	GenotypeLikelihoods::TPMDType const* _pmdObject;
 	bool _hasPMD;
 
 	//contamination
@@ -64,30 +64,30 @@ protected:
 
 	//general functions
 	void _simulateQualitiesAndErrors(Base* _bases, int* _qualities, int & len);
-	void _applyPMD(Base* _bases, const TReadLength & readLength, const bool isReverseStrand);
+	void _applyPMD(std::vector<Base>& bases, const TReadLength & readLength, const bool isReverseStrand);
 	std::string _getNextReadName();
 	void _simulateBasesQualities(BAM::TAlignment & alignment, Base* haplotype, const uint64_t pos, const TReadLength & readLength, const bool readIsContaminated, const bool isReverse, TSimulatorQualityTransformation* qualityTransform);
 
 public:
-	TSimulatorSingleEndRead(const BAM::TReadGroup&, TRandomGenerator* RandomGenerator, GenotypeLikelihoods::TGenotypeMap & GenoMap);
+	TSimulatorSingleEndRead(const BAM::TReadGroup& ReadGroup, TRandomGenerator* RandomGenerator, GenotypeLikelihoods::TGenotypeMap & GenoMap);
 	virtual ~TSimulatorSingleEndRead();
 
 	bool checkInitialization();
 	void setReadLengthDistribution(std::string s, TLog* logfile);
 	void setQualityDistribution(std::string s);
 	void setMappingQualityDistribution(std::string s);
+	void setPMD(GenotypeLikelihoods::TPMDType const* PmdObject);
 	virtual void setQualityTransformation(TSimulatorQualityTransformParameters & parameters, TLog* logfile);
-	void setPMD(const std::string & pmdStringCT, const std::string & pmdStringGA);
 	void setContamination(double rate, TSimulatorReference* source);
 
-	std::string name() const{ return _name; };
+	std::string name() const{ return _readGroup.name_ID; };
 	std::string type() const{ return _type; };
 	double meanReadLength(){
-		if(!_readLengthInitialized) throw "Read length distribution not initialized!";
+		if(!_readLengthDist) throw "Read length distribution not initialized!";
 		return _readLengthDist->mean();
 	};
 	double maxReadLength(){
-		if(!_readLengthInitialized) throw "Read length distribution not initialized!";
+		if(!_readLengthDist) throw "Read length distribution not initialized!";
 		return _readLengthDist->max();
 	};
 

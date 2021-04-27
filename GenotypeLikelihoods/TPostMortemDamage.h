@@ -180,6 +180,9 @@ public:
 	virtual void estimate(const TPMDTables & PMDTables, const TPMDEstimationParameters & EstimationParameters){};
 
 	virtual void fillBaseLikelihoods(const BAM::TBase & base, const TBaseData & baseLikelihoodsNoPMD, TBaseData & baseLikelihoods) const = 0;
+
+	virtual void simulatePMD(BAM::TBase & base, TRandomGenerator & RandomGenerator) const = 0;
+	virtual void simulatePMD(Base & base, const uint16_t & DistFrom5Prime, const uint16_t & DistFrom3Prime, const bool & IsReverseStrand, TRandomGenerator & RandomGenerator) const = 0;
 };
 
 //------------------------------------------------
@@ -198,6 +201,9 @@ public:
 		//just copy
 		baseLikelihoods = baseLikelihoodsNoPMD;
 	};
+
+	void simulatePMD(BAM::TBase & base, TRandomGenerator & RandomGenerator) const override {};
+	void simulatePMD(Base & base, const uint16_t & DistFrom5Prime, const uint16_t & DistFrom3Prime, const bool & IsReverseStrand, TRandomGenerator & RandomGenerator) const override {};
 };
 
 //------------------------------------------------------
@@ -220,6 +226,9 @@ public:
 	void estimate(const TPMDTableReadGroup & PMDTable, const TPMDEstimationParameters & EstimationParameters);
 
 	void fillBaseLikelihoods(const BAM::TBase & base, const TBaseData & baseLikelihoodsNoPMD, TBaseData & baseLikelihoods) const override;
+
+	void simulatePMD(BAM::TBase & base, TRandomGenerator & RandomGenerator) const override;
+	void simulatePMD(Base & base, const uint16_t & DistFrom5Prime, const uint16_t & DistFrom3Prime, const bool & IsReverseStrand, TRandomGenerator & RandomGenerator) const override;
 };
 
 //------------------------------------------------------
@@ -237,10 +246,12 @@ private:
 
 public:
 	TPostMortemDamage();
+
 	bool hasPMD() const{ return _hasPMD; };
+	const TPMDType& operator[](const uint16_t & ReadGroupIndex) const { return _pmdObjects[ReadGroupIndex]; };
 
 	void initialize(const std::string & pmdString, const BAM::TReadGroups & ReadGroups, TLog* Logfile);
-	void initialize(TParameters & params, const BAM::TReadGroups & ReadGroups, TLog* logfile);
+	void initialize(TParameters & params, const std::string & ParameterName, const BAM::TReadGroups & ReadGroups, TLog* logfile);
 
 	void parseEstimationParameters(TPMDEstimationParameters & EstimationParameters, TParameters & Params, TLog* Logfile);
 	void estimate(const TPMDTables & PMDTables, const BAM::TReadGroups & ReadGroups, TLog* logfile, const TPMDEstimationParameters & EstimationParameters);

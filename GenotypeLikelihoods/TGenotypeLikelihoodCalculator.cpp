@@ -36,13 +36,18 @@ void TGenotypeLikelihoodCalculator::init(TParameters & params, BAM::TReadGroups*
 	_readGroupMap = new BAM::TReadGroupMap(ReadGroups);
 
 	//initialize PMD
-	_pmd.initialize(params, *_readGroups, _logfile);
+	if(params.parameterExists("pmd")){
+		std::string pmdString = params.getParameterString("pmd");
+		_pmd.initialize(pmdString, *_readGroups, _logfile);
+	} else {
+		_logfile->list("Assuming there is no PMD in the data. (use 'pmd' to add PMD definitions)");
+	}
 
 	//initialize sequencing errors
 	if(params.parameterExists("recal")){
 		_sequencingErrorModels.createModels(params.getParameterString("recal"), _readGroups, _readGroupMap, _logfile);
 	} else {
-		_logfile->list("Assuming that error rates in BAM files are correct. (use 'recal' to add recalibration parameters)");
+		_logfile->list("Assuming that error rates in BAM files are correct. (use 'recal' to add recalibration)");
 	}
 
 	//initialize storage to minimum size

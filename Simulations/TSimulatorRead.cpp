@@ -12,23 +12,11 @@ namespace Simulations{
 //----------------------------------
 //TSimulatorSingleEndRead
 //----------------------------------
-TSimulatorSingleEndRead::TSimulatorSingleEndRead(std::string readGroupName,
-												 int readGroupID,
-												 int MaxPrintPhredInt,
-												 TRandomGenerator* RandomGenerator,
-												 GenotypeLikelihoods::TGenotypeMap & GenoMap):_genoMap(GenoMap){
+TSimulatorSingleEndRead::TSimulatorSingleEndRead(const BAM::TReadGroup & ReadGroup, TRandomGenerator* RandomGenerator, GenotypeLikelihoods::TGenotypeMap & GenoMap):_genoMap(GenoMap){
 	_type = "single-end";
 
 	//set variables
 	_randomGenerator = RandomGenerator;
-	_maxPrintPhredInt = MaxPrintPhredInt;
-
-	_readLengthDist = NULL;
-	_readLengthInitialized = false;
-
-	_qualityDist = NULL;
-	_qualityDistInitialized = false;
-	_qualDistType = "";
 
 	_qualityTransform = NULL;
 	_qualityTransformInitialized = false;
@@ -41,12 +29,11 @@ TSimulatorSingleEndRead::TSimulatorSingleEndRead(std::string readGroupName,
 	contaminationSource = NULL;
 
 	//initialize bamAlignment
-	_name = readGroupName;
-	_readGroupID = readGroupID;
-	_readNamePrefix = "ATL:0:A:1:" + toString(_readGroupID) + ":"; //"<instrument>:<run number>:<flowcell ID>:<lane>:<tile>:"  Still need to add "<x-pos>:<y-pos>"
+	_readGroup = ReadGroup;
+	_readNamePrefix = "ATL:0:A:1:" + toString(_readGroup.id) + ":"; //"<instrument>:<run number>:<flowcell ID>:<lane>:<tile>:"  Still need to add "<x-pos>:<y-pos>"
 	_readXPos = 1;
 	_readYPos = 1;
-	_alignment.setReadGroup(_readGroupID);
+	_alignment.setReadGroup(_readGroup.id);
 	_alignment.setMappingQuality(50);
 
 	bases = NULL;
@@ -115,8 +102,6 @@ void TSimulatorSingleEndRead::_initializeQualityDistribution(std::string s, std:
 		pointer = std::make_unique<TSimulatorQualityDistFreq>(s, _randomGenerator);
 	else throw "Unknown read quality distribution '" + type + "'!";
 
-	_qualDistType = type;
-
 	checkInitialization();
 };
 
@@ -129,7 +114,7 @@ void TSimulatorSingleEndRead::setMappingQualityDistribution(std::string s){
 };
 
 void TSimulatorSingleEndRead::setQualityTransformation(TSimulatorQualityTransformParameters & parameters, TLog* logfile){
-	if(!_qualityDistInitialized)
+	if(!_qualityDist)
 		throw "Can not initialize quality transformation in TSimulatorRead: quality distribution not initialized!";
 
 	if(parameters.parameters_secondMate != "-" && parameters.parameters_secondMate != parameters.parameters_firstMate)
@@ -151,35 +136,21 @@ void TSimulatorSingleEndRead::setQualityTransformation(TSimulatorQualityTransfor
 	checkInitialization();
 };
 
-void TSimulatorSingleEndRead::setPMD(const std::string & pmdStringCT, const std::string & pmdStringGA){
-	_pmdObject.initializeFunction(pmdStringCT, GenotypeLikelihoods::pmdCT);
-	_pmdObject.initializeFunction(pmdStringGA, GenotypeLikelihoods::pmdGA);
-
-	_hasPMD = _pmdObject.hasDamage();
+void TSimulatorSingleEndRead::setPMD(GenotypeLikelihoods::TPMDType const* PmdObject){
+	_pmdObject = PmdObject;
+	_hasPMD = _pmdObject->hasDamage();
 	checkInitialization();
 };
 
-void TSimulatorSingleEndRead::_applyPMD(Base* _bases, const TReadLength & readLength, const bool isReverseStrand){
+void TSimulatorSingleEndRead::_applyPMD(std::vector<Base>& bases, const TReadLength & readLength, const bool isReverseStrand){
 	if(_hasPMD){
-		if(isReverseStrand){
-			for(int p=0; p<readLength.read; ++p){
-				if(_bases[p] == C ){
-					if(_randomGenerator->getRand() < _pmdObject.getProbThreePrime(readLength.fragment - readLength.read + p))
-						_bases[p] = T;
-				} else if(_bases[p] == G){
-					if(_randomGenerator->getRand() < _pmdObject.getProbFivePrime(readLength.read - p - 1))
-						_bases[p] = A;
-				}
+		if(!isReverseStrand){
+			for(uint16_t p = 0; p < readLength.read; ++p){
+				_pmdObject->simulatePMD(bases[p], p, readLength.fragment - p - 1, isReverseStrand, *_randomGenerator);
 			}
 		} else {
-			for(int p=0; p<readLength.read; ++p){
-				if(_bases[p] == C ){
-					if(_randomGenerator->getRand() < _pmdObject.getProbFivePrime(p))
-						_bases[p] = T;
-				} else if(_bases[p] == G){
-					if(_randomGenerator->getRand() < _pmdObject.getProbThreePrime(readLength.fragment - p - 1))
-						_bases[p] = A;
-				}
+			for(uint16_t p = 0; p < readLength.read; ++p){
+				_pmdObject->simulatePMD(bases[p], readLength.read - p - 1, readLength.fragment - readLength.read + p, isReverseStrand, *_randomGenerator);
 			}
 		}
 	}
@@ -209,17 +180,20 @@ std::string TSimulatorSingleEndRead::_getNextReadName(){
 };
 
 void TSimulatorSingleEndRead::_simulateBasesQualities(BAM::TAlignment & alignment,
-													  Base* haplotype,
+													  std::vector<Base> haplotype,
 													  const uint64_t pos,
 													  const TReadLength & readLength,
 													  const bool readIsContaminated,
 													  const bool isReverse,
 													  TSimulatorQualityTransformation* qualityTransform){
 	//copy bases
-	if(_isContaminated && _randomGenerator->getRand() < _contaminationRate)
-		memcpy(bases, contaminationSource->getPointerToRef() + pos, readLength.read);
-	else
-		memcpy(bases, haplotype + pos, readLength.read);
+	if(readIsContaminated){
+		std::vector<Base>::iterator start = contaminationSource->reference().begin() + pos;
+		bases.assign(start, start + readLength.read);
+	} else {
+		std::vector<Base>::iterator start = haplotype.begin() + pos;
+		bases.assign(start, start + readLength.read);
+	}
 
 	//apply PMD
 	_applyPMD(bases, readLength, isReverse);
@@ -231,8 +205,14 @@ void TSimulatorSingleEndRead::_simulateBasesQualities(BAM::TAlignment & alignmen
 	std::string queryBases, qualities;
 	for(int p=0; p<readLength.read; ++p){
 		queryBases += _genoMap.baseToChar[bases[p]];
-		qualities += (char) (std::min(phredIntQualities[p], _maxPrintPhredInt) + 33);
+
+		CHECK!!! What do we have? Qual or phredInt? Use qualMap!
+
+		qualities += (char) phredIntQualities[p] + 33);
 	}
+
+	//adjust qualities for writing
+	_qualMap.adjustQualitiesForWriting(qualities);
 
 	//fill alignment
 	//TODO: verify that it should be negative in case of single end!
@@ -262,12 +242,16 @@ void TSimulatorSingleEndRead::simulate(Base* haplotype, const uint32_t & refID, 
 
 void TSimulatorSingleEndRead::printDetails(TLog* logfile){
 	logfile->list(_type + ".");
-	if(_readLengthInitialized)
+	if(_readLengthDist)
 		_readLengthDist->printDetails(logfile);
 	else throw "Read length distribution not initialized!";
 
-	if(_qualityDistInitialized)
-		_qualityDist->printDetails(logfile);
+	if(_mappingQualityDist)
+		_mappingQualityDist->printDetails(logfile, "Mapping quality");
+	else throw "Mapping quality distribution not initialized!";
+
+	if(_qualityDist)
+		_qualityDist->printDetails(logfile, "Base quality");
 	else throw "Read quality distribution not initialized!";
 
 	if(_qualityTransformInitialized)

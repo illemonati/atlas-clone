@@ -49,6 +49,8 @@ public:
 	bool operator==(const Base & b){ return base == b; };
 	bool operator!=(const Base & b){ return base != b; };
 
+	void operator=(const Base & b){ base = b; };
+
 	void print();
 };
 

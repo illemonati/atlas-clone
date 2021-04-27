@@ -195,7 +195,7 @@ const TReadGroup& TReadGroups::getReadGroup(const std::string & name){
 
 const TReadGroup& TReadGroups::operator[](const uint16_t & readGroupId) const{
 	if(readGroupId < 0 || readGroupId >= _readGroups.size()) throw "No read group with number " + toString(readGroupId) + "!";
-	return _readGroups[readGroupId];
+	return *_readGroupsById[readGroupId];
 };
 
 bool TReadGroups::readGroupExists(const std::string & name) const{

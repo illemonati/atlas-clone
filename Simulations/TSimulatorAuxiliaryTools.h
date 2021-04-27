@@ -34,16 +34,12 @@ private:
 	GenotypeLikelihoods::TGenotypeMap _genoMap;
 
 	//reference storage
-	Base* _ref;
-	bool _storageInitialized;
-	long _storageLength;
+	std::vector<Base> _ref;
 	long _chrLength;
 	std::string _chrName;
 	bool _needsWriting;
 
 	void _allocateStorage(long length);
-	void _freeStorage();
-
 	void _openFastaFile();
 	void _closeFastaFile();
 	void _writeRefToFasta();
@@ -60,7 +56,7 @@ public:
 
 	void setChr(std::string ChrName, long ChrLength);
 //	void simulateReferenceSequenceCurChromosome(TRandomGenerator * randomGenerator, float* cumulBaseFreq);
-	Base* getPointerToRef(){ return _ref; };
+	std::vector<Base>& reference(){ return _ref; };
 
 	Base& operator[](const uint32_t & index){ return _ref[index]; };
 };

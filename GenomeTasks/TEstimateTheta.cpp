@@ -227,7 +227,7 @@ TEstimateThetaDownsamplingQC::TEstimateThetaDownsamplingQC(TParameters & Paramet
 		prefix.erase(pos + 1, prefix.size() - pos - 1);
 		prefix = "p" + prefix + "_";
 
-		//now add estimator ot output file
+		//now add estimator to output file
 		_thetaOut.addEstimator(&estimators[i], prefix);
 	}
 	_thetaOut.open(filename, _logfile);
