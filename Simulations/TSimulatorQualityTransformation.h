@@ -19,19 +19,16 @@
 namespace Simulations{
 
 //-------------------------------
-//TSimulatorQualityDist
+// TSimulatorQualityDist
+// Used for quality and mapping quality
 //-------------------------------
-//Class of a fixed quality
+//Class of a fixed value
 class TSimulatorQualityDist{
 protected:
 	int _min;
 	int _max;
 	int _maxPlusOne;
 	double _mean, _sd;
-
-
-	//tmp variables
-	int tmpInt;
 
 public:
 	TSimulatorQualityDist();
@@ -49,12 +46,25 @@ public:
 //Class of a binned distribution
 class TSimulatorQualityDistBinned:public TSimulatorQualityDist{
 private:
-	TRandomGenerator* randomGenerator;
-	std::vector<int> qualBins;
-	int numQualBins;
+	TRandomGenerator* _randomGenerator;
+	std::vector<uint16_t> _qualBins;
 
 public:
 	TSimulatorQualityDistBinned(std::string & s, TRandomGenerator* RandomGenerator);
+	void sample(int* qualities, const int & len);
+	void printDetails(TLog* logfile);
+};
+
+//Class of a binned distribution with frequencies
+class TSimulatorQualityDistFreq:public TSimulatorQualityDist{
+private:
+	TRandomGenerator* _randomGenerator;
+	std::vector<uint16_t> _qualBins;
+	std::vector<double> _frequencies;
+	std::vector<double> _cumulativeFrequencies;
+
+public:
+	TSimulatorQualityDistFreq(std::string & s, TRandomGenerator* RandomGenerator);
 	void sample(int* qualities, const int & len);
 	void printDetails(TLog* logfile);
 };

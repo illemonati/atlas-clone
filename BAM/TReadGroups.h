@@ -95,8 +95,9 @@ public:
 	bool empty() const;
 
 	uint16_t getId(const std::string & name) const;
-	const std::string& getName (const uint16_t readGroupId) const;
+	const std::string& getName (const uint16_t & readGroupId) const;
 	const TReadGroup& getReadGroup(const std::string & name);
+	const TReadGroup& operator[](const uint16_t & readGroupId) const;
 	bool readGroupExists(const std::string & name) const;
 	bool readGroupInUse(const uint16_t & readGroupId) const;
 	bool readGroupInUse(const std::string name) const;

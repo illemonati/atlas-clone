@@ -72,16 +72,59 @@ void TSimulator::_initializeCommonSettings(TParameters & params){
 //--------------------------------------------------------------
 //Function to initialize read groups
 //--------------------------------------------------------------
-void TSimulator::_saveToMap(std::string & name, std::string args, std::map<std::string, std::string> & map, std::string & filename){
-	//save, but check if name already exists!
-	if(map.find(name) != map.end())
-			throw "Duplicated read group name '" + name + "'in file '" + filename + "'!";
-	map.emplace(name, args);
+std::vector<std::string>  TSimulator::_readSimInfoPerReadGroup(const std::string & Filename, const std::string & Column, const std::string & Name){
+	_logfile->listFlush("Reading " + Name + "(s) from file '" + Filename + "' ...");
+
+	TInputFile in(Filename, {"ReadGroup", Column}, "\t", "//");
+	std::vector<std::string> vec;
+	std::vector<bool> found(_readGroups.size(), false);
+
+	//return map
+	std::vector<std::string> ret(_readGroups.size());
+
+	//now parse file
+	while(in.read(vec)){
+		//find read group
+		uint32_t rg = _readGroups.getId(vec[0]);
+		found[rg] = true;
+		ret[rg] = vec[1];
+	}
+	_logfile->done();
+	_logfile->conclude("Read " + Name + "s for " + toString(in.lineNumber()) + " read groups.");
+
+	//check if there was data for each read group
+	for(size_t i = 0; i < found.size(); ++i){
+		if(!found[i]){
+			throw "No " + Name + " given for read group '" + _readGroups.getName(i) + "' in file '" + Filename + "'!";
+		}
+	}
+
+	//return
+	return ret;
 };
 
-void TSimulator::_initializeReadLengthDistribution(TParameters & params){
-	_logfile->startIndent("Reading read length distribution:");
-	std::string s = params.getParameterStringWithDefault("readLength", "single:fixed(100)");
+void TSimulator::_initializeReadGroup(const std::string & readLengthString, const BAM::TReadGroup & ReadGroup){
+	//single or paired end? Is indicated at beginning of readLengthString!
+	if(readLengthString.find("single:") == 0){
+		_readSimulators.push_back(new TSimulatorSingleEndRead(ReadGroup, _randomGenerator, _genoMap));
+	} else if(readLengthString.find("paired:") == 0){
+		_readSimulators.push_back(new TSimulatorPairedEndReads(ReadGroup, _randomGenerator, _genoMap));
+	} else
+		throw "Unable to understand string '" + readLengthString + "'!";
+
+	//add read Length distribution
+	std::string readLengthDist = readAfterLast(readLengthString,':');
+	_readSimulators.back()->setReadLengthDistribution(readLengthDist, _logfile);
+};
+
+void TSimulator::_initializeReadGroupsFromReadLengthDistribution(TParameters & params,
+																 const std::string & ParameterName,
+																 const std::string & DefaultValue,
+																 const std::string & Name){
+	_logfile->startIndent("Parsing read length distribution (parameter '" + ParameterName + "'):");
+	std::string s = params.getParameterStringWithDefault(ParameterName, DefaultValue);
+
+	_readSimulators.clear();
 
 	//We allow for two options:
 	//  1) initialized from the command line (one for all read groups)
@@ -92,110 +135,102 @@ void TSimulator::_initializeReadLengthDistribution(TParameters & params){
 	if(pos != std::string::npos){
 		//Option 1: a single read length distribution for all
 		//---------------------------------------------------------------------
-		//is a function on the command line
 		_logfile->list("Will use '" + s + " for all read groups.");
 
-
+		//create read groups
+		for(auto& r : _readGroups){
+			_initializeReadGroup(s, r);
+		}
+	} else {
 		//Option 2: read group specific, given in a file
 		//---------------------------------------------------------------------
+		std::vector<std::string> dist = _readSimInfoPerReadGroup(s, ParameterName, Name);
 
-
-		// is a file
-		_logfile->listFlush("Reading distribution(s) from file '" + s + "' ...");
-		std::ifstream file(s.c_str());
-		if(!file)
-			throw "Failed to open read-length file '" + s + "!\nEither provide a valid read length distribution, or a valid file name listing this distribution for each read group.";
-
-		//variables
-		int lineNum = 0;
-		std::string line;
-		std::vector<std::string> vec;
-
-		//now parse file
-		while(file.good() && !file.eof()){
-			++lineNum;
-			//skip empty lines or those that start with //
-			std::getline(file, line);
-			line = extractBefore(line, "//");
-			trimString(line);
-			if(!line.empty()){
-				fillVectorFromStringWhiteSpace(line, vec, true);
-				if(vec.size() != 2)
-					throw "Found " + toString(vec.size()) + " instead of 2 columns in '" + s + "' on line " + toString(lineNum) + "!\n Expect 1) read group name and 2) function string.";
-
-				//check format
-				if(vec[1].find("single:") == std::string::npos && vec[1].find("paired:") == std::string::npos)
-					throw "Failed to understand read length distribution '" + vec[1] + "': keyword single or paired missing!";
-
-				//save to map
-				_saveToMap(vec[0], vec[1], readLengthMap, s);
-			}
+		for(uint32_t r = 0; r < dist.size(); ++r){
+			_initializeReadGroup(dist[r], _readGroups[r]);
 		}
-		_logfile->done();
-		_logfile->conclude("Read distributions for " + toString(readLengthMap.size()) + " read groups.");
-		perReadGroup = true;
-	} else {
-
 	}
 	_logfile->endIndent();
 };
 
-void TSimulator::_initializeQualityDistribution(TParameters & params, bool & perReadGroup, std::map<std::string, std::string> & qualityDistMap){
-	_logfile->startIndent("Reading quality distribution:");
-	std::string s = params.getParameterStringWithDefault("qualityDist", "normal(30,10)[0,93]");
+void TSimulator::_initializeDistribution(TParameters & params,
+										 const std::string & ParameterName,
+										 const std::string & DefaultValue,
+										 const std::string & Name,
+										 void (TSimulatorSingleEndRead::*function)(std::string string)){
+	_logfile->startIndent("Parsing " + Name + ":");
+	std::string s = params.getParameterStringWithDefault(ParameterName, DefaultValue);
 
-	//check if it is a specific function
-	size_t pos = s.find("(");
-	if(pos == std::string::npos){
-		//is a file
-		_logfile->listFlush("Reading distribution(s) from file '" + s + "' ...");
-		std::ifstream file(s.c_str());
-		if(!file)
-			throw "Failed to open quality distribution file '" + s + "!\nEither provide a valid quality distribution, or a valid file name listing this distribution for each read group.";
+	//We allow for two options:
+	//  1) initialized from the command line (one for all read groups)
+	//  2) read-group specific as given in a file
 
-		//variables
-		int lineNum = 0;
-		std::string line;
-		std::vector<std::string> vec;
+	//check if it is a file (should not contain a ':')
+	size_t pos = s.find(":");
+	if(pos != std::string::npos){
+		//Option 1: a single read distribution for all
+		//---------------------------------------------------------------------
+		_logfile->list("Will use '" + s + " for all read groups.");
 
-		//now parse file
-		while(file.good() && !file.eof()){
-			++lineNum;
-			//skip empty lines or those that start with //
-			std::getline(file, line);
-			line = extractBefore(line, "//");
-			trimString(line);
-			if(!line.empty()){
-				fillVectorFromStringWhiteSpace(line, vec, true);
-				if(vec.size() != 2)
-					throw "Found " + toString(vec.size()) + " instead of 2 columns in '" + s + "' on line " + toString(lineNum) + "!\n Expect 1) read group name and 2) function string.";
-
-				//save to map
-				_saveToMap(vec[0], vec[1], qualityDistMap, s);
-			}
+		//create read groups
+		for(auto& r : _readSimulators){
+			r->*(function)(s);
 		}
-		_logfile->done();
-		_logfile->conclude("Read distributions for " + toString(qualityDistMap.size()) + " read groups.");
-		perReadGroup = true;
 	} else {
-		//is a function on the command line
-		_logfile->list("Will use '" + s + "' for all read groups.");
-		qualityDistMap.emplace("-", s);
-		perReadGroup = false;
+		//Option 2: read group specific, given in a file
+		//---------------------------------------------------------------------
+		std::vector<std::string> dist = _readSimInfoPerReadGroup(s, ParameterName, Name);
+
+		for(uint32_t r = 0; r < dist.size(); ++r){
+			_readSimulators[r]->*(function)(dist[r]);
+		}
 	}
 	_logfile->endIndent();
-}
+};
 
-void TSimulator::_initializeQualityTransformations(TParameters & params, bool & perReadGroup, std::map<std::string, TSimulatorQualityTransformParameters > & qualTransformMap){
+
+void TSimulator::_initializeQualityDistribution(const std::string & ParameterName, TParameters & params){
+	_logfile->startIndent("Parsing quality distribution:");
+	std::string s = params.getParameterStringWithDefault("qualityDistribution", "normal(30,10)[0,93]");
+
+	//We allow for two options:
+	//  1) initialized from the command line (one for all read groups)
+	//  2) read-group specific as given in a file
+
+	//check if it is a file (should not contain a ':')
+	size_t pos = s.find(":");
+	if(pos != std::string::npos){
+		//Option 1: a single read distribution for all
+		//---------------------------------------------------------------------
+		_logfile->list("Will use '" + s + " for all read groups.");
+
+		//create read groups
+		for(auto& r : _readSimulators){
+			r->setQualityDistribution(s);
+		}
+	} else {
+		//Option 2: read group specific, given in a file
+		//---------------------------------------------------------------------
+		std::vector<std::string> dist = _readSimInfoPerReadGroup(s, ParameterName, "Quality distribution");
+
+		for(uint32_t r = 0; r < dist.size(); ++r){
+			_readSimulators[r]->setQualityDistribution(dist[r]);
+
+		}
+	}
+	_logfile->endIndent();
+};
+
+
+
+void TSimulator::_initializeQualityTransformations(const std::string & ParameterName, TParameters & params){
 	//initialize quality transformation
 	//Currently we allow for three options:
 	//  1) recal transformation initialized from the command line (one for all read groups)//
 	//  2) read-group specific recal transformation provided via a recal file	//
 	//  3) no quality transformation
 
-	//map has format: < readGroup, < type, args > >
-
-	_logfile->startIndent("Reading quality transformation:");
+	_logfile->startIndent("Reading quality transformation (parameter '" + ParameterName+ "'):");
 	std::vector<std::string> string_vec;
 
 	//tmp vars
@@ -431,42 +466,78 @@ void TSimulator::_addToReadGroupVector(std::vector<std::string> & vec, const std
 		vec.push_back(rg);
 };
 
-void TSimulator::_initializeReadGroup(const std::string & readLengthString, std::string & readGroupName, int rgNumber, int maxPrintQual){
-	//single or paired end? Is indicated at beginning of readLengthString!
-	if(readLengthString.find("single:") == 0){
-		_readSimulators.push_back(new TSimulatorSingleEndRead(readGroupName, rgNumber, maxPrintQual, _randomGenerator, _genoMap));
-	} else if(readLengthString.find("paired:") == 0){
-		_readSimulators.push_back(new TSimulatorPairedEndReads(readGroupName, rgNumber, maxPrintQual, _randomGenerator, _genoMap));
-	} else
-		throw "Unable to understand read length string '" + readLengthString + "'!";
+void TSimulator::_addReadGroupsIfFile(const std::string & ParameterName, TParameters & Parameters, BAM::TReadGroups & ReadGroups){
+	//check if parameter is given
+	if(Parameters.parameterExists(ParameterName)){
+		std::string s = Parameters.getParameterString(ParameterName);
 
-	//add read Length distribution
-	std::string readLengthDist = readAfterLast(readLengthString,':');
-	_readSimulators.back()->setReadLengthDistribution(readLengthDist, _logfile);
+		//check if string s provides a definition (contains a ':') or is a file (does not contain a ':')
+		if(!stringContains(s, ":")){
+			//is probably a file -> try to open it
+			if(std::filesystem::exists(s)){
+				TInputFile in(s, {"ReadGroup"}, "\t", "//");
+				std::vector<std::string> tmp;
+				while(in.read(tmp)){
+					//add all non-existing elemets
+					ReadGroups.add(tmp[0]);
+				}
+			}
+		}
+	}
 };
 
-void TSimulator::_initializeReadSimulator(TParameters & params){
-	// A) read length
-	//---------------
-	std::map<std::string, std::string> readLengthMap;
-	bool readLengthPerReadGroup = false;
-	_initializeReadLengthDistribution(params, readLengthPerReadGroup, readLengthMap);
 
-	//add read group names to list
-	if(readLengthPerReadGroup){
-		for(std::map<std::string, std::string>::iterator it=readLengthMap.begin(); it!=readLengthMap.end(); ++it)
-			_addToReadGroupVector(_readGroupNames, it->first);
+void TSimulator::_initializeReadSimulator(TParameters & params){
+	// For which read groups?
+	// Check for each parameter if it is given per read group (a file) or common to all
+	_readGroups.clear();
+	_addReadGroupsIfFile("readLength", params, _readGroups);
+	_addReadGroupsIfFile("qualityDist", params, _readGroups);
+	_addReadGroupsIfFile("pmd", params, _readGroups);
+	_addReadGroupsIfFile("recal", params, _readGroups);
+	_addReadGroupsIfFile("readGroupFreq", params, _readGroups);
+
+	//any read groups specified?
+	if(_readGroups.empty()){
+		int numRG = params.getParameterIntWithDefault("numReadGroups", 1);
+		for(int i=0; i < numRG; ++i){
+			_readGroups.add("SimReadGroup" + toString(i+1));
+		}
+
+		//report
+		if(numRG == 1){
+			_logfile->startIndent("Initializing one read group (parameter 'numreadGroups'):");
+		} else if(numRg > 1){
+			_logfile->startIndent("Initializing " + toString(numRG) + " identical read groups (parameter 'numreadGroups'):");
+		} else {
+			throw "numReadGroups must be at least 1!";
+		}
+
+	} else {
+		_logfile->startIndent("Initializing " + toString(_readGroups.size()) + " individual read group(s):");
 	}
+
+	// A) read length: used to create simulator read groups
+	//---------------
+	_initializeReadGroupsFromReadLengthDistribution(params, "readLength", "single:fixed(100)", "read length");
 
 	// B) initialize quality distribution
 	//-----------------------------------
-	std::map<std::string, std::string> qualityMap;
-	bool qualityPerReadGroup = false;
-	_initializeQualityDistribution(params, qualityPerReadGroup, qualityMap);
+	_initializeDistribution(params, _outname, "normal(30,10)[0,93]", "quality distribution", &TSimulatorSingleEndRead::setQualityDistribution);
+
+	// C) initialize mapping quality distribution
+	//-----------------------------------
+	_initializeDistribution(params, _outname, "normal(60,10)[1,255]", "mapping quality distribution", &TSimulatorSingleEndRead::setMappingQualityDistribution);
+
+	// D) initialize PMD
+	//------------------
+	std::map<std::string, std::pair<std::string, std::string> > pmdMap;
+	bool pmdPerReadGroup = false;
+	_initializePMD(params, pmdPerReadGroup, pmdMap);
 
 	//add read group names to list
-	if(qualityPerReadGroup){
-		for(std::map<std::string, std::string>::iterator it=qualityMap.begin(); it!=qualityMap.end(); ++it)
+	if(pmdPerReadGroup){
+		for(std::map<std::string, std::pair<std::string, std::string> >::iterator it=pmdMap.begin(); it!=pmdMap.end(); ++it)
 			_addToReadGroupVector(_readGroupNames, it->first);
 	}
 
@@ -482,17 +553,6 @@ void TSimulator::_initializeReadSimulator(TParameters & params){
 			_addToReadGroupVector(_readGroupNames, it->first);
 	}
 
-	// D) initialize PMD
-	//------------------
-	std::map<std::string, std::pair<std::string, std::string> > pmdMap;
-	bool pmdPerReadGroup = false;
-	_initializePMD(params, pmdPerReadGroup, pmdMap);
-
-	//add read group names to list
-	if(pmdPerReadGroup){
-		for(std::map<std::string, std::pair<std::string, std::string> >::iterator it=pmdMap.begin(); it!=pmdMap.end(); ++it)
-			_addToReadGroupVector(_readGroupNames, it->first);
-	}
 
 	// E) initialize contamination
 	//----------------------------

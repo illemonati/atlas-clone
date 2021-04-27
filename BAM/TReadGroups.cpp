@@ -173,7 +173,7 @@ bool TReadGroups::empty() const{
 	return _readGroups.empty();
 };
 
-const std::string& TReadGroups::getName(uint16_t readGroupId) const{
+const std::string& TReadGroups::getName(const uint16_t & readGroupId) const{
 	if(readGroupId < 0 || readGroupId >= _readGroups.size()) throw "No read group with number " + toString(readGroupId) + "!";
 
 	return _readGroupsById[readGroupId]->name_ID;
@@ -191,6 +191,11 @@ const TReadGroup& TReadGroups::getReadGroup(const std::string & name){
 	if(rg != _readGroups.end())
 		return *rg;
 	throw "Read Group '" + name + "' is not present in header of bam file!";
+};
+
+const TReadGroup& TReadGroups::operator[](const uint16_t & readGroupId) const{
+	if(readGroupId < 0 || readGroupId >= _readGroups.size()) throw "No read group with number " + toString(readGroupId) + "!";
+	return _readGroups[readGroupId];
 };
 
 bool TReadGroups::readGroupExists(const std::string & name) const{

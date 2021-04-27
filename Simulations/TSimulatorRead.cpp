@@ -54,19 +54,16 @@ TSimulatorSingleEndRead::TSimulatorSingleEndRead(std::string readGroupName,
 };
 
 TSimulatorSingleEndRead::~TSimulatorSingleEndRead(){
-	if(_readLengthInitialized){
-		delete _readLengthDist;
+	if(_readLengthDist){
 		delete[] bases;
 		delete[] phredIntQualities;
 	}
-	if(_qualityDistInitialized)
-		delete _qualityDist;
 	if(_qualityTransformInitialized)
 		delete _qualityTransform;
 };
 
 bool TSimulatorSingleEndRead::checkInitialization(){
-	_isInitialized = _readLengthInitialized && _qualityDistInitialized && _qualityTransformInitialized;
+	_isInitialized = _readLengthDist && _qualityDist && _mappingQualityDist && _qualityTransformInitialized;
 	return _isInitialized;
 }
 
@@ -82,46 +79,53 @@ void TSimulatorSingleEndRead::setReadLengthDistribution(std::string s, TLog* log
 	s.erase(0, pos);
 
 	if(type == "gamma")
-		_readLengthDist = new TSimulatorReadLengthGamma(s, _randomGenerator, logfile);
+		_readLengthDist = std::make_unique<TSimulatorReadLengthGamma>(s, _randomGenerator, logfile);
 	else if(type == "gammaMode"){
-		_readLengthDist = new TSimulatorReadLengthGammaMode(s, _randomGenerator, logfile);
-
+		_readLengthDist = std::make_unique<TSimulatorReadLengthGammaMode>(s, _randomGenerator, logfile);
 	}
 	else if(type == "fixed")
-		_readLengthDist = new TReadLengthDistribution(s, _randomGenerator);
+		_readLengthDist = std::make_unique<TReadLengthDistribution>(s, _randomGenerator);
 	else throw "Unknown read length distribution '" + type + "'!";
 
 	//initialize bases and qualities
-	bases = new Base[_readLengthDist->max()];
-	phredIntQualities = new int[_readLengthDist->max()];
+	bases.resize(_readLengthDist->max());
+	phredIntQualities.resize(_readLengthDist->max());
 
 	//update status
-	_readLengthInitialized = true;
 	checkInitialization();
 };
 
-void TSimulatorSingleEndRead::setQualityDistribution(std::string s){
+void TSimulatorSingleEndRead::_initializeQualityDistribution(std::string s, std::unique_ptr<TSimulatorQualityDist> & pointer){
 	size_t pos = s.find("(");
 	std::string tmp;
 
 	if(pos == std::string::npos)
-		throw "Unable to understand read length distribution '" + s + "'!";
+		throw "Unable to understand distribution '" + s + "'!";
 
 	//initialize appropriate function
 	std::string type = s.substr(0, pos);
 	s.erase(0, pos);
 	if(type == "fixed")
-		_qualityDist = new TSimulatorQualityDist(s);
+		pointer = std::make_unique<TSimulatorQualityDist>(s);
 	else if(type == "normal")
-		_qualityDist = new TSimulatorQualityDistNormal(s, _randomGenerator);
+		pointer = std::make_unique<TSimulatorQualityDistNormal>(s, _randomGenerator);
 	else if(type == "binned")
-		_qualityDist = new TSimulatorQualityDistBinned(s, _randomGenerator);
+		pointer = std::make_unique<TSimulatorQualityDistBinned>(s, _randomGenerator);
+	else if(type == "freq")
+		pointer = std::make_unique<TSimulatorQualityDistFreq>(s, _randomGenerator);
 	else throw "Unknown read quality distribution '" + type + "'!";
 
 	_qualDistType = type;
 
-	_qualityDistInitialized = true;
 	checkInitialization();
+};
+
+void TSimulatorSingleEndRead::setQualityDistribution(std::string s){
+	_initializeQualityDistribution(s, _qualityDist);
+};
+
+void TSimulatorSingleEndRead::setMappingQualityDistribution(std::string s){
+	_initializeQualityDistribution(s, _mappingQualityDist);
 };
 
 void TSimulatorSingleEndRead::setQualityTransformation(TSimulatorQualityTransformParameters & parameters, TLog* logfile){

@@ -209,7 +209,7 @@ private:
 	std::unique_ptr<TPMDFunction> _pmdGA;
 
 public:
-	TPMDTypeDoubleStrand(const std::string & string);
+	TPMDTypeDoubleStrand(const std::vector<std::string> & Details);
 	~TPMDTypeDoubleStrand() = default;
 
 	bool hasDamage() const override { return _pmdCT->hasDamage() || _pmdGA->hasDamage(); };
@@ -229,20 +229,18 @@ class TPostMortemDamage{
 private:
 	std::vector< std::unique_ptr<TPMDType> > _pmdObjects;
 	bool _hasPMD;
-	bool _readGroupSpecific;
 
-	void _openPMDFile(TInputFile & in, const std::string & filename);
-	void _createPMDType(const std::string & type, const std::string & functions, std::unique_ptr<TPMDType> & ptr);
+	void _createPMDType(const std::string & pmdString, std::unique_ptr<TPMDType> & ptr);
 	void _initializeFromString(const std::string & pmdString, TLog* logfile);
-	void _initializeFromFileMatchReadGroups(const BAM::TReadGroups & ReadGroups, const std::string & filename, TLog* logfile);
-	void _initializeFromFile(BAM::TReadGroups & ReadGroups, const std::string & filename, TLog* logfile);
+	void _initializeFromFile(const BAM::TReadGroups & ReadGroups, const std::string & filename, TLog* logfile);
 	void _setHasDamage();
 
 public:
 	TPostMortemDamage();
 	bool hasPMD() const{ return _hasPMD; };
 
-	void initialize(TParameters & params, BAM::TReadGroups & ReadGroups, TLog* logfile);
+	void initialize(const std::string & pmdString, const BAM::TReadGroups & ReadGroups, TLog* Logfile);
+	void initialize(TParameters & params, const BAM::TReadGroups & ReadGroups, TLog* logfile);
 
 	void parseEstimationParameters(TPMDEstimationParameters & EstimationParameters, TParameters & Params, TLog* Logfile);
 	void estimate(const TPMDTables & PMDTables, const BAM::TReadGroups & ReadGroups, TLog* logfile, const TPMDEstimationParameters & EstimationParameters);

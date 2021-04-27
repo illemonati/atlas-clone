@@ -18,6 +18,7 @@
 #include "TSimulatorRead.h"
 #include "TFile.h"
 #include "TTask.h"
+#include <filesystem>
 
 namespace Simulations{
 
@@ -52,11 +53,10 @@ protected:
 	bool _readLengthDistribitionReadGroupSpecific;
 	std::vector<TSimulatorQualityDist*> _qualityDistributions;
 	bool _qualityDistribitionReadGroupSpecific;
-	TPostMortemDamage _PMD;
+	GenotypeLikelihoods::TPostMortemDamage _PMD;
 
 	//read simulator
 	std::vector<TSimulatorSingleEndRead*> _readSimulators;
-	std::vector<std::string> _readGroupNames;
 	std::vector<double> _simGroupFrequencies;
 	std::vector<double> _cumulSimGroupFrequenies;
 
@@ -72,14 +72,17 @@ protected:
 
 	//function to initialize read groups
 	void _initializeCommonSettings(TParameters & params);
-	void _saveToMap(std::string & name, std::string args, std::map<std::string, std::string> & map, std::string & filename);
-	void _initializeReadLengthDistribution(TParameters & params, bool & perReadGroup, std::map<std::string, std::string> & readLengthMap);
-	void _initializeQualityDistribution(TParameters & params, bool & perReadGroup, std::map<std::string, std::string> & qualityDistMap);
+	std::vector<std::string>  _readSimInfoPerReadGroup(const std::string & Filename, const std::string & Column, const std::string & Name);
+	void _initializeReadGroup(const std::string & readLengthString, const BAM::TReadGroup & ReadGroup);
+	void _initializeReadGroupsFromReadLengthDistribution(TParameters & params, const std::string & ParameterName, const std::string & DefaultValue, const std::string & Name);
+	void _initializeDistribution(TParameters & params, const std::string & ParameterName, const std::string & DefaultValue, const std::string & Name, void (TSimulatorSingleEndRead::*function)(std::string string));
+
+
 	void _initializeQualityTransformations(TParameters & params, bool & perReadGroup, std::map<std::string, TSimulatorQualityTransformParameters > & qualTransformMap);
 	void _initializePMD(TParameters & params, bool & perReadGroup, std::map<std::string, std::pair<std::string, std::string> > & pmdMap);
 	void _initializeContamination(TParameters & params, bool & perReadGroup, std::map<std::string, double> & contaminationMap);
 	void _addToReadGroupVector(std::vector<std::string> & vec, const std::string & rg);
-	void _initializeReadGroup(const std::string & readLengthString, std::string & readGroupName, int rgNumber, int maxPrintQual);
+	void _addReadGroupsIfFile(const std::string & ParameterName, TParameters & Parameters, BAM::TReadGroups & ReadGroups);
 	void _initializeReadSimulator(TParameters & params);
 	void _initializeReadGroupFrequencies(TParameters & params);
 

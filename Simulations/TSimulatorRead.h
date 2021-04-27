@@ -14,6 +14,7 @@
 #include "TPostMortemDamage.h"
 #include "TSimulatorAuxiliaryTools.h"
 #include "TSimulatorQualityTransformation.h"
+#include "TReadGroups.h"
 
 namespace Simulations{
 
@@ -25,21 +26,20 @@ protected:
 	TRandomGenerator* _randomGenerator;
 	GenotypeLikelihoods::TGenotypeMap& _genoMap;
 
+	const BAM::TReadGroup& _readGroup;
 	std::string _type;
 	int _maxPrintPhredInt;
-	std::string _name;
-	uint32_t _readGroupID;
 	std::string _readNamePrefix;
 	int _readXPos, _readYPos;
 	bool _isInitialized;
 
 	//read length
-	TReadLengthDistribution* _readLengthDist;
-	bool _readLengthInitialized;
+	std::unique_ptr<TReadLengthDistribution> _readLengthDist;
 
 	//qualities
-	TSimulatorQualityDist* _qualityDist;
-	bool _qualityDistInitialized;
+	std::unique_ptr<TSimulatorQualityDist> _qualityDist;
+	std::unique_ptr<TSimulatorQualityDist> _mappingQualityDist;
+
 	std::string _qualDistType;
 	TSimulatorQualityTransformation* _qualityTransform;
 	bool _qualityTransformInitialized;
@@ -56,8 +56,11 @@ protected:
 	//alignment
 	BAM::TSamFlags _flags;
 	BAM::TAlignment _alignment;
-	Base* bases;
-	int* phredIntQualities;
+	std::vector<Base> bases;
+	std::vector<uint16_t> phredIntQualities;
+
+	//function initialize
+	void _initializeQualityDistribution(std::string s, std::unique_ptr<TSimulatorQualityDist> & pointer);
 
 	//general functions
 	void _simulateQualitiesAndErrors(Base* _bases, int* _qualities, int & len);
@@ -66,12 +69,13 @@ protected:
 	void _simulateBasesQualities(BAM::TAlignment & alignment, Base* haplotype, const uint64_t pos, const TReadLength & readLength, const bool readIsContaminated, const bool isReverse, TSimulatorQualityTransformation* qualityTransform);
 
 public:
-	TSimulatorSingleEndRead(std::string readGroupName, int readGroupID, int MaxPrintQual, TRandomGenerator* RandomGenerator, GenotypeLikelihoods::TGenotypeMap & GenoMap);
+	TSimulatorSingleEndRead(const BAM::TReadGroup&, TRandomGenerator* RandomGenerator, GenotypeLikelihoods::TGenotypeMap & GenoMap);
 	virtual ~TSimulatorSingleEndRead();
 
 	bool checkInitialization();
 	void setReadLengthDistribution(std::string s, TLog* logfile);
 	void setQualityDistribution(std::string s);
+	void setMappingQualityDistribution(std::string s);
 	virtual void setQualityTransformation(TSimulatorQualityTransformParameters & parameters, TLog* logfile);
 	void setPMD(const std::string & pmdStringCT, const std::string & pmdStringGA);
 	void setContamination(double rate, TSimulatorReference* source);
@@ -107,7 +111,7 @@ private:
 	TSimulatorQualityTransformation* qualityTransform_secondMate;
 
 public:
-	TSimulatorPairedEndReads(std::string readGroupName, int readGroupNumber, int MaxPrintQual, TRandomGenerator* RandomGenerator, GenotypeLikelihoods::TGenotypeMap & GenoMap);
+	TSimulatorPairedEndReads(const BAM::TReadGroup&, TRandomGenerator* RandomGenerator, GenotypeLikelihoods::TGenotypeMap & GenoMap);
 	~TSimulatorPairedEndReads();
 
 	void setQualityTransformation(TSimulatorQualityTransformParameters & parameters, TLog* logfile);

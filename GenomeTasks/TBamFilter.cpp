@@ -138,7 +138,9 @@ void TAlignmentMergerReadGroupSettings::initialize(TParameters & Params, TLog* l
 		//summarize
 		logfile->done();
 		_printSummary(logfile);
-		if(numNotInUse > 0      ){ logfile->warning(numNotInUse + " read group(s) are present in file '" + in.name() + "' but are marked as not in use!"); }
+		if(numNotInUse > 0){
+			logfile->warning(numNotInUse + " read group(s) are present in file '" + in.name() + "' but are marked as not in use!");
+		}
 	}
 };
 
