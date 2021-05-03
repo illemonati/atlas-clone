@@ -505,10 +505,6 @@ bool TBamFile::readNextAlignment(){
 		throw "BAM file must be sorted by position! Alignment '" + _curBamAlignment.Name + "' is at position " + toString(_curBamAlignment.Position) + ", which is before the position of the previous alignment (" + toString(_previousAlignmentPosition.position()) + ")";
 	}
 
-	//check read length
-	if(_curBamAlignment.AlignedBases.size() > _maxReadLength)
-		throw "Alignment '" +  _curBamAlignment.Name + "' is longer than the max read length " + toString(_maxReadLength) + "! Please change max read length to parse this data.";
-
 	//store current read group ID
 	std::string readGroup;
 	_curBamAlignment.GetTag("RG", readGroup);
