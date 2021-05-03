@@ -45,6 +45,7 @@ public:
 	void setLog(TBamFileLog* Log);
 	void filterOut(const std::string & alignmentName, const bool & isReverseStrand);
 	void summary(TLog* logfile, const uint64_t & total);
+	uint64_t numFiltered() const { return _counter; }
 };
 
 class TBamFileFilterBool:public TBamFileFilter{
