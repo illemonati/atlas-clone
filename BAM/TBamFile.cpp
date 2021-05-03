@@ -62,21 +62,19 @@ void TBamFile::setLimits(TParameters & params, TLog* logfile){
 	}
 };
 
-void TBamFile::limitReadLength(const int MaxReadLength){
-	//set max read length, must be >=1 but smaller than 65536 (uint16_t)
-	//read length is used by windows
+void TBamFile::setFilters(TParameters & params, TLog* logfile){
+	//max read length
+	//is relevant for storage, so only accept values up to 2^16
+	//Others will be filtered out.
+	int MaxReadLength = params.getParameterIntWithDefault("maxReadLength", 200);
+	logfile->list("Expect no read to be longer than " + toString(MaxReadLength) + " bp. (parameter 'maxReadLength')");
 	if(MaxReadLength < 1)
 		throw "Max read length must be at least 1 bp!";
 	if(MaxReadLength > 65536)
 		throw "Atlas currently only supports read length up to 65536 bp. Contact us if you have longer reads / fragments";
 	_maxReadLength = MaxReadLength;
-};
-
-void TBamFile::setFilters(TParameters & params, TLog* logfile){
-	//max read length
-	int MaxReadLength = params.getParameterIntWithDefault("maxReadLength", 500);
-	logfile->list("Expect no read to be longer than " + toString(MaxReadLength) + " bp. (parameter 'maxReadLength')");
-	limitReadLength(MaxReadLength);
+	_readLengthFilter.filter(1, _maxReadLength, "Read length too large");
+	_allowTooLongReads = params.parameterExists("allowTooLongReads");
 
 	//alignment filters
 	logfile->startIndent("Will use the following filters on reads:");
@@ -400,10 +398,19 @@ void TBamFile::close(){
 };
 
 void TBamFile::_applyFilters(){
-	//keep all?
-	if(_keepAll){
+	//check read length
+	//read length is special as it affects our storage
+	if(!_readLengthFilter.pass(_curBamAlignment.AlignedBases.size(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())){
+		if(!_allowTooLongReads){
+			throw "Alignment '" +  _curBamAlignment.Name + "' is longer than the max read length " + toString(_maxReadLength) + "!\nPlease change max read length to parse this data, or add allowTooLongReads to ignore this error and filter out such reads.";
+		} else {
+			_QCFiltersPassed = false;
+		}
+	} else if(_keepAll){
+		//keep all?
 		_QCFiltersPassed = true;
 	} else {
+		//apply regular filters
 		_QCFiltersPassed =  _duplicateFilter.pass(_curBamAlignment.IsDuplicate(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
 						 && _softClippedFilter.pass(_curCigar.lengthSoftClipped() > 0, _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
 						 && _improperPairsFilter.pass(_curBamAlignment.IsPaired() && !_curBamAlignment.IsProperPair(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
@@ -496,10 +503,6 @@ bool TBamFile::readNextAlignment(){
 	if(_curAlignmentPosition < _previousAlignmentPosition){
 		throw "BAM file must be sorted by position! Alignment '" + _curBamAlignment.Name + "' is at position " + toString(_curBamAlignment.Position) + ", which is before the position of the previous alignment (" + toString(_previousAlignmentPosition.position()) + ")";
 	}
-
-	//check read length
-	if(_curBamAlignment.AlignedBases.size() > _maxReadLength)
-		throw "Alignment '" +  _curBamAlignment.Name + "' is longer than the max read length " + toString(_maxReadLength) + "! Please change max read length to parse this data.";
 
 	//store current read group ID
 	std::string readGroup;

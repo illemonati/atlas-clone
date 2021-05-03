@@ -55,6 +55,8 @@ private:
  	bool _QCFiltersPassed;
  	uint16_t _maxReadLength;
  	TAlignmentList _blacklist;
+ 	TBamFileFilterRange _readLengthFilter;
+ 	bool _allowTooLongReads;
  	bool _keepAll;
  	TBamFileFilterBool _duplicateFilter;
  	TBamFileFilterBool _softClippedFilter;
@@ -107,7 +109,6 @@ public:
 	void setFilters(TParameters & params, TLog* logfile);
 	void setLimits(TParameters & params, TLog* logfile);
 	void setKeepAll();
-	void limitReadLength(const int MaxReadLength);
 	void curFilterOut();
 	void filterOut(const std::string & alignmentName, const bool & isReverseStrand);
 	void setExternalFilterReason(const std::string reason);
