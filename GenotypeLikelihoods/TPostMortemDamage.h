@@ -15,6 +15,7 @@
 
 #include <math.h>
 #include <algorithm>
+#include <memory>
 #define ARMA_DONT_PRINT_ERRORS
 #include <armadillo>
 
@@ -236,22 +237,21 @@ public:
 //------------------------------------------------------
 class TPostMortemDamage{
 private:
-	std::vector< std::unique_ptr<TPMDType> > _pmdObjects;
+	std::vector< std::shared_ptr<TPMDType> > _pmdObjects;
 	bool _hasPMD;
 
-	void _createPMDType(const std::string & pmdString, std::unique_ptr<TPMDType> & ptr);
+	void _createPMDType(const std::string & pmdString, std::shared_ptr<TPMDType> & ptr);
 	void _initializeFromString(const std::string & pmdString, TLog* logfile);
-	void _initializeFromFile(const BAM::TReadGroups & ReadGroups, const std::string & filename, TLog* logfile);
+	void _initializeFromFile(const BAM::TReadGroups & ReadGroups, const std::string & filename, TLog* logfile, std::vector<uint16_t> & ReadGroupsWithoutPMD);
 	void _setHasDamage();
 
 public:
 	TPostMortemDamage();
 
 	bool hasPMD() const{ return _hasPMD; };
-	const TPMDType& operator[](const uint16_t & ReadGroupIndex) const { return _pmdObjects[ReadGroupIndex]; };
+	const TPMDType& operator[](const uint16_t & ReadGroupIndex) const { return *_pmdObjects[ReadGroupIndex]; };
 
-	void initialize(const std::string & pmdString, const BAM::TReadGroups & ReadGroups, TLog* Logfile);
-	void initialize(TParameters & params, const std::string & ParameterName, const BAM::TReadGroups & ReadGroups, TLog* logfile);
+	void initialize(const std::string & pmdString, const BAM::TReadGroups & ReadGroups, TLog* Logfile, std::vector<uint16_t> & ReadGroupsWithoutPMD);
 
 	void parseEstimationParameters(TPMDEstimationParameters & EstimationParameters, TParameters & Params, TLog* Logfile);
 	void estimate(const TPMDTables & PMDTables, const BAM::TReadGroups & ReadGroups, TLog* logfile, const TPMDEstimationParameters & EstimationParameters);

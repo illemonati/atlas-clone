@@ -33,24 +33,25 @@ typedef std::vector<TSequencingErrorCovariateDef>::iterator TRecalibrationEMMode
 
 class TSequencingErrorCovariateDefinition{
 private:
-	std::vector<TSequencingErrorCovariateDef> covariateFunctions;  //<covariate, function>
+	std::vector<TSequencingErrorCovariateDef> _covariateFunctions;  //<covariate, function>
+	std::string _intercept;
 
 public:
-	std::string intercept;
-
 	TSequencingErrorCovariateDefinition(){
-		intercept = "";
+		clear();
 	};
 	TSequencingErrorCovariateDefinition(const std::string modelString, std::string & error){
 		parse(modelString, error);
 	};
 
+	void clear();
 	bool parse(const std::string & modelString, std::string & error);
 	void setIntercept(const double Intercept);
 	void addCovariate(const std::string covariate, const std::string function);
-	size_t size(){ return covariateFunctions.size(); };
-	TRecalibrationEMModelCovariateDefinitionIterator begin(){ return covariateFunctions.begin(); };
-	TRecalibrationEMModelCovariateDefinitionIterator end(){ return covariateFunctions.end(); };
+	size_t size(){ return _covariateFunctions.size(); };
+	const std::string& intercept() const { return _intercept; };
+	TRecalibrationEMModelCovariateDefinitionIterator begin(){ return _covariateFunctions.begin(); };
+	TRecalibrationEMModelCovariateDefinitionIterator end(){ return _covariateFunctions.end(); };
 	std::string getModelString();
 };
 
@@ -93,20 +94,10 @@ public:
 //--------------------------------------------------------------------
 class TSequencingErrorModelDefinition{
 public:
-	uint16_t readGroupId;
-	bool isSecondMate;
 	TSequencingErrorCovariateDefinition covariates;
 	TSequencingErrorRhoStorage rho;
 
-	TSequencingErrorModelDefinition(){
-		readGroupId = 0;
-		isSecondMate = false;
-	};
-
-	TSequencingErrorModelDefinition(const uint16_t ReadGroupId, const bool IsSecondMate){
-		readGroupId = ReadGroupId;
-		isSecondMate = IsSecondMate;
-	};
+	TSequencingErrorModelDefinition() = default;
 
 	bool parseCovariates(const std::string & covariateString, std::string & error){
 		return(covariates.parse(covariateString, error));
@@ -151,14 +142,51 @@ public:
 
 //--------------------------------------------------------------------
 // TSequencingErrorModel
+// pure abstract base class
 //--------------------------------------------------------------------
 class TSequencingErrorModel{
+protected:
+	TSequencingErrorRho _rho;
+
+public:
+	TSequencingErrorModel() = default;
+	virtual ~TSequencingErrorModel(){};
+
+	virtual bool estimatable() const { return false; };
+	virtual bool recalibrates() const { return false; };
+
+	virtual double getErrorRate(const BAM::TBase & base, const BAM::TQualityMap & qualMap) const = 0;
+	virtual uint8_t getPhredInt(const BAM::TBase & base, const BAM::TQualityMap & qualMap) const = 0;
+	virtual void fillBaseLikelihoods(const BAM::TBase & base, const BAM::TQualityMap & qualMap, TBaseData & baseLikelihoods) const = 0;
+
+	virtual std::string getCovariateDefinition() const { return "-"; };
+	virtual std::string getRhoDefinition() const { return "-"; };
+};
+
+//------------------------------------------------
+// TSequencingErrorModelNoRecal
+//------------------------------------------------
+class TSequencingErrorModelNoRecal:public TSequencingErrorModel{
+private:
+
+public:
+	TSequencingErrorModelNoRecal() = default;
+	~TSequencingErrorModelNoRecal() = default;
+
+	double getErrorRate(const BAM::TBase & base, const BAM::TQualityMap & qualMap) const override;
+	uint8_t getPhredInt(const BAM::TBase & base, const BAM::TQualityMap & qualMap) const override;
+	void fillBaseLikelihoods(const BAM::TBase & base, const BAM::TQualityMap & qualMap, TBaseData & baseLikelihoods) const override;
+};
+
+//------------------------------------------------
+// TSequencingErrorModelRecal
+//------------------------------------------------
+class TSequencingErrorModelRecal:public TSequencingErrorModel{
 private:
 	TLog* _logfile;
 
-	//parameters: coavraites and rho
+	//parameters: covarites and rho
 	TSequencingErrorCovariateList _covariates;
-	TSequencingErrorRho _rho;
 
 	//Newton Raphson Parameters to estimate betas
 	double _Q, _oldQ;
@@ -175,8 +203,11 @@ private:
 	double _calcEpsilon(const double eta) const;
 
 public:
-	TSequencingErrorModel(TSequencingErrorModelDefinition & modelDef, TLog* Logfile);
-	TSequencingErrorModel(TSequencingErrorModelDefinition & modelDef, TRecalibrationEMDataTable* dataTable, TLog* Logfile);
+	TSequencingErrorModelRecal(TSequencingErrorModelDefinition & modelDef, TLog* Logfile);
+	TSequencingErrorModelRecal(TSequencingErrorModelDefinition & modelDef, TRecalibrationEMDataTable* dataTable, TLog* Logfile);
+
+	bool estimatable() const override { return true; };
+	bool recalibrates() const override { return true; };
 
 	bool checkParameterRange(TRecalibrationEMDataTable* dataTable, std::string & error);
 	uint16_t numParameters(){ return _covariates.numParameters; };
@@ -187,7 +218,7 @@ public:
 	void estimateRho();
 
 	//functions to estimate betas
-	void setNewtonRaphosnParamsToZero();
+	void setNewtonRaphsonParamsToZero();
 	void setQToZero();
 	void addToQ(const BAM::TBase & base, const TBaseData & EM_weights_bbar_given_d);
 	double curQ(){ return _Q; };
@@ -202,8 +233,8 @@ public:
 	void printJxFToStdOut();
 
 	void fillBaseLikelihoods(const BAM::TBase & base, TBaseData & baseLikelihoods) const;
-	std::string getCovariateDefinition() const;
-	std::string getRhoDefinition() const;
+	std::string getCovariateDefinition() const override;
+	std::string getRhoDefinition() const override;
 
 	double getErrorRate(const BAM::TBase & base) const;
 };

@@ -179,6 +179,14 @@ const std::string& TReadGroups::getName(const uint16_t & readGroupId) const{
 	return _readGroupsById[readGroupId]->name_ID;
 };
 
+std::vector<std::string> TReadGroups::getNames(std::vector<uint16_t> & readGroupIds) const{
+	std::vector<std::string> names;
+	for(auto& r : readGroupIds){
+		names.push_back(getName(r));
+	}
+	return names;
+};
+
 uint16_t TReadGroups::getId(const std::string & name) const{
 	auto rg = _readGroups.find(name);
 	if(rg != _readGroups.end())
@@ -274,137 +282,106 @@ std::string TReadGroups::compileSamHeader() const{
 //---------------------------------------------------------------
 //TReadGroupMap
 //---------------------------------------------------------------
-TReadGroupMap::TReadGroupMap(TReadGroups* ReadGroups){
-	//no pooling: internal index = read group index
-	_readGroups = ReadGroups;
-	_origNumReadGroups = _readGroups->size();
-	_readGroupMap = new uint16_t[_origNumReadGroups];
-
-	_fillWithoutPooling();
+TReadGroupMap::TReadGroupMap(const TReadGroups & ReadGroups){
+	_fillWithoutPooling(ReadGroups);
 };
 
-TReadGroupMap::TReadGroupMap(TReadGroups* ReadGroups, const std::string filename, TLog* logfile){
-	_readGroups = ReadGroups;
-	_origNumReadGroups = _readGroups->size();
-	_readGroupMap = new uint16_t[_origNumReadGroups];
-
+TReadGroupMap::TReadGroupMap(const TReadGroups & ReadGroups, const std::string filename, TLog* logfile){
 	if(filename.empty()){
-		_fillWithoutPooling();
+		_fillWithoutPooling(ReadGroups);
 	} else {
-		_fillFromFile(filename, logfile);
+		_fillFromFile(ReadGroups, filename, logfile);
 	}
 };
 
-TReadGroupMap::~TReadGroupMap(){
-	delete[] _readGroupMap;
-	delete[] _reverseReadGroupMap;
+void TReadGroupMap::_resize(const TReadGroups & ReadGroups){
+	_readGroupMap.resize(ReadGroups.size(), ReadGroupMapNotInitializedIndex);
+	_reverseReadGroupMap.resize(ReadGroups.size());
 };
 
-void TReadGroupMap::_fillWithoutPooling(){
-	_numReadGroups = _origNumReadGroups;
-	for(int i = 0; i < _numReadGroups; ++i){
-		_readGroupMap[i] = i;
-	}
-
-	//fill reverse map
-	_fillReverseMap();
+void TReadGroupMap::_markAsInUse(const uint16_t & index){
+	_readGroupMap[index] = index;
+	_reverseReadGroupMap[index].push_back(index);
+	_readGroupsInUse.push_back(index);
 };
 
-void TReadGroupMap::_fillFromFile(std::string filename, TLog* logfile){
-	//initialize to -1
-	for(int i = 0; i < _origNumReadGroups; ++i){
-		_readGroupMap[i] = -1;
+void TReadGroupMap::_fillWithoutPooling(const TReadGroups & ReadGroups){
+	_resize(ReadGroups)	;
+	for(int r = 0; r < ReadGroups.size(); ++r){
+		_markAsInUse(r);
 	}
+};
+
+void TReadGroupMap::_fillFromFile(const TReadGroups & ReadGroups, const std::string & filename, TLog* logfile){
+	//set all values to no-initialized
+	_resize(ReadGroups);
 
 	//read read groups and their expected lengths
-	if(filename=="") throw "No file specifying read groups to merge provided!";
-	logfile->listFlush("Reading read groups to be merged from file '" + filename + "' ...");
+	logfile->listFlush("Reading read groups to be pooled from file '" + filename + "' ...");
+	TInputFile in(filename, {"readGroup", "poolWith"}, "/t", "//");
+
 	std::vector< std::vector<std::string> > readGroupsToMerge;
 	std::vector< std::vector<std::string> >::reverse_iterator rIt;
-	std::ifstream file(filename.c_str());
-	if(!file) throw "Failed to open file '" + filename + "!";
 
 	//parse file and fill vectors
-	int lineNum = 0;
 	std::vector<std::string> vec;
 	std::string readGroup;
-	while(file.good() && !file.eof()){
-		++lineNum;
-		fillVectorFromLineWhiteSpace(file, vec, true);
-		if(!vec.empty()){
-			if(vec.size() < 2) throw "Wrong number of entries on line " + toString(lineNum) + " in file '" + filename + "'! Read groups cannot be merged with themselves!";
-			//add to new header
-			//others are those to be merged: find read group in header and store int
-			readGroupsToMerge.push_back(std::vector<std::string>());
-			rIt = readGroupsToMerge.rbegin();
-			for(unsigned int i=0; i<vec.size(); ++i){
-				rIt->push_back(vec[i]);
+	bool pooledAtLeastOneRG = false;
+
+	while(in.read(vec)){
+		//ignore if read group does not exist
+		if(ReadGroups.readGroupExists(vec[0])){
+			//get read group index
+			uint16_t rg = ReadGroups.getId(vec[0]);
+			uint16_t pool = ReadGroups.getId(vec[1]);
+
+			//check if rg to pool with is pooled itself
+			if(_readGroupMap[pool] == ReadGroupMapNotInitializedIndex){
+				_markAsInUse(pool);
+			} else if(_readGroupMap[pool] != pool){
+				throw "Read group '" + vec[1] + "' can not be pooled and pool with at the same time!";
 			}
+
+			//check if rg can be pooled: allow self-pooling
+			if(rg != pool){
+				if(_readGroupMap[rg] == rg){
+					throw "Read group '" + vec[0] + "' can not be pooled and pool with at the same time!";
+				} else if(_readGroupMap[rg] != ReadGroupMapNotInitializedIndex){
+					throw "Read group '" + vec[0] + "' is pooled multiple times in file '" + filename + "'!";
+				}
+
+				//pool!
+				_readGroupMap[rg] = pool;
+				_reverseReadGroupMap[pool].push_back(rg);
+				pooledAtLeastOneRG = true;
+			}
+		}
+	}
+
+	//mark all read groups not in file as pooled with itself
+	for(uint16_t r = 0; r < _readGroupMap.size(); ++r){
+		if(_readGroupMap[r] == ReadGroupMapNotInitializedIndex){
+			_markAsInUse(r);
 		}
 	}
 	logfile->done();
 
-	std::vector< std::vector<std::string> >::iterator mergeIt = readGroupsToMerge.begin();
-	uint16_t oldId;
-
-	for(uint16_t rg = 0; rg < readGroupsToMerge.size(); ++rg, ++mergeIt){
-		logfile->startIndent("The following read groups will be combined into one group for parameter estimation:");
-		for(std::vector<std::string>::iterator it = mergeIt->begin(); it != mergeIt->end(); ++it){
-			logfile->list(*it);
-			oldId = _readGroups->getId(*it);
-			if(_readGroupMap[oldId] >= 0) throw "Read group '" + *it + "' is listed multiple times in file '" + filename + "'!";
-			_readGroupMap[oldId] = rg;
-		}
-		logfile->endIndent();
-	}
-
-	_numReadGroups = readGroupsToMerge.size();
-
-	//now add read groups that will not be merged
-	bool printed = false;
-	std::string name;
-	for(uint16_t i = 0; i < _readGroups->size(); ++i){
-		//check if it is mapped, otherwise add
-		if(_readGroupMap[i] < 0){
-			if(!printed){
-				logfile->startIndent("The following read groups will be kept as is:");
-				printed = true;
+	//report
+	if(pooledAtLeastOneRG){
+		logfile->startIndent("The read groups will be pooled for parameter estimation as follows:");
+		for(uint16_t r = 0; r < _readGroupMap.size(); ++r){
+			if(_reverseReadGroupMap[r].size() > 0){
+				logfile->startIndent(ReadGroups.getName(r) + ":");
+				for(auto& s: _reverseReadGroupMap[r]){
+					logfile->list(ReadGroups.getName(s));
+				}
+				logfile->endIndent();
 			}
-			name = _readGroups->getName(i);
-			logfile->list(name);
-			_readGroupMap[i] = _numReadGroups;
-			++_numReadGroups;
 		}
-	}
-
-	if(printed) logfile->endIndent();
-	else logfile->list("All existing read groups will be merged into a new read group.");
-
-	//fill reverse map
-	_fillReverseMap();
-};
-
-void TReadGroupMap::_fillReverseMap(){
-	_reverseReadGroupMap = new std::vector<uint16_t>[_numReadGroups];
-	for(uint16_t i = 0; i < _origNumReadGroups; ++i){
-		_reverseReadGroupMap[getIndex(i)].push_back(i);
+	} else {
+		logfile->warning("No read groups are pooled! Are you using the correct pooling file?"));
 	}
 };
 
-uint16_t TReadGroupMap::getOrigNumReadGroups(){ return _origNumReadGroups; };
-uint16_t TReadGroupMap::getNumReadGroups(){ return _numReadGroups; };
-
-uint16_t TReadGroupMap::getIndex(const uint16_t rg){ return _readGroupMap[rg]; };
-uint16_t TReadGroupMap::operator[](const uint16_t rg){ return _readGroupMap[rg]; };
-uint16_t TReadGroupMap::getIndex(const std::string readGroupName){
-	uint16_t rg = _readGroups->getId(readGroupName);
-	return getIndex(rg);
-};
-
-void TReadGroupMap::fillNamesOfReadgroups(uint16_t rg, std::vector<std::string> & names){
-	for(size_t i : _reverseReadGroupMap[rg]){
-		names.push_back(_readGroups->getName(i));
-	}
-};
 
 }; //end namespace

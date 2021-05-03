@@ -21,11 +21,10 @@ protected:
 	bool _initialized;
 	TLog* _logfile;
 	BAM::TReadGroups* _readGroups;
-	BAM::TReadGroupMap* _readGroupMap; //TODO: find way to only initialize in sequencing error models
 
 	TGenotypeDistribution _genotypeDistribution;
 	TPostMortemDamage _pmd;
-	TSequencingErrorModels _sequencingErrorModels; //TODO: find a way not to use a pointer
+	TSequencingErrorModels _sequencingErrorModels;
 
 	//temporary storage: all are mutable
 	mutable TGenotypeLikelihoods _genotypeLikelihoods;

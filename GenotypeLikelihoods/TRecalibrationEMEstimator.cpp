@@ -7,7 +7,359 @@
 
 #include "TRecalibrationEMEstimator.h"
 
-namespace GenotypeLikelihoods{
+namespace GenotypeLikelihoods {
+
+namespace RecalEstimatorTools {
+
+//--------------------------------------------------------------------
+// TRecalibrationEMDataTable
+//--------------------------------------------------------------------
+TDataTable::TDataTable(){
+	maxQual = 0;
+	maxFragmentLength = 0;
+	maxMQ = 0;
+	maxPos = 0;
+	counts = 0;
+	initialized = false;
+	qualities = nullptr;
+	fragmentLengths = nullptr;
+	MQ = nullptr;
+};
+
+TDataTable::TDataTable(const int MaxQual, const int MaxFragmentLength, const int maxMQ){
+	initialize(MaxQual, MaxFragmentLength, maxMQ);
+};
+
+TDataTable::~TDataTable(){
+	delete[] qualities;
+	delete[] fragmentLengths;
+	delete[] MQ;
+};
+
+void TDataTable::initialize(const int MaxQual, const int MaxFragmentLength, const int MaxMQ){
+	if(initialized){
+		delete[] qualities;
+		delete[] fragmentLengths;
+		delete[] MQ;
+	}
+	maxQual = MaxQual;
+	qualities = new unsigned int[maxQual];
+
+	maxFragmentLength = MaxFragmentLength;
+	fragmentLengths = new unsigned int[maxFragmentLength];
+
+	maxMQ = MaxMQ;
+	MQ = new unsigned int[maxMQ];
+
+	initialized = true;
+	clear();
+};
+
+void TDataTable::add(const BAM::TBase & base){
+	++counts;
+	++qualities[base.originalQuality_phredInt];
+	++fragmentLengths[base.fragmentLength];
+	++MQ[base.mappingQuality];
+	if(maxPos < base.distFrom5Prime)
+		maxPos = base.distFrom5Prime;
+};
+
+void TDataTable::clear(){
+	maxPos = 0;
+	for(int q=0; q<maxQual; ++q)
+		qualities[q] = 0;
+	counts = 0;
+};
+
+uint64_t TDataTable::size() const{
+	return counts;
+};
+
+void TDataTable::fillVectorWithUsedQualities(std::vector<uint16_t> & Q) const{
+	Q.clear();
+	for(int i=0; i<maxQual; ++i){
+		if(qualities[i] > 0){
+			Q.push_back(i);
+		}
+	};
+};
+
+void TDataTable::fillVectorWithUsedFragmentLengths(std::vector<uint16_t> & lengths) const{
+	lengths.clear();
+	for(int i=0; i<maxFragmentLength; ++i){
+		if(fragmentLengths[i] > 0){
+			lengths.push_back(i);
+		}
+	};
+};
+
+void TDataTable::fillVectorWithUsedMQ(std::vector<uint16_t> & MQ) const{
+	MQ.clear();
+	for(int i=0; i<maxMQ; ++i){
+		if(MQ[i] > 0){
+			MQ.push_back(i);
+		}
+	};
+};
+
+//--------------------------------------------------------------------
+TDataTables::TDataTables(){
+	_initialized = false;
+	_numReadGroups = 0;
+	_maxQual = 0;
+	_tables = nullptr;
+	_totalCounts = 0;
+};
+
+TDataTables::TDataTables(const  int NumReadGroups, const int MaxQual, const int MaxFragmentLength, const int MaxMQ){
+	_initialized = false;
+	init(NumReadGroups, MaxQual, MaxFragmentLength, MaxMQ);
+};
+
+TDataTables::~TDataTables(){
+	clear();
+};
+
+void TDataTables::init(const int NumReadGroups, const int MaxQual, const int MaxFragmentLength, const int MaxMQ){
+	//empty if already initialized
+	if(_initialized){
+		clear();
+	}
+
+	//crate storage
+	_numReadGroups = NumReadGroups;
+	_maxQual = MaxQual;
+
+	_tables = new TDataTable*[_numReadGroups];
+	for(int rg = 0; rg<_numReadGroups; ++rg){
+		_tables[rg] = new TDataTable[2];
+		_tables[rg][0].initialize(_maxQual, MaxFragmentLength, MaxMQ);
+		_tables[rg][1].initialize(_maxQual, MaxFragmentLength, MaxMQ) ;
+	}
+
+	_initialized = true;
+
+	//set to zero
+	reset();
+};
+
+void TDataTables::clear(){
+	for(int rg = 0; rg<_numReadGroups; ++rg){
+		delete[] _tables[rg];
+	}
+
+	delete[] _tables;
+};
+
+void TDataTables::reset(){
+	for(int rg = 0; rg<_numReadGroups; ++rg){
+		_tables[rg][0].clear();
+		_tables[rg][1].clear();
+	}
+	_totalCounts = 0;
+};
+
+void TDataTables::add(const BAM::TBase & base){
+	++_totalCounts;
+	_tables[base.readGroupID][(int) base.isSecondMate()].add(base);
+};
+
+void TDataTables::add(const TSite & site){
+	_totalCounts += site.depth();
+	for(std::vector<BAM::TBase>::const_iterator b = site.cbegin(); b != site.cend(); ++b){
+		_tables[b->readGroupID][(int) b->isSecondMate()].add(*b);
+	}
+};
+
+void TDataTables::fillVectorWithUsedQualities(const int readGroupId, const bool isSecondMate, std::vector<uint16_t> & Q){
+	_tables[readGroupId][(int) isSecondMate].fillVectorWithUsedQualities(Q);
+};
+
+uint64_t TDataTables::size() const{
+	return _totalCounts;
+};
+
+const TDataTable& TDataTables::table(const int readGroupId, const bool isSecondMate) const{
+	return &_tables[readGroupId][(int) isSecondMate];
+};
+
+const TDataTable& TDataTables::table(const int readGroupId, const int Mate) const{
+	return &_tables[readGroupId][Mate];
+};
+
+
+
+
+//--------------------------------------------------------------------------------------
+// TModelIndex
+//--------------------------------------------------------------------------------------
+void TModelIndex::set(const uint16_t & ReadGroupId, const bool & IsSecondMate, const uint16_t & ModelIndex, const BAM::TReadGroupMap & ReadGroupMap){
+	//save index for read group AND all read groups pooled with it!
+
+	for(auto& r : ReadGroupMap.readGroupsPooledWith(ReadGroupId)){
+		_index[r][IsSecondMate].set(ModelIndex);
+	}
+};
+
+}; //end namespaceRecal EstimatorTools
+
+//--------------------------------------------------------------------------
+// TSequencingErrorModelVectorForEstimation
+//--------------------------------------------------------------------------
+
+TSequencingErrorModelVectorForEstimation::TSequencingErrorModelVectorForEstimation(TSequencingErrorModels & SequencingErrorModels,
+																				   const RecalEstimatorTools::TDataTables & DataTables,
+																				   const BAM::TReadGroups & ReadGroups,
+																				   const BAM::TReadGroupMap & ReadGroupMap,
+																				   const uint32_t & MinRequiredObservations,
+																				   TLog* Logfile):
+																					   _modelIndex(ReadGroups){
+	//Copy models that are 1) in use after pooling and 2) have data.
+	//Note: data table is already pooled!
+
+	//prepare storage for reporting
+	RecalEstimatorTools::TModelStati modelStati;
+
+	//copy models
+	for(auto& r : ReadGroupMap.readGroupsInUse()){
+		//add to model stati
+		modelStati.add(r);
+
+		//loop over mates
+		for(uint8_t mate = 0; mate < 2; ++mate){
+
+			const RecalEstimatorTools::TDataTable& table = DataTables.table(r, mate);
+
+			//check if there is sufficient data for _first mate
+			if(table.size() > 0){
+				//check if model is estimatable
+				if(SequencingErrorModels[r][mate].estimatable()){
+
+					//copy model and update index
+					std::shared_ptr<TSequencingErrorModelRecal>& model = SequencingErrorModels[r].getPointerToRecalModel(mate);
+					_models.push_back(model);
+					modelStati[r][RecalEstimatorTools::copied].set(mate);
+					_modelIndex.set(r, mate, model, ReadGroupMap);
+
+					//check if there is limited data
+					if(table.size() < MinRequiredObservations){
+						modelStati[r][RecalEstimatorTools::littleData].set(mate);
+					}
+
+				} else {
+					modelStati[r][RecalEstimatorTools::dataButNoRecal].set(mate);
+				}
+
+			} else {
+				if(SequencingErrorModels[r][mate].estimatable()){
+					modelStati[r][RecalEstimatorTools::noData].set(mate);
+				}
+			}
+		}
+	}
+
+	//report models that will be estimated
+	modelStati.report(RecalEstimatorTools::copied, "Read groups for which models will be estimated:", ReadGroups, Logfile);
+	modelStati.report(RecalEstimatorTools::noData, "Read groups excluded because they have no data:", ReadGroups, Logfile);
+	modelStati.report(RecalEstimatorTools::dataButNoRecal, "Read groups with data but no recal model:", ReadGroups, Logfile);
+	if(modelStati.num(RecalEstimatorTools::copied) == 0){
+		throw "No recal models need estimation!";
+	}
+	modelStati.report(RecalEstimatorTools::littleData, "Read groups with very little data (consider pooling):", ReadGroups, Logfile);
+};
+
+
+//functions to estimate rho
+//-------------------------------------------------------------------
+//functions to estimate rho
+void TSequencingErrorModelVectorForEstimation::prepareRhoEstimationFromEMWeights(){
+	for(auto& model : _models){
+		model->prepareRhoEstimationFromEMWeights();
+	}
+};
+
+void TSequencingErrorModelVectorForEstimation::addBaseForRhoEstimation(BAM::TBase & base, const TBaseData & EMWeights){
+	_modelIndex(base)->addBaseForRhoEstimation(base, EMWeights);
+};
+
+void TSequencingErrorModelVectorForEstimation::estimateRho(){
+	for(auto& model : _models){
+		model->estimateRho();
+	}
+};
+
+//functions to estimate beta
+//-------------------------------------------------------------------
+
+void TSequencingErrorModelVectorForEstimation::addToFandJacobian(const BAM::TBase & base, const TBaseData & EM_weights_bbar_given_d){
+	_modelIndex(base)->addToFandJacobian(base, EM_weights_bbar_given_d);
+};
+
+void TSequencingErrorModelVectorForEstimation::addToQ(const BAM::TBase & base, const TBaseData & EM_weights_bbar_given_d){
+	_modelIndex(base)->addToQ(base, EM_weights_bbar_given_d);
+};
+
+void TSequencingErrorModelVectorForEstimation::setNewtonRaphsonParamsToZero(){
+	for(auto& model : _models){
+		model->setNewtonRaphsonParamsToZero();
+	}
+};
+
+void TSequencingErrorModelVectorForEstimation::setQToZero(){
+	for(auto& model : _models){
+		model->setQToZero();
+	}
+};
+
+double TSequencingErrorModelVectorForEstimation::curQ(){
+	double Q = 0.0;
+	for(auto& model : _models){
+		Q += model->curQ();
+	}
+	return Q;
+};
+
+bool TSequencingErrorModelVectorForEstimation::solveJxF(){
+	bool couldSolve = true;
+	for(auto& model : _models){
+		if(!model->solveJxF()){
+			model->printJacobianToStdOut();
+			throw "Issue solving JxF! This may be due to a lack of data. Consider adding more sites.";
+			couldSolve = false;
+		}
+	}
+	return couldSolve;
+};
+
+void TSequencingErrorModelVectorForEstimation::proposeNewParameters(double lambda){
+	for(auto& model : _models){
+		model->proposeNewParameters(lambda);
+	}
+};
+
+unsigned int TSequencingErrorModelVectorForEstimation::acceptProposedParametersBasedOnQ(){
+	unsigned int numAccepted = 0;
+	for(auto& model : _models){
+		numAccepted += (unsigned int) model->acceptProposedParametersBasedOnQ();
+	}
+	return numAccepted;
+};
+
+void TSequencingErrorModelVectorForEstimation::adjustParametersPostEstimation(){
+	for(auto& model : _models){
+		model->adjustParametersPostEstimation();
+	}
+};
+
+double TSequencingErrorModelVectorForEstimation::getSteepestGradient(){
+	double maxF = 0.0;
+	for(auto& model : _models){
+		double tmp = model->getSteepestGradient();
+		if(fabs(tmp) > maxF) maxF = fabs(tmp);
+	}
+	return maxF;
+};
+
 
 
 //---------------------------------------------------------------
@@ -75,7 +427,7 @@ void TRecalibrationEMEstimator::_initializeModels(){
 	//count data available for recal
 	_logfile->listFlush("Counting data available for recal ...");
 	_dataTables.init(_readGroups->size(), 500, 1000, 500);
-	addToDataTable(_dataTables);
+	compileDataTable(_dataTables);
 	int numSitesWithData = numSites();
 	_logfile->done();
 
@@ -108,7 +460,7 @@ void TRecalibrationEMEstimator::_initializeModels(){
 	int numModelsWithoutData = 0;
 	for(uint16_t rg = 0; rg < _readGroupMap->getNumReadGroups(); ++rg){
 		for(int mate = 0; mate < 2; ++mate){
-			TRecalibrationEMDataTable* table = _dataTables.table(rg, mate);
+			TDataTable* table = _dataTables.table(rg, mate);
 			if(table->size() > 0){
 				_modelDefitionForEstimation.readGroupId = rg;
 				_modelDefitionForEstimation.isSecondMate = mate;
@@ -133,7 +485,7 @@ void TRecalibrationEMEstimator::_initializeModels(){
 
 		for(size_t rg = 0; rg < _readGroups->size(); ++rg){
 			int index = _readGroupMap->getIndex(rg);
-			TRecalibrationEMDataTable* table = _dataTables.table(index, false);
+			TDataTable* table = _dataTables.table(index, false);
 			if(table->size() > 0 && table->size() < _minRequiredObservations)
 				_logfile->list(_readGroups->getName(rg)  + " (first mate): only " + toString(table->size()) + " observations.");
 
@@ -178,7 +530,7 @@ size_t TRecalibrationEMEstimator::numSitesDepthTwoOrMore(){
 	return _numSites;
 };
 
-void TRecalibrationEMEstimator::addToDataTable(TRecalibrationEMDataTables & dataTable){
+void TRecalibrationEMEstimator::compileDataTable(TDataTables & dataTable){
 	for(auto& s : _sites){
 		_dataTables.add(s);
 	}

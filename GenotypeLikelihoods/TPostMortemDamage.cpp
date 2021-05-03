@@ -532,16 +532,16 @@ void TPostMortemDamage::writeToFile(const BAM::TReadGroups & ReadGroups, const s
 	}
 };
 
-void TPostMortemDamage::_createPMDType(const std::string & pmdString, std::unique_ptr<TPMDType> & ptr){
+void TPostMortemDamage::_createPMDType(const std::string & pmdString, std::shared_ptr<TPMDType> & ptr){
 	//split by ':'
 	std::vector<std::string> details;
 	fillVectorFromString(pmdString, details, ':', false, false);
 
 	//switch type
 	if(details[0] == PMDTypeName_none){
-		ptr = std::make_unique<TPMDTypeNone>();
+		ptr = std::make_shared<TPMDTypeNone>();
 	} else if(details[0] == PMDTypeName_doubleStrand){
-		ptr = std::make_unique<TPMDTypeDoubleStrand>(details);
+		ptr = std::make_shared<TPMDTypeDoubleStrand>(details);
 	} else {
 		throw "Cannot initialize PMD: unknown PMD type '" + details[0] + "'!"
 			 +"\nUse " + PMDTypeName_none + " or " + PMDTypeName_doubleStrand + ".";
@@ -550,7 +550,7 @@ void TPostMortemDamage::_createPMDType(const std::string & pmdString, std::uniqu
 
 void TPostMortemDamage::_initializeFromString(const std::string & pmdString, TLog* logfile){
 	//not a file: initialize all read groups have the same pmd
-	logfile->startIndent("PMD function used for all read groups (parameter pmd):");
+	logfile->startIndent("PMD function used for all read groups:");
 
 	for(auto& p : _pmdObjects){
 		_createPMDType(pmdString, p);
@@ -561,13 +561,13 @@ void TPostMortemDamage::_initializeFromString(const std::string & pmdString, TLo
 	logfile->endIndent();
 };
 
-void TPostMortemDamage::_initializeFromFile(const BAM::TReadGroups & ReadGroups, const std::string & filename, TLog* logfile){
+void TPostMortemDamage::_initializeFromFile(const BAM::TReadGroups & ReadGroups, const std::string & filename, TLog* logfile, std::vector<uint16_t> & ReadGroupsWithoutPMD){
 	//create an array of TPMD objects for each read group
 	//also works if no parameters are provided (e.g. for estimation)
 	//read from file for each read group
 
-	logfile->listFlush("Initializing PMD from file '" + filename + "' (parameter pmd) ...");
-	TInputFile in(filename, {"ReadGroup", "PMD"}, "/t", "//");
+	logfile->listFlush("Initializing PMD from file '" + filename + "' ...");
+	TInputFile in(filename, {"readGroup", "pmd"}, "/t", "//");
 
 	//parse file that has structure: ReadGroup, Type, Functions
 	std::vector<std::string> vec;
@@ -582,9 +582,13 @@ void TPostMortemDamage::_initializeFromFile(const BAM::TReadGroups & ReadGroups,
 	}
 	logfile->done();
 
-	//test if we have a function for all read groups
+	//check if we have a function for all read groups
+	//create no-PMD types for all remaining ones and return their indexes
 	for(uint16_t i=0; i<ReadGroups.size(); ++i){
-		if(!_pmdObjects[i]) throw "PMD not defined for read group '" + ReadGroups.getName(i) + "' in file '" + filename + "'!";
+		if(!_pmdObjects[i]){
+			_createPMDType("non", _pmdObjects[i]);
+			ReadGroupsWithoutPMD.push_back(i);
+		}
 	}
 };
 
@@ -599,8 +603,9 @@ void TPostMortemDamage::_setHasDamage(){
 	}
 };
 
-void TPostMortemDamage::initialize(const std::string & pmdString, const BAM::TReadGroups & ReadGroups, TLog* Logfile){
+void TPostMortemDamage::initialize(const std::string & pmdString, const BAM::TReadGroups & ReadGroups, TLog* Logfile, std::vector<uint16_t> & ReadGroupsWithoutPMD){
 	//prepare objects
+	ReadGroupsWithoutPMD.clear();
 	_pmdObjects.resize(ReadGroups.size());
 
 	//expect either a file name or a type of the form "type:functions"
@@ -609,7 +614,7 @@ void TPostMortemDamage::initialize(const std::string & pmdString, const BAM::TRe
 		_initializeFromString(pmdString, Logfile);
 	} else {
 		//probably a file
-		_initializeFromFile(ReadGroups, pmdString, Logfile);
+		_initializeFromFile(ReadGroups, pmdString, Logfile, ReadGroupsWithoutPMD);
 	}
 
 	//check if there is PMD for at least one read group

@@ -96,6 +96,7 @@ public:
 
 	uint16_t getId(const std::string & name) const;
 	const std::string& getName (const uint16_t & readGroupId) const;
+	std::vector<std::string> getNames(std::vector<uint16_t> & readGroupIds) const;
 	const TReadGroup& getReadGroup(const std::string & name);
 	const TReadGroup& operator[](const uint16_t & readGroupId) const;
 	bool readGroupExists(const std::string & name) const;
@@ -122,29 +123,31 @@ public:
 //--------------------------------------------------------------------------------------
 class TReadGroupMap{
 private:
-	TReadGroups* _readGroups;
+	static const uint16_t ReadGroupMapNotInitializedIndex{65536}; //largest possible values
+	std::vector<uint16_t> _readGroupMap; //maps read group index to pooled index
+	std::vector< std::vector<uint16_t> > _reverseReadGroupMap;
+	std::vector<uint16_t> _readGroupsInUse;
 
-	uint16_t _origNumReadGroups;
-	uint16_t _numReadGroups;
-	uint16_t* _readGroupMap; //maps read group index to internal index
-	std::vector<uint16_t>* _reverseReadGroupMap;
+	void _resize(const TReadGroups & ReadGroups);
+	void _markAsInUse(const uint16_t & index);
+	void _fillWithoutPooling(const TReadGroups & ReadGroups);
+	void _fillFromFile(const TReadGroups & ReadGroups, const std::string & filename, TLog* logfile);
 
-	void _fillWithoutPooling();
-	void _fillFromFile(std::string filename, TLog* logfile);
-	void _fillReverseMap();
 public:
-	TReadGroupMap(TReadGroups* ReadGroups);
-	TReadGroupMap(TReadGroups* ReadGroups, const std::string filename, TLog* logfile);
+	TReadGroupMap(const TReadGroups & ReadGroups);
+	TReadGroupMap(const TReadGroups & ReadGroups, const std::string filename, TLog* logfile);
 
-	~TReadGroupMap();
+	~TReadGroupMap() = default;
 
-	uint16_t getOrigNumReadGroups();
-	uint16_t getNumReadGroups();
+	uint16_t size() const { return _readGroupMap.size(); };
+	uint16_t numReadGroupsInUse() const { return _readGroupsInUse.size(); };
 
-	uint16_t getIndex(const uint16_t rg);
-	uint16_t getIndex(const std::string readGroupName);
-	uint16_t operator[](const uint16_t rg);
-	void fillNamesOfReadgroups(uint16_t rg, std::vector<std::string> & names);
+	uint16_t operator[](const uint16_t & rg) const { return _readGroupMap[rg]; };
+	uint16_t pooledIndex(const uint16_t & rg) const { return _readGroupMap[rg]; };
+	bool inUse(const uint16_t & rg) const { return _readGroupMap[rg] == rg; };
+
+	const std::vector<uint16_t>& readGroupsInUse() const { return _readGroupsInUse; };
+	const std::vector<uint16_t>& readGroupsPooledWith(const uint16_t & rg) const { return _reverseReadGroupMap[rg]; };
 };
 
 }; //end namespace

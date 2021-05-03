@@ -74,7 +74,7 @@ void TBamFile::limitReadLength(const int MaxReadLength){
 
 void TBamFile::setFilters(TParameters & params, TLog* logfile){
 	//max read length
-	int MaxReadLength = params.getParameterIntWithDefault("maxReadLength", 200);
+	int MaxReadLength = params.getParameterIntWithDefault("maxReadLength", 500);
 	logfile->list("Expect no read to be longer than " + toString(MaxReadLength) + " bp. (parameter 'maxReadLength')");
 	limitReadLength(MaxReadLength);
 

@@ -33,25 +33,57 @@ void TGenotypeLikelihoodCalculator::init(TParameters & params, BAM::TReadGroups*
 	}
 	_logfile = Logfile;
 	_readGroups = ReadGroups;
-	_readGroupMap = new BAM::TReadGroupMap(ReadGroups);
+
+	//initialize storage to minimum size
+	_baseLikelihoods.resize(1);
 
 	//initialize PMD
+	//--------------
 	if(params.parameterExists("pmd")){
-		std::string pmdString = params.getParameterString("pmd");
-		_pmd.initialize(pmdString, *_readGroups, _logfile);
+		std::vector<uint16_t> readGroupsWithoutDef;
+		_pmd.initialize(params.getParameterString("pmd"), *_readGroups, _logfile, readGroupsWithoutDef);
+
+		//Warn if some read groups have no PMD definition
+		if(readGroupsWithoutDef.size() > 0){
+			_logfile->warning("The following read groups do not have PMD definitions: "
+					         + concatenateString(_readGroups->getNames(readGroupsWithoutDef), ", ")
+							 + "!");
+			if(!params.parameterExists("allowReadGroupsWithoutPMD")){
+				throw "PMD is only defined for a subset of read groups. Did you use the wrong PMD file? (use allowReadGroupsWithoutPMD to ignore)";
+			}
+		}
 	} else {
 		_logfile->list("Assuming there is no PMD in the data. (use 'pmd' to add PMD definitions)");
 	}
 
 	//initialize sequencing errors
+	//----------------------------
 	if(params.parameterExists("recal")){
-		_sequencingErrorModels.createModels(params.getParameterString("recal"), _readGroups, _readGroupMap, _logfile);
+		std::vector<uint16_t> readGroupsWithoutRecal;
+		std::vector<uint16_t> readGroupsLikelySingelEnd;
+		_sequencingErrorModels.initializeFromFile(params.getParameterString("recal"), *_readGroups, _logfile, readGroupsWithoutRecal, readGroupsLikelySingelEnd);
+
+		//warn if some read groups have no PMD definition
+		if(readGroupsWithoutRecal.size() > 0){
+			_logfile->warning("The following read groups do not have recal definitions: "
+					         + concatenateString(_readGroups->getNames(readGroupsWithoutRecal), ", ")
+					         + "!");
+			if(!params.parameterExists("allowReadGroupsWithoutRecal")){
+				throw "PMD is only defined for a subset of read groups. Did you use the wrong PMD file? (use allowReadGroupsWithoutRecal to ignore)";
+			}
+		}
+
+		//Report if some read groups have only single-end definitions
+		if(readGroupsLikelySingelEnd.size() > 0){
+			_logfile->list("Read groups assumed single-end (no recal for second mate): "
+					      + concatenateString(_readGroups->getNames(readGroupsLikelySingelEnd), ", ")
+						  + ".");
+		}
+	} else if(){
+
 	} else {
 		_logfile->list("Assuming that error rates in BAM files are correct. (use 'recal' to add recalibration)");
 	}
-
-	//initialize storage to minimum size
-	_baseLikelihoods.resize(1);
 
 	_initialized = true;
 };
@@ -59,7 +91,6 @@ void TGenotypeLikelihoodCalculator::init(TParameters & params, BAM::TReadGroups*
 bool TGenotypeLikelihoodCalculator::hasPMD() const{
 	return _pmd.hasPMD();
 };
-
 
 bool TGenotypeLikelihoodCalculator::recalibrationChangesQualities() const{
 	return _sequencingErrorModels.recalibrationChangesQualities();
