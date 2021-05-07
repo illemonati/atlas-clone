@@ -59,7 +59,102 @@ private:
 	void _initialize();
 
 	//functions to read and parse
-	void _parseBasesQualities(const GenotypeLikelihoods::TGenotypeMap & genoMap, const TQualityMap & qualityMap);
+	template <typename BASETYPE, typename QUALTYPE, class TOBASEFUNCTION, class TOQUALFUNCTION> void _parseBasesQualities(const BASETYPE & Sequence,
+																			  const QUALTYPE & Qualities,
+																			  const GenotypeLikelihoods::TGenotypeMap & genoMap,
+																			  const TOBASEFUNCTION & ToBaseFunc,
+																			  const TQualityMap & qualityMap,
+																			  const TOQUALFUNCTION & ToQualFunc){
+		//initialize
+		_bases.resize(_cigar.lengthRead());
+		_alignedPosition.resize(_cigar.lengthRead());
+		int d = 0; //index regarding data structures and inside read
+		int p = 0; //index regarding reference position (!= d for soft clipping & indels)
+
+		//loop over cigar operations
+		for(auto& cigarIter : _cigar){
+			switch ( cigarIter.type ) {
+
+				// for 'M', '=' or 'X': just copy
+				case ('M') :
+				case ('=') :
+				case ('X') :
+					//soft-clipped bases on 5' are before bamAlignment.Position
+					for(unsigned int i=0; i<cigarIter.length; ++i, ++d, ++p){
+						_bases[d].base = (genoMap.*ToBaseFunc)(_sequence[d]);
+						_bases[d].originalQuality_phredInt = (qualityMap.*ToQualFunc)(_qualities[d]);
+						_bases[d].setAligned(true);
+						_alignedPosition[d] = p;
+					}
+					break;
+
+				//for 'S' - soft clip: copy by set aligned = false
+				case ('S') :
+					//add bases to softclipped entries
+					for(unsigned int i=0; i<cigarIter.length; ++i, ++d){
+						//soft-clipped bases on 5' are before bamAlignment.Position
+						//need to initialize quality for quality filter and bases for context
+						_bases[d].base = (genoMap.*ToBaseFunc)(_sequence[d]);
+						_bases[d].originalQuality_phredInt = (qualityMap.*ToQualFunc)(_qualities[d]);
+						_bases[d].setAligned(false);
+						_alignedPosition[d] = -1;
+					}
+					break;
+
+				//for 'I' - insertion: copy bases, but put aligned  = false
+				case ('I')      :
+					for(unsigned int i=0; i<cigarIter.length; ++i, ++d){
+						_bases[d].base = (genoMap.*ToBaseFunc)(_sequence[d]);
+						_bases[d].originalQuality_phredInt = (qualityMap.*ToQualFunc)(_qualities[d]);
+						_bases[d].setAligned(false);
+						_alignedPosition[d] = -1;
+					}
+					break;
+
+				// for 'D' - deletion: just add to position
+				case ('D') :
+					p += cigarIter.length;
+					break;
+
+				// for 'N' - skipped region in reference: only advance reference position
+				case ('N') :
+					p += cigarIter.length;
+					break;
+
+				// for 'H' or 'P' - hard clip: do nothing as these bases are not present in SEQ
+				case ('H') :
+				case ('P') :
+					break;
+
+				// invalid CIGAR op-code
+				default:
+					throw (std::string) "CIGAR operation '" + cigarIter.type + "' not supported!";
+			}
+		}
+
+		//update length and last aligned position
+		_lastAlignedPositionWithRespectToRef = *this + (p - 1);
+		_lastAlignedPos = p - 1; //why -1? -> same reason as above
+
+		//then update distances from ends
+		_setDistancesFromEnds();
+
+		//fill context for each base
+		_fillContext();
+
+		//set mapping quality and whether read is first or second
+		for(auto& b : _bases){
+			b.readGroupID = _readGroupID;
+			b.mappingQuality = _mappingQuality;
+			b.fragmentLength = _fragmentLength;
+			b.setSecondMate(_flags.isSecondMate());
+			b.setReverseStrand(_flags.isReverseStrand());
+		}
+
+		_parsed = true;
+		_sequenceAndQualitiesChanged = false;
+	};
+
 	void _setDistancesFromEnds();
 	void _fillContext();
 
@@ -95,8 +190,7 @@ public:
 	void setMappingQuality(const uint16_t Mappingquality){ _mappingQuality = Mappingquality; };
 	void setMateGenomicPosition(const uint32_t RefID, const uint32_t Position){ _mateGenomicPosition.move(RefID, Position); };
 	void setInsertSize(const int32_t InsertSize){ _insertSize_TLEN = InsertSize; };
-	void setSequenceQualities(const TCigar Cigar, const std::string Sequence, const std::string Qualities);
-	void setSequenceQualitiesOnlyMatches(const std::string Sequence, const std::string Qualities);
+	void setSequenceQualities(const TCigar & Cigar, const std::vector<Base> & Sequence, const std::vector<uint8_t> & Qualities, const GenotypeLikelihoods::TGenotypeMap & genoMap, const TQualityMap & qualityMap);
 	void setReadGroup(const uint16_t readGroupId);
 	void setIsReverseStrand(const bool IsReverse){ _flags.setIsReverseStrand(IsReverse); };
     void setIsRead1(const bool IsRead1){ _flags.setIsRead1(IsRead1); };

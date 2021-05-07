@@ -9,6 +9,8 @@
 
 namespace BAM{
 
+//TODO: change to strong types!
+
 //---------------------------------------------------------------
 //TQualityMap
 //---------------------------------------------------------------
@@ -82,23 +84,23 @@ double TQualityMap::phredIntToError(uint8_t phredInt) const{
 	else return phredIntToErrorMap[phredInt];
 };
 
-double TQualityMap::qualityToError(int qual) const{
+double TQualityMap::qualityToError(const int & qual) const{
 	if(qual < 33)
 		return 1.0;
 	return phredIntToError(qual - 33);
 };
 
 //to illumina error
-uint8_t TQualityMap::phredIntToIlluminaPhredInt(const uint8_t phredInt) const{
+uint8_t TQualityMap::phredIntToIlluminaPhredInt(const uint8_t & phredInt) const{
 	return illuminaQualityBins[phredInt + 33] - 33;
 };
 
-char TQualityMap::qualityToIlluminaQuality(char quality) const{
+char TQualityMap::qualityToIlluminaQuality(const char & quality) const{
 	return illuminaQualityBins[(uint8_t) quality];
 };
 
 //to quality
-uint8_t TQualityMap::phredIntToQuality(uint8_t phredInt) const{
+uint8_t TQualityMap::phredIntToQuality(const uint8_t & phredInt) const{
 	uint16_t q = phredInt + 33;
 	if(q > maxQuality)
 		return maxQuality;
@@ -119,8 +121,12 @@ uint8_t TQualityMap::errorToQuality(const double & errorRate) const{
 };
 
 //to phred and phred int
-uint8_t TQualityMap::qualityToPhredInt(uint8_t quality) const{
+uint8_t TQualityMap::qualityToPhredInt(const uint8_t & quality) const{
 	return quality - 33;
+};
+
+uint8_t TQualityMap::phredIntToPhredInt(const uint8_t & phredInt) const{
+	return phredInt;
 };
 
 //function used when writing qualities
@@ -150,8 +156,8 @@ TQualityFilter::TQualityFilter(TParameters & params, TLog* logfile){
 
 bool TQualityFilter::set(TParameters & params, TLog* logfile){
 	if(params.parameterExists("minQual") || params.parameterExists("maxQual")){
-		int MinPhredInt = params.getParameterIntWithDefault("minQual", 1);
-		int MaxPhredInt = params.getParameterIntWithDefault("maxQual", 93);
+		int MinPhredInt = params.getParameterWithDefault<int>("minQual", 1);
+		int MaxPhredInt = params.getParameterWithDefault<int>("maxQual", 93);
 
 		if(MinPhredInt < 0 || MinPhredInt > 255) throw "minQual " + toString(MinPhredInt) + " is outside accepted range [0, 255]!";
 		if(MaxPhredInt < 0 || MaxPhredInt > 255) throw "maxQual " + toString(MaxPhredInt) + " is outside accepted range [0, 255]!";

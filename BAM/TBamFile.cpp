@@ -42,7 +42,7 @@ TBamFile::TBamFile(){
 void TBamFile::setLimits(TParameters & params, TLog* logfile){
 	//number of reads
 	if(params.parameterExists("limitReads")){
-		_maxNumReadsToRead = params.getParameterInt("limitReads");
+		_maxNumReadsToRead = params.getParameter<uint64_t>("limitReads");
 		logfile->list("Will limit the analysis to the first " + toString(_maxNumReadsToRead) + " reads in the BAM file.");
 		_limitNumReads = true;
 	}
@@ -52,7 +52,7 @@ void TBamFile::setLimits(TParameters & params, TLog* logfile){
 
 	//limit read groups
 	if(params.parameterExists("readGroup")){
-		_readGroups.filterReadGroups(params.getParameterString("readGroup"));
+		_readGroups.filterReadGroups(params.getParameter<std::string>("readGroup"));
 		logfile->startIndent("Will limit analysis to the following read groups:");
 		_readGroups.printReadgroupsInUse(logfile);
 		logfile->endIndent();
@@ -66,7 +66,7 @@ void TBamFile::setFilters(TParameters & params, TLog* logfile){
 	//max read length
 	//is relevant for storage, so only accept values up to 2^16
 	//Others will be filtered out.
-	int MaxReadLength = params.getParameterIntWithDefault("maxReadLength", 200);
+	int MaxReadLength = params.getParameterWithDefault<int>("maxReadLength", 200);
 	logfile->list("Expect no read to be longer than " + toString(MaxReadLength) + " bp. (parameter 'maxReadLength')");
 	if(MaxReadLength < 1)
 		throw "Max read length must be at least 1 bp!";
@@ -199,8 +199,8 @@ void TBamFile::setFilters(TParameters & params, TLog* logfile){
 
 		//Mapping quality filter
 		if(params.parameterExists("minMQ") || params.parameterExists("maxMQ")){
-			int MinMQ = params.getParameterIntWithDefault("minMQ", 0);
-			int MaxMQ = params.getParameterIntWithDefault("maxMQ", 254);
+			int MinMQ = params.getParameterWithDefault<int>("minMQ", 0);
+			int MaxMQ = params.getParameterWithDefault<int>("maxMQ", 254);
 
 			if(MinMQ < 0 || MinMQ > 254)
 				throw "minMQ '" + toString(MinMQ) + "' is outside the accepted range [0,254]!";
@@ -218,8 +218,8 @@ void TBamFile::setFilters(TParameters & params, TLog* logfile){
 
 		//Fragment length filter
 		if(params.parameterExists("minFragmentLength") || params.parameterExists("maxFragmentLength")){
-			int MinFragmentLength = params.getParameterIntWithDefault("minFragmentLength", 0);
-			int MaxFragmentLength = params.getParameterIntWithDefault("maxFragmentLength", 1000);
+			int MinFragmentLength = params.getParameterWithDefault<int>("minFragmentLength", 0);
+			int MaxFragmentLength = params.getParameterWithDefault<int>("maxFragmentLength", 1000);
 			if(MinFragmentLength < 0)
 				throw "minFragmentLength '" + toString(MinFragmentLength) + "' must be >0!";
 			if(MaxFragmentLength < 0)
@@ -254,7 +254,7 @@ void TBamFile::setExternalFilterReason(const std::string reason){
 
 void TBamFile::openBamLog(TParameters & params, TLog* logfile){
 	if(params.parameterExists("bamLog") && !_updateLog){
-		std::string logFilename = params.getParameterString("bamLog");
+		std::string logFilename = params.getParameter<std::string>("bamLog");
 		if(logFilename.empty()){
 			logFilename = _filename;
 			logFilename = extractBeforeLast(logFilename, ".");

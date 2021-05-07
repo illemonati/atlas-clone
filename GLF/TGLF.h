@@ -318,7 +318,7 @@ public:
 	TTask_printGLF(){ _explanation = "Printing a GLF file to screen"; };
 
 	void run(TParameters & parameters, TLog* logfile){
-		std::string glf = parameters.getParameterString("glf");
+		std::string glf = parameters.getParameter<std::string>("glf");
 		TGlfReader reader(glf);
 		reader.printToEnd();
 	};

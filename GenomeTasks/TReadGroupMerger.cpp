@@ -13,7 +13,7 @@ TReadGroupMerger::TReadGroupMerger(TParameters & Parameters, TLog* Logfile, TRan
 	BAM::TReadGroups& readGroups = _bamFile.readGroupsMutable();
 
 	//read read groups to be merged
-	std::string filename = Parameters.getParameterString("readGroups");
+	std::string filename = Parameters.getParameter<std::string>("readGroups");
 	_logfile->startIndent("Reading read groups to be merged from file '" + filename + "':");
 	std::ifstream file(filename.c_str());
 	if(!file) throw "Failed to open file '" + filename + "!";
@@ -30,7 +30,7 @@ TReadGroupMerger::TReadGroupMerger(TParameters & Parameters, TLog* Logfile, TRan
 	std::set<std::string> readGroupsMerged;
 	while(file.good() && !file.eof()){
 		++lineNum;
-		fillVectorFromLineWhiteSpace(file, vec, true);
+		fillContainerFromLineWhiteSpace(file, vec, true);
 		if(!vec.empty()){
 			if(vec.size() < 2) throw "Wrong number of entries on line " + toString(lineNum) + " in file '" + filename + "'!";
 

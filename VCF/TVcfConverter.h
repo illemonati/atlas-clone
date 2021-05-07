@@ -192,7 +192,7 @@ public:
 	TTask_VcfConverter(){ _explanation = "Converting a VCF file to other formats"; };
 
 	void run(TParameters & Parameters, TLog* Logfile){
-		std::string format = Parameters.getParameterString("format");
+		std::string format = Parameters.getParameter<std::string>("format");
 
 		if(format == "beagle"){
 			Logfile->startIndent("Converting a VCF to Beagle format (parameter 'format'):");
@@ -202,7 +202,7 @@ public:
 			Logfile->startIndent("Converting a VCF to LFMM format (parameter 'format'):");
 
 			//posterior or calls?
-			std::string genoType = Parameters.getParameterStringWithDefault("genotypes", "calls");
+			std::string genoType = Parameters.getParameterWithDefault<std::string>("genotypes", "calls");
 			if(genoType == "posterior"){
 				TVcfToLFMMPostGeno vcfToLFMMPostGeno(Parameters, Logfile);
 				vcfToLFMMPostGeno.vcfToLFMM(Parameters);

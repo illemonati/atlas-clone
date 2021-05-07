@@ -23,9 +23,9 @@ void TAtlasTest_mergePairs::setVariables(TParameters & params, TLog* Logfile, TT
 	taskList = TaskList;
 	bamFileName = filenameTag + "_mergedReads.bam";
 	readGroupName = "ReadGroup";
-	readLength = params.getParameterIntWithDefault("mergingTest_readLength", 100);
+	readLength = params.getParameterWithDefault<int>("mergingTest_readLength", 100);
 	chrLength = readLength * 5;
-	phredError = params.getParameterIntWithDefault("mergingTest_qual", 50);
+	phredError = params.getParameterWithDefault<int>("mergingTest_qual", 50);
 //	filterPairsDiffChr = params.parameterExists("filterPairsDiffChr");
 	filterOrphanedReads = !params.parameterExists("keepOrphans");
 };
@@ -681,9 +681,9 @@ void TAtlasTest_mergeSplitPairs::setVariables(TParameters & params, TLog* Logfil
 	logfile = Logfile;
 	bamFileName = filenameTag + "_mergedReads.bam";
 	readGroupName = "ReadGroup";
-	readLength = params.getParameterIntWithDefault("mergingTest_readLength", 100);
+	readLength = params.getParameterWithDefault<int>("mergingTest_readLength", 100);
 	chrLength = readLength * 5;
-	phredError = params.getParameterIntWithDefault("mergingTest_qual", 50);
+	phredError = params.getParameterWithDefault<int>("mergingTest_qual", 50);
 	filterOrphanedReads = !params.parameterExists("keepOrphans");
 };
 

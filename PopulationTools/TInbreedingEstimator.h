@@ -223,10 +223,8 @@ private:
 	void runMCMC(std::ofstream & out, TParameters & params);
 
 public:
-	TInbreedingEstimator(TParameters & Parameters, TLog* Logfile);
-	~TInbreedingEstimator(){
-		delete randomGenerator;
-	}
+	TInbreedingEstimator(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	~TInbreedingEstimator() = default;
 	void runEstimation(TParameters & params);
 	void writeLikelihoodForDebuggingGamma(TParameters & params);
 	void writeLikelihoodForDebuggingAlleleFreq(TParameters & params);
@@ -244,7 +242,7 @@ public:
 	};
 
 	void run(TParameters & Parameters, TLog* Logfile){
-		TInbreedingEstimator inbreedingEstimator(Parameters, Logfile);
+		TInbreedingEstimator inbreedingEstimator(Parameters, Logfile, _randomGenerator);
 		inbreedingEstimator.runEstimation(Parameters);
 	};
 };
@@ -257,7 +255,7 @@ public:
 	};
 
 	void run(TParameters & Parameters, TLog* Logfile){
-		TInbreedingEstimator inbreedingEstimator(Parameters, Logfile);
+		TInbreedingEstimator inbreedingEstimator(Parameters, Logfile, _randomGenerator);
 			if(Parameters.parameterExists("llGamma"))
 				inbreedingEstimator.writeLikelihoodForDebuggingGamma(Parameters);
 	//			if(parameters->parameterExists("llBeta"))

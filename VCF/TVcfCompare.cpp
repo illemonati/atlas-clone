@@ -292,11 +292,11 @@ void TVcfCompare::compareVCFFiles(TParameters & parameters){
 	logfile->endIndent();
 
 	//are filters in place?
-	int minDepth = parameters.getParameterIntWithDefault("minDepth", 0);
+	int minDepth = parameters.getParameterWithDefault<int>("minDepth", 0);
 	if(minDepth > 0){
 		logfile->list("Will consider genotypes with depth < " + toString(minDepth) + " as missing.");
 	}
-	double minQual = parameters.getParameterDoubleWithDefault("minQual", 0.0);
+	double minQual = parameters.getParameterWithDefault("minQual", 0.0);
 	if(minQual > 0){
 		logfile->list("Will consider genotypes with quality < " + toString(minQual) + " as missing.");
 	}
@@ -410,7 +410,7 @@ void TVcfCompare::compareVCFFiles(TParameters & parameters){
 	logfile->endIndent();
 
 	//write output file
-	std::string out = parameters.getParameterString("out", false);
+	std::string out = parameters.getParameter<std::string>("out", false);
 	if(out.empty()){
 		//guess from filename
 		//get base name of first VCF file

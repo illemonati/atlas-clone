@@ -53,10 +53,9 @@ void TQualityDistribution::compileQualityDistribution(){
 TQualityTransformation::TQualityTransformation(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_parsed(Parameters, Logfile, RandomGenerator){
 	//check what we compare
 	if(Parameters.parameterExists("recal2")){
-		std::string recalstring = Parameters.getParameterString("recal2");
+		std::string filename = Parameters.getParameter<std::string>("recal2");
 		_logfile->startIndent("Comparing recalibrated qualities to those recalibrated with alternative parameters:");
-		_readGroupMap = new BAM::TReadGroupMap(&_bamFile.readGroupsMutable());
-		_otherSeqErrors.createModels(recalstring, &_bamFile.readGroupsMutable(), _readGroupMap, _logfile);
+		_otherSeqErrors.initializeFromFile(filename, _bamFile.readGroups(), _logfile);
 
 		_compareToOtherSeqErrors = true;
 		_label1 = "recalibratedQuality";

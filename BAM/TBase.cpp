@@ -21,7 +21,7 @@ TBase::TBase(){
 	fragmentLength = 0;
 };
 
-void TBase::print(){
+void TBase::print() const{
 	std::cout << "base: " << base << std::endl;
 	std::cout << "originalQuality_phredInt: " << originalQuality_phredInt << std::endl;
 	std::cout << "recalibratedQualityAsPhredInt: " << recalibratedQualityAsPhredInt << std::endl;

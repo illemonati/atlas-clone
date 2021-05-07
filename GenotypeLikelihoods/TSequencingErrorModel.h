@@ -12,6 +12,7 @@
 #include "TSequencingErrorCovariate.h"
 #include "auxiliaryTools.h"
 #include "TGenotypeData.h"
+#include <vector>
 
 namespace GenotypeLikelihoods{
 
@@ -28,8 +29,6 @@ struct TSequencingErrorCovariateDef{
 		function = Function;
 	};
 };
-
-typedef std::vector<TSequencingErrorCovariateDef>::iterator TRecalibrationEMModelCovariateDefinitionIterator;
 
 class TSequencingErrorCovariateDefinition{
 private:
@@ -48,11 +47,13 @@ public:
 	bool parse(const std::string & modelString, std::string & error);
 	void setIntercept(const double Intercept);
 	void addCovariate(const std::string covariate, const std::string function);
-	size_t size(){ return _covariateFunctions.size(); };
+	size_t size() const { return _covariateFunctions.size(); };
 	const std::string& intercept() const { return _intercept; };
-	TRecalibrationEMModelCovariateDefinitionIterator begin(){ return _covariateFunctions.begin(); };
-	TRecalibrationEMModelCovariateDefinitionIterator end(){ return _covariateFunctions.end(); };
-	std::string getModelString();
+	std::vector<TSequencingErrorCovariateDef>::iterator begin(){ return _covariateFunctions.begin(); };
+	std::vector<TSequencingErrorCovariateDef>::iterator end(){ return _covariateFunctions.end(); };
+	std::vector<TSequencingErrorCovariateDef>::const_iterator cbegin() const { return _covariateFunctions.cbegin(); };
+	std::vector<TSequencingErrorCovariateDef>::const_iterator cend() const { return _covariateFunctions.cend(); };
+	std::string getModelString() const;
 };
 
 //--------------------------------------------------------------------
@@ -98,6 +99,9 @@ public:
 	TSequencingErrorRhoStorage rho;
 
 	TSequencingErrorModelDefinition() = default;
+	TSequencingErrorModelDefinition(const std::string & covariateString, const std::string & rhoString, std::string & error){
+		parse(covariateString, rhoString, error);
+	};
 
 	bool parseCovariates(const std::string & covariateString, std::string & error){
 		return(covariates.parse(covariateString, error));
@@ -135,8 +139,8 @@ public:
 	TSequencingErrorCovariateList(TSequencingErrorCovariateList&& other);
 	TSequencingErrorCovariateList& operator=(TSequencingErrorCovariateList&& other);
 
-	void createCovariatesAndIntercept(TSequencingErrorCovariateDefinition & covariateMap, TRecalibrationEMDataTable* dataTable);
-	void createCovariatesAndIntercept(TSequencingErrorCovariateDefinition & covariateMap);
+	void createCovariatesAndIntercept(const TSequencingErrorCovariateDefinition & covariateMap, const RecalEstimatorTools::TRecalDataTable & DataTable);
+	void createCovariatesAndIntercept(const TSequencingErrorCovariateDefinition & covariateMap);
 	TSequencingErrorCovariateDefinition getCovariateDefinition() const;
 };
 
@@ -183,8 +187,6 @@ public:
 //------------------------------------------------
 class TSequencingErrorModelRecal:public TSequencingErrorModel{
 private:
-	TLog* _logfile;
-
 	//parameters: covarites and rho
 	TSequencingErrorCovariateList _covariates;
 
@@ -200,16 +202,27 @@ private:
 	bool _NRStepAccepted;
 
 	void _initializeDerivatives();
-	double _calcEpsilon(const double eta) const;
+	double _calcEpsilon(const double & eta) const;
+	double _calcErrorRate(const BAM::TBase & base) const;
 
 public:
-	TSequencingErrorModelRecal(TSequencingErrorModelDefinition & modelDef, TLog* Logfile);
-	TSequencingErrorModelRecal(TSequencingErrorModelDefinition & modelDef, TRecalibrationEMDataTable* dataTable, TLog* Logfile);
+	TSequencingErrorModelRecal(const TSequencingErrorModelDefinition & modelDef);
+	TSequencingErrorModelRecal(const TSequencingErrorModelDefinition & modelDef, const RecalEstimatorTools::TRecalDataTable & DataTable);
 
 	bool estimatable() const override { return true; };
 	bool recalibrates() const override { return true; };
+	std::string getCovariateDefinition() const override { return _covariates.getCovariateDefinition().getModelString(); };
+	std::string getRhoDefinition() const override { return _rho.getDefinition(); };
+	TSequencingErrorModelDefinition getModelDefinition() const;
 
-	bool checkParameterRange(TRecalibrationEMDataTable* dataTable, std::string & error);
+	//get error rates
+	double getErrorRate(const BAM::TBase & base, const BAM::TQualityMap & qualMap) const override;
+	uint8_t getPhredInt(const BAM::TBase & base, const BAM::TQualityMap & qualMap) const override;
+	void fillBaseLikelihoods(const BAM::TBase & base, TBaseData & baseLikelihoods) const;
+	void fillBaseLikelihoods(const BAM::TBase & base, const BAM::TQualityMap & qualMap, TBaseData & baseLikelihoods) const override;
+
+	//functions to estimate
+	bool checkParameterRange(RecalEstimatorTools::TRecalDataTable & DataTable, std::string & error);
 	uint16_t numParameters(){ return _covariates.numParameters; };
 
 	//functions to estimate rho
@@ -231,12 +244,6 @@ public:
 	void printJacobianToStdOut();
 	void printFToStdOut();
 	void printJxFToStdOut();
-
-	void fillBaseLikelihoods(const BAM::TBase & base, TBaseData & baseLikelihoods) const;
-	std::string getCovariateDefinition() const override;
-	std::string getRhoDefinition() const override;
-
-	double getErrorRate(const BAM::TBase & base) const;
 };
 
 }; //end namespace

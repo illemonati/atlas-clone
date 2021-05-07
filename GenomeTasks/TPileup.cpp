@@ -21,7 +21,7 @@ TPileup::TPileup(TParameters & Parameters, TLog* Logfile, TRandomGenerator* Rand
 	//parse output fields
 	_logfile->startIndent("Will print the following pileup fields (parameter 'fields'):");
 	std::set<std::string> fields;
-	Parameters.fillParameterIntoSetWithDefault("fields", fields, ',', "depth,bases,qualities,alleles,mates,strands,likelihoods");
+	Parameters.fillParameterIntoContainerWithDefault("fields", fields, ',', {"depth", "bases", "qualities", "alleles", "mates", "strands", "likelihoods"});
 
 	_parseField(fields, "depth", _printDepth, "sequencing depth");
 	_parseField(fields, "bases", _printBases, "pileup bases");

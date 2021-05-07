@@ -330,10 +330,10 @@ void TAlleleCountEstimator::estimateAlleleCounts(TParameters & params, TRandomGe
 	//read samples
 	TPopulationSamples samples;
 	if(params.parameterExists("samples"))
-		samples.readSamples(params.getParameterString("samples"), logfile);
+		samples.readSamples(params.getParameter<std::string>("samples"), logfile);
 
 	//open VCF reader
-	std::string vcfFilename = params.getParameterString("vcf");
+	std::string vcfFilename = params.getParameter<std::string>("vcf");
 	logfile->startIndent("Reading genotype likelihoods from VCF file '" + vcfFilename + "':");
 	TPopulationLikelihoodReaderLocus reader(params, logfile, false);
 	reader.openVCF(vcfFilename);
@@ -353,8 +353,8 @@ void TAlleleCountEstimator::estimateAlleleCounts(TParameters & params, TRandomGe
 
 	//create out file
 	std::string tmp = extractBeforeLast(vcfFilename, ".vcf");
-	std::string outname = params.getParameterStringWithDefault("out", tmp);
-	std::string type = params.getParameterStringWithDefault("outFormat", "default");
+	std::string outname = params.getParameterWithDefault<std::string>("out", tmp);
+	std::string type = params.getParameterWithDefault<std::string>("outFormat", "default");
 	TAlleleCountFile* alleleCountFile = prepareOutputFile(type, outname, params);
 
 	//write header
@@ -399,10 +399,10 @@ void TAlleleCountEstimator::writeAlleleFrequencyLikelihoods(TParameters & params
 	//read samples
 	TPopulationSamples samples;
 	if(params.parameterExists("samples"))
-		samples.readSamples(params.getParameterString("samples"), logfile);
+		samples.readSamples(params.getParameter<std::string>("samples"), logfile);
 
 	//open VCF reader
-	std::string vcfFilename = params.getParameterString("vcf");
+	std::string vcfFilename = params.getParameter<std::string>("vcf");
 	logfile->startIndent("Reading genotype likelihoods from VCF file '" + vcfFilename + "':");
 	TPopulationLikelihoodReaderLocus reader(params, logfile, false);
 	reader.openVCF(vcfFilename);
@@ -422,7 +422,7 @@ void TAlleleCountEstimator::writeAlleleFrequencyLikelihoods(TParameters & params
 
 	//open output file
 	std::string tmp = extractBeforeLast(vcfFilename, ".vcf");
-	std::string outname = params.getParameterStringWithDefault("out", tmp);
+	std::string outname = params.getParameterWithDefault<std::string>("out", tmp);
 	std::string filename = outname + "_alleleFrequencyLikelihoods.txt.gz";
 	logfile->list("Will write estimated allele counts to file '" + outname + "'.");
 	gz::ogzstream alleleFrequencyLikelihoodFile(filename.c_str());
@@ -503,10 +503,10 @@ void TAlleleCountEstimator::transformFormat(TParameters & params){
 	struct timeval start; gettimeofday(&start, NULL);
 
 	//get parameters for in and output
-	std::string countsFileName = params.getParameterString("alleleCounts");
+	std::string countsFileName = params.getParameter<std::string>("alleleCounts");
 	std::string tmp = extractBeforeLast(countsFileName, "_alleleCounts.txt.gz");
-	std::string outname = params.getParameterStringWithDefault("out", tmp);
-	std::string type = params.getParameterStringWithDefault("outFormat", "default");
+	std::string outname = params.getParameterWithDefault<std::string>("out", tmp);
+	std::string type = params.getParameterWithDefault<std::string>("outFormat", "default");
 	if(type == "default"){
 		throw "Cannot transform alleleCounts file to original format!";
 	}
@@ -521,7 +521,7 @@ void TAlleleCountEstimator::transformFormat(TParameters & params){
 	std::getline(file, line);
 	std::vector<std::string> tmp_vec;
 	std::vector<std::string> populationNames;
-	fillVectorFromStringWhiteSpace(line, tmp_vec, true);
+	fillContainerFromStringWhiteSpace(line, tmp_vec, true);
 	for(unsigned int i=2; i<tmp_vec.size(); ++i){
 		populationNames.push_back(tmp_vec[i]);
 	}
@@ -539,7 +539,7 @@ void TAlleleCountEstimator::transformFormat(TParameters & params){
 	while(file.good() && !file.eof()){
 		std::vector<std::string> vec;
 		std::getline(file, line);
-		fillVectorFromStringWhiteSpace(line, vec, true);
+		fillContainerFromStringWhiteSpace(line, vec, true);
 		//write chromosome and position
 		if(vec.size() > 0){
 			alleleCountFile->writePosition(vec[0], vec[1]);
@@ -548,7 +548,7 @@ void TAlleleCountEstimator::transformFormat(TParameters & params){
 			for(unsigned int p=2; p<vec.size(); p++){
 				//print MLE counts
 				std::vector<std::string> counts;
-				fillVectorFromStringAny(vec[p], counts, "/");
+				fillContainerFromStringAny(vec[p], counts, "/");
 				alleleCountFile->writeCounts(counts[0], counts[1], p-2);
 			}
 			alleleCountFile->endl();

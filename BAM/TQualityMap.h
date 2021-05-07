@@ -43,11 +43,11 @@ public:
 	TQualityMap();
 	~TQualityMap();
 
-	void setQualityLimits(uint8_t MinQualityForPrinting, uint8_t MaxQualityForPrinting);
-	void  setBinQualityScores(bool BinQualityScores);
-	double phredIntToError(uint8_t phredInt) const;
+	void setQualityLimits(const uint8_t MinQualityForPrinting, const uint8_t MaxQualityForPrinting);
+	void  setBinQualityScores(const bool BinQualityScores);
+	double phredIntToError(const uint8_t phredInt) const;
 
-	inline double phredToError(double phred) const{
+	inline double phredToError(const double & phred) const{
 		return pow(10.0, -phred/10.0);
 	};
 
@@ -63,12 +63,13 @@ public:
 		return -10.0 * log10(errorRate);
 	};
 
-	double qualityToError(int qual) const;
-	uint8_t phredIntToIlluminaPhredInt(const uint8_t phredInt) const;
-	char qualityToIlluminaQuality(char quality) const;
-	uint8_t phredIntToQuality(uint8_t phredInt) const;
+	double qualityToError(const int & qual) const;
+	uint8_t phredIntToIlluminaPhredInt(const uint8_t & phredInt) const;
+	char qualityToIlluminaQuality(const char & quality) const;
+	uint8_t phredIntToQuality(const uint8_t & phredInt) const;
+	uint8_t phredIntToPhredInt(const uint8_t & phredInt) const;
 	uint8_t errorToQuality(const double & errorRate) const;
-	uint8_t qualityToPhredInt(uint8_t quality) const;
+	uint8_t qualityToPhredInt(const uint8_t & quality) const;
 	void adjustQualitiesForWriting(std::string & qualities) const;
 };
 

@@ -91,25 +91,9 @@ void TAlignment::fill(const	std::string & Name,
 
 void TAlignment::parse(const GenotypeLikelihoods::TGenotypeMap & genoMap, const TQualityMap & qualityMap){
 	//first parse bases and qualities
-	_parseBasesQualities(genoMap, qualityMap);
-
-	//then update distances from ends
-	_setDistancesFromEnds();
-
-	//fill context for each base
-	_fillContext();
-
-	//set mapping quality and whether read is first or second
-	for(auto& b : _bases){
-		b.readGroupID = _readGroupID;
-		b.mappingQuality = _mappingQuality;
-		b.fragmentLength = _fragmentLength;
-		b.setSecondMate(_flags.isSecondMate());
-		b.setReverseStrand(_flags.isReverseStrand());
-	}
-
-	_parsed = true;
-	_sequenceAndQualitiesChanged = false;
+	auto toBasePointer = static_cast<Base(GenotypeLikelihoods::TGenotypeMap::*)(const char) const>(&GenotypeLikelihoods::TGenotypeMap::toBase);
+	auto toQualPointer = &TQualityMap::qualityToPhredInt;
+	_parseBasesQualities(_sequence, _qualities, genoMap, toBasePointer, qualityMap, toQualPointer);
 };
 
 void TAlignment::parse(const GenotypeLikelihoods::TGenotypeMap & genoMap, const TQualityMap & qualityMap, const GenotypeLikelihoods::TSequencingErrorModels & seqErrorModels){
@@ -120,6 +104,7 @@ void TAlignment::parse(const GenotypeLikelihoods::TGenotypeMap & genoMap, const 
 	_sequenceAndQualitiesChanged = seqErrorModels.recalibrationChangesQualities();
 };
 
+/*
 void TAlignment::_parseBasesQualities(const GenotypeLikelihoods::TGenotypeMap & genoMap, const TQualityMap & qualityMap){
 	//initialize
 	_bases.resize(_cigar.lengthRead());
@@ -194,6 +179,7 @@ void TAlignment::_parseBasesQualities(const GenotypeLikelihoods::TGenotypeMap & 
 	_lastAlignedPositionWithRespectToRef = *this + (p - 1);
 	_lastAlignedPos = p - 1; //why -1? -> same reason as above
 };
+*/
 
 void TAlignment::_setDistancesFromEnds(){
 	//Set distances in ORIGINAL FRAGMENT (i.e. 5' end is where sequencing started, NOT how it aligns to reference)
@@ -265,26 +251,19 @@ void TAlignment::addReference(TFastaBuffer & fasta){
 	_hasReference = true;
 };
 
-void TAlignment::setSequenceQualities(const TCigar Cigar, const std::string Sequence, const std::string Qualities){
+void TAlignment::setSequenceQualities(const TCigar & Cigar, const std::vector<Base> & Sequence, const std::vector<uint8_t> & Qualities, const GenotypeLikelihoods::TGenotypeMap & genoMap, const TQualityMap & qualityMap){
 	if(Cigar.lengthRead() != Sequence.length() || Cigar.lengthRead() != Qualities.length()){
 		throw std::runtime_error("TAlignment::setSequenceQualities(const TCigar Cigar, const std::string Sequence, const std::string Qualities): Failed to set sequence and qualities of TAlignment: length of CIGAR, Sequences and Qualities does not match!");
 	}
 	_cigar = Cigar;
-	_sequence = Sequence;
-	_qualities = Qualities;
-};
 
-void TAlignment::setSequenceQualitiesOnlyMatches(const std::string Sequence, const std::string Qualities){
-	if(Sequence.length() != Qualities.length()){
-		throw std::runtime_error("TAlignment::setSequenceQualitiesOnlyMatches(const std::string Sequence, const std::string Qualities): Failed to set sequence and qualities of TAlignment: length of CIGAR, Sequences and Qualities does not match!");
-	}
-	//compile CIGAR
-	_cigar.clear();
-	_cigar.add('M', Sequence.length());
+	//parse bases and qualities
+	auto toBasePointer = static_cast<Base(GenotypeLikelihoods::TGenotypeMap::*)(const Base) const>(&GenotypeLikelihoods::TGenotypeMap::toBase);
+	auto toQualPointer = &TQualityMap::phredIntToPhredInt;
+	_parseBasesQualities(_sequence, _qualities, genoMap, toBasePointer, qualityMap, toQualPointer);
 
-	//set sequence and qualities
-	_sequence = Sequence;
-	_qualities = Qualities;
+	_changed = true;
+	_sequenceAndQualitiesChanged = true; //will trigger that the strings are read form the bases
 };
 
 void TAlignment::setReadGroup(const uint16_t readGroupId){

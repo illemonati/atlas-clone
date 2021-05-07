@@ -11,6 +11,7 @@
 #include <memory>
 #include "TSequencingErrorCovariateFunction.h"
 #include "TBase.h"
+#include "RecalEstimatorTools.h"
 
 namespace GenotypeLikelihoods{
 
@@ -46,14 +47,17 @@ public:
 	uint16_t numNonZeroFirstDerivatives();
 	uint16_t numNonZeroSecondDerivatives();
 
-	virtual std::string name(){ return SequencingErrorCovariateName_none; };
+	virtual std::string name() const { return SequencingErrorCovariateName_none; };
 
 	//covariate function
-	virtual void addFunction(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable){};
+	virtual void addFunction(const size_t FirstParameterIndex, const std::string & functionString, const RecalEstimatorTools::TRecalDataTable & dataTable){};
 	virtual void addFunction(const size_t FirstParameterIndex, const std::string & functionString){};
 	std::string functionString();
-	virtual bool checkParameterRange(TRecalibrationEMDataTable* dataTable){ return true; };
-	virtual bool checkParameterRange(std::vector<uint16_t> & usedQualities, uint16_t maxPos){ return true; };
+
+	virtual bool checkParameterRange(const RecalEstimatorTools::TRecalDataTable & dataTable){ return true; };
+	virtual bool checkParameterRange(std::vector<uint16_t> & usedValues, uint16_t maxPos){ return true; };
+	virtual void adjustParameterRange(const RecalEstimatorTools::TRecalDataTable & dataTable);
+
 	TSequencingErrorCovariateFunction* getPointerToFunction(){ return _function.get(); };
 
 	//calculate terms
@@ -82,14 +86,15 @@ private:
 	};
 
 public:
-	TSequencingErrorCovariate_quality(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable);
+	TSequencingErrorCovariate_quality(const size_t FirstParameterIndex, const std::string & functionString, const RecalEstimatorTools::TRecalDataTable & dataTable);
 	TSequencingErrorCovariate_quality(const size_t FirstParameterIndex, const std::string & functionString);
 
-	std::string name(){ return SequencingErrorCovariateName_quality; };
-	void addFunction(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable);
-	void addFunction(const size_t FirstParameterIndex, const std::string & functionString);
-	bool checkParameterRange(TRecalibrationEMDataTable* dataTable);
-	bool checkParameterRange(std::vector<uint16_t> & usedQualities, uint16_t maxPos);
+	std::string name() const override { return SequencingErrorCovariateName_quality; };
+	void addFunction(const size_t FirstParameterIndex, const std::string & functionString, const RecalEstimatorTools::TRecalDataTable & dataTable) override;
+	void addFunction(const size_t FirstParameterIndex, const std::string & functionString) override;
+	bool checkParameterRange(const RecalEstimatorTools::TRecalDataTable & dataTable) override;
+	bool checkParameterRange(std::vector<uint16_t> & usedValues, uint16_t maxPos) override;
+	void adjustParameterRange(const RecalEstimatorTools::TRecalDataTable & dataTable) override;
 };
 
 //-------------------------------------------
@@ -102,14 +107,15 @@ private:
 	};
 
 public:
-	TSequencingErrorCovariate_position(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable);
+	TSequencingErrorCovariate_position(const size_t FirstParameterIndex, const std::string & functionString, const RecalEstimatorTools::TRecalDataTable & dataTable);
 	TSequencingErrorCovariate_position(const size_t FirstParameterIndex, const std::string & functionString);
 
-	std::string name(){ return SequencingErrorCovariateName_position; };
-	void addFunction(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable);
-	void addFunction(const size_t FirstParameterIndex, const std::string & functionString);
-	bool checkParameterRange(TRecalibrationEMDataTable* dataTable);
-	bool checkParameterRange(std::vector<uint16_t> & usedQualities, uint16_t maxPos);
+	std::string name() const override  { return SequencingErrorCovariateName_position; };
+	void addFunction(const size_t FirstParameterIndex, const std::string & functionString, const RecalEstimatorTools::TRecalDataTable & dataTable)  override;
+	void addFunction(const size_t FirstParameterIndex, const std::string & functionString) override;
+	bool checkParameterRange(const RecalEstimatorTools::TRecalDataTable & dataTable) override;
+	bool checkParameterRange(std::vector<uint16_t> & usedValues, uint16_t maxPos) override;
+	void adjustParameterRange(const RecalEstimatorTools::TRecalDataTable & dataTable) override;
 };
 
 //-------------------------------------------
@@ -124,14 +130,14 @@ private:
 	};
 
 public:
-	TSequencingErrorCovariate_context(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable);
+	TSequencingErrorCovariate_context(const size_t FirstParameterIndex, const std::string & functionString, const RecalEstimatorTools::TRecalDataTable & dataTable);
 	TSequencingErrorCovariate_context(const size_t FirstParameterIndex, const std::string & functionString);
 
-	std::string name(){ return SequencingErrorCovariateName_context; };
-	void addFunction(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable);
-	void addFunction(const size_t FirstParameterIndex, const std::string & functionString);
-	bool checkParameterRange(TRecalibrationEMDataTable* dataTable);
-	bool checkParameterRange(std::vector<uint16_t> & usedQualities, uint16_t maxPos);
+	std::string name() const override { return SequencingErrorCovariateName_context; };
+	void addFunction(const size_t FirstParameterIndex, const std::string & functionString, const RecalEstimatorTools::TRecalDataTable & dataTable) override;
+	void addFunction(const size_t FirstParameterIndex, const std::string & functionString) override;
+	bool checkParameterRange(const RecalEstimatorTools::TRecalDataTable & dataTable) override;
+	bool checkParameterRange(std::vector<uint16_t> & usedValues, uint16_t maxPos) override;
 };
 
 //-------------------------------------------
@@ -145,14 +151,15 @@ private:
 	};
 
 public:
-	TSequencingErrorCovariate_fragmentLength(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable);
+	TSequencingErrorCovariate_fragmentLength(const size_t FirstParameterIndex, const std::string & functionString, const RecalEstimatorTools::TRecalDataTable & dataTable);
 	TSequencingErrorCovariate_fragmentLength(const size_t FirstParameterIndex, const std::string & functionString);
 
-	std::string name(){ return SequencingErrorCovariateName_fragmentLength; };
-	void addFunction(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable);
-	void addFunction(const size_t FirstParameterIndex, const std::string & functionString);
-	bool checkParameterRange(TRecalibrationEMDataTable* dataTable);
-	bool checkParameterRange(std::vector<uint16_t> & usedQualities, uint16_t maxPos);
+	std::string name() const override { return SequencingErrorCovariateName_fragmentLength; };
+	void addFunction(const size_t FirstParameterIndex, const std::string & functionString, const RecalEstimatorTools::TRecalDataTable & dataTable) override;
+	void addFunction(const size_t FirstParameterIndex, const std::string & functionString) override;
+	bool checkParameterRange(const RecalEstimatorTools::TRecalDataTable & dataTable) override;
+	bool checkParameterRange(std::vector<uint16_t> & usedValues, uint16_t maxPos) override;
+	void adjustParameterRange(const RecalEstimatorTools::TRecalDataTable & dataTable) override;
 };
 
 //-------------------------------------------
@@ -166,16 +173,17 @@ private:
 	};
 
 public:
-	TSequencingErrorCovariate_mappingQuality(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable);
+	TSequencingErrorCovariate_mappingQuality(const size_t FirstParameterIndex, const std::string & functionString, const RecalEstimatorTools::TRecalDataTable & dataTable);
 	TSequencingErrorCovariate_mappingQuality(const size_t FirstParameterIndex, const std::string & functionString);
 
-	std::string name(){ return SequencingErrorCovariateName_fragmentLength; };
-	void addFunction(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable);
-	void addFunction(const size_t FirstParameterIndex, const std::string & functionString);
-	bool checkParameterRange(TRecalibrationEMDataTable* dataTable);
-	bool checkParameterRange(std::vector<uint16_t> & usedQualities, uint16_t maxPos);
+	std::string name() const override { return SequencingErrorCovariateName_fragmentLength; };
+	void addFunction(const size_t FirstParameterIndex, const std::string & functionString, const RecalEstimatorTools::TRecalDataTable & dataTable) override;
+	void addFunction(const size_t FirstParameterIndex, const std::string & functionString) override;
+	bool checkParameterRange(const RecalEstimatorTools::TRecalDataTable & dataTable) override;
+	bool checkParameterRange(std::vector<uint16_t> & usedValues, uint16_t maxPos) override;
+	void adjustParameterRange(const RecalEstimatorTools::TRecalDataTable & dataTable) override;
 };
 
-}; //end namespace recal
+}; //end namespace GenotypeLikelihoods
 
 #endif /* GENOTYPELIKELIHOODS_TSEQUENCINGERRORCOVARIATE_H_ */

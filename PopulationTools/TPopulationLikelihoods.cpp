@@ -79,7 +79,7 @@ void TPopulationSamples::readSamples(std::string filename, TLog* logfile){
 	while(file.good() && !file.eof()){
 		++lineNum;
 		std::getline(file, line);
-		fillVectorFromStringWhiteSpace(line, vec, true);
+		fillContainerFromStringWhiteSpace(line, vec, true);
 
 		//skip empty lines
 		if(vec.size() > 0){
@@ -299,7 +299,7 @@ void TPopulationLikelihoodReader::initialize(TParameters & Parameters, TLog* Log
 
 	//read parsing parameters
 	// do we limit the lines to read?
-	maxLinesToRead = Parameters.getParameterLongWithDefault("limitLines", 0);
+	maxLinesToRead = Parameters.getParameterWithDefault("limitLines", 0L);
 	if(maxLinesToRead > 0){
 		limitLines = true;
 		logfile->list("Will limit analysis to the first " + toString(maxLinesToRead) + " lines of the VCF file. (parameter 'limitLines')");
@@ -309,7 +309,7 @@ void TPopulationLikelihoodReader::initialize(TParameters & Parameters, TLog* Log
 
 	//limit to sites in bed file?
 	if(Parameters.parameterExists("window")){
-		std::string filename = Parameters.getParameterString("window");
+		std::string filename = Parameters.getParameter<std::string>("window");
 		logfile->list("Will limit analysis to windows listed in BED file '" + filename + "'.");
 		bedFile.add(filename);
 		logfile->conclude("Will use " + toString(bedFile.size()) + " windows of cumulative length " + toString(bedFile.length()) + " bp on " + toString(bedFile.numChromosomesWithWindows()) + " chromosomes.");
@@ -317,33 +317,33 @@ void TPopulationLikelihoodReader::initialize(TParameters & Parameters, TLog* Log
 	}
 
 	// do we set a depth filter?
-	minDepth = Parameters.getParameterIntWithDefault("minDepth", 1);
+	minDepth = Parameters.getParameterWithDefault<int>("minDepth", 1);
 	if(minDepth < 1)
 		throw "minDepth must be >= 1!";
 	if(minDepth > 1)
 		logfile->list("Will filter samples to a minimum depth of " + toString(minDepth) + ". (parameter 'minDepth')");
 
 	// do we set a missingness filter?
-	minNumSamplesWithData = Parameters.getParameterIntWithDefault("minSamplesWithData", 1);
+	minNumSamplesWithData = Parameters.getParameterWithDefault<int>("minSamplesWithData", 1);
 	if(minNumSamplesWithData < 0)
 		throw "minNumSamplesWithData must be >= 0!";
 	if(minNumSamplesWithData > 1)
 		logfile->list("Will remove loci where less than " + toString(minNumSamplesWithData) + " samples have data. (parameter 'minSamplesWithData')");
 
 	// parameters to set a filter on the allele frequency?
-	freqFilter = Parameters.getParameterDoubleWithDefault("minMAF", 0.0); // MAF = minor allele frequency
+	freqFilter = Parameters.getParameterWithDefault("minMAF", 0.0); // MAF = minor allele frequency
 	if(freqFilter < 0.0 || freqFilter >= 0.5)
 		throw "MAF filter must be within (0.0,0.5)!";
 	if(freqFilter > 0.0 || saveAlleleFreq){
 		estimateGenotypeFrequencies = true;
-		epsilonF = Parameters.getParameterDoubleWithDefault("epsF", 0.0000001);
+		epsilonF = Parameters.getParameterWithDefault("epsF", 0.0000001);
 		logfile->list("Will filter on an allele frequency of " + toString(freqFilter) + ". (parameter 'epsF')");
 	} else {
 		estimateGenotypeFrequencies = false;
 	}
 
 	//filter on variant quality?
-	minVariantQuality = Parameters.getParameterIntWithDefault("minVariantQuality", 0);
+	minVariantQuality = Parameters.getParameterWithDefault<int>("minVariantQuality", 0);
 	if(minVariantQuality < 0) throw "minVariantQuality must be >= 0!";
 	if(minVariantQuality > 0){
 		logfile->list("Will only keep sites with variant quality >= " + toString(minVariantQuality) + ". (parameter 'minVariantQuality')");
@@ -355,13 +355,13 @@ void TPopulationLikelihoodReader::initialize(TParameters & Parameters, TLog* Log
     }
 
 	//set progress frequency
-	progressFrequency = Parameters.getParameterIntWithDefault("reportFreq", 10000);
+	progressFrequency = Parameters.getParameterWithDefault<int>("reportFreq", 10000);
 
 	_initialized = true;
 };
 
 void TPopulationLikelihoodReader::specifyChromosomesToKeep(TParameters & Parameters, TLog* logfile){
-    std::string argument = Parameters.getParameterString("keepChromosomes");
+    std::string argument = Parameters.getParameter<std::string>("keepChromosomes");
     if(stringContains(argument, ".txt")){ // specified as a file name
         logfile->startIndent("Reading chromosomes that should be kept from '" + argument + "'");
         std::ifstream keepChromosomesFile(argument.c_str());
@@ -371,7 +371,7 @@ void TPopulationLikelihoodReader::specifyChromosomesToKeep(TParameters & Paramet
             std::string line;
             std::getline(keepChromosomesFile, line);
             std::vector<std::string> vec;
-            fillVectorFromStringWhiteSpace(line, vec, true);
+            fillContainerFromStringWhiteSpace(line, vec, true);
             //skip empty lines
             if(!vec.empty())
                 chromosomesToKeep.push_back(vec[0]);
@@ -380,7 +380,7 @@ void TPopulationLikelihoodReader::specifyChromosomesToKeep(TParameters & Paramet
     }
     else { // specified as a vector on command line
         logfile->startIndent("Reading chromosomes from command line.");
-        fillVectorFromString(Parameters.getParameterString("keepChromosomes"), chromosomesToKeep, ',');
+        fillContainerFromString(Parameters.getParameter<std::string>("keepChromosomes"), chromosomesToKeep, ',');
     }
 
     // write to logfile
@@ -623,7 +623,7 @@ void TPopulationLikelihoodReaderLocus::initialize(TParameters & Parameters, TLog
 
 	//open true allele freq file
 	if(Parameters.parameterExists("trueAlleleFreq")){
-		openTrueAlleleFrequenciesFile(Parameters.getParameterString("trueAlleleFreq"));
+		openTrueAlleleFrequenciesFile(Parameters.getParameter<std::string>("trueAlleleFreq"));
 	}
 };
 
@@ -658,7 +658,7 @@ bool TPopulationLikelihoodReaderLocus::_readNextLineFromVCF(){
 		std::string temp;
 		getline(*trueFreq, temp);
 		std::vector<std::string> tmp;
-		fillVectorFromString(temp, tmp, '\t');
+		fillContainerFromString(temp, tmp, '\t');
 		if(tmp.size() != 3)
 			throw "wrong number of columns in true allele frequency file!";
 		std::string chr = tmp[0];
@@ -667,7 +667,7 @@ bool TPopulationLikelihoodReaderLocus::_readNextLineFromVCF(){
 		//check if positions match (allele file is 0-based)
 		while(pos < vcfFile.position() - 1){
 			getline(*trueFreq, temp);
-			fillVectorFromString(temp, tmp, '\t');
+			fillContainerFromString(temp, tmp, '\t');
 			if(tmp.size() != 3)
 				throw "wrong number of columns in true allele frequency file!";
 			pos = convertString<uint64_t>(tmp[1]);
@@ -930,7 +930,7 @@ void TVcfFilter::filterVCF(TParameters & Parameters){
 	TPopulationLikelihoodReader reader(Parameters, logfile, saveAlleleFrequencies);
 
 	// open vcf file
-	vcfFilename = Parameters.getParameterString("vcf");
+	vcfFilename = Parameters.getParameter<std::string>("vcf");
 	logfile->startIndent("Filtering VCF file '" + vcfFilename + "':");
 	reader.openVCF(vcfFilename, logfile);
 
@@ -948,7 +948,7 @@ void TVcfFilter::filterVCF(TParameters & Parameters){
 
 	//output file name
 	std::string tmp = extractBeforeLast(vcfFilename, ".vcf");
-	std::string outputName = Parameters.getParameterStringWithDefault("out", tmp) + "_filtered.vcf.gz";
+	std::string outputName = Parameters.getParameterWithDefault<std::string>("out", tmp) + "_filtered.vcf.gz";
 
     //run through VCF file
     logfile->startIndent("Parsing VCF file:");
@@ -1003,7 +1003,7 @@ void TPopulationLikelihoods::clean(){
 void TPopulationLikelihoods::readData(TParameters & Parameters, TLog* Logfile){
 	//check if we limit samples
 	if(Parameters.parameterExists("samples"))
-		samples.readSamples(Parameters.getParameterString("samples"), Logfile);
+		samples.readSamples(Parameters.getParameter<std::string>("samples"), Logfile);
 
 	//read Data
 	readDataFromVCF(Parameters, Logfile);
@@ -1028,7 +1028,7 @@ void TPopulationLikelihoods::readDataFromVCF(TParameters & Parameters, TLog* log
 		reader.doSaveTrueAlleleFrequencies();
 
 	// open vcf file
-	vcfFilename = Parameters.getParameterString("vcf");
+	vcfFilename = Parameters.getParameter<std::string>("vcf");
 	logfile->startIndent("Reading genotype likelihoods from VCF file '" + vcfFilename + "':");
 	reader.openVCF(vcfFilename);
 

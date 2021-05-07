@@ -23,9 +23,9 @@ TVcfConverter::~TVcfConverter(){
 
 void TVcfConverter::readOutputName(TParameters & Params){
     //create out file
-    std::string vcfFilename = Params.getParameterString("vcf");
+    std::string vcfFilename = Params.getParameter<std::string>("vcf");
     std::string tmp = extractBeforeLast(vcfFilename, ".vcf");
-    _outname = Params.getParameterStringWithDefault("out", tmp);
+    _outname = Params.getParameterWithDefault<std::string>("out", tmp);
 
     logfile->list("Writing output files with prefix '" + _outname + "'.");
 };
@@ -33,10 +33,10 @@ void TVcfConverter::readOutputName(TParameters & Params){
 void TVcfConverter::readVcfAndWriteFile(TParameters & Params){
     //read samples
     if(Params.parameterExists("samples"))
-        samples.readSamples(Params.getParameterString("samples"), logfile);
+        samples.readSamples(Params.getParameter<std::string>("samples"), logfile);
 
     //open VCF reader
-    std::string vcfFilename = Params.getParameterString("vcf");
+    std::string vcfFilename = Params.getParameter<std::string>("vcf");
     reader = new PopulationTools::TPopulationLikelihoodReaderLocus(Params, logfile, false);
     reader->openVCF(vcfFilename);
     logfile->endIndent();
@@ -484,10 +484,10 @@ void TVcfToGenotypeTruthSetFile::resetDistance() {
 
 void TVcfToGenotypeTruthSetFile::vcfToGenotypeTruthSetFile(TParameters & Params){
     // read params
-    minDistanceToPreviousLocus = Params.getParameterIntWithDefault("minDistance", 100);
+    minDistanceToPreviousLocus = Params.getParameterWithDefault<int>("minDistance", 100);
     logfile->list("Will keep loci that have a minimal distance of " + toString(minDistanceToPreviousLocus) + " to previous locus (parameter 'minDistance').");
     resetDistance();
-    numSamplesPerLocus = Params.getParameterIntWithDefault("numSamples", 5);
+    numSamplesPerLocus = Params.getParameterWithDefault<int>("numSamples", 5);
     logfile->list("Will keep up to " + toString(numSamplesPerLocus) + " individuals per locus (parameter 'numSamples').");
 
     // read Vcf and write output

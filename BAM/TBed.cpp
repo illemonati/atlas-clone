@@ -394,7 +394,7 @@ void TBed::readFile(const std::string filename){
 		++lineNum;
 		std::string line;
 		std::getline(*myStream, line);
-		fillVectorFromStringWhiteSpaceSkipEmpty(line, vec);
+		fillContainerFromStringWhiteSpaceSkipEmpty(line, vec);
 		//skip empty lines
 		if(vec.size() > 0){
 			if(vec.size() < 3) throw "Less than three columns in bed file '" + filename + "' on line " + toString(lineNum) + "!";

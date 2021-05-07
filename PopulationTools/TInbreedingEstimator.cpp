@@ -479,15 +479,16 @@ double TPi::getProposalWidth(){
 // TInbreedingEstimator
 //---------------------------
 
-TInbreedingEstimator::TInbreedingEstimator(TParameters & Parameters, TLog* Logfile){
+TInbreedingEstimator::TInbreedingEstimator(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator){
 	logfile = Logfile;
+	randomGenerator = RandomGenerator;
 
 	//algorithm params
-	numIterations = Parameters.getParameterIntWithDefault("numIter", 1000);
+	numIterations = Parameters.getParameterWithDefault<int>("numIter", 1000);
 	logfile->list("Stopping MCMC after " + toString(numIterations) + " interations. (parameter 'numIter')");
 
-	numBurnins = Parameters.getParameterIntWithDefault("numBurnins", 1);
-	burninLength = Parameters.getParameterIntWithDefault("burninLength", 1000);
+	numBurnins = Parameters.getParameterWithDefault<int>("numBurnins", 1);
+	burninLength = Parameters.getParameterWithDefault<int>("burninLength", 1000);
 	logfile->list("Will run " + toString(numBurnins) + " burnin(s) of length " + toString(burninLength) + " and adjust the proposal kernel widths after each before starting the full MCMC. (parameters 'numBurnins' and 'burninLength')");
 
 	if(Parameters.parameterExists("noAdjustmentF")){
@@ -515,7 +516,7 @@ TInbreedingEstimator::TInbreedingEstimator(TParameters & Parameters, TLog* Logfi
 		adjustPiAfterBurnin = true;
 
 
-	thinning = Parameters.getParameterIntWithDefault("thinning", 1);
+	thinning = Parameters.getParameterWithDefault<int>("thinning", 1);
 	if(thinning < 1 || thinning > numIterations)
 		throw "Thinning must be > 1 and < number iterations!";
 	if(thinning > 1){
@@ -536,19 +537,10 @@ TInbreedingEstimator::TInbreedingEstimator(TParameters & Parameters, TLog* Logfi
 	likelihoods.readData(Parameters, logfile);
 	numLoci = likelihoods.getNumLoci();
 
-	numLociToTrace = Parameters.getParameterLongWithDefault("numLociToTrace", 1000);
+	numLociToTrace = Parameters.getParameterWithDefault("numLociToTrace", 1000L);
 	if(numLociToTrace > numLoci)
 		numLociToTrace = numLoci;
 	logfile->list("Will write trace for first " + toString(numLociToTrace) + " loci to file. (parameter 'numLociToTrace')");
-
-	//initialize random generator
-	logfile->listFlush("Initializing random generator ...");
-	if(Parameters.parameterExists("fixedSeed")){
-		randomGenerator = new TRandomGenerator(Parameters.getParameterLong("fixedSeed"), true);
-	} else if(Parameters.parameterExists("addToSeed")){
-		randomGenerator = new TRandomGenerator(Parameters.getParameterLong("addToSeed"), false);
-	} else randomGenerator = new TRandomGenerator();
-	logfile->write(" done with seed " + toString(randomGenerator->usedSeed) + "!");
 
 	//initialize parameters
 	for(unsigned int i=0; i<numLoci; ++i){
@@ -563,13 +555,13 @@ TInbreedingEstimator::TInbreedingEstimator(TParameters & Parameters, TLog* Logfi
 	//output name
 	std::string vcfFileName = likelihoods.getVCFName();
 	vcfFileName = extractBeforeLast(vcfFileName, ".vcf");
-	outname = Parameters.getParameterStringWithDefault("out", vcfFileName);
+	outname = Parameters.getParameterWithDefault<std::string>("out", vcfFileName);
 };
 
 void TInbreedingEstimator::initializeGamma(TParameters & parameters){
 	// estimate alpha_f and beta_f by method of moments
 	if(parameters.parameterExists("initialGamma")){
-		double initialValue = parameters.getParameterDouble("initialGamma");
+		double initialValue = parameters.getParameter<double>("initialGamma");
 		Gamma.update(log(initialValue), initialValue);
 	} else {
 		double mean = 0.0;
@@ -610,13 +602,13 @@ void TInbreedingEstimator::initializeGamma(TParameters & parameters){
 };
 
 void TInbreedingEstimator::initF(TParameters & parameters){
-	sdF = parameters.getParameterDoubleWithDefault("sdF", 0.02);
+	sdF = parameters.getParameterWithDefault("sdF", 0.02);
 	logfile->list("Standard deviation of proposal kernel for F is set to " + toString(sdF));
 
-	float probMovingToModelNoF = parameters.getParameterDoubleWithDefault("probMovingToModelNoF", 0.1);
+	float probMovingToModelNoF = parameters.getParameterWithDefault("probMovingToModelNoF", 0.1);
 	logfile->list("Will propose move to model without F with probability " + toString(probMovingToModelNoF) + ". (parameter 'probMovingToModelNoF')");
 
-	double lambdaF = parameters.getParameterDoubleWithDefault("lambdaF", 100.0);
+	double lambdaF = parameters.getParameterWithDefault("lambdaF", 100.0);
 	logfile->list("Lambda of exponential distribution used for the proposal of new F after move to model with F is set to " + toString(lambdaF) + ". (parameter 'lambdaF')");
 
 	bool startInModelWithF = true;
@@ -634,7 +626,7 @@ void TInbreedingEstimator::initF(TParameters & parameters){
 	}
 
 	if(parameters.parameterExists("initialF")){
-		double initialF = parameters.getParameterDouble("initialF");
+		double initialF = parameters.getParameter<double>("initialF");
 		if(initialF == 0.0)
 			F.updateAndAccept(initialF, false);
 		else if(initialF > 0.0)
@@ -653,7 +645,7 @@ void TInbreedingEstimator::initF(TParameters & parameters){
 };
 
 void TInbreedingEstimator::initAlleleFreq(TParameters & parameters){
-	double widthProposalKernelP = parameters.getParameterDoubleWithDefault("widthProposalKernelPFactor", 2.0);
+	double widthProposalKernelP = parameters.getParameterWithDefault("widthProposalKernelPFactor", 2.0);
 	logfile->list("Will use a proposal kernel of width " + toString(widthProposalKernelP) + " for updates of p within ModelP. (parameter 'widthProposalKernelPFactor')");
 
 	std::vector<double> tmp2;
@@ -664,21 +656,21 @@ void TInbreedingEstimator::initAlleleFreq(TParameters & parameters){
 		logfile->list("Initializing allele frequencies to true values read from trueAlleleFreq file");
 		logfile->warning("This task is not implemented for multiple populations! Considering all samples to be from one population.");
 	} else if(parameters.parameterExists("initialP")){
-		p.setToValue(parameters.getParameterDouble("initialP"));
-		logfile->list("Initializing all allele frequencies to " + toString(parameters.getParameterDouble("initialP")) + ". (parameter 'initialP')");
+		p.setToValue(parameters.getParameter<double>("initialP"));
+		logfile->list("Initializing all allele frequencies to " + toString(parameters.getParameter<double>("initialP")) + ". (parameter 'initialP')");
 	} else {
 		tmp2 = likelihoods.donateAlleleFrequencies();
 		logfile->list("Initializing allele frequencies to values estimated from sample genotype likelihoods");
 		logfile->warning("This task is not implemented for multiple populations! Considering all samples to be from one population.");
 		trueAlleleFreqProvided = false;
 	}
-	double probMovingToModel0 = parameters.getParameterDoubleWithDefault("probMovingToModelP0", 0.1);
+	double probMovingToModel0 = parameters.getParameterWithDefault("probMovingToModelP0", 0.1);
 	logfile->list("Will propose move to model with p = 0 with probability " + toString(probMovingToModel0) + ". (parameter 'probMovingToModelP0')");
 
 	double probMovingToModelP = 1.0;
 	logfile->list("Will propose move to model with p > 0 with probability " + toString(probMovingToModelP) + ".");
 
-	double lambdaP = parameters.getParameterDoubleWithDefault("lambdaP", 100.0);
+	double lambdaP = parameters.getParameterWithDefault("lambdaP", 100.0);
 	logfile->list("Lambda of exponential distribution used for the proposal of new p after move to modelP is set to " + toString(lambdaP) + ". (parameter 'lambdaP')");
 
 	p = TAlleleFreq(tmp2, widthProposalKernelP, likelihoods.getNumIndividuals(), probMovingToModel0, probMovingToModelP, lambdaP, trueAlleleFreqProvided);
@@ -703,16 +695,16 @@ void TInbreedingEstimator::initParams(TRandomGenerator* randomGenerator, TParame
 	initAlleleFreq(parameters);
 
 	//gamma
-	double widthProposalKernelGamma = parameters.getParameterDoubleWithDefault("widthProposalKernelGamma", 0.1);
+	double widthProposalKernelGamma = parameters.getParameterWithDefault("widthProposalKernelGamma", 0.1);
 	logfile->list("Will use a proposal kernel of width " + toString(widthProposalKernelGamma) + " for updates of log(gamma). (parameter 'widthProposalKernelGamma')");
 	Gamma = TGamma(widthProposalKernelGamma);
 	initializeGamma(parameters);
 
 	//pi
-	double widthProposalKernelPi = parameters.getParameterDoubleWithDefault("widthProposalKernelPi", 100.0 / (double) p.numLoci);
+	double widthProposalKernelPi = parameters.getParameterWithDefault("widthProposalKernelPi", 100.0 / (double) p.numLoci);
 	double initialValue;
 	if(parameters.parameterExists("initialPi")){
-		initialValue = parameters.getParameterDouble("initialPi");
+		initialValue = parameters.getParameter<double>("initialPi");
 	} else {
 		initialValue = (double) p.getNumLociInModelP() / (double) p.numLoci;
 	}
@@ -1234,10 +1226,10 @@ void TInbreedingEstimator::runBurnins(std::ofstream & out, TParameters & params)
 			int prog = floor((float) i / (float) burninLength * 100);
 			if(prog > oldProg){
 				oldProg = prog;
-				logfile->listOverFlush(reportString + toString(prog) + "%) ...");
+				logfile->overListFlush(reportString, prog, "%) ...");
 			}
 		}
-		logfile->overList("Running a burnin of " + toString(burninLength) + " iterations ... done!  ");
+		logfile->overList("Running a burnin of ", burninLength, " iterations ... done!  ");
 
 		//print acceptance rates
 		printAcceptanceRates(burninLength);
@@ -1285,7 +1277,7 @@ void TInbreedingEstimator::runMCMC(std::ofstream & out, TParameters & params){
 		int prog = (double) i / (double) numIterations * 100.0;
 		if(prog > oldProg){
 			oldProg = prog;
-			logfile->listOverFlush(progressString + " (" + toString(oldProg) + "%)");
+			logfile->overListFlush(progressString, " (", oldProg, "%)");
 		}
 	}
 	logfile->overList(progressString + " done!   ");

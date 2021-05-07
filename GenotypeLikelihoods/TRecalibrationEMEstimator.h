@@ -8,6 +8,7 @@
 #ifndef TRECALIBRATIONEMESTIMATOR_H_
 #define TRECALIBRATIONEMESTIMATOR_H_
 
+#include "RecalEstimatorTools.h"
 #include "auxiliaryTools.h"
 #include "TPostMortemDamage.h"
 #include "TSequencingErrorModels.h"
@@ -17,148 +18,7 @@
 
 namespace GenotypeLikelihoods{
 
-namespace RecalEstimatorTools {
-
-//--------------------------------------------------------------------
-// TRecalibrationEMDataTable
-// Object to store for which qualities and positions data is available.
-//--------------------------------------------------------------------
-class TDataTable{
-private:
-	uint64_t counts;
-	bool initialized;
-
-public:
-	int maxQual, maxFragmentLength, maxMQ;
-	uint16_t maxPos;
-	unsigned int* qualities;
-	unsigned int* fragmentLengths;
-	unsigned int* MQ;
-
-	TDataTable();
-	TDataTable(const int MaxQual, const int MaxFragmentLength, const int MQ);
-	~TDataTable();
-
-	void initialize(const int MaxQual, const int MaxFragmentLength, const int MQ);
-	void clear();
-	void add(const BAM::TBase & base);
-	void add(const TSite & site);
-	size_t size() const;
-	void fillVectorWithUsedQualities(std::vector<uint16_t> & Q) const;
-	void fillVectorWithUsedFragmentLengths(std::vector<uint16_t> & lengths) const;
-	void fillVectorWithUsedMQ(std::vector<uint16_t> & MQ) const;
-};
-
-class TDataTables{
-private:
-	uint16_t _numReadGroups;
-	uint16_t _maxQual;
-	TDataTable** _tables; //tables[readGroup][first/second]
-	uint64_t _totalCounts;
-	bool _initialized;
-
-public:
-	TDataTables();
-	TDataTables(const int NumReadGroups, const int MaxQual, const int MaxFragmentLength, const int MQ);
-	~TDataTables();
-
-	void clear();
-	void init(const int NumReadGroups, const int MaxQual, const int MaxFragmentLength, const int MaxMQ);
-	void reset();
-	void add(const BAM::TBase & base);
-	void add(const TSite & site);
-	void fillVectorWithUsedQualities(const int readGroupId, const bool isSecondMate, std::vector<uint16_t> & Q) const;
-
-	uint64_t size() const;
-	const TDataTable& table(const int readGroupId, const bool isSecondMate) const;
-	const TDataTable& table(const int readGroupId, const int isSecondMate) const;
-};
-
-//------------------------------------------------
-// Classes to keep track of models to estimate
-//------------------------------------------------
-class TModelStatusEntry{
-private:
-	bool _first;
-	bool _second;
-
-public:
-	TModelStatusEntry(){
-		_first = false;
-		_second = false;
-	};
-
-	uint16_t size(){
-		return _first + _second;
-	};
-
-	void set(const bool & IsSecondMate){
-		if(!IsSecondMate){
-			_first = true;
-		} else {
-			_second = true;
-		}
-	};
-
-	std::string getString() const{
-		if(_first && _second){
-			return "(first and second mates)";
-		} else if(_first){
-			return "(first mate)";
-		} else if(_second){
-			return "(second mate)";
-		} else {
-			return "none";
-		}
-	}
-};
-
-enum ModelStatusTypes : uint8_t {copied=0, noData, littleData, dataButNoRecal};
-
-class TModelStatus{
-private:
-	std::array<TModelStatusEntry, 4> _status;
-
-public:
-	TModelStatusEntry& operator[](const ModelStatusTypes & Type){
-		return _status[Type];
-	};
-};
-
-class TModelStati{
-private:
-	std::map<uint16_t, TModelStatus> modelStatus;
-
-public:
-
-	void add(const uint16_t & ReadGroupId){
-		modelStatus.emplace(ReadGroupId);
-	};
-
-	TModelStatus& operator[](const uint16_t & ReadGroupId){
-		return modelStatus[ReadGroupId];
-	};
-
-	uint16_t num(const ModelStatusTypes & Type){
-		uint16_t num = 0;
-		for(auto& m : modelStatus){
-			m.second[Type].size();
-		}
-		return num;
-	};
-
-	void report(const ModelStatusTypes & Type, const std::string & Title, const BAM::TReadGroups & ReadGroups, TLog* Logfile){
-		if(num(Type) > 0){
-			Logfile->startIndent(Title);
-			for(auto& m : modelStatus){
-				if(m.second[Type].size() > 0){
-					Logfile->list(ReadGroups.getName(m.first), " ", m.second[Type].getString());
-				}
-			}
-			Logfile->endIndent();
-		}
-	}
-};
+namespace RecalEstimator{
 
 //--------------------------------------------------------------------------------------
 // TModelIndex
@@ -166,7 +26,7 @@ public:
 //--------------------------------------------------------------------------------------
 class TModelIndex{
 private:
-	std::vector< std::array< std::shared_ptr<TSequencingErrorModelRecal> , 2> > _index;
+	std::vector< std::array< std::shared_ptr<TSequencingErrorModelRecal>, 2> > _index;
 
 public:
 	TModelIndex(const BAM::TReadGroups& ReadGroups){
@@ -175,19 +35,20 @@ public:
 	~TModelIndex() = default;
 
 	void set(const uint16_t & ReadGroupId, const bool & IsSecondMate, std::shared_ptr<TSequencingErrorModelRecal> & Model, const BAM::TReadGroupMap & ReadGroupMap){
-		 _index[ReadGroupId][IsSecondMate] = Model;
+		//also set for all models pooled
+		for(auto& r : ReadGroupMap.readGroupsPooledWith(ReadGroupId)){
+			_index[r][IsSecondMate] = Model;
+		}
 	};
 
 	bool inUse(const BAM::TBase & base) const{
-		return _index[base.readGroupID][base.isSecondMate()];
+		return _index[base.readGroupID][(int) base.isSecondMate()].get();
 	};
 
-	std::shared_ptr<TSequencingErrorModelRecal>& operator()(const BAM::TBase & base) const{
-		return _index[base.readGroupID][base.isSecondMate()];
+	TSequencingErrorModelRecal& operator()(const BAM::TBase & base) const{
+		return *_index[base.readGroupID][base.isSecondMate()];
 	};
 };
-
-}; //end namespace RecalEstimatorTools
 
 //--------------------------------------------------------------------------
 // TSequencingErrorModelVectorForEstimation
@@ -198,17 +59,19 @@ class TSequencingErrorModelVectorForEstimation{
 private:
 	//vector of pointers to models that require estimation
 	std::vector< std::shared_ptr<TSequencingErrorModelRecal> > _models;
-	RecalEstimatorTools::TModelIndex _modelIndex;
+	TModelIndex _modelIndex;
 
 public:
-	TSequencingErrorModelVectorForEstimation::TSequencingErrorModelVectorForEstimation(TSequencingErrorModels & SequencingErrorModels,
-																					   const RecalEstimatorTools::TDataTables & DataTables,
-																					   const BAM::TReadGroups & ReadGroups,
-																					   const BAM::TReadGroupMap & ReadGroupMap,
-																					   const uint32_t & MinRequiredObservations,
-																					   TLog* Logfile);
+	TSequencingErrorModelVectorForEstimation(TSequencingErrorModels & SequencingErrorModels,
+										     const RecalEstimatorTools::TRecalDataTables & DataTables,
+											 const BAM::TReadGroups & ReadGroups,
+											 const BAM::TReadGroupMap & ReadGroupMap,
+											 const uint32_t & MinRequiredObservations,
+											 TLog* Logfile);
 	~TSequencingErrorModelVectorForEstimation() = default;
 
+	size_t size() const { return _models.size(); };
+	void fillBaseLikelihoods(const BAM::TBase & base,  TBaseData & baseLikelihoods) const;
 
 	//functions to estimate rho
 	void prepareRhoEstimationFromEMWeights();
@@ -217,12 +80,9 @@ public:
 
 	//functions to estimate beta
 	void setNewtonRaphsonParamsToZero();
-
 	void addToFandJacobian(const BAM::TBase & base, const TBaseData & EM_weights_bbar_given_d);
 	void addToQ(const BAM::TBase & base, const TBaseData & EM_weights_bbar_given_d);
-
 	void setQToZero();
-
 	double curQ();
 	bool solveJxF();
 	void proposeNewParameters(double lambda);
@@ -230,16 +90,24 @@ public:
 	unsigned int acceptProposedParametersBasedOnQ();
 	void adjustParametersPostEstimation();
 	double getSteepestGradient();
+
+	void print();
 };
 
 //--------------------------------------------------------------------
 // TRecalibrationEMEstimator
 //--------------------------------------------------------------------
-class TRecalibrationEMEstimator:public TGenotypeLikelihoodCalculator{
+class TRecalibrationEMEstimator{
 private:
+	TLog* _logfile;
 	std::vector<TSite> _sites;
 	std::unique_ptr<TGenotypeDistribution> _genoDist;
-	RecalEstimatorTools::TDataTables _dataTables;
+	const BAM::TReadGroupMap* _readGroupMap;
+	const BAM::TReadGroups* _readGroups;
+
+	TGenotypeLikelihoodCalculator_simple _genotypeLikelihoodCalculator;
+	std::unique_ptr<TSequencingErrorModelVectorForEstimation> _modelsToEstimate;
+	RecalEstimatorTools::TRecalDataTables _dataTables;
 
 	//variables for estimation
 	bool equalBaseFrequencies;
@@ -248,36 +116,31 @@ private:
 	int _NewtonRaphsonNumIterations;
 	double _NewtonRaphsonMaxF;
 	unsigned int _minRequiredObservations;
+	bool _writeTmpTables;
 	std::string _recalFile; //file name in case a file with model is provided
-	TSequencingErrorModelDefinition _modelDefitionForEstimation;
 
-	void _initializeModels();
-	void _runEM(std::string outputName, bool & writeTmpTables);
+	size_t _numSitesDepthTwoOrMore();
+	void _initializeModels(TSequencingErrorModels & SequencingErrorModels);
+	void _runEM(std::string outputName, const TPostMortemDamage & PmdModels);
 	void _fillRelevantBaseFrequencies(TBaseData & baseFreq, const Genotype genotype);
 
 	//functions to estimate theta_epsilon (sequencing error rates)
-	void _calculate_EMWeights_epsilon(std::vector<TBaseData> & EMWeights);
+	void _calculate_EMWeights_epsilon(std::vector<TBaseData> & EMWeights, const TPostMortemDamage & PmdModels);
 	double _calculate_Q_beta(const std::vector<TBaseData> & EM_weights_bbar_given_d);
 	void _calculate_J_F_beta(const std::vector<TBaseData> & EM_weights_bbar_given_d);
-	void _updateEM_theta_epsilon();
+	void _updateEM_theta_epsilon(const TPostMortemDamage & PmdModels);
 
 	//function to calculate LL (currently uses haploid model)
-	double _calculateLL_fullModel();
+	double _calculateLL_fullModel(const TPostMortemDamage & PmdModels);
 
 public:
-	TRecalibrationEMEstimator(TParameters & args, BAM::TReadGroups* ReadGroups, TLog* Logfile, BAM::TReadGroupMap* ReadGroupMap);
+	TRecalibrationEMEstimator(TParameters & args, TLog* Logfile, const BAM::TReadGroups* ReadGroups, const BAM::TReadGroupMap* ReadGroupMap);
 
 	//functions to add data
 	void addSite(const TSite & site);
-	size_t numSites();
-	size_t numSitesDepthTwoOrMore();
-	void compileDataTable(TDataTables & dataTable);
-	size_t cumulativeDepth();
 
 	//function to estimate
-	void initializeFromFile(const std::string string);
-	void performEstimation(std::string outputName, bool & writeTmpTables);
-	void performEstimationKnownGenotypes(std::string outputName, bool & writeTmpTables);
+	void performEstimation(std::string outputName, TSequencingErrorModels & SequencingErrorModels, const TPostMortemDamage & PmdModels);
 
 	void writeCurrentEstimates(std::string filename);
 	double calcLL();
@@ -285,6 +148,8 @@ public:
 	void calcQSurface(std::string filename, int numMarginalGridPoints);
 };
 
-}; //end namespace
+}; //end namespace RecalEstimator
+
+}; //end namespace GenotypeLikelihoods
 
 #endif /* TRECALIBRATIONEMESTIMATOR_H_ */

@@ -29,19 +29,19 @@ TSimulator::TSimulator(TLog* Logfile, TRandomGenerator* RandomGenerator){
 
 void TSimulator::_initializeCommonSettings(TParameters & params){
 	//depth
-	float depth = params.getParameterDoubleWithDefault("depth", 10.0);
+	float depth = params.getParameterWithDefault("depth", 10.0);
 	_logfile->list("Will simulate to an average depth of " + toString(depth) + ".");
 	setDepth(depth);
 
 	//base frequencies
 	std::vector<float> freq;
-	std::string tmp = params.getParameterStringWithDefault("baseFreq", "0.25,0.25,0.25,0.25");
-	fillVectorFromString(tmp, freq, ',');
+	std::string tmp = params.getParameterWithDefault<std::string>("baseFreq", "0.25,0.25,0.25,0.25");
+	fillContainerFromString(tmp, freq, ',');
 	if(freq.size() != 4) throw "baseFreq vector must have size = 4!";
 	setBaseFreq(freq);
 
 	//reference divergence
-	_referenceDivergence = params.getParameterDoubleWithDefault("refDiv", 0.01);
+	_referenceDivergence = params.getParameterWithDefault("refDiv", 0.01);
 	_logfile->list("Will simulate data with reference divergence = " + toString(_referenceDivergence) + ".");
 
 	//fill cumul table for reference divergence
@@ -61,7 +61,7 @@ void TSimulator::_initializeCommonSettings(TParameters & params){
 	_writeVariantInvariantBedFiles = params.parameterExists("writeVariantBED");
 
 	//output name
-	_outname = params.getParameterStringWithDefault("out", "ATLAS_simulations");
+	_outname = params.getParameterWithDefault<std::string>("out", "ATLAS_simulations");
 	_logfile->list("Will write output files with tag '" + _outname + "'.");
 
 	//open FASTA file for reference sequences
@@ -122,7 +122,7 @@ void TSimulator::_initializeReadGroupsFromReadLengthDistribution(TParameters & p
 																 const std::string & DefaultValue,
 																 const std::string & Name){
 	_logfile->startIndent("Parsing read length distribution (parameter '" + ParameterName + "'):");
-	std::string s = params.getParameterStringWithDefault(ParameterName, DefaultValue);
+	std::string s = params.getParameterWithDefault<std::string>(ParameterName, DefaultValue);
 
 	_readSimulators.clear();
 
@@ -159,7 +159,7 @@ void TSimulator::_initializeDistribution(TParameters & params,
 										 const std::string & Name,
 										 void (TSimulatorSingleEndRead::*function)(std::string string)){
 	_logfile->startIndent("Parsing " + Name + " (parameter " + ParameterName + "):");
-	std::string s = params.getParameterStringWithDefault(ParameterName, DefaultValue);
+	std::string s = params.getParameterWithDefault<std::string>(ParameterName, DefaultValue);
 
 	//We allow for two options:
 	//  1) initialized from the command line (one for all read groups)
@@ -195,7 +195,7 @@ void TSimulator::_initializePMD(TParameters & params,
 	_logfile->startIndent("Parsing " + Name + " (parameter " + ParameterName + "):");
 
 	if(params.parameterExists(ParameterName)){
-		std::string pmdString = params.getParameterString(ParameterName);
+		std::string pmdString = params.getParameter<std::string>(ParameterName);
 		_PMD.initialize(pmdString, _readGroups, _logfile);
 
 		//add PMD to simulators
@@ -214,7 +214,7 @@ void TSimulator::_initializeQualityTransformations(TParameters & params,
 	_logfile->startIndent("Parsing " + Name + " (parameter " + ParameterName + "):");
 
 	if(params.parameterExists(ParameterName)){
-		std::string recalString = params.getParameterString("recal");
+		std::string recalString = params.getParameter<std::string>("recal");
 		_recal.createModels(recalString, &_readGroups, &_readGroupMap, _logfile);
 
 		//add recal to simulators
@@ -230,7 +230,7 @@ void TSimulator::_initializeQualityTransformations(TParameters & params,
 
 void TSimulator::_initializeContamination(TParameters & params, bool & perReadGroup, std::map<std::string, double> & contaminationMap){
 	_logfile->startIndent("Reading contamination:");
-	std::string s = params.getParameterStringWithDefault("contamination", "0.0");
+	std::string s = params.getParameterWithDefault<std::string>("contamination", "0.0");
 
 	//check if it is a single number or a file
 	if(stringIsProbablyANumber(s)){
@@ -259,7 +259,7 @@ void TSimulator::_initializeContamination(TParameters & params, bool & perReadGr
 			line = extractBefore(line, "//");
 			trimString(line);
 			if(!line.empty()){
-				fillVectorFromStringWhiteSpace(line, vec, true);
+				fillContainerFromStringWhiteSpace(line, vec, true);
 				if(vec.size() != 2)
 					throw "Found " + toString(vec.size()) + " instead of 2 columns in '" + s + "' on line " + toString(lineNum) + "!\n Expect 1) read group name and 2) contamination rate.";
 
@@ -286,7 +286,7 @@ void TSimulator::_addToReadGroupVector(std::vector<std::string> & vec, const std
 void TSimulator::_addReadGroupsIfFile(const std::string & ParameterName, TParameters & Parameters, BAM::TReadGroups & ReadGroups){
 	//check if parameter is given
 	if(Parameters.parameterExists(ParameterName)){
-		std::string s = Parameters.getParameterString(ParameterName);
+		std::string s = Parameters.getParameter<std::string>(ParameterName);
 
 		//check if string s provides a definition (contains a ':') or is a file (does not contain a ':')
 		if(!stringContains(s, ":")){
@@ -316,7 +316,7 @@ void TSimulator::_initializeReadSimulator(TParameters & params){
 
 	//any read groups specified?
 	if(_readGroups.empty()){
-		int numRG = params.getParameterIntWithDefault("numReadGroups", 1);
+		int numRG = params.getParameterWithDefault<int>("numReadGroups", 1);
 		for(int i=0; i < numRG; ++i){
 			_readGroups.add("SimReadGroup" + toString(i+1));
 		}
@@ -377,7 +377,7 @@ void TSimulator::_initializeReadSimulator(TParameters & params){
 
 	// F) other things
 	//----------------
-	int maxPrintQual = params.getParameterIntWithDefault("maxPrintQual", 93);
+	int maxPrintQual = params.getParameterWithDefault<int>("maxPrintQual", 93);
 	_logfile->list("Will print quality scores up to " + toString(maxPrintQual) + ".");
 	_logfile->endIndent();
 
@@ -460,7 +460,7 @@ void TSimulator::_initializeReadSimulator(TParameters & params){
 	//Option 2: everything provided on command line
 	else {
 		//If everything was provided on the command line, allow for replicate read groups
-		int numRG = params.getParameterIntWithDefault("numReadGroups", 1);
+		int numRG = params.getParameterWithDefault<int>("numReadGroups", 1);
 		std::string name;
 		_logfile->startIndent("Initializing " + toString(numRG) + " identical read group(s):");
 
@@ -564,7 +564,7 @@ void TSimulator::initializeChromosomes(TParameters & params, TLog* logfile){
 	if(chrLength.size() < 1)
 		throw "Issue understanding length of chromosomes!";
 	if(chrLength.size() == 1){
-		int numChr = params.getParameterIntWithDefault("numChr", 1);
+		int numChr = params.getParameterWithDefault<int>("numChr", 1);
 		std::string text = "Will simulate " + toString(numChr) ;
 		if(ploidy[0] == 1) text += " haploid";
 		else text += " diploid";
@@ -1141,7 +1141,7 @@ TSimulatorSFS::TSimulatorSFS(TLog* Logfile, TParameters & params, TRandomGenerat
 	_initializeCommonSettings(params);
 
 	//sample size
-	_sampleSize = params.getParameterIntWithDefault("sampleSize", 10);
+	_sampleSize = params.getParameterWithDefault<int>("sampleSize", 10);
 
 	//read SFS
 	_logfile->startIndent("Initializing SFS:");
@@ -1336,17 +1336,17 @@ TSimulatorHardyWeinberg::TSimulatorHardyWeinberg(TLog* Logfile, TParameters & pa
 	_initializeCommonSettings(params);
 
 	//sample size
-	_sampleSize = params.getParameterIntWithDefault("sampleSize", 10);
+	_sampleSize = params.getParameterWithDefault<int>("sampleSize", 10);
 
 	//parameters of beta distribution
-	fracPoly = params.getParameterDoubleWithDefault("fracPoly", 0.1);
+	fracPoly = params.getParameterWithDefault("fracPoly", 0.1);
 	_logfile->list("Will simulate " + toString(fracPoly) + " of all sites as polymorphic. (parameter fracPoly)");
-	alpha = params.getParameterDoubleWithDefault("alpha", 0.5);
+	alpha = params.getParameterWithDefault("alpha", 0.5);
 	if(alpha <= 0.0) throw "Alpha must be > 0!";
-	beta = params.getParameterDoubleWithDefault("beta", 0.5);
+	beta = params.getParameterWithDefault("beta", 0.5);
 	if(beta <= 0.0) throw "Beta must be > 0!";
 	_logfile->list("Polymoprhic sites will have derived allele frequencies f~Beta(" + toString(alpha) + ", " + toString(beta) + "). (parameters alpha, beta)");
-	F = params.getParameterDoubleWithDefault("F", 0.0);
+	F = params.getParameterWithDefault("F", 0.0);
 	if(F == 0.0){
 		_logfile->list("Will assume no inbreeding. (parameter F=0)");
 	} else {

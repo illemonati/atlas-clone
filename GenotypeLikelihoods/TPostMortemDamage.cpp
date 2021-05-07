@@ -17,6 +17,22 @@
 
 namespace GenotypeLikelihoods{
 
+
+//Existing Functions
+const std::string PMDFunctionName_none = "none";
+const std::string PMDFunctionName_empiric = "Empiric";
+const std::string PMDFunctionName_exponential = "Exponential";
+//const std::string PMDFunctionName_Skoglund = "Skoglund";
+
+//Existing types
+const std::string PMDTypeName_none = "none";
+const std::string PMDTypeName_singleStrand = "singleStrand";
+const std::string PMDTypeName_doubleStrand = "doubleStrand";
+
+//Estimation Parameters
+const std::string PMDEstimationExponential_epsilon = "PMDExponentialEpsilon";
+const std::string PMDEstimationExponential_numNR = "PMDExponentialNumNR";
+
 //---------------------------------------------------------------
 //TPMDFunction
 //---------------------------------------------------------------
@@ -24,7 +40,7 @@ void TPMDFunction::_parseParameters(const std::string & string){
 	//expect string of the form NAME[P1,P2,...]
 	//extract P1, P2, ... as a vector of doubles
 	std::string tmp = readAfter(string, '[');
-	fillVectorFromString(extractBefore(tmp, '['), _parameters, ',', true, true);
+	fillContainerFromString(extractBefore(tmp, '['), _parameters, ',', true, true, true);
 };
 
 //---------------------------------------------------------------
@@ -110,13 +126,13 @@ void TPMDFunctionExponential::_fillPMDProbabilities(){
 
 void TPMDFunctionExponential::parseEstimationParameters(TPMDEstimationParameters & EstimationParameters, TParameters & Params, TLog* Logfile){
 	if(!EstimationParameters.exists(PMDEstimationExponential_epsilon)){
-		double eps = Params.getParameterDoubleWithDefault(PMDEstimationExponential_epsilon, 0.001);
+		double eps = Params.getParameterWithDefault<double>(PMDEstimationExponential_epsilon, 0.001);
 		EstimationParameters.add(PMDEstimationExponential_epsilon, eps);
 		Logfile->list("Will consider the Newton-Raphson algorithm to have converged if the likelihood difference < " + toString(eps) + ". (parameter '" + PMDEstimationExponential_epsilon + "')");
 	}
 
 	if(!EstimationParameters.exists(PMDEstimationExponential_numNR)){
-		double numNRIterations = Params.getParameterIntWithDefault(PMDEstimationExponential_numNR, 100);
+		double numNRIterations = Params.getParameterWithDefault<int>(PMDEstimationExponential_numNR, 100);
 		EstimationParameters.add(PMDEstimationExponential_numNR, numNRIterations);
 		Logfile->list("Will run up to " + toString(numNRIterations) + " Newton-Raphson iterations. (parameter '" + PMDEstimationExponential_numNR + ")");
 	}
@@ -532,10 +548,20 @@ void TPostMortemDamage::writeToFile(const BAM::TReadGroups & ReadGroups, const s
 	}
 };
 
+void TPostMortemDamage::writeToFile(const BAM::TReadGroups & ReadGroups, const BAM::TReadGroupMap & ReadGroupMap, const std::string filename){
+	std::vector<std::string> header = {"ReadGroup", "Type", "Functions"};
+	TOutputFile out(filename, header);
+
+	//write for each read group
+	for(auto r = ReadGroups.cbegin(); r != ReadGroups.cend(); ++r){
+		out << r->name_ID << _pmdObjects[ ReadGroupMap.pooledIndex(r->id) ]->functionString() << std::endl;
+	}
+};
+
 void TPostMortemDamage::_createPMDType(const std::string & pmdString, std::shared_ptr<TPMDType> & ptr){
 	//split by ':'
 	std::vector<std::string> details;
-	fillVectorFromString(pmdString, details, ':', false, false);
+	fillContainerFromString(pmdString, details, ":");
 
 	//switch type
 	if(details[0] == PMDTypeName_none){
@@ -604,6 +630,10 @@ void TPostMortemDamage::_setHasDamage(){
 };
 
 void TPostMortemDamage::initialize(const std::string & pmdString, const BAM::TReadGroups & ReadGroups, TLog* Logfile, std::vector<uint16_t> & ReadGroupsWithoutPMD){
+	if(_hasPMD){
+		throw std::runtime_error("void TPostMortemDamage::initialize(const std::string & pmdString, const BAM::TReadGroups & ReadGroups, TLog* Logfile, std::vector<uint16_t> & ReadGroupsWithoutPMD): Models already initialized!");
+	}
+
 	//prepare objects
 	ReadGroupsWithoutPMD.clear();
 	_pmdObjects.resize(ReadGroups.size());
@@ -621,24 +651,7 @@ void TPostMortemDamage::initialize(const std::string & pmdString, const BAM::TRe
 	_setHasDamage();
 };
 
-void TPostMortemDamage::parseEstimationParameters(TPMDEstimationParameters & EstimationParameters, TParameters & Params, TLog* Logfile){
-	for(auto& p : _pmdObjects){
-		p->parseEstimationParameters(EstimationParameters, Params, Logfile);
-	}
-};
-
-void TPostMortemDamage::estimate(const TPMDTables & PMDTables, const BAM::TReadGroups & ReadGroups, TLog* Logfile, const TPMDEstimationParameters & EstimationParameters){
-	Logfile->startIndent("Estimating PMD functions:");
-	for(uint16_t r = 0; r < _pmdObjects.size(); ++r){
-		if(_pmdObjects[r]->hasDamage()){
-			Logfile->listFlush("Estimating PMD for read group '" + ReadGroups.getName(r) + "' ...");
-			_pmdObjects[r]->estimate(PMDTables, EstimationParameters);
-		}
-	};
-	Logfile->endIndent();
-};
-
-void TPostMortemDamage::calculateBaseLikelihoods(const BAM::TBase & base, const TBaseData & baseLikelihoodsNoPMD, TBaseData & baseLikelihoods) const{
+void TPostMortemDamage::fillBaseLikelihoods(const BAM::TBase & base, const TBaseData & baseLikelihoodsNoPMD, TBaseData & baseLikelihoods) const{
 	if(_hasPMD){
 		_pmdObjects[base.readGroupID]->fillBaseLikelihoods(base, baseLikelihoodsNoPMD, baseLikelihoods);
 	} else {

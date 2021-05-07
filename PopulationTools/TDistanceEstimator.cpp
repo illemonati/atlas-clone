@@ -196,9 +196,9 @@ TEMforDistanceEstimation::TEMforDistanceEstimation(TLog* Logfile, TParameters & 
 
 	//read EM parameters
 	logfile->startIndent("Parameters of EM algorithm:");
-	maxNumEMIterations = params.getParameterIntWithDefault("iterations", 100);
+	maxNumEMIterations = params.getParameterWithDefault<int>("iterations", 100);
 	logfile->list("Will run up to " + toString(maxNumEMIterations) + " iterations.");
-	epsilonForEM = params.getParameterDoubleWithDefault("maxEps", 0.000001);
+	epsilonForEM = params.getParameterWithDefault("maxEps", 0.000001);
 	logfile->list("Will run EM until deltaLL < " + toString(epsilonForEM) + ".");
 	logfile->endIndent();
 
@@ -208,7 +208,7 @@ TEMforDistanceEstimation::TEMforDistanceEstimation(TLog* Logfile, TParameters & 
 		logfile->list("Using user-provided distance weights.");
 		std::vector<double> vec;
 		std::vector<std::string> tmp;
-		params.fillParameterIntoVector("distWeights", tmp, ',');
+		params.fillParameterIntoContainer("distWeights", tmp, ',');
 		repeatIndexes(tmp, vec);
 		if(vec.size() != 9)
 			throw "Wrong number of distance weights! Required are nine values for 00/00, 00/01, 01/00, 00/11, 01/01, 01/02, 00/12, 01/22, 01/23";
@@ -216,7 +216,7 @@ TEMforDistanceEstimation::TEMforDistanceEstimation(TLog* Logfile, TParameters & 
 		distanceObject = new TDistanceUser(vec);
 
 	} else {
-		std::string distType = params.getParameterStringWithDefault("distType", "squaredDiff");
+		std::string distType = params.getParameterWithDefault<std::string>("distType", "squaredDiff");
 		logfile->list("Using distance type '" + distType + "'.");
 		if(distType == "probMismatch"){
 			distanceObject = new TDistanceProbMismatch();
@@ -602,13 +602,13 @@ TDistanceEstimator::TDistanceEstimator(TLog* Logfile, TParameters & params){
 	readersOpened = false;
 
 	//outputname
-	outputName = params.getParameterStringWithDefault("out", "ATLAS");
+	outputName = params.getParameterWithDefault<std::string>("out", "ATLAS");
 	logfile->list("Writing output files with prefix '" + outputName + "'. (parameter 'out')");
 }
 
 void TDistanceEstimator::printGLF(TParameters & params){
 	//test first to parse GLF files
-	std::string glf = params.getParameterString("glf");
+	std::string glf = params.getParameter<std::string>("glf");
 	TGlfReader reader(glf);
 
 	//print file
@@ -616,7 +616,7 @@ void TDistanceEstimator::printGLF(TParameters & params){
 }
 
 void TDistanceEstimator::openGLF(TParameters & params){
-	params.fillParameterIntoVector("glf", GLFNames, ',');
+	params.fillParameterIntoContainer("glf", GLFNames, ',');
 	numGLFs = GLFNames.size();
 	if(numGLFs < 2)
 		throw "At least two GLF files have to be provided to estimate distances!";
@@ -656,7 +656,7 @@ void TDistanceEstimator::estimateDistances(TParameters & params){
 	TEMforDistanceEstimation EM_object(logfile, params);
 
 	//in windows or whole genome?
-	long windowLen = params.getParameterLongWithDefault("window", -1);
+	long windowLen = params.getParameterWithDefault("window", -1L);
 	if(windowLen < 0)
 		estimateDistanceGenomeWide(EM_object);
 	else

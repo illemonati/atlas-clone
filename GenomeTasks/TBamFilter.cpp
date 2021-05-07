@@ -23,7 +23,7 @@ void TAlignmentMergerReadGroupSettings::initialize(TParameters & Params, TLog* l
 
 	//check if we only merge without truncation
 	if(Params.parameterExists("pairedReadGroups")){
-		std::string pairedRG = Params.getParameterString("pairedReadGroups");
+		std::string pairedRG = Params.getParameter<std::string>("pairedReadGroups");
 		if(pairedRG == "all"){
 			//mark all as paired
 			for(uint16_t rg=0; rg<readGroups.size(); ++rg){
@@ -32,7 +32,7 @@ void TAlignmentMergerReadGroupSettings::initialize(TParameters & Params, TLog* l
 		} else {
 			//will merge a subset and treat others as unchanged
 			std::vector<std::string> vec;
-			fillVectorFromString(pairedRG, vec, ',');
+			fillContainerFromString(pairedRG, vec, ',');
 			logfile->listFlush("Parsing read group names from parameter 'pairedReadGroups' ...");
 
 			//get IDs
@@ -57,7 +57,7 @@ void TAlignmentMergerReadGroupSettings::initialize(TParameters & Params, TLog* l
 		std::vector<std::string> vec;
 		std::set<uint16_t> readGroupsToIgnore;
 		if(Params.parameterExists("ignoreReadGroups")){
-			std::string ignoredReadGroupsFile = Params.getParameterString("ignoreReadGroups");
+			std::string ignoredReadGroupsFile = Params.getParameter<std::string>("ignoreReadGroups");
 			logfile->listFlush("Reading read groups to ignore from file '" + ignoredReadGroupsFile + "' ...");
 			TInputFile in(ignoredReadGroupsFile, false);
 			while(in.read(vec)){
@@ -69,7 +69,7 @@ void TAlignmentMergerReadGroupSettings::initialize(TParameters & Params, TLog* l
 		}
 
 		//read file with read group settings
-		std::string readGroupSettingsFile = Params.getParameterString("readGroupSettings");
+		std::string readGroupSettingsFile = Params.getParameter<std::string>("readGroupSettings");
 		logfile->listFlush("Reading single end read groups from file '" + readGroupSettingsFile + "' ...");
 		TInputFile in(readGroupSettingsFile, false);
 		if(in.numCols() != 3){
@@ -283,7 +283,7 @@ void TAlignmentStorage::clear(){
 //-----------------------------------------
 TBamFilter::TBamFilter(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_parsed(Params, Logfile, RandomGenerator){
 	//max distance between mates
-	_maxDistanceBetweenMates = Params.getParameterIntWithDefault("acceptedDistance", 2000);
+	_maxDistanceBetweenMates = Params.getParameterWithDefault<int>("acceptedDistance", 2000);
 	_logfile->list("Mates that are farther than " + toString(_maxDistanceBetweenMates) + " apart will be considered orphans. (parameter 'acceptedDistance')");
 
 	//keep orphans
@@ -632,7 +632,7 @@ void TAlignmentSplitMerger::_initializeMerger(TParameters & Params, TLog* Logfil
 
 	//set merging method
 	//TODO: update wiki to reflect change in names
-	std::string method = Params.getParameterStringWithDefault("mergingMethod", "keepRandomRead");
+	std::string method = Params.getParameterWithDefault<std::string>("mergingMethod", "keepRandomRead");
 	if(method == "none"){
 		_merger = std::make_unique<TAlignmentMerger>();
 		_logfile->list("Merging method: no merging.");

@@ -30,12 +30,12 @@ void TGenome_basic::_initialize(TParameters &Params, TLog *Logfile, TRandomGener
 
     //open bam file
     //TODO: deal with index in better way: let tasks decide if they need an index or not
-    _bamFile.open(Params.getParameterString("bam"), Params.parameterExists("indexNotRequired"), _logfile);
+    _bamFile.open(Params.getParameter<std::string>("bam"), Params.parameterExists("indexNotRequired"), _logfile);
     _bamFile.setLimits(Params, _logfile);
 
     //outputname
     if(Params.parameterExists("out")){
-        _outputName = Params.getParameterString("out");
+        _outputName = Params.getParameter<std::string>("out");
         _logfile->list("Writing output files with prefix '" + _outputName + "'. (parameter 'out')");
     } else {
         //guess from BAM filename.
@@ -51,8 +51,8 @@ void TGenome_basic::_openBamForWriting(const std::string filename, BAM::TOutputB
 		_logfile->list("When writing alignments, quality scores will be Illumina-binned. (parameter 'writeBinnedQualities').");
 		_qualMap.setBinQualityScores(true);
 	} else if(_params->parameterExists("minOutQual") || _params->parameterExists("minOutQual")){
-				int MinPhredInt = _params->getParameterIntWithDefault("minOutQual", 0);
-				int MaxPhredInt = _params->getParameterIntWithDefault("maxOutQual", 93);
+				int MinPhredInt = _params->getParameterWithDefault<int>("minOutQual", 0);
+				int MaxPhredInt = _params->getParameterWithDefault<int>("maxOutQual", 93);
 
 				if(MinPhredInt < 0 || MinPhredInt > 255) throw "minOutQual " + toString(MinPhredInt) + " is outside accepted range [0, 255]!";
 				if(MaxPhredInt < 0 || MaxPhredInt > 255) throw "maxOutQual " + toString(MaxPhredInt) + " is outside accepted range [0, 255]!";
@@ -110,7 +110,7 @@ TGenome_parsed::TGenome_parsed(TParameters & Params, TLog* Logfile, TRandomGener
 void TGenome_parsed::_openReference(bool required){
 	if(!_reference.hasReference()){
 		if(_params->parameterExists("fasta")){
-			std::string fastaFile = _params->getParameterString("fasta");
+			std::string fastaFile = _params->getParameter<std::string>("fasta");
 			_logfile->list("Reading reference sequence from '" + fastaFile + "'. (parameter fasta)");
 			_reference.initialize(fastaFile, &_genoMap);
 		} else {
@@ -124,9 +124,9 @@ void TGenome_parsed::_openReference(bool required){
 void TGenome_parsed::_setReadTrimming(TParameters & params){
 	//trimming ends
 	if(params.parameterExists("trim3") || params.parameterExists("trim5")){
-		_trimmingLength3Prime = params.getParameterIntWithDefault("trim3", 0);
+		_trimmingLength3Prime = params.getParameterWithDefault<int>("trim3", 0);
 		if(_trimmingLength3Prime < 0) throw "trimming distance trim3 must be >= 0!";
-		_trimmingLength5Prime = params.getParameterIntWithDefault("trim5", 0);
+		_trimmingLength5Prime = params.getParameterWithDefault<int>("trim5", 0);
 		if(_trimmingLength5Prime < 0) throw "trimming distance trim5 must be >= 0!";
 		if(_trimmingLength3Prime > 0 || _trimmingLength5Prime > 0){
 			_logfile->list("Will trim first " + toString(_trimmingLength3Prime) + " and " + toString(_trimmingLength5Prime) + " bases from the 3' and 5' end, respectively. (parameters 'trim3', 'trim5')");
@@ -151,7 +151,7 @@ void TGenome_parsed::_setQualityFilter(TParameters & params){
 void TGenome_parsed::_setContextFilter(TParameters & params){
 	if(params.parameterExists("ignoreContexts")){
 		std::vector<std::string> contexts;
-		fillVectorFromString(params.getParameterString("ignoreContexts"), contexts, ',');
+		params.fillParameterIntoContainer("ignoreContexts", contexts, ',');
 		_logfile->startIndent("Will mask the following contexts (parameter 'maskContext'):");
 		for(auto& c : contexts){
 			if(c.size() != 2 || !_genoMap.isValidBase(c[0]) || !_genoMap.isValidBase(c[1])){
@@ -236,7 +236,7 @@ void TGenome_windows::_setWindowParameters(TParameters & params){
 	if(!params.parameterExists("window") && params.parameterExists("windows")){
 		_logfile->warning("Argument 'windows' specified, but unknown. Did you mean 'window'?");
 	}
-	std::string tmp = params.getParameterStringWithDefault("window", "1000000");
+	std::string tmp = params.getParameterWithDefault<std::string>("window", "1000000");
 
 	//check if it is a number
 	if(stringIsProbablyANumber(tmp)){
@@ -256,9 +256,9 @@ void TGenome_windows::_setWindowParameters(TParameters & params){
 
 void TGenome_windows::_setParsingLimits(TParameters & params){
 	//limit windows
-	_skipWindows = params.getParameterIntWithDefault("skipWindows", 0);
+	_skipWindows = params.getParameterWithDefault<int>("skipWindows", 0);
 	if(_skipWindows > 0) _logfile->list("Will skip the first " + toString(_skipWindows) + " windows per chromosome. (parameter 'skipWindows')");
-	_limitWindows = params.getParameterLongWithDefault("limitWindows", 1000000000);
+	_limitWindows = params.getParameterWithDefault<long>("limitWindows", 1000000000);
 	if(params.parameterExists("limitWindows"))
 		_logfile->list("Will limit analysis to the first " + toString(_limitWindows) + " windows per chromosome. (parameter 'limitWindows')");
 	if(_limitWindows <= _skipWindows)
@@ -267,7 +267,7 @@ void TGenome_windows::_setParsingLimits(TParameters & params){
 
 void TGenome_windows::_setWindowFilters(TParameters & params){
 	//filter for missing reference
-	_maxMissing = params.getParameterDoubleWithDefault("maxMissing", 1.0);
+	_maxMissing = params.getParameterWithDefault<double>("maxMissing", 1.0);
 	if(_maxMissing < 0.0 || _maxMissing > 1.0) throw "maxMissing must be within [0, 1]!";
 	if(_maxMissing < 1.0){
 		_logfile->list("Will filter out windows with a missing data fraction > " + toString(_maxMissing) + ". (parameter 'maxMissing')");
@@ -275,7 +275,7 @@ void TGenome_windows::_setWindowFilters(TParameters & params){
 		_logfile->list("Will keep windows regardless of missingness. (use 'maxMissing' to filter)");
 	}
 
-	_maxRefN = params.getParameterDoubleWithDefault("maxRefN", 1.0);
+	_maxRefN = params.getParameterWithDefault<double>("maxRefN", 1.0);
 	if(_maxRefN < 0.0 || _maxRefN > 1.0) throw "maxRefN must be within interval [0,1]!";
 	_openReference();
 	if(_maxRefN < 1.0 && !_reference.hasReference()) throw "Can only calculate percentage of reference bases that are 'N' in window if reference file is provided! (use 'fasta' to provide a reference)";
@@ -284,17 +284,17 @@ void TGenome_windows::_setWindowFilters(TParameters & params){
 
 void TGenome_windows::_setSiteFilters(TParameters & params){
 	//depth filter
-	_readUpToDepth = params.getParameterIntWithDefault("readUpToDepth", 100);
+	_readUpToDepth = params.getParameterWithDefault<int>("readUpToDepth", 100);
 	_logfile->list("Will read data up to depth " + toString(_readUpToDepth) + " and ignore additional bases. (parameter 'readUpToDepth')");
 
 	if(params.parameterExists("minDepth") || params.parameterExists("maxDepth")){
 		_applyDepthFilter = true;
 		unsigned int tmpInt;
-		tmpInt = params.getParameterIntWithDefault("minDepth", 0);
+		tmpInt = params.getParameterWithDefault<int>("minDepth", 0);
 		if(tmpInt < 0)
 			throw "minDepth must be >= 0!";
 		_minDepth = tmpInt;
-		tmpInt = params.getParameterIntWithDefault("maxDepth", _readUpToDepth);
+		tmpInt = params.getParameterWithDefault<int>("maxDepth", _readUpToDepth);
 		if(tmpInt < _minDepth) throw "maxDepth must be >= minDepth!";
 		_maxDepth = tmpInt;
 		_readUpToDepth = _maxDepth + 1;
@@ -307,7 +307,7 @@ void TGenome_windows::_setSiteFilters(TParameters & params){
 	}
 
 	//downsample?
-	_downsampleDepth = params.getParameterIntWithDefault("downsample", 0);
+	_downsampleDepth = params.getParameterWithDefault<int>("downsample", 0);
 	if(_downsampleDepth > 0){
 		_logfile->list("Will downsample sites to a depth <= ", _downsampleDepth, ". (parameter 'downsample')");
 		if(_downsampleDepth >= _maxDepth){
@@ -335,12 +335,12 @@ void TGenome_windows::_setMasks(TParameters & params){
 		if(params.parameterExists("mask")){
 			//mask
 			if(params.parameterExists("regions")) throw "Cannot use mask and regions at the same time.";
-			filename = params.getParameterString("mask");
+			filename = params.getParameter<std::string>("mask");
 			_logfile->startIndent("Will mask all sites listed in BED file '" + filename + "':");
 			_considerRegions = false;
 		} else {
 			//regions
-			filename = params.getParameterString("regions");
+			filename = params.getParameter<std::string>("regions");
 			_logfile->startIndent("Will limit analysis to sites listed in BED file '" + filename + "' (parameter 'regions'):");
 			_considerRegions = true;
 		}
@@ -362,7 +362,7 @@ void TGenome_windows::_openSiteSubset(const std::string paramName){
 		throw "Site subset already initialized!";
 	}
 
-	std::string filename = _params->getParameterString(paramName, true);
+	std::string filename = _params->getParameter<std::string>(paramName, true);
 
 	if(_considerRegions) throw "Site subsets (parameter '" + paramName + "') and regions (parameter 'regions') can not be used at the same time!";
 	if(_doMasking) throw "Site subsets (parameter '" + paramName + "') and masks (parameter 'mask') can not be used at the same time!";

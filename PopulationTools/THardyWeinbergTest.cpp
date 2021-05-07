@@ -306,11 +306,11 @@ THardyWeinbergTest::THardyWeinbergTest(TParameters & Parameters, TLog* logfile, 
 
 	//read samples
 	if(Parameters.parameterExists("samples")){
-		_samples.readSamples(Parameters.getParameterString("samples"), logfile);
+		_samples.readSamples(Parameters.getParameter<std::string>("samples"), logfile);
 	}
 
 	//open VCF
-	_vcfFilename = Parameters.getParameterString("vcf");
+	_vcfFilename = Parameters.getParameter<std::string>("vcf");
 	_logfile->list("Reading vcf from file '" + _vcfFilename + "'.");
 	_vcfFile.openStream(_vcfFilename);
 
@@ -333,12 +333,12 @@ THardyWeinbergTest::THardyWeinbergTest(TParameters & Parameters, TLog* logfile, 
 
 	//get output name
 	std::string tmp = extractBeforeLast(_vcfFilename, ".vcf");
-	_outname = Parameters.getParameterStringWithDefault("out", tmp);
+	_outname = Parameters.getParameterWithDefault<std::string>("out", tmp);
 
 	//limit lines?
 	_limitLines = Parameters.parameterExists("limitLines");
 	if(_limitLines){
-		_maxNumLines = Parameters.getParameterLong("limitLines");
+		_maxNumLines = Parameters.getParameter<long>("limitLines");
 	} else {
 		_maxNumLines = 0;
 	}

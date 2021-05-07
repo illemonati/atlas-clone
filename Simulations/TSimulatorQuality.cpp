@@ -15,16 +15,17 @@ namespace Simulations{
 TSimulatorQualityDist::TSimulatorQualityDist(std::string & s){
 	size_t pos = s.find("(");
 	if(pos == std::string::npos)
-		_max = convertStringCheck<int>(s);
+		_max = convertStringCheck<uint8_t>(s);
 	else if(pos == 0){
 		pos = s.find(')');
 		if(pos == std::string::npos || pos != s.size() - 1)
 			throw "Failed to understand fixed distribution '" + s + "'!";
-		_max = convertStringCheck<int>(s.substr(1,pos - 1));
-	} else
+		_max = convertStringCheck<uint8_t>(s.substr(1,pos - 1));
+	} else {
 		throw "Failed to understand fixed distribution '" + s + "'!";
+	}
 
-	_min = -1;
+	_min = 0;
 	_maxPlusOne = -1;
 	_mean = -1.0;
 	_sd = -1.0;
@@ -32,15 +33,16 @@ TSimulatorQualityDist::TSimulatorQualityDist(std::string & s){
 
 TSimulatorQualityDist::TSimulatorQualityDist(){
 	_max = 30;
-	_min = -1;
+	_min = 0;
 	_maxPlusOne = -1;
 	_mean = -1.0;
 	_sd = -1.0;
 }
 
-void TSimulatorQualityDist::sample(int* qualities, const int & len){
-	for(int i = 0; i < len; ++i)
-		qualities[i] = _max;
+void TSimulatorQualityDist::sample(std::vector<uint8_t> & qualities) const{
+	for(auto& q : qualities){
+		q = _max;
+	}
 };
 
 void TSimulatorQualityDist::printDetails(TLog* logfile, const std::string & Name) const{
@@ -58,7 +60,7 @@ TSimulatorQualityDistBinned::TSimulatorQualityDistBinned(std::string & s, TRando
 		if(pos == std::string::npos || pos != s.size() - 1)
 			throw "Failed to understand binned distribution '" + s + "'! Use binned(quality_1,quality_2,..,quality_n).";
 		s.erase(pos,1);
-		fillVectorFromString(s, _qualBins, ',');
+		fillContainerFromString(s, _qualBins, ',', false, true, false);
 	} else {
 		throw "Failed to understand binned distribution '" + s + "'! Use binned(quality_1,quality_2,..,quality_n).";
 	}
@@ -66,9 +68,9 @@ TSimulatorQualityDistBinned::TSimulatorQualityDistBinned(std::string & s, TRando
 	_randomGenerator = RandomGenerator;
 };
 
-void TSimulatorQualityDistBinned::sample(int* qualities, const int & len){
-	for(int i=0; i<len; ++i){
-		qualities[i] = _qualBins[_randomGenerator->sample(_qualBins.size())];
+void TSimulatorQualityDistBinned::sample(std::vector<uint8_t> & qualities) const{
+	for(auto& q : qualities){
+		q = _qualBins[_randomGenerator->sample(_qualBins.size())];
 	}
 };
 
@@ -90,7 +92,7 @@ TSimulatorQualityDistFreq::TSimulatorQualityDistFreq(std::string & s, TRandomGen
 		}
 		s.erase(pos,1);
 		std::vector<std::string> tmp;
-		fillVectorFromString(s, tmp, ',');
+		fillContainerFromString(s, tmp, ',');
 
 		//now parse each bin
 		_qualBins.resize(tmp.size());
@@ -115,9 +117,9 @@ TSimulatorQualityDistFreq::TSimulatorQualityDistFreq(std::string & s, TRandomGen
 	_randomGenerator = RandomGenerator;
 };
 
-void TSimulatorQualityDistFreq::sample(int* qualities, const int & len){
-	for(int i=0; i<len; ++i){
-		qualities[i] = _qualBins[_randomGenerator->pickOne(_cumulativeFrequencies)];
+void TSimulatorQualityDistFreq::sample(std::vector<uint8_t> & qualities) const{
+	for(auto& q : qualities){
+		q = _qualBins[_randomGenerator->pickOne(_cumulativeFrequencies)];
 	}
 };
 
@@ -222,13 +224,13 @@ int TSimulatorQualityDistNormal::sample(){
 	return _randomGenerator->pickOne(_cumulDensities) + _min;
 };
 
-void TSimulatorQualityDistNormal::sample(int* qualities, const int & len){
-	for(uint16_t tmpInt=0; tmpInt<len; ++tmpInt){
-		qualities[tmpInt] = _randomGenerator->pickOne(_cumulDensities) + _min;
+void TSimulatorQualityDistNormal::sample(std::vector<uint8_t> & qualities) const{
+	for(auto& q : qualities){
+		q = _randomGenerator->pickOne(_cumulDensities) + _min;
 	}
 };
 
-void TSimulatorQualityDistNormal::printDetails(TLog* logfile){
+void TSimulatorQualityDistNormal::printDetails(TLog* logfile) const{
 	logfile->list("Normally distributed quality scores with mean=" + toString(_mean) + " and sd=" + toString(_sd) + ", truncated to [" + toString(_min) + "," + toString(_max) + "].");
 };
 

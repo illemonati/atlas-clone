@@ -14,19 +14,19 @@ namespace GenomeTasks{
 // TPSMCInput
 //----------------------------------------
 TPSMCInput::TPSMCInput(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_windows(Parameters, Logfile, RandomGenerator){
-	_theta = Parameters.getParameterDoubleWithDefault("theta", 0.001);
+	_theta = Parameters.getParameterWithDefault<double>("theta", 0.001);
 	_logfile->list("Using theta = " + toString(_theta) + ". (parameter 'theta')");
 
 	_thetaEstimator = std::make_unique<GenotypeLikelihoods::TThetaEstimator>(_logfile, _randomGenerator);
 	_thetaEstimator->setTheta(_theta);
 
-	_confidence = Parameters.getParameterDoubleWithDefault("confidence", 0.99);
+	_confidence = Parameters.getParameterWithDefault<double>("confidence", 0.99);
 	_logfile->list("Calling heterozygosity state with confidence > " + toString(_confidence) + ". (parameter 'confidence')");
 	_logConfidence = log(_confidence);
 	_logConfidenceHet = log(1.0 - _confidence);
 
 
-	_blockSize = Parameters.getParameterIntWithDefault("block", 100);
+	_blockSize = Parameters.getParameterWithDefault<int>("block", 100);
 	//make sure window size is a multiple of block length!
 	if(_windowSize % _blockSize != 0) throw "Window size is not a multiple of block size!";
 	_nBlocks = _window.size() / _blockSize;

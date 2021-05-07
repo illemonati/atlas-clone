@@ -23,19 +23,19 @@
 namespace GenotypeLikelihoods{
 
 //Existing Functions
-#define PMDFunctionName_none "none"
-#define PMDFunctionName_empiric "Empiric"
-#define PMDFunctionName_exponential "Exponential"
-//#define PMDFunctionName_Skoglund "Skoglund"
+extern const std::string PMDFunctionName_none;
+extern const std::string PMDFunctionName_empiric;
+extern const std::string PMDFunctionName_exponential;
+//extern const std:.string PMDFunctionName_Skoglund;
 
 //Existing types
-#define PMDTypeName_none "none"
-#define PMDTypeName_singleStrand "singleStrand"
-#define PMDTypeName_doubleStrand "doubleStrand"
+extern const std::string PMDTypeName_none;
+extern const std::string PMDTypeName_singleStrand;
+extern const std::string PMDTypeName_doubleStrand;
 
 //Estimation Parameters
-#define PMDEstimationExponential_epsilon "PMDExponentialEpsilon"
-#define PMDEstimationExponential_numNR "PMDExponentialNumNR"
+extern const std::string PMDEstimationExponential_epsilon;
+extern const std::string PMDEstimationExponential_numNR;
 
 //-------------------------------------
 // TPMDEstimationParameters
@@ -178,7 +178,7 @@ public:
 	virtual std::string functionString() const = 0;
 
 	virtual void parseEstimationParameters(TPMDEstimationParameters & EstimationParameters, TParameters & Params, TLog* Logfile){};
-	virtual void estimate(const TPMDTables & PMDTables, const TPMDEstimationParameters & EstimationParameters){};
+	virtual void estimate(const TPMDTableReadGroup & PMDTable, const TPMDEstimationParameters & EstimationParameters){};
 
 	virtual void fillBaseLikelihoods(const BAM::TBase & base, const TBaseData & baseLikelihoodsNoPMD, TBaseData & baseLikelihoods) const = 0;
 
@@ -223,8 +223,8 @@ public:
 	std::string type() const override { return PMDTypeName_doubleStrand; };
 	std::string functionString() const override;
 
-	void parseEstimationParameters(TPMDEstimationParameters & EstimationParameters, TParameters & Params, TLog* Logfile);
-	void estimate(const TPMDTableReadGroup & PMDTable, const TPMDEstimationParameters & EstimationParameters);
+	void parseEstimationParameters(TPMDEstimationParameters & EstimationParameters, TParameters & Params, TLog* Logfile) override;
+	void estimate(const TPMDTableReadGroup & PMDTable, const TPMDEstimationParameters & EstimationParameters) override;
 
 	void fillBaseLikelihoods(const BAM::TBase & base, const TBaseData & baseLikelihoodsNoPMD, TBaseData & baseLikelihoods) const override;
 
@@ -250,15 +250,12 @@ public:
 
 	bool hasPMD() const{ return _hasPMD; };
 	const TPMDType& operator[](const uint16_t & ReadGroupIndex) const { return *_pmdObjects[ReadGroupIndex]; };
+	TPMDType& operator[](const uint16_t & ReadGroupIndex){ return *_pmdObjects[ReadGroupIndex]; };
 
 	void initialize(const std::string & pmdString, const BAM::TReadGroups & ReadGroups, TLog* Logfile, std::vector<uint16_t> & ReadGroupsWithoutPMD);
-
-	void parseEstimationParameters(TPMDEstimationParameters & EstimationParameters, TParameters & Params, TLog* Logfile);
-	void estimate(const TPMDTables & PMDTables, const BAM::TReadGroups & ReadGroups, TLog* logfile, const TPMDEstimationParameters & EstimationParameters);
-
 	void writeToFile(const BAM::TReadGroups & ReadGroups, const std::string filename);
-
-	void calculateBaseLikelihoods(const BAM::TBase & base, const TBaseData & baseLikelihoodsNoPMD, TBaseData & baseLikelihoods) const;
+	void writeToFile(const BAM::TReadGroups & ReadGroups, const BAM::TReadGroupMap & ReadGroupMap, const std::string filename);
+	void fillBaseLikelihoods(const BAM::TBase & base, const TBaseData & baseLikelihoodsNoPMD, TBaseData & baseLikelihoods) const;
 };
 
 }; //end namespace

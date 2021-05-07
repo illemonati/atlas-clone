@@ -11,62 +11,50 @@ namespace GenotypeLikelihoods{
 
 TGenotypeLikelihoodCalculator::TGenotypeLikelihoodCalculator(){
 	_initialized = false;
-	_logfile = nullptr;
-	_readGroups = nullptr;
-	_readGroupMap = nullptr;
 };
 
-TGenotypeLikelihoodCalculator::TGenotypeLikelihoodCalculator(TParameters & params, BAM::TReadGroups* ReadGroups, TLog* Logfile){
+TGenotypeLikelihoodCalculator::TGenotypeLikelihoodCalculator(TParameters & params, const BAM::TReadGroups* ReadGroups, TLog* Logfile){
 	_initialized = false;
 	init(params, ReadGroups, Logfile);
 };
 
-TGenotypeLikelihoodCalculator::~TGenotypeLikelihoodCalculator(){
-	if(_initialized){
-		delete _readGroupMap;
-	}
-};
-
-void TGenotypeLikelihoodCalculator::init(TParameters & params, BAM::TReadGroups* ReadGroups, TLog* Logfile){
+void TGenotypeLikelihoodCalculator::init(TParameters & params, const BAM::TReadGroups* ReadGroups, TLog* Logfile){
 	if(_initialized){
 		throw "TGenotypeLikelihoodCalculator has already been initialized!";
 	}
-	_logfile = Logfile;
-	_readGroups = ReadGroups;
-
-	//initialize storage to minimum size
-	_baseLikelihoods.resize(1);
 
 	//initialize PMD
 	//--------------
 	if(params.parameterExists("pmd")){
 		std::vector<uint16_t> readGroupsWithoutDef;
-		_pmd.initialize(params.getParameterString("pmd"), *_readGroups, _logfile, readGroupsWithoutDef);
+		_pmdModels.initialize(params.getParameter<std::string>("pmd"), *ReadGroups, Logfile, readGroupsWithoutDef);
 
 		//Warn if some read groups have no PMD definition
 		if(readGroupsWithoutDef.size() > 0){
-			_logfile->warning("The following read groups do not have PMD definitions: "
-					         + concatenateString(_readGroups->getNames(readGroupsWithoutDef), ", ")
+			Logfile->warning("The following read groups do not have PMD definitions: "
+					         + concatenateString(ReadGroups->getNames(readGroupsWithoutDef), ", ")
 							 + "!");
 			if(!params.parameterExists("allowReadGroupsWithoutPMD")){
 				throw "PMD is only defined for a subset of read groups. Did you use the wrong PMD file? (use allowReadGroupsWithoutPMD to ignore)";
 			}
 		}
 	} else {
-		_logfile->list("Assuming there is no PMD in the data. (use 'pmd' to add PMD definitions)");
+		Logfile->list("Assuming there is no PMD in the data. (use 'pmd' to add PMD definitions)");
 	}
 
 	//initialize sequencing errors
 	//----------------------------
 	if(params.parameterExists("recal")){
+		_sequencingErrorModels.initializeFromFile(params.getParameter<std::string>("recal"), *ReadGroups, Logfile);
+
+		//warn if some read groups have no recal definition
 		std::vector<uint16_t> readGroupsWithoutRecal;
 		std::vector<uint16_t> readGroupsLikelySingelEnd;
-		_sequencingErrorModels.initializeFromFile(params.getParameterString("recal"), *_readGroups, _logfile, readGroupsWithoutRecal, readGroupsLikelySingelEnd);
+		_sequencingErrorModels.checkReadGroups(*ReadGroups, readGroupsWithoutRecal, readGroupsLikelySingelEnd);
 
-		//warn if some read groups have no PMD definition
 		if(readGroupsWithoutRecal.size() > 0){
-			_logfile->warning("The following read groups do not have recal definitions: "
-					         + concatenateString(_readGroups->getNames(readGroupsWithoutRecal), ", ")
+			Logfile->warning("The following read groups do not have recal definitions: "
+					         + concatenateString(ReadGroups->getNames(readGroupsWithoutRecal), ", ")
 					         + "!");
 			if(!params.parameterExists("allowReadGroupsWithoutRecal")){
 				throw "PMD is only defined for a subset of read groups. Did you use the wrong PMD file? (use allowReadGroupsWithoutRecal to ignore)";
@@ -75,21 +63,19 @@ void TGenotypeLikelihoodCalculator::init(TParameters & params, BAM::TReadGroups*
 
 		//Report if some read groups have only single-end definitions
 		if(readGroupsLikelySingelEnd.size() > 0){
-			_logfile->list("Read groups assumed single-end (no recal for second mate): "
-					      + concatenateString(_readGroups->getNames(readGroupsLikelySingelEnd), ", ")
+			Logfile->list("Read groups assumed single-end (no recal for second mate): "
+					      + concatenateString(ReadGroups->getNames(readGroupsLikelySingelEnd), ", ")
 						  + ".");
 		}
-	} else if(){
-
 	} else {
-		_logfile->list("Assuming that error rates in BAM files are correct. (use 'recal' to add recalibration)");
+		Logfile->list("Assuming that error rates in BAM files are correct. (use 'recal' to add recalibration)");
 	}
 
 	_initialized = true;
 };
 
 bool TGenotypeLikelihoodCalculator::hasPMD() const{
-	return _pmd.hasPMD();
+	return _pmdModels.hasPMD();
 };
 
 bool TGenotypeLikelihoodCalculator::recalibrationChangesQualities() const{
@@ -105,11 +91,11 @@ double TGenotypeLikelihoodCalculator::getErrorWithPMD(const BAM::TBase & base) c
 		return 1.0;
 	} else {
 		//calculate base likelihoods with PMD
-		_sequencingErrorModels.calculateBaseLikelihoods(base, _baseLikelihoodsNoPMD);
-		_pmd.calculateBaseLikelihoods(base, _baseLikelihoodsNoPMD, _baseLikelihoods[0]);
+		static TBaseData tmpBaseData;
+		_calculator.fillBaseLikelihoods(base, tmpBaseData, _pmdModels, _sequencingErrorModels);
 
 		//return 1 - P(base|base) as in mapdamage2
-		return 1.0 - _baseLikelihoods[base.base][base.base];
+		return 1.0 - tmpBaseData[base.base];
 	}
 };
 
@@ -121,7 +107,7 @@ uint8_t TGenotypeLikelihoodCalculator::getPhredIntWithPMD(const BAM::TBase & bas
 	if(base.base == N){
 		return 0;
 	} else {
-		return _sequencingErrorModels.qualMap.errorToPhredInt(getErrorWithPMD(base));
+		return _sequencingErrorModels.qualityMap().errorToPhredInt(getErrorWithPMD(base));
 	}
 };
 
@@ -145,58 +131,22 @@ void TGenotypeLikelihoodCalculator::recalibrateWithPMD(std::vector<BAM::TBase> &
 
 double TGenotypeLikelihoodCalculator::calculateLogPMDS(const BAM::TBase & base, const Base ref, const double pi) const{
 	//get base likelihoods
-	_sequencingErrorModels.calculateBaseLikelihoods(base, _baseLikelihoodsNoPMD);
-	_pmd.calculateBaseLikelihoods(base, _baseLikelihoodsNoPMD, _baseLikelihoods[0]);
+	static TBaseData baseLikelihoodsNoPMD;
+	_sequencingErrorModels.fillBaseLikelihoods(base, baseLikelihoodsNoPMD);
+
+	static TBaseData baseLikelihoods;
+	_pmdModels.fillBaseLikelihoods(base, baseLikelihoodsNoPMD, baseLikelihoods);
 
 	//calculate PMDS: true base in read == ref with prob. (1-pi) and different with prob. pi/3
-	_tmpBaseData.set(ref, pi);
+	static TBaseData tmpBaseData;
+	tmpBaseData.set(ref, pi);
 
-	return log(_baseLikelihoods[0].weightedSum(_tmpBaseData) / _baseLikelihoodsNoPMD.weightedSum(_tmpBaseData));
+	return log(baseLikelihoods.weightedSum(tmpBaseData) / baseLikelihoodsNoPMD.weightedSum(tmpBaseData));
 };
 
 void TGenotypeLikelihoodCalculator::calculateGenotypeLikelihoods(const TSite &site, TGenotypeLikelihoods &genotypeLikelihoods) const {
-    //ensure base likelihoods have proper size
-    if(_baseLikelihoods.size() < site.depth()){
-        _baseLikelihoods.resize(site.depth());
-    }
-
-    if(site.empty()){
-        genotypeLikelihoods.reset();
-    } else {
-        //calculate base likelihoods P(d|b, D, epsilon) = \sum_{\bar{b}} P(\bar{b}|b, D)P(d|\bar{b}, \epsilon)
-        for(size_t i=0; i<site.depth(); ++i){
-            _sequencingErrorModels.calculateBaseLikelihoods(site[i], _baseLikelihoodsNoPMD);
-            _pmd.calculateBaseLikelihoods(site[i], _baseLikelihoodsNoPMD, _baseLikelihoods[i]);
-        }
-
-        //calculate genotype likelihoods
-        genotypeLikelihoods.fill(_baseLikelihoods, site.depth());
-    }
-}
-
-/*
-void TGenotypeLikelihoodCalculator::calculateGenotypeLikelihoods(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) const{
-	//ensure base likelihoods have proper size
-	if(_baseLikelihoods.size() < site.depth()){
-		_baseLikelihoods.resize(site.depth());
-	}
-
-	if(site.empty()){
-		genotypeLikelihoods.reset();
-	} else {
-		//calculate base likelihoods P(d|b, D, epsilon) = \sum_{\bar{b}} P(\bar{b}|b, D)P(d|\bar{b}, \epsilon)
-		for(size_t i=0; i<site.depth(); ++i){
-			_sequencingErrorModels.calculateBaseLikelihoods(site.at(i), _baseLikelihoodsNoPMD);
-			_pmd.calculateBaseLikelihoods(site.at(i), _baseLikelihoodsNoPMD, _baseLikelihoods[i]);
-		}
-
-		//calculate genotype likelihoods
-		genotypeLikelihoods.fill(_baseLikelihoods, site.depth());
-	}
+	_calculator.fillGenotypeLikelihoods(site, genotypeLikelihoods, _pmdModels, _sequencingErrorModels);
 };
-*/
-
-
 
 }; //end namespace
 

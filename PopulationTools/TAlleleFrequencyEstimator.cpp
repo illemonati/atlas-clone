@@ -91,8 +91,8 @@ TAlleleFreqEstimatorBayes::TAlleleFreqEstimatorBayes(TParameters & Parameters, T
 	glfConverter = GlfConverter;
 
 	//prior
-	alpha = Parameters.getParameterDoubleWithDefault("alpha", 0.7);
-	beta = Parameters.getParameterDoubleWithDefault("beta", 0.7);
+	alpha = Parameters.getParameterWithDefault("alpha", 0.7);
+	beta = Parameters.getParameterWithDefault("beta", 0.7);
 	alphaMinusOne = alpha - 1.0;
 	betaMinusOne = beta - 1.0;
 
@@ -106,7 +106,7 @@ TAlleleFreqEstimatorBayes::TAlleleFreqEstimatorBayes(TParameters & Parameters, T
 	logfile->endIndent();
 
 	//MAP estimation
-	numMAPSIterations = Parameters.getParameterIntWithDefault("MAPIterations", 100);
+	numMAPSIterations = Parameters.getParameterWithDefault<int>("MAPIterations", 100);
 	logfile->list("Will search for the MAP using ", numMAPSIterations, " iterations (MAPIterations).");
 	f_MAP = 0.5;
 	f_CI_lower = 0.0;
@@ -114,9 +114,9 @@ TAlleleFreqEstimatorBayes::TAlleleFreqEstimatorBayes(TParameters & Parameters, T
 	logDensity_atMAP = 0.0;
 
 	//prepare initial search grid between 0.0 and 1.0
-	credibleInterval = Parameters.getParameterDoubleWithDefault("credibleInterval", 0.9);
+	credibleInterval = Parameters.getParameterWithDefault("credibleInterval", 0.9);
 	logfile->list("Will calculate the ", credibleInterval, " Credible Interval (credibleInterval).");
-	initialGridSize = Parameters.getParameterIntWithDefault("initialGridSize", 101);
+	initialGridSize = Parameters.getParameterWithDefault<int>("initialGridSize", 101);
 	logfile->list("Will use an initial grid of size ", initialGridSize, " to identify relevant frequency range (initialGridSize).");
 	if(initialGridSize < 3){
 		throw "Initial grid size must be >= 3!";
@@ -132,13 +132,13 @@ TAlleleFreqEstimatorBayes::TAlleleFreqEstimatorBayes(TParameters & Parameters, T
 	f_initialGrid[initialGridLast] = maxPriorSupport;
 
 	//final grid
-	gridSize = Parameters.getParameterIntWithDefault("gridSize", 1001);
+	gridSize = Parameters.getParameterWithDefault<int>("gridSize", 1001);
 	logfile->list("Will use a grid of size ", gridSize, " to calculate credible interval (gridSize).");
 	if(gridSize < 10){
 		throw "Initial grid size must be >= 10!";
 	}
 	gridLast = gridSize - 1;
-	logGridThreshold = Parameters.getParameterDoubleWithDefault("logGridThreshold", 14.0);
+	logGridThreshold = Parameters.getParameterWithDefault("logGridThreshold", 14.0);
 	logfile->list("Will use a threshold ", logGridThreshold, " to span the grid (logGridThreshold).");
 	if(logGridThreshold < 1.0){
 		throw "grid threshold must be >= 1.0!";
@@ -422,7 +422,7 @@ double TAlleleFreqEstimatorBayes::calcPosteriorf1smallerf2(std::vector<double> &
 void TAlleleFreqMCMCOutput::initialize(std::string popString, TPopulationSamples & samples, std::string OutputName, TLog* logfile){
 	//parse string to identify pops for which MCMC shoudl be written
 	std::vector<std::string> tmp;
-	fillVectorFromString(popString, tmp, ',');
+	fillContainerFromString(popString, tmp, ',');
 	outputName = OutputName;
 
 	//extract indexes
@@ -553,7 +553,7 @@ void TAlleleFreqEstimator::_openVCF(TParameters & Parameters){
 
 	//read samples
 	if(Parameters.parameterExists("samples"))
-		samples.readSamples(Parameters.getParameterString("samples"), logfile);
+		samples.readSamples(Parameters.getParameter<std::string>("samples"), logfile);
 
 	//create reader
 	bool saveAlleleFrequencies = true;
@@ -561,7 +561,7 @@ void TAlleleFreqEstimator::_openVCF(TParameters & Parameters){
 	reader.doEstimateGenotypeFrequencies();
 
 	// open vcf file
-	vcfFilename = Parameters.getParameterString("vcf");
+	vcfFilename = Parameters.getParameter<std::string>("vcf");
 	logfile->startIndent("Estimating allele population frequencies from VCF file '" + vcfFilename + "':");
 	reader.openVCF(vcfFilename);
 
@@ -593,7 +593,7 @@ void TAlleleFreqEstimator::estimateAlleleFreq(TParameters & Parameters, TRandomG
 	//create allele frequency estimators
 	//1) Maximum likelihood HW estimator
 	TAlleleFreqEstimatorHardyWeinberg MLHWEstimator;
-	double epsF = Parameters.getParameterDoubleWithDefault("epsF", 0.0000001);
+	double epsF = Parameters.getParameterWithDefault("epsF", 0.0000001);
 
 	//2) Maximum Likelihood genotype count estimator (use estimates from reader)
 	reader.doEstimateGenotypeFrequencies();
@@ -610,7 +610,7 @@ void TAlleleFreqEstimator::estimateAlleleFreq(TParameters & Parameters, TRandomG
 
 	//output file
 	std::string tmp = extractBeforeLast(vcfFilename, ".vcf");
-	std::string outputName = Parameters.getParameterStringWithDefault("out", tmp) + "_alleleFreq.txt.gz";
+	std::string outputName = Parameters.getParameterWithDefault<std::string>("out", tmp) + "_alleleFreq.txt.gz";
 	logfile->list("Will write allele frequencies to file '" + outputName + "'.");
 	TOutputFile out(outputName);
 
@@ -684,8 +684,8 @@ void TAlleleFreqEstimator::compareAlleleFreq(TParameters & Parameters, TRandomGe
 	TGenotypeFrequencies genoFrequencies;
 
 	//variables for MCMC chains
-	int numIterations = Parameters.getParameterIntWithDefault("iterations", 100000);
-	double frac = Parameters.getParameterDoubleWithDefault("proposalFrac", 3.0);
+	int numIterations = Parameters.getParameterWithDefault<int>("iterations", 100000);
+	double frac = Parameters.getParameterWithDefault("proposalFrac", 3.0);
 	if(numIterations < 1)
 		throw "Cannot run MCMC for less than 1 iteration!";
 	if(frac <= 0.0)
@@ -700,7 +700,7 @@ void TAlleleFreqEstimator::compareAlleleFreq(TParameters & Parameters, TRandomGe
 
 	//output file
 	std::string tmp = extractBeforeLast(vcfFilename, ".vcf");
-	std::string outputName = Parameters.getParameterStringWithDefault("out", tmp);
+	std::string outputName = Parameters.getParameterWithDefault<std::string>("out", tmp);
 	logfile->list("Will write allele frequencies to file '" + outputName  + "_alleleFreqComparison.txt.gz" + "'.");
 	TOutputFile out(outputName + "_alleleFreqComparison.txt.gz");
 	out.writeHeader(_composeHeaderAlleleFreqComparison(BHWEstimator));
@@ -708,7 +708,7 @@ void TAlleleFreqEstimator::compareAlleleFreq(TParameters & Parameters, TRandomGe
 	//write MCMC to file?
 	TAlleleFreqMCMCOutput traces;
 	if(Parameters.parameterExists("writeMCMC")){
-		traces.initialize(Parameters.getParameterString("writeMCMC"), samples, outputName + "_alleleFreq_MCMC_", logfile);
+		traces.initialize(Parameters.getParameter<std::string>("writeMCMC"), samples, outputName + "_alleleFreq_MCMC_", logfile);
 	}
 
     //run through VCF file
@@ -721,7 +721,7 @@ void TAlleleFreqEstimator::compareAlleleFreq(TParameters & Parameters, TRandomGe
  		logfile->listFlush("Running estimates for " + reader.chr() + ":" + toString(reader.position()) + " ...");
  		for(int p=0; p<samples.numPopulations(); p++){
 			//write num samples with data
-			genoFrequencies.estimate(&storage[samples.startIndex(p)], samples.numSamplesInPop(p), glfConverter, Parameters.getParameterDoubleWithDefault("epsF", 0.0000001));
+			genoFrequencies.estimate(&storage[samples.startIndex(p)], samples.numSamplesInPop(p), glfConverter, Parameters.getParameterWithDefault("epsF", 0.0000001));
 			out << genoFrequencies.numDiploid();
 			out << genoFrequencies.numHaploid();
 
@@ -755,7 +755,7 @@ void TAlleleFreqEstimator::writeAlleleFrequencyLikelihoods(TParameters & Paramet
 	_openVCF(Parameters);
 
 	//get vector of allele frequencies at which to calculate likelihood
-	int numFreq = Parameters.getParameterIntWithDefault("numFreq", 101);
+	int numFreq = Parameters.getParameterWithDefault<int>("numFreq", 101);
 	logfile->list("Will calculate allele frequency likelihoods at " + toString(numFreq) + " uniformly spaced frequencies.");
 	double step = 1.0 / (double) (numFreq - 1);
 	std::vector<double> freq(numFreq);
@@ -767,7 +767,7 @@ void TAlleleFreqEstimator::writeAlleleFrequencyLikelihoods(TParameters & Paramet
 
 	//output file
 	std::string tmp = extractBeforeLast(vcfFilename, ".vcf");
-	std::string outputName = Parameters.getParameterStringWithDefault("out", tmp) + "_alleleFreqLikelihoods";
+	std::string outputName = Parameters.getParameterWithDefault<std::string>("out", tmp) + "_alleleFreqLikelihoods";
 	logfile->list("Will write allele frequencies to files '" + outputName + "[POP].txt.gz'.");
 
 	std::vector<TOutputFile> out(samples.numPopulations());

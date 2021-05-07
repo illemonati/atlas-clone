@@ -15,30 +15,59 @@
 
 namespace GenotypeLikelihoods{
 
+class TGenotypeLikelihoodCalculator_simple{
+private:
+	mutable std::vector<TBaseData> _baseLikelihoods;
+	mutable TBaseData _baseLikelihoodsNoPMD;
+
+public:
+
+	template <typename PMD, typename SEQERR>
+	void fillBaseLikelihoods(const BAM::TBase & base, TBaseData & BaseLikelihoods, const PMD & PmdModels, const SEQERR & SequencingErrorModels) const{
+		SequencingErrorModels.fillBaseLikelihoods(base, _baseLikelihoodsNoPMD);
+		PmdModels.fillBaseLikelihoods(base, _baseLikelihoodsNoPMD, BaseLikelihoods);
+	};
+
+	template <typename PMD, typename SEQERR>
+	void fillGenotypeLikelihoods(const TSite &site, TGenotypeLikelihoods &genotypeLikelihoods, const PMD & PmdModels, const SEQERR & SequencingErrorModels) const{
+		//ensure base likelihoods have proper size
+		if(_baseLikelihoods.size() < site.depth()){
+			_baseLikelihoods.resize(site.depth());
+		}
+
+		if(site.empty()){
+			genotypeLikelihoods.reset();
+		} else {
+			//calculate base likelihoods P(d|b, D, epsilon) = \sum_{\bar{b}} P(\bar{b}|b, D)P(d|\bar{b}, \epsilon)
+			for(size_t i=0; i<site.depth(); ++i){
+				fillBaseLikelihoods(site[i], _baseLikelihoods[i], PmdModels, SequencingErrorModels);
+			}
+
+			//calculate genotype likelihoods
+			genotypeLikelihoods.fill(_baseLikelihoods, site.depth());
+		}
+	};
+};
 
 class TGenotypeLikelihoodCalculator{
 protected:
 	bool _initialized;
-	TLog* _logfile;
-	BAM::TReadGroups* _readGroups;
+	TGenotypeLikelihoodCalculator_simple _calculator;
 
 	TGenotypeDistribution _genotypeDistribution;
-	TPostMortemDamage _pmd;
+	TPostMortemDamage _pmdModels;
 	TSequencingErrorModels _sequencingErrorModels;
-
-	//temporary storage: all are mutable
-	mutable TGenotypeLikelihoods _genotypeLikelihoods;
-	mutable std::vector<TBaseData> _baseLikelihoods;
-	mutable TBaseData _baseLikelihoodsNoPMD;
-	mutable TBaseData _tmpBaseData;
 
 public:
 	TGenotypeLikelihoodCalculator();
-	TGenotypeLikelihoodCalculator(TParameters & params, BAM::TReadGroups* ReadGroups, TLog* Logfile);
-	~TGenotypeLikelihoodCalculator();
+	TGenotypeLikelihoodCalculator(TParameters & params, const BAM::TReadGroups* ReadGroups, TLog* Logfile);
+	~TGenotypeLikelihoodCalculator() = default;
 
-	void init(TParameters & params, BAM::TReadGroups* ReadGroups, TLog* Logfile);
-	const TSequencingErrorModels& getSequencingErrorModels() const{ return _sequencingErrorModels; };
+	void init(TParameters & params, const BAM::TReadGroups* ReadGroups, TLog* Logfile);
+	const TSequencingErrorModels& getSequencingErrorModels() const { return _sequencingErrorModels; };
+	TSequencingErrorModels& getSequencingErrorModelsMutable() { return _sequencingErrorModels; };
+	const TPostMortemDamage& getPostMortemDamageModels() const { return _pmdModels; };
+	TPostMortemDamage& getPostMortemDamageModelsMutable() { return _pmdModels; };
 
 	bool hasPMD() const;
 	bool recalibrationChangesQualities() const;

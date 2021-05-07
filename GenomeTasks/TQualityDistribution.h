@@ -36,7 +36,6 @@ private:
 	bool _compareToOtherSeqErrors;
 	std::string _label1, _label2;
 	GenotypeLikelihoods::TSequencingErrorModels _otherSeqErrors;
-	BAM::TReadGroupMap* _readGroupMap;
 
 	void _handleAlignment();
 

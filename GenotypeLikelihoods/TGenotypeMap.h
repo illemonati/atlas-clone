@@ -201,6 +201,10 @@ public:
 		return false;
 	};
 
+	Base toBase(const Base base){
+		return base;
+	};
+
 	Base toBase(const char base) const{
 		if(base == 'A') return A;
 		if(base == 'C') return C;

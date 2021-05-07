@@ -24,10 +24,10 @@ VcfDiagnostics::VcfDiagnostics(TParameters & Params, TLog* Logfile){
     chr=-1;
 
     //open vcf file
-    openVCF(Params.getParameterString("vcf"), vcfFile);
+    openVCF(Params.getParameter<std::string>("vcf"), vcfFile);
 
     //outputname
-    outname = Params.getParameterStringWithDefault("out", "");
+    outname = Params.getParameterWithDefault<std::string>("out", "");
     if(outname == ""){
         //guess from filename
         outname = vcfFile.filename;
@@ -160,10 +160,10 @@ void VcfDiagnostics::assessAllelicImbalance(TParameters & Params){
 	logfile->list("Writing files to '" + outname + "_allelicDepth.txt'");
 
 	//limit input?
-	int maxDP = Params.getParameterIntWithDefault("maxDepth", 100);
+	int maxDP = Params.getParameterWithDefault<int>("maxDepth", 100);
 	logfile->list("Ignoring sites with depth larger than " + toString(maxDP) + ".");
 
-	int inputLines = Params.getParameterIntWithDefault("inputLines", -1);
+	int inputLines = Params.getParameterWithDefault<int>("inputLines", -1);
 	if(inputLines <= 0){
 		logfile->list("Reading whole vcf.");
 	} else
@@ -171,9 +171,9 @@ void VcfDiagnostics::assessAllelicImbalance(TParameters & Params){
 
 	//initialize tables
 	logfile->startIndent("Initializing count tables:");
-	std::string qualityString = Params.getParameterStringWithDefault("qualities", "0,10,20,30,40,50");
+	std::string qualityString = Params.getParameterWithDefault<std::string>("qualities", "0,10,20,30,40,50");
 	std::vector<int> qualities;
-	fillVectorFromString(qualityString, qualities, ',');
+	fillContainerFromString(qualityString, qualities, ',');
 
 	std::vector<TCountTable*> countTables;
 	for(unsigned int i=0; i<qualities.size(); ++i){
@@ -197,7 +197,7 @@ void VcfDiagnostics::assessAllelicImbalance(TParameters & Params){
 				//which position in table does site correspond to?
 				std::vector<std::string> tmp;
 				std::string tag="AD";
-				fillVectorFromString(vcfFile.getSampleContentAt(tag, i), tmp, ',');
+				fillContainerFromString(vcfFile.getSampleContentAt(tag, i), tmp, ',');
 				int numRef = convertString<int>(tmp[0]);
 				int numAlt = convertString<int>(tmp[1]);
 				if(numRef == 0 || numAlt == 0)
@@ -248,7 +248,7 @@ void VcfDiagnostics::filterAllelicImbalance(){
 	//open vcf file
 	if(verbose) std::cerr << " - Filtering sites with allelic imbalance:" << std::endl;
 
-	double pValFilter = params->getParameterDoubleWithDefault("pValFilter", 0.001);
+	double pValFilter = params->getParameterWithDefault("pValFilter", 0.001);
 
 	openVCF(vcfFile);
 
@@ -276,7 +276,7 @@ void VcfDiagnostics::filterAllelicImbalance(){
 	long numPassedFilter = 0;
 
 	//open log file for sites
-	std::string filename = params->getParameterStringWithDefault("infoOut", "ImbalanceFilter_siteInfo.txt");
+	std::string filename = params->getParameterWithDefault<std::string>("infoOut", "ImbalanceFilter_siteInfo.txt");
 	std::ofstream sitesInfoOut(filename.c_str());
 	if(!sitesInfoOut)
 		throw "Failed to open file '" + filename + " for writing!";
@@ -290,7 +290,7 @@ void VcfDiagnostics::filterAllelicImbalance(){
 		numHet = 0;
 		for(int i=0; i < vcfFile.numSamples(); ++i){
 			if(!vcfFile.sampleIsMissing(i) && vcfFile.sampleIsHeteroRefNonref(i)){
-				fillVectorFromString(vcfFile.getSampleContentAt(tag, i), tmp, ',');
+				fillContainerFromString(vcfFile.getSampleContentAt(tag, i), tmp, ',');
 				numRef += tmp[0]; numAlt += tmp[1];
 				++numHet;
 			}
@@ -360,7 +360,7 @@ void VcfDiagnostics::fixIntAsFloat(){
 
 		//fix GP field
 		std::string gp = vcfFile.fieldContentAsString("GP", 0);
-		fillVectorFromString(gp, vec, ',');
+		fillContainerFromString(gp, vec, ',');
 		gp = std::to_string(vec[0]) + ',' + std::to_string(vec[1]) + ',' + std::to_string(vec[2]);
 		vcfFile.updateField("GP", gp, 0);
 

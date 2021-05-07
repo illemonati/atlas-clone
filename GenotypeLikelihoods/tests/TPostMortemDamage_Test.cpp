@@ -24,12 +24,12 @@ TEST(TPostMortemDamage_test, baseANoPMD){
     TGenotypeMap genoMap;
 
     _baseLikelihoods.resize(1);
-    _sequencingErrorModels.calculateBaseLikelihoods(base, _baseLikelihoodsNoPMD);
-    _pmd.calculateBaseLikelihoods(base, _baseLikelihoodsNoPMD, _baseLikelihoods[0]);
+    _sequencingErrorModels.fillBaseLikelihoods(base, _baseLikelihoodsNoPMD);
+    _pmd.fillBaseLikelihoods(base, _baseLikelihoodsNoPMD, _baseLikelihoods[0]);
 
     for(int b = 0; b < bases.size(); ++b){
         base.base = genoMap.getBaseOnlyCapitals(bases[b]);
-        _sequencingErrorModels.calculateBaseLikelihoods(base, _baseLikelihoodsNoPMD);
+        _sequencingErrorModels.fillBaseLikelihoods(base, _baseLikelihoodsNoPMD);
 
         for(int trueBase = 0; trueBase < bases.size(); ++trueBase){
             //true base is A
@@ -74,8 +74,8 @@ TEST(TPostMortemDamage_test, baseAWithPMD){
         base.readGroupID = 0;
         base.setReverseStrand(false);
 
-        _sequencingErrorModels.calculateBaseLikelihoods(base, _baseLikelihoodsNoPMD);
-        _pmd.calculateBaseLikelihoods(base, _baseLikelihoodsNoPMD, _baseLikelihoods[0]);
+        _sequencingErrorModels.fillBaseLikelihoods(base, _baseLikelihoodsNoPMD);
+        _pmd.fillBaseLikelihoods(base, _baseLikelihoodsNoPMD, _baseLikelihoods[0]);
 
         for(int trueBase = 0; trueBase < bases.size(); ++trueBase){
             //true base is A

@@ -55,9 +55,8 @@ protected:
 
 	//alignment
 	BAM::TSamFlags _flags;
+	BAM::TCigar _cigar;
 	BAM::TAlignment _alignment;
-	std::vector<Base> bases;
-	std::vector<uint16_t> phredIntQualities;
 
 	//function initialize
 	void _initializeQualityDistribution(std::string s, std::unique_ptr<TSimulatorQualityDist> & pointer);
@@ -66,7 +65,7 @@ protected:
 	void _simulateQualitiesAndErrors(Base* _bases, int* _qualities, int & len);
 	void _applyPMD(std::vector<Base>& bases, const TReadLength & readLength, const bool isReverseStrand);
 	std::string _getNextReadName();
-	void _simulateBasesQualities(BAM::TAlignment & alignment, Base* haplotype, const uint64_t pos, const TReadLength & readLength, const bool readIsContaminated, const bool isReverse, TSimulatorQualityTransformation* qualityTransform);
+	void _simulateBasesQualities(BAM::TAlignment & alignment, Base* haplotype, const uint64_t pos, const TReadLength & readLength, const bool readIsContaminated, TSimulatorQualityTransformation* qualityTransform);
 
 public:
 	TSimulatorSingleEndRead(const BAM::TReadGroup& ReadGroup, TRandomGenerator* RandomGenerator, GenotypeLikelihoods::TGenotypeMap & GenoMap);

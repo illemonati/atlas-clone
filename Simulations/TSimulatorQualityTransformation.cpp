@@ -55,7 +55,7 @@ TSimulatorQualityTransformationRecal::TSimulatorQualityTransformationRecal(std::
 	if(pos == std::string::npos)
 		throw "Failed to understand recal string: missing ']'!\nEither provide a valid file name or a string of format 'modelTag[quality parameters; position parameters; context parameters]'.";
 	std::vector<std::string> tmpVec, vec;
-	fillVectorFromString(string.substr(0, pos), tmpVec, ';');
+	fillContainerFromString(string.substr(0, pos), tmpVec, ';');
 	if(tmpVec.size() != 3)
 		throw "Failed to understand recal string: wrong number of parameter sets (" + toString(tmpVec.size()) + " instead of 3)!\nEither provide a valid file name or a string of format 'modelTag[quality parameters; position parameters; context parameters]'.";
 

@@ -6,7 +6,7 @@
  */
 
 
-#include "../GenotypeLikelihoods/TSequencingErrorCovariate.h"
+#include "TSequencingErrorCovariate.h"
 
 namespace GenotypeLikelihoods{
 
@@ -31,7 +31,7 @@ void TSequencingErrorCovariate::_parseModuleString(const std::string & str, std:
 		if(pos == std::string::npos){
 			throw "Wrong format for recal function '" + str + "': missing ']'! " + format;
 		}
-		fillVectorFromStringAny(str.substr(pos+1, pos2-pos-1), values, ",", true);
+		fillContainerFromStringAny(str.substr(pos+1, pos2-pos-1), values, ",", true);
 	} else {
 		type = str;
 	}
@@ -44,7 +44,7 @@ void TSequencingErrorCovariate::_parseModuleString(const std::string & str, std:
 		if(pos == std::string::npos){
 			throw "Wrong format for recal function '" + str + "': missing ')'! " + format;
 		}
-		fillVectorFromStringAny(type.substr(pos+1, pos2-pos-1), args, ",", true);
+		fillContainerFromStringAny(type.substr(pos+1, pos2-pos-1), args, ",", true);
 
 		//extract type
 		type = type.substr(0, pos);
@@ -95,7 +95,7 @@ std::string TSequencingErrorCovariate::functionString(){
 //-------------------------------------------
 // TSequencingErrorCovariate_quality
 //-------------------------------------------
-TSequencingErrorCovariate_quality::TSequencingErrorCovariate_quality(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable){
+TSequencingErrorCovariate_quality::TSequencingErrorCovariate_quality(const size_t FirstParameterIndex, const std::string & functionString, const RecalEstimatorTools::TRecalDataTable & dataTable){
 	addFunction(FirstParameterIndex, functionString, dataTable);
 };
 
@@ -103,7 +103,7 @@ TSequencingErrorCovariate_quality::TSequencingErrorCovariate_quality(const size_
 	addFunction(FirstParameterIndex, functionString);
 };
 
-void TSequencingErrorCovariate_quality::addFunction(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable){
+void TSequencingErrorCovariate_quality::addFunction(const size_t FirstParameterIndex, const std::string & functionString, const RecalEstimatorTools::TRecalDataTable & dataTable){
 	//parse
 	std::string type;
 	std::vector<std::string> values, args;
@@ -118,8 +118,7 @@ void TSequencingErrorCovariate_quality::addFunction(const size_t FirstParameterI
 			_function->setBeta(0, 1.0);
 		}
 	} else if(type == SequencingErrorCovariateFunction_specific){
-		std::vector<uint16_t> usedQualities;
-		dataTable->fillVectorWithUsedQualities(usedQualities);
+		std::vector<uint16_t> usedQualities = dataTable.qualities().vectorOfUsed();
 		if(values.empty()){
 			_function.reset(new TSequencingErrorCovariateFunction_specificMap(FirstParameterIndex, usedQualities));
 		} else {
@@ -157,10 +156,8 @@ void TSequencingErrorCovariate_quality::addFunction(const size_t FirstParameterI
 	_function->addTransformation(&qualityToLogit);
 };
 
-bool TSequencingErrorCovariate_quality::checkParameterRange(TRecalibrationEMDataTable* dataTable){
-	std::vector<uint16_t> usedQualities;
-	dataTable->fillVectorWithUsedQualities(usedQualities);
-
+bool TSequencingErrorCovariate_quality::checkParameterRange(const RecalEstimatorTools::TRecalDataTable & dataTable){
+	std::vector<uint16_t> usedQualities = dataTable.qualities().vectorOfUsed();
 	return _function->checkValueRange(usedQualities);
 };
 
@@ -168,10 +165,15 @@ bool TSequencingErrorCovariate_quality::checkParameterRange(std::vector<uint16_t
 	return _function->checkValueRange(usedQualities);
 };
 
+void TSequencingErrorCovariate_quality::adjustParameterRange(const RecalEstimatorTools::TRecalDataTable & dataTable){
+	return _function->adjustValueRanges(dataTable.qualities().vectorOfUsed());
+};
+
+
 //-------------------------------------------
 // TSequencingErrorCovariate_position
 //-------------------------------------------
-TSequencingErrorCovariate_position::TSequencingErrorCovariate_position(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable){
+TSequencingErrorCovariate_position::TSequencingErrorCovariate_position(const size_t FirstParameterIndex, const std::string & functionString, const RecalEstimatorTools::TRecalDataTable & dataTable){
 	addFunction(FirstParameterIndex, functionString, dataTable);
 };
 
@@ -179,7 +181,7 @@ TSequencingErrorCovariate_position::TSequencingErrorCovariate_position(const siz
 	addFunction(FirstParameterIndex, functionString);
 };
 
-void TSequencingErrorCovariate_position::addFunction(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable){
+void TSequencingErrorCovariate_position::addFunction(const size_t FirstParameterIndex, const std::string & functionString, const RecalEstimatorTools::TRecalDataTable & dataTable){
 	//parse
 	std::string type;
 	std::vector<std::string> values, args;
@@ -190,7 +192,7 @@ void TSequencingErrorCovariate_position::addFunction(const size_t FirstParameter
 		_addPolynomialFunction(FirstParameterIndex, functionString, args, values);
 	} else if(type == SequencingErrorCovariateFunction_specific){
 		if(values.empty()){
-			_function.reset(new TSequencingErrorCovariateFunction_specific(FirstParameterIndex, dataTable->maxPos));
+			_function.reset(new TSequencingErrorCovariateFunction_specific(FirstParameterIndex, dataTable.positions().max()));
 		} else {
 			_function.reset(new TSequencingErrorCovariateFunction_specific(FirstParameterIndex, values));
 		}
@@ -219,18 +221,22 @@ void TSequencingErrorCovariate_position::addFunction(const size_t FirstParameter
 		throw "Recalibration function '" + type + "' not valid for covariate quality!";
 	}
 };
-bool TSequencingErrorCovariate_position::checkParameterRange(TRecalibrationEMDataTable* dataTable){
-	return _function->checkValueRange(dataTable->maxPos);
+bool TSequencingErrorCovariate_position::checkParameterRange(const RecalEstimatorTools::TRecalDataTable & dataTable){
+	return _function->checkValueRange(dataTable.positions().max());
 };
 
 bool TSequencingErrorCovariate_position::checkParameterRange(std::vector<uint16_t> & usedQualities, uint16_t maxPos){
 	return _function->checkValueRange(maxPos);
 };
 
+void TSequencingErrorCovariate_position::adjustParameterRange(const RecalEstimatorTools::TRecalDataTable & dataTable){
+	return _function->adjustValueRanges(dataTable.positions().vectorOfUsed());
+};
+
 //-------------------------------------------
 // TSequencingErrorCovariate_context
 //-------------------------------------------
-TSequencingErrorCovariate_context::TSequencingErrorCovariate_context(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable){
+TSequencingErrorCovariate_context::TSequencingErrorCovariate_context(const size_t FirstParameterIndex, const std::string & functionString, const RecalEstimatorTools::TRecalDataTable & dataTable){
 	numContext = 20;
 	addFunction(FirstParameterIndex, functionString, dataTable);
 };
@@ -240,7 +246,7 @@ TSequencingErrorCovariate_context::TSequencingErrorCovariate_context(const size_
 	addFunction(FirstParameterIndex, functionString);
 };
 
-void TSequencingErrorCovariate_context::addFunction(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable){
+void TSequencingErrorCovariate_context::addFunction(const size_t FirstParameterIndex, const std::string & functionString, const RecalEstimatorTools::TRecalDataTable & dataTable){
 	//parse
 	std::string type;
 	std::vector<std::string> values, args;
@@ -277,7 +283,7 @@ void TSequencingErrorCovariate_context::addFunction(const size_t FirstParameterI
 	}
 };
 
-bool TSequencingErrorCovariate_context::checkParameterRange(TRecalibrationEMDataTable* dataTable){
+bool TSequencingErrorCovariate_context::checkParameterRange(const RecalEstimatorTools::TRecalDataTable & dataTable){
 	return _function->checkValueRange(20);
 };
 
@@ -289,7 +295,7 @@ bool TSequencingErrorCovariate_context::checkParameterRange(std::vector<uint16_t
 // TSequencingErrorCovariate_fragmentLength
 //-------------------------------------------
 
-TSequencingErrorCovariate_fragmentLength::TSequencingErrorCovariate_fragmentLength(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable){
+TSequencingErrorCovariate_fragmentLength::TSequencingErrorCovariate_fragmentLength(const size_t FirstParameterIndex, const std::string & functionString, const RecalEstimatorTools::TRecalDataTable & dataTable){
 	addFunction(FirstParameterIndex, functionString, dataTable);
 };
 
@@ -297,7 +303,7 @@ TSequencingErrorCovariate_fragmentLength::TSequencingErrorCovariate_fragmentLeng
 	addFunction(FirstParameterIndex, functionString);
 };
 
-void TSequencingErrorCovariate_fragmentLength::addFunction(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable){
+void TSequencingErrorCovariate_fragmentLength::addFunction(const size_t FirstParameterIndex, const std::string & functionString, const RecalEstimatorTools::TRecalDataTable & dataTable){
 	//parse
 	std::string type;
 	std::vector<std::string> values, args;
@@ -312,8 +318,7 @@ void TSequencingErrorCovariate_fragmentLength::addFunction(const size_t FirstPar
 			_function->setBeta(0, 1.0);
 		}
 	} else if(type == SequencingErrorCovariateFunction_specific){
-		std::vector<uint16_t> usedLengths;
-		dataTable->fillVectorWithUsedFragmentLengths(usedLengths);
+		std::vector<uint16_t> usedLengths = dataTable.fragmentLengths().vectorOfUsed();
 		if(values.empty()){
 			_function.reset(new TSequencingErrorCovariateFunction_specificMap(FirstParameterIndex, usedLengths));
 		} else {
@@ -345,10 +350,8 @@ void TSequencingErrorCovariate_fragmentLength::addFunction(const size_t FirstPar
 	}
 };
 
-bool TSequencingErrorCovariate_fragmentLength::checkParameterRange(TRecalibrationEMDataTable* dataTable){
-	std::vector<uint16_t> usedLengths;
-	dataTable->fillVectorWithUsedFragmentLengths(usedLengths);
-
+bool TSequencingErrorCovariate_fragmentLength::checkParameterRange(const RecalEstimatorTools::TRecalDataTable & dataTable){
+	std::vector<uint16_t> usedLengths = dataTable.fragmentLengths().vectorOfUsed();
 	return _function->checkValueRange(usedLengths);
 };
 
@@ -356,11 +359,15 @@ bool TSequencingErrorCovariate_fragmentLength::checkParameterRange(std::vector<u
 	return _function->checkValueRange(usedLengths);
 };
 
+void TSequencingErrorCovariate_fragmentLength::adjustParameterRange(const RecalEstimatorTools::TRecalDataTable & dataTable){
+	return _function->adjustValueRanges(dataTable.fragmentLengths().vectorOfUsed());
+};
+
 //-------------------------------------------
 // TSequencingErrorCovariate_mappingQuality
 //-------------------------------------------
 
-TSequencingErrorCovariate_mappingQuality::TSequencingErrorCovariate_mappingQuality(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable){
+TSequencingErrorCovariate_mappingQuality::TSequencingErrorCovariate_mappingQuality(const size_t FirstParameterIndex, const std::string & functionString, const RecalEstimatorTools::TRecalDataTable & dataTable){
 	addFunction(FirstParameterIndex, functionString, dataTable);
 };
 
@@ -368,7 +375,7 @@ TSequencingErrorCovariate_mappingQuality::TSequencingErrorCovariate_mappingQuali
 	addFunction(FirstParameterIndex, functionString);
 };
 
-void TSequencingErrorCovariate_mappingQuality::addFunction(const size_t FirstParameterIndex, const std::string & functionString, TRecalibrationEMDataTable* dataTable){
+void TSequencingErrorCovariate_mappingQuality::addFunction(const size_t FirstParameterIndex, const std::string & functionString, const RecalEstimatorTools::TRecalDataTable & dataTable){
 	//parse
 	std::string type;
 	std::vector<std::string> values, args;
@@ -383,8 +390,7 @@ void TSequencingErrorCovariate_mappingQuality::addFunction(const size_t FirstPar
 			_function->setBeta(0, 1.0);
 		}
 	} else if(type == SequencingErrorCovariateFunction_specific){
-		std::vector<uint16_t> usedMQ;
-		dataTable->fillVectorWithUsedFragmentLengths(usedMQ);
+		std::vector<uint16_t> usedMQ = dataTable.mappingQualities().vectorOfUsed();
 		if(values.empty()){
 			_function.reset(new TSequencingErrorCovariateFunction_specificMap(FirstParameterIndex, usedMQ));
 		} else {
@@ -416,15 +422,17 @@ void TSequencingErrorCovariate_mappingQuality::addFunction(const size_t FirstPar
 	}
 };
 
-bool TSequencingErrorCovariate_mappingQuality::checkParameterRange(TRecalibrationEMDataTable* dataTable){
-	std::vector<uint16_t> usedMQ;
-	dataTable->fillVectorWithUsedMQ(usedMQ);
-
+bool TSequencingErrorCovariate_mappingQuality::checkParameterRange(const RecalEstimatorTools::TRecalDataTable & dataTable){
+	std::vector<uint16_t> usedMQ = dataTable.mappingQualities().vectorOfUsed();
 	return _function->checkValueRange(usedMQ);
 };
 
 bool TSequencingErrorCovariate_mappingQuality::checkParameterRange(std::vector<uint16_t> & usedLengths, uint16_t maxPos){
 	return _function->checkValueRange(usedLengths);
+};
+
+void TSequencingErrorCovariate_mappingQuality::adjustParameterRange(const RecalEstimatorTools::TRecalDataTable & dataTable){
+	return _function->adjustValueRanges(dataTable.mappingQualities().vectorOfUsed());
 };
 
 //end namespace recal

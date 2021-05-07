@@ -33,9 +33,9 @@ void TAtlasTest_filter::setVariables(TParameters & params, TLog* Logfile, TTaskL
 	taskList = TaskList;
 	bamFileName = filenameTag + "_filtered.bam";
 	readGroupName = "TestReadGroup";
-	readLength = params.getParameterIntWithDefault("mergingTest_readLength", 100);
+	readLength = params.getParameterWithDefault<int>("mergingTest_readLength", 100);
 	chrLength = readLength * 5;
-	phredError = params.getParameterIntWithDefault("mergingTest_qual", 50);
+	phredError = params.getParameterWithDefault<int>("mergingTest_qual", 50);
 
 	//booleans
 	keepAll = params.parameterExists("filter_keepAll");

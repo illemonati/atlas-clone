@@ -194,7 +194,7 @@ TVcfSample::TVcfSample(){
 
 void TVcfSample::readData(std::string s){
 	//split by ':'
-	fillVectorFromString(s, data, ':');
+	fillContainerFromString(s, data, ':');
 };
 
 void TVcfSample::addData(std::string d){
@@ -315,7 +315,7 @@ void TVcfLine::update(std::string & line, unsigned int & numCols, long & LineNum
 
 	//now read new data
 	trimString(line);
-	fillVectorFromStringWhiteSpace(line, data);
+	fillContainerFromStringWhiteSpace(line, data);
 	if(data.size() != numCols) throw "Wrong number of columns (" + toString(data.size()) + " instead of " + toString(numCols) + ") in VCF file on line " + toString(lineNumber) + "!";
 }
 
@@ -571,7 +571,7 @@ void TVcfParser::fillPhredScore(TVcfLine & line, unsigned int & s, uint8_t & gtl
 			} else {
 				//GL field exists
 				std::vector<std::string> phreddie;
-				fillVectorFromString(line.samples[s].data[col], phreddie, ',');
+				fillContainerFromString(line.samples[s].data[col], phreddie, ',');
 
 				//diploid or haploid?
 				if(line.samples[s].isHaploid){
@@ -589,7 +589,7 @@ void TVcfParser::fillPhredScore(TVcfLine & line, unsigned int & s, uint8_t & gtl
 		} else {
 			//PL field exists
 			std::vector<std::string> phreddie;
-			fillVectorFromString(line.samples[s].data[col], phreddie, ',');
+			fillContainerFromString(line.samples[s].data[col], phreddie, ',');
 
 			//diploid or haploid?
 			if(line.samples[s].isHaploid){
@@ -621,7 +621,7 @@ void TVcfParser::fillLog10GenotypeLikelihoods(TVcfLine & line, unsigned int & s,
 			} else {
 				//PL field exists
 				std::vector<std::string> phreddie;
-				fillVectorFromString(line.samples[s].data[col], phreddie, ',');
+				fillContainerFromString(line.samples[s].data[col], phreddie, ',');
 
 				//diploid or haploid?
 				uint8_t tmp;
@@ -645,7 +645,7 @@ void TVcfParser::fillLog10GenotypeLikelihoods(TVcfLine & line, unsigned int & s,
 		} else {
 			//GL field exists: just convert to double
 			std::vector<std::string> phreddie;
-			fillVectorFromString(line.samples[s].data[col], phreddie, ',');
+			fillContainerFromString(line.samples[s].data[col], phreddie, ',');
 
 			//diploid or haploid?
 			if(line.samples[s].isHaploid){

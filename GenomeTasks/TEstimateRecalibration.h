@@ -17,38 +17,18 @@ namespace GenomeTasks{
 //-----------------------------------------------------------
 // TEstimateRecalibration_base
 //-----------------------------------------------------------
-class TEstimateRecalibration_base:public TGenome_windows{
+class TEstimateRecalibration:public TGenome_windows{
 protected:
-	std::unique_ptr<GenotypeLikelihoods::TRecalibrationEMEstimator> recalObjectEM;
+	std::unique_ptr<GenotypeLikelihoods::RecalEstimator::TRecalibrationEMEstimator> recalObjectEM;
 	BAM::TReadGroupMap* _readGroupMap;
-	GenotypeLikelihoods::TBaseData _baseFreq;
 
 	void _handleWindow();
 
 public:
-	TEstimateRecalibration_base(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
-	virtual ~TEstimateRecalibration_base();
-};
-
-//-----------------------------------------------------------
-// TEstimateRecalibration
-//-----------------------------------------------------------
-class TEstimateRecalibration:public TEstimateRecalibration_base{
-private:
-	bool _writeTmpTables;
-
-public:
 	TEstimateRecalibration(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
-	void estimateRecalibration();
-};
+	~TEstimateRecalibration();
 
-//-----------------------------------------------------------
-// TEstimateRecalibrationLL
-//-----------------------------------------------------------
-class TEstimateRecalibrationLL:public TEstimateRecalibration_base{
-public:
-	TEstimateRecalibrationLL(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
-	void calculateRecalibrationLL();
+	void estimateRecalibration();
 };
 
 //--------------------------------------
@@ -66,20 +46,6 @@ public:
 		estimator.estimateRecalibration();
 	};
 };
-
-class TTask_recalLL:public TTask{
-public:
-	TTask_recalLL(){
-		_explanation = "Calculating LL for error re-calibration function";
-		_citations.insert("Kousathanas et al. (2017) Genetics");
-	};
-
-	void run(TParameters & Parameters, TLog* Logfile){
-		TEstimateRecalibrationLL estimator(Parameters, Logfile, _randomGenerator);
-		estimator.calculateRecalibrationLL();
-	};
-};
-
 
 
 }; // end namespace

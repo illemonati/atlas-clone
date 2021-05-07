@@ -94,10 +94,8 @@ private:
 	TGenotypeMap _genoMap;
 
 public:
-	TPMDTableReadGroup() = default;
+	TPMDTableReadGroup(const uint16_t & TableLength);
 
-	void resize(const uint16_t & MaxLength);
-	void empty();
 	void add(const BAM::TBase & base, const Base & reference);
 
 	const TPMDTable& operator[](const PMDTableType & Type) const{
@@ -112,21 +110,17 @@ public:
 //------------------------------------------------
 class TPMDTables{
 private:
-	BAM::TReadGroupMap* readGroupMap;
-	BAM::TReadGroups* readGroups;
-	int maxReadLength;
+	const BAM::TReadGroupMap* _readGroupMap;
+	const BAM::TReadGroups* _readGroups;
 	uint16_t _tableLength;
-	int origNumReadGroups;
-	int numReadGroups;
 	std::vector<TPMDTableReadGroup> _tables;
-	bool _initialized;
 
 public:
 	TPMDTables();
-	TPMDTables(BAM::TReadGroups* ReadGroups, int tableLength, int MaxReadLength, BAM::TReadGroupMap* ReadGroupMapObject);
+	TPMDTables(const BAM::TReadGroups* ReadGroups, const uint16_t & TableLength, const BAM::TReadGroupMap* ReadGroupMapObject);
 	~TPMDTables(){};
 
-	void initialize(BAM::TReadGroups* ReadGroups, int maxLengthForInference, int MaxReadLength, BAM::TReadGroupMap* ReadGroupMapObject);
+	void initialize(const BAM::TReadGroups* ReadGroups, const uint16_t & TableLength, const BAM::TReadGroupMap* ReadGroupMap);
 	const TPMDTableReadGroup& operator[](const uint16_t & ReadGroupID) const;
 
 	void add(const BAM::TBase & base, const Base & reference);

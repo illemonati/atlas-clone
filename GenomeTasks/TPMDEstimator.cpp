@@ -13,22 +13,30 @@ namespace GenomeTasks{
 // TPMDEstimator.h
 //----------------------------------------
 TPMDEstimator::TPMDEstimator(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_parsed(Parameters, Logfile, RandomGenerator){
+	//make sure there is pmd
+	if(!_genotypeLikelihoodCalculator.hasPMD()){
+		throw "Can not estimate PMD: no PMD models provided! Use 'pmd' to provide PMD models.";
+	}
+
 	//make sure it has a reference
 	_openReference(true);
 
 	//prepare maps
-	_readGroupMap = new BAM::TReadGroupMap(&_bamFile.readGroupsMutable(), Parameters.getParameterString("poolReadGroups", false), _logfile);
+	_readGroupMap = new BAM::TReadGroupMap(_bamFile.readGroups(), Parameters.getParameter<std::string>("poolReadGroups", false), _logfile);
 
-	//prepare PMD table
+	//parse estimation parameters
 	_logfile->startIndent("Parameters for PMD Estimation:");
-	_maxLengthForInference = Parameters.getParameterIntWithDefault("length", 50);
+	_maxLengthForInference = Parameters.getParameterWithDefault<int>("length", 50);
 	_logfile->list("Estimating PMD from the first " + toString(_maxLengthForInference) + " positions.");
-	_pmdTables.initialize(&_bamFile.readGroupsMutable(), _maxLengthForInference, _bamFile.maxReadLength(), _readGroupMap);
-	_pmd.parseEstimationParameters(_estimationParameters, Parameters, _logfile);
+
+	GenotypeLikelihoods::TPostMortemDamage& pmd = _genotypeLikelihoodCalculator.getPostMortemDamageModelsMutable();
+	for(auto& r : _readGroupMap->readGroupsInUse()){
+		pmd[r].parseEstimationParameters(_estimationParameters, Parameters, _logfile);
+	}
 	_logfile->endIndent();
 
-	//create PMD objects
-	_pmd.initialize(Parameters, _bamFile.readGroupsMutable(), Logfile);
+	//create PMD tables
+	_pmdTables.initialize(&_bamFile.readGroups(), _maxLengthForInference, _readGroupMap);
 };
 
 TPMDEstimator::~TPMDEstimator(){
@@ -45,37 +53,36 @@ void TPMDEstimator::_handleAlignment(){
 };
 
 void TPMDEstimator::estimatePMD(){
-	//check if PMD must be estimated
-	if(!_pmd.hasPMD()){
-		_logfile->list("Data has no PMD. Aborting estimation.");
-	} else {
-		//estimate PMD
-		//traverse BAM
-		_traverseBAMPassedQC();
+	// 1) traverse BAM to assemble PMD Tables
+	_traverseBAMPassedQC();
 
-		//print PMD tables
-		_logfile->startIndent("Writing PMD tables:");
+	// 2) print PMD tables
+	_logfile->startIndent("Writing PMD tables:");
 
-		//counts
-		std::string filename = _outputName + "_PMD_counts.txt";
-		_logfile->listFlush("Writing PMD counts to '" + filename + "' ...");
-		_pmdTables.write(filename, false);
-		_logfile->done();
+	//counts
+	std::string filename = _outputName + "_PMD_counts.txt";
+	_logfile->listFlush("Writing PMD counts to '" + filename + "' ...");
+	_pmdTables.write(filename, false);
+	_logfile->done();
 
-		//normalized counts
-		filename = _outputName + "_PMD_countsNormalized.txt";
-		_logfile->listFlush("Writing PMD normalized counts to '" + filename + "' ...");
-		_pmdTables.write(filename, true);
-		_logfile->done();
-		_logfile->endIndent();
+	//normalized counts
+	filename = _outputName + "_PMD_countsNormalized.txt";
+	_logfile->listFlush("Writing PMD normalized counts to '" + filename + "' ...");
+	_pmdTables.write(filename, true);
+	_logfile->done();
+	_logfile->endIndent();
 
-		//estimate models
-		_pmd.estimate(_pmdTables, _bamFile.readGroups(), _logfile, _estimationParameters);
+	// 3) estimate models
+	GenotypeLikelihoods::TPostMortemDamage& pmd = _genotypeLikelihoodCalculator.getPostMortemDamageModelsMutable();
+
+	//estimate all models with data, i.e. only one model per pool
+	for(auto& r : _readGroupMap->readGroupsInUse()){
+		pmd[r].estimate(_pmdTables[r], _estimationParameters);
 	}
 
 	//writing PMD file
-	std::string filename = _outputName + "_ PMD.txt";
-	_pmd.writeToFile(_bamFile.readGroupsMutable(), filename);
+	filename = _outputName + "_ PMD.txt";
+	pmd.writeToFile(_bamFile.readGroups(), *_readGroupMap, filename);
 };
 
 }; // end namespace

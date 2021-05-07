@@ -79,6 +79,7 @@ void addTaks(TMain & main) {
 
 	//window tasks
 	main.addRegularTask("recal", new GenomeTasks::TTask_recal());
+	//TODO: add task to calculate LL of full model
 	main.addRegularTask("writeDepth", new GenomeTasks::TTask_depthWriter());
 	main.addRegularTask("createMask", new GenomeTasks::TTask_createMask());
 	main.addRegularTask("allelicDepth", new GenomeTasks::TTask_allelicDepth());

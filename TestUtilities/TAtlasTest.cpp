@@ -30,9 +30,9 @@ void TAtlasTest_pileup::setVariables(TParameters & params, TLog* Logfile, TTaskL
 	//variables
 	logfile = Logfile;
 	taskList = TaskList;
-	readLength = params.getParameterIntWithDefault("pileupTest_readLength", 100);
+	readLength = params.getParameterWithDefault<int>("pileupTest_readLength", 100);
 	logfile->list("Will simulate reads of length " + toString(readLength) + ".");
-	phredError = params.getParameterIntWithDefault("pileupTest_qual", 50);
+	phredError = params.getParameterWithDefault<int>("pileupTest_qual", 50);
 	logfile->list("Will test with quality " + toString(phredError) + ".");
 	params.fillParameterIntoVectorWithDefault("pileupTest_depths", depths, ',', "2,4,10,20,40");
 	logfile->list("Will test the following depths: " + concatenateString(depths, ", ") + ".");
@@ -377,7 +377,7 @@ void TAtlasTest_allelicDepth::setVariables(TParameters & params, TLog* Logfile, 
 	//variables
 	logfile = Logfile;
 	taskList = TaskList;
-	phredError = params.getParameterIntWithDefault("pileupTest_qual", 50);
+	phredError = params.getParameterWithDefault<int>("pileupTest_qual", 50);
 	logfile->list("Will test with quality " + toString(phredError) + ".");
 	filenameTag = _testingPrefix + _name;
 	bamFileName = filenameTag + ".bam";

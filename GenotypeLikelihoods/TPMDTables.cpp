@@ -131,11 +131,12 @@ void TPMDTable::write(TOutputFile & out, std::vector<std::string> & prefix, cons
 //------------------------------------------------
 // TPMDTableReadGroup
 //------------------------------------------------
-void TPMDTableReadGroup::resize(const uint16_t & MaxLength){
-	_tables[forward3].resize(MaxLength);
-	_tables[forward5].resize(MaxLength);
-	_tables[reverse3].resize(MaxLength);
-	_tables[reverse5].resize(MaxLength);
+TPMDTableReadGroup::TPMDTableReadGroup(const uint16_t & TableLength){
+	//resize
+	_tables[forward3].resize(TableLength);
+	_tables[forward5].resize(TableLength);
+	_tables[reverse3].resize(TableLength);
+	_tables[reverse5].resize(TableLength);
 };
 
 void TPMDTableReadGroup::add(const BAM::TBase & base, const Base & reference){
@@ -170,35 +171,34 @@ void TPMDTableReadGroup::write(TOutputFile & out, std::vector<std::string> & pre
 //TPMDTables
 //---------------------------------------------------------------
 TPMDTables::TPMDTables(){
-	readGroups = nullptr;
-	maxReadLength = 0;
-	readGroupMap = nullptr;
-	origNumReadGroups = 0;
-	numReadGroups = 0;
-	_initialized = false;
+	_tableLength = 0;
+	_readGroups = nullptr;
+	_readGroupMap = nullptr;
 };
 
-TPMDTables::TPMDTables(BAM::TReadGroups* ReadGroups, int maxLengthForInference, int MaxReadLength, BAM::TReadGroupMap* ReadGroupMap){
-	initialize(ReadGroups, maxLengthForInference, MaxReadLength, ReadGroupMap);
+TPMDTables::TPMDTables(const BAM::TReadGroups* ReadGroups, const uint16_t & TableLength, const BAM::TReadGroupMap* ReadGroupMap){
+	_tableLength = 0;
+	initialize(ReadGroups, TableLength, ReadGroupMap);
 };
 
-void TPMDTables::initialize(BAM::TReadGroups* ReadGroups, int tableLength, int MaxReadLength, BAM::TReadGroupMap* ReadGroupMap){
-	readGroups = ReadGroups;
-	maxReadLength = MaxReadLength;
-	_tableLength = tableLength;
-	readGroupMap = ReadGroupMap;
-	origNumReadGroups = readGroupMap->getOrigNumReadGroups();
-	numReadGroups = readGroupMap->getNumReadGroups();
+void TPMDTables::initialize(const BAM::TReadGroups* ReadGroups, const uint16_t & TableLength, const BAM::TReadGroupMap* ReadGroupMap){
+	if(_tableLength > 0){
+		_tables.clear();
+	}
 
-	_tables.resize(numReadGroups, TPMDTableReadGroup(_tableLength));
+	_readGroups = ReadGroups;
+	_readGroupMap = ReadGroupMap;
+
+	_tableLength = TableLength;
+	_tables.resize(_readGroupMap->numReadGroupsInUse(), TPMDTableReadGroup(_tableLength));
 };
 
 const TPMDTableReadGroup& TPMDTables::operator[](const uint16_t & ReadGroupID) const{
-	return _tables[readGroupMap->getIndex(ReadGroupID)];
+	return _tables[_readGroupMap->pooledIndex(ReadGroupID)];
 };
 
 void TPMDTables::add(const BAM::TBase & base, const Base & reference){
-	_tables[readGroupMap->getIndex(base.readGroupID)].add(base, reference);
+	_tables[_readGroupMap->pooledIndex(base.readGroupID)].add(base, reference);
 };
 
 void TPMDTables::write(std::string filename, const bool & normalize){
@@ -214,10 +214,10 @@ void TPMDTables::write(std::string filename, const bool & normalize){
 
 	//loop over all read groups
 	std::vector<std::string> prefix(4);
-	for(int i=0; i<origNumReadGroups; ++i){
-		if(readGroups->readGroupInUse(i)){
-			uint16_t index = readGroupMap->getIndex(i);
-			prefix[0] = readGroups->getName(i);
+	for(int i=0; i<_readGroups->size(); ++i){
+		if(_readGroups->readGroupInUse(i)){
+			uint16_t index = _readGroupMap->pooledIndex(i);
+			prefix[0] = _readGroups->getName(i);
 			_tables[index].write(out, prefix, normalize);
 		}
 	}

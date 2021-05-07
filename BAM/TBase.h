@@ -46,12 +46,12 @@ public:
 	void setSecondMate(const bool status){ flags[1] = status; };
 	void setAligned(const bool status){ flags[2] = status; };
 
-	bool operator==(const Base & b){ return base == b; };
-	bool operator!=(const Base & b){ return base != b; };
+	bool operator==(const Base & b) const { return base == b; };
+	bool operator!=(const Base & b) const { return base != b; };
 
 	void operator=(const Base & b){ base = b; };
 
-	void print();
+	void print() const;
 };
 
 }; //end namespace

@@ -93,7 +93,7 @@ public:
 	void run(TParameters & Parameters, TLog* Logfile){
 
 		//which mask?
-		std::string mask = Parameters.getParameterString("mask");
+		std::string mask = Parameters.getParameter<std::string>("mask");
 		if(mask == "depth"){
 			TCreateDepthBedMask depthMask(Parameters, Logfile, _randomGenerator);
 			depthMask.createDepthMask();

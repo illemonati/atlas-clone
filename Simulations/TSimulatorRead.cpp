@@ -36,14 +36,14 @@ TSimulatorSingleEndRead::TSimulatorSingleEndRead(const BAM::TReadGroup & ReadGro
 	_alignment.setReadGroup(_readGroup.id);
 	_alignment.setMappingQuality(50);
 
-	bases = NULL;
-	phredIntQualities = NULL;
+	_bases = NULL;
+	_phredIntQualities = NULL;
 };
 
 TSimulatorSingleEndRead::~TSimulatorSingleEndRead(){
 	if(_readLengthDist){
-		delete[] bases;
-		delete[] phredIntQualities;
+		delete[] _bases;
+		delete[] _phredIntQualities;
 	}
 	if(_qualityTransformInitialized)
 		delete _qualityTransform;
@@ -75,8 +75,8 @@ void TSimulatorSingleEndRead::setReadLengthDistribution(std::string s, TLog* log
 	else throw "Unknown read length distribution '" + type + "'!";
 
 	//initialize bases and qualities
-	bases.resize(_readLengthDist->max());
-	phredIntQualities.resize(_readLengthDist->max());
+	_bases.resize(_readLengthDist->max());
+	_phredIntQualities.resize(_readLengthDist->max());
 
 	//update status
 	checkInitialization();
@@ -184,9 +184,17 @@ void TSimulatorSingleEndRead::_simulateBasesQualities(BAM::TAlignment & alignmen
 													  const uint64_t pos,
 													  const TReadLength & readLength,
 													  const bool readIsContaminated,
-													  const bool isReverse,
 													  TSimulatorQualityTransformation* qualityTransform){
-	//copy bases
+
+	//set read length
+	if(alignment.isReverseStrand()){
+		alignment.setInsertSize(-readLength.fragment);
+	} else {
+		alignment.setInsertSize(readLength.fragment);
+	}
+
+	//simulate true bases
+	std::vector<Base> bases;
 	if(readIsContaminated){
 		std::vector<Base>::iterator start = contaminationSource->reference().begin() + pos;
 		bases.assign(start, start + readLength.read);
@@ -195,20 +203,34 @@ void TSimulatorSingleEndRead::_simulateBasesQualities(BAM::TAlignment & alignmen
 		bases.assign(start, start + readLength.read);
 	}
 
+	_cigar.clear();
+	_cigar.add('M', readLength.read);
+
+	//simulate true qualities
+	std::vector<uint8_t> phredIntQualities;
+	_qualityDist->sample(phredIntQualities);
+	_alignment.setSequenceQualities(_cigar, bases, phredIntQualities, _genoMap, _qualMap);
+
 	//apply PMD
-	_applyPMD(bases, readLength, isReverse);
+
+	I'm here!!!!!!
+	Write functions to pass full alignments to PMD to simulate PMD
+	Then pass full alignment to recal to simulate bases according to the error rates
+
+
+	_applyPMD(_bases, readLength, isReverse);
 
 	//simulate qualities and errors
-	qualityTransform->simulateQualitiesAndErrors(bases, phredIntQualities, readLength.read, isReverse);
+	qualityTransform->simulateQualitiesAndErrors(_bases, _phredIntQualities, readLength.read, isReverse);
 
 	//copy bases and qualities
 	std::string queryBases, qualities;
 	for(int p=0; p<readLength.read; ++p){
-		queryBases += _genoMap.baseToChar[bases[p]];
+		queryBases += _genoMap.baseToChar[_bases[p]];
 
 		CHECK!!! What do we have? Qual or phredInt? Use qualMap!
 
-		qualities += (char) phredIntQualities[p] + 33);
+		qualities += (char) _phredIntQualities[p] + 33);
 	}
 
 	//adjust qualities for writing
@@ -226,17 +248,19 @@ void TSimulatorSingleEndRead::_simulateBasesQualities(BAM::TAlignment & alignmen
 };
 
 void TSimulatorSingleEndRead::simulate(Base* haplotype, const uint32_t & refID, const uint32_t & pos, TSimulatorBamFile & bamFile){
+	//prepare alignment
+	_alignment.move(refID, pos);
+	_alignment.setName(_getNextReadName());
+	_alignment.setIsReverseStrand(_randomGenerator->getRand() < 0.5);
+
 	//pick a fragment and read length, strand and contamination
 	TReadLength readLength = _readLengthDist->sample();
-	bool isReverse = _randomGenerator->getRand() < 0.5;
 	bool readIsContaminated = _isContaminated && _randomGenerator->getRand() < _contaminationRate;
 
 	//simulated bases and qualities
-	_simulateBasesQualities(_alignment, haplotype, pos, readLength, readIsContaminated, isReverse, _qualityTransform);
+	_simulateBasesQualities(_alignment, haplotype, pos, readLength, readIsContaminated, _qualityTransform);
 
 	//write bam alignment
-	_alignment.move(refID, pos);
-	_alignment.setName(_getNextReadName());
 	bamFile.saveAlignment(_alignment);
 };
 

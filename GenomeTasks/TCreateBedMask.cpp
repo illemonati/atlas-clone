@@ -13,7 +13,7 @@ namespace GenomeTasks{
 // TCreateBedMask
 //--------------------------------------
 TCreateBedMask::TCreateBedMask(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_windows(Parameters, Logfile, RandomGenerator){
-	_minDepthForMask = Parameters.getParameterInt("minDepthForMask");
+	_minDepthForMask = Parameters.getParameter<uint32_t>("minDepthForMask");
 };
 
 void TCreateBedMask::_createMask(const std::string fileTag){
@@ -27,12 +27,11 @@ void TCreateBedMask::_createMask(const std::string fileTag){
 	_logfile->done();
 };
 
-
 //--------------------------------------
 // TCreateDepthBedMask
 //--------------------------------------
 TCreateDepthBedMask::TCreateDepthBedMask(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TCreateBedMask(Parameters, Logfile, RandomGenerator){
-	_maxDepthForMask = Parameters.getParameterInt("maxDepthForMask");
+	_maxDepthForMask = Parameters.getParameter<uint32_t>("maxDepthForMask");
 	_logfile->list("Will create a mask for all sites with depth outside the range [" + toString(_minDepthForMask) + ", " + toString(_maxDepthForMask) + "].");
 
 	if(_maxDepthForMask < _minDepthForMask){

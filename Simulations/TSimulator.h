@@ -208,7 +208,7 @@ public:
 	void run(TParameters & Parameters, TLog* Logfile){
 		//initialize simulator
 		TSimulator* simulator;
-		std::string method = Parameters.getParameterStringWithDefault("type", "one");
+		std::string method = Parameters.getParameterWithDefault<std::string>("type", "one");
 		if(method == "one"){
 			Logfile->startIndent("Simulating a single individual (parameter type=one):");
 			simulator = new TSimulatorOneIndividual(Logfile, Parameters, _randomGenerator);

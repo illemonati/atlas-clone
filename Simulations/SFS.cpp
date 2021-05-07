@@ -22,7 +22,7 @@ SFS::SFS(const std::string & filename){
 	if(!file)
 		throw "Failed to open SFS file '" + filename + "'!";
 	std::vector<double> vec;
-	fillVectorFromLineWhiteSpace(file, vec, true, true);
+	fillContainerFromLineWhiteSpace(file, vec, true, true);
 
 	//init dimension
 	_initDimension(vec.size());

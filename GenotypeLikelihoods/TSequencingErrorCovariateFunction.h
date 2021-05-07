@@ -15,14 +15,15 @@
 #include <armadillo>
 
 
-//define module names
-#define SequencingErrorCovariateFunction_none "none"
-#define SequencingErrorCovariateFunction_intercept "intercept"
-#define SequencingErrorCovariateFunction_polynomial "polynomial"
-#define SequencingErrorCovariateFunction_probit "probit"
-#define SequencingErrorCovariateFunction_specific "specific"
-
 namespace GenotypeLikelihoods{
+
+//define module names
+extern const std::string SequencingErrorCovariateFunction_none;
+extern const std::string SequencingErrorCovariateFunction_intercept;
+extern const std::string SequencingErrorCovariateFunction_polynomial;
+extern const std::string SequencingErrorCovariateFunction_probit;
+extern const std::string SequencingErrorCovariateFunction_specific;
+extern const std::string SequencingErrorCovariateFunction_map;
 
 //--------------------------------------------------------------
 // TSequencingErrorCovariateFunction
@@ -42,10 +43,10 @@ protected:
 	TRecalibrationEMTransformationMap* transformationMap;
 	bool doTransformation;
 
-	void _init(const uint16_t FirstParameterIndex);
+	void _init(const uint16_t & FirstParameterIndex);
 	void _initializeBetas();
-	void _initializValues(std::vector<std::string> & values);
-	double _getAsDouble(const uint16_t val) const;
+	void _initializValues(const std::vector<std::string> & values);
+	double _getAsDouble(const uint16_t & val) const;
 	double _normalizeParameters();
 
 	friend class TSequencingErrorModel;
@@ -54,28 +55,37 @@ public:
 	TSequencingErrorCovariateFunction(){
 		_init(0);
 	};
-	TSequencingErrorCovariateFunction(const uint16_t FirstParameterIndex){
+	TSequencingErrorCovariateFunction(const uint16_t & FirstParameterIndex){
 		_init(FirstParameterIndex);
 	};
 
 	virtual ~TSequencingErrorCovariateFunction(){};
 
-	void setBeta(uint16_t index, double val){
+	void setBeta(const uint16_t & index, const double & val){
 		if(index < _numParameters)
 			_betas[index] = val;
 	};
-	virtual bool checkValueRange(const uint16_t val){ return true; };
-	bool checkValueRange(std::vector<uint16_t> & values);
+
+	//size
 	uint16_t numParameters(){ return _numParameters; };
 	uint16_t numNonZeroFirstDerivatives(){ return _numNonZeroFirstDerivatives; };
 	uint16_t numNonZeroSecondDerivatives(){ return _numNonZeroSecondDerivatives; };
 
+	//check value range: to ensure that data can be recalibrated
+	virtual bool checkValueRange(const uint16_t & val) const { return true; };
+	bool checkValueRange(const std::vector<uint16_t> & values) const;
+
+	//adjust value range: to ensure that function can estimated
+	virtual void adjustValueRanges(const std::vector<uint16_t> & values){};
+
+	//transformation
 	void addTransformation(TRecalibrationEMTransformationMap* pointerToTransformationMap){
 		doTransformation = true;
 		transformationMap = pointerToTransformationMap;
 	};
 
-	virtual double getEtaTerm(const uint16_t val) const{
+	//estimation
+	virtual double getEtaTerm(const uint16_t & val) const{
 		return 0.0;
 	};
 	void proposeNewParameters(const arma::mat & JxF, uint16_t & index, double & lambda);
@@ -98,18 +108,18 @@ protected:
 
 public:
 	TSequencingErrorCovariateFunction_intercept();
-	TSequencingErrorCovariateFunction_intercept(const uint16_t FirstParameterIndex);
-	TSequencingErrorCovariateFunction_intercept(const uint16_t FirstParameterIndex, std::vector<std::string> & values);
+	TSequencingErrorCovariateFunction_intercept(const uint16_t & FirstParameterIndex);
+	TSequencingErrorCovariateFunction_intercept(const uint16_t & FirstParameterIndex, const std::vector<std::string> & values);
 
-	void initialize(const uint16_t FirstParameterIndex);
-	void initialize(const uint16_t FirstParameterIndex, std::vector<std::string> & values);
-	void setIntercept(const double val);
-	void addToIntercept(const double val);
+	void initialize(const uint16_t & FirstParameterIndex);
+	void initialize(const uint16_t & FirstParameterIndex, const std::vector<std::string> & values);
+	void setIntercept(const double & val);
+	void addToIntercept(const double & val);
 	double getIntercept() const;
 	double getEtaTerm() const;
-	double getEtaTerm(const uint16_t val) const;
+	double getEtaTerm(const uint16_t & val) const override;
 	void fillDerivatives(TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second) const;
-	void fillDerivatives(const uint16_t & val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second) const;
+	void fillDerivatives(const uint16_t & val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second) const override;
 };
 
 //--------------------------------------------------------------
@@ -118,15 +128,15 @@ public:
 //--------------------------------------------------------------
 class TSequencingErrorCovariateFunction_polynomial:public TSequencingErrorCovariateFunction{
 protected:
-	void _init(const size_t order);
+	void _init(const size_t & order);
 
 	//TODO: add tmp storage for eta!
 
 public:
-	TSequencingErrorCovariateFunction_polynomial(const uint16_t FirstParameterIndex, const size_t order);
-	TSequencingErrorCovariateFunction_polynomial(const uint16_t FirstParameterIndex, std::vector<std::string> & values);
+	TSequencingErrorCovariateFunction_polynomial(const uint16_t & FirstParameterIndex, const size_t & order);
+	TSequencingErrorCovariateFunction_polynomial(const uint16_t & FirstParameterIndex, const std::vector<std::string> & values);
 
-	double getEtaTerm(const uint16_t val) const;
+	double getEtaTerm(const uint16_t & val) const;
 	void fillDerivatives(const uint16_t & val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second) const;
 };
 
@@ -146,7 +156,7 @@ public:
 	double _normalDens_Beta1_q_z;
 	double _normalDens_Beta1_q2_z;
 
-	TProbitTmpStorage(const std::vector<double> & betas, const uint16_t q);
+	TProbitTmpStorage(const std::vector<double> & betas, const uint16_t & q);
 };
 
 class TRecalibrationEMCovariateFunction_probit:public TSequencingErrorCovariateFunction{
@@ -158,15 +168,15 @@ protected:
 	mutable unsigned int _maxValue;
 	mutable std::vector<TProbitTmpStorage> _tmpStorage;
 
-	void _init(const uint16_t Maxvalue);
-	void _expandTmpStorage(const uint16_t MaxValue) const;
+	void _init(const uint16_t & Maxvalue);
+	void _expandTmpStorage(const uint16_t & MaxValue) const;
 
 public:
-	TRecalibrationEMCovariateFunction_probit(const uint16_t FirstParameterIndex, uint16_t MaxValue);
-	TRecalibrationEMCovariateFunction_probit(const uint16_t FirstParameterIndex, std::vector<std::string> & values);
+	TRecalibrationEMCovariateFunction_probit(const uint16_t & FirstParameterIndex, const uint16_t & MaxValue);
+	TRecalibrationEMCovariateFunction_probit(const uint16_t & FirstParameterIndex, const std::vector<std::string> & values);
 
-	double getEtaTerm(const uint16_t val) const;
-	void fillDerivatives(const uint16_t & val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second) const;
+	double getEtaTerm(const uint16_t & val) const override;
+	void fillDerivatives(const uint16_t & val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second) const override;
 };
 
 //--------------------------------------------------------------
@@ -177,56 +187,57 @@ class TSequencingErrorCovariateFunction_specific:public TSequencingErrorCovariat
 protected:
 	uint16_t _maxValue;
 
-	void _init(const uint16_t MaxValue);
+	void _init(const uint16_t & MaxValue);
 
 public:
-	TSequencingErrorCovariateFunction_specific(const uint16_t FirstParameterIndex, const uint16_t MaxValue);
-	TSequencingErrorCovariateFunction_specific(const uint16_t FirstParameterIndex, std::vector<std::string> & values);
+	TSequencingErrorCovariateFunction_specific(const uint16_t & FirstParameterIndex, const uint16_t & MaxValue);
+	TSequencingErrorCovariateFunction_specific(const uint16_t & FirstParameterIndex, const std::vector<std::string> & betas);
 
-	bool checkValueRange(const uint16_t val) const{
-		if(val > _maxValue)
-			return false;
-		return true;
-	};
+	bool checkValueRange(const uint16_t & val) const override;
+	void adjustValueRanges(const std::vector<uint16_t> & values) override;
 
-	double getEtaTerm(const uint16_t val) const{
+	double getEtaTerm(const uint16_t & val) const override{
 		return _betas[val];
 	};
-	void fillDerivatives(const uint16_t & val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second) const;
-	double adjustParametersPostEstimation(){ return _normalizeParameters(); };
+	void fillDerivatives(const uint16_t & val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second) const override;
+	double adjustParametersPostEstimation() override { return _normalizeParameters(); };
 };
 
 //--------------------------------------------------------------
 // TSequencingErrorCovariateFunction_specificMap
 // A term per discrete values as indicated with a map
 //--------------------------------------------------------------
+struct TSequencingErrorCovariateFunctionIndexMapEntry{
+	uint16_t index;
+	bool used;
+
+	TSequencingErrorCovariateFunctionIndexMapEntry(){
+		index = 0;
+		used = false;
+	};
+};
+
 class TSequencingErrorCovariateFunction_specificMap:public TSequencingErrorCovariateFunction{
 protected:
 	uint16_t _maxValue;
-	uint16_t _mapSize;
-	uint16_t* _indexMap; //maps value to parameter index
-	bool* _valueUsed;
+	std::vector<TSequencingErrorCovariateFunctionIndexMapEntry> _indexMap; //maps value to parameter index
 
-	void _init(size_t NumParameters);
-	void _createIndexMap();
-	void _freeIndexMap();
+	void _init(const size_t & NumParameters);
+	void _initMapFromVector(const std::vector<uint16_t> & values);
 
 public:
-	TSequencingErrorCovariateFunction_specificMap(const uint16_t FirstParameterIndex, std::vector<uint16_t> & values);
-	TSequencingErrorCovariateFunction_specificMap(const uint16_t FirstParameterIndex, std::vector<std::string> & values);
-	~TSequencingErrorCovariateFunction_specificMap(){ _freeIndexMap(); };
+	TSequencingErrorCovariateFunction_specificMap(const uint16_t & FirstParameterIndex, const std::vector<uint16_t> & values);
+	TSequencingErrorCovariateFunction_specificMap(const uint16_t & FirstParameterIndex, const std::vector<std::string> & values);
+	~TSequencingErrorCovariateFunction_specificMap(){};
 
-	bool checkValueRange(const uint16_t val){
-		if(!_valueUsed[val])
-			return false;
-		return true;
-	};
+	bool checkValueRange(const uint16_t & val) const override;
+	void adjustValueRanges(const std::vector<uint16_t> & values) override;
 
-	double getEtaTerm(const uint16_t val) const{
-		return _betas[ _indexMap[val] ];
+	double getEtaTerm(const uint16_t & val) const override{
+		return _betas[ _indexMap[val].index ];
 	};
-	void fillDerivatives(const uint16_t & val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second) const;
-	double adjustParametersPostEstimation(){ return _normalizeParameters(); };
+	void fillDerivatives(const uint16_t & val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second) const override;
+	double adjustParametersPostEstimation() override { return _normalizeParameters(); };
 };
 
 }; //end namespace

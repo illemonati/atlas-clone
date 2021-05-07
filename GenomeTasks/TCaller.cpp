@@ -56,7 +56,7 @@ TCaller::~TCaller(){
 //-------------------------------------------------------------------------------------------
 void TCaller::_setAcceptableFields(VCF::TVCFFieldVector* fields, std::string tags){
 	std::vector<std::string> vec;
-	fillVectorFromStringAny(tags, vec, ",", true);
+	fillContainerFromStringAny(tags, vec, ",", true);
 	for(std::vector<std::string>::iterator it = vec.begin(); it != vec.end(); ++it)
 		fields->acceptField(*it);
 };
@@ -76,7 +76,7 @@ void TCaller::printInfoFields(std::vector<std::string> & tags){
 
 void TCaller::printInfoFields(std::string tags){
 	std::vector<std::string> vec;
-	fillVectorFromStringAny(tags, vec, ",", true);
+	fillContainerFromStringAny(tags, vec, ",", true);
 	printInfoFields(vec);
 };
 
@@ -89,7 +89,7 @@ void TCaller::printGenotypeFields(std::vector<std::string> & tags){
 
 void TCaller::printGenotypeFields(std::string tags){
 	std::vector<std::string> vec;
-	fillVectorFromStringAny(tags, vec, ",", true);
+	fillContainerFromStringAny(tags, vec, ",", true);
 	printGenotypeFields(vec);
 };
 
@@ -97,7 +97,7 @@ void TCaller::initializeOutput(TParameters & Parameters, TLog* Logfile){
 	//info fields
 	if(Parameters.parameterExists("infoFields")){
 		Logfile->listFlush("Parsing VCF info fields ...");
-		printInfoFields(Parameters.getParameterString("infoFields"));
+		printInfoFields(Parameters.getParameter<std::string>("infoFields"));
 		Logfile->done();
 	}
 	if(_VCFInfoFields.numUsed() > 0){
@@ -109,7 +109,7 @@ void TCaller::initializeOutput(TParameters & Parameters, TLog* Logfile){
 	//genotype fields
 	if(Parameters.parameterExists("formatFields")){
 		Logfile->listFlush("Parsing VCF format fields ...");
-		printGenotypeFields(Parameters.getParameterString("formatFields"));
+		printGenotypeFields(Parameters.getParameter<std::string>("formatFields"));
 		Logfile->done();
 	}
 	if(_VCFGenotypeFields.numUsed() > 0){
@@ -1072,7 +1072,7 @@ std::string TCallerBayes::_getVCFGenotypeString_GP(const TSite & site, TGenotype
 TCall::TCall(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_windows(Parameters, Logfile, RandomGenerator){
 	//initialize caller
 	_logfile->startIndent("Initializing caller:");
-	std::string method = Parameters.getParameterStringWithDefault("method", "MLE");
+	std::string method = Parameters.getParameterWithDefault<std::string>("method", "MLE");
 	if(method == "randomBase"){
 		_caller = new TCallerRandomBase(Parameters, _logfile, _randomGenerator);
 	} else if(method == "majorityBase"){
@@ -1103,7 +1103,7 @@ TCall::TCall(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGe
 	_caller->initializeOutput(Parameters, _logfile);
 
 	//open output file
-	std::string sampleName = Parameters.getParameterStringWithDefault("indName", _outputName);
+	std::string sampleName = Parameters.getParameterWithDefault<std::string>("indName", _outputName);
 	_logfile->list("Will use sample name '" + sampleName + "'. (parameter 'sampleName')");
 	_caller->openVCF(_outputName + "_calls", sampleName, _logfile);
 
@@ -1128,13 +1128,13 @@ TCall::~TCall(){
 void TCall::_initializeGenotypePrior(TParameters & Parameters){
 	_logfile->startIndent("Initializing genotype prior:");
 	//read prior from parameters
-	std::string priorMethod = Parameters.getParameterStringWithDefault("prior", "theta");
+	std::string priorMethod = Parameters.getParameterWithDefault<std::string>("prior", "theta");
 	if(priorMethod == "unif"){
 		_prior = new TGenotypePriorUniform();
 		_logfile->list("Will use a uniform prior with equal weights for all genotypes.");
 	} else if(priorMethod == "theta"){
 		if(Parameters.parameterExists("fixedTheta")){
-			double theta = Parameters.getParameterDouble("fixedTheta");
+			double theta = Parameters.getParameter<double>("fixedTheta");
 			_logfile->list("Will use a fixed theta = " + toString(theta));
 			bool equalBaseFreq = Parameters.parameterExists("equalBaseFreq");
 			if(equalBaseFreq)
@@ -1146,7 +1146,7 @@ void TCall::_initializeGenotypePrior(TParameters & Parameters){
 			_logfile->list("Will use a prior based on theta and base frequencies estimated individually for each window.");
 			std::string thetaOuputName = _outputName + "_theta_estimates.txt.gz";
 			if(Parameters.parameterExists("defaultTheta")){
-				double defaultTheta = Parameters.getParameterDouble("defaultTheta");
+				double defaultTheta = Parameters.getParameter<double>("defaultTheta");
 				_logfile->list("Will use a default theta of ", defaultTheta, " for windows with limited data.");
 				_prior = new TGenotypePriorTheta(Parameters, thetaOuputName, defaultTheta, _logfile, _randomGenerator);
 			} else

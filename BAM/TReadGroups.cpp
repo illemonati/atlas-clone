@@ -227,7 +227,7 @@ bool TReadGroups::readGroupInUse(const std::string name) const{
 void TReadGroups::filterReadGroups(std::string readGroupList){
 	_limitReadGroups = true;
 	std::vector<std::string> readGroupsInUse;
-	fillVectorFromString(readGroupList, readGroupsInUse, ',');
+	fillContainerFromString(readGroupList, readGroupsInUse, ",");
 
 	//set all to false
 	for(auto& rg : _readGroups){
@@ -339,7 +339,7 @@ void TReadGroupMap::_fillFromFile(const TReadGroups & ReadGroups, const std::str
 			if(_readGroupMap[pool] == ReadGroupMapNotInitializedIndex){
 				_markAsInUse(pool);
 			} else if(_readGroupMap[pool] != pool){
-				throw "Read group '" + vec[1] + "' can not be pooled and pool with at the same time!";
+				throw "Read group '" + vec[1] + "' can not be pooled and pooled with at the same time!";
 			}
 
 			//check if rg can be pooled: allow self-pooling
@@ -379,7 +379,7 @@ void TReadGroupMap::_fillFromFile(const TReadGroups & ReadGroups, const std::str
 			}
 		}
 	} else {
-		logfile->warning("No read groups are pooled! Are you using the correct pooling file?"));
+		logfile->warning("No read groups are pooled! Are you using the correct pooling file?");
 	}
 };
 

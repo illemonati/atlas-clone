@@ -18,10 +18,10 @@ void TPolymorhicWindowIdentifier::identifyPolymorphicWindows(TParameters & Param
 	//read samples
 	TPopulationSamples samples;
 	if(Parameters.parameterExists("samples"))
-		samples.readSamples(Parameters.getParameterString("samples"), logfile);
+		samples.readSamples(Parameters.getParameter<std::string>("samples"), logfile);
 
 	//open VCF reader
-	std::string vcfFilename = Parameters.getParameterString("vcf");
+	std::string vcfFilename = Parameters.getParameter<std::string>("vcf");
 	logfile->startIndent("Reading genotype likelihoods from VCF file '" + vcfFilename + "':");
 	TPopulationLikelihoodReaderWindow reader(Parameters, logfile, false);
 	reader.openVCF(vcfFilename);
@@ -35,7 +35,7 @@ void TPolymorhicWindowIdentifier::identifyPolymorphicWindows(TParameters & Param
 
 	//output file
 	std::string tmp = readBeforeLast(vcfFilename, ".vcf");
-	std::string outputName = Parameters.getParameterStringWithDefault("out", tmp) + "_polymorphicWindows.txt.gz";
+	std::string outputName = Parameters.getParameterWithDefault<std::string>("out", tmp) + "_polymorphicWindows.txt.gz";
 	logfile->list("Will write polymoprhic state of windows to file '" + outputName + "'.");
 	TOutputFile out(outputName);
 

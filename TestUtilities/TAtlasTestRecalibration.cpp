@@ -26,13 +26,13 @@ void TAtlasTest_recalSimulation::setVariables(TParameters & params, TLog* Logfil
 	taskList = TaskList;
 
 	bamFileName = filenameTag + ".bam";
-	meanQual = params.getParameterIntWithDefault("recal_meanQual", 25);
+	meanQual = params.getParameterWithDefault<int>("recal_meanQual", 25);
 	sdphredInt = params.getParameterDoubleWithDefault("recal_sdQual", 10);
-	minPhredInt = params.getParameterIntWithDefault("recal_minQual", 0);
-	maxPhredInt = params.getParameterIntWithDefault("recal_maxQual", 42);
-	qualityDist = params.getParameterStringWithDefault("recal_qualityDist", "normal(" + toString(meanQual) + "," + toString(sdphredInt) + ")[" + toString(minPhredInt) + "," + toString(maxPhredInt) + "]");
-//	recalParamString = params.getParameterStringWithDefault("recal_recalParams", "2,0,0.1,0.001,1{20}");
-	recalParamString = params.getParameterStringWithDefault("recal_recalParams","0.908163,0.22877,-0.0160425,0.170256,0.120439,1.50259,1.55807,0.607032,0.775844,1.1983,3.52317,-0.0538213,0.392298,1.07254,1.41819,-0.387901,0.949369,1.17807,1.3996,0.0631075,0.834644,1.08996,2.29066,-0.102391");
+	minPhredInt = params.getParameterWithDefault<int>("recal_minQual", 0);
+	maxPhredInt = params.getParameterWithDefault<int>("recal_maxQual", 42);
+	qualityDist = params.getParameterWithDefault<std::string>("recal_qualityDist", "normal(" + toString(meanQual) + "," + toString(sdphredInt) + ")[" + toString(minPhredInt) + "," + toString(maxPhredInt) + "]");
+//	recalParamString = params.getParameterWithDefault<std::string>("recal_recalParams", "2,0,0.1,0.001,1{20}");
+	recalParamString = params.getParameterWithDefault<std::string>("recal_recalParams","0.908163,0.22877,-0.0160425,0.170256,0.120439,1.50259,1.55807,0.607032,0.775844,1.1983,3.52317,-0.0538213,0.392298,1.07254,1.41819,-0.387901,0.949369,1.17807,1.3996,0.0631075,0.834644,1.08996,2.29066,-0.102391");
 	fillVectorFromStringAny(recalParamString, tmpVec, ",", true);
 	repeatIndexes(tmpVec, trueParams);
 	recalParamsFileName = filenameTag + "_true_recalibrationEM.txt";
@@ -190,19 +190,19 @@ void TAtlasTest_BQSRSimulation::setVariables(TParameters & params, TLog* Logfile
 	taskList = TaskList;
 	bamFileName = filenameTag + ".bam";
 	fastaFileName = filenameTag + ".fasta";
-	meanQual = params.getParameterIntWithDefault("BQSR_meanQual", 25);
+	meanQual = params.getParameterWithDefault<int>("BQSR_meanQual", 25);
 	sdphredInt = params.getParameterDoubleWithDefault("BQSR_sdQual", 10);
-	minPhredInt = params.getParameterIntWithDefault("BQSR_minQual", 0);
-	maxPhredInt = params.getParameterIntWithDefault("BQSR_maxQual", 42);
-	qualityDist = params.getParameterStringWithDefault("BQSR_qualityDist", "normal(" + toString(meanQual) + "," + toString(sdphredInt) + ")[" + toString(minPhredInt) + "," + toString(maxPhredInt) + "]");
+	minPhredInt = params.getParameterWithDefault<int>("BQSR_minQual", 0);
+	maxPhredInt = params.getParameterWithDefault<int>("BQSR_maxQual", 42);
+	qualityDist = params.getParameterWithDefault<std::string>("BQSR_qualityDist", "normal(" + toString(meanQual) + "," + toString(sdphredInt) + ")[" + toString(minPhredInt) + "," + toString(maxPhredInt) + "]");
 //	alpha = params.getParameterDoubleWithDefault("alpha", 10.0);
 //	beta = params.getParameterDoubleWithDefault("beta", 0.2);
-	minReadLen = params.getParameterIntWithDefault("BQSR_minReadLen", 30);
-	maxReadLen = params.getParameterIntWithDefault("BQSR_maxReadLen", 100);
-//	readLengthDist = params.getParameterStringWithDefault("readLength", "gamma(alpha,beta)[min,max]");
+	minReadLen = params.getParameterWithDefault<int>("BQSR_minReadLen", 30);
+	maxReadLen = params.getParameterWithDefault<int>("BQSR_maxReadLen", 100);
+//	readLengthDist = params.getParameterWithDefault<std::string>("readLength", "gamma(alpha,beta)[min,max]");
 	positionEffectSlope = params.getParameterDoubleWithDefault("BQSR_positionEffectSlope", 0.0144928);
 	positionEffectIntercept = params.getParameterDoubleWithDefault("BQSR_positionEffectIntercept", 0.485507);
-	phi1 = params.getParameterIntWithDefault("BQSR_phi1", 35);
+	phi1 = params.getParameterWithDefault<int>("BQSR_phi1", 35);
 	phi2 = params.getParameterDoubleWithDefault("BQSR_phi2", 1.2);
 	revIntercept = params.getParameterDoubleWithDefault("BQSR_revIntercept", 1.5);
 	acceptedDelta = params.getParameterDoubleWithDefault("BQSR_acceptedDelta", 1);
@@ -400,7 +400,7 @@ void TAtlasTest_qualityTransformationRecalPlain::setVariables(TParameters & para
 	taskList = TaskList;
 	bamFileName = filenameTag + ".bam";
 	std::string onlyRecalParams = "1,0;0,0;0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0";
-	recalParamString = params.getParameterStringWithDefault("recal_recalParams","qualFuncPosFuncContext[" + onlyRecalParams +"]");
+	recalParamString = params.getParameterWithDefault<std::string>("recal_recalParams","qualFuncPosFuncContext[" + onlyRecalParams +"]");
 	maxReadLength = 70;
 	randomGenerator = new TRandomGenerator();
 	qualDistString = "10";
@@ -510,7 +510,7 @@ TAtlasTest_qualityTransformationRecalBinned::TAtlasTest_qualityTransformationRec
 void TAtlasTest_qualityTransformationRecalBinned::setVariables(TParameters & params, TLog* Logfile, TTaskList* TaskList){
 	logfile = Logfile;
 	taskList = TaskList;
-	recalParamString = params.getParameterStringWithDefault("recal_recalParams", "qualFuncPosFuncContext[2,0;0,0;0{20}]");
+	recalParamString = params.getParameterWithDefault<std::string>("recal_recalParams", "qualFuncPosFuncContext[2,0;0,0;0{20}]");
 	qualDistString = "(10,15,20,30)";
 	qualityDist =  new Simulations::TSimulatorQualityDistBinned(qualDistString, randomGenerator);
 	recalObject = new Simulations::TSimulatorQualityTransformationRecal(recalParamString, maxReadLength, qualityDist, randomGenerator);

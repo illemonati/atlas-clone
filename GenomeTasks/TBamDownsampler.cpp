@@ -64,7 +64,7 @@ TBamDownsampler_base::TBamDownsampler_base(TParameters & Parameters, TLog* Logfi
 
 void TBamDownsampler_base::_readVectorOfDownsamplingProbabilities(TParameters & Params){
 	//read downsampling rates
-	Params.fillParameterIntoProbabilityVector("prob", _probs, ',');
+	Params.fillParameterIntoProbabilityContainer("prob", _probs, ',');
 
 	//get unique names
 	std::map <double, int> fracNames;

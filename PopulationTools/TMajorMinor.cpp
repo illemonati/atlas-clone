@@ -194,16 +194,16 @@ void TMajorMinor::estimateMajorMinor(TParameters & params){
 	//add reference, if provided
 	if(params.parameterExists("fasta")){
 		logfile->list("Will only identify the most likely alternative allele (argument: fasta)");
-		std::string fastaFile = params.getParameterString("fasta");
+		std::string fastaFile = params.getParameter<std::string>("fasta");
 		logfile->list("Reading reference sequence from '" + fastaFile + "'");
 		glfReader.addReference(fastaFile);
 		hasReference = true;
 	}
 
 	//estimation method
-	std::string method = params.getParameterStringWithDefault("method", "MLE");
+	std::string method = params.getParameterWithDefault<std::string>("method", "MLE");
 	TMajorMinorEstimatorBase* MMEstimator;
-	double maxF = params.getParameterDoubleWithDefault("maxF", 0.0000001);
+	double maxF = params.getParameterWithDefault("maxF", 0.0000001);
 	if(method == "Skotte"){
 		logfile->list("Will estimate major / minor alleles using the Skotte method with maxF " + toString(maxF) + ". (parameters method and maxF)");
 		MMEstimator = new TMajorMinorEstimatorSkotte(randomGenerator, maxF);
@@ -225,12 +225,12 @@ void TMajorMinor::estimateMajorMinor(TParameters & params){
 		minSamplesWithData = 0;
 		minVariantQuality = 0;
 	} else {
-		minSamplesWithData = params.getParameterIntWithDefault("minSamplesWithData", 1);
+		minSamplesWithData = params.getParameterWithDefault<int>("minSamplesWithData", 1);
 		if(minSamplesWithData > 0){
 			logfile->list("Will only print sites for which at least " + toString(minSamplesWithData) + " samples have data. (parameter minSamplesWithData)");
 		}
 
-		minVariantQuality = params.getParameterIntWithDefault("minVariantQual", 0);
+		minVariantQuality = params.getParameterWithDefault<int>("minVariantQual", 0);
 		if(minVariantQuality > 0){
 			logfile->list("Will only print sites with variant quality >= " + toString(minVariantQuality) + " samples have data. (parameter minVariantQual)");
 		}
@@ -243,14 +243,14 @@ void TMajorMinor::estimateMajorMinor(TParameters & params){
 	}
 
 	//limit input
-	long limitSites = params.getParameterDoubleWithDefault("limitSites", 0);
+	long limitSites = params.getParameterWithDefault("limitSites", 0);
 	if(limitSites > 0)
 		logfile->list("Will stop at input position " + toString(limitSites) + ". (parameter 'limitSites')");
 	if(limitSites < 0)
 		throw "maxPos cannot be negative!";
 
 	//filename tag
-	std::string outname = params.getParameterStringWithDefault("out", "ATLAS_majorMinor");
+	std::string outname = params.getParameterWithDefault<std::string>("out", "ATLAS_majorMinor");
 	logfile->list("Will write output files with tag '" + outname + "'. (parameter 'out')");
 
 	//open vcf file

@@ -25,21 +25,21 @@ namespace Simulations{
 //Class of a fixed value
 class TSimulatorQualityDist{
 protected:
-	int _min;
-	int _max;
-	int _maxPlusOne;
+	uint8_t _min;
+	uint8_t _max;
+	uint8_t _maxPlusOne;
 	double _mean, _sd;
 
 public:
 	TSimulatorQualityDist();
 	TSimulatorQualityDist(std::string & s);
 	virtual ~TSimulatorQualityDist(){};
-	int min(){ return _min; };
-	int max(){ return _max; };
+	uint8_t min(){ return _min; };
+	uint8_t max(){ return _max; };
 	double mean(){return _mean; };
 	double sd(){return _sd; };
-	virtual int sample(){ return _max; };
-	virtual void sample(int* qualities, const int & len);
+	virtual uint8_t sample(){ return _max; };
+	virtual void sample(std::vector<uint8_t> & qualities) const;
 	virtual void printDetails(TLog* logfile, const std::string & Name) const;
 };
 
@@ -54,8 +54,8 @@ private:
 
 public:
 	TSimulatorQualityDistBinned(std::string & s, TRandomGenerator* RandomGenerator);
-	void sample(int* qualities, const int & len);
-	void printDetails(TLog* logfile, const std::string & Name) const;
+	void sample(std::vector<uint8_t> & qualities) const override;
+	void printDetails(TLog* logfile, const std::string & Name) const override;
 };
 
 //------------------------------------------------
@@ -65,14 +65,14 @@ public:
 class TSimulatorQualityDistFreq:public TSimulatorQualityDist{
 private:
 	TRandomGenerator* _randomGenerator;
-	std::vector<uint16_t> _qualBins;
+	std::vector<uint8_t> _qualBins;
 	std::vector<double> _frequencies;
 	std::vector<double> _cumulativeFrequencies;
 
 public:
 	TSimulatorQualityDistFreq(std::string & s, TRandomGenerator* RandomGenerator);
-	void sample(int* qualities, const int & len);
-	void printDetails(TLog* logfile, const std::string & Name) const;
+	void sample(std::vector<uint8_t> & qualities) const override;
+	void printDetails(TLog* logfile, const std::string & Name) const override;
 };
 
 //------------------------------------------------
@@ -94,8 +94,8 @@ public:
 	void parseFunctionString(std::string & s);
 	void fillDensities();
 	int sample();
-	void sample(int* qualities, const int & len);
-	void printDetails(TLog* logfile, const std::string & Name) const;
+	void sample(std::vector<uint8_t> & qualities) const override;
+	void printDetails(TLog* logfile, const std::string & Name) const override;
 };
 
 }; //end namespace

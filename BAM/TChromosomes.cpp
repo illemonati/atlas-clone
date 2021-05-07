@@ -110,12 +110,12 @@ void TChromosomes::limitChr(TParameters & params, TLog* logfile){
 	if(params.parameterExists("chr")){
 		logfile->startIndent("Will limit analysis to the following chromosomes (parameter 'chr'):");
 		std::vector<std::string> vec;
-		fillVectorFromString(params.getParameterString("chr"), vec, ',');
+		fillContainerFromString(params.getParameter<std::string>("chr"), vec, ',');
 		_useSpecifiedChr(vec);
 		writeUsedChromosomes(logfile);
 	} else {
 		if(params.parameterExists("limitChr")){
-			std::string limitName = params.getParameterString("limitChr");
+			std::string limitName = params.getParameter<std::string>("limitChr");
 			logfile->list("Will limit analysis to all chromosomes up to and including " + limitName + ". (parameter 'limitChr')");
             _useUpToAndIncluding(limitName);
 		}
@@ -159,10 +159,10 @@ void TChromosomes::writeUsedChromosomes(TLog* logfile){
 
 void TChromosomes::setPloidy(TParameters & params, TLog* logfile){
 	if(params.parameterExists("ploidy")){
-		_specifyPloidy(params.getParameterString("ploidy"), logfile);
+		_specifyPloidy(params.getParameter<std::string>("ploidy"), logfile);
 	} else if(params.parameterExists("haploid")){
 		std::vector<std::string> vec;
-		fillVectorFromString(params.getParameterString("haploid"), vec, ',');
+		fillContainerFromString(params.getParameter<std::string>("haploid"), vec, ',');
 		if(vec.size() == 1 && vec[0] == "all"){
 			logfile->list("Assuming all chromosomes are haploid. (parameter 'haploid')");
 			for(auto& c : _chromosomes){
@@ -189,7 +189,7 @@ void TChromosomes::_specifyPloidy(const std::string & ploidyFileName, TLog* logf
 		std::string line;
 		std::getline(ploidyFile, line);
 		std::vector<std::string> vec;
-		fillVectorFromStringWhiteSpace(line, vec, true);
+		fillContainerFromStringWhiteSpace(line, vec, true);
 
 		//skip empty lines
 		if(vec.size() > 0){

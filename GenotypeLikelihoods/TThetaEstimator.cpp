@@ -37,7 +37,7 @@ TThetaEstimator_base::TThetaEstimator_base(TParameters & params, TLog* Logfile, 
 	initDataStorage();
 
 	//minimum window size
-	minSitesWithData = params.getParameterIntWithDefault("minSitesWithData", 1000);
+	minSitesWithData = params.getParameterWithDefault<int>("minSitesWithData", 1000);
 
 	//extra verbosity
 	extraVerbose = params.parameterExists("extraVerbose");
@@ -78,12 +78,12 @@ void TThetaEstimator_base::initDataStorage(){
 
 void TThetaEstimator_base::readParametersRegardingInitialSearch(TParameters & params){
 	logfile->startIndent("Parameters of the initial theta search:");
-	initialTheta = params.getParameterDoubleWithDefault("initTheta", 0.01);
+	initialTheta = params.getParameterWithDefault("initTheta", 0.01);
 	logfile->list("Will start with an initial theta of " + toString(initialTheta) + ".");
-	initThetaNumSearchIterations = params.getParameterDoubleWithDefault("initThetaNumSearchIterations", 10);
+	initThetaNumSearchIterations = params.getParameterWithDefault("initThetaNumSearchIterations", 10);
 	if(initThetaNumSearchIterations > 0){
 		logfile->list("Will run " + toString(initThetaNumSearchIterations) + " iterations of a crude search for an initial theta.");
-		initThetaSearchFactor = params.getParameterDoubleWithDefault("initThetaSearchFactor", 100);
+		initThetaSearchFactor = params.getParameterWithDefault("initThetaSearchFactor", 100);
 		logfile->list("The initial search factor will be " + toString(initThetaSearchFactor) + ".");
 	} else {
 		initThetaSearchFactor = 0;
@@ -183,16 +183,16 @@ TThetaEstimator::TThetaEstimator(TParameters & params, TLog* Logfile, TRandomGen
 
 	//parse
 	logfile->startIndent("Parameters of EM algorithm to infer theta:");
-	numIterations = params.getParameterIntWithDefault("iterations", 100);
+	numIterations = params.getParameterWithDefault<int>("iterations", 100);
 	logfile->list("Will run up to " + toString(numIterations) + " iterations.");
-	numThetaOnlyUpdates = params.getParameterIntWithDefault("iterationsThetaOnly", 10);
+	numThetaOnlyUpdates = params.getParameterWithDefault<int>("iterationsThetaOnly", 10);
 	logfile->list("In each iteration, theta will be updated " + toString(numThetaOnlyUpdates) + " times.");
 
-	maxEpsilon = params.getParameterDoubleWithDefault("maxEps", 0.000001);
+	maxEpsilon = params.getParameterWithDefault("maxEps", 0.000001);
 	logfile->list("Will run EM until deltaLL < " + toString(maxEpsilon) + ".");
-	NewtonRaphsonNumIterations = params.getParameterIntWithDefault("NRiterations", 10);
+	NewtonRaphsonNumIterations = params.getParameterWithDefault<int>("NRiterations", 10);
 	logfile->list("Will run Newton-Raphson algorithm up to " + toString(NewtonRaphsonNumIterations) + " times.");
-	NewtonRaphsonMaxF = params.getParameterDoubleWithDefault("maxF", 0.00001);
+	NewtonRaphsonMaxF = params.getParameterWithDefault("maxF", 0.00001);
 	logfile->list("Will run Newton-Raphson algorithm until max(F) < " + toString(NewtonRaphsonMaxF) + ".");
 	logfile->endIndent();
 
@@ -597,11 +597,11 @@ TThetaEstimatorRatio::TThetaEstimatorRatio(TParameters & params, TLog* Logfile, 
 
 	//MCMC params
 	logfile->startIndent("Parameters of MCMC algorithm:");
-	burnin = params.getParameterIntWithDefault("burnin", 1000);
+	burnin = params.getParameterWithDefault<int>("burnin", 1000);
 	logfile->list("Will run a burnin of " + toString(burnin) + " iterations.");
-	numIterations = params.getParameterIntWithDefault("iterations", 10000);
+	numIterations = params.getParameterWithDefault<int>("iterations", 10000);
 	logfile->list("Will run MCMC for " + toString(numIterations) + " iterations.");
-	thinning = params.getParameterIntWithDefault("thinning", 1);
+	thinning = params.getParameterWithDefault<int>("thinning", 1);
 	if(thinning < 1 || thinning > numIterations)
 		throw "Thinning must be > 1 and < number iterations!";
 	if(thinning > 1){
@@ -614,15 +614,15 @@ TThetaEstimatorRatio::TThetaEstimatorRatio(TParameters & params, TLog* Logfile, 
 	}
 
 	//normal prior on ratio phi = log(theta_1 / theta_2)
-	phiPriorMean = params.getParameterDoubleWithDefault("phiPriorMean", 0.0);
-	phiPriorVar = params.getParameterDoubleWithDefault("phiPriorVar", 1.0);
+	phiPriorMean = params.getParameterWithDefault("phiPriorMean", 0.0);
+	phiPriorVar = params.getParameterWithDefault("phiPriorVar", 1.0);
 	phiPriorOneOverTwoVar = 1.0 / 2.0 / phiPriorVar;
 	logfile->list("Will assume a normal prior on phi ~ N(" + toString(phiPriorMean) + ", " + toString(phiPriorVar) + ").");
 
 	//proposal kernel
-	sdProposalKernelTheta1 = params.getParameterDoubleWithDefault("sdProposalTheta", 0.1);
+	sdProposalKernelTheta1 = params.getParameterWithDefault("sdProposalTheta", 0.1);
 	sdProposalKernelTheta2 = sdProposalKernelTheta1;
-	sdProposalKernelBaseFreq1 = params.getParameterDoubleWithDefault("sdProposalFreq", 0.01);
+	sdProposalKernelBaseFreq1 = params.getParameterWithDefault("sdProposalFreq", 0.01);
 	sdProposalKernelBaseFreq2 = sdProposalKernelBaseFreq1;
 	logfile->list("Will use initial proposal kernel standard deviations of " + toString(sdProposalKernelTheta1) + " and " + toString(sdProposalKernelBaseFreq1) + " for thetas and base frequencies, respectively.");
 	logfile->endIndent();
@@ -695,7 +695,7 @@ void TThetaEstimatorRatio::estimateRatio(std::string ouputName){
 			int prog = (double) i / (double) burnin * 100.0;
 			if(prog > oldProg){
 				oldProg = prog;
-				logfile->listOverFlush(progressString + "(" + toString(oldProg) + "%)");
+				logfile->overListFlush(progressString, "(", oldProg, "%)");
 			}
 		}
 		logfile->overList(progressString + "done!   ");
@@ -729,7 +729,7 @@ void TThetaEstimatorRatio::estimateRatio(std::string ouputName){
 		int prog = (double) i / (double) numIterations * 100.0;
 		if(prog > oldProg){
 			oldProg = prog;
-			logfile->listOverFlush(progressString + " (" + toString(oldProg) + "%)");
+			logfile->overListFlush(progressString, "(", oldProg, "%)");
 		}
 	}
 	logfile->overList(progressString + " done!   ");
