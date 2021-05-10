@@ -212,7 +212,7 @@ void TSimulatorSingleEndRead::_simulateBasesQualities(BAM::TAlignment & alignmen
 	_alignment.setSequenceQualities(_cigar, bases, phredIntQualities, _genoMap, _qualMap);
 
 	//apply PMD
-
+/*
 	I'm here!!!!!!
 	Write functions to pass full alignments to PMD to simulate PMD
 	Then pass full alignment to recal to simulate bases according to the error rates
@@ -232,7 +232,7 @@ void TSimulatorSingleEndRead::_simulateBasesQualities(BAM::TAlignment & alignmen
 
 		qualities += (char) _phredIntQualities[p] + 33);
 	}
-
+*/
 	//adjust qualities for writing
 	_qualMap.adjustQualitiesForWriting(qualities);
 

@@ -10,8 +10,7 @@
 
 #include <bitset>
 #include <iostream>
-
-enum Base : uint8_t {A=0, C, G, T, N};
+#include "Types.h"
 
 namespace BAM{
 
