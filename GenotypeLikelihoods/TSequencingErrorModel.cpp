@@ -386,7 +386,7 @@ void TSequencingErrorRho::estimate(){
 //*********************************************************
 // TSequencingErrorModelNoRecal
 //*********************************************************
-double TSequencingErrorModelNoRecal::getErrorRate(const BAM::TBase & base, const BAM::TQualityMap & qualMap) const{
+double TSequencingErrorModelNoRecal::getErrorRate(const BAM::TSequencedBase & base, const BAM::TQualityMap & qualMap) const{
 	if(base == N){
 		return 1.0;
 	} else {
@@ -394,7 +394,7 @@ double TSequencingErrorModelNoRecal::getErrorRate(const BAM::TBase & base, const
 	}
 };
 
-uint8_t TSequencingErrorModelNoRecal::getPhredInt(const BAM::TBase & base, const BAM::TQualityMap & qualMap) const{
+uint8_t TSequencingErrorModelNoRecal::getPhredInt(const BAM::TSequencedBase & base, const BAM::TQualityMap & qualMap) const{
 	if(base == N){
 		return 0;
 	} else {
@@ -402,7 +402,7 @@ uint8_t TSequencingErrorModelNoRecal::getPhredInt(const BAM::TBase & base, const
 	}
 };
 
-void TSequencingErrorModelNoRecal::fillBaseLikelihoods(const BAM::TBase & base, const BAM::TQualityMap & qualMap, TBaseData & baseLikelihoods) const{
+void TSequencingErrorModelNoRecal::fillBaseLikelihoods(const BAM::TSequencedBase & base, const BAM::TQualityMap & qualMap, TBaseData & baseLikelihoods) const{
 	if(base == N){
 		baseLikelihoods.reset();
 	} else {
@@ -453,7 +453,7 @@ double TSequencingErrorModelRecal::_calcEpsilon(const double & eta) const{
 	return 1.0 / (1.0 + exp(-eta));
 };
 
-double TSequencingErrorModelRecal::_calcErrorRate(const BAM::TBase & base) const{
+double TSequencingErrorModelRecal::_calcErrorRate(const BAM::TSequencedBase & base) const{
 	//eta = bta[0] + SUM_i f(q[i]), where the functions are implemented as covariate function
 	double eta = _covariates.intercept.getEtaTerm();
 
@@ -464,7 +464,7 @@ double TSequencingErrorModelRecal::_calcErrorRate(const BAM::TBase & base) const
 	return _calcEpsilon(eta);
 };
 
-double TSequencingErrorModelRecal::getErrorRate(const BAM::TBase & base, const BAM::TQualityMap & qualMap) const{
+double TSequencingErrorModelRecal::getErrorRate(const BAM::TSequencedBase & base, const BAM::TQualityMap & qualMap) const{
 	if(base == N){
 		return 1.0;
 	} else {
@@ -472,7 +472,7 @@ double TSequencingErrorModelRecal::getErrorRate(const BAM::TBase & base, const B
 	}
 };
 
-uint8_t TSequencingErrorModelRecal::getPhredInt(const BAM::TBase & base, const BAM::TQualityMap & qualMap) const{
+uint8_t TSequencingErrorModelRecal::getPhredInt(const BAM::TSequencedBase & base, const BAM::TQualityMap & qualMap) const{
 	if(base == N){
 		return 0;
 	} else {
@@ -480,7 +480,7 @@ uint8_t TSequencingErrorModelRecal::getPhredInt(const BAM::TBase & base, const B
 	}
 };
 
-void TSequencingErrorModelRecal::fillBaseLikelihoods(const BAM::TBase & base, TBaseData & baseLikelihoods) const{
+void TSequencingErrorModelRecal::fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseData & baseLikelihoods) const{
 	if(base == N){
 		baseLikelihoods.reset();
 	} else {
@@ -488,7 +488,7 @@ void TSequencingErrorModelRecal::fillBaseLikelihoods(const BAM::TBase & base, TB
 	}
 };
 
-void TSequencingErrorModelRecal::fillBaseLikelihoods(const BAM::TBase & base, const BAM::TQualityMap & qualMap, TBaseData & baseLikelihoods) const{
+void TSequencingErrorModelRecal::fillBaseLikelihoods(const BAM::TSequencedBase & base, const BAM::TQualityMap & qualMap, TBaseData & baseLikelihoods) const{
 	fillBaseLikelihoods(base, baseLikelihoods);
 };
 
@@ -499,7 +499,7 @@ void TSequencingErrorModelRecal::prepareRhoEstimationFromEMWeights(){
 	_rho.prepareEstimationFromEMWeights();
 };
 
-void TSequencingErrorModelRecal::addBaseForRhoEstimation(BAM::TBase & base, const TBaseData & EMWeights){
+void TSequencingErrorModelRecal::addBaseForRhoEstimation(BAM::TSequencedBase & base, const TBaseData & EMWeights){
 	_rho.addBaseForEstimation(base.base, EMWeights);
 };
 
@@ -556,7 +556,7 @@ void TSequencingErrorModelRecal::setQToZero(){
 	}
 };
 
-void TSequencingErrorModelRecal::addToQ(const BAM::TBase & base, const TBaseData & EM_weights_bbar_given_d){
+void TSequencingErrorModelRecal::addToQ(const BAM::TSequencedBase & base, const TBaseData & EM_weights_bbar_given_d){
 	if(!_NRconverged){
 		//get error rate
 		double eps = _calcErrorRate(base);
@@ -565,7 +565,7 @@ void TSequencingErrorModelRecal::addToQ(const BAM::TBase & base, const TBaseData
 	}
 };
 
-void TSequencingErrorModelRecal::addToFandJacobian(const BAM::TBase & base, const TBaseData & EM_weights_bbar_given_d){
+void TSequencingErrorModelRecal::addToFandJacobian(const BAM::TSequencedBase & base, const TBaseData & EM_weights_bbar_given_d){
 	// 1) Calculate epsilon
 	//--------------------
 	double eps = _calcErrorRate(base);

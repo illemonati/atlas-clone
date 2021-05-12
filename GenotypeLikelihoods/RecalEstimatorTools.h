@@ -71,7 +71,7 @@ public:
 	~TRecalDataTable() = default;
 
 	void clear();
-	void add(const BAM::TBase & base);
+	void add(const BAM::TSequencedBase & base);
 
 	size_t size() const;
 	const TRecalDataVector<uint16_t>& positions() const;
@@ -86,7 +86,7 @@ private:
 
 public:
 	const TRecalDataTable& operator[](const bool & IsSecondMate) const;
-	void add(const BAM::TBase & base);
+	void add(const BAM::TSequencedBase & base);
 	void clear();
 };
 
@@ -105,7 +105,7 @@ public:
 	void clear();
 	void initialize(const BAM::TReadGroups* ReadGroups, const BAM::TReadGroupMap* ReadGroupMapObject);
 	void reset();
-	void add(const BAM::TBase & base);
+	void add(const BAM::TSequencedBase & base);
 	void add(const TSite & site);
 	void add(const std::vector<TSite> & site);
 

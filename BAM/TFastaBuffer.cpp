@@ -22,8 +22,7 @@ void TFastaBuffer::_moveTo(const TGenomePosition Position) const{
 		throw "Problem reading " + toString(_coordinates.refID()) + ":" + toString(_coordinates.fromOnChr()) + "-" + toString(_coordinates.toOnChr()) + " from fasta file! Are you using the correct fasta file?";
 };
 
-void TFastaBuffer::initialize(std::string fastaFile, GenotypeLikelihoods::TGenotypeMap* GenoMap, const uint32_t BufferSize){
-	_genoMap = GenoMap;
+void TFastaBuffer::initialize(std::string fastaFile, const uint32_t BufferSize){
 	if(BufferSize < 1000)
 		_bufferSize = 1000;
 	else
@@ -96,7 +95,7 @@ char TFastaBuffer::refCharAt(const TGenomePosition Position) const{
 };
 
 Base TFastaBuffer::refAt(const TGenomePosition Position) const{
-	return _genoMap->toBase(refCharAt(Position));
+	return refCharAt(Position);
 };
 
 }; //end namesapce

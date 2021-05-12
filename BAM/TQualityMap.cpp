@@ -10,6 +10,7 @@
 namespace BAM{
 
 //TODO: change to strong types!
+/*
 
 //---------------------------------------------------------------
 //TQualityMap
@@ -147,52 +148,80 @@ void TQualityMap::adjustQualitiesForWriting(std::string & qualities) const{
 	}
 };
 
+*/
+
 //---------------------------------------------------------------
 //TQualityFilter
 //---------------------------------------------------------------
-TQualityFilter::TQualityFilter(TParameters & params, TLog* logfile){
-	set(params, logfile);
+void TQualityFilter::_default(){
+	//default values according to SAM specifications
+	_filter = false;
+	_minPhredInt = 1;
+	_maxPhredInt = 93;
 };
 
-bool TQualityFilter::set(TParameters & params, TLog* logfile){
+void TQualityFilter::set(TParameters & params, TLog* logfile){
 	if(params.parameterExists("minQual") || params.parameterExists("maxQual")){
-		int MinPhredInt = params.getParameterWithDefault<int>("minQual", 1);
-		int MaxPhredInt = params.getParameterWithDefault<int>("maxQual", 93);
+		_minPhredInt = params.getParameterWithDefault<uint8_t>("minQual", 1);
+		_maxPhredInt = params.getParameterWithDefault<uint8_t>("maxQual", 1);
+		if(_maxPhredInt < _minPhredInt){
+			throw "maxQual must be >= minQual!";
+		}
 
-		if(MinPhredInt < 0 || MinPhredInt > 255) throw "minQual " + toString(MinPhredInt) + " is outside accepted range [0, 255]!";
-		if(MaxPhredInt < 0 || MaxPhredInt > 255) throw "maxQual " + toString(MaxPhredInt) + " is outside accepted range [0, 255]!";
-		if(MaxPhredInt < MinPhredInt) throw "maxQual must be >= minQual!";
-
-		_set(MinPhredInt, MaxPhredInt);
-		report(logfile);
-		return true;
+		logfile->list("Will filter out bases with quality outside the range [" + toString(_minPhredInt) + ", " + toString(_maxPhredInt) + "] (parameters 'minQual', 'maxQual')");
+		_filter = true;
 	} else {
 		_default();
-		return false;
+		logfile->list("Will keep bases regardless of quality (use 'minQual', 'maxQual' to filter)");
 	}
 };
 
-void TQualityFilter::report(TLog* logfile){
-	logfile->list("Will filter out bases with quality outside the range [" + toString(_minPhredInt) + ", " + toString(_maxPhredInt) + "] (parameters 'minQual', 'maxQual')");
-};
-
-void TQualityFilter::_set(const uint8_t MinPhredInt, const uint8_t MaxPhredInt){
-	_minPhredInt = MinPhredInt;
-	_maxPhredInt = MaxPhredInt;
-	_minQuality = _minPhredInt + 33;
-	_maxQuality = _maxPhredInt + 33;
-};
-
-bool TQualityFilter::pass(uint8_t phredInt) const{
-	if(phredInt < _minPhredInt || phredInt > _maxPhredInt)
+bool TQualityFilter::pass(const TSequencedBase & base) const{
+	if(base.recalibratedQualityAsPhredInt < _minPhredInt || base.recalibratedQualityAsPhredInt > _maxPhredInt){
 		return false;
-	return true;
+	} else {
+		return true;
+	}
 };
 
-bool TQualityFilter::pass(char quality) const{
-	if(quality < _minQuality || quality > _maxQuality)
-		return false;
-	return true;
+//-------------------------------------
+// TContextFilter
+//-------------------------------------
+void TContextFilter::set(TParameters & params, TLog* logfile){
+	_filter = false;
+	if(params.parameterExists("ignoreContexts")){
+		std::vector<std::string> contexts;
+		params.fillParameterIntoContainer("ignoreContexts", contexts, ',');
+
+		if(contexts.size() > 0){
+			for(auto& c : contexts){
+				if(c.size() != 2){
+					throw "Context " + c + " does not consist of two bases! (parameter 'ignoreContexts')";
+				}
+
+				//save context
+				BaseContext cc(c[0], c[1]);
+				_keptContexts[static_cast<uint8_t>(cc)] = false;
+			}
+
+			std::vector<std::string> rep;
+			for(auto i = 0; i <= static_cast<uint8_t>(BaseContextEnum::cNN); ++i){
+				if(!_keptContexts[i]){
+					rep.push_back( (std::string) BaseContext(static_cast<BaseContextEnum>(i))));
+				}
+			}
+			logfile->list("Will ignore the following contexts: " + concatenateString(rep, ", ")  + ". (parameter 'ignoreContexts')");
+			_filter = true;
+		}
+	}
+
+	if(!_filter){
+		logfile->list("Will keep bases regardless of base context. (use 'ignoreContexts' to filter)");
+	}
+};
+
+bool TContextFilter::pass(const TSequencedBase & base) const{
+	return _keptContexts[static_cast<uint8_t>(base.context)];
 };
 
 } // end namespace

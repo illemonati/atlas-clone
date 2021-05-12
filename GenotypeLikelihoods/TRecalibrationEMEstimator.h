@@ -41,11 +41,11 @@ public:
 		}
 	};
 
-	bool inUse(const BAM::TBase & base) const{
+	bool inUse(const BAM::TSequencedBase & base) const{
 		return _index[base.readGroupID][(int) base.isSecondMate()].get();
 	};
 
-	TSequencingErrorModelRecal& operator()(const BAM::TBase & base) const{
+	TSequencingErrorModelRecal& operator()(const BAM::TSequencedBase & base) const{
 		return *_index[base.readGroupID][base.isSecondMate()];
 	};
 };
@@ -71,17 +71,17 @@ public:
 	~TSequencingErrorModelVectorForEstimation() = default;
 
 	size_t size() const { return _models.size(); };
-	void fillBaseLikelihoods(const BAM::TBase & base,  TBaseData & baseLikelihoods) const;
+	void fillBaseLikelihoods(const BAM::TSequencedBase & base,  TBaseData & baseLikelihoods) const;
 
 	//functions to estimate rho
 	void prepareRhoEstimationFromEMWeights();
-	void addBaseForRhoEstimation(BAM::TBase & base, const TBaseData & EMWeights);
+	void addBaseForRhoEstimation(BAM::TSequencedBase & base, const TBaseData & EMWeights);
 	void estimateRho();
 
 	//functions to estimate beta
 	void setNewtonRaphsonParamsToZero();
-	void addToFandJacobian(const BAM::TBase & base, const TBaseData & EM_weights_bbar_given_d);
-	void addToQ(const BAM::TBase & base, const TBaseData & EM_weights_bbar_given_d);
+	void addToFandJacobian(const BAM::TSequencedBase & base, const TBaseData & EM_weights_bbar_given_d);
+	void addToQ(const BAM::TSequencedBase & base, const TBaseData & EM_weights_bbar_given_d);
 	void setQToZero();
 	double curQ();
 	bool solveJxF();

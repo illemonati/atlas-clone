@@ -8,7 +8,7 @@
 #ifndef GENOTYPELIKELIHOODS_TPMDTABLES_H_
 #define GENOTYPELIKELIHOODS_TPMDTABLES_H_
 
-#include "TBase.h"
+#include "../BAM/TSequencedBase.h"
 #include "TFile.h"
 #include "TGenotypeMap.h"
 #include "TReadGroups.h"
@@ -32,7 +32,7 @@ private:
 	uint16_t _size; //pos-specific for 0, 1, ..., _size - 2, then lumped into an extra bin (_size-1)
 	uint16_t _sizeMinusOne;
 
-	void _add(const uint16_t & pos, const Base & read);
+	void _add(const uint16_t & pos, const BAM::Base & read);
 	void _writeNormalizedOne(TOutputFile & out, countVec & these);
 
 public:
@@ -46,10 +46,10 @@ public:
 	uint16_t size() const { return _size; }
 	void resize(const uint16_t & Size);
 	void empty();
-	void add(const uint16_t & pos, const Base & read);
+	void add(const uint16_t & pos, const BAM::Base & read);
 	void add(const TPMDCounts & other);
 
-	const countVec& operator[](const Base & b) const{
+	const countVec& operator[](const BAM::Base & b) const{
 		return _counts[b];
 	};
 	const countVec& sums() const{
@@ -75,10 +75,10 @@ public:
 	uint16_t size() const { return _counts[0].size(); };
 	void resize(const uint16_t & Size);
 	void empty();
-	void add(const uint16_t & pos, const Base & ref, const Base & read);
+	void add(const uint16_t & pos, const BAM::Base & ref, const BAM::Base & read);
 	void add(const TPMDTable & other);
 
-	const TPMDCounts& operator[](const Base & b) const{
+	const TPMDCounts& operator[](const BAM::Base & b) const{
 		return _counts[b];
 	};
 
@@ -91,12 +91,11 @@ public:
 class TPMDTableReadGroup{
 private:
 	TPMDTable _tables[4];
-	TGenotypeMap _genoMap;
 
 public:
 	TPMDTableReadGroup(const uint16_t & TableLength);
 
-	void add(const BAM::TBase & base, const Base & reference);
+	void add(const BAM::TSequencedBase & base, const BAM::Base & reference);
 
 	const TPMDTable& operator[](const PMDTableType & Type) const{
 		return _tables[Type];
@@ -123,7 +122,7 @@ public:
 	void initialize(const BAM::TReadGroups* ReadGroups, const uint16_t & TableLength, const BAM::TReadGroupMap* ReadGroupMap);
 	const TPMDTableReadGroup& operator[](const uint16_t & ReadGroupID) const;
 
-	void add(const BAM::TBase & base, const Base & reference);
+	void add(const BAM::TSequencedBase & base, const TGenotypeMap _genoMap;Base & reference);
 	void write(std::string filename, const bool & normalize);
 };
 

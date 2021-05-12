@@ -12,7 +12,7 @@ namespace Simulations{
 //----------------------------------
 //TSimulatorQualityDist
 //----------------------------------
-TSimulatorQualityDist::TSimulatorQualityDist(std::string & s){
+TSimulatorQualityDist::TSimulatorQualityDist(std::string & s, TRandomGenerator* RandomGenerator){
 	size_t pos = s.find("(");
 	if(pos == std::string::npos)
 		_max = convertStringCheck<uint8_t>(s);
@@ -29,30 +29,36 @@ TSimulatorQualityDist::TSimulatorQualityDist(std::string & s){
 	_maxPlusOne = -1;
 	_mean = -1.0;
 	_sd = -1.0;
+	_randomGenerator = RandomGenerator;
 };
 
-TSimulatorQualityDist::TSimulatorQualityDist(){
+TSimulatorQualityDist::TSimulatorQualityDist(TRandomGenerator* RandomGenerator){
 	_max = 30;
 	_min = 0;
 	_maxPlusOne = -1;
 	_mean = -1.0;
 	_sd = -1.0;
-}
+	_randomGenerator = RandomGenerator;
+};
 
-void TSimulatorQualityDist::sample(std::vector<uint8_t> & qualities) const{
-	for(auto& q : qualities){
-		q = _max;
+void TSimulatorQualityDist::sample(std::vector<PhredIntErrorRate> & phredInt) const{
+	for(auto& q : phredInt){
+		q = sample();
 	}
 };
 
+std::string TSimulatorQualityDist::_details() const{
+	return "fixed quality of " + toString(_max);
+};
+
 void TSimulatorQualityDist::printDetails(TLog* logfile, const std::string & Name) const{
-	logfile->list(Name + ": fixed quality of " + toString(_max));
+	logfile->list(Name + ": " + _details());
 };
 
 //------------------------------------------------
 // TSimulatorQualityDistBinned
 //------------------------------------------------
-TSimulatorQualityDistBinned::TSimulatorQualityDistBinned(std::string & s, TRandomGenerator* RandomGenerator):TSimulatorQualityDist(){
+TSimulatorQualityDistBinned::TSimulatorQualityDistBinned(std::string & s, TRandomGenerator* RandomGenerator):TSimulatorQualityDist(RandomGenerator){
 	size_t pos = s.find("(");
 	if(pos == 0){
 		s.erase(0,1);
@@ -64,25 +70,21 @@ TSimulatorQualityDistBinned::TSimulatorQualityDistBinned(std::string & s, TRando
 	} else {
 		throw "Failed to understand binned distribution '" + s + "'! Use binned(quality_1,quality_2,..,quality_n).";
 	}
-
-	_randomGenerator = RandomGenerator;
 };
 
-void TSimulatorQualityDistBinned::sample(std::vector<uint8_t> & qualities) const{
-	for(auto& q : qualities){
-		q = _qualBins[_randomGenerator->sample(_qualBins.size())];
-	}
+PhredIntErrorRate TSimulatorQualityDistBinned::sample() const{
+	return _qualBins[_randomGenerator->sample(_qualBins.size())];
 };
 
-void TSimulatorQualityDistBinned::printDetails(TLog* logfile, const std::string & Name) const{
+std::string TSimulatorQualityDistFreq::_details() const{
 	std::string tmpS = concatenateString(_qualBins, ", ");
-	logfile->list(Name + ": uniformly distributed among the values " + tmpS);
+	return "uniformly distributed among the values " + tmpS;
 };
 
 //------------------------------------------------
 // TSimulatorQualityDistFreq
 //------------------------------------------------
-TSimulatorQualityDistFreq::TSimulatorQualityDistFreq(std::string & s, TRandomGenerator* RandomGenerator):TSimulatorQualityDist(){
+TSimulatorQualityDistFreq::TSimulatorQualityDistFreq(std::string & s, TRandomGenerator* RandomGenerator):TSimulatorQualityDist(RandomGenerator){
 	size_t pos = s.find('(');
 	if(pos == 0){
 		s.erase(0,1);
@@ -113,36 +115,27 @@ TSimulatorQualityDistFreq::TSimulatorQualityDistFreq(std::string & s, TRandomGen
 	} else {
 		throw "Failed to understand frequency distribution '" + s + "'! Use frequency(quality_1:frequency_1,quality_2:frequency_2, ... ,quality_n:frequency_n).";
 	}
-
-	_randomGenerator = RandomGenerator;
 };
 
-void TSimulatorQualityDistFreq::sample(std::vector<uint8_t> & qualities) const{
-	for(auto& q : qualities){
-		q = _qualBins[_randomGenerator->pickOne(_cumulativeFrequencies)];
-	}
+PhredIntErrorRate TSimulatorQualityDistFreq::sample() const{
+	return _qualBins[_randomGenerator->pickOne(_cumulativeFrequencies)];
 };
 
-void TSimulatorQualityDistFreq::printDetails(TLog* logfile, const std::string & Name) const{
-	std::string tmpS = concatenateString(_qualBins, ",");
-	logfile->list(Name + ": frequency bins " + concatenateString(paste(_qualBins, _frequencies, ":"), ", "));
+std::string TSimulatorQualityDistFreq::_details() const{
+	return "frequency bins " + concatenateString(paste(_qualBins, _frequencies, ":"), ", ");
 };
 
 //------------------------------------------------
 // TSimulatorQualityDistNormal
 //------------------------------------------------
-TSimulatorQualityDistNormal::TSimulatorQualityDistNormal(std::string & s, TRandomGenerator* RandomGenerator):TSimulatorQualityDist(){
-	_randomGenerator = RandomGenerator;
-
+TSimulatorQualityDistNormal::TSimulatorQualityDistNormal(std::string & s, TRandomGenerator* RandomGenerator):TSimulatorQualityDist(RandomGenerator){
 	parseFunctionString(s);
 	_maxPlusOne = _max + 1;
 
 	fillDensities();
 };
 
-TSimulatorQualityDistNormal::TSimulatorQualityDistNormal(double & mean, double & sd, int min, int max, TRandomGenerator* RandomGenerator):TSimulatorQualityDist(){
-	_randomGenerator = RandomGenerator;
-
+TSimulatorQualityDistNormal::TSimulatorQualityDistNormal(double & mean, double & sd, int min, int max, TRandomGenerator* RandomGenerator):TSimulatorQualityDist(RandomGenerator){
 	_mean = mean;
 	_sd = sd;
 	_min = min;
@@ -220,20 +213,13 @@ void TSimulatorQualityDistNormal::fillDensities(){
 	_cumulDensities[_size-1] = 1.0;
 }
 
-int TSimulatorQualityDistNormal::sample(){
+PhredIntErrorRate TSimulatorQualityDistNormal::sample() const {
 	return _randomGenerator->pickOne(_cumulDensities) + _min;
 };
 
-void TSimulatorQualityDistNormal::sample(std::vector<uint8_t> & qualities) const{
-	for(auto& q : qualities){
-		q = _randomGenerator->pickOne(_cumulDensities) + _min;
-	}
+std::string TSimulatorQualityDistNormal::_details() const{
+	return "Normally distributed quality scores with mean=" + toString(_mean) + " and sd=" + toString(_sd) + ", truncated to [" + toString(_min) + "," + toString(_max) + "].";
 };
-
-void TSimulatorQualityDistNormal::printDetails(TLog* logfile) const{
-	logfile->list("Normally distributed quality scores with mean=" + toString(_mean) + " and sd=" + toString(_sd) + ", truncated to [" + toString(_min) + "," + toString(_max) + "].");
-};
-
 
 }; //end namesapce
 

@@ -8,7 +8,7 @@
 #ifndef SIMULATIONS_TSIMULATORQUALITY_H_
 #define SIMULATIONS_TSIMULATORQUALITY_H_
 
-#include <TBase.h>
+#include "../BAM/TSequencedBase.h"
 #include "TLog.h"
 #include "TRandomGenerator.h"
 #include "TQualityMap.h"
@@ -25,22 +25,26 @@ namespace Simulations{
 //Class of a fixed value
 class TSimulatorQualityDist{
 protected:
+	TRandomGenerator* _randomGenerator;
 	uint8_t _min;
 	uint8_t _max;
 	uint8_t _maxPlusOne;
 	double _mean, _sd;
 
+	virtual std::string _details() const;
+
 public:
-	TSimulatorQualityDist();
-	TSimulatorQualityDist(std::string & s);
+	TSimulatorQualityDist(TRandomGenerator* RandomGenerator);
+	TSimulatorQualityDist(std::string & s, TRandomGenerator* RandomGenerator);
 	virtual ~TSimulatorQualityDist(){};
 	uint8_t min(){ return _min; };
 	uint8_t max(){ return _max; };
 	double mean(){return _mean; };
 	double sd(){return _sd; };
-	virtual uint8_t sample(){ return _max; };
-	virtual void sample(std::vector<uint8_t> & qualities) const;
-	virtual void printDetails(TLog* logfile, const std::string & Name) const;
+
+	virtual PhredIntErrorRate sample(){ return _max; };
+	void sample(std::vector<PhredIntErrorRate> & phredInt) const;
+	void printDetails(TLog* logfile, const std::string & Name) const;
 };
 
 //------------------------------------------------
@@ -49,13 +53,14 @@ public:
 //------------------------------------------------
 class TSimulatorQualityDistBinned:public TSimulatorQualityDist{
 private:
-	TRandomGenerator* _randomGenerator;
 	std::vector<uint16_t> _qualBins;
+
+	std::string _details() const override;
 
 public:
 	TSimulatorQualityDistBinned(std::string & s, TRandomGenerator* RandomGenerator);
+	PhredIntErrorRate sample() const override;
 	void sample(std::vector<uint8_t> & qualities) const override;
-	void printDetails(TLog* logfile, const std::string & Name) const override;
 };
 
 //------------------------------------------------
@@ -64,15 +69,15 @@ public:
 //------------------------------------------------
 class TSimulatorQualityDistFreq:public TSimulatorQualityDist{
 private:
-	TRandomGenerator* _randomGenerator;
 	std::vector<uint8_t> _qualBins;
 	std::vector<double> _frequencies;
 	std::vector<double> _cumulativeFrequencies;
 
+	std::string _details() const override;
+
 public:
 	TSimulatorQualityDistFreq(std::string & s, TRandomGenerator* RandomGenerator);
-	void sample(std::vector<uint8_t> & qualities) const override;
-	void printDetails(TLog* logfile, const std::string & Name) const override;
+	PhredIntErrorRate sample() const override;
 };
 
 //------------------------------------------------
@@ -86,16 +91,14 @@ private:
 	std::vector<double> _densities;
 	std::vector<double> _cumulDensities;
 
-	TRandomGenerator* _randomGenerator;
+	std::string _details() const override;
 
 public:
 	TSimulatorQualityDistNormal(std::string & s, TRandomGenerator* RandomGenerator);
 	TSimulatorQualityDistNormal(double & mean, double & sd, int min, int max, TRandomGenerator* RandomGenerator);;
 	void parseFunctionString(std::string & s);
 	void fillDensities();
-	int sample();
-	void sample(std::vector<uint8_t> & qualities) const override;
-	void printDetails(TLog* logfile, const std::string & Name) const override;
+	PhredIntErrorRate sample() const override;
 };
 
 }; //end namespace

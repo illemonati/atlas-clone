@@ -76,7 +76,7 @@ TSequencingErrorModelVectorForEstimation::TSequencingErrorModelVectorForEstimati
 	modelStati.report(RecalEstimatorTools::littleData, "Read groups with very little data (consider pooling):", ReadGroups, Logfile);
 };
 
-void TSequencingErrorModelVectorForEstimation::fillBaseLikelihoods(const BAM::TBase & base,  TBaseData & baseLikelihoods) const{
+void TSequencingErrorModelVectorForEstimation::fillBaseLikelihoods(const BAM::TSequencedBase & base,  TBaseData & baseLikelihoods) const{
 	_modelIndex(base).fillBaseLikelihoods(base, baseLikelihoods);
 };
 
@@ -89,7 +89,7 @@ void TSequencingErrorModelVectorForEstimation::prepareRhoEstimationFromEMWeights
 	}
 };
 
-void TSequencingErrorModelVectorForEstimation::addBaseForRhoEstimation(BAM::TBase & base, const TBaseData & EMWeights){
+void TSequencingErrorModelVectorForEstimation::addBaseForRhoEstimation(BAM::TSequencedBase & base, const TBaseData & EMWeights){
 	_modelIndex(base).addBaseForRhoEstimation(base, EMWeights);
 };
 
@@ -102,11 +102,11 @@ void TSequencingErrorModelVectorForEstimation::estimateRho(){
 //functions to estimate beta
 //-------------------------------------------------------------------
 
-void TSequencingErrorModelVectorForEstimation::addToFandJacobian(const BAM::TBase & base, const TBaseData & EM_weights_bbar_given_d){
+void TSequencingErrorModelVectorForEstimation::addToFandJacobian(const BAM::TSequencedBase & base, const TBaseData & EM_weights_bbar_given_d){
 	_modelIndex(base).addToFandJacobian(base, EM_weights_bbar_given_d);
 };
 
-void TSequencingErrorModelVectorForEstimation::addToQ(const BAM::TBase & base, const TBaseData & EM_weights_bbar_given_d){
+void TSequencingErrorModelVectorForEstimation::addToQ(const BAM::TSequencedBase & base, const TBaseData & EM_weights_bbar_given_d){
 	_modelIndex(base).addToQ(base, EM_weights_bbar_given_d);
 };
 

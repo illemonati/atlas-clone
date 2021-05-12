@@ -18,7 +18,7 @@ TRecalDataTable::TRecalDataTable(){
 	_counts = 0;
 };
 
-void TRecalDataTable::add(const BAM::TBase & base){
+void TRecalDataTable::add(const BAM::TSequencedBase & base){
 	++_counts;
 
 	//add quality
@@ -61,7 +61,7 @@ const TRecalDataTable& TRecalDataTableOneReadGroup::operator[](const bool & IsSe
 	return _tables[(int) IsSecondMate];
 };
 
-void TRecalDataTableOneReadGroup::add(const BAM::TBase & base){
+void TRecalDataTableOneReadGroup::add(const BAM::TSequencedBase & base){
 	_tables[base.isSecondMate()].add(base);
 };
 
@@ -95,14 +95,14 @@ void TRecalDataTables::clear(){
 	_totalCounts = 0;
 };
 
-void TRecalDataTables::add(const BAM::TBase & base){
+void TRecalDataTables::add(const BAM::TSequencedBase & base){
 	++_totalCounts;
 	_tables[ _readGroupMap->pooledIndex( base.readGroupID) ].add(base);
 };
 
 void TRecalDataTables::add(const TSite & Site){
 	_totalCounts += Site.depth();
-	for(std::vector<BAM::TBase>::const_iterator it = Site.cbegin(); it != Site.cend(); ++it){
+	for(std::vector<BAM::TSequencedBase>::const_iterator it = Site.cbegin(); it != Site.cend(); ++it){
 		add(*it);
 	}
 };

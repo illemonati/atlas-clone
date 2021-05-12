@@ -9,7 +9,7 @@
 #define BAM_TCIGAR_H_
 
 #include <vector>
-#include <stdint.h>
+#include <cstdint>
 
 namespace BAM{
 

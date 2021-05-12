@@ -159,9 +159,9 @@ public:
 	virtual bool estimatable() const { return false; };
 	virtual bool recalibrates() const { return false; };
 
-	virtual double getErrorRate(const BAM::TBase & base, const BAM::TQualityMap & qualMap) const = 0;
-	virtual uint8_t getPhredInt(const BAM::TBase & base, const BAM::TQualityMap & qualMap) const = 0;
-	virtual void fillBaseLikelihoods(const BAM::TBase & base, const BAM::TQualityMap & qualMap, TBaseData & baseLikelihoods) const = 0;
+	virtual double getErrorRate(const BAM::TSequencedBase & base, const BAM::TQualityMap & qualMap) const = 0;
+	virtual uint8_t getPhredInt(const BAM::TSequencedBase & base, const BAM::TQualityMap & qualMap) const = 0;
+	virtual void fillBaseLikelihoods(const BAM::TSequencedBase & base, const BAM::TQualityMap & qualMap, TBaseData & baseLikelihoods) const = 0;
 
 	virtual std::string getCovariateDefinition() const { return "-"; };
 	virtual std::string getRhoDefinition() const { return "-"; };
@@ -177,9 +177,9 @@ public:
 	TSequencingErrorModelNoRecal() = default;
 	~TSequencingErrorModelNoRecal() = default;
 
-	double getErrorRate(const BAM::TBase & base, const BAM::TQualityMap & qualMap) const override;
-	uint8_t getPhredInt(const BAM::TBase & base, const BAM::TQualityMap & qualMap) const override;
-	void fillBaseLikelihoods(const BAM::TBase & base, const BAM::TQualityMap & qualMap, TBaseData & baseLikelihoods) const override;
+	double getErrorRate(const BAM::TSequencedBase & base, const BAM::TQualityMap & qualMap) const override;
+	uint8_t getPhredInt(const BAM::TSequencedBase & base, const BAM::TQualityMap & qualMap) const override;
+	void fillBaseLikelihoods(const BAM::TSequencedBase & base, const BAM::TQualityMap & qualMap, TBaseData & baseLikelihoods) const override;
 };
 
 //------------------------------------------------
@@ -203,7 +203,7 @@ private:
 
 	void _initializeDerivatives();
 	double _calcEpsilon(const double & eta) const;
-	double _calcErrorRate(const BAM::TBase & base) const;
+	double _calcErrorRate(const BAM::TSequencedBase & base) const;
 
 public:
 	TSequencingErrorModelRecal(const TSequencingErrorModelDefinition & modelDef);
@@ -216,10 +216,10 @@ public:
 	TSequencingErrorModelDefinition getModelDefinition() const;
 
 	//get error rates
-	double getErrorRate(const BAM::TBase & base, const BAM::TQualityMap & qualMap) const override;
-	uint8_t getPhredInt(const BAM::TBase & base, const BAM::TQualityMap & qualMap) const override;
-	void fillBaseLikelihoods(const BAM::TBase & base, TBaseData & baseLikelihoods) const;
-	void fillBaseLikelihoods(const BAM::TBase & base, const BAM::TQualityMap & qualMap, TBaseData & baseLikelihoods) const override;
+	double getErrorRate(const BAM::TSequencedBase & base, const BAM::TQualityMap & qualMap) const override;
+	uint8_t getPhredInt(const BAM::TSequencedBase & base, const BAM::TQualityMap & qualMap) const override;
+	void fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseData & baseLikelihoods) const;
+	void fillBaseLikelihoods(const BAM::TSequencedBase & base, const BAM::TQualityMap & qualMap, TBaseData & baseLikelihoods) const override;
 
 	//functions to estimate
 	bool checkParameterRange(RecalEstimatorTools::TRecalDataTable & DataTable, std::string & error);
@@ -227,15 +227,15 @@ public:
 
 	//functions to estimate rho
 	void prepareRhoEstimationFromEMWeights();
-	void addBaseForRhoEstimation(BAM::TBase & base, const TBaseData & EMWeights);
+	void addBaseForRhoEstimation(BAM::TSequencedBase & base, const TBaseData & EMWeights);
 	void estimateRho();
 
 	//functions to estimate betas
 	void setNewtonRaphsonParamsToZero();
 	void setQToZero();
-	void addToQ(const BAM::TBase & base, const TBaseData & EM_weights_bbar_given_d);
+	void addToQ(const BAM::TSequencedBase & base, const TBaseData & EM_weights_bbar_given_d);
 	double curQ(){ return _Q; };
-	void addToFandJacobian(const BAM::TBase & base, const TBaseData & EM_weights_bbar_given_d);
+	void addToFandJacobian(const BAM::TSequencedBase & base, const TBaseData & EM_weights_bbar_given_d);
 	bool solveJxF();
 	void proposeNewParameters(double & lambda);
 	bool acceptProposedParametersBasedOnQ();

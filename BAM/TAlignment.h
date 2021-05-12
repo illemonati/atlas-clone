@@ -10,13 +10,13 @@
 
 #include "TCigar.h"
 #include "TSamFlags.h"
-#include "TBase.h"
 #include "stringFunctions.h"
 #include "TGenotypeLikelihoodCalculator.h"
 #include "TQualityMap.h"
 #include "TFastaBuffer.h"
 #include "TRandomGenerator.h"
 #include "TGenomePosition.h"
+#include "TSequencedBase.h"
 
 namespace BAM{
 
@@ -49,7 +49,7 @@ private:
 	mutable bool _sequenceAndQualitiesChanged;
 
 	//per base data
-	std::vector<TBase> _bases;
+	std::vector<TSequencedBase> _bases;
 	std::vector<int> _alignedPosition;
 
 	//reference
@@ -59,12 +59,8 @@ private:
 	void _initialize();
 
 	//functions to read and parse
-	template <typename BASETYPE, typename QUALTYPE, class TOBASEFUNCTION, class TOQUALFUNCTION> void _parseBasesQualities(const BASETYPE & Sequence,
-																			  const QUALTYPE & Qualities,
-																			  const GenotypeLikelihoods::TGenotypeMap & genoMap,
-																			  const TOBASEFUNCTION & ToBaseFunc,
-																			  const TQualityMap & qualityMap,
-																			  const TOQUALFUNCTION & ToQualFunc){
+	template <typename BASETYPE, typename QUALTYPE>
+	void _parseBasesQualities(const BASETYPE & Sequence, const QUALTYPE & Qualities){
 		//initialize
 		_bases.resize(_cigar.lengthRead());
 		_alignedPosition.resize(_cigar.lengthRead());
@@ -81,8 +77,8 @@ private:
 				case ('X') :
 					//soft-clipped bases on 5' are before bamAlignment.Position
 					for(unsigned int i=0; i<cigarIter.length; ++i, ++d, ++p){
-						_bases[d].base = (genoMap.*ToBaseFunc)(_sequence[d]);
-						_bases[d].originalQuality_phredInt = (qualityMap.*ToQualFunc)(_qualities[d]);
+						_bases[d].base = _sequence[d];
+						_bases[d].originalQuality_phredInt = _qualities[d];
 						_bases[d].setAligned(true);
 						_alignedPosition[d] = p;
 					}
@@ -94,8 +90,8 @@ private:
 					for(unsigned int i=0; i<cigarIter.length; ++i, ++d){
 						//soft-clipped bases on 5' are before bamAlignment.Position
 						//need to initialize quality for quality filter and bases for context
-						_bases[d].base = (genoMap.*ToBaseFunc)(_sequence[d]);
-						_bases[d].originalQuality_phredInt = (qualityMap.*ToQualFunc)(_qualities[d]);
+						_bases[d].base = _sequence[d];
+						_bases[d].originalQuality_phredInt = _qualities[d];
 						_bases[d].setAligned(false);
 						_alignedPosition[d] = -1;
 					}
@@ -104,8 +100,8 @@ private:
 				//for 'I' - insertion: copy bases, but put aligned  = false
 				case ('I')      :
 					for(unsigned int i=0; i<cigarIter.length; ++i, ++d){
-						_bases[d].base = (genoMap.*ToBaseFunc)(_sequence[d]);
-						_bases[d].originalQuality_phredInt = (qualityMap.*ToQualFunc)(_qualities[d]);
+						_bases[d].base = _sequence[d];
+						_bases[d].originalQuality_phredInt = _qualities[d];
 						_bases[d].setAligned(false);
 						_alignedPosition[d] = -1;
 					}
@@ -159,7 +155,7 @@ private:
 	void _fillContext();
 
 	//functions to modify data
-	void _updateSequenceAndQualities(const GenotypeLikelihoods::TGenotypeMap & genoMap, const TQualityMap & qualMap) const;
+	void _updateSequenceAndQualities() const;
 
 public:
 	TAlignment(const uint32_t& RefID, const uint32_t& Position);
@@ -180,8 +176,8 @@ public:
 			  const std::string & Sequence,
 			  const std::string & Qualities,
 			  const uint16_t & ReadGroupId);
-	void parse(const GenotypeLikelihoods::TGenotypeMap & genoMap, const TQualityMap & qualityMap);
-	void parse(const GenotypeLikelihoods::TGenotypeMap & genoMap, const TQualityMap & qualityMap, const GenotypeLikelihoods::TSequencingErrorModels & seqErrorModels);
+	void parse();
+	void parse(const GenotypeLikelihoods::TSequencingErrorModels & seqErrorModels);
 
 	//setters
 	void addReference(TFastaBuffer & fasta);
@@ -190,7 +186,7 @@ public:
 	void setMappingQuality(const uint16_t Mappingquality){ _mappingQuality = Mappingquality; };
 	void setMateGenomicPosition(const uint32_t RefID, const uint32_t Position){ _mateGenomicPosition.move(RefID, Position); };
 	void setInsertSize(const int32_t InsertSize){ _insertSize_TLEN = InsertSize; };
-	void setSequenceQualities(const TCigar & Cigar, const std::vector<Base> & Sequence, const std::vector<uint8_t> & Qualities, const GenotypeLikelihoods::TGenotypeMap & genoMap, const TQualityMap & qualityMap);
+	void setSequenceQualities(const TCigar & Cigar, const std::vector<Base> & Sequence, const std::vector<PhredIntErrorRate> & Quals);
 	void setReadGroup(const uint16_t readGroupId);
 	void setIsReverseStrand(const bool IsReverse){ _flags.setIsReverseStrand(IsReverse); };
     void setIsRead1(const bool IsRead1){ _flags.setIsRead1(IsRead1); };
@@ -215,11 +211,11 @@ public:
 	uint16_t flags() const{ return _flags.asInt(); };
 	const TCigar& cigar() const{ return _cigar; };
 
-	TBase& operator[](const uint32_t internalPos){ return _bases[internalPos]; };
-	const TBase& operator[](const uint32_t internalPos) const { return _bases[internalPos]; };
+	TSequencedBase& operator[](const uint32_t internalPos){ return _bases[internalPos]; };
+	const TSequencedBase& operator[](const uint32_t internalPos) const { return _bases[internalPos]; };
 
-	std::string sequence(const GenotypeLikelihoods::TGenotypeMap & genoMap, const TQualityMap & qualMap) const;
-	std::string qualities(const GenotypeLikelihoods::TGenotypeMap & genoMap, const TQualityMap & qualMap) const;
+	std::string sequence() const;
+	std::string qualities() const;
 	bool isEmpty() const { return _empty; };
 	bool isParsed() const{ return _parsed; };
 	bool isReverseStrand() const{ return _flags.isReverseStrand(); };
@@ -227,12 +223,11 @@ public:
 	bool isProperPair() const{ return _flags.isProperPair(); };
 
 	//looping
-	std::vector<TBase>::iterator begin(){ return _bases.begin(); };
-	std::vector<TBase>::iterator end(){ return _bases.end(); };
+	std::vector<TSequencedBase>::iterator begin(){ return _bases.begin(); };
+	std::vector<TSequencedBase>::iterator end(){ return _bases.end(); };
 
 	//filters and other functions to modify data
-	void filterForBaseQuality(TQualityFilter & qualFilter);
-	void filterForContext(const std::map<GenotypeLikelihoods::BaseContext,int> & ignoreTheseContexts, const GenotypeLikelihoods::TGenotypeMap & genoMap);
+	void filter(const TBaseFilter & Filter);
 	void trimRead(const int & trimmingLength3Prime, const int & trimmingLength5Prime);
 	void removeSoftClippedBases();
 	void binQualityScores(TQualityMap & qualityMap);

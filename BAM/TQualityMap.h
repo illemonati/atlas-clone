@@ -12,6 +12,7 @@
 #include <cstdint>
 
 #include "TParameters.h"
+#include "TSequencedBase.h"
 
 //TODO: make things private
 
@@ -20,6 +21,7 @@ namespace BAM{
 //---------------------------------------------------------------
 //TQualityMap
 //---------------------------------------------------------------
+/*
 class TQualityMap{
 private:
 	bool _binQualities;
@@ -72,31 +74,70 @@ public:
 	uint8_t qualityToPhredInt(const uint8_t & quality) const;
 	void adjustQualitiesForWriting(std::string & qualities) const;
 };
+*/
+
+//-------------------------------------
+// TBaseFilter
+//-------------------------------------
+class TBaseFilter{
+protected:
+	bool _filter;
+
+	constexpr operator bool() const{
+		return _filter;
+	};
+
+public:
+	explicit constexpr TBaseFilter() : _filter(false) {};
+	~TBaseFilter() = default;
+
+	virtual bool pass(const TSequencedBase & base) const = 0;
+};
 
 //---------------------------------------------------------------
 //TQualityFilter
 //---------------------------------------------------------------
-class TQualityFilter{
+class TQualityFilter : public TBaseFilter{
 private:
-	uint8_t _minPhredInt, _maxPhredInt;
-	char _minQuality, _maxQuality;
-
-	void _default(){ _set(1,93); };
+	PhredIntErrorRate _minPhredInt, _maxPhredInt;
+	void _default();
 
 public:
-	TQualityFilter(){ _default(); };
+	explicit constexpr TQualityFilter(){
+		_default();
+	};
 
-	TQualityFilter(TParameters & params, TLog* logfile);
-	bool set(TParameters & params, TLog* logfile);
-	void report(TLog* logfile);
-	void _set(const uint8_t MinPhredInt, const uint8_t MaxPhredInt);
-	uint8_t minPhredInt() const{ return _minPhredInt; };
-	uint8_t maxPhredInt() const{ return _maxPhredInt; };
-	bool pass(uint8_t phredInt) const;
-	bool pass(char quality) const;
+	TQualityFilter(TParameters & params, TLog* logfile){
+		set(params, logfile);
+	};
+
+	~TQualityFilter() = default;
+
+	void set(TParameters & params, TLog* logfile);
+
+	bool pass(const TSequencedBase & base) const;
 };
 
-}; //end namespace
+//-------------------------------------
+// TContextFilter
+//-------------------------------------
+class TContextFilter : public TBaseFilter{
+private:
+	std::array<bool, static_cast<uint8_t>(BaseContextEnum::cNN) + 1> _keptContexts;
+
+public:
+	explicit constexpr TContextFilter(){
+		_keptContexts.fill(true);
+	};
+	~TContextFilter() = default;
+
+	void set(TParameters & params, TLog* logfile);
+
+	bool pass(const TSequencedBase & base) const;
+};
+
+
+}; //end namespace BAM
 
 
 

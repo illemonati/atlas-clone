@@ -103,8 +103,8 @@ TGenome_parsed::TGenome_parsed(TParameters & Params, TLog* Logfile, TRandomGener
 
 	//set parsing filters
 	_setReadTrimming(Params);
-	_setQualityFilter(Params);
-	_setContextFilter(Params);
+	_qualityFilter.set(Params, _logfile);
+	_contextFilter.set(Params, _logfile);
 };
 
 void TGenome_parsed::_openReference(bool required){
@@ -137,54 +137,19 @@ void TGenome_parsed::_setReadTrimming(TParameters & params){
 		_trimmingLength5Prime = 0;
 		_trimReads = false;
 	}
-
-};
-
-void TGenome_parsed::_setQualityFilter(TParameters & params){
-	if(_qualityFilter.set(params, _logfile)){
-		_applyQualityFilter = true;
-	} else {
-		_applyQualityFilter = false;
-	}
-};
-
-void TGenome_parsed::_setContextFilter(TParameters & params){
-	if(params.parameterExists("ignoreContexts")){
-		std::vector<std::string> contexts;
-		params.fillParameterIntoContainer("ignoreContexts", contexts, ',');
-		_logfile->startIndent("Will mask the following contexts (parameter 'maskContext'):");
-		for(auto& c : contexts){
-			if(c.size() != 2 || !_genoMap.isValidBase(c[0]) || !_genoMap.isValidBase(c[1])){
-				throw "Context " + c + " does not consist of two bases! (parameter 'maskContext')";
-			}
-			//ave context
-			GenotypeLikelihoods::BaseContext co = _genoMap.toContext(c[0], c[1]);
-			_ignoreTheseContexts.emplace(co, 1);
-			_logfile->list(_genoMap.getContextString(co));
-		}
-		_logfile->endIndent();
-		_applyContextFilter = true;
-	} else {
-		_applyContextFilter = false;
-	}
 };
 
 void TGenome_parsed::_parseAlignment(BAM::TAlignment & alignment){
 	//parse
-	alignment.parse(_genoMap, _qualMap, _genotypeLikelihoodCalculator.getSequencingErrorModels());
+	alignment.parse(_genotypeLikelihoodCalculator.getSequencingErrorModels());
 
 	//apply filters
 	if(_trimReads){
 		alignment.trimRead(_trimmingLength3Prime, _trimmingLength5Prime);
 	}
 
-	if(_applyQualityFilter){
-		alignment.filterForBaseQuality(_qualityFilter);
-	}
-
-	if(_applyContextFilter){
-		alignment.filterForContext(_ignoreTheseContexts, _genoMap);
-	}
+	alignment.filter(_qualityFilter);
+	alignment.filter(_contextFilter);
 
 	if(_reference.hasReference()){
 		alignment.addReference(_reference);

@@ -32,9 +32,7 @@ public:
 	const TBaseData& baseFrequencies(){ return _baseFrequencies; };
 	const TGenotypeProbabilities& genotypeFrequencies(){ return _genotypeFrequencies; };
 
-	void fillBaseFrequences(TBaseData & baseFreq, const Genotype genotype);
-
-
+	void fillBaseFrequences(TBaseData & baseFreq, const BAM::Genotype genotype);
 };
 
 //-------------------------------------------
@@ -48,9 +46,7 @@ private:
 public:
 	TGenotypeDistribution_haploid();
 
-	void reset();
-
-
+	void reset() override;
 };
 
 }; //end namespace

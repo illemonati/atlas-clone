@@ -9,8 +9,8 @@
 #define GENOTYPELIKELIHOODS_TSEQUENCINGERRORCOVARIATE_H_
 
 #include <memory>
+#include "../BAM/TSequencedBase.h"
 #include "TSequencingErrorCovariateFunction.h"
-#include "TBase.h"
 #include "RecalEstimatorTools.h"
 
 namespace GenotypeLikelihoods{
@@ -35,7 +35,7 @@ protected:
 	void _addPolynomialFunction(const size_t FirstParameterIndex, const std::string & functionString, std::vector<std::string> & args, std::vector<std::string> & values);
 
 	//extract
-	virtual uint16_t _extractCovariate(const BAM::TBase & base){
+	virtual uint16_t _extractCovariate(const BAM::TSequencedBase & base){
 		throw "No covariate defined for base class TRecalibrationEMCovariate!";
 	};
 
@@ -61,11 +61,11 @@ public:
 	TSequencingErrorCovariateFunction* getPointerToFunction(){ return _function.get(); };
 
 	//calculate terms
-	double getEtaTerm(const BAM::TBase & base){
+	double getEtaTerm(const BAM::TSequencedBase & base){
 		return _function->getEtaTerm( _extractCovariate(base) );
 	};
 
-	void fillDerivatives(const BAM::TBase & base, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second){
+	void fillDerivatives(const BAM::TSequencedBase & base, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second){
 		_function->fillDerivatives(_extractCovariate(base), first, second);
 	};
 
@@ -81,7 +81,7 @@ class TSequencingErrorCovariate_quality:public TSequencingErrorCovariate{
 private:
 	TRecalibrationEMQualityTransformationMap qualityToLogit;
 
-	uint16_t _extractCovariate(const BAM::TBase & base){
+	uint16_t _extractCovariate(const BAM::TSequencedBase & base){
 		return base.originalQuality_phredInt;
 	};
 
@@ -102,7 +102,7 @@ public:
 //-------------------------------------------
 class TSequencingErrorCovariate_position:public TSequencingErrorCovariate{
 private:
-	uint16_t _extractCovariate(const BAM::TBase & base){
+	uint16_t _extractCovariate(const BAM::TSequencedBase & base){
 		return base.distFrom5Prime;
 	};
 
@@ -125,8 +125,9 @@ class TSequencingErrorCovariate_context:public TSequencingErrorCovariate{
 private:
 	int numContext;
 
-	uint16_t _extractCovariate(const BAM::TBase & base){
-		return base.context;
+	uint16_t _extractCovariate(const BAM::TSequencedBase & base){
+		uint8_t tmp = (uint8_t) base.context;
+		return tmp;
 	};
 
 public:
@@ -146,7 +147,7 @@ public:
 
 class TSequencingErrorCovariate_fragmentLength:public TSequencingErrorCovariate{
 private:
-	uint16_t _extractCovariate(const BAM::TBase & base){
+	uint16_t _extractCovariate(const BAM::TSequencedBase & base){
 		return base.fragmentLength;
 	};
 
@@ -168,7 +169,7 @@ public:
 
 class TSequencingErrorCovariate_mappingQuality:public TSequencingErrorCovariate{
 private:
-	uint16_t _extractCovariate(const BAM::TBase & base){
+	uint16_t _extractCovariate(const BAM::TSequencedBase & base){
 		return base.mappingQuality;
 	};
 

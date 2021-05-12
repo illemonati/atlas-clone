@@ -15,7 +15,7 @@ TEST(TPostMortemDamage_test, baseANoPMD){
     std::vector<TBaseData> _baseLikelihoods;
     TBaseData _baseLikelihoodsNoPMD;
     TPostMortemDamage _pmd;
-    BAM::TBase base;
+    BAM::TSequencedBase base;
     base.originalQuality_phredInt = 20;
     float oneMinusError = 0.99;
     float errorOneThird = 0.01 / 3;
@@ -47,7 +47,7 @@ TEST(TPostMortemDamage_test, baseAWithPMD){
     std::vector<TBaseData> _baseLikelihoods;
     TBaseData _baseLikelihoodsNoPMD;
     TPostMortemDamage _pmd;
-    BAM::TBase base;
+    BAM::TSequencedBase base;
     TGenotypeMap genoMap;
 
     //initialize RG

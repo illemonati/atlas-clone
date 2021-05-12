@@ -14,7 +14,7 @@ TEST(TSequencingErrorModels_test, oneBase){
     TBaseData _baseLikelihoods;
     TGenotypeMap genoMap;
 
-    BAM::TBase base;
+    BAM::TSequencedBase base;
     base.originalQuality_phredInt = 20;
     float oneMinusError = 0.99;
     float errorOneThird = 0.01 / 3.0;

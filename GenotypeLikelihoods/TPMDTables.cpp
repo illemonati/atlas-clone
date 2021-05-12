@@ -12,28 +12,28 @@ namespace GenotypeLikelihoods{
 //---------------------------------------------------------------
 //TPMDCounts
 //---------------------------------------------------------------
-void TPMDCounts::_add(const uint16_t & pos, const Base & read){
+void TPMDCounts::_add(const uint16_t & pos, const BAM::Base & read){
 	++_counts[read][pos];
 	++_sums[pos];
 };
 void TPMDCounts::resize(const uint16_t & Size){
 	_size = Size;
-	_counts[A].resize(_size, 0);
-	_counts[G].resize(_size, 0);
-	_counts[C].resize(_size, 0);
-	_counts[T].resize(_size, 0);
+	_counts[BAM::A].resize(_size, 0);
+	_counts[BAM::G].resize(_size, 0);
+	_counts[BAM::C].resize(_size, 0);
+	_counts[BAM::T].resize(_size, 0);
 	_sums.resize(_size, 0);
 };
 
 void TPMDCounts::empty(){
-	std::fill(_counts[A].begin(), _counts[A].end(), 0);
-	std::fill(_counts[C].begin(), _counts[C].end(), 0);
-	std::fill(_counts[G].begin(), _counts[G].end(), 0);
-	std::fill(_counts[T].begin(), _counts[T].end(), 0);
+	std::fill(_counts[BAM::A].begin(), _counts[BAM::A].end(), 0);
+	std::fill(_counts[BAM::C].begin(), _counts[BAM::C].end(), 0);
+	std::fill(_counts[BAM::G].begin(), _counts[BAM::G].end(), 0);
+	std::fill(_counts[BAM::T].begin(), _counts[BAM::T].end(), 0);
 	std::fill(_sums.begin(), _sums.end(), 0);
 };
 
-void TPMDCounts::add(const uint16_t & pos, const Base & read){
+void TPMDCounts::add(const uint16_t & pos, const BAM::Base & read){
 	if(pos < _sizeMinusOne){
 		_add(pos, read);
 	} else {
@@ -44,10 +44,10 @@ void TPMDCounts::add(const uint16_t & pos, const Base & read){
 void TPMDCounts::add(const TPMDCounts & other){
 	if(_size != other._size){
 		for(uint16_t i = 0; i< _size; ++i){
-			_counts[A][i] += other._counts[A][i];
-			_counts[C][i] += other._counts[C][i];
-			_counts[G][i] += other._counts[G][i];
-			_counts[T][i] += other._counts[T][i];
+			_counts[BAM::A][i] += other._counts[BAM::A][i];
+			_counts[BAM::C][i] += other._counts[BAM::C][i];
+			_counts[BAM::G][i] += other._counts[BAM::G][i];
+			_counts[BAM::T][i] += other._counts[BAM::T][i];
 			_sums[i] += other._sums[i];
 		}
 	}
@@ -62,15 +62,15 @@ void TPMDCounts::_writeNormalizedOne(TOutputFile & out, countVec & these){
 
 void TPMDCounts::write(TOutputFile & out, const std::vector<std::string> & prefix, const bool & normalized){
 	if(normalized){
-		out << prefix << "A"; _writeNormalizedOne(out, _counts[A]);
-		out << prefix << "C"; _writeNormalizedOne(out, _counts[C]);
-		out << prefix << "G"; _writeNormalizedOne(out, _counts[G]);
-		out << prefix << "T"; _writeNormalizedOne(out, _counts[T]);
+		out << prefix << "A"; _writeNormalizedOne(out, _counts[BAM::A]);
+		out << prefix << "C"; _writeNormalizedOne(out, _counts[BAM::C]);
+		out << prefix << "G"; _writeNormalizedOne(out, _counts[BAM::G]);
+		out << prefix << "T"; _writeNormalizedOne(out, _counts[BAM::T]);
 	} else {
-		out << prefix << "A" << _counts[A] << std::endl;
-		out << prefix << "C" << _counts[C] << std::endl;
-		out << prefix << "G" << _counts[G] << std::endl;
-		out << prefix << "T" << _counts[T] << std::endl;
+		out << prefix << "A" << _counts[BAM::A] << std::endl;
+		out << prefix << "C" << _counts[BAM::C] << std::endl;
+		out << prefix << "G" << _counts[BAM::G] << std::endl;
+		out << prefix << "T" << _counts[BAM::T] << std::endl;
 	}
 };
 
@@ -82,50 +82,50 @@ TPMDTable::TPMDTable(const uint16_t & Size){
 };
 
 TPMDTable::TPMDTable(const TPMDTable & other){
-	_counts[A] = other._counts[A];
-	_counts[C] = other._counts[C];
-	_counts[G] = other._counts[G];
-	_counts[T] = other._counts[T];
+	_counts[BAM::A] = other._counts[BAM::A];
+	_counts[BAM::C] = other._counts[BAM::C];
+	_counts[BAM::G] = other._counts[BAM::G];
+	_counts[BAM::T] = other._counts[BAM::T];
 };
 
 void TPMDTable::resize(const uint16_t & Size){
-	_counts[A].resize(Size);
-	_counts[C].resize(Size);
-	_counts[G].resize(Size);
-	_counts[T].resize(Size);
+	_counts[BAM::A].resize(Size);
+	_counts[BAM::C].resize(Size);
+	_counts[BAM::G].resize(Size);
+	_counts[BAM::T].resize(Size);
 };
 
 void TPMDTable::empty(){
-	_counts[A].empty();
-	_counts[C].empty();
-	_counts[G].empty();
-	_counts[T].empty();
+	_counts[BAM::A].empty();
+	_counts[BAM::C].empty();
+	_counts[BAM::G].empty();
+	_counts[BAM::T].empty();
 };
 
-void TPMDTable::add(const uint16_t & pos, const Base & ref, const Base & read){
+void TPMDTable::add(const uint16_t & pos, const BAM::Base & ref, const BAM::Base & read){
 	_counts[ref].add(pos, read);
 };
 
 void TPMDTable::add(const TPMDTable & other){
-	_counts[A].add(other[A]);
-	_counts[C].add(other[C]);
-	_counts[G].add(other[G]);
-	_counts[T].add(other[T]);
+	_counts[BAM::A].add(other[BAM::A]);
+	_counts[BAM::C].add(other[BAM::C]);
+	_counts[BAM::G].add(other[BAM::G]);
+	_counts[BAM::T].add(other[BAM::T]);
 };
 
 void TPMDTable::write(TOutputFile & out, std::vector<std::string> & prefix, const bool & normalized){
 	//add ref base to prefix
 	prefix[3] = "A";
-	_counts[A].write(out, prefix, normalized);
+	_counts[BAM::A].write(out, prefix, normalized);
 
 	prefix[3] = "C";
-	_counts[C].write(out, prefix, normalized);
+	_counts[BAM::C].write(out, prefix, normalized);
 
 	prefix[3] = "G";
-	_counts[G].write(out, prefix, normalized);
+	_counts[BAM::G].write(out, prefix, normalized);
 
 	prefix[3] = "T";
-	_counts[T].write(out, prefix, normalized);
+	_counts[BAM::T].write(out, prefix, normalized);
 };
 
 //------------------------------------------------
@@ -139,12 +139,10 @@ TPMDTableReadGroup::TPMDTableReadGroup(const uint16_t & TableLength){
 	_tables[reverse5].resize(TableLength);
 };
 
-void TPMDTableReadGroup::add(const BAM::TBase & base, const Base & reference){
+void TPMDTableReadGroup::add(const BAM::TSequencedBase & base, const BAM::Base & reference){
 	if(base.isReverseStrand()){
-		Base ref = _genoMap.baseToFlippedBase[reference];
-		Base bas = _genoMap.baseToFlippedBase[base.base];
-		_tables[reverse3].add(base.distFrom3Prime, ref, bas);
-		_tables[reverse5].add(base.distFrom5Prime, ref, bas);
+		_tables[reverse3].add(base.distFrom3Prime, reference.flipped(), base.base.flipped());
+		_tables[reverse5].add(base.distFrom5Prime, reference.flipped(), base.base.flipped());
 	} else {
 		_tables[forward3].add(base.distFrom3Prime, reference, base.base);
 		_tables[forward5].add(base.distFrom5Prime, reference, base.base);
@@ -197,7 +195,7 @@ const TPMDTableReadGroup& TPMDTables::operator[](const uint16_t & ReadGroupID) c
 	return _tables[_readGroupMap->pooledIndex(ReadGroupID)];
 };
 
-void TPMDTables::add(const BAM::TBase & base, const Base & reference){
+void TPMDTables::add(const BAM::TSequencedBase & base, const BAM::Base & reference){
 	_tables[_readGroupMap->pooledIndex(base.readGroupID)].add(base, reference);
 };
 

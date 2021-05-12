@@ -5,9 +5,10 @@
  *      Author: wegmannd
  */
 
-#ifndef TBASE_H_
-#define TBASE_H_
+#ifndef TSEQUENCEDBASE_H_
+#define TSEQUENCEDBASE_H_
 
+#include <cstdint>
 #include <bitset>
 #include <iostream>
 #include "Types.h"
@@ -15,26 +16,26 @@
 namespace BAM{
 
 //---------------------------------------------------------------
-//TBase
+//TSequencedBase
 //---------------------------------------------------------------
 //data container with minimal footprint, also used in recal
-class TBase{
+class TSequencedBase{
 private:
 	//flags: isReverseStrand, isSecondMate, isAligned
 	std::bitset<3> flags; //initialized as 0,0,0
 
 public:
 	Base base;
-	uint8_t originalQuality_phredInt; //original quality as in BAM file, but transformed to phredInt
-	uint8_t recalibratedQualityAsPhredInt; //Quality after recalibration (used for filtering)
+	PhredIntErrorRate originalQuality_phredInt; //original quality as in BAM file, but transformed to phredInt
+	PhredIntErrorRate recalibratedQualityAsPhredInt; //Quality after recalibration (used for filtering)
 	uint16_t distFrom5Prime; //zero based!
 	uint16_t distFrom3Prime; //zero based!	Do we need it if we also store fragment length?
 	uint16_t readGroupID;
 	uint16_t fragmentLength;
 	uint8_t mappingQuality;
-	Base context;
+	BaseContext context;
 
-	TBase();
+	TSequencedBase();
 
 	//set and get flags
 	bool isReverseStrand() const { return flags[0]; };
@@ -55,9 +56,6 @@ public:
 
 }; //end namespace
 
-
-std::ostream& operator<<(std::ostream& os, const BAM::TBase & base);
-std::ostream& operator<<(std::ostream& os, const Base & base);
-
+std::ostream& operator<<(std::ostream& os, const BAM::TSequencedBase & base);
 
 #endif /* TBASE_H_ */

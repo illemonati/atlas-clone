@@ -5,11 +5,11 @@
  *      Author: wegmannd
  */
 
-#include "TBase.h"
+#include "TSequencedBase.h"
 
 namespace BAM{
 
-TBase::TBase(){
+TSequencedBase::TSequencedBase(){
 	base = N;
 	originalQuality_phredInt = 0;
 	recalibratedQualityAsPhredInt = 0;
@@ -21,7 +21,7 @@ TBase::TBase(){
 	fragmentLength = 0;
 };
 
-void TBase::print() const{
+void TSequencedBase::print() const{
 	std::cout << "base: " << base << std::endl;
 	std::cout << "originalQuality_phredInt: " << originalQuality_phredInt << std::endl;
 	std::cout << "recalibratedQualityAsPhredInt: " << recalibratedQualityAsPhredInt << std::endl;
@@ -35,25 +35,7 @@ void TBase::print() const{
 
 }; //end namespace
 
-std::ostream& operator<<(std::ostream& os, const BAM::TBase & base){
+std::ostream& operator<<(std::ostream& os, const BAM::TSequencedBase & base){
 	os << base.base;
 	return os;
 };
-
-std::ostream& operator<<(std::ostream& os, const Base & base){
-	if(base == A){
-		os << 'A';
-	} else if(base == C){
-		os << 'C';
-	} else if(base == G){
-		os << 'G';
-	} else if(base == T){
-		os << 'T';
-	} else {
-		os << 'N';
-	}
-	return os;
-};
-
-
-

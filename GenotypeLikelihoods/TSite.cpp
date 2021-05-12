@@ -26,11 +26,7 @@ void TSite::clear(){
 	_referenceBase = N;
 };
 
-void TSite::add(const BAM::TBase * base){
-    _bases.emplace_back(*base);
-};
-
-void TSite::add(const BAM::TBase & base){
+void TSite::add(const BAM::TSequencedBase & base){
     _bases.emplace_back(base);
 };
 
@@ -50,7 +46,7 @@ void TSite::downsample(const uint32_t & maxDepth, const TSubsamplePicker & picke
 		const auto& subsample = picker.pick(_bases.size(), maxDepth);
 
 		//copy bases to new vector
-		std::vector<BAM::TBase> newBases;
+		std::vector<BAM::TSequencedBase> newBases;
 		for(auto& it : subsample){
 			newBases.emplace_back(_bases[it]);
 		}
@@ -60,20 +56,20 @@ void TSite::downsample(const uint32_t & maxDepth, const TSubsamplePicker & picke
 	}
 };
 
-std::string TSite::getBases(const TGenotypeMap & genoMap) const{
+std::string TSite::getBases() const{
 	if(empty()) return "-";
 	std::string s = "";
 	for(auto& b : _bases){
-		s +=  genoMap.getBaseAsChar(b.base);
+		s +=  (char) b.base;
 	}
 	return s;
 };
 
-std::string TSite::getQualities(const BAM::TQualityMap & qualMap) const{
+std::string TSite::getQualities() const{
 	if(empty()) return "-";
 	std::string s = "";
 	for(auto& b : _bases){
-		s +=  (char) qualMap.phredIntToQuality(b.recalibratedQualityAsPhredInt);
+		s +=  (char) BAM::BaseQuality(b.recalibratedQualityAsPhredInt);
 	}
 	return s;
 };

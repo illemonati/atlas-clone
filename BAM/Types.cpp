@@ -8,7 +8,7 @@
 #include "Types.h"
 
 
-
+namespace BAM{
 
 std::string Genotype::_toString[NN+1] = {"AA", "AC", "AG", "AT", "CC", "CG", "CT", "GG", "GT", "TT", "NN"};
 
@@ -70,7 +70,7 @@ ErrorRate::ErrorRate(const PhredIntErrorRate & error){
 	_value = _phredIntToError[ (uint8_t) error];
 };
 
-ErrorRate::ErrorRate(const Quality & quality){
+ErrorRate::ErrorRate(const BaseQuality & quality){
 	_value = _phredIntToError[ (char) quality - 33];
 };
 
@@ -79,22 +79,22 @@ ErrorRate::ErrorRate(const Quality & quality){
 // The log of an error rate
 //-------------------------------------
 LogErrorRate::LogErrorRate(const PhredErrorRate & error){
-	_value = -(double) error * 0.2302585092994046; //log(10) / 10
+	_value = _phredToLogError((double) error);
 };
 
 LogErrorRate::LogErrorRate(const PhredIntErrorRate & error){
-	_value = -(uint8_t) error * 0.2302585092994046; //log(10) / 10
+	_value = _phredToLogError((uint8_t) error);
 };
 
-LogErrorRate::LogErrorRate(const Quality & quality){
-	_value = -((char) quality - 33) * 0.2302585092994046; //log(10) / 10
+LogErrorRate::LogErrorRate(const BaseQuality & quality){
+	_value = _phredToLogError((char) quality - 33);
 };
 
 //------------------------------------------------
 // PhredErrorRate
 // phreded error = -10 * log_10(error)
 //------------------------------------------------
-PhredErrorRate::PhredErrorRate(const Quality & quality) : PhredErrorRate( PhredIntErrorRate(quality)) {};
+PhredErrorRate::PhredErrorRate(const BaseQuality & quality) : PhredErrorRate( PhredIntErrorRate(quality)) {};
 
 PhredErrorRate::PhredErrorRate(const PhredIntErrorRate & error){
 	_value = (uint8_t) error;
@@ -109,8 +109,12 @@ PhredIntErrorRate::PhredIntErrorRate(const ErrorRate & error) : PhredIntErrorRat
 
 PhredIntErrorRate::PhredIntErrorRate(const LogErrorRate & logError) : PhredIntErrorRate( PhredErrorRate(logError)) {};
 
-PhredIntErrorRate::PhredIntErrorRate(const Quality & quality){
-	_value = static_cast<uint8_t>( (char) quality) - 33;
+PhredIntErrorRate::PhredIntErrorRate(const BaseQuality & quality){
+	_value = _qualityToPhredInt((char) quality);
+};
+
+void PhredIntErrorRate::operator=(const BaseQuality & quality){
+	_value = _qualityToPhredInt((char) quality);
 };
 
 //------------------------------------------------
@@ -118,7 +122,8 @@ PhredIntErrorRate::PhredIntErrorRate(const Quality & quality){
 // Sequencing or mapping quality = PhredIntError + 33
 // onyl valid within [33,255] and truncated outside
 //------------------------------------------------
-Quality::Quality(const ErrorRate & error) : Quality( PhredIntErrorRate(error) ) {};
-Quality::Quality(const LogErrorRate & logError) : Quality( PhredIntErrorRate(logError) ) {};
-Quality::Quality(const PhredErrorRate & error) : Quality( PhredIntErrorRate(error) ) {};
+BaseQuality::BaseQuality(const ErrorRate & error) : BaseQuality( PhredIntErrorRate(error) ) {};
+BaseQuality::BaseQuality(const LogErrorRate & logError) : BaseQuality( PhredIntErrorRate(logError) ) {};
+BaseQuality::BaseQuality(const PhredErrorRate & error) : BaseQuality( PhredIntErrorRate(error) ) {};
 
+}; //end namespace BAM

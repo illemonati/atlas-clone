@@ -40,9 +40,9 @@ public:
 	TSequencingErrorModelRecal* getPointerToRecalModel();
 	std::shared_ptr<TSequencingErrorModelRecal>& getSharedPointerToRecalModel();
 
-	double getErrorRate(const BAM::TBase & base, const BAM::TQualityMap & qualMap) const;
-	uint8_t getPhredInt(const BAM::TBase & base, const BAM::TQualityMap & qualMap) const;
-	void fillBaseLikelihoods(const BAM::TBase & base, const BAM::TQualityMap & qualMap, TBaseData & baseLikelihoods) const;
+	double getErrorRate(const BAM::TSequencedBase & base, const BAM::TQualityMap & qualMap) const;
+	uint8_t getPhredInt(const BAM::TSequencedBase & base, const BAM::TQualityMap & qualMap) const;
+	void fillBaseLikelihoods(const BAM::TSequencedBase & base, const BAM::TQualityMap & qualMap, TBaseData & baseLikelihoods) const;
 };
 
 class TSequencingErrorModelsOneReadGroup{
@@ -59,9 +59,9 @@ public:
 	TSequencingErrorModelRecal* getPointerToRecalModel(const bool & IsSecondMate);
 	std::shared_ptr<TSequencingErrorModelRecal>& getSharedPointerToRecalModel(const bool & IsSecondMate);
 
-	double getErrorRate(const BAM::TBase & base, const BAM::TQualityMap & qualMap) const;
-	uint8_t getPhredInt(const BAM::TBase & base, const BAM::TQualityMap & qualMap) const;
-	void fillBaseLikelihoods(const BAM::TBase & base, const BAM::TQualityMap & qualMap, TBaseData & baseLikelihoods) const;
+	double getErrorRate(const BAM::TSequencedBase & base, const BAM::TQualityMap & qualMap) const;
+	uint8_t getPhredInt(const BAM::TSequencedBase & base, const BAM::TQualityMap & qualMap) const;
+	void fillBaseLikelihoods(const BAM::TSequencedBase & base, const BAM::TQualityMap & qualMap, TBaseData & baseLikelihoods) const;
 };
 
 //--------------------------------------------------------------------------
@@ -95,12 +95,12 @@ public:
 	bool recalibrationChangesQualities() const{ return _doRecalibration; };
 
 	//calculate error rates
-	double getErrorRate(const BAM::TBase & base) const;
-	uint8_t getPhredInt(const BAM::TBase & base) const;
-	void recalibrate(BAM::TBase & base) const;
-	void recalibrate(std::vector<BAM::TBase> & bases, const uint16_t length) const; //TODO: remove
-	void recalibrate(std::vector<BAM::TBase> & bases) const;
-	void fillBaseLikelihoods(const BAM::TBase & base, TBaseData & baseLikelihoods) const;
+	double getErrorRate(const BAM::TSequencedBase & base) const;
+	uint8_t getPhredInt(const BAM::TSequencedBase & base) const;
+	void recalibrate(BAM::TSequencedBase & base) const;
+	void recalibrate(std::vector<BAM::TSequencedBase> & bases, const uint16_t length) const; //TODO: remove
+	void recalibrate(std::vector<BAM::TSequencedBase> & bases) const;
+	void fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseData & baseLikelihoods) const;
 
 	void writeRecalFile(const BAM::TReadGroups & ReadGroups, const std::string Filename) const;
 	void print() const;
