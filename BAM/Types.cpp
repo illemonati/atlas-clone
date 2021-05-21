@@ -10,11 +10,6 @@
 
 namespace BAM{
 
-std::string Genotype::_toString[NN+1] = {"AA", "AC", "AG", "AT", "CC", "CG", "CT", "GG", "GT", "TT", "NN"};
-
-const std::string BaseContext::_toString[cNN+1] = {"AA", "AC", "AG", "AT", "CA", "CC", "CG", "CT", "GA", "GC", "GG", "GT", "TA", "TC", "TG", "TT", "NA", "NC", "NG", "NT", "NN"};
-
-
 //------------------------------------------------
 // Base
 //------------------------------------------------
@@ -37,6 +32,7 @@ std::ostream& operator<<(std::ostream& os, const Base & base){
 //------------------------------------------------
 // Genotype
 //------------------------------------------------
+std::string Genotype::_toString[NN+1] = {"AA", "AC", "AG", "AT", "CC", "CG", "CT", "GG", "GT", "TT", "NN"};
 
 std::ostream& operator<<(std::ostream& os, const Genotype & genotype){
 	os << (std::string) genotype;
@@ -46,11 +42,20 @@ std::ostream& operator<<(std::ostream& os, const Genotype & genotype){
 //------------------------------------------------
 // Context
 //------------------------------------------------
+const std::string BaseContext::_toString[cNN+1] = {"AA", "AC", "AG", "AT", "CA", "CC", "CG", "CT", "GA", "GC", "GG", "GT", "TA", "TC", "TG", "TT", "NA", "NC", "NG", "NT", "NN"};
 
 std::ostream& operator<<(std::ostream& os, const BaseContext & context){
 	os << (std::string) context;
 	return os;
 };
+
+//------------------------------------------------
+// AllelicCombination
+//------------------------------------------------
+/*
+static const Base AllelicCombination::_firstBase[7] = {A, A, A, C, C, G, N};
+static const Base AllelicCombination::_secondBase[7] = {C, G, T, G, T, T, N};
+*/
 
 //-------------------------------------
 // ErrorRate
@@ -64,14 +69,37 @@ ErrorRate::ErrorRate(const LogErrorRate & error){
 	_value = exp( (double) error);
 };
 
-const double ErrorRate::_phredIntToError[256] = { 1.0, pow(10.0, -1.0/10.0), pow(10.0, -2.0/10.0), pow(10.0, -3.0/10.0), pow(10.0, -4.0/10.0), pow(10.0, -5.0/10.0), pow(10.0, -6.0/10.0), pow(10.0, -7.0/10.0), pow(10.0, -8.0/10.0), pow(10.0, -9.0/10.0), pow(10.0, -10.0/10.0), pow(10.0, -11.0/10.0), pow(10.0, -12.0/10.0), pow(10.0, -13.0/10.0), pow(10.0, -14.0/10.0), pow(10.0, -15.0/10.0), pow(10.0, -16.0/10.0), pow(10.0, -17.0/10.0), pow(10.0, -18.0/10.0), pow(10.0, -19.0/10.0), pow(10.0, -20.0/10.0), pow(10.0, -21.0/10.0), pow(10.0, -22.0/10.0), pow(10.0, -23.0/10.0), pow(10.0, -24.0/10.0), pow(10.0, -25.0/10.0), pow(10.0, -26.0/10.0), pow(10.0, -27.0/10.0), pow(10.0, -28.0/10.0), pow(10.0, -29.0/10.0), pow(10.0, -30.0/10.0), pow(10.0, -31.0/10.0), pow(10.0, -32.0/10.0), pow(10.0, -33.0/10.0), pow(10.0, -34.0/10.0), pow(10.0, -35.0/10.0), pow(10.0, -36.0/10.0), pow(10.0, -37.0/10.0), pow(10.0, -38.0/10.0), pow(10.0, -39.0/10.0), pow(10.0, -40.0/10.0), pow(10.0, -41.0/10.0), pow(10.0, -42.0/10.0), pow(10.0, -43.0/10.0), pow(10.0, -44.0/10.0), pow(10.0, -45.0/10.0), pow(10.0, -46.0/10.0), pow(10.0, -47.0/10.0), pow(10.0, -48.0/10.0), pow(10.0, -49.0/10.0), pow(10.0, -50.0/10.0), pow(10.0, -51.0/10.0), pow(10.0, -52.0/10.0), pow(10.0, -53.0/10.0), pow(10.0, -54.0/10.0), pow(10.0, -55.0/10.0), pow(10.0, -56.0/10.0), pow(10.0, -57.0/10.0), pow(10.0, -58.0/10.0), pow(10.0, -59.0/10.0), pow(10.0, -60.0/10.0), pow(10.0, -61.0/10.0), pow(10.0, -62.0/10.0), pow(10.0, -63.0/10.0), pow(10.0, -64.0/10.0), pow(10.0, -65.0/10.0), pow(10.0, -66.0/10.0), pow(10.0, -67.0/10.0), pow(10.0, -68.0/10.0), pow(10.0, -69.0/10.0), pow(10.0, -70.0/10.0), pow(10.0, -71.0/10.0), pow(10.0, -72.0/10.0), pow(10.0, -73.0/10.0), pow(10.0, -74.0/10.0), pow(10.0, -75.0/10.0), pow(10.0, -76.0/10.0), pow(10.0, -77.0/10.0), pow(10.0, -78.0/10.0), pow(10.0, -79.0/10.0), pow(10.0, -80.0/10.0), pow(10.0, -81.0/10.0), pow(10.0, -82.0/10.0), pow(10.0, -83.0/10.0), pow(10.0, -84.0/10.0), pow(10.0, -85.0/10.0), pow(10.0, -86.0/10.0), pow(10.0, -87.0/10.0), pow(10.0, -88.0/10.0), pow(10.0, -89.0/10.0), pow(10.0, -90.0/10.0), pow(10.0, -91.0/10.0), pow(10.0, -92.0/10.0), pow(10.0, -93.0/10.0), pow(10.0, -94.0/10.0), pow(10.0, -95.0/10.0), pow(10.0, -96.0/10.0), pow(10.0, -97.0/10.0), pow(10.0, -98.0/10.0), pow(10.0, -99.0/10.0), pow(10.0, -100.0/10.0), pow(10.0, -101.0/10.0), pow(10.0, -102.0/10.0), pow(10.0, -103.0/10.0), pow(10.0, -104.0/10.0), pow(10.0, -105.0/10.0), pow(10.0, -106.0/10.0), pow(10.0, -107.0/10.0), pow(10.0, -108.0/10.0), pow(10.0, -109.0/10.0), pow(10.0, -110.0/10.0), pow(10.0, -111.0/10.0), pow(10.0, -112.0/10.0), pow(10.0, -113.0/10.0), pow(10.0, -114.0/10.0), pow(10.0, -115.0/10.0), pow(10.0, -116.0/10.0), pow(10.0, -117.0/10.0), pow(10.0, -118.0/10.0), pow(10.0, -119.0/10.0), pow(10.0, -120.0/10.0), pow(10.0, -121.0/10.0), pow(10.0, -122.0/10.0), pow(10.0, -123.0/10.0), pow(10.0, -124.0/10.0), pow(10.0, -125.0/10.0), pow(10.0, -126.0/10.0), pow(10.0, -127.0/10.0), pow(10.0, -128.0/10.0), pow(10.0, -129.0/10.0), pow(10.0, -130.0/10.0), pow(10.0, -131.0/10.0), pow(10.0, -132.0/10.0), pow(10.0, -133.0/10.0), pow(10.0, -134.0/10.0), pow(10.0, -135.0/10.0), pow(10.0, -136.0/10.0), pow(10.0, -137.0/10.0), pow(10.0, -138.0/10.0), pow(10.0, -139.0/10.0), pow(10.0, -140.0/10.0), pow(10.0, -141.0/10.0), pow(10.0, -142.0/10.0), pow(10.0, -143.0/10.0), pow(10.0, -144.0/10.0), pow(10.0, -145.0/10.0), pow(10.0, -146.0/10.0), pow(10.0, -147.0/10.0), pow(10.0, -148.0/10.0), pow(10.0, -149.0/10.0), pow(10.0, -150.0/10.0), pow(10.0, -151.0/10.0), pow(10.0, -152.0/10.0), pow(10.0, -153.0/10.0), pow(10.0, -154.0/10.0), pow(10.0, -155.0/10.0), pow(10.0, -156.0/10.0), pow(10.0, -157.0/10.0), pow(10.0, -158.0/10.0), pow(10.0, -159.0/10.0), pow(10.0, -160.0/10.0), pow(10.0, -161.0/10.0), pow(10.0, -162.0/10.0), pow(10.0, -163.0/10.0), pow(10.0, -164.0/10.0), pow(10.0, -165.0/10.0), pow(10.0, -166.0/10.0), pow(10.0, -167.0/10.0), pow(10.0, -168.0/10.0), pow(10.0, -169.0/10.0), pow(10.0, -170.0/10.0), pow(10.0, -171.0/10.0), pow(10.0, -172.0/10.0), pow(10.0, -173.0/10.0), pow(10.0, -174.0/10.0), pow(10.0, -175.0/10.0), pow(10.0, -176.0/10.0), pow(10.0, -177.0/10.0), pow(10.0, -178.0/10.0), pow(10.0, -179.0/10.0), pow(10.0, -180.0/10.0), pow(10.0, -181.0/10.0), pow(10.0, -182.0/10.0), pow(10.0, -183.0/10.0), pow(10.0, -184.0/10.0), pow(10.0, -185.0/10.0), pow(10.0, -186.0/10.0), pow(10.0, -187.0/10.0), pow(10.0, -188.0/10.0), pow(10.0, -189.0/10.0), pow(10.0, -190.0/10.0), pow(10.0, -191.0/10.0), pow(10.0, -192.0/10.0), pow(10.0, -193.0/10.0), pow(10.0, -194.0/10.0), pow(10.0, -195.0/10.0), pow(10.0, -196.0/10.0), pow(10.0, -197.0/10.0), pow(10.0, -198.0/10.0), pow(10.0, -199.0/10.0), pow(10.0, -200.0/10.0), pow(10.0, -201.0/10.0), pow(10.0, -202.0/10.0), pow(10.0, -203.0/10.0), pow(10.0, -204.0/10.0), pow(10.0, -205.0/10.0), pow(10.0, -206.0/10.0), pow(10.0, -207.0/10.0), pow(10.0, -208.0/10.0), pow(10.0, -209.0/10.0), pow(10.0, -210.0/10.0), pow(10.0, -211.0/10.0), pow(10.0, -212.0/10.0), pow(10.0, -213.0/10.0), pow(10.0, -214.0/10.0), pow(10.0, -215.0/10.0), pow(10.0, -216.0/10.0), pow(10.0, -217.0/10.0), pow(10.0, -218.0/10.0), pow(10.0, -219.0/10.0), pow(10.0, -220.0/10.0), pow(10.0, -221.0/10.0), pow(10.0, -222.0/10.0), pow(10.0, -223.0/10.0), pow(10.0, -224.0/10.0), pow(10.0, -225.0/10.0), pow(10.0, -226.0/10.0), pow(10.0, -227.0/10.0), pow(10.0, -228.0/10.0), pow(10.0, -229.0/10.0), pow(10.0, -230.0/10.0), pow(10.0, -231.0/10.0), pow(10.0, -232.0/10.0), pow(10.0, -233.0/10.0), pow(10.0, -234.0/10.0), pow(10.0, -235.0/10.0), pow(10.0, -236.0/10.0), pow(10.0, -237.0/10.0), pow(10.0, -238.0/10.0), pow(10.0, -239.0/10.0), pow(10.0, -240.0/10.0), pow(10.0, -241.0/10.0), pow(10.0, -242.0/10.0), pow(10.0, -243.0/10.0), pow(10.0, -244.0/10.0), pow(10.0, -245.0/10.0), pow(10.0, -246.0/10.0), pow(10.0, -247.0/10.0), pow(10.0, -248.0/10.0), pow(10.0, -249.0/10.0), pow(10.0, -250.0/10.0), pow(10.0, -251.0/10.0), pow(10.0, -252.0/10.0), pow(10.0, -253.0/10.0), pow(10.0, -254.0/10.0), pow(10.0, -255.0/10.0) };
-
 ErrorRate::ErrorRate(const PhredIntErrorRate & error){
 	_value = _phredIntToError[ (uint8_t) error];
 };
 
+ErrorRate::ErrorRate(const HighPrecisionPhredIntErrorRate & error){
+	//exception: use casting operator as translation table is owned by HighPrecisionPhredIntErrorRate
+	_value = _highPrecisionPhredIntToError[ (uint16_t) error];
+};
+
 ErrorRate::ErrorRate(const BaseQuality & quality){
 	_value = _phredIntToError[ (char) quality - 33];
+};
+
+ErrorRate::operator LogErrorRate() const {
+	return LogErrorRate(*this);
+};
+
+ErrorRate::operator PhredErrorRate() const {
+	return PhredErrorRate(*this);
+};
+
+ErrorRate::operator PhredIntErrorRate() const {
+	return PhredIntErrorRate(*this);
+};
+
+ErrorRate::operator HighPrecisionPhredIntErrorRate() const{
+	return HighPrecisionPhredIntErrorRate(*this);
+};
+
+ErrorRate::operator BaseQuality() const{
+	return BaseQuality(*this);
 };
 
 //-------------------------------------
@@ -86,8 +114,32 @@ LogErrorRate::LogErrorRate(const PhredIntErrorRate & error){
 	_value = _phredToLogError((uint8_t) error);
 };
 
+LogErrorRate::LogErrorRate(const HighPrecisionPhredIntErrorRate & error){
+	_value = _phredToLogError((uint16_t) error / 100.0);
+};
+
 LogErrorRate::LogErrorRate(const BaseQuality & quality){
 	_value = _phredToLogError((char) quality - 33);
+};
+
+LogErrorRate::operator ErrorRate() const {
+	return ErrorRate(*this);
+};
+
+LogErrorRate::operator PhredErrorRate() const {
+	return PhredErrorRate(*this);
+};
+
+LogErrorRate::operator PhredIntErrorRate() const {
+	return PhredIntErrorRate(*this);
+};
+
+LogErrorRate::operator HighPrecisionPhredIntErrorRate() const{
+	return HighPrecisionPhredIntErrorRate(*this);
+};
+
+LogErrorRate::operator BaseQuality() const{
+	return BaseQuality(*this);
 };
 
 //------------------------------------------------
@@ -100,14 +152,42 @@ PhredErrorRate::PhredErrorRate(const PhredIntErrorRate & error){
 	_value = (uint8_t) error;
 };
 
+PhredErrorRate::PhredErrorRate(const HighPrecisionPhredIntErrorRate & error){
+	_value = (uint16_t) error / 100.0;
+};
+
+PhredErrorRate::operator ErrorRate() const {
+	return ErrorRate(*this);
+};
+
+PhredErrorRate::operator LogErrorRate() const {
+	return LogErrorRate(*this);
+};
+
+PhredErrorRate::operator PhredIntErrorRate() const {
+	return PhredIntErrorRate(*this);
+};
+
+PhredErrorRate::operator HighPrecisionPhredIntErrorRate() const{
+	return HighPrecisionPhredIntErrorRate(*this);
+};
+
+PhredErrorRate::operator BaseQuality() const{
+	return BaseQuality(*this);
+};
+
 //------------------------------------------------
 // PhredIntError
 // phreded error stored as uint8_t
 // only valid within [0,255] and truncated outside
 //------------------------------------------------
-PhredIntErrorRate::PhredIntErrorRate(const ErrorRate & error) : PhredIntErrorRate( PhredErrorRate(error)) {};
-
-PhredIntErrorRate::PhredIntErrorRate(const LogErrorRate & logError) : PhredIntErrorRate( PhredErrorRate(logError)) {};
+PhredIntErrorRate::PhredIntErrorRate(const HighPrecisionPhredIntErrorRate & error){
+	if((uint16_t) error > 25500){ //255*100
+		_value = 255;
+	} else {
+		_value = round((uint16_t) error / 100.0);
+	}
+};
 
 PhredIntErrorRate::PhredIntErrorRate(const BaseQuality & quality){
 	_value = _qualityToPhredInt((char) quality);
@@ -117,13 +197,79 @@ void PhredIntErrorRate::operator=(const BaseQuality & quality){
 	_value = _qualityToPhredInt((char) quality);
 };
 
+PhredIntErrorRate::operator ErrorRate() const {
+	return ErrorRate(*this);
+};
+
+PhredIntErrorRate::operator LogErrorRate() const {
+	return LogErrorRate(*this);
+};
+
+PhredIntErrorRate::operator PhredErrorRate() const {
+	return PhredErrorRate(*this);
+};
+
+PhredIntErrorRate::operator HighPrecisionPhredIntErrorRate() const{
+	return HighPrecisionPhredIntErrorRate(*this);
+};
+
+PhredIntErrorRate::operator BaseQuality() const{
+	return BaseQuality(*this);
+};
+
+//------------------------------------------------
+// HighPrecisionPhredIntErrorRate
+// phred error with more (100 times) precision than PhredIntError
+// HighPrecisionPhredIntErrorRate = -1000 * log10(error)
+//------------------------------------------------
+
+HighPrecisionPhredIntErrorRate::HighPrecisionPhredIntErrorRate(const BaseQuality & quality){
+	_value = 100 * ((char) quality - 33);
+};
+
+HighPrecisionPhredIntErrorRate::operator ErrorRate() const {
+	return ErrorRate(*this);
+};
+
+HighPrecisionPhredIntErrorRate::operator LogErrorRate() const {
+	return LogErrorRate(*this);
+};
+
+HighPrecisionPhredIntErrorRate::operator PhredErrorRate() const {
+	return PhredErrorRate(*this);
+};
+
+HighPrecisionPhredIntErrorRate::operator PhredIntErrorRate() const {
+	return PhredIntErrorRate(*this);
+};
+
+HighPrecisionPhredIntErrorRate::operator BaseQuality() const {
+	return BaseQuality(*this);
+};
+
 //------------------------------------------------
 // Quality
 // Sequencing or mapping quality = PhredIntError + 33
 // onyl valid within [33,255] and truncated outside
 //------------------------------------------------
-BaseQuality::BaseQuality(const ErrorRate & error) : BaseQuality( PhredIntErrorRate(error) ) {};
-BaseQuality::BaseQuality(const LogErrorRate & logError) : BaseQuality( PhredIntErrorRate(logError) ) {};
-BaseQuality::BaseQuality(const PhredErrorRate & error) : BaseQuality( PhredIntErrorRate(error) ) {};
+BaseQuality::operator ErrorRate() const {
+	return ErrorRate(*this);
+};
+
+BaseQuality::operator LogErrorRate() const {
+	return LogErrorRate(*this);
+};
+
+BaseQuality::operator PhredErrorRate() const {
+	return PhredErrorRate(*this);
+};
+
+BaseQuality::operator PhredIntErrorRate() const {
+	return PhredIntErrorRate(*this);
+};
+
+BaseQuality::operator HighPrecisionPhredIntErrorRate() const {
+	return HighPrecisionPhredIntErrorRate(*this);
+};
 
 }; //end namespace BAM

@@ -82,12 +82,12 @@ bool TGenotypeLikelihoodCalculator::recalibrationChangesQualities() const{
 	return _sequencingErrorModels.recalibrationChangesQualities();
 };
 
-double TGenotypeLikelihoodCalculator::getErrorRate(const BAM::TSequencedBase & base) const{
+BAM::ErrorRate TGenotypeLikelihoodCalculator::getErrorRate(const BAM::TSequencedBase & base) const{
 	return _sequencingErrorModels.getErrorRate(base);
 };
 
-double TGenotypeLikelihoodCalculator::getErrorWithPMD(const BAM::TSequencedBase & base) const{
-	if(base.base == N){
+BAM::ErrorRate TGenotypeLikelihoodCalculator::getErrorWithPMD(const BAM::TSequencedBase & base) const{
+	if(base.base == BAM::N){
 		return 1.0;
 	} else {
 		//calculate base likelihoods with PMD
@@ -99,15 +99,15 @@ double TGenotypeLikelihoodCalculator::getErrorWithPMD(const BAM::TSequencedBase 
 	}
 };
 
-uint8_t TGenotypeLikelihoodCalculator::getPhredInt(const BAM::TSequencedBase & base) const{
+BAM::PhredIntErrorRate TGenotypeLikelihoodCalculator::getPhredInt(const BAM::TSequencedBase & base) const{
 	return _sequencingErrorModels.getPhredInt(base);
 };
 
-uint8_t TGenotypeLikelihoodCalculator::getPhredIntWithPMD(const BAM::TSequencedBase & base) const{
-	if(base.base == N){
-		return 0;
+BAM::PhredIntErrorRate TGenotypeLikelihoodCalculator::getPhredIntWithPMD(const BAM::TSequencedBase & base) const{
+	if(base.base == BAM::N){
+		return BAM::PhredIntErrorRate::min();
 	} else {
-		return _sequencingErrorModels.qualityMap().errorToPhredInt(getErrorWithPMD(base));
+		return getErrorWithPMD(base);
 	}
 };
 
@@ -129,7 +129,7 @@ void TGenotypeLikelihoodCalculator::recalibrateWithPMD(std::vector<BAM::TSequenc
 	}
 };
 
-double TGenotypeLikelihoodCalculator::calculateLogPMDS(const BAM::TSequencedBase & base, const Base ref, const double pi) const{
+double TGenotypeLikelihoodCalculator::calculateLogPMDS(const BAM::TSequencedBase & base, const BAM::Base & ref, const double & pi) const{
 	//get base likelihoods
 	static TBaseData baseLikelihoodsNoPMD;
 	_sequencingErrorModels.fillBaseLikelihoods(base, baseLikelihoodsNoPMD);

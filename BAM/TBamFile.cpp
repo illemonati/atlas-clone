@@ -28,6 +28,7 @@ TBamFile::TBamFile(){
 	_QCFiltersPassed = false;
 	_maxReadLength = 65535;
 	_keepAll = true; //by default, keep all reads
+	_allowTooLongReads = false;
 
 	//blacklist
 	_updateLog = false;
@@ -63,24 +64,30 @@ void TBamFile::setLimits(TParameters & params, TLog* logfile){
 };
 
 void TBamFile::setFilters(TParameters & params, TLog* logfile){
-	//max read length
-	//is relevant for storage, so only accept values up to 2^16
-	//Others will be filtered out.
-	int MaxReadLength = params.getParameterWithDefault<int>("maxReadLength", 200);
-	logfile->list("Expect no read to be longer than " + toString(MaxReadLength) + " bp. (parameter 'maxReadLength')");
-	if(MaxReadLength < 1)
-		throw "Max read length must be at least 1 bp!";
-	if(MaxReadLength > 65536)
-		throw "Atlas currently only supports read length up to 65536 bp. Contact us if you have longer reads / fragments";
-	_maxReadLength = MaxReadLength;
-	_readLengthFilter.filter(1, _maxReadLength, "Read length too large");
-	_allowTooLongReads = params.parameterExists("allowTooLongReads");
-
 	//alignment filters
 	logfile->startIndent("Will use the following filters on reads:");
+
+	//max read length
+	//is relevant for storage, so only accept values up to 2^16
+	//print error if reads are longer and filter is default
+	TNumericRange<uint32_t> readLengthRange;
+	if(params.parameterExists("filterReadLength")){
+		params.fillParameter("filterReadLength", readLengthRange);
+		if(readLengthRange.max() > 65535)
+			throw "This version of " + __GLOBAL_APPLICATION_NAME__ + " only supports read length up to 65535 bp. Contact us if you have longer reads / fragments";
+		_allowTooLongReads = true;
+	} else {
+		//set default
+		readLengthRange.set(0, true, 200, true);
+		_allowTooLongReads = false;
+	}
+	_readLengthFilter.filter(readLengthRange, "Fragment length outside " + readLengthRange.rangeString());
+	logfile->list("Fragment length: restrict to range " + _fragmentLengthFilter.rangeString() + ". (parameter 'filterFragmentLength')");
+
+	//keep all otherwise?
 	if(params.parameterExists("keepAllReads")){
 		_keepAll = true;
-		logfile->list("Will keep all reads. (parameter 'keepAllReads', overrules any other QC filter)");
+		logfile->list("Will keep all reads. (parameter 'keepAllReads', overrules any other QC filter except filterRreadLength)");
 	} else {
 		_keepAll = false;
 		//duplicates
@@ -198,40 +205,27 @@ void TBamFile::setFilters(TParameters & params, TLog* logfile){
 		}
 
 		//Mapping quality filter
-		if(params.parameterExists("minMQ") || params.parameterExists("maxMQ")){
-			int MinMQ = params.getParameterWithDefault<int>("minMQ", 0);
-			int MaxMQ = params.getParameterWithDefault<int>("maxMQ", 254);
+		if(params.parameterExists("filterMQ")){
+			TNumericRange<uint8_t> Range;
+			params.fillParameter("filterMQ", Range);
 
-			if(MinMQ < 0 || MinMQ > 254)
-				throw "minMQ '" + toString(MinMQ) + "' is outside the accepted range [0,254]!";
-			if(MaxMQ < 0 || MaxMQ > 254)
-				throw "maxMQ '" + toString(MaxMQ) + "' is outside the accepted range [0,254]!";
-			if(MaxMQ < MinMQ)
-				throw "minMQ must be <= maxMQ";
-
-			_mappingQualityFilter.filter(MinMQ, MaxMQ, "Mapping quality outside [" + toString(MinMQ) + ", " + toString(MaxMQ) + "]");
-			logfile->list("Mapping quality: restrict to range [" + toString(MinMQ) + ", " + toString(MaxMQ) + "]. (parameters 'minMQ', 'maxMQ')");
+			_mappingQualityFilter.filter(Range, "Mapping quality outside " + Range.rangeString());
+			logfile->list("Mapping quality: restrict to range " + _mappingQualityFilter.rangeString() + ". (parameter 'filterMQ')");
 		} else {
 			_mappingQualityFilter.keep();
-			logfile->list("Mapping quality: keep all. (use 'minMQ' and 'maxMQ' to limit)");
+			logfile->list("Mapping quality: keep all. (use 'filterMQ' to limit)");
 		}
 
 		//Fragment length filter
-		if(params.parameterExists("minFragmentLength") || params.parameterExists("maxFragmentLength")){
-			int MinFragmentLength = params.getParameterWithDefault<int>("minFragmentLength", 0);
-			int MaxFragmentLength = params.getParameterWithDefault<int>("maxFragmentLength", 1000);
-			if(MinFragmentLength < 0)
-				throw "minFragmentLength '" + toString(MinFragmentLength) + "' must be >0!";
-			if(MaxFragmentLength < 0)
-				throw "maxFragmentLength '" + toString(MaxFragmentLength) + "' must be >0!";
-			if(MinFragmentLength > MaxFragmentLength)
-				throw "minFragmentLength must be <= maxFragmentLength!";
+		if(params.parameterExists("filterFragmentLength")){
+			TNumericRange<uint32_t> Range;
+			params.fillParameter("filterFragmentLength", Range);
 
-			_fragmentLengthFilter.filter(MinFragmentLength, MaxFragmentLength, "Fragment length outside [" + toString(MinFragmentLength) + ", " + toString(MaxFragmentLength) + "]");
-			logfile->list("Fragment length: restrict to range [" + toString(MinFragmentLength) + ", " + toString(MaxFragmentLength) + "]. (parameters 'minFragmentLength', 'maxFragmentLength')");
+			_fragmentLengthFilter.filter(Range, "Fragment length outside " + Range.rangeString());
+			logfile->list("Fragment length: restrict to range " + _fragmentLengthFilter.rangeString() + ". (parameter 'filterFragmentLength')");
 		} else {
 			_fragmentLengthFilter.keep();
-			logfile->list("Fragment length: keep all. (use 'minFragmentLength', 'maxFragmentLength' to limit)");
+			logfile->list("Fragment length: keep all. (use 'filterFragmentLength' to limit)");
 		}
 	}
 	logfile->endIndent();
@@ -402,7 +396,8 @@ void TBamFile::_applyFilters(){
 	//read length is special as it affects our storage
 	if(!_readLengthFilter.pass(_curBamAlignment.AlignedBases.size(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())){
 		if(!_allowTooLongReads){
-			throw "Alignment '" +  _curBamAlignment.Name + "' is longer than the max read length " + toString(_maxReadLength) + "!\nPlease change max read length to parse this data, or add allowTooLongReads to ignore this error and filter out such reads.";
+			throw "Alignment '" +  _curBamAlignment.Name + "' is longer than the accepted range " + _readLengthFilter.rangeString() + "!\n"
+			     + "You see this error because ATLAS was run with default read length filters. Either set your filters using 'filterReadLength' or add 'allowTooLongReads' to ignore this error.";
 		} else {
 			_QCFiltersPassed = false;
 		}
@@ -632,7 +627,7 @@ uint16_t TBamFile::curFragmentLength() const{
 uint16_t TBamFile::curUsableAlignedLength(TQualityFilter & qualFilter) const{
 	uint16_t counter = 0;
 	for(size_t d=0; d<_curBamAlignment.AlignedBases.length(); ++d){
-		if(_curBamAlignment.AlignedBases.at(d) != N && qualFilter.pass(_curBamAlignment.AlignedQualities.at(d))){
+		if(_curBamAlignment.AlignedBases.at(d) != N && qualFilter.pass( BaseQuality(_curBamAlignment.AlignedQualities.at(d)))){
 			++counter;
 		}
 	}
@@ -735,32 +730,87 @@ void TBamFile::printEndNoEndIndent(){
 	_logfile->conclude("Parsed a total of " + _millionReadsRead() + " million reads in " + toString(_timer.minutes()) + " min.");
 };
 
+//------------------------------------------------
+// TQualityAdjusterForWriting
+//------------------------------------------------
+TQualityAdjusterForWriting::TQualityAdjusterForWriting(){
+	_adjust = false;
+	_binIllumina = false;
+	_limitRange = false;
+};
+
+void TQualityAdjusterForWriting::binQualitiesIllumina(){
+	_binIllumina = true;
+	_adjust = true;
+};
+
+void TQualityAdjusterForWriting::limitRange(const BaseQuality & min, const BaseQuality & max){
+	_minQual = min;
+	_maxQual = max;
+	_adjust = true;
+};
+
+void TQualityAdjusterForWriting::limitRange(const TNumericRange<uint8_t> & Range){
+	if(Range.minIncluded()){
+		_minQual = Range.min();
+	} else {
+		_minQual = Range.min() + 1;
+	}
+	if(Range.maxIncluded()){
+		_maxQual = Range.min();
+	} else {
+		_maxQual = Range.min() - 1;
+	}
+	_adjust = true;
+};
+
+std::string TQualityAdjusterForWriting::rangeString(){
+	return "[" + toString(PhredIntErrorRate(_minQual)) + "," + toString(PhredIntErrorRate(_maxQual)) + "]";
+};
+
+char TQualityAdjusterForWriting::_adjustOneQuality(BaseQuality qual) const {
+	if(qual < _minQual){
+		qual = _minQual;
+	} else if (qual > _maxQual){
+		qual = _maxQual;
+	}
+	if(_binIllumina){
+		qual.makeIllumina();
+	}
+
+	return qual.get();
+};
+
+void TQualityAdjusterForWriting::adjustQualities(std::string & qualities) const {
+	if(_adjust){
+		for(auto& q : qualities){
+			q = _adjustOneQuality(BaseQuality(q));
+		}
+	}
+};
+
 //-----------------------------------------------------
 //TOutputBamFile
 //----------------------------------------------------
 TOutputBamFile::TOutputBamFile(){
 	_openForWriting = false;
 	_readGroups = nullptr;
-	_genoMap = nullptr;
-	_qualityMap = nullptr;
 };
 
-TOutputBamFile::TOutputBamFile(const std::string Filename, const TBamFile & Original, GenotypeLikelihoods::TGenotypeMap* GenoMap, TQualityMap* QualityMap){
+TOutputBamFile::TOutputBamFile(const std::string Filename, const TBamFile & Original){
 	_openForWriting = false;
-	open(Filename, Original.samHeader(), Original.chromosomes(), Original.readGroups(), GenoMap, QualityMap);
+	open(Filename, Original.samHeader(), Original.chromosomes(), Original.readGroups());
 };
 
 TOutputBamFile::~TOutputBamFile(){
 	closeNoIndex();
 };
 
-void TOutputBamFile::open(const std::string Filename, const TSamHeader & Header, const TChromosomes & Chromosomes, const TReadGroups & ReadGroups, GenotypeLikelihoods::TGenotypeMap* GenoMap, TQualityMap* QualityMap){
+void TOutputBamFile::open(const std::string Filename, const TSamHeader & Header, const TChromosomes & Chromosomes, const TReadGroups & ReadGroups){
 	closeNoIndex();
 
 	_outputFilename = Filename;
 	_readGroups = &ReadGroups;
-	_genoMap = GenoMap;
-	_qualityMap = QualityMap;
 
 	//construct new header /without chromosomes
 	std::string header = Header.compileSamHeader(ReadGroups, Chromosomes);
@@ -779,8 +829,45 @@ void TOutputBamFile::open(const std::string Filename, const TSamHeader & Header,
 	_openForWriting = true;
 };
 
-void TOutputBamFile::open(const std::string Filename, const TBamFile & Original, GenotypeLikelihoods::TGenotypeMap* GenoMap, TQualityMap* QualityMap){
-	open(Filename, Original.samHeader(), Original.chromosomes(), Original.readGroups(), GenoMap, QualityMap);
+void TOutputBamFile::open(const std::string Filename, const TBamFile & Original){
+	open(Filename, Original.samHeader(), Original.chromosomes(), Original.readGroups());
+};
+
+void TOutputBamFile::open(TParameters & params, TLog* logfile, const std::string Filename, const TSamHeader & Header, const TChromosomes & Chromosomes, const TReadGroups & ReadGroups){
+	logfile->startIndent("Writing alignments to new BAM to file '" + Filename + "':");
+
+	//first open bam file
+	open(Filename, Header, Chromosomes, ReadGroups);
+
+	//read output settings
+	//quality truncation
+	if(params.parameterExists("outQual")){
+		TNumericRange<uint8_t> qualRange;
+		params.fillParameter("outQual",  qualRange);
+		_qualityAdjuster.limitRange(qualRange);
+
+		logfile->list("Will print qualities truncated to " + _qualityAdjuster.rangeString() + " (parameter 'outQual')");
+
+
+		if(qualRange.max() > BaseQuality::max()){
+			logfile->warning("Truncated quality range to BAM limits!");
+		}
+
+	} else {
+		logfile->list("Will use the full range of quality scores when writing alignments. (use 'outQual' to constrain).");
+	}
+
+	//quality binning
+	if(params.parameterExists("writeBinnedQualities")){
+		logfile->list("Will write Illumina-binned quality scores. (parameter 'writeBinnedQualities')");
+
+		if(_qualityAdjuster.adjusts()){
+			logfile->warning("If both 'outQual' and 'writeBinnedQualities' are given, qualities will be truncated first, then binned, and may thus fall outside the requested range.");
+		}
+		_qualityAdjuster.binQualitiesIllumina();
+	} else {
+		logfile->list("Will write raw quality scores. (use 'writeBinnedQualities' to bin)");
+	}
 };
 
 void TOutputBamFile::close(TLog* logfile){
@@ -832,7 +919,7 @@ void TOutputBamFile::_writeAlignment(BamTools::BamAlignment & alignment){
 	}
 
 	//adjust qualities for printing
-	_qualityMap->adjustQualitiesForWriting(alignment.Qualities);
+	_qualityAdjuster.adjustQualities(alignment.Qualities);
 
 	// write alignment
 	if(!_bamWriter.SaveAlignment(alignment))
@@ -865,8 +952,8 @@ void TOutputBamFile::_writeAlignment(const TAlignment & alignment){
 	}
 
 	//add sequences and qualities
-	_tmpBamAlignment.QueryBases = alignment.sequence(*_genoMap, *_qualityMap);
-	_tmpBamAlignment.Qualities = alignment.qualities(*_genoMap, *_qualityMap);
+	_tmpBamAlignment.QueryBases = alignment.sequence();
+	_tmpBamAlignment.Qualities = alignment.qualities();
 
 	//add read group information
 	_tmpBamAlignment.AddTag("RG", "Z", _readGroups->getName(alignment.readGroupId()));

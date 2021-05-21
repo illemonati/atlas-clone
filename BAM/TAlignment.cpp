@@ -370,13 +370,13 @@ void TAlignment::removeSoftClippedBases(){
 	}
 };
 
-void TAlignment::binQualityScores(TQualityMap & qualityMap){
+void TAlignment::binQualityScoresIllumina(){
 	//make sure read is parsed
 	if(!_parsed) throw std::runtime_error("void TAlignment::binQualityScores(TQualityMap & qualityMap): Read was not parsed!");
 
 	//bin quality scores as done by Illumina
 	for(auto& b : _bases){
-		b.recalibratedQualityAsPhredInt = qualityMap.phredIntToIlluminaPhredInt(b.recalibratedQualityAsPhredInt);
+		b.recalibratedQualityAsPhredInt.makeIllumina();
 	}
 
 	_sequenceAndQualitiesChanged = true;
@@ -421,21 +421,21 @@ void TAlignment::downsampleAlignment(const double fractionToKeep, TRandomGenerat
 //--------------------------------------------
 //functions to write / print alignment
 //--------------------------------------------
-void TAlignment::print(const GenotypeLikelihoods::TGenotypeMap & genoMap, const TQualityMap & qualMap){
+void TAlignment::print(){
 	std::cout << std::endl << "NAME:\t" << _name << std::endl;
 	std::cout << "LEN:\t" << _bases.size() << std::endl;
 
 	//print bases
 	std::cout << "SEQ:\t";
 	for(auto& b : _bases){
-		std::cout << genoMap.getBaseAsChar(b.base);
+		std::cout << b.base;
 	}
 	std::cout << std::endl;
 
 	//print qualities
 	std::cout << "QUAL:\t";
 	for(auto& b : _bases){
-		std::cout << (char) qualMap.phredIntToQuality(b.recalibratedQualityAsPhredInt);
+		std::cout << BAM::BaseQuality(b.recalibratedQualityAsPhredInt);
 	}
 	std::cout << std::endl;
 

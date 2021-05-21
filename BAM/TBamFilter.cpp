@@ -76,29 +76,6 @@ bool TBamFileFilterBool::pass(const bool state, const std::string & alignmentNam
 };
 
 //-----------------------------------------------------
-//TBamFileFilterRange
-//-----------------------------------------------------
-TBamFileFilterRange::TBamFileFilterRange(){
-	_min = 0;
-	_max = UINT32_MAX;
-};
-
-void TBamFileFilterRange::filter(const uint32_t Min, const uint32_t Max, const std::string Reason){
-	_keep = false;
-	_min = Min;
-	_max = Max;
-	_reason = Reason;
-};
-
-bool TBamFileFilterRange::pass(const uint32_t value, const std::string & alignmentName, const bool & isReverseStrand){
-	if(!_keep && (value < _min || value > _max)){
-		filterOut(alignmentName, isReverseStrand);
-		return false;
-	}
-	return true;
-};
-
-//-----------------------------------------------------
 //TAlignmentBlacklist
 //-----------------------------------------------------
 TAlignmentList::TAlignmentList(const std::string filename){

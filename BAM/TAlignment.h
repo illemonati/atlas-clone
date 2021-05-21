@@ -230,13 +230,13 @@ public:
 	void filter(const TBaseFilter & Filter);
 	void trimRead(const int & trimmingLength3Prime, const int & trimmingLength5Prime);
 	void removeSoftClippedBases();
-	void binQualityScores(TQualityMap & qualityMap);
+	void binQualityScoresIllumina();
 	void recalibrateWithPMD(const GenotypeLikelihoods::TGenotypeLikelihoodCalculator & GLCalculator);
 	void setIsProperPair(const bool & ok);
 	void downsampleAlignment(const double fraction, TRandomGenerator& randomGenerator);
 
 	//debug functions
-	void print(const GenotypeLikelihoods::TGenotypeMap & genoMap, const TQualityMap & qualMap);
+	void print();
 };
 
 }; //end namespace

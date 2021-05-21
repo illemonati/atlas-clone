@@ -308,24 +308,28 @@ void TSequencingErrorRho::operator=(const TSequencingErrorRhoStorage & other){
 	TSequencingErrorRhoStorage::operator =(other);
 };
 
-void TSequencingErrorRho::fillBaseLikelihoods(const Base base, const double epsilon, TBaseData & baseLikelihoods) const{
-	baseLikelihoods[base] = 1.0 - epsilon;
-	if(base == A){
-		baseLikelihoods[C] = epsilon * rho[C][A];
-		baseLikelihoods[G] = epsilon * rho[G][A];
-		baseLikelihoods[T] = epsilon * rho[T][A];
-	} else if(base == C){
-		baseLikelihoods[A] = epsilon * rho[A][C];
-		baseLikelihoods[G] = epsilon * rho[G][C];
-		baseLikelihoods[T] = epsilon * rho[T][C];
-	} else if(base == G){
-		baseLikelihoods[A] = epsilon * rho[A][G];
-		baseLikelihoods[C] = epsilon * rho[C][G];
-		baseLikelihoods[T] = epsilon * rho[T][G];
+void TSequencingErrorRho::fillBaseLikelihoods(const BAM::Base base, const BAM::ErrorRate epsilon, TBaseData & baseLikelihoods) const{
+	if(base == BAM::N){
+		baseLikelihoods.reset();
 	} else {
-		baseLikelihoods[A] = epsilon * rho[A][T];
-		baseLikelihoods[C] = epsilon * rho[C][T];
-		baseLikelihoods[G] = epsilon * rho[G][T];
+		baseLikelihoods[base] = 1.0 - epsilon;
+		if(base == BAM::A){
+			baseLikelihoods[BAM::C] = epsilon * rho[BAM::C][BAM::A];
+			baseLikelihoods[BAM::G] = epsilon * rho[BAM::G][BAM::A];
+			baseLikelihoods[BAM::T] = epsilon * rho[BAM::T][BAM::A];
+		} else if(base == BAM::C){
+			baseLikelihoods[BAM::A] = epsilon * rho[BAM::A][BAM::C];
+			baseLikelihoods[BAM::G] = epsilon * rho[BAM::G][BAM::C];
+			baseLikelihoods[BAM::T] = epsilon * rho[BAM::T][BAM::C];
+		} else if(base == BAM::G){
+			baseLikelihoods[BAM::A] = epsilon * rho[BAM::A][BAM::G];
+			baseLikelihoods[BAM::C] = epsilon * rho[BAM::C][BAM::G];
+			baseLikelihoods[BAM::T] = epsilon * rho[BAM::T][BAM::G];
+		} else {
+			baseLikelihoods[BAM::A] = epsilon * rho[BAM::A][BAM::T];
+			baseLikelihoods[BAM::C] = epsilon * rho[BAM::C][BAM::T];
+			baseLikelihoods[BAM::G] = epsilon * rho[BAM::G][BAM::T];
+		}
 	}
 };
 
@@ -337,23 +341,23 @@ void TSequencingErrorRho::prepareEstimationFromEMWeights(){
 	}
 };
 
-void TSequencingErrorRho::addBaseForEstimation(const Base & base, const TBaseData & EMWeights){
-	if(base == A){
-		rho[C][A] += EMWeights[C];
-		rho[G][A] += EMWeights[G];
-		rho[T][A] += EMWeights[T];
-	} else if(base == C){
-		rho[A][C] += EMWeights[A];
-		rho[G][C] += EMWeights[G];
-		rho[T][C] += EMWeights[T];
-	} else if(base == G){
-		rho[A][G] += EMWeights[A];
-		rho[C][G] += EMWeights[C];
-		rho[T][G] += EMWeights[T];
-	} else {
-		rho[A][T] += EMWeights[A];
-		rho[C][T] += EMWeights[C];
-		rho[G][T] += EMWeights[G];
+void TSequencingErrorRho::addBaseForEstimation(const BAM::Base & base, const TBaseData & EMWeights){
+	if(base == BAM::A){
+		rho[BAM::C][BAM::A] += EMWeights[BAM::C];
+		rho[BAM::G][BAM::A] += EMWeights[BAM::G];
+		rho[BAM::T][BAM::A] += EMWeights[BAM::T];
+	} else if(base == BAM::C){
+		rho[BAM::A][BAM::C] += EMWeights[BAM::A];
+		rho[BAM::G][BAM::C] += EMWeights[BAM::G];
+		rho[BAM::T][BAM::C] += EMWeights[BAM::T];
+	} else if(base == BAM::G){
+		rho[BAM::A][BAM::G] += EMWeights[BAM::A];
+		rho[BAM::C][BAM::G] += EMWeights[BAM::C];
+		rho[BAM::T][BAM::G] += EMWeights[BAM::T];
+	} else if(base == BAM::N){
+		rho[BAM::A][BAM::T] += EMWeights[BAM::A];
+		rho[BAM::C][BAM::T] += EMWeights[BAM::C];
+		rho[BAM::G][BAM::T] += EMWeights[BAM::G];
 	}
 };
 
@@ -386,27 +390,27 @@ void TSequencingErrorRho::estimate(){
 //*********************************************************
 // TSequencingErrorModelNoRecal
 //*********************************************************
-double TSequencingErrorModelNoRecal::getErrorRate(const BAM::TSequencedBase & base, const BAM::TQualityMap & qualMap) const{
-	if(base == N){
+BAM::ErrorRate TSequencingErrorModelNoRecal::getErrorRate(const BAM::TSequencedBase & base) const{
+	if(base == BAM::N){
 		return 1.0;
 	} else {
-		return qualMap.phredIntToError(base.originalQuality_phredInt);
+		return base.originalQuality_phredInt;
 	}
 };
 
-uint8_t TSequencingErrorModelNoRecal::getPhredInt(const BAM::TSequencedBase & base, const BAM::TQualityMap & qualMap) const{
-	if(base == N){
+BAM::PhredIntErrorRate TSequencingErrorModelNoRecal::getPhredInt(const BAM::TSequencedBase & base) const{
+	if(base == BAM::N){
 		return 0;
 	} else {
 		return base.originalQuality_phredInt;
 	}
 };
 
-void TSequencingErrorModelNoRecal::fillBaseLikelihoods(const BAM::TSequencedBase & base, const BAM::TQualityMap & qualMap, TBaseData & baseLikelihoods) const{
-	if(base == N){
+void TSequencingErrorModelNoRecal::fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseData & baseLikelihoods) const{
+	if(base == BAM::N){
 		baseLikelihoods.reset();
 	} else {
-		_rho.fillBaseLikelihoods(base.base, qualMap.phredIntToError(base.originalQuality_phredInt), baseLikelihoods);
+		_rho.fillBaseLikelihoods(base.base, base.originalQuality_phredInt, baseLikelihoods);
 	}
 };
 
@@ -453,7 +457,7 @@ double TSequencingErrorModelRecal::_calcEpsilon(const double & eta) const{
 	return 1.0 / (1.0 + exp(-eta));
 };
 
-double TSequencingErrorModelRecal::_calcErrorRate(const BAM::TSequencedBase & base) const{
+BAM::ErrorRate TSequencingErrorModelRecal::_calcErrorRate(const BAM::TSequencedBase & base) const{
 	//eta = bta[0] + SUM_i f(q[i]), where the functions are implemented as covariate function
 	double eta = _covariates.intercept.getEtaTerm();
 
@@ -464,31 +468,31 @@ double TSequencingErrorModelRecal::_calcErrorRate(const BAM::TSequencedBase & ba
 	return _calcEpsilon(eta);
 };
 
-double TSequencingErrorModelRecal::getErrorRate(const BAM::TSequencedBase & base, const BAM::TQualityMap & qualMap) const{
-	if(base == N){
+BAM::ErrorRate TSequencingErrorModelRecal::getErrorRate(const BAM::TSequencedBase & base) const{
+	if(base == BAM::N){
 		return 1.0;
 	} else {
 		return _calcErrorRate(base);
 	}
 };
 
-uint8_t TSequencingErrorModelRecal::getPhredInt(const BAM::TSequencedBase & base, const BAM::TQualityMap & qualMap) const{
-	if(base == N){
+BAM::PhredIntErrorRate TSequencingErrorModelRecal::getPhredInt(const BAM::TSequencedBase & base) const{
+	if(base == BAM::N){
 		return 0;
 	} else {
-		return qualMap.errorToPhredInt(_calcErrorRate(base));
+		return _calcErrorRate(base);
 	}
 };
 
 void TSequencingErrorModelRecal::fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseData & baseLikelihoods) const{
-	if(base == N){
+	if(base == BAM::N){
 		baseLikelihoods.reset();
 	} else {
 		_rho.fillBaseLikelihoods(base.base, _calcErrorRate(base), baseLikelihoods);
 	}
 };
 
-void TSequencingErrorModelRecal::fillBaseLikelihoods(const BAM::TSequencedBase & base, const BAM::TQualityMap & qualMap, TBaseData & baseLikelihoods) const{
+void TSequencingErrorModelRecal::fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseData & baseLikelihoods) const{
 	fillBaseLikelihoods(base, baseLikelihoods);
 };
 

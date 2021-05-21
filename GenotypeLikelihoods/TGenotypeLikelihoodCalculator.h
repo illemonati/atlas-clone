@@ -72,17 +72,17 @@ public:
 	bool hasPMD() const;
 	bool recalibrationChangesQualities() const;
 
-	double getErrorRate(const BAM::TSequencedBase & base) const;
-	double getErrorWithPMD(const BAM::TSequencedBase & base) const;
-	uint8_t getPhredInt(const BAM::TSequencedBase & base) const;
-	uint8_t getPhredIntWithPMD(const BAM::TSequencedBase & base) const;
+	BAM::ErrorRate getErrorRate(const BAM::TSequencedBase & base) const;
+	BAM::ErrorRate getErrorWithPMD(const BAM::TSequencedBase & base) const;
+	BAM::PhredIntErrorRate getPhredInt(const BAM::TSequencedBase & base) const;
+	BAM::PhredIntErrorRate getPhredIntWithPMD(const BAM::TSequencedBase & base) const;
 	void recalibrate(BAM::TSequencedBase & base) const;
 	void recalibrateWithPMD(BAM::TSequencedBase & base) const;
 
 	//are vector versions used??
 	void recalibrate(std::vector<BAM::TSequencedBase> & bases) const;
 	void recalibrateWithPMD(std::vector<BAM::TSequencedBase> & bases) const;
-	double calculateLogPMDS(const BAM::TSequencedBase & base, const Base ref, const double pi) const; //TODO: move to PMDS class?
+	double calculateLogPMDS(const BAM::TSequencedBase & base, const BAM::Base & ref, const double & pi) const; //TODO: move to PMDS class?
 
 	//functions performed on sites
 	void calculateGenotypeLikelihoods(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) const;

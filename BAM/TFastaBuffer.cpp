@@ -95,7 +95,7 @@ char TFastaBuffer::refCharAt(const TGenomePosition Position) const{
 };
 
 Base TFastaBuffer::refAt(const TGenomePosition Position) const{
-	return refCharAt(Position);
+	return Base(refCharAt(Position));
 };
 
 }; //end namesapce

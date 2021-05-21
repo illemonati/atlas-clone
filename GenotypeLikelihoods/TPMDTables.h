@@ -50,8 +50,9 @@ public:
 	void add(const TPMDCounts & other);
 
 	const countVec& operator[](const BAM::Base & b) const{
-		return _counts[b];
+		return _counts[b.get()];
 	};
+
 	const countVec& sums() const{
 		return _sums;
 	};
@@ -79,7 +80,7 @@ public:
 	void add(const TPMDTable & other);
 
 	const TPMDCounts& operator[](const BAM::Base & b) const{
-		return _counts[b];
+		return _counts[b.get()];
 	};
 
 	void write(TOutputFile & out, std::vector<std::string> & prefix, const bool & normalized);
@@ -122,7 +123,7 @@ public:
 	void initialize(const BAM::TReadGroups* ReadGroups, const uint16_t & TableLength, const BAM::TReadGroupMap* ReadGroupMap);
 	const TPMDTableReadGroup& operator[](const uint16_t & ReadGroupID) const;
 
-	void add(const BAM::TSequencedBase & base, const TGenotypeMap _genoMap;Base & reference);
+	void add(const BAM::TSequencedBase & base, const BAM::Base & reference);
 	void write(std::string filename, const bool & normalize);
 };
 

@@ -23,7 +23,7 @@ TSite::TSite(const TSite & site){
 
 void TSite::clear(){
 	_bases.clear();
-	_referenceBase = N;
+	_referenceBase = BAM::N;
 };
 
 void TSite::add(const BAM::TSequencedBase & base){

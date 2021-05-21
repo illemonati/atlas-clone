@@ -33,27 +33,27 @@ std::shared_ptr<TSequencingErrorModelRecal>& TSequencingErrorModelEntry::getShar
 	return _recalModel;
 };
 
-double TSequencingErrorModelEntry::getErrorRate(const BAM::TSequencedBase & base, const BAM::TQualityMap & qualMap) const {
+BAM::ErrorRate TSequencingErrorModelEntry::getErrorRate(const BAM::TSequencedBase & base) const {
 	if(_recalModel){
-		return _recalModel->getErrorRate(base, qualMap);
+		return _recalModel->getErrorRate(base);
 	} else {
-		return _noRecalModel.getErrorRate(base, qualMap);
+		return _noRecalModel.getErrorRate(base);
 	}
 };
 
-uint8_t TSequencingErrorModelEntry::getPhredInt(const BAM::TSequencedBase & base, const BAM::TQualityMap & qualMap) const{
+BAM::PhredIntErrorRate TSequencingErrorModelEntry::getPhredInt(const BAM::TSequencedBase & base) const{
 	if(_recalModel){
-		return _recalModel->getPhredInt(base, qualMap);
+		return _recalModel->getPhredInt(base);
 	} else {
-		return _noRecalModel.getPhredInt(base, qualMap);
+		return _noRecalModel.getPhredInt(base);
 	}
 };
 
-void TSequencingErrorModelEntry::fillBaseLikelihoods(const BAM::TSequencedBase & base, const BAM::TQualityMap & qualMap, TBaseData & baseLikelihoods) const{
+void TSequencingErrorModelEntry::fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseData & baseLikelihoods) const{
 	if(_recalModel){
-		_recalModel->fillBaseLikelihoods(base, qualMap, baseLikelihoods);
+		_recalModel->fillBaseLikelihoods(base, baseLikelihoods);
 	} else {
-		_noRecalModel.fillBaseLikelihoods(base, qualMap, baseLikelihoods);
+		_noRecalModel.fillBaseLikelihoods(base, baseLikelihoods);
 	}
 };
 
@@ -74,16 +74,16 @@ std::shared_ptr<TSequencingErrorModelRecal>& TSequencingErrorModelsOneReadGroup:
 	return _models[IsSecondMate].getSharedPointerToRecalModel();
 };
 
-double TSequencingErrorModelsOneReadGroup::getErrorRate(const BAM::TSequencedBase & base, const BAM::TQualityMap & qualMap) const {
-	return _models[base.isSecondMate()].getErrorRate(base, qualMap);
+BAM::ErrorRate TSequencingErrorModelsOneReadGroup::getErrorRate(const BAM::TSequencedBase & base) const {
+	return _models[base.isSecondMate()].getErrorRate(base);
 };
 
-uint8_t TSequencingErrorModelsOneReadGroup::getPhredInt(const BAM::TSequencedBase & base, const BAM::TQualityMap & qualMap) const{
-	return _models[base.isSecondMate()].getPhredInt(base, qualMap);
+BAM::PhredIntErrorRate TSequencingErrorModelsOneReadGroup::getPhredInt(const BAM::TSequencedBase & base) const{
+	return _models[base.isSecondMate()].getPhredInt(base);
 };
 
-void TSequencingErrorModelsOneReadGroup::fillBaseLikelihoods(const BAM::TSequencedBase & base, const BAM::TQualityMap & qualMap, TBaseData & baseLikelihoods) const{
-	_models[base.isSecondMate()].fillBaseLikelihoods(base, qualMap, baseLikelihoods);
+void TSequencingErrorModelsOneReadGroup::fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseData & baseLikelihoods) const{
+	_models[base.isSecondMate()].fillBaseLikelihoods(base, baseLikelihoods);
 };
 
 //--------------------------------------------------------------------
@@ -171,17 +171,17 @@ void TSequencingErrorModels::checkReadGroups(const BAM::TReadGroups & ReadGroups
 
 //functions to get error rates
 //-------------------------------------------------------
-double TSequencingErrorModels::getErrorRate(const BAM::TSequencedBase & base) const{
+BAM::ErrorRate TSequencingErrorModels::getErrorRate(const BAM::TSequencedBase & base) const{
 	if(_doRecalibration){
-		return _models[base.readGroupID].getErrorRate(base, _qualMap);
+		return _models[base.readGroupID].getErrorRate(base);
 	} else {
-		return _qualMap.phredIntToError(base.originalQuality_phredInt);
+		return base.originalQuality_phredInt;
 	}
 };
 
-uint8_t TSequencingErrorModels::getPhredInt(const BAM::TSequencedBase & base) const{
+BAM::PhredIntErrorRate TSequencingErrorModels::getPhredInt(const BAM::TSequencedBase & base) const{
 	if(_doRecalibration){
-		return _models[base.readGroupID].getPhredInt(base, _qualMap);
+		return _models[base.readGroupID].getPhredInt(base);
 	} else {
 		return base.originalQuality_phredInt;
 	}
@@ -199,9 +199,9 @@ void TSequencingErrorModels::recalibrate(std::vector<BAM::TSequencedBase> & base
 
 void TSequencingErrorModels::fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseData & baseLikelihoods) const{
 	if(_doRecalibration){
-		_models[base.readGroupID].fillBaseLikelihoods(base, _qualMap, baseLikelihoods);
+		_models[base.readGroupID].fillBaseLikelihoods(base, baseLikelihoods);
 	} else {
-		_noRecalModel.fillBaseLikelihoods(base, _qualMap, baseLikelihoods);
+		_noRecalModel.fillBaseLikelihoods(base, baseLikelihoods);
 	}
 };
 

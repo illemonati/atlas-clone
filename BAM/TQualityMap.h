@@ -11,6 +11,7 @@
 #include <math.h>
 #include <cstdint>
 
+#include "TNumericRange.h"
 #include "TParameters.h"
 #include "TSequencedBase.h"
 
@@ -83,13 +84,13 @@ class TBaseFilter{
 protected:
 	bool _filter;
 
+public:
+	explicit constexpr TBaseFilter() : _filter(false) {};
+	virtual ~TBaseFilter() = default;
+
 	constexpr operator bool() const{
 		return _filter;
 	};
-
-public:
-	explicit constexpr TBaseFilter() : _filter(false) {};
-	~TBaseFilter() = default;
 
 	virtual bool pass(const TSequencedBase & base) const = 0;
 };
@@ -99,7 +100,10 @@ public:
 //---------------------------------------------------------------
 class TQualityFilter : public TBaseFilter{
 private:
+	TNumericRange<PhredIntErrorRate> _range;
+
 	PhredIntErrorRate _minPhredInt, _maxPhredInt;
+
 	void _default();
 
 public:
@@ -115,7 +119,14 @@ public:
 
 	void set(TParameters & params, TLog* logfile);
 
-	bool pass(const TSequencedBase & base) const;
+	//TODO: check if we filter on TSequencedBase, and if yes, on which error rate (original or recal)
+	constexpr bool pass(const TSequencedBase & base) const{
+		return _range.within(base.recalibratedQualityAsPhredInt);
+	};
+
+	bool pass(const BaseQuality & qual) const{
+		return _range.within(PhredIntErrorRate(qual));
+	};
 };
 
 //-------------------------------------
@@ -126,7 +137,7 @@ private:
 	std::array<bool, static_cast<uint8_t>(BaseContextEnum::cNN) + 1> _keptContexts;
 
 public:
-	explicit constexpr TContextFilter(){
+	explicit TContextFilter(){
 		_keptContexts.fill(true);
 	};
 	~TContextFilter() = default;

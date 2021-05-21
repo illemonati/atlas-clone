@@ -78,16 +78,16 @@ public:
 class TRecalibrationEMQualityTransformationMap:public TRecalibrationEMTransformationMap{
 public:
 	TRecalibrationEMQualityTransformationMap(){
-		BAM::TQualityMap qualiMap;
-
-		initialize(qualiMap.minPhredInt);
+		initialize(BAM::PhredIntErrorRate::max());
 
 		//now set
-		for(uint16_t q=0; q<qualiMap.minPhredInt; ++q){
+		for(uint16_t q=BAM::PhredIntErrorRate::min(); q<=BAM::PhredIntErrorRate::max(); ++q){
 			//convert phred int quality to error
-			double eps = qualiMap.phredIntToError(q);
-			if(eps < 0.0000000001) eps = 0.0000000001;
-			else if(eps > 0.9999999999) eps = 0.9999999999;
+			double eps = (double) BAM::ErrorRate( BAM::PhredIntErrorRate(q) );
+
+			//ensure range
+			if(eps < 0.000'000'000'1) eps = 0.000'000'000'1;
+			else if(eps > 0.999'999'999'9) eps = 0.999'999'999'9;
 
 			//then transform into logit space
 			map[q] = log(eps / (1.0 - eps));

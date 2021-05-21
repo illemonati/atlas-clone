@@ -223,9 +223,7 @@ double TGenotypeData::weightedSum(const TGenotypeData & weights){
 			+ _data[BAM::TT] * weights[BAM::TT];
 };
 
-void TGenotypeData::normalize(){
-	double theSum = sum();
-
+void TGenotypeData::normalize(const Probability & theSum){
 	_data[BAM::AA] = _data[BAM::AA] / theSum;
 	_data[BAM::AC] = _data[BAM::AC] / theSum;
 	_data[BAM::AG] = _data[BAM::AG] / theSum;
@@ -236,6 +234,10 @@ void TGenotypeData::normalize(){
 	_data[BAM::GG] = _data[BAM::GG] / theSum;
 	_data[BAM::GT] = _data[BAM::GT] / theSum;
 	_data[BAM::TT] = _data[BAM::TT] / theSum;
+};
+
+void TGenotypeData::normalize(){
+	normalize(_sum());
 };
 
 void TGenotypeData::addNames(std::vector<std::string> & vec) const{

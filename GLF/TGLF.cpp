@@ -10,6 +10,7 @@
 //----------------------------------------------------
 // TGlfConverter
 //----------------------------------------------------
+/*
 TGlfConverter::TGlfConverter(){
     _maxVal = 65535;
     _minLikelihood = pow(10.0, (double) _maxVal / -1000.0);
@@ -44,25 +45,24 @@ double TGlfConverter::toScaledLikelihood(uint16_t glfValue) const{
 	return _likelihoodMap[glfValue];
 };
 
-uint8_t TGlfConverter::toPhred(uint16_t glfValue) const{
-	uint16_t tmp = round(glfValue / 100.0);
-	if(tmp > 255) return 255;
-	return tmp;
+BAM::PhredIntErrorRate TGlfConverter::toPhred(uint16_t glfValue) const{
+	return BAM::PhredErrorRate(glfValue / 100.0);
 };
 
 double TGlfConverter::toLog10(uint16_t glfValue) const{
 	return glfValue / -1000.0;
 };
 
-double TGlfConverter::toLog(uint16_t glfValue) const{
+BAM::LogErrorRate TGlfConverter::toLog(uint16_t glfValue) const{
 	return glfValue * _logOf10DividedByMinus1000;
 };
+*/
 
 //---------------------------------
 //TGlfWriter
 //---------------------------------
 void TGlfWriter::_init(){
-    _glfValues = new uint16_t[_curChr.maxNumLikelihoodValues];
+    _glfValues = new BAM::HighPrecisionPhredIntErrorRate[_curChr.maxNumLikelihoodValues];
     _oldPos = 0;
     _recordType1 = _one8 << 4;
 };
@@ -129,27 +129,22 @@ void TGlfWriter::writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual, Ge
 	//Note: genotype likelihoods are given for the 10 diploid genotypes!!
 	//TODO: maybe do in GLFChromosomes?
 	if(_curChr.ploidy == 1){
-		double maxLL = genotypeLikelihoods[AA];
-		if(genotypeLikelihoods[CC] > maxLL) maxLL = genotypeLikelihoods[CC];
-		if(genotypeLikelihoods[GG] > maxLL) maxLL = genotypeLikelihoods[GG];
-		if(genotypeLikelihoods[TT] > maxLL) maxLL = genotypeLikelihoods[TT];
+		Probability maxLik = genotypeLikelihoods[BAM::AA];
+		if(genotypeLikelihoods[BAM::CC] > maxLik) maxLik = genotypeLikelihoods[BAM::CC];
+		if(genotypeLikelihoods[BAM::GG] > maxLik) maxLik = genotypeLikelihoods[BAM::GG];
+		if(genotypeLikelihoods[BAM::TT] > maxLik) maxLik = genotypeLikelihoods[BAM::TT];
 
 		//normalize and scale to uint16
-		_glfValues[0] = _converter.toGlfFormat(genotypeLikelihoods[AA] / maxLL);
-        _glfValues[1] = _converter.toGlfFormat(genotypeLikelihoods[CC] / maxLL);
-        _glfValues[2] = _converter.toGlfFormat(genotypeLikelihoods[GG] / maxLL);
-        _glfValues[3] = _converter.toGlfFormat(genotypeLikelihoods[TT] / maxLL);
+		_glfValues[0] = genotypeLikelihoods[BAM::AA] / maxLik;
+        _glfValues[1] = genotypeLikelihoods[BAM::CC] / maxLik;
+        _glfValues[2] = genotypeLikelihoods[BAM::GG] / maxLik;
+        _glfValues[3] = genotypeLikelihoods[BAM::TT] / maxLik;
 	} else {
-		//maxLL
-		double maxLL = genotypeLikelihoods[0];
-		for(int i=1; i < _curChr.numLikelihoodValues; ++i){
-			if(genotypeLikelihoods[i] > maxLL)
-				maxLL = genotypeLikelihoods[i];
-		}
+		Probability maxLik = genotypeLikelihoods.max();
 
 		//normalize and scale to uint16
 		for(int i=0; i < _curChr.numLikelihoodValues; ++i){
-            _glfValues[i] = _converter.toGlfFormat(genotypeLikelihoods[i] / maxLL);
+            _glfValues[i] = genotypeLikelihoods[i] / maxLik;
 		}
 	}
 
@@ -186,12 +181,12 @@ void TGlfReader::_init(){
 	_lenRead = 0;
 	_eof = true;
 
-	_genotypeLikelihoodsGLF_missingData = new uint16_t[_curChr.maxNumLikelihoodValues];
+	_genotypeLikelihoodsGLF_missingData = new BAM::HighPrecisionPhredIntErrorRate[_curChr.maxNumLikelihoodValues];
 	for(int i=0; i < _curChr.maxNumLikelihoodValues; ++i)
 		_genotypeLikelihoodsGLF_missingData[i] = 0;
 };
 
-TGlfChromosome* TGlfReader::pointerToChr(uint32_t refId){
+TGlfChromosome* TGlfReader::pointerToChr(const uint32_t & refId){
 	if(_curChr.refId == refId){
 		return &_curChr;
 	} else {
@@ -421,16 +416,18 @@ bool TGlfReader::readNextWindow(std::vector<uint16_t*> & genoLikelihoods, const 
 	return true;
 };
 
-void TGlfReader::fillGenotypeLikelihoodsGLF(uint16_t* destination){
+void TGlfReader::fillGenotypeLikelihoodsGLF(BAM::HighPrecisionPhredIntErrorRate* destination){
 	//assumes pointer points to
-	memcpy(destination, _genotypeLikelihoodsGLF, _curChr.numLikelihoodValues * sizeof(uint16_t));
+	memcpy(destination, _genotypeLikelihoodsGLF, _curChr.numLikelihoodValues * sizeof(BAM::HighPrecisionPhredIntErrorRate));
 };
 
-void TGlfReader::fillGenotypeLikelihoods(double* destination, TGlfConverter* converter){
+/*
+void TGlfReader::fillGenotypeLikelihoods(BAM::ErrorRate* destination){
 	for(int i=0; i < _curChr.numLikelihoodValues; ++i){
-		destination[i] = converter->toScaledLikelihood(_genotypeLikelihoodsGLF[i]);
+		destination[i] = _genotypeLikelihoodsGLF[i];
 	}
 };
+*/
 
 //printing
 void TGlfReader::printChr(){
@@ -442,7 +439,7 @@ void TGlfReader::printSite(){
 	// print position as 1-based, internally it is 0-based
 	std::cout << _curChr.name << "\t" << _position + 1 << "\t" << _depth << "\t" << _RMS_mappingQual;
 	for(int i=0; i < _curChr.numLikelihoodValues; ++i)
-		std::cout << "\t" << unsigned(_genotypeLikelihoodsGLF[i]);
+		std::cout << "\t" << _genotypeLikelihoodsGLF[i];
 	std::cout << "\n";
 };
 

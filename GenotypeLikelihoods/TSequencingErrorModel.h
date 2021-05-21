@@ -81,11 +81,11 @@ public:
 class TSequencingErrorRho:public TSequencingErrorRhoStorage{
 public:
 	void operator=(const TSequencingErrorRhoStorage & other);
-	void fillBaseLikelihoods(const Base base, const double epsilon, TBaseData & baseLikelihoods) const;
+	void fillBaseLikelihoods(const BAM::Base base, const BAM::ErrorRate epsilon, TBaseData & baseLikelihoods) const;
 
 	//functions used to estimate
 	void prepareEstimationFromEMWeights();
-	void addBaseForEstimation(const Base & base, const TBaseData & EMWeights);
+	void addBaseForEstimation(const BAM::Base & base, const TBaseData & EMWeights);
 	void estimate();
 };
 
@@ -159,9 +159,9 @@ public:
 	virtual bool estimatable() const { return false; };
 	virtual bool recalibrates() const { return false; };
 
-	virtual double getErrorRate(const BAM::TSequencedBase & base, const BAM::TQualityMap & qualMap) const = 0;
-	virtual uint8_t getPhredInt(const BAM::TSequencedBase & base, const BAM::TQualityMap & qualMap) const = 0;
-	virtual void fillBaseLikelihoods(const BAM::TSequencedBase & base, const BAM::TQualityMap & qualMap, TBaseData & baseLikelihoods) const = 0;
+	virtual BAM::ErrorRate getErrorRate(const BAM::TSequencedBase & base) const = 0;
+	virtual BAM::PhredIntErrorRate getPhredInt(const BAM::TSequencedBase & base) const = 0;
+	virtual void fillBaseLikelihoods(const BAM::TSequencedBase & base,TBaseData & baseLikelihoods) const = 0;
 
 	virtual std::string getCovariateDefinition() const { return "-"; };
 	virtual std::string getRhoDefinition() const { return "-"; };
@@ -177,9 +177,9 @@ public:
 	TSequencingErrorModelNoRecal() = default;
 	~TSequencingErrorModelNoRecal() = default;
 
-	double getErrorRate(const BAM::TSequencedBase & base, const BAM::TQualityMap & qualMap) const override;
-	uint8_t getPhredInt(const BAM::TSequencedBase & base, const BAM::TQualityMap & qualMap) const override;
-	void fillBaseLikelihoods(const BAM::TSequencedBase & base, const BAM::TQualityMap & qualMap, TBaseData & baseLikelihoods) const override;
+	BAM::ErrorRate getErrorRate(const BAM::TSequencedBase & base) const override;
+	BAM::PhredIntErrorRate getPhredInt(const BAM::TSequencedBase & base) const override;
+	void fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseData & baseLikelihoods) const override;
 };
 
 //------------------------------------------------
@@ -203,7 +203,7 @@ private:
 
 	void _initializeDerivatives();
 	double _calcEpsilon(const double & eta) const;
-	double _calcErrorRate(const BAM::TSequencedBase & base) const;
+	BAM::ErrorRate _calcErrorRate(const BAM::TSequencedBase & base) const;
 
 public:
 	TSequencingErrorModelRecal(const TSequencingErrorModelDefinition & modelDef);
@@ -216,10 +216,9 @@ public:
 	TSequencingErrorModelDefinition getModelDefinition() const;
 
 	//get error rates
-	double getErrorRate(const BAM::TSequencedBase & base, const BAM::TQualityMap & qualMap) const override;
-	uint8_t getPhredInt(const BAM::TSequencedBase & base, const BAM::TQualityMap & qualMap) const override;
-	void fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseData & baseLikelihoods) const;
-	void fillBaseLikelihoods(const BAM::TSequencedBase & base, const BAM::TQualityMap & qualMap, TBaseData & baseLikelihoods) const override;
+	BAM::ErrorRate getErrorRate(const BAM::TSequencedBase & base) const override;
+	BAM::PhredIntErrorRate getPhredInt(const BAM::TSequencedBase & base) const override;
+	void fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseData & baseLikelihoods) const override;
 
 	//functions to estimate
 	bool checkParameterRange(RecalEstimatorTools::TRecalDataTable & DataTable, std::string & error);

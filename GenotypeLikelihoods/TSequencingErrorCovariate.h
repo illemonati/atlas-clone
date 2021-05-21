@@ -82,7 +82,7 @@ private:
 	TRecalibrationEMQualityTransformationMap qualityToLogit;
 
 	uint16_t _extractCovariate(const BAM::TSequencedBase & base){
-		return base.originalQuality_phredInt;
+		return base.originalQuality_phredInt.get();
 	};
 
 public:
@@ -126,8 +126,7 @@ private:
 	int numContext;
 
 	uint16_t _extractCovariate(const BAM::TSequencedBase & base){
-		uint8_t tmp = (uint8_t) base.context;
-		return tmp;
+		return static_cast<uint16_t>(base.context.get());
 	};
 
 public:

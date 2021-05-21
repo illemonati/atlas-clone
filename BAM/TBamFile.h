@@ -13,6 +13,8 @@
 #include "TBamFilter.h"
 #include "TSamHeader.h"
 #include "TAlignment.h"
+#include "TNumericRange.h"
+#include "globalConstants.h"
 
 namespace BAM{
 
@@ -55,7 +57,7 @@ private:
  	bool _QCFiltersPassed;
  	uint16_t _maxReadLength;
  	TAlignmentList _blacklist;
- 	TBamFileFilterRange _readLengthFilter;
+ 	TBamFileFilterRange<uint32_t> _readLengthFilter;
  	bool _allowTooLongReads;
  	bool _keepAll;
  	TBamFileFilterBool _duplicateFilter;
@@ -72,8 +74,8 @@ private:
  	TBamFileFilterBool _firstMateFilter;
  	TBamFileFilterBool _secondMateFilter;
  	TBamFileFilterBool _blacklistFilter;
- 	TBamFileFilterRange _mappingQualityFilter;
- 	TBamFileFilterRange _fragmentLengthFilter;
+ 	TBamFileFilterRange<uint8_t> _mappingQualityFilter;
+ 	TBamFileFilterRange<uint32_t> _fragmentLengthFilter;
  	TBamFileFilter _externalFilter;
 
 	void _fillSamHeader(TSamHeader & SamHeader);
@@ -213,6 +215,27 @@ public:
 //----------------------------------------------------
 //TOutputBamFile
 //----------------------------------------------------
+class TQualityAdjusterForWriting{
+private:
+	bool _adjust;
+	bool _binIllumina;
+	bool _limitRange;
+	BaseQuality _minQual {BaseQuality::min()};
+	BaseQuality _maxQual {BaseQuality::max()};
+
+	char _adjustOneQuality(BaseQuality qual) const;
+
+public:
+	TQualityAdjusterForWriting();
+
+	bool adjusts() const { return _adjust; };
+	void binQualitiesIllumina();
+	void limitRange(const BaseQuality & min, const BaseQuality & max);
+	void limitRange(const TNumericRange<uint8_t> & Range);
+	std::string rangeString();
+	void adjustQualities(std::string & qualities) const;
+};
+
 class TOutputBamFile{
 	friend TBamFile;
 
@@ -221,21 +244,24 @@ private:
  	BamTools::BamWriter _bamWriter;
  	bool _openForWriting;
  	const TReadGroups* _readGroups;
- 	GenotypeLikelihoods::TGenotypeMap* _genoMap;
- 	TQualityMap* _qualityMap;
 
  	std::multiset<TAlignment, std::less<>> _futureAlignments;
+
+ 	//quality output transformations
+ 	TQualityAdjusterForWriting _qualityAdjuster;
 
  	void _writeAlignment(const TAlignment & alignment);
  	void _writeAlignment(BamTools::BamAlignment & alignment);
 
 public:
  	TOutputBamFile();
- 	TOutputBamFile(const std::string filename, const TBamFile & original, GenotypeLikelihoods::TGenotypeMap* GenoMap, TQualityMap* QualityMap);
+ 	TOutputBamFile(const std::string filename, const TBamFile & original);
  	~TOutputBamFile();
 
- 	void open(const std::string Filename, const TSamHeader & Header, const TChromosomes & Chromosomes, const TReadGroups & ReadGroups, GenotypeLikelihoods::TGenotypeMap* GenoMap, TQualityMap* QualityMap);
-	void open(const std::string Filename, const TBamFile & Original, GenotypeLikelihoods::TGenotypeMap* GenoMap, TQualityMap* QualityMap);
+ 	void open(const std::string Filename, const TSamHeader & Header, const TChromosomes & Chromosomes, const TReadGroups & ReadGroups);
+	void open(const std::string Filename, const TBamFile & Original);
+	void open(TParameters & params, TLog* logfile, const std::string Filename, const TSamHeader & Header, const TChromosomes & Chromosomes, const TReadGroups & ReadGroups);
+	void setQualityAdjusterForWriting(TParameters & params, TLog* logfile);
 	bool isOpen() const{ return _openForWriting; };
 	void close(TLog* logfile);
 	void close();

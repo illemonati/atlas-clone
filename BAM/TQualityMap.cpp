@@ -156,31 +156,17 @@ void TQualityMap::adjustQualitiesForWriting(std::string & qualities) const{
 void TQualityFilter::_default(){
 	//default values according to SAM specifications
 	_filter = false;
-	_minPhredInt = 1;
-	_maxPhredInt = 93;
+	_range.set(PhredIntErrorRate(1), true, PhredIntErrorRate(93), true);
 };
 
 void TQualityFilter::set(TParameters & params, TLog* logfile){
-	if(params.parameterExists("minQual") || params.parameterExists("maxQual")){
-		_minPhredInt = params.getParameterWithDefault<uint8_t>("minQual", 1);
-		_maxPhredInt = params.getParameterWithDefault<uint8_t>("maxQual", 1);
-		if(_maxPhredInt < _minPhredInt){
-			throw "maxQual must be >= minQual!";
-		}
-
-		logfile->list("Will filter out bases with quality outside the range [" + toString(_minPhredInt) + ", " + toString(_maxPhredInt) + "] (parameters 'minQual', 'maxQual')");
+	if(params.parameterExists("filterBaseQual")){
+		params.fillParameter("filterBaseQual", _range);
+		logfile->list("Will filter out bases with quality outside the range " + _range.rangeString() + " (parameter 'filterBaseQual')");
 		_filter = true;
 	} else {
 		_default();
-		logfile->list("Will keep bases regardless of quality (use 'minQual', 'maxQual' to filter)");
-	}
-};
-
-bool TQualityFilter::pass(const TSequencedBase & base) const{
-	if(base.recalibratedQualityAsPhredInt < _minPhredInt || base.recalibratedQualityAsPhredInt > _maxPhredInt){
-		return false;
-	} else {
-		return true;
+		logfile->list("Will keep bases regardless of quality (use 'filterBaseQual' to filter)");
 	}
 };
 
@@ -199,15 +185,22 @@ void TContextFilter::set(TParameters & params, TLog* logfile){
 					throw "Context " + c + " does not consist of two bases! (parameter 'ignoreContexts')";
 				}
 
+				Base first(c[0]);
+				Base second(c[1]);
+
+				if((char) first != c[0] || (char) second != c[1]){
+					throw "Unable to understand context '" + c + "'!  (parameter 'ignoreContexts')";
+				}
+
 				//save context
-				BaseContext cc(c[0], c[1]);
-				_keptContexts[static_cast<uint8_t>(cc)] = false;
+				BaseContext cc(first, second);
+				_keptContexts[static_cast<uint8_t>(cc.get())] = false;
 			}
 
 			std::vector<std::string> rep;
 			for(auto i = 0; i <= static_cast<uint8_t>(BaseContextEnum::cNN); ++i){
 				if(!_keptContexts[i]){
-					rep.push_back( (std::string) BaseContext(static_cast<BaseContextEnum>(i))));
+					rep.push_back( (std::string) BaseContext(static_cast<BaseContextEnum>(i)));
 				}
 			}
 			logfile->list("Will ignore the following contexts: " + concatenateString(rep, ", ")  + ". (parameter 'ignoreContexts')");
@@ -221,7 +214,7 @@ void TContextFilter::set(TParameters & params, TLog* logfile){
 };
 
 bool TContextFilter::pass(const TSequencedBase & base) const{
-	return _keptContexts[static_cast<uint8_t>(base.context)];
+	return _keptContexts[static_cast<uint8_t>(base.context.get())];
 };
 
 } // end namespace

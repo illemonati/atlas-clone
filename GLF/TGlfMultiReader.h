@@ -8,6 +8,7 @@
 #ifndef GLF_TGLFMULTIREADER_H_
 #define GLF_TGLFMULTIREADER_H_
 
+
 #include "TGLF.h"
 #include "TFastaBuffer.h"
 
@@ -15,31 +16,23 @@
 //TMultiGLFData
 //----------------------------------------------------
 struct TMultiGLFDataSample{
-	uint16_t* genotypeLikelihoodsGLF;
+	BAM::HighPrecisionPhredIntErrorRate* genotypeLikelihoodsGLF; //points to data TGlfReader
 	bool hasData;
 	bool isHaploid;
 	uint16_t depth;
 };
 
 class TMultiGLFData{
-private:
-	GenotypeLikelihoods::TGenotypeMap genoMap;
-	TGlfConverter converter;
-
-	void _free();
-
 public:
-	uint32_t size;
-	TMultiGLFDataSample* samples;
+	std::vector<TMultiGLFDataSample> samples;
 
-	TMultiGLFData();
-	TMultiGLFData(int Size);
-	~TMultiGLFData(){
-		_free();
-	};
+	TMultiGLFData() = default;
+	TMultiGLFData(const uint32_t & Size);
+	~TMultiGLFData(){};
 
-	void resize(uint32_t Size);
-	void fill(PopulationTools::TPopulationLikehoodLocus & storage, const int alleleicCombination);
+	void resize(const uint32_t & Size);
+	size_t size() const { return samples.size(); };
+	void fill(PopulationTools::TPopulationLikehoodLocus & storage, const BAM::AllelicCombination & alleleicCombination);
 	uint32_t totalDepth();
 };
 
@@ -52,19 +45,17 @@ private:
 	bool _usePhredScaledLikelihoods;
 
 	TRandomGenerator* randomGenerator;
-	GenotypeLikelihoods::TGenotypeMap genoMap;
-	TGlfConverter converter;
 	gz::ogzstream vcf;
 	bool vcfOpened;
 
-	Base ref, alt;
-	char ref_char, alt_char;
-	std::string genotypeString[5];
-	uint8_t refHomIndex, hetIndex, altHomIndex;
+	BAM::Base _ref, _alt;
+	//char ref_char, alt_char;
+	std::string _genotypeString[5];
+	BAM::Genotype _refHom, _het, _altHom;
 
 	void _openVCF(const std::string & filename, const std::string & source, std::vector<std::string> & sampleNames);
 	void _closeVCF();
-	void _setMajorMinor(const Base & refAllele, const Base & altAllele);
+	void _setMajorMinor(const BAM::Base & refAllele, const BAM::Base & altAllele);
 	void writeLikelihood(const uint16_t & likGlf);
 	void writeDiploidIndividualToVCF(TMultiGLFDataSample & sample);
 	void writeHaploidIndividualToVCF(TMultiGLFDataSample & sample);
@@ -76,7 +67,7 @@ public:
 	}
 
 	void usePhredScaledLikelihoods(){ _usePhredScaledLikelihoods = true; };
-	void writeSite(const std::string & chrName, const uint32_t & position, const int & varianTQuality, TMultiGLFData & data, const Base Ref, const Base Alt);
+	void writeSite(const std::string & chrName, const uint32_t & position, const int & varianTQuality, TMultiGLFData & data, const BAM::Base Ref, const BAM::Base Alt);
 };
 
 //----------------------------------------------------
@@ -88,7 +79,6 @@ private:
 	std::vector<std::string> GLFNames;
 	TGlfReader* GLFs;
 	bool readersOpened;
-	GenotypeLikelihoods::TGenotypeMap genoMap;
 
 	void _openGLFs(TLog* logfile);
 
@@ -120,8 +110,8 @@ private:
 
 	bool moveToNextChromosome();
 
-	void writeDiploidIndividualToVCF(const int & ind, gz::ogzstream & vcf, const Base & major, const Base & minor, const std::vector<std::string> & genotypeStrings, TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods);
-	void writeHaploidIndividualToVCF(const int & ind, gz::ogzstream & vcf, const Base & major, const Base & minor, const std::vector<std::string> & genotypeStrings, TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods);
+	void writeDiploidIndividualToVCF(const int & ind, gz::ogzstream & vcf, const BAM::Base & major, const BAM::Base & minor, const std::vector<std::string> & genotypeStrings, TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods);
+	void writeHaploidIndividualToVCF(const int & ind, gz::ogzstream & vcf, const BAM::Base & major, const BAM::Base & minor, const std::vector<std::string> & genotypeStrings, TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods);
 
 public:
 	TGlfConverter converter;
@@ -163,7 +153,7 @@ public:
 	int numActiveSamplesWithData(){ return _numActiveFilesWithData; };
 	std::string chr(){return _curChr.name; };
 	uint32_t position(){return _position; };
-	Base refBase();
+	BAM::Base refBase();
 };
 
 

@@ -16,7 +16,7 @@ TSequencedBase::TSequencedBase(){
 	distFrom5Prime = -1;
 	distFrom3Prime = -1;
 	readGroupID = -1;
-	context = N;
+	context = cNN;
 	mappingQuality = 0;
 	fragmentLength = 0;
 };

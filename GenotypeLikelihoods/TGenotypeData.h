@@ -12,6 +12,7 @@
 #include "TFile.h"
 #include "TRandomGenerator.h"
 #include <algorithm>
+#include "probability.h"
 
 namespace GenotypeLikelihoods{
 
@@ -41,12 +42,13 @@ public:
 	virtual void reset(){
 		set({});
 	};
-
+/*
 	virtual void operator+=(const TData_base & other){
 		for(size_t i = 0; i<_data.size(); ++i){
 			_data[i] += other[i];
 		}
 	};
+	*/
 
 	virtual void operator*=(const TData_base & other){
 		for(size_t i = 0; i<_data.size(); ++i){
@@ -54,9 +56,11 @@ public:
 		}
 	};
 
+	/*
 	virtual void add(const TData_base & other){
 		*this += other;
 	};
+	*/
 
 	T min() const{
 		return *std::min_element(_data.begin(), _data.end());
@@ -64,14 +68,6 @@ public:
 
 	T max() const{
 		return *std::max_element(_data.begin(), _data.end());
-	};
-
-	virtual T sum() const{
-		T s{};
-		for(auto& i : _data){
-			s += i;
-		}
-		return s;
 	};
 
 	auto begin(){ return _data.begin(); };
@@ -82,7 +78,7 @@ public:
 
 
 //--------------------------------------------------------------------
-// TBaseData
+// TBaseDataq
 //--------------------------------------------------------------------
 class TBaseData:public TData_base<double, 4>{
 public:
@@ -131,10 +127,13 @@ public:
 // TGenotypeData
 // base class for likelihoods, prior and posterior
 //--------------------------------------------------------------------
-class TGenotypeData:public TData_base<double, 10>{
+class TGenotypeData:public TData_base<Probability, 10>{
 protected:
 	//void _copyFrom(const TGenotypeData & other);
 
+	constexpr double _sum() const{
+		return _data[BAM::AA].get() + _data[BAM::AC].get() + _data[BAM::AG].get() + _data[BAM::AT].get() + _data[BAM::CC].get() + _data[BAM::CG].get() + _data[BAM::CT].get() + _data[BAM::GG].get() + _data[BAM::GT].get() + _data[BAM::TT].get();
+	};
 public:
 	TGenotypeData(){};
 	virtual ~TGenotypeData(){};
@@ -143,10 +142,8 @@ public:
 	void set(const double val);
 	virtual void reset();
 	void add(const TGenotypeData & other);
-	inline double sum() const{
-		return _data[BAM::AA] + _data[BAM::AC] + _data[BAM::AG] + _data[BAM::AT] + _data[BAM::CC] + _data[BAM::CG] + _data[BAM::CT] + _data[BAM::GG] + _data[BAM::GT] + _data[BAM::TT];
-	};
 	virtual double weightedSum(const TGenotypeData & weights);
+	void normalize(const Probability & theSum);
 	void normalize();
 
 	virtual void addNames(std::vector<std::string> & vec) const;

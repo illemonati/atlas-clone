@@ -40,9 +40,9 @@ public:
 	TSequencingErrorModelRecal* getPointerToRecalModel();
 	std::shared_ptr<TSequencingErrorModelRecal>& getSharedPointerToRecalModel();
 
-	double getErrorRate(const BAM::TSequencedBase & base, const BAM::TQualityMap & qualMap) const;
-	uint8_t getPhredInt(const BAM::TSequencedBase & base, const BAM::TQualityMap & qualMap) const;
-	void fillBaseLikelihoods(const BAM::TSequencedBase & base, const BAM::TQualityMap & qualMap, TBaseData & baseLikelihoods) const;
+	BAM::ErrorRate getErrorRate(const BAM::TSequencedBase & base) const;
+	BAM::PhredIntErrorRate getPhredInt(const BAM::TSequencedBase & base) const;
+	void fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseData & baseLikelihoods) const;
 };
 
 class TSequencingErrorModelsOneReadGroup{
@@ -59,9 +59,9 @@ public:
 	TSequencingErrorModelRecal* getPointerToRecalModel(const bool & IsSecondMate);
 	std::shared_ptr<TSequencingErrorModelRecal>& getSharedPointerToRecalModel(const bool & IsSecondMate);
 
-	double getErrorRate(const BAM::TSequencedBase & base, const BAM::TQualityMap & qualMap) const;
-	uint8_t getPhredInt(const BAM::TSequencedBase & base, const BAM::TQualityMap & qualMap) const;
-	void fillBaseLikelihoods(const BAM::TSequencedBase & base, const BAM::TQualityMap & qualMap, TBaseData & baseLikelihoods) const;
+	BAM::ErrorRate getErrorRate(const BAM::TSequencedBase & base) const;
+	BAM::PhredIntErrorRate getPhredInt(const BAM::TSequencedBase & base) const;
+	void fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseData & baseLikelihoods) const;
 };
 
 //--------------------------------------------------------------------------
@@ -70,8 +70,6 @@ public:
 //--------------------------------------------------------------------------
 class TSequencingErrorModels{
 private:
-	BAM::TQualityMap _qualMap;
-
 	//models
 	bool _doRecalibration;
 	TSequencingErrorModelNoRecal _noRecalModel;
@@ -87,16 +85,14 @@ public:
 	void initializeFromFile(const std::string & Filename, const BAM::TReadGroups & ReadGroups, TLog* Logfile);
 	void checkReadGroups(const BAM::TReadGroups & ReadGroups, std::vector<uint16_t> & ReadGroupsWithoutRecal, std::vector<uint16_t> & ReadGroupsLikelySingleEnd);
 
-	const BAM::TQualityMap qualityMap() const { return _qualMap; };
-
 	//access models
 	TSequencingErrorModelsOneReadGroup& operator[](const uint16_t & ReadGroupIndex){ return _models[ReadGroupIndex]; };
-	int numModels(){ return _models.size(); };
+	size_t numModels(){ return _models.size(); };
 	bool recalibrationChangesQualities() const{ return _doRecalibration; };
 
 	//calculate error rates
-	double getErrorRate(const BAM::TSequencedBase & base) const;
-	uint8_t getPhredInt(const BAM::TSequencedBase & base) const;
+	BAM::ErrorRate getErrorRate(const BAM::TSequencedBase & base) const;
+	BAM::PhredIntErrorRate getPhredInt(const BAM::TSequencedBase & base) const;
 	void recalibrate(BAM::TSequencedBase & base) const;
 	void recalibrate(std::vector<BAM::TSequencedBase> & bases, const uint16_t length) const; //TODO: remove
 	void recalibrate(std::vector<BAM::TSequencedBase> & bases) const;

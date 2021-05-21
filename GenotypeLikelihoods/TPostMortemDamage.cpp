@@ -297,7 +297,7 @@ void TPMDFunctionExponential::_estimateWithNewtonRaphson(const countVec & pmdCou
 	}
 };
 
-void TPMDFunctionExponential::learn(const TPMDTable & Table, const Base & from, const Base & to, const TPMDEstimationParameters & EstimationParameters){
+void TPMDFunctionExponential::learn(const TPMDTable & Table, const BAM::Base & from, const BAM::Base & to, const TPMDEstimationParameters & EstimationParameters){
 	//extract counts in PMD direction and the inverse direction
 	const countVec& pmdCounts = Table[from][to];
 	const countVec& pmdSums = Table[from].sums();
@@ -390,7 +390,7 @@ TPMDFunctionEmpiric::TPMDFunctionEmpiric(const std::string & string){
 	}
 };
 
-void TPMDFunctionEmpiric::learn(const TPMDTable & Table, const Base & from, const Base & to, const TPMDEstimationParameters & EstimationParameters){
+void TPMDFunctionEmpiric::learn(const TPMDTable & Table, const BAM::Base & from, const BAM::Base & to, const TPMDEstimationParameters & EstimationParameters){
 	//resize parameters
 	_parameters.resize(Table.size() + 1); //include extra bin for sites beyond size (available in PMDTables)
 
@@ -471,19 +471,19 @@ void TPMDTypeDoubleStrand::estimate(const TPMDTableReadGroup & PMDTable, const T
 	//Assumption: C->T pattern is the same for forward and reverse reads from their respective 5-prime ends.
 	TPMDTable from5(PMDTable[forward5]);
 	from5.add(PMDTable[reverse5]);
-	_pmdCT->learn(from5, C, T, EstimationParameters);
+	_pmdCT->learn(from5, BAM::C, BAM::T, EstimationParameters);
 
 	//Assumption: G->A pattern is the same for forward and reverse reads from their respective 3-prime ends.
 	TPMDTable from3(PMDTable[forward3]);
 	from3.add(PMDTable[reverse3]);
-	_pmdGA->learn(from3, G, A, EstimationParameters);
+	_pmdGA->learn(from3, BAM::G, BAM::A, EstimationParameters);
 };
 
 void TPMDTypeDoubleStrand::fillBaseLikelihoods(const BAM::TSequencedBase & base, const TBaseData & baseLikelihoodsNoPMD, TBaseData & baseLikelihoods) const {
 	//Note: distances are as in original fragment (not BAM file), i.e. in direction of sequencing
 	//no PMD for A and C
-	baseLikelihoods[A] = baseLikelihoodsNoPMD[A];
-	baseLikelihoods[T] = baseLikelihoodsNoPMD[T];
+	baseLikelihoods[BAM::A] = baseLikelihoodsNoPMD[BAM::A];
+	baseLikelihoods[BAM::T] = baseLikelihoodsNoPMD[BAM::T];
 
 	//get relevant PMD probabilities
 	double pmdProb_CT, pmdProb_GA;
@@ -496,36 +496,36 @@ void TPMDTypeDoubleStrand::fillBaseLikelihoods(const BAM::TSequencedBase & base,
 	}
 
 	//add PMD
-	baseLikelihoods[C] = (1.0 - pmdProb_CT) * baseLikelihoodsNoPMD[C] + pmdProb_CT * baseLikelihoodsNoPMD[T];
-	baseLikelihoods[G] = (1.0 - pmdProb_GA) * baseLikelihoodsNoPMD[G] + pmdProb_GA * baseLikelihoodsNoPMD[A];
+	baseLikelihoods[BAM::C] = (1.0 - pmdProb_CT) * baseLikelihoodsNoPMD[BAM::C] + pmdProb_CT * baseLikelihoodsNoPMD[BAM::T];
+	baseLikelihoods[BAM::G] = (1.0 - pmdProb_GA) * baseLikelihoodsNoPMD[BAM::G] + pmdProb_GA * baseLikelihoodsNoPMD[BAM::A];
 };
 
 void TPMDTypeDoubleStrand::simulatePMD(BAM::TSequencedBase & base, TRandomGenerator & RandomGenerator) const {
 	simulatePMD(base.base, base.distFrom5Prime, base.distFrom3Prime, base.isReverseStrand(), RandomGenerator);
 };
 
-void TPMDTypeDoubleStrand::simulatePMD(Base & base, const uint16_t & DistFrom5Prime, const uint16_t & DistFrom3Prime, const bool & IsReverseStrand, TRandomGenerator & RandomGenerator) const{
+void TPMDTypeDoubleStrand::simulatePMD(BAM::Base & base, const uint16_t & DistFrom5Prime, const uint16_t & DistFrom3Prime, const bool & IsReverseStrand, TRandomGenerator & RandomGenerator) const{
 	//simulate PMD
 	if(!IsReverseStrand){
 		//forward strand
-		if(base == C){
+		if(base == BAM::C){
 			if(RandomGenerator.getRand() < _pmdCT->prob(DistFrom5Prime)){
-				base = T;
+				base = BAM::T;
 			}
-		} else if(base == G){
+		} else if(base == BAM::G){
 			if(RandomGenerator.getRand() < _pmdGA->prob(DistFrom3Prime)){
-				base = A;
+				base = BAM::A;
 			}
 		}
 	} else {
 		//reverse strand
-		if(base == C){
+		if(base == BAM::C){
 			if(RandomGenerator.getRand() < _pmdCT->prob(DistFrom3Prime)){
-				base = T;
+				base = BAM::T;
 			}
-		} else if(base == G){
+		} else if(base == BAM::G){
 			if(RandomGenerator.getRand() < _pmdGA->prob(DistFrom5Prime)){
-				base = A;
+				base = BAM::A;
 			}
 		}
 	}

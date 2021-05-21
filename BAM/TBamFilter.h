@@ -11,6 +11,7 @@
 #include <set>
 #include "TLog.h"
 #include "TFile.h"
+#include "TNumericRange.h"
 
 namespace BAM{
 
@@ -55,13 +56,38 @@ public:
 	bool pass(const bool state, const std::string & alignmentName, const bool & isReverseStrand);
 };
 
+template <typename T>
 class TBamFileFilterRange:public TBamFileFilterBool{
 private:
-	uint32_t _min, _max;
+	TNumericRange<T> _range;
 public:
-	TBamFileFilterRange();
-	void filter(const uint32_t Min, const uint32_t Max, const std::string Reason);
-	bool pass(const uint32_t value, const std::string & alignmentName, const bool & isReverseStrand);
+	TBamFileFilterRange(){};
+
+	void filter(const TNumericRange<T> & Range, const std::string Reason){
+		_keep = false;
+		_range = Range;
+		_reason = Reason;
+	};
+
+	/*
+	void filter(const T & Min, const T & Max, const std::string Reason){
+		_keep = false;
+		_range.set(Min,  true,  Max,  true);
+		_reason = Reason;
+	};
+	*/
+
+	std::string rangeString() const{
+		return _range.rangeString();
+	};
+
+	bool pass(const T & value, const std::string & alignmentName, const bool & isReverseStrand){
+		if(!_keep && !_range.within(value)){
+			filterOut(alignmentName, isReverseStrand);
+			return false;
+		}
+		return true;
+	};
 };
 
 //-----------------------------------------------------

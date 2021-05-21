@@ -12,10 +12,11 @@
 #include "gzstream.h"
 #include <algorithm>
 #include <vector>
+#include <map>
 #include <TPopulationLikelihoodLocus.h>
 #include "TParameters.h"
 #include "stringFunctions.h"
-#include "TGenotypeMap.h"
+#include "Types.h"
 #include "TFastaBuffer.h"
 #include "TGenotypeData.h"
 #include "TChromosomes.h"
@@ -23,6 +24,7 @@
 
 using namespace GenotypeLikelihoods;
 
+/*
 //----------------------------------------------------
 // TGlfConverter
 // class to converted likelihoods to uint16 and back
@@ -40,13 +42,15 @@ public:
 	uint16_t maxValue() const{ return _maxVal; };
 	uint16_t toGlfFormat(double scaledLikelihood) const;
 	uint16_t log10ToGlfFormat(double log10ScaledLikelihood) const;
-	uint16_t phredToGlfFormat(uint8_t phred) const;
+	uint16_t phredToGlfFormat(BAM::PhredIntErrorRate phred) const;
 	double toScaledLikelihood(uint16_t glfValue) const;
 	double operator[](uint16_t glfValue) const { return toScaledLikelihood(glfValue); }
-	uint8_t toPhred(uint16_t glfValue) const;
+	BAM::PhredIntErrorRate toPhred(uint16_t glfValue) const;
 	double toLog10(uint16_t glfValue) const;
-	double toLog(uint16_t glfValue) const;
+	BAM::LogErrorRate toLog(uint16_t glfValue) const;
 };
+
+*/
 
 //----------------------------------------------------
 //TGlfChromosome
@@ -74,7 +78,6 @@ public:
 	uint8_t ploidy;
 	uint8_t numLikelihoodValues; //depends on ploidy
 	uint8_t maxNumLikelihoodValues; //maximum possible
-
 
 	TGlfChromosome(){
 		refId = 0;
@@ -192,8 +195,7 @@ class TGlfWriter:public TGlfHandle{
 private:
 	long _oldPos;
 	uint8_t _recordType1;
-	uint16_t* _glfValues; //tmp used for writing
-	TGlfConverter _converter;
+	BAM::HighPrecisionPhredIntErrorRate* _glfValues; //tmp used for writing
 
 	void _init();
 	void _writeHeader();
@@ -244,8 +246,8 @@ private:
 	uint32_t _position;
 	uint16_t _depth;
 	int _RMS_mappingQual;
-	uint16_t _genotypeLikelihoodsGLF[10];
-	uint16_t* _genotypeLikelihoodsGLF_missingData;
+	BAM::HighPrecisionPhredIntErrorRate _genotypeLikelihoodsGLF[10];
+	BAM::HighPrecisionPhredIntErrorRate* _genotypeLikelihoodsGLF_missingData;
 
 	// about chromosomes
 	std::map< uint32_t, TGlfChromosome > _chromosomesAlreadyParsed;
@@ -285,13 +287,13 @@ public:
 
 	//get details
 	bool eof() const{ return _eof;};
-	TGlfChromosome* pointerToChr(uint32_t refId);
+	TGlfChromosome* pointerToChr(const uint32_t & refId);
 	bool fillPointerToChr(uint32_t refId, TGlfChromosome* & chr);
 	uint32_t position() const{ return _position; };
 	uint16_t depth() const{ return _depth; };
-	uint16_t* pointerToGenotypeLikelihoodsGLF(){ return _genotypeLikelihoodsGLF; };
-    void fillGenotypeLikelihoodsGLF(uint16_t* destination);
-    void fillGenotypeLikelihoods(double* destination, TGlfConverter* converter);
+	BAM::HighPrecisionPhredIntErrorRate* pointerToGenotypeLikelihoodsGLF(){ return _genotypeLikelihoodsGLF; };
+    void fillGenotypeLikelihoodsGLF(BAM::HighPrecisionPhredIntErrorRate* destination);
+    //void fillGenotypeLikelihoods(BAM::ErrorRate* destination);
 
 	//open file and parse header
 	void setFilename(const std::string& Filename);
