@@ -10,6 +10,7 @@
 
 #include <stdint.h>
 #include <iostream>
+#include "Types.h"
 
 namespace PopulationTools{
 
@@ -18,14 +19,14 @@ namespace PopulationTools{
 //------------------------------------------------
 class TSampleLikelihoods{
 public:
-	uint16_t glfLikelihood_0;
-	uint16_t glfLikelihood_1;
-	uint16_t glfLikelihood_2;
+	BAM::HighPrecisionPhredIntErrorRate glfLikelihood_0;
+	BAM::HighPrecisionPhredIntErrorRate glfLikelihood_1;
+	BAM::HighPrecisionPhredIntErrorRate glfLikelihood_2;
 
 	bool isHaploid;
 	bool isMissing;
 
-	uint16_t operator[](int genotype){
+	constexpr BAM::HighPrecisionPhredIntErrorRate& operator[](const uint8_t & genotype){
 		if(genotype == 0) return glfLikelihood_0;
 		if(genotype == 1) return glfLikelihood_1;
 		if(isHaploid) throw "Genotype has to be 0 or 1 for haploid samples!";
@@ -85,7 +86,7 @@ public:
 	void clear();
 	void resize(uint32_t NumSamples);
 
-	TSampleLikelihoods & operator[](uint32_t index){
+	TSampleLikelihoods & operator[](const uint32_t & index){
 		return _samples[index];
 	};
 
@@ -93,12 +94,12 @@ public:
 		return _samples;
 	};
 
-	uint32_t numSamples(){
+	uint32_t numSamples() const{
 		return _numSamples;
 	};
 
-	uint32_t numSamplesWithData();
-	bool hasData();
+	uint32_t numSamplesWithData() const;
+	bool hasData() const;
 	void fillAsMissing();
 
 	void print(uint32_t index){

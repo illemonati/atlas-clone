@@ -57,90 +57,6 @@ static const Base AllelicCombination::_firstBase[7] = {A, A, A, C, C, G, N};
 static const Base AllelicCombination::_secondBase[7] = {C, G, T, G, T, T, N};
 */
 
-//-------------------------------------
-// ErrorRate
-// An error rate within [0,1]
-//-------------------------------------
-ErrorRate::ErrorRate(const PhredErrorRate & error){
-	_value = std::pow(10.0, - (double) error / 10.0);
-};
-
-ErrorRate::ErrorRate(const LogErrorRate & error){
-	_value = exp( (double) error);
-};
-
-ErrorRate::ErrorRate(const PhredIntErrorRate & error){
-	_value = _phredIntToError[ (uint8_t) error];
-};
-
-ErrorRate::ErrorRate(const HighPrecisionPhredIntErrorRate & error){
-	//exception: use casting operator as translation table is owned by HighPrecisionPhredIntErrorRate
-	_value = _highPrecisionPhredIntToError[ (uint16_t) error];
-};
-
-ErrorRate::ErrorRate(const BaseQuality & quality){
-	_value = _phredIntToError[ (char) quality - 33];
-};
-
-ErrorRate::operator LogErrorRate() const {
-	return LogErrorRate(*this);
-};
-
-ErrorRate::operator PhredErrorRate() const {
-	return PhredErrorRate(*this);
-};
-
-ErrorRate::operator PhredIntErrorRate() const {
-	return PhredIntErrorRate(*this);
-};
-
-ErrorRate::operator HighPrecisionPhredIntErrorRate() const{
-	return HighPrecisionPhredIntErrorRate(*this);
-};
-
-ErrorRate::operator BaseQuality() const{
-	return BaseQuality(*this);
-};
-
-//-------------------------------------
-// LogErrorRate
-// The log of an error rate
-//-------------------------------------
-LogErrorRate::LogErrorRate(const PhredErrorRate & error){
-	_value = _phredToLogError((double) error);
-};
-
-LogErrorRate::LogErrorRate(const PhredIntErrorRate & error){
-	_value = _phredToLogError((uint8_t) error);
-};
-
-LogErrorRate::LogErrorRate(const HighPrecisionPhredIntErrorRate & error){
-	_value = _phredToLogError((uint16_t) error / 100.0);
-};
-
-LogErrorRate::LogErrorRate(const BaseQuality & quality){
-	_value = _phredToLogError((char) quality - 33);
-};
-
-LogErrorRate::operator ErrorRate() const {
-	return ErrorRate(*this);
-};
-
-LogErrorRate::operator PhredErrorRate() const {
-	return PhredErrorRate(*this);
-};
-
-LogErrorRate::operator PhredIntErrorRate() const {
-	return PhredIntErrorRate(*this);
-};
-
-LogErrorRate::operator HighPrecisionPhredIntErrorRate() const{
-	return HighPrecisionPhredIntErrorRate(*this);
-};
-
-LogErrorRate::operator BaseQuality() const{
-	return BaseQuality(*this);
-};
 
 //------------------------------------------------
 // PhredErrorRate
@@ -154,14 +70,6 @@ PhredErrorRate::PhredErrorRate(const PhredIntErrorRate & error){
 
 PhredErrorRate::PhredErrorRate(const HighPrecisionPhredIntErrorRate & error){
 	_value = (uint16_t) error / 100.0;
-};
-
-PhredErrorRate::operator ErrorRate() const {
-	return ErrorRate(*this);
-};
-
-PhredErrorRate::operator LogErrorRate() const {
-	return LogErrorRate(*this);
 };
 
 PhredErrorRate::operator PhredIntErrorRate() const {
@@ -197,14 +105,6 @@ void PhredIntErrorRate::operator=(const BaseQuality & quality){
 	_value = _qualityToPhredInt((char) quality);
 };
 
-PhredIntErrorRate::operator ErrorRate() const {
-	return ErrorRate(*this);
-};
-
-PhredIntErrorRate::operator LogErrorRate() const {
-	return LogErrorRate(*this);
-};
-
 PhredIntErrorRate::operator PhredErrorRate() const {
 	return PhredErrorRate(*this);
 };
@@ -227,14 +127,6 @@ HighPrecisionPhredIntErrorRate::HighPrecisionPhredIntErrorRate(const BaseQuality
 	_value = 100 * ((char) quality - 33);
 };
 
-HighPrecisionPhredIntErrorRate::operator ErrorRate() const {
-	return ErrorRate(*this);
-};
-
-HighPrecisionPhredIntErrorRate::operator LogErrorRate() const {
-	return LogErrorRate(*this);
-};
-
 HighPrecisionPhredIntErrorRate::operator PhredErrorRate() const {
 	return PhredErrorRate(*this);
 };
@@ -252,14 +144,6 @@ HighPrecisionPhredIntErrorRate::operator BaseQuality() const {
 // Sequencing or mapping quality = PhredIntError + 33
 // onyl valid within [33,255] and truncated outside
 //------------------------------------------------
-BaseQuality::operator ErrorRate() const {
-	return ErrorRate(*this);
-};
-
-BaseQuality::operator LogErrorRate() const {
-	return LogErrorRate(*this);
-};
-
 BaseQuality::operator PhredErrorRate() const {
 	return PhredErrorRate(*this);
 };

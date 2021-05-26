@@ -29,8 +29,6 @@ protected:
 	std::string _filenameExtention;
 
 	//lookup stuff
-	TGenotypeMap _genoMap;
-	BAM::TQualityMap _qualMap;
 	VCF::TVCFInfoFields _VCFInfoFields;
 	VCF::TVCFGenotypeFields _VCFGenotypeFields;
 	TRandomGenerator* _randomGenerator;
@@ -50,9 +48,9 @@ protected:
 
 	//temp variables for calling
 	std::string _calledGenotype;
-	std::vector<Base> _genotypesWithHighestMetric;
-	Base referenceBase;
-	std::vector<Base> _altAlleles; //order of Base enums: A, C, G, T, N
+	std::vector<BAM::Base> _genotypesWithHighestMetric;
+	BAM::Base referenceBase;
+	std::vector<BAM::Base> _altAlleles;
 	TBaseCounts _alleleCounts;
 	bool _allelesCounted;
 
@@ -150,8 +148,8 @@ public:
 	//prior
 	bool usesPrior(){ return _usesPrior; };
 	void setPrior(TGenotypeData* prior){ _genotypePrior = prior; _priorSet = true; };
-	void call(const std::string & chr, const long pos, const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
-	void call(const std::string & chr, const long pos, const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods, const char & firstAllele, const char & secondAllele);
+	void call(const std::string & chr, const long & pos, const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
+	void call(const std::string & chr, const long & pos, const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods, const BAM::Base & firstAllele, const BAM::Base & secondAllele);
 };
 
 //------------------------------------------------------
@@ -159,8 +157,8 @@ public:
 //------------------------------------------------------
 class TCallerRandomBase:public TCaller{
 private:
-	bool _callGenotype(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
-	bool _callGenotypeKnownAlleles(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
+	bool _callGenotype(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) override;
+	bool _callGenotypeKnownAlleles(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) override;
 
 public:
 	TCallerRandomBase(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
@@ -171,8 +169,8 @@ public:
 //------------------------------------------------------
 class TCallerMajorityBase:public TCaller{
 private:
-	bool _callGenotype(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
-	bool _callGenotypeKnownAlleles(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
+	bool _callGenotype(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) override;
+	bool _callGenotypeKnownAlleles(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) override;
 
 public:
 	TCallerMajorityBase(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
@@ -185,9 +183,9 @@ class TCallerConsensify:public TCaller{
 private:
 	uint32_t _downsampleDepth, _minMajorityDepth;
 
-	bool _callGenotype(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
+	bool _callGenotype(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) override;
 	void _callGenotypeKnownAlleles(const TBaseCounts & AlleleCounts);
-	bool _callGenotypeKnownAlleles(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
+	bool _callGenotypeKnownAlleles(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) override;
 
 public:
 	TCallerConsensify(const uint32_t & DownsampleDepth, TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
@@ -199,14 +197,14 @@ public:
 class TCallerAllelePresence:public TCaller{
 private:
 	TGenotypeProbabilities posterior;
-	TBaseData allelePostProb;
-	Base MAP;
+	TBaseLikelihoods allelePostProb;
+	BAM::Base MAP;
 
-	void fillPosteriors(TGenotypeLikelihoods & genotypeLikelihoods);
-	bool _callGenotype(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
-	bool _callGenotypeKnownAlleles(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
-	std::string _getVCFGenotypeString_GQ(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
-	std::string _getVCFGenotypeString_AP(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
+	void _fillPosteriors(TGenotypeLikelihoods & genotypeLikelihoods);
+	bool _callGenotype(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) override;
+	bool _callGenotypeKnownAlleles(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) override;
+	std::string _getVCFGenotypeString_GQ(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) override;
+	std::string _getVCFGenotypeString_AP(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) override;
 
 public:
 	TCallerAllelePresence(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
@@ -217,7 +215,8 @@ public:
 //------------------------------------------------------
 class TCallerDiploid:public TCaller{
 protected:
-	int indexOfMax, indexOfSecond;
+	//uint8_t indexOfMax, indexOfSecond;
+	BAM::Genotype genotypeAtMax, genotypeAtSecond;
 	std::string AB, AI;
 	bool imbalanceCalculated;
 	TGenotypeData tmpGenoData;
@@ -225,12 +224,12 @@ protected:
 
 	void _clearAfterCall();
 	void callGenotypeFromMetric(TGenotypeData & metric);
-	void callGenotypeFromMetricKnownAlleles(const TGenotypeData & metric, std::vector<int> & indeces);
+	void callGenotypeFromMetricKnownAlleles(const TGenotypeData & metric);
 	bool callGenotypeFromMetricKnownAllelesUpdateIndex(const TGenotypeData & metric);
 	std::string getPerGenotypeMetricString(TGenotypeData & metric);
 	void calculateImbalance(const TSite & site);
-	std::string _getVCFGenotypeString_AB(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
-	std::string _getVCFGenotypeString_AI(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
+	std::string _getVCFGenotypeString_AB(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) override;
+	std::string _getVCFGenotypeString_AI(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) override;
 
 public:
 	TCallerDiploid(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
@@ -241,11 +240,11 @@ public:
 //------------------------------------------------------
 class TCallerMLE:public TCallerDiploid{
 private:
-	bool _callGenotype(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
-	bool _callGenotypeKnownAlleles(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
-	std::string _getVCFGenotypeString_GQ(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
-	std::string _getVCFGenotypeString_GL(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
-	std::string _getVCFGenotypeString_PL(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
+	bool _callGenotype(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) override;
+	bool _callGenotypeKnownAlleles(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) override;
+	std::string _getVCFGenotypeString_GQ(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) override;
+	std::string _getVCFGenotypeString_GL(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) override;
+	std::string _getVCFGenotypeString_PL(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) override;
 
 public:
 	TCallerMLE(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
@@ -258,11 +257,11 @@ class TCallerBayes:public TCallerDiploid{
 private:
 	TGenotypeProbabilities posterior;
 
-	bool _callGenotype(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
-	bool _callGenotypeKnownAlleles(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
-	std::string _getVCFGenotypeString_GQ(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
-	std::string _getVCFGenotypeString_GP(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
-	std::string getVCFGenotypeString_PP(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
+	bool _callGenotype(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) override;
+	bool _callGenotypeKnownAlleles(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) override;
+	std::string _getVCFGenotypeString_GQ(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) override;
+	std::string _getVCFGenotypeString_GP(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) override;
+	std::string _getVCFGenotypeString_PP(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
 
 public:
 	TCallerBayes(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);

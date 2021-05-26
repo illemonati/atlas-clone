@@ -18,7 +18,7 @@ namespace GenomeTasks{
 //-----------------------------------------
 class TBamSample{
 private:
-	double _prob;
+	Probability _prob;
 	std::string _outName;
 	BAM::TOutputBamFile _out;
 
@@ -27,13 +27,13 @@ private:
 	BAM::TAlignmentList _discard;
 
 public:
-	TBamSample(const double Prob, const std	::string OutName);
+	TBamSample(const Probability & Prob, const std::string & OutName);
 
-	void open(BAM::TBamFile & bamFile, 	GenotypeLikelihoods::TGenotypeMap & genoMap, BAM::TQualityMap & qualMap);
+	void open(BAM::TBamFile & bamFile);
 	void close(TLog* logfile);
 
 	void sample(BAM::TBamFile & bamfile, TRandomGenerator & randomGenerator);
-	void downsampleRead(BAM::TAlignment & alignment, TRandomGenerator & randomGenerator, const 	GenotypeLikelihoods::TGenotypeMap & genoMap, const BAM::TQualityMap & qualMap);
+	void downsampleRead(BAM::TAlignment & alignment, TRandomGenerator & randomGenerator);
 };
 
 //-----------------------------------------
@@ -41,7 +41,7 @@ public:
 //-----------------------------------------
 class TBamDownsampler_base:public TGenome_basic{
 protected:
-	std::vector<double> _probs;
+	std::vector<Probability> _probs;
 	std::vector<std::string> _names;
 
 	void _readVectorOfDownsamplingProbabilities(TParameters & Parameters);

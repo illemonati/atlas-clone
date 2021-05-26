@@ -66,7 +66,7 @@ void TPopulationLikehoodLocus::resize(uint32_t NumSamples){
 	}
 };
 
-uint32_t TPopulationLikehoodLocus::numSamplesWithData(){
+uint32_t TPopulationLikehoodLocus::numSamplesWithData() const{
 	uint32_t n = 0;
 	for(uint32_t i=0; i<_numSamples; i++){
 		if(!_samples[i].isMissing){
@@ -76,7 +76,7 @@ uint32_t TPopulationLikehoodLocus::numSamplesWithData(){
 	return n;
 };
 
-bool TPopulationLikehoodLocus::hasData(){
+bool TPopulationLikehoodLocus::hasData() const{
 	for(uint32_t i=0; i<_numSamples; i++){
 		if(!_samples[i].isMissing){
 			return true;

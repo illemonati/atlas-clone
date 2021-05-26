@@ -87,7 +87,6 @@ protected:
 	bool dataInitialized;
 	bool useTmpFile;
 	std::string tmpFileName;
-	TGenotypeMap genoMap;
 
 	//initial theta
 	double initialTheta;
@@ -96,14 +95,14 @@ protected:
 
 	//estimation
 	int minSitesWithData;
-	GenotypeLikelihoods::TGenotypeData pGenotype; //P(g|pi, theta)
+	GenotypeLikelihoods::TGenotypeProbabilities pGenotype; //P(g|pi, theta)
 	Theta theta;
 	bool extraVerbose;
 
 	void initDataStorage();
 	void readParametersRegardingInitialSearch(TParameters & params);
-	void fillPGenotype(GenotypeLikelihoods::TGenotypeData & pGeno, const double & expTheta, const double* baseFrequencies);
-	void fillPGenotype(GenotypeLikelihoods::TGenotypeData & pGeno, const Theta & thisTheta);
+	void fillPGenotype(GenotypeLikelihoods::TGenotypeProbabilities & pGeno, const double & expTheta, const double* baseFrequencies);
+	void fillPGenotype(GenotypeLikelihoods::TGenotypeProbabilities & pGeno, const Theta & thisTheta);
 
 	void findGoodStartingTheta(TThetaEstimatorData* thisData, Theta & thisTheta, std::string tag);
 
@@ -119,7 +118,7 @@ public:
 
 	TThetaEstimatorData* pointerToDataContainer(){ return data; };
 
-	void fillPGenotype(GenotypeLikelihoods::TGenotypeData & pGeno){ fillPGenotype(pGeno, theta); };
+	void fillPGenotype(GenotypeLikelihoods::TGenotypeProbabilities & pGeno){ fillPGenotype(pGeno, theta); };
 
 };
 

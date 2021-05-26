@@ -21,147 +21,212 @@ namespace GenotypeLikelihoods{
 //--------------------------------------------------------------------
 // TData_base
 //--------------------------------------------------------------------
-template <typename T, size_t S> class TData_base{
+template <typename Type, typename IndexType, typename EnumType, size_t Size>
+class TData_base{
 protected:
-	std::array<T, S> _data;
+	std::array<Type, Size> _data;
+
+	//keep protected so the base class can not be used
+	TData_base() = default;
+	TData_base(const Type & val){ set(val); };
+	 virtual ~TData_base(){};
 
 public:
-	TData_base() = default;
-	TData_base(const T & val){ set(val); };
-	virtual ~TData_base(){};
-	template <typename U> T& operator[](const U & index){ return _data[index]; };
-	template <typename U> const T& operator[](const U & index) const { return _data[index]; };
 	size_t size() const { return _data.size(); };
-	T* pointerToData(){ return _data.data(); };
-	size_t sizeOf() const { return sizeof(T) * S; };
+	Type* pointerToData(){ return _data.data(); };
+	size_t sizeOf() const { return sizeof(Type) * Size; };
 
-	virtual void set(const T & val){
+	void set(const Type & val){
 		std::fill(begin(), end(), val);
 	};
 
-	virtual void reset(){
-		set({});
-	};
-/*
-	virtual void operator+=(const TData_base & other){
-		for(size_t i = 0; i<_data.size(); ++i){
-			_data[i] += other[i];
-		}
-	};
-	*/
+	virtual void reset(){ set(Type{}); };
 
-	virtual void operator*=(const TData_base & other){
-		for(size_t i = 0; i<_data.size(); ++i){
-			_data[i] *= other[i];
-		}
+	void operator=(const TData_base & other){
+		_data = other._data;
 	};
 
-	/*
-	virtual void add(const TData_base & other){
-		*this += other;
-	};
-	*/
-
-	T min() const{
+	Type min() const{
 		return *std::min_element(_data.begin(), _data.end());
 	};
 
-	T max() const{
+	Type max() const{
 		return *std::max_element(_data.begin(), _data.end());
 	};
+
+	Type& operator[](const IndexType & index){ return _data[index.get()]; };
+	const Type& operator[](const IndexType & index) const { return _data[index.get()]; };
+	Type& operator[](const EnumType & index){ return _data[index]; };
+	const Type& operator[](const EnumType & index) const { return _data[index]; };
 
 	auto begin(){ return _data.begin(); };
 	auto cbegin() const { return _data.cbegin(); };
 	auto end(){ return _data.end(); };
 	auto cend() const { return _data.cend(); };
+
+	void operator+=(const TData_base & other){
+		std::transform(_data.begin(), _data.end(), other._data.begin(), _data.begin(), std::plus<Type>() );
+	};
+
+	void addConstant(const IndexType & index, const Type & value){
+		_data[index] += value;
+	};
+
+	void operator*=(const TData_base & other){
+		std::transform(_data.begin(), _data.end(), other._data.begin(), _data.begin(), std::multiplies<Type>() );
+	};
+
+	Type sum(){
+		return std::accumulate(_data , _data+Size, Type{});
+	};
+
+	void normalize(){
+		Type tot = accumulate(_data , _data+Size, Type{});
+		std::for_each(_data.begin(), _data.end(), [tot](Type &x){ x /= tot; });
+	};
+
+	void normalize(const Type & tot){
+		std::for_each(_data.begin(), _data.end(), [tot](Type &x){ x /= tot; });
+	};
+
+	template <typename U>
+	double weightedSum(const U & weights) const{
+		auto wsum = [](const double & s, const Type & v) { return s + (double) v; };
+		return std::accumulate(_data.begin(), _data.end(), double{}, wsum);
+	};
+
+	virtual void addNames(std::vector<std::string> & vec) const{
+		for(uint8_t i=0; i<Size; ++i){
+			vec.push_back( (std::string) IndexType(static_cast<EnumType>(i)));
+		}
+	};
+
+	void write(TOutputFile & out) const{
+		std::for_each(_data.begin(), _data.end(), [out](const Type & v){ out << v; });
+	};
+
+	friend std::ostream& operator<<(std::ostream& os, const TData_base & data){
+		os << (std::string) IndexType(static_cast<EnumType>(0)) + ": " << data._data[0];
+		for(uint8_t i=1; i<Size; ++i){
+			os << ", " + (std::string) IndexType(static_cast<EnumType>(i)) + ": " << data._data[i];
+		}
+		return os;
+	};
 };
 
+//--------------------------------------------------------------------
+// TBaseData_base
+//--------------------------------------------------------------------
+template <typename T>
+class TBaseData_base : public TData_base<T, BAM::Base, BAM::BaseEnum, 4>{
+protected:
+	using TData_base<T, BAM::Base, BAM::BaseEnum, 4>::_data;
+	using TData_base<T, BAM::Base, BAM::BaseEnum, 4>::set;
+
+	//keep constructors protected so the base class can not be used!
+	TBaseData_base() = default;
+	TBaseData_base(const T& val){ set(val); };
+};
 
 //--------------------------------------------------------------------
-// TBaseDataq
+// TBaseData
 //--------------------------------------------------------------------
-class TBaseData:public TData_base<double, 4>{
+class TBaseData:public TBaseData_base<double>{
 public:
-	TBaseData();
-	TBaseData(const double val);
-	TBaseData(const BAM::Base trueBase, const double error);
-
-	void operator=(const TBaseData & other);
-	void operator+=(const TBaseData & other);
-	void operator*=(const TBaseData & other);
-
-	void set(const double val);
-	void set(const BAM::Base trueBase, const double error);
-	void reset();
-	void add(const TBaseData & other);
-	void add(const BAM::Base base, const double value);
-	double sum() const;
-	double weightedSum(const TBaseData & weights) const;
-	void normalize();
+	TBaseData(){ reset(); };
+	TBaseData(const double & val) : TBaseData_base(val) {};
 };
 
-std::ostream& operator<<(std::ostream& os, const TBaseData & baseData);
+//--------------------------------------------------------------------
+// TBaseProbabilities
+//--------------------------------------------------------------------
+class TBaseProbabilities:public TBaseData_base<Probability>{
+public:
+	TBaseProbabilities(){ reset(); };
+	TBaseProbabilities(const Probability & val) : TBaseData_base(val) {};
+};
 
+//--------------------------------------------------------------------
+// TBaseLikelihoods
+//--------------------------------------------------------------------
+class TBaseLikelihoods:public TBaseData_base<Probability>{
+public:
+	TBaseLikelihoods(){ reset(); };
+	TBaseLikelihoods(const Probability & val) : TBaseData_base(val) {};
+
+	TBaseLikelihoods(const BAM::Base & trueBase, const Probability & error);
+
+	void reset() override { set(Probability(1.0)); };
+
+	void setFromError(const BAM::Base trueBase, const Probability & error);
+};
 
 //--------------------------------------------------------------------
 // TBaseCounts
 //TODO:: merge with base frequencies?
 //--------------------------------------------------------------------
-class TBaseCounts:public TData_base<uint32_t, 5>{
+class TBaseCounts:public TData_base<uint32_t, BAM::Base, BAM::BaseEnum, 5>{
 public:
-	TBaseCounts();
-
-	void reset();
+	TBaseCounts(){ reset(); };
 
 	void add(const BAM::Base base){ ++_data[static_cast<uint8_t>( base.get() )]; };
-	inline uint32_t sum() const{
-		return _data[BAM::A] + _data[BAM::C] + _data[BAM::G] + _data[BAM::T] + _data[BAM::N];
-	};
+
 	uint8_t numAlleles() const;
 	void fillFrequencies(TBaseData & freq);
-	void fillCumulativeFrequencies(TBaseData & freq);
+	void fillCumulativeFrequencies(TBaseProbabilities & freq);
 	void downsample(const uint32_t & max, TRandomGenerator & RandomGenerator);
 };
 
 //--------------------------------------------------------------------
-// TGenotypeData
-// base class for likelihoods, prior and posterior
+// TGenotypeData_base
+// base class for TGenotypeData, likelihoods, prior and posterior
 //--------------------------------------------------------------------
-class TGenotypeData:public TData_base<Probability, 10>{
+template <typename T>
+class TGenotypeData_base : public TData_base<T, BAM::Genotype, BAM::GenotypeEnum, 10>{
 protected:
-	//void _copyFrom(const TGenotypeData & other);
+	using TData_base<T, BAM::Genotype, BAM::GenotypeEnum, 10>::_data;
 
-	constexpr double _sum() const{
-		return _data[BAM::AA].get() + _data[BAM::AC].get() + _data[BAM::AG].get() + _data[BAM::AT].get() + _data[BAM::CC].get() + _data[BAM::CG].get() + _data[BAM::CT].get() + _data[BAM::GG].get() + _data[BAM::GT].get() + _data[BAM::TT].get();
-	};
-public:
-	TGenotypeData(){};
-	virtual ~TGenotypeData(){};
-
-	void operator=(const TGenotypeData & other);
-	void set(const double val);
-	virtual void reset();
-	void add(const TGenotypeData & other);
-	virtual double weightedSum(const TGenotypeData & weights);
-	void normalize(const Probability & theSum);
-	void normalize();
-
-	virtual void addNames(std::vector<std::string> & vec) const;
-	void write(TOutputFile & out) const;
+	//keep constructors protected so the base class can not be used!
+	TGenotypeData_base(){};
+	virtual ~TGenotypeData_base(){};
 };
 
+//--------------------------------------------------------------------
+// TGenotypeData
+// base class for TGenotypeLikelihoods, TGenotypeLikelihoodsHaploid and TGenotypeProbabilities
+//--------------------------------------------------------------------
+class TGenotypeData : public TGenotypeData_base<double>{
+public:
+	TGenotypeData(){ reset(); };
+};
 
 //--------------------------------------------------------------------
 // TGenotypeLikelihoods
 //--------------------------------------------------------------------
-class TGenotypeLikelihoods:public TGenotypeData{
+class TGenotypeLikelihoods : public TGenotypeData_base<Probability>{
 public:
 	TGenotypeLikelihoods();
 
 	virtual void fill(const std::vector<TBaseData> & bases);
 	virtual void fill(const std::vector<TBaseData> & bases, const size_t size);
 
-	void addNames(std::vector<std::string> & vec) const;
+	void reset() override { set(Probability(1.0)); };
+	void addNames(std::vector<std::string> & vec) const override;
+};
+
+//--------------------------------------------------------------------
+// TGenotypeProbabilities
+//--------------------------------------------------------------------
+class TGenotypeProbabilities : public TGenotypeData_base<Probability>{
+public:
+	TGenotypeProbabilities() { reset(); };
+
+	void reset() override { set(Probability(0.1)); };
+
+	void fill(const TGenotypeLikelihoods & likelihoods, const TGenotypeData & prior);
+
+	double probHomozygous();
+	double probHeterozygous();
 };
 
 //--------------------------------------------------------------------
@@ -169,26 +234,12 @@ public:
 //--------------------------------------------------------------------
 class TGenotypeLikelihoodsHaploid:public TGenotypeLikelihoods{
 public:
-	TGenotypeLikelihoodsHaploid();
+	TGenotypeLikelihoodsHaploid(){ reset(); };
 
-	void reset();
+	void reset() override;
 	void fill(const std::vector<TBaseData> & bases, const size_t size);
-	double weightedSum(const TGenotypeData & weights);
 };
 
-//--------------------------------------------------------------------
-// TGenotypeProbabilities
-//--------------------------------------------------------------------
-class TGenotypeProbabilities:public TGenotypeData{
-public:
-	TGenotypeProbabilities();
-	void reset();
-	void fill(const TGenotypeData & likelihoods, const TGenotypeData & prior);
-	double probHomozygous();
-	double probHeterozygous();
-
-	void addNames(std::vector<std::string> & vec) const;
-};
 
 }; //end namespace
 

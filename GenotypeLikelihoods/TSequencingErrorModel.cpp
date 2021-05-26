@@ -308,7 +308,7 @@ void TSequencingErrorRho::operator=(const TSequencingErrorRhoStorage & other){
 	TSequencingErrorRhoStorage::operator =(other);
 };
 
-void TSequencingErrorRho::fillBaseLikelihoods(const BAM::Base base, const BAM::ErrorRate epsilon, TBaseData & baseLikelihoods) const{
+void TSequencingErrorRho::fillBaseLikelihoods(const BAM::Base base, const Probability & epsilon, TBaseData & baseLikelihoods) const{
 	if(base == BAM::N){
 		baseLikelihoods.reset();
 	} else {
@@ -390,11 +390,11 @@ void TSequencingErrorRho::estimate(){
 //*********************************************************
 // TSequencingErrorModelNoRecal
 //*********************************************************
-BAM::ErrorRate TSequencingErrorModelNoRecal::getErrorRate(const BAM::TSequencedBase & base) const{
+Probability TSequencingErrorModelNoRecal::getErrorRate(const BAM::TSequencedBase & base) const{
 	if(base == BAM::N){
-		return 1.0;
+		return Probability(1.0);
 	} else {
-		return base.originalQuality_phredInt;
+		return (Probability) base.originalQuality_phredInt;
 	}
 };
 
@@ -446,7 +446,7 @@ TSequencingErrorModelDefinition TSequencingErrorModelRecal::getModelDefinition()
 //functions to calculate error rates
 //-------------------------------------------------
 
-double TSequencingErrorModelRecal::_calcEpsilon(const double & eta) const{
+Probability TSequencingErrorModelRecal::_calcEpsilon(const double & eta) const{
 	if(eta > 23.03){
 		return 0.9999999999;
 	}
@@ -454,10 +454,10 @@ double TSequencingErrorModelRecal::_calcEpsilon(const double & eta) const{
 		return 0.0000000001;
 	}
 
-	return 1.0 / (1.0 + exp(-eta));
+	return logistic(eta);
 };
 
-BAM::ErrorRate TSequencingErrorModelRecal::_calcErrorRate(const BAM::TSequencedBase & base) const{
+Probability TSequencingErrorModelRecal::_calcErrorRate(const BAM::TSequencedBase & base) const{
 	//eta = bta[0] + SUM_i f(q[i]), where the functions are implemented as covariate function
 	double eta = _covariates.intercept.getEtaTerm();
 
@@ -468,7 +468,7 @@ BAM::ErrorRate TSequencingErrorModelRecal::_calcErrorRate(const BAM::TSequencedB
 	return _calcEpsilon(eta);
 };
 
-BAM::ErrorRate TSequencingErrorModelRecal::getErrorRate(const BAM::TSequencedBase & base) const{
+Probability TSequencingErrorModelRecal::getErrorRate(const BAM::TSequencedBase & base) const{
 	if(base == BAM::N){
 		return 1.0;
 	} else {
@@ -480,7 +480,7 @@ BAM::PhredIntErrorRate TSequencingErrorModelRecal::getPhredInt(const BAM::TSeque
 	if(base == BAM::N){
 		return 0;
 	} else {
-		return _calcErrorRate(base);
+		return BAM::PhredIntErrorRate(_calcErrorRate(base));
 	}
 };
 

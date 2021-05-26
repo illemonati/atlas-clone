@@ -32,16 +32,16 @@ namespace GenotypeLikelihoods{
 //-----------------------------------------------
 class TSiteSubsetSite:public BAM::TGenomePosition{
 private:
-	Base _ref, _alt;
+	BAM::Base _ref, _alt;
 
 public:
-	TSiteSubsetSite(const uint32_t refID, const uint32_t position, const Base Ref, const Base Alt);
-	TSiteSubsetSite(const BAM::TGenomePosition Position, const Base Ref, const Base Alt);
+	TSiteSubsetSite(const uint32_t & refID, const uint32_t & position, const BAM::Base & Ref, const BAM::Base & Alt);
+	TSiteSubsetSite(const BAM::TGenomePosition & Position, const BAM::Base & Ref, const BAM::Base & Alt);
 	TSiteSubsetSite(const TSiteSubsetSite & other) = default;
 	void write(TOutputFile & out) const;
 
-	Base ref() const{ return _ref; };
-	Base alt() const{ return _alt; };
+	BAM::Base ref() const{ return _ref; };
+	BAM::Base alt() const{ return _alt; };
 };
 
 //-----------------------------------------------
@@ -55,13 +55,13 @@ private:
 	std::vector<TSiteSubsetSite> empty; //an empty vector to be returned in case there are no positions
 	bool _storesInvariantSites;
 
-	void _checkAlleles(const std::string & chr, const uint32_t & pos, const Base & ref, const Base & alt, const std::string & refAllele, const std::string & altAllele);
-	void _readFile(const std::string Filename, const BAM::TChromosomes & Chromosomes, const TGenotypeMap & GenoMap, TLog* Logfile);
-	void _readFile(const std::string Filename, const BAM::TChromosomes & Chromosomes, const TGenotypeMap & GenoMap, TLog* Logfile, BAM::TFastaBuffer & Reference);
+	void _checkAlleles(const std::string & chr, const uint32_t & pos, const BAM::Base & ref, const BAM::Base & alt, const std::string & refAllele, const std::string & altAllele);
+	void _readFile(const std::string Filename, const BAM::TChromosomes & Chromosomes, TLog* Logfile);
+	void _readFile(const std::string Filename, const BAM::TChromosomes & Chromosomes, TLog* Logfile, BAM::TFastaBuffer & Reference);
 
 public:
-	TSiteSubset(const std::string Filename, const BAM::TChromosomes & Chromosomes, const TGenotypeMap & GenoMap, TLog* Logfile, bool InvariantSites);
-	TSiteSubset(const std::string Filename, const BAM::TChromosomes & Chromosomes, const TGenotypeMap & GenoMap, TLog* Logfile, bool InvariantSites, BAM::TFastaBuffer & Reference);
+	TSiteSubset(const std::string Filename, const BAM::TChromosomes & Chromosomes, TLog* Logfile, bool InvariantSites);
+	TSiteSubset(const std::string Filename, const BAM::TChromosomes & Chromosomes, TLog* Logfile, bool InvariantSites, BAM::TFastaBuffer & Reference);
 	void write(const std::string Filename) const;
 	bool hasPositionsInWindow(const BAM::TGenomeWindow & Window) const;
 	std::set<TSiteSubsetSite> getPositionInWindow(const BAM::TGenomeWindow & Window) const;

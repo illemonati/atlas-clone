@@ -56,7 +56,7 @@ private:
 	void _openVCF(const std::string & filename, const std::string & source, std::vector<std::string> & sampleNames);
 	void _closeVCF();
 	void _setMajorMinor(const BAM::Base & refAllele, const BAM::Base & altAllele);
-	void writeLikelihood(const uint16_t & likGlf);
+	void writeLikelihood(const BAM::HighPrecisionPhredIntErrorRate & likGlf);
 	void writeDiploidIndividualToVCF(TMultiGLFDataSample & sample);
 	void writeHaploidIndividualToVCF(TMultiGLFDataSample & sample);
 
@@ -101,7 +101,7 @@ private:
 	uint32_t _curRefId;
 	TGlfChromosome _curChr;
 	int _numActiveFilesWithData;
-	uint16_t genotypeQualitiesMissingData[10];
+	BAM::HighPrecisionPhredIntErrorRate genotypeQualitiesMissingData[10];
 	int minDepth;
 
 	//reference
@@ -114,7 +114,6 @@ private:
 	void writeHaploidIndividualToVCF(const int & ind, gz::ogzstream & vcf, const BAM::Base & major, const BAM::Base & minor, const std::vector<std::string> & genotypeStrings, TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods);
 
 public:
-	TGlfConverter converter;
 	TMultiGLFData data;
 
 	TGlfMultiReader();

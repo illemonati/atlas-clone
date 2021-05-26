@@ -40,7 +40,7 @@ public:
 	TSequencingErrorModelRecal* getPointerToRecalModel();
 	std::shared_ptr<TSequencingErrorModelRecal>& getSharedPointerToRecalModel();
 
-	BAM::ErrorRate getErrorRate(const BAM::TSequencedBase & base) const;
+	Probability getErrorRate(const BAM::TSequencedBase & base) const;
 	BAM::PhredIntErrorRate getPhredInt(const BAM::TSequencedBase & base) const;
 	void fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseData & baseLikelihoods) const;
 };
@@ -59,7 +59,7 @@ public:
 	TSequencingErrorModelRecal* getPointerToRecalModel(const bool & IsSecondMate);
 	std::shared_ptr<TSequencingErrorModelRecal>& getSharedPointerToRecalModel(const bool & IsSecondMate);
 
-	BAM::ErrorRate getErrorRate(const BAM::TSequencedBase & base) const;
+	Probability getErrorRate(const BAM::TSequencedBase & base) const;
 	BAM::PhredIntErrorRate getPhredInt(const BAM::TSequencedBase & base) const;
 	void fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseData & baseLikelihoods) const;
 };
@@ -91,7 +91,7 @@ public:
 	bool recalibrationChangesQualities() const{ return _doRecalibration; };
 
 	//calculate error rates
-	BAM::ErrorRate getErrorRate(const BAM::TSequencedBase & base) const;
+	Probability getErrorRate(const BAM::TSequencedBase & base) const;
 	BAM::PhredIntErrorRate getPhredInt(const BAM::TSequencedBase & base) const;
 	void recalibrate(BAM::TSequencedBase & base) const;
 	void recalibrate(std::vector<BAM::TSequencedBase> & bases, const uint16_t length) const; //TODO: remove

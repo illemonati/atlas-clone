@@ -849,7 +849,7 @@ void TOutputBamFile::open(TParameters & params, TLog* logfile, const std::string
 		logfile->list("Will print qualities truncated to " + _qualityAdjuster.rangeString() + " (parameter 'outQual')");
 
 
-		if(qualRange.max() > BaseQuality::max()){
+		if(qualRange.max() > BaseQuality::max().get()){
 			logfile->warning("Truncated quality range to BAM limits!");
 		}
 

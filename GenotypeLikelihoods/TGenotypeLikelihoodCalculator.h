@@ -72,8 +72,8 @@ public:
 	bool hasPMD() const;
 	bool recalibrationChangesQualities() const;
 
-	BAM::ErrorRate getErrorRate(const BAM::TSequencedBase & base) const;
-	BAM::ErrorRate getErrorWithPMD(const BAM::TSequencedBase & base) const;
+	Probability getErrorRate(const BAM::TSequencedBase & base) const;
+	Probability getErrorWithPMD(const BAM::TSequencedBase & base) const;
 	BAM::PhredIntErrorRate getPhredInt(const BAM::TSequencedBase & base) const;
 	BAM::PhredIntErrorRate getPhredIntWithPMD(const BAM::TSequencedBase & base) const;
 	void recalibrate(BAM::TSequencedBase & base) const;

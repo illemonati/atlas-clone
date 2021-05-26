@@ -163,7 +163,7 @@ void TWindow_base::_calcDepth(){
 			} else if(depthPerSite > 1){
 				++plentyData;
 			}
-			if(s.refBase() == N){
+			if(s.refBase() == BAM::N){
 				++_fractionRefIsN;
 			}
 		}
@@ -234,7 +234,7 @@ void TWindow_base::addReferenceBaseToSites(BAM::TFastaBuffer & reference){
 		std::string ref; //fasta object fills string
 		reference.fill(*this, ref);
 		for(unsigned int i=0; i<size(); ++i){
-			_sites[i].setRefBase(genoMap.toBase(ref[i]));
+			_sites[i].setRefBase(BAM::Base(ref[i]));
 		}
 		referenceBaseAdded = true;
 	}
@@ -477,14 +477,14 @@ void TWindow::_fillSites(BAM::TAlignment & alignment, std::vector<TSite> & sites
 	//position in window where first one = 0
 	//p is at first position of read in window
 	for(; p < alignment.parsedLength(); ++p){
-		if(alignment.isAlignedAtInternalPos(p) && alignment[p] != N){
+		if(alignment.isAlignedAtInternalPos(p) && alignment[p] != BAM::N){
 			uint32_t internalPos = alignment.positionInRef(p) - _from;
 
 			//if read extends past window length
 			if(internalPos >= size()) break; //since part of the read maps to next window
 
 			if(sites[internalPos].depth() < readUpToDepth){
-				sites[internalPos].add(&alignment[p]);
+				sites[internalPos].add(alignment[p]);
 			}
 		}
 	}
@@ -531,7 +531,7 @@ void TWindow::_fillSitesSubset(BAM::TAlignment & alignment, std::vector<TSite> &
 	//p is at first position of read in window
 	auto it = thesePos.begin();
 	for(; p < alignment.parsedLength(); ++p){
-		if(alignment.isAlignedAtInternalPos(p) && alignment[p] != N){
+		if(alignment.isAlignedAtInternalPos(p) && alignment[p] != BAM::N){
 			uint32_t internalPos = alignment.positionInRef(p) - _from;
 
 			//if read extends past window length
@@ -542,7 +542,7 @@ void TWindow::_fillSitesSubset(BAM::TAlignment & alignment, std::vector<TSite> &
 
 			//add
 			if(it != thesePos.end() && *it == alignment.positionInRef(p) && sites[internalPos].depth() < readUpToDepth){
-				sites[internalPos].add(&alignment[p]);
+				sites[internalPos].add(alignment[p]);
 			}
 		}
 	}

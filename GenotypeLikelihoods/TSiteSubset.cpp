@@ -12,12 +12,12 @@ namespace GenotypeLikelihoods{
 //-------------------------------------------------
 // TSiteSubsetSite
 //-------------------------------------------------
-TSiteSubsetSite::TSiteSubsetSite(const uint32_t refID, const uint32_t position, const Base Ref, const Base Alt):TGenomePosition(refID, position){
+TSiteSubsetSite::TSiteSubsetSite(const uint32_t & refID, const uint32_t & position, const BAM::Base & Ref, const BAM::Base & Alt):TGenomePosition(refID, position){
 	_ref = Ref;
 	_alt = Alt;
 };
 
-TSiteSubsetSite::TSiteSubsetSite(const BAM::TGenomePosition Position, const Base Ref, const Base Alt):TGenomePosition(Position){
+TSiteSubsetSite::TSiteSubsetSite(const BAM::TGenomePosition & Position, const BAM::Base & Ref, const BAM::Base & Alt):TGenomePosition(Position){
 	_ref = Ref;
 	_alt = Alt;
 };
@@ -29,11 +29,11 @@ void TSiteSubsetSite::write(TOutputFile & out) const{
 //-------------------------------------------------
 // TSiteSubset
 //-------------------------------------------------
-void TSiteSubset::_checkAlleles(const std::string & chr, const uint32_t & pos, const Base & ref, const Base & alt, const std::string & refAllele, const std::string & altAllele){
-	if(ref == N){
+void TSiteSubset::_checkAlleles(const std::string & chr, const uint32_t & pos, const BAM::Base & ref, const BAM::Base & alt, const std::string & refAllele, const std::string & altAllele){
+	if(ref == BAM::N){
 		throw "Unknown reference allele '" + refAllele + "' on chr " + chr + " at " + toString(pos+1) + "!";
 	}
-	if(alt == N){
+	if(alt == BAM::N){
 		throw "Unknown alternative allele '" + altAllele + "' on chr " + chr + " at " + toString(pos+1) + "!";
 	}
 
@@ -45,7 +45,7 @@ void TSiteSubset::_checkAlleles(const std::string & chr, const uint32_t & pos, c
 	}
 };
 
-void TSiteSubset::_readFile(const std::string Filename, const BAM::TChromosomes & Chromosomes, const TGenotypeMap & GenoMap, TLog* Logfile){
+void TSiteSubset::_readFile(const std::string Filename, const BAM::TChromosomes & Chromosomes, TLog* Logfile){
 	Logfile->listFlushTime("Reading sites to be used from '" + Filename + "' ...");
 
 	//open file
@@ -60,8 +60,8 @@ void TSiteSubset::_readFile(const std::string Filename, const BAM::TChromosomes 
 
 		//extract positions
 		uint32_t pos = convertStringCheck<uint32_t>(line[1]) - 1; //make 0-based
-		Base ref = GenoMap.toBase(line[2][0]);
-		Base alt = GenoMap.toBase(line[3][0]);
+		BAM::Base ref(line[2][0]);
+		BAM::Base alt(line[3][0]);
 
 		//check alleles
 		_checkAlleles(chr.name, pos, ref, alt, line[2], line[3]);
@@ -75,7 +75,7 @@ void TSiteSubset::_readFile(const std::string Filename, const BAM::TChromosomes 
 	Logfile->conclude("Parsed " + toString(_sites.size()) + " sites on " + toString(_refIDUsed.size()) + " chromosomes.");
 };
 
-void TSiteSubset::_readFile(const std::string Filename, const BAM::TChromosomes & Chromosomes, const TGenotypeMap & GenoMap, TLog* Logfile, BAM::TFastaBuffer & Reference){ //version that checks witth fasta reference
+void TSiteSubset::_readFile(const std::string Filename, const BAM::TChromosomes & Chromosomes, TLog* Logfile, BAM::TFastaBuffer & Reference){ //version that checks witth fasta reference
 	Logfile->listFlushTime("Reading sites to be used from '" + Filename + "' ...");
 
 	//open file
@@ -94,22 +94,22 @@ void TSiteSubset::_readFile(const std::string Filename, const BAM::TChromosomes 
 
 		//extract positions
 		uint32_t pos = convertStringCheck<uint32_t>(line[1]) - 1; //make 0-based
-		Base ref = GenoMap.toBase(line[2][0]);
-		Base alt = GenoMap.toBase(line[3][0]);
+		BAM::Base ref(line[2][0]);
+		BAM::Base alt(line[3][0]);
 
 		//check alleles
 		_checkAlleles(chr.name, pos, ref, alt, line[2], line[3]);
 
 		//check with reference
 		BAM::TGenomePosition genoPos(chr.refID(), pos);
-		Base trueRef = Reference.refAt(genoPos);
+		BAM::Base trueRef = Reference.refAt(genoPos);
 		if(trueRef != ref && trueRef != alt){
 			//conflict with fasta
 			if(!conflictsFound){
 				conflicts.open(Filename + ".conflicts.gz");
 				conflicts.writeHeader({"chr", "position", "reference", "allele1", "allele2"});
 			}
-			conflicts << chr.name << pos+1 << GenoMap.getBaseAsChar(trueRef) << GenoMap.getBaseAsChar(ref) << GenoMap.getBaseAsChar(alt) << std::endl;
+			conflicts << chr.name << pos+1 << trueRef << ref << alt << std::endl;
 		}
 
 		//add site
@@ -127,14 +127,14 @@ void TSiteSubset::_readFile(const std::string Filename, const BAM::TChromosomes 
 	}
 };
 
-TSiteSubset::TSiteSubset(const std::string Filename, const BAM::TChromosomes & Chromosomes, const TGenotypeMap & GenoMap, TLog* Logfile, bool InvariantSites){
+TSiteSubset::TSiteSubset(const std::string Filename, const BAM::TChromosomes & Chromosomes, TLog* Logfile, bool InvariantSites){
 	_storesInvariantSites = InvariantSites;
-	_readFile(Filename, Chromosomes, GenoMap, Logfile);
+	_readFile(Filename, Chromosomes, Logfile);
 };
 
-TSiteSubset::TSiteSubset(const std::string Filename, const BAM::TChromosomes & Chromosomes, const TGenotypeMap & GenoMap, TLog* Logfile, bool InvariantSites, BAM::TFastaBuffer & Reference){
+TSiteSubset::TSiteSubset(const std::string Filename, const BAM::TChromosomes & Chromosomes, TLog* Logfile, bool InvariantSites, BAM::TFastaBuffer & Reference){
 	_storesInvariantSites = InvariantSites;
-	_readFile(Filename, Chromosomes, GenoMap, Logfile, Reference);
+	_readFile(Filename, Chromosomes, Logfile, Reference);
 };
 
 void TSiteSubset::write(const std::string Filename) const{

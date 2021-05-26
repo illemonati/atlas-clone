@@ -91,21 +91,21 @@ void TThetaEstimator_base::readParametersRegardingInitialSearch(TParameters & pa
 	logfile->endIndent();
 };
 
-void TThetaEstimator_base::fillPGenotype(TGenotypeData & pGeno, const double & expTheta, const double* baseFrequencies){
+void TThetaEstimator_base::fillPGenotype(TGenotypeProbabilities & pGeno, const double & expTheta, const double* baseFrequencies){
 	//assumes that base frequencies are set!
-	static uint8_t i;
-	static uint8_t j;
-	for(i=0; i<4; ++i){
+	for(uint8_t i=0; i<4; ++i){
 		//homozygous genotypes
-		pGeno[genoMap.toGenotype(i,i)] = baseFrequencies[i] * (expTheta + baseFrequencies[i] * (1.0 - expTheta));
+		uint8_t hom = BAM::Genotype(static_cast<BAM::BaseEnum>(i), static_cast<BAM::BaseEnum>(i)).get();
+		pGeno[hom] = baseFrequencies[i] * (expTheta + baseFrequencies[i] * (1.0 - expTheta));
 		//heterozygous genotypes
-		for(j=i+1; j<4; ++j){
-			pGeno[genoMap.toGenotype(i,j)] = 2.0 * baseFrequencies[i] * baseFrequencies[j] *  (1.0 - expTheta);
+		for(uint8_t j=i+1; j<4; ++j){
+			uint8_t het = BAM::Genotype(static_cast<BAM::BaseEnum>(i), static_cast<BAM::BaseEnum>(j)).get();
+			pGeno[het] = 2.0 * baseFrequencies[i] * baseFrequencies[j] *  (1.0 - expTheta);
 		}
 	}
 };
 
-void TThetaEstimator_base::fillPGenotype(GenotypeLikelihoods::TGenotypeData & pGeno, const Theta & thisTheta){
+void TThetaEstimator_base::fillPGenotype(GenotypeLikelihoods::TGenotypeProbabilities & pGeno, const Theta & thisTheta){
 	fillPGenotype(pGeno, thisTheta.expTheta, thisTheta.baseFreq);
 };
 
@@ -281,15 +281,16 @@ bool TThetaEstimator::_NRAllParams(){
 		F(4) = data->sizeWithData();
 		F(5) = 0.0;
 		for(uint8_t k=0; k<4; ++k){
-			Genotype geno = genoMap.toGenotype(k, k);
+			BAM::Genotype hom(static_cast<BAM::BaseEnum>(k), static_cast<BAM::BaseEnum>(k));
 			double tmpSum = 0.0;
 			for(int l=0; l<4; ++l){
 				if(l != k){
-					tmpSum += P_G[genoMap.toGenotype(k, l)];
+					BAM::Genotype het(static_cast<BAM::BaseEnum>(k), static_cast<BAM::BaseEnum>(l));
+					tmpSum += P_G[het.get()];
 				}
 			}
-			F(k) = P_G[geno] * (1.0 + baseFreq[k] / (rho + baseFreq[k])) + tmpSum - mu * baseFreq[k];
-			F(4) -= P_G[geno] * (rho + 1.0 ) / (rho + baseFreq[k]);
+			F(k) = P_G[hom.get()] * (1.0 + baseFreq[k] / (rho + baseFreq[k])) + tmpSum - mu * baseFreq[k];
+			F(4) -= P_G[hom.get()] * (rho + 1.0 ) / (rho + baseFreq[k]);
 			F(5) += baseFreq[k];
 		}
 		F(5) = F(5) - 1.0;
@@ -299,7 +300,8 @@ bool TThetaEstimator::_NRAllParams(){
 		double tmpSum = 0.0;
 		double tmp[4];
 		for(uint8_t k=0; k<4; ++k){
-			tmp[k] = P_G[genoMap.toGenotype(k, k)] / ((baseFreq[k] + rho)*(baseFreq[k] + rho));
+			BAM::Genotype hom(static_cast<BAM::BaseEnum>(k), static_cast<BAM::BaseEnum>(k));
+			tmp[k] = P_G[hom.get()] / ((baseFreq[k] + rho)*(baseFreq[k] + rho));
 			tmpSum += tmp[k];
 		}
 
@@ -350,16 +352,18 @@ void TThetaEstimator::_NROnlyTheta(){
 
 	double* baseFreq = theta.baseFreq; //store pointer for cleaner code
 	for(int n=0; n<NewtonRaphsonNumIterations; ++n){
+
 		//i) calculate F() (Note: index is zero based!)
-		double F = data->sizeWithData();
-		for(uint8_t k=0; k<4; ++k){
-			Genotype geno = genoMap.toGenotype(k, k);
-			F -= P_G[geno] * (rho + 1.0 ) / (rho + baseFreq[k]);
-		}
 		//ii) fill Jacobian (Note: index is zero based!)
+		double F = data->sizeWithData();
 		double Jacobian = 0.0;
 		for(uint8_t k=0; k<4; ++k){
-			double tmpSum = P_G[genoMap.toGenotype(k, k)] / ((baseFreq[k] + rho)*(baseFreq[k] + rho));
+			BAM::Genotype hom(static_cast<BAM::BaseEnum>(k), static_cast<BAM::BaseEnum>(k));
+
+			double tmp = (baseFreq[k] + rho);
+			F -= P_G[hom.get()] * (rho + 1.0 ) / tmp;
+
+			double tmpSum = P_G[hom.get()] / (tmp*tmp);
 			Jacobian += tmpSum * (1.0 - baseFreq[k]);
 		}
 
@@ -448,10 +452,12 @@ void TThetaEstimator::_estimateConfidenceInterval(){
 
 	for(uint8_t k=0; k<4; ++k){
 		//homozygous genotype
-		deriv_pGenotype[genoMap.toGenotype(k, k)] = (theta.baseFreq[k] * theta.baseFreq[k] - theta.baseFreq[k]) * theta.expTheta;
+		BAM::Genotype hom(static_cast<BAM::BaseEnum>(k), static_cast<BAM::BaseEnum>(k));
+		deriv_pGenotype[hom.get()] = (theta.baseFreq[k] * theta.baseFreq[k] - theta.baseFreq[k]) * theta.expTheta;
 		//heterozygous genotypes
 		for(uint8_t l=k+1; l<4; ++l){
-			deriv_pGenotype[genoMap.toGenotype(k, l)] = 2.0 * theta.baseFreq[k] * theta.baseFreq[l] * theta.expTheta;
+			BAM::Genotype het(static_cast<BAM::BaseEnum>(k), static_cast<BAM::BaseEnum>(l));
+			deriv_pGenotype[het.get()] = 2.0 * theta.baseFreq[k] * theta.baseFreq[l] * theta.expTheta;
 		}
 	}
 

@@ -370,10 +370,10 @@ BAM::TAlignment* TBamFilter::_parseIntoNewAlignment(){
 	_bamFile.fill(*alignment);
 	if(_recalibrate){
 		if(_incorporatePMD){
-			alignment->parse(_genoMap, _qualMap);
+			alignment->parse();
 			alignment->recalibrateWithPMD(_genotypeLikelihoodCalculator);
 		} else {
-			alignment->parse(_genoMap, _qualMap, _genotypeLikelihoodCalculator.getSequencingErrorModels());
+			alignment->parse(_genotypeLikelihoodCalculator.getSequencingErrorModels());
 		}
 	}
 	return alignment;
@@ -478,7 +478,7 @@ void TBamFilter::traverseBAM(){
 //-----------------------------------------
 // TAlignmentMergerType
 //-----------------------------------------
-uint16_t TAlignmentMerger::merge(BAM::TAlignment & alignment, BAM::TAlignment & mate, const BAM::TQualityMap & qualMap){
+uint16_t TAlignmentMerger::merge(BAM::TAlignment & alignment, BAM::TAlignment & mate){
 	//NOTE: mate is earlier!
 	//deletions and insertions are kept as is. these positions are not compared
 
@@ -505,7 +505,7 @@ uint16_t TAlignmentMerger::merge(BAM::TAlignment & alignment, BAM::TAlignment & 
 		} else {
 			//at same position: merge
 			++numOverlap;
-			_mergeBases(alignment[fwdP], mate[revP], qualMap);
+			_mergeBases(alignment[fwdP], mate[revP]);
 
 			//advance in both reads
 			++fwdP; ++revP;
@@ -528,24 +528,24 @@ TAlignmentMerger_randomBase::TAlignmentMerger_randomBase(TRandomGenerator* Rando
 	_adaptQuality = AdaptQuality;
 };
 
-void TAlignmentMerger_randomBase::_mergeBasesCore(BAM::TSequencedBase & bestBase, BAM::TSequencedBase & worstBase, const BAM::TQualityMap & qualMap){
+void TAlignmentMerger_randomBase::_mergeBasesCore(BAM::TSequencedBase & bestBase, BAM::TSequencedBase & worstBase){
 	if(_adaptQuality){
-		GenotypeLikelihoods::TBaseData likelihood(bestBase.base, qualMap.phredIntToError(bestBase.recalibratedQualityAsPhredInt));
-		likelihood *= GenotypeLikelihoods::TBaseData(worstBase.base, qualMap.phredIntToError(worstBase.recalibratedQualityAsPhredInt));
+		GenotypeLikelihoods::TBaseLikelihoods likelihood(bestBase.base, (Probability) bestBase.recalibratedQualityAsPhredInt);
+		likelihood *= GenotypeLikelihoods::TBaseLikelihoods(worstBase.base, (Probability) worstBase.recalibratedQualityAsPhredInt);
 		likelihood.normalize();
-		bestBase.recalibratedQualityAsPhredInt = qualMap.errorToPhredInt(1.0 - likelihood[bestBase.base]);
+		bestBase.recalibratedQualityAsPhredInt = likelihood[bestBase.base.get()].inverse();
 	}
 
 	//set other to missing
 	worstBase.recalibratedQualityAsPhredInt = 0.0;
-	worstBase.base = N;
+	worstBase.base = BAM::N;
 };
 
-void TAlignmentMerger_randomBase::_mergeBases(BAM::TSequencedBase & alignment, BAM::TSequencedBase & mate, const BAM::TQualityMap & qualMap){
+void TAlignmentMerger_randomBase::_mergeBases(BAM::TSequencedBase & alignment, BAM::TSequencedBase & mate){
 	if(_randomGenerator->pickOneOfTwo()){
-		_mergeBasesCore(mate, alignment, qualMap);
+		_mergeBasesCore(mate, alignment);
 	} else {
-		_mergeBasesCore(alignment, mate, qualMap);
+		_mergeBasesCore(alignment, mate);
 	}
 };
 
@@ -555,31 +555,31 @@ TAlignmentMerger_randomRead::TAlignmentMerger_randomRead(TRandomGenerator* Rando
 	_keepMate = false;
 };
 
-void TAlignmentMerger_randomRead::_mergeBases(BAM::TSequencedBase & alignment, BAM::TSequencedBase & mate, const BAM::TQualityMap & qualMap){
+void TAlignmentMerger_randomRead::_mergeBases(BAM::TSequencedBase & alignment, BAM::TSequencedBase & mate){
 	if(_keepMate){
-		_mergeBasesCore(mate, alignment, qualMap);
+		_mergeBasesCore(mate, alignment);
 	} else {
-		_mergeBasesCore(alignment, mate, qualMap);
+		_mergeBasesCore(alignment, mate);
 	}
 };
 
-uint16_t TAlignmentMerger_randomRead::merge(BAM::TAlignment & alignment, BAM::TAlignment & mate, const BAM::TQualityMap & qualMap){
+uint16_t TAlignmentMerger_randomRead::merge(BAM::TAlignment & alignment, BAM::TAlignment & mate){
 	_keepMate = _randomGenerator->pickOneOfTwo();
-	return TAlignmentMerger::merge(alignment, mate, qualMap);
+	return TAlignmentMerger::merge(alignment, mate);
 };
 
 // TAlignmentMergerType_highestQuality
 //---------------------------------
 TAlignmentMerger_highestQuality::TAlignmentMerger_highestQuality(TRandomGenerator* RandomGenerator, const bool AdaptQuality):TAlignmentMerger_randomBase(RandomGenerator, AdaptQuality){};
 
-void TAlignmentMerger_highestQuality::_mergeBases(BAM::TSequencedBase & alignment, BAM::TSequencedBase & mate, const BAM::TQualityMap & qualMap){
+void TAlignmentMerger_highestQuality::_mergeBases(BAM::TSequencedBase & alignment, BAM::TSequencedBase & mate){
 	if(mate.recalibratedQualityAsPhredInt > alignment.recalibratedQualityAsPhredInt){
-		_mergeBasesCore(mate, alignment, qualMap);
+		_mergeBasesCore(mate, alignment);
 	} else if(alignment.recalibratedQualityAsPhredInt > mate.recalibratedQualityAsPhredInt){
-		_mergeBasesCore(alignment, mate, qualMap);
+		_mergeBasesCore(alignment, mate);
 	} else {
 		//pick randomly
-		TAlignmentMerger_randomBase::_mergeBases(alignment, mate, qualMap);
+		TAlignmentMerger_randomBase::_mergeBases(alignment, mate);
 	}
 };
 
@@ -666,13 +666,13 @@ void TAlignmentSplitMerger::_handleMates(BAM::TAlignment* alignment, TAlignmentI
 		//attempt merging: make sure alignments are parsed
 		//Note: if we recalibrate, they were already parsed
 		if(!alignment->isParsed()){
-			alignment->parse(_genoMap, _qualMap);
+			alignment->parse();
 		}
 		if(!mate->alignment->isParsed()){
-			mate->alignment->parse(_genoMap, _qualMap);
+			mate->alignment->parse();
 		}
 
-		uint16_t overlap = _merger->merge(*alignment, *mate->alignment, _qualMap);
+		uint16_t overlap = _merger->merge(*alignment, *mate->alignment);
 		if(overlap > 0){
 			++_numReadsMerged;
 			_numBasesMerged += overlap;
@@ -758,7 +758,7 @@ void TOverlapQuantifier::quantifyOverlap(){
 				}
 
 				//calculate overlap and fragment length and add to storage
-				uint16_t overlap = _merger.merge(*alignment, *mate->alignment, _qualMap);
+				uint16_t overlap = _merger.merge(*alignment, *mate->alignment);
 				uint16_t fragmentLength = alignment->parsedLength() + mate->alignment->parsedLength() - overlap;
 
 				overlapDist.add(fragmentLength, overlap);

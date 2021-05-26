@@ -82,11 +82,11 @@ bool TGenotypeLikelihoodCalculator::recalibrationChangesQualities() const{
 	return _sequencingErrorModels.recalibrationChangesQualities();
 };
 
-BAM::ErrorRate TGenotypeLikelihoodCalculator::getErrorRate(const BAM::TSequencedBase & base) const{
+Probability TGenotypeLikelihoodCalculator::getErrorRate(const BAM::TSequencedBase & base) const{
 	return _sequencingErrorModels.getErrorRate(base);
 };
 
-BAM::ErrorRate TGenotypeLikelihoodCalculator::getErrorWithPMD(const BAM::TSequencedBase & base) const{
+Probability TGenotypeLikelihoodCalculator::getErrorWithPMD(const BAM::TSequencedBase & base) const{
 	if(base.base == BAM::N){
 		return 1.0;
 	} else {

@@ -78,19 +78,19 @@ public:
 class TRecalibrationEMQualityTransformationMap:public TRecalibrationEMTransformationMap{
 public:
 	TRecalibrationEMQualityTransformationMap(){
-		initialize(BAM::PhredIntErrorRate::max());
+		initialize(BAM::PhredIntErrorRate::max().get());
 
 		//now set
-		for(uint16_t q=BAM::PhredIntErrorRate::min(); q<=BAM::PhredIntErrorRate::max(); ++q){
+		for(BAM::PhredIntErrorRate q = BAM::PhredIntErrorRate::min(); q <= BAM::PhredIntErrorRate::max(); ++q){
 			//convert phred int quality to error
-			double eps = (double) BAM::ErrorRate( BAM::PhredIntErrorRate(q) );
+			Probability eps = (Probability) q;
 
 			//ensure range
 			if(eps < 0.000'000'000'1) eps = 0.000'000'000'1;
 			else if(eps > 0.999'999'999'9) eps = 0.999'999'999'9;
 
 			//then transform into logit space
-			map[q] = log(eps / (1.0 - eps));
+			map[q.get()] = logit(eps);
 		}
 	}
 };

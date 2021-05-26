@@ -131,13 +131,13 @@ public:
 //-----------------------------------------
 class TAlignmentMerger{
 protected:
-	virtual void _mergeBases(BAM::TSequencedBase & alignment, BAM::TSequencedBase & mate, const BAM::TQualityMap & qualMap){};
+	virtual void _mergeBases(BAM::TSequencedBase & alignment, BAM::TSequencedBase & mate){};
 
 public:
 	TAlignmentMerger(){};
 	virtual ~TAlignmentMerger(){};
 
-	virtual uint16_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate, const BAM::TQualityMap & qualMap);
+	virtual uint16_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate);
 };
 
 class TAlignmentMerger_randomBase:public TAlignmentMerger{
@@ -145,8 +145,8 @@ protected:
 	TRandomGenerator* _randomGenerator;
 	bool _adaptQuality;
 
-	void _mergeBasesCore(BAM::TSequencedBase & bestBase, BAM::TSequencedBase & worstBase, const BAM::TQualityMap & qualMap);
-	virtual void _mergeBases(BAM::TSequencedBase & alignment, BAM::TSequencedBase & mate, const BAM::TQualityMap & qualMap);
+	void _mergeBasesCore(BAM::TSequencedBase & bestBase, BAM::TSequencedBase & worstBase);
+	virtual void _mergeBases(BAM::TSequencedBase & alignment, BAM::TSequencedBase & mate);
 
 public:
 	TAlignmentMerger_randomBase(TRandomGenerator* RandomGenerator, const bool AdaptQuality);
@@ -157,18 +157,18 @@ class TAlignmentMerger_randomRead:public TAlignmentMerger_randomBase{
 private:
 	bool _keepMate;
 
-	void _mergeBases(BAM::TSequencedBase & alignment, BAM::TSequencedBase & mate, const BAM::TQualityMap & qualMap);
+	void _mergeBases(BAM::TSequencedBase & alignment, BAM::TSequencedBase & mate);
 	bool _merge(BAM::TAlignment* alignment, BAM::TAlignment* mate);
 
 public:
 	TAlignmentMerger_randomRead(TRandomGenerator* RandomGenerator, const bool AdaptQuality);
 
-	uint16_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate, const BAM::TQualityMap & qualMap);
+	uint16_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate);
 };
 
 class TAlignmentMerger_highestQuality:public TAlignmentMerger_randomBase{
 private:
-	void _mergeBases(BAM::TSequencedBase & alignment, BAM::TSequencedBase & mate, const BAM::TQualityMap & qualMap);
+	void _mergeBases(BAM::TSequencedBase & alignment, BAM::TSequencedBase & mate);
 public:
 	TAlignmentMerger_highestQuality(TRandomGenerator* RandomGenerator, const bool AdaptQuality);
 };

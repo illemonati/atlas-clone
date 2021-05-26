@@ -140,11 +140,12 @@ void TGlfWriter::writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual, Ge
         _glfValues[2] = genotypeLikelihoods[BAM::GG] / maxLik;
         _glfValues[3] = genotypeLikelihoods[BAM::TT] / maxLik;
 	} else {
+		//ploidy is 2
 		Probability maxLik = genotypeLikelihoods.max();
 
 		//normalize and scale to uint16
-		for(int i=0; i < _curChr.numLikelihoodValues; ++i){
-            _glfValues[i] = genotypeLikelihoods[i] / maxLik;
+		for(BAM::Genotype g = BAM::Genotype::min(); g < BAM::Genotype::max(); ++g){
+            _glfValues[static_cast<uint8_t>(g)] = genotypeLikelihoods[g] / maxLik;
 		}
 	}
 

@@ -12,13 +12,13 @@ namespace GenomeTasks{
 //-----------------------------------------
 // TBamSample
 //-----------------------------------------
-TBamSample::TBamSample(const double Prob, const std::string OutName){
+TBamSample::TBamSample(const Probability & Prob, const std::string & OutName){
 	_prob = Prob;
 	_outName = OutName;
 };
 
-void TBamSample::open(BAM::TBamFile & bamFile, 	GenotypeLikelihoods::TGenotypeMap & genoMap, BAM::TQualityMap & qualMap){
-	_out.open(_outName, bamFile, &genoMap, &qualMap);
+void TBamSample::open(BAM::TBamFile & bamFile){
+	_out.open(_outName, bamFile);
 };
 
 void TBamSample::close(TLog* logfile){
@@ -44,9 +44,9 @@ void TBamSample::sample(BAM::TBamFile & bamFile, TRandomGenerator & randomGenera
 	}
 };
 
-void TBamSample::downsampleRead(BAM::TAlignment & alignment, TRandomGenerator & randomGenerator, const 	GenotypeLikelihoods::TGenotypeMap & genoMap, const BAM::TQualityMap & qualMap){
+void TBamSample::downsampleRead(BAM::TAlignment & alignment, TRandomGenerator & randomGenerator){
 	//parse again to get original bases and qualities
-	alignment.parse(genoMap, qualMap);
+	alignment.parse();
 
 	//downsample
 	alignment.downsampleAlignment(_prob, randomGenerator);
@@ -64,12 +64,12 @@ TBamDownsampler_base::TBamDownsampler_base(TParameters & Parameters, TLog* Logfi
 
 void TBamDownsampler_base::_readVectorOfDownsamplingProbabilities(TParameters & Params){
 	//read downsampling rates
-	Params.fillParameterIntoProbabilityContainer("prob", _probs, ',');
+	Params.fillParameterIntoContainer("prob", _probs, ',');
 
 	//get unique names
-	std::map <double, int> fracNames;
+	std::map <Probability, int> fracNames;
 	for(size_t i=0; i<_probs.size(); ++i){
-		std::map<double, int>::iterator it = fracNames.find(_probs[i]);
+		std::map<Probability, int>::iterator it = fracNames.find(_probs[i]);
 		if(it == fracNames.end()){
 			fracNames.emplace(_probs[i],1);
 			_names.push_back(toString(_probs[i]));
@@ -99,7 +99,7 @@ TBamDownsampler::TBamDownsampler(TParameters & Parameters, TLog* Logfile, TRando
 
 	//open bam files for writing
 	for(auto& s : _bamSamples){
-		s.open(_bamFile, _genoMap, _qualMap);
+		s.open(_bamFile);
 	}
 };
 
@@ -135,7 +135,7 @@ void TBamReadDownsampler::downsample(){
 	while(_bamFile.readNextAlignment()){
 		_bamFile.fill(alignment);
 		for(auto& s : _bamSamples){
-			s.downsampleRead(alignment, *_randomGenerator, _genoMap, _qualMap);
+			s.downsampleRead(alignment, *_randomGenerator);
 		}
 		_bamFile.printProgress();
 	}
@@ -157,7 +157,7 @@ TBamSeparator::TBamSeparator(TParameters & Parameters, TLog* Logfile, TRandomGen
 	//check that sum <= 1.0
 	double sum = 0.0;
 	for(auto& d : _probs){
-		sum += d;
+		sum += d.get();
 		_cumulProbs.push_back(sum);
 	}
 	_cumulProbs.push_back(1.0); //always add an extra at end to ease search
@@ -176,7 +176,7 @@ void TBamSeparator::separate(){
 	std::vector<BAM::TOutputBamFile> out;
 	for(auto& n : _names){
 		std::string filename = _outputName + "_downsampled_" + n + ".bam";
-		out.emplace_back(filename, _bamFile, &_genoMap, &_qualMap);
+		out.emplace_back(filename, _bamFile);
 	}
 
 	//Prepare lists to keep track of mates

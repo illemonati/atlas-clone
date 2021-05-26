@@ -33,7 +33,6 @@ protected:
 	uint32_t _numReadsInWindow;
 	std::string _chrName;
 
-	TGenotypeMap genoMap;
 	bool referenceBaseAdded;
 
 	//depth

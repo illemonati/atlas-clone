@@ -263,7 +263,7 @@ std::string TCaller::_getVCFGenotypeString_DP(const TSite & site, TGenotypeLikel
 std::string TCaller::_getVCFGenotypeString_AD(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){
 	_countAlleles(site);
 	std::string ret;
-	if(referenceBase == N) ret = "0";
+	if(referenceBase == BAM::N) ret = "0";
 	else ret = toString(_alleleCounts[referenceBase]);
 
 	for(auto& a : _altAlleles)
@@ -294,9 +294,9 @@ void TCaller::_writeAlternativeAllelesToVCF(){
 	if(_altAlleles.size() == 0){
 		_vcf << '.';
 	} else {
-		_vcf << _genoMap.baseToChar[_altAlleles[0]];
+		_vcf << _altAlleles[0];
 		for(size_t i=1; i<_altAlleles.size(); ++i)
-			_vcf << ',' << _genoMap.baseToChar[_altAlleles[i]];
+			_vcf << ',' << _altAlleles[i];
 	}
 };
 
@@ -358,29 +358,29 @@ bool TCaller::_callGenotypeKnownAlleles(const TSite & site, TGenotypeLikelihoods
 	return true;
 };
 
-void TCaller::call(const std::string & chr, const long pos, const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){
+void TCaller::call(const std::string & chr, const long & pos, const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){
 	//set reference base from site
 	referenceBase = site.refBase();
 
 	//check if there is data
-	if(site.empty() || (referenceBase == N && !_allowTriallelicSites) || !_callGenotype(site, genotypeLikelihoods))
+	if(site.empty() || (referenceBase == BAM::N && !_allowTriallelicSites) || !_callGenotype(site, genotypeLikelihoods))
 		_writeMissingDataToVCF(site);
 	else {
 		_writeCallToVCF(chr, pos, site, genotypeLikelihoods);
 	}
 };
 
-void TCaller::call(const std::string & chr, const long pos, const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods, const char & firstAllele, const char & secondAllele){
+void TCaller::call(const std::string & chr, const long & pos, const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods, const BAM::Base & firstAllele, const BAM::Base & secondAllele){
 	//check if there is data
 	if(!site.empty()){
 		//set reference base from site
-		referenceBase = _genoMap.toBase(site.refBase());
+		referenceBase = site.refBase();
 
 		//call
-		if(referenceBase == _genoMap.toBase(firstAllele))
-			_altAlleles.push_back(_genoMap.toBase(secondAllele));
+		if(referenceBase == firstAllele)
+			_altAlleles.push_back(secondAllele);
 		else
-			_altAlleles.push_back(_genoMap.toBase(firstAllele));
+			_altAlleles.push_back(firstAllele);
 
 		if(!_callGenotypeKnownAlleles(site, genotypeLikelihoods)){
 			_writeMissingDataToVCF(site);
@@ -411,7 +411,7 @@ TCallerRandomBase::TCallerRandomBase(TParameters & Parameters, TLog* Logfile, TR
 
 bool TCallerRandomBase::_callGenotype(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){
 	//randomly pick a base
-	Base allele = site[_randomGenerator->sample(site.depth())].base;
+	BAM::Base allele = site[_randomGenerator->sample(site.depth())].base;
 
 	//decide on alt
 	if(allele == referenceBase){
@@ -439,7 +439,7 @@ bool TCallerRandomBase::_callGenotypeKnownAlleles(const TSite & site, TGenotypeL
 		return true;
 	} else {
 		//pick among all alleles and check
-		Base allele = site[_randomGenerator->sample(site.depth())].base;
+		BAM::Base allele = site[_randomGenerator->sample(site.depth())].base;
 		if(allele == referenceBase){
 			_calledGenotype = "0";
 			return true;
@@ -470,17 +470,17 @@ bool TCallerMajorityBase::_callGenotype(const TSite & site, TGenotypeLikelihoods
 	_countAlleles(site);
 
 	//call majority
-	uint8_t majorityIndex = _pickIndexWithHighestMetric(_alleleCounts);
+	BAM::Base majorityBase = static_cast<BAM::BaseEnum>( _pickIndexWithHighestMetric(_alleleCounts) );
 
 	//decide on alt
-	if(majorityIndex == referenceBase){
+	if(majorityBase == referenceBase){
 		_calledGenotype = "0";
 
 		//find second most common as alternative allele
-		uint8_t second = _pickIndexWithSecondHighestMetric(_alleleCounts, majorityIndex);
-		_altAlleles.push_back(_genoMap.toBase(second));
+		BAM::Base second = static_cast<BAM::BaseEnum>( _pickIndexWithSecondHighestMetric(_alleleCounts, majorityBase.get()) );
+		_altAlleles.push_back(second);
 	} else {
-		_altAlleles.push_back(_genoMap.toBase(majorityIndex));
+		_altAlleles.push_back(majorityBase);
 		_calledGenotype = "1";
 	}
 
@@ -509,18 +509,17 @@ bool TCallerMajorityBase::_callGenotypeKnownAlleles(const TSite & site, TGenotyp
 	} else {
 		//pick among all alleles and check
 		//call majority
-		uint8_t majorityIndex = _pickIndexWithHighestMetric(_alleleCounts);
+		BAM::Base majorityBase = static_cast<BAM::BaseEnum>( _pickIndexWithHighestMetric(_alleleCounts) );
 
 		//decide on call
-		if(majorityIndex == referenceBase){
+		if(majorityBase == referenceBase){
 			_calledGenotype = "0";
 			return true;
-		} else if(majorityIndex == _altAlleles[0]){
+		} else if(majorityBase == _altAlleles[0]){
 			_calledGenotype = "1";
 			return true;
-		} else {
-			return false;
 		}
+		return false;
 	}
 };
 
@@ -555,22 +554,22 @@ bool TCallerConsensify::_callGenotype(const TSite & site, TGenotypeLikelihoods &
 	_countAlleles(site);
 
 	//call majority
-	uint8_t majorityIndex = _pickIndexWithHighestMetric(_alleleCounts);
+	BAM::Base majorityBase = static_cast<BAM::BaseEnum>( _pickIndexWithHighestMetric(_alleleCounts) );
 
 	//check if we have sufficient depth to call
-	if(_alleleCounts[majorityIndex] < _minMajorityDepth){
+	if(_alleleCounts[majorityBase] < _minMajorityDepth){
 		return false;
 	}
 
 	//decide on alt
-	if(majorityIndex == referenceBase){
+	if(majorityBase == referenceBase){
 		_calledGenotype = "0";
 
 		//find second most common as alternative allele
-		uint8_t second = _pickIndexWithSecondHighestMetric(_alleleCounts, majorityIndex);
-		_altAlleles.push_back(_genoMap.toBase(second));
+		BAM::Base second = static_cast<BAM::BaseEnum>( _pickIndexWithSecondHighestMetric(_alleleCounts, majorityBase.get()) );
+		_altAlleles.emplace_back(second);
 	} else {
-		_altAlleles.push_back(_genoMap.toBase(majorityIndex));
+		_altAlleles.emplace_back(majorityBase);
 		_calledGenotype = "1";
 	}
 
@@ -586,19 +585,19 @@ bool TCallerConsensify::_callGenotypeKnownAlleles(const TSite & site, TGenotypeL
 	_countAlleles(site);
 
 	//call majority
-	uint8_t majorityIndex = _pickIndexWithHighestMetric(_alleleCounts);
+	BAM::Base majorityBase = static_cast<BAM::BaseEnum>( _pickIndexWithHighestMetric(_alleleCounts) );
 
 	//check if we have sufficient depth to call
-	if(_alleleCounts[majorityIndex] < _minMajorityDepth){
+	if(_alleleCounts[majorityBase.get()] < _minMajorityDepth){
 		return false;
 	}
 
 	//check if allele fits
 	//NOTE: _allowKnownAllelesCallsDifferentFromBestCall has no effect
-	if(majorityIndex == referenceBase){
+	if(majorityBase == referenceBase){
 		_calledGenotype = "0";
 		return true;
-	} else if(majorityIndex == _altAlleles[0]){
+	} else if(majorityBase == _altAlleles[0]){
 		_calledGenotype = "1";
 		return true;
 	} else {
@@ -621,36 +620,36 @@ TCallerAllelePresence::TCallerAllelePresence(TParameters & Parameters, TLog* Log
 	initializeOutput(Parameters, Logfile);
 
 	//initialize allele counts
-	MAP = N;
+	MAP = BAM::N;
 };
 
-void TCallerAllelePresence::fillPosteriors(TGenotypeLikelihoods & genotypeLikelihoods){
+void TCallerAllelePresence::_fillPosteriors(TGenotypeLikelihoods & genotypeLikelihoods){
 	//calculate posterior probabilities
 	posterior.fill(genotypeLikelihoods, *_genotypePrior);
 
 	//sum for each base
-	allelePostProb[0] = posterior[AA] + posterior[AC] + posterior[AG] + posterior[AT];
-	allelePostProb[1] = posterior[AC] + posterior[CC] + posterior[CG] + posterior[CT];
-	allelePostProb[2] = posterior[AG] + posterior[CG] + posterior[GG] + posterior[GT];
-	allelePostProb[3] = posterior[AT] + posterior[CT] + posterior[GT] + posterior[TT];
+	allelePostProb[0] = posterior[BAM::AA].get() + posterior[BAM::AC].get() + posterior[BAM::AG].get() + posterior[BAM::AT].get();
+	allelePostProb[1] = posterior[BAM::AC].get() + posterior[BAM::CC].get() + posterior[BAM::CG].get() + posterior[BAM::CT].get();
+	allelePostProb[2] = posterior[BAM::AG].get() + posterior[BAM::CG].get() + posterior[BAM::GG].get() + posterior[BAM::GT].get();
+	allelePostProb[3] = posterior[BAM::AT].get() + posterior[BAM::CT].get() + posterior[BAM::GT].get() + posterior[BAM::TT].get();
 };
 
 bool TCallerAllelePresence::_callGenotype(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){
 	if(!_priorSet) throw "Can not call AllelePresence genotypes: prior has not been set!";
 
 	//fill posteriors for each allele
-	fillPosteriors(genotypeLikelihoods);
+	_fillPosteriors(genotypeLikelihoods);
 
 	//find MAP
-	MAP = _genoMap.toBase(_pickIndexWithHighestMetric(allelePostProb));
+	MAP = static_cast<BAM::BaseEnum>( _pickIndexWithHighestMetric(allelePostProb) );
 
 	//decide on alt
 	if(MAP == referenceBase){
 		_calledGenotype = "0";
 
 		//find second most common as alternative allele
-		uint8_t second = _pickIndexWithSecondHighestMetric(allelePostProb, MAP);
-		_altAlleles.push_back(_genoMap.toBase(second));
+		BAM::Base second = static_cast<BAM::BaseEnum>( _pickIndexWithSecondHighestMetric(allelePostProb, MAP.get()) );
+		_altAlleles.push_back(second);
 	} else {
 		_altAlleles.push_back(MAP);
 		_calledGenotype = "1";
@@ -663,13 +662,13 @@ bool TCallerAllelePresence::_callGenotypeKnownAlleles(const TSite & site, TGenot
 	if(!_priorSet) throw "Can not call AllelePresence genotypes: prior has not been set!";
 
 	//fill posteriors for each allele
-	fillPosteriors(genotypeLikelihoods);
+	_fillPosteriors(genotypeLikelihoods);
 
 	//find MAP
 	uint8_t highest;
-	if(allelePostProb[referenceBase] > allelePostProb[_altAlleles[0]]){
+	if(allelePostProb[referenceBase.get()] > allelePostProb[_altAlleles[0].get()]){
 		highest = 0;
-	} else if(allelePostProb[referenceBase] > allelePostProb[_altAlleles[0]]){
+	} else if(allelePostProb[referenceBase.get()] > allelePostProb[_altAlleles[0].get()]){
 		highest = 1;
 	} else {
 		highest = _randomGenerator->sample(2);
@@ -694,14 +693,14 @@ bool TCallerAllelePresence::_callGenotypeKnownAlleles(const TSite & site, TGenot
 };
 
 std::string TCallerAllelePresence::_getVCFGenotypeString_GQ(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){
-	return toString(_qualMap.errorToPhredInt(1.0 - allelePostProb[MAP]));
+	return (std::string) BAM::PhredIntErrorRate(allelePostProb[MAP].inverse());
 };
 
 std::string TCallerAllelePresence::_getVCFGenotypeString_AP(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){
-	std::string ret = toString(_qualMap.errorToPhredInt(posterior[0]));
-	ret += ',' + toString(_qualMap.errorToPhredInt(posterior[1]));
-	ret += ',' + toString(_qualMap.errorToPhredInt(posterior[2]));
-	ret += ',' + toString(_qualMap.errorToPhredInt(posterior[3]));
+	std::string ret = (std::string) BAM::PhredIntErrorRate(posterior[0]);
+	ret += ',' + (std::string) BAM::PhredIntErrorRate(posterior[1]);
+	ret += ',' + (std::string) BAM::PhredIntErrorRate(posterior[2]);
+	ret += ',' + (std::string) BAM::PhredIntErrorRate(posterior[3]);
 	return ret;
 };
 
@@ -710,8 +709,6 @@ std::string TCallerAllelePresence::_getVCFGenotypeString_AP(const TSite & site, 
 // common function between MLE, Bayes and gvcf callers
 /////////////////////////////////////////////////////////
 TCallerDiploid::TCallerDiploid(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TCaller(Parameters, Logfile, RandomGenerator){
-	indexOfMax = -1;
-	indexOfSecond = -1;
 	imbalanceCalculated = false;
 	_missingGenotype = "./.";
 
@@ -724,34 +721,33 @@ void TCallerDiploid::_clearAfterCall(){
 };
 
 void TCallerDiploid::callGenotypeFromMetric(TGenotypeData & metric){
-	indexOfMax = _pickIndexWithHighestMetric(metric);
-	indexOfSecond = _pickIndexWithSecondHighestMetric(metric, indexOfMax);
+	genotypeAtMax = static_cast<BAM::GenotypeEnum>( _pickIndexWithHighestMetric(metric) );
+	genotypeAtSecond = static_cast<BAM::GenotypeEnum>( _pickIndexWithSecondHighestMetric(metric, genotypeAtMax.get()) );
 
 	//decide on alternative alleles
-	if(_genoMap.genotypeToBase[indexOfMax][0] == referenceBase){
-		if(_genoMap.genotypeToBase[indexOfMax][1] == referenceBase){
+	if(genotypeAtMax.firstAllele() == referenceBase){
+		if(genotypeAtMax.secondAllele() == referenceBase){
 			_calledGenotype = "0/0";
 			//MLE is homozygous reference -> find second best allele
-			if(_genoMap.genotypeToBase[indexOfSecond][0] == referenceBase)
-				_altAlleles.push_back(_genoMap.genotypeToBase[indexOfSecond][1]);
-			else if(_genoMap.genotypeToBase[indexOfSecond][1] == referenceBase)
-				_altAlleles.push_back(_genoMap.genotypeToBase[indexOfSecond][0]);
+			if(genotypeAtSecond.firstAllele() == referenceBase)
+				_altAlleles.push_back(genotypeAtSecond.secondAllele());
+			else if(genotypeAtSecond.secondAllele() == referenceBase)
+				_altAlleles.push_back(genotypeAtSecond.firstAllele());
 			else {
 				//none is ref, pick at random
-				int rand = _randomGenerator->getRand() < 0.5 ? 0 : 1;
-				_altAlleles.push_back(_genoMap.genotypeToBase[indexOfSecond][rand]);
+				_altAlleles.push_back( genotypeAtSecond.randomAllele(*_randomGenerator) );
 			}
 		} else {
-			_altAlleles.push_back(_genoMap.genotypeToBase[indexOfMax][1]);
+			_altAlleles.push_back(genotypeAtMax.secondAllele());
 			_calledGenotype = "0/1";
 		}
 	} else {
-		if(_genoMap.genotypeToBase[indexOfMax][1] == referenceBase){
-			_altAlleles.push_back(_genoMap.genotypeToBase[indexOfMax][0]);
+		if(genotypeAtMax.secondAllele() == referenceBase){
+			_altAlleles.push_back(genotypeAtMax.firstAllele());
 			_calledGenotype = "0/1";
 		} else {
-			if(_genoMap.genotypeToBase[indexOfMax][0] == _genoMap.genotypeToBase[indexOfMax][1]){
-				_altAlleles.push_back(_genoMap.genotypeToBase[indexOfMax][0]);
+			if(genotypeAtMax.isHomozygous()){
+				_altAlleles.push_back(genotypeAtMax.firstAllele());
 				_calledGenotype = "1/1";
 
 				//find second best allele, but give preference to reference in case likelihoods are equal
@@ -760,78 +756,74 @@ void TCallerDiploid::callGenotypeFromMetric(TGenotypeData & metric){
 					//int homRef = genoMap.getGenotype(referenceBase, referenceBase);
 
 					//only use second alternative allele in case het genotype with reference is less likely
-					if(referenceBase == N || (metric[_genoMap.toGenotype(referenceBase, _genoMap.genotypeToBase[indexOfMax][0])] < metric[indexOfSecond] && metric[_genoMap.toGenotype(referenceBase, referenceBase)] < metric[indexOfSecond])){
-						if(_genoMap.genotypeToBase[indexOfSecond][0] == referenceBase || _genoMap.genotypeToBase[indexOfSecond][0] == _altAlleles[0])
-							_altAlleles.push_back(_genoMap.genotypeToBase[indexOfSecond][1]);
-						else if(_genoMap.genotypeToBase[indexOfSecond][1] == referenceBase || _genoMap.genotypeToBase[indexOfSecond][1] == _altAlleles[0])
-							_altAlleles.push_back(_genoMap.genotypeToBase[indexOfSecond][0]);
+
+					if(referenceBase == BAM::N ||
+					   (metric[ Genotype(referenceBase, genotypeAtMax.firstAllele())] < metric[ genotypeAtSecond]
+						&& metric[ Genotype(referenceBase, referenceBase) ] < metric[ genotypeAtSecond ])){
+						if(genotypeAtSecond.firstAllele() == referenceBase || genotypeAtSecond.firstAllele() == _altAlleles[0])
+							_altAlleles.push_back(genotypeAtSecond.secondAllele());
+						else if(genotypeAtSecond.secondAllele() == referenceBase || genotypeAtSecond.secondAllele() == _altAlleles[0])
+							_altAlleles.push_back(genotypeAtSecond.firstAllele());
 						else {
 							//none is ref, pick at random
-							int rand = _randomGenerator->getRand() < 0.5 ? 0 : 1;
-							_altAlleles.push_back(_genoMap.genotypeToBase[indexOfSecond][rand]);
+							_altAlleles.push_back( genotypeAtSecond.randomAllele(*_randomGenerator) );
 						}
 					}
 				}
 			} else {
 				if(_allowTriallelicSites){
 					//allow triallelic sites
-					_altAlleles.push_back(_genoMap.genotypeToBase[indexOfMax][0]);
-					_altAlleles.push_back(_genoMap.genotypeToBase[indexOfMax][1]);
+					_altAlleles.push_back(genotypeAtMax.firstAllele());
+					_altAlleles.push_back(genotypeAtMax.secondAllele());
 					_calledGenotype = "1/2";
 				} else {
 					//decide on which of the two alternative alleles to pick -> check second highest
-					if(_genoMap.genotypeToBase[indexOfSecond][0] == _genoMap.genotypeToBase[indexOfSecond][1]){
-						if(_genoMap.genotypeToBase[indexOfSecond][0] == _genoMap.genotypeToBase[indexOfMax][0])
-							_altAlleles.push_back(_genoMap.genotypeToBase[indexOfMax][0]);
-						else if(_genoMap.genotypeToBase[indexOfSecond][0] == _genoMap.genotypeToBase[indexOfMax][1])
-							_altAlleles.push_back(_genoMap.genotypeToBase[indexOfMax][0]);
+					if(genotypeAtSecond.isHomozygous()){
+						if(genotypeAtSecond.firstAllele() == genotypeAtMax.firstAllele())
+							_altAlleles.push_back(genotypeAtMax.firstAllele());
+						else if(genotypeAtSecond.firstAllele() == genotypeAtMax.secondAllele())
+							_altAlleles.push_back(genotypeAtMax.secondAllele());
 						else {
 							//neither alt 0 nor 1, pick at random
-							int rand = _randomGenerator->getRand() < 0.5 ? 0 : 1;
-							_altAlleles.push_back(_genoMap.genotypeToBase[indexOfMax][rand]);
+							_altAlleles.push_back(genotypeAtMax.randomAllele(*_randomGenerator));
 						}
 					} else {
-						if(_genoMap.genotypeToBase[indexOfSecond][0] == referenceBase && (_genoMap.genotypeToBase[indexOfSecond][1] == _genoMap.genotypeToBase[indexOfMax][0] || _genoMap.genotypeToBase[indexOfSecond][1] == _genoMap.genotypeToBase[indexOfMax][1]))
-							_altAlleles.push_back(_genoMap.genotypeToBase[indexOfSecond][1]);
-						else if(_genoMap.genotypeToBase[indexOfSecond][1] == referenceBase && (_genoMap.genotypeToBase[indexOfSecond][0] == _genoMap.genotypeToBase[indexOfMax][0] || _genoMap.genotypeToBase[indexOfSecond][0] == _genoMap.genotypeToBase[indexOfMax][1]))
-							_altAlleles.push_back(_genoMap.genotypeToBase[indexOfSecond][0]);
-						else {
+						if(genotypeAtSecond.firstAllele() == referenceBase && (genotypeAtSecond.secondAllele() == genotypeAtMax.firstAllele() || genotypeAtSecond.secondAllele() == genotypeAtMax.firstAllele())){
+							_altAlleles.push_back(genotypeAtSecond.secondAllele());
+						} else if(genotypeAtSecond.secondAllele() == referenceBase && (genotypeAtSecond.firstAllele() == genotypeAtMax.firstAllele() || genotypeAtSecond.firstAllele() == genotypeAtMax.secondAllele())){
+							_altAlleles.push_back(genotypeAtSecond.firstAllele());
+						} else {
 							//neither alt 0 nor 1, pick at random
-							int rand = _randomGenerator->getRand() < 0.5 ? 0 : 1;
-							_altAlleles.push_back(_genoMap.genotypeToBase[indexOfMax][rand]);
+							_altAlleles.push_back(genotypeAtMax.randomAllele(*_randomGenerator));
 						}
 					}
 
 					//now call genotype from these alleles
-					std::vector<int> indeces;
-					callGenotypeFromMetricKnownAlleles(metric, indeces);
+					callGenotypeFromMetricKnownAlleles(metric);
 				}
 			}
 		}
 	}
 };
 
-
-void TCallerDiploid::callGenotypeFromMetricKnownAlleles(const TGenotypeData & metric, std::vector<int> & indeces){
+void TCallerDiploid::callGenotypeFromMetricKnownAlleles(const TGenotypeData & metric){
 	//get genotypes
-	int homRef = _genoMap.toGenotype(referenceBase, referenceBase);
-	int het = _genoMap.toGenotype(referenceBase, _altAlleles[0]);
-	int homAlt = _genoMap.toGenotype(_altAlleles[0], _altAlleles[0]);
+	BAM::BiallelicGenotypes geno(referenceBase, _altAlleles[0]);
 
 	//find max
-	double max = metric[homRef];
-	if(metric[het] > max) max = metric[het];
-	if(metric[homAlt] > max) max = metric[homAlt];
+	Probability max = metric[geno.homoFirst()];
+	if(metric[geno.het()] > max) max = metric[geno.het()];
+	if(metric[geno.homoSecond()] > max) max = metric[geno.homoSecond()];
 
 	//fill vector of all
 	std::vector<std::string> vec;
-	if(metric[homRef] == max){
+	if(metric[geno.homoFirst()] == max){
 		vec.push_back("0/0");
 	}
-	if(metric[het] == max){
+	if(metric[geno.het()] == max){
 		vec.push_back("0/1");
 	}
-	if(metric[homAlt] == max){
+	if(metric[geno.homoSecond()] == max){
 		vec.push_back("1/1");
 	}
 
@@ -840,36 +832,27 @@ void TCallerDiploid::callGenotypeFromMetricKnownAlleles(const TGenotypeData & me
 
 bool TCallerDiploid::callGenotypeFromMetricKnownAllelesUpdateIndex(const TGenotypeData & metric){
 	//initialize
-	std::vector<std::string> gt;
-	gt.push_back("0/0");
-	gt.push_back("0/1");
-	gt.push_back("1/1");
+	static std::vector<std::string> gt = {"0/0", "0/1", "1/1"};
 
 	//get genotypes
-	int homRef = _genoMap.toGenotype(referenceBase, referenceBase);
-	int het = _genoMap.toGenotype(referenceBase, _altAlleles[0]);
-	int homAlt = _genoMap.toGenotype(_altAlleles[0], _altAlleles[0]);
+	BAM::BiallelicGenotypes geno(referenceBase, _altAlleles[0]);
 
-	int indecesKnownAlleleGenotypes[3];
-	indecesKnownAlleleGenotypes[0] = homRef;
-	indecesKnownAlleleGenotypes[1] = het;
-	indecesKnownAlleleGenotypes[2] = homAlt;
-
+	//subset metric to considered genotypes
 	std::array<double, 3> metricKnownAlleles;
-	metricKnownAlleles[0] = metric[homRef];
-	metricKnownAlleles[1] = metric[het];
-	metricKnownAlleles[2] = metric[homAlt];
+	metricKnownAlleles[0] = metric[geno.homoFirst()];
+	metricKnownAlleles[1] = metric[geno.het()];
+	metricKnownAlleles[2] = metric[geno.homoSecond()];
 
 	uint8_t best = _pickIndexWithHighestMetric(metricKnownAlleles);
-	uint8_t secondBest = _pickIndexWithSecondHighestMetric(metricKnownAlleles, indexOfMax);
+	uint8_t secondBest = _pickIndexWithSecondHighestMetric(metricKnownAlleles, best);
 
-	indexOfMax = indecesKnownAlleleGenotypes[best];
+	genotypeAtMax = static_cast<BAM::GenotypeEnum>(geno[best] );
+	genotypeAtSecond = static_cast<BAM::GenotypeEnum>( geno[secondBest] );
 	_calledGenotype = gt[best];
-	indexOfSecond = indecesKnownAlleleGenotypes[secondBest];
 
 	if(!_allowKnownAllelesCallsDifferentFromBestCall){
 		//check if call matches metric of best call
-		if(metric[indexOfMax] < metric.max()){
+		if(metric[genotypeAtMax] < metric.max()){
 			return false;
 		}
 	}
@@ -881,36 +864,36 @@ std::string TCallerDiploid::getPerGenotypeMetricString(TGenotypeData & metric){
 	//plot missing value (.) for all metrics involving the reference if the reference is N
 	std::string ret;
 	//first for reference base
-	if(referenceBase == N)
+	if(referenceBase == BAM::N)
 		ret = ".";
 	else
-		ret = toString((int) metric[_genoMap.genotypeMap[referenceBase][referenceBase]]);
+		ret = toString(metric[Genotype(referenceBase, referenceBase)]);
 
 	//now for alternative alleles
 	if(_altAlleles.size() > 0){
-		if(referenceBase == N)
+		if(referenceBase == BAM::N)
 			ret += ",.";
 		else
-			ret += ',' + toString(metric[_genoMap.genotypeMap[referenceBase][_altAlleles[0]]]);
-		ret += ',' + toString((int) metric[_genoMap.genotypeMap[_altAlleles[0]][_altAlleles[0]]]);
+			ret += ',' + toString(metric[Genotype(referenceBase, _altAlleles[0])]);
+		ret += ',' + toString(metric[Genotype(_altAlleles[0], _altAlleles[0])]);
 
 		if(_altAlleles.size() > 1){
-			if(referenceBase == N)
+			if(referenceBase == BAM::N)
 				ret += ",.";
 			else
-				ret += ',' + toString(metric[_genoMap.genotypeMap[referenceBase][_altAlleles[1]]]);
-			ret += ',' + toString(metric[_genoMap.genotypeMap[_altAlleles[0]][_altAlleles[1]]]);
-			ret += ',' + toString(metric[_genoMap.genotypeMap[_altAlleles[1]][_altAlleles[1]]]);
+				ret += ',' + toString(metric[Genotype(referenceBase, _altAlleles[1])]);
+			ret += ',' + toString(metric[Genotype(_altAlleles[0], _altAlleles[1])]);
+			ret += ',' + toString(metric[Genotype(_altAlleles[1], _altAlleles[1])]);
 		}
 
 		if(_altAlleles.size() > 2){
-			if(referenceBase == N)
+			if(referenceBase == BAM::N)
 				ret += ",.";
 			else
-				ret += ',' + toString(metric[_genoMap.genotypeMap[referenceBase][_altAlleles[2]]]);
-			ret += ',' + toString(metric[_genoMap.genotypeMap[_altAlleles[0]][_altAlleles[2]]]);
-			ret += ',' + toString(metric[_genoMap.genotypeMap[_altAlleles[1]][_altAlleles[2]]]);
-			ret += ',' + toString(metric[_genoMap.genotypeMap[_altAlleles[2]][_altAlleles[2]]]);
+				ret += ',' + toString(metric[Genotype(referenceBase, _altAlleles[2])]);
+			ret += ',' + toString(metric[Genotype(_altAlleles[0], _altAlleles[2])]);
+			ret += ',' + toString(metric[Genotype(_altAlleles[1], _altAlleles[2])]);
+			ret += ',' + toString(metric[Genotype(_altAlleles[2], _altAlleles[2])]);
 		}
 	}
 	return ret;
@@ -923,20 +906,20 @@ void TCallerDiploid::calculateImbalance(const TSite & site){
 
 			if(_altAlleles.size() == 1){
 				double sum = (_alleleCounts[referenceBase] + _alleleCounts[_altAlleles[0]]);
-				if(referenceBase == N || sum == 0){
+				if(referenceBase == BAM::N || sum == 0){
 					AB = '.'; AI = '.';
 				} else {
 					AB = toString(_alleleCounts[referenceBase] / sum);
 					AI = toString(_binomP.binomPValue(_alleleCounts[referenceBase], _alleleCounts[_altAlleles[0]]));
 				}
 			} else {
-				if(_genoMap.genotypeToBase[indexOfMax][0] != _genoMap.genotypeToBase[indexOfMax][1]){ //is het
-					double sum = (double) _alleleCounts[_genoMap.genotypeToBase[indexOfMax][0]] + _alleleCounts[_genoMap.genotypeToBase[indexOfMax][1]];
+				if(genotypeAtMax.isHeterozygous()){
+					double sum = (double) _alleleCounts[genotypeAtMax.firstAllele()] + _alleleCounts[genotypeAtMax.secondAllele()];
 					if(sum == 0){
 						AB = '.'; AI = '.';
 					} else {
-						AB = toString(_alleleCounts[_genoMap.genotypeToBase[indexOfMax][0]] / sum);
-						AI = toString(_binomP.binomPValue(_alleleCounts[_genoMap.genotypeToBase[indexOfMax][0]], _alleleCounts[_genoMap.genotypeToBase[indexOfMax][1]]));
+						AB = toString(_alleleCounts[genotypeAtMax.firstAllele()] / sum);
+						AI = toString(_binomP.binomPValue(_alleleCounts[genotypeAtMax.firstAllele()], _alleleCounts[genotypeAtMax.secondAllele()]));
 					}
 				} else { // is homo -> do it against the second alternative allele
 					double sum = (double) _alleleCounts[_altAlleles[0]] + _alleleCounts[_altAlleles[1]];
@@ -992,13 +975,16 @@ bool TCallerMLE::_callGenotypeKnownAlleles(const TSite & site, TGenotypeLikeliho
 };
 
 std::string TCallerMLE::_getVCFGenotypeString_GQ(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){
-	return toString(_qualMap.errorToPhredInt(genotypeLikelihoods[indexOfSecond] / genotypeLikelihoods[indexOfMax]));
+	Probability error(genotypeLikelihoods[genotypeAtSecond].get() / genotypeLikelihoods[genotypeAtMax].get());
+	BAM::PhredIntErrorRate phred(error);
+	return toString(phred);
 };
 
 std::string TCallerMLE::_getVCFGenotypeString_GL(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){
 	//normalize
-	for(uint8_t g=0; g<10; ++g)
-		tmpGenoData[g] = log10(genotypeLikelihoods[g] / genotypeLikelihoods[indexOfMax]);
+	for(BAM::Genotype g = BAM::Genotype::min(); g < BAM::Genotype::max(); ++g){
+		tmpGenoData[g] = log10(genotypeLikelihoods[g].get() / genotypeLikelihoods[genotypeAtMax].get());
+	}
 
 	//get string
 	return getPerGenotypeMetricString(tmpGenoData);

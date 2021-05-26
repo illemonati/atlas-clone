@@ -15,6 +15,7 @@
 #include "strongTypes.h"
 #include "stringFunctions.h"
 #include "probability.h"
+#include "TRandomGenerator.h"
 
 namespace BAM{
 
@@ -59,6 +60,10 @@ public:
 		return _toChar[ static_cast<uint8_t>(_value) ];
 	};
 
+	explicit operator std::string() const {
+		return std::string( _toChar[ static_cast<uint8_t>(_value) ], 1 );
+	};
+
 	explicit constexpr operator uint8_t() const {
 		return static_cast<uint8_t>(_value);
 	};
@@ -70,6 +75,10 @@ public:
 	[[nodiscard]] Base constexpr flipped() const{
 		return Base(_flipBase[ static_cast<uint8_t>(_value) ]);
 	};
+
+	//range info (to loop)
+	[[nodiscard]] static constexpr Base min() { return Base(A); };
+	[[nodiscard]] static constexpr Base max() { return Base(N); };
 };
 
 std::ostream& operator<<(std::ostream& os, const Base & base);
@@ -82,6 +91,10 @@ enum GenotypeEnum : uint8_t {AA=0, AC, AG, AT, CC, CG, CT, GG, GT, TT, NN};
 
 class Genotype : public StrongTypes::StrongType<GenotypeEnum, Genotype> {
 private:
+	static constexpr Base _firstBase[11] = {A, A, A, A, C, C, C, G, G, T, N};
+	static constexpr Base _secondBase[11] = {A, C, G, T, C, G, T, G, T, T, N};
+	static constexpr bool _isHomozygous[11] = {true, false, false, false, true, false, false, true, false, true, false};
+	static constexpr bool _isHeterozygous[11] = {false, true, true, true, false, true, true, false, true, false, false};
 
 	static std::string _toString[NN+1];
 
@@ -125,21 +138,98 @@ public:
 		_value = genotype;
 	};
 
+	void set(const Base & first, const Base & second){
+		_value = _toGeno(first, second);
+	};
+
 	void set(const BaseEnum & first, const BaseEnum & second){
 		_value = _toGeno(first, second);
 	};
 
 	//convert
-	explicit operator std::string() const {
+	[[nodiscard]] explicit operator std::string() const {
 		return _toString[static_cast<uint8_t>( (GenotypeEnum) _value)];
 	};
 
-	explicit constexpr operator uint8_t() const {
+	[[nodiscard]] explicit constexpr operator uint8_t() const {
 		return static_cast<uint8_t>(_value);
+	};
+
+	//get
+	[[nodiscard]] constexpr const Base& firstAllele() const{
+		return _firstBase[_value];
+	};
+
+	[[nodiscard]] constexpr const Base& secondAllele() const{
+		return _secondBase[_value];
+	};
+
+	[[nodiscard]] constexpr const Base& randomAllele(TRandomGenerator & RandomGenerator) const{
+		if(_value == NN){
+			return _firstBase[10];
+		} else if(_isHomozygous[_value]){
+			return firstAllele();
+		} else if(RandomGenerator.getRand() < 0.5){
+			return firstAllele();
+		} else {
+			return secondAllele();
+		}
+	};
+
+	[[nodiscard]] constexpr bool isHomozygous() const{
+		return _isHomozygous[_value];
+	};
+
+	[[nodiscard]] constexpr bool isHeterozygous() const{
+		return _isHeterozygous[_value];
+	};
+
+	//++operator and range info (to loop)
+	[[nodiscard]] static constexpr Genotype min() { return Genotype(AA); };
+	[[nodiscard]] static constexpr Genotype max() { return Genotype(NN); };
+
+	constexpr Genotype& operator++(){
+		if(_value == NN){
+			throw std::runtime_error("constexpr Genotype& operator++():: overflow!");
+		};
+		_value = static_cast<GenotypeEnum>( static_cast<uint8_t>(_value) + 1);
+		return *this;
+	};
+
+	constexpr bool operator<(const Genotype & other){
+		return static_cast<uint8_t>(_value) < static_cast<uint8_t>(other.get());
 	};
 };
 
 std::ostream& operator<<(std::ostream& os, const Genotype & genotype);
+
+//-------------------------------------
+// BiallelicGenotypes
+//-------------------------------------
+class BiallelicGenotypes{
+private:
+	std::array<Genotype, 3> _genotypes;
+
+public:
+	BiallelicGenotypes(const Base & First, const Base & Second){
+		_genotypes[0].set(First, First);
+		_genotypes[1].set(First, Second);
+		_genotypes[2].set(Second, Second);
+	};
+	~BiallelicGenotypes() = default;
+
+	[[nodiscard]] constexpr const Genotype& homoFirst() const { return _genotypes[0]; };
+	[[nodiscard]] constexpr const Genotype& het() const { return _genotypes[1]; };
+	[[nodiscard]] constexpr const Genotype& homoSecond() const { return _genotypes[2]; };
+
+	[[nodiscard]] constexpr const Genotype& operator[](const uint8_t& Index) const {
+		if(Index > 2){
+			throw std::runtime_error("constexpr const Genotype& operator[](const uint8_t& Index) const: Unknown genotype index " + toString(Index) + "!");
+		} else {
+			return _genotypes[Index];
+		}
+	};
+};
 
 //------------------------------------------------
 // BaseContext
@@ -274,7 +364,7 @@ public:
 		_value = _toAlleleicCombinationEnum(first, (BaseEnum) second);
 	};
 
-	//convert
+	//convert / get
 	[[nodiscard]] constexpr const Base& firstAllele() const{
 		return _firstBase[_value];
 	};
@@ -296,169 +386,38 @@ public:
 	};
 };
 
-//-------------------------------------
-// ErrorRate
-// An error rate within [0,1]
-//-------------------------------------
-//TODO: remove ErrorRate and LogErrorRate: use Probability and LogProbability instead!
-
-class LogErrorRate;
-class PhredErrorRate;
-class PhredIntErrorRate;
-class HighPrecisionPhredIntErrorRate;
-class BaseQuality;
-
-class ErrorRate : public StrongTypes::StrongType<double, ErrorRate, StrongTypes::Orderable, StrongTypes::Printable>{
-private:
-	static const double _phredIntToError[256];
-	static const double _highPrecisionPhredIntToError[65536];
-
-public:
-	//constructors
-	explicit constexpr ErrorRate() : StrongType() {};
-
-	explicit constexpr ErrorRate(const double & error){
-		if(error < 0.0 || error > 1.0){
-			throw std::runtime_error("explicit constexpr ErrorRate(const double & error): error is outside [0,1]!");
-		}
-		_value = error;
-	};
-
-	explicit constexpr ErrorRate(const Probability & error) : StrongType((double) error) {};
-	explicit ErrorRate(const LogProbability & error) : ErrorRate((Probability) error) {};
-	explicit ErrorRate(const Log10Probability & error) : ErrorRate((Probability) error) {};
-	explicit ErrorRate(const LogErrorRate & error);
-	explicit ErrorRate(const PhredErrorRate & error);
-	explicit ErrorRate(const PhredIntErrorRate & error);
-	explicit ErrorRate(const HighPrecisionPhredIntErrorRate & error);
-	explicit ErrorRate(const BaseQuality & quality);
-
-	//assign
-	constexpr void operator=(const double & error){
-		_value = error;
-	};
-
-	constexpr void operator=(const Probability & error){
-		_value = error.get();
-	};
-
-	void operator=(const LogProbability & logError){
-		Probability tmp(logError);
-		_value = tmp.get();
-	};
-
-	//convert
-	explicit operator std::string() const {
-		return toString(_value);
-	};
-
-	explicit constexpr operator Probability() const {
-		return Probability(_value);
-	};
-
-	explicit constexpr operator LogProbability() const {
-		return LogProbability( Probability(_value) );
-	};
-
-	explicit constexpr operator Log10Probability() const {
-		return Log10Probability( Probability(_value) );
-	};
-
-	explicit operator LogErrorRate() const;
-	explicit operator PhredErrorRate() const;
-	explicit operator PhredIntErrorRate() const;
-	explicit operator HighPrecisionPhredIntErrorRate() const;
-	explicit operator BaseQuality() const;
-};
-
-//-------------------------------------
-// LogErrorRate
-// The natural log of an error rate
-//-------------------------------------
-class LogErrorRate : public StrongTypes::StrongType<double, LogErrorRate, StrongTypes::Orderable, StrongTypes::Printable>{
-private:
-	[[nodiscard]] constexpr double _phredToLogError(const double & phred){
-		return phred * -0.2302585092994046; //log(10) / 10
-	};
-
-public:
-	//constructors
-	explicit constexpr LogErrorRate() : StrongType() {};
-
-	explicit constexpr LogErrorRate(const double & logError){
-		if(logError > 0.0){
-			throw std::runtime_error("explicit constexpr ErrorRate(const double & error): error is > 0!");
-		}
-		_value = logError;
-	};
-
-	explicit constexpr LogErrorRate(const Probability & error) : LogErrorRate((LogProbability) error) {};
-	explicit constexpr LogErrorRate(const LogProbability & logError) : StrongType((double) logError) {};
-	explicit constexpr LogErrorRate(const Log10Probability & logError) : StrongType((LogProbability) logError) {};
-
-	explicit LogErrorRate(const std::string & logError) : StrongType(logError) {};
-
-	explicit constexpr LogErrorRate(const ErrorRate & error){
-		_value = log( (double) error );
-	};
-
-	explicit LogErrorRate(const PhredErrorRate & error);
-	explicit LogErrorRate(const PhredIntErrorRate & error);
-	explicit LogErrorRate(const HighPrecisionPhredIntErrorRate & error);
-	explicit LogErrorRate(const BaseQuality & quality);
-
-	//assign
-	constexpr void operator=(const double & error){
-		_value = error;
-	};
-	constexpr void operator=(const Probability & error){
-		LogProbability tmp(error);
-		_value = tmp.get();
-	};
-	constexpr void operator=(const LogProbability & logError){
-		_value = logError.get();
-	};
-
-	//convert
-	explicit operator std::string() const {
-		return toString(_value);
-	};
-
-	explicit constexpr operator Probability() const {
-		return Probability( LogProbability(_value) );
-	};
-
-	explicit constexpr operator LogProbability() const {
-		return LogProbability(_value);
-	};
-
-	explicit constexpr operator Log10Probability() const {
-		return Log10Probability( LogProbability(_value) );
-	};
-
-	explicit operator ErrorRate() const;
-	explicit operator PhredErrorRate() const;
-	explicit operator PhredIntErrorRate() const;
-	explicit operator HighPrecisionPhredIntErrorRate() const;
-	explicit operator BaseQuality() const;
-};
-
 //------------------------------------------------
 // PhredErrorRate
 // phreded error = -10 * log_10(error)
 //------------------------------------------------
+class PhredIntErrorRate;
+class HighPrecisionPhredIntErrorRate;
+class BaseQuality;
+
 class PhredErrorRate : public StrongTypes::StrongType<double, PhredErrorRate, StrongTypes::Orderable, StrongTypes::Printable> {
 private:
-	[[nodiscard]] constexpr double _errorToPhredError(const double & error){
+	[[nodiscard]] constexpr double _errorToPhredError(const double & error) const {
 		return -10.0 * log10( (double) error);
 	};
 
-	[[nodiscard]] constexpr double _logErrorToPhredError(const double & logError){
-		return -4.342944819032518 * (double) logError; // -10 * log_10(e) * log(error)
+	[[nodiscard]] constexpr double _phredErrorToError(const double & phred) const {
+		return pow(10.0, phred / -10.0);
 	};
 
-	[[nodiscard]] constexpr double _log10ErrorToPhredError(const double & log10Error){
-		return -10.0 * (double) log10Error; // -10 * log10(error)
+	[[nodiscard]] constexpr double _logErrorToPhredError(const double & logError) const {
+		return -4.342944819032518 * logError; // -10 * log_10(e) * log(error)
+	};
+
+	[[nodiscard]] constexpr double _phredErrorToLogError(const double & logError) const {
+		return logError / -4.342944819032518;
+	};
+
+	[[nodiscard]] constexpr double _log10ErrorToPhredError(const double & log10Error) const {
+		return -10.0 * log10Error;
+	};
+
+	[[nodiscard]] constexpr double _phredErrorToLog10Error(const double & log10Error) const {
+		return log10Error / -10;
 	};
 
 public:
@@ -471,20 +430,19 @@ public:
 		_value = phredError;
 	};
 
-	explicit constexpr PhredErrorRate(const Probability & error) : PhredErrorRate((LogErrorRate) error) {};
-	explicit constexpr PhredErrorRate(const LogProbability & error) : PhredErrorRate((LogErrorRate) error) {};
+	explicit constexpr PhredErrorRate(const Probability & error){
+		_value = _errorToPhredError((double) error);
+	};
+
+	explicit constexpr PhredErrorRate(const LogProbability & logError){
+		_value = _logErrorToPhredError((double) logError);
+	};
+
 	explicit constexpr PhredErrorRate(const Log10Probability & error){
 		_value = _log10ErrorToPhredError(error.get());
 	};
 
 	explicit PhredErrorRate(const std::string & logError) : StrongType(logError) {};
-	explicit constexpr PhredErrorRate(const ErrorRate & error){
-		_value = _errorToPhredError((double) error);
-	};
-
-	explicit constexpr PhredErrorRate(const LogErrorRate & logError){
-		_value = _logErrorToPhredError((double) logError);
-	};
 
 	explicit PhredErrorRate(const PhredIntErrorRate & error);
 	explicit PhredErrorRate(const HighPrecisionPhredIntErrorRate & error);
@@ -507,33 +465,23 @@ public:
 		_value = _log10ErrorToPhredError( (double) logProbability);
 	};
 
-	constexpr void operator=(const ErrorRate & error){
-		_value = _errorToPhredError( (double) error);
-	};
-
-	constexpr void operator=(const LogErrorRate & logError){
-		_value = _logErrorToPhredError( (double) logError);
-	};
-
 	//convert
 	explicit operator std::string() const {
 		return toString(_value);
 	};
 
 	explicit constexpr operator Probability() const {
-		return Probability( ErrorRate(*this).get() );
+		return Probability(_phredErrorToError(_value) );
 	};
 
 	explicit constexpr operator LogProbability() const {
-		return LogProbability( LogErrorRate(*this).get() );
+		return LogProbability( _phredErrorToLogError(_value) );
 	};
 
 	explicit constexpr operator Log10Probability() const {
-		return Log10Probability( _value / -10.0 );
+		return Log10Probability( _phredErrorToLog10Error(_value) );
 	};
 
-	explicit operator ErrorRate() const;
-	explicit operator LogErrorRate() const;
 	explicit operator PhredIntErrorRate() const;
 	explicit operator HighPrecisionPhredIntErrorRate() const;
 	explicit operator BaseQuality() const;
@@ -544,18 +492,28 @@ public:
 // phreded error stored as uint8_t
 // only valid within [0,255] and truncated outside
 //------------------------------------------------
-class PhredIntErrorRate : public StrongTypes::StrongType<uint8_t, PhredIntErrorRate, StrongTypes::Orderable, StrongTypes::Printable> {
+class PhredIntErrorRate : public StrongTypes::StrongType<uint8_t, PhredIntErrorRate, StrongTypes::Orderable, StrongTypes::Incrementable, StrongTypes::Printable> {
 private:
-	[[nodiscard]] constexpr uint8_t _qualityToPhredInt(const char & quality){
+	static const double _phredIntToError[256];
+
+	[[nodiscard]] constexpr uint8_t _qualityToPhredInt(const char & quality) const {
 		return quality - 33;
 	};
 
-	[[nodiscard]] constexpr uint8_t _phredErrorToPhredInt(const PhredErrorRate & phredError){
+	[[nodiscard]] constexpr uint8_t _phredErrorToPhredInt(const PhredErrorRate & phredError) const {
 		if( (double) phredError < 254.5){
 			return std::round( (double) phredError);
 		} else {
 			return 255;
 		}
+	};
+
+	[[nodiscard]] constexpr double _phredIntToLogError(const double & phred) const {
+		return phred / -4.3429448190325181667;
+	};
+
+	[[nodiscard]] constexpr double _phredIntToLog10Error(const double & phred) const {
+		return phred / -10.0;
 	};
 
 public:
@@ -568,9 +526,6 @@ public:
 	explicit constexpr PhredIntErrorRate(const Log10Probability & error) : PhredIntErrorRate((PhredErrorRate) error) {};
 
 	explicit PhredIntErrorRate(const std::string & logError) : StrongType(logError) {};
-
-	explicit constexpr PhredIntErrorRate(const ErrorRate & error) : PhredIntErrorRate( PhredErrorRate(error)) {};
-	explicit constexpr PhredIntErrorRate(const LogErrorRate & logError) : PhredIntErrorRate( PhredErrorRate(logError)) {};
 
 	explicit constexpr PhredIntErrorRate(const PhredErrorRate & phredError){
 		_value = _phredErrorToPhredInt(phredError);
@@ -602,36 +557,30 @@ public:
 		_value = _phredErrorToPhredInt(phredError);
 	};
 
-	constexpr void operator=(const LogErrorRate & logError){
-		_value = _phredErrorToPhredInt(PhredErrorRate(logError));
-	};
-
 	//convert
 	explicit operator std::string() const {
 		return toString(_value);
 	};
 
 	explicit constexpr operator Probability() const {
-		return Probability( ErrorRate(*this).get() );
+		return Probability( _phredIntToError[_value] );
 	};
 
 	explicit constexpr operator LogProbability() const {
-		return LogProbability( LogErrorRate(*this).get() );
+		return LogProbability( _phredIntToLogError(_value) );
 	};
 
 	explicit constexpr operator Log10Probability() const {
-		return Log10Probability( _value / -10.0 );
+		return Log10Probability( _phredIntToLog10Error(_value) );
 	};
 
-	explicit operator ErrorRate() const;
-	explicit operator LogErrorRate() const;
 	explicit operator PhredErrorRate() const;
 	explicit operator HighPrecisionPhredIntErrorRate() const;
 	explicit operator BaseQuality() const;
 
 	//get range information
-	static constexpr uint8_t min() { return 0;   };
-	static constexpr uint8_t max() { return 255; };
+	[[nodiscard]] static constexpr PhredIntErrorRate min() { return PhredIntErrorRate(0); };
+	[[nodiscard]] static constexpr PhredIntErrorRate max() { return PhredIntErrorRate(255); };
 
 	//manipulate
 	void constexpr makeIllumina(){
@@ -662,13 +611,23 @@ public:
 //------------------------------------------------
 class HighPrecisionPhredIntErrorRate : public StrongTypes::StrongType<uint16_t, HighPrecisionPhredIntErrorRate, StrongTypes::Orderable, StrongTypes::Printable> {
 private:
-	[[nodiscard]] constexpr uint16_t _phredErrortoHighPrecisionPhredInt(const PhredErrorRate & error){
+	static const double _highPrecisionPhredIntToError[65536];
+
+	[[nodiscard]] constexpr uint16_t _phredErrortoHighPrecisionPhredInt(const PhredErrorRate & error) const {
 		double tmp = (double) error * 100.0;
 		if( tmp < 65534.5){
 			return (uint16_t) std::round( tmp );
 		} else {
 			return 65535;
 		}
+	};
+
+	[[nodiscard]] constexpr double _highPrecisionPhredIntToLogError(const double & phred) const {
+		return phred / -434.29448190325181667;
+	};
+
+	[[nodiscard]] constexpr double _highPrecisionPhredIntToLog10Error(const double & phred) const {
+		return phred / -1000.0;
 	};
 
 public:
@@ -681,9 +640,6 @@ public:
 	explicit constexpr HighPrecisionPhredIntErrorRate(const Log10Probability & error) : HighPrecisionPhredIntErrorRate((PhredErrorRate) error) {};
 
 	explicit HighPrecisionPhredIntErrorRate(const std::string & logError) : StrongType(logError) {};
-
-	explicit constexpr HighPrecisionPhredIntErrorRate(const ErrorRate & error) : HighPrecisionPhredIntErrorRate( PhredErrorRate(error)) {};
-	explicit constexpr HighPrecisionPhredIntErrorRate(const LogErrorRate & logError) : HighPrecisionPhredIntErrorRate( PhredErrorRate(logError)) {};
 
 	explicit constexpr HighPrecisionPhredIntErrorRate(const PhredErrorRate & error){
 		_value = _phredErrortoHighPrecisionPhredInt(error);
@@ -708,16 +664,12 @@ public:
 		_value = _phredErrortoHighPrecisionPhredInt(PhredErrorRate(logProbability));
 	};
 
-	constexpr void operator=(const Log10Probability & logProbability){
-		_value = _phredErrortoHighPrecisionPhredInt(PhredErrorRate(logProbability));
+	constexpr void operator=(const Log10Probability & log10Probability){
+		_value = _phredErrortoHighPrecisionPhredInt(PhredErrorRate(log10Probability));
 	};
 
 	constexpr void operator=(const PhredErrorRate & phredError){
 		_value = _phredErrortoHighPrecisionPhredInt(phredError);
-	};
-
-	constexpr void operator=(const LogErrorRate & logError){
-		_value = _phredErrortoHighPrecisionPhredInt(PhredErrorRate(logError));
 	};
 
 	//convert
@@ -726,26 +678,40 @@ public:
 	};
 
 	explicit constexpr operator Probability() const {
-		return Probability( ErrorRate(*this).get() );
+		return Probability( _highPrecisionPhredIntToError[_value] );
 	};
 
 	explicit constexpr operator LogProbability() const {
-		return LogProbability( LogErrorRate(*this).get() );
+		return LogProbability( _highPrecisionPhredIntToLogError(_value) );
 	};
 
 	explicit constexpr operator Log10Probability() const {
-		return Log10Probability( _value / -1000.0 );
+		return Log10Probability( _highPrecisionPhredIntToLog10Error(_value) );
 	};
 
-	explicit operator ErrorRate() const;
-	explicit operator LogErrorRate() const;
 	explicit operator PhredErrorRate() const;
 	explicit operator PhredIntErrorRate() const;
 	explicit operator BaseQuality() const;
 
 	//get range information
-	static constexpr uint16_t min() { return 0;   };
-	static constexpr uint16_t max() { return 65535; };
+	static constexpr HighPrecisionPhredIntErrorRate min() { return HighPrecisionPhredIntErrorRate(0);   };
+	static constexpr HighPrecisionPhredIntErrorRate max() { return HighPrecisionPhredIntErrorRate(65535); };
+
+	//manipulate / normalize
+	[[nodiscard]] constexpr HighPrecisionPhredIntErrorRate operator-(HighPrecisionPhredIntErrorRate const & other) const {
+		if(other > *this){
+			throw std::runtime_error("constexpr HighPrecisionPhredIntErrorRate operator-(HighPrecisionPhredIntErrorRate const & other) const: other > *this!");
+		}
+		return HighPrecisionPhredIntErrorRate(_value - other.get());
+	};
+
+	constexpr HighPrecisionPhredIntErrorRate& operator-=(HighPrecisionPhredIntErrorRate const& other){
+		if(other > *this){
+			throw std::runtime_error("constexpr HighPrecisionPhredIntErrorRate operator-(HighPrecisionPhredIntErrorRate const & other) const: other > *this!");
+		}
+		_value -= other.get();
+		return *this;
+	};
 };
 
 //------------------------------------------------
@@ -758,7 +724,7 @@ private:
 	static const char _min = 33;
 	static const char _max = 126;
 
-	[[nodiscard]] constexpr char _toQualityChar(const char& quality){
+	[[nodiscard]] constexpr char _toQualityChar(const char& quality) const {
 		if(quality < _min){
 			return _min;
 		} else if(quality > _max ){
@@ -768,7 +734,7 @@ private:
 		}
 	};
 
-	[[nodiscard]] constexpr char _toQualityChar(const PhredIntErrorRate& error){
+	[[nodiscard]] constexpr char _toQualityChar(const PhredIntErrorRate& error) const {
 		if( (uint8_t) error > 125){
 			return 126;
 		} else {
@@ -783,11 +749,7 @@ public:
 	explicit constexpr BaseQuality(const Probability & error) : BaseQuality((PhredIntErrorRate) error) {};
 	explicit constexpr BaseQuality(const LogProbability & error) : BaseQuality((PhredIntErrorRate) error) {};
 	explicit constexpr BaseQuality(const Log10Probability & error) : BaseQuality((PhredIntErrorRate) error) {};
-
-	explicit constexpr BaseQuality(const ErrorRate & error) : BaseQuality( PhredIntErrorRate(error) ) {};
-	explicit constexpr BaseQuality(const LogErrorRate & logError) : BaseQuality( PhredIntErrorRate(logError) ) {};
 	explicit constexpr BaseQuality(const PhredErrorRate & error) : BaseQuality( PhredIntErrorRate(error) ) {};
-
 
 	explicit constexpr BaseQuality(const PhredIntErrorRate & error){
 		_value = _toQualityChar(error);
@@ -823,26 +785,24 @@ public:
 	};
 
 	explicit constexpr operator Probability() const {
-		return Probability( ErrorRate(*this).get() );
+		return (Probability) PhredIntErrorRate(_value);
 	};
 
 	explicit constexpr operator LogProbability() const {
-		return LogProbability( LogErrorRate(*this).get() );
+		return (LogProbability) PhredIntErrorRate(_value);
 	};
 
 	explicit constexpr operator Log10Probability() const {
-		return Log10Probability( _value / -10.0 );
+		return (Log10Probability) PhredIntErrorRate(_value);
 	};
 
-	explicit operator ErrorRate() const;
-	explicit operator LogErrorRate() const;
 	explicit operator PhredErrorRate() const;
 	explicit operator PhredIntErrorRate() const;
 	explicit operator HighPrecisionPhredIntErrorRate() const;
 
 	//get range information
-	static constexpr char min() { return _min; };
-	static constexpr char max() { return _max; };
+	static constexpr BaseQuality min() { return BaseQuality(_min); };
+	static constexpr BaseQuality max() { return BaseQuality(_max); };
 
 	//manipulate
 	void makeIllumina(){

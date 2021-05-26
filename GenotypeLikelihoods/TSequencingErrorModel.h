@@ -81,7 +81,7 @@ public:
 class TSequencingErrorRho:public TSequencingErrorRhoStorage{
 public:
 	void operator=(const TSequencingErrorRhoStorage & other);
-	void fillBaseLikelihoods(const BAM::Base base, const BAM::ErrorRate epsilon, TBaseData & baseLikelihoods) const;
+	void fillBaseLikelihoods(const BAM::Base base, const Probability & epsilon, TBaseData & baseLikelihoods) const;
 
 	//functions used to estimate
 	void prepareEstimationFromEMWeights();
@@ -159,7 +159,7 @@ public:
 	virtual bool estimatable() const { return false; };
 	virtual bool recalibrates() const { return false; };
 
-	virtual BAM::ErrorRate getErrorRate(const BAM::TSequencedBase & base) const = 0;
+	virtual Probability getErrorRate(const BAM::TSequencedBase & base) const = 0;
 	virtual BAM::PhredIntErrorRate getPhredInt(const BAM::TSequencedBase & base) const = 0;
 	virtual void fillBaseLikelihoods(const BAM::TSequencedBase & base,TBaseData & baseLikelihoods) const = 0;
 
@@ -177,7 +177,7 @@ public:
 	TSequencingErrorModelNoRecal() = default;
 	~TSequencingErrorModelNoRecal() = default;
 
-	BAM::ErrorRate getErrorRate(const BAM::TSequencedBase & base) const override;
+	Probability getErrorRate(const BAM::TSequencedBase & base) const override;
 	BAM::PhredIntErrorRate getPhredInt(const BAM::TSequencedBase & base) const override;
 	void fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseData & baseLikelihoods) const override;
 };
@@ -202,8 +202,8 @@ private:
 	bool _NRStepAccepted;
 
 	void _initializeDerivatives();
-	double _calcEpsilon(const double & eta) const;
-	BAM::ErrorRate _calcErrorRate(const BAM::TSequencedBase & base) const;
+	Probability _calcEpsilon(const double & eta) const;
+	Probability _calcErrorRate(const BAM::TSequencedBase & base) const;
 
 public:
 	TSequencingErrorModelRecal(const TSequencingErrorModelDefinition & modelDef);
@@ -216,7 +216,7 @@ public:
 	TSequencingErrorModelDefinition getModelDefinition() const;
 
 	//get error rates
-	BAM::ErrorRate getErrorRate(const BAM::TSequencedBase & base) const override;
+	Probability getErrorRate(const BAM::TSequencedBase & base) const override;
 	BAM::PhredIntErrorRate getPhredInt(const BAM::TSequencedBase & base) const override;
 	void fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseData & baseLikelihoods) const override;
 

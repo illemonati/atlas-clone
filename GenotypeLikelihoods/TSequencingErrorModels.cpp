@@ -33,7 +33,7 @@ std::shared_ptr<TSequencingErrorModelRecal>& TSequencingErrorModelEntry::getShar
 	return _recalModel;
 };
 
-BAM::ErrorRate TSequencingErrorModelEntry::getErrorRate(const BAM::TSequencedBase & base) const {
+Probability TSequencingErrorModelEntry::getErrorRate(const BAM::TSequencedBase & base) const {
 	if(_recalModel){
 		return _recalModel->getErrorRate(base);
 	} else {
@@ -74,7 +74,7 @@ std::shared_ptr<TSequencingErrorModelRecal>& TSequencingErrorModelsOneReadGroup:
 	return _models[IsSecondMate].getSharedPointerToRecalModel();
 };
 
-BAM::ErrorRate TSequencingErrorModelsOneReadGroup::getErrorRate(const BAM::TSequencedBase & base) const {
+Probability TSequencingErrorModelsOneReadGroup::getErrorRate(const BAM::TSequencedBase & base) const {
 	return _models[base.isSecondMate()].getErrorRate(base);
 };
 
@@ -171,7 +171,7 @@ void TSequencingErrorModels::checkReadGroups(const BAM::TReadGroups & ReadGroups
 
 //functions to get error rates
 //-------------------------------------------------------
-BAM::ErrorRate TSequencingErrorModels::getErrorRate(const BAM::TSequencedBase & base) const{
+Probability TSequencingErrorModels::getErrorRate(const BAM::TSequencedBase & base) const{
 	if(_doRecalibration){
 		return _models[base.readGroupID].getErrorRate(base);
 	} else {

@@ -19,7 +19,7 @@ namespace GenotypeLikelihoods{
 //---------------------------------------------------------------------------------
 class TGenotypePrior{
 protected:
-	TGenotypeData genotypePrior;
+	TGenotypeProbabilities genotypePrior;
 
 public:
 	TGenotypePrior(){};
@@ -27,17 +27,15 @@ public:
 	virtual ~TGenotypePrior(){};
 
 	virtual void update(const TWindow & window, TLog* logfile, const TGenotypeLikelihoodCalculator & glCalculator){};
-	TGenotypeData* getPointerToPrior(){ return &genotypePrior; };
-	double operator[](const Genotype genotype){ return genotypePrior[genotype]; };
-	double operator[](const uint8_t genotype){ return genotypePrior[genotype]; };
+	TGenotypeProbabilities* getPointerToPrior(){ return &genotypePrior; };
+	Probability operator[](const BAM::Genotype & genotype){ return genotypePrior[genotype]; };
 };
 
 
 class TGenotypePriorUniform:public TGenotypePrior{
 public:
 	TGenotypePriorUniform(){
-		for(int g=0; g<10; ++g)
-			genotypePrior[g] = 1.0 / 10.0;
+		genotypePrior.reset();
 	};
 };
 
@@ -69,7 +67,7 @@ public:
 			window.estimateBaseFrequencies(freq);
 			thetaEstimator->setBaseFreq(freq);
 			logfile->done();
-			logfile->conclude("Estimated base frequencies: " + toString(freq[A])+ ", " + toString(freq[C]) + ", " + toString(freq[G]) + ", " + toString(freq[T]));
+			logfile->conclude("Estimated base frequencies: " + toString(freq[BAM::A])+ ", " + toString(freq[BAM::C]) + ", " + toString(freq[BAM::G]) + ", " + toString(freq[BAM::T]));
 			thetaEstimator->fillPGenotype(genotypePrior);
 		}
 	};
