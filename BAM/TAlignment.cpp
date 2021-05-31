@@ -274,12 +274,14 @@ bool TAlignment::isAlignedAtInternalPos(const uint32_t internalPosition) const{
 	return _alignedPosition[internalPosition] >= 0;
 };
 
-char TAlignment::referenceAtInternalPos(const uint32_t internalPosition) const{
-	//Note: does not check if reference exists!
+BAM::Base TAlignment::referenceAtInternalPos(const uint32_t & internalPosition) const{
+	if(!_hasReference){
+		throw std::runtime_error("BAM::Base TAlignment::referenceAtInternalPos(const uint32_t internalPosition) const: alignment has no reference!");
+	}
 	return _referenceSequence[_alignedPosition[internalPosition]];
 };
 
-TGenomePosition TAlignment::positionInRef(const uint32_t internalPosition) const{
+TGenomePosition TAlignment::positionInRef(const uint32_t & internalPosition) const{
 	//only makes sense if position is aligned!
 	return *this + _alignedPosition[internalPosition];
 };

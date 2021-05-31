@@ -118,8 +118,7 @@ void TWindow_base::resize(const uint32_t & newLength){
 	clear();
 };
 
-
-void TWindow_base::downsampleFromOther(TWindow & other, const int readUpToDepth, const double downsamplingProb, TRandomGenerator* randomGenerator){
+void TWindow_base::downsampleFromOther(TWindow & other, const uint32_t & readUpToDepth, const Probability & downsamplingProb, TRandomGenerator* randomGenerator){
 	clear();
 
 	//set coordinates
@@ -132,7 +131,7 @@ void TWindow_base::downsampleFromOther(TWindow & other, const int readUpToDepth,
 	_calcDepth();
 };
 
-void TWindow_base::downsampleFromOther(TWindow & other, TSiteSubset & subset, const int readUpToDepth, const double downsamplingProb, TRandomGenerator* randomGenerator){
+void TWindow_base::downsampleFromOther(TWindow & other, TSiteSubset & subset, const uint32_t & readUpToDepth, const Probability & downsamplingProb, TRandomGenerator* randomGenerator){
 	clear();
 
 	//set coordinates
@@ -144,8 +143,6 @@ void TWindow_base::downsampleFromOther(TWindow & other, TSiteSubset & subset, co
 	//calc depth
 	_calcDepth();
 };
-
-
 
 void TWindow_base::_calcDepth(){
 	if(!_depthCalculated){
@@ -500,7 +497,7 @@ void TWindow::_fillSites(std::vector<TSite> & sites, const uint32_t & readUpToDe
 	}
 };
 
-int TWindow::_fillSitesDownsampling(std::vector<TSite> & sites, const uint32_t & readUpToDepth, double downsamplingProb, TRandomGenerator* randomGenerator){
+int TWindow::_fillSitesDownsampling(std::vector<TSite> & sites, const uint32_t & readUpToDepth, const Probability & downsamplingProb, TRandomGenerator* randomGenerator){
 	sites.resize(size());
 
 	//add reads in usedAlignments to sites in window
@@ -566,7 +563,7 @@ void TWindow::_fillSitesSubset(std::vector<TSite> & sites, TSiteSubset & subset,
 	}
 };
 
-int TWindow::_fillSitesSubsetDownsampling(std::vector<TSite> & sites, TSiteSubset & subset, const uint32_t & readUpToDepth, double downsamplingProb, TRandomGenerator* randomGenerator){
+int TWindow::_fillSitesSubsetDownsampling(std::vector<TSite> & sites, TSiteSubset & subset, const uint32_t & readUpToDepth, const Probability& downsamplingProb, TRandomGenerator* randomGenerator){
 	sites.resize(size());
 
 	//get positions that are used

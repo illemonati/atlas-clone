@@ -79,7 +79,7 @@ public:
 //-----------------------------------
 class TEstimateThetaDownsamplingQC:public TEstimateTheta_base{
 private:
-	std::vector<double> downSampleProbVector;
+	std::vector<Probability> downSampleProbVector;
 	std::vector<GenotypeLikelihoods::TThetaEstimator> estimators;
 	bool _printFullData;
 

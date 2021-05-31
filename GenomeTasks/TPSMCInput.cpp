@@ -52,13 +52,13 @@ void TPSMCInput::_handleWindow(){
 	//call heterozygosity in blocks
 	for(uint32_t b=0; b<_nBlocks; ++b){
 		uint32_t blockStart = b * _blockSize;
-		double logPHomo = 0.0;
+		LogProbability logPHomo;
 
 		for(uint32_t i=0; i<_blockSize; ++i){
 			if(!_window[blockStart + i].empty()){
 				_genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(_window[blockStart + 1], _genoLik);
 				_posterior.fill(_genoLik, _prior);
-				logPHomo += log(_posterior.probHomozygous());
+				logPHomo += LogProbability(_posterior.probHomozygous());
 			}
 		}
 

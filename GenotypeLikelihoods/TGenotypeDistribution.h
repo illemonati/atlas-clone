@@ -32,7 +32,7 @@ public:
 	const TBaseData& baseFrequencies(){ return _baseFrequencies; };
 	const TGenotypeProbabilities& genotypeFrequencies(){ return _genotypeFrequencies; };
 
-	void fillBaseFrequences(TBaseData & baseFreq, const BAM::Genotype genotype);
+	void fillBaseFrequences(TBaseProbabilities & baseFreq, const BAM::Genotype genotype);
 };
 
 //-------------------------------------------

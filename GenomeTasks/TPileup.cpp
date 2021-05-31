@@ -83,7 +83,7 @@ TPileup::TPileup(TParameters & Parameters, TLog* Logfile, TRandomGenerator* Rand
 		header.push_back("numReverseStrand");
 	}
 	if(_printLikelihoods){
-		_genoLik.addNames(header, _genoMap);
+		_genoLik.addNames(header);
 	}
 
 	out.writeHeader(header);
@@ -132,15 +132,15 @@ void TPileup::_handleWindow(){
 		}
 
 		if(_printBases){
-			out << site.getBases(_genoMap);
+			out << site.getBases();
 		}
 		if(_printQualities){
-			out << site.getQualities(_qualMap);
+			out << site.getQualities();
 		}
 
 		if(_printAlleles){
 			site.countAlleles(_alleleCounts);
-			out << _alleleCounts[A] << _alleleCounts[C] << _alleleCounts[G] << _alleleCounts[T];
+			out << _alleleCounts[BAM::A] << _alleleCounts[BAM::C] << _alleleCounts[BAM::G] << _alleleCounts[BAM::T];
 			if(_reference){
 				out << _alleleCounts[site.refBase()] << _alleleCounts.size() - _alleleCounts[site.refBase()];
 			}

@@ -24,7 +24,7 @@ void TRecalDataTable::add(const BAM::TSequencedBase & base){
 	//add quality
 	_positions.add(base.distFrom5Prime);
 	_fragmentLengths.add(base.fragmentLength);
-	_qualities.add(base.originalQuality_phredInt);
+	_qualities.add(base.originalQuality_phredInt.get());
 	_mappingQualities.add(base.mappingQuality);
 };
 

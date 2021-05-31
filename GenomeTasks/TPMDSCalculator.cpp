@@ -29,8 +29,8 @@ double TPMDSCalculator::_calculatePMDS(){
 	uint16_t d = 0;
 	for(auto& b : _alignment){
 		//limit to aligned positions
-		Base ref = _genoMap.toBase(_alignment.referenceAtInternalPos(d));
-		if(b.isAligned() && b.base != N && ref != N){
+		BAM::Base ref = _alignment.referenceAtInternalPos(d);
+		if(b.isAligned() && b.base != BAM::N && ref != BAM::N){
 			PMDS +=  _genotypeLikelihoodCalculator.calculateLogPMDS(b, ref, _pi);
 		}
 		++d;

@@ -19,13 +19,9 @@ TBaseLikelihoods::TBaseLikelihoods(const BAM::Base & trueBase, const Probability
 	setFromError(trueBase, error);
 };
 
-void TBaseLikelihoods::setFromError(const BAM::Base trueBase, const Probability & error){
+void TBaseLikelihoods::setFromError(const BAM::Base & trueBase, const Probability & error){
 	set(error / 3.0);
-	_data[ (BAM::BaseEnum) trueBase] = 1.0 - error;
-};
-
-void TBaseLikelihoods::reset(){
-	set(Probability(1.0));
+	_data[trueBase.get()] = error.complement();
 };
 
 //--------------------------------------------------------------------
@@ -40,7 +36,7 @@ uint8_t TBaseCounts::numAlleles() const{
 	return n;
 };
 
-void TBaseCounts::fillFrequencies(TBaseData & freq){
+void TBaseCounts::fillFrequencies(TBaseProbabilities & freq){
 	double tot = _data[BAM::A] + _data[BAM::C] + _data[BAM::G] + _data[BAM::T];
 	freq[BAM::A] = _data[BAM::A] / tot;
 	freq[BAM::C] = _data[BAM::C] / tot;
@@ -48,7 +44,7 @@ void TBaseCounts::fillFrequencies(TBaseData & freq){
 	freq[BAM::T] = _data[BAM::T] / tot;
 };
 
-void TBaseCounts::fillCumulativeFrequencies(TBaseProbabilities & freq){
+void TBaseCounts::_fillCumulativeFrequencies(std::array<double, 4> & freq){
 	double tot = sum();
 	freq[BAM::A] = _data[BAM::A] / tot;
 	freq[BAM::C] = freq[BAM::A] + _data[BAM::C] / tot;
@@ -57,18 +53,18 @@ void TBaseCounts::fillCumulativeFrequencies(TBaseProbabilities & freq){
 };
 
 void TBaseCounts::downsample(const uint32_t & max, TRandomGenerator & RandomGenerator){
-	TBaseProbabilities probs;
-	TBaseCounts newCounts;
+	std::array<double, 4> cumulFreqs;
+	std::array<uint32_t, 5> newCounts{};
 
 	for(uint32_t i=0; i<max; ++i){
-		fillCumulativeFrequencies(probs);
-		uint8_t b = RandomGenerator.pickOne(probs);
+		_fillCumulativeFrequencies(cumulFreqs);
+		uint8_t b = RandomGenerator.pickOne(cumulFreqs);
 		++newCounts[b];
 		--_data[b];
 	}
 
 	//set counts
-	*this = newCounts;
+	_data = newCounts;
 };
 
 //--------------------------------------------------------------------
@@ -86,35 +82,35 @@ void TGenotypeLikelihoods::fill(const std::vector<TBaseData> & bases, const size
 	//allows for vector to be longer than what is to be used
 	//do in log if depth is high
 	if(bases.size() > 50){
-		//initialize
-		set(0.0);
+		//initialize tmp to zero
+		std::array<double, 10> tmp{};
 
 		//add to log genotype data
 		for(size_t i=0; i<size; ++i){
-			_data[BAM::AA] += log(bases[i][BAM::A]);
-			_data[BAM::AC] += log(0.5*bases[i][BAM::A] + 0.5*bases[i][BAM::C]);
-			_data[BAM::AG] += log(0.5*bases[i][BAM::A] + 0.5*bases[i][BAM::G]);
-			_data[BAM::AT] += log(0.5*bases[i][BAM::A] + 0.5*bases[i][BAM::T]);
-			_data[BAM::CC] += log(bases[i][BAM::C]);
-			_data[BAM::CG] += log(0.5*bases[i][BAM::C] + 0.5*bases[i][BAM::G]);
-			_data[BAM::CT] += log(0.5*bases[i][BAM::C] + 0.5*bases[i][BAM::T]);
-			_data[BAM::GG] += log(bases[i][BAM::G]);
-			_data[BAM::GT] += log(0.5*bases[i][BAM::G] + 0.5*bases[i][BAM::T]);
-			_data[BAM::TT] += log(bases[i][BAM::T]);
+			tmp[BAM::AA] += log(bases[i][BAM::A]);
+			tmp[BAM::AC] += log(0.5*bases[i][BAM::A] + 0.5*bases[i][BAM::C]);
+			tmp[BAM::AG] += log(0.5*bases[i][BAM::A] + 0.5*bases[i][BAM::G]);
+			tmp[BAM::AT] += log(0.5*bases[i][BAM::A] + 0.5*bases[i][BAM::T]);
+			tmp[BAM::CC] += log(bases[i][BAM::C]);
+			tmp[BAM::CG] += log(0.5*bases[i][BAM::C] + 0.5*bases[i][BAM::G]);
+			tmp[BAM::CT] += log(0.5*bases[i][BAM::C] + 0.5*bases[i][BAM::T]);
+			tmp[BAM::GG] += log(bases[i][BAM::G]);
+			tmp[BAM::GT] += log(0.5*bases[i][BAM::G] + 0.5*bases[i][BAM::T]);
+			tmp[BAM::TT] += log(bases[i][BAM::T]);
 		}
 
 		//standardize and de-log
-		double max = *std::max_element(_data.begin(), _data.end());
-		_data[BAM::AA] = exp(_data[BAM::AA] - max);
-		_data[BAM::AC] = exp(_data[BAM::AC] - max);
-		_data[BAM::AG] = exp(_data[BAM::AG] - max);
-		_data[BAM::AT] = exp(_data[BAM::AT] - max);
-		_data[BAM::CC] = exp(_data[BAM::CC] - max);
-		_data[BAM::CG] = exp(_data[BAM::CG] - max);
-		_data[BAM::CT] = exp(_data[BAM::CT] - max);
-		_data[BAM::GG] = exp(_data[BAM::GG] - max);
-		_data[BAM::GT] = exp(_data[BAM::GT] - max);
-		_data[BAM::TT] = exp(_data[BAM::TT] - max);
+		double max = *std::max_element(tmp.begin(), tmp.end());
+		_data[BAM::AA] = exp(tmp[BAM::AA] - max);
+		_data[BAM::AC] = exp(tmp[BAM::AC] - max);
+		_data[BAM::AG] = exp(tmp[BAM::AG] - max);
+		_data[BAM::AT] = exp(tmp[BAM::AT] - max);
+		_data[BAM::CC] = exp(tmp[BAM::CC] - max);
+		_data[BAM::CG] = exp(tmp[BAM::CG] - max);
+		_data[BAM::CT] = exp(tmp[BAM::CT] - max);
+		_data[BAM::GG] = exp(tmp[BAM::GG] - max);
+		_data[BAM::GT] = exp(tmp[BAM::GT] - max);
+		_data[BAM::TT] = exp(tmp[BAM::TT] - max);
 	} else { //on natural scale
 		//initialize
 		set(1.0);
@@ -136,14 +132,14 @@ void TGenotypeLikelihoods::fill(const std::vector<TBaseData> & bases, const size
 
 void TGenotypeLikelihoods::addNames(std::vector<std::string> & vec) const{
 	for(uint16_t g = BAM::AA; g < BAM::NN; g++){
-		vec.push_back( "P(D|" + (std::string) Genotype(static_cast<BAM::GenotypeEnum>(g)) + ")");
+		vec.push_back( "P(D|" + (std::string) BAM::Genotype(static_cast<BAM::GenotypeEnum>(g)) + ")");
 	}
 };
 
 //--------------------------------------------------------------------
 // TGenotypeProbabilities
 //--------------------------------------------------------------------
-void TGenotypeProbabilities::fill(const TGenotypeLikelihoods & likelihoods, const TGenotypeData & prior){
+void TGenotypeProbabilities::fill(const TGenotypeLikelihoods & likelihoods, const TGenotypeProbabilities & prior){
 	//calculate normalized genotype probabilities according to Bayes rule
 	_data[BAM::AA] = likelihoods[BAM::AA] * prior[BAM::AA];
 	_data[BAM::AC] = likelihoods[BAM::AC] * prior[BAM::AC];
@@ -159,12 +155,12 @@ void TGenotypeProbabilities::fill(const TGenotypeLikelihoods & likelihoods, cons
 	normalize();
 };
 
-double TGenotypeProbabilities::probHomozygous(){
+Probability TGenotypeProbabilities::probHomozygous(){
 	return _data[BAM::AA] + _data[BAM::CC] + _data[BAM::GG] + _data[BAM::TT];
 };
 
-double TGenotypeProbabilities::probHeterozygous(){
-	return 1.0 - _data[BAM::AA] - _data[BAM::CC] - _data[BAM::GG] - _data[BAM::TT];
+Probability TGenotypeProbabilities::probHeterozygous(){
+	return probHomozygous().complement();
 };
 
 //--------------------------------------------------------------------
@@ -187,29 +183,25 @@ void TGenotypeLikelihoodsHaploid::fill(const std::vector<TBaseData> & bases, con
 
 	//do in log if depth is high
 	if(bases.size() > 50){
-		//initialize
-		_data[BAM::AA] = 0.0; _data[BAM::CC] = 0.0; _data[BAM::GG] = 0.0; _data[BAM::TT] = 0.0;
-
+		//initialize tmp to zero
+		std::array<double, 4> tmp{};
 
 		//add to log genotype data
 		for(size_t i=0; i<size; ++i){
-			_data[BAM::AA] += log(bases[i][BAM::A]);
-			_data[BAM::CC] += log(bases[i][BAM::C]);
-			_data[BAM::GG] += log(bases[i][BAM::G]);
-			_data[BAM::TT] += log(bases[i][BAM::T]);
+			tmp[0] += log(bases[i][BAM::A]);
+			tmp[1] += log(bases[i][BAM::C]);
+			tmp[2] += log(bases[i][BAM::G]);
+			tmp[3] += log(bases[i][BAM::T]);
 		}
 
 		//find max
-		double max = _data[BAM::AA];
-		if(_data[BAM::CC] > max) max = _data[BAM::CC];
-		if(_data[BAM::GG] > max) max = _data[BAM::GG];
-		if(_data[BAM::TT] > max) max = _data[BAM::TT];
+		double max = *std::max_element(tmp.begin(), tmp.end());
 
 		//standardize and de-log
-		_data[BAM::AA] = exp(_data[BAM::AA] - max);
-		_data[BAM::CC] = exp(_data[BAM::CC] - max);
-		_data[BAM::GG] = exp(_data[BAM::GG] - max);
-		_data[BAM::TT] = exp(_data[BAM::TT] - max);
+		_data[BAM::AA] = exp(tmp[0] - max);
+		_data[BAM::CC] = exp(tmp[1] - max);
+		_data[BAM::GG] = exp(tmp[2] - max);
+		_data[BAM::TT] = exp(tmp[3] - max);
 	} else { //on natural scale
 		//initialize
 		_data[BAM::AA] = 1.0; _data[BAM::CC] = 1.0; _data[BAM::GG] = 1.0; _data[BAM::TT] = 1.0;

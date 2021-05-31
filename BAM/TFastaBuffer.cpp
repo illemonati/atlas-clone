@@ -38,7 +38,14 @@ void TFastaBuffer::initialize(std::string fastaFile, const uint32_t BufferSize){
 	_hasReference = true;
 };
 
-void TFastaBuffer::fill(const TGenomeWindow & Window, std::string & ref) const{
+void TFastaBuffer::_fill(std::vector<Base> & VecToFill, const size_t & Length, const size_t & Offset) const {
+	VecToFill.resize(Length);
+	for(size_t p = 0; p < Length; ++p){
+		VecToFill[p] = _referenceSequence[Offset + p];
+	}
+};
+
+void TFastaBuffer::fill(const TGenomeWindow & Window, std::vector<Base> & VecToFill) const {
 	//move buffer, if necessary
 	if(!_coordinates.contains(Window)){
 		//adjust buffer size?
@@ -50,11 +57,12 @@ void TFastaBuffer::fill(const TGenomeWindow & Window, std::string & ref) const{
 		_moveTo(Window.from());
 	}
 
-	//copy to string
-	ref.assign(_referenceSequence, Window - _coordinates, Window.size());
+	//fill
+	_fill(VecToFill, Window.size(), Window - _coordinates);
+
 };
 
-void TFastaBuffer::fill(const TGenomePosition & Position, const uint32_t & Length, std::string & ref) const{
+void TFastaBuffer::fill(const TGenomePosition & Position, const uint32_t & Length, std::vector<Base> & VecToFill) const {
 	//move buffer, if necessary
 	if(Position  < _coordinates || Position + Length - 1 > _coordinates){
 		if(Length > _bufferSize){
@@ -63,12 +71,12 @@ void TFastaBuffer::fill(const TGenomePosition & Position, const uint32_t & Lengt
 		_moveTo(Position);
 	}
 
-	//copy to string
-	ref.assign(_referenceSequence, Position - _coordinates, Length);
+	//fill
+	_fill(VecToFill, Length, Position - _coordinates);
 };
 
-void TFastaBuffer::fill(const TGenomePosition & Start, const TGenomePosition & End, std::string & ref) const{
-	fill(Start, End - Start + 1, ref);
+void TFastaBuffer::fill(const TGenomePosition & Start, const TGenomePosition & End, std::vector<Base> & VecToFill) const {
+	fill(Start, End - Start + 1, VecToFill);
 };
 
 /*
@@ -87,7 +95,7 @@ void TFastaBuffer::fill(const TGenomePosition & Position, const uint32_t end, st
 };
 */
 
-char TFastaBuffer::refCharAt(const TGenomePosition Position) const{
+char TFastaBuffer::refCharAt(const TGenomePosition Position) const {
 	if(Position  < _coordinates || Position > _coordinates){
 		_moveTo(Position);
 	}

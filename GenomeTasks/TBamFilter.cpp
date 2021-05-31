@@ -533,7 +533,7 @@ void TAlignmentMerger_randomBase::_mergeBasesCore(BAM::TSequencedBase & bestBase
 		GenotypeLikelihoods::TBaseLikelihoods likelihood(bestBase.base, (Probability) bestBase.recalibratedQualityAsPhredInt);
 		likelihood *= GenotypeLikelihoods::TBaseLikelihoods(worstBase.base, (Probability) worstBase.recalibratedQualityAsPhredInt);
 		likelihood.normalize();
-		bestBase.recalibratedQualityAsPhredInt = likelihood[bestBase.base.get()].inverse();
+		bestBase.recalibratedQualityAsPhredInt = likelihood[bestBase.base.get()].complement();
 	}
 
 	//set other to missing

@@ -46,26 +46,7 @@ void TGenome_basic::_initialize(TParameters &Params, TLog *Logfile, TRandomGener
 };
 
 void TGenome_basic::_openBamForWriting(const std::string filename, BAM::TOutputBamFile & outBam){
-	_logfile->list("Writing alignments to new BAM to file '" + filename + "'.");
-	if(_params->parameterExists("writeBinnedQualities")){
-		_logfile->list("When writing alignments, quality scores will be Illumina-binned. (parameter 'writeBinnedQualities').");
-		_qualMap.setBinQualityScores(true);
-	} else if(_params->parameterExists("minOutQual") || _params->parameterExists("minOutQual")){
-				int MinPhredInt = _params->getParameterWithDefault<int>("minOutQual", 0);
-				int MaxPhredInt = _params->getParameterWithDefault<int>("maxOutQual", 93);
-
-				if(MinPhredInt < 0 || MinPhredInt > 255) throw "minOutQual " + toString(MinPhredInt) + " is outside accepted range [0, 255]!";
-				if(MaxPhredInt < 0 || MaxPhredInt > 255) throw "maxOutQual " + toString(MaxPhredInt) + " is outside accepted range [0, 255]!";
-				if(MaxPhredInt < MinPhredInt) throw "maxOutQual must be >= minOutQual!";
-
-				_logfile->list("Will print qualities truncated to [" + toString(MinPhredInt) + ", " + toString(MaxPhredInt) + "] (parameters 'minOutQual', 'maxOutQual')");
-
-				//set in quality map
-				_qualMap.setQualityLimits(MinPhredInt, MaxPhredInt);
-	} else {
-		_logfile->list("Will use the full range of quality scores when writing alignments. (use 'writeBinnedQualities' to bin, 'minOutQual' and 'maxOutQual' to constrain).");
-	}
-	outBam.open(filename, _bamFile, &_genoMap, &_qualMap);
+	outBam.open(filename, _bamFile);
 };
 
 //---------------------------------------------------------------
@@ -112,7 +93,7 @@ void TGenome_parsed::_openReference(bool required){
 		if(_params->parameterExists("fasta")){
 			std::string fastaFile = _params->getParameter<std::string>("fasta");
 			_logfile->list("Reading reference sequence from '" + fastaFile + "'. (parameter fasta)");
-			_reference.initialize(fastaFile, &_genoMap);
+			_reference.initialize(fastaFile);
 		} else {
 			if(required){
 				throw "No reference provided! (Use parameter fasta to provide a reference)";
@@ -332,7 +313,7 @@ void TGenome_windows::_openSiteSubset(const std::string paramName){
 	if(_considerRegions) throw "Site subsets (parameter '" + paramName + "') and regions (parameter 'regions') can not be used at the same time!";
 	if(_doMasking) throw "Site subsets (parameter '" + paramName + "') and masks (parameter 'mask') can not be used at the same time!";
 
-	_subset = std::make_unique<GenotypeLikelihoods::TSiteSubset>(filename, _bamFile.chromosomes(), _genoMap, _logfile, false, _reference);
+	_subset = std::make_unique<GenotypeLikelihoods::TSiteSubset>(filename, _bamFile.chromosomes(), _logfile, false, _reference);
 };
 
 void TGenome_windows::_setCountersBeginningOfChromosome(){

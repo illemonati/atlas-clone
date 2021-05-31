@@ -56,7 +56,7 @@ protected:
 
 	//genotype prior
 	bool _usesPrior;
-	TGenotypeData* _genotypePrior; //for callers using a prior. Note: all callers accept priors, but may not use them.
+	TGenotypeProbabilities* _genotypePrior; //for callers using a prior. Note: all callers accept priors, but may not use them.
 	bool _priorSet;
 
 	//functions regarding VCF file
@@ -95,36 +95,6 @@ protected:
 	virtual bool _callGenotype(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
 	virtual bool _callGenotypeKnownAlleles(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
 
-	template <typename T> uint8_t _pickIndexWithHighestMetric(const T & metric){
-		//find maximum
-		double maxMetric = *std::max(metric.cbegin(), metric.cend());
-
-		//get vec of all index at maximum
-		std::vector<uint8_t> vec;
-		for(uint8_t i=0; i<metric.size(); ++i){
-			if(metric[i] == maxMetric)
-				vec.push_back(i);
-		}
-
-		//return random index among those at max
-		return vec[_randomGenerator->sample(vec.size())];
-	};
-
-	template <typename T> uint8_t _pickIndexWithSecondHighestMetric(const T & metric, const uint8_t excludeIndex){
-		//find maximum
-		double maxMetric = *std::max(metric.cbegin(), metric.cend());
-
-		//get vec of all index at maximum
-		std::vector<uint8_t> vec;
-		for(uint8_t i=0; i<metric.size(); ++i){
-			if(i != excludeIndex && metric[i] == maxMetric)
-				vec.push_back(i);
-		}
-
-		//return random index among those at max
-		return vec[_randomGenerator->sample(vec.size())];
-	};
-
 public:
 	TCaller(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
 	virtual ~TCaller();
@@ -147,7 +117,7 @@ public:
 
 	//prior
 	bool usesPrior(){ return _usesPrior; };
-	void setPrior(TGenotypeData* prior){ _genotypePrior = prior; _priorSet = true; };
+	void setPrior(TGenotypeProbabilities* prior){ _genotypePrior = prior; _priorSet = true; };
 	void call(const std::string & chr, const long & pos, const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
 	void call(const std::string & chr, const long & pos, const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods, const BAM::Base & firstAllele, const BAM::Base & secondAllele);
 };
@@ -219,14 +189,54 @@ protected:
 	BAM::Genotype genotypeAtMax, genotypeAtSecond;
 	std::string AB, AI;
 	bool imbalanceCalculated;
-	TGenotypeData tmpGenoData;
+	//TGenotypeData tmpGenoData;
 	TBinomPValue _binomP;
 
 	void _clearAfterCall();
-	void callGenotypeFromMetric(TGenotypeData & metric);
-	void callGenotypeFromMetricKnownAlleles(const TGenotypeData & metric);
-	bool callGenotypeFromMetricKnownAllelesUpdateIndex(const TGenotypeData & metric);
-	std::string getPerGenotypeMetricString(TGenotypeData & metric);
+	void callGenotypeFromMetric(const TGenotypeProbability_base & metric);
+	void callGenotypeFromMetricKnownAlleles(const TGenotypeProbability_base & metric);
+	bool callGenotypeFromMetricKnownAllelesUpdateIndex(const TGenotypeProbability_base & metric);
+
+	template<typename T> std::string _getPerGenotypeMetricString(const T & metric){
+		//if you have alleles R, A, B, C then the order is: RR, RA, AA | RB, AB, BB | RC, AC, BC, CC
+		//plot missing value (.) for all metrics involving the reference if the reference is N
+		std::string ret;
+		//first for reference base
+		if(referenceBase == BAM::N)
+			ret = ".";
+		else
+			ret = toString(metric[BAM::Genotype(referenceBase, referenceBase)]);
+
+		//now for alternative alleles
+		if(_altAlleles.size() > 0){
+			if(referenceBase == BAM::N)
+				ret += ",.";
+			else
+				ret += ',' + toString(metric[BAM::Genotype(referenceBase, _altAlleles[0])]);
+			ret += ',' + toString(metric[BAM::Genotype(_altAlleles[0], _altAlleles[0])]);
+
+			if(_altAlleles.size() > 1){
+				if(referenceBase == BAM::N)
+					ret += ",.";
+				else
+					ret += ',' + toString(metric[BAM::Genotype(referenceBase, _altAlleles[1])]);
+				ret += ',' + toString(metric[BAM::Genotype(_altAlleles[0], _altAlleles[1])]);
+				ret += ',' + toString(metric[BAM::Genotype(_altAlleles[1], _altAlleles[1])]);
+			}
+
+			if(_altAlleles.size() > 2){
+				if(referenceBase == BAM::N)
+					ret += ",.";
+				else
+					ret += ',' + toString(metric[BAM::Genotype(referenceBase, _altAlleles[2])]);
+				ret += ',' + toString(metric[BAM::Genotype(_altAlleles[0], _altAlleles[2])]);
+				ret += ',' + toString(metric[BAM::Genotype(_altAlleles[1], _altAlleles[2])]);
+				ret += ',' + toString(metric[BAM::Genotype(_altAlleles[2], _altAlleles[2])]);
+			}
+		}
+		return ret;
+	};
+
 	void calculateImbalance(const TSite & site);
 	std::string _getVCFGenotypeString_AB(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) override;
 	std::string _getVCFGenotypeString_AI(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) override;

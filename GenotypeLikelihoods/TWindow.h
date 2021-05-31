@@ -65,8 +65,8 @@ public:
 	virtual void resize(const uint32_t & newLength);
 
 	//void stealFromOther(TWindow_base & other);
-	void downsampleFromOther(TWindow & other, const int readUpToDepth, const double downsamplingProb, TRandomGenerator* randomGenerator);
-	void downsampleFromOther(TWindow & other, TSiteSubset & subset, const int readUpToDepth, const double downsamplingProb, TRandomGenerator* randomGenerator);
+	void downsampleFromOther(TWindow & other, const uint32_t & readUpToDepth, const Probability & downsamplingProb, TRandomGenerator* randomGenerator);
+	void downsampleFromOther(TWindow & other, TSiteSubset & subset, const uint32_t & readUpToDepth, const Probability & downsamplingProb, TRandomGenerator* randomGenerator);
 	void clear();
 
 	void addReferenceBaseToSites(BAM::TFastaBuffer & reference);
@@ -122,11 +122,11 @@ private:
 
 	void _fillSites(BAM::TAlignment & alignment, std::vector<TSite> & sites, const uint32_t & readUpToDepth);
 	void _fillSites(std::vector<TSite> & sites, const uint32_t & readUpToDepth);
-	int _fillSitesDownsampling(std::vector<TSite> & sites, const uint32_t & readUpToDepth, const double downsamplingProb, TRandomGenerator* randomGenerator);
+	int _fillSitesDownsampling(std::vector<TSite> & sites, const uint32_t & readUpToDepth, const Probability & downsamplingProb, TRandomGenerator* randomGenerator);
 
 	void _fillSitesSubset(BAM::TAlignment & alignmentIt, std::vector<TSite> & sites, std::set<TSiteSubsetSite> & thesePos, const unsigned int & readUpToDepth);
 	void _fillSitesSubset(std::vector<TSite> & sites, TSiteSubset & subset, const uint32_t & readUpToDepth);
-	int _fillSitesSubsetDownsampling(std::vector<TSite> & sites, TSiteSubset & subset, const uint32_t & readUpToDepth, const double downsamplingProb, TRandomGenerator* randomGenerator);
+	int _fillSitesSubsetDownsampling(std::vector<TSite> & sites, TSiteSubset & subset, const uint32_t & readUpToDepth, const Probability & downsamplingProb, TRandomGenerator* randomGenerator);
 
 public:
 	TWindow();

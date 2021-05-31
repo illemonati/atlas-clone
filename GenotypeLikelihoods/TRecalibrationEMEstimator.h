@@ -122,7 +122,7 @@ private:
 	size_t _numSitesDepthTwoOrMore();
 	void _initializeModels(TSequencingErrorModels & SequencingErrorModels);
 	void _runEM(std::string outputName, const TPostMortemDamage & PmdModels);
-	void _fillRelevantBaseFrequencies(TBaseData & baseFreq, const Genotype genotype);
+	void _fillRelevantBaseFrequencies(TBaseProbabilities & baseFreq, const BAM::Genotype & genotype);
 
 	//functions to estimate theta_epsilon (sequencing error rates)
 	void _calculate_EMWeights_epsilon(std::vector<TBaseData> & EMWeights, const TPostMortemDamage & PmdModels);

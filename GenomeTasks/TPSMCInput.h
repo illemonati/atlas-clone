@@ -29,7 +29,7 @@ private:
 	std::unique_ptr<GenotypeLikelihoods::TThetaEstimator> _thetaEstimator;
 
 	//tmp variables
-	GenotypeLikelihoods::TGenotypeData _prior;
+	GenotypeLikelihoods::TGenotypeProbabilities _prior;
 	GenotypeLikelihoods::TGenotypeProbabilities _posterior;
 	GenotypeLikelihoods::TBaseData _baseFreq;
 

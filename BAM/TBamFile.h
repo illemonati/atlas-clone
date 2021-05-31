@@ -212,9 +212,10 @@ public:
 	bool operator>(const TChromosome & Chromosome) const{ return _curAlignmentPosition > Chromosome.chrEnd; };
 };
 
-//----------------------------------------------------
-//TOutputBamFile
-//----------------------------------------------------
+//------------------------------------------------
+// TQualityAdjusterForWriting
+// Manages the printing of quality scores when writing BAM files
+//------------------------------------------------
 class TQualityAdjusterForWriting{
 private:
 	bool _adjust;
@@ -236,6 +237,9 @@ public:
 	void adjustQualities(std::string & qualities) const;
 };
 
+//----------------------------------------------------
+//TOutputBamFile
+//----------------------------------------------------
 class TOutputBamFile{
 	friend TBamFile;
 

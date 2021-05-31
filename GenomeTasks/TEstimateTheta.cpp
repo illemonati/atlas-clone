@@ -194,7 +194,7 @@ void TEstimateThetaLLSurface::estimateThetaLLSurface(){
 //-----------------------------------
 TEstimateThetaDownsamplingQC::TEstimateThetaDownsamplingQC(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TEstimateTheta_base(Parameters, Logfile, RandomGenerator){
 	//parse downsampling parameters
-	Parameters.fillParameterIntoProbabilityContainerWithDefault("prob", downSampleProbVector, ',', {1.0,0.5,0.2,0.1,0.05,0.02,0.01});
+	Parameters.fillParameterIntoContainer("prob", downSampleProbVector, ',', "1.0,0.5,0.2,0.1,0.05,0.02,0.01");
 
 	//report probabilities
 	_logfile->list("Will estimate theta after downsampling reads with probabilities " + concatenateString(downSampleProbVector, ", ") + ". (parameter 'prob')");
@@ -243,7 +243,7 @@ void TEstimateThetaDownsamplingQC::_handleWindow(){
 	}
 
 	for(size_t i=0; i<downSampleProbVector.size(); ++i){
-		double p = downSampleProbVector[i];
+		Probability& p = downSampleProbVector[i];
 		_logfile->startIndent("Estimating Theta on downsampled data (p = " + toString(p) + "):");
 
 		//downsample

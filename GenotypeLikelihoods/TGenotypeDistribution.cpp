@@ -13,7 +13,7 @@ namespace GenotypeLikelihoods{
 // TGenotypeDistribution
 // Base class.
 //-------------------------------------------
-void TGenotypeDistribution::fillBaseFrequences(TBaseData & baseFreq, const BAM::Genotype genotype){
+void TGenotypeDistribution::fillBaseFrequences(TBaseProbabilities & baseFreq, const BAM::Genotype genotype){
 	if(genotype == BAM::AA){
 		baseFreq[BAM::A] = 1.0;
 		baseFreq[BAM::C] = 0.0;

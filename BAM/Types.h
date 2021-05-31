@@ -76,9 +76,21 @@ public:
 		return Base(_flipBase[ static_cast<uint8_t>(_value) ]);
 	};
 
-	//range info (to loop)
+	//++operator, <operator and range info (to loop)
 	[[nodiscard]] static constexpr Base min() { return Base(A); };
 	[[nodiscard]] static constexpr Base max() { return Base(N); };
+
+	constexpr Base& operator++(){
+		if(_value == N){
+			throw std::runtime_error("constexpr Base& operator++(): overflow!");
+		};
+		_value = static_cast<BaseEnum>( static_cast<uint8_t>(_value) + 1);
+		return *this;
+	};
+
+	constexpr bool operator<(const Base & other){
+		return static_cast<uint8_t>(_value) < static_cast<uint8_t>(other.get());
+	};
 };
 
 std::ostream& operator<<(std::ostream& os, const Base & base);
@@ -184,13 +196,13 @@ public:
 		return _isHeterozygous[_value];
 	};
 
-	//++operator and range info (to loop)
+	//++operator, <operator and range info (to loop)
 	[[nodiscard]] static constexpr Genotype min() { return Genotype(AA); };
 	[[nodiscard]] static constexpr Genotype max() { return Genotype(NN); };
 
 	constexpr Genotype& operator++(){
 		if(_value == NN){
-			throw std::runtime_error("constexpr Genotype& operator++():: overflow!");
+			throw std::runtime_error("constexpr Genotype& operator++(): overflow!");
 		};
 		_value = static_cast<GenotypeEnum>( static_cast<uint8_t>(_value) + 1);
 		return *this;
@@ -291,6 +303,22 @@ public:
 
 	explicit operator uint16_t() const {
 		return static_cast<uint8_t>( (BaseContextEnum) _value);
+	};
+
+	//++operator, <operator and range info (to loop)
+	[[nodiscard]] static constexpr BaseContext min() { return BaseContext(cAA); };
+	[[nodiscard]] static constexpr BaseContext max() { return BaseContext(cNN); };
+
+	constexpr BaseContext& operator++(){
+		if(_value == cNN){
+			throw std::runtime_error("constexpr BaseContext& operator++(): overflow!");
+		};
+		_value = static_cast<BaseContextEnum>( static_cast<uint8_t>(_value) + 1);
+		return *this;
+	};
+
+	constexpr bool operator<(const BaseContext & other){
+		return static_cast<uint8_t>(_value) < static_cast<uint8_t>(other.get());
 	};
 };
 
@@ -394,7 +422,7 @@ class PhredIntErrorRate;
 class HighPrecisionPhredIntErrorRate;
 class BaseQuality;
 
-class PhredErrorRate : public StrongTypes::StrongType<double, PhredErrorRate, StrongTypes::Orderable, StrongTypes::Printable> {
+class PhredErrorRate : public StrongTypes::StrongType<double, PhredErrorRate, StrongTypes::Orderable, StrongTypes::Subtractable, StrongTypes::Printable> {
 private:
 	[[nodiscard]] constexpr double _errorToPhredError(const double & error) const {
 		return -10.0 * log10( (double) error);

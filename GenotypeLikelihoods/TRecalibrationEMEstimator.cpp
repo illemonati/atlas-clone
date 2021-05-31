@@ -286,8 +286,8 @@ void TRecalibrationEMEstimator::performEstimation(std::string outputName, TSeque
 	_logfile->done();
 };
 
-void TRecalibrationEMEstimator::_fillRelevantBaseFrequencies(TBaseData & baseFreq, const Genotype genotype){
-	if(genotype == NN){
+void TRecalibrationEMEstimator::_fillRelevantBaseFrequencies(TBaseProbabilities & baseFreq, const BAM::Genotype & genotype){
+	if(genotype == BAM::NN){
 		baseFreq = _genoDist->baseFrequencies();
 	} else {
 		_genoDist->fillBaseFrequences(baseFreq, genotype);
@@ -301,13 +301,13 @@ void TRecalibrationEMEstimator::_calculate_EMWeights_epsilon(std::vector<TBaseDa
 	size_t index = 0;
 	for(auto& s : _sites){
 		//get relevant base frequencies P(b): from known genotype or distribution if genotype is unknown
-		TBaseData baseFreq;
+		TBaseProbabilities baseFreq;
 		_fillRelevantBaseFrequencies(baseFreq, s.genotype());
 
 		//calculate weights per base
 		for(auto& b : s){
 			//calculate P(bbar) = \sum_b P(bbar|b)P(b)
-			TBaseData PMD;
+			TBaseLikelihoods PMD;
 			PmdModels.fillBaseLikelihoods(b, baseFreq, PMD);
 
 			//calculate P(d|bbar)

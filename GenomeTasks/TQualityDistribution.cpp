@@ -18,8 +18,8 @@ TQualityDistribution::TQualityDistribution(TParameters & Parameters, TLog* Logfi
 
 void TQualityDistribution::_handleAlignment(){
 	for(auto& b : _alignment){
-		if(b.base != N){
-			_qualDist.add(b.readGroupID, b.recalibratedQualityAsPhredInt);
+		if(b.base != BAM::N){
+			_qualDist.add(b.readGroupID, b.recalibratedQualityAsPhredInt.get());
 		}
 	}
 };
@@ -71,14 +71,14 @@ TQualityTransformation::TQualityTransformation(TParameters & Parameters, TLog* L
 void TQualityTransformation::_handleAlignment(){
 	if(_compareToOtherSeqErrors){
 		for(auto& b : _alignment){
-			if(b.base != N){
-				_transformations[_alignment.readGroupId()].add(b.recalibratedQualityAsPhredInt, _otherSeqErrors.getPhredInt(b));
+			if(b.base != BAM::N){
+				_transformations[_alignment.readGroupId()].add(b.recalibratedQualityAsPhredInt.get(), _otherSeqErrors.getPhredInt(b).get());
 			}
 		}
 	} else {
 		for(auto& b : _alignment){
-			if(b.base != N){
-				_transformations[_alignment.readGroupId()].add(b.originalQuality_phredInt, b.recalibratedQualityAsPhredInt);
+			if(b.base != BAM::N){
+				_transformations[_alignment.readGroupId()].add(b.originalQuality_phredInt.get(), b.recalibratedQualityAsPhredInt.get());
 			}
 		}
 	}

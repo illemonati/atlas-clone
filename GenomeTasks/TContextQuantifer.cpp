@@ -18,7 +18,9 @@ TContextQuantifier::TContextQuantifier(TParameters & Parameters, TLog* Logfile, 
 
 void TContextQuantifier::_handleAlignment(){
 	for(auto& b : _alignment){
-		_contextCounts.add(b.recalibratedQualityAsPhredInt, _genoMap.toContext(b.context, b.base));
+		if(b.context != BAM::cNN){
+			_contextCounts.add(b.recalibratedQualityAsPhredInt.get(), b.context.get());
+		}
 	}
 };
 
@@ -33,7 +35,11 @@ void TContextQuantifier::quantifyContexts(){
 	_logfile->list("Writing context information to file '" + outputFileName + "'.");
 
 	std::vector<std::string> contextLabels;
-	_genoMap.addContextNames(contextLabels);
+
+	for(BAM::BaseContext c = BAM::BaseContext::min(); c < BAM::BaseContext::max(); ++c){
+		contextLabels.push_back((std::string) c);
+	}
+
 	_contextCounts.writeAsMatrix(outputFileName, "quality", contextLabels);
 };
 

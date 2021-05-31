@@ -31,6 +31,7 @@ private:
 	mutable TGenomeWindow _coordinates;
 
 	void _moveTo(const BAM::TGenomePosition Position) const;
+	void _fill(std::vector<Base> & VecToFill, const size_t & Length, const size_t & Offset) const;
 
 public:
 	TFastaBuffer(){
@@ -53,9 +54,9 @@ public:
 	bool hasReference() const { return _hasReference; };
 	explicit operator bool() const { return _hasReference; }
 
-	void fill(const TGenomeWindow & Window, std::string & ref) const;
-	void fill(const TGenomePosition & Position, const uint32_t & Length, std::string & ref) const;
-	void fill(const TGenomePosition & Start, const TGenomePosition & End, std::string & ref) const;
+	void fill(const TGenomeWindow & Window, std::vector<Base> & VecToFill) const;
+	void fill(const TGenomePosition & Position, const uint32_t & Length, std::vector<Base> & VecToFill) const;
+	void fill(const TGenomePosition & Start, const TGenomePosition & End, std::vector<Base> & VecToFill) const;
 	Base refAt(const TGenomePosition Position) const;
 	char refCharAt(const TGenomePosition Position) const;
 
