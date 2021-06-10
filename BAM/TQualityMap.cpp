@@ -159,7 +159,7 @@ void TQualityFilter::_default(){
 	_range.set(PhredIntErrorRate(1), true, PhredIntErrorRate(93), true);
 };
 
-void TQualityFilter::set(TParameters & params, TLog* logfile){
+void TQualityFilter::set(coretools::TParameters & params, coretools::TLog* logfile){
 	if(params.parameterExists("filterBaseQual")){
 		params.fillParameter("filterBaseQual", _range);
 		logfile->list("Will filter out bases with quality outside the range " + _range.rangeString() + " (parameter 'filterBaseQual')");
@@ -173,7 +173,7 @@ void TQualityFilter::set(TParameters & params, TLog* logfile){
 //-------------------------------------
 // TContextFilter
 //-------------------------------------
-void TContextFilter::set(TParameters & params, TLog* logfile){
+void TContextFilter::set(coretools::TParameters & params, coretools::TLog* logfile){
 	_filter = false;
 	if(params.parameterExists("ignoreContexts")){
 		std::vector<std::string> contexts;
@@ -203,7 +203,7 @@ void TContextFilter::set(TParameters & params, TLog* logfile){
 					rep.push_back( (std::string) BaseContext(static_cast<BaseContextEnum>(i)));
 				}
 			}
-			logfile->list("Will ignore the following contexts: " + concatenateString(rep, ", ")  + ". (parameter 'ignoreContexts')");
+			logfile->list("Will ignore the following contexts: " + coretools::str::concatenateString(rep, ", ")  + ". (parameter 'ignoreContexts')");
 			_filter = true;
 		}
 	}

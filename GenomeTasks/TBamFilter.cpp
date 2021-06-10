@@ -9,6 +9,7 @@
 
 namespace GenomeTasks{
 
+using namespace coretools::str;
 
 bool operator<(const uint16_t left, const TAlignmentMergerReadGroupSetting & right){
 	return left < right.readGroupId;
@@ -59,7 +60,7 @@ void TAlignmentMergerReadGroupSettings::initialize(TParameters & Params, TLog* l
 		if(Params.parameterExists("ignoreReadGroups")){
 			std::string ignoredReadGroupsFile = Params.getParameter<std::string>("ignoreReadGroups");
 			logfile->listFlush("Reading read groups to ignore from file '" + ignoredReadGroupsFile + "' ...");
-			TInputFile in(ignoredReadGroupsFile, false);
+			coretools::TInputFile in(ignoredReadGroupsFile, false);
 			while(in.read(vec)){
 				if(readGroups.readGroupExists(vec[0])){
 					readGroupsToIgnore.insert(readGroups.getId(vec[0]));
@@ -71,7 +72,7 @@ void TAlignmentMergerReadGroupSettings::initialize(TParameters & Params, TLog* l
 		//read file with read group settings
 		std::string readGroupSettingsFile = Params.getParameter<std::string>("readGroupSettings");
 		logfile->listFlush("Reading single end read groups from file '" + readGroupSettingsFile + "' ...");
-		TInputFile in(readGroupSettingsFile, false);
+		coretools::TInputFile in(readGroupSettingsFile, false);
 		if(in.numCols() != 3){
 			throw "Wrong number of entries in file '" + readGroupSettingsFile + "': need three columns corresponding to the read group name, read group type and max cycles!";
 		}
@@ -530,8 +531,8 @@ TAlignmentMerger_randomBase::TAlignmentMerger_randomBase(TRandomGenerator* Rando
 
 void TAlignmentMerger_randomBase::_mergeBasesCore(BAM::TSequencedBase & bestBase, BAM::TSequencedBase & worstBase){
 	if(_adaptQuality){
-		GenotypeLikelihoods::TBaseLikelihoods likelihood(bestBase.base, (Probability) bestBase.recalibratedQualityAsPhredInt);
-		likelihood *= GenotypeLikelihoods::TBaseLikelihoods(worstBase.base, (Probability) worstBase.recalibratedQualityAsPhredInt);
+		GenotypeLikelihoods::TBaseLikelihoods likelihood(bestBase.base, (coretools::Probability) bestBase.recalibratedQualityAsPhredInt);
+		likelihood *= GenotypeLikelihoods::TBaseLikelihoods(worstBase.base, (coretools::Probability) worstBase.recalibratedQualityAsPhredInt);
 		likelihood.normalize();
 		bestBase.recalibratedQualityAsPhredInt = likelihood[bestBase.base.get()].complement();
 	}
@@ -722,7 +723,7 @@ TOverlapQuantifier::TOverlapQuantifier(TParameters & Params, TLog* Logfile, TRan
 
 void TOverlapQuantifier::quantifyOverlap(){
 	//prepare counter
-	TCountDistributionVector overlapDist;
+	coretools::TCountDistributionVector overlapDist;
 
 	//parse BAM file
 	_bamFile.startProgressReporting(1000000);
@@ -776,7 +777,7 @@ void TOverlapQuantifier::quantifyOverlap(){
 	//write distribution
 	std::string filename = _outputName + "_overlapStats.txt";
 	_logfile->listFlush("Writing distribution of fragment length and overlap to file '" + filename + "' ...");
-	TOutputFile out(filename, {"fragmentLength", "overlap"});
+	coretools::TOutputFile out(filename, {"fragmentLength", "overlap"});
 	overlapDist.write(out);
 	out.close();
 	_logfile->done();

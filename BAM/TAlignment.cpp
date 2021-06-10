@@ -408,7 +408,7 @@ void TAlignment::updateOptionalSamField(std::string tag, std::string value){
 };
 */
 
-void TAlignment::downsampleAlignment(const Probability & fractionToKeep, TRandomGenerator& randomGenerator){
+void TAlignment::downsampleAlignment(const coretools::Probability & fractionToKeep, coretools::TRandomGenerator& randomGenerator){
 	for(auto& b : _bases){
 		double r = randomGenerator.getRand();
 		if(r > fractionToKeep){

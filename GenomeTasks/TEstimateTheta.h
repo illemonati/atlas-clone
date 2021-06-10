@@ -79,7 +79,7 @@ public:
 //-----------------------------------
 class TEstimateThetaDownsamplingQC:public TEstimateTheta_base{
 private:
-	std::vector<Probability> downSampleProbVector;
+	std::vector<coretools::Probability> downSampleProbVector;
 	std::vector<GenotypeLikelihoods::TThetaEstimator> estimators;
 	bool _printFullData;
 
@@ -113,6 +113,8 @@ public:
 //--------------------------------------
 // Tasks
 //--------------------------------------
+using coretools::TTask;
+
 class TThetaTask:public TTask{
 public:
 	TThetaTask(){ _citations.insert("Kousathanas et al. (2017) Genetics"); };

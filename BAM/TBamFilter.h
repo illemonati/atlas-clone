@@ -15,12 +15,15 @@
 
 namespace BAM{
 
+using coretools::TLog;
+using coretools::TNumericRange;
+
 //-----------------------------------------------------
 //TBamFileLog
 //-----------------------------------------------------
 class TBamFileLog{
 private:
-	TOutputFile _log;
+	coretools::TOutputFile _log;
 
 public:
 	TBamFileLog(const std::string filename);

@@ -9,6 +9,8 @@
 
 namespace GenotypeLikelihoods{
 
+using coretools::str::toString;
+
 //-------------------------------------------------------
 //TWindow_base
 //-------------------------------------------------------
@@ -198,7 +200,7 @@ double TWindow_base::fractionRefIsN(){
 	return _fractionRefIsN;
 };
 
-void TWindow_base::dataSummary(TLog* Logfile){
+void TWindow_base::dataSummary(coretools::TLog* Logfile){
 	_calcDepth();
 	Logfile->conclude("Read data from " + toString(_numReadsInWindow) + " reads.");
 	Logfile->conclude("Sequencing depth is " + toString(_depth) + ".");
@@ -206,7 +208,7 @@ void TWindow_base::dataSummary(TLog* Logfile){
 	Logfile->conclude(toString(_fractionSitesNoData * 100) + "% of all sites have no data.");
 };
 
-bool TWindow_base::filter(const double maxFracMissing, const double maxRefN, TLog* Logfile){
+bool TWindow_base::filter(const double maxFracMissing, const double maxRefN, coretools::TLog* Logfile){
 	_calcDepth();
 
 	//filter window
@@ -296,7 +298,7 @@ void TWindow_base::maskCpG(BAM::TFastaBuffer & reference){
 	}
 };
 
-void TWindow_base::downsample(const uint32_t & maxDepth, const TSubsamplePicker & picker){
+void TWindow_base::downsample(const uint32_t & maxDepth, const coretools::TSubsamplePicker & picker){
 	for(auto& s : _sites){
 		s.downsample(maxDepth, picker);
 	}
@@ -326,7 +328,7 @@ std::ostream& operator<<(std::ostream& os, const TWindow_base & window){
 	return os;
 };
 
-TOutputFile& operator<<(TOutputFile& out, const TWindow_base & window){
+coretools::TOutputFile& operator<<(coretools::TOutputFile& out, const TWindow_base & window){
 	out << window.chrName() << window.from().position()+1 << window.to().position();
 	return out;
 };

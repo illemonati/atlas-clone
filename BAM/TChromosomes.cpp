@@ -10,6 +10,8 @@
 
 namespace BAM{
 
+using coretools::str::toString;
+
 //---------------------------------------------------------
 // TChromosome
 //---------------------------------------------------------
@@ -110,7 +112,7 @@ void TChromosomes::limitChr(TParameters & params, TLog* logfile){
 	if(params.parameterExists("chr")){
 		logfile->startIndent("Will limit analysis to the following chromosomes (parameter 'chr'):");
 		std::vector<std::string> vec;
-		fillContainerFromString(params.getParameter<std::string>("chr"), vec, ',');
+		coretools::str::fillContainerFromString(params.getParameter<std::string>("chr"), vec, ',');
 		_useSpecifiedChr(vec);
 		writeUsedChromosomes(logfile);
 	} else {
@@ -162,7 +164,7 @@ void TChromosomes::setPloidy(TParameters & params, TLog* logfile){
 		_specifyPloidy(params.getParameter<std::string>("ploidy"), logfile);
 	} else if(params.parameterExists("haploid")){
 		std::vector<std::string> vec;
-		fillContainerFromString(params.getParameter<std::string>("haploid"), vec, ',');
+		coretools::str::fillContainerFromString(params.getParameter<std::string>("haploid"), vec, ',');
 		if(vec.size() == 1 && vec[0] == "all"){
 			logfile->list("Assuming all chromosomes are haploid. (parameter 'haploid')");
 			for(auto& c : _chromosomes){
@@ -189,12 +191,12 @@ void TChromosomes::_specifyPloidy(const std::string & ploidyFileName, TLog* logf
 		std::string line;
 		std::getline(ploidyFile, line);
 		std::vector<std::string> vec;
-		fillContainerFromStringWhiteSpace(line, vec, true);
+		coretools::str::fillContainerFromStringWhiteSpace(line, vec, true);
 
 		//skip empty lines
 		if(vec.size() > 0){
             TChromosome & c = _find(vec[0]);
-			c.ploidy = convertString<int>(vec[1]);
+			c.ploidy = coretools::str::convertString<int>(vec[1]);
 
 			//report
 			if(c.ploidy == 1){

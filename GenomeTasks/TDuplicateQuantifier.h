@@ -20,8 +20,8 @@ namespace GenomeTasks{
 //----------------------------------------------
 class TDuplicateQuantifier:public TGenome_filtered{
 private:
-	TCountDistributionVector _countsPerReadGroup;
-	TCountDistribution _countsCombined;
+	coretools::TCountDistributionVector _countsPerReadGroup;
+	coretools::TCountDistribution _countsCombined;
 
 	std::vector<uint32_t> _countsAtPos;
 	BAM::TGenomePosition _curPos;
@@ -38,7 +38,7 @@ public:
 //--------------------------------------
 // Tasks
 //--------------------------------------
-class TTask_duplicationQuantifier:public TTask{
+class TTask_duplicationQuantifier:public coretools::TTask{
 public:
 	TTask_duplicationQuantifier(){ _explanation = "Quantifying read duplication"; };
 

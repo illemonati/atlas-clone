@@ -24,6 +24,9 @@
 #include "TBamFile.h"
 
 namespace GenomeTasks{
+using coretools::TParameters;
+using coretools::TLog;
+using coretools::TRandomGenerator;
 
 //---------------------------------------------------------------
 // TGenome_basic
@@ -133,12 +136,12 @@ protected:
 	uint32_t _readUpToDepth, _minDepth, _maxDepth;
 	bool _filterCpG;
 	uint32_t _downsampleDepth;
-	std::unique_ptr<TSubsamplePicker> subsamplePicker;
+	std::unique_ptr<coretools::TSubsamplePicker> subsamplePicker;
 
 	//tmp variables
 	BAM::TAlignment* _curAlignment;
 	bool _hasWindowIndent;
-	TTimer _windowTimer;
+	coretools::TTimer _windowTimer;
 
 	//contructor functions
 	void _setWindowParameters(TParameters & params);

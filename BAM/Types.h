@@ -12,6 +12,7 @@
 #include <ostream>
 #include <math.h>
 #include <cmath>
+#include <array>
 #include "strongTypes.h"
 #include "stringFunctions.h"
 #include "probability.h"
@@ -19,13 +20,18 @@
 
 namespace BAM{
 
+using coretools::Probability;
+using coretools::LogProbability;
+using coretools::Log10Probability;
+using coretools::str::toString;
+
 //------------------------------------------------
 // Base
 //------------------------------------------------
 
 enum BaseEnum : uint8_t {A=0, C, G, T, N};
 
-class Base : public StrongTypes::StrongType<BaseEnum, Base> {
+class Base : public coretools::StrongTypes::StrongType<BaseEnum, Base> {
 private:
 	static constexpr char _toChar[5] = {'A', 'C', 'G', 'T', 'N'};
 	static constexpr BaseEnum _flipBase[5] = {T, G, C, A, N};
@@ -101,7 +107,7 @@ std::ostream& operator<<(std::ostream& os, const Base & base);
 
 enum GenotypeEnum : uint8_t {AA=0, AC, AG, AT, CC, CG, CT, GG, GT, TT, NN};
 
-class Genotype : public StrongTypes::StrongType<GenotypeEnum, Genotype> {
+class Genotype : public coretools::StrongTypes::StrongType<GenotypeEnum, Genotype> {
 private:
 	static constexpr Base _firstBase[11] = {A, A, A, A, C, C, C, G, G, T, N};
 	static constexpr Base _secondBase[11] = {A, C, G, T, C, G, T, G, T, T, N};
@@ -176,7 +182,7 @@ public:
 		return _secondBase[_value];
 	};
 
-	[[nodiscard]] constexpr const Base& randomAllele(TRandomGenerator & RandomGenerator) const{
+	[[nodiscard]] constexpr const Base& randomAllele(coretools::TRandomGenerator & RandomGenerator) const{
 		if(_value == NN){
 			return _firstBase[10];
 		} else if(_isHomozygous[_value]){
@@ -249,7 +255,7 @@ public:
 
 enum BaseContextEnum : uint8_t {cAA=0, cAC, cAG, cAT, cCA, cCC, cCG, cCT, cGA, cGC, cGG, cGT, cTA, cTC, cTG, cTT, cNA, cNC, cNG, cNT, cNN}; //N means unknown base or "nothing", i.e. end of read
 
-class BaseContext : public StrongTypes::StrongType<BaseContextEnum, BaseContext> {
+class BaseContext : public coretools::StrongTypes::StrongType<BaseContextEnum, BaseContext> {
 private:
 	static const std::string _toString[cNN+1];
 
@@ -331,7 +337,7 @@ std::ostream& operator<<(std::ostream& os, const BaseContext & context);
 
 enum AllelicCombinationEnum : uint8_t {alleleicCombinationAC=0, alleleicCombinationAG, alleleicCombinationAT, alleleicCombinationCG, alleleicCombinationCT, alleleicCombinationGT, alleleicCombinationNN}; //acNN means unknown
 
-class AllelicCombination : public StrongTypes::StrongType<AllelicCombinationEnum, AllelicCombination> {
+class AllelicCombination : public coretools::StrongTypes::StrongType<AllelicCombinationEnum, AllelicCombination> {
 private:
 
 	static constexpr Base _firstBase[7] = {A, A, A, C, C, G, N};
@@ -422,7 +428,10 @@ class PhredIntErrorRate;
 class HighPrecisionPhredIntErrorRate;
 class BaseQuality;
 
-class PhredErrorRate : public StrongTypes::StrongType<double, PhredErrorRate, StrongTypes::Orderable, StrongTypes::Subtractable, StrongTypes::Printable> {
+class PhredErrorRate : public coretools::StrongTypes::StrongType<double, PhredErrorRate,
+                                                                 coretools::StrongTypes::Orderable,
+																 coretools::StrongTypes::Subtractable,
+																 coretools::StrongTypes::Printable> {
 private:
 	[[nodiscard]] constexpr double _errorToPhredError(const double & error) const {
 		return -10.0 * log10( (double) error);
@@ -520,7 +529,10 @@ public:
 // phreded error stored as uint8_t
 // only valid within [0,255] and truncated outside
 //------------------------------------------------
-class PhredIntErrorRate : public StrongTypes::StrongType<uint8_t, PhredIntErrorRate, StrongTypes::Orderable, StrongTypes::Incrementable, StrongTypes::Printable> {
+class PhredIntErrorRate : public coretools::StrongTypes::StrongType<uint8_t, PhredIntErrorRate,
+                                                                    coretools::StrongTypes::Orderable,
+																	coretools::StrongTypes::Incrementable,
+																	coretools::StrongTypes::Printable> {
 private:
 	static const double _phredIntToError[256];
 
@@ -637,7 +649,9 @@ public:
 // phred error with more (100 times) precision than PhredIntError
 // HighPrecisionPhredIntErrorRate = -1000 * log10(error)
 //------------------------------------------------
-class HighPrecisionPhredIntErrorRate : public StrongTypes::StrongType<uint16_t, HighPrecisionPhredIntErrorRate, StrongTypes::Orderable, StrongTypes::Printable> {
+class HighPrecisionPhredIntErrorRate : public coretools::StrongTypes::StrongType<uint16_t, HighPrecisionPhredIntErrorRate,
+                                                                                 coretools::StrongTypes::Orderable,
+																				 coretools::StrongTypes::Printable> {
 private:
 	static const double _highPrecisionPhredIntToError[65536];
 
@@ -747,7 +761,9 @@ public:
 // quality = PhredIntError + 33
 // only valid within [33,126] (matching chars ! until ~) and truncated outside
 //------------------------------------------------
-class BaseQuality : public StrongTypes::StrongType<char, BaseQuality, StrongTypes::Orderable, StrongTypes::Printable> {
+class BaseQuality : public coretools::StrongTypes::StrongType<char, BaseQuality,
+                                                              coretools::StrongTypes::Orderable,
+															  coretools::StrongTypes::Printable> {
 private:
 	static const char _min = 33;
 	static const char _max = 126;

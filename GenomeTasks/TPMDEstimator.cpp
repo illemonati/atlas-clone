@@ -27,7 +27,7 @@ TPMDEstimator::TPMDEstimator(TParameters & Parameters, TLog* Logfile, TRandomGen
 	//parse estimation parameters
 	_logfile->startIndent("Parameters for PMD Estimation:");
 	_maxLengthForInference = Parameters.getParameterWithDefault<int>("length", 50);
-	_logfile->list("Estimating PMD from the first " + toString(_maxLengthForInference) + " positions.");
+	_logfile->list("Estimating PMD from the first " + coretools::str::toString(_maxLengthForInference) + " positions.");
 
 	GenotypeLikelihoods::TPostMortemDamage& pmd = _genotypeLikelihoodCalculator.getPostMortemDamageModelsMutable();
 	for(auto& r : _readGroupMap->readGroupsInUse()){

@@ -149,7 +149,7 @@ public:
 	void add(const uint16_t & ReadGroupId);
 	TModelStatus& operator[](const uint16_t & ReadGroupId);
 	uint16_t num(const ModelStatusTypes & Type);
-	void report(const ModelStatusTypes & Type, const std::string & Title, const BAM::TReadGroups & ReadGroups, TLog* Logfile);
+	void report(const ModelStatusTypes & Type, const std::string & Title, const BAM::TReadGroups & ReadGroups, coretools::TLog* Logfile);
 };
 
 }; //end namespace RecalEstimatorTools

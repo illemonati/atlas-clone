@@ -13,7 +13,7 @@ namespace GenotypeLikelihoods{
 //TPMDCounts
 //---------------------------------------------------------------
 void TPMDCounts::_add(const uint16_t & pos, const BAM::Base & read){
-	++_counts[read][pos];
+	++_counts[read.get()][pos];
 	++_sums[pos];
 };
 void TPMDCounts::resize(const uint16_t & Size){
@@ -53,14 +53,14 @@ void TPMDCounts::add(const TPMDCounts & other){
 	}
 };
 
-void TPMDCounts::_writeNormalizedOne(TOutputFile & out, countVec & these){
+void TPMDCounts::_writeNormalizedOne(coretools::TOutputFile & out, countVec & these){
 	for(uint16_t i = 0; i< _size; ++i){
 		out << (double) these[i] / (double) _sums[i];
 	}
 	out << std::endl;
 };
 
-void TPMDCounts::write(TOutputFile & out, const std::vector<std::string> & prefix, const bool & normalized){
+void TPMDCounts::write(coretools::TOutputFile & out, const std::vector<std::string> & prefix, const bool & normalized){
 	if(normalized){
 		out << prefix << "A"; _writeNormalizedOne(out, _counts[BAM::A]);
 		out << prefix << "C"; _writeNormalizedOne(out, _counts[BAM::C]);
@@ -103,7 +103,7 @@ void TPMDTable::empty(){
 };
 
 void TPMDTable::add(const uint16_t & pos, const BAM::Base & ref, const BAM::Base & read){
-	_counts[ref].add(pos, read);
+	_counts[ref.get()].add(pos, read);
 };
 
 void TPMDTable::add(const TPMDTable & other){
@@ -113,7 +113,7 @@ void TPMDTable::add(const TPMDTable & other){
 	_counts[BAM::T].add(other[BAM::T]);
 };
 
-void TPMDTable::write(TOutputFile & out, std::vector<std::string> & prefix, const bool & normalized){
+void TPMDTable::write(coretools::TOutputFile & out, std::vector<std::string> & prefix, const bool & normalized){
 	//add ref base to prefix
 	prefix[3] = "A";
 	_counts[BAM::A].write(out, prefix, normalized);
@@ -149,7 +149,7 @@ void TPMDTableReadGroup::add(const BAM::TSequencedBase & base, const BAM::Base &
 	}
 };
 
-void TPMDTableReadGroup::write(TOutputFile & out, std::vector<std::string> & prefix, const bool & normalized){
+void TPMDTableReadGroup::write(coretools::TOutputFile & out, std::vector<std::string> & prefix, const bool & normalized){
 	prefix[1] = "forward";
 	prefix[2] = "5'";
 	_tables[forward5].write(out, prefix, normalized);
@@ -203,12 +203,12 @@ void TPMDTables::write(std::string filename, const bool & normalize){
 	//compile header
 	std::vector<std::string> header = {"ReadGroup", "direction", "fromEnd", "referenceBase", "sequencedBase" };
 	for(uint16_t p = 1; p <= _tableLength; ++p){
-		header.push_back("position_" + toString(p));
+		header.push_back("position_" + coretools::toString(p));
 	}
-	header.push_back("position_>" + toString(_tableLength));
+	header.push_back("position_>" + coretools::toString(_tableLength));
 
 	//open file
-	TOutputFile out(filename, header);
+	coretools::TOutputFile out(filename, header);
 
 	//loop over all read groups
 	std::vector<std::string> prefix(4);

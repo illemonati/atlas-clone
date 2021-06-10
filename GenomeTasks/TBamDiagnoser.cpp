@@ -31,7 +31,7 @@ void TBamDiagnoser::_writeHistogram(const TCountDistributionVector & distVec, co
 	// 1) read length
 	std::string filename = _outputName + "_" + header + "Histogram.txt";
 	_logfile->listFlush("Writing " + name + " histogram to '" + filename + "' ...");
-	TOutputFile out(filename, {"readGroup", header, "count"});
+	coretools::TOutputFile out(filename, {"readGroup", header, "count"});
 
 	distVec.writeCombined(out, "allReadGroups");
 	distVec.write(out, _readGroupNames);
@@ -77,7 +77,7 @@ void TBamDiagnoser::diagnose(){
 
 	//now parse through bam file
     _traverseBAMPassedQC();
-	_logfile->list("Approximate sequencing depth was estimated at " + toString((double) _usableLength.sum() / (double) totLengthOfGenome));
+	_logfile->list("Approximate sequencing depth was estimated at " + coretools::str::toString((double) _usableLength.sum() / (double) totLengthOfGenome));
 
 	//writing output files
 	_logfile->startIndent("Writing output files:");
@@ -85,7 +85,7 @@ void TBamDiagnoser::diagnose(){
 	//writing read group summary
 	std::string filename = _outputName + "_diagnostics.txt";
 	_logfile->listFlush("Writing general diagnostics to '" + filename + "' ...");
-	TOutputFile out(filename, {"readGroup", "reads", "passedQC", "fracPassedQC", "avgReadLength", "maxReadLength", "properPairs", "avgFragmentLength", "softClipped", "avgSoftClippedLength", "avgUsableAlignedLength", "approximateDepth", "avgMappingQuality"});
+	coretools::TOutputFile out(filename, {"readGroup", "reads", "passedQC", "fracPassedQC", "avgReadLength", "maxReadLength", "properPairs", "avgFragmentLength", "softClipped", "avgSoftClippedLength", "avgUsableAlignedLength", "approximateDepth", "avgMappingQuality"});
 
 	//write for combined
 	out << "allReadGroups";

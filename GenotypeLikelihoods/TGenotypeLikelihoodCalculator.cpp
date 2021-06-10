@@ -13,12 +13,12 @@ TGenotypeLikelihoodCalculator::TGenotypeLikelihoodCalculator(){
 	_initialized = false;
 };
 
-TGenotypeLikelihoodCalculator::TGenotypeLikelihoodCalculator(TParameters & params, const BAM::TReadGroups* ReadGroups, TLog* Logfile){
+TGenotypeLikelihoodCalculator::TGenotypeLikelihoodCalculator(coretools::TParameters & params, const BAM::TReadGroups* ReadGroups, coretools::TLog* Logfile){
 	_initialized = false;
 	init(params, ReadGroups, Logfile);
 };
 
-void TGenotypeLikelihoodCalculator::init(TParameters & params, const BAM::TReadGroups* ReadGroups, TLog* Logfile){
+void TGenotypeLikelihoodCalculator::init(coretools::TParameters & params, const BAM::TReadGroups* ReadGroups, coretools::TLog* Logfile){
 	if(_initialized){
 		throw "TGenotypeLikelihoodCalculator has already been initialized!";
 	}
@@ -32,7 +32,7 @@ void TGenotypeLikelihoodCalculator::init(TParameters & params, const BAM::TReadG
 		//Warn if some read groups have no PMD definition
 		if(readGroupsWithoutDef.size() > 0){
 			Logfile->warning("The following read groups do not have PMD definitions: "
-					         + concatenateString(ReadGroups->getNames(readGroupsWithoutDef), ", ")
+					         + coretools::str::concatenateString(ReadGroups->getNames(readGroupsWithoutDef), ", ")
 							 + "!");
 			if(!params.parameterExists("allowReadGroupsWithoutPMD")){
 				throw "PMD is only defined for a subset of read groups. Did you use the wrong PMD file? (use allowReadGroupsWithoutPMD to ignore)";
@@ -54,7 +54,7 @@ void TGenotypeLikelihoodCalculator::init(TParameters & params, const BAM::TReadG
 
 		if(readGroupsWithoutRecal.size() > 0){
 			Logfile->warning("The following read groups do not have recal definitions: "
-					         + concatenateString(ReadGroups->getNames(readGroupsWithoutRecal), ", ")
+					         + coretools::str::concatenateString(ReadGroups->getNames(readGroupsWithoutRecal), ", ")
 					         + "!");
 			if(!params.parameterExists("allowReadGroupsWithoutRecal")){
 				throw "PMD is only defined for a subset of read groups. Did you use the wrong PMD file? (use allowReadGroupsWithoutRecal to ignore)";
@@ -64,7 +64,7 @@ void TGenotypeLikelihoodCalculator::init(TParameters & params, const BAM::TReadG
 		//Report if some read groups have only single-end definitions
 		if(readGroupsLikelySingelEnd.size() > 0){
 			Logfile->list("Read groups assumed single-end (no recal for second mate): "
-					      + concatenateString(ReadGroups->getNames(readGroupsLikelySingelEnd), ", ")
+					      + coretools::str::concatenateString(ReadGroups->getNames(readGroupsLikelySingelEnd), ", ")
 						  + ".");
 		}
 	} else {
@@ -82,11 +82,11 @@ bool TGenotypeLikelihoodCalculator::recalibrationChangesQualities() const{
 	return _sequencingErrorModels.recalibrationChangesQualities();
 };
 
-Probability TGenotypeLikelihoodCalculator::getErrorRate(const BAM::TSequencedBase & base) const{
+coretools::Probability TGenotypeLikelihoodCalculator::getErrorRate(const BAM::TSequencedBase & base) const{
 	return _sequencingErrorModels.getErrorRate(base);
 };
 
-Probability TGenotypeLikelihoodCalculator::getErrorWithPMD(const BAM::TSequencedBase & base) const{
+coretools::Probability TGenotypeLikelihoodCalculator::getErrorWithPMD(const BAM::TSequencedBase & base) const{
 	if(base.base == BAM::N){
 		return 1.0;
 	} else {
@@ -107,7 +107,7 @@ BAM::PhredIntErrorRate TGenotypeLikelihoodCalculator::getPhredIntWithPMD(const B
 	if(base.base == BAM::N){
 		return BAM::PhredIntErrorRate::min();
 	} else {
-		return getErrorWithPMD(base);
+		return BAM::PhredIntErrorRate(getErrorWithPMD(base));
 	}
 };
 
@@ -129,7 +129,7 @@ void TGenotypeLikelihoodCalculator::recalibrateWithPMD(std::vector<BAM::TSequenc
 	}
 };
 
-double TGenotypeLikelihoodCalculator::calculateLogPMDS(const BAM::TSequencedBase & base, const BAM::Base & ref, const double & pi) const{
+double TGenotypeLikelihoodCalculator::calculateLogPMDS(const BAM::TSequencedBase & base, const BAM::Base & ref, const coretools::Probability & pi) const{
 	//get base likelihoods
 	static TBaseData baseLikelihoodsNoPMD;
 	_sequencingErrorModels.fillBaseLikelihoods(base, baseLikelihoodsNoPMD);
@@ -138,8 +138,8 @@ double TGenotypeLikelihoodCalculator::calculateLogPMDS(const BAM::TSequencedBase
 	_pmdModels.fillBaseLikelihoods(base, baseLikelihoodsNoPMD, baseLikelihoods);
 
 	//calculate PMDS: true base in read == ref with prob. (1-pi) and different with prob. pi/3
-	static TBaseData tmpBaseData;
-	tmpBaseData.set(ref, pi);
+	static TBaseLikelihoods tmpBaseData;
+	tmpBaseData.setFromError(ref, pi);
 
 	return log(baseLikelihoods.weightedSum(tmpBaseData) / baseLikelihoodsNoPMD.weightedSum(tmpBaseData));
 };

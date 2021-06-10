@@ -89,7 +89,7 @@ void TAllelicDepthCounts::addSiteZeroDepth(){
 
 void TAllelicDepthCounts::write(const std::string filename, bool printEmpty){
 	//open file
-	TOutputFile out(filename);
+	coretools::TOutputFile out(filename);
 
 	//write header
 	out.writeHeader({"A", "C", "G", "T", "Depth", "majorAllele", "majorDepth","minorAllele", "minorDepth","Counts"});
@@ -151,9 +151,9 @@ void TAllelicDepthCounts::write(const std::string filename, bool printEmpty){
 // TAllelicDepth
 //------------------------------------------
 TAllelicDepth::TAllelicDepth(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_windows(Parameters, Logfile, RandomGenerator){
-	_logfile->list("Will assemble allelic depth up to a max depth of " + toString(_readUpToDepth) + ". (parameter 'maxDepth')");
+	_logfile->list("Will assemble allelic depth up to a max depth of " + coretools::toString(_readUpToDepth) + ". (parameter 'maxDepth')");
 	if(_readUpToDepth > 100){
-		_logfile->warning("Allocating count table for a max depth of " + toString(_readUpToDepth) + " uses a lot of memory! Use argument maxDepth to limit.");
+		_logfile->warning("Allocating count table for a max depth of " + coretools::toString(_readUpToDepth) + " uses a lot of memory! Use argument maxDepth to limit.");
 	}
 	_counts.resize(_readUpToDepth);
 

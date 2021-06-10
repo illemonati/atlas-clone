@@ -18,8 +18,8 @@ namespace GenomeTasks{
 //----------------------------------------
 class TDepthWriter:public TGenome_windows{
 private:
-	TOutputFile _out;
-	TCountDistribution _distPerSite;
+	coretools::TOutputFile _out;
+	coretools::TCountDistribution _distPerSite;
 
 	void _handleWindow();
 
@@ -32,7 +32,7 @@ public:
 //--------------------------------------
 // Tasks
 //--------------------------------------
-class TTask_depthWriter:public TTask{
+class TTask_depthWriter:public coretools::TTask{
 public:
 	TTask_depthWriter(){ _explanation = "Estimating the distribution of depth among sites and writing depth per window"; };
 

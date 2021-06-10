@@ -11,6 +11,7 @@
 namespace GenomeTasks{
 
 using namespace GenotypeLikelihoods;
+using namespace coretools::str;
 
 /////////////////////////////////////////////////////////
 // TCaller

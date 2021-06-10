@@ -17,6 +17,7 @@
 
 namespace GenotypeLikelihoods{
 
+using namespace coretools::str;
 
 //Existing Functions
 const std::string PMDFunctionName_none = "none";
@@ -540,7 +541,7 @@ TPostMortemDamage::TPostMortemDamage(){
 
 void TPostMortemDamage::writeToFile(const BAM::TReadGroups & ReadGroups, const std::string filename){
 	std::vector<std::string> header = {"ReadGroup", "Type", "Functions"};
-	TOutputFile out(filename, header);
+	coretools::TOutputFile out(filename, header);
 
 	//write for each read group
 	for(auto r = ReadGroups.cbegin(); r != ReadGroups.cend(); ++r){
@@ -550,7 +551,7 @@ void TPostMortemDamage::writeToFile(const BAM::TReadGroups & ReadGroups, const s
 
 void TPostMortemDamage::writeToFile(const BAM::TReadGroups & ReadGroups, const BAM::TReadGroupMap & ReadGroupMap, const std::string filename){
 	std::vector<std::string> header = {"ReadGroup", "Type", "Functions"};
-	TOutputFile out(filename, header);
+	coretools::TOutputFile out(filename, header);
 
 	//write for each read group
 	for(auto r = ReadGroups.cbegin(); r != ReadGroups.cend(); ++r){
@@ -593,7 +594,7 @@ void TPostMortemDamage::_initializeFromFile(const BAM::TReadGroups & ReadGroups,
 	//read from file for each read group
 
 	logfile->listFlush("Initializing PMD from file '" + filename + "' ...");
-	TInputFile in(filename, {"readGroup", "pmd"}, "/t", "//");
+	coretools::TInputFile in(filename, {"readGroup", "pmd"}, "/t", "//");
 
 	//parse file that has structure: ReadGroup, Type, Functions
 	std::vector<std::string> vec;

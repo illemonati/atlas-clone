@@ -94,7 +94,7 @@ public:
 	void add(const GenotypeLikelihoods::TSite & site, GenotypeLikelihoods::TGenotypeLikelihoods & genoLik);
 	void clear();
 
-	void bootstrap(TRandomGenerator & randomGenerator);
+	void bootstrap(coretools::TRandomGenerator & randomGenerator);
 	void clearBootstrap();
 
 	virtual bool begin();
@@ -110,7 +110,7 @@ public:
 	};
 
 	void addToHeader(std::vector<std::string> & header, const std::string prefix);
-	void writeSite(TOutputFile & out);
+	void writeSite(coretools::TOutputFile & out);
 	void fillBaseFreq(double* baseFreq);
 	virtual void fillP_G(GenotypeLikelihoods::TGenotypeData & P_G, const GenotypeLikelihoods::TGenotypeData & pGenotype);
 	virtual double calcLogLikelihood(const GenotypeLikelihoods::TGenotypeData & pGenotype);

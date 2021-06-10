@@ -13,6 +13,12 @@
 
 namespace GenomeTasks{
 
+using coretools::Probability;
+using coretools::TTask;
+using coretools::TParameters;
+using coretools::TLog;
+using coretools::TRandomGenerator;
+
 //-----------------------------------------
 // TBamSample
 //-----------------------------------------

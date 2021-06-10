@@ -86,11 +86,11 @@ public:
 //--------------------------------------
 // Tasks
 //--------------------------------------
-class TTask_createMask:public TTask{
+class TTask_createMask:public coretools::TTask{
 public:
 	TTask_createMask(){ _explanation = "Creating a mask BED file"; };
 
-	void run(TParameters & Parameters, TLog* Logfile){
+	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
 
 		//which mask?
 		std::string mask = Parameters.getParameter<std::string>("mask");

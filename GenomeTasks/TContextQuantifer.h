@@ -19,7 +19,7 @@ namespace GenomeTasks{
 //----------------------------------------------
 class TContextQuantifier:public TGenome_parsed{
 private:
-	TCountDistributionVector _contextCounts;
+	coretools::TCountDistributionVector _contextCounts;
 
 	void _handleAlignment();
 public:
@@ -30,11 +30,11 @@ public:
 //--------------------------------------
 // Tasks
 //--------------------------------------
-class TTask_quantifyContext:public TTask{
+class TTask_quantifyContext:public coretools::TTask{
 public:
 	TTask_quantifyContext(){ _explanation = "Writing context statistics to file"; };
 
-	void run(TParameters & Parameters, TLog* Logfile){
+	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
 		TContextQuantifier quantifier(Parameters, Logfile, _randomGenerator);
 		quantifier.quantifyContexts();
 	};

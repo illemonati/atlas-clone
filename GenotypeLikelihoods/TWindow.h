@@ -73,7 +73,7 @@ public:
 	void addReferenceBaseToSites(TSiteSubset & subset);
 	void applyMask(BAM::TBed & mask, bool doInverseMasking);
 	void maskCpG(BAM::TFastaBuffer & reference);
-	void downsample(const uint32_t & maxDepth, const TSubsamplePicker & picker);
+	void downsample(const uint32_t & maxDepth, const coretools::TSubsamplePicker & picker);
 	void estimateBaseFrequencies(GenotypeLikelihoods::TBaseData & baseFreq) const;
 	void applyDepthFilter(const size_t minDepth, const size_t maxDepth);
 
@@ -102,7 +102,7 @@ public:
 };
 
 std::ostream& operator<<(std::ostream& os, const TWindow_base & window);
-TOutputFile& operator<<(TOutputFile& out, const TWindow_base & window);
+coretools::TOutputFile& operator<<(coretools::TOutputFile& out, const TWindow_base & window);
 
 //---------------------------------------------------------------
 //TWindow

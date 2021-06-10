@@ -7,6 +7,9 @@
 
 #include "TGlfMultiReader.h"
 
+namespace GLF{
+
+using coretools::str::toString;
 
 //----------------------------------------------------
 //TMultiGLFData
@@ -102,7 +105,7 @@ void TGlfMultiReaderVcf::writeLikelihood(const BAM::HighPrecisionPhredIntErrorRa
 		vcf << (BAM::PhredErrorRate) likGlf;
 	} else {
 		if(likGlf == 0) vcf << '0';
-		else vcf << (Log10Probability) likGlf;
+		else vcf << (coretools::Log10Probability) likGlf;
 	}
 };
 
@@ -291,7 +294,7 @@ void TGlfMultiReader::openGLFs(const std::vector<std::string> & FileNames, TLog*
 void TGlfMultiReader::openGLFs(TParameters & params, TLog* logfile){
 	std::string parameter = params.getParameter<std::string>("glf");
 	//assume that GLF file names are given in a file if string does not contain ".gz"
-	if(!stringContains(parameter,".gz")){
+	if(!coretools::str::stringContains(parameter,".gz")){
 		logfile->list("Reading glf input names from file '" + parameter + "'");
 		std::ifstream in(parameter.c_str());
 		if(!in) throw "Failed to open file '" + parameter + "'!";
@@ -301,7 +304,7 @@ void TGlfMultiReader::openGLFs(TParameters & params, TLog* logfile){
 		while(in.good() && !in.eof()){
 			std::string line;
 			std::getline(in, line);
-			fillContainerFromStringWhiteSpace(line, vec, true);
+			coretools::str::fillContainerFromStringWhiteSpace(line, vec, true);
 			//skip empty lines
 			if(vec.size() > 0){
 				GLFNames.push_back(vec[0]);
@@ -603,7 +606,7 @@ void TGlfMultiReader::writeSampleNamesOfActiveFiles(gz::ogzstream & out, std::st
 	if(numActiveFiles > 0){
 		for(TGlfReader* it : pointerToActiveGLFs){
 			std::string name = it->name();
-			out << sep << readBeforeLast(name, ".glf");
+			out << sep << coretools::str::readBeforeLast(name, ".glf");
 		}
 	}
 };
@@ -614,7 +617,7 @@ void TGlfMultiReader::fillSampleNamesOfActiveFiles(std::vector<std::string> & ve
 	//sample names are file names without glf ending
 	if(numActiveFiles > 0){
 		for(TGlfReader* it : pointerToActiveGLFs){
-			vec.emplace_back(readBeforeLast(it->name(), ".glf"));
+			vec.emplace_back(coretools::str::readBeforeLast(it->name(), ".glf"));
 		}
 	}
 };
@@ -626,4 +629,4 @@ BAM::Base TGlfMultiReader::refBase(){
 };
 
 
-
+}; //end namespace GLF

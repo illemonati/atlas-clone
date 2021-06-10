@@ -211,6 +211,10 @@ public:
 //--------------------------------------
 // Tasks
 //--------------------------------------
+using coretools::TTask;
+using coretools::TParameters;
+using coretools::TLog;
+
 class TTask_filterBAM:public TTask{
 public:
 	TTask_filterBAM(){ _explanation = "Writing reads that pass filters to BAM file"; };

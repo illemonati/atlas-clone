@@ -60,10 +60,10 @@ protected:
 
 public:
 	TGenotypeLikelihoodCalculator();
-	TGenotypeLikelihoodCalculator(TParameters & params, const BAM::TReadGroups* ReadGroups, TLog* Logfile);
+	TGenotypeLikelihoodCalculator(coretools::TParameters & params, const BAM::TReadGroups* ReadGroups, coretools::TLog* Logfile);
 	~TGenotypeLikelihoodCalculator() = default;
 
-	void init(TParameters & params, const BAM::TReadGroups* ReadGroups, TLog* Logfile);
+	void init(coretools::TParameters & params, const BAM::TReadGroups* ReadGroups, coretools::TLog* Logfile);
 	const TSequencingErrorModels& getSequencingErrorModels() const { return _sequencingErrorModels; };
 	TSequencingErrorModels& getSequencingErrorModelsMutable() { return _sequencingErrorModels; };
 	const TPostMortemDamage& getPostMortemDamageModels() const { return _pmdModels; };
@@ -72,8 +72,8 @@ public:
 	bool hasPMD() const;
 	bool recalibrationChangesQualities() const;
 
-	Probability getErrorRate(const BAM::TSequencedBase & base) const;
-	Probability getErrorWithPMD(const BAM::TSequencedBase & base) const;
+	coretools::Probability getErrorRate(const BAM::TSequencedBase & base) const;
+	coretools::Probability getErrorWithPMD(const BAM::TSequencedBase & base) const;
 	BAM::PhredIntErrorRate getPhredInt(const BAM::TSequencedBase & base) const;
 	BAM::PhredIntErrorRate getPhredIntWithPMD(const BAM::TSequencedBase & base) const;
 	void recalibrate(BAM::TSequencedBase & base) const;
@@ -82,7 +82,7 @@ public:
 	//are vector versions used??
 	void recalibrate(std::vector<BAM::TSequencedBase> & bases) const;
 	void recalibrateWithPMD(std::vector<BAM::TSequencedBase> & bases) const;
-	double calculateLogPMDS(const BAM::TSequencedBase & base, const BAM::Base & ref, const double & pi) const; //TODO: move to PMDS class?
+	double calculateLogPMDS(const BAM::TSequencedBase & base, const BAM::Base & ref, const coretools::Probability & pi) const; //TODO: move to PMDS class?
 
 	//functions performed on sites
 	void calculateGenotypeLikelihoods(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) const;

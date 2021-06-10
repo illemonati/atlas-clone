@@ -233,7 +233,7 @@ public:
 	void binQualityScoresIllumina();
 	void recalibrateWithPMD(const GenotypeLikelihoods::TGenotypeLikelihoodCalculator & GLCalculator);
 	void setIsProperPair(const bool & ok);
-	void downsampleAlignment(const Probability & fraction, TRandomGenerator& randomGenerator);
+	void downsampleAlignment(const coretools::Probability & fraction, coretools::TRandomGenerator& randomGenerator);
 
 	//debug functions
 	void print();

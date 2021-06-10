@@ -112,7 +112,7 @@ public:
 	void filterReadGroups(std::string readGroupList);
 	void removeFromHeader(const std::string name);
 	void removeFromHeader(const uint16_t readGroupId);
-	void printReadgroupsInUse(TLog* logfile) const;
+	void printReadgroupsInUse(coretools::TLog* logfile) const;
 	void fillVectorWithNames(std::vector<std::string> & vec) const;
 	std::string compileSamHeader() const;
 };
@@ -131,11 +131,11 @@ private:
 	void _resize(const TReadGroups & ReadGroups);
 	void _markAsInUse(const uint16_t & index);
 	void _fillWithoutPooling(const TReadGroups & ReadGroups);
-	void _fillFromFile(const TReadGroups & ReadGroups, const std::string & filename, TLog* logfile);
+	void _fillFromFile(const TReadGroups & ReadGroups, const std::string & filename, coretools::TLog* logfile);
 
 public:
 	TReadGroupMap(const TReadGroups & ReadGroups);
-	TReadGroupMap(const TReadGroups & ReadGroups, const std::string filename, TLog* logfile);
+	TReadGroupMap(const TReadGroups & ReadGroups, const std::string filename, coretools::TLog* logfile);
 
 	~TReadGroupMap() = default;
 

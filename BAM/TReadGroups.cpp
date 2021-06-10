@@ -10,6 +10,7 @@
 
 namespace BAM{
 
+using coretools::str::toString;
 
 //---------------------------------------------------------------
 //TReadGroup
@@ -227,7 +228,7 @@ bool TReadGroups::readGroupInUse(const std::string name) const{
 void TReadGroups::filterReadGroups(std::string readGroupList){
 	_limitReadGroups = true;
 	std::vector<std::string> readGroupsInUse;
-	fillContainerFromString(readGroupList, readGroupsInUse, ",");
+	coretools::str::fillContainerFromString(readGroupList, readGroupsInUse, ",");
 
 	//set all to false
 	for(auto& rg : _readGroups){
@@ -257,7 +258,7 @@ void TReadGroups::removeFromHeader(const uint16_t readGroupId){
 	_readGroupsById[readGroupId]->writeToHeader = false;
 };
 
-void TReadGroups::printReadgroupsInUse(TLog* logfile) const{
+void TReadGroups::printReadgroupsInUse(coretools::TLog* logfile) const{
 	for(auto& rg : _readGroups){
 		if(rg.inUse)
 			logfile->list(rg.name_ID);
@@ -286,7 +287,7 @@ TReadGroupMap::TReadGroupMap(const TReadGroups & ReadGroups){
 	_fillWithoutPooling(ReadGroups);
 };
 
-TReadGroupMap::TReadGroupMap(const TReadGroups & ReadGroups, const std::string filename, TLog* logfile){
+TReadGroupMap::TReadGroupMap(const TReadGroups & ReadGroups, const std::string filename, coretools::TLog* logfile){
 	if(filename.empty()){
 		_fillWithoutPooling(ReadGroups);
 	} else {
@@ -312,13 +313,13 @@ void TReadGroupMap::_fillWithoutPooling(const TReadGroups & ReadGroups){
 	}
 };
 
-void TReadGroupMap::_fillFromFile(const TReadGroups & ReadGroups, const std::string & filename, TLog* logfile){
+void TReadGroupMap::_fillFromFile(const TReadGroups & ReadGroups, const std::string & filename, coretools::TLog* logfile){
 	//set all values to no-initialized
 	_resize(ReadGroups);
 
 	//read read groups and their expected lengths
 	logfile->listFlush("Reading read groups to be pooled from file '" + filename + "' ...");
-	TInputFile in(filename, {"readGroup", "poolWith"}, "/t", "//");
+	coretools::TInputFile in(filename, {"readGroup", "poolWith"}, "/t", "//");
 
 	std::vector< std::vector<std::string> > readGroupsToMerge;
 	std::vector< std::vector<std::string> >::reverse_iterator rIt;

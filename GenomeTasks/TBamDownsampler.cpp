@@ -9,6 +9,8 @@
 
 namespace GenomeTasks{
 
+using coretools::str::toString;
+
 //-----------------------------------------
 // TBamSample
 //-----------------------------------------
@@ -88,7 +90,7 @@ TBamDownsampler::TBamDownsampler(TParameters & Parameters, TLog* Logfile, TRando
 	_readVectorOfDownsamplingProbabilities(Parameters);
 
 	//report
-	_logfile->list("Will accept reads with probabilities (parameter 'prob'): " + concatenateString(_probs, ", "));
+	_logfile->list("Will accept reads with probabilities (parameter 'prob'): " + coretools::str::concatenateString(_probs, ", "));
 	if(*_probs.begin() == 1.0) _logfile->warning("Probability of 1 will result in identical file!");
 
 	//create downsampling objects
@@ -167,7 +169,7 @@ TBamSeparator::TBamSeparator(TParameters & Parameters, TLog* Logfile, TRandomGen
 	}
 
 	//report
-	_logfile->list("Will separate reads with probabilities (parameter 'prob'): " + concatenateString(_probs, ", "));
+	_logfile->list("Will separate reads with probabilities (parameter 'prob'): " + coretools::str::concatenateString(_probs, ", "));
 	if(*_probs.begin() == 1.0) _logfile->warning("Probability of 1 will result in identical file!");
 };
 

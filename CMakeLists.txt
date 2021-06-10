@@ -11,8 +11,8 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 # add libraries
-add_subdirectory(commonutilities)
-add_subdirectory(mcmcframework)
+add_subdirectory(coretools)
+add_subdirectory(stattools)
 
 # locate external libraries
 find_package(ZLIB REQUIRED)
@@ -20,8 +20,8 @@ find_package(Armadillo REQUIRED)
 
 set(LINK_LIBRARIES
         coreLib
-        commonutilities
-        mcmcframework
+        coretools
+        stattools
         ${ZLIB_LIBRARIES}
         ${ARMADILLO_LIBRARIES}
         )
@@ -36,9 +36,9 @@ include_directories(
         Simulations
         TestUtilities
         VCF
-        commonutilities/core
-        commonutilities/core/IntegrationTests        
-        mcmcframework/core        
+        coretools/core
+        coretools/core/IntegrationTests        
+        stattools/core        
         ${ARMADILLO_INCLUDE_DIRS}
 )
 
@@ -113,6 +113,6 @@ target_include_directories("${PROJECT_NAME}_unitTests" PUBLIC
         Simulations/tests
         TestUtilities/tests
         VCF/tests
-        commonutilities/tests
-        mcmcframework/tests
+        coretools/tests
+        stattools/tests
         )

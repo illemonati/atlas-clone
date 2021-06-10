@@ -10,6 +10,8 @@
 
 namespace GenomeTasks{
 
+using coretools::str::toString;
+
 //----------------------------------------------
 // TPMDSCalculator
 //----------------------------------------------

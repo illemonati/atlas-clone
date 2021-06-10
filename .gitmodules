@@ -1,7 +1,6 @@
-[submodule "commonutilities"]
-	path = commonutilities
-	url = https://bitbucket.org/WegmannLab/commonutilities.git
-	branch = master
-[submodule "mcmcframework"]
-	path = mcmcframework
-	url = git@bitbucket.org:wegmannlab/mcmcframework.git
+[submodule "stattools"]
+	path = stattools
+	url = https://bitbucket.org/wegmannlab/stattools.git
+[submodule "coretools"]
+	path = coretools
+	url = https://bitbucket.org/wegmannlab/coretools.git

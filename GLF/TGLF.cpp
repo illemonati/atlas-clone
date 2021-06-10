@@ -7,6 +7,8 @@
 
 #include "TGLF.h"
 
+namespace GLF{
+
 //----------------------------------------------------
 // TGlfConverter
 //----------------------------------------------------
@@ -129,7 +131,7 @@ void TGlfWriter::writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual, Ge
 	//Note: genotype likelihoods are given for the 10 diploid genotypes!!
 	//TODO: maybe do in GLFChromosomes?
 	if(_curChr.ploidy == 1){
-		Probability maxLik = genotypeLikelihoods[BAM::AA];
+		coretools::Probability maxLik = genotypeLikelihoods[BAM::AA];
 		if(genotypeLikelihoods[BAM::CC] > maxLik) maxLik = genotypeLikelihoods[BAM::CC];
 		if(genotypeLikelihoods[BAM::GG] > maxLik) maxLik = genotypeLikelihoods[BAM::GG];
 		if(genotypeLikelihoods[BAM::TT] > maxLik) maxLik = genotypeLikelihoods[BAM::TT];
@@ -141,7 +143,7 @@ void TGlfWriter::writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual, Ge
         _glfValues[3] = genotypeLikelihoods[BAM::TT] / maxLik;
 	} else {
 		//ploidy is 2
-		Probability maxLik = genotypeLikelihoods.max();
+		coretools::Probability maxLik = genotypeLikelihoods.max();
 
 		//normalize and scale to uint16
 		for(BAM::Genotype g = BAM::Genotype::min(); g < BAM::Genotype::max(); ++g){
@@ -460,3 +462,5 @@ void TGlfReader::printToEnd(){ //For debugging
 		printSite();
 	}
 };
+
+}; //end namespace

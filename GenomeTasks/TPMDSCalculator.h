@@ -32,7 +32,7 @@ public:
 //--------------------------------------
 // Tasks
 //--------------------------------------
-class TTask_PMDS:public TTask{
+class TTask_PMDS:public coretools::TTask{
 public:
 	TTask_PMDS(){
 		_explanation = "Filtering for ancient reads using PMDS";

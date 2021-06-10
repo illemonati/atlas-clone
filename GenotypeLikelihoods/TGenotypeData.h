@@ -54,7 +54,7 @@ public:
 		return *std::max_element(_data.begin(), _data.end());
 	};
 
-	IndexType pickIndexAtMax(TRandomGenerator & RandomGenerator) const {
+	IndexType pickIndexAtMax(coretools::TRandomGenerator & RandomGenerator) const {
 		//find maximum
 		Type m = max();
 
@@ -70,7 +70,7 @@ public:
 		return vec[RandomGenerator.sample(vec.size())];
 	};
 
-	IndexType pickIndexAtMax(const IndexType & ExcludeIndex, TRandomGenerator & RandomGenerator) const {
+	IndexType pickIndexAtMax(const IndexType & ExcludeIndex, coretools::TRandomGenerator & RandomGenerator) const {
 		//find max
 		IndexType i = IndexType::min();
 		if(i == ExcludeIndex){
@@ -146,9 +146,9 @@ public:
 		}
 	};
 
-	void write(TOutputFile & out) const {
+	void write(coretools::TOutputFile & out) const {
 		for(uint8_t i=0; i<Size; ++i){
-			out << toString(_data[i]);
+			out << coretools::str::toString(_data[i]);
 		}
 	};
 
@@ -187,10 +187,10 @@ public:
 //--------------------------------------------------------------------
 // TBaseProbabilities
 //--------------------------------------------------------------------
-class TBaseProbabilities : public TBaseData_base<Probability>{
+class TBaseProbabilities : public TBaseData_base<coretools::Probability>{
 public:
 	TBaseProbabilities(){ reset(); };
-	TBaseProbabilities(const Probability & val) : TBaseData_base(val) {};
+	TBaseProbabilities(const coretools::Probability & val) : TBaseData_base(val) {};
 };
 
 //--------------------------------------------------------------------
@@ -199,13 +199,13 @@ public:
 class TBaseLikelihoods : public TBaseProbabilities{
 public:
 	TBaseLikelihoods(){ reset(); };
-	TBaseLikelihoods(const Probability & val) : TBaseProbabilities(val) {};
+	TBaseLikelihoods(const coretools::Probability & val) : TBaseProbabilities(val) {};
 
-	TBaseLikelihoods(const BAM::Base & trueBase, const Probability & error);
+	TBaseLikelihoods(const BAM::Base & trueBase, const coretools::Probability & error);
 
 	void reset() override { set(1.0); };
 
-	void setFromError(const BAM::Base & trueBase, const Probability & error);
+	void setFromError(const BAM::Base & trueBase, const coretools::Probability & error);
 };
 
 //--------------------------------------------------------------------
@@ -223,7 +223,7 @@ public:
 
 	uint8_t numAlleles() const;
 	void fillFrequencies(TBaseProbabilities & freq);
-	void downsample(const uint32_t & max, TRandomGenerator & RandomGenerator);
+	void downsample(const uint32_t & max, coretools::TRandomGenerator & RandomGenerator);
 };
 
 //--------------------------------------------------------------------
@@ -252,7 +252,7 @@ public:
 // TGenotypeProbability_base
 // base class for TGenotypeLikelihoods, TGenotypeLikelihoodsHaploid and TGenotypeProbabilities
 //-------------------------------------
-class TGenotypeProbability_base : public TGenotypeData_base<Probability>{
+class TGenotypeProbability_base : public TGenotypeData_base<coretools::Probability>{
 protected:
 	TGenotypeProbability_base() {};
 };
@@ -267,7 +267,7 @@ public:
 	virtual void fill(const std::vector<TBaseData> & bases);
 	virtual void fill(const std::vector<TBaseData> & bases, const size_t size);
 
-	void reset() override { set(Probability(1.0)); };
+	void reset() override { set(coretools::Probability(1.0)); };
 	void addNames(std::vector<std::string> & vec) const override;
 };
 
@@ -278,12 +278,12 @@ class TGenotypeProbabilities : public TGenotypeProbability_base{
 public:
 	TGenotypeProbabilities() { reset(); };
 
-	void reset() override { set(Probability(0.1)); };
+	void reset() override { set(coretools::Probability(0.1)); };
 
 	void fill(const TGenotypeLikelihoods & likelihoods, const TGenotypeProbabilities & prior);
 
-	Probability probHomozygous();
-	Probability probHeterozygous();
+	coretools::Probability probHomozygous();
+	coretools::Probability probHeterozygous();
 };
 
 //--------------------------------------------------------------------

@@ -20,7 +20,7 @@ namespace GenomeTasks{
 //---------------------------------
 class TPileup:public TGenome_windows{
 private:
-	TOutputFile out;
+	coretools::TOutputFile out;
 	bool printOnlySitesWithData;
 
 	//tmp variables
@@ -46,7 +46,7 @@ public:
 //--------------------------------------
 // Tasks
 //--------------------------------------
-class TTask_pileup:public TTask{
+class TTask_pileup:public coretools::TTask{
 public:
 	TTask_pileup(){ _explanation = "Printing pileup from BAM file"; };
 

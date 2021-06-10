@@ -9,6 +9,8 @@
 
 namespace GenomeTasks{
 
+using namespace coretools::str;
+
 //---------------------------------------------------------------
 // TGenome_basic
 // A base class without filters and genotype likelihoods
@@ -259,7 +261,7 @@ void TGenome_windows::_setSiteFilters(TParameters & params){
 		if(_downsampleDepth >= _maxDepth){
 			_logfile->warning("Downsample depth is >= max depth: no downsampling will occur.");
 		}
-		subsamplePicker = std::make_unique<TSubsamplePicker>(_randomGenerator, 30);
+		subsamplePicker = std::make_unique<coretools::TSubsamplePicker>(_randomGenerator, 30);
 	}
 
 	//CpG filter

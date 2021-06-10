@@ -9,6 +9,8 @@
 
 namespace GenomeTasks{
 
+using coretools::str::toString;
+
 //-----------------------------------
 // TEstimateTheta_base
 //-----------------------------------
@@ -110,7 +112,7 @@ void TEstimateThetaGenomeWide::_bootstrapThetaEstimation(){
 	_logfile->startIndent("Generating " + toString(_numBootstraps) + " bootstrap estimates of theta:");
 
 	//measure runtime
-	TTimer timer;
+	coretools::TTimer timer;
 
 	//loop over bootstraps
 	for(uint32_t s=0; s<_numBootstraps; ++s){
@@ -174,7 +176,7 @@ void TEstimateThetaLLSurface::_handleWindow(){
 	//open file
 	std::string filename = _outputName + _window.chrName() + "_" + toString(_window.from().position()) + "_LLsurface.txt";
 	_logfile->listFlushTime("Writing LL surface to file '" + filename + "' ...");
-	TOutputFile out(filename);
+	coretools::TOutputFile out(filename);
 
 	_thetaEstimator.calcLikelihoodSurface(out, _steps);
 
@@ -197,7 +199,7 @@ TEstimateThetaDownsamplingQC::TEstimateThetaDownsamplingQC(TParameters & Paramet
 	Parameters.fillParameterIntoContainer("prob", downSampleProbVector, ',', "1.0,0.5,0.2,0.1,0.05,0.02,0.01");
 
 	//report probabilities
-	_logfile->list("Will estimate theta after downsampling reads with probabilities " + concatenateString(downSampleProbVector, ", ") + ". (parameter 'prob')");
+	_logfile->list("Will estimate theta after downsampling reads with probabilities " + coretools::str::concatenateString(downSampleProbVector, ", ") + ". (parameter 'prob')");
 
 	//check if full data is to be used (i.e. if prob = 1.0 is specified)
 	_printFullData = false;
@@ -243,7 +245,7 @@ void TEstimateThetaDownsamplingQC::_handleWindow(){
 	}
 
 	for(size_t i=0; i<downSampleProbVector.size(); ++i){
-		Probability& p = downSampleProbVector[i];
+		coretools::Probability& p = downSampleProbVector[i];
 		_logfile->startIndent("Estimating Theta on downsampled data (p = " + toString(p) + "):");
 
 		//downsample

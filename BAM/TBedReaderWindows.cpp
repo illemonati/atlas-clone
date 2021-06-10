@@ -9,6 +9,9 @@
 
 namespace BAM{
 
+using coretools::str::toString;
+using coretools::str::convertString;
+
 //-----------------------
 // TBedReaderWindow
 //-----------------------
@@ -127,7 +130,7 @@ void TBedReaderWindows::readFile(const TChromosomes & chromosomeList, uint32_t s
 		std::string line;
 		std::getline(*myStream, line);
 
-		fillContainerFromStringWhiteSpace(line, vec, true);
+		coretools::str::fillContainerFromStringWhiteSpace(line, vec, true);
 
 		//skip empty lines
 		if(vec.size() > 0){

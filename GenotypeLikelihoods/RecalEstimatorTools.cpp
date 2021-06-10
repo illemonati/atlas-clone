@@ -167,7 +167,7 @@ uint16_t TModelStati::num(const ModelStatusTypes & Type){
 	return num;
 };
 
-void TModelStati::report(const ModelStatusTypes & Type, const std::string & Title, const BAM::TReadGroups & ReadGroups, TLog* Logfile){
+void TModelStati::report(const ModelStatusTypes & Type, const std::string & Title, const BAM::TReadGroups & ReadGroups, coretools::TLog* Logfile){
 	if(num(Type) > 0){
 		Logfile->startIndent(Title);
 		for(auto& m : modelStatus){

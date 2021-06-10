@@ -37,7 +37,7 @@ public:
 //--------------------------------------
 // Tasks
 //--------------------------------------
-class TTask_estimatePMD:public TTask{
+class TTask_estimatePMD:public coretools::TTask{
 public:
 	TTask_estimatePMD(){ _explanation = "Estimating Post-Mortem Damage (PMD) patterns"; };
 

@@ -12,6 +12,12 @@
 #include "TGLF.h"
 #include "TFastaBuffer.h"
 
+namespace GLF{
+
+using coretools::TRandomGenerator;
+using coretools::TParameters;
+using coretools::TLog;
+
 //----------------------------------------------------
 //TMultiGLFData
 //----------------------------------------------------
@@ -155,6 +161,6 @@ public:
 	BAM::Base refBase();
 };
 
-
+}; //end namespace GLF
 
 #endif /* GLF_TGLFMULTIREADER_H_ */

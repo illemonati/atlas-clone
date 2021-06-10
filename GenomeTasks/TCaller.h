@@ -190,7 +190,7 @@ protected:
 	std::string AB, AI;
 	bool imbalanceCalculated;
 	//TGenotypeData tmpGenoData;
-	TBinomPValue _binomP;
+	coretools::TBinomPValue _binomP;
 
 	void _clearAfterCall();
 	void callGenotypeFromMetric(const TGenotypeProbability_base & metric);
@@ -300,11 +300,11 @@ public:
 //--------------------------------------
 // Tasks
 //--------------------------------------
-class TTask_call:public TTask{
+class TTask_call:public coretools::TTask{
 public:
 	TTask_call(){ _explanation = "Calling genotypes"; };
 
-	void run(TParameters & Parameters, TLog* Logfile){
+	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
 		TCall caller(Parameters, Logfile, _randomGenerator);
 		caller.call();
 	};

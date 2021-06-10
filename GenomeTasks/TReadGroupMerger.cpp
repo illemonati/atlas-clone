@@ -30,9 +30,9 @@ TReadGroupMerger::TReadGroupMerger(TParameters & Parameters, TLog* Logfile, TRan
 	std::set<std::string> readGroupsMerged;
 	while(file.good() && !file.eof()){
 		++lineNum;
-		fillContainerFromLineWhiteSpace(file, vec, true);
+		coretools::str::fillContainerFromLineWhiteSpace(file, vec, true);
 		if(!vec.empty()){
-			if(vec.size() < 2) throw "Wrong number of entries on line " + toString(lineNum) + " in file '" + filename + "'!";
+			if(vec.size() < 2) throw "Wrong number of entries on line " + coretools::str::toString(lineNum) + " in file '" + filename + "'!";
 
 			//create new read group
 			uint16_t newId = readGroups.add(vec[0]).id;

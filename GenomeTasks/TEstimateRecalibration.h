@@ -34,7 +34,7 @@ public:
 //--------------------------------------
 // Tasks
 //--------------------------------------
-class TTask_recal:public TTask{
+class TTask_recal:public coretools::TTask{
 public:
 	TTask_recal(){
 		_explanation = "Estimating error re-calibration parameters";

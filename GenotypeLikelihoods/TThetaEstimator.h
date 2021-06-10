@@ -21,6 +21,8 @@
 
 namespace GenotypeLikelihoods{
 
+using coretools::str::toString;
+
 //---------------------------------------------------------------
 //Theta
 //---------------------------------------------------------------
@@ -159,9 +161,9 @@ public:
 	void setTheta(const double Theta);
 	void setBaseFreq(const GenotypeLikelihoods::TBaseData & BaseFreq);
 	void addToHeader(std::vector<std::string> & header, std::string prefix="");
-	void writeEstimateFrequenciesAndTheta(TOutputFile & out);
-	void writeResultsToFile(TOutputFile & out);
-	void calcLikelihoodSurface(TOutputFile & out, const uint32_t & steps);
+	void writeEstimateFrequenciesAndTheta(coretools::TOutputFile & out);
+	void writeResultsToFile(coretools::TOutputFile & out);
+	void calcLikelihoodSurface(coretools::TOutputFile & out, const uint32_t & steps);
 	void bootstrapTheta();
 };
 
@@ -220,7 +222,7 @@ public:
 //---------------------------------------------------------------
 class TThetaOutputFile{
 protected:
-	TOutputFile _out;
+	coretools::TOutputFile _out;
 	std::vector<TThetaEstimator*> _thetaEstimators;
 	std::vector<std::string> _prefixes;
 
@@ -257,7 +259,7 @@ public:
 		close();
 	};
 
-	TOutputFile& file(){ return _out; };
+	coretools::TOutputFile& file(){ return _out; };
 
 	void addEstimator(TThetaEstimator* Estimator, const std::string Prefix){
 		if(_out.isOpen()){

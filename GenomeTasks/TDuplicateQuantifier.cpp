@@ -64,7 +64,7 @@ void TDuplicateQuantifier::estimateDuplicationCounts(){
 	//write output
 	std::string filename = _outputName + "_readStartsPerSite.txt";
 	_logfile->listFlush("Writing distribution of read starts per site to '" + filename + "' ...");
-	TOutputFile out(filename, {"readGroup", "numReadStarts", "counts"});
+	coretools::TOutputFile out(filename, {"readGroup", "numReadStarts", "counts"});
 	_countsCombined.write(out, "allReadGroups");
 
 	std::vector<std::string> readGroupNames;

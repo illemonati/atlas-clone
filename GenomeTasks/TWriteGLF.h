@@ -19,7 +19,7 @@ namespace GenomeTasks{
 //-------------------------------------------
 class TWriteGLF:public TGenome_windows{
 private:
-	TGlfWriter _writer;
+	GLF::TGlfWriter _writer;
 	bool _printAll;
 	void _handleWindow();
 
@@ -31,7 +31,7 @@ public:
 //-------------------------------------------
 // Tasks
 //-------------------------------------------
-class TTask_writeGLF:public TTask{
+class TTask_writeGLF:public coretools::TTask{
 public:
 	TTask_writeGLF(){ _explanation = "Writing genotype likelihoods to a GLF file"; };
 

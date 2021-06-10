@@ -15,13 +15,13 @@ namespace GenomeTasks{
 //----------------------------------------
 TPSMCInput::TPSMCInput(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_windows(Parameters, Logfile, RandomGenerator){
 	_theta = Parameters.getParameterWithDefault<double>("theta", 0.001);
-	_logfile->list("Using theta = " + toString(_theta) + ". (parameter 'theta')");
+	_logfile->list("Using theta = " + coretools::str::toString(_theta) + ". (parameter 'theta')");
 
 	_thetaEstimator = std::make_unique<GenotypeLikelihoods::TThetaEstimator>(_logfile, _randomGenerator);
 	_thetaEstimator->setTheta(_theta);
 
 	_confidence = Parameters.getParameterWithDefault<double>("confidence", 0.99);
-	_logfile->list("Calling heterozygosity state with confidence > " + toString(_confidence) + ". (parameter 'confidence')");
+	_logfile->list("Calling heterozygosity state with confidence > " + coretools::str::toString(_confidence) + ". (parameter 'confidence')");
 	_logConfidence = log(_confidence);
 	_logConfidenceHet = log(1.0 - _confidence);
 
@@ -52,13 +52,13 @@ void TPSMCInput::_handleWindow(){
 	//call heterozygosity in blocks
 	for(uint32_t b=0; b<_nBlocks; ++b){
 		uint32_t blockStart = b * _blockSize;
-		LogProbability logPHomo;
+		coretools::LogProbability logPHomo;
 
 		for(uint32_t i=0; i<_blockSize; ++i){
 			if(!_window[blockStart + i].empty()){
 				_genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(_window[blockStart + 1], _genoLik);
 				_posterior.fill(_genoLik, _prior);
-				logPHomo += LogProbability(_posterior.probHomozygous());
+				logPHomo += coretools::LogProbability(_posterior.probHomozygous());
 			}
 		}
 

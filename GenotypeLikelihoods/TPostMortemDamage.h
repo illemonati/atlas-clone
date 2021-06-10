@@ -22,6 +22,10 @@
 
 namespace GenotypeLikelihoods{
 
+using coretools::TRandomGenerator;
+using coretools::TParameters;
+using coretools::TLog;
+
 //Existing Functions
 extern const std::string PMDFunctionName_none;
 extern const std::string PMDFunctionName_empiric;
@@ -84,7 +88,7 @@ public:
 
 	virtual void parseEstimationParameters(TPMDEstimationParameters & EstimationParameters, TParameters & Params, TLog* Logfile) = 0;
 	virtual void learn(const TPMDTable & Table, const BAM::Base & from, const BAM::Base & to, const TPMDEstimationParameters & EstimationParameters) = 0;
-	std::string string(){ return name() + "[" + concatenateString(_parameters, ",") + "]"; };
+	std::string string(){ return name() + "[" + coretools::concatenateString(_parameters, ",") + "]"; };
 
 	virtual double prob(const uint16_t & pos) const = 0;
 };

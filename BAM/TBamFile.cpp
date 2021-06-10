@@ -9,6 +9,9 @@
 
 namespace BAM{
 
+using coretools::TParameters;
+using coretools::TLog;
+
 //-----------------------------------------------------
 //TBamFile
 //-----------------------------------------------------
@@ -74,7 +77,7 @@ void TBamFile::setFilters(TParameters & params, TLog* logfile){
 	if(params.parameterExists("filterReadLength")){
 		params.fillParameter("filterReadLength", readLengthRange);
 		if(readLengthRange.max() > 65535)
-			throw "This version of " + __GLOBAL_APPLICATION_NAME__ + " only supports read length up to 65535 bp. Contact us if you have longer reads / fragments";
+			throw "This version of " + coretools::__GLOBAL_APPLICATION_NAME__ + " only supports read length up to 65535 bp. Contact us if you have longer reads / fragments";
 		_allowTooLongReads = true;
 	} else {
 		//set default
@@ -251,7 +254,7 @@ void TBamFile::openBamLog(TParameters & params, TLog* logfile){
 		std::string logFilename = params.getParameter<std::string>("bamLog");
 		if(logFilename.empty()){
 			logFilename = _filename;
-			logFilename = extractBeforeLast(logFilename, ".");
+			logFilename = coretools::str::extractBeforeLast(logFilename, ".");
 			logFilename += ".bamlog.txt.gz";
 		}
 		logfile->list("Will write all filtered out reads to '" + logFilename + "'.");
@@ -317,7 +320,7 @@ void TBamFile::_fillChromosomes(TChromosomes & Chromosomes){
 
 	//copy from BamHeader
 	for(BamTools::SamSequenceIterator chrIt=_bamHeader.Sequences.Begin(); chrIt!=_bamHeader.Sequences.End(); ++chrIt){
-		Chromosomes.appendChromosome(chrIt->Name, convertString<uint64_t>(chrIt->Length));
+		Chromosomes.appendChromosome(chrIt->Name, coretools::convertString<uint64_t>(chrIt->Length));
 	}
 };
 
@@ -665,10 +668,10 @@ void TBamFile::curAddSamField(const std::string tag, const float value){
 //-----------------------------------------------------
 void TBamFile::printSummaryNoEndIndent(){
 	_logfile->startIndent("Summary of parsed reads from BAM file '" + _filename + "':");
-	_logfile->list("Total number of reads read: " + toString(_numAlignmentRead));
-	_logfile->list("Reads that passed filters: " + toString(_numAlignmentsPassedQC) + " (" + toPercentString(_numAlignmentsPassedQC, _numAlignmentRead, 3) + "%)");
+	_logfile->list("Total number of reads read: " + coretools::toString(_numAlignmentRead));
+	_logfile->list("Reads that passed filters: " + coretools::toString(_numAlignmentsPassedQC) + " (" + coretools::toPercentString(_numAlignmentsPassedQC, _numAlignmentRead, 3) + "%)");
 	uint64_t numFiltered = _numAlignmentRead - _numAlignmentsPassedQC;
-	_logfile->list("Reads that were filtered out: " + toString(numFiltered) + " (" + toPercentString(numFiltered, _numAlignmentRead, 3) + "%)");
+	_logfile->list("Reads that were filtered out: " + coretools::toString(numFiltered) + " (" + coretools::toPercentString(numFiltered, _numAlignmentRead, 3) + "%)");
 
 	if(numFiltered > 0){
 		_logfile->addIndent();
@@ -714,7 +717,7 @@ void TBamFile::startProgressReporting(uint32_t Frequency){
 
 void TBamFile::printProgress(){
 	if(_numAlignmentRead - _lastProgressPrinted >= _progressFrequency){
-		_logfile->list("Parsed " + _millionReadsRead() + " million reads (est. " + to_string_with_precision(positionInFile() * 100, 2) + "%) in " + toString(_timer.minutes()) + " min.");
+		_logfile->list("Parsed " + _millionReadsRead() + " million reads (est. " + coretools::str::to_string_with_precision(positionInFile() * 100, 2) + "%) in " + toString(_timer.minutes()) + " min.");
 		_lastProgressPrinted = _numAlignmentRead;
 	}
 };

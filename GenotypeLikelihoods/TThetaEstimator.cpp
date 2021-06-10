@@ -12,7 +12,7 @@ namespace GenotypeLikelihoods{
 //---------------------------------------------------------------
 //TThetaEstimator_base
 //---------------------------------------------------------------
-TThetaEstimator_base::TThetaEstimator_base(TLog* Logfile, TRandomGenerator* RandomGenerator){
+TThetaEstimator_base::TThetaEstimator_base(coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator){
 	logfile = Logfile;
 	randomGenerator = RandomGenerator;
 	useTmpFile = false;
@@ -26,7 +26,7 @@ TThetaEstimator_base::TThetaEstimator_base(TLog* Logfile, TRandomGenerator* Rand
 	initThetaSearchFactor = 100;
 };
 
-TThetaEstimator_base::TThetaEstimator_base(TParameters & params, TLog* Logfile, TRandomGenerator* RandomGenerator){
+TThetaEstimator_base::TThetaEstimator_base(coretools::TParameters & params, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator){
 	logfile = Logfile;
 	randomGenerator = RandomGenerator;
 	data = NULL;
@@ -76,7 +76,7 @@ void TThetaEstimator_base::initDataStorage(){
 	dataInitialized = true;
 };
 
-void TThetaEstimator_base::readParametersRegardingInitialSearch(TParameters & params){
+void TThetaEstimator_base::readParametersRegardingInitialSearch(coretools::TParameters & params){
 	logfile->startIndent("Parameters of the initial theta search:");
 	initialTheta = params.getParameterWithDefault("initTheta", 0.01);
 	logfile->list("Will start with an initial theta of " + toString(initialTheta) + ".");
@@ -523,7 +523,7 @@ void TThetaEstimator::addToHeader(std::vector<std::string> & header, std::string
 	header.push_back(prefix + "LL");
 }
 
-void TThetaEstimator::writeEstimateFrequenciesAndTheta(TOutputFile & out){
+void TThetaEstimator::writeEstimateFrequenciesAndTheta(coretools::TOutputFile & out){
 	if(estimationSuccessful){
 		//base frequencies
 		for(int i=0; i<4; ++i)
@@ -543,7 +543,7 @@ void TThetaEstimator::writeEstimateFrequenciesAndTheta(TOutputFile & out){
 	}
 };
 
-void TThetaEstimator::writeResultsToFile(TOutputFile & out){
+void TThetaEstimator::writeResultsToFile(coretools::TOutputFile & out){
 	//number of sites
 	data->writeSite(out);
 
@@ -551,7 +551,7 @@ void TThetaEstimator::writeResultsToFile(TOutputFile & out){
 	writeEstimateFrequenciesAndTheta(out);
 };
 
-void TThetaEstimator::calcLikelihoodSurface(TOutputFile & out, const uint32_t & steps){
+void TThetaEstimator::calcLikelihoodSurface(coretools::TOutputFile & out, const uint32_t & steps){
 	//write header
 	out.writeHeader({"log10(theta)", "theta", "LL"});
 	out.setPrecision(12);
@@ -590,7 +590,7 @@ void TThetaEstimator::bootstrapTheta(){
 //---------------------------------------------------------------
 //TThetaEstimatorRatio
 //---------------------------------------------------------------
-TThetaEstimatorRatio::TThetaEstimatorRatio(TParameters & params, TLog* Logfile, TRandomGenerator* RandomGenerator):TThetaEstimator_base(params, Logfile, RandomGenerator){
+TThetaEstimatorRatio::TThetaEstimatorRatio(coretools::TParameters & params, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator):TThetaEstimator_base(params, Logfile, RandomGenerator){
 	initAdditionalTmpStorage();
 	clearCounters();
 

@@ -16,6 +16,8 @@
 
 namespace GenotypeLikelihoods{
 
+using coretools::Probability;
+
 //--------------------------------------------------------------------
 // TSequencingErrorCovariateDef
 // class to store model definition. Used when parsing files

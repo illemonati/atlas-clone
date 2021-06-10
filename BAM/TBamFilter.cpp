@@ -55,7 +55,7 @@ void TBamFileFilter::setLog(TBamFileLog* Log){
 
 void TBamFileFilter::summary(TLog* logfile, const uint64_t & total){
 	if(!_keep && _counter  > 0){
-		logfile->list(_reason + ": " + toString(_counter) + " (" + toPercentString(_counter, total, 3) + "%)");
+		logfile->list(_reason + ": " + coretools::str::toString(_counter) + " (" + coretools::str::toPercentString(_counter, total, 3) + "%)");
 	}
 };
 
@@ -83,7 +83,7 @@ TAlignmentList::TAlignmentList(const std::string filename){
 };
 
 void TAlignmentList::addFromFile(const std::string filename){
-	TInputFile in(filename, 1);
+	coretools::TInputFile in(filename, 1);
 	std::vector<std::string> vec;
 	while(in.read(vec)){
 		add(vec[0]);

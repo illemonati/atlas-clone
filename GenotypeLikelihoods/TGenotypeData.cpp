@@ -11,6 +11,7 @@ namespace GenotypeLikelihoods{
 
 //Note: for speed, most loops are unrolled
 
+using coretools::Probability;
 
 //--------------------------------------------------------------------
 // TBaseLikelihoods (can also be used as haploid genotype likelihoods)
@@ -52,7 +53,7 @@ void TBaseCounts::_fillCumulativeFrequencies(std::array<double, 4> & freq){
 	freq[BAM::T] = 1.0;
 };
 
-void TBaseCounts::downsample(const uint32_t & max, TRandomGenerator & RandomGenerator){
+void TBaseCounts::downsample(const uint32_t & max, coretools::TRandomGenerator & RandomGenerator){
 	std::array<double, 4> cumulFreqs;
 	std::array<uint32_t, 5> newCounts{};
 

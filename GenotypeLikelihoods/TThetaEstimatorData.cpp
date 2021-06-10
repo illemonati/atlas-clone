@@ -189,7 +189,7 @@ void TThetaEstimatorData::addToHeader(std::vector<std::string> & header, const s
 	header.push_back(prefix + "fracTwoOrMore");
 };
 
-void TThetaEstimatorData::writeSite(TOutputFile & out){
+void TThetaEstimatorData::writeSite(coretools::TOutputFile & out){
 	if(isBootstrapped){
 		out << "NA";
 		out << (double) (totNumSitesAdded - numBootstrappedSites) / (double) totNumSitesAdded;
@@ -216,7 +216,7 @@ void TThetaEstimatorData::fillPoissonForBootstrap(const double lambda){
 	poissonProb[maxKforPoissonPlusOne-1] = 1.0;
 }
 
-void TThetaEstimatorData::bootstrap(TRandomGenerator & randomGenerator){
+void TThetaEstimatorData::bootstrap(coretools::TRandomGenerator & randomGenerator){
 	//make sure we start empty
 	clearBootstrap();
 

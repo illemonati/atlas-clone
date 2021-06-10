@@ -20,7 +20,7 @@ namespace GenomeTasks{
 //--------------------------------------------------------
 class TSoftClippingStatsFile{
 private:
-	TOutputFile _out;
+	coretools::TOutputFile _out;
 	bool _printSequences;
 
 public:
@@ -38,7 +38,7 @@ private:
 	bool _writeAlignments;
 	bool _printAll;
 
-	TCountDistributionVector left, right, total;
+	coretools::TCountDistributionVector left, right, total;
 	TSoftClippingStatsFile statFile;
 
 	void _handleAlignment();
@@ -63,7 +63,7 @@ public:
 //--------------------------------------
 // Tasks
 //--------------------------------------
-class TTask_assessSoftClipping:public TTask{
+class TTask_assessSoftClipping:public coretools::TTask{
 public:
 	TTask_assessSoftClipping(){ _explanation = "Assessing level of soft clipping in BAM file"; };
 
@@ -73,7 +73,7 @@ public:
 	};
 };
 
-class TTask_removeSoftClippedBasesFromReads:public TTask{
+class TTask_removeSoftClippedBasesFromReads:public coretools::TTask{
 public:
 	TTask_removeSoftClippedBasesFromReads(){ _explanation = "Removing soft clipped bases from reads"; };
 

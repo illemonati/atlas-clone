@@ -100,7 +100,7 @@ public:
 //---------------------------------------------------------------
 class TQualityFilter : public TBaseFilter{
 private:
-	TNumericRange<PhredIntErrorRate> _range;
+	coretools::TNumericRange<PhredIntErrorRate> _range;
 
 	PhredIntErrorRate _minPhredInt, _maxPhredInt;
 
@@ -111,13 +111,13 @@ public:
 		_default();
 	};
 
-	TQualityFilter(TParameters & params, TLog* logfile){
+	TQualityFilter(coretools::TParameters & params, coretools::TLog* logfile){
 		set(params, logfile);
 	};
 
 	~TQualityFilter() = default;
 
-	void set(TParameters & params, TLog* logfile);
+	void set(coretools::TParameters & params, coretools::TLog* logfile);
 
 	//TODO: check if we filter on TSequencedBase, and if yes, on which error rate (original or recal)
 	constexpr bool pass(const TSequencedBase & base) const{
@@ -142,7 +142,7 @@ public:
 	};
 	~TContextFilter() = default;
 
-	void set(TParameters & params, TLog* logfile);
+	void set(coretools::TParameters & params, coretools::TLog* logfile);
 
 	bool pass(const TSequencedBase & base) const;
 };

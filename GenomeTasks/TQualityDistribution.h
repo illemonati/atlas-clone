@@ -18,7 +18,7 @@ namespace GenomeTasks{
 //-----------------------------------
 class TQualityDistribution:public TGenome_parsed{
 private:
-	TCountDistributionVector _qualDist;
+	coretools::TCountDistributionVector _qualDist;
 
 	void _handleAlignment();
 
@@ -32,7 +32,7 @@ public:
 //-----------------------------------
 class TQualityTransformation:public TGenome_parsed{
 private:
-	std::vector<TCountDistributionVector> _transformations;
+	std::vector<coretools::TCountDistributionVector> _transformations;
 	bool _compareToOtherSeqErrors;
 	std::string _label1, _label2;
 	GenotypeLikelihoods::TSequencingErrorModels _otherSeqErrors;
@@ -47,7 +47,7 @@ public:
 //--------------------------------------
 // Tasks
 //--------------------------------------
-class TTask_qualityDist:public TTask{
+class TTask_qualityDist:public coretools::TTask{
 public:
 	TTask_qualityDist(){ _explanation = "Printing Quality Distribution"; };
 
@@ -57,7 +57,7 @@ public:
 	};
 };
 
-class TTask_qualityTransformation:public TTask{
+class TTask_qualityTransformation:public coretools::TTask{
 public:
 	TTask_qualityTransformation(){ _explanation = "Printing Quality Transformation"; };
 

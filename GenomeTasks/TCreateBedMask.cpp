@@ -9,6 +9,11 @@
 
 namespace GenomeTasks{
 
+using coretools::str::toString;
+using coretools::TParameters;
+using coretools::TRandomGenerator;
+using coretools::TLog;
+
 //--------------------------------------
 // TCreateBedMask
 //--------------------------------------

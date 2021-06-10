@@ -14,6 +14,9 @@
 
 namespace GenomeTasks{
 
+using coretools::TCountDistribution;
+using coretools::TCountDistributionVector;
+
 //-------------------------------------------
 // TBamDiagnoser
 // A class to get basic characteristics of a BAM file
@@ -45,11 +48,11 @@ public:
 //--------------------------------------
 // Tasks
 //--------------------------------------
-class TTask_BAMDiagnostics:public TTask{
+class TTask_BAMDiagnostics:public coretools::TTask{
 public:
 	TTask_BAMDiagnostics(){ _explanation = "Estimating approximate depth, read length frequencies and mapping quality frequencies"; };
 
-	void run(TParameters & Parameters, TLog* Logfile){
+	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
 		TBamDiagnoser diagnoser(Parameters, Logfile, _randomGenerator);
 		diagnoser.diagnose();
 	};

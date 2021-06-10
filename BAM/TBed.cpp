@@ -3,6 +3,9 @@
 
 namespace BAM{
 
+using coretools::str::toString;
+using coretools::str::convertStringCheck;
+
 //-------------------------------------------------------------
 // TBedChromosome
 //-------------------------------------------------------------
@@ -115,7 +118,7 @@ void TBed::add(const std::string& Chr, const uint32_t Pos){
 
 void TBed::add(const std::string& Filename){
 	//add windows from file
-	TInputFile in(Filename, 3);
+	coretools::TInputFile in(Filename, 3);
 
 	std::vector<std::string> vec;
 	while(in.read(vec)){
@@ -135,7 +138,7 @@ void TBed::add(const std::string& Filename, const TChromosomes & Chromosomes){
 	addChromosomes(Chromosomes);
 
 	//add windows from file
-	TInputFile in(Filename, 3);
+	coretools::TInputFile in(Filename, 3);
 
 	std::vector<std::string> vec;
 	while(in.read(vec)){
@@ -149,7 +152,7 @@ void TBed::add(const std::string& Filename, const TChromosomes & Chromosomes){
 };
 
 void TBed::write(const std::string& Filename) const{
-	TOutputFile out(Filename);
+	coretools::TOutputFile out(Filename);
 	out.noHeader(3);
 
 	for(auto& it: _bed){
@@ -201,7 +204,7 @@ void TGenomeWindowList::add(const TGenomeWindow& Window){
 
 void TGenomeWindowList::add(const std::string Filename, const TChromosomes & Chromosomes){
 	//add windows from file
-	TInputFile in(Filename, 3);
+	coretools::TInputFile in(Filename, 3);
 
 	std::vector<std::string> vec;
 	while(in.read(vec)){
@@ -215,7 +218,7 @@ void TGenomeWindowList::add(const std::string Filename, const TChromosomes & Chr
 };
 
 void TGenomeWindowList::write(const std::string Filename, const TChromosomes & Chromosomes) const{
-	TOutputFile out(Filename);
+	coretools::TOutputFile out(Filename);
 	out.noHeader(3);
 
 	for(auto& it:  _list){

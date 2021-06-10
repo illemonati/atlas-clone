@@ -33,7 +33,7 @@ private:
 	uint16_t _sizeMinusOne;
 
 	void _add(const uint16_t & pos, const BAM::Base & read);
-	void _writeNormalizedOne(TOutputFile & out, countVec & these);
+	void _writeNormalizedOne(coretools::TOutputFile & out, countVec & these);
 
 public:
 	TPMDCounts(){
@@ -57,7 +57,7 @@ public:
 		return _sums;
 	};
 
-	void write(TOutputFile & out, const std::vector<std::string> & prefix, const bool & normalized);
+	void write(coretools::TOutputFile & out, const std::vector<std::string> & prefix, const bool & normalized);
 };
 
 //------------------------------------------------
@@ -83,7 +83,7 @@ public:
 		return _counts[b.get()];
 	};
 
-	void write(TOutputFile & out, std::vector<std::string> & prefix, const bool & normalized);
+	void write(coretools::TOutputFile & out, std::vector<std::string> & prefix, const bool & normalized);
 };
 
 //------------------------------------------------
@@ -102,7 +102,7 @@ public:
 		return _tables[Type];
 	};
 
-	void write(TOutputFile & out, std::vector<std::string> & prefix, const bool & normalized);
+	void write(coretools::TOutputFile & out, std::vector<std::string> & prefix, const bool & normalized);
 };
 
 //------------------------------------------------

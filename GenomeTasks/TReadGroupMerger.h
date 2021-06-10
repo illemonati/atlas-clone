@@ -28,7 +28,7 @@ public:
 //--------------------------------------
 // Tasks
 //--------------------------------------
-class TTask_mergeReadGroups:public TTask{
+class TTask_mergeReadGroups:public coretools::TTask{
 public:
 	TTask_mergeReadGroups(){ _explanation = "Merging read groups in a BAM file"; };
 

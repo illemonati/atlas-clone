@@ -9,6 +9,8 @@
 
 namespace GenotypeLikelihoods{
 
+using coretools::str::toString;
+
 //-------------------------------------------------
 // TSiteSubsetSite
 //-------------------------------------------------
@@ -22,7 +24,7 @@ TSiteSubsetSite::TSiteSubsetSite(const BAM::TGenomePosition & Position, const BA
 	_alt = Alt;
 };
 
-void TSiteSubsetSite::write(TOutputFile & out) const{
+void TSiteSubsetSite::write(coretools::TOutputFile & out) const{
 	out << _refID << _position << _ref << _alt << std::endl;
 };
 
@@ -45,11 +47,11 @@ void TSiteSubset::_checkAlleles(const std::string & chr, const uint32_t & pos, c
 	}
 };
 
-void TSiteSubset::_readFile(const std::string Filename, const BAM::TChromosomes & Chromosomes, TLog* Logfile){
+void TSiteSubset::_readFile(const std::string Filename, const BAM::TChromosomes & Chromosomes, coretools::TLog* Logfile){
 	Logfile->listFlushTime("Reading sites to be used from '" + Filename + "' ...");
 
 	//open file
-	TInputFile in(Filename, 4);
+	coretools::TInputFile in(Filename, 4);
 
 	//read file and add sites
 	std::vector<std::string> line;
@@ -75,15 +77,15 @@ void TSiteSubset::_readFile(const std::string Filename, const BAM::TChromosomes 
 	Logfile->conclude("Parsed " + toString(_sites.size()) + " sites on " + toString(_refIDUsed.size()) + " chromosomes.");
 };
 
-void TSiteSubset::_readFile(const std::string Filename, const BAM::TChromosomes & Chromosomes, TLog* Logfile, BAM::TFastaBuffer & Reference){ //version that checks witth fasta reference
+void TSiteSubset::_readFile(const std::string Filename, const BAM::TChromosomes & Chromosomes, coretools::TLog* Logfile, BAM::TFastaBuffer & Reference){ //version that checks witth fasta reference
 	Logfile->listFlushTime("Reading sites to be used from '" + Filename + "' ...");
 
 	//open file
-	TInputFile in(Filename, 4);
+	coretools::TInputFile in(Filename, 4);
 
 	//conflicts with ref
 	bool conflictsFound = false;
-	TOutputFile conflicts;
+	coretools::TOutputFile conflicts;
 
 	//read file and add sites
 	std::vector<std::string> line;
@@ -93,7 +95,7 @@ void TSiteSubset::_readFile(const std::string Filename, const BAM::TChromosomes 
 		_refIDUsed.emplace(chr.refID());
 
 		//extract positions
-		uint32_t pos = convertStringCheck<uint32_t>(line[1]) - 1; //make 0-based
+		uint32_t pos = coretools::str::convertStringCheck<uint32_t>(line[1]) - 1; //make 0-based
 		BAM::Base ref(line[2][0]);
 		BAM::Base alt(line[3][0]);
 
@@ -127,18 +129,18 @@ void TSiteSubset::_readFile(const std::string Filename, const BAM::TChromosomes 
 	}
 };
 
-TSiteSubset::TSiteSubset(const std::string Filename, const BAM::TChromosomes & Chromosomes, TLog* Logfile, bool InvariantSites){
+TSiteSubset::TSiteSubset(const std::string Filename, const BAM::TChromosomes & Chromosomes, coretools::TLog* Logfile, bool InvariantSites){
 	_storesInvariantSites = InvariantSites;
 	_readFile(Filename, Chromosomes, Logfile);
 };
 
-TSiteSubset::TSiteSubset(const std::string Filename, const BAM::TChromosomes & Chromosomes, TLog* Logfile, bool InvariantSites, BAM::TFastaBuffer & Reference){
+TSiteSubset::TSiteSubset(const std::string Filename, const BAM::TChromosomes & Chromosomes, coretools::TLog* Logfile, bool InvariantSites, BAM::TFastaBuffer & Reference){
 	_storesInvariantSites = InvariantSites;
 	_readFile(Filename, Chromosomes, Logfile, Reference);
 };
 
 void TSiteSubset::write(const std::string Filename) const{
-	TOutputFile out(Filename, 4);
+	coretools::TOutputFile out(Filename, 4);
 	for(auto& s : _sites){
 		s.write(out);
 	}

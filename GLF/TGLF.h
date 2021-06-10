@@ -22,6 +22,8 @@
 #include "TChromosomes.h"
 #include "TTask.h"
 
+namespace GLF{
+
 using namespace GenotypeLikelihoods;
 
 /*
@@ -61,7 +63,7 @@ class TGlfChromosome{
 private:
 	void _setPloidy(uint8_t Ploidy){
 		if(Ploidy < 1 || Ploidy > 2)
-			throw "Currently GLFs only support ploidies 1 and 2 (not " + toString(Ploidy) + ")!";
+			throw "Currently GLFs only support ploidies 1 and 2 (not " + coretools::str::toString(Ploidy) + ")!";
 		ploidy = Ploidy;
 		if(ploidy == 1){
 			numLikelihoodValues = 4;
@@ -315,16 +317,17 @@ public:
 //------------------------------------------------
 // Tasks
 //------------------------------------------------
-class TTask_printGLF:public TTask{
+class TTask_printGLF:public coretools::TTask{
 public:
 	TTask_printGLF(){ _explanation = "Printing a GLF file to screen"; };
 
-	void run(TParameters & parameters, TLog* logfile){
+	void run(coretools::TParameters & parameters, coretools::TLog* logfile){
 		std::string glf = parameters.getParameter<std::string>("glf");
 		TGlfReader reader(glf);
 		reader.printToEnd();
 	};
 };
 
+}; //end namespace
 
 #endif /* TGLF_H_ */

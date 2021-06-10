@@ -83,7 +83,7 @@ public:
 		//now set
 		for(BAM::PhredIntErrorRate q = BAM::PhredIntErrorRate::min(); q <= BAM::PhredIntErrorRate::max(); ++q){
 			//convert phred int quality to error
-			Probability eps = (Probability) q;
+			coretools::Probability eps(q);
 
 			//ensure range
 			if(eps < 0.000'000'000'1) eps = 0.000'000'000'1;

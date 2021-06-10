@@ -35,7 +35,7 @@ void TQualityDistribution::compileQualityDistribution(){
 	//print distribution
 	std::string filename = _outputName + "_qualityDistribution.h";
 	_logfile->listFlush("Writing quality distribution to '" + filename + "' ...");
-	TOutputFile out(filename, {"readGroup", "quality", "counts"});
+	coretools::TOutputFile out(filename, {"readGroup", "quality", "counts"});
 
 	//get read group names
 	std::vector<std::string> readGroupNames;
@@ -98,11 +98,11 @@ void TQualityTransformation::compileQualityTransformation(){
 		_logfile->listFlush("Writing '" + filename + "' ...");
 		_transformations[rg].writeAsMatrix(filename, _label1, _label2);
 		_logfile->done();
-		_logfile->conclude("R squared for read group " + _bamFile.readGroups().getName(rg) + " is " + toString(_transformations[rg].RSquared()) + ".");
+		_logfile->conclude("R squared for read group " + _bamFile.readGroups().getName(rg) + " is " + coretools::str::toString(_transformations[rg].RSquared()) + ".");
 	}
 
 	//write combined distribution
-	TCountDistributionVector combined;
+	coretools::TCountDistributionVector combined;
 	for(auto& t : _transformations){
 		combined.add(t);
 	}
@@ -111,7 +111,7 @@ void TQualityTransformation::compileQualityTransformation(){
 	_logfile->listFlush("Writing quality transformation of total data to '" + filename + "' ...");
 	combined.writeAsMatrix(filename, _label1, _label2);
 	_logfile->done();
-	_logfile->conclude("R squared for total data is " + toString(combined.RSquared()) + ".");
+	_logfile->conclude("R squared for total data is " + coretools::str::toString(combined.RSquared()) + ".");
 
 };
 

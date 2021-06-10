@@ -38,7 +38,7 @@ public:
 	TSiteSubsetSite(const uint32_t & refID, const uint32_t & position, const BAM::Base & Ref, const BAM::Base & Alt);
 	TSiteSubsetSite(const BAM::TGenomePosition & Position, const BAM::Base & Ref, const BAM::Base & Alt);
 	TSiteSubsetSite(const TSiteSubsetSite & other) = default;
-	void write(TOutputFile & out) const;
+	void write(coretools::TOutputFile & out) const;
 
 	BAM::Base ref() const{ return _ref; };
 	BAM::Base alt() const{ return _alt; };
@@ -56,12 +56,12 @@ private:
 	bool _storesInvariantSites;
 
 	void _checkAlleles(const std::string & chr, const uint32_t & pos, const BAM::Base & ref, const BAM::Base & alt, const std::string & refAllele, const std::string & altAllele);
-	void _readFile(const std::string Filename, const BAM::TChromosomes & Chromosomes, TLog* Logfile);
-	void _readFile(const std::string Filename, const BAM::TChromosomes & Chromosomes, TLog* Logfile, BAM::TFastaBuffer & Reference);
+	void _readFile(const std::string Filename, const BAM::TChromosomes & Chromosomes, coretools::TLog* Logfile);
+	void _readFile(const std::string Filename, const BAM::TChromosomes & Chromosomes, coretools::TLog* Logfile, BAM::TFastaBuffer & Reference);
 
 public:
-	TSiteSubset(const std::string Filename, const BAM::TChromosomes & Chromosomes, TLog* Logfile, bool InvariantSites);
-	TSiteSubset(const std::string Filename, const BAM::TChromosomes & Chromosomes, TLog* Logfile, bool InvariantSites, BAM::TFastaBuffer & Reference);
+	TSiteSubset(const std::string Filename, const BAM::TChromosomes & Chromosomes, coretools::TLog* Logfile, bool InvariantSites);
+	TSiteSubset(const std::string Filename, const BAM::TChromosomes & Chromosomes, coretools::TLog* Logfile, bool InvariantSites, BAM::TFastaBuffer & Reference);
 	void write(const std::string Filename) const;
 	bool hasPositionsInWindow(const BAM::TGenomeWindow & Window) const;
 	std::set<TSiteSubsetSite> getPositionInWindow(const BAM::TGenomeWindow & Window) const;
