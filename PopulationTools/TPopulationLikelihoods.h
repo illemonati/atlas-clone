@@ -18,54 +18,155 @@
 #include "../TQualityMap.h"
 #include "TGenotypeFrequencies.h"
 #include "../TBed.h"
+#include <vector>
+#include <map>
+#include <algorithm>
+
+//------------------------------------------------
+// TPopulation
+//------------------------------------------------
+class TPopulation{
+private:
+	std::string _name;
+	std::vector<std::string> _samples;
+	uint32_t _firstSampleIndex;
+
+public:
+	TPopulation(const std::string & Name){
+		_name = Name;
+		_firstSampleIndex = 0;
+	};
+
+	std::string name() const{
+		return _name;
+	};
+
+	bool operator==(const std::string & Name) const{
+		return Name == _name;
+	};
+
+	uint32_t numSamples() const {
+		return _samples.size();
+	};
+
+	void addSample(const std::string & Sample){
+		//check for duplicates
+		if(std::find(_samples.begin(), _samples.end(), Sample) != _samples.end()){
+			throw "Duplicate sample '" + Sample + "' in population '" + _name + "'!";
+		}
+		_samples.push_back(Sample);
+	};
+
+	bool sampleExists(const std::string & Sample) const {
+		return std::find(_samples.begin(), _samples.end(), _name) != _samples.end();
+	};
+
+	void setFirstSampleIndex(const uint32_t & Index){
+		_firstSampleIndex = Index;
+	};
+
+	uint32_t firstSampleIndex() const{
+		return _firstSampleIndex;
+	};
+
+	bool sampleIndexExists(const uint32_t & Index) const {
+		return Index >= _firstSampleIndex && Index < _firstSampleIndex + _samples.size();
+	};
+
+	uint32_t sampleIndex(const std::string & Sample) const {
+		for(uint32_t i = 0; i < _samples.size(); ++i){
+			if(_samples[i] == Sample){
+				return _firstSampleIndex + i;
+			}
+		}
+		throw std::runtime_error("uint32_t TPopulation::sampleIndex(const std::string & Sample): sample '" + Sample + "' does not exist!");
+	};
+
+	std::string sampleName(const uint32_t & Index) const{
+		return _samples[Index - _firstSampleIndex];
+	};
+
+	void addSampleNamesToVector(std::vector<std::string> & vec) const {
+		vec.insert(vec.end(), _samples.begin(), _samples.end());
+	};
+
+	void report(TLog* Logfile) const {
+		for(auto& s : _samples){
+			Logfile->list(s);
+		}
+	};
+
+	//the following functions accept arrays spanning ALL samples and perform calculations on samples in population
+	uint32_t numSamplesMissing(bool* sampleMissing) const {
+		int numMissing = 0;
+		for(uint32_t s = 0; s < numSamples(); ++s){
+			if(sampleMissing[_firstSampleIndex + s])
+				numMissing++;
+		}
+		return numMissing;
+	};
+
+	uint32_t numSamplesWithData(bool* sampleMissing) const {
+		return numSamples() - numSamplesMissing(sampleMissing);
+	};
+};
 
 //------------------------------------------------
 //TPopulationSamples
 //------------------------------------------------
 class TPopulationSamples{
 private:
-	bool _hasSamples;
-	uint32_t _numPopulations;
+	//populations
+	std::vector<TPopulation> _populations;
 	uint32_t _numSamples;
-	uint32_t* numSamplesPerPop;
-	uint32_t* startIndexPerPop;
-	std::map<std::string, uint32_t> populations; // name and pop index
-	std::map<std::string, uint32_t> samples; //name and pop index
-	std::map<std::string, uint32_t> sampleOrder; //stores order of samples such that samples of the same population are together
-	uint32_t* _VCF_order;
-	bool _VCF_order_initialized;
+
+	//VCF index: maps index in VCF to internal index, which is ordered by population
+	struct vcfInfo{
+		bool used;
+		uint32_t index;
+
+		vcfInfo(){
+			used = false;
+			index = 0;
+		}
+	};
+	std::vector<vcfInfo> _vcfIndex;
+	std::vector<uint32_t> _indexToVCFIndex;
 
 	void _init();
 	void fillSampleOrder();
 public:
 	TPopulationSamples();
 	TPopulationSamples(std::string filename, TLog* logfile);
-	~TPopulationSamples();
+	~TPopulationSamples() = default;
 
-	bool populationExists(const std::string & name){
-		if(populations.find(name) != populations.end())
-			return true;
-		else
-			return false;
-	};
-	bool hasSamples(){ return _hasSamples; };
-	uint32_t numSamples(){ return _numSamples; };
-	int numPopulations(){ return _numPopulations; };
-	std::string getPopulationName(int index);
-	uint32_t getPopulationIndex(const std::string name);
-	uint32_t numSamplesInPop(int population){ return numSamplesPerPop[population]; };
+	bool hasSamples() const { return _numSamples > 0; };
+
+	size_t numPopulations() const { return _populations.size(); };
+	bool populationExists(const std::string & name) const;
+	std::string getPopulationName(const uint32_t & index) const;
+	uint32_t getPopulationIndex(const std::string & name) const;
+	uint32_t numSamplesInPop(const uint32_t & population) const { return _populations[population].numSamples(); };
+
+	uint32_t numSamples() const { return _numSamples; };
+	bool sampleExists(const std::string & name) const;
+	uint32_t getSampleIndex(const std::string & name) const;
+	std::string getSampleName(const uint32_t & index) const;
+	void addSampleNamesToVector(std::vector<std::string> & vec) const;
+
 	void readSamples(std::string filename, TLog* logfile);
 	void readSamplesFromVCFNames(std::vector<std::string> & vcfSampleNames);
-	bool sampleIsUsed(const std::string & name);
-	uint32_t getOrderedSampleIndex(const std::string & name);
-	uint32_t startIndex(int population){ return startIndexPerPop[population]; };
-	std::string getNameFromOrderedIndex(uint32_t index);
-	void addOrderedSampleNamesToVector(std::vector<std::string> & vec);
+	void report(TLog* Logfile);
 	void fillVCFOrder(std::vector<std::string> & vcfSampleNames);
-	uint32_t VCF_order(const uint32_t & index){ return _VCF_order[index]; };
-	uint8_t* getPointerToDataInPop(uint8_t* data, uint32_t population){ return &data[3*startIndexPerPop[population]]; };
-	uint32_t numSamplesMissingInPop(bool* sampleMissing, uint32_t population);
-	uint32_t numSamplesWithDataInPop(bool* sampleMissing, uint32_t population);
+
+	//bool sampleIsUsed(const std::string & name);
+	//uint32_t getOrderedSampleIndex(const std::string & name);
+	uint32_t startIndex(int population){ return _populations[population].firstSampleIndex(); };
+	uint32_t sampleIndexInVCF(const uint32_t & index);
+
+	uint8_t* getPointerToDataInPop(uint8_t* data, uint32_t population) const;
+	uint32_t numSamplesMissingInPop(bool* sampleMissing, uint32_t population) const;
+	uint32_t numSamplesWithDataInPop(bool* sampleMissing, uint32_t population) const;
 };
 
 //-------------------------------------------------

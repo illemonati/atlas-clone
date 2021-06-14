@@ -108,7 +108,7 @@ void TVcfToBeagle::writeHeader(){
     std::vector <std::string> header {"marker", "allele1", "allele2"};
     for(uint32_t s = 0; s < samples.numSamples(); s++){
         for(int r=0; r<3; ++r)
-            header.push_back(samples.getNameFromOrderedIndex(s));
+            header.push_back(samples.getSampleName(s));
     }
     beagleFile->writeHeader(header);
 }
@@ -276,7 +276,7 @@ void TVcfToLFMMPostGeno::storePosteriorGenotypes(TPopulationLikehoodLocus & data
 
 float TVcfToLFMMPostGeno::computePosteriorGenotype(TPopulationLikehoodLocus & data, uint32_t i){
     if (data[i].isMissing)
-        throw std::runtime_error("Missing data at sample " + samples.getNameFromOrderedIndex(i) + " and locus " + reader->chr() + ":" + toString(reader->position())
+        throw std::runtime_error("Missing data at sample " + samples.getSampleName(i) + " and locus " + reader->chr() + ":" + toString(reader->position())
         + "! LFMM2 does not accept missing genotypes, please impute your VCF file first.");
     // if locus is haploid -> llG2 will be ~0 -> gives same result as if I ignored it -> will not treat haploid data in a special way
     // first convert glf to genotype likelihood
@@ -388,7 +388,7 @@ void TVcfToGenotypeTruthSetFile::writeHeader(){
     //header string
     std::vector <std::string> header;
     for(uint32_t s = 0; s < samples.numSamples(); s++){
-        header.push_back(samples.getNameFromOrderedIndex(s));
+        header.push_back(samples.getSampleName(s));
     }
     genFile->writeHeader(header);
 }
@@ -518,7 +518,7 @@ void TVcfToGenotypeTruthSetFile::vcfToGenotypeTruthSetFile(TParameters & Params)
     // write bed files (one per sample)
     for(uint32_t s = 0; s < samples.numSamples(); s++) {
         // check if sample name contains / (would be interpreted as path)
-        std::string sample_name = samples.getNameFromOrderedIndex(s);
+        std::string sample_name = samples.getSampleName(s);
         if (stringContains(sample_name, '/'))
             sample_name = stringReplace("/", "_", sample_name);
         bedFiles[s]->write(_outname + "_" + sample_name + ".bed");
