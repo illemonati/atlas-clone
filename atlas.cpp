@@ -55,7 +55,7 @@
 #include "TAtlasTestRecalibration.h"
 #include "TVcfTest.h"
 
-void addTaks(TMain & main) {
+void addTaks(coretools::TMain & main) {
     // Use main.addRegularTask to add a regular task (shown in list of available tasks)
 
 	//BAM

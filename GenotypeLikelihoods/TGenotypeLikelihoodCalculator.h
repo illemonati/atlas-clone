@@ -17,13 +17,13 @@ namespace GenotypeLikelihoods{
 
 class TGenotypeLikelihoodCalculator_simple{
 private:
-	mutable std::vector<TBaseData> _baseLikelihoods;
-	mutable TBaseData _baseLikelihoodsNoPMD;
+	mutable std::vector<TBaseLikelihoods> _baseLikelihoods;
+	mutable TBaseLikelihoods _baseLikelihoodsNoPMD;
 
 public:
 
 	template <typename PMD, typename SEQERR>
-	void fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseData & BaseLikelihoods, const PMD & PmdModels, const SEQERR & SequencingErrorModels) const{
+	void fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseLikelihoods & BaseLikelihoods, const PMD & PmdModels, const SEQERR & SequencingErrorModels) const{
 		SequencingErrorModels.fillBaseLikelihoods(base, _baseLikelihoodsNoPMD);
 		PmdModels.fillBaseLikelihoods(base, _baseLikelihoodsNoPMD, BaseLikelihoods);
 	};

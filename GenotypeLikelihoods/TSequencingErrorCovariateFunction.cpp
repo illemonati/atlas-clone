@@ -48,7 +48,7 @@ void TSequencingErrorCovariateFunction::_initializValues(const std::vector<std::
 		}
 
 		for(size_t i=0; i<values.size(); ++i){
-			_betas[i] = convertStringCheck<double>(values[i]);
+			_betas[i] = coretools::str::convertStringCheck<double>(values[i]);
 		}
 	}
 };
@@ -227,8 +227,8 @@ void TSequencingErrorCovariateFunction_polynomial::fillDerivatives(const uint16_
 //--------------------------------------------------------------
 TProbitTmpStorage::TProbitTmpStorage(const std::vector<double> & betas, const uint16_t & q){
 	double z = betas[1] + betas[2] * (double) q;
-	_cumulDens_Phi = TNormalDistr::cumulativeDistrFunction(z);
-	_normalDens_phi = TNormalDistr::density(z);
+	_cumulDens_Phi = coretools::TNormalDistr::cumulativeDistrFunction(z);
+	_normalDens_phi = coretools::TNormalDistr::density(z);
 	_eta = _cumulDens_Phi * betas[0];
 	_normalDens_q = _normalDens_phi * (double) q;
 	_normalDens_Beta1 = _normalDens_phi * betas[0];
@@ -394,7 +394,7 @@ TSequencingErrorCovariateFunction_specificMap::TSequencingErrorCovariateFunction
 		if(pos == std::string::npos){
 			throw "Can not parse value '" + s + "': missing ':'!";
 		}
-		uint16_t key = convertStringCheck<uint16_t>(s.substr(0, pos));
+		uint16_t key = coretools::str::convertStringCheck<uint16_t>(s.substr(0, pos));
 		 if (std::find(valuesUsed.begin(), valuesUsed.end(), key) != valuesUsed.end()){
 			throw "Duplicate entry for key " + toString(key) + "!";
 		}

@@ -91,11 +91,11 @@ coretools::Probability TGenotypeLikelihoodCalculator::getErrorWithPMD(const BAM:
 		return 1.0;
 	} else {
 		//calculate base likelihoods with PMD
-		static TBaseData tmpBaseData;
+		static TBaseLikelihoods tmpBaseData;
 		_calculator.fillBaseLikelihoods(base, tmpBaseData, _pmdModels, _sequencingErrorModels);
 
 		//return 1 - P(base|base) as in mapdamage2
-		return 1.0 - tmpBaseData[base.base];
+		return tmpBaseData[base.base].complement();
 	}
 };
 
@@ -131,10 +131,10 @@ void TGenotypeLikelihoodCalculator::recalibrateWithPMD(std::vector<BAM::TSequenc
 
 double TGenotypeLikelihoodCalculator::calculateLogPMDS(const BAM::TSequencedBase & base, const BAM::Base & ref, const coretools::Probability & pi) const{
 	//get base likelihoods
-	static TBaseData baseLikelihoodsNoPMD;
+	static TBaseLikelihoods baseLikelihoodsNoPMD;
 	_sequencingErrorModels.fillBaseLikelihoods(base, baseLikelihoodsNoPMD);
 
-	static TBaseData baseLikelihoods;
+	static TBaseLikelihoods baseLikelihoods;
 	_pmdModels.fillBaseLikelihoods(base, baseLikelihoodsNoPMD, baseLikelihoods);
 
 	//calculate PMDS: true base in read == ref with prob. (1-pi) and different with prob. pi/3

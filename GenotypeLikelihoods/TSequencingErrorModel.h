@@ -83,11 +83,11 @@ public:
 class TSequencingErrorRho:public TSequencingErrorRhoStorage{
 public:
 	void operator=(const TSequencingErrorRhoStorage & other);
-	void fillBaseLikelihoods(const BAM::Base base, const Probability & epsilon, TBaseData & baseLikelihoods) const;
+	void fillBaseLikelihoods(const BAM::Base base, const Probability & epsilon, TBaseLikelihoods & baseLikelihoods) const;
 
 	//functions used to estimate
 	void prepareEstimationFromEMWeights();
-	void addBaseForEstimation(const BAM::Base & base, const TBaseData & EMWeights);
+	void addBaseForEstimation(const BAM::Base & base, const TBaseLikelihoods & EMWeights);
 	void estimate();
 };
 
@@ -163,7 +163,7 @@ public:
 
 	virtual Probability getErrorRate(const BAM::TSequencedBase & base) const = 0;
 	virtual BAM::PhredIntErrorRate getPhredInt(const BAM::TSequencedBase & base) const = 0;
-	virtual void fillBaseLikelihoods(const BAM::TSequencedBase & base,TBaseData & baseLikelihoods) const = 0;
+	virtual void fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseLikelihoods & baseLikelihoods) const = 0;
 
 	virtual std::string getCovariateDefinition() const { return "-"; };
 	virtual std::string getRhoDefinition() const { return "-"; };
@@ -181,7 +181,7 @@ public:
 
 	Probability getErrorRate(const BAM::TSequencedBase & base) const override;
 	BAM::PhredIntErrorRate getPhredInt(const BAM::TSequencedBase & base) const override;
-	void fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseData & baseLikelihoods) const override;
+	void fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseLikelihoods & baseLikelihoods) const override;
 };
 
 //------------------------------------------------
@@ -220,7 +220,7 @@ public:
 	//get error rates
 	Probability getErrorRate(const BAM::TSequencedBase & base) const override;
 	BAM::PhredIntErrorRate getPhredInt(const BAM::TSequencedBase & base) const override;
-	void fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseData & baseLikelihoods) const override;
+	void fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseLikelihoods & baseLikelihoods) const override;
 
 	//functions to estimate
 	bool checkParameterRange(RecalEstimatorTools::TRecalDataTable & DataTable, std::string & error);
@@ -228,15 +228,15 @@ public:
 
 	//functions to estimate rho
 	void prepareRhoEstimationFromEMWeights();
-	void addBaseForRhoEstimation(BAM::TSequencedBase & base, const TBaseData & EMWeights);
+	void addBaseForRhoEstimation(BAM::TSequencedBase & base, const TBaseLikelihoods & EMWeights);
 	void estimateRho();
 
 	//functions to estimate betas
 	void setNewtonRaphsonParamsToZero();
 	void setQToZero();
-	void addToQ(const BAM::TSequencedBase & base, const TBaseData & EM_weights_bbar_given_d);
+	void addToQ(const BAM::TSequencedBase & base, const TBaseLikelihoods & EM_weights_bbar_given_d);
 	double curQ(){ return _Q; };
-	void addToFandJacobian(const BAM::TSequencedBase & base, const TBaseData & EM_weights_bbar_given_d);
+	void addToFandJacobian(const BAM::TSequencedBase & base, const TBaseLikelihoods & EM_weights_bbar_given_d);
 	bool solveJxF();
 	void proposeNewParameters(double & lambda);
 	bool acceptProposedParametersBasedOnQ();

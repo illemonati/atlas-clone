@@ -264,8 +264,8 @@ class TGenotypeLikelihoods : public TGenotypeProbability_base{
 public:
 	TGenotypeLikelihoods();
 
-	virtual void fill(const std::vector<TBaseData> & bases);
-	virtual void fill(const std::vector<TBaseData> & bases, const size_t size);
+	virtual void fill(const std::vector<TBaseLikelihoods> & bases);
+	virtual void fill(const std::vector<TBaseLikelihoods> & bases, const size_t size);
 
 	void reset() override { set(coretools::Probability(1.0)); };
 	void addNames(std::vector<std::string> & vec) const override;

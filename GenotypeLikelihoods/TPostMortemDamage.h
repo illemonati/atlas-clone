@@ -184,7 +184,7 @@ public:
 	virtual void parseEstimationParameters(TPMDEstimationParameters & EstimationParameters, TParameters & Params, TLog* Logfile){};
 	virtual void estimate(const TPMDTableReadGroup & PMDTable, const TPMDEstimationParameters & EstimationParameters){};
 
-	virtual void fillBaseLikelihoods(const BAM::TSequencedBase & base, const TBaseData & baseLikelihoodsNoPMD, TBaseData & baseLikelihoods) const = 0;
+	virtual void fillBaseLikelihoods(const BAM::TSequencedBase & base, const TBaseProbabilities & baseLikelihoodsNoPMD, TBaseProbabilities & baseLikelihoods) const = 0;
 
 	virtual void simulatePMD(BAM::TSequencedBase & base, TRandomGenerator & RandomGenerator) const = 0;
 	virtual void simulatePMD(BAM::Base & base, const uint16_t & DistFrom5Prime, const uint16_t & DistFrom3Prime, const bool & IsReverseStrand, TRandomGenerator & RandomGenerator) const = 0;
@@ -202,7 +202,7 @@ public:
 	std::string type() const override { return PMDTypeName_none; };
 	std::string functionString() const override { return "none"; };
 
-	void fillBaseLikelihoods(const BAM::TSequencedBase & base, const TBaseData & baseLikelihoodsNoPMD, TBaseData & baseLikelihoods) const override {
+	void fillBaseLikelihoods(const BAM::TSequencedBase & base, const TBaseProbabilities & baseLikelihoodsNoPMD, TBaseProbabilities & baseLikelihoods) const override {
 		//just copy
 		baseLikelihoods = baseLikelihoodsNoPMD;
 	};
@@ -230,7 +230,7 @@ public:
 	void parseEstimationParameters(TPMDEstimationParameters & EstimationParameters, TParameters & Params, TLog* Logfile) override;
 	void estimate(const TPMDTableReadGroup & PMDTable, const TPMDEstimationParameters & EstimationParameters) override;
 
-	void fillBaseLikelihoods(const BAM::TSequencedBase & base, const TBaseData & baseLikelihoodsNoPMD, TBaseData & baseLikelihoods) const override;
+	void fillBaseLikelihoods(const BAM::TSequencedBase & base, const TBaseProbabilities & baseLikelihoodsNoPMD, TBaseProbabilities & baseLikelihoods) const override;
 
 	void simulatePMD(BAM::TSequencedBase & base, TRandomGenerator & RandomGenerator) const override;
 	void simulatePMD(BAM::Base & base, const uint16_t & DistFrom5Prime, const uint16_t & DistFrom3Prime, const bool & IsReverseStrand, TRandomGenerator & RandomGenerator) const override;
@@ -259,7 +259,7 @@ public:
 	void initialize(const std::string & pmdString, const BAM::TReadGroups & ReadGroups, TLog* Logfile, std::vector<uint16_t> & ReadGroupsWithoutPMD);
 	void writeToFile(const BAM::TReadGroups & ReadGroups, const std::string filename);
 	void writeToFile(const BAM::TReadGroups & ReadGroups, const BAM::TReadGroupMap & ReadGroupMap, const std::string filename);
-	void fillBaseLikelihoods(const BAM::TSequencedBase & base, const TBaseData & baseLikelihoodsNoPMD, TBaseData & baseLikelihoods) const;
+	void fillBaseLikelihoods(const BAM::TSequencedBase & base, const TBaseProbabilities & baseLikelihoodsNoPMD, TBaseProbabilities & baseLikelihoods) const;
 };
 
 }; //end namespace

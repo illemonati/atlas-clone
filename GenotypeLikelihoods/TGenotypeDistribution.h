@@ -20,7 +20,7 @@ namespace GenotypeLikelihoods{
 class TGenotypeDistribution{
 protected:
 
-	TBaseData _baseFrequencies; //reflects expected base frequencies under the model
+	TBaseProbabilities _baseFrequencies; //reflects expected base frequencies under the model
 	TGenotypeProbabilities _genotypeFrequencies;
 
 public:
@@ -29,7 +29,7 @@ public:
 
 	virtual void reset(){};
 
-	const TBaseData& baseFrequencies(){ return _baseFrequencies; };
+	const TBaseProbabilities& baseFrequencies(){ return _baseFrequencies; };
 	const TGenotypeProbabilities& genotypeFrequencies(){ return _genotypeFrequencies; };
 
 	void fillBaseFrequences(TBaseProbabilities & baseFreq, const BAM::Genotype genotype);

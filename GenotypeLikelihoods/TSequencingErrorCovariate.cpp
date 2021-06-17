@@ -31,7 +31,7 @@ void TSequencingErrorCovariate::_parseModuleString(const std::string & str, std:
 		if(pos == std::string::npos){
 			throw "Wrong format for recal function '" + str + "': missing ']'! " + format;
 		}
-		fillContainerFromStringAny(str.substr(pos+1, pos2-pos-1), values, ",", true);
+		coretools::str::fillContainerFromStringAny(str.substr(pos+1, pos2-pos-1), values, ",", true);
 	} else {
 		type = str;
 	}
@@ -44,7 +44,7 @@ void TSequencingErrorCovariate::_parseModuleString(const std::string & str, std:
 		if(pos == std::string::npos){
 			throw "Wrong format for recal function '" + str + "': missing ')'! " + format;
 		}
-		fillContainerFromStringAny(type.substr(pos+1, pos2-pos-1), args, ",", true);
+		coretools::str::fillContainerFromStringAny(type.substr(pos+1, pos2-pos-1), args, ",", true);
 
 		//extract type
 		type = type.substr(0, pos);
@@ -80,7 +80,7 @@ void TSequencingErrorCovariate::_addPolynomialFunction(const size_t FirstParamet
 		if(args.size() != 1){
 			throw "Wrong number of arguments for polynomial recal function '" + functionString + "': expect one argument (order).";
 		}
-		_function.reset( new TSequencingErrorCovariateFunction_polynomial(FirstParameterIndex, convertStringCheck<uint32_t>(args[0])));
+		_function.reset( new TSequencingErrorCovariateFunction_polynomial(FirstParameterIndex, coretools::str::convertStringCheck<uint32_t>(args[0])));
 	} else {
 		_function.reset( new TSequencingErrorCovariateFunction_polynomial(FirstParameterIndex, values));
 	}

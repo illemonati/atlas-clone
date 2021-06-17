@@ -480,7 +480,7 @@ void TPMDTypeDoubleStrand::estimate(const TPMDTableReadGroup & PMDTable, const T
 	_pmdGA->learn(from3, BAM::G, BAM::A, EstimationParameters);
 };
 
-void TPMDTypeDoubleStrand::fillBaseLikelihoods(const BAM::TSequencedBase & base, const TBaseData & baseLikelihoodsNoPMD, TBaseData & baseLikelihoods) const {
+void TPMDTypeDoubleStrand::fillBaseLikelihoods(const BAM::TSequencedBase & base, const TBaseProbabilities & baseLikelihoodsNoPMD, TBaseProbabilities & baseLikelihoods) const {
 	//Note: distances are as in original fragment (not BAM file), i.e. in direction of sequencing
 	//no PMD for A and C
 	baseLikelihoods[BAM::A] = baseLikelihoodsNoPMD[BAM::A];
@@ -497,8 +497,8 @@ void TPMDTypeDoubleStrand::fillBaseLikelihoods(const BAM::TSequencedBase & base,
 	}
 
 	//add PMD
-	baseLikelihoods[BAM::C] = (1.0 - pmdProb_CT) * baseLikelihoodsNoPMD[BAM::C] + pmdProb_CT * baseLikelihoodsNoPMD[BAM::T];
-	baseLikelihoods[BAM::G] = (1.0 - pmdProb_GA) * baseLikelihoodsNoPMD[BAM::G] + pmdProb_GA * baseLikelihoodsNoPMD[BAM::A];
+	baseLikelihoods[BAM::C] = (1.0 - pmdProb_CT) * baseLikelihoodsNoPMD[BAM::C].get() + pmdProb_CT * baseLikelihoodsNoPMD[BAM::T].get();
+	baseLikelihoods[BAM::G] = (1.0 - pmdProb_GA) * baseLikelihoodsNoPMD[BAM::G].get() + pmdProb_GA * baseLikelihoodsNoPMD[BAM::A].get();
 };
 
 void TPMDTypeDoubleStrand::simulatePMD(BAM::TSequencedBase & base, TRandomGenerator & RandomGenerator) const {
@@ -652,7 +652,7 @@ void TPostMortemDamage::initialize(const std::string & pmdString, const BAM::TRe
 	_setHasDamage();
 };
 
-void TPostMortemDamage::fillBaseLikelihoods(const BAM::TSequencedBase & base, const TBaseData & baseLikelihoodsNoPMD, TBaseData & baseLikelihoods) const{
+void TPostMortemDamage::fillBaseLikelihoods(const BAM::TSequencedBase & base, const TBaseProbabilities & baseLikelihoodsNoPMD, TBaseProbabilities & baseLikelihoods) const{
 	if(_hasPMD){
 		_pmdObjects[base.readGroupID]->fillBaseLikelihoods(base, baseLikelihoodsNoPMD, baseLikelihoods);
 	} else {

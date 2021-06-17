@@ -20,6 +20,8 @@ namespace GenotypeLikelihoods{
 
 namespace RecalEstimator{
 
+using coretools::str::toString;
+
 //--------------------------------------------------------------------------------------
 // TModelIndex
 // Object to map read group ID and mate to an internal index used to store recal models
@@ -71,17 +73,17 @@ public:
 	~TSequencingErrorModelVectorForEstimation() = default;
 
 	size_t size() const { return _models.size(); };
-	void fillBaseLikelihoods(const BAM::TSequencedBase & base,  TBaseData & baseLikelihoods) const;
+	void fillBaseLikelihoods(const BAM::TSequencedBase & base,  TBaseLikelihoods & baseLikelihoods) const;
 
 	//functions to estimate rho
 	void prepareRhoEstimationFromEMWeights();
-	void addBaseForRhoEstimation(BAM::TSequencedBase & base, const TBaseData & EMWeights);
+	void addBaseForRhoEstimation(BAM::TSequencedBase & base, const TBaseLikelihoods & EMWeights);
 	void estimateRho();
 
 	//functions to estimate beta
 	void setNewtonRaphsonParamsToZero();
-	void addToFandJacobian(const BAM::TSequencedBase & base, const TBaseData & EM_weights_bbar_given_d);
-	void addToQ(const BAM::TSequencedBase & base, const TBaseData & EM_weights_bbar_given_d);
+	void addToFandJacobian(const BAM::TSequencedBase & base, const TBaseLikelihoods & EM_weights_bbar_given_d);
+	void addToQ(const BAM::TSequencedBase & base, const TBaseLikelihoods & EM_weights_bbar_given_d);
 	void setQToZero();
 	double curQ();
 	bool solveJxF();
@@ -125,9 +127,9 @@ private:
 	void _fillRelevantBaseFrequencies(TBaseProbabilities & baseFreq, const BAM::Genotype & genotype);
 
 	//functions to estimate theta_epsilon (sequencing error rates)
-	void _calculate_EMWeights_epsilon(std::vector<TBaseData> & EMWeights, const TPostMortemDamage & PmdModels);
-	double _calculate_Q_beta(const std::vector<TBaseData> & EM_weights_bbar_given_d);
-	void _calculate_J_F_beta(const std::vector<TBaseData> & EM_weights_bbar_given_d);
+	void _calculate_EMWeights_epsilon(std::vector<TBaseLikelihoods> & EMWeights, const TPostMortemDamage & PmdModels);
+	double _calculate_Q_beta(const std::vector<TBaseLikelihoods> & EM_weights_bbar_given_d);
+	void _calculate_J_F_beta(const std::vector<TBaseLikelihoods> & EM_weights_bbar_given_d);
 	void _updateEM_theta_epsilon(const TPostMortemDamage & PmdModels);
 
 	//function to calculate LL (currently uses haploid model)

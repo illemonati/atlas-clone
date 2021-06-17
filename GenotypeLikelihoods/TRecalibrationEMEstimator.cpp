@@ -76,7 +76,7 @@ TSequencingErrorModelVectorForEstimation::TSequencingErrorModelVectorForEstimati
 	modelStati.report(RecalEstimatorTools::littleData, "Read groups with very little data (consider pooling):", ReadGroups, Logfile);
 };
 
-void TSequencingErrorModelVectorForEstimation::fillBaseLikelihoods(const BAM::TSequencedBase & base,  TBaseData & baseLikelihoods) const{
+void TSequencingErrorModelVectorForEstimation::fillBaseLikelihoods(const BAM::TSequencedBase & base,  TBaseLikelihoods & baseLikelihoods) const{
 	_modelIndex(base).fillBaseLikelihoods(base, baseLikelihoods);
 };
 
@@ -89,7 +89,7 @@ void TSequencingErrorModelVectorForEstimation::prepareRhoEstimationFromEMWeights
 	}
 };
 
-void TSequencingErrorModelVectorForEstimation::addBaseForRhoEstimation(BAM::TSequencedBase & base, const TBaseData & EMWeights){
+void TSequencingErrorModelVectorForEstimation::addBaseForRhoEstimation(BAM::TSequencedBase & base, const TBaseLikelihoods & EMWeights){
 	_modelIndex(base).addBaseForRhoEstimation(base, EMWeights);
 };
 
@@ -102,11 +102,11 @@ void TSequencingErrorModelVectorForEstimation::estimateRho(){
 //functions to estimate beta
 //-------------------------------------------------------------------
 
-void TSequencingErrorModelVectorForEstimation::addToFandJacobian(const BAM::TSequencedBase & base, const TBaseData & EM_weights_bbar_given_d){
+void TSequencingErrorModelVectorForEstimation::addToFandJacobian(const BAM::TSequencedBase & base, const TBaseLikelihoods & EM_weights_bbar_given_d){
 	_modelIndex(base).addToFandJacobian(base, EM_weights_bbar_given_d);
 };
 
-void TSequencingErrorModelVectorForEstimation::addToQ(const BAM::TSequencedBase & base, const TBaseData & EM_weights_bbar_given_d){
+void TSequencingErrorModelVectorForEstimation::addToQ(const BAM::TSequencedBase & base, const TBaseLikelihoods & EM_weights_bbar_given_d){
 	_modelIndex(base).addToQ(base, EM_weights_bbar_given_d);
 };
 
@@ -294,7 +294,7 @@ void TRecalibrationEMEstimator::_fillRelevantBaseFrequencies(TBaseProbabilities 
 	}
 };
 
-void TRecalibrationEMEstimator::_calculate_EMWeights_epsilon(std::vector<TBaseData> & EMWeights, const TPostMortemDamage & PmdModels){
+void TRecalibrationEMEstimator::_calculate_EMWeights_epsilon(std::vector<TBaseLikelihoods> & EMWeights, const TPostMortemDamage & PmdModels){
 	//make sure EM-weight storage is of appropriate size
 	EMWeights.resize(_dataTables.size());
 	//loop over all bases and calculate EM-weights
@@ -323,7 +323,7 @@ void TRecalibrationEMEstimator::_calculate_EMWeights_epsilon(std::vector<TBaseDa
 	}
 };
 
-double TRecalibrationEMEstimator::_calculate_Q_beta(const std::vector<TBaseData> & EM_weights_bbar_given_d){
+double TRecalibrationEMEstimator::_calculate_Q_beta(const std::vector<TBaseLikelihoods> & EM_weights_bbar_given_d){
 	_modelsToEstimate->setQToZero();
 
 	//loop over all bases and add them to Q
@@ -339,7 +339,7 @@ double TRecalibrationEMEstimator::_calculate_Q_beta(const std::vector<TBaseData>
 	return _modelsToEstimate->curQ();
 };
 
-void TRecalibrationEMEstimator::_calculate_J_F_beta(const std::vector<TBaseData> & EM_weights_bbar_given_d){
+void TRecalibrationEMEstimator::_calculate_J_F_beta(const std::vector<TBaseLikelihoods> & EM_weights_bbar_given_d){
 	_logfile->listFlush("Calculating Jacobian and gradient ...");
 	_modelsToEstimate->setNewtonRaphsonParamsToZero();
 
@@ -362,7 +362,7 @@ void TRecalibrationEMEstimator::_updateEM_theta_epsilon(const TPostMortemDamage 
 	// 1) calculate EM weights
 	//-------------------------
 	_logfile->listFlushDots("Calculating EM weights");
-	std::vector<TBaseData> EM_weights_bbar_given_d;
+	std::vector<TBaseLikelihoods> EM_weights_bbar_given_d;
 	_calculate_EMWeights_epsilon(EM_weights_bbar_given_d, PmdModels);
 	_logfile->done();
 
@@ -461,10 +461,10 @@ double TRecalibrationEMEstimator::_calculateLL_fullModel(const TPostMortemDamage
 		_genotypeLikelihoodCalculator.fillGenotypeLikelihoods(s, genotypeLikelihoods, PmdModels, *_modelsToEstimate);
 
 		//weight by genotype prior
-		if(s.genotype() == NN){
+		if(s.genotype() == BAM::NN){
 			LL += log(genotypeLikelihoods.weightedSum(genoFreq));
 		} else {
-			LL += log(genotypeLikelihoods[s.genotype()]);
+			LL += log(genotypeLikelihoods[s.genotype()].get());
 		}
 	}
 

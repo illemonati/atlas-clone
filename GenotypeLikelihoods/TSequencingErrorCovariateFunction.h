@@ -14,8 +14,9 @@
 #define ARMA_DONT_PRINT_ERRORS
 #include <armadillo>
 
-
 namespace GenotypeLikelihoods{
+
+using coretools::str::toString;
 
 //define module names
 extern const std::string SequencingErrorCovariateFunction_none;

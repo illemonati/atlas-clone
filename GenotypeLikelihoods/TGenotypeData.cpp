@@ -75,11 +75,11 @@ TGenotypeLikelihoods::TGenotypeLikelihoods(){
 	reset();
 };
 
-void TGenotypeLikelihoods::fill(const std::vector<TBaseData> & bases){
+void TGenotypeLikelihoods::fill(const std::vector<TBaseLikelihoods> & bases){
 	fill(bases, bases.size());
 };
 
-void TGenotypeLikelihoods::fill(const std::vector<TBaseData> & bases, const size_t size){
+void TGenotypeLikelihoods::fill(const std::vector<TBaseLikelihoods> & bases, const size_t size){
 	//allows for vector to be longer than what is to be used
 	//do in log if depth is high
 	if(bases.size() > 50){
@@ -88,16 +88,16 @@ void TGenotypeLikelihoods::fill(const std::vector<TBaseData> & bases, const size
 
 		//add to log genotype data
 		for(size_t i=0; i<size; ++i){
-			tmp[BAM::AA] += log(bases[i][BAM::A]);
-			tmp[BAM::AC] += log(0.5*bases[i][BAM::A] + 0.5*bases[i][BAM::C]);
-			tmp[BAM::AG] += log(0.5*bases[i][BAM::A] + 0.5*bases[i][BAM::G]);
-			tmp[BAM::AT] += log(0.5*bases[i][BAM::A] + 0.5*bases[i][BAM::T]);
-			tmp[BAM::CC] += log(bases[i][BAM::C]);
-			tmp[BAM::CG] += log(0.5*bases[i][BAM::C] + 0.5*bases[i][BAM::G]);
-			tmp[BAM::CT] += log(0.5*bases[i][BAM::C] + 0.5*bases[i][BAM::T]);
-			tmp[BAM::GG] += log(bases[i][BAM::G]);
-			tmp[BAM::GT] += log(0.5*bases[i][BAM::G] + 0.5*bases[i][BAM::T]);
-			tmp[BAM::TT] += log(bases[i][BAM::T]);
+			tmp[BAM::AA] += log(bases[i][BAM::A].get());
+			tmp[BAM::AC] += log(0.5 * (bases[i][BAM::A].get() + bases[i][BAM::C].get()));
+			tmp[BAM::AG] += log(0.5 * (bases[i][BAM::A].get() + bases[i][BAM::G].get()));
+			tmp[BAM::AT] += log(0.5 * (bases[i][BAM::A].get() + bases[i][BAM::T].get()));
+			tmp[BAM::CC] += log(bases[i][BAM::C].get());
+			tmp[BAM::CG] += log(0.5 * (bases[i][BAM::C].get() + bases[i][BAM::G].get()));
+			tmp[BAM::CT] += log(0.5 * (bases[i][BAM::C].get() + bases[i][BAM::T].get()));
+			tmp[BAM::GG] += log(bases[i][BAM::G].get());
+			tmp[BAM::GT] += log(0.5 * (bases[i][BAM::G].get() + bases[i][BAM::T].get()));
+			tmp[BAM::TT] += log(bases[i][BAM::T].get());
 		}
 
 		//standardize and de-log
@@ -117,16 +117,16 @@ void TGenotypeLikelihoods::fill(const std::vector<TBaseData> & bases, const size
 		set(1.0);
 
 		for(size_t i=0; i<size; ++i){
-			_data[BAM::AA] *= bases[i][BAM::A];
-			_data[BAM::AC] *= 0.5*bases[i][BAM::A] + 0.5*bases[i][BAM::C];
-			_data[BAM::AG] *= 0.5*bases[i][BAM::A] + 0.5*bases[i][BAM::G];
-			_data[BAM::AT] *= 0.5*bases[i][BAM::A] + 0.5*bases[i][BAM::T];
-			_data[BAM::CC] *= bases[i][BAM::C];
-			_data[BAM::CG] *= 0.5*bases[i][BAM::C] + 0.5*bases[i][BAM::G];
-			_data[BAM::CT] *= 0.5*bases[i][BAM::C] + 0.5*bases[i][BAM::T];
-			_data[BAM::GG] *= bases[i][BAM::G];
-			_data[BAM::GT] *= 0.5*bases[i][BAM::G] + 0.5*bases[i][BAM::T];
-			_data[BAM::TT] *= bases[i][BAM::T];
+			_data[BAM::AA] *= bases[i][BAM::A].get();
+			_data[BAM::AC] *= 0.5 * (bases[i][BAM::A].get() + bases[i][BAM::C].get());
+			_data[BAM::AG] *= 0.5 * (bases[i][BAM::A].get() + bases[i][BAM::G].get());
+			_data[BAM::AT] *= 0.5 * (bases[i][BAM::A].get() + bases[i][BAM::T].get());
+			_data[BAM::CC] *= bases[i][BAM::C].get();
+			_data[BAM::CG] *= 0.5 * (bases[i][BAM::C].get() + bases[i][BAM::G].get());
+			_data[BAM::CT] *= 0.5 * (bases[i][BAM::C].get() + bases[i][BAM::T].get());
+			_data[BAM::GG] *= bases[i][BAM::G].get();
+			_data[BAM::GT] *= 0.5 * (bases[i][BAM::G].get() + bases[i][BAM::T].get());
+			_data[BAM::TT] *= bases[i][BAM::T].get();
 		}
 	}
 };

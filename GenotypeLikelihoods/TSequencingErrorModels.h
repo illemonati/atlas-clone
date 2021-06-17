@@ -42,7 +42,7 @@ public:
 
 	Probability getErrorRate(const BAM::TSequencedBase & base) const;
 	BAM::PhredIntErrorRate getPhredInt(const BAM::TSequencedBase & base) const;
-	void fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseData & baseLikelihoods) const;
+	void fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseLikelihoods & baseLikelihoods) const;
 };
 
 class TSequencingErrorModelsOneReadGroup{
@@ -61,7 +61,7 @@ public:
 
 	Probability getErrorRate(const BAM::TSequencedBase & base) const;
 	BAM::PhredIntErrorRate getPhredInt(const BAM::TSequencedBase & base) const;
-	void fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseData & baseLikelihoods) const;
+	void fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseLikelihoods & baseLikelihoods) const;
 };
 
 //--------------------------------------------------------------------------
@@ -96,7 +96,7 @@ public:
 	void recalibrate(BAM::TSequencedBase & base) const;
 	void recalibrate(std::vector<BAM::TSequencedBase> & bases, const uint16_t length) const; //TODO: remove
 	void recalibrate(std::vector<BAM::TSequencedBase> & bases) const;
-	void fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseData & baseLikelihoods) const;
+	void fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseLikelihoods & baseLikelihoods) const;
 
 	void writeRecalFile(const BAM::TReadGroups & ReadGroups, const std::string Filename) const;
 	void print() const;

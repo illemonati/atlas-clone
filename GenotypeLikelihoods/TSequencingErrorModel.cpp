@@ -308,7 +308,7 @@ void TSequencingErrorRho::operator=(const TSequencingErrorRhoStorage & other){
 	TSequencingErrorRhoStorage::operator =(other);
 };
 
-void TSequencingErrorRho::fillBaseLikelihoods(const BAM::Base base, const Probability & epsilon, TBaseData & baseLikelihoods) const{
+void TSequencingErrorRho::fillBaseLikelihoods(const BAM::Base base, const Probability & epsilon, TBaseLikelihoods & baseLikelihoods) const{
 	if(base == BAM::N){
 		baseLikelihoods.reset();
 	} else {
@@ -341,7 +341,7 @@ void TSequencingErrorRho::prepareEstimationFromEMWeights(){
 	}
 };
 
-void TSequencingErrorRho::addBaseForEstimation(const BAM::Base & base, const TBaseData & EMWeights){
+void TSequencingErrorRho::addBaseForEstimation(const BAM::Base & base, const TBaseLikelihoods & EMWeights){
 	if(base == BAM::A){
 		rho[BAM::C][BAM::A] += EMWeights[BAM::C];
 		rho[BAM::G][BAM::A] += EMWeights[BAM::G];
@@ -406,7 +406,7 @@ BAM::PhredIntErrorRate TSequencingErrorModelNoRecal::getPhredInt(const BAM::TSeq
 	}
 };
 
-void TSequencingErrorModelNoRecal::fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseData & baseLikelihoods) const{
+void TSequencingErrorModelNoRecal::fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseLikelihoods & baseLikelihoods) const{
 	if(base == BAM::N){
 		baseLikelihoods.reset();
 	} else {
@@ -484,7 +484,7 @@ BAM::PhredIntErrorRate TSequencingErrorModelRecal::getPhredInt(const BAM::TSeque
 	}
 };
 
-void TSequencingErrorModelRecal::fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseData & baseLikelihoods) const{
+void TSequencingErrorModelRecal::fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseLikelihoods & baseLikelihoods) const{
 	if(base == BAM::N){
 		baseLikelihoods.reset();
 	} else {
@@ -492,7 +492,7 @@ void TSequencingErrorModelRecal::fillBaseLikelihoods(const BAM::TSequencedBase &
 	}
 };
 
-void TSequencingErrorModelRecal::fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseData & baseLikelihoods) const{
+void TSequencingErrorModelRecal::fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseLikelihoods & baseLikelihoods) const{
 	fillBaseLikelihoods(base, baseLikelihoods);
 };
 
@@ -503,7 +503,7 @@ void TSequencingErrorModelRecal::prepareRhoEstimationFromEMWeights(){
 	_rho.prepareEstimationFromEMWeights();
 };
 
-void TSequencingErrorModelRecal::addBaseForRhoEstimation(BAM::TSequencedBase & base, const TBaseData & EMWeights){
+void TSequencingErrorModelRecal::addBaseForRhoEstimation(BAM::TSequencedBase & base, const TBaseLikelihoods & EMWeights){
 	_rho.addBaseForEstimation(base.base, EMWeights);
 };
 
@@ -560,7 +560,7 @@ void TSequencingErrorModelRecal::setQToZero(){
 	}
 };
 
-void TSequencingErrorModelRecal::addToQ(const BAM::TSequencedBase & base, const TBaseData & EM_weights_bbar_given_d){
+void TSequencingErrorModelRecal::addToQ(const BAM::TSequencedBase & base, const TBaseLikelihoods & EM_weights_bbar_given_d){
 	if(!_NRconverged){
 		//get error rate
 		double eps = _calcErrorRate(base);
