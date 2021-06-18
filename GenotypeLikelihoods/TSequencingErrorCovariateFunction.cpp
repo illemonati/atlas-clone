@@ -399,7 +399,7 @@ TSequencingErrorCovariateFunction_specificMap::TSequencingErrorCovariateFunction
 			throw "Duplicate entry for key " + toString(key) + "!";
 		}
 		valuesUsed.push_back(key);
-		betas.push_back(convertStringCheck<double>(s.substr(pos+1)));
+		betas.push_back(coretools::str::convertStringCheck<double>(s.substr(pos+1)));
 	}
 
 	//init map

@@ -13,10 +13,12 @@
 #include "auxiliaryTools.h"
 #include "TGenotypeData.h"
 #include <vector>
+#include <string>
 
 namespace GenotypeLikelihoods{
 
 using coretools::Probability;
+using coretools::str::toString;
 
 //--------------------------------------------------------------------
 // TSequencingErrorCovariateDef

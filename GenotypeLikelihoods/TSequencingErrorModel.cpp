@@ -24,7 +24,7 @@ bool TSequencingErrorCovariateDefinition::parse(const std::string & modelString,
 
 	//split string
 	std::vector<std::string> tmp;
-	fillContainerFromString(modelString, tmp, ';', true);
+	coretools::str::fillContainerFromString(modelString, tmp, ';', true);
 
 	//loop over entries
 	for(std::string s : tmp){
@@ -250,7 +250,7 @@ void TSequencingErrorRhoStorage::reset(){
 bool TSequencingErrorRhoStorage::set(const std::string & def, std::string & error){
 	std::vector<std::string> vec;
 	std::string s = def;
-	fillContainerFromString(def, vec, ';');
+	coretools::str::fillContainerFromString(def, vec, ';');
 	if(vec.size() != 4){
 		error = "Rho matrix has " + toString(vec.size()) + " instead of 4 rows!";
 		return false;
@@ -260,8 +260,8 @@ bool TSequencingErrorRhoStorage::set(const std::string & def, std::string & erro
 	std::vector<double> r;
 	for(size_t a = 0; a<vec.size(); ++a){
 		std::string& row = vec[a];
-		trimString(row, "()");
-		fillContainerFromString(row, r, ',');
+		coretools::str::trimString(row, "()");
+		coretools::str::fillContainerFromString(row, r, ',');
 		if(r.size() != 4){
 			error = "Rho matrix has " + toString(r.size()) + " instead of 4 columns for row " + toString(a+1) + "!";
 			return false;
@@ -312,7 +312,7 @@ void TSequencingErrorRho::fillBaseLikelihoods(const BAM::Base base, const Probab
 	if(base == BAM::N){
 		baseLikelihoods.reset();
 	} else {
-		baseLikelihoods[base] = 1.0 - epsilon;
+		baseLikelihoods[base] = epsilon.complement();
 		if(base == BAM::A){
 			baseLikelihoods[BAM::C] = epsilon * rho[BAM::C][BAM::A];
 			baseLikelihoods[BAM::G] = epsilon * rho[BAM::G][BAM::A];
@@ -343,21 +343,21 @@ void TSequencingErrorRho::prepareEstimationFromEMWeights(){
 
 void TSequencingErrorRho::addBaseForEstimation(const BAM::Base & base, const TBaseLikelihoods & EMWeights){
 	if(base == BAM::A){
-		rho[BAM::C][BAM::A] += EMWeights[BAM::C];
-		rho[BAM::G][BAM::A] += EMWeights[BAM::G];
-		rho[BAM::T][BAM::A] += EMWeights[BAM::T];
+		rho[BAM::C][BAM::A] += EMWeights[BAM::C].get();
+		rho[BAM::G][BAM::A] += EMWeights[BAM::G].get();
+		rho[BAM::T][BAM::A] += EMWeights[BAM::T].get();
 	} else if(base == BAM::C){
-		rho[BAM::A][BAM::C] += EMWeights[BAM::A];
-		rho[BAM::G][BAM::C] += EMWeights[BAM::G];
-		rho[BAM::T][BAM::C] += EMWeights[BAM::T];
+		rho[BAM::A][BAM::C] += EMWeights[BAM::A].get();
+		rho[BAM::G][BAM::C] += EMWeights[BAM::G].get();
+		rho[BAM::T][BAM::C] += EMWeights[BAM::T].get();
 	} else if(base == BAM::G){
-		rho[BAM::A][BAM::G] += EMWeights[BAM::A];
-		rho[BAM::C][BAM::G] += EMWeights[BAM::C];
-		rho[BAM::T][BAM::G] += EMWeights[BAM::T];
+		rho[BAM::A][BAM::G] += EMWeights[BAM::A].get();
+		rho[BAM::C][BAM::G] += EMWeights[BAM::C].get();
+		rho[BAM::T][BAM::G] += EMWeights[BAM::T].get();
 	} else if(base == BAM::N){
-		rho[BAM::A][BAM::T] += EMWeights[BAM::A];
-		rho[BAM::C][BAM::T] += EMWeights[BAM::C];
-		rho[BAM::G][BAM::T] += EMWeights[BAM::G];
+		rho[BAM::A][BAM::T] += EMWeights[BAM::A].get();
+		rho[BAM::C][BAM::T] += EMWeights[BAM::C].get();
+		rho[BAM::G][BAM::T] += EMWeights[BAM::G].get();
 	}
 };
 
