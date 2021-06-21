@@ -50,7 +50,7 @@ public:
 		thetaEstimator->setTheta(theta);
 		equalBaseFreq = EqualBaseFreq;
 		if(equalBaseFreq){
-			GenotypeLikelihoods::TBaseData freq(0.25);
+			GenotypeLikelihoods::TBaseProbabilities freq(0.25);
 			thetaEstimator->setBaseFreq(freq);
 		}
 		thetaEstimator->fillPGenotype(genotypePrior);
@@ -63,8 +63,7 @@ public:
 	void update(const TWindow & window, TLog* logfile, const TGenotypeLikelihoodCalculator & glCalculator){
 		if(!equalBaseFreq){
 			logfile->listFlush("Estimating base frequencies for prior ...");
-			GenotypeLikelihoods::TBaseData freq;
-			window.estimateBaseFrequencies(freq);
+			GenotypeLikelihoods::TBaseProbabilities freq = window.estimateBaseFrequencies();
 			thetaEstimator->setBaseFreq(freq);
 			logfile->done();
 			logfile->conclude("Estimated base frequencies: " + toString(freq[BAM::A])+ ", " + toString(freq[BAM::C]) + ", " + toString(freq[BAM::G]) + ", " + toString(freq[BAM::T]));
@@ -120,7 +119,7 @@ public:
 			if(hasDefaultTheta){
 				logfile->conclude("Will use a default theta of " + toString(defaultTheta) + ".");
 				thetaEstimator->setTheta(defaultTheta);
-				GenotypeLikelihoods::TBaseData freq(0.25);
+				GenotypeLikelihoods::TBaseProbabilities freq(0.25);
 				thetaEstimator->setBaseFreq(freq);
 			} else
 				throw "Please increase window size or provide a default theta!";

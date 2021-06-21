@@ -22,13 +22,14 @@
 namespace GenotypeLikelihoods{
 
 using coretools::str::toString;
+using coretools::TRandomGenerator;
 
 //---------------------------------------------------------------
 //Theta
 //---------------------------------------------------------------
 struct Theta{
 	double theta, expTheta, logTheta, thetaConfidence, LL;
-	double* baseFreq;
+	TBaseProbabilities baseFreq;
 
 	Theta(){
 		theta = 0.0;
@@ -36,11 +37,6 @@ struct Theta{
 		expTheta = 0.0;
 		logTheta = -9e100;
 		LL = -9e100;
-		baseFreq = new double[4];
-	};
-
-	~Theta(){
-		delete[] baseFreq;
 	};
 
 	void setTheta(const double val){
@@ -72,7 +68,7 @@ struct Theta{
 	};
 
 	std::string getBaseFrequencyString(){
-		return "Pi(A) = " + toString(baseFreq[0]) + ", Pi(C) = " + toString(baseFreq[1]) + ", Pi(G) = " + toString(baseFreq[2]) + ", Pi(T) = " + toString(baseFreq[3]);
+		return "Pi(A) = " + toString(baseFreq[BAM::A]) + ", Pi(C) = " + toString(baseFreq[BAM::C]) + ", Pi(G) = " + toString(baseFreq[BAM::G]) + ", Pi(T) = " + toString(baseFreq[BAM::T]);
 	};
 };
 
@@ -103,7 +99,7 @@ protected:
 
 	void initDataStorage();
 	void readParametersRegardingInitialSearch(TParameters & params);
-	void fillPGenotype(GenotypeLikelihoods::TGenotypeProbabilities & pGeno, const double & expTheta, const double* baseFrequencies);
+	void fillPGenotype(GenotypeLikelihoods::TGenotypeProbabilities & pGeno, const double & expTheta, const TBaseProbabilities & baseFrequencies);
 	void fillPGenotype(GenotypeLikelihoods::TGenotypeProbabilities & pGeno, const Theta & thisTheta);
 
 	void findGoodStartingTheta(TThetaEstimatorData* thisData, Theta & thisTheta, std::string tag);
@@ -140,7 +136,7 @@ private:
 	//tmp vectors
 	GenotypeLikelihoods::TGenotypeData P_G; // see paper
 
-	double _calcFisherInfo(const TGenotypeData & _pGenotype, const TGenotypeData deriv_pGenotype);
+	double _calcFisherInfo(const TGenotypeProbabilities & _pGenotype, const TGenotypeData deriv_pGenotype);
 	bool _NRAllParams();
 	void _NROnlyTheta();
 	void _runEMForTheta();
@@ -159,7 +155,7 @@ public:
 	long sizeWithData(){ return data->sizeWithData();};
 	bool estimateTheta();
 	void setTheta(const double Theta);
-	void setBaseFreq(const GenotypeLikelihoods::TBaseData & BaseFreq);
+	void setBaseFreq(const GenotypeLikelihoods::TBaseProbabilities & BaseFreq);
 	void addToHeader(std::vector<std::string> & header, std::string prefix="");
 	void writeEstimateFrequenciesAndTheta(coretools::TOutputFile & out);
 	void writeResultsToFile(coretools::TOutputFile & out);
@@ -176,7 +172,6 @@ private:
 	TThetaEstimatorData* data2;
 	bool data2Initialized;
 	Theta theta2;
-	double* tmpBaseFreq;
 
 	//MCMC parameters
 	double phiPriorMean;
@@ -194,7 +189,6 @@ private:
 	int numAcceptedBaseFreq1;
 	int numAcceptedBaseFreq2;
 
-	void initAdditionalTmpStorage();
 	void clearCounters();
 	void concludeAcceptanceRate(const int & numAccepted, const int & length, std::string name);
 	void concludeAcceptanceRateUpdateProposal(const int & numAccepted, const int & length, double & sd, std::string name);
@@ -209,7 +203,6 @@ public:
 	~TThetaEstimatorRatio(){
 		if(data2Initialized)
 			delete data2;
-		delete[] tmpBaseFreq;
 	};
 
 	TThetaEstimatorData* pointerToDataContainer2(){ return data2; };

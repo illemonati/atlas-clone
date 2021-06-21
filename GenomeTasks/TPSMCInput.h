@@ -31,7 +31,6 @@ private:
 	//tmp variables
 	GenotypeLikelihoods::TGenotypeProbabilities _prior;
 	GenotypeLikelihoods::TGenotypeProbabilities _posterior;
-	GenotypeLikelihoods::TBaseData _baseFreq;
 
 	void _handleWindow();
 public:

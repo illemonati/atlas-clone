@@ -11,6 +11,7 @@
 #include "TSite.h"
 #include "TFile.h"
 #include "TRandomGenerator.h"
+#include "gzstream.h"
 
 namespace GenotypeLikelihoods{
 
@@ -58,7 +59,7 @@ protected:
 	long totNumSitesAdded;
 	double cumulativeDepth;
 
-	GenotypeLikelihoods::TBaseData initialBaseFreq;
+	GenotypeLikelihoods::TBaseData tmpBaseFreq;
 	bool isBootstrapped;
 	long numBootstrappedSites;
 	int maxKforPoissonPlusOne;
@@ -111,9 +112,9 @@ public:
 
 	void addToHeader(std::vector<std::string> & header, const std::string prefix);
 	void writeSite(coretools::TOutputFile & out);
-	void fillBaseFreq(double* baseFreq);
-	virtual void fillP_G(GenotypeLikelihoods::TGenotypeData & P_G, const GenotypeLikelihoods::TGenotypeData & pGenotype);
-	virtual double calcLogLikelihood(const GenotypeLikelihoods::TGenotypeData & pGenotype);
+	TBaseProbabilities baseFrequencies();
+	virtual void fillP_G(GenotypeLikelihoods::TGenotypeData & P_G, const GenotypeLikelihoods::TGenotypeProbabilities & pGenotype);
+	virtual double calcLogLikelihood(const GenotypeLikelihoods::TGenotypeProbabilities & pGenotype);
 };
 
 //---------------------------------------------------------------

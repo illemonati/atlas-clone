@@ -304,13 +304,14 @@ void TWindow_base::downsample(const uint32_t & maxDepth, const coretools::TSubsa
 	}
 };
 
-void TWindow_base::estimateBaseFrequencies(TBaseData & baseFreq) const{
+GenotypeLikelihoods::TBaseProbabilities TWindow_base::estimateBaseFrequencies() const{
 	//estimate initial base frequencies
-	baseFreq.set(0.0);
+	TBaseData tmp(0.0);
 	for(auto& s : _sites){
-		s.addToBaseFrequencies(baseFreq);
+		s.addToBaseFrequencies(tmp);
 	}
-	baseFreq.normalize();
+	tmp.normalize();
+	return tmp;
 };
 
 

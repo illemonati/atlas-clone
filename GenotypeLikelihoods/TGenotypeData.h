@@ -36,8 +36,9 @@ public:
 	Type* pointerToData(){ return _data.data(); };
 	size_t sizeOf() const { return sizeof(Type) * Size; };
 
-	void set(const Type & val){
-		std::fill(begin(), end(), val);
+	template <typename T>
+	void set(const T & val){
+		std::fill(begin(), end(), Type(val));
 	};
 
 	virtual void reset(){ set(Type{}); };
@@ -168,20 +169,12 @@ template <typename T>
 class TBaseData_base : public TData_base<T, BAM::Base, BAM::BaseEnum, 4>{
 protected:
 	using TData_base<T, BAM::Base, BAM::BaseEnum, 4>::_data;
-	using TData_base<T, BAM::Base, BAM::BaseEnum, 4>::set;
 
 	//keep constructors protected so the base class can not be used!
 	TBaseData_base() = default;
 	TBaseData_base(const T& val){ set(val); };
-};
-
-//--------------------------------------------------------------------
-// TBaseData
-//--------------------------------------------------------------------
-class TBaseData:public TBaseData_base<double>{
 public:
-	TBaseData(){ reset(); };
-	TBaseData(const double & val) : TBaseData_base(val) {};
+	using TData_base<T, BAM::Base, BAM::BaseEnum, 4>::set;
 };
 
 //--------------------------------------------------------------------
@@ -210,7 +203,6 @@ public:
 
 //--------------------------------------------------------------------
 // TBaseCounts
-//TODO:: merge with base frequencies?
 //--------------------------------------------------------------------
 class TBaseCounts:public TData_base<uint32_t, BAM::Base, BAM::BaseEnum, 5>{
 private:
@@ -224,6 +216,19 @@ public:
 	uint8_t numAlleles() const;
 	void fillFrequencies(TBaseProbabilities & freq);
 	void downsample(const uint32_t & max, coretools::TRandomGenerator & RandomGenerator);
+};
+
+//--------------------------------------------------------------------
+// TBaseData
+//--------------------------------------------------------------------
+class TBaseData:public TBaseData_base<double>{
+public:
+	TBaseData(){ reset(); };
+	TBaseData(const double & val) : TBaseData_base(val) {};
+
+	TBaseProbabilities asFrequencies();
+
+	void operator+=(const TBaseProbabilities & probs);
 };
 
 //--------------------------------------------------------------------
@@ -280,7 +285,7 @@ public:
 
 	void reset() override { set(coretools::Probability(0.1)); };
 
-	void fill(const TGenotypeLikelihoods & likelihoods, const TGenotypeProbabilities & prior);
+	void fillBayesian(const TGenotypeLikelihoods & likelihoods, const TGenotypeProbabilities & prior);
 
 	coretools::Probability probHomozygous();
 	coretools::Probability probHeterozygous();

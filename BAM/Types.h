@@ -94,6 +94,13 @@ public:
 		return *this;
 	};
 
+	constexpr Base next(){
+		if(_value == N){
+			throw std::runtime_error("constexpr Base next(): overflow!");
+		};
+		return static_cast<BaseEnum>( static_cast<uint8_t>(_value) + 1);
+	};
+
 	constexpr bool operator<(const Base & other){
 		return static_cast<uint8_t>(_value) < static_cast<uint8_t>(other.get());
 	};

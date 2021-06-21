@@ -34,7 +34,7 @@ void TSite::addToBaseFrequencies(TBaseData & frequencies) const{
 	if(!empty()){
 		static double weight = 1.0 / _bases.size();
 		for(auto& b : _bases){
-			frequencies.add(b.base, weight);
+			frequencies[b.base] += weight;
 		}
 	}
 };
@@ -80,7 +80,7 @@ uint32_t TSite::depth() const{
 
 uint32_t TSite::refDepth() const{
 	if(empty()) return 0;
-	if(_referenceBase == 'N') return 0;
+	if(_referenceBase == BAM::N) return 0;
 	uint32_t counter = 0;
 	for(auto& b : _bases){
 		if(b.base == _referenceBase)

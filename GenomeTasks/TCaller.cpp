@@ -626,7 +626,7 @@ TCallerAllelePresence::TCallerAllelePresence(TParameters & Parameters, TLog* Log
 
 void TCallerAllelePresence::_fillPosteriors(TGenotypeLikelihoods & genotypeLikelihoods){
 	//calculate posterior probabilities
-	posterior.fill(genotypeLikelihoods, *_genotypePrior);
+	posterior.fillBayesian(genotypeLikelihoods, *_genotypePrior);
 
 	//sum for each base
 	allelePostProb[BAM::A] = posterior[BAM::AA] + posterior[BAM::AC] + posterior[BAM::AG] + posterior[BAM::AT];
@@ -1085,7 +1085,7 @@ bool TCallerBayes::_callGenotype(const TSite & site, TGenotypeLikelihoods & geno
 	if(!_priorSet) throw "Can not call Bayesian genotypes: prior has not been set!";
 
 	//calculate posterior probabilities
-	posterior.fill(genotypeLikelihoods, *_genotypePrior);
+	posterior.fillBayesian(genotypeLikelihoods, *_genotypePrior);
 
 	//call
 	callGenotypeFromMetric(posterior);
@@ -1096,7 +1096,7 @@ bool TCallerBayes::_callGenotypeKnownAlleles(const TSite & site, TGenotypeLikeli
 	if(!_priorSet) throw "Can not call Bayesian genotypes: prior has not been set!";
 
 	//calculate posterior probabilities
-	posterior.fill(genotypeLikelihoods, *_genotypePrior);
+	posterior.fillBayesian(genotypeLikelihoods, *_genotypePrior);
 
 	//call
 	return callGenotypeFromMetricKnownAllelesUpdateIndex(posterior);
@@ -1240,8 +1240,7 @@ void TCall::_callKnwonAlleles(){
 void TCall::_handleWindow(){
 	if(_window.passedFilters() || _caller->printSitesWithNoData()){
 		//update genotype prior
-		GenotypeLikelihoods::TBaseData freq;
-		_window.estimateBaseFrequencies(freq);
+		GenotypeLikelihoods::TBaseProbabilities freq = _window.estimateBaseFrequencies();
 		_prior->update(_window, _logfile, _genotypeLikelihoodCalculator);
 
 		//call

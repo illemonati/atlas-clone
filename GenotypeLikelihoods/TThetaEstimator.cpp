@@ -91,16 +91,16 @@ void TThetaEstimator_base::readParametersRegardingInitialSearch(coretools::TPara
 	logfile->endIndent();
 };
 
-void TThetaEstimator_base::fillPGenotype(TGenotypeProbabilities & pGeno, const double & expTheta, const double* baseFrequencies){
+void TThetaEstimator_base::fillPGenotype(TGenotypeProbabilities & pGeno, const double & expTheta, const TBaseProbabilities & baseFrequencies){
 	//assumes that base frequencies are set!
-	for(uint8_t i=0; i<4; ++i){
+	for(BAM::Base b = BAM::Base::min(); b < BAM::Base::max(); ++b){
 		//homozygous genotypes
-		uint8_t hom = BAM::Genotype(static_cast<BAM::BaseEnum>(i), static_cast<BAM::BaseEnum>(i)).get();
-		pGeno[hom] = baseFrequencies[i] * (expTheta + baseFrequencies[i] * (1.0 - expTheta));
+		BAM::Genotype hom(b, b);
+		pGeno[hom] = baseFrequencies[b] * (expTheta + baseFrequencies[b].get() * (1.0 - expTheta));
 		//heterozygous genotypes
-		for(uint8_t j=i+1; j<4; ++j){
-			uint8_t het = BAM::Genotype(static_cast<BAM::BaseEnum>(i), static_cast<BAM::BaseEnum>(j)).get();
-			pGeno[het] = 2.0 * baseFrequencies[i] * baseFrequencies[j] *  (1.0 - expTheta);
+		for(BAM::Base c = b.next(); c < BAM::Base::max(); ++c){
+			BAM::Genotype het(b, c);
+			pGeno[het] = 2.0 * baseFrequencies[b].get() * baseFrequencies[c].get() *  (1.0 - expTheta);
 		}
 	}
 };
@@ -113,7 +113,7 @@ void TThetaEstimator_base::findGoodStartingTheta(TThetaEstimatorData* thisData, 
 	logfile->listFlush("Estimating initial parameters" + tag + " ...");
 
 	//set base frequencies to initial base frequencies
-	thisData->fillBaseFreq(thisTheta.baseFreq);
+	thisTheta.baseFreq = thisData->baseFrequencies();
 
 	//variables
 	double initTheta = initialTheta;
@@ -243,7 +243,7 @@ void TThetaEstimator::add(const TWindow & window, const TGenotypeLikelihoodCalcu
 	}
 };
 
-double TThetaEstimator::_calcFisherInfo(const TGenotypeData & _pGenotype, const TGenotypeData deriv_pGenotype){
+double TThetaEstimator::_calcFisherInfo(const TGenotypeProbabilities & _pGenotype, const TGenotypeData deriv_pGenotype){
 //sum Ri over all sites
 	double FisherInfo = 0.0;
 	data->begin();
@@ -275,51 +275,52 @@ bool TThetaEstimator::_NRAllParams(){
 	double rho = theta.expTheta / (1.0 - theta.expTheta);
 	double mu = data->sizeWithData();
 
-	double* baseFreq = theta.baseFreq; //store pointer for cleaner code
+	TBaseProbabilities& baseFreq = theta.baseFreq; //for cleaner code
 	for(int n=0; n<NewtonRaphsonNumIterations; ++n){
 		//i) calculate F (Note: index is zero based!)
 		F(4) = data->sizeWithData();
 		F(5) = 0.0;
-		for(uint8_t k=0; k<4; ++k){
-			BAM::Genotype hom(static_cast<BAM::BaseEnum>(k), static_cast<BAM::BaseEnum>(k));
+		for(BAM::Base k = BAM::Base::min(); k < BAM::Base::max(); ++k){
+			BAM::Genotype hom(k, k);
 			double tmpSum = 0.0;
-			for(int l=0; l<4; ++l){
+			for(BAM::Base l = BAM::Base::min(); l < BAM::Base::max(); ++l){
 				if(l != k){
-					BAM::Genotype het(static_cast<BAM::BaseEnum>(k), static_cast<BAM::BaseEnum>(l));
+					BAM::Genotype het(k, l);
 					tmpSum += P_G[het.get()];
 				}
 			}
-			F(k) = P_G[hom.get()] * (1.0 + baseFreq[k] / (rho + baseFreq[k])) + tmpSum - mu * baseFreq[k];
-			F(4) -= P_G[hom.get()] * (rho + 1.0 ) / (rho + baseFreq[k]);
-			F(5) += baseFreq[k];
+			F(static_cast<uint8_t>(k)) = P_G[hom.get()] * (1.0 + baseFreq[k].get() / (rho + baseFreq[k].get())) + tmpSum - mu * baseFreq[k].get();
+			F(4) -= P_G[hom.get()] * (rho + 1.0 ) / (rho + baseFreq[k].get());
+			F(5) += baseFreq[k].get();
 		}
 		F(5) = F(5) - 1.0;
 
 		//ii) fill Jacobian (Note: index is zero based!)
 		Jacobian.zeros();
 		double tmpSum = 0.0;
-		double tmp[4];
-		for(uint8_t k=0; k<4; ++k){
+		TBaseData tmp;
+		for(BAM::Base k = BAM::Base::min(); k < BAM::Base::max(); ++k){
 			BAM::Genotype hom(static_cast<BAM::BaseEnum>(k), static_cast<BAM::BaseEnum>(k));
-			tmp[k] = P_G[hom.get()] / ((baseFreq[k] + rho)*(baseFreq[k] + rho));
+			tmp[k] = P_G[hom.get()] / ((baseFreq[k].get() + rho)*(baseFreq[k].get() + rho));
 			tmpSum += tmp[k];
 		}
 
-		for(int k=0; k<4; ++k){
-			Jacobian(k,k) = tmp[k] * rho - mu;
-			Jacobian(k,4) = - tmp[k];
-			Jacobian(5,k) = 1.0;
-			Jacobian(4,k) = tmp[k] * (rho + 1.0);
-			Jacobian(k,5) = - baseFreq[k];
-			Jacobian(4,4) += tmp[k] * (1.0 - baseFreq[k]);
+		for(BAM::Base k = BAM::Base::min(); k < BAM::Base::max(); ++k){
+			uint8_t i = static_cast<uint8_t>(k);
+			Jacobian(i,i) = tmp[k] * rho - mu;
+			Jacobian(i,4) = - tmp[k];
+			Jacobian(5,i) = 1.0;
+			Jacobian(4,i) = tmp[k] * (rho + 1.0);
+			Jacobian(i,5) = - baseFreq[k].get();
+			Jacobian(4,4) += tmp[k] * (1.0 - baseFreq[k].get());
 		}
 
 		//iii) now estimate new parameters
 		double mu = data->sizeWithData();
 
 		if(solve(JxF, Jacobian, F)){
-			for(int k=0; k<4; ++k){
-				baseFreq[k] -= JxF(k);
+			for(BAM::Base k = BAM::Base::min(); k < BAM::Base::max(); ++k){
+				baseFreq[k] = baseFreq[k].get() - JxF(static_cast<uint8_t>(k));
 			}
 			rho -= JxF(4);
 			mu -= JxF(5);
@@ -350,21 +351,20 @@ void TThetaEstimator::_NROnlyTheta(){
 
 	double rho = theta.expTheta / (1.0 - theta.expTheta);
 
-	double* baseFreq = theta.baseFreq; //store pointer for cleaner code
 	for(int n=0; n<NewtonRaphsonNumIterations; ++n){
 
 		//i) calculate F() (Note: index is zero based!)
 		//ii) fill Jacobian (Note: index is zero based!)
 		double F = data->sizeWithData();
 		double Jacobian = 0.0;
-		for(uint8_t k=0; k<4; ++k){
-			BAM::Genotype hom(static_cast<BAM::BaseEnum>(k), static_cast<BAM::BaseEnum>(k));
+		for(BAM::Base k = BAM::Base::min(); k < BAM::Base::max(); ++k){
+			BAM::Genotype hom(k, k);
 
-			double tmp = (baseFreq[k] + rho);
+			double tmp = (theta.baseFreq[k].get() + rho);
 			F -= P_G[hom.get()] * (rho + 1.0 ) / tmp;
 
 			double tmpSum = P_G[hom.get()] / (tmp*tmp);
-			Jacobian += tmpSum * (1.0 - baseFreq[k]);
+			Jacobian += tmpSum * (1.0 - theta.baseFreq[k].get());
 		}
 
 		//iii) now estimate new parameters
@@ -450,14 +450,14 @@ void TThetaEstimator::_estimateConfidenceInterval(){
 	//calclate d/dtheta P(g|theta, pi)
 	TGenotypeData deriv_pGenotype;
 
-	for(uint8_t k=0; k<4; ++k){
+	for(BAM::Base k = BAM::Base::min(); k < BAM::Base::max(); ++k){
 		//homozygous genotype
-		BAM::Genotype hom(static_cast<BAM::BaseEnum>(k), static_cast<BAM::BaseEnum>(k));
-		deriv_pGenotype[hom.get()] = (theta.baseFreq[k] * theta.baseFreq[k] - theta.baseFreq[k]) * theta.expTheta;
+		BAM::Genotype hom(k, k);
+		deriv_pGenotype[hom.get()] = (theta.baseFreq[k].get() * theta.baseFreq[k].get() - theta.baseFreq[k].get()) * theta.expTheta;
 		//heterozygous genotypes
-		for(uint8_t l=k+1; l<4; ++l){
-			BAM::Genotype het(static_cast<BAM::BaseEnum>(k), static_cast<BAM::BaseEnum>(l));
-			deriv_pGenotype[het.get()] = 2.0 * theta.baseFreq[k] * theta.baseFreq[l] * theta.expTheta;
+		for(BAM::Base l = k.next(); l < BAM::Base::max(); ++l){
+			BAM::Genotype het(k, l);
+			deriv_pGenotype[het.get()] = 2.0 * theta.baseFreq[k].get() * theta.baseFreq[l].get() * theta.expTheta;
 		}
 	}
 
@@ -504,12 +504,11 @@ bool TThetaEstimator::estimateTheta(){
 
 void TThetaEstimator::setTheta(const double Theta){
 	theta.setTheta(Theta);
-}
+};
 
-void TThetaEstimator::setBaseFreq(const GenotypeLikelihoods::TBaseData & BaseFreq){
-	for(int i=0; i<4; ++i)
-		theta.baseFreq[i] = BaseFreq[i];
-}
+void TThetaEstimator::setBaseFreq(const GenotypeLikelihoods::TBaseProbabilities & BaseFreq){
+	theta.baseFreq = BaseFreq;
+};
 
 void TThetaEstimator::addToHeader(std::vector<std::string> & header, std::string prefix){
 	data->addToHeader(header, prefix);
@@ -526,8 +525,9 @@ void TThetaEstimator::addToHeader(std::vector<std::string> & header, std::string
 void TThetaEstimator::writeEstimateFrequenciesAndTheta(coretools::TOutputFile & out){
 	if(estimationSuccessful){
 		//base frequencies
-		for(int i=0; i<4; ++i)
-			out << theta.baseFreq[i];
+		for(BAM::Base k = BAM::Base::min(); k < BAM::Base::max(); ++k){
+			out << theta.baseFreq[k];
+		}
 
 		//theta estimates
 		out << theta.theta;
@@ -591,7 +591,6 @@ void TThetaEstimator::bootstrapTheta(){
 //TThetaEstimatorRatio
 //---------------------------------------------------------------
 TThetaEstimatorRatio::TThetaEstimatorRatio(coretools::TParameters & params, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator):TThetaEstimator_base(params, Logfile, RandomGenerator){
-	initAdditionalTmpStorage();
 	clearCounters();
 
 	//data2
@@ -635,10 +634,6 @@ TThetaEstimatorRatio::TThetaEstimatorRatio(coretools::TParameters & params, core
 
 	//params regarding initial search
 	readParametersRegardingInitialSearch(params);
-};
-
-void TThetaEstimatorRatio::initAdditionalTmpStorage(){
-	tmpBaseFreq = new double[4];
 };
 
 void TThetaEstimatorRatio::clearCounters(){
@@ -773,19 +768,22 @@ bool TThetaEstimatorRatio::updateTheta(TThetaEstimatorData* thisData, Theta & th
 bool TThetaEstimatorRatio::updateBaseFrequencies(TThetaEstimatorData* thisData, Theta & thisTheta, const double & thisSdProposalKernel){
 	//propose: select one frequency at random and shift this one
 	//make sure frequencies are not outside [0,1]
-	int numOutsideRange = 1;
-	while(numOutsideRange > 0){
-		int thisFreq = randomGenerator->sample(4);
-		double delta = randomGenerator->getNormalRandom(0.0, thisSdProposalKernel);
-		tmpBaseFreq[thisFreq] = thisTheta.baseFreq[thisFreq] + delta;
+	BAM::Base thisBase = static_cast<BAM::Base>(randomGenerator->sample(4));
+	TBaseProbabilities tmpBaseFreq;
+	double tmp = thisTheta.baseFreq[thisBase].get() + randomGenerator->getNormalRandom(0.0, thisSdProposalKernel);
+	if(tmp > 1.0){
+		tmpBaseFreq[thisBase] = 2.0 - tmp;
+	} else if (tmp < 0.0){
+		tmpBaseFreq[thisBase] = -tmp;
+	} else {
+		tmpBaseFreq[thisBase] = tmp;
+	}
 
-		numOutsideRange = 0;
-
-		for(int i=0; i<4; ++i){
-			if(i != thisFreq)
-				tmpBaseFreq[i] = thisTheta.baseFreq[i] - (delta / 3.0);
-			if(tmpBaseFreq[i] < 0.0 || tmpBaseFreq[i] > 1.0)
-				++numOutsideRange;
+	//now scale all others so the sum will be 1.0
+	double scale = (double) tmpBaseFreq[thisBase].complement() / (double) thisTheta.baseFreq[thisBase].complement();
+	for(BAM::Base k = BAM::Base::min(); k < BAM::Base::max(); ++k){
+		if(k != thisBase){
+			tmpBaseFreq[k] = thisTheta.baseFreq[thisBase].get() * scale;
 		}
 	}
 
@@ -796,9 +794,7 @@ bool TThetaEstimatorRatio::updateBaseFrequencies(TThetaEstimatorData* thisData, 
 
 	//accept or reject
 	if(log(randomGenerator->getRand()) < logH){
-		double* tmp = thisTheta.baseFreq;
 		thisTheta.baseFreq = tmpBaseFreq;
-		tmpBaseFreq = tmp;
 		thisTheta.LL = newLL;
 		return true;
 	} else return false;

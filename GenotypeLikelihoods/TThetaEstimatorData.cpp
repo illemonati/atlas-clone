@@ -39,7 +39,7 @@ void TThetaEstimatorTemporaryFile::openForWriting(){
 	clean();
 
 	//now open
-	fp = gzopen(filename.c_str(),"wb");
+	fp = gzopen(filename.c_str(), "wb");
 	isOpenForWriting = true;
 	isOpenForReading = false;
 	wasWritten = true;
@@ -55,7 +55,7 @@ void TThetaEstimatorTemporaryFile::openForReading(){
 	close();
 
 	//now open
-	fp = gzopen(filename.c_str(),"rb");
+	fp = gzopen(filename.c_str(), "rb");
 	isOpenForWriting = false;
 	isOpenForReading = true;
 
@@ -126,7 +126,7 @@ TThetaEstimatorData::TThetaEstimatorData(){
 };
 
 void TThetaEstimatorData::clear(){
-	initialBaseFreq.set(0.0);
+	tmpBaseFreq.set(0.0);
 	numSitesCoveredTwiceOrMore = 0;
 	totNumSitesAdded = 0;
 	numSitesWithData = 0;
@@ -147,7 +147,7 @@ void TThetaEstimatorData::add(const GenotypeLikelihoods::TSite & site, GenotypeL
 		saveSite(genoLik);
 
 		//add site to base frequency estimation
-		site.addToBaseFrequencies(initialBaseFreq);
+		site.addToBaseFrequencies(tmpBaseFreq);
 
 		//count sites covered >=2
 		if(site.depth() > 1)
@@ -155,25 +155,25 @@ void TThetaEstimatorData::add(const GenotypeLikelihoods::TSite & site, GenotypeL
 	}
 };
 
-void TThetaEstimatorData::fillBaseFreq(double* baseFreq){
-	initialBaseFreq.normalize();
-	for(int i=0; i<4; ++i)
-		baseFreq[i] = initialBaseFreq[i];
+TBaseProbabilities TThetaEstimatorData::baseFrequencies(){
+	//estimate base frequencies
+	tmpBaseFreq.normalize();
+	return tmpBaseFreq.asFrequencies();
 };
 
-void TThetaEstimatorData::fillP_G(GenotypeLikelihoods::TGenotypeData & P_G, const GenotypeLikelihoods::TGenotypeData & pGenotype){
+void TThetaEstimatorData::fillP_G(GenotypeLikelihoods::TGenotypeData & P_G, const GenotypeLikelihoods::TGenotypeProbabilities & pGenotype){
 	//assumes that pGenotype is set!
 	P_G.set(0.0);
 
 	//calculate P_g for each site
 	begin();
 	do{
-		P_g_oneSite.fill(curGenotypeLikelihoods(), pGenotype);
-		P_G.add(P_g_oneSite);
+		P_g_oneSite.fillBayesian(curGenotypeLikelihoods(), pGenotype);
+		P_G += P_g_oneSite;
 	} while(next());
 };
 
-double TThetaEstimatorData::calcLogLikelihood(const GenotypeLikelihoods::TGenotypeData & pGenotype){
+double TThetaEstimatorData::calcLogLikelihood(const GenotypeLikelihoods::TGenotypeProbabilities & pGenotype){
 	double LL = 0.0;
 	begin();
 	do{
@@ -315,13 +315,13 @@ GenotypeLikelihoods::TGenotypeLikelihoods& TThetaEstimatorDataVector::curGenotyp
 	return *siteIt;
 }
 
-void TThetaEstimatorDataVector::fillP_G(GenotypeLikelihoods::TGenotypeData & P_G, const GenotypeLikelihoods::TGenotypeData & pGenotype){
+void TThetaEstimatorDataVector::fillP_G(GenotypeLikelihoods::TGenotypeData & P_G, const GenotypeLikelihoods::TGenotypeProbabilities & pGenotype){
 	//assumes that pGenotype is set!
 	P_G.set(0.0);
 
 	//calculate P_g for each site
 	for(auto& it : sites){
-		P_g_oneSite.fill(it, pGenotype);
+		P_g_oneSite.fillBayesian(it, pGenotype);
 		P_G.add(P_g_oneSite);
 	}
 };

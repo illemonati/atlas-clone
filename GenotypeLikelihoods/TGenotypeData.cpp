@@ -69,6 +69,25 @@ void TBaseCounts::downsample(const uint32_t & max, coretools::TRandomGenerator &
 };
 
 //--------------------------------------------------------------------
+// TBaseData
+//--------------------------------------------------------------------
+void TBaseData::operator+=(const TBaseProbabilities & probs){
+	_data[BAM::A] += probs[BAM::A].get();
+	_data[BAM::C] += probs[BAM::C].get();
+	_data[BAM::G] += probs[BAM::G].get();
+	_data[BAM::T] += probs[BAM::T].get();
+};
+
+TBaseProbabilities TBaseData::asFrequencies(){
+	TBaseProbabilities freq;
+	double tot = sum();
+	freq[BAM::A] = _data[BAM::A] / tot;
+	freq[BAM::C] = _data[BAM::C] / tot;
+	freq[BAM::G] = _data[BAM::G] / tot;
+	freq[BAM::T] = _data[BAM::T] / tot;
+};
+
+//--------------------------------------------------------------------
 // TGenotypeLikelihoods
 //--------------------------------------------------------------------
 TGenotypeLikelihoods::TGenotypeLikelihoods(){
@@ -140,7 +159,7 @@ void TGenotypeLikelihoods::addNames(std::vector<std::string> & vec) const{
 //--------------------------------------------------------------------
 // TGenotypeProbabilities
 //--------------------------------------------------------------------
-void TGenotypeProbabilities::fill(const TGenotypeLikelihoods & likelihoods, const TGenotypeProbabilities & prior){
+void TGenotypeProbabilities::fillBayesian(const TGenotypeLikelihoods & likelihoods, const TGenotypeProbabilities & prior){
 	//calculate normalized genotype probabilities according to Bayes rule
 	_data[BAM::AA] = likelihoods[BAM::AA] * prior[BAM::AA];
 	_data[BAM::AC] = likelihoods[BAM::AC] * prior[BAM::AC];

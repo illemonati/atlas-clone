@@ -93,7 +93,7 @@ TSequencingErrorModels::TSequencingErrorModels(){
 	_doRecalibration = false;
 };
 
-void TSequencingErrorModels::initialize(const std::string & RecalString, const std::string & RhoString, const BAM::TReadGroups & ReadGroups, TLog* Logfile){
+void TSequencingErrorModels::initialize(const std::string & RecalString, const std::string & RhoString, const BAM::TReadGroups & ReadGroups, coretools::TLog* Logfile){
 	if(_doRecalibration)
 		throw std::runtime_error("void TSequencingErrorModels::initialize(const std::string & RecalString, const std::string & RhoString, const BAM::TReadGroups & ReadGroups, TLog* Logfile): Models already initialized!");
 
@@ -114,13 +114,13 @@ void TSequencingErrorModels::initialize(const std::string & RecalString, const s
 	}
 };
 
-void TSequencingErrorModels::initializeFromFile(const std::string & Filename, const BAM::TReadGroups & ReadGroups, TLog* Logfile){
+void TSequencingErrorModels::initializeFromFile(const std::string & Filename, const BAM::TReadGroups & ReadGroups, coretools::TLog* Logfile){
 	if(_doRecalibration)
 		throw std::runtime_error("void TSequencingErrorModels::initializeFromFile(const std::string & filename, const BAM::TReadGroups & ReadGroups, TLog* Logfile): Models already initialized!");
 
 	//read parameters from file
 	Logfile->listFlush("Initializing recalibration models from '" + Filename + "' ...");
-	TInputFile in(Filename, {"readGroup", "mate", "covariates", "rho"}, "/t", "//");
+	coretools::TInputFile in(Filename, {"readGroup", "mate", "covariates", "rho"}, "/t", "//");
 
 	//prepare objects
 	_models.resize(ReadGroups.size());
@@ -175,7 +175,7 @@ Probability TSequencingErrorModels::getErrorRate(const BAM::TSequencedBase & bas
 	if(_doRecalibration){
 		return _models[base.readGroupID].getErrorRate(base);
 	} else {
-		return base.originalQuality_phredInt;
+		return (Probability) base.originalQuality_phredInt;
 	}
 };
 
@@ -210,7 +210,7 @@ void TSequencingErrorModels::fillBaseLikelihoods(const BAM::TSequencedBase & bas
 //-------------------------------------------------------------------
 void TSequencingErrorModels::writeRecalFile(const BAM::TReadGroups & ReadGroups, const std::string Filename) const{
 	//open file and write header
-	TOutputFile out(Filename);
+	coretools::TOutputFile out(Filename);
 	out.writeHeader({"readGroup", "mate", "covariates", "rho"});
 
 	//add models

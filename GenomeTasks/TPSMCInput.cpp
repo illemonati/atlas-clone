@@ -46,8 +46,7 @@ void TPSMCInput::_handleWindow(){
 	_thetaEstimator->fillPGenotype(_prior);
 
 	//estimating base frequencies
-	_window.estimateBaseFrequencies(_baseFreq);
-	_thetaEstimator->setBaseFreq(_baseFreq);
+	_thetaEstimator->setBaseFreq( _window.estimateBaseFrequencies() );
 
 	//call heterozygosity in blocks
 	for(uint32_t b=0; b<_nBlocks; ++b){
@@ -57,7 +56,7 @@ void TPSMCInput::_handleWindow(){
 		for(uint32_t i=0; i<_blockSize; ++i){
 			if(!_window[blockStart + i].empty()){
 				_genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(_window[blockStart + 1], _genoLik);
-				_posterior.fill(_genoLik, _prior);
+				_posterior.fillBayesian(_genoLik, _prior);
 				logPHomo += coretools::LogProbability(_posterior.probHomozygous());
 			}
 		}

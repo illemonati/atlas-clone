@@ -400,7 +400,7 @@ Probability TSequencingErrorModelNoRecal::getErrorRate(const BAM::TSequencedBase
 
 BAM::PhredIntErrorRate TSequencingErrorModelNoRecal::getPhredInt(const BAM::TSequencedBase & base) const{
 	if(base == BAM::N){
-		return 0;
+		return BAM::PhredIntErrorRate(0); //Todo: change to maxProb() one available.
 	} else {
 		return base.originalQuality_phredInt;
 	}
@@ -410,7 +410,7 @@ void TSequencingErrorModelNoRecal::fillBaseLikelihoods(const BAM::TSequencedBase
 	if(base == BAM::N){
 		baseLikelihoods.reset();
 	} else {
-		_rho.fillBaseLikelihoods(base.base, base.originalQuality_phredInt, baseLikelihoods);
+		_rho.fillBaseLikelihoods(base.base, (Probability) base.originalQuality_phredInt, baseLikelihoods);
 	}
 };
 
@@ -454,7 +454,7 @@ Probability TSequencingErrorModelRecal::_calcEpsilon(const double & eta) const{
 		return 0.0000000001;
 	}
 
-	return logistic(eta);
+	return coretools::logistic(eta);
 };
 
 Probability TSequencingErrorModelRecal::_calcErrorRate(const BAM::TSequencedBase & base) const{
@@ -470,7 +470,7 @@ Probability TSequencingErrorModelRecal::_calcErrorRate(const BAM::TSequencedBase
 
 Probability TSequencingErrorModelRecal::getErrorRate(const BAM::TSequencedBase & base) const{
 	if(base == BAM::N){
-		return 1.0;
+		return 1.0; //Todo: change to maxProb() one available.
 	} else {
 		return _calcErrorRate(base);
 	}
@@ -478,7 +478,7 @@ Probability TSequencingErrorModelRecal::getErrorRate(const BAM::TSequencedBase &
 
 BAM::PhredIntErrorRate TSequencingErrorModelRecal::getPhredInt(const BAM::TSequencedBase & base) const{
 	if(base == BAM::N){
-		return 0;
+		return BAM::PhredIntErrorRate(0); //Todo: change to maxProb() one available.
 	} else {
 		return BAM::PhredIntErrorRate(_calcErrorRate(base));
 	}
@@ -490,10 +490,6 @@ void TSequencingErrorModelRecal::fillBaseLikelihoods(const BAM::TSequencedBase &
 	} else {
 		_rho.fillBaseLikelihoods(base.base, _calcErrorRate(base), baseLikelihoods);
 	}
-};
-
-void TSequencingErrorModelRecal::fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseLikelihoods & baseLikelihoods) const{
-	fillBaseLikelihoods(base, baseLikelihoods);
 };
 
 //-------------------------------------------------
@@ -563,16 +559,17 @@ void TSequencingErrorModelRecal::setQToZero(){
 void TSequencingErrorModelRecal::addToQ(const BAM::TSequencedBase & base, const TBaseLikelihoods & EM_weights_bbar_given_d){
 	if(!_NRconverged){
 		//get error rate
-		double eps = _calcErrorRate(base);
+		Probability eps = getErrorRate(base);
 		//calculate sum_bbar [ Ind(bbar=d)log(1-eps) + Ind(bbar!=d)log(eps) ]
-		_Q += EM_weights_bbar_given_d[ base.base ] * log(1.0 - eps) + (1.0 - EM_weights_bbar_given_d[ base.base ]) * log(eps);
+		_Q += EM_weights_bbar_given_d[ base.base ].get() * log(eps.complement().get())
+			+ EM_weights_bbar_given_d[ base.base ].complement().get() * log(eps.get());
 	}
 };
 
-void TSequencingErrorModelRecal::addToFandJacobian(const BAM::TSequencedBase & base, const TBaseData & EM_weights_bbar_given_d){
+void TSequencingErrorModelRecal::addToFandJacobian(const BAM::TSequencedBase & base, const TBaseLikelihoods & EM_weights_bbar_given_d){
 	// 1) Calculate epsilon
 	//--------------------
-	double eps = _calcErrorRate(base);
+	double eps = getErrorRate(base).get();
 
 	// 2 ) fill derivatives
 	//--------------------
@@ -589,7 +586,7 @@ void TSequencingErrorModelRecal::addToFandJacobian(const BAM::TSequencedBase & b
 
 	// 3) add derivatives to F and Jacobian
 	//calculate weights
-	double weight1 = 1.0 - eps - EM_weights_bbar_given_d[base.base];
+	double weight1 = 1.0 - eps - EM_weights_bbar_given_d[base.base].get();
 
 	std::cout << "weight1 = " << weight1 << ", EM_weight = " << EM_weights_bbar_given_d[base.base] << ", eps = " << eps << std::endl;
 

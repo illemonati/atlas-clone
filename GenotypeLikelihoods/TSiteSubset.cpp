@@ -61,7 +61,7 @@ void TSiteSubset::_readFile(const std::string Filename, const BAM::TChromosomes 
 		_refIDUsed.emplace(chr.refID());
 
 		//extract positions
-		uint32_t pos = convertStringCheck<uint32_t>(line[1]) - 1; //make 0-based
+		uint32_t pos = coretools::str::convertStringCheck<uint32_t>(line[1]) - 1; //make 0-based
 		BAM::Base ref(line[2][0]);
 		BAM::Base alt(line[3][0]);
 

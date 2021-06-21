@@ -74,7 +74,7 @@ public:
 	void applyMask(BAM::TBed & mask, bool doInverseMasking);
 	void maskCpG(BAM::TFastaBuffer & reference);
 	void downsample(const uint32_t & maxDepth, const coretools::TSubsamplePicker & picker);
-	void estimateBaseFrequencies(GenotypeLikelihoods::TBaseData & baseFreq) const;
+	GenotypeLikelihoods::TBaseProbabilities estimateBaseFrequencies() const;
 	void applyDepthFilter(const size_t minDepth, const size_t maxDepth);
 
 	//getters
