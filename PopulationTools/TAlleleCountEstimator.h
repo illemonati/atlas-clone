@@ -9,8 +9,14 @@
 #define TALLELECOUNTESTIMATOR_H_
 
 #include "TAlleleCountFileFormat.h"
+#include "probability.h"
+#include <string>
+#include <map>
 
 namespace PopulationTools{
+
+using coretools::Probability;
+using coretools::LogProbability;
 
 //-------------------------------------------------
 // TSAFChooseStorage
@@ -34,28 +40,25 @@ public:
 class TSiteAlleleFrequencyLikelihoods{
 private:
 	double logOf2;
-	int numAlleleCounts; //from 0 to 2k
-	int storageSize;
-	double* log_alleleFrequencyLikelihoods_h;
+	uint32_t numAlleleCounts; //from 0 to 2k
+	std::vector<coretools::LogProbability> log_alleleFrequencyLikelihoods_h;
 	std::map<int, TSAFChooseStorage*> log_choose;
 
-	void updateStorage(int numRequiredAlleleCounts);
-	double protectedSumInLog(double a, double b);
-	double protectedSumInLog(double a, double b, double c);
+	LogProbability _protectedSumInLog(const LogProbability a, const LogProbability c);
+	LogProbability _protectedSumInLog(const LogProbability a, const LogProbability b, const LogProbability c);
 	void normalize();
 
-	TSAFChooseStorage* getLogChoose(int counts);
-	void fillLog(const TSampleLikelihoods* data, int numSamples, TGlfConverter & glfConverter);
-	void fillNatural(const TSampleLikelihoods* data, int numSamples, TGlfConverter & glfConverter);
-
+	TSAFChooseStorage* _getLogChoose(int counts);
+	void _fillLog(const TSampleLikelihoods* data, int numSamples);
+	void _fillNatural(const TSampleLikelihoods* data, int numSamples);
 
 public:
 	TSiteAlleleFrequencyLikelihoods(int numIndividuals);
 	~TSiteAlleleFrequencyLikelihoods();
-	void fill(const TSampleLikelihoods* data, int numSamples, TGlfConverter & glfConverter);
+	void fill(const TSampleLikelihoods* data, int numSamples);
 	void print();
 	void write(gz::ogzstream & file);
-	int getMLAlleleCount(TRandomGenerator & randomGenerator);
+	int getMLAlleleCount(coretools::TRandomGenerator & randomGenerator);
 	int getNumAlleles(){ return numAlleleCounts; };
 };
 
@@ -64,47 +67,46 @@ public:
 //-------------------------------------------------
 class TAlleleCountEstimator{
 private:
-	TLog* logfile;
-	TGlfConverter glfConverter;
+	coretools::TLog* logfile;
 
 public:
-	TAlleleCountEstimator(TParameters & params, TLog* Logfile);
+	TAlleleCountEstimator(coretools::TParameters & params, coretools::TLog* Logfile);
 	~TAlleleCountEstimator();
 
-	void estimateAlleleCounts(TParameters & params, TRandomGenerator* randomGenerator);
-	void writeAlleleFrequencyLikelihoods(TParameters & params);
-	TAlleleCountFile* prepareOutputFile(std::string type, std::string filePrefix, TParameters& params);
-	void transformFormat(TParameters & params);
+	void estimateAlleleCounts(coretools::TParameters & params, coretools::TRandomGenerator* randomGenerator);
+	void writeAlleleFrequencyLikelihoods(coretools::TParameters & params);
+	TAlleleCountFile* prepareOutputFile(std::string type, std::string filePrefix, coretools::TParameters& params);
+	void transformFormat(coretools::TParameters & params);
 };
 
 //--------------------------------------
 // Tasks
 //--------------------------------------
-class TTask_estimateAlleleCounts:public TTask{
+class TTask_estimateAlleleCounts:public coretools::TTask{
 public:
 	TTask_estimateAlleleCounts(){ _explanation = "Estimating population allele counts"; };
 
-	void run(TParameters & Parameters, TLog* Logfile){
+	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
 		TAlleleCountEstimator alleleCountEst(Parameters, Logfile);
 		alleleCountEst.estimateAlleleCounts(Parameters, _randomGenerator);
 	};
 };
 
-class TTask_writeAlleleCountLikelihoods:public TTask{
+class TTask_writeAlleleCountLikelihoods:public coretools::TTask{
 public:
 	TTask_writeAlleleCountLikelihoods(){ _explanation = "Writing sample allele count likelihoods"; };
 
-	void run(TParameters & Parameters, TLog* Logfile){
+	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
 		TAlleleCountEstimator alleleCountEst(Parameters, Logfile);
 		alleleCountEst.writeAlleleFrequencyLikelihoods(Parameters);
 	};
 };
 
-class TTask_transformAlleleCountFormat:public TTask{
+class TTask_transformAlleleCountFormat:public coretools::TTask{
 public:
 	TTask_transformAlleleCountFormat(){ _explanation = "Transforming allele counts file format"; };
 
-	void run(TParameters & Parameters, TLog* Logfile){
+	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
 		TAlleleCountEstimator alleleCountEst(Parameters, Logfile);
 		alleleCountEst.transformFormat(Parameters);
 	};

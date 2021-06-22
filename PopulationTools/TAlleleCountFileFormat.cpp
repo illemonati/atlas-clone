@@ -79,14 +79,14 @@ TTreeMixFile::TTreeMixFile(std::string Filename):TAlleleCountFile(Filename){
 	filename = Filename;
 };
 
-void TTreeMixFile::writeHeader(TPopulationSamples & samples, TParameters & params, TLog* logfile){
+void TTreeMixFile::writeHeader(TPopulationSamples & samples, coretools::TParameters & params, coretools::TLog* logfile){
 	outFile << samples.getPopulationName(0);
 	for(int p=1; p<samples.numPopulations(); p++)
 		outFile << " " << samples.getPopulationName(p);
 	outFile << "\n";
 };
 
-void TTreeMixFile::writeHeader(std::vector<std::string> populationNames, TParameters & params, TLog* logfile){
+void TTreeMixFile::writeHeader(std::vector<std::string> populationNames, coretools::TParameters & params, coretools::TLog* logfile){
 	outFile << populationNames[0];
 		for(size_t p=1; p<populationNames.size(); p++)
 			outFile << " " << populationNames[p];
@@ -111,9 +111,9 @@ void TTreeMixFile::writeCounts(int count, int numAlleles, int populationNum){
 
 void TTreeMixFile::writeCounts(std::string count, std::string numAlleles, int populationNum){
 	if(populationNum == 0)
-		outFile << count << "," << convertString<int>(numAlleles) - convertString<int>(count);
+		outFile << count << "," << coretools::str::convertString<int>(numAlleles) - coretools::str::convertString<int>(count);
 	else
-		outFile << " " << count << "," << convertString<int>(numAlleles) - convertString<int>(count);
+		outFile << " " << count << "," << coretools::str::convertString<int>(numAlleles) - coretools::str::convertString<int>(count);
 };
 
 
@@ -126,7 +126,7 @@ TFlinkFile::TFlinkFile(std::string Filename):TAlleleCountFile(Filename){
 	sep = "\t";
 };
 
-void TFlinkFile::writeHeader(TPopulationSamples & samples, TParameters & params, TLog* logfile){
+void TFlinkFile::writeHeader(TPopulationSamples & samples, coretools::TParameters & params, coretools::TLog* logfile){
 	outFile << "-\t-";
 	for(int g=0; g<samples.numPopulations(); ++g){
 		outFile << "\tGroup_A";
@@ -139,7 +139,7 @@ void TFlinkFile::writeHeader(TPopulationSamples & samples, TParameters & params,
 
 };
 
-void TFlinkFile::writeHeader(std::vector<std::string> populationNames, TParameters & params, TLog* logfile){
+void TFlinkFile::writeHeader(std::vector<std::string> populationNames, coretools::TParameters & params, coretools::TLog* logfile){
 	outFile << "-\t-";
 		for(unsigned int g=0; g<populationNames.size(); ++g){
 			outFile << "\tGroup_A";

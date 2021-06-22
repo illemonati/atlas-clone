@@ -19,7 +19,7 @@ TSAFChooseStorage::TSAFChooseStorage(int k){
 
 	//now fill
 	for(int j=0; j<=_k; j++){
-		log_choose_k_j[j] = chooseLog(_k, j);
+		log_choose_k_j[j] = coretools::chooseLog(_k, j);
 	}
 };
 
@@ -40,30 +40,18 @@ double TSAFChooseStorage::operator[](int j){
 // TSiteAlleleFrequencyLikelihoods
 //-------------------------------------------------
 TSiteAlleleFrequencyLikelihoods::TSiteAlleleFrequencyLikelihoods(int numIndividuals){
-	storageSize = 0;
 	numAlleleCounts = 2*numIndividuals + 1;
-	updateStorage(numAlleleCounts);
+	log_alleleFrequencyLikelihoods_h.resize(numAlleleCounts);
 	logOf2 = log(2.0);
 };
 
 TSiteAlleleFrequencyLikelihoods::~TSiteAlleleFrequencyLikelihoods(){
-	delete[] log_alleleFrequencyLikelihoods_h;
 	for(std::pair<int, TSAFChooseStorage*> it : log_choose){
 		delete it.second;
 	}
 };
 
-void TSiteAlleleFrequencyLikelihoods::updateStorage(int numIndividuals){
-	int numRequiredAlleleCounts = 2*numIndividuals + 1;
-	if(numRequiredAlleleCounts > storageSize){
-		if(storageSize > 0)
-			delete[] log_alleleFrequencyLikelihoods_h;
-		log_alleleFrequencyLikelihoods_h = new double[numRequiredAlleleCounts];
-		storageSize = numRequiredAlleleCounts;
-	}
-};
-
-TSAFChooseStorage* TSiteAlleleFrequencyLikelihoods::getLogChoose(int counts){
+TSAFChooseStorage* TSiteAlleleFrequencyLikelihoods::_getLogChoose(int counts){
 	//did we already calculate it?
 	std::map<int, TSAFChooseStorage*>::iterator it = log_choose.find(counts);
 	if(it == log_choose.end()){
@@ -73,27 +61,27 @@ TSAFChooseStorage* TSiteAlleleFrequencyLikelihoods::getLogChoose(int counts){
 	return it->second;
 };
 
-double TSiteAlleleFrequencyLikelihoods::protectedSumInLog(double a, double b){
+LogProbability TSiteAlleleFrequencyLikelihoods::_protectedSumInLog(const LogProbability a, const LogProbability b){
   //returns log(exp(a)+exp(b)) while protecting for underflow, inspired by ANGSD
-  double maxVal;
+  LogProbability maxVal;
   if(a>b) maxVal = a;
   else maxVal = b;
-  double sumVal = exp(a-maxVal)+exp(b-maxVal);
-  return log(sumVal) + maxVal;
+  double sumVal = (Probability) (a-maxVal) + (Probability) (b-maxVal);
+  return LogProbability(sumVal) + maxVal;
 };
 
-double TSiteAlleleFrequencyLikelihoods::protectedSumInLog(double a, double b, double c){
+LogProbability TSiteAlleleFrequencyLikelihoods::_protectedSumInLog(const LogProbability a, const LogProbability b, const LogProbability c){
   //returns log(exp(a)+exp(b)+exp(c)) while protecting for underflow, inspired by ANGSD
-  double maxVal;
+  LogProbability maxVal;
   if(a > b && a > c) maxVal = a;
   else if(b > c) maxVal = b;
   else maxVal = c;
-  double sumVal = exp(a-maxVal)+exp(b-maxVal)+exp(c-maxVal);
-  return log(sumVal) + maxVal;
+  Probability sumVal = (Probability) (a - maxVal) + (Probability) (b - maxVal) + (Probability) (c - maxVal);
+  return LogProbability(sumVal) + maxVal;
 };
 
 void TSiteAlleleFrequencyLikelihoods::normalize(){
-	double max = log_alleleFrequencyLikelihoods_h[0];
+	LogProbability max = log_alleleFrequencyLikelihoods_h[0];
 	for(int j=1; j<numAlleleCounts; j++){
 		if(log_alleleFrequencyLikelihoods_h[j] > max)
 			max = log_alleleFrequencyLikelihoods_h[j];
@@ -102,7 +90,7 @@ void TSiteAlleleFrequencyLikelihoods::normalize(){
 		log_alleleFrequencyLikelihoods_h[j] -= max;
 };
 
-void TSiteAlleleFrequencyLikelihoods::fillLog(const TSampleLikelihoods* data, int numSamples, TGlfConverter & glfConverter){
+void TSiteAlleleFrequencyLikelihoods::_fillLog(const TSampleLikelihoods* data, int numSamples){
 	//Calculating allele frequency likelihoods according to Nielsen et al. (2012) PLoS One, page 3
 	//adapted to also work for haploid individuals (which only have likelihoods for genotypes 0 and 1)
 	//all calculations done in log
@@ -121,13 +109,13 @@ void TSiteAlleleFrequencyLikelihoods::fillLog(const TSampleLikelihoods* data, in
 	if(s < numSamples){
 		//initialize with first individual
 		if(data[s].isHaploid){
-			log_alleleFrequencyLikelihoods_h[0] = glfConverter.toLog(data[s].glfLikelihood_0);
-			log_alleleFrequencyLikelihoods_h[1] = glfConverter.toLog(data[s].glfLikelihood_1);
+			log_alleleFrequencyLikelihoods_h[0] = (LogProbability) data[s].glfLikelihood_0;
+			log_alleleFrequencyLikelihoods_h[1] = (LogProbability) data[s].glfLikelihood_1;
 			numAlleleCounts = 1;
 		} else {
-			log_alleleFrequencyLikelihoods_h[0] =          glfConverter.toLog(data[s].glfLikelihood_0);
-			log_alleleFrequencyLikelihoods_h[1] = logOf2 + glfConverter.toLog(data[s].glfLikelihood_1);
-			log_alleleFrequencyLikelihoods_h[2] =          glfConverter.toLog(data[s].glfLikelihood_2);
+			log_alleleFrequencyLikelihoods_h[0] =          (LogProbability) (data[s].glfLikelihood_0;
+			log_alleleFrequencyLikelihoods_h[1] = logOf2 + (LogProbability) data[s].glfLikelihood_1;
+			log_alleleFrequencyLikelihoods_h[2] =          (LogProbability) data[s].glfLikelihood_2;
 			numAlleleCounts = 2;
 		}
 
@@ -138,41 +126,41 @@ void TSiteAlleleFrequencyLikelihoods::fillLog(const TSampleLikelihoods* data, in
 
 				if(data[s].isHaploid){
 					//first fill new ones to avoid multiplication with zero (relevant in log)
-					log_alleleFrequencyLikelihoods_h[j+1] = glfConverter.toLog(data[s].glfLikelihood_1) + log_alleleFrequencyLikelihoods_h[j];
+					log_alleleFrequencyLikelihoods_h[j+1] = (LogProbability) data[s].glfLikelihood_1 + log_alleleFrequencyLikelihoods_h[j];
 
 					//now fill those already used
 					for(; j>0; j--){
-						log_alleleFrequencyLikelihoods_h[j] = protectedSumInLog(
-								glfConverter.toLog(data[s].glfLikelihood_1) + log_alleleFrequencyLikelihoods_h[j-1],
-								glfConverter.toLog(data[s].glfLikelihood_0) + log_alleleFrequencyLikelihoods_h[j]    );
+						log_alleleFrequencyLikelihoods_h[j] = _protectedSumInLog(
+								(LogProbability) data[s].glfLikelihood_1 + log_alleleFrequencyLikelihoods_h[j-1],
+								(LogProbability) data[s].glfLikelihood_0 + log_alleleFrequencyLikelihoods_h[j]    );
 					}
 
 					//special case for j=0
-					log_alleleFrequencyLikelihoods_h[0] = glfConverter.toLog(data[s].glfLikelihood_0) + log_alleleFrequencyLikelihoods_h[0];
+					log_alleleFrequencyLikelihoods_h[0] = (LogProbability) data[s].glfLikelihood_0) + log_alleleFrequencyLikelihoods_h[0];
 
 					//increase total number of haplotypes by one
 					numAlleleCounts += 1;
 				} else {
 					//first fill new ones to avoid multiplication with zero (relevant in log)
-					log_alleleFrequencyLikelihoods_h[j+2] = glfConverter.toLog(data[s].glfLikelihood_2) + log_alleleFrequencyLikelihoods_h[j];
-					log_alleleFrequencyLikelihoods_h[j+1] = protectedSumInLog(
-																glfConverter.toLog(data[s].glfLikelihood_2) + log_alleleFrequencyLikelihoods_h[j-1],
-													   logOf2 + glfConverter.toLog(data[s].glfLikelihood_1) + log_alleleFrequencyLikelihoods_h[j]    );
+					log_alleleFrequencyLikelihoods_h[j+2] = (LogProbability) data[s].glfLikelihood_2 + log_alleleFrequencyLikelihoods_h[j];
+					log_alleleFrequencyLikelihoods_h[j+1] = _protectedSumInLog(
+																(LogProbability) data[s].glfLikelihood_2 + log_alleleFrequencyLikelihoods_h[j-1],
+																(LogProbability) data[s].glfLikelihood_1 + log_alleleFrequencyLikelihoods_h[j] + logOf2 );
 
 					//now fill those already used
 					for(; j>1; j--){
-						log_alleleFrequencyLikelihoods_h[j] = protectedSumInLog(
-										 glfConverter.toLog(data[s].glfLikelihood_2) + log_alleleFrequencyLikelihoods_h[j-2],
-								logOf2 + glfConverter.toLog(data[s].glfLikelihood_1) + log_alleleFrequencyLikelihoods_h[j-1],
-										 glfConverter.toLog(data[s].glfLikelihood_0) + log_alleleFrequencyLikelihoods_h[j]    );
+						log_alleleFrequencyLikelihoods_h[j] = _protectedSumInLog(
+										 (LogProbability) data[s].glfLikelihood_2 + log_alleleFrequencyLikelihoods_h[j-2],
+										 (LogProbability) data[s].glfLikelihood_1 + log_alleleFrequencyLikelihoods_h[j-1] + logOf2,
+										 (LogProbability) data[s].glfLikelihood_0 + log_alleleFrequencyLikelihoods_h[j] );
 					}
 
 					//special case for j=1,0
-					log_alleleFrequencyLikelihoods_h[1] = protectedSumInLog(
-								logOf2 + glfConverter.toLog(data[s].glfLikelihood_1) + log_alleleFrequencyLikelihoods_h[0],
-										 glfConverter.toLog(data[s].glfLikelihood_0) + log_alleleFrequencyLikelihoods_h[1]  );
+					log_alleleFrequencyLikelihoods_h[1] = _protectedSumInLog(
+										 (LogProbability) data[s].glfLikelihood_1 + log_alleleFrequencyLikelihoods_h[0] + logOf2,
+										 (LogProbability) data[s].glfLikelihood_0 + log_alleleFrequencyLikelihoods_h[1] );
 
-					log_alleleFrequencyLikelihoods_h[0] = glfConverter.toLog(data[s].glfLikelihood_0) + log_alleleFrequencyLikelihoods_h[0];
+					log_alleleFrequencyLikelihoods_h[0] = (LogProbability) data[s].glfLikelihood_0 + log_alleleFrequencyLikelihoods_h[0];
 
 					//increase total number of haplotypes by two
 					numAlleleCounts += 2;
@@ -181,16 +169,16 @@ void TSiteAlleleFrequencyLikelihoods::fillLog(const TSampleLikelihoods* data, in
 		}
 
 		//Termination: add binomial coefficient
-		TSAFChooseStorage* logChoose = getLogChoose(numAlleleCounts);
+		TSAFChooseStorage* logChoose = _getLogChoose(numAlleleCounts);
 		for(int j=0; j<numAlleleCounts; j++)
-			log_alleleFrequencyLikelihoods_h[j] -= logChoose->logChoose(j);
+			log_alleleFrequencyLikelihoods_h[j] = log_alleleFrequencyLikelihoods_h[j].get() - logChoose->logChoose(j);
 
 		//Normalization
 		normalize();
 	}
 };
 
-void TSiteAlleleFrequencyLikelihoods::fillNatural(const TSampleLikelihoods* data, int numSamples, TGlfConverter & glfConverter){
+void TSiteAlleleFrequencyLikelihoods::_fillNatural(const TSampleLikelihoods* data, int numSamples){
 	//Calculating allele frequency likelihoods according to Nielsen et al. (2012) PLoS One, page 3
 	//adapted to also work for haploid individuals (which only have likelihoods for genotypes 0 and 1)
 
@@ -263,7 +251,7 @@ void TSiteAlleleFrequencyLikelihoods::fillNatural(const TSampleLikelihoods* data
 		}
 
 		//Termination: put in log and add binomial coefficient
-		TSAFChooseStorage* logChoose = getLogChoose(numAlleleCounts);
+		TSAFChooseStorage* logChoose = _getLogChoose(numAlleleCounts);
 		for(int j=0; j<numAlleleCounts; j++)
 			log_alleleFrequencyLikelihoods_h[j] = log(log_alleleFrequencyLikelihoods_h[j]) - logChoose->logChoose(j);
 
@@ -272,14 +260,14 @@ void TSiteAlleleFrequencyLikelihoods::fillNatural(const TSampleLikelihoods* data
 	}
 };
 
-void TSiteAlleleFrequencyLikelihoods::fill(const TSampleLikelihoods* data, int numSamples, TGlfConverter & glfConverter){
+void TSiteAlleleFrequencyLikelihoods::fill(const TSampleLikelihoods* data, int numSamples){
 	//smallest likelihood is 10^-25.5 (phred 255).
 	//A double can store up to 10^-308.
 	//Hence we can store up to (10^25.5)^12 without underflow
 	if(numSamples > 12)
-		fillLog(data, numSamples, glfConverter);
+		_fillLog(data, numSamples, glfConverter);
 	else
-		fillNatural(data, numSamples, glfConverter);
+		_fillNatural(data, numSamples, glfConverter);
 };
 
 void TSiteAlleleFrequencyLikelihoods::print(){
@@ -294,7 +282,7 @@ void TSiteAlleleFrequencyLikelihoods::write(gz::ogzstream & file){
 	}
 };
 
-int TSiteAlleleFrequencyLikelihoods::getMLAlleleCount(TRandomGenerator & randomGenerator){
+int TSiteAlleleFrequencyLikelihoods::getMLAlleleCount(coretools::TRandomGenerator & randomGenerator){
 	//return 0 in case of no data
 	if(numAlleleCounts == 0) return 0;
 
@@ -320,13 +308,13 @@ int TSiteAlleleFrequencyLikelihoods::getMLAlleleCount(TRandomGenerator & randomG
 //-------------------------------------------------
 // TAlleleCountEstimator
 //-------------------------------------------------
-TAlleleCountEstimator::TAlleleCountEstimator(TParameters & params, TLog* Logfile){
+TAlleleCountEstimator::TAlleleCountEstimator(coretools::TParameters & params, coretools::TLog* Logfile){
 	logfile = Logfile;
 };
 
 TAlleleCountEstimator::~TAlleleCountEstimator(){};
 
-void TAlleleCountEstimator::estimateAlleleCounts(TParameters & params, TRandomGenerator* randomGenerator){
+void TAlleleCountEstimator::estimateAlleleCounts(coretools::TParameters & params, coretools::TRandomGenerator* randomGenerator){
 	//read samples
 	TPopulationSamples samples;
 	if(params.parameterExists("samples"))
