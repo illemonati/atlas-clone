@@ -29,7 +29,7 @@ TVcfFile_base::TVcfFile_base(){
 };
 
 void TVcfFile_base::openStream(const std::string & filename){
-	if(readAfterLast(filename, '.') == "gz"){
+	if(coretools::str::readAfterLast(filename, '.') == "gz"){
 		openStream(filename, true);
 	} else {
 		openStream(filename, false);
@@ -50,8 +50,8 @@ void TVcfFile_base::openStream(const std::string & Filename, const bool & zipped
 	currentLine=1;
 
 	if(stringContains(temp, "##fileformat")){
-		fileFormat=extractAfter(temp, '=');
-		trimString(fileFormat);
+		fileFormat = coretools::str::extractAfter(temp, '=');
+		coretools::str::trimString(fileFormat);
 		if(fileFormat!="VCFv4.0" && fileFormat!="VCFv4.1" && fileFormat!="VCFv4.2" && fileFormat!="VCFv4.3") throw "VCF file is not in 'VCFv4.0' format!";
 	} else throw "Missing VCF file format specification on first line! Is '" + Filename + "' a VCf file?";
 
@@ -82,11 +82,11 @@ void TVcfFile_base::parseHeaderVCF_4_0(){
 		if(stringContains(temp, "#CHROM")){
 			if(headerRowRead) throw "Found more than one header row!";
 			//analyze header: save which column contains the chromosome, position, refbase, altbases, info, format and species
-			trimString(temp);
+			coretools::str::trimString(temp);
 			int i=0;
 			while(!temp.empty()){
-				buf=extractBeforeWhiteSpace(temp);
-				trimString(buf);
+				buf = coretools::str::extractBeforeWhiteSpace(temp);
+				coretools::str::trimString(buf);
 				temp.erase(0,1);
 				if(i<parser.cols.FirstInd) parser.cols.set(buf, i);
 				else parser.addSample(buf);
@@ -181,11 +181,11 @@ std::string TVcfFile_base::fieldContentAsString(std::string tag, TVcfLine* line,
 }
 
 int TVcfFile_base::fieldContentAsInt(std::string tag, TVcfLine* line, unsigned int sample){
-	return convertString<int>(parser.sampleContentAt(*line, tag, sample));
+	return coretools::str::convertString<int>(parser.sampleContentAt(*line, tag, sample));
 }
 
 int TVcfFile_base::depthAsIntNoCheckForMissingSample(std::string tag, TVcfLine* line, unsigned int sample){
-	return convertString<int>(parser.sampleContentAtNoCheckForMissingSample(*line, tag, sample));
+	return coretools::str::convertString<int>(parser.sampleContentAtNoCheckForMissingSample(*line, tag, sample));
 }
 
 void TVcfFile_base::setSampleMissing(TVcfLine* line, unsigned int sample){
@@ -378,30 +378,16 @@ bool TVcfFileSingleLine::sampleIsHeteroRefNonref(unsigned int sample){
 float TVcfFileSingleLine::sampleGenotypeQuality(unsigned int sample){
 	return parser.sampleGenotypeQuality(tempLine, sample);
 }
-std::string TVcfFileSingleLine::getFirstAlleleOfSample(unsigned int num){
-	return parser.getFirstAlleleOfSample(tempLine, num);
-}
-
-Base TVcfFileSingleLine::getFirstAlleleOfSample(unsigned int num, GenotypeLikelihoods::TGenotypeMap & genoMap){
-	return genoMap.toBase(parser.getFirstAlleleOfSample(tempLine, num)[0]);
+BAM::Base TVcfFileSingleLine::getFirstAlleleOfSample(unsigned int num){
+	return parser.getFirstAlleleOfSample(tempLine, num)[0];
 };
 
-std::string TVcfFileSingleLine::getSecondAlleleOfSample(unsigned int num){
-	return parser.getSecondAlleleOfSample(tempLine, num);
-}
-
-Base TVcfFileSingleLine::getSecondAlleleOfSample(unsigned int num, GenotypeLikelihoods::TGenotypeMap & genoMap){
-	return genoMap.toBase(parser.getSecondAlleleOfSample(tempLine, num)[0]);
-}
-
-short TVcfFileSingleLine::sampleGenotype(const unsigned int & num){
-	//NOTE: only makes sense for biallelic sites! Missing = 3
-	return parser.sampleGenotype(tempLine, num);
-}
-
-GenotypeLikelihoods::Genotype TVcfFileSingleLine::sampleGenotype(const unsigned int & num, GenotypeLikelihoods::TGenotypeMap & genoMap){
-	return genoMap.toGenotype(parser.getFirstAlleleOfSample(tempLine, num)[0], parser.getSecondAlleleOfSample(tempLine, num)[0]);
-}
+BAM::Base TVcfFileSingleLine::getSecondAlleleOfSample(unsigned int num){
+	return parser.getSecondAlleleOfSample(tempLine, num)[0];
+};
+BAM::Genotype TVcfFileSingleLine::sampleGenotype(const unsigned int & num){
+	return BAM::Genotype(parser.getFirstAlleleOfSample(tempLine, num)[0], parser.getSecondAlleleOfSample(tempLine, num)[0]);
+};
 
 // int TVcfFileSingleLine::sampleDepth(unsigned int sample){
 double TVcfFileSingleLine::sampleDepth(unsigned int sample){
@@ -411,7 +397,7 @@ double TVcfFileSingleLine::sampleDepth(unsigned int sample){
 	//check if depth is given
 	std::string DP = "DP";
 	if(parser.formatColExists(DP, tempLine))
-		return convertString<double>(parser.sampleContentAt(tempLine, DP, sample));
+		return coretools::str::convertString<double>(parser.sampleContentAt(tempLine, DP, sample));
 		// return convertString<int>(parser.sampleContentAt(tempLine, DP, sample));
 	else return -1;
 }

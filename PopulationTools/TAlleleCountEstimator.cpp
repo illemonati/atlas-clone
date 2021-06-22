@@ -394,7 +394,7 @@ void TAlleleCountEstimator::estimateAlleleCounts(TParameters & params, TRandomGe
 	logfile->endIndent();
 };
 
-void TAlleleCountEstimator::writeAlleleFrequencyLikelihoods(TParameters & params){
+void TAlleleCountEstimator::writeAlleleFrequencyLikelihoods(coretools::TParameters & params){
 	//TODO: write proper saf
 	//read samples
 	TPopulationSamples samples;
@@ -477,7 +477,7 @@ void TAlleleCountEstimator::writeAlleleFrequencyLikelihoods(TParameters & params
 	logfile->endIndent();
 };
 
-TAlleleCountFile* TAlleleCountEstimator::prepareOutputFile(std::string type, std::string filePrefix, TParameters& params){
+TAlleleCountFile* TAlleleCountEstimator::prepareOutputFile(std::string type, std::string filePrefix, coretools::TParameters& params){
 	//create output file
 	TAlleleCountFile* alleleCountFile;
 	if(type == "default"){
@@ -498,7 +498,7 @@ TAlleleCountFile* TAlleleCountEstimator::prepareOutputFile(std::string type, std
 	return(alleleCountFile);
 }
 
-void TAlleleCountEstimator::transformFormat(TParameters & params){
+void TAlleleCountEstimator::transformFormat(coretools::TParameters & params){
 	// initialize variables for vcf-file
 	struct timeval start; gettimeofday(&start, NULL);
 
@@ -521,7 +521,7 @@ void TAlleleCountEstimator::transformFormat(TParameters & params){
 	std::getline(file, line);
 	std::vector<std::string> tmp_vec;
 	std::vector<std::string> populationNames;
-	fillContainerFromStringWhiteSpace(line, tmp_vec, true);
+	coretools::str::fillContainerFromStringWhiteSpace(line, tmp_vec, true);
 	for(unsigned int i=2; i<tmp_vec.size(); ++i){
 		populationNames.push_back(tmp_vec[i]);
 	}
@@ -539,7 +539,7 @@ void TAlleleCountEstimator::transformFormat(TParameters & params){
 	while(file.good() && !file.eof()){
 		std::vector<std::string> vec;
 		std::getline(file, line);
-		fillContainerFromStringWhiteSpace(line, vec, true);
+		coretools::str::fillContainerFromStringWhiteSpace(line, vec, true);
 		//write chromosome and position
 		if(vec.size() > 0){
 			alleleCountFile->writePosition(vec[0], vec[1]);
@@ -548,7 +548,7 @@ void TAlleleCountEstimator::transformFormat(TParameters & params){
 			for(unsigned int p=2; p<vec.size(); p++){
 				//print MLE counts
 				std::vector<std::string> counts;
-				fillContainerFromStringAny(vec[p], counts, "/");
+				coretools::str::fillContainerFromStringAny(vec[p], counts, "/");
 				alleleCountFile->writeCounts(counts[0], counts[1], p-2);
 			}
 			alleleCountFile->endl();

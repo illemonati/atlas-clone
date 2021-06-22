@@ -156,12 +156,9 @@ public:
 	bool sampleIsDiploid(unsigned int sample);
 	bool sampleIsHomoRef(unsigned int sample);
 	bool sampleIsHeteroRefNonref(unsigned int sample);
-	std::string getFirstAlleleOfSample(unsigned int num);
-	Base getFirstAlleleOfSample(unsigned int num, GenotypeLikelihoods::TGenotypeMap & genoMap);
-	std::string getSecondAlleleOfSample(unsigned int num);
-	Base getSecondAlleleOfSample(unsigned int num, GenotypeLikelihoods::TGenotypeMap & genoMap);
-	short sampleGenotype(const unsigned int & num);
-	GenotypeLikelihoods::Genotype sampleGenotype(const unsigned int & num, GenotypeLikelihoods::TGenotypeMap & genoMap);
+	BAM::Base getFirstAlleleOfSample(unsigned int num);
+	BAM::Base getSecondAlleleOfSample(unsigned int num);
+	BAM::Genotype sampleGenotype(const unsigned int & num);
 	float sampleGenotypeQuality(unsigned int sample);
 	double sampleDepth(unsigned int sample);
 	// int sampleDepth(unsigned int sample);

@@ -230,10 +230,10 @@ bool TWindow_base::filter(const double maxFracMissing, const double maxRefN, cor
 
 void TWindow_base::addReferenceBaseToSites(BAM::TFastaBuffer & reference){
 	if(!referenceBaseAdded && reference.hasReference()){
-		std::string ref; //fasta object fills string
+		std::vector<BAM::Base> ref; //fasta object fills string
 		reference.fill(*this, ref);
 		for(unsigned int i=0; i<size(); ++i){
-			_sites[i].setRefBase(BAM::Base(ref[i]));
+			_sites[i].setRefBase(ref[i]);
 		}
 		referenceBaseAdded = true;
 	}
@@ -286,13 +286,14 @@ void TWindow_base::applyMask(BAM::TBed & mask, bool doInverseMasking){
 
 void TWindow_base::maskCpG(BAM::TFastaBuffer & reference){
 	//get ref sequence with one extra base on either side of window
-	std::string ref;
+	std::vector<BAM::Base> ref;
 	BAM::TGenomePosition pos = _from - 1;
 	reference.fill(pos, size()+2, ref); //NOTE: appends N in case start < 0 or start + length > chr
 
 	//now check for each base. Index in ref is shifted by 1!
+	//TODO: check this!!!
 	for(uint32_t i=0; i<size(); ++i){
-		if((ref[i] == 'C' && ref[i+1] == 'G') || (ref[i+1] == 'C' && ref[i+2] == 'G')){
+		if((ref[i] == BAM::C && ref[i+1] == BAM::G) || (ref[i+1] == BAM::C && ref[i+2] == BAM::G)){
 			_sites[i].clear();
 		}
 	}
@@ -311,7 +312,7 @@ GenotypeLikelihoods::TBaseProbabilities TWindow_base::estimateBaseFrequencies() 
 		s.addToBaseFrequencies(tmp);
 	}
 	tmp.normalize();
-	return tmp;
+	return tmp.asFrequencies();
 };
 
 

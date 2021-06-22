@@ -40,12 +40,12 @@ public:
 	void flip(); //flip major / minor
 	bool isMonomorphic();
 	void guess(const TSampleLikelihoods* samples, int numSamples);
-	void estimate(TPopulationLikehoodLocus & samples, TGlfConverter & glfConverter, double epsilonF);
-	void estimate(TSampleLikelihoods* samples, int numSamples, TGlfConverter & glfConverter, double epsilonF);
-	double calculateLog10Likelihood(TPopulationLikehoodLocus & samples, TGlfConverter & glfConverter);
-	double calculateLog10Likelihood(TSampleLikelihoods* samples, int numSamples, TGlfConverter & glfConverter);
-	void writeDiploidFrequencies(TOutputFile & out);
-	void writeHaploidFrequencies(TOutputFile & out);
+	void estimate(TPopulationLikehoodLocus & samples, double epsilonF);
+	void estimate(TSampleLikelihoods* samples, int numSamples, double epsilonF);
+	double calculateLog10Likelihood(TPopulationLikehoodLocus & samples);
+	double calculateLog10Likelihood(TSampleLikelihoods* samples, int numSamples);
+	void writeDiploidFrequencies(coretools::TOutputFile & out);
+	void writeHaploidFrequencies(coretools::TOutputFile & out);
 	int numHaploid(){ return numHaploidSamples; };
 	int numDiploid(){ return numDiploidSamples; };
 };

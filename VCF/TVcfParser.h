@@ -17,6 +17,8 @@
 
 namespace VCF{
 
+using coretools::str::stringContains;
+
 //TODO: use header info to check entries
 
 	enum VCF_TYPE {UNKNOWN, INTEGER, FLOAT, FLAG, CHAR,  STRING};

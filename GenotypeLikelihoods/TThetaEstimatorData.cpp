@@ -322,7 +322,7 @@ void TThetaEstimatorDataVector::fillP_G(GenotypeLikelihoods::TGenotypeData & P_G
 	//calculate P_g for each site
 	for(auto& it : sites){
 		P_g_oneSite.fillBayesian(it, pGenotype);
-		P_G.add(P_g_oneSite);
+		P_G += P_g_oneSite;
 	}
 };
 

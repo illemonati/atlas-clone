@@ -85,6 +85,8 @@ TBaseProbabilities TBaseData::asFrequencies(){
 	freq[BAM::C] = _data[BAM::C] / tot;
 	freq[BAM::G] = _data[BAM::G] / tot;
 	freq[BAM::T] = _data[BAM::T] / tot;
+
+	return freq;
 };
 
 //--------------------------------------------------------------------
@@ -233,6 +235,22 @@ void TGenotypeLikelihoodsHaploid::fill(const std::vector<TBaseData> & bases, con
 			_data[BAM::TT] *= bases[i][BAM::T];
 		}
 	}
+};
+
+//--------------------------------------------------------------------
+// TGenotypeData
+//--------------------------------------------------------------------
+void TGenotypeData::operator+=(const TGenotypeProbability_base & other){
+	_data[BAM::AA] += other[BAM::AA].get();
+	_data[BAM::AC] += other[BAM::AC].get();
+	_data[BAM::AG] += other[BAM::AG].get();
+	_data[BAM::AT] += other[BAM::AT].get();
+	_data[BAM::CC] += other[BAM::CC].get();
+	_data[BAM::CG] += other[BAM::CG].get();
+	_data[BAM::CT] += other[BAM::CT].get();
+	_data[BAM::GG] += other[BAM::GG].get();
+	_data[BAM::GT] += other[BAM::GT].get();
+	_data[BAM::TT] += other[BAM::TT].get();
 };
 
 }; // end namespace

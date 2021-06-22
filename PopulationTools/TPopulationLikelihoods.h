@@ -42,7 +42,7 @@ private:
 	void fillSampleOrder();
 public:
 	TPopulationSamples();
-	TPopulationSamples(std::string filename, TLog* logfile);
+	TPopulationSamples(std::string filename, coretools::TLog* logfile);
 	~TPopulationSamples();
 
 	bool populationExists(const std::string & name){
@@ -57,7 +57,7 @@ public:
 	std::string getPopulationName(uint32_t population);
 	uint32_t getPopulationIndex(const std::string name);
 	uint32_t numSamplesInPop(uint32_t population){ return numSamplesPerPop[population]; };
-	void readSamples(std::string filename, TLog* logfile);
+	void readSamples(std::string filename, coretools::TLog* logfile);
 	void readSamplesFromVCFNames(std::vector<std::string> & vcfSampleNames);
 	bool sampleIsUsed(const std::string & name);
 	uint32_t getOrderedSampleIndex(const std::string & name);
@@ -78,8 +78,7 @@ public:
 class TPopulationLikelihoodReader{
 protected:
 	bool _initialized;
-	TLog* logfile;
-	BAM::TQualityMap phredToGTLMap;
+	coretools::TLog* logfile;
 	VCF::TVcfFileSingleLine vcfFile;
 	bool vcfOpen;
 
@@ -103,7 +102,7 @@ protected:
 	uint64_t progressFrequency;
 
 	//counters
-	TTimer timer;
+	coretools::TTimer timer;
 	bool vcfParsingStarted;
 	uint64_t _lineCounter; //lines read in VCF
 	uint64_t _notInBedFile; //sites considered (smaller than # lines if BED file is used
@@ -124,20 +123,20 @@ protected:
 	void closeVCF();
 
     //void readDataFromVCF(TParameters & Parameters, TPopulationSamples & samples);
-    void specifyChromosomesToKeep(TParameters & Parameters, TLog* logfile);
+    void specifyChromosomesToKeep(coretools::TParameters & Parameters, coretools::TLog* logfile);
     void printProgressFrequencyFiltering();
     int filterOnDepth(TSampleLikelihoods* data, TPopulationSamples & samples);
     virtual bool _readNextLineFromVCF();
-    bool _filterSite(TSampleLikelihoods* data, TPopulationSamples & samples, TGlfConverter & glfConverter);
+    bool _filterSite(TSampleLikelihoods* data, TPopulationSamples & samples);
     bool _updateChromosomeInfo();
     bool _jumpToNextChromosome();
 
 public:
 	TPopulationLikelihoodReader();
-	TPopulationLikelihoodReader(TParameters & Parameters, TLog* Logfile, bool saveAlleleFreq);
+	TPopulationLikelihoodReader(coretools::TParameters & Parameters, coretools::TLog* Logfile, bool saveAlleleFreq);
 	virtual ~TPopulationLikelihoodReader();
 
-	virtual void initialize(TParameters & Parameters, TLog* Logfile, bool saveAlleleFreq);
+	virtual void initialize(coretools::TParameters & Parameters, coretools::TLog* Logfile, bool saveAlleleFreq);
 	void doEstimateGenotypeFrequencies(){ estimateGenotypeFrequencies = true; };
 
 
@@ -170,10 +169,10 @@ private:
 
 public:
 	TPopulationLikelihoodReaderLocus();
-	TPopulationLikelihoodReaderLocus(TParameters & Parameters, TLog* Logfile, bool saveAlleleFreq);
+	TPopulationLikelihoodReaderLocus(coretools::TParameters & Parameters, coretools::TLog* Logfile, bool saveAlleleFreq);
 	~TPopulationLikelihoodReaderLocus();
 
-	virtual void initialize(TParameters & Parameters, TLog* Logfile, bool saveAlleleFreq);
+	virtual void initialize(coretools::TParameters & Parameters, coretools::TLog* Logfile, bool saveAlleleFreq);
 	void doSaveTrueAlleleFrequencies(){ storeTrueAlleleFreq = true; }
 
 	std::string chr(){ return curChr; };
@@ -185,8 +184,8 @@ public:
     uint8_t genotype(TPopulationSamples & samples, uint32_t s);
     double depth(TPopulationSamples & samples,uint32_t s);
 
-    bool readDataFromVCF(TPopulationLikehoodLocus & data, TPopulationSamples & samples, TGlfConverter & glfConverter);
-	bool readDataFromVCF(TSampleLikelihoods* data, TPopulationSamples & samples, TGlfConverter & glfConverter);
+    bool readDataFromVCF(TPopulationLikehoodLocus & data, TPopulationSamples & samples);
+	bool readDataFromVCF(TSampleLikelihoods* data, TPopulationSamples & samples);
 
 	void openTrueAlleleFrequenciesFile(const std::string filename);
 	TGenotypeFrequencies* genotypeFrequencies(){ return &genoFrequencies; };
@@ -195,7 +194,7 @@ public:
 	double trueAlleleFrequency(){ return _trueAlleleFrequency; };
 	double MAF(){ return genoFrequencies.MAF; };
 	int numSamplesWithData();
-	void writePosition(TOutputFile & out);
+	void writePosition(coretools::TOutputFile & out);
 };
 
 class TPopulationLikelihoodReaderWindow:public TPopulationLikelihoodReader{
@@ -205,11 +204,11 @@ private:
 
 public:
 	TPopulationLikelihoodReaderWindow();
-	TPopulationLikelihoodReaderWindow(TParameters & Parameters, TLog* Logfile, bool saveAlleleFreq);
+	TPopulationLikelihoodReaderWindow(coretools::TParameters & Parameters, coretools::TLog* Logfile, bool saveAlleleFreq);
 	~TPopulationLikelihoodReaderWindow();
 
-	bool readDataFromVCF(TPopulationLikehoodWindow & region, TPopulationSamples & samples, TGlfConverter & glfConverter);
-	void writeWindow(TOutputFile & out);
+	bool readDataFromVCF(TPopulationLikehoodWindow & region, TPopulationSamples & samples);
+	void writeWindow(coretools::TOutputFile & out);
 };
 
 
@@ -221,7 +220,7 @@ private:
 	// about vcf-file
 	std::string vcfFilename;
 	bool vcfRead;
-	TLog* logfile;
+	coretools::TLog* logfile;
 
 	// data on individuals
 	TPopulationSamples samples;
@@ -237,8 +236,8 @@ private:
 //    int usedSampleSize;
 
 public:
-	TVcfFilter(TParameters & Parameters, TLog* logfile);
-    void filterVCF(TParameters & Parameters);
+	TVcfFilter(coretools::TParameters & Parameters, coretools::TLog* logfile);
+    void filterVCF(coretools::TParameters & Parameters);
 
 
 };
@@ -274,13 +273,11 @@ private:
 
     // read data from vcf-file
 	void init();
-    void readDataFromVCF(TParameters & Parameters, TLog* logfile);
+    void readDataFromVCF(coretools::TParameters & Parameters, coretools::TLog* logfile);
 
 public:
-    TGlfConverter glfConverter;
-
     TPopulationLikelihoods();
-    TPopulationLikelihoods(TParameters & Parameters, TLog* Logfile);
+    TPopulationLikelihoods(coretools::TParameters & Parameters, coretools::TLog* Logfile);
     ~TPopulationLikelihoods();
 
     void clean();
@@ -296,7 +293,7 @@ public:
     	trueAlleleFrequencies.clear();
     	return trueAlleleFrequenciesCopy;
     }
-    void readData(TParameters & Parameters, TLog* Logfile);
+    void readData(coretools::TParameters & Parameters, coretools::TLog* Logfile);
     std::string getVCFName(){ return vcfFilename; };
 
     //Looping

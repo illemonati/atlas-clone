@@ -13,6 +13,8 @@
 
 namespace PopulationTools{
 
+using coretools::str::toString;
+
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // TPopulationSamples                                                                         //
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -20,7 +22,7 @@ TPopulationSamples::TPopulationSamples(){
 	_init();
 };
 
-TPopulationSamples::TPopulationSamples(std::string filename, TLog* logfile){
+TPopulationSamples::TPopulationSamples(std::string filename, coretools::TLog* logfile){
 	_init();
 	readSamples(filename, logfile);
 };
@@ -60,7 +62,7 @@ uint32_t TPopulationSamples::getPopulationIndex(const std::string name){
 	return it->second;
 };
 
-void TPopulationSamples::readSamples(std::string filename, TLog* logfile){
+void TPopulationSamples::readSamples(std::string filename, coretools::TLog* logfile){
 	logfile->listFlush("Reading samples from file '" + filename + "' ...");
 
 	//open file
@@ -79,7 +81,7 @@ void TPopulationSamples::readSamples(std::string filename, TLog* logfile){
 	while(file.good() && !file.eof()){
 		++lineNum;
 		std::getline(file, line);
-		fillContainerFromStringWhiteSpace(line, vec, true);
+		coretools::str::fillContainerFromStringWhiteSpace(line, vec, true);
 
 		//skip empty lines
 		if(vec.size() > 0){
@@ -262,7 +264,7 @@ TPopulationLikelihoodReader::TPopulationLikelihoodReader(){
 	_init();
 };
 
-TPopulationLikelihoodReader::TPopulationLikelihoodReader(TParameters & Parameters, TLog* Logfile, bool saveAlleleFreq){
+TPopulationLikelihoodReader::TPopulationLikelihoodReader(coretools::TParameters & Parameters, coretools::TLog* Logfile, bool saveAlleleFreq){
 	_init();
 	initialize(Parameters, Logfile, saveAlleleFreq);
 };
@@ -294,7 +296,7 @@ void TPopulationLikelihoodReader::_init(){
 	resetCounters();
 };
 
-void TPopulationLikelihoodReader::initialize(TParameters & Parameters, TLog* Logfile, bool saveAlleleFreq){
+void TPopulationLikelihoodReader::initialize(coretools::TParameters & Parameters, coretools::TLog* Logfile, bool saveAlleleFreq){
 	logfile = Logfile;
 
 	//read parsing parameters
@@ -360,9 +362,9 @@ void TPopulationLikelihoodReader::initialize(TParameters & Parameters, TLog* Log
 	_initialized = true;
 };
 
-void TPopulationLikelihoodReader::specifyChromosomesToKeep(TParameters & Parameters, TLog* logfile){
+void TPopulationLikelihoodReader::specifyChromosomesToKeep(coretools::TParameters & Parameters, coretools::TLog* logfile){
     std::string argument = Parameters.getParameter<std::string>("keepChromosomes");
-    if(stringContains(argument, ".txt")){ // specified as a file name
+    if(coretools::str::stringContains(argument, ".txt")){ // specified as a file name
         logfile->startIndent("Reading chromosomes that should be kept from '" + argument + "'");
         std::ifstream keepChromosomesFile(argument.c_str());
         if(!keepChromosomesFile)
@@ -371,7 +373,7 @@ void TPopulationLikelihoodReader::specifyChromosomesToKeep(TParameters & Paramet
             std::string line;
             std::getline(keepChromosomesFile, line);
             std::vector<std::string> vec;
-            fillContainerFromStringWhiteSpace(line, vec, true);
+            coretools::str::fillContainerFromStringWhiteSpace(line, vec, true);
             //skip empty lines
             if(!vec.empty())
                 chromosomesToKeep.push_back(vec[0]);
@@ -380,7 +382,7 @@ void TPopulationLikelihoodReader::specifyChromosomesToKeep(TParameters & Paramet
     }
     else { // specified as a vector on command line
         logfile->startIndent("Reading chromosomes from command line.");
-        fillContainerFromString(Parameters.getParameter<std::string>("keepChromosomes"), chromosomesToKeep, ',');
+        coretools::str::fillContainerFromString(Parameters.getParameter<std::string>("keepChromosomes"), chromosomesToKeep, ',');
     }
 
     // write to logfile
@@ -472,7 +474,7 @@ bool TPopulationLikelihoodReader::_readNextLineFromVCF(){
 	return true;
 };
 
-bool TPopulationLikelihoodReader::_filterSite(TSampleLikelihoods* data, TPopulationSamples & samples, TGlfConverter & glfConverter){
+bool TPopulationLikelihoodReader::_filterSite(TSampleLikelihoods* data, TPopulationSamples & samples){
 	//skip sites with != 2 alleles
 	if(vcfFile.getNumAlleles() != 2){
 		_notBialleleicCounter++;
@@ -608,7 +610,7 @@ TPopulationLikelihoodReaderLocus::~TPopulationLikelihoodReaderLocus(){
 	_closeTrueAlleleFreqFile();
 };
 
-TPopulationLikelihoodReaderLocus::TPopulationLikelihoodReaderLocus(TParameters & Parameters, TLog* Logfile, bool saveAlleleFreq):TPopulationLikelihoodReader(Parameters, Logfile, saveAlleleFreq){
+TPopulationLikelihoodReaderLocus::TPopulationLikelihoodReaderLocus(coretools::TParameters & Parameters, coretools::TLog* Logfile, bool saveAlleleFreq):TPopulationLikelihoodReader(Parameters, Logfile, saveAlleleFreq){
 	_init();
 };
 
@@ -618,7 +620,7 @@ void TPopulationLikelihoodReaderLocus::_init(){
 	_trueAlleleFrequency = -1.0;
 };
 
-void TPopulationLikelihoodReaderLocus::initialize(TParameters & Parameters, TLog* Logfile, bool saveAlleleFreq){
+void TPopulationLikelihoodReaderLocus::initialize(coretools::TParameters & Parameters, coretools::TLog* Logfile, bool saveAlleleFreq){
 	TPopulationLikelihoodReader::initialize(Parameters, Logfile, saveAlleleFreq);
 
 	//open true allele freq file
@@ -658,19 +660,19 @@ bool TPopulationLikelihoodReaderLocus::_readNextLineFromVCF(){
 		std::string temp;
 		getline(*trueFreq, temp);
 		std::vector<std::string> tmp;
-		fillContainerFromString(temp, tmp, '\t');
+		coretools::str::fillContainerFromString(temp, tmp, '\t');
 		if(tmp.size() != 3)
 			throw "wrong number of columns in true allele frequency file!";
 		std::string chr = tmp[0];
-		uint64_t pos = convertString<uint64_t>(tmp[1]);
+		uint64_t pos = coretools::str::convertString<uint64_t>(tmp[1]);
 		_trueAlleleFrequency = convertString<double>(tmp[2]);
 		//check if positions match (allele file is 0-based)
 		while(pos < vcfFile.position() - 1){
 			getline(*trueFreq, temp);
-			fillContainerFromString(temp, tmp, '\t');
+			coretools::str::fillContainerFromString(temp, tmp, '\t');
 			if(tmp.size() != 3)
 				throw "wrong number of columns in true allele frequency file!";
-			pos = convertString<uint64_t>(tmp[1]);
+			pos = coretools::str::convertString<uint64_t>(tmp[1]);
 		}
 		if(pos > vcfFile.position() - 1)
 			throw "current vcf pos=" + toString(vcfFile.position()) + " is not equal to current trueAlleleFreq position=" + toString(pos);
@@ -680,12 +682,12 @@ bool TPopulationLikelihoodReaderLocus::_readNextLineFromVCF(){
 	return true;
 };
 
-bool TPopulationLikelihoodReaderLocus::readDataFromVCF(TPopulationLikehoodLocus & data, TPopulationSamples & samples, TGlfConverter & glfConverter){
+bool TPopulationLikelihoodReaderLocus::readDataFromVCF(TPopulationLikehoodLocus & data, TPopulationSamples & samples){
 	data.resize(samples.numSamples());
-	return readDataFromVCF(data.samples(), samples, glfConverter);
+	return readDataFromVCF(data.samples(), samples);
 };
 
-bool TPopulationLikelihoodReaderLocus::readDataFromVCF(TSampleLikelihoods* data, TPopulationSamples & samples, TGlfConverter & glfConverter){
+bool TPopulationLikelihoodReaderLocus::readDataFromVCF(TSampleLikelihoods* data, TPopulationSamples & samples){
 	//set time at beginning
 	if(!vcfParsingStarted){
 		vcfParsingStarted = true;
@@ -755,7 +757,7 @@ bool TPopulationLikelihoodReaderLocus::readDataFromVCF(TSampleLikelihoods* data,
 		}
 
 		//filter
-		if(_filterSite(data, samples, glfConverter)){
+		if(_filterSite(data, samples)){
      		//SNP is accepted!
 			++_numAcceptedLoci;
 			return true;
@@ -767,7 +769,7 @@ bool TPopulationLikelihoodReaderLocus::readDataFromVCF(TSampleLikelihoods* data,
 	return false;
 };
 
-void TPopulationLikelihoodReaderLocus::writePosition(TOutputFile & out){
+void TPopulationLikelihoodReaderLocus::writePosition(coretools::TOutputFile & out){
 	out << vcfFile.chr() << vcfFile.position() << vcfFile.getRefAllele() << vcfFile.getFirstAltAllele();
 };
 
@@ -796,7 +798,7 @@ TPopulationLikelihoodReaderWindow::TPopulationLikelihoodReaderWindow():TPopulati
 
 };
 
-TPopulationLikelihoodReaderWindow::TPopulationLikelihoodReaderWindow(TParameters & Parameters, TLog* Logfile, bool saveAlleleFreq):TPopulationLikelihoodReader(Parameters, Logfile, saveAlleleFreq){
+TPopulationLikelihoodReaderWindow::TPopulationLikelihoodReaderWindow(coretools::TParameters & Parameters, coretools::TLog* Logfile, bool saveAlleleFreq):TPopulationLikelihoodReader(Parameters, Logfile, saveAlleleFreq){
 
 };
 
@@ -829,7 +831,7 @@ bool TPopulationLikelihoodReaderWindow::_readNextLocusAndUpdateChromosome(){
 	return true;
 };
 
-bool TPopulationLikelihoodReaderWindow::readDataFromVCF(TPopulationLikehoodWindow & window, TPopulationSamples & samples, TGlfConverter & glfConverter){
+bool TPopulationLikelihoodReaderWindow::readDataFromVCF(TPopulationLikehoodWindow & window, TPopulationSamples & samples){
 	//ASSUMPTION: all chromosomes are present in VCF with at least on position!
 	//only works if BED file is open
 	if(!limitToSitesInBed){
@@ -877,7 +879,7 @@ bool TPopulationLikelihoodReaderWindow::readDataFromVCF(TPopulationLikehoodWindo
 		}
 
 		//fill cur position
-		if(_filterSite(window[index].samples(), samples, glfConverter)){
+		if(_filterSite(window[index].samples(), samples)){
      		//SNP is accepted!
 			++_numAcceptedLoci;
 		} else {
@@ -907,7 +909,7 @@ bool TPopulationLikelihoodReaderWindow::readDataFromVCF(TPopulationLikehoodWindo
 	return true;
 };
 
-void TPopulationLikelihoodReaderWindow::writeWindow(TOutputFile & out){
+void TPopulationLikelihoodReaderWindow::writeWindow(coretools::TOutputFile & out){
 	out << bedFile.getChromosomeName(_curBedWindow->refID()) << _curBedWindow->from().position() << _curBedWindow->to().position();
 };
 
@@ -976,7 +978,7 @@ TPopulationLikelihoods::TPopulationLikelihoods(){
 };
 
 
-TPopulationLikelihoods::TPopulationLikelihoods(TParameters & Parameters, TLog* Logfile){
+TPopulationLikelihoods::TPopulationLikelihoods(coretools::TParameters & Parameters, coretools::TLog* Logfile){
 	init();
 	readData(Parameters, Logfile);
 };
@@ -1000,7 +1002,7 @@ void TPopulationLikelihoods::clean(){
 	vcfRead = false;
 };
 
-void TPopulationLikelihoods::readData(TParameters & Parameters, TLog* Logfile){
+void TPopulationLikelihoods::readData(coretools::TParameters & Parameters, coretools::TLog* Logfile){
 	//check if we limit samples
 	if(Parameters.parameterExists("samples"))
 		samples.readSamples(Parameters.getParameter<std::string>("samples"), Logfile);
@@ -1015,7 +1017,7 @@ void TPopulationLikelihoods::readData(TParameters & Parameters, TLog* Logfile){
 //////////////////////////////////////////////////////////////////////////////////////////////////
 // Read data from VCF-file                                                                      //
 //////////////////////////////////////////////////////////////////////////////////////////////////
-void TPopulationLikelihoods::readDataFromVCF(TParameters & Parameters, TLog* logfile){
+void TPopulationLikelihoods::readDataFromVCF(coretools::TParameters & Parameters, coretools::TLog* logfile){
 	if(vcfRead)
 		throw "VCF already read!";
 

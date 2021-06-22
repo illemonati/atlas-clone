@@ -138,7 +138,7 @@ public:
 	void _begin();
 	bool isEnd();
 	GenotypeLikelihoods::TGenotypeLikelihoods& curGenotypeLikelihoods();
-	void fillP_G(GenotypeLikelihoods::TGenotypeData & P_G, const GenotypeLikelihoods::TGenotypeData & pGenotype);
+	void fillP_G(GenotypeLikelihoods::TGenotypeData & P_G, const GenotypeLikelihoods::TGenotypeProbabilities & pGenotype);
 	double calcLogLikelihood(const GenotypeLikelihoods::TGenotypeData & pGenotype);
 };
 

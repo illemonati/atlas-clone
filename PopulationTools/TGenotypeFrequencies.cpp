@@ -135,11 +135,11 @@ void TGenotypeFrequencies::guess(const TSampleLikelihoods* samples, int numSampl
 	normalize();
 };
 
-void TGenotypeFrequencies::estimate(TPopulationLikehoodLocus & samples, TGlfConverter & glfConverter, double epsilonF){
-	estimate(samples.samples(), samples.numSamples(), glfConverter, epsilonF);
+void TGenotypeFrequencies::estimate(TPopulationLikehoodLocus & samples, double epsilonF){
+	estimate(samples.samples(), samples.numSamples(), epsilonF);
 };
 
-void TGenotypeFrequencies::estimate(TSampleLikelihoods* samples, int numSamples, TGlfConverter & glfConverter, double epsilonF){
+void TGenotypeFrequencies::estimate(TSampleLikelihoods* samples, int numSamples, double epsilonF){
 	//prepare variables
 	double weights[3];
 	double diploidFrequencies_old[3];
@@ -168,16 +168,16 @@ void TGenotypeFrequencies::estimate(TSampleLikelihoods* samples, int numSamples,
 		for(int i = 0; i < numSamples; i++){
 			if(!samples[i].isMissing){
 				if(samples[i].isHaploid){
-					weights[0] = glfConverter[samples[i].glfLikelihood_0] * haploidFrequencies_old[0];
-					weights[1] = glfConverter[samples[i].glfLikelihood_1] * haploidFrequencies_old[1];
+					weights[0] = (double) (coretools::Probability) samples[i].glfLikelihood_0 * haploidFrequencies_old[0];
+					weights[1] = (double) (coretools::Probability)samples[i].glfLikelihood_1 * haploidFrequencies_old[1];
 
 					double sum = weights[0] + weights[1];
 
 					haploidFrequencies[0] += weights[0] / sum;
 				} else {
-					weights[0] = glfConverter[samples[i].glfLikelihood_0] * diploidFrequencies_old[0];
-					weights[1] = glfConverter[samples[i].glfLikelihood_1] * diploidFrequencies_old[1];
-					weights[2] = glfConverter[samples[i].glfLikelihood_2] * diploidFrequencies_old[2];
+					weights[0] = (double) (coretools::Probability) samples[i].glfLikelihood_0 * diploidFrequencies_old[0];
+					weights[1] = (double) (coretools::Probability) samples[i].glfLikelihood_1 * diploidFrequencies_old[1];
+					weights[2] = (double) (coretools::Probability) samples[i].glfLikelihood_2 * diploidFrequencies_old[2];
 
 					double sum = weights[0] + weights[1] + weights[2];
 
@@ -216,28 +216,28 @@ void TGenotypeFrequencies::estimate(TSampleLikelihoods* samples, int numSamples,
 	else MAF = alleleFrequency;
 };
 
-double TGenotypeFrequencies::calculateLog10Likelihood(TPopulationLikehoodLocus & samples, TGlfConverter & glfConverter){
-	return calculateLog10Likelihood(samples.samples(), samples.numSamples(), glfConverter);
+double TGenotypeFrequencies::calculateLog10Likelihood(TPopulationLikehoodLocus & samples){
+	return calculateLog10Likelihood(samples.samples(), samples.numSamples());
 };
 
-double TGenotypeFrequencies::calculateLog10Likelihood(TSampleLikelihoods* samples, int numSamples, TGlfConverter & glfConverter){
+double TGenotypeFrequencies::calculateLog10Likelihood(TSampleLikelihoods* samples, int numSamples){
 	double LL = 0.0;
 	for(int i = 0; i < numSamples; i++){
 		if(!samples[i].isMissing){
 			if(samples[i].isHaploid){
-				LL += log10(glfConverter[samples[i].glfLikelihood_0] * haploidFrequencies[0]
-						  + glfConverter[samples[i].glfLikelihood_1] * haploidFrequencies[1]);
+				LL += log10((double) (coretools::Probability) samples[i].glfLikelihood_0 * haploidFrequencies[0]
+						  + (double) (coretools::Probability) samples[i].glfLikelihood_1 * haploidFrequencies[1]);
 			} else {
-				LL += log10(glfConverter[samples[i].glfLikelihood_0] * diploidFrequencies[0]
-						  + glfConverter[samples[i].glfLikelihood_1] * diploidFrequencies[1]
-						  + glfConverter[samples[i].glfLikelihood_2] * diploidFrequencies[2]);
+				LL += log10((double) (coretools::Probability) samples[i].glfLikelihood_0 * diploidFrequencies[0]
+						  + (double) (coretools::Probability) samples[i].glfLikelihood_1 * diploidFrequencies[1]
+						  + (double) (coretools::Probability) samples[i].glfLikelihood_2 * diploidFrequencies[2]);
 			}
 		}
 	}
 	return LL;
 };
 
-void TGenotypeFrequencies::writeDiploidFrequencies(TOutputFile & out){
+void TGenotypeFrequencies::writeDiploidFrequencies(coretools::TOutputFile & out){
 	if(numDiploidSamples > 0){
 		out << diploidFrequencies[0] << diploidFrequencies[1] << diploidFrequencies[2];
 	} else {
@@ -245,7 +245,7 @@ void TGenotypeFrequencies::writeDiploidFrequencies(TOutputFile & out){
 	}
 };
 
-void TGenotypeFrequencies::writeHaploidFrequencies(TOutputFile & out){
+void TGenotypeFrequencies::writeHaploidFrequencies(coretools::TOutputFile & out){
 	if(numHaploidSamples > 0){
 		out << haploidFrequencies[0] << haploidFrequencies[1];
 	} else {

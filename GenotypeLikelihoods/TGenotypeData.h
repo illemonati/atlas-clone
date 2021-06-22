@@ -226,7 +226,7 @@ public:
 	TBaseData(){ reset(); };
 	TBaseData(const double & val) : TBaseData_base(val) {};
 
-	TBaseProbabilities asFrequencies();
+	[[nodiscard]] TBaseProbabilities asFrequencies();
 
 	void operator+=(const TBaseProbabilities & probs);
 };
@@ -243,14 +243,6 @@ protected:
 public:
 	TGenotypeData_base(){};
 	virtual ~TGenotypeData_base(){};
-};
-
-//--------------------------------------------------------------------
-// TGenotypeData
-//--------------------------------------------------------------------
-class TGenotypeData : public TGenotypeData_base<double>{
-public:
-	TGenotypeData(){ reset(); };
 };
 
 //-------------------------------------
@@ -289,6 +281,16 @@ public:
 
 	coretools::Probability probHomozygous();
 	coretools::Probability probHeterozygous();
+};
+
+//--------------------------------------------------------------------
+// TGenotypeData
+//--------------------------------------------------------------------
+class TGenotypeData : public TGenotypeData_base<double>{
+public:
+	TGenotypeData(){ reset(); };
+
+	void operator+=(const TGenotypeProbability_base & other);
 };
 
 //--------------------------------------------------------------------
