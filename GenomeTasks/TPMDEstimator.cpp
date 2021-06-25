@@ -46,7 +46,7 @@ TPMDEstimator::~TPMDEstimator(){
 void TPMDEstimator::_handleAlignment(){
 	uint32_t d = 0;
 	for(auto& b : _alignment){
-		BAM::Base ref = _alignment.referenceAtInternalPos(d);
+		genometools::Base ref = _alignment.referenceAtInternalPos(d);
 		_pmdTables.add(b, ref);
 		++d;
 	}

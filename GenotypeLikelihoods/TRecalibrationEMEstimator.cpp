@@ -286,8 +286,8 @@ void TRecalibrationEMEstimator::performEstimation(std::string outputName, TSeque
 	_logfile->done();
 };
 
-void TRecalibrationEMEstimator::_fillRelevantBaseFrequencies(TBaseProbabilities & baseFreq, const BAM::Genotype & genotype){
-	if(genotype == BAM::NN){
+void TRecalibrationEMEstimator::_fillRelevantBaseFrequencies(TBaseProbabilities & baseFreq, const genometools::Genotype & genotype){
+	if(genotype == genometools::NN){
 		baseFreq = _genoDist->baseFrequencies();
 	} else {
 		_genoDist->fillBaseFrequences(baseFreq, genotype);
@@ -461,7 +461,7 @@ double TRecalibrationEMEstimator::_calculateLL_fullModel(const TPostMortemDamage
 		_genotypeLikelihoodCalculator.fillGenotypeLikelihoods(s, genotypeLikelihoods, PmdModels, *_modelsToEstimate);
 
 		//weight by genotype prior
-		if(s.genotype() == BAM::NN){
+		if(s.genotype() == genometools::NN){
 			LL += log(genotypeLikelihoods.weightedSum(genoFreq));
 		} else {
 			LL += log(genotypeLikelihoods[s.genotype()].get());

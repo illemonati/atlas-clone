@@ -41,7 +41,7 @@ public:
 	std::shared_ptr<TSequencingErrorModelRecal>& getSharedPointerToRecalModel();
 
 	Probability getErrorRate(const BAM::TSequencedBase & base) const;
-	BAM::PhredIntErrorRate getPhredInt(const BAM::TSequencedBase & base) const;
+	genometools::PhredIntProbability getPhredInt(const BAM::TSequencedBase & base) const;
 	void fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseLikelihoods & baseLikelihoods) const;
 };
 
@@ -60,7 +60,7 @@ public:
 	std::shared_ptr<TSequencingErrorModelRecal>& getSharedPointerToRecalModel(const bool & IsSecondMate);
 
 	Probability getErrorRate(const BAM::TSequencedBase & base) const;
-	BAM::PhredIntErrorRate getPhredInt(const BAM::TSequencedBase & base) const;
+	genometools::PhredIntProbability getPhredInt(const BAM::TSequencedBase & base) const;
 	void fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseLikelihoods & baseLikelihoods) const;
 };
 
@@ -92,7 +92,7 @@ public:
 
 	//calculate error rates
 	Probability getErrorRate(const BAM::TSequencedBase & base) const;
-	BAM::PhredIntErrorRate getPhredInt(const BAM::TSequencedBase & base) const;
+	genometools::PhredIntProbability getPhredInt(const BAM::TSequencedBase & base) const;
 	void recalibrate(BAM::TSequencedBase & base) const;
 	void recalibrate(std::vector<BAM::TSequencedBase> & bases, const uint16_t length) const; //TODO: remove
 	void recalibrate(std::vector<BAM::TSequencedBase> & bases) const;

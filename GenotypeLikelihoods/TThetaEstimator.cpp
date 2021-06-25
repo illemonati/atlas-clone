@@ -93,13 +93,13 @@ void TThetaEstimator_base::readParametersRegardingInitialSearch(coretools::TPara
 
 void TThetaEstimator_base::fillPGenotype(TGenotypeProbabilities & pGeno, const double & expTheta, const TBaseProbabilities & baseFrequencies){
 	//assumes that base frequencies are set!
-	for(BAM::Base b = BAM::Base::min(); b < BAM::Base::max(); ++b){
+	for(genometools::Base b = genometools::Base::min(); b < genometools::Base::max(); ++b){
 		//homozygous genotypes
-		BAM::Genotype hom(b, b);
+		genometools::Genotype hom(b, b);
 		pGeno[hom] = baseFrequencies[b] * (expTheta + baseFrequencies[b].get() * (1.0 - expTheta));
 		//heterozygous genotypes
-		for(BAM::Base c = b.next(); c < BAM::Base::max(); ++c){
-			BAM::Genotype het(b, c);
+		for(genometools::Base c = b.next(); c < genometools::Base::max(); ++c){
+			genometools::Genotype het(b, c);
 			pGeno[het] = 2.0 * baseFrequencies[b].get() * baseFrequencies[c].get() *  (1.0 - expTheta);
 		}
 	}
@@ -280,12 +280,12 @@ bool TThetaEstimator::_NRAllParams(){
 		//i) calculate F (Note: index is zero based!)
 		F(4) = data->sizeWithData();
 		F(5) = 0.0;
-		for(BAM::Base k = BAM::Base::min(); k < BAM::Base::max(); ++k){
-			BAM::Genotype hom(k, k);
+		for(genometools::Base k = genometools::Base::min(); k < genometools::Base::max(); ++k){
+			genometools::Genotype hom(k, k);
 			double tmpSum = 0.0;
-			for(BAM::Base l = BAM::Base::min(); l < BAM::Base::max(); ++l){
+			for(genometools::Base l = genometools::Base::min(); l < genometools::Base::max(); ++l){
 				if(l != k){
-					BAM::Genotype het(k, l);
+					genometools::Genotype het(k, l);
 					tmpSum += P_G[het.get()];
 				}
 			}
@@ -299,13 +299,13 @@ bool TThetaEstimator::_NRAllParams(){
 		Jacobian.zeros();
 		double tmpSum = 0.0;
 		TBaseData tmp;
-		for(BAM::Base k = BAM::Base::min(); k < BAM::Base::max(); ++k){
-			BAM::Genotype hom(static_cast<BAM::BaseEnum>(k), static_cast<BAM::BaseEnum>(k));
+		for(genometools::Base k = genometools::Base::min(); k < genometools::Base::max(); ++k){
+			genometools::Genotype hom(static_cast<genometools::BaseEnum>(k), static_cast<genometools::BaseEnum>(k));
 			tmp[k] = P_G[hom.get()] / ((baseFreq[k].get() + rho)*(baseFreq[k].get() + rho));
 			tmpSum += tmp[k];
 		}
 
-		for(BAM::Base k = BAM::Base::min(); k < BAM::Base::max(); ++k){
+		for(genometools::Base k = genometools::Base::min(); k < genometools::Base::max(); ++k){
 			uint8_t i = static_cast<uint8_t>(k);
 			Jacobian(i,i) = tmp[k] * rho - mu;
 			Jacobian(i,4) = - tmp[k];
@@ -319,7 +319,7 @@ bool TThetaEstimator::_NRAllParams(){
 		double mu = data->sizeWithData();
 
 		if(solve(JxF, Jacobian, F)){
-			for(BAM::Base k = BAM::Base::min(); k < BAM::Base::max(); ++k){
+			for(genometools::Base k = genometools::Base::min(); k < genometools::Base::max(); ++k){
 				baseFreq[k] = baseFreq[k].get() - JxF(static_cast<uint8_t>(k));
 			}
 			rho -= JxF(4);
@@ -357,8 +357,8 @@ void TThetaEstimator::_NROnlyTheta(){
 		//ii) fill Jacobian (Note: index is zero based!)
 		double F = data->sizeWithData();
 		double Jacobian = 0.0;
-		for(BAM::Base k = BAM::Base::min(); k < BAM::Base::max(); ++k){
-			BAM::Genotype hom(k, k);
+		for(genometools::Base k = genometools::Base::min(); k < genometools::Base::max(); ++k){
+			genometools::Genotype hom(k, k);
 
 			double tmp = (theta.baseFreq[k].get() + rho);
 			F -= P_G[hom.get()] * (rho + 1.0 ) / tmp;
@@ -450,13 +450,13 @@ void TThetaEstimator::_estimateConfidenceInterval(){
 	//calclate d/dtheta P(g|theta, pi)
 	TGenotypeData deriv_pGenotype;
 
-	for(BAM::Base k = BAM::Base::min(); k < BAM::Base::max(); ++k){
+	for(genometools::Base k = genometools::Base::min(); k < genometools::Base::max(); ++k){
 		//homozygous genotype
-		BAM::Genotype hom(k, k);
+		genometools::Genotype hom(k, k);
 		deriv_pGenotype[hom.get()] = (theta.baseFreq[k].get() * theta.baseFreq[k].get() - theta.baseFreq[k].get()) * theta.expTheta;
 		//heterozygous genotypes
-		for(BAM::Base l = k.next(); l < BAM::Base::max(); ++l){
-			BAM::Genotype het(k, l);
+		for(genometools::Base l = k.next(); l < genometools::Base::max(); ++l){
+			genometools::Genotype het(k, l);
 			deriv_pGenotype[het.get()] = 2.0 * theta.baseFreq[k].get() * theta.baseFreq[l].get() * theta.expTheta;
 		}
 	}
@@ -525,7 +525,7 @@ void TThetaEstimator::addToHeader(std::vector<std::string> & header, std::string
 void TThetaEstimator::writeEstimateFrequenciesAndTheta(coretools::TOutputFile & out){
 	if(estimationSuccessful){
 		//base frequencies
-		for(BAM::Base k = BAM::Base::min(); k < BAM::Base::max(); ++k){
+		for(genometools::Base k = genometools::Base::min(); k < genometools::Base::max(); ++k){
 			out << theta.baseFreq[k];
 		}
 
@@ -768,7 +768,7 @@ bool TThetaEstimatorRatio::updateTheta(TThetaEstimatorData* thisData, Theta & th
 bool TThetaEstimatorRatio::updateBaseFrequencies(TThetaEstimatorData* thisData, Theta & thisTheta, const double & thisSdProposalKernel){
 	//propose: select one frequency at random and shift this one
 	//make sure frequencies are not outside [0,1]
-	BAM::Base thisBase = static_cast<BAM::Base>(randomGenerator->sample(4));
+	genometools::Base thisBase = static_cast<genometools::Base>(randomGenerator->sample(4));
 	TBaseProbabilities tmpBaseFreq;
 	double tmp = thisTheta.baseFreq[thisBase].get() + randomGenerator->getNormalRandom(0.0, thisSdProposalKernel);
 	if(tmp > 1.0){
@@ -781,7 +781,7 @@ bool TThetaEstimatorRatio::updateBaseFrequencies(TThetaEstimatorData* thisData, 
 
 	//now scale all others so the sum will be 1.0
 	double scale = (double) tmpBaseFreq[thisBase].complement() / (double) thisTheta.baseFreq[thisBase].complement();
-	for(BAM::Base k = BAM::Base::min(); k < BAM::Base::max(); ++k){
+	for(genometools::Base k = genometools::Base::min(); k < genometools::Base::max(); ++k){
 		if(k != thisBase){
 			tmpBaseFreq[k] = thisTheta.baseFreq[thisBase].get() * scale;
 		}

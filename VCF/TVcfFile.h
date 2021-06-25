@@ -156,9 +156,9 @@ public:
 	bool sampleIsDiploid(unsigned int sample);
 	bool sampleIsHomoRef(unsigned int sample);
 	bool sampleIsHeteroRefNonref(unsigned int sample);
-	BAM::Base getFirstAlleleOfSample(unsigned int num);
-	BAM::Base getSecondAlleleOfSample(unsigned int num);
-	BAM::Genotype sampleGenotype(const unsigned int & num);
+	genometools::Base getFirstAlleleOfSample(unsigned int num);
+	genometools::Base getSecondAlleleOfSample(unsigned int num);
+	genometools::Genotype sampleGenotype(const unsigned int & num);
 	float sampleGenotypeQuality(unsigned int sample);
 	double sampleDepth(unsigned int sample);
 	// int sampleDepth(unsigned int sample);

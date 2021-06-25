@@ -85,11 +85,11 @@ public:
 class TSequencingErrorRho:public TSequencingErrorRhoStorage{
 public:
 	void operator=(const TSequencingErrorRhoStorage & other);
-	void fillBaseLikelihoods(const BAM::Base base, const Probability & epsilon, TBaseLikelihoods & baseLikelihoods) const;
+	void fillBaseLikelihoods(const genometools::Base base, const Probability & epsilon, TBaseLikelihoods & baseLikelihoods) const;
 
 	//functions used to estimate
 	void prepareEstimationFromEMWeights();
-	void addBaseForEstimation(const BAM::Base & base, const TBaseLikelihoods & EMWeights);
+	void addBaseForEstimation(const genometools::Base & base, const TBaseLikelihoods & EMWeights);
 	void estimate();
 };
 
@@ -164,7 +164,7 @@ public:
 	virtual bool recalibrates() const { return false; };
 
 	virtual Probability getErrorRate(const BAM::TSequencedBase & base) const = 0;
-	virtual BAM::PhredIntErrorRate getPhredInt(const BAM::TSequencedBase & base) const = 0;
+	virtual genometools::PhredIntProbability getPhredInt(const BAM::TSequencedBase & base) const = 0;
 	virtual void fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseLikelihoods & baseLikelihoods) const = 0;
 
 	virtual std::string getCovariateDefinition() const { return "-"; };
@@ -182,7 +182,7 @@ public:
 	~TSequencingErrorModelNoRecal() = default;
 
 	Probability getErrorRate(const BAM::TSequencedBase & base) const override;
-	BAM::PhredIntErrorRate getPhredInt(const BAM::TSequencedBase & base) const override;
+	genometools::PhredIntProbability getPhredInt(const BAM::TSequencedBase & base) const override;
 	void fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseLikelihoods & baseLikelihoods) const override;
 };
 
@@ -221,7 +221,7 @@ public:
 
 	//get error rates
 	Probability getErrorRate(const BAM::TSequencedBase & base) const override;
-	BAM::PhredIntErrorRate getPhredInt(const BAM::TSequencedBase & base) const override;
+	genometools::PhredIntProbability getPhredInt(const BAM::TSequencedBase & base) const override;
 	void fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseLikelihoods & baseLikelihoods) const override;
 
 	//functions to estimate

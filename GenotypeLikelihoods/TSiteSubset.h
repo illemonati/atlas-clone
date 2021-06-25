@@ -32,16 +32,16 @@ namespace GenotypeLikelihoods{
 //-----------------------------------------------
 class TSiteSubsetSite:public BAM::TGenomePosition{
 private:
-	BAM::Base _ref, _alt;
+	genometools::Base _ref, _alt;
 
 public:
-	TSiteSubsetSite(const uint32_t & refID, const uint32_t & position, const BAM::Base & Ref, const BAM::Base & Alt);
-	TSiteSubsetSite(const BAM::TGenomePosition & Position, const BAM::Base & Ref, const BAM::Base & Alt);
+	TSiteSubsetSite(const uint32_t & refID, const uint32_t & position, const genometools::Base & Ref, const genometools::Base & Alt);
+	TSiteSubsetSite(const BAM::TGenomePosition & Position, const genometools::Base & Ref, const genometools::Base & Alt);
 	TSiteSubsetSite(const TSiteSubsetSite & other) = default;
 	void write(coretools::TOutputFile & out) const;
 
-	BAM::Base ref() const{ return _ref; };
-	BAM::Base alt() const{ return _alt; };
+	genometools::Base ref() const{ return _ref; };
+	genometools::Base alt() const{ return _alt; };
 };
 
 //-----------------------------------------------
@@ -55,7 +55,7 @@ private:
 	std::vector<TSiteSubsetSite> empty; //an empty vector to be returned in case there are no positions
 	bool _storesInvariantSites;
 
-	void _checkAlleles(const std::string & chr, const uint32_t & pos, const BAM::Base & ref, const BAM::Base & alt, const std::string & refAllele, const std::string & altAllele);
+	void _checkAlleles(const std::string & chr, const uint32_t & pos, const genometools::Base & ref, const genometools::Base & alt, const std::string & refAllele, const std::string & altAllele);
 	void _readFile(const std::string Filename, const BAM::TChromosomes & Chromosomes, coretools::TLog* Logfile);
 	void _readFile(const std::string Filename, const BAM::TChromosomes & Chromosomes, coretools::TLog* Logfile, BAM::TFastaBuffer & Reference);
 

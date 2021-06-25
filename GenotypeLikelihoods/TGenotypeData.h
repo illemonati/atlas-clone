@@ -166,15 +166,15 @@ public:
 // TBaseData_base
 //--------------------------------------------------------------------
 template <typename T>
-class TBaseData_base : public TData_base<T, BAM::Base, BAM::BaseEnum, 4>{
+class TBaseData_base : public TData_base<T, genometools::Base, genometools::BaseEnum, 4>{
 protected:
-	using TData_base<T, BAM::Base, BAM::BaseEnum, 4>::_data;
+	using TData_base<T, genometools::Base, genometools::BaseEnum, 4>::_data;
 
 	//keep constructors protected so the base class can not be used!
 	TBaseData_base() = default;
 	TBaseData_base(const T& val){ set(val); };
 public:
-	using TData_base<T, BAM::Base, BAM::BaseEnum, 4>::set;
+	using TData_base<T, genometools::Base, genometools::BaseEnum, 4>::set;
 };
 
 //--------------------------------------------------------------------
@@ -194,24 +194,24 @@ public:
 	TBaseLikelihoods(){ reset(); };
 	TBaseLikelihoods(const coretools::Probability & val) : TBaseProbabilities(val) {};
 
-	TBaseLikelihoods(const BAM::Base & trueBase, const coretools::Probability & error);
+	TBaseLikelihoods(const genometools::Base & trueBase, const coretools::Probability & error);
 
 	void reset() override { set(1.0); };
 
-	void setFromError(const BAM::Base & trueBase, const coretools::Probability & error);
+	void setFromError(const genometools::Base & trueBase, const coretools::Probability & error);
 };
 
 //--------------------------------------------------------------------
 // TBaseCounts
 //--------------------------------------------------------------------
-class TBaseCounts:public TData_base<uint32_t, BAM::Base, BAM::BaseEnum, 5>{
+class TBaseCounts:public TData_base<uint32_t, genometools::Base, genometools::BaseEnum, 5>{
 private:
 	void _fillCumulativeFrequencies(std::array<double, 4> & freq);
 
 public:
 	TBaseCounts(){ reset(); };
 
-	void add(const BAM::Base base){ ++_data[static_cast<uint8_t>( base.get() )]; };
+	void add(const genometools::Base base){ ++_data[static_cast<uint8_t>( base.get() )]; };
 
 	uint8_t numAlleles() const;
 	void fillFrequencies(TBaseProbabilities & freq);
@@ -236,9 +236,9 @@ public:
 // base class for TGenotypeData, likelihoods, prior and posterior
 //--------------------------------------------------------------------
 template <typename T>
-class TGenotypeData_base : public TData_base<T, BAM::Genotype, BAM::GenotypeEnum, 10>{
+class TGenotypeData_base : public TData_base<T, genometools::Genotype, genometools::GenotypeEnum, 10>{
 protected:
-	using TData_base<T, BAM::Genotype, BAM::GenotypeEnum, 10>::_data;
+	using TData_base<T, genometools::Genotype, genometools::GenotypeEnum, 10>::_data;
 
 public:
 	TGenotypeData_base(){};

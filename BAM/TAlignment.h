@@ -17,6 +17,8 @@
 #include "TRandomGenerator.h"
 #include "TGenomePosition.h"
 #include "TSequencedBase.h"
+#include "GenotypeTypes.h"
+#include <vector>
 
 namespace BAM{
 
@@ -54,7 +56,7 @@ private:
 
 	//reference
 	bool _hasReference;
-	std::vector<BAM::Base> _referenceSequence;
+	std::vector<genometools::Base> _referenceSequence;
 
 	void _initialize();
 
@@ -186,7 +188,7 @@ public:
 	void setMappingQuality(const uint16_t Mappingquality){ _mappingQuality = Mappingquality; };
 	void setMateGenomicPosition(const uint32_t RefID, const uint32_t Position){ _mateGenomicPosition.move(RefID, Position); };
 	void setInsertSize(const int32_t InsertSize){ _insertSize_TLEN = InsertSize; };
-	void setSequenceQualities(const TCigar & Cigar, const std::vector<Base> & Sequence, const std::vector<PhredIntErrorRate> & Quals);
+	void setSequenceQualities(const TCigar & Cigar, const std::vector<genometools::Base> & Sequence, const std::vector<genometools::PhredIntProbability> & Quals);
 	void setReadGroup(const uint16_t readGroupId);
 	void setIsReverseStrand(const bool IsReverse){ _flags.setIsReverseStrand(IsReverse); };
     void setIsRead1(const bool IsRead1){ _flags.setIsRead1(IsRead1); };

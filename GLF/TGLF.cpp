@@ -47,8 +47,8 @@ double TGlfConverter::toScaledLikelihood(uint16_t glfValue) const{
 	return _likelihoodMap[glfValue];
 };
 
-BAM::PhredIntErrorRate TGlfConverter::toPhred(uint16_t glfValue) const{
-	return BAM::PhredErrorRate(glfValue / 100.0);
+genometools::PhredIntProbability TGlfConverter::toPhred(uint16_t glfValue) const{
+	return genometools::PhredErrorRate(glfValue / 100.0);
 };
 
 double TGlfConverter::toLog10(uint16_t glfValue) const{
@@ -64,7 +64,7 @@ BAM::LogErrorRate TGlfConverter::toLog(uint16_t glfValue) const{
 //TGlfWriter
 //---------------------------------
 void TGlfWriter::_init(){
-    _glfValues = new BAM::HighPrecisionPhredIntErrorRate[_curChr.maxNumLikelihoodValues];
+    _glfValues = new BAM::HighPrecisionPhredIntProbability[_curChr.maxNumLikelihoodValues];
     _oldPos = 0;
     _recordType1 = _one8 << 4;
 };
@@ -146,7 +146,7 @@ void TGlfWriter::writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual, Ge
 		coretools::Probability maxLik = genotypeLikelihoods.max();
 
 		//normalize and scale to uint16
-		for(BAM::Genotype g = BAM::Genotype::min(); g < BAM::Genotype::max(); ++g){
+		for(genometools::Genotype g = genometools::Genotype::min(); g < genometools::Genotype::max(); ++g){
             _glfValues[static_cast<uint8_t>(g)] = genotypeLikelihoods[g] / maxLik;
 		}
 	}
@@ -184,7 +184,7 @@ void TGlfReader::_init(){
 	_lenRead = 0;
 	_eof = true;
 
-	_genotypeLikelihoodsGLF_missingData = new BAM::HighPrecisionPhredIntErrorRate[_curChr.maxNumLikelihoodValues];
+	_genotypeLikelihoodsGLF_missingData = new BAM::HighPrecisionPhredIntProbability[_curChr.maxNumLikelihoodValues];
 	for(int i=0; i < _curChr.maxNumLikelihoodValues; ++i)
 		_genotypeLikelihoodsGLF_missingData[i] = 0;
 };
@@ -419,9 +419,9 @@ bool TGlfReader::readNextWindow(std::vector<uint16_t*> & genoLikelihoods, const 
 	return true;
 };
 
-void TGlfReader::fillGenotypeLikelihoodsGLF(BAM::HighPrecisionPhredIntErrorRate* destination){
+void TGlfReader::fillGenotypeLikelihoodsGLF(BAM::HighPrecisionPhredIntProbability* destination){
 	//assumes pointer points to
-	memcpy(destination, _genotypeLikelihoodsGLF, _curChr.numLikelihoodValues * sizeof(BAM::HighPrecisionPhredIntErrorRate));
+	memcpy(destination, _genotypeLikelihoodsGLF, _curChr.numLikelihoodValues * sizeof(BAM::HighPrecisionPhredIntProbability));
 };
 
 /*

@@ -22,7 +22,7 @@ using coretools::TLog;
 //TMultiGLFData
 //----------------------------------------------------
 struct TMultiGLFDataSample{
-	BAM::HighPrecisionPhredIntErrorRate* genotypeLikelihoodsGLF; //points to data TGlfReader
+	BAM::HighPrecisionPhredIntProbability* genotypeLikelihoodsGLF; //points to data TGlfReader
 	bool hasData;
 	bool isHaploid;
 	uint16_t depth;
@@ -57,12 +57,12 @@ private:
 	BAM::Base _ref, _alt;
 	//char ref_char, alt_char;
 	std::string _genotypeString[5];
-	BAM::Genotype _refHom, _het, _altHom;
+	genometools::Genotype _refHom, _het, _altHom;
 
 	void _openVCF(const std::string & filename, const std::string & source, std::vector<std::string> & sampleNames);
 	void _closeVCF();
 	void _setMajorMinor(const BAM::Base & refAllele, const BAM::Base & altAllele);
-	void writeLikelihood(const BAM::HighPrecisionPhredIntErrorRate & likGlf);
+	void writeLikelihood(const BAM::HighPrecisionPhredIntProbability & likGlf);
 	void writeDiploidIndividualToVCF(TMultiGLFDataSample & sample);
 	void writeHaploidIndividualToVCF(TMultiGLFDataSample & sample);
 
@@ -107,7 +107,7 @@ private:
 	uint32_t _curRefId;
 	TGlfChromosome _curChr;
 	int _numActiveFilesWithData;
-	BAM::HighPrecisionPhredIntErrorRate genotypeQualitiesMissingData[10];
+	BAM::HighPrecisionPhredIntProbability genotypeQualitiesMissingData[10];
 	int minDepth;
 
 	//reference

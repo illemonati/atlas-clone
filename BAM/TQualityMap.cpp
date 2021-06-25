@@ -156,7 +156,7 @@ void TQualityMap::adjustQualitiesForWriting(std::string & qualities) const{
 void TQualityFilter::_default(){
 	//default values according to SAM specifications
 	_filter = false;
-	_range.set(PhredIntErrorRate(1), true, PhredIntErrorRate(93), true);
+	_range.set(genometools::PhredIntProbability(1), true, genometools::PhredIntProbability(93), true);
 };
 
 void TQualityFilter::set(coretools::TParameters & params, coretools::TLog* logfile){
@@ -185,22 +185,22 @@ void TContextFilter::set(coretools::TParameters & params, coretools::TLog* logfi
 					throw "Context " + c + " does not consist of two bases! (parameter 'ignoreContexts')";
 				}
 
-				Base first(c[0]);
-				Base second(c[1]);
+				genometools::Base first(c[0]);
+				genometools::Base second(c[1]);
 
 				if((char) first != c[0] || (char) second != c[1]){
 					throw "Unable to understand context '" + c + "'!  (parameter 'ignoreContexts')";
 				}
 
 				//save context
-				BaseContext cc(first, second);
+				genometools::BaseContext cc(first, second);
 				_keptContexts[static_cast<uint8_t>(cc.get())] = false;
 			}
 
 			std::vector<std::string> rep;
-			for(auto i = 0; i <= static_cast<uint8_t>(BaseContextEnum::cNN); ++i){
+			for(auto i = 0; i <= static_cast<uint8_t>(genometools::BaseContextEnum::cNN); ++i){
 				if(!_keptContexts[i]){
-					rep.push_back( (std::string) BaseContext(static_cast<BaseContextEnum>(i)));
+					rep.push_back( (std::string) genometools::BaseContext(static_cast<genometools::BaseContextEnum>(i)));
 				}
 			}
 			logfile->list("Will ignore the following contexts: " + coretools::str::concatenateString(rep, ", ")  + ". (parameter 'ignoreContexts')");

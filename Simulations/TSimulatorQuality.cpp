@@ -41,7 +41,7 @@ TSimulatorQualityDist::TSimulatorQualityDist(TRandomGenerator* RandomGenerator){
 	_randomGenerator = RandomGenerator;
 };
 
-void TSimulatorQualityDist::sample(std::vector<PhredIntErrorRate> & phredInt) const{
+void TSimulatorQualityDist::sample(std::vector<PhredIntProbability> & phredInt) const{
 	for(auto& q : phredInt){
 		q = sample();
 	}
@@ -72,7 +72,7 @@ TSimulatorQualityDistBinned::TSimulatorQualityDistBinned(std::string & s, TRando
 	}
 };
 
-PhredIntErrorRate TSimulatorQualityDistBinned::sample() const{
+PhredIntProbability TSimulatorQualityDistBinned::sample() const{
 	return _qualBins[_randomGenerator->sample(_qualBins.size())];
 };
 
@@ -117,7 +117,7 @@ TSimulatorQualityDistFreq::TSimulatorQualityDistFreq(std::string & s, TRandomGen
 	}
 };
 
-PhredIntErrorRate TSimulatorQualityDistFreq::sample() const{
+PhredIntProbability TSimulatorQualityDistFreq::sample() const{
 	return _qualBins[_randomGenerator->pickOne(_cumulativeFrequencies)];
 };
 
@@ -213,7 +213,7 @@ void TSimulatorQualityDistNormal::fillDensities(){
 	_cumulDensities[_size-1] = 1.0;
 }
 
-PhredIntErrorRate TSimulatorQualityDistNormal::sample() const {
+PhredIntProbability TSimulatorQualityDistNormal::sample() const {
 	return _randomGenerator->pickOne(_cumulDensities) + _min;
 };
 

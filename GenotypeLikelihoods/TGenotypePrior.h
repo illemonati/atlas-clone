@@ -28,7 +28,7 @@ public:
 
 	virtual void update(const TWindow & window, TLog* logfile, const TGenotypeLikelihoodCalculator & glCalculator){};
 	TGenotypeProbabilities* getPointerToPrior(){ return &genotypePrior; };
-	Probability operator[](const BAM::Genotype & genotype){ return genotypePrior[genotype]; };
+	Probability operator[](const genometools::Genotype & genotype){ return genotypePrior[genotype]; };
 };
 
 

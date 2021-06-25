@@ -41,7 +41,7 @@ Probability TSequencingErrorModelEntry::getErrorRate(const BAM::TSequencedBase &
 	}
 };
 
-BAM::PhredIntErrorRate TSequencingErrorModelEntry::getPhredInt(const BAM::TSequencedBase & base) const{
+genometools::PhredIntProbability TSequencingErrorModelEntry::getPhredInt(const BAM::TSequencedBase & base) const{
 	if(_recalModel){
 		return _recalModel->getPhredInt(base);
 	} else {
@@ -78,7 +78,7 @@ Probability TSequencingErrorModelsOneReadGroup::getErrorRate(const BAM::TSequenc
 	return _models[base.isSecondMate()].getErrorRate(base);
 };
 
-BAM::PhredIntErrorRate TSequencingErrorModelsOneReadGroup::getPhredInt(const BAM::TSequencedBase & base) const{
+genometools::PhredIntProbability TSequencingErrorModelsOneReadGroup::getPhredInt(const BAM::TSequencedBase & base) const{
 	return _models[base.isSecondMate()].getPhredInt(base);
 };
 
@@ -179,7 +179,7 @@ Probability TSequencingErrorModels::getErrorRate(const BAM::TSequencedBase & bas
 	}
 };
 
-BAM::PhredIntErrorRate TSequencingErrorModels::getPhredInt(const BAM::TSequencedBase & base) const{
+genometools::PhredIntProbability TSequencingErrorModels::getPhredInt(const BAM::TSequencedBase & base) const{
 	if(_doRecalibration){
 		return _models[base.readGroupID].getPhredInt(base);
 	} else {

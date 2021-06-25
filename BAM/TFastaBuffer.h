@@ -11,8 +11,12 @@
 #include "../bamtools/utils/bamtools_fasta.h"
 #include "TGenotypeMap.h"
 #include "TGenomePosition.h"
+#include "GenotypeTypes.h"
+#include <vector>
 
 namespace BAM{
+
+using genometools::Base;
 
 //-----------------------------------------------------
 //TFastaBuffer

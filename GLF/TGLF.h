@@ -16,7 +16,7 @@
 #include <TPopulationLikelihoodLocus.h>
 #include "TParameters.h"
 #include "stringFunctions.h"
-#include "Types.h"
+#include "GenotypeTypes.h"
 #include "TFastaBuffer.h"
 #include "TGenotypeData.h"
 #include "TChromosomes.h"
@@ -44,10 +44,10 @@ public:
 	uint16_t maxValue() const{ return _maxVal; };
 	uint16_t toGlfFormat(double scaledLikelihood) const;
 	uint16_t log10ToGlfFormat(double log10ScaledLikelihood) const;
-	uint16_t phredToGlfFormat(BAM::PhredIntErrorRate phred) const;
+	uint16_t phredToGlfFormat(genometools::PhredIntProbability phred) const;
 	double toScaledLikelihood(uint16_t glfValue) const;
 	double operator[](uint16_t glfValue) const { return toScaledLikelihood(glfValue); }
-	BAM::PhredIntErrorRate toPhred(uint16_t glfValue) const;
+	genometools::PhredIntProbability toPhred(uint16_t glfValue) const;
 	double toLog10(uint16_t glfValue) const;
 	BAM::LogErrorRate toLog(uint16_t glfValue) const;
 };
@@ -197,7 +197,7 @@ class TGlfWriter:public TGlfHandle{
 private:
 	long _oldPos;
 	uint8_t _recordType1;
-	BAM::HighPrecisionPhredIntErrorRate* _glfValues; //tmp used for writing
+	BAM::HighPrecisionPhredIntProbability* _glfValues; //tmp used for writing
 
 	void _init();
 	void _writeHeader();
@@ -248,8 +248,8 @@ private:
 	uint32_t _position;
 	uint16_t _depth;
 	int _RMS_mappingQual;
-	BAM::HighPrecisionPhredIntErrorRate _genotypeLikelihoodsGLF[10];
-	BAM::HighPrecisionPhredIntErrorRate* _genotypeLikelihoodsGLF_missingData;
+	BAM::HighPrecisionPhredIntProbability _genotypeLikelihoodsGLF[10];
+	BAM::HighPrecisionPhredIntProbability* _genotypeLikelihoodsGLF_missingData;
 
 	// about chromosomes
 	std::map< uint32_t, TGlfChromosome > _chromosomesAlreadyParsed;
@@ -293,8 +293,8 @@ public:
 	bool fillPointerToChr(uint32_t refId, TGlfChromosome* & chr);
 	uint32_t position() const{ return _position; };
 	uint16_t depth() const{ return _depth; };
-	BAM::HighPrecisionPhredIntErrorRate* pointerToGenotypeLikelihoodsGLF(){ return _genotypeLikelihoodsGLF; };
-    void fillGenotypeLikelihoodsGLF(BAM::HighPrecisionPhredIntErrorRate* destination);
+	BAM::HighPrecisionPhredIntProbability* pointerToGenotypeLikelihoodsGLF(){ return _genotypeLikelihoodsGLF; };
+    void fillGenotypeLikelihoodsGLF(BAM::HighPrecisionPhredIntProbability* destination);
     //void fillGenotypeLikelihoods(BAM::ErrorRate* destination);
 
 	//open file and parse header

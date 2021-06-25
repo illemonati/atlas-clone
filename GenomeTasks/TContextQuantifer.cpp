@@ -36,7 +36,7 @@ void TContextQuantifier::quantifyContexts(){
 
 	std::vector<std::string> contextLabels;
 
-	for(BAM::BaseContext c = BAM::BaseContext::min(); c < BAM::BaseContext::max(); ++c){
+	for(genometools::BaseContext c = genometools::BaseContext::min(); c < genometools::BaseContext::max(); ++c){
 		contextLabels.push_back((std::string) c);
 	}
 

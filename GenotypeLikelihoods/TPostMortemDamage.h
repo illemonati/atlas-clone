@@ -87,7 +87,7 @@ public:
 	virtual std::string example() = 0;
 
 	virtual void parseEstimationParameters(TPMDEstimationParameters & EstimationParameters, TParameters & Params, TLog* Logfile) = 0;
-	virtual void learn(const TPMDTable & Table, const BAM::Base & from, const BAM::Base & to, const TPMDEstimationParameters & EstimationParameters) = 0;
+	virtual void learn(const TPMDTable & Table, const genometools::Base & from, const genometools::Base & to, const TPMDEstimationParameters & EstimationParameters) = 0;
 	std::string string(){ return name() + "[" + coretools::concatenateString(_parameters, ",") + "]"; };
 
 	virtual double prob(const uint16_t & pos) const = 0;
@@ -103,7 +103,7 @@ public:
 	std::string example(){ return PMDFunctionName_none; };
 
 	void parseEstimationParameters(TPMDEstimationParameters & EstimationParameters, TParameters & Params, TLog* Logfile){};
-	void learn(const TPMDTable & Table, const BAM::Base & from, const BAM::Base & to, const TPMDEstimationParameters & EstimationParameters){};
+	void learn(const TPMDTable & Table, const genometools::Base & from, const genometools::Base & to, const TPMDEstimationParameters & EstimationParameters){};
 
 	double prob(const uint16_t & pos) const override { return 0.0; };
 };
@@ -145,7 +145,7 @@ public:
 	std::string example(){ return std::string(PMDFunctionName_exponential) + "[a,b,c]"; };
 
 	void parseEstimationParameters(TPMDEstimationParameters & EstimationParameters, TParameters & Params, TLog* Logfile);
-	void learn(const TPMDTable & Table, const BAM::Base & from, const BAM::Base & to, const TPMDEstimationParameters & EstimationParameters);
+	void learn(const TPMDTable & Table, const genometools::Base & from, const genometools::Base & to, const TPMDEstimationParameters & EstimationParameters);
 
 	double prob(const uint16_t & pos) const override;
 };
@@ -160,7 +160,7 @@ public:
 	std::string example(){ return std::string(PMDFunctionName_empiric) + "[p1,p2,...]"; };
 
 	void parseEstimationParameters(TPMDEstimationParameters & EstimationParameters, TParameters & Params, TLog* Logfile){};
-	void learn(const TPMDTable & Table, const BAM::Base & from, const BAM::Base & to, const TPMDEstimationParameters & EstimationParameters);
+	void learn(const TPMDTable & Table, const genometools::Base & from, const genometools::Base & to, const TPMDEstimationParameters & EstimationParameters);
 
 	double prob(const uint16_t & pos) const override;
 };
@@ -187,7 +187,7 @@ public:
 	virtual void fillBaseLikelihoods(const BAM::TSequencedBase & base, const TBaseProbabilities & baseLikelihoodsNoPMD, TBaseProbabilities & baseLikelihoods) const = 0;
 
 	virtual void simulatePMD(BAM::TSequencedBase & base, TRandomGenerator & RandomGenerator) const = 0;
-	virtual void simulatePMD(BAM::Base & base, const uint16_t & DistFrom5Prime, const uint16_t & DistFrom3Prime, const bool & IsReverseStrand, TRandomGenerator & RandomGenerator) const = 0;
+	virtual void simulatePMD(genometools::Base & base, const uint16_t & DistFrom5Prime, const uint16_t & DistFrom3Prime, const bool & IsReverseStrand, TRandomGenerator & RandomGenerator) const = 0;
 };
 
 //------------------------------------------------
@@ -208,7 +208,7 @@ public:
 	};
 
 	void simulatePMD(BAM::TSequencedBase & base, TRandomGenerator & RandomGenerator) const override {};
-	void simulatePMD(BAM::Base & base, const uint16_t & DistFrom5Prime, const uint16_t & DistFrom3Prime, const bool & IsReverseStrand, TRandomGenerator & RandomGenerator) const override {};
+	void simulatePMD(genometools::Base & base, const uint16_t & DistFrom5Prime, const uint16_t & DistFrom3Prime, const bool & IsReverseStrand, TRandomGenerator & RandomGenerator) const override {};
 };
 
 //------------------------------------------------------
@@ -233,7 +233,7 @@ public:
 	void fillBaseLikelihoods(const BAM::TSequencedBase & base, const TBaseProbabilities & baseLikelihoodsNoPMD, TBaseProbabilities & baseLikelihoods) const override;
 
 	void simulatePMD(BAM::TSequencedBase & base, TRandomGenerator & RandomGenerator) const override;
-	void simulatePMD(BAM::Base & base, const uint16_t & DistFrom5Prime, const uint16_t & DistFrom3Prime, const bool & IsReverseStrand, TRandomGenerator & RandomGenerator) const override;
+	void simulatePMD(genometools::Base & base, const uint16_t & DistFrom5Prime, const uint16_t & DistFrom3Prime, const bool & IsReverseStrand, TRandomGenerator & RandomGenerator) const override;
 };
 
 //------------------------------------------------------

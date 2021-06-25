@@ -100,9 +100,9 @@ public:
 //---------------------------------------------------------------
 class TQualityFilter : public TBaseFilter{
 private:
-	coretools::TNumericRange<PhredIntErrorRate> _range;
+	coretools::TNumericRange<genometools::PhredIntProbability> _range;
 
-	PhredIntErrorRate _minPhredInt, _maxPhredInt;
+	genometools::PhredIntProbability _minPhredInt, _maxPhredInt;
 
 	void _default();
 
@@ -124,8 +124,8 @@ public:
 		return _range.within(base.recalibratedQualityAsPhredInt);
 	};
 
-	bool pass(const BaseQuality & qual) const{
-		return _range.within(PhredIntErrorRate(qual));
+	bool pass(const genometools::BaseQuality & qual) const{
+		return _range.within(genometools::PhredIntProbability(qual));
 	};
 };
 
@@ -134,7 +134,7 @@ public:
 //-------------------------------------
 class TContextFilter : public TBaseFilter{
 private:
-	std::array<bool, static_cast<uint8_t>(BaseContextEnum::cNN) + 1> _keptContexts;
+	std::array<bool, static_cast<uint8_t>(genometools::cNN) + 1> _keptContexts;
 
 public:
 	explicit TContextFilter(){

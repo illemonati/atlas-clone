@@ -10,7 +10,7 @@
 
 #include <stdint.h>
 #include <iostream>
-#include "Types.h"
+#include "GenotypeTypes.h"
 
 namespace PopulationTools{
 
@@ -19,14 +19,14 @@ namespace PopulationTools{
 //------------------------------------------------
 class TSampleLikelihoods{
 public:
-	BAM::HighPrecisionPhredIntErrorRate glfLikelihood_0;
-	BAM::HighPrecisionPhredIntErrorRate glfLikelihood_1;
-	BAM::HighPrecisionPhredIntErrorRate glfLikelihood_2;
+	BAM::HighPrecisionPhredIntProbability glfLikelihood_0;
+	BAM::HighPrecisionPhredIntProbability glfLikelihood_1;
+	BAM::HighPrecisionPhredIntProbability glfLikelihood_2;
 
 	bool isHaploid;
 	bool isMissing;
 
-	constexpr BAM::HighPrecisionPhredIntErrorRate& operator[](const uint8_t & genotype){
+	constexpr BAM::HighPrecisionPhredIntProbability& operator[](const uint8_t & genotype){
 		if(genotype == 0) return glfLikelihood_0;
 		if(genotype == 1) return glfLikelihood_1;
 		if(isHaploid) throw "Genotype has to be 0 or 1 for haploid samples!";

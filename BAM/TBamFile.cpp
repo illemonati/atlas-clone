@@ -47,7 +47,7 @@ void TBamFile::setLimits(TParameters & params, TLog* logfile){
 	//number of reads
 	if(params.parameterExists("limitReads")){
 		_maxNumReadsToRead = params.getParameter<uint64_t>("limitReads");
-		logfile->list("Will limit the analysis to the first " + toString(_maxNumReadsToRead) + " reads in the BAM file.");
+		logfile->list("Will limit the analysis to the first " + coretools::str::toString(_maxNumReadsToRead) + " reads in the BAM file.");
 		_limitNumReads = true;
 	}
 
@@ -464,7 +464,7 @@ bool TBamFile::readNextAlignment(){
 			if(_curChromosome == _chromosomes.end()){
 				//is chromosome not in header?
 				if(!_chromosomes.exists(_curBamAlignment.RefID)){
-					throw "Chromosome with refID " + toString(_curBamAlignment.RefID) + " is missing from BAM header!";
+					throw "Chromosome with refID " + coretools::str::toString(_curBamAlignment.RefID) + " is missing from BAM header!";
 				} else {
 					throw "BAM file not sorted!";
 				}
@@ -499,7 +499,7 @@ bool TBamFile::readNextAlignment(){
 
 	//check if BAM file is sorted
 	if(_curAlignmentPosition < _previousAlignmentPosition){
-		throw "BAM file must be sorted by position! Alignment '" + _curBamAlignment.Name + "' is at position " + toString(_curBamAlignment.Position) + ", which is before the position of the previous alignment (" + toString(_previousAlignmentPosition.position()) + ")";
+		throw "BAM file must be sorted by position! Alignment '" + _curBamAlignment.Name + "' is at position " + coretools::str::toString(_curBamAlignment.Position) + ", which is before the position of the previous alignment (" + coretools::str::toString(_previousAlignmentPosition.position()) + ")";
 	}
 
 	//store current read group ID
@@ -630,7 +630,7 @@ uint16_t TBamFile::curFragmentLength() const{
 uint16_t TBamFile::curUsableAlignedLength(TQualityFilter & qualFilter) const{
 	uint16_t counter = 0;
 	for(size_t d=0; d<_curBamAlignment.AlignedBases.length(); ++d){
-		if(_curBamAlignment.AlignedBases.at(d) != N && qualFilter.pass( BaseQuality(_curBamAlignment.AlignedQualities.at(d)))){
+		if(_curBamAlignment.AlignedBases.at(d) != genometools::N && qualFilter.pass( BaseQuality(_curBamAlignment.AlignedQualities.at(d)))){
 			++counter;
 		}
 	}
@@ -717,7 +717,7 @@ void TBamFile::startProgressReporting(uint32_t Frequency){
 
 void TBamFile::printProgress(){
 	if(_numAlignmentRead - _lastProgressPrinted >= _progressFrequency){
-		_logfile->list("Parsed " + _millionReadsRead() + " million reads (est. " + coretools::str::to_string_with_precision(positionInFile() * 100, 2) + "%) in " + toString(_timer.minutes()) + " min.");
+		_logfile->list("Parsed " + _millionReadsRead() + " million reads (est. " + coretools::str::to_string_with_precision(positionInFile() * 100, 2) + "%) in " + coretools::str::toString(_timer.minutes()) + " min.");
 		_lastProgressPrinted = _numAlignmentRead;
 	}
 };
@@ -729,8 +729,8 @@ void TBamFile::printEndWithSummary(){
 };
 
 void TBamFile::printEndNoEndIndent(){
-	_logfile->list("Reached end of BAM file in " + toString(_timer.minutes()) + " min.");
-	_logfile->conclude("Parsed a total of " + _millionReadsRead() + " million reads in " + toString(_timer.minutes()) + " min.");
+	_logfile->list("Reached end of BAM file in " + coretools::str::toString(_timer.minutes()) + " min.");
+	_logfile->conclude("Parsed a total of " + _millionReadsRead() + " million reads in " + coretools::str::toString(_timer.minutes()) + " min.");
 };
 
 //------------------------------------------------
@@ -768,7 +768,7 @@ void TQualityAdjusterForWriting::limitRange(const TNumericRange<uint8_t> & Range
 };
 
 std::string TQualityAdjusterForWriting::rangeString(){
-	return "[" + toString(PhredIntErrorRate(_minQual)) + "," + toString(PhredIntErrorRate(_maxQual)) + "]";
+	return "[" + toString(genometools::PhredIntProbability(_minQual)) + "," + toString(genometools::PhredIntProbability(_maxQual)) + "]";
 };
 
 char TQualityAdjusterForWriting::_adjustOneQuality(BaseQuality qual) const {

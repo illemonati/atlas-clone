@@ -78,10 +78,10 @@ public:
 class TRecalibrationEMQualityTransformationMap:public TRecalibrationEMTransformationMap{
 public:
 	TRecalibrationEMQualityTransformationMap(){
-		initialize(BAM::PhredIntErrorRate::max().get());
+		initialize(genometools::PhredIntProbability::max().get());
 
 		//now set
-		for(BAM::PhredIntErrorRate q = BAM::PhredIntErrorRate::min(); q <= BAM::PhredIntErrorRate::max(); ++q){
+		for(genometools::PhredIntProbability q = genometools::PhredIntProbability::min(); q <= genometools::PhredIntProbability::max(); ++q){
 			//convert phred int quality to error
 			coretools::Probability eps(q);
 

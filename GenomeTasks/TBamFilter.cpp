@@ -539,7 +539,7 @@ void TAlignmentMerger_randomBase::_mergeBasesCore(BAM::TSequencedBase & bestBase
 
 	//set other to missing
 	worstBase.recalibratedQualityAsPhredInt = 0.0;
-	worstBase.base = BAM::N;
+	worstBase.base = genometools::N;
 };
 
 void TAlignmentMerger_randomBase::_mergeBases(BAM::TSequencedBase & alignment, BAM::TSequencedBase & mate){

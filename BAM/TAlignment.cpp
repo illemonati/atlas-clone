@@ -102,83 +102,6 @@ void TAlignment::parse(const GenotypeLikelihoods::TSequencingErrorModels & seqEr
 	_sequenceAndQualitiesChanged = seqErrorModels.recalibrationChangesQualities();
 };
 
-/*
-void TAlignment::_parseBasesQualities(const GenotypeLikelihoods::TGenotypeMap & genoMap, const TQualityMap & qualityMap){
-	//initialize
-	_bases.resize(_cigar.lengthRead());
-	_alignedPosition.resize(_cigar.lengthRead());
-	int d = 0; //index regarding data structures and inside read
-	int p = 0; //index regarding reference position (!= d for soft clipping & indels)
-
-	//loop over cigar operations
-	for(auto& cigarIter : _cigar){
-		switch ( cigarIter.type ) {
-
-			// for 'M', '=' or 'X': just copy
-			case ('M') :
-			case ('=') :
-			case ('X') :
-				//soft-clipped bases on 5' are before bamAlignment.Position
-				for(unsigned int i=0; i<cigarIter.length; ++i, ++d, ++p){
-					_bases[d].base = genoMap.toBase(_sequence[d]);
-					_bases[d].originalQuality_phredInt = qualityMap.qualityToPhredInt(_qualities[d]);
-					_bases[d].setAligned(true);
-					_alignedPosition[d] = p;
-				}
-				break;
-
-			//for 'S' - soft clip: copy by set aligned = false
-			case ('S') :
-				//add bases to softclipped entries
-				for(unsigned int i=0; i<cigarIter.length; ++i, ++d){
-					//soft-clipped bases on 5' are before bamAlignment.Position
-					//need to initialize quality for quality filter and bases for context
-					_bases[d].base = genoMap.toBase(_sequence[d]);
-					_bases[d].originalQuality_phredInt = qualityMap.qualityToPhredInt(_qualities[d]);
-					_bases[d].setAligned(false);
-					_alignedPosition[d] = -1;
-				}
-				break;
-
-			//for 'I' - insertion: copy bases, but put aligned  = false
-			case ('I')      :
-				for(unsigned int i=0; i<cigarIter.length; ++i, ++d){
-					_bases[d].base = genoMap.toBase(_sequence[d]);
-					_bases[d].originalQuality_phredInt = qualityMap.qualityToPhredInt(_qualities[d]);
-					_bases[d].setAligned(false);
-					_alignedPosition[d] = -1;
-				}
-				break;
-
-			// for 'D' - deletion: just add to position
-			case ('D') :
-				p += cigarIter.length;
-				break;
-
-			// for 'N' - skipped region in reference: only advance reference position
-			case ('N') :
-				p += cigarIter.length;
-				break;
-
-			// for 'H' or 'P' - hard clip: do nothing as these bases are not present in SEQ
-			case ('H') :
-			case ('P') :
-				break;
-
-			// invalid CIGAR op-code
-			default:
-				throw (std::string) "CIGAR operation '" + cigarIter.type + "' not supported!";
-		}
-	}
-
-	//calculate relevant fragment length
-
-	//update length and last aligned position
-	_lastAlignedPositionWithRespectToRef = *this + (p - 1);
-	_lastAlignedPos = p - 1; //why -1? -> same reason as above
-};
-*/
-
 void TAlignment::_setDistancesFromEnds(){
 	//Set distances in ORIGINAL FRAGMENT (i.e. 5' end is where sequencing started, NOT how it aligns to reference)
 	int length = _cigar.lengthSequenced();
@@ -235,10 +158,10 @@ void TAlignment::_fillContext(){
 		for(int d=0; d<(_cigar.lengthSequenced()-1); ++d){
 			_bases[d].context.set(_bases[d+1].base, _bases[d].base);
 		}
-		_bases[_cigar.lengthSequenced()-1].context.set(N, _bases[_cigar.lengthSequenced()-1].base);
+		_bases[_cigar.lengthSequenced()-1].context.set(genometools::N, _bases[_cigar.lengthSequenced()-1].base);
 	} else {
 		//forward
-		_bases[0].context.set(N, _bases[0].base);
+		_bases[0].context.set(genometools::N, _bases[0].base);
 		for(int d=1; d<_cigar.lengthSequenced(); ++d)
 			_bases[d].context.set(_bases[d-1].base, _bases[d].base);
 	}
@@ -249,9 +172,9 @@ void TAlignment::addReference(TFastaBuffer & fasta){
 	_hasReference = true;
 };
 
-void TAlignment::setSequenceQualities(const TCigar & Cigar, const std::vector<Base> & Sequence, const std::vector<PhredIntErrorRate> & Qualities){
+void TAlignment::setSequenceQualities(const TCigar & Cigar, const std::vector<genometools::Base> & Sequence, const std::vector<genometools::PhredIntProbability> & Qualities){
 	if(Cigar.lengthRead() != Sequence.size() || Cigar.lengthRead() != Qualities.size()){
-		throw std::runtime_error("void TAlignment::setSequenceQualities(const TCigar & Cigar, const std::vector<Base> & Sequence, const std::vector<PhredIntErrorRate> & Qualities): length of CIGAR, Sequences and Qualities do not match!");
+		throw std::runtime_error("void TAlignment::setSequenceQualities(const TCigar & Cigar, const std::vector<Base> & Sequence, const std::vector<PhredIntProbability> & Qualities): length of CIGAR, Sequences and Qualities do not match!");
 	}
 	_cigar = Cigar;
 
@@ -302,7 +225,7 @@ void TAlignment::_updateSequenceAndQualities() const{
 
 		for(auto b=0; b < _bases.size(); ++b){
 			_sequence[b] = (char) _bases[b].base;
-			_qualities[b] = (char) BaseQuality(_bases[b].recalibratedQualityAsPhredInt);
+			_qualities[b] = (char) genometools::BaseQuality(_bases[b].recalibratedQualityAsPhredInt);
 		}
 
 		_sequenceAndQualitiesChanged = false;
@@ -327,7 +250,7 @@ void TAlignment::filter(const TBaseFilter & Filter){
 		//set quality = 0 and base = N if outside quality filter
 		for(auto& b : _bases){
 			if(!Filter.pass(b)){
-				b.base = N;
+				b.base = genometools::N;
 				b.recalibratedQualityAsPhredInt = 0;
 			}
 		}
@@ -337,7 +260,7 @@ void TAlignment::filter(const TBaseFilter & Filter){
 void TAlignment::trimRead(const int & trimmingLength3Prime, const int & trimmingLength5Prime){
 	for(auto& b : _bases){
 		if(b.distFrom3Prime < trimmingLength3Prime || b.distFrom5Prime < trimmingLength5Prime){
-			b.base = N;
+			b.base = genometools::N;
 			b.recalibratedQualityAsPhredInt = 0;
 		}
 	}
@@ -412,7 +335,7 @@ void TAlignment::downsampleAlignment(const coretools::Probability & fractionToKe
 	for(auto& b : _bases){
 		double r = randomGenerator.getRand();
 		if(r > fractionToKeep){
-			b.base = N;
+			b.base = genometools::N;
 			b.recalibratedQualityAsPhredInt = 0;
 		}
 	}
@@ -437,7 +360,7 @@ void TAlignment::print(){
 	//print qualities
 	std::cout << "QUAL:\t";
 	for(auto& b : _bases){
-		std::cout << BAM::BaseQuality(b.recalibratedQualityAsPhredInt);
+		std::cout << genometools::BaseQuality(b.recalibratedQualityAsPhredInt);
 	}
 	std::cout << std::endl;
 

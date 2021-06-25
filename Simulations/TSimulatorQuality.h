@@ -42,8 +42,8 @@ public:
 	double mean(){return _mean; };
 	double sd(){return _sd; };
 
-	virtual PhredIntErrorRate sample(){ return _max; };
-	void sample(std::vector<PhredIntErrorRate> & phredInt) const;
+	virtual PhredIntProbability sample(){ return _max; };
+	void sample(std::vector<PhredIntProbability> & phredInt) const;
 	void printDetails(TLog* logfile, const std::string & Name) const;
 };
 
@@ -59,7 +59,7 @@ private:
 
 public:
 	TSimulatorQualityDistBinned(std::string & s, TRandomGenerator* RandomGenerator);
-	PhredIntErrorRate sample() const override;
+	PhredIntProbability sample() const override;
 	void sample(std::vector<uint8_t> & qualities) const override;
 };
 
@@ -77,7 +77,7 @@ private:
 
 public:
 	TSimulatorQualityDistFreq(std::string & s, TRandomGenerator* RandomGenerator);
-	PhredIntErrorRate sample() const override;
+	PhredIntProbability sample() const override;
 };
 
 //------------------------------------------------
@@ -98,7 +98,7 @@ public:
 	TSimulatorQualityDistNormal(double & mean, double & sd, int min, int max, TRandomGenerator* RandomGenerator);;
 	void parseFunctionString(std::string & s);
 	void fillDensities();
-	PhredIntErrorRate sample() const override;
+	PhredIntProbability sample() const override;
 };
 
 }; //end namespace

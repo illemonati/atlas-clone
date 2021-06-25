@@ -23,7 +23,7 @@ TSite::TSite(const TSite & site){
 
 void TSite::clear(){
 	_bases.clear();
-	_referenceBase = BAM::N;
+	_referenceBase = genometools::N;
 };
 
 void TSite::add(const BAM::TSequencedBase & base){
@@ -69,7 +69,7 @@ std::string TSite::getQualities() const{
 	if(empty()) return "-";
 	std::string s = "";
 	for(auto& b : _bases){
-		s +=  (char) BAM::BaseQuality(b.recalibratedQualityAsPhredInt);
+		s +=  (char) genometools::BaseQuality(b.recalibratedQualityAsPhredInt);
 	}
 	return s;
 };
@@ -80,7 +80,7 @@ uint32_t TSite::depth() const{
 
 uint32_t TSite::refDepth() const{
 	if(empty()) return 0;
-	if(_referenceBase == BAM::N) return 0;
+	if(_referenceBase == genometools::N) return 0;
 	uint32_t counter = 0;
 	for(auto& b : _bases){
 		if(b.base == _referenceBase)

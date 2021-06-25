@@ -308,8 +308,8 @@ void TSequencingErrorRho::operator=(const TSequencingErrorRhoStorage & other){
 	TSequencingErrorRhoStorage::operator =(other);
 };
 
-void TSequencingErrorRho::fillBaseLikelihoods(const BAM::Base base, const Probability & epsilon, TBaseLikelihoods & baseLikelihoods) const{
-	if(base == BAM::N){
+void TSequencingErrorRho::fillBaseLikelihoods(const genometools::Base base, const Probability & epsilon, TBaseLikelihoods & baseLikelihoods) const{
+	if(base == genometools::N){
 		baseLikelihoods.reset();
 	} else {
 		baseLikelihoods[base] = epsilon.complement();
@@ -341,7 +341,7 @@ void TSequencingErrorRho::prepareEstimationFromEMWeights(){
 	}
 };
 
-void TSequencingErrorRho::addBaseForEstimation(const BAM::Base & base, const TBaseLikelihoods & EMWeights){
+void TSequencingErrorRho::addBaseForEstimation(const genometools::Base & base, const TBaseLikelihoods & EMWeights){
 	if(base == BAM::A){
 		rho[BAM::C][BAM::A] += EMWeights[BAM::C].get();
 		rho[BAM::G][BAM::A] += EMWeights[BAM::G].get();
@@ -354,7 +354,7 @@ void TSequencingErrorRho::addBaseForEstimation(const BAM::Base & base, const TBa
 		rho[BAM::A][BAM::G] += EMWeights[BAM::A].get();
 		rho[BAM::C][BAM::G] += EMWeights[BAM::C].get();
 		rho[BAM::T][BAM::G] += EMWeights[BAM::T].get();
-	} else if(base == BAM::N){
+	} else if(base == genometools::N){
 		rho[BAM::A][BAM::T] += EMWeights[BAM::A].get();
 		rho[BAM::C][BAM::T] += EMWeights[BAM::C].get();
 		rho[BAM::G][BAM::T] += EMWeights[BAM::G].get();
@@ -391,23 +391,23 @@ void TSequencingErrorRho::estimate(){
 // TSequencingErrorModelNoRecal
 //*********************************************************
 Probability TSequencingErrorModelNoRecal::getErrorRate(const BAM::TSequencedBase & base) const{
-	if(base == BAM::N){
+	if(base == genometools::N){
 		return Probability(1.0);
 	} else {
 		return (Probability) base.originalQuality_phredInt;
 	}
 };
 
-BAM::PhredIntErrorRate TSequencingErrorModelNoRecal::getPhredInt(const BAM::TSequencedBase & base) const{
-	if(base == BAM::N){
-		return BAM::PhredIntErrorRate(0); //Todo: change to maxProb() one available.
+genometools::PhredIntProbability TSequencingErrorModelNoRecal::getPhredInt(const BAM::TSequencedBase & base) const{
+	if(base == genometools::N){
+		return genometools::PhredIntProbability(0); //Todo: change to maxProb() one available.
 	} else {
 		return base.originalQuality_phredInt;
 	}
 };
 
 void TSequencingErrorModelNoRecal::fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseLikelihoods & baseLikelihoods) const{
-	if(base == BAM::N){
+	if(base == genometools::N){
 		baseLikelihoods.reset();
 	} else {
 		_rho.fillBaseLikelihoods(base.base, (Probability) base.originalQuality_phredInt, baseLikelihoods);
@@ -469,23 +469,23 @@ Probability TSequencingErrorModelRecal::_calcErrorRate(const BAM::TSequencedBase
 };
 
 Probability TSequencingErrorModelRecal::getErrorRate(const BAM::TSequencedBase & base) const{
-	if(base == BAM::N){
+	if(base == genometools::N){
 		return 1.0; //Todo: change to maxProb() one available.
 	} else {
 		return _calcErrorRate(base);
 	}
 };
 
-BAM::PhredIntErrorRate TSequencingErrorModelRecal::getPhredInt(const BAM::TSequencedBase & base) const{
-	if(base == BAM::N){
-		return BAM::PhredIntErrorRate(0); //Todo: change to maxProb() one available.
+genometools::PhredIntProbability TSequencingErrorModelRecal::getPhredInt(const BAM::TSequencedBase & base) const{
+	if(base == genometools::N){
+		return genometools::PhredIntProbability(0); //Todo: change to maxProb() one available.
 	} else {
-		return BAM::PhredIntErrorRate(_calcErrorRate(base));
+		return genometools::PhredIntProbability(_calcErrorRate(base));
 	}
 };
 
 void TSequencingErrorModelRecal::fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseLikelihoods & baseLikelihoods) const{
-	if(base == BAM::N){
+	if(base == genometools::N){
 		baseLikelihoods.reset();
 	} else {
 		_rho.fillBaseLikelihoods(base.base, _calcErrorRate(base), baseLikelihoods);

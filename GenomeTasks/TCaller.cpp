@@ -264,7 +264,7 @@ std::string TCaller::_getVCFGenotypeString_DP(const TSite & site, TGenotypeLikel
 std::string TCaller::_getVCFGenotypeString_AD(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){
 	_countAlleles(site);
 	std::string ret;
-	if(referenceBase == BAM::N) ret = "0";
+	if(referenceBase == genometools::N) ret = "0";
 	else ret = toString(_alleleCounts[referenceBase]);
 
 	for(auto& a : _altAlleles)
@@ -364,14 +364,14 @@ void TCaller::call(const std::string & chr, const long & pos, const TSite & site
 	referenceBase = site.refBase();
 
 	//check if there is data
-	if(site.empty() || (referenceBase == BAM::N && !_allowTriallelicSites) || !_callGenotype(site, genotypeLikelihoods))
+	if(site.empty() || (referenceBase == genometools::N && !_allowTriallelicSites) || !_callGenotype(site, genotypeLikelihoods))
 		_writeMissingDataToVCF(site);
 	else {
 		_writeCallToVCF(chr, pos, site, genotypeLikelihoods);
 	}
 };
 
-void TCaller::call(const std::string & chr, const long & pos, const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods, const BAM::Base & firstAllele, const BAM::Base & secondAllele){
+void TCaller::call(const std::string & chr, const long & pos, const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods, const genometools::Base & firstAllele, const genometools::Base & secondAllele){
 	//check if there is data
 	if(!site.empty()){
 		//set reference base from site
@@ -412,7 +412,7 @@ TCallerRandomBase::TCallerRandomBase(TParameters & Parameters, TLog* Logfile, TR
 
 bool TCallerRandomBase::_callGenotype(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){
 	//randomly pick a base
-	BAM::Base allele = site[_randomGenerator->sample(site.depth())].base;
+	genometools::Base allele = site[_randomGenerator->sample(site.depth())].base;
 
 	//decide on alt
 	if(allele == referenceBase){
@@ -440,7 +440,7 @@ bool TCallerRandomBase::_callGenotypeKnownAlleles(const TSite & site, TGenotypeL
 		return true;
 	} else {
 		//pick among all alleles and check
-		BAM::Base allele = site[_randomGenerator->sample(site.depth())].base;
+		genometools::Base allele = site[_randomGenerator->sample(site.depth())].base;
 		if(allele == referenceBase){
 			_calledGenotype = "0";
 			return true;
@@ -471,14 +471,14 @@ bool TCallerMajorityBase::_callGenotype(const TSite & site, TGenotypeLikelihoods
 	_countAlleles(site);
 
 	//call majority
-	BAM::Base majorityBase = _alleleCounts.pickIndexAtMax(*_randomGenerator);
+	genometools::Base majorityBase = _alleleCounts.pickIndexAtMax(*_randomGenerator);
 
 	//decide on alt
 	if(majorityBase == referenceBase){
 		_calledGenotype = "0";
 
 		//find second most common as alternative allele
-		BAM::Base second = _alleleCounts.pickIndexAtMax(majorityBase, *_randomGenerator);
+		genometools::Base second = _alleleCounts.pickIndexAtMax(majorityBase, *_randomGenerator);
 		_altAlleles.push_back(second);
 	} else {
 		_altAlleles.push_back(majorityBase);
@@ -510,7 +510,7 @@ bool TCallerMajorityBase::_callGenotypeKnownAlleles(const TSite & site, TGenotyp
 	} else {
 		//pick among all alleles and check
 		//call majority
-		BAM::Base majorityBase = _alleleCounts.pickIndexAtMax(*_randomGenerator);
+		genometools::Base majorityBase = _alleleCounts.pickIndexAtMax(*_randomGenerator);
 
 		//decide on call
 		if(majorityBase == referenceBase){
@@ -555,7 +555,7 @@ bool TCallerConsensify::_callGenotype(const TSite & site, TGenotypeLikelihoods &
 	_countAlleles(site);
 
 	//call majority
-	BAM::Base majorityBase = _alleleCounts.pickIndexAtMax(*_randomGenerator);
+	genometools::Base majorityBase = _alleleCounts.pickIndexAtMax(*_randomGenerator);
 
 	//check if we have sufficient depth to call
 	if(_alleleCounts[majorityBase] < _minMajorityDepth){
@@ -567,7 +567,7 @@ bool TCallerConsensify::_callGenotype(const TSite & site, TGenotypeLikelihoods &
 		_calledGenotype = "0";
 
 		//find second most common as alternative allele
-		BAM::Base second = _alleleCounts.pickIndexAtMax(majorityBase, *_randomGenerator);
+		genometools::Base second = _alleleCounts.pickIndexAtMax(majorityBase, *_randomGenerator);
 		_altAlleles.emplace_back(second);
 	} else {
 		_altAlleles.emplace_back(majorityBase);
@@ -586,7 +586,7 @@ bool TCallerConsensify::_callGenotypeKnownAlleles(const TSite & site, TGenotypeL
 	_countAlleles(site);
 
 	//call majority
-	BAM::Base majorityBase = _alleleCounts.pickIndexAtMax(*_randomGenerator);
+	genometools::Base majorityBase = _alleleCounts.pickIndexAtMax(*_randomGenerator);
 
 	//check if we have sufficient depth to call
 	if(_alleleCounts[majorityBase.get()] < _minMajorityDepth){
@@ -621,7 +621,7 @@ TCallerAllelePresence::TCallerAllelePresence(TParameters & Parameters, TLog* Log
 	initializeOutput(Parameters, Logfile);
 
 	//initialize allele counts
-	MAP = BAM::N;
+	MAP = genometools::N;
 };
 
 void TCallerAllelePresence::_fillPosteriors(TGenotypeLikelihoods & genotypeLikelihoods){
@@ -649,7 +649,7 @@ bool TCallerAllelePresence::_callGenotype(const TSite & site, TGenotypeLikelihoo
 		_calledGenotype = "0";
 
 		//find second most common as alternative allele
-		BAM::Base second = allelePostProb.pickIndexAtMax(MAP, *_randomGenerator);
+		genometools::Base second = allelePostProb.pickIndexAtMax(MAP, *_randomGenerator);
 		_altAlleles.push_back(second);
 	} else {
 		_altAlleles.push_back(MAP);
@@ -693,14 +693,14 @@ bool TCallerAllelePresence::_callGenotypeKnownAlleles(const TSite & site, TGenot
 };
 
 std::string TCallerAllelePresence::_getVCFGenotypeString_GQ(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){
-	return (std::string) BAM::PhredIntErrorRate(allelePostProb[MAP].complement());
+	return (std::string) genometools::PhredIntProbability(allelePostProb[MAP].complement());
 };
 
 std::string TCallerAllelePresence::_getVCFGenotypeString_AP(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){
-	std::string ret = (std::string) BAM::PhredIntErrorRate(allelePostProb[BAM::A]);
-	ret += ',' + (std::string) BAM::PhredIntErrorRate(allelePostProb[BAM::C]);
-	ret += ',' + (std::string) BAM::PhredIntErrorRate(allelePostProb[BAM::G]);
-	ret += ',' + (std::string) BAM::PhredIntErrorRate(allelePostProb[BAM::T]);
+	std::string ret = (std::string) genometools::PhredIntProbability(allelePostProb[BAM::A]);
+	ret += ',' + (std::string) genometools::PhredIntProbability(allelePostProb[BAM::C]);
+	ret += ',' + (std::string) genometools::PhredIntProbability(allelePostProb[BAM::G]);
+	ret += ',' + (std::string) genometools::PhredIntProbability(allelePostProb[BAM::T]);
 	return ret;
 };
 
@@ -756,9 +756,9 @@ void TCallerDiploid::callGenotypeFromMetric(const TGenotypeProbability_base & me
 					//int homRef = genoMap.getGenotype(referenceBase, referenceBase);
 
 					//only use second alternative allele in case het genotype with reference is less likely
-					if(referenceBase == BAM::N ||
-					   (metric[ BAM::Genotype(referenceBase, genotypeAtMax.firstAllele())] < metric[ genotypeAtSecond]
-						&& metric[ BAM::Genotype(referenceBase, referenceBase) ] < metric[ genotypeAtSecond ])){
+					if(referenceBase == genometools::N ||
+					   (metric[ genometools::Genotype(referenceBase, genotypeAtMax.firstAllele())] < metric[ genotypeAtSecond]
+						&& metric[ genometools::Genotype(referenceBase, referenceBase) ] < metric[ genotypeAtSecond ])){
 						if(genotypeAtSecond.firstAllele() == referenceBase || genotypeAtSecond.firstAllele() == _altAlleles[0])
 							_altAlleles.push_back(genotypeAtSecond.secondAllele());
 						else if(genotypeAtSecond.secondAllele() == referenceBase || genotypeAtSecond.secondAllele() == _altAlleles[0])
@@ -967,7 +967,7 @@ void TCallerDiploid::calculateImbalance(const TSite & site){
 
 			if(_altAlleles.size() == 1){
 				double sum = (_alleleCounts[referenceBase] + _alleleCounts[_altAlleles[0]]);
-				if(referenceBase == BAM::N || sum == 0){
+				if(referenceBase == genometools::N || sum == 0){
 					AB = '.'; AI = '.';
 				} else {
 					AB = toString(_alleleCounts[referenceBase] / sum);
@@ -1037,14 +1037,14 @@ bool TCallerMLE::_callGenotypeKnownAlleles(const TSite & site, TGenotypeLikeliho
 
 std::string TCallerMLE::_getVCFGenotypeString_GQ(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){
 	Probability error(genotypeLikelihoods[genotypeAtSecond].get() / genotypeLikelihoods[genotypeAtMax].get());
-	BAM::PhredIntErrorRate phred(error);
+	genometools::PhredIntProbability phred(error);
 	return toString(phred);
 };
 
 std::string TCallerMLE::_getVCFGenotypeString_GL(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){
 	//normalize
 	TGenotypeData tmp;
-	for(BAM::Genotype g = BAM::Genotype::min(); g < BAM::Genotype::max(); ++g){
+	for(genometools::Genotype g = genometools::Genotype::min(); g < genometools::Genotype::max(); ++g){
 		tmp[g] = log10(genotypeLikelihoods[g].get() / genotypeLikelihoods[genotypeAtMax].get());
 	}
 
@@ -1054,10 +1054,10 @@ std::string TCallerMLE::_getVCFGenotypeString_GL(const TSite & site, TGenotypeLi
 
 std::string TCallerMLE::_getVCFGenotypeString_PL(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){
 	//normalize
-	TGenotypeData_base<BAM::PhredIntErrorRate> PL;
-	BAM::PhredErrorRate phredMax(genotypeLikelihoods[genotypeAtMax]);
-	for(BAM::Genotype g = BAM::Genotype::min(); g < BAM::Genotype::max(); ++g){
-		PL[g] = BAM::PhredErrorRate(genotypeLikelihoods[g] / genotypeLikelihoods[genotypeAtMax]);
+	TGenotypeData_base<genometools::PhredIntProbability> PL;
+	genometools::PhredErrorRate phredMax(genotypeLikelihoods[genotypeAtMax]);
+	for(genometools::Genotype g = genometools::Genotype::min(); g < genometools::Genotype::max(); ++g){
+		PL[g] = genometools::PhredErrorRate(genotypeLikelihoods[g] / genotypeLikelihoods[genotypeAtMax]);
 	}
 
 	//get string
@@ -1103,13 +1103,13 @@ bool TCallerBayes::_callGenotypeKnownAlleles(const TSite & site, TGenotypeLikeli
 };
 
 std::string TCallerBayes::_getVCFGenotypeString_GQ(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){
-	return (std::string) BAM::PhredIntErrorRate(posterior[genotypeAtMax].complement());
+	return (std::string) genometools::PhredIntProbability(posterior[genotypeAtMax].complement());
 };
 
 std::string TCallerBayes::_getVCFGenotypeString_GP(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){
 	//posterior to phred int
-	TGenotypeData_base<BAM::PhredIntErrorRate> tmp;
-	for(BAM::Genotype g = BAM::Genotype::min(); g < BAM::Genotype::max(); ++g){
+	TGenotypeData_base<genometools::PhredIntProbability> tmp;
+	for(genometools::Genotype g = genometools::Genotype::min(); g < genometools::Genotype::max(); ++g){
 		tmp[g] = posterior[g];
 	}
 

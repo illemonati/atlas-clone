@@ -12,7 +12,7 @@ namespace GenotypeLikelihoods{
 //---------------------------------------------------------------
 //TPMDCounts
 //---------------------------------------------------------------
-void TPMDCounts::_add(const uint16_t & pos, const BAM::Base & read){
+void TPMDCounts::_add(const uint16_t & pos, const genometools::Base & read){
 	++_counts[read.get()][pos];
 	++_sums[pos];
 };
@@ -33,7 +33,7 @@ void TPMDCounts::empty(){
 	std::fill(_sums.begin(), _sums.end(), 0);
 };
 
-void TPMDCounts::add(const uint16_t & pos, const BAM::Base & read){
+void TPMDCounts::add(const uint16_t & pos, const genometools::Base & read){
 	if(pos < _sizeMinusOne){
 		_add(pos, read);
 	} else {
@@ -102,7 +102,7 @@ void TPMDTable::empty(){
 	_counts[BAM::T].empty();
 };
 
-void TPMDTable::add(const uint16_t & pos, const BAM::Base & ref, const BAM::Base & read){
+void TPMDTable::add(const uint16_t & pos, const genometools::Base & ref, const genometools::Base & read){
 	_counts[ref.get()].add(pos, read);
 };
 
@@ -139,7 +139,7 @@ TPMDTableReadGroup::TPMDTableReadGroup(const uint16_t & TableLength){
 	_tables[reverse5].resize(TableLength);
 };
 
-void TPMDTableReadGroup::add(const BAM::TSequencedBase & base, const BAM::Base & reference){
+void TPMDTableReadGroup::add(const BAM::TSequencedBase & base, const genometools::Base & reference){
 	if(base.isReverseStrand()){
 		_tables[reverse3].add(base.distFrom3Prime, reference.flipped(), base.base.flipped());
 		_tables[reverse5].add(base.distFrom5Prime, reference.flipped(), base.base.flipped());
@@ -195,7 +195,7 @@ const TPMDTableReadGroup& TPMDTables::operator[](const uint16_t & ReadGroupID) c
 	return _tables[_readGroupMap->pooledIndex(ReadGroupID)];
 };
 
-void TPMDTables::add(const BAM::TSequencedBase & base, const BAM::Base & reference){
+void TPMDTables::add(const BAM::TSequencedBase & base, const genometools::Base & reference){
 	_tables[_readGroupMap->pooledIndex(base.readGroupID)].add(base, reference);
 };
 

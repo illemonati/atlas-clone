@@ -31,7 +31,7 @@ void TMultiGLFData::fill(PopulationTools::TPopulationLikehoodLocus & storage, co
 		if(samples[i].isHaploid){
 			storage[i].glfLikelihood_0 = samples[i].genotypeLikelihoodsGLF[(uint8_t) alleleicCombination.firstAllele()];
 			storage[i].glfLikelihood_1 = samples[i].genotypeLikelihoodsGLF[(uint8_t) alleleicCombination.secondAllele()];
-			storage[i].glfLikelihood_2 = BAM::HighPrecisionPhredIntErrorRate::max();
+			storage[i].glfLikelihood_2 = BAM::HighPrecisionPhredIntProbability::max();
 		} else {
 			storage[i].glfLikelihood_0 = samples[i].genotypeLikelihoodsGLF[(uint8_t) alleleicCombination.homoFirst()];
 			storage[i].glfLikelihood_1 = samples[i].genotypeLikelihoodsGLF[(uint8_t) alleleicCombination.het()];
@@ -95,14 +95,14 @@ void TGlfMultiReaderVcf::_closeVCF(){
 
 void TGlfMultiReaderVcf::_setMajorMinor(const BAM::Base & refAllele, const BAM::Base & altAllele){
 	_ref = refAllele; _alt = altAllele;
-	_refHom = BAM::Genotype(_ref,_ref);
-	_het = BAM::Genotype(_ref,_alt);
-	_altHom = BAM::Genotype(_alt,_alt);
+	_refHom = genometools::Genotype(_ref,_ref);
+	_het = genometools::Genotype(_ref,_alt);
+	_altHom = genometools::Genotype(_alt,_alt);
 };
 
-void TGlfMultiReaderVcf::writeLikelihood(const BAM::HighPrecisionPhredIntErrorRate & likGlf){
+void TGlfMultiReaderVcf::writeLikelihood(const BAM::HighPrecisionPhredIntProbability & likGlf){
 	if(_usePhredScaledLikelihoods){
-		vcf << (BAM::PhredErrorRate) likGlf;
+		vcf << (genometools::PhredErrorRate) likGlf;
 	} else {
 		if(likGlf == 0) vcf << '0';
 		else vcf << (coretools::Log10Probability) likGlf;
@@ -147,7 +147,7 @@ void TGlfMultiReaderVcf::writeSite(const std::string & chrName, const uint32_t &
 void TGlfMultiReaderVcf::writeDiploidIndividualToVCF(TMultiGLFDataSample & sample){
 	if(sample.hasData){
 		//find min qual
-		BAM::HighPrecisionPhredIntErrorRate minQual = sample.genotypeLikelihoodsGLF[(uint8_t) _refHom];
+		BAM::HighPrecisionPhredIntProbability minQual = sample.genotypeLikelihoodsGLF[(uint8_t) _refHom];
 		if(sample.genotypeLikelihoodsGLF[(uint8_t) _het] < minQual) minQual = sample.genotypeLikelihoodsGLF[(uint8_t) _het];
 		if(sample.genotypeLikelihoodsGLF[(uint8_t) _altHom] < minQual) minQual = sample.genotypeLikelihoodsGLF[(uint8_t) _altHom];
 
@@ -165,7 +165,7 @@ void TGlfMultiReaderVcf::writeDiploidIndividualToVCF(TMultiGLFDataSample & sampl
 		if(mleGenotypes.size() > 1) vcf << "0:";
 		else {
 			//find second highest quality
-			BAM::HighPrecisionPhredIntErrorRate secondLowestQual = BAM::HighPrecisionPhredIntErrorRate::max();
+			BAM::HighPrecisionPhredIntProbability secondLowestQual = BAM::HighPrecisionPhredIntProbability::max();
 			if(sample.genotypeLikelihoodsGLF[(uint8_t) _refHom] > minQual){
 				secondLowestQual = sample.genotypeLikelihoodsGLF[(uint8_t) _refHom];
 			}
@@ -175,7 +175,7 @@ void TGlfMultiReaderVcf::writeDiploidIndividualToVCF(TMultiGLFDataSample & sampl
 			if(sample.genotypeLikelihoodsGLF[(uint8_t) _altHom] > minQual && sample.genotypeLikelihoodsGLF[(uint8_t) _altHom] < secondLowestQual){
 				secondLowestQual = sample.genotypeLikelihoodsGLF[(uint8_t) _altHom];
 			}
-			vcf << (BAM::PhredIntErrorRate) (secondLowestQual - minQual) << ":";
+			vcf << (genometools::PhredIntProbability) (secondLowestQual - minQual) << ":";
 		}
 
 		//write depth
@@ -195,7 +195,7 @@ void TGlfMultiReaderVcf::writeDiploidIndividualToVCF(TMultiGLFDataSample & sampl
 void TGlfMultiReaderVcf::writeHaploidIndividualToVCF(TMultiGLFDataSample & sample){
 	if(sample.hasData){
 		//find min qual
-		BAM::HighPrecisionPhredIntErrorRate minQual = sample.genotypeLikelihoodsGLF[(uint8_t) _ref];
+		BAM::HighPrecisionPhredIntProbability minQual = sample.genotypeLikelihoodsGLF[(uint8_t) _ref];
 		if(sample.genotypeLikelihoodsGLF[(uint8_t) _alt] < minQual) minQual = sample.genotypeLikelihoodsGLF[(uint8_t) _alt];
 
 		//get all genotypes with minQual (=MLE)
@@ -208,8 +208,8 @@ void TGlfMultiReaderVcf::writeHaploidIndividualToVCF(TMultiGLFDataSample & sampl
 		vcf << '\t' << genotypeStrings[mleGeno.get()] << ':';
 
 		//write genotype quality
-		if(mleGeno == _ref) vcf << (BAM::PhredIntErrorRate) (sample.genotypeLikelihoodsGLF[(uint8_t) _alt] - minQual) << ":";
-		else  vcf << (BAM::PhredIntErrorRate) (sample.genotypeLikelihoodsGLF[(uint8_t) _ref] - minQual) << ":";
+		if(mleGeno == _ref) vcf << (genometools::PhredIntProbability) (sample.genotypeLikelihoodsGLF[(uint8_t) _alt] - minQual) << ":";
+		else  vcf << (genometools::PhredIntProbability) (sample.genotypeLikelihoodsGLF[(uint8_t) _ref] - minQual) << ":";
 
 		//write depth
 		vcf << sample.depth << ':';
@@ -254,7 +254,7 @@ void TGlfMultiReader::init(){
 	_numActiveFilesWithData = 0;
 
 	for(int i=0; i<10; ++i)
-		genotypeQualitiesMissingData[i] = BAM::HighPrecisionPhredIntErrorRate::min();
+		genotypeQualitiesMissingData[i] = BAM::HighPrecisionPhredIntProbability::min();
 
 	minDepth = 0;
 	hasReference = false;
@@ -625,7 +625,7 @@ void TGlfMultiReader::fillSampleNamesOfActiveFiles(std::vector<std::string> & ve
 BAM::Base TGlfMultiReader::refBase(){
 	if(hasReference){
 		return fastaBuffer.refAt(BAM::TGenomePosition(_curRefId, _position));
-	} else return BAM::N;
+	} else return genometools::N;
 };
 
 

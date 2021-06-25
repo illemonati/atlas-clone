@@ -15,11 +15,13 @@
 #include "TAlignment.h"
 #include "TNumericRange.h"
 #include "globalConstants.h"
+#include "TParameters.h"
 
 namespace BAM{
 
 using coretools::TParameters;
 using coretools::TLog;
+using genometools::BaseQuality;
 
 //-----------------------------------------------------
 //TBamFile

@@ -11,7 +11,8 @@
 #include <cstdint>
 #include <bitset>
 #include <iostream>
-#include "Types.h"
+#include "GenotypeTypes.h"
+#include "PhredProbabilityTypes.h"
 
 namespace BAM{
 
@@ -25,15 +26,15 @@ private:
 	std::bitset<3> flags; //initialized as 0,0,0
 
 public:
-	Base base;
-	PhredIntErrorRate originalQuality_phredInt; //original quality as in BAM file, but transformed to phredInt
-	PhredIntErrorRate recalibratedQualityAsPhredInt; //Quality after recalibration (used for filtering)
+	genometools::Base base;
+	genometools::PhredIntProbability originalQuality_phredInt; //original quality as in BAM file, but transformed to phredInt
+	genometools::PhredIntProbability recalibratedQualityAsPhredInt; //Quality after recalibration (used for filtering)
 	uint16_t distFrom5Prime; //zero based!
 	uint16_t distFrom3Prime; //zero based!	Do we need it if we also store fragment length?
 	uint16_t readGroupID;
 	uint16_t fragmentLength;
 	uint8_t mappingQuality;
-	BaseContext context;
+	genometools::BaseContext context;
 
 	TSequencedBase();
 
@@ -46,10 +47,10 @@ public:
 	void setSecondMate(const bool status){ flags[1] = status; };
 	void setAligned(const bool status){ flags[2] = status; };
 
-	bool operator==(const Base & b) const { return base == b; };
-	bool operator!=(const Base & b) const { return base != b; };
+	bool operator==(const genometools::Base & b) const { return base == b; };
+	bool operator!=(const genometools::Base & b) const { return base != b; };
 
-	void operator=(const Base & b){ base = b; };
+	void operator=(const genometools::Base & b){ base = b; };
 
 	void print() const;
 };

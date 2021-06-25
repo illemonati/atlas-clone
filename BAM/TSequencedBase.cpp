@@ -10,13 +10,13 @@
 namespace BAM{
 
 TSequencedBase::TSequencedBase(){
-	base = N;
+	base = genometools::N;
 	originalQuality_phredInt = 0;
 	recalibratedQualityAsPhredInt = 0;
 	distFrom5Prime = -1;
 	distFrom3Prime = -1;
 	readGroupID = -1;
-	context = cNN;
+	context = genometools::cNN;
 	mappingQuality = 0;
 	fragmentLength = 0;
 };

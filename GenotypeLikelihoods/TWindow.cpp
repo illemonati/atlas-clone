@@ -162,7 +162,7 @@ void TWindow_base::_calcDepth(){
 			} else if(depthPerSite > 1){
 				++plentyData;
 			}
-			if(s.refBase() == BAM::N){
+			if(s.refBase() == genometools::N){
 				++_fractionRefIsN;
 			}
 		}
@@ -230,7 +230,7 @@ bool TWindow_base::filter(const double maxFracMissing, const double maxRefN, cor
 
 void TWindow_base::addReferenceBaseToSites(BAM::TFastaBuffer & reference){
 	if(!referenceBaseAdded && reference.hasReference()){
-		std::vector<BAM::Base> ref; //fasta object fills string
+		std::vector<genometools::Base> ref; //fasta object fills string
 		reference.fill(*this, ref);
 		for(unsigned int i=0; i<size(); ++i){
 			_sites[i].setRefBase(ref[i]);
@@ -286,7 +286,7 @@ void TWindow_base::applyMask(BAM::TBed & mask, bool doInverseMasking){
 
 void TWindow_base::maskCpG(BAM::TFastaBuffer & reference){
 	//get ref sequence with one extra base on either side of window
-	std::vector<BAM::Base> ref;
+	std::vector<genometools::Base> ref;
 	BAM::TGenomePosition pos = _from - 1;
 	reference.fill(pos, size()+2, ref); //NOTE: appends N in case start < 0 or start + length > chr
 
@@ -478,7 +478,7 @@ void TWindow::_fillSites(BAM::TAlignment & alignment, std::vector<TSite> & sites
 	//position in window where first one = 0
 	//p is at first position of read in window
 	for(; p < alignment.parsedLength(); ++p){
-		if(alignment.isAlignedAtInternalPos(p) && alignment[p] != BAM::N){
+		if(alignment.isAlignedAtInternalPos(p) && alignment[p] != genometools::N){
 			uint32_t internalPos = alignment.positionInRef(p) - _from;
 
 			//if read extends past window length
@@ -532,7 +532,7 @@ void TWindow::_fillSitesSubset(BAM::TAlignment & alignment, std::vector<TSite> &
 	//p is at first position of read in window
 	auto it = thesePos.begin();
 	for(; p < alignment.parsedLength(); ++p){
-		if(alignment.isAlignedAtInternalPos(p) && alignment[p] != BAM::N){
+		if(alignment.isAlignedAtInternalPos(p) && alignment[p] != genometools::N){
 			uint32_t internalPos = alignment.positionInRef(p) - _from;
 
 			//if read extends past window length

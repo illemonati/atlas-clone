@@ -19,7 +19,7 @@ void TFastaBuffer::_moveTo(const TGenomePosition Position) const{
 	_coordinates.move(Position, Position + _bufferSize);
 
 	if(!_reference.GetSequence(_coordinates.refID(), _coordinates.fromOnChr(), _coordinates.toOnChr(), _referenceSequence))
-		throw "Problem reading " + toString(_coordinates.refID()) + ":" + toString(_coordinates.fromOnChr()) + "-" + toString(_coordinates.toOnChr()) + " from fasta file! Are you using the correct fasta file?";
+		throw "Problem reading " + coretools::str::toString(_coordinates.refID()) + ":" + coretools::str::toString(_coordinates.fromOnChr()) + "-" + coretools::str::toString(_coordinates.toOnChr()) + " from fasta file! Are you using the correct fasta file?";
 };
 
 void TFastaBuffer::initialize(std::string fastaFile, const uint32_t BufferSize){

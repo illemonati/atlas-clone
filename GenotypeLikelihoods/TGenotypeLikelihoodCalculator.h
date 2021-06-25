@@ -74,15 +74,15 @@ public:
 
 	coretools::Probability getErrorRate(const BAM::TSequencedBase & base) const;
 	coretools::Probability getErrorWithPMD(const BAM::TSequencedBase & base) const;
-	BAM::PhredIntErrorRate getPhredInt(const BAM::TSequencedBase & base) const;
-	BAM::PhredIntErrorRate getPhredIntWithPMD(const BAM::TSequencedBase & base) const;
+	genometools::PhredIntProbability getPhredInt(const BAM::TSequencedBase & base) const;
+	genometools::PhredIntProbability getPhredIntWithPMD(const BAM::TSequencedBase & base) const;
 	void recalibrate(BAM::TSequencedBase & base) const;
 	void recalibrateWithPMD(BAM::TSequencedBase & base) const;
 
 	//are vector versions used??
 	void recalibrate(std::vector<BAM::TSequencedBase> & bases) const;
 	void recalibrateWithPMD(std::vector<BAM::TSequencedBase> & bases) const;
-	double calculateLogPMDS(const BAM::TSequencedBase & base, const BAM::Base & ref, const coretools::Probability & pi) const; //TODO: move to PMDS class?
+	double calculateLogPMDS(const BAM::TSequencedBase & base, const genometools::Base & ref, const coretools::Probability & pi) const; //TODO: move to PMDS class?
 
 	//functions performed on sites
 	void calculateGenotypeLikelihoods(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) const;

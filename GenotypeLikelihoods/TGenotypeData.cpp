@@ -16,11 +16,11 @@ using coretools::Probability;
 //--------------------------------------------------------------------
 // TBaseLikelihoods (can also be used as haploid genotype likelihoods)
 //--------------------------------------------------------------------
-TBaseLikelihoods::TBaseLikelihoods(const BAM::Base & trueBase, const Probability & error){
+TBaseLikelihoods::TBaseLikelihoods(const genometools::Base & trueBase, const Probability & error){
 	setFromError(trueBase, error);
 };
 
-void TBaseLikelihoods::setFromError(const BAM::Base & trueBase, const Probability & error){
+void TBaseLikelihoods::setFromError(const genometools::Base & trueBase, const Probability & error){
 	set(error / 3.0);
 	_data[trueBase.get()] = error.complement();
 };
@@ -153,8 +153,8 @@ void TGenotypeLikelihoods::fill(const std::vector<TBaseLikelihoods> & bases, con
 };
 
 void TGenotypeLikelihoods::addNames(std::vector<std::string> & vec) const{
-	for(uint16_t g = BAM::AA; g < BAM::NN; g++){
-		vec.push_back( "P(D|" + (std::string) BAM::Genotype(static_cast<BAM::GenotypeEnum>(g)) + ")");
+	for(uint16_t g = BAM::AA; g < genometools::NN; g++){
+		vec.push_back( "P(D|" + (std::string) genometools::Genotype(static_cast<genometools::GenotypeEnum>(g)) + ")");
 	}
 };
 

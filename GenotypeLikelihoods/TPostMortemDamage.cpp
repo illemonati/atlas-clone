@@ -298,7 +298,7 @@ void TPMDFunctionExponential::_estimateWithNewtonRaphson(const countVec & pmdCou
 	}
 };
 
-void TPMDFunctionExponential::learn(const TPMDTable & Table, const BAM::Base & from, const BAM::Base & to, const TPMDEstimationParameters & EstimationParameters){
+void TPMDFunctionExponential::learn(const TPMDTable & Table, const genometools::Base & from, const genometools::Base & to, const TPMDEstimationParameters & EstimationParameters){
 	//extract counts in PMD direction and the inverse direction
 	const countVec& pmdCounts = Table[from][to];
 	const countVec& pmdSums = Table[from].sums();
@@ -391,7 +391,7 @@ TPMDFunctionEmpiric::TPMDFunctionEmpiric(const std::string & string){
 	}
 };
 
-void TPMDFunctionEmpiric::learn(const TPMDTable & Table, const BAM::Base & from, const BAM::Base & to, const TPMDEstimationParameters & EstimationParameters){
+void TPMDFunctionEmpiric::learn(const TPMDTable & Table, const genometools::Base & from, const genometools::Base & to, const TPMDEstimationParameters & EstimationParameters){
 	//resize parameters
 	_parameters.resize(Table.size() + 1); //include extra bin for sites beyond size (available in PMDTables)
 
@@ -505,7 +505,7 @@ void TPMDTypeDoubleStrand::simulatePMD(BAM::TSequencedBase & base, TRandomGenera
 	simulatePMD(base.base, base.distFrom5Prime, base.distFrom3Prime, base.isReverseStrand(), RandomGenerator);
 };
 
-void TPMDTypeDoubleStrand::simulatePMD(BAM::Base & base, const uint16_t & DistFrom5Prime, const uint16_t & DistFrom3Prime, const bool & IsReverseStrand, TRandomGenerator & RandomGenerator) const{
+void TPMDTypeDoubleStrand::simulatePMD(genometools::Base & base, const uint16_t & DistFrom5Prime, const uint16_t & DistFrom3Prime, const bool & IsReverseStrand, TRandomGenerator & RandomGenerator) const{
 	//simulate PMD
 	if(!IsReverseStrand){
 		//forward strand

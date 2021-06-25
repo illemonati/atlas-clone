@@ -10,7 +10,7 @@
 
 #include <vector>
 #include "../BAM/TSequencedBase.h"
-#include "Types.h"
+#include "GenotypeTypes.h"
 #include "TGenotypeData.h"
 #include "TSubsamplePicker.h"
 
@@ -26,8 +26,8 @@ namespace GenotypeLikelihoods{
 //----------------------------------------------------------------------------------------------------------------------------------
 class TSite {
 protected:
-    BAM::Base _referenceBase;
-    BAM::Genotype _genotype;
+    genometools::Base _referenceBase;
+    genometools::Genotype _genotype;
 
 	std::vector<BAM::TSequencedBase> _bases;
 
@@ -37,8 +37,8 @@ public:
 	GenotypeLikelihoods::TGenotypeLikelihoods genotypeLikelihoods;
 
     TSite(){
-        _referenceBase = BAM::N;
-        _genotype = BAM::NN;
+        _referenceBase = genometools::N;
+        _genotype = genometools::NN;
     };
 
 	void clear();
@@ -48,12 +48,12 @@ public:
 	const BAM::TSequencedBase& operator[](size_t i) const { return _bases[i]; };
 
 	// reference base
-    void setRefBase(const BAM::Base & ref){ _referenceBase = ref; };
-    BAM::Base refBase() const {return _referenceBase;};
+    void setRefBase(const genometools::Base & ref){ _referenceBase = ref; };
+    genometools::Base refBase() const {return _referenceBase;};
 
     // genotype
-    void setGenotype(const BAM::Genotype & genotype){ _genotype = genotype; };
-    BAM::Genotype genotype() const{ return _genotype; };
+    void setGenotype(const genometools::Genotype & genotype){ _genotype = genotype; };
+    genometools::Genotype genotype() const{ return _genotype; };
 
     // add
     void add(const BAM::TSequencedBase & base);

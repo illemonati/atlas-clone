@@ -14,12 +14,12 @@ using coretools::str::toString;
 //-------------------------------------------------
 // TSiteSubsetSite
 //-------------------------------------------------
-TSiteSubsetSite::TSiteSubsetSite(const uint32_t & refID, const uint32_t & position, const BAM::Base & Ref, const BAM::Base & Alt):TGenomePosition(refID, position){
+TSiteSubsetSite::TSiteSubsetSite(const uint32_t & refID, const uint32_t & position, const genometools::Base & Ref, const genometools::Base & Alt):TGenomePosition(refID, position){
 	_ref = Ref;
 	_alt = Alt;
 };
 
-TSiteSubsetSite::TSiteSubsetSite(const BAM::TGenomePosition & Position, const BAM::Base & Ref, const BAM::Base & Alt):TGenomePosition(Position){
+TSiteSubsetSite::TSiteSubsetSite(const BAM::TGenomePosition & Position, const genometools::Base & Ref, const genometools::Base & Alt):TGenomePosition(Position){
 	_ref = Ref;
 	_alt = Alt;
 };
@@ -31,11 +31,11 @@ void TSiteSubsetSite::write(coretools::TOutputFile & out) const{
 //-------------------------------------------------
 // TSiteSubset
 //-------------------------------------------------
-void TSiteSubset::_checkAlleles(const std::string & chr, const uint32_t & pos, const BAM::Base & ref, const BAM::Base & alt, const std::string & refAllele, const std::string & altAllele){
-	if(ref == BAM::N){
+void TSiteSubset::_checkAlleles(const std::string & chr, const uint32_t & pos, const genometools::Base & ref, const genometools::Base & alt, const std::string & refAllele, const std::string & altAllele){
+	if(ref == genometools::N){
 		throw "Unknown reference allele '" + refAllele + "' on chr " + chr + " at " + toString(pos+1) + "!";
 	}
-	if(alt == BAM::N){
+	if(alt == genometools::N){
 		throw "Unknown alternative allele '" + altAllele + "' on chr " + chr + " at " + toString(pos+1) + "!";
 	}
 
@@ -62,8 +62,8 @@ void TSiteSubset::_readFile(const std::string Filename, const BAM::TChromosomes 
 
 		//extract positions
 		uint32_t pos = coretools::str::convertStringCheck<uint32_t>(line[1]) - 1; //make 0-based
-		BAM::Base ref(line[2][0]);
-		BAM::Base alt(line[3][0]);
+		genometools::Base ref(line[2][0]);
+		genometools::Base alt(line[3][0]);
 
 		//check alleles
 		_checkAlleles(chr.name, pos, ref, alt, line[2], line[3]);
@@ -96,15 +96,15 @@ void TSiteSubset::_readFile(const std::string Filename, const BAM::TChromosomes 
 
 		//extract positions
 		uint32_t pos = coretools::str::convertStringCheck<uint32_t>(line[1]) - 1; //make 0-based
-		BAM::Base ref(line[2][0]);
-		BAM::Base alt(line[3][0]);
+		genometools::Base ref(line[2][0]);
+		genometools::Base alt(line[3][0]);
 
 		//check alleles
 		_checkAlleles(chr.name, pos, ref, alt, line[2], line[3]);
 
 		//check with reference
 		BAM::TGenomePosition genoPos(chr.refID(), pos);
-		BAM::Base trueRef = Reference.refAt(genoPos);
+		genometools::Base trueRef = Reference.refAt(genoPos);
 		if(trueRef != ref && trueRef != alt){
 			//conflict with fasta
 			if(!conflictsFound){

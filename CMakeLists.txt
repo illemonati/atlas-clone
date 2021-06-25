@@ -12,6 +12,7 @@ endif()
 
 # add libraries
 add_subdirectory(coretools)
+add_subdirectory(genometools)
 add_subdirectory(stattools)
 
 # locate external libraries
@@ -21,6 +22,7 @@ find_package(Armadillo REQUIRED)
 set(LINK_LIBRARIES
         coreLib
         coretools
+        genometools
         stattools
         ${ZLIB_LIBRARIES}
         ${ARMADILLO_LIBRARIES}
@@ -37,7 +39,8 @@ include_directories(
         TestUtilities
         VCF
         coretools/core
-        coretools/core/IntegrationTests        
+        coretools/core/IntegrationTests
+        genometools/core        
         stattools/core        
         ${ARMADILLO_INCLUDE_DIRS}
 )
@@ -114,5 +117,6 @@ target_include_directories("${PROJECT_NAME}_unitTests" PUBLIC
         TestUtilities/tests
         VCF/tests
         coretools/tests
+        genometools/tests
         stattools/tests
         )

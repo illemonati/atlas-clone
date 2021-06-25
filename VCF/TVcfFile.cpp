@@ -378,15 +378,15 @@ bool TVcfFileSingleLine::sampleIsHeteroRefNonref(unsigned int sample){
 float TVcfFileSingleLine::sampleGenotypeQuality(unsigned int sample){
 	return parser.sampleGenotypeQuality(tempLine, sample);
 }
-BAM::Base TVcfFileSingleLine::getFirstAlleleOfSample(unsigned int num){
+genometools::Base TVcfFileSingleLine::getFirstAlleleOfSample(unsigned int num){
 	return parser.getFirstAlleleOfSample(tempLine, num)[0];
 };
 
-BAM::Base TVcfFileSingleLine::getSecondAlleleOfSample(unsigned int num){
+genometools::Base TVcfFileSingleLine::getSecondAlleleOfSample(unsigned int num){
 	return parser.getSecondAlleleOfSample(tempLine, num)[0];
 };
-BAM::Genotype TVcfFileSingleLine::sampleGenotype(const unsigned int & num){
-	return BAM::Genotype(parser.getFirstAlleleOfSample(tempLine, num)[0], parser.getSecondAlleleOfSample(tempLine, num)[0]);
+genometools::Genotype TVcfFileSingleLine::sampleGenotype(const unsigned int & num){
+	return genometools::Genotype(parser.getFirstAlleleOfSample(tempLine, num)[0], parser.getSecondAlleleOfSample(tempLine, num)[0]);
 };
 
 // int TVcfFileSingleLine::sampleDepth(unsigned int sample){

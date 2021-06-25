@@ -48,9 +48,9 @@ protected:
 
 	//temp variables for calling
 	std::string _calledGenotype;
-	std::vector<BAM::Base> _genotypesWithHighestMetric;
-	BAM::Base referenceBase;
-	std::vector<BAM::Base> _altAlleles;
+	std::vector<genometools::Base> _genotypesWithHighestMetric;
+	genometools::Base referenceBase;
+	std::vector<genometools::Base> _altAlleles;
 	TBaseCounts _alleleCounts;
 	bool _allelesCounted;
 
@@ -119,7 +119,7 @@ public:
 	bool usesPrior(){ return _usesPrior; };
 	void setPrior(TGenotypeProbabilities* prior){ _genotypePrior = prior; _priorSet = true; };
 	void call(const std::string & chr, const long & pos, const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
-	void call(const std::string & chr, const long & pos, const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods, const BAM::Base & firstAllele, const BAM::Base & secondAllele);
+	void call(const std::string & chr, const long & pos, const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods, const genometools::Base & firstAllele, const genometools::Base & secondAllele);
 };
 
 //------------------------------------------------------
@@ -168,7 +168,7 @@ class TCallerAllelePresence:public TCaller{
 private:
 	TGenotypeProbabilities posterior;
 	TBaseLikelihoods allelePostProb;
-	BAM::Base MAP;
+	genometools::Base MAP;
 
 	void _fillPosteriors(TGenotypeLikelihoods & genotypeLikelihoods);
 	bool _callGenotype(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) override;
@@ -186,7 +186,7 @@ public:
 class TCallerDiploid:public TCaller{
 protected:
 	//uint8_t indexOfMax, indexOfSecond;
-	BAM::Genotype genotypeAtMax, genotypeAtSecond;
+	genometools::Genotype genotypeAtMax, genotypeAtSecond;
 	std::string AB, AI;
 	bool imbalanceCalculated;
 	//TGenotypeData tmpGenoData;
@@ -202,36 +202,36 @@ protected:
 		//plot missing value (.) for all metrics involving the reference if the reference is N
 		std::string ret;
 		//first for reference base
-		if(referenceBase == BAM::N)
+		if(referenceBase == genometools::N)
 			ret = ".";
 		else
-			ret = toString(metric[BAM::Genotype(referenceBase, referenceBase)]);
+			ret = toString(metric[genometools::Genotype(referenceBase, referenceBase)]);
 
 		//now for alternative alleles
 		if(_altAlleles.size() > 0){
-			if(referenceBase == BAM::N)
+			if(referenceBase == genometools::N)
 				ret += ",.";
 			else
-				ret += ',' + toString(metric[BAM::Genotype(referenceBase, _altAlleles[0])]);
-			ret += ',' + toString(metric[BAM::Genotype(_altAlleles[0], _altAlleles[0])]);
+				ret += ',' + toString(metric[genometools::Genotype(referenceBase, _altAlleles[0])]);
+			ret += ',' + toString(metric[genometools::Genotype(_altAlleles[0], _altAlleles[0])]);
 
 			if(_altAlleles.size() > 1){
-				if(referenceBase == BAM::N)
+				if(referenceBase == genometools::N)
 					ret += ",.";
 				else
-					ret += ',' + toString(metric[BAM::Genotype(referenceBase, _altAlleles[1])]);
-				ret += ',' + toString(metric[BAM::Genotype(_altAlleles[0], _altAlleles[1])]);
-				ret += ',' + toString(metric[BAM::Genotype(_altAlleles[1], _altAlleles[1])]);
+					ret += ',' + toString(metric[genometools::Genotype(referenceBase, _altAlleles[1])]);
+				ret += ',' + toString(metric[genometools::Genotype(_altAlleles[0], _altAlleles[1])]);
+				ret += ',' + toString(metric[genometools::Genotype(_altAlleles[1], _altAlleles[1])]);
 			}
 
 			if(_altAlleles.size() > 2){
-				if(referenceBase == BAM::N)
+				if(referenceBase == genometools::N)
 					ret += ",.";
 				else
-					ret += ',' + toString(metric[BAM::Genotype(referenceBase, _altAlleles[2])]);
-				ret += ',' + toString(metric[BAM::Genotype(_altAlleles[0], _altAlleles[2])]);
-				ret += ',' + toString(metric[BAM::Genotype(_altAlleles[1], _altAlleles[2])]);
-				ret += ',' + toString(metric[BAM::Genotype(_altAlleles[2], _altAlleles[2])]);
+					ret += ',' + toString(metric[genometools::Genotype(referenceBase, _altAlleles[2])]);
+				ret += ',' + toString(metric[genometools::Genotype(_altAlleles[0], _altAlleles[2])]);
+				ret += ',' + toString(metric[genometools::Genotype(_altAlleles[1], _altAlleles[2])]);
+				ret += ',' + toString(metric[genometools::Genotype(_altAlleles[2], _altAlleles[2])]);
 			}
 		}
 		return ret;
