@@ -78,8 +78,8 @@ void TAllelicDepthCounts::_freeStorage(){
 
 
 void TAllelicDepthCounts::addSite(const GenotypeLikelihoods::TBaseCounts & alleleCounts){
-	if(alleleCounts[BAM::A] < _size && alleleCounts[BAM::C] < _size && alleleCounts[BAM::G] < _size && alleleCounts[BAM::T] < _size)
-		++_counts[alleleCounts[BAM::A]][alleleCounts[BAM::C]][alleleCounts[BAM::G]][alleleCounts[BAM::T]];
+	if(alleleCounts[genometools::A] < _size && alleleCounts[genometools::C] < _size && alleleCounts[genometools::G] < _size && alleleCounts[genometools::T] < _size)
+		++_counts[alleleCounts[genometools::A]][alleleCounts[genometools::C]][alleleCounts[genometools::G]][alleleCounts[genometools::T]];
 };
 
 

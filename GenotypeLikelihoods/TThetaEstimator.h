@@ -68,7 +68,7 @@ struct Theta{
 	};
 
 	std::string getBaseFrequencyString(){
-		return "Pi(A) = " + toString(baseFreq[BAM::A]) + ", Pi(C) = " + toString(baseFreq[BAM::C]) + ", Pi(G) = " + toString(baseFreq[BAM::G]) + ", Pi(T) = " + toString(baseFreq[BAM::T]);
+		return "Pi(A) = " + toString(baseFreq[genometools::A]) + ", Pi(C) = " + toString(baseFreq[genometools::C]) + ", Pi(G) = " + toString(baseFreq[genometools::G]) + ", Pi(T) = " + toString(baseFreq[genometools::T]);
 	};
 };
 

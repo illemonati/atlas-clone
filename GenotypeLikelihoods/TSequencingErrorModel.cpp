@@ -313,22 +313,22 @@ void TSequencingErrorRho::fillBaseLikelihoods(const genometools::Base base, cons
 		baseLikelihoods.reset();
 	} else {
 		baseLikelihoods[base] = epsilon.complement();
-		if(base == BAM::A){
-			baseLikelihoods[BAM::C] = epsilon * rho[BAM::C][BAM::A];
-			baseLikelihoods[BAM::G] = epsilon * rho[BAM::G][BAM::A];
-			baseLikelihoods[BAM::T] = epsilon * rho[BAM::T][BAM::A];
-		} else if(base == BAM::C){
-			baseLikelihoods[BAM::A] = epsilon * rho[BAM::A][BAM::C];
-			baseLikelihoods[BAM::G] = epsilon * rho[BAM::G][BAM::C];
-			baseLikelihoods[BAM::T] = epsilon * rho[BAM::T][BAM::C];
-		} else if(base == BAM::G){
-			baseLikelihoods[BAM::A] = epsilon * rho[BAM::A][BAM::G];
-			baseLikelihoods[BAM::C] = epsilon * rho[BAM::C][BAM::G];
-			baseLikelihoods[BAM::T] = epsilon * rho[BAM::T][BAM::G];
+		if(base == genometools::A){
+			baseLikelihoods[genometools::C] = epsilon * rho[genometools::C][genometools::A];
+			baseLikelihoods[genometools::G] = epsilon * rho[genometools::G][genometools::A];
+			baseLikelihoods[genometools::T] = epsilon * rho[genometools::T][genometools::A];
+		} else if(base == genometools::C){
+			baseLikelihoods[genometools::A] = epsilon * rho[genometools::A][genometools::C];
+			baseLikelihoods[genometools::G] = epsilon * rho[genometools::G][genometools::C];
+			baseLikelihoods[genometools::T] = epsilon * rho[genometools::T][genometools::C];
+		} else if(base == genometools::G){
+			baseLikelihoods[genometools::A] = epsilon * rho[genometools::A][genometools::G];
+			baseLikelihoods[genometools::C] = epsilon * rho[genometools::C][genometools::G];
+			baseLikelihoods[genometools::T] = epsilon * rho[genometools::T][genometools::G];
 		} else {
-			baseLikelihoods[BAM::A] = epsilon * rho[BAM::A][BAM::T];
-			baseLikelihoods[BAM::C] = epsilon * rho[BAM::C][BAM::T];
-			baseLikelihoods[BAM::G] = epsilon * rho[BAM::G][BAM::T];
+			baseLikelihoods[genometools::A] = epsilon * rho[genometools::A][genometools::T];
+			baseLikelihoods[genometools::C] = epsilon * rho[genometools::C][genometools::T];
+			baseLikelihoods[genometools::G] = epsilon * rho[genometools::G][genometools::T];
 		}
 	}
 };
@@ -342,22 +342,22 @@ void TSequencingErrorRho::prepareEstimationFromEMWeights(){
 };
 
 void TSequencingErrorRho::addBaseForEstimation(const genometools::Base & base, const TBaseLikelihoods & EMWeights){
-	if(base == BAM::A){
-		rho[BAM::C][BAM::A] += EMWeights[BAM::C].get();
-		rho[BAM::G][BAM::A] += EMWeights[BAM::G].get();
-		rho[BAM::T][BAM::A] += EMWeights[BAM::T].get();
-	} else if(base == BAM::C){
-		rho[BAM::A][BAM::C] += EMWeights[BAM::A].get();
-		rho[BAM::G][BAM::C] += EMWeights[BAM::G].get();
-		rho[BAM::T][BAM::C] += EMWeights[BAM::T].get();
-	} else if(base == BAM::G){
-		rho[BAM::A][BAM::G] += EMWeights[BAM::A].get();
-		rho[BAM::C][BAM::G] += EMWeights[BAM::C].get();
-		rho[BAM::T][BAM::G] += EMWeights[BAM::T].get();
+	if(base == genometools::A){
+		rho[genometools::C][genometools::A] += EMWeights[genometools::C].get();
+		rho[genometools::G][genometools::A] += EMWeights[genometools::G].get();
+		rho[genometools::T][genometools::A] += EMWeights[genometools::T].get();
+	} else if(base == genometools::C){
+		rho[genometools::A][genometools::C] += EMWeights[genometools::A].get();
+		rho[genometools::G][genometools::C] += EMWeights[genometools::G].get();
+		rho[genometools::T][genometools::C] += EMWeights[genometools::T].get();
+	} else if(base == genometools::G){
+		rho[genometools::A][genometools::G] += EMWeights[genometools::A].get();
+		rho[genometools::C][genometools::G] += EMWeights[genometools::C].get();
+		rho[genometools::T][genometools::G] += EMWeights[genometools::T].get();
 	} else if(base == genometools::N){
-		rho[BAM::A][BAM::T] += EMWeights[BAM::A].get();
-		rho[BAM::C][BAM::T] += EMWeights[BAM::C].get();
-		rho[BAM::G][BAM::T] += EMWeights[BAM::G].get();
+		rho[genometools::A][genometools::T] += EMWeights[genometools::A].get();
+		rho[genometools::C][genometools::T] += EMWeights[genometools::C].get();
+		rho[genometools::G][genometools::T] += EMWeights[genometools::G].get();
 	}
 };
 
@@ -448,10 +448,10 @@ TSequencingErrorModelDefinition TSequencingErrorModelRecal::getModelDefinition()
 
 Probability TSequencingErrorModelRecal::_calcEpsilon(const double & eta) const{
 	if(eta > 23.03){
-		return 0.9999999999;
+		return Probability(0.9999999999);
 	}
 	if(eta < -23.03){
-		return 0.0000000001;
+		return Probability(0.0000000001);
 	}
 
 	return coretools::logistic(eta);
@@ -470,7 +470,7 @@ Probability TSequencingErrorModelRecal::_calcErrorRate(const BAM::TSequencedBase
 
 Probability TSequencingErrorModelRecal::getErrorRate(const BAM::TSequencedBase & base) const{
 	if(base == genometools::N){
-		return 1.0; //Todo: change to maxProb() one available.
+		return Probability::highest();
 	} else {
 		return _calcErrorRate(base);
 	}

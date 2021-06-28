@@ -472,19 +472,19 @@ void TPMDTypeDoubleStrand::estimate(const TPMDTableReadGroup & PMDTable, const T
 	//Assumption: C->T pattern is the same for forward and reverse reads from their respective 5-prime ends.
 	TPMDTable from5(PMDTable[forward5]);
 	from5.add(PMDTable[reverse5]);
-	_pmdCT->learn(from5, BAM::C, BAM::T, EstimationParameters);
+	_pmdCT->learn(from5, genometools::C, genometools::T, EstimationParameters);
 
 	//Assumption: G->A pattern is the same for forward and reverse reads from their respective 3-prime ends.
 	TPMDTable from3(PMDTable[forward3]);
 	from3.add(PMDTable[reverse3]);
-	_pmdGA->learn(from3, BAM::G, BAM::A, EstimationParameters);
+	_pmdGA->learn(from3, genometools::G, genometools::A, EstimationParameters);
 };
 
 void TPMDTypeDoubleStrand::fillBaseLikelihoods(const BAM::TSequencedBase & base, const TBaseProbabilities & baseLikelihoodsNoPMD, TBaseProbabilities & baseLikelihoods) const {
 	//Note: distances are as in original fragment (not BAM file), i.e. in direction of sequencing
 	//no PMD for A and C
-	baseLikelihoods[BAM::A] = baseLikelihoodsNoPMD[BAM::A];
-	baseLikelihoods[BAM::T] = baseLikelihoodsNoPMD[BAM::T];
+	baseLikelihoods[genometools::A] = baseLikelihoodsNoPMD[genometools::A];
+	baseLikelihoods[genometools::T] = baseLikelihoodsNoPMD[genometools::T];
 
 	//get relevant PMD probabilities
 	double pmdProb_CT, pmdProb_GA;
@@ -497,8 +497,8 @@ void TPMDTypeDoubleStrand::fillBaseLikelihoods(const BAM::TSequencedBase & base,
 	}
 
 	//add PMD
-	baseLikelihoods[BAM::C] = (1.0 - pmdProb_CT) * baseLikelihoodsNoPMD[BAM::C].get() + pmdProb_CT * baseLikelihoodsNoPMD[BAM::T].get();
-	baseLikelihoods[BAM::G] = (1.0 - pmdProb_GA) * baseLikelihoodsNoPMD[BAM::G].get() + pmdProb_GA * baseLikelihoodsNoPMD[BAM::A].get();
+	baseLikelihoods[genometools::C] = (1.0 - pmdProb_CT) * baseLikelihoodsNoPMD[genometools::C].get() + pmdProb_CT * baseLikelihoodsNoPMD[genometools::T].get();
+	baseLikelihoods[genometools::G] = (1.0 - pmdProb_GA) * baseLikelihoodsNoPMD[genometools::G].get() + pmdProb_GA * baseLikelihoodsNoPMD[genometools::A].get();
 };
 
 void TPMDTypeDoubleStrand::simulatePMD(BAM::TSequencedBase & base, TRandomGenerator & RandomGenerator) const {
@@ -509,24 +509,24 @@ void TPMDTypeDoubleStrand::simulatePMD(genometools::Base & base, const uint16_t 
 	//simulate PMD
 	if(!IsReverseStrand){
 		//forward strand
-		if(base == BAM::C){
+		if(base == genometools::C){
 			if(RandomGenerator.getRand() < _pmdCT->prob(DistFrom5Prime)){
-				base = BAM::T;
+				base = genometools::T;
 			}
-		} else if(base == BAM::G){
+		} else if(base == genometools::G){
 			if(RandomGenerator.getRand() < _pmdGA->prob(DistFrom3Prime)){
-				base = BAM::A;
+				base = genometools::A;
 			}
 		}
 	} else {
 		//reverse strand
-		if(base == BAM::C){
+		if(base == genometools::C){
 			if(RandomGenerator.getRand() < _pmdCT->prob(DistFrom3Prime)){
-				base = BAM::T;
+				base = genometools::T;
 			}
-		} else if(base == BAM::G){
+		} else if(base == genometools::G){
 			if(RandomGenerator.getRand() < _pmdGA->prob(DistFrom5Prime)){
-				base = BAM::A;
+				base = genometools::A;
 			}
 		}
 	}

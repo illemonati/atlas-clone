@@ -197,7 +197,7 @@ class TGlfWriter:public TGlfHandle{
 private:
 	long _oldPos;
 	uint8_t _recordType1;
-	BAM::HighPrecisionPhredIntProbability* _glfValues; //tmp used for writing
+	genometools::HighPrecisionPhredIntProbability* _glfValues; //tmp used for writing
 
 	void _init();
 	void _writeHeader();
@@ -248,8 +248,8 @@ private:
 	uint32_t _position;
 	uint16_t _depth;
 	int _RMS_mappingQual;
-	BAM::HighPrecisionPhredIntProbability _genotypeLikelihoodsGLF[10];
-	BAM::HighPrecisionPhredIntProbability* _genotypeLikelihoodsGLF_missingData;
+	genometools::HighPrecisionPhredIntProbability _genotypeLikelihoodsGLF[10];
+	genometools::HighPrecisionPhredIntProbability* _genotypeLikelihoodsGLF_missingData;
 
 	// about chromosomes
 	std::map< uint32_t, TGlfChromosome > _chromosomesAlreadyParsed;
@@ -293,8 +293,8 @@ public:
 	bool fillPointerToChr(uint32_t refId, TGlfChromosome* & chr);
 	uint32_t position() const{ return _position; };
 	uint16_t depth() const{ return _depth; };
-	BAM::HighPrecisionPhredIntProbability* pointerToGenotypeLikelihoodsGLF(){ return _genotypeLikelihoodsGLF; };
-    void fillGenotypeLikelihoodsGLF(BAM::HighPrecisionPhredIntProbability* destination);
+	genometools::HighPrecisionPhredIntProbability* pointerToGenotypeLikelihoodsGLF(){ return _genotypeLikelihoodsGLF; };
+    void fillGenotypeLikelihoodsGLF(genometools::HighPrecisionPhredIntProbability* destination);
     //void fillGenotypeLikelihoods(BAM::ErrorRate* destination);
 
 	//open file and parse header

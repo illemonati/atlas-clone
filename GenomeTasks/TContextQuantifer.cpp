@@ -18,7 +18,7 @@ TContextQuantifier::TContextQuantifier(TParameters & Parameters, TLog* Logfile, 
 
 void TContextQuantifier::_handleAlignment(){
 	for(auto& b : _alignment){
-		if(b.context != BAM::cNN){
+		if(b.context != genometools::cNN){
 			_contextCounts.add(b.recalibratedQualityAsPhredInt.get(), b.context.get());
 		}
 	}

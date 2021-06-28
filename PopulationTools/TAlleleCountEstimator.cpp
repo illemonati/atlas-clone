@@ -181,7 +181,7 @@ void TSiteAlleleFrequencyLikelihoods::_fillNatural(const TSampleLikelihoods* dat
 	//Calculating allele frequency likelihoods according to Nielsen et al. (2012) PLoS One, page 3
 	//adapted to also work for haploid individuals (which only have likelihoods for genotypes 0 and 1)
 
-	std::vector<coretools::Probability> alleleFrequencyLikelihoods_h(log_alleleFrequencyLikelihoods_h.size(), 0.0);
+	std::vector<coretools::Probability> alleleFrequencyLikelihoods_h(log_alleleFrequencyLikelihoods_h.size(), Probability(0.0));
 	numAlleleCounts = 0;
 
 	//find first individual  with data
@@ -337,7 +337,7 @@ void TAlleleCountEstimator::estimateAlleleCounts(coretools::TParameters & params
 	}
 
 	//create out file
-	std::string tmp = extractBeforeLast(vcfFilename, ".vcf");
+	std::string tmp = coretools::str::extractBeforeLast(vcfFilename, ".vcf");
 	std::string outname = params.getParameterWithDefault<std::string>("out", tmp);
 	std::string type = params.getParameterWithDefault<std::string>("outFormat", "default");
 	TAlleleCountFile* alleleCountFile = prepareOutputFile(type, outname, params);
@@ -352,14 +352,14 @@ void TAlleleCountEstimator::estimateAlleleCounts(coretools::TParameters & params
 
 	//run through VCF file
 	logfile->startIndent("Parsing VCF file and estimating allele counts:");
-	while(reader.readDataFromVCF(data, samples, glfConverter)){
+	while(reader.readDataFromVCF(data, samples)){
 		//write chromosome and position
 		alleleCountFile->writePosition(reader.chr(), reader.position());
 
 		//print MLE count for each population
 		for(int p=0; p<samples.numPopulations(); p++){
 			//calculate allele frequency likelihoods
-			saf[p]->fill(&data[samples.startIndex(p)], samples.numSamplesInPop(p), glfConverter);
+			saf[p]->fill(&data[samples.startIndex(p)], samples.numSamplesInPop(p));
 
 			//and print MLE counts
 			alleleCountFile->writeCounts(saf[p]->getMLAlleleCount(*randomGenerator), saf[p]->getNumAlleles(), p);
@@ -406,7 +406,7 @@ void TAlleleCountEstimator::writeAlleleFrequencyLikelihoods(coretools::TParamete
 	}
 
 	//open output file
-	std::string tmp = extractBeforeLast(vcfFilename, ".vcf");
+	std::string tmp = coretools::str::extractBeforeLast(vcfFilename, ".vcf");
 	std::string outname = params.getParameterWithDefault<std::string>("out", tmp);
 	std::string filename = outname + "_alleleFrequencyLikelihoods.txt.gz";
 	logfile->list("Will write estimated allele counts to file '" + outname + "'.");
@@ -433,14 +433,14 @@ void TAlleleCountEstimator::writeAlleleFrequencyLikelihoods(coretools::TParamete
 
 	//run through VCF file
 	logfile->startIndent("Parsing VCF file and estimating allele counts:");
-	while(reader.readDataFromVCF(data, samples, glfConverter)){
+	while(reader.readDataFromVCF(data, samples)){
 		//write chromosome and position
 		alleleFrequencyLikelihoodFile << reader.chr() << sep << reader.position();
 
 		//print MLE count for each population
 		for(int p=0; p<samples.numPopulations(); p++){
 			//calculate allele frequency likelihoods
-			saf[p]->fill(&data[samples.startIndex(p)], samples.numSamplesInPop(p), glfConverter);
+			saf[p]->fill(&data[samples.startIndex(p)], samples.numSamplesInPop(p));
 
 			//print num alleles
 			alleleFrequencyLikelihoodFile << "\t" << saf[p]->getNumAlleles();
@@ -489,7 +489,7 @@ void TAlleleCountEstimator::transformFormat(coretools::TParameters & params){
 
 	//get parameters for in and output
 	std::string countsFileName = params.getParameter<std::string>("alleleCounts");
-	std::string tmp = extractBeforeLast(countsFileName, "_alleleCounts.txt.gz");
+	std::string tmp = coretools::str::extractBeforeLast(countsFileName, "_alleleCounts.txt.gz");
 	std::string outname = params.getParameterWithDefault<std::string>("out", tmp);
 	std::string type = params.getParameterWithDefault<std::string>("outFormat", "default");
 	if(type == "default"){

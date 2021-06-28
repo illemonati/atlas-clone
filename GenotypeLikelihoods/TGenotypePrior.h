@@ -66,7 +66,7 @@ public:
 			GenotypeLikelihoods::TBaseProbabilities freq = window.estimateBaseFrequencies();
 			thetaEstimator->setBaseFreq(freq);
 			logfile->done();
-			logfile->conclude("Estimated base frequencies: " + toString(freq[BAM::A])+ ", " + toString(freq[BAM::C]) + ", " + toString(freq[BAM::G]) + ", " + toString(freq[BAM::T]));
+			logfile->conclude("Estimated base frequencies: " + toString(freq[genometools::A])+ ", " + toString(freq[genometools::C]) + ", " + toString(freq[genometools::G]) + ", " + toString(freq[genometools::T]));
 			thetaEstimator->fillPGenotype(genotypePrior);
 		}
 	};

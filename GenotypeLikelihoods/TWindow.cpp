@@ -54,7 +54,7 @@ void TWindow_base::stealFromOther(TWindow_base & other){
 };
 */
 
-TWindow_base::TWindow_base(TWindow & other, const int readUpToDepth, const double downsamplingProb, TRandomGenerator* randomGenerator){
+TWindow_base::TWindow_base(TWindow & other, const int readUpToDepth, const Probability & downsamplingProb, TRandomGenerator* randomGenerator){
 	//initialize coordinates and sites
 	downsampleFromOther(other, readUpToDepth, downsamplingProb, randomGenerator);
 };
@@ -293,7 +293,7 @@ void TWindow_base::maskCpG(BAM::TFastaBuffer & reference){
 	//now check for each base. Index in ref is shifted by 1!
 	//TODO: check this!!!
 	for(uint32_t i=0; i<size(); ++i){
-		if((ref[i] == BAM::C && ref[i+1] == BAM::G) || (ref[i+1] == BAM::C && ref[i+2] == BAM::G)){
+		if((ref[i] == genometools::C && ref[i+1] == genometools::G) || (ref[i+1] == genometools::C && ref[i+2] == genometools::G)){
 			_sites[i].clear();
 		}
 	}

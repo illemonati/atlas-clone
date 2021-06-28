@@ -140,7 +140,7 @@ void TPileup::_handleWindow(){
 
 		if(_printAlleles){
 			site.countAlleles(_alleleCounts);
-			out << _alleleCounts[BAM::A] << _alleleCounts[BAM::C] << _alleleCounts[BAM::G] << _alleleCounts[BAM::T];
+			out << _alleleCounts[genometools::A] << _alleleCounts[genometools::C] << _alleleCounts[genometools::G] << _alleleCounts[genometools::T];
 			if(_reference){
 				out << _alleleCounts[site.refBase()] << _alleleCounts.size() - _alleleCounts[site.refBase()];
 			}

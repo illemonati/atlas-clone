@@ -12,6 +12,8 @@
 #include "TSequencingErrorCovariate.h"
 #include "auxiliaryTools.h"
 #include "TGenotypeData.h"
+#include "GenotypeTypes.h"
+#include "PhredProbabilityTypes.h"
 #include <vector>
 #include <string>
 

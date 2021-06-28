@@ -11,6 +11,7 @@
 
 #include "TPMDTables.h"
 #include "TSite.h"
+#include "GenotypeTypes.h"
 //#include "auxiliaryTools.h"
 
 #include <math.h>

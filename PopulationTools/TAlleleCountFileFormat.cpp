@@ -25,7 +25,7 @@ void TAlleleCountFile::openFileToWrite(std::string filename){
 		throw "Failed to open file '" + filename + "' for writing!";
 };
 
-void TAlleleCountFile::writeHeader(TPopulationSamples & samples, TParameters & params, TLog* logfile){
+void TAlleleCountFile::writeHeader(TPopulationSamples & samples, coretools::TParameters & params, coretools::TLog* logfile){
 	bool useLocusName = params.parameterExists("useLocusName");
 	if(useLocusName){
 		logfile->list("Will print locus names (rather than chromosome and position).");
@@ -38,7 +38,7 @@ void TAlleleCountFile::writeHeader(TPopulationSamples & samples, TParameters & p
 	outFile << "\n";
 };
 
-void TAlleleCountFile::writeHeader(std::vector<std::string> populationNames, TParameters & params, TLog* logfile){
+void TAlleleCountFile::writeHeader(std::vector<std::string> populationNames, coretools::TParameters & params, coretools::TLog* logfile){
 	bool useLocusName = params.parameterExists("useLocusName");
 	if(useLocusName){
 		logfile->list("Will print locus names (rather than chromosome and position).");

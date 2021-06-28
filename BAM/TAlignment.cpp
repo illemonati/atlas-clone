@@ -197,9 +197,9 @@ bool TAlignment::isAlignedAtInternalPos(const uint32_t internalPosition) const{
 	return _alignedPosition[internalPosition] >= 0;
 };
 
-BAM::Base TAlignment::referenceAtInternalPos(const uint32_t & internalPosition) const{
+genometools::Base TAlignment::referenceAtInternalPos(const uint32_t & internalPosition) const{
 	if(!_hasReference){
-		throw std::runtime_error("BAM::Base TAlignment::referenceAtInternalPos(const uint32_t internalPosition) const: alignment has no reference!");
+		throw std::runtime_error("genometools::Base TAlignment::referenceAtInternalPos(const uint32_t internalPosition) const: alignment has no reference!");
 	}
 	return _referenceSequence[_alignedPosition[internalPosition]];
 };

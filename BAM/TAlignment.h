@@ -199,7 +199,7 @@ public:
 	uint32_t lastAlingedInternalPos() const{ return _lastAlignedPos; };
 	TGenomePosition lastAlignedPositionWithRespectToRef() const{ return _lastAlignedPositionWithRespectToRef; };
 	bool isAlignedAtInternalPos(const uint32_t internalPosition) const;
-	BAM::Base referenceAtInternalPos(const uint32_t & internalPosition) const;
+	genometools::Base referenceAtInternalPos(const uint32_t & internalPosition) const;
 	TGenomePosition positionInRef(const uint32_t & internalPosition) const;
 	const BAM::TGenomePosition& mateGenomicPosition() const{ return _mateGenomicPosition; };
 	uint32_t matePosition() const{ return _mateGenomicPosition.position(); };

@@ -14,56 +14,56 @@ namespace GenotypeLikelihoods{
 // Base class.
 //-------------------------------------------
 void TGenotypeDistribution::fillBaseFrequences(TBaseProbabilities & baseFreq, const genometools::Genotype genotype){
-	if(genotype == BAM::AA){
-		baseFreq[BAM::A] = 1.0;
-		baseFreq[BAM::C] = 0.0;
-		baseFreq[BAM::G] = 0.0;
-		baseFreq[BAM::T] = 0.0;
-	} else if(genotype == BAM::AC){
-		baseFreq[BAM::A] = 0.5;
-		baseFreq[BAM::C] = 0.5;
-		baseFreq[BAM::G] = 0.0;
-		baseFreq[BAM::T] = 0.0;
-	} else if(genotype == BAM::AG){
-		baseFreq[BAM::A] = 0.5;
-		baseFreq[BAM::C] = 0.0;
-		baseFreq[BAM::G] = 0.5;
-		baseFreq[BAM::T] = 0.0;
-	} else if(genotype == BAM::AT){
-		baseFreq[BAM::A] = 0.5;
-		baseFreq[BAM::C] = 0.0;
-		baseFreq[BAM::G] = 0.0;
-		baseFreq[BAM::T] = 0.5;
-	} else if(genotype == BAM::CC){
-		baseFreq[BAM::A] = 0.0;
-		baseFreq[BAM::C] = 1.0;
-		baseFreq[BAM::G] = 0.0;
-		baseFreq[BAM::T] = 0.0;
-	} else if(genotype == BAM::CG){
-		baseFreq[BAM::A] = 0.0;
-		baseFreq[BAM::C] = 0.5;
-		baseFreq[BAM::G] = 0.5;
-		baseFreq[BAM::T] = 0.0;
-	} else if(genotype == BAM::CT){
-		baseFreq[BAM::A] = 0.0;
-		baseFreq[BAM::C] = 0.5;
-		baseFreq[BAM::G] = 0.0;
-		baseFreq[BAM::T] = 0.5;
-	} else if(genotype == BAM::GG){
-		baseFreq[BAM::A] = 0.0;
-		baseFreq[BAM::C] = 0.0;
-		baseFreq[BAM::G] = 1.0;
-		baseFreq[BAM::T] = 0.0;
-	} else if(genotype == BAM::GT){
-		baseFreq[BAM::A] = 0.0;
-		baseFreq[BAM::C] = 0.0;
-		baseFreq[BAM::G] = 0.5;
-		baseFreq[BAM::T] = 0.5;
-	} else if(genotype == BAM::TT){
-		baseFreq[BAM::A] = 0.0;
-		baseFreq[BAM::C] = 0.0;
-		baseFreq[BAM::G] = 0.0;
-		baseFreq[BAM::T] = 1.0;
+	if(genotype == genometools::AA){
+		baseFreq[genometools::A] = 1.0;
+		baseFreq[genometools::C] = 0.0;
+		baseFreq[genometools::G] = 0.0;
+		baseFreq[genometools::T] = 0.0;
+	} else if(genotype == genometools::AC){
+		baseFreq[genometools::A] = 0.5;
+		baseFreq[genometools::C] = 0.5;
+		baseFreq[genometools::G] = 0.0;
+		baseFreq[genometools::T] = 0.0;
+	} else if(genotype == genometools::AG){
+		baseFreq[genometools::A] = 0.5;
+		baseFreq[genometools::C] = 0.0;
+		baseFreq[genometools::G] = 0.5;
+		baseFreq[genometools::T] = 0.0;
+	} else if(genotype == genometools::AT){
+		baseFreq[genometools::A] = 0.5;
+		baseFreq[genometools::C] = 0.0;
+		baseFreq[genometools::G] = 0.0;
+		baseFreq[genometools::T] = 0.5;
+	} else if(genotype == genometools::CC){
+		baseFreq[genometools::A] = 0.0;
+		baseFreq[genometools::C] = 1.0;
+		baseFreq[genometools::G] = 0.0;
+		baseFreq[genometools::T] = 0.0;
+	} else if(genotype == genometools::CG){
+		baseFreq[genometools::A] = 0.0;
+		baseFreq[genometools::C] = 0.5;
+		baseFreq[genometools::G] = 0.5;
+		baseFreq[genometools::T] = 0.0;
+	} else if(genotype == genometools::CT){
+		baseFreq[genometools::A] = 0.0;
+		baseFreq[genometools::C] = 0.5;
+		baseFreq[genometools::G] = 0.0;
+		baseFreq[genometools::T] = 0.5;
+	} else if(genotype == genometools::GG){
+		baseFreq[genometools::A] = 0.0;
+		baseFreq[genometools::C] = 0.0;
+		baseFreq[genometools::G] = 1.0;
+		baseFreq[genometools::T] = 0.0;
+	} else if(genotype == genometools::GT){
+		baseFreq[genometools::A] = 0.0;
+		baseFreq[genometools::C] = 0.0;
+		baseFreq[genometools::G] = 0.5;
+		baseFreq[genometools::T] = 0.5;
+	} else if(genotype == genometools::TT){
+		baseFreq[genometools::A] = 0.0;
+		baseFreq[genometools::C] = 0.0;
+		baseFreq[genometools::G] = 0.0;
+		baseFreq[genometools::T] = 1.0;
 	}
 };
 
@@ -76,21 +76,21 @@ TGenotypeDistribution_haploid::TGenotypeDistribution_haploid(){
 };
 
 void TGenotypeDistribution_haploid::reset(){
-	_baseFrequencies [BAM::A] = 0.25;
-	_baseFrequencies [BAM::C] = 0.25;
-	_baseFrequencies [BAM::G] = 0.25;
-	_baseFrequencies [BAM::T] = 0.25;
+	_baseFrequencies [genometools::A] = 0.25;
+	_baseFrequencies [genometools::C] = 0.25;
+	_baseFrequencies [genometools::G] = 0.25;
+	_baseFrequencies [genometools::T] = 0.25;
 
-	_genotypeFrequencies[BAM::AA] = 0.25;
-	_genotypeFrequencies[BAM::AC] = 0.0;
-	_genotypeFrequencies[BAM::AG] = 0.0;
-	_genotypeFrequencies[BAM::AT] = 0.0;
-	_genotypeFrequencies[BAM::CC] = 0.25;
-	_genotypeFrequencies[BAM::CG] = 0.0;
-	_genotypeFrequencies[BAM::CT] = 0.0;
-	_genotypeFrequencies[BAM::GG] = 0.25;
-	_genotypeFrequencies[BAM::GT] = 0.0;
-	_genotypeFrequencies[BAM::TT] = 0.25;
+	_genotypeFrequencies[genometools::AA] = 0.25;
+	_genotypeFrequencies[genometools::AC] = 0.0;
+	_genotypeFrequencies[genometools::AG] = 0.0;
+	_genotypeFrequencies[genometools::AT] = 0.0;
+	_genotypeFrequencies[genometools::CC] = 0.25;
+	_genotypeFrequencies[genometools::CG] = 0.0;
+	_genotypeFrequencies[genometools::CT] = 0.0;
+	_genotypeFrequencies[genometools::GG] = 0.25;
+	_genotypeFrequencies[genometools::GT] = 0.0;
+	_genotypeFrequencies[genometools::TT] = 0.25;
 };
 
 

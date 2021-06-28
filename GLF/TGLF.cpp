@@ -48,7 +48,7 @@ double TGlfConverter::toScaledLikelihood(uint16_t glfValue) const{
 };
 
 genometools::PhredIntProbability TGlfConverter::toPhred(uint16_t glfValue) const{
-	return genometools::PhredErrorRate(glfValue / 100.0);
+	return genometools::PhredProbability(glfValue / 100.0);
 };
 
 double TGlfConverter::toLog10(uint16_t glfValue) const{
@@ -64,7 +64,7 @@ BAM::LogErrorRate TGlfConverter::toLog(uint16_t glfValue) const{
 //TGlfWriter
 //---------------------------------
 void TGlfWriter::_init(){
-    _glfValues = new BAM::HighPrecisionPhredIntProbability[_curChr.maxNumLikelihoodValues];
+    _glfValues = new genometools::HighPrecisionPhredIntProbability[_curChr.maxNumLikelihoodValues];
     _oldPos = 0;
     _recordType1 = _one8 << 4;
 };
@@ -131,16 +131,16 @@ void TGlfWriter::writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual, Ge
 	//Note: genotype likelihoods are given for the 10 diploid genotypes!!
 	//TODO: maybe do in GLFChromosomes?
 	if(_curChr.ploidy == 1){
-		coretools::Probability maxLik = genotypeLikelihoods[BAM::AA];
-		if(genotypeLikelihoods[BAM::CC] > maxLik) maxLik = genotypeLikelihoods[BAM::CC];
-		if(genotypeLikelihoods[BAM::GG] > maxLik) maxLik = genotypeLikelihoods[BAM::GG];
-		if(genotypeLikelihoods[BAM::TT] > maxLik) maxLik = genotypeLikelihoods[BAM::TT];
+		coretools::Probability maxLik = genotypeLikelihoods[genometools::AA];
+		if(genotypeLikelihoods[genometools::CC] > maxLik) maxLik = genotypeLikelihoods[genometools::CC];
+		if(genotypeLikelihoods[genometools::GG] > maxLik) maxLik = genotypeLikelihoods[genometools::GG];
+		if(genotypeLikelihoods[genometools::TT] > maxLik) maxLik = genotypeLikelihoods[genometools::TT];
 
 		//normalize and scale to uint16
-		_glfValues[0] = genotypeLikelihoods[BAM::AA] / maxLik;
-        _glfValues[1] = genotypeLikelihoods[BAM::CC] / maxLik;
-        _glfValues[2] = genotypeLikelihoods[BAM::GG] / maxLik;
-        _glfValues[3] = genotypeLikelihoods[BAM::TT] / maxLik;
+		_glfValues[0] = genotypeLikelihoods[genometools::AA] / maxLik;
+        _glfValues[1] = genotypeLikelihoods[genometools::CC] / maxLik;
+        _glfValues[2] = genotypeLikelihoods[genometools::GG] / maxLik;
+        _glfValues[3] = genotypeLikelihoods[genometools::TT] / maxLik;
 	} else {
 		//ploidy is 2
 		coretools::Probability maxLik = genotypeLikelihoods.max();
@@ -184,7 +184,7 @@ void TGlfReader::_init(){
 	_lenRead = 0;
 	_eof = true;
 
-	_genotypeLikelihoodsGLF_missingData = new BAM::HighPrecisionPhredIntProbability[_curChr.maxNumLikelihoodValues];
+	_genotypeLikelihoodsGLF_missingData = new genometools::HighPrecisionPhredIntProbability[_curChr.maxNumLikelihoodValues];
 	for(int i=0; i < _curChr.maxNumLikelihoodValues; ++i)
 		_genotypeLikelihoodsGLF_missingData[i] = 0;
 };
@@ -419,9 +419,9 @@ bool TGlfReader::readNextWindow(std::vector<uint16_t*> & genoLikelihoods, const 
 	return true;
 };
 
-void TGlfReader::fillGenotypeLikelihoodsGLF(BAM::HighPrecisionPhredIntProbability* destination){
+void TGlfReader::fillGenotypeLikelihoodsGLF(genometools::HighPrecisionPhredIntProbability* destination){
 	//assumes pointer points to
-	memcpy(destination, _genotypeLikelihoodsGLF, _curChr.numLikelihoodValues * sizeof(BAM::HighPrecisionPhredIntProbability));
+	memcpy(destination, _genotypeLikelihoodsGLF, _curChr.numLikelihoodValues * sizeof(genometools::HighPrecisionPhredIntProbability));
 };
 
 /*

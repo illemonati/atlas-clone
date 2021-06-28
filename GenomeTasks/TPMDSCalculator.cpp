@@ -18,7 +18,7 @@ using coretools::str::toString;
 //TODO: should that filter pairs as in TBamFilter?
 TPMDSCalculator::TPMDSCalculator(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_parsed(Parameters, Logfile, RandomGenerator){
 	//get parameters
-	_pi = Parameters.getParameterWithDefault<double>("pi", 0.001);
+	_pi = Parameters.getParameterWithDefault<coretools::Probability>("pi", coretools::Probability(0.001));
 	_logfile->list("Running PMDS with rate of polymorphism (pi) = " + toString(_pi));
 	_minPMDS = Parameters.getParameterWithDefault<double>("minPMDS", -10000);
 	_maxPMDS = Parameters.getParameterWithDefault<double>("maxPMDS", 10000);

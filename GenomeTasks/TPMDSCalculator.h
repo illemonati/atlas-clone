@@ -18,7 +18,8 @@ namespace GenomeTasks{
 //----------------------------------------------
 class TPMDSCalculator:public TGenome_parsed{
 private:
-	double _pi, _minPMDS, _maxPMDS;
+	coretools::Probability _pi;
+	double _minPMDS, _maxPMDS;
 	BAM::TOutputBamFile _outBam;
 
 	double _calculatePMDS();

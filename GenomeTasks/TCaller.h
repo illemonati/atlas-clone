@@ -13,6 +13,7 @@
 #include "TGenome.h"
 #include "TTask.h"
 #include "TVCFFields.h"
+#include "stringFunctions.h"
 
 namespace GenomeTasks{
 

@@ -629,10 +629,10 @@ void TCallerAllelePresence::_fillPosteriors(TGenotypeLikelihoods & genotypeLikel
 	posterior.fillBayesian(genotypeLikelihoods, *_genotypePrior);
 
 	//sum for each base
-	allelePostProb[BAM::A] = posterior[BAM::AA] + posterior[BAM::AC] + posterior[BAM::AG] + posterior[BAM::AT];
-	allelePostProb[BAM::C] = posterior[BAM::AC] + posterior[BAM::CC] + posterior[BAM::CG] + posterior[BAM::CT];
-	allelePostProb[BAM::G] = posterior[BAM::AG] + posterior[BAM::CG] + posterior[BAM::GG] + posterior[BAM::GT];
-	allelePostProb[BAM::T] = posterior[BAM::AT] + posterior[BAM::CT] + posterior[BAM::GT] + posterior[BAM::TT];
+	allelePostProb[genometools::A] = posterior[genometools::AA] + posterior[genometools::AC] + posterior[genometools::AG] + posterior[genometools::AT];
+	allelePostProb[genometools::C] = posterior[genometools::AC] + posterior[genometools::CC] + posterior[genometools::CG] + posterior[genometools::CT];
+	allelePostProb[genometools::G] = posterior[genometools::AG] + posterior[genometools::CG] + posterior[genometools::GG] + posterior[genometools::GT];
+	allelePostProb[genometools::T] = posterior[genometools::AT] + posterior[genometools::CT] + posterior[genometools::GT] + posterior[genometools::TT];
 };
 
 bool TCallerAllelePresence::_callGenotype(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){
@@ -697,10 +697,10 @@ std::string TCallerAllelePresence::_getVCFGenotypeString_GQ(const TSite & site, 
 };
 
 std::string TCallerAllelePresence::_getVCFGenotypeString_AP(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){
-	std::string ret = (std::string) genometools::PhredIntProbability(allelePostProb[BAM::A]);
-	ret += ',' + (std::string) genometools::PhredIntProbability(allelePostProb[BAM::C]);
-	ret += ',' + (std::string) genometools::PhredIntProbability(allelePostProb[BAM::G]);
-	ret += ',' + (std::string) genometools::PhredIntProbability(allelePostProb[BAM::T]);
+	std::string ret = (std::string) genometools::PhredIntProbability(allelePostProb[genometools::A]);
+	ret += ',' + (std::string) genometools::PhredIntProbability(allelePostProb[genometools::C]);
+	ret += ',' + (std::string) genometools::PhredIntProbability(allelePostProb[genometools::G]);
+	ret += ',' + (std::string) genometools::PhredIntProbability(allelePostProb[genometools::T]);
 	return ret;
 };
 
@@ -807,7 +807,7 @@ void TCallerDiploid::callGenotypeFromMetric(const TGenotypeProbability_base & me
 
 void TCallerDiploid::callGenotypeFromMetricKnownAlleles(const TGenotypeProbability_base & metric){
 	//get genotypes
-	BAM::BiallelicGenotypes geno(referenceBase, _altAlleles[0]);
+	genometools::BiallelicGenotypes geno(referenceBase, _altAlleles[0]);
 
 	//find max
 	Probability max = metric[geno.homoFirst()];
@@ -831,7 +831,7 @@ void TCallerDiploid::callGenotypeFromMetricKnownAlleles(const TGenotypeProbabili
 
 bool TCallerDiploid::callGenotypeFromMetricKnownAllelesUpdateIndex(const TGenotypeProbability_base & metric){
 	//get genotypes
-	BAM::BiallelicGenotypes geno(referenceBase, _altAlleles[0]);
+	genometools::BiallelicGenotypes geno(referenceBase, _altAlleles[0]);
 
 	//identify highest and second highest
 	//TODO: is there a better way than an endless if / else?
@@ -1055,9 +1055,9 @@ std::string TCallerMLE::_getVCFGenotypeString_GL(const TSite & site, TGenotypeLi
 std::string TCallerMLE::_getVCFGenotypeString_PL(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){
 	//normalize
 	TGenotypeData_base<genometools::PhredIntProbability> PL;
-	genometools::PhredErrorRate phredMax(genotypeLikelihoods[genotypeAtMax]);
+	genometools::PhredProbability phredMax(genotypeLikelihoods[genotypeAtMax]);
 	for(genometools::Genotype g = genometools::Genotype::min(); g < genometools::Genotype::max(); ++g){
-		PL[g] = genometools::PhredErrorRate(genotypeLikelihoods[g] / genotypeLikelihoods[genotypeAtMax]);
+		PL[g] = genometools::PhredProbability(genotypeLikelihoods[g] / genotypeLikelihoods[genotypeAtMax]);
 	}
 
 	//get string

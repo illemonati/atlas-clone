@@ -9,15 +9,15 @@
 
 namespace PopulationTools{
 
-double THardyWeinbergGenotypeProbabilities::calcLogLikelihood(const TSampleLikelihoods* storage, const uint32_t numSamplesInPopulation, TGlfConverter & glfConverter){
+double THardyWeinbergGenotypeProbabilities::calcLogLikelihood(const TSampleLikelihoods* storage, const uint32_t numSamplesInPopulation){
 	double LL = 0.0;
 
 	for(uint32_t i=0; i<numSamplesInPopulation; i++){
 		if(!storage[i].isMissing){
 			if(storage[i].isHaploid){
-				LL += log(glfConverter[ storage[i].glfLikelihood_0 ] * oneMinusf + glfConverter[ storage[i].glfLikelihood_1 ] * f);
+				LL += log( (Probability) storage[i].glfLikelihood_0  * oneMinusf + (Probability) storage[i].glfLikelihood_1 * f);
 			} else {
-				LL += log(glfConverter[ storage[i].glfLikelihood_0 ] * genotypeProbabilities[0] + glfConverter[ storage[i].glfLikelihood_1 ] * genotypeProbabilities[1] + glfConverter[ storage[i].glfLikelihood_2 ] * genotypeProbabilities[2]);
+				LL += log( (Probability) storage[i].glfLikelihood_0  * genotypeProbabilities[0] + (Probability) storage[i].glfLikelihood_1  * genotypeProbabilities[1] + (Probability) storage[i].glfLikelihood_2  * genotypeProbabilities[2]);
 			}
 		}
 	}
@@ -32,7 +32,7 @@ TAlleleFreqEstimatorHardyWeinberg::TAlleleFreqEstimatorHardyWeinberg(){
 	maxIter = 1000;
 };
 
-double TAlleleFreqEstimatorHardyWeinberg::estimate(const TSampleLikelihoods* storage, const uint32_t numSamplesInPop, double epsilonF, TGlfConverter & glfConverter){
+double TAlleleFreqEstimatorHardyWeinberg::estimate(const TSampleLikelihoods* storage, const uint32_t numSamplesInPop, double epsilonF){
 	pGenotype.set(0.5);
 	double weights[3];
 
@@ -48,8 +48,8 @@ double TAlleleFreqEstimatorHardyWeinberg::estimate(const TSampleLikelihoods* sto
 		for(uint32_t i=0; i<numSamplesInPop; i++){
 			if(!storage[i].isMissing){
 				if(storage[i].isHaploid){
-					weights[0] = glfConverter[ storage[i].glfLikelihood_0 ] * pGenotype.oneMinusf;
-					weights[1] = glfConverter[ storage[i].glfLikelihood_1 ] * pGenotype.f;
+					weights[0] = (Probability) storage[i].glfLikelihood_0  * pGenotype.oneMinusf;
+					weights[1] = (Probability) storage[i].glfLikelihood_1  * pGenotype.f;
 					double sum = weights[0] + weights[1];
 
 					//add to sums
@@ -57,9 +57,9 @@ double TAlleleFreqEstimatorHardyWeinberg::estimate(const TSampleLikelihoods* sto
 					n += 1;
 				} else {
 					//calculate weights
-					weights[0] = glfConverter[ storage[i].glfLikelihood_0 ] * pGenotype[0];
-					weights[1] = glfConverter[ storage[i].glfLikelihood_1 ] * pGenotype[1];
-					weights[2] = glfConverter[ storage[i].glfLikelihood_2 ] * pGenotype[2];
+					weights[0] = (Probability) storage[i].glfLikelihood_0  * pGenotype[0];
+					weights[1] = (Probability) storage[i].glfLikelihood_1  * pGenotype[1];
+					weights[2] = (Probability) storage[i].glfLikelihood_2  * pGenotype[2];
 					double sum = weights[0] + weights[1] + weights[2];
 
 					//add to sums
@@ -84,11 +84,10 @@ double TAlleleFreqEstimatorHardyWeinberg::estimate(const TSampleLikelihoods* sto
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // TAlleleHardyWeinbergFreqEstimator                                                          //
 ////////////////////////////////////////////////////////////////////////////////////////////////
-TAlleleFreqEstimatorBayes::TAlleleFreqEstimatorBayes(TParameters & Parameters, TLog* logfile, TGlfConverter* GlfConverter, TRandomGenerator* RandomGenerator){
+TAlleleFreqEstimatorBayes::TAlleleFreqEstimatorBayes(TParameters & Parameters, TLog* logfile, TRandomGenerator* RandomGenerator){
 	logfile->startIndent("Initializing Bayesian allele frequency estimator:");
 
 	randomGenerator = RandomGenerator;
-	glfConverter = GlfConverter;
 
 	//prior
 	alpha = Parameters.getParameterWithDefault("alpha", 0.7);
@@ -102,7 +101,7 @@ TAlleleFreqEstimatorBayes::TAlleleFreqEstimatorBayes(TParameters & Parameters, T
 	priorDensAtMin = _prior(minPriorSupport);
 	priorDensAtMax = _prior(maxPriorSupport);
 
-	logfile->list("Will use a beta(" + toString(alpha) + "," + toString(beta) + ") prior (alpha, beta).");
+	logfile->list("Will use a beta(", alpha, ",", beta, ") prior (alpha, beta).");
 	logfile->endIndent();
 
 	//MAP estimation
@@ -200,18 +199,18 @@ double TAlleleFreqEstimatorBayes::_prior(const THardyWeinbergGenotypeProbabiliti
 	}
 };
 
-double TAlleleFreqEstimatorBayes::_calcPosterior(const TSampleLikelihoods* storage, const uint32_t numSamplesInPopulation, THardyWeinbergGenotypeProbabilities & pGenotype){
-	return pGenotype.calcLogLikelihood(storage, numSamplesInPopulation, *glfConverter) + _prior(pGenotype);
+double TAlleleFreqEstimatorBayes::_calcPosterior(const TSampleLikelihoods* storage, const uint32_t & numSamplesInPopulation, THardyWeinbergGenotypeProbabilities & pGenotype){
+	return pGenotype.calcLogLikelihood(storage, numSamplesInPopulation) + _prior(pGenotype);
 };
 
-void TAlleleFreqEstimatorBayes::_fillInitialGrid(const TSampleLikelihoods* storage, const uint32_t numSamplesInPopulation){
+void TAlleleFreqEstimatorBayes::_fillInitialGrid(const TSampleLikelihoods* storage, const uint32_t & numSamplesInPopulation){
 	for(int i=0; i<initialGridSize; ++i){
 		pGenotype.set(f_initialGrid[i]);
 		density_initialGrid[i] = _calcPosterior(storage, numSamplesInPopulation, pGenotype);
 	}
 };
 
-void TAlleleFreqEstimatorBayes::_estimateMAP(const TSampleLikelihoods* storage, const uint32_t numSamplesInPopulation){
+void TAlleleFreqEstimatorBayes::_estimateMAP(const TSampleLikelihoods* storage, const uint32_t & numSamplesInPopulation){
 	//use simple line-search to find MAP
 	//initialize
 	pGenotype.set(_guessInitialAlleleFrequency(storage, numSamplesInPopulation));
@@ -245,7 +244,7 @@ void TAlleleFreqEstimatorBayes::_estimateMAP(const TSampleLikelihoods* storage, 
 	}
 };
 
-void TAlleleFreqEstimatorBayes::_estimateCredibleIntervals(const TSampleLikelihoods* storage, const uint32_t numSamplesInPopulation){
+void TAlleleFreqEstimatorBayes::_estimateCredibleIntervals(const TSampleLikelihoods* storage, const uint32_t & numSamplesInPopulation){
 	//use initial grid to define final grid
 	//search first that is larger than LL_atMAP - logGridThreshold
 	int first = 0;
@@ -340,7 +339,7 @@ void TAlleleFreqEstimatorBayes::_estimateCredibleIntervals(const TSampleLikeliho
 		f_CI_upper = 1.0;
 };
 
-double TAlleleFreqEstimatorBayes::estimate(const TSampleLikelihoods* storage, const uint32_t numSamplesInPop){
+double TAlleleFreqEstimatorBayes::estimate(const TSampleLikelihoods* storage, const uint32_t & numSamplesInPop){
 	//get MAP estimate
 	_estimateMAP(storage, numSamplesInPop);
 
@@ -353,11 +352,11 @@ double TAlleleFreqEstimatorBayes::estimate(const TSampleLikelihoods* storage, co
 
 void TAlleleFreqEstimatorBayes::composeHeader(std::vector<std::string> & header, const std::string & popName){
 	header.push_back("freqAltHW_MAP_" + popName);
-	header.push_back("freqAltHW_CI" + toString(credibleInterval) + "_lower_" + popName);
-	header.push_back("freqAltHW_CI" + toString(credibleInterval) + "_upper_" + popName);
+	header.push_back("freqAltHW_CI" + coretools::str::toString(credibleInterval) + "_lower_" + popName);
+	header.push_back("freqAltHW_CI" + coretools::str::toString(credibleInterval) + "_upper_" + popName);
 };
 
-void TAlleleFreqEstimatorBayes::estimateAndWrite(const TSampleLikelihoods* storage, const uint32_t numSamplesInPop, TOutputFile & out){
+void TAlleleFreqEstimatorBayes::estimateAndWrite(const TSampleLikelihoods* storage, const uint32_t & numSamplesInPop, coretools::TOutputFile & out){
 	out << estimate(storage, numSamplesInPop); //MAP
 	out << lowerCredibleInterval();
 	out << upperCredibleInterval();

@@ -11,6 +11,7 @@
 
 #include "TGLF.h"
 #include "TFastaBuffer.h"
+#include "TParameters.h"
 
 namespace GLF{
 
@@ -22,7 +23,7 @@ using coretools::TLog;
 //TMultiGLFData
 //----------------------------------------------------
 struct TMultiGLFDataSample{
-	BAM::HighPrecisionPhredIntProbability* genotypeLikelihoodsGLF; //points to data TGlfReader
+	genometools::HighPrecisionPhredIntProbability* genotypeLikelihoodsGLF; //points to data TGlfReader
 	bool hasData;
 	bool isHaploid;
 	uint16_t depth;
@@ -38,7 +39,7 @@ public:
 
 	void resize(const uint32_t & Size);
 	size_t size() const { return samples.size(); };
-	void fill(PopulationTools::TPopulationLikehoodLocus & storage, const BAM::AllelicCombination & alleleicCombination);
+	void fill(PopulationTools::TPopulationLikehoodLocus & storage, const genometools::AllelicCombination & alleleicCombination);
 	uint32_t totalDepth();
 };
 
@@ -54,15 +55,15 @@ private:
 	gz::ogzstream vcf;
 	bool vcfOpened;
 
-	BAM::Base _ref, _alt;
+	genometools::Base _ref, _alt;
 	//char ref_char, alt_char;
 	std::string _genotypeString[5];
 	genometools::Genotype _refHom, _het, _altHom;
 
 	void _openVCF(const std::string & filename, const std::string & source, std::vector<std::string> & sampleNames);
 	void _closeVCF();
-	void _setMajorMinor(const BAM::Base & refAllele, const BAM::Base & altAllele);
-	void writeLikelihood(const BAM::HighPrecisionPhredIntProbability & likGlf);
+	void _setMajorMinor(const genometools::Base & refAllele, const genometools::Base & altAllele);
+	void writeLikelihood(const genometools::HighPrecisionPhredIntProbability & likGlf);
 	void writeDiploidIndividualToVCF(TMultiGLFDataSample & sample);
 	void writeHaploidIndividualToVCF(TMultiGLFDataSample & sample);
 
@@ -73,7 +74,7 @@ public:
 	}
 
 	void usePhredScaledLikelihoods(){ _usePhredScaledLikelihoods = true; };
-	void writeSite(const std::string & chrName, const uint32_t & position, const int & varianTQuality, TMultiGLFData & data, const BAM::Base Ref, const BAM::Base Alt);
+	void writeSite(const std::string & chrName, const uint32_t & position, const int & varianTQuality, TMultiGLFData & data, const genometools::Base Ref, const genometools::Base Alt);
 };
 
 //----------------------------------------------------
@@ -107,7 +108,7 @@ private:
 	uint32_t _curRefId;
 	TGlfChromosome _curChr;
 	int _numActiveFilesWithData;
-	BAM::HighPrecisionPhredIntProbability genotypeQualitiesMissingData[10];
+	genometools::HighPrecisionPhredIntProbability genotypeQualitiesMissingData[10];
 	int minDepth;
 
 	//reference
@@ -116,8 +117,8 @@ private:
 
 	bool moveToNextChromosome();
 
-	void writeDiploidIndividualToVCF(const int & ind, gz::ogzstream & vcf, const BAM::Base & major, const BAM::Base & minor, const std::vector<std::string> & genotypeStrings, TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods);
-	void writeHaploidIndividualToVCF(const int & ind, gz::ogzstream & vcf, const BAM::Base & major, const BAM::Base & minor, const std::vector<std::string> & genotypeStrings, TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods);
+	void writeDiploidIndividualToVCF(const int & ind, gz::ogzstream & vcf, const genometools::Base & major, const genometools::Base & minor, const std::vector<std::string> & genotypeStrings, TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods);
+	void writeHaploidIndividualToVCF(const int & ind, gz::ogzstream & vcf, const genometools::Base & major, const genometools::Base & minor, const std::vector<std::string> & genotypeStrings, TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods);
 
 public:
 	TMultiGLFData data;
@@ -158,7 +159,7 @@ public:
 	int numActiveSamplesWithData(){ return _numActiveFilesWithData; };
 	std::string chr(){return _curChr.name; };
 	uint32_t position(){return _position; };
-	BAM::Base refBase();
+	genometools::Base refBase();
 };
 
 }; //end namespace GLF

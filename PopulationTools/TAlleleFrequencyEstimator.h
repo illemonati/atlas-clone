@@ -16,6 +16,11 @@
 
 namespace PopulationTools{
 
+using coretools::TParameters;
+using coretools::TLog;
+using coretools::TRandomGenerator;
+using coretools::Probability;
+
 //------------------------------------------------
 //THardyWeinbergGenotypeProbabilities
 //------------------------------------------------
@@ -43,7 +48,7 @@ public:
 		return genotypeProbabilities[g];
 	};
 
-	double calcLogLikelihood(const TSampleLikelihoods* storage, const uint32_t numSamplesInPopulation, TGlfConverter & glfConverter);
+	double calcLogLikelihood(const TSampleLikelihoods* storage, const uint32_t numSamplesInPopulation);
 };
 
 //------------------------------------------------
@@ -56,7 +61,7 @@ private:
 
 public:
 	TAlleleFreqEstimatorHardyWeinberg();
-	double estimate(const TSampleLikelihoods* storage, const uint32_t numSamplesInPop, double epsilonF, TGlfConverter & glfConverter);
+	double estimate(const TSampleLikelihoods* storage, const uint32_t numSamplesInPop, double epsilonF);
 };
 
 //------------------------------------------------
@@ -65,7 +70,6 @@ public:
 class TAlleleFreqEstimatorBayes{
 private:
 	TRandomGenerator* randomGenerator;
-	TGlfConverter* glfConverter;
 
 	double alpha, beta;
 	double alphaMinusOne, betaMinusOne;
@@ -94,17 +98,17 @@ private:
 	double _guessInitialAlleleFrequency(const TSampleLikelihoods* storage, const uint32_t numSamplesInPopulation);
 	double _prior(const double & f);
 	double _prior(const THardyWeinbergGenotypeProbabilities & pGenotype);
-	double _calcPosterior(const TSampleLikelihoods* storage, const uint32_t numSamplesInPopulation, THardyWeinbergGenotypeProbabilities & pGenotype);
-	void _fillInitialGrid(const TSampleLikelihoods* storage, const uint32_t numSamplesInPopulation);
-	void _estimateMAP(const TSampleLikelihoods* storage, const uint32_t numSamplesInPopulation);
-	void _estimateCredibleIntervals(const TSampleLikelihoods* storage, const uint32_t numSamplesInPopulation);
+	double _calcPosterior(const TSampleLikelihoods* storage, const uint32_t & numSamplesInPopulation, THardyWeinbergGenotypeProbabilities & pGenotype);
+	void _fillInitialGrid(const TSampleLikelihoods* storage, const uint32_t & numSamplesInPopulation);
+	void _estimateMAP(const TSampleLikelihoods* storage, const uint32_t & numSamplesInPopulation);
+	void _estimateCredibleIntervals(const TSampleLikelihoods* storage, const uint32_t & numSamplesInPopulation);
 
 public:
-	TAlleleFreqEstimatorBayes(TParameters & Parameters, TLog* logfile, TGlfConverter* GlfConverter, TRandomGenerator* RandomGenerator);
+	TAlleleFreqEstimatorBayes(TParameters & Parameters, TLog* logfile, TRandomGenerator* RandomGenerator);
 	~TAlleleFreqEstimatorBayes();
-	double estimate(const TSampleLikelihoods* storage, const uint32_t numSamplesInPopulation);
+	double estimate(const TSampleLikelihoods* storage, const uint32_t & numSamplesInPopulation);
 	void composeHeader(std::vector<std::string> & header, const std::string & popName);
-	void estimateAndWrite(const TSampleLikelihoods* storage, const uint32_t numSamplesInPop, TOutputFile & out);
+	void estimateAndWrite(const TSampleLikelihoods* storage, const uint32_t & numSamplesInPop, coretools::TOutputFile & out);
 
 	double credibleIntervalUsed(){ return credibleInterval; };
 	double MAP(){ return f_MAP; };
@@ -122,7 +126,7 @@ private:
 	std::vector<uint32_t> popIndex;
 	std::vector<std::string> header;
 	std::string outputName;
-	TOutputFile outFile;
+	coretools::TOutputFile outFile;
 
 public:
 	TAlleleFreqMCMCOutput(){}
@@ -141,19 +145,18 @@ private:
 	// about vcf-file
 	std::string vcfFilename;
 	bool vcfRead;
-	TLog* logfile;
+	coretools::TLog* logfile;
 
 	// data on individuals
 	TPopulationLikelihoodReaderLocus reader;
 	TPopulationSamples samples;
 	TPopulationLikehoodLocus storage;
-	TGlfConverter glfConverter;
 
 	void _openVCF(TParameters & Parameters);
 	void _closeVCF();
 	std::vector<std::string> _composeHeaderAlleleFreq(bool writeGenoFreq, bool doBayesian, TAlleleFreqEstimatorBayes* BHWEstimator);
-	void _writeBayesianEstimatesOnePop(TOutputFile & out, TSampleLikelihoods* samples, uint32_t numSamples, TAlleleFreqEstimatorBayes* BHWEstimator);
-	void _writeEstimatesOnePop(TOutputFile & out, TGenotypeFrequencies & genoFrequencies, double alleleFrequency, TSampleLikelihoods* samples, uint32_t numSamples, TAlleleFreqEstimatorHardyWeinberg & MLHWEstimator, TAlleleFreqEstimatorBayes* BHWEstimator, double epsF, bool writeGenoFreq, bool doBayesian);
+	void _writeBayesianEstimatesOnePop(coretools::TOutputFile & out, TSampleLikelihoods* samples, uint32_t numSamples, TAlleleFreqEstimatorBayes* BHWEstimator);
+	void _writeEstimatesOnePop(coretools::TOutputFile & out, TGenotypeFrequencies & genoFrequencies, double alleleFrequency, TSampleLikelihoods* samples, uint32_t numSamples, TAlleleFreqEstimatorHardyWeinberg & MLHWEstimator, TAlleleFreqEstimatorBayes* BHWEstimator, double epsF, bool writeGenoFreq, bool doBayesian);
 	std::vector<std::string> _composeHeaderAlleleFreqComparison(TAlleleFreqEstimatorBayes & BHWEstimator);
 
 public:
@@ -166,6 +169,8 @@ public:
 //--------------------------------------
 // Tasks
 //--------------------------------------
+using coretools::TTask;
+
 class TTask_estimateAlleleFreq:public TTask{
 public:
 	TTask_estimateAlleleFreq(){ _explanation = "Estimating population allele frequencies"; };

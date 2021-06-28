@@ -50,7 +50,7 @@ public:
 	//unsigned int length;
 
 	TWindow_base();
-	TWindow_base(TWindow & other, const int readUpToDepth, const double downsamplingProb, TRandomGenerator* randomGenerator);
+	TWindow_base(TWindow & other, const int readUpToDepth, const Probability & downsamplingProb, TRandomGenerator* randomGenerator);
 	virtual ~TWindow_base();
 
 	//Allow to set chromosome name when jumping

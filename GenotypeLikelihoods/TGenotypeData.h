@@ -12,6 +12,7 @@
 #include "TFile.h"
 #include "TRandomGenerator.h"
 #include <algorithm>
+#include "GenotypeTypes.h"
 #include "probability.h"
 
 namespace GenotypeLikelihoods{
@@ -184,6 +185,7 @@ class TBaseProbabilities : public TBaseData_base<coretools::Probability>{
 public:
 	TBaseProbabilities(){ reset(); };
 	TBaseProbabilities(const coretools::Probability & val) : TBaseData_base(val) {};
+	TBaseProbabilities(const double & val) : TBaseData_base(coretools::Probability(val)) {};
 };
 
 //--------------------------------------------------------------------
@@ -242,6 +244,7 @@ protected:
 
 public:
 	TGenotypeData_base(){};
+	TGenotypeData_base(const T & Val) : TData_base<T, genometools::Genotype, genometools::GenotypeEnum, 10>(Val) {};
 	virtual ~TGenotypeData_base(){};
 };
 
@@ -249,9 +252,13 @@ public:
 // TGenotypeProbability_base
 // base class for TGenotypeLikelihoods, TGenotypeLikelihoodsHaploid and TGenotypeProbabilities
 //-------------------------------------
+class TGenotypeData;
 class TGenotypeProbability_base : public TGenotypeData_base<coretools::Probability>{
 protected:
 	TGenotypeProbability_base() {};
+	TGenotypeProbability_base(const coretools::Probability & Val) : TGenotypeData_base<coretools::Probability>(Val) {};
+
+	void operator=(const TGenotypeData & Other);
 };
 
 //--------------------------------------------------------------------
@@ -266,6 +273,8 @@ public:
 
 	void reset() override { set(coretools::Probability(1.0)); };
 	void addNames(std::vector<std::string> & vec) const override;
+
+	using TGenotypeProbability_base::operator =;
 };
 
 //--------------------------------------------------------------------
@@ -289,6 +298,7 @@ public:
 class TGenotypeData : public TGenotypeData_base<double>{
 public:
 	TGenotypeData(){ reset(); };
+	TGenotypeData(const double & Val) : TGenotypeData_base<double>(Val) {};
 
 	void operator+=(const TGenotypeProbability_base & other);
 };
@@ -301,7 +311,7 @@ public:
 	TGenotypeLikelihoodsHaploid(){ reset(); };
 
 	void reset() override;
-	void fill(const std::vector<TBaseData> & bases, const size_t size);
+	void fill(const std::vector<TBaseLikelihoods> & bases, const size_t size);
 };
 
 
