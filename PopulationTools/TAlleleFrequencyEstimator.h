@@ -20,6 +20,8 @@ using coretools::TParameters;
 using coretools::TLog;
 using coretools::TRandomGenerator;
 using coretools::Probability;
+using coretools::TOutputFile;
+using coretools::str::toString;
 
 //------------------------------------------------
 //THardyWeinbergGenotypeProbabilities
@@ -108,7 +110,7 @@ public:
 	~TAlleleFreqEstimatorBayes();
 	double estimate(const TSampleLikelihoods* storage, const uint32_t & numSamplesInPopulation);
 	void composeHeader(std::vector<std::string> & header, const std::string & popName);
-	void estimateAndWrite(const TSampleLikelihoods* storage, const uint32_t & numSamplesInPop, coretools::TOutputFile & out);
+	void estimateAndWrite(const TSampleLikelihoods* storage, const uint32_t & numSamplesInPop, TOutputFile & out);
 
 	double credibleIntervalUsed(){ return credibleInterval; };
 	double MAP(){ return f_MAP; };
@@ -155,8 +157,8 @@ private:
 	void _openVCF(TParameters & Parameters);
 	void _closeVCF();
 	std::vector<std::string> _composeHeaderAlleleFreq(bool writeGenoFreq, bool doBayesian, TAlleleFreqEstimatorBayes* BHWEstimator);
-	void _writeBayesianEstimatesOnePop(coretools::TOutputFile & out, TSampleLikelihoods* samples, uint32_t numSamples, TAlleleFreqEstimatorBayes* BHWEstimator);
-	void _writeEstimatesOnePop(coretools::TOutputFile & out, TGenotypeFrequencies & genoFrequencies, double alleleFrequency, TSampleLikelihoods* samples, uint32_t numSamples, TAlleleFreqEstimatorHardyWeinberg & MLHWEstimator, TAlleleFreqEstimatorBayes* BHWEstimator, double epsF, bool writeGenoFreq, bool doBayesian);
+	void _writeBayesianEstimatesOnePop(TOutputFile & out, TSampleLikelihoods* samples, const uint32_t & numSamples, TAlleleFreqEstimatorBayes* BHWEstimator);
+	void _writeEstimatesOnePop(TOutputFile & out, TGenotypeFrequencies & genoFrequencies, double alleleFrequency, TSampleLikelihoods* samples, const uint32_t & numSamples, TAlleleFreqEstimatorHardyWeinberg & MLHWEstimator, TAlleleFreqEstimatorBayes* BHWEstimator, double epsF, bool writeGenoFreq, bool doBayesian);
 	std::vector<std::string> _composeHeaderAlleleFreqComparison(TAlleleFreqEstimatorBayes & BHWEstimator);
 
 public:

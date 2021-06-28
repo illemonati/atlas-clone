@@ -165,17 +165,17 @@ double TAlleleFreqEstimatorBayes::_guessInitialAlleleFrequency(const TSampleLike
 	for(uint32_t i=0; i<numSamplesInPopulation; i++){
 		if(!storage[i].isMissing){
 			if(storage[i].isHaploid){
-				double sum = glfConverter->toScaledLikelihood( storage[i].glfLikelihood_0 ) + glfConverter->toScaledLikelihood( storage[i].glfLikelihood_1 );
+				double sum = (Probability) storage[i].glfLikelihood_0 + (Probability) storage[i].glfLikelihood_1;
 
 				//add to sums
-				sum_1 += glfConverter->toScaledLikelihood( storage[i].glfLikelihood_1 ) / sum;
+				sum_1 += (Probability) storage[i].glfLikelihood_1 / sum;
 				n += 1;
 			} else {
-				double sum = glfConverter->toScaledLikelihood( storage[i].glfLikelihood_0 ) + glfConverter->toScaledLikelihood( storage[i].glfLikelihood_1 ) + glfConverter->toScaledLikelihood( storage[i].glfLikelihood_2 );
+				double sum = (Probability) storage[i].glfLikelihood_0 + (Probability) storage[i].glfLikelihood_1 + (Probability) storage[i].glfLikelihood_2;
 
 				//add to sums
-				sum_1 += glfConverter->toScaledLikelihood( storage[i].glfLikelihood_1 ) / sum;
-				sum_2 += glfConverter->toScaledLikelihood( storage[i].glfLikelihood_2 ) / sum;
+				sum_1 += (Probability) storage[i].glfLikelihood_1 / sum;
+				sum_2 += (Probability) storage[i].glfLikelihood_2 / sum;
 				n += 2;
 			}
 		}
@@ -352,11 +352,11 @@ double TAlleleFreqEstimatorBayes::estimate(const TSampleLikelihoods* storage, co
 
 void TAlleleFreqEstimatorBayes::composeHeader(std::vector<std::string> & header, const std::string & popName){
 	header.push_back("freqAltHW_MAP_" + popName);
-	header.push_back("freqAltHW_CI" + coretools::str::toString(credibleInterval) + "_lower_" + popName);
-	header.push_back("freqAltHW_CI" + coretools::str::toString(credibleInterval) + "_upper_" + popName);
+	header.push_back("freqAltHW_CI" + toString(credibleInterval) + "_lower_" + popName);
+	header.push_back("freqAltHW_CI" + toString(credibleInterval) + "_upper_" + popName);
 };
 
-void TAlleleFreqEstimatorBayes::estimateAndWrite(const TSampleLikelihoods* storage, const uint32_t & numSamplesInPop, coretools::TOutputFile & out){
+void TAlleleFreqEstimatorBayes::estimateAndWrite(const TSampleLikelihoods* storage, const uint32_t & numSamplesInPop, TOutputFile & out){
 	out << estimate(storage, numSamplesInPop); //MAP
 	out << lowerCredibleInterval();
 	out << upperCredibleInterval();
@@ -421,7 +421,7 @@ double TAlleleFreqEstimatorBayes::calcPosteriorf1smallerf2(std::vector<double> &
 void TAlleleFreqMCMCOutput::initialize(std::string popString, TPopulationSamples & samples, std::string OutputName, TLog* logfile){
 	//parse string to identify pops for which MCMC shoudl be written
 	std::vector<std::string> tmp;
-	fillContainerFromString(popString, tmp, ',');
+	coretools::str::fillContainerFromString(popString, tmp, ',');
 	outputName = OutputName;
 
 	//extract indexes
@@ -515,13 +515,13 @@ std::vector<std::string> TAlleleFreqEstimator::_composeHeaderAlleleFreq(bool wri
 };
 
 
-void TAlleleFreqEstimator::_writeBayesianEstimatesOnePop(TOutputFile & out, TSampleLikelihoods* samples, const uint32_t numSamples, TAlleleFreqEstimatorBayes* BHWEstimator){
+void TAlleleFreqEstimator::_writeBayesianEstimatesOnePop(TOutputFile & out, TSampleLikelihoods* samples, const uint32_t & numSamples, TAlleleFreqEstimatorBayes* BHWEstimator){
 	out << BHWEstimator->estimate(samples, numSamples); //MAP
 	out << BHWEstimator->lowerCredibleInterval();
 	out << BHWEstimator->upperCredibleInterval();
 };
 
-void TAlleleFreqEstimator::_writeEstimatesOnePop(TOutputFile & out, TGenotypeFrequencies & genoFrequencies, double alleleFrequency, TSampleLikelihoods* samples, uint32_t numSamples, TAlleleFreqEstimatorHardyWeinberg & MLHWEstimator, TAlleleFreqEstimatorBayes* BHWEstimator, double epsF, bool writeGenoFreq, bool doBayesian){
+void TAlleleFreqEstimator::_writeEstimatesOnePop(TOutputFile & out, TGenotypeFrequencies & genoFrequencies, double alleleFrequency, TSampleLikelihoods* samples, const uint32_t & numSamples, TAlleleFreqEstimatorHardyWeinberg & MLHWEstimator, TAlleleFreqEstimatorBayes* BHWEstimator, double epsF, bool writeGenoFreq, bool doBayesian){
 	//write num samples with data
 	out << genoFrequencies.numDiploid();
 	out << genoFrequencies.numHaploid();
@@ -537,7 +537,7 @@ void TAlleleFreqEstimator::_writeEstimatesOnePop(TOutputFile & out, TGenotypeFre
 	out << alleleFrequency;
 
 	//write HW estimates
-	out << MLHWEstimator.estimate(samples, numSamples, epsF, glfConverter);
+	out << MLHWEstimator.estimate(samples, numSamples, epsF);
 
 	//Bayesian estimation
 	if(doBayesian){
@@ -602,13 +602,13 @@ void TAlleleFreqEstimator::estimateAlleleFreq(TParameters & Parameters, TRandomG
 	bool doBayesian = false;
 	if(Parameters.parameterExists("doBayesian")){
 		doBayesian = true;
-		BHWEstimator = new TAlleleFreqEstimatorBayes(Parameters, logfile, &glfConverter, randomGenerator);
+		BHWEstimator = new TAlleleFreqEstimatorBayes(Parameters, logfile, randomGenerator);
 	}
 
 	bool writeGenoFreq = Parameters.parameterExists("writeGenoFreq");
 
 	//output file
-	std::string tmp = extractBeforeLast(vcfFilename, ".vcf");
+	std::string tmp = coretools::str::extractBeforeLast(vcfFilename, ".vcf");
 	std::string outputName = Parameters.getParameterWithDefault<std::string>("out", tmp) + "_alleleFreq.txt.gz";
 	logfile->list("Will write allele frequencies to file '" + outputName + "'.");
 	TOutputFile out(outputName);
@@ -618,7 +618,7 @@ void TAlleleFreqEstimator::estimateAlleleFreq(TParameters & Parameters, TRandomG
 
     //run through VCF file
     logfile->startIndent("Parsing VCF file:");
-    while(reader.readDataFromVCF(storage, samples, glfConverter)){
+    while(reader.readDataFromVCF(storage, samples)){
     	//print SNP
  		reader.writePosition(out);
 
@@ -628,7 +628,7 @@ void TAlleleFreqEstimator::estimateAlleleFreq(TParameters & Parameters, TRandomG
  		} else {
  			TGenotypeFrequencies genoFrequencies;
  	 		for(int p=0; p<samples.numPopulations(); p++){
- 	 			genoFrequencies.estimate(&storage[samples.startIndex(p)], samples.numSamplesInPop(p), glfConverter, epsF);
+ 	 			genoFrequencies.estimate(&storage[samples.startIndex(p)], samples.numSamplesInPop(p), epsF);
  	 			_writeEstimatesOnePop(out, genoFrequencies, genoFrequencies.alleleFrequency, &storage[samples.startIndex(p)], samples.numSamplesInPop(p), MLHWEstimator, BHWEstimator, epsF, writeGenoFreq, doBayesian);
  	 		}
  		}
@@ -677,7 +677,7 @@ void TAlleleFreqEstimator::compareAlleleFreq(TParameters & Parameters, TRandomGe
 	}
 
 	//create Bayesian allele frequency estimator
-	TAlleleFreqEstimatorBayes BHWEstimator(Parameters, logfile, &glfConverter, randomGenerator);
+	TAlleleFreqEstimatorBayes BHWEstimator(Parameters, logfile, randomGenerator);
 
 	//genotype frequencies estimator
 	TGenotypeFrequencies genoFrequencies;
@@ -698,7 +698,7 @@ void TAlleleFreqEstimator::compareAlleleFreq(TParameters & Parameters, TRandomGe
 	}
 
 	//output file
-	std::string tmp = extractBeforeLast(vcfFilename, ".vcf");
+	std::string tmp = coretools::str::extractBeforeLast(vcfFilename, ".vcf");
 	std::string outputName = Parameters.getParameterWithDefault<std::string>("out", tmp);
 	logfile->list("Will write allele frequencies to file '" + outputName  + "_alleleFreqComparison.txt.gz" + "'.");
 	TOutputFile out(outputName + "_alleleFreqComparison.txt.gz");
@@ -712,7 +712,7 @@ void TAlleleFreqEstimator::compareAlleleFreq(TParameters & Parameters, TRandomGe
 
     //run through VCF file
     logfile->startIndent("Parsing VCF file:");
-    while(reader.readDataFromVCF(storage, samples, glfConverter)){
+    while(reader.readDataFromVCF(storage, samples)){
     	//print SNP
  		reader.writePosition(out);
 
@@ -720,7 +720,7 @@ void TAlleleFreqEstimator::compareAlleleFreq(TParameters & Parameters, TRandomGe
  		logfile->listFlush("Running estimates for " + reader.chr() + ":" + toString(reader.position()) + " ...");
  		for(int p=0; p<samples.numPopulations(); p++){
 			//write num samples with data
-			genoFrequencies.estimate(&storage[samples.startIndex(p)], samples.numSamplesInPop(p), glfConverter, Parameters.getParameterWithDefault("epsF", 0.0000001));
+			genoFrequencies.estimate(&storage[samples.startIndex(p)], samples.numSamplesInPop(p), Parameters.getParameterWithDefault("epsF", 0.0000001));
 			out << genoFrequencies.numDiploid();
 			out << genoFrequencies.numHaploid();
 
@@ -765,7 +765,7 @@ void TAlleleFreqEstimator::writeAlleleFrequencyLikelihoods(TParameters & Paramet
 	}
 
 	//output file
-	std::string tmp = extractBeforeLast(vcfFilename, ".vcf");
+	std::string tmp = coretools::str::extractBeforeLast(vcfFilename, ".vcf");
 	std::string outputName = Parameters.getParameterWithDefault<std::string>("out", tmp) + "_alleleFreqLikelihoods";
 	logfile->list("Will write allele frequencies to files '" + outputName + "[POP].txt.gz'.");
 
@@ -789,13 +789,13 @@ void TAlleleFreqEstimator::writeAlleleFrequencyLikelihoods(TParameters & Paramet
 
 	//run through VCF file
 	logfile->startIndent("Parsing VCF file:");
-	while(reader.readDataFromVCF(storage, samples, glfConverter)){
+	while(reader.readDataFromVCF(storage, samples)){
 		//calculate and write allele frequency likelihoods for every population
 		for(int p=0; p<samples.numPopulations(); p++){
 			out[p] << reader.chr() << reader.position();
 			for(auto& f : freq){
 				genoProb.set(f);
-				out[p] << genoProb.calcLogLikelihood(&storage[samples.startIndex(p)], samples.numSamplesInPop(p), glfConverter);
+				out[p] << genoProb.calcLogLikelihood(&storage[samples.startIndex(p)], samples.numSamplesInPop(p));
 			}
 			out[p] << std::endl;
 		}

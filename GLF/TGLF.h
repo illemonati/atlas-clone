@@ -305,7 +305,7 @@ public:
 	// parse file
 	bool readNext();
 	bool jumpToNextChr();
-	bool readNextWindow(std::vector<uint16_t*> & genoLikelihoods, const uint32_t refId, const uint32_t start, const uint32_t end);
+	bool readNextWindow(std::vector<genometools::HighPrecisionPhredIntProbability*> & genoLikelihoods, const uint32_t & refId, const uint32_t & start, const uint32_t & end);
 
 	//printing
 	void printChr();
