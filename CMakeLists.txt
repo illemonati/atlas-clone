@@ -39,6 +39,7 @@ include_directories(
         TestUtilities
         VCF
         coretools/core
+        coretools/core/Types
         coretools/core/IntegrationTests
         genometools/core        
         stattools/core        
