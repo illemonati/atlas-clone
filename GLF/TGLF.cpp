@@ -60,6 +60,7 @@ BAM::LogErrorRate TGlfConverter::toLog(uint16_t glfValue) const{
 };
 */
 
+
 //---------------------------------
 //TGlfWriter
 //---------------------------------
@@ -111,7 +112,7 @@ void TGlfWriter::newChromosome(const BAM::TChromosome & chromosome){
     _write(_curChr.name.c_str(), _curChr.name.length() * sizeof(char));
     _write(&_curChr.refId, sizeof(uint32_t));
     _write(&_curChr.length, sizeof(uint32_t));
-    _write(&_curChr.ploidy, sizeof(uint8_t)); // I get an "uninitialized variable" error with valgrind. Why?
+    _write(&_curChr.ploidy, sizeof(uint8_t)); // TODO: I get an "uninitialized variable" error with valgrind. Why?
 
 	//set oldPos and curChr
 	_oldPos = 0;

@@ -37,49 +37,49 @@ TGenocombinationToBaseMap::TGenocombinationToBaseMap(){
 //----------------------------------------------------
 TDistance::TDistance(){
 	//squared difference between genotypes
-	_distanceWeight[0] = 0.0; //case aa/aa
-	_distanceWeight[1] = 1.0; //case ab/aa
-	_distanceWeight[2] = 1.0; //case aa/ab
-	_distanceWeight[3] = 4.0; //case aa/bb
-	_distanceWeight[4] = 0.0; //case ab/ab
-	_distanceWeight[5] = 1.0; //case ab/ac
-	_distanceWeight[6] = 4.0; //case aa/bc
-	_distanceWeight[7] = 4.0; //case ab/cc
-	_distanceWeight[8] = 4.0; //case ab/cd
+	_distanceWeight[aa_aa] = 0.0;
+	_distanceWeight[ab_aa] = 1.0;
+	_distanceWeight[aa_ab] = 1.0;
+	_distanceWeight[aa_bb] = 4.0;
+	_distanceWeight[ab_ab] = 0.0;
+	_distanceWeight[ab_ac] = 1.0;
+	_distanceWeight[aa_bc] = 4.0;
+	_distanceWeight[ab_cc] = 4.0;
+	_distanceWeight[ab_cd] = 4.0;
 };
 
-double TDistance::calculateDistance(const std::array<double, nn_nn> & phi){
-	return    phi[0] * _distanceWeight[0]
-		    + phi[1] * _distanceWeight[1]
-			+ phi[2] * _distanceWeight[2]
-			+ phi[3] * _distanceWeight[3]
-			+ phi[4] * _distanceWeight[4]
-			+ phi[5] * _distanceWeight[5]
-			+ phi[6] * _distanceWeight[6]
-			+ phi[7] * _distanceWeight[7]
-			+ phi[8] * _distanceWeight[8];
+double TDistance::calculateDistance(const TDistanceData & phi){
+	return    phi[aa_aa] * _distanceWeight[aa_aa]
+		    + phi[ab_aa] * _distanceWeight[ab_aa]
+			+ phi[aa_ab] * _distanceWeight[aa_ab]
+			+ phi[aa_bb] * _distanceWeight[aa_bb]
+			+ phi[ab_ab] * _distanceWeight[ab_ab]
+			+ phi[ab_ac] * _distanceWeight[ab_ac]
+			+ phi[aa_bc] * _distanceWeight[aa_bc]
+			+ phi[ab_cc] * _distanceWeight[ab_cc]
+			+ phi[ab_cd] * _distanceWeight[ab_cd];
 };
 
 TDistanceProbMismatch::TDistanceProbMismatch(){
 	//probability that a random allele from each individual is different
-	_distanceWeight[0] = 0.0; //case aa/aa
-	_distanceWeight[1] = 0.5; //case ab/aa
-	_distanceWeight[2] = 0.5; //case aa/ab
-	_distanceWeight[3] = 1.0; //case aa/bb
-	_distanceWeight[4] = 0.5; //case ab/ab
-	_distanceWeight[5] = 0.75; //case ab/ac
-	_distanceWeight[6] = 1.0; //case aa/bc
-	_distanceWeight[7] = 1.0; //case ab/cc
-	_distanceWeight[8] = 1.0; //case ab/cd
+	_distanceWeight[aa_aa] = 0.0;
+	_distanceWeight[ab_aa] = 0.5;
+	_distanceWeight[aa_ab] = 0.5;
+	_distanceWeight[aa_bb] = 1.0;
+	_distanceWeight[ab_ab] = 0.5;
+	_distanceWeight[ab_ac] = 0.75;
+	_distanceWeight[aa_bc] = 1.0;
+	_distanceWeight[ab_cc] = 1.0;
+	_distanceWeight[ab_cd] = 1.0;
 };
 
-double TDistanceEuclidian::calculateDistance(const std::array<double, nn_nn> & phi){
+double TDistanceEuclidian::calculateDistance(const TDistanceData & phi){
 	return sqrt(TDistance::calculateDistance(phi));
 };
 
 TDistanceUser::TDistanceUser(std::vector<double> vec){
-	for(int i=0; i<9; ++i)
-		_distanceWeight[i] = vec[i];
+	for(DistancePhi d = DistancePhi::min(); d < DistancePhi::max(); ++d)
+		_distanceWeight[d] = vec[d.get()];
 };
 
 //----------------------------------------------------
@@ -89,7 +89,7 @@ TEMforDistanceEstimation::TEMforDistanceEstimation(coretools::TLog* Logfile, cor
 	logfile = Logfile;
 
 	//prepare storage
-	std::fill(phi.begin(), phi.end(), 0.0);
+	phi.set(0.0);
 	LL = 0.0;
 	old_LL = 0.0;
 
@@ -150,8 +150,8 @@ void TEMforDistanceEstimation::guessPi(std::vector<HighPrecisionPhredIntProbabil
 	pi.set(0.0);
 
 	//now loop over sites
-	std::vector<HighPrecisionPhredIntProbability*>::iterator it1 = genoQual1.begin();
-	std::vector<HighPrecisionPhredIntProbability*>::iterator it2 = genoQual2.begin();
+	auto it1 = genoQual1.begin();
+	auto it2 = genoQual2.begin();
 	for(; it1 != genoQual1.end(); ++it1, ++it2){
 		double sum1 = 0.0;
 		double sum2 = 0.0;
@@ -179,8 +179,7 @@ void TEMforDistanceEstimation::guessPhi(std::vector<HighPrecisionPhredIntProbabi
 		throw "Provided genotype quality vectors are of different size in TEMforDistanceEstimation::guessPhi!";
 
 	//set to zero
-	for(int i=0; i<9; ++i)
-		phi[i] = 0.0;
+	phi.set(0.0);
 
 	//now loop over sites and add posterior probs
 	auto it1 = genoQual1.begin();
@@ -188,65 +187,61 @@ void TEMforDistanceEstimation::guessPhi(std::vector<HighPrecisionPhredIntProbabi
 	for(; it1 != genoQual1.end(); ++it1, ++it2){
 		double sum1 = 0.0; double sum2 = 0.0;
 		for(Genotype g = Genotype::min(); g < Genotype::max(); ++g){
-			sum1 += glfConverter[(*it1)[i]];
-			sum2 += glfConverter[(*it2)[i]];
+			sum1 += (Probability) (*it1)[g.get()];
+			sum2 += (Probability) (*it2)[g.get()];
 		}
-		for(Genotype g = Genotype::min(); g < Genotype::max(); ++g){
-			double tmp = (glfConverter[(*it1)[g1]] / sum1);
-			for(int g2 = 0; g2<10; ++g2){
-				phi[genoToPhiMap(g1,g2)] += tmp * (glfConverter[(*it2)[g2]] / sum2);
+		for(Genotype g1 = Genotype::min(); g1 < Genotype::max(); ++g1){
+			double tmp = ((Probability) (*it1)[g1.get()] / sum1);
+			for(Genotype g2 = Genotype::min(); g2 < Genotype::max(); ++g2){
+				phi(g1, g2) += tmp * ((Probability) (*it2)[g2.get()] / sum2);
 			}
 		}
 	}
 
 	//normalize
-	double sum = 0.0;
-	for(int i=0; i<9; ++i)
-		sum += phi[i];
-	for(int i=0; i<9; ++i)
-		phi[i] /= sum;
+	phi.normalize();
 }
 
 void TEMforDistanceEstimation::fill_K(TBaseData & thesePi){
 	//normalizing constant for each phi class
 	//case of one base
-	K[0] = 1.0;
+	K[aa_aa] = 1.0;
 
 	//cases of two bases
-	K[4] = thesePi[genometools::A] * thesePi[genometools::C]
+	K[ab_ab] = thesePi[genometools::A] * thesePi[genometools::C]
          + thesePi[genometools::A] * thesePi[genometools::G]
          + thesePi[genometools::A] * thesePi[genometools::T]
 		 + thesePi[genometools::C] * thesePi[genometools::G]
 		 + thesePi[genometools::C] * thesePi[genometools::T]
 		 + thesePi[genometools::G] * thesePi[genometools::T];
-	K[1] = 2.0 * K[4]; //account for AC vs CA
-	K[2] = K[1];
-	K[3] = K[1];
+	K[aa_ab] = 2.0 * K[ab_ab]; //account for AC vs CA
+	K[ab_aa] = K[aa_ab];
+	K[aa_bb] = K[aa_ab];
 
 	//cases of three bases
-	K[6] = thesePi[genometools::C] * thesePi[genometools::G] * thesePi[genometools::T]
+	K[aa_bc] = thesePi[genometools::C] * thesePi[genometools::G] * thesePi[genometools::T]
 		 + thesePi[genometools::A] * thesePi[genometools::G] * thesePi[genometools::T]
 		 + thesePi[genometools::A] * thesePi[genometools::C] * thesePi[genometools::T]
 		 + thesePi[genometools::A] * thesePi[genometools::C] * thesePi[genometools::G];
-	K[6] = 3.0 * K[6]; //account for ways to distribute
+	K[aa_bc] = 3.0 * K[aa_bc]; //account for ways to distribute
 
-	K[7] = K[6];
-	K[5] = 2.0 * K[6]; //twice as many cases than other cases with three bases!
+	K[ab_cc] = K[aa_bc];
+	K[ab_ac] = 2.0 * K[aa_bc]; //twice as many cases than other cases with three bases!
 
 	//case of four bases: each of the 6 cases is equally likely
 	//Note: product of pi's cancels out when calculating P_g_given_phi_pi
-	K[8] = 6.0;
+	K[ab_cd] = 6.0;
 };
 
-void TEMforDistanceEstimation::fill_P_g_given_phi_pi(const std::array<double, nn_nn> & thesePhi, TBaseData & thesePi){
+void TEMforDistanceEstimation::fill_P_g_given_phi_pi(const TDistanceData & thesePhi, TBaseData & thesePi){
 	//0: case aa/aa (K[0]=1)
-	probGeno[genometools::AA][genometools::AA] = thesePhi[0] * thesePi[genometools::A];
-	probGeno[genometools::CC][genometools::CC] = thesePhi[0] * thesePi[genometools::C];
-	probGeno[genometools::GG][genometools::GG] = thesePhi[0] * thesePi[genometools::G];
-	probGeno[genometools::TT][genometools::TT] = thesePhi[0] * thesePi[genometools::T];
+	probGeno[genometools::AA][genometools::AA] = thesePhi[aa_aa] * thesePi[genometools::A];
+	probGeno[genometools::CC][genometools::CC] = thesePhi[aa_aa] * thesePi[genometools::C];
+	probGeno[genometools::GG][genometools::GG] = thesePhi[aa_aa] * thesePi[genometools::G];
+	probGeno[genometools::TT][genometools::TT] = thesePhi[aa_aa] * thesePi[genometools::T];
 
 	//1: cases aa/ab
-	double tmp = thesePhi[1] / K[1];
+	double tmp = thesePhi[aa_ab] / K[aa_aa];
 	double tmp2 = tmp * thesePi[genometools::A];
 	probGeno[genometools::AA][genometools::AC] = tmp2 * thesePi[genometools::C];
 	probGeno[genometools::AA][genometools::AG] = tmp2 * thesePi[genometools::G];
@@ -265,7 +260,7 @@ void TEMforDistanceEstimation::fill_P_g_given_phi_pi(const std::array<double, nn
 	probGeno[genometools::TT][genometools::GT] = tmp2 * thesePi[genometools::G];
 
 	//2: case ab/aa
-	tmp = thesePhi[2] / K[2];
+	tmp = thesePhi[ab_aa] / K[ab_aa];
 	tmp2 = tmp * thesePi[genometools::A];
 	probGeno[genometools::AC][genometools::AA] = tmp2 * thesePi[genometools::C];
 	probGeno[genometools::AG][genometools::AA] = tmp2 * thesePi[genometools::G];
@@ -284,7 +279,7 @@ void TEMforDistanceEstimation::fill_P_g_given_phi_pi(const std::array<double, nn
 	probGeno[genometools::GT][genometools::TT] = tmp2 * thesePi[genometools::G];
 
 	//3: case aa/bb
-	tmp = thesePhi[3] / K[3];
+	tmp = thesePhi[aa_bb] / K[aa_bb];
 	tmp2 = tmp * thesePi[genometools::A];
 	probGeno[genometools::AA][genometools::CC] = tmp2 * thesePi[genometools::C];
 	probGeno[genometools::AA][genometools::GG] = tmp2 * thesePi[genometools::G];
@@ -303,7 +298,7 @@ void TEMforDistanceEstimation::fill_P_g_given_phi_pi(const std::array<double, nn
 	probGeno[genometools::TT][genometools::GG] = tmp2 * thesePi[genometools::G];
 
 	//4: case ab/ab
-	tmp = thesePhi[4] / K[4];
+	tmp = thesePhi[ab_ab] / K[ab_ab];
 	tmp2 = tmp * thesePi[genometools::A];
 	probGeno[genometools::AC][genometools::AC] = tmp2 * thesePi[genometools::C];
 	probGeno[genometools::AG][genometools::AG] = tmp2 * thesePi[genometools::G];
@@ -314,7 +309,7 @@ void TEMforDistanceEstimation::fill_P_g_given_phi_pi(const std::array<double, nn
 	probGeno[genometools::GT][genometools::GT] = tmp * thesePi[genometools::G] * thesePi[genometools::T];
 
 	//5: case ab/ac
-	tmp = thesePhi[5] / K[5];
+	tmp = thesePhi[ab_ac] / K[ab_ac];
 	tmp2 = tmp * thesePi[genometools::A] * thesePi[genometools::C] * thesePi[genometools::G];
 	probGeno[genometools::AC][genometools::AG] = tmp2;
 	probGeno[genometools::AC][genometools::CG] = tmp2;
@@ -345,7 +340,7 @@ void TEMforDistanceEstimation::fill_P_g_given_phi_pi(const std::array<double, nn
 	probGeno[genometools::GT][genometools::CT] = tmp2;
 
 	//6: case aa/bc
-	tmp = thesePhi[6] / K[6];
+	tmp = thesePhi[aa_bc] / K[aa_bc];
 	tmp2 = tmp * thesePi[genometools::A] * thesePi[genometools::C] * thesePi[genometools::G];
 	probGeno[genometools::AA][genometools::CG] = tmp2;
 	probGeno[genometools::CC][genometools::AG] = tmp2;
@@ -364,7 +359,7 @@ void TEMforDistanceEstimation::fill_P_g_given_phi_pi(const std::array<double, nn
 	probGeno[genometools::TT][genometools::CG] = tmp2;
 
 	//7: case ab/cc
-	tmp = thesePhi[7] / K[7];
+	tmp = thesePhi[ab_cc] / K[ab_cc];
 	tmp2 = tmp * thesePi[genometools::A] * thesePi[genometools::C] * thesePi[genometools::G];
 	probGeno[genometools::AC][genometools::GG] = tmp2;
 	probGeno[genometools::AG][genometools::CC] = tmp2;
@@ -383,7 +378,7 @@ void TEMforDistanceEstimation::fill_P_g_given_phi_pi(const std::array<double, nn
 	probGeno[genometools::GT][genometools::CC] = tmp2;
 
 	//8: case ab/cd
-	tmp = thesePhi[8] / K[8];
+	tmp = thesePhi[ab_cd] / K[ab_cd];
 	probGeno[genometools::AC][genometools::GT] = tmp;
 	probGeno[genometools::AG][genometools::CT] = tmp;
 	probGeno[genometools::AT][genometools::CG] = tmp;
@@ -392,7 +387,7 @@ void TEMforDistanceEstimation::fill_P_g_given_phi_pi(const std::array<double, nn
 	probGeno[genometools::GT][genometools::AC] = tmp;
 };
 
-bool TEMforDistanceEstimation::estimatePhiWithEM(std::vector<uint16_t*> & genoQual1, std::vector<uint16_t*> & genoQual2){
+bool TEMforDistanceEstimation::estimatePhiWithEM(std::vector<HighPrecisionPhredIntProbability*> & genoQual1, std::vector<HighPrecisionPhredIntProbability*> & genoQual2){
 	//prepare estimates
 	logfile->listFlush("Estimating initial base frequencies pi ...");
 	guessPi(genoQual1, genoQual2);
@@ -427,8 +422,8 @@ bool TEMforDistanceEstimation::estimatePhiWithEM(std::vector<uint16_t*> & genoQu
 		}
 
 		//loop across loci to calculate P_G
-		std::vector<uint16_t*>::iterator it1 = genoQual1.begin();
-		std::vector<uint16_t*>::iterator it2 = genoQual2.begin();
+		std::vector<HighPrecisionPhredIntProbability*>::iterator it1 = genoQual1.begin();
+		std::vector<HighPrecisionPhredIntProbability*>::iterator it2 = genoQual2.begin();
 		for(; it1 != genoQual1.end(); ++it1, ++it2){
 			//calculate P_G per site
 			double sum = 0.0;
@@ -455,20 +450,16 @@ bool TEMforDistanceEstimation::estimatePhiWithEM(std::vector<uint16_t*> & genoQu
 		}
 
 		//update phi
-		for(int i=0; i<9; ++i)
-			phi[i] = 0.0;
+		phi.set(0.0);
 
 		double sum = 0.0;
 		for(Genotype g1 = Genotype::min(); g1 < Genotype::max(); ++g1){
 			for(Genotype g2 = Genotype::min(); g2 < Genotype::max(); ++g2){
-				phi[ DistancePhi(g1,g2) ] += P_G[g1][g2];
-				sum += P_G[g1][g2];
+				phi(g1,g2) += P_G[g1.get()][g2.get()];
+				sum += P_G[g1.get()][g2.get()];
 			}
 		}
-
-		for(int i=0; i<9; ++i){
-			phi[i] /= sum;
-		}
+		phi.normalize(sum);
 
 		//update pi
 		pi.set(0.0);
@@ -476,7 +467,7 @@ bool TEMforDistanceEstimation::estimatePhiWithEM(std::vector<uint16_t*> & genoQu
 			for(Genotype g2 = Genotype::min(); g2 < Genotype::max(); ++g2){
 				for(Base b = Base::min(); b < Base::max(); ++b){
 					if(genoToBaseMap(g1, g2, b)){
-						pi.add((Base) b, P_G[g1][g2]);
+						pi[b] += P_G[g1.get()][g2.get()];
 					}
 				}
 			}
@@ -488,20 +479,20 @@ bool TEMforDistanceEstimation::estimatePhiWithEM(std::vector<uint16_t*> & genoQu
 		//throw "done!";
 		if(iter > 0 ){
 			LL_diff = LL - old_LL;
-			logfile->conclude("LL = " + toString(LL) + " (deltaLL = " + toString(LL_diff) + ").");
+			logfile->conclude("LL = ", LL, " (deltaLL = ", LL_diff, ").");
 			if(LL_diff < epsilonForEM){
-				logfile->conclude("EM converged, delatLL = " + toString(LL_diff) + " < " + toString(epsilonForEM));
+				logfile->conclude("EM converged, delatLL = ", LL_diff, " < ", epsilonForEM);
 				distance = distanceObject->calculateDistance(phi);
-				logfile->conclude("Resulting distance is " + toString(distance));
+				logfile->conclude("Resulting distance is ", distance);
 				logfile->endIndent();
 				return true;
 			}
 		} else
-			logfile->conclude("LL = " + toString(LL) + ".");
+			logfile->conclude("LL = ", LL, ".");
 	}
-	logfile->warning("EM reached maximum number of iterations (" + toString(maxNumEMIterations) + ") without converging!");
+	logfile->warning("EM reached maximum number of iterations (", maxNumEMIterations, ") without converging!");
 	distance = distanceObject->calculateDistance(phi);
-	logfile->conclude("Resulting distance is " + toString(distance));
+	logfile->conclude("Resulting distance is ", distance);
 	logfile->endIndent();
 	return false;
 };
@@ -525,7 +516,7 @@ TDistanceEstimator::TDistanceEstimator(coretools::TLog* Logfile, coretools::TPar
 void TDistanceEstimator::printGLF(coretools::TParameters & params){
 	//test first to parse GLF files
 	std::string glf = params.getParameter<std::string>("glf");
-	TGlfReader reader(glf);
+	GLF::TGlfReader reader(glf);
 
 	//print file
 	reader.printToEnd();
@@ -538,7 +529,7 @@ void TDistanceEstimator::openGLF(coretools::TParameters & params){
 		throw "At least two GLF files have to be provided to estimate distances!";
 
 	//open files
-	glfs = new TGlfReader[numGLFs];
+	glfs = new GLF::TGlfReader[numGLFs];
 	readersOpened = true;
 	logfile->startIndent("Opening GLF files:");
 	int g = 0;
@@ -649,7 +640,7 @@ void TDistanceEstimator::estimateDistanceGenomeWide(TEMforDistanceEstimation & E
 };
 
 bool TDistanceEstimator::moveToNextCommonChr(GLF::TGlfReader & g1, GLF::TGlfReader & g2){
-	while(g1.refId() != g2.refId()){
+	while(g1.refId() != g2.refId() || g2.chrPloidy() != 2){
 		//advance the one laging behind
 		if(g1.refId() < g2.refId()){
 			if(!g1.jumpToNextChr()) return false;
@@ -663,7 +654,7 @@ bool TDistanceEstimator::moveToNextCommonChr(GLF::TGlfReader & g1, GLF::TGlfRead
 		throw "Chromosome names differ in files " + g1.name() + "' and '" + g2.name() + "': '" + g1.chr() + "' != '" + g2.chr() + "'!";
 	}
 	if(g1.chrLength() != g2.chrLength()){
-		throw "Chromosome lengths differ in files " + g1.name() + "' and '" + g2.name() + "': '" + toString(g1.chrLength()) + "' != '" + toString(g2.chrLength()) + "'!";
+		throw "Chromosome lengths differ in files " + g1.name() + "' and '" + g2.name() + "': '" + coretools::str::toString(g1.chrLength()) + "' != '" + coretools::str::toString(g2.chrLength()) + "'!";
 	}
 
 	return true;
@@ -712,7 +703,7 @@ void TDistanceEstimator::estimateDistanceGenomeWide(TEMforDistanceEstimation & E
 	std::vector<HighPrecisionPhredIntProbability*> genoQual1, genoQual2;
 	readCommonSites(genoQual1, genoQual2, g1, g2);
 	logfile->done();
-	logfile->conclude("Read data for ", genoQual1.size()), " sites.");
+	logfile->conclude("Read data for ", genoQual1.size(), " sites.");
 
 	//now estimate
 	if(genoQual1.size() > 0){
@@ -728,14 +719,13 @@ void TDistanceEstimator::estimateDistanceGenomeWide(TEMforDistanceEstimation & E
 	//clean up memory
 	logfile->listFlush("Cleaning up memory ...");
 	for(auto& it : genoQual1){
-		delete[] *it;
+		delete[] it;
 	}
 	for(auto& it : genoQual2){
-		delete[] *it;
+		delete[] it;
 	}
 	logfile->done();
 };
-
 
 //--------------------------------------------
 // Estimation in windows
@@ -764,7 +754,7 @@ void TDistanceEstimator::estimateDistanceInWindows(TEMforDistanceEstimation & EM
 			logfile->endIndent();
 		}
 	}
-}
+};
 
 void TDistanceEstimator::estimateDistanceInWindows(TEMforDistanceEstimation & EM_object, std::string filename, GLF::TGlfReader & g1, GLF::TGlfReader & g2, const uint32_t & windowLen){
 	//initialize variables
@@ -778,8 +768,8 @@ void TDistanceEstimator::estimateDistanceInWindows(TEMforDistanceEstimation & EM
 	genoQual1.resize(windowLen);
 	genoQual2.resize(windowLen);
 	for(int i=0; i<windowLen; ++i){
-		genoQual1[i] = new uint16_t[10];
-		genoQual2[i] = new uint16_t[10];
+		genoQual1[i] = new HighPrecisionPhredIntProbability[10];
+		genoQual2[i] = new HighPrecisionPhredIntProbability[10];
 	}
 
 	//open output file
@@ -860,9 +850,7 @@ void TDistanceEstimator::estimateDistanceInWindows(TEMforDistanceEstimation & EM
 	}
 
 	logfile->endIndent();
-
-}
-
+};
 
 //--------------------------------------------
 // Writing estimates
@@ -870,31 +858,33 @@ void TDistanceEstimator::estimateDistanceInWindows(TEMforDistanceEstimation & EM
 void TDistanceEstimator::writeDistanceEstimates(gz::ogzstream & out, std::string & chr, const uint32_t & windowStart, const uint32_t & windowEnd, const uint32_t & numsitesWithData, TEMforDistanceEstimation & EM_object){
 	out << chr << "\t" << windowStart + 1 << "\t" << windowEnd; //internal position is zero-based
 	writeDistanceEstimates(out, numsitesWithData, EM_object);
-}
+};
 
 void TDistanceEstimator::writeDistanceEstimates(gz::ogzstream & out, int numsitesWithData, TEMforDistanceEstimation & EM_object){
 	out << "\t" << numsitesWithData;
 	//write pi
-	for(int b=0; b<4; ++b)
+	for(Base b = Base::min(); b < Base::max(); ++b){
 		out << "\t" << EM_object.pi[b];
+	}
 	//write phi
-	for(int b=0; b<9; ++b)
-		out << "\t" << EM_object.phi[b];
+	for(DistancePhi p = DistancePhi::min(); p < DistancePhi::max(); ++p){
+		out << "\t" << EM_object.phi[p];
+	}
 	//write distance
 	out << "\t" << EM_object.distance;
 	out << "\n";
-}
+};
 
 void TDistanceEstimator::writeDistanceEstimatesNoData(gz::ogzstream & out, std::string & chr, const uint32_t & windowStart, const uint32_t & windowEnd){
 	out << chr << "\t" << windowStart + 1 << "\t" << windowEnd << "\t"; //internal position is zero-based
 	writeDistanceEstimatesNoData(out);
-}
+};
 
 void TDistanceEstimator::writeDistanceEstimatesNoData(gz::ogzstream & out){
 	out << "\t0";
 	for(int i=0; i<14; ++i)
 		out << "\t-";
 	out << "\n";
-}
+};
 
 }; //end namespace

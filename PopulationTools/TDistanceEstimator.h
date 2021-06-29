@@ -91,6 +91,22 @@ std::ostream& operator<<(std::ostream& os, const DistancePhi & Phi){
 	return os;
 };
 
+//-------------------------------------
+// TDistanceData
+//-------------------------------------
+class TDistanceData : public TData_base<double, DistancePhi, DistancePhiEnum, nn_nn>{
+private:
+	using TData_base<double, DistancePhi, DistancePhiEnum, nn_nn>::_data;
+
+public:
+	TDistanceData() : TData_base<double, DistancePhi, DistancePhiEnum, nn_nn>(0.0) {};
+	~TDistanceData() = default;
+
+	double& operator()(const Genotype & g1, const Genotype & g2){
+		return _data[DistancePhi(g1, g2).get()];
+	};
+};
+
 //--------------------------------------------
 //TGenocombinationToBaseMap
 //--------------------------------------------
@@ -111,14 +127,14 @@ public:
 //----------------------------------------------------
 class TDistance{
 protected:
-	std::array<double, nn_nn> _distanceWeight;
+	TDistanceData _distanceWeight;
 
 public:
 	TDistance();
 	virtual ~TDistance() = default;
 
-	[[nodiscard]] virtual double calculateDistance(const std::array<double, nn_nn> & phi);
-	[[nodiscard]] const std::array<double, nn_nn> weights(){ return _distanceWeight; };
+	[[nodiscard]] virtual double calculateDistance(const TDistanceData & phi);
+	[[nodiscard]] const TDistanceData weights(){ return _distanceWeight; };
 };
 
 class TDistanceProbMismatch:public TDistance{
@@ -128,7 +144,7 @@ public:
 
 class TDistanceEuclidian:public TDistance{
 public:
-	double calculateDistance(const std::array<double, nn_nn> & phi);
+	double calculateDistance(const TDistanceData & phi);
 };
 
 class TDistanceUser:public TDistance{
@@ -150,7 +166,7 @@ private:
 
 	//tmp variables
 	double old_LL;
-	std::array<double, 9> K; //normalizing constant
+	TDistanceData K; //normalizing constant
 
 	double** probGeno;
 	double** P_G;
@@ -162,11 +178,11 @@ private:
 	void guessPi(std::vector<HighPrecisionPhredIntProbability*> & genoQual1, std::vector<HighPrecisionPhredIntProbability*> & genoQual2);
 	void guessPhi(std::vector<HighPrecisionPhredIntProbability*> & genoQual1, std::vector<HighPrecisionPhredIntProbability*> & genoQual2);
 	void fill_K(GenotypeLikelihoods::TBaseData  & thesePi);
-	void fill_P_g_given_phi_pi(const std::array<double, nn_nn> & phi, GenotypeLikelihoods::TBaseData & pi);
+	void fill_P_g_given_phi_pi(const TDistanceData & phi, GenotypeLikelihoods::TBaseData & pi);
 
 public:
 	GenotypeLikelihoods::TBaseData pi;
-	std::array<double, nn_nn> phi;
+	TDistanceData phi;
 	double LL;
 	double distance;
 
@@ -184,7 +200,7 @@ public:
 //		delete[] distanceWeight;
 	};
 
-	bool estimatePhiWithEM(std::vector<uint16_t*> & genoQual1, std::vector<uint16_t*> & genoQual2);
+	bool estimatePhiWithEM(std::vector<HighPrecisionPhredIntProbability*> & genoQual1, std::vector<HighPrecisionPhredIntProbability*> & genoQual2);
 };
 
 //--------------------------------------------

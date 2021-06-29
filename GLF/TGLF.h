@@ -54,6 +54,19 @@ public:
 
 */
 
+
+/*
+ * TODO: switch to using a proper container. Think about ploidy.
+//------------------------------------------------
+// TGenotypeHighPrecisionPhredIntProbability
+//------------------------------------------------
+class TGenotypeHighPrecisionPhredIntProbability : public TGenotypeData_base<genometools::HighPrecisionPhredIntProbability>{
+protected:
+	TGenotypeHighPrecisionPhredIntProbability() {};
+	TGenotypeHighPrecisionPhredIntProbability(const genometools::HighPrecisionPhredIntProbability & Val) : TGenotypeData_base<genometools::HighPrecisionPhredIntProbability>(Val) {};
+};
+*/
+
 //----------------------------------------------------
 //TGlfChromosome
 //struct to store info on chromosome
