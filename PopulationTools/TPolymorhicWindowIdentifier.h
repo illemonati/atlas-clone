@@ -12,10 +12,13 @@
 
 namespace PopulationTools{
 
+using coretools::TParameters;
+using coretools::TLog;
+using coretools::TRandomGenerator;
+
 class TPolymorhicWindowIdentifier{
 private:
 	TLog* logfile;
-	TGlfConverter glfConverter;
 
 public:
 	TPolymorhicWindowIdentifier(TParameters & Parameters, TLog* logfile);
@@ -25,7 +28,7 @@ public:
 //--------------------------------------
 // Tasks
 //--------------------------------------
-class TTask_identifyPolymorphicWindows:public TTask{
+class TTask_identifyPolymorphicWindows:public coretools::TTask{
 public:
 	TTask_identifyPolymorphicWindows(){ _explanation = "Identifying windows for which samples are polymoprhic"; };
 

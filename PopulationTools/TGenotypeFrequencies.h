@@ -42,8 +42,8 @@ public:
 	void guess(const TSampleLikelihoods* samples, int numSamples);
 	void estimate(TPopulationLikehoodLocus & samples, double epsilonF);
 	void estimate(TSampleLikelihoods* samples, int numSamples, double epsilonF);
-	double calculateLog10Likelihood(TPopulationLikehoodLocus & samples);
-	double calculateLog10Likelihood(TSampleLikelihoods* samples, int numSamples);
+	coretools::Log10Probability calculateLog10Likelihood(TPopulationLikehoodLocus & samples);
+	coretools::Log10Probability calculateLog10Likelihood(TSampleLikelihoods* samples, const uint32_t & numSamples);
 	void writeDiploidFrequencies(coretools::TOutputFile & out);
 	void writeHaploidFrequencies(coretools::TOutputFile & out);
 	int numHaploid(){ return numHaploidSamples; };

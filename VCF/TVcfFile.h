@@ -71,11 +71,6 @@ public:
 	void enableSampleParsing(){usedParsers.push_back(&TVcfParser::parseSamples);};
 
 	//retrieve info
-	GTLikelihoods _genotypeLikelihoods(TVcfLine* line, unsigned int sample);
-	GTLikelihoods _genotypeLikelihoodsPhred(TVcfLine* line, unsigned int sample);
-	void fillGenotypeLiklihoods(TVcfLine* line, unsigned int sample, float* gtl);
-	void fillPherdScore(TVcfLine* line, unsigned int sample, uint8_t & gtl_0, uint8_t & gtl_1, uint8_t & gtl_2);
-	void fillLog10GenotypeLikelihoods(TVcfLine* line, unsigned int sample, double & gtl_0, double & gtl_1, double & gtl_2);
 	int sampleNumber(std::string & Name);
 	int numSamples();
 	std::string sampleName(unsigned int num);
@@ -128,11 +123,11 @@ public:
 	virtual std::string fieldContentAsString(std::string tag, unsigned int sample);
 	virtual int fieldContentAsInt(std::string tag, unsigned int sample);
 	virtual int depthAsIntNoCheckForMissingSample(std::string tag, unsigned int sample);
-	GTLikelihoods genotypeLikelihoods(unsigned int sample);
-	GTLikelihoods genotypeLikelihoodsPhred(unsigned int sample);
-	void fillGenotypeLikelihoods(unsigned int sample, float* gtl);
-	void fillPhredScore(unsigned int sample, uint8_t & gtl_0, uint8_t & gtl_1, uint8_t & gtl_2);
-	void fillLog10GenotypeLikelihoods(unsigned int sample, double & gtl_0, double & gtl_1, double & gtl_2);
+
+	template <typename T>
+	std::array<T, 3> genotypeLikelihoods(unsigned int & s){
+		return parser.genotypeLikelihoods<T>(tempLine, s);
+	};
 
 	//variant info
 	uint64_t position();
@@ -158,6 +153,7 @@ public:
 	bool sampleIsHeteroRefNonref(unsigned int sample);
 	genometools::Base getFirstAlleleOfSample(unsigned int num);
 	genometools::Base getSecondAlleleOfSample(unsigned int num);
+	genometools::BiallelicGenotype sampleBiallelicGenotype(const unsigned int & num);
 	genometools::Genotype sampleGenotype(const unsigned int & num);
 	float sampleGenotypeQuality(unsigned int sample);
 	double sampleDepth(unsigned int sample);

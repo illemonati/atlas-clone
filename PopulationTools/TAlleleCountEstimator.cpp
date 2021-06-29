@@ -209,7 +209,7 @@ void TSiteAlleleFrequencyLikelihoods::_fillNatural(const TSampleLikelihoods* dat
 				int j = numAlleleCounts;
 
 				if(data[s].isHaploid){
-					//first fill new ones to avoid multiplication with zero (relevant in log, kept here to code consistent)
+					//first fill new ones to avoid multiplication with zero (relevant in log, kept here for code consistency)
 					alleleFrequencyLikelihoods_h[j+1] = (Probability) data[s].glfLikelihood_2 * log_alleleFrequencyLikelihoods_h[j-1];
 
 					//now fill those already used

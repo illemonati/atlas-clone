@@ -773,12 +773,14 @@ void TPopulationLikelihoodReaderLocus::writePosition(coretools::TOutputFile & ou
 	out << vcfFile.chr() << vcfFile.position() << vcfFile.getRefAllele() << vcfFile.getFirstAltAllele();
 };
 
+/*
 void TPopulationLikelihoodReaderLocus::fillGenotypes(TPopulationSamples & samples, u_int8_t * genotypes){
     for(uint32_t s = 0; s < samples.numSamples(); ++s) {
         uint32_t vcfIndex = samples.VCF_order(s);
         genotypes[s] = vcfFile.sampleGenotype(vcfIndex);
     }
 }
+*/
 
 uint8_t TPopulationLikelihoodReaderLocus::genotype(TPopulationSamples & samples, uint32_t s){
     uint32_t vcfIndex = samples.VCF_order(s);

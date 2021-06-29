@@ -39,7 +39,7 @@ public:
 
 	void resize(const uint32_t & Size);
 	size_t size() const { return samples.size(); };
-	void fill(PopulationTools::TPopulationLikehoodLocus & storage, const genometools::AllelicCombination & alleleicCombination);
+	void fill(PopulationTools::TPopulationLikehoodLocus & storage, const genometools::AllelicCombination & alleleicCombination) const;
 	uint32_t totalDepth();
 };
 
@@ -74,7 +74,7 @@ public:
 	}
 
 	void usePhredScaledLikelihoods(){ _usePhredScaledLikelihoods = true; };
-	void writeSite(const std::string & chrName, const uint32_t & position, const int & varianTQuality, TMultiGLFData & data, const genometools::Base Ref, const genometools::Base Alt);
+	void writeSite(const std::string & chrName, const uint32_t & position, const genometools::PhredIntProbability & varianTQuality, TMultiGLFData & data, const genometools::Base Ref, const genometools::Base Alt);
 };
 
 //----------------------------------------------------

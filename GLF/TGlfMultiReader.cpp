@@ -22,7 +22,7 @@ void TMultiGLFData::resize(const uint32_t & Size){
 	samples.resize(Size);
 };
 
-void TMultiGLFData::fill(PopulationTools::TPopulationLikehoodLocus & storage, const genometools::AllelicCombination & alleleicCombination){
+void TMultiGLFData::fill(PopulationTools::TPopulationLikehoodLocus & storage, const genometools::AllelicCombination & alleleicCombination) const{
 	storage.resize(samples.size());
 	for(uint32_t i=0; i<samples.size(); ++i){
 		storage[i].isHaploid = samples[i].isHaploid;
@@ -109,7 +109,7 @@ void TGlfMultiReaderVcf::writeLikelihood(const genometools::HighPrecisionPhredIn
 	}
 };
 
-void TGlfMultiReaderVcf::writeSite(const std::string & chrName, const uint32_t & position, const int & varianTQuality, TMultiGLFData & data, const genometools::Base refAllele, const genometools::Base altAllele){
+void TGlfMultiReaderVcf::writeSite(const std::string & chrName, const uint32_t & position, const genometools::PhredIntProbability & varianTQuality, TMultiGLFData & data, const genometools::Base refAllele, const genometools::Base altAllele){
 	//Note: we pass hom/het indexes to maintain the major / minor order! Passing the alleleic combination is not enough
 	//TODO: find way to harmonize code with TCaller
 	_setMajorMinor(refAllele, altAllele);
@@ -121,7 +121,7 @@ void TGlfMultiReaderVcf::writeSite(const std::string & chrName, const uint32_t &
 	vcf << refAllele << '\t' << altAllele;
 
 	//write quality of variant
-	vcf << '\t' << varianTQuality;
+	vcf << '\t' << (genometools::BaseQuality) varianTQuality;
 
 	//write info field: total depth
 	vcf << "\t.\tDP=" << data.totalDepth();

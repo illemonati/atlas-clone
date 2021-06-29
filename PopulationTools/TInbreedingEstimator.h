@@ -16,6 +16,10 @@
 
 namespace PopulationTools{
 
+using coretools::TRandomGenerator;
+using coretools::TLog;
+using coretools::TParameters;
+
 //---------------------------
 // F
 //---------------------------
@@ -209,10 +213,10 @@ private:
 	bool updateGamma();
 	bool updatePi();
 	double logProbPGivenGamma();
-	double logLikelihoodAllInds(const TSampleLikelihoods* data, const int curSampleSize, const double thisP, const double thisF, TGlfConverter & glfConverter);
+	double logLikelihoodAllInds(const TSampleLikelihoods* data, const int curSampleSize, const double thisP, const double thisF);
 	void wholeLogLikelihood();
-	double getLogLikelihoodCurrentParams(const TGlfConverter & glfConverter);
-	double compareLikelihoods(int numUpdates, const TGlfConverter & glfConverter);
+	double getLogLikelihoodCurrentParams();
+	double compareLikelihoods(int numUpdates);
 	void oneMCMCIteration();
 	void printAcceptanceRates(int numIterations);
 	void resetAcceptanceRates();
@@ -234,7 +238,7 @@ public:
 //--------------------------------------
 // Tasks
 //--------------------------------------
-class TTask_estimateInbreeding:public TTask{
+class TTask_estimateInbreeding:public coretools::TTask{
 public:
 	TTask_estimateInbreeding(){
 		_explanation = "Estimating the inbreeding coefficient";
@@ -247,7 +251,7 @@ public:
 	};
 };
 
-class TTask_inbreedingLikelihood:public TTask{
+class TTask_inbreedingLikelihood:public coretools::TTask{
 public:
 	TTask_inbreedingLikelihood(){
 		_explanation = "Estimating likelihood surfaces for the inbreeding model";

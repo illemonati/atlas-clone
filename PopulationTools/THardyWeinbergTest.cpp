@@ -9,6 +9,7 @@
 
 namespace PopulationTools{
 
+using coretools::TFactorial;
 
 //------------------------------------------------
 //THWHetProb
@@ -203,9 +204,9 @@ void THWGenotypes::clear(){
 	_genoCounts[2] = 0;
 };
 
-void THWGenotypes::add(const uint8_t & genotype){
-	if(genotype < 3){
-		++_genoCounts[genotype];
+void THWGenotypes::add(const genometools::BiallelicGenotype & genotype){
+	if(genotype != genometools::missing){
+		++_genoCounts[genotype.get()];
 	}
 };
 
@@ -246,7 +247,7 @@ void THWPopulations::clear(){
 	}
 };
 
-void THWPopulations::add(const uint16_t & pop, const uint8_t & genotyp){
+void THWPopulations::add(const uint16_t & pop, const genometools::BiallelicGenotype & genotyp){
 	_populations[pop].add(genotyp);
 };
 
@@ -332,7 +333,7 @@ THardyWeinbergTest::THardyWeinbergTest(TParameters & Parameters, TLog* logfile, 
 	_populations.resize(_samples.numPopulations());
 
 	//get output name
-	std::string tmp = extractBeforeLast(_vcfFilename, ".vcf");
+	std::string tmp = coretools::str::extractBeforeLast(_vcfFilename, ".vcf");
 	_outname = Parameters.getParameterWithDefault<std::string>("out", tmp);
 
 	//limit lines?
@@ -353,7 +354,7 @@ void THardyWeinbergTest::testForHardyWeinberg(){
 	TOutputFile out(filename, header);
 
 	//progress
-	TTimer timer;
+	coretools::TTimer timer;
 	uint64_t lineCounter = 0;
 	uint64_t numFiltered = 0;
 
@@ -374,7 +375,7 @@ void THardyWeinbergTest::testForHardyWeinberg(){
 			for(uint32_t s = 0; s<_samples.numSamples(); ++s){
 				uint32_t vcfIndex = _samples.VCF_order(s);
 				if(!_vcfFile.sampleIsMissing(vcfIndex)){
-					_populations.add(_samples.popIndex(s), _vcfFile.sampleGenotype(vcfIndex));
+					_populations.add(_samples.popIndex(s), _vcfFile.sampleBiallelicGenotype(vcfIndex));
 				}
 			}
 
@@ -383,7 +384,7 @@ void THardyWeinbergTest::testForHardyWeinberg(){
 
 			//progress / limit lines
 			if(lineCounter % 10000 == 0){
-				_logfile->list("Parsed " + toString(lineCounter) + " lines in " + timer.formattedTime());
+				_logfile->list("Parsed ", lineCounter, " lines in " + timer.formattedTime());
 			}
 			if(_limitLines && lineCounter == _maxNumLines){
 				break;
@@ -393,7 +394,7 @@ void THardyWeinbergTest::testForHardyWeinberg(){
 		}
 	}
 	_logfile->list("Reached end of VCf file.");
-	_logfile->conclude("Parsed " + toString(lineCounter) + " lines in " + timer.formattedTime());
+	_logfile->conclude("Parsed ", lineCounter, " lines in ", timer.formattedTime());
 	_logfile->conclude("Ignored ", numFiltered, " sites that were not bi-allelic SNPs.");
 	_logfile->endIndent();
 

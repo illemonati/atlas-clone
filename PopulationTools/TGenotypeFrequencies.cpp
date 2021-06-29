@@ -216,11 +216,11 @@ void TGenotypeFrequencies::estimate(TSampleLikelihoods* samples, int numSamples,
 	else MAF = alleleFrequency;
 };
 
-double TGenotypeFrequencies::calculateLog10Likelihood(TPopulationLikehoodLocus & samples){
+coretools::Log10Probability TGenotypeFrequencies::calculateLog10Likelihood(TPopulationLikehoodLocus & samples){
 	return calculateLog10Likelihood(samples.samples(), samples.numSamples());
 };
 
-double TGenotypeFrequencies::calculateLog10Likelihood(TSampleLikelihoods* samples, int numSamples){
+coretools::Log10Probability TGenotypeFrequencies::calculateLog10Likelihood(TSampleLikelihoods* samples, const uint32_t & numSamples){
 	double LL = 0.0;
 	for(int i = 0; i < numSamples; i++){
 		if(!samples[i].isMissing){
@@ -234,7 +234,7 @@ double TGenotypeFrequencies::calculateLog10Likelihood(TSampleLikelihoods* sample
 			}
 		}
 	}
-	return LL;
+	return coretools::Log10Probability(LL);
 };
 
 void TGenotypeFrequencies::writeDiploidFrequencies(coretools::TOutputFile & out){

@@ -13,104 +13,99 @@ namespace PopulationTools{
 // TMajorMinorEstimatorBase
 //---------------------------------------------------
 TMajorMinorEstimatorBase::TMajorMinorEstimatorBase(TRandomGenerator* RandomGenerator){
-	L10L_perCombination = new double[6];
-	bestAllelicCombination = 0;
-	minor = A;
-	major = A;
+	bestAllelicCombination = genometools::alleleicCombinationNN;
+	minor = genometools::N;
+	major = genometools::N;
 	L10L = 0.0;
 	randomGenerator = RandomGenerator;
 	variantQuality = 0;
 };
 
-TMajorMinorEstimatorBase::~TMajorMinorEstimatorBase(){
-	delete[] L10L_perCombination;
-};
-
 void TMajorMinorEstimatorBase::useAllAlleleicCombinations(){
-	usedAllelicCombinations = {0, 1, 2, 3, 4, 5};
+	usedAllelicCombinations.clear();
+	for(AllelicCombination ac = AllelicCombination::min(); ac < AllelicCombination::max(); ++ac){
+		usedAllelicCombinations.push_back(ac);
+	}
 };
 
 void TMajorMinorEstimatorBase::useAllelicCombinationsThatContain(const Base & base){
 	usedAllelicCombinations.clear();
 
-	//get the three alleleic combinations that contain base base
-	usedAllelicCombinations.push_back(genoMap.allelicCombinationsMatchingBase[base][0]);
-	usedAllelicCombinations.push_back(genoMap.allelicCombinationsMatchingBase[base][1]);
-	usedAllelicCombinations.push_back(genoMap.allelicCombinationsMatchingBase[base][2]);
+	//get the three alleleic combinations that contain base
+	for(Base b = Base::min(); b < Base::max(); ++b){
+		if(b != base){
+			usedAllelicCombinations.push_back(AllelicCombination(base, b));
+		}
+	}
 };
 
 void TMajorMinorEstimatorBase::chooseBestAllelicCombinationAmongThoseWithEqualScores(){
 	//identify max L10L
-	L10L = L10L_perCombination[usedAllelicCombinations[0]];
-	for(uint16_t ac : usedAllelicCombinations){
-		if(L10L_perCombination[ac] > L10L){
-			L10L = L10L_perCombination[ac];
-		}
-	}
+	L10L = L10L_perCombination.max();
 
 	//select MLE combination
-	std::vector<int> best_combinations;
-	for(uint16_t i : usedAllelicCombinations){
-		if(L10L_perCombination[i] == L10L)
-			best_combinations.push_back(i);
+	std::vector<AllelicCombination> best_combinations;
+	for(AllelicCombination ac = AllelicCombination::min(); ac < AllelicCombination::max(); ++ac){
+		if(L10L_perCombination[ac] == L10L)
+			best_combinations.push_back(ac);
 	}
 	bestAllelicCombination = best_combinations[randomGenerator->sample(best_combinations.size())];
 };
 
-void TMajorMinorEstimatorBase::findMLAllelicCombination(TMultiGLFData & data, TGlfConverter & glfConverter){
+void TMajorMinorEstimatorBase::findMLAllelicCombination(const TMultiGLFData & data){
 	throw "Function TMajorMinorEstimatorBase::findMLAllelicCombination(TGlfMultiReader & glfReader, TGlfConverter & glfConverter) not implemented for base class!";
 };
 
-void  TMajorMinorEstimatorBase::_estimateMajorMinor(TMultiGLFData & data, TGlfConverter & glfConverter){
-	findMLAllelicCombination(data, glfConverter);
+void  TMajorMinorEstimatorBase::_estimateMajorMinor(const TMultiGLFData & data){
+	findMLAllelicCombination(data);
 
 	//which one is major?
 	if(genotypeFrequencies.alleleFrequency < 0.5){
-		major = genoMap.alleleicCombinationToBase[bestAllelicCombination][0];
-		minor = genoMap.alleleicCombinationToBase[bestAllelicCombination][1];
+		major = bestAllelicCombination.firstAllele();
+		minor = bestAllelicCombination.secondAllele();
 	} else {
-		major = genoMap.alleleicCombinationToBase[bestAllelicCombination][1];
-		minor = genoMap.alleleicCombinationToBase[bestAllelicCombination][0];
+		major = bestAllelicCombination.secondAllele();
+		minor = bestAllelicCombination.firstAllele();
 
 		//also flip frequencies
 		genotypeFrequencies.flip();
 	}
 
 	//calculate variant quality
-	int refHomIndex = genoMap.genotypeMap[major][major];
-	double LL_fixed_glfPhred = 0.0;
-	for(uint32_t i=0; i<data.size; ++i){
+	Genotype refHom(major, major);
+	coretools::Log10Probability LL_fixed_glfPhred = 0.0;
+	for(uint32_t i=0; i<data.size(); ++i){
 		if(data.samples[i].hasData){
 			if(data.samples[i].isHaploid)
-				LL_fixed_glfPhred += data.samples[i].genotypeLikelihoodsGLF[major];
+				LL_fixed_glfPhred += (coretools::Log10Probability) data.samples[i].genotypeLikelihoodsGLF[major.get()];
 			else
-				LL_fixed_glfPhred += data.samples[i].genotypeLikelihoodsGLF[refHomIndex];
+				LL_fixed_glfPhred += (coretools::Log10Probability) data.samples[i].genotypeLikelihoodsGLF[refHom.get()];
 		}
 	}
 
-	variantQuality = glfConverter.toPhred(LL_fixed_glfPhred - glfConverter.log10ToGlfFormat(L10L));
+	variantQuality = LL_fixed_glfPhred - L10L;
 };
 
-void  TMajorMinorEstimatorBase::estimateMajorMinor(TMultiGLFData & data, TGlfConverter & glfConverter){
+void  TMajorMinorEstimatorBase::estimateMajorMinor(const TMultiGLFData & data){
 	//use all allelic combinations
 	useAllAlleleicCombinations();
 
 	//now estimate
-	_estimateMajorMinor(data, glfConverter);
+	_estimateMajorMinor(data);
 };
 
-void  TMajorMinorEstimatorBase::estimateMajorMinor(TMultiGLFData & data, TGlfConverter & glfConverter, const Base & base){
+void  TMajorMinorEstimatorBase::estimateMajorMinor(const TMultiGLFData & data, const Base & base){
 	//use all allelic combinations
 	useAllelicCombinationsThatContain(base);
 
 	//now estimate
-	_estimateMajorMinor(data, glfConverter);
+	_estimateMajorMinor(data);
 };
 
 //---------------------------------------------------
 // TMajorMinorEstimatorSkotte
 //---------------------------------------------------
-TMajorMinorEstimatorSkotte::TMajorMinorEstimatorSkotte(TRandomGenerator* RandomGenerator, double EpsilonF):TMajorMinorEstimatorBase(RandomGenerator){
+TMajorMinorEstimatorSkotte::TMajorMinorEstimatorSkotte(TRandomGenerator* RandomGenerator, const double & EpsilonF):TMajorMinorEstimatorBase(RandomGenerator){
 	 epsilonF = EpsilonF;
 
 	//diploid
@@ -125,11 +120,11 @@ TMajorMinorEstimatorSkotte::TMajorMinorEstimatorSkotte(TRandomGenerator* RandomG
 
 TMajorMinorEstimatorSkotte::~TMajorMinorEstimatorSkotte(){};
 
-void TMajorMinorEstimatorSkotte::findMLAllelicCombination(TMultiGLFData & data, TGlfConverter & glfConverter){
+void TMajorMinorEstimatorSkotte::findMLAllelicCombination(const TMultiGLFData & data){
 	//calculate L10L for each allelic combination used
-	for(uint16_t ac : usedAllelicCombinations){
+	for(auto& ac : usedAllelicCombinations){
 		data.fill(genotypeLikelihoods, ac);
-		L10L_perCombination[ac] = priorGenotypeFrequencies.calculateLog10Likelihood(genotypeLikelihoods, glfConverter);
+		L10L_perCombination[ac] = priorGenotypeFrequencies.calculateLog10Likelihood(genotypeLikelihoods);
 		L10L = L10L_perCombination[ac];
 	}
 
@@ -138,40 +133,35 @@ void TMajorMinorEstimatorSkotte::findMLAllelicCombination(TMultiGLFData & data, 
 
 	//now estimate genotype frequencies at MLE allelic combination
 	data.fill(genotypeLikelihoods, bestAllelicCombination);
-	genotypeFrequencies.estimate(genotypeLikelihoods, glfConverter, epsilonF);
+	genotypeFrequencies.estimate(genotypeLikelihoods, epsilonF);
 
 	//calculate likelihood again with better genotype frequencies
-	L10L_perCombination[bestAllelicCombination] = genotypeFrequencies.calculateLog10Likelihood(genotypeLikelihoods, glfConverter);
+	L10L_perCombination[bestAllelicCombination] = genotypeFrequencies.calculateLog10Likelihood(genotypeLikelihoods);
 	L10L = L10L_perCombination[bestAllelicCombination];
 };
 
 //---------------------------------------------------
 // TMajorMinorEstimatorMLE
 //---------------------------------------------------
-TMajorMinorEstimatorMLE::TMajorMinorEstimatorMLE(TRandomGenerator* RandomGenerator, double EpsilonF):TMajorMinorEstimatorBase(RandomGenerator){
+TMajorMinorEstimatorMLE::TMajorMinorEstimatorMLE(TRandomGenerator* RandomGenerator, const double & EpsilonF):TMajorMinorEstimatorBase(RandomGenerator){
 	epsilonF = EpsilonF;
-	tmpGenotypeFrequencies = new TGenotypeFrequencies[6];
 };
 
-TMajorMinorEstimatorMLE::~TMajorMinorEstimatorMLE(){
-	delete[] tmpGenotypeFrequencies;
-};
-
-double TMajorMinorEstimatorMLE::estimateGenotypeFrequencies(TMultiGLFData & data, int thisAlleleicCombination, TGlfConverter & glfConverter){
+double TMajorMinorEstimatorMLE::estimateGenotypeFrequencies(const TMultiGLFData & data, const AllelicCombination & thisAlleleicCombination){
 	data.fill(genotypeLikelihoods, thisAlleleicCombination);
-	tmpGenotypeFrequencies[thisAlleleicCombination].estimate(genotypeLikelihoods, glfConverter, epsilonF);
-	return tmpGenotypeFrequencies[thisAlleleicCombination].calculateLog10Likelihood(genotypeLikelihoods, glfConverter);
+	tmpGenotypeFrequencies[thisAlleleicCombination.get()].estimate(genotypeLikelihoods, epsilonF);
+	return tmpGenotypeFrequencies[thisAlleleicCombination.get()].calculateLog10Likelihood(genotypeLikelihoods);
 };
 
-void TMajorMinorEstimatorMLE::findMLAllelicCombination(TMultiGLFData & data, TGlfConverter & glfConverter){
+void TMajorMinorEstimatorMLE::findMLAllelicCombination(const TMultiGLFData & data){
 	//calculate L10L for each allelic combination
-	for(uint16_t ac : usedAllelicCombinations){
-		L10L_perCombination[ac] = estimateGenotypeFrequencies(data, ac, glfConverter);
+	for(auto& ac : usedAllelicCombinations){
+		L10L_perCombination[ac] = estimateGenotypeFrequencies(data, ac);
 	}
 
 	//pick combination
 	chooseBestAllelicCombinationAmongThoseWithEqualScores();
-	genotypeFrequencies.set(tmpGenotypeFrequencies[bestAllelicCombination]);
+	genotypeFrequencies.set(tmpGenotypeFrequencies[bestAllelicCombination.get()]);
 };
 
 //---------------------------------------------------
@@ -188,7 +178,7 @@ TMajorMinor::TMajorMinor(TLog* Logfile, TParameters & params, TRandomGenerator* 
 
 void TMajorMinor::estimateMajorMinor(TParameters & params){
 	//open GLF files
-	TGlfMultiReader glfReader(params, logfile);
+	GLF::TGlfMultiReader glfReader(params, logfile);
 	glfReader.setAllActive();
 
 	//add reference, if provided
@@ -205,10 +195,10 @@ void TMajorMinor::estimateMajorMinor(TParameters & params){
 	TMajorMinorEstimatorBase* MMEstimator;
 	double maxF = params.getParameterWithDefault("maxF", 0.0000001);
 	if(method == "Skotte"){
-		logfile->list("Will estimate major / minor alleles using the Skotte method with maxF " + toString(maxF) + ". (parameters method and maxF)");
+		logfile->list("Will estimate major / minor alleles using the Skotte method with maxF ", maxF, ". (parameters method and maxF)");
 		MMEstimator = new TMajorMinorEstimatorSkotte(randomGenerator, maxF);
 	} else if(method == "MLE"){
-		logfile->list("Will estimate major / minor alleles using the MLE method with maxF " + toString(maxF) + ". (parameters method and maxF)");
+		logfile->list("Will estimate major / minor alleles using the MLE method with maxF ", maxF, ". (parameters method and maxF)");
 		MMEstimator = new TMajorMinorEstimatorMLE(randomGenerator, maxF);
 	} else throw "Unknown MajorMinor method '" + method + "'!";
 
@@ -225,14 +215,14 @@ void TMajorMinor::estimateMajorMinor(TParameters & params){
 		minSamplesWithData = 0;
 		minVariantQuality = 0;
 	} else {
-		minSamplesWithData = params.getParameterWithDefault<int>("minSamplesWithData", 1);
+		minSamplesWithData = params.getParameterWithDefault<uint32_t>("minSamplesWithData", 1);
 		if(minSamplesWithData > 0){
-			logfile->list("Will only print sites for which at least " + toString(minSamplesWithData) + " samples have data. (parameter minSamplesWithData)");
+			logfile->list("Will only print sites for which at least ", minSamplesWithData, " samples have data. (parameter minSamplesWithData)");
 		}
 
-		minVariantQuality = params.getParameterWithDefault<int>("minVariantQual", 0);
-		if(minVariantQuality > 0){
-			logfile->list("Will only print sites with variant quality >= " + toString(minVariantQuality) + " samples have data. (parameter minVariantQual)");
+		minVariantQuality = params.getParameterWithDefault<genometools::PhredIntProbability>("minVariantQual", genometools::PhredIntProbability::highest());
+		if(minVariantQuality > genometools::PhredIntProbability::highest()){
+			logfile->list("Will only print sites with variant quality >= ", minVariantQuality, " samples have data. (parameter minVariantQual)");
 		}
 	}
 
@@ -245,7 +235,7 @@ void TMajorMinor::estimateMajorMinor(TParameters & params){
 	//limit input
 	long limitSites = params.getParameterWithDefault("limitSites", 0);
 	if(limitSites > 0)
-		logfile->list("Will stop at input position " + toString(limitSites) + ". (parameter 'limitSites')");
+		logfile->list("Will stop at input position ", limitSites, ". (parameter 'limitSites')");
 	if(limitSites < 0)
 		throw "maxPos cannot be negative!";
 
@@ -256,15 +246,14 @@ void TMajorMinor::estimateMajorMinor(TParameters & params){
 	//open vcf file
 	std::vector<std::string> sampleNames;
 	glfReader.fillSampleNamesOfActiveFiles(sampleNames);
-	TGlfMultiReaderVcf vcf(outname + ".vcf.gz", "ATLAS_GLF_Caller", sampleNames, randomGenerator);
+	GLF::TGlfMultiReaderVcf vcf(outname + ".vcf.gz", "ATLAS_GLF_Caller", sampleNames, randomGenerator);
 	if(usePhredLikelihoods){
 		vcf.usePhredScaledLikelihoods();
 	}
 
 	//vars
 	logfile->startIndent("Parsing through glf files:");
-	struct timeval start;
-    gettimeofday(&start, NULL);
+	coretools::TTimer timer;
     long counter = 0;
 
 	while(glfReader.readNext()){
@@ -275,7 +264,7 @@ void TMajorMinor::estimateMajorMinor(TParameters & params){
 			//do major minor
 			if(hasReference){
 				Base ref = glfReader.refBase();
-				MMEstimator->estimateMajorMinor(glfReader.data, glfReader.converter, ref);
+				MMEstimator->estimateMajorMinor(glfReader.data, ref);
 
 				//write to VCF
 				if(MMEstimator->variantQuality >= minVariantQuality){
@@ -286,7 +275,7 @@ void TMajorMinor::estimateMajorMinor(TParameters & params){
 					}
 				}
 			} else {
-				MMEstimator->estimateMajorMinor(glfReader.data, glfReader.converter);
+				MMEstimator->estimateMajorMinor(glfReader.data);
 
 				//write to VCF
 				if(MMEstimator->variantQuality >= minVariantQuality){
@@ -297,10 +286,7 @@ void TMajorMinor::estimateMajorMinor(TParameters & params){
 
 		//report progress
 		if(counter % 1000000 == 0){
-			static struct timeval end;
-			gettimeofday(&end, NULL);
-			float runtime = (end.tv_sec  - start.tv_sec)/60.0;
-			logfile->list("Parsed " + toString(counter) + " positions in " + toString(runtime) + " min.");
+			logfile->list("Parsed ", counter, " positions in ", timer.formattedTime(), " min.");
 		}
 
 		//break?

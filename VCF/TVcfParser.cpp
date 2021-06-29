@@ -468,122 +468,45 @@ void TVcfParser::addToInfo(TVcfLine & line, std::string & Id, std::string & Data
 	}
 }
 
-GTLikelihoods TVcfParser::genotypeLikelihoods(TVcfLine & line, unsigned int & s){
-	if(s >= line.samples.size()) throw "Sample " + toString(s) + " does not exists!";
-	GTLikelihoods gt;
-	if(line.samples[s].missing){
-		gt.AA = -1; gt.AB = -1; gt.BB = -1;
-	} else {
-		int col = getFormatCol(line, "PL");
-		std::string d = line.samples[s].data[col];
-
-
-		//std::string a=d.extract_sub_str(',');
-		convertString<double>(extractBefore(d, ','));
-		gt.AA=dePhred(convertString<double>(extractBefore(d, ',')));
-		d.erase(0,1);
-		gt.AB=dePhred(convertString<double>(extractBefore(d, ',')));
-		d.erase(0,1);
-		gt.BB=dePhred(convertString<double>(d));
-	}
-	return gt;
-}
-
-GTLikelihoods TVcfParser::genotypeLikelihoodsPhred(TVcfLine & line, unsigned int & s){
-	if(s >= line.samples.size()) throw "Sample " + toString(s) + " does not exists!";
-	GTLikelihoods gt;
-	if(line.samples[s].missing){
-		gt.AA = -1; gt.AB = -1; gt.BB = -1;
-	} else {
-		int col=getFormatCol(line, "PL");
-		std::string d = line.samples[s].data[col];
-
-		gt.AA=convertString<double>(extractBefore(d, ','));
-		d.erase(0,1);
-		gt.AB=convertString<double>(extractBefore(d, ','));
-		d.erase(0,1);
-		gt.BB=convertString<double>(d);
-	}
-	return gt;
-}
-
-void TVcfParser::fillGenotypeLikelihoods(TVcfLine & line, unsigned int & s, float* gtl){
-	if(s >= line.samples.size()) throw "Sample " + toString(s) + " does not exists!";
-	if(line.samples[s].missing){
-		gtl[0] = 1.0; gtl[1] = 1.0; gtl[2] = 1.0;
-	} else {
-		int col=getFormatCol(line, "PL");
-		std::string d = line.samples[s].data[col];
-		//std::string a=d.extract_sub_str(',');
-		//convertString<double>(extractBefore(d, ','));
-		gtl[0] = dePhred(convertString<double>(extractBefore(d, ',')));
-		d.erase(0,1);
-		gtl[1] = dePhred(convertString<double>(extractBefore(d, ',')));
-		d.erase(0,1);
-		gtl[2] = dePhred(convertString<double>(extractBefore(d, ',')));
-	}
-}
-
-void TVcfParser::savePhredScore(std::string & phredString, uint8_t & phred){
+genometools::PhredIntProbability TVcfParser::getPhredScore(std::string & phredString){
 	if(phredString == "inf" )
-			phred = 255;
+		return genometools::PhredIntProbability::lowest();
 	else {
-		int tmp = convertString<int>(phredString);
-		if(tmp < 0)
-			throw "Negative value in PL field!";
-		if(tmp > 255)
-			phred = 255;
-		else phred = tmp;
+		return genometools::PhredIntProbability(phredString);
 	}
 };
 
-double TVcfParser::readGL(std::string & GLString){
-	double tmp = convertString<double>(GLString);
-	if(tmp > 0){
-		throw "Positive value in GL field!";
-	}
-
-	return tmp;
-};
-
-void TVcfParser::saveGLAsPhredScore(std::string & GLString, uint8_t & phred){
+coretools::Log10Probability TVcfParser::readGL(std::string & GLString){
 	//assume GL is log10(likelihood)
-	double tmp = readGL(GLString);
-
-	//turn log10(lik) into phred(lik)
-	tmp *= -10.0;
-	if(tmp > 255)
-		phred = 255;
-	else phred = round(tmp);
+	return coretools::Log10Probability(GLString);
 };
 
-void TVcfParser::fillPhredScore(TVcfLine & line, unsigned int & s, uint8_t & gtl_0, uint8_t & gtl_1, uint8_t & gtl_2){
-	if(s >= line.samples.size()) throw "Sample " + toString(s) + " does not exists!";
+genometools::PhredIntProbability TVcfParser::getPhredScoreFromGL(std::string & GLString){
+	return genometools::PhredIntProbability( readGL(GLString) );
+};
+
+/*
+std::array<genometools::PhredIntProbability, 3> TVcfParser::GenotypeLikelihoodsAsPhredScore(TVcfLine & line, unsigned int & s){
+	if(s >= line.samples.size()) throw "Sample " + coretools::str::toString(s) + " does not exists!";
 	if(line.samples[s].missing){
-		gtl_0 = 0; gtl_1 = 0; gtl_2 = 0;
+		return { 0.0, 0.0, 0.0 };
 	} else {
 		int col = getFormatCol(line, "PL");
 		if(col < 0){
 			col = getFormatCol(line, "GL");
 			if(col < 0){
 				//neither PL nor GL tag: set missing
-				gtl_0 = 0; gtl_1 = 0; gtl_2 = 0;
+				return { 0.0, 0.0, 0.0 };
 			} else {
 				//GL field exists
 				std::vector<std::string> phreddie;
 				fillContainerFromString(line.samples[s].data[col], phreddie, ',');
 
 				//diploid or haploid?
-				if(line.samples[s].isHaploid){
-					//haploid: only two are given
-					saveGLAsPhredScore(phreddie[0], gtl_0);
-					saveGLAsPhredScore(phreddie[1], gtl_1);
-					gtl_2 = 255; //set heterozygous to a maximum value
-				} else {
-					//diploid
-					saveGLAsPhredScore(phreddie[0], gtl_0);
-					saveGLAsPhredScore(phreddie[1], gtl_1);
-					saveGLAsPhredScore(phreddie[2], gtl_2);
+				if(line.samples[s].isHaploid){ //haploid: only two are given
+					return { getPhredScoreFromGL(phreddie[0]), getPhredScoreFromGL(phreddie[1]), T::lowest() };
+				} else { //diploid
+					return { getPhredScoreFromGL(phreddie[0]), getPhredScoreFromGL(phreddie[1]), getPhredScoreFromGL(phreddie[2]) };
 				}
 			}
 		} else {
@@ -593,54 +516,53 @@ void TVcfParser::fillPhredScore(TVcfLine & line, unsigned int & s, uint8_t & gtl
 
 			//diploid or haploid?
 			if(line.samples[s].isHaploid){
-				//haploid: only two are given
-				savePhredScore(phreddie[0], gtl_0);
-				savePhredScore(phreddie[1], gtl_1);
-				gtl_2 = 255; //set heterozygous to a maximum value
+				//haploid: only two are given: set heterozygous to lowest
+				return { getPhredScore(phreddie[0]), getPhredScore(phreddie[1]), genometools::PhredIntProbability::lowest() };
+
 			} else {
 				//diploid
-				savePhredScore(phreddie[0], gtl_0);
-				savePhredScore(phreddie[1], gtl_1);
-				savePhredScore(phreddie[2], gtl_2);
+				return {getPhredScore(phreddie[0]), getPhredScore(phreddie[1]), getPhredScore(phreddie[2]) };
 			}
 		}
 	}
 };
 
-void TVcfParser::fillLog10GenotypeLikelihoods(TVcfLine & line, unsigned int & s, double & gtl_0, double & gtl_1, double & gtl_2){
+std::array<coretools::Log10Probability, 3> TVcfParser::Log10GenotypeLikelihoods(TVcfLine & line, unsigned int & s){
 	if(s >= line.samples.size()) throw "Sample " + toString(s) + " does not exists!";
 	if(line.samples[s].missing){
-		gtl_0 = 0.0; gtl_1 = 0.0; gtl_2 = 0.0;
+		return {0.0, 0.0, 0.0};
 	} else {
 		int col = getFormatCol(line, "GL");
 		if(col < 0){
 			col = getFormatCol(line, "PL");
 			if(col < 0){
 				//neither PL nor GL tag: set missing
-				gtl_0 = 0.0; gtl_1 = 0.0; gtl_2 = 0.0;
+				return {0.0, 0.0, 0.0};
 			} else {
 				//PL field exists
 				std::vector<std::string> phreddie;
 				fillContainerFromString(line.samples[s].data[col], phreddie, ',');
 
 				//diploid or haploid?
+				std::array<coretools::Log10Probability, 3> gtl;
 				uint8_t tmp;
 				if(line.samples[s].isHaploid){
 					//haploid: only two are given
 					savePhredScore(phreddie[0], tmp);
-					gtl_0 = tmp / -10.0;
+					gtl[0] = tmp / -10.0;
 					savePhredScore(phreddie[1], tmp);
-					gtl_1 = tmp / -10.0;
-					gtl_2 = -99999.9; //set heterozygous to a a very small value
+					gtl[1] = tmp / -10.0;
+					gtl[2] = -99999.9; //set heterozygous to a a very small value
 				} else {
 					//diploid
 					savePhredScore(phreddie[0], tmp);
-					gtl_0 = tmp / -10.0;
+					gtl[0] = tmp / -10.0;
 					savePhredScore(phreddie[1], tmp);
-					gtl_1 = tmp / -10.0;
+					gtl[1] = tmp / -10.0;
 					savePhredScore(phreddie[2], tmp);
-					gtl_2 = tmp / -10.0;
+					gtl[2] = tmp / -10.0;
 				}
+				return gtl;
 			}
 		} else {
 			//GL field exists: just convert to double
@@ -650,18 +572,15 @@ void TVcfParser::fillLog10GenotypeLikelihoods(TVcfLine & line, unsigned int & s,
 			//diploid or haploid?
 			if(line.samples[s].isHaploid){
 				//haploid: only two are given
-				gtl_0 = readGL(phreddie[0]);
-				gtl_1 = readGL(phreddie[1]);
-				gtl_2 = -99999.9; //set heterozygous to a a very small value
+				return { readGL(phreddie[0]), readGL(phreddie[1]), -99999.9 };
 			} else {
 				//diploid
-				gtl_0 = readGL(phreddie[0]);
-				gtl_1 = readGL(phreddie[1]);
-				gtl_2 = readGL(phreddie[2]);
+				return { readGL(phreddie[0]), readGL(phreddie[1]), readGL(phreddie[2]) };
 			}
 		}
 	}
 };
+*/
 
 std::string TVcfParser::sampleContentAt(TVcfLine & line, std::string & tag, unsigned int & sample){
 	checkSampleNum(line, sample);
@@ -824,11 +743,19 @@ std::string TVcfParser::getSecondAlleleOfSample(TVcfLine & line, const unsigned 
 	return line.variants[line.samples[sample].genotype.second];
 }
 
-short TVcfParser::sampleGenotype(TVcfLine & line, const unsigned int & sample){
-	//NOTE: only makes sense for biallelic sites! Missing = 3
-	if(line.samples[sample].missing)
-		return 3;
-	return line.samples[sample].genotype.first + line.samples[sample].genotype.second;
+genometools::BiallelicGenotype TVcfParser::sampleBiallelicGenotype(TVcfLine & line, const unsigned int & sample){
+	//return missing if non-biallelic
+	if(line.samples[sample].missing || line.variants.size() > 2){
+		return genometools::missing;
+	}
+	auto tmp = line.samples[sample].genotype.first + line.samples[sample].genotype.second;
+	if(tmp == 0){
+		return genometools::homoFirst;
+	} else if (tmp == 1){
+		return genometools::het;
+	} else {
+		return genometools::homoSecond;
+	}
 }
 
 bool TVcfParser::sampleIsMissing(TVcfLine & line, unsigned int & s){

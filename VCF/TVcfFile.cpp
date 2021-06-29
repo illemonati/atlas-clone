@@ -49,7 +49,7 @@ void TVcfFile_base::openStream(const std::string & Filename, const bool & zipped
 	getline(*myStream, temp);
 	currentLine=1;
 
-	if(stringContains(temp, "##fileformat")){
+	if(coretools::str::stringContains(temp, "##fileformat")){
 		fileFormat = coretools::str::extractAfter(temp, '=');
 		coretools::str::trimString(fileFormat);
 		if(fileFormat!="VCFv4.0" && fileFormat!="VCFv4.1" && fileFormat!="VCFv4.2" && fileFormat!="VCFv4.3") throw "VCF file is not in 'VCFv4.0' format!";
@@ -79,7 +79,7 @@ void TVcfFile_base::parseHeaderVCF_4_0(){
 	while(!myStream->eof() && myStream->peek()=='#'){
 		++currentLine;
 		getline(*myStream, temp);
-		if(stringContains(temp, "#CHROM")){
+		if(coretools::str::stringContains(temp, "#CHROM")){
 			if(headerRowRead) throw "Found more than one header row!";
 			//analyze header: save which column contains the chromosome, position, refbase, altbases, info, format and species
 			coretools::str::trimString(temp);
@@ -135,26 +135,6 @@ void TVcfFile::printFilters(){
 	}
 }
 */
-
-GTLikelihoods TVcfFile_base::_genotypeLikelihoods(TVcfLine* line, unsigned int s){
-	return parser.genotypeLikelihoods(*line, s);
-}
-
-GTLikelihoods TVcfFile_base::_genotypeLikelihoodsPhred(TVcfLine* line, unsigned int s){
-	return parser.genotypeLikelihoodsPhred(*line, s);
-}
-
-void TVcfFile_base::fillGenotypeLiklihoods(TVcfLine* line, unsigned int sample, float* gtl){
-	parser.fillGenotypeLikelihoods(*line, sample, gtl);
-}
-
-void TVcfFile_base::fillPherdScore(TVcfLine* line, unsigned int sample, uint8_t & gtl_0, uint8_t & gtl_1, uint8_t & gtl_2){
-	parser.fillPhredScore(*line, sample, gtl_0, gtl_1, gtl_2);
-}
-
-void TVcfFile_base::fillLog10GenotypeLikelihoods(TVcfLine* line, unsigned int sample, double & gtl_0, double & gtl_1, double & gtl_2){
-	parser.fillLog10GenotypeLikelihoods(*line, sample, gtl_0, gtl_1, gtl_2);
-}
 
 int TVcfFile_base::sampleNumber(std::string & Name){
 	return parser.getSampleNum(Name);
@@ -291,24 +271,6 @@ int TVcfFileSingleLine::depthAsIntNoCheckForMissingSample(std::string tag, unsig
 	return TVcfFile_base::depthAsIntNoCheckForMissingSample(tag, &tempLine, sample);
 }
 
-GTLikelihoods TVcfFileSingleLine::genotypeLikelihoods(unsigned int sample){
-	return _genotypeLikelihoods(&tempLine ,sample);
-}
-GTLikelihoods TVcfFileSingleLine::genotypeLikelihoodsPhred(unsigned int sample){
-	return _genotypeLikelihoodsPhred(&tempLine ,sample);
-}
-void TVcfFileSingleLine::fillGenotypeLikelihoods(unsigned int sample, float* gtl){
-	fillGenotypeLiklihoods(&tempLine, sample, gtl);
-}
-
-void TVcfFileSingleLine::fillPhredScore(unsigned int sample, uint8_t & gtl_0, uint8_t & gtl_1, uint8_t & gtl_2){
-	fillPherdScore(&tempLine, sample, gtl_0, gtl_1, gtl_2);
-}
-
-void TVcfFileSingleLine::fillLog10GenotypeLikelihoods(unsigned int sample, double & gtl_0, double & gtl_1, double & gtl_2){
-	TVcfFile_base::fillLog10GenotypeLikelihoods(&tempLine, sample, gtl_0, gtl_1, gtl_2);
-}
-
 uint64_t TVcfFileSingleLine::position(){
 	return parser.getPos(tempLine);
 }
@@ -385,6 +347,11 @@ genometools::Base TVcfFileSingleLine::getFirstAlleleOfSample(unsigned int num){
 genometools::Base TVcfFileSingleLine::getSecondAlleleOfSample(unsigned int num){
 	return parser.getSecondAlleleOfSample(tempLine, num)[0];
 };
+
+genometools::BiallelicGenotype TVcfFileSingleLine::sampleBiallelicGenotype(const unsigned int & num){
+	return parser.sampleBiallelicGenotype(tempLine, num);
+}
+
 genometools::Genotype TVcfFileSingleLine::sampleGenotype(const unsigned int & num){
 	return genometools::Genotype(parser.getFirstAlleleOfSample(tempLine, num)[0], parser.getSecondAlleleOfSample(tempLine, num)[0]);
 };

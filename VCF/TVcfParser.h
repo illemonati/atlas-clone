@@ -14,6 +14,8 @@
 #include <iostream>
 #include <fstream>
 #include <math.h>
+#include "GenotypeTypes.h"
+#include "PhredProbabilityTypes.h"
 
 namespace VCF{
 
@@ -21,13 +23,8 @@ using coretools::str::stringContains;
 
 //TODO: use header info to check entries
 
-	enum VCF_TYPE {UNKNOWN, INTEGER, FLOAT, FLAG, CHAR,  STRING};
+enum VCF_TYPE {UNKNOWN, INTEGER, FLOAT, FLAG, CHAR,  STRING};
 
-struct GTLikelihoods{
-	float AA;
-	float AB;
-	float BB;
-};
 class TVcfColumnNumbers{
 public:
 	int Chr, Pos, Id, Ref, Alt, Qual, Filter, Info, Format, FirstInd;
@@ -165,9 +162,9 @@ public:
 
 class TVcfParser{
 private:
-	void savePhredScore(std::string & phredString, uint8_t & phred);
-	double readGL(std::string & GLString);
-	void saveGLAsPhredScore(std::string & GLString, uint8_t & phred);
+	genometools::PhredIntProbability getPhredScore(std::string & phredString);
+	coretools::Log10Probability readGL(std::string & GLString);
+	genometools::PhredIntProbability getPhredScoreFromGL(std::string & GLString);
 
 public:
 	TVcfColumnNumbers cols;
@@ -232,16 +229,58 @@ public:
 	bool sampleIsHeteroRefNonref(TVcfLine & line, unsigned int & sample);
 	std::string getFirstAlleleOfSample(TVcfLine & line, const unsigned int & sample);
 	std::string getSecondAlleleOfSample(TVcfLine & line, const unsigned int & sample);
-	//std::string sampleGenotype(TVcfLine & line, unsigned int & sample);
-	short sampleGenotype(TVcfLine & line, const unsigned int & sample);
+	genometools::BiallelicGenotype sampleBiallelicGenotype(TVcfLine & line, const unsigned int & sample);
 	bool sampleIsMissing(TVcfLine & line, unsigned int & sample);
 	bool sampleHasUndefinedGenotype(TVcfLine & line, unsigned int & s);
 	float sampleGenotypeQuality(TVcfLine & line, unsigned int & sample);
-	GTLikelihoods genotypeLikelihoods(TVcfLine & line, unsigned int & sample);
-	GTLikelihoods genotypeLikelihoodsPhred(TVcfLine & line, unsigned int & sample);
+
 	void fillGenotypeLikelihoods(TVcfLine & line, unsigned int & s, float* gtl);
+
 	void fillPhredScore(TVcfLine & line, unsigned int & s, uint8_t & gtl_0, uint8_t & gtl_1, uint8_t & gtl_2);
 	void fillLog10GenotypeLikelihoods(TVcfLine & line, unsigned int & s, double & gtl_0, double & gtl_1, double & gtl_2);
+
+	template <typename T>
+	std::array<T, 3> TVcfParser::genotypeLikelihoods(TVcfLine & line, unsigned int & s){
+		if(s >= line.samples.size()) throw "Sample " + coretools::str::toString(s) + " does not exists!";
+		if(line.samples[s].missing){
+			return { T::highest(), T::highest(), T::highest() };
+		} else {
+			int col = getFormatCol(line, "PL");
+			if(col < 0){
+				col = getFormatCol(line, "GL");
+				if(col < 0){
+					//neither PL nor GL tag: set missing (i.e. to highest)
+					return { T::highest(), T::highest(), T::highest() };
+				} else {
+					//GL field exists
+					std::vector<std::string> phreddie;
+					fillContainerFromString(line.samples[s].data[col], phreddie, ',');
+
+					//diploid or haploid?
+					if(line.samples[s].isHaploid){ //haploid: only two are given
+						return { getPhredScoreFromGL(phreddie[0]), getPhredScoreFromGL(phreddie[1]), T::lowest() };
+					} else { //diploid
+						return { T(getPhredScoreFromGL(phreddie[0])), T(getPhredScoreFromGL(phreddie[1])), T(getPhredScoreFromGL(phreddie[2])) };
+					}
+				}
+			} else {
+				//PL field exists
+				std::vector<std::string> phreddie;
+				fillContainerFromString(line.samples[s].data[col], phreddie, ',');
+
+				//diploid or haploid?
+				if(line.samples[s].isHaploid){
+					//haploid: only two are given: set heterozygous to lowest
+					return { T(getPhredScore(phreddie[0])), T(getPhredScore(phreddie[1])), genometools::PhredIntProbability::lowest() };
+
+				} else {
+					//diploid
+					return { T(getPhredScore(phreddie[0])), T(getPhredScore(phreddie[1])), T(getPhredScore(phreddie[2])) };
+				}
+			}
+		}
+	};
+
 	std::string sampleContentAt(TVcfLine & line, std::string & tag, unsigned int & sample);
 	std::string sampleContentAtNoCheckForMissingSample(TVcfLine & line, std::string & tag, unsigned int & sample);
 	int phred(double x);

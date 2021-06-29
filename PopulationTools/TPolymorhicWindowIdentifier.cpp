@@ -34,10 +34,10 @@ void TPolymorhicWindowIdentifier::identifyPolymorphicWindows(TParameters & Param
 		 samples.readSamplesFromVCFNames(reader.getSampleVCFNames());
 
 	//output file
-	std::string tmp = readBeforeLast(vcfFilename, ".vcf");
+	std::string tmp = coretools::str::readBeforeLast(vcfFilename, ".vcf");
 	std::string outputName = Parameters.getParameterWithDefault<std::string>("out", tmp) + "_polymorphicWindows.txt.gz";
 	logfile->list("Will write polymoprhic state of windows to file '" + outputName + "'.");
-	TOutputFile out(outputName);
+	coretools::TOutputFile out(outputName);
 
 	//write header
 	std::vector<std::string> header = {"chr", "start", "end", "numWithData", "numMono", "numPoly"};
@@ -51,7 +51,7 @@ void TPolymorhicWindowIdentifier::identifyPolymorphicWindows(TParameters & Param
     logfile->startIndent("Parsing VCF file:");
     uint64_t totalWindowsChecked = 0;
     uint64_t totalPolymorphicWindows = 0;
-    while(reader.readDataFromVCF(window, samples, glfConverter)){
+    while(reader.readDataFromVCF(window, samples)){
         int numWindowsWithData = 0;
         int numWindowsPoly = 0;
         std::vector<std::string> ind;
@@ -96,7 +96,7 @@ void TPolymorhicWindowIdentifier::identifyPolymorphicWindows(TParameters & Param
 		throw "No usable loci in VCF file '" + vcfFilename + "'!";
 
 	//print global stats
-	logfile->conclude(toString(totalPolymorphicWindows) + " of " + toString(totalWindowsChecked) + " windows were found polymoprhic (" + toString(100.0 * (double) totalPolymorphicWindows / (double) totalWindowsChecked) + "%).");
+	logfile->conclude(totalPolymorphicWindows, " of ", totalWindowsChecked, " windows were found polymoprhic (", 100.0 * (double) totalPolymorphicWindows / (double) totalWindowsChecked, "%).");
 
 	logfile->endIndent();
 };

@@ -16,6 +16,10 @@
 
 namespace PopulationTools{
 
+using coretools::TParameters;
+using coretools::TLog;
+using coretools::TRandomGenerator;
+using coretools::TOutputFile;
 
 //------------------------------------------------
 //THWHetProb
@@ -75,7 +79,7 @@ public:
 	THWGenotypes(){ clear(); };
 
 	void clear();
-	void add(const uint8_t & genotype);
+	void add(const genometools::BiallelicGenotype & genotype);
 	uint32_t N() const;
 	uint32_t MAF() const;
 	uint32_t n_A() const;
@@ -95,7 +99,7 @@ public:
 	THWPopulations(const uint16_t & numPops);
 	void clear();
 	void resize(const uint16_t & numPops);
-	void add(const uint16_t & pop, const uint8_t & genotyp);
+	void add(const uint16_t & pop, const genometools::BiallelicGenotype & genotyp);
 	void addToHeader(std::vector<std::string> & header);
 	void runTest(TOutputFile & out);
 };
@@ -132,7 +136,7 @@ public:
 //--------------------------------------
 // Tasks
 //--------------------------------------
-class TTask_testHardyWeinberg:public TTask{
+class TTask_testHardyWeinberg:public coretools::TTask{
 public:
 	TTask_testHardyWeinberg(){ _explanation = "Testing for Hardy-Weinberg equilibrium across mMultiple populations"; };
 

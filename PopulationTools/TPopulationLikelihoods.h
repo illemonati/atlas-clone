@@ -180,7 +180,7 @@ public:
     long positionZeroBased(){ return vcfFile.positionZeroBased(); };
     char refAllele(){ return vcfFile.getRefAllele()[0]; };
     char altAllele(){ return vcfFile.getFirstAltAllele()[0]; };
-	void fillGenotypes(TPopulationSamples & samples, u_int8_t * genotypes);
+	//void fillGenotypes(TPopulationSamples & samples, u_int8_t * genotypes);
     uint8_t genotype(TPopulationSamples & samples, uint32_t s);
     double depth(TPopulationSamples & samples,uint32_t s);
 
@@ -211,7 +211,6 @@ public:
 	void writeWindow(coretools::TOutputFile & out);
 };
 
-
 //------------------------------------------------
 //TVcfFilter
 //------------------------------------------------
@@ -238,8 +237,6 @@ private:
 public:
 	TVcfFilter(coretools::TParameters & Parameters, coretools::TLog* logfile);
     void filterVCF(coretools::TParameters & Parameters);
-
-
 };
 
 //-------------------------------------------------
