@@ -125,8 +125,8 @@ public:
 	virtual int depthAsIntNoCheckForMissingSample(std::string tag, unsigned int sample);
 
 	template <typename T>
-	std::array<T, 3> genotypeLikelihoods(unsigned int & s){
-		return parser.genotypeLikelihoods<T>(tempLine, s);
+	void fillGenotypeLikelihoods(genometools::TSampleLikelihoods<T> & SampleLikelihoods, unsigned int & s){
+		parser.fillGenotypeLikelihoods(SampleLikelihoods, tempLine, s);
 	};
 
 	//variant info

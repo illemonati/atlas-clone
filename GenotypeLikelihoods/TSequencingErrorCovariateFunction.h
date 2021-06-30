@@ -16,8 +16,6 @@
 
 namespace GenotypeLikelihoods{
 
-using coretools::str::toString;
-
 //define module names
 extern const std::string SequencingErrorCovariateFunction_none;
 extern const std::string SequencingErrorCovariateFunction_intercept;

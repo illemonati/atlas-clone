@@ -44,7 +44,7 @@ void TSequencingErrorCovariateFunction::_initializeBetas(){
 void TSequencingErrorCovariateFunction::_initializValues(const std::vector<std::string> & values){
 	if(!values.empty()){
 		if(values.size() != _numParameters){
-			throw "Failed to initialize recalibration module: wrong number of values (" + toString(values.size()) + " instead of " + toString(_numParameters) + ")!";
+			throw coretools::str::toString("Failed to initialize recalibration module: wrong number of values (", values.size(), " instead of ", _numParameters, ")!");
 		}
 
 		for(size_t i=0; i<values.size(); ++i){
@@ -106,15 +106,7 @@ void TSequencingErrorCovariateFunction::proposeNewParameters(const arma::mat & J
 };
 
 std::string TSequencingErrorCovariateFunction::getModelString() const{
-	std::string s = _moduleName + "[";
-	for(size_t i=0; i<_numParameters; ++i){
-		if(i>0){
-			s += ",";
-		}
-		s += toString(_betas[i]);
-	}
-	s += "]";
-	return s;
+	return _moduleName + "[" + coretools::str::concatenateString(_betas, ",") + "]";
 };
 
 //--------------------------------------------------------------
@@ -340,7 +332,7 @@ void TSequencingErrorCovariateFunction_specific::adjustValueRanges(const std::ve
 	}
 	for(uint16_t i=0; i<found.size(); ++i){
 		if(!found[i]){
-			throw "Can not adjust value range for recal function '" + SequencingErrorCovariateFunction_specific + "': value " + toString(i) + " is < max value but never used."
+			throw "Can not adjust value range for recal function '" + SequencingErrorCovariateFunction_specific + "': value " + coretools:.str::toString(i) + " is < max value but never used."
 				+ "\nConsider using recal function '" + SequencingErrorCovariateFunction_map + "'.";
 		}
 	}
@@ -396,7 +388,7 @@ TSequencingErrorCovariateFunction_specificMap::TSequencingErrorCovariateFunction
 		}
 		uint16_t key = coretools::str::convertStringCheck<uint16_t>(s.substr(0, pos));
 		 if (std::find(valuesUsed.begin(), valuesUsed.end(), key) != valuesUsed.end()){
-			throw "Duplicate entry for key " + toString(key) + "!";
+			throw "Duplicate entry for key " + coretools::str::toString(key) + "!";
 		}
 		valuesUsed.push_back(key);
 		betas.push_back(coretools::str::convertStringCheck<double>(s.substr(pos+1)));

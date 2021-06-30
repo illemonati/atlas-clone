@@ -150,7 +150,7 @@ public:
 
 	void write(coretools::TOutputFile & out) const {
 		for(uint8_t i=0; i<Size; ++i){
-			out << coretools::str::toString(_data[i]);
+			out << _data[i];
 		}
 	};
 

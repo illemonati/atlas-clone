@@ -98,7 +98,7 @@ void TQualityTransformation::compileQualityTransformation(){
 		_logfile->listFlush("Writing '" + filename + "' ...");
 		_transformations[rg].writeAsMatrix(filename, _label1, _label2);
 		_logfile->done();
-		_logfile->conclude("R squared for read group " + _bamFile.readGroups().getName(rg) + " is " + coretools::str::toString(_transformations[rg].RSquared()) + ".");
+		_logfile->conclude("R squared for read group " + _bamFile.readGroups().getName(rg) + " is ", _transformations[rg].RSquared(), ".");
 	}
 
 	//write combined distribution
@@ -111,7 +111,7 @@ void TQualityTransformation::compileQualityTransformation(){
 	_logfile->listFlush("Writing quality transformation of total data to '" + filename + "' ...");
 	combined.writeAsMatrix(filename, _label1, _label2);
 	_logfile->done();
-	_logfile->conclude("R squared for total data is " + coretools::str::toString(combined.RSquared()) + ".");
+	_logfile->conclude("R squared for total data is ", combined.RSquared(), ".");
 
 };
 

@@ -20,8 +20,6 @@ namespace GenotypeLikelihoods{
 
 namespace RecalEstimator{
 
-using coretools::str::toString;
-
 //--------------------------------------------------------------------------------------
 // TModelIndex
 // Object to map read group ID and mate to an internal index used to store recal models

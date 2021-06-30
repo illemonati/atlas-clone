@@ -77,7 +77,7 @@ void TBamDiagnoser::diagnose(){
 
 	//now parse through bam file
     _traverseBAMPassedQC();
-	_logfile->list("Approximate sequencing depth was estimated at " + coretools::str::toString((double) _usableLength.sum() / (double) totLengthOfGenome));
+	_logfile->list("Approximate sequencing depth was estimated at ", (double) _usableLength.sum() / (double) totLengthOfGenome, ".");
 
 	//writing output files
 	_logfile->startIndent("Writing output files:");

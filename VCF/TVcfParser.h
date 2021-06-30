@@ -16,6 +16,7 @@
 #include <math.h>
 #include "GenotypeTypes.h"
 #include "PhredProbabilityTypes.h"
+#include "TSampleLikelihoods.h"
 
 namespace VCF{
 
@@ -234,23 +235,28 @@ public:
 	bool sampleHasUndefinedGenotype(TVcfLine & line, unsigned int & s);
 	float sampleGenotypeQuality(TVcfLine & line, unsigned int & sample);
 
-	void fillGenotypeLikelihoods(TVcfLine & line, unsigned int & s, float* gtl);
-
-	void fillPhredScore(TVcfLine & line, unsigned int & s, uint8_t & gtl_0, uint8_t & gtl_1, uint8_t & gtl_2);
-	void fillLog10GenotypeLikelihoods(TVcfLine & line, unsigned int & s, double & gtl_0, double & gtl_1, double & gtl_2);
+	//fill genotype likelihoods
+	template <typename T>
+	void setMissing(genometools::TSampleLikelihoods<T> & SampleLikelihoods, TVcfLine & line, unsigned int & s){
+		if(line.samples[s].isHaploid){
+			SampleLikelihoods.setMissingHaploid();
+		} else {
+			SampleLikelihoods.setMissingDiploid();
+		}
+	};
 
 	template <typename T>
-	std::array<T, 3> TVcfParser::genotypeLikelihoods(TVcfLine & line, unsigned int & s){
+	void fillGenotypeLikelihoods(genometools::TSampleLikelihoods<T> & SampleLikelihoods, TVcfLine & line, unsigned int & s){
 		if(s >= line.samples.size()) throw "Sample " + coretools::str::toString(s) + " does not exists!";
 		if(line.samples[s].missing){
-			return { T::highest(), T::highest(), T::highest() };
+			setMissing(SampleLikelihoods, line, s);
 		} else {
 			int col = getFormatCol(line, "PL");
 			if(col < 0){
 				col = getFormatCol(line, "GL");
 				if(col < 0){
 					//neither PL nor GL tag: set missing (i.e. to highest)
-					return { T::highest(), T::highest(), T::highest() };
+					setMissing(SampleLikelihoods, line, s);
 				} else {
 					//GL field exists
 					std::vector<std::string> phreddie;
@@ -258,9 +264,9 @@ public:
 
 					//diploid or haploid?
 					if(line.samples[s].isHaploid){ //haploid: only two are given
-						return { getPhredScoreFromGL(phreddie[0]), getPhredScoreFromGL(phreddie[1]), T::lowest() };
+						SampleLikelihoods.setHaploid( T(getPhredScoreFromGL(phreddie[0])), T(getPhredScoreFromGL(phreddie[1])));
 					} else { //diploid
-						return { T(getPhredScoreFromGL(phreddie[0])), T(getPhredScoreFromGL(phreddie[1])), T(getPhredScoreFromGL(phreddie[2])) };
+						SampleLikelihoods.setHaploid( T(getPhredScoreFromGL(phreddie[0])), T(getPhredScoreFromGL(phreddie[1])), T(getPhredScoreFromGL(phreddie[2])) );
 					}
 				}
 			} else {
@@ -269,13 +275,10 @@ public:
 				fillContainerFromString(line.samples[s].data[col], phreddie, ',');
 
 				//diploid or haploid?
-				if(line.samples[s].isHaploid){
-					//haploid: only two are given: set heterozygous to lowest
-					return { T(getPhredScore(phreddie[0])), T(getPhredScore(phreddie[1])), genometools::PhredIntProbability::lowest() };
-
-				} else {
-					//diploid
-					return { T(getPhredScore(phreddie[0])), T(getPhredScore(phreddie[1])), T(getPhredScore(phreddie[2])) };
+				if(line.samples[s].isHaploid){ //haploid: only two are given
+					SampleLikelihoods.setHaploid( T(getPhredScore(phreddie[0])), T(getPhredScore(phreddie[1])));
+				} else { //diploid
+					SampleLikelihoods.setHaploid( T(getPhredScore(phreddie[0])), T(getPhredScore(phreddie[1])), T(getPhredScore(phreddie[2])) );
 				}
 			}
 		}

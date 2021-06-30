@@ -654,7 +654,7 @@ bool TDistanceEstimator::moveToNextCommonChr(GLF::TGlfReader & g1, GLF::TGlfRead
 		throw "Chromosome names differ in files " + g1.name() + "' and '" + g2.name() + "': '" + g1.chr() + "' != '" + g2.chr() + "'!";
 	}
 	if(g1.chrLength() != g2.chrLength()){
-		throw "Chromosome lengths differ in files " + g1.name() + "' and '" + g2.name() + "': '" + coretools::str::toString(g1.chrLength()) + "' != '" + coretools::str::toString(g2.chrLength()) + "'!";
+		throw coretools::str::toString("Chromosome lengths differ in files " + g1.name() + "' and '" + g2.name() + "': '",  g1.chrLength(), "' != '", g2.chrLength(), "'!");
 	}
 
 	return true;

@@ -21,7 +21,6 @@
 
 namespace GenotypeLikelihoods{
 
-using coretools::str::toString;
 using coretools::TRandomGenerator;
 
 //---------------------------------------------------------------
@@ -68,7 +67,7 @@ struct Theta{
 	};
 
 	std::string getBaseFrequencyString(){
-		return "Pi(A) = " + toString(baseFreq[genometools::A]) + ", Pi(C) = " + toString(baseFreq[genometools::C]) + ", Pi(G) = " + toString(baseFreq[genometools::G]) + ", Pi(T) = " + toString(baseFreq[genometools::T]);
+		return coretools::str::toString("Pi(A) = ", baseFreq[genometools::A], ", Pi(C) = ", baseFreq[genometools::C], ", Pi(G) = ", baseFreq[genometools::G], ", Pi(T) = ", baseFreq[genometools::T]);
 	};
 };
 

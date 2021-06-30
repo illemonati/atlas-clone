@@ -195,13 +195,13 @@ TRecalibrationEMEstimator::TRecalibrationEMEstimator(TParameters & args, TLog* L
 
 	_minRequiredObservations = 10000; //constant for reporting
 	_numEMIterations = args.getParameterWithDefault<int>("iterations", 200);
-	_logfile->list("Will perform at max " + toString(_numEMIterations) + " EM iterations.");
+	_logfile->list("Will perform at max ", _numEMIterations, " EM iterations.");
 	_minDeltaLL = args.getParameterWithDefault<double>("minDeltaLL", 0.000001);
-	_logfile->list("Will stop EM when deltaLL < " + toString(_minDeltaLL));
+	_logfile->list("Will stop EM when deltaLL < ", _minDeltaLL, ".");
 	_NewtonRaphsonNumIterations = args.getParameterWithDefault<int>("NRiterations", 20);
-	_logfile->list("Will conduct at max " + toString(_NewtonRaphsonNumIterations) + " Newton-Raphson iterations");
+	_logfile->list("Will conduct at max ", _NewtonRaphsonNumIterations, " Newton-Raphson iterations");
 	_NewtonRaphsonMaxF = args.getParameterWithDefault<double>("maxF", 0.0001);
-	_logfile->list("Will stop Newton-Raphson when F < " + toString(_NewtonRaphsonMaxF));
+	_logfile->list("Will stop Newton-Raphson when F < ", _NewtonRaphsonMaxF, ".");
 
 	//base frequency model
 	equalBaseFrequencies = true;

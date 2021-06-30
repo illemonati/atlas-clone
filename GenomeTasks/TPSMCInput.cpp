@@ -15,13 +15,13 @@ namespace GenomeTasks{
 //----------------------------------------
 TPSMCInput::TPSMCInput(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_windows(Parameters, Logfile, RandomGenerator){
 	_theta = Parameters.getParameterWithDefault<double>("theta", 0.001);
-	_logfile->list("Using theta = " + coretools::str::toString(_theta) + ". (parameter 'theta')");
+	_logfile->list("Using theta = ", _theta, ". (parameter 'theta')");
 
 	_thetaEstimator = std::make_unique<GenotypeLikelihoods::TThetaEstimator>(_logfile, _randomGenerator);
 	_thetaEstimator->setTheta(_theta);
 
 	_confidence = Parameters.getParameterWithDefault<double>("confidence", 0.99);
-	_logfile->list("Calling heterozygosity state with confidence > " + coretools::str::toString(_confidence) + ". (parameter 'confidence')");
+	_logfile->list("Calling heterozygosity state with confidence > ", _confidence, ". (parameter 'confidence')");
 	_logConfidence = log(_confidence);
 	_logConfidenceHet = log(1.0 - _confidence);
 

@@ -47,7 +47,7 @@ void TBamFile::setLimits(TParameters & params, TLog* logfile){
 	//number of reads
 	if(params.parameterExists("limitReads")){
 		_maxNumReadsToRead = params.getParameter<uint64_t>("limitReads");
-		logfile->list("Will limit the analysis to the first " + coretools::str::toString(_maxNumReadsToRead) + " reads in the BAM file.");
+		logfile->list("Will limit the analysis to the first ", _maxNumReadsToRead, " reads in the BAM file.");
 		_limitNumReads = true;
 	}
 
@@ -499,7 +499,7 @@ bool TBamFile::readNextAlignment(){
 
 	//check if BAM file is sorted
 	if(_curAlignmentPosition < _previousAlignmentPosition){
-		throw "BAM file must be sorted by position! Alignment '" + _curBamAlignment.Name + "' is at position " + coretools::str::toString(_curBamAlignment.Position) + ", which is before the position of the previous alignment (" + coretools::str::toString(_previousAlignmentPosition.position()) + ")";
+		throw "BAM file must be sorted by position! Alignment '" + _curBamAlignment.Name + "' is at position ", _curBamAlignment.Position, ", which is before the position of the previous alignment (", _previousAlignmentPosition.position() + ")";
 	}
 
 	//store current read group ID
@@ -717,7 +717,7 @@ void TBamFile::startProgressReporting(uint32_t Frequency){
 
 void TBamFile::printProgress(){
 	if(_numAlignmentRead - _lastProgressPrinted >= _progressFrequency){
-		_logfile->list("Parsed " + _millionReadsRead() + " million reads (est. " + coretools::str::to_string_with_precision(positionInFile() * 100, 2) + "%) in " + coretools::str::toString(_timer.minutes()) + " min.");
+		_logfile->list("Parsed " + _millionReadsRead() + " million reads (est. " + coretools::str::to_string_with_precision(positionInFile() * 100, 2) + "%) in " + _timer.formattedTime());
 		_lastProgressPrinted = _numAlignmentRead;
 	}
 };
@@ -729,8 +729,8 @@ void TBamFile::printEndWithSummary(){
 };
 
 void TBamFile::printEndNoEndIndent(){
-	_logfile->list("Reached end of BAM file in " + coretools::str::toString(_timer.minutes()) + " min.");
-	_logfile->conclude("Parsed a total of " + _millionReadsRead() + " million reads in " + coretools::str::toString(_timer.minutes()) + " min.");
+	_logfile->list("Reached end of BAM file in " + _timer.formattedTime());
+	_logfile->conclude("Parsed a total of " + _millionReadsRead() + " million reads in " + _timer.formattedTime());
 };
 
 //------------------------------------------------

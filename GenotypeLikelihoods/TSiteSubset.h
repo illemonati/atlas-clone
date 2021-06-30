@@ -19,6 +19,7 @@
 #include "TGenotypeMap.h"
 #include "TFile.h"
 #include "TGenomePosition.h"
+#include "TGenotypeTypes.h"
 
 namespace GenotypeLikelihoods{
 

@@ -9,7 +9,6 @@
 
 namespace PopulationTools{
 
-using coretools::str::toString;
 using coretools::gammaLog;
 using coretools::Probability;
 
@@ -274,7 +273,7 @@ void TAlleleFreq::adjustProposalWidthAfterBurnin(std::vector<int> & numAcceptedP
 				proposalWidths[l] = newProposalWidth;
 
 				if(proposalWidths[l] <= 0)
-					throw "Proposal width for allele frequency at locus " + toString(l) + " is not larger than 0!";
+					throw "Proposal width for allele frequency at locus " + coretools::str::toString(l) + " is not larger than 0!";
 			}
 
 			//make sure proposal width does not get too small
@@ -308,7 +307,7 @@ void TAlleleFreq::update(const long & index, const double & value, const bool Mo
 	alleleFreq[index] = value;
 
 	if(modelP[index] == true && alleleFreq[index] == 0.0){
-		throw "allele freq at locus " + toString(index) + " is " + toString(alleleFreq[index]) + " but locus is in modelP=" + toString((bool) modelP[index]);
+		throw coretools:;str::toString("allele freq at locus ", index, " is ", alleleFreq[index], " but locus is in modelP=", (bool) modelP[index]);
 	}
 }
 
@@ -490,11 +489,11 @@ TInbreedingEstimator::TInbreedingEstimator(TParameters & Parameters, TLog* Logfi
 
 	//algorithm params
 	numIterations = Parameters.getParameterWithDefault<int>("numIter", 1000);
-	logfile->list("Stopping MCMC after " + toString(numIterations) + " interations. (parameter 'numIter')");
+	logfile->list("Stopping MCMC after ", numIterations, " interations. (parameter 'numIter')");
 
 	numBurnins = Parameters.getParameterWithDefault<int>("numBurnins", 1);
 	burninLength = Parameters.getParameterWithDefault<int>("burninLength", 1000);
-	logfile->list("Will run " + toString(numBurnins) + " burnin(s) of length " + toString(burninLength) + " and adjust the proposal kernel widths after each before starting the full MCMC. (parameters 'numBurnins' and 'burninLength')");
+	logfile->list("Will run ", numBurnins, " burnin(s) of length ", burninLength + " and adjust the proposal kernel widths after each before starting the full MCMC. (parameters 'numBurnins' and 'burninLength')");
 
 	if(Parameters.parameterExists("noAdjustmentF")){
 		adjustFAfterBurnin = false;
@@ -530,7 +529,7 @@ TInbreedingEstimator::TInbreedingEstimator(TParameters & Parameters, TLog* Logfi
 		else if(thinning == 3)
 			logfile->list("Will print every third iterations to the output file (thinning = 3)");
 		else
-			logfile->list("Will print every " + toString(thinning) + "th iterations to the output file (thinning = " + toString(thinning) + ")");
+			logfile->list("Will print every ", thinning, "th iterations to the output file (thinning = ", thinning, ")");
 	}
 
 	//read data
@@ -545,7 +544,7 @@ TInbreedingEstimator::TInbreedingEstimator(TParameters & Parameters, TLog* Logfi
 	numLociToTrace = Parameters.getParameterWithDefault("numLociToTrace", 1000L);
 	if(numLociToTrace > numLoci)
 		numLociToTrace = numLoci;
-	logfile->list("Will write trace for first " + toString(numLociToTrace) + " loci to file. (parameter 'numLociToTrace')");
+	logfile->list("Will write trace for first ", numLociToTrace, " loci to file. (parameter 'numLociToTrace')");
 
 	//initialize parameters
 	for(unsigned int i=0; i<numLoci; ++i){
@@ -611,10 +610,10 @@ void TInbreedingEstimator::initF(TParameters & parameters){
 	logfile->list("Standard deviation of proposal kernel for F is set to " + toString(sdF));
 
 	float probMovingToModelNoF = parameters.getParameterWithDefault("probMovingToModelNoF", 0.1);
-	logfile->list("Will propose move to model without F with probability " + toString(probMovingToModelNoF) + ". (parameter 'probMovingToModelNoF')");
+	logfile->list("Will propose move to model without F with probability ", probMovingToModelNoF, ". (parameter 'probMovingToModelNoF')");
 
 	double lambdaF = parameters.getParameterWithDefault("lambdaF", 100.0);
-	logfile->list("Lambda of exponential distribution used for the proposal of new F after move to model with F is set to " + toString(lambdaF) + ". (parameter 'lambdaF')");
+	logfile->list("Lambda of exponential distribution used for the proposal of new F after move to model with F is set to ", lambdaF, ". (parameter 'lambdaF')");
 
 	bool startInModelWithF = true;
 	if(parameters.parameterExists("startInZeroModel"))
@@ -623,11 +622,11 @@ void TInbreedingEstimator::initF(TParameters & parameters){
 		F = TInbreedingF(probMovingToModelNoF, sdF, startInModelWithF, lambdaF);
 		F.updateAndAccept(randomGenerator->getExponentialRandomTruncated(lambdaF, 0, 1), true);
 //		F.updateAndAccept(0.2, true);
-		logfile->list("initialized F to " + toString(F.F()) + " in model " + toString(F.inModelWithF()));
+		logfile->list("initialized F to ", F.F(), " in model ", F.inModelWithF());
 	} else {
 		F = TInbreedingF(probMovingToModelNoF, sdF, startInModelWithF, lambdaF);
 		F.updateAndAccept(randomGenerator->getExponentialRandomTruncated(lambdaF, 0, 1), true);
-		logfile->list("initialized F to " + toString(F.F()) + " in model " + toString(F.inModelWithF()));
+		logfile->list("initialized F to ", F.F(), " in model ", F.inModelWithF());
 	}
 
 	if(parameters.parameterExists("initialF")){
@@ -638,7 +637,7 @@ void TInbreedingEstimator::initF(TParameters & parameters){
 			F.updateAndAccept(initialF, true);
 		else
 			throw "Initial F cannot be a negative number!";
-		logfile->list("Initialized F to " + toString(initialF) + ". (parameter 'initialF')");
+		logfile->list("Initialized F to ", initialF, ". (parameter 'initialF')");
 	}
 
 	if(parameters.parameterExists("fixedF")){
@@ -662,7 +661,7 @@ void TInbreedingEstimator::initAlleleFreq(TParameters & parameters){
 		logfile->warning("This task is not implemented for multiple populations! Considering all samples to be from one population.");
 	} else if(parameters.parameterExists("initialP")){
 		p.setToValue(parameters.getParameter<double>("initialP"));
-		logfile->list("Initializing all allele frequencies to " + toString(parameters.getParameter<double>("initialP")) + ". (parameter 'initialP')");
+		logfile->list("Initializing all allele frequencies to ", parameters.getParameter<double>("initialP"), ". (parameter 'initialP')");
 	} else {
 		tmp2 = likelihoods.donateAlleleFrequencies();
 		logfile->list("Initializing allele frequencies to values estimated from sample genotype likelihoods");
@@ -670,13 +669,13 @@ void TInbreedingEstimator::initAlleleFreq(TParameters & parameters){
 		trueAlleleFreqProvided = false;
 	}
 	double probMovingToModel0 = parameters.getParameterWithDefault("probMovingToModelP0", 0.1);
-	logfile->list("Will propose move to model with p = 0 with probability " + toString(probMovingToModel0) + ". (parameter 'probMovingToModelP0')");
+	logfile->list("Will propose move to model with p = 0 with probability ", probMovingToModel0, ". (parameter 'probMovingToModelP0')");
 
 	double probMovingToModelP = 1.0;
-	logfile->list("Will propose move to model with p > 0 with probability " + toString(probMovingToModelP) + ".");
+	logfile->list("Will propose move to model with p > 0 with probability ", probMovingToModelP, ".");
 
 	double lambdaP = parameters.getParameterWithDefault("lambdaP", 100.0);
-	logfile->list("Lambda of exponential distribution used for the proposal of new p after move to modelP is set to " + toString(lambdaP) + ". (parameter 'lambdaP')");
+	logfile->list("Lambda of exponential distribution used for the proposal of new p after move to modelP is set to ", lambdaP, ". (parameter 'lambdaP')");
 
 	p = TAlleleFreq(tmp2, widthProposalKernelP, likelihoods.getNumIndividuals(), probMovingToModel0, probMovingToModelP, lambdaP, trueAlleleFreqProvided);
 
@@ -688,8 +687,8 @@ void TInbreedingEstimator::initAlleleFreq(TParameters & parameters){
 	}
 
 	if(p.numLoci != numLoci)
-		throw "Did not receive one allele frequency per locus! Number of loci=" + toString(numLoci) + " and number of allele frequencies " + toString(p.numLoci);
-	logfile->list("initialized allele frequencies for " + toString(p.numLoci) + " loci");
+		throw coretools::str::toString("Did not receive one allele frequency per locus! Number of loci=", numLoci, " and number of allele frequencies ", p.numLoci));
+	logfile->list("initialized allele frequencies for ", p.numLoci, " loci");
 };
 
 void TInbreedingEstimator::initParams(TRandomGenerator* randomGenerator, TParameters & parameters){
@@ -701,7 +700,7 @@ void TInbreedingEstimator::initParams(TRandomGenerator* randomGenerator, TParame
 
 	//gamma
 	double widthProposalKernelGamma = parameters.getParameterWithDefault("widthProposalKernelGamma", 0.1);
-	logfile->list("Will use a proposal kernel of width " + toString(widthProposalKernelGamma) + " for updates of log(gamma). (parameter 'widthProposalKernelGamma')");
+	logfile->list("Will use a proposal kernel of width ", widthProposalKernelGamma, " for updates of log(gamma). (parameter 'widthProposalKernelGamma')");
 	Gamma = TGamma(widthProposalKernelGamma);
 	initializeGamma(parameters);
 
@@ -714,7 +713,7 @@ void TInbreedingEstimator::initParams(TRandomGenerator* randomGenerator, TParame
 		initialValue = (double) p.getNumLociInModelP() / (double) p.numLoci;
 	}
 	pi = TPi(widthProposalKernelPi, initialValue);
-	logfile->list("initialized pi to " + toString(pi.getPi()) + ". (parameter 'initialPi')");
+	logfile->list("initialized pi to ", pi.getPi(), ". (parameter 'initialPi')");
 
 	if(parameters.parameterExists("fixedPi")){
 		shouldUpdatePi = false;
@@ -838,7 +837,7 @@ bool TInbreedingEstimator::updateP(const TSampleLikelihoods* data, const long lo
 			++numIterInModelP[locusNum];
 			double newP = p.proposeNew(locusNum, randomGenerator);
 			if(newP < 0)
-				throw "proposed negative newP in move from modelP to modelP': " + toString(newP);
+				throw "proposed negative newP in move from modelP to modelP': " + coretools::str::toString(newP);
 
 			double logH = (Gamma.getNaturalScaleValue() - 1.0) * (log(newP) + log(1.0 - newP) - log(p[locusNum]) - log(1.0 - p[locusNum])) // - log(1.0 - p[locusNum]));													)
 						+ logLikelihoodAllInds(data, likelihoods.curSampleSize(), newP, F.F())
@@ -867,7 +866,7 @@ bool TInbreedingEstimator::updateP(const TSampleLikelihoods* data, const long lo
 			//move to model p
 			double newP = randomGenerator->getExponentialRandomTruncated(p.lambda, 0.0, 1.0);
 			if(newP < 0)
-				throw "proposed negative newP in move from model0 to modelP: " + toString(newP);
+				throw "proposed negative newP in move from model0 to modelP: " + coretools::str::toString(newP);
 			double gammaNat = Gamma.getNaturalScaleValue();
 			double logH = - 2.0 * gammaLog(gammaNat)
 					- pi.getLogOneMinusPi()
@@ -1007,7 +1006,7 @@ double TInbreedingEstimator::logLikelihoodAllInds(const TSampleLikelihoods* data
 
 				//check if likelihood of sample is a probability
 				if(integrationOverGeno < 0){
-					throw "Probability of genotype is negative: " + toString(integrationOverGeno);
+					throw "Probability of genotype is negative: " + coretools::str::toString(integrationOverGeno);
 				}
 			}
 
@@ -1107,25 +1106,25 @@ void TInbreedingEstimator::printAcceptanceRates(int numIterations){
 	if(numIterInModelF == 0)
 		logfile->conclude("total acceptance rate for F is 0 and the acceptance rate for moves within M_F is 0");
 	else
-		logfile->conclude("total acceptance rate for F is " + toString((double) numAcceptedF / numIterations) + " and acceptance rate for moves within M_F is " + toString((double) numAcceptedFModelF / (double) numIterInModelF));
-	logfile->conclude("total acceptance rate for gamma is " + toString((double) numAcceptedGamma / numIterations));
-	logfile->conclude("total acceptance rate for pi is " + toString((double) numAcceptedPi / numIterations));
+		logfile->conclude("total acceptance rate for F is ", (double) numAcceptedF / numIterations, " and acceptance rate for moves within M_F is ", (double) numAcceptedFModelF / (double) numIterInModelF);
+	logfile->conclude("total acceptance rate for gamma is ", (double) numAcceptedGamma / numIterations);
+	logfile->conclude("total acceptance rate for pi is ", (double) numAcceptedPi / numIterations);
 
 	if(numIterInModelP[0] > 0)
-		logfile->conclude("total acceptance rate for first locus is " + toString((double) numAcceptedP.at(0) / numIterations) + " and acceptance rate for moves within M_p is " + toString((double) numAcceptedPModelP.at(0) / numIterInModelP[0]));
+		logfile->conclude("total acceptance rate for first locus is ", (double) numAcceptedP.at(0) / numIterations, " and acceptance rate for moves within M_p is ", (double) numAcceptedPModelP.at(0) / numIterInModelP[0]);
 	else
-		logfile->conclude("total acceptance rate for first locus is " + toString((double) numAcceptedP.at(0) / numIterations) + ". There were no moves within Model_p.");
+		logfile->conclude("total acceptance rate for first locus is ", (double) numAcceptedP.at(0) / numIterations, ". There were no moves within Model_p.");
 
 	if(numIterInModelP[1] > 0)
-		logfile->conclude("total acceptance rate for second locus is " + toString((double) numAcceptedP.at(1) / numIterations) + " and acceptance rate for moves within M_p is " + toString((double) numAcceptedPModelP.at(1) / numIterInModelP[1]));
+		logfile->conclude("total acceptance rate for second locus is ", (double) numAcceptedP.at(1) / numIterations, " and acceptance rate for moves within M_p is ", (double) numAcceptedPModelP.at(1) / numIterInModelP[1]);
 	else
-		logfile->conclude("total acceptance rate for second locus is " + toString((double) numAcceptedP.at(1) / numIterations) + ". There were no moves within Model_p.");
+		logfile->conclude("total acceptance rate for second locus is ", (double) numAcceptedP.at(1) / numIterations, ". There were no moves within Model_p.");
 
 	if(numIterInModelP[2] > 0)
-		logfile->conclude("total acceptance rate for third locus is " + toString((double) numAcceptedP.at(2) / numIterations) + " and acceptance rate for moves within M_p is " + toString((double) numAcceptedPModelP.at(2) / numIterInModelP[2]));
+		logfile->conclude("total acceptance rate for third locus is ", (double) numAcceptedP.at(2) / numIterations, " and acceptance rate for moves within M_p is ", (double) numAcceptedPModelP.at(2) / numIterInModelP[2]);
 	else
-		logfile->conclude("total acceptance rate for third locus is " + toString((double) numAcceptedP.at(2) / numIterations) + ". There were no moves within Model_p.");
-	logfile->conclude("total acceptance rate for 1833 locus is " + toString((double) numAcceptedP.at(1833) / numIterations) + ".");
+		logfile->conclude("total acceptance rate for third locus is ", (double) numAcceptedP.at(2) / numIterations, ". There were no moves within Model_p.");
+	logfile->conclude("total acceptance rate for 1833 locus is ", (double) numAcceptedP.at(1833) / numIterations, ".");
 
 	long numLociWithAcceptanceZero = 0;
 	for(long l=0; l<numLoci; ++l){
@@ -1135,7 +1134,7 @@ void TInbreedingEstimator::printAcceptanceRates(int numIterations){
 	}
 
 	if(p.numLociWithAcceptanceZero() > 0){
-		logfile->conclude(toString(numLociWithAcceptanceZero) + " out of " + toString(numLoci) + " loci have an acceptance rate equal to zero");
+		logfile->conclude(numLociWithAcceptanceZero, " out of ", numLoci, " loci have an acceptance rate equal to zero");
 	}
 }
 
@@ -1178,7 +1177,7 @@ void TInbreedingEstimator::writeParameterEstimatesOfIteration(std::ofstream & ou
 }
 
 void TInbreedingEstimator::writePosteriors(int i){
-	std::string tracefile = outname + "_" + toString(i) + "_inbreedingMCMC_posteriors.txt.gz";
+	std::string tracefile = outname + "_" + coretools::str::toString(i) + "_inbreedingMCMC_posteriors.txt.gz";
 	gz::ogzstream outP(tracefile.c_str());
 	if(!outP)
 		throw "Failed to open file '" + tracefile + "' for writing!";
@@ -1215,7 +1214,7 @@ void TInbreedingEstimator::writePosteriors(int i){
 
 void TInbreedingEstimator::runBurnins(std::ofstream & out, TParameters & params){
 	for(int b=0; b<numBurnins; ++b){
-		std::string reportString = "Running burnin (" + toString(b) + ") of " + toString(burninLength) + " iterations (";
+		std::string reportString = coretools::str::toString("Running burnin (", b, ") of ", burninLength + " iterations (";
 		logfile->listFlush(reportString + "0%) ...");
 		int oldProg=0;
 		for(long i=0; i<burninLength; ++i){
@@ -1244,12 +1243,12 @@ void TInbreedingEstimator::runBurnins(std::ofstream & out, TParameters & params)
 		logfile->done();
 
 		//report new proposal widths
-		logfile->conclude("New proposal width for F is " + toString(F.proposalWidth()));
+		logfile->conclude("New proposal width for F is ", F.proposalWidth());
 		for(int l=0; l<5; ++l)
-			logfile->conclude("New proposal width for allele freq at locus " + toString(l) + " is " + toString(p.getProposalWidth(l)));
+			logfile->conclude("New proposal width for allele freq at locus ", l, " is ", p.getProposalWidth(l));
 //		logfile->conclude("New proposal width for allele freq at locus " + toString(1833) + " is " + toString(p.getProposalWidth(1833)));
-		logfile->conclude("New proposal width for Gamma is " + toString(Gamma.getProposalWidth()));
-		logfile->conclude("New proposal width for pi is " + toString(pi.getProposalWidth()));
+		logfile->conclude("New proposal width for Gamma is ", Gamma.getProposalWidth());
+		logfile->conclude("New proposal width for pi is ", pi.getProposalWidth());
 
 		resetAcceptanceRates();
 	}
@@ -1258,7 +1257,7 @@ void TInbreedingEstimator::runBurnins(std::ofstream & out, TParameters & params)
 void TInbreedingEstimator::runMCMC(std::ofstream & out, TParameters & params){
 	//progress
 	int oldProg = 0;
-	std::string progressString = "Running MCMC chain of length " + toString(numIterations) + " ...";
+	std::string progressString = "Running MCMC chain of length " + coretools::str::toString(numIterations) + " ...";
 	logfile->listFlush(progressString + "(0%)");
 
 	//run MCMC
@@ -1383,9 +1382,9 @@ void TInbreedingEstimator::writeLikelihoodForDebuggingAlleleFreq(TParameters & p
 	long index = 11;
 
 	//open output file
-	std::string tracefile = outname + "_logLikelihoodP[" + toString(index) + "].txt.gz";
-	logfile->list("Will write likelihood chain for grid of p[" + toString(index) + "] to file '" + tracefile + "'.");
-	logfile->list("The true value for p[" + toString(index) + "] is: " + toString(p[index]));
+	std::string tracefile = outname + "_logLikelihoodP[" + coretools::str::toString(index) + "].txt.gz";
+	logfile->list("Will write likelihood chain for grid of p[", index, "] to file '" + tracefile + "'.");
+	logfile->list("The true value for p[", index + "] is: ", p[index]);
 	gz::ogzstream outP(tracefile.c_str());
 	if(!outP)
 		throw "Failed to open file '" + tracefile + "' for writing!";
