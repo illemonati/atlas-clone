@@ -77,7 +77,7 @@ PhredIntProbability TSimulatorQualityDistBinned::sample() const{
 	return _qualBins[tmp];
 };
 
-std::string TSimulatorQualityDistFreq::_details() const{
+std::string TSimulatorQualityDistBinned::_details() const{
 	std::string tmpS = coretools::str::concatenateString(_qualBins, ", ");
 	return "uniformly distributed among the values " + tmpS;
 };
@@ -106,12 +106,12 @@ TSimulatorQualityDistFreq::TSimulatorQualityDistFreq(std::string & s, TRandomGen
 			if(pos == std::string::npos){
 				throw "Failed to understand frequency distribution '" + s + "'! Use frequency(quality_1:frequency_1,quality_2:frequency_2, ... ,quality_n:frequency_n).";
 			}
-			coretools::str::convertString(tmp[i].substr(0, pos), _qualBins[i]);
-			coretools::str::convertString(tmp[i].substr(pos+1), _frequencies[i]);
+			_qualBins[i] = tmp[i].substr(0, pos);
+			_frequencies[i] = tmp[i].substr(pos+1);
 		}
 
 		//fill cumulative
-		fillCumulative(_frequencies, _cumulativeFrequencies);
+		coretools::fillCumulative(_frequencies, _cumulativeFrequencies);
 
 	} else {
 		throw "Failed to understand frequency distribution '" + s + "'! Use frequency(quality_1:frequency_1,quality_2:frequency_2, ... ,quality_n:frequency_n).";
@@ -131,7 +131,7 @@ std::string TSimulatorQualityDistFreq::_details() const{
 //------------------------------------------------
 TSimulatorQualityDistNormal::TSimulatorQualityDistNormal(std::string & s, TRandomGenerator* RandomGenerator):TSimulatorQualityDist(RandomGenerator){
 	parseFunctionString(s);
-	_maxPlusOne = _max + 1;
+	_maxPlusOne = _max.get() + 1;
 
 	fillDensities();
 };
@@ -141,7 +141,7 @@ TSimulatorQualityDistNormal::TSimulatorQualityDistNormal(double & mean, double &
 	_sd = sd;
 	_min = min;
 	_max = max;
-	_maxPlusOne = _max + 1;
+	_maxPlusOne = _max.get() + 1;
 
 	fillDensities();
 };
@@ -175,21 +175,19 @@ void TSimulatorQualityDistNormal::parseFunctionString(std::string & s){
 	pos = s.find(",");
 	if(pos == std::string::npos)
 		throw "Fail to understand distribution '" + orig + "': use format normal(mean,sd)[min,max].";
-	_min = coretools::str::convertString<double>(s.substr(0,pos));
-	if(_min < 0)
-		throw "Fail to understand function '" + orig + "': min must be >= 0!";
+	_min = coretools::str::convertString<PhredIntProbability>(s.substr(0,pos));
 	s.erase(0,pos+1);
 	pos = s.find("]");
 	if(pos == std::string::npos)
 		throw "Fail to understand distribution '" + orig + "': use format normal(mean,sd)[min,max].";
-	_max = coretools::str::convertString<double>(s.substr(0,pos));
+	_max = coretools::str::convertString<PhredIntProbability>(s.substr(0,pos));
 	if(_max < _min)
 			throw "Fail to understand distribution '" + orig + "': max must be >= min!";
 };
 
 void TSimulatorQualityDistNormal::fillDensities(){
 	//fill densities
-	_size = _maxPlusOne - _min;
+	_size = _maxPlusOne.get() - _min.get();
 	_densities.resize(_size);
 	_cumulDensities.resize(_size);
 
@@ -215,7 +213,7 @@ void TSimulatorQualityDistNormal::fillDensities(){
 }
 
 PhredIntProbability TSimulatorQualityDistNormal::sample() const {
-	return _randomGenerator->pickOne(_cumulDensities) + _min;
+	return PhredIntProbability( _randomGenerator->pickOne(_cumulDensities) + _min.get() );
 };
 
 std::string TSimulatorQualityDistNormal::_details() const{

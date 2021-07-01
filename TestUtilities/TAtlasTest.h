@@ -19,13 +19,20 @@
 #include "TQualityMap.h"
 #include <vector>
 #include <map>
+
+using coretools::TTest;
+using coretools::TParameters;
+using coretools::TLog;
+using coretools::TRandomGenerator;
+using coretools::TTaskList;
+
 //------------------------------------------
 //TAtlasTest
 //------------------------------------------
 //Base class for individual tests.
 //Tests can be combined to suites in TATlasTesting
 
-class TAtlasTest:public TTest{
+class TAtlasTest : public TTest{
 protected:
 	std::string _testingPrefix;
 
@@ -45,8 +52,6 @@ private:
 	int readLength;
 	int chrLength;
 	std::vector<int> depths;
-	GenotypeLikelihoods::TGenotypeMap genoMap;
-	BAM::TQualityMap qualMap;
 	std::string filenameTag;
 	std::string bamFileName;
 	std::string fastaName;
@@ -70,7 +75,6 @@ public:
 class TAtlasTest_allelicDepth:public TAtlasTest{
 private:
 	int phredError;
-	BAM::TQualityMap qualMap;
 	std::string filenameTag;
 	std::string bamFileName;
 	std::string readGroupName;

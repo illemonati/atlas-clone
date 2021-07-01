@@ -16,6 +16,7 @@
 #include "TSimulatorReadLength.h"
 #include "TSequencingErrorModel.h"
 #include "mathFunctions.h"
+#include "algorithmsAndVectors.h"
 
 namespace Simulations{
 
@@ -74,8 +75,8 @@ public:
 class TSimulatorQualityDistFreq:public TSimulatorQualityDist{
 private:
 	std::vector<PhredIntProbability> _qualBins;
-	std::vector<double> _frequencies;
-	std::vector<double> _cumulativeFrequencies;
+	std::vector<coretools::Probability> _frequencies;
+	std::vector<coretools::Probability> _cumulativeFrequencies;
 
 	std::string _details() const override;
 

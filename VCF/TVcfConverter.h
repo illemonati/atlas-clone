@@ -190,7 +190,7 @@ public:
 //--------------------------------------
 // Tasks
 //--------------------------------------
-class TTask_VcfConverter:public TTask{
+class TTask_VcfConverter:public coretools::TTask{
 public:
 	TTask_VcfConverter(){ _explanation = "Converting a VCF file to other formats"; };
 

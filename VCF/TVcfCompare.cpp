@@ -13,98 +13,82 @@ namespace VCF{
 // TGenotypeComparisonTable
 //--------------------------------------------------------------
 TGenotypeComparisonTable::TGenotypeComparisonTable(){
-	//set size
-	size = 15; //4 haploid + 10 diploid + 1 missing
-	missingIndex = 14;
-	firstDiploidIndex = 4;
-
-	//allocate count table
-	counts = new int*[size];
+	//set to zero
 	for(int i=0; i<size; i++){
-		counts[i] = new int[size];
-
-		//set to zero
 		for(int j=0; j<size; ++j){
 			counts[i][j] = 0;
 		}
 	}
 };
 
-TGenotypeComparisonTable::~TGenotypeComparisonTable(){
-	for(int i=0; i<size; i++){
-		delete[] counts[i];
-	}
-	delete[] counts;
-};
-
 //add haploid genotypes
 void TGenotypeComparisonTable::add(const Base b1, const Base b2){
-	++counts[b1][b2];
+	++counts[b1.get()][b2.get()];
 };
 
 void TGenotypeComparisonTable::addOtherMissing(const int sample, const Base b){
 	if(sample == 0){
-		++counts[b][missingIndex];
+		++counts[b.get()][missingIndex];
 	} else {
-		++counts[missingIndex][b];
+		++counts[missingIndex][b.get()];
 	}
 };
 
 
 void TGenotypeComparisonTable::addFirstMissing(const Base b2){
-	++counts[missingIndex][b2];
+	++counts[missingIndex][b2.get()];
 };
 
 void TGenotypeComparisonTable::addSecondMissing(const Base b1){
-	++counts[b1][missingIndex];
+	++counts[b1.get()][missingIndex];
 };
 
 //add diploid genotypes
-void TGenotypeComparisonTable::add(GenotypeLikelihoods::Genotype g1, GenotypeLikelihoods::Genotype g2){
-	++counts[firstDiploidIndex + g1][firstDiploidIndex + g2];
+void TGenotypeComparisonTable::add(Genotype g1, Genotype g2){
+	++counts[firstDiploidIndex + g1.get()][firstDiploidIndex + g2.get()];
 };
 
-void TGenotypeComparisonTable::addOtherMissing(const int sample, const GenotypeLikelihoods::Genotype g){
+void TGenotypeComparisonTable::addOtherMissing(const int sample, const Genotype g){
 	if(sample == 0){
-		++counts[firstDiploidIndex + g][missingIndex];
+		++counts[firstDiploidIndex + g.get()][missingIndex];
 	} else {
-		++counts[missingIndex][firstDiploidIndex + g];
+		++counts[missingIndex][firstDiploidIndex + g.get()];
 	}
 };
 
-void TGenotypeComparisonTable::addFirstMissing(GenotypeLikelihoods::Genotype g2){
-	++counts[missingIndex][firstDiploidIndex + g2];
+void TGenotypeComparisonTable::addFirstMissing(Genotype g2){
+	++counts[missingIndex][firstDiploidIndex + g2.get()];
 };
 
-void TGenotypeComparisonTable::addSecondMissing(GenotypeLikelihoods::Genotype g1){
-	++counts[firstDiploidIndex + g1][missingIndex];
+void TGenotypeComparisonTable::addSecondMissing(Genotype g1){
+	++counts[firstDiploidIndex + g1.get()][missingIndex];
 };
 
 
 //add haploid / diploid combination of genotypes
-void TGenotypeComparisonTable::add(const GenotypeLikelihoods::Genotype g1, const Base b2){
-	++counts[firstDiploidIndex + g1][b2];
+void TGenotypeComparisonTable::add(const Genotype g1, const Base b2){
+	++counts[firstDiploidIndex + g1.get()][b2.get()];
 };
 
-void TGenotypeComparisonTable::add(const Base b1, const GenotypeLikelihoods::Genotype g2){
-	++counts[b1][firstDiploidIndex + g2];
+void TGenotypeComparisonTable::add(const Base b1, const Genotype g2){
+	++counts[b1.get()][firstDiploidIndex + g2.get()];
 };
 
 //write
-void TGenotypeComparisonTable::write(const std::string filename, GenotypeLikelihoods::TGenotypeMap & genoMap){
+void TGenotypeComparisonTable::write(const std::string filename){
 	//open output file
-	TOutputFile out(filename);
+	coretools::TOutputFile out(filename);
 
 	//write header
 	std::vector<std::string> header = {"vcf1/vcf2"};
 	//haploid bases
-	for(int i=0; i<4; i++){
-		header.push_back(std::string(1, genoMap.getBaseAsChar(i)));
+	for(auto b = Base::min(); b < Base::max(); ++b){
+		header.push_back((std::string) b);
 	}
 
 	//diploid genotypes
-	for(int i=0; i<10; i++){
-		header.push_back(genoMap.getGenotypeString(i));
+	for(auto g = genometools::Genotype::min(); g < genometools::Genotype::max(); ++g){
+		header.push_back((std::string) g);
 	}
 
 	//missing
@@ -261,9 +245,9 @@ TVcfCompare::TVcfCompare(TLog* Logfile){
 void TVcfCompare::addToOtherMissing(TGenotypeComparisonTable & counts, const int sample){
 	if(!vcfFiles[sample].isMissing()){
 		if(vcfFiles[sample].isDiploid()){
-			counts.addOtherMissing(sample, vcfFiles[sample].genotype(genoMap));
+			counts.addOtherMissing(sample, vcfFiles[sample].genotype());
 		} else {
-			counts.addOtherMissing(sample, vcfFiles[sample].base(genoMap));
+			counts.addOtherMissing(sample, vcfFiles[sample].base());
 		}
 	}
 };
@@ -272,10 +256,10 @@ void TVcfCompare::compareVCFFiles(TParameters & parameters){
 	//open vcf files
 	logfile->startIndent("Open VCF files to compare:");
 	std::vector<std::string> fileNames;
-	parameters.fillParameterIntoVector("vcf", fileNames, ',');
+	parameters.fillParameterIntoContainer("vcf", fileNames, ',');
 
 	std::vector<std::string> sampleNames;
-	parameters.fillParameterIntoVector("samples", sampleNames, ',');
+	parameters.fillParameterIntoContainer("samples", sampleNames, ',');
 
 	//currently only implemented for comparing two VCFs
 	if(fileNames.size() != 2)
@@ -306,8 +290,8 @@ void TVcfCompare::compareVCFFiles(TParameters & parameters){
 	long lineLimit = -1;
 	if(parameters.parameterExists("limitLines")){
 		limitLines = true;
-		logfile->list("Will stop reading after " + toString(limitLines) + " lines.");
-		lineLimit = parameters.getParameterInt("limitLines");
+		logfile->list("Will stop reading after ", limitLines, " lines.");
+		lineLimit = parameters.getParameter<int>("limitLines");
 	}
 
 	//set filters in VCF files
@@ -349,15 +333,15 @@ void TVcfCompare::compareVCFFiles(TParameters & parameters){
 						//both have calls
 						if(vcfFiles[0].isDiploid()){
 							if(vcfFiles[1].isDiploid()){
-								counts.add(vcfFiles[0].genotype(genoMap), vcfFiles[1].genotype(genoMap));
+								counts.add(vcfFiles[0].genotype(), vcfFiles[1].genotype());
 							} else {
-								counts.add(vcfFiles[0].genotype(genoMap), vcfFiles[1].base(genoMap));
+								counts.add(vcfFiles[0].genotype(), vcfFiles[1].base());
 							}
 						} else {
 							if(vcfFiles[1].isDiploid()){
-								counts.add(vcfFiles[0].base(genoMap), vcfFiles[1].genotype(genoMap));
+								counts.add(vcfFiles[0].base(), vcfFiles[1].genotype());
 							} else {
-								counts.add(vcfFiles[0].base(genoMap), vcfFiles[1].base(genoMap));
+								counts.add(vcfFiles[0].base(), vcfFiles[1].base());
 							}
 						}
 					}
@@ -415,18 +399,18 @@ void TVcfCompare::compareVCFFiles(TParameters & parameters){
 		//guess from filename
 		//get base name of first VCF file
 		out = fileNames[0];
-		out = extractBeforeLast(out, '.');
+		out = coretools::str::extractBeforeLast(out, '.');
 		if(fileNames[0].find(".gz") != std::string::npos){
 			//if zipped there is extra .gz
-			out = extractBeforeLast(out, ".");
+			out = coretools::str::extractBeforeLast(out, ".");
 		}
 
 		//get base name of first VCF file
 		std::string tmp = fileNames[1];
-		tmp = extractBeforeLast(tmp, '.');
+		tmp = coretools::str::extractBeforeLast(tmp, '.');
 		if(fileNames[1].find(".gz") != std::string::npos){
 			//if zipped there is extra .gz
-			tmp = extractBeforeLast(tmp, ".");
+			tmp = coretools::str::extractBeforeLast(tmp, ".");
 		}
 
 		out += "_" + tmp;
@@ -436,7 +420,7 @@ void TVcfCompare::compareVCFFiles(TParameters & parameters){
 
 	//writing output file
 	logfile->listFlush("Writing counts to file '" + out + "' ...");
-	counts.write(out, genoMap);
+	counts.write(out);
 	logfile->done();
 };
 

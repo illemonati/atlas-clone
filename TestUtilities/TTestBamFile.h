@@ -30,18 +30,32 @@ protected:
 
 	//tmp vars for dummy alignments
 	uint32_t _counter;
-	std::string _dummySequence;
-	std::string _dummyQualities;
+	std::vector<genometools::Base> _dummySequence;
+	std::vector<genometools::Base>::iterator _dummySequenceStart;
+	std::vector<genometools::PhredIntProbability> _dummyQualities;
+	std::vector<genometools::PhredIntProbability>::iterator _dummyQualitiesStart;
 	uint16_t _dummyMapQual;
-	uint32_t _dummyBasePos, _dummyQualPos;
 	uint32_t _dummyLength, _dummyMinLength, _dummyMaxLength;
 	bool _dummyIsReverseStrand;
 	uint32_t _dummyReadGroup;
 	std::string _dummyCigarChars; uint32_t _dummyCigarPos;
 	BAM::TSamFlags _dummyFlag;
 
-    std::string _constructSequence(uint32_t length);
-    std::string _constructSequenceQualities(uint32_t length);
+    template <typename T, typename U>
+    std::vector<T> _constructFrom(std::vector<T> & source, U & Start, const uint32_t & length){
+        std::vector<T> vec(Start, Start + length);
+        while(vec.size() < length){
+        	vec.insert(vec.end(), source.begin(), source.begin() + length - vec.size());
+        }
+
+        // iterate positions
+        ++Start;
+        if(Start == source.end()){
+        	Start = source.begin();
+        }
+
+        return vec;
+    };
 
     void _iterateReadGroupAndReverseStrand();
     void _iterateCigar(BAM::TCigar & cigar, uint32_t length);
@@ -49,11 +63,7 @@ protected:
     virtual void _iterateFlags();
     void _iterateMappingQuality();
 
-    BAM::TAlignment _constructAlignment(const std::string & sequence, const std::string & qualities, const BAM::TGenomePosition & position, const BAM::TCigar & cigar, const uint32_t & readGroup, const bool & isReverseStrand, const bool & complicatedSamFlag);
-
-        //other
-	BAM::TQualityMap _qualMap;
-	GenotypeLikelihoods::TGenotypeMap _genoMap;
+    BAM::TAlignment _constructAlignment(const std::vector<genometools::Base> & sequence, const std::vector<genometools::PhredIntProbability> & qualities, const BAM::TGenomePosition & position, const BAM::TCigar & cigar, const uint32_t & readGroup, const bool & isReverseStrand, const bool & complicatedSamFlag);
 
 	//storage of written alignments
 	std::vector<BAM::TAlignment> _writtenAlignments;
@@ -79,10 +89,10 @@ public:
 	virtual void writeDummyAlignments(const uint32_t & numAlignments, const bool & complicatedSamFlag = false);
 
     // write dummy alignments where sequence and qualities are same within one alignment
-    void writeDummyAlignment(const char& oneBase, const char& oneQual, const BAM::TGenomePosition & position, const BAM::TCigar & cigar, const uint32_t & readGroup, const bool & isReverseStrand);
-    void writeDummyAlignment(const char& oneBase, const char& oneQual, const BAM::TGenomePosition & position, const BAM::TCigar & cigar);
-    void writeDummyAlignment(const char& oneBase, const char& oneQual, const BAM::TGenomePosition & position, const uint32_t & length);
-    void writeDummyAlignment(const char& oneBase, const char& oneQual, const BAM::TGenomePosition & position);
+    void writeDummyAlignment(const genometools::Base &oneBase, const genometools::PhredIntProbability &oneQual, const BAM::TGenomePosition & position, const BAM::TCigar & cigar, const uint32_t & readGroup, const bool & isReverseStrand);
+    void writeDummyAlignment(const genometools::Base &oneBase, const genometools::PhredIntProbability &oneQual, const BAM::TGenomePosition & position, const BAM::TCigar & cigar);
+    void writeDummyAlignment(const genometools::Base &oneBase, const genometools::PhredIntProbability &oneQual, const BAM::TGenomePosition & position, const uint32_t & length);
+    void writeDummyAlignment(const genometools::Base &oneBase, const genometools::PhredIntProbability &oneQual, const BAM::TGenomePosition & position);
 
     //getters
 	std::string filename()const { return _filename; };

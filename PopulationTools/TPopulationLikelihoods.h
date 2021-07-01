@@ -180,7 +180,7 @@ public:
     long positionZeroBased(){ return vcfFile.positionZeroBased(); };
     char refAllele(){ return vcfFile.getRefAllele()[0]; };
     char altAllele(){ return vcfFile.getFirstAltAllele()[0]; };
-	//void fillGenotypes(TPopulationSamples & samples, u_int8_t * genotypes);
+    std::vector<genometools::BiallelicGenotype> genotypes(TPopulationSamples & samples);
     genometools::BiallelicGenotype genotype(TPopulationSamples & samples, uint32_t s);
     double depth(TPopulationSamples & samples,uint32_t s);
 

@@ -28,10 +28,10 @@ void TAtlasTest_PMDEmpiric::setVariables(TParameters & params, TLog* Logfile, TT
 	pmdEmpiricFileName = filenameTag + "_true_PMD_input_Empiric.txt";
 	poolRGFileName = filenameTag + "_poolThese.txt";
 
-	alpha = params.getParameterDoubleWithDefault("recal_alpha", 10);
-	beta = params.getParameterDoubleWithDefault("recal_beta", 0.2);
-	minReadLength = params.getParameterDoubleWithDefault("recal_minReadLength", 30);
-	maxReadLength = params.getParameterDoubleWithDefault("recal_maxReadLength", 100);
+	alpha = params.getParameterWithDefault("recal_alpha", 10);
+	beta = params.getParameterWithDefault("recal_beta", 0.2);
+	minReadLength = params.getParameterWithDefault("recal_minReadLength", 30);
+	maxReadLength = params.getParameterWithDefault("recal_maxReadLength", 100);
 
 	firstPMDStringCT = params.getParameterWithDefault<std::string>("PMD_firstPMDStringCT", "0.0570425,0.0136436,0.00557868,0.00369679,0.00217176,0.00165969,0.0013597,0.00128248,0.00115739,0.0010344,0.00100565,0.000947369,0.000914736,0.000946235,0.000931833,0.00090844,0.000981253,0.000969278,0.000952248,0.000983697,0.000967508,0.000912304,0.000872001,0.00106018,0.000734042,0.000768929,0.000640332,0.000614326,0.0005853,0.000602209,0.000544814,0.000542236,0.000562432,0.00060454,0.000559798,0.000579571,0.000613039,0.000606546,0.000512908,0.000409839,0.000504727,0.000540894,0.000660901,0.000449767,0.000563391,0.000545252,0.00056032,0.000537928,0.000578507,0.000568476");
 	firstPMDStringGA = params.getParameterWithDefault<std::string>("PMD_firstPMDStringGA", "0.0566675,0.0122868,0.00522836,0.00318553,0.00207032,0.00171248,0.00123768,0.00117464,0.000974231,0.000900184,0.000890755,0.000791377,0.000755095,0.000789783,0.000779903,0.000752922,0.000769629,0.000748781,0.000842946,0.000809977,0.000810973,0.000702441,0.000638453,0.000634849,0.000614554,0.000579583,0.000500633,0.000477177,0.000415798,0.00038988,0.000362353,0.000378398,0.000336733,0.000377509,0.00030131,0.000326029,0.000301191,0.00032936,0.00034176,0.000249148,0.000303415,0.000273776,0.000259635,0.000280269,0.000305902,0.000215535,0.000184103,0.000240266,0.000237668,0.000261064");
@@ -70,7 +70,7 @@ bool TAtlasTest_PMDEmpiric::run(TParameters & params, TLog* Logfile, TTaskList* 
 	_testParams.addParameter("chrLength", "10000000");
 	_testParams.addParameter("ploidy", "2");
 	_testParams.addParameter("depth", "10");
-	_testParams.addParameter("readLength", "single:gamma(" + toString(alpha) + "," + toString(beta)+ ")[" + toString(minReadLength) + "," + toString(maxReadLength)+"]");
+	_testParams.addParameter("readLength", coretools::toString("single:gamma(", alpha, ",", beta, ")[", minReadLength, ",", maxReadLength, "]"));
 	_testParams.addParameter("pmdFile", pmdEmpiricFileName);
 
 	if(!runMain("simulate"))
@@ -107,7 +107,7 @@ void fillPatternsToVector(std::string tmp, std::vector<double> &CTestimated){
 	std::string::size_type pos2 = tmp.find_first_of(']');
 	if(pos2 == std::string::npos) throw "Can not find ']' in '" + tmp + "'!";
 	std::string CTString = tmp.substr((pos1+1),pos2-(pos1+1));
-	fillVectorFromStringAny(CTString, CTestimated, ",");
+	coretools::str::fillContainerFromStringAny(CTString, CTestimated, ",");
 }
 
 
@@ -154,12 +154,12 @@ bool TAtlasTest_PMDEmpiric::checkPMDEmpiricFile(){
 	for(unsigned int i=0; i<CTestimated.size(); ++i){
 		if(CTestimated[i] != CTestimated2[i]){
 			logfile->newLine();
-			logfile->conclude("The CT patterns of pooled RG1 and RG2 do not match at pos " + toString(i) + ". RG1 = " + toString(CTestimated[i]) + ", RG2 = " + toString(CTestimated2[i]));
+			logfile->conclude("The CT patterns of pooled RG1 and RG2 do not match at pos ", i, ". RG1 = ", CTestimated[i], ", RG2 = ", CTestimated2[i]);
 			return false;
 		}
 		if(GAestimated[i] != GAestimated2[i]){
 			logfile->newLine();
-			logfile->conclude("The GA patterns of pooled RG1 and RG2 do not match at pos " + toString(i));
+			logfile->conclude("The GA patterns of pooled RG1 and RG2 do not match at pos ", i);
 			return false;
 		}
 	}
@@ -180,21 +180,21 @@ bool TAtlasTest_PMDEmpiric::checkPMDEmpiricFile(){
 
 
 	//parse true params
-	fillVectorFromStringAny(CTpatterns[2], CTtrue, ",");
-	fillVectorFromStringAny(GApatterns[2], GAtrue, ",");
+	coretools::str::fillContainerFromStringAny(CTpatterns[2], CTtrue, ",");
+	coretools::str::fillContainerFromStringAny(GApatterns[2], GAtrue, ",");
 
 	//compare
 	logfile->startIndent("Checking RG3 CT pattern");
 	for(unsigned int i=0; i<CTtrue.size(); ++i){
 		double error = fabs(CTtrue[i] - CTestimated[i]) / CTtrue[i];
-		logfile->conclude("At pos " + toString(i) + " the true C to T damage proportion is = " + toString(CTtrue[i]) + " and it was estimated to be = " + toString(CTestimated[i]) + " (error of " + toString(error) + ")");
+		logfile->conclude("At pos ", i, " the true C to T damage proportion is = ", CTtrue[i], " and it was estimated to be = ", CTestimated[i], " (error of ", error, ")");
 	}
 	logfile->endIndent("done!");
 
 	logfile->startIndent("Checking RG3 GA pattern");
 	for(unsigned int i=0; i<GAtrue.size(); ++i){
 		double error = fabs(GAtrue[i] - GAestimated[i]) / GAtrue[i];
-		logfile->conclude("At pos " + toString(i) + " the true G to A damage proportion is = " + toString(GAtrue[i]) + " and it was estimated to be = " + toString(GAestimated[i]) + " (error of " + toString(error) + ")");
+		logfile->conclude("At pos ", i, " the true G to A damage proportion is = ", GAtrue[i], " and it was estimated to be = ", GAestimated[i], " (error of ", error, ")");
 	}
 	logfile->endIndent("done!");
 

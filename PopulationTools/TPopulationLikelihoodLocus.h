@@ -16,50 +16,6 @@
 
 namespace PopulationTools{
 
-/*-
-//------------------------------------------------
-// TSampleLikelihoods
-//------------------------------------------------
-class TSampleLikelihoods{
-public:
-	genometools::HighPrecisionPhredIntProbability glfLikelihood_0;
-	genometools::HighPrecisionPhredIntProbability glfLikelihood_1;
-	genometools::HighPrecisionPhredIntProbability glfLikelihood_2;
-
-	bool isHaploid;
-	bool isMissing;
-
-	constexpr genometools::HighPrecisionPhredIntProbability& operator[](const uint8_t & genotype){
-		if(genotype == 0) return glfLikelihood_0;
-		if(genotype == 1) return glfLikelihood_1;
-		if(isHaploid) throw "Genotype has to be 0 or 1 for haploid samples!";
-		if(genotype == 2) return glfLikelihood_2;
-		throw "Genotype has to be 0, 1 or 2 for diploid samples!";
-	};
-
-	void setAsMissing(){
-		glfLikelihood_0 = 0.0;
-		glfLikelihood_1 = 0.0;
-		glfLikelihood_2 = 0.0;
-
-		isHaploid = false;
-		isMissing = true;
-	};
-
-	void print(){
-		if(isMissing)
-			std::cout << "-";
-		else {
-			if(isHaploid)
-				std::cout << glfLikelihood_0 << "," << glfLikelihood_2;
-			else
-				std::cout << glfLikelihood_0 << "," << glfLikelihood_1 << "," << glfLikelihood_2;
-		}
-	};
-};
-
-*/
-
 using TSampleLikelihoods = genometools::TSampleLikelihoods<genometools::HighPrecisionPhredIntProbability>;
 
 //------------------------------------------------

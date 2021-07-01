@@ -74,6 +74,14 @@ std::shared_ptr<TSequencingErrorModelRecal>& TSequencingErrorModelsOneReadGroup:
 	return _models[IsSecondMate].getSharedPointerToRecalModel();
 };
 
+bool TSequencingErrorModelsOneReadGroup::recalibrates() const{
+	if(_models[0].recalibrates() || _models[1].recalibrates()){
+		return true;
+	} else {
+		return false;
+	}
+};
+
 Probability TSequencingErrorModelsOneReadGroup::getErrorRate(const BAM::TSequencedBase & base) const {
 	return _models[base.isSecondMate()].getErrorRate(base);
 };

@@ -9,6 +9,11 @@
 
 namespace TestUtilities{
 
+using genometools::A;
+using genometools::C;
+using genometools::G;
+using genometools::T;
+
 //--------------------------------------
 // TTestBamFile
 //--------------------------------------
@@ -21,7 +26,7 @@ TTestBamFile::TTestBamFile(const std::string & Filename, const std::vector<uint3
 
 	//open BAM file for writing
 	_filename = Filename;
-	_bamFile.open(_filename, _header, _chromosomes, _readGroups, &_genoMap, &_qualMap);
+	_bamFile.open(_filename, _header, _chromosomes, _readGroups);
 };
 
 void TTestBamFile::_initialize(const std::vector<uint32_t> ChrLength, const uint32_t & NumReadGroups){
@@ -30,12 +35,13 @@ void TTestBamFile::_initialize(const std::vector<uint32_t> ChrLength, const uint
 	_initializeReadGroups(NumReadGroups);
 
 	//tmp vars
-	_dummySequence =  "AAACCCGGGTTTACGTTGCAAACGTGGCCGTGACACCGTCGACAGGTGCCACACAGTGGCAAATTGGCCGGTGCAAACCAAACCAAGGTTGCCCG";
-	_dummyQualities = "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
+	_dummySequence = {A, A, A, C, C, C, G, G, G, T, T, T, A, C, G, T, T, G, C, A, A, A, C, G, T, G, G, C, C, G, T, G, A, C, A, C, C, G, T, C, G, A, C, A, G, G, T, G, C, C, A, C, A, C, A, G, T, G, G, C, A, A, A, T, T, G, G, C, C, G, G, T, G, C, A, A, A, C, C, A, A, A, C, C, A, A, G, G, T, T, G, C, C, C, G };
+	_dummySequenceStart = _dummySequence.begin();
+	for(auto p = genometools::PhredIntProbability::min(); p < genometools::PhredIntProbability::max(); ++p){
+		_dummyQualities.emplace_back(p);
+	}
+	_dummyQualitiesStart = _dummyQualities.begin();
     _dummyMapQual = 0;
-	_dummyMaxLength = _dummySequence.length();
-	_dummyBasePos = 0;
-	_dummyQualPos = 0;
 	_dummyMinLength = 10;
 	_dummyMaxLength = 50;
 	_dummyLength = _dummyMinLength;
@@ -51,41 +57,19 @@ void TTestBamFile::_initializeChromosomes(const std::vector<uint32_t> ChrLength)
 	uint32_t refID = 0;
 	for(auto& len : ChrLength){
 		++refID;
-		_chromosomes.appendChromosome("Chr" + toString(refID), len);
+		_chromosomes.appendChromosome("Chr" + coretools::toString(refID), len);
 	}
 };
 
 void TTestBamFile::_initializeReadGroups(const uint32_t & NumReadGroups){
 	for(uint32_t i=0; i<NumReadGroups; ++i){
-		const BAM::TReadGroup& rg = _readGroups.add("ReadGroup" + toString(i));
-		rg.sequencingCenter_CN = __GLOBAL_APPLICATION_NAME__ + " " + __GLOBAL_APPLICATION_VERSION__;
-		rg.description_DS = "Simulated with commit " + __GLOBAL_APPLICATION_COMMIT__;
+		const BAM::TReadGroup& rg = _readGroups.add("ReadGroup" + coretools::str::toString(i));
+		rg.sequencingCenter_CN = coretools::__GLOBAL_APPLICATION_NAME__ + " " + coretools::__GLOBAL_APPLICATION_VERSION__;
+		rg.description_DS = "Simulated with commit " + coretools::__GLOBAL_APPLICATION_COMMIT__;
 		rg.sample_SM = "TestSample";
 		rg.sequencingTechnology_PL = "ILLUMINA";
 	}
 };
-
-std::string TTestBamFile::_constructSequence(uint32_t length){
-    std::string s = _dummySequence.substr(_dummyBasePos, length);
-    while(s.length() < length){
-        s += _dummySequence.substr(0, length - s.length());
-    }
-    // iterate positions
-    _dummyBasePos = (_dummyBasePos + 1) % _dummySequence.length();
-
-    return s;
-}
-
-std::string TTestBamFile::_constructSequenceQualities(uint32_t length){
-    std::string q = _dummyQualities.substr(_dummyQualPos, length);
-    while(q.length() < length){
-        q += _dummyQualities.substr(0, length - q.length());
-    }
-    // iterate positions
-    _dummyQualPos = (_dummyQualPos  + 3) % _dummyQualities.length();
-
-    return q;
-}
 
 void TTestBamFile::_iterateMappingQuality(){
     _dummyMapQual = (_dummyMapQual + 4) % 255;
@@ -136,7 +120,7 @@ void TTestBamFile::_iterateFlags() {
 void TTestBamFile::openOutput(const std::string & Filename){
 	//open BAM file for writing
 	_filename = Filename;
-	_bamFile.open(_filename, _header, _chromosomes, _readGroups, &_genoMap, &_qualMap);
+	_bamFile.open(_filename, _header, _chromosomes, _readGroups);
 };
 
 void TTestBamFile::closeOutput(){
@@ -153,9 +137,9 @@ void TTestBamFile::writeAlignment(const BAM::TAlignment & alignment){
     _bamFile.writeAlignment(alignment);
 };
 
-BAM::TAlignment TTestBamFile::_constructAlignment(const std::string & sequence, const std::string & qualities, const BAM::TGenomePosition & position, const BAM::TCigar & cigar, const uint32_t & readGroup, const bool & isReverseStrand, const bool & complicatedSamFlag){
+BAM::TAlignment TTestBamFile::_constructAlignment(const std::vector<genometools::Base> & sequence, const std::vector<genometools::PhredIntProbability> & qualities, const BAM::TGenomePosition & position, const BAM::TCigar & cigar, const uint32_t & readGroup, const bool & isReverseStrand, const bool & complicatedSamFlag){
     BAM::TAlignment alignment(position);
-    alignment.setName("alignment_" + toString(_counter));
+    alignment.setName("alignment_" + coretools::toString(_counter));
     alignment.setSequenceQualities(cigar, sequence, qualities);
     alignment.setMappingQuality(_dummyMapQual);
     alignment.setReadGroup(readGroup);
@@ -170,8 +154,8 @@ BAM::TAlignment TTestBamFile::_constructAlignment(const std::string & sequence, 
 
 void TTestBamFile::writeDummyAlignment(const BAM::TGenomePosition & position, const BAM::TCigar & cigar, const uint32_t & readGroup, const bool & isReverseStrand, const bool & complicatedSamFlag){
 	//extract sequence / qualities
-	std::string s = _constructSequence(cigar.lengthRead());
-    std::string q = _constructSequenceQualities(cigar.lengthRead());
+	auto s = _constructFrom(_dummySequence, _dummySequenceStart, cigar.lengthRead());
+	auto q = _constructFrom(_dummyQualities, _dummyQualitiesStart, cigar.lengthRead());
 
 	// iterate mapping quality
 	_iterateMappingQuality();
@@ -238,12 +222,12 @@ void TTestBamFile::writeDummyAlignments(const uint32_t & numAlignments, const bo
 	}
 }
 
-void TTestBamFile::writeDummyAlignment(const char &oneBase, const char &oneQual, const BAM::TGenomePosition &position,
+void TTestBamFile::writeDummyAlignment(const genometools::Base &oneBase, const genometools::PhredIntProbability &oneQual, const BAM::TGenomePosition &position,
                                   const BAM::TCigar &cigar, const uint32_t &readGroup,
                                   const bool &isReverseStrand) {
     // expand oneBase to string
-    std::string seq(cigar.lengthRead(), oneBase);
-    std::string qual(cigar.lengthRead(), oneQual);
+	std::vector<genometools::Base> seq(cigar.lengthRead(), oneBase);
+	std::vector<genometools::PhredIntProbability> qual(cigar.lengthRead(), oneQual);
 
     //write alignment
     BAM::TAlignment alignment(position);
@@ -272,14 +256,14 @@ void TTestBamFile::writeDummyAlignment(const char &oneBase, const char &oneQual,
 };
 
 
-void TTestBamFile::writeDummyAlignment(const char& oneBase, const char& oneQual, const BAM::TGenomePosition & position, const BAM::TCigar & cigar){
+void TTestBamFile::writeDummyAlignment(const genometools::Base &oneBase, const genometools::PhredIntProbability &oneQual, const BAM::TGenomePosition & position, const BAM::TCigar & cigar){
     writeDummyAlignment(oneBase, oneQual, position, cigar, _dummyReadGroup, _dummyIsReverseStrand);
 
     //iterate
     _iterateReadGroupAndReverseStrand();
 }
 
-void TTestBamFile::writeDummyAlignment(const char &oneBase, const char &oneQual, const BAM::TGenomePosition &position,
+void TTestBamFile::writeDummyAlignment(const genometools::Base &oneBase, const genometools::PhredIntProbability &oneQual, const BAM::TGenomePosition &position,
                                   const uint32_t &length) {
     // construct cigar
     BAM::TCigar cigar;
@@ -288,7 +272,7 @@ void TTestBamFile::writeDummyAlignment(const char &oneBase, const char &oneQual,
     writeDummyAlignment(oneBase, oneQual, position, cigar);
 };
 
-void TTestBamFile::writeDummyAlignment(const char &oneBase, const char &oneQual, const BAM::TGenomePosition &position) {
+void TTestBamFile::writeDummyAlignment(const genometools::Base &oneBase, const genometools::PhredIntProbability &oneQual, const BAM::TGenomePosition &position) {
     writeDummyAlignment(oneBase, oneQual, position, _dummyLength);
 
     // iterate length
@@ -324,8 +308,8 @@ void TTestBamFilePairedEnd::_iterateFlags() {
 
 void TTestBamFilePairedEnd::writeDummyAlignment(const BAM::TGenomePosition & position, const BAM::TCigar & cigar, const uint32_t & readGroup, const bool & isReverseStrand, const bool & complicatedSamFlag){
     //extract sequence / qualities
-    std::string s = _constructSequence(cigar.lengthRead());
-    std::string q = _constructSequenceQualities(cigar.lengthRead());
+	auto s = _constructFrom(_dummySequence, _dummySequenceStart, cigar.lengthRead());
+	auto q = _constructFrom(_dummyQualities, _dummyQualitiesStart, cigar.lengthRead());
 
     // iterate mapping quality
     _iterateMappingQuality();

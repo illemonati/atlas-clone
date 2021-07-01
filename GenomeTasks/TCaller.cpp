@@ -807,7 +807,7 @@ void TCallerDiploid::callGenotypeFromMetric(const TGenotypeProbability_base & me
 
 void TCallerDiploid::callGenotypeFromMetricKnownAlleles(const TGenotypeProbability_base & metric){
 	//get genotypes
-	genometools::BiallelicGenotypes geno(referenceBase, _altAlleles[0]);
+	genometools::BiallelicGenotypesWithAlleles geno(referenceBase, _altAlleles[0]);
 
 	//find max
 	Probability max = metric[geno.homoFirst()];
@@ -831,7 +831,7 @@ void TCallerDiploid::callGenotypeFromMetricKnownAlleles(const TGenotypeProbabili
 
 bool TCallerDiploid::callGenotypeFromMetricKnownAllelesUpdateIndex(const TGenotypeProbability_base & metric){
 	//get genotypes
-	genometools::BiallelicGenotypes geno(referenceBase, _altAlleles[0]);
+	genometools::BiallelicGenotypesWithAlleles geno(referenceBase, _altAlleles[0]);
 
 	//identify highest and second highest
 	//TODO: is there a better way than an endless if / else?

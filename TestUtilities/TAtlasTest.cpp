@@ -8,6 +8,8 @@
 
 #include "../TestUtilities/TAtlasTest.h"
 
+using coretools::str::convertString;
+
 //------------------------------------------
 //TAtlasTest
 //------------------------------------------
@@ -31,18 +33,18 @@ void TAtlasTest_pileup::setVariables(TParameters & params, TLog* Logfile, TTaskL
 	logfile = Logfile;
 	taskList = TaskList;
 	readLength = params.getParameterWithDefault<int>("pileupTest_readLength", 100);
-	logfile->list("Will simulate reads of length " + toString(readLength) + ".");
+	logfile->list("Will simulate reads of length ", readLength, ".");
 	phredError = params.getParameterWithDefault<int>("pileupTest_qual", 50);
-	logfile->list("Will test with quality " + toString(phredError) + ".");
-	params.fillParameterIntoVectorWithDefault("pileupTest_depths", depths, ',', "2,4,10,20,40");
-	logfile->list("Will test the following depths: " + concatenateString(depths, ", ") + ".");
+	logfile->list("Will test with quality ", phredError, ".");
+	params.fillParameterIntoContainerWithDefault("pileupTest_depths", depths, ',', {2,4,10,20,40});
+	logfile->list("Will test the following depths: " +coretools::str:: concatenateString(depths, ", ") + ".");
 	chrLength = readLength * 5;
 	filenameTag = _testingPrefix + _name;
 	bamFileName = filenameTag + ".bam";
 	fastaName = filenameTag + ".fasta";
 	readGroupName = "TestReadGroup";
-	emissionTolerance = params.getParameterDoubleWithDefault("pileupTest_qual", 0.0001);
-	logfile->list("Will allow for a relative error in emission probabilities up to " + toString(emissionTolerance) + ".");
+	emissionTolerance = params.getParameterWithDefault<double>("pileupTest_qual", 0.0001);
+	logfile->list("Will allow for a relative error in emission probabilities up to ", emissionTolerance, ".");
 }
 
 bool TAtlasTest_pileup::run(TParameters & parameters, TLog* Logfile, TTaskList * TaskList){
@@ -58,8 +60,8 @@ bool TAtlasTest_pileup::run(TParameters & parameters, TLog* Logfile, TTaskList *
 	//-----------------------------
 	_testParams.addParameter("bam", bamFileName);
 	_testParams.addParameter("fasta", fastaName);
-	_testParams.addParameter("maxReadLength", toString(readLength));
-	_testParams.addParameter("window", toString(2*readLength));
+	_testParams.addParameter("maxReadLength", readLength);
+	_testParams.addParameter("window", 2*readLength);
 
 	if(!runMain("pileup"))
 		return false;
@@ -91,7 +93,7 @@ void TAtlasTest_pileup::writeFasta(){
 	}
 	//write to index file
 	oldOffset += chrName.size() + 2;
-	fastaIndex << extractBeforeWhiteSpace(chrName) << "\t" << chrLength << "\t" << oldOffset << "\t70\t71\n";
+	fastaIndex << coretools::str::extractBeforeWhiteSpace(chrName) << "\t" << chrLength << "\t" << oldOffset << "\t70\t71\n";
 	oldOffset += chrLength + (int) (chrLength / 70);
 	if(chrLength % 70 != 0) oldOffset += 1;
 
@@ -108,12 +110,13 @@ void TAtlasTest_pileup::writeFasta(){
 
 	//write to index file
 	oldOffset += chrName.size() + 2;
-	fastaIndex << extractBeforeWhiteSpace(chrName) << "\t" << chrLength << "\t" << oldOffset << "\t70\t71\n";
+	fastaIndex << coretools::str::extractBeforeWhiteSpace(chrName) << "\t" << chrLength << "\t" << oldOffset << "\t70\t71\n";
 	oldOffset += chrLength + (int) (chrLength / 70);
 	fastaIndex.close();
 };
 
 void TAtlasTest_pileup::writeBAM(){
+	/*
 	//create a bam file with known pileup results
 	logfile->startIndent("Writing a test BAM file:");
 	logfile->listFlush("Opening bam file '" + bamFileName + "' for writing ...");
@@ -154,7 +157,7 @@ void TAtlasTest_pileup::writeBAM(){
 	for(size_t d=0; d<depths.size(); ++d){
 		bamAlignment.QueryBases = std::string(readLength, genoMap.getBaseAsChar(d % 4));
 		for(int i=0; i<depths[d]; ++i){
-			bamAlignment.Name = "Alignment_" + toString(counter);
+			bamAlignment.Name = "Alignment_" + coretools::str::toString(counter);
 			bamWriter.SaveAlignment(bamAlignment);
 			++counter;
 		}
@@ -196,9 +199,11 @@ void TAtlasTest_pileup::writeBAM(){
 
 	//done!
 	logfile->endIndent();
+	*/
 };
 
 bool TAtlasTest_pileup::checkPileupFile(){
+	/*
 	logfile->startIndent("Checking pileup file:");
 
 	//open pileup file
@@ -232,7 +237,7 @@ bool TAtlasTest_pileup::checkPileupFile(){
 		++truePos;
 		std::getline(in, tmp);
 
-		fillVectorFromStringWhiteSpace(tmp, line);
+		coretools::str::fillContainerFromStringWhiteSpace(tmp, line);
 
 		//skip empty
 		if(line.size() == 0) continue;
@@ -240,7 +245,7 @@ bool TAtlasTest_pileup::checkPileupFile(){
 		//check columns
 		if(line.size() != 16){
 			logfile->newLine();
-			logfile->conclude("Wrong number of columns in pileup file '" + filename + "' on line " + toString(numLines) + "! " + toString(line.size()) + " instead of 16 columns!");
+			logfile->conclude("Wrong number of columns in pileup file '" + filename + "' on line ", numLines, "! ", line.size(), " instead of 16 columns!");
 			return false;
 		}
 
@@ -253,28 +258,28 @@ bool TAtlasTest_pileup::checkPileupFile(){
 		//check chr
 		if(line[0] != chr){
 			logfile->newLine();
-			logfile->conclude("Wrong chromosome in pileup file '" + filename + "' on line " + toString(numLines) + "!");
+			logfile->conclude("Wrong chromosome in pileup file '" + filename + "' on line ", numLines, "!");
 			return false;
 		}
 
 		//check position
 		if(convertString<int>(line[1]) != truePos){
 			logfile->newLine();
-			logfile->conclude("Wrong position in pileup file '" + filename + "' on line " + toString(numLines) + ": expected " + toString(truePos) + ", found " + line[1] + "!");
+			logfile->conclude("Wrong position in pileup file '" + filename + "' on line ", numLines, ": expected ", truePos, ", found " + line[1] + "!");
 			return false;
 		}
 
 		//check ref base (always C)
 		if(line[2] != "C"){
 			logfile->newLine();
-			logfile->conclude("Wrong reference base in pileup file '" + filename + "' on line " + toString(numLines) + "! " + line[2] + " instead of C.");
+			logfile->conclude("Wrong reference base in pileup file '" + filename + "' on line ", numLines, "! " + line[2] + " instead of C.");
 		}
 
 		//check depth
 		uint32_t trueDepth = depths[(truePos-1) / readLength];
 		if(convertString<uint32_t>(line[3]) != trueDepth){
 			logfile->newLine();
-			logfile->conclude("Wrong depth in pileup file '" + filename + "' on line " + toString(numLines) + "! " + line[3] + " instead of " + toString(trueDepth));
+			logfile->conclude("Wrong depth in pileup file '" + filename + "' on line ", numLines, "! " + line[3] + " instead of ", trueDepth);
 			return false;
 		}
 
@@ -289,7 +294,7 @@ bool TAtlasTest_pileup::checkPileupFile(){
 			//bases
 			if(baseCounts[firstBase] != trueDepth){
 				logfile->newLine();
-				logfile->conclude("Wrong homozygous bases in pileup file '" + filename + "' on line " + toString(numLines) + "!");
+				logfile->conclude("Wrong homozygous bases in pileup file '" + filename + "' on line ", numLines, "!");
 				return false;
 			}
 
@@ -312,7 +317,7 @@ bool TAtlasTest_pileup::checkPileupFile(){
 			uint8_t secondBase = (firstBase + 1) % 4;
 			if(baseCounts[firstBase] != depthFirstBase || baseCounts[secondBase] != depthSecondBase){
 				logfile->newLine();
-				logfile->conclude("Wrong heterozygous bases in pileup file '" + filename + "' on line " + toString(numLines) + "!");
+				logfile->conclude("Wrong heterozygous bases in pileup file '" + filename + "' on line ", numLines, "!");
 				return false;
 			}
 
@@ -342,25 +347,25 @@ bool TAtlasTest_pileup::checkPileupFile(){
 		//reference is always C
 		if(convertString<uint32_t>(line[4]) != baseCounts[1]){
 			logfile->newLine();
-			logfile->conclude("Wrong reference depth in pileup file '" + filename + "' on line " + toString(numLines) + "! Estimated at " + line[4] + " instead of " + toString(baseCounts[1]));
+			logfile->conclude("Wrong reference depth in pileup file '" + filename + "' on line ", numLines, "! Estimated at " + line[4] + " instead of ", baseCounts[1]);
 		}
 
 		//now check emission probabilities
 		for(size_t b=0; b<genoMap.numGenotypes; ++b){
-			emissionProbs[b] = convertString<double>(toString(emissionProbs[b]));
+			emissionProbs[b] = convertString<double>(coretools::str::toString(emissionProbs[b]));
 			relDiff = (convertString<double>(line[b+6]) - emissionProbs[b]) / emissionProbs[b];
 			if(relDiff > emissionTolerance){
 				logfile->newLine();
-				logfile->conclude("Wrong emission probability for genotype " + genoMap.getGenotypeString(b) + " in pileup file '" + filename + "' on line " + toString(numLines) + ", which corresponds to pos " + line[1] + ": expected " + toString(emissionProbs[b]) + ", found " + line[b+6] + " (column " + toString(b+6) + ")!");
+				logfile->conclude("Wrong emission probability for genotype " + genoMap.getGenotypeString(b) + " in pileup file '" + filename + "' on line ", numLines, ", which corresponds to pos " + line[1] + ": expected ", emissionProbs[b], ", found " + line[b+6] + " (column ", b+6, ")!");
 				return false;
 			}
 		}
 	}
 	logfile->done();
 	logfile->endIndent();
-
+	 */
 	return true;
-}
+};
 
 //------------------------------------------
 //TAtlasTest_allelicDepth
@@ -378,7 +383,7 @@ void TAtlasTest_allelicDepth::setVariables(TParameters & params, TLog* Logfile, 
 	logfile = Logfile;
 	taskList = TaskList;
 	phredError = params.getParameterWithDefault<int>("pileupTest_qual", 50);
-	logfile->list("Will test with quality " + toString(phredError) + ".");
+	logfile->list("Will test with quality ", phredError, ".");
 	filenameTag = _testingPrefix + _name;
 	bamFileName = filenameTag + ".bam";
 	readGroupName = "TestReadGroup";
@@ -395,7 +400,7 @@ bool TAtlasTest_allelicDepth::run(TParameters & params, TLog* Logfile, TTaskList
 	//3) Run ATLAS to create allelicDepthTable
 	//-----------------------------
 	_testParams.addParameter("bam", bamFileName);
-	_testParams.addParameter("maxAllelicDepth", toString(3));
+	_testParams.addParameter("maxAllelicDepth", coretools::str::toString(3));
 
 	if(!runMain("allelicDepth"))
 		return false;
@@ -406,6 +411,7 @@ bool TAtlasTest_allelicDepth::run(TParameters & params, TLog* Logfile, TTaskList
 };
 
 void TAtlasTest_allelicDepth::writeBAM(){
+	/*
 	//create a bam file with known pileup results
 	logfile->startIndent("Writing a test BAM file:");
 	logfile->listFlush("Opening bam file '" + bamFileName + "' for writing ...");
@@ -489,6 +495,7 @@ void TAtlasTest_allelicDepth::writeBAM(){
 
 	//done!
 	logfile->endIndent();
+	*/
 };
 
 bool TAtlasTest_allelicDepth::checkAllelicDepthTable(){
@@ -515,7 +522,7 @@ bool TAtlasTest_allelicDepth::checkAllelicDepthTable(){
 		//read line into vector
 		++numLines;
 		std::vector<std::string> line;
-		fillVectorFromLineWhiteSpace(in, line, true);
+		coretools::str::fillContainerFromLineWhiteSpace(in, line, true);
 
 		//skip empty
 		if(line.size() == 0) continue;
@@ -523,7 +530,7 @@ bool TAtlasTest_allelicDepth::checkAllelicDepthTable(){
 		//check columns
 		if(line.size() != 6){
 			logfile->newLine();
-			logfile->conclude("Wrong number of columns in pileup file '" + filename + "' on line " + toString(numLines) + "!");
+			logfile->conclude("Wrong number of columns in pileup file '" + filename + "' on line ", numLines, "!");
 			return false;
 		}
 
@@ -538,7 +545,7 @@ bool TAtlasTest_allelicDepth::checkAllelicDepthTable(){
 		//check depth
 		if(A + C + G + T != depth){
 			logfile->newLine();
-			logfile->conclude("Depth is not sum of allelic depths in file '" + filename + "' on line " + toString(numLines) + "!");
+			logfile->conclude("Depth is not sum of allelic depths in file '" + filename + "' on line ", numLines, "!");
 			return false;
 		}
 
@@ -547,7 +554,7 @@ bool TAtlasTest_allelicDepth::checkAllelicDepthTable(){
 		if(A == 1 && C == 1 && G == 1 && T == 0){
 			if(count != 1){
 				logfile->newLine();
-				logfile->conclude("Count should equal 1 in '" + filename + "' on line " + toString(numLines) + "!");
+				logfile->conclude("Count should equal 1 in '" + filename + "' on line ", numLines, "!");
 				return false;
 			}
 		}
@@ -555,7 +562,7 @@ bool TAtlasTest_allelicDepth::checkAllelicDepthTable(){
 		else if(A == 0 && C == 1 && G == 0 && T == 1){
 			if(count != 2){
 				logfile->newLine();
-				logfile->conclude("Count should equal 2 in '" + filename + "' on line " + toString(numLines) + "!");
+				logfile->conclude("Count should equal 2 in '" + filename + "' on line ", numLines, "!");
 				return false;
 			}
 		}
@@ -563,7 +570,7 @@ bool TAtlasTest_allelicDepth::checkAllelicDepthTable(){
 		else if((A == 0 && C == 1 && G == 0 && T == 0) || (A == 0 && C == 0 && G == 1 && T == 0 )){
 			if(count != 1){
 				logfile->newLine();
-				logfile->conclude("Count should equal 2 in '" + filename + "' on line " + toString(numLines) + "!");
+				logfile->conclude("Count should equal 2 in '" + filename + "' on line ", numLines, "!");
 				return false;
 			}
 		}
@@ -571,13 +578,13 @@ bool TAtlasTest_allelicDepth::checkAllelicDepthTable(){
 		else if(A == 0 && C == 0 && G == 0 && T == 0){
 			if(count != 94){
 				logfile->newLine();
-				logfile->conclude("Count should equal 94 in '" + filename + "' on line " + toString(numLines) + "!");
+				logfile->conclude("Count should equal 94 in '" + filename + "' on line ", numLines, "!");
 				return false;
 			}
 		} else {
 			if(count != 0){
 				logfile->newLine();
-				logfile->conclude("Count should equal 0 in '" + filename + "' on line " + toString(numLines) + "!");
+				logfile->conclude("Count should equal 0 in '" + filename + "' on line ", numLines, "!");
 				return false;
 			}
 		}
@@ -598,7 +605,7 @@ TAtlasTest_theta::TAtlasTest_theta():TAtlasTest(){
 
 void TAtlasTest_theta::defineVariables(TParameters & params, TLog* Logfile){
 	logfile = Logfile;
-	simTheta = 	params.getParameterDoubleWithDefault("thetaTest_theta", 0.001);
+	simTheta = 	params.getParameterWithDefault<double>("thetaTest_theta", 0.001);
 };
 
 
@@ -612,7 +619,7 @@ bool TAtlasTest_theta::run(TParameters & params, TLog* Logfile, TTaskList * Task
 	_testParams.addParameter("chrLength", "50000000");
 	_testParams.addParameter("simulation_ploidy", "2");
 	_testParams.addParameter("depth", "2");
-	_testParams.addParameter("theta", toString(simTheta));
+	_testParams.addParameter("theta", simTheta);
 
 	//only simulate BAM if it does not already exist
 	std::string filenameBAM = filenameTag + ".bam";
@@ -667,7 +674,7 @@ bool TAtlasTest_theta::checkThetaFile(){
 		//read line into vector
 		++numLines;
 		std::getline(in, tmp);
-		fillVectorFromStringWhiteSpace(tmp, line);
+		coretools::str::fillContainerFromStringWhiteSpace(tmp, line);
 
 		//skip empty
 		if(line.size() == 0) continue;
@@ -675,21 +682,21 @@ bool TAtlasTest_theta::checkThetaFile(){
 		//check columns
 		if(line.size() != 14){
 			logfile->newLine();
-			logfile->conclude("Wrong number of columns in theta file '" + filename + "' on line " + toString(numLines) + "!");
+			logfile->conclude("Wrong number of columns in theta file '" + filename + "' on line ", numLines, "!");
 			return false;
 		}
 		//add new theta value to sum
-		sum += convertString<double>(line[10]);
+		sum += coretools::str::convertString<double>(line[10]);
 
 	}
 	mean = sum / (double) numLines;
 	if(fabs(mean - simTheta) > (simTheta / 100.0)){
 		logfile->newLine();
-		logfile->conclude("Theta was NOT estimated within range! mean estimated theta = " + toString(mean) + " with simulated theta = " + toString(simTheta));
+		logfile->conclude("Theta was NOT estimated within range! mean estimated theta = ", mean, " with simulated theta = ", simTheta);
 		return false;
 	} else {
 		logfile->newLine();
-		logfile->conclude("Theta was estimated within range! mean estimated theta = " + toString(mean) + " with simulated theta = " + toString(simTheta));
+		logfile->conclude("Theta was estimated within range! mean estimated theta = ", mean, " with simulated theta = ", simTheta);
 		return true;
 	}
 }

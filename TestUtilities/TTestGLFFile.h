@@ -23,7 +23,7 @@ protected:
 
     //GLF file for writing
     std::string _filename;
-    TGlfWriter _glfFile;
+    GLF::TGlfWriter _glfFile;
 
     // chromosomes
     BAM::TChromosomes _chromosomes;

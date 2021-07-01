@@ -24,7 +24,7 @@ TVcfConverter::~TVcfConverter(){
 void TVcfConverter::readOutputName(TParameters & Params){
     //create out file
     std::string vcfFilename = Params.getParameter<std::string>("vcf");
-    std::string tmp = extractBeforeLast(vcfFilename, ".vcf");
+    std::string tmp = coretools::str::extractBeforeLast(vcfFilename, ".vcf");
     _outname = Params.getParameterWithDefault<std::string>("out", tmp);
 
     logfile->list("Writing output files with prefix '" + _outname + "'.");
@@ -56,7 +56,7 @@ void TVcfConverter::readVcfAndWriteFile(TParameters & Params){
 
     //run through VCF file
     logfile->list("Parsing VCF file...");
-    while(reader->readDataFromVCF(data, samples, glfConverter)){
+    while(reader->readDataFromVCF(data, samples)){
         writeData(data);
     };
 
@@ -95,7 +95,7 @@ TVcfToBeagle::~TVcfToBeagle() {
 };
 
 void TVcfToBeagle::initOutputFiles(){
-    beagleFile = new TOutputFile(_outname + ".beagle.gz");
+    beagleFile = new coretools::TOutputFile(_outname + ".beagle.gz");
 };
 
 void TVcfToBeagle::writeHeader(){
@@ -109,7 +109,7 @@ void TVcfToBeagle::writeHeader(){
 };
 
 void TVcfToBeagle::writePosition(){
-    (*beagleFile) << reader->chr() + "_" + toString(reader->position());
+    (*beagleFile) << reader->chr() + "_" + coretools::str::toString(reader->position());
 };
 
 void TVcfToBeagle::writeRefAndAlt(){
@@ -121,12 +121,13 @@ void TVcfToBeagle::writeData(PopulationTools::TPopulationLikehoodLocus & data){
     writeRefAndAlt();
     //write line
     for (uint32_t s = 0; s < samples.numSamples(); s++){
-        if (data[s].isMissing)
+        if (data[s].isMissing()){
             (*beagleFile) << 0.333 << 0.333 << 0.333; // need to do this manually, because otherwise missing data would be 1; but PCAngsd requires genotype likelihoods to sum to one
-        else if (data[s].isHaploid)
-            (*beagleFile) << glfConverter.toScaledLikelihood(data[s][0]) << glfConverter.toScaledLikelihood(data[s][1]) << 0; // if haploid, the 3rd gtl should be 0 according to ANGSD (without doing this manually, it would just be extremely small, but not exactly 0).
-        else
-            (*beagleFile) << glfConverter.toScaledLikelihood(data[s][0]) << glfConverter.toScaledLikelihood(data[s][1]) << glfConverter.toScaledLikelihood(data[s][2]);
+    	} else if (data[s].isHaploid()){
+            (*beagleFile) << (coretools::Probability) data[s][genometools::homoFirst] << (coretools::Probability) data[s][genometools::homoSecond] << 0; // if haploid, the 3rd gtl should be 0 according to ANGSD (without doing this manually, it would just be extremely small, but not exactly 0).
+        } else {
+            (*beagleFile) << (coretools::Probability) data[s][genometools::homoFirst] << (coretools::Probability) data[s][genometools::het] << (coretools::Probability) data[s][genometools::homoSecond];
+        }
     };
 
     beagleFile->endLine();
@@ -160,12 +161,12 @@ void TVcfToLFMM::writeHeader(){
 };
 
 void TVcfToLFMM::initOutputFiles() {
-    lfmmFile = new TOutputFile(_outname + ".lfmm");
-    lociNamesFile = new TOutputFile(_outname + ".lfmm.kept_loci");
+    lfmmFile = new coretools::TOutputFile(_outname + ".lfmm");
+    lociNamesFile = new coretools::TOutputFile(_outname + ".lfmm.kept_loci");
 };
 
 void TVcfToLFMM::storeLocusNames(){
-    loci_names.emplace_back( reader->chr() + ":" + toString(reader->position()));
+    loci_names.emplace_back( reader->chr() + ":" + coretools::toString(reader->position()));
 };
 
 void TVcfToLFMM::writeLociNames(){
@@ -201,11 +202,14 @@ void TVcfToLFMMCalledGeno::writeData(PopulationTools::TPopulationLikehoodLocus &
 };
 
 void TVcfToLFMMCalledGeno::storeCalledGenotypes(){
-    auto * calledGeno = new uint8_t[samples.numSamples()];
-    reader->fillGenotypes(samples, calledGeno);
-    for (uint32_t i = 0; i < samples.numSamples(); i++){
-        if (calledGeno[i] == 3)
+    auto tmp = reader->genotypes(samples);
+    auto* calledGeno = new uint8_t[samples.numSamples()];
+    for(uint32_t i = 0; i < samples.numSamples(); i++){
+        if (tmp[i] == genometools::missing){
             calledGeno[i] = 9; // re-code missing genotypes to LFMM format
+        } else {
+        	calledGeno[i] = tmp[i].get();
+        }
          // if locus was haploid -> is just 0 or 1 -> no need to treat in special way
     }
     genotypes.emplace_back(calledGeno);
@@ -262,14 +266,14 @@ void TVcfToLFMMPostGeno::storePosteriorGenotypes(PopulationTools::TPopulationLik
 };
 
 float TVcfToLFMMPostGeno::computePosteriorGenotype(PopulationTools::TPopulationLikehoodLocus & data, uint32_t i){
-    if (data[i].isMissing)
-        throw std::runtime_error("Missing data at sample " + samples.getNameFromOrderedIndex(i) + " and locus " + reader->chr() + ":" + toString(reader->position())
+    if(data[i].isMissing())
+        throw std::runtime_error("Missing data at sample " + samples.getNameFromOrderedIndex(i) + " and locus " + reader->chr() + ":" + coretools::str::toString(reader->position())
         + "! LFMM2 does not accept missing genotypes, please impute your VCF file first.");
     // if locus is haploid -> llG2 will be ~0 -> gives same result as if I ignored it -> will not treat haploid data in a special way
     // first convert glf to genotype likelihood
-    double llG0 = glfConverter.toScaledLikelihood(data[i][0]);
-    double llG1 = glfConverter.toScaledLikelihood(data[i][1]);
-    double llG2 = glfConverter.toScaledLikelihood(data[i][2]);
+    double llG0 = (coretools::Probability) data[i][genometools::homoFirst];
+    double llG1 = (coretools::Probability) data[i][genometools::het];
+    double llG2 = (coretools::Probability) data[i][genometools::homoFirst];
 
     // normalize by sum to get posterior genotype
     double denominator = llG0 + llG1 + llG2;
@@ -306,7 +310,7 @@ void TVcfToPosFile::writeHeader(){
 };
 
 void TVcfToPosFile::initOutputFiles() {
-    posFile = new TOutputFile(_outname + ".pos");
+    posFile = new coretools::TOutputFile(_outname + ".pos");
 };
 
 void TVcfToPosFile::writePosition(){
@@ -375,7 +379,7 @@ void TVcfToGenotypeTruthSetFile::writeHeader(){
 };
 
 void TVcfToGenotypeTruthSetFile::initOutputFiles() {
-    genFile = new TOutputFile(_outname + ".gen");
+    genFile = new coretools::TOutputFile(_outname + ".gen");
     // initialize bed files (we now know how many samples there are)
     bedFiles = new BAM::TBed * [samples.numSamples()];
     for(uint32_t s = 0; s < samples.numSamples(); s++) {
@@ -426,7 +430,7 @@ void TVcfToGenotypeTruthSetFile::filterIndividuals(PopulationTools::TPopulationL
         // idea: TPopulationLikelihoods will filter on minDepth and set all samples with < minDepth as missing
         // here, we check how many individuals have > minDepth; we rank them and only keep numSamplesPerLocus of them
         for (uint32_t s = 0; s < samples.numSamples(); ++s) {
-            if (!data[s].isMissing) {
+            if (!data[s].isMissing()) {
                 samplesToKeep.push_back(s);
             }
         }
@@ -452,10 +456,13 @@ void TVcfToGenotypeTruthSetFile::writeToGenFile(const std::vector<uint32_t> & sa
     for(uint32_t s = 0; s < samples.numSamples(); s++) {
         // should we write true genotype of sample?
         auto it = std::find(samplesToKeep.begin(), samplesToKeep.end(), s);
-        if (it != samplesToKeep.end()) // sample found
-            (*genFile) << static_cast<int>(reader->genotype(samples, s));
-        else
+        if (it != samplesToKeep.end()){
+        	// sample found
+        	(*genFile) << (std::string) reader->genotype(samples, s);
+
+        } else {
             (*genFile) << "NA";
+        }
     }
     genFile->endLine();
 };
@@ -485,10 +492,10 @@ void TVcfToGenotypeTruthSetFile::resetDistance() {
 void TVcfToGenotypeTruthSetFile::vcfToGenotypeTruthSetFile(TParameters & Params){
     // read params
     minDistanceToPreviousLocus = Params.getParameterWithDefault<int>("minDistance", 100);
-    logfile->list("Will keep loci that have a minimal distance of " + toString(minDistanceToPreviousLocus) + " to previous locus (parameter 'minDistance').");
+    logfile->list("Will keep loci that have a minimal distance of ", minDistanceToPreviousLocus, " to previous locus (parameter 'minDistance').");
     resetDistance();
     numSamplesPerLocus = Params.getParameterWithDefault<int>("numSamples", 5);
-    logfile->list("Will keep up to " + toString(numSamplesPerLocus) + " individuals per locus (parameter 'numSamples').");
+    logfile->list("Will keep up to ", numSamplesPerLocus, " individuals per locus (parameter 'numSamples').");
 
     // read Vcf and write output
     readVcfAndWriteFile(Params);
@@ -497,8 +504,8 @@ void TVcfToGenotypeTruthSetFile::vcfToGenotypeTruthSetFile(TParameters & Params)
     for(uint32_t s = 0; s < samples.numSamples(); s++) {
         // check if sample name contains / (would be interpreted as path)
         std::string sample_name = samples.getNameFromOrderedIndex(s);
-        if (stringContains(sample_name, '/'))
-            sample_name = stringReplace("/", "_", sample_name);
+        if (coretools::str::stringContains(sample_name, '/'))
+            sample_name = coretools::stringReplace("/", "_", sample_name);
         bedFiles[s]->write(_outname + "_" + sample_name + ".bed");
     };
 

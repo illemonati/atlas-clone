@@ -16,7 +16,6 @@
 #include "algorithmsAndVectors.h"
 #include "progressTools.h"
 #include "TSimulatorAuxiliaryTools.h"
-#include "TSimulatorQualityTransformation.h"
 #include "TSimulatorRead.h"
 #include "TFile.h"
 #include "TTask.h"

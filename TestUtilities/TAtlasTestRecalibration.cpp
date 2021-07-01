@@ -27,14 +27,14 @@ void TAtlasTest_recalSimulation::setVariables(TParameters & params, TLog* Logfil
 
 	bamFileName = filenameTag + ".bam";
 	meanQual = params.getParameterWithDefault<int>("recal_meanQual", 25);
-	sdphredInt = params.getParameterDoubleWithDefault("recal_sdQual", 10);
+	sdphredInt = params.getParameterWithDefault("recal_sdQual", 10);
 	minPhredInt = params.getParameterWithDefault<int>("recal_minQual", 0);
 	maxPhredInt = params.getParameterWithDefault<int>("recal_maxQual", 42);
-	qualityDist = params.getParameterWithDefault<std::string>("recal_qualityDist", "normal(" + toString(meanQual) + "," + toString(sdphredInt) + ")[" + toString(minPhredInt) + "," + toString(maxPhredInt) + "]");
+	qualityDist = params.getParameterWithDefault<std::string>("recal_qualityDist", coretools::str::toString("normal(", meanQual, ",", sdphredInt, ")[", minPhredInt, ",", maxPhredInt, "]"));
 //	recalParamString = params.getParameterWithDefault<std::string>("recal_recalParams", "2,0,0.1,0.001,1{20}");
 	recalParamString = params.getParameterWithDefault<std::string>("recal_recalParams","0.908163,0.22877,-0.0160425,0.170256,0.120439,1.50259,1.55807,0.607032,0.775844,1.1983,3.52317,-0.0538213,0.392298,1.07254,1.41819,-0.387901,0.949369,1.17807,1.3996,0.0631075,0.834644,1.08996,2.29066,-0.102391");
-	fillVectorFromStringAny(recalParamString, tmpVec, ",", true);
-	repeatIndexes(tmpVec, trueParams);
+	coretools::str::fillContainerFromStringAny(recalParamString, tmpVec, ",", true);
+	coretools::str::repeatIndexes(tmpVec, trueParams);
 	recalParamsFileName = filenameTag + "_true_recalibrationEM.txt";
 	poolRGFileName = filenameTag + "_poolThese.txt";
 };
@@ -46,13 +46,13 @@ bool TAtlasTest_recalSimulation::run(TParameters & params, TLog* Logfile, TTaskL
 	//2) Write recal params to file
 	//-----------------------------
 	std::vector<std::string> paramVector;
-	fillVectorFromStringAny(recalParamString, paramVector, ",");
+	coretools::str::fillContainerFromStringAny(recalParamString, paramVector, ",");
 	outRecalParams.open(recalParamsFileName.c_str());
 	if(!outRecalParams) throw "Failed to open file '" + recalParamsFileName + "'!";
 
 	outRecalParams << "readGroup\tmate\tmodel\tquality\tposition\tcontext\n";
 	for(int i=0; i<3; ++i){
-		std::string RGName = "RG" + toString(i);
+		std::string RGName = "RG" + coretools::str::toString(i);
 		outRecalParams << RGName << "\tfirst\tqualFuncPosFuncContext\t";
 		//quality
 		outRecalParams << trueParams[0] << "," << trueParams[1] << "\t";
@@ -130,20 +130,20 @@ bool TAtlasTest_recalSimulation::checkRecalFile(){
 	//read estimated params for RG0 and RG1
 	getline(in, tmp);
 	getline(in, tmp2);
-	fillVectorFromStringAny(tmp, estimatedParams, "\t");
-	fillVectorFromStringAny(tmp2, estimatedParams2, "\t");
+	coretools::str::fillContainerFromStringAny(tmp, estimatedParams, "\t");
+	coretools::str::fillContainerFromStringAny(tmp2, estimatedParams2, "\t");
 
 	//parse true params
 	logfile->startIndent("Checking parameter values for pooled read groups RG0 and RG1");
 	for(unsigned int i=3; i<estimatedParams.size(); ++i){ //first three are model information
 		if(estimatedParams[i] != estimatedParams2[i]){
 			logfile->newLine();
-			logfile->conclude("esimated value for parameter number " + toString(i) + " in RG0: " + toString(estimatedParams[i]) + " is not the same as in RG1: " + toString(estimatedParams2[i]));
+			logfile->conclude("esimated value for parameter number ", i, " in RG0: ", estimatedParams[i], " is not the same as in RG1: ", estimatedParams2[i]);
 			return false;
 		}
 		if(estimatedParams[i] != trueParams[i]){
 			logfile->newLine();
-			logfile->conclude("esimated value for parameter number " + toString(i) + ": " + toString(estimatedParams[i]) + " and true value: " + toString(trueParams[i-1]));
+			logfile->conclude("esimated value for parameter number ", i, ": ", estimatedParams[i], " and true value: ", trueParams[i-1]);
 		}
 	}
 	logfile->done();
@@ -151,17 +151,17 @@ bool TAtlasTest_recalSimulation::checkRecalFile(){
 	//read estimated params for RG2
 	logfile->startIndent("Checking parameter values for RG2");
 	getline(in, tmp);
-	fillVectorFromStringAny(tmp, estimatedParams, "\t");
+	coretools::str::fillContainerFromStringAny(tmp, estimatedParams, "\t");
 
 	for(unsigned int i=1; i<estimatedParams.size()-1; ++i){ //first one is read group name, last one LL
 		if(estimatedParams[i] != trueParams[i]){
 			logfile->newLine();
-			logfile->conclude("esimated value for parameter number " + toString(i) + ": " + toString(estimatedParams[i]) + " and true value: " + toString(trueParams[i-1]));
+			logfile->conclude("esimated value for parameter number ", i, ": ", estimatedParams[i], " and true value: ", trueParams[i-1]);
 		}
 	}
 	logfile->done();
 	return true;
-}
+};
 
 //------------------------------------------
 //TAtlasTest_BQSRSimulation
@@ -191,21 +191,21 @@ void TAtlasTest_BQSRSimulation::setVariables(TParameters & params, TLog* Logfile
 	bamFileName = filenameTag + ".bam";
 	fastaFileName = filenameTag + ".fasta";
 	meanQual = params.getParameterWithDefault<int>("BQSR_meanQual", 25);
-	sdphredInt = params.getParameterDoubleWithDefault("BQSR_sdQual", 10);
+	sdphredInt = params.getParameterWithDefault("BQSR_sdQual", 10);
 	minPhredInt = params.getParameterWithDefault<int>("BQSR_minQual", 0);
 	maxPhredInt = params.getParameterWithDefault<int>("BQSR_maxQual", 42);
-	qualityDist = params.getParameterWithDefault<std::string>("BQSR_qualityDist", "normal(" + toString(meanQual) + "," + toString(sdphredInt) + ")[" + toString(minPhredInt) + "," + toString(maxPhredInt) + "]");
+	qualityDist = params.getParameterWithDefault<std::string>("BQSR_qualityDist", coretools::str::toString("normal(", meanQual, ",", sdphredInt, ")[", minPhredInt, ",", maxPhredInt, "]"));
 //	alpha = params.getParameterDoubleWithDefault("alpha", 10.0);
 //	beta = params.getParameterDoubleWithDefault("beta", 0.2);
 	minReadLen = params.getParameterWithDefault<int>("BQSR_minReadLen", 30);
 	maxReadLen = params.getParameterWithDefault<int>("BQSR_maxReadLen", 100);
 //	readLengthDist = params.getParameterWithDefault<std::string>("readLength", "gamma(alpha,beta)[min,max]");
-	positionEffectSlope = params.getParameterDoubleWithDefault("BQSR_positionEffectSlope", 0.0144928);
-	positionEffectIntercept = params.getParameterDoubleWithDefault("BQSR_positionEffectIntercept", 0.485507);
+	positionEffectSlope = params.getParameterWithDefault("BQSR_positionEffectSlope", 0.0144928);
+	positionEffectIntercept = params.getParameterWithDefault("BQSR_positionEffectIntercept", 0.485507);
 	phi1 = params.getParameterWithDefault<int>("BQSR_phi1", 35);
-	phi2 = params.getParameterDoubleWithDefault("BQSR_phi2", 1.2);
-	revIntercept = params.getParameterDoubleWithDefault("BQSR_revIntercept", 1.5);
-	acceptedDelta = params.getParameterDoubleWithDefault("BQSR_acceptedDelta", 1);
+	phi2 = params.getParameterWithDefault("BQSR_phi2", 1.2);
+	revIntercept = params.getParameterWithDefault("BQSR_revIntercept", 1.5);
+	acceptedDelta = params.getParameterWithDefault("BQSR_acceptedDelta", 1);
 };
 
 bool TAtlasTest_BQSRSimulation::run(TParameters & params, TLog* Logfile, TTaskList* TaskList){
@@ -220,7 +220,7 @@ bool TAtlasTest_BQSRSimulation::run(TParameters & params, TLog* Logfile, TTaskLi
 	_testParams.addParameter("chrLength", "5000000");
 	_testParams.addParameter("refDiv", "0.0");
 	_testParams.addParameter("ploidy", "1");
-	_testParams.addParameter("BQSRTransformation", "[" + toString(phi1) + "," + toString(phi2) + "," + toString(revIntercept) + "]");
+	_testParams.addParameter("BQSRTransformation", coretools::str::toString("[", phi1, ",", phi2, ",", revIntercept, "]"));
 //	_testParams.addParameter("readLength", "gamma(" + toString(alpha) + "," + toString(beta)+ ")[" + toString(minReadLen) + "," + toString(maxReadLen));
 	_testParams.addParameter("readLength", "fixed(70)");
 
@@ -257,7 +257,7 @@ double TAtlasTest_BQSRSimulation::trueQual(int & phi1, double & phi2, int & fake
 
 	double trueQual = -10.0 * log10(exp1 + exp2);
 	return trueQual;
-}
+};
 
 bool TAtlasTest_BQSRSimulation::checkBQSRQualityFile(){
 	logfile->startIndent("Checking BQSR Quality table:");
@@ -289,10 +289,10 @@ bool TAtlasTest_BQSRSimulation::checkBQSRQualityFile(){
 	while(in.good() && !in.eof()){
 		//read line into vector
 		++numLines;
-		fillVectorFromLineWhiteSpace(in, line, true);
-		QualityScoreAsPhredInt = convertString<int>(line[1]);
-		EmpiricalQuality = convertString<double>(line[3]);
-		Log10Observations = convertString<double>(line[4]);
+		coretools::str::fillContainerFromLineWhiteSpace(in, line, true);
+		QualityScoreAsPhredInt = coretools::str::convertString<int>(line[1]);
+		EmpiricalQuality = coretools::str::convertString<double>(line[3]);
+		Log10Observations = coretools::str::convertString<double>(line[4]);
 		if(Log10Observations >= 5.5 && fabs(EmpiricalQuality - trueQual(phi1, phi2, QualityScoreAsPhredInt)) > acceptedDelta){
 			++unacceptablesCount;
 		}
@@ -302,7 +302,7 @@ bool TAtlasTest_BQSRSimulation::checkBQSRQualityFile(){
 	}
 	if(unacceptablesCount > 0){
 		logfile->newLine();
-		logfile->conclude("There were " + toString(unacceptablesCount) + " empirical quality scores that did not match.");
+		logfile->conclude("There were ", unacceptablesCount, " empirical quality scores that did not match.");
 		return false;
 	}
 	if(fabs(maxEmpiricQual - phi1) > acceptedDelta){
@@ -364,15 +364,15 @@ bool TAtlasTest_BQSRSimulation::checkBQSRPositionFile(){
 	while(in.good() && !in.eof()){
 		//read line into vector
 		++numLines;
-		fillVectorFromLineWhiteSpace(in, line, true);
-		Position = convertString<int>(line[1]);
-		Scaling = convertString<double>(line[3]);
-		Log10Observations = convertString<double>(line[4]);
+		coretools::str::fillContainerFromLineWhiteSpace(in, line, true);
+		Position = coretools::str::convertString<int>(line[1]);
+		Scaling = coretools::str::convertString<double>(line[3]);
+		Log10Observations = coretools::str::convertString<double>(line[4]);
 		if(Log10Observations > 4.5 && fabs(trueScaling(Position) - Scaling) >= 0.1) ++unacceptablesCount;
 	}
 	if(unacceptablesCount > 0){
 		logfile->newLine();
-		logfile->conclude("There were " + toString(unacceptablesCount) + " scaling factor estimates that did not match.");
+		logfile->conclude("There were ", unacceptablesCount, " scaling factor estimates that did not match.");
 		return false;
 	}
 	logfile->done();
@@ -384,7 +384,7 @@ bool TAtlasTest_BQSRSimulation::checkBQSRPositionFile(){
 //------------------------------------------
 //TAtlasTest_qualityTransformationRecal
 //------------------------------------------
-
+/*
 TAtlasTest_qualityTransformationRecalPlain::TAtlasTest_qualityTransformationRecalPlain():TAtlasTest(){
 	_name = "qualityTransformationPlain";
 	filenameTag = _testingPrefix + _name;
@@ -419,7 +419,7 @@ bool TAtlasTest_qualityTransformationRecalPlain::run(TParameters & params, TLog*
 	_testParams.addParameter("chrLength", "2000000");
 	_testParams.addParameter("depth", "4");
 	_testParams.addParameter("recal", recalParamString);
-	_testParams.addParameter("readLength", "single:fixed("+toString(maxReadLength) + ")");
+	_testParams.addParameter("readLength", "single:fixed(" + coretools::str::toString(maxReadLength) + ")");
 	_testParams.addParameter("qualityDist", "fixed(" + qualDistString + ")");
 
 
@@ -458,7 +458,7 @@ bool TAtlasTest_qualityTransformationRecalPlain::readTransformationFile(){
 	//parse file line by line check contents
 	std::vector<double> tmp;
 	while(in.good() && !in.eof()){
-		fillVectorFromLineAny(in, tmp, "\t");
+		coretools::str::fillContainerFromLineAny(in, tmp, "\t");
 		qualTransTable.push_back(tmp);
 	}
 	logfile->done();
@@ -495,7 +495,7 @@ bool TAtlasTest_qualityTransformationRecalPlain::checkTransformation(std::vector
 		fracObservationsFound = qualTransTable[trueQualScores[qI]+1][transformedQualScores[qI]+1];
 		if( fracObservationsFound < (fracObservationsExpected - 0.0009) || fracObservationsFound > (fracObservationsExpected + 0.0009)){ //+1 for header and line names
 			logfile->newLine();
-			logfile->conclude("Wrong transformation of " + toString(trueQualScores[qI]+1) + "! Found " + toString(fracObservationsFound) + " observations in [" + toString(transformedQualScores[qI]+1) + "][" + toString(trueQualScores[qI]) + "] instead of " + toString(fracObservationsExpected) + "!");
+			logfile->conclude("Wrong transformation of ", trueQualScores[qI]+1, "! Found ", fracObservationsFound, " observations in [", transformedQualScores[qI]+1, "][", trueQualScores[qI], "] instead of ", fracObservationsExpected, "!");
 			return false;
 		}
 	}
@@ -514,7 +514,7 @@ void TAtlasTest_qualityTransformationRecalBinned::setVariables(TParameters & par
 	qualDistString = "(10,15,20,30)";
 	qualityDist =  new Simulations::TSimulatorQualityDistBinned(qualDistString, randomGenerator);
 	recalObject = new Simulations::TSimulatorQualityTransformationRecal(recalParamString, maxReadLength, qualityDist, randomGenerator);
-	fillVectorFromStringAny(qualDistString, qualDistVec, ",", true);
+	coretools::str::fillContainerFromStringAny(qualDistString, qualDistVec, ",", true);
 };
 
 bool TAtlasTest_qualityTransformationRecalBinned::run(TParameters & params, TLog* Logfile, TTaskList* TaskList){
@@ -527,7 +527,7 @@ bool TAtlasTest_qualityTransformationRecalBinned::run(TParameters & params, TLog
 	_testParams.addParameter("chrLength", "2000000");
 	_testParams.addParameter("depth", "2");
 	_testParams.addParameter("recalTransformation", recalParamString);
-	_testParams.addParameter("readLength", "single:fixed("+toString(maxReadLength) + ")");
+	_testParams.addParameter("readLength", "single:fixed(" + coretools::str::toString(maxReadLength) + ")");
 	_testParams.addParameter("qualityDist", "binned(" + qualDistString + ")");
 
 	if(!runMain("simulate"))
@@ -550,4 +550,6 @@ bool TAtlasTest_qualityTransformationRecalBinned::run(TParameters & params, TLog
 			return true;
 	}
 	return false;
-}
+};
+
+*/

@@ -31,7 +31,7 @@ void TTestGLFFile::_initialize(const std::vector<uint32_t>& ChrLength, const std
 
     uint32_t refID = 1;
     for (size_t chr = 0; chr < ChrLength.size(); chr++, refID++){
-        _chromosomes.appendChromosome("Chr" + toString(refID), ChrLength[chr], ChrPloidy[chr]);
+        _chromosomes.appendChromosome("Chr" + coretools::str::toString(refID), ChrLength[chr], ChrPloidy[chr]);
     }
     _dummyCurChr = _chromosomes.begin() - 1;
 
@@ -76,17 +76,17 @@ void TTestGLFFile::_iteratePosition() {
 }
 
 void TTestGLFFile::_iterateGenotypeLikelihoods(uint32_t curDepth) {
-    std::vector<Base> possibleBases = {A, C, G, T};
+    std::vector<genometools::Base> possibleBases = {genometools::A, genometools::C, genometools::G, genometools::T};
     uint8_t indexPossibleBases = 0;
 
-    double error = 0.01;
-    double maxError = 0.25;
+    coretools::Probability error = 0.01;
+    coretools::Probability maxError = 0.25;
 
     // simulate a site with different base and errors
-    std::vector<GenotypeLikelihoods::TBaseData> bases;
+    std::vector<GenotypeLikelihoods::TBaseLikelihoods> bases;
     for (uint32_t b = 0; b < curDepth; b++){
         // pick a true base
-        Base trueBase = possibleBases[indexPossibleBases];
+    	genometools::Base trueBase = possibleBases[indexPossibleBases];
         // simulate a base with error
         bases.emplace_back(trueBase, error);
 
@@ -102,13 +102,13 @@ void TTestGLFFile::_iterateGenotypeLikelihoods(uint32_t curDepth) {
         _dummyGenotypeLikelihoodsHaploid.fill(bases, bases.size());
     else
         _dummyGenotypeLikelihoods.fill(bases);
-}
+};
 
 void TTestGLFFile::writeDummySites(const uint32_t &numSites) {
     // compute maximal distance between sites (such that positions never exceed the last position of the last chromosome)
     uint32_t usableLength = _chromosomes.referenceLength();
     if (numSites > usableLength)
-        throw std::runtime_error("Too many sizes (" + toString(numSites) + ") for chromosomes of total length " + toString(usableLength) + "!");
+        throw std::runtime_error("Too many sizes (" + coretools::str::toString(numSites) + ") for chromosomes of total length " + coretools::str::toString(usableLength) + "!");
     _dummyMaxDist = usableLength / numSites;
     if(_dummyMaxDist > _chromosomes.minLength() - 1){
         _dummyMaxDist = _chromosomes.minLength() - 1;
@@ -148,7 +148,7 @@ void TTestGLFFile::writeDummySite(long pos, uint32_t depth, GenotypeLikelihoods:
 
 void TTestGLFFile::writeSite(long pos, uint32_t depth, GenotypeLikelihoods::TGenotypeLikelihoods &genotypeLikelihoods, uint8_t RMS_mappingQual) {
     if (pos < 0 || pos >= _dummyCurChr->length)
-        throw std::runtime_error("Position " + toString(pos) + " is outside interval [0, lengthChr)!");
+        throw std::runtime_error("Position " + coretools::str::toString(pos) + " is outside interval [0, lengthChr)!");
     // write to glf
     _glfFile.writeSite(pos, depth, RMS_mappingQual, genotypeLikelihoods);
 

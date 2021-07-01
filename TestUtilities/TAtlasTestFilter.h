@@ -30,8 +30,6 @@ private:
 	bool keepDuplicates;
 	bool filterSoftClips;
 
-
-	BAM::TQualityMap qualMap;
 	std::vector<std::string> shouldKeep;
 	std::vector<std::string> trueIgnoredReadMessages;
 
@@ -42,8 +40,6 @@ private:
 	void setToFwdMate(BamTools::BamAlignment & bamAlignment);
 	void setToRevMate(BamTools::BamAlignment & bamAlignment);
 	bool checkfilteredBAMFile();
-
-
 
 public:
 	TAtlasTest_filter();

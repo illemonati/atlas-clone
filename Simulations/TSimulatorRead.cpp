@@ -12,17 +12,17 @@ namespace Simulations{
 //----------------------------------
 //TSimulatorSingleEndRead
 //----------------------------------
-TSimulatorSingleEndRead::TSimulatorSingleEndRead(const BAM::TReadGroup & ReadGroup, TRandomGenerator* RandomGenerator){
+TSimulatorSingleEndRead::TSimulatorSingleEndRead(const BAM::TReadGroup & ReadGroup, TRandomGenerator* RandomGenerator) :
+	_readGroup(ReadGroup) {
 	_type = "single-end";
 
 	//set variables
 	_randomGenerator = RandomGenerator;
 
-	_qualityTransform = NULL;
-	_qualityTransformInitialized = false;
-
 	_pmdObject = NULL;
 	_hasPMD = false;
+	_recalObject = NULL;
+	_hasRecal = false;
 	_isInitialized = false;
 
 	_isContaminated = false;
@@ -30,7 +30,6 @@ TSimulatorSingleEndRead::TSimulatorSingleEndRead(const BAM::TReadGroup & ReadGro
 	contaminationSource = NULL;
 
 	//initialize bamAlignment
-	_readGroup = ReadGroup;
 	_readNamePrefix = "ATL:0:A:1:" + coretools::str::toString(_readGroup.id) + ":"; //"<instrument>:<run number>:<flowcell ID>:<lane>:<tile>:"  Still need to add "<x-pos>:<y-pos>"
 	_readXPos = 1;
 	_readYPos = 1;
@@ -39,13 +38,8 @@ TSimulatorSingleEndRead::TSimulatorSingleEndRead(const BAM::TReadGroup & ReadGro
 
 };
 
-TSimulatorSingleEndRead::~TSimulatorSingleEndRead(){
-	if(_qualityTransformInitialized)
-		delete _qualityTransform;
-};
-
 bool TSimulatorSingleEndRead::checkInitialization(){
-	_isInitialized = _readLengthDist && _qualityDist && _mappingQualityDist && _qualityTransformInitialized;
+	_isInitialized = _readLengthDist && _qualityDist && _mappingQualityDist;
 	return _isInitialized;
 }
 
@@ -84,7 +78,7 @@ void TSimulatorSingleEndRead::_initializeQualityDistribution(std::string s, std:
 	std::string type = s.substr(0, pos);
 	s.erase(0, pos);
 	if(type == "fixed")
-		pointer = std::make_unique<TSimulatorQualityDist>(s);
+		pointer = std::make_unique<TSimulatorQualityDist>(s, _randomGenerator);
 	else if(type == "normal")
 		pointer = std::make_unique<TSimulatorQualityDistNormal>(s, _randomGenerator);
 	else if(type == "binned")
@@ -104,33 +98,14 @@ void TSimulatorSingleEndRead::setMappingQualityDistribution(std::string s){
 	_initializeQualityDistribution(s, _mappingQualityDist);
 };
 
-void TSimulatorSingleEndRead::setQualityTransformation(TSimulatorQualityTransformParameters & parameters, TLog* logfile){
-	if(!_qualityDist)
-		throw "Can not initialize quality transformation in TSimulatorRead: quality distribution not initialized!";
-
-	if(parameters.parameters_secondMate != "-" && parameters.parameters_secondMate != parameters.parameters_firstMate)
-		throw "Quality transformation for second mate provided, but read group is single end!";
-
-	if(parameters.type == "none")
-		_qualityTransform = new TSimulatorQualityTransformation(_qualityDist, _randomGenerator);
-	else {
-		if(parameters.parameters_firstMate == "-")
-			throw "Quality transformation for first mate not provided!";
-
-		if(parameters.type == "recal"){
-			_qualityTransform = new TSimulatorQualityTransformationRecal(parameters.parameters_firstMate, _readLengthDist->max(), _qualityDist, _randomGenerator);
-		} else
-			throw "Unknown quality transformation type '" + parameters.type + "'!";
-	}
-
-	_qualityTransformInitialized = true;
-	checkInitialization();
+void TSimulatorSingleEndRead::setQualityTransformation(GenotypeLikelihoods::TSequencingErrorModelsOneReadGroup const* RecalObject){
+	_recalObject = RecalObject;
+	_hasRecal = _recalObject->recalibrates();
 };
 
 void TSimulatorSingleEndRead::setPMD(GenotypeLikelihoods::TPMDType const* PmdObject){
 	_pmdObject = PmdObject;
 	_hasPMD = _pmdObject->hasDamage();
-	checkInitialization();
 };
 
 void TSimulatorSingleEndRead::_applyPMD(std::vector<Base>& bases, const TReadLength & readLength, const bool isReverseStrand){
@@ -167,9 +142,10 @@ std::string TSimulatorSingleEndRead::_getNextReadName(){
 		++_readYPos;
 		_readXPos = 1;
 	}
-	return _readNamePrefix + toString(_readXPos) + ":" + toString(_readYPos);
+	return coretools::str::toString(_readNamePrefix, _readXPos, ":", _readYPos);
 };
 
+/*
 void TSimulatorSingleEndRead::_simulateBasesQualities(BAM::TAlignment & alignment,
 													  std::vector<Base> haplotype,
 													  const uint64_t pos,
@@ -198,12 +174,12 @@ void TSimulatorSingleEndRead::_simulateBasesQualities(BAM::TAlignment & alignmen
 	_cigar.add('M', readLength.read);
 
 	//simulate true qualities
-	std::vector<uint8_t> phredIntQualities;
+	std::vector<PhredIntProbability> phredIntQualities;
 	_qualityDist->sample(phredIntQualities);
 	_alignment.setSequenceQualities(_cigar, bases, phredIntQualities);
 
 	//apply PMD
-/*
+
 	I'm here!!!!!!
 	Write functions to pass full alignments to PMD to simulate PMD
 	Then pass full alignment to recal to simulate bases according to the error rates
@@ -223,7 +199,9 @@ void TSimulatorSingleEndRead::_simulateBasesQualities(BAM::TAlignment & alignmen
 
 		qualities += (char) _phredIntQualities[p] + 33);
 	}
-*/
+
+	//--------------------------
+	 *
 	//adjust qualities for writing
 	_qualMap.adjustQualitiesForWriting(qualities);
 
@@ -238,6 +216,8 @@ void TSimulatorSingleEndRead::_simulateBasesQualities(BAM::TAlignment & alignmen
 	}
 };
 
+*/
+
 void TSimulatorSingleEndRead::simulate(Base* haplotype, const uint32_t & refID, const uint32_t & pos, TSimulatorBamFile & bamFile){
 	//prepare alignment
 	_alignment.move(refID, pos);
@@ -249,7 +229,7 @@ void TSimulatorSingleEndRead::simulate(Base* haplotype, const uint32_t & refID, 
 	bool readIsContaminated = _isContaminated && _randomGenerator->getRand() < _contaminationRate;
 
 	//simulated bases and qualities
-	_simulateBasesQualities(_alignment, haplotype, pos, readLength, readIsContaminated, _qualityTransform);
+	//_simulateBasesQualities(_alignment, haplotype, pos, readLength, readIsContaminated, _qualityTransform);
 
 	//write bam alignment
 	bamFile.saveAlignment(_alignment);
@@ -269,12 +249,13 @@ void TSimulatorSingleEndRead::printDetails(TLog* logfile){
 		_qualityDist->printDetails(logfile, "Base quality");
 	else throw "Read quality distribution not initialized!";
 
-	if(_qualityTransformInitialized)
-		_qualityTransform->printDetails(logfile);
-	else throw "Quality transformation not initialized!";
+	if(_hasRecal){
+		//TODO: add recal string output
+		logfile->list("Recal: ");
+	}
 
 	if(_hasPMD){
-		logfile->list("PMD: " + _pmdObject.functionString();
+		logfile->list("PMD: " + _pmdObject->functionString());
 	} else {
 		logfile->list("No PMD.");
 	}
@@ -288,9 +269,8 @@ void TSimulatorSingleEndRead::printDetails(TLog* logfile){
 //----------------------------------
 // TSimulatorPairedEndReads
 //----------------------------------
-TSimulatorPairedEndReads::TSimulatorPairedEndReads(const BAM::TReadGroup& ReadGroup, coretools::TRandomGenerator* RandomGenerator) : _readGroup(ReadGroup){
+TSimulatorPairedEndReads::TSimulatorPairedEndReads(const BAM::TReadGroup& ReadGroup, coretools::TRandomGenerator* RandomGenerator) : TSimulatorSingleEndRead(ReadGroup, RandomGenerator){
 	_type = "paired-end";
-	qualityTransform_secondMate = NULL;
 
 	//set SAM flags
 	_flags.setIsPaired(true);
@@ -306,35 +286,8 @@ TSimulatorPairedEndReads::TSimulatorPairedEndReads(const BAM::TReadGroup& ReadGr
 };
 
 TSimulatorPairedEndReads::~TSimulatorPairedEndReads(){
-	if(_qualityTransformInitialized)
-		delete qualityTransform_secondMate;
-
 	for(auto& it : bamAlignmentSecondMates_idle)
 		delete it;
-};
-
-void TSimulatorPairedEndReads::setQualityTransformation(TSimulatorQualityTransformParameters & parameters, TLog* logfile){
-	if(!_qualityDistInitialized)
-		throw "Can not initialize quality transformation in TSimulatorRead: quality distribution not initialized!";
-
-	if(parameters.type == "none"){
-		_qualityTransform = new TSimulatorQualityTransformation(_qualityDist, _randomGenerator);
-		qualityTransform_secondMate = new TSimulatorQualityTransformation(_qualityDist, _randomGenerator);
-	} else {
-		if(parameters.parameters_firstMate == "-")
-			throw "Quality transformation for first mate not provided!";
-		if(parameters.parameters_secondMate == "-")
-			throw "Quality transformation for second mate not provided!";
-
-		if(parameters.type == "recal"){
-			_qualityTransform = new TSimulatorQualityTransformationRecal(parameters.parameters_firstMate, _readLengthDist->max(), _qualityDist, _randomGenerator);
-			qualityTransform_secondMate = new TSimulatorQualityTransformationRecal(parameters.parameters_secondMate, _readLengthDist->max(), _qualityDist, _randomGenerator);
-		} else
-			throw "Unknown quality transformation type '" + parameters.type + "'!";
-	}
-
-	_qualityTransformInitialized = true;
-	checkInitialization();
 };
 
 void TSimulatorPairedEndReads::simulate(Base* haplotype, const uint32_t refID, const uint32_t & pos, TSimulatorBamFile & bamFile){
@@ -345,7 +298,7 @@ void TSimulatorPairedEndReads::simulate(Base* haplotype, const uint32_t refID, c
 	// Fill FIRST mate
 	//------------------
 	//simulated bases and qualities
-	_simulateBasesQualities(_alignment, haplotype, pos, readLength, readIsContaminated, false, _qualityTransform);
+	//_simulateBasesQualities(_alignment, haplotype, pos, readLength, readIsContaminated, false, _qualityTransform);
 
 	//write bam alignment
 	_alignment.move(refID, pos);
@@ -367,13 +320,13 @@ void TSimulatorPairedEndReads::simulate(Base* haplotype, const uint32_t refID, c
 	} else {
 		//create new
 		secondMate = new BAM::TAlignment;
-		secondMate->setReadGroup(_readGroupID);
+		secondMate->setReadGroup(_readGroup.id);
 		secondMate->setMappingQuality(50);
 		secondMate->setIsReverseStrand(true);
 	}
 
 	//simulated bases and qualities
-	_simulateBasesQualities(*secondMate, haplotype, matePos, readLength, readIsContaminated, true, qualityTransform_secondMate);
+	//_simulateBasesQualities(*secondMate, haplotype, matePos, readLength, readIsContaminated, true, qualityTransform_secondMate);
 
 	//fill bam alignment
 	secondMate->move(refID, matePos);

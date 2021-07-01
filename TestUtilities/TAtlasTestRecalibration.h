@@ -8,7 +8,6 @@
 #ifndef TATLASTESTRECALIBRATION_H_
 #define TATLASTESTRECALIBRATION_H_
 
-#include "TSimulatorQualityTransformation.h"
 #include "../TestUtilities/TAtlasTest.h"
 
 //------------------------------------------
@@ -97,8 +96,8 @@ protected:
 	TRandomGenerator* randomGenerator;
 	std::string qualDistString;
 	std::vector<int> qualDistVec;
-	Simulations::TSimulatorQualityDist* qualityDist;
-	Simulations::TSimulatorQualityTransformationRecal* recalObject;
+	//Simulations::TSimulatorQualityDist* qualityDist;
+	//Simulations::TSimulatorQualityTransformationRecal* recalObject;
 	bool readTransformationFile();
 	bool checkTransformation(std::vector<int> trueQualScores);
 	void setVariables(TParameters & params, TLog* Logfile, TTaskList* TaskList);
@@ -107,8 +106,8 @@ public:
 	TAtlasTest_qualityTransformationRecalPlain();
 	virtual ~TAtlasTest_qualityTransformationRecalPlain(){
 		delete randomGenerator;
-		delete qualityDist;
-		delete recalObject;
+		//delete qualityDist;
+		//delete recalObject;
 	};
 	virtual bool run(TParameters & params, TLog* logfile, TTaskList* TaskList);
 };

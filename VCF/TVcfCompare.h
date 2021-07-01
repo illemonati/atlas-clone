@@ -18,19 +18,28 @@
 
 namespace VCF{
 
+using genometools::Base;
+using genometools::Genotype;
+
+using coretools::TLog;
+using coretools::TParameters;
+
+using coretools::str::toString;
+
 //--------------------------------------------------------------
 // TGenotypeComparisonTable
 //--------------------------------------------------------------
 class TGenotypeComparisonTable{
 private:
-	int** counts;
-	int size;
-	int missingIndex;
-	int firstDiploidIndex;
+	static constexpr uint8_t size = 15;
+	static constexpr uint8_t  missingIndex = 14;
+	static constexpr uint8_t firstDiploidIndex = 4;
+
+	std::array<std::array<uint32_t, size>, size> counts;
 
 public:
 	TGenotypeComparisonTable();
-	~TGenotypeComparisonTable();
+	~TGenotypeComparisonTable() = default;
 
 	//add haploid genotypes
 	void add(const Base b1, const Base b2);
@@ -39,17 +48,17 @@ public:
 	void addSecondMissing(const Base b1);
 
 	//add diploid genotypes
-	void add(const GenotypeLikelihoods::Genotype g1, const GenotypeLikelihoods::Genotype g2);
-	void addOtherMissing(const int sample, const GenotypeLikelihoods::Genotype g);
-	void addFirstMissing(const GenotypeLikelihoods::Genotype g2);
-	void addSecondMissing(const GenotypeLikelihoods::Genotype g1);
+	void add(const Genotype g1, const Genotype g2);
+	void addOtherMissing(const int sample, const Genotype g);
+	void addFirstMissing(const Genotype g2);
+	void addSecondMissing(const Genotype g1);
 
 	//add haploid / diploid combination of genotypes
-	void add(const GenotypeLikelihoods::Genotype g1, const Base b2);
-	void add(const Base b1, const GenotypeLikelihoods::Genotype g2);
+	void add(const Genotype g1, const Base b2);
+	void add(const Base b1, const Genotype g2);
 
 	//write output
-	void write(const std::string filename, GenotypeLikelihoods::TGenotypeMap & genoMap);
+	void write(const std::string filename);
 };
 
 //--------------------------------------------------------------
@@ -79,8 +88,8 @@ public:
 	bool eof(){ return vcfFile->eof; };
 	bool isMissing(){ return vcfFile->sampleIsMissing(sampleIndex); };
 	bool isDiploid(){ return vcfFile->sampleIsDiploid(sampleIndex); };
-	GenotypeLikelihoods::Genotype genotype(GenotypeLikelihoods::TGenotypeMap & genoMap){ return vcfFile->sampleGenotype(sampleIndex, genoMap); };
-	Base base(GenotypeLikelihoods::TGenotypeMap & genoMap){ return vcfFile->getFirstAlleleOfSample(sampleIndex, genoMap); };
+	Genotype genotype(){ return vcfFile->sampleGenotype(sampleIndex); };
+	Base base(){ return vcfFile->getFirstAlleleOfSample(sampleIndex); };
 	std::string chr(){ return vcfFile->chr(); };
 	long position(){ return vcfFile->position(); };
 	bool chrParsed(const std::string chr);
@@ -92,8 +101,6 @@ public:
 class TVcfCompare{
 private:
 	TLog* logfile;
-	GenotypeLikelihoods::TGenotypeMap genoMap;
-
 	std::vector<TVcfComapreVCF> vcfFiles;
 
 	void addToOtherMissing(TGenotypeComparisonTable & counts, const int sample);
@@ -108,7 +115,7 @@ public:
 //--------------------------------------
 // Tasks
 //--------------------------------------
-class TTask_VcfCompare:public TTask{
+class TTask_VcfCompare:public coretools::TTask{
 public:
 	TTask_VcfCompare(){ _explanation = "Comparing genotype calls in two VCF files"; };
 

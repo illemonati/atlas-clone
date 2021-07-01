@@ -12,9 +12,9 @@
 #include "TGenotypeMap.h"
 #include "TSimulatorReadLength.h"
 #include "TPostMortemDamage.h"
+#include "TSequencingErrorModels.h"
 #include "TSimulatorAuxiliaryTools.h"
 #include "TSimulatorQuality.h"
-#include "TSimulatorQualityTransformation.h"
 #include "TReadGroups.h"
 
 namespace Simulations{
@@ -41,12 +41,13 @@ protected:
 	std::unique_ptr<TSimulatorQualityDist> _qualityDist;
 	std::unique_ptr<TSimulatorQualityDist> _mappingQualityDist;
 
-	TSimulatorQualityTransformation* _qualityTransform;
-	bool _qualityTransformInitialized;
-
 	//PMD
 	GenotypeLikelihoods::TPMDType const* _pmdObject;
 	bool _hasPMD;
+
+	//Recal
+	GenotypeLikelihoods::TSequencingErrorModelsOneReadGroup const* _recalObject;
+	bool _hasRecal;
 
 	//contamination
 	bool _isContaminated;
@@ -65,18 +66,18 @@ protected:
 	void _simulateQualitiesAndErrors(Base* _bases, int* _qualities, int & len);
 	void _applyPMD(std::vector<Base>& bases, const TReadLength & readLength, const bool isReverseStrand);
 	std::string _getNextReadName();
-	void _simulateBasesQualities(BAM::TAlignment & alignment, Base* haplotype, const uint64_t pos, const TReadLength & readLength, const bool readIsContaminated, TSimulatorQualityTransformation* qualityTransform);
+	//void _simulateBasesQualities(BAM::TAlignment & alignment, Base* haplotype, const uint64_t pos, const TReadLength & readLength, const bool readIsContaminated, TSimulatorQualityTransformation* qualityTransform);
 
 public:
 	TSimulatorSingleEndRead(const BAM::TReadGroup& ReadGroup, coretools::TRandomGenerator* RandomGenerator);
-	virtual ~TSimulatorSingleEndRead();
+	virtual ~TSimulatorSingleEndRead() = default;
 
 	bool checkInitialization();
 	void setReadLengthDistribution(std::string s, TLog* logfile);
 	void setQualityDistribution(std::string s);
 	void setMappingQualityDistribution(std::string s);
 	void setPMD(GenotypeLikelihoods::TPMDType const* PmdObject);
-	virtual void setQualityTransformation(TSimulatorQualityTransformParameters & parameters, TLog* logfile);
+	virtual void setQualityTransformation(GenotypeLikelihoods::TSequencingErrorModelsOneReadGroup const* RecalObject);
 	void setContamination(double rate, TSimulatorReference* source);
 
 	std::string name() const{ return _readGroup.name_ID; };
@@ -107,13 +108,10 @@ private:
 	std::vector<BAM::TAlignment*> bamAlignmentSecondMates;
 	std::vector<BAM::TAlignment*> bamAlignmentSecondMates_idle;
 
-	TSimulatorQualityTransformation* qualityTransform_secondMate;
-
 public:
 	TSimulatorPairedEndReads(const BAM::TReadGroup&, coretools::TRandomGenerator* RandomGenerator);
 	~TSimulatorPairedEndReads();
 
-	void setQualityTransformation(TSimulatorQualityTransformParameters & parameters, TLog* logfile);
 	void simulate(Base* haplotype, const uint32_t refID, const uint32_t & pos, TSimulatorBamFile & bamFile);
 	void writeUnwrittenAlignments(const long & pos, TSimulatorBamFile & bamFile);
 };

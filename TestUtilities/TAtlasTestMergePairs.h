@@ -19,7 +19,6 @@ protected:
 	int chrLength;
 	int phredError;
 	bool filterOrphanedReads;
-	BAM::TQualityMap qualMap;
 	std::vector<std::string> trueQueryBases;
 	std::vector<std::string> trueQualities;
 	std::vector<bool> trueIsProper;

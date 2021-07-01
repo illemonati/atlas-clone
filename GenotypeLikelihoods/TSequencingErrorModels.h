@@ -39,6 +39,7 @@ public:
 	const TSequencingErrorModel& model() const;
 	TSequencingErrorModelRecal* getPointerToRecalModel();
 	std::shared_ptr<TSequencingErrorModelRecal>& getSharedPointerToRecalModel();
+	bool recalibrates() const { return _recalModel->recalibrates(); };
 
 	Probability getErrorRate(const BAM::TSequencedBase & base) const;
 	genometools::PhredIntProbability getPhredInt(const BAM::TSequencedBase & base) const;
@@ -58,6 +59,7 @@ public:
 	const TSequencingErrorModel& operator[](const bool & IsSecondMate) const;
 	TSequencingErrorModelRecal* getPointerToRecalModel(const bool & IsSecondMate);
 	std::shared_ptr<TSequencingErrorModelRecal>& getSharedPointerToRecalModel(const bool & IsSecondMate);
+	bool recalibrates() const;
 
 	Probability getErrorRate(const BAM::TSequencedBase & base) const;
 	genometools::PhredIntProbability getPhredInt(const BAM::TSequencedBase & base) const;
