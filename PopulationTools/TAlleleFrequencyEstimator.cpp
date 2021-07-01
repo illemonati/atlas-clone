@@ -9,15 +9,19 @@
 
 namespace PopulationTools{
 
+using genometools::homoFirst;
+using genometools::het;
+using genometools::homoSecond;
+
 double THardyWeinbergGenotypeProbabilities::calcLogLikelihood(const TSampleLikelihoods* storage, const uint32_t numSamplesInPopulation){
 	double LL = 0.0;
 
 	for(uint32_t i=0; i<numSamplesInPopulation; i++){
-		if(!storage[i].isMissing){
-			if(storage[i].isHaploid){
-				LL += log( (Probability) storage[i].glfLikelihood_0  * oneMinusf + (Probability) storage[i].glfLikelihood_1 * f);
+		if(!storage[i].isMissing()){
+			if(storage[i].isHaploid()){
+				LL += log( (Probability) storage[i][homoFirst]  * oneMinusf + (Probability) storage[i][homoSecond] * f);
 			} else {
-				LL += log( (Probability) storage[i].glfLikelihood_0  * genotypeProbabilities[0] + (Probability) storage[i].glfLikelihood_1  * genotypeProbabilities[1] + (Probability) storage[i].glfLikelihood_2  * genotypeProbabilities[2]);
+				LL += log( (Probability) storage[i][homoFirst]  * genotypeProbabilities[0] + (Probability) storage[i][het]  * genotypeProbabilities[1] + (Probability) storage[i][homoSecond]  * genotypeProbabilities[2]);
 			}
 		}
 	}
@@ -46,10 +50,10 @@ double TAlleleFreqEstimatorHardyWeinberg::estimate(const TSampleLikelihoods* sto
 		double sum_1 = 0.0; double sum_2 = 0.0;
 		int n = 0;
 		for(uint32_t i=0; i<numSamplesInPop; i++){
-			if(!storage[i].isMissing){
-				if(storage[i].isHaploid){
-					weights[0] = (Probability) storage[i].glfLikelihood_0  * pGenotype.oneMinusf;
-					weights[1] = (Probability) storage[i].glfLikelihood_1  * pGenotype.f;
+			if(!storage[i].isMissing()){
+				if(storage[i].isHaploid()){
+					weights[0] = (Probability) storage[i][homoFirst]  * pGenotype.oneMinusf;
+					weights[1] = (Probability) storage[i][homoSecond]  * pGenotype.f;
 					double sum = weights[0] + weights[1];
 
 					//add to sums
@@ -57,9 +61,9 @@ double TAlleleFreqEstimatorHardyWeinberg::estimate(const TSampleLikelihoods* sto
 					n += 1;
 				} else {
 					//calculate weights
-					weights[0] = (Probability) storage[i].glfLikelihood_0  * pGenotype[0];
-					weights[1] = (Probability) storage[i].glfLikelihood_1  * pGenotype[1];
-					weights[2] = (Probability) storage[i].glfLikelihood_2  * pGenotype[2];
+					weights[0] = (Probability) storage[i][homoFirst]  * pGenotype[0];
+					weights[1] = (Probability) storage[i][het]  * pGenotype[1];
+					weights[2] = (Probability) storage[i][homoSecond]  * pGenotype[2];
 					double sum = weights[0] + weights[1] + weights[2];
 
 					//add to sums
@@ -163,19 +167,19 @@ double TAlleleFreqEstimatorBayes::_guessInitialAlleleFrequency(const TSampleLike
 	int n = 0;
 
 	for(uint32_t i=0; i<numSamplesInPopulation; i++){
-		if(!storage[i].isMissing){
-			if(storage[i].isHaploid){
-				double sum = (Probability) storage[i].glfLikelihood_0 + (Probability) storage[i].glfLikelihood_1;
+		if(!storage[i].isMissing()){
+			if(storage[i].isHaploid()){
+				double sum = (Probability) storage[i][homoFirst] + (Probability) storage[i][homoSecond];
 
 				//add to sums
-				sum_1 += (Probability) storage[i].glfLikelihood_1 / sum;
+				sum_1 += (Probability) storage[i][homoSecond] / sum;
 				n += 1;
 			} else {
-				double sum = (Probability) storage[i].glfLikelihood_0 + (Probability) storage[i].glfLikelihood_1 + (Probability) storage[i].glfLikelihood_2;
+				double sum = (Probability) storage[i][homoFirst] + (Probability) storage[i][het] + (Probability) storage[i][homoSecond];
 
 				//add to sums
-				sum_1 += (Probability) storage[i].glfLikelihood_1 / sum;
-				sum_2 += (Probability) storage[i].glfLikelihood_2 / sum;
+				sum_1 += (Probability) storage[i][het] / sum;
+				sum_2 += (Probability) storage[i][homoSecond] / sum;
 				n += 2;
 			}
 		}

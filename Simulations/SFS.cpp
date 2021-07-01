@@ -22,7 +22,7 @@ SFS::SFS(const std::string & filename){
 	if(!file)
 		throw "Failed to open SFS file '" + filename + "'!";
 	std::vector<double> vec;
-	fillContainerFromLineWhiteSpace(file, vec, true, true);
+	coretools::str::fillContainerFromLineWhiteSpace(file, vec, true, true);
 
 	//init dimension
 	_initDimension(vec.size());
@@ -166,11 +166,11 @@ double SFS::calcLLOneSite(float* gl){
 	return log(LL);
 };
 
-double SFS::getRandomFrequency(TRandomGenerator* randomGenerator){
+double SFS::getRandomFrequency(coretools::TRandomGenerator* randomGenerator){
 	return sfsFrequencies[randomGenerator->pickOne(dimension, sfsCumulative)];
 };
 
-uint32_t SFS::getRandomAlleleCount(TRandomGenerator* randomGenerator){
+uint32_t SFS::getRandomAlleleCount(coretools::TRandomGenerator* randomGenerator){
 	return randomGenerator->pickOne(dimension, sfsCumulative);
 };
 

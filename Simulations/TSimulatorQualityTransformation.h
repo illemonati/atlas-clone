@@ -11,10 +11,10 @@
 #include "../BAM/TSequencedBase.h"
 #include "TLog.h"
 #include "TRandomGenerator.h"
-#include "TQualityMap.h"
 #include "TParameters.h"
 #include "TSimulatorReadLength.h"
 #include "TSequencingErrorModel.h"
+#include "TSimulatorQuality.h"
 
 namespace Simulations{
 
@@ -25,7 +25,6 @@ class TSimulatorQualityTransformation{
 protected:
 	TSimulatorQualityDist* qualityDist;
 	TRandomGenerator* randomGenerator;
-	BAM::TQualityMap qualityMap;
 
 	//tmp vars
 	int p;
@@ -48,7 +47,6 @@ private:
 	int maxQualPlusOne;
 	int numContext;
 	int*** transformedQuality; //index are [qual][pos][context]
-	GenotypeLikelihoods::TGenotypeMap genoMap;
 
 	//private functions
 	void fillTransformationTable(const std::string & modelTag, std::vector<std::string> & values, int maxReadLength);

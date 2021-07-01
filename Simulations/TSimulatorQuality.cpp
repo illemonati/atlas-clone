@@ -15,12 +15,12 @@ namespace Simulations{
 TSimulatorQualityDist::TSimulatorQualityDist(std::string & s, TRandomGenerator* RandomGenerator){
 	size_t pos = s.find("(");
 	if(pos == std::string::npos)
-		_max = convertStringCheck<uint8_t>(s);
+		_max = coretools::str::convertStringCheck<uint8_t>(s);
 	else if(pos == 0){
 		pos = s.find(')');
 		if(pos == std::string::npos || pos != s.size() - 1)
 			throw "Failed to understand fixed distribution '" + s + "'!";
-		_max = convertStringCheck<uint8_t>(s.substr(1,pos - 1));
+		_max = coretools::str::convertStringCheck<uint8_t>(s.substr(1,pos - 1));
 	} else {
 		throw "Failed to understand fixed distribution '" + s + "'!";
 	}
@@ -51,7 +51,7 @@ std::string TSimulatorQualityDist::_details() const{
 	return "fixed quality of " + toString(_max);
 };
 
-void TSimulatorQualityDist::printDetails(TLog* logfile, const std::string & Name) const{
+void TSimulatorQualityDist::printDetails(coretools::TLog* logfile, const std::string & Name) const{
 	logfile->list(Name + ": " + _details());
 };
 
@@ -66,18 +66,19 @@ TSimulatorQualityDistBinned::TSimulatorQualityDistBinned(std::string & s, TRando
 		if(pos == std::string::npos || pos != s.size() - 1)
 			throw "Failed to understand binned distribution '" + s + "'! Use binned(quality_1,quality_2,..,quality_n).";
 		s.erase(pos,1);
-		fillContainerFromString(s, _qualBins, ',', false, true, false);
+		coretools::str::fillContainerFromString(s, _qualBins, ',', false, true, false);
 	} else {
 		throw "Failed to understand binned distribution '" + s + "'! Use binned(quality_1,quality_2,..,quality_n).";
 	}
 };
 
 PhredIntProbability TSimulatorQualityDistBinned::sample() const{
-	return _qualBins[_randomGenerator->sample(_qualBins.size())];
+	size_t tmp = _randomGenerator->sample(_qualBins.size());
+	return _qualBins[tmp];
 };
 
 std::string TSimulatorQualityDistFreq::_details() const{
-	std::string tmpS = concatenateString(_qualBins, ", ");
+	std::string tmpS = coretools::str::concatenateString(_qualBins, ", ");
 	return "uniformly distributed among the values " + tmpS;
 };
 
@@ -94,7 +95,7 @@ TSimulatorQualityDistFreq::TSimulatorQualityDistFreq(std::string & s, TRandomGen
 		}
 		s.erase(pos,1);
 		std::vector<std::string> tmp;
-		fillContainerFromString(s, tmp, ',');
+		coretools::str::fillContainerFromString(s, tmp, ',');
 
 		//now parse each bin
 		_qualBins.resize(tmp.size());
@@ -105,8 +106,8 @@ TSimulatorQualityDistFreq::TSimulatorQualityDistFreq(std::string & s, TRandomGen
 			if(pos == std::string::npos){
 				throw "Failed to understand frequency distribution '" + s + "'! Use frequency(quality_1:frequency_1,quality_2:frequency_2, ... ,quality_n:frequency_n).";
 			}
-			convertString(tmp[i].substr(0, pos), _qualBins[i]);
-			convertString(tmp[i].substr(pos+1), _frequencies[i]);
+			coretools::str::convertString(tmp[i].substr(0, pos), _qualBins[i]);
+			coretools::str::convertString(tmp[i].substr(pos+1), _frequencies[i]);
 		}
 
 		//fill cumulative
@@ -122,7 +123,7 @@ PhredIntProbability TSimulatorQualityDistFreq::sample() const{
 };
 
 std::string TSimulatorQualityDistFreq::_details() const{
-	return "frequency bins " + concatenateString(paste(_qualBins, _frequencies, ":"), ", ");
+	return "frequency bins " + coretools::str::concatenateString(coretools::str::paste(_qualBins, _frequencies, ":"), ", ");
 };
 
 //------------------------------------------------
@@ -155,7 +156,7 @@ void TSimulatorQualityDistNormal::parseFunctionString(std::string & s){
 	unsigned int pos = s.find(",");
 	if(pos == std::string::npos)
 		throw "Fail to understand distribution '" + orig + "': use format normal(mean,sd)[min,max].";
-	_mean = convertString<double>(s.substr(0,pos));
+	_mean = coretools::str::convertString<double>(s.substr(0,pos));
 	if(_mean < 0)
 		throw "Fail to understand distribution '" + orig + "': mean must be > 0.";
 	s.erase(0,pos+1);
@@ -163,7 +164,7 @@ void TSimulatorQualityDistNormal::parseFunctionString(std::string & s){
 	pos = s.find(")");
 	if(pos == std::string::npos)
 		throw "Fail to understand distribution '" + orig + "': use format normal(mean,sd)[min,max].";
-	_sd = convertString<double>(s.substr(0,pos));
+	_sd = coretools::str::convertString<double>(s.substr(0,pos));
 	if(_sd < 0)
 			throw "Fail to understand distribution '" + orig + "': sd must be > 0.";
 	s.erase(0,pos+1);
@@ -174,14 +175,14 @@ void TSimulatorQualityDistNormal::parseFunctionString(std::string & s){
 	pos = s.find(",");
 	if(pos == std::string::npos)
 		throw "Fail to understand distribution '" + orig + "': use format normal(mean,sd)[min,max].";
-	_min = convertString<double>(s.substr(0,pos));
+	_min = coretools::str::convertString<double>(s.substr(0,pos));
 	if(_min < 0)
 		throw "Fail to understand function '" + orig + "': min must be >= 0!";
 	s.erase(0,pos+1);
 	pos = s.find("]");
 	if(pos == std::string::npos)
 		throw "Fail to understand distribution '" + orig + "': use format normal(mean,sd)[min,max].";
-	_max = convertString<double>(s.substr(0,pos));
+	_max = coretools::str::convertString<double>(s.substr(0,pos));
 	if(_max < _min)
 			throw "Fail to understand distribution '" + orig + "': max must be >= min!";
 };
@@ -192,12 +193,12 @@ void TSimulatorQualityDistNormal::fillDensities(){
 	_densities.resize(_size);
 	_cumulDensities.resize(_size);
 
-	double nextDens = TNormalDistr::cumulativeDistrFunction(_min-0.5, _mean, _sd*_sd);
+	double nextDens = coretools::TNormalDistr::cumulativeDistrFunction(_min.get() - 0.5, _mean, _sd*_sd);
 	double prevDens;
 	double sum = 0;
 	for(int i=0; i<_size; ++i){
 		prevDens = nextDens;
-		nextDens = TNormalDistr::cumulativeDistrFunction(_min + i + 0.5, _mean, _sd*_sd);
+		nextDens = coretools::TNormalDistr::cumulativeDistrFunction(_min.get() + i + 0.5, _mean, _sd*_sd);
 		_densities[i] =  nextDens - prevDens;
 		sum += _densities[i];
 	}
@@ -218,7 +219,7 @@ PhredIntProbability TSimulatorQualityDistNormal::sample() const {
 };
 
 std::string TSimulatorQualityDistNormal::_details() const{
-	return "Normally distributed quality scores with mean=" + toString(_mean) + " and sd=" + toString(_sd) + ", truncated to [" + toString(_min) + "," + toString(_max) + "].";
+	return coretools::str::toString("Normally distributed quality scores with mean=", _mean, " and sd=", _sd, ", truncated to [", _min, ",", _max, "].");
 };
 
 }; //end namesapce

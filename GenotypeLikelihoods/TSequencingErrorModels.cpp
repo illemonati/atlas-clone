@@ -93,6 +93,11 @@ TSequencingErrorModels::TSequencingErrorModels(){
 	_doRecalibration = false;
 };
 
+bool TSequencingErrorModels::recalStringIsLikelyAModel(const std::string & RecalString){
+	//check if it contains a ';', ':', '[' or ']'
+	return coretools::str::stringContainsAny(RecalString, ";:[]");
+};
+
 void TSequencingErrorModels::initialize(const std::string & RecalString, const std::string & RhoString, const BAM::TReadGroups & ReadGroups, coretools::TLog* Logfile){
 	if(_doRecalibration)
 		throw std::runtime_error("void TSequencingErrorModels::initialize(const std::string & RecalString, const std::string & RhoString, const BAM::TReadGroups & ReadGroups, TLog* Logfile): Models already initialized!");

@@ -15,8 +15,12 @@
 #include "TParameters.h"
 #include "TSimulatorReadLength.h"
 #include "TSequencingErrorModel.h"
+#include "mathFunctions.h"
 
 namespace Simulations{
+
+using coretools::TRandomGenerator;
+using genometools::PhredIntProbability;
 
 //-------------------------------
 // TSimulatorQualityDist
@@ -26,9 +30,9 @@ namespace Simulations{
 class TSimulatorQualityDist{
 protected:
 	TRandomGenerator* _randomGenerator;
-	uint8_t _min;
-	uint8_t _max;
-	uint8_t _maxPlusOne;
+	PhredIntProbability _min;
+	PhredIntProbability _max;
+	PhredIntProbability _maxPlusOne;
 	double _mean, _sd;
 
 	virtual std::string _details() const;
@@ -37,14 +41,14 @@ public:
 	TSimulatorQualityDist(TRandomGenerator* RandomGenerator);
 	TSimulatorQualityDist(std::string & s, TRandomGenerator* RandomGenerator);
 	virtual ~TSimulatorQualityDist(){};
-	uint8_t min(){ return _min; };
-	uint8_t max(){ return _max; };
+	PhredIntProbability min(){ return _min; };
+	PhredIntProbability max(){ return _max; };
 	double mean(){return _mean; };
 	double sd(){return _sd; };
 
-	virtual PhredIntProbability sample(){ return _max; };
-	void sample(std::vector<PhredIntProbability> & phredInt) const;
-	void printDetails(TLog* logfile, const std::string & Name) const;
+	virtual PhredIntProbability sample() const { return _max; };
+	virtual void sample(std::vector<PhredIntProbability> & phredInt) const;
+	void printDetails(coretools::TLog* logfile, const std::string & Name) const;
 };
 
 //------------------------------------------------
@@ -53,14 +57,14 @@ public:
 //------------------------------------------------
 class TSimulatorQualityDistBinned:public TSimulatorQualityDist{
 private:
-	std::vector<uint16_t> _qualBins;
+	std::vector<PhredIntProbability> _qualBins;
 
 	std::string _details() const override;
 
 public:
 	TSimulatorQualityDistBinned(std::string & s, TRandomGenerator* RandomGenerator);
 	PhredIntProbability sample() const override;
-	void sample(std::vector<uint8_t> & qualities) const override;
+	void sample(std::vector<PhredIntProbability> & phredInt) const override;
 };
 
 //------------------------------------------------
@@ -69,7 +73,7 @@ public:
 //------------------------------------------------
 class TSimulatorQualityDistFreq:public TSimulatorQualityDist{
 private:
-	std::vector<uint8_t> _qualBins;
+	std::vector<PhredIntProbability> _qualBins;
 	std::vector<double> _frequencies;
 	std::vector<double> _cumulativeFrequencies;
 

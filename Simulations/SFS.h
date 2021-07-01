@@ -44,8 +44,8 @@ public:
 
 	void writeToFile(const std::string & filename, const bool & writeLog=false);
 	virtual double calcLLOneSite(float* gl);
-	double getRandomFrequency(TRandomGenerator* randomGenerator);
-	uint32_t getRandomAlleleCount(TRandomGenerator* randomGenerator);
+	double getRandomFrequency(coretools::TRandomGenerator* randomGenerator);
+	uint32_t getRandomAlleleCount(coretools::TRandomGenerator* randomGenerator);
 };
 
 class SFSfolded:public SFS{

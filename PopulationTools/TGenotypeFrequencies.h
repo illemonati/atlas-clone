@@ -39,7 +39,7 @@ public:
 	void set(const TGenotypeFrequencies & other);
 	void flip(); //flip major / minor
 	bool isMonomorphic();
-	void guess(const TSampleLikelihoods* samples, int numSamples);
+	void guess(TSampleLikelihoods* samples, int numSamples);
 	void estimate(TPopulationLikehoodLocus & samples, double epsilonF);
 	void estimate(TSampleLikelihoods* samples, int numSamples, double epsilonF);
 	coretools::Log10Probability calculateLog10Likelihood(TPopulationLikehoodLocus & samples);

@@ -209,11 +209,11 @@ private:
 	void resetToInitialValuesDebugging();
 	void checkHastingsRatios();
 	bool updateF();
-	bool updateP(const TSampleLikelihoods* data, const long locusNum, const int curSampleSize, const TGamma Gamma);
+	bool updateP(TSampleLikelihoods* data, const long locusNum, const int curSampleSize, const TGamma Gamma);
 	bool updateGamma();
 	bool updatePi();
 	double logProbPGivenGamma();
-	double logLikelihoodAllInds(const TSampleLikelihoods* data, const int curSampleSize, const double thisP, const double thisF);
+	double logLikelihoodAllInds(TSampleLikelihoods* data, const int curSampleSize, const double thisP, const double thisF);
 	void wholeLogLikelihood();
 	double getLogLikelihoodCurrentParams();
 	double compareLikelihoods(int numUpdates);
@@ -242,7 +242,7 @@ class TTask_estimateInbreeding:public coretools::TTask{
 public:
 	TTask_estimateInbreeding(){
 		_explanation = "Estimating the inbreeding coefficient";
-		_citations.insert("Burger et al. (2020) Current Biology");
+		_citations.emplace("Burger et al. (2020) Current Biology");
 	};
 
 	void run(TParameters & Parameters, TLog* Logfile){

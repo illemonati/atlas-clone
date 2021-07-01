@@ -10,6 +10,10 @@
 
 namespace PopulationTools{
 
+using genometools::homoFirst;
+using genometools::het;
+using genometools::homoSecond;
+
 //-------------------------------------------------
 // TSAFChooseStorage
 //-------------------------------------------------
@@ -90,7 +94,7 @@ void TSiteAlleleFrequencyLikelihoods::normalize(){
 		log_alleleFrequencyLikelihoods_h[j] -= max;
 };
 
-void TSiteAlleleFrequencyLikelihoods::_fillLog(const TSampleLikelihoods* data, int numSamples){
+void TSiteAlleleFrequencyLikelihoods::_fillLog(TSampleLikelihoods* data, const uint32_t & numSamples){
 	//Calculating allele frequency likelihoods according to Nielsen et al. (2012) PLoS One, page 3
 	//adapted to also work for haploid individuals (which only have likelihoods for genotypes 0 and 1)
 	//all calculations done in log
@@ -101,65 +105,65 @@ void TSiteAlleleFrequencyLikelihoods::_fillLog(const TSampleLikelihoods* data, i
 
 	//find first individual  with data
 	int s = 0;
-	while(s < numSamples && data[s].isMissing){
+	while(s < numSamples && data[s].isMissing()){
 		++s;
 	}
 
 	if(s < numSamples){
 		//initialize with first individual
-		if(data[s].isHaploid){
-			log_alleleFrequencyLikelihoods_h[0] = (LogProbability) data[s].glfLikelihood_0;
-			log_alleleFrequencyLikelihoods_h[1] = (LogProbability) data[s].glfLikelihood_1;
+		if(data[s].isHaploid()){
+			log_alleleFrequencyLikelihoods_h[0] = (LogProbability) data[s][homoFirst];
+			log_alleleFrequencyLikelihoods_h[1] = (LogProbability) data[s][homoSecond];
 			numAlleleCounts = 1;
 		} else {
-			log_alleleFrequencyLikelihoods_h[0] = (LogProbability) data[s].glfLikelihood_0;
-			log_alleleFrequencyLikelihoods_h[1] = (LogProbability) data[s].glfLikelihood_1 + logOf2;
-			log_alleleFrequencyLikelihoods_h[2] = (LogProbability) data[s].glfLikelihood_2;
+			log_alleleFrequencyLikelihoods_h[0] = (LogProbability) data[s][homoFirst];
+			log_alleleFrequencyLikelihoods_h[1] = (LogProbability) data[s][het] + logOf2;
+			log_alleleFrequencyLikelihoods_h[2] = (LogProbability) data[s][homoSecond];
 			numAlleleCounts = 2;
 		}
 
 		//Recursion
 		for(++s; s<numSamples; ++s){
-			if(!data[s].isMissing){
+			if(!data[s].isMissing()){
 				int j = numAlleleCounts;
 
-				if(data[s].isHaploid){
+				if(data[s].isHaploid()){
 					//first fill new ones to avoid multiplication with zero (relevant in log)
-					log_alleleFrequencyLikelihoods_h[j+1] = (LogProbability) data[s].glfLikelihood_1 + log_alleleFrequencyLikelihoods_h[j];
+					log_alleleFrequencyLikelihoods_h[j+1] = (LogProbability) data[s][homoSecond] + log_alleleFrequencyLikelihoods_h[j];
 
 					//now fill those already used
 					for(; j>0; j--){
 						log_alleleFrequencyLikelihoods_h[j] = _protectedSumInLog(
-								(LogProbability) data[s].glfLikelihood_1 + log_alleleFrequencyLikelihoods_h[j-1],
-								(LogProbability) data[s].glfLikelihood_0 + log_alleleFrequencyLikelihoods_h[j]    );
+								(LogProbability) data[s][homoSecond] + log_alleleFrequencyLikelihoods_h[j-1],
+								(LogProbability) data[s][homoFirst] + log_alleleFrequencyLikelihoods_h[j]    );
 					}
 
 					//special case for j=0
-					log_alleleFrequencyLikelihoods_h[0] = (LogProbability) data[s].glfLikelihood_0 + log_alleleFrequencyLikelihoods_h[0];
+					log_alleleFrequencyLikelihoods_h[0] = (LogProbability) data[s][homoFirst] + log_alleleFrequencyLikelihoods_h[0];
 
 					//increase total number of haplotypes by one
 					numAlleleCounts += 1;
 				} else {
 					//first fill new ones to avoid multiplication with zero (relevant in log)
-					log_alleleFrequencyLikelihoods_h[j+2] = (LogProbability) data[s].glfLikelihood_2 + log_alleleFrequencyLikelihoods_h[j];
+					log_alleleFrequencyLikelihoods_h[j+2] = (LogProbability) data[s][homoSecond] + log_alleleFrequencyLikelihoods_h[j];
 					log_alleleFrequencyLikelihoods_h[j+1] = _protectedSumInLog(
-																(LogProbability) data[s].glfLikelihood_2 + log_alleleFrequencyLikelihoods_h[j-1],
-																(LogProbability) data[s].glfLikelihood_1 + log_alleleFrequencyLikelihoods_h[j] + logOf2 );
+																(LogProbability) data[s][homoSecond] + log_alleleFrequencyLikelihoods_h[j-1],
+																(LogProbability) data[s][het] + log_alleleFrequencyLikelihoods_h[j] + logOf2 );
 
 					//now fill those already used
 					for(; j>1; j--){
 						log_alleleFrequencyLikelihoods_h[j] = _protectedSumInLog(
-										 (LogProbability) data[s].glfLikelihood_2 + log_alleleFrequencyLikelihoods_h[j-2],
-										 (LogProbability) data[s].glfLikelihood_1 + log_alleleFrequencyLikelihoods_h[j-1] + logOf2,
-										 (LogProbability) data[s].glfLikelihood_0 + log_alleleFrequencyLikelihoods_h[j] );
+										 (LogProbability) data[s][homoSecond] + log_alleleFrequencyLikelihoods_h[j-2],
+										 (LogProbability) data[s][het] + log_alleleFrequencyLikelihoods_h[j-1] + logOf2,
+										 (LogProbability) data[s][homoFirst] + log_alleleFrequencyLikelihoods_h[j] );
 					}
 
 					//special case for j=1,0
 					log_alleleFrequencyLikelihoods_h[1] = _protectedSumInLog(
-										 (LogProbability) data[s].glfLikelihood_1 + log_alleleFrequencyLikelihoods_h[0] + logOf2,
-										 (LogProbability) data[s].glfLikelihood_0 + log_alleleFrequencyLikelihoods_h[1] );
+										 (LogProbability) data[s][het] + log_alleleFrequencyLikelihoods_h[0] + logOf2,
+										 (LogProbability) data[s][homoFirst] + log_alleleFrequencyLikelihoods_h[1] );
 
-					log_alleleFrequencyLikelihoods_h[0] = (LogProbability) data[s].glfLikelihood_0 + log_alleleFrequencyLikelihoods_h[0];
+					log_alleleFrequencyLikelihoods_h[0] = (LogProbability) data[s][homoFirst] + log_alleleFrequencyLikelihoods_h[0];
 
 					//increase total number of haplotypes by two
 					numAlleleCounts += 2;
@@ -177,7 +181,7 @@ void TSiteAlleleFrequencyLikelihoods::_fillLog(const TSampleLikelihoods* data, i
 	}
 };
 
-void TSiteAlleleFrequencyLikelihoods::_fillNatural(const TSampleLikelihoods* data, int numSamples){
+void TSiteAlleleFrequencyLikelihoods::_fillNatural(TSampleLikelihoods* data, const uint32_t & numSamples){
 	//Calculating allele frequency likelihoods according to Nielsen et al. (2012) PLoS One, page 3
 	//adapted to also work for haploid individuals (which only have likelihoods for genotypes 0 and 1)
 
@@ -186,60 +190,60 @@ void TSiteAlleleFrequencyLikelihoods::_fillNatural(const TSampleLikelihoods* dat
 
 	//find first individual  with data
 	int s = 0;
-	while(s < numSamples && data[s].isMissing){
+	while(s < numSamples && data[s].isMissing()){
 		++s;
 	}
 
 	if(s < numSamples){
 		//initialize with first individual
-		if(data[s].isHaploid){
-			alleleFrequencyLikelihoods_h[0] = (Probability) data[s].glfLikelihood_0;
-			alleleFrequencyLikelihoods_h[1] = (Probability) data[s].glfLikelihood_1;
+		if(data[s].isHaploid()){
+			alleleFrequencyLikelihoods_h[0] = (Probability) data[s][homoFirst];
+			alleleFrequencyLikelihoods_h[1] = (Probability) data[s][homoSecond];
 			numAlleleCounts = 1;
 		} else {
-			alleleFrequencyLikelihoods_h[0] = (Probability) data[s].glfLikelihood_0;
-			alleleFrequencyLikelihoods_h[1] = (Probability) data[s].glfLikelihood_1 * 2.0;
-			alleleFrequencyLikelihoods_h[2] = (Probability) data[s].glfLikelihood_2;
+			alleleFrequencyLikelihoods_h[0] = (Probability) data[s][homoFirst];
+			alleleFrequencyLikelihoods_h[1] = (Probability) data[s][het] * 2.0;
+			alleleFrequencyLikelihoods_h[2] = (Probability) data[s][homoSecond];
 			numAlleleCounts = 2;
 		}
 
 		//Recursion
 		for(++s; s<numSamples; ++s){
-			if(!data[s].isMissing){
+			if(!data[s].isMissing()){
 				int j = numAlleleCounts;
 
-				if(data[s].isHaploid){
+				if(data[s].isHaploid()){
 					//first fill new ones to avoid multiplication with zero (relevant in log, kept here for code consistency)
-					alleleFrequencyLikelihoods_h[j+1] = (Probability) data[s].glfLikelihood_2 * log_alleleFrequencyLikelihoods_h[j-1];
+					alleleFrequencyLikelihoods_h[j+1] = (Probability) data[s][homoSecond] * log_alleleFrequencyLikelihoods_h[j-1];
 
 					//now fill those already used
 					for(; j>0; j--){
-						alleleFrequencyLikelihoods_h[j] = (Probability) data[s].glfLikelihood_1 * log_alleleFrequencyLikelihoods_h[j-1]
-													    + (Probability) data[s].glfLikelihood_0 * log_alleleFrequencyLikelihoods_h[j];
+						alleleFrequencyLikelihoods_h[j] = (Probability) data[s][homoSecond] * log_alleleFrequencyLikelihoods_h[j-1]
+													    + (Probability) data[s][homoFirst] * log_alleleFrequencyLikelihoods_h[j];
 					}
 
 					//special case for j=0
-					alleleFrequencyLikelihoods_h[0] = (LogProbability) data[s].glfLikelihood_0 * log_alleleFrequencyLikelihoods_h[0];
+					alleleFrequencyLikelihoods_h[0] = (LogProbability) data[s][homoFirst] * log_alleleFrequencyLikelihoods_h[0];
 
 					//increase total number of haplotypes by one
 					numAlleleCounts += 1;
 				} else {
 					//first fill new ones to avoid multiplication with zero (relevant in log, kept here to code consistent)
-					alleleFrequencyLikelihoods_h[j+2] = (Probability) data[s].glfLikelihood_2 * log_alleleFrequencyLikelihoods_h[j];
-					alleleFrequencyLikelihoods_h[j+1] = (Probability) data[s].glfLikelihood_2 * log_alleleFrequencyLikelihoods_h[j-1]
-													  + 2.0 * (Probability) data[s].glfLikelihood_1 * log_alleleFrequencyLikelihoods_h[j];
+					alleleFrequencyLikelihoods_h[j+2] = (Probability) data[s][homoSecond] * log_alleleFrequencyLikelihoods_h[j];
+					alleleFrequencyLikelihoods_h[j+1] = (Probability) data[s][homoSecond] * log_alleleFrequencyLikelihoods_h[j-1]
+													  + 2.0 * (Probability) data[s][het] * log_alleleFrequencyLikelihoods_h[j];
 
 					//now fill those already used
 					for(; j>1; j--){
-						alleleFrequencyLikelihoods_h[j] = (Probability) data[s].glfLikelihood_2 * log_alleleFrequencyLikelihoods_h[j-2]
-														+ 2.0 * (Probability) data[s].glfLikelihood_1 * log_alleleFrequencyLikelihoods_h[j-1]
-														+ (Probability) data[s].glfLikelihood_0 * log_alleleFrequencyLikelihoods_h[j];
+						alleleFrequencyLikelihoods_h[j] = (Probability) data[s][homoSecond] * log_alleleFrequencyLikelihoods_h[j-2]
+														+ 2.0 * (Probability) data[s][het] * log_alleleFrequencyLikelihoods_h[j-1]
+														+ (Probability) data[s][homoFirst] * log_alleleFrequencyLikelihoods_h[j];
 					}
 
 					//special case for j=1,0
-					alleleFrequencyLikelihoods_h[1] = 2.0 * (Probability) data[s].glfLikelihood_1 * log_alleleFrequencyLikelihoods_h[0]
-													+ (Probability) data[s].glfLikelihood_0 * log_alleleFrequencyLikelihoods_h[1];
-					alleleFrequencyLikelihoods_h[0] = (Probability) data[s].glfLikelihood_0 * log_alleleFrequencyLikelihoods_h[0];
+					alleleFrequencyLikelihoods_h[1] = 2.0 * (Probability) data[s][het] * log_alleleFrequencyLikelihoods_h[0]
+													+ (Probability) data[s][homoFirst] * log_alleleFrequencyLikelihoods_h[1];
+					alleleFrequencyLikelihoods_h[0] = (Probability) data[s][homoFirst] * log_alleleFrequencyLikelihoods_h[0];
 
 					//increase total number of haplotypes by two
 					numAlleleCounts += 2;
@@ -257,7 +261,7 @@ void TSiteAlleleFrequencyLikelihoods::_fillNatural(const TSampleLikelihoods* dat
 	}
 };
 
-void TSiteAlleleFrequencyLikelihoods::fill(const TSampleLikelihoods* data, int numSamples){
+void TSiteAlleleFrequencyLikelihoods::fill(TSampleLikelihoods* data, const uint32_t & numSamples){
 	//smallest likelihood is 10^-25.5 (phred 255).
 	//A double can store up to 10^-308.
 	//Hence we can store up to (10^25.5)^12 without underflow
@@ -514,10 +518,8 @@ void TAlleleCountEstimator::transformFormat(coretools::TParameters & params){
 	//create output file
 	TAlleleCountFile* alleleCountFile = prepareOutputFile(type, outname, params);
 
-
 	//write header
 	alleleCountFile->writeHeader(populationNames, params, logfile);
-
 
 	//run through VCF file
 	logfile->startIndent("Converting allele counts file:");

@@ -13,16 +13,24 @@
 #include <math.h>
 #include <numeric>
 #include <algorithm>
+#include "algorithmsAndVectors.h"
+#include "progressTools.h"
 #include "TSimulatorAuxiliaryTools.h"
 #include "TSimulatorQualityTransformation.h"
 #include "TSimulatorRead.h"
 #include "TFile.h"
 #include "TTask.h"
 #include <filesystem>
+#include <functional>
 
 namespace Simulations{
 
 //TODO: add cross-contamination between samples or RGs? That would be easier to model contamination that the way it is done now as it would allow for contaminated reads to have different characteristsics.
+
+using coretools::TParameters;
+using coretools::TLog;
+using coretools::TRandomGenerator;
+using genometools::Base;
 
 //---------------------------------------------------------
 //TSimulator
@@ -36,7 +44,7 @@ protected:
 	//general simulation parameters
 	int _sampleSize;
 	double _referenceDivergence;
-	float _cumulRef[4];
+	std::array<double, 4> _cumulRef;
 	double _seqDepth;
 	double _averageReadLength;
 	double _maxReadLength;
@@ -50,7 +58,7 @@ protected:
 	//simulation tools
 	BAM::TReadGroups _readGroups;
 	GenotypeLikelihoods::TPostMortemDamage _PMD;
-	BAM::TReadGroupMap _readGroupMap; //needed by recal REALLYY??????
+	//BAM::TReadGroupMap _readGroupMap; //needed by recal REALLYY??????
 	GenotypeLikelihoods::TSequencingErrorModels _recal;
 
 	//read simulator
@@ -58,14 +66,9 @@ protected:
 	std::vector<double> _simGroupFrequencies;
 	std::vector<double> _cumulSimGroupFrequenies;
 
-	//Quality transformation
-	GenotypeLikelihoods::TGenotypeMap _genoMap;
-	BAM::TQualityMap _qualMap;
-
 	//helper tools
-	char _toBase[4] = {'A', 'C', 'G', 'T'};
-	float _baseFreq[4];
-	float _cumulBaseFreq[4];
+	GenotypeLikelihoods::TBaseProbabilities _baseFreq;
+	std::array<double, 4> _cumulBaseFreq;
 	bool _refInitialized;
 
 	//function to initialize read groups
@@ -73,7 +76,7 @@ protected:
 	std::vector<std::string>  _readSimInfoPerReadGroup(const std::string & Filename, const std::string & Column, const std::string & Name);
 	void _initializeReadGroup(const std::string & readLengthString, const BAM::TReadGroup & ReadGroup);
 	void _initializeReadGroupsFromReadLengthDistribution(TParameters & params, const std::string & ParameterName, const std::string & DefaultValue, const std::string & Name);
-	void _initializeDistribution(TParameters & params, const std::string & ParameterName, const std::string & DefaultValue, const std::string & Name, void (TSimulatorSingleEndRead::*function)(std::string string));
+	void _initializeDistribution(TParameters & params, const std::string & ParameterName, const std::string & DefaultValue, const std::string & Name, std::function<void(TSimulatorSingleEndRead&, std::string)> function);
 	void _initializePMD(TParameters & params, const std::string & ParameterName, const std::string & Name);
 	void _initializeQualityTransformations(TParameters & params, const std::string & ParameterName, const std::string & Name);
 
@@ -84,6 +87,8 @@ protected:
 	void _initializeReadGroupFrequencies(TParameters & params);
 
 	//functions to simulate
+	Base _sampleBase(const std::array<double, 4> & cumulProbs);
+	Base _mutateBase(const Base & base, const std::array<double, 4> & cumulProbs);
 	virtual void _simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, TSimulatorReference & ref){ throw "_simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref) not implemented for base class TSimulator!"; };
 	virtual void _simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, TSimulatorReference & ref){ throw "_simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref) not implemented for base class TSimulator!"; };
 	void _simulateReadsFromHaplotypes(const BAM::TChromosome & thisChr, Base** haplotypes, TSimulatorBamFile & bamFile, std::string extraProgressText);
@@ -136,7 +141,7 @@ private:
 	int numGenotypeCombinations[9];
 	double** cumulGenoCombinationFreq;
 	Base*** genoTrans;
-	short** orderLookup;
+	std::array< std::array<uint8_t, 4>, 4> orderLookup;
 	bool tablesInitialized;
 
 	void fillTables();
@@ -174,8 +179,8 @@ public:
 //---------------------------------------------------------
 struct TSimulatorHardyWeinbergSite{
 	bool isPolymorphic;
-	Base reference;
-	Base alternative;
+	genometools::Base reference;
+	genometools::Base alternative;
 	double f;
 };
 
@@ -185,7 +190,7 @@ private:
 	double cumulGenoProb[3];
 	TSimulatorMutationtable mutTable;
 	bool writeTrueAlleleFreq;
-	TOutputFile trueFreqFile;
+	coretools::TOutputFile trueFreqFile;
 
 	void _fillCumulGenoProb(const double & f);
 	void _simulateSite(TSimulatorHardyWeinbergSite & site, const std::string & chr, const uint64_t & pos, TSimulatorReference & ref);
@@ -201,7 +206,7 @@ public:
 //--------------------------------------
 // Tasks
 //--------------------------------------
-class TTask_simulate:public TTask{
+class TTask_simulate:public coretools::TTask{
 public:
 	TTask_simulate(){ _explanation = "Generating simulations"; };
 

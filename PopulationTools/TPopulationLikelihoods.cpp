@@ -441,14 +441,11 @@ int TPopulationLikelihoodReader::filterOnDepth(TSampleLikelihoods* data, TPopula
 		int vcfIndex = samples.VCF_order(s);
 
 		// depth filter: if a locus has < minDepth reads, flag locus as missing (set all genotype likelihoods = 1)
-		if (vcfFile.sampleDepth(vcfIndex) < minDepth)
+		if (vcfFile.sampleDepth(vcfIndex) < minDepth){
 			vcfFile.setSampleMissing(vcfIndex);
-		else
+		} else {
 			numIndividualsWithData++;
-
-		//store if missing and haploid
-		data[s].isMissing = vcfFile.sampleIsMissing(vcfIndex);
-		data[s].isHaploid = vcfFile.sampleIsHaploid(vcfIndex);
+		}
 	}
 
 	return numIndividualsWithData;
@@ -494,30 +491,15 @@ bool TPopulationLikelihoodReader::_filterSite(TSampleLikelihoods* data, TPopulat
 	}
 
 	//check if GL or PL is given
-	uint32_t numIndividualsWithData = 0;
-	if(vcfFile.formatColExists("GL")){
-		numIndividualsWithData = filterOnDepth(data, samples);
-		double tmp[3];
-		for(uint32_t s = 0; s < samples.numSamples(); ++s){
-			int vcfIndex = samples.VCF_order(s);
-			vcfFile.fillLog10GenotypeLikelihoods(vcfIndex, tmp[0], tmp[1], tmp[2]);
-			data[s].glfLikelihood_0 = glfConverter.log10ToGlfFormat(tmp[0]);
-			data[s].glfLikelihood_1 = glfConverter.log10ToGlfFormat(tmp[1]);
-			data[s].glfLikelihood_2 = glfConverter.log10ToGlfFormat(tmp[2]);
-		}
-	} else if(vcfFile.formatColExists("PL")){
-		numIndividualsWithData = filterOnDepth(data, samples);
-		uint8_t tmp[3];
-		for(uint32_t s = 0; s < samples.numSamples(); ++s){
-			int vcfIndex = samples.VCF_order(s);
-			vcfFile.fillPhredScore(vcfIndex, tmp[0], tmp[1], tmp[2]);
-			data[s].glfLikelihood_0 = glfConverter.phredToGlfFormat(tmp[0]);
-			data[s].glfLikelihood_1 = glfConverter.phredToGlfFormat(tmp[1]);
-			data[s].glfLikelihood_2 = glfConverter.phredToGlfFormat(tmp[2]);
-		}
-	} else {
+	if(!vcfFile.formatColExists("GL") && !vcfFile.formatColExists("PL")){
 		++_noPLCounter;
 		return false;
+	}
+
+	uint32_t numIndividualsWithData = filterOnDepth(data, samples);
+	for(uint32_t s = 0; s < samples.numSamples(); ++s){
+		unsigned int vcfIndex = samples.VCF_order(s);
+		vcfFile.fillGenotypeLikelihoods(data[s], vcfIndex);
 	}
 
 	// missingness filter: if > percentMissingPerLocus of individuals per locus have are missing, remove locus
@@ -528,7 +510,7 @@ bool TPopulationLikelihoodReader::_filterSite(TSampleLikelihoods* data, TPopulat
 
 	//filter in MAF
 	if(freqFilter > 0.0 || estimateGenotypeFrequencies){
-		genoFrequencies.estimate(data, samples.numSamples(), glfConverter, epsilonF);
+		genoFrequencies.estimate(data, samples.numSamples(), epsilonF);
 
 		if(genoFrequencies.MAF < freqFilter){
 			_lowFreqSNPCounter++;
@@ -665,7 +647,7 @@ bool TPopulationLikelihoodReaderLocus::_readNextLineFromVCF(){
 			throw "wrong number of columns in true allele frequency file!";
 		std::string chr = tmp[0];
 		uint64_t pos = coretools::str::convertString<uint64_t>(tmp[1]);
-		_trueAlleleFrequency = convertString<double>(tmp[2]);
+		_trueAlleleFrequency = coretools::str::convertString<double>(tmp[2]);
 		//check if positions match (allele file is 0-based)
 		while(pos < vcfFile.position() - 1){
 			getline(*trueFreq, temp);
@@ -782,9 +764,9 @@ void TPopulationLikelihoodReaderLocus::fillGenotypes(TPopulationSamples & sample
 }
 */
 
-uint8_t TPopulationLikelihoodReaderLocus::genotype(TPopulationSamples & samples, uint32_t s){
+genometools::BiallelicGenotype TPopulationLikelihoodReaderLocus::genotype(TPopulationSamples & samples, uint32_t s){
     uint32_t vcfIndex = samples.VCF_order(s);
-    return vcfFile.sampleGenotype(vcfIndex);
+    return vcfFile.sampleBiallelicGenotype(vcfIndex);
 }
 
 double TPopulationLikelihoodReaderLocus::depth(TPopulationSamples & samples, uint32_t s){
@@ -865,7 +847,7 @@ bool TPopulationLikelihoodReaderWindow::readDataFromVCF(TPopulationLikehoodWindo
 
 	//if VCF is at end, is on next chromosome or past window, return empty
 	if(vcfFile.eof || _curRefId != _curBedWindow->refID() || vcfFile.positionZeroBased() >= _curBedWindow->to().position()){
-		window.fillAsMissing();
+		window.fillAsMissingDiploid();
 		return true;
 	}
 
@@ -877,7 +859,7 @@ bool TPopulationLikelihoodReaderWindow::readDataFromVCF(TPopulationLikehoodWindo
 
 		//fill empty until cur position
 		for(; index<curIndex; ++index){
-			window[index].fillAsMissing();
+			window[index].fillAsMissingDiploid();
 		}
 
 		//fill cur position
@@ -885,7 +867,7 @@ bool TPopulationLikelihoodReaderWindow::readDataFromVCF(TPopulationLikehoodWindo
      		//SNP is accepted!
 			++_numAcceptedLoci;
 		} else {
-			window[index].fillAsMissing();
+			window[index].fillAsMissingDiploid();
 		}
 		++index;
 
@@ -893,7 +875,7 @@ bool TPopulationLikelihoodReaderWindow::readDataFromVCF(TPopulationLikehoodWindo
 		if(!_readNextLocusAndUpdateChromosome()){
 			//end of file: fill empty until end
 			for(; index<window.numLoci(); ++index){
-				window[index].fillAsMissing();
+				window[index].fillAsMissingDiploid();
 			}
 			break;
 		}
@@ -901,7 +883,7 @@ bool TPopulationLikelihoodReaderWindow::readDataFromVCF(TPopulationLikehoodWindo
 		//if VCF is on next chromosome, fill empty until end
 		if(_curRefId != _curBedWindow->refID()){
 			for(; index<window.numLoci(); ++index){
-				window[index].fillAsMissing();
+				window[index].fillAsMissingDiploid();
 			}
 			break;
 		}
@@ -1050,7 +1032,7 @@ void TPopulationLikelihoods::readDataFromVCF(coretools::TParameters & Parameters
     //run through VCF file
     logfile->startIndent("Parsing VCF file:");
     std::string curChr = "";
-    while(reader.readDataFromVCF(data.back(), samples, glfConverter)){
+    while(reader.readDataFromVCF(data.back(), samples)){
 		//update chromosome name
 		if(reader.chr() != curChr){
 			chromosomes.emplace(_numLoci, reader.chr());
@@ -1185,7 +1167,8 @@ void TPopulationLikelihoods::print(){
 		//print data
 		TSampleLikelihoods* data = curData();
 		for(int s=0; s<curSampleSize(); ++s){
-			std::cout << "\t" << toString(data[s].glfLikelihood_0) << "," << toString(data[s].glfLikelihood_1) << "," << toString(data[s].glfLikelihood_2);
+			std::cout << "\t";
+			data[s].print();
 		}
 
 		std::cout << std::endl;

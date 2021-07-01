@@ -260,25 +260,25 @@ public:
 				} else {
 					//GL field exists
 					std::vector<std::string> phreddie;
-					fillContainerFromString(line.samples[s].data[col], phreddie, ',');
+					coretools::str::fillContainerFromString(line.samples[s].data[col], phreddie, ',');
 
 					//diploid or haploid?
 					if(line.samples[s].isHaploid){ //haploid: only two are given
 						SampleLikelihoods.setHaploid( T(getPhredScoreFromGL(phreddie[0])), T(getPhredScoreFromGL(phreddie[1])));
 					} else { //diploid
-						SampleLikelihoods.setHaploid( T(getPhredScoreFromGL(phreddie[0])), T(getPhredScoreFromGL(phreddie[1])), T(getPhredScoreFromGL(phreddie[2])) );
+						SampleLikelihoods.setDiploid( T(getPhredScoreFromGL(phreddie[0])), T(getPhredScoreFromGL(phreddie[1])), T(getPhredScoreFromGL(phreddie[2])) );
 					}
 				}
 			} else {
 				//PL field exists
 				std::vector<std::string> phreddie;
-				fillContainerFromString(line.samples[s].data[col], phreddie, ',');
+				coretools::str::fillContainerFromString(line.samples[s].data[col], phreddie, ',');
 
 				//diploid or haploid?
 				if(line.samples[s].isHaploid){ //haploid: only two are given
 					SampleLikelihoods.setHaploid( T(getPhredScore(phreddie[0])), T(getPhredScore(phreddie[1])));
 				} else { //diploid
-					SampleLikelihoods.setHaploid( T(getPhredScore(phreddie[0])), T(getPhredScore(phreddie[1])), T(getPhredScore(phreddie[2])) );
+					SampleLikelihoods.setDiploid( T(getPhredScore(phreddie[0])), T(getPhredScore(phreddie[1])), T(getPhredScore(phreddie[2])) );
 				}
 			}
 		}

@@ -16,6 +16,10 @@
 
 namespace VCF{
 
+using coretools::TParameters;
+using coretools::TLog;
+using coretools::TOutputFile;
+
 //------------------------------------------
 // TVcfConverter
 //------------------------------------------
@@ -23,7 +27,6 @@ class TVcfConverter {
 protected:
     std::string _outname;
     TLog * logfile;
-    TGlfConverter glfConverter;
     PopulationTools::TPopulationLikelihoodReaderLocus * reader;
     PopulationTools::TPopulationSamples samples;
 

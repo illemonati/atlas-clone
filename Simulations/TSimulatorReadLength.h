@@ -14,6 +14,9 @@
 
 namespace Simulations{
 
+using coretools::TRandomGenerator;
+using coretools::TLog;
+
 //---------------------------------------------------------
 //ReadLength
 //---------------------------------------------------------

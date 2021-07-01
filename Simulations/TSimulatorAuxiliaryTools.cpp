@@ -11,6 +11,8 @@
 
 namespace Simulations{
 
+using coretools::str::toString;
+
 //---------------------------------------------------
 //TSimulatorReference
 //---------------------------------------------------
@@ -73,14 +75,14 @@ void TSimulatorReference::_writeRefToFasta(){
 		for(int l=0; l<_chrLength; ++l){
 			if(l % 70 == 0)
 				_fasta << "\n";
-			_fasta << _genoMap.baseToChar[_ref[l]];
+			_fasta << _ref[l];
 		}
 		_fasta << "\n";
 
 		//add to index
 		std::string tmp = _chrName;
 		_oldOffset += _chrName.size() + 2;
-		_fastaIndex << extractBeforeWhiteSpace(tmp) << "\t" << _chrLength << "\t" << _oldOffset << "\t70\t71\n";
+		_fastaIndex << coretools::str::extractBeforeWhiteSpace(tmp) << "\t" << _chrLength << "\t" << _oldOffset << "\t70\t71\n";
 		_oldOffset += _chrLength + (int) (_chrLength / 70);
 		if(_chrLength % 70 != 0) _oldOffset += 1;
 
@@ -128,11 +130,9 @@ void TSimulatorReference::setChr(std::string ChrName, long ChrLength){
 //---------------------------------------------------
 void TSimulatorBamFile::open(const std::string Filename,
 		                     const std::string SampleName,
-							 const std::vector<std::string> & ReadGroupNames,
+							 BAM::TReadGroups ReadGroups,
 							 const BAM::TChromosomes & Chromosomes,
-							 TLog* Logfile,
-							 GenotypeLikelihoods::TGenotypeMap & GenoMap,
-							 BAM::TQualityMap & QualMap){
+							 TLog* Logfile){
 	Logfile->listFlush("Opening BAM file '" + Filename + "' ...");
 
 	if(_outBam.isOpen())
@@ -143,15 +143,14 @@ void TSimulatorBamFile::open(const std::string Filename,
 
 	//create header, read group and chromosome objects
 	_header.set("1.6", "coordinate", "none");
-	for(auto it = ReadGroupNames.cbegin(); it != ReadGroupNames.cend(); ++it){
-		const BAM::TReadGroup& rg = _readGroups.add(*it);
-		rg.sequencingCenter_CN = __GLOBAL_APPLICATION_NAME__ + " " + __GLOBAL_APPLICATION_VERSION__;
-		rg.description_DS = "Simulated with commit " + __GLOBAL_APPLICATION_COMMIT__;
+	for(auto& rg : ReadGroups){
+		rg.sequencingCenter_CN = coretools::__GLOBAL_APPLICATION_NAME__ + " " + coretools::__GLOBAL_APPLICATION_VERSION__;
+		rg.description_DS = "Simulated with commit " + coretools::__GLOBAL_APPLICATION_COMMIT__;
 		rg.sample_SM = SampleName;
 		rg.sequencingTechnology_PL = "ILLUMINA";
 	}
 
-	_outBam.open(Filename, _header, Chromosomes, _readGroups, &GenoMap, &QualMap);
+	_outBam.open(Filename, _header, Chromosomes, _readGroups);
 
 	Logfile->done();
 };
@@ -164,18 +163,18 @@ void TSimulatorBamFile::close(TLog* Logfile){
 	_outBam.close(Logfile);
 };
 
-TSimulatorBamFiles::TSimulatorBamFiles(uint32_t NumFiles, const std::string Outname, const std::vector<std::string> & ReadGroupNames, const BAM::TChromosomes & Chromosomes, TLog* Logfile, GenotypeLikelihoods::TGenotypeMap & GenoMap, BAM::TQualityMap & QualMap){
+TSimulatorBamFiles::TSimulatorBamFiles(uint32_t NumFiles, const std::string Outname, const BAM::TReadGroups ReadGroups, const BAM::TChromosomes & Chromosomes, TLog* Logfile){
 	if(NumFiles < 1) throw "Can not open less than one BAM file!";
 	_logfile = Logfile;
 	_files.resize(NumFiles);
 
 	//open BAM files
 	if(_files.size() == 1){
-		_files[0].open(Outname + ".bam", "Ind1", ReadGroupNames, Chromosomes, Logfile, GenoMap, QualMap);
+		_files[0].open(Outname + ".bam", "Ind1", ReadGroups, Chromosomes, Logfile);
 	} else {
-		Logfile->startIndent("Opening " + toString(_files.size()) + " BAM files:");
+		Logfile->startIndent("Opening ", _files.size(), " BAM files:");
 		for(size_t i=0; i<_files.size(); ++i){
-			_files[i].open(Outname + "_ind" + toString(i+1) + ".bam", "Ind" + toString(i+1), ReadGroupNames, Chromosomes, Logfile, GenoMap, QualMap);
+			_files[i].open(Outname + "_ind" + toString(i+1) + ".bam", "Ind" + toString(i+1), ReadGroups, Chromosomes, Logfile);
 		}
 		Logfile->endIndent();
 	}
@@ -269,7 +268,7 @@ Base** TSimulatorHaplotypes::getHaplotypesOfIndividual(int i){
 	return haplotypes[i];
 };
 
-void TSimulatorHaplotypes::writeTrueGenotypes(const std::string & chrName, Base* ref, GenotypeLikelihoods::TGenotypeMap & genoMap){
+void TSimulatorHaplotypes::writeTrueGenotypes(const std::string & chrName, const TSimulatorReference & ref){
 	//prepare allele storage
 	TSimulatorAlleleIndex index;
 	std::string genoString;
@@ -304,7 +303,7 @@ void TSimulatorHaplotypes::writeTrueGenotypes(const std::string & chrName, Base*
 		}
 
 		//write ref allele
-		index.writeRefAltToVCF(trueGenoVCF, genoMap);
+		index.writeRefAltToVCF(trueGenoVCF);
 
 		//write (no) quality of variant, (no) filter, (no) info and format
 		trueGenoVCF << "\t.\t.\t.\tGT";
@@ -330,93 +329,60 @@ bool TSimulatorHaplotypes::isPolymoprhic(uint64_t pos){
 //---------------------------------------------------------
 //TSimulatorMutationtable
 //---------------------------------------------------------
-TSimulatorMutationtable::TSimulatorMutationtable(){
-	mutTable = NULL;
-	tableAllocated = false;
-};
-
-TSimulatorMutationtable::TSimulatorMutationtable(float* baseFreq){
-	tableAllocated = false;
+TSimulatorMutationtable::TSimulatorMutationtable(const GenotypeLikelihoods::TBaseProbabilities & baseFreq){
 	fill(baseFreq);
 };
 
-TSimulatorMutationtable::TSimulatorMutationtable(float* baseFreq, double theta){
-	tableAllocated = false;
+TSimulatorMutationtable::TSimulatorMutationtable(const GenotypeLikelihoods::TBaseProbabilities & baseFreq, const double & theta){
 	fill(baseFreq, theta);
 };
 
-void TSimulatorMutationtable::allocateTable(){
-	if(!tableAllocated){
-		mutTable = new float*[4];
-		for(int i=0; i<4; ++i)
-			mutTable[i] = new float[4];
-		tableAllocated = true;
-	}
-};
-
-void TSimulatorMutationtable::deleteTable(){
-	if(tableAllocated){
-		for(int i=0; i<4; ++i)
-			delete[] mutTable[i];
-		delete[] mutTable;
-		tableAllocated = false;
-	}
-};
-
-void TSimulatorMutationtable::normalizeAndMakeCumulative(){
+void TSimulatorMutationtable::_normalizeAndMakeCumulative(){
 	//normalize within row
 	for(int i=0; i<4; ++i){
 		double sum = 0.0;
 		for(int j=0; j<4; ++j){
-			sum += mutTable[i][j];
+			sum += _mutTable[i][j];
 		}
 		for(int j=0; j<4; ++j){
-			mutTable[i][j] /= sum;
+			_mutTable[i][j] /= sum;
 		}
 
 		//make cumulative
-		mutTable[i][1] += mutTable[i][0];
-		mutTable[i][2] += mutTable[i][1];
-		mutTable[i][3] = 1.0;
+		_mutTable[i][1] += _mutTable[i][0];
+		_mutTable[i][2] += _mutTable[i][1];
+		_mutTable[i][3] = 1.0;
 	}
 };
 
-void TSimulatorMutationtable::fill(float* baseFreq){
-	//create storage
-	allocateTable();
-
-	//fill table
-	for(int i=0; i<4; ++i){
-		for(int j=0; j<4; ++j){
-			mutTable[i][j] = baseFreq[i] * baseFreq[j];
+void TSimulatorMutationtable::fill(const GenotypeLikelihoods::TBaseProbabilities & baseFreq){
+	for(uint8_t i=0; i<4; ++i){
+		for(uint8_t j=0; j<4; ++j){
+			_mutTable[i][j] = baseFreq[static_cast<Base>(i)] * baseFreq[static_cast<Base>(j)];
 		}
-		mutTable[i][i] = 0.0;
+		_mutTable[i][i] = 0.0;
 	}
 
-	normalizeAndMakeCumulative();
+	_normalizeAndMakeCumulative();
 };
 
-void TSimulatorMutationtable::fill(float* baseFreq, const double theta){
-	//create storage
-	allocateTable();
-
-	//fill table
+void TSimulatorMutationtable::fill(const GenotypeLikelihoods::TBaseProbabilities & baseFreq, const double & theta){
 	double expMinusTheta = exp(-theta);
-	for(int i=0; i<4; ++i){
-		for(int j=0; j<4; ++j){
-			mutTable[i][j] = baseFreq[i] * baseFreq[j] * (1.0 - expMinusTheta);
+	for(uint8_t i=0; i<4; ++i){
+		for(uint8_t j=0; j<4; ++j){
+			_mutTable[i][j] = baseFreq[static_cast<Base>(i)] * baseFreq[static_cast<Base>(j)] * (1.0 - expMinusTheta);
 		}
-		mutTable[i][i] += baseFreq[i] * expMinusTheta;
+		_mutTable[i][i] += baseFreq[static_cast<Base>(i)] * expMinusTheta;
 	}
 
-	normalizeAndMakeCumulative();
+	_normalizeAndMakeCumulative();
 };
 
 void TSimulatorMutationtable::print(){
 	for(int i=0; i<4; ++i){
 		std::cout << "Mutation table " << i << ":";
 		for(int j=0; j<4; ++j){
-			std::cout << " " << mutTable[i][j];
+			std::cout << " " << _mutTable[i][j];
 		}
 		std::cout << std::endl;
 	}

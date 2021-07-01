@@ -19,14 +19,14 @@
 
 namespace Simulations{
 
+using genometools::Base;
+
 //-------------------------------
 //TSimulatorSingleEndRead
 //-------------------------------
 class TSimulatorSingleEndRead{
 protected:
 	TRandomGenerator* _randomGenerator;
-	GenotypeLikelihoods::TGenotypeMap& _genoMap;
-	BAM::TQualityMap& _qualMap;
 
 	const BAM::TReadGroup& _readGroup;
 	std::string _type;
@@ -68,7 +68,7 @@ protected:
 	void _simulateBasesQualities(BAM::TAlignment & alignment, Base* haplotype, const uint64_t pos, const TReadLength & readLength, const bool readIsContaminated, TSimulatorQualityTransformation* qualityTransform);
 
 public:
-	TSimulatorSingleEndRead(const BAM::TReadGroup& ReadGroup, TRandomGenerator* RandomGenerator, GenotypeLikelihoods::TGenotypeMap & GenoMap);
+	TSimulatorSingleEndRead(const BAM::TReadGroup& ReadGroup, coretools::TRandomGenerator* RandomGenerator);
 	virtual ~TSimulatorSingleEndRead();
 
 	bool checkInitialization();
@@ -110,7 +110,7 @@ private:
 	TSimulatorQualityTransformation* qualityTransform_secondMate;
 
 public:
-	TSimulatorPairedEndReads(const BAM::TReadGroup&, TRandomGenerator* RandomGenerator, GenotypeLikelihoods::TGenotypeMap & GenoMap);
+	TSimulatorPairedEndReads(const BAM::TReadGroup&, coretools::TRandomGenerator* RandomGenerator);
 	~TSimulatorPairedEndReads();
 
 	void setQualityTransformation(TSimulatorQualityTransformParameters & parameters, TLog* logfile);

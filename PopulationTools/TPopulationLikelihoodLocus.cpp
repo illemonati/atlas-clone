@@ -69,7 +69,7 @@ void TPopulationLikehoodLocus::resize(uint32_t NumSamples){
 uint32_t TPopulationLikehoodLocus::numSamplesWithData() const{
 	uint32_t n = 0;
 	for(uint32_t i=0; i<_numSamples; i++){
-		if(!_samples[i].isMissing){
+		if(!_samples[i].isMissing()){
 			++n;
 		}
 	}
@@ -78,16 +78,34 @@ uint32_t TPopulationLikehoodLocus::numSamplesWithData() const{
 
 bool TPopulationLikehoodLocus::hasData() const{
 	for(uint32_t i=0; i<_numSamples; i++){
-		if(!_samples[i].isMissing){
+		if(!_samples[i].isMissing()){
 			return true;
 		}
 	}
 	return false;
 };
 
-void TPopulationLikehoodLocus::fillAsMissing(){
+void TPopulationLikehoodLocus::fillAsMissingHaploid(){
 	for(uint32_t i=0; i<_numSamples; i++){
-		_samples[i].setAsMissing();
+		_samples[i].setMissingHaploid();
+	}
+};
+
+void TPopulationLikehoodLocus::fillAsMissingDiploid(){
+	for(uint32_t i=0; i<_numSamples; i++){
+		_samples[i].setMissingDiploid();
+	}
+};
+
+void TPopulationLikehoodLocus::print(uint32_t index){
+	_samples[index].print();
+};
+
+void TPopulationLikehoodLocus::print(){
+	_samples[0].print();
+	for(uint32_t i=1; i<_numSamples; ++i){
+		std::cout << '\t';
+		_samples[i].print();
 	}
 };
 
@@ -173,18 +191,47 @@ bool TPopulationLikehoodWindow::hasData(){
 	return false;
 };
 
-void TPopulationLikehoodWindow::fillAsMissing(){
+void TPopulationLikehoodWindow::fillAsMissingHaploid(){
 	for(uint32_t i=0; i<_numLoci; i++){
-		_loci[i].fillAsMissing();
+		_loci[i].fillAsMissingHaploid();
+	}
+};
+
+void TPopulationLikehoodWindow::fillAsMissingDiploid(){
+	for(uint32_t i=0; i<_numLoci; i++){
+		_loci[i].fillAsMissingDiploid();
 	}
 };
 
 bool TPopulationLikehoodWindow::individualHasMissingData(uint32_t individual){
 	for(uint32_t i=0; i<_numLoci; i++){
-		if(_loci[i][individual].isMissing)
+		if(_loci[i][individual].isMissing())
 			return true;
 	}
 	return false;
 };
+
+void TPopulationLikehoodWindow::print(){
+	for(uint32_t l=0; l<_numLoci; ++l){
+		std::cout << "Pos" << l << "\t";
+		_loci[l].print();
+		std::cout << std::endl;
+	}
+};
+
+void TPopulationLikehoodWindow::print(uint32_t locus){
+	_loci[locus].print();
+	std::cout << std::endl;
+};
+
+void TPopulationLikehoodWindow::printIndividual(uint32_t ind){
+	_loci[0].print(ind);
+	for(uint32_t l=1; l<_numLoci; ++l){
+		std::cout << '\t';
+		_loci[l].print(ind);
+	}
+	std::cout << std::endl;
+};
+
 
 }; //end namespace

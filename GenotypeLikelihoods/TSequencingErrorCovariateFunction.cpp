@@ -332,7 +332,7 @@ void TSequencingErrorCovariateFunction_specific::adjustValueRanges(const std::ve
 	}
 	for(uint16_t i=0; i<found.size(); ++i){
 		if(!found[i]){
-			throw "Can not adjust value range for recal function '" + SequencingErrorCovariateFunction_specific + "': value " + coretools:.str::toString(i) + " is < max value but never used."
+			throw "Can not adjust value range for recal function '" + SequencingErrorCovariateFunction_specific + "': value " + coretools::str::toString(i) + " is < max value but never used."
 				+ "\nConsider using recal function '" + SequencingErrorCovariateFunction_map + "'.";
 		}
 	}

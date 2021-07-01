@@ -350,7 +350,7 @@ genometools::Base TVcfFileSingleLine::getSecondAlleleOfSample(unsigned int num){
 
 genometools::BiallelicGenotype TVcfFileSingleLine::sampleBiallelicGenotype(const unsigned int & num){
 	return parser.sampleBiallelicGenotype(tempLine, num);
-}
+};
 
 genometools::Genotype TVcfFileSingleLine::sampleGenotype(const unsigned int & num){
 	return genometools::Genotype(parser.getFirstAlleleOfSample(tempLine, num)[0], parser.getSecondAlleleOfSample(tempLine, num)[0]);

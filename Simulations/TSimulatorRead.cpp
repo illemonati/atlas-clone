@@ -12,7 +12,7 @@ namespace Simulations{
 //----------------------------------
 //TSimulatorSingleEndRead
 //----------------------------------
-TSimulatorSingleEndRead::TSimulatorSingleEndRead(const BAM::TReadGroup & ReadGroup, TRandomGenerator* RandomGenerator, GenotypeLikelihoods::TGenotypeMap & GenoMap):_genoMap(GenoMap){
+TSimulatorSingleEndRead::TSimulatorSingleEndRead(const BAM::TReadGroup & ReadGroup, TRandomGenerator* RandomGenerator){
 	_type = "single-end";
 
 	//set variables
@@ -21,6 +21,7 @@ TSimulatorSingleEndRead::TSimulatorSingleEndRead(const BAM::TReadGroup & ReadGro
 	_qualityTransform = NULL;
 	_qualityTransformInitialized = false;
 
+	_pmdObject = NULL;
 	_hasPMD = false;
 	_isInitialized = false;
 
@@ -30,21 +31,15 @@ TSimulatorSingleEndRead::TSimulatorSingleEndRead(const BAM::TReadGroup & ReadGro
 
 	//initialize bamAlignment
 	_readGroup = ReadGroup;
-	_readNamePrefix = "ATL:0:A:1:" + toString(_readGroup.id) + ":"; //"<instrument>:<run number>:<flowcell ID>:<lane>:<tile>:"  Still need to add "<x-pos>:<y-pos>"
+	_readNamePrefix = "ATL:0:A:1:" + coretools::str::toString(_readGroup.id) + ":"; //"<instrument>:<run number>:<flowcell ID>:<lane>:<tile>:"  Still need to add "<x-pos>:<y-pos>"
 	_readXPos = 1;
 	_readYPos = 1;
 	_alignment.setReadGroup(_readGroup.id);
 	_alignment.setMappingQuality(50);
 
-	_bases = NULL;
-	_phredIntQualities = NULL;
 };
 
 TSimulatorSingleEndRead::~TSimulatorSingleEndRead(){
-	if(_readLengthDist){
-		delete[] _bases;
-		delete[] _phredIntQualities;
-	}
 	if(_qualityTransformInitialized)
 		delete _qualityTransform;
 };
@@ -73,10 +68,6 @@ void TSimulatorSingleEndRead::setReadLengthDistribution(std::string s, TLog* log
 	else if(type == "fixed")
 		_readLengthDist = std::make_unique<TReadLengthDistribution>(s, _randomGenerator);
 	else throw "Unknown read length distribution '" + type + "'!";
-
-	//initialize bases and qualities
-	_bases.resize(_readLengthDist->max());
-	_phredIntQualities.resize(_readLengthDist->max());
 
 	//update status
 	checkInitialization();
@@ -209,7 +200,7 @@ void TSimulatorSingleEndRead::_simulateBasesQualities(BAM::TAlignment & alignmen
 	//simulate true qualities
 	std::vector<uint8_t> phredIntQualities;
 	_qualityDist->sample(phredIntQualities);
-	_alignment.setSequenceQualities(_cigar, bases, phredIntQualities, _genoMap, _qualMap);
+	_alignment.setSequenceQualities(_cigar, bases, phredIntQualities);
 
 	//apply PMD
 /*
@@ -283,14 +274,13 @@ void TSimulatorSingleEndRead::printDetails(TLog* logfile){
 	else throw "Quality transformation not initialized!";
 
 	if(_hasPMD){
-		logfile->list("C->T PMD as " + _pmdObject.getFunctionString(GenotypeLikelihoods::pmdCT));
-		logfile->list("G->A PMD as " + _pmdObject.getFunctionString(GenotypeLikelihoods::pmdGA));
+		logfile->list("PMD: " + _pmdObject.functionString();
 	} else {
 		logfile->list("No PMD.");
 	}
 
 	if(_isContaminated)
-		logfile->list("Contaminated with rate " + toString(_contaminationRate) + ".");
+		logfile->list("Contaminated with rate ", _contaminationRate, ".");
 	else
 		logfile->list("Read group is not contaminated.");
 };
@@ -298,8 +288,7 @@ void TSimulatorSingleEndRead::printDetails(TLog* logfile){
 //----------------------------------
 // TSimulatorPairedEndReads
 //----------------------------------
-TSimulatorPairedEndReads::TSimulatorPairedEndReads(std::string readGroupName, int readGroupNumber, int MaxPrintQual, TRandomGenerator* RandomGenerator, GenotypeLikelihoods::TGenotypeMap & GenoMap)
-:TSimulatorSingleEndRead(readGroupName, readGroupNumber, MaxPrintQual, RandomGenerator, GenoMap){
+TSimulatorPairedEndReads::TSimulatorPairedEndReads(const BAM::TReadGroup& ReadGroup, coretools::TRandomGenerator* RandomGenerator) : _readGroup(ReadGroup){
 	_type = "paired-end";
 	qualityTransform_secondMate = NULL;
 

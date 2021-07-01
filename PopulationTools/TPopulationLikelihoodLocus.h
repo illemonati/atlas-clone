@@ -12,9 +12,11 @@
 #include <iostream>
 #include "GenotypeTypes.h"
 #include "PhredProbabilityTypes.h"
+#include "TSampleLikelihoods.h"
 
 namespace PopulationTools{
 
+/*-
 //------------------------------------------------
 // TSampleLikelihoods
 //------------------------------------------------
@@ -55,6 +57,10 @@ public:
 		}
 	};
 };
+
+*/
+
+using TSampleLikelihoods = genometools::TSampleLikelihoods<genometools::HighPrecisionPhredIntProbability>;
 
 //------------------------------------------------
 // TPopulationLikehoodLocus
@@ -101,19 +107,11 @@ public:
 
 	uint32_t numSamplesWithData() const;
 	bool hasData() const;
-	void fillAsMissing();
+	void fillAsMissingHaploid();
+	void fillAsMissingDiploid();
 
-	void print(uint32_t index){
-		_samples[index].print();
-	};
-
-	void print(){
-		_samples[0].print();
-		for(uint32_t i=1; i<_numSamples; ++i){
-			std::cout << '\t';
-			_samples[i].print();
-		}
-	};
+	void print(uint32_t index);
+	void print();
 };
 
 //------------------------------------------------
@@ -157,31 +155,14 @@ public:
 
 	uint32_t numLociwithData();
 	bool hasData();
-	void fillAsMissing();
+	void fillAsMissingHaploid();
+	void fillAsMissingDiploid();
+
 	bool individualHasMissingData(uint32_t individual);
 
-	void print(){
-		for(uint32_t l=0; l<_numLoci; ++l){
-			std::cout << "Pos" << l << "\t";
-			_loci[l].print();
-			std::cout << std::endl;
-		}
-	};
-
-	void print(uint32_t locus){
-		_loci[locus].print();
-		std::cout << std::endl;
-	};
-
-	void printIndividual(uint32_t ind){
-		_loci[0].print(ind);
-		for(uint32_t l=1; l<_numLoci; ++l){
-			std::cout << '\t';
-			_loci[l].print(ind);
-		}
-		std::cout << std::endl;
-	};
-
+	void print();
+	void print(uint32_t locus);
+	void printIndividual(uint32_t ind);
 };
 
 }; //end namespace

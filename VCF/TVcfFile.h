@@ -15,8 +15,8 @@
 #include <algorithm>
 #include "TLog.h"
 #include "gzstream.h"
-#include "TGenotypeMap.h"
 #include "TVcfParser.h"
+#include "GenotypeTypes.h"
 
 namespace VCF{
 

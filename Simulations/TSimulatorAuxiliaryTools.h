@@ -18,6 +18,11 @@
 
 namespace Simulations{
 
+using coretools::TLog;
+using coretools::TParameters;
+using coretools::TRandomGenerator;
+using genometools::Base;
+
 //---------------------------------------------------------
 //TSimulatorReference
 //---------------------------------------------------------
@@ -31,7 +36,6 @@ private:
 	long _oldOffset;
 	bool _fastaOpen;
 	std::string _filename;
-	GenotypeLikelihoods::TGenotypeMap _genoMap;
 
 	//reference storage
 	std::vector<Base> _ref;
@@ -59,6 +63,7 @@ public:
 	std::vector<Base>& reference(){ return _ref; };
 
 	Base& operator[](const uint32_t & index){ return _ref[index]; };
+	const Base& operator[](const uint32_t & index) const { return _ref[index]; };
 };
 
 //---------------------------------------------------------
@@ -72,12 +77,12 @@ private:
 
 public:
 	TSimulatorBamFile(){};
-	TSimulatorBamFile(const std::string Filename, const std::string SampleName, const std::vector<std::string> & ReadGroupNames, const BAM::TChromosomes & Chromosomes, TLog* Logfile, GenotypeLikelihoods::TGenotypeMap & GenoMap, BAM::TQualityMap & QualMap){
-		open(Filename, SampleName, ReadGroupNames, Chromosomes, Logfile, GenoMap, QualMap);
+	TSimulatorBamFile(const std::string Filename, const std::string SampleName, BAM::TReadGroups ReadGroups, const BAM::TChromosomes & Chromosomes, TLog* Logfile){
+		open(Filename, SampleName, ReadGroups, Chromosomes, Logfile);
 	};
 	~TSimulatorBamFile();
 
-	void open(const std::string Filename, const std::string SampleName, const std::vector<std::string> & ReadGroupNames, const BAM::TChromosomes & Chromosomes, TLog* Logfile, GenotypeLikelihoods::TGenotypeMap & GenoMap, BAM::TQualityMap & QualMap);
+	void open(const std::string Filename, const std::string SampleName, BAM::TReadGroups ReadGroups, const BAM::TChromosomes & Chromosomes, TLog* Logfile);
 
 	void saveAlignment(const BAM::TAlignment & Alignment){
 		_outBam.writeAlignment(Alignment);
@@ -92,7 +97,7 @@ private:
 	TLog* _logfile;
 
 public:
-	TSimulatorBamFiles(uint32_t NumFiles, const std::string Outname, const std::vector<std::string> & ReadGroupNames, const BAM::TChromosomes & Chromosomes, TLog* Logfile, GenotypeLikelihoods::TGenotypeMap & GenoMap, BAM::TQualityMap & QualMap);
+	TSimulatorBamFiles(uint32_t NumFiles, const std::string Outname, BAM::TReadGroups ReadGroups, const BAM::TChromosomes & Chromosomes, TLog* Logfile);
 
 	void close();
 	TSimulatorBamFile& operator[](size_t i);
@@ -108,16 +113,16 @@ private:
 	Base indexToBase[4];
 
 public:
-	int index[4];
-	bool used[4];
+	GenotypeLikelihoods::TBaseData_base<int> index;
+	GenotypeLikelihoods::TBaseData_base<bool> used;
 
 	TSimulatorAlleleIndex(){
 		nextIndex = 0;
-		refBase = N;
+		refBase = genometools::N;
 	};
 
 	void clear(const Base & ref){
-		used[0] = false; used[1] = false; used[2] = false; used[3] = false;
+		used.set(false);
 		used[ref] = true;
 		index[ref] = 0;
 		nextIndex = 1;
@@ -133,14 +138,14 @@ public:
 		}
 	};
 
-	void writeRefAltToVCF(gz::ogzstream & VCF, GenotypeLikelihoods::TGenotypeMap & genoMap){
-		VCF << genoMap.baseToChar[refBase] << '\t';
+	void writeRefAltToVCF(gz::ogzstream & VCF){
+		VCF << refBase << '\t';
 		if(nextIndex == 1) //no alt
 			VCF << ".";
 		else {
-			VCF << genoMap.baseToChar[indexToBase[1]];
+			VCF << indexToBase[1];
 			for(int i=2; i<nextIndex; ++i)
-				VCF << ',' << genoMap.baseToChar[indexToBase[i]];
+				VCF << ',' << indexToBase[i];
 		}
 	};
 };
@@ -177,7 +182,7 @@ public:
 	Base** getHaplotypesFirstIndividual(){
 		return haplotypes[0];
 	};
-	void writeTrueGenotypes(const std::string & chrName, Base* ref, GenotypeLikelihoods::TGenotypeMap & genoMap);
+	void writeTrueGenotypes(const std::string & chrName, const TSimulatorReference & ref);
 	int size(){ return numInd; };
 	Base& operator()(int ind, int hap, uint64_t site){
 		return haplotypes[ind][hap][site];
@@ -190,21 +195,18 @@ public:
 //---------------------------------------------------------
 class TSimulatorMutationtable{
 private:
-	float** mutTable;
-	bool tableAllocated;
+	std::array< std::array<double, 4>, 4> _mutTable;
 
-	void allocateTable();
-	void deleteTable();
-	void normalizeAndMakeCumulative();
+	void _normalizeAndMakeCumulative();
 
 public:
-	TSimulatorMutationtable();
-	TSimulatorMutationtable(float* baseFreq);
-	TSimulatorMutationtable(float* baseFreq, const double theta);
-	~TSimulatorMutationtable(){ deleteTable(); };
-	void fill(float* baseFreq);
-	void fill(float* baseFreq, double theta);
-	float* operator[](int i){ return mutTable[i]; };
+	TSimulatorMutationtable() = default;
+	TSimulatorMutationtable(const GenotypeLikelihoods::TBaseProbabilities & baseFreq);
+	TSimulatorMutationtable(const GenotypeLikelihoods::TBaseProbabilities & baseFreq, const double & theta);
+	~TSimulatorMutationtable() = default;
+	void fill(const GenotypeLikelihoods::TBaseProbabilities & baseFreq);
+	void fill(const GenotypeLikelihoods::TBaseProbabilities & baseFreq, const double & theta);
+	const std::array<double, 4> operator[](const genometools::Base & base){ return _mutTable[base.get()]; };
 	void print();
 };
 

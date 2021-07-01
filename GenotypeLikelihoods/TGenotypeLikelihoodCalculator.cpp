@@ -45,27 +45,47 @@ void TGenotypeLikelihoodCalculator::init(coretools::TParameters & params, const 
 	//initialize sequencing errors
 	//----------------------------
 	if(params.parameterExists("recal")){
-		_sequencingErrorModels.initializeFromFile(params.getParameter<std::string>("recal"), *ReadGroups, Logfile);
+		std::string recalString = params.getParameter<std::string>("recal");
 
-		//warn if some read groups have no recal definition
-		std::vector<uint16_t> readGroupsWithoutRecal;
-		std::vector<uint16_t> readGroupsLikelySingelEnd;
-		_sequencingErrorModels.checkReadGroups(*ReadGroups, readGroupsWithoutRecal, readGroupsLikelySingelEnd);
+		//check if it is recal string
+		if(_sequencingErrorModels.recalStringIsLikelyAModel(recalString)){
+			//assume it is a model string
+			Logfile->startIndent("Parsing common recal model for all read groups:");
+			Logfile->list("Provided model (parameter 'recal'): " + recalString);
 
-		if(readGroupsWithoutRecal.size() > 0){
-			Logfile->warning("The following read groups do not have recal definitions: "
-					         + coretools::str::concatenateString(ReadGroups->getNames(readGroupsWithoutRecal), ", ")
-					         + "!");
-			if(!params.parameterExists("allowReadGroupsWithoutRecal")){
-				throw "PMD is only defined for a subset of read groups. Did you use the wrong PMD file? (use allowReadGroupsWithoutRecal to ignore)";
+			std::string rhoString = params.getParameterWithDefault<std::string>("rho", "default");
+			if(params.parameterExists("rho")){
+				Logfile->list("Provided rho (parameter 'rho'): " + rhoString);
+			} else {
+				Logfile->list("Will use default rho. (use 'rho' to change)");
 			}
-		}
+			_sequencingErrorModels.initialize(recalString, rhoString, *ReadGroups, Logfile);
+		} else {
+			//assume it it a recal file
+			Logfile->startIndent("Initializing recal models from file '" + recalString + "' (parameter 'recal'):");
+			_sequencingErrorModels.initializeFromFile(recalString, *ReadGroups, Logfile);
 
-		//Report if some read groups have only single-end definitions
-		if(readGroupsLikelySingelEnd.size() > 0){
-			Logfile->list("Read groups assumed single-end (no recal for second mate): "
-					      + coretools::str::concatenateString(ReadGroups->getNames(readGroupsLikelySingelEnd), ", ")
-						  + ".");
+			//warn if some read groups have no recal definition
+			std::vector<uint16_t> readGroupsWithoutRecal;
+			std::vector<uint16_t> readGroupsLikelySingelEnd;
+			_sequencingErrorModels.checkReadGroups(*ReadGroups, readGroupsWithoutRecal, readGroupsLikelySingelEnd);
+
+			if(readGroupsWithoutRecal.size() > 0){
+				Logfile->warning("The following read groups do not have recal definitions: "
+								 + coretools::str::concatenateString(ReadGroups->getNames(readGroupsWithoutRecal), ", ")
+								 + "!");
+				if(!params.parameterExists("allowReadGroupsWithoutRecal")){
+					throw "Recal models are only defined for a subset of read groups. Did you use the wrong recal file? (use allowReadGroupsWithoutRecal to ignore)";
+				}
+			}
+
+			//Report if some read groups have only single-end definitions
+			if(readGroupsLikelySingelEnd.size() > 0){
+				Logfile->list("Read groups assumed single-end (no recal for second mate): "
+							  + coretools::str::concatenateString(ReadGroups->getNames(readGroupsLikelySingelEnd), ", ")
+							  + ".");
+			}
+			Logfile->endIndent();
 		}
 	} else {
 		Logfile->list("Assuming that error rates in BAM files are correct. (use 'recal' to add recalibration)");

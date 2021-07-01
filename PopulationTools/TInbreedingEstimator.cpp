@@ -303,11 +303,11 @@ void TAlleleFreq::update(const long & index, const double & value, const bool Mo
 
 	//freq value
 	if(value < 0 || value > 1)
-		throw "updating allele freq at locus " + toString(index) + " to value out of range!";
+		throw "Updating allele freq at locus " + coretools::toString(index) + " to value out of range!";
 	alleleFreq[index] = value;
 
 	if(modelP[index] == true && alleleFreq[index] == 0.0){
-		throw coretools:;str::toString("allele freq at locus ", index, " is ", alleleFreq[index], " but locus is in modelP=", (bool) modelP[index]);
+		throw coretools::str::toString("allele freq at locus ", index, " is ", alleleFreq[index], " but locus is in modelP=", (bool) modelP[index]);
 	}
 }
 
@@ -319,7 +319,7 @@ double TAlleleFreq::proposeNew(const long & locusNum, TRandomGenerator* randomGe
 		newP = 2.0 - newP;
 	}
 	if(newP == 0.0){
-		throw "proposing allele frequency zero at locus " + toString(locusNum) + "!";
+		throw "proposing allele frequency zero at locus " + coretools::str::toString(locusNum) + "!";
 	}
 	return newP;
 }
@@ -595,7 +595,7 @@ void TInbreedingEstimator::initializeGamma(TParameters & parameters){
 	//	double logBeta = log(betaF);
 	//	beta.update(logBeta, betaF);
 	}
-	logfile->list("Initialized gamma to " + toString(Gamma.getNaturalScaleValue()));
+	logfile->list("Initialized gamma to ", Gamma.getNaturalScaleValue());
 
 	if(parameters.parameterExists("fixedGamma")){
 		shouldUpdateGamma = false;
@@ -607,7 +607,7 @@ void TInbreedingEstimator::initializeGamma(TParameters & parameters){
 
 void TInbreedingEstimator::initF(TParameters & parameters){
 	sdF = parameters.getParameterWithDefault("sdF", 0.02);
-	logfile->list("Standard deviation of proposal kernel for F is set to " + toString(sdF));
+	logfile->list("Standard deviation of proposal kernel for F is set to ", sdF, ".");
 
 	float probMovingToModelNoF = parameters.getParameterWithDefault("probMovingToModelNoF", 0.1);
 	logfile->list("Will propose move to model without F with probability ", probMovingToModelNoF, ". (parameter 'probMovingToModelNoF')");
@@ -650,7 +650,7 @@ void TInbreedingEstimator::initF(TParameters & parameters){
 
 void TInbreedingEstimator::initAlleleFreq(TParameters & parameters){
 	double widthProposalKernelP = parameters.getParameterWithDefault("widthProposalKernelPFactor", 2.0);
-	logfile->list("Will use a proposal kernel of width " + toString(widthProposalKernelP) + " for updates of p within ModelP. (parameter 'widthProposalKernelPFactor')");
+	logfile->list("Will use a proposal kernel of width ", widthProposalKernelP, " for updates of p within ModelP. (parameter 'widthProposalKernelPFactor')");
 
 	std::vector<double> tmp2;
 	if(parameters.parameterExists("trueAlleleFreq")){
@@ -687,7 +687,7 @@ void TInbreedingEstimator::initAlleleFreq(TParameters & parameters){
 	}
 
 	if(p.numLoci != numLoci)
-		throw coretools::str::toString("Did not receive one allele frequency per locus! Number of loci=", numLoci, " and number of allele frequencies ", p.numLoci));
+		throw coretools::str::toString("Did not receive one allele frequency per locus! Number of loci=", numLoci, " and number of allele frequencies ", p.numLoci);
 	logfile->list("initialized allele frequencies for ", p.numLoci, " loci");
 };
 
@@ -802,7 +802,7 @@ bool TInbreedingEstimator::updateF(){
 	}
 }
 
-bool TInbreedingEstimator::updateP(const TSampleLikelihoods* data, const long locusNum, const int curSampleSize, TGamma Gamma){
+bool TInbreedingEstimator::updateP(TSampleLikelihoods* data, const long locusNum, const int curSampleSize, TGamma Gamma){
 	if(p.modelP[locusNum]){
 		if(randomGenerator->getRand() < p.probMovingToModel0){
 			//propose model0
@@ -975,7 +975,7 @@ bool TInbreedingEstimator::updatePi(){
 	}
 }
 
-double TInbreedingEstimator::logLikelihoodAllInds(const TSampleLikelihoods* data, const int curSampleSize, const double thisP, const double thisF){
+double TInbreedingEstimator::logLikelihoodAllInds(TSampleLikelihoods* data, const int curSampleSize, const double thisP, const double thisF){
 	if(thisP < 0)
 		throw "allele freq is negative!";
 	//sum over all individuals of log sum_g P(d|g)P(g|p,F)
@@ -993,16 +993,16 @@ double TInbreedingEstimator::logLikelihoodAllInds(const TSampleLikelihoods* data
 	}
 
 	for(int s=0; s<curSampleSize; ++s){
-		if(!data[s].isMissing){
+		if(!data[s].isMissing()){
 			double integrationOverGeno = 0;
-			if(data[s].isHaploid){
-				integrationOverGeno += (Probability) data[s].glfLikelihood_0 * (1.0 - thisP);
-				integrationOverGeno += (Probability) data[s].glfLikelihood_2 * thisP;
+			if(data[s].isHaploid()){
+				integrationOverGeno += (Probability) data[s][genometools::homoFirst] * (1.0 - thisP);
+				integrationOverGeno += (Probability) data[s][genometools::homoSecond] * thisP;
 			} else {
 				//calculate and add ratio for each genotype
-				integrationOverGeno = (Probability) data[s].glfLikelihood_0 * PGeno[0];
-				integrationOverGeno += (Probability) data[s].glfLikelihood_1 * PGeno[1];
-				integrationOverGeno += (Probability) data[s].glfLikelihood_2 * PGeno[2];
+				integrationOverGeno = (Probability) data[s][genometools::homoFirst] * PGeno[0];
+				integrationOverGeno += (Probability) data[s][genometools::het] * PGeno[1];
+				integrationOverGeno += (Probability) data[s][genometools::homoSecond] * PGeno[2];
 
 				//check if likelihood of sample is a probability
 				if(integrationOverGeno < 0){
@@ -1214,7 +1214,7 @@ void TInbreedingEstimator::writePosteriors(int i){
 
 void TInbreedingEstimator::runBurnins(std::ofstream & out, TParameters & params){
 	for(int b=0; b<numBurnins; ++b){
-		std::string reportString = coretools::str::toString("Running burnin (", b, ") of ", burninLength + " iterations (";
+		std::string reportString = coretools::str::toString("Running burnin (", b, ") of ", burninLength, " iterations (");
 		logfile->listFlush(reportString + "0%) ...");
 		int oldProg=0;
 		for(long i=0; i<burninLength; ++i){

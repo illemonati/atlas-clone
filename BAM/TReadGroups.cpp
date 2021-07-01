@@ -188,6 +188,7 @@ std::vector<std::string> TReadGroups::getNames(std::vector<uint16_t> & readGroup
 	return names;
 };
 
+
 uint16_t TReadGroups::getId(const std::string & name) const{
 	auto rg = _readGroups.find(name);
 	if(rg != _readGroups.end())

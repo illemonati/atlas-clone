@@ -25,17 +25,21 @@ void TMultiGLFData::resize(const uint32_t & Size){
 void TMultiGLFData::fill(PopulationTools::TPopulationLikehoodLocus & storage, const genometools::AllelicCombination & alleleicCombination) const{
 	storage.resize(samples.size());
 	for(uint32_t i=0; i<samples.size(); ++i){
-		storage[i].isHaploid = samples[i].isHaploid;
-		storage[i].isMissing = !samples[i].hasData;
-
 		if(samples[i].isHaploid){
-			storage[i].glfLikelihood_0 = samples[i].genotypeLikelihoodsGLF[(uint8_t) alleleicCombination.firstAllele()];
-			storage[i].glfLikelihood_1 = samples[i].genotypeLikelihoodsGLF[(uint8_t) alleleicCombination.secondAllele()];
-			storage[i].glfLikelihood_2 = genometools::HighPrecisionPhredIntProbability::max();
+			if(samples[i].hasData){
+				storage[i].setHaploid(samples[i].genotypeLikelihoodsGLF[(uint8_t) alleleicCombination.firstAllele()],
+						              samples[i].genotypeLikelihoodsGLF[(uint8_t) alleleicCombination.secondAllele()]);
+			} else {
+				storage[i].setMissingHaploid();
+			}
 		} else {
-			storage[i].glfLikelihood_0 = samples[i].genotypeLikelihoodsGLF[(uint8_t) alleleicCombination.homoFirst()];
-			storage[i].glfLikelihood_1 = samples[i].genotypeLikelihoodsGLF[(uint8_t) alleleicCombination.het()];
-			storage[i].glfLikelihood_2 = samples[i].genotypeLikelihoodsGLF[(uint8_t) alleleicCombination.homoSecond()];
+			if(samples[i].hasData){
+				storage[i].setDiploid(samples[i].genotypeLikelihoodsGLF[(uint8_t) alleleicCombination.homoFirst()],
+						              samples[i].genotypeLikelihoodsGLF[(uint8_t) alleleicCombination.het()],
+									  samples[i].genotypeLikelihoodsGLF[(uint8_t) alleleicCombination.homoSecond()]);
+			} else {
+				storage[i].setMissingDiploid();
+			}
 		}
 	}
 };

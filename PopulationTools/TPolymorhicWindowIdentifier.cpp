@@ -67,7 +67,7 @@ void TPolymorhicWindowIdentifier::identifyPolymorphicWindows(TParameters & Param
  				++numWindowsWithData;
  				uint32_t numPoly = 0;
  				for(uint32_t l = 0; l<window.numLoci(); ++l){
- 					if(window[l][i].glfLikelihood_1 < window[l][i].glfLikelihood_0 && window[l][i].glfLikelihood_1 < window[l][i].glfLikelihood_2)
+ 					if(window[l][i][genometools::het] < window[l][i][genometools::homoFirst] && window[l][i][genometools::het] < window[l][i][genometools::homoSecond])
  						++numPoly;
  				}
  				if(numPoly > 0){

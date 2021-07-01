@@ -142,6 +142,7 @@ public:
 		return std::accumulate(_data.begin(), _data.end(), double{}, wsum);
 	};
 
+	// writing / printin
 	virtual void addNames(std::vector<std::string> & vec) const{
 		for(uint8_t i=0; i<Size; ++i){
 			vec.push_back( (std::string) IndexType(static_cast<EnumType>(i)));
@@ -154,11 +155,16 @@ public:
 		}
 	};
 
-	friend std::ostream& operator<<(std::ostream& os, const TData_base & data){
-		os << (std::string) IndexType(static_cast<EnumType>(0)) + ": " << data._data[0];
-		for(uint8_t i=1; i<Size; ++i){
-			os << ", " + (std::string) IndexType(static_cast<EnumType>(i)) + ": " << data._data[i];
+    explicit operator std::string() const {
+    	std::string s = (std::string) IndexType(static_cast<EnumType>(0)) + ": " + coretools::str::toString(_data[0]);
+    	for(uint8_t i=1; i<Size; ++i){
+			s += ", " + (std::string) IndexType(static_cast<EnumType>(i)) + ": " + coretools::str::toString(_data[i]);
 		}
+    	return s;
+    };
+
+	friend std::ostream& operator<<(std::ostream& os, const TData_base & data){
+		os << (std::string) data;
 		return os;
 	};
 };
@@ -171,10 +177,10 @@ class TBaseData_base : public TData_base<T, genometools::Base, genometools::Base
 protected:
 	using TData_base<T, genometools::Base, genometools::BaseEnum, 4>::_data;
 
-	//keep constructors protected so the base class can not be used!
+public:
 	TBaseData_base() = default;
 	TBaseData_base(const T& val){ set(val); };
-public:
+
 	using TData_base<T, genometools::Base, genometools::BaseEnum, 4>::set;
 };
 
@@ -227,6 +233,8 @@ class TBaseData:public TBaseData_base<double>{
 public:
 	TBaseData(){ reset(); };
 	TBaseData(const double & val) : TBaseData_base(val) {};
+
+	using TBaseData_base<double>::set;
 
 	[[nodiscard]] TBaseProbabilities asFrequencies();
 

@@ -108,22 +108,22 @@ void TGenotypeFrequencies::ensureAllFrequenciesAreNonZero(){
 	normalize();
 };
 
-void TGenotypeFrequencies::guess(const TSampleLikelihoods* samples, int numSamples){
+void TGenotypeFrequencies::guess(TSampleLikelihoods* samples, int numSamples){
 	//calculate by using MLE genotype for each individual
 	clear();
 
 	for(int i = 0; i < numSamples; i++){
-		if(!samples[i].isMissing){
-			if(samples[i].isHaploid){
-				if(samples[i].glfLikelihood_1 < samples[i].glfLikelihood_0) haploidFrequencies[1] += 1.0;
+		if(!samples[i].isMissing()){
+			if(samples[i].isHaploid()){
+				if(samples[i][genometools::homoSecond] < samples[i][genometools::homoFirst]) haploidFrequencies[1] += 1.0;
 				else haploidFrequencies[0] += 1.0;
 				++numHaploidSamples;
 			} else {
-				if(samples[i].glfLikelihood_1 < samples[i].glfLikelihood_0){
-					if(samples[i].glfLikelihood_2 < samples[i].glfLikelihood_1) diploidFrequencies[2] += 1.0;
+				if(samples[i][genometools::het] < samples[i][genometools::homoFirst]){
+					if(samples[i][genometools::homoSecond] < samples[i][genometools::het]) diploidFrequencies[2] += 1.0;
 					else diploidFrequencies[1] += 1.0;
 				} else {
-					if(samples[i].glfLikelihood_2 < samples[i].glfLikelihood_0) diploidFrequencies[2] += 1.0;
+					if(samples[i][genometools::homoSecond] < samples[i][genometools::homoFirst]) diploidFrequencies[2] += 1.0;
 					else diploidFrequencies[0] += 1.0;
 				}
 				++numDiploidSamples;
@@ -166,18 +166,18 @@ void TGenotypeFrequencies::estimate(TSampleLikelihoods* samples, int numSamples,
 
 		//estimate new genotype frequencies
 		for(int i = 0; i < numSamples; i++){
-			if(!samples[i].isMissing){
-				if(samples[i].isHaploid){
-					weights[0] = (double) (coretools::Probability) samples[i].glfLikelihood_0 * haploidFrequencies_old[0];
-					weights[1] = (double) (coretools::Probability)samples[i].glfLikelihood_1 * haploidFrequencies_old[1];
+			if(!samples[i].isMissing()){
+				if(samples[i].isHaploid()){
+					weights[0] = (double) (coretools::Probability) samples[i][genometools::homoFirst] * haploidFrequencies_old[0];
+					weights[1] = (double) (coretools::Probability)samples[i][genometools::homoSecond] * haploidFrequencies_old[1];
 
 					double sum = weights[0] + weights[1];
 
 					haploidFrequencies[0] += weights[0] / sum;
 				} else {
-					weights[0] = (double) (coretools::Probability) samples[i].glfLikelihood_0 * diploidFrequencies_old[0];
-					weights[1] = (double) (coretools::Probability) samples[i].glfLikelihood_1 * diploidFrequencies_old[1];
-					weights[2] = (double) (coretools::Probability) samples[i].glfLikelihood_2 * diploidFrequencies_old[2];
+					weights[0] = (double) (coretools::Probability) samples[i][genometools::homoFirst] * diploidFrequencies_old[0];
+					weights[1] = (double) (coretools::Probability) samples[i][genometools::het] * diploidFrequencies_old[1];
+					weights[2] = (double) (coretools::Probability) samples[i][genometools::homoSecond] * diploidFrequencies_old[2];
 
 					double sum = weights[0] + weights[1] + weights[2];
 
@@ -223,14 +223,14 @@ coretools::Log10Probability TGenotypeFrequencies::calculateLog10Likelihood(TPopu
 coretools::Log10Probability TGenotypeFrequencies::calculateLog10Likelihood(TSampleLikelihoods* samples, const uint32_t & numSamples){
 	double LL = 0.0;
 	for(int i = 0; i < numSamples; i++){
-		if(!samples[i].isMissing){
-			if(samples[i].isHaploid){
-				LL += log10((double) (coretools::Probability) samples[i].glfLikelihood_0 * haploidFrequencies[0]
-						  + (double) (coretools::Probability) samples[i].glfLikelihood_1 * haploidFrequencies[1]);
+		if(!samples[i].isMissing()){
+			if(samples[i].isHaploid()){
+				LL += log10((double) (coretools::Probability) samples[i][genometools::homoFirst] * haploidFrequencies[0]
+						  + (double) (coretools::Probability) samples[i][genometools::homoSecond] * haploidFrequencies[1]);
 			} else {
-				LL += log10((double) (coretools::Probability) samples[i].glfLikelihood_0 * diploidFrequencies[0]
-						  + (double) (coretools::Probability) samples[i].glfLikelihood_1 * diploidFrequencies[1]
-						  + (double) (coretools::Probability) samples[i].glfLikelihood_2 * diploidFrequencies[2]);
+				LL += log10((double) (coretools::Probability) samples[i][genometools::homoFirst] * diploidFrequencies[0]
+						  + (double) (coretools::Probability) samples[i][genometools::het] * diploidFrequencies[1]
+						  + (double) (coretools::Probability) samples[i][genometools::homoSecond] * diploidFrequencies[2]);
 			}
 		}
 	}

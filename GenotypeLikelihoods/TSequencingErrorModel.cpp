@@ -34,7 +34,7 @@ bool TSequencingErrorCovariateDefinition::parse(const std::string & modelString,
 			size_t pos_1 = s.find('[');
 			size_t pos_2 = s.find(']');
 			if(s.substr(0, pos_1) != "intercept"){
-				error = "Unable to understand model string '" + modelString + "': expecting an '=' or the function 'intercept'!";
+				error = "Unable to understand model string '" + modelString + "': expecting an ':' or the function 'intercept'!";
 				return false;
 			} else {
 				if(pos_1 == std::string::npos){
@@ -248,6 +248,13 @@ void TSequencingErrorRhoStorage::reset(){
 };
 
 bool TSequencingErrorRhoStorage::set(const std::string & def, std::string & error){
+	//"default" implies default rho
+	if(def == "default"){
+		reset();
+		return true;
+	}
+
+	//otherwise: full matrix is provided
 	std::vector<std::string> vec;
 	std::string s = def;
 	coretools::str::fillContainerFromString(def, vec, ';');
