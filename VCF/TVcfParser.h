@@ -21,6 +21,7 @@
 namespace VCF{
 
 using coretools::str::stringContains;
+using coretools::str::toString;
 
 //TODO: use header info to check entries
 

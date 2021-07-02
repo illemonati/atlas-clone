@@ -14,9 +14,9 @@ TVcfHeaderLine::TVcfHeaderLine(std::string & Line){
 	std::string line=Line;
 	int pp=line.find_first_of('<');
 	line.erase(0, pp+1);
-	line=extractBefore(line, '>');
+	line = coretools::str::extractBefore(line, '>');
 	while(!line.empty()){
-		std::string temp=extractBefore(line, ',');
+		std::string temp = coretools::str::extractBefore(line, ',');
 		if(temp.find("=\"")>0){
 			//contains quotes. Remove quotes and check for an even occurrence
 			int numq=0;
@@ -69,7 +69,7 @@ TVcfHeaderLine::TVcfHeaderLine(std::string & ID, std::string & Number, VCF_TYPE 
 	_id=ID;
 	numberString=Number;
 	if(numberString==".") number=99999;
-	else number=convertString<int>(Number);
+	else number = coretools::str::convertString<int>(Number);
 	type=Type;
 	typeString=getStringfromType(type);
 	desc=Desc;
@@ -79,7 +79,7 @@ TVcfHeaderLine::TVcfHeaderLine(std::string & ID, std::string & Number, VCF_TYPE 
 void TVcfHeaderLine::update(std::string & Number, VCF_TYPE & Type, std::string & Desc){
 	numberString=Number;
 	if(numberString==".") number=99999;
-	else number=convertString<int>(Number);
+	else number = coretools::str::convertString<int>(Number);
 	type=Type;
 	typeString=getStringfromType(type);
 	desc=Desc;
@@ -194,7 +194,7 @@ TVcfSample::TVcfSample(){
 
 void TVcfSample::readData(std::string s){
 	//split by ':'
-	fillContainerFromString(s, data, ':');
+	coretools::str::fillContainerFromString(s, data, ':');
 };
 
 void TVcfSample::addData(std::string d){
@@ -245,7 +245,7 @@ bool TVcfSample::parse(std::string s, const int genotypeCol){
 			setMissingGenotype();
 			isHaploid = false;
 		} else if(gt.length() == 1){
-			setGenotype(convertString<int>(gt));
+			setGenotype(coretools::str::convertString<int>(gt));
 		} else if(gt.length() == 3 && (gt[1] == '/' || gt[1] == '|')){
 			setGenotype(gt[0] - '0', gt[2] - '0'); //turn into int by removing char of 0
 		} else {
@@ -314,8 +314,8 @@ void TVcfLine::update(std::string & line, unsigned int & numCols, long & LineNum
 	filter.clear();
 
 	//now read new data
-	trimString(line);
-	fillContainerFromStringWhiteSpace(line, data);
+	coretools::str::trimString(line);
+	coretools::str::fillContainerFromStringWhiteSpace(line, data);
 	if(data.size() != numCols) throw "Wrong number of columns (" + toString(data.size()) + " instead of " + toString(numCols) + ") in VCF file on line " + toString(lineNumber) + "!";
 }
 
@@ -354,8 +354,8 @@ void TVcfParser::parsePosition(TVcfLine & line){
 		//if(line.chr<=0) throw "Unknown chromosome '" + line.data[cols.Chr] + "' in VCF file on line " +toString(line.lineNumber) + "!";
 
 		//just use string
-		line.chr=line.data[cols.Chr];
-		line.pos=convertString<uint64_t>(line.data[cols.Pos]);
+		line.chr = line.data[cols.Chr];
+		line.pos = coretools::str::convertString<uint64_t>(line.data[cols.Pos]);
 		if(line.pos<=0) throw "Unknown position '" + line.data[cols.Pos] + "' in VCF file on line " +toString(line.lineNumber) + "!";
 		line.positionParsed=true;
 	}
@@ -371,7 +371,7 @@ void TVcfParser::parseVariant(TVcfLine & line){
 		std::string buf;
 		if(line.data[cols.Alt]!="."){ //only if there are alternative bases
 			while(!line.data[cols.Alt].empty()){
-				buf = extractBefore(line.data[cols.Alt], ',');
+				buf = coretools::str::extractBefore(line.data[cols.Alt], ',');
 				line.data[cols.Alt].erase(0,1);
 				if(buf=="<NON_REF>") buf = "X";
 				if(!line.addVariant(buf)){
@@ -390,7 +390,7 @@ void TVcfParser::parseQuality(TVcfLine & line){
 			line.variantQuality = -1.0;
 		} else {
 			line.variantQualityMissing = false;
-			line.variantQuality = convertString<double>(line.data[cols.Qual]);
+			line.variantQuality = coretools::str::convertString<double>(line.data[cols.Qual]);
 		}
 		line.qualityParsed = true;
 	}
@@ -745,18 +745,29 @@ std::string TVcfParser::getSecondAlleleOfSample(TVcfLine & line, const unsigned 
 
 genometools::BiallelicGenotype TVcfParser::sampleBiallelicGenotype(TVcfLine & line, const unsigned int & sample){
 	//return missing if non-biallelic
-	if(line.samples[sample].missing || line.variants.size() > 2){
-		return genometools::missing;
-	}
-	auto tmp = line.samples[sample].genotype.first + line.samples[sample].genotype.second;
-	if(tmp == 0){
-		return genometools::homoFirst;
-	} else if (tmp == 1){
-		return genometools::het;
+	if(line.samples[sample].isHaploid){
+		if(line.samples[sample].missing || line.variants.size() > 2){
+			return genometools::missingHaploid;
+		}
+		if(line.samples[sample].genotype.first == 0){
+			return genometools::haploidFirst;
+		} else {
+			return genometools::haploidSecond;
+		}
 	} else {
-		return genometools::homoSecond;
+		if(line.samples[sample].missing || line.variants.size() > 2){
+			return genometools::missingDiploid;
+		}
+		auto tmp = line.samples[sample].genotype.first + line.samples[sample].genotype.second;
+		if(tmp == 0){
+			return genometools::homoFirst;
+		} else if (tmp == 1){
+			return genometools::het;
+		} else {
+			return genometools::homoSecond;
+		}
 	}
-}
+};
 
 bool TVcfParser::sampleIsMissing(TVcfLine & line, unsigned int & s){
 	if(s >= line.samples.size()){
@@ -778,7 +789,7 @@ float TVcfParser::sampleGenotypeQuality(TVcfLine & line, unsigned int & sample){
 	if(col<0) col=getFormatCol(line, "RGQ");
 	if(col<0) throw "Column 'GQ' is missing at position " + toString(line.pos) + " on " + line.chr + "!";
 //	std::cerr << " qual=" << line.samples[sample].data[col] << std::endl;
-	return convertString<double>(line.samples[sample].data[col]);
+	return coretools::str::convertString<double>(line.samples[sample].data[col]);
 }
 
 int TVcfParser::phred(double x){
@@ -797,8 +808,8 @@ void TVcfParser::parseFormat(TVcfLine & line){
 		std::string buf;
 		int i=0;
 		while(!line.data[cols.Format].empty()){
-			buf=extractBefore(line.data[cols.Format], ':');
-			trimString(buf);
+			buf = coretools::str::extractBefore(line.data[cols.Format], ':');
+			coretools::str::trimString(buf);
 			line.data[cols.Format].erase(0,1);
 
 			line.format.emplace(buf, i);
@@ -842,17 +853,17 @@ void TVcfParser::parseInfo(TVcfLine & line){
 		std::string buf, temp;
 		std::map<std::string, std::vector<std::string> >::iterator it;
 		while(!line.data[cols.Info].empty()){
-			buf=extractBefore(line.data[cols.Info], ';');
-			trimString(buf);
+			buf = coretools::str::extractBefore(line.data[cols.Info], ';');
+			coretools::str::trimString(buf);
 			line.data[cols.Info].erase(0,1);
 
-			temp=extractBefore(buf, '=');
+			temp = coretools::str::extractBefore(buf, '=');
 			buf.erase(0,1);
 
 			line.info[temp]=std::vector<std::string>();
 			it=line.info.find(temp);
 			while(!buf.empty()){
-				it->second.push_back(extractBefore(buf, ','));
+				it->second.push_back(coretools::str::extractBefore(buf, ','));
 				buf.erase(0,1);
 			}
 		}
