@@ -13,7 +13,7 @@
 
 using namespace GLF;
 using genometools::Base;
-using GenotypeLikelihoods::TBaseData;
+using GenotypeLikelihoods::TBaseLikelihoods;
 
 class TGLF_Test_WriteRead : public ::testing::Test {
 protected:
@@ -60,12 +60,12 @@ public:
         // 3) depth = 0
         outputGLF->writeDummySite(20, 0);
         // 4) depth = 10, but all bases are N
-        std::vector<GenotypeLikelihoods::TBaseData> bases;
+        std::vector<GenotypeLikelihoods::TBaseLikelihoods> bases;
         bases.reserve(10);
         Base base = genometools::N;
         double error = 0.001;
         for (uint32_t d = 0; d < 10; d++){
-            TBaseData baseData(base, error);
+        	TBaseLikelihoods baseData(base, error);
             bases.emplace_back(baseData);
         }
         TGenotypeLikelihoods gtL;
