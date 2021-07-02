@@ -26,12 +26,12 @@ TVcfHeaderLine::TVcfHeaderLine(std::string & Line){
 				temp.erase(pp,1);
 				pp=temp.find_first_of('"');
 			}
-			if(numq==1 || numq==3) temp=temp+extractBefore(line, '"');
+			if(numq==1 || numq==3) temp=temp + coretools::str::extractBefore(line, '"');
 			line.erase(0,1);
 		}
 
 		//get tag
-		std::string tag=extractBefore(temp, '=');
+		std::string tag = coretools::str::extractBefore(temp, '=');
 		temp.erase(0,1);
 
 		//check tag
@@ -63,7 +63,7 @@ TVcfHeaderLine::TVcfHeaderLine(std::string & Line){
 		throw errorMessage;
 	}
 
-}
+};
 
 TVcfHeaderLine::TVcfHeaderLine(std::string & ID, std::string & Number, VCF_TYPE & Type, std::string & Desc){
 	_id=ID;
@@ -74,7 +74,7 @@ TVcfHeaderLine::TVcfHeaderLine(std::string & ID, std::string & Number, VCF_TYPE 
 	typeString=getStringfromType(type);
 	desc=Desc;
 	if(type!=FLAG && number<1) "Error when creating new vcf header line, unknown 'Number' entry '"+ Number +"'!";
-}
+};
 
 void TVcfHeaderLine::update(std::string & Number, VCF_TYPE & Type, std::string & Desc){
 	numberString=Number;
@@ -84,7 +84,7 @@ void TVcfHeaderLine::update(std::string & Number, VCF_TYPE & Type, std::string &
 	typeString=getStringfromType(type);
 	desc=Desc;
 	if(type!=FLAG && number<1) "Error when creating new vcf header line, unknown 'Number' entry '"+ Number +"'!";
-}
+};
 
 VCF_TYPE TVcfHeaderLine::getTypefromString(std::string & s){
 	if(s=="Integer") return INTEGER;
@@ -93,7 +93,7 @@ VCF_TYPE TVcfHeaderLine::getTypefromString(std::string & s){
 	else if(s=="Character") return CHAR;
 	else if(s=="String") return STRING;
 	else return UNKNOWN;
-}
+};
 
 std::string TVcfHeaderLine::getStringfromType(VCF_TYPE & type){
 	if(type==INTEGER) return "Integer";
@@ -102,17 +102,17 @@ std::string TVcfHeaderLine::getStringfromType(VCF_TYPE & type){
 	else if(type==CHAR) return "Character";
 	else if(type==STRING) return "String";
 	else return "?";
-}
+};
 
 void TVcfHeaderLine::init(){
 	_id="";
 	number=-1;
 	type=UNKNOWN;
 	desc="";
-}
+};
 std::string TVcfHeaderLine::getString(){
 	return "<ID=" + _id + ",Number=" + numberString + ",Type=" + typeString + ",Description=\"" + desc + "\">";
-}
+};
 //--------------------------------------------------------------------
 /*
 TVcfFilter::TVcfFilter(std::string filter, long* CurrentLine){
@@ -163,7 +163,7 @@ bool TVcfFilter::pass(TVcfFormat* format, std::vector<std::string>* data){
 	if(larger && d>val) return true;
 	else if (!larger && d<val) return true;
 	return false;
-}
+};
 
 void TVcfFilter::print(){
 	if(sub) cout << "    -> Skipping calls where entry " << subTag << " in column " << tag;
@@ -171,7 +171,7 @@ void TVcfFilter::print(){
 	if(larger) cout << " > ";
 	else cout << " < ";
 	cout << val << endl;
-}
+};
 */
 //--------------------------------------------------------------------
 /*
@@ -180,7 +180,7 @@ void TVcfSample::filter(TVcfFilter* filter){
 		if(!filter->pass(format, &data))
 			missing=false;
 	}
-}
+};
 */
 //--------------------------------------------------------------------
 // TVcfSample
@@ -293,11 +293,11 @@ TVcfLine::TVcfLine(){
 	pos = -1;
 	variantQuality = -1;
 	variantQualityMissing = true;
-}
+};
 
 TVcfLine::TVcfLine(std::string & line, unsigned int & numCols, long & LineNumber){
 	update(line, numCols, LineNumber);
-}
+};
 
 void TVcfLine::update(std::string & line, unsigned int & numCols, long & LineNumber){
 	positionParsed=false;  variantParsed=false;  idParsed=false;  filterParsed=false;  qualityParsed=false;  infoParsed=false; formatParsed=false; samplesParsed=false;
@@ -317,20 +317,20 @@ void TVcfLine::update(std::string & line, unsigned int & numCols, long & LineNum
 	coretools::str::trimString(line);
 	coretools::str::fillContainerFromStringWhiteSpace(line, data);
 	if(data.size() != numCols) throw "Wrong number of columns (" + toString(data.size()) + " instead of " + toString(numCols) + ") in VCF file on line " + toString(lineNumber) + "!";
-}
+};
 
 bool TVcfLine::variantExists(const std::string & var){
 	for(std::vector<std::string>::iterator it=variants.begin(); it!=variants.end(); ++it){
 		if(*it==var) return true;
 	}
 	return false;
-}
+};
 
 bool TVcfLine::addVariant(const std::string & var){
 	if(variantExists(var)) return false;
 	else variants.push_back(var);
 	return true;
-}
+};
 
 void TVcfLine::writeVariant(std::ostream & out){
 	std::vector<std::string>::iterator it=variants.begin();
@@ -342,7 +342,7 @@ void TVcfLine::writeVariant(std::ostream & out){
 			++it;
 		}
 	} else out << ".";
-}
+};
 //--------------------------------------------------------------------
 void TVcfParser::parsePosition(TVcfLine & line){
 	if(!line.positionParsed){
@@ -399,7 +399,7 @@ void TVcfParser::parseQuality(TVcfLine & line){
 void TVcfParser::addInfo(std::string & Line){
 	TVcfHeaderLine l(Line);
 	info[l._id]=l;
-}
+};
 void TVcfParser::updateInfo(std::string ID, std::string Number, VCF_TYPE Type, std::string Desc){
 	//check if id exists
 	std::map<std::string, TVcfHeaderLine>::iterator it=info.find(ID);
@@ -411,17 +411,17 @@ void TVcfParser::updateInfo(std::string ID, std::string Number, VCF_TYPE Type, s
 		//update
 		it->second.update(Number, Type, Desc);
 	}
-}
+};
 
 void TVcfParser::addFormat(std::string & Line){
 	TVcfHeaderLine l(Line);
 	format[l._id]=l;
-}
+};
 
 void TVcfParser::addSample(std::string & Name){
 	samples.push_back(Name);
 	maxIndColPlusOne=cols.FirstInd+samples.size();
-}
+};
 
 void TVcfParser::updateInfo(TVcfLine & line, std::string & Id, std::string & Data){
 	//update or add?
@@ -437,14 +437,14 @@ void TVcfParser::updateInfo(TVcfLine & line, std::string & Id, std::string & Dat
 		it->second.clear();
 		it->second.push_back(Data);
 	}
-}
+};
 
 void TVcfParser::updatePL(TVcfLine & line, std::string & Data, unsigned int & sample){
 	//update or add?
 	int col=getFormatCol(line, "PL");
 	if(col < 0) throw "Did not find 'PL' info field!";
 	line.samples[sample].data[col] = Data;
-}
+};
 
 void TVcfParser::addToInfo(TVcfLine & line, std::string & Id, std::string & Data){
 	//update or add?
@@ -466,7 +466,7 @@ void TVcfParser::addToInfo(TVcfLine & line, std::string & Id, std::string & Data
 		}
 		if(!exists) it->second.push_back(Data);
 	}
-}
+};
 
 genometools::PhredIntProbability TVcfParser::getPhredScore(std::string & phredString){
 	if(phredString == "inf" )
@@ -587,14 +587,14 @@ std::string TVcfParser::sampleContentAt(TVcfLine & line, std::string & tag, unsi
 	int col=getFormatCol(tag, line);
 	if(col<0) throw "Column '"+tag+"' is missing at position " + toString(line.pos) + " on " + line.chr + "!";
 	return line.samples[sample].data[col];
-}
+};
 
 std::string TVcfParser::sampleContentAtNoCheckForMissingSample(TVcfLine & line, std::string & tag, unsigned int & sample){
 //	checkSampleNum(line, sample);
 	int col=getFormatCol(tag, line);
 	if(col<0) return "0";//throw "Column '"+tag+"' is missing at position " + toString(line.pos) + " on " + line.chr + "!";
 	return line.samples[sample].data[col];
-}
+};
 
 int TVcfParser::getSampleNum(std::string & Name){
 	int col=0;
@@ -603,16 +603,16 @@ int TVcfParser::getSampleNum(std::string & Name){
 	}
 	throw "Sample '" + Name + "' is missing in the vcf file!";
 	return -1;
-}
+};
 
 std::string TVcfParser::getSampleName(unsigned int & sample){
 	if(sample < 0 || sample > samples.size()) throw "Sample " + toString(sample) + " does not exists!";
 	return samples[sample];
-}
+};
 
 int TVcfParser::getNumSamples(){
 	return samples.size();
-}
+};
 
 //--------------------------------------------------------------------
 //get variant info
@@ -623,7 +623,7 @@ std::string TVcfParser::getChr(TVcfLine & line){
 		throw "Position has not been parsed!";
 	}
 	return line.chr;
-}
+};
 
 uint64_t TVcfParser::getPos(TVcfLine & line){
 	if(!line.positionParsed){
@@ -631,42 +631,42 @@ uint64_t TVcfParser::getPos(TVcfLine & line){
 		throw "Position has not been parsed!";
 	}
 	return line.pos;
-}
+};
 
 int TVcfParser::getNumAlleles(TVcfLine & line){
 	if(!line.variantParsed){
 		throw "Position has not been parsed!";
 	}
 	return line.variants.size();
-}
+};
 
 std::string TVcfParser::getRefAllele(TVcfLine & line){
 	if(!line.variantParsed){
 		throw "Position has not been parsed!";
 	}
 	return line.variants[0];
-}
+};
 
 std::string TVcfParser::getFirstAltAllele(TVcfLine & line){
 	if(!line.variantParsed){
 		throw "Position has not been parsed!";
 	}
 	return line.variants[1];
-}
+};
 
 std::string TVcfParser::getAllele(TVcfLine & line, int num){
 	if(!line.variantParsed){
 		throw "Position has not been parsed!";
 	}
 	return line.variants[num];
-}
+};
 
 bool TVcfParser::variantQualityIsMissing(TVcfLine & line){
 	if(!line.qualityParsed){
 		throw "Quality has not been parsed!";
 	}
 	return line.variantQualityMissing;
-}
+};
 
 double TVcfParser::variantQuality(TVcfLine & line){
 	if(!line.qualityParsed){
@@ -676,7 +676,7 @@ double TVcfParser::variantQuality(TVcfLine & line){
 		throw "Quality is missing!";
 	}
 	return line.variantQuality;
-}
+};
 //--------------------------------------------------------------------
 
 void TVcfParser::checkSampleNum(TVcfLine & line, unsigned int & sample){
@@ -685,7 +685,7 @@ void TVcfParser::checkSampleNum(TVcfLine & line, unsigned int & sample){
 	if(line.samples[sample].missing){
 		throw "Sample " + toString(sample) + " is missing!";
 	}
-}
+};
 
 void TVcfParser::addInfoToSample(TVcfLine & line, unsigned int & sample, std::string & tag, std::string & Data){
 	if(sample >= line.samples.size()) throw "Sample " + toString(sample) + " does not exists!";
@@ -694,16 +694,16 @@ void TVcfParser::addInfoToSample(TVcfLine & line, unsigned int & sample, std::st
 		int col=addFormatCol(tag, line);
 		line.samples[sample].updateData(col, Data);
 	}
-}
+};
 
 void TVcfParser::setSampleMissing(TVcfLine & line, unsigned int & sample){
 	if(sample >= line.samples.size()) throw "Sample " + toString(sample) + " does not exists!";
 	line.samples[sample].missing=true;
-}
+};
 void TVcfParser::setSampleHasUndefinedGenotype(TVcfLine & line, unsigned int & sample){
 	if(sample >= line.samples.size()) throw "Sample " + toString(sample) + " does not exists!";
 	line.samples[sample].unknownGenotype=true;
-}
+};
 
 void TVcfParser::updateField(TVcfLine & line, std::string & tag, std::string & Data, unsigned int & sample){
 	checkSampleNum(line, sample);
@@ -726,24 +726,24 @@ bool TVcfParser::sampleIsHomoRef(TVcfLine & line, unsigned int & sample){
 	checkSampleNum(line, sample);
 	if(line.samples[sample].genotype.first==0 && line.samples.at(sample).genotype.second==0) return true;
 	return false;
-}
+};
 
 bool TVcfParser::sampleIsHeteroRefNonref(TVcfLine & line, unsigned int & sample){
 	checkSampleNum(line, sample);
 	if(line.samples[sample].genotype.first==0 && line.samples.at(sample).genotype.second!=0) return true;
 	if(line.samples[sample].genotype.first!=0 && line.samples.at(sample).genotype.second==0) return true;
 	return false;
-}
+};
 
-std::string TVcfParser::getFirstAlleleOfSample(TVcfLine & line, const unsigned int & sample){
+std::string TVcfParser::getFirstAlleleOfSample(const TVcfLine & line, const unsigned int & sample) const {
 	return line.variants[line.samples[sample].genotype.first];
-}
+};
 
-std::string TVcfParser::getSecondAlleleOfSample(TVcfLine & line, const unsigned int & sample){
+std::string TVcfParser::getSecondAlleleOfSample(const TVcfLine & line, const unsigned int & sample) const {
 	return line.variants[line.samples[sample].genotype.second];
-}
+};
 
-genometools::BiallelicGenotype TVcfParser::sampleBiallelicGenotype(TVcfLine & line, const unsigned int & sample){
+genometools::BiallelicGenotype TVcfParser::sampleBiallelicGenotype(const TVcfLine & line, const unsigned int & sample) const{
 	//return missing if non-biallelic
 	if(line.samples[sample].isHaploid){
 		if(line.samples[sample].missing || line.variants.size() > 2){
@@ -769,17 +769,17 @@ genometools::BiallelicGenotype TVcfParser::sampleBiallelicGenotype(TVcfLine & li
 	}
 };
 
-bool TVcfParser::sampleIsMissing(TVcfLine & line, unsigned int & s){
+bool TVcfParser::sampleIsMissing(const TVcfLine & line, unsigned int & s){
 	if(s >= line.samples.size()){
 		throw "Sample " + toString(s) + " does not exists!";
 	}
 	return line.samples[s].missing;
-}
+};
 
 bool TVcfParser::sampleHasUndefinedGenotype(TVcfLine & line, unsigned int & s){
 	if(s >= line.samples.size()) throw "Sample " + toString(s) + " does not exists!";
 	return line.samples[s].unknownGenotype;
-}
+};
 
 float TVcfParser::sampleGenotypeQuality(TVcfLine & line, unsigned int & sample){
 //	std::cerr << "check quality of sample " << sample << " and position " << line.pos << ": " << std::flush;
@@ -790,18 +790,18 @@ float TVcfParser::sampleGenotypeQuality(TVcfLine & line, unsigned int & sample){
 	if(col<0) throw "Column 'GQ' is missing at position " + toString(line.pos) + " on " + line.chr + "!";
 //	std::cerr << " qual=" << line.samples[sample].data[col] << std::endl;
 	return coretools::str::convertString<double>(line.samples[sample].data[col]);
-}
+};
 
 int TVcfParser::phred(double x){
 	return (double) -10.0 * log10(x);
-}
+};
 
 float TVcfParser::dePhred(double x){
 	if (x < 0.){
 		throw "Phred quality scores should not be negative! Please check your vcf-file.";
 	}
 	return pow(10.0, -x/10.0);
-}
+};
 
 void TVcfParser::parseFormat(TVcfLine & line){
 	if(!line.formatParsed){
@@ -818,19 +818,19 @@ void TVcfParser::parseFormat(TVcfLine & line){
 		}
 		line.formatParsed=true;
 	}
-}
+};
 
 int TVcfParser::getFormatCol(std::string & tag, TVcfLine & line){
 	std::map<std::string, int>::iterator it=line.format.find(tag);
 	if(it==line.format.end()) return -1;
 	return it->second;
-}
+};
 
 bool TVcfParser::formatColExists(std::string & tag, TVcfLine & line){
 	std::map<std::string, int>::iterator it=line.format.find(tag);
 	if(it == line.format.end()) return false;
 	return true;
-}
+};
 
 int TVcfParser::addFormatCol(std::string & tag, TVcfLine & line){
 	//col exists?
@@ -846,7 +846,7 @@ int TVcfParser::addFormatCol(std::string & tag, TVcfLine & line){
 		}
 	}
 	return col;
-}
+};
 
 void TVcfParser::parseInfo(TVcfLine & line){
 	if(!line.infoParsed){
@@ -898,17 +898,17 @@ void TVcfParser::writeColumnDescriptionHeader(std::ostream & out){
 		out << "\t" << *it;
 	}
 	out << std::endl;
-}
+};
 void TVcfParser::writeInfoHeader(std::ostream & out){
 	for(std::map<std::string, TVcfHeaderLine>::iterator it=info.begin(); it!=info.end(); ++it){
 		out << "##INFO=" << it->second.getString() << std::endl;
 	}
-}
+};
 void TVcfParser::writeFormatHeader(std::ostream & out){
 	for(std::map<std::string, TVcfHeaderLine>::iterator it=format.begin(); it!=format.end(); ++it){
 		out << "##FORMAT=" << it->second.getString() << std::endl;
 	}
-}
+};
 
 void TVcfParser::writeLine(TVcfLine & line, std::ostream & out){
 	//position
@@ -970,7 +970,7 @@ void TVcfParser::writeLine(TVcfLine & line, std::ostream & out){
 	}
 
 	out << std::endl;
-}
+};
 
 }; //end namespace
 

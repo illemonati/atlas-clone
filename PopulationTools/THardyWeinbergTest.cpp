@@ -205,7 +205,7 @@ void THWGenotypes::clear(){
 };
 
 void THWGenotypes::add(const genometools::BiallelicGenotype & genotype){
-	if(genotype != genometools::missing){
+	if(!genotype.isMissing()){
 		++_genoCounts[genotype.get()];
 	}
 };

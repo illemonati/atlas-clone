@@ -443,7 +443,7 @@ TEST(TBedTest, add_Chr_pos){
 }
 
 void writeInputBed(){
-    TOutputFile out("bed.bed", 3);
+    coretools::TOutputFile out("bed.bed", 3);
     out << "chr1" << 10 << 20 << std::endl;
     out << "chr1" << 30 << 40 << std::endl;
     out << "chr1" << 50 << 60 << std::endl;

@@ -25,6 +25,9 @@
 
 namespace VCF{
 
+using coretools::TLog;
+using coretools::TParameters;
+
 class TGenotype{
 	public:
 		char first;
@@ -113,7 +116,7 @@ private:
 	std::ifstream vcfFileStream;
 	std::ofstream vcfOutFilestream;
 	bool verbose;
-	TRandomGenerator* randomGenerator;
+	coretools::TRandomGenerator* randomGenerator;
 	bool randomGeneratorInitialized;
 	TVcfFileSingleLine vcfFile;
 	std::string outname;
@@ -138,6 +141,7 @@ public:
 //--------------------------------------
 // Tasks
 //--------------------------------------
+using coretools::TTask;
 class TTask_VCFDiagnostics:public TTask{
 public:
 	TTask_VCFDiagnostics(){ _explanation = "Diagnosing a VCF file"; };

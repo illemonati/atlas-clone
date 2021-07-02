@@ -180,8 +180,9 @@ public:
     long positionZeroBased(){ return vcfFile.positionZeroBased(); };
     char refAllele(){ return vcfFile.getRefAllele()[0]; };
     char altAllele(){ return vcfFile.getFirstAltAllele()[0]; };
-    std::vector<genometools::BiallelicGenotype> genotypes(TPopulationSamples & samples);
-    genometools::BiallelicGenotype genotype(TPopulationSamples & samples, uint32_t s);
+    std::vector<genometools::BiallelicGenotype> biallelicGenotypes(TPopulationSamples & samples) const;
+    genometools::BiallelicGenotype biallelicGenotype(TPopulationSamples & samples, const uint32_t & s) const;
+    genometools::Genotype genotype(TPopulationSamples & samples, const uint32_t & s) const;
     double depth(TPopulationSamples & samples,uint32_t s);
 
     bool readDataFromVCF(TPopulationLikehoodLocus & data, TPopulationSamples & samples);
@@ -189,7 +190,7 @@ public:
 
 	void openTrueAlleleFrequenciesFile(const std::string filename);
 	TGenotypeFrequencies* genotypeFrequencies(){ return &genoFrequencies; };
-	double* diploidGenotypeFrequencies(){ return genoFrequencies.diploidFrequencies; };
+	std::array<Probability, 3> diploidGenotypeFrequencies(){ return genoFrequencies.diploidFrequencies; };
 	double allelFrequency(){ return genoFrequencies.alleleFrequency; };
 	double trueAlleleFrequency(){ return _trueAlleleFrequency; };
 	double MAF(){ return genoFrequencies.MAF; };

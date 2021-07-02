@@ -15,23 +15,24 @@
 
 namespace PopulationTools{
 
+using coretools::Probability;
+
 //------------------------------------------------
 // TGenotypeFreqencies
 //------------------------------------------------
 class TGenotypeFrequencies{
 private:
 
-	void setFrequencenciesToZero();
-	void normalize();
+	//void normalize();
 	void ensureAllFrequenciesAreNonZero();
 
 public:
-	double diploidFrequencies[3];
-	double haploidFrequencies[2];
-	double alleleFrequency;
-	double MAF;
-	int numDiploidSamples;
-	int numHaploidSamples;
+	std::array<Probability, 3> diploidFrequencies;
+	std::array<Probability, 2> haploidFrequencies;
+	Probability alleleFrequency;
+	Probability MAF;
+	uint32_t numDiploidSamples;
+	uint32_t numHaploidSamples;
 
 	TGenotypeFrequencies();
 
@@ -40,14 +41,14 @@ public:
 	void flip(); //flip major / minor
 	bool isMonomorphic();
 	void guess(TSampleLikelihoods* samples, int numSamples);
-	void estimate(TPopulationLikehoodLocus & samples, double epsilonF);
-	void estimate(TSampleLikelihoods* samples, int numSamples, double epsilonF);
+	void estimate(TPopulationLikehoodLocus & samples, const double & epsilonF);
+	void estimate(TSampleLikelihoods* samples, const uint32_t & numSamples, const double & epsilonF);
 	coretools::Log10Probability calculateLog10Likelihood(TPopulationLikehoodLocus & samples);
 	coretools::Log10Probability calculateLog10Likelihood(TSampleLikelihoods* samples, const uint32_t & numSamples);
 	void writeDiploidFrequencies(coretools::TOutputFile & out);
 	void writeHaploidFrequencies(coretools::TOutputFile & out);
-	int numHaploid(){ return numHaploidSamples; };
-	int numDiploid(){ return numDiploidSamples; };
+	uint32_t numHaploid(){ return numHaploidSamples; };
+	uint32_t numDiploid(){ return numDiploidSamples; };
 };
 
 }; //end namespace

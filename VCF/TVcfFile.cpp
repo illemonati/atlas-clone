@@ -340,19 +340,19 @@ bool TVcfFileSingleLine::sampleIsHeteroRefNonref(unsigned int sample){
 float TVcfFileSingleLine::sampleGenotypeQuality(unsigned int sample){
 	return parser.sampleGenotypeQuality(tempLine, sample);
 }
-genometools::Base TVcfFileSingleLine::getFirstAlleleOfSample(unsigned int num){
-	return parser.getFirstAlleleOfSample(tempLine, num)[0];
+genometools::Base TVcfFileSingleLine::getFirstAlleleOfSample(unsigned int num) const{
+	return (genometools::Base) parser.getFirstAlleleOfSample(tempLine, num)[0];
 };
 
-genometools::Base TVcfFileSingleLine::getSecondAlleleOfSample(unsigned int num){
-	return parser.getSecondAlleleOfSample(tempLine, num)[0];
+genometools::Base TVcfFileSingleLine::getSecondAlleleOfSample(unsigned int num) const{
+	return (genometools::Base) parser.getSecondAlleleOfSample(tempLine, num)[0];
 };
 
-genometools::BiallelicGenotype TVcfFileSingleLine::sampleBiallelicGenotype(const unsigned int & num){
+genometools::BiallelicGenotype TVcfFileSingleLine::sampleBiallelicGenotype(const unsigned int & num) const{
 	return parser.sampleBiallelicGenotype(tempLine, num);
 };
 
-genometools::Genotype TVcfFileSingleLine::sampleGenotype(const unsigned int & num){
+genometools::Genotype TVcfFileSingleLine::sampleGenotype(const unsigned int & num) const{
 	return genometools::Genotype(parser.getFirstAlleleOfSample(tempLine, num)[0], parser.getSecondAlleleOfSample(tempLine, num)[0]);
 };
 
