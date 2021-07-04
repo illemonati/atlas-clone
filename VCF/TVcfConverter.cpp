@@ -202,15 +202,14 @@ void TVcfToLFMMCalledGeno::writeData(PopulationTools::TPopulationLikehoodLocus &
 };
 
 void TVcfToLFMMCalledGeno::storeCalledGenotypes(){
-    auto tmp = reader->genotypes(samples);
+    auto tmp = reader->biallelicGenotypes(samples);
     auto* calledGeno = new uint8_t[samples.numSamples()];
     for(uint32_t i = 0; i < samples.numSamples(); i++){
-        if (tmp[i] == genometools::missing){
+        if (tmp[i].isMissing()){
             calledGeno[i] = 9; // re-code missing genotypes to LFMM format
         } else {
-        	calledGeno[i] = tmp[i].get();
+        	calledGeno[i] = tmp[i].altAlleleCounts();
         }
-         // if locus was haploid -> is just 0 or 1 -> no need to treat in special way
     }
     genotypes.emplace_back(calledGeno);
 };

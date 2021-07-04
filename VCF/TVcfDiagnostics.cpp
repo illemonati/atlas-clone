@@ -31,10 +31,10 @@ VcfDiagnostics::VcfDiagnostics(TParameters & Params, TLog* Logfile){
     if(outname == ""){
         //guess from filename
         outname = vcfFile.filename;
-        outname = extractBeforeLast(outname, ".");
+        outname = coretools::str::extractBeforeLast(outname, ".");
         if(isZipped)
             //if zipped there is extra .gz
-            outname = extractBeforeLast(outname, ".");
+            outname = coretools::str::extractBeforeLast(outname, ".");
 
     }
     logfile->list("Writing output files with prefix '" + outname + "'.");
@@ -64,7 +64,7 @@ void VcfDiagnostics::openVCF(std::string filename, TVcfFile_base & vcfFile){
 
 void VcfDiagnostics::initializeRandomGenerator(){
 	if(!randomGeneratorInitialized){
-		randomGenerator=new TRandomGenerator();
+		randomGenerator=new coretools::TRandomGenerator();
 		logfile->list("Random generator initialized with seed " + toString(randomGenerator->usedSeed));
 		randomGeneratorInitialized=true;
 	}
@@ -109,10 +109,10 @@ void VcfDiagnostics::vcfToInvariantBed(){
 		}
 
 		int indCounter = 0;
-		char allele = vcfFile.getFirstAlleleOfSample(0)[0];
+		genometools::Base allele = vcfFile.getFirstAlleleOfSample(0);
 		for(int ind=0; ind<vcfFile.numSamples(); ++ind){
 			++indCounter;
-			if(vcfFile.getFirstAlleleOfSample(ind)[0] != allele || vcfFile.getSecondAlleleOfSample(ind)[0] != allele){
+			if(vcfFile.getFirstAlleleOfSample(ind) != allele || vcfFile.getSecondAlleleOfSample(ind) != allele){
 				//there was a variant site, is previous site invariant? -> write to file
 				if(previousStartIsVariant == false && counter != 1){
 					bedFile << vcfFile.chr() << "\t" << curStartRegion - 1 << "\t" << vcfFile.position() - 1 << std::endl;
@@ -173,7 +173,7 @@ void VcfDiagnostics::assessAllelicImbalance(TParameters & Params){
 	logfile->startIndent("Initializing count tables:");
 	std::string qualityString = Params.getParameterWithDefault<std::string>("qualities", "0,10,20,30,40,50");
 	std::vector<int> qualities;
-	fillContainerFromString(qualityString, qualities, ',');
+	coretools::str::fillContainerFromString(qualityString, qualities, ',');
 
 	std::vector<TCountTable*> countTables;
 	for(unsigned int i=0; i<qualities.size(); ++i){
@@ -197,9 +197,9 @@ void VcfDiagnostics::assessAllelicImbalance(TParameters & Params){
 				//which position in table does site correspond to?
 				std::vector<std::string> tmp;
 				std::string tag="AD";
-				fillContainerFromString(vcfFile.getSampleContentAt(tag, i), tmp, ',');
-				int numRef = convertString<int>(tmp[0]);
-				int numAlt = convertString<int>(tmp[1]);
+				coretools::str::fillContainerFromString(vcfFile.getSampleContentAt(tag, i), tmp, ',');
+				int numRef = coretools::str::convertString<int>(tmp[0]);
+				int numAlt = coretools::str::convertString<int>(tmp[1]);
 				if(numRef == 0 || numAlt == 0)
 					throw "Call at position " + toString(vcfFile.position()) + " is heterozygous but reference or alternative allelic depth is 0!";
 				if(vcfFile.depthAsIntNoCheckForMissingSample("DP", i) > maxDP){
@@ -208,7 +208,7 @@ void VcfDiagnostics::assessAllelicImbalance(TParameters & Params){
 				}
 
 				//add count to correct table
-				int quality = convertString<int>(vcfFile.getSampleContentAt("GQ", i));
+				int quality = coretools::str::convertString<int>(vcfFile.getSampleContentAt("GQ", i));
 				int index = findLastPassedFilterIndex(quality, qualities);
 				for(int i=0; i<(index+1); ++i){
 					++(countTables.at(i))->table[numRef][numAlt];
@@ -360,7 +360,7 @@ void VcfDiagnostics::fixIntAsFloat(){
 
 		//fix GP field
 		std::string gp = vcfFile.fieldContentAsString("GP", 0);
-		fillContainerFromString(gp, vec, ',');
+		coretools::str::fillContainerFromString(gp, vec, ',');
 		gp = std::to_string(vec[0]) + ',' + std::to_string(vec[1]) + ',' + std::to_string(vec[2]);
 		vcfFile.updateField("GP", gp, 0);
 

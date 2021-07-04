@@ -13,6 +13,8 @@ namespace PopulationTools{
 using genometools::homoFirst;
 using genometools::het;
 using genometools::homoSecond;
+using genometools::haploidFirst;
+using genometools::haploidSecond;
 
 //-------------------------------------------------
 // TSAFChooseStorage
@@ -112,8 +114,8 @@ void TSiteAlleleFrequencyLikelihoods::_fillLog(TSampleLikelihoods* data, const u
 	if(s < numSamples){
 		//initialize with first individual
 		if(data[s].isHaploid()){
-			log_alleleFrequencyLikelihoods_h[0] = (LogProbability) data[s][homoFirst];
-			log_alleleFrequencyLikelihoods_h[1] = (LogProbability) data[s][homoSecond];
+			log_alleleFrequencyLikelihoods_h[0] = (LogProbability) data[s][haploidFirst];
+			log_alleleFrequencyLikelihoods_h[1] = (LogProbability) data[s][haploidSecond];
 			numAlleleCounts = 1;
 		} else {
 			log_alleleFrequencyLikelihoods_h[0] = (LogProbability) data[s][homoFirst];
@@ -129,17 +131,17 @@ void TSiteAlleleFrequencyLikelihoods::_fillLog(TSampleLikelihoods* data, const u
 
 				if(data[s].isHaploid()){
 					//first fill new ones to avoid multiplication with zero (relevant in log)
-					log_alleleFrequencyLikelihoods_h[j+1] = (LogProbability) data[s][homoSecond] + log_alleleFrequencyLikelihoods_h[j];
+					log_alleleFrequencyLikelihoods_h[j+1] = (LogProbability) data[s][haploidSecond] + log_alleleFrequencyLikelihoods_h[j];
 
 					//now fill those already used
 					for(; j>0; j--){
 						log_alleleFrequencyLikelihoods_h[j] = _protectedSumInLog(
-								(LogProbability) data[s][homoSecond] + log_alleleFrequencyLikelihoods_h[j-1],
-								(LogProbability) data[s][homoFirst] + log_alleleFrequencyLikelihoods_h[j]    );
+								(LogProbability) data[s][haploidSecond] + log_alleleFrequencyLikelihoods_h[j-1],
+								(LogProbability) data[s][haploidFirst] + log_alleleFrequencyLikelihoods_h[j]    );
 					}
 
 					//special case for j=0
-					log_alleleFrequencyLikelihoods_h[0] = (LogProbability) data[s][homoFirst] + log_alleleFrequencyLikelihoods_h[0];
+					log_alleleFrequencyLikelihoods_h[0] = (LogProbability) data[s][haploidFirst] + log_alleleFrequencyLikelihoods_h[0];
 
 					//increase total number of haplotypes by one
 					numAlleleCounts += 1;
@@ -197,8 +199,8 @@ void TSiteAlleleFrequencyLikelihoods::_fillNatural(TSampleLikelihoods* data, con
 	if(s < numSamples){
 		//initialize with first individual
 		if(data[s].isHaploid()){
-			alleleFrequencyLikelihoods_h[0] = (Probability) data[s][homoFirst];
-			alleleFrequencyLikelihoods_h[1] = (Probability) data[s][homoSecond];
+			alleleFrequencyLikelihoods_h[0] = (Probability) data[s][haploidFirst];
+			alleleFrequencyLikelihoods_h[1] = (Probability) data[s][haploidSecond];
 			numAlleleCounts = 1;
 		} else {
 			alleleFrequencyLikelihoods_h[0] = (Probability) data[s][homoFirst];
@@ -214,16 +216,16 @@ void TSiteAlleleFrequencyLikelihoods::_fillNatural(TSampleLikelihoods* data, con
 
 				if(data[s].isHaploid()){
 					//first fill new ones to avoid multiplication with zero (relevant in log, kept here for code consistency)
-					alleleFrequencyLikelihoods_h[j+1] = (Probability) data[s][homoSecond] * log_alleleFrequencyLikelihoods_h[j-1];
+					alleleFrequencyLikelihoods_h[j+1] = (Probability) data[s][haploidSecond] * log_alleleFrequencyLikelihoods_h[j-1];
 
 					//now fill those already used
 					for(; j>0; j--){
-						alleleFrequencyLikelihoods_h[j] = (Probability) data[s][homoSecond] * log_alleleFrequencyLikelihoods_h[j-1]
-													    + (Probability) data[s][homoFirst] * log_alleleFrequencyLikelihoods_h[j];
+						alleleFrequencyLikelihoods_h[j] = (Probability) data[s][haploidSecond] * log_alleleFrequencyLikelihoods_h[j-1]
+													    + (Probability) data[s][haploidFirst] * log_alleleFrequencyLikelihoods_h[j];
 					}
 
 					//special case for j=0
-					alleleFrequencyLikelihoods_h[0] = (LogProbability) data[s][homoFirst] * log_alleleFrequencyLikelihoods_h[0];
+					alleleFrequencyLikelihoods_h[0] = (LogProbability) data[s][haploidFirst] * log_alleleFrequencyLikelihoods_h[0];
 
 					//increase total number of haplotypes by one
 					numAlleleCounts += 1;

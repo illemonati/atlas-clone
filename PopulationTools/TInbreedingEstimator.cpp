@@ -996,8 +996,8 @@ double TInbreedingEstimator::logLikelihoodAllInds(TSampleLikelihoods* data, cons
 		if(!data[s].isMissing()){
 			double integrationOverGeno = 0;
 			if(data[s].isHaploid()){
-				integrationOverGeno += (Probability) data[s][genometools::homoFirst] * (1.0 - thisP);
-				integrationOverGeno += (Probability) data[s][genometools::homoSecond] * thisP;
+				integrationOverGeno += (Probability) data[s][genometools::haploidFirst] * (1.0 - thisP);
+				integrationOverGeno += (Probability) data[s][genometools::haploidSecond] * thisP;
 			} else {
 				//calculate and add ratio for each genotype
 				integrationOverGeno = (Probability) data[s][genometools::homoFirst] * PGeno[0];

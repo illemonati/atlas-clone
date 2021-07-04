@@ -755,7 +755,7 @@ void TPopulationLikelihoodReaderLocus::writePosition(coretools::TOutputFile & ou
 	out << vcfFile.chr() << vcfFile.position() << vcfFile.getRefAllele() << vcfFile.getFirstAltAllele();
 };
 
-std::vector<genometools::BiallelicGenotype> TPopulationLikelihoodReaderLocus::bialleleicGenotypes(TPopulationSamples & samples){
+std::vector<genometools::BiallelicGenotype> TPopulationLikelihoodReaderLocus::biallelicGenotypes(TPopulationSamples & samples) const {
 	std::vector<genometools::BiallelicGenotype> vec(samples.numSamples());
     for(uint32_t s = 0; s < samples.numSamples(); ++s) {
         uint32_t vcfIndex = samples.VCF_order(s);
@@ -764,15 +764,20 @@ std::vector<genometools::BiallelicGenotype> TPopulationLikelihoodReaderLocus::bi
     return vec;
 };
 
-genometools::BiallelicGenotype TPopulationLikelihoodReaderLocus::biallelicGenotype(TPopulationSamples & samples, uint32_t s){
+genometools::BiallelicGenotype TPopulationLikelihoodReaderLocus::biallelicGenotype(TPopulationSamples & samples, const uint32_t & s) const{
     uint32_t vcfIndex = samples.VCF_order(s);
     return vcfFile.sampleBiallelicGenotype(vcfIndex);
-}
+};
+
+genometools::Genotype TPopulationLikelihoodReaderLocus::genotype(TPopulationSamples & samples, const uint32_t & s) const{
+	uint32_t vcfIndex = samples.VCF_order(s);
+	return vcfFile.sampleGenotype(vcfIndex);
+};
 
 double TPopulationLikelihoodReaderLocus::depth(TPopulationSamples & samples, uint32_t s){
     uint32_t vcfIndex = samples.VCF_order(s);
     return vcfFile.sampleDepth(vcfIndex);
-}
+};
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // TPopulationLikelihoodReaderWindow                                                          //

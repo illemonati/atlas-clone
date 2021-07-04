@@ -11,21 +11,22 @@
 // --> writing and reading
 //-------------------------------------------------------------
 
+using namespace GLF;
+using genometools::Base;
+using GenotypeLikelihoods::TBaseLikelihoods;
+
 class TGLF_Test_WriteRead : public ::testing::Test {
 protected:
     std::string _filename = "testGLF.glf";
     std::vector<uint32_t> chrLength;
 public:
     std::unique_ptr<TestUtilities::TTestGLFFile> outputGLF;
-    std::unique_ptr<TGlfReader> inputGLF;
+    std::unique_ptr<GLF::TGlfReader> inputGLF;
 
     // store stuff from input GLF to later compare with output
     std::vector<uint32_t> positions;
     std::vector<uint8_t> depths;
     std::vector<uint16_t *> genotypeLikelihoods;
-
-    // convert
-    TGlfConverter converter;
 
     void write(int numDummySites){
         //settings
@@ -59,12 +60,12 @@ public:
         // 3) depth = 0
         outputGLF->writeDummySite(20, 0);
         // 4) depth = 10, but all bases are N
-        std::vector<GenotypeLikelihoods::TBaseData> bases;
+        std::vector<GenotypeLikelihoods::TBaseLikelihoods> bases;
         bases.reserve(10);
-        Base base = N;
+        Base base = genometools::N;
         double error = 0.001;
         for (uint32_t d = 0; d < 10; d++){
-            TBaseData baseData(base, error);
+        	TBaseLikelihoods baseData(base, error);
             bases.emplace_back(baseData);
         }
         TGenotypeLikelihoods gtL;

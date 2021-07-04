@@ -151,10 +151,10 @@ public:
 	bool sampleIsDiploid(unsigned int sample);
 	bool sampleIsHomoRef(unsigned int sample);
 	bool sampleIsHeteroRefNonref(unsigned int sample);
-	genometools::Base getFirstAlleleOfSample(unsigned int num);
-	genometools::Base getSecondAlleleOfSample(unsigned int num);
-	genometools::BiallelicGenotype sampleBiallelicGenotype(const unsigned int & num);
-	genometools::Genotype sampleGenotype(const unsigned int & num);
+	genometools::Base getFirstAlleleOfSample(unsigned int num) const;
+	genometools::Base getSecondAlleleOfSample(unsigned int num) const;
+	genometools::BiallelicGenotype sampleBiallelicGenotype(const unsigned int & num) const;
+	genometools::Genotype sampleGenotype(const unsigned int & num) const;
 	float sampleGenotypeQuality(unsigned int sample);
 	double sampleDepth(unsigned int sample);
 	// int sampleDepth(unsigned int sample);

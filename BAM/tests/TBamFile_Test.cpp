@@ -7,6 +7,17 @@
 
 #include "TestCase.h"
 
+using coretools::TLog;
+using coretools::TRandomGenerator;
+using coretools::TParameters;
+
+using genometools::Base;
+using genometools::PhredIntProbability;
+using genometools::A;
+using genometools::C;
+using genometools::G;
+using genometools::T;
+
 //-------------------------------------------------------------
 // TBamFile - simple writing and reading
 //-------------------------------------------------------------
@@ -15,8 +26,6 @@ class TBamFile_Test_ReadWrite : public ::testing::Test {
 protected:
     std::string _filename = "testBAM.bam";
     TLog _logfile;
-    GenotypeLikelihoods::TGenotypeMap genoMap;
-    BAM::TQualityMap qualMap;
 
 public:
     std::unique_ptr<TestUtilities::TTestBamFile> outputBam;
@@ -135,8 +144,8 @@ TEST_F(TBamFile_Test_ReadWrite, alignments){
         EXPECT_EQ(alignmentWritten->cigar().lengthRead(), alignmentRead.cigar().lengthRead());
 
         // sequence attributes of TAlignment
-        EXPECT_EQ(alignmentWritten->sequence(genoMap, qualMap), alignmentRead.sequence(genoMap, qualMap));
-        EXPECT_EQ(alignmentWritten->qualities(genoMap, qualMap), alignmentRead.qualities(genoMap, qualMap));
+        EXPECT_EQ(alignmentWritten->sequence(), alignmentRead.sequence());
+        EXPECT_EQ(alignmentWritten->qualities(), alignmentRead.qualities());
         EXPECT_EQ(alignmentWritten->isReverseStrand(), alignmentRead.isReverseStrand());
         EXPECT_EQ(alignmentWritten->isPaired(), alignmentRead.isPaired());
         EXPECT_EQ(alignmentWritten->isProperPair(), alignmentRead.isProperPair());
@@ -223,9 +232,6 @@ protected:
     TParameters _parameters;
 
 public:
-    GenotypeLikelihoods::TGenotypeMap genoMap;
-    BAM::TQualityMap qualMap;
-
     std::unique_ptr<TestUtilities::TTestBamFile> outputBam;
     std::unique_ptr<TGenomeWindow_Test> genomeWindow;
     std::string filename = "testBAM.bam";
@@ -243,24 +249,25 @@ public:
         // 1) overlapping alignments inside one window, cigar is all M
         BAM::TCigar onlyMCigar;
         onlyMCigar.add('M', 20);
-        outputBam->writeDummyAlignment('A', '1', BAM::TGenomePosition(0, 0), onlyMCigar);
-        outputBam->writeDummyAlignment('C', '2', BAM::TGenomePosition(0, 10), onlyMCigar);
-        outputBam->writeDummyAlignment('G', '3', BAM::TGenomePosition(0, 20), onlyMCigar);
+
+        outputBam->writeDummyAlignment(A, PhredIntProbability(1), BAM::TGenomePosition(0, 0), onlyMCigar);
+        outputBam->writeDummyAlignment(C, PhredIntProbability(2), BAM::TGenomePosition(0, 10), onlyMCigar);
+        outputBam->writeDummyAlignment(G, PhredIntProbability(3), BAM::TGenomePosition(0, 20), onlyMCigar);
 
         // 2) alignments overlap 2 windows
-        outputBam->writeDummyAlignment('T', '4', BAM::TGenomePosition(0, 80), onlyMCigar);
-        outputBam->writeDummyAlignment('A', '5', BAM::TGenomePosition(0, 90), onlyMCigar);
-        outputBam->writeDummyAlignment('C', '6', BAM::TGenomePosition(0, 95), onlyMCigar);
-        outputBam->writeDummyAlignment('G', '7', BAM::TGenomePosition(0, 100), onlyMCigar);
+        outputBam->writeDummyAlignment(T, PhredIntProbability(4), BAM::TGenomePosition(0, 80), onlyMCigar);
+        outputBam->writeDummyAlignment(A, PhredIntProbability(5), BAM::TGenomePosition(0, 90), onlyMCigar);
+        outputBam->writeDummyAlignment(C, PhredIntProbability(6), BAM::TGenomePosition(0, 95), onlyMCigar);
+        outputBam->writeDummyAlignment(G, PhredIntProbability(7), BAM::TGenomePosition(0, 100), onlyMCigar);
 
         // 3) one alignment inside 1 window
-        outputBam->writeDummyAlignment('T', '8', BAM::TGenomePosition(0, 220), onlyMCigar);
+        outputBam->writeDummyAlignment(T, PhredIntProbability(8), BAM::TGenomePosition(0, 220), onlyMCigar);
 
         // 4) only 1 window per chromosome
-        outputBam->writeDummyAlignment('A', '9', BAM::TGenomePosition(1, 10), onlyMCigar);
+        outputBam->writeDummyAlignment(A, PhredIntProbability(9), BAM::TGenomePosition(1, 10), onlyMCigar);
 
         // 5) empty window
-        outputBam->writeDummyAlignment('C', '0', BAM::TGenomePosition(2, 10), onlyMCigar);
+        outputBam->writeDummyAlignment(C, PhredIntProbability(0), BAM::TGenomePosition(2, 10), onlyMCigar);
 
         // 6) empty chromosome
 
@@ -271,9 +278,9 @@ public:
         mixedCigar.add('D', 5);
         mixedCigar.add('I', 5);
         mixedCigar.add('S', 2);
-        outputBam->writeDummyAlignment('A', '1', BAM::TGenomePosition(4, 0), mixedCigar);
-        outputBam->writeDummyAlignment('C', '2', BAM::TGenomePosition(4, 4), mixedCigar);
-        outputBam->writeDummyAlignment('G', '3', BAM::TGenomePosition(4, 8), mixedCigar);
+        outputBam->writeDummyAlignment(A, PhredIntProbability(1), BAM::TGenomePosition(4, 0), mixedCigar);
+        outputBam->writeDummyAlignment(C, PhredIntProbability(2), BAM::TGenomePosition(4, 4), mixedCigar);
+        outputBam->writeDummyAlignment(G, PhredIntProbability(3), BAM::TGenomePosition(4, 8), mixedCigar);
 
         // 8) last window is empty
 
@@ -464,41 +471,41 @@ TEST_F(TBamFile_Test_Windows, sites_getBases){
     int c = 0;
     for (const auto& site : genomeWindow->sites[0]){ // first window
         if (c < 10)
-            EXPECT_EQ(site.getBases(genoMap), "A");
+            EXPECT_EQ(site.getBases(), "A");
         else if (c >= 10 && c < 20)
-            EXPECT_EQ(site.getBases(genoMap), "AC");
+            EXPECT_EQ(site.getBases(), "AC");
         else if (c >= 20 && c < 30)
-            EXPECT_EQ(site.getBases(genoMap), "CG");
+            EXPECT_EQ(site.getBases(), "CG");
         else if (c >= 30 && c < 40)
-            EXPECT_EQ(site.getBases(genoMap), "G");
+            EXPECT_EQ(site.getBases(), "G");
         else if (c >= 80 && c < 90)
-            EXPECT_EQ(site.getBases(genoMap), "T");
+            EXPECT_EQ(site.getBases(), "T");
         else if (c >= 90 && c < 95)
-            EXPECT_EQ(site.getBases(genoMap), "TA");
+            EXPECT_EQ(site.getBases(), "TA");
         else if (c >= 95 && c < 100)
-            EXPECT_EQ(site.getBases(genoMap), "TAC");
+            EXPECT_EQ(site.getBases(), "TAC");
         else
-            EXPECT_EQ(site.getBases(genoMap), "-");
+            EXPECT_EQ(site.getBases(), "-");
         c++;
     }
     c = 0;
     for (const auto& site : genomeWindow->sites[1]){ // second window
         if (c < 10)
-            EXPECT_EQ(site.getBases(genoMap), "ACG");
+            EXPECT_EQ(site.getBases(), "ACG");
         else if (c >= 10 && c < 15)
-            EXPECT_EQ(site.getBases(genoMap), "CG");
+            EXPECT_EQ(site.getBases(), "CG");
         else if (c >= 15 && c < 20)
-            EXPECT_EQ(site.getBases(genoMap), "G");
+            EXPECT_EQ(site.getBases(), "G");
         else
-            EXPECT_EQ(site.getBases(genoMap), "-");
+            EXPECT_EQ(site.getBases(), "-");
         c++;
     }
     c = 0;
     for (const auto& site : genomeWindow->sites[2]){ // third window
         if (c >= 20 && c < 40)
-            EXPECT_EQ(site.getBases(genoMap), "T");
+            EXPECT_EQ(site.getBases(), "T");
         else
-            EXPECT_EQ(site.getBases(genoMap), "-");
+            EXPECT_EQ(site.getBases(), "-");
         c++;
     }
 
@@ -506,9 +513,9 @@ TEST_F(TBamFile_Test_Windows, sites_getBases){
     c = 0;
     for (const auto& site : genomeWindow->sites[3]){ // 4. window
         if (c >= 10 && c < 30)
-            EXPECT_EQ(site.getBases(genoMap), "A");
+            EXPECT_EQ(site.getBases(), "A");
         else
-            EXPECT_EQ(site.getBases(genoMap), "-");
+            EXPECT_EQ(site.getBases(), "-");
         c++;
     }
 
@@ -516,21 +523,21 @@ TEST_F(TBamFile_Test_Windows, sites_getBases){
     c = 0;
     for (const auto& site : genomeWindow->sites[4]){ // 5. window
         if (c >= 10 && c < 30)
-            EXPECT_EQ(site.getBases(genoMap), "C");
+            EXPECT_EQ(site.getBases(), "C");
         else
-            EXPECT_EQ(site.getBases(genoMap), "-");
+            EXPECT_EQ(site.getBases(), "-");
         c++;
     }
     c = 0;
     for (const auto& site : genomeWindow->sites[5]){ // 6. window
-        EXPECT_EQ(site.getBases(genoMap), "-");
+        EXPECT_EQ(site.getBases(), "-");
         c++;
     }
 
     // 4. chr (case6))
     c = 0;
     for (const auto& site : genomeWindow->sites[6]){ // 7. window
-        EXPECT_EQ(site.getBases(genoMap), "-");
+        EXPECT_EQ(site.getBases(), "-");
         c++;
     }
 
@@ -538,22 +545,22 @@ TEST_F(TBamFile_Test_Windows, sites_getBases){
     c = 0;
     for (const auto& site : genomeWindow->sites[7]){ // 8. window
         if (c >= 0 && c < 4)
-            EXPECT_EQ(site.getBases(genoMap), "A");
+            EXPECT_EQ(site.getBases(), "A");
         else if (c == 4)
-            EXPECT_EQ(site.getBases(genoMap), "AC");
+            EXPECT_EQ(site.getBases(), "AC");
         else if (c >= 5 && c < 8)
-            EXPECT_EQ(site.getBases(genoMap), "C");
+            EXPECT_EQ(site.getBases(), "C");
         else if (c == 8)
-            EXPECT_EQ(site.getBases(genoMap), "CG");
+            EXPECT_EQ(site.getBases(), "CG");
         else if (c >= 9 && c < 13)
-            EXPECT_EQ(site.getBases(genoMap), "G");
+            EXPECT_EQ(site.getBases(), "G");
         else
-            EXPECT_EQ(site.getBases(genoMap), "-");
+            EXPECT_EQ(site.getBases(), "-");
         c++;
     }
     c = 0;
     for (const auto& site : genomeWindow->sites[8]){ // 9. window
-        EXPECT_EQ(site.getBases(genoMap), "-");
+        EXPECT_EQ(site.getBases(), "-");
     }
 }
 
@@ -562,41 +569,41 @@ TEST_F(TBamFile_Test_Windows, sites_getQualities){
     int c = 0;
     for (const auto& site : genomeWindow->sites[0]){ // first window
         if (c < 10)
-            EXPECT_EQ(site.getQualities(qualMap), "1");
+            EXPECT_EQ(site.getQualities(), "1");
         else if (c >= 10 && c < 20)
-            EXPECT_EQ(site.getQualities(qualMap), "12");
+            EXPECT_EQ(site.getQualities(), "12");
         else if (c >= 20 && c < 30)
-            EXPECT_EQ(site.getQualities(qualMap), "23");
+            EXPECT_EQ(site.getQualities(), "23");
         else if (c >= 30 && c < 40)
-            EXPECT_EQ(site.getQualities(qualMap), "3");
+            EXPECT_EQ(site.getQualities(), "3");
         else if (c >= 80 && c < 90)
-            EXPECT_EQ(site.getQualities(qualMap), "4");
+            EXPECT_EQ(site.getQualities(), "4");
         else if (c >= 90 && c < 95)
-            EXPECT_EQ(site.getQualities(qualMap), "45");
+            EXPECT_EQ(site.getQualities(), "45");
         else if (c >= 95 && c < 100)
-            EXPECT_EQ(site.getQualities(qualMap), "456");
+            EXPECT_EQ(site.getQualities(), "456");
         else
-            EXPECT_EQ(site.getQualities(qualMap), "-");
+            EXPECT_EQ(site.getQualities(), "-");
         c++;
     }
     c = 0;
     for (const auto& site : genomeWindow->sites[1]){ // second window
         if (c < 10)
-            EXPECT_EQ(site.getQualities(qualMap), "567");
+            EXPECT_EQ(site.getQualities(), "567");
         else if (c >= 10 && c < 15)
-            EXPECT_EQ(site.getQualities(qualMap), "67");
+            EXPECT_EQ(site.getQualities(), "67");
         else if (c >= 15 && c < 20)
-            EXPECT_EQ(site.getQualities(qualMap), "7");
+            EXPECT_EQ(site.getQualities(), "7");
         else
-            EXPECT_EQ(site.getQualities(qualMap), "-");
+            EXPECT_EQ(site.getQualities(), "-");
         c++;
     }
     c = 0;
     for (const auto& site : genomeWindow->sites[2]){ // third window
         if (c >= 20 && c < 40)
-            EXPECT_EQ(site.getQualities(qualMap), "8");
+            EXPECT_EQ(site.getQualities(), "8");
         else
-            EXPECT_EQ(site.getQualities(qualMap), "-");
+            EXPECT_EQ(site.getQualities(), "-");
         c++;
     }
 
@@ -604,9 +611,9 @@ TEST_F(TBamFile_Test_Windows, sites_getQualities){
     c = 0;
     for (const auto& site : genomeWindow->sites[3]){ // 4. window
         if (c >= 10 && c < 30)
-            EXPECT_EQ(site.getQualities(qualMap), "9");
+            EXPECT_EQ(site.getQualities(), "9");
         else
-            EXPECT_EQ(site.getQualities(qualMap), "-");
+            EXPECT_EQ(site.getQualities(), "-");
         c++;
     }
 
@@ -614,21 +621,21 @@ TEST_F(TBamFile_Test_Windows, sites_getQualities){
     c = 0;
     for (const auto& site : genomeWindow->sites[4]){ // 5. window
         if (c >= 10 && c < 30)
-            EXPECT_EQ(site.getQualities(qualMap), "0");
+            EXPECT_EQ(site.getQualities(), "0");
         else
-            EXPECT_EQ(site.getQualities(qualMap), "-");
+            EXPECT_EQ(site.getQualities(), "-");
         c++;
     }
     c = 0;
     for (const auto& site : genomeWindow->sites[5]){ // 6. window
-        EXPECT_EQ(site.getQualities(qualMap), "-");
+        EXPECT_EQ(site.getQualities(), "-");
         c++;
     }
 
     // 4. chr (case6))
     c = 0;
     for (const auto& site : genomeWindow->sites[6]){ // 7. window
-        EXPECT_EQ(site.getQualities(qualMap), "-");
+        EXPECT_EQ(site.getQualities(), "-");
         c++;
     }
 
@@ -636,28 +643,31 @@ TEST_F(TBamFile_Test_Windows, sites_getQualities){
     c = 0;
     for (const auto& site : genomeWindow->sites[7]){ // 8. window
         if (c >= 0 && c < 4)
-            EXPECT_EQ(site.getQualities(qualMap), "1");
+            EXPECT_EQ(site.getQualities(), "1");
         else if (c == 4)
-            EXPECT_EQ(site.getQualities(qualMap), "12");
+            EXPECT_EQ(site.getQualities(), "12");
         else if (c >= 5 && c < 8)
-            EXPECT_EQ(site.getQualities(qualMap), "2");
+            EXPECT_EQ(site.getQualities(), "2");
         else if (c == 8)
-            EXPECT_EQ(site.getQualities(qualMap), "23");
+            EXPECT_EQ(site.getQualities(), "23");
         else if (c >= 9 && c < 13)
-            EXPECT_EQ(site.getQualities(qualMap), "3");
+            EXPECT_EQ(site.getQualities(), "3");
         else
-            EXPECT_EQ(site.getQualities(qualMap), "-");
+            EXPECT_EQ(site.getQualities(), "-");
         c++;
     }
     c = 0;
     for (const auto& site : genomeWindow->sites[8]){ // 9. window
-        EXPECT_EQ(site.getQualities(qualMap), "-");
+        EXPECT_EQ(site.getQualities(), "-");
     }
 }
 
 //-------------------------------------------------------------
 // TBamFile - filters
 //-------------------------------------------------------------
+
+using coretools::TCountDistribution;
+using coretools::TCountDistributionVector;
 
 class TBamFilter : public GenomeTasks::TGenome_filtered {
     // class very similar to TBamDiagnoser, but inherits from TGenome_filtered -> can apply all filters
@@ -1183,9 +1193,9 @@ TEST_F(TBamFilter_Test, blacklist){
     // 9) filter: 'blacklist'
 
     // generate blacklist
-    TOutputFile blackList("blacklist.txt", 1);
+    coretools::TOutputFile blackList("blacklist.txt", 1);
     for (int i = 0; i < 200; i++){ // add first 200 reads to blacklist
-        blackList << "alignment_" + toString(i) << std::endl;
+        blackList << "alignment_" + coretools::str::toString(i) << std::endl;
     }
     blackList.close();
 
@@ -1195,7 +1205,7 @@ TEST_F(TBamFilter_Test, blacklist){
     EXPECT_EQ(bamFilter->totalReads.counts(), numReads - 200);
     for (auto & it : bamFilter->names){
         // all alignments 0-199 should have been removed
-       int alignmentNum = convertString<int>(extractAfter(it, "_"));
+       int alignmentNum = coretools::str::convertString<int>(coretools::str::extractAfter(it, "_"));
        EXPECT_TRUE(alignmentNum >= 200);
     }
 
