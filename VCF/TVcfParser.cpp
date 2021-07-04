@@ -26,12 +26,12 @@ TVcfHeaderLine::TVcfHeaderLine(std::string & Line){
 				temp.erase(pp,1);
 				pp=temp.find_first_of('"');
 			}
-			if(numq==1 || numq==3) temp=temp+extractBefore(line, '"');
+			if(numq==1 || numq==3) temp = temp + coretools::str::extractBefore(line, '"');
 			line.erase(0,1);
 		}
 
 		//get tag
-		std::string tag=extractBefore(temp, '=');
+		std::string tag = coretools::str::extractBefore(temp, '=');
 		temp.erase(0,1);
 
 		//check tag
@@ -113,75 +113,7 @@ void TVcfHeaderLine::init(){
 std::string TVcfHeaderLine::getString(){
 	return "<ID=" + _id + ",Number=" + numberString + ",Type=" + typeString + ",Description=\"" + desc + "\">";
 }
-//--------------------------------------------------------------------
-/*
-TVcfFilter::TVcfFilter(std::string filter, long* CurrentLine){
-	currentLine=CurrentLine;
-	//has the format tag<val or tag>val or tag.sub<val or tag.sub>val
-	if(filter.contains('>')) larger=true;
-	else if(filter.contains('<')) larger=false;
-	else throw "Filter '" + filter + "' is missing a '>' or '<' sign!";
 
-	//get value
-	std::string temp;
-	if(larger) temp=filter.extract_after('>');
-	else temp=filter.extract_after('<');
-	if(!temp.isNumber()) throw "In filter '" + filter + "', the value '"+temp+"' is not a number!";
-	val=temp.toDouble();
-
-	//get field
-	if(larger) temp=filter.extract_before('>');
-	else temp=filter.extract_before('<');
-	if(temp.contains('.')){
-		sub=true;
-		tag=temp.extract_before('.');
-		subTag=temp.extract_after('.');
-	} else {
-		sub=false;
-		tag=temp;
-	}
-};
-
-bool TVcfFilter::pass(TVcfFormat* format, std::vector<std::string>* data){
-	std::string buf=data->at(format->getCol(tag));
-	float d;
-	if(sub){
-		//parse buf. Format is sub=data,sub2=data2 ...
-		std::string temp;
-		bool found=false;
-		while(!buf.empty()){
-			temp=buf.extract_sub_str(',');
-			if(temp.contains('=') && temp.extract_before('=')==subTag){
-				found=true;
-				break;
-			}
-		}
-		if(!found) throw "Sub-tag '"+subTag+"' missing in VCF file on line " +(std::string) *currentLine + "!";
-		d=temp.extract_after('=').toDouble();
-	} else d=buf.toDouble();
-
-	if(larger && d>val) return true;
-	else if (!larger && d<val) return true;
-	return false;
-}
-
-void TVcfFilter::print(){
-	if(sub) cout << "    -> Skipping calls where entry " << subTag << " in column " << tag;
-	else cout << "    -> Skipping calls where column " << tag;
-	if(larger) cout << " > ";
-	else cout << " < ";
-	cout << val << endl;
-}
-*/
-//--------------------------------------------------------------------
-/*
-void TVcfSample::filter(TVcfFilter* filter){
-	if(!missing){
-		if(!filter->pass(format, &data))
-			missing=false;
-	}
-}
-*/
 //--------------------------------------------------------------------
 // TVcfSample
 //--------------------------------------------------------------------

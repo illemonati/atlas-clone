@@ -138,7 +138,7 @@ public:
 //--------------------------------------
 class TTask_testHardyWeinberg:public coretools::TTask{
 public:
-	TTask_testHardyWeinberg(){ _explanation = "Testing for Hardy-Weinberg equilibrium across mMultiple populations"; };
+	TTask_testHardyWeinberg(){ _explanation = "Testing for Hardy-Weinberg equilibrium across multiple populations"; };
 
 	void run(TParameters & Parameters, TLog* Logfile){
 		THardyWeinbergTest HW_test(Parameters, Logfile, _randomGenerator);
