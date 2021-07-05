@@ -27,8 +27,8 @@ void TMultiGLFData::fill(PopulationTools::TPopulationLikehoodLocus & storage, co
 	for(uint32_t i=0; i<samples.size(); ++i){
 		if(samples[i].isHaploid){
 			if(samples[i].hasData){
-				storage[i].setHaploid(samples[i].genotypeLikelihoodsGLF[(uint8_t) alleleicCombination.firstAllele()],
-						              samples[i].genotypeLikelihoodsGLF[(uint8_t) alleleicCombination.secondAllele()]);
+				storage[i].setHaploid(samples[i].genotypeLikelihoodsGLF[alleleicCombination.firstAllele().get()],
+						              samples[i].genotypeLikelihoodsGLF[alleleicCombination.secondAllele().get()]);
 			} else {
 				storage[i].setMissingHaploid();
 			}
@@ -199,29 +199,29 @@ void TGlfMultiReaderVcf::writeDiploidIndividualToVCF(TMultiGLFDataSample & sampl
 void TGlfMultiReaderVcf::writeHaploidIndividualToVCF(TMultiGLFDataSample & sample){
 	if(sample.hasData){
 		//find min qual
-		genometools::HighPrecisionPhredIntProbability minQual = sample.genotypeLikelihoodsGLF[(uint8_t) _ref];
-		if(sample.genotypeLikelihoodsGLF[(uint8_t) _alt] < minQual) minQual = sample.genotypeLikelihoodsGLF[(uint8_t) _alt];
+		genometools::HighPrecisionPhredIntProbability minQual = sample.genotypeLikelihoodsGLF[_ref.get()];
+		if(sample.genotypeLikelihoodsGLF[_alt.get()] < minQual) minQual = sample.genotypeLikelihoodsGLF[_alt.get()];
 
 		//get all genotypes with minQual (=MLE)
 		std::vector<genometools::Base> mleGenotypes;
-		if(sample.genotypeLikelihoodsGLF[(uint8_t) _ref] == minQual) mleGenotypes.push_back(_ref);
-		if(sample.genotypeLikelihoodsGLF[(uint8_t) _alt] == minQual) mleGenotypes.push_back(_alt);
+		if(sample.genotypeLikelihoodsGLF[_ref.get()] == minQual) mleGenotypes.push_back(_ref);
+		if(sample.genotypeLikelihoodsGLF[_alt.get()] == minQual) mleGenotypes.push_back(_alt);
 
 		//write MLE genoytpe
 		genometools::Base mleGeno = mleGenotypes[randomGenerator->sample(mleGenotypes.size())];
 		vcf << '\t' << genotypeStrings[mleGeno.get()] << ':';
 
 		//write genotype quality
-		if(mleGeno == _ref) vcf << (genometools::PhredIntProbability) (sample.genotypeLikelihoodsGLF[(uint8_t) _alt] - minQual) << ":";
-		else  vcf << (genometools::PhredIntProbability) (sample.genotypeLikelihoodsGLF[(uint8_t) _ref] - minQual) << ":";
+		if(mleGeno == _ref) vcf << (genometools::PhredIntProbability) (sample.genotypeLikelihoodsGLF[_alt.get()] - minQual) << ":";
+		else  vcf << (genometools::PhredIntProbability) (sample.genotypeLikelihoodsGLF[_ref.get()] - minQual) << ":";
 
 		//write depth
 		vcf << sample.depth << ':';
 
 		//write likelihoods
-		writeLikelihood(sample.genotypeLikelihoodsGLF[(uint8_t) _ref] - minQual);
+		writeLikelihood(sample.genotypeLikelihoodsGLF[_ref.get()] - minQual);
 		vcf << ',';
-		writeLikelihood(sample.genotypeLikelihoodsGLF[(uint8_t) _alt] - minQual);
+		writeLikelihood(sample.genotypeLikelihoodsGLF[_alt.get()] - minQual);
 	} else {
 		vcf << "\t.:.:.:.";
 	}

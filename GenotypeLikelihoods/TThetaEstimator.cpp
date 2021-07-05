@@ -289,7 +289,7 @@ bool TThetaEstimator::_NRAllParams(){
 					tmpSum += P_G[het.get()];
 				}
 			}
-			F(static_cast<uint8_t>(k)) = P_G[hom.get()] * (1.0 + baseFreq[k].get() / (rho + baseFreq[k].get())) + tmpSum - mu * baseFreq[k].get();
+			F(k.get()) = P_G[hom.get()] * (1.0 + baseFreq[k].get() / (rho + baseFreq[k].get())) + tmpSum - mu * baseFreq[k].get();
 			F(4) -= P_G[hom.get()] * (rho + 1.0 ) / (rho + baseFreq[k].get());
 			F(5) += baseFreq[k].get();
 		}
@@ -306,7 +306,7 @@ bool TThetaEstimator::_NRAllParams(){
 		}
 
 		for(genometools::Base k = genometools::Base::min(); k < genometools::Base::max(); ++k){
-			uint8_t i = static_cast<uint8_t>(k);
+			uint8_t i = k.get();
 			Jacobian(i,i) = tmp[k] * rho - mu;
 			Jacobian(i,4) = - tmp[k];
 			Jacobian(5,i) = 1.0;
@@ -316,11 +316,11 @@ bool TThetaEstimator::_NRAllParams(){
 		}
 
 		//iii) now estimate new parameters
-		double mu = data->sizeWithData();
+		mu = data->sizeWithData();
 
 		if(solve(JxF, Jacobian, F)){
 			for(genometools::Base k = genometools::Base::min(); k < genometools::Base::max(); ++k){
-				baseFreq[k] = baseFreq[k].get() - JxF(static_cast<uint8_t>(k));
+				baseFreq[k] = baseFreq[k].get() - JxF(k.get());
 			}
 			rho -= JxF(4);
 			mu -= JxF(5);

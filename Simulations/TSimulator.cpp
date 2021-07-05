@@ -931,7 +931,7 @@ void TSimulatorPairOfIndividuals::_simulateHaplotypesDiploid(TSimulatorHaplotype
 
 		//simulate reference
 		if(c == 0){
-			ref[l] = static_cast<Base>(( static_cast<uint8_t>(genoTrans[c][g][0]) + _randomGenerator->pickOne(_cumulRef)) % 4);
+			ref[l].mutateWithStep(_randomGenerator->pickOne(_cumulRef));
 		} else {
 			int r = _randomGenerator->sample(4);
 			ref[l] = genoTrans[c][g][r];

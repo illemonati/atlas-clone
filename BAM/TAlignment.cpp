@@ -90,8 +90,22 @@ void TAlignment::fill(const	std::string & Name,
 };
 
 void TAlignment::parse(){
-	//first parse bases and qualities
-	_parseBasesQualities(_sequence, _qualities);
+	if(_sequence.size() != _qualities.size()){
+		throw std::runtime_error("void TAlignment::_parseBasesQualities(const std::vector<genometools::Base> & Sequence, const std::vector<genometools::PhredIntProbability> & Qualities): Sequence and Qualities are of different legth!");
+	}
+	//convert string into Bases and Qualities
+	std::vector<genometools::Base> Sequence;
+	Sequence.reserve(_sequence.length());
+	std::vector<genometools::PhredIntProbability> Qualities;
+	Qualities.reserve(_qualities.length());
+
+	for(size_t i = 0; i < _sequence.length(); ++i){
+		Sequence.emplace_back(_sequence[i]);
+		Qualities.emplace_back(genometools::BaseQuality(_qualities[i]));
+	}
+
+	//then parse
+	_parseBasesQualities(Sequence, Qualities);
 };
 
 void TAlignment::parse(const GenotypeLikelihoods::TSequencingErrorModels & seqErrorModels){
@@ -100,6 +114,102 @@ void TAlignment::parse(const GenotypeLikelihoods::TSequencingErrorModels & seqEr
 	//recalibrate
 	seqErrorModels.recalibrate(_bases);
 	_sequenceAndQualitiesChanged = seqErrorModels.recalibrationChangesQualities();
+};
+
+void TAlignment::_parseBasesQualities(const std::vector<genometools::Base> & Sequence, const std::vector<genometools::PhredIntProbability> & Qualities){
+	//ensure size
+	if(Sequence.size() != Qualities.size()){
+		throw std::runtime_error("void TAlignment::_parseBasesQualities(const std::vector<genometools::Base> & Sequence, const std::vector<genometools::PhredIntProbability> & Qualities): Sequence and Qualities are of different legth!");
+	}
+
+	//initialize
+	_bases.resize(_cigar.lengthRead());
+	_alignedPosition.resize(_cigar.lengthRead());
+	int d = 0; //index regarding data structures and inside read
+	int p = 0; //index regarding reference position (!= d for soft clipping & indels)
+
+	//loop over cigar operations
+	for(auto& cigarIter : _cigar){
+		switch ( cigarIter.type ) {
+
+			// for 'M', '=' or 'X': just copy
+			case ('M') :
+			case ('=') :
+			case ('X') :
+				//soft-clipped bases on 5' are before bamAlignment.Position
+				for(unsigned int i=0; i<cigarIter.length; ++i, ++d, ++p){
+					_bases[d].base = Sequence[d];
+					_bases[d].originalQuality_phredInt = Qualities[d];
+					_bases[d].setAligned(true);
+					_alignedPosition[d] = p;
+				}
+				break;
+
+			//for 'S' - soft clip: copy by set aligned = false
+			case ('S') :
+				//add bases to softclipped entries
+				for(unsigned int i=0; i<cigarIter.length; ++i, ++d){
+					//soft-clipped bases on 5' are before bamAlignment.Position
+					//need to initialize quality for quality filter and bases for context
+					_bases[d].base = Sequence[d];
+					_bases[d].originalQuality_phredInt = Qualities[d];
+					_bases[d].setAligned(false);
+					_alignedPosition[d] = -1;
+				}
+				break;
+
+			//for 'I' - insertion: copy bases, but put aligned  = false
+			case ('I')      :
+				for(unsigned int i=0; i<cigarIter.length; ++i, ++d){
+					_bases[d].base = Sequence[d];
+					_bases[d].originalQuality_phredInt = Qualities[d];
+					_bases[d].setAligned(false);
+					_alignedPosition[d] = -1;
+				}
+				break;
+
+			// for 'D' - deletion: just add to position
+			case ('D') :
+				p += cigarIter.length;
+				break;
+
+			// for 'N' - skipped region in reference: only advance reference position
+			case ('N') :
+				p += cigarIter.length;
+				break;
+
+			// for 'H' or 'P' - hard clip: do nothing as these bases are not present in SEQ
+			case ('H') :
+			case ('P') :
+				break;
+
+			// invalid CIGAR op-code
+			default:
+				throw (std::string) "CIGAR operation '" + cigarIter.type + "' not supported!";
+		}
+	}
+
+	//update length and last aligned position
+	_lastAlignedPositionWithRespectToRef = *this + (p - 1);
+	_lastAlignedPos = p - 1; //why -1? -> same reason as above
+
+	//then update distances from ends
+	_setDistancesFromEnds();
+
+	//fill context for each base
+	_fillContext();
+
+	//set mapping quality and whether read is first or second
+	for(auto& b : _bases){
+		b.readGroupID = _readGroupID;
+		b.mappingQuality = _mappingQuality;
+		b.fragmentLength = _fragmentLength;
+		b.setSecondMate(_flags.isSecondMate());
+		b.setReverseStrand(_flags.isReverseStrand());
+	}
+
+	_parsed = true;
+	_sequenceAndQualitiesChanged = false;
 };
 
 void TAlignment::_setDistancesFromEnds(){
@@ -179,8 +289,7 @@ void TAlignment::setSequenceQualities(const TCigar & Cigar, const std::vector<ge
 	_cigar = Cigar;
 
 	//parse bases and qualities
-	_parseBasesQualities(_sequence, _qualities);
-
+	_parseBasesQualities(Sequence, Qualities);
 	_changed = true;
 	_sequenceAndQualitiesChanged = true; //will trigger that the strings are read form the bases
 };

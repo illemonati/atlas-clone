@@ -138,7 +138,7 @@ void TTestBamFile::writeAlignment(const BAM::TAlignment & alignment){
 };
 
 BAM::TAlignment TTestBamFile::_constructAlignment(const std::vector<genometools::Base> & sequence, const std::vector<genometools::PhredIntProbability> & qualities, const BAM::TGenomePosition & position, const BAM::TCigar & cigar, const uint32_t & readGroup, const bool & isReverseStrand, const bool & complicatedSamFlag){
-    BAM::TAlignment alignment(position);
+	BAM::TAlignment alignment(position);
     alignment.setName("alignment_" + coretools::toString(_counter));
     alignment.setSequenceQualities(cigar, sequence, qualities);
     alignment.setMappingQuality(_dummyMapQual);
@@ -157,6 +157,18 @@ void TTestBamFile::writeDummyAlignment(const BAM::TGenomePosition & position, co
 	auto s = _constructFrom(_dummySequence, _dummySequenceStart, cigar.lengthRead());
 	auto q = _constructFrom(_dummyQualities, _dummyQualitiesStart, cigar.lengthRead());
 
+	std::cout << "DUMMY BASES: ";
+	for(auto& b : s){
+		std::cout << b;
+	}
+	std::cout << std::endl;
+
+	std::cout << "DUMMY QUALS: ";
+	for(auto& b : q){
+		std::cout << b;
+	}
+	std::cout << std::endl;
+
 	// iterate mapping quality
 	_iterateMappingQuality();
 
@@ -170,7 +182,7 @@ void TTestBamFile::writeDummyAlignment(const BAM::TGenomePosition & position, co
 };
 
 void TTestBamFile::writeDummyAlignment(const BAM::TGenomePosition & position, const BAM::TCigar & cigar, const bool & complicatedSamFlag){
-    writeDummyAlignment(position, cigar, _dummyReadGroup, _dummyIsReverseStrand, complicatedSamFlag);
+	writeDummyAlignment(position, cigar, _dummyReadGroup, _dummyIsReverseStrand, complicatedSamFlag);
 
     //iterate
     _iterateReadGroupAndReverseStrand();
@@ -187,7 +199,6 @@ void TTestBamFile::writeDummyAlignment(const BAM::TGenomePosition & position, co
 
 void TTestBamFile::writeDummyAlignment(const BAM::TGenomePosition & position, const bool & complicatedSamFlag){
 	writeDummyAlignment(position, _dummyLength, complicatedSamFlag);
-
 	_iterateLength();
 };
 
@@ -213,6 +224,7 @@ void TTestBamFile::writeDummyAlignments(const uint32_t & numAlignments, const bo
 		if(position + _dummyLength > chr->chrEnd){
 			++chr;
 			if(chr == _chromosomes.end()){
+				std::cout << "ERROR A" << std::endl;
 				throw std::runtime_error("void TTestBamFile::writeDummyAlignments(const uint32_t & numAlignments): chromosome reached end!");
 			}
 

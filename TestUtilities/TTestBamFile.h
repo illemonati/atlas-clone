@@ -42,10 +42,13 @@ protected:
 	BAM::TSamFlags _dummyFlag;
 
     template <typename T, typename U>
-    std::vector<T> _constructFrom(std::vector<T> & source, U & Start, const uint32_t & length){
-        std::vector<T> vec(Start, Start + length);
+    std::vector<T> _constructFrom(std::vector<T> & source, U & Start, const size_t & length){
+    	//add as much as possible until the end of source
+    	size_t len = std::min(length, (size_t) std::distance(Start, source.end()));
+        std::vector<T> vec(Start, Start + len);
         while(vec.size() < length){
-        	vec.insert(vec.end(), source.begin(), source.begin() + length - vec.size());
+        	len = std::min(length - vec.size(), source.size());
+        	vec.insert(vec.end(), source.begin(), source.begin() + len);
         }
 
         // iterate positions
@@ -53,7 +56,6 @@ protected:
         if(Start == source.end()){
         	Start = source.begin();
         }
-
         return vec;
     };
 
