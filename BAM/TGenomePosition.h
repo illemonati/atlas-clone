@@ -117,6 +117,7 @@ public:
 };
 
 TGenomeWindow merge(const TGenomeWindow & first, const TGenomeWindow & second);
+
 std::ostream& operator<<(std::ostream& os, const TGenomeWindow & window);
 
 }; //to namespace

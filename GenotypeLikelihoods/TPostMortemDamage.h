@@ -50,7 +50,7 @@ private:
 	std::map<std::string, double> _parameters;
 
 public:
-	TPMDEstimationParameters();
+	TPMDEstimationParameters() = default;
 	~TPMDEstimationParameters() = default;
 
 	bool exists(const std::string & Parameter) const{

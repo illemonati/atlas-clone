@@ -162,8 +162,8 @@ void TGenome_parsed::_traverseBAMPassedQC(){
 // A base class to traverse a BAM file in windows
 //---------------------------------------------------------------
 TGenome_windows::TGenome_windows(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator):
-		TGenome_parsed(Params, Logfile, RandomGenerator),
-		_chromosomes(_bamFile.chromosomes()){
+	TGenome_parsed(Params, Logfile, RandomGenerator),
+	_chromosomes(_bamFile.chromosomes()){
 	//reading parameters regarding windows
 	_logfile->startIndent("Parsing window settings:");
 	_setWindowParameters(Params);
@@ -173,7 +173,7 @@ TGenome_windows::TGenome_windows(TParameters & Params, TLog* Logfile, TRandomGen
 	_setSiteFilters(Params);
 	_logfile->endIndent();
 
-        _curAlignment = new BAM::TAlignment;
+    _curAlignment = new BAM::TAlignment;
 };
 
 TGenome_windows::~TGenome_windows(){

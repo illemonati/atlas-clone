@@ -86,10 +86,7 @@ public:
     };
 };
 
-std::ostream& operator<<(std::ostream& os, const DistancePhi & Phi){
-	os << (std::string) Phi;
-	return os;
-};
+std::ostream& operator<<(std::ostream& os, const DistancePhi & Phi);
 
 //-------------------------------------
 // TDistanceData

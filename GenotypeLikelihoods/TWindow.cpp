@@ -349,7 +349,6 @@ TWindow::~TWindow(){
 	for(std::vector<BAM::TAlignment*>::iterator alignmentIt=emptyAlignments.begin(); alignmentIt != emptyAlignments.end(); ++alignmentIt)
 		delete *alignmentIt;
 	emptyAlignments.clear();
-
 };
 
 BAM::TAlignment* TWindow::swapUsedForEmptyAlignment(BAM::TAlignment* usedAlignment){

@@ -65,7 +65,6 @@ private:
 public:
 	TSimulatorQualityDistBinned(std::string & s, TRandomGenerator* RandomGenerator);
 	PhredIntProbability sample() const override;
-	void sample(std::vector<PhredIntProbability> & phredInt) const override;
 };
 
 //------------------------------------------------

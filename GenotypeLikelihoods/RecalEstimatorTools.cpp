@@ -57,6 +57,8 @@ const TRecalDataVector<uint16_t>& TRecalDataTable::mappingQualities() const{
 };
 
 //--------------------------------------------------------------------
+// TRecalDataTableOneReadGroup
+//--------------------------------------------------------------------
 const TRecalDataTable& TRecalDataTableOneReadGroup::operator[](const bool & IsSecondMate) const{
 	return _tables[(int) IsSecondMate];
 };
@@ -70,6 +72,8 @@ void TRecalDataTableOneReadGroup::clear(){;
 	_tables[1].clear();
 };
 
+//--------------------------------------------------------------------
+// TRecalDataTables
 //--------------------------------------------------------------------
 TRecalDataTables::TRecalDataTables(){
 	_readGroups = nullptr;
@@ -104,6 +108,12 @@ void TRecalDataTables::add(const TSite & Site){
 	_totalCounts += Site.depth();
 	for(std::vector<BAM::TSequencedBase>::const_iterator it = Site.cbegin(); it != Site.cend(); ++it){
 		add(*it);
+	}
+};
+
+void TRecalDataTables::add(const std::vector<TSite> & sites){
+	for(auto& s : sites){
+		add(s);
 	}
 };
 

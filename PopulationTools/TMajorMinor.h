@@ -84,7 +84,7 @@ private:
 
 public:
 	TMajorMinorEstimatorSkotte(TRandomGenerator* RandomGenerator, const double & EpsilonF);
-	virtual ~TMajorMinorEstimatorSkotte();
+	~TMajorMinorEstimatorSkotte() = default;
 };
 
 class TMajorMinorEstimatorMLE:public TMajorMinorEstimatorBase{
@@ -97,7 +97,7 @@ private:
 
 public:
 	TMajorMinorEstimatorMLE(TRandomGenerator* RandomGenerator, const double & EpsilonF);
-	~TMajorMinorEstimatorMLE();
+	~TMajorMinorEstimatorMLE() = default;
 };
 
 //-----------------------------------------------

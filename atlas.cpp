@@ -92,7 +92,7 @@ void addTaks(coretools::TMain & main) {
 	main.addRegularTask("GLF", new GenomeTasks::TTask_writeGLF());
 
 	//Population tools
-	main.addRegularTask("printGLF", new TTask_printGLF());
+	main.addRegularTask("printGLF", new GLF::TTask_printGLF());
 	main.addRegularTask("majorMinor", new PopulationTools::TTask_majorMinor());
 	main.addRegularTask("geneticDist", new PopulationTools::TTask_estimateDist());
 	main.addRegularTask("alleleCounts", new PopulationTools::TTask_estimateAlleleCounts());
@@ -116,20 +116,20 @@ void addTaks(coretools::TMain & main) {
 	main.addRegularTask("simulate", new Simulations::TTask_simulate());
 
 	// Use main.addDebugTask to add a debug task (not shown in list of available tasks)
-	main.addDebugTask("recalLL", new GenomeTasks::TTask_recalLL());
+	//main.addDebugTask("recalLL", new GenomeTasks::TTask_recalLL());
 	main.addDebugTask("thetaLLSurface", new GenomeTasks::TTask_thetaLLSurface());
 	main.addDebugTask("inbreedingLikelihood", new PopulationTools::TTask_inbreedingLikelihood());
 };
 
-void addTests(TMain & main){
+void addTests(coretools::TMain & main){
     // Use testing.addTest to add a single test
     main.addTest("empty", new TTest());
     main.addTest("pileup", new TAtlasTest_pileup());
 	main.addTest("allelicDepth", new TAtlasTest_allelicDepth());
 	main.addTest("recalSimulation", new TAtlasTest_recalSimulation());
 	main.addTest("BQSRSimulation", new TAtlasTest_BQSRSimulation());
-	main.addTest("qualityTransformationRecalPlain", new TAtlasTest_qualityTransformationRecalPlain());
-	main.addTest("qualityTransformationRecalBinned", new TAtlasTest_qualityTransformationRecalBinned());
+	//main.addTest("qualityTransformationRecalPlain", new TAtlasTest_qualityTransformationRecalPlain());
+	//main.addTest("qualityTransformationRecalBinned", new TAtlasTest_qualityTransformationRecalBinned());
 	main.addTest("PMDEmpiric", new TAtlasTest_PMDEmpiric());
 	main.addTest("theta", new TAtlasTest_theta());
 	main.addTest("invariantBed", new TAtlasTest_invariantBed());
@@ -153,7 +153,7 @@ void addTests(TMain & main){
 //Main function
 //---------------------------------------------------------------------------
 int main(int argc, char* argv[]){
-	TMain main("ATLAS", "0.9", "https://bitbucket.org/wegmannlab/atlas", "daniel.wegmann@unifr.ch");
+	coretools::TMain main("ATLAS", "0.9", "https://bitbucket.org/wegmannlab/atlas", "daniel.wegmann@unifr.ch");
 
 
 	//add existing tasks

@@ -14,6 +14,11 @@ namespace PopulationTools{
 //------------------------------------------------
 std::string DistancePhi::_toString[nn_nn + 1] = {"aa_aa", "aa_ab", "ab_aa", "aa_bb", "ab_ab", "ab_ac", "aa_bc", "ab_cc", "ab_cd", "nn_nn"};
 
+std::ostream& operator<<(std::ostream& os, const DistancePhi & Phi){
+	os << (std::string) Phi;
+	return os;
+};
+
 //----------------------------------------------------
 //TGenocombinationToBaseMap
 //----------------------------------------------------

@@ -83,6 +83,7 @@ public:
 //------------------------------------------
 //TAtlasTest_qualityTransformation
 //------------------------------------------
+/*
 class TAtlasTest_qualityTransformationRecalPlain:public TAtlasTest{
 private:
 	std::vector<double> trueParams;
@@ -125,6 +126,6 @@ public:
 	bool run(TParameters & params, TLog* logfile, TTaskList* TaskList);
 
 };
-
+*/
 
 #endif /* TATLASTESTRECALIBRATION_H_ */

@@ -100,14 +100,14 @@ private:
 public:
 	TRecalDataTables();
 	TRecalDataTables(const BAM::TReadGroups* ReadGroups, const BAM::TReadGroupMap* ReadGroupMapObject);
-	~TRecalDataTables();
+	~TRecalDataTables() = default;
 
 	void clear();
 	void initialize(const BAM::TReadGroups* ReadGroups, const BAM::TReadGroupMap* ReadGroupMapObject);
 	void reset();
 	void add(const BAM::TSequencedBase & base);
 	void add(const TSite & site);
-	void add(const std::vector<TSite> & site);
+	void add(const std::vector<TSite> & sites);
 
 	uint64_t size() const;
 	const TRecalDataTableOneReadGroup& operator[](const uint16_t & readGroupId) const;

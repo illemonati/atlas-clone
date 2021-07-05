@@ -118,8 +118,6 @@ TMajorMinorEstimatorSkotte::TMajorMinorEstimatorSkotte(TRandomGenerator* RandomG
 	priorGenotypeFrequencies.haploidFrequencies[1] = 0.50;
 };
 
-TMajorMinorEstimatorSkotte::~TMajorMinorEstimatorSkotte(){};
-
 void TMajorMinorEstimatorSkotte::findMLAllelicCombination(const TMultiGLFData & data){
 	//calculate L10L for each allelic combination used
 	for(auto& ac : usedAllelicCombinations){
