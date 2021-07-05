@@ -16,16 +16,16 @@ TEST(TGenotypeLikelihoodCalculator_test, calculateGenotypeLikelihoods_emptySite)
 
     calculator.calculateGenotypeLikelihoods(site, genotypeLikelihoods);
 
-    EXPECT_EQ(genotypeLikelihoods[AA],1);
-    EXPECT_EQ(genotypeLikelihoods[AC],1);
-    EXPECT_EQ(genotypeLikelihoods[AG],1);
-    EXPECT_EQ(genotypeLikelihoods[AT],1);
-    EXPECT_EQ(genotypeLikelihoods[CC],1);
-    EXPECT_EQ(genotypeLikelihoods[CG],1);
-    EXPECT_EQ(genotypeLikelihoods[CT],1);
-    EXPECT_EQ(genotypeLikelihoods[GG],1);
-    EXPECT_EQ(genotypeLikelihoods[GG],1);
-    EXPECT_EQ(genotypeLikelihoods[TT],1);
+    EXPECT_EQ(genotypeLikelihoods[genometools::AA],1);
+    EXPECT_EQ(genotypeLikelihoods[genometools::AC],1);
+    EXPECT_EQ(genotypeLikelihoods[genometools::AG],1);
+    EXPECT_EQ(genotypeLikelihoods[genometools::AT],1);
+    EXPECT_EQ(genotypeLikelihoods[genometools::CC],1);
+    EXPECT_EQ(genotypeLikelihoods[genometools::CG],1);
+    EXPECT_EQ(genotypeLikelihoods[genometools::CT],1);
+    EXPECT_EQ(genotypeLikelihoods[genometools::GG],1);
+    EXPECT_EQ(genotypeLikelihoods[genometools::GG],1);
+    EXPECT_EQ(genotypeLikelihoods[genometools::TT],1);
 };
 
 TEST(TGenotypeLikelihoodCalculator_test, calculateGenotypeLikelihoods_noPMDnoRecal){
@@ -37,21 +37,21 @@ TEST(TGenotypeLikelihoodCalculator_test, calculateGenotypeLikelihoods_noPMDnoRec
     base.originalQuality_phredInt = 20;
     float oneMinusError = 0.99;
     float errorOneThird = 0.01 / 3;
-    base.base = A;
+    base.base = genometools::A;
     site.add(base);
 
     calculator.calculateGenotypeLikelihoods(site, genotypeLikelihoods);
 
-    EXPECT_FLOAT_EQ(genotypeLikelihoods[AA],oneMinusError);
-    EXPECT_FLOAT_EQ(genotypeLikelihoods[AC],0.5 - errorOneThird);
-    EXPECT_FLOAT_EQ(genotypeLikelihoods[AG], (oneMinusError + errorOneThird) / 2.0);
-    EXPECT_FLOAT_EQ(genotypeLikelihoods[AT],0.5 - errorOneThird);
-    EXPECT_FLOAT_EQ(genotypeLikelihoods[CC], errorOneThird);
-    EXPECT_FLOAT_EQ(genotypeLikelihoods[CG],(2.0  * errorOneThird) / 2.0);
-    EXPECT_FLOAT_EQ(genotypeLikelihoods[CT], errorOneThird);
-    EXPECT_FLOAT_EQ(genotypeLikelihoods[GG], errorOneThird);
-    EXPECT_FLOAT_EQ(genotypeLikelihoods[GT],(2.0 * errorOneThird) / 2.0);
-    EXPECT_FLOAT_EQ(genotypeLikelihoods[TT], errorOneThird);
+    EXPECT_FLOAT_EQ(genotypeLikelihoods[genometools::AA],oneMinusError);
+    EXPECT_FLOAT_EQ(genotypeLikelihoods[genometools::AC],0.5 - errorOneThird);
+    EXPECT_FLOAT_EQ(genotypeLikelihoods[genometools::AG], (oneMinusError + errorOneThird) / 2.0);
+    EXPECT_FLOAT_EQ(genotypeLikelihoods[genometools::AT],0.5 - errorOneThird);
+    EXPECT_FLOAT_EQ(genotypeLikelihoods[genometools::CC], errorOneThird);
+    EXPECT_FLOAT_EQ(genotypeLikelihoods[genometools::CG],(2.0  * errorOneThird) / 2.0);
+    EXPECT_FLOAT_EQ(genotypeLikelihoods[genometools::CT], errorOneThird);
+    EXPECT_FLOAT_EQ(genotypeLikelihoods[genometools::GG], errorOneThird);
+    EXPECT_FLOAT_EQ(genotypeLikelihoods[genometools::GT],(2.0 * errorOneThird) / 2.0);
+    EXPECT_FLOAT_EQ(genotypeLikelihoods[genometools::TT], errorOneThird);
 }
 
 //vec[AA] *= oneMinusError;

@@ -13,6 +13,8 @@ namespace GenotypeLikelihoods{
 //-------------------------------------
 // TSequencingErrorModelEntry / TSequencingErrorModelsOneReadGroup
 //-------------------------------------
+TSequencingErrorModelNoRecal TSequencingErrorModelEntry::_noRecalModel;
+
 void TSequencingErrorModelEntry::addModel(const TSequencingErrorModelDefinition & ModelDef){
 	_recalModel = std::make_shared<TSequencingErrorModelRecal>(ModelDef);
 };

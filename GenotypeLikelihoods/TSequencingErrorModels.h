@@ -29,7 +29,7 @@ namespace GenotypeLikelihoods{
 class TSequencingErrorModelEntry{
 private:
 	std::shared_ptr<TSequencingErrorModelRecal> _recalModel;
-	static TSequencingErrorModelNoRecal _noRecalModel;
+	static  TSequencingErrorModelNoRecal _noRecalModel;
 
 public:
 	TSequencingErrorModelEntry() = default;
@@ -51,7 +51,7 @@ private:
 	std::array<TSequencingErrorModelEntry,2> _models;
 
 public:
-	TSequencingErrorModelsOneReadGroup();
+	TSequencingErrorModelsOneReadGroup() = default;
 	~TSequencingErrorModelsOneReadGroup() = default;
 
 	void addRecalModel(const TSequencingErrorModelDefinition & ModelDef, const bool & IsSecondMate);

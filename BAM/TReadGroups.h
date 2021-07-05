@@ -123,7 +123,7 @@ public:
 //--------------------------------------------------------------------------------------
 class TReadGroupMap{
 private:
-	static const uint16_t ReadGroupMapNotInitializedIndex{65535}; //largest possible values
+	static const uint16_t ReadGroupMapNotInitializedIndex; //largest possible values
 	std::vector<uint16_t> _readGroupMap; //maps read group index to pooled index
 	std::vector< std::vector<uint16_t> > _reverseReadGroupMap; //IDs of all Rgs pooled with that index. Includes itself.
 	std::vector<uint16_t> _readGroupsInUse;

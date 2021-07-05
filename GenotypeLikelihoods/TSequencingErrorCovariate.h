@@ -56,7 +56,7 @@ public:
 
 	virtual bool checkParameterRange(const RecalEstimatorTools::TRecalDataTable & dataTable){ return true; };
 	virtual bool checkParameterRange(std::vector<uint16_t> & usedValues, uint16_t maxPos){ return true; };
-	virtual void adjustParameterRange(const RecalEstimatorTools::TRecalDataTable & dataTable);
+	virtual void adjustParameterRange(const RecalEstimatorTools::TRecalDataTable & dataTable){};
 
 	TSequencingErrorCovariateFunction* getPointerToFunction(){ return _function.get(); };
 

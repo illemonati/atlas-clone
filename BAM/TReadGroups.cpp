@@ -284,6 +284,8 @@ std::string TReadGroups::compileSamHeader() const{
 //---------------------------------------------------------------
 //TReadGroupMap
 //---------------------------------------------------------------
+const uint16_t TReadGroupMap::ReadGroupMapNotInitializedIndex = 65535; //largest possible values
+
 TReadGroupMap::TReadGroupMap(const TReadGroups & ReadGroups){
 	_fillWithoutPooling(ReadGroups);
 };
