@@ -60,7 +60,6 @@ private:
 
 	//alignment filters
  	bool _QCFiltersPassed;
- 	uint16_t _maxReadLength;
  	TAlignmentList _blacklist;
  	TBamFileFilterRange<uint32_t> _readLengthFilter;
  	bool _allowTooLongReads;
@@ -193,7 +192,7 @@ public:
 	//other getters
 	bool isOpen(){ return _open; };
 	std::string filename() const{ return _filename; };
-	uint16_t maxReadLength(){ return _maxReadLength; };
+	uint16_t maxReadLength(){ return _readLengthFilter.range().max(); };
 	uint64_t numAlignmentsRead(){ return _numAlignmentRead; };
 	double positionInFile(){ return (double) _bamReader.tell() / (double) _fileSize; };
 	uint16_t numReadGroups() const{ return _readGroups.size(); };

@@ -157,18 +157,6 @@ void TTestBamFile::writeDummyAlignment(const BAM::TGenomePosition & position, co
 	auto s = _constructFrom(_dummySequence, _dummySequenceStart, cigar.lengthRead());
 	auto q = _constructFrom(_dummyQualities, _dummyQualitiesStart, cigar.lengthRead());
 
-	std::cout << "DUMMY BASES: ";
-	for(auto& b : s){
-		std::cout << b;
-	}
-	std::cout << std::endl;
-
-	std::cout << "DUMMY QUALS: ";
-	for(auto& b : q){
-		std::cout << b;
-	}
-	std::cout << std::endl;
-
 	// iterate mapping quality
 	_iterateMappingQuality();
 

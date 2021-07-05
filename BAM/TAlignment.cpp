@@ -89,9 +89,9 @@ void TAlignment::fill(const	std::string & Name,
 	}
 };
 
-void TAlignment::parse(){
+void TAlignment::_parseBasesQualities(){
 	if(_sequence.size() != _qualities.size()){
-		throw std::runtime_error("void TAlignment::_parseBasesQualities(const std::vector<genometools::Base> & Sequence, const std::vector<genometools::PhredIntProbability> & Qualities): Sequence and Qualities are of different legth!");
+		throw std::runtime_error("void TAlignment::_parseBasesQualities(): Sequence and Qualities are of different legth!");
 	}
 	//convert string into Bases and Qualities
 	std::vector<genometools::Base> Sequence;
@@ -106,14 +106,6 @@ void TAlignment::parse(){
 
 	//then parse
 	_parseBasesQualities(Sequence, Qualities);
-};
-
-void TAlignment::parse(const GenotypeLikelihoods::TSequencingErrorModels & seqErrorModels){
-	parse();
-
-	//recalibrate
-	seqErrorModels.recalibrate(_bases);
-	_sequenceAndQualitiesChanged = seqErrorModels.recalibrationChangesQualities();
 };
 
 void TAlignment::_parseBasesQualities(const std::vector<genometools::Base> & Sequence, const std::vector<genometools::PhredIntProbability> & Qualities){
@@ -212,6 +204,13 @@ void TAlignment::_parseBasesQualities(const std::vector<genometools::Base> & Seq
 	_sequenceAndQualitiesChanged = false;
 };
 
+void TAlignment::_setQualitiesNoRecal(){
+	//No recal: set recalibrated quality = original quality
+	for(auto& b : _bases){
+		b.recalibratedQualityAsPhredInt = b.originalQuality_phredInt;
+	}
+};
+
 void TAlignment::_setDistancesFromEnds(){
 	//Set distances in ORIGINAL FRAGMENT (i.e. 5' end is where sequencing started, NOT how it aligns to reference)
 	int length = _cigar.lengthSequenced();
@@ -277,6 +276,19 @@ void TAlignment::_fillContext(){
 	}
 };
 
+void TAlignment::parse(){
+	_parseBasesQualities();
+	_setQualitiesNoRecal();
+};
+
+void TAlignment::parse(const GenotypeLikelihoods::TSequencingErrorModels & seqErrorModels){
+	_parseBasesQualities();
+
+	//recalibrate
+	seqErrorModels.recalibrate(_bases);
+	_sequenceAndQualitiesChanged = seqErrorModels.recalibrationChangesQualities();
+};
+
 void TAlignment::addReference(TFastaBuffer & fasta){
 	fasta.fill(*this, _lastAlignedPositionWithRespectToRef, _referenceSequence);
 	_hasReference = true;
@@ -290,6 +302,7 @@ void TAlignment::setSequenceQualities(const TCigar & Cigar, const std::vector<ge
 
 	//parse bases and qualities
 	_parseBasesQualities(Sequence, Qualities);
+	_setQualitiesNoRecal();
 	_changed = true;
 	_sequenceAndQualitiesChanged = true; //will trigger that the strings are read form the bases
 };

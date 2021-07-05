@@ -40,7 +40,7 @@ public:
         outputBam = std::make_unique<TestUtilities::TTestBamFile>(_filename, chrLength, numReadGroups);
 
         //write alignments
-        outputBam->writeDummyAlignments(1);
+        outputBam->writeDummyAlignments(100);
         outputBam->closeOutput();
     }
 
@@ -295,7 +295,7 @@ public:
         // first set window size in parameters
         _parameters.addParameter("window", "100");
         _parameters.addParameter("bam", filename);
-        _parameters.addParameter("maxReadLength", "20");
+        _parameters.addParameter("filterReadLength", "[0,20]");
 
         // create instance of TGenomeWindow
         genomeWindow = std::make_unique<TGenomeWindow_Test>(_parameters, &_logfile, &_randomGenerator);

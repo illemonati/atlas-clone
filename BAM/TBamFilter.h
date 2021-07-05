@@ -72,13 +72,9 @@ public:
 		_reason = Reason;
 	};
 
-	/*
-	void filter(const T & Min, const T & Max, const std::string Reason){
-		_keep = false;
-		_range.set(Min,  true,  Max,  true);
-		_reason = Reason;
+	const TNumericRange<T> range() const {
+		return _range;
 	};
-	*/
 
 	std::string rangeString() const{
 		return _range.rangeString();

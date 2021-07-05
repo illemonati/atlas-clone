@@ -29,7 +29,6 @@ TBamFile::TBamFile(){
 
 	//set filters to default
 	_QCFiltersPassed = false;
-	_maxReadLength = 65535;
 	_keepAll = true; //by default, keep all reads
 	_allowTooLongReads = false;
 
@@ -948,7 +947,6 @@ void TOutputBamFile::_writeAlignment(const TAlignment & alignment){
 		_tmpBamAlignment.MatePosition = alignment.matePosition();
 	}
 
-	std::cout << "------------------- BAM C ---------------" << std::endl;
 	//CIGAR
 	for(const auto& it : alignment.cigar()){
 		_tmpBamAlignment.CigarData.emplace_back(it.type, it.length);
@@ -958,20 +956,13 @@ void TOutputBamFile::_writeAlignment(const TAlignment & alignment){
 	_tmpBamAlignment.QueryBases = alignment.sequence();
 	_tmpBamAlignment.Qualities = alignment.qualities();
 
-	std::cout << "BASES = " << alignment.sequence() << std::endl;
-	std::cout << "QUALS = " << alignment.qualities() << std::endl;
-
 	//add read group information
 	_tmpBamAlignment.AddTag("RG", "Z", _readGroups->getName(alignment.readGroupId()));
 
-	std::cout << "------------------- BAM D ---------------" << std::endl;
 	//and now write
 	if(!_bamWriter.SaveAlignment(_tmpBamAlignment)){
-		std::cout << "Read '" + _tmpBamAlignment.Name + "' could not be written!" << std::endl;
 		throw "Read '" + _tmpBamAlignment.Name + "' could not be written!";
 	}
-
-	std::cout << "------------------- BAM E ---------------" << std::endl;
 };
 
 void TOutputBamFile::writeAlignment(const TAlignment & alignment){
