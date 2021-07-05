@@ -113,6 +113,8 @@ TEST_F(TBamFile_Test_ReadWrite, alignments){
     BAM::TAlignment alignmentRead;
     auto alignmentWritten = outputBam->beginWrittenAlignments();
     while (inputBam->readNextAlignment(alignmentRead)){
+    	alignmentRead.parse();
+
         // basic attributes of TAlignment
         EXPECT_EQ(alignmentWritten->name(), alignmentRead.name());
         EXPECT_EQ(alignmentWritten->readGroupId(), alignmentRead.readGroupId());
