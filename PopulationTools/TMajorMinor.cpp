@@ -57,12 +57,7 @@ void TMajorMinorEstimatorBase::findMLAllelicCombination(const TMultiGLFData & da
 };
 
 void  TMajorMinorEstimatorBase::_estimateMajorMinor(const TMultiGLFData & data){
-
-	std::cout << "------------- 2 -------------" << std::endl;
-
 	findMLAllelicCombination(data);
-
-	std::cout << "------------- 3 -------------" << std::endl;
 
 	//which one is major?
 	if(genotypeFrequencies.alleleFrequency < 0.5){
@@ -76,8 +71,6 @@ void  TMajorMinorEstimatorBase::_estimateMajorMinor(const TMultiGLFData & data){
 		genotypeFrequencies.flip();
 	}
 
-	std::cout << "------------- 4 -------------" << std::endl;
-
 	//calculate variant quality
 	Genotype refHom(major, major);
 	coretools::Log10Probability LL_fixed_glfPhred = 0.0;
@@ -90,9 +83,14 @@ void  TMajorMinorEstimatorBase::_estimateMajorMinor(const TMultiGLFData & data){
 		}
 	}
 
-	std::cout << "------------- 5 -------------" << std::endl;
-
-	variantQuality = LL_fixed_glfPhred - L10L;
+	//set variant quality
+	if(LL_fixed_glfPhred > L10L){
+		//can happen if MLE estimation is not perfect
+		//difference is usually super smnall but enough to cause Log210Probability to complain it it out of range.
+		variantQuality = coretools::Log10Probability(0.0);
+	} else {
+		variantQuality = LL_fixed_glfPhred - L10L;
+	}
 };
 
 void  TMajorMinorEstimatorBase::estimateMajorMinor(const TMultiGLFData & data){
@@ -155,17 +153,8 @@ TMajorMinorEstimatorMLE::TMajorMinorEstimatorMLE(TRandomGenerator* RandomGenerat
 };
 
 double TMajorMinorEstimatorMLE::estimateGenotypeFrequencies(const TMultiGLFData & data, const AllelicCombination & thisAlleleicCombination){
-
-	std::cout << "------------- a -------------" << std::endl;
-
 	data.fill(genotypeLikelihoods, thisAlleleicCombination);
-
-	std::cout << "------------- b -------------" << std::endl;
-
 	tmpGenotypeFrequencies[thisAlleleicCombination.get()].estimate(genotypeLikelihoods, epsilonF);
-
-	std::cout << "------------- c -------------" << std::endl;
-
 	return tmpGenotypeFrequencies[thisAlleleicCombination.get()].calculateLog10Likelihood(genotypeLikelihoods);
 };
 
@@ -274,9 +263,6 @@ void TMajorMinor::estimateMajorMinor(TParameters & params){
 
 	while(glfReader.readNext()){
 		++counter;
-
-		std::cout << "------------- 1 -------------" << std::endl;
-
 		//filter on missingness
 		if(glfReader.numActiveSamplesWithData() >= minSamplesWithData){
 			//do major minor
