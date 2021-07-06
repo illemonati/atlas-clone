@@ -148,7 +148,7 @@ void TGlfWriter::writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual, Ge
 
 		//normalize and scale to uint16
 		for(genometools::Genotype g = genometools::Genotype::min(); g < genometools::Genotype::max(); ++g){
-            _glfValues[static_cast<uint8_t>(g)] = genotypeLikelihoods[g] / maxLik;
+            _glfValues[g.get()] = genotypeLikelihoods[g] / maxLik;
 		}
 	}
 
@@ -274,7 +274,6 @@ void TGlfReader::_readSNPRecord(){
 	//genotype likelihoods
     _read(_genotypeLikelihoodsGLF, _curChr.numLikelihoodValues * sizeof(uint16_t));
 };
-
 
 void TGlfReader::setFilename(const std::string& Filename){
     _filename = Filename;

@@ -545,6 +545,9 @@ bool TGlfMultiReader::moveToNextChromosome(){
 };
 
 bool TGlfMultiReader::readNext(){
+
+	std::cout << "*************** START READING *****************" << std::endl;
+
 	//advance to next position
 	if(_nextPosition > _curChr.length){
 		if(!moveToNextChromosome()) return false;
@@ -588,6 +591,8 @@ bool TGlfMultiReader::readNext(){
 	//update position
 	_position = _nextPosition;
 	++_nextPosition;
+
+	std::cout << "*************** END READING *****************" << std::endl;
 
 	return true;
 };

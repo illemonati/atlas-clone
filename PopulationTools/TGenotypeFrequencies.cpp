@@ -59,6 +59,9 @@ bool TGenotypeFrequencies::isMonomorphic(){
 void TGenotypeFrequencies::ensureAllFrequenciesAreNonZero(){
 	//diploid
 	if(numDiploidSamples > 0){
+
+		std::cout << "------------- !0 -------------" << std::endl;
+
 		if(diploidFrequencies[0] == 0.0)
 			diploidFrequencies[0] = 0.000001;
 		if(diploidFrequencies[1] == 0.0)
@@ -66,11 +69,19 @@ void TGenotypeFrequencies::ensureAllFrequenciesAreNonZero(){
 		if(diploidFrequencies[2] == 0.0)
 			diploidFrequencies[2] = 0.000001;
 
+		std::cout << "------------- !1 -------------" << std::endl;
 		//renormalize
-		double sum = diploidFrequencies[0] + diploidFrequencies[1] + diploidFrequencies[2];
+		double sum = (double) diploidFrequencies[0] + (double) diploidFrequencies[1] + (double) diploidFrequencies[2];
+
+		std::cout << "SUM = " << sum << std::endl;
+
+		std::cout << "diploidFrequencies[0] = " << diploidFrequencies[0] << ", SUM = " << sum << ", division = "std::endl;
+
 		diploidFrequencies[0] /= sum;
 		diploidFrequencies[1] /= sum;
 		diploidFrequencies[2] /= sum;
+
+		std::cout << "------------- !2 -------------" << std::endl;
 	}
 
 	//haploid
@@ -81,7 +92,7 @@ void TGenotypeFrequencies::ensureAllFrequenciesAreNonZero(){
 			haploidFrequencies[1] = 0.000001;
 
 		//renormalize
-		double sum = haploidFrequencies[0] + haploidFrequencies[1];
+		double sum = (double) haploidFrequencies[0] + (double) haploidFrequencies[1];
 		haploidFrequencies[0] /= sum;
 		haploidFrequencies[1] /= sum;
 	}
@@ -126,16 +137,21 @@ void TGenotypeFrequencies::estimate(TPopulationLikehoodLocus & samples, const do
 };
 
 void TGenotypeFrequencies::estimate(TSampleLikelihoods* samples, const uint32_t & numSamples, const double & epsilonF){
+	std::cout << "------------- w -------------" << std::endl;
+
 	//prepare variables
 	double weights[3];
 
 	//estimate initial frequencies from MLEs
 	guess(samples, numSamples);
+	std::cout << "------------- w1 -------------" << std::endl;
 	ensureAllFrequenciesAreNonZero();
 
 	//run EM for max 1000 steps
 	double maxF = 10000.0;
 	int s = 0;
+
+	std::cout << "------------- W2 -------------" << std::endl;
 
 	while(maxF > epsilonF && s < 1000){
 		++s;
@@ -143,6 +159,8 @@ void TGenotypeFrequencies::estimate(TSampleLikelihoods* samples, const uint32_t 
 		//set genofreq
 		std::array<double, 3> diploidFrequencies_tmp{};
 		std::array<double, 2> haploidFrequencies_tmp{};
+
+		std::cout << "------------- x -------------" << std::endl;
 
 		//estimate new genotype frequencies
 		for(int i = 0; i < numSamples; i++){
@@ -166,6 +184,8 @@ void TGenotypeFrequencies::estimate(TSampleLikelihoods* samples, const uint32_t 
 				}
 			}
 		}
+
+		std::cout << "------------- y -------------" << std::endl;
 
 		if(numDiploidSamples > 0){
 			diploidFrequencies_tmp[0] /= (double) numDiploidSamples;
@@ -195,6 +215,8 @@ void TGenotypeFrequencies::estimate(TSampleLikelihoods* samples, const uint32_t 
 		diploidFrequencies[2] = diploidFrequencies_tmp[2];
 		haploidFrequencies[0] = haploidFrequencies_tmp[0];
 		haploidFrequencies[1] = haploidFrequencies_tmp[1];
+
+		std::cout << "------------- z -------------" << std::endl;
 	}
 
 	//update parameters

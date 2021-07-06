@@ -830,9 +830,18 @@ TEST_F(TBamFilter_Test, maxReadLength){
     write(false);
     _disableAllFilters();
     // 1) filter: maxReadLength
-    _parameters.addParameter("maxReadLength", "20");
-    // throws error as soon as read that is longer than maxReadLength is parsed
-    EXPECT_THROW(try { read(); } catch(...){throw std::runtime_error("Caught error string");}, std::runtime_error);
+    _parameters.addParameter("filterReadLength", "[20,30]");
+    //read();
+
+    //count number of simulated alignments outside this range
+	uint32_t numAligmentsOutsideRange = 0;
+	for (auto a = outputBam->beginWrittenAlignments(); a != outputBam->endWrittenAlignments(); a++){
+		if(a->cigar().lengthRead() < 20 || a->cigar().lengthRead() > 30){
+			++numAligmentsOutsideRange;
+		}
+	}
+
+    EXPECT_EQ(bamFilter->totalReads.counts(), numReads - numAligmentsOutsideRange);
 }
 
 TEST_F(TBamFilter_Test, keepDuplicates){
