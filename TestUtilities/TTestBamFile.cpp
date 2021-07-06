@@ -37,8 +37,8 @@ void TTestBamFile::_initialize(const std::vector<uint32_t> ChrLength, const uint
 	//tmp vars
 	_dummySequence = {A, A, A, C, C, C, G, G, G, T, T, T, A, C, G, T, T, G, C, A, A, A, C, G, T, G, G, C, C, G, T, G, A, C, A, C, C, G, T, C, G, A, C, A, G, G, T, G, C, C, A, C, A, C, A, G, T, G, G, C, A, A, A, T, T, G, G, C, C, G, G, T, G, C, A, A, A, C, C, A, A, A, C, C, A, A, G, G, T, T, G, C, C, C, G };
 	_dummySequenceStart = _dummySequence.begin();
-	for(auto p = genometools::PhredIntProbability::min(); p < genometools::PhredIntProbability::max(); ++p){
-		_dummyQualities.emplace_back(p);
+	for(auto p = genometools::BaseQuality::min(); p < genometools::BaseQuality::max(); ++p){
+		_dummyQualities.emplace_back(genometools::PhredIntProbability(p));
 	}
 	_dummyQualitiesStart = _dummyQualities.begin();
     _dummyMapQual = 0;

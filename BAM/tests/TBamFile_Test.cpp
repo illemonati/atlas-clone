@@ -572,19 +572,19 @@ TEST_F(TBamFile_Test_Windows, sites_getQualities){
     int c = 0;
     for (const auto& site : genomeWindow->sites[0]){ // first window
         if (c < 10)
-            EXPECT_EQ(site.getQualities(), "1");
+            EXPECT_EQ(site.getQualities(), "\"");
         else if (c >= 10 && c < 20)
-            EXPECT_EQ(site.getQualities(), "12");
+            EXPECT_EQ(site.getQualities(), "\"#");
         else if (c >= 20 && c < 30)
-            EXPECT_EQ(site.getQualities(), "23");
+            EXPECT_EQ(site.getQualities(), "#$");
         else if (c >= 30 && c < 40)
-            EXPECT_EQ(site.getQualities(), "3");
+            EXPECT_EQ(site.getQualities(), "$");
         else if (c >= 80 && c < 90)
-            EXPECT_EQ(site.getQualities(), "4");
+            EXPECT_EQ(site.getQualities(), "%");
         else if (c >= 90 && c < 95)
-            EXPECT_EQ(site.getQualities(), "45");
+            EXPECT_EQ(site.getQualities(), "%&");
         else if (c >= 95 && c < 100)
-            EXPECT_EQ(site.getQualities(), "456");
+            EXPECT_EQ(site.getQualities(), "%&'");
         else
             EXPECT_EQ(site.getQualities(), "-");
         c++;
@@ -592,11 +592,11 @@ TEST_F(TBamFile_Test_Windows, sites_getQualities){
     c = 0;
     for (const auto& site : genomeWindow->sites[1]){ // second window
         if (c < 10)
-            EXPECT_EQ(site.getQualities(), "567");
+            EXPECT_EQ(site.getQualities(), "&'(");
         else if (c >= 10 && c < 15)
-            EXPECT_EQ(site.getQualities(), "67");
+            EXPECT_EQ(site.getQualities(), "'(");
         else if (c >= 15 && c < 20)
-            EXPECT_EQ(site.getQualities(), "7");
+            EXPECT_EQ(site.getQualities(), "(");
         else
             EXPECT_EQ(site.getQualities(), "-");
         c++;
@@ -604,7 +604,7 @@ TEST_F(TBamFile_Test_Windows, sites_getQualities){
     c = 0;
     for (const auto& site : genomeWindow->sites[2]){ // third window
         if (c >= 20 && c < 40)
-            EXPECT_EQ(site.getQualities(), "8");
+            EXPECT_EQ(site.getQualities(), ")");
         else
             EXPECT_EQ(site.getQualities(), "-");
         c++;
@@ -614,7 +614,7 @@ TEST_F(TBamFile_Test_Windows, sites_getQualities){
     c = 0;
     for (const auto& site : genomeWindow->sites[3]){ // 4. window
         if (c >= 10 && c < 30)
-            EXPECT_EQ(site.getQualities(), "9");
+            EXPECT_EQ(site.getQualities(), "*");
         else
             EXPECT_EQ(site.getQualities(), "-");
         c++;
@@ -624,7 +624,7 @@ TEST_F(TBamFile_Test_Windows, sites_getQualities){
     c = 0;
     for (const auto& site : genomeWindow->sites[4]){ // 5. window
         if (c >= 10 && c < 30)
-            EXPECT_EQ(site.getQualities(), "0");
+            EXPECT_EQ(site.getQualities(), "!");
         else
             EXPECT_EQ(site.getQualities(), "-");
         c++;
@@ -646,15 +646,15 @@ TEST_F(TBamFile_Test_Windows, sites_getQualities){
     c = 0;
     for (const auto& site : genomeWindow->sites[7]){ // 8. window
         if (c >= 0 && c < 4)
-            EXPECT_EQ(site.getQualities(), "1");
+            EXPECT_EQ(site.getQualities(), "\"");
         else if (c == 4)
-            EXPECT_EQ(site.getQualities(), "12");
+            EXPECT_EQ(site.getQualities(), "\"#");
         else if (c >= 5 && c < 8)
-            EXPECT_EQ(site.getQualities(), "2");
+            EXPECT_EQ(site.getQualities(), "#");
         else if (c == 8)
-            EXPECT_EQ(site.getQualities(), "23");
+            EXPECT_EQ(site.getQualities(), "#$");
         else if (c >= 9 && c < 13)
-            EXPECT_EQ(site.getQualities(), "3");
+            EXPECT_EQ(site.getQualities(), "$");
         else
             EXPECT_EQ(site.getQualities(), "-");
         c++;
