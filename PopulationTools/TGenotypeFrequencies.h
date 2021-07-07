@@ -143,7 +143,7 @@ public:
 			if(numDiploidSamples > 0){
 				diploidFrequencies_tmp[0] /= (double) numDiploidSamples;
 				diploidFrequencies_tmp[2] /= (double) numDiploidSamples;
-				diploidFrequencies_tmp[1] = 1.0 - (diploidFrequencies_tmp[0] + diploidFrequencies_tmp[2]); //1 - sum ensures range despite numeric inaccuracies
+				diploidFrequencies_tmp[1] = 1.0 - std::min(1.0, (diploidFrequencies_tmp[0] + diploidFrequencies_tmp[2])); //1 - sum ensures range despite numeric inaccuracies
 
 				//check if we stop
 				maxF = fabs(diploidFrequencies_tmp[0] - diploidFrequencies[0]);
@@ -159,7 +159,7 @@ public:
 
 			if(numHaploidSamples > 0){
 				haploidFrequencies_tmp[0] /= (double) numHaploidSamples;
-				haploidFrequencies_tmp[1] = 1.0 - haploidFrequencies_tmp[0];
+				haploidFrequencies_tmp[1] = 1.0 - std::min(1.0, haploidFrequencies_tmp[0]);
 
 				//check if we stop
 				double tmp = fabs(haploidFrequencies_tmp[0] - haploidFrequencies[0]);
