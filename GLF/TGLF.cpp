@@ -112,7 +112,7 @@ void TGlfWriter::newChromosome(const BAM::TChromosome & chromosome){
     _write(_curChr.name.c_str(), _curChr.name.length() * sizeof(char));
     _write(&_curChr.refId, sizeof(uint32_t));
     _write(&_curChr.length, sizeof(uint32_t));
-    _write(&_curChr.ploidy, sizeof(uint8_t)); // TODO: I get an "uninitialized variable" error with valgrind. Why?
+    _write(&_curChr.isHaploid + 1, sizeof(uint8_t)); // TODO: I get an "uninitialized variable" error with valgrind. Why?
 
 	//set oldPos and curChr
 	_oldPos = 0;
@@ -131,7 +131,7 @@ void TGlfWriter::writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual, Ge
 	//calculate likelihoods in GLF format
 	//Note: genotype likelihoods are given for the 10 diploid genotypes!!
 	//TODO: maybe do in GLFChromosomes?
-	if(_curChr.ploidy == 1){
+	if(_curChr.isHaploid){
 		coretools::Probability maxLik = genotypeLikelihoods[genometools::AA];
 		if(genotypeLikelihoods[genometools::CC] > maxLik) maxLik = genotypeLikelihoods[genometools::CC];
 		if(genotypeLikelihoods[genometools::GG] > maxLik) maxLik = genotypeLikelihoods[genometools::GG];
@@ -434,7 +434,7 @@ void TGlfReader::fillGenotypeLikelihoods(BAM::ErrorRate* destination){
 
 //printing
 void TGlfReader::printChr(){
-	std::cout << "CHROMOSOME: '" << _curChr.name << "' of length " << _curChr.length << " and ploidy " << (int) _curChr.ploidy << "\n";
+	std::cout << "CHROMOSOME: '" << _curChr.name << "' of length " << _curChr.length << " and ploidy " << (int) _curChr.isHaploid + 1 << "\n";
 };
 
 void TGlfReader::printSite(){

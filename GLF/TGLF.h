@@ -26,34 +26,6 @@ namespace GLF{
 
 using namespace GenotypeLikelihoods;
 
-/*
-//----------------------------------------------------
-// TGlfConverter
-// class to converted likelihoods to uint16 and back
-//----------------------------------------------------
-class TGlfConverter{
-private:
-	uint16_t _maxVal;
-	double _minLikelihood;
-	std::vector<double> _likelihoodMap;
-	double _logOf10DividedByMinus1000 = log(10.) / -1000.;
-
-public:
-	TGlfConverter();
-
-	uint16_t maxValue() const{ return _maxVal; };
-	uint16_t toGlfFormat(double scaledLikelihood) const;
-	uint16_t log10ToGlfFormat(double log10ScaledLikelihood) const;
-	uint16_t phredToGlfFormat(genometools::PhredIntProbability phred) const;
-	double toScaledLikelihood(uint16_t glfValue) const;
-	double operator[](uint16_t glfValue) const { return toScaledLikelihood(glfValue); }
-	genometools::PhredIntProbability toPhred(uint16_t glfValue) const;
-	double toLog10(uint16_t glfValue) const;
-	BAM::LogErrorRate toLog(uint16_t glfValue) const;
-};
-
-*/
-
 
 /*
  * TODO: switch to using a proper container. Think about ploidy.
@@ -77,10 +49,11 @@ private:
 	void _setPloidy(uint8_t Ploidy){
 		if(Ploidy < 1 || Ploidy > 2)
 			throw "Currently GLFs only support ploidies 1 and 2 (not " + coretools::str::toString(Ploidy) + ")!";
-		ploidy = Ploidy;
-		if(ploidy == 1){
+		if(Ploidy == 1){
+			isHaploid = true;
 			numLikelihoodValues = 4;
 		} else {
+			isHaploid = false;
 			numLikelihoodValues = 10;
 		}
 	};
@@ -90,14 +63,14 @@ public:
 	std::string name;
 	uint32_t refId;
 	uint32_t length;
-	uint8_t ploidy;
+	bool isHaploid;
 	uint8_t numLikelihoodValues; //depends on ploidy
 	uint8_t maxNumLikelihoodValues; //maximum possible
 
 	TGlfChromosome(){
 		refId = 0;
 		length = 0;
-		ploidy = 2;
+		isHaploid = false;
 		numLikelihoodValues = 10;
 		maxNumLikelihoodValues = 10;
 		name = "";
@@ -126,7 +99,7 @@ public:
 		name = other.name;
 		refId = other.refId;
 		length = other.length;
-		ploidy = other.ploidy;
+		isHaploid = other.isHaploid;
 		numLikelihoodValues = other.numLikelihoodValues;
 		maxNumLikelihoodValues = other.maxNumLikelihoodValues;
 	};
@@ -135,7 +108,7 @@ public:
 		name = "";
 		refId = 0;
 		length = 0;
-		ploidy = 2;
+		isHaploid = false;
 	};
 };
 
@@ -191,11 +164,7 @@ public:
 	};
 
 	bool chrIsHaploid() const{
-		return _curChr.ploidy == 1;
-	};
-
-	uint8_t chrPloidy() const{
-		return _curChr.ploidy;
+		return _curChr.isHaploid;
 	};
 
 	uint8_t chrNumLikelihoodValues() const{
@@ -240,7 +209,6 @@ public:
 	void newChromosome(const BAM::TChromosome & chromosome);
 	void writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual, GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods);
 };
-
 
 //----------------------------------------------------
 //TGlfReader
