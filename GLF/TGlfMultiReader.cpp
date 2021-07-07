@@ -150,6 +150,12 @@ void TGlfMultiReaderVcf::writeSite(const std::string & chrName, const uint32_t &
 
 void TGlfMultiReaderVcf::writeDiploidIndividualToVCF(TMultiGLFDataSample & sample){
 	if(sample.hasData){
+
+		//DEBUG
+		std::cout << "GLS: " << (coretools::Probability) sample[_refHom] << ", " << (coretools::Probability) sample[_het] << ", " << (coretools::Probability) sample[_altHom] << std::endl;
+		//DEBUG
+
+
 		//find min qual
 		genometools::HighPrecisionPhredIntProbability minQual = sample.genotypeLikelihoodsGLF[(uint8_t) _refHom];
 		if(sample.genotypeLikelihoodsGLF[(uint8_t) _het] < minQual) minQual = sample.genotypeLikelihoodsGLF[(uint8_t) _het];

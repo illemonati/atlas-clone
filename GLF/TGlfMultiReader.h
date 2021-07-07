@@ -22,11 +22,44 @@ using coretools::TLog;
 //----------------------------------------------------
 //TMultiGLFData
 //----------------------------------------------------
-struct TMultiGLFDataSample{
+class TMultiGLFDataSample{
+private:
 	genometools::HighPrecisionPhredIntProbability* genotypeLikelihoodsGLF; //points to data TGlfReader
 	bool hasData;
 	bool isHaploid;
 	uint16_t depth;
+
+public:
+	TMultiGLFDataSample(){
+		hasData = false;
+		isHaploid = false;
+		depth = 0;
+		genotypeLikelihoodsGLF = nullptr;
+	};
+
+	TMultiGLFDataSample(){
+
+	};
+
+	void set
+
+	void setNoData(){
+
+	};
+
+	genometools::HighPrecisionPhredIntProbability operator[](const genometools::Genotype & G){
+		if(isHaploid){
+			throw std::runtime_error("TMultiGLFDataSample::genometools::HighPrecisionPhredIntProbability operator[](const genometools::Genotype & G): sample is haploid!");
+		}
+		return genotypeLikelihoodsGLF[G.get()];
+	};
+
+	genometools::HighPrecisionPhredIntProbability operator[](const genometools::Base & B){
+		if(!isHaploid){
+			throw std::runtime_error("TMultiGLFDataSample::genometools::HighPrecisionPhredIntProbability operator[](const genometools::Base & B): sample is diploid!");
+		}
+		return genotypeLikelihoodsGLF[B.get()];
+	};
 };
 
 class TMultiGLFData{
