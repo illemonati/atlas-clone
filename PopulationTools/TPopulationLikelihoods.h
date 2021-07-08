@@ -58,7 +58,7 @@ public:
 	};
 
 	bool sampleExists(const std::string & Sample) const {
-		return std::find(_samples.begin(), _samples.end(), _name) != _samples.end();
+		return std::find(_samples.begin(), _samples.end(), Sample) != _samples.end();
 	};
 
 	void setFirstSampleIndex(const uint32_t & Index){

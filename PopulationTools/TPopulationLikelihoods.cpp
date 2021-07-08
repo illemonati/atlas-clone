@@ -82,7 +82,6 @@ void TPopulationSamples::addSampleNamesToVector(std::vector<std::string> & vec) 
 	}
 };
 
-
 //----------------------------
 
 void TPopulationSamples::readSamples(std::string filename, TLog* logfile){
@@ -112,7 +111,6 @@ void TPopulationSamples::readSamples(std::string filename, TLog* logfile){
 					hasPopColumn = true;
 				else {
 					_populations.emplace_back("Population");
-
 				}
 			}
 
@@ -162,6 +160,8 @@ void TPopulationSamples::readSamplesFromVCFNames(std::vector<std::string> & vcfS
 		_populations[0].addSample(vcfSampleNames[s]);
 	}
 	_numSamples = _populations[0].numSamples();
+
+	fillVCFOrder(vcfSampleNames);
 };
 
 void TPopulationSamples::report(TLog* Logfile){
