@@ -204,6 +204,12 @@ void TPopulationSamples::readSamplesFromVCFNames(std::vector<std::string> & vcfS
 
 	//save samples
 	for(size_t s=0; s<vcfSampleNames.size(); ++s){
+		//make sure same names are unique!
+		if(samples.find(vcfSampleNames[s]) != samples.end()){
+			throw "Duplicate sample name '" + vcfSampleNames[s] + "' in VCf header!";
+		}
+
+		//add to samples
 		samples.emplace(vcfSampleNames[s], 0);
 		_VCF_order[s] = s;
 	}

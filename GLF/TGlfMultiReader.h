@@ -12,6 +12,7 @@
 #include "TGLF.h"
 #include "TFastaBuffer.h"
 #include "TParameters.h"
+#include "stringFunctions.h"
 
 namespace GLF{
 
@@ -221,7 +222,7 @@ public:
 //----------------------------------------------------
 class TGlfMultiReader{
 private:
-	int numGLFs;
+	uint8_t numGLFs;
 	std::vector<std::string> GLFNames;
 	TGlfReader* GLFs;
 	bool readersOpened;
@@ -231,7 +232,7 @@ private:
 	//active files
 	//Object will loop only over active files
 	bool _onlyJumpToPositionsWithData;
-	int numActiveFiles;
+	uint32_t numActiveFiles;
 	bool* GLFIsActive;
 	std::vector<int> activeGLFs;
 	std::vector<TGlfReader*> pointerToActiveGLFs;
@@ -246,8 +247,8 @@ private:
 	uint32_t _position, _nextPosition; //next is anticipated position, used to advance
 	uint32_t _curRefId;
 	TGlfChromosome _curChr;
-	int _numActiveFilesWithData;
-	int minDepth;
+	uint32_t _numActiveFilesWithData;
+	uint32_t minDepth;
 
 	//reference
 	bool hasReference;
@@ -287,14 +288,17 @@ public:
 
 	//parse
 	bool readNext();
+
+	//output
 	void print();
 	void writeSampleNamesOfActiveFiles(gz::ogzstream & out, std::string sep);
-	void fillSampleNamesOfActiveFiles(std::vector<std::string> & vec);
+	std::vector<std::string> namesOfActiveFiles();
+	std::vector<std::string> sampleNamesOfActiveFiles();
 
 	//access data
-	int numSamples(){ return numGLFs; };
-	int numActiveSamples(){ return numActiveFiles; };
-	int numActiveSamplesWithData(){ return _numActiveFilesWithData; };
+	uint32_t numSamples(){ return numGLFs; };
+	uint32_t numActiveSamples(){ return numActiveFiles; };
+	uint32_t numActiveSamplesWithData(){ return _numActiveFilesWithData; };
 	std::string chr(){return _curChr.name; };
 	uint32_t position(){return _position; };
 	genometools::Base refBase();

@@ -126,7 +126,7 @@ void TGlfMultiReaderVcf::writeSite(const std::string & chrName, const uint32_t &
 	vcf << refAllele << '\t' << altAllele;
 
 	//write quality of variant
-	vcf << '\t' << (genometools::BaseQuality) varianTQuality;
+	vcf << '\t' << varianTQuality;
 
 	//write info field: total depth
 	vcf << "\t.\tDP=" << data.totalDepth();
@@ -180,7 +180,7 @@ void TGlfMultiReaderVcf::writeDiploidIndividualToVCF(TMultiGLFDataSample & sampl
 			if(sample[_altHom] > minQual && sample[_altHom] < secondLowestQual){
 				secondLowestQual = sample[_altHom];
 			}
-			vcf << (genometools::PhredIntProbability) (secondLowestQual - minQual) << ":";
+			vcf << genometools::PhredIntProbability(secondLowestQual - minQual) << ":";
 		}
 
 		//write depth
@@ -616,8 +616,20 @@ void TGlfMultiReader::writeSampleNamesOfActiveFiles(gz::ogzstream & out, std::st
 	}
 };
 
-void TGlfMultiReader::fillSampleNamesOfActiveFiles(std::vector<std::string> & vec){
-	vec.clear();
+std::vector<std::string> TGlfMultiReader::namesOfActiveFiles(){
+	std::vector<std::string> vec;
+
+	//sample names are file names without glf ending
+	if(numActiveFiles > 0){
+		for(TGlfReader* it : pointerToActiveGLFs){
+			vec.emplace_back(it->name());
+		}
+	}
+	return vec;
+};
+
+std::vector<std::string> TGlfMultiReader::sampleNamesOfActiveFiles(){
+	std::vector<std::string> vec;
 
 	//sample names are file names without glf ending
 	if(numActiveFiles > 0){
@@ -625,6 +637,7 @@ void TGlfMultiReader::fillSampleNamesOfActiveFiles(std::vector<std::string> & ve
 			vec.emplace_back(coretools::str::readBeforeLast(it->name(), ".glf"));
 		}
 	}
+	return vec;
 };
 
 genometools::Base TGlfMultiReader::refBase(){

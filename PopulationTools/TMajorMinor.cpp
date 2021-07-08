@@ -176,7 +176,6 @@ void TMajorMinorEstimatorMLE::findMLAllelicCombination(const TMultiGLFData & dat
 //---------------------------------------------------
 TMajorMinor::TMajorMinor(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGenerator){
 	logfile = Logfile;
-	vcfOpened = false;
 	hasReference = false;
 	randomGenerator = RandomGenerator;
 	minSamplesWithData = 1;
@@ -250,9 +249,52 @@ void TMajorMinor::estimateMajorMinor(TParameters & params){
 	std::string outname = params.getParameterWithDefault<std::string>("out", "ATLAS_majorMinor");
 	logfile->list("Will write output files with tag '" + outname + "'. (parameter 'out')");
 
-	//open vcf file
+	//get sample names. Make sure they are unique in the vcf
 	std::vector<std::string> sampleNames;
-	glfReader.fillSampleNamesOfActiveFiles(sampleNames);
+	if(params.parameterExists("sampleNames")){
+		logfile->startIndent("Using the following sample names (parameter 'sampleNames'):");
+		params.fillParameterIntoContainer("sampleNames", sampleNames, ',');
+
+		if(sampleNames.size() != glfReader.numActiveSamples()){
+			throw "Number of provided same names does not match number of GLF files!";
+		}
+
+		//report
+		auto glfNames = glfReader.namesOfActiveFiles();
+		for(uint32_t i = 0; i < glfReader.numActiveSamples(); ++i){
+			logfile->list(glfNames[i], " -> ", sampleNames[i]);
+		}
+		logfile->endIndent();
+	} else {
+		logfile->list("Will deduce sample names from GLF file names. (use 'sampleNames' to provide alternative names)");
+		sampleNames = glfReader.sampleNamesOfActiveFiles();
+
+		//if there are duplicates, add suffix
+		bool foundDuplicates = false;
+		for(auto& s : sampleNames){
+			uint32_t c = 0;
+			for(auto& t : sampleNames){
+				if(t == s){
+					++c;
+					if(c > 1){
+						t = t + "." + coretools::str::toString(c);
+
+						 //report
+						if(!foundDuplicates){
+							logfile->startIndent("Duplicate samples will be rename as follows:");
+							foundDuplicates = true;
+						}
+						logfile->list(s, " -> ", t);
+					}
+				}
+			}
+		}
+		if(foundDuplicates){
+			logfile->endIndent();
+		}
+	}
+
+	//open vcf file
 	GLF::TGlfMultiReaderVcf vcf(outname + ".vcf.gz", "ATLAS_GLF_Caller", sampleNames, randomGenerator);
 	if(usePhredLikelihoods){
 		vcf.usePhredScaledLikelihoods();

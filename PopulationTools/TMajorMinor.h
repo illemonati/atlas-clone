@@ -109,8 +109,6 @@ private:
 	TLog* logfile;
 	TRandomGenerator* randomGenerator;
 	bool hasReference;
-	gz::ogzstream vcf;
-	bool vcfOpened;
 
 	//settings
 	uint32_t minSamplesWithData;
