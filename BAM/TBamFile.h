@@ -62,6 +62,7 @@ private:
  	bool _QCFiltersPassed;
  	TAlignmentList _blacklist;
  	TBamFileFilterRange<uint32_t> _readLengthFilter;
+ 	TBamFileFilterRange<uint32_t> _mappedLengthFilter;
  	bool _allowTooLongReads;
  	bool _keepAll;
  	TBamFileFilterBool _duplicateFilter;
@@ -198,7 +199,7 @@ public:
 	uint16_t numReadGroups() const{ return _readGroups.size(); };
 
 	//progress reporting
-	//TODO: try to make general and include in common utilities
+	//TODO: use progress tools from coretools
 	void printSummaryNoEndIndent();
 	void printSummary();
 	void startProgressReporting(uint32_t Frequency=1000000);

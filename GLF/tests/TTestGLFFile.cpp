@@ -3,32 +3,15 @@
 //
 
 #include "TTestGLFFile.h"
+#include "debugtools.h"
 
-namespace TestUtilities {
-
-TTestGLFFile::TTestGLFFile(const std::vector<uint32_t>& ChrLength) {
-    std::vector<uint8_t> chrPloidy(ChrLength.size(), 2); // all diploid
-    _initialize(ChrLength, chrPloidy);
-}
-
-
-TTestGLFFile::TTestGLFFile(const std::string &Filename, const std::vector<uint32_t>& ChrLength) {
-    std::vector<uint8_t> chrPloidy(ChrLength.size(), 2); // all diploid
-    _initialize(ChrLength, chrPloidy);
-
-    openOutput(Filename);
-}
-
-TTestGLFFile::TTestGLFFile(const std::string &Filename, const std::vector<uint32_t>& ChrLength, const std::vector<uint8_t>& ChrPloidy) {
-    _initialize(ChrLength, ChrPloidy);
-
-    openOutput(Filename);
-}
+namespace GLF {
 
 void TTestGLFFile::_initialize(const std::vector<uint32_t>& ChrLength, const std::vector<uint8_t>& ChrPloidy) {
     if (ChrLength.size() != ChrPloidy.size())
         throw std::runtime_error("In function '': Size of ChrLength should match size of ChrPloidy!");
 
+    _chromosomes.clear();
     uint32_t refID = 1;
     for (size_t chr = 0; chr < ChrLength.size(); chr++, refID++){
         _chromosomes.appendChromosome("Chr" + coretools::str::toString(refID), ChrLength[chr], ChrPloidy[chr]);
@@ -44,12 +27,20 @@ void TTestGLFFile::_initialize(const std::vector<uint32_t>& ChrLength, const std
         GenotypeLikelihoods::TGenotypeLikelihoods gtEmpty;
         _writtenGenotypeLikelihoodsWithMissingSites.push_back(gtEmpty);
     }
-}
+};
 
-void TTestGLFFile::openOutput(const std::string & Filename){
+void TTestGLFFile::openOutput(const std::string & Filename, std::vector<uint32_t>& ChrLength){
+	std::vector<uint8_t> chrPloidy(ChrLength.size(), 2); // all diploid
+	openOutput(Filename, ChrLength, chrPloidy);
+};
+
+void TTestGLFFile::openOutput(const std::string & Filename, std::vector<uint32_t>& ChrLength, const std::vector<uint8_t>& ChrPloidy){
+	_initialize(ChrLength, ChrPloidy);
+
     //open GLF file for writing
     _filename = Filename;
     _header = "";
+
     _glfFile.open(_filename, _header);
 }
 

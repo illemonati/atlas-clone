@@ -9,7 +9,7 @@
 #include "globalConstants.h"
 #include "stringFunctions.h"
 
-namespace TestUtilities {
+namespace GLF {
 
 //--------------------------------------
 // TTestGLFFile
@@ -18,8 +18,6 @@ class TTestGLFFile{
 protected:
     //header info
     std::string _header;
-
-    // TODO: why is GLF not inside a namespace?
 
     //GLF file for writing
     std::string _filename;
@@ -51,12 +49,12 @@ protected:
     void _initialize(const std::vector<uint32_t>& ChrLength, const std::vector<uint8_t>& ChrPloidy);
 
 public:
-    explicit TTestGLFFile(const std::vector<uint32_t>& ChrLength);
-    TTestGLFFile(const std::string & Filename, const std::vector<uint32_t>& ChrLength);
-    TTestGLFFile(const std::string & Filename, const std::vector<uint32_t>& ChrLength, const std::vector<uint8_t>& ChrPloidy);
+    TTestGLFFile(){};
 
-    void openOutput(const std::string & Filename);
+    void openOutput(const std::string & Filename, std::vector<uint32_t>& ChrLength);
+    void openOutput(const std::string & Filename, std::vector<uint32_t>& ChrLength, const std::vector<uint8_t>& ChrPloidy);
     void closeOutput();
+
     void writeSite(long pos, uint32_t depth, GenotypeLikelihoods::TGenotypeLikelihoods &genotypeLikelihoods, uint8_t RMS_mappingQuality);
     void writeNewChromosome();
     // write dummy sites with shuffling

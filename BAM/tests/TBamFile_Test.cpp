@@ -4,8 +4,8 @@
 #include "TAlignment.h"
 #include "TGenome.h"
 #include "TBamDiagnoser.h"
-
 #include "TestCase.h"
+#include "debugtools.h"
 
 using coretools::TLog;
 using coretools::TRandomGenerator;
@@ -28,7 +28,7 @@ protected:
     TLog _logfile;
 
 public:
-    std::unique_ptr<TestUtilities::TTestBamFile> outputBam;
+    std::unique_ptr<BAM::TTestBamFile> outputBam;
     std::unique_ptr<BAM::TBamFile> inputBam;
 
     void write(){
@@ -37,7 +37,7 @@ public:
         uint32_t numReadGroups = 2;
 
         //open BAM file for writing
-        outputBam = std::make_unique<TestUtilities::TTestBamFile>(_filename, chrLength, numReadGroups);
+        outputBam = std::make_unique<BAM::TTestBamFile>(_filename, chrLength, numReadGroups);
 
         //write alignments
         outputBam->writeDummyAlignments(100);
@@ -235,7 +235,7 @@ protected:
     TParameters _parameters;
 
 public:
-    std::unique_ptr<TestUtilities::TTestBamFile> outputBam;
+    std::unique_ptr<BAM::TTestBamFile> outputBam;
     std::unique_ptr<TGenomeWindow_Test> genomeWindow;
     std::string filename = "testBAM.bam";
 
@@ -245,7 +245,7 @@ public:
         uint32_t numReadGroups = 2;
 
         //open BAM file for writing
-        outputBam = std::make_unique<TestUtilities::TTestBamFile>(filename, chrLength, numReadGroups);
+        outputBam = std::make_unique<BAM::TTestBamFile>(filename, chrLength, numReadGroups);
 
         //write alignments
 
@@ -793,7 +793,7 @@ protected:
     }
 
 public:
-    std::unique_ptr<TestUtilities::TTestBamFile> outputBam;
+    std::unique_ptr<BAM::TTestBamFile> outputBam;
     std::string filename = "testBAM.bam";
     uint16_t numReads = 2000;
 
@@ -806,9 +806,9 @@ public:
 
         //open BAM file for writing
         if (paired)
-            outputBam = std::make_unique<TestUtilities::TTestBamFilePairedEnd>(filename, chrLength, numReadGroups);
+            outputBam = std::make_unique<BAM::TTestBamFilePairedEnd>(filename, chrLength, numReadGroups);
         else
-            outputBam = std::make_unique<TestUtilities::TTestBamFile>(filename, chrLength, numReadGroups);
+            outputBam = std::make_unique<BAM::TTestBamFile>(filename, chrLength, numReadGroups);
 
         //write alignments
         outputBam->writeDummyAlignments(numReads, true);
@@ -828,10 +828,12 @@ public:
 
 TEST_F(TBamFilter_Test, maxReadLength){
     write(false);
-    _disableAllFilters();
+
     // 1) filter: maxReadLength
+    _disableAllFilters();
     _parameters.addParameter("filterReadLength", "[20,30]");
-    //read();
+
+    read();
 
     //count number of simulated alignments outside this range
 	uint32_t numAligmentsOutsideRange = 0;
@@ -841,8 +843,14 @@ TEST_F(TBamFilter_Test, maxReadLength){
 		}
 	}
 
+	std::cout << "numAligmentsOutsideRange = " << numAligmentsOutsideRange << std::endl;
+	std::cout << "read length = " << bamFilter->readLength.counts() << std::endl;
+
+	coretools::TOutputFile out("RL.out");
+	bamFilter->readLength.write(out);
+
     EXPECT_EQ(bamFilter->totalReads.counts(), numReads - numAligmentsOutsideRange);
-}
+};
 
 TEST_F(TBamFilter_Test, keepDuplicates){
     write(false);
@@ -853,7 +861,7 @@ TEST_F(TBamFilter_Test, keepDuplicates){
 
     EXPECT_EQ(bamFilter->totalReads.counts(), numReads);
     EXPECT_TRUE(bamFilter->duplicates.counts() > 0);
-}
+};
 
 TEST_F(TBamFilter_Test, doNotkeepDuplicates){
     write(false);
@@ -1225,53 +1233,11 @@ TEST_F(TBamFilter_Test, blacklist){
     remove("blacklist.txt");
 }
 
-TEST_F(TBamFilter_Test, minMQ){
-    write(false);
-    _disableAllFilters();
-    // 10) filter: 'minMQ'
-    _parameters.addParameter("minMQ", "100");
-    read();
-
-    // count number of reads with lower MQ in simulated alignments
-    uint32_t numReadsWithSmallerMQWritten = 0;
-    for (auto a = outputBam->beginWrittenAlignments(); a != outputBam->endWrittenAlignments(); a++){
-        if (a->mappingQuality() < 100)
-            numReadsWithSmallerMQWritten++;
-    }
-
-    EXPECT_EQ(bamFilter->totalReads.counts(), numReads - numReadsWithSmallerMQWritten);
-    for (int id = 0; id < bamFilter->mappingQuality.size(); id++){
-        EXPECT_TRUE(bamFilter->mappingQuality[id].min() >= 100);
-    }
-}
-
-TEST_F(TBamFilter_Test, maxMQ){
-    write(false);
-    _disableAllFilters();
-    // 10) filter: 'maxMQ'
-    _parameters.addParameter("maxMQ", "100");
-    read();
-
-    // count number of reads with higher MQ in simulated alignments
-    uint32_t numReadsWithLargerMQWritten = 0;
-    for (auto a = outputBam->beginWrittenAlignments(); a != outputBam->endWrittenAlignments(); a++){
-        if (a->mappingQuality() > 100)
-            numReadsWithLargerMQWritten++;
-    }
-
-    EXPECT_EQ(bamFilter->totalReads.counts(), numReads - numReadsWithLargerMQWritten);
-
-    for (int id = 0; id < bamFilter->mappingQuality.size(); id++){
-        EXPECT_TRUE(bamFilter->mappingQuality[id].max() <= 100);
-    }
-}
-
-TEST_F(TBamFilter_Test, minMQ_maxMQ){
+TEST_F(TBamFilter_Test, MQ){
     write(false);
     _disableAllFilters();
     // 10) filter: 'minMQ' and 'maxMQ'
-    _parameters.addParameter("minMQ", "80");
-    _parameters.addParameter("maxMQ", "100");
+    _parameters.addParameter("filterMQ", "[80,100]");
     read();
 
     // count number of reads with lower and higher MQ in simulated alignments
@@ -1289,72 +1255,11 @@ TEST_F(TBamFilter_Test, minMQ_maxMQ){
     }
 }
 
-TEST_F(TBamFilter_Test, minFragmentLength){
-    write(true);
-    _disableAllFilters();
-    // 11) filter: 'minFragmentLength'
-    _parameters.addParameter("minFragmentLength", "100");
-    _parameters.addParameter("maxFragmentLength", "10000000000"); // set maxFragmentLength to something big, because default is 1000 and we have more than this
-
-    read();
-
-    // count number of reads with lower fragment length in simulated alignments
-    uint32_t numReadsWithSmallerFragLengthWritten = 0;
-    for (auto a = outputBam->beginWrittenAlignments(); a != outputBam->endWrittenAlignments(); a++){
-        // calculate insert size
-        uint32_t insertSize;
-        if (a->matePosition() > a->position())
-            insertSize = a->matePosition() - a->position();
-        else insertSize = a->position() - a->matePosition();
-        if (a->isProperPair()) {
-            if (insertSize + a->cigar().lengthInserted() - a->cigar().lengthDeleted() < 100)
-                numReadsWithSmallerFragLengthWritten++;
-        } else if (a->cigar().lengthSequenced() < 100)
-            numReadsWithSmallerFragLengthWritten++;
-    }
-
-    EXPECT_EQ(bamFilter->totalReads.counts(), numReads - numReadsWithSmallerFragLengthWritten);
-
-    for (int id = 0; id < bamFilter->mappingQuality.size(); id++){
-        EXPECT_TRUE(bamFilter->fragmentLength[id].min() >= 100);
-    }
-}
-
-TEST_F(TBamFilter_Test, maxFragmentLength){
-    write(true);
-    _disableAllFilters();
-    // 11) filter: 'maxFragmentLength'
-    _parameters.addParameter("maxFragmentLength", "100");
-    read();
-
-    // count number of reads with lower fragment length in simulated alignments
-    uint32_t numReadsWithLargerFragLengthWritten = 0;
-    for (auto a = outputBam->beginWrittenAlignments(); a != outputBam->endWrittenAlignments(); a++){
-        // calculate insert size
-        uint32_t insertSize;
-        if (a->matePosition() > a->position())
-            insertSize = a->matePosition() - a->position();
-        else insertSize = a->position() - a->matePosition();
-        if (a->isProperPair()) {
-            if (insertSize + a->cigar().lengthInserted() - a->cigar().lengthDeleted() > 100)
-                numReadsWithLargerFragLengthWritten++;
-        } else if (a->cigar().lengthSequenced() > 100)
-            numReadsWithLargerFragLengthWritten++;
-    }
-
-    EXPECT_EQ(bamFilter->totalReads.counts(), numReads - numReadsWithLargerFragLengthWritten);
-
-    for (int id = 0; id < bamFilter->mappingQuality.size(); id++){
-        EXPECT_TRUE(bamFilter->fragmentLength[id].max() <= 100);
-    }
-}
-
-TEST_F(TBamFilter_Test, minFragmentLength_maxFragmentLength){
+TEST_F(TBamFilter_Test, fragmentLength){
     write(true);
     _disableAllFilters();
     // 11) filter: 'minFragmentLength' and 'maxFragmentLength'
-    _parameters.addParameter("minFragmentLength", "80");
-    _parameters.addParameter("maxFragmentLength", "100");
+    _parameters.addParameter("filterFragmentLength", "[80,100]");
     read();
 
 

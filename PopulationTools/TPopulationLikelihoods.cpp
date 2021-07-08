@@ -218,7 +218,6 @@ void TPopulationSamples::readSamplesFromVCFNames(std::vector<std::string> & vcfS
 	fillSampleOrder();
 };
 
-
 void TPopulationSamples::fillVCFOrder(std::vector<std::string> & vcfSampleNames){
 	_VCF_order = new uint32_t[_numSamples];
 	_VCF_order_initialized = true;

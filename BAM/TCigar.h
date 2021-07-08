@@ -34,11 +34,12 @@ struct CigarOperator {
 class TCigar{
 private:
 	std::vector<CigarOperator> _cigar;
-	uint16_t _lengthAligned;
-	uint16_t _lengthInserted;
-	uint16_t _lengthDeleted;
-	uint16_t _lengthSoftClippedLeft;
-	uint16_t _lengthSoftClippedRight;
+	uint32_t _lengthAligned;
+	uint32_t _lengthInserted;
+	uint32_t _lengthDeleted;
+	uint32_t _lengthSkipped;
+	uint32_t _lengthSoftClippedLeft;
+	uint32_t _lengthSoftClippedRight;
 	bool _addSoftClippedLeft;
 
 public:
@@ -52,14 +53,15 @@ public:
     void add(const char & Type, const uint32_t & Length);
     void removeSoftClips();
 
-    uint16_t lengthAligned() const{ return _lengthAligned; };
-    uint16_t lengthInserted() const{ return _lengthInserted; };
-    uint16_t lengthDeleted() const{ return _lengthDeleted; };
-    uint16_t lengthSoftClippedLeft() const{ return _lengthSoftClippedLeft; };
-    uint16_t lengthSoftClippedRight() const{ return _lengthSoftClippedRight; };
-    uint16_t lengthSoftClipped() const{ return _lengthSoftClippedLeft + _lengthSoftClippedRight; };
-    uint16_t lengthSequenced() const{ return _lengthAligned + _lengthInserted; };
-    uint16_t lengthRead() const{ return _lengthAligned + _lengthInserted + _lengthSoftClippedLeft + _lengthSoftClippedRight; };
+    uint32_t lengthAligned() const{ return _lengthAligned; };
+    uint32_t lengthInserted() const{ return _lengthInserted; };
+    uint32_t lengthDeleted() const{ return _lengthDeleted; };
+    uint32_t lengthSoftClippedLeft() const{ return _lengthSoftClippedLeft; };
+    uint32_t lengthSoftClippedRight() const{ return _lengthSoftClippedRight; };
+    uint32_t lengthSoftClipped() const{ return _lengthSoftClippedLeft + _lengthSoftClippedRight; };
+    uint32_t lengthSequenced() const{ return _lengthAligned + _lengthInserted; };
+    uint32_t lengthRead() const{ return _lengthAligned + _lengthInserted + _lengthSoftClippedLeft + _lengthSoftClippedRight; };
+    uint32_t lengthMapped() const{ return _lengthAligned + _lengthDeleted + _lengthSkipped; };
 };
 
 }; //end namespace

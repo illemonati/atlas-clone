@@ -19,6 +19,7 @@ void TCigar::clear(){
 	_lengthAligned = 0;
 	_lengthInserted = 0;
 	_lengthDeleted = 0;
+	_lengthSkipped = 0;
 	_lengthSoftClippedLeft = 0;
 	_lengthSoftClippedRight = 0;
 	_addSoftClippedLeft = true;
@@ -40,7 +41,10 @@ void TCigar::add(const char & Type, const uint32_t & Length){
 		} else {
 			_lengthSoftClippedRight += Length;
 		}
-	} else if(Type != 'N' && Type != 'H' && Type != 'P'){
+	} else if(Type == 'N'){
+		_lengthSkipped += Length;
+	} else if(Type != 'H' && Type != 'P'){
+		//ignore
 		std::string error = "Unknown CIGAR operation '";
 		throw error + Type + "'!";
 	}

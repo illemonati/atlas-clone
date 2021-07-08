@@ -12,7 +12,7 @@
 #include "globalConstants.h"
 #include "stringFunctions.h"
 
-namespace TestUtilities{
+namespace BAM{
 
 //--------------------------------------
 // TTestBamFile

@@ -6,60 +6,68 @@
  */
 
 #include "TGLF.h"
+#include "debugtools.h"
 
 namespace GLF{
 
 //----------------------------------------------------
-// TGlfConverter
+//TGlfChromosome
 //----------------------------------------------------
-/*
-TGlfConverter::TGlfConverter(){
-    _maxVal = 65535;
-    _minLikelihood = pow(10.0, (double) _maxVal / -1000.0);
-
-	//fill map
-	_likelihoodMap.resize(_maxVal + 1);
-	for(int i=0; i<=_maxVal; i++){
-        _likelihoodMap[i] = pow(10.0, (double) i / -1000.0);
-	}
+TGlfChromosome::TGlfChromosome(){
+	refId = 0;
+	length = 0;
+	isHaploid = false;
+	numLikelihoodValues = 10;
+	maxNumLikelihoodValues = 10;
+	name = "";
 };
 
-uint16_t TGlfConverter::toGlfFormat(double scaledLikelihood) const{
-	if(scaledLikelihood < _minLikelihood){
-		return _maxVal;
+TGlfChromosome::TGlfChromosome(const std::string & Name, const uint32_t & Length, const uint8_t & Ploidy){
+	name = Name;
+	length = Length;
+	refId = 0;
+	maxNumLikelihoodValues = 10;
+	_setPloidy(Ploidy);
+};
+
+TGlfChromosome::TGlfChromosome(const TGlfChromosome & other){
+	update(other);
+};
+
+void TGlfChromosome::_setPloidy(const uint8_t & Ploidy){
+	if(Ploidy < 1 || Ploidy > 2)
+		throw "Currently GLFs only support ploidies 1 and 2 (not " + coretools::str::toString((int) Ploidy) + ")!";
+	if(Ploidy == 1){
+		isHaploid = true;
+		numLikelihoodValues = 4;
 	} else {
-		return round(-1000.0 * log10(scaledLikelihood));
+		isHaploid = false;
+		numLikelihoodValues = 10;
 	}
 };
 
-uint16_t TGlfConverter::log10ToGlfFormat(double log10ScaledLikelihood) const{
-	uint32_t tmp = round(-1000.0 * log10ScaledLikelihood);
-	if(tmp > _maxVal) return _maxVal;
-	else return tmp;
+void TGlfChromosome::update(const std::string & Name, const uint16_t & RefId, const uint32_t & Length, const uint8_t & Ploidy){
+	name = Name;
+	refId = RefId;
+	length = Length;
+	_setPloidy(Ploidy);
 };
 
-uint16_t TGlfConverter::phredToGlfFormat(uint8_t phred) const{
-	return phred * 100;
+void TGlfChromosome::update(const TGlfChromosome & other){
+	name = other.name;
+	refId = other.refId;
+	length = other.length;
+	isHaploid = other.isHaploid;
+	numLikelihoodValues = other.numLikelihoodValues;
+	maxNumLikelihoodValues = other.maxNumLikelihoodValues;
 };
 
-double TGlfConverter::toScaledLikelihood(uint16_t glfValue) const{
-	if(glfValue > _maxVal) return _minLikelihood;
-	return _likelihoodMap[glfValue];
+void TGlfChromosome::clear(){
+	name = "";
+	refId = 0;
+	length = 0;
+	isHaploid = false;
 };
-
-genometools::PhredIntProbability TGlfConverter::toPhred(uint16_t glfValue) const{
-	return genometools::PhredProbability(glfValue / 100.0);
-};
-
-double TGlfConverter::toLog10(uint16_t glfValue) const{
-	return glfValue / -1000.0;
-};
-
-BAM::LogErrorRate TGlfConverter::toLog(uint16_t glfValue) const{
-	return glfValue * _logOf10DividedByMinus1000;
-};
-*/
-
 
 //---------------------------------
 //TGlfWriter
@@ -112,7 +120,8 @@ void TGlfWriter::newChromosome(const BAM::TChromosome & chromosome){
     _write(_curChr.name.c_str(), _curChr.name.length() * sizeof(char));
     _write(&_curChr.refId, sizeof(uint32_t));
     _write(&_curChr.length, sizeof(uint32_t));
-    _write(&_curChr.isHaploid + 1, sizeof(uint8_t)); // TODO: I get an "uninitialized variable" error with valgrind. Why?
+    uint8_t ploidy = 2 - _curChr.isHaploid;
+    _write(&ploidy, sizeof(uint8_t)); // TODO: I get an "uninitialized variable" error with valgrind. Why?
 
 	//set oldPos and curChr
 	_oldPos = 0;
@@ -294,7 +303,7 @@ void TGlfReader::_open(){
 	_curChr.clear();
     _positionInFile = 0;
 
-	//parse header
+    //parse header
 	//version
 	char buffer[4];
     _read(buffer, 4 * sizeof(char));
@@ -434,7 +443,7 @@ void TGlfReader::fillGenotypeLikelihoods(BAM::ErrorRate* destination){
 
 //printing
 void TGlfReader::printChr(){
-	std::cout << "CHROMOSOME: '" << _curChr.name << "' of length " << _curChr.length << " and ploidy " << (int) _curChr.isHaploid + 1 << "\n";
+	std::cout << "CHROMOSOME: '" << _curChr.name << "' of length " << _curChr.length << " and ploidy " << (int) 2-_curChr.isHaploid << "\n";
 };
 
 void TGlfReader::printSite(){

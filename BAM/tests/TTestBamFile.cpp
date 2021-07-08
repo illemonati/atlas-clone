@@ -7,7 +7,7 @@
 
 #include "TTestBamFile.h"
 
-namespace TestUtilities{
+namespace BAM{
 
 using genometools::A;
 using genometools::C;
@@ -353,7 +353,7 @@ void TTestBamFilePairedEnd::writeDummyAlignments(const uint32_t & numAlignments,
         throw std::runtime_error("In function 'void TTestBamFilePairedEnd::writeDummyAlignments(const uint32_t & numAlignments, const bool & complicatedSamFlag)': For simplicity, numAlignments should be an even number!");
 
     // create alignments and store
-    TestUtilities::TTestBamFile::writeDummyAlignments(numAlignments, complicatedSamFlag);
+    BAM::TTestBamFile::writeDummyAlignments(numAlignments, complicatedSamFlag);
 
     // now match forward and reverse read
     std::vector<bool> used(_writtenAlignments.size(), false);

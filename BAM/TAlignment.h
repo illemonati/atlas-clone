@@ -118,7 +118,7 @@ public:
 
 	std::string name() const{ return _name; };
 	uint16_t readGroupId() const { return _readGroupID; };
-	uint16_t parsedLength() const;
+	uint32_t parsedLength() const;
 	int32_t insertSize() const{ return _insertSize_TLEN; };
 	uint16_t mappingQuality() const{ return _mappingQuality; };
 	uint16_t flags() const{ return _flags.asInt(); };

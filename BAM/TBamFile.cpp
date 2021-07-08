@@ -6,6 +6,7 @@
  */
 
 #include "TBamFile.h"
+#include "debugtools.h"
 
 namespace BAM{
 
@@ -69,27 +70,30 @@ void TBamFile::setFilters(TParameters & params, TLog* logfile){
 	//alignment filters
 	logfile->startIndent("Will use the following filters on reads:");
 
-	//max read length
-	//is relevant for storage, so only accept values up to 2^16
+	//mapping length
+	//--------------
+	//is relevant for storage
 	//print error if reads are longer and filter is default
 	TNumericRange<uint32_t> readLengthRange;
-	if(params.parameterExists("filterReadLength")){
-		params.fillParameter("filterReadLength", readLengthRange);
-		if(readLengthRange.max() > 65535)
-			throw "This version of " + coretools::__GLOBAL_APPLICATION_NAME__ + " only supports read length up to 65535 bp. Contact us if you have longer reads / fragments";
+	if(params.parameterExists("filterMappingLength")){
+		params.fillParameter("filterMappingLength", readLengthRange);
 		_allowTooLongReads = true;
 	} else {
 		//set default
 		readLengthRange.set(0, true, 200, true);
 		_allowTooLongReads = false;
 	}
-	_readLengthFilter.filter(readLengthRange, "Fragment length outside " + readLengthRange.rangeString());
-	logfile->list("Fragment length: restrict to range " + _fragmentLengthFilter.rangeString() + ". (parameter 'filterFragmentLength')");
+	_mappedLengthFilter.filter(readLengthRange, "Mapped length outside " + readLengthRange.rangeString());
+	logfile->list("Mapped length: restrict to range " + _mappedLengthFilter.rangeString() + ". (parameter 'filterMappedLength')");
+	if(readLengthRange.max() > 100000){
+		logfile->warning("The chosen mapping length filter allows for read to span >100kb of the reference genome. This may affect performance in case of paired-end reads.");
+	}
 
 	//keep all otherwise?
+	//-------------------
 	if(params.parameterExists("keepAllReads")){
 		_keepAll = true;
-		logfile->list("Will keep all reads. (parameter 'keepAllReads', overrules any other QC filter except filterRreadLength)");
+		logfile->list("Will keep all reads. (parameter 'keepAllReads', overrules any other QC filter except filterMappingLength)");
 	} else {
 		_keepAll = false;
 		//duplicates
@@ -217,6 +221,19 @@ void TBamFile::setFilters(TParameters & params, TLog* logfile){
 			_mappingQualityFilter.keep();
 			logfile->list("Mapping quality: keep all. (use 'filterMQ' to limit)");
 		}
+
+		//Read length filter
+		if(params.parameterExists("filterReadLength")){
+			TNumericRange<uint32_t> Range;
+			params.fillParameter("filterReadLength", Range);
+
+			_readLengthFilter.filter(Range, "Read length outside " + Range.rangeString());
+			logfile->list("Read length: restrict to range " + _readLengthFilter.rangeString() + ". (parameter 'filterFragmentLength')");
+		} else {
+			_readLengthFilter.keep();
+			logfile->list("Read length: keep all. (use 'filterReadLength' to limit)");
+		}
+
 
 		//Fragment length filter
 		if(params.parameterExists("filterFragmentLength")){
@@ -396,10 +413,10 @@ void TBamFile::close(){
 void TBamFile::_applyFilters(){
 	//check read length
 	//read length is special as it affects our storage
-	if(!_readLengthFilter.pass(_curBamAlignment.AlignedBases.size(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())){
+	if(!_mappedLengthFilter.pass(_curCigar.lengthMapped(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())){
 		if(!_allowTooLongReads){
-			throw "Alignment '" +  _curBamAlignment.Name + "' is longer than the accepted range " + _readLengthFilter.rangeString() + "!\n"
-			     + "You see this error because ATLAS was run with default read length filters. Either set your filters using 'filterReadLength' or add 'allowTooLongReads' to ignore this error.";
+			throw "The mapping length of alignment '" +  _curBamAlignment.Name + "' is beyond the range " + _readLengthFilter.rangeString() + "!\n"
+			     + "You see this error because " + coretools::__GLOBAL_APPLICATION_NAME__ + " was run with default mapping length filters. Either set your filters using 'filterMappingLength' or add 'allowTooLongReads' to ignore this error.";
 		} else {
 			_QCFiltersPassed = false;
 		}
@@ -421,7 +438,8 @@ void TBamFile::_applyFilters(){
 						 && _firstMateFilter.pass(_curBamAlignment.IsFirstMate(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
 						 && _secondMateFilter.pass(_curBamAlignment.IsSecondMate(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
 						 && _mappingQualityFilter.pass(_curBamAlignment.MapQuality, _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
-						 && _blacklistFilter.pass(_blacklist.isInBlacklist(_curBamAlignment.Name), _curBamAlignment.Name, _curBamAlignment.IsSecondMate());
+						 && _blacklistFilter.pass(_blacklist.isInBlacklist(_curBamAlignment.Name), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
+						 && _readLengthFilter.pass(_curCigar.lengthRead(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate());
 
 		//fragment length
 		if(_QCFiltersPassed){

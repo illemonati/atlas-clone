@@ -46,17 +46,7 @@ protected:
 //----------------------------------------------------
 class TGlfChromosome{
 private:
-	void _setPloidy(uint8_t Ploidy){
-		if(Ploidy < 1 || Ploidy > 2)
-			throw "Currently GLFs only support ploidies 1 and 2 (not " + coretools::str::toString(Ploidy) + ")!";
-		if(Ploidy == 1){
-			isHaploid = true;
-			numLikelihoodValues = 4;
-		} else {
-			isHaploid = false;
-			numLikelihoodValues = 10;
-		}
-	};
+	void _setPloidy(const uint8_t & Ploidy);
 
 public:
 	//current chromosome
@@ -67,49 +57,14 @@ public:
 	uint8_t numLikelihoodValues; //depends on ploidy
 	uint8_t maxNumLikelihoodValues; //maximum possible
 
-	TGlfChromosome(){
-		refId = 0;
-		length = 0;
-		isHaploid = false;
-		numLikelihoodValues = 10;
-		maxNumLikelihoodValues = 10;
-		name = "";
-	};
+	TGlfChromosome();
+	TGlfChromosome(const std::string & Name, const uint32_t & Length, const uint8_t & Ploidy);
+	TGlfChromosome(const TGlfChromosome & other);
 
-	TGlfChromosome(const std::string& Name, uint32_t Length, uint8_t Ploidy){
-		name = Name;
-		length = Length;
-		refId = 0;
-		maxNumLikelihoodValues = 10;
-        _setPloidy(Ploidy);
-	};
+	void update(const std::string & Name, const uint16_t & RefId, const uint32_t & Length, const uint8_t & Ploidy);
+	void update(const TGlfChromosome & other);
 
-	TGlfChromosome(const TGlfChromosome & other){
-		update(other);
-	};
-
-	void update(const std::string& Name, const uint16_t RefId, const uint32_t Length, const uint8_t Ploidy){
-		name = Name;
-		refId = RefId;
-		length = Length;
-        _setPloidy(Ploidy);
-	};
-
-	void update(const TGlfChromosome & other){
-		name = other.name;
-		refId = other.refId;
-		length = other.length;
-		isHaploid = other.isHaploid;
-		numLikelihoodValues = other.numLikelihoodValues;
-		maxNumLikelihoodValues = other.maxNumLikelihoodValues;
-	};
-
-	void clear(){
-		name = "";
-		refId = 0;
-		length = 0;
-		isHaploid = false;
-	};
+	void clear();
 };
 
 //----------------------------------------------------
@@ -293,7 +248,6 @@ public:
 	void printSite();
 	void printToEnd();
 };
-
 
 //------------------------------------------------
 // Tasks
