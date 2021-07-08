@@ -15,6 +15,64 @@ namespace PopulationTools{
 
 using coretools::str::toString;
 
+
+//------------------------------------------------
+// TPopulation
+//------------------------------------------------
+TPopulation::TPopulation(const std::string & Name){
+	_name = Name;
+	_firstSampleIndex = 0;
+};
+
+void TPopulation::addSample(const std::string & Sample){
+	//check for duplicates
+	if(std::find(_samples.begin(), _samples.end(), Sample) != _samples.end()){
+		throw "Duplicate sample '" + Sample + "' in population '" + _name + "'!";
+	}
+	_samples.push_back(Sample);
+};
+
+bool TPopulation::sampleExists(const std::string & Sample) const {
+	return std::find(_samples.begin(), _samples.end(), Sample) != _samples.end();
+};
+
+bool TPopulation::sampleIndexExists(const uint32_t & Index) const {
+	return Index >= _firstSampleIndex && Index < _firstSampleIndex + _samples.size();
+};
+
+uint32_t TPopulation::sampleIndex(const std::string & Sample) const {
+	for(uint32_t i = 0; i < _samples.size(); ++i){
+		if(_samples[i] == Sample){
+			return _firstSampleIndex + i;
+		}
+	}
+	throw std::runtime_error("uint32_t TPopulation::sampleIndex(const std::string & Sample): sample '" + Sample + "' does not exist!");
+};
+
+std::string TPopulation::sampleName(const uint32_t & Index) const{
+	return _samples[Index - _firstSampleIndex];
+};
+
+void TPopulation::addSampleNamesToVector(std::vector<std::string> & vec) const {
+	vec.insert(vec.end(), _samples.begin(), _samples.end());
+};
+
+void TPopulation::report(coretools::TLog* Logfile) const {
+	for(auto& s : _samples){
+		Logfile->list(s);
+	}
+};
+
+//the following functions accept arrays spanning ALL samples and perform calculations on samples in population
+uint32_t TPopulation::numSamplesMissing(bool* sampleMissing) const {
+	int numMissing = 0;
+	for(uint32_t s = 0; s < numSamples(); ++s){
+		if(sampleMissing[_firstSampleIndex + s])
+			numMissing++;
+	}
+	return numMissing;
+};
+
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // TPopulationSamples                                                                         //
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -27,40 +85,67 @@ TPopulationSamples::TPopulationSamples(std::string filename, coretools::TLog* lo
 	readSamples(filename, logfile);
 };
 
-TPopulationSamples::~TPopulationSamples(){
-	if(_hasSamples){
-		delete[] numSamplesPerPop;
-		delete[] startIndexPerPop;
-		delete[] _samplePopIndex;
-	}
-	if(_VCF_order_initialized)
-		delete[] _VCF_order;
-};
-
 void TPopulationSamples::_init(){
-	_numPopulations = 0;
 	_numSamples = 0;
-	numSamplesPerPop = NULL;
-	_hasSamples = false;
-	_VCF_order = NULL;
-	_VCF_order_initialized = false;
 };
 
-std::string TPopulationSamples::getPopulationName(uint32_t population){
-	for(auto& it : populations){
-		if(it.second == population)
-			return it.first;
-	}
-	throw "No population with index " + toString(population) + "!";
+bool TPopulationSamples::populationExists(const std::string & name) const {
+	return std::find(_populations.begin(), _populations.end(), name) != _populations.end();
 };
 
-uint32_t TPopulationSamples::getPopulationIndex(const std::string name){
-	auto it = populations.find(name);
-	if(it==populations.end()){
-		throw "No population with name " + name + "!";
+std::string TPopulationSamples::getPopulationName(const uint32_t & index) const {
+	if(index >= _populations.size()){
+		throw "No population with index " + toString(index) + "!";
 	}
-	return it->second;
+	return _populations[index].name();
 };
+
+uint32_t TPopulationSamples::populationIndex(const std::string & name) const {
+	for(uint32_t p = 0; p < _populations.size(); ++p){
+		if(_populations[p] == name){
+			return p;
+		}
+	}
+	throw "No population with name " + name + "!";
+};
+
+bool TPopulationSamples::sampleExists(const std::string & name) const {
+	for(auto& p : _populations){
+		if(p.sampleExists(name)){
+			return true;
+		}
+	}
+	return false;
+};
+
+uint32_t TPopulationSamples::sampleIndex(const std::string & name) const {
+	for(auto& p : _populations){
+		if(p.sampleExists(name)){
+			return p.sampleIndex(name);
+		}
+	}
+	throw std::runtime_error("uint32_t TPopulationSamples::getSampleIndex(const std::string & name): Sample '" + name + "' does not exist!");
+};
+
+std::string TPopulationSamples::sampleName(const uint32_t & index) const {
+	if(index >= _numSamples){
+		throw std::runtime_error("std::string TPopulationSamples::getSampleName(const uint32_t & index) const: index >= _numSamples!");
+	}
+	for(auto& p : _populations){
+		if(p.sampleIndexExists(index)){
+			return p.sampleName(index);
+		}
+	}
+	throw std::runtime_error("std::string TPopulationSamples::getSampleName(const uint32_t & index) const: index not found!");
+};
+
+void TPopulationSamples::addSampleNamesToVector(std::vector<std::string> & vec) const{
+	for(auto& p : _populations){
+		p.addSampleNamesToVector(vec);
+	}
+};
+
+//----------------------------
 
 void TPopulationSamples::readSamples(std::string filename, coretools::TLog* logfile){
 	logfile->listFlush("Reading samples from file '" + filename + "' ...");
@@ -74,7 +159,6 @@ void TPopulationSamples::readSamples(std::string filename, coretools::TLog* logf
 	std::vector<std::string> vec;
 	std::string line;
 	bool hasPopColumn = false;
-	_numPopulations = 0;
 	std::map<std::string, uint32_t>::iterator it;
 
 	//now parse and store
@@ -89,9 +173,7 @@ void TPopulationSamples::readSamples(std::string filename, coretools::TLog* logf
 				if(vec.size() == 2)
 					hasPopColumn = true;
 				else {
-					populations.emplace("Population", 0);
-					it = populations.begin();
-					_numPopulations = 1;
+					_populations.emplace_back("Population");
 				}
 			}
 
@@ -101,20 +183,16 @@ void TPopulationSamples::readSamples(std::string filename, coretools::TLog* logf
 			if(hasPopColumn && vec.size() != 2)
 				throw "Wrong number of columns in file '" + filename + "' on line " + toString(lineNum) + "! Expected 2, but found " + toString(vec.size()) + ".";
 
-			//check if population exists
+			//add sample to correct population
 			if(hasPopColumn){
-				it = populations.find(vec[1]);
-				if(it == populations.end()){
-					populations.emplace(vec[1], _numPopulations);
-					it = populations.find(vec[1]);
-					_numPopulations++;
+				auto it = std::find(_populations.begin(), _populations.end(), vec[1]);
+				if(it == _populations.end()){
+					it = _populations.emplace(_populations.end(), vec[1]);
 				}
+				it->addSample(vec[0]);
+			} else {
+				_populations[0].addSample(vec[0]);
 			}
-
-			//store sample
-			if(samples.find(vec[0]) != samples.end())
-				throw "Duplicate sample name '" + vec[0] + "' in file '" + filename + "' on line " + toString(lineNum) + "!";
-			samples.emplace(vec[0], it->second);
 		}
 	}
 
@@ -123,143 +201,97 @@ void TPopulationSamples::readSamples(std::string filename, coretools::TLog* logf
 	logfile->done();
 
 	//fill sample order by population
-	fillSampleOrder();
+	//fill firstIndex in each pop
+	_numSamples = 0;
+	_indexToPopulationIndex.clear();
+	for(auto& p : _populations){
+		p.setFirstSampleIndex(_numSamples);
+		_numSamples += p.numSamples();
+	}
+	_fillIndexToPopulationIndex();
 
 	//report assignment
 	logfile->startIndent("Will consider the following populations:");
-	for(auto& pop : populations){
-		logfile->startIndent("Population '" + pop.first + "':");
-		for(size_t s=0; s<numSamplesPerPop[pop.second]; ++s){
-			logfile->list(getNameFromOrderedIndex(startIndexPerPop[pop.second] + s));
-		}
-		logfile->endIndent();
-	}
+	report(logfile);
 	logfile->endIndent();
 };
 
-void TPopulationSamples::fillSampleOrder(){
-	//fill counters
-	_numSamples = samples.size();
-	if(_numSamples > 0){
-		_hasSamples = true;
-		numSamplesPerPop = new uint32_t[_numPopulations];
-		startIndexPerPop = new uint32_t[_numPopulations];
-		_samplePopIndex = new uint32_t[_numSamples];
-		//put samples in order by populations
-		int nextIndex = 0;
-		for(uint32_t p=0; p<_numPopulations; ++p){
-			numSamplesPerPop[p] = 0;
-			startIndexPerPop[p] = nextIndex;
-			for(std::map<std::string, uint32_t>::iterator it = samples.begin(); it != samples.end(); ++it){
-				if(it->second == p){
-					sampleOrder.emplace(it->first, nextIndex);
-					_samplePopIndex[nextIndex] = p;
-					++nextIndex;
-					++numSamplesPerPop[p];
-				}
-			}
-		}
-	}
-};
-
-bool TPopulationSamples::sampleIsUsed(const std::string& name){
-	if(samples.find(name) == samples.end()) return false;
-	return true;
-};
-
-uint32_t TPopulationSamples::getOrderedSampleIndex(const std::string & name){
-	if(!sampleIsUsed(name))
-		throw "Sample '" + name + "' does not exist!";
-	return sampleOrder.find(name)->second;
-};
-
-std::string TPopulationSamples::getNameFromOrderedIndex(uint32_t index){
-	for(std::map<std::string, uint32_t>::iterator it = sampleOrder.begin(); it != sampleOrder.end(); ++it){
-		if(it->second == index)
-			return it->first;
-	}
-
-	throw "Sample index " + toString(index) + " out of range!";
-};
-
-void TPopulationSamples::addOrderedSampleNamesToVector(std::vector<std::string> & vec){
-	if(_hasSamples){
-		std::vector<std::string> tmp(_numSamples);
-		for(std::map<std::string, uint32_t>::iterator it = sampleOrder.begin(); it != sampleOrder.end(); ++it){
-			tmp[it->second] = it->first;
-		}
-
-		vec.insert(vec.end(), tmp.begin(), tmp.end());
-	}
-};
-
 void TPopulationSamples::readSamplesFromVCFNames(std::vector<std::string> & vcfSampleNames){
-	_numSamples = vcfSampleNames.size();
-	_VCF_order = new uint32_t[_numSamples];
-	_VCF_order_initialized = true;
+	//create a single populations
+	_populations.emplace_back("Population");
 
-	//set a single populations
-	_numPopulations = 1;
-	populations.emplace("Population", 0);
-
-	//save samples
+	//add samples to that population
 	for(size_t s=0; s<vcfSampleNames.size(); ++s){
-		//make sure same names are unique!
-		if(samples.find(vcfSampleNames[s]) != samples.end()){
-			throw "Duplicate sample name '" + vcfSampleNames[s] + "' in VCf header!";
-		}
-
-		//add to samples
-		samples.emplace(vcfSampleNames[s], 0);
-		_VCF_order[s] = s;
+		_populations[0].addSample(vcfSampleNames[s]);
 	}
+	_numSamples = _populations[0].numSamples();
+	_fillIndexToPopulationIndex();
 
-	//fill sample order by population
-	fillSampleOrder();
+	fillVCFOrder(vcfSampleNames);
 };
 
+void TPopulationSamples::report(coretools::TLog* Logfile){
+	for(auto& p : _populations){
+		Logfile->startIndent("Population '" + p.name() + "':");
+		p.report(Logfile);
+		Logfile->endIndent();
+	}
+};
+
+//------------------------------------------------------------
 void TPopulationSamples::fillVCFOrder(std::vector<std::string> & vcfSampleNames){
-	_VCF_order = new uint32_t[_numSamples];
-	_VCF_order_initialized = true;
-	bool sampleUsed[_numSamples];
-	for(uint32_t s=0; s<_numSamples; ++s)
-		sampleUsed[s] = false;
+	_vcfIndex.resize(vcfSampleNames.size());
+	_indexToVCFIndex.resize(vcfSampleNames.size());
 
-	int vcfIndex = 0;
-	for(std::vector<std::string>::iterator it = vcfSampleNames.begin(); it != vcfSampleNames.end(); ++it, ++vcfIndex){
-		if(sampleIsUsed(*it)){
-			int orderedIndex = getOrderedSampleIndex(*it);
-			if(sampleUsed[orderedIndex])
-				throw "Duplicate sample name '" + *it + "' in VCf header!";
+	std::vector<bool> sampleInVCF(_numSamples);
 
-			_VCF_order[orderedIndex] = vcfIndex;
-			sampleUsed[orderedIndex] = true;
+	for(uint32_t i = 0; i < vcfSampleNames.size(); ++i){
+		//check if sample is used (i.e. exists in one of the populations)
+		if(sampleExists(vcfSampleNames[i])){
+			if(_vcfIndex[i].used){
+				throw "Duplicate sample name '" + vcfSampleNames[i] + "' in VCf header!";
+			}
+
+			uint32_t index = sampleIndex(vcfSampleNames[i]);
+			_indexToVCFIndex[index] = i;
+			sampleInVCF[index] = true;
+
+			_vcfIndex[i].used = true;
+			_vcfIndex[i].index = index;
 		}
 	}
 
 	//check if we lack samples
-	for(uint32_t s=0; s<_numSamples; ++s){
-		if(!sampleUsed[s])
-			throw "Sample '" + getNameFromOrderedIndex(s) + "' missing in VCF!";
+	for(uint32_t s = 0; s < _numSamples; ++s){
+		if(!sampleInVCF[s])
+			throw "Sample '" + sampleName(s) + "' missing in VCF!";
 	}
 };
 
-uint32_t TPopulationSamples::numSamplesMissingInPop(bool* sampleMissing, uint32_t population){
-	int numMissing = 0;
-	for(uint32_t s=0; s<numSamplesPerPop[population]; ++s){
-		if(sampleMissing[startIndexPerPop[population] + s])
-			numMissing++;
+void TPopulationSamples::_fillIndexToPopulationIndex(){
+	_indexToPopulationIndex.resize(_numSamples);
+	for(uint32_t p = 0; p < _populations.size(); ++p){
+		for(uint32_t y = 0; y < _populations[p].numSamples(); ++y){
+			_indexToPopulationIndex[_populations[p].firstSampleIndex() + y] = p;
+		}
 	}
-	return numMissing;
 };
 
-uint32_t TPopulationSamples::numSamplesWithDataInPop(bool* sampleMissing, uint32_t population){
-	int numWithData = 0;
-	for(uint32_t s=0; s<numSamplesPerPop[population]; ++s){
-		if(!sampleMissing[startIndexPerPop[population] + s])
-			numWithData++;
-	}
-	return numWithData;
+
+uint32_t TPopulationSamples::sampleIndexInVCF(const uint32_t & index){
+	return _indexToVCFIndex[index];
+};
+
+uint8_t* TPopulationSamples::getPointerToDataInPop(uint8_t* data, uint32_t population) const {
+	return &data[ 3 * _populations[population].firstSampleIndex() ];
+};
+
+uint32_t TPopulationSamples::numSamplesMissingInPop(bool* sampleMissing, uint32_t population) const {
+	return _populations[population].numSamplesMissing(sampleMissing);
+};
+
+uint32_t TPopulationSamples::numSamplesWithDataInPop(bool* sampleMissing, uint32_t population) const {
+	return _populations[population].numSamplesWithData(sampleMissing);
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -443,7 +475,7 @@ void TPopulationLikelihoodReader::closeVCF(){
 int TPopulationLikelihoodReader::filterOnDepth(TSampleLikelihoods* data, TPopulationSamples & samples){
 	int numIndividualsWithData = 0;
 	for(uint32_t s = 0; s < samples.numSamples(); ++s){
-		int vcfIndex = samples.VCF_order(s);
+		int vcfIndex = samples.sampleIndexInVCF(s);
 
 		// depth filter: if a locus has < minDepth reads, flag locus as missing (set all genotype likelihoods = 1)
 		if (vcfFile.sampleDepth(vcfIndex) < minDepth){
@@ -503,7 +535,7 @@ bool TPopulationLikelihoodReader::_filterSite(TSampleLikelihoods* data, TPopulat
 
 	uint32_t numIndividualsWithData = filterOnDepth(data, samples);
 	for(uint32_t s = 0; s < samples.numSamples(); ++s){
-		unsigned int vcfIndex = samples.VCF_order(s);
+		unsigned int vcfIndex = samples.sampleIndexInVCF(s);
 		vcfFile.fillGenotypeLikelihoods(data[s], vcfIndex);
 	}
 
@@ -763,24 +795,24 @@ void TPopulationLikelihoodReaderLocus::writePosition(coretools::TOutputFile & ou
 std::vector<genometools::BiallelicGenotype> TPopulationLikelihoodReaderLocus::biallelicGenotypes(TPopulationSamples & samples) const {
 	std::vector<genometools::BiallelicGenotype> vec(samples.numSamples());
     for(uint32_t s = 0; s < samples.numSamples(); ++s) {
-        uint32_t vcfIndex = samples.VCF_order(s);
+        uint32_t vcfIndex = samples.sampleIndexInVCF(s);
         vec[s] = vcfFile.sampleBiallelicGenotype(vcfIndex);
     }
     return vec;
 };
 
 genometools::BiallelicGenotype TPopulationLikelihoodReaderLocus::biallelicGenotype(TPopulationSamples & samples, const uint32_t & s) const{
-    uint32_t vcfIndex = samples.VCF_order(s);
+    uint32_t vcfIndex = samples.sampleIndexInVCF(s);
     return vcfFile.sampleBiallelicGenotype(vcfIndex);
 };
 
 genometools::Genotype TPopulationLikelihoodReaderLocus::genotype(TPopulationSamples & samples, const uint32_t & s) const{
-	uint32_t vcfIndex = samples.VCF_order(s);
+	uint32_t vcfIndex = samples.sampleIndexInVCF(s);
 	return vcfFile.sampleGenotype(vcfIndex);
 };
 
 double TPopulationLikelihoodReaderLocus::depth(TPopulationSamples & samples, uint32_t s){
-    uint32_t vcfIndex = samples.VCF_order(s);
+    uint32_t vcfIndex = samples.sampleIndexInVCF(s);
     return vcfFile.sampleDepth(vcfIndex);
 };
 
@@ -1140,7 +1172,7 @@ TSampleLikelihoods* TPopulationLikelihoods::curData(){
 };
 
 std::string TPopulationLikelihoods::curSampleName(int index){
-	return samples.getNameFromOrderedIndex(individualStartIndex + index);
+	return samples.sampleName(individualStartIndex + index);
 };
 
 int TPopulationLikelihoods::curSampleSize(){

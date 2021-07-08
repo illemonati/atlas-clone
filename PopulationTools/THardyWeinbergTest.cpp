@@ -374,9 +374,9 @@ void THardyWeinbergTest::testForHardyWeinberg(){
 
 			//add data at current line
 			for(uint32_t s = 0; s<_samples.numSamples(); ++s){
-				uint32_t vcfIndex = _samples.VCF_order(s);
+				uint32_t vcfIndex = _samples.sampleIndexInVCF(s);
 				if(!_vcfFile.sampleIsMissing(vcfIndex)){
-					_populations.add(_samples.popIndex(s), _vcfFile.sampleBiallelicGenotype(vcfIndex));
+					_populations.add(_samples.populationIndex(s), _vcfFile.sampleBiallelicGenotype(vcfIndex));
 				}
 			}
 

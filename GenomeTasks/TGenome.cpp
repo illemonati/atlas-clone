@@ -233,25 +233,16 @@ void TGenome_windows::_setWindowFilters(TParameters & params){
 
 void TGenome_windows::_setSiteFilters(TParameters & params){
 	//depth filter
-	_readUpToDepth = params.getParameterWithDefault<int>("readUpToDepth", 100);
+	_readUpToDepth = params.getParameterWithDefault<uint32_t>("readUpToDepth", 1000);
 	_logfile->list("Will read data up to depth " + toString(_readUpToDepth) + " and ignore additional bases. (parameter 'readUpToDepth')");
 
-	if(params.parameterExists("minDepth") || params.parameterExists("maxDepth")){
+	//depth filter
+	if(params.parameterExists("filterDepth")){
+		params.fillParameter("filterDepth", _depthFilter);
 		_applyDepthFilter = true;
-		unsigned int tmpInt;
-		tmpInt = params.getParameterWithDefault<int>("minDepth", 0);
-		if(tmpInt < 0)
-			throw "minDepth must be >= 0!";
-		_minDepth = tmpInt;
-		tmpInt = params.getParameterWithDefault<int>("maxDepth", _readUpToDepth);
-		if(tmpInt < _minDepth) throw "maxDepth must be >= minDepth!";
-		_maxDepth = tmpInt;
-		_readUpToDepth = _maxDepth + 1;
-		_logfile->list("Will filter out sites with sequencing depth < " + toString(_minDepth) + " or > " + toString(_maxDepth) + ". (parameters 'minDepth', 'maxDepth')");
+		_logfile->list("Will filter out sites with sequencing depth outside ", _depthFilter, ". (parameters 'filterDepth')");
 	} else {
 		_applyDepthFilter = false;
-		_minDepth = 0;
-		_maxDepth = _readUpToDepth;
 		_logfile->list("Will keep sites regardless of depth. (use 'minDepth' or 'maxDepth' to filter)");
 	}
 
@@ -259,8 +250,8 @@ void TGenome_windows::_setSiteFilters(TParameters & params){
 	_downsampleDepth = params.getParameterWithDefault<int>("downsample", 0);
 	if(_downsampleDepth > 0){
 		_logfile->list("Will downsample sites to a depth <= ", _downsampleDepth, ". (parameter 'downsample')");
-		if(_downsampleDepth >= _maxDepth){
-			_logfile->warning("Downsample depth is >= max depth: no downsampling will occur.");
+		if(_depthFilter.larger(_downsampleDepth)){
+			_logfile->warning("Downsample depth is >= max of depth filter: no downsampling will occur.");
 		}
 		subsamplePicker = std::make_unique<coretools::TSubsamplePicker>(_randomGenerator, 30);
 	}
@@ -562,7 +553,7 @@ void TGenome_windows::_applyWindowFilters(GenotypeLikelihoods::TWindow_base & wi
 
 		//filter sites
 		if(_applyDepthFilter){
-			window.applyDepthFilter(_minDepth, _maxDepth);
+			window.applyDepthFilter(_depthFilter);
 		}
 		if(_filterCpG){
 			window.maskCpG(_reference);

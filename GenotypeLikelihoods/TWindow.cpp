@@ -316,11 +316,12 @@ GenotypeLikelihoods::TBaseProbabilities TWindow_base::estimateBaseFrequencies() 
 };
 
 
-void TWindow_base::applyDepthFilter(const size_t minDepth, const size_t maxDepth){
+void TWindow_base::applyDepthFilter(const coretools::TNumericRange<uint32_t> & DepthRange){
 	for(unsigned int i=0; i<size(); ++i){
 		if(!_sites[i].empty()){
-			if(_sites[i].depth() < minDepth || _sites[i].depth() > maxDepth)
+			if(DepthRange.outside(_sites[i].depth())){
 				_sites[i].clear();
+			}
 		}
 	}
 };

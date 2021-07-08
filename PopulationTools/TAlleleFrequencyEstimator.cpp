@@ -432,7 +432,7 @@ void TAlleleFreqMCMCOutput::initialize(std::string popString, TPopulationSamples
 		} else {
 			for(auto& name : tmp){
 				if(samples.populationExists(name)){
-					popIndex.push_back(samples.getPopulationIndex(name));
+					popIndex.push_back(samples.populationIndex(name));
 					header.push_back(name);
 				} else {
 					throw "Can not write MCMC: population '" + name + "' does not exist!";

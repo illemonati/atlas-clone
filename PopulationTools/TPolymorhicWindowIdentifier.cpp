@@ -41,7 +41,7 @@ void TPolymorhicWindowIdentifier::identifyPolymorphicWindows(TParameters & Param
 
 	//write header
 	std::vector<std::string> header = {"chr", "start", "end", "numWithData", "numMono", "numPoly"};
-	samples.addOrderedSampleNamesToVector(header);
+	samples.addSampleNamesToVector(header);
 	out.writeHeader(header);
 
 	//create likelihood window

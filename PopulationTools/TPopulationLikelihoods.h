@@ -22,54 +22,113 @@
 namespace PopulationTools{
 
 //------------------------------------------------
+// TPopulation
+//------------------------------------------------
+class TPopulation{
+private:
+	std::string _name;
+	std::vector<std::string> _samples;
+	uint32_t _firstSampleIndex;
+
+public:
+	TPopulation(const std::string & Name);
+
+	std::string name() const{
+		return _name;
+	};
+
+	bool operator==(const std::string & Name) const{
+		return Name == _name;
+	};
+
+	uint32_t numSamples() const {
+		return _samples.size();
+	};
+
+	void addSample(const std::string & Sample);
+	bool sampleExists(const std::string & Sample) const;
+
+	void setFirstSampleIndex(const uint32_t & Index){
+		_firstSampleIndex = Index;
+	};
+
+	uint32_t firstSampleIndex() const{
+		return _firstSampleIndex;
+	};
+
+	bool sampleIndexExists(const uint32_t & Index) const;
+	uint32_t sampleIndex(const std::string & Sample) const;
+	std::string sampleName(const uint32_t & Index) const;
+	void addSampleNamesToVector(std::vector<std::string> & vec) const;
+	void report(coretools::TLog* Logfile) const;
+
+	//the following functions accept arrays spanning ALL samples and perform calculations on samples in population
+	uint32_t numSamplesMissing(bool* sampleMissing) const;
+
+	uint32_t numSamplesWithData(bool* sampleMissing) const {
+		return numSamples() - numSamplesMissing(sampleMissing);
+	};
+};
+
+//------------------------------------------------
 //TPopulationSamples
 //------------------------------------------------
 class TPopulationSamples{
 private:
-	bool _hasSamples;
-	uint32_t _numPopulations;
+	//populations
+	std::vector<TPopulation> _populations;
 	uint32_t _numSamples;
-	uint32_t* numSamplesPerPop;
-	uint32_t* startIndexPerPop;
-	std::map<std::string, uint32_t> populations; // name and pop index
-	std::map<std::string, uint32_t> samples; //name and pop index
-	std::map<std::string, uint32_t> sampleOrder; //stores order of samples such that samples of the same population are together
-	uint32_t* _VCF_order; //matches sample index to VCF order
-	uint32_t* _samplePopIndex; //matches sample index to population index;
-	bool _VCF_order_initialized;
+
+	//VCF index: maps index in VCF to internal index, which is ordered by population
+	struct vcfInfo{
+		bool used;
+		uint32_t index;
+
+		vcfInfo(){
+			used = false;
+			index = 0;
+		}
+	};
+	std::vector<vcfInfo> _vcfIndex;
+	std::vector<uint32_t> _indexToVCFIndex;
+	std::vector<uint32_t> _indexToPopulationIndex;
 
 	void _init();
-	void fillSampleOrder();
+	void _fillIndexToPopulationIndex();
+
 public:
 	TPopulationSamples();
 	TPopulationSamples(std::string filename, coretools::TLog* logfile);
-	~TPopulationSamples();
+	~TPopulationSamples() = default;
 
-	bool populationExists(const std::string & name){
-		if(populations.find(name) != populations.end())
-			return true;
-		else
-			return false;
-	};
-	bool hasSamples(){ return _hasSamples; };
-	uint32_t numSamples(){ return _numSamples; };
-	int numPopulations(){ return _numPopulations; };
-	std::string getPopulationName(uint32_t population);
-	uint32_t getPopulationIndex(const std::string name);
-	uint32_t numSamplesInPop(uint32_t population){ return numSamplesPerPop[population]; };
+	bool hasSamples() const { return _numSamples > 0; };
+
+	size_t numPopulations() const { return _populations.size(); };
+	bool populationExists(const std::string & name) const;
+	std::string getPopulationName(const uint32_t & index) const;
+	uint32_t populationIndex(const std::string & name) const;
+	uint32_t populationIndex(const uint32_t & SampleIndex) const { return _indexToPopulationIndex[SampleIndex]; };
+	uint32_t numSamplesInPop(const uint32_t & population) const { return _populations[population].numSamples(); };
+
+	uint32_t numSamples() const { return _numSamples; };
+	bool sampleExists(const std::string & name) const;
+	uint32_t sampleIndex(const std::string & name) const;
+	std::string sampleName(const uint32_t & SampleIndex) const;
+	void addSampleNamesToVector(std::vector<std::string> & vec) const;
+
 	void readSamples(std::string filename, coretools::TLog* logfile);
 	void readSamplesFromVCFNames(std::vector<std::string> & vcfSampleNames);
-	bool sampleIsUsed(const std::string & name);
-	uint32_t getOrderedSampleIndex(const std::string & name);
-	uint32_t startIndex(int population){ return startIndexPerPop[population]; };
-	std::string getNameFromOrderedIndex(uint32_t index);
-	void addOrderedSampleNamesToVector(std::vector<std::string> & vec);
+	void report(coretools::TLog* Logfile);
 	void fillVCFOrder(std::vector<std::string> & vcfSampleNames);
-	uint32_t VCF_order(const uint32_t & index) const { return _VCF_order[index]; };
-	uint32_t popIndex(const uint32_t & index) const { return _samplePopIndex[index]; };
-	uint8_t* getPointerToDataInPop(uint8_t* data, uint32_t population){ return &data[3*startIndexPerPop[population]]; };
-	uint32_t numSamplesMissingInPop(bool* sampleMissing, uint32_t population);
-	uint32_t numSamplesWithDataInPop(bool* sampleMissing, uint32_t population);
+
+	//bool sampleIsUsed(const std::string & name);
+	//uint32_t getOrderedSampleIndex(const std::string & name);
+	uint32_t startIndex(int population){ return _populations[population].firstSampleIndex(); };
+	uint32_t sampleIndexInVCF(const uint32_t & index);
+
+	uint8_t* getPointerToDataInPop(uint8_t* data, uint32_t population) const;
+	uint32_t numSamplesMissingInPop(bool* sampleMissing, uint32_t population) const;
+	uint32_t numSamplesWithDataInPop(bool* sampleMissing, uint32_t population) const;
 };
 
 //-------------------------------------------------

@@ -75,7 +75,7 @@ public:
 	void maskCpG(BAM::TFastaBuffer & reference);
 	void downsample(const uint32_t & maxDepth, const coretools::TSubsamplePicker & picker);
 	GenotypeLikelihoods::TBaseProbabilities estimateBaseFrequencies() const;
-	void applyDepthFilter(const size_t minDepth, const size_t maxDepth);
+	void applyDepthFilter(const coretools::TNumericRange<uint32_t> & DepthRange);
 
 	//getters
 	TSite& operator[](uint32_t internalPos){ return _sites[internalPos]; };

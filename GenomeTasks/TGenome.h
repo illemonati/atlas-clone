@@ -133,7 +133,8 @@ protected:
 
 	//site filters
 	bool _applyDepthFilter;
-	uint32_t _readUpToDepth, _minDepth, _maxDepth;
+	uint32_t _readUpToDepth;
+	coretools::TNumericRange<uint32_t> _depthFilter;
 	bool _filterCpG;
 	uint32_t _downsampleDepth;
 	std::unique_ptr<coretools::TSubsamplePicker> subsamplePicker;
