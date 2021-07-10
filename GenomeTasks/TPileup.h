@@ -13,7 +13,6 @@
 
 namespace GenomeTasks{
 
-//TODO: add flags so users can choose what to write
 
 //---------------------------------
 // TPileup

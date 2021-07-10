@@ -13,7 +13,6 @@
 #include "TLog.h"
 #include "TSiteSubset.h"
 #include "TAlignment.h"
-#include "TQualityMap.h"
 #include "TRandomGenerator.h"
 #include "TGenotypeLikelihoodCalculator.h"
 #include <vector>

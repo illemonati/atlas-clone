@@ -18,7 +18,6 @@
 #include "gzstream.h"
 #include "TLog.h"
 #include "TBed.h"
-#include "TQualityMap.h"
 #include "TGenotypeLikelihoodCalculator.h"
 #include "TGenotypePrior.h"
 #include "TBamFile.h"

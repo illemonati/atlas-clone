@@ -10,7 +10,6 @@
 
 #include <TSite.h>
 #include <TGenotypeData.h>
-#include "TQualityMap.h"
 #include "TGenotypeMap.h"
 #include "PhredProbabilityTypes.h"
 #include "stringFunctions.h"

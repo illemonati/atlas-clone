@@ -12,6 +12,11 @@
 #include "TLog.h"
 #include "TFile.h"
 #include "TNumericRange.h"
+#include "GenotypeTypes.h"
+#include "PhredProbabilityTypes.h"
+#include "TSequencedBase.h"
+#include "TParameters.h"
+#include "TLog.h"
 
 namespace BAM{
 
@@ -88,6 +93,77 @@ public:
 		return true;
 	};
 };
+
+//-------------------------------------
+// TBaseFilter
+//-------------------------------------
+class TBaseFilter{
+protected:
+	bool _filter;
+
+public:
+	explicit constexpr TBaseFilter() : _filter(false) {};
+	virtual ~TBaseFilter() = default;
+
+	constexpr operator bool() const{
+		return _filter;
+	};
+
+	virtual bool pass(const TSequencedBase & base) const = 0;
+};
+
+//---------------------------------------------------------------
+//TQualityFilter
+//---------------------------------------------------------------
+class TQualityFilter : public TBaseFilter{
+private:
+	coretools::TNumericRange<genometools::PhredIntProbability> _range;
+
+	genometools::PhredIntProbability _minPhredInt, _maxPhredInt;
+
+	void _default();
+
+public:
+	explicit constexpr TQualityFilter(){
+		_default();
+	};
+
+	TQualityFilter(coretools::TParameters & params, coretools::TLog* logfile){
+		set(params, logfile);
+	};
+
+	~TQualityFilter() = default;
+
+	void set(coretools::TParameters & params, coretools::TLog* logfile);
+
+	//TODO: check if we filter on TSequencedBase, and if yes, on which error rate (original or recal)
+	constexpr bool pass(const TSequencedBase & base) const{
+		return _range.within(base.recalibratedQualityAsPhredInt);
+	};
+
+	bool pass(const genometools::BaseQuality & qual) const{
+		return _range.within(genometools::PhredIntProbability(qual));
+	};
+};
+
+//-------------------------------------
+// TContextFilter
+//-------------------------------------
+class TContextFilter : public TBaseFilter{
+private:
+	std::array<bool, static_cast<uint8_t>(genometools::cNN) + 1> _keptContexts;
+
+public:
+	explicit TContextFilter(){
+		_keptContexts.fill(true);
+	};
+	~TContextFilter() = default;
+
+	void set(coretools::TParameters & params, coretools::TLog* logfile);
+
+	bool pass(const TSequencedBase & base) const;
+};
+
 
 //-----------------------------------------------------
 //TAlignmentBlacklist

@@ -75,6 +75,74 @@ bool TBamFileFilterBool::pass(const bool state, const std::string & alignmentNam
 	return true;
 };
 
+
+//---------------------------------------------------------------
+//TQualityFilter
+//---------------------------------------------------------------
+void TQualityFilter::_default(){
+	//default values according to SAM specifications
+	_filter = false;
+	_range.set(genometools::PhredIntProbability(1), true, genometools::PhredIntProbability(93), true);
+};
+
+void TQualityFilter::set(coretools::TParameters & params, coretools::TLog* logfile){
+	if(params.parameterExists("filterBaseQual")){
+		params.fillParameter("filterBaseQual", _range);
+		logfile->list("Will filter out bases with quality outside the range " + _range.rangeString() + " (parameter 'filterBaseQual')");
+		_filter = true;
+	} else {
+		_default();
+		logfile->list("Will keep bases regardless of quality (use 'filterBaseQual' to filter)");
+	}
+};
+
+//-------------------------------------
+// TContextFilter
+//-------------------------------------
+void TContextFilter::set(coretools::TParameters & params, coretools::TLog* logfile){
+	_filter = false;
+	if(params.parameterExists("ignoreContexts")){
+		std::vector<std::string> contexts;
+		params.fillParameterIntoContainer("ignoreContexts", contexts, ',');
+
+		if(contexts.size() > 0){
+			for(auto& c : contexts){
+				if(c.size() != 2){
+					throw "Context " + c + " does not consist of two bases! (parameter 'ignoreContexts')";
+				}
+
+				genometools::Base first(c[0]);
+				genometools::Base second(c[1]);
+
+				if((char) first != c[0] || (char) second != c[1]){
+					throw "Unable to understand context '" + c + "'!  (parameter 'ignoreContexts')";
+				}
+
+				//save context
+				genometools::BaseContext cc(first, second);
+				_keptContexts[static_cast<uint8_t>(cc.get())] = false;
+			}
+
+			std::vector<std::string> rep;
+			for(auto i = 0; i <= static_cast<uint8_t>(genometools::BaseContextEnum::cNN); ++i){
+				if(!_keptContexts[i]){
+					rep.push_back( (std::string) genometools::BaseContext(static_cast<genometools::BaseContextEnum>(i)));
+				}
+			}
+			logfile->list("Will ignore the following contexts: " + coretools::str::concatenateString(rep, ", ")  + ". (parameter 'ignoreContexts')");
+			_filter = true;
+		}
+	}
+
+	if(!_filter){
+		logfile->list("Will keep bases regardless of base context. (use 'ignoreContexts' to filter)");
+	}
+};
+
+bool TContextFilter::pass(const TSequencedBase & base) const{
+	return _keptContexts[static_cast<uint8_t>(base.context.get())];
+};
+
 //-----------------------------------------------------
 //TAlignmentBlacklist
 //-----------------------------------------------------
@@ -105,7 +173,5 @@ void TAlignmentList::clear(){
 bool TAlignmentList::isInBlacklist(const std::string & alignment) const{
 	return _list.find(alignment) != _list.end();
 };
-
-
 
 }; //end namespace
