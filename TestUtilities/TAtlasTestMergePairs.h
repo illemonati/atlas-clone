@@ -9,6 +9,8 @@
 #define TATLASTESTMERGEPAIRS_H_
 
 #include "../TestUtilities/TAtlasTest.h"
+#include "GenotypeTypes.h"
+#include "PhredProbabilityTypes.h"
 
 class TAtlasTest_mergePairs:public TAtlasTest{
 protected:

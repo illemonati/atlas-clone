@@ -11,7 +11,6 @@
 #include "../BAM/TSequencedBase.h"
 #include "TLog.h"
 #include "TRandomGenerator.h"
-#include "TQualityMap.h"
 #include "TParameters.h"
 #include "TSimulatorReadLength.h"
 #include "TSequencingErrorModel.h"

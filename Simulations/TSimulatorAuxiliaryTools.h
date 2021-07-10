@@ -10,7 +10,6 @@
 
 #include "TLog.h"
 #include "TRandomGenerator.h"
-#include "TGenotypeMap.h"
 #include "stringFunctions.h"
 #include "gzstream.h"
 #include "TBamFile.h"

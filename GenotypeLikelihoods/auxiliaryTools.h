@@ -8,9 +8,8 @@
 #ifndef TRECALIBRATIONEMAUXILIARYTOOLS_H_
 #define TRECALIBRATIONEMAUXILIARYTOOLS_H_
 
-#include <TSite.h>
-#include <TGenotypeData.h>
-#include "TGenotypeMap.h"
+#include "TSite.h"
+#include "TGenotypeData.h"
 #include "PhredProbabilityTypes.h"
 #include "stringFunctions.h"
 #include "TLog.h"

@@ -9,7 +9,6 @@
 #define TSIMULATORREAD_H_
 
 #include "TParameters.h"
-#include "TGenotypeMap.h"
 #include "TSimulatorReadLength.h"
 #include "TPostMortemDamage.h"
 #include "TSequencingErrorModels.h"

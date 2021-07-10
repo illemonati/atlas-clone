@@ -10,7 +10,6 @@
 
 #include "TParameters.h"
 #include "TPopulationLikelihoods.h"
-#include "TQualityMap.h"
 #include "TRandomGenerator.h"
 #include "mathFunctions.h"
 

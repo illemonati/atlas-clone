@@ -14,7 +14,6 @@
 #include "stringFunctions.h"
 #include "TParameters.h"
 #include "TRandomGenerator.h"
-#include "TQualityMap.h"
 #include "TGenotypeFrequencies.h"
 #include "TBed.h"
 #include "TVcfFile.h"

@@ -9,6 +9,8 @@
 #define TESTUTILITIES_TATLASTESTFILTER_H_
 
 #include "../TestUtilities/TAtlasTest.h"
+#include "GenotypeTypes.h"
+#include "PhredProbabilityTypes.h"
 
 class TAtlasTest_filter:public TAtlasTest{
 private:

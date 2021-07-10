@@ -3,7 +3,6 @@
 //
 
 #include "TGenotypeLikelihoodCalculator.h"
-#include "TGenotypeMap.h"
 #include "TestCase.h"
 
 

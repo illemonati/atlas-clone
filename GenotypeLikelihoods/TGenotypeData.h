@@ -8,7 +8,6 @@
 #ifndef TGENOTYPEDATA_H_
 #define TGENOTYPEDATA_H_
 
-#include "TGenotypeMap.h"
 #include "TFile.h"
 #include "TRandomGenerator.h"
 #include <algorithm>

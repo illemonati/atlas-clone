@@ -4,7 +4,6 @@
 
 #include "TPostMortemDamage.h"
 #include "TSequencingErrorModels.h"
-#include "TGenotypeMap.h"
 #include "TestCase.h"
 
 

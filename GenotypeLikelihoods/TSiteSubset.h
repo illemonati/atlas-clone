@@ -16,7 +16,6 @@
 
 #include "TFastaBuffer.h"
 #include "TChromosomes.h"
-#include "TGenotypeMap.h"
 #include "TFile.h"
 #include "TGenomePosition.h"
 #include "GenotypeTypes.h"

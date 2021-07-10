@@ -10,7 +10,6 @@
 
 #include "../BAM/TSequencedBase.h"
 #include "TFile.h"
-#include "TGenotypeMap.h"
 #include "TReadGroups.h"
 
 namespace GenotypeLikelihoods{
