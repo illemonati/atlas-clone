@@ -6,6 +6,7 @@
  */
 
 #include "TBamFilter.h"
+#include "debugtools.h"
 
 namespace GenomeTasks{
 
@@ -72,7 +73,7 @@ void TAlignmentMergerReadGroupSettings::initialize(TParameters & Params, TLog* l
 		//read file with read group settings
 		std::string readGroupSettingsFile = Params.getParameter<std::string>("readGroupSettings");
 		logfile->listFlush("Reading single end read groups from file '" + readGroupSettingsFile + "' ...");
-		coretools::TInputFile in(readGroupSettingsFile, false);
+		coretools::TInputFile in(readGroupSettingsFile, {"ReadGroup", "SeqType", "MaxCycles"});
 		if(in.numCols() != 3){
 			throw "Wrong number of entries in file '" + readGroupSettingsFile + "': need three columns corresponding to the read group name, read group type and max cycles!";
 		}
@@ -88,7 +89,7 @@ void TAlignmentMergerReadGroupSettings::initialize(TParameters & Params, TLog* l
 			} else {
 				//parse max cycles
 				uint16_t maxCycles = 0;
-				if(vec[2] != "NA" || vec[2] != "-"){
+				if(vec[2] != "NA" && vec[2] != "-"){
 					if(!stringContainsOnlyNumbers(vec[1])){
 						throw "Error reading file '" + in.name() + "' on line " + toString(in.lineNumber()) + ": max cycles should be a number!";
 					}
@@ -100,7 +101,7 @@ void TAlignmentMergerReadGroupSettings::initialize(TParameters & Params, TLog* l
 					throw "Duplicate entry in file '" + in.name() + "' for read group '" + vec[0] + "'!";
 				}
 
-				//act based on type (second column). Ignored read groups will be marked as "unchanged"
+				//act based on seqeuncing type (second column). Ignored read groups will be marked as "unchanged"
 				if(readGroupsToIgnore.find(rgId) != readGroupsToIgnore.end() || vec[1] == "unchanged"){
 					_settings.emplace(rgId, unchanged, 0);
 				} else if(vec[1] == "single"){
@@ -633,7 +634,7 @@ void TAlignmentSplitMerger::_initializeMerger(TParameters & Params, TLog* Logfil
 
 	//set merging method
 	//TODO: update wiki to reflect change in names
-	std::string method = Params.getParameterWithDefault<std::string>("mergingMethod", "keepRandomRead");
+	std::string method = Params.getParameterWithDefault<std::string>("mergingMethod", "randomRead");
 	if(method == "none"){
 		_merger = std::make_unique<TAlignmentMerger>();
 		_logfile->list("Merging method: no merging.");
