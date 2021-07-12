@@ -41,6 +41,7 @@ private:
 	uint32_t _lengthSoftClippedLeft;
 	uint32_t _lengthSoftClippedRight;
 	bool _addSoftClippedLeft;
+	bool _softClippedAddedOnRight;
 
 public:
 	TCigar(){
@@ -53,15 +54,15 @@ public:
     void add(const char & Type, const uint32_t & Length);
     void removeSoftClips();
 
-    uint32_t lengthAligned() const{ return _lengthAligned; };
-    uint32_t lengthInserted() const{ return _lengthInserted; };
-    uint32_t lengthDeleted() const{ return _lengthDeleted; };
-    uint32_t lengthSoftClippedLeft() const{ return _lengthSoftClippedLeft; };
-    uint32_t lengthSoftClippedRight() const{ return _lengthSoftClippedRight; };
-    uint32_t lengthSoftClipped() const{ return _lengthSoftClippedLeft + _lengthSoftClippedRight; };
-    uint32_t lengthSequenced() const{ return _lengthAligned + _lengthInserted; };
-    uint32_t lengthRead() const{ return _lengthAligned + _lengthInserted + _lengthSoftClippedLeft + _lengthSoftClippedRight; };
-    uint32_t lengthMapped() const{ return _lengthAligned + _lengthDeleted + _lengthSkipped; };
+    uint32_t lengthAligned() const { return _lengthAligned; };
+    uint32_t lengthInserted() const { return _lengthInserted; };
+    uint32_t lengthDeleted() const { return _lengthDeleted; };
+    uint32_t lengthSoftClippedLeft() const { return _lengthSoftClippedLeft; };
+    uint32_t lengthSoftClippedRight() const { return _lengthSoftClippedRight; };
+    uint32_t lengthSoftClipped() const { return _lengthSoftClippedLeft + _lengthSoftClippedRight; };
+    uint32_t lengthSequenced() const { return _lengthAligned + _lengthInserted; };
+    uint32_t lengthRead() const { return _lengthAligned + _lengthInserted + _lengthSoftClippedLeft + _lengthSoftClippedRight; };
+    uint32_t lengthMapped() const { return _lengthAligned + _lengthDeleted + _lengthSkipped; };
 };
 
 }; //end namespace

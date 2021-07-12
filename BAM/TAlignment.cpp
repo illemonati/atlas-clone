@@ -6,6 +6,7 @@
  */
 
 #include "TAlignment.h"
+#include "debugtools.h"
 
 namespace BAM{
 
@@ -135,6 +136,7 @@ void TAlignment::_parseBasesQualities(const std::vector<genometools::Base> & Seq
 					_bases[d].setAligned(true);
 					_alignedPosition[d] = p;
 				}
+				_lastAlignedPos = d - 1; //Note: for loop ends with d one too large
 				break;
 
 			//for 'S' - soft clip: copy by set aligned = false
@@ -183,7 +185,6 @@ void TAlignment::_parseBasesQualities(const std::vector<genometools::Base> & Seq
 
 	//update length and last aligned position
 	_lastAlignedPositionWithRespectToRef = *this + (p - 1);
-	_lastAlignedPos = p - 1; //why -1? -> same reason as above
 
 	//then update distances from ends
 	_setDistancesFromEnds();

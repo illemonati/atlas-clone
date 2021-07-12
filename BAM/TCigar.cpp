@@ -23,9 +23,13 @@ void TCigar::clear(){
 	_lengthSoftClippedLeft = 0;
 	_lengthSoftClippedRight = 0;
 	_addSoftClippedLeft = true;
+	_softClippedAddedOnRight = false;
 };
 
 void TCigar::add(const char & Type, const uint32_t & Length){
+	if(_softClippedAddedOnRight){
+		throw "Cigar string contains entries past softclipping on right!";
+	}
 	if(Type == 'M' || Type == '=' || Type == 'X'){
 		_lengthAligned += Length;
 		_addSoftClippedLeft = false;
@@ -40,6 +44,7 @@ void TCigar::add(const char & Type, const uint32_t & Length){
 			_lengthSoftClippedLeft += Length;
 		} else {
 			_lengthSoftClippedRight += Length;
+			_softClippedAddedOnRight = true;
 		}
 	} else if(Type == 'N'){
 		_lengthSkipped += Length;

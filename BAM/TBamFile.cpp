@@ -74,18 +74,18 @@ void TBamFile::setFilters(TParameters & params, TLog* logfile){
 	//--------------
 	//is relevant for storage
 	//print error if reads are longer and filter is default
-	TNumericRange<uint32_t> readLengthRange;
+	TNumericRange<uint32_t> mappingLengthRange;
 	if(params.parameterExists("filterMappingLength")){
-		params.fillParameter("filterMappingLength", readLengthRange);
+		params.fillParameter("filterMappingLength", mappingLengthRange);
 		_allowTooLongReads = true;
 	} else {
 		//set default
-		readLengthRange.set(0, true, 200, true);
-		_allowTooLongReads = false;
+		mappingLengthRange.set(0, true, 200, true);
+		_allowTooLongReads = params.parameterExists("allowTooLongReads");
 	}
-	_mappedLengthFilter.filter(readLengthRange, "Mapped length outside " + readLengthRange.rangeString());
+	_mappedLengthFilter.filter(mappingLengthRange, "Mapped length outside " + mappingLengthRange.rangeString());
 	logfile->list("Mapped length: restrict to range " + _mappedLengthFilter.rangeString() + ". (parameter 'filterMappedLength')");
-	if(readLengthRange.max() > 100000){
+	if(mappingLengthRange.max() > 100000){
 		logfile->warning("The chosen mapping length filter allows for reads to span >100kb of the reference genome. This may affect performance in case of paired-end reads.");
 	}
 
@@ -415,7 +415,7 @@ void TBamFile::_applyFilters(){
 	//read length is special as it affects our storage
 	if(!_mappedLengthFilter.pass(_curCigar.lengthMapped(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())){
 		if(!_allowTooLongReads){
-			throw "The mapping length of alignment '" +  _curBamAlignment.Name + "' is beyond the range " + _readLengthFilter.rangeString() + "!\n"
+			throw "The mapping length of alignment '" +  _curBamAlignment.Name + "' is beyond the range " + _mappedLengthFilter.rangeString() + "!\n"
 			     + "You see this error because " + coretools::__GLOBAL_APPLICATION_NAME__ + " was run with default mapping length filters. Either set your filters using 'filterMappingLength' or add 'allowTooLongReads' to ignore this error.";
 		} else {
 			_QCFiltersPassed = false;
