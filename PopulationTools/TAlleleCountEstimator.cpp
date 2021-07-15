@@ -186,8 +186,8 @@ void TSiteAlleleFrequencyLikelihoods::_fillLog(TSampleLikelihoods* data, const u
 void TSiteAlleleFrequencyLikelihoods::_fillNatural(TSampleLikelihoods* data, const uint32_t & numSamples){
 	//Calculating allele frequency likelihoods according to Nielsen et al. (2012) PLoS One, page 3
 	//adapted to also work for haploid individuals (which only have likelihoods for genotypes 0 and 1)
+	std::vector<double> alleleFrequencyLikelihoods_h(log_alleleFrequencyLikelihoods_h.size(), 0.0);
 
-	std::vector<coretools::Probability> alleleFrequencyLikelihoods_h(log_alleleFrequencyLikelihoods_h.size(), Probability(0.0));
 	numAlleleCounts = 0;
 
 	//find first individual  with data
@@ -216,36 +216,36 @@ void TSiteAlleleFrequencyLikelihoods::_fillNatural(TSampleLikelihoods* data, con
 
 				if(data[s].isHaploid()){
 					//first fill new ones to avoid multiplication with zero (relevant in log, kept here for code consistency)
-					alleleFrequencyLikelihoods_h[j+1] = (Probability) data[s][haploidSecond] * log_alleleFrequencyLikelihoods_h[j-1];
+					alleleFrequencyLikelihoods_h[j+1] = (Probability) data[s][haploidSecond] * alleleFrequencyLikelihoods_h[j-1];
 
 					//now fill those already used
 					for(; j>0; j--){
-						alleleFrequencyLikelihoods_h[j] = (Probability) data[s][haploidSecond] * log_alleleFrequencyLikelihoods_h[j-1]
-													    + (Probability) data[s][haploidFirst] * log_alleleFrequencyLikelihoods_h[j];
+						alleleFrequencyLikelihoods_h[j] = (Probability) data[s][haploidSecond] * alleleFrequencyLikelihoods_h[j-1]
+													    + (Probability) data[s][haploidFirst] * alleleFrequencyLikelihoods_h[j];
 					}
 
 					//special case for j=0
-					alleleFrequencyLikelihoods_h[0] = (LogProbability) data[s][haploidFirst] * log_alleleFrequencyLikelihoods_h[0];
+					alleleFrequencyLikelihoods_h[0] = (LogProbability) data[s][haploidFirst] * alleleFrequencyLikelihoods_h[0];
 
 					//increase total number of haplotypes by one
 					numAlleleCounts += 1;
 				} else {
 					//first fill new ones to avoid multiplication with zero (relevant in log, kept here to code consistent)
-					alleleFrequencyLikelihoods_h[j+2] = (Probability) data[s][homoSecond] * log_alleleFrequencyLikelihoods_h[j];
-					alleleFrequencyLikelihoods_h[j+1] = (Probability) data[s][homoSecond] * log_alleleFrequencyLikelihoods_h[j-1]
-													  + 2.0 * (Probability) data[s][het] * log_alleleFrequencyLikelihoods_h[j];
+					alleleFrequencyLikelihoods_h[j+2] = (Probability) data[s][homoSecond] * alleleFrequencyLikelihoods_h[j];
+					alleleFrequencyLikelihoods_h[j+1] = (Probability) data[s][homoSecond] * alleleFrequencyLikelihoods_h[j-1]
+													  + 2.0 * (Probability) data[s][het] * alleleFrequencyLikelihoods_h[j];
 
 					//now fill those already used
 					for(; j>1; j--){
-						alleleFrequencyLikelihoods_h[j] = (Probability) data[s][homoSecond] * log_alleleFrequencyLikelihoods_h[j-2]
-														+ 2.0 * (Probability) data[s][het] * log_alleleFrequencyLikelihoods_h[j-1]
-														+ (Probability) data[s][homoFirst] * log_alleleFrequencyLikelihoods_h[j];
+						alleleFrequencyLikelihoods_h[j] = (Probability) data[s][homoSecond] * alleleFrequencyLikelihoods_h[j-2]
+														+ 2.0 * (Probability) data[s][het] * alleleFrequencyLikelihoods_h[j-1]
+														+ (Probability) data[s][homoFirst] * alleleFrequencyLikelihoods_h[j];
 					}
 
 					//special case for j=1,0
-					alleleFrequencyLikelihoods_h[1] = 2.0 * (Probability) data[s][het] * log_alleleFrequencyLikelihoods_h[0]
-													+ (Probability) data[s][homoFirst] * log_alleleFrequencyLikelihoods_h[1];
-					alleleFrequencyLikelihoods_h[0] = (Probability) data[s][homoFirst] * log_alleleFrequencyLikelihoods_h[0];
+					alleleFrequencyLikelihoods_h[1] = 2.0 * (Probability) data[s][het] * alleleFrequencyLikelihoods_h[0]
+													+ (Probability) data[s][homoFirst] * alleleFrequencyLikelihoods_h[1];
+					alleleFrequencyLikelihoods_h[0] = (Probability) data[s][homoFirst] * alleleFrequencyLikelihoods_h[0];
 
 					//increase total number of haplotypes by two
 					numAlleleCounts += 2;
@@ -267,10 +267,11 @@ void TSiteAlleleFrequencyLikelihoods::fill(TSampleLikelihoods* data, const uint3
 	//smallest likelihood is 10^-25.5 (phred 255).
 	//A double can store up to 10^-308.
 	//Hence we can store up to (10^25.5)^12 without underflow
-	if(numSamples > 12)
+	if(numSamples > 12){
 		_fillLog(data, numSamples);
-	else
+	} else {
 		_fillNatural(data, numSamples);
+	}
 };
 
 void TSiteAlleleFrequencyLikelihoods::print(){
