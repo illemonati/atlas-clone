@@ -107,7 +107,7 @@ void TGlfMultiReaderVcf::_setMajorMinor(const genometools::Base & refAllele, con
 
 void TGlfMultiReaderVcf::writeLikelihood(const HighPrecisionPhredIntProbability & likGlf){
 	if(_usePhredScaledLikelihoods){
-		vcf << (genometools::PhredProbability) likGlf;
+		vcf << (genometools::PhredIntProbability) likGlf;
 	} else {
 		if(likGlf == 0) vcf << '0';
 		else vcf << (coretools::Log10Probability) likGlf;
