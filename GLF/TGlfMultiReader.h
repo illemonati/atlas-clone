@@ -208,12 +208,11 @@ private:
 	void writeHaploidIndividualToVCF(TMultiGLFDataSample & sample);
 
 public:
-	TGlfMultiReaderVcf(const std::string filename, const std::string source, std::vector<std::string> & sampleNames, TRandomGenerator* RandomGenerator);
+	TGlfMultiReaderVcf(const std::string filename, const std::string source, std::vector<std::string> & sampleNames, const bool & UsePhredScaledLikelihoods, TRandomGenerator* RandomGenerator);
 	~TGlfMultiReaderVcf(){
 		_closeVCF();
 	}
 
-	void usePhredScaledLikelihoods(){ _usePhredScaledLikelihoods = true; };
 	void writeSite(const std::string & chrName, const uint32_t & position, const genometools::PhredIntProbability & varianTQuality, TMultiGLFData & data, const genometools::Base Ref, const genometools::Base Alt);
 };
 

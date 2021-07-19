@@ -295,10 +295,7 @@ void TMajorMinor::estimateMajorMinor(TParameters & params){
 	}
 
 	//open vcf file
-	GLF::TGlfMultiReaderVcf vcf(outname + ".vcf.gz", "ATLAS_GLF_Caller", sampleNames, randomGenerator);
-	if(usePhredLikelihoods){
-		vcf.usePhredScaledLikelihoods();
-	}
+	GLF::TGlfMultiReaderVcf vcf(outname + ".vcf.gz", "ATLAS_GLF_Caller", sampleNames, usePhredLikelihoods, randomGenerator);
 
 	//vars
 	logfile->startIndent("Parsing through glf files:");

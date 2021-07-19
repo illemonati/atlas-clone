@@ -56,8 +56,8 @@ uint32_t TMultiGLFData::totalDepth(){
 //----------------------------------------------------
 //TGlfMultiReaderVcf
 //----------------------------------------------------
-TGlfMultiReaderVcf::TGlfMultiReaderVcf(const std::string filename, const std::string source, std::vector<std::string> & sampleNames, TRandomGenerator* RandomGenerator){
-	_usePhredScaledLikelihoods = false;
+TGlfMultiReaderVcf::TGlfMultiReaderVcf(const std::string filename, const std::string source, std::vector<std::string> & sampleNames, const bool & UsePhredScaledLikelihoods, TRandomGenerator* RandomGenerator){
+	_usePhredScaledLikelihoods = UsePhredScaledLikelihoods;
 	randomGenerator = RandomGenerator;
 
 	//open vcf file
@@ -81,10 +81,11 @@ void TGlfMultiReaderVcf::_openVCF(const std::string & filename, const std::strin
 	vcf << "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n";
 	vcf << "##FORMAT=<ID=GQ,Number=1,Type=Integer,Description=\"Genotype quality\">\n";
 	vcf << "##FORMAT=<ID=DP,Number=1,Type=Integer,Description=\"Total Depth\">\n";
-	if(_usePhredScaledLikelihoods)
+	if(_usePhredScaledLikelihoods){
 		vcf << "##FORMAT=<ID=PL,Number=G,Type=Integer,Description=\"Phred-scaled normalized genotype likelihoods\">\n";
-	else
+	} else {
 		vcf << "##FORMAT=<ID=GL,Number=G,Type=Float,Description=\"Normalized genotype likelihoods\">\n";
+	}
 
 	//also write header with sample names
 	vcf << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT";
