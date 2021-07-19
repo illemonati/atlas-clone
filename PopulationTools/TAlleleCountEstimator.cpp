@@ -102,7 +102,7 @@ void TSiteAlleleFrequencyLikelihoods::_fillLog(TSampleLikelihoods* data, const u
 	//all calculations done in log
 
 	//set all h_j = 0
-	std::fill(log_alleleFrequencyLikelihoods_h.begin(), log_alleleFrequencyLikelihoods_h.end(), 0.0);
+	std::vector<double> alleleFrequencyLikelihoods_h(log_alleleFrequencyLikelihoods_h.size(), 0.0);
 	numAlleleCounts = 0;
 
 	//find first individual  with data
@@ -114,13 +114,13 @@ void TSiteAlleleFrequencyLikelihoods::_fillLog(TSampleLikelihoods* data, const u
 	if(s < numSamples){
 		//initialize with first individual
 		if(data[s].isHaploid()){
-			log_alleleFrequencyLikelihoods_h[0] = (LogProbability) data[s][haploidFirst];
-			log_alleleFrequencyLikelihoods_h[1] = (LogProbability) data[s][haploidSecond];
+			alleleFrequencyLikelihoods_h[0] = (LogProbability) data[s][haploidFirst];
+			alleleFrequencyLikelihoods_h[1] = (LogProbability) data[s][haploidSecond];
 			numAlleleCounts = 1;
 		} else {
-			log_alleleFrequencyLikelihoods_h[0] = (LogProbability) data[s][homoFirst];
-			log_alleleFrequencyLikelihoods_h[1] = (LogProbability) data[s][het] + logOf2;
-			log_alleleFrequencyLikelihoods_h[2] = (LogProbability) data[s][homoSecond];
+			alleleFrequencyLikelihoods_h[0] = (LogProbability) data[s][homoFirst];
+			alleleFrequencyLikelihoods_h[1] = (LogProbability) data[s][het] + logOf2;
+			alleleFrequencyLikelihoods_h[2] = (LogProbability) data[s][homoSecond];
 			numAlleleCounts = 2;
 		}
 
@@ -131,41 +131,41 @@ void TSiteAlleleFrequencyLikelihoods::_fillLog(TSampleLikelihoods* data, const u
 
 				if(data[s].isHaploid()){
 					//first fill new ones to avoid multiplication with zero (relevant in log)
-					log_alleleFrequencyLikelihoods_h[j+1] = (LogProbability) data[s][haploidSecond] + log_alleleFrequencyLikelihoods_h[j];
+					alleleFrequencyLikelihoods_h[j+1] = (LogProbability) data[s][haploidSecond] + alleleFrequencyLikelihoods_h[j];
 
 					//now fill those already used
 					for(; j>0; j--){
-						log_alleleFrequencyLikelihoods_h[j] = _protectedSumInLog(
-								(LogProbability) data[s][haploidSecond] + log_alleleFrequencyLikelihoods_h[j-1],
-								(LogProbability) data[s][haploidFirst] + log_alleleFrequencyLikelihoods_h[j]    );
+						alleleFrequencyLikelihoods_h[j] = _protectedSumInLog(
+								(LogProbability) data[s][haploidSecond] + alleleFrequencyLikelihoods_h[j-1],
+								(LogProbability) data[s][haploidFirst] + alleleFrequencyLikelihoods_h[j]    );
 					}
 
 					//special case for j=0
-					log_alleleFrequencyLikelihoods_h[0] = (LogProbability) data[s][haploidFirst] + log_alleleFrequencyLikelihoods_h[0];
+					alleleFrequencyLikelihoods_h[0] = (LogProbability) data[s][haploidFirst] + alleleFrequencyLikelihoods_h[0];
 
 					//increase total number of haplotypes by one
 					numAlleleCounts += 1;
 				} else {
 					//first fill new ones to avoid multiplication with zero (relevant in log)
-					log_alleleFrequencyLikelihoods_h[j+2] = (LogProbability) data[s][homoSecond] + log_alleleFrequencyLikelihoods_h[j];
-					log_alleleFrequencyLikelihoods_h[j+1] = _protectedSumInLog(
-																(LogProbability) data[s][homoSecond] + log_alleleFrequencyLikelihoods_h[j-1],
-																(LogProbability) data[s][het] + log_alleleFrequencyLikelihoods_h[j] + logOf2 );
+					alleleFrequencyLikelihoods_h[j+2] = (LogProbability) data[s][homoSecond] + alleleFrequencyLikelihoods_h[j];
+					alleleFrequencyLikelihoods_h[j+1] = _protectedSumInLog(
+																(LogProbability) data[s][homoSecond] + alleleFrequencyLikelihoods_h[j-1],
+																(LogProbability) data[s][het] + alleleFrequencyLikelihoods_h[j] + logOf2 );
 
 					//now fill those already used
 					for(; j>1; j--){
-						log_alleleFrequencyLikelihoods_h[j] = _protectedSumInLog(
-										 (LogProbability) data[s][homoSecond] + log_alleleFrequencyLikelihoods_h[j-2],
-										 (LogProbability) data[s][het] + log_alleleFrequencyLikelihoods_h[j-1] + logOf2,
-										 (LogProbability) data[s][homoFirst] + log_alleleFrequencyLikelihoods_h[j] );
+						alleleFrequencyLikelihoods_h[j] = _protectedSumInLog(
+										 (LogProbability) data[s][homoSecond] + alleleFrequencyLikelihoods_h[j-2],
+										 (LogProbability) data[s][het] + alleleFrequencyLikelihoods_h[j-1] + logOf2,
+										 (LogProbability) data[s][homoFirst] + alleleFrequencyLikelihoods_h[j] );
 					}
 
 					//special case for j=1,0
-					log_alleleFrequencyLikelihoods_h[1] = _protectedSumInLog(
-										 (LogProbability) data[s][het] + log_alleleFrequencyLikelihoods_h[0] + logOf2,
-										 (LogProbability) data[s][homoFirst] + log_alleleFrequencyLikelihoods_h[1] );
+					alleleFrequencyLikelihoods_h[1] = _protectedSumInLog(
+										 (LogProbability) data[s][het] + alleleFrequencyLikelihoods_h[0] + logOf2,
+										 (LogProbability) data[s][homoFirst] + alleleFrequencyLikelihoods_h[1] );
 
-					log_alleleFrequencyLikelihoods_h[0] = (LogProbability) data[s][homoFirst] + log_alleleFrequencyLikelihoods_h[0];
+					alleleFrequencyLikelihoods_h[0] = (LogProbability) data[s][homoFirst] + alleleFrequencyLikelihoods_h[0];
 
 					//increase total number of haplotypes by two
 					numAlleleCounts += 2;
@@ -175,8 +175,10 @@ void TSiteAlleleFrequencyLikelihoods::_fillLog(TSampleLikelihoods* data, const u
 
 		//Termination: add binomial coefficient
 		TSAFChooseStorage* logChoose = _getLogChoose(numAlleleCounts);
-		for(int j=0; j<numAlleleCounts; j++)
-			log_alleleFrequencyLikelihoods_h[j] = log_alleleFrequencyLikelihoods_h[j].get() - logChoose->logChoose(j);
+		for(int j=0; j<numAlleleCounts; j++){
+			//numerical accuracy may raely lead to a value very slightly above 0.0. std::min is used to avoid an error when storing as LogProbability.
+			log_alleleFrequencyLikelihoods_h[j] = std::min(alleleFrequencyLikelihoods_h[j] - logChoose->logChoose(j), 0.0);
+		}
 
 		//Normalization
 		normalize();
@@ -255,8 +257,10 @@ void TSiteAlleleFrequencyLikelihoods::_fillNatural(TSampleLikelihoods* data, con
 
 		//Termination: put in log and add binomial coefficient
 		TSAFChooseStorage* logChoose = _getLogChoose(numAlleleCounts);
-		for(int j=0; j<numAlleleCounts; j++)
-			log_alleleFrequencyLikelihoods_h[j] = log(alleleFrequencyLikelihoods_h[j]) - logChoose->logChoose(j);
+		for(int j=0; j<numAlleleCounts; j++){
+			//numerical accuracy may raely lead to a value very slightly above 0.0. std::min is used to avoid an error when storing as LogProbability.
+			log_alleleFrequencyLikelihoods_h[j] = std::min(log(alleleFrequencyLikelihoods_h[j]) - logChoose->logChoose(j), 0.0);
+		}
 
 		//Normalization
 		normalize();
