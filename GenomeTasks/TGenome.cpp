@@ -243,7 +243,7 @@ void TGenome_windows::_setSiteFilters(TParameters & params){
 		_logfile->list("Will filter out sites with sequencing depth outside ", _depthFilter, ". (parameters 'filterDepth')");
 	} else {
 		_applyDepthFilter = false;
-		_logfile->list("Will keep sites regardless of depth. (use 'minDepth' or 'maxDepth' to filter)");
+		_logfile->list("Will keep sites regardless of depth. (use 'filterDepth' to filter)");
 	}
 
 	//downsample?
