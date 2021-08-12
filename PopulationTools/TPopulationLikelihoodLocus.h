@@ -13,6 +13,7 @@
 #include "GenotypeTypes.h"
 #include "PhredProbabilityTypes.h"
 #include "TSampleLikelihoods.h"
+#include "TTask.h"
 
 namespace PopulationTools{
 

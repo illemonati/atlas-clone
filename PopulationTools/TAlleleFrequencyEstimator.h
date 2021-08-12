@@ -129,7 +129,7 @@ private:
 	void _closeVCF();
 	std::vector<std::string> _composeHeaderAlleleFreq(bool writeGenoFreq, bool doBayesian, TAlleleFreqEstimatorBayes* BHWEstimator);
 	void _writeBayesianEstimatesOnePop(TOutputFile & out, TSampleLikelihoods* theseSamples, const uint32_t & numSamples, TAlleleFreqEstimatorBayes* BHWEstimator);
-	void _writeEstimatesOnePop(TOutputFile & out, TGenotypeFrequencies & genoFrequencies, double alleleFrequency, TSampleLikelihoods* theseSamples, const uint32_t & numSamples, TAlleleFreqEstimatorHardyWeinberg & MLHWEstimator, TAlleleFreqEstimatorBayes* BHWEstimator, double epsF, bool writeGenoFreq, bool doBayesian);
+	void _writeEstimatesOnePop(TOutputFile & out, genometools::TGenotypeFrequencies & genoFrequencies, double alleleFrequency, TSampleLikelihoods* theseSamples, const uint32_t & numSamples, TAlleleFreqEstimatorHardyWeinberg & MLHWEstimator, TAlleleFreqEstimatorBayes* BHWEstimator, double epsF, bool writeGenoFreq, bool doBayesian);
 	std::vector<std::string> _composeHeaderAlleleFreqComparison(TAlleleFreqEstimatorBayes & BHWEstimator);
 
 public:

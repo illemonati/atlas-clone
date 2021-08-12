@@ -62,7 +62,7 @@ void  TMajorMinorEstimatorBase::_estimateMajorMinor(const TMultiGLFData & data){
 	findMLAllelicCombination(data);
 
 	//which one is major?
-	if(genotypeFrequencies.alleleFrequency < 0.5){
+	if(genotypeFrequencies.alleleFrequency() < 0.5){
 		major = bestAllelicCombination.firstAllele();
 		minor = bestAllelicCombination.secondAllele();
 	} else {
@@ -118,13 +118,13 @@ TMajorMinorEstimatorSkotte::TMajorMinorEstimatorSkotte(TRandomGenerator* RandomG
 	 epsilonF = EpsilonF;
 
 	//diploid
-	priorGenotypeFrequencies.diploidFrequencies[0] = 0.25;
-	priorGenotypeFrequencies.diploidFrequencies[1] = 0.50;
-	priorGenotypeFrequencies.diploidFrequencies[2] = 0.25;
+	priorGenotypeFrequencies[genometools::homoFirst] = 0.25;
+	priorGenotypeFrequencies[genometools::het] = 0.50;
+	priorGenotypeFrequencies[genometools::homoSecond] = 0.25;
 
 	//haploid
-	priorGenotypeFrequencies.haploidFrequencies[0] = 0.50;
-	priorGenotypeFrequencies.haploidFrequencies[1] = 0.50;
+	priorGenotypeFrequencies[genometools::haploidFirst] = 0.50;
+	priorGenotypeFrequencies[genometools::haploidSecond] = 0.50;
 };
 
 void TMajorMinorEstimatorSkotte::findMLAllelicCombination(const TMultiGLFData & data){

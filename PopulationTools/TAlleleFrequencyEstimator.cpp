@@ -517,7 +517,7 @@ void TAlleleFreqEstimator::_writeBayesianEstimatesOnePop(TOutputFile & out, TSam
 	out << BHWEstimator->upperCredibleInterval();
 };
 
-void TAlleleFreqEstimator::_writeEstimatesOnePop(TOutputFile & out, TGenotypeFrequencies & genoFrequencies, double alleleFrequency, TSampleLikelihoods* theseSamples, const uint32_t & numSamples, TAlleleFreqEstimatorHardyWeinberg & MLHWEstimator, TAlleleFreqEstimatorBayes* BHWEstimator, double epsF, bool writeGenoFreq, bool doBayesian){
+void TAlleleFreqEstimator::_writeEstimatesOnePop(TOutputFile & out, genometools::TGenotypeFrequencies & genoFrequencies, double alleleFrequency, TSampleLikelihoods* theseSamples, const uint32_t & numSamples, TAlleleFreqEstimatorHardyWeinberg & MLHWEstimator, TAlleleFreqEstimatorBayes* BHWEstimator, double epsF, bool writeGenoFreq, bool doBayesian){
 	//write num samples with data
 	out << genoFrequencies.numDiploid();
 	out << genoFrequencies.numHaploid();
@@ -622,10 +622,10 @@ void TAlleleFreqEstimator::estimateAlleleFreq(TParameters & Parameters, TRandomG
  		if(samples.numPopulations() == 1){
  			_writeEstimatesOnePop(out, *(reader.genotypeFrequencies()), reader.allelFrequency(), storage.samples(), samples.numSamples(), MLHWEstimator, BHWEstimator, epsF, writeGenoFreq, doBayesian);
  		} else {
- 			TGenotypeFrequencies genoFrequencies;
+ 			genometools::TGenotypeFrequencies genoFrequencies;
  	 		for(int p=0; p<samples.numPopulations(); p++){
  	 			genoFrequencies.estimate(&storage[samples.startIndex(p)], samples.numSamplesInPop(p), epsF);
- 	 			_writeEstimatesOnePop(out, genoFrequencies, genoFrequencies.alleleFrequency, &storage[samples.startIndex(p)], samples.numSamplesInPop(p), MLHWEstimator, BHWEstimator, epsF, writeGenoFreq, doBayesian);
+ 	 			_writeEstimatesOnePop(out, genoFrequencies, genoFrequencies.alleleFrequency(), &storage[samples.startIndex(p)], samples.numSamplesInPop(p), MLHWEstimator, BHWEstimator, epsF, writeGenoFreq, doBayesian);
  	 		}
  		}
 
@@ -676,7 +676,7 @@ void TAlleleFreqEstimator::compareAlleleFreq(TParameters & Parameters, TRandomGe
 	TAlleleFreqEstimatorBayes BHWEstimator(Parameters, logfile, randomGenerator);
 
 	//genotype frequencies estimator
-	TGenotypeFrequencies genoFrequencies;
+	genometools::TGenotypeFrequencies genoFrequencies;
 
 	//variables for MCMC chains
 	int numIterations = Parameters.getParameterWithDefault<int>("iterations", 100000);

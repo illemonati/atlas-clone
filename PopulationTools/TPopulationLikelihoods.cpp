@@ -549,7 +549,7 @@ bool TPopulationLikelihoodReader::_filterSite(TSampleLikelihoods* data, TPopulat
 	if(freqFilter > 0.0 || estimateGenotypeFrequencies){
 		genoFrequencies.estimate(data, samples.numSamples(), epsilonF);
 
-		if(genoFrequencies.MAF < freqFilter){
+		if(genoFrequencies.MAF() < freqFilter){
 			_lowFreqSNPCounter++;
 			return false;
 		}

@@ -48,7 +48,7 @@ protected:
 	TRandomGenerator* randomGenerator;
 
 	GLF::TMultiGLFDataOneAllelicCombination genotypeLikelihoods;
-	TGenotypeFrequencies genotypeFrequencies;
+	genometools::TGenotypeFrequencies genotypeFrequencies;
 	TAlleleicCombinationData L10L_perCombination;
 
 	std::vector<AllelicCombination> usedAllelicCombinations;
@@ -77,7 +77,7 @@ public:
 class TMajorMinorEstimatorSkotte:public TMajorMinorEstimatorBase{
 private:
 	double epsilonF;
-	TGenotypeFrequencies priorGenotypeFrequencies;
+	genometools::TGenotypeFrequencies priorGenotypeFrequencies;
 
 	void findMLAllelicCombination(const TMultiGLFData & data);
 
@@ -89,7 +89,7 @@ public:
 class TMajorMinorEstimatorMLE:public TMajorMinorEstimatorBase{
 private:
 	double epsilonF;
-	std::array<TGenotypeFrequencies, 6> tmpGenotypeFrequencies;
+	std::array<genometools::TGenotypeFrequencies, 6> tmpGenotypeFrequencies;
 
 	coretools::Log10Probability estimateGenotypeFrequencies(const TMultiGLFData & data, const AllelicCombination & alleleicCombination);
 	void findMLAllelicCombination(const TMultiGLFData & data);

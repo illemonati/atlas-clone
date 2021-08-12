@@ -173,7 +173,7 @@ protected:
     uint64_t _notOnChrCounter;
 
     //tmp variables used for reading
-	TGenotypeFrequencies genoFrequencies;
+	genometools::TGenotypeFrequencies genoFrequencies;
 	std::string curChr;
 
 	virtual void _init();
@@ -247,11 +247,11 @@ public:
 	bool readDataFromVCF(TSampleLikelihoods* data, TPopulationSamples & samples);
 
 	void openTrueAlleleFrequenciesFile(const std::string filename);
-	TGenotypeFrequencies* genotypeFrequencies(){ return &genoFrequencies; };
-	std::array<Probability, 3> diploidGenotypeFrequencies(){ return genoFrequencies.diploidFrequencies; };
-	double allelFrequency(){ return genoFrequencies.alleleFrequency; };
+	genometools::TGenotypeFrequencies* genotypeFrequencies(){ return &genoFrequencies; };
+	std::array<Probability, 3> diploidGenotypeFrequencies(){ return genoFrequencies.diploidFrequencies(); };
+	double allelFrequency(){ return genoFrequencies.alleleFrequency(); };
 	double trueAlleleFrequency(){ return _trueAlleleFrequency; };
-	double MAF(){ return genoFrequencies.MAF; };
+	double MAF(){ return genoFrequencies.MAF(); };
 	int numSamplesWithData();
 	void writePosition(coretools::TOutputFile & out);
 };

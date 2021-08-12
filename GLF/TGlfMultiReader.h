@@ -132,11 +132,11 @@ public:
 		_isMissing = true;
 	};
 
-	bool isMissing(){
+	bool isMissing() const {
 		return _isMissing;
 	};
 
-	bool isHaploid(){
+	bool isHaploid() const {
 		return _isHaploid;
 	};
 
