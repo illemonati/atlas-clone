@@ -125,7 +125,7 @@ void TSiteAlleleFrequencyLikelihoods::_fillLog(TSampleLikelihoods* data, const u
 		}
 
 		//Recursion
-		for(++s; s<numSamples; ++s){ // todo: ++ is called twice per loop -> on purpose?
+		for(++s; s<numSamples; ++s){
 			if(!data[s].isMissing()){
 				int j = numAlleleCounts;
 
@@ -212,7 +212,7 @@ void TSiteAlleleFrequencyLikelihoods::_fillNatural(TSampleLikelihoods* data, con
 		}
 
 		//Recursion
-		for(++s; s<numSamples; ++s){ // todo: ++ is called twice per loop -> on purpose?
+		for(++s; s<numSamples; ++s){
 			if(!data[s].isMissing()){
 				int j = numAlleleCounts;
 
