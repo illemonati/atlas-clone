@@ -125,13 +125,13 @@ void TSiteAlleleFrequencyLikelihoods::_fillLog(TSampleLikelihoods* data, const u
 		}
 
 		//Recursion
-		for(++s; s<numSamples; ++s){
+		for(++s; s<numSamples; ++s){ // todo: ++ is called twice per loop -> on purpose?
 			if(!data[s].isMissing()){
 				int j = numAlleleCounts;
 
 				if(data[s].isHaploid()){
 					//first fill new ones to avoid multiplication with zero (relevant in log)
-					alleleFrequencyLikelihoods_h[j+1] = (LogProbability) data[s][haploidSecond] + alleleFrequencyLikelihoods_h[j];
+					alleleFrequencyLikelihoods_h[j+1] = (LogProbability) data[s][haploidSecond] + alleleFrequencyLikelihoods_h[j]; // todo: shouldn't this be j-1 (different than for Natural below)
 
 					//now fill those already used
 					for(; j>0; j--){
@@ -162,7 +162,7 @@ void TSiteAlleleFrequencyLikelihoods::_fillLog(TSampleLikelihoods* data, const u
 
 					//special case for j=1,0
 					alleleFrequencyLikelihoods_h[1] = _protectedSumInLog(
-										 (LogProbability) data[s][het] + alleleFrequencyLikelihoods_h[0] + logOf2,
+					        (LogProbability) data[s][het] + alleleFrequencyLikelihoods_h[0] + logOf2, // todo: this 2*het does not appear in equation in paper! (It says: "Set h_1 = P(X|G=0)*h_1 + P(X|G=1)*h_0")
 										 (LogProbability) data[s][homoFirst] + alleleFrequencyLikelihoods_h[1] );
 
 					alleleFrequencyLikelihoods_h[0] = (LogProbability) data[s][homoFirst] + alleleFrequencyLikelihoods_h[0];
@@ -212,7 +212,7 @@ void TSiteAlleleFrequencyLikelihoods::_fillNatural(TSampleLikelihoods* data, con
 		}
 
 		//Recursion
-		for(++s; s<numSamples; ++s){
+		for(++s; s<numSamples; ++s){ // todo: ++ is called twice per loop -> on purpose?
 			if(!data[s].isMissing()){
 				int j = numAlleleCounts;
 
@@ -227,7 +227,7 @@ void TSiteAlleleFrequencyLikelihoods::_fillNatural(TSampleLikelihoods* data, con
 					}
 
 					//special case for j=0
-					alleleFrequencyLikelihoods_h[0] = (LogProbability) data[s][haploidFirst] * alleleFrequencyLikelihoods_h[0];
+					alleleFrequencyLikelihoods_h[0] = (LogProbability) data[s][haploidFirst] * alleleFrequencyLikelihoods_h[0]; // todo: should be Probability (not LogProbability)?
 
 					//increase total number of haplotypes by one
 					numAlleleCounts += 1;
@@ -245,7 +245,7 @@ void TSiteAlleleFrequencyLikelihoods::_fillNatural(TSampleLikelihoods* data, con
 					}
 
 					//special case for j=1,0
-					alleleFrequencyLikelihoods_h[1] = 2.0 * (Probability) data[s][het] * alleleFrequencyLikelihoods_h[0]
+					alleleFrequencyLikelihoods_h[1] = 2.0 * (Probability) data[s][het] * alleleFrequencyLikelihoods_h[0] // todo: this 2*het does not appear in equation in paper! (It says: "Set h_1 = P(X|G=0)*h_1 + P(X|G=1)*h_0")
 													+ (Probability) data[s][homoFirst] * alleleFrequencyLikelihoods_h[1];
 					alleleFrequencyLikelihoods_h[0] = (Probability) data[s][homoFirst] * alleleFrequencyLikelihoods_h[0];
 
