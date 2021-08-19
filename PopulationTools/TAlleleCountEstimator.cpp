@@ -88,11 +88,11 @@ LogProbability TSiteAlleleFrequencyLikelihoods::_protectedSumInLog(const LogProb
 
 void TSiteAlleleFrequencyLikelihoods::normalize(){
 	LogProbability max = log_alleleFrequencyLikelihoods_h[0];
-	for(int j=1; j<numAlleleCounts; j++){
+	for(int j=1; j<numAlleleCounts+1; j++){
 		if(log_alleleFrequencyLikelihoods_h[j] > max)
 			max = log_alleleFrequencyLikelihoods_h[j];
 	}
-	for(int j=0; j<numAlleleCounts; j++)
+	for(int j=0; j<numAlleleCounts+1; j++)
 		log_alleleFrequencyLikelihoods_h[j] -= max;
 };
 
@@ -175,7 +175,7 @@ void TSiteAlleleFrequencyLikelihoods::_fillLog(TSampleLikelihoods* data, const u
 
 		//Termination: add binomial coefficient
 		TSAFChooseStorage* logChoose = _getLogChoose(numAlleleCounts);
-		for(int j=0; j<numAlleleCounts; j++){
+		for(int j=0; j<numAlleleCounts+1; j++){
 			//numerical accuracy may raely lead to a value very slightly above 0.0. std::min is used to avoid an error when storing as LogProbability.
 			log_alleleFrequencyLikelihoods_h[j] = std::min(alleleFrequencyLikelihoods_h[j] - logChoose->logChoose(j), 0.0);
 		}
@@ -257,7 +257,7 @@ void TSiteAlleleFrequencyLikelihoods::_fillNatural(TSampleLikelihoods* data, con
 
 		//Termination: put in log and add binomial coefficient
 		TSAFChooseStorage* logChoose = _getLogChoose(numAlleleCounts);
-		for(int j=0; j<numAlleleCounts; j++){
+		for(int j=0; j<numAlleleCounts+1; j++){
 			//numerical accuracy may raely lead to a value very slightly above 0.0. std::min is used to avoid an error when storing as LogProbability.
 			log_alleleFrequencyLikelihoods_h[j] = std::min(log(alleleFrequencyLikelihoods_h[j]) - logChoose->logChoose(j), 0.0);
 		}
@@ -279,13 +279,13 @@ void TSiteAlleleFrequencyLikelihoods::fill(TSampleLikelihoods* data, const uint3
 };
 
 void TSiteAlleleFrequencyLikelihoods::print(){
-	for(int j=0; j<numAlleleCounts; j++){
+	for(int j=0; j<numAlleleCounts+1; j++){
 		std::cout << "\t" << log_alleleFrequencyLikelihoods_h[j];
 	}
 };
 
 void TSiteAlleleFrequencyLikelihoods::write(gz::ogzstream & file){
-	for(int j=0; j<numAlleleCounts; j++){
+	for(int j=0; j<numAlleleCounts+1; j++){
 		file << "\t" << log_alleleFrequencyLikelihoods_h[j];
 	}
 };
@@ -296,14 +296,14 @@ int TSiteAlleleFrequencyLikelihoods::getMLAlleleCount(coretools::TRandomGenerato
 
 	//first find ML and store all indexes that are at ML
 	double ML = log_alleleFrequencyLikelihoods_h[0];
-	for(int j=1; j<numAlleleCounts; j++){
+	for(int j=1; j<numAlleleCounts+1; j++){
 		if(log_alleleFrequencyLikelihoods_h[j] > ML)
 			ML = log_alleleFrequencyLikelihoods_h[j];
 	}
 
 	//now store all index at ML
 	std::vector<int> MLEs;
-	for(int j=0; j<numAlleleCounts; j++){
+	for(int j=0; j<numAlleleCounts+1; j++){
 		if(log_alleleFrequencyLikelihoods_h[j] == ML){
 			MLEs.emplace_back(j);
 		}
@@ -311,6 +311,10 @@ int TSiteAlleleFrequencyLikelihoods::getMLAlleleCount(coretools::TRandomGenerato
 
 	//now choose randomly among those ate MLE
 	return MLEs[randomGenerator.sample(MLEs.size())];
+};
+
+const std::vector<coretools::LogProbability> & TSiteAlleleFrequencyLikelihoods::getLogAlleleFrequencyLikelihoods() const{
+    return log_alleleFrequencyLikelihoods_h;
 };
 
 //-------------------------------------------------

@@ -49,8 +49,10 @@ private:
 	void normalize();
 
 	TSAFChooseStorage* _getLogChoose(int counts);
-	void _fillLog(TSampleLikelihoods* data, const uint32_t & numSamples);
-	void _fillNatural(TSampleLikelihoods* data, const uint32_t & numSamples);
+
+protected:
+    void _fillLog(TSampleLikelihoods* data, const uint32_t & numSamples);
+    void _fillNatural(TSampleLikelihoods* data, const uint32_t & numSamples);
 
 public:
 	TSiteAlleleFrequencyLikelihoods(int numIndividuals);
@@ -60,6 +62,7 @@ public:
 	void write(gz::ogzstream & file);
 	int getMLAlleleCount(coretools::TRandomGenerator & randomGenerator);
 	int getNumAlleles(){ return numAlleleCounts; };
+	const std::vector<coretools::LogProbability> & getLogAlleleFrequencyLikelihoods() const;
 };
 
 //-------------------------------------------------
