@@ -734,7 +734,7 @@ void TBamFile::startProgressReporting(uint32_t Frequency){
 
 void TBamFile::printProgress(){
 	if(_numAlignmentRead - _lastProgressPrinted >= _progressFrequency){
-		_logfile->list("Parsed " + _millionReadsRead() + " million reads (est. " + coretools::str::to_string_with_precision(positionInFile() * 100, 2) + "%) in " + _timer.formattedTime());
+		_logfile->list("Parsed " + _millionReadsRead() + " million reads (est. " + coretools::str::toStringWithPrecision(positionInFile() * 100, 2) + "%) in " + _timer.formattedTime());
 		_lastProgressPrinted = _numAlignmentRead;
 	}
 };

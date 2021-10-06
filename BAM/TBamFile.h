@@ -98,7 +98,7 @@ private:
 	uint32_t _progressFrequency;
 	uint64_t _lastProgressPrinted;
 
-	std::string _millionReadsRead(){ return coretools::str::to_string_with_precision((double) _numAlignmentRead / 1000000.0, 1); };
+	std::string _millionReadsRead(){ return coretools::str::toStringWithPrecision((double) _numAlignmentRead / 1000000.0, 1); };
 	void _openForWriting(BamTools::BamWriter & bamWriter, const std::string filename);
 
 public:
