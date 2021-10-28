@@ -65,6 +65,27 @@ public:
 };
 
 //------------------------------------------
+// TVcfToGeno
+//------------------------------------------
+class TVcfToGeno : protected TVcfConverter {
+private:
+    TOutputFile _genoFile;
+    TOutputFile _lociNamesFile;
+
+    // geno
+    void _writeData(PopulationTools::TPopulationLikehoodLocus & data) override;
+    void _initOutputFiles() override;
+    void _closeOutputFiles();
+    void _writePosition();
+
+public:
+    TVcfToGeno(TLog *Logfile);
+    ~TVcfToGeno() override = default;
+
+    void vcfToGeno(TParameters & Params);
+};
+
+//------------------------------------------
 // TVcfToLFMM
 //------------------------------------------
 class TVcfToLFMM : protected TVcfConverter {
@@ -76,9 +97,10 @@ protected:
     void _storeLocusNames();
     void _writeLociNames();
     void _initOutputFiles() override;
+    void _closeOutputFiles();
 
     template <class T>
-    void writeLFMM(T Genotypes) {
+    void _writeLFMM(T Genotypes) {
         size_t numLoci = Genotypes.size();
         for (size_t i = 0; i < _samples.numSamples(); i++){
             for (size_t l = 0; l < numLoci; l++){
@@ -88,7 +110,7 @@ protected:
         }
     }
 
-    void prepareAndReadVcf(TParameters & Params);
+    void _prepareAndReadVcf(TParameters & Params);
 
 public:
     TVcfToLFMM(TLog *Logfile);
@@ -102,7 +124,7 @@ class TVcfToLFMMCalledGeno : public TVcfToLFMM {
 private:
     void _writeData(PopulationTools::TPopulationLikehoodLocus & data) override ;
     void storeCalledGenotypes();
-    std::vector<uint8_t *> genotypes;
+    std::vector<uint8_t *> _genotypes;
 
 public:
     TVcfToLFMMCalledGeno(TLog *Logfile);
@@ -202,20 +224,24 @@ public:
 			Logfile->startIndent("Converting a VCF to Beagle format (parameter 'format'):");
 			TVcfToBeagle VcfToBeagle(Logfile);
 			VcfToBeagle.vcfToBeagle(Parameters);
+		} else if (format == "geno"){
+		    Logfile->startIndent("Converting a VCF to geno format (parameter 'format'):");
+		    TVcfToGeno vcfToGeno(Logfile);
+		    vcfToGeno.vcfToGeno(Parameters);
 		} else if(format == "LFMM"){
-			Logfile->startIndent("Converting a VCF to LFMM format (parameter 'format'):");
+            Logfile->startIndent("Converting a VCF to LFMM format (parameter 'format'):");
 
-			//posterior or calls?
-			std::string genoType = Parameters.getParameterWithDefault<std::string>("_genotypes", "calls");
-			if(genoType == "posterior"){
-				TVcfToLFMMPostGeno vcfToLFMMPostGeno(Logfile);
-				vcfToLFMMPostGeno.vcfToLFMM(Parameters);
-			} else if(genoType == "calls"){
-				TVcfToLFMMCalledGeno vcfToLFMMCalledGeno(Logfile);
-				vcfToLFMMCalledGeno.vcfToLFMM(Parameters);
-			} else {
-				throw "Unknown genotype method '" + genoType + "'! Use either 'calls' or 'posterior'";
-			}
+            //posterior or calls?
+            std::string genoType = Parameters.getParameterWithDefault<std::string>("_genotypes", "calls");
+            if(genoType == "posterior"){
+                TVcfToLFMMPostGeno vcfToLFMMPostGeno(Logfile);
+                vcfToLFMMPostGeno.vcfToLFMM(Parameters);
+            } else if(genoType == "calls"){
+                TVcfToLFMMCalledGeno vcfToLFMMCalledGeno(Logfile);
+                vcfToLFMMCalledGeno.vcfToLFMM(Parameters);
+            } else {
+                throw "Unknown genotype method '" + genoType + "'! Use either 'calls' or 'posterior'";
+            }
 		} else if(format == "_posFile"){
 			Logfile->startIndent("Converting a VCF file to posfile format used by STITCH (parameter 'format'):");
 			TVcfToPosFile VcfToPosFile(Logfile);

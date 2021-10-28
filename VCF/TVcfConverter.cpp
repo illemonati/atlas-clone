@@ -119,19 +119,77 @@ void TVcfToBeagle::vcfToBeagle(TParameters & Params){
     _beagleFile.close();
 };
 
+
+//------------------------------------------
+// TVcfToGeno
+//------------------------------------------
+TVcfToGeno::TVcfToGeno(TLog *Logfile) : TVcfConverter(Logfile) {
+    // geno format: used in LEA package (https://www.rdocumentation.org/packages/LEA/versions/1.4.0/topics/geno)
+    // rows = SNPs, cols = individuals (without delim, just pasted together)
+    // Each data point represents the number of copies of reference allele. Missing data encoded by 9.
+    // Note: we usually define genotype as number of copies of alternative allele -> might be confusing, I stick to
+    //       the file format here, i.e. I use number of copies of reference allele.
+};
+
+void TVcfToGeno::_initOutputFiles(){
+    _genoFile.open(_outname + ".geno");
+    _lociNamesFile.open(_outname + ".geno.kept_loci");
+};
+
+void TVcfToGeno::_closeOutputFiles() {
+    _genoFile.close();
+    _lociNamesFile.endLine();
+    _lociNamesFile.close();
+};
+
+void TVcfToGeno::_writePosition(){
+    _lociNamesFile << _reader.chr() + ":" + coretools::toString(_reader.position());
+};
+
+void TVcfToGeno::_writeData(PopulationTools::TPopulationLikehoodLocus & data){
+    _writePosition();
+
+    //write line
+    std::string line;
+    for (auto s = 0; s < _samples.numSamples(); s++){
+        if (data[s].isMissing()){
+            line += "9";
+        } else if (data[s].isHaploid()){
+            // get counts of reference allele from counts of alternative allele
+            line += coretools::str::toString(1 - _reader.biallelicGenotype(_samples, s).altAlleleCounts());
+        } else {
+            // get counts of reference allele from counts of alternative allele
+            line += coretools::str::toString(2 - _reader.biallelicGenotype(_samples, s).altAlleleCounts());
+        }
+    }
+    _genoFile << line << std::endl;
+};
+
+void TVcfToGeno::vcfToGeno(TParameters &Params) {
+    // read Vcf and write output
+    readVcfAndWriteFile(Params);
+
+    // clean up
+    _closeOutputFiles();
+};
+
 //------------------------------------------
 // TVcfToLFMM
 //------------------------------------------
 TVcfToLFMM::TVcfToLFMM(TLog *Logfile) : TVcfConverter(Logfile){};
 
 TVcfToLFMM::~TVcfToLFMM(){
-    _lfmmFile.close();
-    _lociNamesFile.close();
+    _closeOutputFiles();
 };
 
 void TVcfToLFMM::_initOutputFiles() {
     _lfmmFile.open(_outname + ".lfmm");
     _lociNamesFile.open(_outname + ".lfmm.kept_loci");
+};
+
+void TVcfToLFMM::_closeOutputFiles() {
+    _lfmmFile.close();
+    _lociNamesFile.close();
 };
 
 void TVcfToLFMM::_storeLocusNames(){
@@ -145,7 +203,7 @@ void TVcfToLFMM::_writeLociNames(){
     _lociNamesFile.endLine();
 };
 
-void TVcfToLFMM::prepareAndReadVcf(TParameters & Params){
+void TVcfToLFMM::_prepareAndReadVcf(TParameters & Params){
     // read Vcf and store output
     readVcfAndWriteFile(Params);
 
@@ -160,7 +218,7 @@ TVcfToLFMMCalledGeno::TVcfToLFMMCalledGeno(TLog *Logfile) : TVcfToLFMM(Logfile) 
 };
 
 TVcfToLFMMCalledGeno::~TVcfToLFMMCalledGeno(){
-    for (auto it = genotypes.begin(); it < genotypes.end(); it++)
+    for (auto it = _genotypes.begin(); it < _genotypes.end(); it++)
         delete [] *it;
 };
 
@@ -180,15 +238,17 @@ void TVcfToLFMMCalledGeno::storeCalledGenotypes(){
         	calledGeno[i] = tmp[i].altAlleleCounts();
         }
     }
-    genotypes.emplace_back(calledGeno);
+    _genotypes.emplace_back(calledGeno);
 };
 
 void TVcfToLFMMCalledGeno::vcfToLFMM(TParameters & Params){
-    prepareAndReadVcf(Params);
+    _prepareAndReadVcf(Params);
 
     // write actual lfmm
-    _lfmmFile.noHeader(genotypes.size()); // we only know now how many loci there are
-    writeLFMM(genotypes);
+    _lfmmFile.noHeader(_genotypes.size()); // we only know now how many loci there are
+    _writeLFMM(_genotypes);
+
+    _closeOutputFiles();
 };
 
 //------------------------------------------
@@ -204,11 +264,13 @@ TVcfToLFMMPostGeno::~TVcfToLFMMPostGeno(){
 };
 
 void TVcfToLFMMPostGeno::vcfToLFMM(TParameters & Params){
-    prepareAndReadVcf(Params);
+    _prepareAndReadVcf(Params);
 
     // write actual lfmm
     _lfmmFile.noHeader(_genotypes.size()); // we only know now how many loci there are
-    writeLFMM(_genotypes);
+    _writeLFMM(_genotypes);
+
+    _closeOutputFiles();
 };
 
 void TVcfToLFMMPostGeno::_writeData(PopulationTools::TPopulationLikehoodLocus & data){
@@ -236,7 +298,7 @@ double TVcfToLFMMPostGeno::_computePosteriorGenotype(PopulationTools::TPopulatio
 // TVcfToPosFile
 //------------------------------------------
 TVcfToPosFile::TVcfToPosFile(TLog *Logfile) : TVcfConverter(Logfile) {
-    // _posFile is needed as input for STITCH
+    // posFile is needed as input for STITCH
     // format:
     //   - tab-separated
     //   - no header
