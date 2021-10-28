@@ -232,7 +232,7 @@ public:
             Logfile->startIndent("Converting a VCF to LFMM format (parameter 'format'):");
 
             //posterior or calls?
-            std::string genoType = Parameters.getParameterWithDefault<std::string>("_genotypes", "calls");
+            std::string genoType = Parameters.getParameterWithDefault<std::string>("genotypes", "calls");
             if(genoType == "posterior"){
                 TVcfToLFMMPostGeno vcfToLFMMPostGeno(Logfile);
                 vcfToLFMMPostGeno.vcfToLFMM(Parameters);
@@ -242,7 +242,7 @@ public:
             } else {
                 throw "Unknown genotype method '" + genoType + "'! Use either 'calls' or 'posterior'";
             }
-		} else if(format == "_posFile"){
+		} else if(format == "posFile"){
 			Logfile->startIndent("Converting a VCF file to posfile format used by STITCH (parameter 'format'):");
 			TVcfToPosFile VcfToPosFile(Logfile);
 			VcfToPosFile.vcfToPosFile(Parameters);
@@ -251,7 +251,7 @@ public:
 			TVcfToGenotypeTruthSetFile VcfToGenotypeTruthSetFile(Logfile);
 			VcfToGenotypeTruthSetFile.vcfToGenotypeTruthSetFile(Parameters);
 		} else {
-			throw "Unknown format '" + format + "'! Use either 'beagle', 'LFMM', '_posFile' or 'truthSet'.";
+			throw "Unknown format '" + format + "'! Use either 'beagle', 'geno', 'LFMM', 'posFile' or 'truthSet'.";
 		}
 		Logfile->endIndent();
 	};
