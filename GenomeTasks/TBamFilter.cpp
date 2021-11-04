@@ -90,7 +90,7 @@ void TAlignmentMergerReadGroupSettings::initialize(TParameters & Params, TLog* l
 				//parse max cycles
 				uint16_t maxCycles = 0;
 				if(vec[2] != "NA" && vec[2] != "-"){
-					if(!stringContainsOnlyNumbers(vec[1])){
+					if(!stringContainsOnlyNumbers(vec[2])){
 						throw "Error reading file '" + in.name() + "' on line " + toString(in.lineNumber()) + ": max cycles should be a number!";
 					}
 					maxCycles = convertString<int>(vec[2]);
