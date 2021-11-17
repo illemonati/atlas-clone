@@ -72,7 +72,7 @@ void TAlignmentMergerReadGroupSettings::initialize(TParameters & Params, TLog* l
 
 		//read file with read group settings
 		std::string readGroupSettingsFile = Params.getParameter<std::string>("readGroupSettings");
-		logfile->listFlush("Reading single end read groups from file '" + readGroupSettingsFile + "' ...");
+		logfile->listFlush("Reading read groups from file '" + readGroupSettingsFile + "' ...");
 		coretools::TInputFile in(readGroupSettingsFile, {"ReadGroup", "SeqType", "MaxCycles"});
 		if(in.numCols() != 3){
 			throw "Wrong number of entries in file '" + readGroupSettingsFile + "': need three columns corresponding to the read group name, read group type and max cycles!";
@@ -90,7 +90,7 @@ void TAlignmentMergerReadGroupSettings::initialize(TParameters & Params, TLog* l
 				//parse max cycles
 				uint16_t maxCycles = 0;
 				if(vec[2] != "NA" && vec[2] != "-"){
-					if(!stringContainsOnlyNumbers(vec[1])){
+					if(!stringContainsOnlyNumbers(vec[2])){
 						throw "Error reading file '" + in.name() + "' on line " + toString(in.lineNumber()) + ": max cycles should be a number!";
 					}
 					maxCycles = convertString<int>(vec[2]);
@@ -154,10 +154,10 @@ void TAlignmentMergerReadGroupSettings::_printSummary(TLog* logfile){
 	}
 
 	//summarize
-	if(counts[unchanged] > 0){ logfile->conclude(counts[unchanged] + " read groups will remain unchanged."); }
-	if(counts[single] > 0   ){ logfile->conclude(counts[single] + " single-end read groups will be split."); }
-	if(counts[mixed] > 0    ){ logfile->conclude(counts[mixed] + " mixed read groups will be split and merged."); }
-	if(counts[paired] > 0   ){ logfile->conclude(counts[paired] + " paired read groups to be merged."); }
+	if(counts[unchanged] > 0){ logfile->conclude(counts[unchanged], " read groups will remain unchanged."); }
+	if(counts[single] > 0   ){ logfile->conclude(counts[single], " single-end read groups will be split."); }
+	if(counts[mixed] > 0    ){ logfile->conclude(counts[mixed], " mixed read groups will be split and merged."); }
+	if(counts[paired] > 0   ){ logfile->conclude(counts[paired], " paired read groups to be merged."); }
 };
 
 void TAlignmentMergerReadGroupSettings::setAllAsUnchanged(const BAM::TReadGroups & readGroups){
@@ -344,6 +344,7 @@ void TBamFilter::traverseBAM(){
 				if(alignment->isPaired()){
 					//if mate is in blacklist: add as improper pair for writing
 					if(_blacklist.isInBlacklist(alignment->name())){
+
 						alignment->setIsProperPair(false);
 						_alignmentStorage.emplace_back(alignment, true);
 						_blacklist.remove(alignment->name());
@@ -412,6 +413,7 @@ uint16_t TAlignmentMerger::merge(BAM::TAlignment & alignment, BAM::TAlignment & 
 	//go through alignments
 	uint32_t fwdP = 0; uint32_t revP = 0;
 	while(fwdP <= alignment.lastAlingedInternalPos() && revP <= mate.lastAlingedInternalPos()){
+		
 		//make sure we compare at the same position in respect to ref
 		if(!alignment.isAlignedAtInternalPos(fwdP)){
 			++fwdP;
@@ -433,8 +435,8 @@ uint16_t TAlignmentMerger::merge(BAM::TAlignment & alignment, BAM::TAlignment & 
 
 	//check if alignments changed
 	if(numOverlap > 0){
-		alignment.setHasChanged();
-		mate.setHasChanged();
+		alignment.setSequenceAndQualitiesChanged();
+		mate.setSequenceAndQualitiesChanged();
 	}
 
 	return numOverlap;
