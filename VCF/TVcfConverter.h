@@ -26,17 +26,19 @@ using coretools::TOutputFile;
 class TVcfConverter {
 protected:
     std::string _outname;
-    TLog * logfile;
-    PopulationTools::TPopulationLikelihoodReaderLocus * reader;
-    PopulationTools::TPopulationSamples samples;
+    TLog * _logfile;
+    PopulationTools::TPopulationLikelihoodReaderLocus _reader;
+    PopulationTools::TPopulationSamples _samples;
 
-    virtual void initOutputFiles();
-    virtual void writeHeader();
-    virtual void writeData(PopulationTools::TPopulationLikehoodLocus & data);
-    void readOutputName(TParameters & Params);
+    virtual void _initOutputFiles() = 0;
+    virtual void _writeHeader();
+    virtual void _writeData(PopulationTools::TPopulationLikehoodLocus & data) = 0;
+    void _readOutputName(TParameters & Params, const std::string & VCFFilename);
+
 public:
-    TVcfConverter(TLog * Logfile, TParameters & Params);
-    virtual ~TVcfConverter();
+    TVcfConverter(TLog * Logfile);
+    virtual ~TVcfConverter() = default;
+
     void readVcfAndWriteFile(TParameters & Params);
 };
 
@@ -45,19 +47,42 @@ public:
 //------------------------------------------
 class TVcfToBeagle : protected TVcfConverter {
 private:
-    TOutputFile * beagleFile;
-    std::map<char, int> baseToNumber;
+    TOutputFile _beagleFile;
+
     // beagle
-    void writeHeader() override;
-    void writeRefAndAlt();
-    void writeData(PopulationTools::TPopulationLikehoodLocus & data) override;
-    void writePosition();
-    void initOutputFiles() override;
+    void _writeHeader() override;
+    void _writeData(PopulationTools::TPopulationLikehoodLocus & data) override;
+    void _initOutputFiles() override;
+
+    void _writeRefAndAlt();
+    void _writePosition();
 
 public:
-    TVcfToBeagle(TParameters &Params, TLog *Logfile);
-    ~TVcfToBeagle();
+    TVcfToBeagle(TLog *Logfile);
+    ~TVcfToBeagle() override = default;
+
     void vcfToBeagle(TParameters & Params);
+};
+
+//------------------------------------------
+// TVcfToGeno
+//------------------------------------------
+class TVcfToGeno : protected TVcfConverter {
+private:
+    TOutputFile _genoFile;
+    TOutputFile _lociNamesFile;
+
+    // geno
+    void _writeData(PopulationTools::TPopulationLikehoodLocus & data) override;
+    void _initOutputFiles() override;
+    void _closeOutputFiles();
+    void _writePosition();
+
+public:
+    TVcfToGeno(TLog *Logfile);
+    ~TVcfToGeno() override = default;
+
+    void vcfToGeno(TParameters & Params);
 };
 
 //------------------------------------------
@@ -65,31 +90,31 @@ public:
 //------------------------------------------
 class TVcfToLFMM : protected TVcfConverter {
 protected:
-    TOutputFile * lfmmFile;
-    TOutputFile * lociNamesFile;
-    std::vector<std::string> loci_names;
+    TOutputFile _lfmmFile;
+    TOutputFile _lociNamesFile;
+    std::vector<std::string> _loci_names;
 
-    void writeHeader() override;
-    void storeLocusNames();
-    void writeLociNames();
-    void initOutputFiles() override;
+    void _storeLocusNames();
+    void _writeLociNames();
+    void _initOutputFiles() override;
+    void _closeOutputFiles();
 
     template <class T>
-    void writeLFMM(T genotypes) {
-        int numLoci = genotypes.size();
-        for (uint32_t i = 0; i < samples.numSamples(); i++){
-            for (int l = 0; l < numLoci; l++){
-                *(lfmmFile) << static_cast<float>(genotypes[l][i]);
+    void _writeLFMM(T Genotypes) {
+        size_t numLoci = Genotypes.size();
+        for (size_t i = 0; i < _samples.numSamples(); i++){
+            for (size_t l = 0; l < numLoci; l++){
+                _lfmmFile << (double) Genotypes[l][i];
             }
-            lfmmFile->endLine();
+            _lfmmFile.endLine();
         }
     }
 
-    void prepareAndReadVcf(TParameters & Params);
+    void _prepareAndReadVcf(TParameters & Params);
 
 public:
-    TVcfToLFMM(TLog *Logfile, TParameters &Params);
-    ~TVcfToLFMM();
+    TVcfToLFMM(TLog *Logfile);
+    ~TVcfToLFMM() override;
 };
 
 //------------------------------------------
@@ -97,13 +122,13 @@ public:
 //------------------------------------------
 class TVcfToLFMMCalledGeno : public TVcfToLFMM {
 private:
-    void writeData(PopulationTools::TPopulationLikehoodLocus & data) override ;
+    void _writeData(PopulationTools::TPopulationLikehoodLocus & data) override ;
     void storeCalledGenotypes();
-    std::vector<uint8_t *> genotypes;
+    std::vector<uint8_t *> _genotypes;
 
 public:
-    TVcfToLFMMCalledGeno(TParameters &Params, TLog *Logfile);
-    ~TVcfToLFMMCalledGeno();
+    TVcfToLFMMCalledGeno(TLog *Logfile);
+    ~TVcfToLFMMCalledGeno() override;
     void vcfToLFMM(TParameters & Params);
 };
 
@@ -112,16 +137,15 @@ public:
 //------------------------------------------
 class TVcfToLFMMPostGeno : public TVcfToLFMM {
 private:
-    void writeData(PopulationTools::TPopulationLikehoodLocus & data) override ;
-    void storePosteriorGenotypes(PopulationTools::TPopulationLikehoodLocus & data);
-    float computePosteriorGenotype(PopulationTools::TPopulationLikehoodLocus & data, uint32_t i);
-    std::vector<float *> genotypes;
+    void _writeData(PopulationTools::TPopulationLikehoodLocus & data) override ;
+    void _storePosteriorGenotypes(PopulationTools::TPopulationLikehoodLocus & data);
+    double _computePosteriorGenotype(PopulationTools::TPopulationLikehoodLocus & data, uint32_t i);
+    std::vector<double *> _genotypes;
 
 public:
-    TVcfToLFMMPostGeno(TParameters &Params, TLog *Logfile);
-    ~TVcfToLFMMPostGeno();
+    TVcfToLFMMPostGeno(TLog *Logfile);
+    ~TVcfToLFMMPostGeno() override;
     void vcfToLFMM(TParameters & Params);
-
 };
 
 //------------------------------------------
@@ -129,17 +153,17 @@ public:
 //------------------------------------------
 class TVcfToPosFile : public TVcfConverter {
 private:
-    TOutputFile * posFile;
+    TOutputFile _posFile;
     // beagle
-    void writeHeader() override;
-    void writeRefAndAlt();
-    void writeData(PopulationTools::TPopulationLikehoodLocus & data) override;
-    void writePosition();
-    void initOutputFiles() override;
+    void _writeHeader() override;
+    void _writeRefAndAlt();
+    void _writeData(PopulationTools::TPopulationLikehoodLocus & data) override;
+    void _writePosition();
+    void _initOutputFiles() override;
 
 public:
-    TVcfToPosFile(TParameters &Params, TLog *Logfile);
-    ~TVcfToPosFile();
+    TVcfToPosFile(TLog *Logfile);
+    ~TVcfToPosFile() override = default;
     void vcfToPosFile(TParameters & Params);
 };
 
@@ -148,27 +172,27 @@ public:
 //------------------------------------------
 class TVcfToGenotypeTruthSetFile : public TVcfConverter {
 private:
-    BAM::TBed ** bedFiles;
-    TOutputFile * genFile;
+    BAM::TBed ** _bedFiles;
+    TOutputFile _genFile;
 
-    int minDistanceToPreviousLocus;
-    long positionPreviousLocus;
-    int numSamplesPerLocus;
-    std::string curChr;
+    int _minDistanceToPreviousLocus;
+    long _positionPreviousLocus;
+    int _numSamplesPerLocus;
+    std::string _curChr;
 
-    void writeHeader() override;
-    void writeData(PopulationTools::TPopulationLikehoodLocus & data) override;
-    void filterIndividuals(PopulationTools::TPopulationLikehoodLocus & data);
-    void mapIndividualsToDepth(std::vector<uint32_t> & samplesToKeep);
-    void filterIndividualsWithHighestDepth(std::vector<uint32_t> & samplesToKeep, const std::map< double, std::vector<uint32_t>, std::greater<double> > & depthVsSampleIndexMap);
-    void writeToGenFile(const std::vector<uint32_t> & samplesToKeep);
-    void storeInBedFile(const std::vector<uint32_t> & samplesToKeep);
-    void initOutputFiles() override;
-    void resetDistance();
+    void _writeHeader() override;
+    void _writeData(PopulationTools::TPopulationLikehoodLocus & data) override;
+    void _filterIndividuals(PopulationTools::TPopulationLikehoodLocus & data);
+    void _mapIndividualsToDepth(std::vector<uint32_t> & samplesToKeep);
+    void _filterIndividualsWithHighestDepth(std::vector<uint32_t> & samplesToKeep, const std::map< double, std::vector<uint32_t>, std::greater<> > & depthVsSampleIndexMap);
+    void _writeToGenFile(const std::vector<uint32_t> & samplesToKeep);
+    void _storeInBedFile(const std::vector<uint32_t> & samplesToKeep);
+    void _initOutputFiles() override;
+    void _resetDistance();
 
 public:
-    TVcfToGenotypeTruthSetFile(TParameters &Params, TLog *Logfile);
-    ~TVcfToGenotypeTruthSetFile();
+    TVcfToGenotypeTruthSetFile(TLog *Logfile);
+    ~TVcfToGenotypeTruthSetFile() override;
     void vcfToGenotypeTruthSetFile(TParameters & Params);
 };
 
@@ -178,13 +202,12 @@ public:
 //TODO: finish VCfToVCf converter for filtering
 class TVcfToVcf: public TVcfConverter {
 private:
-	void writeRefAndAlt();
-	void writeHeader() override;
-	void writeData(PopulationTools::TPopulationLikehoodLocus & data) override;
+	void _writeHeader() override;
+	void _writeData(PopulationTools::TPopulationLikehoodLocus & data) override;
 
 public:
-	TVcfToVcf(TParameters &Params, TLog *Logfile);
-	virtual ~TVcfToVcf(){};
+	TVcfToVcf(TLog *Logfile);
+	~TVcfToVcf() override = default;
 };
 
 //--------------------------------------
@@ -199,32 +222,36 @@ public:
 
 		if(format == "beagle"){
 			Logfile->startIndent("Converting a VCF to Beagle format (parameter 'format'):");
-			TVcfToBeagle VcfToBeagle(Parameters, Logfile);
+			TVcfToBeagle VcfToBeagle(Logfile);
 			VcfToBeagle.vcfToBeagle(Parameters);
+		} else if (format == "geno"){
+		    Logfile->startIndent("Converting a VCF to geno format (parameter 'format'):");
+		    TVcfToGeno vcfToGeno(Logfile);
+		    vcfToGeno.vcfToGeno(Parameters);
 		} else if(format == "LFMM"){
-			Logfile->startIndent("Converting a VCF to LFMM format (parameter 'format'):");
+            Logfile->startIndent("Converting a VCF to LFMM format (parameter 'format'):");
 
-			//posterior or calls?
-			std::string genoType = Parameters.getParameterWithDefault<std::string>("genotypes", "calls");
-			if(genoType == "posterior"){
-				TVcfToLFMMPostGeno vcfToLFMMPostGeno(Parameters, Logfile);
-				vcfToLFMMPostGeno.vcfToLFMM(Parameters);
-			} else if(genoType == "calls"){
-				TVcfToLFMMCalledGeno vcfToLFMMCalledGeno(Parameters, Logfile);
-				vcfToLFMMCalledGeno.vcfToLFMM(Parameters);
-			} else {
-				throw "Unknown genotype method '" + genoType + "'! Use either 'calls' or 'posterior'";
-			}
+            //posterior or calls?
+            std::string genoType = Parameters.getParameterWithDefault<std::string>("genotypes", "calls");
+            if(genoType == "posterior"){
+                TVcfToLFMMPostGeno vcfToLFMMPostGeno(Logfile);
+                vcfToLFMMPostGeno.vcfToLFMM(Parameters);
+            } else if(genoType == "calls"){
+                TVcfToLFMMCalledGeno vcfToLFMMCalledGeno(Logfile);
+                vcfToLFMMCalledGeno.vcfToLFMM(Parameters);
+            } else {
+                throw "Unknown genotype method '" + genoType + "'! Use either 'calls' or 'posterior'";
+            }
 		} else if(format == "posFile"){
 			Logfile->startIndent("Converting a VCF file to posfile format used by STITCH (parameter 'format'):");
-			TVcfToPosFile VcfToPosFile(Parameters, Logfile);
+			TVcfToPosFile VcfToPosFile(Logfile);
 			VcfToPosFile.vcfToPosFile(Parameters);
 		} else if(format == "truthSet"){
 			Logfile->startIndent("Converting a VCF file to genotype truth set format (parameter 'format'):");
-			TVcfToGenotypeTruthSetFile VcfToGenotypeTruthSetFile(Parameters, Logfile);
+			TVcfToGenotypeTruthSetFile VcfToGenotypeTruthSetFile(Logfile);
 			VcfToGenotypeTruthSetFile.vcfToGenotypeTruthSetFile(Parameters);
 		} else {
-			throw "Unknown format '" + format + "'! Use either 'beagle', 'LFMM', 'posFile' or 'truthSet'.";
+			throw "Unknown format '" + format + "'! Use either 'beagle', 'geno', 'LFMM', 'posFile' or 'truthSet'.";
 		}
 		Logfile->endIndent();
 	};
