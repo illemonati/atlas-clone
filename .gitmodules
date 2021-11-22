@@ -1,9 +1,0 @@
-[submodule "stattools"]
-	path = stattools
-	url = https://bitbucket.org/wegmannlab/stattools.git
-[submodule "coretools"]
-	path = coretools
-	url = https://bitbucket.org/wegmannlab/coretools.git
-[submodule "genometools"]
-	path = genometools
-	url = git@bitbucket.org:wegmannlab/genometools.git

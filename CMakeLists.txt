@@ -6,7 +6,10 @@ endif (POLICY CMP0048)
 project(atlas VERSION 1.0.0)
 
 cmake_minimum_required(VERSION 3.0.0)
+
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_FLAGS "-Wall -Wextra")
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # compile commands: by default, compile in Release mode
 # type 'cmake -DCMAKE_BUILD_TYPE=Debug ..' in terminal for compiling in Debug mode
@@ -14,14 +17,32 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif()
 
-# add libraries
-add_subdirectory(coretools)
-add_subdirectory(genometools)
-add_subdirectory(stattools)
-
 # locate external libraries
 find_package(ZLIB REQUIRED)
 find_package(Armadillo REQUIRED)
+
+# Download coretools and stattools
+include(FetchContent)
+FetchContent_Declare(coretools
+        GIT_REPOSITORY    https://bitbucket.org/wegmannlab/coretools.git
+        GIT_TAG           b58485467705901fde55ab39b70f0068025bbc3d
+        SOURCE_DIR        "${CMAKE_CURRENT_BINARY_DIR}/coretools"
+        )
+FetchContent_MakeAvailable(coretools)
+
+FetchContent_Declare(stattools
+        GIT_REPOSITORY    https://bitbucket.org/wegmannlab/stattools.git
+        GIT_TAG           e1660d0aabccc1c1af409612aa447b13a8256dad
+        SOURCE_DIR        "${CMAKE_CURRENT_BINARY_DIR}/stattools"
+        )
+FetchContent_MakeAvailable(stattools)
+
+FetchContent_Declare(genometools
+        GIT_REPOSITORY    https://bitbucket.org/wegmannlab/genometools.git
+        GIT_TAG           8c528ec36755b592fa6f65b2bacb74cceaea9a83
+        SOURCE_DIR        "${CMAKE_CURRENT_BINARY_DIR}/genometools"
+        )
+FetchContent_MakeAvailable(genometools)
 
 set(LINK_LIBRARIES
         coreLib
