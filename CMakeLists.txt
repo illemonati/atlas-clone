@@ -21,6 +21,8 @@ endif()
 find_package(ZLIB REQUIRED)
 find_package(Armadillo REQUIRED)
 
+option(gtest_disable_pthreads "Disable uses of pthreads in gtest." ON)
+
 # Download coretools and stattools
 include(FetchContent)
 FetchContent_Declare(coretools
