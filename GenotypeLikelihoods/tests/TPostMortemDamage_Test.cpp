@@ -54,7 +54,7 @@ TEST(TPostMortemDamage_test, baseAWithPMD){
     //initialize PMD
     TLog logfile;
     std::vector<uint16_t> ReadGroupsWithoutPMD;
-    _pmd.initialize("Empiric[0.5]", ReadGroups, &logfile, ReadGroupsWithoutPMD);
+    _pmd.initialize("doubleStrand:Empiric[0.5]:Empiric[0.5]", ReadGroups, &logfile, ReadGroupsWithoutPMD);
 
     //initialize base
     base.originalQuality_phredInt = 20;
