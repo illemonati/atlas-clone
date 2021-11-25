@@ -27,14 +27,14 @@ option(gtest_disable_pthreads "Disable uses of pthreads in gtest." ON)
 include(FetchContent)
 FetchContent_Declare(coretools
         GIT_REPOSITORY    https://bitbucket.org/wegmannlab/coretools.git
-        GIT_TAG           b58485467705901fde55ab39b70f0068025bbc3d
+        GIT_TAG           5a3f639
         SOURCE_DIR        "${CMAKE_CURRENT_BINARY_DIR}/coretools"
         )
 FetchContent_MakeAvailable(coretools)
 
 FetchContent_Declare(stattools
         GIT_REPOSITORY    https://bitbucket.org/wegmannlab/stattools.git
-        GIT_TAG           e1660d0aabccc1c1af409612aa447b13a8256dad
+        GIT_TAG           4c65135
         SOURCE_DIR        "${CMAKE_CURRENT_BINARY_DIR}/stattools"
         )
 FetchContent_MakeAvailable(stattools)
