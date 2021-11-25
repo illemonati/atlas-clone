@@ -41,7 +41,7 @@ void TPMDFunction::_parseParameters(const std::string & string){
 	//expect string of the form NAME[P1,P2,...]
 	//extract P1, P2, ... as a vector of doubles
 	std::string tmp = readAfter(string, '[');
-	fillContainerFromString(extractBefore(tmp, '['), _parameters, ',', true, true, true);
+	fillContainerFromString(extractBefore(tmp, ']'), _parameters, ',', true, true, true);
 };
 
 //---------------------------------------------------------------
