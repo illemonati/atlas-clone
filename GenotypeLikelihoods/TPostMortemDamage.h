@@ -238,6 +238,36 @@ public:
 };
 
 //------------------------------------------------------
+// TPMDTypeSingleStrand
+//------------------------------------------------------
+class TPMDTypeSingleStrand : public TPMDType {
+private:
+	std::unique_ptr<TPMDFunction> _pmdCT;
+public:
+	TPMDTypeSingleStrand(const std::vector<std::string> &Details);
+	~TPMDTypeSingleStrand() = default;
+
+	bool hasDamage() const override { return _pmdCT->hasDamage(); };
+	std::string type() const override { return PMDTypeName_singleStrand; };
+	std::string functionString() const override;
+
+	void parseEstimationParameters(TPMDEstimationParameters &EstimationParameters,
+				       TParameters &Params, TLog *Logfile) override;
+
+	void estimate(const TPMDTableReadGroup &PMDTable,
+		      const TPMDEstimationParameters &EstimationParameters) override;
+
+	void fillBaseLikelihoods(const BAM::TSequencedBase &base,
+				 const TBaseProbabilities &baseLikelihoodsNoPMD,
+				 TBaseProbabilities &baseLikelihoods) const override;
+
+	void simulatePMD(BAM::TSequencedBase &base, TRandomGenerator &RandomGenerator) const override;
+	void simulatePMD(genometools::Base &base, const uint16_t &DistFrom5Prime,
+			 const uint16_t &DistFrom3Prime, const bool &IsReverseStrand,
+	                 TRandomGenerator &RandomGenerator) const override;
+};
+
+//------------------------------------------------------
 //TPostMortemDamage
 //------------------------------------------------------
 class TPostMortemDamage{

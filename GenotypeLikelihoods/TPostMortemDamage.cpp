@@ -418,9 +418,6 @@ double TPMDFunctionEmpiric::prob(const uint16_t & pos) const{
 	else return _parameters.back();
 };
 
-//------------------------------------------------------
-//TPMDDoubleStrand
-//------------------------------------------------------
 void TPMDType::_initializeFunction(const std::string & pmdString, std::unique_ptr<TPMDFunction> & ptr){
 	//parse string to get model. Options are
 	// none
@@ -446,14 +443,20 @@ void TPMDType::_initializeFunction(const std::string & pmdString, std::unique_pt
 	}
 };
 
-TPMDTypeDoubleStrand::TPMDTypeDoubleStrand(const std::vector<std::string> & Details){
-	//expect three elements: type, pmdCT, pmdGA
-	if(Details.size() != 2){
-		throw "Cannot initialize PMD type " + (std::string)  PMDTypeName_doubleStrand + ": expect 3 entries but found " + toString(Details.size()) + "!"
-			+ "\nProvided string: '" + concatenateString(Details, ':') + "'.";
-			+ "\nExpect string of the form '" + PMDTypeName_doubleStrand + "':functionCT:functionGA'.";
-	}
+//------------------------------------------------------
+//TPMDDoubleStrand
+//------------------------------------------------------
 
+TPMDTypeDoubleStrand::TPMDTypeDoubleStrand(const std::vector<std::string> &Details) {
+	// expect three elements: type, pmdCT, pmdGA
+	constexpr size_t nDetails = 3;
+	if (Details.size() != nDetails) {
+		throw "Cannot initialize PMD type " + (std::string)PMDTypeName_doubleStrand + ": expect " +
+			std::to_string(nDetails) + " entries but found " + toString(Details.size()) + "!" +
+			"\nProvided string: '" + concatenateString(Details, ':') + "'." +
+			"\nExpect string of the form '" + PMDTypeName_doubleStrand +
+			"':functionCT:functionGA'.";
+	}
 	_initializeFunction(Details[1], _pmdCT);
 	_initializeFunction(Details[2], _pmdGA);
 };
@@ -531,6 +534,83 @@ void TPMDTypeDoubleStrand::simulatePMD(genometools::Base & base, const uint16_t 
 		}
 	}
 };
+//------------------------------------------------------
+//TPMDSingleStrand
+//------------------------------------------------------
+
+TPMDTypeSingleStrand::TPMDTypeSingleStrand(const std::vector<std::string> &Details) {
+	// expect 2 elements: type, pmdCT
+	constexpr size_t nDetails = 2;
+	if (Details.size() != nDetails) {
+		throw "Cannot initialize PMD type " + (std::string)PMDTypeName_doubleStrand + ": expect " +
+			std::to_string(nDetails) + " entries but found " + toString(Details.size()) + "!" +
+			"\nProvided string: '" + concatenateString(Details, ':') + "'." +
+			"\nExpect string of the form '" + PMDTypeName_doubleStrand +
+			"':functionCT:functionGA'.";
+	}
+	_initializeFunction(Details[1], _pmdCT);
+};
+
+std::string TPMDTypeSingleStrand::functionString() const {
+	return PMDTypeName_singleStrand + ":" + _pmdCT->string();
+};
+
+void TPMDTypeSingleStrand::parseEstimationParameters(TPMDEstimationParameters &EstimationParameters,
+                                                     TParameters &Params, TLog *Logfile) {
+	_pmdCT->parseEstimationParameters(EstimationParameters, Params, Logfile);
+};
+
+void TPMDTypeSingleStrand::estimate(const TPMDTableReadGroup &PMDTable,
+				    const TPMDEstimationParameters &EstimationParameters) {
+	// Note: TPMDTables stores bases as during sequencing (not as after mapping)
+	// Assumption: C->T pattern is the same for forward and reverse reads from their respective
+	// 5-prime ends.
+	TPMDTable from5(PMDTable[forward5]);
+	from5.add(PMDTable[reverse5]);
+	_pmdCT->learn(from5, genometools::C, genometools::T, EstimationParameters);
+
+	// ??? nothing from 3-end?
+};
+
+void TPMDTypeSingleStrand::fillBaseLikelihoods(const BAM::TSequencedBase &base,
+					       const TBaseProbabilities &baseLikelihoodsNoPMD,
+					       TBaseProbabilities &baseLikelihoods) const {
+	// Note: distances are as in original fragment (not BAM file), i.e. in direction of sequencing
+	// no PMD for A, C and G
+	baseLikelihoods[genometools::A] = baseLikelihoodsNoPMD[genometools::A];
+	baseLikelihoods[genometools::T] = baseLikelihoodsNoPMD[genometools::T];
+	baseLikelihoods[genometools::G] = baseLikelihoodsNoPMD[genometools::G];
+
+	// get relevant PMD probabilities
+	const double pmdProb_CT = base.isReverseStrand() ? _pmdCT->prob(base.distFrom3Prime)
+							 : _pmdCT->prob(base.distFrom5Prime);
+
+	// add PMD
+	baseLikelihoods[genometools::C] =
+		(1.0 - pmdProb_CT)*baseLikelihoodsNoPMD[genometools::C].get()
+		+ pmdProb_CT*baseLikelihoodsNoPMD[genometools::T].get();
+};
+
+void TPMDTypeSingleStrand::simulatePMD(BAM::TSequencedBase &base,
+				       TRandomGenerator &RandomGenerator) const {
+	simulatePMD(base.base, base.distFrom5Prime, base.distFrom3Prime, base.isReverseStrand(),
+	            RandomGenerator);
+};
+
+void TPMDTypeSingleStrand::simulatePMD(genometools::Base &base, const uint16_t &DistFrom5Prime,
+				       const uint16_t &DistFrom3Prime, const bool &IsReverseStrand,
+				       TRandomGenerator &RandomGenerator) const {
+	if (!(base == genometools::C)) return;
+
+	// simulate PMD
+	if (!IsReverseStrand) {
+		// forward strand
+		if (RandomGenerator.getRand() < _pmdCT->prob(DistFrom5Prime)) { base = genometools::T; }
+	} else {
+		// reverse strand
+		if (RandomGenerator.getRand() < _pmdCT->prob(DistFrom3Prime)) { base = genometools::T; }
+	}
+}
 
 //------------------------------------------------------
 //TPostMortemDamage
