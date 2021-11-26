@@ -492,11 +492,20 @@ void TPMDTypeDoubleStrand::fillBaseLikelihoods(const BAM::TSequencedBase & base,
 	//get relevant PMD probabilities
 	double pmdProb_CT, pmdProb_GA;
 	if(!base.isReverseStrand()){
-		pmdProb_CT = _pmdCT->prob(base.distFrom5Prime);
+	//  if distFrom3 < distFrom 5
 		pmdProb_GA = _pmdGA->prob(base.distFrom3Prime);
+		// pmdProb_CT = 0
+		// else
+		pmdProb_CT = _pmdCT->prob(base.distFrom5Prime);
+		// pmdProb_GA = 0
 	} else {
-		pmdProb_CT = _pmdCT->prob(base.distFrom3Prime);
-		pmdProb_GA = _pmdGA->prob(base.distFrom5Prime);
+	//  if distFrom3 < distFrom 5
+		// Newest insight?
+		pmdProb_CT = _pmdGA->prob(base.distFrom3Prime);
+		// pmdProb_GA = 0
+		// else
+		pmdProb_GA = _pmdCT->prob(base.distFrom5Prime);
+		// pmdProb_CT = 0
 	}
 
 	//add PMD
@@ -524,11 +533,12 @@ void TPMDTypeDoubleStrand::simulatePMD(genometools::Base & base, const uint16_t 
 	} else {
 		//reverse strand
 		if(base == genometools::C){
-			if(RandomGenerator.getRand() < _pmdCT->prob(DistFrom3Prime)){
+		// Newest insight?
+			if(RandomGenerator.getRand() < _pmdGA->prob(DistFrom3Prime)){
 				base = genometools::T;
 			}
 		} else if(base == genometools::G){
-			if(RandomGenerator.getRand() < _pmdGA->prob(DistFrom5Prime)){
+			if(RandomGenerator.getRand() < _pmdCT->prob(DistFrom5Prime)){
 				base = genometools::A;
 			}
 		}
@@ -565,9 +575,15 @@ void TPMDTypeSingleStrand::estimate(const TPMDTableReadGroup &PMDTable,
 	// Note: TPMDTables stores bases as during sequencing (not as after mapping)
 	// Assumption: C->T pattern is the same for forward and reverse reads from their respective
 	// 5-prime ends.
-	TPMDTable from5(PMDTable[forward5]);
-	from5.add(PMDTable[reverse5]);
-	_pmdCT->learn(from5, genometools::C, genometools::T, EstimationParameters);
+
+	// _pmdCT_3 and _pmdCT_5 seperately
+
+
+	TPMDTable from5_3(PMDTable[forward5]);
+	from5_3.add(PMDTable[reverse5]);
+	from5_3.add(PMDTable[forward3]);
+	from5_3.add(PMDTable[reverse3]);
+	_pmdCT->learn(from5_3, genometools::C, genometools::T, EstimationParameters);
 
 	// ??? nothing from 3-end?
 };
@@ -575,6 +591,7 @@ void TPMDTypeSingleStrand::estimate(const TPMDTableReadGroup &PMDTable,
 void TPMDTypeSingleStrand::fillBaseLikelihoods(const BAM::TSequencedBase &base,
 					       const TBaseProbabilities &baseLikelihoodsNoPMD,
 					       TBaseProbabilities &baseLikelihoods) const {
+	// _pmdCT_3 and _pmdCT_5 seperately
 	// Note: distances are as in original fragment (not BAM file), i.e. in direction of sequencing
 	// no PMD for A, C and G
 	baseLikelihoods[genometools::A] = baseLikelihoodsNoPMD[genometools::A];
