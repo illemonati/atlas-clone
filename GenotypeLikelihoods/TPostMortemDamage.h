@@ -242,12 +242,13 @@ public:
 //------------------------------------------------------
 class TPMDTypeSingleStrand : public TPMDType {
 private:
-	std::unique_ptr<TPMDFunction> _pmdCT;
+	std::unique_ptr<TPMDFunction> _pmdCT3;
+	std::unique_ptr<TPMDFunction> _pmdCT5;
 public:
 	TPMDTypeSingleStrand(const std::vector<std::string> &Details);
 	~TPMDTypeSingleStrand() = default;
 
-	bool hasDamage() const override { return _pmdCT->hasDamage(); };
+	bool hasDamage() const override { return _pmdCT3->hasDamage() || _pmdCT5->hasDamage(); };
 	std::string type() const override { return PMDTypeName_singleStrand; };
 	std::string functionString() const override;
 

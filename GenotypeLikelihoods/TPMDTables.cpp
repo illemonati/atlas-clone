@@ -140,16 +140,17 @@ TPMDTableReadGroup::TPMDTableReadGroup(const uint16_t & TableLength){
 };
 
 void TPMDTableReadGroup::add(const BAM::TSequencedBase & base, const genometools::Base & reference){
-	if(base.isReverseStrand()){
-	//  if distFrom3 < distFrom 5
-		_tables[reverse3].add(base.distFrom3Prime, reference.flipped(), base.base.flipped());
-	//  else
-		_tables[reverse5].add(base.distFrom5Prime, reference.flipped(), base.base.flipped());
+	const auto from3 = base.distFrom3Prime < base.distFrom5Prime;
+	if (base.isReverseStrand()) {
+		if (from3)
+			_tables[reverse3].add(base.distFrom3Prime, reference.flipped(), base.base.flipped());
+		else
+			_tables[reverse5].add(base.distFrom5Prime, reference.flipped(), base.base.flipped());
 	} else {
-	//  if distFrom3 < distFrom 5
-		_tables[forward3].add(base.distFrom3Prime, reference, base.base);
-	//  else
-		_tables[forward5].add(base.distFrom5Prime, reference, base.base);
+		if (from3)
+			_tables[forward3].add(base.distFrom3Prime, reference, base.base);
+		else
+			_tables[forward5].add(base.distFrom5Prime, reference, base.base);
 	}
 };
 
