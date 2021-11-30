@@ -697,7 +697,8 @@ void TOverlapQuantifier::quantifyOverlap(){
 	//write distribution
 	std::string filename = _outputName + "_overlapStats.txt";
 	_logfile->listFlush("Writing distribution of fragment length and overlap to file '" + filename + "' ...");
-	coretools::TOutputFile out(filename, {"fragmentLength", "overlap"});
+	const std::vector<std::string> header = {"fragmentLength", "overlap"};
+	coretools::TOutputFile out(filename, header);
 	overlapDist.write(out);
 	out.close();
 	_logfile->done();

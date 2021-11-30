@@ -31,7 +31,8 @@ void TDepthWriter::_handleWindow(){
 void TDepthWriter::writeDepth(){
 	std::string filename = _outputName + "_depthPerWindow.txt.gz";
 	_logfile->list("Writing per window depth estimates to '" + filename + "'.");
-	_out.open(filename, {"window", "depth"});
+	const std::vector<std::string> header = {"window", "depth"};
+	_out.open(filename, header);
 
 	_traverseBAMWindows();
 
