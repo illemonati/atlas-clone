@@ -145,6 +145,6 @@ target_include_directories("${PROJECT_NAME}_unitTests" PUBLIC
         TestUtilities/tests
         VCF/tests
         coretools/tests
-        genometools/tests
-        stattools/tests
+        #genometools/tests
+        #stattools/tests
         )
