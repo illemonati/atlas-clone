@@ -282,7 +282,6 @@ bool TSequencingErrorRhoStorage::set(const std::string & def, std::string & erro
 				rho[a][b] = r[b];
 			}
 		}
-		++a;
 	}
 
 	return true;
