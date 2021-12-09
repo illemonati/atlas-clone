@@ -402,8 +402,8 @@ void TRecalibrationEMEstimator::_updateEM_theta_epsilon(const TPostMortemDamage 
 		// b) update parameters using backtracking
 		double lambda = 1.0;
 		int log2_lambda = 0;
-		int numUpdatedModels = 0;
-		int numUpdatedModels_old;
+		size_t numUpdatedModels = 0;
+		size_t numUpdatedModels_old;
 
 		while(numUpdatedModels < _modelsToEstimate->size() && lambda > 1.0E-20){
 			//propose move
@@ -522,7 +522,7 @@ void TRecalibrationEMEstimator::_runEM(std::string outputName, const TPostMortem
 //----------------------------
 // Other functions
 //----------------------------
-void TRecalibrationEMEstimator::writeCurrentEstimates(const std::string filename){
+void TRecalibrationEMEstimator::writeCurrentEstimates(const std::string){
 	//loop over read groups
 	for(uint16_t r = 0; r < _readGroups->size(); ++r){
 		//loop over mates
@@ -537,11 +537,11 @@ double TRecalibrationEMEstimator::calcLL(){
 	throw std::runtime_error("double TRecalibrationEMEstimator::calcLL() not yet implemented!");
 };
 
-void TRecalibrationEMEstimator::calcLikelihoodSurface(std::string filename, int numMarginalGridPoints){
+void TRecalibrationEMEstimator::calcLikelihoodSurface(std::string, int){
 	throw std::runtime_error("void TRecalibrationEMEstimator::calcLikelihoodSurface(std::string filename, int numMarginalGridPoints) not yet implemented!");
 };
 
-void TRecalibrationEMEstimator::calcQSurface(std::string filename, int numMarginalGridPoints){
+void TRecalibrationEMEstimator::calcQSurface(std::string, int){
 	throw std::runtime_error("TRecalibrationEMEstimator::calcQSurface(std::string filename, int numMarginalGridPoints) not yet implemented!");
 };
 

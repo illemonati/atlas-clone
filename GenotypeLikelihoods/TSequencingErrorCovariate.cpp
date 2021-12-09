@@ -161,7 +161,7 @@ bool TSequencingErrorCovariate_quality::checkParameterRange(const RecalEstimator
 	return _function->checkValueRange(usedQualities);
 };
 
-bool TSequencingErrorCovariate_quality::checkParameterRange(std::vector<uint16_t> & usedQualities, uint16_t maxPos){
+bool TSequencingErrorCovariate_quality::checkParameterRange(std::vector<uint16_t> & usedQualities, uint16_t){
 	return _function->checkValueRange(usedQualities);
 };
 
@@ -225,7 +225,7 @@ bool TSequencingErrorCovariate_position::checkParameterRange(const RecalEstimato
 	return _function->checkValueRange(dataTable.positions().max());
 };
 
-bool TSequencingErrorCovariate_position::checkParameterRange(std::vector<uint16_t> & usedQualities, uint16_t maxPos){
+bool TSequencingErrorCovariate_position::checkParameterRange(std::vector<uint16_t> &, uint16_t maxPos){
 	return _function->checkValueRange(maxPos);
 };
 
@@ -246,7 +246,7 @@ TSequencingErrorCovariate_context::TSequencingErrorCovariate_context(const size_
 	addFunction(FirstParameterIndex, functionString);
 };
 
-void TSequencingErrorCovariate_context::addFunction(const size_t FirstParameterIndex, const std::string & functionString, const RecalEstimatorTools::TRecalDataTable & dataTable){
+void TSequencingErrorCovariate_context::addFunction(const size_t FirstParameterIndex, const std::string & functionString, const RecalEstimatorTools::TRecalDataTable &){
 	//parse
 	std::string type;
 	std::vector<std::string> values, args;
@@ -283,11 +283,11 @@ void TSequencingErrorCovariate_context::addFunction(const size_t FirstParameterI
 	}
 };
 
-bool TSequencingErrorCovariate_context::checkParameterRange(const RecalEstimatorTools::TRecalDataTable & dataTable){
+bool TSequencingErrorCovariate_context::checkParameterRange(const RecalEstimatorTools::TRecalDataTable &){
 	return _function->checkValueRange(20);
 };
 
-bool TSequencingErrorCovariate_context::checkParameterRange(std::vector<uint16_t> & usedQualities, uint16_t maxPos){
+bool TSequencingErrorCovariate_context::checkParameterRange(std::vector<uint16_t> &, uint16_t){
 	return _function->checkValueRange(20);
 };
 
@@ -355,7 +355,7 @@ bool TSequencingErrorCovariate_fragmentLength::checkParameterRange(const RecalEs
 	return _function->checkValueRange(usedLengths);
 };
 
-bool TSequencingErrorCovariate_fragmentLength::checkParameterRange(std::vector<uint16_t> & usedLengths, uint16_t maxPos){
+bool TSequencingErrorCovariate_fragmentLength::checkParameterRange(std::vector<uint16_t> & usedLengths, uint16_t){
 	return _function->checkValueRange(usedLengths);
 };
 
@@ -427,7 +427,7 @@ bool TSequencingErrorCovariate_mappingQuality::checkParameterRange(const RecalEs
 	return _function->checkValueRange(usedMQ);
 };
 
-bool TSequencingErrorCovariate_mappingQuality::checkParameterRange(std::vector<uint16_t> & usedLengths, uint16_t maxPos){
+bool TSequencingErrorCovariate_mappingQuality::checkParameterRange(std::vector<uint16_t> & usedLengths, uint16_t){
 	return _function->checkValueRange(usedLengths);
 };
 

@@ -71,11 +71,11 @@ public:
 	uint16_t numNonZeroSecondDerivatives(){ return _numNonZeroSecondDerivatives; };
 
 	//check value range: to ensure that data can be recalibrated
-	virtual bool checkValueRange(const uint16_t & val) const { return true; };
+	virtual bool checkValueRange(const uint16_t &) const { return true; };
 	bool checkValueRange(const std::vector<uint16_t> & values) const;
 
 	//adjust value range: to ensure that function can estimated
-	virtual void adjustValueRanges(const std::vector<uint16_t> & values){};
+	virtual void adjustValueRanges(const std::vector<uint16_t> &){};
 
 	//transformation
 	void addTransformation(TRecalibrationEMTransformationMap* pointerToTransformationMap){
@@ -84,7 +84,7 @@ public:
 	};
 
 	//estimation
-	virtual double getEtaTerm(const uint16_t & val) const{
+	virtual double getEtaTerm(const uint16_t &) const{
 		return 0.0;
 	};
 	void proposeNewParameters(const arma::mat & JxF, uint16_t & index, double & lambda);
@@ -92,7 +92,7 @@ public:
 		for(unsigned int i=0; i<_numParameters; ++i)
 			_betas[i] = _oldBetas[i];
 	};
-	virtual void fillDerivatives(const uint16_t & val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second) const{};
+	virtual void fillDerivatives(const uint16_t &, TRecalibrationEMFirstDerivatives &, TRecalibrationEMSecondDerivatives &) const{};
 	virtual double adjustParametersPostEstimation(){ return 0.0; };
 	std::string getModelString() const;
 };

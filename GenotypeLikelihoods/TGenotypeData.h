@@ -136,7 +136,7 @@ public:
 	};
 
 	template <typename U>
-	double weightedSum(const U & weights) const {
+	double weightedSum(const U &) const {
 		auto wsum = [](const double & s, const Type & v) { return s + (double) v; };
 		return std::accumulate(_data.begin(), _data.end(), double{}, wsum);
 	};
@@ -318,7 +318,7 @@ public:
 	TGenotypeLikelihoodsHaploid(){ reset(); };
 
 	void reset() override;
-	void fill(const std::vector<TBaseLikelihoods> & bases, const size_t size);
+	void fill(const std::vector<TBaseLikelihoods> & bases, const size_t size) override;
 };
 
 

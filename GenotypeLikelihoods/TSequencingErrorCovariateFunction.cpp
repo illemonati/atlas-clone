@@ -133,11 +133,11 @@ TSequencingErrorCovariateFunction_intercept::TSequencingErrorCovariateFunction_i
 	_initializValues(values);
 };
 
-void TSequencingErrorCovariateFunction_intercept::initialize(const uint16_t & FirstParameterIndex){
+void TSequencingErrorCovariateFunction_intercept::initialize(const uint16_t &){
 	_init();
 };
 
-void TSequencingErrorCovariateFunction_intercept::initialize(const uint16_t & FirstParameterIndex, const std::vector<std::string> & values){
+void TSequencingErrorCovariateFunction_intercept::initialize(const uint16_t &, const std::vector<std::string> & values){
 	_initializValues(values);
 };
 
@@ -157,15 +157,15 @@ double TSequencingErrorCovariateFunction_intercept::getEtaTerm() const{
 	return _betas[0];
 };
 
-double TSequencingErrorCovariateFunction_intercept::getEtaTerm(const uint16_t & val) const{
+double TSequencingErrorCovariateFunction_intercept::getEtaTerm(const uint16_t &) const{
 	return _betas[0];
 };
 
-void TSequencingErrorCovariateFunction_intercept::fillDerivatives(TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second) const{
+void TSequencingErrorCovariateFunction_intercept::fillDerivatives(TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives &) const{
 	first.add(_firstParameterIndex, 1.0);
 };
 
-void TSequencingErrorCovariateFunction_intercept::fillDerivatives(const uint16_t & val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second) const{
+void TSequencingErrorCovariateFunction_intercept::fillDerivatives(const uint16_t &, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives &) const{
 	first.add(_firstParameterIndex, 1.0);
 };
 
@@ -204,7 +204,7 @@ double TSequencingErrorCovariateFunction_polynomial::getEtaTerm(const uint16_t &
 	return sum;
 };
 
-void TSequencingErrorCovariateFunction_polynomial::fillDerivatives(const uint16_t & val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second) const{
+void TSequencingErrorCovariateFunction_polynomial::fillDerivatives(const uint16_t & val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives &) const{
 	double valAsDouble = _getAsDouble(val);
 	double tmp = valAsDouble;
 	first.add(_firstParameterIndex, tmp);
@@ -338,7 +338,7 @@ void TSequencingErrorCovariateFunction_specific::adjustValueRanges(const std::ve
 	}
 };
 
-void TSequencingErrorCovariateFunction_specific::fillDerivatives(const uint16_t & val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second) const{
+void TSequencingErrorCovariateFunction_specific::fillDerivatives(const uint16_t & val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives &) const{
 	first.add(_firstParameterIndex + val, 1.0);
 };
 
@@ -412,7 +412,7 @@ void TSequencingErrorCovariateFunction_specificMap::adjustValueRanges(const std:
 	_initMapFromVector(valuesUsed);
 };
 
-void TSequencingErrorCovariateFunction_specificMap::fillDerivatives(const uint16_t & val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second) const{
+void TSequencingErrorCovariateFunction_specificMap::fillDerivatives(const uint16_t & val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives &) const{
 	first.add(_firstParameterIndex + _indexMap[val].index, 1.0);
 };
 

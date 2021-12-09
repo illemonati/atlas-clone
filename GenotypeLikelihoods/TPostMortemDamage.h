@@ -85,7 +85,7 @@ public:
 
 	virtual bool hasDamage() const = 0;
 	virtual std::string name() const = 0;
-	virtual std::string example() = 0;
+	virtual std::string example() const = 0;
 
 	virtual void parseEstimationParameters(TPMDEstimationParameters & EstimationParameters, TParameters & Params, TLog* Logfile) = 0;
 	virtual void learn(const TPMDTable & Table, const genometools::Base & from, const genometools::Base & to, const TPMDEstimationParameters & EstimationParameters) = 0;
@@ -101,12 +101,12 @@ public:
 
 	bool hasDamage() const override { return false; };
 	std::string name() const override { return PMDFunctionName_none; };
-	std::string example(){ return PMDFunctionName_none; };
+	std::string example() const override { return PMDFunctionName_none; };
 
-	void parseEstimationParameters(TPMDEstimationParameters & EstimationParameters, TParameters & Params, TLog* Logfile){};
-	void learn(const TPMDTable & Table, const genometools::Base & from, const genometools::Base & to, const TPMDEstimationParameters & EstimationParameters){};
+	void parseEstimationParameters(TPMDEstimationParameters &, TParameters & , TLog*) override {};
+	void learn(const TPMDTable &, const genometools::Base &, const genometools::Base &, const TPMDEstimationParameters &) override {};
 
-	double prob(const uint16_t & pos) const override { return 0.0; };
+	double prob(const uint16_t &) const override { return 0.0; };
 };
 
 /*
@@ -143,10 +143,10 @@ public:
 
 	bool hasDamage() const override { return true; };
 	std::string name() const override { return PMDFunctionName_exponential; };
-	std::string example(){ return std::string(PMDFunctionName_exponential) + "[a,b,c]"; };
+	std::string example() const override { return std::string(PMDFunctionName_exponential) + "[a,b,c]"; };
 
-	void parseEstimationParameters(TPMDEstimationParameters & EstimationParameters, TParameters & Params, TLog* Logfile);
-	void learn(const TPMDTable & Table, const genometools::Base & from, const genometools::Base & to, const TPMDEstimationParameters & EstimationParameters);
+	void parseEstimationParameters(TPMDEstimationParameters & EstimationParameters, TParameters & Params, TLog* Logfile) override;
+	void learn(const TPMDTable & Table, const genometools::Base & from, const genometools::Base & to, const TPMDEstimationParameters & EstimationParameters) override;
 
 	double prob(const uint16_t & pos) const override;
 };
@@ -158,10 +158,10 @@ public:
 
 	bool hasDamage() const override { return true; };
 	std::string name() const override { return PMDFunctionName_empiric; };
-	std::string example(){ return std::string(PMDFunctionName_empiric) + "[p1,p2,...]"; };
+	std::string example() const override { return std::string(PMDFunctionName_empiric) + "[p1,p2,...]"; };
 
-	void parseEstimationParameters(TPMDEstimationParameters & EstimationParameters, TParameters & Params, TLog* Logfile){};
-	void learn(const TPMDTable & Table, const genometools::Base & from, const genometools::Base & to, const TPMDEstimationParameters & EstimationParameters);
+	void parseEstimationParameters(TPMDEstimationParameters &, TParameters &, TLog*) override {};
+	void learn(const TPMDTable & Table, const genometools::Base & from, const genometools::Base & to, const TPMDEstimationParameters & EstimationParameters) override;
 
 	double prob(const uint16_t & pos) const override;
 };
@@ -182,8 +182,8 @@ public:
 	virtual std::string type() const = 0;
 	virtual std::string functionString() const = 0;
 
-	virtual void parseEstimationParameters(TPMDEstimationParameters & EstimationParameters, TParameters & Params, TLog* Logfile){};
-	virtual void estimate(const TPMDTableReadGroup & PMDTable, const TPMDEstimationParameters & EstimationParameters){};
+	virtual void parseEstimationParameters(TPMDEstimationParameters & EstimationParameters, TParameters & Params, TLog* Logfile) = 0;
+	virtual void estimate(const TPMDTableReadGroup & PMDTable, const TPMDEstimationParameters & EstimationParameters) = 0;
 
 	virtual void fillBaseLikelihoods(const BAM::TSequencedBase & base, const TBaseProbabilities & baseLikelihoodsNoPMD, TBaseProbabilities & baseLikelihoods) const = 0;
 
@@ -203,13 +203,16 @@ public:
 	std::string type() const override { return PMDTypeName_none; };
 	std::string functionString() const override { return "none"; };
 
-	void fillBaseLikelihoods(const BAM::TSequencedBase & base, const TBaseProbabilities & baseLikelihoodsNoPMD, TBaseProbabilities & baseLikelihoods) const override {
+	void parseEstimationParameters(TPMDEstimationParameters &, TParameters &, TLog*) override {}
+	void estimate(const TPMDTableReadGroup &, const TPMDEstimationParameters &) override {}
+
+	void fillBaseLikelihoods(const BAM::TSequencedBase &, const TBaseProbabilities & baseLikelihoodsNoPMD, TBaseProbabilities & baseLikelihoods) const override {
 		//just copy
 		baseLikelihoods = baseLikelihoodsNoPMD;
 	};
 
-	void simulatePMD(BAM::TSequencedBase & base, TRandomGenerator & RandomGenerator) const override {};
-	void simulatePMD(genometools::Base & base, const uint16_t & DistFrom5Prime, const uint16_t & DistFrom3Prime, const bool & IsReverseStrand, TRandomGenerator & RandomGenerator) const override {};
+	void simulatePMD(BAM::TSequencedBase &, TRandomGenerator &) const override {};
+	void simulatePMD(genometools::Base &, const uint16_t &, const uint16_t &, const bool &, TRandomGenerator &) const override {};
 };
 
 //------------------------------------------------------

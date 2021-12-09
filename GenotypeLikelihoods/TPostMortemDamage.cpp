@@ -164,7 +164,7 @@ void TPMDFunctionExponential::_initialEstimatesOLS(const countVec & pmdCounts, c
 			gammaTmp += gammaStep;
 
 			//fill x
-			for(int p = 0; p < pmdCounts.size(); ++p){
+			for(size_t p = 0; p < pmdCounts.size(); ++p){
 				X(p,1) = exp(-gammaTmp * (double) p);
 			}
 
@@ -266,7 +266,7 @@ void TPMDFunctionExponential::_estimateWithNewtonRaphson(const countVec & pmdCou
 	//----------------------------------
 	double oldLL = _calcLL(pmdCounts, pmdSums, Parameters);
 
-	for(int i = 0; i<numNRIterations; ++i){
+	for(size_t i = 0; i<numNRIterations; ++i){
 		_fillFAndJacobian(F, J, pmdCounts, pmdSums, Parameters);
 		if(solve(JxF, J, F)){
 			//estimate new params
@@ -314,7 +314,6 @@ void TPMDFunctionExponential::learn(const TPMDTable & Table, const genometools::
 			break;
 		}
 	}
-	_lastPosition;
 
 	if(_lastPosition < 10) throw "Not sufficient data to fit exponential PMD model: less than the ten first positions have > 100 data points!\nConsider pooling read groups (parameter poolReadGroups).";
 	for(int p=0; p<_lastPosition; ++p){
@@ -391,7 +390,7 @@ TPMDFunctionEmpiric::TPMDFunctionEmpiric(const std::string & string){
 	}
 };
 
-void TPMDFunctionEmpiric::learn(const TPMDTable & Table, const genometools::Base & from, const genometools::Base & to, const TPMDEstimationParameters & EstimationParameters){
+void TPMDFunctionEmpiric::learn(const TPMDTable & Table, const genometools::Base & from, const genometools::Base & to, const TPMDEstimationParameters &){
 	//resize parameters
 	_parameters.resize(Table.size() + 1); //include extra bin for sites beyond size (available in PMDTables)
 
@@ -401,7 +400,7 @@ void TPMDFunctionEmpiric::learn(const TPMDTable & Table, const genometools::Base
 	const countVec& invCounts = Table[to][from];
 	const countVec& invSums = Table[to].sums();
 
-	for(int p=0; p <= _parameters.size(); ++p){
+	for(size_t p=0; p <= _parameters.size(); ++p){
 		if(pmdSums[p] == 0 || invSums[p] == 0){
 			_parameters[p] = 0.0;
 		} else {

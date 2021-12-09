@@ -35,7 +35,7 @@ protected:
 	void _addPolynomialFunction(const size_t FirstParameterIndex, const std::string & functionString, std::vector<std::string> & args, std::vector<std::string> & values);
 
 	//extract
-	virtual uint16_t _extractCovariate(const BAM::TSequencedBase & base){
+	virtual uint16_t _extractCovariate(const BAM::TSequencedBase &){
 		throw "No covariate defined for base class TRecalibrationEMCovariate!";
 	};
 
@@ -50,13 +50,13 @@ public:
 	virtual std::string name() const { return SequencingErrorCovariateName_none; };
 
 	//covariate function
-	virtual void addFunction(const size_t FirstParameterIndex, const std::string & functionString, const RecalEstimatorTools::TRecalDataTable & dataTable){};
-	virtual void addFunction(const size_t FirstParameterIndex, const std::string & functionString){};
+	virtual void addFunction(const size_t, const std::string &, const RecalEstimatorTools::TRecalDataTable &){};
+	virtual void addFunction(const size_t, const std::string &){};
 	std::string functionString();
 
-	virtual bool checkParameterRange(const RecalEstimatorTools::TRecalDataTable & dataTable){ return true; };
-	virtual bool checkParameterRange(std::vector<uint16_t> & usedValues, uint16_t maxPos){ return true; };
-	virtual void adjustParameterRange(const RecalEstimatorTools::TRecalDataTable & dataTable){};
+	virtual bool checkParameterRange(const RecalEstimatorTools::TRecalDataTable &){ return true; };
+	virtual bool checkParameterRange(std::vector<uint16_t> &, uint16_t){ return true; };
+	virtual void adjustParameterRange(const RecalEstimatorTools::TRecalDataTable &){};
 
 	TSequencingErrorCovariateFunction* getPointerToFunction(){ return _function.get(); };
 
@@ -81,7 +81,7 @@ class TSequencingErrorCovariate_quality:public TSequencingErrorCovariate{
 private:
 	TRecalibrationEMQualityTransformationMap qualityToLogit;
 
-	uint16_t _extractCovariate(const BAM::TSequencedBase & base){
+	uint16_t _extractCovariate(const BAM::TSequencedBase & base) override {
 		return base.originalQuality_phredInt.get();
 	};
 
@@ -102,7 +102,7 @@ public:
 //-------------------------------------------
 class TSequencingErrorCovariate_position:public TSequencingErrorCovariate{
 private:
-	uint16_t _extractCovariate(const BAM::TSequencedBase & base){
+	uint16_t _extractCovariate(const BAM::TSequencedBase & base) override {
 		return base.distFrom5Prime;
 	};
 
@@ -125,7 +125,7 @@ class TSequencingErrorCovariate_context:public TSequencingErrorCovariate{
 private:
 	int numContext;
 
-	uint16_t _extractCovariate(const BAM::TSequencedBase & base){
+	uint16_t _extractCovariate(const BAM::TSequencedBase & base) override {
 		return static_cast<uint16_t>(base.context.get());
 	};
 
@@ -146,7 +146,7 @@ public:
 
 class TSequencingErrorCovariate_fragmentLength:public TSequencingErrorCovariate{
 private:
-	uint16_t _extractCovariate(const BAM::TSequencedBase & base){
+	uint16_t _extractCovariate(const BAM::TSequencedBase & base) override {
 		return base.fragmentLength;
 	};
 
@@ -168,7 +168,7 @@ public:
 
 class TSequencingErrorCovariate_mappingQuality:public TSequencingErrorCovariate{
 private:
-	uint16_t _extractCovariate(const BAM::TSequencedBase & base){
+	uint16_t _extractCovariate(const BAM::TSequencedBase & base) override {
 		return base.mappingQuality;
 	};
 

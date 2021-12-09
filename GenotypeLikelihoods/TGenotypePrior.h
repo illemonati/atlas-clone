@@ -26,7 +26,7 @@ public:
 
 	virtual ~TGenotypePrior(){};
 
-	virtual void update(const TWindow & window, TLog* logfile, const TGenotypeLikelihoodCalculator & glCalculator){};
+	virtual void update(const TWindow &, TLog*, const TGenotypeLikelihoodCalculator &){};
 	TGenotypeProbabilities* getPointerToPrior(){ return &genotypePrior; };
 	Probability operator[](const genometools::Genotype & genotype){ return genotypePrior[genotype]; };
 };
@@ -60,7 +60,7 @@ public:
 		delete thetaEstimator;
 	};
 
-	void update(const TWindow & window, TLog* logfile, const TGenotypeLikelihoodCalculator & glCalculator){
+	void update(const TWindow & window, TLog* logfile, const TGenotypeLikelihoodCalculator &){
 		if(!equalBaseFreq){
 			logfile->listFlush("Estimating base frequencies for prior ...");
 			GenotypeLikelihoods::TBaseProbabilities freq = window.estimateBaseFrequencies();
