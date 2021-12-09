@@ -53,6 +53,7 @@ public:
 	virtual ~TWindow_base();
 
 	//Allow to set chromosome name when jumping
+	using BAM::TGenomeWindow::move;
 	virtual void move(const BAM::TGenomePosition & From, const uint32_t & Length, const std::string ChrName);
 	virtual void move(const BAM::TGenomePosition & From, const BAM::TGenomePosition & To, const std::string ChrName);
 	virtual void move(const BAM::TGenomeWindow & Window, const std::string ChrName);

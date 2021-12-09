@@ -76,7 +76,7 @@ protected:
 	double sum;
 	GenotypeLikelihoods::TGenotypeProbabilities P_g_oneSite;
 
-	virtual void saveSite(GenotypeLikelihoods::TGenotypeLikelihoods & genoLik){ throw "Not available in TThetaEstimatorData base class!"; };
+	virtual void saveSite(GenotypeLikelihoods::TGenotypeLikelihoods &){ throw "Not available in TThetaEstimatorData base class!"; };
 	virtual void emptyStorage(){};
 	void fillPoissonForBootstrap(const double lambda);
 	virtual void _begin(){ throw "Not available in TThetaEstimatorData base class!"; };
@@ -125,9 +125,9 @@ private:
 	std::vector<GenotypeLikelihoods::TGenotypeLikelihoods> sites;
 	std::vector<GenotypeLikelihoods::TGenotypeLikelihoods>::iterator siteIt;
 
-	void saveSite(GenotypeLikelihoods::TGenotypeLikelihoods & genoLik);
-	void emptyStorage();
-	void readNext();
+	void saveSite(GenotypeLikelihoods::TGenotypeLikelihoods & genoLik) override;
+	void emptyStorage() override;
+	void readNext() override;
 
 public:
 	TThetaEstimatorDataVector();
@@ -135,11 +135,11 @@ public:
 		clear();
 	};
 
-	void _begin();
-	bool isEnd();
-	GenotypeLikelihoods::TGenotypeLikelihoods& curGenotypeLikelihoods();
-	void fillP_G(GenotypeLikelihoods::TGenotypeData & P_G, const GenotypeLikelihoods::TGenotypeProbabilities & pGenotype);
-	double calcLogLikelihood(const GenotypeLikelihoods::TGenotypeData & pGenotype);
+	void _begin() override;
+	bool isEnd() override;
+	GenotypeLikelihoods::TGenotypeLikelihoods& curGenotypeLikelihoods() override;
+	void fillP_G(GenotypeLikelihoods::TGenotypeData & P_G, const GenotypeLikelihoods::TGenotypeProbabilities & pGenotype) override;
+	double calcLogLikelihood(const GenotypeLikelihoods::TGenotypeProbabilities & pGenotype) override;
 };
 
 //---------------------------------------------------------------

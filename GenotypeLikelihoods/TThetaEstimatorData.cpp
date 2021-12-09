@@ -326,7 +326,7 @@ void TThetaEstimatorDataVector::fillP_G(GenotypeLikelihoods::TGenotypeData & P_G
 	}
 };
 
-double TThetaEstimatorDataVector::calcLogLikelihood(const GenotypeLikelihoods::TGenotypeData & pGenotype){
+double TThetaEstimatorDataVector::calcLogLikelihood(const GenotypeLikelihoods::TGenotypeProbabilities & pGenotype) {
 	double LL = 0.0;
 	for(auto& it : sites){
 		LL += log(it.weightedSum(pGenotype));

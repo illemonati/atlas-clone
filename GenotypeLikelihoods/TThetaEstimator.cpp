@@ -297,12 +297,10 @@ bool TThetaEstimator::_NRAllParams(){
 
 		//ii) fill Jacobian (Note: index is zero based!)
 		Jacobian.zeros();
-		double tmpSum = 0.0;
 		TBaseData tmp;
 		for(genometools::Base k = genometools::Base::min(); k < genometools::Base::max(); ++k){
 			genometools::Genotype hom(static_cast<genometools::BaseEnum>(k), static_cast<genometools::BaseEnum>(k));
 			tmp[k] = P_G[hom.get()] / ((baseFreq[k].get() + rho)*(baseFreq[k].get() + rho));
-			tmpSum += tmp[k];
 		}
 
 		for(genometools::Base k = genometools::Base::min(); k < genometools::Base::max(); ++k){
