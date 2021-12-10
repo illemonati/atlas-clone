@@ -592,7 +592,7 @@ bool TGlfMultiReader::readNext(){
 
 void TGlfMultiReader::print(){
 	std::cout << std::endl << "Multi Reader at position " << _position << " on chromosome '" << _curChr.name << std::endl;
-	for(int i=0; i<numActiveFiles; ++i){
+	for(size_t i=0; i<numActiveFiles; ++i){
 		std::cout << "File " << i << ":";
 		if(data[i].isHaploid()){
 			for(genometools::Base g = genometools::Base::min(); g < genometools::Base::max(); ++g){

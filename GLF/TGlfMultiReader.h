@@ -65,7 +65,7 @@ public:
 		_isHaploid = true;
 	};
 
-	const uint16_t depth() const { return _depth; };
+	uint16_t depth() const { return _depth; };
 	bool hasData() const { return _hasData; };
 
 	bool isHaploid() const {
