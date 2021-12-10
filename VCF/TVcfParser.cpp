@@ -457,8 +457,8 @@ void TVcfParser::addToInfo(TVcfLine & line, std::string & Id, std::string & Data
 		it->second.push_back(Data);
 	} else {
 		//add data, if not yet there
-		bool exists;
-		for(std::vector<std::string>::iterator i=it->second.begin(); i!=it->second.end(); ++i){
+		bool exists = false;
+		for(auto i=it->second.begin(); i!=it->second.end(); ++i){
 			if((*i)==Data){
 				exists=true;
 				break;

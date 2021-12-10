@@ -22,7 +22,6 @@ using genometools::Genotype;
 using coretools::TLog;
 using coretools::TParameters;
 
-using coretools::str::toString;
 
 //--------------------------------------------------------------
 // TGenotypeComparisonTable

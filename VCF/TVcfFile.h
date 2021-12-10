@@ -120,6 +120,9 @@ public:
 	void updateInfo(std::string Id, std::string Data);
 	void addToInfo(std::string Id, std::string Data);
 	void updatePL(std::string Data, unsigned int sample);
+	using TVcfFile_base::fieldContentAsString;
+	using TVcfFile_base::fieldContentAsInt;
+	using TVcfFile_base::depthAsIntNoCheckForMissingSample;
 	virtual std::string fieldContentAsString(std::string tag, unsigned int sample);
 	virtual int fieldContentAsInt(std::string tag, unsigned int sample);
 	virtual int depthAsIntNoCheckForMissingSample(std::string tag, unsigned int sample);

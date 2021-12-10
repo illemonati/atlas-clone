@@ -211,10 +211,10 @@ bool TVcfFile_base::readLine(){
 	return true;
 }
 
-void TVcfFile_base::updateInfo(TVcfLine* line, std::string id, std::string data){
+void TVcfFile_base::updateInfo(TVcfLine*, std::string, std::string){
 
 }
-void TVcfFile_base::addToInfo(TVcfLine* line, std::string Id, std::string Data){
+void TVcfFile_base::addToInfo(TVcfLine*, std::string, std::string){
 
 }
 

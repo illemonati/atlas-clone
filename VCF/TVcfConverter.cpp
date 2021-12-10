@@ -75,7 +75,7 @@ void TVcfToBeagle::_initOutputFiles(){
 void TVcfToBeagle::_writeHeader(){
     //header string
     std::vector<std::string> header = {"marker", "allele1", "allele2"};
-    for (auto s = 0; s < _samples.numSamples(); s++){
+    for (size_t s = 0; s < _samples.numSamples(); s++){
         // each sample is represented three times (for the three _genotypes)
         std::string sampleName = _samples.sampleName(s);
         header.push_back(sampleName);
@@ -98,7 +98,7 @@ void TVcfToBeagle::_writeData(PopulationTools::TPopulationLikehoodLocus & data){
     _writeRefAndAlt();
 
     //write line
-    for (auto s = 0; s < _samples.numSamples(); s++){
+    for (size_t s = 0; s < _samples.numSamples(); s++){
         if (data[s].isMissing()){
             _beagleFile << 0.333 << 0.333 << 0.333; // need to do this manually, because otherwise missing data would be 1; but PCAngsd requires genotype likelihoods to sum to one
     	} else if (data[s].isHaploid()){
@@ -151,7 +151,7 @@ void TVcfToGeno::_writeData(PopulationTools::TPopulationLikehoodLocus & data){
 
     //write line
     std::string line;
-    for (auto s = 0; s < _samples.numSamples(); s++){
+    for (size_t s = 0; s < _samples.numSamples(); s++){
         if (data[s].isMissing()){
             line += "9";
         } else if (data[s].isHaploid()){
@@ -222,7 +222,7 @@ TVcfToLFMMCalledGeno::~TVcfToLFMMCalledGeno(){
         delete [] *it;
 };
 
-void TVcfToLFMMCalledGeno::_writeData(PopulationTools::TPopulationLikehoodLocus & data){
+void TVcfToLFMMCalledGeno::_writeData(PopulationTools::TPopulationLikehoodLocus &){
     // LFMM has individuals as rows and loci as columns -> we need to store these values first and then write
     storeCalledGenotypes();
     _storeLocusNames();
@@ -231,7 +231,7 @@ void TVcfToLFMMCalledGeno::_writeData(PopulationTools::TPopulationLikehoodLocus 
 void TVcfToLFMMCalledGeno::storeCalledGenotypes(){
     auto tmp = _reader.biallelicGenotypes(_samples);
     auto* calledGeno = new uint8_t[_samples.numSamples()];
-    for(auto i = 0; i < _samples.numSamples(); i++){
+    for (size_t i = 0; i < _samples.numSamples(); i++){
         if (tmp[i].isMissing()){
             calledGeno[i] = 9; // re-code missing _genotypes to LFMM format
         } else {
@@ -281,7 +281,7 @@ void TVcfToLFMMPostGeno::_writeData(PopulationTools::TPopulationLikehoodLocus & 
 
 void TVcfToLFMMPostGeno::_storePosteriorGenotypes(PopulationTools::TPopulationLikehoodLocus & data){
     auto * meanPostGenoForOneLocus = new double[_samples.numSamples()];
-    for (auto i = 0; i < _samples.numSamples(); i++){
+    for (size_t i = 0; i < _samples.numSamples(); i++){
         meanPostGenoForOneLocus[i] = _computePosteriorGenotype(data, i);
     }
     _genotypes.emplace_back(meanPostGenoForOneLocus);
@@ -324,7 +324,7 @@ void TVcfToPosFile::_writeRefAndAlt(){
     _posFile << _reader.refAllele() << _reader.altAllele();
 };
 
-void TVcfToPosFile::_writeData(PopulationTools::TPopulationLikehoodLocus & data){
+void TVcfToPosFile::_writeData(PopulationTools::TPopulationLikehoodLocus &){
     _writePosition();
     _writeRefAndAlt();
     _posFile.endLine();
@@ -364,7 +364,7 @@ TVcfToGenotypeTruthSetFile::TVcfToGenotypeTruthSetFile(TLog *Logfile) : TVcfConv
 };
 
 TVcfToGenotypeTruthSetFile::~TVcfToGenotypeTruthSetFile() {
-    for (auto s = 0; s < _samples.numSamples(); s++)
+    for (size_t s = 0; s < _samples.numSamples(); s++)
         delete _bedFiles[s];
     delete [] _bedFiles;
 };
@@ -372,7 +372,7 @@ TVcfToGenotypeTruthSetFile::~TVcfToGenotypeTruthSetFile() {
 void TVcfToGenotypeTruthSetFile::_writeHeader(){
     //header string
     std::vector <std::string> header;
-    for(auto s = 0; s < _samples.numSamples(); s++){
+    for (size_t s = 0; s < _samples.numSamples(); s++){
         header.push_back(_samples.sampleName(s));
     }
     _genFile.writeHeader(header);
@@ -382,7 +382,7 @@ void TVcfToGenotypeTruthSetFile::_initOutputFiles() {
     _genFile.open(_outname + ".gen");
     // initialize bed files (we know how many samples there are)
     _bedFiles = new BAM::TBed * [_samples.numSamples()];
-    for(auto s = 0; s < _samples.numSamples(); s++) {
+    for (size_t s = 0; s < _samples.numSamples(); s++) {
         _bedFiles[s] = new BAM::TBed;
     };
 
@@ -429,7 +429,7 @@ void TVcfToGenotypeTruthSetFile::_filterIndividuals(PopulationTools::TPopulation
     if (distanceToPreviousLocus >= _minDistanceToPreviousLocus) { // check if distance is big enough
         // idea: TPopulationLikelihoods will filter on minDepth and set all samples with < minDepth as missing
         // here, we check how many individuals have > minDepth; we rank them and only keep _numSamplesPerLocus of them
-        for (auto s = 0; s < _samples.numSamples(); ++s) {
+        for (size_t s = 0; s < _samples.numSamples(); ++s) {
             if (!data[s].isMissing()) {
                 samplesToKeep.push_back(s);
             }
@@ -453,7 +453,7 @@ void TVcfToGenotypeTruthSetFile::_filterIndividuals(PopulationTools::TPopulation
 };
 
 void TVcfToGenotypeTruthSetFile::_writeToGenFile(const std::vector<uint32_t> & samplesToKeep){
-    for(auto s = 0; s < _samples.numSamples(); s++) {
+    for (size_t s = 0; s < _samples.numSamples(); s++) {
         // should we write true genotype of sample?
         auto it = std::find(samplesToKeep.begin(), samplesToKeep.end(), s);
         if (it != samplesToKeep.end()){
@@ -468,7 +468,7 @@ void TVcfToGenotypeTruthSetFile::_writeToGenFile(const std::vector<uint32_t> & s
 };
 
 void TVcfToGenotypeTruthSetFile::_storeInBedFile(const std::vector<uint32_t> & samplesToKeep){
-    for(auto s = 0; s < _samples.numSamples(); s++) {
+    for (size_t s = 0; s < _samples.numSamples(); s++) {
         // should we write to bed of sample?
         auto it = std::find(samplesToKeep.begin(), samplesToKeep.end(), s);
         if (it != samplesToKeep.end()) // sample found
@@ -524,7 +524,7 @@ TVcfToVcf::TVcfToVcf(TLog *Logfile) : TVcfConverter(Logfile){
 	_reader.setOutStream(out);
 };
 
-void TVcfToVcf::_writeData(PopulationTools::TPopulationLikehoodLocus & data){
+void TVcfToVcf::_writeData(PopulationTools::TPopulationLikehoodLocus &){
 	_reader.writeVCFLine();
 };
 
