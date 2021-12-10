@@ -33,7 +33,7 @@ void TAlleleCountFile::writeHeader(TPopulationSamples & samples, coretools::TPar
 		sep = '_';
 	}
 	outFile << "chr" << sep << "pos";
-	for(int p=0; p<samples.numPopulations(); p++)
+	for(size_t p=0; p<samples.numPopulations(); p++)
 		outFile << "\t" << samples.getPopulationName(p);
 	outFile << "\n";
 };
@@ -59,11 +59,11 @@ void TAlleleCountFile::writePosition(std::string chr, std::string pos){
 	outFile << chr << sep << pos;
 };
 
-void TAlleleCountFile::writeCounts(int count, int numAlleles, int populationNum){
+void TAlleleCountFile::writeCounts(int count, int numAlleles, int){
 	outFile << "\t" << count << "/" << numAlleles;
 };
 
-void TAlleleCountFile::writeCounts(std::string count, std::string numAlleles, int populationNum){
+void TAlleleCountFile::writeCounts(std::string count, std::string numAlleles, int){
 	outFile << "\t" << count << "/" << numAlleles;
 };
 
@@ -79,14 +79,14 @@ TTreeMixFile::TTreeMixFile(std::string Filename):TAlleleCountFile(Filename){
 	filename = Filename;
 };
 
-void TTreeMixFile::writeHeader(TPopulationSamples & samples, coretools::TParameters & params, coretools::TLog* logfile){
+void TTreeMixFile::writeHeader(TPopulationSamples & samples, coretools::TParameters &, coretools::TLog*){
 	outFile << samples.getPopulationName(0);
-	for(int p=1; p<samples.numPopulations(); p++)
+	for(size_t p=1; p<samples.numPopulations(); p++)
 		outFile << " " << samples.getPopulationName(p);
 	outFile << "\n";
 };
 
-void TTreeMixFile::writeHeader(std::vector<std::string> populationNames, coretools::TParameters & params, coretools::TLog* logfile){
+void TTreeMixFile::writeHeader(std::vector<std::string> populationNames, coretools::TParameters &, coretools::TLog*){
 	outFile << populationNames[0];
 		for(size_t p=1; p<populationNames.size(); p++)
 			outFile << " " << populationNames[p];
@@ -94,11 +94,11 @@ void TTreeMixFile::writeHeader(std::vector<std::string> populationNames, coretoo
 }
 
 
-void TTreeMixFile::writePosition(std::string chr, long pos){
+void TTreeMixFile::writePosition(std::string, long){
 	//do nothing, treemix does not need position
 };
 
-void TTreeMixFile::writePosition(std::string chr, std::string pos){
+void TTreeMixFile::writePosition(std::string, std::string){
 	//do nothing, treemix does not need position
 };
 
@@ -126,20 +126,20 @@ TFlinkFile::TFlinkFile(std::string Filename):TAlleleCountFile(Filename){
 	sep = "\t";
 };
 
-void TFlinkFile::writeHeader(TPopulationSamples & samples, coretools::TParameters & params, coretools::TLog* logfile){
+void TFlinkFile::writeHeader(TPopulationSamples & samples, coretools::TParameters &, coretools::TLog*){
 	outFile << "-\t-";
-	for(int g=0; g<samples.numPopulations(); ++g){
+	for(size_t g=0; g<samples.numPopulations(); ++g){
 		outFile << "\tGroup_A";
 	}
 	outFile << "\n";
 	outFile << "-\t-";
-	for(int p=0; p<samples.numPopulations(); p++)
+	for(size_t p=0; p<samples.numPopulations(); p++)
 		outFile << "\t" << samples.getPopulationName(p);
 	outFile << "\n";
 
 };
 
-void TFlinkFile::writeHeader(std::vector<std::string> populationNames, coretools::TParameters & params, coretools::TLog* logfile){
+void TFlinkFile::writeHeader(std::vector<std::string> populationNames, coretools::TParameters &, coretools::TLog*){
 	outFile << "-\t-";
 		for(unsigned int g=0; g<populationNames.size(); ++g){
 			outFile << "\tGroup_A";
@@ -159,11 +159,11 @@ void TFlinkFile::writePosition(std::string chr, std::string pos){
 	outFile << chr << sep << pos;
 };
 
-void TFlinkFile::writeCounts(int count, int numAlleles, int populationNum){
+void TFlinkFile::writeCounts(int count, int numAlleles, int){
 		outFile << "\t" << count << "/" << numAlleles;
 };
 
-void TFlinkFile::writeCounts(std::string count, std::string numAlleles, int populationNum){
+void TFlinkFile::writeCounts(std::string count, std::string numAlleles, int){
 		outFile << "\t" << count << "/" << numAlleles;
 };
 

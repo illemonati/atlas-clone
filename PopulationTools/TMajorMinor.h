@@ -22,9 +22,7 @@ using coretools::TLog;
 using coretools::TParameters;
 using coretools::TRandomGenerator;
 using genometools::Base;
-using genometools::Genotype;
 using genometools::AllelicCombination;
-using genometools::HighPrecisionPhredIntProbability;
 using GLF::TMultiGLFData;
 
 

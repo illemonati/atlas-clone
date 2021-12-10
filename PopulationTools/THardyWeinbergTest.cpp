@@ -264,12 +264,6 @@ void THWPopulations::addToHeader(std::vector<std::string> & header){
 void THWPopulations::runTest(TOutputFile & out){
 	// do dynamic programming to get probabilities
 
-	//get max num het across populations
-	uint32_t maxNumHet = 0;
-	for(auto& p : _populations){
-		maxNumHet += p.n_A();
-	}
-
 	//loop over populations to calculate P(N_AB = n | N_1, N_2, ..., n_A1.n_A2, ...) using dynamic programming
 	//first do those with even and odd num hets separately
 	THWHetProb probs, probsEven;

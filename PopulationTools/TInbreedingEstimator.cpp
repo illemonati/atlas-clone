@@ -6,6 +6,7 @@
  */
 
 #include "TInbreedingEstimator.h"
+#include <string>
 
 namespace PopulationTools{
 
@@ -171,7 +172,7 @@ TAlleleFreq::TAlleleFreq(){
 }
 
 
-TAlleleFreq::TAlleleFreq(std::vector<double> & P, double & initialProposalWidthFactor, const int numSamples, double & ProbMovingToModel0, double & ProbMovingToModelP, double & Lambda, bool trueAlleleFreqProvided){
+TAlleleFreq::TAlleleFreq(std::vector<double> & P, double &, const int numSamples, double & ProbMovingToModel0, double & ProbMovingToModelP, double & Lambda, bool trueAlleleFreqProvided){
 	alleleFreq = P;
 	initialAlleleFreq = P;
 	numLoci = alleleFreq.size();
@@ -493,7 +494,7 @@ TInbreedingEstimator::TInbreedingEstimator(TParameters & Parameters, TLog* Logfi
 
 	numBurnins = Parameters.getParameterWithDefault<int>("numBurnins", 1);
 	burninLength = Parameters.getParameterWithDefault<int>("burninLength", 1000);
-	logfile->list("Will run ", numBurnins, " burnin(s) of length ", burninLength + " and adjust the proposal kernel widths after each before starting the full MCMC. (parameters 'numBurnins' and 'burninLength')");
+	logfile->list("Will run ", numBurnins, " burnin(s) of length ", std::to_string(burninLength) + " and adjust the proposal kernel widths after each before starting the full MCMC. (parameters 'numBurnins' and 'burninLength')");
 
 	if(Parameters.parameterExists("noAdjustmentF")){
 		adjustFAfterBurnin = false;
@@ -691,7 +692,7 @@ void TInbreedingEstimator::initAlleleFreq(TParameters & parameters){
 	logfile->list("initialized allele frequencies for ", p.numLoci, " loci");
 };
 
-void TInbreedingEstimator::initParams(TRandomGenerator* randomGenerator, TParameters & parameters){
+void TInbreedingEstimator::initParams(TRandomGenerator*, TParameters & parameters){
 	//F
 	initF(parameters);
 
@@ -802,7 +803,7 @@ bool TInbreedingEstimator::updateF(){
 	}
 }
 
-bool TInbreedingEstimator::updateP(TSampleLikelihoods* data, const long locusNum, const int curSampleSize, TGamma Gamma){
+bool TInbreedingEstimator::updateP(TSampleLikelihoods* data, const long locusNum, const int, TGamma Gamma){
 	if(p.modelP[locusNum]){
 		if(randomGenerator->getRand() < p.probMovingToModel0){
 			//propose model0
@@ -1254,7 +1255,7 @@ void TInbreedingEstimator::runBurnins(std::ofstream & out, TParameters & params)
 	}
 }
 
-void TInbreedingEstimator::runMCMC(std::ofstream & out, TParameters & params){
+void TInbreedingEstimator::runMCMC(std::ofstream & out, TParameters &){
 	//progress
 	int oldProg = 0;
 	std::string progressString = "Running MCMC chain of length " + coretools::str::toString(numIterations) + " ...";
@@ -1335,7 +1336,7 @@ void TInbreedingEstimator::runEstimation(TParameters & params){
 
 
 
-void TInbreedingEstimator::writeLikelihoodForDebuggingF(TParameters & params){
+void TInbreedingEstimator::writeLikelihoodForDebuggingF(TParameters &){
 	//open output file
 	std::string tracefile = outname + "_logLikelihoodF.txt.gz";
 	logfile->list("Will write likelihood chain for grid of F to file '" + tracefile + "'.");
@@ -1376,7 +1377,7 @@ void TInbreedingEstimator::writeLikelihoodForDebuggingF(TParameters & params){
 	logfile->done();
 };
 
-void TInbreedingEstimator::writeLikelihoodForDebuggingAlleleFreq(TParameters & params){
+void TInbreedingEstimator::writeLikelihoodForDebuggingAlleleFreq(TParameters &){
 	//which locus to update
 //	long index = params.getParameterInt("locus");
 	long index = 11;
@@ -1384,7 +1385,7 @@ void TInbreedingEstimator::writeLikelihoodForDebuggingAlleleFreq(TParameters & p
 	//open output file
 	std::string tracefile = outname + "_logLikelihoodP[" + coretools::str::toString(index) + "].txt.gz";
 	logfile->list("Will write likelihood chain for grid of p[", index, "] to file '" + tracefile + "'.");
-	logfile->list("The true value for p[", index + "] is: ", p[index]);
+	logfile->list("The true value for p[", std::to_string(index) + "] is: ", p[index]);
 	gz::ogzstream outP(tracefile.c_str());
 	if(!outP)
 		throw "Failed to open file '" + tracefile + "' for writing!";
@@ -1420,7 +1421,7 @@ void TInbreedingEstimator::writeLikelihoodForDebuggingAlleleFreq(TParameters & p
 	logfile->done();
 };
 
-void TInbreedingEstimator::writeLikelihoodForDebuggingGamma(TParameters & params){
+void TInbreedingEstimator::writeLikelihoodForDebuggingGamma(TParameters &){
 	//open output file
 	std::string tracefile = outname + "_logLikelihoodGamma.txt.gz";
 	logfile->list("Will write likelihoods for grid of gamma to '" + tracefile + "'.");

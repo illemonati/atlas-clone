@@ -772,7 +772,7 @@ void TDistanceEstimator::estimateDistanceInWindows(TEMforDistanceEstimation & EM
 	std::vector<HighPrecisionPhredIntProbability*> genoQual1, genoQual2;
 	genoQual1.resize(windowLen);
 	genoQual2.resize(windowLen);
-	for(int i=0; i<windowLen; ++i){
+	for(size_t i=0; i<windowLen; ++i){
 		genoQual1[i] = new HighPrecisionPhredIntProbability[10];
 		genoQual2[i] = new HighPrecisionPhredIntProbability[10];
 	}
@@ -849,7 +849,7 @@ void TDistanceEstimator::estimateDistanceInWindows(TEMforDistanceEstimation & EM
 	}
 
 	//clean up memory
-	for(int i=0; i<windowLen; ++i){
+	for(size_t i=0; i<windowLen; ++i){
 		delete[] genoQual1[i];
 		delete[] genoQual2[i];
 	}

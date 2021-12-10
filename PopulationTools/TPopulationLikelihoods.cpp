@@ -472,7 +472,7 @@ void TPopulationLikelihoodReader::closeVCF(){
 	vcfOpen = false;
 };
 
-int TPopulationLikelihoodReader::filterOnDepth(TSampleLikelihoods* data, TPopulationSamples & samples){
+int TPopulationLikelihoodReader::filterOnDepth(TSampleLikelihoods*, TPopulationSamples & samples){
 	int numIndividualsWithData = 0;
 	for(uint32_t s = 0; s < samples.numSamples(); ++s){
 		int vcfIndex = samples.sampleIndexInVCF(s);
@@ -1061,11 +1061,10 @@ void TPopulationLikelihoods::readDataFromVCF(coretools::TParameters & Parameters
 	reader.openVCF(vcfFilename);
 
 	//Match samples
-	if(samples.hasSamples())
+	if (samples.hasSamples())
 		samples.fillVCFOrder(reader.getSampleVCFNames());
-	 else
-		 samples.readSamplesFromVCFNames(reader.getSampleVCFNames());
-
+	else
+		samples.readSamplesFromVCFNames(reader.getSampleVCFNames());
 
 	// initialize variables for vcf-file
 	struct timeval start; gettimeofday(&start, NULL);

@@ -10,11 +10,11 @@
 
 namespace PopulationTools{
 
-TPolymorhicWindowIdentifier::TPolymorhicWindowIdentifier(TParameters & Parameters, TLog* Logfile){
+TPolymorhicWindowIdentifier::TPolymorhicWindowIdentifier(TParameters &, TLog* Logfile){
 	logfile = Logfile;
 };
 
-void TPolymorhicWindowIdentifier::identifyPolymorphicWindows(TParameters & Parameters, TRandomGenerator* randomGenerator){
+void TPolymorhicWindowIdentifier::identifyPolymorphicWindows(TParameters & Parameters, TRandomGenerator*){
 	//read samples
 	TPopulationSamples samples;
 	if(Parameters.parameterExists("samples"))
@@ -28,10 +28,10 @@ void TPolymorhicWindowIdentifier::identifyPolymorphicWindows(TParameters & Param
 	logfile->endIndent();
 
 	//Match samples
-	if(samples.hasSamples())
+	if (samples.hasSamples())
 		samples.fillVCFOrder(reader.getSampleVCFNames());
-	 else
-		 samples.readSamplesFromVCFNames(reader.getSampleVCFNames());
+	else
+		samples.readSamplesFromVCFNames(reader.getSampleVCFNames());
 
 	//output file
 	std::string tmp = coretools::str::readBeforeLast(vcfFilename, ".vcf");

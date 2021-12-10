@@ -20,7 +20,6 @@ using namespace GenotypeLikelihoods;
 using genometools::Genotype;
 using genometools::Base;
 using genometools::HighPrecisionPhredIntProbability;
-using coretools::Probability;
 
 //------------------------------------------------
 // DistancePhi
@@ -30,20 +29,20 @@ enum DistancePhiEnum : uint8_t {aa_aa=0, aa_ab, ab_aa, aa_bb, ab_ab, ab_ac, aa_b
 class DistancePhi : public coretools::StrongTypes::StrongType<DistancePhiEnum, DistancePhi> {
 private:
     static std::string _toString[nn_nn + 1];
-    static constexpr std::array< std::array<DistancePhiEnum, 11>, 11> _genoToPhiMap = {
+	static constexpr std::array< std::array<DistancePhiEnum, 11>, 11> _genoToPhiMap {{
     		//AA,	AC,		AG,		AT,		CC,		CG,		CT,		GG,		GT,		TT,		NN
-    		aa_aa,	aa_ab,	aa_ab,	aa_ab,	aa_bb,	aa_bc,	aa_bc,	aa_bb,	aa_bc,	aa_bb,	nn_nn, //AA
-    		ab_aa,	ab_ab,	ab_ac,	ab_ac,	ab_aa,	ab_ac,	ab_ac,	ab_cc,	ab_cd,	ab_cc,	nn_nn, //AC
-    		ab_aa,	ab_ac,	ab_ab,	ab_ac,	ab_cc,	ab_ac,	ab_cd,	ab_aa,	ab_ac,	ab_cc,	nn_nn, //AG
-    		ab_aa,	ab_ac,	ab_ac,	ab_ab,	ab_cc,	ab_cd,	ab_ac,	ab_cc,	ab_ac,	ab_aa,	nn_nn, //AT
-    		aa_bb,	aa_ab,	aa_bc,	aa_bc,	aa_aa,	aa_ab,	aa_ab,	aa_bb,	aa_bc,	aa_bb,	nn_nn, //CC
-    		ab_cc,	ab_ac,	ab_ac,	ab_cd,	ab_aa,	ab_ab,	ab_ac,	ab_aa,	ab_ac,	ab_cc,	nn_nn, //CG
-    		ab_cc,	ab_ac,	ab_cd,	ab_ac,	ab_aa,	ab_ac,	ab_ab,	ab_cc,	ab_ac,	ab_aa,	nn_nn, //CT
-    		aa_bb,	aa_bc,	aa_ab,	aa_bc,	aa_bb,	aa_ab,	aa_bc,	aa_aa,	aa_ab,	aa_bb,	nn_nn, //GG
-    		ab_cc,	ab_cd,	ab_ac,	ab_ac,	ab_cc,	ab_ac,	ab_ac,	ab_aa,	ab_ab,	ab_aa,	nn_nn, //GT
-    		aa_bb,	aa_bc,	aa_bc,	aa_ab,	aa_bb,	aa_bc,	aa_ab,	aa_bb,	aa_ab,	aa_aa,	nn_nn, //TT
-    		nn_nn,	nn_nn,	nn_nn,	nn_nn,	nn_nn,	nn_nn,	nn_nn,	nn_nn,	nn_nn,	nn_nn,	nn_nn   //NN
-    };
+    		{aa_aa,	aa_ab,	aa_ab,	aa_ab,	aa_bb,	aa_bc,	aa_bc,	aa_bb,	aa_bc,	aa_bb,	nn_nn}, //AA
+    		{ab_aa,	ab_ab,	ab_ac,	ab_ac,	ab_aa,	ab_ac,	ab_ac,	ab_cc,	ab_cd,	ab_cc,	nn_nn}, //AC
+    		{ab_aa,	ab_ac,	ab_ab,	ab_ac,	ab_cc,	ab_ac,	ab_cd,	ab_aa,	ab_ac,	ab_cc,	nn_nn}, //AG
+    		{ab_aa,	ab_ac,	ab_ac,	ab_ab,	ab_cc,	ab_cd,	ab_ac,	ab_cc,	ab_ac,	ab_aa,	nn_nn}, //AT
+    		{aa_bb,	aa_ab,	aa_bc,	aa_bc,	aa_aa,	aa_ab,	aa_ab,	aa_bb,	aa_bc,	aa_bb,	nn_nn}, //CC
+    		{ab_cc,	ab_ac,	ab_ac,	ab_cd,	ab_aa,	ab_ab,	ab_ac,	ab_aa,	ab_ac,	ab_cc,	nn_nn}, //CG
+    		{ab_cc,	ab_ac,	ab_cd,	ab_ac,	ab_aa,	ab_ac,	ab_ab,	ab_cc,	ab_ac,	ab_aa,	nn_nn}, //CT
+    		{aa_bb,	aa_bc,	aa_ab,	aa_bc,	aa_bb,	aa_ab,	aa_bc,	aa_aa,	aa_ab,	aa_bb,	nn_nn}, //GG
+    		{ab_cc,	ab_cd,	ab_ac,	ab_ac,	ab_cc,	ab_ac,	ab_ac,	ab_aa,	ab_ab,	ab_aa,	nn_nn}, //GT
+    		{aa_bb,	aa_bc,	aa_bc,	aa_ab,	aa_bb,	aa_bc,	aa_ab,	aa_bb,	aa_ab,	aa_aa,	nn_nn}, //TT
+    		{nn_nn,	nn_nn,	nn_nn,	nn_nn,	nn_nn,	nn_nn,	nn_nn,	nn_nn,	nn_nn,	nn_nn,	nn_nn}  //NN
+		}};
 
 public:
     //constructors

@@ -15,7 +15,6 @@
 
 namespace PopulationTools{
 
-using coretools::Probability;
 using coretools::LogProbability;
 
 //-------------------------------------------------

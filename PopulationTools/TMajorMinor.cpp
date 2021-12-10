@@ -7,9 +7,11 @@
 
 #include "TMajorMinor.h"
 
+#include "GenotypeTypes.h"
 #include "debugtools.h"
 
 namespace PopulationTools{
+using genometools::Genotype;
 
 //---------------------------------------------------
 // TMajorMinorEstimatorBase
@@ -54,7 +56,7 @@ void TMajorMinorEstimatorBase::chooseBestAllelicCombinationAmongThoseWithEqualSc
 	bestAllelicCombination = best_combinations[randomGenerator->sample(best_combinations.size())];
 };
 
-void TMajorMinorEstimatorBase::findMLAllelicCombination(const TMultiGLFData & data){
+void TMajorMinorEstimatorBase::findMLAllelicCombination(const TMultiGLFData &){
 	throw "Function TMajorMinorEstimatorBase::findMLAllelicCombination(TGlfMultiReader & glfReader, TGlfConverter & glfConverter) not implemented for base class!";
 };
 
@@ -174,7 +176,7 @@ void TMajorMinorEstimatorMLE::findMLAllelicCombination(const TMultiGLFData & dat
 //---------------------------------------------------
 // TMajorMinor
 //---------------------------------------------------
-TMajorMinor::TMajorMinor(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGenerator){
+TMajorMinor::TMajorMinor(TLog* Logfile, TParameters &, TRandomGenerator* RandomGenerator){
 	logfile = Logfile;
 	hasReference = false;
 	randomGenerator = RandomGenerator;
