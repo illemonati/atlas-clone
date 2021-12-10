@@ -293,7 +293,7 @@ TEstimateThetaRatio::TEstimateThetaRatio(TParameters & Parameters, TLog* Logfile
 
 void TEstimateThetaRatio::_initializeRegion(TParameters & Parameters, BAM::TBed & region, const char num){
 	_logfile->startIndent((std::string) "Region " + num + ":");
-	std::string regionsFile = Parameters.getParameter<std::string>("regions" + num);
+	std::string regionsFile = Parameters.getParameter<std::string>("regions" + std::to_string(num));
 	_logfile->list((std::string) "Reading regions " + num + " from file '" + regionsFile  + " (parameter 'region" + num + "') ...");
 	region.add(regionsFile, _bamFile.chromosomes());
 	_logfile->done();

@@ -94,7 +94,7 @@ public:
 //-----------------------------------------
 class TAlignmentMerger{
 protected:
-	virtual void _mergeBases(BAM::TSequencedBase & alignment, BAM::TSequencedBase & mate){};
+	virtual void _mergeBases(BAM::TSequencedBase &, BAM::TSequencedBase &){};
 
 public:
 	TAlignmentMerger(){};

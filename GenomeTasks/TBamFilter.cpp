@@ -7,6 +7,7 @@
 
 #include "TBamFilter.h"
 #include "debugtools.h"
+#include <cstdint>
 
 namespace GenomeTasks{
 
@@ -141,7 +142,7 @@ void TAlignmentMergerReadGroupSettings::initialize(TParameters & Params, TLog* l
 		logfile->done();
 		_printSummary(logfile);
 		if(numNotInUse > 0){
-			logfile->warning(numNotInUse + " read group(s) are present in file '" + in.name() + "' but are marked as not in use!");
+			logfile->warning(std::to_string(numNotInUse) + " read group(s) are present in file '" + in.name() + "' but are marked as not in use!");
 		}
 	}
 };
@@ -279,7 +280,7 @@ void TBamFilter::_writeAll(){
 void TBamFilter::_writeUpTo(const BAM::TGenomePosition & position){
 	//writes all that are ready or too far away
 	TAlignmentInStorage it = _alignmentStorage.begin();
-	while(it != _alignmentStorage.end() && (it->ready || abs(position - *it->alignment) > _maxDistanceBetweenMates)){
+	while(it != _alignmentStorage.end() && (it->ready || static_cast<uint32_t>(abs(position - *it->alignment)) > _maxDistanceBetweenMates)){
 		_writeOrFilterAsOrphan(it);
 	}
 };
@@ -529,7 +530,7 @@ TAlignmentSplitMerger::TAlignmentSplitMerger(TParameters & Params, TLog* Logfile
 	}
 };
 
-void TAlignmentSplitMerger::_initializeMerger(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator){
+void TAlignmentSplitMerger::_initializeMerger(TParameters & Params, TLog*, TRandomGenerator* RandomGenerator){
 	//check if keepAllReads is turned on
 	//TODO: what is the basic set of filters needed?
 	if(!_bamFile.improperPairsFilterEnabled()){

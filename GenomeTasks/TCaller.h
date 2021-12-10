@@ -75,14 +75,14 @@ protected:
 	void _fillGenotypeFieldFunctionPointers();
 	virtual std::string _getVCFGenotypeString_GT(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
 	virtual std::string _getVCFGenotypeString_DP(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
-	virtual std::string _getVCFGenotypeString_GQ(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){ throw std::runtime_error("Function std::string getVCFGenotypeString_GQ(const const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) not defined for base class TCaller!"); };
+	virtual std::string _getVCFGenotypeString_GQ(const TSite &, TGenotypeLikelihoods &){ throw std::runtime_error("Function std::string getVCFGenotypeString_GQ(const const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) not defined for base class TCaller!"); };
 	virtual std::string _getVCFGenotypeString_AD(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
-	virtual std::string _getVCFGenotypeString_AP(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){ throw std::runtime_error("Function std::string getVCFGenotypeString_AP(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) not defined for base class TCaller!"); };
-	virtual std::string _getVCFGenotypeString_GL(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){ throw std::runtime_error("Function std::string getVCFGenotypeString_GL(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) not defined for base class TCaller!"); };
-	virtual std::string _getVCFGenotypeString_PL(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){ throw std::runtime_error("Function std::string getVCFGenotypeString_PL(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) not defined for base class TCaller!"); };
-	virtual std::string _getVCFGenotypeString_GP(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){ throw std::runtime_error("Function std::string getVCFGenotypeString_GP(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) not defined for base class TCaller!"); };
-	virtual std::string _getVCFGenotypeString_AB(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){ throw std::runtime_error("Function std::string getVCFGenotypeString_AB(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) not defined for base class TCaller!"); };
-	virtual std::string _getVCFGenotypeString_AI(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){ throw std::runtime_error("Function std::string getVCFGenotypeString_AI(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) not defined for base class TCaller!"); };
+	virtual std::string _getVCFGenotypeString_AP(const TSite &, TGenotypeLikelihoods &){ throw std::runtime_error("Function std::string getVCFGenotypeString_AP(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) not defined for base class TCaller!"); };
+	virtual std::string _getVCFGenotypeString_GL(const TSite &, TGenotypeLikelihoods &){ throw std::runtime_error("Function std::string getVCFGenotypeString_GL(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) not defined for base class TCaller!"); };
+	virtual std::string _getVCFGenotypeString_PL(const TSite &, TGenotypeLikelihoods &){ throw std::runtime_error("Function std::string getVCFGenotypeString_PL(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) not defined for base class TCaller!"); };
+	virtual std::string _getVCFGenotypeString_GP(const TSite &, TGenotypeLikelihoods &){ throw std::runtime_error("Function std::string getVCFGenotypeString_GP(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) not defined for base class TCaller!"); };
+	virtual std::string _getVCFGenotypeString_AB(const TSite &, TGenotypeLikelihoods &){ throw std::runtime_error("Function std::string getVCFGenotypeString_AB(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) not defined for base class TCaller!"); };
+	virtual std::string _getVCFGenotypeString_AI(const TSite &, TGenotypeLikelihoods &){ throw std::runtime_error("Function std::string getVCFGenotypeString_AI(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) not defined for base class TCaller!"); };
 
 	//write VCF
 	std::string _composeVCFString(std::vector<std::string (TCaller::*)(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods)> & vec, const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
@@ -193,7 +193,7 @@ protected:
 	//TGenotypeData tmpGenoData;
 	coretools::TBinomPValue _binomP;
 
-	void _clearAfterCall();
+	void _clearAfterCall() override;
 	void callGenotypeFromMetric(const TGenotypeProbability_base & metric);
 	void callGenotypeFromMetricKnownAlleles(const TGenotypeProbability_base & metric);
 	bool callGenotypeFromMetricKnownAllelesUpdateIndex(const TGenotypeProbability_base & metric);
