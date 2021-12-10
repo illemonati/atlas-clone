@@ -444,7 +444,7 @@ void TBamFile::_applyFilters(){
 		//fragment length
 		if(_QCFiltersPassed){
 			_QCFiltersPassed = _fragmentLengthFilter.pass(curFragmentLength(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
-                               && _longerThanFragmentFilter.pass(_curBamAlignment.IsProperPair() && _curBamAlignment.InsertSize < _curCigar.lengthAligned(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate());
+				&& _longerThanFragmentFilter.pass(_curBamAlignment.IsProperPair() && _curBamAlignment.InsertSize < static_cast<int>(_curCigar.lengthAligned()), _curBamAlignment.Name, _curBamAlignment.IsSecondMate());
 		}
 	}
 
@@ -469,13 +469,13 @@ bool TBamFile::readNextAlignment(){
 	}
 
 	//check if chromosome changed
-	if(_curChromosome == _chromosomes.end() || _curBamAlignment.RefID != _curChromosome->refID()){
+	if(_curChromosome == _chromosomes.end() || _curBamAlignment.RefID != static_cast<int>(_curChromosome->refID())){
 		//advance chromosome
 		if(_curChromosome == _chromosomes.end()){
 			_curChromosome = _chromosomes.begin();
 		}
 
-		while(_curBamAlignment.RefID != _curChromosome->refID()){
+		while(_curBamAlignment.RefID != static_cast<int>(_curChromosome->refID())){
 			++_curChromosome;
 
 			if(_curChromosome == _chromosomes.end()){
@@ -516,7 +516,7 @@ bool TBamFile::readNextAlignment(){
 
 	//check if BAM file is sorted
 	if(_curAlignmentPosition < _previousAlignmentPosition){
-		throw "BAM file must be sorted by position! Alignment '" + _curBamAlignment.Name + "' is at position ", _curBamAlignment.Position, ", which is before the position of the previous alignment (", _previousAlignmentPosition.position() + ")";
+		throw "BAM file must be sorted by position! Alignment '" + _curBamAlignment.Name + "' is at position " + std::to_string(_curBamAlignment.Position) + ", which is before the position of the previous alignment (" + std::to_string(_previousAlignmentPosition.position()) + ")";
 	}
 
 	//store current read group ID

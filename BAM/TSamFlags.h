@@ -24,11 +24,14 @@ private:
 	bitset _flags = 0;
 public:
 	TSamFlags() noexcept = default;
-	TSamFlags(const uint16_t Flags) noexcept : _flags(Flags) {}
+	TSamFlags(const TSamFlags&) noexcept = default;
+	TSamFlags& operator=(const TSamFlags&) noexcept = default;
+	TSamFlags(uint16_t Flags) noexcept : _flags(Flags) {}
+	TSamFlags& operator=(uint16_t Flags) noexcept { set(Flags); return *this; }
 
 	// getters
+	bool operator[](uint16_t index) noexcept { return _flags[index]; }
 	uint16_t asInt() const noexcept { return _flags.to_ulong(); }
-	bool operator[](const uint16_t index) noexcept { return _flags[index]; }
 	void reset() noexcept { _flags.reset(); }
 	bool isPaired() const noexcept { return _flags.get<0>(); }
 	bool isProperPair() const noexcept { return _flags.get<1>(); }
@@ -60,8 +63,6 @@ public:
 
 	// setters
 	void set(uint16_t Flags) noexcept { _flags = bitset(Flags); };
-	void operator=(uint16_t Flags) noexcept { set(Flags); };
-	void operator=(TSamFlags other) noexcept { _flags = other._flags; };
 	void setIsPaired(bool ok) noexcept { _flags.set<0>(ok); };
 	void setIsProperPair(bool ok) noexcept { _flags.set<1>(ok); };
 	void setIsUnmapped(bool ok) noexcept { _flags.set<2>(ok); };
@@ -77,6 +78,7 @@ public:
 	void setIsDuplicate(bool ok) noexcept  { _flags.set<10>(ok); };
 	void setIsSupplementary(bool ok) noexcept  { _flags.set<11>(ok); };
 };
+static_assert(sizeof(TSamFlags) == 2);
 
 }; // namespace BAM
 

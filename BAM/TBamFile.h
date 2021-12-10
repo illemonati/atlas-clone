@@ -179,7 +179,7 @@ public:
 	bool curIsFailedQC() const { return _curBamAlignment.IsFailedQC(); };
 	bool curIsSecondary() const{ return !_curBamAlignment.IsPrimaryAlignment(); };
 	bool curIsSupplementary() const{ return _curBamAlignment.IsSupplementary(); };
-	bool curIsLongerThanFragment() const {return _curBamAlignment.IsProperPair() && _curBamAlignment.InsertSize < _curCigar.lengthAligned(); };
+	bool curIsLongerThanFragment() const {return _curBamAlignment.IsProperPair() && _curBamAlignment.InsertSize < static_cast<int>(_curCigar.lengthAligned()); };
 	bool curIsFirstMate() const{ return _curBamAlignment.IsFirstMate(); };
 	bool curIsSecondMate() const{ return _curBamAlignment.IsSecondMate(); };
 	std::string curQuerySequence(const uint16_t start, const uint16_t length) const;

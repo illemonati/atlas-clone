@@ -325,7 +325,6 @@ void TReadGroupMap::_fillFromFile(const TReadGroups & ReadGroups, const std::str
 	coretools::TInputFile in(filename, {"readGroup", "poolWith"}, "/t", "//");
 
 	std::vector< std::vector<std::string> > readGroupsToMerge;
-	std::vector< std::vector<std::string> >::reverse_iterator rIt;
 
 	//parse file and fill vectors
 	std::vector<std::string> vec;

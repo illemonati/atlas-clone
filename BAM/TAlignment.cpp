@@ -222,7 +222,7 @@ void TAlignment::_setDistancesFromEnds(){
 			//reverse (can be either first or second mate, but it's the one that comes second in bam file)
 			//and distance from 5' is given as f(end of fragment) = f(len - pos - 1)
 			//hence distance from 3' is given by f(dist since beginning of fragment) = f(insert - len + pos)
-			int k = abs(_fragmentLength) - (_cigar.lengthSequenced() - _cigar.lengthSoftClippedRight());
+			int k = _fragmentLength - (_cigar.lengthSequenced() - _cigar.lengthSoftClippedRight());
 			int l = _cigar.lengthSequenced() - 1 - _cigar.lengthSoftClippedRight();
 			for(int pos=0; pos<length; ++pos){
 				_bases[pos].distFrom5Prime = l - pos; //dist from 5'
@@ -265,14 +265,14 @@ void TAlignment::_setDistancesFromEnds(){
 void TAlignment::_fillContext(){
 	if(_flags.isReverseStrand()){
 		//reverse
-		for(int d=0; d<(_cigar.lengthSequenced()-1); ++d){
+		for (size_t d=0; d<(_cigar.lengthSequenced()-1); ++d){
 			_bases[d].context.set(_bases[d+1].base, _bases[d].base);
 		}
 		_bases[_cigar.lengthSequenced()-1].context.set(genometools::N, _bases[_cigar.lengthSequenced()-1].base);
 	} else {
 		//forward
 		_bases[0].context.set(genometools::N, _bases[0].base);
-		for(int d=1; d<_cigar.lengthSequenced(); ++d)
+		for (size_t d=1; d<_cigar.lengthSequenced(); ++d)
 			_bases[d].context.set(_bases[d-1].base, _bases[d].base);
 	}
 };
@@ -346,7 +346,7 @@ void TAlignment::_updateSequenceAndQualities() const{
 		_sequence.resize(_bases.size());
 		_qualities.resize(_bases.size());
 
-		for(auto b=0; b < _bases.size(); ++b){
+		for (size_t b=0; b < _bases.size(); ++b){
 			_sequence[b] = (char) _bases[b].base;
 			_qualities[b] = (char) genometools::BaseQuality(_bases[b].recalibratedQualityAsPhredInt);
 		}
