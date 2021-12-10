@@ -6,6 +6,7 @@
  */
 
 #include "TSimulatorQuality.h"
+#include "algorithmsAndVectors.h"
 
 namespace Simulations{
 
@@ -153,7 +154,7 @@ void TSimulatorQualityDistNormal::parseFunctionString(std::string & s){
 		throw "Fail to understand distribution '" + orig + "': use format normal(mean,sd)[min,max].";
 	s.erase(0,1);
 
-	unsigned int pos = s.find(",");
+	auto pos = s.find(",");
 	if(pos == std::string::npos)
 		throw "Fail to understand distribution '" + orig + "': use format normal(mean,sd)[min,max].";
 	_mean = coretools::str::convertString<double>(s.substr(0,pos));

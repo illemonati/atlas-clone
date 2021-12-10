@@ -218,15 +218,15 @@ void TSimulatorSingleEndRead::_simulateBasesQualities(BAM::TAlignment & alignmen
 
 */
 
-void TSimulatorSingleEndRead::simulate(Base* haplotype, const uint32_t & refID, const uint32_t & pos, TSimulatorBamFile & bamFile){
+void TSimulatorSingleEndRead::simulate(Base*, const uint32_t & refID, const uint32_t & pos, TSimulatorBamFile & bamFile){
 	//prepare alignment
 	_alignment.move(refID, pos);
 	_alignment.setName(_getNextReadName());
 	_alignment.setIsReverseStrand(_randomGenerator->getRand() < 0.5);
 
 	//pick a fragment and read length, strand and contamination
-	TReadLength readLength = _readLengthDist->sample();
-	bool readIsContaminated = _isContaminated && _randomGenerator->getRand() < _contaminationRate;
+	//TReadLength readLength = _readLengthDist->sample();
+	//bool readIsContaminated = _isContaminated && _randomGenerator->getRand() < _contaminationRate;
 
 	//simulated bases and qualities
 	//_simulateBasesQualities(_alignment, haplotype, pos, readLength, readIsContaminated, _qualityTransform);
@@ -290,7 +290,7 @@ TSimulatorPairedEndReads::~TSimulatorPairedEndReads(){
 		delete it;
 };
 
-void TSimulatorPairedEndReads::simulate(Base* haplotype, const uint32_t refID, const uint32_t & pos, TSimulatorBamFile & bamFile){
+void TSimulatorPairedEndReads::simulate(Base* haplotype, const uint32_t & refID, const uint32_t & pos, TSimulatorBamFile & bamFile){
 	//pick a fragment, read length and contamination
 	TReadLength readLength = _readLengthDist->sample();
 	bool readIsContaminated = _isContaminated && _randomGenerator->getRand() < _contaminationRate;

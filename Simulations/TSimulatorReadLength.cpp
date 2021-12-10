@@ -27,7 +27,7 @@ TReadLengthDistribution::TReadLengthDistribution(std::string & s, TRandomGenerat
 	_cumulAtMin = 0.0;
 
 	_positionProbs = new double[_meanLength];
-	for(int i=0; i<_meanLength; ++i){
+	for(size_t i=0; i<_meanLength; ++i){
 		_positionProbs[i] = 1.0 / _meanLength;
 	}
 };
@@ -87,7 +87,7 @@ void TSimulatorReadLengthGamma::parseFunctionString(std::string & s, double & pa
 		throw "Fail to understand function '" + orig + "': use format function(var1,var2)[min,max].";
 	s.erase(0,1);
 
-	unsigned int pos = s.find(",");
+	auto pos = s.find(",");
 	if(pos == std::string::npos)
 		throw "Fail to understand function '" + orig + "': use format function(var1,var2)[min,max].";
 	param1 = convertString<double>(s.substr(0,pos));
@@ -131,7 +131,7 @@ void TSimulatorReadLengthGamma::initiate(TLog* logfile){
 	for(uint32_t i=0; i < _min; ++i)	_gammaDensity[i] = 0;
 
 	//then calculate densities for all bins <_max
-	for(int i=_min; i<(_maxPlusOne-1); ++i){
+	for(size_t i=_min; i<(_maxPlusOne-1); ++i){
 		_gammaDensity[i] = coretools::TGammaDistr::density(i, _alpha, _beta);
 		totalArea += _gammaDensity[i];
 	}

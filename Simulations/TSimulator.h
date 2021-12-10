@@ -88,8 +88,8 @@ protected:
 	//functions to simulate
 	Base _sampleBase(const std::array<double, 4> & cumulProbs);
 	Base _mutateBase(const Base & base, const std::array<double, 4> & cumulProbs);
-	virtual void _simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, TSimulatorReference & ref){ throw "_simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref) not implemented for base class TSimulator!"; };
-	virtual void _simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, TSimulatorReference & ref){ throw "_simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref) not implemented for base class TSimulator!"; };
+	virtual void _simulateHaplotypesDiploid(TSimulatorHaplotypes &, BAM::TChromosome &, TSimulatorReference &){ throw "_simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref) not implemented for base class TSimulator!"; };
+	virtual void _simulateHaplotypesHaploid(TSimulatorHaplotypes &, BAM::TChromosome &, TSimulatorReference &){ throw "_simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref) not implemented for base class TSimulator!"; };
 	void _simulateReadsFromHaplotypes(const BAM::TChromosome & thisChr, Base** haplotypes, TSimulatorBamFile & bamFile, std::string extraProgressText);
 
 public:
