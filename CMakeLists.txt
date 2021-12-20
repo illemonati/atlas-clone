@@ -1,27 +1,40 @@
-# Project
-if (POLICY CMP0048)
-  cmake_policy(SET CMP0048 NEW)
-endif (POLICY CMP0048)
-
-project(atlas VERSION 1.0.0)
-
-cmake_minimum_required(VERSION 3.0.0)
-
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_FLAGS "-Wall -Wextra")
+cmake_minimum_required(VERSION 3.14)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
-# compile commands: by default, compile in Release mode
-# type 'cmake -DCMAKE_BUILD_TYPE=Debug ..' in terminal for compiling in Debug mode
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif()
 
-# locate external libraries
+if (POLICY CMP0048)
+  cmake_policy(SET CMP0048 NEW)
+endif (POLICY CMP0048)
+
+# Project
+project(atlas VERSION 1.0.0 LANGUAGES CXX)
+
+# bamtools
+add_library(bamtools STATIC)
+
+file(GLOB_RECURSE BAMTOOLS bamtools/*)
+target_sources(bamtools PRIVATE ${BAMTOOLS})
+target_include_directories(bamtools PUBLIC bamtools)
+target_compile_features(bamtools PUBLIC cxx_std_17)
+set_target_properties(bamtools PROPERTIES CXX_EXTENSIONS OFF)
+
+# Atlas
+add_executable(${PROJECT_NAME} atlas.cpp)
+
+file(GLOB CORE_SOURCES CONFIGURE_DEPENDS
+  BAM/*.h BAM/*.cpp
+  GenomeTasks/*.h GenomeTasks/*.cpp
+  GenotypeLikelihoods/*.h GenotypeLikelihoods/*.cpp
+  GLF/*.h GLF/*.cpp
+  PopulationTools/*.h PopulationTools/*.cpp
+  Simulations/*.h Simulations/*.cpp
+  TestUtilities/*.h TestUtilities/*.cpp
+  VCF/*.h VCF/*.cpp)
+
 find_package(ZLIB REQUIRED)
 find_package(Armadillo REQUIRED)
-
-option(gtest_disable_pthreads "Disable uses of pthreads in gtest." ON)
 
 # Download coretools and stattools
 include(FetchContent)
@@ -44,76 +57,30 @@ FetchContent_Declare(genometools
         GIT_TAG           9f28fdc
         SOURCE_DIR        "${CMAKE_CURRENT_BINARY_DIR}/genometools"
         )
-FetchContent_MakeAvailable(genometools)
+FetchContent_MakeAvailable(coretools stattools genometools)
 
-set(LINK_LIBRARIES
-        coreLib
-        coretools
-        genometools
-        stattools
-        ${ZLIB_LIBRARIES}
-        ${ARMADILLO_LIBRARIES}
-        )
+target_sources(${PROJECT_NAME} PRIVATE ${CORE_SOURCES})
+target_include_directories(${PROJECT_NAME} PRIVATE 
+  coretools/core/IntegrationTests
+  BAM
+  GenomeTasks
+  GenotypeLikelihoods
+  GLF
+  PopulationTools
+  Simulations
+  TestUtilities
+  VCF)
 
-include_directories(
-        BAM
-        bamtools
-        GenomeTasks
-        GenotypeLikelihoods
-        GLF
-        PopulationTools
-        Simulations
-        TestUtilities
-        VCF
-        coretools/core
-        coretools/core/Types
-        coretools/core/IntegrationTests
-        genometools/core        
-        stattools/core        
-        ${ARMADILLO_INCLUDE_DIRS}
-)
+target_link_libraries(${PROJECT_NAME} PRIVATE bamtools coretools stattools genometools ${ZLIB_LIBRARIES} ${ARMADILLO_LIBRARIES})
+target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
+set_target_properties(${PROJECT_NAME} PROPERTIES CXX_EXTENSIONS OFF)
+target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra)
 
-#######################
-# Create core library
-#######################
-# assemble list of cpp and h files in all source folders
-file(GLOB_RECURSE BAMTOOLS bamtools/*)
-file(GLOB CORE_SOURCES BAM/*.h BAM/*.cpp
-                               GenomeTasks/*.h GenomeTasks/*.cpp
-                               GenotypeLikelihoods/*.h GenotypeLikelihoods/*.cpp
-                               GLF/*.h GLF/*.cpp
-                               PopulationTools/*.h PopulationTools/*.cpp
-                               Simulations/*.h Simulations/*.cpp
-                               TestUtilities/*.h TestUtilities/*.cpp
-                               VCF/*.h VCF/*.cpp
-        )
-list(APPEND CORE_SOURCES ${BAMTOOLS})
+#[[
+# Test
+add_executable("${PROJECT_NAME}_unitTests" EXCLUDE_FROM_ALL)
 
-#Core library
-add_library(coreLib STATIC ${CORE_SOURCES})
-
-#######################
-# Executable
-#######################
-
-# add executable to be built
-add_executable(${PROJECT_NAME}
-        atlas.cpp
-        )
-
-# link libraries
-target_link_libraries(${PROJECT_NAME} PUBLIC
-        ${LINK_LIBRARIES}
-        )
-
-# add the binary tree to the search path for include files
-target_include_directories(${PROJECT_NAME} PUBLIC)
-
-#######################
-# Tests
-#######################
-#assemble list of test cpp and h files
-file(GLOB_RECURSE TEST_SOURCES
+file(GLOB_RECURSE TEST_SOURCES CONFIGURE_DEPENDS 
         BAM/tests/*.h BAM/tests/*.cpp
         bamtools/tests/*
         GenomeTasks/tests/*.h GenomeTasks/tests/*.cpp
@@ -122,29 +89,34 @@ file(GLOB_RECURSE TEST_SOURCES
         PopulationTools/tests/*.h PopulationTools/tests/*.cpp
         Simulations/tests/*.h Simulations/tests/*.cpp
         TestUtilities/tests/*.h TestUtilities/tests/*.cpp
-        VCF/tests/*.h VCF/tests/*.cpp
-        )
+        VCF/tests/*.h VCF/tests/*.cpp)
 
-add_executable("${PROJECT_NAME}_unitTests" ${TEST_SOURCES})
+FetchContent_Declare(
+  googletest
+  GIT_REPOSITORY https://github.com/google/googletest.git
+  GIT_TAG        main
+)
+FetchContent_MakeAvailable(googletest)
 
-target_link_libraries("${PROJECT_NAME}_unitTests" PUBLIC
-        gtest_main
-        gmock_main
-        ${LINK_LIBRARIES}
-        )
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+option(gtest_disable_pthreads "Disable uses of pthreads in gtest." ON)
 
-target_include_directories("${PROJECT_NAME}_unitTests" PUBLIC
-        "${PROJECT_BINARY_DIR}" #google tests will be cloned in there
-        BAM/tests
-        bamtools/tests
-        GenomeTasks/tests
-        GenotypeLikelihoods/tests
-        GLF/tests
-        PopulationTools/tests
-        Simulations/tests
-        TestUtilities/tests
-        VCF/tests
-        coretools/tests
-        #genometools/tests
-        #stattools/tests
-        )
+target_sources("${PROJECT_NAME}_unitTests" PRIVATE ${CORE_SOURCES} ${TEST_SOURCES})
+
+target_include_directories("${PROJECT_NAME}_unitTests" PRIVATE 
+  coretools/core/IntegrationTests
+        BAM
+        GenomeTasks
+        GenotypeLikelihoods
+        GLF
+        PopulationTools
+        Simulations
+        TestUtilities
+        VCF)
+
+target_link_libraries("${PROJECT_NAME}_unitTests" PRIVATE coretools stattools genometools gtest_main gmock_main)
+target_compile_definitions("${PROJECT_NAME}_unitTests" PRIVATE CHECK_INTERVALS)
+target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
+set_target_properties(${PROJECT_NAME} PROPERTIES CXX_EXTENSIONS OFF)
+target_compile_options("${PROJECT_NAME}_unitTests" PRIVATE -Wall -Wextra)
+]]
