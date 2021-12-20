@@ -76,8 +76,6 @@ target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_EXTENSIONS OFF)
 target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra)
 
-#[[
-# Test
 add_executable("${PROJECT_NAME}_unitTests" EXCLUDE_FROM_ALL)
 
 file(GLOB_RECURSE TEST_SOURCES CONFIGURE_DEPENDS 
@@ -105,6 +103,7 @@ target_sources("${PROJECT_NAME}_unitTests" PRIVATE ${CORE_SOURCES} ${TEST_SOURCE
 
 target_include_directories("${PROJECT_NAME}_unitTests" PRIVATE 
   coretools/core/IntegrationTests
+  coretools/tests
         BAM
         GenomeTasks
         GenotypeLikelihoods
@@ -114,9 +113,8 @@ target_include_directories("${PROJECT_NAME}_unitTests" PRIVATE
         TestUtilities
         VCF)
 
-target_link_libraries("${PROJECT_NAME}_unitTests" PRIVATE coretools stattools genometools gtest_main gmock_main)
+target_link_libraries("${PROJECT_NAME}_unitTests" PRIVATE bamtools coretools stattools genometools ${ZLIB_LIBRARIES} ${ARMADILLO_LIBRARIES} gtest_main gmock_main)
 target_compile_definitions("${PROJECT_NAME}_unitTests" PRIVATE CHECK_INTERVALS)
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_EXTENSIONS OFF)
 target_compile_options("${PROJECT_NAME}_unitTests" PRIVATE -Wall -Wextra)
-]]
