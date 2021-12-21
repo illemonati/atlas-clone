@@ -40,21 +40,21 @@ find_package(Armadillo REQUIRED)
 include(FetchContent)
 FetchContent_Declare(coretools
         GIT_REPOSITORY    https://bitbucket.org/wegmannlab/coretools.git
-        GIT_TAG           a3c5991
+        GIT_TAG           8781ab2
         SOURCE_DIR        "${CMAKE_CURRENT_BINARY_DIR}/coretools"
         )
 FetchContent_MakeAvailable(coretools)
 
 FetchContent_Declare(stattools
         GIT_REPOSITORY    https://bitbucket.org/wegmannlab/stattools.git
-        GIT_TAG           d1c79db
+        GIT_TAG           0cd0ed3
         SOURCE_DIR        "${CMAKE_CURRENT_BINARY_DIR}/stattools"
         )
 FetchContent_MakeAvailable(stattools)
 
 FetchContent_Declare(genometools
         GIT_REPOSITORY    https://bitbucket.org/wegmannlab/genometools.git
-        GIT_TAG           713d9b9
+        GIT_TAG           d864df4
         SOURCE_DIR        "${CMAKE_CURRENT_BINARY_DIR}/genometools"
         )
 FetchContent_MakeAvailable(coretools stattools genometools)

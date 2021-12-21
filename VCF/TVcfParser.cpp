@@ -606,7 +606,7 @@ int TVcfParser::getSampleNum(std::string & Name){
 };
 
 std::string TVcfParser::getSampleName(unsigned int & sample){
-	if(sample < 0 || sample > samples.size()) throw "Sample " + toString(sample) + " does not exists!";
+	if(sample > samples.size()) throw "Sample " + toString(sample) + " does not exists!";
 	return samples[sample];
 };
 

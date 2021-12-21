@@ -363,9 +363,7 @@ void TPopulationLikelihoodReader::initialize(coretools::TParameters & Parameters
 		logfile->list("Will filter samples to a minimum depth of " + toString(minDepth) + ". (parameter 'minDepth')");
 
 	// do we set a missingness filter?
-	minNumSamplesWithData = Parameters.getParameterWithDefault<int>("minSamplesWithData", 1);
-	if(minNumSamplesWithData < 0)
-		throw "minNumSamplesWithData must be >= 0!";
+	minNumSamplesWithData = Parameters.getParameterWithDefault<uint32_t>("minSamplesWithData", 1);
 	if(minNumSamplesWithData > 1)
 		logfile->list("Will remove loci where less than " + toString(minNumSamplesWithData) + " samples have data. (parameter 'minSamplesWithData')");
 

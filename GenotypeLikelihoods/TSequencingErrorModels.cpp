@@ -108,7 +108,7 @@ bool TSequencingErrorModels::recalStringIsLikelyAModel(const std::string & Recal
 	return coretools::str::stringContainsAny(RecalString, ";:[]");
 };
 
-void TSequencingErrorModels::initialize(const std::string & RecalString, const std::string & RhoString, const BAM::TReadGroups & ReadGroups, coretools::TLog* Logfile){
+void TSequencingErrorModels::initialize(const std::string & RecalString, const std::string & RhoString, const BAM::TReadGroups & ReadGroups, coretools::TLog*){
 	if(_doRecalibration)
 		throw std::runtime_error("void TSequencingErrorModels::initialize(const std::string & RecalString, const std::string & RhoString, const BAM::TReadGroups & ReadGroups, TLog* Logfile): Models already initialized!");
 
