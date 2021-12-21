@@ -522,6 +522,7 @@ void TGenome::callGenotypes(TParameters & params){
 		while(alignmentParser.readDataInNextWindow(window)){
 			subset.setChr(alignmentParser.getCurChrName());
 			//read data for current window
+
 			if(window.passedFilters || caller->printSitesWithNoData()){
 				//update genotype prior
 				prior->update(&window, alignmentParser.getCurChrName(), logfile);
@@ -736,7 +737,7 @@ void TGenome::estimateErrorCalibrationEM(TParameters & params){
 			subset.setChr(alignmentParser.getCurChrName());
 
 			//read data for current window
-			if(window.passedFilters)
+			if(window.passedFilters && subset.hasPositionsInWindow(window.start))
 				window.addToRecalibrationEM(recalObjectEM, &subset, qualityMap);
 			else logfile->list("No positions in this window.");
 		}
