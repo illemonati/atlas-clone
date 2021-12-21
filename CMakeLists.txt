@@ -14,9 +14,9 @@ project(atlas VERSION 1.0.0 LANGUAGES CXX)
 # bamtools
 add_library(bamtools STATIC)
 
-file(GLOB_RECURSE BAMTOOLS bamtools/*)
-target_sources(bamtools PRIVATE ${BAMTOOLS})
-target_include_directories(bamtools PUBLIC bamtools)
+file(GLOB_RECURSE BAMTOOLS_SOURCES bamtools/*)
+target_sources(bamtools PRIVATE ${BAMTOOLS_SOURCES})
+target_include_directories(bamtools PRIVATE bamtools SYSTEM INTERFACE bamtools)
 target_compile_features(bamtools PUBLIC cxx_std_17)
 set_target_properties(bamtools PROPERTIES CXX_EXTENSIONS OFF)
 
