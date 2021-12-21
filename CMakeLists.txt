@@ -40,21 +40,21 @@ find_package(Armadillo REQUIRED)
 include(FetchContent)
 FetchContent_Declare(coretools
         GIT_REPOSITORY    https://bitbucket.org/wegmannlab/coretools.git
-        GIT_TAG           394a2fe
+        GIT_TAG           a3c5991
         SOURCE_DIR        "${CMAKE_CURRENT_BINARY_DIR}/coretools"
         )
 FetchContent_MakeAvailable(coretools)
 
 FetchContent_Declare(stattools
         GIT_REPOSITORY    https://bitbucket.org/wegmannlab/stattools.git
-        GIT_TAG           779b99c
+        GIT_TAG           d1c79db
         SOURCE_DIR        "${CMAKE_CURRENT_BINARY_DIR}/stattools"
         )
 FetchContent_MakeAvailable(stattools)
 
 FetchContent_Declare(genometools
         GIT_REPOSITORY    https://bitbucket.org/wegmannlab/genometools.git
-        GIT_TAG           9f28fdc
+        GIT_TAG           713d9b9
         SOURCE_DIR        "${CMAKE_CURRENT_BINARY_DIR}/genometools"
         )
 FetchContent_MakeAvailable(coretools stattools genometools)
@@ -114,7 +114,6 @@ target_include_directories("${PROJECT_NAME}_unitTests" PRIVATE
         VCF)
 
 target_link_libraries("${PROJECT_NAME}_unitTests" PRIVATE bamtools coretools stattools genometools ${ZLIB_LIBRARIES} ${ARMADILLO_LIBRARIES} gtest_main gmock_main)
-target_compile_definitions("${PROJECT_NAME}_unitTests" PRIVATE CHECK_INTERVALS)
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_EXTENSIONS OFF)
 target_compile_options("${PROJECT_NAME}_unitTests" PRIVATE -Wall -Wextra)
