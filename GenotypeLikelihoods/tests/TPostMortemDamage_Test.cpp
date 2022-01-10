@@ -11,39 +11,40 @@ using namespace GenotypeLikelihoods;
 using genometools::Base;
 
 TEST(TPostMortemDamage_test, baseANoPMD){
-    TSequencingErrorModels _sequencingErrorModels;
-    TBaseLikelihoods _baseLikelihoods;
-    TBaseLikelihoods _baseLikelihoodsNoPMD;
-    TPostMortemDamage _pmd;
+    TSequencingErrorModels sem;
+    TBaseLikelihoods sem_likelihoods;
+
+    TPostMortemDamage pmd;
+    TBaseLikelihoods pmd_likelihoods;
     BAM::TSequencedBase base;
     base.originalQuality_phredInt = 20;
     float oneMinusError = 0.99;
     float errorOneThird = 0.01 / 3;
     base.base = genometools::A;
 
-    _sequencingErrorModels.fillBaseLikelihoods(base, _baseLikelihoodsNoPMD);
-    _pmd.fillBaseLikelihoods(base, _baseLikelihoodsNoPMD, _baseLikelihoods);
+    sem.fillBaseLikelihoods(base, sem_likelihoods);
+    pmd.fillBaseLikelihoods(base, sem_likelihoods, pmd_likelihoods);
 
     for(Base b = Base::min(); b < Base::max(); ++b){
         base.base = (b);
-        _sequencingErrorModels.fillBaseLikelihoods(base, _baseLikelihoodsNoPMD);
+        sem.fillBaseLikelihoods(base, sem_likelihoods);
 
         for(Base trueBase = Base::min(); trueBase < Base::max(); ++trueBase){
             //true base is A
             if(trueBase == b){
-                EXPECT_FLOAT_EQ(_baseLikelihoodsNoPMD[trueBase], oneMinusError);
+                EXPECT_FLOAT_EQ(sem_likelihoods[trueBase], oneMinusError);
             } else {
-                EXPECT_FLOAT_EQ(_baseLikelihoodsNoPMD[trueBase], errorOneThird);
+                EXPECT_FLOAT_EQ(sem_likelihoods[trueBase], errorOneThird);
             }
         }
     }
 }
 
 TEST(TPostMortemDamage_test, baseAWithPMD){
-    TSequencingErrorModels _sequencingErrorModels;
-    TBaseLikelihoods _baseLikelihoods;
-    TBaseLikelihoods _baseLikelihoodsNoPMD;
-    TPostMortemDamage _pmd;
+    TSequencingErrorModels sem;
+    TBaseLikelihoods sem_likelihoods;
+    TPostMortemDamage pmd;
+    TBaseLikelihoods pmd_likelihoods;
     BAM::TSequencedBase base;
 
     //initialize RG
@@ -53,7 +54,7 @@ TEST(TPostMortemDamage_test, baseAWithPMD){
     //initialize PMD
     TLog logfile;
     std::vector<uint16_t> ReadGroupsWithoutPMD;
-    _pmd.initialize("doubleStrand:Empiric[0.5]:Empiric[0.5]", ReadGroups, &logfile, ReadGroupsWithoutPMD);
+    pmd.initialize("doubleStrand:Empiric[0.5]:Empiric[0.5]", ReadGroups, &logfile, ReadGroupsWithoutPMD);
 
     //initialize base
     base.originalQuality_phredInt = 20;
@@ -68,27 +69,27 @@ TEST(TPostMortemDamage_test, baseAWithPMD){
         base.readGroupID = 0;
         base.setReverseStrand(false);
 
-        _sequencingErrorModels.fillBaseLikelihoods(base, _baseLikelihoodsNoPMD);
-        _pmd.fillBaseLikelihoods(base, _baseLikelihoodsNoPMD, _baseLikelihoods);
+        sem.fillBaseLikelihoods(base, sem_likelihoods);
+        pmd.fillBaseLikelihoods(base, sem_likelihoods, pmd_likelihoods);
 
 		for (Base trueBase = Base::min(); trueBase < Base::max(); ++trueBase) {
 			std::cout <<"trueBase " <<  trueBase << '\n';
-			std::cout << _baseLikelihoods << '\n';
-			std::cout << _baseLikelihoodsNoPMD << '\n';
+			std::cout << pmd_likelihoods << '\n';
+			std::cout << sem_likelihoods << '\n';
 			// true base is A
 			if (trueBase == b) {
 				if (trueBase == genometools::A || trueBase == genometools::T) {
-					EXPECT_FLOAT_EQ(_baseLikelihoodsNoPMD[trueBase], oneMinusError);
+					EXPECT_FLOAT_EQ(sem_likelihoods[trueBase], oneMinusError);
 				}
 				else if (trueBase == genometools::C) {
-					EXPECT_FLOAT_EQ(_baseLikelihoods[trueBase],
-							(1.0 - 0.5) * 0.5 + 0.5 * _baseLikelihoodsNoPMD[genometools::T]);
+					EXPECT_FLOAT_EQ(pmd_likelihoods[trueBase],
+							(1.0 - 0.5) * 0.5 + 0.5 * sem_likelihoods[genometools::T]);
 				} else if (trueBase == genometools::G) {
-					EXPECT_FLOAT_EQ(_baseLikelihoods[trueBase],
-							(1.0 - 0.5) * 0.5 + 0.5 * _baseLikelihoodsNoPMD[genometools::A]);
+					EXPECT_FLOAT_EQ(pmd_likelihoods[trueBase],
+							(1.0 - 0.5) * 0.5 + 0.5 * sem_likelihoods[genometools::A]);
 				}
 			} else {
-				EXPECT_FLOAT_EQ(_baseLikelihoodsNoPMD[trueBase], errorOneThird);
+				EXPECT_FLOAT_EQ(sem_likelihoods[trueBase], errorOneThird);
 			}
 			std::cout << '\n';
 		}
