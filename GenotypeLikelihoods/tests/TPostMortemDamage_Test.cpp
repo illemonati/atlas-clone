@@ -65,6 +65,7 @@ TEST(TPostMortemDamage_test, baseAWithPMD){
 
     for(Base b = Base::min(); b < Base::max(); ++b){
         //calculate base likelihoods
+	    std::cout << "b " << b << '\n';
         base.base = b;
         base.readGroupID = 0;
         base.setReverseStrand(false);
@@ -72,17 +73,26 @@ TEST(TPostMortemDamage_test, baseAWithPMD){
         _sequencingErrorModels.fillBaseLikelihoods(base, _baseLikelihoodsNoPMD);
         _pmd.fillBaseLikelihoods(base, _baseLikelihoodsNoPMD, _baseLikelihoods[0]);
 
-        for(Base trueBase = Base::min(); trueBase < Base::max(); ++trueBase){
-            //true base is A
-            if(trueBase == b && (trueBase == genometools::A || trueBase == genometools::T)) {
-                EXPECT_FLOAT_EQ(_baseLikelihoods[0][trueBase], oneMinusError);
-            } else if(trueBase == b && (trueBase == genometools::C)){
-                EXPECT_FLOAT_EQ(_baseLikelihoods[0][trueBase], (1.0 - 0.5) * 0.5 + 0.5 * _baseLikelihoodsNoPMD[genometools::T]);
-            } else if(trueBase == b && (trueBase == genometools::G)){
-                EXPECT_FLOAT_EQ(_baseLikelihoods[0][trueBase], (1.0 - 0.5) * 0.5 + 0.5 * _baseLikelihoodsNoPMD[genometools::A]);
-//            } else {
-//                EXPECT_FLOAT_EQ(_baseLikelihoods[0][trueBase], errorOneThird);
-            }
-        }
-    }
+		for (Base trueBase = Base::min(); trueBase < Base::max(); ++trueBase) {
+			std::cout <<"trueBase " <<  trueBase << '\n';
+			std::cout << _baseLikelihoods[0] << '\n';
+			std::cout << _baseLikelihoodsNoPMD << '\n';
+			// true base is A
+			if (trueBase == b) {
+				if (trueBase == genometools::A || trueBase == genometools::T) {
+					EXPECT_FLOAT_EQ(_baseLikelihoodsNoPMD[trueBase], oneMinusError);
+				}
+				else if (trueBase == genometools::C) {
+					EXPECT_FLOAT_EQ(_baseLikelihoods[0][trueBase],
+							(1.0 - 0.5) * 0.5 + 0.5 * _baseLikelihoodsNoPMD[genometools::T]);
+				} else if (trueBase == genometools::G) {
+					EXPECT_FLOAT_EQ(_baseLikelihoods[0][trueBase],
+							(1.0 - 0.5) * 0.5 + 0.5 * _baseLikelihoodsNoPMD[genometools::A]);
+				}
+			} else {
+				EXPECT_FLOAT_EQ(_baseLikelihoodsNoPMD[trueBase], errorOneThird);
+			}
+			std::cout << '\n';
+		}
+	}
 }
