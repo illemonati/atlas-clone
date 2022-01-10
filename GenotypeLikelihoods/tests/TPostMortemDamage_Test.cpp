@@ -12,7 +12,7 @@ using genometools::Base;
 
 TEST(TPostMortemDamage_test, baseANoPMD){
     TSequencingErrorModels _sequencingErrorModels;
-    std::vector<TBaseLikelihoods> _baseLikelihoods;
+    TBaseLikelihoods _baseLikelihoods;
     TBaseLikelihoods _baseLikelihoodsNoPMD;
     TPostMortemDamage _pmd;
     BAM::TSequencedBase base;
@@ -21,9 +21,8 @@ TEST(TPostMortemDamage_test, baseANoPMD){
     float errorOneThird = 0.01 / 3;
     base.base = genometools::A;
 
-    _baseLikelihoods.resize(1);
     _sequencingErrorModels.fillBaseLikelihoods(base, _baseLikelihoodsNoPMD);
-    _pmd.fillBaseLikelihoods(base, _baseLikelihoodsNoPMD, _baseLikelihoods[0]);
+    _pmd.fillBaseLikelihoods(base, _baseLikelihoodsNoPMD, _baseLikelihoods);
 
     for(Base b = Base::min(); b < Base::max(); ++b){
         base.base = (b);
@@ -42,7 +41,7 @@ TEST(TPostMortemDamage_test, baseANoPMD){
 
 TEST(TPostMortemDamage_test, baseAWithPMD){
     TSequencingErrorModels _sequencingErrorModels;
-    std::vector<TBaseLikelihoods> _baseLikelihoods;
+    TBaseLikelihoods _baseLikelihoods;
     TBaseLikelihoods _baseLikelihoodsNoPMD;
     TPostMortemDamage _pmd;
     BAM::TSequencedBase base;
@@ -61,7 +60,6 @@ TEST(TPostMortemDamage_test, baseAWithPMD){
     float oneMinusError = 0.99;
     float errorOneThird = 0.01 / 3;
     base.base = genometools::A;
-    _baseLikelihoods.resize(1);
 
     for(Base b = Base::min(); b < Base::max(); ++b){
         //calculate base likelihoods
@@ -71,11 +69,11 @@ TEST(TPostMortemDamage_test, baseAWithPMD){
         base.setReverseStrand(false);
 
         _sequencingErrorModels.fillBaseLikelihoods(base, _baseLikelihoodsNoPMD);
-        _pmd.fillBaseLikelihoods(base, _baseLikelihoodsNoPMD, _baseLikelihoods[0]);
+        _pmd.fillBaseLikelihoods(base, _baseLikelihoodsNoPMD, _baseLikelihoods);
 
 		for (Base trueBase = Base::min(); trueBase < Base::max(); ++trueBase) {
 			std::cout <<"trueBase " <<  trueBase << '\n';
-			std::cout << _baseLikelihoods[0] << '\n';
+			std::cout << _baseLikelihoods << '\n';
 			std::cout << _baseLikelihoodsNoPMD << '\n';
 			// true base is A
 			if (trueBase == b) {
@@ -83,10 +81,10 @@ TEST(TPostMortemDamage_test, baseAWithPMD){
 					EXPECT_FLOAT_EQ(_baseLikelihoodsNoPMD[trueBase], oneMinusError);
 				}
 				else if (trueBase == genometools::C) {
-					EXPECT_FLOAT_EQ(_baseLikelihoods[0][trueBase],
+					EXPECT_FLOAT_EQ(_baseLikelihoods[trueBase],
 							(1.0 - 0.5) * 0.5 + 0.5 * _baseLikelihoodsNoPMD[genometools::T]);
 				} else if (trueBase == genometools::G) {
-					EXPECT_FLOAT_EQ(_baseLikelihoods[0][trueBase],
+					EXPECT_FLOAT_EQ(_baseLikelihoods[trueBase],
 							(1.0 - 0.5) * 0.5 + 0.5 * _baseLikelihoodsNoPMD[genometools::A]);
 				}
 			} else {
