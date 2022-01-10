@@ -28,13 +28,16 @@ TEST(TPostMortemDamage_test, baseANoPMD){
     for(Base b = Base::min(); b < Base::max(); ++b){
         base.base = (b);
         sem.fillBaseLikelihoods(base, sem_likelihoods);
+        pmd.fillBaseLikelihoods(base, sem_likelihoods, pmd_likelihoods);
 
         for(Base trueBase = Base::min(); trueBase < Base::max(); ++trueBase){
             //true base is A
             if(trueBase == b){
                 EXPECT_FLOAT_EQ(sem_likelihoods[trueBase], oneMinusError);
+                EXPECT_FLOAT_EQ(pmd_likelihoods[trueBase], oneMinusError);
             } else {
                 EXPECT_FLOAT_EQ(sem_likelihoods[trueBase], errorOneThird);
+                EXPECT_FLOAT_EQ(pmd_likelihoods[trueBase], errorOneThird);
             }
         }
     }
