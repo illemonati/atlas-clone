@@ -39,7 +39,7 @@ void TSite::addToBaseFrequencies(TBaseData & frequencies) const{
 	}
 };
 
-void TSite::downsample(const uint32_t & maxDepth, const coretools::TSubsamplePicker & picker){
+void TSite::downsample(uint32_t maxDepth, const coretools::TSubsamplePicker & picker){
 	//only subsample if depth > maxDepth
 	if(_bases.size() > maxDepth){
 		//select subsample

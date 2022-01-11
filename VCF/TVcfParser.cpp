@@ -735,15 +735,15 @@ bool TVcfParser::sampleIsHeteroRefNonref(TVcfLine & line, unsigned int & sample)
 	return false;
 };
 
-std::string TVcfParser::getFirstAlleleOfSample(const TVcfLine & line, const unsigned int & sample) const {
+std::string TVcfParser::getFirstAlleleOfSample(const TVcfLine & line, unsigned int sample) const {
 	return line.variants[line.samples[sample].genotype.first];
 };
 
-std::string TVcfParser::getSecondAlleleOfSample(const TVcfLine & line, const unsigned int & sample) const {
+std::string TVcfParser::getSecondAlleleOfSample(const TVcfLine & line, unsigned int sample) const {
 	return line.variants[line.samples[sample].genotype.second];
 };
 
-genometools::BiallelicGenotype TVcfParser::sampleBiallelicGenotype(const TVcfLine & line, const unsigned int & sample) const{
+genometools::BiallelicGenotype TVcfParser::sampleBiallelicGenotype(const TVcfLine & line, unsigned int sample) const{
 	//return missing if non-biallelic
 	if(line.samples[sample].isHaploid){
 		if(line.samples[sample].missing || line.variants.size() > 2){

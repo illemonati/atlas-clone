@@ -19,7 +19,7 @@ TSequencingErrorModelVectorForEstimation::TSequencingErrorModelVectorForEstimati
 																				   const RecalEstimatorTools::TRecalDataTables & DataTables,
 																				   const BAM::TReadGroups & ReadGroups,
 																				   const BAM::TReadGroupMap & ReadGroupMap,
-																				   const uint32_t & MinRequiredObservations,
+																				   uint32_t MinRequiredObservations,
 																				   TLog* Logfile):
 																					   _modelIndex(ReadGroups){
 	//Copy models that are 1) in use after pooling and 2) have data.

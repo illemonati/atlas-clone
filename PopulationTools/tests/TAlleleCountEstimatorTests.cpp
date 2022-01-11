@@ -12,10 +12,10 @@ class BridgeTSiteAlleleFrequencyLikelihoods : public PopulationTools::TSiteAllel
     // bridge to protected functions of TSiteAlleleFrequencyLikelihoods
 public:
     BridgeTSiteAlleleFrequencyLikelihoods(int numIndividuals) : PopulationTools::TSiteAlleleFrequencyLikelihoods(numIndividuals){};
-    void _fillLog(PopulationTools::TSampleLikelihoods* data, const uint32_t & numSamples){
+    void _fillLog(PopulationTools::TSampleLikelihoods* data, uint32_t numSamples){
         PopulationTools::TSiteAlleleFrequencyLikelihoods::_fillLog(data, numSamples);
     };
-    void _fillNatural(PopulationTools::TSampleLikelihoods* data, const uint32_t & numSamples){
+    void _fillNatural(PopulationTools::TSampleLikelihoods* data, uint32_t numSamples){
         PopulationTools::TSiteAlleleFrequencyLikelihoods::_fillNatural(data, numSamples);
     };
 };

@@ -527,7 +527,7 @@ bool TCallerMajorityBase::_callGenotypeKnownAlleles(const TSite & site, TGenotyp
 /////////////////////////////////////////////////////////
 // TCallerConsensify
 /////////////////////////////////////////////////////////
-TCallerConsensify::TCallerConsensify(const uint32_t & DownsampleDepth, TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TCaller(Parameters, Logfile, RandomGenerator){
+TCallerConsensify::TCallerConsensify(uint32_t DownsampleDepth, TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TCaller(Parameters, Logfile, RandomGenerator){
 	//general caller settings
 	_callerName = "Consensify Base Caller";
 	_filenameExtention = "_consensifyBase.vcf";

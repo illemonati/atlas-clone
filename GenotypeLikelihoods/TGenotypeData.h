@@ -222,7 +222,7 @@ public:
 
 	uint8_t numAlleles() const;
 	void fillFrequencies(TBaseProbabilities & freq);
-	void downsample(const uint32_t & max, coretools::TRandomGenerator & RandomGenerator);
+	void downsample(uint32_t max, coretools::TRandomGenerator & RandomGenerator);
 };
 
 //--------------------------------------------------------------------

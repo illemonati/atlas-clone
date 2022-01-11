@@ -95,7 +95,7 @@ void TTestGLFFile::_iterateGenotypeLikelihoods(uint32_t curDepth) {
         _dummyGenotypeLikelihoods.fill(bases);
 };
 
-void TTestGLFFile::writeDummySites(const uint32_t &numSites) {
+void TTestGLFFile::writeDummySites(uint32_t numSites) {
     // compute maximal distance between sites (such that positions never exceed the last position of the last chromosome)
     uint32_t usableLength = _chromosomes.referenceLength();
     if (numSites > usableLength)
@@ -160,7 +160,7 @@ void TTestGLFFile::writeSite(long pos, uint32_t depth, GenotypeLikelihoods::TGen
 void TTestGLFFile::writeNewChromosome() {
     ++_dummyCurChr;
     if(_dummyCurChr == _chromosomes.end()){
-        throw std::runtime_error("void TTestBamFile::writeDummyAlignments(const uint32_t & numAlignments): chromosome reached end!");
+        throw std::runtime_error("void TTestBamFile::writeDummyAlignments(uint32_t numAlignments): chromosome reached end!");
     }
 
     _dummyPos = _dummyCurChr->chrStart.position();

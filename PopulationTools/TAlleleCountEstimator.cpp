@@ -96,7 +96,7 @@ void TSiteAlleleFrequencyLikelihoods::normalize(){
 		log_alleleFrequencyLikelihoods_h[j] -= max;
 };
 
-void TSiteAlleleFrequencyLikelihoods::_fillLog(TSampleLikelihoods* data, const uint32_t & numSamples){
+void TSiteAlleleFrequencyLikelihoods::_fillLog(TSampleLikelihoods* data, uint32_t numSamples){
 	//Calculating allele frequency likelihoods according to Nielsen et al. (2012) PLoS One, page 3
 	//adapted to also work for haploid individuals (which only have likelihoods for genotypes 0 and 1)
 	//all calculations done in log
@@ -185,7 +185,7 @@ void TSiteAlleleFrequencyLikelihoods::_fillLog(TSampleLikelihoods* data, const u
 	}
 };
 
-void TSiteAlleleFrequencyLikelihoods::_fillNatural(TSampleLikelihoods* data, const uint32_t & numSamples){
+void TSiteAlleleFrequencyLikelihoods::_fillNatural(TSampleLikelihoods* data, uint32_t numSamples){
 	//Calculating allele frequency likelihoods according to Nielsen et al. (2012) PLoS One, page 3
 	//adapted to also work for haploid individuals (which only have likelihoods for genotypes 0 and 1)
 	std::vector<double> alleleFrequencyLikelihoods_h(log_alleleFrequencyLikelihoods_h.size(), 0.0);
@@ -267,7 +267,7 @@ void TSiteAlleleFrequencyLikelihoods::_fillNatural(TSampleLikelihoods* data, con
 	}
 };
 
-void TSiteAlleleFrequencyLikelihoods::fill(TSampleLikelihoods* data, const uint32_t & numSamples){
+void TSiteAlleleFrequencyLikelihoods::fill(TSampleLikelihoods* data, uint32_t numSamples){
 	//smallest likelihood is 10^-25.5 (phred 255).
 	//A double can store up to 10^-308.
 	//Hence we can store up to (10^25.5)^12 without underflow

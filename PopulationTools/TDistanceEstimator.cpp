@@ -735,7 +735,7 @@ void TDistanceEstimator::estimateDistanceGenomeWide(TEMforDistanceEstimation & E
 //--------------------------------------------
 // Estimation in windows
 //--------------------------------------------
-void TDistanceEstimator::estimateDistanceInWindows(TEMforDistanceEstimation & EM_object, const uint32_t & windowLen){
+void TDistanceEstimator::estimateDistanceInWindows(TEMforDistanceEstimation & EM_object, uint32_t windowLen){
 	logfile->list("Will estimate genetic distance in windows of length ", windowLen, ".");
 	if(windowLen < 100)
 		throw "Window size must be at least 100bp!";
@@ -761,7 +761,7 @@ void TDistanceEstimator::estimateDistanceInWindows(TEMforDistanceEstimation & EM
 	}
 };
 
-void TDistanceEstimator::estimateDistanceInWindows(TEMforDistanceEstimation & EM_object, std::string filename, GLF::TGlfReader & g1, GLF::TGlfReader & g2, const uint32_t & windowLen){
+void TDistanceEstimator::estimateDistanceInWindows(TEMforDistanceEstimation & EM_object, std::string filename, GLF::TGlfReader & g1, GLF::TGlfReader & g2, uint32_t windowLen){
 	//initialize variables
 	bool isGood1 = true;
 	bool isGood2 = true;
@@ -860,7 +860,7 @@ void TDistanceEstimator::estimateDistanceInWindows(TEMforDistanceEstimation & EM
 //--------------------------------------------
 // Writing estimates
 //--------------------------------------------
-void TDistanceEstimator::writeDistanceEstimates(gz::ogzstream & out, std::string & chr, const uint32_t & windowStart, const uint32_t & windowEnd, const uint32_t & numsitesWithData, TEMforDistanceEstimation & EM_object){
+void TDistanceEstimator::writeDistanceEstimates(gz::ogzstream & out, std::string & chr, uint32_t windowStart, uint32_t windowEnd, uint32_t numsitesWithData, TEMforDistanceEstimation & EM_object){
 	out << chr << "\t" << windowStart + 1 << "\t" << windowEnd; //internal position is zero-based
 	writeDistanceEstimates(out, numsitesWithData, EM_object);
 };
@@ -880,7 +880,7 @@ void TDistanceEstimator::writeDistanceEstimates(gz::ogzstream & out, int numsite
 	out << "\n";
 };
 
-void TDistanceEstimator::writeDistanceEstimatesNoData(gz::ogzstream & out, std::string & chr, const uint32_t & windowStart, const uint32_t & windowEnd){
+void TDistanceEstimator::writeDistanceEstimatesNoData(gz::ogzstream & out, std::string & chr, uint32_t windowStart, uint32_t windowEnd){
 	out << chr << "\t" << windowStart + 1 << "\t" << windowEnd << "\t"; //internal position is zero-based
 	writeDistanceEstimatesNoData(out);
 };

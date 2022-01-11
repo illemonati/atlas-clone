@@ -80,7 +80,7 @@ TPMDFunctionSkoglund::TPMDFunctionSkoglund(const std::string & string){
 	}
 };
 
-double TPMDFunctionSkoglund::prob(const uint16_t & pos) const {
+double TPMDFunctionSkoglund::prob(uint16_t pos) const {
 	//Note: distance is zero based!
 	return pow(1.0 - _parameters[0], (double) pos) * _parameters[0] + _parameters[1];
 };
@@ -253,7 +253,7 @@ double TPMDFunctionExponential::_calcLL(const countVec & pmdCounts, const countV
 	return LL;
 };
 
-void TPMDFunctionExponential::_estimateWithNewtonRaphson(const countVec & pmdCounts, const countVec& pmdSums, std::vector<double> & Parameters, const uint32_t & numNRIterations, const double & epsilon){
+void TPMDFunctionExponential::_estimateWithNewtonRaphson(const countVec & pmdCounts, const countVec& pmdSums, std::vector<double> & Parameters, uint32_t numNRIterations, const double & epsilon){
 	//variables
 	arma::mat J(3,3);
 	arma::vec F(3);
@@ -361,7 +361,7 @@ void TPMDFunctionExponential::learn(const TPMDTable & Table, const genometools::
 	}
 };
 
-double TPMDFunctionExponential::prob(const uint16_t & pos) const{
+double TPMDFunctionExponential::prob(uint16_t pos) const{
 	//Note: distance is zero based!
 	//model is fit up to _lastPosition. We assume constant PMD after that
 	if(pos < _lastPosition){
@@ -412,7 +412,7 @@ void TPMDFunctionEmpiric::learn(const TPMDTable & Table, const genometools::Base
 	}
 };
 
-double TPMDFunctionEmpiric::prob(const uint16_t & pos) const{
+double TPMDFunctionEmpiric::prob(uint16_t pos) const{
 	if(pos < _parameters.size()) return _parameters[pos];
 	else return _parameters.back();
 };
@@ -514,7 +514,7 @@ void TPMDTypeDoubleStrand::simulatePMD(BAM::TSequencedBase & base, TRandomGenera
 	simulatePMD(base.base, base.distFrom5Prime, base.distFrom3Prime, base.isReverseStrand(), RandomGenerator);
 };
 
-void TPMDTypeDoubleStrand::simulatePMD(genometools::Base & base, const uint16_t & DistFrom5Prime, const uint16_t & DistFrom3Prime, const bool & IsReverseStrand, TRandomGenerator & RandomGenerator) const{
+void TPMDTypeDoubleStrand::simulatePMD(genometools::Base & base, uint16_t DistFrom5Prime, uint16_t DistFrom3Prime, const bool & IsReverseStrand, TRandomGenerator & RandomGenerator) const{
 	//simulate PMD
 	if(!IsReverseStrand){
 		//forward strand
@@ -608,8 +608,8 @@ void TPMDTypeSingleStrand::simulatePMD(BAM::TSequencedBase &base, TRandomGenerat
 	simulatePMD(base.base, base.distFrom5Prime, base.distFrom3Prime, base.isReverseStrand(), RandomGenerator);
 };
 
-void TPMDTypeSingleStrand::simulatePMD(genometools::Base &base, const uint16_t &DistFrom5Prime,
-				       const uint16_t &DistFrom3Prime, const bool &,
+void TPMDTypeSingleStrand::simulatePMD(genometools::Base &base, uint16_t DistFrom5Prime,
+				       uint16_t DistFrom3Prime, const bool &,
 				       TRandomGenerator &RandomGenerator) const {
 	if (!(base == genometools::C)) return;
 

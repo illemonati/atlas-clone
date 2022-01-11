@@ -58,7 +58,7 @@ public:
     void writeSite(long pos, uint32_t depth, GenotypeLikelihoods::TGenotypeLikelihoods &genotypeLikelihoods, uint8_t RMS_mappingQuality);
     void writeNewChromosome();
     // write dummy sites with shuffling
-    void writeDummySites(const uint32_t & numSites);
+    void writeDummySites(uint32_t numSites);
     void writeDummySite(long pos);
     void writeDummySite(long pos, uint32_t depth);
     void writeDummySite(long pos, uint32_t depth, GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods);

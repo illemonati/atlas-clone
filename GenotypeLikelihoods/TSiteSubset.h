@@ -35,7 +35,7 @@ private:
 	genometools::Base _ref, _alt;
 
 public:
-	TSiteSubsetSite(const uint32_t & refID, const uint32_t & position, const genometools::Base & Ref, const genometools::Base & Alt);
+	TSiteSubsetSite(uint32_t refID, uint32_t position, const genometools::Base & Ref, const genometools::Base & Alt);
 	TSiteSubsetSite(const BAM::TGenomePosition & Position, const genometools::Base & Ref, const genometools::Base & Alt);
 	TSiteSubsetSite(const TSiteSubsetSite & other) = default;
 	void write(coretools::TOutputFile & out) const;
@@ -55,7 +55,7 @@ private:
 	std::vector<TSiteSubsetSite> empty; //an empty vector to be returned in case there are no positions
 	bool _storesInvariantSites;
 
-	void _checkAlleles(const std::string & chr, const uint32_t & pos, const genometools::Base & ref, const genometools::Base & alt, const std::string & refAllele, const std::string & altAllele);
+	void _checkAlleles(const std::string & chr, uint32_t pos, const genometools::Base & ref, const genometools::Base & alt, const std::string & refAllele, const std::string & altAllele);
 	void _readFile(const std::string Filename, const BAM::TChromosomes & Chromosomes, coretools::TLog* Logfile);
 	void _readFile(const std::string Filename, const BAM::TChromosomes & Chromosomes, coretools::TLog* Logfile, BAM::TFastaBuffer & Reference);
 

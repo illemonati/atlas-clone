@@ -50,7 +50,7 @@ public:
 	void clear();
 	void resize(uint32_t NumSamples);
 
-	TSampleLikelihoods & operator[](const uint32_t & index){
+	TSampleLikelihoods & operator[](uint32_t index){
 		return _samples[index];
 	};
 

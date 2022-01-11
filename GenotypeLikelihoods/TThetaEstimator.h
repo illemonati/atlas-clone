@@ -158,7 +158,7 @@ public:
 	void addToHeader(std::vector<std::string> & header, std::string prefix="");
 	void writeEstimateFrequenciesAndTheta(coretools::TOutputFile & out);
 	void writeResultsToFile(coretools::TOutputFile & out);
-	void calcLikelihoodSurface(coretools::TOutputFile & out, const uint32_t & steps);
+	void calcLikelihoodSurface(coretools::TOutputFile & out, uint32_t steps);
 	void bootstrapTheta();
 };
 

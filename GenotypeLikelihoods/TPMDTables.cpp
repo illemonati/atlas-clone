@@ -12,11 +12,11 @@ namespace GenotypeLikelihoods{
 //---------------------------------------------------------------
 //TPMDCounts
 //---------------------------------------------------------------
-void TPMDCounts::_add(const uint16_t & pos, const genometools::Base & read){
+void TPMDCounts::_add(uint16_t pos, const genometools::Base & read){
 	++_counts[read.get()][pos];
 	++_sums[pos];
 };
-void TPMDCounts::resize(const uint16_t & Size){
+void TPMDCounts::resize(uint16_t Size){
 	_size = Size;
 	_counts[genometools::A].resize(_size, 0);
 	_counts[genometools::G].resize(_size, 0);
@@ -33,7 +33,7 @@ void TPMDCounts::empty(){
 	std::fill(_sums.begin(), _sums.end(), 0);
 };
 
-void TPMDCounts::add(const uint16_t & pos, const genometools::Base & read){
+void TPMDCounts::add(uint16_t pos, const genometools::Base & read){
 	if(pos < _sizeMinusOne){
 		_add(pos, read);
 	} else {
@@ -77,7 +77,7 @@ void TPMDCounts::write(coretools::TOutputFile & out, const std::vector<std::stri
 //---------------------------------------------------------------
 //TPMDTable
 //---------------------------------------------------------------
-TPMDTable::TPMDTable(const uint16_t & Size){
+TPMDTable::TPMDTable(uint16_t Size){
 	resize(Size);
 };
 
@@ -88,7 +88,7 @@ TPMDTable::TPMDTable(const TPMDTable & other){
 	_counts[genometools::T] = other._counts[genometools::T];
 };
 
-void TPMDTable::resize(const uint16_t & Size){
+void TPMDTable::resize(uint16_t Size){
 	_counts[genometools::A].resize(Size);
 	_counts[genometools::C].resize(Size);
 	_counts[genometools::G].resize(Size);
@@ -102,7 +102,7 @@ void TPMDTable::empty(){
 	_counts[genometools::T].empty();
 };
 
-void TPMDTable::add(const uint16_t & pos, const genometools::Base & ref, const genometools::Base & read){
+void TPMDTable::add(uint16_t pos, const genometools::Base & ref, const genometools::Base & read){
 	_counts[ref.get()].add(pos, read);
 };
 
@@ -131,7 +131,7 @@ void TPMDTable::write(coretools::TOutputFile & out, std::vector<std::string> & p
 //------------------------------------------------
 // TPMDTableReadGroup
 //------------------------------------------------
-TPMDTableReadGroup::TPMDTableReadGroup(const uint16_t & TableLength){
+TPMDTableReadGroup::TPMDTableReadGroup(uint16_t TableLength){
 	//resize
 	_tables[forward3].resize(TableLength);
 	_tables[forward5].resize(TableLength);
@@ -179,12 +179,12 @@ TPMDTables::TPMDTables(){
 	_readGroupMap = nullptr;
 };
 
-TPMDTables::TPMDTables(const BAM::TReadGroups* ReadGroups, const uint16_t & TableLength, const BAM::TReadGroupMap* ReadGroupMap){
+TPMDTables::TPMDTables(const BAM::TReadGroups* ReadGroups, uint16_t TableLength, const BAM::TReadGroupMap* ReadGroupMap){
 	_tableLength = 0;
 	initialize(ReadGroups, TableLength, ReadGroupMap);
 };
 
-void TPMDTables::initialize(const BAM::TReadGroups* ReadGroups, const uint16_t & TableLength, const BAM::TReadGroupMap* ReadGroupMap){
+void TPMDTables::initialize(const BAM::TReadGroups* ReadGroups, uint16_t TableLength, const BAM::TReadGroupMap* ReadGroupMap){
 	if(_tableLength > 0){
 		_tables.clear();
 	}
@@ -196,7 +196,7 @@ void TPMDTables::initialize(const BAM::TReadGroups* ReadGroups, const uint16_t &
 	_tables.resize(_readGroupMap->numReadGroupsInUse(), TPMDTableReadGroup(_tableLength));
 };
 
-const TPMDTableReadGroup& TPMDTables::operator[](const uint16_t & ReadGroupID) const{
+const TPMDTableReadGroup& TPMDTables::operator[](uint16_t ReadGroupID) const{
 	return _tables[_readGroupMap->pooledIndex(ReadGroupID)];
 };
 

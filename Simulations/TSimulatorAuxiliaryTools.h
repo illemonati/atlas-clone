@@ -59,8 +59,8 @@ public:
 //	void simulateReferenceSequenceCurChromosome(TRandomGenerator * randomGenerator, float* cumulBaseFreq);
 	std::vector<Base>& reference(){ return _ref; };
 
-	Base& operator[](const uint32_t & index){ return _ref[index]; };
-	const Base& operator[](const uint32_t & index) const { return _ref[index]; };
+	Base& operator[](uint32_t index){ return _ref[index]; };
+	const Base& operator[](uint32_t index) const { return _ref[index]; };
 };
 
 //---------------------------------------------------------

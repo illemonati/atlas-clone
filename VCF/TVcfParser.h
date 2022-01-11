@@ -229,9 +229,9 @@ public:
 	bool sampleIsDiploid(TVcfLine & line, unsigned int & sample);
 	bool sampleIsHomoRef(TVcfLine & line, unsigned int & sample);
 	bool sampleIsHeteroRefNonref(TVcfLine & line, unsigned int & sample);
-	std::string getFirstAlleleOfSample(const TVcfLine & line, const unsigned int & sample) const;
-	std::string getSecondAlleleOfSample(const TVcfLine & line, const unsigned int & sample) const;
-	genometools::BiallelicGenotype sampleBiallelicGenotype(const TVcfLine & line, const unsigned int & sample) const;
+	std::string getFirstAlleleOfSample(const TVcfLine & line, unsigned int sample) const;
+	std::string getSecondAlleleOfSample(const TVcfLine & line, unsigned int sample) const;
+	genometools::BiallelicGenotype sampleBiallelicGenotype(const TVcfLine & line, unsigned int sample) const;
 	bool sampleIsMissing(const TVcfLine & line, unsigned int & sample);
 	bool sampleHasUndefinedGenotype(TVcfLine & line, unsigned int & s);
 	float sampleGenotypeQuality(TVcfLine & line, unsigned int & sample);

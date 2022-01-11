@@ -30,7 +30,7 @@ void  TRecalibrationEMFirstDerivatives::restart(){
 	_cur = _derivatives.begin();
 };
 
-void TRecalibrationEMFirstDerivatives::add(const uint16_t & parameterIndex, const double & derivative){
+void TRecalibrationEMFirstDerivatives::add(uint16_t parameterIndex, const double & derivative){
 	_cur->index = parameterIndex;
 	_cur->derivative = derivative;
 	++_cur;
@@ -63,7 +63,7 @@ void  TRecalibrationEMSecondDerivatives::restart(){
 	_cur = _derivatives.begin();
 };
 
-void TRecalibrationEMSecondDerivatives::add(const uint16_t & parameterIndex1, const uint16_t & parameterIndex2, const double & derivative){
+void TRecalibrationEMSecondDerivatives::add(uint16_t parameterIndex1, uint16_t parameterIndex2, const double & derivative){
 	_cur->index1 = parameterIndex1;
 	_cur->index2 = parameterIndex2;
 	_cur->derivative = derivative;

@@ -53,7 +53,7 @@ void TBaseCounts::_fillCumulativeFrequencies(std::array<double, 4> & freq){
 	freq[genometools::T] = 1.0;
 };
 
-void TBaseCounts::downsample(const uint32_t & max, coretools::TRandomGenerator & RandomGenerator){
+void TBaseCounts::downsample(uint32_t max, coretools::TRandomGenerator & RandomGenerator){
 	std::array<double, 4> cumulFreqs;
 	std::array<uint32_t, 5> newCounts{};
 

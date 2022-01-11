@@ -58,10 +58,10 @@ public:
 	uint8_t maxNumLikelihoodValues; //maximum possible
 
 	TGlfChromosome();
-	TGlfChromosome(const std::string & Name, const uint32_t & Length, const uint8_t & Ploidy);
+	TGlfChromosome(const std::string & Name, uint32_t Length, const uint8_t & Ploidy);
 	TGlfChromosome(const TGlfChromosome & other);
 
-	void update(const std::string & Name, const uint16_t & RefId, const uint32_t & Length, const uint8_t & Ploidy);
+	void update(const std::string & Name, uint16_t RefId, uint32_t Length, const uint8_t & Ploidy);
 	void update(const TGlfChromosome & other);
 
 	void clear();
@@ -225,7 +225,7 @@ public:
 
 	//get details
 	bool eof() const{ return _eof;};
-	TGlfChromosome* pointerToChr(const uint32_t & refId);
+	TGlfChromosome* pointerToChr(uint32_t refId);
 	bool fillPointerToChr(uint32_t refId, TGlfChromosome* & chr);
 	uint32_t position() const{ return _position; };
 	uint16_t depth() const{ return _depth; };
@@ -241,7 +241,7 @@ public:
 	// parse file
 	bool readNext();
 	bool jumpToNextChr();
-	bool readNextWindow(std::vector<genometools::HighPrecisionPhredIntProbability*> & genoLikelihoods, const uint32_t & refId, const uint32_t & start, const uint32_t & end);
+	bool readNextWindow(std::vector<genometools::HighPrecisionPhredIntProbability*> & genoLikelihoods, uint32_t refId, uint32_t start, uint32_t end);
 
 	//printing
 	void printChr();

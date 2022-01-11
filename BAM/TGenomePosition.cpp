@@ -13,12 +13,12 @@ namespace BAM{
 //-----------------------------------------------------
 // TGenomePosition
 //-----------------------------------------------------
-TGenomePosition::TGenomePosition(const uint32_t& RefID, const uint32_t& Position){
+TGenomePosition::TGenomePosition(uint32_t RefID, uint32_t Position){
 	_refID = RefID;
 	_position = Position;
 };
 
-void TGenomePosition::move(const uint32_t& RefID, const uint32_t& Position){
+void TGenomePosition::move(uint32_t RefID, uint32_t Position){
 	_refID = RefID;
 	_position = Position;
 };
@@ -35,11 +35,11 @@ TGenomePosition& TGenomePosition::operator=(const TGenomePosition & other){
     return *this;
 };
 
-TGenomePosition TGenomePosition::operator+(const uint32_t & length) const{
+TGenomePosition TGenomePosition::operator+(uint32_t length) const{
 	return TGenomePosition(_refID, _position + length);
 };
 
-TGenomePosition TGenomePosition::operator-(const uint32_t & length) const{
+TGenomePosition TGenomePosition::operator-(uint32_t length) const{
 	if(length > _position){
 		return TGenomePosition(_refID, 0);
 	} else {
@@ -60,11 +60,11 @@ int32_t TGenomePosition::operator-(const TGenomeWindow & other) const{
 	return operator -(other.from());
 };
 
-void TGenomePosition::operator+=(const uint32_t & length){
+void TGenomePosition::operator+=(uint32_t length){
 	_position += length;
 };
 
-void TGenomePosition::operator-=(const uint32_t & length){
+void TGenomePosition::operator-=(uint32_t length){
 	if(length > _position){
 		_position = 0;
 	} else {
@@ -147,12 +147,12 @@ std::ostream& operator<<(std::ostream& os, const TGenomePosition & position){
 //-----------------------------------------------------
 // TGenomeWindow
 //-----------------------------------------------------
-TGenomeWindow::TGenomeWindow(const uint32_t& RefID, const uint32_t& From, const uint32_t& To){
+TGenomeWindow::TGenomeWindow(uint32_t RefID, uint32_t From, uint32_t To){
 	move(RefID, From, To);
 };
 
 //inserts a window of length one
-TGenomeWindow::TGenomeWindow(const uint32_t& RefID, const uint32_t& From){
+TGenomeWindow::TGenomeWindow(uint32_t RefID, uint32_t From){
 	move(TGenomePosition(RefID, From), 1);
 };
 
@@ -170,7 +170,7 @@ void TGenomeWindow::clear(){
 	_to = _from;
 };
 
-void TGenomeWindow::move(const uint32_t& RefID, const uint32_t& From, const uint32_t& To){
+void TGenomeWindow::move(uint32_t RefID, uint32_t From, uint32_t To){
 	if(To <= From){
 		throw std::runtime_error("TGenomeWindow(const uint32_t RefID, const uint32_t Start, const uint32_t End): To <= From!");
 	}
@@ -178,7 +178,7 @@ void TGenomeWindow::move(const uint32_t& RefID, const uint32_t& From, const uint
 	_to.move(RefID, To);
 };
 
-void TGenomeWindow::move(const TGenomePosition & From, const uint32_t & Length){
+void TGenomeWindow::move(const TGenomePosition & From, uint32_t Length){
 	_from = From;
 	_to = _from + Length;
 };
@@ -199,11 +199,11 @@ void TGenomeWindow::move(const TGenomeWindow & other){
 	_to = other.to();
 };
 
-TGenomeWindow TGenomeWindow::operator+(const uint32_t& length) const{
+TGenomeWindow TGenomeWindow::operator+(uint32_t length) const{
 	return TGenomeWindow(_from + length, _to + length);
 };
 
-TGenomeWindow TGenomeWindow::operator-(const uint32_t& length) const{
+TGenomeWindow TGenomeWindow::operator-(uint32_t length) const{
 	if(length > _from.position()){
 		if(length > _to.position()){
 			return TGenomeWindow(_from.refID(), 0, 1);
@@ -266,12 +266,12 @@ bool TGenomeWindow::mergeWith(const TGenomeWindow & other){
 	return true;
 };
 
-void TGenomeWindow::operator+=(const uint32_t & length){
+void TGenomeWindow::operator+=(uint32_t length){
 	_from += length;
 	_to += length;
 };
 
-void TGenomeWindow::operator-=(const uint32_t & length){
+void TGenomeWindow::operator-=(uint32_t length){
 	if(length > _from.position()){
 		_from.move(_from.refID(), 0);
 		if(length > _to.position()){
@@ -285,7 +285,7 @@ void TGenomeWindow::operator-=(const uint32_t & length){
 	}
 };
 
-void TGenomeWindow::resize(const uint32_t & newLength){
+void TGenomeWindow::resize(uint32_t newLength){
 	_to = _from + newLength;
 };
 

@@ -58,14 +58,14 @@ public:
 	explicit operator bool() const { return _hasReference; }
 
 	void fill(const TGenomeWindow & Window, std::vector<Base> & VecToFill) const;
-	void fill(const TGenomePosition & Position, const uint32_t & Length, std::vector<Base> & VecToFill) const;
+	void fill(const TGenomePosition & Position, uint32_t Length, std::vector<Base> & VecToFill) const;
 	void fill(const TGenomePosition & Start, const TGenomePosition & End, std::vector<Base> & VecToFill) const;
 	Base refAt(const TGenomePosition Position) const;
 	char refCharAt(const TGenomePosition Position) const;
 
 	/*
-	void fill(const uint16_t & chr, const uint32_t start, const uint32_t end, std::string & ref);
-	char refAt(const uint16_t & chr, const int32_t & position);
+	void fill(uint16_t chr, const uint32_t start, const uint32_t end, std::string & ref);
+	char refAt(uint16_t chr, const int32_t & position);
 	*/
 
 	/*

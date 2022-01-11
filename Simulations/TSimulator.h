@@ -106,7 +106,7 @@ public:
 	void setBaseFreq(std::vector<float> & freq);
 	void setQualityTransformation(std::vector<double> & Betas);
 	void initializeChromosomes(TParameters & params, TLog* logfile);
-	void initializeChromosomes(const uint32_t & numChr, const uint32_t & chrLength, const uint8_t & ploidy);
+	void initializeChromosomes(uint32_t numChr, uint32_t chrLength, const uint8_t & ploidy);
 	void initializeChromosomes(std::vector<uint32_t> & chrLength, std::vector<uint8_t> haploid);
 
 	void runSimulations();
@@ -192,8 +192,8 @@ private:
 	coretools::TOutputFile trueFreqFile;
 
 	void _fillCumulGenoProb(const double & f);
-	void _simulateSite(TSimulatorHardyWeinbergSite & site, const std::string & chr, const uint64_t & pos, TSimulatorReference & ref);
-	void _fillhaplotypesMonomoprhic(TSimulatorHaplotypes & haplotypes, const uint64_t & locus, TSimulatorHardyWeinbergSite & site);
+	void _simulateSite(TSimulatorHardyWeinbergSite & site, const std::string & chr, uint64_t pos, TSimulatorReference & ref);
+	void _fillhaplotypesMonomoprhic(TSimulatorHaplotypes & haplotypes, uint64_t locus, TSimulatorHardyWeinbergSite & site);
 	void _simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, TSimulatorReference & ref);
 	void _simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, TSimulatorReference & ref);
 

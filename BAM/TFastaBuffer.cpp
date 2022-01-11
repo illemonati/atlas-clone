@@ -63,7 +63,7 @@ void TFastaBuffer::fill(const TGenomeWindow & Window, std::vector<Base> & VecToF
 
 };
 
-void TFastaBuffer::fill(const TGenomePosition & Position, const uint32_t & Length, std::vector<Base> & VecToFill) const {
+void TFastaBuffer::fill(const TGenomePosition & Position, uint32_t Length, std::vector<Base> & VecToFill) const {
 	//move buffer, if necessary
 	if(Position  < _coordinates || Position + Length - 1 > _coordinates){
 		if(Length > _bufferSize){

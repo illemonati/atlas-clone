@@ -34,7 +34,7 @@ public:
 		clear();
 	};
 
-	TRecalibrationEMTransformationMap(const uint16_t & Max){
+	TRecalibrationEMTransformationMap(uint16_t Max){
 		initialize(Max);
 	};
 
@@ -48,18 +48,18 @@ public:
 		map.clear();
 	};
 
-	void initialize(const uint16_t & Max){
+	void initialize(uint16_t Max){
 		max = Max;
 		size = Max + 1;
 		map.resize(Max + 1);
 		std::fill(map.begin(), map.end(), 0.0);
 	};
 
-	void set(const uint16_t & x, const double & value){
+	void set(uint16_t x, const double & value){
 		map[x] = value;
 	};
 
-	bool checkRange(const uint16_t & val) const{
+	bool checkRange(uint16_t val) const{
 		if(val <= max) return true;
 		else return false;
 	};
@@ -121,7 +121,7 @@ public:
 	void resize(size_t Size);
 	size_t size() const;
 	void  restart();
-	void add(const uint16_t & parameterIndex, const double & derivative);
+	void add(uint16_t parameterIndex, const double & derivative);
 	TRecalibrationEMFirstDerivativesIterator begin();
 	TRecalibrationEMFirstDerivativesIterator end();
 };
@@ -143,7 +143,7 @@ public:
 	void resize(size_t Size);
 	size_t size() const;
 	void  restart();
-	void add(const uint16_t & parameterIndex1, const uint16_t & parameterIndex2, const double & derivative);
+	void add(uint16_t parameterIndex1, uint16_t parameterIndex2, const double & derivative);
 	TRecalibrationEMSecondDerivativesIterator begin();
 	TRecalibrationEMSecondDerivativesIterator end();
 };

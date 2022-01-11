@@ -89,7 +89,7 @@ public:
 	void checkReadGroups(const BAM::TReadGroups & ReadGroups, std::vector<uint16_t> & ReadGroupsWithoutRecal, std::vector<uint16_t> & ReadGroupsLikelySingleEnd);
 
 	//access models
-	TSequencingErrorModelsOneReadGroup& operator[](const uint16_t & ReadGroupIndex){ return _models[ReadGroupIndex]; };
+	TSequencingErrorModelsOneReadGroup& operator[](uint16_t ReadGroupIndex){ return _models[ReadGroupIndex]; };
 	size_t numModels(){ return _models.size(); };
 	bool recalibrationChangesQualities() const{ return _doRecalibration; };
 

@@ -71,7 +71,7 @@ private:
 	void _updateSequenceAndQualities() const;
 
 public:
-	TAlignment(const uint32_t& RefID, const uint32_t& Position);
+	TAlignment(uint32_t RefID, uint32_t Position);
 	TAlignment(const TGenomePosition & other);
 	TAlignment();
 
@@ -79,16 +79,16 @@ public:
 	void clear();
 	void fill(const	std::string & Name,
 			  const TSamFlags & Flags,
-			  const uint32_t & RefID,
-			  const uint32_t & Position,
-			  const uint16_t & MappingQuality,
+			  uint32_t RefID,
+			  uint32_t Position,
+			  uint16_t MappingQuality,
 			  const TCigar & Cigar,
-			  const uint32_t & MateRefID,
-			  const uint32_t & MatePosition,
+			  uint32_t MateRefID,
+			  uint32_t MatePosition,
 			  const int32_t & InsertSize_TLEN,
 			  const std::string & Sequence,
 			  const std::string & Qualities,
-			  const uint16_t & ReadGroupId);
+			  uint16_t ReadGroupId);
 	void parse();
 	void parse(const GenotypeLikelihoods::TSequencingErrorModels & seqErrorModels);
 
@@ -110,8 +110,8 @@ public:
 	uint32_t lastAlingedInternalPos() const{ return _lastAlignedPos; };
 	TGenomePosition lastAlignedPositionWithRespectToRef() const{ return _lastAlignedPositionWithRespectToRef; };
 	bool isAlignedAtInternalPos(const uint32_t internalPosition) const;
-	genometools::Base referenceAtInternalPos(const uint32_t & internalPosition) const;
-	TGenomePosition positionInRef(const uint32_t & internalPosition) const;
+	genometools::Base referenceAtInternalPos(uint32_t internalPosition) const;
+	TGenomePosition positionInRef(uint32_t internalPosition) const;
 	const BAM::TGenomePosition& mateGenomicPosition() const{ return _mateGenomicPosition; };
 	uint32_t matePosition() const{ return _mateGenomicPosition.position(); };
 	uint32_t mateRefID() const{ return _mateGenomicPosition.refID(); };

@@ -28,7 +28,7 @@ protected:
 
 public:
 	TGenomePosition(){ clear(); };
-	TGenomePosition(const uint32_t& RefID, const uint32_t& Position);
+	TGenomePosition(uint32_t RefID, uint32_t Position);
 	TGenomePosition(const TGenomePosition & other) = default;
 
 	void clear(){  _refID = 0; _position = 0; };
@@ -36,16 +36,16 @@ public:
 	uint32_t refID() const{ return _refID; };
 	uint32_t position() const{ return _position; };
 
-	void move(const uint32_t& RefID, const uint32_t& Position);
+	void move(uint32_t RefID, uint32_t Position);
 	void move(const TGenomePosition & other);
 
 	TGenomePosition& operator=(const TGenomePosition & other);
-	TGenomePosition operator+(const uint32_t & length) const;
-	TGenomePosition operator-(const uint32_t & length) const;
+	TGenomePosition operator+(uint32_t length) const;
+	TGenomePosition operator-(uint32_t length) const;
 	int32_t operator-(const TGenomePosition & other) const;
 	int32_t operator-(const TGenomeWindow & other) const;
-	void operator+=(const uint32_t & length);
-	void operator-=(const uint32_t & length);
+	void operator+=(uint32_t length);
+	void operator-=(uint32_t length);
 	void operator++();
 	void operator--();
 
@@ -72,8 +72,8 @@ protected:
 public:
 	TGenomeWindow(){ clear(); };
 	virtual ~TGenomeWindow(){ _from.move(0,0); _to.move(0, 1); };
-	TGenomeWindow(const uint32_t& RefID, const uint32_t& From, const uint32_t& To);
-	TGenomeWindow(const uint32_t& RefID, const uint32_t& From);
+	TGenomeWindow(uint32_t RefID, uint32_t From, uint32_t To);
+	TGenomeWindow(uint32_t RefID, uint32_t From);
 	TGenomeWindow(const TGenomePosition & position);
 	TGenomeWindow(const TGenomePosition & From, const TGenomePosition & To);
 	TGenomeWindow(const TGenomeWindow & other) = default;
@@ -87,14 +87,14 @@ public:
 	uint32_t toOnChr() const{ return _to.position(); };
 	uint32_t size() const{ return _to.position() - _from.position(); };
 
-	virtual void move(const uint32_t& RefID, const uint32_t& Start, const uint32_t& End);
-	virtual void move(const TGenomePosition & From, const uint32_t & Length);
+	virtual void move(uint32_t RefID, uint32_t Start, uint32_t End);
+	virtual void move(const TGenomePosition & From, uint32_t Length);
 	virtual void move(const TGenomePosition & From, const TGenomePosition & To);
 	virtual void move(const TGenomeWindow & other);
 
 	TGenomeWindow& operator=(const TGenomeWindow & other){ move(other); return *this; };
-	TGenomeWindow operator+(const uint32_t& length) const;
-	TGenomeWindow operator-(const uint32_t& length) const;
+	TGenomeWindow operator+(uint32_t length) const;
+	TGenomeWindow operator-(uint32_t length) const;
 	uint32_t operator-(const TGenomeWindow & other) const;
 	uint32_t operator-(const TGenomePosition & other) const;
 
@@ -106,9 +106,9 @@ public:
 	bool mergeWith(const TGenomeWindow & other);
 
 	//move / expand
-	virtual void operator+=(const uint32_t & length);
-	virtual void operator-=(const uint32_t & length);
-	virtual void resize(const uint32_t & newLength);
+	virtual void operator+=(uint32_t length);
+	virtual void operator-=(uint32_t length);
+	virtual void resize(uint32_t newLength);
 
 	bool operator<(const TGenomePosition & pos) const;
 	bool operator>(const TGenomePosition & pos) const;

@@ -410,7 +410,7 @@ void TSimulator::initializeChromosomes(TParameters & params, TLog* logfile){
 	}
 };
 
-void TSimulator::initializeChromosomes(const uint32_t & numChr, const uint32_t & chrLength, const uint8_t & ploidy){
+void TSimulator::initializeChromosomes(uint32_t numChr, uint32_t chrLength, const uint8_t & ploidy){
 	_chromosomes.clear();
 	for(uint32_t i=0; i<numChr; ++i){
 		_chromosomes.appendChromosome("chr" + coretools::str::toString(i+1), chrLength, ploidy);
@@ -1187,7 +1187,7 @@ void TSimulatorHardyWeinberg::_fillCumulGenoProb(const double & f){
 	cumulGenoProb[2] = 1.0;
 };
 
-void TSimulatorHardyWeinberg::_simulateSite(TSimulatorHardyWeinbergSite & site, const std::string & chr, const uint64_t & pos, TSimulatorReference & ref){
+void TSimulatorHardyWeinberg::_simulateSite(TSimulatorHardyWeinbergSite & site, const std::string & chr, uint64_t pos, TSimulatorReference & ref){
 	//simulate bases
 	site.reference = static_cast<Base>(_randomGenerator->pickOne(_cumulBaseFreq));
 	site.alternative = static_cast<Base>(_randomGenerator->pickOne(mutTable[site.reference.get()]));
@@ -1229,7 +1229,7 @@ void TSimulatorHardyWeinberg::_simulateSite(TSimulatorHardyWeinbergSite & site, 
 	}
 };
 
-void TSimulatorHardyWeinberg::_fillhaplotypesMonomoprhic(TSimulatorHaplotypes & haplotypes, const uint64_t & locus, TSimulatorHardyWeinbergSite & site){
+void TSimulatorHardyWeinberg::_fillhaplotypesMonomoprhic(TSimulatorHaplotypes & haplotypes, uint64_t locus, TSimulatorHardyWeinbergSite & site){
 	if(site.f == 0.0){
 		for(int i=0; i<_sampleSize; ++i){
 			haplotypes(i,0,locus) = site.reference;

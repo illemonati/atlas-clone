@@ -121,7 +121,7 @@ uint64_t TRecalDataTables::size() const{
 	return _totalCounts;
 };
 
-const TRecalDataTableOneReadGroup& TRecalDataTables::operator[](const uint16_t & readGroupId) const{
+const TRecalDataTableOneReadGroup& TRecalDataTables::operator[](uint16_t readGroupId) const{
 	return _tables[ _readGroupMap->pooledIndex(readGroupId) ];
 };
 
@@ -161,11 +161,11 @@ TModelStatusEntry& TModelStatus::operator[](const ModelStatusTypes & Type){
 	return _status[Type];
 };
 
-void TModelStati::add(const uint16_t & ReadGroupId){
+void TModelStati::add(uint16_t ReadGroupId){
 	modelStatus.emplace(std::pair<uint16_t, TModelStatus>(ReadGroupId, TModelStatus()));
 };
 
-TModelStatus& TModelStati::operator[](const uint16_t & ReadGroupId){
+TModelStatus& TModelStati::operator[](uint16_t ReadGroupId){
 	return modelStatus[ReadGroupId];
 };
 

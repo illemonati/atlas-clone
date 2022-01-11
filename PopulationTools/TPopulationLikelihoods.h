@@ -47,7 +47,7 @@ public:
 	void addSample(const std::string & Sample);
 	bool sampleExists(const std::string & Sample) const;
 
-	void setFirstSampleIndex(const uint32_t & Index){
+	void setFirstSampleIndex(uint32_t Index){
 		_firstSampleIndex = Index;
 	};
 
@@ -55,9 +55,9 @@ public:
 		return _firstSampleIndex;
 	};
 
-	bool sampleIndexExists(const uint32_t & Index) const;
+	bool sampleIndexExists(uint32_t Index) const;
 	uint32_t sampleIndex(const std::string & Sample) const;
-	std::string sampleName(const uint32_t & Index) const;
+	std::string sampleName(uint32_t Index) const;
 	void addSampleNamesToVector(std::vector<std::string> & vec) const;
 	void report(coretools::TLog* Logfile) const;
 
@@ -104,15 +104,15 @@ public:
 
 	size_t numPopulations() const { return _populations.size(); };
 	bool populationExists(const std::string & name) const;
-	std::string getPopulationName(const uint32_t & index) const;
+	std::string getPopulationName(uint32_t index) const;
 	uint32_t populationIndex(const std::string & name) const;
-	uint32_t populationIndex(const uint32_t & SampleIndex) const { return _indexToPopulationIndex[SampleIndex]; };
-	uint32_t numSamplesInPop(const uint32_t & population) const { return _populations[population].numSamples(); };
+	uint32_t populationIndex(uint32_t SampleIndex) const { return _indexToPopulationIndex[SampleIndex]; };
+	uint32_t numSamplesInPop(uint32_t population) const { return _populations[population].numSamples(); };
 
 	uint32_t numSamples() const { return _numSamples; };
 	bool sampleExists(const std::string & name) const;
 	uint32_t sampleIndex(const std::string & name) const;
-	std::string sampleName(const uint32_t & SampleIndex) const;
+	std::string sampleName(uint32_t SampleIndex) const;
 	void addSampleNamesToVector(std::vector<std::string> & vec) const;
 
 	void readSamples(std::string filename, coretools::TLog* logfile);
@@ -123,7 +123,7 @@ public:
 	//bool sampleIsUsed(const std::string & name);
 	//uint32_t getOrderedSampleIndex(const std::string & name);
 	uint32_t startIndex(int population){ return _populations[population].firstSampleIndex(); };
-	uint32_t sampleIndexInVCF(const uint32_t & index);
+	uint32_t sampleIndexInVCF(uint32_t index);
 
 	uint8_t* getPointerToDataInPop(uint8_t* data, uint32_t population) const;
 	uint32_t numSamplesMissingInPop(bool* sampleMissing, uint32_t population) const;
@@ -239,8 +239,8 @@ public:
     genometools::Base refAllele(){ return genometools::Base(vcfFile.getRefAllele()[0]); };
     genometools::Base altAllele(){ return genometools::Base(vcfFile.getFirstAltAllele()[0]); };
     std::vector<genometools::BiallelicGenotype> biallelicGenotypes(TPopulationSamples & samples) const;
-    genometools::BiallelicGenotype biallelicGenotype(TPopulationSamples & samples, const uint32_t & s) const;
-    genometools::Genotype genotype(TPopulationSamples & samples, const uint32_t & s) const;
+    genometools::BiallelicGenotype biallelicGenotype(TPopulationSamples & samples, uint32_t s) const;
+    genometools::Genotype genotype(TPopulationSamples & samples, uint32_t s) const;
     double depth(TPopulationSamples & samples,uint32_t s);
 
     bool readDataFromVCF(TPopulationLikehoodLocus & data, TPopulationSamples & samples);

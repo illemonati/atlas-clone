@@ -110,7 +110,7 @@ public:
 	void add(const std::vector<TSite> & sites);
 
 	uint64_t size() const;
-	const TRecalDataTableOneReadGroup& operator[](const uint16_t & readGroupId) const;
+	const TRecalDataTableOneReadGroup& operator[](uint16_t readGroupId) const;
 };
 
 //------------------------------------------------
@@ -146,8 +146,8 @@ private:
 
 public:
 
-	void add(const uint16_t & ReadGroupId);
-	TModelStatus& operator[](const uint16_t & ReadGroupId);
+	void add(uint16_t ReadGroupId);
+	TModelStatus& operator[](uint16_t ReadGroupId);
 	uint16_t num(const ModelStatusTypes & Type);
 	void report(const ModelStatusTypes & Type, const std::string & Title, const BAM::TReadGroups & ReadGroups, coretools::TLog* Logfile);
 };

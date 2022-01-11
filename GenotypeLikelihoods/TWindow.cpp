@@ -89,7 +89,7 @@ void TWindow_base::move(const BAM::TGenomePosition & From, const BAM::TGenomePos
 	clear();
 };
 
-void TWindow_base::move(const BAM::TGenomePosition & From, const uint32_t & Length, const std::string ChrName){
+void TWindow_base::move(const BAM::TGenomePosition & From, uint32_t Length, const std::string ChrName){
 	BAM::TGenomeWindow::move(From, Length);
 	_chrName = ChrName;
 	clear();
@@ -105,22 +105,22 @@ void TWindow_base::setChrName(const std::string ChrName){
 	_chrName = ChrName;
 };
 
-void TWindow_base::operator+=(const uint32_t & length){
+void TWindow_base::operator+=(uint32_t length){
 	TGenomeWindow::operator +=(length);
 	clear();
 };
 
-void TWindow_base::operator-=(const uint32_t & length){
+void TWindow_base::operator-=(uint32_t length){
 	TGenomeWindow::operator -=(length);
 	clear();
 };
 
-void TWindow_base::resize(const uint32_t & newLength){
+void TWindow_base::resize(uint32_t newLength){
 	TGenomeWindow::resize(newLength);
 	clear();
 };
 
-void TWindow_base::downsampleFromOther(TWindow & other, const uint32_t & readUpToDepth, const Probability & downsamplingProb, TRandomGenerator* randomGenerator){
+void TWindow_base::downsampleFromOther(TWindow & other, uint32_t readUpToDepth, const Probability & downsamplingProb, TRandomGenerator* randomGenerator){
 	clear();
 
 	//set coordinates
@@ -133,7 +133,7 @@ void TWindow_base::downsampleFromOther(TWindow & other, const uint32_t & readUpT
 	_calcDepth();
 };
 
-void TWindow_base::downsampleFromOther(TWindow & other, TSiteSubset & subset, const uint32_t & readUpToDepth, const Probability & downsamplingProb, TRandomGenerator* randomGenerator){
+void TWindow_base::downsampleFromOther(TWindow & other, TSiteSubset & subset, uint32_t readUpToDepth, const Probability & downsamplingProb, TRandomGenerator* randomGenerator){
 	clear();
 
 	//set coordinates
@@ -299,7 +299,7 @@ void TWindow_base::maskCpG(BAM::TFastaBuffer & reference){
 	}
 };
 
-void TWindow_base::downsample(const uint32_t & maxDepth, const coretools::TSubsamplePicker & picker){
+void TWindow_base::downsample(uint32_t maxDepth, const coretools::TSubsamplePicker & picker){
 	for(auto& s : _sites){
 		s.downsample(maxDepth, picker);
 	}
@@ -409,7 +409,7 @@ void TWindow::move(const uint32_t RefID, const uint32_t Start, const uint32_t En
 };
 */
 
-void TWindow::move(const BAM::TGenomePosition & From, const uint32_t & Length, const std::string ChrName){
+void TWindow::move(const BAM::TGenomePosition & From, uint32_t Length, const std::string ChrName){
 	TWindow_base::move(From, Length, ChrName);
 	_cleanUpUsedAlignments();
 };
@@ -424,17 +424,17 @@ void TWindow::move(const BAM::TGenomeWindow & Window, const std::string ChrName)
 	_cleanUpUsedAlignments();
 };
 
-void TWindow::operator+=(const uint32_t & length){
+void TWindow::operator+=(uint32_t length){
 	TWindow_base::operator +=(length);
 	_cleanUpUsedAlignments();
 };
 
-void TWindow::operator-=(const uint32_t & length){
+void TWindow::operator-=(uint32_t length){
 	TWindow_base::operator -=(length);
 	_cleanUpUsedAlignments();
 };
 
-void TWindow::resize(const uint32_t & newLength){
+void TWindow::resize(uint32_t newLength){
 	TWindow_base::resize(newLength);
 	_cleanUpUsedAlignments();
 };
@@ -471,7 +471,7 @@ uint32_t TWindow::_findFirstPositionWithinWindow(const BAM::TAlignment & alignme
 //------------------------------------------------------
 //fill sites
 //------------------------------------------------------
-void TWindow::_fillSites(BAM::TAlignment & alignment, std::vector<TSite> & sites, const uint32_t & readUpToDepth){
+void TWindow::_fillSites(BAM::TAlignment & alignment, std::vector<TSite> & sites, uint32_t readUpToDepth){
 	//genomic position of alignment as seen from window perspective
 	uint32_t p = _findFirstPositionWithinWindow(alignment);
 
@@ -491,7 +491,7 @@ void TWindow::_fillSites(BAM::TAlignment & alignment, std::vector<TSite> & sites
 	}
 };
 
-void TWindow::_fillSites(std::vector<TSite> & sites, const uint32_t & readUpToDepth){
+void TWindow::_fillSites(std::vector<TSite> & sites, uint32_t readUpToDepth){
 	sites.resize(size());
 
 	//add reads in usedAlignments to sites in window
@@ -501,7 +501,7 @@ void TWindow::_fillSites(std::vector<TSite> & sites, const uint32_t & readUpToDe
 	}
 };
 
-int TWindow::_fillSitesDownsampling(std::vector<TSite> & sites, const uint32_t & readUpToDepth, const Probability & downsamplingProb, TRandomGenerator* randomGenerator){
+int TWindow::_fillSitesDownsampling(std::vector<TSite> & sites, uint32_t readUpToDepth, const Probability & downsamplingProb, TRandomGenerator* randomGenerator){
 	sites.resize(size());
 
 	//add reads in usedAlignments to sites in window
@@ -516,7 +516,7 @@ int TWindow::_fillSitesDownsampling(std::vector<TSite> & sites, const uint32_t &
 	return counter;
 };
 
-void TWindow::fillSites(const unsigned int & readUpToDepth){
+void TWindow::fillSites(unsigned int readUpToDepth){
 	_fillSites(_sites, readUpToDepth);
 	_numReadsInWindow = usedAlignments.size();
 };
@@ -524,7 +524,7 @@ void TWindow::fillSites(const unsigned int & readUpToDepth){
 //------------------------------------------------------
 //fill sites according to subset
 //------------------------------------------------------
-void TWindow::_fillSitesSubset(BAM::TAlignment & alignment, std::vector<TSite> & sites, std::set<TSiteSubsetSite> & thesePos, const uint32_t & readUpToDepth){
+void TWindow::_fillSitesSubset(BAM::TAlignment & alignment, std::vector<TSite> & sites, std::set<TSiteSubsetSite> & thesePos, uint32_t readUpToDepth){
 	//genomic position of alignment as seen from window perspective
 	uint32_t p = _findFirstPositionWithinWindow(alignment);
 
@@ -549,12 +549,12 @@ void TWindow::_fillSitesSubset(BAM::TAlignment & alignment, std::vector<TSite> &
 	}
 };
 
-void TWindow::fillSitesSubset(TSiteSubset & subset, const uint32_t & readUpToDepth){
+void TWindow::fillSitesSubset(TSiteSubset & subset, uint32_t readUpToDepth){
 	_fillSitesSubset(_sites, subset, readUpToDepth);
 	_numReadsInWindow = usedAlignments.size();
 };
 
-void TWindow::_fillSitesSubset(std::vector<TSite> & sites, TSiteSubset & subset, const uint32_t & readUpToDepth){
+void TWindow::_fillSitesSubset(std::vector<TSite> & sites, TSiteSubset & subset, uint32_t readUpToDepth){
 	sites.resize(size());
 
 	//get positions that are used
@@ -567,7 +567,7 @@ void TWindow::_fillSitesSubset(std::vector<TSite> & sites, TSiteSubset & subset,
 	}
 };
 
-int TWindow::_fillSitesSubsetDownsampling(std::vector<TSite> & sites, TSiteSubset & subset, const uint32_t & readUpToDepth, const Probability& downsamplingProb, TRandomGenerator* randomGenerator){
+int TWindow::_fillSitesSubsetDownsampling(std::vector<TSite> & sites, TSiteSubset & subset, uint32_t readUpToDepth, const Probability& downsamplingProb, TRandomGenerator* randomGenerator){
 	sites.resize(size());
 
 	//get positions that are used

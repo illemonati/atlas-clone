@@ -10,7 +10,7 @@
 //--------------------------------
 //Class to store and SFS
 //--------------------------------
-SFS::SFS(const uint32_t & numChr){
+SFS::SFS(uint32_t numChr){
 	_rescaled = false;
 	_initDimension(numChr + 1);
 	monoFrac = 0.0;
@@ -62,7 +62,7 @@ SFS::SFS(SFS* other, const float & MonoFrac){
 	_fillCumulative();
 };
 
-SFS::SFS(const uint32_t & numChr, const float & theta){
+SFS::SFS(uint32_t numChr, const float & theta){
 	_storageInitialized = false;
 	_rescaled = false;
 	_initDimension(numChr  + 1);
@@ -83,7 +83,7 @@ SFS::SFS(const uint32_t & numChr, const float & theta){
 	_fillCumulative();
 };
 
-SFS::SFS(const uint32_t & numChr, const uint32_t & onlyThisBin){
+SFS::SFS(uint32_t numChr, uint32_t onlyThisBin){
 	_storageInitialized = false;
 	_rescaled = false;
 	_initDimension(numChr  + 1);
@@ -97,7 +97,7 @@ SFS::SFS(const uint32_t & numChr, const uint32_t & onlyThisBin){
 	_fillCumulative();
 };
 
-void SFS::_initDimension(const uint32_t & size){
+void SFS::_initDimension(uint32_t size){
 	dimension = size;
 	dimensionUnfolded = dimension;
 	numChromosomes = dimension - 1;
@@ -177,7 +177,7 @@ uint32_t SFS::getRandomAlleleCount(coretools::TRandomGenerator* randomGenerator)
 //--------------------------------------
 //SFSfolded
 //--------------------------------------
-SFSfolded::SFSfolded(const uint32_t & numChr, const float & theta):SFS(numChr){
+SFSfolded::SFSfolded(uint32_t numChr, const float & theta):SFS(numChr){
 	_storageInitialized = false;
 	_rescaled = false;
 	_initDimension(numChr  + 1);
@@ -198,7 +198,7 @@ SFSfolded::SFSfolded(const uint32_t & numChr, const float & theta):SFS(numChr){
 	_fillCumulative();
 };
 
-void SFSfolded::_initDimension(const uint32_t & size){
+void SFSfolded::_initDimension(uint32_t size){
 	dimension = size;
 	dimensionUnfolded = 2 * dimension - 1;
 	numChromosomes = dimensionUnfolded - 1;

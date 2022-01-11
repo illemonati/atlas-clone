@@ -14,7 +14,7 @@ using coretools::str::toString;
 //-------------------------------------------------
 // TSiteSubsetSite
 //-------------------------------------------------
-TSiteSubsetSite::TSiteSubsetSite(const uint32_t & refID, const uint32_t & position, const genometools::Base & Ref, const genometools::Base & Alt):TGenomePosition(refID, position){
+TSiteSubsetSite::TSiteSubsetSite(uint32_t refID, uint32_t position, const genometools::Base & Ref, const genometools::Base & Alt):TGenomePosition(refID, position){
 	_ref = Ref;
 	_alt = Alt;
 };
@@ -31,7 +31,7 @@ void TSiteSubsetSite::write(coretools::TOutputFile & out) const{
 //-------------------------------------------------
 // TSiteSubset
 //-------------------------------------------------
-void TSiteSubset::_checkAlleles(const std::string & chr, const uint32_t & pos, const genometools::Base & ref, const genometools::Base & alt, const std::string & refAllele, const std::string & altAllele){
+void TSiteSubset::_checkAlleles(const std::string & chr, uint32_t pos, const genometools::Base & ref, const genometools::Base & alt, const std::string & refAllele, const std::string & altAllele){
 	if(ref == genometools::N){
 		throw "Unknown reference allele '" + refAllele + "' on chr " + chr + " at " + toString(pos+1) + "!";
 	}

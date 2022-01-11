@@ -53,7 +53,7 @@ void TBamFileFilter::setLog(TBamFileLog* Log){
 	_updateLog = true;
 };
 
-void TBamFileFilter::summary(TLog* logfile, const uint64_t & total){
+void TBamFileFilter::summary(TLog* logfile, uint64_t total){
 	if(!_keep && _counter  > 0){
 		logfile->list(_reason + ": ", _counter, " (" + coretools::str::toPercentString(_counter, total, 3) + "%)");
 	}

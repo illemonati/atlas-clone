@@ -39,14 +39,14 @@ public:
 		_genotypeLikelihoodsGLF = nullptr;
 	};
 
-	void setDiploid(HighPrecisionPhredIntProbability* GLs, const uint16_t & Depth){
+	void setDiploid(HighPrecisionPhredIntProbability* GLs, uint16_t Depth){
 		_genotypeLikelihoodsGLF = GLs;
 		_hasData = true;
 		_isHaploid = false;
 		_depth = Depth;
 	};
 
-	void setHaploid(HighPrecisionPhredIntProbability* GLs, const uint16_t & Depth){
+	void setHaploid(HighPrecisionPhredIntProbability* GLs, uint16_t Depth){
 		_genotypeLikelihoodsGLF = GLs;
 		_hasData = true;
 		_isHaploid = true;
@@ -172,13 +172,13 @@ private:
 
 public:
 	TMultiGLFData() = default;
-	TMultiGLFData(const uint32_t & Size);
+	TMultiGLFData(uint32_t Size);
 	~TMultiGLFData(){};
 
-	void resize(const uint32_t & Size);
+	void resize(uint32_t Size);
 	size_t size() const { return samples.size(); };
-	TMultiGLFDataSample& operator[](const uint32_t & Sample){ return samples[Sample]; };
-	const TMultiGLFDataSample& operator[](const uint32_t & Sample) const { return samples[Sample]; };
+	TMultiGLFDataSample& operator[](uint32_t Sample){ return samples[Sample]; };
+	const TMultiGLFDataSample& operator[](uint32_t Sample) const { return samples[Sample]; };
 	void fill(TMultiGLFDataOneAllelicCombination & storage, const genometools::AllelicCombination & alleleicCombination) const;
 	uint32_t totalDepth();
 };
@@ -213,7 +213,7 @@ public:
 		_closeVCF();
 	}
 
-	void writeSite(const std::string & chrName, const uint32_t & position, const genometools::PhredIntProbability & varianTQuality, TMultiGLFData & data, const genometools::Base Ref, const genometools::Base Alt);
+	void writeSite(const std::string & chrName, uint32_t position, const genometools::PhredIntProbability & varianTQuality, TMultiGLFData & data, const genometools::Base Ref, const genometools::Base Alt);
 };
 
 //----------------------------------------------------

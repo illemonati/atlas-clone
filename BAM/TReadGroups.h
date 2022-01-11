@@ -95,12 +95,12 @@ public:
 	bool empty() const;
 
 	uint16_t getId(const std::string & name) const;
-	const std::string& getName (const uint16_t & readGroupId) const;
+	const std::string& getName (uint16_t readGroupId) const;
 	std::vector<std::string> getNames(std::vector<uint16_t> & readGroupIds) const;
 	const TReadGroup& getReadGroup(const std::string & name);
-	const TReadGroup& operator[](const uint16_t & readGroupId) const;
+	const TReadGroup& operator[](uint16_t readGroupId) const;
 	bool readGroupExists(const std::string & name) const;
-	bool readGroupInUse(const uint16_t & readGroupId) const;
+	bool readGroupInUse(uint16_t readGroupId) const;
 	bool readGroupInUse(const std::string name) const;
 
 	//looping over
@@ -129,7 +129,7 @@ private:
 	std::vector<uint16_t> _readGroupsInUse;
 
 	void _resize(const TReadGroups & ReadGroups);
-	void _markAsInUse(const uint16_t & index);
+	void _markAsInUse(uint16_t index);
 	void _fillWithoutPooling(const TReadGroups & ReadGroups);
 	void _fillFromFile(const TReadGroups & ReadGroups, const std::string & filename, coretools::TLog* logfile);
 
@@ -142,12 +142,12 @@ public:
 	uint16_t size() const { return _readGroupMap.size(); };
 	uint16_t numReadGroupsInUse() const { return _readGroupsInUse.size(); };
 
-	uint16_t operator[](const uint16_t & rg) const { return _readGroupMap[rg]; };
-	uint16_t pooledIndex(const uint16_t & rg) const { return _readGroupMap[rg]; };
-	bool inUse(const uint16_t & rg) const { return _readGroupMap[rg] == rg; };
+	uint16_t operator[](uint16_t rg) const { return _readGroupMap[rg]; };
+	uint16_t pooledIndex(uint16_t rg) const { return _readGroupMap[rg]; };
+	bool inUse(uint16_t rg) const { return _readGroupMap[rg] == rg; };
 
 	const std::vector<uint16_t>& readGroupsInUse() const { return _readGroupsInUse; };
-	const std::vector<uint16_t>& readGroupsPooledWith(const uint16_t & rg) const { return _reverseReadGroupMap[rg]; };
+	const std::vector<uint16_t>& readGroupsPooledWith(uint16_t rg) const { return _reverseReadGroupMap[rg]; };
 };
 
 }; //end namespace

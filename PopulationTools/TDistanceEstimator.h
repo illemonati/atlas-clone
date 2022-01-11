@@ -225,12 +225,12 @@ private:
 	void readCommonSites(std::vector<HighPrecisionPhredIntProbability*> & genoQual1, std::vector<HighPrecisionPhredIntProbability*> & genoQual2, GLF::TGlfReader & g1, GLF::TGlfReader & g2);
 	void estimateDistanceGenomeWide(TEMforDistanceEstimation & EM_object, GLF::TGlfReader & g1, GLF::TGlfReader & g2, gz::ogzstream & out);
 
-	void estimateDistanceInWindows(TEMforDistanceEstimation & EM_object, const uint32_t & windowLen);
-	void estimateDistanceInWindows(TEMforDistanceEstimation & EM_object, std::string filename, GLF::TGlfReader & g1, GLF::TGlfReader & g2, const uint32_t & windowLen);
+	void estimateDistanceInWindows(TEMforDistanceEstimation & EM_object, uint32_t windowLen);
+	void estimateDistanceInWindows(TEMforDistanceEstimation & EM_object, std::string filename, GLF::TGlfReader & g1, GLF::TGlfReader & g2, uint32_t windowLen);
 
-	void writeDistanceEstimates(gz::ogzstream & out, std::string & chr, const uint32_t & windowStart, const uint32_t & windowEnd, const uint32_t & numsitesWithData, TEMforDistanceEstimation & EM_object);
+	void writeDistanceEstimates(gz::ogzstream & out, std::string & chr, uint32_t windowStart, uint32_t windowEnd, uint32_t numsitesWithData, TEMforDistanceEstimation & EM_object);
 	void writeDistanceEstimates(gz::ogzstream & out, int numsitesWithData, TEMforDistanceEstimation & EM_object);
-	void writeDistanceEstimatesNoData(gz::ogzstream & out, std::string & chr, const uint32_t & windowStart, const uint32_t & windowEnd);
+	void writeDistanceEstimatesNoData(gz::ogzstream & out, std::string & chr, uint32_t windowStart, uint32_t windowEnd);
 	void writeDistanceEstimatesNoData(gz::ogzstream & out);
 
 public:

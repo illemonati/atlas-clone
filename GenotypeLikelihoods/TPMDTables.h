@@ -31,7 +31,7 @@ private:
 	uint16_t _size; //pos-specific for 0, 1, ..., _size - 2, then lumped into an extra bin (_size-1)
 	uint16_t _sizeMinusOne;
 
-	void _add(const uint16_t & pos, const genometools::Base & read);
+	void _add(uint16_t pos, const genometools::Base & read);
 	void _writeNormalizedOne(coretools::TOutputFile & out, countVec & these);
 
 public:
@@ -43,9 +43,9 @@ public:
 	~TPMDCounts() = default;
 
 	uint16_t size() const { return _size; }
-	void resize(const uint16_t & Size);
+	void resize(uint16_t Size);
 	void empty();
-	void add(const uint16_t & pos, const genometools::Base & read);
+	void add(uint16_t pos, const genometools::Base & read);
 	void add(const TPMDCounts & other);
 
 	const countVec& operator[](const genometools::Base & b) const{
@@ -68,14 +68,14 @@ private:
 
 public:
 	TPMDTable() = default;
-	TPMDTable(const uint16_t & Size);
+	TPMDTable(uint16_t Size);
 	TPMDTable(const TPMDTable & other);
 	~TPMDTable() = default;
 
 	uint16_t size() const { return _counts[0].size(); };
-	void resize(const uint16_t & Size);
+	void resize(uint16_t Size);
 	void empty();
-	void add(const uint16_t & pos, const genometools::Base & ref, const genometools::Base & read);
+	void add(uint16_t pos, const genometools::Base & ref, const genometools::Base & read);
 	void add(const TPMDTable & other);
 
 	const TPMDCounts& operator[](const genometools::Base & b) const{
@@ -93,7 +93,7 @@ private:
 	TPMDTable _tables[4];
 
 public:
-	TPMDTableReadGroup(const uint16_t & TableLength);
+	TPMDTableReadGroup(uint16_t TableLength);
 
 	void add(const BAM::TSequencedBase & base, const genometools::Base & reference);
 
@@ -116,11 +116,11 @@ private:
 
 public:
 	TPMDTables();
-	TPMDTables(const BAM::TReadGroups* ReadGroups, const uint16_t & TableLength, const BAM::TReadGroupMap* ReadGroupMapObject);
+	TPMDTables(const BAM::TReadGroups* ReadGroups, uint16_t TableLength, const BAM::TReadGroupMap* ReadGroupMapObject);
 	~TPMDTables(){};
 
-	void initialize(const BAM::TReadGroups* ReadGroups, const uint16_t & TableLength, const BAM::TReadGroupMap* ReadGroupMap);
-	const TPMDTableReadGroup& operator[](const uint16_t & ReadGroupID) const;
+	void initialize(const BAM::TReadGroups* ReadGroups, uint16_t TableLength, const BAM::TReadGroupMap* ReadGroupMap);
+	const TPMDTableReadGroup& operator[](uint16_t ReadGroupID) const;
 
 	void add(const BAM::TSequencedBase & base, const genometools::Base & reference);
 	void write(std::string filename, const bool & normalize);

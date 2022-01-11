@@ -36,7 +36,7 @@ bool TPopulation::sampleExists(const std::string & Sample) const {
 	return std::find(_samples.begin(), _samples.end(), Sample) != _samples.end();
 };
 
-bool TPopulation::sampleIndexExists(const uint32_t & Index) const {
+bool TPopulation::sampleIndexExists(uint32_t Index) const {
 	return Index >= _firstSampleIndex && Index < _firstSampleIndex + _samples.size();
 };
 
@@ -49,7 +49,7 @@ uint32_t TPopulation::sampleIndex(const std::string & Sample) const {
 	throw std::runtime_error("uint32_t TPopulation::sampleIndex(const std::string & Sample): sample '" + Sample + "' does not exist!");
 };
 
-std::string TPopulation::sampleName(const uint32_t & Index) const{
+std::string TPopulation::sampleName(uint32_t Index) const{
 	return _samples[Index - _firstSampleIndex];
 };
 
@@ -93,7 +93,7 @@ bool TPopulationSamples::populationExists(const std::string & name) const {
 	return std::find(_populations.begin(), _populations.end(), name) != _populations.end();
 };
 
-std::string TPopulationSamples::getPopulationName(const uint32_t & index) const {
+std::string TPopulationSamples::getPopulationName(uint32_t index) const {
 	if(index >= _populations.size()){
 		throw "No population with index " + toString(index) + "!";
 	}
@@ -127,16 +127,16 @@ uint32_t TPopulationSamples::sampleIndex(const std::string & name) const {
 	throw std::runtime_error("uint32_t TPopulationSamples::getSampleIndex(const std::string & name): Sample '" + name + "' does not exist!");
 };
 
-std::string TPopulationSamples::sampleName(const uint32_t & index) const {
+std::string TPopulationSamples::sampleName(uint32_t index) const {
 	if(index >= _numSamples){
-		throw std::runtime_error("std::string TPopulationSamples::getSampleName(const uint32_t & index) const: index >= _numSamples!");
+		throw std::runtime_error("std::string TPopulationSamples::getSampleName(uint32_t index) const: index >= _numSamples!");
 	}
 	for(auto& p : _populations){
 		if(p.sampleIndexExists(index)){
 			return p.sampleName(index);
 		}
 	}
-	throw std::runtime_error("std::string TPopulationSamples::getSampleName(const uint32_t & index) const: index not found!");
+	throw std::runtime_error("std::string TPopulationSamples::getSampleName(uint32_t index) const: index not found!");
 };
 
 void TPopulationSamples::addSampleNamesToVector(std::vector<std::string> & vec) const{
@@ -278,7 +278,7 @@ void TPopulationSamples::_fillIndexToPopulationIndex(){
 };
 
 
-uint32_t TPopulationSamples::sampleIndexInVCF(const uint32_t & index){
+uint32_t TPopulationSamples::sampleIndexInVCF(uint32_t index){
 	return _indexToVCFIndex[index];
 };
 
@@ -799,12 +799,12 @@ std::vector<genometools::BiallelicGenotype> TPopulationLikelihoodReaderLocus::bi
     return vec;
 };
 
-genometools::BiallelicGenotype TPopulationLikelihoodReaderLocus::biallelicGenotype(TPopulationSamples & samples, const uint32_t & s) const{
+genometools::BiallelicGenotype TPopulationLikelihoodReaderLocus::biallelicGenotype(TPopulationSamples & samples, uint32_t s) const{
     uint32_t vcfIndex = samples.sampleIndexInVCF(s);
     return vcfFile.sampleBiallelicGenotype(vcfIndex);
 };
 
-genometools::Genotype TPopulationLikelihoodReaderLocus::genotype(TPopulationSamples & samples, const uint32_t & s) const{
+genometools::Genotype TPopulationLikelihoodReaderLocus::genotype(TPopulationSamples & samples, uint32_t s) const{
 	uint32_t vcfIndex = samples.sampleIndexInVCF(s);
 	return vcfFile.sampleGenotype(vcfIndex);
 };

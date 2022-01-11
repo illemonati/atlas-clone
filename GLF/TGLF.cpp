@@ -22,7 +22,7 @@ TGlfChromosome::TGlfChromosome(){
 	name = "";
 };
 
-TGlfChromosome::TGlfChromosome(const std::string & Name, const uint32_t & Length, const uint8_t & Ploidy){
+TGlfChromosome::TGlfChromosome(const std::string & Name, uint32_t Length, const uint8_t & Ploidy){
 	name = Name;
 	length = Length;
 	refId = 0;
@@ -46,7 +46,7 @@ void TGlfChromosome::_setPloidy(const uint8_t & Ploidy){
 	}
 };
 
-void TGlfChromosome::update(const std::string & Name, const uint16_t & RefId, const uint32_t & Length, const uint8_t & Ploidy){
+void TGlfChromosome::update(const std::string & Name, uint16_t RefId, uint32_t Length, const uint8_t & Ploidy){
 	name = Name;
 	refId = RefId;
 	length = Length;
@@ -199,7 +199,7 @@ void TGlfReader::_init(){
 		_genotypeLikelihoodsGLF_missingData[i] = 0;
 };
 
-TGlfChromosome* TGlfReader::pointerToChr(const uint32_t & refId){
+TGlfChromosome* TGlfReader::pointerToChr(uint32_t refId){
 	if(_curChr.refId == refId){
 		return &_curChr;
 	} else {
@@ -371,7 +371,7 @@ bool TGlfReader::jumpToNextChr(){
 	return readNext();
 };
 
-bool TGlfReader::readNextWindow(std::vector<genometools::HighPrecisionPhredIntProbability*> & genoLikelihoods, const uint32_t & refId, const uint32_t & start, const uint32_t & end){
+bool TGlfReader::readNextWindow(std::vector<genometools::HighPrecisionPhredIntProbability*> & genoLikelihoods, uint32_t refId, uint32_t start, uint32_t end){
 	if(_eof) return false;
 
 	//move to correct chromosome

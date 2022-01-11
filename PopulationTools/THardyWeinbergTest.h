@@ -33,7 +33,7 @@ private:
 
 public:
 	THWHetProb();
-	THWHetProb(const uint32_t & N, const uint32_t & n_A);
+	THWHetProb(uint32_t N, uint32_t n_A);
 
 	void clear();
 	THWHetProb& operator=(const THWHetProb & other);
@@ -41,8 +41,8 @@ public:
 	bool onlyOdd() const { return _onlyOdd; };
 	bool onlyEven() const { return _onlyEven; };
 	uint32_t maxNumHet() const { return _maxNumHetPlusOne - 1; };
-	const double& operator[](const uint32_t & i) const { return _probs[i]; };
-	double sum(const uint32_t & upTo);
+	const double& operator[](uint32_t i) const { return _probs[i]; };
+	double sum(uint32_t upTo);
 	void print();
 };
 
@@ -55,8 +55,8 @@ private:
 	std::map<uint32_t, THWHetProb> _probs;
 
 public:
-	THWHetProbVector(const uint32_t & N);
-	const THWHetProb& getProbs(const uint32_t & n_A);
+	THWHetProbVector(uint32_t N);
+	const THWHetProb& getProbs(uint32_t n_A);
 };
 
 class THWProbDB{
@@ -64,7 +64,7 @@ private:
 	std::map<uint32_t, THWHetProbVector> _probs;
 
 public:
-	const THWHetProb& getProbs(const uint32_t & N, const uint32_t & n_A);
+	const THWHetProb& getProbs(uint32_t N, uint32_t n_A);
 };
 
 //------------------------------------------------
@@ -95,10 +95,10 @@ private:
 
 public:
 	THWPopulations(){};
-	THWPopulations(const uint16_t & numPops);
+	THWPopulations(uint16_t numPops);
 	void clear();
-	void resize(const uint16_t & numPops);
-	void add(const uint16_t & pop, const genometools::BiallelicGenotype & genotyp);
+	void resize(uint16_t numPops);
+	void add(uint16_t pop, const genometools::BiallelicGenotype & genotyp);
 	void addToHeader(std::vector<std::string> & header);
 	void runTest(TOutputFile & out);
 };

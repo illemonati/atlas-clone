@@ -26,7 +26,7 @@ void TCigar::clear(){
 	_softClippedAddedOnRight = false;
 };
 
-void TCigar::add(const char & Type, const uint32_t & Length){
+void TCigar::add(const char & Type, uint32_t Length){
 	if(_softClippedAddedOnRight){
 		throw "Cigar string contains entries past softclipping on right!";
 	}

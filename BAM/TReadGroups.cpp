@@ -174,7 +174,7 @@ bool TReadGroups::empty() const{
 	return _readGroups.empty();
 };
 
-const std::string& TReadGroups::getName(const uint16_t & readGroupId) const{
+const std::string& TReadGroups::getName(uint16_t readGroupId) const{
 	if(readGroupId >= _readGroups.size()) throw "No read group with number " + toString(readGroupId) + "!";
 
 	return _readGroupsById[readGroupId]->name_ID;
@@ -203,7 +203,7 @@ const TReadGroup& TReadGroups::getReadGroup(const std::string & name){
 	throw "Read Group '" + name + "' is not present in header of bam file!";
 };
 
-const TReadGroup& TReadGroups::operator[](const uint16_t & readGroupId) const{
+const TReadGroup& TReadGroups::operator[](uint16_t readGroupId) const{
 	if(readGroupId >= _readGroups.size()) throw "No read group with number " + toString(readGroupId) + "!";
 	return *_readGroupsById[readGroupId];
 };
@@ -215,7 +215,7 @@ bool TReadGroups::readGroupExists(const std::string & name) const{
 	return false;
 };
 
-bool TReadGroups::readGroupInUse(const uint16_t & readGroupId) const{
+bool TReadGroups::readGroupInUse(uint16_t readGroupId) const{
 	return _readGroupsById[readGroupId]->inUse;
 };
 
@@ -303,7 +303,7 @@ void TReadGroupMap::_resize(const TReadGroups & ReadGroups){
 	_reverseReadGroupMap.resize(ReadGroups.size());
 };
 
-void TReadGroupMap::_markAsInUse(const uint16_t & index){
+void TReadGroupMap::_markAsInUse(uint16_t index){
 	_readGroupMap[index] = index;
 	_reverseReadGroupMap[index].push_back(index);
 	_readGroupsInUse.push_back(index);

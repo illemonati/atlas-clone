@@ -15,15 +15,15 @@ using coretools::str::toString;
 //---------------------------------------------------------
 // TChromosome
 //---------------------------------------------------------
-TChromosome::TChromosome(const uint32_t & RefID, const std::string & Name, const uint32_t & Length){
+TChromosome::TChromosome(uint32_t RefID, const std::string & Name, uint32_t Length){
 	_initialize(RefID, Name, Length, 2);
 };
 
-TChromosome::TChromosome(const uint32_t & RefID, const std::string & Name, const uint32_t & Length, const uint8_t & Ploidy){
+TChromosome::TChromosome(uint32_t RefID, const std::string & Name, uint32_t Length, const uint8_t & Ploidy){
 	_initialize(RefID, Name, Length, Ploidy);
 };
 
-void TChromosome::_initialize(const uint32_t & RefID, const std::string & Name, const uint32_t & Length, const uint8_t & Ploidy){
+void TChromosome::_initialize(uint32_t RefID, const std::string & Name, uint32_t Length, const uint8_t & Ploidy){
 	name = Name;
 	length = Length;
 	ploidy = Ploidy;
@@ -73,11 +73,11 @@ void TChromosomes::clear(){
 	_curChr = _chromosomes.end();
 };
 
-void TChromosomes::appendChromosome(const std::string & name, const uint32_t & length){
+void TChromosomes::appendChromosome(const std::string & name, uint32_t length){
 	_chromosomes.emplace_back(_chromosomes.size(), name, length);
 };
 
-void TChromosomes::appendChromosome(const std::string & name, const uint32_t & length, const uint8_t & ploidy){
+void TChromosomes::appendChromosome(const std::string & name, uint32_t length, const uint8_t & ploidy){
 	_chromosomes.emplace_back(_chromosomes.size(), name, length, ploidy);
 };
 
@@ -278,27 +278,27 @@ uint32_t TChromosomes::refID(const std::string chrName) const{
 	return _find(chrName).refID();
 };
 
-uint32_t TChromosomes::length(const uint32_t & RefID) const{
+uint32_t TChromosomes::length(uint32_t RefID) const{
 	return _chromosomes[RefID].length;
 };
 
-std::string TChromosomes::name(const uint32_t & RefID) const{
+std::string TChromosomes::name(uint32_t RefID) const{
 	return _chromosomes[RefID].name;
 };
 
-bool TChromosomes::inUse(const uint32_t & RefID) const{
+bool TChromosomes::inUse(uint32_t RefID) const{
 	return _chromosomes[RefID].inUse;
 };
 
-uint8_t TChromosomes::ploidy(const uint32_t & RefID) const{
+uint8_t TChromosomes::ploidy(uint32_t RefID) const{
 	return _chromosomes[RefID].ploidy;
 };
 
-const TGenomePosition& TChromosomes::chrStart(const uint32_t & RefID) const{
+const TGenomePosition& TChromosomes::chrStart(uint32_t RefID) const{
 	return _chromosomes[RefID].chrStart;
 };
 
-const TGenomePosition& TChromosomes::chrEnd(const uint32_t & RefID) const{
+const TGenomePosition& TChromosomes::chrEnd(uint32_t RefID) const{
 	return _chromosomes[RefID].chrEnd;
 };
 

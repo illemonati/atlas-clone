@@ -54,26 +54,26 @@ public:
 
 	//Allow to set chromosome name when jumping
 	using BAM::TGenomeWindow::move;
-	virtual void move(const BAM::TGenomePosition & From, const uint32_t & Length, const std::string ChrName);
+	virtual void move(const BAM::TGenomePosition & From, uint32_t Length, const std::string ChrName);
 	virtual void move(const BAM::TGenomePosition & From, const BAM::TGenomePosition & To, const std::string ChrName);
 	virtual void move(const BAM::TGenomeWindow & Window, const std::string ChrName);
 	void setChrName(const std::string ChrName);
 
 	//move / expand on same chromosome
-	virtual void operator+=(const uint32_t & length);
-	virtual void operator-=(const uint32_t & length);
-	virtual void resize(const uint32_t & newLength);
+	virtual void operator+=(uint32_t length);
+	virtual void operator-=(uint32_t length);
+	virtual void resize(uint32_t newLength);
 
 	//void stealFromOther(TWindow_base & other);
-	void downsampleFromOther(TWindow & other, const uint32_t & readUpToDepth, const Probability & downsamplingProb, TRandomGenerator* randomGenerator);
-	void downsampleFromOther(TWindow & other, TSiteSubset & subset, const uint32_t & readUpToDepth, const Probability & downsamplingProb, TRandomGenerator* randomGenerator);
+	void downsampleFromOther(TWindow & other, uint32_t readUpToDepth, const Probability & downsamplingProb, TRandomGenerator* randomGenerator);
+	void downsampleFromOther(TWindow & other, TSiteSubset & subset, uint32_t readUpToDepth, const Probability & downsamplingProb, TRandomGenerator* randomGenerator);
 	void clear();
 
 	void addReferenceBaseToSites(BAM::TFastaBuffer & reference);
 	void addReferenceBaseToSites(TSiteSubset & subset);
 	void applyMask(BAM::TBed & mask, bool doInverseMasking);
 	void maskCpG(BAM::TFastaBuffer & reference);
-	void downsample(const uint32_t & maxDepth, const coretools::TSubsamplePicker & picker);
+	void downsample(uint32_t maxDepth, const coretools::TSubsamplePicker & picker);
 	GenotypeLikelihoods::TBaseProbabilities estimateBaseFrequencies() const;
 	void applyDepthFilter(const coretools::TNumericRange<uint32_t> & DepthRange);
 
@@ -120,13 +120,13 @@ private:
 	//functions to fill sites from alignments
 	uint32_t _findFirstPositionWithinWindow(const BAM::TAlignment & alignment);
 
-	void _fillSites(BAM::TAlignment & alignment, std::vector<TSite> & sites, const uint32_t & readUpToDepth);
-	void _fillSites(std::vector<TSite> & sites, const uint32_t & readUpToDepth);
-	int _fillSitesDownsampling(std::vector<TSite> & sites, const uint32_t & readUpToDepth, const Probability & downsamplingProb, TRandomGenerator* randomGenerator);
+	void _fillSites(BAM::TAlignment & alignment, std::vector<TSite> & sites, uint32_t readUpToDepth);
+	void _fillSites(std::vector<TSite> & sites, uint32_t readUpToDepth);
+	int _fillSitesDownsampling(std::vector<TSite> & sites, uint32_t readUpToDepth, const Probability & downsamplingProb, TRandomGenerator* randomGenerator);
 
-	void _fillSitesSubset(BAM::TAlignment & alignmentIt, std::vector<TSite> & sites, std::set<TSiteSubsetSite> & thesePos, const unsigned int & readUpToDepth);
-	void _fillSitesSubset(std::vector<TSite> & sites, TSiteSubset & subset, const uint32_t & readUpToDepth);
-	int _fillSitesSubsetDownsampling(std::vector<TSite> & sites, TSiteSubset & subset, const uint32_t & readUpToDepth, const Probability & downsamplingProb, TRandomGenerator* randomGenerator);
+	void _fillSitesSubset(BAM::TAlignment & alignmentIt, std::vector<TSite> & sites, std::set<TSiteSubsetSite> & thesePos, unsigned int readUpToDepth);
+	void _fillSitesSubset(std::vector<TSite> & sites, TSiteSubset & subset, uint32_t readUpToDepth);
+	int _fillSitesSubsetDownsampling(std::vector<TSite> & sites, TSiteSubset & subset, uint32_t readUpToDepth, const Probability & downsamplingProb, TRandomGenerator* randomGenerator);
 
 public:
 	TWindow();
@@ -134,18 +134,18 @@ public:
 
 	//Overload moving to take care of alignemnts
 	//void move(const uint32_t RefID, const uint32_t Start, const uint32_t End, const std::string ChrName);
-	void move(const BAM::TGenomePosition & From, const uint32_t & Length, const std::string ChrName);
+	void move(const BAM::TGenomePosition & From, uint32_t Length, const std::string ChrName);
 	void move(const BAM::TGenomePosition & From, const BAM::TGenomePosition & To, const std::string ChrName);
 	void move(const BAM::TGenomeWindow & Window, const std::string ChrName);
-	void operator+=(const uint32_t & length);
-	void operator-=(const uint32_t & length);
-	void resize(const uint32_t & newLength);
+	void operator+=(uint32_t length);
+	void operator-=(uint32_t length);
+	void resize(uint32_t newLength);
 
 	void review();
 	void printStacks();
 
-	void fillSites(const uint32_t & readUpToDepth);
-	void fillSitesSubset(TSiteSubset & subset, const uint32_t & readUpToDepth);
+	void fillSites(uint32_t readUpToDepth);
+	void fillSitesSubset(TSiteSubset & subset, uint32_t readUpToDepth);
 
 	BAM::TAlignment* swapUsedForEmptyAlignment(BAM::TAlignment* usedAlignment);
 };

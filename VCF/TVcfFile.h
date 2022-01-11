@@ -156,8 +156,8 @@ public:
 	bool sampleIsHeteroRefNonref(unsigned int sample);
 	genometools::Base getFirstAlleleOfSample(unsigned int num) const;
 	genometools::Base getSecondAlleleOfSample(unsigned int num) const;
-	genometools::BiallelicGenotype sampleBiallelicGenotype(const unsigned int & num) const;
-	genometools::Genotype sampleGenotype(const unsigned int & num) const;
+	genometools::BiallelicGenotype sampleBiallelicGenotype(unsigned int num) const;
+	genometools::Genotype sampleGenotype(unsigned int num) const;
 	float sampleGenotypeQuality(unsigned int sample);
 	double sampleDepth(unsigned int sample);
 	// int sampleDepth(unsigned int sample);

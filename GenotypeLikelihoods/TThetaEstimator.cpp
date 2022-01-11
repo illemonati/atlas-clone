@@ -549,7 +549,7 @@ void TThetaEstimator::writeResultsToFile(coretools::TOutputFile & out){
 	writeEstimateFrequenciesAndTheta(out);
 };
 
-void TThetaEstimator::calcLikelihoodSurface(coretools::TOutputFile & out, const uint32_t & steps){
+void TThetaEstimator::calcLikelihoodSurface(coretools::TOutputFile & out, uint32_t steps){
 	//write header
 	out.writeHeader({"log10(theta)", "theta", "LL"});
 	out.setPrecision(12);

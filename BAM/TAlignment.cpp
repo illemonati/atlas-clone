@@ -10,7 +10,7 @@
 
 namespace BAM{
 
-TAlignment::TAlignment(const uint32_t& RefID, const uint32_t& Position):TGenomePosition(RefID, Position){
+TAlignment::TAlignment(uint32_t RefID, uint32_t Position):TGenomePosition(RefID, Position){
 	_initialize();
 };
 
@@ -51,16 +51,16 @@ void TAlignment::clear(){
 //function used by TBamFile to fill alignment
 void TAlignment::fill(const	std::string & Name,
 		  const TSamFlags & Flags,
-		  const uint32_t & RefID,
-		  const uint32_t & Position,
-		  const uint16_t & MappingQuality,
+		  uint32_t RefID,
+		  uint32_t Position,
+		  uint16_t MappingQuality,
 		  const TCigar & Cigar,
-		  const uint32_t & MateRefID,
-		  const uint32_t & MatePosition,
+		  uint32_t MateRefID,
+		  uint32_t MatePosition,
 		  const int32_t & InsertSize_TLEN,
 		  const std::string & Sequence,
 		  const std::string & Qualities,
-		  const uint16_t & ReadGroupId){
+		  uint16_t ReadGroupId){
 
 	//empty alignment
 	clear();
@@ -320,14 +320,14 @@ bool TAlignment::isAlignedAtInternalPos(const uint32_t internalPosition) const{
 	return _alignedPosition[internalPosition] >= 0;
 };
 
-genometools::Base TAlignment::referenceAtInternalPos(const uint32_t & internalPosition) const{
+genometools::Base TAlignment::referenceAtInternalPos(uint32_t internalPosition) const{
 	if(!_hasReference){
 		throw std::runtime_error("genometools::Base TAlignment::referenceAtInternalPos(const uint32_t internalPosition) const: alignment has no reference!");
 	}
 	return _referenceSequence[_alignedPosition[internalPosition]];
 };
 
-TGenomePosition TAlignment::positionInRef(const uint32_t & internalPosition) const{
+TGenomePosition TAlignment::positionInRef(uint32_t internalPosition) const{
 	//only makes sense if position is aligned!
 	return *this + _alignedPosition[internalPosition];
 };

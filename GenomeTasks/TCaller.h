@@ -159,7 +159,7 @@ private:
 	bool _callGenotypeKnownAlleles(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) override;
 
 public:
-	TCallerConsensify(const uint32_t & DownsampleDepth, TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TCallerConsensify(uint32_t DownsampleDepth, TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
 };
 
 //------------------------------------------------------

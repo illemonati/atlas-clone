@@ -15,11 +15,11 @@ using coretools::str::toString;
 //----------------------------------------------------
 //TMultiGLFData
 //----------------------------------------------------
-TMultiGLFData::TMultiGLFData(const uint32_t & Size){
+TMultiGLFData::TMultiGLFData(uint32_t Size){
 	samples.resize(Size);
 };
 
-void TMultiGLFData::resize(const uint32_t & Size){
+void TMultiGLFData::resize(uint32_t Size){
 	samples.resize(Size);
 };
 
@@ -115,7 +115,7 @@ void TGlfMultiReaderVcf::writeLikelihood(const HighPrecisionPhredIntProbability 
 	}
 };
 
-void TGlfMultiReaderVcf::writeSite(const std::string & chrName, const uint32_t & position, const genometools::PhredIntProbability & varianTQuality, TMultiGLFData & data, const genometools::Base refAllele, const genometools::Base altAllele){
+void TGlfMultiReaderVcf::writeSite(const std::string & chrName, uint32_t position, const genometools::PhredIntProbability & varianTQuality, TMultiGLFData & data, const genometools::Base refAllele, const genometools::Base altAllele){
 	//Note: we pass hom/het indexes to maintain the major / minor order! Passing the alleleic combination is not enough
 	//TODO: find way to harmonize code with TCaller
 	_setMajorMinor(refAllele, altAllele);

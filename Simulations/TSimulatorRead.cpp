@@ -218,7 +218,7 @@ void TSimulatorSingleEndRead::_simulateBasesQualities(BAM::TAlignment & alignmen
 
 */
 
-void TSimulatorSingleEndRead::simulate(Base*, const uint32_t & refID, const uint32_t & pos, TSimulatorBamFile & bamFile){
+void TSimulatorSingleEndRead::simulate(Base*, uint32_t refID, uint32_t pos, TSimulatorBamFile & bamFile){
 	//prepare alignment
 	_alignment.move(refID, pos);
 	_alignment.setName(_getNextReadName());
@@ -290,7 +290,7 @@ TSimulatorPairedEndReads::~TSimulatorPairedEndReads(){
 		delete it;
 };
 
-void TSimulatorPairedEndReads::simulate(Base* haplotype, const uint32_t & refID, const uint32_t & pos, TSimulatorBamFile & bamFile){
+void TSimulatorPairedEndReads::simulate(Base* haplotype, uint32_t refID, uint32_t pos, TSimulatorBamFile & bamFile){
 	//pick a fragment, read length and contamination
 	TReadLength readLength = _readLengthDist->sample();
 	bool readIsContaminated = _isContaminated && _randomGenerator->getRand() < _contaminationRate;

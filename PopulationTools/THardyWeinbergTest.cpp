@@ -18,7 +18,7 @@ THWHetProb::THWHetProb(){
 	clear();
 };
 
-THWHetProb::THWHetProb(const uint32_t & numInd_N, const uint32_t & alleleFreq_n_A){
+THWHetProb::THWHetProb(uint32_t numInd_N, uint32_t alleleFreq_n_A){
 	if(alleleFreq_n_A > 0 && alleleFreq_n_A < 2*numInd_N){
 		//max num het
 		_maxNumHetPlusOne = std::min(alleleFreq_n_A, 2*numInd_N - alleleFreq_n_A) + 1;
@@ -152,7 +152,7 @@ void THWHetProb::extend(const THWHetProb & other){
 	}
 };
 
-double THWHetProb::sum(const uint32_t & upTo){
+double THWHetProb::sum(uint32_t upTo){
 	double sum = 0.0;
 	for(uint32_t i = 0; i<=upTo; ++i){
 		sum += _probs[i];
@@ -169,11 +169,11 @@ void THWHetProb::print(){
 //------------------------------------------------
 //THWHetProbDB
 //------------------------------------------------
-THWHetProbVector::THWHetProbVector(const uint32_t & N){
+THWHetProbVector::THWHetProbVector(uint32_t N){
 	_N = N;
 };
 
-const THWHetProb& THWHetProbVector::getProbs(const uint32_t & n_A){
+const THWHetProb& THWHetProbVector::getProbs(uint32_t n_A){
 	//check if these probs already exist
 	auto it = _probs.find(n_A);
 	if(it == _probs.end()){
@@ -184,7 +184,7 @@ const THWHetProb& THWHetProbVector::getProbs(const uint32_t & n_A){
 	return it->second;
 };
 
-const THWHetProb& THWProbDB::getProbs(const uint32_t & N, const uint32_t & n_A){
+const THWHetProb& THWProbDB::getProbs(uint32_t N, uint32_t n_A){
 	//check if prob vector already exists
 	auto it = _probs.find(N);
 	if(it == _probs.end()){
@@ -234,11 +234,11 @@ uint32_t THWGenotypes::n_AB() const{
 //------------------------------------------------
 //THWPopulations
 //------------------------------------------------
-THWPopulations::THWPopulations(const uint16_t & numPops){
+THWPopulations::THWPopulations(uint16_t numPops){
 	resize(numPops);
 };
 
-void THWPopulations::resize(const uint16_t & numPops){
+void THWPopulations::resize(uint16_t numPops){
 	_populations.resize(numPops);
 };
 
@@ -248,7 +248,7 @@ void THWPopulations::clear(){
 	}
 };
 
-void THWPopulations::add(const uint16_t & pop, const genometools::BiallelicGenotype & genotyp){
+void THWPopulations::add(uint16_t pop, const genometools::BiallelicGenotype & genotyp){
 	_populations[pop].add(genotyp);
 };
 

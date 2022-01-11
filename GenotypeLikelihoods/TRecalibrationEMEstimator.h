@@ -34,7 +34,7 @@ public:
 	};
 	~TModelIndex() = default;
 
-	void set(const uint16_t & ReadGroupId, const bool & IsSecondMate, std::shared_ptr<TSequencingErrorModelRecal> & Model, const BAM::TReadGroupMap & ReadGroupMap){
+	void set(uint16_t ReadGroupId, const bool & IsSecondMate, std::shared_ptr<TSequencingErrorModelRecal> & Model, const BAM::TReadGroupMap & ReadGroupMap){
 		//also set for all models pooled
 		for(auto& r : ReadGroupMap.readGroupsPooledWith(ReadGroupId)){
 			_index[r][IsSecondMate] = Model;
@@ -66,7 +66,7 @@ public:
 										     const RecalEstimatorTools::TRecalDataTables & DataTables,
 											 const BAM::TReadGroups & ReadGroups,
 											 const BAM::TReadGroupMap & ReadGroupMap,
-											 const uint32_t & MinRequiredObservations,
+											 uint32_t MinRequiredObservations,
 											 TLog* Logfile);
 	~TSequencingErrorModelVectorForEstimation() = default;
 

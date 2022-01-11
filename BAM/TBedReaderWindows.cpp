@@ -53,12 +53,12 @@ TBedReaderChromosome::~TBedReaderChromosome(){
 	windows.clear();
 };
 
-void TBedReaderChromosome::findWindow(const uint32_t & pos){
+void TBedReaderChromosome::findWindow(uint32_t pos){
 	int w = (double) pos / (double) windowSize;
 	windowIt = windows.find(w);
 }
 
-void TBedReaderChromosome::findOrCreateWindow(const uint32_t & pos){
+void TBedReaderChromosome::findOrCreateWindow(uint32_t pos){
 	findWindow(pos);
 	if(windowIt == windows.end()){
 		//insert window
@@ -90,7 +90,7 @@ void TBedReaderChromosome::print(){
 	for(windowIt=windows.begin(); windowIt!=windows.end(); ++windowIt) windowIt->second->print();
 };
 
-bool TBedReaderChromosome::hasPositionsInWindow(const uint32_t & windowStart){
+bool TBedReaderChromosome::hasPositionsInWindow(uint32_t windowStart){
 	findWindow(windowStart);
 	if(windowIt == windows.end()) return false;
 	return true;
@@ -155,7 +155,7 @@ void TBedReaderWindows::readFile(const TChromosomes & chromosomeList, uint32_t s
 	delete myStream;
 };
 
-TBedReaderWindows::TBedReaderWindows(std::string Filename, const uint32_t & WindowSize, const TChromosomes & chromosomeList, uint32_t siteLimit, TLog* logfile){
+TBedReaderWindows::TBedReaderWindows(std::string Filename, uint32_t WindowSize, const TChromosomes & chromosomeList, uint32_t siteLimit, TLog* logfile){
 	filename = Filename;
 	windowSize = WindowSize;
 	numPositionsAdded = 0;
@@ -179,7 +179,7 @@ void TBedReaderWindows::print(){
 	for(chrIt=chromosomes.begin(); chrIt!=chromosomes.end(); ++chrIt) chrIt->second->print();
 };
 
-bool TBedReaderWindows::hasPositionsInWindow(const uint32_t & windowStart){
+bool TBedReaderWindows::hasPositionsInWindow(uint32_t windowStart){
 	chrIt = chromosomes.find(curChr);
 	if(chrIt == chromosomes.end()) return false;
 	else return chrIt->second->hasPositionsInWindow(windowStart);

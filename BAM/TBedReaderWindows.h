@@ -44,11 +44,11 @@ public:
 
 	TBedReaderChromosome(std::string & Name, uint32_t & WindowSize);
 	~TBedReaderChromosome();
-	void findWindow(const uint32_t & pos);
-	void findOrCreateWindow(const uint32_t & pos);
+	void findWindow(uint32_t pos);
+	void findOrCreateWindow(uint32_t pos);
 	void addPosition(std::vector<std::string> & tmp, uint32_t & numPositionsAdded);
 	void print();
-	bool hasPositionsInWindow(const uint32_t & windowStart);
+	bool hasPositionsInWindow(uint32_t windowStart);
 	std::vector<uint32_t>& getPositionInWindow(uint32_t windowStart);
 	uint32_t size();
 };
@@ -65,11 +65,11 @@ private:
 
 public:
 	std::string filename;
-	TBedReaderWindows(std::string Filename, const uint32_t & WindowSize, const TChromosomes & chromosomes, uint32_t siteLimit, TLog* logfile);
+	TBedReaderWindows(std::string Filename, uint32_t WindowSize, const TChromosomes & chromosomes, uint32_t siteLimit, TLog* logfile);
 	~TBedReaderWindows();
 	void setChr(const std::string & chr);
 	void print();
-	bool hasPositionsInWindow(const uint32_t & windowStart);
+	bool hasPositionsInWindow(uint32_t windowStart);
 	std::vector<uint32_t>& getPositionInWindow(uint32_t & windowStart);
 	uint32_t size();
 	uint32_t getNumChromosomes();
