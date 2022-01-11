@@ -24,7 +24,7 @@ TAlleleFreqEstimatorHardyWeinberg::TAlleleFreqEstimatorHardyWeinberg(){
 	maxIter = 1000;
 };
 
-Probability TAlleleFreqEstimatorHardyWeinberg::estimate(const TSampleLikelihoods* storage, uint32_t numSamplesInPop, const double & epsilonF){
+Probability TAlleleFreqEstimatorHardyWeinberg::estimate(const TSampleLikelihoods* storage, uint32_t numSamplesInPop, double epsilonF){
 	genometools::THardyWeinbergGenotypeProbabilities pGenotype;
 	Probability weights[3];
 

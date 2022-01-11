@@ -37,8 +37,8 @@ public:
 	TInbreedingF(float & ProbMovingToModelNoF, double & SdProposal, bool InModelWithF, double lambda);
 	void adjustProposalWidthAfterBurnin(int numAcceptedFModelF, int numIterInModelF);
 	double proposeNew(TRandomGenerator* randomGenerator);
-	void updatePosteriors(const double & value, const bool & inModelWithF);
-	void updateAndAccept(const double & value, const bool & inModelWithF);
+	void updatePosteriors(double value, const bool & inModelWithF);
+	void updateAndAccept(double value, const bool & inModelWithF);
 	void updateAndReject(bool inModelWithF);
 	void resetPosterior();
 	double getPosteriorMean(int numUpdates);
@@ -46,9 +46,9 @@ public:
 	float probMovingToModelNoF();
 	double F();
 	bool inModelWithF();
-	double logPDFExp(const double & thisF);
+	double logPDFExp(double thisF);
 	double logPDFExp();
-	double PDFExp(const double & thisF);
+	double PDFExp(double thisF);
 	double PDFExp();
 	double lambda();
 	int posteriorProbModelWithF();
@@ -90,16 +90,16 @@ public:
 	void setSumsForPosteriorToZero();
 	void setToValue(double fixedValue);
 	void adjustProposalWidthAfterBurnin(std::vector<int> & numAcceptedP, std::vector<int> & numUpdates);
-	double proposeNew(const long & locusNum, TRandomGenerator* randomGenerator);
-	void update(const long & index, const double & value, const bool ModelP);
+	double proposeNew(long locusNum, TRandomGenerator* randomGenerator);
+	void update(long index, double value, const bool ModelP);
 	double getPosteriorMean(unsigned long index, int numUpdates);
 	double getPosteriorVariance(unsigned long index, int numUpdates);
 	double getProposalWidth(const unsigned long & index);
 	long getNumLociInModelP();
 	long getNumLociInModel0();
  	long numLociWithAcceptanceZero();
-	double logPDFExp(const double & thisP);
-	double logPDFExp(const long & thisLocus);
+	double logPDFExp(double thisP);
+	double logPDFExp(long thisLocus);
 };
 
 //---------------------------
@@ -115,7 +115,7 @@ public:
 
 	TGamma();
 	TGamma(double & ProposalWidth);
-	void update(const double & newLogValue, const double & newNaturalScaleValue);
+	void update(double newLogValue, double newNaturalScaleValue);
 	void adjustProposalWidthAfterBurnin(int numAccepted, int numUpdates);
 
 	double getLogValue();
@@ -138,7 +138,7 @@ public:
 
 	TPi();
 	TPi(double & ProposalWidth, double & initialValue);
-	void update(const double & newNaturalScaleValue);
+	void update(double newNaturalScaleValue);
 	void adjustProposalWidthAfterBurnin(int numAccepted, int numUpdates);
 
 	double getPi();

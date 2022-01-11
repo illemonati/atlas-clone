@@ -41,7 +41,7 @@ public:
 	bool onlyOdd() const { return _onlyOdd; };
 	bool onlyEven() const { return _onlyEven; };
 	uint32_t maxNumHet() const { return _maxNumHetPlusOne - 1; };
-	const double& operator[](uint32_t i) const { return _probs[i]; };
+	double operator[](uint32_t i) const { return _probs[i]; };
 	double sum(uint32_t upTo);
 	void print();
 };

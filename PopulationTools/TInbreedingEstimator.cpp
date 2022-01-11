@@ -83,14 +83,14 @@ double TInbreedingF::proposeNew(TRandomGenerator* randomGenerator){
     return newF;
 };
 
-void TInbreedingF::updatePosteriors(const double & value, const bool & inModelWithF){
+void TInbreedingF::updatePosteriors(double value, const bool & inModelWithF){
 	_inModelWithF = inModelWithF;
 	_posteriorProbModelWithF += inModelWithF;
 	_sumIterations += value;
 	_sumOfSquaresIterations += (value * value);
 };
 
-void TInbreedingF::updateAndAccept(const double & value, const bool & inModelWithF){
+void TInbreedingF::updateAndAccept(double value, const bool & inModelWithF){
 	_F = value;
 	updatePosteriors(value, inModelWithF);
 }
@@ -113,7 +113,7 @@ double TInbreedingF::getPosteriorVariance(int numUpdates){
 	return _sumOfSquaresIterations / (double) numUpdates - getPosteriorMean(numUpdates)*getPosteriorMean(numUpdates);
 }
 
-double TInbreedingF::logPDFExp(const double & thisF){
+double TInbreedingF::logPDFExp(double thisF){
 	return _logLambda - _lambda * thisF;
 }
 
@@ -121,7 +121,7 @@ double TInbreedingF::logPDFExp(){
 	return logPDFExp(_F);
 }
 
-double TInbreedingF::PDFExp(const double & thisF){
+double TInbreedingF::PDFExp(double thisF){
 	//truncated at 1 -> need to divide by cumulative prob at 1
 	return _lambda * exp(-_lambda* thisF) - _expMinusLambda;
 }
@@ -285,7 +285,7 @@ void TAlleleFreq::adjustProposalWidthAfterBurnin(std::vector<int> & numAcceptedP
 
 }
 
-void TAlleleFreq::update(const long & index, const double & value, const bool ModelP){
+void TAlleleFreq::update(long index, double value, const bool ModelP){
 	//update numLociModelP
 	if(modelP[index] == false && ModelP == true){
 		++_numLociModelP;
@@ -312,7 +312,7 @@ void TAlleleFreq::update(const long & index, const double & value, const bool Mo
 	}
 }
 
-double TAlleleFreq::proposeNew(const long & locusNum, TRandomGenerator* randomGenerator){
+double TAlleleFreq::proposeNew(long locusNum, TRandomGenerator* randomGenerator){
 	double newP = (alleleFreq[locusNum] + randomGenerator->getRand() * proposalWidths[locusNum] - proposalWidths[locusNum] / 2.0);
 	if(newP < 0.0){
 		newP = - newP;
@@ -349,12 +349,12 @@ long TAlleleFreq::numLociWithAcceptanceZero(){
 	return _numLociWithAcceptanceZero;
 }
 
-double TAlleleFreq::logPDFExp(const double & thisP){
+double TAlleleFreq::logPDFExp(double thisP){
 	//truncated at 1 -> need to divide by cumulative prob at 1
 	return logLambda - lambda * thisP - expMinusLambda;
 }
 
-double TAlleleFreq::logPDFExp(const long & thisLocus){
+double TAlleleFreq::logPDFExp(long thisLocus){
 	return logPDFExp(alleleFreq[thisLocus]);
 }
 
@@ -375,7 +375,7 @@ TGamma::TGamma(double & ProposalWidth){
 	_logGamma = -1.0;
 }
 
-void TGamma::update(const double & newLogValue, const double & newNaturalScaleValue){
+void TGamma::update(double newLogValue, double newNaturalScaleValue){
 	if(newNaturalScaleValue < 0)
 		throw "updating gamma to negative value!";
 	_logGamma = newLogValue;
@@ -436,7 +436,7 @@ TPi::TPi(double & ProposalWidth, double & initialValue){
 		_pi = 1 - _minPi;
 };
 
-void TPi::update(const double & newNaturalScaleValue){
+void TPi::update(double newNaturalScaleValue){
 	if(newNaturalScaleValue < 0)
 		throw "updating pi to negative value!";
 	_pi = newNaturalScaleValue;

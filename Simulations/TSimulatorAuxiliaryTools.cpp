@@ -333,7 +333,7 @@ TSimulatorMutationtable::TSimulatorMutationtable(const GenotypeLikelihoods::TBas
 	fill(baseFreq);
 };
 
-TSimulatorMutationtable::TSimulatorMutationtable(const GenotypeLikelihoods::TBaseProbabilities & baseFreq, const double & theta){
+TSimulatorMutationtable::TSimulatorMutationtable(const GenotypeLikelihoods::TBaseProbabilities & baseFreq, double theta){
 	fill(baseFreq, theta);
 };
 
@@ -366,7 +366,7 @@ void TSimulatorMutationtable::fill(const GenotypeLikelihoods::TBaseProbabilities
 	_normalizeAndMakeCumulative();
 };
 
-void TSimulatorMutationtable::fill(const GenotypeLikelihoods::TBaseProbabilities & baseFreq, const double & theta){
+void TSimulatorMutationtable::fill(const GenotypeLikelihoods::TBaseProbabilities & baseFreq, double theta){
 	double expMinusTheta = exp(-theta);
 	for(uint8_t i=0; i<4; ++i){
 		for(uint8_t j=0; j<4; ++j){

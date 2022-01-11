@@ -208,7 +208,7 @@ private:
 	bool _NRStepAccepted;
 
 	void _initializeDerivatives();
-	Probability _calcEpsilon(const double & eta) const;
+	Probability _calcEpsilon(double eta) const;
 	Probability _calcErrorRate(const BAM::TSequencedBase & base) const;
 
 public:

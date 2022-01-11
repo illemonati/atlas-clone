@@ -116,7 +116,7 @@ void  TMajorMinorEstimatorBase::estimateMajorMinor(const TMultiGLFData & data, c
 //---------------------------------------------------
 // TMajorMinorEstimatorSkotte
 //---------------------------------------------------
-TMajorMinorEstimatorSkotte::TMajorMinorEstimatorSkotte(TRandomGenerator* RandomGenerator, const double & EpsilonF):TMajorMinorEstimatorBase(RandomGenerator){
+TMajorMinorEstimatorSkotte::TMajorMinorEstimatorSkotte(TRandomGenerator* RandomGenerator, double EpsilonF):TMajorMinorEstimatorBase(RandomGenerator){
 	 epsilonF = EpsilonF;
 
 	//diploid
@@ -152,7 +152,7 @@ void TMajorMinorEstimatorSkotte::findMLAllelicCombination(const TMultiGLFData & 
 //---------------------------------------------------
 // TMajorMinorEstimatorMLE
 //---------------------------------------------------
-TMajorMinorEstimatorMLE::TMajorMinorEstimatorMLE(TRandomGenerator* RandomGenerator, const double & EpsilonF):TMajorMinorEstimatorBase(RandomGenerator){
+TMajorMinorEstimatorMLE::TMajorMinorEstimatorMLE(TRandomGenerator* RandomGenerator, double EpsilonF):TMajorMinorEstimatorBase(RandomGenerator){
 	epsilonF = EpsilonF;
 };
 

@@ -359,7 +359,7 @@ bool TCaller::_callGenotypeKnownAlleles(const TSite &, TGenotypeLikelihoods &){
 	return true;
 };
 
-void TCaller::call(const std::string & chr, const long & pos, const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){
+void TCaller::call(const std::string & chr, long pos, const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){
 	//set reference base from site
 	referenceBase = site.refBase();
 
@@ -371,7 +371,7 @@ void TCaller::call(const std::string & chr, const long & pos, const TSite & site
 	}
 };
 
-void TCaller::call(const std::string & chr, const long & pos, const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods, const genometools::Base & firstAllele, const genometools::Base & secondAllele){
+void TCaller::call(const std::string & chr, long pos, const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods, const genometools::Base & firstAllele, const genometools::Base & secondAllele){
 	//check if there is data
 	if(!site.empty()){
 		//set reference base from site

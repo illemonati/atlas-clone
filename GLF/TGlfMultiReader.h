@@ -255,8 +255,8 @@ private:
 
 	bool moveToNextChromosome();
 
-	void writeDiploidIndividualToVCF(const int & ind, gz::ogzstream & vcf, const genometools::Base & major, const genometools::Base & minor, const std::vector<std::string> & genotypeStrings, TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods);
-	void writeHaploidIndividualToVCF(const int & ind, gz::ogzstream & vcf, const genometools::Base & major, const genometools::Base & minor, const std::vector<std::string> & genotypeStrings, TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods);
+	void writeDiploidIndividualToVCF(int ind, gz::ogzstream & vcf, const genometools::Base & major, const genometools::Base & minor, const std::vector<std::string> & genotypeStrings, TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods);
+	void writeHaploidIndividualToVCF(int ind, gz::ogzstream & vcf, const genometools::Base & major, const genometools::Base & minor, const std::vector<std::string> & genotypeStrings, TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods);
 
 public:
 	TMultiGLFData data;

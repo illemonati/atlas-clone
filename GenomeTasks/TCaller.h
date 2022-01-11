@@ -119,8 +119,8 @@ public:
 	//prior
 	bool usesPrior(){ return _usesPrior; };
 	void setPrior(TGenotypeProbabilities* prior){ _genotypePrior = prior; _priorSet = true; };
-	void call(const std::string & chr, const long & pos, const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
-	void call(const std::string & chr, const long & pos, const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods, const genometools::Base & firstAllele, const genometools::Base & secondAllele);
+	void call(const std::string & chr, long pos, const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods);
+	void call(const std::string & chr, long pos, const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods, const genometools::Base & firstAllele, const genometools::Base & secondAllele);
 };
 
 //------------------------------------------------------

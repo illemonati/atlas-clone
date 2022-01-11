@@ -60,7 +60,7 @@ public:
 
 	virtual ~TSequencingErrorCovariateFunction(){};
 
-	void setBeta(uint16_t index, const double & val){
+	void setBeta(uint16_t index, double val){
 		if(index < _numParameters)
 			_betas[index] = val;
 	};
@@ -112,8 +112,8 @@ public:
 
 	void initialize(uint16_t FirstParameterIndex);
 	void initialize(uint16_t FirstParameterIndex, const std::vector<std::string> & values);
-	void setIntercept(const double & val);
-	void addToIntercept(const double & val);
+	void setIntercept(double val);
+	void addToIntercept(double val);
 	double getIntercept() const;
 	double getEtaTerm() const;
 	double getEtaTerm(uint16_t val) const override;

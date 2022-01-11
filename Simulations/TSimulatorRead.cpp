@@ -341,7 +341,7 @@ void TSimulatorPairedEndReads::simulate(Base* haplotype, uint32_t refID, uint32_
 	}
 };
 
-void TSimulatorPairedEndReads::writeUnwrittenAlignments(const long & pos, TSimulatorBamFile & bamFile){
+void TSimulatorPairedEndReads::writeUnwrittenAlignments(long pos, TSimulatorBamFile & bamFile){
 	auto it = bamAlignmentSecondMates.begin();
 	while(it != bamAlignmentSecondMates.end()){
 		if((*it)->position() <= pos){

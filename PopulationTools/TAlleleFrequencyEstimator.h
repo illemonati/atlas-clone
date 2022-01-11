@@ -31,7 +31,7 @@ private:
 
 public:
 	TAlleleFreqEstimatorHardyWeinberg();
-	Probability estimate(const TSampleLikelihoods* storage, uint32_t numSamplesInPop, const double & epsilonF);
+	Probability estimate(const TSampleLikelihoods* storage, uint32_t numSamplesInPop, double epsilonF);
 };
 
 //------------------------------------------------

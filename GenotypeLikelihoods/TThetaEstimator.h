@@ -59,7 +59,7 @@ struct Theta{
 		LL = -9e100;
 	};
 
-	void setLogTheta(const double & val, const double & newLL){
+	void setLogTheta(double val, double newLL){
 		logTheta = val;
 		theta = exp(val);
 		expTheta = exp(-theta);
@@ -98,7 +98,7 @@ protected:
 
 	void initDataStorage();
 	void readParametersRegardingInitialSearch(TParameters & params);
-	void fillPGenotype(GenotypeLikelihoods::TGenotypeProbabilities & pGeno, const double & expTheta, const TBaseProbabilities & baseFrequencies);
+	void fillPGenotype(GenotypeLikelihoods::TGenotypeProbabilities & pGeno, double expTheta, const TBaseProbabilities & baseFrequencies);
 	void fillPGenotype(GenotypeLikelihoods::TGenotypeProbabilities & pGeno, const Theta & thisTheta);
 
 	void findGoodStartingTheta(TThetaEstimatorData* thisData, Theta & thisTheta, std::string tag);
@@ -189,12 +189,12 @@ private:
 	int numAcceptedBaseFreq2;
 
 	void clearCounters();
-	void concludeAcceptanceRate(const int & numAccepted, const int & length, std::string name);
-	void concludeAcceptanceRateUpdateProposal(const int & numAccepted, const int & length, double & sd, std::string name);
-	void concludeAcceptanceRates(const int & length);
-	void concludeAcceptanceRatesUpdateProposal(const int & length);
-	bool updateTheta(TThetaEstimatorData* thisData, Theta & thisTheta, double otherLogThetaMean, const double & thisSdProposalKernel);
-	bool updateBaseFrequencies(TThetaEstimatorData* thisData, Theta & thisTheta, const double & thisSdProposalKernel);
+	void concludeAcceptanceRate(int numAccepted, int length, std::string name);
+	void concludeAcceptanceRateUpdateProposal(int numAccepted, int length, double & sd, std::string name);
+	void concludeAcceptanceRates(int length);
+	void concludeAcceptanceRatesUpdateProposal(int length);
+	bool updateTheta(TThetaEstimatorData* thisData, Theta & thisTheta, double otherLogThetaMean, double thisSdProposalKernel);
+	bool updateBaseFrequencies(TThetaEstimatorData* thisData, Theta & thisTheta, double thisSdProposalKernel);
 	void oneMCMCIteration();
 
 public:

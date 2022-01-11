@@ -253,7 +253,7 @@ double TPMDFunctionExponential::_calcLL(const countVec & pmdCounts, const countV
 	return LL;
 };
 
-void TPMDFunctionExponential::_estimateWithNewtonRaphson(const countVec & pmdCounts, const countVec& pmdSums, std::vector<double> & Parameters, uint32_t numNRIterations, const double & epsilon){
+void TPMDFunctionExponential::_estimateWithNewtonRaphson(const countVec & pmdCounts, const countVec& pmdSums, std::vector<double> & Parameters, uint32_t numNRIterations, double epsilon){
 	//variables
 	arma::mat J(3,3);
 	arma::vec F(3);

@@ -199,10 +199,10 @@ private:
 public:
 	TSimulatorMutationtable() = default;
 	TSimulatorMutationtable(const GenotypeLikelihoods::TBaseProbabilities & baseFreq);
-	TSimulatorMutationtable(const GenotypeLikelihoods::TBaseProbabilities & baseFreq, const double & theta);
+	TSimulatorMutationtable(const GenotypeLikelihoods::TBaseProbabilities & baseFreq, double theta);
 	~TSimulatorMutationtable() = default;
 	void fill(const GenotypeLikelihoods::TBaseProbabilities & baseFreq);
-	void fill(const GenotypeLikelihoods::TBaseProbabilities & baseFreq, const double & theta);
+	void fill(const GenotypeLikelihoods::TBaseProbabilities & baseFreq, double theta);
 	const std::array<double, 4> operator[](const genometools::Base & base){ return _mutTable[base.get()]; };
 	void print();
 };

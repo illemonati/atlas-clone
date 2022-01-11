@@ -80,7 +80,7 @@ private:
 	void findMLAllelicCombination(const TMultiGLFData & data);
 
 public:
-	TMajorMinorEstimatorSkotte(TRandomGenerator* RandomGenerator, const double & EpsilonF);
+	TMajorMinorEstimatorSkotte(TRandomGenerator* RandomGenerator, double EpsilonF);
 	~TMajorMinorEstimatorSkotte() = default;
 };
 
@@ -93,7 +93,7 @@ private:
 	void findMLAllelicCombination(const TMultiGLFData & data);
 
 public:
-	TMajorMinorEstimatorMLE(TRandomGenerator* RandomGenerator, const double & EpsilonF);
+	TMajorMinorEstimatorMLE(TRandomGenerator* RandomGenerator, double EpsilonF);
 	~TMajorMinorEstimatorMLE() = default;
 };
 

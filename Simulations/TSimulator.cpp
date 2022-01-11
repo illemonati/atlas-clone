@@ -1180,7 +1180,7 @@ TSimulatorHardyWeinberg::TSimulatorHardyWeinberg(coretools::TLog* Logfile, TPara
 	_logfile->endIndent();
 };
 
-void TSimulatorHardyWeinberg::_fillCumulGenoProb(const double & f){
+void TSimulatorHardyWeinberg::_fillCumulGenoProb(double f){
 	double oneMinus_f = 1.0 - f;
 	cumulGenoProb[0] = F * oneMinus_f + (1.0 - F) * oneMinus_f * oneMinus_f;
 	cumulGenoProb[1] = cumulGenoProb[0] + (1.0 - F) * 2.0 * f * oneMinus_f;

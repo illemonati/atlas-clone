@@ -55,7 +55,7 @@ public:
 		std::fill(map.begin(), map.end(), 0.0);
 	};
 
-	void set(uint16_t x, const double & value){
+	void set(uint16_t x, double value){
 		map[x] = value;
 	};
 
@@ -64,11 +64,11 @@ public:
 		else return false;
 	};
 
-	double operator[](const int & x){
+	double operator[](int x){
 		return map[x];
 	};
 
-	double get(const int & x) const{
+	double get(int x) const{
 		return map[x];
 	};
 };
@@ -121,7 +121,7 @@ public:
 	void resize(size_t Size);
 	size_t size() const;
 	void  restart();
-	void add(uint16_t parameterIndex, const double & derivative);
+	void add(uint16_t parameterIndex, double derivative);
 	TRecalibrationEMFirstDerivativesIterator begin();
 	TRecalibrationEMFirstDerivativesIterator end();
 };
@@ -143,7 +143,7 @@ public:
 	void resize(size_t Size);
 	size_t size() const;
 	void  restart();
-	void add(uint16_t parameterIndex1, uint16_t parameterIndex2, const double & derivative);
+	void add(uint16_t parameterIndex1, uint16_t parameterIndex2, double derivative);
 	TRecalibrationEMSecondDerivativesIterator begin();
 	TRecalibrationEMSecondDerivativesIterator end();
 };

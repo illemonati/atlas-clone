@@ -141,11 +141,11 @@ void TSequencingErrorCovariateFunction_intercept::initialize(uint16_t , const st
 	_initializValues(values);
 };
 
-void TSequencingErrorCovariateFunction_intercept::setIntercept(const double & val){
+void TSequencingErrorCovariateFunction_intercept::setIntercept(double val){
 	_betas[0] = val;
 };
 
-void TSequencingErrorCovariateFunction_intercept::addToIntercept(const double & val){
+void TSequencingErrorCovariateFunction_intercept::addToIntercept(double val){
 	_betas[0] += val;
 };
 

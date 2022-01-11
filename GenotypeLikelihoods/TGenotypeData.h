@@ -137,7 +137,7 @@ public:
 
 	template <typename U>
 	double weightedSum(const U &) const {
-		auto wsum = [](const double & s, const Type & v) { return s + (double) v; };
+		auto wsum = [](double s, const Type & v) { return s + (double) v; };
 		return std::accumulate(_data.begin(), _data.end(), double{}, wsum);
 	};
 
@@ -190,7 +190,7 @@ class TBaseProbabilities : public TBaseData_base<coretools::Probability>{
 public:
 	TBaseProbabilities(){ reset(); };
 	TBaseProbabilities(const coretools::Probability & val) : TBaseData_base(val) {};
-	TBaseProbabilities(const double & val) : TBaseData_base(coretools::Probability(val)) {};
+	TBaseProbabilities(double val) : TBaseData_base(coretools::Probability(val)) {};
 };
 
 //--------------------------------------------------------------------
@@ -231,7 +231,7 @@ public:
 class TBaseData:public TBaseData_base<double>{
 public:
 	TBaseData(){ reset(); };
-	TBaseData(const double & val) : TBaseData_base(val) {};
+	TBaseData(double val) : TBaseData_base(val) {};
 
 	using TBaseData_base<double>::set;
 
@@ -305,7 +305,7 @@ public:
 class TGenotypeData : public TGenotypeData_base<double>{
 public:
 	TGenotypeData(){ reset(); };
-	TGenotypeData(const double & Val) : TGenotypeData_base<double>(Val) {};
+	TGenotypeData(double Val) : TGenotypeData_base<double>(Val) {};
 
 	void operator+=(const TGenotypeProbability_base & other);
 };

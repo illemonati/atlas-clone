@@ -380,7 +380,7 @@ void TAlignment::filter(const TBaseFilter & Filter){
 	}
 };
 
-void TAlignment::trimRead(const int & trimmingLength3Prime, const int & trimmingLength5Prime){
+void TAlignment::trimRead(int trimmingLength3Prime, int trimmingLength5Prime){
 	for(auto& b : _bases){
 		if(b.distFrom3Prime < trimmingLength3Prime || b.distFrom5Prime < trimmingLength5Prime){
 			b.base = genometools::N;

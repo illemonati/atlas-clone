@@ -191,7 +191,7 @@ private:
 	bool writeTrueAlleleFreq;
 	coretools::TOutputFile trueFreqFile;
 
-	void _fillCumulGenoProb(const double & f);
+	void _fillCumulGenoProb(double f);
 	void _simulateSite(TSimulatorHardyWeinbergSite & site, const std::string & chr, uint64_t pos, TSimulatorReference & ref);
 	void _fillhaplotypesMonomoprhic(TSimulatorHaplotypes & haplotypes, uint64_t locus, TSimulatorHardyWeinbergSite & site);
 	void _simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, TSimulatorReference & ref);

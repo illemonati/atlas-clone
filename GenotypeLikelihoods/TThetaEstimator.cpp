@@ -91,7 +91,7 @@ void TThetaEstimator_base::readParametersRegardingInitialSearch(coretools::TPara
 	logfile->endIndent();
 };
 
-void TThetaEstimator_base::fillPGenotype(TGenotypeProbabilities & pGeno, const double & expTheta, const TBaseProbabilities & baseFrequencies){
+void TThetaEstimator_base::fillPGenotype(TGenotypeProbabilities & pGeno, double expTheta, const TBaseProbabilities & baseFrequencies){
 	//assumes that base frequencies are set!
 	for(genometools::Base b = genometools::Base::min(); b < genometools::Base::max(); ++b){
 		//homozygous genotypes
@@ -641,25 +641,25 @@ void TThetaEstimatorRatio::clearCounters(){
 	numAcceptedBaseFreq2 = 0;
 };
 
-void TThetaEstimatorRatio::concludeAcceptanceRate(const int & numAccepted, const int & length, std::string name){
+void TThetaEstimatorRatio::concludeAcceptanceRate(int numAccepted, int length, std::string name){
 	double acceptanceRate = (double) numAccepted / (double) length;
 	logfile->conclude("Acceptance rate " + name + " = " + toString(acceptanceRate));
 };
 
-void TThetaEstimatorRatio::concludeAcceptanceRateUpdateProposal(const int & numAccepted, const int & length, double & sd, std::string name){
+void TThetaEstimatorRatio::concludeAcceptanceRateUpdateProposal(int numAccepted, int length, double & sd, std::string name){
 	double acceptanceRate = (double) numAccepted / (double) length;
 	sd *= acceptanceRate * 3.0;
 	logfile->conclude("Acceptance rate " + name + " = " + toString(acceptanceRate) + " (updated proposal sd to " + toString(sd) + ")");
 };
 
-void TThetaEstimatorRatio::concludeAcceptanceRates(const int & length){
+void TThetaEstimatorRatio::concludeAcceptanceRates(int length){
 	concludeAcceptanceRate(numAcceptedTheta1, length, "theta 1");
 	concludeAcceptanceRate(numAcceptedTheta2, length, "theta 2");
 	concludeAcceptanceRate(numAcceptedBaseFreq1, length, "base frequencies 1");
 	concludeAcceptanceRate(numAcceptedBaseFreq2, length, "base frequencies 1");
 };
 
-void TThetaEstimatorRatio::concludeAcceptanceRatesUpdateProposal(const int & length){
+void TThetaEstimatorRatio::concludeAcceptanceRatesUpdateProposal(int length){
 	concludeAcceptanceRateUpdateProposal(numAcceptedTheta1, length, sdProposalKernelTheta1, "theta 1");
 	concludeAcceptanceRateUpdateProposal(numAcceptedTheta2, length, sdProposalKernelTheta2, "theta 2");
 	concludeAcceptanceRateUpdateProposal(numAcceptedBaseFreq1, length, sdProposalKernelBaseFreq1, "base frequencies 1");
@@ -739,7 +739,7 @@ void TThetaEstimatorRatio::estimateRatio(std::string ouputName){
 	out.close();
 };
 
-bool TThetaEstimatorRatio::updateTheta(TThetaEstimatorData* thisData, Theta & thisTheta, double otherLogThetaMean, const double & thisSdProposalKernel){
+bool TThetaEstimatorRatio::updateTheta(TThetaEstimatorData* thisData, Theta & thisTheta, double otherLogThetaMean, double thisSdProposalKernel){
 	//propose
 	double newLogTheta = randomGenerator->getNormalRandom(thisTheta.logTheta, thisSdProposalKernel);
 	double newExpTheta = exp(-exp(newLogTheta)); //we update log(theta) but need exp(-theta)
@@ -763,7 +763,7 @@ bool TThetaEstimatorRatio::updateTheta(TThetaEstimatorData* thisData, Theta & th
 	} else return false;
 };
 
-bool TThetaEstimatorRatio::updateBaseFrequencies(TThetaEstimatorData* thisData, Theta & thisTheta, const double & thisSdProposalKernel){
+bool TThetaEstimatorRatio::updateBaseFrequencies(TThetaEstimatorData* thisData, Theta & thisTheta, double thisSdProposalKernel){
 	//propose: select one frequency at random and shift this one
 	//make sure frequencies are not outside [0,1]
 	genometools::Base thisBase = static_cast<genometools::Base>(randomGenerator->sample(4));

@@ -452,7 +452,7 @@ TSequencingErrorModelDefinition TSequencingErrorModelRecal::getModelDefinition()
 //functions to calculate error rates
 //-------------------------------------------------
 
-Probability TSequencingErrorModelRecal::_calcEpsilon(const double & eta) const{
+Probability TSequencingErrorModelRecal::_calcEpsilon(double eta) const{
 	if(eta > 23.03){
 		return Probability(0.9999999999);
 	}

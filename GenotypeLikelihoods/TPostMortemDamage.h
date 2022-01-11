@@ -57,7 +57,7 @@ public:
 		return _parameters.find(Parameter) == _parameters.end();
 	};
 
-	bool add(const std::string & Parameter, const double & Value){
+	bool add(const std::string & Parameter, double Value){
 		return(_parameters.emplace(Parameter, Value).second);
 	};
 
@@ -133,7 +133,7 @@ private:
 
 	void _initialEstimatesOLS(const countVec & pmdCounts, const countVec& pmdSums, std::vector<double> & Parameters);
 	void _fillFAndJacobian(arma::vec & F, arma::mat & J, const countVec & pmdCounts, const countVec& pmdSums, const std::vector<double> & Parameters);
-	void _estimateWithNewtonRaphson(const countVec & pmdCounts, const countVec& pmdSums, std::vector<double> & Parameters, uint32_t numNRIterations, const double & epsilon);
+	void _estimateWithNewtonRaphson(const countVec & pmdCounts, const countVec& pmdSums, std::vector<double> & Parameters, uint32_t numNRIterations, double epsilon);
 	double _calcLL(const countVec & pmdCounts, const countVec& pmdSums, const std::vector<double> & Parameters);
 	void _fillPMDProbabilities();
 

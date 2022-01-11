@@ -141,7 +141,7 @@ public:
 
 	//filters and other functions to modify data
 	void filter(const TBaseFilter & Filter);
-	void trimRead(const int & trimmingLength3Prime, const int & trimmingLength5Prime);
+	void trimRead(int trimmingLength3Prime, int trimmingLength5Prime);
 	void removeSoftClippedBases();
 	void binQualityScoresIllumina();
 	void recalibrateWithPMD(const GenotypeLikelihoods::TGenotypeLikelihoodCalculator & GLCalculator);

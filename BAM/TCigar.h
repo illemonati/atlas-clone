@@ -25,7 +25,7 @@ struct CigarOperator {
     	type = '\0';
     	length = 0;
     };
-    CigarOperator(const char & Type, uint32_t Length){
+    CigarOperator(char Type, uint32_t Length){
     	type = Type;
     	length = Length;
     };
@@ -51,7 +51,7 @@ public:
 	void clear();
 	std::vector<CigarOperator>::const_iterator begin() const { return _cigar.begin(); }
 	std::vector<CigarOperator>::const_iterator end() const { return _cigar.end(); }
-    void add(const char & Type, uint32_t Length);
+    void add(char Type, uint32_t Length);
     void removeSoftClips();
 
     uint32_t lengthAligned() const { return _lengthAligned; };
