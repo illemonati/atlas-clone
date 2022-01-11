@@ -47,7 +47,7 @@ FetchContent_MakeAvailable(coretools)
 
 FetchContent_Declare(stattools
         GIT_REPOSITORY    https://bitbucket.org/wegmannlab/stattools.git
-        GIT_TAG           0cd0ed3
+        GIT_TAG           7b338f5
         SOURCE_DIR        "${CMAKE_CURRENT_BINARY_DIR}/stattools"
         )
 FetchContent_MakeAvailable(stattools)
