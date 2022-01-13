@@ -172,7 +172,7 @@ void TSequencingErrorCovariateFunction_intercept::fillDerivatives(uint16_t , TRe
 //--------------------------------------------------------------
 // TRecalibrationEMCovariateFunction_polynomial
 //--------------------------------------------------------------
-void TSequencingErrorCovariateFunction_polynomial::_init(const size_t & order){
+void TSequencingErrorCovariateFunction_polynomial::_init(size_t order){
 	if(order < 1)
 		throw "Order of polynomial covariate function must be at least 1!";
 	_moduleName = SequencingErrorCovariateFunction_polynomial;
@@ -182,7 +182,7 @@ void TSequencingErrorCovariateFunction_polynomial::_init(const size_t & order){
 	_initializeBetas();
 };
 
-TSequencingErrorCovariateFunction_polynomial::TSequencingErrorCovariateFunction_polynomial(uint16_t FirstParameterIndex, const size_t & order):TSequencingErrorCovariateFunction(FirstParameterIndex){
+TSequencingErrorCovariateFunction_polynomial::TSequencingErrorCovariateFunction_polynomial(uint16_t FirstParameterIndex, size_t order):TSequencingErrorCovariateFunction(FirstParameterIndex){
 	_init(order);
 };
 
@@ -345,7 +345,7 @@ void TSequencingErrorCovariateFunction_specific::fillDerivatives(uint16_t val, T
 //--------------------------------------------------------------
 // TRecalibrationEMCovariateFunction_specificMap
 //--------------------------------------------------------------
-void TSequencingErrorCovariateFunction_specificMap::_init(const size_t & NumParameters){
+void TSequencingErrorCovariateFunction_specificMap::_init(size_t NumParameters){
 	_moduleName = SequencingErrorCovariateFunction_specific;
 	_numParameters = NumParameters;
 	_numNonZeroFirstDerivatives = 1;

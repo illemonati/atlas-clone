@@ -36,7 +36,7 @@ protected:
         }
     }
 
-    void _writeCell(gz::ogzstream & VCF, const genometools::TSampleLikelihoods<genometools::PhredIntProbability> & SampleLikelihoods, const size_t & Depth){
+    void _writeCell(gz::ogzstream & VCF, const genometools::TSampleLikelihoods<genometools::PhredIntProbability> & SampleLikelihoods, size_t Depth){
         // genotype with lowest phred-score is the observed genotype
         genometools::BiallelicGenotype observedGenotype = SampleLikelihoods.mostLikelyGenotype();
         genometools::BiallelicGenotype secondBestGenotype = SampleLikelihoods.secondMostLikelyGenotype();

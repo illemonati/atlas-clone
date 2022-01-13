@@ -127,12 +127,12 @@ public:
 //--------------------------------------------------------------
 class TSequencingErrorCovariateFunction_polynomial:public TSequencingErrorCovariateFunction{
 protected:
-	void _init(const size_t & order);
+	void _init(size_t order);
 
 	//TODO: add tmp storage for eta!
 
 public:
-	TSequencingErrorCovariateFunction_polynomial(uint16_t FirstParameterIndex, const size_t & order);
+	TSequencingErrorCovariateFunction_polynomial(uint16_t FirstParameterIndex, size_t order);
 	TSequencingErrorCovariateFunction_polynomial(uint16_t FirstParameterIndex, const std::vector<std::string> & values);
 
 	double getEtaTerm(uint16_t val) const;
@@ -221,7 +221,7 @@ protected:
 	uint16_t _maxValue;
 	std::vector<TSequencingErrorCovariateFunctionIndexMapEntry> _indexMap; //maps value to parameter index
 
-	void _init(const size_t & NumParameters);
+	void _init(size_t NumParameters);
 	void _initMapFromVector(const std::vector<uint16_t> & values);
 
 public:

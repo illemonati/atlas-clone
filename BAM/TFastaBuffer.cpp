@@ -39,7 +39,7 @@ void TFastaBuffer::initialize(std::string fastaFile, const uint32_t BufferSize){
 	_hasReference = true;
 };
 
-void TFastaBuffer::_fill(std::vector<Base> & VecToFill, const size_t & Length, const size_t & Offset) const {
+void TFastaBuffer::_fill(std::vector<Base> & VecToFill, size_t Length, size_t Offset) const {
 	VecToFill.resize(Length);
 	for(size_t p = 0; p < Length; ++p){
 		VecToFill[p] = _referenceSequence[Offset + p];

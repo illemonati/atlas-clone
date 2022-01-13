@@ -34,7 +34,7 @@ private:
 	mutable TGenomeWindow _coordinates;
 
 	void _moveTo(const BAM::TGenomePosition Position) const;
-	void _fill(std::vector<Base> & VecToFill, const size_t & Length, const size_t & Offset) const;
+	void _fill(std::vector<Base> & VecToFill, size_t Length, size_t Offset) const;
 
 public:
 	TFastaBuffer(){

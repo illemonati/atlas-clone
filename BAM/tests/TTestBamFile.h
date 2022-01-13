@@ -42,7 +42,7 @@ protected:
 	BAM::TSamFlags _dummyFlag;
 
     template <typename T, typename U>
-    std::vector<T> _constructFrom(std::vector<T> & source, U & Start, const size_t & length){
+    std::vector<T> _constructFrom(std::vector<T> & source, U & Start, size_t length){
     	//add as much as possible until the end of source
     	size_t len = std::min(length, (size_t) std::distance(Start, source.end()));
         std::vector<T> vec(Start, Start + len);
