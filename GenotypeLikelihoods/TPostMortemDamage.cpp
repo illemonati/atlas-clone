@@ -14,7 +14,6 @@
 
 #include "TPostMortemDamage.h"
 
-
 namespace GenotypeLikelihoods {
 
 using namespace coretools::str;
@@ -23,7 +22,6 @@ using namespace coretools::str;
 const std::string PMDFunctionName_none        = "none";
 const std::string PMDFunctionName_empiric     = "Empiric";
 const std::string PMDFunctionName_exponential = "Exponential";
-// const std::string PMDFunctionName_Skoglund = "Skoglund";
 
 // Existing types
 const std::string PMDTypeName_none         = "none";
@@ -65,91 +63,62 @@ void initializeFunction(const std::string &pmdString, std::unique_ptr<TPMDFuncti
 		throw "Cannot initialize PMD function: unknown function '" + name + "'!. Use either " + PMDFunctionName_none +
 			", " + PMDFunctionName_exponential + " or " + PMDFunctionName_empiric + ".";
 	}
-};
-
-	
 }
+
+} // namespace
 
 //---------------------------------------------------------------
 // TPMDFunctionNoPMD
 //---------------------------------------------------------------
-	TPMDFunctionNoPMD::TPMDFunctionNoPMD(const std::string &string) : _parameters(parseParameters(string)) {
-
-	if (_parameters.size() != 0) {
+TPMDFunctionNoPMD::TPMDFunctionNoPMD(const std::string &string) {
+	std::vector<double> params = parseParameters(string);
+	if (params.size() != 0) {
 		throw "Cannot initialize PMD function '" + (std::string)PMDFunctionName_none + "': expected 0 but found " +
-			toString(_parameters.size()) + " parameters!";
+			toString(params.size()) + " parameters!";
 	}
 };
-
-//---------------------------------------------------------------
-// TPMDFunctionSkoglund
-//---------------------------------------------------------------
-/*
-TPMDFunctionSkoglund::TPMDFunctionSkoglund(const std::string & string){
-    _parseParameters(string);
-
-    if(_parameters.empty()){
-	//parameters missing: set to no PMD
-	_parameters = {0.0, 0.0};
-    } else {
-	//parameters are provided
-	if(_parameters.size() != 2){
-	    throw "Cannot initialize PMD function '" + PMDFunctionName_Skoglund + "': expected 2 (" + example() + ") but
-found " + toString(_parameters.size()) + " parameters!";
-	}
-
-	if(_parameters[0] < 0.0 || _parameters[0] > 1.0){
-	    throw "Cannot initialize PMD function '" + PMDFunctionName_Skoglund + "': p is outside [0,1]!";
-	}
-	if(_parameters[1] < 0.0){
-	    throw "Cannot initialize PMD function '" + PMDFunctionName_Skoglund + "': c must be >0!";
-	}
-    }
-};
-
-double TPMDFunctionSkoglund::prob(uint16_t pos) const {
-    //Note: distance is zero based!
-    return pow(1.0 - _parameters[0], (double) pos) * _parameters[0] + _parameters[1];
-};
-*/
 
 //---------------------------------------------------------------
 // TPMDFunctionExponential
 //--------------------------------------------------------------
-	TPMDFunctionExponential::TPMDFunctionExponential(const std::string &string) : _parameters(parseParameters(string)) {
-
-	if (_parameters.empty()) {
+TPMDFunctionExponential::TPMDFunctionExponential(const std::string &string) {
+	constexpr size_t nParams = 4;
+	std::vector<double> params = parseParameters(string);
+	if (params.empty()) {
 		// parameters missing: set to no PMD
-		_parameters = {1.0, 0.0, 0.0, 0.0};
+		_lastPosition = 1;
+		_a = _b = _c = 0.;
 	} else {
 		// parameters are provided
-		if (_parameters.size() != 2) {
-			throw "Cannot initialize PMD function '" + (std::string)PMDFunctionName_exponential + "': expected 4 (" +
-				example() + ") but found " + toString(_parameters.size()) + " parameters!";
+		if (params.size() != nParams) {
+			throw "Cannot initialize PMD function '" + (std::string)PMDFunctionName_exponential + "': expected" +
+				toString(nParams) + "(" + example() + ") but found " + toString(params.size()) + " parameters!";
 		}
+		_lastPosition = std::lround(params[0]);
+		_a = params[1];
+		_b = params[2];
+		_c = params[3];
 
-		if (_parameters[0] < 1.0) {
+		if (_lastPosition == 0) {
 			throw "Cannot initialize PMD function '" + (std::string)PMDFunctionName_exponential +
 				"': last position must be > 0!";
 		}
 
-		if (_parameters[2] < 0.0) {
+		if (_b < 0.0) {
 			throw "Cannot initialize PMD function '" + (std::string)PMDFunctionName_exponential + "': b must be > 0!";
 		}
 
-		if (_parameters[3] < 0.0) {
+		if (_c < 0.0) {
 			throw "Cannot initialize PMD function '" + (std::string)PMDFunctionName_exponential + "': c must be > 0!";
 		}
+		_fillPMDProbabilities();
 	}
-
-	_fillPMDProbabilities();
 };
 
-void TPMDFunctionExponential::_fillPMDProbabilities() {
-	_lastPosition = round(_parameters[0]);
+	void TPMDFunctionExponential::_fillPMDProbabilities() {
 	_probs.resize(_lastPosition + 1);
 	for (uint16_t p = 0; p <= _lastPosition; ++p) {
-		_probs[p] = _parameters[0] * exp(-_parameters[1] * (double)p) + _parameters[2];
+		_probs[p] = _a * exp(-_b * (double)p) + _c;
 	}
 };
 
@@ -348,11 +317,11 @@ void TPMDFunctionExponential::learn(const TPMDTable &Table, const genometools::B
 
 	if (_lastPosition < 10)
 		throw "Not sufficient data to fit exponential PMD model: less than the ten first positions have > 100 data "
-		      "points!\nConsider pooling read groups (parameter poolReadGroups).";
+			  "points!\nConsider pooling read groups (parameter poolReadGroups).";
 	for (int p = 0; p < _lastPosition; ++p) {
 		if (pmdSums[p] == 0) {
 			throw "Not sufficient data to fit exponential PMD model: no observations for some reference "
-			      "alleles!<nConsider reducing the relevant length (parameter length).";
+				  "alleles!<nConsider reducing the relevant length (parameter length).";
 		}
 	}
 
@@ -361,7 +330,8 @@ void TPMDFunctionExponential::learn(const TPMDTable &Table, const genometools::B
 	_initialEstimatesOLS(pmdCounts, pmdSums, Parameters);
 
 	// run Newton-Raphson
-	_estimateWithNewtonRaphson(pmdCounts, pmdSums, Parameters, EstimationParameters.at(PMDEstimationExponential_epsilon),
+	_estimateWithNewtonRaphson(pmdCounts, pmdSums, Parameters,
+				   EstimationParameters.at(PMDEstimationExponential_epsilon),
 				   EstimationParameters.at(PMDEstimationExponential_numNR));
 
 	// transform parameters
@@ -381,18 +351,20 @@ void TPMDFunctionExponential::learn(const TPMDTable &Table, const genometools::B
 	mu = mu / sum;
 
 	// store parameters, including lastPosition
-	_parameters = {(double)_lastPosition, Parameters[1] / (1.0 - mu), Parameters[2], (Parameters[0] - mu) / (1.0 - mu)};
+	_a = Parameters[1] / (1.0 - mu);
+	_b = Parameters[2];
+	_c = (Parameters[0] - mu) / (1.0 - mu);
 
 	_fillPMDProbabilities();
 
 	// check if pattern is negativ
 	if (_probs[_lastPosition] < 0) {
 		throw "Estimation resulted in negative PMD at high positions!\nThis is likely be due to limited data. Consider "
-		      "pooling read groups (parameter poolReadGroups).";
+			  "pooling read groups (parameter poolReadGroups).";
 	}
 	if (Parameters[1] < 0) {
 		throw "Estimation resulted in a < 0!\nThis is likely due to limited data. Consider pooling read groups "
-		      "(parameter poolReadGroups).";
+			  "(parameter poolReadGroups).";
 	}
 };
 
@@ -405,7 +377,7 @@ double TPMDFunctionExponential::prob(uint16_t pos) const noexcept {
 //---------------------------------------------------------------
 // TPMDFunctionEmpiric
 //---------------------------------------------------------------
-	TPMDFunctionEmpiric::TPMDFunctionEmpiric(const std::string &string) : _parameters(parseParameters(string)) {
+TPMDFunctionEmpiric::TPMDFunctionEmpiric(const std::string &string) : _parameters(parseParameters(string)) {
 	if (_parameters.empty()) {
 		// parameters missing: set to no PMD
 		_parameters = {0.0};
@@ -718,11 +690,11 @@ void TPostMortemDamage::_setHasDamage() {
 };
 
 void TPostMortemDamage::initialize(const std::string &pmdString, const BAM::TReadGroups &ReadGroups, TLog *Logfile,
-                                   std::vector<uint16_t> &ReadGroupsWithoutPMD) {
+				   std::vector<uint16_t> &ReadGroupsWithoutPMD) {
 	if (_hasPMD) {
 		throw std::runtime_error(
 			"void TPostMortemDamage::initialize(const std::string & pmdString, const BAM::TReadGroups & ReadGroups, "
-		    "TLog* Logfile, std::vector<uint16_t> & ReadGroupsWithoutPMD): Models already initialized!");
+			"TLog* Logfile, std::vector<uint16_t> & ReadGroupsWithoutPMD): Models already initialized!");
 	}
 
 	// prepare objects
