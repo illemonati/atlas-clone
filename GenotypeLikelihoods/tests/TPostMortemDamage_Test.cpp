@@ -48,7 +48,6 @@ TEST(TPostMortemDamage_test, baseAWithPMD) {
 
 	TSequencingErrorModels sem;
 	TBaseLikelihoods sem_likelihoods;
-	TPostMortemDamage pmd;
 	TBaseLikelihoods pmd_likelihoods;
 
 	BAM::TSequencedBase base;
@@ -65,7 +64,7 @@ TEST(TPostMortemDamage_test, baseAWithPMD) {
 	// initialize PMD
 	TLog logfile;
 	std::vector<uint16_t> ReadGroupsWithoutPMD;
-	pmd.initialize("doubleStrand:Empiric[0.3]:Empiric[0.1]", ReadGroups, &logfile, ReadGroupsWithoutPMD);
+	TPostMortemDamage pmd("doubleStrand:Empiric[0.3]:Empiric[0.1]", ReadGroups, &logfile, ReadGroupsWithoutPMD);
 
 	for (uint16_t dfrom3 = 0; dfrom3 < 3; dfrom3 += 2) {
 		base.distFrom3Prime = dfrom3;
