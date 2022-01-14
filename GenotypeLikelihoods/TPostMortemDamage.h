@@ -155,9 +155,6 @@ public:
 // pure abstract base class
 //------------------------------------------------
 class TPMDType {
-protected:
-	void _initializeFunction(const std::string &pmdString, std::unique_ptr<TPMDFunction> &ptr);
-
 public:
 	TPMDType()          = default;
 	virtual ~TPMDType() = default;
@@ -167,7 +164,7 @@ public:
 	virtual std::string functionString() const noexcept = 0;
 
 	virtual void parseEstimationParameters(TPMDEstimationParameters &EstimationParameters, TParameters &Params,
-					       TLog *Logfile)                                                           = 0;
+					       TLog *Logfile) = 0;
 	virtual void estimate(const TPMDTableReadGroup &PMDTable, const TPMDEstimationParameters &EstimationParameters) = 0;
 
 	virtual void fillBaseLikelihoods(const BAM::TSequencedBase &base, const TBaseProbabilities &baseLikelihoodsNoPMD,
