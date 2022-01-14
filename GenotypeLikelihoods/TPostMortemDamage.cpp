@@ -14,6 +14,7 @@
 
 #include "TPostMortemDamage.h"
 
+
 namespace GenotypeLikelihoods {
 
 using namespace coretools::str;
@@ -33,21 +34,24 @@ const std::string PMDTypeName_doubleStrand = "doubleStrand";
 const std::string PMDEstimationExponential_epsilon = "PMDExponentialEpsilon";
 const std::string PMDEstimationExponential_numNR   = "PMDExponentialNumNR";
 
-//---------------------------------------------------------------
-// TPMDFunction
-//---------------------------------------------------------------
-void TPMDFunction::_parseParameters(const std::string &string) {
+namespace /* anonymous */ {
+
+std::vector<double> parseParameters(const std::string &string) {
 	// expect string of the form NAME[P1,P2,...]
 	// extract P1, P2, ... as a vector of doubles
 	std::string tmp = readAfter(string, '[');
-	fillContainerFromString(extractBefore(tmp, ']'), _parameters, ',', true, true, true);
+	std::vector<double> ps;
+	fillContainerFromString(extractBefore(tmp, ']'), ps, ',', true, true, true);
+	return ps;
 };
+
+	
+}
 
 //---------------------------------------------------------------
 // TPMDFunctionNoPMD
 //---------------------------------------------------------------
-TPMDFunctionNoPMD::TPMDFunctionNoPMD(const std::string &string) {
-	_parseParameters(string);
+	TPMDFunctionNoPMD::TPMDFunctionNoPMD(const std::string &string) : _parameters(parseParameters(string)) {
 
 	if (_parameters.size() != 0) {
 		throw "Cannot initialize PMD function '" + (std::string)PMDFunctionName_none + "': expected 0 but found " +
@@ -90,8 +94,7 @@ double TPMDFunctionSkoglund::prob(uint16_t pos) const {
 //---------------------------------------------------------------
 // TPMDFunctionExponential
 //--------------------------------------------------------------
-TPMDFunctionExponential::TPMDFunctionExponential(const std::string &string) {
-	_parseParameters(string);
+	TPMDFunctionExponential::TPMDFunctionExponential(const std::string &string) : _parameters(parseParameters(string)) {
 
 	if (_parameters.empty()) {
 		// parameters missing: set to no PMD
@@ -380,9 +383,7 @@ double TPMDFunctionExponential::prob(uint16_t pos) const noexcept {
 //---------------------------------------------------------------
 // TPMDFunctionEmpiric
 //---------------------------------------------------------------
-TPMDFunctionEmpiric::TPMDFunctionEmpiric(const std::string &string) {
-	_parseParameters(string);
-
+	TPMDFunctionEmpiric::TPMDFunctionEmpiric(const std::string &string) : _parameters(parseParameters(string)) {
 	if (_parameters.empty()) {
 		// parameters missing: set to no PMD
 		_parameters = {0.0};
