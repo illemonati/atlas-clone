@@ -130,16 +130,16 @@ void TPMDFunctionExponential::_fillPMDProbabilities() {
 
 void TPMDFunctionExponential::parseEstimationParameters(TPMDEstimationParameters &EstimationParameters,
 							TParameters &Params, TLog *Logfile) {
-	if (!EstimationParameters.exists(PMDEstimationExponential_epsilon)) {
+	if (EstimationParameters.find(PMDEstimationExponential_epsilon) == EstimationParameters.end()) {
 		double eps = Params.getParameterWithDefault<double>(PMDEstimationExponential_epsilon, 0.001);
-		EstimationParameters.add(PMDEstimationExponential_epsilon, eps);
+		EstimationParameters.emplace(PMDEstimationExponential_epsilon, eps);
 		Logfile->list("Will consider the Newton-Raphson algorithm to have converged if the likelihood difference < " +
 			      toString(eps) + ". (parameter '" + PMDEstimationExponential_epsilon + "')");
 	}
 
-	if (!EstimationParameters.exists(PMDEstimationExponential_numNR)) {
+	if (EstimationParameters.find(PMDEstimationExponential_numNR) == EstimationParameters.end()) {
 		double numNRIterations = Params.getParameterWithDefault<int>(PMDEstimationExponential_numNR, 100);
-		EstimationParameters.add(PMDEstimationExponential_numNR, numNRIterations);
+		EstimationParameters.emplace(PMDEstimationExponential_numNR, numNRIterations);
 		Logfile->list("Will run up to " + toString(numNRIterations) + " Newton-Raphson iterations. (parameter '" +
 			      PMDEstimationExponential_numNR + ")");
 	}
@@ -336,8 +336,8 @@ void TPMDFunctionExponential::learn(const TPMDTable &Table, const genometools::B
 	_initialEstimatesOLS(pmdCounts, pmdSums, Parameters);
 
 	// run Newton-Raphson
-	_estimateWithNewtonRaphson(pmdCounts, pmdSums, Parameters, EstimationParameters[PMDEstimationExponential_epsilon],
-				   EstimationParameters[PMDEstimationExponential_numNR]);
+	_estimateWithNewtonRaphson(pmdCounts, pmdSums, Parameters, EstimationParameters.at(PMDEstimationExponential_epsilon),
+				   EstimationParameters.at(PMDEstimationExponential_numNR));
 
 	// transform parameters
 	// the exponential PMD model is f(C->T) = mu + (1-mu) *[ a*exp(-b * position) + c ]

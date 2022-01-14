@@ -40,31 +40,7 @@ extern const std::string PMDTypeName_doubleStrand;
 extern const std::string PMDEstimationExponential_epsilon;
 extern const std::string PMDEstimationExponential_numNR;
 
-//-------------------------------------
-// TPMDEstimationParameters
-//-------------------------------------
-class TPMDEstimationParameters {
-private:
-	std::map<std::string, double> _parameters;
-
-public:
-	TPMDEstimationParameters()  = default;
-	~TPMDEstimationParameters() = default;
-
-	bool exists(const std::string &Parameter) const noexcept { return _parameters.find(Parameter) != _parameters.end(); };
-
-	bool add(const std::string &Parameter, double Value) noexcept { return (_parameters.emplace(Parameter, Value).second); };
-
-	double operator[](const std::string &Parameter) const {
-		auto it = _parameters.find(Parameter);
-		if (it == _parameters.end()) {
-			throw std::runtime_error(
-				"TPMDEstimationParameters::double operator[](const std::string & Parameter) const: Parameter '" +
-				Parameter + "' not set!");
-		}
-		return it->second;
-	}
-};
+using TPMDEstimationParameters = std::map<std::string, double>;
 
 //---------------------------------------------------------------
 // TPMDFunction
