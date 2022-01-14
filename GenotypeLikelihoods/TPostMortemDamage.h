@@ -271,6 +271,12 @@ private:
 	void _setHasDamage();
 
 public:
+	TPostMortemDamage() = default;
+	TPostMortemDamage(const std::string &pmdString, const BAM::TReadGroups &ReadGroups, TLog *Logfile,
+			  std::vector<uint16_t> &ReadGroupsWithoutPMD) {
+		initialize(pmdString, ReadGroups, Logfile, ReadGroupsWithoutPMD);
+	}
+
 	constexpr bool hasPMD() const noexcept { return _hasPMD; };
 	const TPMDType &operator[](uint16_t ReadGroupIndex) const noexcept { return *_pmdObjects[ReadGroupIndex]; };
 	TPMDType &operator[](uint16_t ReadGroupIndex) noexcept { return *_pmdObjects[ReadGroupIndex]; };
