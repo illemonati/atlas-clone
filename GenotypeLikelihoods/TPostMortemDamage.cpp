@@ -18,11 +18,6 @@ namespace GenotypeLikelihoods {
 
 using namespace coretools::str;
 
-// Existing Functions
-const std::string PMDFunctionName_none        = "none";
-const std::string PMDFunctionName_empiric     = "Empiric";
-const std::string PMDFunctionName_exponential = "Exponential";
-
 // Existing types
 const std::string PMDTypeName_none         = "none";
 const std::string PMDTypeName_singleStrand = "singleStrand";
@@ -51,12 +46,12 @@ std::unique_ptr<TPMDFunction>initializeFunction(const std::string &pmdString) {
 
 	const std::string name = readBefore(pmdString, '[');
 
-	if (name == PMDFunctionName_none) return std::make_unique<TPMDFunctionNoPMD>(pmdString);
-	if (name == PMDFunctionName_exponential) return std::make_unique<TPMDFunctionExponential>(pmdString);
-	if (name == PMDFunctionName_empiric) return std::make_unique<TPMDFunctionEmpiric>(pmdString);
+	if (name == TPMDFunctionNoPMD::name) return std::make_unique<TPMDFunctionNoPMD>(pmdString);
+	if (name == TPMDFunctionExponential::name) return std::make_unique<TPMDFunctionExponential>(pmdString);
+	if (name == TPMDFunctionEmpiric::name) return std::make_unique<TPMDFunctionEmpiric>(pmdString);
 
-	throw "Cannot initialize PMD function: unknown function '" + name + "'!. Use either " + PMDFunctionName_none +
-		", " + PMDFunctionName_exponential + " or " + PMDFunctionName_empiric + ".";
+	throw "Cannot initialize PMD function: unknown function '" + name + "'!. Use either " + TPMDFunctionNoPMD::name +
+		", " + TPMDFunctionExponential::name + " or " + TPMDFunctionEmpiric::name + ".";
 }
 
 } // namespace
@@ -67,7 +62,7 @@ std::unique_ptr<TPMDFunction>initializeFunction(const std::string &pmdString) {
 TPMDFunctionNoPMD::TPMDFunctionNoPMD(const std::string &string) {
 	const std::vector<double> params = parseParameters(string);
 	if (params.size() != 0) {
-		throw "Cannot initialize PMD function '" + (std::string)PMDFunctionName_none + "': expected 0 but found " +
+		throw "Cannot initialize PMD function '" + name + "': expected 0 but found " +
 			toString(params.size()) + " parameters!";
 	}
 };
@@ -85,26 +80,17 @@ TPMDFunctionExponential::TPMDFunctionExponential(const std::string &string) {
 	} else {
 		// parameters are provided
 		if (params.size() != nParams) {
-			throw "Cannot initialize PMD function '" + (std::string)PMDFunctionName_exponential + "': expected" +
-				toString(nParams) + "(" + example() + ") but found " + toString(params.size()) + " parameters!";
+			throw "Cannot initialize PMD function '" + name + "': expected" +
+				toString(nParams) + "(" + example + ") but found " + toString(params.size()) + " parameters!";
 		}
 		_lastPosition = std::lround(params[0]);
 		_a = params[1];
 		_b = params[2];
 		_c = params[3];
 
-		if (_lastPosition == 0) {
-			throw "Cannot initialize PMD function '" + (std::string)PMDFunctionName_exponential +
-				"': last position must be > 0!";
-		}
-
-		if (_b < 0.0) {
-			throw "Cannot initialize PMD function '" + (std::string)PMDFunctionName_exponential + "': b must be > 0!";
-		}
-
-		if (_c < 0.0) {
-			throw "Cannot initialize PMD function '" + (std::string)PMDFunctionName_exponential + "': c must be > 0!";
-		}
+		if (_lastPosition == 0)  throw "Cannot initialize PMD function '" + name + "': last position must be > 0!"; 
+		if (_b < 0.0) throw "Cannot initialize PMD function '" + name + "': b must be > 0!";
+		if (_c < 0.0) throw "Cannot initialize PMD function '" + name + "': c must be > 0!";
 	}
 	_fillPMDProbabilities();
 };
@@ -379,7 +365,7 @@ TPMDFunctionEmpiric::TPMDFunctionEmpiric(const std::string &string) : _parameter
 		// parameters are provided
 		for (auto &d : _parameters) {
 			if (d < 0.0 || d > 1.0) {
-				throw "Cannot initialize post mortem damage function '" + (std::string)PMDFunctionName_empiric +
+				throw "Cannot initialize post mortem damage function '" + name +
 					"': some probabilities are outside [0,1]!";
 			}
 		}

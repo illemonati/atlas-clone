@@ -25,11 +25,6 @@ using coretools::TLog;
 using coretools::TParameters;
 using coretools::TRandomGenerator;
 
-// Existing Functions
-extern const std::string PMDFunctionName_none;
-extern const std::string PMDFunctionName_empiric;
-extern const std::string PMDFunctionName_exponential;
-
 // Existing types
 extern const std::string PMDTypeName_none;
 extern const std::string PMDTypeName_singleStrand;
@@ -51,8 +46,6 @@ public:
 	virtual ~TPMDFunction() = default;
 
 	virtual bool hasDamage() const noexcept      = 0;
-	virtual std::string name() const noexcept    = 0;
-	virtual std::string example() const noexcept = 0;
 
 	virtual void parseEstimationParameters(TPMDEstimationParameters &EstimationParameters, TParameters &Params,
 					       TLog *Logfile)                    = 0;
@@ -64,13 +57,13 @@ public:
 
 class TPMDFunctionNoPMD : public TPMDFunction {
 public:
+	static inline const std::string name = "none";
+	static inline const std::string example = name;
 	TPMDFunctionNoPMD(const std::string &string);
 	~TPMDFunctionNoPMD() = default;
 
 	bool hasDamage() const noexcept override { return false; };
-	std::string name() const noexcept override { return PMDFunctionName_none; };
-	std::string example() const noexcept override { return PMDFunctionName_none; };
-	std::string string() const noexcept override { return name() + "[]"; };
+	std::string string() const noexcept override { return name + "[]"; };
 
 
 	void parseEstimationParameters(TPMDEstimationParameters &, TParameters &, TLog *) override{};
@@ -95,14 +88,14 @@ private:
 	void _fillPMDProbabilities();
 
 public:
+	static inline const std::string name = "Exponential";
+	static inline const std::string example = name + "[lastPosition,a,b,c]";
 	TPMDFunctionExponential(const std::string &string);
 	~TPMDFunctionExponential() = default;
 
 	bool hasDamage() const noexcept override { return true; };
-	std::string name() const noexcept override { return PMDFunctionName_exponential; };
-	std::string example() const noexcept override { return std::string(PMDFunctionName_exponential) + "[lastPosition,a,b,c]"; };
 	std::string string() const noexcept override {
-		return name() + "[" + coretools::toString(_lastPosition) + ',' +
+		return name + "[" + coretools::toString(_lastPosition) + ',' +
 		       coretools::concatenateString(std::vector{_a, _b, _c}, ",") + "]";
 	};
 
@@ -118,13 +111,13 @@ class TPMDFunctionEmpiric : public TPMDFunction {
 private:
 	std::vector<double> _parameters;
 public:
+	static inline const std::string name = "Empiric";
+	static inline const std::string example = name + "[p1,p2,...]";
 	TPMDFunctionEmpiric(const std::string &string);
 	~TPMDFunctionEmpiric(){};
 
 	bool hasDamage() const noexcept override { return true; };
-	std::string name() const noexcept override { return PMDFunctionName_empiric; };
-	std::string example() const noexcept override { return std::string(PMDFunctionName_empiric) + "[p1,p2,...]"; };
-	std::string string() const noexcept override { return name() + "[" + coretools::concatenateString(_parameters, ",") + "]"; };
+	std::string string() const noexcept override { return name + "[" + coretools::concatenateString(_parameters, ",") + "]"; };
 
 	void parseEstimationParameters(TPMDEstimationParameters &, TParameters &, TLog *) override{};
 	void learn(const TPMDTable &Table, const genometools::Base &from, const genometools::Base &to,
