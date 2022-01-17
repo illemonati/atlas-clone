@@ -56,7 +56,7 @@ TPMDFunctionNoPMD::TPMDFunctionNoPMD(const std::string &string) {
 		throw "Cannot initialize PMD function '" + name + "': expected 0 but found " +
 			toString(params.size()) + " parameters!";
 	}
-};
+}
 
 //---------------------------------------------------------------
 // TPMDFunctionExponential
@@ -84,14 +84,14 @@ TPMDFunctionExponential::TPMDFunctionExponential(const std::string &string) {
 		if (_c < 0.0) throw "Cannot initialize PMD function '" + name + "': c must be > 0!";
 	}
 	_fillPMDProbabilities();
-};
+}
 
 	void TPMDFunctionExponential::_fillPMDProbabilities() {
 	_probs.resize(_lastPosition + 1);
 	for (size_t p = 0; p < _probs.size(); ++p) {
 		_probs[p] = _a * exp(-_b * p) + _c;
 	}
-};
+}
 
 void TPMDFunctionExponential::parseEstimationParameters(TPMDEstimationParameters &EstimationParameters,
 							TParameters &Params, TLog *Logfile) {
@@ -108,7 +108,7 @@ void TPMDFunctionExponential::parseEstimationParameters(TPMDEstimationParameters
 		Logfile->list("Will run up to " + toString(numNRIterations) + " Newton-Raphson iterations. (parameter '" +
 			      numNR + ")");
 	}
-};
+}
 
 void TPMDFunctionExponential::_initialEstimatesOLS(const countVec &pmdCounts, const countVec &pmdSums,
 						   std::vector<double> &Parameters) {
@@ -154,7 +154,7 @@ void TPMDFunctionExponential::_initialEstimatesOLS(const countVec &pmdCounts, co
 
 	// set parameters
 	Parameters = {betaHat(0), betaHat(1), gammaTmp};
-};
+}
 
 void TPMDFunctionExponential::_fillFAndJacobian(arma::vec &F, arma::mat &J, const countVec &pmdCounts,
 						const countVec &pmdSums, const std::vector<double> &Parameters) {
@@ -212,7 +212,7 @@ void TPMDFunctionExponential::_fillFAndJacobian(arma::vec &F, arma::mat &J, cons
 	J(1, 0) = J(0, 1);
 	J(2, 0) = J(0, 2);
 	J(2, 1) = J(1, 2);
-};
+}
 
 double TPMDFunctionExponential::_calcLL(const countVec &pmdCounts, const countVec &pmdSums,
 					const std::vector<double> &Parameters) {
@@ -223,7 +223,7 @@ double TPMDFunctionExponential::_calcLL(const countVec &pmdCounts, const countVe
 		      (pmdSums[p] - pmdCounts[p]) * log(1.0 - Parameters[0] - dExpMinusAlphaP);
 	}
 	return LL;
-};
+}
 
 void TPMDFunctionExponential::_estimateWithNewtonRaphson(const countVec &pmdCounts, const countVec &pmdSums,
 							 std::vector<double> &Parameters, uint32_t numNRIterations,
@@ -266,7 +266,7 @@ void TPMDFunctionExponential::_estimateWithNewtonRaphson(const countVec &pmdCoun
 			throw std::runtime_error("Issue solving JxF in TPMDTable::fitExponentialModel!");
 		}
 	}
-};
+}
 
 void TPMDFunctionExponential::learn(const TPMDTable &Table, const genometools::Base &from, const genometools::Base &to,
 				    const TPMDEstimationParameters &EstimationParameters) {
@@ -337,13 +337,13 @@ void TPMDFunctionExponential::learn(const TPMDTable &Table, const genometools::B
 		throw "Estimation resulted in a < 0!\nThis is likely due to limited data. Consider pooling read groups "
 			  "(parameter poolReadGroups).";
 	}
-};
+}
 
 double TPMDFunctionExponential::prob(uint16_t pos) const noexcept {
 	// Note: distance is zero based!
 	// model is fit up to _lastPosition. We assume constant PMD after that
 	return pos < _lastPosition ? _probs[pos] : _probs[_lastPosition];
-};
+}
 
 //---------------------------------------------------------------
 // TPMDFunctionEmpiric
@@ -361,7 +361,7 @@ TPMDFunctionEmpiric::TPMDFunctionEmpiric(const std::string &string) : _parameter
 			}
 		}
 	}
-};
+}
 
 void TPMDFunctionEmpiric::learn(const TPMDTable &Table, const genometools::Base &from, const genometools::Base &to,
 				const TPMDEstimationParameters &) {
@@ -384,11 +384,11 @@ void TPMDFunctionEmpiric::learn(const TPMDTable &Table, const genometools::Base 
 			_parameters[p] = std::max(0.0, (pmd - inv) / (1.0 - inv));
 		}
 	}
-};
+}
 
 double TPMDFunctionEmpiric::prob(uint16_t pos) const noexcept {
 	return pos < _parameters.size() ? _parameters[pos] : _parameters.back();
-};
+}
 
 //------------------------------------------------------
 // TPMDDoubleStrand
@@ -405,17 +405,17 @@ TPMDTypeDoubleStrand::TPMDTypeDoubleStrand(const std::vector<std::string> &Detai
 	}
 	_pmdCT = initializeFunction(Details[1]);
 	_pmdGA = initializeFunction(Details[2]);
-};
+}
 
 std::string TPMDTypeDoubleStrand::functionString() const noexcept {
 	return name + ":" + _pmdCT->string() + ":" + _pmdGA->string();
-};
+}
 
 void TPMDTypeDoubleStrand::parseEstimationParameters(TPMDEstimationParameters &EstimationParameters,
 						     TParameters &Params, TLog *Logfile) {
 	_pmdCT->parseEstimationParameters(EstimationParameters, Params, Logfile);
 	_pmdGA->parseEstimationParameters(EstimationParameters, Params, Logfile);
-};
+}
 
 void TPMDTypeDoubleStrand::estimate(const TPMDTableReadGroup &PMDTable,
 				    const TPMDEstimationParameters &EstimationParameters) {
@@ -429,7 +429,7 @@ void TPMDTypeDoubleStrand::estimate(const TPMDTableReadGroup &PMDTable,
 	TPMDTable from3(PMDTable[forward3]);
 	from3.add(PMDTable[reverse3]);
 	_pmdGA->learn(from3, genometools::G, genometools::A, EstimationParameters);
-};
+}
 
 void TPMDTypeDoubleStrand::fillBaseLikelihoods(const BAM::TSequencedBase &base,
 					       const TBaseProbabilities &baseLikelihoodsNoPMD,
@@ -461,11 +461,11 @@ void TPMDTypeDoubleStrand::fillBaseLikelihoods(const BAM::TSequencedBase &base,
 					  pmdProb_CT * baseLikelihoodsNoPMD[genometools::T].get();
 	baseLikelihoods[genometools::G] = (1.0 - pmdProb_GA) * baseLikelihoodsNoPMD[genometools::G].get() +
 					  pmdProb_GA * baseLikelihoodsNoPMD[genometools::A].get();
-};
+}
 
 void TPMDTypeDoubleStrand::simulatePMD(BAM::TSequencedBase &base, TRandomGenerator &RandomGenerator) const {
 	simulatePMD(base.base, base.distFrom5Prime, base.distFrom3Prime, base.isReverseStrand(), RandomGenerator);
-};
+}
 
 void TPMDTypeDoubleStrand::simulatePMD(genometools::Base &base, uint16_t DistFrom5Prime, uint16_t DistFrom3Prime,
 				       const bool &IsReverseStrand, TRandomGenerator &RandomGenerator) const {
@@ -486,7 +486,7 @@ void TPMDTypeDoubleStrand::simulatePMD(genometools::Base &base, uint16_t DistFro
 			if (RandomGenerator.getRand() < _pmdCT->prob(DistFrom5Prime)) { base = genometools::A; }
 		}
 	}
-};
+}
 //------------------------------------------------------
 // TPMDSingleStrand
 //------------------------------------------------------
@@ -502,17 +502,17 @@ TPMDTypeSingleStrand::TPMDTypeSingleStrand(const std::vector<std::string> &Detai
 	}
 	_pmdCT3 = initializeFunction(Details[1]);
 	_pmdCT5 = initializeFunction(Details[2]);
-};
+}
 
 std::string TPMDTypeSingleStrand::functionString() const noexcept {
 	return name + ":" + _pmdCT3->string() + ":" + _pmdCT5->string();
-};
+}
 
 void TPMDTypeSingleStrand::parseEstimationParameters(TPMDEstimationParameters &EstimationParameters,
 						     TParameters &Params, TLog *Logfile) {
 	_pmdCT3->parseEstimationParameters(EstimationParameters, Params, Logfile);
 	_pmdCT5->parseEstimationParameters(EstimationParameters, Params, Logfile);
-};
+}
 
 void TPMDTypeSingleStrand::estimate(const TPMDTableReadGroup &PMDTable,
 				    const TPMDEstimationParameters &EstimationParameters) {
@@ -529,7 +529,7 @@ void TPMDTypeSingleStrand::estimate(const TPMDTableReadGroup &PMDTable,
 	from3.add(PMDTable[reverse3]);
 	// ??? G->A  or C->T (reversed gets flipped when read)
 	_pmdCT3->learn(from3, genometools::C, genometools::T, EstimationParameters);
-};
+}
 
 void TPMDTypeSingleStrand::fillBaseLikelihoods(const BAM::TSequencedBase &base,
 					       const TBaseProbabilities &baseLikelihoodsNoPMD,
@@ -547,11 +547,11 @@ void TPMDTypeSingleStrand::fillBaseLikelihoods(const BAM::TSequencedBase &base,
 	// add PMD
 	baseLikelihoods[genometools::C] = (1.0 - pmdProb_CT) * baseLikelihoodsNoPMD[genometools::C].get() +
 					  pmdProb_CT * baseLikelihoodsNoPMD[genometools::T].get();
-};
+}
 
 void TPMDTypeSingleStrand::simulatePMD(BAM::TSequencedBase &base, TRandomGenerator &RandomGenerator) const {
 	simulatePMD(base.base, base.distFrom5Prime, base.distFrom3Prime, base.isReverseStrand(), RandomGenerator);
-};
+}
 
 void TPMDTypeSingleStrand::simulatePMD(genometools::Base &base, uint16_t DistFrom5Prime, uint16_t DistFrom3Prime,
 				       const bool &, TRandomGenerator &RandomGenerator) const {
@@ -577,7 +577,7 @@ void TPostMortemDamage::writeToFile(const BAM::TReadGroups &ReadGroups, const st
 	for (auto r = ReadGroups.cbegin(); r != ReadGroups.cend(); ++r) {
 		out << r->name_ID << _pmdObjects[r->id]->functionString() << std::endl;
 	}
-};
+}
 
 void TPostMortemDamage::writeToFile(const BAM::TReadGroups &ReadGroups, const BAM::TReadGroupMap &ReadGroupMap,
 				    const std::string filename) const {
@@ -588,7 +588,7 @@ void TPostMortemDamage::writeToFile(const BAM::TReadGroups &ReadGroups, const BA
 	for (auto r = ReadGroups.cbegin(); r != ReadGroups.cend(); ++r) {
 		out << r->name_ID << _pmdObjects[ReadGroupMap.pooledIndex(r->id)]->functionString() << std::endl;
 	}
-};
+}
 
 void TPostMortemDamage::_createPMDType(const std::string &pmdString, std::shared_ptr<TPMDType> &ptr) {
 	// split by ':'
@@ -606,7 +606,7 @@ void TPostMortemDamage::_createPMDType(const std::string &pmdString, std::shared
 		throw "Cannot initialize PMD: unknown PMD type '" + details[0] + "'!" + "\nUse " + TPMDTypeNone::name+ " or " +
 			TPMDTypeSingleStrand::name + " or " + TPMDTypeDoubleStrand::name+ ".";
 	}
-};
+}
 
 void TPostMortemDamage::_initializeFromString(const std::string &pmdString, TLog *logfile) {
 	// not a file: initialize all read groups have the same pmd
@@ -617,7 +617,7 @@ void TPostMortemDamage::_initializeFromString(const std::string &pmdString, TLog
 	// report
 	logfile->list(_pmdObjects[0]->functionString());
 	logfile->endIndent();
-};
+}
 
 void TPostMortemDamage::_initializeFromFile(const BAM::TReadGroups &ReadGroups, const std::string &filename,
 					    TLog *logfile, std::vector<uint16_t> &ReadGroupsWithoutPMD) {
@@ -649,7 +649,7 @@ void TPostMortemDamage::_initializeFromFile(const BAM::TReadGroups &ReadGroups, 
 			ReadGroupsWithoutPMD.push_back(i);
 		}
 	}
-};
+}
 
 void TPostMortemDamage::_setHasDamage() {
 	// check if there is PMD for at least one read group
@@ -660,7 +660,7 @@ void TPostMortemDamage::_setHasDamage() {
 			break;
 		}
 	}
-};
+}
 
 void TPostMortemDamage::initialize(const std::string &pmdString, const BAM::TReadGroups &ReadGroups, TLog *Logfile,
 				   std::vector<uint16_t> &ReadGroupsWithoutPMD) {
@@ -685,7 +685,7 @@ void TPostMortemDamage::initialize(const std::string &pmdString, const BAM::TRea
 
 	// check if there is PMD for at least one read group
 	_setHasDamage();
-};
+}
 
 void TPostMortemDamage::fillBaseLikelihoods(const BAM::TSequencedBase &base,
                                             const TBaseProbabilities &baseLikelihoodsNoPMD,
@@ -696,6 +696,6 @@ void TPostMortemDamage::fillBaseLikelihoods(const BAM::TSequencedBase &base,
 		// just copy
 		baseLikelihoods = baseLikelihoodsNoPMD;
 	}
-};
+}
 
 }; // namespace GenotypeLikelihoods

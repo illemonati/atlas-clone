@@ -5,6 +5,7 @@
 #include "TPostMortemDamage.h"
 #include "TSequencingErrorModels.h"
 #include "TestCase.h"
+#include <algorithm>
 #include <cstdint>
 #include <gtest/gtest.h>
 
@@ -21,9 +22,9 @@ TEST(TPostMortemDamage_test, noPMD) {
 }
 
 TEST(TPostMortemDamage_test, exponential) {
-	EXPECT_ANY_THROW(TPMDFunctionNoPMD("[1]"));
-	EXPECT_ANY_THROW(TPMDFunctionNoPMD("[3, 4]"));
-	EXPECT_ANY_THROW(TPMDFunctionNoPMD("[3, 4, 5]"));
+	EXPECT_ANY_THROW(TPMDFunctionExponential("[1]"));
+	EXPECT_ANY_THROW(TPMDFunctionExponential("[3, 4]"));
+	EXPECT_ANY_THROW(TPMDFunctionExponential("[3, 4, 5]"));
 
 	const TPMDFunctionExponential fn0("[]");
 	EXPECT_TRUE(fn0.hasDamage());
@@ -42,6 +43,35 @@ TEST(TPostMortemDamage_test, exponential) {
 	}
 	EXPECT_FLOAT_EQ(fn1.prob(N + 1), a*std::exp(-b * N) + c);
 	EXPECT_FLOAT_EQ(fn1.prob(N + 13), a*std::exp(-b * N) + c);
+}
+
+TEST(TPostMortemDamage_test, empiric) {
+	EXPECT_ANY_THROW(TPMDFunctionEmpiric("[1.3]"));
+	EXPECT_ANY_THROW(TPMDFunctionEmpiric("[0.5, 0.3, 3, 0.4]"));
+	EXPECT_ANY_THROW(TPMDFunctionEmpiric("[-0.3]"));
+
+	const TPMDFunctionEmpiric fn0("[]");
+	EXPECT_TRUE(fn0.hasDamage());
+	EXPECT_FLOAT_EQ(fn0.prob(0), 0.);
+	EXPECT_FLOAT_EQ(fn0.prob(33), 0.);
+	EXPECT_FLOAT_EQ(fn0.prob(static_cast<uint16_t>(-1)), 0.);
+
+	std::vector<double> params(10);
+	std::iota(params.begin(), params.end(), 0);
+	std::reverse(params.begin(), params.end());
+	const double fac = params.front()*2;
+	std::string s = "[";
+	for (auto &p : params) {
+		p /= fac;
+		s += std::to_string(p) + ",";
+	}
+	s += "]";
+	const TPMDFunctionEmpiric fn1(s);
+	EXPECT_TRUE(fn1.hasDamage());
+	for (size_t p = 0; p < params.size(); ++p) {
+		EXPECT_NEAR(fn1.prob(p), params[p], 1e-5);
+	}
+	EXPECT_NEAR(fn1.prob(113), params.back(), 1e-5);
 }
 
 TEST(TPostMortemDamage_test, baseANoPMD) {
