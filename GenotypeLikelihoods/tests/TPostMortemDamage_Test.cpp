@@ -6,9 +6,43 @@
 #include "TSequencingErrorModels.h"
 #include "TestCase.h"
 #include <cstdint>
+#include <gtest/gtest.h>
 
 using namespace GenotypeLikelihoods;
 using genometools::Base;
+
+TEST(TPostMortemDamage_test, noPMD) {
+	EXPECT_ANY_THROW(TPMDFunctionNoPMD("[3, 4]"));
+	const TPMDFunctionNoPMD fn("[]");
+	EXPECT_FALSE(fn.hasDamage());
+	EXPECT_FLOAT_EQ(fn.prob(0), 0.);
+	EXPECT_FLOAT_EQ(fn.prob(122), 0.);
+	EXPECT_FLOAT_EQ(fn.prob(static_cast<uint16_t>(-1)), 0.);
+}
+
+TEST(TPostMortemDamage_test, exponential) {
+	EXPECT_ANY_THROW(TPMDFunctionNoPMD("[1]"));
+	EXPECT_ANY_THROW(TPMDFunctionNoPMD("[3, 4]"));
+	EXPECT_ANY_THROW(TPMDFunctionNoPMD("[3, 4, 5]"));
+
+	const TPMDFunctionExponential fn0("[]");
+	EXPECT_TRUE(fn0.hasDamage());
+	EXPECT_FLOAT_EQ(fn0.prob(0), 0.);
+	EXPECT_FLOAT_EQ(fn0.prob(33), 0.);
+	EXPECT_FLOAT_EQ(fn0.prob(static_cast<uint16_t>(-1)), 0.);
+
+	constexpr auto N = 8;
+	constexpr auto a = 1.;
+	constexpr auto b = 1.;
+	constexpr auto c = 1.;
+	const TPMDFunctionExponential fn1("[8, 1., 1., 1.]");
+	for (size_t p = 0; p < N + 1; ++p) {
+		EXPECT_TRUE(fn1.hasDamage());
+		EXPECT_FLOAT_EQ(fn1.prob(p), a*std::exp(-b * p) + c);
+	}
+	EXPECT_FLOAT_EQ(fn1.prob(N + 1), a*std::exp(-b * N) + c);
+	EXPECT_FLOAT_EQ(fn1.prob(N + 13), a*std::exp(-b * N) + c);
+}
 
 TEST(TPostMortemDamage_test, baseANoPMD) {
 	constexpr auto err = 0.01;
