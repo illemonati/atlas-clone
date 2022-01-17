@@ -18,15 +18,6 @@ namespace GenotypeLikelihoods {
 
 using namespace coretools::str;
 
-// Existing types
-const std::string PMDTypeName_none         = "none";
-const std::string PMDTypeName_singleStrand = "singleStrand";
-const std::string PMDTypeName_doubleStrand = "doubleStrand";
-
-// Estimation Parameters
-const std::string PMDEstimationExponential_epsilon = "PMDExponentialEpsilon";
-const std::string PMDEstimationExponential_numNR   = "PMDExponentialNumNR";
-
 namespace /* anonymous */ {
 
 std::vector<double> parseParameters(const std::string &string) {
@@ -104,18 +95,18 @@ TPMDFunctionExponential::TPMDFunctionExponential(const std::string &string) {
 
 void TPMDFunctionExponential::parseEstimationParameters(TPMDEstimationParameters &EstimationParameters,
 							TParameters &Params, TLog *Logfile) {
-	if (EstimationParameters.find(PMDEstimationExponential_epsilon) == EstimationParameters.end()) {
-		double eps = Params.getParameterWithDefault<double>(PMDEstimationExponential_epsilon, 0.001);
-		EstimationParameters.emplace(PMDEstimationExponential_epsilon, eps);
+	if (EstimationParameters.find(epsilon) == EstimationParameters.end()) {
+		double eps = Params.getParameterWithDefault<double>(epsilon, 0.001);
+		EstimationParameters.emplace(epsilon, eps);
 		Logfile->list("Will consider the Newton-Raphson algorithm to have converged if the likelihood difference < " +
-			      toString(eps) + ". (parameter '" + PMDEstimationExponential_epsilon + "')");
+			      toString(eps) + ". (parameter '" + epsilon + "')");
 	}
 
-	if (EstimationParameters.find(PMDEstimationExponential_numNR) == EstimationParameters.end()) {
-		double numNRIterations = Params.getParameterWithDefault<int>(PMDEstimationExponential_numNR, 100);
-		EstimationParameters.emplace(PMDEstimationExponential_numNR, numNRIterations);
+	if (EstimationParameters.find(numNR) == EstimationParameters.end()) {
+		double numNRIterations = Params.getParameterWithDefault<int>(numNR, 100);
+		EstimationParameters.emplace(numNR, numNRIterations);
 		Logfile->list("Will run up to " + toString(numNRIterations) + " Newton-Raphson iterations. (parameter '" +
-			      PMDEstimationExponential_numNR + ")");
+			      numNR + ")");
 	}
 };
 
@@ -311,8 +302,8 @@ void TPMDFunctionExponential::learn(const TPMDTable &Table, const genometools::B
 
 	// run Newton-Raphson
 	_estimateWithNewtonRaphson(pmdCounts, pmdSums, Parameters,
-				   EstimationParameters.at(PMDEstimationExponential_epsilon),
-				   EstimationParameters.at(PMDEstimationExponential_numNR));
+				   EstimationParameters.at(epsilon),
+				   EstimationParameters.at(numNR));
 
 	// transform parameters
 	// the exponential PMD model is f(C->T) = mu + (1-mu) *[ a*exp(-b * position) + c ]
@@ -407,9 +398,9 @@ TPMDTypeDoubleStrand::TPMDTypeDoubleStrand(const std::vector<std::string> &Detai
 	// expect three elements: type, pmdCT, pmdGA
 	constexpr size_t nDetails = 3;
 	if (Details.size() != nDetails) {
-		throw "Cannot initialize PMD type " + (std::string)PMDTypeName_doubleStrand + ": expect " +
+		throw "Cannot initialize PMD type " + name + ": expect " +
 			std::to_string(nDetails) + " entries but found " + toString(Details.size()) + "!" + "\nProvided string: '" +
-			concatenateString(Details, ':') + "'." + "\nExpect string of the form '" + PMDTypeName_doubleStrand +
+			concatenateString(Details, ':') + "'." + "\nExpect string of the form '" + name +
 			"':functionCT:functionGA'.";
 	}
 	_pmdCT = initializeFunction(Details[1]);
@@ -417,7 +408,7 @@ TPMDTypeDoubleStrand::TPMDTypeDoubleStrand(const std::vector<std::string> &Detai
 };
 
 std::string TPMDTypeDoubleStrand::functionString() const noexcept {
-	return PMDTypeName_doubleStrand + ":" + _pmdCT->string() + ":" + _pmdGA->string();
+	return name + ":" + _pmdCT->string() + ":" + _pmdGA->string();
 };
 
 void TPMDTypeDoubleStrand::parseEstimationParameters(TPMDEstimationParameters &EstimationParameters,
@@ -504,9 +495,9 @@ TPMDTypeSingleStrand::TPMDTypeSingleStrand(const std::vector<std::string> &Detai
 	// expect 2 elements: type, pmdCT
 	constexpr size_t nDetails = 3;
 	if (Details.size() != nDetails) {
-		throw "Cannot initialize PMD type " + (std::string)PMDTypeName_doubleStrand + ": expect " +
+		throw "Cannot initialize PMD type " + name + ": expect " +
 			std::to_string(nDetails) + " entries but found " + toString(Details.size()) + "!" + "\nProvided string: '" +
-			concatenateString(Details, ':') + "'." + "\nExpect string of the form '" + PMDTypeName_doubleStrand +
+			concatenateString(Details, ':') + "'." + "\nExpect string of the form '" + name +
 			"':functionCT:functionGA'.";
 	}
 	_pmdCT3 = initializeFunction(Details[1]);
@@ -514,7 +505,7 @@ TPMDTypeSingleStrand::TPMDTypeSingleStrand(const std::vector<std::string> &Detai
 };
 
 std::string TPMDTypeSingleStrand::functionString() const noexcept {
-	return PMDTypeName_doubleStrand + ":" + _pmdCT3->string() + ":" + _pmdCT5->string();
+	return name + ":" + _pmdCT3->string() + ":" + _pmdCT5->string();
 };
 
 void TPMDTypeSingleStrand::parseEstimationParameters(TPMDEstimationParameters &EstimationParameters,
@@ -605,13 +596,15 @@ void TPostMortemDamage::_createPMDType(const std::string &pmdString, std::shared
 	fillContainerFromString(pmdString, details, ":");
 
 	// switch type
-	if (details[0] == PMDTypeName_none) {
+	if (details[0] == TPMDTypeNone::name) {
 		ptr = std::make_shared<TPMDTypeNone>();
-	} else if (details[0] == PMDTypeName_doubleStrand) {
+	} else if (details[0] == TPMDTypeSingleStrand::name) {
+		ptr = std::make_shared<TPMDTypeSingleStrand>(details);
+	} else if (details[0] == TPMDTypeDoubleStrand::name) {
 		ptr = std::make_shared<TPMDTypeDoubleStrand>(details);
 	} else {
-		throw "Cannot initialize PMD: unknown PMD type '" + details[0] + "'!" + "\nUse " + PMDTypeName_none + " or " +
-			PMDTypeName_doubleStrand + ".";
+		throw "Cannot initialize PMD: unknown PMD type '" + details[0] + "'!" + "\nUse " + TPMDTypeNone::name+ " or " +
+			TPMDTypeSingleStrand::name + " or " + TPMDTypeDoubleStrand::name+ ".";
 	}
 };
 
@@ -622,7 +615,7 @@ void TPostMortemDamage::_initializeFromString(const std::string &pmdString, TLog
 	for (auto &p : _pmdObjects) { _createPMDType(pmdString, p); }
 
 	// report
-	logfile->list(_pmdObjects[0]->type() + ":" + _pmdObjects[0]->functionString());
+	logfile->list(_pmdObjects[0]->functionString());
 	logfile->endIndent();
 };
 
