@@ -43,26 +43,20 @@ std::vector<double> parseParameters(const std::string &string) {
 	return ps;
 }
 
-void initializeFunction(const std::string &pmdString, std::unique_ptr<TPMDFunction> &ptr) {
+std::unique_ptr<TPMDFunction>initializeFunction(const std::string &pmdString) {
 	// parse string to get model. Options are
 	//  none
 	//  Empiric[0.5,0.3,...]
-	//  Skoglund[p,c]
 	//  Exponential[a,b,c]
 
-	// extract function name
-	std::string name = readBefore(pmdString, '[');
+	const std::string name = readBefore(pmdString, '[');
 
-	if (name == PMDFunctionName_none) {
-		ptr = std::make_unique<TPMDFunctionNoPMD>(pmdString);
-	} else if (name == PMDFunctionName_exponential) {
-		ptr = std::make_unique<TPMDFunctionExponential>(pmdString);
-	} else if (name == PMDFunctionName_empiric) {
-		ptr = std::make_unique<TPMDFunctionEmpiric>(pmdString);
-	} else {
-		throw "Cannot initialize PMD function: unknown function '" + name + "'!. Use either " + PMDFunctionName_none +
-			", " + PMDFunctionName_exponential + " or " + PMDFunctionName_empiric + ".";
-	}
+	if (name == PMDFunctionName_none) return std::make_unique<TPMDFunctionNoPMD>(pmdString);
+	if (name == PMDFunctionName_exponential) return std::make_unique<TPMDFunctionExponential>(pmdString);
+	if (name == PMDFunctionName_empiric) return std::make_unique<TPMDFunctionEmpiric>(pmdString);
+
+	throw "Cannot initialize PMD function: unknown function '" + name + "'!. Use either " + PMDFunctionName_none +
+		", " + PMDFunctionName_exponential + " or " + PMDFunctionName_empiric + ".";
 }
 
 } // namespace
@@ -71,7 +65,7 @@ void initializeFunction(const std::string &pmdString, std::unique_ptr<TPMDFuncti
 // TPMDFunctionNoPMD
 //---------------------------------------------------------------
 TPMDFunctionNoPMD::TPMDFunctionNoPMD(const std::string &string) {
-	std::vector<double> params = parseParameters(string);
+	const std::vector<double> params = parseParameters(string);
 	if (params.size() != 0) {
 		throw "Cannot initialize PMD function '" + (std::string)PMDFunctionName_none + "': expected 0 but found " +
 			toString(params.size()) + " parameters!";
@@ -111,14 +105,14 @@ TPMDFunctionExponential::TPMDFunctionExponential(const std::string &string) {
 		if (_c < 0.0) {
 			throw "Cannot initialize PMD function '" + (std::string)PMDFunctionName_exponential + "': c must be > 0!";
 		}
-		_fillPMDProbabilities();
 	}
+	_fillPMDProbabilities();
 };
 
 	void TPMDFunctionExponential::_fillPMDProbabilities() {
 	_probs.resize(_lastPosition + 1);
-	for (uint16_t p = 0; p <= _lastPosition; ++p) {
-		_probs[p] = _a * exp(-_b * (double)p) + _c;
+	for (size_t p = 0; p < _probs.size(); ++p) {
+		_probs[p] = _a * exp(-_b * p) + _c;
 	}
 };
 
@@ -432,8 +426,8 @@ TPMDTypeDoubleStrand::TPMDTypeDoubleStrand(const std::vector<std::string> &Detai
 			concatenateString(Details, ':') + "'." + "\nExpect string of the form '" + PMDTypeName_doubleStrand +
 			"':functionCT:functionGA'.";
 	}
-	initializeFunction(Details[1], _pmdCT);
-	initializeFunction(Details[2], _pmdGA);
+	_pmdCT = initializeFunction(Details[1]);
+	_pmdGA = initializeFunction(Details[2]);
 };
 
 std::string TPMDTypeDoubleStrand::functionString() const noexcept {
@@ -529,8 +523,8 @@ TPMDTypeSingleStrand::TPMDTypeSingleStrand(const std::vector<std::string> &Detai
 			concatenateString(Details, ':') + "'." + "\nExpect string of the form '" + PMDTypeName_doubleStrand +
 			"':functionCT:functionGA'.";
 	}
-	initializeFunction(Details[1], _pmdCT3);
-	initializeFunction(Details[2], _pmdCT5);
+	_pmdCT3 = initializeFunction(Details[1]);
+	_pmdCT5 = initializeFunction(Details[2]);
 };
 
 std::string TPMDTypeSingleStrand::functionString() const noexcept {
