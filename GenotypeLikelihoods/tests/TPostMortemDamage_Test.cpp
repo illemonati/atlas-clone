@@ -2,6 +2,7 @@
 // Created by vivian on 18.08.20.
 //
 
+#include "TPMDTables.h"
 #include "TPostMortemDamage.h"
 #include "TSequencingErrorModels.h"
 #include "TestCase.h"
@@ -11,6 +12,49 @@
 
 using namespace GenotypeLikelihoods;
 using genometools::Base;
+
+TEST(TPostMortemDamage_test, PMDTable) {
+	using namespace genometools;
+	EXPECT_EQ(TPMDTable{}.size(), 0);
+
+	TPMDTable t1(10);
+	EXPECT_EQ(t1.size(), 10);
+	t1.resize(100);
+	EXPECT_EQ(t1.size(), 100);
+
+	EXPECT_EQ(t1[genometools::G][genometools::C][99], 0);
+	for (size_t _ = 0; _ < 3; ++_) t1.add(99, genometools::G, genometools::C);
+
+	t1.add(99, genometools::G, genometools::A);
+	t1.add(99, genometools::G, genometools::G);
+	t1.add(99, genometools::G, genometools::T);
+	EXPECT_EQ(t1[genometools::G][genometools::C][99], 3);
+	EXPECT_EQ(t1[genometools::G][genometools::A][99], 1);
+	EXPECT_EQ(t1[genometools::G][genometools::G][99], 1);
+	EXPECT_EQ(t1[genometools::G][genometools::T][99], 1);
+	EXPECT_EQ(t1.sums(genometools::G)[99], 6);
+
+	TPMDTable t2(100);
+	t2.add(99, genometools::G, genometools::C);
+	t2.add(0,genometools::C, genometools::T);
+	EXPECT_EQ(t2[genometools::G][genometools::C][99], 1);
+	EXPECT_EQ(t2[genometools::C][genometools::T][0], 1);
+	EXPECT_EQ(t2.sums(genometools::G)[99], 1);
+	EXPECT_EQ(t2.sums(genometools::C)[0], 1);
+
+	t1.add(t2);
+	EXPECT_EQ(t1[genometools::G][genometools::C][99], 4);
+	EXPECT_EQ(t1[genometools::G][genometools::A][99], 1);
+	EXPECT_EQ(t1[genometools::G][genometools::G][99], 1);
+	EXPECT_EQ(t1[genometools::G][genometools::T][99], 1);
+	EXPECT_EQ(t1[genometools::C][genometools::T][0], 1);
+	EXPECT_EQ(t1.sums(genometools::G)[99], 7);
+	EXPECT_EQ(t1.sums(genometools::C)[0], 1);
+
+	t1.empty();
+	EXPECT_EQ(t1[genometools::G][genometools::C][99], 0);
+	EXPECT_EQ(t1.sums(genometools::G)[99], 0);
+}
 
 TEST(TPostMortemDamage_test, noPMD) {
 	EXPECT_ANY_THROW(TPMDFunctionNoPMD("[3, 4]"));

@@ -29,20 +29,22 @@ private:
 
 public:
 	TPMDTable() = default;
-	TPMDTable(size_t Size);
-	TPMDTable(const TPMDTable &other) = default;
+	TPMDTable(const TPMDTable &) = default;
+	TPMDTable& operator=(const TPMDTable &) = default;
 	~TPMDTable() = default;
+
+	TPMDTable(size_t Size) { resize(Size); };
 
 	size_t size() const { return _sums[0].size(); };
 	void resize(size_t Size);
 	void empty();
-	void add(size_t pos, const genometools::Base &ref, const genometools::Base &read);
+	void add(size_t pos, genometools::Base ref, genometools::Base read);
 	void add(const TPMDTable &other);
 
 	const PMDCounts &operator[](genometools::Base b) const { return _counts[b.get()]; };
 	const countVec &sums(genometools::Base b) const { return _sums[b.get()]; }
 
-	void write(coretools::TOutputFile &out, std::vector<std::string> &prefix, const bool &normalized);
+	void write(coretools::TOutputFile &out, std::vector<std::string> &prefix, bool normalized);
 };
 
 //------------------------------------------------

@@ -12,8 +12,6 @@ namespace GenotypeLikelihoods {
 //---------------------------------------------------------------
 // TPMDTable
 //---------------------------------------------------------------
-TPMDTable::TPMDTable(size_t Size) { resize(Size); };
-
 void TPMDTable::resize(size_t Size) {
 	for (auto &from : _counts)
 		for (auto & to: from)
@@ -22,14 +20,13 @@ void TPMDTable::resize(size_t Size) {
 }
 
 void TPMDTable::empty() {
-
 	for (auto &from : _counts)
 		for (auto & to: from)
 			std::fill(to.begin(), to.end(), 0);
 	for (auto &s: _sums) std::fill(s.begin(), s.end(), 0);
 }
 
-void TPMDTable::add(size_t pos, const genometools::Base &ref, const genometools::Base &read) {
+void TPMDTable::add(size_t pos, genometools::Base ref, genometools::Base read) {
 	const auto p = std::min(pos, size() - 1);
 	++_counts[ref.get()][read.get()][p];
 	++_sums[ref.get()][p];
@@ -46,7 +43,7 @@ void TPMDTable::add(const TPMDTable &other) {
 	}
 }
 
-void TPMDTable::write(coretools::TOutputFile &out, std::vector<std::string> &prefix, const bool &normalized) {
+void TPMDTable::write(coretools::TOutputFile &out, std::vector<std::string> &prefix, bool normalized) {
 	using namespace genometools;
 	// add ref base to prefix
 	for (Base f = Base::min(); f < Base::max(); ++f) {
