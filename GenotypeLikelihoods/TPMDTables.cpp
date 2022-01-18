@@ -10,109 +10,60 @@
 namespace GenotypeLikelihoods {
 
 //---------------------------------------------------------------
-// TPMDCounts
+// TPMDTable
 //---------------------------------------------------------------
-void TPMDCounts::resize(size_t Size) {
-	for (auto& c: _counts) c.resize(Size, 0);
-	_sums.resize(Size, 0);
+TPMDTable::TPMDTable(size_t Size) { resize(Size); };
+
+void TPMDTable::resize(size_t Size) {
+	for (auto &from : _counts)
+		for (auto & to: from)
+			to.resize(Size);
+	for (auto &s: _sums) s.resize(Size);
 }
 
-void TPMDCounts::empty() {
-	for (auto& c: _counts) std::fill(c.begin(), c.end(), 0);
-	std::fill(_sums.begin(), _sums.end(), 0);
+void TPMDTable::empty() {
+
+	for (auto &from : _counts)
+		for (auto & to: from)
+			std::fill(to.begin(), to.end(), 0);
+	for (auto &s: _sums) std::fill(s.begin(), s.end(), 0);
 }
 
-void TPMDCounts::add(size_t pos, genometools::Base read) {
+void TPMDTable::add(size_t pos, const genometools::Base &ref, const genometools::Base &read) {
 	const auto p = std::min(pos, size() - 1);
-	++_counts[read.get()][p];
-	++_sums[p];
+	++_counts[ref.get()][read.get()][p];
+	++_sums[ref.get()][p];
 }
 
-void TPMDCounts::add(const TPMDCounts &other) {
-	if (size() != other.size()) {
-		for (size_t g = 0; g < 4; ++g) {
-			for (uint16_t i = 0; i < size(); ++i) {
-				_counts[g][i] += other._counts[g][i];
-				_sums[i] += other._sums[i];
-			}
+void TPMDTable::add(const TPMDTable &other) {
+	if (size() != other.size()) return;
+
+	for (size_t f = 0; f < _counts.size(); ++f) {
+		for (size_t i = 0; i < size(); ++i) {
+			_sums[f][i] += other._sums[f][i];
+			for (size_t t = 0; t < _counts[f].size(); ++t) { _counts[f][t][i] += other._counts[f][t][i]; }
 		}
 	}
 }
 
-void TPMDCounts::_writeNormalizedOne(coretools::TOutputFile &out, countVec &these) {
-	for (uint16_t i = 0; i < size(); ++i) out << static_cast<double>(these[i])/_sums[i];
-	out << std::endl;
-}
+void TPMDTable::write(coretools::TOutputFile &out, std::vector<std::string> &prefix, const bool &normalized) {
+	using namespace genometools;
+	// add ref base to prefix
+	for (Base f = Base::min(); f < Base::max(); ++f) {
+		prefix[3] = (std::string)f;
+		for (Base t = Base::min(); t < Base::max(); ++t) {
+			out << prefix << std::string(t);
+			if (normalized) {
+				for (uint16_t i = 0; i < size(); ++i)
+					out << static_cast<double>(_counts[f.get()][t.get()][i]) / _sums[f.get()][i];
 
-void TPMDCounts::write(coretools::TOutputFile &out, const std::vector<std::string> &prefix, const bool &normalized) {
-	if (normalized) {
-		out << prefix << "A";
-		_writeNormalizedOne(out, _counts[genometools::A]);
-		out << prefix << "C";
-		_writeNormalizedOne(out, _counts[genometools::C]);
-		out << prefix << "G";
-		_writeNormalizedOne(out, _counts[genometools::G]);
-		out << prefix << "T";
-		_writeNormalizedOne(out, _counts[genometools::T]);
-	} else {
-		out << prefix << "A" << _counts[genometools::A] << std::endl;
-		out << prefix << "C" << _counts[genometools::C] << std::endl;
-		out << prefix << "G" << _counts[genometools::G] << std::endl;
-		out << prefix << "T" << _counts[genometools::T] << std::endl;
+			} else {
+				out << _counts[f.get()][t.get()];
+			}
+			out << '\n';
+		}
 	}
 }
-
-//---------------------------------------------------------------
-// TPMDTable
-//---------------------------------------------------------------
-TPMDTable::TPMDTable(uint16_t Size) { resize(Size); };
-
-TPMDTable::TPMDTable(const TPMDTable &other) {
-	_counts[genometools::A] = other._counts[genometools::A];
-	_counts[genometools::C] = other._counts[genometools::C];
-	_counts[genometools::G] = other._counts[genometools::G];
-	_counts[genometools::T] = other._counts[genometools::T];
-};
-
-void TPMDTable::resize(uint16_t Size) {
-	_counts[genometools::A].resize(Size);
-	_counts[genometools::C].resize(Size);
-	_counts[genometools::G].resize(Size);
-	_counts[genometools::T].resize(Size);
-};
-
-void TPMDTable::empty() {
-	_counts[genometools::A].empty();
-	_counts[genometools::C].empty();
-	_counts[genometools::G].empty();
-	_counts[genometools::T].empty();
-};
-
-void TPMDTable::add(uint16_t pos, const genometools::Base &ref, const genometools::Base &read) {
-	_counts[ref.get()].add(pos, read);
-};
-
-void TPMDTable::add(const TPMDTable &other) {
-	_counts[genometools::A].add(other[genometools::A]);
-	_counts[genometools::C].add(other[genometools::C]);
-	_counts[genometools::G].add(other[genometools::G]);
-	_counts[genometools::T].add(other[genometools::T]);
-};
-
-void TPMDTable::write(coretools::TOutputFile &out, std::vector<std::string> &prefix, const bool &normalized) {
-	// add ref base to prefix
-	prefix[3] = "A";
-	_counts[genometools::A].write(out, prefix, normalized);
-
-	prefix[3] = "C";
-	_counts[genometools::C].write(out, prefix, normalized);
-
-	prefix[3] = "G";
-	_counts[genometools::G].write(out, prefix, normalized);
-
-	prefix[3] = "T";
-	_counts[genometools::T].write(out, prefix, normalized);
-};
 
 //------------------------------------------------
 // TPMDTableReadGroup

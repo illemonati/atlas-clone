@@ -271,10 +271,10 @@ void TPMDFunctionExponential::_estimateWithNewtonRaphson(const countVec &pmdCoun
 void TPMDFunctionExponential::learn(const TPMDTable &Table, const genometools::Base &from, const genometools::Base &to,
 				    const TPMDEstimationParameters &EstimationParameters) {
 	// extract counts in PMD direction and the inverse direction
-	const countVec &pmdCounts = Table[from][to];
-	const countVec &pmdSums   = Table[from].sums();
-	const countVec &invCounts = Table[to][from];
-	const countVec &invSums   = Table[to].sums();
+	const countVec &pmdCounts = Table[from][to.get()];
+	const countVec &pmdSums   = Table.sums(from);
+	const countVec &invCounts = Table[to][from.get()];
+	const countVec &invSums   = Table.sums(from);
 
 	// Check if we have sufficient data
 	// find last entry with counts
@@ -369,10 +369,10 @@ void TPMDFunctionEmpiric::learn(const TPMDTable &Table, const genometools::Base 
 	_parameters.resize(Table.size() + 1); // include extra bin for sites beyond size (available in PMDTables)
 
 	// extract counts in PMD direction and the inverse direction
-	const countVec &pmdCounts = Table[from][to];
-	const countVec &pmdSums   = Table[from].sums();
-	const countVec &invCounts = Table[to][from];
-	const countVec &invSums   = Table[to].sums();
+	const countVec &pmdCounts = Table[from][to.get()];
+	const countVec &pmdSums   = Table.sums(from);
+	const countVec &invCounts = Table[to][from.get()];
+	const countVec &invSums   = Table.sums(from);
 
 	for (size_t p = 0; p <= _parameters.size(); ++p) {
 		if (pmdSums[p] == 0 || invSums[p] == 0) {

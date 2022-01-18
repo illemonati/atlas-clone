@@ -15,56 +15,32 @@
 namespace GenotypeLikelihoods {
 
 enum PMDTableType : uint8_t { forward3 = 0, forward5, reverse3, reverse5 };
-
-//---------------------------------------------------------------
-// TPMDCounts
-// counts are   [read group] [type] [from (ref)] [to (read)] [position]
-// organized as TPMDTables -> TPMDTableReadGroup -> TPMDTPMDTable -> TPMDCounts -> countVec
-//---------------------------------------------------------------
-
 using countVec = std::vector<uint64_t>;
-
-class TPMDCounts {
-private:
-	countVec _counts[4];        //_counts[A,C,G,T][position] are counts to (read)
-	countVec _sums;             //_sums[b] = sum_b _counts[b][p]
-
-	void _writeNormalizedOne(coretools::TOutputFile &out, countVec &these);
-
-public:
-	size_t size() const noexcept { return _sums.size(); }
-	void resize(size_t Size);
-	void empty();
-	void add(size_t pos, genometools::Base read);
-	void add(const TPMDCounts &other);
-
-	const countVec &operator[](const genometools::Base &b) const { return _counts[b.get()]; };
-
-	const countVec &sums() const { return _sums; };
-
-	void write(coretools::TOutputFile &out, const std::vector<std::string> &prefix, const bool &normalized);
-};
+using PMDCounts = std::array<countVec, 4>;
 
 //------------------------------------------------
 // TPMDTable
 //------------------------------------------------
 class TPMDTable {
 private:
-	TPMDCounts _counts[4]; //_counts[A,C,G,T] are counts from (ref)
+	//TPMDCounts _counts[4]; 
+	std::array<PMDCounts, 4> _counts; //_counts[A,C,G,T] are counts from (ref)
+	std::array<countVec, 4> _sums;
 
 public:
 	TPMDTable() = default;
-	TPMDTable(uint16_t Size);
-	TPMDTable(const TPMDTable &other);
+	TPMDTable(size_t Size);
+	TPMDTable(const TPMDTable &other) = default;
 	~TPMDTable() = default;
 
-	uint16_t size() const { return _counts[0].size(); };
-	void resize(uint16_t Size);
+	size_t size() const { return _sums[0].size(); };
+	void resize(size_t Size);
 	void empty();
-	void add(uint16_t pos, const genometools::Base &ref, const genometools::Base &read);
+	void add(size_t pos, const genometools::Base &ref, const genometools::Base &read);
 	void add(const TPMDTable &other);
 
-	const TPMDCounts &operator[](const genometools::Base &b) const { return _counts[b.get()]; };
+	const PMDCounts &operator[](genometools::Base b) const { return _counts[b.get()]; };
+	const countVec &sums(genometools::Base b) const { return _sums[b.get()]; }
 
 	void write(coretools::TOutputFile &out, std::vector<std::string> &prefix, const bool &normalized);
 };
