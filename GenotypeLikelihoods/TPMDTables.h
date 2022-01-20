@@ -15,8 +15,9 @@
 namespace GenotypeLikelihoods {
 
 enum PMDTableType : uint8_t { forward3 = 0, forward5, reverse3, reverse5 };
-using countVec = std::vector<uint64_t>;
-using PMDCounts = std::array<countVec, 4>;
+
+using countVec    = std::vector<uint64_t>;
+using PMDCounts   = std::array<countVec, 4>;
 
 //------------------------------------------------
 // TPMDTable
@@ -47,22 +48,7 @@ public:
 	void write(coretools::TOutputFile &out, std::vector<std::string> &prefix, bool normalized);
 };
 
-//------------------------------------------------
-// TPMDTableReadGroup
-//------------------------------------------------
-class TPMDTableReadGroup {
-private:
-	TPMDTable _tables[4];
-
-public:
-	TPMDTableReadGroup(uint16_t TableLength);
-
-	void add(const BAM::TSequencedBase &base, const genometools::Base &reference);
-
-	const TPMDTable &operator[](const PMDTableType &Type) const { return _tables[Type]; };
-
-	void write(coretools::TOutputFile &out, std::vector<std::string> &prefix, const bool &normalized);
-};
+using PMDTable_RG = std::array<TPMDTable, 4>;
 
 //------------------------------------------------
 // TPMDTables
@@ -72,18 +58,18 @@ private:
 	const BAM::TReadGroupMap *_readGroupMap;
 	const BAM::TReadGroups *_readGroups;
 	uint16_t _tableLength;
-	std::vector<TPMDTableReadGroup> _tables;
+	std::vector<PMDTable_RG> _tables;
 
 public:
 	TPMDTables();
-	TPMDTables(const BAM::TReadGroups *ReadGroups, uint16_t TableLength, const BAM::TReadGroupMap *ReadGroupMapObject);
+	TPMDTables(const BAM::TReadGroups *ReadGroups, size_t TableLength, const BAM::TReadGroupMap *ReadGroupMapObject);
 	~TPMDTables(){};
 
-	void initialize(const BAM::TReadGroups *ReadGroups, uint16_t TableLength, const BAM::TReadGroupMap *ReadGroupMap);
-	const TPMDTableReadGroup &operator[](uint16_t ReadGroupID) const;
+	void initialize(const BAM::TReadGroups *ReadGroups, size_t TableLength, const BAM::TReadGroupMap *ReadGroupMap);
+	const PMDTable_RG &operator[](size_t ReadGroupID) const { return _tables[ReadGroupID]; }
 
-	void add(const BAM::TSequencedBase &base, const genometools::Base &reference);
-	void write(std::string filename, const bool &normalize);
+	void add(const BAM::TSequencedBase &base, genometools::Base reference);
+	void write(std::string filename, bool normalize);
 };
 
 }; // namespace GenotypeLikelihoods

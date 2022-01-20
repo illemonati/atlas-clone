@@ -132,7 +132,7 @@ public:
 
 	virtual void parseEstimationParameters(TPMDEstimationParameters &EstimationParameters, TParameters &Params,
 					       TLog *Logfile) = 0;
-	virtual void estimate(const TPMDTableReadGroup &PMDTable, const TPMDEstimationParameters &EstimationParameters) = 0;
+	virtual void estimate(const PMDTable_RG &PMDTable, const TPMDEstimationParameters &EstimationParameters) = 0;
 
 	virtual void fillBaseLikelihoods(const BAM::TSequencedBase &base, const TBaseProbabilities &baseLikelihoodsNoPMD,
 					 TBaseProbabilities &baseLikelihoods) const = 0;
@@ -155,7 +155,7 @@ public:
 	std::string functionString() const noexcept override { return "none"; }
 
 	void parseEstimationParameters(TPMDEstimationParameters &, TParameters &, TLog *) override {}
-	void estimate(const TPMDTableReadGroup &, const TPMDEstimationParameters &) override {}
+	void estimate(const PMDTable_RG &, const TPMDEstimationParameters &) override {}
 
 	void fillBaseLikelihoods(const BAM::TSequencedBase &, const TBaseProbabilities &baseLikelihoodsNoPMD,
 				 TBaseProbabilities &baseLikelihoods) const override {
@@ -185,10 +185,10 @@ public:
 
 	void parseEstimationParameters(TPMDEstimationParameters &EstimationParameters, TParameters &Params,
 				       TLog *Logfile) override;
-	void estimate(const TPMDTableReadGroup &PMDTable, const TPMDEstimationParameters &EstimationParameters) override;
+	void estimate(const PMDTable_RG &PMDTable, const TPMDEstimationParameters &EstimationParameters) override;
 
 	void fillBaseLikelihoods(const BAM::TSequencedBase &base, const TBaseProbabilities &baseLikelihoodsNoPMD,
-				 TBaseProbabilities &baseLikelihoods) const override;
+	                         TBaseProbabilities &baseLikelihoods) const override;
 
 	void simulatePMD(BAM::TSequencedBase &base, TRandomGenerator &RandomGenerator) const override;
 	void simulatePMD(genometools::Base &base, uint16_t DistFrom5Prime, uint16_t DistFrom3Prime,
@@ -214,7 +214,7 @@ public:
 	void parseEstimationParameters(TPMDEstimationParameters &EstimationParameters, TParameters &Params,
 				       TLog *Logfile) override;
 
-	void estimate(const TPMDTableReadGroup &PMDTable, const TPMDEstimationParameters &EstimationParameters) override;
+	void estimate(const PMDTable_RG &PMDTable, const TPMDEstimationParameters &EstimationParameters) override;
 
 	void fillBaseLikelihoods(const BAM::TSequencedBase &base, const TBaseProbabilities &baseLikelihoodsNoPMD,
 				 TBaseProbabilities &baseLikelihoods) const override;

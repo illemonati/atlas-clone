@@ -417,7 +417,7 @@ void TPMDTypeDoubleStrand::parseEstimationParameters(TPMDEstimationParameters &E
 	_pmdGA->parseEstimationParameters(EstimationParameters, Params, Logfile);
 }
 
-void TPMDTypeDoubleStrand::estimate(const TPMDTableReadGroup &PMDTable,
+void TPMDTypeDoubleStrand::estimate(const PMDTable_RG &PMDTable,
 				    const TPMDEstimationParameters &EstimationParameters) {
 	// Note: TPMDTables stores bases as during sequencing (not as after mapping)
 	// Assumption: C->T pattern is the same for forward and reverse reads from their respective 5-prime ends.
@@ -514,7 +514,7 @@ void TPMDTypeSingleStrand::parseEstimationParameters(TPMDEstimationParameters &E
 	_pmdCT5->parseEstimationParameters(EstimationParameters, Params, Logfile);
 }
 
-void TPMDTypeSingleStrand::estimate(const TPMDTableReadGroup &PMDTable,
+void TPMDTypeSingleStrand::estimate(const PMDTable_RG &PMDTable,
 				    const TPMDEstimationParameters &EstimationParameters) {
 	// Note: TPMDTables stores bases as during sequencing (not as after mapping)
 	// Assumption: 5-prime C->T pattern is the same for forward and reverse reads from their respective
