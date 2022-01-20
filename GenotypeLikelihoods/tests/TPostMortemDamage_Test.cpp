@@ -35,6 +35,7 @@ TEST(TPostMortemDamage_test, PMDTable) {
 	EXPECT_EQ(t1.sums(genometools::G)[99], 6);
 
 	TPMDTable t2(100);
+	EXPECT_EQ(t2.size(), 100);
 	t2.add(99, genometools::G, genometools::C);
 	t2.add(0,genometools::C, genometools::T);
 	EXPECT_EQ(t2[genometools::G][genometools::C][99], 1);
@@ -54,6 +55,60 @@ TEST(TPostMortemDamage_test, PMDTable) {
 	t1.empty();
 	EXPECT_EQ(t1[genometools::G][genometools::C][99], 0);
 	EXPECT_EQ(t1.sums(genometools::G)[99], 0);
+}
+
+TEST(TPostMortemDamage_test, PMDTables) {
+	using namespace genometools;
+	BAM::TReadGroups rg;
+	rg.add("1");
+	BAM::TReadGroupMap rgm(rg);
+	TPMDTables ts(&rg, 10, &rgm);
+	EXPECT_EQ(ts[0][forward3].size(), 10);
+
+	BAM::TSequencedBase sqbase;
+	sqbase.base           = A;
+	sqbase.distFrom3Prime = 1;
+	sqbase.distFrom5Prime = 33;
+	sqbase.readGroupID    = 0;
+	sqbase.setReverseStrand(false);
+
+	// forward3
+	EXPECT_EQ(ts[0][forward3].sums(C)[sqbase.distFrom3Prime], 0);
+	EXPECT_EQ(ts[0][forward3][C][sqbase.base.get()][sqbase.distFrom3Prime], 0);
+	ts.add(sqbase, C);
+	EXPECT_EQ(ts[0][forward3].sums(C)[sqbase.distFrom3Prime], 1);
+	EXPECT_EQ(ts[0][forward3][C][sqbase.base.get()][sqbase.distFrom3Prime], 1);
+
+	sqbase.base = C;
+	ts.add(sqbase, C);
+	EXPECT_EQ(ts[0][forward3].sums(C)[sqbase.distFrom3Prime], 2);
+	EXPECT_EQ(ts[0][forward3][C][sqbase.base.get()][sqbase.distFrom3Prime], 1);
+
+	// forward5
+	EXPECT_EQ(ts[0][forward5].sums(A)[sqbase.distFrom3Prime], 0);
+	EXPECT_EQ(ts[0][forward5][A][sqbase.base.get()][sqbase.distFrom3Prime], 0);
+	sqbase.distFrom5Prime = sqbase.distFrom3Prime;
+	ts.add(sqbase, A);
+	EXPECT_EQ(ts[0][forward5].sums(A)[sqbase.distFrom3Prime], 1);
+	EXPECT_EQ(ts[0][forward5][A][sqbase.base.get()][sqbase.distFrom3Prime], 1);
+
+	// reverse3
+	EXPECT_EQ(ts[0][reverse3].sums(C)[sqbase.distFrom3Prime], 0);
+	EXPECT_EQ(ts[0][reverse3][C][sqbase.base.get()][sqbase.distFrom3Prime], 0);
+	sqbase.distFrom5Prime++;
+	sqbase.setReverseStrand(true);
+	ts.add(sqbase, G);
+	EXPECT_EQ(ts[0][reverse3].sums(C)[sqbase.distFrom3Prime], 1);
+	EXPECT_EQ(ts[0][reverse3][C][sqbase.base.flipped().get()][sqbase.distFrom3Prime], 1);
+
+	// reverse5
+	EXPECT_EQ(ts[0][reverse5].sums(A)[sqbase.distFrom3Prime], 0);
+	EXPECT_EQ(ts[0][reverse5][A][sqbase.base.get()][sqbase.distFrom3Prime], 0);
+	sqbase.distFrom5Prime--;
+	sqbase.setReverseStrand(true);
+	ts.add(sqbase, T);
+	EXPECT_EQ(ts[0][reverse5].sums(A)[sqbase.distFrom3Prime], 1);
+	EXPECT_EQ(ts[0][reverse5][A][sqbase.base.flipped().get()][sqbase.distFrom3Prime], 1);
 }
 
 TEST(TPostMortemDamage_test, noPMD) {
