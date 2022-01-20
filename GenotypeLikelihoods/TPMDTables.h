@@ -24,10 +24,8 @@ using PMDCounts   = std::array<countVec, 4>;
 //------------------------------------------------
 class TPMDTable {
 private:
-	//TPMDCounts _counts[4]; 
 	std::array<PMDCounts, 4> _counts; //_counts[A,C,G,T] are counts from (ref)
 	std::array<countVec, 4> _sums;
-
 public:
 	TPMDTable() = default;
 	TPMDTable(const TPMDTable &) = default;
@@ -35,16 +33,13 @@ public:
 	~TPMDTable() = default;
 
 	TPMDTable(size_t Size) { resize(Size); };
-
 	size_t size() const { return _sums[0].size(); };
 	void resize(size_t Size);
 	void empty();
 	void add(size_t pos, genometools::Base ref, genometools::Base read);
 	void add(const TPMDTable &other);
-
-	const PMDCounts &operator[](genometools::Base b) const { return _counts[b.get()]; };
+	const PMDCounts &operator[](genometools::Base b) const { return _counts[b.get()]; }
 	const countVec &sums(genometools::Base b) const { return _sums[b.get()]; }
-
 	void write(coretools::TOutputFile &out, std::vector<std::string> &prefix, bool normalized);
 };
 
@@ -55,23 +50,24 @@ using PMDTable_RG = std::array<TPMDTable, 4>;
 //------------------------------------------------
 class TPMDTables {
 private:
-	const BAM::TReadGroupMap *_readGroupMap;
-	const BAM::TReadGroups *_readGroups;
-	uint16_t _tableLength;
+	const BAM::TReadGroupMap *_readGroupMap = nullptr;
+	const BAM::TReadGroups *_readGroups = nullptr;
+	size_t _tableLength = 0;
 	std::vector<PMDTable_RG> _tables;
-
 public:
-	TPMDTables();
-	TPMDTables(const BAM::TReadGroups *ReadGroups, size_t TableLength, const BAM::TReadGroupMap *ReadGroupMapObject);
-	~TPMDTables(){};
+	TPMDTables() = default;
+	TPMDTables(const TPMDTables &) = default;
+	TPMDTables& operator=(const TPMDTables &) = default;
+	~TPMDTables() = default;
 
+	TPMDTables(const BAM::TReadGroups *ReadGroups, size_t TableLength, const BAM::TReadGroupMap *ReadGroupMap) {
+		initialize(ReadGroups, TableLength, ReadGroupMap);
+	}
 	void initialize(const BAM::TReadGroups *ReadGroups, size_t TableLength, const BAM::TReadGroupMap *ReadGroupMap);
 	const PMDTable_RG &operator[](size_t ReadGroupID) const { return _tables[ReadGroupID]; }
-
 	void add(const BAM::TSequencedBase &base, genometools::Base reference);
 	void write(std::string filename, bool normalize);
 };
 
-}; // namespace GenotypeLikelihoods
-
+} // namespace GenotypeLikelihoods
 #endif /* GENOTYPELIKELIHOODS_TPMDTABLES_H_ */
