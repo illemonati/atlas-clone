@@ -76,7 +76,6 @@ private:
 					uint32_t numNRIterations, double epsilon);
 	double _calcLL(const countVec &pmdCounts, const countVec &pmdSums, const std::vector<double> &Parameters);
 	void _fillPMDProbabilities();
-
 public:
 	static inline const std::string name    = "Exponential";
 	static inline const std::string example = name + "[lastPosition,a,b,c]";
@@ -174,7 +173,6 @@ class TPMDTypeDoubleStrand : public TPMDType {
 private:
 	std::unique_ptr<TPMDFunction> _pmdCT;
 	std::unique_ptr<TPMDFunction> _pmdGA;
-
 public:
 	static inline const std::string name = "doubleStrand";
 	TPMDTypeDoubleStrand(const std::vector<std::string> &Details);
@@ -202,7 +200,6 @@ class TPMDTypeSingleStrand : public TPMDType {
 private:
 	std::unique_ptr<TPMDFunction> _pmdCT3;
 	std::unique_ptr<TPMDFunction> _pmdCT5;
-
 public:
 	static inline const std::string name = "singleStrand";
 	TPMDTypeSingleStrand(const std::vector<std::string> &Details);
@@ -237,14 +234,12 @@ private:
 	void _initializeFromFile(const BAM::TReadGroups &ReadGroups, const std::string &filename, TLog *logfile,
 				 std::vector<uint16_t> &ReadGroupsWithoutPMD);
 	void _setHasDamage();
-
 public:
 	TPostMortemDamage() = default;
 	TPostMortemDamage(const std::string &pmdString, const BAM::TReadGroups &ReadGroups, TLog *Logfile,
 			  std::vector<uint16_t> &ReadGroupsWithoutPMD) {
 		initialize(pmdString, ReadGroups, Logfile, ReadGroupsWithoutPMD);
 	}
-
 	constexpr bool hasPMD() const noexcept { return _hasPMD; };
 	const TPMDType &operator[](uint16_t ReadGroupIndex) const noexcept { return *_pmdObjects[ReadGroupIndex]; }
 	TPMDType &operator[](uint16_t ReadGroupIndex) noexcept { return *_pmdObjects[ReadGroupIndex]; }

@@ -116,7 +116,7 @@ void TPMDFunctionExponential::_initialEstimatesOLS(const countVec &pmdCounts, co
 	arma::vec y(_lastPosition + 1);
 	double sumYSquared = 0.0;
 	for (int p = 0; p <= _lastPosition; ++p) {
-		y(p) = (double)pmdCounts[p] / (double)pmdSums[p];
+		y(p) = (double)pmdCounts[p]/pmdSums[p];
 		sumYSquared += y(p) * y(p);
 	}
 
@@ -136,22 +136,21 @@ void TPMDFunctionExponential::_initialEstimatesOLS(const countVec &pmdCounts, co
 			gammaTmp += gammaStep;
 
 			// fill x
-			for (size_t p = 0; p < pmdCounts.size(); ++p) { X(p, 1) = exp(-gammaTmp * (double)p); }
-
+			for (size_t p = 0; p < pmdCounts.size(); ++p) {
+				X(p, 1) = exp(-gammaTmp*p);
+			}
 			betaHat = inv(X.t() * X) * X.t() * y;
 
 			// calc sum of squares
-			arma::mat tmp = (betaHat.t() * X.t() * y);
-			double SSRnew = sumYSquared - tmp(0, 0);
-			SSRdiff       = SSRnew - SSRold;
-			SSRold        = SSRnew;
+			const arma::mat tmp = betaHat.t() * X.t() * y;
+			const double SSRnew = sumYSquared - tmp(0, 0);
+			SSRdiff             = SSRnew - SSRold;
+			SSRold              = SSRnew;
 		}
-
 		// update alpha step
 		gammaStep = -0.1 * gammaStep;
 		SSRdiff   = -1.0;
 	}
-
 	// set parameters
 	Parameters = {betaHat(0), betaHat(1), gammaTmp};
 }
@@ -161,51 +160,48 @@ void TPMDFunctionExponential::_fillFAndJacobian(arma::vec &F, arma::mat &J, cons
 	F.zeros();
 	J.zeros();
 
-	double weight, weightJ, tmp;
-	double expMinusAlphaP;
-	double dExpMinusAlphaP;
 	for (int p = 0; p <= _lastPosition; ++p) {
 		// exp
-		expMinusAlphaP  = exp(-Parameters[2] * p);
-		dExpMinusAlphaP = Parameters[1] * expMinusAlphaP;
+		const auto expMinusAlphaP  = exp(-Parameters[2] * p);
+		const auto dExpMinusAlphaP = Parameters[1] * expMinusAlphaP;
 
 		// first term
 		//----------
-		tmp     = Parameters[0] + dExpMinusAlphaP;
-		weight  = pmdCounts[p] / tmp;
-		weightJ = weight / tmp;
+		const auto tmp1     = Parameters[0] + dExpMinusAlphaP;
+		const auto weight1  = pmdCounts[p] / tmp1;
+		const auto weightJ1 = weight1 / tmp1;
 
 		// add to F
-		F(0) += weight;
-		F(1) += weight * expMinusAlphaP;
-		F(2) -= weight * p * dExpMinusAlphaP;
+		F(0) += weight1;
+		F(1) += weight1 * expMinusAlphaP;
+		F(2) -= weight1 * p * dExpMinusAlphaP;
 
 		// add to J -> only upper triangle, as it is symmetric
-		J(0, 0) -= weightJ;
-		J(0, 1) -= weightJ * expMinusAlphaP;
-		J(0, 2) += weightJ * p * dExpMinusAlphaP;
-		J(1, 1) -= weightJ * expMinusAlphaP * expMinusAlphaP;
-		J(1, 2) -= weightJ * p * Parameters[0] * expMinusAlphaP;
-		J(2, 2) += weightJ * p * p * Parameters[0] * dExpMinusAlphaP;
+		J(0, 0) -= weightJ1;
+		J(0, 1) -= weightJ1 * expMinusAlphaP;
+		J(0, 2) += weightJ1 * p * dExpMinusAlphaP;
+		J(1, 1) -= weightJ1 * expMinusAlphaP * expMinusAlphaP;
+		J(1, 2) -= weightJ1 * p * Parameters[0] * expMinusAlphaP;
+		J(2, 2) += weightJ1 * p * p * Parameters[0] * dExpMinusAlphaP;
 
 		// second term
 		//-----------
-		tmp     = (1.0 - Parameters[0] - dExpMinusAlphaP);
-		weight  = (pmdSums[p] - pmdCounts[p]) / tmp;
-		weightJ = weight / tmp;
+		const auto tmp2     = (1.0 - Parameters[0] - dExpMinusAlphaP);
+		const auto weight2  = (pmdSums[p] - pmdCounts[p]) / tmp2;
+		const auto weightJ2 = weight2 / tmp2;
 
 		// add to F
-		F(0) -= weight;
-		F(1) -= weight * expMinusAlphaP;
-		F(2) += weight * p * dExpMinusAlphaP;
+		F(0) -= weight2;
+		F(1) -= weight2 * expMinusAlphaP;
+		F(2) += weight2 * p * dExpMinusAlphaP;
 
 		// add to J -> only upper triangle, as it is symmetric
-		J(0, 0) -= weightJ;
-		J(0, 1) -= weightJ * expMinusAlphaP;
-		J(0, 2) += weightJ * p * dExpMinusAlphaP;
-		J(1, 1) -= weightJ * expMinusAlphaP * expMinusAlphaP;
-		J(1, 2) += weightJ * p * (1.0 - Parameters[0]) * expMinusAlphaP;
-		J(2, 2) -= weightJ * p * p * (1.0 - Parameters[0]) * dExpMinusAlphaP;
+		J(0, 0) -= weightJ2;
+		J(0, 1) -= weightJ2 * expMinusAlphaP;
+		J(0, 2) += weightJ2 * p * dExpMinusAlphaP;
+		J(1, 1) -= weightJ2 * expMinusAlphaP * expMinusAlphaP;
+		J(1, 2) += weightJ2 * p * (1.0 - Parameters[0]) * expMinusAlphaP;
+		J(2, 2) -= weightJ2 * p * p * (1.0 - Parameters[0]) * dExpMinusAlphaP;
 	}
 
 	// now fill in lower triangle of J
@@ -218,7 +214,7 @@ double TPMDFunctionExponential::_calcLL(const countVec &pmdCounts, const countVe
 					const std::vector<double> &Parameters) {
 	double LL = 0.0;
 	for (int p = 0; p <= _lastPosition; ++p) {
-		double dExpMinusAlphaP = Parameters[1] * exp(-Parameters[2] * p);
+		const auto dExpMinusAlphaP = Parameters[1] * exp(-Parameters[2] * p);
 		LL += pmdCounts[p] * log(Parameters[0] + dExpMinusAlphaP) +
 		      (pmdSums[p] - pmdCounts[p]) * log(1.0 - Parameters[0] - dExpMinusAlphaP);
 	}
@@ -228,42 +224,36 @@ double TPMDFunctionExponential::_calcLL(const countVec &pmdCounts, const countVe
 void TPMDFunctionExponential::_estimateWithNewtonRaphson(const countVec &pmdCounts, const countVec &pmdSums,
 							 std::vector<double> &Parameters, uint32_t numNRIterations,
 							 double epsilon) {
-	// variables
-	arma::mat J(3, 3);
-	arma::vec F(3);
-	arma::mat JxF;
-
-	// set starting values
-	std::vector<double> newParams(3);
-
 	// Conduct Newton-Raphson to refine
 	//----------------------------------
 	double oldLL = _calcLL(pmdCounts, pmdSums, Parameters);
 
 	for (size_t i = 0; i < numNRIterations; ++i) {
+		arma::mat J(3, 3);
+		arma::vec F(3);
+		arma::mat JxF;
 		_fillFAndJacobian(F, J, pmdCounts, pmdSums, Parameters);
-		if (solve(JxF, J, F)) {
-			// estimate new params
-			for (int x = 0; x < 3; ++x) { newParams[x] = Parameters[x] - JxF(x); }
 
-			// calculate LL at new location
-			double LL = _calcLL(pmdCounts, pmdSums, newParams);
-
-			// check if we accept or backtrack
-			if (LL > oldLL) {
-				// store new params
-				for (int x = 0; x < 3; ++x) { Parameters = newParams; }
-
-				// check if we stop NR
-				if (LL - oldLL < epsilon) {
-					oldLL = LL;
-					break;
-				}
-				oldLL = LL;
-			}
-		} else {
+		if (!solve(JxF, J, F)) {
 			std::cout << std::endl << std::endl << "JACOBIAN:" << std::endl << J << std::endl << std::endl;
 			throw std::runtime_error("Issue solving JxF in TPMDTable::fitExponentialModel!");
+		}
+
+		// estimate new params
+		std::vector<double> newParams(3);
+		for (size_t x = 0; x < newParams.size(); ++x) newParams[x] = Parameters[x] - JxF(x);
+
+		// calculate LL at new location
+		const auto LL = _calcLL(pmdCounts, pmdSums, newParams);
+
+		// check if we accept or backtrack
+		if (LL > oldLL) {
+			oldLL = LL;
+			// store new params
+			for (size_t x = 0; x < Parameters.size(); ++x) Parameters[x] = newParams[x];
+
+			// check if we stop NR
+			if (LL - oldLL < epsilon) break;
 		}
 	}
 }
