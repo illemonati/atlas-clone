@@ -191,7 +191,32 @@ TEST(TPostMortemDamage_test, empiric_learn) {
 	EXPECT_EQ(fne.string(), "Empiric[1.000000,0.900000,0.800000,0.700000,0.600000,0.500000,0.400000,0.300000,0.200000,0.100000]");
 }
 
-	TEST(TPostMortemDamage_test, baseANoPMD) {
+TEST(TPostMortemDamage_test, exp_learn) {
+	using namespace genometools;
+
+	constexpr auto a    = 0.5;
+	constexpr auto b    = 0.7;
+	constexpr auto c    = 0.3;
+	constexpr size_t N  = 20;
+	constexpr size_t Nb = 1000;
+
+	TPMDTable t1(N);
+
+	for (size_t i = 0; i < N; ++i) {
+		const size_t nPMD = Nb*(a*std::exp(-b*i) + c);
+		for (size_t _ = 0; _ < nPMD; ++_) t1.add(i, G, A);
+		for (size_t _ = 0; _ < Nb - nPMD; ++_) t1.add(i, G, G);
+	}
+
+	TPMDEstimationParameters eparams;
+	eparams.emplace(TPMDFunctionExponential::epsilon, 0.001);
+	eparams.emplace(TPMDFunctionExponential::numNR, 1000);
+	TPMDFunctionExponential fne("[]");
+	fne.learn(t1, G, A, eparams);
+	EXPECT_EQ(fne.string(), "Exponential[19,0.500266,0.700669,0.299745]");
+}
+
+TEST(TPostMortemDamage_test, baseANoPMD) {
 		constexpr auto err = 0.01;
 
 		TSequencingErrorModels sem;
