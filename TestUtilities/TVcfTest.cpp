@@ -11,7 +11,7 @@ TAtlasTest_invariantBed::TAtlasTest_invariantBed():TAtlasTest(){
 	_name = "invariantBed";
 };
 
-void TAtlasTest_invariantBed::setVariables(TParameters & params, TLog* Logfile, TTaskList* TaskList){
+void TAtlasTest_invariantBed::setVariables(TParameters &, TLog* Logfile, TTaskList* TaskList){
 	//variables
 	logfile = Logfile;
 	taskList = TaskList;

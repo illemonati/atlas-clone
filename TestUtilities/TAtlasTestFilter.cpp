@@ -6,6 +6,8 @@
  */
 
 #include "../TestUtilities/TAtlasTestFilter.h"
+#include "stringFunctions.h"
+#include <string>
 
 TAtlasTest_filter::TAtlasTest_filter():TAtlasTest(){
 	_name = "testFilter";
@@ -169,7 +171,7 @@ bool TAtlasTest_filter::checkfilteredBAMFile(){
 				}
 				if(line != trueIgnoredReadMessages.at(lineNum)){
 					logfile->newLine();
-					logfile->conclude("Incorrect entry in ignored reads file on line ", lineNum + ". Was expecting '" + trueIgnoredReadMessages.at(lineNum) + "'  but read '" + line + "'");
+					logfile->conclude("Incorrect entry in ignored reads file on line " + std::to_string(lineNum) + ". Was expecting '" + trueIgnoredReadMessages.at(lineNum) + "'  but read '" + line + "'");
 					return false;
 				}
 				++lineNum;
@@ -211,7 +213,7 @@ bool TAtlasTest_filter::checkfilteredBAMFile(){
 				++lineNum;
 			}
 		}
-		logfile->write("done! Read ", lineNum + " read names");
+		logfile->write("done! Read " + std::to_string(lineNum) + " read names");
 
 		if((unsigned) lineNum != trueIgnoredReadMessages.size()){
 			logfile->newLine();

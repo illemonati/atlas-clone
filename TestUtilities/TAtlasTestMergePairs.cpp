@@ -616,7 +616,7 @@ bool TAtlasTest_mergePairs::checkMergedBAMFile(){
 			return false;
 		} if(bamAlignment.IsProperPair() != trueIsProper.at(counter)){
 			logfile->newLine();
-			logfile->conclude("Read " + bamAlignment.Name + ", isRev = ", bamAlignment.IsReverseStrand(), ": proper pair flag is ", bamAlignment.IsProperPair() + " but was expecting ", trueIsProper.at(counter));
+			logfile->conclude("Read " + bamAlignment.Name + ", isRev = ", bamAlignment.IsReverseStrand(), ": proper pair flag is " + std::to_string(bamAlignment.IsProperPair()) + " but was expecting "  + std::to_string(trueIsProper.at(counter)));
 			return false;
 		}
 
@@ -677,7 +677,7 @@ TAtlasTest_mergeSplitPairs::TAtlasTest_mergeSplitPairs():TAtlasTest_mergePairs()
 	filenameTag = _testingPrefix + _name;
 };
 
-void TAtlasTest_mergeSplitPairs::setVariables(TParameters & params, TLog* Logfile, TTaskList* TaskList){
+void TAtlasTest_mergeSplitPairs::setVariables(TParameters & params, TLog* Logfile, TTaskList*){
 	logfile = Logfile;
 	bamFileName = filenameTag + "_mergedReads.bam";
 	readGroupName = "ReadGroup";

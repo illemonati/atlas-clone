@@ -609,7 +609,7 @@ void TAtlasTest_theta::defineVariables(TParameters & params, TLog* Logfile){
 };
 
 
-bool TAtlasTest_theta::run(TParameters & params, TLog* Logfile, TTaskList * TaskList){
+bool TAtlasTest_theta::run(TParameters & params, TLog* Logfile, TTaskList *){
 	//1) Define variables
 	defineVariables(params, Logfile);
 
