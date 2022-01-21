@@ -12,32 +12,17 @@ namespace Simulations{
 //---------------------------------------------------
 //TSimulator
 //---------------------------------------------------
-TSimulator::TSimulator(TLog* Logfile, TRandomGenerator* RandomGenerator){
-	_logfile = Logfile;
-	_randomGenerator = RandomGenerator;
-
-	//set basic things to empty
-	_refInitialized = false;
-	_writeTrueGenotypes = false;
-	_writeVariantInvariantBedFiles = false;
-	_sampleSize = 0;
-	_seqDepth = 0;
-	_averageReadLength = 0;
-	_maxReadLength = 0;
-	_referenceDivergence = 0.0;
-};
 
 void TSimulator::_initializeCommonSettings(TParameters & params){
 	//depth
-	float depth = params.getParameterWithDefault("depth", 10.0);
-	_logfile->list("Will simulate to an average depth of ", depth, ".");
-	setDepth(depth);
+	_seqDepth = params.getParameterWithDefault("depth", 10.0);
+	_logfile->list("Will simulate to an average depth of ", _seqDepth, ".");
 
-	//base frequencies
-	std::vector<float> freq;
-	std::string tmp = params.getParameterWithDefault<std::string>("baseFreq", "0.25,0.25,0.25,0.25");
-	coretools::str::fillContainerFromString(tmp, freq, ',');
-	if(freq.size() != 4) throw "baseFreq vector must have size = 4!";
+	// base frequencies
+	std::vector<double> freq;
+	coretools::str::fillContainerFromString(
+		params.getParameterWithDefault<std::string>("baseFreq", "0.25,0.25,0.25,0.25"), freq, ',');
+	if (freq.size() != 4) throw "baseFreq vector must have size = 4!";
 	setBaseFreq(freq);
 
 	//reference divergence
@@ -54,7 +39,7 @@ void TSimulator::_initializeCommonSettings(TParameters & params){
 	_initializeReadSimulator(params);
 
 	//chromosomes
-	initializeChromosomes(params, _logfile);
+	_initializeChromosomes(params);
 
 	//extra output on sites
 	_writeTrueGenotypes = params.parameterExists("writeTrueGenotypes");
@@ -65,7 +50,7 @@ void TSimulator::_initializeCommonSettings(TParameters & params){
 	_logfile->list("Will write output files with tag '" + _outname + "'.");
 
 	//open FASTA file for reference sequences
-	std::string filename = _outname + ".fasta";
+	const auto filename = _outname + ".fasta";
 	_referenceObj.initialize(filename, _logfile);
 };
 
@@ -85,9 +70,9 @@ std::vector<std::string>  TSimulator::_readSimInfoPerReadGroup(const std::string
 	//now parse file
 	while(in.read(vec)){
 		//find read group
-		uint32_t rg = _readGroups.getId(vec[0]);
-		found[rg] = true;
-		ret[rg] = vec[1];
+		const auto rg = _readGroups.getId(vec[0]);
+		found[rg]     = true;
+		ret[rg]       = vec[1];
 	}
 	_logfile->done();
 	_logfile->conclude("Read " + Name + "s for ", in.lineNumber(), " read groups.");
@@ -364,7 +349,7 @@ void TSimulator::_initializeReadGroupFrequencies(TParameters & params){
 //--------------------------------------------------------------
 //Initialize chromosomes, depth and base frequencies
 //--------------------------------------------------------------
-void TSimulator::initializeChromosomes(TParameters & params, TLog* logfile){
+void TSimulator::_initializeChromosomes(TParameters & params){
 	std::vector<std::string> string_vec;
 	std::vector<uint32_t> chrLength;
 	params.fillParameterIntoContainerWithDefault("chrLength", string_vec, ',', {"1000000"});
@@ -393,43 +378,39 @@ void TSimulator::initializeChromosomes(TParameters & params, TLog* logfile){
 		if(ploidy[0] == 1) text += " haploid";
 		else text += " diploid";
 		text += " chromosome(s) of length " + coretools::str::toString(chrLength[0]) + " each.";
-		logfile->list(text);
-		initializeChromosomes(numChr, chrLength[0], ploidy[0]);
+		_logfile->list(text);
+		_initializeChromosomes(numChr, chrLength[0], ploidy[0]);
 	} else {
-		logfile->startIndent("Will simulate ", chrLength.size(), " chromosome(s) of the following length:");
+		_logfile->startIndent("Will simulate ", chrLength.size(), " chromosome(s) of the following length:");
 		std::vector<uint8_t>::iterator hIt=ploidy.begin();
 		std::string text;
 		for(std::vector<uint32_t>::iterator it=chrLength.begin(); it!=chrLength.end(); ++it, ++hIt){
 			text = coretools::str::toString(*it) + " (";
 			if(*hIt == 1) text += "haploid)";
 			else text += "diploid)";
-			logfile->list(text);
+			_logfile->list(text);
 		}
-		initializeChromosomes(chrLength, ploidy);
-		logfile->endIndent();
+		_initializeChromosomes(chrLength, ploidy);
+		_logfile->endIndent();
 	}
 };
 
-void TSimulator::initializeChromosomes(uint32_t numChr, uint32_t chrLength, const uint8_t & ploidy){
+void TSimulator::_initializeChromosomes(uint32_t numChr, uint32_t chrLength, const uint8_t & ploidy){
 	_chromosomes.clear();
 	for(uint32_t i=0; i<numChr; ++i){
 		_chromosomes.appendChromosome("chr" + coretools::str::toString(i+1), chrLength, ploidy);
 	}
 };
 
-void TSimulator::initializeChromosomes(std::vector<uint32_t> & chrLength, std::vector<uint8_t> haploid){
+void TSimulator::_initializeChromosomes(std::vector<uint32_t> & chrLength, std::vector<uint8_t> haploid){
 	_chromosomes.clear();
 	for(size_t i=0; i<chrLength.size(); ++i){
 		_chromosomes.appendChromosome("chr" + coretools::str::toString(i+1), chrLength[i], haploid[i]);
 	}
 };
 
-void TSimulator::setDepth(float depth){
-	_seqDepth = depth;
-};
-
-void TSimulator::setBaseFreq(std::vector<float> & freq){
-	float sum = coretools::containerSum(freq);
+void TSimulator::setBaseFreq(const std::vector<double> & freq) {
+	const auto sum = coretools::containerSum(freq);
 	_baseFreq[genometools::A] = freq[0] / sum;
 	_baseFreq[genometools::C] = freq[1] / sum;
 	_baseFreq[genometools::G] = freq[2] / sum;
@@ -561,11 +542,9 @@ void TSimulator::runSimulations(){
 //---------------------------------------------------------
 //TSimulatorOneIndividual
 //---------------------------------------------------------
-TSimulatorOneIndividual::TSimulatorOneIndividual(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGenerator):TSimulator(Logfile, RandomGenerator){
+	TSimulatorOneIndividual::TSimulatorOneIndividual(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGenerator):TSimulator(Logfile, params, RandomGenerator){
 	_logfile->startIndent("Reading parameters to simulate a single individual:");
 
-	//first common stuff
-	_initializeCommonSettings(params);
 	_sampleSize = 1;
 
 	//now theta
@@ -626,11 +605,9 @@ void TSimulatorOneIndividual::_simulateHaplotypesHaploid(TSimulatorHaplotypes & 
 //---------------------------------------------------------
 //TSimulatorPairOfIndividuals
 //---------------------------------------------------------
-TSimulatorPairOfIndividuals::TSimulatorPairOfIndividuals(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGenerator):TSimulator(Logfile, RandomGenerator){
+	TSimulatorPairOfIndividuals::TSimulatorPairOfIndividuals(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGenerator):TSimulator(Logfile, params, RandomGenerator){
 	_logfile->startIndent("Reading parameters to simulate two individuals with a specific genetic distance:");
 
-	//first common stuff
-	_initializeCommonSettings(params);
 	_sampleSize = 2;
 
 	//Initialize phis
@@ -942,11 +919,8 @@ void TSimulatorPairOfIndividuals::_simulateHaplotypesDiploid(TSimulatorHaplotype
 //---------------------------------------------------------
 //TSimulatorSFS
 //---------------------------------------------------------
-TSimulatorSFS::TSimulatorSFS(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGenerator):TSimulator(Logfile, RandomGenerator){
+	TSimulatorSFS::TSimulatorSFS(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGenerator):TSimulator(Logfile, params, RandomGenerator){
 	_logfile->startIndent("Reading parameters to simulate a population sample given an SFS:");
-
-	//first common stuff
-	_initializeCommonSettings(params);
 
 	//sample size
 	_sampleSize = params.getParameterWithDefault<int>("sampleSize", 10);
@@ -1138,11 +1112,8 @@ void TSimulatorSFS::_simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes
 //---------------------------------------------------------
 //TSimulatorHardyWeinberg
 //---------------------------------------------------------
-TSimulatorHardyWeinberg::TSimulatorHardyWeinberg(coretools::TLog* Logfile, TParameters & params, coretools::TRandomGenerator* RandomGenerator):TSimulator(Logfile, RandomGenerator){
+	TSimulatorHardyWeinberg::TSimulatorHardyWeinberg(coretools::TLog* Logfile, TParameters & params, coretools::TRandomGenerator* RandomGenerator):TSimulator(Logfile, params, RandomGenerator){
 	_logfile->startIndent("Reading parameters to simulate a population sample under Hardy-Weinberg equilibrium:");
-
-	//first common stuff
-	_initializeCommonSettings(params);
 
 	//sample size
 	_sampleSize = params.getParameterWithDefault<int>("sampleSize", 10);

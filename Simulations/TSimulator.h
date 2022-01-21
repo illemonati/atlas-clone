@@ -41,17 +41,17 @@ protected:
 	std::string _outname;
 
 	//general simulation parameters
-	int _sampleSize;
-	double _referenceDivergence;
+	int _sampleSize = 0;
+	double _referenceDivergence = 0;
 	std::array<double, 4> _cumulRef;
-	double _seqDepth;
-	double _averageReadLength;
-	double _maxReadLength;
+	double _seqDepth = 0;
+	double _averageReadLength = 0;
+	double _maxReadLength = 0;
 
 	//chromosomes
 	BAM::TChromosomes _chromosomes;
-	bool _writeTrueGenotypes;
-	bool _writeVariantInvariantBedFiles;
+	bool _writeTrueGenotypes = false;
+	bool _writeVariantInvariantBedFiles = false;
 	TSimulatorReference _referenceObj;
 
 	//simulation tools
@@ -68,7 +68,9 @@ protected:
 	//helper tools
 	GenotypeLikelihoods::TBaseProbabilities _baseFreq;
 	std::array<double, 4> _cumulBaseFreq;
-	bool _refInitialized;
+	bool _refInitialized = false;
+
+	TSimulator(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGenerator) : _logfile(Logfile), _randomGenerator(RandomGenerator) {_initializeCommonSettings(params);}
 
 	//function to initialize read groups
 	void _initializeCommonSettings(TParameters & params);
@@ -78,12 +80,15 @@ protected:
 	void _initializeDistribution(TParameters & params, const std::string & ParameterName, const std::string & DefaultValue, const std::string & Name, std::function<void(TSimulatorSingleEndRead&, std::string)> function);
 	void _initializePMD(TParameters & params, const std::string & ParameterName, const std::string & Name);
 	void _initializeQualityTransformations(TParameters & params, const std::string & ParameterName, const std::string & Name);
-
 	void _initializeContamination(TParameters & params, bool & perReadGroup, std::map<std::string, double> & contaminationMap);
-	void _addToReadGroupVector(std::vector<std::string> & vec, const std::string & rg);
-	void _addReadGroupsIfFile(const std::string & ParameterName, TParameters & Parameters, BAM::TReadGroups & ReadGroups);
+	void _initializeChromosomes(TParameters & params);
+	void _initializeChromosomes(uint32_t numChr, uint32_t chrLength, const uint8_t & ploidy);
+	void _initializeChromosomes(std::vector<uint32_t> & chrLength, std::vector<uint8_t> haploid);
 	void _initializeReadSimulator(TParameters & params);
 	void _initializeReadGroupFrequencies(TParameters & params);
+
+	void _addToReadGroupVector(std::vector<std::string> & vec, const std::string & rg);
+	void _addReadGroupsIfFile(const std::string & ParameterName, TParameters & Parameters, BAM::TReadGroups & ReadGroups);
 
 	//functions to simulate
 	Base _sampleBase(const std::array<double, 4> & cumulProbs);
@@ -93,7 +98,6 @@ protected:
 	void _simulateReadsFromHaplotypes(const BAM::TChromosome & thisChr, Base** haplotypes, TSimulatorBamFile & bamFile, std::string extraProgressText);
 
 public:
-	TSimulator(TLog* Logfile, TRandomGenerator* RandomGenerator);
 	virtual ~TSimulator(){
 		for(TSimulatorSingleEndRead* readSimIt: _readSimulators)
 			delete readSimIt;
@@ -102,12 +106,9 @@ public:
 	//functions to set general parameters
 	void setQualityDistribution(double mean, double sd, int maxQual);
 	void setReadLength(std::string s);
-	void setDepth(float depth);
-	void setBaseFreq(std::vector<float> & freq);
+	void setDepth(double depth) noexcept {_seqDepth = depth;};
+	void setBaseFreq(const std::vector<double> & freq);
 	void setQualityTransformation(std::vector<double> & Betas);
-	void initializeChromosomes(TParameters & params, TLog* logfile);
-	void initializeChromosomes(uint32_t numChr, uint32_t chrLength, const uint8_t & ploidy);
-	void initializeChromosomes(std::vector<uint32_t> & chrLength, std::vector<uint8_t> haploid);
 
 	void runSimulations();
 };
