@@ -93,8 +93,8 @@ protected:
 	//functions to simulate
 	Base _sampleBase(const std::array<double, 4> & cumulProbs);
 	Base _mutateBase(const Base & base, const std::array<double, 4> & cumulProbs);
-	virtual void _simulateHaplotypesDiploid(TSimulatorHaplotypes &, BAM::TChromosome &, TSimulatorReference &){ throw "_simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref) not implemented for base class TSimulator!"; };
-	virtual void _simulateHaplotypesHaploid(TSimulatorHaplotypes &, BAM::TChromosome &, TSimulatorReference &){ throw "_simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, TSimulatorChromosome & chromosome, Base* ref) not implemented for base class TSimulator!"; };
+	virtual void _simulateHaplotypesDiploid(TSimulatorHaplotypes &, BAM::TChromosome &, TSimulatorReference &) = 0;
+	virtual void _simulateHaplotypesHaploid(TSimulatorHaplotypes &, BAM::TChromosome &, TSimulatorReference &) = 0;
 	void _simulateReadsFromHaplotypes(const BAM::TChromosome & thisChr, Base** haplotypes, TSimulatorBamFile & bamFile, std::string extraProgressText);
 
 public:
@@ -121,8 +121,8 @@ private:
 	std::vector<double> thetas;
 	TSimulatorMutationtable mutTable;
 
-	void _simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, TSimulatorReference & ref);
-	void _simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, TSimulatorReference & ref);
+	void _simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, TSimulatorReference & ref) override;
+	void _simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, TSimulatorReference & ref) override;
 
 
 public:
@@ -147,8 +147,8 @@ private:
 	void fillTables();
 	void deleteTables();
 
-	void _simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, TSimulatorReference & ref);
-	void _simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, TSimulatorReference & ref);
+	void _simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, TSimulatorReference & ref) override;
+	void _simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, TSimulatorReference & ref) override;
 
 public:
 
@@ -166,8 +166,8 @@ private:
 
 	void _initializeSFS(std::vector<double> & thetas);
 	void _initializeSFS(std::vector<std::string> & sfsFileNames, bool folded);
-	void _simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, TSimulatorReference & ref);
-	void _simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, TSimulatorReference & ref);
+	void _simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, TSimulatorReference & ref) override;
+	void _simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, TSimulatorReference & ref) override;
 
 public:
 	TSimulatorSFS(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGenerator);
@@ -195,8 +195,8 @@ private:
 	void _fillCumulGenoProb(double f);
 	void _simulateSite(TSimulatorHardyWeinbergSite & site, const std::string & chr, uint64_t pos, TSimulatorReference & ref);
 	void _fillhaplotypesMonomoprhic(TSimulatorHaplotypes & haplotypes, uint64_t locus, TSimulatorHardyWeinbergSite & site);
-	void _simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, TSimulatorReference & ref);
-	void _simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, TSimulatorReference & ref);
+	void _simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, TSimulatorReference & ref) override;
+	void _simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, TSimulatorReference & ref) override;
 
 public:
 	TSimulatorHardyWeinberg(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGenerator);
