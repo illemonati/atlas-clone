@@ -173,36 +173,54 @@ TEST(TPostMortemDamage_test, empiric) {
 	EXPECT_NEAR(fn1.prob(113), params.back(), 1e-5);
 }
 
-TEST(TPostMortemDamage_test, baseANoPMD) {
-	constexpr auto err = 0.01;
+TEST(TPostMortemDamage_test, empiric_learn) {
+	using namespace genometools;
+	constexpr size_t N = 10;
+	TPMDTable t1(N);
 
-	TSequencingErrorModels sem;
-	TBaseLikelihoods sem_likelihoods;
-	TPostMortemDamage pmd;
-	TBaseLikelihoods pmd_likelihoods;
+	for (size_t i = 0; i < N; ++i) {
+		for (size_t _ = 0; _ < N - i; ++_) t1.add(i, G, A);
+		for (size_t _ = 0; _ < i; ++_) t1.add(i, G, G);
 
-	BAM::TSequencedBase base;
-	base.originalQuality_phredInt = 20;
-	base.base                     = genometools::A;
+		EXPECT_EQ(t1[G][A][i], N - i);
+		EXPECT_EQ(t1.sums(G)[i], 10);
+	}
 
-	sem.fillBaseLikelihoods(base, sem_likelihoods);
-	pmd.fillBaseLikelihoods(base, sem_likelihoods, pmd_likelihoods);
+	TPMDFunctionEmpiric fne("[]");
+	fne.learn(t1, G, A, TPMDEstimationParameters{});
+	EXPECT_EQ(fne.string(), "Empiric[1.000000,0.900000,0.800000,0.700000,0.600000,0.500000,0.400000,0.300000,0.200000,0.100000]");
+}
 
-	for (Base b = Base::min(); b < Base::max(); ++b) {
-		base.base = b;
+	TEST(TPostMortemDamage_test, baseANoPMD) {
+		constexpr auto err = 0.01;
+
+		TSequencingErrorModels sem;
+		TBaseLikelihoods sem_likelihoods;
+		TPostMortemDamage pmd;
+		TBaseLikelihoods pmd_likelihoods;
+
+		BAM::TSequencedBase base;
+		base.originalQuality_phredInt = 20;
+		base.base                     = genometools::A;
+
 		sem.fillBaseLikelihoods(base, sem_likelihoods);
 		pmd.fillBaseLikelihoods(base, sem_likelihoods, pmd_likelihoods);
 
-		for (Base trueBase = Base::min(); trueBase < Base::max(); ++trueBase) {
-			if (trueBase == b) {
-				EXPECT_FLOAT_EQ(sem_likelihoods[trueBase], 1. - err);
-				EXPECT_FLOAT_EQ(pmd_likelihoods[trueBase], 1. - err);
-			} else {
-				EXPECT_FLOAT_EQ(sem_likelihoods[trueBase], err / 3);
-				EXPECT_FLOAT_EQ(pmd_likelihoods[trueBase], err / 3);
+		for (Base b = Base::min(); b < Base::max(); ++b) {
+			base.base = b;
+			sem.fillBaseLikelihoods(base, sem_likelihoods);
+			pmd.fillBaseLikelihoods(base, sem_likelihoods, pmd_likelihoods);
+
+			for (Base trueBase = Base::min(); trueBase < Base::max(); ++trueBase) {
+				if (trueBase == b) {
+					EXPECT_FLOAT_EQ(sem_likelihoods[trueBase], 1. - err);
+					EXPECT_FLOAT_EQ(pmd_likelihoods[trueBase], 1. - err);
+				} else {
+					EXPECT_FLOAT_EQ(sem_likelihoods[trueBase], err / 3);
+					EXPECT_FLOAT_EQ(pmd_likelihoods[trueBase], err / 3);
+				}
 			}
 		}
-	}
 }
 
 TEST(TPostMortemDamage_test, baseAWithPMD) {

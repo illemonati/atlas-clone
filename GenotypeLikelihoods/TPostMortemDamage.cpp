@@ -361,7 +361,7 @@ TPMDFunctionEmpiric::TPMDFunctionEmpiric(const std::string &string) : _parameter
 void TPMDFunctionEmpiric::learn(const TPMDTable &Table, const genometools::Base &from, const genometools::Base &to,
 				const TPMDEstimationParameters &) {
 	// resize parameters
-	_parameters.resize(Table.size() + 1); // include extra bin for sites beyond size (available in PMDTables)
+	_parameters.resize(Table.size()); // include extra bin for sites beyond size (available in PMDTables)
 
 	// extract counts in PMD direction and the inverse direction
 	const countVec &pmdCounts = Table[from][to.get()];
@@ -369,7 +369,7 @@ void TPMDFunctionEmpiric::learn(const TPMDTable &Table, const genometools::Base 
 	const countVec &invCounts = Table[to][from.get()];
 	const countVec &invSums   = Table.sums(from);
 
-	for (size_t p = 0; p <= _parameters.size(); ++p) {
+	for (size_t p = 0; p < _parameters.size(); ++p) {
 		if (pmdSums[p] == 0 || invSums[p] == 0) {
 			_parameters[p] = 0.0;
 		} else {
