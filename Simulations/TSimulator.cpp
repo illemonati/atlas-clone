@@ -63,8 +63,6 @@ std::vector<std::string>  TSimulator::_readSimInfoPerReadGroup(const std::string
 	coretools::TInputFile in(Filename, {"ReadGroup", Column}, "\t", "//");
 	std::vector<std::string> vec;
 	std::vector<bool> found(_readGroups.size(), false);
-
-	//return map
 	std::vector<std::string> ret(_readGroups.size());
 
 	//now parse file
@@ -78,15 +76,12 @@ std::vector<std::string>  TSimulator::_readSimInfoPerReadGroup(const std::string
 	_logfile->conclude("Read " + Name + "s for ", in.lineNumber(), " read groups.");
 
 	//check if there was data for each read group
-	for(size_t i = 0; i < found.size(); ++i){
-		if(!found[i]){
+	for (size_t i = 0; i < found.size(); ++i) {
+		if (!found[i])
 			throw "No " + Name + " given for read group '" + _readGroups.getName(i) + "' in file '" + Filename + "'!";
-		}
 	}
-
-	//return
 	return ret;
-};
+}
 
 void TSimulator::_initializeReadGroup(const std::string & readLengthString, const BAM::TReadGroup & ReadGroup){
 	//single or paired end? Is indicated at beginning of readLengthString!
@@ -98,17 +93,15 @@ void TSimulator::_initializeReadGroup(const std::string & readLengthString, cons
 		throw "Unable to understand string '" + readLengthString + "'!";
 
 	//add read Length distribution
-	std::string readLengthDist = coretools::str::readAfterLast(readLengthString,':');
+	const auto readLengthDist = coretools::str::readAfterLast(readLengthString,':');
 	_readSimulators.back()->setReadLengthDistribution(readLengthDist, _logfile);
-};
+}
 
-void TSimulator::_initializeReadGroupsFromReadLengthDistribution(TParameters & params,
-																 const std::string & ParameterName,
-																 const std::string & DefaultValue,
-																 const std::string & Name){
+void TSimulator::_initializeReadGroupsFromReadLengthDistribution(TParameters &params, const std::string &ParameterName,
+								 const std::string &DefaultValue,
+								 const std::string &Name) {
 	_logfile->startIndent("Parsing read length distribution (parameter '" + ParameterName + "'):");
-	std::string s = params.getParameterWithDefault<std::string>(ParameterName, DefaultValue);
-
+	const auto s = params.getParameterWithDefault<std::string>(ParameterName, DefaultValue);
 	_readSimulators.clear();
 
 	//We allow for two options:
@@ -116,7 +109,7 @@ void TSimulator::_initializeReadGroupsFromReadLengthDistribution(TParameters & p
 	//  2) read-group specific as given in a file
 
 	//check if it is a file (should not contain a ':')
-	size_t pos = s.find(":");
+	const auto pos = s.find(":");
 	if(pos != std::string::npos){
 		//Option 1: a single read length distribution for all
 		//---------------------------------------------------------------------
@@ -129,29 +122,27 @@ void TSimulator::_initializeReadGroupsFromReadLengthDistribution(TParameters & p
 	} else {
 		//Option 2: read group specific, given in a file
 		//---------------------------------------------------------------------
-		std::vector<std::string> dist = _readSimInfoPerReadGroup(s, ParameterName, Name);
+		const std::vector<std::string> dist = _readSimInfoPerReadGroup(s, ParameterName, Name);
 
-		for(uint32_t r = 0; r < dist.size(); ++r){
+		for(size_t r = 0; r < dist.size(); ++r) {
 			_initializeReadGroup(dist[r], _readGroups[r]);
 		}
 	}
 	_logfile->endIndent();
-};
+}
 
-void TSimulator::_initializeDistribution(TParameters & params,
-										 const std::string & ParameterName,
-										 const std::string & DefaultValue,
-										 const std::string & Name,
-										 std::function<void(TSimulatorSingleEndRead&, std::string)> function){
+void TSimulator::_initializeDistribution(TParameters &params, const std::string &ParameterName,
+					 const std::string &DefaultValue, const std::string &Name,
+					 std::function<void(TSimulatorSingleEndRead &, std::string)> function) {
 	_logfile->startIndent("Parsing " + Name + " (parameter " + ParameterName + "):");
-	std::string s = params.getParameterWithDefault<std::string>(ParameterName, DefaultValue);
+	const auto s = params.getParameterWithDefault<std::string>(ParameterName, DefaultValue);
 
 	//We allow for two options:
 	//  1) initialized from the command line (one for all read groups)
 	//  2) read-group specific as given in a file
 
 	//check if it is a file (should not contain a ':')
-	size_t pos = s.find(":");
+	const auto  pos = s.find(":");
 	if(pos != std::string::npos){
 		//Option 1: a single read distribution for all
 		//---------------------------------------------------------------------
@@ -164,60 +155,55 @@ void TSimulator::_initializeDistribution(TParameters & params,
 	} else {
 		//Option 2: read group specific, given in a file
 		//---------------------------------------------------------------------
-		std::vector<std::string> dist = _readSimInfoPerReadGroup(s, ParameterName, Name);
+		const std::vector<std::string> dist = _readSimInfoPerReadGroup(s, ParameterName, Name);
 
 		for(uint32_t r = 0; r < _readSimulators.size(); ++r){
 			function(*_readSimulators[r], dist[r]);
 		}
 	}
 	_logfile->endIndent();
-};
+}
 
-void TSimulator::_initializePMD(TParameters & params,
-		 	 	 	 	 	 	const std::string & ParameterName,
-		                        const std::string & Name){
+void TSimulator::_initializePMD(TParameters &params, const std::string &ParameterName, const std::string &Name) {
 
 	_logfile->startIndent("Parsing " + Name + " (parameter " + ParameterName + "):");
 
 	if(params.parameterExists(ParameterName)){
-		std::string pmdString = params.getParameter<std::string>(ParameterName);
+		const auto pmdString = params.getParameter<std::string>(ParameterName);
 		std::vector<uint16_t> ReadGroupsWithoutPMD;
 		_PMD.initialize(pmdString, _readGroups, _logfile, ReadGroupsWithoutPMD);
 
 		//add PMD to simulators
-		for(uint32_t r = 0; r < _readSimulators.size(); ++r){
+		for(size_t r = 0; r < _readSimulators.size(); ++r){
 			_readSimulators[r]->setPMD(&_PMD[r]);
 		}
 	} else {
 		_logfile->list("Not simulating any PMD.");
 	}
-};
+}
 
-void TSimulator::_initializeQualityTransformations(TParameters & params,
-	 	 										   const std::string & ParameterName,
-												   const std::string & Name){
-
+void TSimulator::_initializeQualityTransformations(TParameters &params, const std::string &ParameterName,
+						   const std::string &Name) {
 	_logfile->startIndent("Parsing " + Name + " (parameter " + ParameterName + "):");
 
 	if(params.parameterExists(ParameterName)){
-		std::string recalString = params.getParameter<std::string>(ParameterName);
+		const auto recalString = params.getParameter<std::string>(ParameterName);
 		_recal.initializeFromFile(recalString, _readGroups, _logfile);
 
 		//add recal to simulators
-		for(uint32_t r = 0; r < _readSimulators.size(); ++r){
+		for(size_t r = 0; r < _readSimulators.size(); ++r){
 			_readSimulators[r]->setPMD(&_PMD[r]);
 		}
 	} else {
 		_logfile->list("Not simulating any quality transformation.");
 	}
-
 	_logfile->endIndent();
-};
+}
 
 void TSimulator::_addReadGroupsIfFile(const std::string & ParameterName, TParameters & Parameters, BAM::TReadGroups & ReadGroups){
 	//check if parameter is given
 	if(Parameters.parameterExists(ParameterName)){
-		std::string s = Parameters.getParameter<std::string>(ParameterName);
+		const auto s = Parameters.getParameter<std::string>(ParameterName);
 
 		//check if string s provides a definition (contains a ':') or is a file (does not contain a ':')
 		if(!coretools::str::stringContains(s, ":")){
@@ -232,7 +218,7 @@ void TSimulator::_addReadGroupsIfFile(const std::string & ParameterName, TParame
 			}
 		}
 	}
-};
+}
 
 void TSimulator::_initializeReadSimulator(TParameters & params){
 	// For which read groups?
@@ -246,11 +232,10 @@ void TSimulator::_initializeReadSimulator(TParameters & params){
 
 	//any read groups specified?
 	if(_readGroups.empty()){
-		int numRG = params.getParameterWithDefault<int>("numReadGroups", 1);
+		const auto numRG = params.getParameterWithDefault<int>("numReadGroups", 1);
 		for(int i=0; i < numRG; ++i){
 			_readGroups.add("SimReadGroup" + coretools::str::toString(i+1));
 		}
-
 		//report
 		if(numRG == 1){
 			_logfile->startIndent("Initializing one read group (parameter 'numreadGroups'):");
@@ -293,7 +278,7 @@ void TSimulator::_initializeReadSimulator(TParameters & params){
 
 	//initialize read group frequencies frequencies
 	_initializeReadGroupFrequencies(params);
-};
+}
 
 void TSimulator::_initializeReadGroupFrequencies(TParameters & params){
 	_cumulSimGroupFrequenies.reserve(_readSimulators.size());
@@ -308,12 +293,10 @@ void TSimulator::_initializeReadGroupFrequencies(TParameters & params){
 			throw "Provided read group frequencies do not match number of read groups!";
 
 		//normalize and print
-		double sum = 0;
-		for(size_t i=1; i<_readSimulators.size(); ++i)
-			sum += freq[i];
+		const auto sum = std::accumulate(freq.cbegin(), freq.cend(), 0.);
 
 		_logfile->startIndent("Will simulate read groups with the following frequencies:");
-		for(size_t i=1; i<_readSimulators.size(); ++i){
+		for(size_t i=0; i<_readSimulators.size(); ++i){
 			_simGroupFrequencies[i] = freq[i] / sum;
 			_logfile->list(_simGroupFrequencies[i], " " + _readSimulators[i]->name());
 		}
@@ -328,21 +311,19 @@ void TSimulator::_initializeReadGroupFrequencies(TParameters & params){
 		//equal frequencies
 		_logfile->list("Will simulate reads equally distributed among read groups.");
 		for(size_t i=0; i<_readSimulators.size(); ++i){
-			_simGroupFrequencies[i] = (double) 1.0 / (double) _readSimulators.size();
-			_cumulSimGroupFrequenies[i] = (double) (i+1) / (double) _readSimulators.size();
+			_simGroupFrequencies[i] = 1.0/_readSimulators.size();
+			_cumulSimGroupFrequenies[i] = (double)(i+1)/_readSimulators.size();
 		}
 	}
 
 	//precalculate some stuff
 	_averageReadLength = 0;
-	_maxReadLength = 0;
-	int i=0;
+	_maxReadLength     = 0;
 
-	for(TSimulatorSingleEndRead* readSimsIt : _readSimulators){
-		_averageReadLength += _simGroupFrequencies[i] * readSimsIt->meanReadLength();
-		if(readSimsIt->maxReadLength() > _maxReadLength)
-			_maxReadLength = readSimsIt->maxReadLength();
-		i++;
+	for (size_t i = 0; i < _readSimulators.size(); ++i) {
+		_averageReadLength += _simGroupFrequencies[i] * _readSimulators[i]->meanReadLength();
+		if(_readSimulators[i]->maxReadLength() > _maxReadLength)
+			_maxReadLength = _readSimulators[i]->maxReadLength();
 	}
 }
 
@@ -351,9 +332,13 @@ void TSimulator::_initializeReadGroupFrequencies(TParameters & params){
 //--------------------------------------------------------------
 void TSimulator::_initializeChromosomes(TParameters & params){
 	std::vector<std::string> string_vec;
-	std::vector<uint32_t> chrLength;
 	params.fillParameterIntoContainerWithDefault("chrLength", string_vec, ',', {"1000000"});
+
+	std::vector<uint32_t> chrLength;
 	coretools::str::repeatIndexes(string_vec, chrLength);
+	if(chrLength.size() < 1)
+		throw "Issue understanding length of chromosomes!";
+
 	std::vector<uint8_t> ploidy;
 	if(params.parameterExists("ploidy")){
 		params.fillParameterIntoContainer("ploidy", string_vec, ',');
@@ -370,10 +355,8 @@ void TSimulator::_initializeChromosomes(TParameters & params){
 		}
 	}
 
-	if(chrLength.size() < 1)
-		throw "Issue understanding length of chromosomes!";
 	if(chrLength.size() == 1){
-		int numChr = params.getParameterWithDefault<int>("numChr", 1);
+		const auto numChr = params.getParameterWithDefault<int>("numChr", 1);
 		std::string text = "Will simulate " + coretools::str::toString(numChr) ;
 		if(ploidy[0] == 1) text += " haploid";
 		else text += " diploid";
@@ -382,9 +365,9 @@ void TSimulator::_initializeChromosomes(TParameters & params){
 		_initializeChromosomes(numChr, chrLength[0], ploidy[0]);
 	} else {
 		_logfile->startIndent("Will simulate ", chrLength.size(), " chromosome(s) of the following length:");
-		std::vector<uint8_t>::iterator hIt=ploidy.begin();
+		auto hIt=ploidy.begin();
 		std::string text;
-		for(std::vector<uint32_t>::iterator it=chrLength.begin(); it!=chrLength.end(); ++it, ++hIt){
+		for(auto it=chrLength.begin(); it!=chrLength.end(); ++it, ++hIt){
 			text = coretools::str::toString(*it) + " (";
 			if(*hIt == 1) text += "haploid)";
 			else text += "diploid)";
@@ -393,21 +376,21 @@ void TSimulator::_initializeChromosomes(TParameters & params){
 		_initializeChromosomes(chrLength, ploidy);
 		_logfile->endIndent();
 	}
-};
+}
 
 void TSimulator::_initializeChromosomes(uint32_t numChr, uint32_t chrLength, const uint8_t & ploidy){
 	_chromosomes.clear();
 	for(uint32_t i=0; i<numChr; ++i){
 		_chromosomes.appendChromosome("chr" + coretools::str::toString(i+1), chrLength, ploidy);
 	}
-};
+}
 
 void TSimulator::_initializeChromosomes(std::vector<uint32_t> & chrLength, std::vector<uint8_t> haploid){
 	_chromosomes.clear();
 	for(size_t i=0; i<chrLength.size(); ++i){
 		_chromosomes.appendChromosome("chr" + coretools::str::toString(i+1), chrLength[i], haploid[i]);
 	}
-};
+}
 
 void TSimulator::setBaseFreq(const std::vector<double> & freq) {
 	const auto sum = coretools::containerSum(freq);
@@ -422,29 +405,26 @@ void TSimulator::setBaseFreq(const std::vector<double> & freq) {
 	_cumulBaseFreq[3] = 1.0;
 
 	_logfile->list("Simulating with base frequencies " + (std::string) _baseFreq);
-};
+}
 
 //--------------------------------------------------------------
 //Run simulations
 //--------------------------------------------------------------
 Base TSimulator::_sampleBase(const std::array<double, 4> & cumulProbs){
 	return static_cast<Base>(_randomGenerator->pickOne(cumulProbs));
-};
+}
 
 Base TSimulator::_mutateBase(const Base & base, const std::array<double, 4> & cumulProbs){
 	return static_cast<Base>(base.get() + _randomGenerator->pickOne(cumulProbs));
-};
+}
 
 void TSimulator::_simulateReadsFromHaplotypes(const BAM::TChromosome & thisChr, Base** haplotypes, TSimulatorBamFile & bamFile, std::string extraProgressText){
 	//Initialize probabilities to simulate reads
-	uint64_t numReads;
-	if(_averageReadLength == 0) numReads = 0;
-	else numReads = thisChr.length * _seqDepth / _averageReadLength;
+	const uint64_t numReads = _averageReadLength == 0 ? 0 : thisChr.length * _seqDepth / _averageReadLength;
 
-	uint64_t chrLengthForStart = thisChr.length - _maxReadLength + 1;
-	double probReadPerSite = 1.0 / (double) chrLengthForStart;
+	const uint64_t chrLengthForStart = thisChr.length - _maxReadLength + 1;
+	const double probReadPerSite = 1.0 / chrLengthForStart;
 	uint64_t numReadsSimulated = 0;
-	uint32_t numReadsHere;
 
 	//initialize progress reporting
 	coretools::TProgressReporter<uint64_t> reporter(_logfile, numReads, "Simulating about " + coretools::str::toString(numReads) + " reads" + extraProgressText);
@@ -456,15 +436,14 @@ void TSimulator::_simulateReadsFromHaplotypes(const BAM::TChromosome & thisChr, 
 			rs->writeUnwrittenAlignments(l, bamFile);
 
 		//draw random number to get number of reads starting at this position
-		numReadsHere = _randomGenerator->getBinomialRand(probReadPerSite, numReads);
+		const auto numReadsHere = _randomGenerator->getBinomialRand(probReadPerSite, numReads);
 		//now simulate
 		if(numReadsHere > 0){
 			numReadsSimulated += numReadsHere;
 			for(uint32_t r=0; r<numReadsHere; ++r){
-				int rg = _randomGenerator->pickOne(_readSimulators.size(), _cumulSimGroupFrequenies.data());
+				const auto rg = _randomGenerator->pickOne(_readSimulators.size(), _cumulSimGroupFrequenies.data());
 				_readSimulators[rg]->simulate(haplotypes[_randomGenerator->sample(2)], thisChr.refID(), l, bamFile);
 			}
-
 			//report progress
 			reporter.next();
 		}
@@ -475,7 +454,7 @@ void TSimulator::_simulateReadsFromHaplotypes(const BAM::TChromosome & thisChr, 
 
 	reporter.done();
 	_logfile->conclude("Simulated a total of ", numReadsSimulated, " reads.");
-};
+}
 
 void TSimulator::runSimulations(){
 	//open bam files
@@ -487,7 +466,7 @@ void TSimulator::runSimulations(){
 	//open files to store extra info on sites
 	if(_writeTrueGenotypes){
 		//open file for true genotypes
-		std::string filename = _outname + "_trueGenotypes.vcf.gz";
+		const auto filename = _outname + "_trueGenotypes.vcf.gz";
 		haplotypes.openTrueGenotypeVCF(filename);
 	}
 
@@ -537,7 +516,7 @@ void TSimulator::runSimulations(){
 	_logfile->endIndent();
 	haplotypes.closeTrueGenotypeVCF();
 	_referenceObj.close();
-};
+}
 
 //---------------------------------------------------------
 //TSimulatorOneIndividual
