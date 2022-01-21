@@ -129,7 +129,8 @@ void TPMDFunctionExponential::parseEstimationParameters(TPMDEstimationParameters
 void TPMDFunctionExponential::_initialEstimatesOLS(const countVec &pmdCounts, const countVec &pmdSums,
 						   std::array<double, 3> &Parameters) {
 	// fill vector y to fit using OLS
-	arma::vec y(_lastPosition + 1);
+	const size_t N = _lastPosition + 1;
+	arma::vec y(N);
 	double sumYSquared = 0.0;
 	for (int p = 0; p <= _lastPosition; ++p) {
 		y(p) = (double)pmdCounts[p]/pmdSums[p];
@@ -139,10 +140,10 @@ void TPMDFunctionExponential::_initialEstimatesOLS(const countVec &pmdCounts, co
 	// some variables
 	double gammaStep = 0.01;
 	double gammaTmp  = -gammaStep + 0.00000001;
-	double SSRold    = pmdCounts.size() + 1;
+	double SSRold    = N;
 	double SSRdiff   = -1.0;
 	arma::mat betaHat;
-	arma::mat X(pmdCounts.size() + 1, 2);
+	arma::mat X(N, 2);
 	X.ones();
 
 	// do until we get a small alpha
@@ -152,7 +153,7 @@ void TPMDFunctionExponential::_initialEstimatesOLS(const countVec &pmdCounts, co
 			gammaTmp += gammaStep;
 
 			// fill x
-			for (size_t p = 0; p < pmdCounts.size(); ++p) {
+			for (size_t p = 0; p < N; ++p) {
 				X(p, 1) = exp(-gammaTmp*p);
 			}
 			betaHat = inv(X.t() * X) * X.t() * y;
@@ -300,10 +301,16 @@ void TPMDFunctionExponential::learn(const TPMDTable &Table, const genometools::B
 	std::array<double, 3> Parameters;
 	_initialEstimatesOLS(pmdCounts, pmdSums, Parameters);
 
+
 	// run Newton-Raphson
 	_estimateWithNewtonRaphson(pmdCounts, pmdSums, Parameters,
-				   EstimationParameters.at(epsilon),
-				   EstimationParameters.at(numNR));
+				   EstimationParameters.at(numNR),
+				   EstimationParameters.at(epsilon));
+
+	if (Parameters[1] < 0) {
+		throw "Estimation resulted in a < 0!\nThis is likely due to limited data. Consider pooling read groups "
+			  "(parameter poolReadGroups).";
+	}
 
 	// transform parameters
 	// the exponential PMD model is f(C->T) = mu + (1-mu) *[ a*exp(-b * position) + c ]
@@ -323,14 +330,11 @@ void TPMDFunctionExponential::learn(const TPMDTable &Table, const genometools::B
 
 	_fillPMDProbabilities();
 
+
 	// check if pattern is negativ
 	if (_probs[_lastPosition] < 0) {
 		throw "Estimation resulted in negative PMD at high positions!\nThis is likely be due to limited data. Consider "
 			  "pooling read groups (parameter poolReadGroups).";
-	}
-	if (Parameters[1] < 0) {
-		throw "Estimation resulted in a < 0!\nThis is likely due to limited data. Consider pooling read groups "
-			  "(parameter poolReadGroups).";
 	}
 }
 
