@@ -14,6 +14,7 @@
 //#include "auxiliaryTools.h"
 
 #include <algorithm>
+#include <array>
 #include <math.h>
 #include <memory>
 #define ARMA_DONT_PRINT_ERRORS
@@ -69,12 +70,12 @@ private:
 	double _a, _b, _c;
 	std::vector<double> _probs;
 
-	void _initialEstimatesOLS(const countVec &pmdCounts, const countVec &pmdSums, std::vector<double> &Parameters);
+	void _initialEstimatesOLS(const countVec &pmdCounts, const countVec &pmdSums, std::array<double, 3> &Parameters);
 	void _fillFAndJacobian(arma::vec &F, arma::mat &J, const countVec &pmdCounts, const countVec &pmdSums,
-			       const std::vector<double> &Parameters);
-	void _estimateWithNewtonRaphson(const countVec &pmdCounts, const countVec &pmdSums, std::vector<double> &Parameters,
+			       const std::array<double, 3> &Parameters);
+	void _estimateWithNewtonRaphson(const countVec &pmdCounts, const countVec &pmdSums, std::array<double, 3> &Parameters,
 					uint32_t numNRIterations, double epsilon);
-	double _calcLL(const countVec &pmdCounts, const countVec &pmdSums, const std::vector<double> &Parameters);
+	double _calcLL(const countVec &pmdCounts, const countVec &pmdSums, const std::array<double, 3> &Parameters);
 	void _fillPMDProbabilities();
 public:
 	static inline const std::string name    = "Exponential";
@@ -179,7 +180,9 @@ public:
 	~TPMDTypeDoubleStrand() = default;
 
 	bool hasDamage() const noexcept override { return _pmdCT->hasDamage() || _pmdGA->hasDamage(); };
-	std::string functionString() const noexcept override;
+	std::string functionString() const noexcept override {
+		return name + ":" + _pmdCT->string() + ":" + _pmdGA->string();
+	}
 
 	void parseEstimationParameters(TPMDEstimationParameters &EstimationParameters, TParameters &Params,
 				       TLog *Logfile) override;
@@ -206,7 +209,9 @@ public:
 	~TPMDTypeSingleStrand() = default;
 
 	bool hasDamage() const noexcept override { return _pmdCT3->hasDamage() || _pmdCT5->hasDamage(); };
-	std::string functionString() const noexcept override;
+	std::string functionString() const noexcept override {
+		return name + ":" + _pmdCT3->string() + ":" + _pmdCT5->string();
+	}
 
 	void parseEstimationParameters(TPMDEstimationParameters &EstimationParameters, TParameters &Params,
 				       TLog *Logfile) override;
@@ -226,10 +231,9 @@ public:
 //------------------------------------------------------
 class TPostMortemDamage {
 private:
-	std::vector<std::shared_ptr<TPMDType>> _pmdObjects;
+	std::vector<std::unique_ptr<TPMDType>> _pmdObjects;
 	bool _hasPMD = false;
 
-	void _createPMDType(const std::string &pmdString, std::shared_ptr<TPMDType> &ptr);
 	void _initializeFromString(const std::string &pmdString, TLog *logfile);
 	void _initializeFromFile(const BAM::TReadGroups &ReadGroups, const std::string &filename, TLog *logfile,
 				 std::vector<uint16_t> &ReadGroupsWithoutPMD);
