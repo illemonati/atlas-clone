@@ -104,15 +104,12 @@ void TSimulatorBamFile::open(const std::string Filename, const std::string Sampl
 		rg.sample_SM               = SampleName;
 		rg.sequencingTechnology_PL = "ILLUMINA";
 	}
-
 	_outBam.open(Filename, _header, Chromosomes, _readGroups);
-
 	Logfile->done();
-};
+}
+TSimulatorBamFile::~TSimulatorBamFile() { _outBam.closeNoIndex(); }
 
-TSimulatorBamFile::~TSimulatorBamFile() { _outBam.closeNoIndex(); };
-
-void TSimulatorBamFile::close(TLog *Logfile) { _outBam.close(Logfile); };
+void TSimulatorBamFile::close(TLog *Logfile) { _outBam.close(Logfile); }
 
 TSimulatorBamFiles::TSimulatorBamFiles(uint32_t NumFiles, const std::string Outname, const BAM::TReadGroups ReadGroups,
 				       const BAM::TChromosomes &Chromosomes, TLog *Logfile) {
@@ -131,44 +128,42 @@ TSimulatorBamFiles::TSimulatorBamFiles(uint32_t NumFiles, const std::string Outn
 		}
 		Logfile->endIndent();
 	}
-};
+}
 
-void TSimulatorBamFiles::close() {
+TSimulatorBamFiles::~TSimulatorBamFiles() {
 	_logfile->startIndent("Indexing BAM files:");
 	for (auto &f : _files) { f.close(_logfile); }
 	_logfile->endIndent();
-};
+}
 
 TSimulatorBamFile &TSimulatorBamFiles::operator[](size_t i) {
 	if (i >= _files.size()) throw "BAM file " + toString(i) + " does not exist!";
 	return _files[i];
-};
+}
 
 //---------------------------------------------------------
 // TSimulatorHaplotypes
 //---------------------------------------------------------
-void TSimulatorHaplotypes::allocateStorage(uint64_t length) {
+void TSimulatorHaplotypes::allocateStorage() {
 	// allocate storage
 	haplotypes.resize(numInd);
 	for (int ind = 0; ind < numInd; ++ind) {
-		haplotypes[ind][0].resize(length);
-		haplotypes[ind][1].resize(length);
+		haplotypes[ind][0].resize(_length);
+		haplotypes[ind][1].resize(_length);
 	}
-	initialized   = true;
-	storageLength = length;
-};
+}
 
 void TSimulatorHaplotypes::setLength(uint32_t length) {
-	if (length > storageLength) { allocateStorage(length); }
-	_length = length;
-};
+	if (length > _length) {
+		_length = length;
+		allocateStorage();
+	}
+}
 
 void TSimulatorHaplotypes::openTrueGenotypeVCF(std::string filename) {
 	// open file
 	trueGenoVCF.open(filename.c_str());
 	if (!trueGenoVCF) throw "Failed to open VCF file '" + filename + "' for writing!";
-
-	trueGenoVCFOpend = true;
 
 	// write header
 	trueGenoVCF << "##fileformat=VCFv4.3\n";
@@ -177,21 +172,14 @@ void TSimulatorHaplotypes::openTrueGenotypeVCF(std::string filename) {
 	trueGenoVCF << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT";
 	for (int ind = 0; ind < numInd; ++ind) trueGenoVCF << "\tInd" << ind + 1;
 	trueGenoVCF << '\n';
-};
-
-void TSimulatorHaplotypes::closeTrueGenotypeVCF() {
-	if (trueGenoVCFOpend) {
-		trueGenoVCF.close();
-		trueGenoVCFOpend = false;
-	}
-};
+}
 
 std::array<std::vector<Base>,2> TSimulatorHaplotypes::getHaplotypesOfIndividual(int i) {
 	if (i >= numInd)
 		throw "Haplotypes of individual " + toString(i + 1) + " requested, but defined for only " + toString(numInd) +
 			" individuals!";
 	return haplotypes[i];
-};
+}
 
 void TSimulatorHaplotypes::writeTrueGenotypes(const std::string &chrName, const TSimulatorReference &ref) {
 	// prepare allele storage
@@ -239,22 +227,19 @@ void TSimulatorHaplotypes::writeTrueGenotypes(const std::string &chrName, const 
 		// now write genotypes
 		trueGenoVCF << genoString << '\n';
 	}
-};
+}
 
 bool TSimulatorHaplotypes::isPolymoprhic(uint64_t pos) {
 	// count how many allele match that of first individual
-	Base testBase = haplotypes[0][0][pos];
+	const Base testBase = haplotypes[0][0][pos];
 	int counts    = 0;
 	for (int ind = 0; ind < numInd; ++ind) {
 		if (haplotypes[ind][0][pos] == testBase) ++counts;
 		if (haplotypes[ind][1][pos] == testBase) ++counts;
 	}
 
-	if (counts == 2 * numInd)
-		return false;
-	else
-		return true;
-};
+	return counts != 2*numInd;
+}
 
 //---------------------------------------------------------
 // TSimulatorMutationtable

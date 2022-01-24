@@ -477,11 +477,7 @@ void TSimulator::runSimulations() {
 		// end of chromosome
 		_logfile->endIndent();
 	}
-
-	// close stuff
-	bamFiles.close();
 	_logfile->endIndent();
-	haplotypes.closeTrueGenotypeVCF();
 }
 
 //---------------------------------------------------------

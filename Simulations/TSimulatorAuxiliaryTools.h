@@ -86,8 +86,7 @@ private:
 public:
 	TSimulatorBamFiles(uint32_t NumFiles, const std::string Outname, BAM::TReadGroups ReadGroups,
 			   const BAM::TChromosomes &Chromosomes, TLog *Logfile);
-
-	void close();
+	~TSimulatorBamFiles();
 	TSimulatorBamFile &operator[](size_t i);
 };
 
@@ -139,23 +138,20 @@ class TSimulatorHaplotypes {
 private:
 	int numInd;
 	uint32_t _length = 0;
-	uint32_t storageLength = 0;
-	bool initialized = false;
 	std::vector<std::array<std::vector<Base>,2>> haplotypes;
 
 	// write true genotypes to VCF
 	gz::ogzstream trueGenoVCF;
-	bool trueGenoVCFOpend = false;
 
-	void allocateStorage(uint64_t length);
-
+	void allocateStorage();
 public:
 	TSimulatorHaplotypes(int NumIndividuals): numInd(NumIndividuals){};
-
+	~TSimulatorHaplotypes() {
+		if (trueGenoVCF) trueGenoVCF.close();
+	}
 	void setLength(uint32_t length);
 	uint32_t length() const { return _length; };
 	void openTrueGenotypeVCF(std::string filename);
-	void closeTrueGenotypeVCF();
 	std::array<std::vector<Base>,2> getHaplotypesOfIndividual(int i);
 	std::array<std::vector<Base>,2> getHaplotypesFirstIndividual() { return haplotypes[0]; };
 	void writeTrueGenotypes(const std::string &chrName, const TSimulatorReference &ref);
