@@ -536,7 +536,7 @@ TSimulatorOneIndividual::~TSimulatorOneIndividual(){
 	thetas.clear();
 };
 
-void TSimulatorOneIndividual::_simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome){
+void TSimulatorOneIndividual::_simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, const BAM::TChromosome & chromosome){
 	//fill mutation table
 	mutTable.fill(_baseFreq, thetas[chromosome.refID()]);
 
@@ -553,7 +553,7 @@ void TSimulatorOneIndividual::_simulateHaplotypesDiploid(TSimulatorHaplotypes & 
 	}
 };
 
-void TSimulatorOneIndividual::_simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome){
+void TSimulatorOneIndividual::_simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, const BAM::TChromosome & chromosome){
 	//fill mutation table
 	mutTable.fill(_baseFreq, thetas[chromosome.refID()]);
 
@@ -841,7 +841,7 @@ void TSimulatorPairOfIndividuals::deleteTables(){
 	}
 };
 
-void TSimulatorPairOfIndividuals::_simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome){
+void TSimulatorPairOfIndividuals::_simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, const BAM::TChromosome & chromosome){
 	//first run diploid
 	_simulateHaplotypesDiploid(haplotypes, chromosome);
 
@@ -853,7 +853,7 @@ void TSimulatorPairOfIndividuals::_simulateHaplotypesHaploid(TSimulatorHaplotype
 	}
 };
 
-void TSimulatorPairOfIndividuals::_simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome){
+void TSimulatorPairOfIndividuals::_simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, const BAM::TChromosome & chromosome){
 	//run across loci
 	for(uint64_t l=0; l<chromosome.length; ++l){
 		//pick a case
@@ -986,7 +986,7 @@ void TSimulatorSFS::_initializeSFS(std::vector<std::string> & sfsFileNames, bool
 
 static inline int is_odd(int x){ return x % 2 != 0; }
 
-void TSimulatorSFS::_simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome){
+void TSimulatorSFS::_simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, const BAM::TChromosome & chromosome){
 	//now simulate haplotypes
 	for(uint32_t l=0; l<chromosome.length; ++l){
 		//pick alleles
@@ -1029,7 +1029,7 @@ void TSimulatorSFS::_simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes
 
 };
 
-void TSimulatorSFS::_simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome){
+void TSimulatorSFS::_simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, const BAM::TChromosome & chromosome){
 	int numHaplotypes = 2 * _sampleSize;
 	for(uint64_t l=0; l<chromosome.length; ++l){
 		//pick alleles
@@ -1179,7 +1179,7 @@ void TSimulatorHardyWeinberg::_fillhaplotypesMonomoprhic(TSimulatorHaplotypes & 
 	}
 };
 
-void TSimulatorHardyWeinberg::_simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome){
+void TSimulatorHardyWeinberg::_simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, const BAM::TChromosome & chromosome){
 	//storage
 	TSimulatorHardyWeinbergSite site;
 
@@ -1206,7 +1206,7 @@ void TSimulatorHardyWeinberg::_simulateHaplotypesHaploid(TSimulatorHaplotypes & 
 	}
 };
 
-void TSimulatorHardyWeinberg::_simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome){
+void TSimulatorHardyWeinberg::_simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, const BAM::TChromosome & chromosome){
 	//storage
 	TSimulatorHardyWeinbergSite site;
 
