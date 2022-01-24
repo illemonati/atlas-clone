@@ -120,7 +120,6 @@ public:
 class TSimulatorOne : public TSimulator {
 private:
 	std::vector<double> thetas;
-	TSimulatorMutationtable mutTable;
 
 	void _simulateHaplotypesDiploid(TSimulatorHaplotypes &haplotypes, const BAM::TChromosome &chromosome) override;
 	void _simulateHaplotypesHaploid(TSimulatorHaplotypes &haplotypes, const BAM::TChromosome &chromosome) override;

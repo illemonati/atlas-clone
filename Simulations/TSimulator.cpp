@@ -517,11 +517,11 @@ TSimulatorOne::TSimulatorOne(TLog *Logfile, TParameters &params, TRandomGenerato
 void TSimulatorOne::_simulateHaplotypesDiploid(TSimulatorHaplotypes &haplotypes,
 							 const BAM::TChromosome &chromosome) {
 	// fill mutation table
-	mutTable.fill(_baseFreq, thetas[chromosome.refID()]);
+	TSimulatorMutationtable mutTable(_baseFreq, thetas[chromosome.refID()]);
 
 	for (uint64_t l = 0; l < chromosome.length; ++l) {
 		haplotypes(0, 0, l) = _sampleBase(_cumulBaseFreq);
-		haplotypes(0, 0, l) = _sampleBase(mutTable[haplotypes(0, 0, l)]);
+		haplotypes(0, 1, l) = _sampleBase(mutTable[haplotypes(0, 0, l)]);
 
 		// decide on reference sequence
 		if (haplotypes(0, 0, l) == haplotypes(0, 1, l)) {
@@ -535,7 +535,7 @@ void TSimulatorOne::_simulateHaplotypesDiploid(TSimulatorHaplotypes &haplotypes,
 void TSimulatorOne::_simulateHaplotypesHaploid(TSimulatorHaplotypes &haplotypes,
 							 const BAM::TChromosome &chromosome) {
 	// fill mutation table
-	mutTable.fill(_baseFreq, thetas[chromosome.refID()]);
+	TSimulatorMutationtable mutTable(_baseFreq, thetas[chromosome.refID()]);
 
 	// now simulate genotypes
 	for (uint64_t l = 0; l < chromosome.length; ++l) {
