@@ -386,7 +386,7 @@ Base TSimulator::_mutateBase(const Base &base, const std::array<double, 4> &cumu
 	return static_cast<Base>(base.get() + _randomGenerator->pickOne(cumulProbs));
 }
 
-void TSimulator::_simulateReadsFromHaplotypes(const BAM::TChromosome &thisChr, Base **haplotypes,
+void TSimulator::_simulateReadsFromHaplotypes(const BAM::TChromosome &thisChr, std::array<std::vector<Base>,2> haplotypes,
 					      TSimulatorBamFile &bamFile, std::string extraProgressText) {
 	// Initialize probabilities to simulate reads
 	const uint64_t numReads = _averageReadLength == 0 ? 0 : thisChr.length * _seqDepth / _averageReadLength;
@@ -482,7 +482,6 @@ void TSimulator::runSimulations() {
 	bamFiles.close();
 	_logfile->endIndent();
 	haplotypes.closeTrueGenotypeVCF();
-	_referenceObj.close();
 }
 
 //---------------------------------------------------------

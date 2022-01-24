@@ -100,7 +100,7 @@ protected:
 	Base _mutateBase(const Base &base, const std::array<double, 4> &cumulProbs);
 	virtual void _simulateHaplotypesDiploid(TSimulatorHaplotypes &, const BAM::TChromosome &) = 0;
 	virtual void _simulateHaplotypesHaploid(TSimulatorHaplotypes &, const BAM::TChromosome &) = 0;
-	void _simulateReadsFromHaplotypes(const BAM::TChromosome &thisChr, Base **haplotypes, TSimulatorBamFile &bamFile,
+	void _simulateReadsFromHaplotypes(const BAM::TChromosome &thisChr, std::array<std::vector<Base>,2> haplotypes, TSimulatorBamFile &bamFile,
 					  std::string extraProgressText);
 
 public:
