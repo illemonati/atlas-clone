@@ -471,9 +471,9 @@ void TSimulator::runSimulations(){
 		//simulate genotypes
 		_logfile->listFlush("Simulating genotypes ...");
 		if(chr.ploidy == 1)
-			_simulateHaplotypesHaploid(haplotypes, chr, _referenceObj);
+			_simulateHaplotypesHaploid(haplotypes, chr);
 		else
-			_simulateHaplotypesDiploid(haplotypes, chr, _referenceObj);
+			_simulateHaplotypesDiploid(haplotypes, chr);
 		_logfile->done();
 
 		//write true genotypes
@@ -536,7 +536,7 @@ TSimulatorOneIndividual::~TSimulatorOneIndividual(){
 	thetas.clear();
 };
 
-void TSimulatorOneIndividual::_simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, TSimulatorReference & ref){
+void TSimulatorOneIndividual::_simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome){
 	//fill mutation table
 	mutTable.fill(_baseFreq, thetas[chromosome.refID()]);
 
@@ -546,14 +546,14 @@ void TSimulatorOneIndividual::_simulateHaplotypesDiploid(TSimulatorHaplotypes & 
 
 		//decide on reference sequence
 		if(haplotypes(0,0,l) == haplotypes(0,1,l)){
-			ref[l] = _mutateBase(haplotypes(0,0,l), _cumulRef);
+			_referenceObj[l] = _mutateBase(haplotypes(0,0,l), _cumulRef);
 		} else {
-			ref[l] = static_cast<Base> (haplotypes(0,_randomGenerator->sample(2),l));
+			_referenceObj[l] = static_cast<Base> (haplotypes(0,_randomGenerator->sample(2),l));
 		}
 	}
 };
 
-void TSimulatorOneIndividual::_simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, TSimulatorReference & ref){
+void TSimulatorOneIndividual::_simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome){
 	//fill mutation table
 	mutTable.fill(_baseFreq, thetas[chromosome.refID()]);
 
@@ -563,7 +563,7 @@ void TSimulatorOneIndividual::_simulateHaplotypesHaploid(TSimulatorHaplotypes & 
 		haplotypes(0,1,l) = haplotypes(0,0,l);
 
 		//decide on ref
-		ref[l] = _mutateBase(haplotypes(0,0,l), _cumulRef);
+		_referenceObj[l] = _mutateBase(haplotypes(0,0,l), _cumulRef);
 	}
 };
 
@@ -841,9 +841,9 @@ void TSimulatorPairOfIndividuals::deleteTables(){
 	}
 };
 
-void TSimulatorPairOfIndividuals::_simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, TSimulatorReference & ref){
+void TSimulatorPairOfIndividuals::_simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome){
 	//first run diploid
-	_simulateHaplotypesDiploid(haplotypes, chromosome, ref);
+	_simulateHaplotypesDiploid(haplotypes, chromosome);
 
 	//now set homozygous
 	for(uint64_t l=0; l<chromosome.length; ++l){
@@ -853,7 +853,7 @@ void TSimulatorPairOfIndividuals::_simulateHaplotypesHaploid(TSimulatorHaplotype
 	}
 };
 
-void TSimulatorPairOfIndividuals::_simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, TSimulatorReference & ref){
+void TSimulatorPairOfIndividuals::_simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome){
 	//run across loci
 	for(uint64_t l=0; l<chromosome.length; ++l){
 		//pick a case
@@ -873,10 +873,10 @@ void TSimulatorPairOfIndividuals::_simulateHaplotypesDiploid(TSimulatorHaplotype
 
 		//simulate reference
 		if(c == 0){
-			ref[l].mutateWithStep(_randomGenerator->pickOne(_cumulRef));
+			_referenceObj[l].mutateWithStep(_randomGenerator->pickOne(_cumulRef));
 		} else {
 			int r = _randomGenerator->sample(4);
-			ref[l] = genoTrans[c][g][r];
+			_referenceObj[l] = genoTrans[c][g][r];
 		}
 	}
 };
@@ -986,7 +986,7 @@ void TSimulatorSFS::_initializeSFS(std::vector<std::string> & sfsFileNames, bool
 
 static inline int is_odd(int x){ return x % 2 != 0; }
 
-void TSimulatorSFS::_simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, TSimulatorReference & ref){
+void TSimulatorSFS::_simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome){
 	//now simulate haplotypes
 	for(uint32_t l=0; l<chromosome.length; ++l){
 		//pick alleles
@@ -1019,17 +1019,17 @@ void TSimulatorSFS::_simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes
 		//decide on reference sequence
 		if(alleleCount > 0){
 			if(_randomGenerator->getRand() < (double) alleleCount / (double) _sampleSize)
-				ref[l] = derived;
+				_referenceObj[l] = derived;
 			else
-				ref[l] = ancestral;
+				_referenceObj[l] = ancestral;
 		} else {
-			ref[l] = _mutateBase(ancestral, _cumulRef);
+			_referenceObj[l] = _mutateBase(ancestral, _cumulRef);
 		}
 	}
 
 };
 
-void TSimulatorSFS::_simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, TSimulatorReference & ref){
+void TSimulatorSFS::_simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome){
 	int numHaplotypes = 2 * _sampleSize;
 	for(uint64_t l=0; l<chromosome.length; ++l){
 		//pick alleles
@@ -1048,7 +1048,7 @@ void TSimulatorSFS::_simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes
 			}
 
 			//decide on reference sequence
-			ref[l] = _mutateBase(ancestral, _cumulRef);
+			_referenceObj[l] = _mutateBase(ancestral, _cumulRef);
 		} else {
 			int numNeeded = alleleCount;
 			for(int i=0; i<numHaplotypes; ++i){
@@ -1067,9 +1067,9 @@ void TSimulatorSFS::_simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes
 
 			//decide on reference sequence
 			if(_randomGenerator->getRand() < (double) alleleCount / (double) numHaplotypes)
-				ref[l] = derived;
+				_referenceObj[l] = derived;
 			else
-				ref[l] = ancestral;
+				_referenceObj[l] = ancestral;
 		}
 	}
 };
@@ -1123,7 +1123,7 @@ void TSimulatorHardyWeinberg::_fillCumulGenoProb(double f){
 	cumulGenoProb[2] = 1.0;
 };
 
-void TSimulatorHardyWeinberg::_simulateSite(TSimulatorHardyWeinbergSite & site, const std::string & chr, uint64_t pos, TSimulatorReference & ref){
+void TSimulatorHardyWeinberg::_simulateSite(TSimulatorHardyWeinbergSite & site, const std::string & chr, uint64_t pos){
 	//simulate bases
 	site.reference = static_cast<Base>(_randomGenerator->pickOne(_cumulBaseFreq));
 	site.alternative = static_cast<Base>(_randomGenerator->pickOne(mutTable[site.reference.get()]));
@@ -1152,7 +1152,7 @@ void TSimulatorHardyWeinberg::_simulateSite(TSimulatorHardyWeinbergSite & site, 
 	}
 
 	//store reference
-	ref[pos] = site.reference;
+	_referenceObj[pos] = site.reference;
 
 	//write true frequency: pos is 1 based!
 	if(writeTrueAlleleFreq){
@@ -1179,14 +1179,14 @@ void TSimulatorHardyWeinberg::_fillhaplotypesMonomoprhic(TSimulatorHaplotypes & 
 	}
 };
 
-void TSimulatorHardyWeinberg::_simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, TSimulatorReference & ref){
+void TSimulatorHardyWeinberg::_simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome){
 	//storage
 	TSimulatorHardyWeinbergSite site;
 
 	//now simulate haplotypes
 	for(uint64_t l=0; l<chromosome.length; ++l){
 		//simulate site
-		_simulateSite(site, chromosome.name, l, ref);
+		_simulateSite(site, chromosome.name, l);
 
 		//polymoprhic or not?
 		if(site.isPolymorphic){
@@ -1206,14 +1206,14 @@ void TSimulatorHardyWeinberg::_simulateHaplotypesHaploid(TSimulatorHaplotypes & 
 	}
 };
 
-void TSimulatorHardyWeinberg::_simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome, TSimulatorReference & ref){
+void TSimulatorHardyWeinberg::_simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, BAM::TChromosome & chromosome){
 	//storage
 	TSimulatorHardyWeinbergSite site;
 
 	//now simulate haplotypes
 	for(uint64_t l=0; l<chromosome.length; ++l){
 		//simulate site
-		_simulateSite(site, chromosome.name, l, ref);
+		_simulateSite(site, chromosome.name, l);
 
 		//polymoprhic or not?
 		if(site.isPolymorphic){
