@@ -9,180 +9,175 @@
 #define TSIMULATOR_H_
 
 #include "SFS.h"
-#include "stringFunctions.h"
-#include <math.h>
-#include <numeric>
-#include <algorithm>
-#include "algorithmsAndVectors.h"
-#include "progressTools.h"
+#include "TFile.h"
 #include "TSimulatorAuxiliaryTools.h"
 #include "TSimulatorRead.h"
-#include "TFile.h"
 #include "TTask.h"
+#include "algorithmsAndVectors.h"
+#include "progressTools.h"
+#include "stringFunctions.h"
+#include <algorithm>
 #include <filesystem>
 #include <functional>
+#include <math.h>
+#include <memory>
+#include <numeric>
 
-namespace Simulations{
+namespace Simulations {
 
-//TODO: add cross-contamination between samples or RGs? That would be easier to model contamination that the way it is done now as it would allow for contaminated reads to have different characteristsics.
+// TODO: add cross-contamination between samples or RGs? That would be easier to model contamination that the way it is
+// done now as it would allow for contaminated reads to have different characteristsics.
 
-using coretools::TParameters;
 using coretools::TLog;
+using coretools::TParameters;
 using coretools::TRandomGenerator;
 using genometools::Base;
 
 //---------------------------------------------------------
-//TSimulator
+// TSimulator
 //---------------------------------------------------------
-class TSimulator{
+class TSimulator {
 protected:
-	TLog* _logfile;
-	TRandomGenerator* _randomGenerator;
+	TLog *_logfile;
+	TRandomGenerator *_randomGenerator;
 	std::string _outname;
 
-	//general simulation parameters
-	int _sampleSize = 0;
+	// general simulation parameters
+	int _sampleSize             = 0;
 	double _referenceDivergence = 0;
-	std::array<double, 4> _cumulRef;
-	double _seqDepth = 0;
-	double _averageReadLength = 0;
-	double _maxReadLength = 0;
+	double _seqDepth            = 0;
+	double _averageReadLength   = 0;
+	double _maxReadLength       = 0;
 
-	//chromosomes
+	// chromosomes
 	BAM::TChromosomes _chromosomes;
-	bool _writeTrueGenotypes = false;
+	bool _writeTrueGenotypes            = false;
 	bool _writeVariantInvariantBedFiles = false;
 	TSimulatorReference _referenceObj;
 
-	//simulation tools
+	// simulation tools
 	BAM::TReadGroups _readGroups;
 	GenotypeLikelihoods::TPostMortemDamage _PMD;
-	//BAM::TReadGroupMap _readGroupMap; //needed by recal REALLYY??????
+	// BAM::TReadGroupMap _readGroupMap; //needed by recal REALLYY??????
 	GenotypeLikelihoods::TSequencingErrorModels _recal;
 
-	//read simulator
-	std::vector<TSimulatorSingleEndRead*> _readSimulators;
+	// read simulator
+	std::vector<std::unique_ptr<TSimulatorSingleEndRead>> _readSimulators;
 	std::vector<double> _simGroupFrequencies;
 	std::vector<double> _cumulSimGroupFrequenies;
 
-	//helper tools
+	// helper tools
+	std::array<double, 4> _cumulRef;
 	GenotypeLikelihoods::TBaseProbabilities _baseFreq;
 	std::array<double, 4> _cumulBaseFreq;
 	bool _refInitialized = false;
 
-	TSimulator(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGenerator);
+	TSimulator(TLog *Logfile, TParameters &params, TRandomGenerator *RandomGenerator);
 
-	//function to initialize read groups
-	std::vector<std::string>  _readSimInfoPerReadGroup(const std::string & Filename, const std::string & Column, const std::string & Name);
-	void _initializeReadGroup(const std::string & readLengthString, const BAM::TReadGroup & ReadGroup);
-	void _initializeReadGroupsFromReadLengthDistribution(TParameters & params, const std::string & ParameterName, const std::string & DefaultValue, const std::string & Name);
-	void _initializeDistribution(TParameters & params, const std::string & ParameterName, const std::string & DefaultValue, const std::string & Name, std::function<void(TSimulatorSingleEndRead&, std::string)> function);
-	void _initializePMD(TParameters & params, const std::string & ParameterName, const std::string & Name);
-	void _initializeQualityTransformations(TParameters & params, const std::string & ParameterName, const std::string & Name);
-	void _initializeContamination(TParameters & params, bool & perReadGroup, std::map<std::string, double> & contaminationMap);
-	void _initializeChromosomes(TParameters & params);
-	void _initializeChromosomes(uint32_t numChr, uint32_t chrLength, const uint8_t & ploidy);
-	void _initializeChromosomes(std::vector<uint32_t> & chrLength, std::vector<uint8_t> haploid);
-	void _initializeReadSimulator(TParameters & params);
-	void _initializeReadGroupFrequencies(TParameters & params);
+	// function to initialize read groups
+	std::vector<std::string> _readSimInfoPerReadGroup(const std::string &Filename, const std::string &Column,
+							  const std::string &Name);
+	void _initializeReadGroup(const std::string &readLengthString, const BAM::TReadGroup &ReadGroup);
+	void _initializeReadGroupsFromReadLengthDistribution(TParameters &params, const std::string &ParameterName,
+							     const std::string &DefaultValue, const std::string &Name);
+	void _initializeDistribution(TParameters &params, const std::string &ParameterName, const std::string &DefaultValue,
+				     const std::string &Name,
+				     std::function<void(TSimulatorSingleEndRead &, std::string)> function);
+	void _initializePMD(TParameters &params, const std::string &ParameterName, const std::string &Name);
+	void _initializeQualityTransformations(TParameters &params, const std::string &ParameterName,
+					       const std::string &Name);
+	void _initializeContamination(TParameters &params, bool &perReadGroup,
+				      std::map<std::string, double> &contaminationMap);
+	void _initializeChromosomes(TParameters &params);
+	void _initializeReadSimulator(TParameters &params);
+	void _initializeReadGroupFrequencies(TParameters &params);
 
-	void _addToReadGroupVector(std::vector<std::string> & vec, const std::string & rg);
-	void _addReadGroupsIfFile(const std::string & ParameterName, TParameters & Parameters, BAM::TReadGroups & ReadGroups);
+	void _addToReadGroupVector(std::vector<std::string> &vec, const std::string &rg);
+	void _addReadGroupsIfFile(const std::string &ParameterName, TParameters &Parameters, BAM::TReadGroups &ReadGroups);
 
-	//functions to simulate
-	Base _sampleBase(const std::array<double, 4> & cumulProbs);
-	Base _mutateBase(const Base & base, const std::array<double, 4> & cumulProbs);
+	// functions to simulate
+	Base _sampleBase(const std::array<double, 4> &cumulProbs);
+	Base _mutateBase(const Base &base, const std::array<double, 4> &cumulProbs);
 	virtual void _simulateHaplotypesDiploid(TSimulatorHaplotypes &, const BAM::TChromosome &) = 0;
 	virtual void _simulateHaplotypesHaploid(TSimulatorHaplotypes &, const BAM::TChromosome &) = 0;
-	void _simulateReadsFromHaplotypes(const BAM::TChromosome & thisChr, Base** haplotypes, TSimulatorBamFile & bamFile, std::string extraProgressText);
+	void _simulateReadsFromHaplotypes(const BAM::TChromosome &thisChr, Base **haplotypes, TSimulatorBamFile &bamFile,
+					  std::string extraProgressText);
 
 public:
-	virtual ~TSimulator(){
-		for(TSimulatorSingleEndRead* readSimIt: _readSimulators)
-			delete readSimIt;
-	};
-
-	//functions to set general parameters
+	virtual ~TSimulator() = default;
+	// functions to set general parameters
 	void setQualityDistribution(double mean, double sd, int maxQual);
 	void setReadLength(std::string s);
-	void setDepth(double depth) noexcept {_seqDepth = depth;};
-	void setQualityTransformation(std::vector<double> & Betas);
+	void setDepth(double depth) noexcept { _seqDepth = depth; };
+	void setQualityTransformation(std::vector<double> &Betas);
 
 	void runSimulations();
 };
 
 //---------------------------------------------------------
-//TSimulatorOneIndividual
+// TSimulatorOneIndividual
 //---------------------------------------------------------
-class TSimulatorOneIndividual:public TSimulator{
+class TSimulatorOne : public TSimulator {
 private:
 	std::vector<double> thetas;
 	TSimulatorMutationtable mutTable;
 
-	void _simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, const BAM::TChromosome & chromosome) override;
-	void _simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, const BAM::TChromosome & chromosome) override;
-
+	void _simulateHaplotypesDiploid(TSimulatorHaplotypes &haplotypes, const BAM::TChromosome &chromosome) override;
+	void _simulateHaplotypesHaploid(TSimulatorHaplotypes &haplotypes, const BAM::TChromosome &chromosome) override;
 
 public:
-	TSimulatorOneIndividual(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGenerator);
-	~TSimulatorOneIndividual();
+	TSimulatorOne(TLog *Logfile, TParameters &params, TRandomGenerator *RandomGenerator);
 };
 
-
 //---------------------------------------------------------
-//TSimulatorPairOfIndividuals
+// TSimulatorPairOfIndividuals
 //---------------------------------------------------------
-class TSimulatorPairOfIndividuals:public TSimulator{
+class TSimulatorPair : public TSimulator {
 private:
+	static constexpr std::array<std::array<size_t, 4>, 4> orderLookup =
+	{{{0, 1, 2, 3}, {0, 1, 3, 2}, {1, 0, 2, 3}, {1, 0, 3, 2}}};
 	std::vector<double> phis;
-	double cumulGenoCaseFrequencies[9];
-	int numGenotypeCombinations[9];
-	double** cumulGenoCombinationFreq;
-	Base*** genoTrans;
-	std::array< std::array<uint8_t, 4>, 4> orderLookup;
-	bool tablesInitialized;
+	std::array<double, 9> cumulGenoCaseFrequencies;
+	std::array<std::vector<double>, 9> cumulGenoCombinationFreq;
+	std::array<std::vector<std::vector<Base>>, 9> genoTrans;
 
-	void fillTables();
-	void deleteTables();
+	void _fillTables();
 
-	void _simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, const BAM::TChromosome & chromosome) override;
-	void _simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, const BAM::TChromosome & chromosome) override;
+	void _simulateHaplotypesDiploid(TSimulatorHaplotypes &haplotypes, const BAM::TChromosome &chromosome) override;
+	void _simulateHaplotypesHaploid(TSimulatorHaplotypes &haplotypes, const BAM::TChromosome &chromosome) override;
 
 public:
-
-	TSimulatorPairOfIndividuals(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGenerator);
-	~TSimulatorPairOfIndividuals(){ deleteTables(); };
+	TSimulatorPair(TLog *Logfile, TParameters &params, TRandomGenerator *RandomGenerator);
 };
 
 //---------------------------------------------------------
-//TSimulatorSFS
+// TSimulatorSFS
 //---------------------------------------------------------
-class TSimulatorSFS:public TSimulator{
+class TSimulatorSFS : public TSimulator {
 private:
-	std::vector<SFS*> sfs;
+	std::vector<std::unique_ptr<SFS>> sfs;
 	TSimulatorMutationtable mutTable;
 
-	void _initializeSFS(std::vector<double> & thetas);
-	void _initializeSFS(std::vector<std::string> & sfsFileNames, bool folded);
-	void _simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, const BAM::TChromosome & chromosome) override;
-	void _simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, const BAM::TChromosome & chromosome) override;
+	void _initializeSFS(std::vector<double> &thetas);
+	void _initializeSFS(std::vector<std::string> &sfsFileNames, bool folded);
+	void _simulateHaplotypesHaploid(TSimulatorHaplotypes &haplotypes, const BAM::TChromosome &chromosome) override;
+	void _simulateHaplotypesDiploid(TSimulatorHaplotypes &haplotypes, const BAM::TChromosome &chromosome) override;
 
 public:
-	TSimulatorSFS(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGenerator);
-	~TSimulatorSFS();
+	TSimulatorSFS(TLog *Logfile, TParameters &params, TRandomGenerator *RandomGenerator);
 };
 
 //---------------------------------------------------------
-//TSimulatorHardyWeinberg
+// TSimulatorHardyWeinberg
 //---------------------------------------------------------
-struct TSimulatorHardyWeinbergSite{
+struct TSimulatorHW {
 	bool isPolymorphic;
 	genometools::Base reference;
 	genometools::Base alternative;
 	double f;
 };
 
-class TSimulatorHardyWeinberg:public TSimulator{
+class TSimulatorHardyWeinberg : public TSimulator {
 private:
 	double fracPoly, alpha, beta, F;
 	double cumulGenoProb[3];
@@ -191,50 +186,51 @@ private:
 	coretools::TOutputFile trueFreqFile;
 
 	void _fillCumulGenoProb(double f);
-	void _simulateSite(TSimulatorHardyWeinbergSite & site, const std::string & chr, uint64_t pos);
-	void _fillhaplotypesMonomoprhic(TSimulatorHaplotypes & haplotypes, uint64_t locus, TSimulatorHardyWeinbergSite & site);
-	void _simulateHaplotypesHaploid(TSimulatorHaplotypes & haplotypes, const BAM::TChromosome & chromosome) override;
-	void _simulateHaplotypesDiploid(TSimulatorHaplotypes & haplotypes, const BAM::TChromosome & chromosome) override;
+	void _simulateSite(TSimulatorHW &site, const std::string &chr, uint64_t pos);
+	void _fillhaplotypesMonomoprhic(TSimulatorHaplotypes &haplotypes, uint64_t locus,
+					TSimulatorHW &site);
+	void _simulateHaplotypesHaploid(TSimulatorHaplotypes &haplotypes, const BAM::TChromosome &chromosome) override;
+	void _simulateHaplotypesDiploid(TSimulatorHaplotypes &haplotypes, const BAM::TChromosome &chromosome) override;
 
 public:
-	TSimulatorHardyWeinberg(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGenerator);
-	~TSimulatorHardyWeinberg(){};
+	TSimulatorHardyWeinberg(TLog *Logfile, TParameters &params, TRandomGenerator *RandomGenerator);
 };
 
 //--------------------------------------
 // Tasks
 //--------------------------------------
-class TTask_simulate:public coretools::TTask{
+class TTask_simulate : public coretools::TTask {
 public:
-	TTask_simulate(){ _explanation = "Generating simulations"; };
+	TTask_simulate() { _explanation = "Generating simulations"; };
 
-	void run(TParameters & Parameters, TLog* Logfile){
-		//initialize simulator
-		TSimulator* simulator;
+	void run(TParameters &Parameters, TLog *Logfile) {
+		// initialize simulator
+		TSimulator *simulator;
 		std::string method = Parameters.getParameterWithDefault<std::string>("type", "one");
-		if(method == "one"){
+		if (method == "one") {
 			Logfile->startIndent("Simulating a single individual (parameter type=one):");
-			simulator = new TSimulatorOneIndividual(Logfile, Parameters, _randomGenerator);
-		} else if(method == "pair"){
+			simulator = new TSimulatorOne(Logfile, Parameters, _randomGenerator);
+		} else if (method == "pair") {
 			Logfile->startIndent("Simulating a pair of individual (parameter type=pair):");
-			simulator = new TSimulatorPairOfIndividuals(Logfile, Parameters, _randomGenerator);
-		} else if(method == "SFS"){
+			simulator = new TSimulatorPair(Logfile, Parameters, _randomGenerator);
+		} else if (method == "SFS") {
 			Logfile->startIndent("Simulating individuals from an SFS (parameter type=SFS):");
 			simulator = new TSimulatorSFS(Logfile, Parameters, _randomGenerator);
-		} else if(method == "HW"){
+		} else if (method == "HW") {
 			Logfile->startIndent("Simulating a individuals under Hardy-Weinberg (parameter type=HW):");
 			simulator = new TSimulatorHardyWeinberg(Logfile, Parameters, _randomGenerator);
-		}else throw "Unknown simulation method '" + method + "'!";
+		} else
+			throw "Unknown simulation method '" + method + "'!";
 
-		//now run simulations
+		// now run simulations
 		simulator->runSimulations();
 
-		//clean up
+		// clean up
 		Logfile->endIndent();
 		delete simulator;
 	};
 };
 
-}; //end namespace
+}; // namespace Simulations
 
 #endif /* TSIMULATOR_H_ */
