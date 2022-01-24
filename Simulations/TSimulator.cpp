@@ -919,24 +919,22 @@ void TSimulatorSFS::_simulateHaplotypesDiploid(TSimulatorHaplotypes &haplotypes,
 //---------------------------------------------------------
 // TSimulatorHardyWeinberg
 //---------------------------------------------------------
-TSimulatorHardyWeinberg::TSimulatorHardyWeinberg(coretools::TLog *Logfile, TParameters &params,
+TSimulatorHW::TSimulatorHW(coretools::TLog *Logfile, TParameters &params,
 						 coretools::TRandomGenerator *RandomGenerator)
-	: TSimulator(Logfile, params, RandomGenerator) {
+	: TSimulator(Logfile, params, RandomGenerator), fracPoly(params.getParameterWithDefault("fracPoly", 0.1)),
+	  alpha(params.getParameterWithDefault("alpha", 0.5)), beta(params.getParameterWithDefault("beta", 0.5)),
+	  F(params.getParameterWithDefault("F", 0.0)) {
 	_logfile->startIndent("Reading parameters to simulate a population sample under Hardy-Weinberg equilibrium:");
 
 	// sample size
 	_sampleSize = params.getParameterWithDefault<int>("sampleSize", 10);
 
 	// parameters of beta distribution
-	fracPoly = params.getParameterWithDefault("fracPoly", 0.1);
 	_logfile->list("Will simulate ", fracPoly, " of all sites as polymorphic. (parameter fracPoly)");
-	alpha = params.getParameterWithDefault("alpha", 0.5);
 	if (alpha <= 0.0) throw "Alpha must be > 0!";
-	beta = params.getParameterWithDefault("beta", 0.5);
 	if (beta <= 0.0) throw "Beta must be > 0!";
 	_logfile->list("Polymoprhic sites will have derived allele frequencies f~Beta(", alpha, ", ", beta,
 		       "). (parameters alpha, beta)");
-	F = params.getParameterWithDefault("F", 0.0);
 	if (F == 0.0) {
 		_logfile->list("Will assume no inbreeding. (parameter F=0)");
 	} else {
@@ -945,9 +943,8 @@ TSimulatorHardyWeinberg::TSimulatorHardyWeinberg(coretools::TLog *Logfile, TPara
 	}
 
 	// write true allele freq?
-	writeTrueAlleleFreq = false;
 	if (params.parameterExists("writeTrueAlleleFreq")) {
-		std::string alleleFreqFile = _outname + "_trueAlleleFreq.txt.gz";
+		const auto alleleFreqFile = _outname + "_trueAlleleFreq.txt.gz";
 		_logfile->list("Will write true allele frequencies to file '" + alleleFreqFile + "'.");
 		trueFreqFile.open(alleleFreqFile);
 		trueFreqFile.writeHeader({"Chr", "Pos", "Ancestral", "Derived", "derivedFreq", "MAF"});
@@ -961,14 +958,14 @@ TSimulatorHardyWeinberg::TSimulatorHardyWeinberg(coretools::TLog *Logfile, TPara
 	_logfile->endIndent();
 }
 
-void TSimulatorHardyWeinberg::_fillCumulGenoProb(double f) {
-	double oneMinus_f = 1.0 - f;
-	cumulGenoProb[0]  = F * oneMinus_f + (1.0 - F) * oneMinus_f * oneMinus_f;
-	cumulGenoProb[1]  = cumulGenoProb[0] + (1.0 - F) * 2.0 * f * oneMinus_f;
-	cumulGenoProb[2]  = 1.0;
+void TSimulatorHW::_fillCumulGenoProb(double f) {
+	const double oneMinus_f = 1.0 - f;
+	cumulGenoProb[0]        = F * oneMinus_f + (1.0 - F) * oneMinus_f * oneMinus_f;
+	cumulGenoProb[1]        = cumulGenoProb[0] + (1.0 - F) * 2.0 * f * oneMinus_f;
+	cumulGenoProb[2]        = 1.0;
 }
 
-void TSimulatorHardyWeinberg::_simulateSite(TSimulatorHW &site, const std::string &chr, uint64_t pos) {
+void TSimulatorHW::_simulateSite(TSimulatorHWSite &site, const std::string &chr, uint64_t pos) {
 	// simulate bases
 	site.reference   = static_cast<Base>(_randomGenerator->pickOne(_cumulBaseFreq));
 	site.alternative = static_cast<Base>(_randomGenerator->pickOne(mutTable[site.reference.get()]));
@@ -980,38 +977,26 @@ void TSimulatorHardyWeinberg::_simulateSite(TSimulatorHW &site, const std::strin
 
 		// reference is a random sample from pop with frequency f: flip if ref is alt!
 		if (_randomGenerator->getRand() < site.f) {
-			Base tmp         = site.reference;
-			site.reference   = site.alternative;
-			site.alternative = tmp;
-			site.f           = 1 - site.f;
+			std::swap(site.reference, site.alternative);
+			site.f = 1 - site.f;
 		}
 	} else {
 		site.isPolymorphic = false;
-
 		// is reference diverged?
-		if (_randomGenerator->getRand() < _referenceDivergence) {
-			site.f = 1.0;
-		} else {
-			site.f = 0.0;
-		}
+		site.f = _randomGenerator->getRand() < _referenceDivergence ? 1. : 0.;
 	}
-
 	// store reference
 	_referenceObj[pos] = site.reference;
 
 	// write true frequency: pos is 1 based!
 	if (writeTrueAlleleFreq) {
 		trueFreqFile << chr << pos + 1 << site.reference << site.alternative << site.f;
-		if (site.f < 0.5) {
-			trueFreqFile << site.f << std::endl;
-		} else {
-			trueFreqFile << 1.0 - site.f << std::endl;
-		}
+		trueFreqFile << (site.f < 0.5 ? site.f : 1. - site.f) << std::endl;
 	}
 }
 
-void TSimulatorHardyWeinberg::_fillhaplotypesMonomoprhic(TSimulatorHaplotypes &haplotypes, uint64_t locus,
-							 TSimulatorHW &site) {
+void TSimulatorHW::_fillhaplotypesMonomoprhic(TSimulatorHaplotypes &haplotypes, uint64_t locus,
+							 const TSimulatorHWSite &site) {
 	if (site.f == 0.0) {
 		for (int i = 0; i < _sampleSize; ++i) {
 			haplotypes(i, 0, locus) = site.reference;
@@ -1025,13 +1010,13 @@ void TSimulatorHardyWeinberg::_fillhaplotypesMonomoprhic(TSimulatorHaplotypes &h
 	}
 }
 
-void TSimulatorHardyWeinberg::_simulateHaplotypesHaploid(TSimulatorHaplotypes &haplotypes,
+void TSimulatorHW::_simulateHaplotypesHaploid(TSimulatorHaplotypes &haplotypes,
 							 const BAM::TChromosome &chromosome) {
 	// storage
-	TSimulatorHW site;
 
 	// now simulate haplotypes
 	for (uint64_t l = 0; l < chromosome.length; ++l) {
+		TSimulatorHWSite site;
 		// simulate site
 		_simulateSite(site, chromosome.name, l);
 
@@ -1053,13 +1038,13 @@ void TSimulatorHardyWeinberg::_simulateHaplotypesHaploid(TSimulatorHaplotypes &h
 	}
 }
 
-void TSimulatorHardyWeinberg::_simulateHaplotypesDiploid(TSimulatorHaplotypes &haplotypes,
+void TSimulatorHW::_simulateHaplotypesDiploid(TSimulatorHaplotypes &haplotypes,
 							 const BAM::TChromosome &chromosome) {
 	// storage
-	TSimulatorHW site;
 
 	// now simulate haplotypes
 	for (uint64_t l = 0; l < chromosome.length; ++l) {
+		TSimulatorHWSite site;
 		// simulate site
 		_simulateSite(site, chromosome.name, l);
 

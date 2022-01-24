@@ -169,30 +169,29 @@ public:
 //---------------------------------------------------------
 // TSimulatorHardyWeinberg
 //---------------------------------------------------------
-struct TSimulatorHW {
+struct TSimulatorHWSite {
 	bool isPolymorphic;
 	genometools::Base reference;
 	genometools::Base alternative;
 	double f;
 };
 
-class TSimulatorHardyWeinberg : public TSimulator {
+class TSimulatorHW : public TSimulator {
 private:
 	double fracPoly, alpha, beta, F;
 	double cumulGenoProb[3];
 	TSimulatorMutationtable mutTable;
-	bool writeTrueAlleleFreq;
+	bool writeTrueAlleleFreq = false;
 	coretools::TOutputFile trueFreqFile;
 
 	void _fillCumulGenoProb(double f);
-	void _simulateSite(TSimulatorHW &site, const std::string &chr, uint64_t pos);
-	void _fillhaplotypesMonomoprhic(TSimulatorHaplotypes &haplotypes, uint64_t locus,
-					TSimulatorHW &site);
+	void _simulateSite(TSimulatorHWSite &site, const std::string &chr, uint64_t pos);
+	void _fillhaplotypesMonomoprhic(TSimulatorHaplotypes &haplotypes, uint64_t locus, const TSimulatorHWSite &site);
 	void _simulateHaplotypesHaploid(TSimulatorHaplotypes &haplotypes, const BAM::TChromosome &chromosome) override;
 	void _simulateHaplotypesDiploid(TSimulatorHaplotypes &haplotypes, const BAM::TChromosome &chromosome) override;
 
 public:
-	TSimulatorHardyWeinberg(TLog *Logfile, TParameters &params, TRandomGenerator *RandomGenerator);
+	TSimulatorHW(TLog *Logfile, TParameters &params, TRandomGenerator *RandomGenerator);
 };
 
 //--------------------------------------
@@ -217,7 +216,7 @@ public:
 			simulator = new TSimulatorSFS(Logfile, Parameters, _randomGenerator);
 		} else if (method == "HW") {
 			Logfile->startIndent("Simulating a individuals under Hardy-Weinberg (parameter type=HW):");
-			simulator = new TSimulatorHardyWeinberg(Logfile, Parameters, _randomGenerator);
+			simulator = new TSimulatorHW(Logfile, Parameters, _randomGenerator);
 		} else
 			throw "Unknown simulation method '" + method + "'!";
 
