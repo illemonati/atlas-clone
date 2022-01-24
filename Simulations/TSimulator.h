@@ -157,8 +157,8 @@ private:
 	std::vector<std::unique_ptr<SFS>> sfs;
 	TSimulatorMutationtable mutTable;
 
-	void _initializeSFS(std::vector<double> &thetas);
-	void _initializeSFS(std::vector<std::string> &sfsFileNames, bool folded);
+	void _initializeSFS(const std::vector<double> &thetas);
+	void _initializeSFS(const std::vector<std::string> &sfsFileNames, bool folded);
 	void _simulateHaplotypesHaploid(TSimulatorHaplotypes &haplotypes, const BAM::TChromosome &chromosome) override;
 	void _simulateHaplotypesDiploid(TSimulatorHaplotypes &haplotypes, const BAM::TChromosome &chromosome) override;
 
