@@ -70,10 +70,9 @@ protected:
 	std::array<double, 4> _cumulBaseFreq;
 	bool _refInitialized = false;
 
-	TSimulator(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGenerator) : _logfile(Logfile), _randomGenerator(RandomGenerator) {_initializeCommonSettings(params);}
+	TSimulator(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGenerator);
 
 	//function to initialize read groups
-	void _initializeCommonSettings(TParameters & params);
 	std::vector<std::string>  _readSimInfoPerReadGroup(const std::string & Filename, const std::string & Column, const std::string & Name);
 	void _initializeReadGroup(const std::string & readLengthString, const BAM::TReadGroup & ReadGroup);
 	void _initializeReadGroupsFromReadLengthDistribution(TParameters & params, const std::string & ParameterName, const std::string & DefaultValue, const std::string & Name);
@@ -107,7 +106,6 @@ public:
 	void setQualityDistribution(double mean, double sd, int maxQual);
 	void setReadLength(std::string s);
 	void setDepth(double depth) noexcept {_seqDepth = depth;};
-	void setBaseFreq(const std::vector<double> & freq);
 	void setQualityTransformation(std::vector<double> & Betas);
 
 	void runSimulations();

@@ -13,21 +13,18 @@ namespace Simulations{
 //TSimulator
 //---------------------------------------------------
 
-void TSimulator::_initializeCommonSettings(TParameters & params){
-	//depth
-	_seqDepth = params.getParameterWithDefault("depth", 10.0);
+TSimulator::TSimulator(TLog *Logfile, TParameters &params, TRandomGenerator *RandomGenerator)
+	: _logfile(Logfile), _randomGenerator(RandomGenerator),
+	  _outname(params.getParameterWithDefault<std::string>("out", "ATLAS_simulations")),
+	  _referenceDivergence(params.getParameterWithDefault("refDiv", 0.01)),
+	  _seqDepth(params.getParameterWithDefault("depth", 10.0)),
+	  _writeTrueGenotypes(params.parameterExists("writeTrueGenotypes")),
+	  _writeVariantInvariantBedFiles(params.parameterExists("writeVariantBED")),
+	  _referenceObj(_outname + ".fasta", _logfile) {
+	// depth
 	_logfile->list("Will simulate to an average depth of ", _seqDepth, ".");
-
-	// base frequencies
-	std::vector<double> freq;
-	coretools::str::fillContainerFromString(
-		params.getParameterWithDefault<std::string>("baseFreq", "0.25,0.25,0.25,0.25"), freq, ',');
-	if (freq.size() != 4) throw "baseFreq vector must have size = 4!";
-	setBaseFreq(freq);
-
-	//reference divergence
-	_referenceDivergence = params.getParameterWithDefault("refDiv", 0.01);
 	_logfile->list("Will simulate data with reference divergence = ", _referenceDivergence, ".");
+	_logfile->list("Will write output files with tag '" + _outname + "'.");
 
 	//fill cumul table for reference divergence
 	_cumulRef[0] = 1.0 - _referenceDivergence;
@@ -35,24 +32,28 @@ void TSimulator::_initializeCommonSettings(TParameters & params){
 	_cumulRef[2] = _cumulRef[1] + _referenceDivergence / 3.0;
 	_cumulRef[3] = 1.0;
 
-	//read groups
+	// base frequencies
+	std::vector<double> freq;
+	coretools::str::fillContainerFromString(
+		params.getParameterWithDefault<std::string>("baseFreq", "0.25,0.25,0.25,0.25"), freq, ',');
+	if (freq.size() != 4) throw "baseFreq vector must have size = 4!";
+
+	const auto sum = coretools::containerSum(freq);
+	_baseFreq[genometools::A] = freq[0] / sum;
+	_baseFreq[genometools::C] = freq[1] / sum;
+	_baseFreq[genometools::G] = freq[2] / sum;
+	_baseFreq[genometools::T] = freq[3] / sum;
+
+	_cumulBaseFreq[0] = _baseFreq[genometools::A];
+	_cumulBaseFreq[1] = _cumulBaseFreq[0] + _baseFreq[genometools::C];
+	_cumulBaseFreq[2] = _cumulBaseFreq[1] + _baseFreq[genometools::G];
+	_cumulBaseFreq[3] = 1.0;
+
+	_logfile->list("Simulating with base frequencies " + (std::string) _baseFreq);
+
 	_initializeReadSimulator(params);
-
-	//chromosomes
 	_initializeChromosomes(params);
-
-	//extra output on sites
-	_writeTrueGenotypes = params.parameterExists("writeTrueGenotypes");
-	_writeVariantInvariantBedFiles = params.parameterExists("writeVariantBED");
-
-	//output name
-	_outname = params.getParameterWithDefault<std::string>("out", "ATLAS_simulations");
-	_logfile->list("Will write output files with tag '" + _outname + "'.");
-
-	//open FASTA file for reference sequences
-	const auto filename = _outname + ".fasta";
-	_referenceObj.initialize(filename, _logfile);
-};
+}
 
 //--------------------------------------------------------------
 //Function to initialize read groups
@@ -390,21 +391,6 @@ void TSimulator::_initializeChromosomes(std::vector<uint32_t> & chrLength, std::
 	for(size_t i=0; i<chrLength.size(); ++i){
 		_chromosomes.appendChromosome("chr" + coretools::str::toString(i+1), chrLength[i], haploid[i]);
 	}
-}
-
-void TSimulator::setBaseFreq(const std::vector<double> & freq) {
-	const auto sum = coretools::containerSum(freq);
-	_baseFreq[genometools::A] = freq[0] / sum;
-	_baseFreq[genometools::C] = freq[1] / sum;
-	_baseFreq[genometools::G] = freq[2] / sum;
-	_baseFreq[genometools::T] = freq[3] / sum;
-
-	_cumulBaseFreq[0] = _baseFreq[genometools::A];
-	_cumulBaseFreq[1] = _cumulBaseFreq[0] + _baseFreq[genometools::C];
-	_cumulBaseFreq[2] = _cumulBaseFreq[1] + _baseFreq[genometools::G];
-	_cumulBaseFreq[3] = 1.0;
-
-	_logfile->list("Simulating with base frequencies " + (std::string) _baseFreq);
 }
 
 //--------------------------------------------------------------
