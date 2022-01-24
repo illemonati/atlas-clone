@@ -830,7 +830,7 @@ void TSimulatorSFS::_initializeSFS(const std::vector<std::string> &sfsFileNames,
 	}
 }
 
-static inline int is_odd(int x) { return x % 2 != 0; }
+int is_odd(int x) { return x & 1; }
 
 void TSimulatorSFS::_simulateHaplotypesHaploid(TSimulatorHaplotypes &haplotypes, const BAM::TChromosome &chromosome) {
 	// now simulate haplotypes
