@@ -153,7 +153,7 @@ void TSimulatorHaplotypes::allocateStorage() {
 	}
 }
 
-void TSimulatorHaplotypes::setLength(uint32_t length) {
+void TSimulatorHaplotypes::setLength(uint32_t length) noexcept {
 	if (length > _length) {
 		_length = length;
 		allocateStorage();
@@ -229,7 +229,7 @@ void TSimulatorHaplotypes::writeTrueGenotypes(const std::string &chrName, const 
 	}
 }
 
-bool TSimulatorHaplotypes::isPolymoprhic(uint64_t pos) {
+bool TSimulatorHaplotypes::isPolymoprhic(uint64_t pos) const noexcept {
 	// count how many allele match that of first individual
 	const Base testBase = haplotypes[0][0][pos];
 	int counts    = 0;
@@ -245,58 +245,46 @@ bool TSimulatorHaplotypes::isPolymoprhic(uint64_t pos) {
 // TSimulatorMutationtable
 //---------------------------------------------------------
 TSimulatorMutationtable::TSimulatorMutationtable(const GenotypeLikelihoods::TBaseProbabilities &baseFreq) {
-	fill(baseFreq);
-};
+	for (Base a = Base::min(); a < Base::max(); ++a) {
+		for (Base b = Base::min(); b < Base::max(); ++b) {
+			_mutTable[a.get()][b.get()] = baseFreq[a] * baseFreq[b];
+		}
+		_mutTable[a.get()][a.get()] = 0.0;
+	}
+	_normalizeAndMakeCumulative();
+}
 
 TSimulatorMutationtable::TSimulatorMutationtable(const GenotypeLikelihoods::TBaseProbabilities &baseFreq,
 						 double theta) {
-	fill(baseFreq, theta);
-};
+	const double exp_t   = exp(-theta);
+	const double o_exp_t = 1 - exp_t;
+	for (Base a = Base::min(); a < Base::max(); ++a) {
+		for (Base b = Base::min(); b < Base::max(); ++b) {
+			_mutTable[a.get()][b.get()] = baseFreq[a] * baseFreq[b] * o_exp_t;
+		}
+		_mutTable[a.get()][a.get()] += baseFreq[a]*exp_t;
+	}
+	_normalizeAndMakeCumulative();
+}
 
 void TSimulatorMutationtable::_normalizeAndMakeCumulative() {
 	// normalize within row
-	for (int i = 0; i < 4; ++i) {
-		double sum = 0.0;
-		for (int j = 0; j < 4; ++j) { sum += _mutTable[i][j]; }
-		for (int j = 0; j < 4; ++j) { _mutTable[i][j] /= sum; }
-
-		// make cumulative
-		_mutTable[i][1] += _mutTable[i][0];
-		_mutTable[i][2] += _mutTable[i][1];
-		_mutTable[i][3] = 1.0;
+	for (auto & mu : _mutTable) {
+		const double sum = std::accumulate(mu.begin(), mu.end(), 0.);
+		mu[0]           /= sum;
+		mu[1]            = mu[1] / sum + mu[0];
+		mu[2]            = mu[2] / sum + mu[1];
+		mu[3]            = 1.0;
 	}
-};
-
-void TSimulatorMutationtable::fill(const GenotypeLikelihoods::TBaseProbabilities &baseFreq) {
-	for (uint8_t i = 0; i < 4; ++i) {
-		for (uint8_t j = 0; j < 4; ++j) {
-			_mutTable[i][j] = baseFreq[static_cast<Base>(i)] * baseFreq[static_cast<Base>(j)];
-		}
-		_mutTable[i][i] = 0.0;
-	}
-
-	_normalizeAndMakeCumulative();
-};
-
-void TSimulatorMutationtable::fill(const GenotypeLikelihoods::TBaseProbabilities &baseFreq, double theta) {
-	double expMinusTheta = exp(-theta);
-	for (uint8_t i = 0; i < 4; ++i) {
-		for (uint8_t j = 0; j < 4; ++j) {
-			_mutTable[i][j] = baseFreq[static_cast<Base>(i)] * baseFreq[static_cast<Base>(j)] * (1.0 - expMinusTheta);
-		}
-		_mutTable[i][i] += baseFreq[static_cast<Base>(i)] * expMinusTheta;
-	}
-
-	_normalizeAndMakeCumulative();
-};
+}
 
 void TSimulatorMutationtable::print() {
 	for (int i = 0; i < 4; ++i) {
 		std::cout << "Mutation table " << i << ":";
-		for (int j = 0; j < 4; ++j) { std::cout << " " << _mutTable[i][j]; }
+		for (auto &m : _mutTable[i]) std::cout << " " << m;
 		std::cout << std::endl;
 	}
-};
+}
 
 //---------------------------------------------------------
 // TSimulatorVariantInvariantBedFiles

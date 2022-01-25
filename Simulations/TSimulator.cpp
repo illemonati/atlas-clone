@@ -737,7 +737,7 @@ void TSimulatorPair::_simulateHaplotypesDiploid(TSimulatorHaplotypes &haplotypes
 // TSimulatorSFS
 //---------------------------------------------------------
 TSimulatorSFS::TSimulatorSFS(TLog *Logfile, TParameters &params, TRandomGenerator *RandomGenerator)
-	: TSimulator(Logfile, params, RandomGenerator) {
+	: TSimulator(Logfile, params, RandomGenerator), mutTable(_baseFreq) {
 	_logfile->startIndent("Reading parameters to simulate a population sample given an SFS:");
 
 	// sample size
@@ -781,9 +781,6 @@ TSimulatorSFS::TSimulatorSFS(TLog *Logfile, TParameters &params, TRandomGenerato
 		_initializeSFS(thetas);
 	} else
 		throw "Either argument sfs or theta must be provided to simulate population samples!";
-
-	// fill mutation table
-	mutTable.fill(_baseFreq);
 
 	// done
 	_logfile->endIndent();
@@ -918,7 +915,7 @@ TSimulatorHW::TSimulatorHW(coretools::TLog *Logfile, TParameters &params,
 						 coretools::TRandomGenerator *RandomGenerator)
 	: TSimulator(Logfile, params, RandomGenerator), fracPoly(params.getParameterWithDefault("fracPoly", 0.1)),
 	  alpha(params.getParameterWithDefault("alpha", 0.5)), beta(params.getParameterWithDefault("beta", 0.5)),
-	  F(params.getParameterWithDefault("F", 0.0)) {
+	  F(params.getParameterWithDefault("F", 0.0)), mutTable(_baseFreq) {
 	_logfile->startIndent("Reading parameters to simulate a population sample under Hardy-Weinberg equilibrium:");
 
 	// sample size
@@ -945,9 +942,6 @@ TSimulatorHW::TSimulatorHW(coretools::TLog *Logfile, TParameters &params,
 		trueFreqFile.writeHeader({"Chr", "Pos", "Ancestral", "Derived", "derivedFreq", "MAF"});
 		writeTrueAlleleFreq = true;
 	}
-
-	// fill mutation table
-	mutTable.fill(_baseFreq);
 
 	// done
 	_logfile->endIndent();

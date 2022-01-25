@@ -103,7 +103,7 @@ public:
 	GenotypeLikelihoods::TBaseData_base<int> index;
 	GenotypeLikelihoods::TBaseData_base<bool> used;
 
-	void clear(const Base &ref) {
+	void clear(const Base &ref) noexcept {
 		used.set(false);
 		used[ref]  = true;
 		index[ref] = 0;
@@ -111,7 +111,7 @@ public:
 		refBase    = ref;
 	}
 
-	void add(const Base &base) {
+	void add(const Base &base) noexcept {
 		if (!used[base]) {
 			used[base]             = true;
 			index[base]            = nextIndex;
@@ -149,15 +149,15 @@ public:
 	~TSimulatorHaplotypes() {
 		if (trueGenoVCF) trueGenoVCF.close();
 	}
-	void setLength(uint32_t length);
+	void setLength(uint32_t length) noexcept;
 	uint32_t length() const { return _length; };
 	void openTrueGenotypeVCF(std::string filename);
 	std::array<std::vector<Base>,2> getHaplotypesOfIndividual(int i);
 	std::array<std::vector<Base>,2> getHaplotypesFirstIndividual() { return haplotypes[0]; };
 	void writeTrueGenotypes(const std::string &chrName, const TSimulatorReference &ref);
-	int size() { return numInd; };
-	Base &operator()(int ind, int hap, uint64_t site) { return haplotypes[ind][hap][site]; };
-	bool isPolymoprhic(uint64_t pos);
+	int size() const noexcept { return numInd; };
+	Base &operator()(int ind, int hap, uint64_t site) noexcept { return haplotypes[ind][hap][site]; };
+	bool isPolymoprhic(uint64_t pos) const noexcept;
 };
 
 //---------------------------------------------------------
@@ -166,17 +166,12 @@ public:
 class TSimulatorMutationtable {
 private:
 	std::array<std::array<double, 4>, 4> _mutTable;
-
 	void _normalizeAndMakeCumulative();
-
 public:
-	TSimulatorMutationtable() = default;
 	TSimulatorMutationtable(const GenotypeLikelihoods::TBaseProbabilities &baseFreq);
 	TSimulatorMutationtable(const GenotypeLikelihoods::TBaseProbabilities &baseFreq, double theta);
 	~TSimulatorMutationtable() = default;
-	void fill(const GenotypeLikelihoods::TBaseProbabilities &baseFreq);
-	void fill(const GenotypeLikelihoods::TBaseProbabilities &baseFreq, double theta);
-	const std::array<double, 4> operator[](const genometools::Base &base) { return _mutTable[base.get()]; };
+	const std::array<double, 4> operator[](genometools::Base base) const noexcept { return _mutTable[base.get()]; }
 	void print();
 };
 
