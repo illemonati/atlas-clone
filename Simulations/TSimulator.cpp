@@ -815,9 +815,9 @@ void TSimulatorSFS::_initializeSFS(const std::vector<std::string> &sfsFileNames,
 		_logfile->done();
 
 		const uint32_t nChr = _chromosomes[i].ploidy * _sampleSize;
-		if (_sfs.back()->numChromosomes != nChr) {
+		if (_sfs.back()->numChromosomes() != nChr) {
 			throw coretools::str::toString("SFS does not match sample size! It contains data for ",
-						       (*_sfs.rbegin())->numChromosomes, " instead of ", nChr, " chromosomes.");
+						       (*_sfs.rbegin())->numChromosomes(), " instead of ", nChr, " chromosomes.");
 		}
 	}
 }
