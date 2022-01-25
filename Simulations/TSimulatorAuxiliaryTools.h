@@ -182,21 +182,19 @@ class TSimulatorVariantInvariantBedFiles {
 private:
 	gz::ogzstream variantSitesFile;
 	gz::ogzstream invariantSitesFile;
-	bool filesOpend;
 
 	void openFile(gz::ogzstream &file, const std::string filename);
 	void close();
 
 public:
-	TSimulatorVariantInvariantBedFiles();
-	TSimulatorVariantInvariantBedFiles(std::string outname);
-	~TSimulatorVariantInvariantBedFiles();
+	TSimulatorVariantInvariantBedFiles(){}
+	TSimulatorVariantInvariantBedFiles(std::string outname) { open(outname); }
+	~TSimulatorVariantInvariantBedFiles() { close(); }
 
 	void open(std::string outname);
-
 	void write(TSimulatorHaplotypes &haplotypes, const std::string &chrName);
 };
 
-}; // namespace Simulations
+} // namespace Simulations
 
 #endif /* TSIMULATORAUXILIARYTOOLS_H_ */

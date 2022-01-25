@@ -233,11 +233,10 @@ bool TSimulatorHaplotypes::isPolymoprhic(uint64_t pos) const noexcept {
 	// count how many allele match that of first individual
 	const Base testBase = haplotypes[0][0][pos];
 	int counts    = 0;
-	for (int ind = 0; ind < numInd; ++ind) {
-		if (haplotypes[ind][0][pos] == testBase) ++counts;
-		if (haplotypes[ind][1][pos] == testBase) ++counts;
+	for (auto& h: haplotypes) {
+		if (h[0][pos] == testBase) ++counts;
+		if (h[1][pos] == testBase) ++counts;
 	}
-
 	return counts != 2*numInd;
 }
 
@@ -289,15 +288,6 @@ void TSimulatorMutationtable::print() {
 //---------------------------------------------------------
 // TSimulatorVariantInvariantBedFiles
 //---------------------------------------------------------
-TSimulatorVariantInvariantBedFiles::TSimulatorVariantInvariantBedFiles() { filesOpend = false; };
-
-TSimulatorVariantInvariantBedFiles::TSimulatorVariantInvariantBedFiles(std::string outname) {
-	filesOpend = false;
-	open(outname);
-};
-
-TSimulatorVariantInvariantBedFiles::~TSimulatorVariantInvariantBedFiles() { close(); };
-
 void TSimulatorVariantInvariantBedFiles::openFile(gz::ogzstream &file, const std::string filename) {
 	file.open(filename.c_str());
 	if (!file) throw "Failed to open file '" + filename + "' for writing!";
@@ -307,19 +297,14 @@ void TSimulatorVariantInvariantBedFiles::open(std::string outname) {
 	// make sure files are closed
 	close();
 
-	// now open files
 	openFile(variantSitesFile, outname + "_variantSites.bed.gz");
 	openFile(invariantSitesFile, outname + "_invariantSites.bed.gz");
-	filesOpend = true;
-};
+}
 
 void TSimulatorVariantInvariantBedFiles::close() {
-	if (filesOpend) {
-		variantSitesFile.close();
-		invariantSitesFile.close();
-		filesOpend = false;
-	}
-};
+	if (variantSitesFile) variantSitesFile.close();
+	if (invariantSitesFile) invariantSitesFile.close();
+}
 
 void TSimulatorVariantInvariantBedFiles::write(TSimulatorHaplotypes &haplotypes, const std::string &chrName) {
 	// 0-based
@@ -338,6 +323,6 @@ void TSimulatorVariantInvariantBedFiles::write(TSimulatorHaplotypes &haplotypes,
 	// write last invariant interval
 	if (invariantStart < haplotypes.length())
 		invariantSitesFile << chrName << "\t" << invariantStart << "\t" << haplotypes.length() << "\n";
-};
+}
 
-}; // namespace Simulations
+} // namespace Simulations
