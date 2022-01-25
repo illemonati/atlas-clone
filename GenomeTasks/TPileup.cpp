@@ -90,7 +90,7 @@ TPileup::TPileup(TParameters & Parameters, TLog* Logfile, TRandomGenerator* Rand
 
 	//print all sites, also those without data?
 	if(Parameters.parameterExists("printAll")){
-		printOnlySitesWithData = true;
+		printOnlySitesWithData = false;
 		_logfile->list("Will all sites that pass filters, including those without data. (parameter 'printAll')");
 	} else {
 		printOnlySitesWithData = true;
@@ -112,9 +112,8 @@ void TPileup::_handleWindow(){
 	_logfile->listFlushTime("Writing pileup ...");
 
 	uint32_t pos = 0;
-	for(auto it = _window.begin(); it != _window.end(); ++it, ++pos){
-		GenotypeLikelihoods::TSite& site = *it;
-
+	for (auto & site : _window) {
+		if (printOnlySitesWithData && site.empty()) continue;
 		out << _window.chrName();
 		out << _window.positionOnChr(pos) + 1; //positions are zero-based internally
 
