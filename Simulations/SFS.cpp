@@ -30,7 +30,7 @@ SFS::SFS(const std::string & filename){
 	_fillCumulative();
 }
 
-SFS::SFS(SFS* other, const float & MonoFrac){
+SFS::SFS(SFS* other, float MonoFrac){
 	//construct from other SFS, but rescale SFS to have a specific fraction of monomorphic sites
 	//now copy and rescale
 	float sum = 0.0;
@@ -45,7 +45,7 @@ SFS::SFS(SFS* other, const float & MonoFrac){
 	_fillCumulative();
 };
 
-SFS::SFS(uint32_t numChr, const float & theta){
+SFS::SFS(uint32_t numChr, float theta){
 	//generate sfs from theta
 	float sum = 0;
 	for(uint32_t i=1; i<numChr + 1; ++i){
@@ -103,7 +103,7 @@ void SFS::writeToFile(const std::string & filename, const bool & writeLog){
 	out.close();
 };
 
-double SFS::calcLLOneSite(float* gl){
+double SFS::calcLLOneSite(const std::vector<float> & gl){
 	double LL = 0.0;
 	for(uint32_t i=0; i<sfs.size(); ++i){
 		LL += exp(gl[i]) * sfs[i];
@@ -123,7 +123,7 @@ uint32_t SFS::getRandomAlleleCount(coretools::TRandomGenerator* randomGenerator)
 //--------------------------------------
 //SFSfolded
 //--------------------------------------
-SFSfolded::SFSfolded(uint32_t numChr, const float & theta) {
+SFSfolded::SFSfolded(uint32_t numChr, float theta) {
 	//generate sfs from theta
 	float sum = 0;
 	for(uint32_t i=1; i<numChr + 1; ++i){
@@ -138,9 +138,9 @@ SFSfolded::SFSfolded(uint32_t numChr, const float & theta) {
 	_fillCumulative();
 };
 
-double SFSfolded::calcLLOneSite(float* gl){
-	double LL = 0.0;
+double SFSfolded::calcLLOneSite(const std::vector<float>& gl){
 	const auto dimension = sfs.size();
+	double LL = 0.0;
 	for(uint32_t i=0; i<dimension; ++i)
 		LL += exp(gl[i]) * sfs[i];
 
