@@ -492,17 +492,17 @@ TSimulatorOne::TSimulatorOne(TLog *Logfile, TParameters &params, TRandomGenerato
 	// now theta
 	std::vector<std::string> tmp;
 	params.fillParameterIntoContainerWithDefault("theta", tmp, ',', {"0.001"});
-	coretools::str::repeatIndexes(tmp, thetas);
-	if (thetas.size() == 1) {
-		_logfile->list("Will simulate a single individual with theta = ", thetas[0], ".");
-		for (unsigned int i = 1; i < _chromosomes.size(); ++i) thetas.push_back(thetas[0]);
+	coretools::str::repeatIndexes(tmp, _thetas);
+	if (_thetas.size() == 1) {
+		_logfile->list("Will simulate a single individual with theta = ", _thetas[0], ".");
+		for (unsigned int i = 1; i < _chromosomes.size(); ++i) _thetas.push_back(_thetas[0]);
 	} else {
 		_logfile->list("Will simulate a single individual with chromosome specific thetas " +
-			       coretools::str::concatenateString(thetas, ", "));
+			       coretools::str::concatenateString(_thetas, ", "));
 	}
 
 	// one theta per chromosome
-	if (thetas.size() != _chromosomes.size())
+	if (_thetas.size() != _chromosomes.size())
 		throw "Number of theta values provided does not match number of chromosomes to simulate!";
 
 	// done
@@ -512,7 +512,7 @@ TSimulatorOne::TSimulatorOne(TLog *Logfile, TParameters &params, TRandomGenerato
 void TSimulatorOne::_simulateHaplotypesDiploid(TSimulatorHaplotypes &haplotypes,
 							 const BAM::TChromosome &chromosome) {
 	// fill mutation table
-	TSimulatorMutationtable mutTable(_baseFreq, thetas[chromosome.refID()]);
+	TSimulatorMutationtable mutTable(_baseFreq, _thetas[chromosome.refID()]);
 
 	for (uint64_t l = 0; l < chromosome.length; ++l) {
 		haplotypes(0, 0, l) = _sampleBase(_cumulBaseFreq);
@@ -530,7 +530,7 @@ void TSimulatorOne::_simulateHaplotypesDiploid(TSimulatorHaplotypes &haplotypes,
 void TSimulatorOne::_simulateHaplotypesHaploid(TSimulatorHaplotypes &haplotypes,
 							 const BAM::TChromosome &chromosome) {
 	// fill mutation table
-	TSimulatorMutationtable mutTable(_baseFreq, thetas[chromosome.refID()]);
+	TSimulatorMutationtable mutTable(_baseFreq, _thetas[chromosome.refID()]);
 
 	// now simulate genotypes
 	for (uint64_t l = 0; l < chromosome.length; ++l) {
@@ -555,19 +555,19 @@ TSimulatorPair::TSimulatorPair(TLog *Logfile, TParameters &params,
 	// Initialize phis
 	std::vector<std::string> tmp;
 	params.fillParameterIntoContainer("phi", tmp, ',');
-	coretools::str::repeatIndexes(tmp, phis);
+	coretools::str::repeatIndexes(tmp, _phis);
 
-	if (phis.size() != 9)
+	if (_phis.size() != 9)
 		throw "Wrong number of phi! Required are nine values for genotype combinations 00/00, 00/01, 01/00, 00/11, "
 		      "01/01, 01/02, 00/12, 01/22, 01/23";
 
 	// normalize phis
-	const double sum = std::accumulate(phis.cbegin(), phis.cend(), 0.);
+	const double sum = std::accumulate(_phis.cbegin(), _phis.cend(), 0.);
 	if (sum != 1.0) {
 		_logfile->list("Normalizing phi to sum to one (currently summing to ", sum, ").");
-		for (auto & ph: phis) ph /= sum;
+		for (auto & ph: _phis) ph /= sum;
 	}
-	_logfile->list("Used phi are: " + coretools::str::concatenateString(phis, ", "));
+	_logfile->list("Used phi are: " + coretools::str::concatenateString(_phis, ", "));
 
 	// initializes tables
 	_fillTables();
@@ -579,11 +579,11 @@ TSimulatorPair::TSimulatorPair(TLog *Logfile, TParameters &params,
 void TSimulatorPair::_fillTables() {
 	// file cumulative frequencies of cases (phis)
 	double sum   = 0.0;
-	for (size_t i = 0; i < phis.size(); ++i) {
-		sum += phis[i];
-		cumulGenoCaseFrequencies[i] = sum;
+	for (size_t i = 0; i < _phis.size(); ++i) {
+		sum += _phis[i];
+		_cumulGenoCaseFrequencies[i] = sum;
 	}
-	cumulGenoCaseFrequencies.back() = 1.0;
+	_cumulGenoCaseFrequencies.back() = 1.0;
 	if (fabs(sum - 1.0) > 0.0000000001)
 		throw "Phis do not sum to 1.0! They sum to " + coretools::str::toString(sum) + ".";
 
@@ -593,8 +593,8 @@ void TSimulatorPair::_fillTables() {
 	sum = 0.0;
 	for (size_t a = 0; a < 4; ++a) {
 		sum += _baseFreq[static_cast<Base>(a)];
-		cumulGenoCombinationFreq[0].push_back(sum);
-		genoTrans[0].push_back({static_cast<Base>(a), static_cast<Base>(a), static_cast<Base>(a), static_cast<Base>(a)});
+		_cumulGenoCombinationFreq[0].push_back(sum);
+		_genoTrans[0].push_back({static_cast<Base>(a), static_cast<Base>(a), static_cast<Base>(a), static_cast<Base>(a)});
 	}
 
 	// cases 1 to 3: aa/ab, ab/aa, aa/bb
@@ -606,17 +606,17 @@ void TSimulatorPair::_fillTables() {
 
 			sum += _baseFreq[static_cast<Base>(a)] * _baseFreq[static_cast<Base>(b)];
 
-			cumulGenoCombinationFreq[1].push_back(sum);
-			cumulGenoCombinationFreq[2].push_back(sum);
-			cumulGenoCombinationFreq[3].push_back(sum);
-			genoTrans[1].push_back({static_cast<Base>(a), static_cast<Base>(a), static_cast<Base>(a), static_cast<Base>(b)});
-			genoTrans[2].push_back({static_cast<Base>(a), static_cast<Base>(b), static_cast<Base>(a), static_cast<Base>(a)});
-			genoTrans[3].push_back({static_cast<Base>(a), static_cast<Base>(a), static_cast<Base>(b), static_cast<Base>(b)});
+			_cumulGenoCombinationFreq[1].push_back(sum);
+			_cumulGenoCombinationFreq[2].push_back(sum);
+			_cumulGenoCombinationFreq[3].push_back(sum);
+			_genoTrans[1].push_back({static_cast<Base>(a), static_cast<Base>(a), static_cast<Base>(a), static_cast<Base>(b)});
+			_genoTrans[2].push_back({static_cast<Base>(a), static_cast<Base>(b), static_cast<Base>(a), static_cast<Base>(a)});
+			_genoTrans[3].push_back({static_cast<Base>(a), static_cast<Base>(a), static_cast<Base>(b), static_cast<Base>(b)});
 		}
 	}
-	for (auto& c: cumulGenoCombinationFreq[1]) c /= sum;
-	for (auto& c: cumulGenoCombinationFreq[2]) c /= sum;
-	for (auto& c: cumulGenoCombinationFreq[3]) c /= sum;
+	for (auto& c: _cumulGenoCombinationFreq[1]) c /= sum;
+	for (auto& c: _cumulGenoCombinationFreq[2]) c /= sum;
+	for (auto& c: _cumulGenoCombinationFreq[3]) c /= sum;
 
 	// cases 4: ab/ab
 	//-----------------------------------------
@@ -625,11 +625,11 @@ void TSimulatorPair::_fillTables() {
 		for (size_t b = a + 1; b < 4; ++b) {
 			sum += _baseFreq[static_cast<Base>(a)] * _baseFreq[static_cast<Base>(b)];
 
-			cumulGenoCombinationFreq[4].push_back(sum);
-			genoTrans[4].push_back({static_cast<Base>(a), static_cast<Base>(b), static_cast<Base>(a), static_cast<Base>(b)});
+			_cumulGenoCombinationFreq[4].push_back(sum);
+			_genoTrans[4].push_back({static_cast<Base>(a), static_cast<Base>(b), static_cast<Base>(a), static_cast<Base>(b)});
 		}
 	}
-	for (auto& c: cumulGenoCombinationFreq[4]) c /= sum;
+	for (auto& c: _cumulGenoCombinationFreq[4]) c /= sum;
 
 	// case 5: ab/ac
 	//-----------------------------------------
@@ -641,13 +641,13 @@ void TSimulatorPair::_fillTables() {
 				if (c == a || c == b) continue;
 				sum += _baseFreq[static_cast<Base>(a)] * _baseFreq[static_cast<Base>(b)] * _baseFreq[static_cast<Base>(c)];
 
-				cumulGenoCombinationFreq[5].push_back(sum);
-				genoTrans[5].push_back(
+				_cumulGenoCombinationFreq[5].push_back(sum);
+				_genoTrans[5].push_back(
 					{static_cast<Base>(a), static_cast<Base>(b), static_cast<Base>(a), static_cast<Base>(c)});
 			}
 		}
 	}
-	for (auto &c : cumulGenoCombinationFreq[5]) c /= sum;
+	for (auto &c : _cumulGenoCombinationFreq[5]) c /= sum;
 
 	// cases 6 and 7: aa/bc, ab/cc
 	//-----------------------------------------
@@ -658,17 +658,17 @@ void TSimulatorPair::_fillTables() {
 			for (size_t c = 0; c < 4; ++c) {
 				if (c == a || c == b) continue;
 				sum += _baseFreq[static_cast<Base>(a)] * _baseFreq[static_cast<Base>(b)] * _baseFreq[static_cast<Base>(c)];
-				cumulGenoCombinationFreq[6].push_back(sum);
-				cumulGenoCombinationFreq[7].push_back(sum);
-				genoTrans[6].push_back(
+				_cumulGenoCombinationFreq[6].push_back(sum);
+				_cumulGenoCombinationFreq[7].push_back(sum);
+				_genoTrans[6].push_back(
 					{static_cast<Base>(a), static_cast<Base>(a), static_cast<Base>(b), static_cast<Base>(c)});
-				genoTrans[7].push_back(
+				_genoTrans[7].push_back(
 					{static_cast<Base>(a), static_cast<Base>(b), static_cast<Base>(c), static_cast<Base>(c)});
 			}
 		}
 	}
-	for (auto &c : cumulGenoCombinationFreq[6]) c /= sum;
-	for (auto &c : cumulGenoCombinationFreq[7]) c /= sum;
+	for (auto &c : _cumulGenoCombinationFreq[6]) c /= sum;
+	for (auto &c : _cumulGenoCombinationFreq[7]) c /= sum;
 
 	// case 8: ab/cd
 	//-----------------------------------------
@@ -682,8 +682,8 @@ void TSimulatorPair::_fillTables() {
 					if (d == a || d == b || d == c) continue;
 
 					sum += 1./24;
-					cumulGenoCombinationFreq[8].push_back(sum);
-				genoTrans[8].push_back(
+					_cumulGenoCombinationFreq[8].push_back(sum);
+				_genoTrans[8].push_back(
 					{static_cast<Base>(a), static_cast<Base>(b), static_cast<Base>(c), static_cast<Base>(d)});
 				}
 			}
@@ -709,26 +709,26 @@ void TSimulatorPair::_simulateHaplotypesDiploid(TSimulatorHaplotypes &haplotypes
 	// run across loci
 	for (uint64_t l = 0; l < chromosome.length; ++l) {
 		// pick a case
-		const int c = _randomGenerator->pickOne(cumulGenoCaseFrequencies);
+		const int c = _randomGenerator->pickOne(_cumulGenoCaseFrequencies);
 
 		// pick genotypes
-		const int g = _randomGenerator->pickOne(cumulGenoCombinationFreq[c]);
+		const int g = _randomGenerator->pickOne(_cumulGenoCombinationFreq[c]);
 
 		// pick order
 		const int o = _randomGenerator->sample(4);
 
 		// assign to haplotypes
-		haplotypes(0, 0, l) = genoTrans[c][g][orderLookup[o][0]];
-		haplotypes(0, 1, l) = genoTrans[c][g][orderLookup[o][1]];
-		haplotypes(1, 0, l) = genoTrans[c][g][orderLookup[o][2]];
-		haplotypes(1, 1, l) = genoTrans[c][g][orderLookup[o][3]];
+		haplotypes(0, 0, l) = _genoTrans[c][g][_orderLookup[o][0]];
+		haplotypes(0, 1, l) = _genoTrans[c][g][_orderLookup[o][1]];
+		haplotypes(1, 0, l) = _genoTrans[c][g][_orderLookup[o][2]];
+		haplotypes(1, 1, l) = _genoTrans[c][g][_orderLookup[o][3]];
 
 		// simulate reference
 		if (c == 0) {
 			_referenceObj[l].mutateWithStep(_randomGenerator->pickOne(_cumulRef));
 		} else {
 			const int r      = _randomGenerator->sample(4);
-			_referenceObj[l] = genoTrans[c][g][r];
+			_referenceObj[l] = _genoTrans[c][g][r];
 		}
 	}
 }
@@ -737,7 +737,7 @@ void TSimulatorPair::_simulateHaplotypesDiploid(TSimulatorHaplotypes &haplotypes
 // TSimulatorSFS
 //---------------------------------------------------------
 TSimulatorSFS::TSimulatorSFS(TLog *Logfile, TParameters &params, TRandomGenerator *RandomGenerator)
-	: TSimulator(Logfile, params, RandomGenerator), mutTable(_baseFreq) {
+	: TSimulator(Logfile, params, RandomGenerator), _mutTable(_baseFreq) {
 	_logfile->startIndent("Reading parameters to simulate a population sample given an SFS:");
 
 	// sample size
@@ -792,11 +792,11 @@ void TSimulatorSFS::_initializeSFS(const std::vector<double> &thetas) {
 	// generate SFS for each chromosome
 	_logfile->listFlush("Initializing SFS ...");
 	for (size_t i = 0; i < _chromosomes.size(); ++i) {
-		sfs.push_back(std::make_unique<SFS>(_chromosomes[i].ploidy * _sampleSize, (float)thetas[i]));
+		_sfs.push_back(std::make_unique<SFS>(_chromosomes[i].ploidy * _sampleSize, (float)thetas[i]));
 
 		// save true SFS
 		const auto filename = _outname + "_trueSFS_chr" + coretools::str::toString(_chromosomes[i].refID()) + ".txt";
-		sfs.back()->writeToFile(filename);
+		_sfs.back()->writeToFile(filename);
 	}
 	_logfile->done();
 	_logfile->conclude("True SFS written to '" + _outname + "_trueSFS_chr*.txt'.");
@@ -809,15 +809,15 @@ void TSimulatorSFS::_initializeSFS(const std::vector<std::string> &sfsFileNames,
 	for (size_t i = 0; i < _chromosomes.size(); ++i) {
 		_logfile->listFlush("Reading the sfs of chromosome '" + _chromosomes[i].name + "' from file '" + sfsFileNames[i] + "' ...");
 		if (folded)
-			sfs.push_back(std::make_unique<SFSfolded>(sfsFileNames[i]));
+			_sfs.push_back(std::make_unique<SFSfolded>(sfsFileNames[i]));
 		else
-			sfs.push_back(std::make_unique<SFS>(sfsFileNames[i]));
+			_sfs.push_back(std::make_unique<SFS>(sfsFileNames[i]));
 		_logfile->done();
 
 		const uint32_t nChr = _chromosomes[i].ploidy * _sampleSize;
-		if (sfs.back()->numChromosomes != nChr) {
+		if (_sfs.back()->numChromosomes != nChr) {
 			throw coretools::str::toString("SFS does not match sample size! It contains data for ",
-						       (*sfs.rbegin())->numChromosomes, " instead of ", nChr, " chromosomes.");
+						       (*_sfs.rbegin())->numChromosomes, " instead of ", nChr, " chromosomes.");
 		}
 	}
 }
@@ -829,10 +829,10 @@ void TSimulatorSFS::_simulateHaplotypesHaploid(TSimulatorHaplotypes &haplotypes,
 	for (uint32_t l = 0; l < chromosome.length; ++l) {
 		// pick alleles
 		const Base ancestral = _sampleBase(_cumulBaseFreq);
-		const Base derived   = _sampleBase(mutTable[ancestral]);
+		const Base derived   = _sampleBase(_mutTable[ancestral]);
 
 		// pick derived allele frequency
-		const int alleleCount = sfs[chromosome.refID()]->getRandomAlleleCount(_randomGenerator);
+		const int alleleCount = _sfs[chromosome.refID()]->getRandomAlleleCount(_randomGenerator);
 
 		// pick haplotypes that are derived
 		int numNeeded = alleleCount;
@@ -870,10 +870,10 @@ void TSimulatorSFS::_simulateHaplotypesDiploid(TSimulatorHaplotypes &haplotypes,
 	for (uint64_t l = 0; l < chromosome.length; ++l) {
 		// pick alleles
 		const Base ancestral = _sampleBase(_cumulBaseFreq);
-		const Base derived   = _sampleBase(mutTable[ancestral]);
+		const Base derived   = _sampleBase(_mutTable[ancestral]);
 
 		// pick derived allele frequency
-		const int alleleCount = sfs[chromosome.refID()]->getRandomAlleleCount(_randomGenerator);
+		const int alleleCount = _sfs[chromosome.refID()]->getRandomAlleleCount(_randomGenerator);
 		// oo << alleleCount << "\n";
 
 		// pick haplotypes that are derived
@@ -913,34 +913,34 @@ void TSimulatorSFS::_simulateHaplotypesDiploid(TSimulatorHaplotypes &haplotypes,
 //---------------------------------------------------------
 TSimulatorHW::TSimulatorHW(coretools::TLog *Logfile, TParameters &params,
 						 coretools::TRandomGenerator *RandomGenerator)
-	: TSimulator(Logfile, params, RandomGenerator), fracPoly(params.getParameterWithDefault("fracPoly", 0.1)),
-	  alpha(params.getParameterWithDefault("alpha", 0.5)), beta(params.getParameterWithDefault("beta", 0.5)),
-	  F(params.getParameterWithDefault("F", 0.0)), mutTable(_baseFreq) {
+	: TSimulator(Logfile, params, RandomGenerator), _fracPoly(params.getParameterWithDefault("fracPoly", 0.1)),
+	  _alpha(params.getParameterWithDefault("alpha", 0.5)), _beta(params.getParameterWithDefault("beta", 0.5)),
+	  _F(params.getParameterWithDefault("F", 0.0)), _mutTable(_baseFreq) {
 	_logfile->startIndent("Reading parameters to simulate a population sample under Hardy-Weinberg equilibrium:");
 
 	// sample size
 	_sampleSize = params.getParameterWithDefault<int>("sampleSize", 10);
 
 	// parameters of beta distribution
-	_logfile->list("Will simulate ", fracPoly, " of all sites as polymorphic. (parameter fracPoly)");
-	if (alpha <= 0.0) throw "Alpha must be > 0!";
-	if (beta <= 0.0) throw "Beta must be > 0!";
-	_logfile->list("Polymoprhic sites will have derived allele frequencies f~Beta(", alpha, ", ", beta,
+	_logfile->list("Will simulate ", _fracPoly, " of all sites as polymorphic. (parameter fracPoly)");
+	if (_alpha <= 0.0) throw "Alpha must be > 0!";
+	if (_beta <= 0.0) throw "Beta must be > 0!";
+	_logfile->list("Polymoprhic sites will have derived allele frequencies f~Beta(", _alpha, ", ", _beta,
 		       "). (parameters alpha, beta)");
-	if (F == 0.0) {
+	if (_F == 0.0) {
 		_logfile->list("Will assume no inbreeding. (parameter F=0)");
 	} else {
-		_logfile->list("Will use an inbreeding coefficient of ", F, ". (parameter F)");
-		if (F < 0.0 || F > 1.0) throw "Inbreeding coefficient F must be within [0,1]!";
+		_logfile->list("Will use an inbreeding coefficient of ", _F, ". (parameter F)");
+		if (_F < 0.0 || _F > 1.0) throw "Inbreeding coefficient F must be within [0,1]!";
 	}
 
 	// write true allele freq?
 	if (params.parameterExists("writeTrueAlleleFreq")) {
 		const auto alleleFreqFile = _outname + "_trueAlleleFreq.txt.gz";
 		_logfile->list("Will write true allele frequencies to file '" + alleleFreqFile + "'.");
-		trueFreqFile.open(alleleFreqFile);
-		trueFreqFile.writeHeader({"Chr", "Pos", "Ancestral", "Derived", "derivedFreq", "MAF"});
-		writeTrueAlleleFreq = true;
+		_trueFreqFile.open(alleleFreqFile);
+		_trueFreqFile.writeHeader({"Chr", "Pos", "Ancestral", "Derived", "derivedFreq", "MAF"});
+		_writeTrueAlleleFreq = true;
 	}
 
 	// done
@@ -949,20 +949,20 @@ TSimulatorHW::TSimulatorHW(coretools::TLog *Logfile, TParameters &params,
 
 void TSimulatorHW::_fillCumulGenoProb(double f) {
 	const double oneMinus_f = 1.0 - f;
-	cumulGenoProb[0]        = F * oneMinus_f + (1.0 - F) * oneMinus_f * oneMinus_f;
-	cumulGenoProb[1]        = cumulGenoProb[0] + (1.0 - F) * 2.0 * f * oneMinus_f;
-	cumulGenoProb[2]        = 1.0;
+	_cumulGenoProb[0]        = _F * oneMinus_f + (1.0 - _F) * oneMinus_f * oneMinus_f;
+	_cumulGenoProb[1]        = _cumulGenoProb[0] + (1.0 - _F) * 2.0 * f * oneMinus_f;
+	_cumulGenoProb[2]        = 1.0;
 }
 
 void TSimulatorHW::_simulateSite(TSimulatorHWSite &site, const std::string &chr, uint64_t pos) {
 	// simulate bases
 	site.reference   = static_cast<Base>(_randomGenerator->pickOne(_cumulBaseFreq));
-	site.alternative = static_cast<Base>(_randomGenerator->pickOne(mutTable[site.reference.get()]));
+	site.alternative = static_cast<Base>(_randomGenerator->pickOne(_mutTable[site.reference.get()]));
 
 	// is the site polymorphic?
-	if (_randomGenerator->getRand() < fracPoly) {
+	if (_randomGenerator->getRand() < _fracPoly) {
 		site.isPolymorphic = true;
-		site.f             = _randomGenerator->getBetaRandom(alpha, beta);
+		site.f             = _randomGenerator->getBetaRandom(_alpha, _beta);
 
 		// reference is a random sample from pop with frequency f: flip if ref is alt!
 		if (_randomGenerator->getRand() < site.f) {
@@ -978,9 +978,9 @@ void TSimulatorHW::_simulateSite(TSimulatorHWSite &site, const std::string &chr,
 	_referenceObj[pos] = site.reference;
 
 	// write true frequency: pos is 1 based!
-	if (writeTrueAlleleFreq) {
-		trueFreqFile << chr << pos + 1 << site.reference << site.alternative << site.f;
-		trueFreqFile << (site.f < 0.5 ? site.f : 1. - site.f) << std::endl;
+	if (_writeTrueAlleleFreq) {
+		_trueFreqFile << chr << pos + 1 << site.reference << site.alternative << site.f;
+		_trueFreqFile << (site.f < 0.5 ? site.f : 1. - site.f) << std::endl;
 	}
 }
 
@@ -1043,7 +1043,7 @@ void TSimulatorHW::_simulateHaplotypesDiploid(TSimulatorHaplotypes &haplotypes,
 
 			// simulate genotypes
 			for (int i = 0; i < _sampleSize; ++i) {
-				int geno = _randomGenerator->pickOne(3, cumulGenoProb);
+				int geno = _randomGenerator->pickOne(3, _cumulGenoProb);
 				if (geno == 0) {
 					haplotypes(i, 0, l) = site.reference;
 					haplotypes(i, 1, l) = site.reference;

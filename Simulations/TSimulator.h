@@ -119,7 +119,7 @@ public:
 //---------------------------------------------------------
 class TSimulatorOne : public TSimulator {
 private:
-	std::vector<double> thetas;
+	std::vector<double> _thetas;
 
 	void _simulateHaplotypesDiploid(TSimulatorHaplotypes &haplotypes, const BAM::TChromosome &chromosome) override;
 	void _simulateHaplotypesHaploid(TSimulatorHaplotypes &haplotypes, const BAM::TChromosome &chromosome) override;
@@ -133,15 +133,14 @@ public:
 //---------------------------------------------------------
 class TSimulatorPair : public TSimulator {
 private:
-	static constexpr std::array<std::array<size_t, 4>, 4> orderLookup =
+	static constexpr std::array<std::array<size_t, 4>, 4> _orderLookup =
 	{{{0, 1, 2, 3}, {0, 1, 3, 2}, {1, 0, 2, 3}, {1, 0, 3, 2}}};
-	std::vector<double> phis;
-	std::array<double, 9> cumulGenoCaseFrequencies;
-	std::array<std::vector<double>, 9> cumulGenoCombinationFreq;
-	std::array<std::vector<std::vector<Base>>, 9> genoTrans;
+	std::vector<double> _phis;
+	std::array<double, 9> _cumulGenoCaseFrequencies;
+	std::array<std::vector<double>, 9> _cumulGenoCombinationFreq;
+	std::array<std::vector<std::array<Base,4>>, 9> _genoTrans;
 
 	void _fillTables();
-
 	void _simulateHaplotypesDiploid(TSimulatorHaplotypes &haplotypes, const BAM::TChromosome &chromosome) override;
 	void _simulateHaplotypesHaploid(TSimulatorHaplotypes &haplotypes, const BAM::TChromosome &chromosome) override;
 
@@ -154,8 +153,8 @@ public:
 //---------------------------------------------------------
 class TSimulatorSFS : public TSimulator {
 private:
-	std::vector<std::unique_ptr<SFS>> sfs;
-	TSimulatorMutationtable mutTable;
+	std::vector<std::unique_ptr<SFS>> _sfs;
+	TSimulatorMutationtable _mutTable;
 
 	void _initializeSFS(const std::vector<double> &thetas);
 	void _initializeSFS(const std::vector<std::string> &sfsFileNames, bool folded);
@@ -178,11 +177,11 @@ struct TSimulatorHWSite {
 
 class TSimulatorHW : public TSimulator {
 private:
-	double fracPoly, alpha, beta, F;
-	double cumulGenoProb[3];
-	TSimulatorMutationtable mutTable;
-	bool writeTrueAlleleFreq = false;
-	coretools::TOutputFile trueFreqFile;
+	double _fracPoly, _alpha, _beta, _F;
+	double _cumulGenoProb[3];
+	TSimulatorMutationtable _mutTable;
+	bool _writeTrueAlleleFreq = false;
+	coretools::TOutputFile _trueFreqFile;
 
 	void _fillCumulGenoProb(double f);
 	void _simulateSite(TSimulatorHWSite &site, const std::string &chr, uint64_t pos);
@@ -203,20 +202,20 @@ public:
 
 	void run(TParameters &Parameters, TLog *Logfile) {
 		// initialize simulator
-		TSimulator *simulator;
+		std::unique_ptr<TSimulator> simulator;
 		std::string method = Parameters.getParameterWithDefault<std::string>("type", "one");
 		if (method == "one") {
 			Logfile->startIndent("Simulating a single individual (parameter type=one):");
-			simulator = new TSimulatorOne(Logfile, Parameters, _randomGenerator);
+			simulator = std::make_unique<TSimulatorOne>(Logfile, Parameters, _randomGenerator);
 		} else if (method == "pair") {
 			Logfile->startIndent("Simulating a pair of individual (parameter type=pair):");
-			simulator = new TSimulatorPair(Logfile, Parameters, _randomGenerator);
+			simulator = std::make_unique<TSimulatorPair>(Logfile, Parameters, _randomGenerator);
 		} else if (method == "SFS") {
 			Logfile->startIndent("Simulating individuals from an SFS (parameter type=SFS):");
-			simulator = new TSimulatorSFS(Logfile, Parameters, _randomGenerator);
+			simulator = std::make_unique<TSimulatorSFS>(Logfile, Parameters, _randomGenerator);
 		} else if (method == "HW") {
 			Logfile->startIndent("Simulating a individuals under Hardy-Weinberg (parameter type=HW):");
-			simulator = new TSimulatorHW(Logfile, Parameters, _randomGenerator);
+			simulator = std::make_unique<TSimulatorHW>(Logfile, Parameters, _randomGenerator);
 		} else
 			throw "Unknown simulation method '" + method + "'!";
 
@@ -225,10 +224,9 @@ public:
 
 		// clean up
 		Logfile->endIndent();
-		delete simulator;
-	};
+	}
 };
 
-}; // namespace Simulations
+} // namespace Simulations
 
 #endif /* TSIMULATOR_H_ */
