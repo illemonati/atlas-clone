@@ -22,32 +22,32 @@ namespace Simulations {
 using coretools::TRandomGenerator;
 using genometools::PhredIntProbability;
 
+// Pure abstract class
+class TSimulatorQualityDist {
+protected:
+	TSimulatorQualityDist() = default;
+public:
+	virtual ~TSimulatorQualityDist() = default;
+	virtual void sample(std::vector<PhredIntProbability> &phredInt) const noexcept final {
+		for (auto &q : phredInt) q = sample();
+	}
+	virtual PhredIntProbability sample() const noexcept                                = 0;
+	virtual void printDetails(coretools::TLog *logfile, const std::string &Name) const = 0;
+};
+
 //-------------------------------
 // TSimulatorQualityDist
 // Used for quality and mapping quality
 //-------------------------------
 // Class of a fixed value
-class TSimulatorQualityDist {
-protected:
-	TRandomGenerator *_randomGenerator;
-	PhredIntProbability _min{0};
+class TSimulatorQualityDistFixed : public TSimulatorQualityDist {
+private:
 	PhredIntProbability _max{30};
-	double _mean = -1.;
-	double _sd   = -1.;
-
-	virtual std::string _details() const;
 public:
-	TSimulatorQualityDist(TRandomGenerator *RandomGenerator) : _randomGenerator(RandomGenerator){};
-	TSimulatorQualityDist(std::string &s, TRandomGenerator *RandomGenerator);
-	virtual ~TSimulatorQualityDist(){};
-	PhredIntProbability min() const noexcept { return _min; };
-	PhredIntProbability max() const noexcept { return _max; };
-	double mean() const noexcept { return _mean; };
-	double sd() const noexcept { return _sd; };
+	TSimulatorQualityDistFixed(std::string &s);
 
-	virtual PhredIntProbability sample() const noexcept { return _max; };
-	virtual void sample(std::vector<PhredIntProbability> &phredInt) const noexcept;
-	void printDetails(coretools::TLog *logfile, const std::string &Name) const;
+	PhredIntProbability sample() const noexcept override { return _max; };
+	void printDetails(coretools::TLog *logfile, const std::string &Name) const override;
 };
 
 //------------------------------------------------
@@ -56,11 +56,13 @@ public:
 //------------------------------------------------
 class TSimulatorQualityDistBinned : public TSimulatorQualityDist {
 private:
+	TRandomGenerator *_randomGenerator;
 	std::vector<PhredIntProbability> _qualBins;
-	std::string _details() const override;
 public:
 	TSimulatorQualityDistBinned(std::string &s, TRandomGenerator *RandomGenerator);
+
 	PhredIntProbability sample() const noexcept override;
+	void printDetails(coretools::TLog *logfile, const std::string &Name) const override;
 };
 
 //------------------------------------------------
@@ -69,14 +71,16 @@ public:
 //------------------------------------------------
 class TSimulatorQualityDistFreq : public TSimulatorQualityDist {
 private:
+	TRandomGenerator *_randomGenerator;
 	std::vector<PhredIntProbability> _qualBins;
 	std::vector<coretools::Probability> _frequencies;
 	std::vector<coretools::Probability> _cumulativeFrequencies;
 
-	std::string _details() const override;
 public:
 	TSimulatorQualityDistFreq(std::string &s, TRandomGenerator *RandomGenerator);
+
 	PhredIntProbability sample() const noexcept override;
+	void printDetails(coretools::TLog *logfile, const std::string &Name) const override;
 };
 
 //------------------------------------------------
@@ -85,17 +89,25 @@ public:
 //------------------------------------------------
 class TSimulatorQualityDistNormal : public TSimulatorQualityDist {
 private:
+	TRandomGenerator *_randomGenerator;
 	// densities
 	std::vector<double> _densities;
 	std::vector<double> _cumulDensities;
-
-	std::string _details() const override;
+	double _mean = -1.;
+	double _sd   = -1.;
+	PhredIntProbability _min{0};
+	PhredIntProbability _max{30};
 public:
 	TSimulatorQualityDistNormal(std::string &s, TRandomGenerator *RandomGenerator);
 	TSimulatorQualityDistNormal(double mean, double sd, int min, int max, TRandomGenerator *RandomGenerator);
+
 	void parseFunctionString(std::string &s);
 	void fillDensities();
+	double mean() const noexcept { return _mean; };
+	double sd() const noexcept { return _sd; };
+
 	PhredIntProbability sample() const noexcept override;
+	void printDetails(coretools::TLog *logfile, const std::string &Name) const override;
 };
 
 } // namespace Simulations

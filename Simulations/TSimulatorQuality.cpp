@@ -14,7 +14,7 @@ namespace Simulations {
 //----------------------------------
 // TSimulatorQualityDist
 //----------------------------------
-	TSimulatorQualityDist::TSimulatorQualityDist(std::string &s, TRandomGenerator *RandomGenerator) : _randomGenerator(RandomGenerator) {
+TSimulatorQualityDistFixed::TSimulatorQualityDistFixed(std::string &s) {
 	const auto pos1 = s.find("(");
 	if (pos1 == std::string::npos)
 		_max = coretools::str::convertStringCheck<uint8_t>(s);
@@ -28,23 +28,15 @@ namespace Simulations {
 	}
 }
 
-void TSimulatorQualityDist::sample(std::vector<PhredIntProbability> &phredInt) const noexcept {
-	for (auto &q : phredInt) q = sample();
-}
-
-std::string TSimulatorQualityDist::_details() const {
-	return "fixed quality of " + toString(_max);
-}
-
-void TSimulatorQualityDist::printDetails(coretools::TLog *logfile, const std::string &Name) const {
-	logfile->list(Name + ": " + _details());
+void TSimulatorQualityDistFixed::printDetails(coretools::TLog *logfile, const std::string &Name) const {
+	logfile->list(Name + ": fixed quality of " + toString(_max));
 }
 
 //------------------------------------------------
 // TSimulatorQualityDistBinned
 //------------------------------------------------
-TSimulatorQualityDistBinned::TSimulatorQualityDistBinned(std::string &s, TRandomGenerator *RandomGenerator)
-	: TSimulatorQualityDist(RandomGenerator) {
+	TSimulatorQualityDistBinned::TSimulatorQualityDistBinned(std::string &s, TRandomGenerator *RandomGenerator) : _randomGenerator(RandomGenerator)
+	{
 	const auto pos1 = s.find("(");
 	if (pos1 == 0) {
 		s.erase(0, 1);
@@ -62,15 +54,15 @@ PhredIntProbability TSimulatorQualityDistBinned::sample() const noexcept {
 	return _qualBins[_randomGenerator->sample(_qualBins.size())];
 }
 
-std::string TSimulatorQualityDistBinned::_details() const {
-	return "uniformly distributed among the values " + coretools::str::concatenateString(_qualBins, ", ");
+void TSimulatorQualityDistBinned::printDetails(coretools::TLog *logfile, const std::string &Name) const {
+	logfile->list(Name + ": uniformly distributed among the values " + coretools::str::concatenateString(_qualBins, ", "));
 }
 
 //------------------------------------------------
 // TSimulatorQualityDistFreq
 //------------------------------------------------
 TSimulatorQualityDistFreq::TSimulatorQualityDistFreq(std::string &s, TRandomGenerator *RandomGenerator)
-	: TSimulatorQualityDist(RandomGenerator) {
+	: _randomGenerator(RandomGenerator) {
 	const auto pos1 = s.find("(");
 	if (pos1 == 0) {
 		s.erase(0, 1);
@@ -110,27 +102,23 @@ PhredIntProbability TSimulatorQualityDistFreq::sample() const noexcept {
 	return _qualBins[_randomGenerator->pickOne(_cumulativeFrequencies)];
 }
 
-std::string TSimulatorQualityDistFreq::_details() const {
-	return "frequency bins " +
-	       coretools::str::concatenateString(coretools::str::paste(_qualBins, _frequencies, ":"), ", ");
+void TSimulatorQualityDistFreq::printDetails(coretools::TLog *logfile, const std::string &Name) const {
+	logfile->list(Name + ": frequency bins " +
+	       coretools::str::concatenateString(coretools::str::paste(_qualBins, _frequencies, ":"), ", "));
 }
 
 //------------------------------------------------
 // TSimulatorQualityDistNormal
 //------------------------------------------------
 TSimulatorQualityDistNormal::TSimulatorQualityDistNormal(std::string &s, TRandomGenerator *RandomGenerator)
-	: TSimulatorQualityDist(RandomGenerator) {
+	: _randomGenerator(RandomGenerator) {
 	parseFunctionString(s);
 	fillDensities();
 }
 
 TSimulatorQualityDistNormal::TSimulatorQualityDistNormal(double mean, double sd, int min, int max,
 							 TRandomGenerator *RandomGenerator)
-	: TSimulatorQualityDist(RandomGenerator) {
-	_mean = mean;
-	_sd   = sd;
-	_min  = min;
-	_max  = max;
+	: _randomGenerator(RandomGenerator), _mean(mean), _sd(sd), _min(min), _max(max) {
 	fillDensities();
 }
 
@@ -198,9 +186,9 @@ PhredIntProbability TSimulatorQualityDistNormal::sample() const noexcept {
 	return PhredIntProbability(_randomGenerator->pickOne(_cumulDensities) + _min.get());
 }
 
-std::string TSimulatorQualityDistNormal::_details() const {
-	return coretools::str::toString("Normally distributed quality scores with mean=", _mean, " and sd=", _sd,
-	                                ", truncated to [", _min, ",", _max, "].");
+void TSimulatorQualityDistNormal::printDetails(coretools::TLog *logfile, const std::string &Name) const {
+	logfile->list(Name + ": Normally distributed quality scores with mean=", _mean, " and sd=", _sd,
+		      ", truncated to [", _min, ",", _max, "].");
 }
 
 } // namespace Simulations

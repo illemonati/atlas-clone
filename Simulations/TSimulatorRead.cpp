@@ -78,7 +78,7 @@ void TSimulatorSingleEndRead::_initializeQualityDistribution(std::string s, std:
 	std::string type = s.substr(0, pos);
 	s.erase(0, pos);
 	if(type == "fixed")
-		pointer = std::make_unique<TSimulatorQualityDist>(s, _randomGenerator);
+		pointer = std::make_unique<TSimulatorQualityDistFixed>(s);
 	else if(type == "normal")
 		pointer = std::make_unique<TSimulatorQualityDistNormal>(s, _randomGenerator);
 	else if(type == "binned")
