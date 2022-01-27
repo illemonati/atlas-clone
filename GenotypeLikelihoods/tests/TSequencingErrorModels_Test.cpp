@@ -2,9 +2,10 @@
 // Created by vivian on 17.08.20.
 //
 
+#include "gtest/gtest.h"
+
 #include "TSequencingErrorModels.h"
 #include "TPostMortemDamage.h"
-#include "TestCase.h"
 
 using namespace GenotypeLikelihoods;
 using genometools::Base;

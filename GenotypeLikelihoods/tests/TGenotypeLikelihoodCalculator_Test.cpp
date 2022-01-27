@@ -2,9 +2,9 @@
 // Created by linkv on 8/17/20.
 //
 
-#include "TGenotypeLikelihoodCalculator.h"
-#include "TestCase.h"
+#include "gtest/gtest.h"
 
+#include "TGenotypeLikelihoodCalculator.h"
 
 using namespace GenotypeLikelihoods;
 

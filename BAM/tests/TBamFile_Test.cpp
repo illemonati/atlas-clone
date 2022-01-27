@@ -1,10 +1,10 @@
+#include "gtest/gtest.h"
 
 #include "TBamFile.h"
 #include "TTestBamFile.h"
 #include "TAlignment.h"
 #include "TGenome.h"
 #include "TBamDiagnoser.h"
-#include "TestCase.h"
 #include "debugtools.h"
 
 using coretools::TLog;

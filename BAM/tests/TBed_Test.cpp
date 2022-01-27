@@ -2,8 +2,9 @@
 // Created by caduffm on 8/4/20.
 //
 
+#include "gtest/gtest.h"
+
 #include "TBed.h"
-#include "TestCase.h"
 
 //-------------------------------------------------------------
 // TBedChromosome

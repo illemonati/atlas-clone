@@ -2,8 +2,9 @@
 // Created by caduffm on 9/1/20.
 //
 
+#include "gtest/gtest.h"
+
 #include "TGLF.h"
-#include "TestCase.h"
 #include "debugtools.h"
 #include "TTestGLFFile.h"
 

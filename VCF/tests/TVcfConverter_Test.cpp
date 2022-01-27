@@ -1,8 +1,8 @@
 //
 // Created by caduffm on 10/27/21.
 //
+#include "gtest/gtest.h"
 
-#include "TestCase.h"
 #include "../TVcfConverter.h"
 #include "TVcfFile.h"
 #include "TDataFile.h"

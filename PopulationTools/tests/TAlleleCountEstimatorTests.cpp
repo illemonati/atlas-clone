@@ -2,7 +2,7 @@
 // Created by caduffm on 8/19/21.
 //
 
-#include "TestCase.h"
+#include "gtest/gtest.h"
 #include "../TAlleleCountEstimator.h"
 
 using namespace testing;

@@ -2,10 +2,11 @@
 // Created by vivian on 18.08.20.
 //
 
+#include "gtest/gtest.h"
+
 #include "TPMDTables.h"
 #include "TPostMortemDamage.h"
 #include "TSequencingErrorModels.h"
-#include "TestCase.h"
 #include <algorithm>
 #include <cstdint>
 #include <gtest/gtest.h>
