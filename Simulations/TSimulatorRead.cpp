@@ -41,7 +41,7 @@ void TSimulatorSingleEndRead::setReadLengthDistribution(std::string s, TLog *log
 	else if (type == "gammaMode") {
 		_readLengthDist = std::make_unique<TSimulatorReadLengthGammaMode>(s, _randomGenerator, logfile);
 	} else if (type == "fixed")
-		_readLengthDist = std::make_unique<TReadLengthDistribution>(s, _randomGenerator);
+		_readLengthDist = std::make_unique<TReadLengthDistribution>(s);
 	else
 		throw "Unknown read length distribution '" + type + "'!";
 }
