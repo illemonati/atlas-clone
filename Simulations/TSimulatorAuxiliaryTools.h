@@ -51,6 +51,7 @@ public:
 
 	Base &operator[](size_t index) { return _ref[index]; }
 	const Base &operator[](size_t index) const { return _ref[index]; }
+	const std::vector<Base> & reference() const {return _ref;}
 };
 
 //---------------------------------------------------------
