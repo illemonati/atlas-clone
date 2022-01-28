@@ -141,8 +141,8 @@ void TSimulator::_initializeDistribution(TParameters &params, const std::string 
 	//   1) initialized from the command line (one for all read groups)
 	//   2) read-group specific as given in a file
 
-	// check if it is a file (should not contain a ':')
-	const auto pos = s.find(":");
+	// check if it is a file (should not contain a '(')
+	const auto pos = s.find("(");
 	if (pos != std::string::npos) {
 		// Option 1: a single read distribution for all
 		//---------------------------------------------------------------------
