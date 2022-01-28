@@ -62,7 +62,7 @@ protected:
 	void _simulateQualitiesAndErrors(Base *_bases, int *_qualities, int &len);
 	void _applyPMD(std::vector<Base> &bases, const TReadLength &readLength, const bool isReverseStrand);
 	std::string _getNextReadName();
-	void _simulateBasesQualities(BAM::TAlignment &alignment, std::vector<Base> haplotype, const uint64_t pos,
+	void _simulateBasesQualities(BAM::TAlignment &alignment, const std::vector<Base>& haplotype, const uint64_t pos,
 				     const TReadLength &readLength, bool readIsContaminated);//, TSimulatorQualityTransformation *qualityTransform);
 
 public:
@@ -88,7 +88,7 @@ public:
 		return _readLengthDist->max();
 	};
 
-	virtual void simulate(std::vector<Base> haplotype, uint32_t refID, uint32_t pos, TSimulatorBamFile &bamFile);
+	virtual void simulate(const std::vector<Base>& haplotype, uint32_t refID, uint32_t pos, TSimulatorBamFile &bamFile);
 
 	void printDetails(TLog *logfile);
 	virtual void writeUnwrittenAlignments(long, TSimulatorBamFile &){};
@@ -107,7 +107,7 @@ private:
 public:
 	TSimulatorPairedEndReads(const BAM::TReadGroup &, coretools::TRandomGenerator *RandomGenerator);
 
-	void simulate(std::vector<Base> haplotype, uint32_t refID, uint32_t pos, TSimulatorBamFile &bamFile) override;
+	void simulate(const std::vector<Base>& haplotype, uint32_t refID, uint32_t pos, TSimulatorBamFile &bamFile) override;
 	void writeUnwrittenAlignments(long pos, TSimulatorBamFile &bamFile) override;
 	std::string type() const override {return "paired-end";} 
 };

@@ -119,7 +119,7 @@ std::string TSimulatorSingleEndRead::_getNextReadName() {
 }
 
 void TSimulatorSingleEndRead::_simulateBasesQualities(BAM::TAlignment & alignment,
-						      std::vector<Base> haplotype,
+						      const std::vector<Base>& haplotype,
 						      const uint64_t pos,
 						      const TReadLength & readLength,
 						      bool readIsContaminated/*,
@@ -191,18 +191,18 @@ void TSimulatorSingleEndRead::_simulateBasesQualities(BAM::TAlignment & alignmen
 	*/
 }
 
-void TSimulatorSingleEndRead::simulate(std::vector<Base>, uint32_t refID, uint32_t pos, TSimulatorBamFile &bamFile) {
+void TSimulatorSingleEndRead::simulate(const std::vector<Base>& haplotype, uint32_t refID, uint32_t pos, TSimulatorBamFile &bamFile) {
 	// prepare alignment
 	_alignment.move(refID, pos);
 	_alignment.setName(_getNextReadName());
 	_alignment.setIsReverseStrand(_randomGenerator->getRand() < 0.5);
 
 	// pick a fragment and read length, strand and contamination
-	// TReadLength readLength = _readLengthDist->sample();
-	// bool readIsContaminated = _isContaminated && _randomGenerator->getRand() < _contaminationRate;
+	TReadLength readLength = _readLengthDist->sample();
+	bool readIsContaminated = _contaminationRate > 0. && _randomGenerator->getRand() < _contaminationRate;
 
 	// simulated bases and qualities
-	//_simulateBasesQualities(_alignment, haplotype, pos, readLength, readIsContaminated, _qualityTransform);
+	_simulateBasesQualities(_alignment, haplotype, pos, readLength, readIsContaminated/*, _qualityTransform*/);
 
 	// write bam alignment
 	bamFile.saveAlignment(_alignment);
@@ -262,7 +262,7 @@ TSimulatorPairedEndReads::TSimulatorPairedEndReads(const BAM::TReadGroup &ReadGr
 	_mateFlags.setIsReverseStrand(true);
 }
 
-void TSimulatorPairedEndReads::simulate(std::vector<Base> haplotype, uint32_t refID, uint32_t pos,
+void TSimulatorPairedEndReads::simulate(const std::vector<Base>& haplotype, uint32_t refID, uint32_t pos,
 					TSimulatorBamFile &bamFile) {
 	// pick a fragment, read length and contamination
 	TReadLength readLength  = _readLengthDist->sample();
