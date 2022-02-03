@@ -367,6 +367,10 @@ bool TGenome_windows::_moveToNextWindow(GenotypeLikelihoods::TWindow_base & wind
 		}
 	}
 
+	if(_considerRegions){
+		//while(_mask.)
+	}
+
 	//make sure window does not go beyond chromosome end
 	if(window.to() > _curChromosome->chrEnd){
 		window.resize(_curChromosome->chrEnd - window.from());

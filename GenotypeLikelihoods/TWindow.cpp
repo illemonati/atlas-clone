@@ -266,6 +266,7 @@ void TWindow_base::applyMask(BAM::TBed & mask, bool doInverseMasking){
 			}
 			//jump to end of BED window
 			pos = it->to();
+			++it;
 		}
 		//clear until end of window
 		for(; pos < _to; ++pos){

@@ -104,6 +104,7 @@ public:
 	uint64_t size() const;
 	uint64_t length() const;
 	uint32_t numChromosomesWithWindows() const;
+	bool hasOverlapWith(TGenomeWindow& Window) const;
 
 	bool exists(const TGenomeWindow& Window) const;
 

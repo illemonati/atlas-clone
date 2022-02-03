@@ -56,6 +56,10 @@ uint32_t TBed_base::numChromosomesWithWindows() const{
     throw std::runtime_error("uint32_t TBed_base::numChromosomesWithWindows() const: function not implemented for base class!");
 };
 
+bool TBed_base::hasOverlapWith(TGenomeWindow& Window) const{
+
+};
+
 uint32_t TBed_base::getRefID(const std::string& Chr){
 	auto it = _chromosomes.find(Chr);
 	if(it == _chromosomes.end()){
