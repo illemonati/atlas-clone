@@ -189,6 +189,10 @@ bool TBed::hasOverlapWith(const TGenomeWindow& Window) const {
 	}
 };
 
+bool TBed::windowIsBeyond(const TGenomeWindow & Window) const{
+	return lower_bound(Window) == _bed.end();
+};
+
 bool TBed::exists(const TGenomeWindow& window) const{
 	//search entry according to chr and start
 	auto it = _bed.find(window);

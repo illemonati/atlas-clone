@@ -345,8 +345,6 @@ bool TGenome_windows::_incrementWindow(GenotypeLikelihoods::TWindow_base & windo
 		//move window to beginning of chromosome
 		BAM::TGenomePosition newFrom = _curChromosome->chrStart + _skipWindows * _windowSize;
 		window.move(newFrom, _windowSize , _curChromosome->name);
-	} else {
-		_chrChangedWindow = false;
 	}
 
 	return true;
@@ -368,6 +366,9 @@ bool TGenome_windows::_moveToNextWindow(GenotypeLikelihoods::TWindow_base & wind
 	}
 
 	if(_considerRegions){
+		if(_mask.windowIsBeyond(window)){
+			return false;
+		}
 		while(!_mask.hasOverlapWith(window)){
 			if(!_incrementWindow(window)){
 				return false;
@@ -396,7 +397,6 @@ bool TGenome_windows::_incrementPredefinedWindow(){
 		_setCountersBeginningOfChromosome();
 	} else {
 		++_windowNumber;
-		_chrChangedWindow = false;
 	}
 
 	return true;
@@ -467,12 +467,14 @@ bool TGenome_windows::_moveWindow(GenotypeLikelihoods::TWindow_base & window){
 	//report chromosome
 	if(_hasWindowIndent) _logfile->removeIndent();
 	if(_chrChangedWindow){
-		if(_curChromosome->refID() > 0) _logfile->endIndent();
-			_logfile->startNumbering("Parsing chromosome '" + _curChromosome->name + "':");
+		if(_curChromosome->refID() > 0){
+			_logfile->endIndent();
+		}
+		_logfile->startNumbering("Parsing chromosome '" + _curChromosome->name + "':");
 	}
 
 	//report window
-	_logfile->number("Window [" + toString(window.from().position()+1) + ", " + toString(window.to().position()) + "] of " + toString(_numWindowsOnChr) + " on '" + _curChromosome->name + "':");
+	_logfile->number("Window [", window.from().position()+1, ", ", window.to().position(), "] of ", _numWindowsOnChr, " on '", _curChromosome->name, "':");
 	_logfile->addIndent();
 	_hasWindowIndent = true;
 
@@ -600,6 +602,7 @@ void TGenome_windows::_traverseBAMWindows(){
 			//report end of window calculations
 			_logfile->list("Total computation time for this window was ", _windowTimer.formattedTime(), ".");
 		}
+		_chrChangedWindow = false;
 	}
 
 	_logfile->endIndent();
