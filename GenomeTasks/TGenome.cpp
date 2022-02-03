@@ -368,7 +368,11 @@ bool TGenome_windows::_moveToNextWindow(GenotypeLikelihoods::TWindow_base & wind
 	}
 
 	if(_considerRegions){
-		//while(_mask.)
+		while(!_mask.hasOverlapWith(window)){
+			if(!_incrementWindow(window)){
+				return false;
+			}
+		}
 	}
 
 	//make sure window does not go beyond chromosome end

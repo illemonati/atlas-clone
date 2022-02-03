@@ -104,12 +104,12 @@ public:
 	uint64_t size() const;
 	uint64_t length() const;
 	uint32_t numChromosomesWithWindows() const;
-	bool hasOverlapWith(TGenomeWindow& Window) const;
+	bool hasOverlapWith(const TGenomeWindow & Window) const;
 
 	bool exists(const TGenomeWindow& Window) const;
 
 	//loop
-	std::set<TGenomeWindow>::iterator lower_bound(const TGenomeWindow & Window){ return _bed.lower_bound(Window); };
+	std::set<TGenomeWindow>::iterator lower_bound(const TGenomeWindow & Window) const { return _bed.lower_bound(Window); };
 	std::set<TGenomeWindow>::iterator begin(){ return _bed.begin(); };
 	std::set<TGenomeWindow>::iterator end(){ return _bed.end(); };
 
