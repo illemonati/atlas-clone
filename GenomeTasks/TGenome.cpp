@@ -270,18 +270,19 @@ void TGenome_windows::_setSiteFilters(TParameters & params){
 void TGenome_windows::_setMasks(TParameters & params){
 	//normal mask
 	if(params.parameterExists("mask") || params.parameterExists("regions")){
-		_doMasking = true;
 		std::string filename;
 		if(params.parameterExists("mask")){
 			//mask
 			if(params.parameterExists("regions")) throw "Cannot use mask and regions at the same time.";
 			filename = params.getParameter<std::string>("mask");
 			_logfile->startIndent("Will mask all sites listed in BED file '" + filename + "':");
+			_doMasking = true;
 			_considerRegions = false;
 		} else {
 			//regions
 			filename = params.getParameter<std::string>("regions");
 			_logfile->startIndent("Will limit analysis to sites listed in BED file '" + filename + "' (parameter 'regions'):");
+			_doMasking = false;
 			_considerRegions = true;
 		}
 

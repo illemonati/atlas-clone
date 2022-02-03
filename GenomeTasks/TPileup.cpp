@@ -91,7 +91,7 @@ TPileup::TPileup(TParameters & Parameters, TLog* Logfile, TRandomGenerator* Rand
 	//print all sites, also those without data?
 	if(Parameters.parameterExists("printAll")){
 		printOnlySitesWithData = false;
-		_logfile->list("Will all sites that pass filters, including those without data. (parameter 'printAll')");
+		_logfile->list("Will print all sites that pass filters, including those without data. (parameter 'printAll')");
 	} else {
 		printOnlySitesWithData = true;
 		_logfile->list("Will print only sites with data. (use 'printAll' to print all)");

@@ -23,7 +23,6 @@ TWriteGLF::TWriteGLF(TParameters & Parameters, TLog* Logfile, TRandomGenerator* 
 	}
 };
 
-
 void TWriteGLF::_handleWindow(){
 	if(_chrChangedWindow){
 		_writer.newChromosome(*_curChromosome);
