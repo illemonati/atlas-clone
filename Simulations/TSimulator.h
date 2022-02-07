@@ -53,7 +53,7 @@ protected:
 	BAM::TChromosomes _chromosomes;
 	bool _writeTrueGenotypes            = false;
 	bool _writeVariantInvariantBedFiles = false;
-	TSimulatorReference _referenceObj;
+	TSimulatorReference _reference;
 
 	// simulation tools
 	BAM::TReadGroups _readGroups;

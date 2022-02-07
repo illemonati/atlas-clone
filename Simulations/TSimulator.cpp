@@ -5,6 +5,8 @@
  *      Author: phaentu
  */
 
+#include "devtools.h"
+
 #include "TSimulator.h"
 #include <memory>
 #include <numeric>
@@ -22,7 +24,7 @@ TSimulator::TSimulator(TLog *Logfile, TParameters &params, TRandomGenerator *Ran
 	  _seqDepth(params.getParameterWithDefault("depth", 10.0)),
 	  _writeTrueGenotypes(params.parameterExists("writeTrueGenotypes")),
 	  _writeVariantInvariantBedFiles(params.parameterExists("writeVariantBED")),
-	  _referenceObj(_outname + ".fasta", _logfile) {
+	  _reference(_outname + ".fasta", _logfile) {
 	// depth
 	_logfile->list("Will simulate to an average depth of ", _seqDepth, ".");
 	_logfile->list("Will simulate data with reference divergence = ", _referenceDivergence, ".");
@@ -379,7 +381,7 @@ void TSimulator::_initializeChromosomes(TParameters &params) {
 // Run simulations
 //--------------------------------------------------------------
 Base TSimulator::_sampleBase(const std::array<double, 4> &cumulProbs) {
-	return static_cast<Base>(_randomGenerator->pickOne(cumulProbs));
+	return static_cast<genometools::BaseEnum>(_randomGenerator->pickOne(cumulProbs));
 }
 
 Base TSimulator::_mutateBase(const Base &base, const std::array<double, 4> &cumulProbs) {
@@ -441,12 +443,16 @@ void TSimulator::runSimulations() {
 	TSimulatorVariantInvariantBedFiles bedFiles;
 	if (_writeVariantInvariantBedFiles) bedFiles.open(_outname);
 
+	OUT(_chromosomes.size());
+
 	// simulate sequences
 	for (auto &chr : _chromosomes) {
+		OUT(chr.ploidy);
+		OUT(chr.length);
 		_logfile->startIndent("Simulating chromosome " + chr.name + ":");
 
 		// update reference storage and update haplotype lengths
-		_referenceObj.setChr(chr.name, chr.length);
+		_reference.setChr(chr.name, chr.length);
 		haplotypes.setLength(chr.length);
 
 		// simulate genotypes
@@ -460,7 +466,7 @@ void TSimulator::runSimulations() {
 		// write true genotypes
 		if (_writeTrueGenotypes) {
 			_logfile->listFlush("Writing true genotypes ...");
-			haplotypes.writeTrueGenotypes(chr.name, _referenceObj);
+			haplotypes.writeTrueGenotypes(chr.name, _reference);
 			_logfile->done();
 		}
 
@@ -511,18 +517,21 @@ TSimulatorOne::TSimulatorOne(TLog *Logfile, TParameters &params, TRandomGenerato
 
 void TSimulatorOne::_simulateHaplotypesDiploid(TSimulatorHaplotypes &haplotypes,
 							 const BAM::TChromosome &chromosome) {
+	ECHO("huhu");
 	// fill mutation table
 	TSimulatorMutationtable mutTable(_baseFreq, _thetas[chromosome.refID()]);
 
 	for (uint64_t l = 0; l < chromosome.length; ++l) {
+		OUT(l);
 		haplotypes(0, 0, l) = _sampleBase(_cumulBaseFreq);
 		haplotypes(0, 1, l) = _sampleBase(mutTable[haplotypes(0, 0, l)]);
+		ECHO((std::string)haplotypes(0, 0, l));
 
 		// decide on reference sequence
 		if (haplotypes(0, 0, l) == haplotypes(0, 1, l)) {
-			_referenceObj[l] = _mutateBase(haplotypes(0, 0, l), _cumulRef);
+			_reference[l] = _mutateBase(haplotypes(0, 0, l), _cumulRef);
 		} else {
-			_referenceObj[l] = static_cast<Base>(haplotypes(0, _randomGenerator->sample(2), l));
+			_reference[l] = static_cast<Base>(haplotypes(0, _randomGenerator->sample(2), l));
 		}
 	}
 }
@@ -538,7 +547,7 @@ void TSimulatorOne::_simulateHaplotypesHaploid(TSimulatorHaplotypes &haplotypes,
 		haplotypes(0, 1, l) = haplotypes(0, 0, l);
 
 		// decide on ref
-		_referenceObj[l] = _mutateBase(haplotypes(0, 0, l), _cumulRef);
+		_reference[l] = _mutateBase(haplotypes(0, 0, l), _cumulRef);
 	}
 }
 
@@ -725,10 +734,10 @@ void TSimulatorPair::_simulateHaplotypesDiploid(TSimulatorHaplotypes &haplotypes
 
 		// simulate reference
 		if (c == 0) {
-			_referenceObj[l].mutateWithStep(_randomGenerator->pickOne(_cumulRef));
+			_reference[l].mutateWithStep(_randomGenerator->pickOne(_cumulRef));
 		} else {
 			const int r      = _randomGenerator->sample(4);
-			_referenceObj[l] = _genoTrans[c][g][r];
+			_reference[l] = _genoTrans[c][g][r];
 		}
 	}
 }
@@ -856,11 +865,11 @@ void TSimulatorSFS::_simulateHaplotypesHaploid(TSimulatorHaplotypes &haplotypes,
 		// decide on reference sequence
 		if (alleleCount > 0) {
 			if (_randomGenerator->getRand() < (double)alleleCount/_sampleSize)
-				_referenceObj[l] = derived;
+				_reference[l] = derived;
 			else
-				_referenceObj[l] = ancestral;
+				_reference[l] = ancestral;
 		} else {
-			_referenceObj[l] = _mutateBase(ancestral, _cumulRef);
+			_reference[l] = _mutateBase(ancestral, _cumulRef);
 		}
 	}
 }
@@ -883,7 +892,7 @@ void TSimulatorSFS::_simulateHaplotypesDiploid(TSimulatorHaplotypes &haplotypes,
 				haplotypes(i, 1, l) = ancestral;
 			}
 			// decide on reference sequence
-			_referenceObj[l] = _mutateBase(ancestral, _cumulRef);
+			_reference[l] = _mutateBase(ancestral, _cumulRef);
 		} else {
 			int numNeeded = alleleCount;
 			for (int i = 0; i < numHaplotypes; ++i) {
@@ -901,9 +910,9 @@ void TSimulatorSFS::_simulateHaplotypesDiploid(TSimulatorHaplotypes &haplotypes,
 
 			// decide on reference sequence
 			if (_randomGenerator->getRand() < (double)alleleCount / (double)numHaplotypes)
-				_referenceObj[l] = derived;
+				_reference[l] = derived;
 			else
-				_referenceObj[l] = ancestral;
+				_reference[l] = ancestral;
 		}
 	}
 }
@@ -975,7 +984,7 @@ void TSimulatorHW::_simulateSite(TSimulatorHWSite &site, const std::string &chr,
 		site.f = _randomGenerator->getRand() < _referenceDivergence ? 1. : 0.;
 	}
 	// store reference
-	_referenceObj[pos] = site.reference;
+	_reference[pos] = site.reference;
 
 	// write true frequency: pos is 1 based!
 	if (_writeTrueAlleleFreq) {
