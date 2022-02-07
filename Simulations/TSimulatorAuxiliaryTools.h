@@ -59,22 +59,20 @@ public:
 //---------------------------------------------------------
 class TSimulatorBamFile {
 private:
-	BAM::TSamHeader _header;
-	BAM::TReadGroups _readGroups;
 	BAM::TOutputBamFile _outBam;
 
 public:
-	TSimulatorBamFile(){};
-	TSimulatorBamFile(const std::string Filename, const std::string SampleName, BAM::TReadGroups ReadGroups,
+	TSimulatorBamFile(){}
+	TSimulatorBamFile(const std::string &Filename, const std::string &SampleName, BAM::TReadGroups &ReadGroups,
 			  const BAM::TChromosomes &Chromosomes, TLog *Logfile) {
 		open(Filename, SampleName, ReadGroups, Chromosomes, Logfile);
-	};
+	}
 	~TSimulatorBamFile();
 
-	void open(const std::string Filename, const std::string SampleName, BAM::TReadGroups ReadGroups,
+	void open(const std::string &Filename, const std::string &SampleName, BAM::TReadGroups &ReadGroups,
 		  const BAM::TChromosomes &Chromosomes, TLog *Logfile);
 
-	void saveAlignment(const BAM::TAlignment &Alignment) { _outBam.writeAlignment(Alignment); };
+	void saveAlignment(const BAM::TAlignment &Alignment) {_outBam.writeAlignment(Alignment); }
 	void close(TLog *Logfile);
 	void indexBamFile();
 };
@@ -85,7 +83,7 @@ private:
 	TLog *_logfile;
 
 public:
-	TSimulatorBamFiles(uint32_t NumFiles, const std::string Outname, BAM::TReadGroups ReadGroups,
+	TSimulatorBamFiles(uint32_t NumFiles, const std::string & Outname, BAM::TReadGroups & ReadGroups,
 			   const BAM::TChromosomes &Chromosomes, TLog *Logfile);
 	~TSimulatorBamFiles();
 	TSimulatorBamFile &operator[](size_t i);

@@ -87,7 +87,7 @@ void TSimulatorReference::setChr(std::string ChrName, long ChrLength) {
 //---------------------------------------------------
 // TSimulatorBamFile
 //---------------------------------------------------
-void TSimulatorBamFile::open(const std::string Filename, const std::string SampleName, BAM::TReadGroups ReadGroups,
+void TSimulatorBamFile::open(const std::string &Filename, const std::string &SampleName, BAM::TReadGroups &ReadGroups,
 			     const BAM::TChromosomes &Chromosomes, TLog *Logfile) {
 	Logfile->listFlush("Opening BAM file '" + Filename + "' ...");
 
@@ -96,7 +96,6 @@ void TSimulatorBamFile::open(const std::string Filename, const std::string Sampl
 	if (Chromosomes.size() < 1) throw "Can not open a BAM file without specified chromosomes!";
 
 	// create header, read group and chromosome objects
-	_header.set("1.6", "coordinate", "none");
 	for (auto &rg : ReadGroups) {
 		rg.sequencingCenter_CN =
 			coretools::__GLOBAL_APPLICATION_NAME__ + " " + coretools::__GLOBAL_APPLICATION_VERSION__;
@@ -104,14 +103,15 @@ void TSimulatorBamFile::open(const std::string Filename, const std::string Sampl
 		rg.sample_SM               = SampleName;
 		rg.sequencingTechnology_PL = "ILLUMINA";
 	}
-	_outBam.open(Filename, _header, Chromosomes, _readGroups);
+	const BAM::TSamHeader header("1.6", "coordinate", "none");
+	_outBam.open(Filename, header, Chromosomes, ReadGroups);
 	Logfile->done();
 }
 TSimulatorBamFile::~TSimulatorBamFile() { _outBam.closeNoIndex(); }
 
 void TSimulatorBamFile::close(TLog *Logfile) { _outBam.close(Logfile); }
 
-TSimulatorBamFiles::TSimulatorBamFiles(uint32_t NumFiles, const std::string Outname, const BAM::TReadGroups ReadGroups,
+TSimulatorBamFiles::TSimulatorBamFiles(uint32_t NumFiles, const std::string & Outname, BAM::TReadGroups & ReadGroups,
 				       const BAM::TChromosomes &Chromosomes, TLog *Logfile) {
 	if (NumFiles < 1) throw "Can not open less than one BAM file!";
 	_logfile = Logfile;
