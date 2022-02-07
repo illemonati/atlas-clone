@@ -4,7 +4,6 @@
  *  Created on: Oct 5, 2017
  *      Author: vivian
  */
-
 #include "TSimulatorRead.h"
 #include <memory>
 
@@ -146,7 +145,7 @@ void TSimulatorSingleEndRead::_simulateBasesQualities(BAM::TAlignment & alignmen
 	_cigar.add('M', readLength.read);
 
 	// simulate true qualities
-	std::vector<PhredIntProbability> phredIntQualities;
+	std::vector<PhredIntProbability> phredIntQualities(bases.size());
 	_qualityDist->sample(phredIntQualities);
 	_alignment.setSequenceQualities(_cigar, bases, phredIntQualities);
 
