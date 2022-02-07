@@ -385,7 +385,7 @@ Base TSimulator::_sampleBase(const std::array<double, 4> &cumulProbs) {
 }
 
 Base TSimulator::_mutateBase(const Base &base, const std::array<double, 4> &cumulProbs) {
-	return static_cast<Base>(base.get() + _randomGenerator->pickOne(cumulProbs));
+	return static_cast<genometools::BaseEnum>(base.get() + _randomGenerator->pickOne(cumulProbs));
 }
 
 void TSimulator::_simulateReadsFromHaplotypes(const BAM::TChromosome &thisChr, std::array<std::vector<Base>,2> haplotypes,
@@ -443,12 +443,8 @@ void TSimulator::runSimulations() {
 	TSimulatorVariantInvariantBedFiles bedFiles;
 	if (_writeVariantInvariantBedFiles) bedFiles.open(_outname);
 
-	OUT(_chromosomes.size());
-
 	// simulate sequences
 	for (auto &chr : _chromosomes) {
-		OUT(chr.ploidy);
-		OUT(chr.length);
 		_logfile->startIndent("Simulating chromosome " + chr.name + ":");
 
 		// update reference storage and update haplotype lengths
@@ -522,16 +518,14 @@ void TSimulatorOne::_simulateHaplotypesDiploid(TSimulatorHaplotypes &haplotypes,
 	TSimulatorMutationtable mutTable(_baseFreq, _thetas[chromosome.refID()]);
 
 	for (uint64_t l = 0; l < chromosome.length; ++l) {
-		OUT(l);
 		haplotypes(0, 0, l) = _sampleBase(_cumulBaseFreq);
 		haplotypes(0, 1, l) = _sampleBase(mutTable[haplotypes(0, 0, l)]);
-		ECHO((std::string)haplotypes(0, 0, l));
 
 		// decide on reference sequence
 		if (haplotypes(0, 0, l) == haplotypes(0, 1, l)) {
 			_reference[l] = _mutateBase(haplotypes(0, 0, l), _cumulRef);
 		} else {
-			_reference[l] = static_cast<Base>(haplotypes(0, _randomGenerator->sample(2), l));
+			_reference[l] = haplotypes(0, _randomGenerator->sample(2), l);
 		}
 	}
 }
