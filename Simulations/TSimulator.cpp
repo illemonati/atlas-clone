@@ -5,6 +5,7 @@
  *      Author: phaentu
  */
 
+#include "GenotypeTypes.h"
 #include "devtools.h"
 
 #include "TSimulator.h"
@@ -594,27 +595,27 @@ void TSimulatorPair::_fillTables() {
 	// case 0: aa/aa
 	//-----------------------------------------
 	sum = 0.0;
-	for (size_t a = 0; a < 4; ++a) {
-		sum += _baseFreq[static_cast<Base>(a)];
+	for (Base a = Base::min(); a < Base::max(); ++a) {
+		sum += _baseFreq[a];
 		_cumulGenoCombinationFreq[0].push_back(sum);
-		_genoTrans[0].push_back({static_cast<Base>(a), static_cast<Base>(a), static_cast<Base>(a), static_cast<Base>(a)});
+		_genoTrans[0].push_back({a, a, a, a});
 	}
 
 	// cases 1 to 3: aa/ab, ab/aa, aa/bb
 	//-----------------------------------------
 	sum           = 0.0;
-	for (size_t a = 0; a < 4; ++a) {
-		for (size_t b = 0; b < 4; ++b) {
+	for (Base a = Base::min(); a < Base::max(); ++a) {
+		for (Base b = Base::min(); b < Base::max(); ++b) {
 			if (a == b) continue;
 
-			sum += _baseFreq[static_cast<Base>(a)] * _baseFreq[static_cast<Base>(b)];
+			sum += _baseFreq[a] * _baseFreq[b];
 
 			_cumulGenoCombinationFreq[1].push_back(sum);
 			_cumulGenoCombinationFreq[2].push_back(sum);
 			_cumulGenoCombinationFreq[3].push_back(sum);
-			_genoTrans[1].push_back({static_cast<Base>(a), static_cast<Base>(a), static_cast<Base>(a), static_cast<Base>(b)});
-			_genoTrans[2].push_back({static_cast<Base>(a), static_cast<Base>(b), static_cast<Base>(a), static_cast<Base>(a)});
-			_genoTrans[3].push_back({static_cast<Base>(a), static_cast<Base>(a), static_cast<Base>(b), static_cast<Base>(b)});
+			_genoTrans[1].push_back({a, a, a, b});
+			_genoTrans[2].push_back({a, b, a, a});
+			_genoTrans[3].push_back({a, a, b, b});
 		}
 	}
 	for (auto& c: _cumulGenoCombinationFreq[1]) c /= sum;
@@ -624,12 +625,12 @@ void TSimulatorPair::_fillTables() {
 	// cases 4: ab/ab
 	//-----------------------------------------
 	sum          = 0.0;
-	for (size_t a = 0; a < 3; ++a) {
-		for (size_t b = a + 1; b < 4; ++b) {
-			sum += _baseFreq[static_cast<Base>(a)] * _baseFreq[static_cast<Base>(b)];
+	for (Base a = Base::min(); a < genometools::T; ++a) {
+		for (Base b = a.next(); b < Base::max(); ++b) {
+			sum += _baseFreq[a] * _baseFreq[b];
 
 			_cumulGenoCombinationFreq[4].push_back(sum);
-			_genoTrans[4].push_back({static_cast<Base>(a), static_cast<Base>(b), static_cast<Base>(a), static_cast<Base>(b)});
+			_genoTrans[4].push_back({a, b, a, b});
 		}
 	}
 	for (auto& c: _cumulGenoCombinationFreq[4]) c /= sum;
@@ -637,16 +638,16 @@ void TSimulatorPair::_fillTables() {
 	// case 5: ab/ac
 	//-----------------------------------------
 	sum = 0.0;
-	for (size_t a = 0; a < 4; ++a) {
-		for (size_t b = 0; b < 4; ++b) {
+	for (Base a = Base::min(); a < Base::max(); ++a) {
+		for (Base b = Base::min(); b < Base::max(); ++b) {
 			if (a == b) continue;
-			for (size_t c = 0; c < 4; ++c) {
+			for (Base c = Base::min(); c < Base::max(); ++c) {
 				if (c == a || c == b) continue;
-				sum += _baseFreq[static_cast<Base>(a)] * _baseFreq[static_cast<Base>(b)] * _baseFreq[static_cast<Base>(c)];
+				sum += _baseFreq[a] * _baseFreq[b] * _baseFreq[c];
 
 				_cumulGenoCombinationFreq[5].push_back(sum);
 				_genoTrans[5].push_back(
-					{static_cast<Base>(a), static_cast<Base>(b), static_cast<Base>(a), static_cast<Base>(c)});
+					{a, b, a, c});
 			}
 		}
 	}
@@ -655,18 +656,18 @@ void TSimulatorPair::_fillTables() {
 	// cases 6 and 7: aa/bc, ab/cc
 	//-----------------------------------------
 	sum   = 0.0;
-	for (size_t a = 0; a < 4; ++a) {
-		for (size_t b = 0; b < 4; ++b) {
+	for (Base a = Base::min(); a < Base::max(); ++a) {
+		for (Base b = Base::min(); b < Base::max(); ++b) {
 			if (a == b) continue;
-			for (size_t c = 0; c < 4; ++c) {
+			for (Base c = Base::min(); c < Base::max(); ++c) {
 				if (c == a || c == b) continue;
-				sum += _baseFreq[static_cast<Base>(a)] * _baseFreq[static_cast<Base>(b)] * _baseFreq[static_cast<Base>(c)];
+				sum += _baseFreq[a] * _baseFreq[b] * _baseFreq[c];
 				_cumulGenoCombinationFreq[6].push_back(sum);
 				_cumulGenoCombinationFreq[7].push_back(sum);
 				_genoTrans[6].push_back(
-					{static_cast<Base>(a), static_cast<Base>(a), static_cast<Base>(b), static_cast<Base>(c)});
+					{a, a, b, c});
 				_genoTrans[7].push_back(
-					{static_cast<Base>(a), static_cast<Base>(b), static_cast<Base>(c), static_cast<Base>(c)});
+					{a, b, c, c});
 			}
 		}
 	}
@@ -676,18 +677,18 @@ void TSimulatorPair::_fillTables() {
 	// case 8: ab/cd
 	//-----------------------------------------
 	sum = 0.;
-	for (size_t a = 0; a < 4; ++a) {
-		for (size_t b = 0; b < 4; ++b) {
+	for (Base a = Base::min(); a < Base::max(); ++a) {
+		for (Base b = Base::min(); b < Base::max(); ++b) {
 			if (a == b) continue;
-			for (size_t c = 0; c < 4; ++c) {
+			for (Base c = Base::min(); c < Base::max(); ++c) {
 				if (c == a || c == b) continue;
-				for (uint8_t d = 0; d < 4; ++d) {
+				for (Base d = Base::min(); d < Base::max(); ++d) {
 					if (d == a || d == b || d == c) continue;
 
 					sum += 1./24;
 					_cumulGenoCombinationFreq[8].push_back(sum);
 				_genoTrans[8].push_back(
-					{static_cast<Base>(a), static_cast<Base>(b), static_cast<Base>(c), static_cast<Base>(d)});
+					{a, b, c, d});
 				}
 			}
 		}
@@ -959,8 +960,8 @@ void TSimulatorHW::_fillCumulGenoProb(double f) {
 
 void TSimulatorHW::_simulateSite(TSimulatorHWSite &site, const std::string &chr, uint64_t pos) {
 	// simulate bases
-	site.reference   = static_cast<Base>(_randomGenerator->pickOne(_cumulBaseFreq));
-	site.alternative = static_cast<Base>(_randomGenerator->pickOne(_mutTable[site.reference.get()]));
+	site.reference   = static_cast<genometools::BaseEnum>(_randomGenerator->pickOne(_cumulBaseFreq));
+	site.alternative = static_cast<genometools::BaseEnum>(_randomGenerator->pickOne(_mutTable[site.reference.get()]));
 
 	// is the site polymorphic?
 	if (_randomGenerator->getRand() < _fracPoly) {

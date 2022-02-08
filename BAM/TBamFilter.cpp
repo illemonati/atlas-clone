@@ -7,6 +7,7 @@
 
 
 #include "TBamFilter.h"
+#include "GenotypeTypes.h"
 
 namespace BAM{
 
@@ -100,6 +101,7 @@ void TQualityFilter::set(coretools::TParameters & params, coretools::TLog* logfi
 // TContextFilter
 //-------------------------------------
 void TContextFilter::set(coretools::TParameters & params, coretools::TLog* logfile){
+	using namespace genometools;
 	_filter = false;
 	if(params.parameterExists("ignoreContexts")){
 		std::vector<std::string> contexts;
@@ -111,22 +113,22 @@ void TContextFilter::set(coretools::TParameters & params, coretools::TLog* logfi
 					throw "Context " + c + " does not consist of two bases! (parameter 'ignoreContexts')";
 				}
 
-				genometools::Base first(c[0]);
-				genometools::Base second(c[1]);
+				const Base first  = fromChar(c[0]);
+				const Base second = fromChar(c[1]);
 
 				if((char) first != c[0] || (char) second != c[1]){
 					throw "Unable to understand context '" + c + "'!  (parameter 'ignoreContexts')";
 				}
 
 				//save context
-				genometools::BaseContext cc(first, second);
+				BaseContext cc(first, second);
 				_keptContexts[static_cast<uint8_t>(cc.get())] = false;
 			}
 
 			std::vector<std::string> rep;
-			for(auto i = 0; i <= static_cast<uint8_t>(genometools::BaseContextEnum::cNN); ++i){
+			for(auto i = 0; i <= static_cast<uint8_t>(BaseContextEnum::cNN); ++i){
 				if(!_keptContexts[i]){
-					rep.push_back( (std::string) genometools::BaseContext(static_cast<genometools::BaseContextEnum>(i)));
+					rep.push_back( (std::string) BaseContext(static_cast<BaseContextEnum>(i)));
 				}
 			}
 			logfile->list("Will ignore the following contexts: " + coretools::str::concatenateString(rep, ", ")  + ". (parameter 'ignoreContexts')");

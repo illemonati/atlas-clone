@@ -6,6 +6,7 @@
  */
 
 #include "TAlignment.h"
+#include "GenotypeTypes.h"
 #include "debugtools.h"
 
 namespace BAM{
@@ -101,7 +102,7 @@ void TAlignment::_parseBasesQualities(){
 	Qualities.reserve(_qualities.length());
 
 	for(size_t i = 0; i < _sequence.length(); ++i){
-		Sequence.emplace_back(_sequence[i]);
+		Sequence.emplace_back(genometools::fromChar(_sequence[i]));
 		Qualities.emplace_back(genometools::BaseQuality(_qualities[i]));
 	}
 

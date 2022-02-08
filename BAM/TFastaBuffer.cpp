@@ -7,6 +7,7 @@
 
 
 #include "TFastaBuffer.h"
+#include "GenotypeTypes.h"
 #include <string>
 
 namespace BAM{
@@ -42,7 +43,7 @@ void TFastaBuffer::initialize(std::string fastaFile, const uint32_t BufferSize){
 void TFastaBuffer::_fill(std::vector<Base> & VecToFill, size_t Length, size_t Offset) const {
 	VecToFill.resize(Length);
 	for(size_t p = 0; p < Length; ++p){
-		VecToFill[p] = _referenceSequence[Offset + p];
+		VecToFill[p] = genometools::fromChar(_referenceSequence[Offset + p]);
 	}
 };
 
@@ -104,7 +105,7 @@ char TFastaBuffer::refCharAt(const TGenomePosition Position) const {
 };
 
 Base TFastaBuffer::refAt(const TGenomePosition Position) const{
-	return Base(refCharAt(Position));
+	return genometools::fromChar(refCharAt(Position));
 };
 
 }; //end namesapce

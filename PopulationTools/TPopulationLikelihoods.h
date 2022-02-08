@@ -236,8 +236,8 @@ public:
 	std::string chr(){ return curChr; };
 	long position(){ return vcfFile.position(); };
     long positionZeroBased(){ return vcfFile.positionZeroBased(); };
-    genometools::Base refAllele(){ return genometools::Base(vcfFile.getRefAllele()[0]); };
-    genometools::Base altAllele(){ return genometools::Base(vcfFile.getFirstAltAllele()[0]); };
+    genometools::Base refAllele(){ return genometools::fromChar(vcfFile.getRefAllele()[0]); };
+    genometools::Base altAllele(){ return genometools::fromChar(vcfFile.getFirstAltAllele()[0]); };
     std::vector<genometools::BiallelicGenotype> biallelicGenotypes(TPopulationSamples & samples) const;
     genometools::BiallelicGenotype biallelicGenotype(TPopulationSamples & samples, uint32_t s) const;
     genometools::Genotype genotype(TPopulationSamples & samples, uint32_t s) const;

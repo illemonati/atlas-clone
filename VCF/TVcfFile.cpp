@@ -6,6 +6,7 @@
  */
 
 #include "TVcfFile.h"
+#include "GenotypeTypes.h"
 
 namespace VCF{
 
@@ -341,11 +342,11 @@ float TVcfFileSingleLine::sampleGenotypeQuality(unsigned int sample){
 	return parser.sampleGenotypeQuality(tempLine, sample);
 }
 genometools::Base TVcfFileSingleLine::getFirstAlleleOfSample(unsigned int num) const{
-	return (genometools::Base) parser.getFirstAlleleOfSample(tempLine, num)[0];
+	return genometools::fromChar(parser.getFirstAlleleOfSample(tempLine, num)[0]);
 };
 
 genometools::Base TVcfFileSingleLine::getSecondAlleleOfSample(unsigned int num) const{
-	return (genometools::Base) parser.getSecondAlleleOfSample(tempLine, num)[0];
+	return genometools::fromChar(parser.getSecondAlleleOfSample(tempLine, num)[0]);
 };
 
 genometools::BiallelicGenotype TVcfFileSingleLine::sampleBiallelicGenotype(unsigned int num) const{
@@ -353,7 +354,8 @@ genometools::BiallelicGenotype TVcfFileSingleLine::sampleBiallelicGenotype(unsig
 };
 
 genometools::Genotype TVcfFileSingleLine::sampleGenotype(unsigned int num) const{
-	return genometools::Genotype(parser.getFirstAlleleOfSample(tempLine, num)[0], parser.getSecondAlleleOfSample(tempLine, num)[0]);
+	using namespace genometools;
+	return Genotype(fromChar(parser.getFirstAlleleOfSample(tempLine, num)[0]), fromChar(parser.getSecondAlleleOfSample(tempLine, num)[0]));
 };
 
 // int TVcfFileSingleLine::sampleDepth(unsigned int sample){

@@ -6,6 +6,7 @@
  */
 
 #include "TSiteSubset.h"
+#include "GenotypeTypes.h"
 
 namespace GenotypeLikelihoods{
 
@@ -62,8 +63,8 @@ void TSiteSubset::_readFile(const std::string Filename, const BAM::TChromosomes 
 
 		//extract positions
 		uint32_t pos = coretools::str::convertStringCheck<uint32_t>(line[1]) - 1; //make 0-based
-		genometools::Base ref(line[2][0]);
-		genometools::Base alt(line[3][0]);
+		const genometools::Base ref = genometools::fromChar(line[2][0]);
+		const genometools::Base alt = genometools::fromChar(line[3][0]);
 
 		//check alleles
 		_checkAlleles(chr.name, pos, ref, alt, line[2], line[3]);
@@ -96,8 +97,8 @@ void TSiteSubset::_readFile(const std::string Filename, const BAM::TChromosomes 
 
 		//extract positions
 		uint32_t pos = coretools::str::convertStringCheck<uint32_t>(line[1]) - 1; //make 0-based
-		genometools::Base ref(line[2][0]);
-		genometools::Base alt(line[3][0]);
+		const genometools::Base ref = genometools::fromChar(line[2][0]);
+		const genometools::Base alt = genometools::fromChar(line[3][0]);
 
 		//check alleles
 		_checkAlleles(chr.name, pos, ref, alt, line[2], line[3]);

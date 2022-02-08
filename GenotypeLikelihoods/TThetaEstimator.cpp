@@ -6,6 +6,7 @@
  */
 
 #include "TThetaEstimator.h"
+#include "GenotypeTypes.h"
 
 namespace GenotypeLikelihoods{
 
@@ -766,7 +767,7 @@ bool TThetaEstimatorRatio::updateTheta(TThetaEstimatorData* thisData, Theta & th
 bool TThetaEstimatorRatio::updateBaseFrequencies(TThetaEstimatorData* thisData, Theta & thisTheta, double thisSdProposalKernel){
 	//propose: select one frequency at random and shift this one
 	//make sure frequencies are not outside [0,1]
-	genometools::Base thisBase = static_cast<genometools::Base>(randomGenerator->sample(4));
+	genometools::Base thisBase = static_cast<genometools::BaseEnum>(randomGenerator->sample(4));
 	TBaseProbabilities tmpBaseFreq;
 	double tmp = thisTheta.baseFreq[thisBase].get() + randomGenerator->getNormalRandom(0.0, thisSdProposalKernel);
 	if(tmp > 1.0){
