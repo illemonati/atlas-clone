@@ -6,7 +6,6 @@
  */
 
 #include "GenotypeTypes.h"
-#include "devtools.h"
 
 #include "TSimulator.h"
 #include <memory>
@@ -385,8 +384,9 @@ Base TSimulator::_sampleBase(const std::array<double, 4> &cumulProbs) {
 	return static_cast<genometools::BaseEnum>(_randomGenerator->pickOne(cumulProbs));
 }
 
-Base TSimulator::_mutateBase(const Base &base, const std::array<double, 4> &cumulProbs) {
-	return static_cast<genometools::BaseEnum>(base.get() + _randomGenerator->pickOne(cumulProbs));
+Base TSimulator::_mutateBase(Base base, const std::array<double, 4> &cumulProbs) {
+	base.mutateWithStep(_randomGenerator->pickOne(cumulProbs));
+	return base;
 }
 
 void TSimulator::_simulateReadsFromHaplotypes(const BAM::TChromosome &thisChr, std::array<std::vector<Base>,2> haplotypes,
@@ -514,7 +514,6 @@ TSimulatorOne::TSimulatorOne(TLog *Logfile, TParameters &params, TRandomGenerato
 
 void TSimulatorOne::_simulateHaplotypesDiploid(TSimulatorHaplotypes &haplotypes,
 							 const BAM::TChromosome &chromosome) {
-	ECHO("huhu");
 	// fill mutation table
 	TSimulatorMutationtable mutTable(_baseFreq, _thetas[chromosome.refID()]);
 
