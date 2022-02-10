@@ -151,7 +151,7 @@ public:
 //-------------------------------------
 class TContextFilter : public TBaseFilter{
 private:
-	std::array<bool, static_cast<uint8_t>(genometools::cNN) + 1> _keptContexts;
+	std::array<bool, static_cast<uint8_t>(genometools::BaseContext::max) + 1> _keptContexts;
 
 public:
 	explicit TContextFilter(){

@@ -102,7 +102,7 @@ void TAlignment::_parseBasesQualities(){
 	Qualities.reserve(_qualities.length());
 
 	for(size_t i = 0; i < _sequence.length(); ++i){
-		Sequence.emplace_back(genometools::fromChar(_sequence[i]));
+		Sequence.emplace_back(genometools::char2base(_sequence[i]));
 		Qualities.emplace_back(genometools::BaseQuality(_qualities[i]));
 	}
 
@@ -264,17 +264,18 @@ void TAlignment::_setDistancesFromEnds(){
 };
 
 void TAlignment::_fillContext(){
+	using namespace genometools;
 	if(_flags.isReverseStrand()){
 		//reverse
 		for (size_t d=0; d<(_cigar.lengthSequenced()-1); ++d){
-			_bases[d].context.set(_bases[d+1].base, _bases[d].base);
+			_bases[d].context = baseContext(_bases[d+1].base, _bases[d].base);
 		}
-		_bases[_cigar.lengthSequenced()-1].context.set(genometools::N, _bases[_cigar.lengthSequenced()-1].base);
+		_bases[_cigar.lengthSequenced()-1].context = baseContext(Base::N, _bases[_cigar.lengthSequenced()-1].base);
 	} else {
 		//forward
-		_bases[0].context.set(genometools::N, _bases[0].base);
+		_bases[0].context = baseContext(Base::N, _bases[0].base);
 		for (size_t d=1; d<_cigar.lengthSequenced(); ++d)
-			_bases[d].context.set(_bases[d-1].base, _bases[d].base);
+			_bases[d].context = baseContext(_bases[d-1].base, _bases[d].base);
 	}
 };
 
@@ -374,7 +375,7 @@ void TAlignment::filter(const TBaseFilter & Filter){
 		//set quality = 0 and base = N if outside quality filter
 		for(auto& b : _bases){
 			if(!Filter.pass(b)){
-				b.base = genometools::N;
+				b.base = genometools::Base::N;
 				b.recalibratedQualityAsPhredInt = 0;
 			}
 		}
@@ -384,7 +385,7 @@ void TAlignment::filter(const TBaseFilter & Filter){
 void TAlignment::trimRead(int trimmingLength3Prime, int trimmingLength5Prime){
 	for(auto& b : _bases){
 		if(b.distFrom3Prime < trimmingLength3Prime || b.distFrom5Prime < trimmingLength5Prime){
-			b.base = genometools::N;
+			b.base = genometools::Base::N;
 			b.recalibratedQualityAsPhredInt = 0;
 		}
 	}
@@ -459,7 +460,7 @@ void TAlignment::downsampleAlignment(const coretools::Probability & fractionToKe
 	for(auto& b : _bases){
 		double r = randomGenerator.getRand();
 		if(r > fractionToKeep){
-			b.base = genometools::N;
+			b.base = genometools::Base::N;
 			b.recalibratedQualityAsPhredInt = 0;
 		}
 	}

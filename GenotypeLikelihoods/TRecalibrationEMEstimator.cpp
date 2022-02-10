@@ -6,6 +6,7 @@
  */
 
 #include "TRecalibrationEMEstimator.h"
+#include "GenotypeTypes.h"
 
 namespace GenotypeLikelihoods {
 
@@ -287,7 +288,7 @@ void TRecalibrationEMEstimator::performEstimation(std::string outputName, TSeque
 };
 
 void TRecalibrationEMEstimator::_fillRelevantBaseFrequencies(TBaseProbabilities & baseFreq, const genometools::Genotype & genotype){
-	if(genotype == genometools::NN){
+	if(genotype == genometools::Genotype::NN){
 		baseFreq = _genoDist->baseFrequencies();
 	} else {
 		_genoDist->fillBaseFrequences(baseFreq, genotype);
@@ -461,7 +462,7 @@ double TRecalibrationEMEstimator::_calculateLL_fullModel(const TPostMortemDamage
 		_genotypeLikelihoodCalculator.fillGenotypeLikelihoods(s, genotypeLikelihoods, PmdModels, *_modelsToEstimate);
 
 		//weight by genotype prior
-		if(s.genotype() == genometools::NN){
+		if(s.genotype() == genometools::Genotype::NN){
 			LL += log(genotypeLikelihoods.weightedSum(genoFreq));
 		} else {
 			LL += log(genotypeLikelihoods[s.genotype()].get());

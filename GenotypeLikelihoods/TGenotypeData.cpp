@@ -6,6 +6,7 @@
  */
 
 #include "TGenotypeData.h"
+#include "GenotypeTypes.h"
 
 namespace GenotypeLikelihoods{
 
@@ -22,35 +23,41 @@ TBaseLikelihoods::TBaseLikelihoods(const genometools::Base & trueBase, const Pro
 
 void TBaseLikelihoods::setFromError(const genometools::Base & trueBase, const Probability & error){
 	set(error / 3.0);
-	_data[trueBase.get()] = error.complement();
+	_data[genometools::index(trueBase)] = error.complement();
 };
 
 //--------------------------------------------------------------------
 // TBaseCounts
 //--------------------------------------------------------------------
 uint8_t TBaseCounts::numAlleles() const{
+	using genometools::Base;
+	using genometools::index;
 	uint8_t n = 0;
-	if(_data[genometools::A] > 0) ++n;
-	if(_data[genometools::C] > 0) ++n;
-	if(_data[genometools::G] > 0) ++n;
-	if(_data[genometools::T] > 0) ++n;
+	if(_data[index(Base::A)] > 0) ++n;
+	if(_data[index(Base::C)] > 0) ++n;
+	if(_data[index(Base::G)] > 0) ++n;
+	if(_data[index(Base::T)] > 0) ++n;
 	return n;
 };
 
 void TBaseCounts::fillFrequencies(TBaseProbabilities & freq){
-	double tot = _data[genometools::A] + _data[genometools::C] + _data[genometools::G] + _data[genometools::T];
-	freq[genometools::A] = _data[genometools::A] / tot;
-	freq[genometools::C] = _data[genometools::C] / tot;
-	freq[genometools::G] = _data[genometools::G] / tot;
-	freq[genometools::T] = _data[genometools::T] / tot;
+	using genometools::Base;
+	using genometools::index;
+	double tot = _data[index(Base::A)] + _data[index(Base::C)] + _data[index(Base::G)] + _data[index(Base::T)];
+	freq[Base::A] = _data[index(Base::A)] / tot;
+	freq[Base::C] = _data[index(Base::C)] / tot;
+	freq[Base::G] = _data[index(Base::G)] / tot;
+	freq[Base::T] = _data[index(Base::T)] / tot;
 };
 
 void TBaseCounts::_fillCumulativeFrequencies(std::array<double, 4> & freq){
+	using genometools::Base;
+	using genometools::index;
 	double tot = sum();
-	freq[genometools::A] = _data[genometools::A] / tot;
-	freq[genometools::C] = freq[genometools::A] + _data[genometools::C] / tot;
-	freq[genometools::G] = freq[genometools::C] + _data[genometools::G] / tot;
-	freq[genometools::T] = 1.0;
+	freq[index(Base::A)] = _data[index(Base::A)] / tot;
+	freq[index(Base::C)] = freq[index(Base::A)] + _data[index(Base::C)] / tot;
+	freq[index(Base::G)] = freq[index(Base::C)] + _data[index(Base::G)] / tot;
+	freq[index(Base::T)] = 1.0;
 };
 
 void TBaseCounts::downsample(uint32_t max, coretools::TRandomGenerator & RandomGenerator){
@@ -72,19 +79,23 @@ void TBaseCounts::downsample(uint32_t max, coretools::TRandomGenerator & RandomG
 // TBaseData
 //--------------------------------------------------------------------
 void TBaseData::operator+=(const TBaseProbabilities & probs){
-	_data[genometools::A] += probs[genometools::A].get();
-	_data[genometools::C] += probs[genometools::C].get();
-	_data[genometools::G] += probs[genometools::G].get();
-	_data[genometools::T] += probs[genometools::T].get();
+	using genometools::Base;
+	using genometools::index;
+	_data[index(Base::A)] += probs[Base::A].get();
+	_data[index(Base::C)] += probs[Base::C].get();
+	_data[index(Base::G)] += probs[Base::G].get();
+	_data[index(Base::T)] += probs[Base::T].get();
 };
 
 TBaseProbabilities TBaseData::asFrequencies(){
+	using genometools::Base;
+	using genometools::index;
 	TBaseProbabilities freq;
 	double tot = sum();
-	freq[genometools::A] = _data[genometools::A] / tot;
-	freq[genometools::C] = _data[genometools::C] / tot;
-	freq[genometools::G] = _data[genometools::G] / tot;
-	freq[genometools::T] = _data[genometools::T] / tot;
+	freq[Base::A] = _data[index(Base::A)] / tot;
+	freq[Base::C] = _data[index(Base::C)] / tot;
+	freq[Base::G] = _data[index(Base::G)] / tot;
+	freq[Base::T] = _data[index(Base::T)] / tot;
 
 	return freq;
 };
@@ -93,16 +104,18 @@ TBaseProbabilities TBaseData::asFrequencies(){
 // TGenotypeProbability_base
 //--------------------------------------------------------------------
 void TGenotypeProbability_base::operator=(const TGenotypeData & Other){
-	_data[genometools::AA] = Other[genometools::AA];
-	_data[genometools::AC] = Other[genometools::AC];
-	_data[genometools::AG] = Other[genometools::AG];
-	_data[genometools::AT] = Other[genometools::AT];
-	_data[genometools::CC] = Other[genometools::CC];
-	_data[genometools::CG] = Other[genometools::CG];
-	_data[genometools::CT] = Other[genometools::CT];
-	_data[genometools::GG] = Other[genometools::GG];
-	_data[genometools::GT] = Other[genometools::GT];
-	_data[genometools::TT] = Other[genometools::TT];
+	using GT = genometools::Genotype;
+	using genometools::index;
+	_data[index(GT::AA)] = Other[GT::AA];
+	_data[index(GT::AC)] = Other[GT::AC];
+	_data[index(GT::AG)] = Other[GT::AG];
+	_data[index(GT::AT)] = Other[GT::AT];
+	_data[index(GT::CC)] = Other[GT::CC];
+	_data[index(GT::CG)] = Other[GT::CG];
+	_data[index(GT::CT)] = Other[GT::CT];
+	_data[index(GT::GG)] = Other[GT::GG];
+	_data[index(GT::GT)] = Other[GT::GT];
+	_data[index(GT::TT)] = Other[GT::TT];
 };
 
 //--------------------------------------------------------------------
@@ -117,6 +130,9 @@ void TGenotypeLikelihoods::fill(const std::vector<TBaseLikelihoods> & bases){
 };
 
 void TGenotypeLikelihoods::fill(const std::vector<TBaseLikelihoods> & bases, const size_t size){
+	using genometools::Base;
+	using GT = genometools::Genotype;
+	using genometools::index;
 	//allows for vector to be longer than what is to be used
 	//do in log if depth is high
 	if(bases.size() > 50){
@@ -125,53 +141,55 @@ void TGenotypeLikelihoods::fill(const std::vector<TBaseLikelihoods> & bases, con
 
 		//add to log genotype data
 		for(size_t i=0; i<size; ++i){
-			tmp[genometools::AA] += log(bases[i][genometools::A]);
-			tmp[genometools::AC] += log(0.5 * (bases[i][genometools::A] + bases[i][genometools::C]));
-			tmp[genometools::AG] += log(0.5 * (bases[i][genometools::A] + bases[i][genometools::G]));
-			tmp[genometools::AT] += log(0.5 * (bases[i][genometools::A] + bases[i][genometools::T]));
-			tmp[genometools::CC] += log(bases[i][genometools::C].get());
-			tmp[genometools::CG] += log(0.5 * (bases[i][genometools::C] + bases[i][genometools::G]));
-			tmp[genometools::CT] += log(0.5 * (bases[i][genometools::C] + bases[i][genometools::T]));
-			tmp[genometools::GG] += log(bases[i][genometools::G].get());
-			tmp[genometools::GT] += log(0.5 * (bases[i][genometools::G] + bases[i][genometools::T]));
-			tmp[genometools::TT] += log(bases[i][genometools::T].get());
+		    tmp[index(GT::AA)] += log(bases[i][Base::A]);
+		    tmp[index(GT::AC)] += log(0.5 * (bases[i][Base::A] + bases[i][Base::C]));
+		    tmp[index(GT::AG)] += log(0.5 * (bases[i][Base::A] + bases[i][Base::G]));
+		    tmp[index(GT::AT)] += log(0.5 * (bases[i][Base::A] + bases[i][Base::T]));
+		    tmp[index(GT::CC)] += log(bases[i][Base::C].get());
+		    tmp[index(GT::CG)] += log(0.5 * (bases[i][Base::C] + bases[i][Base::G]));
+		    tmp[index(GT::CT)] += log(0.5 * (bases[i][Base::C] + bases[i][Base::T]));
+		    tmp[index(GT::GG)] += log(bases[i][Base::G].get());
+		    tmp[index(GT::GT)] += log(0.5 * (bases[i][Base::G] + bases[i][Base::T]));
+		    tmp[index(GT::TT)] += log(bases[i][Base::T].get());
 		}
 
 		//standardize and de-log
 		double max = *std::max_element(tmp.begin(), tmp.end());
-		_data[genometools::AA] = exp(tmp[genometools::AA] - max);
-		_data[genometools::AC] = exp(tmp[genometools::AC] - max);
-		_data[genometools::AG] = exp(tmp[genometools::AG] - max);
-		_data[genometools::AT] = exp(tmp[genometools::AT] - max);
-		_data[genometools::CC] = exp(tmp[genometools::CC] - max);
-		_data[genometools::CG] = exp(tmp[genometools::CG] - max);
-		_data[genometools::CT] = exp(tmp[genometools::CT] - max);
-		_data[genometools::GG] = exp(tmp[genometools::GG] - max);
-		_data[genometools::GT] = exp(tmp[genometools::GT] - max);
-		_data[genometools::TT] = exp(tmp[genometools::TT] - max);
+		_data[index(GT::AA)] = exp(tmp[index(GT::AA)] - max);
+		_data[index(GT::AC)] = exp(tmp[index(GT::AC)] - max);
+		_data[index(GT::AG)] = exp(tmp[index(GT::AG)] - max);
+		_data[index(GT::AT)] = exp(tmp[index(GT::AT)] - max);
+		_data[index(GT::CC)] = exp(tmp[index(GT::CC)] - max);
+		_data[index(GT::CG)] = exp(tmp[index(GT::CG)] - max);
+		_data[index(GT::CT)] = exp(tmp[index(GT::CT)] - max);
+		_data[index(GT::GG)] = exp(tmp[index(GT::GG)] - max);
+		_data[index(GT::GT)] = exp(tmp[index(GT::GT)] - max);
+		_data[index(GT::TT)] = exp(tmp[index(GT::TT)] - max);
 	} else { //on natural scale
 		//initialize tmp to 1.0
 		TGenotypeData tmp(1.0);
 
 		for(size_t i=0; i<size; ++i){
-			tmp[genometools::AA] *= bases[i][genometools::A];
-			tmp[genometools::AC] *= 0.5 * (bases[i][genometools::A] + bases[i][genometools::C]);
-			tmp[genometools::AG] *= 0.5 * (bases[i][genometools::A] + bases[i][genometools::G]);
-			tmp[genometools::AT] *= 0.5 * (bases[i][genometools::A] + bases[i][genometools::T]);
-			tmp[genometools::CC] *= bases[i][genometools::C].get();
-			tmp[genometools::CG] *= 0.5 * (bases[i][genometools::C] + bases[i][genometools::G]);
-			tmp[genometools::CT] *= 0.5 * (bases[i][genometools::C] + bases[i][genometools::T]);
-			tmp[genometools::GG] *= bases[i][genometools::G].get();
-			tmp[genometools::GT] *= 0.5 * (bases[i][genometools::G] + bases[i][genometools::T]);
-			tmp[genometools::TT] *= bases[i][genometools::T];
+			tmp[GT::AA] *= bases[i][Base::A];
+			tmp[GT::AC] *= 0.5 * (bases[i][Base::A] + bases[i][Base::C]);
+			tmp[GT::AG] *= 0.5 * (bases[i][Base::A] + bases[i][Base::G]);
+			tmp[GT::AT] *= 0.5 * (bases[i][Base::A] + bases[i][Base::T]);
+			tmp[GT::CC] *= bases[i][Base::C].get();
+			tmp[GT::CG] *= 0.5 * (bases[i][Base::C] + bases[i][Base::G]);
+			tmp[GT::CT] *= 0.5 * (bases[i][Base::C] + bases[i][Base::T]);
+			tmp[GT::GG] *= bases[i][Base::G].get();
+			tmp[GT::GT] *= 0.5 * (bases[i][Base::G] + bases[i][Base::T]);
+			tmp[GT::TT] *= bases[i][Base::T];
 		}
 		*this = tmp;
 	}
 };
 
 void TGenotypeLikelihoods::addNames(std::vector<std::string> & vec) const{
-	for(uint16_t g = genometools::AA; g < genometools::NN; g++){
-		vec.push_back( "P(D|" + (std::string) genometools::Genotype(static_cast<genometools::GenotypeEnum>(g)) + ")");
+	using GT = genometools::Genotype;
+	using genometools::index;
+	for(auto g = GT::AA; g < GT::NN; ++g){
+		vec.push_back( "P(D|" + genometools::toString(g) + ")");
 	}
 };
 
@@ -179,23 +197,27 @@ void TGenotypeLikelihoods::addNames(std::vector<std::string> & vec) const{
 // TGenotypeProbabilities
 //--------------------------------------------------------------------
 void TGenotypeProbabilities::fillBayesian(const TGenotypeLikelihoods & likelihoods, const TGenotypeProbabilities & prior){
+	using GT = genometools::Genotype;
+	using genometools::index;
 	//calculate normalized genotype probabilities according to Bayes rule
-	_data[genometools::AA] = likelihoods[genometools::AA] * prior[genometools::AA];
-	_data[genometools::AC] = likelihoods[genometools::AC] * prior[genometools::AC];
-	_data[genometools::AG] = likelihoods[genometools::AG] * prior[genometools::AG];
-	_data[genometools::AT] = likelihoods[genometools::AT] * prior[genometools::AT];
-	_data[genometools::CC] = likelihoods[genometools::CC] * prior[genometools::CC];
-	_data[genometools::CG] = likelihoods[genometools::CG] * prior[genometools::CG];
-	_data[genometools::CT] = likelihoods[genometools::CT] * prior[genometools::CT];
-	_data[genometools::GG] = likelihoods[genometools::GG] * prior[genometools::GG];
-	_data[genometools::GT] = likelihoods[genometools::GT] * prior[genometools::GT];
-	_data[genometools::TT] = likelihoods[genometools::TT] * prior[genometools::TT];
+	_data[index(GT::AA)] = likelihoods[GT::AA] * prior[GT::AA];
+	_data[index(GT::AC)] = likelihoods[GT::AC] * prior[GT::AC];
+	_data[index(GT::AG)] = likelihoods[GT::AG] * prior[GT::AG];
+	_data[index(GT::AT)] = likelihoods[GT::AT] * prior[GT::AT];
+	_data[index(GT::CC)] = likelihoods[GT::CC] * prior[GT::CC];
+	_data[index(GT::CG)] = likelihoods[GT::CG] * prior[GT::CG];
+	_data[index(GT::CT)] = likelihoods[GT::CT] * prior[GT::CT];
+	_data[index(GT::GG)] = likelihoods[GT::GG] * prior[GT::GG];
+	_data[index(GT::GT)] = likelihoods[GT::GT] * prior[GT::GT];
+	_data[index(GT::TT)] = likelihoods[GT::TT] * prior[GT::TT];
 
 	normalize();
 };
 
 Probability TGenotypeProbabilities::probHomozygous(){
-	return _data[genometools::AA] + _data[genometools::CC] + _data[genometools::GG] + _data[genometools::TT];
+	using GT = genometools::Genotype;
+	using genometools::index;
+	return _data[index(GT::AA)] + _data[index(GT::CC)] + _data[index(GT::GG)] + _data[index(GT::TT)];
 };
 
 Probability TGenotypeProbabilities::probHeterozygous(){
@@ -206,19 +228,24 @@ Probability TGenotypeProbabilities::probHeterozygous(){
 // TGenotypeLikelihoodsHaploid
 //--------------------------------------------------------------------
 void TGenotypeLikelihoodsHaploid::reset(){
+	using GT = genometools::Genotype;
+	using genometools::index;
 	//initialize to 1.0
-	_data[genometools::AA] = 1.0; _data[genometools::CC] = 1.0; _data[genometools::GG] = 1.0; _data[genometools::TT] = 1.0;
+	_data[index(GT::AA)] = 1.0; _data[index(GT::CC)] = 1.0; _data[index(GT::GG)] = 1.0; _data[index(GT::TT)] = 1.0;
 
 	//initialize het to minimum
-	_data[genometools::AC] = _MINLIKELIHOODVALUE; _data[genometools::AG] = _MINLIKELIHOODVALUE; _data[genometools::AT] = _MINLIKELIHOODVALUE;
-	_data[genometools::CG] = _MINLIKELIHOODVALUE; _data[genometools::CT] = _MINLIKELIHOODVALUE; _data[genometools::GT] = _MINLIKELIHOODVALUE;
+	_data[index(GT::AC)] = _MINLIKELIHOODVALUE; _data[index(GT::AG)] = _MINLIKELIHOODVALUE; _data[index(GT::AT)] = _MINLIKELIHOODVALUE;
+	_data[index(GT::CG)] = _MINLIKELIHOODVALUE; _data[index(GT::CT)] = _MINLIKELIHOODVALUE; _data[index(GT::GT)] = _MINLIKELIHOODVALUE;
 };
 
 void TGenotypeLikelihoodsHaploid::fill(const std::vector<TBaseLikelihoods> & bases, const size_t size){
+	using GT = genometools::Genotype;
+	using genometools::index;
+	using genometools::Base;
 	//allows for vector to be longer than what is to be used
 	//initialize het to minimum
-	_data[genometools::AC] = _MINLIKELIHOODVALUE; _data[genometools::AG] = _MINLIKELIHOODVALUE; _data[genometools::AT] = _MINLIKELIHOODVALUE;
-	_data[genometools::CG] = _MINLIKELIHOODVALUE; _data[genometools::CT] = _MINLIKELIHOODVALUE; _data[genometools::GT] = _MINLIKELIHOODVALUE;
+	_data[index(GT::AC)] = _MINLIKELIHOODVALUE; _data[index(GT::AG)] = _MINLIKELIHOODVALUE; _data[index(GT::AT)] = _MINLIKELIHOODVALUE;
+	_data[index(GT::CG)] = _MINLIKELIHOODVALUE; _data[index(GT::CT)] = _MINLIKELIHOODVALUE; _data[index(GT::GT)] = _MINLIKELIHOODVALUE;
 
 	//do in log if depth is high
 	if(bases.size() > 50){
@@ -227,29 +254,29 @@ void TGenotypeLikelihoodsHaploid::fill(const std::vector<TBaseLikelihoods> & bas
 
 		//add to log genotype data
 		for(size_t i=0; i<size; ++i){
-			tmp[0] += log(bases[i][genometools::A]);
-			tmp[1] += log(bases[i][genometools::C]);
-			tmp[2] += log(bases[i][genometools::G]);
-			tmp[3] += log(bases[i][genometools::T]);
+			tmp[0] += log(bases[i][Base::A]);
+			tmp[1] += log(bases[i][Base::C]);
+			tmp[2] += log(bases[i][Base::G]);
+			tmp[3] += log(bases[i][Base::T]);
 		}
 
 		//find max
 		double max = *std::max_element(tmp.begin(), tmp.end());
 
 		//standardize and de-log
-		_data[genometools::AA] = exp(tmp[0] - max);
-		_data[genometools::CC] = exp(tmp[1] - max);
-		_data[genometools::GG] = exp(tmp[2] - max);
-		_data[genometools::TT] = exp(tmp[3] - max);
+		_data[index(GT::AA)] = exp(tmp[0] - max);
+		_data[index(GT::CC)] = exp(tmp[1] - max);
+		_data[index(GT::GG)] = exp(tmp[2] - max);
+		_data[index(GT::TT)] = exp(tmp[3] - max);
 	} else { //on natural scale
 		//initialize
-		_data[genometools::AA] = 1.0; _data[genometools::CC] = 1.0; _data[genometools::GG] = 1.0; _data[genometools::TT] = 1.0;
+		_data[index(GT::AA)] = 1.0; _data[index(GT::CC)] = 1.0; _data[index(GT::GG)] = 1.0; _data[index(GT::TT)] = 1.0;
 
 		for(size_t i=0; i<size; ++i){
-			_data[genometools::AA] *= bases[i][genometools::A];
-			_data[genometools::CC] *= bases[i][genometools::C];
-			_data[genometools::GG] *= bases[i][genometools::G];
-			_data[genometools::TT] *= bases[i][genometools::T];
+			_data[index(GT::AA)] *= bases[i][Base::A];
+			_data[index(GT::CC)] *= bases[i][Base::C];
+			_data[index(GT::GG)] *= bases[i][Base::G];
+			_data[index(GT::TT)] *= bases[i][Base::T];
 		}
 	}
 };
@@ -258,16 +285,18 @@ void TGenotypeLikelihoodsHaploid::fill(const std::vector<TBaseLikelihoods> & bas
 // TGenotypeData
 //--------------------------------------------------------------------
 void TGenotypeData::operator+=(const TGenotypeProbability_base & other){
-	_data[genometools::AA] += other[genometools::AA].get();
-	_data[genometools::AC] += other[genometools::AC].get();
-	_data[genometools::AG] += other[genometools::AG].get();
-	_data[genometools::AT] += other[genometools::AT].get();
-	_data[genometools::CC] += other[genometools::CC].get();
-	_data[genometools::CG] += other[genometools::CG].get();
-	_data[genometools::CT] += other[genometools::CT].get();
-	_data[genometools::GG] += other[genometools::GG].get();
-	_data[genometools::GT] += other[genometools::GT].get();
-	_data[genometools::TT] += other[genometools::TT].get();
+	using GT = genometools::Genotype;
+	using genometools::index;
+	_data[index(GT::AA)] += other[GT::AA].get();
+	_data[index(GT::AC)] += other[GT::AC].get();
+	_data[index(GT::AG)] += other[GT::AG].get();
+	_data[index(GT::AT)] += other[GT::AT].get();
+	_data[index(GT::CC)] += other[GT::CC].get();
+	_data[index(GT::CG)] += other[GT::CG].get();
+	_data[index(GT::CT)] += other[GT::CT].get();
+	_data[index(GT::GG)] += other[GT::GG].get();
+	_data[index(GT::GT)] += other[GT::GT].get();
+	_data[index(GT::TT)] += other[GT::TT].get();
 };
 
 }; // end namespace

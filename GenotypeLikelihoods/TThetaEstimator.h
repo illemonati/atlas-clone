@@ -66,8 +66,10 @@ struct Theta{
 		LL = newLL;
 	};
 
-	std::string getBaseFrequencyString(){
-		return coretools::str::toString("Pi(A) = ", baseFreq[genometools::A], ", Pi(C) = ", baseFreq[genometools::C], ", Pi(G) = ", baseFreq[genometools::G], ", Pi(T) = ", baseFreq[genometools::T]);
+	std::string getBaseFrequencyString() {
+		using genometools::Base;
+		return coretools::str::toString("Pi(A) = ", baseFreq[Base::A], ", Pi(C) = ", baseFreq[Base::C],
+						", Pi(G) = ", baseFreq[Base::G], ", Pi(T) = ", baseFreq[Base::T]);
 	};
 };
 

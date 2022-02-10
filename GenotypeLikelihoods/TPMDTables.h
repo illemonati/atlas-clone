@@ -38,8 +38,8 @@ public:
 	void empty();
 	void add(size_t pos, genometools::Base ref, genometools::Base read);
 	void add(const TPMDTable &other);
-	const PMDCounts &operator[](genometools::Base b) const { return _counts[b.get()]; }
-	const countVec &sums(genometools::Base b) const { return _sums[b.get()]; }
+	const PMDCounts &operator[](genometools::Base b) const { return _counts[genometools::index(b)]; }
+	const countVec &sums(genometools::Base b) const { return _sums[genometools::index(b)]; }
 	void write(coretools::TOutputFile &out, std::vector<std::string> &prefix, bool normalized);
 };
 

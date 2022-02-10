@@ -6,6 +6,7 @@
  */
 
 
+#include "GenotypeTypes.h"
 #include <TPolymorhicWindowIdentifier.h>
 
 namespace PopulationTools{
@@ -15,6 +16,7 @@ TPolymorhicWindowIdentifier::TPolymorhicWindowIdentifier(TParameters &, TLog* Lo
 };
 
 void TPolymorhicWindowIdentifier::identifyPolymorphicWindows(TParameters & Parameters, TRandomGenerator*){
+	using BG = genometools::BiallelicGenotype;
 	//read samples
 	TPopulationSamples samples;
 	if(Parameters.parameterExists("samples"))
@@ -67,7 +69,7 @@ void TPolymorhicWindowIdentifier::identifyPolymorphicWindows(TParameters & Param
  				++numWindowsWithData;
  				uint32_t numPoly = 0;
  				for(uint32_t l = 0; l<window.numLoci(); ++l){
- 					if(window[l][i][genometools::het] < window[l][i][genometools::homoFirst] && window[l][i][genometools::het] < window[l][i][genometools::homoSecond])
+ 					if(window[l][i][BG::het] < window[l][i][BG::homoFirst] && window[l][i][BG::het] < window[l][i][BG::homoSecond])
  						++numPoly;
  				}
  				if(numPoly > 0){

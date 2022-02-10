@@ -67,7 +67,8 @@ void TTestGLFFile::_iteratePosition() {
 }
 
 void TTestGLFFile::_iterateGenotypeLikelihoods(uint32_t curDepth) {
-    std::vector<genometools::Base> possibleBases = {genometools::A, genometools::C, genometools::G, genometools::T};
+	using namespace genometools;
+    std::vector<genometools::Base> possibleBases = {Base::A, Base::C, Base::G, Base::T};
     uint8_t indexPossibleBases = 0;
 
     coretools::Probability error = 0.01;

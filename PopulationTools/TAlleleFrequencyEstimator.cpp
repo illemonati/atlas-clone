@@ -6,15 +6,11 @@
  */
 
 #include "TAlleleFrequencyEstimator.h"
+#include "GenotypeTypes.h"
 #include <string>
 
 namespace PopulationTools{
 
-using genometools::haploidFirst;
-using genometools::haploidSecond;
-using genometools::het;
-using genometools::homoFirst;
-using genometools::homoSecond;
 using coretools::toString;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -25,6 +21,7 @@ TAlleleFreqEstimatorHardyWeinberg::TAlleleFreqEstimatorHardyWeinberg(){
 };
 
 Probability TAlleleFreqEstimatorHardyWeinberg::estimate(const TSampleLikelihoods* storage, uint32_t numSamplesInPop, double epsilonF){
+	using BG = genometools::BiallelicGenotype;
 	genometools::THardyWeinbergGenotypeProbabilities pGenotype;
 	Probability weights[3];
 
@@ -40,8 +37,8 @@ Probability TAlleleFreqEstimatorHardyWeinberg::estimate(const TSampleLikelihoods
 		for(uint32_t i=0; i<numSamplesInPop; i++){
 			if(!storage[i].isMissing()){
 				if(storage[i].isHaploid()){
-					weights[0] = (Probability) storage[i][haploidFirst]  * pGenotype[haploidFirst];
-					weights[1] = (Probability) storage[i][haploidSecond]  * pGenotype[haploidSecond];
+					weights[0] = (Probability) storage[i][BG::haploidFirst]  * pGenotype[BG::haploidFirst];
+					weights[1] = (Probability) storage[i][BG::haploidSecond]  * pGenotype[BG::haploidSecond];
 					double sum = weights[0] + weights[1];
 
 					//add to sums
@@ -49,9 +46,9 @@ Probability TAlleleFreqEstimatorHardyWeinberg::estimate(const TSampleLikelihoods
 					n += 1;
 				} else {
 					//calculate weights
-					weights[0] = (Probability) storage[i][homoFirst]  * pGenotype[homoFirst];
-					weights[1] = (Probability) storage[i][het]  * pGenotype[het];
-					weights[2] = (Probability) storage[i][homoSecond]  * pGenotype[homoSecond];
+					weights[0] = (Probability) storage[i][BG::homoFirst]  * pGenotype[BG::homoFirst];
+					weights[1] = (Probability) storage[i][BG::het]  * pGenotype[BG::het];
+					weights[2] = (Probability) storage[i][BG::homoSecond]  * pGenotype[BG::homoSecond];
 					double sum = weights[0] + weights[1] + weights[2];
 
 					//add to sums
@@ -137,6 +134,7 @@ TAlleleFreqEstimatorBayes::TAlleleFreqEstimatorBayes(TParameters & Parameters, T
 };
 
 Probability TAlleleFreqEstimatorBayes::_guessInitialAlleleFrequency(const TSampleLikelihoods* storage, uint32_t numSamplesInPopulation){
+	using BG = genometools::BiallelicGenotype;
 	//calculate average posterior probs using a non-informative prior.
 	double sum_1 = 0.0;
 	double sum_2 = 0.0;
@@ -145,17 +143,17 @@ Probability TAlleleFreqEstimatorBayes::_guessInitialAlleleFrequency(const TSampl
 	for(uint32_t i=0; i<numSamplesInPopulation; i++){
 		if(!storage[i].isMissing()){
 			if(storage[i].isHaploid()){
-				double sum = (Probability) storage[i][homoFirst] + (Probability) storage[i][homoSecond];
+				double sum = (Probability) storage[i][BG::homoFirst] + (Probability) storage[i][BG::homoSecond];
 
 				//add to sums
-				sum_1 += (Probability) storage[i][homoSecond] / sum;
+				sum_1 += (Probability) storage[i][BG::homoSecond] / sum;
 				n += 1;
 			} else {
-				double sum = (Probability) storage[i][homoFirst] + (Probability) storage[i][het] + (Probability) storage[i][homoSecond];
+				double sum = (Probability) storage[i][BG::homoFirst] + (Probability) storage[i][BG::het] + (Probability) storage[i][BG::homoSecond];
 
 				//add to sums
-				sum_1 += (Probability) storage[i][het] / sum;
-				sum_2 += (Probability) storage[i][homoSecond] / sum;
+				sum_1 += (Probability) storage[i][BG::het] / sum;
+				sum_2 += (Probability) storage[i][BG::homoSecond] / sum;
 				n += 2;
 			}
 		}

@@ -95,7 +95,7 @@ public:
 class TSimulatorAlleleIndex {
 private:
 	int nextIndex = 0;
-	Base refBase = genometools::N;
+	Base refBase = genometools::Base::N;
 	Base indexToBase[4];
 
 public:
@@ -170,7 +170,7 @@ public:
 	TSimulatorMutationtable(const GenotypeLikelihoods::TBaseProbabilities &baseFreq);
 	TSimulatorMutationtable(const GenotypeLikelihoods::TBaseProbabilities &baseFreq, double theta);
 	~TSimulatorMutationtable() = default;
-	const std::array<double, 4> operator[](genometools::Base base) const noexcept { return _mutTable[base.get()]; }
+	const std::array<double, 4> operator[](genometools::Base base) const noexcept { return _mutTable[genometools::index(base)]; }
 	void print();
 };
 

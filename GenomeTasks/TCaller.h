@@ -199,40 +199,41 @@ protected:
 	bool callGenotypeFromMetricKnownAllelesUpdateIndex(const TGenotypeProbability_base & metric);
 
 	template<typename T> std::string _getPerGenotypeMetricString(const T & metric){
+		using genometools::Base;
 		//if you have alleles R, A, B, C then the order is: RR, RA, AA | RB, AB, BB | RC, AC, BC, CC
 		//plot missing value (.) for all metrics involving the reference if the reference is N
 		std::string ret;
 		//first for reference base
-		if(referenceBase == genometools::N)
+		if(referenceBase == Base::N)
 			ret = ".";
 		else
-			ret = toString(metric[genometools::Genotype(referenceBase, referenceBase)]);
+			ret = toString(metric[genometools::genotype(referenceBase, referenceBase)]);
 
 		//now for alternative alleles
 		if(_altAlleles.size() > 0){
-			if(referenceBase == genometools::N)
+			if(referenceBase == Base::N)
 				ret += ",.";
 			else
-				ret += ',' + toString(metric[genometools::Genotype(referenceBase, _altAlleles[0])]);
-			ret += ',' + toString(metric[genometools::Genotype(_altAlleles[0], _altAlleles[0])]);
+				ret += ',' + toString(metric[genometools::genotype(referenceBase, _altAlleles[0])]);
+			ret += ',' + toString(metric[genometools::genotype(_altAlleles[0], _altAlleles[0])]);
 
 			if(_altAlleles.size() > 1){
-				if(referenceBase == genometools::N)
+				if(referenceBase == Base::N)
 					ret += ",.";
 				else
-					ret += ',' + toString(metric[genometools::Genotype(referenceBase, _altAlleles[1])]);
-				ret += ',' + toString(metric[genometools::Genotype(_altAlleles[0], _altAlleles[1])]);
-				ret += ',' + toString(metric[genometools::Genotype(_altAlleles[1], _altAlleles[1])]);
+					ret += ',' + toString(metric[genometools::genotype(referenceBase, _altAlleles[1])]);
+				ret += ',' + toString(metric[genometools::genotype(_altAlleles[0], _altAlleles[1])]);
+				ret += ',' + toString(metric[genometools::genotype(_altAlleles[1], _altAlleles[1])]);
 			}
 
 			if(_altAlleles.size() > 2){
-				if(referenceBase == genometools::N)
+				if(referenceBase == Base::N)
 					ret += ",.";
 				else
-					ret += ',' + toString(metric[genometools::Genotype(referenceBase, _altAlleles[2])]);
-				ret += ',' + toString(metric[genometools::Genotype(_altAlleles[0], _altAlleles[2])]);
-				ret += ',' + toString(metric[genometools::Genotype(_altAlleles[1], _altAlleles[2])]);
-				ret += ',' + toString(metric[genometools::Genotype(_altAlleles[2], _altAlleles[2])]);
+					ret += ',' + toString(metric[genometools::genotype(referenceBase, _altAlleles[2])]);
+				ret += ',' + toString(metric[genometools::genotype(_altAlleles[0], _altAlleles[2])]);
+				ret += ',' + toString(metric[genometools::genotype(_altAlleles[1], _altAlleles[2])]);
+				ret += ',' + toString(metric[genometools::genotype(_altAlleles[2], _altAlleles[2])]);
 			}
 		}
 		return ret;

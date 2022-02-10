@@ -10,6 +10,7 @@
 
 #include <memory>
 #include "../BAM/TSequencedBase.h"
+#include "GenotypeTypes.h"
 #include "TSequencingErrorCovariateFunction.h"
 #include "RecalEstimatorTools.h"
 
@@ -126,7 +127,7 @@ private:
 	int numContext;
 
 	uint16_t _extractCovariate(const BAM::TSequencedBase & base) override {
-		return static_cast<uint16_t>(base.context.get());
+		return genometools::index(base.context);
 	};
 
 public:

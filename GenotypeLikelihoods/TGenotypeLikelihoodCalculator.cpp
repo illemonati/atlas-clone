@@ -107,7 +107,7 @@ coretools::Probability TGenotypeLikelihoodCalculator::getErrorRate(const BAM::TS
 };
 
 coretools::Probability TGenotypeLikelihoodCalculator::getErrorWithPMD(const BAM::TSequencedBase & base) const{
-	if(base.base == genometools::N){
+	if(base.base == genometools::Base::N){
 		return Probability::highest();
 	} else {
 		//calculate base likelihoods with PMD
@@ -124,7 +124,7 @@ genometools::PhredIntProbability TGenotypeLikelihoodCalculator::getPhredInt(cons
 };
 
 genometools::PhredIntProbability TGenotypeLikelihoodCalculator::getPhredIntWithPMD(const BAM::TSequencedBase & base) const{
-	if(base.base == genometools::N){
+	if(base.base == genometools::Base::N){
 		return genometools::PhredIntProbability::min();
 	} else {
 		return genometools::PhredIntProbability(getErrorWithPMD(base));

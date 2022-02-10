@@ -6,6 +6,7 @@
  */
 
 #include "TInbreedingEstimator.h"
+#include "GenotypeTypes.h"
 #include <string>
 
 namespace PopulationTools{
@@ -977,6 +978,7 @@ bool TInbreedingEstimator::updatePi(){
 }
 
 double TInbreedingEstimator::logLikelihoodAllInds(TSampleLikelihoods* data, const int curSampleSize, const double thisP, const double thisF){
+	using BG = genometools::BiallelicGenotype;
 	if(thisP < 0)
 		throw "allele freq is negative!";
 	//sum over all individuals of log sum_g P(d|g)P(g|p,F)
@@ -997,13 +999,13 @@ double TInbreedingEstimator::logLikelihoodAllInds(TSampleLikelihoods* data, cons
 		if(!data[s].isMissing()){
 			double integrationOverGeno = 0;
 			if(data[s].isHaploid()){
-				integrationOverGeno += (Probability) data[s][genometools::haploidFirst] * (1.0 - thisP);
-				integrationOverGeno += (Probability) data[s][genometools::haploidSecond] * thisP;
+				integrationOverGeno += (Probability) data[s][BG::haploidFirst] * (1.0 - thisP);
+				integrationOverGeno += (Probability) data[s][BG::haploidSecond] * thisP;
 			} else {
 				//calculate and add ratio for each genotype
-				integrationOverGeno = (Probability) data[s][genometools::homoFirst] * PGeno[0];
-				integrationOverGeno += (Probability) data[s][genometools::het] * PGeno[1];
-				integrationOverGeno += (Probability) data[s][genometools::homoSecond] * PGeno[2];
+				integrationOverGeno = (Probability) data[s][BG::homoFirst] * PGeno[0];
+				integrationOverGeno += (Probability) data[s][BG::het] * PGeno[1];
+				integrationOverGeno += (Probability) data[s][BG::homoSecond] * PGeno[2];
 
 				//check if likelihood of sample is a probability
 				if(integrationOverGeno < 0){

@@ -6,6 +6,7 @@
  */
 
 #include "TGLF.h"
+#include "GenotypeTypes.h"
 #include "debugtools.h"
 
 namespace GLF{
@@ -128,6 +129,7 @@ void TGlfWriter::newChromosome(const BAM::TChromosome & chromosome){
 };
 
 void TGlfWriter::writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual, GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods){
+	using genometools::Genotype;
 	//record type
 	//TODO: add reference?
     _write(&_recordType1, sizeof(uint8_t));
@@ -141,23 +143,23 @@ void TGlfWriter::writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual, Ge
 	//Note: genotype likelihoods are given for the 10 diploid genotypes!!
 	//TODO: maybe do in GLFChromosomes?
 	if(_curChr.isHaploid){
-		coretools::Probability maxLik = genotypeLikelihoods[genometools::AA];
-		if(genotypeLikelihoods[genometools::CC] > maxLik) maxLik = genotypeLikelihoods[genometools::CC];
-		if(genotypeLikelihoods[genometools::GG] > maxLik) maxLik = genotypeLikelihoods[genometools::GG];
-		if(genotypeLikelihoods[genometools::TT] > maxLik) maxLik = genotypeLikelihoods[genometools::TT];
+		coretools::Probability maxLik = genotypeLikelihoods[Genotype::AA];
+		if(genotypeLikelihoods[Genotype::CC] > maxLik) maxLik = genotypeLikelihoods[Genotype::CC];
+		if(genotypeLikelihoods[Genotype::GG] > maxLik) maxLik = genotypeLikelihoods[Genotype::GG];
+		if(genotypeLikelihoods[Genotype::TT] > maxLik) maxLik = genotypeLikelihoods[Genotype::TT];
 
 		//normalize and scale to uint16
-		_glfValues[0] = genotypeLikelihoods[genometools::AA] / maxLik;
-        _glfValues[1] = genotypeLikelihoods[genometools::CC] / maxLik;
-        _glfValues[2] = genotypeLikelihoods[genometools::GG] / maxLik;
-        _glfValues[3] = genotypeLikelihoods[genometools::TT] / maxLik;
+		_glfValues[0] = genotypeLikelihoods[Genotype::AA] / maxLik;
+        _glfValues[1] = genotypeLikelihoods[Genotype::CC] / maxLik;
+        _glfValues[2] = genotypeLikelihoods[Genotype::GG] / maxLik;
+        _glfValues[3] = genotypeLikelihoods[Genotype::TT] / maxLik;
 	} else {
 		//ploidy is 2
 		coretools::Probability maxLik = genotypeLikelihoods.max();
 
 		//normalize and scale to uint16
-		for(genometools::Genotype g = genometools::Genotype::min(); g < genometools::Genotype::max(); ++g){
-            _glfValues[g.get()] = genotypeLikelihoods[g] / maxLik;
+		for(auto g = Genotype::min; g < Genotype::max; ++g){
+			_glfValues[genometools::index(g)] = genotypeLikelihoods[g] / maxLik;
 		}
 	}
 

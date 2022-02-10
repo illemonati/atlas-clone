@@ -13,6 +13,7 @@
  */
 
 #include "TPostMortemDamage.h"
+#include "GenotypeTypes.h"
 #include <array>
 #include <memory>
 
@@ -277,10 +278,11 @@ void TPMDFunctionExponential::_estimateWithNewtonRaphson(const countVec &pmdCoun
 
 void TPMDFunctionExponential::learn(const TPMDTable &Table, const genometools::Base &from, const genometools::Base &to,
 				    const TPMDEstimationParameters &EstimationParameters) {
+	using genometools::index;
 	// extract counts in PMD direction and the inverse direction
-	const countVec &pmdCounts = Table[from][to.get()];
+	const countVec &pmdCounts = Table[from][index(to)];
 	const countVec &pmdSums   = Table.sums(from);
-	const countVec &invCounts = Table[to][from.get()];
+	const countVec &invCounts = Table[to][index(from)];
 	const countVec &invSums   = Table.sums(from);
 
 	// find last entry with counts
@@ -364,13 +366,14 @@ TPMDFunctionEmpiric::TPMDFunctionEmpiric(const std::string &string) : _parameter
 
 void TPMDFunctionEmpiric::learn(const TPMDTable &Table, const genometools::Base &from, const genometools::Base &to,
 				const TPMDEstimationParameters &) {
+	using genometools::index;
 	// resize parameters
 	_parameters.resize(Table.size()); // include extra bin for sites beyond size (available in PMDTables)
 
 	// extract counts in PMD direction and the inverse direction
-	const countVec &pmdCounts = Table[from][to.get()];
+	const countVec &pmdCounts = Table[from][index(to)];
 	const countVec &pmdSums   = Table.sums(from);
-	const countVec &invCounts = Table[to][from.get()];
+	const countVec &invCounts = Table[to][index(from)];
 	const countVec &invSums   = Table.sums(from);
 
 	for (size_t p = 0; p < _parameters.size(); ++p) {
@@ -414,26 +417,27 @@ void TPMDTypeDoubleStrand::parseEstimationParameters(TPMDEstimationParameters &E
 
 void TPMDTypeDoubleStrand::estimate(const PMDTable_RG &PMDTable,
 				    const TPMDEstimationParameters &EstimationParameters) {
+	using genometools::Base;
 	// Note: TPMDTables stores bases as during sequencing (not as after mapping)
 	// Assumption: C->T pattern is the same for forward and reverse reads from their respective 5-prime ends.
 	TPMDTable from5(PMDTable[forward5]);
 	from5.add(PMDTable[reverse5]);
-	_pmdCT->learn(from5, genometools::C, genometools::T, EstimationParameters);
+	_pmdCT->learn(from5, Base::C, Base::T, EstimationParameters);
 
 	// Assumption: G->A pattern is the same for forward and reverse reads from their respective 3-prime ends.
 	TPMDTable from3(PMDTable[forward3]);
 	from3.add(PMDTable[reverse3]);
-	_pmdGA->learn(from3, genometools::G, genometools::A, EstimationParameters);
+	_pmdGA->learn(from3, Base::G, Base::A, EstimationParameters);
 }
 
 void TPMDTypeDoubleStrand::fillBaseLikelihoods(const BAM::TSequencedBase &base,
 					       const TBaseProbabilities &baseLikelihoodsNoPMD,
 					       TBaseProbabilities &baseLikelihoods) const {
-	using namespace genometools;
+	using genometools::Base;
 	// Note: distances are as in original fragment (not BAM file), i.e. in direction of sequencing
 	// no PMD for A and C
-	baseLikelihoods[A] = baseLikelihoodsNoPMD[A];
-	baseLikelihoods[T] = baseLikelihoodsNoPMD[T];
+	baseLikelihoods[Base::A] = baseLikelihoodsNoPMD[Base::A];
+	baseLikelihoods[Base::T] = baseLikelihoodsNoPMD[Base::T];
 
 	// get relevant PMD probabilities
 	const auto from3  = base.distFrom3Prime < base.distFrom5Prime;
@@ -453,10 +457,10 @@ void TPMDTypeDoubleStrand::fillBaseLikelihoods(const BAM::TSequencedBase &base,
 	}
 
 	// add PMD
-	baseLikelihoods[C] =
-		(1.0 - pmdProb_CT) * baseLikelihoodsNoPMD[C].get() + pmdProb_CT * baseLikelihoodsNoPMD[T].get();
-	baseLikelihoods[G] =
-		(1.0 - pmdProb_GA) * baseLikelihoodsNoPMD[G].get() + pmdProb_GA * baseLikelihoodsNoPMD[A].get();
+	baseLikelihoods[Base::C] =
+		(1.0 - pmdProb_CT) * baseLikelihoodsNoPMD[Base::C].get() + pmdProb_CT * baseLikelihoodsNoPMD[Base::T].get();
+	baseLikelihoods[Base::G] =
+		(1.0 - pmdProb_GA) * baseLikelihoodsNoPMD[Base::G].get() + pmdProb_GA * baseLikelihoodsNoPMD[Base::A].get();
 }
 
 void TPMDTypeDoubleStrand::simulatePMD(BAM::TSequencedBase &base, TRandomGenerator &RandomGenerator) const {
@@ -465,21 +469,22 @@ void TPMDTypeDoubleStrand::simulatePMD(BAM::TSequencedBase &base, TRandomGenerat
 
 void TPMDTypeDoubleStrand::simulatePMD(genometools::Base &base, uint16_t DistFrom5Prime, uint16_t DistFrom3Prime,
 				       const bool &IsReverseStrand, TRandomGenerator &RandomGenerator) const {
+	using genometools::Base;
 	// simulate PMD
 	if (!IsReverseStrand) {
 		// forward strand
-		if (base == genometools::C && RandomGenerator.getRand() < _pmdCT->prob(DistFrom5Prime)) {
-			base = genometools::T;
-		} else if (base == genometools::G && RandomGenerator.getRand() < _pmdGA->prob(DistFrom3Prime)) {
-			base = genometools::A;
+		if (base == Base::C && RandomGenerator.getRand() < _pmdCT->prob(DistFrom5Prime)) {
+			base = Base::T;
+		} else if (base == Base::G && RandomGenerator.getRand() < _pmdGA->prob(DistFrom3Prime)) {
+			base = Base::A;
 		}
 	} else {
 		// reverse strand
-		if (base == genometools::C && RandomGenerator.getRand() < _pmdGA->prob(DistFrom3Prime)) {
+		if (base == Base::C && RandomGenerator.getRand() < _pmdGA->prob(DistFrom3Prime)) {
 			// ??? Newest insight
-			base = genometools::T;
-		} else if (base == genometools::G && RandomGenerator.getRand() < _pmdCT->prob(DistFrom5Prime)) {
-			base = genometools::A;
+			base = Base::T;
+		} else if (base == Base::G && RandomGenerator.getRand() < _pmdCT->prob(DistFrom5Prime)) {
+			base = Base::A;
 		}
 	}
 }
@@ -511,34 +516,36 @@ void TPMDTypeSingleStrand::estimate(const PMDTable_RG &PMDTable,
 	// Note: TPMDTables stores bases as during sequencing (not as after mapping)
 	// Assumption: 5-prime C->T pattern is the same for forward and reverse reads from their respective
 	// 5-prime ends.
+	using genometools::Base;
 	TPMDTable from5(PMDTable[forward5]);
 	from5.add(PMDTable[reverse5]);
-	_pmdCT5->learn(from5, genometools::C, genometools::T, EstimationParameters);
+	_pmdCT5->learn(from5, Base::C, Base::T, EstimationParameters);
 
 	// Assumption: 3-prime C->T pattern is the same for forward and reverse reads from their
 	// respective 3-prime ends.
 	TPMDTable from3(PMDTable[forward3]);
 	from3.add(PMDTable[reverse3]);
 	// ??? G->A  or C->T (reversed gets flipped when read)
-	_pmdCT3->learn(from3, genometools::C, genometools::T, EstimationParameters);
+	_pmdCT3->learn(from3, Base::C, Base::T, EstimationParameters);
 }
 
 void TPMDTypeSingleStrand::fillBaseLikelihoods(const BAM::TSequencedBase &base,
 					       const TBaseProbabilities &baseLikelihoodsNoPMD,
 					       TBaseProbabilities &baseLikelihoods) const {
+	using genometools::Base;
 	// Note: distances are as in original fragment (not BAM file), i.e. in direction of sequencing
 	// no PMD for A, C and G
-	baseLikelihoods[genometools::A] = baseLikelihoodsNoPMD[genometools::A];
-	baseLikelihoods[genometools::T] = baseLikelihoodsNoPMD[genometools::T];
-	baseLikelihoods[genometools::G] = baseLikelihoodsNoPMD[genometools::G];
+	baseLikelihoods[Base::A] = baseLikelihoodsNoPMD[Base::A];
+	baseLikelihoods[Base::T] = baseLikelihoodsNoPMD[Base::T];
+	baseLikelihoods[Base::G] = baseLikelihoodsNoPMD[Base::G];
 
 	// get relevant PMD probabilities
 	const double pmdProb_CT = base.distFrom3Prime < base.distFrom5Prime ? _pmdCT3->prob(base.distFrom3Prime)
 									    : _pmdCT5->prob(base.distFrom5Prime);
 
 	// add PMD
-	baseLikelihoods[genometools::C] = (1.0 - pmdProb_CT) * baseLikelihoodsNoPMD[genometools::C].get() +
-					  pmdProb_CT * baseLikelihoodsNoPMD[genometools::T].get();
+	baseLikelihoods[Base::C] = (1.0 - pmdProb_CT) * baseLikelihoodsNoPMD[Base::C].get() +
+					  pmdProb_CT * baseLikelihoodsNoPMD[Base::T].get();
 }
 
 void TPMDTypeSingleStrand::simulatePMD(BAM::TSequencedBase &base, TRandomGenerator &RandomGenerator) const {
@@ -547,13 +554,14 @@ void TPMDTypeSingleStrand::simulatePMD(BAM::TSequencedBase &base, TRandomGenerat
 
 void TPMDTypeSingleStrand::simulatePMD(genometools::Base &base, uint16_t DistFrom5Prime, uint16_t DistFrom3Prime,
 				       const bool &, TRandomGenerator &RandomGenerator) const {
-	if (!(base == genometools::C)) return;
+	using genometools::Base;
+	if (!(base == Base::C)) return;
 
 	// simulate PMD
 	if (DistFrom3Prime < DistFrom5Prime) {
-		if (RandomGenerator.getRand() < _pmdCT3->prob(DistFrom3Prime)) { base = genometools::T; }
+		if (RandomGenerator.getRand() < _pmdCT3->prob(DistFrom3Prime)) { base = Base::T; }
 	} else {
-		if (RandomGenerator.getRand() < _pmdCT5->prob(DistFrom5Prime)) { base = genometools::T; }
+		if (RandomGenerator.getRand() < _pmdCT5->prob(DistFrom5Prime)) { base = Base::T; }
 	}
 }
 

@@ -113,22 +113,21 @@ void TContextFilter::set(coretools::TParameters & params, coretools::TLog* logfi
 					throw "Context " + c + " does not consist of two bases! (parameter 'ignoreContexts')";
 				}
 
-				const Base first  = fromChar(c[0]);
-				const Base second = fromChar(c[1]);
+				const Base first  = char2base(c[0]);
+				const Base second = char2base(c[1]);
 
 				if((char) first != c[0] || (char) second != c[1]){
 					throw "Unable to understand context '" + c + "'!  (parameter 'ignoreContexts')";
 				}
 
 				//save context
-				BaseContext cc(first, second);
-				_keptContexts[static_cast<uint8_t>(cc.get())] = false;
+				_keptContexts[index(baseContext(first, second))] = false;
 			}
 
 			std::vector<std::string> rep;
-			for(auto i = 0; i <= static_cast<uint8_t>(BaseContextEnum::cNN); ++i){
+			for(auto i = 0; i <= index(BaseContext::NN); ++i){
 				if(!_keptContexts[i]){
-					rep.push_back( (std::string) BaseContext(static_cast<BaseContextEnum>(i)));
+					rep.push_back(toString(BaseContext(i)));
 				}
 			}
 			logfile->list("Will ignore the following contexts: " + coretools::str::concatenateString(rep, ", ")  + ". (parameter 'ignoreContexts')");
@@ -142,7 +141,7 @@ void TContextFilter::set(coretools::TParameters & params, coretools::TLog* logfi
 };
 
 bool TContextFilter::pass(const TSequencedBase & base) const{
-	return _keptContexts[static_cast<uint8_t>(base.context.get())];
+	return _keptContexts[index(base.context)];
 };
 
 //-----------------------------------------------------

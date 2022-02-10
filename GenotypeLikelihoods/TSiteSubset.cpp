@@ -33,10 +33,10 @@ void TSiteSubsetSite::write(coretools::TOutputFile & out) const{
 // TSiteSubset
 //-------------------------------------------------
 void TSiteSubset::_checkAlleles(const std::string & chr, uint32_t pos, const genometools::Base & ref, const genometools::Base & alt, const std::string & refAllele, const std::string & altAllele){
-	if(ref == genometools::N){
+	if(ref == genometools::Base::N){
 		throw "Unknown reference allele '" + refAllele + "' on chr " + chr + " at " + toString(pos+1) + "!";
 	}
-	if(alt == genometools::N){
+	if(alt == genometools::Base::N){
 		throw "Unknown alternative allele '" + altAllele + "' on chr " + chr + " at " + toString(pos+1) + "!";
 	}
 
@@ -63,8 +63,8 @@ void TSiteSubset::_readFile(const std::string Filename, const BAM::TChromosomes 
 
 		//extract positions
 		uint32_t pos = coretools::str::convertStringCheck<uint32_t>(line[1]) - 1; //make 0-based
-		const genometools::Base ref = genometools::fromChar(line[2][0]);
-		const genometools::Base alt = genometools::fromChar(line[3][0]);
+		const genometools::Base ref = genometools::char2base(line[2][0]);
+		const genometools::Base alt = genometools::char2base(line[3][0]);
 
 		//check alleles
 		_checkAlleles(chr.name, pos, ref, alt, line[2], line[3]);
@@ -97,8 +97,8 @@ void TSiteSubset::_readFile(const std::string Filename, const BAM::TChromosomes 
 
 		//extract positions
 		uint32_t pos = coretools::str::convertStringCheck<uint32_t>(line[1]) - 1; //make 0-based
-		const genometools::Base ref = genometools::fromChar(line[2][0]);
-		const genometools::Base alt = genometools::fromChar(line[3][0]);
+		const genometools::Base ref = genometools::char2base(line[2][0]);
+		const genometools::Base alt = genometools::char2base(line[3][0]);
 
 		//check alleles
 		_checkAlleles(chr.name, pos, ref, alt, line[2], line[3]);

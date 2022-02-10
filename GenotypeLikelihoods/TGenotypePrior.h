@@ -61,12 +61,15 @@ public:
 	};
 
 	void update(const TWindow & window, TLog* logfile, const TGenotypeLikelihoodCalculator &){
+		using genometools::Base;
 		if(!equalBaseFreq){
 			logfile->listFlush("Estimating base frequencies for prior ...");
 			GenotypeLikelihoods::TBaseProbabilities freq = window.estimateBaseFrequencies();
 			thetaEstimator->setBaseFreq(freq);
 			logfile->done();
-			logfile->conclude("Estimated base frequencies: " + toString(freq[genometools::A])+ ", " + toString(freq[genometools::C]) + ", " + toString(freq[genometools::G]) + ", " + toString(freq[genometools::T]));
+			logfile->conclude("Estimated base frequencies: " + toString(freq[Base::A]) + ", " +
+					  toString(freq[Base::C]) + ", " + toString(freq[Base::G]) + ", " +
+					  toString(freq[Base::T]));
 			thetaEstimator->fillPGenotype(genotypePrior);
 		}
 	};

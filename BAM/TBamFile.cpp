@@ -6,6 +6,7 @@
  */
 
 #include "TBamFile.h"
+#include "GenotypeTypes.h"
 #include "debugtools.h"
 
 namespace BAM{
@@ -645,9 +646,10 @@ uint16_t TBamFile::curFragmentLength() const{
 };
 
 uint16_t TBamFile::curUsableAlignedLength(TQualityFilter & qualFilter) const{
+	constexpr char N = genometools::base2char(genometools::Base::N);
 	uint16_t counter = 0;
 	for(size_t d=0; d<_curBamAlignment.AlignedBases.length(); ++d){
-		if(_curBamAlignment.AlignedBases.at(d) != genometools::N && qualFilter.pass( BaseQuality(_curBamAlignment.AlignedQualities.at(d)))){
+		if(_curBamAlignment.AlignedBases.at(d) != N && qualFilter.pass( BaseQuality(_curBamAlignment.AlignedQualities.at(d)))){
 			++counter;
 		}
 	}

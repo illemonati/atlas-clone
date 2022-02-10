@@ -6,33 +6,27 @@
  */
 
 #include "TDistanceEstimator.h"
+#include "GenotypeTypes.h"
 
 namespace PopulationTools{
 
-//------------------------------------------------
-// DistancePhi
-//------------------------------------------------
-std::string DistancePhi::_toString[nn_nn + 1] = {"aa_aa", "aa_ab", "ab_aa", "aa_bb", "ab_ab", "ab_ac", "aa_bc", "ab_cc", "ab_cd", "nn_nn"};
-
-std::ostream& operator<<(std::ostream& os, const DistancePhi & Phi){
-	os << (std::string) Phi;
-	return os;
-};
 
 //----------------------------------------------------
 //TGenocombinationToBaseMap
 //----------------------------------------------------
 TGenocombinationToBaseMap::TGenocombinationToBaseMap(){
-	for(Genotype g1 = Genotype::min(); g1 < Genotype::max(); ++g1){
-		for(Genotype g2 = Genotype::min(); g2 < Genotype::max(); ++g2){
-			for(Base b = Base::min(); b < Base::max(); ++b){
-				genotypeCombinationHasBase[g1.get()][g2.get()][b.get()] = false;
+	using genometools::index;
+	using genometools::first;
+	using genometools::second;
+	for(Genotype g1 = Genotype::min; g1 < Genotype::max; ++g1){
+		for(Genotype g2 = Genotype::min; g2 < Genotype::max; ++g2){
+			for(Base b = Base::min; b < Base::max; ++b){
+				genotypeCombinationHasBase[index(g1)][index(g2)][index(b)] = false;
 			}
-
-			genotypeCombinationHasBase[g1.get()][g2.get()][g1.firstAllele().get() ] = true;
-			genotypeCombinationHasBase[g1.get()][g2.get()][g1.secondAllele().get()] = true;
-			genotypeCombinationHasBase[g1.get()][g2.get()][g2.firstAllele().get() ] = true;
-			genotypeCombinationHasBase[g1.get()][g2.get()][g2.secondAllele().get()] = true;
+			genotypeCombinationHasBase[index(g1)][index(g2)][index(first(g1))]  = true;
+			genotypeCombinationHasBase[index(g1)][index(g2)][index(second(g1))] = true;
+			genotypeCombinationHasBase[index(g1)][index(g2)][index(first(g2))]  = true;
+			genotypeCombinationHasBase[index(g1)][index(g2)][index(second(g2))] = true;
 		}
 	}
 };
@@ -41,41 +35,45 @@ TGenocombinationToBaseMap::TGenocombinationToBaseMap(){
 //TDistanceClass
 //----------------------------------------------------
 TDistance::TDistance(){
+	using DP = DistancePhi;
+	using genometools::index;
 	//squared difference between genotypes
-	_distanceWeight[aa_aa] = 0.0;
-	_distanceWeight[ab_aa] = 1.0;
-	_distanceWeight[aa_ab] = 1.0;
-	_distanceWeight[aa_bb] = 4.0;
-	_distanceWeight[ab_ab] = 0.0;
-	_distanceWeight[ab_ac] = 1.0;
-	_distanceWeight[aa_bc] = 4.0;
-	_distanceWeight[ab_cc] = 4.0;
-	_distanceWeight[ab_cd] = 4.0;
+	_distanceWeight[DP::aa_aa] = 0.0;
+	_distanceWeight[DP::ab_aa] = 1.0;
+	_distanceWeight[DP::aa_ab] = 1.0;
+	_distanceWeight[DP::aa_bb] = 4.0;
+	_distanceWeight[DP::ab_ab] = 0.0;
+	_distanceWeight[DP::ab_ac] = 1.0;
+	_distanceWeight[DP::aa_bc] = 4.0;
+	_distanceWeight[DP::ab_cc] = 4.0;
+	_distanceWeight[DP::ab_cd] = 4.0;
 };
 
 double TDistance::calculateDistance(const TDistanceData & phi){
-	return    phi[aa_aa] * _distanceWeight[aa_aa]
-		    + phi[ab_aa] * _distanceWeight[ab_aa]
-			+ phi[aa_ab] * _distanceWeight[aa_ab]
-			+ phi[aa_bb] * _distanceWeight[aa_bb]
-			+ phi[ab_ab] * _distanceWeight[ab_ab]
-			+ phi[ab_ac] * _distanceWeight[ab_ac]
-			+ phi[aa_bc] * _distanceWeight[aa_bc]
-			+ phi[ab_cc] * _distanceWeight[ab_cc]
-			+ phi[ab_cd] * _distanceWeight[ab_cd];
+	using DP = DistancePhi;
+	return    phi[DP::aa_aa] * _distanceWeight[DP::aa_aa]
+		    + phi[DP::ab_aa] * _distanceWeight[DP::ab_aa]
+			+ phi[DP::aa_ab] * _distanceWeight[DP::aa_ab]
+			+ phi[DP::aa_bb] * _distanceWeight[DP::aa_bb]
+			+ phi[DP::ab_ab] * _distanceWeight[DP::ab_ab]
+			+ phi[DP::ab_ac] * _distanceWeight[DP::ab_ac]
+			+ phi[DP::aa_bc] * _distanceWeight[DP::aa_bc]
+			+ phi[DP::ab_cc] * _distanceWeight[DP::ab_cc]
+			+ phi[DP::ab_cd] * _distanceWeight[DP::ab_cd];
 };
 
 TDistanceProbMismatch::TDistanceProbMismatch(){
+	using DP = DistancePhi;
 	//probability that a random allele from each individual is different
-	_distanceWeight[aa_aa] = 0.0;
-	_distanceWeight[ab_aa] = 0.5;
-	_distanceWeight[aa_ab] = 0.5;
-	_distanceWeight[aa_bb] = 1.0;
-	_distanceWeight[ab_ab] = 0.5;
-	_distanceWeight[ab_ac] = 0.75;
-	_distanceWeight[aa_bc] = 1.0;
-	_distanceWeight[ab_cc] = 1.0;
-	_distanceWeight[ab_cd] = 1.0;
+	_distanceWeight[DP::aa_aa] = 0.0;
+	_distanceWeight[DP::ab_aa] = 0.5;
+	_distanceWeight[DP::aa_ab] = 0.5;
+	_distanceWeight[DP::aa_bb] = 1.0;
+	_distanceWeight[DP::ab_ab] = 0.5;
+	_distanceWeight[DP::ab_ac] = 0.75;
+	_distanceWeight[DP::aa_bc] = 1.0;
+	_distanceWeight[DP::ab_cc] = 1.0;
+	_distanceWeight[DP::ab_cd] = 1.0;
 };
 
 double TDistanceEuclidian::calculateDistance(const TDistanceData & phi){
@@ -83,8 +81,10 @@ double TDistanceEuclidian::calculateDistance(const TDistanceData & phi){
 };
 
 TDistanceUser::TDistanceUser(std::vector<double> vec){
-	for(DistancePhi d = DistancePhi::min(); d < DistancePhi::max(); ++d)
-		_distanceWeight[d] = vec[d.get()];
+	using genometools::operator++;
+	using genometools::index;
+	for(DistancePhi d = DistancePhi::min; d < DistancePhi::max; ++d)
+		_distanceWeight[d] = vec[index(d)];
 };
 
 //----------------------------------------------------
@@ -148,6 +148,8 @@ TEMforDistanceEstimation::TEMforDistanceEstimation(coretools::TLog* Logfile, cor
 
 void TEMforDistanceEstimation::guessPi(std::vector<HighPrecisionPhredIntProbability*> & genoQual1, std::vector<HighPrecisionPhredIntProbability*> & genoQual2){
 	//check sizes are equal
+	using genometools::operator++;
+	using genometools::index;
 	if(genoQual1.size() != genoQual2.size())
 		throw "Provided genotype quality vectors are of different size in TEMforDistanceEstimation::guessPi!";
 
@@ -160,17 +162,17 @@ void TEMforDistanceEstimation::guessPi(std::vector<HighPrecisionPhredIntProbabil
 	for(; it1 != genoQual1.end(); ++it1, ++it2){
 		double sum1 = 0.0;
 		double sum2 = 0.0;
-		for(Genotype g = Genotype::min(); g < Genotype::max(); ++g){
-			sum1 += (Probability) (*it1)[g.get()];
-			sum2 += (Probability) (*it2)[g.get()];
+		for(Genotype g = Genotype::min; g < Genotype::max; ++g){
+			sum1 += (Probability) (*it1)[index(g)];
+			sum2 += (Probability) (*it2)[index(g)];
 		}
-		for(Genotype g = Genotype::min(); g < Genotype::max(); ++g){
-			double tmp = (Probability) (*it1)[g.get()] / sum1;
-			pi[g.firstAllele()] += tmp;
-			pi[g.secondAllele()] += tmp;
-			tmp = (Probability) (*it2)[g.get()] / sum2;
-			pi[g.firstAllele()] += tmp;
-			pi[g.secondAllele()] += tmp;
+		for(Genotype g = Genotype::min; g < Genotype::max; ++g){
+			double tmp = (Probability) (*it1)[index(g)] / sum1;
+			pi[first(g)] += tmp;
+			pi[second(g)] += tmp;
+			tmp = (Probability) (*it2)[index(g)] / sum2;
+			pi[first(g)] += tmp;
+			pi[second(g)] += tmp;
 		}
 	}
 
@@ -179,6 +181,8 @@ void TEMforDistanceEstimation::guessPi(std::vector<HighPrecisionPhredIntProbabil
 }
 
 void TEMforDistanceEstimation::guessPhi(std::vector<HighPrecisionPhredIntProbability*> & genoQual1, std::vector<HighPrecisionPhredIntProbability*> & genoQual2){
+	using genometools::operator++;
+	using genometools::index;
 	//check sizes are equal
 	if(genoQual1.size() != genoQual2.size())
 		throw "Provided genotype quality vectors are of different size in TEMforDistanceEstimation::guessPhi!";
@@ -191,14 +195,14 @@ void TEMforDistanceEstimation::guessPhi(std::vector<HighPrecisionPhredIntProbabi
 	auto it2 = genoQual2.begin();
 	for(; it1 != genoQual1.end(); ++it1, ++it2){
 		double sum1 = 0.0; double sum2 = 0.0;
-		for(Genotype g = Genotype::min(); g < Genotype::max(); ++g){
-			sum1 += (Probability) (*it1)[g.get()];
-			sum2 += (Probability) (*it2)[g.get()];
+		for(Genotype g = Genotype::min; g < Genotype::max; ++g){
+			sum1 += (Probability) (*it1)[index(g)];
+			sum2 += (Probability) (*it2)[index(g)];
 		}
-		for(Genotype g1 = Genotype::min(); g1 < Genotype::max(); ++g1){
-			double tmp = ((Probability) (*it1)[g1.get()] / sum1);
-			for(Genotype g2 = Genotype::min(); g2 < Genotype::max(); ++g2){
-				phi(g1, g2) += tmp * ((Probability) (*it2)[g2.get()] / sum2);
+		for(Genotype g1 = Genotype::min; g1 < Genotype::max; ++g1){
+			double tmp = ((Probability) (*it1)[index(g1)] / sum1);
+			for(Genotype g2 = Genotype::min; g2 < Genotype::max; ++g2){
+				phi(g1, g2) += tmp * ((Probability) (*it2)[index(g2)] / sum2);
 			}
 		}
 	}
@@ -208,196 +212,204 @@ void TEMforDistanceEstimation::guessPhi(std::vector<HighPrecisionPhredIntProbabi
 }
 
 void TEMforDistanceEstimation::fill_K(TBaseData & thesePi){
+	using genometools::Base;
+	using DP = DistancePhi;
 	//normalizing constant for each phi class
 	//case of one base
-	K[aa_aa] = 1.0;
+	K[DP::aa_aa] = 1.0;
 
 	//cases of two bases
-	K[ab_ab] = thesePi[genometools::A] * thesePi[genometools::C]
-         + thesePi[genometools::A] * thesePi[genometools::G]
-         + thesePi[genometools::A] * thesePi[genometools::T]
-		 + thesePi[genometools::C] * thesePi[genometools::G]
-		 + thesePi[genometools::C] * thesePi[genometools::T]
-		 + thesePi[genometools::G] * thesePi[genometools::T];
-	K[aa_ab] = 2.0 * K[ab_ab]; //account for AC vs CA
-	K[ab_aa] = K[aa_ab];
-	K[aa_bb] = K[aa_ab];
+	K[DP::ab_ab] = thesePi[Base::A] * thesePi[Base::C]
+         + thesePi[Base::A] * thesePi[Base::G]
+         + thesePi[Base::A] * thesePi[Base::T]
+		 + thesePi[Base::C] * thesePi[Base::G]
+		 + thesePi[Base::C] * thesePi[Base::T]
+		 + thesePi[Base::G] * thesePi[Base::T];
+	K[DP::aa_ab] = 2.0 * K[DP::ab_ab]; //account for AC vs CA
+	K[DP::ab_aa] = K[DP::aa_ab];
+	K[DP::aa_bb] = K[DP::aa_ab];
 
 	//cases of three bases
-	K[aa_bc] = thesePi[genometools::C] * thesePi[genometools::G] * thesePi[genometools::T]
-		 + thesePi[genometools::A] * thesePi[genometools::G] * thesePi[genometools::T]
-		 + thesePi[genometools::A] * thesePi[genometools::C] * thesePi[genometools::T]
-		 + thesePi[genometools::A] * thesePi[genometools::C] * thesePi[genometools::G];
-	K[aa_bc] = 3.0 * K[aa_bc]; //account for ways to distribute
+	K[DP::aa_bc] = thesePi[Base::C] * thesePi[Base::G] * thesePi[Base::T]
+		 + thesePi[Base::A] * thesePi[Base::G] * thesePi[Base::T]
+		 + thesePi[Base::A] * thesePi[Base::C] * thesePi[Base::T]
+		 + thesePi[Base::A] * thesePi[Base::C] * thesePi[Base::G];
+	K[DP::aa_bc] = 3.0 * K[DP::aa_bc]; //account for ways to distribute
 
-	K[ab_cc] = K[aa_bc];
-	K[ab_ac] = 2.0 * K[aa_bc]; //twice as many cases than other cases with three bases!
+	K[DP::ab_cc] = K[DP::aa_bc];
+	K[DP::ab_ac] = 2.0 * K[DP::aa_bc]; //twice as many cases than other cases with three bases!
 
 	//case of four bases: each of the 6 cases is equally likely
 	//Note: product of pi's cancels out when calculating P_g_given_phi_pi
-	K[ab_cd] = 6.0;
+	K[DP::ab_cd] = 6.0;
 };
 
 void TEMforDistanceEstimation::fill_P_g_given_phi_pi(const TDistanceData & thesePhi, TBaseData & thesePi){
+	using genometools::Base;
+	using genometools::index;
+	using DP = DistancePhi;
+	using GT = genometools::Genotype;
 	//0: case aa/aa (K[0]=1)
-	probGeno[genometools::AA][genometools::AA] = thesePhi[aa_aa] * thesePi[genometools::A];
-	probGeno[genometools::CC][genometools::CC] = thesePhi[aa_aa] * thesePi[genometools::C];
-	probGeno[genometools::GG][genometools::GG] = thesePhi[aa_aa] * thesePi[genometools::G];
-	probGeno[genometools::TT][genometools::TT] = thesePhi[aa_aa] * thesePi[genometools::T];
+	probGeno[index(GT::AA)][index(GT::AA)] = thesePhi[DP::aa_aa] * thesePi[Base::A];
+	probGeno[index(GT::CC)][index(GT::CC)] = thesePhi[DP::aa_aa] * thesePi[Base::C];
+	probGeno[index(GT::GG)][index(GT::GG)] = thesePhi[DP::aa_aa] * thesePi[Base::G];
+	probGeno[index(GT::TT)][index(GT::TT)] = thesePhi[DP::aa_aa] * thesePi[Base::T];
 
 	//1: cases aa/ab
-	double tmp = thesePhi[aa_ab] / K[aa_aa];
-	double tmp2 = tmp * thesePi[genometools::A];
-	probGeno[genometools::AA][genometools::AC] = tmp2 * thesePi[genometools::C];
-	probGeno[genometools::AA][genometools::AG] = tmp2 * thesePi[genometools::G];
-	probGeno[genometools::AA][genometools::AT] = tmp2 * thesePi[genometools::T];
-	tmp2 = tmp * thesePi[genometools::C];
-	probGeno[genometools::CC][genometools::AC] = tmp2 * thesePi[genometools::A];
-	probGeno[genometools::CC][genometools::CG] = tmp2 * thesePi[genometools::G];
-	probGeno[genometools::CC][genometools::CT] = tmp2 * thesePi[genometools::T];
-	tmp2 = tmp * thesePi[genometools::G];
-	probGeno[genometools::GG][genometools::AG] = tmp2 * thesePi[genometools::A];
-	probGeno[genometools::GG][genometools::CG] = tmp2 * thesePi[genometools::C];
-	probGeno[genometools::GG][genometools::GT] = tmp2 * thesePi[genometools::T];
-	tmp2 = tmp * thesePi[genometools::T];
-	probGeno[genometools::TT][genometools::AT] = tmp2 * thesePi[genometools::A];
-	probGeno[genometools::TT][genometools::CT] = tmp2 * thesePi[genometools::C];
-	probGeno[genometools::TT][genometools::GT] = tmp2 * thesePi[genometools::G];
+	double tmp = thesePhi[DP::aa_ab] / K[DP::aa_aa];
+	double tmp2 = tmp * thesePi[Base::A];
+	probGeno[index(GT::AA)][index(GT::AC)] = tmp2 * thesePi[Base::C];
+	probGeno[index(GT::AA)][index(GT::AG)] = tmp2 * thesePi[Base::G];
+	probGeno[index(GT::AA)][index(GT::AT)] = tmp2 * thesePi[Base::T];
+	tmp2 = tmp * thesePi[Base::C];
+	probGeno[index(GT::CC)][index(GT::AC)] = tmp2 * thesePi[Base::A];
+	probGeno[index(GT::CC)][index(GT::CG)] = tmp2 * thesePi[Base::G];
+	probGeno[index(GT::CC)][index(GT::CT)] = tmp2 * thesePi[Base::T];
+	tmp2 = tmp * thesePi[Base::G];
+	probGeno[index(GT::GG)][index(GT::AG)] = tmp2 * thesePi[Base::A];
+	probGeno[index(GT::GG)][index(GT::CG)] = tmp2 * thesePi[Base::C];
+	probGeno[index(GT::GG)][index(GT::GT)] = tmp2 * thesePi[Base::T];
+	tmp2 = tmp * thesePi[Base::T];
+	probGeno[index(GT::TT)][index(GT::AT)] = tmp2 * thesePi[Base::A];
+	probGeno[index(GT::TT)][index(GT::CT)] = tmp2 * thesePi[Base::C];
+	probGeno[index(GT::TT)][index(GT::GT)] = tmp2 * thesePi[Base::G];
 
 	//2: case ab/aa
-	tmp = thesePhi[ab_aa] / K[ab_aa];
-	tmp2 = tmp * thesePi[genometools::A];
-	probGeno[genometools::AC][genometools::AA] = tmp2 * thesePi[genometools::C];
-	probGeno[genometools::AG][genometools::AA] = tmp2 * thesePi[genometools::G];
-	probGeno[genometools::AT][genometools::AA] = tmp2 * thesePi[genometools::T];
-	tmp2 = tmp * thesePi[genometools::C];
-	probGeno[genometools::AC][genometools::CC] = tmp2 * thesePi[genometools::A];
-	probGeno[genometools::CG][genometools::CC] = tmp2 * thesePi[genometools::G];
-	probGeno[genometools::CT][genometools::CC] = tmp2 * thesePi[genometools::T];
-	tmp2 = tmp * thesePi[genometools::G];
-	probGeno[genometools::AG][genometools::GG] = tmp2 * thesePi[genometools::A];
-	probGeno[genometools::CG][genometools::GG] = tmp2 * thesePi[genometools::C];
-	probGeno[genometools::GT][genometools::GG] = tmp2 * thesePi[genometools::T];
-	tmp2 = tmp * thesePi[genometools::T];
-	probGeno[genometools::AT][genometools::TT] = tmp2 * thesePi[genometools::A];
-	probGeno[genometools::CT][genometools::TT] = tmp2 * thesePi[genometools::C];
-	probGeno[genometools::GT][genometools::TT] = tmp2 * thesePi[genometools::G];
+	tmp = thesePhi[DP::ab_aa] / K[DP::ab_aa];
+	tmp2 = tmp * thesePi[Base::A];
+	probGeno[index(GT::AC)][index(GT::AA)] = tmp2 * thesePi[Base::C];
+	probGeno[index(GT::AG)][index(GT::AA)] = tmp2 * thesePi[Base::G];
+	probGeno[index(GT::AT)][index(GT::AA)] = tmp2 * thesePi[Base::T];
+	tmp2 = tmp * thesePi[Base::C];
+	probGeno[index(GT::AC)][index(GT::CC)] = tmp2 * thesePi[Base::A];
+	probGeno[index(GT::CG)][index(GT::CC)] = tmp2 * thesePi[Base::G];
+	probGeno[index(GT::CT)][index(GT::CC)] = tmp2 * thesePi[Base::T];
+	tmp2 = tmp * thesePi[Base::G];
+	probGeno[index(GT::AG)][index(GT::GG)] = tmp2 * thesePi[Base::A];
+	probGeno[index(GT::CG)][index(GT::GG)] = tmp2 * thesePi[Base::C];
+	probGeno[index(GT::GT)][index(GT::GG)] = tmp2 * thesePi[Base::T];
+	tmp2 = tmp * thesePi[Base::T];
+	probGeno[index(GT::AT)][index(GT::TT)] = tmp2 * thesePi[Base::A];
+	probGeno[index(GT::CT)][index(GT::TT)] = tmp2 * thesePi[Base::C];
+	probGeno[index(GT::GT)][index(GT::TT)] = tmp2 * thesePi[Base::G];
 
 	//3: case aa/bb
-	tmp = thesePhi[aa_bb] / K[aa_bb];
-	tmp2 = tmp * thesePi[genometools::A];
-	probGeno[genometools::AA][genometools::CC] = tmp2 * thesePi[genometools::C];
-	probGeno[genometools::AA][genometools::GG] = tmp2 * thesePi[genometools::G];
-	probGeno[genometools::AA][genometools::TT] = tmp2 * thesePi[genometools::T];
-	tmp2 = tmp * thesePi[genometools::C];
-	probGeno[genometools::CC][genometools::AA] = tmp2 * thesePi[genometools::A];
-	probGeno[genometools::CC][genometools::GG] = tmp2 * thesePi[genometools::G];
-	probGeno[genometools::CC][genometools::TT] = tmp2 * thesePi[genometools::T];
-	tmp2 = tmp * thesePi[genometools::G];
-	probGeno[genometools::GG][genometools::AA] = tmp2 * thesePi[genometools::A];
-	probGeno[genometools::GG][genometools::CC] = tmp2 * thesePi[genometools::C];
-	probGeno[genometools::GG][genometools::TT] = tmp2 * thesePi[genometools::T];
-	tmp2 = tmp * thesePi[genometools::T];
-	probGeno[genometools::TT][genometools::AA] = tmp2 * thesePi[genometools::A];
-	probGeno[genometools::TT][genometools::CC] = tmp2 * thesePi[genometools::C];
-	probGeno[genometools::TT][genometools::GG] = tmp2 * thesePi[genometools::G];
+	tmp = thesePhi[DP::aa_bb] / K[DP::aa_bb];
+	tmp2 = tmp * thesePi[Base::A];
+	probGeno[index(GT::AA)][index(GT::CC)] = tmp2 * thesePi[Base::C];
+	probGeno[index(GT::AA)][index(GT::GG)] = tmp2 * thesePi[Base::G];
+	probGeno[index(GT::AA)][index(GT::TT)] = tmp2 * thesePi[Base::T];
+	tmp2 = tmp * thesePi[Base::C];
+	probGeno[index(GT::CC)][index(GT::AA)] = tmp2 * thesePi[Base::A];
+	probGeno[index(GT::CC)][index(GT::GG)] = tmp2 * thesePi[Base::G];
+	probGeno[index(GT::CC)][index(GT::TT)] = tmp2 * thesePi[Base::T];
+	tmp2 = tmp * thesePi[Base::G];
+	probGeno[index(GT::GG)][index(GT::AA)] = tmp2 * thesePi[Base::A];
+	probGeno[index(GT::GG)][index(GT::CC)] = tmp2 * thesePi[Base::C];
+	probGeno[index(GT::GG)][index(GT::TT)] = tmp2 * thesePi[Base::T];
+	tmp2 = tmp * thesePi[Base::T];
+	probGeno[index(GT::TT)][index(GT::AA)] = tmp2 * thesePi[Base::A];
+	probGeno[index(GT::TT)][index(GT::CC)] = tmp2 * thesePi[Base::C];
+	probGeno[index(GT::TT)][index(GT::GG)] = tmp2 * thesePi[Base::G];
 
 	//4: case ab/ab
-	tmp = thesePhi[ab_ab] / K[ab_ab];
-	tmp2 = tmp * thesePi[genometools::A];
-	probGeno[genometools::AC][genometools::AC] = tmp2 * thesePi[genometools::C];
-	probGeno[genometools::AG][genometools::AG] = tmp2 * thesePi[genometools::G];
-	probGeno[genometools::AT][genometools::AT] = tmp2 * thesePi[genometools::T];
-	tmp2 = tmp * thesePi[genometools::C];
-	probGeno[genometools::CG][genometools::CG] = tmp2 * thesePi[genometools::G];
-	probGeno[genometools::CT][genometools::CT] = tmp2 * thesePi[genometools::T];
-	probGeno[genometools::GT][genometools::GT] = tmp * thesePi[genometools::G] * thesePi[genometools::T];
+	tmp = thesePhi[DP::ab_ab] / K[DP::ab_ab];
+	tmp2 = tmp * thesePi[Base::A];
+	probGeno[index(GT::AC)][index(GT::AC)] = tmp2 * thesePi[Base::C];
+	probGeno[index(GT::AG)][index(GT::AG)] = tmp2 * thesePi[Base::G];
+	probGeno[index(GT::AT)][index(GT::AT)] = tmp2 * thesePi[Base::T];
+	tmp2 = tmp * thesePi[Base::C];
+	probGeno[index(GT::CG)][index(GT::CG)] = tmp2 * thesePi[Base::G];
+	probGeno[index(GT::CT)][index(GT::CT)] = tmp2 * thesePi[Base::T];
+	probGeno[index(GT::GT)][index(GT::GT)] = tmp * thesePi[Base::G] * thesePi[Base::T];
 
 	//5: case ab/ac
-	tmp = thesePhi[ab_ac] / K[ab_ac];
-	tmp2 = tmp * thesePi[genometools::A] * thesePi[genometools::C] * thesePi[genometools::G];
-	probGeno[genometools::AC][genometools::AG] = tmp2;
-	probGeno[genometools::AC][genometools::CG] = tmp2;
-	probGeno[genometools::AG][genometools::AC] = tmp2;
-	probGeno[genometools::AG][genometools::CG] = tmp2;
-	probGeno[genometools::CG][genometools::AC] = tmp2;
-	probGeno[genometools::CG][genometools::AG] = tmp2;
-	tmp2 = tmp * thesePi[genometools::A] * thesePi[genometools::C] * thesePi[genometools::T];
-	probGeno[genometools::AC][genometools::AT] = tmp2;
-	probGeno[genometools::AC][genometools::CT] = tmp2;
-	probGeno[genometools::AT][genometools::AC] = tmp2;
-	probGeno[genometools::AT][genometools::CT] = tmp2;
-	probGeno[genometools::CT][genometools::AC] = tmp2;
-	probGeno[genometools::CT][genometools::AT] = tmp2;
-	tmp2 = tmp * thesePi[genometools::A] * thesePi[genometools::G] * thesePi[genometools::T];
-	probGeno[genometools::AG][genometools::GT] = tmp2;
-	probGeno[genometools::AG][genometools::AT] = tmp2;
-	probGeno[genometools::AT][genometools::AG] = tmp2;
-	probGeno[genometools::AT][genometools::GT] = tmp2;
-	probGeno[genometools::GT][genometools::AG] = tmp2;
-	probGeno[genometools::GT][genometools::AT] = tmp2;
-	tmp2 = tmp * thesePi[genometools::C] * thesePi[genometools::G] * thesePi[genometools::T];
-	probGeno[genometools::CG][genometools::CT] = tmp2;
-	probGeno[genometools::CG][genometools::GT] = tmp2;
-	probGeno[genometools::CT][genometools::CG] = tmp2;
-	probGeno[genometools::CT][genometools::GT] = tmp2;
-	probGeno[genometools::GT][genometools::CG] = tmp2;
-	probGeno[genometools::GT][genometools::CT] = tmp2;
+	tmp = thesePhi[DP::ab_ac] / K[DP::ab_ac];
+	tmp2 = tmp * thesePi[Base::A] * thesePi[Base::C] * thesePi[Base::G];
+	probGeno[index(GT::AC)][index(GT::AG)] = tmp2;
+	probGeno[index(GT::AC)][index(GT::CG)] = tmp2;
+	probGeno[index(GT::AG)][index(GT::AC)] = tmp2;
+	probGeno[index(GT::AG)][index(GT::CG)] = tmp2;
+	probGeno[index(GT::CG)][index(GT::AC)] = tmp2;
+	probGeno[index(GT::CG)][index(GT::AG)] = tmp2;
+	tmp2 = tmp * thesePi[Base::A] * thesePi[Base::C] * thesePi[Base::T];
+	probGeno[index(GT::AC)][index(GT::AT)] = tmp2;
+	probGeno[index(GT::AC)][index(GT::CT)] = tmp2;
+	probGeno[index(GT::AT)][index(GT::AC)] = tmp2;
+	probGeno[index(GT::AT)][index(GT::CT)] = tmp2;
+	probGeno[index(GT::CT)][index(GT::AC)] = tmp2;
+	probGeno[index(GT::CT)][index(GT::AT)] = tmp2;
+	tmp2 = tmp * thesePi[Base::A] * thesePi[Base::G] * thesePi[Base::T];
+	probGeno[index(GT::AG)][index(GT::GT)] = tmp2;
+	probGeno[index(GT::AG)][index(GT::AT)] = tmp2;
+	probGeno[index(GT::AT)][index(GT::AG)] = tmp2;
+	probGeno[index(GT::AT)][index(GT::GT)] = tmp2;
+	probGeno[index(GT::GT)][index(GT::AG)] = tmp2;
+	probGeno[index(GT::GT)][index(GT::AT)] = tmp2;
+	tmp2 = tmp * thesePi[Base::C] * thesePi[Base::G] * thesePi[Base::T];
+	probGeno[index(GT::CG)][index(GT::CT)] = tmp2;
+	probGeno[index(GT::CG)][index(GT::GT)] = tmp2;
+	probGeno[index(GT::CT)][index(GT::CG)] = tmp2;
+	probGeno[index(GT::CT)][index(GT::GT)] = tmp2;
+	probGeno[index(GT::GT)][index(GT::CG)] = tmp2;
+	probGeno[index(GT::GT)][index(GT::CT)] = tmp2;
 
 	//6: case aa/bc
-	tmp = thesePhi[aa_bc] / K[aa_bc];
-	tmp2 = tmp * thesePi[genometools::A] * thesePi[genometools::C] * thesePi[genometools::G];
-	probGeno[genometools::AA][genometools::CG] = tmp2;
-	probGeno[genometools::CC][genometools::AG] = tmp2;
-	probGeno[genometools::GG][genometools::AC] = tmp2;
-	tmp2 = tmp * thesePi[genometools::A] * thesePi[genometools::C] * thesePi[genometools::T];
-	probGeno[genometools::AA][genometools::CT] = tmp2;
-	probGeno[genometools::CC][genometools::AT] = tmp2;
-	probGeno[genometools::TT][genometools::AC] = tmp2;
-	tmp2 = tmp * thesePi[genometools::A] * thesePi[genometools::G] * thesePi[genometools::T];
-	probGeno[genometools::AA][genometools::GT] = tmp2;
-	probGeno[genometools::GG][genometools::AT] = tmp2;
-	probGeno[genometools::TT][genometools::AG] = tmp2;
-	tmp2 = tmp * thesePi[genometools::C] * thesePi[genometools::G] * thesePi[genometools::T];
-	probGeno[genometools::CC][genometools::GT] = tmp2;
-	probGeno[genometools::GG][genometools::CT] = tmp2;
-	probGeno[genometools::TT][genometools::CG] = tmp2;
+	tmp = thesePhi[DP::aa_bc] / K[DP::aa_bc];
+	tmp2 = tmp * thesePi[Base::A] * thesePi[Base::C] * thesePi[Base::G];
+	probGeno[index(GT::AA)][index(GT::CG)] = tmp2;
+	probGeno[index(GT::CC)][index(GT::AG)] = tmp2;
+	probGeno[index(GT::GG)][index(GT::AC)] = tmp2;
+	tmp2 = tmp * thesePi[Base::A] * thesePi[Base::C] * thesePi[Base::T];
+	probGeno[index(GT::AA)][index(GT::CT)] = tmp2;
+	probGeno[index(GT::CC)][index(GT::AT)] = tmp2;
+	probGeno[index(GT::TT)][index(GT::AC)] = tmp2;
+	tmp2 = tmp * thesePi[Base::A] * thesePi[Base::G] * thesePi[Base::T];
+	probGeno[index(GT::AA)][index(GT::GT)] = tmp2;
+	probGeno[index(GT::GG)][index(GT::AT)] = tmp2;
+	probGeno[index(GT::TT)][index(GT::AG)] = tmp2;
+	tmp2 = tmp * thesePi[Base::C] * thesePi[Base::G] * thesePi[Base::T];
+	probGeno[index(GT::CC)][index(GT::GT)] = tmp2;
+	probGeno[index(GT::GG)][index(GT::CT)] = tmp2;
+	probGeno[index(GT::TT)][index(GT::CG)] = tmp2;
 
 	//7: case ab/cc
-	tmp = thesePhi[ab_cc] / K[ab_cc];
-	tmp2 = tmp * thesePi[genometools::A] * thesePi[genometools::C] * thesePi[genometools::G];
-	probGeno[genometools::AC][genometools::GG] = tmp2;
-	probGeno[genometools::AG][genometools::CC] = tmp2;
-	probGeno[genometools::CG][genometools::AA] = tmp2;
-	tmp2 = tmp * thesePi[genometools::A] * thesePi[genometools::C] * thesePi[genometools::T];
-	probGeno[genometools::AC][genometools::TT] = tmp2;
-	probGeno[genometools::AT][genometools::CC] = tmp2;
-	probGeno[genometools::CT][genometools::AA] = tmp2;
-	tmp2 = tmp * thesePi[genometools::A] * thesePi[genometools::G] * thesePi[genometools::T];
-	probGeno[genometools::AG][genometools::TT] = tmp2;
-	probGeno[genometools::AT][genometools::GG] = tmp2;
-	probGeno[genometools::GT][genometools::AA] = tmp2;
-	tmp2 = tmp * thesePi[genometools::C] * thesePi[genometools::G] * thesePi[genometools::T];
-	probGeno[genometools::CG][genometools::TT] = tmp2;
-	probGeno[genometools::CT][genometools::GG] = tmp2;
-	probGeno[genometools::GT][genometools::CC] = tmp2;
+	tmp = thesePhi[DP::ab_cc] / K[DP::ab_cc];
+	tmp2 = tmp * thesePi[Base::A] * thesePi[Base::C] * thesePi[Base::G];
+	probGeno[index(GT::AC)][index(GT::GG)] = tmp2;
+	probGeno[index(GT::AG)][index(GT::CC)] = tmp2;
+	probGeno[index(GT::CG)][index(GT::AA)] = tmp2;
+	tmp2 = tmp * thesePi[Base::A] * thesePi[Base::C] * thesePi[Base::T];
+	probGeno[index(GT::AC)][index(GT::TT)] = tmp2;
+	probGeno[index(GT::AT)][index(GT::CC)] = tmp2;
+	probGeno[index(GT::CT)][index(GT::AA)] = tmp2;
+	tmp2 = tmp * thesePi[Base::A] * thesePi[Base::G] * thesePi[Base::T];
+	probGeno[index(GT::AG)][index(GT::TT)] = tmp2;
+	probGeno[index(GT::AT)][index(GT::GG)] = tmp2;
+	probGeno[index(GT::GT)][index(GT::AA)] = tmp2;
+	tmp2 = tmp * thesePi[Base::C] * thesePi[Base::G] * thesePi[Base::T];
+	probGeno[index(GT::CG)][index(GT::TT)] = tmp2;
+	probGeno[index(GT::CT)][index(GT::GG)] = tmp2;
+	probGeno[index(GT::GT)][index(GT::CC)] = tmp2;
 
 	//8: case ab/cd
-	tmp = thesePhi[ab_cd] / K[ab_cd];
-	probGeno[genometools::AC][genometools::GT] = tmp;
-	probGeno[genometools::AG][genometools::CT] = tmp;
-	probGeno[genometools::AT][genometools::CG] = tmp;
-	probGeno[genometools::CG][genometools::AT] = tmp;
-	probGeno[genometools::CT][genometools::AG] = tmp;
-	probGeno[genometools::GT][genometools::AC] = tmp;
+	tmp = thesePhi[DP::ab_cd] / K[DP::ab_cd];
+	probGeno[index(GT::AC)][index(GT::GT)] = tmp;
+	probGeno[index(GT::AG)][index(GT::CT)] = tmp;
+	probGeno[index(GT::AT)][index(GT::CG)] = tmp;
+	probGeno[index(GT::CG)][index(GT::AT)] = tmp;
+	probGeno[index(GT::CT)][index(GT::AG)] = tmp;
+	probGeno[index(GT::GT)][index(GT::AC)] = tmp;
 };
 
 bool TEMforDistanceEstimation::estimatePhiWithEM(std::vector<HighPrecisionPhredIntProbability*> & genoQual1, std::vector<HighPrecisionPhredIntProbability*> & genoQual2){
 	//prepare estimates
+	using genometools::operator++;
+	using genometools::index;
 	logfile->listFlush("Estimating initial base frequencies pi ...");
 	guessPi(genoQual1, genoQual2);
 	logfile->done();
-	logfile->conclude("Initial pi are A=", pi[genometools::A], ", C=", pi[genometools::C], ", G=", pi[genometools::G], " and T=", pi[genometools::T], ".");
+	logfile->conclude("Initial pi are A=", pi[Base::A], ", C=", pi[Base::C], ", G=", pi[Base::G], " and T=", pi[Base::T], ".");
 	logfile->listFlush("Estimating initial genotype classes phi ...");
 	guessPhi(genoQual1, genoQual2);
 	logfile->done();
@@ -458,21 +470,21 @@ bool TEMforDistanceEstimation::estimatePhiWithEM(std::vector<HighPrecisionPhredI
 		phi.set(0.0);
 
 		double sum = 0.0;
-		for(Genotype g1 = Genotype::min(); g1 < Genotype::max(); ++g1){
-			for(Genotype g2 = Genotype::min(); g2 < Genotype::max(); ++g2){
-				phi(g1,g2) += P_G[g1.get()][g2.get()];
-				sum += P_G[g1.get()][g2.get()];
+		for(Genotype g1 = Genotype::min; g1 < Genotype::max; ++g1){
+			for(Genotype g2 = Genotype::min; g2 < Genotype::max; ++g2){
+				phi(g1,g2) += P_G[index(g1)][index(g2)];
+				sum += P_G[index(g1)][index(g2)];
 			}
 		}
 		phi.normalize(sum);
 
 		//update pi
 		pi.set(0.0);
-		for(Genotype g1 = Genotype::min(); g1 < Genotype::max(); ++g1){
-			for(Genotype g2 = Genotype::min(); g2 < Genotype::max(); ++g2){
-				for(Base b = Base::min(); b < Base::max(); ++b){
+		for(Genotype g1 = Genotype::min; g1 < Genotype::max; ++g1){
+			for(Genotype g2 = Genotype::min; g2 < Genotype::max; ++g2){
+				for(Base b = Base::min; b < Base::max; ++b){
 					if(genoToBaseMap(g1, g2, b)){
-						pi[b] += P_G[g1.get()][g2.get()];
+						pi[b] += P_G[index(g1)][index(g2)];
 					}
 				}
 			}
@@ -866,13 +878,15 @@ void TDistanceEstimator::writeDistanceEstimates(gz::ogzstream & out, std::string
 };
 
 void TDistanceEstimator::writeDistanceEstimates(gz::ogzstream & out, int numsitesWithData, TEMforDistanceEstimation & EM_object){
+	using genometools::operator++;
+	using genometools::index;
 	out << "\t" << numsitesWithData;
 	//write pi
-	for(Base b = Base::min(); b < Base::max(); ++b){
+	for(Base b = Base::min; b < Base::max; ++b){
 		out << "\t" << EM_object.pi[b];
 	}
 	//write phi
-	for(DistancePhi p = DistancePhi::min(); p < DistancePhi::max(); ++p){
+	for(DistancePhi p = DistancePhi::min; p < DistancePhi::max; ++p){
 		out << "\t" << EM_object.phi[p];
 	}
 	//write distance

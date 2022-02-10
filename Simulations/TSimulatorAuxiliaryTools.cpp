@@ -244,11 +244,11 @@ bool TSimulatorHaplotypes::isPolymoprhic(uint64_t pos) const noexcept {
 // TSimulatorMutationtable
 //---------------------------------------------------------
 TSimulatorMutationtable::TSimulatorMutationtable(const GenotypeLikelihoods::TBaseProbabilities &baseFreq) {
-	for (Base a = Base::min(); a < Base::max(); ++a) {
-		for (Base b = Base::min(); b < Base::max(); ++b) {
-			_mutTable[a.get()][b.get()] = baseFreq[a] * baseFreq[b];
+	for (Base a = Base::min; a < Base::max; ++a) {
+		for (Base b = Base::min; b < Base::max; ++b) {
+			_mutTable[index(a)][index(b)] = baseFreq[a] * baseFreq[b];
 		}
-		_mutTable[a.get()][a.get()] = 0.0;
+		_mutTable[index(a)][index(a)] = 0.0;
 	}
 	_normalizeAndMakeCumulative();
 }
@@ -257,11 +257,11 @@ TSimulatorMutationtable::TSimulatorMutationtable(const GenotypeLikelihoods::TBas
 						 double theta) {
 	const double exp_t   = exp(-theta);
 	const double o_exp_t = 1 - exp_t;
-	for (Base a = Base::min(); a < Base::max(); ++a) {
-		for (Base b = Base::min(); b < Base::max(); ++b) {
-			_mutTable[a.get()][b.get()] = baseFreq[a] * baseFreq[b] * o_exp_t;
+	for (Base a = Base::min; a < Base::max; ++a) {
+		for (Base b = Base::min; b < Base::max; ++b) {
+			_mutTable[index(a)][index(b)] = baseFreq[a] * baseFreq[b] * o_exp_t;
 		}
-		_mutTable[a.get()][a.get()] += baseFreq[a]*exp_t;
+		_mutTable[index(a)][index(a)] += baseFreq[a]*exp_t;
 	}
 	_normalizeAndMakeCumulative();
 }

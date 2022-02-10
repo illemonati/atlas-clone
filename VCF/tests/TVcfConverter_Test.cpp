@@ -42,10 +42,10 @@ protected:
         genometools::BiallelicGenotype secondBestGenotype = SampleLikelihoods.secondMostLikelyGenotype();
 
         // write to vcf
-        VCF << "\t" << (std::string) observedGenotype << ":" << SampleLikelihoods[secondBestGenotype] << ":";
-        VCF << coretools::str::toString(SampleLikelihoods[genometools::BiallelicGenotype(genometools::homoFirst)])
-                + "," + coretools::str::toString(SampleLikelihoods[genometools::BiallelicGenotype(genometools::het)])
-                + "," + coretools::str::toString(SampleLikelihoods[genometools::BiallelicGenotype(genometools::homoSecond)]);
+        VCF << "\t" << toString(observedGenotype) << ":" << SampleLikelihoods[secondBestGenotype] << ":";
+        VCF << coretools::str::toString(SampleLikelihoods[genometools::BiallelicGenotype::homoFirst])
+                + "," + coretools::str::toString(SampleLikelihoods[genometools::BiallelicGenotype::het])
+                + "," + coretools::str::toString(SampleLikelihoods[genometools::BiallelicGenotype::homoSecond]);
         VCF << ":" << Depth;
     };
 

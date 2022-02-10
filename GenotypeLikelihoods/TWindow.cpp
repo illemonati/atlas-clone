@@ -162,7 +162,7 @@ void TWindow_base::_calcDepth(){
 			} else if(depthPerSite > 1){
 				++plentyData;
 			}
-			if(s.refBase() == genometools::N){
+			if(s.refBase() == genometools::Base::N){
 				++_fractionRefIsN;
 			}
 		}
@@ -286,15 +286,16 @@ void TWindow_base::applyMask(BAM::TBed & mask, bool doInverseMasking){
 };
 
 void TWindow_base::maskCpG(BAM::TFastaBuffer & reference){
+	using genometools::Base;
 	//get ref sequence with one extra base on either side of window
-	std::vector<genometools::Base> ref;
+	std::vector<Base> ref;
 	BAM::TGenomePosition pos = _from - 1;
 	reference.fill(pos, size()+2, ref); //NOTE: appends N in case start < 0 or start + length > chr
 
 	//now check for each base. Index in ref is shifted by 1!
 	//TODO: check this!!!
 	for(uint32_t i=0; i<size(); ++i){
-		if((ref[i] == genometools::C && ref[i+1] == genometools::G) || (ref[i+1] == genometools::C && ref[i+2] == genometools::G)){
+		if((ref[i] == Base::C && ref[i+1] == Base::G) || (ref[i+1] == Base::C && ref[i+2] == Base::G)){
 			_sites[i].clear();
 		}
 	}
@@ -479,7 +480,7 @@ void TWindow::_fillSites(BAM::TAlignment & alignment, std::vector<TSite> & sites
 	//position in window where first one = 0
 	//p is at first position of read in window
 	for(; p < alignment.parsedLength(); ++p){
-		if(alignment.isAlignedAtInternalPos(p) && alignment[p] != genometools::N){
+		if(alignment.isAlignedAtInternalPos(p) && alignment[p] != genometools::Base::N){
 			uint32_t internalPos = alignment.positionInRef(p) - _from;
 
 			//if read extends past window length
@@ -533,7 +534,7 @@ void TWindow::_fillSitesSubset(BAM::TAlignment & alignment, std::vector<TSite> &
 	//p is at first position of read in window
 	auto it = thesePos.begin();
 	for(; p < alignment.parsedLength(); ++p){
-		if(alignment.isAlignedAtInternalPos(p) && alignment[p] != genometools::N){
+		if(alignment.isAlignedAtInternalPos(p) && alignment[p] != genometools::Base::N){
 			uint32_t internalPos = alignment.positionInRef(p) - _from;
 
 			//if read extends past window length

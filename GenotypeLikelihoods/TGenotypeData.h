@@ -21,7 +21,7 @@ namespace GenotypeLikelihoods{
 //--------------------------------------------------------------------
 // TData_base
 //--------------------------------------------------------------------
-template <typename Type, typename IndexType, typename EnumType, size_t Size>
+template <typename Type, typename IndexType, size_t Size>
 class TData_base{
 protected:
 	std::array<Type, Size> _data;
@@ -56,13 +56,14 @@ public:
 	};
 
 	IndexType pickIndexAtMax(coretools::TRandomGenerator & RandomGenerator) const {
+		using genometools::index;
 		//find maximum
 		Type m = max();
 
 		//get vec of all indexes at maximum
 		std::vector<IndexType> vec;
-		for(IndexType i=IndexType::min(); i<IndexType::max(); ++i){
-			if(_data[i.get()] == m){
+		for(IndexType i=IndexType::min; i<IndexType::max; ++i){
+			if(_data[index(i)] == m){
 				vec.push_back(i);
 			}
 		}
@@ -72,24 +73,25 @@ public:
 	};
 
 	IndexType pickIndexAtMax(const IndexType & ExcludeIndex, coretools::TRandomGenerator & RandomGenerator) const {
+		using genometools::index;
 		//find max
-		IndexType i = IndexType::min();
+		IndexType i = IndexType::min;
 		if(i == ExcludeIndex){
 			++i;
 		}
-		Type m = _data[i.get()];
+		Type m = _data[index(i)];
 		++i;
 
-		for(; i<IndexType::max(); ++i){
-			if(i!= ExcludeIndex && _data[i.get()] > m){
-				m = _data[i.get()];
+		for(; i<IndexType::max; ++i){
+			if(i!= ExcludeIndex && _data[index(i)] > m){
+				m = _data[index(i)];
 			}
 		}
 
 		//get vec of all index at maximum
 		std::vector<IndexType> vec;
-		for(IndexType i=IndexType::min(); i<IndexType::max(); ++i){
-			if(i != ExcludeIndex && _data[i.get()] == m){
+		for(IndexType i=IndexType::min; i<IndexType::max; ++i){
+			if(i != ExcludeIndex && _data[index(i)] == m){
 				vec.push_back(i);
 			}
 		}
@@ -98,10 +100,8 @@ public:
 		return vec[RandomGenerator.sample(vec.size())];
 	};
 
-	Type& operator[](const IndexType & index){ return _data[index.get()]; };
-	const Type& operator[](const IndexType & index) const { return _data[index.get()]; };
-	Type& operator[](const EnumType & index){ return _data[index]; };
-	const Type& operator[](const EnumType & index) const { return _data[index]; };
+	Type& operator[](IndexType i){ return _data[genometools::index(i)]; };
+	Type operator[](IndexType i) const { return _data[genometools::index(i)]; };
 
 	auto begin(){ return _data.begin(); };
 	auto cbegin() const { return _data.cbegin(); };
@@ -143,8 +143,9 @@ public:
 
 	// writing / printin
 	virtual void addNames(std::vector<std::string> & vec) const{
+		using genometools::toString;
 		for(uint8_t i=0; i<Size; ++i){
-			vec.push_back( (std::string) IndexType(static_cast<EnumType>(i)));
+			vec.push_back( toString(IndexType(i)));
 		}
 	};
 
@@ -155,9 +156,9 @@ public:
 	};
 
     explicit operator std::string() const {
-    	std::string s = (std::string) IndexType(static_cast<EnumType>(0)) + ": " + coretools::str::toString(_data[0]);
+	    std::string s = genometools::toString(IndexType::min) + ": " + coretools::str::toString(_data[0]);
     	for(uint8_t i=1; i<Size; ++i){
-			s += ", " + (std::string) IndexType(static_cast<EnumType>(i)) + ": " + coretools::str::toString(_data[i]);
+		s += ", " + genometools::toString(IndexType(i)) + ": " + coretools::str::toString(_data[i]);
 		}
     	return s;
     };
@@ -172,15 +173,15 @@ public:
 // TBaseData_base
 //--------------------------------------------------------------------
 template <typename T>
-class TBaseData_base : public TData_base<T, genometools::Base, genometools::BaseEnum, 4>{
+class TBaseData_base : public TData_base<T, genometools::Base, 4>{
 protected:
-	using TData_base<T, genometools::Base, genometools::BaseEnum, 4>::_data;
+	using TData_base<T, genometools::Base, 4>::_data;
 
 public:
 	TBaseData_base() = default;
 	TBaseData_base(const T& val){ set(val); };
 
-	using TData_base<T, genometools::Base, genometools::BaseEnum, 4>::set;
+	using TData_base<T, genometools::Base, 4>::set;
 };
 
 //--------------------------------------------------------------------
@@ -211,14 +212,14 @@ public:
 //--------------------------------------------------------------------
 // TBaseCounts
 //--------------------------------------------------------------------
-class TBaseCounts:public TData_base<uint32_t, genometools::Base, genometools::BaseEnum, 5>{
+class TBaseCounts:public TData_base<uint32_t, genometools::Base, 5>{
 private:
 	void _fillCumulativeFrequencies(std::array<double, 4> & freq);
 
 public:
 	TBaseCounts(){ reset(); };
 
-	void add(const genometools::Base base){ ++_data[static_cast<uint8_t>( base.get() )]; };
+	void add(const genometools::Base base){ ++_data[index(base)]; };
 
 	uint8_t numAlleles() const;
 	void fillFrequencies(TBaseProbabilities & freq);
@@ -245,13 +246,13 @@ public:
 // base class for TGenotypeData, likelihoods, prior and posterior
 //--------------------------------------------------------------------
 template <typename T>
-class TGenotypeData_base : public TData_base<T, genometools::Genotype, genometools::GenotypeEnum, 10>{
+class TGenotypeData_base : public TData_base<T, genometools::Genotype, 10>{
 protected:
-	using TData_base<T, genometools::Genotype, genometools::GenotypeEnum, 10>::_data;
+	using TData_base<T, genometools::Genotype, 10>::_data;
 
 public:
 	TGenotypeData_base(){};
-	TGenotypeData_base(const T & Val) : TData_base<T, genometools::Genotype, genometools::GenotypeEnum, 10>(Val) {};
+	TGenotypeData_base(const T & Val) : TData_base<T, genometools::Genotype, 10>(Val) {};
 	virtual ~TGenotypeData_base(){};
 };
 

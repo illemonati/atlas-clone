@@ -24,82 +24,58 @@ using genometools::HighPrecisionPhredIntProbability;
 //------------------------------------------------
 // DistancePhi
 //------------------------------------------------
-enum DistancePhiEnum : uint8_t {aa_aa=0, aa_ab, ab_aa, aa_bb, ab_ab, ab_ac, aa_bc, ab_cc, ab_cd, nn_nn};
 
-class DistancePhi : public coretools::StrongTypes::StrongType<DistancePhiEnum, DistancePhi> {
-private:
-    static std::string _toString[nn_nn + 1];
-	static constexpr std::array< std::array<DistancePhiEnum, 11>, 11> _genoToPhiMap {{
-    		//AA,	AC,		AG,		AT,		CC,		CG,		CT,		GG,		GT,		TT,		NN
-    		{aa_aa,	aa_ab,	aa_ab,	aa_ab,	aa_bb,	aa_bc,	aa_bc,	aa_bb,	aa_bc,	aa_bb,	nn_nn}, //AA
-    		{ab_aa,	ab_ab,	ab_ac,	ab_ac,	ab_aa,	ab_ac,	ab_ac,	ab_cc,	ab_cd,	ab_cc,	nn_nn}, //AC
-    		{ab_aa,	ab_ac,	ab_ab,	ab_ac,	ab_cc,	ab_ac,	ab_cd,	ab_aa,	ab_ac,	ab_cc,	nn_nn}, //AG
-    		{ab_aa,	ab_ac,	ab_ac,	ab_ab,	ab_cc,	ab_cd,	ab_ac,	ab_cc,	ab_ac,	ab_aa,	nn_nn}, //AT
-    		{aa_bb,	aa_ab,	aa_bc,	aa_bc,	aa_aa,	aa_ab,	aa_ab,	aa_bb,	aa_bc,	aa_bb,	nn_nn}, //CC
-    		{ab_cc,	ab_ac,	ab_ac,	ab_cd,	ab_aa,	ab_ab,	ab_ac,	ab_aa,	ab_ac,	ab_cc,	nn_nn}, //CG
-    		{ab_cc,	ab_ac,	ab_cd,	ab_ac,	ab_aa,	ab_ac,	ab_ab,	ab_cc,	ab_ac,	ab_aa,	nn_nn}, //CT
-    		{aa_bb,	aa_bc,	aa_ab,	aa_bc,	aa_bb,	aa_ab,	aa_bc,	aa_aa,	aa_ab,	aa_bb,	nn_nn}, //GG
-    		{ab_cc,	ab_cd,	ab_ac,	ab_ac,	ab_cc,	ab_ac,	ab_ac,	ab_aa,	ab_ab,	ab_aa,	nn_nn}, //GT
-    		{aa_bb,	aa_bc,	aa_bc,	aa_ab,	aa_bb,	aa_bc,	aa_ab,	aa_bb,	aa_ab,	aa_aa,	nn_nn}, //TT
-    		{nn_nn,	nn_nn,	nn_nn,	nn_nn,	nn_nn,	nn_nn,	nn_nn,	nn_nn,	nn_nn,	nn_nn,	nn_nn}  //NN
-		}};
 
-public:
-    //constructors
-    explicit constexpr DistancePhi() : StrongType(nn_nn) {};
+enum class DistancePhi : uint8_t {min=0, aa_aa=min, aa_ab, ab_aa, aa_bb, ab_ab, ab_ac, aa_bc, ab_cc, ab_cd, nn_nn, max = nn_nn};
 
-    explicit constexpr DistancePhi(const DistancePhiEnum & Phi) : StrongType(Phi) {};
+constexpr DistancePhi distancePhi(genometools::Genotype a, genometools::Genotype b) {
+	using DP                                          = DistancePhi;
+	constexpr std::array<std::array<DP, 11>, 11> dphi = {{
+		// AA,	AC,		AG,		AT,		CC,		CG,		CT,		GG,		GT,		TT,		NN
+		{DP::aa_aa, DP::aa_ab, DP::aa_ab, DP::aa_ab, DP::aa_bb, DP::aa_bc, DP::aa_bc, DP::aa_bb, DP::aa_bc, DP::aa_bb,
+	     DP::nn_nn}, // AA
+		{DP::ab_aa, DP::ab_ab, DP::ab_ac, DP::ab_ac, DP::ab_aa, DP::ab_ac, DP::ab_ac, DP::ab_cc, DP::ab_cd, DP::ab_cc,
+	     DP::nn_nn}, // AC
+		{DP::ab_aa, DP::ab_ac, DP::ab_ab, DP::ab_ac, DP::ab_cc, DP::ab_ac, DP::ab_cd, DP::ab_aa, DP::ab_ac, DP::ab_cc,
+	     DP::nn_nn}, // AG
+		{DP::ab_aa, DP::ab_ac, DP::ab_ac, DP::ab_ab, DP::ab_cc, DP::ab_cd, DP::ab_ac, DP::ab_cc, DP::ab_ac, DP::ab_aa,
+	     DP::nn_nn}, // AT
+		{DP::aa_bb, DP::aa_ab, DP::aa_bc, DP::aa_bc, DP::aa_aa, DP::aa_ab, DP::aa_ab, DP::aa_bb, DP::aa_bc, DP::aa_bb,
+	     DP::nn_nn}, // CC
+		{DP::ab_cc, DP::ab_ac, DP::ab_ac, DP::ab_cd, DP::ab_aa, DP::ab_ab, DP::ab_ac, DP::ab_aa, DP::ab_ac, DP::ab_cc,
+	     DP::nn_nn}, // CG
+		{DP::ab_cc, DP::ab_ac, DP::ab_cd, DP::ab_ac, DP::ab_aa, DP::ab_ac, DP::ab_ab, DP::ab_cc, DP::ab_ac, DP::ab_aa,
+	     DP::nn_nn}, // CT
+		{DP::aa_bb, DP::aa_bc, DP::aa_ab, DP::aa_bc, DP::aa_bb, DP::aa_ab, DP::aa_bc, DP::aa_aa, DP::aa_ab, DP::aa_bb,
+	     DP::nn_nn}, // GG
+		{DP::ab_cc, DP::ab_cd, DP::ab_ac, DP::ab_ac, DP::ab_cc, DP::ab_ac, DP::ab_ac, DP::ab_aa, DP::ab_ab, DP::ab_aa,
+	     DP::nn_nn}, // GT
+		{DP::aa_bb, DP::aa_bc, DP::aa_bc, DP::aa_ab, DP::aa_bb, DP::aa_bc, DP::aa_ab, DP::aa_bb, DP::aa_ab, DP::aa_aa,
+	     DP::nn_nn}, // TT
+		{DP::nn_nn, DP::nn_nn, DP::nn_nn, DP::nn_nn, DP::nn_nn, DP::nn_nn, DP::nn_nn, DP::nn_nn, DP::nn_nn, DP::nn_nn,
+	     DP::nn_nn} // NN
+	}};
+	return dphi[genometools::index(a)][genometools::index(b)];
+}
 
-    explicit constexpr DistancePhi(const Genotype & First, const Genotype & Second){
-        _value = _genoToPhiMap[First.get()][Second.get()];
-    };
-
-    //assignments
-    constexpr void operator=(const DistancePhiEnum & Phi){
-        _value = Phi;
-    };
-
-    void set(const Genotype & First, const Genotype & Second){
-        _value = _genoToPhiMap[First.get()][Second.get()];
-    };
-
-    //convert
-    [[nodiscard]] explicit operator std::string() const {
-        return _toString[static_cast<uint8_t>( _value)];
-    };
-
-    //++operator, <operator and range info (to loop)
-    [[nodiscard]] static constexpr DistancePhi min() { return DistancePhi(aa_aa); };
-    [[nodiscard]] static constexpr DistancePhi max() { return DistancePhi(nn_nn); };
-
-    constexpr DistancePhi& operator++(){
-        if(_value == nn_nn){
-            throw std::runtime_error("constexpr DistancePhi& operator++(): overflow!");
-        };
-        _value = static_cast<DistancePhiEnum>( static_cast<uint8_t>(_value) + 1);
-        return *this;
-    };
-
-    constexpr bool operator<(const DistancePhi & other){
-        return static_cast<uint8_t>(_value) < static_cast<uint8_t>(other.get());
-    };
-};
-
-std::ostream& operator<<(std::ostream& os, const DistancePhi & Phi);
+inline std::string toString(DistancePhi dp) {
+	std::array strs = {"aa_aa", "aa_ab", "ab_aa", "aa_bb", "ab_ab", "ab_ac", "aa_bc", "ab_cc", "ab_cd", "nn_nn"};
+	return strs[genometools::index(dp)];
+}
 
 //-------------------------------------
 // TDistanceData
 //-------------------------------------
-class TDistanceData : public TData_base<double, DistancePhi, DistancePhiEnum, nn_nn>{
+	class TDistanceData : public TData_base<double, DistancePhi, genometools::index(DistancePhi::max)>{
 private:
-	using TData_base<double, DistancePhi, DistancePhiEnum, nn_nn>::_data;
+	using TData_base<double, DistancePhi, genometools::index(DistancePhi::max)>::_data;
 
 public:
-	TDistanceData() : TData_base<double, DistancePhi, DistancePhiEnum, nn_nn>(0.0) {};
+	TDistanceData() : TData_base<double, DistancePhi, genometools::index(DistancePhi::max)>(0.0) {};
 	~TDistanceData() = default;
 
 	double& operator()(const Genotype & g1, const Genotype & g2){
-		return _data[DistancePhi(g1, g2).get()];
+		return _data[genometools::index(distancePhi(g1, g2))];
 	};
 };
 
@@ -113,8 +89,9 @@ public:
 	TGenocombinationToBaseMap();
 	~TGenocombinationToBaseMap() = default;
 
-	bool operator()(const Genotype & g1,const  Genotype & g2, const Base & b){
-		return genotypeCombinationHasBase[g1.get()][g2.get()][b.get()];
+	bool operator()(const Genotype &g1, const Genotype &g2, const Base &b) {
+		using genometools::index;
+		return genotypeCombinationHasBase[index(g1)][index(g2)][index(b)];
 	};
 };
 

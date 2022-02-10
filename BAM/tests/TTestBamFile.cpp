@@ -9,11 +9,6 @@
 
 namespace BAM{
 
-using genometools::A;
-using genometools::C;
-using genometools::G;
-using genometools::T;
-
 //--------------------------------------
 // TTestBamFile
 //--------------------------------------
@@ -34,8 +29,16 @@ void TTestBamFile::_initialize(const std::vector<uint32_t> ChrLength, uint32_t N
 	_initializeChromosomes(ChrLength);
 	_initializeReadGroups(NumReadGroups);
 
-	//tmp vars
-	_dummySequence = {A, A, A, C, C, C, G, G, G, T, T, T, A, C, G, T, T, G, C, A, A, A, C, G, T, G, G, C, C, G, T, G, A, C, A, C, C, G, T, C, G, A, C, A, G, G, T, G, C, C, A, C, A, C, A, G, T, G, G, C, A, A, A, T, T, G, G, C, C, G, G, T, G, C, A, A, A, C, C, A, A, A, C, C, A, A, G, G, T, T, G, C, C, C, G };
+	// tmp vars
+	_dummySequence = {Base::A, Base::A, Base::A, Base::C, Base::C, Base::C, Base::G, Base::G, Base::G, Base::T, Base::T,
+			  Base::T, Base::A, Base::C, Base::G, Base::T, Base::T, Base::G, Base::C, Base::A, Base::A, Base::A,
+			  Base::C, Base::G, Base::T, Base::G, Base::G, Base::C, Base::C, Base::G, Base::T, Base::G, Base::A,
+			  Base::C, Base::A, Base::C, Base::C, Base::G, Base::T, Base::C, Base::G, Base::A, Base::C, Base::A,
+			  Base::G, Base::G, Base::T, Base::G, Base::C, Base::C, Base::A, Base::C, Base::A, Base::C, Base::A,
+			  Base::G, Base::T, Base::G, Base::G, Base::C, Base::A, Base::A, Base::A, Base::T, Base::T, Base::G,
+			  Base::G, Base::C, Base::C, Base::G, Base::G, Base::T, Base::G, Base::C, Base::A, Base::A, Base::A,
+			  Base::C, Base::C, Base::A, Base::A, Base::A, Base::C, Base::C, Base::A, Base::A, Base::G, Base::G,
+	                  Base::T, Base::T, Base::G, Base::C, Base::C, Base::C, Base::G};
 	_dummySequenceStart = _dummySequence.begin();
 	for(auto p = genometools::BaseQuality::min(); p < genometools::BaseQuality::max(); ++p){
 		_dummyQualities.emplace_back(genometools::PhredIntProbability(p));

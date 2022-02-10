@@ -25,6 +25,7 @@ TSimulator::TSimulator(TLog *Logfile, TParameters &params, TRandomGenerator *Ran
 	  _writeTrueGenotypes(params.parameterExists("writeTrueGenotypes")),
 	  _writeVariantInvariantBedFiles(params.parameterExists("writeVariantBED")),
 	  _reference(_outname + ".fasta", _logfile) {
+	using genometools::Base;
 	// depth
 	_logfile->list("Will simulate to an average depth of ", _seqDepth, ".");
 	_logfile->list("Will simulate data with reference divergence = ", _referenceDivergence, ".");
@@ -43,14 +44,14 @@ TSimulator::TSimulator(TLog *Logfile, TParameters &params, TRandomGenerator *Ran
 	if (freq.size() != 4) throw "baseFreq vector must have size = 4!";
 
 	const auto sum            = coretools::containerSum(freq);
-	_baseFreq[genometools::A] = freq[0] / sum;
-	_baseFreq[genometools::C] = freq[1] / sum;
-	_baseFreq[genometools::G] = freq[2] / sum;
-	_baseFreq[genometools::T] = freq[3] / sum;
+	_baseFreq[Base::A] = freq[0] / sum;
+	_baseFreq[Base::C] = freq[1] / sum;
+	_baseFreq[Base::G] = freq[2] / sum;
+	_baseFreq[Base::T] = freq[3] / sum;
 
-	_cumulBaseFreq[0] = _baseFreq[genometools::A];
-	_cumulBaseFreq[1] = _cumulBaseFreq[0] + _baseFreq[genometools::C];
-	_cumulBaseFreq[2] = _cumulBaseFreq[1] + _baseFreq[genometools::G];
+	_cumulBaseFreq[0] = _baseFreq[Base::A];
+	_cumulBaseFreq[1] = _cumulBaseFreq[0] + _baseFreq[Base::C];
+	_cumulBaseFreq[2] = _cumulBaseFreq[1] + _baseFreq[Base::G];
 	_cumulBaseFreq[3] = 1.0;
 
 	_logfile->list("Simulating with base frequencies " + (std::string)_baseFreq);
@@ -381,12 +382,12 @@ void TSimulator::_initializeChromosomes(TParameters &params) {
 // Run simulations
 //--------------------------------------------------------------
 Base TSimulator::_sampleBase(const std::array<double, 4> &cumulProbs) {
-	return static_cast<genometools::BaseEnum>(_randomGenerator->pickOne(cumulProbs));
+	return genometools::Base(_randomGenerator->pickOne(cumulProbs));
 }
 
 Base TSimulator::_mutateBase(Base base, const std::array<double, 4> &cumulProbs) {
-	base.mutateWithStep(_randomGenerator->pickOne(cumulProbs));
-	return base;
+	using namespace genometools;
+	return Base((index(base) + _randomGenerator->pickOne(cumulProbs)) % index(Base::max));
 }
 
 void TSimulator::_simulateReadsFromHaplotypes(const BAM::TChromosome &thisChr, std::array<std::vector<Base>,2> haplotypes,
@@ -594,7 +595,7 @@ void TSimulatorPair::_fillTables() {
 	// case 0: aa/aa
 	//-----------------------------------------
 	sum = 0.0;
-	for (Base a = Base::min(); a < Base::max(); ++a) {
+	for (Base a = Base::min; a < Base::max; ++a) {
 		sum += _baseFreq[a];
 		_cumulGenoCombinationFreq[0].push_back(sum);
 		_genoTrans[0].push_back({a, a, a, a});
@@ -603,8 +604,8 @@ void TSimulatorPair::_fillTables() {
 	// cases 1 to 3: aa/ab, ab/aa, aa/bb
 	//-----------------------------------------
 	sum           = 0.0;
-	for (Base a = Base::min(); a < Base::max(); ++a) {
-		for (Base b = Base::min(); b < Base::max(); ++b) {
+	for (Base a = Base::min; a < Base::max; ++a) {
+		for (Base b = Base::min; b < Base::max; ++b) {
 			if (a == b) continue;
 
 			sum += _baseFreq[a] * _baseFreq[b];
@@ -624,8 +625,8 @@ void TSimulatorPair::_fillTables() {
 	// cases 4: ab/ab
 	//-----------------------------------------
 	sum          = 0.0;
-	for (Base a = Base::min(); a < genometools::T; ++a) {
-		for (Base b = a.next(); b < Base::max(); ++b) {
+	for (Base a = Base::min; a < genometools::Base::T; ++a) {
+		for (Base b = genometools::next(a); b < Base::max; ++b) {
 			sum += _baseFreq[a] * _baseFreq[b];
 
 			_cumulGenoCombinationFreq[4].push_back(sum);
@@ -637,10 +638,10 @@ void TSimulatorPair::_fillTables() {
 	// case 5: ab/ac
 	//-----------------------------------------
 	sum = 0.0;
-	for (Base a = Base::min(); a < Base::max(); ++a) {
-		for (Base b = Base::min(); b < Base::max(); ++b) {
+	for (Base a = Base::min; a < Base::max; ++a) {
+		for (Base b = Base::min; b < Base::max; ++b) {
 			if (a == b) continue;
-			for (Base c = Base::min(); c < Base::max(); ++c) {
+			for (Base c = Base::min; c < Base::max; ++c) {
 				if (c == a || c == b) continue;
 				sum += _baseFreq[a] * _baseFreq[b] * _baseFreq[c];
 
@@ -655,10 +656,10 @@ void TSimulatorPair::_fillTables() {
 	// cases 6 and 7: aa/bc, ab/cc
 	//-----------------------------------------
 	sum   = 0.0;
-	for (Base a = Base::min(); a < Base::max(); ++a) {
-		for (Base b = Base::min(); b < Base::max(); ++b) {
+	for (Base a = Base::min; a < Base::max; ++a) {
+		for (Base b = Base::min; b < Base::max; ++b) {
 			if (a == b) continue;
-			for (Base c = Base::min(); c < Base::max(); ++c) {
+			for (Base c = Base::min; c < Base::max; ++c) {
 				if (c == a || c == b) continue;
 				sum += _baseFreq[a] * _baseFreq[b] * _baseFreq[c];
 				_cumulGenoCombinationFreq[6].push_back(sum);
@@ -676,12 +677,12 @@ void TSimulatorPair::_fillTables() {
 	// case 8: ab/cd
 	//-----------------------------------------
 	sum = 0.;
-	for (Base a = Base::min(); a < Base::max(); ++a) {
-		for (Base b = Base::min(); b < Base::max(); ++b) {
+	for (Base a = Base::min; a < Base::max; ++a) {
+		for (Base b = Base::min; b < Base::max; ++b) {
 			if (a == b) continue;
-			for (Base c = Base::min(); c < Base::max(); ++c) {
+			for (Base c = Base::min; c < Base::max; ++c) {
 				if (c == a || c == b) continue;
-				for (Base d = Base::min(); d < Base::max(); ++d) {
+				for (Base d = Base::min; d < Base::max; ++d) {
 					if (d == a || d == b || d == c) continue;
 
 					sum += 1./24;
@@ -728,7 +729,7 @@ void TSimulatorPair::_simulateHaplotypesDiploid(TSimulatorHaplotypes &haplotypes
 
 		// simulate reference
 		if (c == 0) {
-			_reference[l].mutateWithStep(_randomGenerator->pickOne(_cumulRef));
+			_reference[l] = _mutateBase(_reference[l], _cumulRef);
 		} else {
 			const int r      = _randomGenerator->sample(4);
 			_reference[l] = _genoTrans[c][g][r];
@@ -959,8 +960,8 @@ void TSimulatorHW::_fillCumulGenoProb(double f) {
 
 void TSimulatorHW::_simulateSite(TSimulatorHWSite &site, const std::string &chr, uint64_t pos) {
 	// simulate bases
-	site.reference   = static_cast<genometools::BaseEnum>(_randomGenerator->pickOne(_cumulBaseFreq));
-	site.alternative = static_cast<genometools::BaseEnum>(_randomGenerator->pickOne(_mutTable[site.reference.get()]));
+	site.reference   = genometools::Base(_randomGenerator->pickOne(_cumulBaseFreq));
+	site.alternative = genometools::Base(_randomGenerator->pickOne(_mutTable[site.reference]));
 
 	// is the site polymorphic?
 	if (_randomGenerator->getRand() < _fracPoly) {

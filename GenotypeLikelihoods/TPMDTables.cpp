@@ -27,9 +27,10 @@ void TPMDTable::empty() {
 }
 
 void TPMDTable::add(size_t pos, genometools::Base ref, genometools::Base read) {
+	using genometools::index;
 	const auto p = std::min(pos, size() - 1);
-	++_counts[ref.get()][read.get()][p];
-	++_sums[ref.get()][p];
+	++_counts[index(ref)][index(read)][p];
+	++_sums[index(ref)][p];
 }
 
 void TPMDTable::add(const TPMDTable &other) {
@@ -46,15 +47,15 @@ void TPMDTable::add(const TPMDTable &other) {
 
 void TPMDTable::write(coretools::TOutputFile &out, std::vector<std::string> &prefix, bool normalized) {
 	using namespace genometools;
-	for (Base f = Base::min(); f < Base::max(); ++f) {
-		prefix[3] = (std::string)f;
-		for (Base t = Base::min(); t < Base::max(); ++t) {
-			out << prefix << std::string(t);
+	for (Base f = Base::min; f < Base::max; ++f) {
+		prefix[3] = toString(f);
+		for (Base t = Base::min; t < Base::max; ++t) {
+			out << prefix << toString(t);
 			if (normalized) {
 				for (uint16_t i = 0; i < size(); ++i)
-					out << static_cast<double>(_counts[f.get()][t.get()][i])/_sums[f.get()][i];
+					out << static_cast<double>(_counts[index(f)][index(t)][i])/_sums[index(f)][i];
 			} else {
-				out << _counts[f.get()][t.get()];
+				out << _counts[index(f)][index(t)];
 			}
 			out << '\n';
 		}
@@ -82,9 +83,9 @@ void TPMDTables::add(const BAM::TSequencedBase &base, genometools::Base referenc
 	const auto i_rg  = _readGroupMap->pooledIndex(base.readGroupID);
 	if (base.isReverseStrand()) {
 		if (from3)
-			_tables[i_rg][reverse3].add(base.distFrom3Prime, reference.flipped(), base.base.flipped());
+			_tables[i_rg][reverse3].add(base.distFrom3Prime, flipped(reference), flipped(base.base));
 		else
-			_tables[i_rg][reverse5].add(base.distFrom5Prime, reference.flipped(), base.base.flipped());
+			_tables[i_rg][reverse5].add(base.distFrom5Prime, flipped(reference), flipped(base.base));
 	} else {
 		if (from3)
 			_tables[i_rg][forward3].add(base.distFrom3Prime, reference, base.base);

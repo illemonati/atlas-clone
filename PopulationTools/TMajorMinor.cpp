@@ -11,15 +11,14 @@
 #include "debugtools.h"
 
 namespace PopulationTools{
-using genometools::Genotype;
 
 //---------------------------------------------------
 // TMajorMinorEstimatorBase
 //---------------------------------------------------
 TMajorMinorEstimatorBase::TMajorMinorEstimatorBase(TRandomGenerator* RandomGenerator){
-	bestAllelicCombination = genometools::alleleicCombinationNN;
-	minor = genometools::N;
-	major = genometools::N;
+	bestAllelicCombination = genometools::AllelicCombination::NN;
+	minor = genometools::Base::N;
+	major = genometools::Base::N;
 	L10L = 0.0;
 	randomGenerator = RandomGenerator;
 	variantQuality = 0;
@@ -27,7 +26,7 @@ TMajorMinorEstimatorBase::TMajorMinorEstimatorBase(TRandomGenerator* RandomGener
 
 void TMajorMinorEstimatorBase::useAllAlleleicCombinations(){
 	usedAllelicCombinations.clear();
-	for(AllelicCombination ac = AllelicCombination::min(); ac < AllelicCombination::max(); ++ac){
+	for(AllelicCombination ac = AllelicCombination::min; ac < AllelicCombination::max; ++ac){
 		usedAllelicCombinations.push_back(ac);
 	}
 };
@@ -36,9 +35,9 @@ void TMajorMinorEstimatorBase::useAllelicCombinationsThatContain(const Base & ba
 	usedAllelicCombinations.clear();
 
 	//get the three alleleic combinations that contain base
-	for(Base b = Base::min(); b < Base::max(); ++b){
+	for(Base b = Base::min; b < Base::max; ++b){
 		if(b != base){
-			usedAllelicCombinations.push_back(AllelicCombination(base, b));
+			usedAllelicCombinations.push_back(allelicCombination(base, b));
 		}
 	}
 };
@@ -49,7 +48,7 @@ void TMajorMinorEstimatorBase::chooseBestAllelicCombinationAmongThoseWithEqualSc
 
 	//select MLE combination
 	std::vector<AllelicCombination> best_combinations;
-	for(AllelicCombination ac = AllelicCombination::min(); ac < AllelicCombination::max(); ++ac){
+	for(AllelicCombination ac = AllelicCombination::min; ac < AllelicCombination::max; ++ac){
 		if(L10L_perCombination[ac] == L10L)
 			best_combinations.push_back(ac);
 	}
@@ -65,18 +64,18 @@ void  TMajorMinorEstimatorBase::_estimateMajorMinor(const TMultiGLFData & data){
 
 	//which one is major?
 	if(genotypeFrequencies.alleleFrequency() < 0.5){
-		major = bestAllelicCombination.firstAllele();
-		minor = bestAllelicCombination.secondAllele();
+		major = first(bestAllelicCombination);
+		minor = second(bestAllelicCombination);
 	} else {
-		major = bestAllelicCombination.secondAllele();
-		minor = bestAllelicCombination.firstAllele();
+		major = second(bestAllelicCombination);
+		minor = first(bestAllelicCombination);
 
 		//also flip frequencies
 		genotypeFrequencies.flip();
 	}
 
 	//calculate variant quality
-	Genotype refHom(major, major);
+	const auto refHom = genometools::genotype(major, major);
 	coretools::Log10Probability LL_fixed_glfPhred = 0.0;
 	for(uint32_t i=0; i<data.size(); ++i){
 		if(data[i].hasData()){
@@ -117,16 +116,17 @@ void  TMajorMinorEstimatorBase::estimateMajorMinor(const TMultiGLFData & data, c
 // TMajorMinorEstimatorSkotte
 //---------------------------------------------------
 TMajorMinorEstimatorSkotte::TMajorMinorEstimatorSkotte(TRandomGenerator* RandomGenerator, double EpsilonF):TMajorMinorEstimatorBase(RandomGenerator){
+	using BG = genometools::BiallelicGenotype;
 	 epsilonF = EpsilonF;
 
 	//diploid
-	priorGenotypeFrequencies[genometools::homoFirst] = 0.25;
-	priorGenotypeFrequencies[genometools::het] = 0.50;
-	priorGenotypeFrequencies[genometools::homoSecond] = 0.25;
+	priorGenotypeFrequencies[BG::homoFirst] = 0.25;
+	priorGenotypeFrequencies[BG::het] = 0.50;
+	priorGenotypeFrequencies[BG::homoSecond] = 0.25;
 
 	//haploid
-	priorGenotypeFrequencies[genometools::haploidFirst] = 0.50;
-	priorGenotypeFrequencies[genometools::haploidSecond] = 0.50;
+	priorGenotypeFrequencies[BG::haploidFirst] = 0.50;
+	priorGenotypeFrequencies[BG::haploidSecond] = 0.50;
 };
 
 void TMajorMinorEstimatorSkotte::findMLAllelicCombination(const TMultiGLFData & data){
@@ -157,9 +157,10 @@ TMajorMinorEstimatorMLE::TMajorMinorEstimatorMLE(TRandomGenerator* RandomGenerat
 };
 
 coretools::Log10Probability TMajorMinorEstimatorMLE::estimateGenotypeFrequencies(const TMultiGLFData & data, const AllelicCombination & thisAlleleicCombination){
+	using genometools::index;
 	data.fill(genotypeLikelihoods, thisAlleleicCombination);
-	tmpGenotypeFrequencies[thisAlleleicCombination.get()].estimate(genotypeLikelihoods, genotypeLikelihoods.size(), epsilonF);
-	return tmpGenotypeFrequencies[thisAlleleicCombination.get()].calculateLog10Likelihood(genotypeLikelihoods, genotypeLikelihoods.size());
+	tmpGenotypeFrequencies[index(thisAlleleicCombination)].estimate(genotypeLikelihoods, genotypeLikelihoods.size(), epsilonF);
+	return tmpGenotypeFrequencies[index(thisAlleleicCombination)].calculateLog10Likelihood(genotypeLikelihoods, genotypeLikelihoods.size());
 };
 
 void TMajorMinorEstimatorMLE::findMLAllelicCombination(const TMultiGLFData & data){
@@ -170,7 +171,7 @@ void TMajorMinorEstimatorMLE::findMLAllelicCombination(const TMultiGLFData & dat
 
 	//pick combination
 	chooseBestAllelicCombinationAmongThoseWithEqualScores();
-	genotypeFrequencies.set(tmpGenotypeFrequencies[bestAllelicCombination.get()]);
+	genotypeFrequencies.set(tmpGenotypeFrequencies[index(bestAllelicCombination)]);
 };
 
 //---------------------------------------------------

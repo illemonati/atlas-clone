@@ -7,14 +7,10 @@
 
 
 #include "TAlleleCountEstimator.h"
+#include "GenotypeTypes.h"
 
 namespace PopulationTools{
 
-using genometools::homoFirst;
-using genometools::het;
-using genometools::homoSecond;
-using genometools::haploidFirst;
-using genometools::haploidSecond;
 
 //-------------------------------------------------
 // TSAFChooseStorage
@@ -97,6 +93,7 @@ void TSiteAlleleFrequencyLikelihoods::normalize(){
 };
 
 void TSiteAlleleFrequencyLikelihoods::_fillLog(TSampleLikelihoods* data, uint32_t numSamples){
+	using BG = genometools::BiallelicGenotype;
 	//Calculating allele frequency likelihoods according to Nielsen et al. (2012) PLoS One, page 3
 	//adapted to also work for haploid individuals (which only have likelihoods for genotypes 0 and 1)
 	//all calculations done in log
@@ -114,13 +111,13 @@ void TSiteAlleleFrequencyLikelihoods::_fillLog(TSampleLikelihoods* data, uint32_
 	if(s < numSamples){
 		//initialize with first individual
 		if(data[s].isHaploid()){
-			alleleFrequencyLikelihoods_h[0] = (LogProbability) data[s][haploidFirst];
-			alleleFrequencyLikelihoods_h[1] = (LogProbability) data[s][haploidSecond];
+			alleleFrequencyLikelihoods_h[0] = (LogProbability) data[s][BG::haploidFirst];
+			alleleFrequencyLikelihoods_h[1] = (LogProbability) data[s][BG::haploidSecond];
 			numAlleleCounts = 1;
 		} else {
-			alleleFrequencyLikelihoods_h[0] = (LogProbability) data[s][homoFirst];
-			alleleFrequencyLikelihoods_h[1] = (LogProbability) data[s][het] + logOf2;
-			alleleFrequencyLikelihoods_h[2] = (LogProbability) data[s][homoSecond];
+			alleleFrequencyLikelihoods_h[0] = (LogProbability) data[s][BG::homoFirst];
+			alleleFrequencyLikelihoods_h[1] = (LogProbability) data[s][BG::het] + logOf2;
+			alleleFrequencyLikelihoods_h[2] = (LogProbability) data[s][BG::homoSecond];
 			numAlleleCounts = 2;
 		}
 
@@ -131,41 +128,41 @@ void TSiteAlleleFrequencyLikelihoods::_fillLog(TSampleLikelihoods* data, uint32_
 
 				if(data[s].isHaploid()){
 					//first fill new ones to avoid multiplication with zero (relevant in log)
-					alleleFrequencyLikelihoods_h[j+1] = (LogProbability) data[s][haploidSecond] + alleleFrequencyLikelihoods_h[j];
+					alleleFrequencyLikelihoods_h[j+1] = (LogProbability) data[s][BG::haploidSecond] + alleleFrequencyLikelihoods_h[j];
 
 					//now fill those already used
 					for(; j>0; j--){
 						alleleFrequencyLikelihoods_h[j] = _protectedSumInLog(
-								(LogProbability) data[s][haploidSecond] + alleleFrequencyLikelihoods_h[j-1],
-								(LogProbability) data[s][haploidFirst] + alleleFrequencyLikelihoods_h[j]    );
+								(LogProbability) data[s][BG::haploidSecond] + alleleFrequencyLikelihoods_h[j-1],
+								(LogProbability) data[s][BG::haploidFirst] + alleleFrequencyLikelihoods_h[j]    );
 					}
 
 					//special case for j=0
-					alleleFrequencyLikelihoods_h[0] = (LogProbability) data[s][haploidFirst] + alleleFrequencyLikelihoods_h[0];
+					alleleFrequencyLikelihoods_h[0] = (LogProbability) data[s][BG::haploidFirst] + alleleFrequencyLikelihoods_h[0];
 
 					//increase total number of haplotypes by one
 					numAlleleCounts += 1;
 				} else {
 					//first fill new ones to avoid multiplication with zero (relevant in log)
-					alleleFrequencyLikelihoods_h[j+2] = (LogProbability) data[s][homoSecond] + alleleFrequencyLikelihoods_h[j];
+					alleleFrequencyLikelihoods_h[j+2] = (LogProbability) data[s][BG::homoSecond] + alleleFrequencyLikelihoods_h[j];
 					alleleFrequencyLikelihoods_h[j+1] = _protectedSumInLog(
-																(LogProbability) data[s][homoSecond] + alleleFrequencyLikelihoods_h[j-1],
-																(LogProbability) data[s][het] + alleleFrequencyLikelihoods_h[j] + logOf2 );
+																(LogProbability) data[s][BG::homoSecond] + alleleFrequencyLikelihoods_h[j-1],
+																(LogProbability) data[s][BG::het] + alleleFrequencyLikelihoods_h[j] + logOf2 );
 
 					//now fill those already used
 					for(; j>1; j--){
 						alleleFrequencyLikelihoods_h[j] = _protectedSumInLog(
-										 (LogProbability) data[s][homoSecond] + alleleFrequencyLikelihoods_h[j-2],
-										 (LogProbability) data[s][het] + alleleFrequencyLikelihoods_h[j-1] + logOf2,
-										 (LogProbability) data[s][homoFirst] + alleleFrequencyLikelihoods_h[j] );
+										 (LogProbability) data[s][BG::homoSecond] + alleleFrequencyLikelihoods_h[j-2],
+										 (LogProbability) data[s][BG::het] + alleleFrequencyLikelihoods_h[j-1] + logOf2,
+										 (LogProbability) data[s][BG::homoFirst] + alleleFrequencyLikelihoods_h[j] );
 					}
 
 					//special case for j=1,0
 					alleleFrequencyLikelihoods_h[1] = _protectedSumInLog(
-					        (LogProbability) data[s][het] + alleleFrequencyLikelihoods_h[0] + logOf2, // 2*het does not appear in equation in paper, but must be there
-										 (LogProbability) data[s][homoFirst] + alleleFrequencyLikelihoods_h[1] );
+					        (LogProbability) data[s][BG::het] + alleleFrequencyLikelihoods_h[0] + logOf2, // 2*het does not appear in equation in paper, but must be there
+										 (LogProbability) data[s][BG::homoFirst] + alleleFrequencyLikelihoods_h[1] );
 
-					alleleFrequencyLikelihoods_h[0] = (LogProbability) data[s][homoFirst] + alleleFrequencyLikelihoods_h[0];
+					alleleFrequencyLikelihoods_h[0] = (LogProbability) data[s][BG::homoFirst] + alleleFrequencyLikelihoods_h[0];
 
 					//increase total number of haplotypes by two
 					numAlleleCounts += 2;
@@ -186,6 +183,7 @@ void TSiteAlleleFrequencyLikelihoods::_fillLog(TSampleLikelihoods* data, uint32_
 };
 
 void TSiteAlleleFrequencyLikelihoods::_fillNatural(TSampleLikelihoods* data, uint32_t numSamples){
+	using BG = genometools::BiallelicGenotype;
 	//Calculating allele frequency likelihoods according to Nielsen et al. (2012) PLoS One, page 3
 	//adapted to also work for haploid individuals (which only have likelihoods for genotypes 0 and 1)
 	std::vector<double> alleleFrequencyLikelihoods_h(log_alleleFrequencyLikelihoods_h.size(), 0.0);
@@ -201,13 +199,13 @@ void TSiteAlleleFrequencyLikelihoods::_fillNatural(TSampleLikelihoods* data, uin
 	if(s < numSamples){
 		//initialize with first individual
 		if(data[s].isHaploid()){
-			alleleFrequencyLikelihoods_h[0] = (Probability) data[s][haploidFirst];
-			alleleFrequencyLikelihoods_h[1] = (Probability) data[s][haploidSecond];
+			alleleFrequencyLikelihoods_h[0] = (Probability) data[s][BG::haploidFirst];
+			alleleFrequencyLikelihoods_h[1] = (Probability) data[s][BG::haploidSecond];
 			numAlleleCounts = 1;
 		} else {
-			alleleFrequencyLikelihoods_h[0] = (Probability) data[s][homoFirst];
-			alleleFrequencyLikelihoods_h[1] = (Probability) data[s][het] * 2.0;
-			alleleFrequencyLikelihoods_h[2] = (Probability) data[s][homoSecond];
+			alleleFrequencyLikelihoods_h[0] = (Probability) data[s][BG::homoFirst];
+			alleleFrequencyLikelihoods_h[1] = (Probability) data[s][BG::het] * 2.0;
+			alleleFrequencyLikelihoods_h[2] = (Probability) data[s][BG::homoSecond];
 			numAlleleCounts = 2;
 		}
 
@@ -218,36 +216,36 @@ void TSiteAlleleFrequencyLikelihoods::_fillNatural(TSampleLikelihoods* data, uin
 
 				if(data[s].isHaploid()){
 					//first fill new ones to avoid multiplication with zero (relevant in log, kept here for code consistency)
-					alleleFrequencyLikelihoods_h[j+1] = (Probability) data[s][haploidSecond] * alleleFrequencyLikelihoods_h[j];
+					alleleFrequencyLikelihoods_h[j+1] = (Probability) data[s][BG::haploidSecond] * alleleFrequencyLikelihoods_h[j];
 
 					//now fill those already used
 					for(; j>0; j--){
-						alleleFrequencyLikelihoods_h[j] = (Probability) data[s][haploidSecond] * alleleFrequencyLikelihoods_h[j-1]
-													    + (Probability) data[s][haploidFirst] * alleleFrequencyLikelihoods_h[j];
+						alleleFrequencyLikelihoods_h[j] = (Probability) data[s][BG::haploidSecond] * alleleFrequencyLikelihoods_h[j-1]
+													    + (Probability) data[s][BG::haploidFirst] * alleleFrequencyLikelihoods_h[j];
 					}
 
 					//special case for j=0
-					alleleFrequencyLikelihoods_h[0] = (Probability) data[s][haploidFirst] * alleleFrequencyLikelihoods_h[0];
+					alleleFrequencyLikelihoods_h[0] = (Probability) data[s][BG::haploidFirst] * alleleFrequencyLikelihoods_h[0];
 
 					//increase total number of haplotypes by one
 					numAlleleCounts += 1;
 				} else {
 					//first fill new ones to avoid multiplication with zero (relevant in log, kept here to code consistent)
-					alleleFrequencyLikelihoods_h[j+2] = (Probability) data[s][homoSecond] * alleleFrequencyLikelihoods_h[j];
-					alleleFrequencyLikelihoods_h[j+1] = (Probability) data[s][homoSecond] * alleleFrequencyLikelihoods_h[j-1]
-													  + 2.0 * (Probability) data[s][het] * alleleFrequencyLikelihoods_h[j];
+					alleleFrequencyLikelihoods_h[j+2] = (Probability) data[s][BG::homoSecond] * alleleFrequencyLikelihoods_h[j];
+					alleleFrequencyLikelihoods_h[j+1] = (Probability) data[s][BG::homoSecond] * alleleFrequencyLikelihoods_h[j-1]
+													  + 2.0 * (Probability) data[s][BG::het] * alleleFrequencyLikelihoods_h[j];
 
 					//now fill those already used
 					for(; j>1; j--){
-						alleleFrequencyLikelihoods_h[j] = (Probability) data[s][homoSecond] * alleleFrequencyLikelihoods_h[j-2]
-														+ 2.0 * (Probability) data[s][het] * alleleFrequencyLikelihoods_h[j-1]
-														+ (Probability) data[s][homoFirst] * alleleFrequencyLikelihoods_h[j];
+						alleleFrequencyLikelihoods_h[j] = (Probability) data[s][BG::homoSecond] * alleleFrequencyLikelihoods_h[j-2]
+														+ 2.0 * (Probability) data[s][BG::het] * alleleFrequencyLikelihoods_h[j-1]
+														+ (Probability) data[s][BG::homoFirst] * alleleFrequencyLikelihoods_h[j];
 					}
 
 					//special case for j=1,0
-					alleleFrequencyLikelihoods_h[1] = 2.0 * (Probability) data[s][het] * alleleFrequencyLikelihoods_h[0] // 2*het does not appear in equation in paper, but must be there
-													+ (Probability) data[s][homoFirst] * alleleFrequencyLikelihoods_h[1];
-					alleleFrequencyLikelihoods_h[0] = (Probability) data[s][homoFirst] * alleleFrequencyLikelihoods_h[0];
+					alleleFrequencyLikelihoods_h[1] = 2.0 * (Probability) data[s][BG::het] * alleleFrequencyLikelihoods_h[0] // 2*het does not appear in equation in paper, but must be there
+													+ (Probability) data[s][BG::homoFirst] * alleleFrequencyLikelihoods_h[1];
+					alleleFrequencyLikelihoods_h[0] = (Probability) data[s][BG::homoFirst] * alleleFrequencyLikelihoods_h[0];
 
 					//increase total number of haplotypes by two
 					numAlleleCounts += 2;

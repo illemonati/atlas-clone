@@ -26,8 +26,8 @@ private:
 	// flags: isReverseStrand, isSecondMate, isAligned
 	bitset flags = 0; // initialized as 0,0,0
 public:
-	genometools::Base base           = genometools::N;
-	genometools::BaseContext context = genometools::cNN;
+	genometools::Base base           = genometools::Base::N;
+	genometools::BaseContext context = genometools::BaseContext::NN;
 
 	// original quality as in BAM file, but transformed to phredInt
 	genometools::PhredIntProbability originalQuality_phredInt{0};

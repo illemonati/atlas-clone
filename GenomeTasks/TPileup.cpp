@@ -109,6 +109,7 @@ void TPileup::_parseField(std::set<std::string> & fields, const std::string tag,
 };
 
 void TPileup::_handleWindow(){
+	using genometools::Base;
 	_logfile->listFlushTime("Writing pileup ...");
 
 	uint32_t pos = 0;
@@ -139,7 +140,7 @@ void TPileup::_handleWindow(){
 
 		if(_printAlleles){
 			site.countAlleles(_alleleCounts);
-			out << _alleleCounts[genometools::A] << _alleleCounts[genometools::C] << _alleleCounts[genometools::G] << _alleleCounts[genometools::T];
+			out << _alleleCounts[Base::A] << _alleleCounts[Base::C] << _alleleCounts[Base::G] << _alleleCounts[Base::T];
 			if(_reference){
 				out << _alleleCounts[site.refBase()] << _alleleCounts.size() - _alleleCounts[site.refBase()];
 			}

@@ -3,6 +3,8 @@
 //
 
 #include "TVcfConverter.h"
+#include "GenotypeTypes.h"
+#include "probability.h"
 
 namespace VCF{
 
@@ -94,6 +96,8 @@ void TVcfToBeagle::_writeRefAndAlt(){
 };
 
 void TVcfToBeagle::_writeData(PopulationTools::TPopulationLikehoodLocus & data){
+	using coretools::Probability;
+	using BG = genometools::BiallelicGenotype;
     _writePosition();
     _writeRefAndAlt();
 
@@ -102,9 +106,9 @@ void TVcfToBeagle::_writeData(PopulationTools::TPopulationLikehoodLocus & data){
         if (data[s].isMissing()){
             _beagleFile << 0.333 << 0.333 << 0.333; // need to do this manually, because otherwise missing data would be 1; but PCAngsd requires genotype likelihoods to sum to one
     	} else if (data[s].isHaploid()){
-            _beagleFile << (coretools::Probability) data[s][genometools::homoFirst] << (coretools::Probability) data[s][genometools::homoSecond] << 0; // if haploid, the 3rd gtl should be 0 according to ANGSD (without doing this manually, it would just be extremely small, but not exactly 0).
+            _beagleFile << (Probability) data[s][BG::homoFirst] << (Probability) data[s][BG::homoSecond] << 0; // if haploid, the 3rd gtl should be 0 according to ANGSD (without doing this manually, it would just be extremely small, but not exactly 0).
         } else {
-            _beagleFile << (coretools::Probability) data[s][genometools::homoFirst] << (coretools::Probability) data[s][genometools::het] << (coretools::Probability) data[s][genometools::homoSecond];
+            _beagleFile << (Probability) data[s][BG::homoFirst] << (Probability) data[s][BG::het] << (Probability) data[s][BG::homoSecond];
         }
     };
 
@@ -156,10 +160,10 @@ void TVcfToGeno::_writeData(PopulationTools::TPopulationLikehoodLocus & data){
             line += "9";
         } else if (data[s].isHaploid()){
             // get counts of reference allele from counts of alternative allele
-            line += coretools::str::toString(1 - _reader.biallelicGenotype(_samples, s).altAlleleCounts());
+		line += coretools::str::toString(1 - altAlleleCounts(_reader.biallelicGenotype(_samples, s)));
         } else {
             // get counts of reference allele from counts of alternative allele
-            line += coretools::str::toString(2 - _reader.biallelicGenotype(_samples, s).altAlleleCounts());
+		line += coretools::str::toString(2 - altAlleleCounts(_reader.biallelicGenotype(_samples, s)));
         }
     }
     _genoFile << line << std::endl;
@@ -232,10 +236,10 @@ void TVcfToLFMMCalledGeno::storeCalledGenotypes(){
     auto tmp = _reader.biallelicGenotypes(_samples);
     auto* calledGeno = new uint8_t[_samples.numSamples()];
     for (size_t i = 0; i < _samples.numSamples(); i++){
-        if (tmp[i].isMissing()){
+        if (isMissing(tmp[i])){
             calledGeno[i] = 9; // re-code missing _genotypes to LFMM format
         } else {
-        	calledGeno[i] = tmp[i].altAlleleCounts();
+        	calledGeno[i] = altAlleleCounts(tmp[i]);
         }
     }
     _genotypes.emplace_back(calledGeno);
@@ -458,7 +462,7 @@ void TVcfToGenotypeTruthSetFile::_writeToGenFile(const std::vector<uint32_t> & s
         auto it = std::find(samplesToKeep.begin(), samplesToKeep.end(), s);
         if (it != samplesToKeep.end()){
         	// sample found
-        	_genFile << (std::string) _reader.genotype(_samples, s);
+        	_genFile << toString(_reader.genotype(_samples, s));
 
         } else {
             _genFile << "NA";

@@ -6,6 +6,7 @@
  */
 
 #include "TAllelicDepthCounts.h"
+#include "GenotypeTypes.h"
 
 namespace GenomeTasks{
 
@@ -78,8 +79,9 @@ void TAllelicDepthCounts::_freeStorage(){
 
 
 void TAllelicDepthCounts::addSite(const GenotypeLikelihoods::TBaseCounts & alleleCounts){
-	if(alleleCounts[genometools::A] < _size && alleleCounts[genometools::C] < _size && alleleCounts[genometools::G] < _size && alleleCounts[genometools::T] < _size)
-		++_counts[alleleCounts[genometools::A]][alleleCounts[genometools::C]][alleleCounts[genometools::G]][alleleCounts[genometools::T]];
+	using genometools::Base;
+	if(alleleCounts[Base::A] < _size && alleleCounts[Base::C] < _size && alleleCounts[Base::G] < _size && alleleCounts[Base::T] < _size)
+		++_counts[alleleCounts[Base::A]][alleleCounts[Base::C]][alleleCounts[Base::G]][alleleCounts[Base::T]];
 };
 
 

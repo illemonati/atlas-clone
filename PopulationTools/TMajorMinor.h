@@ -29,12 +29,17 @@ using GLF::TMultiGLFData;
 //-------------------------------------
 // TAlleleicCombinationData
 //-------------------------------------
-class TAlleleicCombinationData : public GenotypeLikelihoods::TData_base<coretools::Log10Probability, AllelicCombination, genometools::AllelicCombinationEnum, genometools::alleleicCombinationNN>{
+class TAlleleicCombinationData
+	: public GenotypeLikelihoods::TData_base<coretools::Log10Probability, AllelicCombination,
+					     genometools::index(genometools::AllelicCombination::NN)> {
 private:
-	using TData_base<coretools::Log10Probability, AllelicCombination, genometools::AllelicCombinationEnum, genometools::alleleicCombinationNN>::_data;
+	using TData_base<coretools::Log10Probability, AllelicCombination,
+			 genometools::index(genometools::AllelicCombination::NN)>::_data;
 
 public:
-	TAlleleicCombinationData() : TData_base<coretools::Log10Probability, AllelicCombination, genometools::AllelicCombinationEnum, genometools::alleleicCombinationNN>(0.0) {};
+	TAlleleicCombinationData()
+		: TData_base<coretools::Log10Probability, AllelicCombination,
+			 genometools::index(genometools::AllelicCombination::NN)>(0.0){};
 	~TAlleleicCombinationData() = default;
 };
 

@@ -6,6 +6,7 @@
  */
 
 #include "TContextQuantifer.h"
+#include "GenotypeTypes.h"
 
 namespace GenomeTasks{
 
@@ -18,8 +19,8 @@ TContextQuantifier::TContextQuantifier(TParameters & Parameters, TLog* Logfile, 
 
 void TContextQuantifier::_handleAlignment(){
 	for(auto& b : _alignment){
-		if(b.context != genometools::cNN){
-			_contextCounts.add(b.recalibratedQualityAsPhredInt.get(), b.context.get());
+		if(b.context != genometools::BaseContext::NN){
+			_contextCounts.add(b.recalibratedQualityAsPhredInt.get(), genometools::index(b.context));
 		}
 	}
 };
@@ -36,8 +37,8 @@ void TContextQuantifier::quantifyContexts(){
 
 	std::vector<std::string> contextLabels;
 
-	for(genometools::BaseContext c = genometools::BaseContext::min(); c < genometools::BaseContext::max(); ++c){
-		contextLabels.push_back((std::string) c);
+	for(genometools::BaseContext c = genometools::BaseContext::min; c < genometools::BaseContext::max; ++c){
+		contextLabels.push_back(genometools::toString(c));
 	}
 
 	_contextCounts.writeAsMatrix(outputFileName, "quality", contextLabels);

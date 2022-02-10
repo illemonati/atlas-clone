@@ -5,6 +5,7 @@
  *      Author: wegmannd
  */
 #include "TVcfParser.h"
+#include "GenotypeTypes.h"
 
 namespace VCF{
 
@@ -744,27 +745,28 @@ std::string TVcfParser::getSecondAlleleOfSample(const TVcfLine & line, unsigned 
 };
 
 genometools::BiallelicGenotype TVcfParser::sampleBiallelicGenotype(const TVcfLine & line, unsigned int sample) const{
+	using BG = genometools::BiallelicGenotype;
 	//return missing if non-biallelic
 	if(line.samples[sample].isHaploid){
 		if(line.samples[sample].missing || line.variants.size() > 2){
-			return genometools::missingHaploid;
+			return BG::missingHaploid;
 		}
 		if(line.samples[sample].genotype.first == 0){
-			return genometools::haploidFirst;
+			return BG::haploidFirst;
 		} else {
-			return genometools::haploidSecond;
+			return BG::haploidSecond;
 		}
 	} else {
 		if(line.samples[sample].missing || line.variants.size() > 2){
-			return genometools::missingDiploid;
+			return BG::missingDiploid;
 		}
 		auto tmp = line.samples[sample].genotype.first + line.samples[sample].genotype.second;
 		if(tmp == 0){
-			return genometools::homoFirst;
+			return BG::homoFirst;
 		} else if (tmp == 1){
-			return genometools::het;
+			return BG::het;
 		} else {
-			return genometools::homoSecond;
+			return BG::homoSecond;
 		}
 	}
 };

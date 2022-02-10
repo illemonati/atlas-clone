@@ -36,10 +36,10 @@ protected:
 public:
 	GenotypeLikelihoods::TGenotypeLikelihoods genotypeLikelihoods;
 
-    TSite(){
-        _referenceBase = genometools::N;
-        _genotype = genometools::NN;
-    };
+	TSite() {
+		_referenceBase = genometools::Base::N;
+		_genotype      = genometools::Genotype::NN;
+	};
 
 	void clear();
 

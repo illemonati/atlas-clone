@@ -32,7 +32,7 @@ double TPMDSCalculator::_calculatePMDS(){
 	for(auto& b : _alignment){
 		//limit to aligned positions
 		genometools::Base ref = _alignment.referenceAtInternalPos(d);
-		if(b.isAligned() && b.base != genometools::N && ref != genometools::N){
+		if(b.isAligned() && b.base != genometools::Base::N && ref != genometools::Base::N){
 			PMDS +=  _genotypeLikelihoodCalculator.calculateLogPMDS(b, ref, _pi);
 		}
 		++d;

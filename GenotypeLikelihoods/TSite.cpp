@@ -23,7 +23,7 @@ TSite::TSite(const TSite & site){
 
 void TSite::clear(){
 	_bases.clear();
-	_referenceBase = genometools::N;
+	_referenceBase = genometools::Base::N;
 };
 
 void TSite::add(const BAM::TSequencedBase & base){
@@ -80,7 +80,7 @@ uint32_t TSite::depth() const{
 
 uint32_t TSite::refDepth() const{
 	if(empty()) return 0;
-	if(_referenceBase == genometools::N) return 0;
+	if(_referenceBase == genometools::Base::N) return 0;
 	uint32_t counter = 0;
 	for(auto& b : _bases){
 		if(b.base == _referenceBase)

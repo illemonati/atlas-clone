@@ -9,6 +9,7 @@
 #define GLF_TGLFMULTIREADER_H_
 
 
+#include "GenotypeTypes.h"
 #include "TGLF.h"
 #include "TFastaBuffer.h"
 #include "TParameters.h"
@@ -79,7 +80,7 @@ public:
 		if(_isHaploid){
 			throw std::runtime_error("HighPrecisionPhredIntProbability TMultiGLFDataSample::operator[](const genometools::Genotype & G): sample is haploid!");
 		}
-		return _genotypeLikelihoodsGLF[G.get()];
+		return _genotypeLikelihoodsGLF[genometools::index(G)];
 	};
 
 	const HighPrecisionPhredIntProbability operator[](const genometools::Base & B) const{
@@ -89,7 +90,7 @@ public:
 		if(!_isHaploid){
 			throw std::runtime_error("HighPrecisionPhredIntProbability TMultiGLFDataSample::operator[](const genometools::Base & B): sample is diploid!");
 		}
-		return _genotypeLikelihoodsGLF[B.get()];
+		return _genotypeLikelihoodsGLF[genometools::index(B)];
 	};
 };
 
@@ -143,11 +144,11 @@ public:
 	constexpr const HighPrecisionPhredIntProbability& operator[](const genometools::BiallelicGenotype & Genotype) const {
 		 //check
 		 if(_isHaploid){
-			 if(!Genotype.isHaploid()){
+			 if(!genometools::isHaploid(Genotype)){
 				throw std::runtime_error("constexpr const HighPrecisionPhredIntProbability& TGenotypeLikelihoodsOneAllelicCombination::operator[](const genometools::BiallelicGenotype & Genotype) const: sample is haploid!");
 			 }
 		 } else {
-			 if(!Genotype.isDiploid()){
+			 if(!genometools::isDiploid(Genotype)){
 				throw std::runtime_error("constexpr const HighPrecisionPhredIntProbability& TGenotypeLikelihoodsOneAllelicCombination::operator[](const genometools::BiallelicGenotype & Genotype) const: sample is Diploid!");
 			 }
 		 }
@@ -156,7 +157,7 @@ public:
 		 if(_isMissing){
 			 return _maxGTL;
 		 } else {
-			 return _GLs[Genotype.altAlleleCounts()];
+			 return _GLs[genometools::altAlleleCounts(Genotype)];
 		 }
 	};
 };

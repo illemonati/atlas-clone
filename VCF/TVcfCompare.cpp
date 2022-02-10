@@ -23,55 +23,55 @@ TGenotypeComparisonTable::TGenotypeComparisonTable(){
 
 //add haploid genotypes
 void TGenotypeComparisonTable::add(const Base b1, const Base b2){
-	++counts[b1.get()][b2.get()];
+	++counts[index(b1)][index(b2)];
 };
 
 void TGenotypeComparisonTable::addOtherMissing(const int sample, const Base b){
 	if(sample == 0){
-		++counts[b.get()][missingIndex];
+		++counts[index(b)][missingIndex];
 	} else {
-		++counts[missingIndex][b.get()];
+		++counts[missingIndex][index(b)];
 	}
 };
 
 
 void TGenotypeComparisonTable::addFirstMissing(const Base b2){
-	++counts[missingIndex][b2.get()];
+	++counts[missingIndex][index(b2)];
 };
 
 void TGenotypeComparisonTable::addSecondMissing(const Base b1){
-	++counts[b1.get()][missingIndex];
+	++counts[index(b1)][missingIndex];
 };
 
 //add diploid genotypes
 void TGenotypeComparisonTable::add(Genotype g1, Genotype g2){
-	++counts[firstDiploidIndex + g1.get()][firstDiploidIndex + g2.get()];
+	++counts[firstDiploidIndex + index(g1)][firstDiploidIndex + index(g2)];
 };
 
 void TGenotypeComparisonTable::addOtherMissing(const int sample, const Genotype g){
 	if(sample == 0){
-		++counts[firstDiploidIndex + g.get()][missingIndex];
+		++counts[firstDiploidIndex + index(g)][missingIndex];
 	} else {
-		++counts[missingIndex][firstDiploidIndex + g.get()];
+		++counts[missingIndex][firstDiploidIndex + index(g)];
 	}
 };
 
 void TGenotypeComparisonTable::addFirstMissing(Genotype g2){
-	++counts[missingIndex][firstDiploidIndex + g2.get()];
+	++counts[missingIndex][firstDiploidIndex + index(g2)];
 };
 
 void TGenotypeComparisonTable::addSecondMissing(Genotype g1){
-	++counts[firstDiploidIndex + g1.get()][missingIndex];
+	++counts[firstDiploidIndex + index(g1)][missingIndex];
 };
 
 
 //add haploid / diploid combination of genotypes
 void TGenotypeComparisonTable::add(const Genotype g1, const Base b2){
-	++counts[firstDiploidIndex + g1.get()][b2.get()];
+	++counts[firstDiploidIndex + index(g1)][index(b2)];
 };
 
 void TGenotypeComparisonTable::add(const Base b1, const Genotype g2){
-	++counts[b1.get()][firstDiploidIndex + g2.get()];
+	++counts[index(b1)][firstDiploidIndex + index(g2)];
 };
 
 //write
@@ -82,13 +82,13 @@ void TGenotypeComparisonTable::write(const std::string filename){
 	//write header
 	std::vector<std::string> header = {"vcf1/vcf2"};
 	//haploid bases
-	for(auto b = Base::min(); b < Base::max(); ++b){
-		header.push_back((std::string) b);
+	for(auto b = Base::min; b < Base::max; ++b){
+		header.push_back(toString(b));
 	}
 
 	//diploid genotypes
-	for(auto g = genometools::Genotype::min(); g < genometools::Genotype::max(); ++g){
-		header.push_back((std::string) g);
+	for(auto g = Genotype::min; g < Genotype::max; ++g){
+		header.push_back(toString(g));
 	}
 
 	//missing

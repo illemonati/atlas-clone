@@ -455,12 +455,12 @@ void TAlignmentMerger_randomBase::_mergeBasesCore(BAM::TSequencedBase & bestBase
 		GenotypeLikelihoods::TBaseLikelihoods likelihood(bestBase.base, (coretools::Probability) bestBase.recalibratedQualityAsPhredInt);
 		likelihood *= GenotypeLikelihoods::TBaseLikelihoods(worstBase.base, (coretools::Probability) worstBase.recalibratedQualityAsPhredInt);
 		likelihood.normalize();
-		bestBase.recalibratedQualityAsPhredInt = likelihood[bestBase.base.get()].complement();
+		bestBase.recalibratedQualityAsPhredInt = likelihood[bestBase.base].complement();
 	}
 
 	//set other to missing
 	worstBase.recalibratedQualityAsPhredInt = 0.0;
-	worstBase.base = genometools::N;
+	worstBase.base = genometools::Base::N;
 };
 
 void TAlignmentMerger_randomBase::_mergeBases(BAM::TSequencedBase & alignment, BAM::TSequencedBase & mate){
