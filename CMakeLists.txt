@@ -55,7 +55,7 @@ FetchContent_Declare(stattools
 
 FetchContent_Declare(genometools
         GIT_REPOSITORY    https://bitbucket.org/wegmannlab/genometools.git
-        GIT_TAG           4143bb3
+        GIT_TAG           990a3a4
         SOURCE_DIR        "${CMAKE_CURRENT_BINARY_DIR}/genometools"
         )
 FetchContent_MakeAvailable(coretools stattools genometools)
