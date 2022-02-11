@@ -349,8 +349,8 @@ void TAlignment::_updateSequenceAndQualities() const{
 		_qualities.resize(_bases.size());
 
 		for (size_t b=0; b < _bases.size(); ++b){
-			_sequence[b] = (char) _bases[b].base;
-			_qualities[b] = (char) genometools::BaseQuality(_bases[b].recalibratedQualityAsPhredInt);
+			_sequence[b] = genometools::base2char(_bases[b].base);
+			_qualities[b] = static_cast<char>(genometools::BaseQuality(_bases[b].recalibratedQualityAsPhredInt));
 		}
 
 		_sequenceAndQualitiesChanged = false;

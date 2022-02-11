@@ -116,7 +116,7 @@ void TContextFilter::set(coretools::TParameters & params, coretools::TLog* logfi
 				const Base first  = char2base(c[0]);
 				const Base second = char2base(c[1]);
 
-				if((char) first != c[0] || (char) second != c[1]){
+				if(base2char(first) != c[0] || base2char(second) != c[1]){
 					throw "Unable to understand context '" + c + "'!  (parameter 'ignoreContexts')";
 				}
 

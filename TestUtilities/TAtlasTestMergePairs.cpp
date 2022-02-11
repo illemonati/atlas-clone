@@ -75,12 +75,12 @@ void TAtlasTest_mergePairs::writePairedEndReads(BamTools::BamWriter & bamWriter)
 	bamAlignment.Length = 64;
 	bamAlignment.Name = "1st_pair";
 	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'C');
-	bamAlignment.Qualities = std::string(bamAlignment.Length, (char) genometools::BaseQuality(genometools::PhredIntProbability(50)));
+	bamAlignment.Qualities = std::string(bamAlignment.Length, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(50))));
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
 	bamWriter.SaveAlignment(bamAlignment);
 	trueQueryBases.push_back(std::string(bamAlignment.Length, 'C'));
-	trueQualities.push_back(std::string(bamAlignment.Length, (char) genometools::BaseQuality(genometools::PhredIntProbability(50))));
+	trueQualities.push_back(std::string(bamAlignment.Length, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(50)))));
 	trueIsProper.push_back(true);
 
 	//2nd mate
@@ -91,13 +91,13 @@ void TAtlasTest_mergePairs::writePairedEndReads(BamTools::BamWriter & bamWriter)
 	bamAlignment.Length = 63;
 	bamAlignment.Name = "1st_pair";
 	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'A');
-	bamAlignment.Qualities = std::string(bamAlignment.Length, (char) genometools::BaseQuality(genometools::PhredIntProbability(30)));
+	bamAlignment.Qualities = std::string(bamAlignment.Length, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(30))));
 	bamAlignment.CigarData.clear();
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
 	bamWriter.SaveAlignment(bamAlignment);
 	trueQueryBases.push_back(bamAlignment.QueryBases);
-	trueQualities.push_back(std::string(bamAlignment.Length, (char) genometools::BaseQuality(genometools::PhredIntProbability(0))));
+	trueQualities.push_back(std::string(bamAlignment.Length, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(0)))));
 	trueIsProper.push_back(true);
 
 	//--------------------------------------------------------
@@ -111,13 +111,13 @@ void TAtlasTest_mergePairs::writePairedEndReads(BamTools::BamWriter & bamWriter)
 	bamAlignment.Length = 20;
 	bamAlignment.Name = "2nd_pair_noOverlap";
 	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'A');
-	bamAlignment.Qualities = std::string(bamAlignment.Length, (char) genometools::BaseQuality(genometools::PhredIntProbability(30)));
+	bamAlignment.Qualities = std::string(bamAlignment.Length, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(30))));
 	bamAlignment.CigarData.clear();
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
 	bamWriter.SaveAlignment(bamAlignment);
 	trueQueryBases.push_back(std::string(bamAlignment.Length, 'A'));
-	trueQualities.push_back(std::string(bamAlignment.Length, (char) genometools::BaseQuality(genometools::PhredIntProbability(30))));
+	trueQualities.push_back(std::string(bamAlignment.Length, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(30)))));
 	trueIsProper.push_back(true);
 
 	//2nd mate
@@ -128,13 +128,13 @@ void TAtlasTest_mergePairs::writePairedEndReads(BamTools::BamWriter & bamWriter)
 	bamAlignment.Length = 20;
 	bamAlignment.Name = "2nd_pair_noOverlap";
 	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'A');
-	bamAlignment.Qualities = std::string(bamAlignment.Length, (char) genometools::BaseQuality(genometools::PhredIntProbability(50)));
+	bamAlignment.Qualities = std::string(bamAlignment.Length, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(50))));
 	bamAlignment.CigarData.clear();
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
 	bamWriter.SaveAlignment(bamAlignment);
 	trueQueryBases.push_back(std::string(bamAlignment.Length, 'A'));
-	trueQualities.push_back(std::string(bamAlignment.Length, (char) genometools::BaseQuality(genometools::PhredIntProbability(50))));
+	trueQualities.push_back(std::string(bamAlignment.Length, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(50)))));
 	trueIsProper.push_back(true);
 
 	//--------------------------------------------------------
@@ -147,13 +147,13 @@ void TAtlasTest_mergePairs::writePairedEndReads(BamTools::BamWriter & bamWriter)
 	bamAlignment.Length = 20;
 	bamAlignment.Name = "4th_pair_notConsecutive";
 	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'T');
-	bamAlignment.Qualities = std::string(bamAlignment.Length, (char) genometools::BaseQuality(genometools::PhredIntProbability(30)));
+	bamAlignment.Qualities = std::string(bamAlignment.Length, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(30))));
 	bamAlignment.CigarData.clear();
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
 	bamWriter.SaveAlignment(bamAlignment);
 	trueQueryBases.push_back(std::string(bamAlignment.Length, 'T'));
-	trueQualities.push_back(std::string(bamAlignment.Length, (char) genometools::BaseQuality(genometools::PhredIntProbability(30))));
+	trueQualities.push_back(std::string(bamAlignment.Length, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(30)))));
 	trueIsProper.push_back(true);
 
 	//3) Wrong order
@@ -165,13 +165,13 @@ void TAtlasTest_mergePairs::writePairedEndReads(BamTools::BamWriter & bamWriter)
 	bamAlignment.Length = 20;
 	bamAlignment.Name = "3rd_pair_wrongOrder";
 	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'A');
-	bamAlignment.Qualities = std::string(bamAlignment.Length, (char) genometools::BaseQuality(genometools::PhredIntProbability(30)));
+	bamAlignment.Qualities = std::string(bamAlignment.Length, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(30))));
 	bamAlignment.CigarData.clear();
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
 	bamWriter.SaveAlignment(bamAlignment);
 	trueQueryBases.push_back(std::string(bamAlignment.Length, 'A'));
-	trueQualities.push_back(std::string(bamAlignment.Length, (char) genometools::BaseQuality(genometools::PhredIntProbability(30))));
+	trueQualities.push_back(std::string(bamAlignment.Length, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(30)))));
 	trueIsProper.push_back(true);
 //	trueIgnoredReadMessages.push_back("OrderError: Reverse read of pair with name 3rd_pair_wrongOrder is ignored because its forward mate has not been read");
 
@@ -183,13 +183,13 @@ void TAtlasTest_mergePairs::writePairedEndReads(BamTools::BamWriter & bamWriter)
 	bamAlignment.Length = 100;
 	bamAlignment.Name = "3rd_pair_wrongOrder";
 	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'A');
-	bamAlignment.Qualities = std::string(bamAlignment.Length, (char) genometools::BaseQuality(genometools::PhredIntProbability(50)));
+	bamAlignment.Qualities = std::string(bamAlignment.Length, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(50))));
 	bamAlignment.CigarData.clear();
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
 	bamWriter.SaveAlignment(bamAlignment);
 	trueQueryBases.push_back(std::string(bamAlignment.Length, 'A'));
-	trueQualities.push_back(std::string(bamAlignment.Length, (char) genometools::BaseQuality(genometools::PhredIntProbability(50))));
+	trueQualities.push_back(std::string(bamAlignment.Length, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(50)))));
 	trueIsProper.push_back(true);
 //	trueIgnoredReadMessages.push_back("Blacklist: Forward read of pair with name 3rd_pair_wrongOrder because it was in the blacklist");
 
@@ -201,13 +201,13 @@ void TAtlasTest_mergePairs::writePairedEndReads(BamTools::BamWriter & bamWriter)
 	bamAlignment.Length = 20;
 	bamAlignment.Name = "4th_pair_notConsecutive";
 	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'C');
-	bamAlignment.Qualities = std::string(bamAlignment.Length, (char) genometools::BaseQuality(genometools::PhredIntProbability(30)));
+	bamAlignment.Qualities = std::string(bamAlignment.Length, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(30))));
 	bamAlignment.CigarData.clear();
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
 	bamWriter.SaveAlignment(bamAlignment);
 	trueQueryBases.push_back(std::string(bamAlignment.Length, 'C'));
-	trueQualities.push_back(std::string(bamAlignment.Length, (char) genometools::BaseQuality(genometools::PhredIntProbability(30))));
+	trueQualities.push_back(std::string(bamAlignment.Length, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(30)))));
 	trueIsProper.push_back(true);
 
 	//--------------------------------------------------------
@@ -221,7 +221,7 @@ void TAtlasTest_mergePairs::writePairedEndReads(BamTools::BamWriter & bamWriter)
 	bamAlignment.Length = 100;
 	bamAlignment.Name = "5th_pair_longerThanInsert";
 	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'G');
-	bamAlignment.Qualities = std::string(bamAlignment.Length, (char) genometools::BaseQuality(genometools::PhredIntProbability(30)));
+	bamAlignment.Qualities = std::string(bamAlignment.Length, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(30))));
 	bamAlignment.CigarData.clear();
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
@@ -236,14 +236,14 @@ void TAtlasTest_mergePairs::writePairedEndReads(BamTools::BamWriter & bamWriter)
 	bamAlignment.Length = 10;
 	bamAlignment.Name = "5th_pair_longerThanInsert";
 	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'T');
-	bamAlignment.Qualities = std::string(bamAlignment.Length, (char) genometools::BaseQuality(genometools::PhredIntProbability(30)));
+	bamAlignment.Qualities = std::string(bamAlignment.Length, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(30))));
 	bamAlignment.CigarData.clear();
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
 	bamWriter.SaveAlignment(bamAlignment);
 	if(!filterOrphanedReads){
 		trueQueryBases.push_back(std::string(bamAlignment.Length, 'T'));
-		trueQualities.push_back(std::string(bamAlignment.Length, (char) genometools::BaseQuality(genometools::PhredIntProbability(30))));
+		trueQualities.push_back(std::string(bamAlignment.Length, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(30)))));
 		trueIsProper.push_back(false);
 	} else {
 		trueIgnoredReadMessages.push_back("Read 5th_pair_longerThanInsert, rev : not a proper pair (orphan)");
@@ -260,14 +260,14 @@ void TAtlasTest_mergePairs::writePairedEndReads(BamTools::BamWriter & bamWriter)
 	bamAlignment.Length = 20;
 	bamAlignment.Name = "6th_pair_mateTooFarAway";
 	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'G');
-	bamAlignment.Qualities = std::string(bamAlignment.Length, (char) genometools::BaseQuality(genometools::PhredIntProbability(30)));
+	bamAlignment.Qualities = std::string(bamAlignment.Length, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(30))));
 	bamAlignment.CigarData.clear();
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
 	bamWriter.SaveAlignment(bamAlignment);
 	if(!filterOrphanedReads){
 		trueQueryBases.push_back(std::string(bamAlignment.Length, 'G'));
-		trueQualities.push_back(std::string(bamAlignment.Length, (char) genometools::BaseQuality(genometools::PhredIntProbability(30))));
+		trueQualities.push_back(std::string(bamAlignment.Length, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(30)))));
 		trueIsProper.push_back(false);
 	} else {
 		trueIgnoredReadMessages.push_back("Read 6th_pair_mateTooFarAway, fwd : orphaned read: mate is farther away than 2000 bp");
@@ -282,13 +282,13 @@ void TAtlasTest_mergePairs::writePairedEndReads(BamTools::BamWriter & bamWriter)
 	bamAlignment.Length = 20;
 	bamAlignment.Name = "7th_pair_secondTooFarAway";
 	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'A');
-	bamAlignment.Qualities = std::string(bamAlignment.Length, (char) genometools::BaseQuality(genometools::PhredIntProbability(40)));
+	bamAlignment.Qualities = std::string(bamAlignment.Length, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(40))));
 	bamAlignment.CigarData.clear();
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
 	bamWriter.SaveAlignment(bamAlignment);
 	trueQueryBases.push_back(std::string(bamAlignment.Length, 'A'));
-	trueQualities.push_back(std::string(bamAlignment.Length, (char) genometools::BaseQuality(genometools::PhredIntProbability(40))));
+	trueQualities.push_back(std::string(bamAlignment.Length, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(40)))));
 	trueIsProper.push_back(true);
 
 	//second too far away second mate
@@ -299,13 +299,13 @@ void TAtlasTest_mergePairs::writePairedEndReads(BamTools::BamWriter & bamWriter)
 	bamAlignment.Length = 20;
 	bamAlignment.Name = "7th_pair_secondTooFarAway";
 	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'A');
-	bamAlignment.Qualities = std::string(bamAlignment.Length, (char) genometools::BaseQuality(genometools::PhredIntProbability(40)));
+	bamAlignment.Qualities = std::string(bamAlignment.Length, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(40))));
 	bamAlignment.CigarData.clear();
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
 	bamWriter.SaveAlignment(bamAlignment);
 	trueQueryBases.push_back(std::string(bamAlignment.Length, 'A'));
-	trueQualities.push_back(std::string(bamAlignment.Length, (char) genometools::BaseQuality(genometools::PhredIntProbability(40))));
+	trueQualities.push_back(std::string(bamAlignment.Length, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(40)))));
 	trueIsProper.push_back(true);
 
 	// 6 Mate too far away second mate
@@ -316,14 +316,14 @@ void TAtlasTest_mergePairs::writePairedEndReads(BamTools::BamWriter & bamWriter)
 	bamAlignment.Length = 20;
 	bamAlignment.Name = "6th_pair_mateTooFarAway";
 	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'G');
-	bamAlignment.Qualities = std::string(bamAlignment.Length, (char) genometools::BaseQuality(genometools::PhredIntProbability(30)));
+	bamAlignment.Qualities = std::string(bamAlignment.Length, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(30))));
 	bamAlignment.CigarData.clear();
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
 	bamWriter.SaveAlignment(bamAlignment);
 	if(!filterOrphanedReads){
 		trueQueryBases.push_back(std::string(bamAlignment.Length, 'G'));
-		trueQualities.push_back(std::string(bamAlignment.Length, (char) genometools::BaseQuality(genometools::PhredIntProbability(30))));
+		trueQualities.push_back(std::string(bamAlignment.Length, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(30)))));
 		trueIsProper.push_back(false);
 	} else {
 		trueIgnoredReadMessages.push_back("Read 6th_pair_mateTooFarAway, rev : not a proper pair (orphan)");
@@ -346,11 +346,11 @@ void TAtlasTest_mergePairs::writePairedEndReads(BamTools::BamWriter & bamWriter)
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('D', 5));
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', 45));
 	bamAlignment.QueryBases = std::string(10, 'A') + std::string(5, 'C') + std::string(10, 'A') + std::string(45, 'G');
-	bamAlignment.Qualities = std::string(bamAlignment.Length, (char) genometools::BaseQuality(genometools::PhredIntProbability(50)));
+	bamAlignment.Qualities = std::string(bamAlignment.Length, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(50))));
 
 	bamWriter.SaveAlignment(bamAlignment);
 	trueQueryBases.push_back(bamAlignment.QueryBases);
-	trueQualities.push_back(std::string(bamAlignment.Length, (char) genometools::BaseQuality(genometools::PhredIntProbability(50))));
+	trueQualities.push_back(std::string(bamAlignment.Length, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(50)))));
 	trueIsProper.push_back(true);
 
 	//single end read in between, short
@@ -363,11 +363,11 @@ void TAtlasTest_mergePairs::writePairedEndReads(BamTools::BamWriter & bamWriter)
 	bamAlignment.CigarData.clear();
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'A');
-	bamAlignment.Qualities = std::string(bamAlignment.Length, (char) genometools::BaseQuality(genometools::PhredIntProbability(30)));
+	bamAlignment.Qualities = std::string(bamAlignment.Length, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(30))));
 
 	bamWriter.SaveAlignment(bamAlignment);
 	trueQueryBases.push_back(bamAlignment.QueryBases);
-	trueQualities.push_back(std::string(bamAlignment.Length, (char) genometools::BaseQuality(genometools::PhredIntProbability(30))));
+	trueQualities.push_back(std::string(bamAlignment.Length, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(30)))));
 	trueIsProper.push_back(false);
 
 	//single end read in between, should be ignored
@@ -380,7 +380,7 @@ void TAtlasTest_mergePairs::writePairedEndReads(BamTools::BamWriter & bamWriter)
 	bamAlignment.CigarData.clear();
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'A');
-	bamAlignment.Qualities = std::string(bamAlignment.Length, (char) genometools::BaseQuality(genometools::PhredIntProbability(30)));
+	bamAlignment.Qualities = std::string(bamAlignment.Length, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(30))));
 
 	//single end read in between, long
 	setToSingleEndEtc(bamAlignment);
@@ -392,11 +392,11 @@ void TAtlasTest_mergePairs::writePairedEndReads(BamTools::BamWriter & bamWriter)
 	bamAlignment.CigarData.clear();
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'A');
-	bamAlignment.Qualities = std::string(bamAlignment.Length, (char) genometools::BaseQuality(genometools::PhredIntProbability(30)));
+	bamAlignment.Qualities = std::string(bamAlignment.Length, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(30))));
 
 	bamWriter.SaveAlignment(bamAlignment);
 	trueQueryBases.push_back(bamAlignment.QueryBases);
-	trueQualities.push_back(std::string(bamAlignment.Length, (char) genometools::BaseQuality(genometools::PhredIntProbability(30))));
+	trueQualities.push_back(std::string(bamAlignment.Length, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(30)))));
 
 	trueIsProper.push_back(false);
 
@@ -415,7 +415,7 @@ void TAtlasTest_mergePairs::writePairedEndReads(BamTools::BamWriter & bamWriter)
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', 70));
 
 	bamAlignment.QueryBases = std::string(10, 'A') + std::string(5, 'C') + std::string(70, 'A');
-	bamAlignment.Qualities = std::string(bamAlignment.Length, (char) genometools::BaseQuality(genometools::PhredIntProbability(30)));
+	bamAlignment.Qualities = std::string(bamAlignment.Length, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(30))));
 
 	bamWriter.SaveAlignment(bamAlignment);
 	//overlap with deletion + overlap, lower qual + insertion + overlap, lower Qual + end not overlapping
@@ -424,11 +424,11 @@ void TAtlasTest_mergePairs::writePairedEndReads(BamTools::BamWriter & bamWriter)
 						+ std::string(5, 'C')
 						+ std::string(40, 'A')
 						+ std::string(30, 'A'));
-	trueQualities.push_back(std::string(5, (char) genometools::BaseQuality(genometools::PhredIntProbability(30)))
-						+ std::string(5, (char) genometools::BaseQuality(genometools::PhredIntProbability(0)))
-						+ std::string(5, (char) genometools::BaseQuality(genometools::PhredIntProbability(30)))
-						+ std::string(40, (char) genometools::BaseQuality(genometools::PhredIntProbability(0)))
-						+ std::string(30, (char) genometools::BaseQuality(genometools::PhredIntProbability(30))));
+	trueQualities.push_back(std::string(5, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(30))))
+				+ std::string(5, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(0))))
+						+ std::string(5, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(30))))
+						+ std::string(40, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(0))))
+						+ std::string(30, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(30)))));
 	trueIsProper.push_back(true);
 
 	//--------------------------------------------------------
@@ -441,14 +441,14 @@ void TAtlasTest_mergePairs::writePairedEndReads(BamTools::BamWriter & bamWriter)
 	bamAlignment.Length = 20;
 	bamAlignment.Name = "9th_pair_mateOnDiffChr";
 	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'C');
-	bamAlignment.Qualities = std::string(bamAlignment.Length, (char) genometools::BaseQuality(genometools::PhredIntProbability(30)));
+	bamAlignment.Qualities = std::string(bamAlignment.Length, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(30))));
 	bamAlignment.CigarData.clear();
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
 	bamWriter.SaveAlignment(bamAlignment);
 	if(!filterOrphanedReads){
 		trueQueryBases.push_back(std::string(bamAlignment.Length, 'C'));
-		trueQualities.push_back(std::string(bamAlignment.Length, (char) genometools::BaseQuality(genometools::PhredIntProbability(30))));
+		trueQualities.push_back(std::string(bamAlignment.Length, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(30)))));
 		trueIsProper.push_back(false);
 	} else {
 		trueIgnoredReadMessages.push_back("Read 9th_pair_mateOnDiffChr, fwd : mate on different chromosome");
@@ -464,14 +464,14 @@ void TAtlasTest_mergePairs::writePairedEndReads(BamTools::BamWriter & bamWriter)
 	bamAlignment.Length = 20;
 	bamAlignment.Name = "9th_pair_mateOnDiffChr";
 	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'G');
-	bamAlignment.Qualities = std::string(bamAlignment.Length, (char) genometools::BaseQuality(genometools::PhredIntProbability(30)));
+	bamAlignment.Qualities = std::string(bamAlignment.Length, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(30))));
 	bamAlignment.CigarData.clear();
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
 	bamWriter.SaveAlignment(bamAlignment);
 	if(!filterOrphanedReads){
 		trueQueryBases.push_back(std::string(bamAlignment.Length, 'G'));
-		trueQualities.push_back(std::string(bamAlignment.Length, (char) genometools::BaseQuality(genometools::PhredIntProbability(30))));
+		trueQualities.push_back(std::string(bamAlignment.Length, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(30)))));
 		trueIsProper.push_back(false);
 	} else {
 		trueIgnoredReadMessages.push_back("Read 9th_pair_mateOnDiffChr, rev : not a proper pair (orphan)");

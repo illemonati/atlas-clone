@@ -170,7 +170,7 @@ void TSimulatorSingleEndRead::_simulateBasesQualities(BAM::TAlignment & alignmen
 
 	CHECK!!! What do we have? Qual or phredInt? Use qualMap!
 
-	qualities += (char) _phredIntQualities[p] + 33);
+	qualities += static_cast<char>(_phredIntQualities[p] + 33));
 	}
 
 	//--------------------------

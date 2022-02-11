@@ -305,7 +305,7 @@ void TAtlasTest_filter::writeBAM(){
 	bamAlignment.Length = 64;
 	bamAlignment.Name = "duplicate";
 	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'C');
-	bamAlignment.Qualities = std::string(bamAlignment.Length, (char) genometools::BaseQuality(genometools::PhredIntProbability(50)));
+	bamAlignment.Qualities = std::string(bamAlignment.Length, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(50))));
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
 	bamWriter.SaveAlignment(bamAlignment);
@@ -326,7 +326,7 @@ void TAtlasTest_filter::writeBAM(){
 	bamAlignment.Length = 64;
 	bamAlignment.Name = "duplicate";
 	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'C');
-	bamAlignment.Qualities = std::string(bamAlignment.Length, (char) genometools::BaseQuality(genometools::PhredIntProbability(50)));
+	bamAlignment.Qualities = std::string(bamAlignment.Length, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(50))));
 	bamAlignment.CigarData.clear();
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
@@ -431,7 +431,7 @@ void TAtlasTest_filter::writeBAM(){
 	bamAlignment.Length = 64;
 	bamAlignment.Name = "1st_pair";
 	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'C');
-	bamAlignment.Qualities = std::string(bamAlignment.Length, (char) genometools::BaseQuality(genometools::PhredIntProbability(50)));
+	bamAlignment.Qualities = std::string(bamAlignment.Length, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(50))));
 	bamAlignment.CigarData.clear();
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
@@ -446,7 +446,7 @@ void TAtlasTest_filter::writeBAM(){
 	bamAlignment.Length = 63;
 	bamAlignment.Name = "1st_pair";
 	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'A');
-	bamAlignment.Qualities = std::string(bamAlignment.Length, (char) genometools::BaseQuality(genometools::PhredIntProbability(30)));
+	bamAlignment.Qualities = std::string(bamAlignment.Length, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(30))));
 	bamAlignment.CigarData.clear();
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
@@ -464,7 +464,7 @@ void TAtlasTest_filter::writeBAM(){
 	bamAlignment.Length = 20;
 	bamAlignment.Name = "2nd_pair_noOverlap";
 	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'A');
-	bamAlignment.Qualities = std::string(bamAlignment.Length, (char) genometools::BaseQuality(genometools::PhredIntProbability(30)));
+	bamAlignment.Qualities = std::string(bamAlignment.Length, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(30))));
 	bamAlignment.CigarData.clear();
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
@@ -479,7 +479,7 @@ void TAtlasTest_filter::writeBAM(){
 	bamAlignment.Length = 20;
 	bamAlignment.Name = "2nd_pair_noOverlap";
 	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'A');
-	bamAlignment.Qualities = std::string(bamAlignment.Length, (char) genometools::BaseQuality(genometools::PhredIntProbability(50)));
+	bamAlignment.Qualities = std::string(bamAlignment.Length, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(50))));
 	bamAlignment.CigarData.clear();
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
@@ -496,7 +496,7 @@ void TAtlasTest_filter::writeBAM(){
 	bamAlignment.Length = 20;
 	bamAlignment.Name = "4th_pair_notConsecutive";
 	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'T');
-	bamAlignment.Qualities = std::string(bamAlignment.Length, (char) genometools::BaseQuality(genometools::PhredIntProbability(30)));
+	bamAlignment.Qualities = std::string(bamAlignment.Length, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(30))));
 	bamAlignment.CigarData.clear();
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
@@ -512,7 +512,7 @@ void TAtlasTest_filter::writeBAM(){
 	bamAlignment.Length = 20;
 	bamAlignment.Name = "3rd_pair_wrongOrder";
 	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'A');
-	bamAlignment.Qualities = std::string(bamAlignment.Length, (char) genometools::BaseQuality(genometools::PhredIntProbability(30)));
+	bamAlignment.Qualities = std::string(bamAlignment.Length, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(30))));
 	bamAlignment.CigarData.clear();
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
@@ -526,7 +526,7 @@ void TAtlasTest_filter::writeBAM(){
 	bamAlignment.Length = 100;
 	bamAlignment.Name = "3rd_pair_wrongOrder";
 	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'A');
-	bamAlignment.Qualities = std::string(bamAlignment.Length, (char) genometools::BaseQuality(genometools::PhredIntProbability(50)));
+	bamAlignment.Qualities = std::string(bamAlignment.Length, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(50))));
 	bamAlignment.CigarData.clear();
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
@@ -543,7 +543,7 @@ void TAtlasTest_filter::writeBAM(){
 	bamAlignment.Length = 20;
 	bamAlignment.Name = "4th_pair_notConsecutive";
 	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'C');
-	bamAlignment.Qualities = std::string(bamAlignment.Length, (char) genometools::BaseQuality(genometools::PhredIntProbability(30)));
+	bamAlignment.Qualities = std::string(bamAlignment.Length, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(30))));
 	bamAlignment.CigarData.clear();
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
@@ -562,7 +562,7 @@ void TAtlasTest_filter::writeBAM(){
 	bamAlignment.Length = 100;
 	bamAlignment.Name = "5th_pair_longerThanInsert";
 	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'G');
-	bamAlignment.Qualities = std::string(bamAlignment.Length, (char) genometools::BaseQuality(genometools::PhredIntProbability(30)));
+	bamAlignment.Qualities = std::string(bamAlignment.Length, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(30))));
 	bamAlignment.CigarData.clear();
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
@@ -580,7 +580,7 @@ void TAtlasTest_filter::writeBAM(){
 	bamAlignment.Length = 10;
 	bamAlignment.Name = "5th_pair_longerThanInsert";
 	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'T');
-	bamAlignment.Qualities = std::string(bamAlignment.Length, (char) genometools::BaseQuality(genometools::PhredIntProbability(30)));
+	bamAlignment.Qualities = std::string(bamAlignment.Length, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(30))));
 	bamAlignment.CigarData.clear();
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
@@ -602,7 +602,7 @@ void TAtlasTest_filter::writeBAM(){
 	bamAlignment.Length = 20;
 	bamAlignment.Name = "6th_pair_mateTooFarAway";
 	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'G');
-	bamAlignment.Qualities = std::string(bamAlignment.Length, (char) genometools::BaseQuality(genometools::PhredIntProbability(30)));
+	bamAlignment.Qualities = std::string(bamAlignment.Length, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(30))));
 	bamAlignment.CigarData.clear();
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
@@ -622,7 +622,7 @@ void TAtlasTest_filter::writeBAM(){
 	bamAlignment.Length = 20;
 	bamAlignment.Name = "7th_pair_secondTooFarAway";
 	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'A');
-	bamAlignment.Qualities = std::string(bamAlignment.Length, (char) genometools::BaseQuality(genometools::PhredIntProbability(40)));
+	bamAlignment.Qualities = std::string(bamAlignment.Length, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(40))));
 	bamAlignment.CigarData.clear();
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
@@ -637,7 +637,7 @@ void TAtlasTest_filter::writeBAM(){
 	bamAlignment.Length = 20;
 	bamAlignment.Name = "7th_pair_secondTooFarAway";
 	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'A');
-	bamAlignment.Qualities = std::string(bamAlignment.Length, (char) genometools::BaseQuality(genometools::PhredIntProbability(40)));
+	bamAlignment.Qualities = std::string(bamAlignment.Length, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(40))));
 	bamAlignment.CigarData.clear();
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
@@ -653,7 +653,7 @@ void TAtlasTest_filter::writeBAM(){
 	bamAlignment.Length = 20;
 	bamAlignment.Name = "6th_pair_mateTooFarAway";
 	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'G');
-	bamAlignment.Qualities = std::string(bamAlignment.Length, (char) genometools::BaseQuality(genometools::PhredIntProbability(30)));
+	bamAlignment.Qualities = std::string(bamAlignment.Length, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(30))));
 	bamAlignment.CigarData.clear();
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
@@ -681,7 +681,7 @@ void TAtlasTest_filter::writeBAM(){
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('D', 5));
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', 45));
 	bamAlignment.QueryBases = std::string(10, 'A') + std::string(5, 'C') + std::string(10, 'A') + std::string(45, 'G');
-	bamAlignment.Qualities = std::string(bamAlignment.Length, (char) genometools::BaseQuality(genometools::PhredIntProbability(50)));
+	bamAlignment.Qualities = std::string(bamAlignment.Length, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(50))));
 
 	bamWriter.SaveAlignment(bamAlignment);
 	shouldKeep.push_back("8th_pair_indels");
@@ -699,7 +699,7 @@ void TAtlasTest_filter::writeBAM(){
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', 70));
 
 	bamAlignment.QueryBases = std::string(10, 'A') + std::string(5, 'C') + std::string(70, 'A');
-	bamAlignment.Qualities = std::string(bamAlignment.Length, (char) genometools::BaseQuality(genometools::PhredIntProbability(30)));
+	bamAlignment.Qualities = std::string(bamAlignment.Length, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(30))));
 
 	bamWriter.SaveAlignment(bamAlignment);
 	shouldKeep.push_back("8th_pair_indels");
@@ -714,7 +714,7 @@ void TAtlasTest_filter::writeBAM(){
 	bamAlignment.Length = 20;
 	bamAlignment.Name = "9th_pair_mateOnDiffChr_first";
 	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'C');
-	bamAlignment.Qualities = std::string(bamAlignment.Length, (char) genometools::BaseQuality(genometools::PhredIntProbability(30)));
+	bamAlignment.Qualities = std::string(bamAlignment.Length, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(30))));
 	bamAlignment.CigarData.clear();
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
@@ -735,7 +735,7 @@ void TAtlasTest_filter::writeBAM(){
 	bamAlignment.Length = 20;
 	bamAlignment.Name = "9th_pair_mateOnDiffChr_second";
 	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'G');
-	bamAlignment.Qualities = std::string(bamAlignment.Length, (char) genometools::BaseQuality(genometools::PhredIntProbability(30)));
+	bamAlignment.Qualities = std::string(bamAlignment.Length, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(30))));
 	bamAlignment.CigarData.clear();
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
@@ -757,7 +757,7 @@ void TAtlasTest_filter::writeBAM(){
 	bamAlignment.Length = 20;
 	bamAlignment.Name = "normal_mapping_qual";
 	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'G');
-	bamAlignment.Qualities = std::string(bamAlignment.Length, (char) genometools::BaseQuality(genometools::PhredIntProbability(30)));
+	bamAlignment.Qualities = std::string(bamAlignment.Length, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(30))));
 	bamAlignment.CigarData.clear();
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 
@@ -779,7 +779,7 @@ void TAtlasTest_filter::writeBAM(){
 	bamAlignment.MapQuality = 10;
 	bamAlignment.Name = "low_mapping_qual";
 	bamAlignment.QueryBases = std::string(bamAlignment.Length, 'G');
-	bamAlignment.Qualities = std::string(bamAlignment.Length, (char) genometools::BaseQuality(genometools::PhredIntProbability(30)));
+	bamAlignment.Qualities = std::string(bamAlignment.Length, static_cast<char>(genometools::BaseQuality(genometools::PhredIntProbability(30))));
 	bamAlignment.CigarData.clear();
 	bamAlignment.CigarData.push_back(BamTools::CigarOp('M', bamAlignment.Length));
 

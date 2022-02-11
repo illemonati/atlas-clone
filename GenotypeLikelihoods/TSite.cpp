@@ -6,6 +6,7 @@
  */
 
 #include "TSite.h"
+#include "GenotypeTypes.h"
 
 namespace GenotypeLikelihoods{
 
@@ -60,7 +61,7 @@ std::string TSite::getBases() const{
 	if(empty()) return "-";
 	std::string s = "";
 	for(auto& b : _bases){
-		s +=  (char) b.base;
+		s +=  genometools::base2char(b.base);
 	}
 	return s;
 };
@@ -69,7 +70,7 @@ std::string TSite::getQualities() const{
 	if(empty()) return "-";
 	std::string s = "";
 	for(auto& b : _bases){
-		s +=  (char) genometools::BaseQuality(b.recalibratedQualityAsPhredInt);
+		s +=  static_cast<char>(genometools::BaseQuality(b.recalibratedQualityAsPhredInt));
 	}
 	return s;
 };
