@@ -11,6 +11,9 @@
 
 namespace GenomeTasks{
 
+using coretools::TParameters;
+using coretools::TLog;
+using coretools::TRandomGenerator;
 using namespace coretools::str;
 
 bool operator<(const uint16_t left, const TAlignmentMergerReadGroupSetting & right){

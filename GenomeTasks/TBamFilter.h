@@ -42,12 +42,12 @@ class TAlignmentMergerReadGroupSettings{
 private:
 	std::set<TAlignmentMergerReadGroupSetting, std::less<> > _settings;
 
-	void _printSummary(TLog* logfile);
+	void _printSummary(coretools::TLog* logfile);
 
 public:
 	TAlignmentMergerReadGroupSettings(){};
 
-	void initialize(TParameters & Params, TLog* logfile, BAM::TReadGroups & readGroups);
+	void initialize(coretools::TParameters & Params, coretools::TLog* logfile, BAM::TReadGroups & readGroups);
 	void setAllAsUnchanged(const BAM::TReadGroups & readGroups);
 	bool needTruncation() const;
 	bool needsMerging() const;
@@ -83,7 +83,7 @@ protected:
 	virtual void _handleSingle(BAM::TAlignment* alignment);
 
 public:
-	TBamFilter(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TBamFilter(coretools::TParameters & Params, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
 	virtual ~TBamFilter(){};
 	virtual void traverseBAM();
 };
@@ -105,14 +105,14 @@ public:
 
 class TAlignmentMerger_randomBase:public TAlignmentMerger{
 protected:
-	TRandomGenerator* _randomGenerator;
+	coretools::TRandomGenerator* _randomGenerator;
 	bool _adaptQuality;
 
 	void _mergeBasesCore(BAM::TSequencedBase & bestBase, BAM::TSequencedBase & worstBase);
 	virtual void _mergeBases(BAM::TSequencedBase & alignment, BAM::TSequencedBase & mate);
 
 public:
-	TAlignmentMerger_randomBase(TRandomGenerator* RandomGenerator, const bool AdaptQuality);
+	TAlignmentMerger_randomBase(coretools::TRandomGenerator* RandomGenerator, const bool AdaptQuality);
 	virtual ~TAlignmentMerger_randomBase(){};
 };
 
@@ -124,7 +124,7 @@ private:
 	bool _merge(BAM::TAlignment* alignment, BAM::TAlignment* mate);
 
 public:
-	TAlignmentMerger_randomRead(TRandomGenerator* RandomGenerator, const bool AdaptQuality);
+	TAlignmentMerger_randomRead(coretools::TRandomGenerator* RandomGenerator, const bool AdaptQuality);
 
 	uint16_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate);
 };
@@ -133,7 +133,7 @@ class TAlignmentMerger_highestQuality:public TAlignmentMerger_randomBase{
 private:
 	void _mergeBases(BAM::TSequencedBase & alignment, BAM::TSequencedBase & mate);
 public:
-	TAlignmentMerger_highestQuality(TRandomGenerator* RandomGenerator, const bool AdaptQuality);
+	TAlignmentMerger_highestQuality(coretools::TRandomGenerator* RandomGenerator, const bool AdaptQuality);
 };
 
 //-----------------------------------------
@@ -147,13 +147,13 @@ private:
 	uint8_t _considerAtMaxUpToDist;
 	bool _allowForLarger;
 
-	void _initializeMerger(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	void _initializeMerger(coretools::TParameters & Params, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
 	void _openBamFileForWriting();
 	void _handleMates(BAM::TAlignment* alignment, TAlignmentInStorage & mate);
 	void _handleSingle(BAM::TAlignment* alignment);
 
 public:
-	TAlignmentSplitMerger(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TAlignmentSplitMerger(coretools::TParameters & Params, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
 
 };
 
@@ -166,7 +166,7 @@ private:
 	TAlignmentStorage _alignmentStorage;
 
 public:
-	TOverlapQuantifier(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TOverlapQuantifier(coretools::TParameters & Params, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
 	void quantifyOverlap();
 };
 
@@ -174,35 +174,32 @@ public:
 //--------------------------------------
 // Tasks
 //--------------------------------------
-using coretools::TTask;
-using coretools::TParameters;
-using coretools::TLog;
 
-class TTask_filterBAM:public TTask{
+	class TTask_filterBAM:public coretools::TTask{
 public:
 	TTask_filterBAM(){ _explanation = "Writing reads that pass filters to BAM file"; };
 
-	void run(TParameters & Parameters, TLog* Logfile){
+	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
 		TBamFilter filter(Parameters, Logfile, _randomGenerator);
 		filter.traverseBAM();
 	};
 };
 
-class TTask_splitMerge:public TTask{
+class TTask_splitMerge:public coretools::TTask{
 public:
 	TTask_splitMerge(){ _explanation = "Splitting single-end reads and merging paired-end reads and in BAM file"; };
 
-	void run(TParameters & Parameters, TLog* Logfile){
+	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
 		TAlignmentSplitMerger splitMerger(Parameters, Logfile, _randomGenerator);
 		splitMerger.traverseBAM();
 	};
 };
 
-class TTask_overlapQuantifier:public TTask{
+class TTask_overlapQuantifier:public coretools::TTask{
 public:
 	TTask_overlapQuantifier(){ _explanation = "Estimating distribution of overlap of paired reads in BAM file"; };
 
-	void run(TParameters & Parameters, TLog* Logfile){
+	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
 		TOverlapQuantifier overlapQuantifier(Parameters, Logfile, _randomGenerator);
 		overlapQuantifier.quantifyOverlap();
 	};

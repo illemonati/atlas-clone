@@ -5,9 +5,13 @@
  *      Author: vivian
  */
 #include "TSimulatorRead.h"
+#include "TRandomGenerator.h"
 #include <memory>
 
 namespace Simulations {
+using genometools::Base;
+using coretools::TLog;
+using coretools::TRandomGenerator;
 
 //----------------------------------
 // TSimulatorSingleEndRead
@@ -145,7 +149,7 @@ void TSimulatorSingleEndRead::_simulateBasesQualities(BAM::TAlignment & alignmen
 	_cigar.add('M', readLength.read);
 
 	// simulate true qualities
-	std::vector<PhredIntProbability> phredIntQualities(bases.size());
+	std::vector<genometools::PhredIntProbability> phredIntQualities(bases.size());
 	_qualityDist->sample(phredIntQualities);
 	_alignment.setSequenceQualities(_cigar, bases, phredIntQualities);
 

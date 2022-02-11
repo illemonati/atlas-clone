@@ -23,7 +23,7 @@ private:
 
 	void _handleAlignment();
 public:
-	TContextQuantifier(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TContextQuantifier(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
 	void quantifyContexts();
 };
 

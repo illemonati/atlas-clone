@@ -6,9 +6,14 @@
  */
 
 #include "TSequencingErrorModels.h"
+#include "mathFunctions.h"
+#include "probability.h"
+#include "stringFunctions.h"
 
 namespace GenotypeLikelihoods{
 
+using coretools::Probability;
+using coretools::str::toString;
 
 //-------------------------------------
 // TSequencingErrorModelEntry / TSequencingErrorModelsOneReadGroup

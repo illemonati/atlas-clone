@@ -13,7 +13,7 @@ namespace GenomeTasks{
 //----------------------------------------------
 // TDuplicateQuantifyer
 //----------------------------------------------
-TDuplicateQuantifier::TDuplicateQuantifier(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_filtered(Parameters, Logfile, RandomGenerator){};
+TDuplicateQuantifier::TDuplicateQuantifier(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator):TGenome_filtered(Parameters, Logfile, RandomGenerator){};
 
 void TDuplicateQuantifier::_addCurCounts(const BAM::TGenomePosition & nextPos){
 	//add current counts and zero for all positions until nextPos

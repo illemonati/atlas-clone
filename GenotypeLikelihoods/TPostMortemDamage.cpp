@@ -18,6 +18,9 @@
 #include <memory>
 
 namespace GenotypeLikelihoods {
+using coretools::TLog;
+using coretools::TParameters;
+using coretools::TRandomGenerator;
 
 using namespace coretools::str;
 

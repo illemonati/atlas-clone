@@ -13,7 +13,7 @@ namespace GenomeTasks{
 //-----------------------------------------------------------
 // TEstimateRecalibration_base
 //-----------------------------------------------------------
-TEstimateRecalibration::TEstimateRecalibration(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_windows(Parameters, Logfile, RandomGenerator){
+TEstimateRecalibration::TEstimateRecalibration(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator):TGenome_windows(Parameters, Logfile, RandomGenerator){
 	if(_genotypeLikelihoodCalculator.recalibrationChangesQualities() && !Parameters.parameterExists("rerecalibrate"))
 		throw "Can not estimate recalibration: quality scores are already recalibrated while reading! (Use argument 'rerecalibrate' to overwrite this error)";
 

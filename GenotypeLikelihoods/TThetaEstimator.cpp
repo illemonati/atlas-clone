@@ -7,8 +7,14 @@
 
 #include "TThetaEstimator.h"
 #include "GenotypeTypes.h"
+#include "TParameters.h"
+#include "stringFunctions.h"
 
 namespace GenotypeLikelihoods{
+using coretools::TParameters;
+using coretools::TLog;
+using coretools::str::toString;
+using coretools::TRandomGenerator;
 
 //---------------------------------------------------------------
 //TThetaEstimator_base
@@ -78,6 +84,7 @@ void TThetaEstimator_base::initDataStorage(){
 };
 
 void TThetaEstimator_base::readParametersRegardingInitialSearch(coretools::TParameters & params){
+	using coretools::str::toString;
 	logfile->startIndent("Parameters of the initial theta search:");
 	initialTheta = params.getParameterWithDefault("initTheta", 0.01);
 	logfile->list("Will start with an initial theta of " + toString(initialTheta) + ".");

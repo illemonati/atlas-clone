@@ -10,6 +10,9 @@
 #include <TPolymorhicWindowIdentifier.h>
 
 namespace PopulationTools{
+using coretools::TParameters;
+using coretools::TLog;
+using coretools::TRandomGenerator;
 
 TPolymorhicWindowIdentifier::TPolymorhicWindowIdentifier(TParameters &, TLog* Logfile){
 	logfile = Logfile;

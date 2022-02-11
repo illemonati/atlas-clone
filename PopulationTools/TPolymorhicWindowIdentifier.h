@@ -12,17 +12,14 @@
 
 namespace PopulationTools{
 
-using coretools::TParameters;
-using coretools::TLog;
-using coretools::TRandomGenerator;
 
 class TPolymorhicWindowIdentifier{
 private:
-	TLog* logfile;
+	coretools::TLog* logfile;
 
 public:
-	TPolymorhicWindowIdentifier(TParameters & Parameters, TLog* logfile);
-	void identifyPolymorphicWindows(TParameters & Parameters, TRandomGenerator* randomGenerator);
+	TPolymorhicWindowIdentifier(coretools::TParameters & Parameters, coretools::TLog* logfile);
+	void identifyPolymorphicWindows(coretools::TParameters & Parameters, coretools::TRandomGenerator* randomGenerator);
 };
 
 //--------------------------------------
@@ -32,7 +29,7 @@ class TTask_identifyPolymorphicWindows:public coretools::TTask{
 public:
 	TTask_identifyPolymorphicWindows(){ _explanation = "Identifying windows for which samples are polymoprhic"; };
 
-	void run(TParameters & Parameters, TLog* Logfile){
+	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
 		TPolymorhicWindowIdentifier identifier(Parameters, Logfile);
 		identifier.identifyPolymorphicWindows(Parameters, _randomGenerator);
 	}

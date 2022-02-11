@@ -108,7 +108,7 @@ coretools::Probability TGenotypeLikelihoodCalculator::getErrorRate(const BAM::TS
 
 coretools::Probability TGenotypeLikelihoodCalculator::getErrorWithPMD(const BAM::TSequencedBase & base) const{
 	if(base.base == genometools::Base::N){
-		return Probability::highest();
+		return coretools::Probability::highest();
 	} else {
 		//calculate base likelihoods with PMD
 		static TBaseLikelihoods tmpBaseData;

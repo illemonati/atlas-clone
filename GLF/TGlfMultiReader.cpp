@@ -10,6 +10,10 @@
 #include "debugtools.h"
 
 namespace GLF{
+using coretools::TRandomGenerator;
+using coretools::TParameters;
+using coretools::TLog;
+using genometools::HighPrecisionPhredIntProbability;
 
 using coretools::str::toString;
 

@@ -10,6 +10,8 @@
 
 namespace BAM{
 
+using coretools::TParameters;
+using coretools::TLog;
 using coretools::str::toString;
 
 //---------------------------------------------------------

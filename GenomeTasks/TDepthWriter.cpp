@@ -12,7 +12,7 @@ namespace GenomeTasks{
 //----------------------------------------
 // TDepthWriter
 //----------------------------------------
-TDepthWriter::TDepthWriter(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_windows(Parameters, Logfile, RandomGenerator){
+TDepthWriter::TDepthWriter(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator):TGenome_windows(Parameters, Logfile, RandomGenerator){
 
 };
 

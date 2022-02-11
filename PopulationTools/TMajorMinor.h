@@ -18,27 +18,19 @@
 
 namespace PopulationTools{
 
-using coretools::TLog;
-using coretools::TParameters;
-using coretools::TRandomGenerator;
-using genometools::Base;
-using genometools::AllelicCombination;
-using GLF::TMultiGLFData;
-
-
 //-------------------------------------
 // TAlleleicCombinationData
 //-------------------------------------
 class TAlleleicCombinationData
-	: public GenotypeLikelihoods::TData_base<coretools::Log10Probability, AllelicCombination,
+	: public GenotypeLikelihoods::TData_base<coretools::Log10Probability, genometools::AllelicCombination,
 					     genometools::index(genometools::AllelicCombination::NN)> {
 private:
-	using TData_base<coretools::Log10Probability, AllelicCombination,
+	using TData_base<coretools::Log10Probability, genometools::AllelicCombination,
 			 genometools::index(genometools::AllelicCombination::NN)>::_data;
 
 public:
 	TAlleleicCombinationData()
-		: TData_base<coretools::Log10Probability, AllelicCombination,
+		: TData_base<coretools::Log10Probability, genometools::AllelicCombination,
 			 genometools::index(genometools::AllelicCombination::NN)>(0.0){};
 	~TAlleleicCombinationData() = default;
 };
@@ -48,33 +40,33 @@ public:
 //-----------------------------------------------
 class TMajorMinorEstimatorBase{
 protected:
-	TRandomGenerator* randomGenerator;
+	coretools::TRandomGenerator* randomGenerator;
 
 	GLF::TMultiGLFDataOneAllelicCombination genotypeLikelihoods;
 	genometools::TGenotypeFrequencies genotypeFrequencies;
 	TAlleleicCombinationData L10L_perCombination;
 
-	std::vector<AllelicCombination> usedAllelicCombinations;
+	std::vector<genometools::AllelicCombination> usedAllelicCombinations;
 
 	void useAllAlleleicCombinations();
-	void useAllelicCombinationsThatContain(const Base & base);
+	void useAllelicCombinationsThatContain(const genometools::Base & base);
 	void calculateL10LPerCombination();
 	void chooseBestAllelicCombinationAmongThoseWithEqualScores();
-	virtual void findMLAllelicCombination(const TMultiGLFData & data);
+	virtual void findMLAllelicCombination(const GLF::TMultiGLFData & data);
 
-	void _estimateMajorMinor(const TMultiGLFData & data);
+	void _estimateMajorMinor(const GLF::TMultiGLFData & data);
 
 public:
-	Base minor, major;
+	genometools::Base minor, major;
 	genometools::AllelicCombination bestAllelicCombination;
 	coretools::Log10Probability L10L;
 	genometools::PhredIntProbability variantQuality; // in phred format for VCF
 
-	TMajorMinorEstimatorBase(TRandomGenerator* RandomGenerator);
+	TMajorMinorEstimatorBase(coretools::TRandomGenerator* RandomGenerator);
 	virtual ~TMajorMinorEstimatorBase() = default;
 
-	void estimateMajorMinor(const TMultiGLFData & data);
-	void estimateMajorMinor(const TMultiGLFData & data, const Base & base);
+	void estimateMajorMinor(const GLF::TMultiGLFData & data);
+	void estimateMajorMinor(const GLF::TMultiGLFData & data, const genometools::Base & base);
 };
 
 class TMajorMinorEstimatorSkotte:public TMajorMinorEstimatorBase{
@@ -82,10 +74,10 @@ private:
 	double epsilonF;
 	genometools::TGenotypeFrequencies priorGenotypeFrequencies;
 
-	void findMLAllelicCombination(const TMultiGLFData & data);
+	void findMLAllelicCombination(const GLF::TMultiGLFData & data);
 
 public:
-	TMajorMinorEstimatorSkotte(TRandomGenerator* RandomGenerator, double EpsilonF);
+	TMajorMinorEstimatorSkotte(coretools::TRandomGenerator* RandomGenerator, double EpsilonF);
 	~TMajorMinorEstimatorSkotte() = default;
 };
 
@@ -94,11 +86,11 @@ private:
 	double epsilonF;
 	std::array<genometools::TGenotypeFrequencies, 6> tmpGenotypeFrequencies;
 
-	coretools::Log10Probability estimateGenotypeFrequencies(const TMultiGLFData & data, const AllelicCombination & alleleicCombination);
-	void findMLAllelicCombination(const TMultiGLFData & data);
+	coretools::Log10Probability estimateGenotypeFrequencies(const GLF::TMultiGLFData & data, const genometools::AllelicCombination & alleleicCombination);
+	void findMLAllelicCombination(const GLF::TMultiGLFData & data);
 
 public:
-	TMajorMinorEstimatorMLE(TRandomGenerator* RandomGenerator, double EpsilonF);
+	TMajorMinorEstimatorMLE(coretools::TRandomGenerator* RandomGenerator, double EpsilonF);
 	~TMajorMinorEstimatorMLE() = default;
 };
 
@@ -107,8 +99,8 @@ public:
 //-----------------------------------------------
 class TMajorMinor{
 private:
-	TLog* logfile;
-	TRandomGenerator* randomGenerator;
+	coretools::TLog* logfile;
+	coretools::TRandomGenerator* randomGenerator;
 	bool hasReference;
 
 	//settings
@@ -116,10 +108,10 @@ private:
 	genometools::PhredIntProbability minVariantQuality;
 
 public:
-	TMajorMinor(TLog* Logfile, TParameters & params, TRandomGenerator* RandomGenerator);
+	TMajorMinor(coretools::TLog* Logfile, coretools::TParameters & params, coretools::TRandomGenerator* RandomGenerator);
 	~TMajorMinor(){};
 
-	void estimateMajorMinor(TParameters & params);
+	void estimateMajorMinor(coretools::TParameters & params);
 };
 
 //--------------------------------------
@@ -131,7 +123,7 @@ public:
 		_citations.insert("Skotte et al. (2012) Genetic Epidemiology");
 		_explanation = "Estimating major and minor alles"; };
 
-	void run(TParameters & Parameters, TLog* Logfile){
+	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
 		TMajorMinor majorMinor(Logfile, Parameters, _randomGenerator);
 		majorMinor.estimateMajorMinor(Parameters);
 	};

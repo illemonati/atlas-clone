@@ -11,6 +11,9 @@
 
 namespace PopulationTools{
 
+using coretools::TRandomGenerator;
+using coretools::TLog;
+using coretools::TParameters;
 using coretools::gammaLog;
 using coretools::Probability;
 

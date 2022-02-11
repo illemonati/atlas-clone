@@ -6,10 +6,13 @@
  */
 
 #include "TSimulatorQuality.h"
+#include "TRandomGenerator.h"
 #include "algorithmsAndVectors.h"
 #include "mathFunctions.h"
 
 namespace Simulations {
+using genometools::PhredIntProbability;
+using coretools::TRandomGenerator;
 
 //----------------------------------
 // TSimulatorQualityDist

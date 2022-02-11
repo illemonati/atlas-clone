@@ -49,7 +49,7 @@ public:
 	//unsigned int length;
 
 	TWindow_base();
-	TWindow_base(TWindow & other, const int readUpToDepth, const Probability & downsamplingProb, TRandomGenerator* randomGenerator);
+	TWindow_base(TWindow & other, const int readUpToDepth, const coretools::Probability & downsamplingProb, coretools::TRandomGenerator* randomGenerator);
 	virtual ~TWindow_base();
 
 	//Allow to set chromosome name when jumping
@@ -65,8 +65,8 @@ public:
 	virtual void resize(uint32_t newLength);
 
 	//void stealFromOther(TWindow_base & other);
-	void downsampleFromOther(TWindow & other, uint32_t readUpToDepth, const Probability & downsamplingProb, TRandomGenerator* randomGenerator);
-	void downsampleFromOther(TWindow & other, TSiteSubset & subset, uint32_t readUpToDepth, const Probability & downsamplingProb, TRandomGenerator* randomGenerator);
+	void downsampleFromOther(TWindow & other, uint32_t readUpToDepth, const coretools::Probability & downsamplingProb, coretools::TRandomGenerator* randomGenerator);
+	void downsampleFromOther(TWindow & other, TSiteSubset & subset, uint32_t readUpToDepth, const coretools::Probability & downsamplingProb, coretools::TRandomGenerator* randomGenerator);
 	void clear();
 
 	void addReferenceBaseToSites(BAM::TFastaBuffer & reference);
@@ -90,8 +90,8 @@ public:
 	double fractionDepthAtLeastTwo();
 	uint32_t numSitesWithData();
 	double fractionRefIsN();
-	void dataSummary(TLog* Logfile);
-	bool filter(const double maxFracMissing, const double maxRefN, TLog* Logfile);
+	void dataSummary(coretools::TLog* Logfile);
+	bool filter(const double maxFracMissing, const double maxRefN, coretools::TLog* Logfile);
 	bool passedFilters() const{ return _passedFilters; };
 
 	//loop over sites
@@ -122,11 +122,11 @@ private:
 
 	void _fillSites(BAM::TAlignment & alignment, std::vector<TSite> & sites, uint32_t readUpToDepth);
 	void _fillSites(std::vector<TSite> & sites, uint32_t readUpToDepth);
-	int _fillSitesDownsampling(std::vector<TSite> & sites, uint32_t readUpToDepth, const Probability & downsamplingProb, TRandomGenerator* randomGenerator);
+	int _fillSitesDownsampling(std::vector<TSite> & sites, uint32_t readUpToDepth, const coretools::Probability & downsamplingProb, coretools::TRandomGenerator* randomGenerator);
 
 	void _fillSitesSubset(BAM::TAlignment & alignmentIt, std::vector<TSite> & sites, std::set<TSiteSubsetSite> & thesePos, unsigned int readUpToDepth);
 	void _fillSitesSubset(std::vector<TSite> & sites, TSiteSubset & subset, uint32_t readUpToDepth);
-	int _fillSitesSubsetDownsampling(std::vector<TSite> & sites, TSiteSubset & subset, uint32_t readUpToDepth, const Probability & downsamplingProb, TRandomGenerator* randomGenerator);
+	int _fillSitesSubsetDownsampling(std::vector<TSite> & sites, TSiteSubset & subset, uint32_t readUpToDepth, const coretools::Probability & downsamplingProb, coretools::TRandomGenerator* randomGenerator);
 
 public:
 	TWindow();

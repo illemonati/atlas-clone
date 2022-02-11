@@ -24,7 +24,7 @@ private:
 	void _handleWindow();
 
 public:
-	TDepthWriter(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TDepthWriter(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
 	void writeDepth();
 };
 
@@ -36,7 +36,7 @@ class TTask_depthWriter:public coretools::TTask{
 public:
 	TTask_depthWriter(){ _explanation = "Estimating the distribution of depth among sites and writing depth per window"; };
 
-	void run(TParameters & Parameters, TLog* Logfile){
+	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
 		TDepthWriter depthWriter(Parameters, Logfile, _randomGenerator);
 		depthWriter.writeDepth();
 	};

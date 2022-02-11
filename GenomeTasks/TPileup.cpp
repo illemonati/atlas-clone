@@ -12,7 +12,7 @@ namespace GenomeTasks{
 //---------------------------------
 // TPileup
 //---------------------------------
-TPileup::TPileup(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_windows(Parameters, Logfile, RandomGenerator){
+TPileup::TPileup(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator):TGenome_windows(Parameters, Logfile, RandomGenerator){
 	//open output file
 	std::string filename = _outputName + "_pileup.txt.gz";
 	_logfile->list("Writing pileup to file '" + filename + "'.");

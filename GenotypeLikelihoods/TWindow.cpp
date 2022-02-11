@@ -6,10 +6,14 @@
  */
 
 #include "TWindow.h"
+#include "TRandomGenerator.h"
+#include "probability.h"
 
 namespace GenotypeLikelihoods{
 
 using coretools::str::toString;
+using coretools::TRandomGenerator;
+using coretools::Probability;
 
 //-------------------------------------------------------
 //TWindow_base

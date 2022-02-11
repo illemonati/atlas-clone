@@ -7,8 +7,14 @@
 
 #include "TContextQuantifer.h"
 #include "GenotypeTypes.h"
+#include "TParameters.h"
+#include "TRandomGenerator.h"
 
 namespace GenomeTasks{
+
+using coretools::TParameters;
+using coretools::TLog;
+using coretools::TRandomGenerator;
 
 //----------------------------------------------
 // TContextQuantifier

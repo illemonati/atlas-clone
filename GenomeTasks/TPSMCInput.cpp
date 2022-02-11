@@ -13,7 +13,7 @@ namespace GenomeTasks{
 //----------------------------------------
 // TPSMCInput
 //----------------------------------------
-TPSMCInput::TPSMCInput(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_windows(Parameters, Logfile, RandomGenerator){
+TPSMCInput::TPSMCInput(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator):TGenome_windows(Parameters, Logfile, RandomGenerator){
 	_theta = Parameters.getParameterWithDefault<double>("theta", 0.001);
 	_logfile->list("Using theta = ", _theta, ". (parameter 'theta')");
 

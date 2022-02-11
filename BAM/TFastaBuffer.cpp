@@ -12,6 +12,8 @@
 
 namespace BAM{
 
+using genometools::Base;
+
 void TFastaBuffer::_moveTo(const TGenomePosition Position) const{
 	//NOTE: bamtools was modified to append N in case pos < 0 or pos+length > is beyond chromosome. This is the expected behavior in ATLAS and must be preserved!
 	if(!_hasReference){

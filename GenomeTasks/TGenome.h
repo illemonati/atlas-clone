@@ -23,9 +23,6 @@
 #include "TBamFile.h"
 
 namespace GenomeTasks{
-using coretools::TParameters;
-using coretools::TLog;
-using coretools::TRandomGenerator;
 
 //---------------------------------------------------------------
 // TGenome_basic
@@ -33,18 +30,18 @@ using coretools::TRandomGenerator;
 //---------------------------------------------------------------
 class TGenome_basic{
 protected:
-	TLog* _logfile;
-	TParameters* _params;
+	coretools::TLog* _logfile;
+	coretools::TParameters* _params;
 	BAM::TBamFile _bamFile;
-	TRandomGenerator* _randomGenerator;
+	coretools::TRandomGenerator* _randomGenerator;
 	std::string _outputName;
 
 	virtual void _openBamForWriting(const std::string filename, BAM::TOutputBamFile & outBam);
-	void _initialize(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	void _initialize(coretools::TParameters & Params, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
 
 public:
     TGenome_basic();
-    TGenome_basic(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
+    TGenome_basic(coretools::TParameters & Params, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
     virtual ~TGenome_basic(){};
 };
 
@@ -59,7 +56,7 @@ protected:
 
 public:
     TGenome_filtered();
-    TGenome_filtered(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
+    TGenome_filtered(coretools::TParameters & Params, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
 };
 
 
@@ -87,12 +84,12 @@ protected:
 	BAM::TContextFilter _contextFilter;
 
 	//functions for initialization
-	void _setReadTrimming(TParameters & params);
+	void _setReadTrimming(coretools::TParameters & params);
 
 	void _parseAlignment(BAM::TAlignment & alignment);
 	void _traverseBAMPassedQC();
 public:
-	TGenome_parsed(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TGenome_parsed(coretools::TParameters & Params, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
 	virtual ~TGenome_parsed(){};
 };
 
@@ -144,11 +141,11 @@ protected:
 	coretools::TTimer _windowTimer;
 
 	//contructor functions
-	void _setWindowParameters(TParameters & params);
-	void _setParsingLimits(TParameters & params);
-	void _setWindowFilters(TParameters & params);
-	void _setSiteFilters(TParameters & params);
-	void _setMasks(TParameters & params);
+	void _setWindowParameters(coretools::TParameters & params);
+	void _setParsingLimits(coretools::TParameters & params);
+	void _setWindowFilters(coretools::TParameters & params);
+	void _setSiteFilters(coretools::TParameters & params);
+	void _setMasks(coretools::TParameters & params);
 	void _openSiteSubset(const std::string filename);
 
 	//functions to traverse BAM in windows
@@ -170,7 +167,7 @@ protected:
 	virtual void _handleWindow(){ throw "_handleWindow() not implemented for base class TGenome_windows!"; };
 
 public:
-	TGenome_windows(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TGenome_windows(coretools::TParameters & Params, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
 	~TGenome_windows();
 };
 

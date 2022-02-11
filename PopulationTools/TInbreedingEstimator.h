@@ -15,9 +15,6 @@
 
 namespace PopulationTools{
 
-using coretools::TRandomGenerator;
-using coretools::TLog;
-using coretools::TParameters;
 
 //---------------------------
 // F
@@ -36,7 +33,7 @@ public:
 	TInbreedingF();
 	TInbreedingF(float & ProbMovingToModelNoF, double & SdProposal, bool InModelWithF, double lambda);
 	void adjustProposalWidthAfterBurnin(int numAcceptedFModelF, int numIterInModelF);
-	double proposeNew(TRandomGenerator* randomGenerator);
+	double proposeNew(coretools::TRandomGenerator* randomGenerator);
 	void updatePosteriors(double value, const bool & inModelWithF);
 	void updateAndAccept(double value, const bool & inModelWithF);
 	void updateAndReject(bool inModelWithF);
@@ -90,7 +87,7 @@ public:
 	void setSumsForPosteriorToZero();
 	void setToValue(double fixedValue);
 	void adjustProposalWidthAfterBurnin(std::vector<int> & numAcceptedP, std::vector<int> & numUpdates);
-	double proposeNew(long locusNum, TRandomGenerator* randomGenerator);
+	double proposeNew(long locusNum, coretools::TRandomGenerator* randomGenerator);
 	void update(long index, double value, const bool ModelP);
 	double getPosteriorMean(unsigned long index, int numUpdates);
 	double getPosteriorVariance(unsigned long index, int numUpdates);
@@ -145,7 +142,7 @@ public:
 	double getLogPi(){ return _logPi; };
 	double getLogOneMinusPi(){ return _logOneMinusPi; };
 	double getProposalWidth();
-	double proposeNew(TRandomGenerator* randomGenerator);
+	double proposeNew(coretools::TRandomGenerator* randomGenerator);
 };
 //---------------------------
 // TInbreedingEstimator
@@ -153,11 +150,11 @@ public:
 
 class TInbreedingEstimator{
 private:
-	TRandomGenerator* randomGenerator;
+	coretools::TRandomGenerator* randomGenerator;
 //	TQualityMap qualMap;
 
 	//log
-	TLog* logfile;
+	coretools::TLog* logfile;
 	std::string outname;
 
 	//algorithm params
@@ -201,10 +198,10 @@ private:
 	TPi pi;
 
 //	void initializeAlphaBeta();
-	void initializeGamma(TParameters & parameters);
-	void initF(TParameters & parameters);
-	void initAlleleFreq(TParameters & parameters);
-	void initParams(TRandomGenerator* randomGenerator, TParameters & parameters);
+	void initializeGamma(coretools::TParameters & parameters);
+	void initF(coretools::TParameters & parameters);
+	void initAlleleFreq(coretools::TParameters & parameters);
+	void initParams(coretools::TRandomGenerator* randomGenerator, coretools::TParameters & parameters);
 	void resetToInitialValuesDebugging();
 	void checkHastingsRatios();
 	bool updateF();
@@ -222,16 +219,16 @@ private:
 	void adjustProposalWidths();
 	void writeParameterEstimatesOfIteration(std::ofstream & out);
 	void writePosteriors(int i);
-	void runBurnins(std::ofstream & out, TParameters & params);
-	void runMCMC(std::ofstream & out, TParameters & params);
+	void runBurnins(std::ofstream & out, coretools::TParameters & params);
+	void runMCMC(std::ofstream & out, coretools::TParameters & params);
 
 public:
-	TInbreedingEstimator(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TInbreedingEstimator(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
 	~TInbreedingEstimator() = default;
-	void runEstimation(TParameters & params);
-	void writeLikelihoodForDebuggingGamma(TParameters & params);
-	void writeLikelihoodForDebuggingAlleleFreq(TParameters & params);
-	void writeLikelihoodForDebuggingF(TParameters & params);
+	void runEstimation(coretools::TParameters & params);
+	void writeLikelihoodForDebuggingGamma(coretools::TParameters & params);
+	void writeLikelihoodForDebuggingAlleleFreq(coretools::TParameters & params);
+	void writeLikelihoodForDebuggingF(coretools::TParameters & params);
 };
 
 //--------------------------------------
@@ -244,7 +241,7 @@ public:
 		_citations.emplace("Burger et al. (2020) Current Biology");
 	};
 
-	void run(TParameters & Parameters, TLog* Logfile){
+	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
 		TInbreedingEstimator inbreedingEstimator(Parameters, Logfile, _randomGenerator);
 		inbreedingEstimator.runEstimation(Parameters);
 	};
@@ -257,7 +254,7 @@ public:
 		_citations.insert("Burger et al. (2020) Current Biology");
 	};
 
-	void run(TParameters & Parameters, TLog* Logfile){
+	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
 		TInbreedingEstimator inbreedingEstimator(Parameters, Logfile, _randomGenerator);
 			if(Parameters.parameterExists("llGamma"))
 				inbreedingEstimator.writeLikelihoodForDebuggingGamma(Parameters);

@@ -8,7 +8,6 @@
 #ifndef TSIMULATORREAD_H_
 #define TSIMULATORREAD_H_
 
-#include "TParameters.h"
 #include "TPostMortemDamage.h"
 #include "TReadGroups.h"
 #include "TSequencingErrorModels.h"
@@ -19,14 +18,13 @@
 
 namespace Simulations {
 
-using genometools::Base;
 
 //-------------------------------
 // TSimulatorSingleEndRead
 //-------------------------------
 class TSimulatorSingleEndRead {
 protected:
-	TRandomGenerator *_randomGenerator;
+	coretools::TRandomGenerator *_randomGenerator;
 
 	const BAM::TReadGroup &_readGroup;
 	std::string _readNamePrefix;
@@ -59,10 +57,10 @@ protected:
 	std::unique_ptr<TSimulatorQualityDist> _initializeQualityDistribution(std::string s);
 
 	// general functions
-	void _simulateQualitiesAndErrors(Base *_bases, int *_qualities, int &len);
-	void _applyPMD(std::vector<Base> &bases, const TReadLength &readLength, const bool isReverseStrand);
+	void _simulateQualitiesAndErrors(genometools::Base *_bases, int *_qualities, int &len);
+	void _applyPMD(std::vector<genometools::Base> &bases, const TReadLength &readLength, const bool isReverseStrand);
 	std::string _getNextReadName();
-	void _simulateBasesQualities(BAM::TAlignment &alignment, const std::vector<Base>& haplotype, const uint64_t pos,
+	void _simulateBasesQualities(BAM::TAlignment &alignment, const std::vector<genometools::Base>& haplotype, const uint64_t pos,
 				     const TReadLength &readLength, bool readIsContaminated);//, TSimulatorQualityTransformation *qualityTransform);
 
 public:
@@ -70,7 +68,7 @@ public:
 	virtual ~TSimulatorSingleEndRead() = default;
 
 	bool checkInitialization();
-	void setReadLengthDistribution(std::string s, TLog *logfile);
+	void setReadLengthDistribution(std::string s, coretools::TLog *logfile);
 	void setQualityDistribution(std::string s);
 	void setMappingQualityDistribution(std::string s);
 	void setPMD(GenotypeLikelihoods::TPMDType const *Pmd);
@@ -88,9 +86,9 @@ public:
 		return _readLengthDist->max();
 	};
 
-	virtual void simulate(const std::vector<Base>& haplotype, uint32_t refID, uint32_t pos, TSimulatorBamFile &bamFile);
+	virtual void simulate(const std::vector<genometools::Base>& haplotype, uint32_t refID, uint32_t pos, TSimulatorBamFile &bamFile);
 
-	void printDetails(TLog *logfile);
+	void printDetails(coretools::TLog *logfile);
 	virtual void writeUnwrittenAlignments(long, TSimulatorBamFile &){};
 };
 
@@ -107,7 +105,7 @@ private:
 public:
 	TSimulatorPairedEndReads(const BAM::TReadGroup &, coretools::TRandomGenerator *RandomGenerator);
 
-	void simulate(const std::vector<Base>& haplotype, uint32_t refID, uint32_t pos, TSimulatorBamFile &bamFile) override;
+	void simulate(const std::vector<genometools::Base>& haplotype, uint32_t refID, uint32_t pos, TSimulatorBamFile &bamFile) override;
 	void writeUnwrittenAlignments(long pos, TSimulatorBamFile &bamFile) override;
 	std::string type() const override {return "paired-end";} 
 };

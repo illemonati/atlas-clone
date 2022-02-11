@@ -24,7 +24,7 @@ private:
 	void _handleWindow();
 
 public:
-	TWriteGLF(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TWriteGLF(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
 	void writeGLF();
 };
 
@@ -35,7 +35,7 @@ class TTask_writeGLF:public coretools::TTask{
 public:
 	TTask_writeGLF(){ _explanation = "Writing genotype likelihoods to a GLF file"; };
 
-	void run(TParameters & Parameters, TLog* Logfile){
+	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
 		TWriteGLF writer(Parameters, Logfile, _randomGenerator);
 		writer.writeGLF();
 	}

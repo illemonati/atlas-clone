@@ -34,7 +34,7 @@ private:
 
 	void _handleWindow();
 public:
-	TPSMCInput(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TPSMCInput(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
 	void createPSMCInput();
 };
 
@@ -45,7 +45,7 @@ class TTask_PSMC:public coretools::TTask{
 public:
 	TTask_PSMC(){ _explanation = "Generating a PSMC Input file probabilistically"; };
 
-	void run(TParameters & Parameters, TLog* Logfile){
+	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
 		TPSMCInput psmc(Parameters, Logfile, _randomGenerator);
 		psmc.createPSMCInput();
 	};

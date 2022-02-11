@@ -7,6 +7,7 @@
 
 #include "TRecalibrationEMEstimator.h"
 #include "GenotypeTypes.h"
+#include "stringFunctions.h"
 
 namespace GenotypeLikelihoods {
 
@@ -21,7 +22,7 @@ TSequencingErrorModelVectorForEstimation::TSequencingErrorModelVectorForEstimati
 																				   const BAM::TReadGroups & ReadGroups,
 																				   const BAM::TReadGroupMap & ReadGroupMap,
 																				   uint32_t MinRequiredObservations,
-																				   TLog* Logfile):
+																				   coretools::TLog* Logfile):
 																					   _modelIndex(ReadGroups){
 	//Copy models that are 1) in use after pooling and 2) have data.
 	//Note: data table is already pooled!
@@ -181,7 +182,7 @@ void TSequencingErrorModelVectorForEstimation::print(){
 //---------------------------------------------------------------
 //TRecalibrationEMEstimator
 //---------------------------------------------------------------
-TRecalibrationEMEstimator::TRecalibrationEMEstimator(TParameters & args, TLog* Logfile, const BAM::TReadGroups* ReadGroups, const BAM::TReadGroupMap* ReadGroupMap){
+TRecalibrationEMEstimator::TRecalibrationEMEstimator(coretools::TParameters & args, coretools::TLog* Logfile, const BAM::TReadGroups* ReadGroups, const BAM::TReadGroupMap* ReadGroupMap){
 	_logfile = Logfile;
 
 	//read groups
@@ -242,6 +243,7 @@ size_t TRecalibrationEMEstimator::_numSitesDepthTwoOrMore(){
 };
 
 void TRecalibrationEMEstimator::_initializeModels(TSequencingErrorModels & SequencingErrorModels){
+	using coretools::str::toString;
 	//count data available for recal
 	_logfile->listFlush("Counting data available for recal ...");
 	//Note: data tables pool read groups!
@@ -358,6 +360,7 @@ void TRecalibrationEMEstimator::_calculate_J_F_beta(const std::vector<TBaseLikel
 };
 
 void TRecalibrationEMEstimator::_updateEM_theta_epsilon(const TPostMortemDamage & PmdModels){
+	using coretools::str::toString;
 	_logfile->startIndent("Updating sequencing error models (theta_epsilon):");
 
 	// 1) calculate EM weights
@@ -473,6 +476,7 @@ double TRecalibrationEMEstimator::_calculateLL_fullModel(const TPostMortemDamage
 };
 
 void TRecalibrationEMEstimator::_runEM(std::string outputName, const TPostMortemDamage & PmdModels){
+	using coretools::str::toString;
 	//run EM
 	_logfile->startNumbering("Running EM algorithm:");
 

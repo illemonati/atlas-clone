@@ -19,10 +19,6 @@
 
 namespace BAM{
 
-using coretools::TParameters;
-using coretools::TLog;
-using genometools::BaseQuality;
-
 //-----------------------------------------------------
 //TBamFile
 //-----------------------------------------------------
@@ -93,7 +89,7 @@ private:
 	TBamFileLog* _bamLog;
 
 	//report progress
-	TLog* _logfile;
+	coretools::TLog* _logfile;
 	coretools::TTimer _timer;
 	uint32_t _progressFrequency;
 	uint64_t _lastProgressPrinted;
@@ -113,13 +109,13 @@ public:
 	TReadGroups& readGroupsMutable(){ return _readGroups; };
 
 	//filters
-	void setFilters(TParameters & params, TLog* logfile);
-	void setLimits(TParameters & params, TLog* logfile);
+	void setFilters(coretools::TParameters & params, coretools::TLog* logfile);
+	void setLimits(coretools::TParameters & params, coretools::TLog* logfile);
 	void setKeepAll();
 	void curFilterOut();
 	void filterOut(const std::string & alignmentName, const bool & isReverseStrand);
 	void setExternalFilterReason(const std::string reason);
-	void openBamLog(TParameters & params, TLog* logfile);
+	void openBamLog(coretools::TParameters & params, coretools::TLog* logfile);
 	void writeToBamLog(const std::string & alignmentName, const bool & isReverseStrand, const std::string & reason);
 
 	//get filter status
@@ -142,7 +138,7 @@ public:
  	bool externalFilterEnabled() const{ return _externalFilter.filters(); };
 
 	//reading
-	void open(const std::string Filename, const bool IndexNotRequired, TLog* Logfile);
+	void open(const std::string Filename, const bool IndexNotRequired, coretools::TLog* Logfile);
 	bool isOpen() const{ return _open; };
 	void close();
 	bool readNextAlignment();
@@ -226,18 +222,18 @@ private:
 	bool _adjust;
 	bool _binIllumina;
 	bool _limitRange;
-	BaseQuality _minQual {BaseQuality::min()};
-	BaseQuality _maxQual {BaseQuality::max()};
+	genometools::BaseQuality _minQual {genometools::BaseQuality::min()};
+	genometools::BaseQuality _maxQual {genometools::BaseQuality::max()};
 
-	char _adjustOneQuality(BaseQuality qual) const;
+	char _adjustOneQuality(genometools::BaseQuality qual) const;
 
 public:
 	TQualityAdjusterForWriting();
 
 	bool adjusts() const { return _adjust; };
 	void binQualitiesIllumina();
-	void limitRange(const BaseQuality & min, const BaseQuality & max);
-	void limitRange(const TNumericRange<uint8_t> & Range);
+	void limitRange(const genometools::BaseQuality & min, const genometools::BaseQuality & max);
+	void limitRange(const coretools::TNumericRange<uint8_t> & Range);
 	std::string rangeString();
 	void adjustQualities(std::string & qualities) const;
 };
@@ -269,10 +265,10 @@ public:
 
  	void open(const std::string Filename, const TSamHeader & Header, const TChromosomes & Chromosomes, const TReadGroups & ReadGroups);
 	void open(const std::string Filename, const TBamFile & Original);
-	void open(TParameters & params, TLog* logfile, const std::string Filename, const TSamHeader & Header, const TChromosomes & Chromosomes, const TReadGroups & ReadGroups);
-	void setQualityAdjusterForWriting(TParameters & params, TLog* logfile);
+	void open(coretools::TParameters & params, coretools::TLog* logfile, const std::string Filename, const TSamHeader & Header, const TChromosomes & Chromosomes, const TReadGroups & ReadGroups);
+	void setQualityAdjusterForWriting(coretools::TParameters & params, coretools::TLog* logfile);
 	bool isOpen() const{ return _openForWriting; };
-	void close(TLog* logfile);
+	void close(coretools::TLog* logfile);
 	void close();
 	void closeNoIndex();
 	void writeAlignment(const TAlignment & alignment);

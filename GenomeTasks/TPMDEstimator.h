@@ -28,7 +28,7 @@ private:
 	void _handleAlignment();
 
 public:
-	TPMDEstimator(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TPMDEstimator(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
 	~TPMDEstimator();
 	void estimatePMD();
 };
@@ -41,7 +41,7 @@ class TTask_estimatePMD:public coretools::TTask{
 public:
 	TTask_estimatePMD(){ _explanation = "Estimating Post-Mortem Damage (PMD) patterns"; };
 
-	void run(TParameters & Parameters, TLog* Logfile){
+	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
 		TPMDEstimator estimator(Parameters, Logfile, _randomGenerator);
 		estimator.estimatePMD();
 	};

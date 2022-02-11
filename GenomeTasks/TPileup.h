@@ -38,7 +38,7 @@ private:
 	void _parseField(std::set<std::string> & fields, const std::string tag, bool & flag, const std::string explanation);
 	void _handleWindow();
 public:
-	TPileup(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TPileup(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
 	void printPileup();
 };
 
@@ -49,7 +49,7 @@ class TTask_pileup:public coretools::TTask{
 public:
 	TTask_pileup(){ _explanation = "Printing pileup from BAM file"; };
 
-	void run(TParameters & Parameters, TLog* Logfile){
+	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
 		TPileup pileup(Parameters, Logfile, _randomGenerator);
 		pileup.printPileup();
 	};

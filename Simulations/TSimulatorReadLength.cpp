@@ -9,6 +9,8 @@
 
 namespace Simulations {
 
+using coretools::TLog;
+using coretools::TRandomGenerator;
 using coretools::str::convertString;
 
 //---------------------------------------------------------

@@ -18,8 +18,6 @@
 
 namespace BAM{
 
-using coretools::TParameters;
-using coretools::TLog;
 
 //---------------------------------------------------------
 // TChromosome
@@ -85,8 +83,8 @@ private:
     void _setAllNotInUse();
 	void _useSpecifiedChr(const std::vector<std::string> & chrNames);
 	void _useUpToAndIncluding(const std::string & name);
-	void _specifyPloidy(const std::string & ploidyFileName, TLog* logfile);
-	void _setToHaploid(const std::vector<std::string> & chrNames, TLog* logfile);
+	void _specifyPloidy(const std::string & ploidyFileName, coretools::TLog* logfile);
+	void _setToHaploid(const std::vector<std::string> & chrNames, coretools::TLog* logfile);
 
 public:
 	TChromosomes(){};
@@ -95,13 +93,13 @@ public:
 	void appendChromosome(const std::string & name, uint32_t length);
 	void appendChromosome(const std::string & name, uint32_t length, const uint8_t & ploidy);
 
-	void limitAndSetPloidy(TParameters & params, TLog* logfile);
-	void limitChr(TParameters & params, TLog* logfile);
-	void setPloidy(TParameters & params, TLog* logfile);
+	void limitAndSetPloidy(coretools::TParameters & params, coretools::TLog* logfile);
+	void limitChr(coretools::TParameters & params, coretools::TLog* logfile);
+	void setPloidy(coretools::TParameters & params, coretools::TLog* logfile);
 
 	void limitChr(const std::string limitName);
 	void useSpecifiedChr(const std::vector<std::string> & chrNames);
-	void writeUsedChromosomes(TLog* logfile);
+	void writeUsedChromosomes(coretools::TLog* logfile);
 
 	//iterate
 	std::vector<TChromosome>::iterator begin(){ return _chromosomes.begin(); };

@@ -12,7 +12,7 @@ namespace GenomeTasks{
 //-----------------------------------
 // TQualityDistribution
 //-----------------------------------
-TQualityDistribution::TQualityDistribution(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_parsed(Parameters, Logfile, RandomGenerator){
+TQualityDistribution::TQualityDistribution(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator):TGenome_parsed(Parameters, Logfile, RandomGenerator){
 
 };
 
@@ -50,7 +50,7 @@ void TQualityDistribution::compileQualityDistribution(){
 //-----------------------------------
 // TQualityTransformation
 //-----------------------------------
-TQualityTransformation::TQualityTransformation(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_parsed(Parameters, Logfile, RandomGenerator){
+TQualityTransformation::TQualityTransformation(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator):TGenome_parsed(Parameters, Logfile, RandomGenerator){
 	//check what we compare
 	if(Parameters.parameterExists("recal2")){
 		std::string filename = Parameters.getParameter<std::string>("recal2");

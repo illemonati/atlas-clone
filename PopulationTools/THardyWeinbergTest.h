@@ -15,11 +15,6 @@
 
 namespace PopulationTools{
 
-using coretools::TParameters;
-using coretools::TLog;
-using coretools::TRandomGenerator;
-using coretools::TOutputFile;
-
 //------------------------------------------------
 //THWHetProb
 // Stores the probabilities P(N_AB = n|N, n_A, n_B),
@@ -100,7 +95,7 @@ public:
 	void resize(uint16_t numPops);
 	void add(uint16_t pop, const genometools::BiallelicGenotype & genotyp);
 	void addToHeader(std::vector<std::string> & header);
-	void runTest(TOutputFile & out);
+	void runTest(coretools::TOutputFile & out);
 };
 
 //------------------------------------------------
@@ -108,8 +103,8 @@ public:
 //------------------------------------------------
 class THardyWeinbergTest{
 private:
-	TLog* _logfile;
-	TRandomGenerator* _randonGenerator;
+	coretools::TLog* _logfile;
+	coretools::TRandomGenerator* _randonGenerator;
 	std::string _outname;
 
 	//vcf-file
@@ -124,11 +119,11 @@ private:
 	//genotype data
 	THWPopulations _populations;
 
-	void _openVCF(TParameters & Parameters);
+	void _openVCF(coretools::TParameters & Parameters);
 	void _closeVCF();
 
 public:
-	THardyWeinbergTest(TParameters & Parameters, TLog* logfile, TRandomGenerator* RandonGenerator);
+	THardyWeinbergTest(coretools::TParameters & Parameters, coretools::TLog* logfile, coretools::TRandomGenerator* RandonGenerator);
 	void testForHardyWeinberg();
 };
 
@@ -139,7 +134,7 @@ class TTask_testHardyWeinberg:public coretools::TTask{
 public:
 	TTask_testHardyWeinberg(){ _explanation = "Testing for Hardy-Weinberg equilibrium across multiple populations"; };
 
-	void run(TParameters & Parameters, TLog* Logfile){
+	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
 		THardyWeinbergTest HW_test(Parameters, Logfile, _randomGenerator);
 		HW_test.testForHardyWeinberg();
 	};

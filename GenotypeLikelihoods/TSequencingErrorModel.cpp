@@ -8,6 +8,7 @@
 #include "TSequencingErrorModel.h"
 
 namespace GenotypeLikelihoods{
+using coretools::Probability;
 
 //*********************************************************
 // TRecalibrationEMModelCovariateDefinition
@@ -59,7 +60,7 @@ bool TSequencingErrorCovariateDefinition::parse(const std::string & modelString,
 };
 
 void TSequencingErrorCovariateDefinition::setIntercept(const double Intercept){
-	_intercept = toString(Intercept);
+	_intercept = coretools::str::toString(Intercept);
 };
 
 void TSequencingErrorCovariateDefinition::addCovariate(const std::string covariate, const std::string function){
@@ -248,6 +249,7 @@ void TSequencingErrorRhoStorage::reset(){
 };
 
 bool TSequencingErrorRhoStorage::set(const std::string & def, std::string & error){
+	using coretools::str::toString;
 	//"default" implies default rho
 	if(def == "default"){
 		reset();
@@ -298,7 +300,7 @@ std::string TSequencingErrorRhoStorage::getDefinition() const{
 				def += ",";
 			}
 			if(a!=b){
-				def += toString(rho[a][b]);
+				def += coretools::str::toString(rho[a][b]);
 			} else {
 				def += "-";
 			}

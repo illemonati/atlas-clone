@@ -15,8 +15,6 @@
 
 namespace PopulationTools{
 
-using coretools::LogProbability;
-
 //-------------------------------------------------
 // TSAFChooseStorage
 //-------------------------------------------------
@@ -43,8 +41,8 @@ private:
 	std::vector<coretools::LogProbability> log_alleleFrequencyLikelihoods_h;
 	std::map<int, TSAFChooseStorage*> log_choose;
 
-	LogProbability _protectedSumInLog(const LogProbability a, const LogProbability c);
-	LogProbability _protectedSumInLog(const LogProbability a, const LogProbability b, const LogProbability c);
+	coretools::LogProbability _protectedSumInLog(const coretools::LogProbability a, const coretools::LogProbability c);
+	coretools::LogProbability _protectedSumInLog(const coretools::LogProbability a, const coretools::LogProbability b, const coretools::LogProbability c);
 	void normalize();
 
 	TSAFChooseStorage* _getLogChoose(int counts);

@@ -51,7 +51,7 @@ private:
 	void _handleWindow();
 
 public:
-	TAllelicDepth(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TAllelicDepth(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
 	void quantifyAlleleicDepth();
 };
 

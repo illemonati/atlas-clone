@@ -16,11 +16,6 @@
 
 namespace PopulationTools{
 
-using namespace GenotypeLikelihoods;
-using genometools::Genotype;
-using genometools::Base;
-using genometools::HighPrecisionPhredIntProbability;
-
 //------------------------------------------------
 // DistancePhi
 //------------------------------------------------
@@ -66,15 +61,15 @@ inline std::string toString(DistancePhi dp) {
 //-------------------------------------
 // TDistanceData
 //-------------------------------------
-	class TDistanceData : public TData_base<double, DistancePhi, genometools::index(DistancePhi::max)>{
+	class TDistanceData : public GenotypeLikelihoods::TData_base<double, DistancePhi, genometools::index(DistancePhi::max)>{
 private:
-	using TData_base<double, DistancePhi, genometools::index(DistancePhi::max)>::_data;
+	using GenotypeLikelihoods::TData_base<double, DistancePhi, genometools::index(DistancePhi::max)>::_data;
 
 public:
-	TDistanceData() : TData_base<double, DistancePhi, genometools::index(DistancePhi::max)>(0.0) {};
+	TDistanceData() : GenotypeLikelihoods::TData_base<double, DistancePhi, genometools::index(DistancePhi::max)>(0.0) {};
 	~TDistanceData() = default;
 
-	double& operator()(const Genotype & g1, const Genotype & g2){
+	double& operator()(const genometools::Genotype & g1, const genometools::Genotype & g2){
 		return _data[genometools::index(distancePhi(g1, g2))];
 	};
 };
@@ -89,7 +84,7 @@ public:
 	TGenocombinationToBaseMap();
 	~TGenocombinationToBaseMap() = default;
 
-	bool operator()(const Genotype &g1, const Genotype &g2, const Base &b) {
+	bool operator()(const genometools::Genotype &g1, const genometools::Genotype &g2, const genometools::Base &b) {
 		using genometools::index;
 		return genotypeCombinationHasBase[index(g1)][index(g2)][index(b)];
 	};
@@ -148,8 +143,8 @@ private:
 	TDistance* distanceObject;
 
 //	void calculateDistance();
-	void guessPi(std::vector<HighPrecisionPhredIntProbability*> & genoQual1, std::vector<HighPrecisionPhredIntProbability*> & genoQual2);
-	void guessPhi(std::vector<HighPrecisionPhredIntProbability*> & genoQual1, std::vector<HighPrecisionPhredIntProbability*> & genoQual2);
+	void guessPi(std::vector<genometools::HighPrecisionPhredIntProbability*> & genoQual1, std::vector<genometools::HighPrecisionPhredIntProbability*> & genoQual2);
+	void guessPhi(std::vector<genometools::HighPrecisionPhredIntProbability*> & genoQual1, std::vector<genometools::HighPrecisionPhredIntProbability*> & genoQual2);
 	void fill_K(GenotypeLikelihoods::TBaseData  & thesePi);
 	void fill_P_g_given_phi_pi(const TDistanceData & phi, GenotypeLikelihoods::TBaseData & pi);
 
@@ -173,7 +168,7 @@ public:
 //		delete[] distanceWeight;
 	};
 
-	bool estimatePhiWithEM(std::vector<HighPrecisionPhredIntProbability*> & genoQual1, std::vector<HighPrecisionPhredIntProbability*> & genoQual2);
+	bool estimatePhiWithEM(std::vector<genometools::HighPrecisionPhredIntProbability*> & genoQual1, std::vector<genometools::HighPrecisionPhredIntProbability*> & genoQual2);
 };
 
 //--------------------------------------------
@@ -199,7 +194,7 @@ private:
 	void estimateDistanceGenomeWide(TEMforDistanceEstimation & EM_object);
 	bool moveToNextCommonChr(GLF::TGlfReader & g1, GLF::TGlfReader & g2);
 	bool advance(GLF::TGlfReader & g1, GLF::TGlfReader & g2);
-	void readCommonSites(std::vector<HighPrecisionPhredIntProbability*> & genoQual1, std::vector<HighPrecisionPhredIntProbability*> & genoQual2, GLF::TGlfReader & g1, GLF::TGlfReader & g2);
+	void readCommonSites(std::vector<genometools::HighPrecisionPhredIntProbability*> & genoQual1, std::vector<genometools::HighPrecisionPhredIntProbability*> & genoQual2, GLF::TGlfReader & g1, GLF::TGlfReader & g2);
 	void estimateDistanceGenomeWide(TEMforDistanceEstimation & EM_object, GLF::TGlfReader & g1, GLF::TGlfReader & g2, gz::ogzstream & out);
 
 	void estimateDistanceInWindows(TEMforDistanceEstimation & EM_object, uint32_t windowLen);

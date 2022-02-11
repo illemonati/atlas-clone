@@ -9,7 +9,7 @@
 
 namespace GenomeTasks{
 
-TReadGroupMerger::TReadGroupMerger(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_basic(Parameters, Logfile, RandomGenerator){
+TReadGroupMerger::TReadGroupMerger(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator):TGenome_basic(Parameters, Logfile, RandomGenerator){
 	BAM::TReadGroups& readGroups = _bamFile.readGroupsMutable();
 
 	//read read groups to be merged

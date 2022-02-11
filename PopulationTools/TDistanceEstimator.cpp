@@ -10,6 +10,10 @@
 
 namespace PopulationTools{
 
+using namespace GenotypeLikelihoods;
+using genometools::Genotype;
+using genometools::Base;
+using genometools::HighPrecisionPhredIntProbability;
 
 //----------------------------------------------------
 //TGenocombinationToBaseMap

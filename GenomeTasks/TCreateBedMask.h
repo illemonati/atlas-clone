@@ -24,7 +24,7 @@ protected:
 	void _createMask(const std::string fileTag);
 
 public:
-	TCreateBedMask(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TCreateBedMask(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
 };
 
 //--------------------------------------
@@ -36,7 +36,7 @@ private:
 
 	void _handleWindow();
 public:
-	TCreateDepthBedMask(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TCreateDepthBedMask(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
 	void createDepthMask();
 };
 
@@ -50,7 +50,7 @@ private:
 	//tmp variables
 	GenotypeLikelihoods::TBaseCounts _baseCounts;
 public:
-	TCreateInvariantBedMask(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TCreateInvariantBedMask(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
 	void createInvariantMask();
 };
 
@@ -64,7 +64,7 @@ private:
 	//tmp variables
 	GenotypeLikelihoods::TBaseCounts _baseCounts;
 public:
-	TCreateVariantBedMask(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TCreateVariantBedMask(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
 	void createVariantMask();
 };
 
@@ -78,7 +78,7 @@ private:
 	//tmp variables
 	GenotypeLikelihoods::TBaseCounts _baseCounts;
 public:
-	TCreateNonRefBedMask(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TCreateNonRefBedMask(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
 	void createVariantMask();
 };
 

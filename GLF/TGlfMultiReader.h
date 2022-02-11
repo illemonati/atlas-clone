@@ -17,17 +17,13 @@
 
 namespace GLF{
 
-using coretools::TRandomGenerator;
-using coretools::TParameters;
-using coretools::TLog;
-using genometools::HighPrecisionPhredIntProbability;
 
 //----------------------------------------------------
 // TMultiGLFDataSample
 //----------------------------------------------------
 class TMultiGLFDataSample{
 private:
-	HighPrecisionPhredIntProbability* _genotypeLikelihoodsGLF; //points to data TGlfReader
+	genometools::HighPrecisionPhredIntProbability* _genotypeLikelihoodsGLF; //points to data TGlfReader
 	bool _hasData;
 	bool _isHaploid;
 	uint16_t _depth;
@@ -40,14 +36,14 @@ public:
 		_genotypeLikelihoodsGLF = nullptr;
 	};
 
-	void setDiploid(HighPrecisionPhredIntProbability* GLs, uint16_t Depth){
+	void setDiploid(genometools::HighPrecisionPhredIntProbability* GLs, uint16_t Depth){
 		_genotypeLikelihoodsGLF = GLs;
 		_hasData = true;
 		_isHaploid = false;
 		_depth = Depth;
 	};
 
-	void setHaploid(HighPrecisionPhredIntProbability* GLs, uint16_t Depth){
+	void setHaploid(genometools::HighPrecisionPhredIntProbability* GLs, uint16_t Depth){
 		_genotypeLikelihoodsGLF = GLs;
 		_hasData = true;
 		_isHaploid = true;
@@ -73,9 +69,9 @@ public:
 		return _isHaploid;
 	};
 
-	const HighPrecisionPhredIntProbability operator[](const genometools::Genotype & G) const {
+	const genometools::HighPrecisionPhredIntProbability operator[](const genometools::Genotype & G) const {
 		if(!_hasData){
-			return HighPrecisionPhredIntProbability::highest();
+			return genometools::HighPrecisionPhredIntProbability::highest();
 		}
 		if(_isHaploid){
 			throw std::runtime_error("HighPrecisionPhredIntProbability TMultiGLFDataSample::operator[](const genometools::Genotype & G): sample is haploid!");
@@ -83,9 +79,9 @@ public:
 		return _genotypeLikelihoodsGLF[genometools::index(G)];
 	};
 
-	const HighPrecisionPhredIntProbability operator[](const genometools::Base & B) const{
+	const genometools::HighPrecisionPhredIntProbability operator[](const genometools::Base & B) const{
 		if(!_hasData){
-			return HighPrecisionPhredIntProbability::highest();
+			return genometools::HighPrecisionPhredIntProbability::highest();
 		}
 		if(!_isHaploid){
 			throw std::runtime_error("HighPrecisionPhredIntProbability TMultiGLFDataSample::operator[](const genometools::Base & B): sample is diploid!");
@@ -101,14 +97,14 @@ class TMultiGLFDataSampleOneAllelicCombination{
 private:
 	bool _isMissing;
 	bool _isHaploid;
-	std::array<HighPrecisionPhredIntProbability, 3> _GLs;
-	constexpr static const HighPrecisionPhredIntProbability _maxGTL = HighPrecisionPhredIntProbability::highest();
+	std::array<genometools::HighPrecisionPhredIntProbability, 3> _GLs;
+	constexpr static const genometools::HighPrecisionPhredIntProbability _maxGTL = genometools::HighPrecisionPhredIntProbability::highest();
 
 public:
 	TMultiGLFDataSampleOneAllelicCombination() = default;
 	~TMultiGLFDataSampleOneAllelicCombination() = default;
 
-	void setDiploid(const HighPrecisionPhredIntProbability & GL_homoFirst, const HighPrecisionPhredIntProbability & GL_het, const HighPrecisionPhredIntProbability & GL_homoSecond){
+	void setDiploid(const genometools::HighPrecisionPhredIntProbability & GL_homoFirst, const genometools::HighPrecisionPhredIntProbability & GL_het, const genometools::HighPrecisionPhredIntProbability & GL_homoSecond){
 		_GLs[0] = GL_homoFirst;
 		_GLs[1] = GL_het;
 		_GLs[2] = GL_homoSecond;
@@ -116,7 +112,7 @@ public:
 		_isMissing = false;
 	};
 
-	void setHaploid(const HighPrecisionPhredIntProbability & GL_first, const HighPrecisionPhredIntProbability & GL_second){
+	void setHaploid(const genometools::HighPrecisionPhredIntProbability & GL_first, const genometools::HighPrecisionPhredIntProbability & GL_second){
 		_GLs[0] = GL_first;
 		_GLs[1] = GL_second;
 		_isHaploid = true;
@@ -141,7 +137,7 @@ public:
 		return _isHaploid;
 	};
 
-	constexpr const HighPrecisionPhredIntProbability& operator[](const genometools::BiallelicGenotype & Genotype) const {
+	constexpr const genometools::HighPrecisionPhredIntProbability& operator[](const genometools::BiallelicGenotype & Genotype) const {
 		 //check
 		 if(_isHaploid){
 			 if(!genometools::isHaploid(Genotype)){
@@ -192,7 +188,7 @@ private:
 	std::vector<std::string> genotypeStrings = {"0", "1", "0/0", "0/1", "1/1"};
 	bool _usePhredScaledLikelihoods;
 
-	TRandomGenerator* randomGenerator;
+	coretools::TRandomGenerator* randomGenerator;
 	gz::ogzstream vcf;
 	bool vcfOpened;
 
@@ -204,12 +200,12 @@ private:
 	void _openVCF(const std::string & filename, const std::string & source, std::vector<std::string> & sampleNames);
 	void _closeVCF();
 	void _setMajorMinor(const genometools::Base & refAllele, const genometools::Base & altAllele);
-	void writeLikelihood(const HighPrecisionPhredIntProbability & likGlf);
+	void writeLikelihood(const genometools::HighPrecisionPhredIntProbability & likGlf);
 	void writeDiploidIndividualToVCF(TMultiGLFDataSample & sample);
 	void writeHaploidIndividualToVCF(TMultiGLFDataSample & sample);
 
 public:
-	TGlfMultiReaderVcf(const std::string filename, const std::string source, std::vector<std::string> & sampleNames, const bool & UsePhredScaledLikelihoods, TRandomGenerator* RandomGenerator);
+	TGlfMultiReaderVcf(const std::string filename, const std::string source, std::vector<std::string> & sampleNames, const bool & UsePhredScaledLikelihoods, coretools::TRandomGenerator* RandomGenerator);
 	~TGlfMultiReaderVcf(){
 		_closeVCF();
 	}
@@ -227,7 +223,7 @@ private:
 	TGlfReader* GLFs;
 	bool readersOpened;
 
-	void _openGLFs(TLog* logfile);
+	void _openGLFs(coretools::TLog* logfile);
 
 	//active files
 	//Object will loop only over active files
@@ -256,23 +252,23 @@ private:
 
 	bool moveToNextChromosome();
 
-	void writeDiploidIndividualToVCF(int ind, gz::ogzstream & vcf, const genometools::Base & major, const genometools::Base & minor, const std::vector<std::string> & genotypeStrings, TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods);
-	void writeHaploidIndividualToVCF(int ind, gz::ogzstream & vcf, const genometools::Base & major, const genometools::Base & minor, const std::vector<std::string> & genotypeStrings, TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods);
+	void writeDiploidIndividualToVCF(int ind, gz::ogzstream & vcf, const genometools::Base & major, const genometools::Base & minor, const std::vector<std::string> & genotypeStrings, coretools::TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods);
+	void writeHaploidIndividualToVCF(int ind, gz::ogzstream & vcf, const genometools::Base & major, const genometools::Base & minor, const std::vector<std::string> & genotypeStrings, coretools::TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods);
 
 public:
 	TMultiGLFData data;
 
 	TGlfMultiReader();
-	TGlfMultiReader(std::vector<std::string> FileNames, TLog* logfile);
-	TGlfMultiReader(TParameters & params, TLog* logfile);
+	TGlfMultiReader(std::vector<std::string> FileNames, coretools::TLog* logfile);
+	TGlfMultiReader(coretools::TParameters & params, coretools::TLog* logfile);
 	void init();
 
 	~TGlfMultiReader();
 
-	void openGLFs(const std::vector<std::string> & Filenames, TLog* logfile);
-	void openGLFs(TParameters & params, TLog* logfile);
+	void openGLFs(const std::vector<std::string> & Filenames, coretools::TLog* logfile);
+	void openGLFs(coretools::TParameters & params, coretools::TLog* logfile);
 	void closeGLF();
-	void setDepthFilter(int MinDepth, TLog* logfile);
+	void setDepthFilter(int MinDepth, coretools::TLog* logfile);
 	void addReference(const std::string FastaFile);
 	void onlyJumpToPositionsWithData(const bool & set = true){ _onlyJumpToPositionsWithData = set; };
 

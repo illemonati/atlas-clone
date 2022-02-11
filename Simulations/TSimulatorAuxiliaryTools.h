@@ -17,15 +17,13 @@
 
 namespace Simulations {
 
-using coretools::TLog;
-using genometools::Base;
 
 //---------------------------------------------------------
 // TSimulatorReference
 //---------------------------------------------------------
 class TSimulatorReference {
 private:
-	TLog *_logfile;
+	coretools::TLog *_logfile;
 
 	// fasta file
 	std::ofstream _fasta;
@@ -34,7 +32,7 @@ private:
 	std::string _filename;
 
 	// reference storage
-	std::vector<Base> _ref;
+	std::vector<genometools::Base> _ref;
 	long _chrLength      = 0;
 	std::string _chrName = "";
 	bool _needsWriting   = false;
@@ -44,14 +42,14 @@ private:
 	void _writeRefToFasta();
 
 public:
-	TSimulatorReference(std::string Filename, TLog *Logfile);
+	TSimulatorReference(std::string Filename, coretools::TLog *Logfile);
 	~TSimulatorReference();
 	void setChr(std::string ChrName, long ChrLength);
-	//	void simulateReferenceSequenceCurChromosome(TRandomGenerator * randomGenerator, float* cumulBaseFreq);
+	//	void simulateReferenceSequenceCurChromosome(coretools::TRandomGenerator * randomGenerator, float* cumulBaseFreq);
 
-	Base &operator[](size_t index) { return _ref[index]; }
-	const Base &operator[](size_t index) const { return _ref[index]; }
-	const std::vector<Base> & reference() const {return _ref;}
+	genometools::Base &operator[](size_t index) { return _ref[index]; }
+	const genometools::Base &operator[](size_t index) const { return _ref[index]; }
+	const std::vector<genometools::Base> & reference() const {return _ref;}
 };
 
 //---------------------------------------------------------
@@ -64,27 +62,27 @@ private:
 public:
 	TSimulatorBamFile(){}
 	TSimulatorBamFile(const std::string &Filename, const std::string &SampleName, BAM::TReadGroups &ReadGroups,
-			  const BAM::TChromosomes &Chromosomes, TLog *Logfile) {
+			  const BAM::TChromosomes &Chromosomes, coretools::TLog *Logfile) {
 		open(Filename, SampleName, ReadGroups, Chromosomes, Logfile);
 	}
 	~TSimulatorBamFile();
 
 	void open(const std::string &Filename, const std::string &SampleName, BAM::TReadGroups &ReadGroups,
-		  const BAM::TChromosomes &Chromosomes, TLog *Logfile);
+		  const BAM::TChromosomes &Chromosomes, coretools::TLog *Logfile);
 
 	void saveAlignment(const BAM::TAlignment &Alignment) {_outBam.writeAlignment(Alignment); }
-	void close(TLog *Logfile);
+	void close(coretools::TLog *Logfile);
 	void indexBamFile();
 };
 
 class TSimulatorBamFiles {
 private:
 	std::vector<TSimulatorBamFile> _files;
-	TLog *_logfile;
+	coretools::TLog *_logfile;
 
 public:
 	TSimulatorBamFiles(uint32_t NumFiles, const std::string & Outname, BAM::TReadGroups & ReadGroups,
-			   const BAM::TChromosomes &Chromosomes, TLog *Logfile);
+			   const BAM::TChromosomes &Chromosomes, coretools::TLog *Logfile);
 	~TSimulatorBamFiles();
 	TSimulatorBamFile &operator[](size_t i);
 };
@@ -95,14 +93,14 @@ public:
 class TSimulatorAlleleIndex {
 private:
 	int nextIndex = 0;
-	Base refBase = genometools::Base::N;
-	Base indexToBase[4];
+	genometools::Base refBase = genometools::Base::N;
+	genometools::Base indexToBase[4];
 
 public:
 	GenotypeLikelihoods::TBaseData_base<int> index;
 	GenotypeLikelihoods::TBaseData_base<bool> used;
 
-	void clear(const Base &ref) noexcept {
+	void clear(const genometools::Base &ref) noexcept {
 		used.set(false);
 		used[ref]  = true;
 		index[ref] = 0;
@@ -110,7 +108,7 @@ public:
 		refBase    = ref;
 	}
 
-	void add(const Base &base) noexcept {
+	void add(const genometools::Base &base) noexcept {
 		if (!used[base]) {
 			used[base]             = true;
 			index[base]            = nextIndex;
@@ -137,7 +135,7 @@ class TSimulatorHaplotypes {
 private:
 	int numInd;
 	uint32_t _length = 0;
-	std::vector<std::array<std::vector<Base>,2>> haplotypes;
+	std::vector<std::array<std::vector<genometools::Base>,2>> haplotypes;
 
 	// write true genotypes to VCF
 	gz::ogzstream trueGenoVCF;
@@ -151,11 +149,11 @@ public:
 	void setLength(uint32_t length) noexcept;
 	uint32_t length() const { return _length; };
 	void openTrueGenotypeVCF(std::string filename);
-	std::array<std::vector<Base>,2> getHaplotypesOfIndividual(int i);
-	std::array<std::vector<Base>,2> getHaplotypesFirstIndividual() { return haplotypes[0]; };
+	std::array<std::vector<genometools::Base>,2> getHaplotypesOfIndividual(int i);
+	std::array<std::vector<genometools::Base>,2> getHaplotypesFirstIndividual() { return haplotypes[0]; };
 	void writeTrueGenotypes(const std::string &chrName, const TSimulatorReference &ref);
 	int size() const noexcept { return numInd; };
-	Base &operator()(int ind, int hap, uint64_t site) noexcept { return haplotypes[ind][hap][site]; };
+	genometools::Base &operator()(int ind, int hap, uint64_t site) noexcept { return haplotypes[ind][hap][site]; };
 	bool isPolymoprhic(uint64_t pos) const noexcept;
 };
 

@@ -20,9 +20,6 @@
 
 namespace BAM{
 
-using coretools::TLog;
-using coretools::TNumericRange;
-
 //-----------------------------------------------------
 //TBamFileLog
 //-----------------------------------------------------
@@ -53,7 +50,7 @@ public:
 	void setReason(const std::string reason);
 	void setLog(TBamFileLog* Log);
 	void filterOut(const std::string & alignmentName, const bool & isReverseStrand);
-	void summary(TLog* logfile, uint64_t total);
+	void summary(coretools::TLog* logfile, uint64_t total);
 	uint64_t numFiltered() const { return _counter; }
 };
 
@@ -67,17 +64,17 @@ public:
 template <typename T>
 class TBamFileFilterRange:public TBamFileFilterBool{
 private:
-	TNumericRange<T> _range;
+	coretools::TNumericRange<T> _range;
 public:
 	TBamFileFilterRange(){};
 
-	void filter(const TNumericRange<T> & Range, const std::string Reason){
+	void filter(const coretools::TNumericRange<T> & Range, const std::string Reason){
 		_keep = false;
 		_range = Range;
 		_reason = Reason;
 	};
 
-	const TNumericRange<T> range() const {
+	const coretools::TNumericRange<T> range() const {
 		return _range;
 	};
 

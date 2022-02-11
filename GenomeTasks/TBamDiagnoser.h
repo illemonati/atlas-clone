@@ -14,9 +14,6 @@
 
 namespace GenomeTasks{
 
-using coretools::TCountDistribution;
-using coretools::TCountDistributionVector;
-
 //-------------------------------------------
 // TBamDiagnoser
 // A class to get basic characteristics of a BAM file
@@ -28,19 +25,19 @@ private:
 	std::vector<std::string> _readGroupNames;
 
     // distributions
-    TCountDistribution _totalReads;
-    TCountDistribution _passedQC;
-    TCountDistributionVector _readLength;
-    TCountDistributionVector _usableLength;
-    TCountDistributionVector _softClippedLength;
-    TCountDistributionVector _mappingQuality;
-    TCountDistributionVector _fragmentLength;
+    coretools::TCountDistribution _totalReads;
+    coretools::TCountDistribution _passedQC;
+    coretools::TCountDistributionVector _readLength;
+    coretools::TCountDistributionVector _usableLength;
+    coretools::TCountDistributionVector _softClippedLength;
+    coretools::TCountDistributionVector _mappingQuality;
+    coretools::TCountDistributionVector _fragmentLength;
 
-	void _writeHistogram(const TCountDistributionVector & distVec, const std::string& header, const std::string& name);
+	void _writeHistogram(const coretools::TCountDistributionVector & distVec, const std::string& header, const std::string& name);
     void _handleAlignment() override;
 
 public:
-	TBamDiagnoser(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TBamDiagnoser(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
 
 	void diagnose();
 };

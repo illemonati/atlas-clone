@@ -44,7 +44,7 @@ private:
 	void _handleAlignment();
 
 public:
-	TAssessSoftClipping(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TAssessSoftClipping(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
 	void assess();
 };
 
@@ -56,7 +56,7 @@ private:
 	BAM::TOutputBamFile _outBam;
 	void _handleAlignment();
 public:
-	TRemoveSoftClippedBases(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TRemoveSoftClippedBases(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
 	void removeSoftclippedBases();
 };
 
@@ -67,7 +67,7 @@ class TTask_assessSoftClipping:public coretools::TTask{
 public:
 	TTask_assessSoftClipping(){ _explanation = "Assessing level of soft clipping in BAM file"; };
 
-	void run(TParameters & Parameters, TLog* Logfile){
+	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
 		TAssessSoftClipping assessor(Parameters, Logfile, _randomGenerator);
 		assessor.assess();
 	};
@@ -77,7 +77,7 @@ class TTask_removeSoftClippedBasesFromReads:public coretools::TTask{
 public:
 	TTask_removeSoftClippedBasesFromReads(){ _explanation = "Removing soft clipped bases from reads"; };
 
-	void run(TParameters & Parameters, TLog* Logfile){
+	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
 		TRemoveSoftClippedBases remover(Parameters, Logfile, _randomGenerator);
 		remover.removeSoftclippedBases();
 	};

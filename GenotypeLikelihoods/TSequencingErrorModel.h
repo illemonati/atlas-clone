@@ -19,8 +19,6 @@
 
 namespace GenotypeLikelihoods{
 
-using coretools::Probability;
-using coretools::str::toString;
 
 //--------------------------------------------------------------------
 // TSequencingErrorCovariateDef
@@ -87,7 +85,7 @@ public:
 class TSequencingErrorRho:public TSequencingErrorRhoStorage{
 public:
 	void operator=(const TSequencingErrorRhoStorage & other);
-	void fillBaseLikelihoods(const genometools::Base base, const Probability & epsilon, TBaseLikelihoods & baseLikelihoods) const;
+	void fillBaseLikelihoods(const genometools::Base base, const coretools::Probability & epsilon, TBaseLikelihoods & baseLikelihoods) const;
 
 	//functions used to estimate
 	void prepareEstimationFromEMWeights();
@@ -165,7 +163,7 @@ public:
 	virtual bool estimatable() const { return false; };
 	virtual bool recalibrates() const { return false; };
 
-	virtual Probability getErrorRate(const BAM::TSequencedBase & base) const = 0;
+	virtual coretools::Probability getErrorRate(const BAM::TSequencedBase & base) const = 0;
 	virtual genometools::PhredIntProbability getPhredInt(const BAM::TSequencedBase & base) const = 0;
 	virtual void fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseLikelihoods & baseLikelihoods) const = 0;
 
@@ -183,7 +181,7 @@ public:
 	TSequencingErrorModelNoRecal() = default;
 	~TSequencingErrorModelNoRecal() = default;
 
-	Probability getErrorRate(const BAM::TSequencedBase & base) const override;
+	coretools::Probability getErrorRate(const BAM::TSequencedBase & base) const override;
 	genometools::PhredIntProbability getPhredInt(const BAM::TSequencedBase & base) const override;
 	void fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseLikelihoods & baseLikelihoods) const override;
 };
@@ -208,8 +206,8 @@ private:
 	bool _NRStepAccepted;
 
 	void _initializeDerivatives();
-	Probability _calcEpsilon(double eta) const;
-	Probability _calcErrorRate(const BAM::TSequencedBase & base) const;
+	coretools::Probability _calcEpsilon(double eta) const;
+	coretools::Probability _calcErrorRate(const BAM::TSequencedBase & base) const;
 
 public:
 	TSequencingErrorModelRecal(const TSequencingErrorModelDefinition & modelDef);
@@ -222,7 +220,7 @@ public:
 	TSequencingErrorModelDefinition getModelDefinition() const;
 
 	//get error rates
-	Probability getErrorRate(const BAM::TSequencedBase & base) const override;
+	coretools::Probability getErrorRate(const BAM::TSequencedBase & base) const override;
 	genometools::PhredIntProbability getPhredInt(const BAM::TSequencedBase & base) const override;
 	void fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseLikelihoods & baseLikelihoods) const override;
 

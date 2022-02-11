@@ -25,7 +25,7 @@ protected:
 	void _handleWindow();
 
 public:
-	TEstimateRecalibration(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TEstimateRecalibration(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
 	~TEstimateRecalibration();
 
 	void estimateRecalibration();
@@ -41,7 +41,7 @@ public:
 		_citations.insert("Kousathanas et al. (2017) Genetics");
 	};
 
-	void run(TParameters & Parameters, TLog* Logfile){
+	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
 		TEstimateRecalibration estimator(Parameters, Logfile, _randomGenerator);
 		estimator.estimateRecalibration();
 	};

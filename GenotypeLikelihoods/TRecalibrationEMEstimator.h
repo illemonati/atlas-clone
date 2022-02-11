@@ -67,7 +67,7 @@ public:
 											 const BAM::TReadGroups & ReadGroups,
 											 const BAM::TReadGroupMap & ReadGroupMap,
 											 uint32_t MinRequiredObservations,
-											 TLog* Logfile);
+											 coretools::TLog* Logfile);
 	~TSequencingErrorModelVectorForEstimation() = default;
 
 	size_t size() const { return _models.size(); };
@@ -99,7 +99,7 @@ public:
 //--------------------------------------------------------------------
 class TRecalibrationEMEstimator{
 private:
-	TLog* _logfile;
+	coretools::TLog* _logfile;
 	std::vector<TSite> _sites;
 	std::unique_ptr<TGenotypeDistribution> _genoDist;
 	const BAM::TReadGroupMap* _readGroupMap;
@@ -134,7 +134,7 @@ private:
 	double _calculateLL_fullModel(const TPostMortemDamage & PmdModels);
 
 public:
-	TRecalibrationEMEstimator(TParameters & args, TLog* Logfile, const BAM::TReadGroups* ReadGroups, const BAM::TReadGroupMap* ReadGroupMap);
+	TRecalibrationEMEstimator(coretools::TParameters & args, coretools::TLog* Logfile, const BAM::TReadGroups* ReadGroups, const BAM::TReadGroupMap* ReadGroupMap);
 
 	//functions to add data
 	void addSite(const TSite & site);

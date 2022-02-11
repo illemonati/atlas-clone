@@ -12,7 +12,7 @@ namespace GenomeTasks{
 //----------------------------------------
 // TPMDEstimator.h
 //----------------------------------------
-TPMDEstimator::TPMDEstimator(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_parsed(Parameters, Logfile, RandomGenerator){
+TPMDEstimator::TPMDEstimator(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator):TGenome_parsed(Parameters, Logfile, RandomGenerator){
 	//make sure there is pmd
 	if(!_genotypeLikelihoodCalculator.hasPMD()){
 		throw "Can not estimate PMD: no PMD models provided! Use 'pmd' to provide PMD models.";

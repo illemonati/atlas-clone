@@ -21,7 +21,7 @@ private:
 	std::vector<uint16_t> readGroupMap;
 
 public:
-	TReadGroupMerger(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TReadGroupMerger(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
 	void mergeReadGroups();
 };
 
@@ -32,7 +32,7 @@ class TTask_mergeReadGroups:public coretools::TTask{
 public:
 	TTask_mergeReadGroups(){ _explanation = "Merging read groups in a BAM file"; };
 
-	void run(TParameters & Parameters, TLog* Logfile){
+	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
 		TReadGroupMerger readGroupMerger(Parameters, Logfile, _randomGenerator);
 		readGroupMerger.mergeReadGroups();
 	};

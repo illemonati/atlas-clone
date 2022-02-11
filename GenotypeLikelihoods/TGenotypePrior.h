@@ -26,9 +26,9 @@ public:
 
 	virtual ~TGenotypePrior(){};
 
-	virtual void update(const TWindow &, TLog*, const TGenotypeLikelihoodCalculator &){};
+	virtual void update(const TWindow &, coretools::TLog*, const TGenotypeLikelihoodCalculator &){};
 	TGenotypeProbabilities* getPointerToPrior(){ return &genotypePrior; };
-	Probability operator[](const genometools::Genotype & genotype){ return genotypePrior[genotype]; };
+	coretools::Probability operator[](const genometools::Genotype & genotype){ return genotypePrior[genotype]; };
 };
 
 
@@ -45,7 +45,7 @@ private:
 	bool equalBaseFreq;
 
 public:
-	TGenotypePriorFixedTheta(double theta, bool EqualBaseFreq, TLog* logfile, TRandomGenerator* randomGenerator){
+	TGenotypePriorFixedTheta(double theta, bool EqualBaseFreq, coretools::TLog* logfile, coretools::TRandomGenerator* randomGenerator){
 		thetaEstimator = new TThetaEstimator(logfile, randomGenerator);
 		thetaEstimator->setTheta(theta);
 		equalBaseFreq = EqualBaseFreq;
@@ -60,16 +60,16 @@ public:
 		delete thetaEstimator;
 	};
 
-	void update(const TWindow & window, TLog* logfile, const TGenotypeLikelihoodCalculator &){
+	void update(const TWindow & window, coretools::TLog* logfile, const TGenotypeLikelihoodCalculator &){
 		using genometools::Base;
 		if(!equalBaseFreq){
 			logfile->listFlush("Estimating base frequencies for prior ...");
 			GenotypeLikelihoods::TBaseProbabilities freq = window.estimateBaseFrequencies();
 			thetaEstimator->setBaseFreq(freq);
 			logfile->done();
-			logfile->conclude("Estimated base frequencies: " + toString(freq[Base::A]) + ", " +
-					  toString(freq[Base::C]) + ", " + toString(freq[Base::G]) + ", " +
-					  toString(freq[Base::T]));
+			logfile->conclude("Estimated base frequencies: " + coretools::str::toString(freq[Base::A]) + ", " +
+					  coretools::str::toString(freq[Base::C]) + ", " + coretools::str::toString(freq[Base::G]) + ", " +
+					  coretools::str::toString(freq[Base::T]));
 			thetaEstimator->fillPGenotype(genotypePrior);
 		}
 	};
@@ -80,25 +80,25 @@ private:
 	TThetaEstimator* thetaEstimator;
 
 	TThetaOutputFile out;
-	TLog* logfile;
+	coretools::TLog* logfile;
 	double defaultTheta;
 	bool hasDefaultTheta;
 
-	void init(TParameters & parameters, std::string & thetaOutputName, TLog* Logfile, TRandomGenerator* randomGenerator){
+	void init(coretools::TParameters & parameters, std::string & thetaOutputName, coretools::TLog* Logfile, coretools::TRandomGenerator* randomGenerator){
 		logfile = Logfile;
 		thetaEstimator = new TThetaEstimator(parameters, logfile, randomGenerator);
 		out.open(thetaEstimator, thetaOutputName, logfile);
 	};
 
 public:
-	TGenotypePriorTheta(TParameters & parameters, std::string thetaOutputName, TLog* logfile, TRandomGenerator* randomGenerator){
+	TGenotypePriorTheta(coretools::TParameters & parameters, std::string thetaOutputName, coretools::TLog* logfile, coretools::TRandomGenerator* randomGenerator){
 		hasDefaultTheta = false;
 		defaultTheta = -1.0;
 
 		init(parameters, thetaOutputName, logfile, randomGenerator);
 	};
 
-	TGenotypePriorTheta(TParameters & parameters, std::string thetaOutputName, double DefaultTheta, TLog* logfile, TRandomGenerator* randomGenerator){
+	TGenotypePriorTheta(coretools::TParameters & parameters, std::string thetaOutputName, double DefaultTheta, coretools::TLog* logfile, coretools::TRandomGenerator* randomGenerator){
 		hasDefaultTheta = true;
 		defaultTheta = DefaultTheta;
 		if(defaultTheta < 0.0) throw "Theta must be >= 0.0!";
@@ -109,7 +109,7 @@ public:
 		delete thetaEstimator;
 	};
 
-	void update(const TWindow & window, TLog* logfile, const TGenotypeLikelihoodCalculator & glCalculator){
+	void update(const TWindow & window, coretools::TLog* logfile, const TGenotypeLikelihoodCalculator & glCalculator){
 		logfile->startIndent("Estimating theta for prior:");
 		//clear theta estimator
 		(*thetaEstimator).clear();
@@ -120,7 +120,7 @@ public:
 		//estimate Theta
 		if(!thetaEstimator->estimateTheta()){
 			if(hasDefaultTheta){
-				logfile->conclude("Will use a default theta of " + toString(defaultTheta) + ".");
+				logfile->conclude("Will use a default theta of " + coretools::str::toString(defaultTheta) + ".");
 				thetaEstimator->setTheta(defaultTheta);
 				GenotypeLikelihoods::TBaseProbabilities freq(0.25);
 				thetaEstimator->setBaseFreq(freq);

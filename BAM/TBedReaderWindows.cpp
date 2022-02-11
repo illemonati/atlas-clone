@@ -11,6 +11,7 @@ namespace BAM{
 
 using coretools::str::toString;
 using coretools::str::convertString;
+using coretools::TLog;
 
 //-----------------------
 // TBedReaderWindow

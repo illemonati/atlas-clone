@@ -15,8 +15,6 @@
 
 namespace Simulations {
 
-using coretools::TLog;
-using coretools::TRandomGenerator;
 
 //---------------------------------------------------------
 // ReadLength
@@ -47,12 +45,12 @@ public:
 	virtual uint32_t max() const noexcept { return _meanLength; }
 	virtual double mean() const noexcept { return _meanLength; }
 	virtual double probAcceptance() const noexcept { return 1.0; }
-	virtual void printDetails(TLog *logfile);
+	virtual void printDetails(coretools::TLog *logfile);
 };
 
 class TSimulatorReadLengthGamma : public TReadLengthDistribution {
 protected:
-	TRandomGenerator *_randomGenerator;
+	coretools::TRandomGenerator *_randomGenerator;
 	double _meanLength = -1.;
 	double _alpha = -1.;
 	double _beta = -1.;
@@ -63,15 +61,15 @@ protected:
 	std::vector<double> _gammaCumulDensity;
 
 	void parseFunctionString(std::string &s, double &param1, double &param2);
-	void initiate(TLog *logfile);
+	void initiate(coretools::TLog *logfile);
 
 public:
-	TSimulatorReadLengthGamma(std::string &s, TRandomGenerator *RandomGenerator, TLog *Logfile);
-	TSimulatorReadLengthGamma(TRandomGenerator *RandomGenerator) : _randomGenerator(RandomGenerator){};
+	TSimulatorReadLengthGamma(std::string &s, coretools::TRandomGenerator *RandomGenerator, coretools::TLog *Logfile);
+	TSimulatorReadLengthGamma(coretools::TRandomGenerator *RandomGenerator) : _randomGenerator(RandomGenerator){};
 	TReadLength sample() const noexcept override;
 	uint32_t max() const noexcept override { return _maxPlusOne - 1; };
 	double mean() const noexcept override { return _meanLength; };
-	void printDetails(TLog *logfile) override;
+	void printDetails(coretools::TLog *logfile) override;
 	double probAcceptance() const noexcept override{ return 1.0 - _gammaCumulDensity.front(); };
 };
 
@@ -80,8 +78,8 @@ protected:
 	double _mode, _var;
 
 public:
-	TSimulatorReadLengthGammaMode(std::string &s, TRandomGenerator *RandomGenerator, TLog *Logfile);
-	void printDetails(TLog *logfile) override;
+	TSimulatorReadLengthGammaMode(std::string &s, coretools::TRandomGenerator *RandomGenerator, coretools::TLog *Logfile);
+	void printDetails(coretools::TLog *logfile) override;
 };
 
 }; // namespace Simulations

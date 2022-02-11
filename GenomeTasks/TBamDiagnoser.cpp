@@ -10,6 +10,12 @@
 
 namespace GenomeTasks{
 
+using coretools::TParameters;
+using coretools::TLog;
+using coretools::TRandomGenerator;
+using coretools::TCountDistribution;
+using coretools::TCountDistributionVector;
+
 TBamDiagnoser::TBamDiagnoser(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_filtered(){
     // initialize TGenome_basic stuff
     _initialize(Parameters, Logfile, RandomGenerator);

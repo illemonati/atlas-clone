@@ -31,7 +31,7 @@ private:
 	void _handleAlignments();
 
 public:
-	TDuplicateQuantifier(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TDuplicateQuantifier(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
 	void estimateDuplicationCounts();
 };
 
@@ -42,7 +42,7 @@ class TTask_duplicationQuantifier:public coretools::TTask{
 public:
 	TTask_duplicationQuantifier(){ _explanation = "Quantifying read duplication"; };
 
-	void run(TParameters & Parameters, TLog* Logfile){
+	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
 		TDuplicateQuantifier duplicationQuantifier(Parameters, Logfile, _randomGenerator);
 		duplicationQuantifier.estimateDuplicationCounts();
 	};

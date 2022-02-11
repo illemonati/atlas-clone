@@ -7,12 +7,14 @@
 
 #include "TBamFile.h"
 #include "GenotypeTypes.h"
+#include "TNumericRange.h"
 #include "debugtools.h"
 
 namespace BAM{
-
 using coretools::TParameters;
 using coretools::TLog;
+using coretools::TNumericRange;
+using genometools::BaseQuality;
 
 //-----------------------------------------------------
 //TBamFile

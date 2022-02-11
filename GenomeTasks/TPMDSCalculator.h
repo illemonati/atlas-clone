@@ -26,7 +26,7 @@ private:
 	void _handleAlignment();
 
 public:
-	TPMDSCalculator(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TPMDSCalculator(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
 	void calculatePMDS();
 };
 
@@ -40,7 +40,7 @@ public:
 		_citations.insert("Skoglund et al. (2014) PNAS");
 	};
 
-	void run(TParameters & Parameters, TLog* Logfile){
+	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
 		TPMDSCalculator calculator(Parameters, Logfile, _randomGenerator);
 		calculator.calculatePMDS();
 	};

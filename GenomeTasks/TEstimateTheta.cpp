@@ -9,6 +9,9 @@
 
 namespace GenomeTasks{
 
+using coretools::TParameters;
+using coretools::TLog;
+using coretools::TRandomGenerator;
 using coretools::str::toString;
 
 //-----------------------------------

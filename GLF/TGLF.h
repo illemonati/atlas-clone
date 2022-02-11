@@ -24,9 +24,6 @@
 
 namespace GLF{
 
-using namespace GenotypeLikelihoods;
-
-
 /*
  * TODO: switch to using a proper container. Think about ploidy.
 //------------------------------------------------

@@ -10,6 +10,7 @@
 #include "debugtools.h"
 
 namespace GLF{
+using namespace GenotypeLikelihoods;
 
 //----------------------------------------------------
 //TGlfChromosome

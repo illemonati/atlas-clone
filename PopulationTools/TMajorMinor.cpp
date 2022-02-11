@@ -12,6 +12,12 @@
 
 namespace PopulationTools{
 
+using coretools::TLog;
+using coretools::TParameters;
+using coretools::TRandomGenerator;
+using genometools::Base;
+using genometools::AllelicCombination;
+using GLF::TMultiGLFData;
 //---------------------------------------------------
 // TMajorMinorEstimatorBase
 //---------------------------------------------------

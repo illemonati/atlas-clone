@@ -62,7 +62,7 @@ void TSoftClippingStatsFile::write(const BAM::TBamFile & bamFile){
 //--------------------------------------------------------
 // TAssessSoftClipping
 //--------------------------------------------------------
-TAssessSoftClipping::TAssessSoftClipping(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_filtered(Parameters, Logfile, RandomGenerator){
+TAssessSoftClipping::TAssessSoftClipping(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator):TGenome_filtered(Parameters, Logfile, RandomGenerator){
 	//limit input / output
 	if(Parameters.parameterExists("writeReads")){
 		_writeAlignments = true;
@@ -129,7 +129,7 @@ void TAssessSoftClipping::assess(){
 //--------------------------------------------------------
 // TRemoveSoftClippedBases
 //--------------------------------------------------------
-TRemoveSoftClippedBases::TRemoveSoftClippedBases(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_parsed(Parameters, Logfile, RandomGenerator){};
+TRemoveSoftClippedBases::TRemoveSoftClippedBases(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator):TGenome_parsed(Parameters, Logfile, RandomGenerator){};
 
 void TRemoveSoftClippedBases::_handleAlignment(){
 	if(_bamFile.curCIGAR().lengthSoftClipped() > 0){

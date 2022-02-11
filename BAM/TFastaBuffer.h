@@ -15,8 +15,6 @@
 
 namespace BAM{
 
-using genometools::Base;
-
 //-----------------------------------------------------
 //TFastaBuffer
 //-----------------------------------------------------
@@ -34,7 +32,7 @@ private:
 	mutable TGenomeWindow _coordinates;
 
 	void _moveTo(const BAM::TGenomePosition Position) const;
-	void _fill(std::vector<Base> & VecToFill, size_t Length, size_t Offset) const;
+	void _fill(std::vector<genometools::Base> & VecToFill, size_t Length, size_t Offset) const;
 
 public:
 	TFastaBuffer(){
@@ -57,10 +55,10 @@ public:
 	bool hasReference() const { return _hasReference; };
 	explicit operator bool() const { return _hasReference; }
 
-	void fill(const TGenomeWindow & Window, std::vector<Base> & VecToFill) const;
-	void fill(const TGenomePosition & Position, uint32_t Length, std::vector<Base> & VecToFill) const;
-	void fill(const TGenomePosition & Start, const TGenomePosition & End, std::vector<Base> & VecToFill) const;
-	Base refAt(const TGenomePosition Position) const;
+	void fill(const TGenomeWindow & Window, std::vector<genometools::Base> & VecToFill) const;
+	void fill(const TGenomePosition & Position, uint32_t Length, std::vector<genometools::Base> & VecToFill) const;
+	void fill(const TGenomePosition & Start, const TGenomePosition & End, std::vector<genometools::Base> & VecToFill) const;
+	genometools::Base refAt(const TGenomePosition Position) const;
 	char refCharAt(const TGenomePosition Position) const;
 
 	/*

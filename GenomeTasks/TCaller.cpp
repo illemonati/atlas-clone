@@ -8,10 +8,15 @@
 
 #include "TCaller.h"
 #include "GenotypeTypes.h"
+#include "probability.h"
 
 namespace GenomeTasks{
 
 using namespace GenotypeLikelihoods;
+using coretools::TParameters;
+using coretools::TLog;
+using coretools::TRandomGenerator;
+using coretools::Probability;
 using namespace coretools::str;
 
 /////////////////////////////////////////////////////////

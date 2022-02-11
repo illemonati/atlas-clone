@@ -10,6 +10,8 @@
 namespace Simulations {
 
 using coretools::str::toString;
+using coretools::TLog;
+using genometools::Base;
 
 //---------------------------------------------------
 // TSimulatorReference

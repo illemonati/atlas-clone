@@ -9,6 +9,10 @@
 
 namespace PopulationTools{
 
+using coretools::TParameters;
+using coretools::TLog;
+using coretools::TRandomGenerator;
+using coretools::TOutputFile;
 using coretools::TFactorial;
 
 //------------------------------------------------

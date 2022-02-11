@@ -23,7 +23,7 @@ private:
 	void _handleAlignment();
 
 public:
-	TQualityDistribution(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TQualityDistribution(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
 	void compileQualityDistribution();
 };
 
@@ -40,7 +40,7 @@ private:
 	void _handleAlignment();
 
 public:
-	TQualityTransformation(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TQualityTransformation(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
 	void compileQualityTransformation();
 };
 
@@ -51,7 +51,7 @@ class TTask_qualityDist:public coretools::TTask{
 public:
 	TTask_qualityDist(){ _explanation = "Printing Quality Distribution"; };
 
-	void run(TParameters & Parameters, TLog* Logfile){
+	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
 		TQualityDistribution qualDist(Parameters, Logfile, _randomGenerator);
 		qualDist.compileQualityDistribution();
 	};
@@ -61,7 +61,7 @@ class TTask_qualityTransformation:public coretools::TTask{
 public:
 	TTask_qualityTransformation(){ _explanation = "Printing Quality Transformation"; };
 
-	void run(TParameters & Parameters, TLog* Logfile){
+	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
 		TQualityTransformation transformer(Parameters, Logfile, _randomGenerator);
 		transformer.compileQualityTransformation();
 	};

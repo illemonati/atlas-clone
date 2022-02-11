@@ -26,7 +26,7 @@ protected:
 	void _addSites();
 
 public:
-	TEstimateTheta_base(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TEstimateTheta_base(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
 };
 
 //-----------------------------------
@@ -40,7 +40,7 @@ private:
 	void _handleWindow();
 
 public:
-	TEstimateTheta(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TEstimateTheta(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
 	void estimateTheta();
 };
 
@@ -56,7 +56,7 @@ private:
 	void _bootstrapThetaEstimation();
 	void _handleWindow();
 public:
-	TEstimateThetaGenomeWide(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TEstimateThetaGenomeWide(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
 	void estimateThetaGenomeWide();
 };
 
@@ -70,7 +70,7 @@ private:
 	void _bootstrapThetaEstimation();
 	void _handleWindow();
 public:
-	TEstimateThetaLLSurface(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TEstimateThetaLLSurface(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
 	void estimateThetaLLSurface();
 };
 
@@ -88,7 +88,7 @@ private:
 
 	void _handleWindow();
 public:
-	TEstimateThetaDownsamplingQC(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TEstimateThetaDownsamplingQC(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
 	void runQC();
 };
 
@@ -101,21 +101,19 @@ private:
 	BAM::TBed _region1;
 	BAM::TBed _region2;
 
-	void _initializeRegion(TParameters & Parameters, BAM::TBed & region, const char num);
+	void _initializeRegion(coretools::TParameters & Parameters, BAM::TBed & region, const char num);
 	void _addSites(GenotypeLikelihoods::TThetaEstimatorData & data, BAM::TBed & regions);
 	void _handleWindow();
 
 public:
-	TEstimateThetaRatio(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator);
+	TEstimateThetaRatio(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
 	void estimateThetaRation();
 };
 
 //--------------------------------------
 // Tasks
 //--------------------------------------
-using coretools::TTask;
-
-class TThetaTask:public TTask{
+class TThetaTask:public coretools::TTask{
 public:
 	TThetaTask(){ _citations.insert("Kousathanas et al. (2017) Genetics"); };
 };
@@ -124,7 +122,7 @@ class TTask_estimateTheta:public TThetaTask{
 public:
 	TTask_estimateTheta(){ _explanation = "Estimating heterozygosity (theta) per window"; };
 
-	void run(TParameters & Parameters, TLog* Logfile){
+	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
 		TEstimateTheta estimator(Parameters, Logfile, _randomGenerator);
 		estimator.estimateTheta();
 	};
@@ -134,7 +132,7 @@ class TTask_estimateThetaGenomeWide:public TThetaTask{
 public:
 	TTask_estimateThetaGenomeWide(){ _explanation = "Estimating heterozygosity (theta) genome-wide"; };
 
-	void run(TParameters & Parameters, TLog* Logfile){
+	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
 		TEstimateThetaGenomeWide estimator(Parameters, Logfile, _randomGenerator);
 		estimator.estimateThetaGenomeWide();
 	};
@@ -144,7 +142,7 @@ class TTask_thetaLLSurface:public TThetaTask{
 public:
 	TTask_thetaLLSurface(){	_explanation = "Calculating the theta LL surface for each window"; };
 
-	void run(TParameters & Parameters, TLog* Logfile){
+	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
 		TEstimateThetaLLSurface estimator(Parameters, Logfile, _randomGenerator);
 		estimator.estimateThetaLLSurface();
 	};
@@ -154,7 +152,7 @@ class TTask_downsamplingThetaQC:public TThetaTask{
 public:
 	TTask_downsamplingThetaQC(){ _explanation = "QC recalibration by estimating theta on downsampled data for each window"; };
 
-	void run(TParameters & Parameters, TLog* Logfile){
+	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
 		TEstimateThetaDownsamplingQC estimator(Parameters, Logfile, _randomGenerator);
 		estimator.runQC();
 	};
@@ -164,7 +162,7 @@ class TTask_estimateThetaRatio:public TThetaTask{
 public:
 	TTask_estimateThetaRatio(){ _explanation = "Estimate the ratio in heterozygosity (theta) between genomic regions"; };
 
-	void run(TParameters & Parameters, TLog* Logfile){
+	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
 		TEstimateThetaRatio estimator(Parameters, Logfile, _randomGenerator);
 		estimator.estimateThetaRation();
 	};

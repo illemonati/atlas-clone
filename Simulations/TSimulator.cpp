@@ -12,6 +12,10 @@
 #include <numeric>
 
 namespace Simulations {
+using coretools::TLog;
+using coretools::TParameters;
+using coretools::TRandomGenerator;
+using genometools::Base;
 
 //---------------------------------------------------
 // TSimulator
