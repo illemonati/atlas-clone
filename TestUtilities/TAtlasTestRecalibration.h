@@ -31,12 +31,12 @@ private:
 	std::ofstream outRecalParams;
 	std::ofstream outRecalPool;
 
-	void setVariables(TParameters & params, TLog* Logfile, TTaskList* TaskList);
+	void setVariables(coretools::TParameters & params, coretools::TLog* Logfile, coretools::TTaskList* TaskList);
 
 public:
 	TAtlasTest_recalSimulation();
 	~TAtlasTest_recalSimulation(){};
-	bool run(TParameters & params, TLog* logfile, TTaskList* TaskList);
+	bool run(coretools::TParameters & params, coretools::TLog* logfile, coretools::TTaskList* TaskList);
 	bool checkRecalFile();
 };
 
@@ -65,13 +65,13 @@ private:
 	double positionEffectSlope;
 	double positionEffectIntercept;
 
-	void setVariables(TParameters & params, TLog* logfile, TTaskList* TaskList);
+	void setVariables(coretools::TParameters & params, coretools::TLog* logfile, coretools::TTaskList* TaskList);
 
 
 public:
 	TAtlasTest_BQSRSimulation();
 	~TAtlasTest_BQSRSimulation(){};
-	bool run(TParameters & params, TLog* logfile, TTaskList* TaskList);
+	bool run(coretools::TParameters & params, coretools::TLog* logfile, coretools::TTaskList* TaskList);
 	double trueQual(int & phi1, double & phi2, int & fakeQual);
 	bool checkBQSRQualityFile();
 	bool checkBQSRPositionFile();

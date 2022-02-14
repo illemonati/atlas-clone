@@ -24,8 +24,6 @@
 
 namespace VCF{
 
-using coretools::TLog;
-using coretools::TParameters;
 
 class TGenotype{
 	public:
@@ -52,7 +50,7 @@ private:
 public:
 	int** table;
 
-	TCountTable(int Nrows, int Ncols, std::string Outname, TLog* Logfile){
+	TCountTable(int Nrows, int Ncols, std::string Outname, coretools::TLog* Logfile){
 		nrows = Nrows;
 		ncols = Ncols;
 		initializationValue = 0;
@@ -73,7 +71,7 @@ public:
 		}
 	}
 
-	void openOut(std::string & outname, TLog* logfile){
+	void openOut(std::string & outname, coretools::TLog* logfile){
 		logfile->list("Writing count table to '" + outname + "'.");
 		out.open(outname.c_str());
 		if(!out)
@@ -110,7 +108,7 @@ public:
 
 class VcfDiagnostics{
 private:
-	TLog* logfile;
+	coretools::TLog* logfile;
 	int chr;
 	std::ifstream vcfFileStream;
 	std::ofstream vcfOutFilestream;
@@ -127,13 +125,13 @@ private:
 
 public:
 	int findLastPassedFilterIndex(int obsValue, std::vector<int> & filtersAscendingOrder);
-	void assessAllelicImbalance(TParameters & Params);
+	void assessAllelicImbalance(coretools::TParameters & Params);
 	//void filterAllelicImbalance();
 	void vcfToInvariantBed();
 
 	void fixIntAsFloat();
 
-	VcfDiagnostics(TParameters & Params, TLog* Logfile);
+	VcfDiagnostics(coretools::TParameters & Params, coretools::TLog* Logfile);
 	~VcfDiagnostics(){if(randomGeneratorInitialized) delete randomGenerator;};
 };
 
@@ -145,7 +143,7 @@ class TTask_VCFDiagnostics:public TTask{
 public:
 	TTask_VCFDiagnostics(){ _explanation = "Diagnosing a VCF file"; };
 
-	void run(TParameters & Parameters, TLog* Logfile){
+	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
 		VcfDiagnostics VcfDiagnoser(Parameters, Logfile);
 		VcfDiagnoser.assessAllelicImbalance(Parameters);
 	};
@@ -155,7 +153,7 @@ class TTask_VCFToInvariantBed:public TTask{
 public:
 	TTask_VCFToInvariantBed(){ _explanation = "Writing a BED file from invariant sites in a VCF file"; };
 
-	void run(TParameters & Parameters, TLog* Logfile){
+	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
 		VcfDiagnostics VcfDiagnoser(Parameters, Logfile);
 		VcfDiagnoser.vcfToInvariantBed();
 	};
@@ -165,7 +163,7 @@ class TTask_VCFFixInt:public TTask{
 public:
 	TTask_VCFFixInt(){ _explanation = "Fixing integers printed as floats in VCF file"; };
 
-	void run(TParameters & Parameters, TLog* Logfile){
+	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
 		VcfDiagnostics VcfDiagnoser(Parameters, Logfile);
 		VcfDiagnoser.fixIntAsFloat();
 	};

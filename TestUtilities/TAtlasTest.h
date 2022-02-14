@@ -18,11 +18,6 @@
 #include <vector>
 #include <map>
 
-using coretools::TTest;
-using coretools::TParameters;
-using coretools::TLog;
-using coretools::TRandomGenerator;
-using coretools::TTaskList;
 
 //------------------------------------------
 //TAtlasTest
@@ -30,7 +25,7 @@ using coretools::TTaskList;
 //Base class for individual tests.
 //Tests can be combined to suites in TATlasTesting
 
-class TAtlasTest : public TTest{
+class TAtlasTest : public coretools::TTest{
 protected:
 	std::string _testingPrefix;
 
@@ -56,7 +51,7 @@ private:
 	std::string readGroupName;
 	double emissionTolerance; //relative error allowed to accommodate rounding issues when reading numbers from file
 
-	void setVariables(TParameters & params, TLog* Logfile, TTaskList* TaskList);
+	void setVariables(coretools::TParameters & params, coretools::TLog* Logfile, coretools::TTaskList* TaskList);
 	void writeFasta();
 	void writeBAM();
 	bool checkPileupFile();
@@ -64,7 +59,7 @@ private:
 public:
 	TAtlasTest_pileup();
 	~TAtlasTest_pileup(){};
-	bool run(TParameters & parameters, TLog* Logfile, TTaskList* TaskList);
+	bool run(coretools::TParameters & parameters, coretools::TLog* Logfile, coretools::TTaskList* TaskList);
 };
 
 //------------------------------------------
@@ -77,14 +72,14 @@ private:
 	std::string bamFileName;
 	std::string readGroupName;
 
-	void setVariables(TParameters & params, TLog* Logfile, TTaskList* TaskList);
+	void setVariables(coretools::TParameters & params, coretools::TLog* Logfile, coretools::TTaskList* TaskList);
 	void writeBAM();
 	bool checkAllelicDepthTable();
 
 public:
 	TAtlasTest_allelicDepth();
 	~TAtlasTest_allelicDepth(){};
-	bool run(TParameters & params, TLog* Logfile, TTaskList * TaskList);
+	bool run(coretools::TParameters & params, coretools::TLog* Logfile, coretools::TTaskList * TaskList);
 };
 
 //------------------------------------------
@@ -96,13 +91,13 @@ private:
 	std::string bamFileName;
 	double simTheta;
 
-	void defineVariables(TParameters & params, TLog* Logfile);
+	void defineVariables(coretools::TParameters & params, coretools::TLog* Logfile);
 	bool checkThetaFile();
 
 public:
 	TAtlasTest_theta();
 	~TAtlasTest_theta(){};
-	bool run(TParameters & params, TLog* Logfile, TTaskList * TaskList);
+	bool run(coretools::TParameters & params, coretools::TLog* Logfile, coretools::TTaskList * TaskList);
 };
 
 #endif /* TATLASTEST_H_ */

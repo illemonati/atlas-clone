@@ -21,7 +21,7 @@ TAtlasTest_recalSimulation::TAtlasTest_recalSimulation():TAtlasTest(){
 	meanQual = -1;
 };
 
-void TAtlasTest_recalSimulation::setVariables(TParameters & params, TLog* Logfile, TTaskList* TaskList){
+void TAtlasTest_recalSimulation::setVariables(coretools::TParameters & params, coretools::TLog* Logfile, coretools::TTaskList* TaskList){
 	logfile = Logfile;
 	taskList = TaskList;
 
@@ -39,7 +39,7 @@ void TAtlasTest_recalSimulation::setVariables(TParameters & params, TLog* Logfil
 	poolRGFileName = filenameTag + "_poolThese.txt";
 };
 
-bool TAtlasTest_recalSimulation::run(TParameters & params, TLog* Logfile, TTaskList* TaskList){
+bool TAtlasTest_recalSimulation::run(coretools::TParameters & params, coretools::TLog* Logfile, coretools::TTaskList* TaskList){
 	//1) Define variables
 	setVariables(params, Logfile, TaskList);
 
@@ -185,7 +185,7 @@ TAtlasTest_BQSRSimulation::TAtlasTest_BQSRSimulation():TAtlasTest(){
 	positionEffectIntercept = -1.0;
 };
 
-void TAtlasTest_BQSRSimulation::setVariables(TParameters & params, TLog* Logfile, TTaskList* TaskList){
+void TAtlasTest_BQSRSimulation::setVariables(coretools::TParameters & params, coretools::TLog* Logfile, coretools::TTaskList* TaskList){
 	logfile = Logfile;
 	taskList = TaskList;
 	bamFileName = filenameTag + ".bam";
@@ -208,7 +208,7 @@ void TAtlasTest_BQSRSimulation::setVariables(TParameters & params, TLog* Logfile
 	acceptedDelta = params.getParameterWithDefault("BQSR_acceptedDelta", 1);
 };
 
-bool TAtlasTest_BQSRSimulation::run(TParameters & params, TLog* Logfile, TTaskList* TaskList){
+bool TAtlasTest_BQSRSimulation::run(coretools::TParameters & params, coretools::TLog* Logfile, coretools::TTaskList* TaskList){
 	//set variables
 	setVariables(params, Logfile, TaskList);
 

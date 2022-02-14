@@ -9,6 +9,10 @@
 #include "../TestUtilities/TAtlasTest.h"
 
 using coretools::str::convertString;
+using coretools::TTest;
+using coretools::TParameters;
+using coretools::TLog;
+using coretools::TTaskList;
 
 //------------------------------------------
 //TAtlasTest

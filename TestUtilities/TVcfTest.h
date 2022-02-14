@@ -19,14 +19,14 @@ private:
 	std::string bedFileName;
 	std::ofstream vcf;
 
-	void setVariables(TParameters & params, TLog* Logfile, TTaskList* TaskList);
+	void setVariables(coretools::TParameters & params, coretools::TLog* Logfile, coretools::TTaskList* TaskList);
 	void writeTestVcf();
 	void writeLineVcf(std::string chr, std::string pos, std::string gt);
 	bool checkBedFile();
 
 public:
 	TAtlasTest_invariantBed();
-	bool run(TParameters & params, TLog* Logfile, TTaskList* TaskList);
+	bool run(coretools::TParameters & params, coretools::TLog* Logfile, coretools::TTaskList* TaskList);
 
 };
 

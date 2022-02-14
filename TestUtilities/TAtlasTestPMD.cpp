@@ -18,7 +18,7 @@ TAtlasTest_PMDEmpiric::TAtlasTest_PMDEmpiric():TAtlasTest(){
 	beta = -1.0;
 };
 
-void TAtlasTest_PMDEmpiric::setVariables(TParameters & params, TLog* Logfile, TTaskList* TaskList){
+void TAtlasTest_PMDEmpiric::setVariables(coretools::TParameters & params, coretools::TLog* Logfile, coretools::TTaskList* TaskList){
 	logfile = Logfile;
 	taskList = TaskList;
 	bamFileName = filenameTag + ".bam";
@@ -49,7 +49,7 @@ void TAtlasTest_PMDEmpiric::setVariables(TParameters & params, TLog* Logfile, TT
 	GApatterns[2] = thirdPMDStringGA;
 };
 
-bool TAtlasTest_PMDEmpiric::run(TParameters & params, TLog* Logfile, TTaskList* TaskList){
+bool TAtlasTest_PMDEmpiric::run(coretools::TParameters & params, coretools::TLog* Logfile, coretools::TTaskList* TaskList){
 	//1) define variables
 	setVariables(params, Logfile, TaskList);
 	//2) Write PMD params to file

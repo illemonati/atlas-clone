@@ -11,7 +11,7 @@ TAtlasTest_invariantBed::TAtlasTest_invariantBed():TAtlasTest(){
 	_name = "invariantBed";
 };
 
-void TAtlasTest_invariantBed::setVariables(TParameters &, TLog* Logfile, TTaskList* TaskList){
+void TAtlasTest_invariantBed::setVariables(coretools::TParameters &, coretools::TLog* Logfile, coretools::TTaskList* TaskList){
 	//variables
 	logfile = Logfile;
 	taskList = TaskList;
@@ -99,7 +99,7 @@ bool TAtlasTest_invariantBed::checkBedFile(){
 		return true;
 }
 
-bool TAtlasTest_invariantBed::run(TParameters & params, TLog* Logfile, TTaskList* TaskList){
+bool TAtlasTest_invariantBed::run(coretools::TParameters & params, coretools::TLog* Logfile, coretools::TTaskList* TaskList){
 	//set variables
 	setVariables(params, Logfile, TaskList);
 

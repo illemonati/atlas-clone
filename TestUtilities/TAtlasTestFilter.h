@@ -35,7 +35,7 @@ private:
 	std::vector<std::string> shouldKeep;
 	std::vector<std::string> trueIgnoredReadMessages;
 
-	void setVariables(TParameters & params, TLog* Logfile, TTaskList* TaskList);
+	void setVariables(coretools::TParameters & params, coretools::TLog* Logfile, coretools::TTaskList* TaskList);
 	void writeBAM();
 	void setToSingleEnd(BamTools::BamAlignment & bamAlignment);
 	void setToProperPairEtc(BamTools::BamAlignment & bamAlignment);
@@ -45,7 +45,7 @@ private:
 
 public:
 	TAtlasTest_filter();
-	bool run(TParameters & params, TLog* logfile, TTaskList * TaskList);
+	bool run(coretools::TParameters & params, coretools::TLog* logfile, coretools::TTaskList * TaskList);
 };
 
 

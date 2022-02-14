@@ -13,6 +13,10 @@
 
 namespace VCF{
 
+using coretools::TLog;
+using coretools::TParameters;
+using coretools::str::toString;
+
 //---------------------------------------------------
 //TAnnotator
 //---------------------------------------------------

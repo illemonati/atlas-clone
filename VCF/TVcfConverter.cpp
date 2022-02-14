@@ -7,6 +7,9 @@
 #include "probability.h"
 
 namespace VCF{
+using coretools::TParameters;
+using coretools::TLog;
+using coretools::TOutputFile;
 
 //------------------------------------------
 // TVcfConverter

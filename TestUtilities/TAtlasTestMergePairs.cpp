@@ -6,6 +6,12 @@
  */
 
 #include "../TestUtilities/TAtlasTestMergePairs.h"
+#include "TParameters.h"
+#include "TTaskList.h"
+
+using coretools::TParameters;
+using coretools::TLog;
+using coretools::TTaskList;
 
 
 TAtlasTest_mergePairs::TAtlasTest_mergePairs():TAtlasTest(){

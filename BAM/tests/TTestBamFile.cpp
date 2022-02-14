@@ -25,6 +25,7 @@ TTestBamFile::TTestBamFile(const std::string & Filename, const std::vector<uint3
 };
 
 void TTestBamFile::_initialize(const std::vector<uint32_t> ChrLength, uint32_t NumReadGroups){
+	using genometools::Base;
 	_header.set("1.6", "coordinate", "none", "none");
 	_initializeChromosomes(ChrLength);
 	_initializeReadGroups(NumReadGroups);

@@ -30,7 +30,7 @@ TAtlasTest_filter::TAtlasTest_filter():TAtlasTest(){
 	filterSoftClips = false;
 };
 
-void TAtlasTest_filter::setVariables(TParameters & params, TLog* Logfile, TTaskList* TaskList){
+void TAtlasTest_filter::setVariables(coretools::TParameters & params, coretools::TLog* Logfile, coretools::TTaskList* TaskList){
 	logfile = Logfile;
 	taskList = TaskList;
 	bamFileName = filenameTag + "_filtered.bam";
@@ -61,7 +61,7 @@ void TAtlasTest_filter::setVariables(TParameters & params, TLog* Logfile, TTaskL
 //					&& useMate[bamAlignment.IsSecondMate()];
 };
 
-bool TAtlasTest_filter::run(TParameters & params, TLog* Logfile, TTaskList* TaskList){
+bool TAtlasTest_filter::run(coretools::TParameters & params, coretools::TLog* Logfile, coretools::TTaskList* TaskList){
 	//1) Define variables
 	setVariables(params, Logfile, TaskList);
 

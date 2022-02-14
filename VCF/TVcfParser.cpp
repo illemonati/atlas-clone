@@ -8,6 +8,7 @@
 #include "GenotypeTypes.h"
 
 namespace VCF{
+using coretools::str::toString;
 
 //--------------------------------------------------------------------
 TVcfHeaderLine::TVcfHeaderLine(std::string & Line){

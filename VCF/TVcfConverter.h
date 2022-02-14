@@ -16,9 +16,6 @@
 
 namespace VCF{
 
-using coretools::TParameters;
-using coretools::TLog;
-using coretools::TOutputFile;
 
 //------------------------------------------
 // TVcfConverter
@@ -26,20 +23,20 @@ using coretools::TOutputFile;
 class TVcfConverter {
 protected:
     std::string _outname;
-    TLog * _logfile;
+	coretools::TLog * _logfile;
     PopulationTools::TPopulationLikelihoodReaderLocus _reader;
     PopulationTools::TPopulationSamples _samples;
 
     virtual void _initOutputFiles() = 0;
     virtual void _writeHeader();
     virtual void _writeData(PopulationTools::TPopulationLikehoodLocus & data) = 0;
-    void _readOutputName(TParameters & Params, const std::string & VCFFilename);
+	void _readOutputName(coretools::TParameters & Params, const std::string & VCFFilename);
 
 public:
-    TVcfConverter(TLog * Logfile);
+    TVcfConverter(coretools::TLog * Logfile);
     virtual ~TVcfConverter() = default;
 
-    void readVcfAndWriteFile(TParameters & Params);
+    void readVcfAndWriteFile(coretools::TParameters & Params);
 };
 
 //------------------------------------------
@@ -47,7 +44,7 @@ public:
 //------------------------------------------
 class TVcfToBeagle : protected TVcfConverter {
 private:
-    TOutputFile _beagleFile;
+	coretools::TOutputFile _beagleFile;
 
     // beagle
     void _writeHeader() override;
@@ -58,10 +55,10 @@ private:
     void _writePosition();
 
 public:
-    TVcfToBeagle(TLog *Logfile);
+    TVcfToBeagle(coretools::TLog *Logfile);
     ~TVcfToBeagle() override = default;
 
-    void vcfToBeagle(TParameters & Params);
+    void vcfToBeagle(coretools::TParameters & Params);
 };
 
 //------------------------------------------
@@ -69,8 +66,8 @@ public:
 //------------------------------------------
 class TVcfToGeno : protected TVcfConverter {
 private:
-    TOutputFile _genoFile;
-    TOutputFile _lociNamesFile;
+	coretools::TOutputFile _genoFile;
+    coretools::TOutputFile _lociNamesFile;
 
     // geno
     void _writeData(PopulationTools::TPopulationLikehoodLocus & data) override;
@@ -79,10 +76,10 @@ private:
     void _writePosition();
 
 public:
-    TVcfToGeno(TLog *Logfile);
+    TVcfToGeno(coretools::TLog *Logfile);
     ~TVcfToGeno() override = default;
 
-    void vcfToGeno(TParameters & Params);
+    void vcfToGeno(coretools::TParameters & Params);
 };
 
 //------------------------------------------
@@ -90,8 +87,8 @@ public:
 //------------------------------------------
 class TVcfToLFMM : protected TVcfConverter {
 protected:
-    TOutputFile _lfmmFile;
-    TOutputFile _lociNamesFile;
+    coretools::TOutputFile _lfmmFile;
+    coretools::TOutputFile _lociNamesFile;
     std::vector<std::string> _loci_names;
 
     void _storeLocusNames();
@@ -110,10 +107,10 @@ protected:
         }
     }
 
-    void _prepareAndReadVcf(TParameters & Params);
+    void _prepareAndReadVcf(coretools::TParameters & Params);
 
 public:
-    TVcfToLFMM(TLog *Logfile);
+    TVcfToLFMM(coretools::TLog *Logfile);
     ~TVcfToLFMM() override;
 };
 
@@ -127,9 +124,9 @@ private:
     std::vector<uint8_t *> _genotypes;
 
 public:
-    TVcfToLFMMCalledGeno(TLog *Logfile);
+    TVcfToLFMMCalledGeno(coretools::TLog *Logfile);
     ~TVcfToLFMMCalledGeno() override;
-    void vcfToLFMM(TParameters & Params);
+    void vcfToLFMM(coretools::TParameters & Params);
 };
 
 //------------------------------------------
@@ -143,9 +140,9 @@ private:
     std::vector<double *> _genotypes;
 
 public:
-    TVcfToLFMMPostGeno(TLog *Logfile);
+    TVcfToLFMMPostGeno(coretools::TLog *Logfile);
     ~TVcfToLFMMPostGeno() override;
-    void vcfToLFMM(TParameters & Params);
+    void vcfToLFMM(coretools::TParameters & Params);
 };
 
 //------------------------------------------
@@ -153,7 +150,7 @@ public:
 //------------------------------------------
 class TVcfToPosFile : public TVcfConverter {
 private:
-    TOutputFile _posFile;
+    coretools::TOutputFile _posFile;
     // beagle
     void _writeHeader() override;
     void _writeRefAndAlt();
@@ -162,9 +159,9 @@ private:
     void _initOutputFiles() override;
 
 public:
-    TVcfToPosFile(TLog *Logfile);
+    TVcfToPosFile(coretools::TLog *Logfile);
     ~TVcfToPosFile() override = default;
-    void vcfToPosFile(TParameters & Params);
+    void vcfToPosFile(coretools::TParameters & Params);
 };
 
 //------------------------------------------
@@ -173,7 +170,7 @@ public:
 class TVcfToGenotypeTruthSetFile : public TVcfConverter {
 private:
     BAM::TBed ** _bedFiles;
-    TOutputFile _genFile;
+    coretools::TOutputFile _genFile;
 
     int _minDistanceToPreviousLocus;
     long _positionPreviousLocus;
@@ -191,9 +188,9 @@ private:
     void _resetDistance();
 
 public:
-    TVcfToGenotypeTruthSetFile(TLog *Logfile);
+    TVcfToGenotypeTruthSetFile(coretools::TLog *Logfile);
     ~TVcfToGenotypeTruthSetFile() override;
-    void vcfToGenotypeTruthSetFile(TParameters & Params);
+    void vcfToGenotypeTruthSetFile(coretools::TParameters & Params);
 };
 
 //------------------------------------------
@@ -206,7 +203,7 @@ private:
 	void _writeData(PopulationTools::TPopulationLikehoodLocus & data) override;
 
 public:
-	TVcfToVcf(TLog *Logfile);
+	TVcfToVcf(coretools::TLog *Logfile);
 	~TVcfToVcf() override = default;
 };
 
@@ -217,7 +214,7 @@ class TTask_VcfConverter:public coretools::TTask{
 public:
 	TTask_VcfConverter(){ _explanation = "Converting a VCF file to other formats"; };
 
-	void run(TParameters & Parameters, TLog* Logfile){
+	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
 		std::string format = Parameters.getParameter<std::string>("format");
 
 		if(format == "beagle"){

@@ -73,7 +73,7 @@ public:
         	TBaseLikelihoods baseData(base, error);
             bases.emplace_back(baseData);
         }
-        TGenotypeLikelihoods gtL;
+	GenotypeLikelihoods::TGenotypeLikelihoods gtL;
         gtL.fill(bases);
         outputGLF.writeDummySite(30, 0, gtL);
         // 5) depth = 10, all bases are A, but mapping quality is zero

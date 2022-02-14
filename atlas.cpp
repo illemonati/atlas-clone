@@ -123,7 +123,7 @@ void addTaks(coretools::TMain & main) {
 
 void addTests(coretools::TMain & main){
     // Use testing.addTest to add a single test
-    main.addTest("empty", new TTest());
+	main.addTest("empty", new coretools::TTest());
     main.addTest("pileup", new TAtlasTest_pileup());
 	main.addTest("allelicDepth", new TAtlasTest_allelicDepth());
 	main.addTest("recalSimulation", new TAtlasTest_recalSimulation());

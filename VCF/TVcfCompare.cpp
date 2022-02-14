@@ -6,8 +6,15 @@
  */
 
 #include "TVcfCompare.h"
+#include "stringFunctions.h"
 
 namespace VCF{
+
+using genometools::Base;
+using genometools::Genotype;
+using coretools::TLog;
+using coretools::TParameters;
+using coretools::str::toString;
 
 //--------------------------------------------------------------
 // TGenotypeComparisonTable

@@ -270,7 +270,7 @@ TEST(TPostMortemDamage_test, baseAWithPMD) {
 	ReadGroups.add("testRG");
 
 	// initialize PMD
-	TLog logfile;
+	coretools::TLog logfile;
 	std::vector<uint16_t> ReadGroupsWithoutPMD;
 	TPostMortemDamage pmd("doubleStrand:Empiric[0.3]:Empiric[0.1]", ReadGroups, &logfile, ReadGroupsWithoutPMD);
 

@@ -26,12 +26,12 @@ private:
 	std::string CTpatterns[3];
 	std::string GApatterns[3];
 
-	void setVariables(TParameters & params, TLog* Logfile, TTaskList* TaskList);
+	void setVariables(coretools::TParameters & params, coretools::TLog* Logfile, coretools::TTaskList* TaskList);
 	bool checkPMDEmpiricFile();
 
 public:
 	TAtlasTest_PMDEmpiric();
-	bool run(TParameters & params, TLog* Logfile, TTaskList* TaskList);
+	bool run(coretools::TParameters & params, coretools::TLog* Logfile, coretools::TTaskList* TaskList);
 
 };
 

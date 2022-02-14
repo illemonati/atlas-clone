@@ -20,8 +20,6 @@
 
 namespace VCF{
 
-using coretools::str::stringContains;
-using coretools::str::toString;
 
 //TODO: use header info to check entries
 
@@ -44,6 +42,8 @@ public:
 	};
 
 	void set(std::string & tag, int & i){
+		using coretools::str::stringContains;
+		using coretools::str::toString;
 		if(stringContains(tag, "CHROM")) Chr=i;
 		else if(stringContains(tag, "POS")) Pos=i;
 		else if(stringContains(tag, "ID")) Id=i;

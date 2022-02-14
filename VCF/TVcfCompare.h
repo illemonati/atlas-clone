@@ -16,15 +16,10 @@
 
 namespace VCF{
 
-using genometools::Base;
-using genometools::Genotype;
-
-using coretools::TLog;
-using coretools::TParameters;
 
 
 //--------------------------------------------------------------
-// TGenotypeComparisonTable
+// Tgenometools::GenotypeComparisonTable
 //--------------------------------------------------------------
 class TGenotypeComparisonTable{
 private:
@@ -39,20 +34,20 @@ public:
 	~TGenotypeComparisonTable() = default;
 
 	//add haploid genotypes
-	void add(const Base b1, const Base b2);
-	void addOtherMissing(const int sample, const Base b);
-	void addFirstMissing(const Base b2);
-	void addSecondMissing(const Base b1);
+	void add(const genometools::Base b1, const genometools::Base b2);
+	void addOtherMissing(const int sample, const genometools::Base b);
+	void addFirstMissing(const genometools::Base b2);
+	void addSecondMissing(const genometools::Base b1);
 
 	//add diploid genotypes
-	void add(const Genotype g1, const Genotype g2);
-	void addOtherMissing(const int sample, const Genotype g);
-	void addFirstMissing(const Genotype g2);
-	void addSecondMissing(const Genotype g1);
+	void add(const genometools::Genotype g1, const genometools::Genotype g2);
+	void addOtherMissing(const int sample, const genometools::Genotype g);
+	void addFirstMissing(const genometools::Genotype g2);
+	void addSecondMissing(const genometools::Genotype g1);
 
 	//add haploid / diploid combination of genotypes
-	void add(const Genotype g1, const Base b2);
-	void add(const Base b1, const Genotype g2);
+	void add(const genometools::Genotype g1, const genometools::Base b2);
+	void add(const genometools::Base b1, const genometools::Genotype g2);
 
 	//write output
 	void write(const std::string filename);
@@ -73,7 +68,7 @@ private:
 
 public:
 	TVcfComapreVCF();
-	TVcfComapreVCF(std::string & filename, std::string & sampleName, TLog* logfile);
+	TVcfComapreVCF(std::string & filename, std::string & sampleName, coretools::TLog* logfile);
 	TVcfComapreVCF(TVcfComapreVCF&& other);
 	TVcfComapreVCF& operator=(TVcfComapreVCF&& other);
 	~TVcfComapreVCF();
@@ -85,8 +80,8 @@ public:
 	bool eof(){ return vcfFile->eof; };
 	bool isMissing(){ return vcfFile->sampleIsMissing(sampleIndex); };
 	bool isDiploid(){ return vcfFile->sampleIsDiploid(sampleIndex); };
-	Genotype genotype(){ return vcfFile->sampleGenotype(sampleIndex); };
-	Base base(){ return vcfFile->getFirstAlleleOfSample(sampleIndex); };
+	genometools::Genotype genotype(){ return vcfFile->sampleGenotype(sampleIndex); };
+	genometools::Base base(){ return vcfFile->getFirstAlleleOfSample(sampleIndex); };
 	std::string chr(){ return vcfFile->chr(); };
 	long position(){ return vcfFile->position(); };
 	bool chrParsed(const std::string chr);
@@ -97,16 +92,16 @@ public:
 //--------------------------------------------------------------
 class TVcfCompare{
 private:
-	TLog* logfile;
+	coretools::TLog* logfile;
 	std::vector<TVcfComapreVCF> vcfFiles;
 
 	void addToOtherMissing(TGenotypeComparisonTable & counts, const int sample);
 
 public:
-	TVcfCompare(TLog* Logfile);
+	TVcfCompare(coretools::TLog* Logfile);
 	~TVcfCompare(){};
 
-	void compareVCFFiles(TParameters & parameters);
+	void compareVCFFiles(coretools::TParameters & parameters);
 };
 
 //--------------------------------------
@@ -116,7 +111,7 @@ class TTask_VcfCompare:public coretools::TTask{
 public:
 	TTask_VcfCompare(){ _explanation = "Comparing genotype calls in two VCF files"; };
 
-	void run(TParameters & Parameters, TLog* Logfile){
+	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
 		TVcfCompare compare(Logfile);
 		compare.compareVCFFiles(Parameters);
 	};
