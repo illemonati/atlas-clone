@@ -39,9 +39,11 @@ protected:
 	std::unique_ptr<TSimulatorQualityDist> _mappingQualityDist;
 
 	// PMD
+	// TODO: move from TPostMortemDamage
 	GenotypeLikelihoods::TPMDType const *_pmd = nullptr;
 
 	// Recal
+	// TODO: move from TSequencingErrorModels
 	GenotypeLikelihoods::TSequencingErrorModelsOneReadGroup const *_recal = nullptr;
 
 	// contamination

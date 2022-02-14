@@ -10,6 +10,7 @@
 
 namespace GenotypeLikelihoods{
 
+constexpr auto min_likelihood = 1.0E-200;
 //Note: for speed, most loops are unrolled
 
 using coretools::Probability;
@@ -234,8 +235,8 @@ void TGenotypeLikelihoodsHaploid::reset(){
 	_data[index(GT::AA)] = 1.0; _data[index(GT::CC)] = 1.0; _data[index(GT::GG)] = 1.0; _data[index(GT::TT)] = 1.0;
 
 	//initialize het to minimum
-	_data[index(GT::AC)] = _MINLIKELIHOODVALUE; _data[index(GT::AG)] = _MINLIKELIHOODVALUE; _data[index(GT::AT)] = _MINLIKELIHOODVALUE;
-	_data[index(GT::CG)] = _MINLIKELIHOODVALUE; _data[index(GT::CT)] = _MINLIKELIHOODVALUE; _data[index(GT::GT)] = _MINLIKELIHOODVALUE;
+	_data[index(GT::AC)] = min_likelihood; _data[index(GT::AG)] = min_likelihood; _data[index(GT::AT)] = min_likelihood;
+	_data[index(GT::CG)] = min_likelihood; _data[index(GT::CT)] = min_likelihood; _data[index(GT::GT)] = min_likelihood;
 };
 
 void TGenotypeLikelihoodsHaploid::fill(const std::vector<TBaseLikelihoods> & bases, const size_t size){
@@ -244,8 +245,8 @@ void TGenotypeLikelihoodsHaploid::fill(const std::vector<TBaseLikelihoods> & bas
 	using genometools::Base;
 	//allows for vector to be longer than what is to be used
 	//initialize het to minimum
-	_data[index(GT::AC)] = _MINLIKELIHOODVALUE; _data[index(GT::AG)] = _MINLIKELIHOODVALUE; _data[index(GT::AT)] = _MINLIKELIHOODVALUE;
-	_data[index(GT::CG)] = _MINLIKELIHOODVALUE; _data[index(GT::CT)] = _MINLIKELIHOODVALUE; _data[index(GT::GT)] = _MINLIKELIHOODVALUE;
+	_data[index(GT::AC)] = min_likelihood; _data[index(GT::AG)] = min_likelihood; _data[index(GT::AT)] = min_likelihood;
+	_data[index(GT::CG)] = min_likelihood; _data[index(GT::CT)] = min_likelihood; _data[index(GT::GT)] = min_likelihood;
 
 	//do in log if depth is high
 	if(bases.size() > 50){

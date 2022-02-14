@@ -15,8 +15,8 @@ namespace GenotypeLikelihoods {
 void TPMDTable::resize(size_t Size) {
 	for (auto &from : _counts)
 		for (auto & to: from)
-			to.resize(Size);
-	for (auto &s: _sums) s.resize(Size);
+			to.resize(Size + 1);
+	for (auto &s: _sums) s.resize(Size + 1);
 }
 
 void TPMDTable::empty() {
@@ -57,7 +57,7 @@ void TPMDTable::write(coretools::TOutputFile &out, std::vector<std::string> &pre
 			} else {
 				out << _counts[index(f)][index(t)];
 			}
-			out << '\n';
+			out << std::endl;
 		}
 	}
 }
