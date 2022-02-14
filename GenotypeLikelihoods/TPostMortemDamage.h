@@ -84,8 +84,8 @@ public:
 
 	bool hasDamage() const noexcept override { return true; }
 	std::string string() const noexcept override {
-		return name + "[" + coretools::toString(_lastPosition) + ',' +
-		       coretools::concatenateString(std::vector{_a, _b, _c}, ",") + "]";
+		return name + "[" + coretools::str::toString(_lastPosition) + ',' +
+		       coretools::str::concatenateString(std::vector{_a, _b, _c}, ",") + "]";
 	}
 
 	void parseEstimationParameters(TPMDEstimationParameters &EstimationParameters, coretools::TParameters &Params,
@@ -106,7 +106,7 @@ public:
 	~TPMDFunctionEmpiric() = default;
 
 	bool hasDamage() const noexcept override { return true; }
-	std::string string() const noexcept override { return name + "[" + coretools::concatenateString(_parameters, ",") + "]"; }
+	std::string string() const noexcept override { return name + "[" + coretools::str::concatenateString(_parameters, ",") + "]"; }
 
 	void parseEstimationParameters(TPMDEstimationParameters &, coretools::TParameters &, coretools::TLog *) override{};
 	void learn(const TPMDTable &Table, const genometools::Base &from, const genometools::Base &to,

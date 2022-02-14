@@ -150,7 +150,7 @@ void TVcfToGeno::_closeOutputFiles() {
 };
 
 void TVcfToGeno::_writePosition(){
-    _lociNamesFile << _reader.chr() + ":" + coretools::toString(_reader.position());
+    _lociNamesFile << _reader.chr() + ":" + coretools::str::toString(_reader.position());
 };
 
 void TVcfToGeno::_writeData(PopulationTools::TPopulationLikehoodLocus & data){
@@ -200,7 +200,7 @@ void TVcfToLFMM::_closeOutputFiles() {
 };
 
 void TVcfToLFMM::_storeLocusNames(){
-    _loci_names.emplace_back(_reader.chr() + ":" + coretools::toString(_reader.position()));
+    _loci_names.emplace_back(_reader.chr() + ":" + coretools::str::toString(_reader.position()));
 };
 
 void TVcfToLFMM::_writeLociNames(){
@@ -512,7 +512,7 @@ void TVcfToGenotypeTruthSetFile::vcfToGenotypeTruthSetFile(TParameters & Params)
         // check if sample name contains / (would be interpreted as path)
         std::string sample_name = _samples.sampleName(s);
         if (coretools::str::stringContains(sample_name, '/'))
-            sample_name = coretools::stringReplace("/", "_", sample_name);
+		sample_name = coretools::str::stringReplace("/", "_", sample_name);
         _bedFiles[s]->write(_outname + "_" + sample_name + ".bed");
     };
 

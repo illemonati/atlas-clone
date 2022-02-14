@@ -61,7 +61,7 @@ void TTestBamFile::_initializeChromosomes(const std::vector<uint32_t> ChrLength)
 	uint32_t refID = 0;
 	for(auto& len : ChrLength){
 		++refID;
-		_chromosomes.appendChromosome("Chr" + coretools::toString(refID), len);
+		_chromosomes.appendChromosome("Chr" + coretools::str::toString(refID), len);
 	}
 };
 
@@ -143,7 +143,7 @@ void TTestBamFile::writeAlignment(const BAM::TAlignment & alignment){
 
 BAM::TAlignment TTestBamFile::_constructAlignment(const std::vector<genometools::Base> & sequence, const std::vector<genometools::PhredIntProbability> & qualities, const BAM::TGenomePosition & position, const BAM::TCigar & cigar, uint32_t readGroup, const bool & isReverseStrand, const bool & complicatedSamFlag){
 	BAM::TAlignment alignment(position);
-    alignment.setName("alignment_" + coretools::toString(_counter));
+    alignment.setName("alignment_" + coretools::str::toString(_counter));
     alignment.setSequenceQualities(cigar, sequence, qualities);
     alignment.setMappingQuality(_dummyMapQual);
     alignment.setReadGroup(readGroup);

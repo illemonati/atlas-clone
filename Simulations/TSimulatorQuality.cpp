@@ -13,6 +13,7 @@
 namespace Simulations {
 using genometools::PhredIntProbability;
 using coretools::TRandomGenerator;
+using coretools::str::toString;
 
 //----------------------------------
 // TSimulatorQualityDist

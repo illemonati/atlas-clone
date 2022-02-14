@@ -12,6 +12,7 @@
 namespace PopulationTools{
 
 using coretools::LogProbability;
+using coretools::Probability;
 
 //-------------------------------------------------
 // TSAFChooseStorage

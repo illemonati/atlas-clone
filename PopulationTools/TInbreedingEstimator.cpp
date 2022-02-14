@@ -308,7 +308,7 @@ void TAlleleFreq::update(long index, double value, const bool ModelP){
 
 	//freq value
 	if(value < 0 || value > 1)
-		throw "Updating allele freq at locus " + coretools::toString(index) + " to value out of range!";
+		throw "Updating allele freq at locus " + coretools::str::toString(index) + " to value out of range!";
 	alleleFreq[index] = value;
 
 	if(modelP[index] == true && alleleFreq[index] == 0.0){

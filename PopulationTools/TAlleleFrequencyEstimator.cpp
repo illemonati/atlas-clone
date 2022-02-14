@@ -16,7 +16,7 @@ using coretools::TLog;
 using coretools::TRandomGenerator;
 using coretools::Probability;
 using coretools::TOutputFile;
-using coretools::toString;
+using coretools::str::toString;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // TAlleleFreqEstimatorHardyWeinberg                                                          //

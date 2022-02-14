@@ -7,6 +7,7 @@
 
 #include "TDistanceEstimator.h"
 #include "GenotypeTypes.h"
+#include "probability.h"
 
 namespace PopulationTools{
 
@@ -14,6 +15,7 @@ using namespace GenotypeLikelihoods;
 using genometools::Genotype;
 using genometools::Base;
 using genometools::HighPrecisionPhredIntProbability;
+using coretools::Probability;
 
 //----------------------------------------------------
 //TGenocombinationToBaseMap

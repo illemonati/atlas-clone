@@ -70,7 +70,7 @@ bool TAtlasTest_PMDEmpiric::run(coretools::TParameters & params, coretools::TLog
 	_testParams.addParameter("chrLength", "10000000");
 	_testParams.addParameter("ploidy", "2");
 	_testParams.addParameter("depth", "10");
-	_testParams.addParameter("readLength", coretools::toString("single:gamma(", alpha, ",", beta, ")[", minReadLength, ",", maxReadLength, "]"));
+	_testParams.addParameter("readLength", coretools::str::toString("single:gamma(", alpha, ",", beta, ")[", minReadLength, ",", maxReadLength, "]"));
 	_testParams.addParameter("pmdFile", pmdEmpiricFileName);
 
 	if(!runMain("simulate"))

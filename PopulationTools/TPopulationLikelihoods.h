@@ -249,7 +249,7 @@ public:
 
 	void openTrueAlleleFrequenciesFile(const std::string filename);
 	genometools::TGenotypeFrequencies* genotypeFrequencies(){ return &genoFrequencies; };
-	std::array<Probability, 3> diploidGenotypeFrequencies(){ return genoFrequencies.diploidFrequencies(); };
+	std::array<coretools::Probability, 3> diploidGenotypeFrequencies(){ return genoFrequencies.diploidFrequencies(); };
 	double allelFrequency(){ return genoFrequencies.alleleFrequency(); };
 	double trueAlleleFrequency(){ return _trueAlleleFrequency; };
 	double MAF(){ return genoFrequencies.MAF(); };

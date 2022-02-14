@@ -339,7 +339,7 @@ void TBamFile::_fillChromosomes(TChromosomes & Chromosomes){
 
 	//copy from BamHeader
 	for(BamTools::SamSequenceIterator chrIt=_bamHeader.Sequences.Begin(); chrIt!=_bamHeader.Sequences.End(); ++chrIt){
-		Chromosomes.appendChromosome(chrIt->Name, coretools::convertString<uint64_t>(chrIt->Length));
+		Chromosomes.appendChromosome(chrIt->Name, coretools::str::convertString<uint64_t>(chrIt->Length));
 	}
 };
 
@@ -689,10 +689,10 @@ void TBamFile::curAddSamField(const std::string tag, const float value){
 //-----------------------------------------------------
 void TBamFile::printSummaryNoEndIndent(){
 	_logfile->startIndent("Summary of parsed reads from BAM file '" + _filename + "':");
-	_logfile->list("Total number of reads read: " + coretools::toString(_numAlignmentRead));
-	_logfile->list("Reads that passed filters: " + coretools::toString(_numAlignmentsPassedQC) + " (" + coretools::toPercentString(_numAlignmentsPassedQC, _numAlignmentRead, 3) + "%)");
+	_logfile->list("Total number of reads read: " + coretools::str::toString(_numAlignmentRead));
+	_logfile->list("Reads that passed filters: " + coretools::str::toString(_numAlignmentsPassedQC) + " (" + coretools::str::toPercentString(_numAlignmentsPassedQC, _numAlignmentRead, 3) + "%)");
 	uint64_t numFiltered = _numAlignmentRead - _numAlignmentsPassedQC;
-	_logfile->list("Reads that were filtered out: " + coretools::toString(numFiltered) + " (" + coretools::toPercentString(numFiltered, _numAlignmentRead, 3) + "%)");
+	_logfile->list("Reads that were filtered out: " + coretools::str::toString(numFiltered) + " (" + coretools::str::toPercentString(numFiltered, _numAlignmentRead, 3) + "%)");
 
 	if(numFiltered > 0){
 		_logfile->addIndent();
@@ -789,7 +789,7 @@ void TQualityAdjusterForWriting::limitRange(const TNumericRange<uint8_t> & Range
 };
 
 std::string TQualityAdjusterForWriting::rangeString(){
-	return "[" + toString(genometools::PhredIntProbability(_minQual)) + "," + toString(genometools::PhredIntProbability(_maxQual)) + "]";
+	return "[" + coretools::str::toString(genometools::PhredIntProbability(_minQual)) + "," + coretools::str::toString(genometools::PhredIntProbability(_maxQual)) + "]";
 };
 
 char TQualityAdjusterForWriting::_adjustOneQuality(BaseQuality qual) const {
