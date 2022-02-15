@@ -29,8 +29,10 @@ namespace /* anonymous */ {
 std::vector<double> parseParameters(const std::string &string) {
 	// expect string of the form NAME[P1,P2,...]
 	// extract P1, P2, ... as a vector of doubles
-	std::string tmp = readAfter(string, '[');
 	std::vector<double> ps;
+	if (string.find('[') == string.npos) return ps;
+
+	std::string tmp = readAfter(string, '[');
 	fillContainerFromString(extractBefore(tmp, ']'), ps, ',', true, true, true);
 	return ps;
 }
