@@ -7,6 +7,7 @@
 
 #include "TRecalibrationEMEstimator.h"
 #include "GenotypeTypes.h"
+#include "RecalEstimatorTools.h"
 #include "stringFunctions.h"
 
 namespace GenotypeLikelihoods {
@@ -24,6 +25,7 @@ TSequencingErrorModelVectorForEstimation::TSequencingErrorModelVectorForEstimati
 																				   uint32_t MinRequiredObservations,
 																				   coretools::TLog* Logfile):
 																					   _modelIndex(ReadGroups){
+	using MS = RecalEstimatorTools::ModelStatusTypes;
 	//Copy models that are 1) in use after pooling and 2) have data.
 	//Note: data table is already pooled!
 
@@ -48,34 +50,34 @@ TSequencingErrorModelVectorForEstimation::TSequencingErrorModelVectorForEstimati
 					//copy model and update index
 					std::shared_ptr<TSequencingErrorModelRecal>& model = SequencingErrorModels[r].getSharedPointerToRecalModel(mate);
 					_models.push_back(model);
-					modelStati[r][RecalEstimatorTools::copied].set(mate);
+					modelStati[r][MS::copied].set(mate);
 					_modelIndex.set(r, mate, model, ReadGroupMap); //handles pooling
 
 					//check if there is limited data
 					if(table.size() < MinRequiredObservations){
-						modelStati[r][RecalEstimatorTools::littleData].set(mate);
+						modelStati[r][MS::littleData].set(mate);
 					}
 
 				} else {
-					modelStati[r][RecalEstimatorTools::dataButNoRecal].set(mate);
+					modelStati[r][MS::dataButNoRecal].set(mate);
 				}
 
 			} else {
 				if(SequencingErrorModels[r][mate].estimatable()){
-					modelStati[r][RecalEstimatorTools::noData].set(mate);
+					modelStati[r][MS::noData].set(mate);
 				}
 			}
 		}
 	}
 
 	//report models that will be estimated
-	modelStati.report(RecalEstimatorTools::copied, "Read groups for which models will be estimated:", ReadGroups, Logfile);
-	modelStati.report(RecalEstimatorTools::noData, "Read groups excluded because they have no data:", ReadGroups, Logfile);
-	modelStati.report(RecalEstimatorTools::dataButNoRecal, "Read groups with data but no recal model:", ReadGroups, Logfile);
-	if(modelStati.num(RecalEstimatorTools::copied) == 0){
+	modelStati.report(MS::copied, "Read groups for which models will be estimated:", ReadGroups, Logfile);
+	modelStati.report(MS::noData, "Read groups excluded because they have no data:", ReadGroups, Logfile);
+	modelStati.report(MS::dataButNoRecal, "Read groups with data but no recal model:", ReadGroups, Logfile);
+	if(modelStati.num(MS::copied) == 0){
 		throw "No recal models need estimation!";
 	}
-	modelStati.report(RecalEstimatorTools::littleData, "Read groups with very little data (consider pooling):", ReadGroups, Logfile);
+	modelStati.report(MS::littleData, "Read groups with very little data (consider pooling):", ReadGroups, Logfile);
 };
 
 void TSequencingErrorModelVectorForEstimation::fillBaseLikelihoods(const BAM::TSequencedBase & base,  TBaseLikelihoods & baseLikelihoods) const{

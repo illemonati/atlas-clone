@@ -129,7 +129,7 @@ public:
 	std::string getString() const;
 };
 
-enum ModelStatusTypes : uint8_t {copied=0, noData, littleData, dataButNoRecal};
+enum class ModelStatusTypes : uint8_t {copied=0, noData, littleData, dataButNoRecal};
 
 class TModelStatus{
 private:

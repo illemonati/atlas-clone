@@ -158,7 +158,7 @@ std::string TModelStatusEntry::getString() const{
 };
 
 TModelStatusEntry& TModelStatus::operator[](const ModelStatusTypes & Type){
-	return _status[Type];
+	return _status[static_cast<size_t>(Type)];
 };
 
 void TModelStati::add(uint16_t ReadGroupId){

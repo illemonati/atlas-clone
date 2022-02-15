@@ -16,8 +16,6 @@
 
 namespace GenotypeLikelihoods{
 
-#define maxQualToPrint 1000
-#define maxQualToPrintNaturalScale 1E-100
 
 //TODO: write as templated classes
 //----------------------------------------------------------------------------------------------------------------------------------

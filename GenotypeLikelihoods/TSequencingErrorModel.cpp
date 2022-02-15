@@ -136,17 +136,17 @@ void TSequencingErrorCovariateList::createCovariatesAndIntercept(const TSequenci
 	numParameters = intercept.numParameters();
 	for(auto it = covariateMap.cbegin(); it != covariateMap.cend(); ++it){
 		//create function for each covariate
-		if(it->covariate == SequencingErrorCovariateName_none){
+		if(it->covariate == TSequencingErrorCovariate::name){
 			continue;
-		} else if(it->covariate == SequencingErrorCovariateName_quality){
+		} else if(it->covariate == TSequencingErrorCovariate_quality::name){
 			covariates.emplace_back(new TSequencingErrorCovariate_quality(numParameters, it->function, DataTable));
-		} else if(it->covariate == SequencingErrorCovariateName_position){
+		} else if(it->covariate == TSequencingErrorCovariate_position::name){
 			covariates.emplace_back(new TSequencingErrorCovariate_position(numParameters, it->function, DataTable));
-		} else if(it->covariate == SequencingErrorCovariateName_context){
+		} else if(it->covariate == TSequencingErrorCovariate_context::name){
 			covariates.emplace_back(new TSequencingErrorCovariate_context(numParameters, it->function, DataTable));
-		} else if(it->covariate == SequencingErrorCovariateName_fragmentLength){
+		} else if(it->covariate == TSequencingErrorCovariate_fragmentLength::name){
 			covariates.emplace_back(new TSequencingErrorCovariate_fragmentLength(numParameters, it->function, DataTable));
-		} else if(it->covariate == SequencingErrorCovariateName_mappingQuality){
+		} else if(it->covariate == TSequencingErrorCovariate_mappingQuality::name){
 			covariates.emplace_back(new TSequencingErrorCovariate_mappingQuality(numParameters, it->function, DataTable));
 		} else {
 			throw "Unknown recalibration covariate '" + it->covariate + "' with function " + it->function + "!";
@@ -169,17 +169,17 @@ void TSequencingErrorCovariateList::createCovariatesAndIntercept(const TSequenci
 	numParameters = intercept.numParameters();
 	for(auto it = covariateMap.cbegin(); it != covariateMap.cend(); ++it){
 		//create function for each covariate
-		if(it->covariate == SequencingErrorCovariateName_none){
+		if(it->covariate == TSequencingErrorCovariate::name){
 			continue;
-		} else if(it->covariate == SequencingErrorCovariateName_quality){
+		} else if(it->covariate == TSequencingErrorCovariate_quality::name){
 			covariates.emplace_back(new TSequencingErrorCovariate_quality(numParameters, it->function));
-		} else if(it->covariate == SequencingErrorCovariateName_position){
+		} else if(it->covariate == TSequencingErrorCovariate_position::name){
 			covariates.emplace_back(new TSequencingErrorCovariate_position(numParameters, it->function));
-		} else if(it->covariate == SequencingErrorCovariateName_context){
+		} else if(it->covariate == TSequencingErrorCovariate_context::name){
 			covariates.emplace_back(new TSequencingErrorCovariate_context(numParameters, it->function));
-		} else if(it->covariate == SequencingErrorCovariateName_fragmentLength){
+		} else if(it->covariate == TSequencingErrorCovariate_fragmentLength::name){
 			covariates.emplace_back(new TSequencingErrorCovariate_fragmentLength(numParameters, it->function));
-		} else if(it->covariate == SequencingErrorCovariateName_mappingQuality){
+		} else if(it->covariate == TSequencingErrorCovariate_mappingQuality::name){
 			covariates.emplace_back(new TSequencingErrorCovariate_mappingQuality(numParameters, it->function));
 		} else {
 			throw "Unknown recalibration covariate '" + it->covariate + "' with function " + it->function + "!";
@@ -208,7 +208,7 @@ TSequencingErrorCovariateDefinition TSequencingErrorCovariateList::getCovariateD
 	TSequencingErrorCovariateDefinition def;
 	def.setIntercept(intercept.getIntercept());
 	for(const auto & cov : covariates){
-		def.addCovariate(cov->name(), cov->functionString());
+		def.addCovariate(cov->typeString(), cov->functionString());
 	}
 	return def;
 }
@@ -525,7 +525,7 @@ void TSequencingErrorModelRecal::estimateRho(){
 bool TSequencingErrorModelRecal::checkParameterRange(RecalEstimatorTools::TRecalDataTable & DataTable, std::string & error){
 	for(auto & cov : _covariates.covariates){
 		if(!cov->checkParameterRange(DataTable)){
-			error = "Function for covariate " + cov->name() + " does not cover full range of data";
+			error = "Function for covariate " + cov->typeString() + " does not cover full range of data";
 			return false;
 		}
 	}
