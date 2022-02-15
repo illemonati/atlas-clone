@@ -17,8 +17,6 @@ using genometools::index;
 
 TEST(TPostMortemDamage_test, PMDTable) {
 	using namespace genometools;
-	EXPECT_EQ(TPMDTable{}.size(), 0);
-
 	TPMDTable t1(10);
 	EXPECT_EQ(t1.size(), 10);
 	t1.resize(100);
@@ -35,6 +33,12 @@ TEST(TPostMortemDamage_test, PMDTable) {
 	EXPECT_EQ(t1[Base::G][index(Base::G)][99], 1);
 	EXPECT_EQ(t1[Base::G][index(Base::T)][99], 1);
 	EXPECT_EQ(t1.sums(Base::G)[99], 6);
+	t1.add(101, Base::A, Base::A);
+	t1.add(102, Base::A, Base::A);
+	t1.add(103, Base::A, Base::A);
+	t1.add(104, Base::A, Base::A);
+	t1.add(105, Base::A, Base::A);
+	EXPECT_EQ(t1[Base::A][index(Base::A)][t1.size()], 5);
 
 	TPMDTable t2(100);
 	EXPECT_EQ(t2.size(), 100);

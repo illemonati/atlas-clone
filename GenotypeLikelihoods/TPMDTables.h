@@ -33,7 +33,7 @@ public:
 	~TPMDTable() = default;
 
 	TPMDTable(size_t Size) { resize(Size); };
-	size_t size() const { return _sums[0].size(); };
+	size_t size() const { return _sums[0].size() - 1; };
 	void resize(size_t Size);
 	void empty();
 	void add(size_t pos, genometools::Base ref, genometools::Base read);
