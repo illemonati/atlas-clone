@@ -81,7 +81,7 @@ void TPMDEstimator::estimatePMD(){
 	}
 
 	//writing PMD file
-	filename = _outputName + "_ PMD.txt";
+	filename = _outputName + "_PMD.txt";
 	pmd.writeToFile(_bamFile.readGroups(), *_readGroupMap, filename);
 };
 

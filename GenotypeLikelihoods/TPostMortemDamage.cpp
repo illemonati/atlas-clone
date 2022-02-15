@@ -577,9 +577,8 @@ void TPostMortemDamage::writeToFile(const BAM::TReadGroups &ReadGroups, const st
 	coretools::TOutputFile out(filename, header);
 
 	// write for each read group
-	for (auto r = ReadGroups.cbegin(); r != ReadGroups.cend(); ++r) {
-		out << r->name_ID << _pmdObjects[r->id]->functionString() << std::endl;
-	}
+	for (auto r = ReadGroups.cbegin(); r != ReadGroups.cend(); ++r)
+		out << r->name_ID << _pmdObjects[r->id]->typeString() << _pmdObjects[r->id]->functionString() << std::endl;
 }
 
 void TPostMortemDamage::writeToFile(const BAM::TReadGroups &ReadGroups, const BAM::TReadGroupMap &ReadGroupMap,
@@ -588,9 +587,9 @@ void TPostMortemDamage::writeToFile(const BAM::TReadGroups &ReadGroups, const BA
 	coretools::TOutputFile out(filename, header);
 
 	// write for each read group
-	for (auto r = ReadGroups.cbegin(); r != ReadGroups.cend(); ++r) {
-		out << r->name_ID << _pmdObjects[ReadGroupMap.pooledIndex(r->id)]->functionString() << std::endl;
-	}
+	for (auto r = ReadGroups.cbegin(); r != ReadGroups.cend(); ++r)
+		out << r->name_ID << _pmdObjects[r->id]->typeString()
+			<< _pmdObjects[ReadGroupMap.pooledIndex(r->id)]->functionString() << std::endl;
 }
 
 void TPostMortemDamage::_initializeFromString(const std::string &pmdString, TLog *logfile) {

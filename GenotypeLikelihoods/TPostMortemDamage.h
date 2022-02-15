@@ -126,6 +126,7 @@ public:
 
 	virtual bool hasDamage() const noexcept             = 0;
 	virtual std::string functionString() const noexcept = 0;
+	virtual std::string typeString() const noexcept     = 0;
 
 	virtual void parseEstimationParameters(TPMDEstimationParameters &EstimationParameters, coretools::TParameters &Params,
 					       coretools::TLog *Logfile) = 0;
@@ -150,6 +151,7 @@ public:
 
 	bool hasDamage() const noexcept override { return false; }
 	std::string functionString() const noexcept override { return "none"; }
+	std::string typeString() const noexcept override { return name; }
 
 	void parseEstimationParameters(TPMDEstimationParameters &, coretools::TParameters &, coretools::TLog *) override {}
 	void estimate(const PMDTable_RG &, const TPMDEstimationParameters &) override {}
@@ -180,6 +182,7 @@ public:
 	std::string functionString() const noexcept override {
 		return name + ":" + _pmdCT->string() + ":" + _pmdGA->string();
 	}
+	std::string typeString() const noexcept override { return name; }
 
 	void parseEstimationParameters(TPMDEstimationParameters &EstimationParameters, coretools::TParameters &Params,
 				       coretools::TLog *Logfile) override;
@@ -209,6 +212,7 @@ public:
 	std::string functionString() const noexcept override {
 		return name + ":" + _pmdCT3->string() + ":" + _pmdCT5->string();
 	}
+	std::string typeString() const noexcept override { return name; }
 
 	void parseEstimationParameters(TPMDEstimationParameters &EstimationParameters, coretools::TParameters &Params,
 				       coretools::TLog *Logfile) override;
