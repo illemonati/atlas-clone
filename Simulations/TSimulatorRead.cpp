@@ -137,13 +137,8 @@ void TSimulatorSingleEndRead::_simulateBasesQualities(BAM::TAlignment & alignmen
 
 	// simulate true bases
 	std::vector<Base> bases;
-	if (readIsContaminated) {
-		const auto start = _contaminationSource->reference().cbegin() + pos;
-		bases.assign(start, start + readLength.read);
-	} else {
-		const auto start = haplotype.cbegin() + pos;
-		bases.assign(start, start + readLength.read);
-	}
+	const auto start = readIsContaminated ? _contaminationSource->reference().cbegin() + pos : haplotype.cbegin() + pos;
+	bases.assign(start, start + readLength.read);
 
 	_cigar.clear();
 	_cigar.add('M', readLength.read);
@@ -151,7 +146,6 @@ void TSimulatorSingleEndRead::_simulateBasesQualities(BAM::TAlignment & alignmen
 	// simulate true qualities
 	std::vector<genometools::PhredIntProbability> phredIntQualities(bases.size());
 	_qualityDist->sample(phredIntQualities);
-	_alignment.setSequenceQualities(_cigar, bases, phredIntQualities);
 
 	// apply PMD
 
@@ -162,6 +156,7 @@ void TSimulatorSingleEndRead::_simulateBasesQualities(BAM::TAlignment & alignmen
 	*/
 
 	_applyPMD(bases, readLength, alignment.isReverseStrand());
+	_alignment.setSequenceQualities(_cigar, bases, phredIntQualities);
 
 	/*
 	//simulate qualities and errors
