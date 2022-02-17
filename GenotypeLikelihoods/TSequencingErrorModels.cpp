@@ -1,5 +1,5 @@
 /*
- * TSequencingErrorModels.cpp
+ * TModels.cpp
  *
  *  Created on: May 14, 2020
  *      Author: phaentu
@@ -11,41 +11,42 @@
 #include "stringFunctions.h"
 
 namespace GenotypeLikelihoods {
+namespace SequencingError {
 
 using coretools::Probability;
 using coretools::str::toString;
 
 //-------------------------------------
-// TSequencingErrorModelEntry / TSequencingErrorModelsOneReadGroup
+// TModelEntry / TModelsOneReadGroup
 //-------------------------------------
-TSequencingErrorModelNoRecal TSequencingErrorModelEntry::_noRecalModel;
+TModelNoRecal TModelEntry::_noRecalModel;
 
-void TSequencingErrorModelEntry::addModel(const TSequencingErrorModelDefinition &ModelDef) {
-	_recalModel = std::make_shared<TSequencingErrorModelRecal>(ModelDef);
+void TModelEntry::addModel(const TModelDefinition &ModelDef) {
+	_recalModel = std::make_shared<TModelRecal>(ModelDef);
 };
 
-const TSequencingErrorModel &TSequencingErrorModelEntry::model() const {
+const TModel &TModelEntry::model() const {
 	if (_recalModel) return *_recalModel;
 	return _noRecalModel;
 };
 
-TSequencingErrorModelRecal *TSequencingErrorModelEntry::getPointerToRecalModel() { return _recalModel.get(); }
+TModelRecal *TModelEntry::getPointerToRecalModel() { return _recalModel.get(); }
 
-std::shared_ptr<TSequencingErrorModelRecal> &TSequencingErrorModelEntry::getSharedPointerToRecalModel() {
+std::shared_ptr<TModelRecal> &TModelEntry::getSharedPointerToRecalModel() {
 	return _recalModel;
 }
 
-Probability TSequencingErrorModelEntry::getErrorRate(const BAM::TSequencedBase &base) const {
+Probability TModelEntry::getErrorRate(const BAM::TSequencedBase &base) const {
 	if (_recalModel) return _recalModel->getErrorRate(base);
 	return _noRecalModel.getErrorRate(base);
 }
 
-genometools::PhredIntProbability TSequencingErrorModelEntry::getPhredInt(const BAM::TSequencedBase &base) const {
+genometools::PhredIntProbability TModelEntry::getPhredInt(const BAM::TSequencedBase &base) const {
 	if (_recalModel) return _recalModel->getPhredInt(base);
 	return _noRecalModel.getPhredInt(base);
 }
 
-void TSequencingErrorModelEntry::fillBaseLikelihoods(const BAM::TSequencedBase &base,
+void TModelEntry::fillBaseLikelihoods(const BAM::TSequencedBase &base,
 						     TBaseLikelihoods &baseLikelihoods) const {
 	if (_recalModel) {
 		_recalModel->fillBaseLikelihoods(base, baseLikelihoods);
@@ -54,63 +55,63 @@ void TSequencingErrorModelEntry::fillBaseLikelihoods(const BAM::TSequencedBase &
 	}
 }
 
-// TSequencingErrorModelsOneReadGroup
-void TSequencingErrorModelsOneReadGroup::addRecalModel(const TSequencingErrorModelDefinition &ModelDef,
+// TModelsOneReadGroup
+void TModelsOneReadGroup::addRecalModel(const TModelDefinition &ModelDef,
 						       const bool &IsSecondMate) {
 	_models[IsSecondMate].addModel(ModelDef);
 }
 
-const TSequencingErrorModel &TSequencingErrorModelsOneReadGroup::operator[](const bool &IsSecondMate) const {
+const TModel &TModelsOneReadGroup::operator[](const bool &IsSecondMate) const {
 	return _models[IsSecondMate].model();
 }
 
-TSequencingErrorModelRecal *TSequencingErrorModelsOneReadGroup::getPointerToRecalModel(const bool &IsSecondMate) {
+TModelRecal *TModelsOneReadGroup::getPointerToRecalModel(const bool &IsSecondMate) {
 	return _models[IsSecondMate].getPointerToRecalModel();
 }
 
-std::shared_ptr<TSequencingErrorModelRecal> &
-TSequencingErrorModelsOneReadGroup::getSharedPointerToRecalModel(const bool &IsSecondMate) {
+std::shared_ptr<TModelRecal> &
+TModelsOneReadGroup::getSharedPointerToRecalModel(const bool &IsSecondMate) {
 	return _models[IsSecondMate].getSharedPointerToRecalModel();
 }
 
-bool TSequencingErrorModelsOneReadGroup::recalibrates() const {
+bool TModelsOneReadGroup::recalibrates() const {
 	return _models[0].recalibrates() || _models[1].recalibrates();
 }
 
-Probability TSequencingErrorModelsOneReadGroup::getErrorRate(const BAM::TSequencedBase &base) const {
+Probability TModelsOneReadGroup::getErrorRate(const BAM::TSequencedBase &base) const {
 	return _models[base.isSecondMate()].getErrorRate(base);
 }
 
 genometools::PhredIntProbability
-TSequencingErrorModelsOneReadGroup::getPhredInt(const BAM::TSequencedBase &base) const {
+TModelsOneReadGroup::getPhredInt(const BAM::TSequencedBase &base) const {
 	return _models[base.isSecondMate()].getPhredInt(base);
 }
 
-void TSequencingErrorModelsOneReadGroup::fillBaseLikelihoods(const BAM::TSequencedBase &base,
+void TModelsOneReadGroup::fillBaseLikelihoods(const BAM::TSequencedBase &base,
 							     TBaseLikelihoods &baseLikelihoods) const {
 	_models[base.isSecondMate()].fillBaseLikelihoods(base, baseLikelihoods);
 }
 
 //--------------------------------------------------------------------
-// TSequencingErrorModels
+// TModels
 //--------------------------------------------------------------------
-bool TSequencingErrorModels::recalStringIsLikelyAModel(const std::string &RecalString) {
+bool TModels::recalStringIsLikelyAModel(const std::string &RecalString) {
 	// check if it contains a ';', ':', '[' or ']'
 	return coretools::str::stringContainsAny(RecalString, ";:[]");
 }
 
-void TSequencingErrorModels::initialize(const std::string &RecalString, const std::string &RhoString,
+void TModels::initialize(const std::string &RecalString, const std::string &RhoString,
 					const BAM::TReadGroups &ReadGroups, coretools::TLog *) {
 	if (!_models.empty())
 		throw std::runtime_error(
-			"void TSequencingErrorModels::initialize(const std::string & RecalString, const std::string & RhoString, "
+			"void TModels::initialize(const std::string & RecalString, const std::string & RhoString, "
 		    "const BAM::TReadGroups & ReadGroups, TLog* Logfile): Models already initialized!");
 
 	// prepare objects
 	_models.resize(ReadGroups.size());
 
 	// create model definition
-	TSequencingErrorModelDefinition modelDef;
+	TModelDefinition modelDef;
 	std::string error;
 	if (!modelDef.parse(RecalString, RhoString, error)) throw error + "!";
 
@@ -121,10 +122,10 @@ void TSequencingErrorModels::initialize(const std::string &RecalString, const st
 	}
 }
 
-void TSequencingErrorModels::initializeFromFile(const std::string &Filename, const BAM::TReadGroups &ReadGroups,
+void TModels::initializeFromFile(const std::string &Filename, const BAM::TReadGroups &ReadGroups,
 						coretools::TLog *Logfile) {
 	if (!_models.empty())
-		throw std::runtime_error("void TSequencingErrorModels::initializeFromFile(const std::string & filename, const "
+		throw std::runtime_error("void TModels::initializeFromFile(const std::string & filename, const "
 					 "BAM::TReadGroups & ReadGroups, TLog* Logfile): Models already initialized!");
 
 	// read parameters from file
@@ -143,7 +144,7 @@ void TSequencingErrorModels::initializeFromFile(const std::string &Filename, con
 			// get read group
 			const uint16_t readGroupId = ReadGroups.getId(vec[0]);
 			std::string error;
-			TSequencingErrorModelDefinition modelDef;
+			TModelDefinition modelDef;
 
 			// parse model definition (allows us to get errors right here)
 			if (!modelDef.parse(vec[2], vec[3], error)) 
@@ -162,7 +163,7 @@ void TSequencingErrorModels::initializeFromFile(const std::string &Filename, con
 	Logfile->done();
 }
 
-void TSequencingErrorModels::checkReadGroups(const BAM::TReadGroups &ReadGroups,
+void TModels::checkReadGroups(const BAM::TReadGroups &ReadGroups,
 					     std::vector<uint16_t> &ReadGroupsWithoutRecal,
 					     std::vector<uint16_t> &ReadGroupsLikelySingleEnd) {
 	ReadGroupsWithoutRecal.clear();
@@ -178,32 +179,32 @@ void TSequencingErrorModels::checkReadGroups(const BAM::TReadGroups &ReadGroups,
 
 // functions to get error rates
 //-------------------------------------------------------
-Probability TSequencingErrorModels::getErrorRate(const BAM::TSequencedBase &base) const {
+Probability TModels::getErrorRate(const BAM::TSequencedBase &base) const {
 	if (!_models.empty()) return _models[base.readGroupID].getErrorRate(base);
 	return (Probability)base.originalQuality_phredInt;
 }
 
-genometools::PhredIntProbability TSequencingErrorModels::getPhredInt(const BAM::TSequencedBase &base) const {
+genometools::PhredIntProbability TModels::getPhredInt(const BAM::TSequencedBase &base) const {
 	if (!_models.empty()) return _models[base.readGroupID].getPhredInt(base);
 	return base.originalQuality_phredInt;
 }
 
-void TSequencingErrorModels::recalibrate(BAM::TSequencedBase &base) const {
+void TModels::recalibrate(BAM::TSequencedBase &base) const {
 	base.recalibratedQualityAsPhredInt = getPhredInt(base);
 }
 
-void TSequencingErrorModels::recalibrate(std::vector<BAM::TSequencedBase> &bases) const {
+void TModels::recalibrate(std::vector<BAM::TSequencedBase> &bases) const {
 	for (auto &b : bases) recalibrate(b);
 }
 
-void TSequencingErrorModels::fillBaseLikelihoods(const BAM::TSequencedBase &base,
+void TModels::fillBaseLikelihoods(const BAM::TSequencedBase &base,
 						 TBaseLikelihoods &baseLikelihoods) const {
 	if (!_models.empty()) _models[base.readGroupID].fillBaseLikelihoods(base, baseLikelihoods);
 }
 
 // functions to write file
 //-------------------------------------------------------------------
-void TSequencingErrorModels::writeRecalFile(const BAM::TReadGroups &ReadGroups, const std::string & Filename) const {
+void TModels::writeRecalFile(const BAM::TReadGroups &ReadGroups, const std::string & Filename) const {
 	// open file and write header
 	coretools::TOutputFile out(Filename);
 	out.writeHeader({"readGroup", "mate", "covariates", "rho"});
@@ -218,4 +219,5 @@ void TSequencingErrorModels::writeRecalFile(const BAM::TReadGroups &ReadGroups, 
 	}
 }
 
+} // namespace SequencingError
 }; // namespace GenotypeLikelihoods

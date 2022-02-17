@@ -56,7 +56,7 @@ protected:
 
 	TGenotypeDistribution _genotypeDistribution;
 	TPostMortemDamage _pmdModels;
-	TSequencingErrorModels _sequencingErrorModels;
+	SequencingError::TModels _sequencingErrorModels;
 
 public:
 	TGenotypeLikelihoodCalculator();
@@ -64,8 +64,8 @@ public:
 	~TGenotypeLikelihoodCalculator() = default;
 
 	void init(coretools::TParameters & params, const BAM::TReadGroups* ReadGroups, coretools::TLog* Logfile);
-	const TSequencingErrorModels& getSequencingErrorModels() const { return _sequencingErrorModels; };
-	TSequencingErrorModels& getSequencingErrorModelsMutable() { return _sequencingErrorModels; };
+	const SequencingError::TModels& getSequencingErrorModels() const { return _sequencingErrorModels; };
+	SequencingError::TModels& getSequencingErrorModelsMutable() { return _sequencingErrorModels; };
 	const TPostMortemDamage& getPostMortemDamageModels() const { return _pmdModels; };
 	TPostMortemDamage& getPostMortemDamageModelsMutable() { return _pmdModels; };
 

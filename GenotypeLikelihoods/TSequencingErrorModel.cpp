@@ -8,18 +8,19 @@
 #include "TSequencingErrorModel.h"
 
 namespace GenotypeLikelihoods{
+namespace SequencingError {
 using coretools::Probability;
 
 //*********************************************************
 // TRecalibrationEMModelCovariateDefinition
 // class to store model definition. Used when parsing files
 //*********************************************************
-void TSequencingErrorCovariateDefinition::clear(){
+void TCovariateDefinition::clear(){
 	_intercept = "";
 	_covariateFunctions.clear();
 };
 
-bool TSequencingErrorCovariateDefinition::parse(const std::string & modelString, std::string & error){
+bool TCovariateDefinition::parse(const std::string & modelString, std::string & error){
 	//make sure it is empty
 	clear();
 
@@ -59,15 +60,15 @@ bool TSequencingErrorCovariateDefinition::parse(const std::string & modelString,
 	return true;
 };
 
-void TSequencingErrorCovariateDefinition::setIntercept(const double Intercept){
+void TCovariateDefinition::setIntercept(const double Intercept){
 	_intercept = coretools::str::toString(Intercept);
 };
 
-void TSequencingErrorCovariateDefinition::addCovariate(const std::string covariate, const std::string function){
+void TCovariateDefinition::addCovariate(const std::string covariate, const std::string function){
 	_covariateFunctions.emplace_back(covariate, function);
 };
 
-std::string TSequencingErrorCovariateDefinition::getModelString() const{
+std::string TCovariateDefinition::getModelString() const{
 	std::string modelString = "intercept[" + _intercept + "]";
 	for(auto& it : _covariateFunctions){
 
@@ -79,15 +80,15 @@ std::string TSequencingErrorCovariateDefinition::getModelString() const{
 //*********************************************************
 // TRecalibrationEMModelCovariateList
 //*********************************************************
-TSequencingErrorCovariateList::TSequencingErrorCovariateList(){
+TCovariateList::TCovariateList(){
 	numParameters = intercept.numParameters();
 };
 
-TSequencingErrorCovariateList::~TSequencingErrorCovariateList(){
+TCovariateList::~TCovariateList(){
 	_clear();
 };
 
-TSequencingErrorCovariateList::TSequencingErrorCovariateList(TSequencingErrorCovariateList&& other){
+TCovariateList::TCovariateList(TCovariateList&& other){
 	//copy from other
 	covariates = std::move(other.covariates);
 	pointerToCovariateFunctions = std::move(other.pointerToCovariateFunctions);
@@ -98,7 +99,7 @@ TSequencingErrorCovariateList::TSequencingErrorCovariateList(TSequencingErrorCov
 	other.intercept.setIntercept(0.0);
 };
 
-TSequencingErrorCovariateList& TSequencingErrorCovariateList::operator=(TSequencingErrorCovariateList&& other){
+TCovariateList& TCovariateList::operator=(TCovariateList&& other){
 	if(&other != this){ //don't copy yourself
 		//clear
 		_clear();
@@ -116,7 +117,7 @@ TSequencingErrorCovariateList& TSequencingErrorCovariateList::operator=(TSequenc
 	return *this;
 };
 
-void TSequencingErrorCovariateList::_clear(){
+void TCovariateList::_clear(){
 	for(auto* it : covariates){
 		delete it;
 	}
@@ -125,7 +126,7 @@ void TSequencingErrorCovariateList::_clear(){
 	intercept.setIntercept(0.0);
 };
 
-void TSequencingErrorCovariateList::createCovariatesAndIntercept(const TSequencingErrorCovariateDefinition & covariateMap, const RecalEstimatorTools::TRecalDataTable & DataTable){
+void TCovariateList::createCovariatesAndIntercept(const TCovariateDefinition & covariateMap, const RecalEstimatorTools::TRecalDataTable & DataTable){
 	//include intercept
 	if(!covariateMap.intercept().empty()){
 		std::vector<std::string> vec = {covariateMap.intercept()};
@@ -136,18 +137,18 @@ void TSequencingErrorCovariateList::createCovariatesAndIntercept(const TSequenci
 	numParameters = intercept.numParameters();
 	for(auto it = covariateMap.cbegin(); it != covariateMap.cend(); ++it){
 		//create function for each covariate
-		if(it->covariate == TSequencingErrorCovariate::name){
+		if(it->covariate == TCovariate::name){
 			continue;
-		} else if(it->covariate == TSequencingErrorCovariate_quality::name){
-			covariates.emplace_back(new TSequencingErrorCovariate_quality(numParameters, it->function, DataTable));
-		} else if(it->covariate == TSequencingErrorCovariate_position::name){
-			covariates.emplace_back(new TSequencingErrorCovariate_position(numParameters, it->function, DataTable));
-		} else if(it->covariate == TSequencingErrorCovariate_context::name){
-			covariates.emplace_back(new TSequencingErrorCovariate_context(numParameters, it->function, DataTable));
-		} else if(it->covariate == TSequencingErrorCovariate_fragmentLength::name){
-			covariates.emplace_back(new TSequencingErrorCovariate_fragmentLength(numParameters, it->function, DataTable));
-		} else if(it->covariate == TSequencingErrorCovariate_mappingQuality::name){
-			covariates.emplace_back(new TSequencingErrorCovariate_mappingQuality(numParameters, it->function, DataTable));
+		} else if(it->covariate == TCovariate_quality::name){
+			covariates.emplace_back(new TCovariate_quality(numParameters, it->function, DataTable));
+		} else if(it->covariate == TCovariate_position::name){
+			covariates.emplace_back(new TCovariate_position(numParameters, it->function, DataTable));
+		} else if(it->covariate == TCovariate_context::name){
+			covariates.emplace_back(new TCovariate_context(numParameters, it->function, DataTable));
+		} else if(it->covariate == TCovariate_fragmentLength::name){
+			covariates.emplace_back(new TCovariate_fragmentLength(numParameters, it->function, DataTable));
+		} else if(it->covariate == TCovariate_mappingQuality::name){
+			covariates.emplace_back(new TCovariate_mappingQuality(numParameters, it->function, DataTable));
 		} else {
 			throw "Unknown recalibration covariate '" + it->covariate + "' with function " + it->function + "!";
 		}
@@ -160,7 +161,7 @@ void TSequencingErrorCovariateList::createCovariatesAndIntercept(const TSequenci
 	_storePointersToCovariateFunctions();
 };
 
-void TSequencingErrorCovariateList::createCovariatesAndIntercept(const TSequencingErrorCovariateDefinition & covariateMap){
+void TCovariateList::createCovariatesAndIntercept(const TCovariateDefinition & covariateMap){
 	//include intercept
 	std::vector<std::string> vec = {covariateMap.intercept()};
 	intercept.initialize(0, vec);
@@ -169,18 +170,18 @@ void TSequencingErrorCovariateList::createCovariatesAndIntercept(const TSequenci
 	numParameters = intercept.numParameters();
 	for(auto it = covariateMap.cbegin(); it != covariateMap.cend(); ++it){
 		//create function for each covariate
-		if(it->covariate == TSequencingErrorCovariate::name){
+		if(it->covariate == TCovariate::name){
 			continue;
-		} else if(it->covariate == TSequencingErrorCovariate_quality::name){
-			covariates.emplace_back(new TSequencingErrorCovariate_quality(numParameters, it->function));
-		} else if(it->covariate == TSequencingErrorCovariate_position::name){
-			covariates.emplace_back(new TSequencingErrorCovariate_position(numParameters, it->function));
-		} else if(it->covariate == TSequencingErrorCovariate_context::name){
-			covariates.emplace_back(new TSequencingErrorCovariate_context(numParameters, it->function));
-		} else if(it->covariate == TSequencingErrorCovariate_fragmentLength::name){
-			covariates.emplace_back(new TSequencingErrorCovariate_fragmentLength(numParameters, it->function));
-		} else if(it->covariate == TSequencingErrorCovariate_mappingQuality::name){
-			covariates.emplace_back(new TSequencingErrorCovariate_mappingQuality(numParameters, it->function));
+		} else if(it->covariate == TCovariate_quality::name){
+			covariates.emplace_back(new TCovariate_quality(numParameters, it->function));
+		} else if(it->covariate == TCovariate_position::name){
+			covariates.emplace_back(new TCovariate_position(numParameters, it->function));
+		} else if(it->covariate == TCovariate_context::name){
+			covariates.emplace_back(new TCovariate_context(numParameters, it->function));
+		} else if(it->covariate == TCovariate_fragmentLength::name){
+			covariates.emplace_back(new TCovariate_fragmentLength(numParameters, it->function));
+		} else if(it->covariate == TCovariate_mappingQuality::name){
+			covariates.emplace_back(new TCovariate_mappingQuality(numParameters, it->function));
 		} else {
 			throw "Unknown recalibration covariate '" + it->covariate + "' with function " + it->function + "!";
 		}
@@ -193,7 +194,7 @@ void TSequencingErrorCovariateList::createCovariatesAndIntercept(const TSequenci
 	_storePointersToCovariateFunctions();
 };
 
-void TSequencingErrorCovariateList::_storePointersToCovariateFunctions(){
+void TCovariateList::_storePointersToCovariateFunctions(){
 	//add intercept
 	pointerToCovariateFunctions.emplace_back(&intercept);
 
@@ -204,8 +205,8 @@ void TSequencingErrorCovariateList::_storePointersToCovariateFunctions(){
 	}
 };
 
-TSequencingErrorCovariateDefinition TSequencingErrorCovariateList::getCovariateDefinition() const{
-	TSequencingErrorCovariateDefinition def;
+TCovariateDefinition TCovariateList::getCovariateDefinition() const{
+	TCovariateDefinition def;
 	def.setIntercept(intercept.getIntercept());
 	for(const auto & cov : covariates){
 		def.addCovariate(cov->typeString(), cov->functionString());
@@ -214,29 +215,29 @@ TSequencingErrorCovariateDefinition TSequencingErrorCovariateList::getCovariateD
 }
 
 //*********************************************************
-// TSequencingErrorRhoStorage
+// TRhoStorage
 //*********************************************************
-TSequencingErrorRhoStorage::TSequencingErrorRhoStorage(){
+TRhoStorage::TRhoStorage(){
 	reset();
 };
 
-TSequencingErrorRhoStorage::TSequencingErrorRhoStorage(const std::string & def, std::string & error){
+TRhoStorage::TRhoStorage(const std::string & def, std::string & error){
 	set(def, error);
 };
 
-TSequencingErrorRhoStorage::TSequencingErrorRhoStorage(const TSequencingErrorRhoStorage & other){
+TRhoStorage::TRhoStorage(const TRhoStorage & other){
 	rho = other.rho;
 };
 
-void TSequencingErrorRhoStorage::operator=(const TSequencingErrorRhoStorage & other){
+void TRhoStorage::operator=(const TRhoStorage & other){
 	rho = other.rho;
 };
 
-double TSequencingErrorRhoStorage::operator()(const uint8_t & from, const uint8_t & to){
+double TRhoStorage::operator()(const uint8_t & from, const uint8_t & to){
 	return rho[from][to];
 };
 
-void TSequencingErrorRhoStorage::reset(){
+void TRhoStorage::reset(){
 	for(int a=0; a<4; ++a){
 		for(int b=0; b<4; ++b){
 			if(a==b){
@@ -248,7 +249,7 @@ void TSequencingErrorRhoStorage::reset(){
 	}
 };
 
-bool TSequencingErrorRhoStorage::set(const std::string & def, std::string & error){
+bool TRhoStorage::set(const std::string & def, std::string & error){
 	using coretools::str::toString;
 	//"default" implies default rho
 	if(def == "default"){
@@ -289,7 +290,7 @@ bool TSequencingErrorRhoStorage::set(const std::string & def, std::string & erro
 	return true;
 };
 
-std::string TSequencingErrorRhoStorage::getDefinition() const{
+std::string TRhoStorage::getDefinition() const{
 	std::string def;
 	for(int a=0; a<4; ++a){
 		if(a>0){
@@ -310,13 +311,13 @@ std::string TSequencingErrorRhoStorage::getDefinition() const{
 };
 
 //*********************************************************
-// TSequencingErrorRho
+// TRho
 //*********************************************************
-void TSequencingErrorRho::operator=(const TSequencingErrorRhoStorage & other){
-	TSequencingErrorRhoStorage::operator =(other);
+void TRho::operator=(const TRhoStorage & other){
+	TRhoStorage::operator =(other);
 };
 
-void TSequencingErrorRho::fillBaseLikelihoods(const genometools::Base base, const Probability & epsilon, TBaseLikelihoods & baseLikelihoods) const{
+void TRho::fillBaseLikelihoods(const genometools::Base base, const Probability & epsilon, TBaseLikelihoods & baseLikelihoods) const{
 	using genometools::Base;
 	using genometools::index;
 	if(base == Base::N){
@@ -343,7 +344,7 @@ void TSequencingErrorRho::fillBaseLikelihoods(const genometools::Base base, cons
 	}
 };
 
-void TSequencingErrorRho::prepareEstimationFromEMWeights(){
+void TRho::prepareEstimationFromEMWeights(){
 	for(int b=0; b<4; ++b){
 		for(int a=0; a<4; ++a){
 			rho[a][b] = 0.0;
@@ -351,7 +352,7 @@ void TSequencingErrorRho::prepareEstimationFromEMWeights(){
 	}
 };
 
-void TSequencingErrorRho::addBaseForEstimation(const genometools::Base & base, const TBaseLikelihoods & EMWeights){
+void TRho::addBaseForEstimation(const genometools::Base & base, const TBaseLikelihoods & EMWeights){
 	using genometools::Base;
 	using genometools::index;
 	if(base == Base::A){
@@ -373,7 +374,7 @@ void TSequencingErrorRho::addBaseForEstimation(const genometools::Base & base, c
 	}
 };
 
-void TSequencingErrorRho::estimate(){
+void TRho::estimate(){
 	//calculate denominators
 	std::vector<double> denom(4, 0.0);
 	for(int a=0; a<4; ++a){
@@ -400,9 +401,9 @@ void TSequencingErrorRho::estimate(){
 };
 
 //*********************************************************
-// TSequencingErrorModelNoRecal
+// TModelNoRecal
 //*********************************************************
-Probability TSequencingErrorModelNoRecal::getErrorRate(const BAM::TSequencedBase & base) const{
+Probability TModelNoRecal::getErrorRate(const BAM::TSequencedBase & base) const{
 	if(base == genometools::Base::N){
 		return Probability(1.0);
 	} else {
@@ -410,7 +411,7 @@ Probability TSequencingErrorModelNoRecal::getErrorRate(const BAM::TSequencedBase
 	}
 };
 
-genometools::PhredIntProbability TSequencingErrorModelNoRecal::getPhredInt(const BAM::TSequencedBase & base) const{
+genometools::PhredIntProbability TModelNoRecal::getPhredInt(const BAM::TSequencedBase & base) const{
 	if(base == genometools::Base::N){
 		return genometools::PhredIntProbability(0); //Todo: change to maxProb() one available.
 	} else {
@@ -418,7 +419,7 @@ genometools::PhredIntProbability TSequencingErrorModelNoRecal::getPhredInt(const
 	}
 };
 
-void TSequencingErrorModelNoRecal::fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseLikelihoods & baseLikelihoods) const{
+void TModelNoRecal::fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseLikelihoods & baseLikelihoods) const{
 	if(base == genometools::Base::N){
 		baseLikelihoods.reset();
 	} else {
@@ -427,10 +428,10 @@ void TSequencingErrorModelNoRecal::fillBaseLikelihoods(const BAM::TSequencedBase
 };
 
 //*********************************************************
-// TSequencingErrorModelRecal
+// TModelRecal
 //*********************************************************
 
-TSequencingErrorModelRecal::TSequencingErrorModelRecal(const TSequencingErrorModelDefinition & modelDef){
+TModelRecal::TModelRecal(const TModelDefinition & modelDef){
 	//create covariates
 	_covariates.createCovariatesAndIntercept(modelDef.covariates);
 	_rho = modelDef.rho;
@@ -439,7 +440,7 @@ TSequencingErrorModelRecal::TSequencingErrorModelRecal(const TSequencingErrorMod
 	setNewtonRaphsonParamsToZero();
 };
 
-TSequencingErrorModelRecal::TSequencingErrorModelRecal(const TSequencingErrorModelDefinition & ModelDef, const RecalEstimatorTools::TRecalDataTable & DataTable){
+TModelRecal::TModelRecal(const TModelDefinition & ModelDef, const RecalEstimatorTools::TRecalDataTable & DataTable){
 	//create covariates
 	_covariates.createCovariatesAndIntercept(ModelDef.covariates, DataTable);
 	_rho = ModelDef.rho;
@@ -448,9 +449,9 @@ TSequencingErrorModelRecal::TSequencingErrorModelRecal(const TSequencingErrorMod
 	setNewtonRaphsonParamsToZero();
 };
 
-TSequencingErrorModelDefinition TSequencingErrorModelRecal::getModelDefinition() const{
+TModelDefinition TModelRecal::getModelDefinition() const{
 	std::string error;
-	TSequencingErrorModelDefinition modelDef(getCovariateDefinition(), getRhoDefinition(), error);
+	TModelDefinition modelDef(getCovariateDefinition(), getRhoDefinition(), error);
 	return modelDef;
 };
 
@@ -458,7 +459,7 @@ TSequencingErrorModelDefinition TSequencingErrorModelRecal::getModelDefinition()
 //functions to calculate error rates
 //-------------------------------------------------
 
-Probability TSequencingErrorModelRecal::_calcEpsilon(double eta) const{
+Probability TModelRecal::_calcEpsilon(double eta) const{
 	if(eta > 23.03){
 		return Probability(0.9999999999);
 	}
@@ -469,7 +470,7 @@ Probability TSequencingErrorModelRecal::_calcEpsilon(double eta) const{
 	return coretools::logistic(eta);
 };
 
-Probability TSequencingErrorModelRecal::_calcErrorRate(const BAM::TSequencedBase & base) const{
+Probability TModelRecal::_calcErrorRate(const BAM::TSequencedBase & base) const{
 	//eta = bta[0] + SUM_i f(q[i]), where the functions are implemented as covariate function
 	double eta = _covariates.intercept.getEtaTerm();
 
@@ -480,7 +481,7 @@ Probability TSequencingErrorModelRecal::_calcErrorRate(const BAM::TSequencedBase
 	return _calcEpsilon(eta);
 };
 
-Probability TSequencingErrorModelRecal::getErrorRate(const BAM::TSequencedBase & base) const{
+Probability TModelRecal::getErrorRate(const BAM::TSequencedBase & base) const{
 	if(base == genometools::Base::N){
 		return Probability::highest();
 	} else {
@@ -488,7 +489,7 @@ Probability TSequencingErrorModelRecal::getErrorRate(const BAM::TSequencedBase &
 	}
 };
 
-genometools::PhredIntProbability TSequencingErrorModelRecal::getPhredInt(const BAM::TSequencedBase & base) const{
+genometools::PhredIntProbability TModelRecal::getPhredInt(const BAM::TSequencedBase & base) const{
 	if(base == genometools::Base::N){
 		return genometools::PhredIntProbability(0); //Todo: change to maxProb() one available.
 	} else {
@@ -496,7 +497,7 @@ genometools::PhredIntProbability TSequencingErrorModelRecal::getPhredInt(const B
 	}
 };
 
-void TSequencingErrorModelRecal::fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseLikelihoods & baseLikelihoods) const{
+void TModelRecal::fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseLikelihoods & baseLikelihoods) const{
 	if(base == genometools::Base::N){
 		baseLikelihoods.reset();
 	} else {
@@ -507,22 +508,22 @@ void TSequencingErrorModelRecal::fillBaseLikelihoods(const BAM::TSequencedBase &
 //-------------------------------------------------
 //functions to estimate rho
 //-------------------------------------------------
-void TSequencingErrorModelRecal::prepareRhoEstimationFromEMWeights(){
+void TModelRecal::prepareRhoEstimationFromEMWeights(){
 	_rho.prepareEstimationFromEMWeights();
 };
 
-void TSequencingErrorModelRecal::addBaseForRhoEstimation(BAM::TSequencedBase & base, const TBaseLikelihoods & EMWeights){
+void TModelRecal::addBaseForRhoEstimation(BAM::TSequencedBase & base, const TBaseLikelihoods & EMWeights){
 	_rho.addBaseForEstimation(base.base, EMWeights);
 };
 
-void TSequencingErrorModelRecal::estimateRho(){
+void TModelRecal::estimateRho(){
 	_rho.estimate();
 };
 
 //-------------------------------------------------
 //functions for estimation
 //-------------------------------------------------
-bool TSequencingErrorModelRecal::checkParameterRange(RecalEstimatorTools::TRecalDataTable & DataTable, std::string & error){
+bool TModelRecal::checkParameterRange(RecalEstimatorTools::TRecalDataTable & DataTable, std::string & error){
 	for(auto & cov : _covariates.covariates){
 		if(!cov->checkParameterRange(DataTable)){
 			error = "Function for covariate " + cov->typeString() + " does not cover full range of data";
@@ -532,7 +533,7 @@ bool TSequencingErrorModelRecal::checkParameterRange(RecalEstimatorTools::TRecal
 	return true;
 };
 
-void TSequencingErrorModelRecal::_initializeDerivatives(){
+void TModelRecal::_initializeDerivatives(){
 	//intercept
 	size_t numNonZeroFirstDeriv = _covariates.intercept.numNonZeroFirstDerivatives();
 	size_t numNonZeroSecondDeriv = _covariates.intercept.numNonZeroSecondDerivatives();
@@ -546,7 +547,7 @@ void TSequencingErrorModelRecal::_initializeDerivatives(){
 	_secondDerivatives.resize(numNonZeroSecondDeriv);
 };
 
-void TSequencingErrorModelRecal::setNewtonRaphsonParamsToZero(){
+void TModelRecal::setNewtonRaphsonParamsToZero(){
 	_Jacobian.resize(_covariates.numParameters, _covariates.numParameters);
 	_F.resize(_covariates.numParameters);
 	_JxF.resize(_covariates.numParameters, 1);
@@ -561,14 +562,14 @@ void TSequencingErrorModelRecal::setNewtonRaphsonParamsToZero(){
 	_NRStepAccepted = false;
 };
 
-void TSequencingErrorModelRecal::setQToZero(){
+void TModelRecal::setQToZero(){
 	if(!_NRconverged){
 		_oldQ = _Q;
 		_Q = 0.0;
 	}
 };
 
-void TSequencingErrorModelRecal::addToQ(const BAM::TSequencedBase & base, const TBaseLikelihoods & EM_weights_bbar_given_d){
+void TModelRecal::addToQ(const BAM::TSequencedBase & base, const TBaseLikelihoods & EM_weights_bbar_given_d){
 	if(!_NRconverged){
 		//get error rate
 		Probability eps = getErrorRate(base);
@@ -578,7 +579,7 @@ void TSequencingErrorModelRecal::addToQ(const BAM::TSequencedBase & base, const 
 	}
 };
 
-void TSequencingErrorModelRecal::addToFandJacobian(const BAM::TSequencedBase & base, const TBaseLikelihoods & EM_weights_bbar_given_d){
+void TModelRecal::addToFandJacobian(const BAM::TSequencedBase & base, const TBaseLikelihoods & EM_weights_bbar_given_d){
 	// 1) Calculate epsilon
 	//--------------------
 	double eps = getErrorRate(base).get();
@@ -623,7 +624,7 @@ void TSequencingErrorModelRecal::addToFandJacobian(const BAM::TSequencedBase & b
 	++_numSitesAdded;
 };
 
-bool TSequencingErrorModelRecal::solveJxF(){
+bool TModelRecal::solveJxF(){
 	if(_NRconverged){
 		return true;
 	} else {
@@ -648,7 +649,7 @@ bool TSequencingErrorModelRecal::solveJxF(){
 	}
 };
 
-void TSequencingErrorModelRecal::proposeNewParameters(double & lambda){
+void TModelRecal::proposeNewParameters(double & lambda){
 	if(!_NRStepAccepted){
 		uint16_t index = 0;
 		for(const auto it : _covariates.pointerToCovariateFunctions){
@@ -657,7 +658,7 @@ void TSequencingErrorModelRecal::proposeNewParameters(double & lambda){
 	}
 };
 
-bool TSequencingErrorModelRecal::acceptProposedParametersBasedOnQ(){
+bool TModelRecal::acceptProposedParametersBasedOnQ(){
 	if(_NRStepAccepted) return true;
 	if(_Q > _oldQ){
 		_NRStepAccepted = true;
@@ -672,13 +673,13 @@ bool TSequencingErrorModelRecal::acceptProposedParametersBasedOnQ(){
 	return _NRStepAccepted;
 };
 
-void TSequencingErrorModelRecal::adjustParametersPostEstimation(){
+void TModelRecal::adjustParametersPostEstimation(){
 	for(const auto it : _covariates.pointerToCovariateFunctions){
 		_covariates.intercept.addToIntercept(it->adjustParametersPostEstimation());
 	}
 };
 
-double TSequencingErrorModelRecal::getSteepestGradient(){
+double TModelRecal::getSteepestGradient(){
 	if(_NRStepAccepted) return 0.0;
 	double maxF = 0.0;
 	for(unsigned int i=0; i<_covariates.numParameters; ++i){
@@ -687,18 +688,17 @@ double TSequencingErrorModelRecal::getSteepestGradient(){
 	return maxF;
 };
 
-void TSequencingErrorModelRecal::printJacobianToStdOut(){
+void TModelRecal::printJacobianToStdOut(){
 	std::cout << std::endl << std::endl << "JACOBIAN:" << std::endl << _Jacobian << std::endl << std::endl;
 };
 
-void TSequencingErrorModelRecal::printFToStdOut(){
+void TModelRecal::printFToStdOut(){
 	std::cout << std::endl << std::endl << "F:" << std::endl << _F << std::endl << std::endl;
 };
 
-void TSequencingErrorModelRecal::printJxFToStdOut(){
+void TModelRecal::printJxFToStdOut(){
 	std::cout << std::endl << std::endl << "JxF:" << std::endl << _JxF << std::endl << std::endl;
 };
 
-}; //end namespace
-
-
+} // namespace SequencingError
+} // namespace GenotypeLikelihoods

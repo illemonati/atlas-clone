@@ -26,7 +26,7 @@ namespace RecalEstimator{
 //--------------------------------------------------------------------------------------
 class TModelIndex{
 private:
-	std::vector< std::array< std::shared_ptr<TSequencingErrorModelRecal>, 2> > _index;
+	std::vector< std::array< std::shared_ptr<SequencingError::TModelRecal>, 2> > _index;
 
 public:
 	TModelIndex(const BAM::TReadGroups& ReadGroups){
@@ -34,7 +34,7 @@ public:
 	};
 	~TModelIndex() = default;
 
-	void set(uint16_t ReadGroupId, const bool & IsSecondMate, std::shared_ptr<TSequencingErrorModelRecal> & Model, const BAM::TReadGroupMap & ReadGroupMap){
+	void set(uint16_t ReadGroupId, const bool & IsSecondMate, std::shared_ptr<SequencingError::TModelRecal> & Model, const BAM::TReadGroupMap & ReadGroupMap){
 		//also set for all models pooled
 		for(auto& r : ReadGroupMap.readGroupsPooledWith(ReadGroupId)){
 			_index[r][IsSecondMate] = Model;
@@ -45,7 +45,7 @@ public:
 		return _index[base.readGroupID][(int) base.isSecondMate()].get();
 	};
 
-	TSequencingErrorModelRecal& operator()(const BAM::TSequencedBase & base) const{
+	SequencingError::TModelRecal& operator()(const BAM::TSequencedBase & base) const{
 		return *_index[base.readGroupID][base.isSecondMate()];
 	};
 };
@@ -58,11 +58,11 @@ public:
 class TSequencingErrorModelVectorForEstimation{
 private:
 	//vector of pointers to models that require estimation
-	std::vector< std::shared_ptr<TSequencingErrorModelRecal> > _models;
+	std::vector< std::shared_ptr<SequencingError::TModelRecal> > _models;
 	TModelIndex _modelIndex;
 
 public:
-	TSequencingErrorModelVectorForEstimation(TSequencingErrorModels & SequencingErrorModels,
+	TSequencingErrorModelVectorForEstimation(SequencingError::TModels & SequencingErrorModels,
 										     const RecalEstimatorTools::TRecalDataTables & DataTables,
 											 const BAM::TReadGroups & ReadGroups,
 											 const BAM::TReadGroupMap & ReadGroupMap,
@@ -120,7 +120,7 @@ private:
 	std::string _recalFile; //file name in case a file with model is provided
 
 	size_t _numSitesDepthTwoOrMore();
-	void _initializeModels(TSequencingErrorModels & SequencingErrorModels);
+	void _initializeModels(SequencingError::TModels & SequencingErrorModels);
 	void _runEM(std::string outputName, const TPostMortemDamage & PmdModels);
 	void _fillRelevantBaseFrequencies(TBaseProbabilities & baseFreq, const genometools::Genotype & genotype);
 
@@ -140,7 +140,7 @@ public:
 	void addSite(const TSite & site);
 
 	//function to estimate
-	void performEstimation(std::string outputName, TSequencingErrorModels & SequencingErrorModels, const TPostMortemDamage & PmdModels);
+	void performEstimation(std::string outputName, SequencingError::TModels & SequencingErrorModels, const TPostMortemDamage & PmdModels);
 
 	void writeCurrentEstimates(std::string filename);
 	double calcLL();

@@ -55,7 +55,7 @@ protected:
 	BAM::TReadGroups _readGroups;
 	GenotypeLikelihoods::TPostMortemDamage _PMD;
 	// BAM::TReadGroupMap _readGroupMap; //needed by recal REALLYY??????
-	GenotypeLikelihoods::TSequencingErrorModels _recal;
+	GenotypeLikelihoods::SequencingError::TModels _recal;
 
 	// read simulator
 	std::vector<std::unique_ptr<TSimulatorSingleEndRead>> _readSimulators;

@@ -35,7 +35,7 @@ private:
 	std::vector<coretools::TCountDistributionVector> _transformations;
 	bool _compareToOtherSeqErrors;
 	std::string _label1, _label2;
-	GenotypeLikelihoods::TSequencingErrorModels _otherSeqErrors;
+	GenotypeLikelihoods::SequencingError::TModels _otherSeqErrors;
 
 	void _handleAlignment();
 

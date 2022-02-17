@@ -90,7 +90,7 @@ public:
 			  const std::string & Qualities,
 			  uint16_t ReadGroupId);
 	void parse();
-	void parse(const GenotypeLikelihoods::TSequencingErrorModels & seqErrorModels);
+	void parse(const GenotypeLikelihoods::SequencingError::TModels & seqErrorModels);
 
 	//setters
 	void addReference(TFastaBuffer & fasta);

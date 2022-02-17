@@ -18,7 +18,7 @@ namespace RecalEstimator{
 // TSequencingErrorModelVectorForEstimation
 //--------------------------------------------------------------------------
 
-TSequencingErrorModelVectorForEstimation::TSequencingErrorModelVectorForEstimation(TSequencingErrorModels & SequencingErrorModels,
+	TSequencingErrorModelVectorForEstimation::TSequencingErrorModelVectorForEstimation(SequencingError::TModels & SequencingErrorModels,
 																				   const RecalEstimatorTools::TRecalDataTables & DataTables,
 																				   const BAM::TReadGroups & ReadGroups,
 																				   const BAM::TReadGroupMap & ReadGroupMap,
@@ -48,7 +48,7 @@ TSequencingErrorModelVectorForEstimation::TSequencingErrorModelVectorForEstimati
 				if(SequencingErrorModels[r][mate].estimatable()){
 
 					//copy model and update index
-					std::shared_ptr<TSequencingErrorModelRecal>& model = SequencingErrorModels[r].getSharedPointerToRecalModel(mate);
+					std::shared_ptr<SequencingError::TModelRecal>& model = SequencingErrorModels[r].getSharedPointerToRecalModel(mate);
 					_models.push_back(model);
 					modelStati[r][MS::copied].set(mate);
 					_modelIndex.set(r, mate, model, ReadGroupMap); //handles pooling
@@ -244,7 +244,7 @@ size_t TRecalibrationEMEstimator::_numSitesDepthTwoOrMore(){
 	return _numSites;
 };
 
-void TRecalibrationEMEstimator::_initializeModels(TSequencingErrorModels & SequencingErrorModels){
+	void TRecalibrationEMEstimator::_initializeModels(SequencingError::TModels & SequencingErrorModels){
 	using coretools::str::toString;
 	//count data available for recal
 	_logfile->listFlush("Counting data available for recal ...");
@@ -277,7 +277,7 @@ void TRecalibrationEMEstimator::addSite(const TSite & site){
 //----------------------------
 //Functions for estimation
 //----------------------------
-void TRecalibrationEMEstimator::performEstimation(std::string outputName, TSequencingErrorModels & SequencingErrorModels, const TPostMortemDamage & PmdModels){
+	void TRecalibrationEMEstimator::performEstimation(std::string outputName, SequencingError::TModels & SequencingErrorModels, const TPostMortemDamage & PmdModels){
 	//initialize models
 	_initializeModels(SequencingErrorModels);
 

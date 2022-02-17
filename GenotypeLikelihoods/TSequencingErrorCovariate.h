@@ -15,16 +15,17 @@
 #include "RecalEstimatorTools.h"
 
 namespace GenotypeLikelihoods{
+namespace SequencingError {
 
 //define covariate names
 
 //------------------------------------------------------------------------------------
-// TSequencingErrorCovariate
+// TCovariate
 // This is the base class without any covariate. Not intended to be used in models!
 //------------------------------------------------------------------------------------
-class TSequencingErrorCovariate{
+class TCovariate{
 protected:
-	std::unique_ptr<TSequencingErrorCovariateFunction> _function;
+	std::unique_ptr<TCovariateFunction> _function;
 
 	void _parseModuleString(const std::string & str, std::string & type, std::vector<std::string> & args, std::vector<std::string> & values);
 	void _addPolynomialFunction(const size_t FirstParameterIndex, const std::string & functionString, std::vector<std::string> & args, std::vector<std::string> & values);
@@ -34,8 +35,8 @@ protected:
 
 public:
 	static inline const std::string name = "none";
-	TSequencingErrorCovariate(){};
-	virtual ~TSequencingErrorCovariate(){};
+	TCovariate(){};
+	virtual ~TCovariate(){};
 
 	uint16_t numParameters();
 	uint16_t numNonZeroFirstDerivatives();
@@ -52,7 +53,7 @@ public:
 	virtual bool checkParameterRange(std::vector<uint16_t> &, uint16_t) = 0;
 	virtual void adjustParameterRange(const RecalEstimatorTools::TRecalDataTable &) = 0;
 
-	TSequencingErrorCovariateFunction* getPointerToFunction(){ return _function.get(); };
+	TCovariateFunction* getPointerToFunction(){ return _function.get(); };
 
 	//calculate terms
 	double getEtaTerm(const BAM::TSequencedBase & base){
@@ -69,9 +70,9 @@ public:
 };
 
 //-------------------------------------------
-// TSequencingErrorCovariate_quality
+// TCovariate_quality
 //-------------------------------------------
-class TSequencingErrorCovariate_quality:public TSequencingErrorCovariate{
+class TCovariate_quality:public TCovariate{
 private:
 	TRecalibrationEMQualityTransformationMap qualityToLogit;
 
@@ -81,8 +82,8 @@ private:
 
 public:
 	static inline const std::string name = "quality";
-	TSequencingErrorCovariate_quality(const size_t FirstParameterIndex, const std::string & functionString, const RecalEstimatorTools::TRecalDataTable & dataTable);
-	TSequencingErrorCovariate_quality(const size_t FirstParameterIndex, const std::string & functionString);
+	TCovariate_quality(const size_t FirstParameterIndex, const std::string & functionString, const RecalEstimatorTools::TRecalDataTable & dataTable);
+	TCovariate_quality(const size_t FirstParameterIndex, const std::string & functionString);
 
 	std::string typeString() const override { return name; };
 	void addFunction(const size_t FirstParameterIndex, const std::string & functionString, const RecalEstimatorTools::TRecalDataTable & dataTable) override;
@@ -93,9 +94,9 @@ public:
 };
 
 //-------------------------------------------
-// TSequencingErrorCovariate_position
+// TCovariate_position
 //-------------------------------------------
-class TSequencingErrorCovariate_position:public TSequencingErrorCovariate{
+class TCovariate_position:public TCovariate{
 private:
 	uint16_t _extractCovariate(const BAM::TSequencedBase & base) override {
 		return base.distFrom5Prime;
@@ -103,8 +104,8 @@ private:
 
 public:
 	static inline const std::string name =  "position";
-	TSequencingErrorCovariate_position(const size_t FirstParameterIndex, const std::string & functionString, const RecalEstimatorTools::TRecalDataTable & dataTable);
-	TSequencingErrorCovariate_position(const size_t FirstParameterIndex, const std::string & functionString);
+	TCovariate_position(const size_t FirstParameterIndex, const std::string & functionString, const RecalEstimatorTools::TRecalDataTable & dataTable);
+	TCovariate_position(const size_t FirstParameterIndex, const std::string & functionString);
 
 	std::string typeString() const override  { return name; };
 	void addFunction(const size_t FirstParameterIndex, const std::string & functionString, const RecalEstimatorTools::TRecalDataTable & dataTable)  override;
@@ -115,9 +116,9 @@ public:
 };
 
 //-------------------------------------------
-// TSequencingErrorCovariate_context
+// TCovariate_context
 //-------------------------------------------
-class TSequencingErrorCovariate_context:public TSequencingErrorCovariate{
+class TCovariate_context:public TCovariate{
 private:
 	int numContext;
 
@@ -127,8 +128,8 @@ private:
 
 public:
 	static inline const std::string name =  "context";
-	TSequencingErrorCovariate_context(const size_t FirstParameterIndex, const std::string & functionString, const RecalEstimatorTools::TRecalDataTable & dataTable);
-	TSequencingErrorCovariate_context(const size_t FirstParameterIndex, const std::string & functionString);
+	TCovariate_context(const size_t FirstParameterIndex, const std::string & functionString, const RecalEstimatorTools::TRecalDataTable & dataTable);
+	TCovariate_context(const size_t FirstParameterIndex, const std::string & functionString);
 
 	std::string typeString() const override { return name; };
 	void addFunction(const size_t FirstParameterIndex, const std::string & functionString, const RecalEstimatorTools::TRecalDataTable & dataTable) override;
@@ -139,10 +140,10 @@ public:
 };
 
 //-------------------------------------------
-// TSequencingErrorCovariate_fragmentLength
+// TCovariate_fragmentLength
 //-------------------------------------------
 
-class TSequencingErrorCovariate_fragmentLength:public TSequencingErrorCovariate{
+class TCovariate_fragmentLength:public TCovariate{
 private:
 	uint16_t _extractCovariate(const BAM::TSequencedBase & base) override {
 		return base.fragmentLength;
@@ -150,8 +151,8 @@ private:
 
 public:
 	static inline std::string name =  "fragmentLength";
-	TSequencingErrorCovariate_fragmentLength(const size_t FirstParameterIndex, const std::string & functionString, const RecalEstimatorTools::TRecalDataTable & dataTable);
-	TSequencingErrorCovariate_fragmentLength(const size_t FirstParameterIndex, const std::string & functionString);
+	TCovariate_fragmentLength(const size_t FirstParameterIndex, const std::string & functionString, const RecalEstimatorTools::TRecalDataTable & dataTable);
+	TCovariate_fragmentLength(const size_t FirstParameterIndex, const std::string & functionString);
 
 	std::string typeString() const override { return name; };
 	void addFunction(const size_t FirstParameterIndex, const std::string & functionString, const RecalEstimatorTools::TRecalDataTable & dataTable) override;
@@ -162,10 +163,10 @@ public:
 };
 
 //-------------------------------------------
-// TSequencingErrorCovariate_mappingQuality
+// TCovariate_mappingQuality
 //-------------------------------------------
 
-class TSequencingErrorCovariate_mappingQuality:public TSequencingErrorCovariate{
+class TCovariate_mappingQuality:public TCovariate{
 private:
 	uint16_t _extractCovariate(const BAM::TSequencedBase & base) override {
 		return base.mappingQuality;
@@ -173,8 +174,8 @@ private:
 
 public:
 	static inline const std::string name = "mappingQuality";
-	TSequencingErrorCovariate_mappingQuality(const size_t FirstParameterIndex, const std::string & functionString, const RecalEstimatorTools::TRecalDataTable & dataTable);
-	TSequencingErrorCovariate_mappingQuality(const size_t FirstParameterIndex, const std::string & functionString);
+	TCovariate_mappingQuality(const size_t FirstParameterIndex, const std::string & functionString, const RecalEstimatorTools::TRecalDataTable & dataTable);
+	TCovariate_mappingQuality(const size_t FirstParameterIndex, const std::string & functionString);
 
 	std::string typeString() const override { return name; };
 	void addFunction(const size_t FirstParameterIndex, const std::string & functionString, const RecalEstimatorTools::TRecalDataTable & dataTable) override;
@@ -184,6 +185,7 @@ public:
 	void adjustParameterRange(const RecalEstimatorTools::TRecalDataTable & dataTable) override;
 };
 
-}; //end namespace GenotypeLikelihoods
+} // namespace SequencingError
+} // end namespace GenotypeLikelihoods
 
 #endif /* GENOTYPELIKELIHOODS_TSEQUENCINGERRORCOVARIATE_H_ */

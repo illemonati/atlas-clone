@@ -225,7 +225,7 @@ TEST(TPostMortemDamage_test, exp_learn) {
 TEST(TPostMortemDamage_test, baseANoPMD) {
 		constexpr auto err = 0.01;
 
-		TSequencingErrorModels sem;
+		SequencingError::TModels sem;
 		TBaseLikelihoods sem_likelihoods;
 		TPostMortemDamage pmd;
 		TBaseLikelihoods pmd_likelihoods;
@@ -258,7 +258,7 @@ TEST(TPostMortemDamage_test, baseAWithPMD) {
 	using namespace genometools;
 	constexpr auto err = 0.01;
 
-	TSequencingErrorModels sem;
+	SequencingError::TModels sem;
 	TBaseLikelihoods sem_likelihoods;
 	TBaseLikelihoods pmd_likelihoods;
 

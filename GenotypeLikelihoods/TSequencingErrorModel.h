@@ -18,32 +18,33 @@
 #include <string>
 
 namespace GenotypeLikelihoods{
+namespace SequencingError {
 
 
 //--------------------------------------------------------------------
-// TSequencingErrorCovariateDef
+// TCovariateDef
 // class to store model definition. Used when parsing files
 //--------------------------------------------------------------------
-struct TSequencingErrorCovariateDef{
+struct TCovariateDef{
 	std::string covariate;
 	std::string function;
 
-	TSequencingErrorCovariateDef(const std::string Covariate, const std::string Function){
+	TCovariateDef(const std::string Covariate, const std::string Function){
 		covariate = Covariate;
 		function = Function;
 	};
 };
 
-class TSequencingErrorCovariateDefinition{
+class TCovariateDefinition{
 private:
-	std::vector<TSequencingErrorCovariateDef> _covariateFunctions;  //<covariate, function>
+	std::vector<TCovariateDef> _covariateFunctions;  //<covariate, function>
 	std::string _intercept;
 
 public:
-	TSequencingErrorCovariateDefinition(){
+	TCovariateDefinition(){
 		clear();
 	};
-	TSequencingErrorCovariateDefinition(const std::string modelString, std::string & error){
+	TCovariateDefinition(const std::string modelString, std::string & error){
 		parse(modelString, error);
 	};
 
@@ -53,25 +54,25 @@ public:
 	void addCovariate(const std::string covariate, const std::string function);
 	size_t size() const { return _covariateFunctions.size(); };
 	const std::string& intercept() const { return _intercept; };
-	std::vector<TSequencingErrorCovariateDef>::iterator begin(){ return _covariateFunctions.begin(); };
-	std::vector<TSequencingErrorCovariateDef>::iterator end(){ return _covariateFunctions.end(); };
-	std::vector<TSequencingErrorCovariateDef>::const_iterator cbegin() const { return _covariateFunctions.cbegin(); };
-	std::vector<TSequencingErrorCovariateDef>::const_iterator cend() const { return _covariateFunctions.cend(); };
+	std::vector<TCovariateDef>::iterator begin(){ return _covariateFunctions.begin(); };
+	std::vector<TCovariateDef>::iterator end(){ return _covariateFunctions.end(); };
+	std::vector<TCovariateDef>::const_iterator cbegin() const { return _covariateFunctions.cbegin(); };
+	std::vector<TCovariateDef>::const_iterator cend() const { return _covariateFunctions.cend(); };
 	std::string getModelString() const;
 };
 
 //--------------------------------------------------------------------
-// TSequencingErrorRhoStorage
+// TRhoStorage
 //--------------------------------------------------------------------
-class TSequencingErrorRhoStorage{
+class TRhoStorage{
 protected:
 	std::array< std::array<double, 4>, 4 > rho; //[from][to]
 
 public:
-	TSequencingErrorRhoStorage();
-	TSequencingErrorRhoStorage(const TSequencingErrorRhoStorage & other);
-	TSequencingErrorRhoStorage(const std::string & def, std::string & error);
-	void operator=(const TSequencingErrorRhoStorage & other);
+	TRhoStorage();
+	TRhoStorage(const TRhoStorage & other);
+	TRhoStorage(const std::string & def, std::string & error);
+	void operator=(const TRhoStorage & other);
 	double operator()(const uint8_t & from, const uint8_t & to);
 	void reset();
 	bool set(const std::string & def, std::string & error);
@@ -80,11 +81,11 @@ public:
 };
 
 //--------------------------------------------------------------------
-// TSequencingErrorRho
+// TRho
 //--------------------------------------------------------------------
-class TSequencingErrorRho:public TSequencingErrorRhoStorage{
+class TRho:public TRhoStorage{
 public:
-	void operator=(const TSequencingErrorRhoStorage & other);
+	void operator=(const TRhoStorage & other);
 	void fillBaseLikelihoods(const genometools::Base base, const coretools::Probability & epsilon, TBaseLikelihoods & baseLikelihoods) const;
 
 	//functions used to estimate
@@ -94,16 +95,16 @@ public:
 };
 
 //--------------------------------------------------------------------
-// TSequencingErrorModelDefinition
+// TModelDefinition
 // class to store model definition. Used when parsing files
 //--------------------------------------------------------------------
-class TSequencingErrorModelDefinition{
+class TModelDefinition{
 public:
-	TSequencingErrorCovariateDefinition covariates;
-	TSequencingErrorRhoStorage rho;
+	TCovariateDefinition covariates;
+	TRhoStorage rho;
 
-	TSequencingErrorModelDefinition() = default;
-	TSequencingErrorModelDefinition(const std::string & covariateString, const std::string & rhoString, std::string & error){
+	TModelDefinition() = default;
+	TModelDefinition(const std::string & covariateString, const std::string & rhoString, std::string & error){
 		parse(covariateString, rhoString, error);
 	};
 
@@ -124,41 +125,41 @@ public:
 };
 
 //--------------------------------------------------------------------
-// TSequencingErrorCovariateList
+// TCovariateList
 // class to store all covariates of an error model
 //--------------------------------------------------------------------
-class TSequencingErrorCovariateList{
+class TCovariateList{
 private:
 	void _storePointersToCovariateFunctions();
 	void _clear();
 
 public:
 	uint16_t numParameters;
-	TSequencingErrorCovariateFunction_intercept intercept;
-	std::vector< TSequencingErrorCovariate* > covariates;
-	std::vector< TSequencingErrorCovariateFunction* > pointerToCovariateFunctions;
+	TCovariateFunction_intercept intercept;
+	std::vector< TCovariate* > covariates;
+	std::vector< TCovariateFunction* > pointerToCovariateFunctions;
 
-	TSequencingErrorCovariateList();
-	~TSequencingErrorCovariateList();
-	TSequencingErrorCovariateList(TSequencingErrorCovariateList&& other);
-	TSequencingErrorCovariateList& operator=(TSequencingErrorCovariateList&& other);
+	TCovariateList();
+	~TCovariateList();
+	TCovariateList(TCovariateList&& other);
+	TCovariateList& operator=(TCovariateList&& other);
 
-	void createCovariatesAndIntercept(const TSequencingErrorCovariateDefinition & covariateMap, const RecalEstimatorTools::TRecalDataTable & DataTable);
-	void createCovariatesAndIntercept(const TSequencingErrorCovariateDefinition & covariateMap);
-	TSequencingErrorCovariateDefinition getCovariateDefinition() const;
+	void createCovariatesAndIntercept(const TCovariateDefinition & covariateMap, const RecalEstimatorTools::TRecalDataTable & DataTable);
+	void createCovariatesAndIntercept(const TCovariateDefinition & covariateMap);
+	TCovariateDefinition getCovariateDefinition() const;
 };
 
 //--------------------------------------------------------------------
-// TSequencingErrorModel
+// TModel
 // pure abstract base class
 //--------------------------------------------------------------------
-class TSequencingErrorModel{
+class TModel{
 protected:
-	TSequencingErrorRho _rho;
+	TRho _rho;
 
 public:
-	TSequencingErrorModel() = default;
-	virtual ~TSequencingErrorModel(){};
+	TModel() = default;
+	virtual ~TModel(){};
 
 	virtual bool estimatable() const { return false; };
 	virtual bool recalibrates() const { return false; };
@@ -172,14 +173,14 @@ public:
 };
 
 //------------------------------------------------
-// TSequencingErrorModelNoRecal
+// TModelNoRecal
 //------------------------------------------------
-class TSequencingErrorModelNoRecal:public TSequencingErrorModel{
+class TModelNoRecal:public TModel{
 private:
 
 public:
-	TSequencingErrorModelNoRecal() = default;
-	~TSequencingErrorModelNoRecal() = default;
+	TModelNoRecal() = default;
+	~TModelNoRecal() = default;
 
 	coretools::Probability getErrorRate(const BAM::TSequencedBase & base) const override;
 	genometools::PhredIntProbability getPhredInt(const BAM::TSequencedBase & base) const override;
@@ -187,12 +188,12 @@ public:
 };
 
 //------------------------------------------------
-// TSequencingErrorModelRecal
+// TModelRecal
 //------------------------------------------------
-class TSequencingErrorModelRecal:public TSequencingErrorModel{
+class TModelRecal:public TModel{
 private:
 	//parameters: covarites and rho
-	TSequencingErrorCovariateList _covariates;
+	TCovariateList _covariates;
 
 	//Newton Raphson Parameters to estimate betas
 	double _Q, _oldQ;
@@ -210,14 +211,14 @@ private:
 	coretools::Probability _calcErrorRate(const BAM::TSequencedBase & base) const;
 
 public:
-	TSequencingErrorModelRecal(const TSequencingErrorModelDefinition & modelDef);
-	TSequencingErrorModelRecal(const TSequencingErrorModelDefinition & modelDef, const RecalEstimatorTools::TRecalDataTable & DataTable);
+	TModelRecal(const TModelDefinition & modelDef);
+	TModelRecal(const TModelDefinition & modelDef, const RecalEstimatorTools::TRecalDataTable & DataTable);
 
 	bool estimatable() const override { return true; };
 	bool recalibrates() const override { return true; };
 	std::string getCovariateDefinition() const override { return _covariates.getCovariateDefinition().getModelString(); };
 	std::string getRhoDefinition() const override { return _rho.getDefinition(); };
-	TSequencingErrorModelDefinition getModelDefinition() const;
+	TModelDefinition getModelDefinition() const;
 
 	//get error rates
 	coretools::Probability getErrorRate(const BAM::TSequencedBase & base) const override;
@@ -249,6 +250,7 @@ public:
 	void printJxFToStdOut();
 };
 
-}; //end namespace
+} // namespace SequencingError
+} // namespace GenotypeLikelihoods
 
 #endif /* TRECALIBRATIONEMMODEL_H_ */

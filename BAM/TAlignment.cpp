@@ -284,7 +284,7 @@ void TAlignment::parse(){
 	_setQualitiesNoRecal();
 };
 
-void TAlignment::parse(const GenotypeLikelihoods::TSequencingErrorModels & seqErrorModels){
+	void TAlignment::parse(const GenotypeLikelihoods::SequencingError::TModels & seqErrorModels){
 	_parseBasesQualities();
 
 	//recalibrate

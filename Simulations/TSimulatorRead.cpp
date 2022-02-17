@@ -79,7 +79,7 @@ void TSimulatorSingleEndRead::setMappingQualityDistribution(std::string s) {
 }
 
 void TSimulatorSingleEndRead::setQualityTransformation(
-	GenotypeLikelihoods::TSequencingErrorModelsOneReadGroup const *Recal) {
+	GenotypeLikelihoods::SequencingError::TModelsOneReadGroup const *Recal) {
 	_recal = Recal;
 }
 

@@ -15,6 +15,7 @@
 #include <armadillo>
 
 namespace GenotypeLikelihoods{
+namespace SequencingError {
 
 //define module names
 extern const std::string SequencingErrorCovariateFunction_none;
@@ -25,10 +26,10 @@ extern const std::string SequencingErrorCovariateFunction_specific;
 extern const std::string SequencingErrorCovariateFunction_map;
 
 //--------------------------------------------------------------
-// TSequencingErrorCovariateFunction
+// TCovariateFunction
 // Base class for recal covariate functions
 //--------------------------------------------------------------
-class TSequencingErrorCovariateFunction{
+class TCovariateFunction{
 protected:
 	uint16_t _numParameters;
 	uint16_t _firstParameterIndex;
@@ -48,17 +49,17 @@ protected:
 	double _getAsDouble(uint16_t val) const;
 	double _normalizeParameters();
 
-	friend class TSequencingErrorModel;
+	friend class TModel;
 
 public:
-	TSequencingErrorCovariateFunction(){
+	TCovariateFunction(){
 		_init(0);
 	};
-	TSequencingErrorCovariateFunction(uint16_t FirstParameterIndex){
+	TCovariateFunction(uint16_t FirstParameterIndex){
 		_init(FirstParameterIndex);
 	};
 
-	virtual ~TSequencingErrorCovariateFunction(){};
+	virtual ~TCovariateFunction(){};
 
 	void setBeta(uint16_t index, double val){
 		if(index < _numParameters)
@@ -98,17 +99,17 @@ public:
 };
 
 //--------------------------------------------------------------
-// TSequencingErrorCovariateFunction_intercept
+// TCovariateFunction_intercept
 // An intercept term
 //--------------------------------------------------------------
-class TSequencingErrorCovariateFunction_intercept:public TSequencingErrorCovariateFunction{
+class TCovariateFunction_intercept:public TCovariateFunction{
 protected:
 	void _init();
 
 public:
-	TSequencingErrorCovariateFunction_intercept();
-	TSequencingErrorCovariateFunction_intercept(uint16_t FirstParameterIndex);
-	TSequencingErrorCovariateFunction_intercept(uint16_t FirstParameterIndex, const std::vector<std::string> & values);
+	TCovariateFunction_intercept();
+	TCovariateFunction_intercept(uint16_t FirstParameterIndex);
+	TCovariateFunction_intercept(uint16_t FirstParameterIndex, const std::vector<std::string> & values);
 
 	void initialize(uint16_t FirstParameterIndex);
 	void initialize(uint16_t FirstParameterIndex, const std::vector<std::string> & values);
@@ -122,18 +123,18 @@ public:
 };
 
 //--------------------------------------------------------------
-// TSequencingErrorCovariateFunction_polynomial
+// TCovariateFunction_polynomial
 // A polynomial function
 //--------------------------------------------------------------
-class TSequencingErrorCovariateFunction_polynomial:public TSequencingErrorCovariateFunction{
+class TCovariateFunction_polynomial:public TCovariateFunction{
 protected:
 	void _init(size_t order);
 
 	//TODO: add tmp storage for eta!
 
 public:
-	TSequencingErrorCovariateFunction_polynomial(uint16_t FirstParameterIndex, size_t order);
-	TSequencingErrorCovariateFunction_polynomial(uint16_t FirstParameterIndex, const std::vector<std::string> & values);
+	TCovariateFunction_polynomial(uint16_t FirstParameterIndex, size_t order);
+	TCovariateFunction_polynomial(uint16_t FirstParameterIndex, const std::vector<std::string> & values);
 
 	double getEtaTerm(uint16_t val) const;
 	void fillDerivatives(uint16_t val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second) const;
@@ -158,7 +159,7 @@ public:
 	TProbitTmpStorage(const std::vector<double> & betas, uint16_t q);
 };
 
-class TRecalibrationEMCovariateFunction_probit:public TSequencingErrorCovariateFunction{
+class TRecalibrationEMCovariateFunction_probit:public TCovariateFunction{
 protected:
 	uint16_t _secondParameterIndex;
 	uint16_t _thirdParameterIndex;
@@ -179,18 +180,18 @@ public:
 };
 
 //--------------------------------------------------------------
-// TSequencingErrorCovariateFunction_specific
+// TCovariateFunction_specific
 // A term per discrete value from 0 to maxValue
 //--------------------------------------------------------------
-class TSequencingErrorCovariateFunction_specific:public TSequencingErrorCovariateFunction{
+class TCovariateFunction_specific:public TCovariateFunction{
 protected:
 	uint16_t _maxValue;
 
 	void _init(uint16_t MaxValue);
 
 public:
-	TSequencingErrorCovariateFunction_specific(uint16_t FirstParameterIndex, uint16_t MaxValue);
-	TSequencingErrorCovariateFunction_specific(uint16_t FirstParameterIndex, const std::vector<std::string> & betas);
+	TCovariateFunction_specific(uint16_t FirstParameterIndex, uint16_t MaxValue);
+	TCovariateFunction_specific(uint16_t FirstParameterIndex, const std::vector<std::string> & betas);
 
 	bool checkValueRange(uint16_t val) const override;
 	void adjustValueRanges(const std::vector<uint16_t> & values) override;
@@ -203,31 +204,31 @@ public:
 };
 
 //--------------------------------------------------------------
-// TSequencingErrorCovariateFunction_specificMap
+// TCovariateFunction_specificMap
 // A term per discrete values as indicated with a map
 //--------------------------------------------------------------
-struct TSequencingErrorCovariateFunctionIndexMapEntry{
+struct TCovariateFunctionIndexMapEntry{
 	uint16_t index;
 	bool used;
 
-	TSequencingErrorCovariateFunctionIndexMapEntry(){
+	TCovariateFunctionIndexMapEntry(){
 		index = 0;
 		used = false;
 	};
 };
 
-class TSequencingErrorCovariateFunction_specificMap:public TSequencingErrorCovariateFunction{
+class TCovariateFunction_specificMap:public TCovariateFunction{
 protected:
 	uint16_t _maxValue;
-	std::vector<TSequencingErrorCovariateFunctionIndexMapEntry> _indexMap; //maps value to parameter index
+	std::vector<TCovariateFunctionIndexMapEntry> _indexMap; //maps value to parameter index
 
 	void _init(size_t NumParameters);
 	void _initMapFromVector(const std::vector<uint16_t> & values);
 
 public:
-	TSequencingErrorCovariateFunction_specificMap(uint16_t FirstParameterIndex, const std::vector<uint16_t> & values);
-	TSequencingErrorCovariateFunction_specificMap(uint16_t FirstParameterIndex, const std::vector<std::string> & values);
-	~TSequencingErrorCovariateFunction_specificMap(){};
+	TCovariateFunction_specificMap(uint16_t FirstParameterIndex, const std::vector<uint16_t> & values);
+	TCovariateFunction_specificMap(uint16_t FirstParameterIndex, const std::vector<std::string> & values);
+	~TCovariateFunction_specificMap(){};
 
 	bool checkValueRange(uint16_t val) const override;
 	void adjustValueRanges(const std::vector<uint16_t> & values) override;
@@ -239,6 +240,7 @@ public:
 	double adjustParametersPostEstimation() override { return _normalizeParameters(); };
 };
 
-}; //end namespace
+} // namespace SequencingError
+} // namespace GenotypeLikelihoods
 
 #endif /* GENOTYPELIKELIHOODS_TSEQUENCINGERRORCOVARIATEFUNCTION_H_ */
