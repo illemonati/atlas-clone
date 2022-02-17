@@ -78,10 +78,10 @@ void TSimulatorSingleEndRead::setMappingQualityDistribution(std::string s) {
 	_mappingQualityDist = _initializeQualityDistribution(s);
 }
 
-void TSimulatorSingleEndRead::setQualityTransformation(
+/*void TSimulatorSingleEndRead::setQualityTransformation(
 	GenotypeLikelihoods::SequencingError::TModelsOneReadGroup const *Recal) {
 	_recal = Recal;
-}
+	}*/
 
 void TSimulatorSingleEndRead::setPMD(GenotypeLikelihoods::TPMDType const *Pmd) {
 	_pmd = Pmd;
@@ -223,10 +223,10 @@ void TSimulatorSingleEndRead::printDetails(TLog *logfile) {
 	else
 		throw "Read quality distribution not initialized!";
 
-	if (_recal &&  _recal->recalibrates()) {
+	/*if (_recal &&  _recal->recalibrates()) {
 		// TODO: add recal string output
 		logfile->list("Recal: ");
-	}
+		}*/
 
 	if (_pmd && _pmd->hasDamage()) {
 		logfile->list("PMD: " + _pmd->functionString());

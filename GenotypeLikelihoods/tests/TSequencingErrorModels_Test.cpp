@@ -11,7 +11,7 @@ using namespace GenotypeLikelihoods;
 using genometools::Base;
 
 TEST(TSequencingErrorModels_test, oneBase){
-    TSequencingErrorModels _sequencingErrorModels;
+	SequencingError::TModels _sequencingErrorModels;
     TBaseLikelihoods _baseLikelihoods;
 
     BAM::TSequencedBase base;

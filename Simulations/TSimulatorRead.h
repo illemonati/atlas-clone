@@ -44,7 +44,7 @@ protected:
 
 	// Recal
 	// TODO: move from TSequencingErrorModels
-	GenotypeLikelihoods::SequencingError::TModelsOneReadGroup const *_recal = nullptr;
+	//GenotypeLikelihoods::SequencingError::TModelsOneReadGroup const *_recal = nullptr;
 
 	// contamination
 	double _contaminationRate = 0.;
@@ -74,7 +74,7 @@ public:
 	void setQualityDistribution(std::string s);
 	void setMappingQualityDistribution(std::string s);
 	void setPMD(GenotypeLikelihoods::TPMDType const *Pmd);
-	virtual void setQualityTransformation(GenotypeLikelihoods::SequencingError::TModelsOneReadGroup const *Recal);
+	/*virtual void setQualityTransformation(GenotypeLikelihoods::SequencingError::TModelsOneReadGroup const *Recal);*/
 	void setContamination(double rate, TSimulatorReference *source);
 
 	std::string name() const { return _readGroup.name_ID; };

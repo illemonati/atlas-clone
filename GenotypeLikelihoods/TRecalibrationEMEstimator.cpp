@@ -45,10 +45,10 @@ namespace RecalEstimator{
 			//check if there is sufficient data for _first mate
 			if(table.size() > 0){
 				//check if model is estimatable
-				if(SequencingErrorModels[r][mate].estimatable()){
+				if(SequencingErrorModels(r, mate).estimatable()){
 
 					//copy model and update index
-					std::shared_ptr<SequencingError::TModelRecal>& model = SequencingErrorModels[r].getSharedPointerToRecalModel(mate);
+					std::shared_ptr<SequencingError::TModelRecal> model = SequencingErrorModels.getRecal(r, mate);
 					_models.push_back(model);
 					modelStati[r][MS::copied].set(mate);
 					_modelIndex.set(r, mate, model, ReadGroupMap); //handles pooling
@@ -63,7 +63,7 @@ namespace RecalEstimator{
 				}
 
 			} else {
-				if(SequencingErrorModels[r][mate].estimatable()){
+				if(SequencingErrorModels(r,mate).estimatable()){
 					modelStati[r][MS::noData].set(mate);
 				}
 			}
