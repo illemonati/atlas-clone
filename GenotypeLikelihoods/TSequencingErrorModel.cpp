@@ -6,6 +6,7 @@
  */
 
 #include "TSequencingErrorModel.h"
+#include "probability.h"
 
 namespace GenotypeLikelihoods{
 namespace SequencingError {
@@ -215,31 +216,12 @@ TCovariateDefinition TCovariateList::getCovariateDefinition() const{
 }
 
 //*********************************************************
-// TRhoStorage
+// TRho
 //*********************************************************
-TRhoStorage::TRhoStorage(){
-	reset();
-};
 
-TRhoStorage::TRhoStorage(const std::string & def, std::string & error){
-	set(def, error);
-};
-
-TRhoStorage::TRhoStorage(const TRhoStorage & other){
-	rho = other.rho;
-};
-
-void TRhoStorage::operator=(const TRhoStorage & other){
-	rho = other.rho;
-};
-
-double TRhoStorage::operator()(const uint8_t & from, const uint8_t & to){
-	return rho[from][to];
-};
-
-void TRhoStorage::reset(){
-	for(int a=0; a<4; ++a){
-		for(int b=0; b<4; ++b){
+void TRho::reset() noexcept {
+	for (int a = 0; a < 4; ++a) {
+		for (int b = 0; b < 4; ++b) {
 			if(a==b){
 				rho[a][b] = 0.0;
 			} else {
@@ -247,9 +229,9 @@ void TRhoStorage::reset(){
 			}
 		}
 	}
-};
+}
 
-bool TRhoStorage::set(const std::string & def, std::string & error){
+bool TRho::set(const std::string & def, std::string & error){
 	using coretools::str::toString;
 	//"default" implies default rho
 	if(def == "default"){
@@ -286,11 +268,10 @@ bool TRhoStorage::set(const std::string & def, std::string & error){
 			}
 		}
 	}
-
 	return true;
-};
+}
 
-std::string TRhoStorage::getDefinition() const{
+std::string TRho::getDefinition() const noexcept{
 	std::string def;
 	for(int a=0; a<4; ++a){
 		if(a>0){
@@ -308,16 +289,9 @@ std::string TRhoStorage::getDefinition() const{
 		}
 	}
 	return def;
-};
+}
 
-//*********************************************************
-// TRho
-//*********************************************************
-void TRho::operator=(const TRhoStorage & other){
-	TRhoStorage::operator =(other);
-};
-
-void TRho::fillBaseLikelihoods(const genometools::Base base, const Probability & epsilon, TBaseLikelihoods & baseLikelihoods) const{
+void TRho::fillBaseLikelihoods(const genometools::Base base, const Probability & epsilon, TBaseLikelihoods & baseLikelihoods) const noexcept {
 	using genometools::Base;
 	using genometools::index;
 	if(base == Base::N){
@@ -342,17 +316,13 @@ void TRho::fillBaseLikelihoods(const genometools::Base base, const Probability &
 			baseLikelihoods[Base::G] = epsilon * rho[index(Base::G)][index(Base::T)];
 		}
 	}
-};
+}
 
-void TRho::prepareEstimationFromEMWeights(){
-	for(int b=0; b<4; ++b){
-		for(int a=0; a<4; ++a){
-			rho[a][b] = 0.0;
-		}
-	}
-};
+void TRho::prepareEstimationFromEMWeights() noexcept {
+	rho.fill({0., 0., 0., 0.});
+}
 
-void TRho::addBaseForEstimation(const genometools::Base & base, const TBaseLikelihoods & EMWeights){
+void TRho::addBaseForEstimation(const genometools::Base & base, const TBaseLikelihoods & EMWeights) noexcept {
 	using genometools::Base;
 	using genometools::index;
 	if(base == Base::A){
@@ -374,9 +344,9 @@ void TRho::addBaseForEstimation(const genometools::Base & base, const TBaseLikel
 	}
 };
 
-void TRho::estimate(){
+void TRho::estimate() noexcept{
 	//calculate denominators
-	std::vector<double> denom(4, 0.0);
+	std::array<double, 4> denom;
 	for(int a=0; a<4; ++a){
 		for(int b=0; b<4; ++b){
 			if(a!=b){
@@ -398,7 +368,7 @@ void TRho::estimate(){
 	for(int a=0; a<4; ++a){
 		rho[a][a] = 0.0;
 	}
-};
+}
 
 //*********************************************************
 // TModelNoRecal
@@ -409,7 +379,7 @@ Probability TModelNoRecal::getErrorRate(const BAM::TSequencedBase & base) const{
 	} else {
 		return (Probability) base.originalQuality_phredInt;
 	}
-};
+}
 
 genometools::PhredIntProbability TModelNoRecal::getPhredInt(const BAM::TSequencedBase & base) const{
 	if(base == genometools::Base::N){
@@ -417,15 +387,20 @@ genometools::PhredIntProbability TModelNoRecal::getPhredInt(const BAM::TSequence
 	} else {
 		return base.originalQuality_phredInt;
 	}
-};
+}
 
 void TModelNoRecal::fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseLikelihoods & baseLikelihoods) const{
-	if(base == genometools::Base::N){
+	using genometools::Base;
+	if(base == Base::N){
 		baseLikelihoods.reset();
 	} else {
-		_rho.fillBaseLikelihoods(base.base, (Probability) base.originalQuality_phredInt, baseLikelihoods);
+		const auto eps = static_cast<Probability>(base.originalQuality_phredInt);
+		for (auto other = Base::min; other < Base::max; ++other) {
+			if (other == base.base) baseLikelihoods[other] = eps.complement();
+			else baseLikelihoods[other] = (1./3)*eps;
+		}
 	}
-};
+}
 
 //*********************************************************
 // TModelRecal

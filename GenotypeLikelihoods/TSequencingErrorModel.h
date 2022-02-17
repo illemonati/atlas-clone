@@ -62,36 +62,28 @@ public:
 };
 
 //--------------------------------------------------------------------
-// TRhoStorage
-//--------------------------------------------------------------------
-class TRhoStorage{
-protected:
-	std::array< std::array<double, 4>, 4 > rho; //[from][to]
-
-public:
-	TRhoStorage();
-	TRhoStorage(const TRhoStorage & other);
-	TRhoStorage(const std::string & def, std::string & error);
-	void operator=(const TRhoStorage & other);
-	double operator()(const uint8_t & from, const uint8_t & to);
-	void reset();
-	bool set(const std::string & def, std::string & error);
-	void set(const std::string & def);
-	std::string getDefinition() const;
-};
-
-//--------------------------------------------------------------------
 // TRho
 //--------------------------------------------------------------------
-class TRho:public TRhoStorage{
+class TRho{
+private:
+	std::array< std::array<double, 4>, 4 > rho; //[from][to]
 public:
-	void operator=(const TRhoStorage & other);
-	void fillBaseLikelihoods(const genometools::Base base, const coretools::Probability & epsilon, TBaseLikelihoods & baseLikelihoods) const;
+	TRho() {reset();}
+	TRho(const std::string & def, std::string & error) {set(def, error);}
+	TRho(const TRho & other) = default;
+	TRho& operator=(const TRho & other) = default;
+
+	double operator()(const uint8_t & from, const uint8_t & to) const noexcept {return rho[from][to];}
+	void reset() noexcept;
+	bool set(const std::string & def, std::string & error);
+	void set(const std::string & def);
+	std::string getDefinition() const noexcept;
+	void fillBaseLikelihoods(const genometools::Base base, const coretools::Probability & epsilon, TBaseLikelihoods & baseLikelihoods) const noexcept;
 
 	//functions used to estimate
-	void prepareEstimationFromEMWeights();
-	void addBaseForEstimation(const genometools::Base & base, const TBaseLikelihoods & EMWeights);
-	void estimate();
+	void prepareEstimationFromEMWeights() noexcept;
+	void addBaseForEstimation(const genometools::Base & base, const TBaseLikelihoods & EMWeights) noexcept;
+	void estimate() noexcept;
 };
 
 //--------------------------------------------------------------------
@@ -101,7 +93,7 @@ public:
 class TModelDefinition{
 public:
 	TCovariateDefinition covariates;
-	TRhoStorage rho;
+	TRho rho;
 
 	TModelDefinition() = default;
 	TModelDefinition(const std::string & covariateString, const std::string & rhoString, std::string & error){
@@ -154,37 +146,31 @@ public:
 // pure abstract base class
 //--------------------------------------------------------------------
 class TModel{
-protected:
-	TRho _rho;
-
 public:
-	TModel() = default;
-	virtual ~TModel(){};
-
-	virtual bool estimatable() const { return false; };
-	virtual bool recalibrates() const { return false; };
-
+	virtual ~TModel() = default;
+	virtual bool estimatable() const noexcept = 0;
+	virtual bool recalibrates() const noexcept = 0;
 	virtual coretools::Probability getErrorRate(const BAM::TSequencedBase & base) const = 0;
 	virtual genometools::PhredIntProbability getPhredInt(const BAM::TSequencedBase & base) const = 0;
 	virtual void fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseLikelihoods & baseLikelihoods) const = 0;
-
-	virtual std::string getCovariateDefinition() const { return "-"; };
-	virtual std::string getRhoDefinition() const { return "-"; };
+	virtual std::string getCovariateDefinition() const noexcept = 0;
+	virtual std::string getRhoDefinition() const noexcept = 0;
 };
 
 //------------------------------------------------
 // TModelNoRecal
 //------------------------------------------------
 class TModelNoRecal:public TModel{
-private:
-
 public:
-	TModelNoRecal() = default;
-	~TModelNoRecal() = default;
+	virtual bool estimatable() const noexcept override { return false; };
+	virtual bool recalibrates() const noexcept override { return false; };
 
 	coretools::Probability getErrorRate(const BAM::TSequencedBase & base) const override;
 	genometools::PhredIntProbability getPhredInt(const BAM::TSequencedBase & base) const override;
 	void fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseLikelihoods & baseLikelihoods) const override;
+
+	virtual std::string getCovariateDefinition() const noexcept override { return "-"; };
+	virtual std::string getRhoDefinition() const noexcept override { return "-"; };
 };
 
 //------------------------------------------------
@@ -192,7 +178,7 @@ public:
 //------------------------------------------------
 class TModelRecal:public TModel{
 private:
-	//parameters: covarites and rho
+	TRho _rho;
 	TCovariateList _covariates;
 
 	//Newton Raphson Parameters to estimate betas
@@ -214,10 +200,10 @@ public:
 	TModelRecal(const TModelDefinition & modelDef);
 	TModelRecal(const TModelDefinition & modelDef, const RecalEstimatorTools::TRecalDataTable & DataTable);
 
-	bool estimatable() const override { return true; };
-	bool recalibrates() const override { return true; };
-	std::string getCovariateDefinition() const override { return _covariates.getCovariateDefinition().getModelString(); };
-	std::string getRhoDefinition() const override { return _rho.getDefinition(); };
+	bool estimatable() const noexcept override { return true; };
+	bool recalibrates() const noexcept override { return true; };
+	std::string getCovariateDefinition() const noexcept override { return _covariates.getCovariateDefinition().getModelString(); };
+	std::string getRhoDefinition() const noexcept override { return _rho.getDefinition(); };
 	TModelDefinition getModelDefinition() const;
 
 	//get error rates
