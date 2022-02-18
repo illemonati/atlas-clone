@@ -67,7 +67,7 @@ public:
 	};
 
 	//size
-	uint16_t numParameters(){ return _numParameters; };
+	uint16_t numParameters() const noexcept { return _numParameters; };
 	uint16_t numNonZeroFirstDerivatives(){ return _numNonZeroFirstDerivatives; };
 	uint16_t numNonZeroSecondDerivatives(){ return _numNonZeroSecondDerivatives; };
 

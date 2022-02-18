@@ -7,6 +7,7 @@
 
 #include "TSequencingErrorModel.h"
 #include "probability.h"
+#include <memory>
 
 namespace GenotypeLikelihoods{
 namespace SequencingError {
@@ -16,14 +17,9 @@ using coretools::Probability;
 // TRecalibrationEMModelCovariateDefinition
 // class to store model definition. Used when parsing files
 //*********************************************************
-void TCovariateDefinition::clear(){
-	_intercept = "";
-	_covariateFunctions.clear();
-};
 
-void TCovariateDefinition::parse(const std::string & modelString){
+TCovariateDefinition::TCovariateDefinition(const std::string & modelString){
 	//make sure it is empty
-	clear();
 
 	//split string
 	std::vector<std::string> tmp;
@@ -70,143 +66,6 @@ std::string TCovariateDefinition::getModelString() const{
 	}
 	return modelString;
 };
-
-//*********************************************************
-// TRecalibrationEMModelCovariateList
-//*********************************************************
-TCovariateList::TCovariateList(){
-	numParameters = intercept.numParameters();
-};
-
-TCovariateList::~TCovariateList(){
-	_clear();
-};
-
-TCovariateList::TCovariateList(TCovariateList&& other){
-	//copy from other
-	covariates = std::move(other.covariates);
-	pointerToCovariateFunctions = std::move(other.pointerToCovariateFunctions);
-	intercept = std::move(other.intercept);
-	numParameters = other.numParameters;
-
-	//set intercept of other to zero
-	other.intercept.setIntercept(0.0);
-};
-
-TCovariateList& TCovariateList::operator=(TCovariateList&& other){
-	if(&other != this){ //don't copy yourself
-		//clear
-		_clear();
-
-		//copy from other
-		covariates = std::move(other.covariates);
-		pointerToCovariateFunctions = std::move(other.pointerToCovariateFunctions);
-		intercept = std::move(other.intercept);
-		numParameters = other.numParameters;
-
-		//set intercept of other to zero
-		other.intercept.setIntercept(0.0);
-	}
-	//return
-	return *this;
-};
-
-void TCovariateList::_clear(){
-	for(auto* it : covariates){
-		delete it;
-	}
-	covariates.clear();
-	pointerToCovariateFunctions.clear();
-	intercept.setIntercept(0.0);
-};
-
-void TCovariateList::createCovariatesAndIntercept(const TCovariateDefinition & covariateMap, const RecalEstimatorTools::TRecalDataTable & DataTable){
-	//include intercept
-	if(!covariateMap.intercept().empty()){
-		std::vector<std::string> vec = {covariateMap.intercept()};
-		intercept.initialize(0, vec);
-	}
-
-	//create covariates
-	numParameters = intercept.numParameters();
-	for(auto it = covariateMap.cbegin(); it != covariateMap.cend(); ++it){
-		//create function for each covariate
-		if(it->covariate == TCovariate::name){
-			continue;
-		} else if(it->covariate == TCovariate_quality::name){
-			covariates.emplace_back(new TCovariate_quality(numParameters, it->function, DataTable));
-		} else if(it->covariate == TCovariate_position::name){
-			covariates.emplace_back(new TCovariate_position(numParameters, it->function, DataTable));
-		} else if(it->covariate == TCovariate_context::name){
-			covariates.emplace_back(new TCovariate_context(numParameters, it->function, DataTable));
-		} else if(it->covariate == TCovariate_fragmentLength::name){
-			covariates.emplace_back(new TCovariate_fragmentLength(numParameters, it->function, DataTable));
-		} else if(it->covariate == TCovariate_mappingQuality::name){
-			covariates.emplace_back(new TCovariate_mappingQuality(numParameters, it->function, DataTable));
-		} else {
-			throw "Unknown recalibration covariate '" + it->covariate + "' with function " + it->function + "!";
-		}
-
-		//add new parameters
-		numParameters += covariates.back()->numParameters();
-	}
-
-	//summarize
-	_storePointersToCovariateFunctions();
-};
-
-void TCovariateList::createCovariatesAndIntercept(const TCovariateDefinition & covariateMap){
-	//include intercept
-	std::vector<std::string> vec = {covariateMap.intercept()};
-	intercept.initialize(0, vec);
-
-	//create covariates
-	numParameters = intercept.numParameters();
-	for(auto it = covariateMap.cbegin(); it != covariateMap.cend(); ++it){
-		//create function for each covariate
-		if(it->covariate == TCovariate::name){
-			continue;
-		} else if(it->covariate == TCovariate_quality::name){
-			covariates.emplace_back(new TCovariate_quality(numParameters, it->function));
-		} else if(it->covariate == TCovariate_position::name){
-			covariates.emplace_back(new TCovariate_position(numParameters, it->function));
-		} else if(it->covariate == TCovariate_context::name){
-			covariates.emplace_back(new TCovariate_context(numParameters, it->function));
-		} else if(it->covariate == TCovariate_fragmentLength::name){
-			covariates.emplace_back(new TCovariate_fragmentLength(numParameters, it->function));
-		} else if(it->covariate == TCovariate_mappingQuality::name){
-			covariates.emplace_back(new TCovariate_mappingQuality(numParameters, it->function));
-		} else {
-			throw "Unknown recalibration covariate '" + it->covariate + "' with function " + it->function + "!";
-		}
-
-		//add new parameters
-		numParameters += covariates.back()->numParameters();
-	}
-
-	//summarize
-	_storePointersToCovariateFunctions();
-};
-
-void TCovariateList::_storePointersToCovariateFunctions(){
-	//add intercept
-	pointerToCovariateFunctions.emplace_back(&intercept);
-
-	//add covariates
-	for(auto & cov : covariates){
-		//store function pointer
-		pointerToCovariateFunctions.push_back(cov->getPointerToFunction());
-	}
-};
-
-TCovariateDefinition TCovariateList::getCovariateDefinition() const{
-	TCovariateDefinition def;
-	def.setIntercept(intercept.getIntercept());
-	for(const auto & cov : covariates){
-		def.addCovariate(cov->typeString(), cov->functionString());
-	}
-	return def;
-}
 
 //*********************************************************
 // TRho
@@ -388,18 +247,74 @@ void TModelNoRecal::fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseL
 //*********************************************************
 
 TModelRecal::TModelRecal(const TModelDefinition & modelDef){
-	//create covariates
-	_covariates.createCovariatesAndIntercept(modelDef.covariates);
+	const auto & covariateMap = modelDef.covariates;
+
 	_rho = modelDef.rho;
+
+	//create covariates
+	_intercept.initialize(0, {covariateMap .intercept()});
+	_functions.push_back(&_intercept);
+
+	_numParameters = _intercept.numParameters();
+	for(auto it = covariateMap.cbegin(); it != covariateMap.cend(); ++it){
+		//create function for each covariate
+		if(it->covariate == TCovariate::name){
+			continue;
+		} else if(it->covariate == TCovariate_quality::name){
+			_covariates.push_back(std::make_unique<TCovariate_quality>(_numParameters, it->function));
+		} else if(it->covariate == TCovariate_position::name){
+			_covariates.push_back(std::make_unique<TCovariate_position>(_numParameters, it->function));
+		} else if(it->covariate == TCovariate_context::name){
+			_covariates.push_back(std::make_unique<TCovariate_context>(_numParameters, it->function));
+		} else if(it->covariate == TCovariate_fragmentLength::name){
+			_covariates.push_back(std::make_unique<TCovariate_fragmentLength>(_numParameters, it->function));
+		} else if(it->covariate == TCovariate_mappingQuality::name){
+			_covariates.push_back(std::make_unique<TCovariate_mappingQuality>(_numParameters, it->function));
+		} else {
+			throw "Unknown recalibration covariate '" + it->covariate + "' with function " + it->function + "!";
+		}
+		_functions.push_back(_covariates.back()->getPointerToFunction());
+
+		//add new parameters
+		_numParameters += _covariates.back()->numParameters();
+	}
 
 	//prepare Newton-Raphson variables
 	setNewtonRaphsonParamsToZero();
 }
 
-TModelRecal::TModelRecal(const TModelDefinition & ModelDef, const RecalEstimatorTools::TRecalDataTable & DataTable){
-	//create covariates
-	_covariates.createCovariatesAndIntercept(ModelDef.covariates, DataTable);
-	_rho = ModelDef.rho;
+TModelRecal::TModelRecal(const TModelDefinition & modelDef, const RecalEstimatorTools::TRecalDataTable & dataTable){
+	const auto & covariateMap = modelDef.covariates;
+
+	_rho = modelDef.rho;
+
+	// create covariates
+	_intercept.initialize(0, {covariateMap.intercept()});
+	_functions.push_back(&_intercept);
+
+	_numParameters = _intercept.numParameters();
+	for (auto it = covariateMap.cbegin(); it != covariateMap.cend(); ++it) {
+		// create function for each covariate
+		if (it->covariate == TCovariate::name) {
+			continue;
+		} else if (it->covariate == TCovariate_quality::name) {
+			_covariates.emplace_back(new TCovariate_quality(_numParameters, it->function, dataTable));
+		} else if (it->covariate == TCovariate_position::name) {
+			_covariates.emplace_back(new TCovariate_position(_numParameters, it->function, dataTable));
+		} else if (it->covariate == TCovariate_context::name) {
+			_covariates.emplace_back(new TCovariate_context(_numParameters, it->function, dataTable));
+		} else if (it->covariate == TCovariate_fragmentLength::name) {
+			_covariates.emplace_back(new TCovariate_fragmentLength(_numParameters, it->function, dataTable));
+		} else if (it->covariate == TCovariate_mappingQuality::name) {
+			_covariates.emplace_back(new TCovariate_mappingQuality(_numParameters, it->function, dataTable));
+		} else {
+			throw "Unknown recalibration covariate '" + it->covariate + "' with function " + it->function + "!";
+		}
+
+		//add new parameters
+		_numParameters += _covariates.back()->numParameters();
+		_functions.push_back(_covariates.back()->getPointerToFunction());
+	}
 
 	//prepare Newton-Raphson variables
 	setNewtonRaphsonParamsToZero();
@@ -407,6 +322,15 @@ TModelRecal::TModelRecal(const TModelDefinition & ModelDef, const RecalEstimator
 
 TModelDefinition TModelRecal::getModelDefinition() const{
 	return TModelDefinition(getCovariateDefinition(), getRhoDefinition());
+}
+
+std::string TModelRecal::getCovariateDefinition() const noexcept {
+	TCovariateDefinition def;
+	def.setIntercept(_intercept.getIntercept());
+	for(const auto & cov : _covariates){
+		def.addCovariate(cov->typeString(), cov->functionString());
+	}
+	return def.getModelString();
 }
 
 //-------------------------------------------------
@@ -426,9 +350,9 @@ Probability TModelRecal::_calcEpsilon(double eta) const{
 
 Probability TModelRecal::_calcErrorRate(const BAM::TSequencedBase & base) const{
 	//eta = bta[0] + SUM_i f(q[i]), where the functions are implemented as covariate function
-	double eta = _covariates.intercept.getEtaTerm();
+	double eta = _intercept.getEtaTerm();
 
-	for(const auto & cov : _covariates.covariates){
+	for(const auto & cov : _covariates){
 		eta += cov->getEtaTerm(base);
 	}
 
@@ -478,7 +402,7 @@ void TModelRecal::estimateRho(){
 //functions for estimation
 //-------------------------------------------------
 bool TModelRecal::checkParameterRange(RecalEstimatorTools::TRecalDataTable & DataTable, std::string & error){
-	for(auto & cov : _covariates.covariates){
+	for(auto & cov : _covariates){
 		if(!cov->checkParameterRange(DataTable)){
 			error = "Function for covariate " + cov->typeString() + " does not cover full range of data";
 			return false;
@@ -489,11 +413,11 @@ bool TModelRecal::checkParameterRange(RecalEstimatorTools::TRecalDataTable & Dat
 
 void TModelRecal::_initializeDerivatives(){
 	//intercept
-	size_t numNonZeroFirstDeriv = _covariates.intercept.numNonZeroFirstDerivatives();
-	size_t numNonZeroSecondDeriv = _covariates.intercept.numNonZeroSecondDerivatives();
+	size_t numNonZeroFirstDeriv = _intercept.numNonZeroFirstDerivatives();
+	size_t numNonZeroSecondDeriv = _intercept.numNonZeroSecondDerivatives();
 
 	//covariates
-	for(const auto & cov : _covariates.covariates){
+	for(const auto & cov : _covariates){
 		numNonZeroFirstDeriv += cov->numNonZeroFirstDerivatives();
 		numNonZeroSecondDeriv += cov->numNonZeroSecondDerivatives();
 	}
@@ -502,9 +426,9 @@ void TModelRecal::_initializeDerivatives(){
 };
 
 void TModelRecal::setNewtonRaphsonParamsToZero(){
-	_Jacobian.resize(_covariates.numParameters, _covariates.numParameters);
-	_F.resize(_covariates.numParameters);
-	_JxF.resize(_covariates.numParameters, 1);
+	_Jacobian.resize(numParameters(), numParameters());
+	_F.resize(numParameters());
+	_JxF.resize(numParameters(), 1);
 
 	_Jacobian.zeros();
 	_F.zeros();
@@ -544,10 +468,10 @@ void TModelRecal::addToFandJacobian(const BAM::TSequencedBase & base, const TBas
 	_secondDerivatives.restart();
 
 	//fill derivatives of intercept
-	_covariates.intercept.fillDerivatives(0.0, _firstDerivatives, _secondDerivatives);
+	_intercept.fillDerivatives(0.0, _firstDerivatives, _secondDerivatives);
 
 	//fill derivatives of covariates
-	for(const auto & cov : _covariates.covariates){
+	for(const auto & cov : _covariates){
 		cov->fillDerivatives(base, _firstDerivatives, _secondDerivatives);
 	}
 
@@ -583,8 +507,8 @@ bool TModelRecal::solveJxF(){
 		return true;
 	} else {
 		//Need to copy numbers to other triangle in Jacobian, as only upper triangle is filled when parsing sites
-		for(int i=0; i<(_covariates.numParameters-1); ++i){
-			for(unsigned int j=i+1; j<_covariates.numParameters; ++j){
+		for(int i=0; i<(numParameters()-1); ++i){
+			for(unsigned int j=i+1; j<numParameters(); ++j){
 				//copy from upper triangle to lower triangle
 				_Jacobian(j,i) = _Jacobian(i,j);
 			}
@@ -606,7 +530,7 @@ bool TModelRecal::solveJxF(){
 void TModelRecal::proposeNewParameters(double & lambda){
 	if(!_NRStepAccepted){
 		uint16_t index = 0;
-		for(const auto it : _covariates.pointerToCovariateFunctions){
+		for(const auto it : _functions){
 			it->proposeNewParameters(_JxF, index, lambda);
 		}
 	}
@@ -620,7 +544,7 @@ bool TModelRecal::acceptProposedParametersBasedOnQ(){
 		_NRStepAccepted = false;
 		_Q = _oldQ;
 
-		for(const auto it : _covariates.pointerToCovariateFunctions){
+		for(const auto it : _functions){
 			it->rejectProposedParameters();
 		}
 	}
@@ -628,15 +552,15 @@ bool TModelRecal::acceptProposedParametersBasedOnQ(){
 };
 
 void TModelRecal::adjustParametersPostEstimation(){
-	for(const auto it : _covariates.pointerToCovariateFunctions){
-		_covariates.intercept.addToIntercept(it->adjustParametersPostEstimation());
+	for(const auto it : _functions){
+		_intercept.addToIntercept(it->adjustParametersPostEstimation());
 	}
 };
 
 double TModelRecal::getSteepestGradient(){
 	if(_NRStepAccepted) return 0.0;
 	double maxF = 0.0;
-	for(unsigned int i=0; i<_covariates.numParameters; ++i){
+	for(unsigned int i=0; i<numParameters(); ++i){
 		if(fabs(_F(i)) > maxF) maxF = fabs(_F(i));
 	}
 	return maxF;

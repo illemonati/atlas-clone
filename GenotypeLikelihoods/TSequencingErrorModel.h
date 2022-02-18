@@ -14,6 +14,7 @@
 #include "TGenotypeData.h"
 #include "GenotypeTypes.h"
 #include "PhredProbabilityTypes.h"
+#include <memory>
 #include <vector>
 #include <string>
 
@@ -32,14 +33,11 @@ struct TCovariateDef {
 class TCovariateDefinition{
 private:
 	std::vector<TCovariateDef> _covariateFunctions;  //<covariate, function>
-	std::string _intercept;
-
+	std::string _intercept = "";
 public:
 	TCovariateDefinition() = default;
-	TCovariateDefinition(const std::string modelString) { parse(modelString); };
+	TCovariateDefinition(const std::string & modelString);
 
-	void clear();
-	void parse(const std::string & modelString);
 	void setIntercept(const double Intercept);
 	void addCovariate(const std::string covariate, const std::string function);
 	size_t size() const { return _covariateFunctions.size(); };
@@ -89,31 +87,6 @@ public:
 };
 
 //--------------------------------------------------------------------
-// TCovariateList
-// class to store all covariates of an error model
-//--------------------------------------------------------------------
-class TCovariateList{
-private:
-	void _storePointersToCovariateFunctions();
-	void _clear();
-
-public:
-	uint16_t numParameters;
-	TCovariateFunction_intercept intercept;
-	std::vector< TCovariate* > covariates;
-	std::vector< TCovariateFunction* > pointerToCovariateFunctions;
-
-	TCovariateList();
-	~TCovariateList();
-	TCovariateList(TCovariateList&& other);
-	TCovariateList& operator=(TCovariateList&& other);
-
-	void createCovariatesAndIntercept(const TCovariateDefinition & covariateMap, const RecalEstimatorTools::TRecalDataTable & DataTable);
-	void createCovariatesAndIntercept(const TCovariateDefinition & covariateMap);
-	TCovariateDefinition getCovariateDefinition() const;
-};
-
-//--------------------------------------------------------------------
 // TModel
 // pure abstract base class
 //--------------------------------------------------------------------
@@ -153,7 +126,10 @@ public:
 class TModelRecal:public TModel{
 private:
 	TRho _rho;
-	TCovariateList _covariates;
+	TCovariateFunction_intercept _intercept;
+	std::vector< std::unique_ptr<TCovariate> > _covariates;
+	std::vector< TCovariateFunction* > _functions; //non-owning
+	uint16_t _numParameters;
 
 	//Newton Raphson Parameters to estimate betas
 	double _Q, _oldQ;
@@ -169,14 +145,13 @@ private:
 	void _initializeDerivatives();
 	coretools::Probability _calcEpsilon(double eta) const;
 	coretools::Probability _calcErrorRate(const BAM::TSequencedBase & base) const;
-
 public:
 	TModelRecal(const TModelDefinition & modelDef);
 	TModelRecal(const TModelDefinition & modelDef, const RecalEstimatorTools::TRecalDataTable & DataTable);
 
 	bool estimatable() const noexcept override { return true; };
 	bool recalibrates() const noexcept override { return true; };
-	std::string getCovariateDefinition() const noexcept override { return _covariates.getCovariateDefinition().getModelString(); };
+	std::string getCovariateDefinition() const noexcept override;
 	std::string getRhoDefinition() const noexcept override { return _rho.getDefinition(); };
 	TModelDefinition getModelDefinition() const;
 
@@ -188,7 +163,7 @@ public:
 
 	//functions to estimate
 	bool checkParameterRange(RecalEstimatorTools::TRecalDataTable & DataTable, std::string & error);
-	uint16_t numParameters(){ return _covariates.numParameters; };
+	uint16_t numParameters(){ return _numParameters; };
 
 	//functions to estimate rho
 	void prepareRhoEstimationFromEMWeights();
