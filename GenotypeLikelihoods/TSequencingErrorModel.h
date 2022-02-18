@@ -20,19 +20,13 @@
 namespace GenotypeLikelihoods{
 namespace SequencingError {
 
-
 //--------------------------------------------------------------------
 // TCovariateDef
 // class to store model definition. Used when parsing files
 //--------------------------------------------------------------------
-struct TCovariateDef{
+struct TCovariateDef {
 	std::string covariate;
 	std::string function;
-
-	TCovariateDef(const std::string Covariate, const std::string Function){
-		covariate = Covariate;
-		function = Function;
-	};
 };
 
 class TCovariateDefinition{
@@ -41,23 +35,19 @@ private:
 	std::string _intercept;
 
 public:
-	TCovariateDefinition(){
-		clear();
-	};
-	TCovariateDefinition(const std::string modelString, std::string & error){
-		parse(modelString, error);
-	};
+	TCovariateDefinition() = default;
+	TCovariateDefinition(const std::string modelString) { parse(modelString); };
 
 	void clear();
-	bool parse(const std::string & modelString, std::string & error);
+	void parse(const std::string & modelString);
 	void setIntercept(const double Intercept);
 	void addCovariate(const std::string covariate, const std::string function);
 	size_t size() const { return _covariateFunctions.size(); };
 	const std::string& intercept() const { return _intercept; };
-	std::vector<TCovariateDef>::iterator begin(){ return _covariateFunctions.begin(); };
-	std::vector<TCovariateDef>::iterator end(){ return _covariateFunctions.end(); };
-	std::vector<TCovariateDef>::const_iterator cbegin() const { return _covariateFunctions.cbegin(); };
-	std::vector<TCovariateDef>::const_iterator cend() const { return _covariateFunctions.cend(); };
+	auto begin(){ return _covariateFunctions.begin(); };
+	auto end(){ return _covariateFunctions.end(); };
+	auto cbegin() const { return _covariateFunctions.cbegin(); };
+	auto cend() const { return _covariateFunctions.cend(); };
 	std::string getModelString() const;
 };
 
@@ -69,13 +59,12 @@ private:
 	std::array< std::array<double, 4>, 4 > rho; //[from][to]
 public:
 	TRho() {reset();}
-	TRho(const std::string & def, std::string & error) {set(def, error);}
+	TRho(const std::string & def) {set(def);}
 	TRho(const TRho & other) = default;
 	TRho& operator=(const TRho & other) = default;
 
 	double operator()(const uint8_t & from, const uint8_t & to) const noexcept {return rho[from][to];}
 	void reset() noexcept;
-	bool set(const std::string & def, std::string & error);
 	void set(const std::string & def);
 	std::string getDefinition() const noexcept;
 	void fillBaseLikelihoods(const genometools::Base base, const coretools::Probability & epsilon, TBaseLikelihoods & baseLikelihoods) const noexcept;
@@ -96,24 +85,7 @@ public:
 	TRho rho;
 
 	TModelDefinition() = default;
-	TModelDefinition(const std::string & covariateString, const std::string & rhoString, std::string & error){
-		parse(covariateString, rhoString, error);
-	};
-
-	bool parseCovariates(const std::string & covariateString, std::string & error){
-		return(covariates.parse(covariateString, error));
-	};
-
-	bool parseRho(const std::string & rhoString, std::string & error){
-		return rho.set(rhoString, error);
-	};
-
-	bool parse(const std::string & covariateString, const std::string & rhoString, std::string & error){
-		if(!parseCovariates(covariateString, error)){
-			return false;
-		}
-		return parseRho(rhoString, error);
-	};
+	TModelDefinition(const std::string & covariateString, const std::string & rhoString) : covariates(covariateString), rho(rhoString) {}
 };
 
 //--------------------------------------------------------------------
@@ -153,6 +125,7 @@ public:
 	virtual coretools::Probability getErrorRate(const BAM::TSequencedBase & base) const = 0;
 	virtual genometools::PhredIntProbability getPhredInt(const BAM::TSequencedBase & base) const = 0;
 	virtual void fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseLikelihoods & baseLikelihoods) const = 0;
+	virtual void simulate(BAM::TSequencedBase &base, coretools::TRandomGenerator &RandomGenerator) const = 0;
 	virtual std::string getCovariateDefinition() const noexcept = 0;
 	virtual std::string getRhoDefinition() const noexcept = 0;
 };
@@ -168,6 +141,7 @@ public:
 	coretools::Probability getErrorRate(const BAM::TSequencedBase & base) const override;
 	genometools::PhredIntProbability getPhredInt(const BAM::TSequencedBase & base) const override;
 	void fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseLikelihoods & baseLikelihoods) const override;
+	virtual void simulate(BAM::TSequencedBase &base, coretools::TRandomGenerator &RandomGenerator) const override {};
 
 	virtual std::string getCovariateDefinition() const noexcept override { return "-"; };
 	virtual std::string getRhoDefinition() const noexcept override { return "-"; };
@@ -210,6 +184,7 @@ public:
 	coretools::Probability getErrorRate(const BAM::TSequencedBase & base) const override;
 	genometools::PhredIntProbability getPhredInt(const BAM::TSequencedBase & base) const override;
 	void fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseLikelihoods & baseLikelihoods) const override;
+	virtual void simulate(BAM::TSequencedBase &base, coretools::TRandomGenerator &RandomGenerator) const override {};
 
 	//functions to estimate
 	bool checkParameterRange(RecalEstimatorTools::TRecalDataTable & DataTable, std::string & error);

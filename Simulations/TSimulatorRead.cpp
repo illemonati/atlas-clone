@@ -92,11 +92,11 @@ void TSimulatorSingleEndRead::_applyPMD(std::vector<Base> &bases, const TReadLen
 	if (_pmd && _pmd->hasDamage()) {
 		if (!isReverseStrand) {
 			for (uint16_t p = 0; p < readLength.read; ++p) {
-				_pmd->simulatePMD(bases[p], p, readLength.fragment - p - 1, isReverseStrand, *_randomGenerator);
+				_pmd->simulate(bases[p], p, readLength.fragment - p - 1, isReverseStrand, *_randomGenerator);
 			}
 		} else {
 			for (uint16_t p = 0; p < readLength.read; ++p) {
-				_pmd->simulatePMD(bases[p], readLength.read - p - 1, readLength.fragment - readLength.read + p,
+				_pmd->simulate(bases[p], readLength.read - p - 1, readLength.fragment - readLength.read + p,
 							isReverseStrand, *_randomGenerator);
 			}
 		}

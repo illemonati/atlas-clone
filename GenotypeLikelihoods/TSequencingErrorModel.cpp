@@ -21,7 +21,7 @@ void TCovariateDefinition::clear(){
 	_covariateFunctions.clear();
 };
 
-bool TCovariateDefinition::parse(const std::string & modelString, std::string & error){
+void TCovariateDefinition::parse(const std::string & modelString){
 	//make sure it is empty
 	clear();
 
@@ -30,43 +30,36 @@ bool TCovariateDefinition::parse(const std::string & modelString, std::string & 
 	coretools::str::fillContainerFromString(modelString, tmp, ';', true);
 
 	//loop over entries
-	for(std::string s : tmp){
+	for (std::string s : tmp) {
 		size_t pos = s.find(':');
-		if(pos == std::string::npos){
-			//intercept?
+		if (pos == std::string::npos) {
+			// intercept?
 			size_t pos_1 = s.find('[');
 			size_t pos_2 = s.find(']');
-			if(s.substr(0, pos_1) != "intercept"){
-				error = "Unable to understand model string '" + modelString + "': expecting an ':' or the function 'intercept'!";
-				return false;
+			if (s.substr(0, pos_1) != "intercept")
+				throw "Unable to understand model string '" + modelString +
+					"': expecting an ':' or the function 'intercept'!";
+			if (pos_1 == std::string::npos) {
+				if (pos_2 != std::string::npos) 
+					throw "Unable to understand model string '" + modelString + "': missing '['";
+				_intercept = "0.0";
 			} else {
-				if(pos_1 == std::string::npos){
-					if(pos_2 != std::string::npos){
-						error = "Unable to understand model string '" + modelString + "': missing '['";
-						return false;
-					}
-					_intercept = "0.0";
-				} else {
-					if(pos_2 == std::string::npos){
-						error = "Unable to understand model string '" + modelString + "': missing ']'";
-						return false;
-					}
-					_intercept = s.substr(pos_1+1, pos_2-pos_1-1);
-				}
+				if (pos_2 == std::string::npos) 
+					throw "Unable to understand model string '" + modelString + "': missing ']'";
+				_intercept = s.substr(pos_1 + 1, pos_2 - pos_1 - 1);
 			}
 		} else {
-			_covariateFunctions.emplace_back(s.substr(0, pos), s.substr(pos+1));
+			_covariateFunctions.push_back({s.substr(0, pos), s.substr(pos + 1)});
 		}
 	}
-	return true;
-};
+}
 
 void TCovariateDefinition::setIntercept(const double Intercept){
 	_intercept = coretools::str::toString(Intercept);
 };
 
 void TCovariateDefinition::addCovariate(const std::string covariate, const std::string function){
-	_covariateFunctions.emplace_back(covariate, function);
+	_covariateFunctions.push_back({covariate, function});
 };
 
 std::string TCovariateDefinition::getModelString() const{
@@ -231,22 +224,20 @@ void TRho::reset() noexcept {
 	}
 }
 
-bool TRho::set(const std::string & def, std::string & error){
+void TRho::set(const std::string & def){
 	using coretools::str::toString;
 	//"default" implies default rho
 	if(def == "default"){
 		reset();
-		return true;
+		return;
 	}
 
 	//otherwise: full matrix is provided
 	std::vector<std::string> vec;
 	std::string s = def;
 	coretools::str::fillContainerFromString(def, vec, ';');
-	if(vec.size() != 4){
-		error = "Rho matrix has " + toString(vec.size()) + " instead of 4 rows!";
-		return false;
-	}
+	if(vec.size() != 4)
+		throw "Rho matrix has " + toString(vec.size()) + " instead of 4 rows!";
 
 	//parse rows
 	std::vector<double> r;
@@ -254,10 +245,8 @@ bool TRho::set(const std::string & def, std::string & error){
 		std::string& row = vec[a];
 		coretools::str::trimString(row, "()");
 		coretools::str::fillContainerFromString(row, r, ',');
-		if(r.size() != 4){
-			error = "Rho matrix has " + toString(r.size()) + " instead of 4 columns for row " + toString(a+1) + "!";
-			return false;
-		}
+		if(r.size() != 4)
+			throw "Rho matrix has " + toString(r.size()) + " instead of 4 columns for row " + toString(a+1) + "!";
 
 		//fill
 		for(size_t b=0; b<4; ++b){
@@ -268,24 +257,16 @@ bool TRho::set(const std::string & def, std::string & error){
 			}
 		}
 	}
-	return true;
 }
 
 std::string TRho::getDefinition() const noexcept{
 	std::string def;
 	for(int a=0; a<4; ++a){
-		if(a>0){
-			def += ";";
-		}
-		for(int b=0; b<4; ++b){
-			if(b>0){
-				def += ",";
-			}
-			if(a!=b){
-				def += coretools::str::toString(rho[a][b]);
-			} else {
-				def += "-";
-			}
+		if (a > 0) def += ";";
+		for (int b = 0; b < 4; ++b) {
+			if (b > 0) def += ",";
+			if (a != b) def += coretools::str::toString(rho[a][b]);
+			else def += "-";
 		}
 	}
 	return def;
@@ -413,7 +394,7 @@ TModelRecal::TModelRecal(const TModelDefinition & modelDef){
 
 	//prepare Newton-Raphson variables
 	setNewtonRaphsonParamsToZero();
-};
+}
 
 TModelRecal::TModelRecal(const TModelDefinition & ModelDef, const RecalEstimatorTools::TRecalDataTable & DataTable){
 	//create covariates
@@ -422,13 +403,11 @@ TModelRecal::TModelRecal(const TModelDefinition & ModelDef, const RecalEstimator
 
 	//prepare Newton-Raphson variables
 	setNewtonRaphsonParamsToZero();
-};
+}
 
 TModelDefinition TModelRecal::getModelDefinition() const{
-	std::string error;
-	TModelDefinition modelDef(getCovariateDefinition(), getRhoDefinition(), error);
-	return modelDef;
-};
+	return TModelDefinition(getCovariateDefinition(), getRhoDefinition());
+}
 
 //-------------------------------------------------
 //functions to calculate error rates

@@ -135,8 +135,8 @@ public:
 	virtual void fillBaseLikelihoods(const BAM::TSequencedBase &base, const TBaseProbabilities &baseLikelihoodsNoPMD,
 					 TBaseProbabilities &baseLikelihoods) const = 0;
 
-	virtual void simulatePMD(BAM::TSequencedBase &base, coretools::TRandomGenerator &RandomGenerator) const   = 0;
-	virtual void simulatePMD(genometools::Base &base, uint16_t DistFrom5Prime, uint16_t DistFrom3Prime,
+	virtual void simulate(BAM::TSequencedBase &base, coretools::TRandomGenerator &RandomGenerator) const   = 0;
+	virtual void simulate(genometools::Base &base, uint16_t DistFrom5Prime, uint16_t DistFrom3Prime,
 				 const bool &IsReverseStrand, coretools::TRandomGenerator &RandomGenerator) const = 0;
 };
 
@@ -162,8 +162,8 @@ public:
 		baseLikelihoods = baseLikelihoodsNoPMD;
 	}
 
-	void simulatePMD(BAM::TSequencedBase &, coretools::TRandomGenerator &) const override{}
-	void simulatePMD(genometools::Base &, uint16_t, uint16_t, const bool &, coretools::TRandomGenerator &) const override {}
+	void simulate(BAM::TSequencedBase &, coretools::TRandomGenerator &) const override{}
+	void simulate(genometools::Base &, uint16_t, uint16_t, const bool &, coretools::TRandomGenerator &) const override {}
 };
 
 //------------------------------------------------------
@@ -191,8 +191,8 @@ public:
 	void fillBaseLikelihoods(const BAM::TSequencedBase &base, const TBaseProbabilities &baseLikelihoodsNoPMD,
 	                         TBaseProbabilities &baseLikelihoods) const override;
 
-	void simulatePMD(BAM::TSequencedBase &base, coretools::TRandomGenerator &RandomGenerator) const override;
-	void simulatePMD(genometools::Base &base, uint16_t DistFrom5Prime, uint16_t DistFrom3Prime,
+	void simulate(BAM::TSequencedBase &base, coretools::TRandomGenerator &RandomGenerator) const override;
+	void simulate(genometools::Base &base, uint16_t DistFrom5Prime, uint16_t DistFrom3Prime,
 			 const bool &IsReverseStrand, coretools::TRandomGenerator &RandomGenerator) const override;
 };
 
@@ -222,8 +222,8 @@ public:
 	void fillBaseLikelihoods(const BAM::TSequencedBase &base, const TBaseProbabilities &baseLikelihoodsNoPMD,
 				 TBaseProbabilities &baseLikelihoods) const override;
 
-	void simulatePMD(BAM::TSequencedBase &base, coretools::TRandomGenerator &RandomGenerator) const override;
-	void simulatePMD(genometools::Base &base, uint16_t DistFrom5Prime, uint16_t DistFrom3Prime,
+	void simulate(BAM::TSequencedBase &base, coretools::TRandomGenerator &RandomGenerator) const override;
+	void simulate(genometools::Base &base, uint16_t DistFrom5Prime, uint16_t DistFrom3Prime,
 			 const bool &IsReverseStrand, coretools::TRandomGenerator &RandomGenerator) const override;
 };
 

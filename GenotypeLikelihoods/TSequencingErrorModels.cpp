@@ -37,9 +37,7 @@ void TModels::initialize(const std::string &RecalString, const std::string &RhoS
 	_models.resize(ReadGroups.size());
 
 	// create model definition
-	TModelDefinition modelDef;
-	std::string error;
-	if (!modelDef.parse(RecalString, RhoString, error)) throw error + "!";
+	TModelDefinition modelDef(RecalString, RhoString);
 
 	// initialize models
 	for (auto &m : _models) {
@@ -69,21 +67,19 @@ void TModels::initializeFromFile(const std::string &Filename, const BAM::TReadGr
 		if (ReadGroups.readGroupExists(vec[0])) { // ignore if it does not exist
 			// get read group
 			const uint16_t readGroupId = ReadGroups.getId(vec[0]);
-			std::string error;
-			TModelDefinition modelDef;
+			try {
+				const TModelDefinition modelDef(vec[2], vec[3]);
 
-			// parse model definition (allows us to get errors right here)
-			if (!modelDef.parse(vec[2], vec[3], error)) 
-				throw error + " in file '" + Filename + "' on line " + toString(in.lineNumber()) + "!";
-
-			// add model
-			if (vec[1] == "first")
-				_models[readGroupId][0] = std::make_shared<TModelRecal>(modelDef);
-			else if (vec[1] == "second")
-				_models[readGroupId][1] = std::make_shared<TModelRecal>(modelDef);
-			else
-				throw "Unknown mate '" + vec[1] + "' in file '" + Filename + "' on line " + toString(in.lineNumber()) +
-					"! Must be 'first' or 'second'.";
+				// add model
+				if (vec[1] == "first")
+					_models[readGroupId][0] = std::make_shared<TModelRecal>(modelDef);
+				else if (vec[1] == "second")
+					_models[readGroupId][1] = std::make_shared<TModelRecal>(modelDef);
+				else
+					throw "Unknown mate '" + vec[1] + "! Must be 'first' or 'second'.";
+			} catch (const char *error) {
+				throw std::string(error) + " in file '" + Filename + "' on line " + toString(in.lineNumber()) + "!";
+			}
 		}
 	}
 	Logfile->done();

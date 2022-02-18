@@ -468,11 +468,11 @@ void TPMDTypeDoubleStrand::fillBaseLikelihoods(const BAM::TSequencedBase &base,
 		(1.0 - pmdProb_GA) * baseLikelihoodsNoPMD[Base::G].get() + pmdProb_GA * baseLikelihoodsNoPMD[Base::A].get();
 }
 
-void TPMDTypeDoubleStrand::simulatePMD(BAM::TSequencedBase &base, TRandomGenerator &RandomGenerator) const {
-	simulatePMD(base.base, base.distFrom5Prime, base.distFrom3Prime, base.isReverseStrand(), RandomGenerator);
+void TPMDTypeDoubleStrand::simulate(BAM::TSequencedBase &base, TRandomGenerator &RandomGenerator) const {
+	simulate(base.base, base.distFrom5Prime, base.distFrom3Prime, base.isReverseStrand(), RandomGenerator);
 }
 
-void TPMDTypeDoubleStrand::simulatePMD(genometools::Base &base, uint16_t DistFrom5Prime, uint16_t DistFrom3Prime,
+void TPMDTypeDoubleStrand::simulate(genometools::Base &base, uint16_t DistFrom5Prime, uint16_t DistFrom3Prime,
 				       const bool &IsReverseStrand, TRandomGenerator &RandomGenerator) const {
 	using genometools::Base;
 	// simulate PMD
@@ -553,11 +553,11 @@ void TPMDTypeSingleStrand::fillBaseLikelihoods(const BAM::TSequencedBase &base,
 					  pmdProb_CT * baseLikelihoodsNoPMD[Base::T].get();
 }
 
-void TPMDTypeSingleStrand::simulatePMD(BAM::TSequencedBase &base, TRandomGenerator &RandomGenerator) const {
-	simulatePMD(base.base, base.distFrom5Prime, base.distFrom3Prime, base.isReverseStrand(), RandomGenerator);
+void TPMDTypeSingleStrand::simulate(BAM::TSequencedBase &base, TRandomGenerator &RandomGenerator) const {
+	simulate(base.base, base.distFrom5Prime, base.distFrom3Prime, base.isReverseStrand(), RandomGenerator);
 }
 
-void TPMDTypeSingleStrand::simulatePMD(genometools::Base &base, uint16_t DistFrom5Prime, uint16_t DistFrom3Prime,
+void TPMDTypeSingleStrand::simulate(genometools::Base &base, uint16_t DistFrom5Prime, uint16_t DistFrom3Prime,
 				       const bool &, TRandomGenerator &RandomGenerator) const {
 	using genometools::Base;
 	if (!(base == Base::C)) return;
