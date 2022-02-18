@@ -98,7 +98,7 @@ public:
 	virtual coretools::Probability getErrorRate(const BAM::TSequencedBase & base) const = 0;
 	virtual genometools::PhredIntProbability getPhredInt(const BAM::TSequencedBase & base) const = 0;
 	virtual void fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseLikelihoods & baseLikelihoods) const = 0;
-	virtual void simulate(BAM::TSequencedBase &base, coretools::TRandomGenerator &RandomGenerator) const = 0;
+	virtual void simulate(BAM::TSequencedBase& base, coretools::TRandomGenerator &RandomGenerator) const = 0;
 	virtual std::string getCovariateDefinition() const noexcept = 0;
 	virtual std::string getRhoDefinition() const noexcept = 0;
 };
@@ -114,7 +114,7 @@ public:
 	coretools::Probability getErrorRate(const BAM::TSequencedBase & base) const override;
 	genometools::PhredIntProbability getPhredInt(const BAM::TSequencedBase & base) const override;
 	void fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseLikelihoods & baseLikelihoods) const override;
-	virtual void simulate(BAM::TSequencedBase &base, coretools::TRandomGenerator &RandomGenerator) const override {};
+	virtual void simulate(BAM::TSequencedBase& base, coretools::TRandomGenerator &RandomGenerator) const override;
 
 	virtual std::string getCovariateDefinition() const noexcept override { return "-"; };
 	virtual std::string getRhoDefinition() const noexcept override { return "-"; };

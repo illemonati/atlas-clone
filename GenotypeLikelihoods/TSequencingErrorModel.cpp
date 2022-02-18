@@ -185,28 +185,11 @@ void TRho::addBaseForEstimation(const genometools::Base & base, const TBaseLikel
 };
 
 void TRho::estimate() noexcept{
-	//calculate denominators
-	std::array<double, 4> denom;
-	for(int a=0; a<4; ++a){
-		for(int b=0; b<4; ++b){
-			if(a!=b){
-				denom[a] += rho[a][b];
-			}
-		}
-	}
-
-	//scale rho
-	for(int a=0; a<4; ++a){
-		for(int b=0; b<4; ++b){
-			if(a!=b){
-				rho[a][b] /= denom[a];
-			}
-		}
-	}
-
-	//set denominators = 0.0
-	for(int a=0; a<4; ++a){
+	for (int a = 0; a < 4; ++a) {
 		rho[a][a] = 0.0;
+		double d = 0.;
+		for (const auto r : rho[a]) d += r;
+		for (auto &r : rho[a]) r /= d;
 	}
 }
 
@@ -239,6 +222,17 @@ void TModelNoRecal::fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseL
 			if (other == base.base) baseLikelihoods[other] = eps.complement();
 			else baseLikelihoods[other] = (1./3)*eps;
 		}
+	}
+}
+
+void TModelNoRecal::simulate(BAM::TSequencedBase &base, coretools::TRandomGenerator &RandomGenerator) const {
+	using genometools::Base;
+	if (base.base == Base::N) return;
+
+	const auto eps = static_cast<Probability>(base.originalQuality_phredInt);
+	if (RandomGenerator.getRand() < (1./3)*eps) {
+		const int i = RandomGenerator.getRand(0, 4);
+		base.base = Base((index(base.base) + i)%4);
 	}
 }
 

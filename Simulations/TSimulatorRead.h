@@ -38,13 +38,8 @@ protected:
 	std::unique_ptr<TSimulatorQualityDist> _qualityDist;
 	std::unique_ptr<TSimulatorQualityDist> _mappingQualityDist;
 
-	// PMD
-	// TODO: move from TPostMortemDamage
 	GenotypeLikelihoods::TPMDType const *_pmd = nullptr;
-
-	// Recal
-	// TODO: move from TSequencingErrorModels
-	//GenotypeLikelihoods::SequencingError::TModelsOneReadGroup const *_recal = nullptr;
+	std::array<GenotypeLikelihoods::SequencingError::TModel const *, 2> _recal;
 
 	// contamination
 	double _contaminationRate = 0.;
@@ -74,7 +69,7 @@ public:
 	void setQualityDistribution(std::string s);
 	void setMappingQualityDistribution(std::string s);
 	void setPMD(GenotypeLikelihoods::TPMDType const *Pmd);
-	/*virtual void setQualityTransformation(GenotypeLikelihoods::SequencingError::TModelsOneReadGroup const *Recal);*/
+	void setRecal(GenotypeLikelihoods::SequencingError::TModel const *Recal1, GenotypeLikelihoods::SequencingError::TModel const *Recal2);
 	void setContamination(double rate, TSimulatorReference *source);
 
 	std::string name() const { return _readGroup.name_ID; };

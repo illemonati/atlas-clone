@@ -78,10 +78,11 @@ void TSimulatorSingleEndRead::setMappingQualityDistribution(std::string s) {
 	_mappingQualityDist = _initializeQualityDistribution(s);
 }
 
-/*void TSimulatorSingleEndRead::setQualityTransformation(
-	GenotypeLikelihoods::SequencingError::TModelsOneReadGroup const *Recal) {
-	_recal = Recal;
-	}*/
+void TSimulatorSingleEndRead::setRecal(
+	GenotypeLikelihoods::SequencingError::TModel const *Recal1, GenotypeLikelihoods::SequencingError::TModel const *Recal2) {
+	_recal[0] = Recal1;
+	_recal[1] = Recal2;
+}
 
 void TSimulatorSingleEndRead::setPMD(GenotypeLikelihoods::TPMDType const *Pmd) {
 	_pmd = Pmd;
@@ -158,6 +159,11 @@ void TSimulatorSingleEndRead::_simulateBasesQualities(BAM::TAlignment & alignmen
 	_applyPMD(bases, readLength, alignment.isReverseStrand());
 	_alignment.setSequenceQualities(_cigar, bases, phredIntQualities);
 
+	for (auto & b : _alignment) {
+		if (!b.isSecondMate()) _recal[0]->simulate(b, *_randomGenerator);
+		else _recal[1]->simulate(b, *_randomGenerator);
+	}
+
 	/*
 	//simulate qualities and errors
 	qualityTransform->simulateQualitiesAndErrors(_bases, _phredIntQualities, readLength.read, isReverse);
@@ -223,10 +229,15 @@ void TSimulatorSingleEndRead::printDetails(TLog *logfile) {
 	else
 		throw "Read quality distribution not initialized!";
 
-	/*if (_recal &&  _recal->recalibrates()) {
+	if ((_recal[0] && _recal[0]->recalibrates())) {
 		// TODO: add recal string output
-		logfile->list("Recal: ");
-		}*/
+		logfile->list("Recal First Mate: " + _recal[0]->getCovariateDefinition());
+	}
+
+	if ((_recal[1] && _recal[1]->recalibrates())) {
+		// TODO: add recal string output
+		logfile->list("Recal Second Mate: " + _recal[0]->getCovariateDefinition());
+	}
 
 	if (_pmd && _pmd->hasDamage()) {
 		logfile->list("PMD: " + _pmd->functionString());
