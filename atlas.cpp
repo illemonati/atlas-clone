@@ -38,6 +38,7 @@
 #include "TInbreedingEstimator.h"
 #include "TPolymorhicWindowIdentifier.h"
 #include "THardyWeinbergTest.h"
+#include "TF2Estimator.h"
 
 //VCF
 #include "TVcfCompare.h"
@@ -103,8 +104,10 @@ void addTaks(coretools::TMain & main) {
 	main.addRegularTask("alleleFreqLikelihoods", new PopulationTools::TTask_alleleFreqLikelihoods());
 	main.addRegularTask("inbreeding", new PopulationTools::TTask_estimateInbreeding());
 	main.addRegularTask("polymorphicWindows", new PopulationTools::TTask_identifyPolymorphicWindows());
+    main.addRegularTask("calculateF2", new PopulationTools::TTask_calculateF2());
 
-	//VCF
+
+    //VCF
 	main.addRegularTask("VCFDiagnositics", new VCF::TTask_VCFDiagnostics());
 	main.addRegularTask("VCFToInvariantBed", new VCF::TTask_VCFToInvariantBed());
 	main.addRegularTask("convertVCF", new VCF::TTask_VcfConverter());
