@@ -128,10 +128,10 @@ namespace PopulationTools {
 
         std::vector<uint64_t> subvector;
         uint64_t tmp = 0;
-        for (uint32_t s = 0; s < _samples.numSamples()-1; ++s) {
+        for (uint32_t s = 0; s < _samples.numSamples(); ++s) {
             tmp = s*_samples.numSamples();
             subvector = { vec_F2.begin() + tmp, vec_F2.begin() + tmp + (_samples.numSamples()-1) };
-            out << header[s];
+            out.write(_samples.sampleName(s));
             out.writeLine(subvector);
         }
 
