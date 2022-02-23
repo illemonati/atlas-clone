@@ -74,35 +74,32 @@ namespace PopulationTools {
         //progress
         coretools::TTimer timer;
         uint64_t numFiltered = 0; //# multiallelic sites filtered
-        uint64_t lineCounter = 0;
+        uint64_t lineCounter = 0; //# lines
 
         //matrix total comparison and diff sites
-        uint64_t sitesCompared = 0;
-        uint64_t diffSites = 0;
-        std::vector<std::vector<uint64_t>> mat_F2;
+        std::vector<uint64_t> vec_F2 (_samples.numSamples() * _samples.numSamples());
 
         //traverse VCF
         _logfile->startIndent("Traversing VCF file:");
         while (_vcfFile.next()) {
             ++lineCounter;
-
             //exclude multiallelic
             if (_vcfFile.getNumAlleles() == 2) {
                 //compare genotypes one ind vs all others at current line
                 for (uint32_t s1 = 0; s1 < _samples.numSamples()-1; ++s1) {
                     uint32_t vcfIndex = _samples.sampleIndexInVCF(s1);
-                    _samples.sampleName(s1);
                     if (!_vcfFile.sampleIsMissing(vcfIndex)) {
                         auto genotype_s1 = _vcfFile.sampleBiallelicGenotype(vcfIndex);
 
                         for (uint32_t s2 = s1+1; s2 < _samples.numSamples(); ++s2) {
                             vcfIndex = _samples.sampleIndexInVCF(s2);
-
                             if (!_vcfFile.sampleIsMissing(vcfIndex)) {
                                 auto genotype_s2 = _vcfFile.sampleBiallelicGenotype(vcfIndex);
-                                ++sitesCompared;
+                                //store total # comparison per combination lower triangle
+                                ++vec_F2[(s2*_samples.numSamples())+s1];
                                 if (genotype_s1 != genotype_s2) { //genometools::BiallelicGenotype::haploidFirst
-                                    ++diffSites;
+                                    //store # diff Sites per combination upper triangle
+                                    ++vec_F2[(s1*_samples.numSamples())+s2];
                                 }
                             }
                         }
@@ -128,6 +125,16 @@ namespace PopulationTools {
         _logfile->list("Reached end of VCf file.");
         _logfile->conclude("Parsed ", lineCounter, " lines in ", timer.formattedTime());
         _logfile->conclude("Ignored ", numFiltered, " sites that were not bi-allelic SNPs.");
+
+        std::vector<uint64_t> subvector;
+        uint64_t tmp = 0;
+        for (uint32_t s = 0; s < _samples.numSamples()-1; ++s) {
+            tmp = s*_samples.numSamples();
+            subvector = { vec_F2.begin() + tmp, vec_F2.begin() + tmp + (_samples.numSamples()-1) };
+            out << header[s];
+            out.writeLine(subvector);
+        }
+
         _logfile->endIndent();
 
         //close file

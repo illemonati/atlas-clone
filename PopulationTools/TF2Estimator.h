@@ -32,7 +32,7 @@ namespace PopulationTools {
         //genotype data
         //THWPopulations _populations;
     public:
-        TF2Estimator(coretools::TParameters &Parameters, coretools::TLog *logfile, coretools::TRandomGenerator *RandonGenerator);
+        TF2Estimator(coretools::TParameters &Parameters, coretools::TLog *Logfile, coretools::TRandomGenerator *RandonGenerator);
         void calculateF2();
     };
 
