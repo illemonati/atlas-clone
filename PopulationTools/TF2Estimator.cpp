@@ -65,7 +65,7 @@ namespace PopulationTools {
         //open output file
         std::string filename = _outname + "_F2.txt";
         _logfile->list("Writing F2 results to file '" + filename + "'.");
-        std::vector<std::string> header; header.emplace_back("Sample");
+        std::vector<std::string> header; //header.emplace_back("Sample");
         for (uint32_t s = 0; s < _samples.numSamples(); ++s) {
             header.emplace_back(_samples.sampleName(s));
         }
@@ -131,7 +131,6 @@ namespace PopulationTools {
         for (uint32_t s = 0; s < _samples.numSamples()-1; ++s) {
             tmp = s*_samples.numSamples();
             subvector = { vec_F2.begin() + tmp, vec_F2.begin() + tmp + (_samples.numSamples()) };
-            out.write(_samples.sampleName(s));
             out.writeLine(subvector);
         }
 
