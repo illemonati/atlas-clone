@@ -67,7 +67,8 @@ namespace PopulationTools {
         _logfile->list("Writing F2 results to file '" + filename + "'.");
         std::vector<std::string> header; //header.emplace_back("Sample");
         for (uint32_t s = 0; s < _samples.numSamples(); ++s) {
-            header.emplace_back(_samples.sampleName(s));
+            uint32_t vcfIndex = _samples.sampleIndexInVCF(s);
+            header.emplace_back(_samples.sampleName(vcfIndex));
         }
         TOutputFile out(filename, header);
 
