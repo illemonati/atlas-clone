@@ -25,17 +25,16 @@ protected:
 	std::array<Type, Size> _data;
 
 	//keep protected so the base class can not be used
-	TData_base() = default;
-	TData_base(const Type & val){ set(val); };
+public:
+	TData_base(Type val = Type{}){ set(val); };
 	 virtual ~TData_base(){};
 
-public:
 	size_t size() const { return _data.size(); };
 	Type* pointerToData(){ return _data.data(); };
 	size_t sizeOf() const { return sizeof(Type) * Size; };
 
 	template <typename T>
-	void set(const T & val){
+	void set(T val){
 		std::fill(begin(), end(), Type(val));
 	};
 
@@ -171,16 +170,15 @@ public:
 // TBaseData_base
 //--------------------------------------------------------------------
 template <typename T>
-class TBaseData_base : public TData_base<T, genometools::Base, 4>{
-protected:
-	using TData_base<T, genometools::Base, 4>::_data;
+using TBaseData_base = TData_base<T, genometools::Base, 4>;
 
-public:
-	TBaseData_base() = default;
-	TBaseData_base(const T& val){ set(val); };
+//--------------------------------------------------------------------
+// TGenotypeData_base
+// base class for TGenotypeData, likelihoods, prior and posterior
+//--------------------------------------------------------------------
+template <typename T>
+using TGenotypeData_base = TData_base<T, genometools::Genotype, 10>;
 
-	using TData_base<T, genometools::Base, 4>::set;
-};
 
 //--------------------------------------------------------------------
 // TBaseProbabilities
@@ -188,8 +186,8 @@ public:
 class TBaseProbabilities : public TBaseData_base<coretools::Probability>{
 public:
 	TBaseProbabilities(){ reset(); };
-	TBaseProbabilities(const coretools::Probability & val) : TBaseData_base(val) {};
-	TBaseProbabilities(double val) : TBaseData_base(coretools::Probability(val)) {};
+	TBaseProbabilities(const coretools::Probability & val) : TBaseData_base<coretools::Probability>(val) {};
+	TBaseProbabilities(double val) : TBaseData_base<coretools::Probability>(coretools::Probability(val)) {};
 };
 
 //--------------------------------------------------------------------
@@ -230,28 +228,13 @@ public:
 class TBaseData:public TBaseData_base<double>{
 public:
 	TBaseData(){ reset(); };
-	TBaseData(double val) : TBaseData_base(val) {};
+	TBaseData(double val) : TBaseData_base<double>(val) {};
 
 	using TBaseData_base<double>::set;
 
 	[[nodiscard]] TBaseProbabilities asFrequencies();
 
 	void operator+=(const TBaseProbabilities & probs);
-};
-
-//--------------------------------------------------------------------
-// TGenotypeData_base
-// base class for TGenotypeData, likelihoods, prior and posterior
-//--------------------------------------------------------------------
-template <typename T>
-class TGenotypeData_base : public TData_base<T, genometools::Genotype, 10>{
-protected:
-	using TData_base<T, genometools::Genotype, 10>::_data;
-
-public:
-	TGenotypeData_base(){};
-	TGenotypeData_base(const T & Val) : TData_base<T, genometools::Genotype, 10>(Val) {};
-	virtual ~TGenotypeData_base(){};
 };
 
 //-------------------------------------
