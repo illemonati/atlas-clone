@@ -94,15 +94,16 @@ public:
 //--------------------------------------------------------------------
 class TModel {
 public:
-	virtual ~TModel()                                                                           = default;
-	virtual bool estimatable() const noexcept                                                   = 0;
-	virtual bool recalibrates() const noexcept                                                  = 0;
-	virtual coretools::Probability getErrorRate(const BAM::TSequencedBase &base) const          = 0;
-	virtual genometools::PhredIntProbability getPhredInt(const BAM::TSequencedBase &base) const = 0;
-	virtual void fillBaseLikelihoods(const BAM::TSequencedBase &base, TBaseLikelihoods &baseLikelihoods) const = 0;
-	virtual void simulate(BAM::TSequencedBase &base, coretools::TRandomGenerator &RandomGenerator) const       = 0;
-	virtual std::string getCovariateDefinition() const noexcept                                                = 0;
-	virtual std::string getRhoDefinition() const noexcept                                                      = 0;
+	virtual ~TModel()                                                                                    = default;
+	virtual bool estimatable() const noexcept                                                            = 0;
+	virtual bool recalibrates() const noexcept                                                           = 0;
+	virtual coretools::Probability getErrorRate(const BAM::TSequencedBase &base) const noexcept          = 0;
+	virtual genometools::PhredIntProbability getPhredInt(const BAM::TSequencedBase &base) const noexcept = 0;
+	virtual void fillBaseLikelihoods(const BAM::TSequencedBase &base,
+					 TBaseLikelihoods &baseLikelihoods) const noexcept                   = 0;
+	virtual void simulate(BAM::TSequencedBase &base, coretools::TRandomGenerator &RandomGenerator) const noexcept = 0;
+	virtual std::string getCovariateDefinition() const noexcept                                                   = 0;
+	virtual std::string getRhoDefinition() const noexcept                                                         = 0;
 };
 
 //------------------------------------------------
@@ -113,10 +114,10 @@ public:
 	virtual bool estimatable() const noexcept override { return false; };
 	virtual bool recalibrates() const noexcept override { return false; };
 
-	coretools::Probability getErrorRate(const BAM::TSequencedBase &base) const override;
-	genometools::PhredIntProbability getPhredInt(const BAM::TSequencedBase &base) const override;
-	void fillBaseLikelihoods(const BAM::TSequencedBase &base, TBaseLikelihoods &baseLikelihoods) const override;
-	virtual void simulate(BAM::TSequencedBase &base, coretools::TRandomGenerator &RandomGenerator) const override;
+	coretools::Probability getErrorRate(const BAM::TSequencedBase &base) const noexcept override;
+	genometools::PhredIntProbability getPhredInt(const BAM::TSequencedBase &base) const noexcept override;
+	void fillBaseLikelihoods(const BAM::TSequencedBase &base, TBaseLikelihoods &baseLikelihoods) const noexcept override;
+	virtual void simulate(BAM::TSequencedBase &base, coretools::TRandomGenerator &RandomGenerator) const noexcept override;
 
 	virtual std::string getCovariateDefinition() const noexcept override { return "-"; };
 	virtual std::string getRhoDefinition() const noexcept override { return "-"; };
@@ -145,8 +146,8 @@ private:
 	bool _NRStepAccepted;
 
 	void _initializeDerivatives();
-	coretools::Probability _calcEpsilon(double eta) const;
-	coretools::Probability _calcErrorRate(const BAM::TSequencedBase &base) const;
+	coretools::Probability _calcEpsilon(double eta) const noexcept;
+	coretools::Probability _calcErrorRate(const BAM::TSequencedBase &base) const noexcept;
 
 public:
 	TModelRecal(const TModelDefinition &modelDef);
@@ -159,34 +160,33 @@ public:
 	TModelDefinition getModelDefinition() const;
 
 	// get error rates
-	coretools::Probability getErrorRate(const BAM::TSequencedBase &base) const override;
-	genometools::PhredIntProbability getPhredInt(const BAM::TSequencedBase &base) const override;
-	void fillBaseLikelihoods(const BAM::TSequencedBase &base, TBaseLikelihoods &baseLikelihoods) const override;
-	virtual void simulate(BAM::TSequencedBase &base, coretools::TRandomGenerator &RandomGenerator) const override{};
+	coretools::Probability getErrorRate(const BAM::TSequencedBase &base) const noexcept override;
+	genometools::PhredIntProbability getPhredInt(const BAM::TSequencedBase &base) const noexcept override;
+	void fillBaseLikelihoods(const BAM::TSequencedBase &base, TBaseLikelihoods &baseLikelihoods) const noexcept override;
+	virtual void simulate(BAM::TSequencedBase &base, coretools::TRandomGenerator &RandomGenerator) const noexcept override{};
 
 	// functions to estimate
-	bool checkParameterRange(RecalEstimatorTools::TRecalDataTable &DataTable, std::string &error);
-	uint16_t numParameters() { return _numParameters; };
+	std::string checkParameterRange(RecalEstimatorTools::TRecalDataTable &DataTable) const;
+	uint16_t numParameters() const noexcept { return _numParameters; }
 
 	// functions to estimate rho
-	void prepareRhoEstimationFromEMWeights();
-	void addBaseForRhoEstimation(BAM::TSequencedBase &base, const TBaseLikelihoods &EMWeights);
-	void estimateRho();
+	void prepareRhoEstimationFromEMWeights() noexcept;
+	void addBaseForRhoEstimation(BAM::TSequencedBase &base, const TBaseLikelihoods &EMWeights) noexcept;
+	void estimateRho() noexcept;
 
 	// functions to estimate betas
 	void setNewtonRaphsonParamsToZero();
-	void setQToZero();
+	void setQToZero() noexcept;
 	void addToQ(const BAM::TSequencedBase &base, const TBaseLikelihoods &EM_weights_bbar_given_d);
-	double curQ() { return _Q; };
+	double curQ() const noexcept { return _Q; }
 	void addToFandJacobian(const BAM::TSequencedBase &base, const TBaseLikelihoods &EM_weights_bbar_given_d);
 	bool solveJxF();
 	void proposeNewParameters(double &lambda);
 	bool acceptProposedParametersBasedOnQ();
 	void adjustParametersPostEstimation();
-	double getSteepestGradient();
-	void printJacobianToStdOut();
-	void printFToStdOut();
-	void printJxFToStdOut();
+	double getSteepestGradient() const noexcept;
+
+	const auto & Jacobian() const noexcept {return _Jacobian;}
 };
 
 } // namespace SequencingError

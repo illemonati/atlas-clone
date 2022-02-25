@@ -138,7 +138,7 @@ bool TSequencingErrorModelVectorForEstimation::solveJxF(){
 	bool couldSolve = true;
 	for(auto& model : _models){
 		if(!model->solveJxF()){
-			model->printJacobianToStdOut();
+			std::cout << "Jacobian:\n" << model->Jacobian() << std::endl;
 			throw "Issue solving JxF! This may be due to a lack of data. Consider adding more sites.";
 			couldSolve = false;
 		}

@@ -159,12 +159,12 @@ void TSimulatorSingleEndRead::_simulateBasesQualities(BAM::TAlignment & alignmen
 	_applyPMD(bases, readLength, alignment.isReverseStrand());
 	_alignment.setSequenceQualities(_cigar, bases, phredIntQualities);
 
+	/*
 	for (auto & b : _alignment) {
 		if (!b.isSecondMate()) _recal[0]->simulate(b, *_randomGenerator);
 		else _recal[1]->simulate(b, *_randomGenerator);
 	}
 
-	/*
 	//simulate qualities and errors
 	qualityTransform->simulateQualitiesAndErrors(_bases, _phredIntQualities, readLength.read, isReverse);
 

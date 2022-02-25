@@ -8,6 +8,7 @@
 #include "TSequencingErrorModel.h"
 #include "probability.h"
 #include <memory>
+#include "devtools.h"
 
 namespace GenotypeLikelihoods {
 namespace SequencingError {
@@ -133,23 +134,19 @@ void TRho::estimate() noexcept {
 //*********************************************************
 // TModelNoRecal
 //*********************************************************
-Probability TModelNoRecal::getErrorRate(const BAM::TSequencedBase &base) const {
-	if (base == genometools::Base::N) {
-		return Probability(1.0);
-	} else {
-		return (Probability)base.originalQuality_phredInt;
-	}
+Probability TModelNoRecal::getErrorRate(const BAM::TSequencedBase &base) const noexcept {
+	if (base == genometools::Base::N) return Probability(1.0);
+	return (Probability)base.originalQuality_phredInt;
 }
 
-genometools::PhredIntProbability TModelNoRecal::getPhredInt(const BAM::TSequencedBase &base) const {
-	if (base == genometools::Base::N) {
-		return genometools::PhredIntProbability(0); // Todo: change to maxProb() one available.
-	} else {
-		return base.originalQuality_phredInt;
-	}
+genometools::PhredIntProbability TModelNoRecal::getPhredInt(const BAM::TSequencedBase &base) const noexcept {
+	// Todo: change to maxProb() one available.
+	if (base == genometools::Base::N) return genometools::PhredIntProbability(0);
+	return base.originalQuality_phredInt;
 }
 
-void TModelNoRecal::fillBaseLikelihoods(const BAM::TSequencedBase &base, TBaseLikelihoods &baseLikelihoods) const {
+void TModelNoRecal::fillBaseLikelihoods(const BAM::TSequencedBase &base,
+					TBaseLikelihoods &baseLikelihoods) const noexcept {
 	using genometools::Base;
 	if (base == Base::N) {
 		baseLikelihoods.reset();
@@ -164,13 +161,13 @@ void TModelNoRecal::fillBaseLikelihoods(const BAM::TSequencedBase &base, TBaseLi
 	}
 }
 
-void TModelNoRecal::simulate(BAM::TSequencedBase &base, coretools::TRandomGenerator &RandomGenerator) const {
+void TModelNoRecal::simulate(BAM::TSequencedBase &base, coretools::TRandomGenerator &RandomGenerator) const noexcept {
 	using genometools::Base;
 	if (base.base == Base::N) return;
 
 	const auto eps = static_cast<Probability>(base.originalQuality_phredInt);
 	if (RandomGenerator.getRand() < (1. / 3) * eps) {
-		const int i = RandomGenerator.getRand(0, 4);
+		const int i = RandomGenerator.getRand(0, 3); // 3 bases to choose from
 		base.base   = Base((index(base.base) + i) % 4);
 	}
 }
@@ -268,46 +265,41 @@ std::string TModelRecal::getCovariateDefinition() const noexcept {
 // functions to calculate error rates
 //-------------------------------------------------
 
-Probability TModelRecal::_calcEpsilon(double eta) const {
-	if (eta > 23.03) { return Probability(0.9999999999); }
-	if (eta < -23.03) { return Probability(0.0000000001); }
+Probability TModelRecal::_calcEpsilon(double eta) const noexcept {
+	if (eta > 23.03) return Probability(0.9999999999);
+	if (eta < -23.03) return Probability(0.0000000001);
 
 	return coretools::logistic(eta);
-};
+}
 
-Probability TModelRecal::_calcErrorRate(const BAM::TSequencedBase &base) const {
+Probability TModelRecal::_calcErrorRate(const BAM::TSequencedBase &base) const noexcept {
 	// eta = bta[0] + SUM_i f(q[i]), where the functions are implemented as covariate function
-	double eta = _intercept.getEtaTerm();
 
-	for (const auto &cov : _covariates) { eta += cov->getEtaTerm(base); }
+	auto eta = _intercept.getEtaTerm();
+	for (const auto &cov : _covariates) eta += cov->getEtaTerm(base);
 
 	return _calcEpsilon(eta);
-};
+}
 
-Probability TModelRecal::getErrorRate(const BAM::TSequencedBase &base) const {
-	if (base == genometools::Base::N) {
-		return Probability::highest();
-	} else {
-		return _calcErrorRate(base);
-	}
-};
+Probability TModelRecal::getErrorRate(const BAM::TSequencedBase &base) const noexcept {
+	if (base == genometools::Base::N) return Probability::highest();
+	return _calcErrorRate(base);
+}
 
-genometools::PhredIntProbability TModelRecal::getPhredInt(const BAM::TSequencedBase &base) const {
-	if (base == genometools::Base::N) {
-		return genometools::PhredIntProbability(0); // Todo: change to maxProb() one available.
-	} else {
-		return genometools::PhredIntProbability(_calcErrorRate(base));
-	}
-};
+genometools::PhredIntProbability TModelRecal::getPhredInt(const BAM::TSequencedBase &base) const noexcept {
+	// Todo: change to maxProb() one available.
+	if (base == genometools::Base::N) return genometools::PhredIntProbability(0);
+	return genometools::PhredIntProbability(_calcErrorRate(base));
+}
 
-void TModelRecal::fillBaseLikelihoods(const BAM::TSequencedBase &base, TBaseLikelihoods &baseLikelihoods) const {
+void TModelRecal::fillBaseLikelihoods(const BAM::TSequencedBase &base, TBaseLikelihoods &baseLikelihoods) const noexcept {
 	using genometools::Base;
 	if (base == Base::N) {
 		baseLikelihoods.reset();
 	} else {
 		const auto e = _calcErrorRate(base);
-		for (auto q = Base::min; q < Base::max; ++q) {
-			baseLikelihoods[q] = e * _rho(q, base.base);
+		for (auto b = Base::min; b < Base::max; ++b) {
+			baseLikelihoods[b] = e * _rho(b, base.base);
 		}
 		baseLikelihoods[base.base] = e.complement();
 	}
@@ -316,26 +308,25 @@ void TModelRecal::fillBaseLikelihoods(const BAM::TSequencedBase &base, TBaseLike
 //-------------------------------------------------
 // functions to estimate rho
 //-------------------------------------------------
-void TModelRecal::prepareRhoEstimationFromEMWeights() { _rho.prepareEstimationFromEMWeights(); };
+void TModelRecal::prepareRhoEstimationFromEMWeights() noexcept { _rho.prepareEstimationFromEMWeights(); }
 
-void TModelRecal::addBaseForRhoEstimation(BAM::TSequencedBase &base, const TBaseLikelihoods &EMWeights) {
+void TModelRecal::addBaseForRhoEstimation(BAM::TSequencedBase &base, const TBaseLikelihoods &EMWeights) noexcept {
 	_rho.addBaseForEstimation(base.base, EMWeights);
-};
+}
 
-void TModelRecal::estimateRho() { _rho.estimate(); };
+void TModelRecal::estimateRho() noexcept { _rho.estimate(); }
 
 //-------------------------------------------------
 // functions for estimation
 //-------------------------------------------------
-bool TModelRecal::checkParameterRange(RecalEstimatorTools::TRecalDataTable &DataTable, std::string &error) {
+std::string TModelRecal::checkParameterRange(RecalEstimatorTools::TRecalDataTable &DataTable) const {
 	for (auto &cov : _covariates) {
 		if (!cov->checkParameterRange(DataTable)) {
-			error = "Function for covariate " + cov->typeString() + " does not cover full range of data";
-			return false;
+			 return "Function for covariate " + cov->typeString() + " does not cover full range of data";
 		}
 	}
-	return true;
-};
+	return "";
+}
 
 void TModelRecal::_initializeDerivatives() {
 	// intercept
@@ -347,9 +338,10 @@ void TModelRecal::_initializeDerivatives() {
 		numNonZeroFirstDeriv += cov->numNonZeroFirstDerivatives();
 		numNonZeroSecondDeriv += cov->numNonZeroSecondDerivatives();
 	}
+
 	_firstDerivatives.resize(numNonZeroFirstDeriv);
 	_secondDerivatives.resize(numNonZeroSecondDeriv);
-};
+}
 
 void TModelRecal::setNewtonRaphsonParamsToZero() {
 	_Jacobian.resize(numParameters(), numParameters());
@@ -364,29 +356,29 @@ void TModelRecal::setNewtonRaphsonParamsToZero() {
 	_numSitesAdded  = 0;
 	_NRconverged    = false;
 	_NRStepAccepted = false;
-};
+}
 
-void TModelRecal::setQToZero() {
+void TModelRecal::setQToZero() noexcept {
 	if (!_NRconverged) {
 		_oldQ = _Q;
 		_Q    = 0.0;
 	}
-};
+}
 
 void TModelRecal::addToQ(const BAM::TSequencedBase &base, const TBaseLikelihoods &EM_weights_bbar_given_d) {
 	if (!_NRconverged) {
 		// get error rate
-		Probability eps = getErrorRate(base);
+		const auto eps = getErrorRate(base);
 		// calculate sum_bbar [ Ind(bbar=d)log(1-eps) + Ind(bbar!=d)log(eps) ]
 		_Q += EM_weights_bbar_given_d[base.base].get() * log(eps.complement().get()) +
 		      EM_weights_bbar_given_d[base.base].complement().get() * log(eps.get());
 	}
-};
+}
 
 void TModelRecal::addToFandJacobian(const BAM::TSequencedBase &base, const TBaseLikelihoods &EM_weights_bbar_given_d) {
 	// 1) Calculate epsilon
 	//--------------------
-	double eps = getErrorRate(base).get();
+	const auto eps = getErrorRate(base).get();
 
 	// 2 ) fill derivatives
 	//--------------------
@@ -397,103 +389,87 @@ void TModelRecal::addToFandJacobian(const BAM::TSequencedBase &base, const TBase
 	_intercept.fillDerivatives(0.0, _firstDerivatives, _secondDerivatives);
 
 	// fill derivatives of covariates
-	for (const auto &cov : _covariates) { cov->fillDerivatives(base, _firstDerivatives, _secondDerivatives); }
+	for (const auto &cov : _covariates) cov->fillDerivatives(base, _firstDerivatives, _secondDerivatives);
 
 	// 3) add derivatives to F and Jacobian
 	// calculate weights
-	double weight1 = 1.0 - eps - EM_weights_bbar_given_d[base.base].get();
+	const auto weight1 = 1.0 - eps - EM_weights_bbar_given_d[base.base].get();
+	const auto weight2 = (1.0 - eps) * eps;
 
-	std::cout << "weight1 = " << weight1 << ", EM_weight = " << EM_weights_bbar_given_d[base.base] << ", eps = " << eps
-			  << std::endl;
-
-	double weight2 = (1.0 - eps) * eps;
+	OUT(weight1);
+	OUT(weight2);
+	OUT(eps);
+	OUT(EM_weights_bbar_given_d[base.base]);
 
 	// add first derivatives
-	for (TRecalibrationEMFirstDerivativesIterator it = _firstDerivatives.begin(); it != _firstDerivatives.end(); ++it) {
+	for (auto it = _firstDerivatives.begin(); it != _firstDerivatives.end(); ++it) {
 		// add to F
 		_F(it->index) += weight1 * it->derivative;
 
 		// add to J
-		for (TRecalibrationEMFirstDerivativesIterator it2 = it; it2 != _firstDerivatives.end(); ++it2) {
+		for (auto it2 = it; it2 != _firstDerivatives.end(); ++it2) {
 			_Jacobian(it->index, it2->index) += weight2 * it->derivative * it2->derivative;
 		}
 	}
 
 	// add second derivatives to Jacobian (happens to have the same weigth as F!)
-	for (auto &it : _secondDerivatives) { _Jacobian(it.index1, it.index2) += weight1 * it.derivative; }
+	for (auto &it : _secondDerivatives) _Jacobian(it.index1, it.index2) += weight1 * it.derivative;
 
 	++_numSitesAdded;
-};
+}
 
 bool TModelRecal::solveJxF() {
-	if (_NRconverged) {
-		return true;
-	} else {
-		// Need to copy numbers to other triangle in Jacobian, as only upper triangle is filled when parsing sites
-		for (int i = 0; i < (numParameters() - 1); ++i) {
-			for (unsigned int j = i + 1; j < numParameters(); ++j) {
-				// copy from upper triangle to lower triangle
-				_Jacobian(j, i) = _Jacobian(i, j);
-			}
+	if (_NRconverged) return true;
+
+	// Need to copy numbers to other triangle in Jacobian, as only upper triangle is filled when parsing sites
+	for (int i = 0; i < (numParameters() - 1); ++i) {
+		for (unsigned int j = i + 1; j < numParameters(); ++j) {
+			// copy from upper triangle to lower triangle
+			_Jacobian(j, i) = _Jacobian(i, j);
 		}
-
-		// scale F and J by 1/#sites
-		_Jacobian = _Jacobian / (double)_numSitesAdded;
-		_F        = _F / (double)_numSitesAdded;
-
-		std::cout << "DEBUG!!!" << std::endl;
-		printJacobianToStdOut();
-		printFToStdOut();
-
-		// now solve J^-1 x F
-		return solve(_JxF, _Jacobian, _F);
 	}
-};
+
+	// scale F and J by 1/#sites
+	_Jacobian = _Jacobian / (double)_numSitesAdded;
+	_F        = _F / (double)_numSitesAdded;
+
+	OUT(_Jacobian);
+	OUT(_F);
+
+	// now solve J^-1 x F
+	return solve(_JxF, _Jacobian, _F);
+}
 
 void TModelRecal::proposeNewParameters(double &lambda) {
 	if (!_NRStepAccepted) {
 		uint16_t index = 0;
 		for (const auto it : _functions) { it->proposeNewParameters(_JxF, index, lambda); }
 	}
-};
+}
 
 bool TModelRecal::acceptProposedParametersBasedOnQ() {
 	if (_NRStepAccepted) return true;
 	if (_Q > _oldQ) {
 		_NRStepAccepted = true;
-	} else {
-		_NRStepAccepted = false;
-		_Q              = _oldQ;
-
-		for (const auto it : _functions) { it->rejectProposedParameters(); }
+		return true;
 	}
-	return _NRStepAccepted;
-};
+	_NRStepAccepted = false;
+	_Q              = _oldQ;
+	for (const auto it : _functions) it->rejectProposedParameters();
+
+	return false;
+}
 
 void TModelRecal::adjustParametersPostEstimation() {
-	for (const auto it : _functions) { _intercept.addToIntercept(it->adjustParametersPostEstimation()); }
-};
+	for (const auto it : _functions) _intercept.addToIntercept(it->adjustParametersPostEstimation());
+}
 
-double TModelRecal::getSteepestGradient() {
+double TModelRecal::getSteepestGradient() const noexcept {
 	if (_NRStepAccepted) return 0.0;
 	double maxF = 0.0;
-	for (unsigned int i = 0; i < numParameters(); ++i) {
-		if (fabs(_F(i)) > maxF) maxF = fabs(_F(i));
-	}
+	for (unsigned int i = 0; i < numParameters(); ++i) maxF = std::max(maxF, fabs(_F(i)));
 	return maxF;
-};
-
-void TModelRecal::printJacobianToStdOut() {
-	std::cout << std::endl << std::endl << "JACOBIAN:" << std::endl << _Jacobian << std::endl << std::endl;
-};
-
-void TModelRecal::printFToStdOut() {
-	std::cout << std::endl << std::endl << "F:" << std::endl << _F << std::endl << std::endl;
-};
-
-void TModelRecal::printJxFToStdOut() {
-	std::cout << std::endl << std::endl << "JxF:" << std::endl << _JxF << std::endl << std::endl;
-};
+}
 
 } // namespace SequencingError
 } // namespace GenotypeLikelihoods
