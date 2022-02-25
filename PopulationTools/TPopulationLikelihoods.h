@@ -114,6 +114,7 @@ public:
 	bool sampleExists(const std::string & name) const;
 	uint32_t sampleIndex(const std::string & name) const;
 	std::string sampleName(uint32_t SampleIndex) const;
+
 	void addSampleNamesToVector(std::vector<std::string> & vec) const;
 
 	void readSamples(std::string filename, coretools::TLog* logfile);
