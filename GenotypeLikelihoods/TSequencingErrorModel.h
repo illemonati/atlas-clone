@@ -40,7 +40,7 @@ public:
 	TCovariateDefinition(const std::string &modelString);
 
 	void setIntercept(const double Intercept);
-	void addCovariate(const std::string covariate, const std::string function);
+	void addCovariate(const std::string &covariate, const std::string &function);
 	size_t size() const { return _covariateFunctions.size(); };
 	const std::string &intercept() const { return _intercept; };
 	auto begin() noexcept { return _covariateFunctions.begin(); };
@@ -65,15 +65,12 @@ public:
 	TRho(const TRho &other) = default;
 	TRho &operator=(const TRho &other) = default;
 
-	double operator()(const uint8_t &from, const uint8_t &to) const noexcept { return rho[from][to]; }
-public:
+	double operator()(genometools::Base from, const genometools::Base to) const noexcept { return rho[genometools::index(from)][genometools::index(to)]; }
 	std::string getDefinition() const noexcept;
-	void fillBaseLikelihoods(const genometools::Base base, const coretools::Probability &epsilon,
-				 TBaseLikelihoods &baseLikelihoods) const noexcept;
 
 	// functions used to estimate
 	void prepareEstimationFromEMWeights() noexcept { rho.fill({0., 0., 0., 0.}); }
-	void addBaseForEstimation(const genometools::Base &base, const TBaseLikelihoods &EMWeights) noexcept;
+	void addBaseForEstimation(genometools::Base base, const TBaseLikelihoods &EMWeights) noexcept;
 	void estimate() noexcept;
 };
 

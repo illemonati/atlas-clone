@@ -19,19 +19,17 @@ using coretools::Probability;
 //*********************************************************
 
 TCovariateDefinition::TCovariateDefinition(const std::string &modelString) {
-	// make sure it is empty
-
 	// split string
 	std::vector<std::string> tmp;
 	coretools::str::fillContainerFromString(modelString, tmp, ';', true);
 
 	// loop over entries
 	for (std::string s : tmp) {
-		size_t pos = s.find(':');
+		const auto pos = s.find(':');
 		if (pos == std::string::npos) {
 			// intercept?
-			size_t pos_1 = s.find('[');
-			size_t pos_2 = s.find(']');
+			const auto pos_1 = s.find('[');
+			const auto pos_2 = s.find(']');
 			if (s.substr(0, pos_1) != "intercept")
 				throw "Unable to understand model string '" + modelString +
 					"': expecting an ':' or the function 'intercept'!";
@@ -50,17 +48,17 @@ TCovariateDefinition::TCovariateDefinition(const std::string &modelString) {
 	}
 }
 
-void TCovariateDefinition::setIntercept(const double Intercept) { _intercept = coretools::str::toString(Intercept); };
+void TCovariateDefinition::setIntercept(double Intercept) { _intercept = coretools::str::toString(Intercept); };
 
-void TCovariateDefinition::addCovariate(const std::string covariate, const std::string function) {
+void TCovariateDefinition::addCovariate(const std::string &covariate, const std::string &function) {
 	_covariateFunctions.push_back({covariate, function});
-};
+}
 
 std::string TCovariateDefinition::getModelString() const {
 	std::string modelString = "intercept[" + _intercept + "]";
 	for (auto &it : _covariateFunctions) { modelString += ";" + it.covariate + ":" + it.function; }
 	return modelString;
-};
+}
 
 //*********************************************************
 // TRho
@@ -114,35 +112,7 @@ std::string TRho::getDefinition() const noexcept {
 	return def;
 }
 
-void TRho::fillBaseLikelihoods(const genometools::Base base, const Probability &epsilon,
-			       TBaseLikelihoods &baseLikelihoods) const noexcept {
-	using genometools::Base;
-	using genometools::index;
-	if (base == Base::N) {
-		baseLikelihoods.reset();
-	} else {
-		baseLikelihoods[base] = epsilon.complement();
-		if (base == Base::A) {
-			baseLikelihoods[Base::C] = epsilon * rho[index(Base::C)][index(Base::A)];
-			baseLikelihoods[Base::G] = epsilon * rho[index(Base::G)][index(Base::A)];
-			baseLikelihoods[Base::T] = epsilon * rho[index(Base::T)][index(Base::A)];
-		} else if (base == Base::C) {
-			baseLikelihoods[Base::A] = epsilon * rho[index(Base::A)][index(Base::C)];
-			baseLikelihoods[Base::G] = epsilon * rho[index(Base::G)][index(Base::C)];
-			baseLikelihoods[Base::T] = epsilon * rho[index(Base::T)][index(Base::C)];
-		} else if (base == Base::G) {
-			baseLikelihoods[Base::A] = epsilon * rho[index(Base::A)][index(Base::G)];
-			baseLikelihoods[Base::C] = epsilon * rho[index(Base::C)][index(Base::G)];
-			baseLikelihoods[Base::T] = epsilon * rho[index(Base::T)][index(Base::G)];
-		} else {
-			baseLikelihoods[Base::A] = epsilon * rho[index(Base::A)][index(Base::T)];
-			baseLikelihoods[Base::C] = epsilon * rho[index(Base::C)][index(Base::T)];
-			baseLikelihoods[Base::G] = epsilon * rho[index(Base::G)][index(Base::T)];
-		}
-	}
-}
-
-void TRho::addBaseForEstimation(const genometools::Base &base, const TBaseLikelihoods &EMWeights) noexcept {
+void TRho::addBaseForEstimation(genometools::Base base, const TBaseLikelihoods &EMWeights) noexcept {
 	using genometools::Base;
 	using genometools::index;
 	for (auto b = Base::min; b < Base::max; ++b) {
@@ -331,12 +301,17 @@ genometools::PhredIntProbability TModelRecal::getPhredInt(const BAM::TSequencedB
 };
 
 void TModelRecal::fillBaseLikelihoods(const BAM::TSequencedBase &base, TBaseLikelihoods &baseLikelihoods) const {
-	if (base == genometools::Base::N) {
+	using genometools::Base;
+	if (base == Base::N) {
 		baseLikelihoods.reset();
 	} else {
-		_rho.fillBaseLikelihoods(base.base, _calcErrorRate(base), baseLikelihoods);
+		const auto e = _calcErrorRate(base);
+		for (auto q = Base::min; q < Base::max; ++q) {
+			baseLikelihoods[q] = e * _rho(q, base.base);
+		}
+		baseLikelihoods[base.base] = e.complement();
 	}
-};
+}
 
 //-------------------------------------------------
 // functions to estimate rho
