@@ -44,9 +44,6 @@ namespace PopulationTools {
             _samples.readSamplesFromVCFNames(_vcfFile.parser.samples);
         }
 
-        //resize populations
-        //_populations.resize(_samples.numPopulations());
-
         //get output name
         std::string tmp = coretools::str::extractBeforeLast(_vcfFilename, ".vcf");
         _outname = Parameters.getParameterWithDefault<std::string>("out", tmp);
@@ -64,12 +61,12 @@ namespace PopulationTools {
     void TF2Estimator::calculateF2() {
         //progress
         coretools::TTimer timer;
-        uint64_t numFiltered = 0; //# multiallelic sites filtered
-        uint64_t lineCounter = 0; //# lines
+        uint64_t numFiltered = 0; // # multiallelic sites filtered
+        uint64_t lineCounter = 0; // # lines
 
 
         //caclulate total comparisons and diff sites
-        std::vector<uint64_t> vec_countsDiff (_samples.numSamples() * _samples.numSamples());
+        std::vector<uint64_t> countsDiff (_samples.numSamples() * _samples.numSamples());
         //traverse VCF
         _logfile->startIndent("Traversing VCF file:");
         while (_vcfFile.next()) {
@@ -87,10 +84,10 @@ namespace PopulationTools {
                             if (!_vcfFile.sampleIsMissing(vcfIndex)) {
                                 auto genotype_s2 = _vcfFile.sampleBiallelicGenotype(vcfIndex);
                                 //store total # comparison per combination lower triangle
-                                ++vec_countsDiff[(s2 * _samples.numSamples()) + s1];
+                                ++countsDiff[(s2 * _samples.numSamples()) + s1];
                                 if (genotype_s1 != genotype_s2) {
                                     //store # diff Sites per combination upper triangle
-                                    ++vec_countsDiff[(s1 * _samples.numSamples()) + s2];
+                                    ++countsDiff[(s1 * _samples.numSamples()) + s2];
                                 }
                             }
                         }
@@ -115,48 +112,72 @@ namespace PopulationTools {
 
         //open output file for counts
         std::string filename = _outname + "_counts.txt";
-        _logfile->listFlush("Writing counts results to file '" + filename + "' ...");
-        std::vector<std::string> header = {"Sample"}; //header.emplace_back("Sample");
+        _logfile->listFlush("Writing counts of different/compared sites in the upper/lower triangle to file '" + filename + "' ...");
+        std::vector<std::string> header = {"Sample"};
         for (uint32_t s = 0; s < _samples.numSamples(); ++s) {
             header.emplace_back(_samples.sampleName(s));
         }
         TOutputFile out(filename, header);
 
         for (uint32_t s = 0; s < _samples.numSamples(); ++s) {
-            uint64_t tmp = s*_samples.numSamples();
-            std::vector<uint64_t> subvector = {vec_countsDiff.begin() + tmp, vec_countsDiff.begin() + tmp + (_samples.numSamples()) };
+            uint64_t tmp = s * _samples.numSamples();
+            std::vector<uint64_t> subvector = {countsDiff.begin() + tmp, countsDiff.begin() + tmp + (_samples.numSamples()) };
             out << _samples.sampleName(s) << subvector << std::endl;
         }
         _logfile->done();
 
 
-        //calculate individual F2
+        //calculate sample F2
         std::vector<uint64_t> sampleF2 (_samples.numSamples() * _samples.numSamples());
         for (uint32_t s1 = 0; s1 < _samples.numSamples()-1; ++s1) {
                 for (uint32_t s2 = s1+1; s2 < _samples.numSamples(); ++s2) {
-                    sampleF2[(s1 * _samples.numSamples()) + s2] = vec_countsDiff[(s1 * _samples.numSamples()) + s2] / vec_countsDiff[(s2 * _samples.numSamples()) + s1];
+                    // diff Sites / total compared sites
+                    sampleF2[(s1 * _samples.numSamples()) + s2] = countsDiff[(s1 * _samples.numSamples()) + s2] / countsDiff[(s2 * _samples.numSamples()) + s1];
                     sampleF2[(s2 * _samples.numSamples()) + s1] = sampleF2[(s1 * _samples.numSamples()) + s2];
                 }
         }
 
         filename = _outname + "_sampleF2.txt";
-        _logfile->listFlush("Writing individual F2 results to file '" + filename + "' ...");
+        _logfile->listFlush("Writing sample F2 results to file '" + filename + "' ...");
         //open output file for sample F2
         TOutputFile outF2(filename, header);
         for (uint32_t s = 0; s < _samples.numSamples(); ++s) {
-            uint64_t tmp = s*_samples.numSamples();
+            uint64_t tmp = s * _samples.numSamples();
             std::vector<uint64_t> subvector = {sampleF2.begin() + tmp, sampleF2.begin() + tmp + (_samples.numSamples()) };
-            out << _samples.sampleName(s) << subvector << std::endl;
+            outF2 << _samples.sampleName(s) << subvector << std::endl;
         }
         _logfile->done();
 
+        //check if populations were provided
+        if (_samples.numPopulations() > 0){
+            //calculate within and between population average F2
+            std::vector<uint32_t> popF2 (_samples.numPopulations() * _samples.numPopulations());
+            for(uint32_t p1 = 0; p1 < _samples.numPopulations(); ++p1){
+                for(uint32_t s1 = _samples.startIndex(p1); s1 < _samples.startIndex(p1) + _samples.numSamplesInPop(p1); ++s1){
+                    for(uint32_t p2 = 0; p2 < _samples.numPopulations(); ++p2){
+                        for(uint32_t s2 = _samples.startIndex(p2); s2 < _samples.startIndex(p2) + _samples.numSamplesInPop(p2); ++s2){
 
-        //calculate per population and between population average F2
-        for(uint32_t p = 0; p < _samples.numPopulations(); ++p){
-            double meanF2 = 0.0;
-            //for(uint32_t s = _samples.startIndex(p); s < _samples.startIndex(p) + _samples.numSamplesInPop(p); ++s){}
+                        }
+                    }
+                }
+            }
+
+            filename = _outname + "_popF2.txt";
+            _logfile->listFlush("Writing population F2 results to file '" + filename + "' ...");
+            //open output file for population F2
+            std::vector<std::string> Pops = {"Population"};
+            for (uint32_t p = 0; p < _samples.numPopulations(); ++p) {
+                Pops.emplace_back(_samples.getPopulationName(p));
+            }
+            TOutputFile outPopF2(filename, Pops);
+            for (uint32_t p = 0; p < _samples.numPopulations(); ++p) {
+                uint32_t tmp = p * _samples.numPopulations();
+                std::vector<uint32_t> subvector = {popF2.begin() + tmp, popF2.begin() + tmp + (_samples.numPopulations()) };
+                outPopF2 << _samples.getPopulationName(p) << subvector << std::endl;
+            }
+            _logfile->done();
         }
-        //_samples.getPopulationName(p);
+
         _logfile->endIndent();
     };
 }

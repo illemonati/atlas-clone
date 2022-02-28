@@ -41,7 +41,7 @@ namespace PopulationTools {
 //--------------------------------------
     class TTask_calculateF2:public coretools::TTask{
     public:
-        TTask_calculateF2(){ _explanation = "Calculate F2 between different samples"; };
+        TTask_calculateF2(){ _explanation = "Calculate F2 between different samples, and within and between populations"; };
 
         void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
             TF2Estimator runF2(Parameters, Logfile, _randomGenerator);
