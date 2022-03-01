@@ -11,10 +11,10 @@
 #include "TTaskList.h"
 #include "TTest.h"
 #include "gzstream.h"
-#include "../bamtools/api/BamWriter.h"
-#include "../bamtools/api/BamReader.h"
-#include "../bamtools/api/SamHeader.h"
-#include "../bamtools/api/BamAlignment.h"
+#include "api/BamWriter.h"
+#include "api/BamReader.h"
+#include "api/SamHeader.h"
+#include "api/BamAlignment.h"
 #include <vector>
 #include <map>
 

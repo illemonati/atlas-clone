@@ -8,8 +8,8 @@
 #ifndef BAM_TBAMFILE_H_
 #define BAM_TBAMFILE_H_
 
-#include "../bamtools/api/BamReader.h"
-#include "../bamtools/api/BamWriter.h"
+#include "api/BamReader.h"
+#include "api/BamWriter.h"
 #include "TBamFilter.h"
 #include "TSamHeader.h"
 #include "TAlignment.h"

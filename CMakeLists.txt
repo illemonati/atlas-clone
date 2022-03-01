@@ -11,15 +11,6 @@ endif (POLICY CMP0048)
 # Project
 project(atlas VERSION 1.0.0 LANGUAGES CXX)
 
-# bamtools
-add_library(bamtools STATIC)
-
-file(GLOB_RECURSE BAMTOOLS_SOURCES bamtools/*)
-target_sources(bamtools PRIVATE ${BAMTOOLS_SOURCES})
-target_include_directories(bamtools PRIVATE bamtools SYSTEM INTERFACE bamtools)
-target_compile_features(bamtools PUBLIC cxx_std_17)
-set_target_properties(bamtools PROPERTIES CXX_EXTENSIONS OFF)
-
 # Atlas
 add_executable(${PROJECT_NAME} atlas.cpp)
 
@@ -58,11 +49,23 @@ FetchContent_Declare(genometools
         GIT_TAG           09e2742
         SOURCE_DIR        "${CMAKE_CURRENT_BINARY_DIR}/genometools"
         )
-FetchContent_MakeAvailable(coretools stattools genometools)
+
+FetchContent_Declare(bamtools
+        GIT_REPOSITORY    https://github.com/pezmaster31/bamtools
+        GIT_TAG           2b7f352
+        SOURCE_DIR        "${CMAKE_CURRENT_BINARY_DIR}/bamtools"
+        )
+
+FetchContent_MakeAvailable(coretools stattools genometools bamtools)
+
+message("huhu")
+message(${FETCHCONTENT_BASE_DIR}bamtools-build/src)
 
 target_sources(${PROJECT_NAME} PRIVATE ${CORE_SOURCES})
 target_include_directories(${PROJECT_NAME} PRIVATE 
-  coretools/core/IntegrationTests
+  ${CMAKE_CURRENT_BINARY_DIR}/coretools/core/IntegrationTests
+  ${CMAKE_CURRENT_BINARY_DIR}/bamtools/src
+  ${FETCHCONTENT_BASE_DIR}bamtools-build/src
   BAM
   GenomeTasks
   GenotypeLikelihoods
