@@ -127,11 +127,13 @@ namespace PopulationTools {
         _logfile->done();
 
         //calculate sample F2
-        std::vector<double> sampleF2 (_samples.numSamples() * _samples.numSamples());
+        std::vector<float> sampleF2 (_samples.numSamples() * _samples.numSamples());
         for (uint32_t s1 = 0; s1 < _samples.numSamples()-1; ++s1) {
                 for (uint32_t s2 = s1+1; s2 < _samples.numSamples(); ++s2) {
                     // diff Sites / total compared sites
                     if ( countsDiff[(s2 * _samples.numSamples()) + s1] != 0){
+                        std::cout << "den" << sampleF2[(s2 * _samples.numSamples()) + s1] << std::endl;
+                        std::cout << "num" << sampleF2[(s1 * _samples.numSamples()) + s2] << std::endl;
                         sampleF2[(s1 * _samples.numSamples()) + s2] = countsDiff[(s1 * _samples.numSamples()) + s2] / countsDiff[(s2 * _samples.numSamples()) + s1];
                         sampleF2[(s2 * _samples.numSamples()) + s1] = sampleF2[(s1 * _samples.numSamples()) + s2];
                     }
@@ -144,13 +146,13 @@ namespace PopulationTools {
         TOutputFile outF2(filename, header);
         for (uint32_t s = 0; s < _samples.numSamples(); ++s) {
             uint64_t tmp = s * _samples.numSamples();
-            std::vector<double> subvector = {sampleF2.begin() + tmp, sampleF2.begin() + tmp + (_samples.numSamples()) };
+            std::vector<float> subvector = {sampleF2.begin() + tmp, sampleF2.begin() + tmp + (_samples.numSamples()) };
             outF2 << _samples.sampleName(s) << subvector << std::endl;
         }
         _logfile->done();
-        std::cout << _samples.hasSamples() << std::endl;
+        std::cout << _samples.numPopulations() << std::endl;
         //check if populations were provided
-        if (_samples.hasSamples()) {
+        if (_samples.numPopulations() > 1) {
             //calculate within and between population average F2
             std::vector<double> popF2 (_samples.numPopulations() * _samples.numPopulations());
             for(uint32_t p1 = 0; p1 < _samples.numPopulations(); ++p1){
