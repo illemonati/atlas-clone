@@ -131,8 +131,10 @@ namespace PopulationTools {
         for (uint32_t s1 = 0; s1 < _samples.numSamples()-1; ++s1) {
                 for (uint32_t s2 = s1+1; s2 < _samples.numSamples(); ++s2) {
                     // diff Sites / total compared sites
-                    sampleF2[(s1 * _samples.numSamples()) + s2] = countsDiff[(s1 * _samples.numSamples()) + s2] / countsDiff[(s2 * _samples.numSamples()) + s1];
-                    sampleF2[(s2 * _samples.numSamples()) + s1] = sampleF2[(s1 * _samples.numSamples()) + s2];
+                    if ( countsDiff[(s2 * _samples.numSamples()) + s1] != 0){
+                        sampleF2[(s1 * _samples.numSamples()) + s2] = countsDiff[(s1 * _samples.numSamples()) + s2] / countsDiff[(s2 * _samples.numSamples()) + s1];
+                        sampleF2[(s2 * _samples.numSamples()) + s1] = sampleF2[(s1 * _samples.numSamples()) + s2];
+                    }
                 }
         }
 
