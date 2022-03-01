@@ -124,8 +124,7 @@ namespace PopulationTools {
             std::vector<uint64_t> subvector = {countsDiff.begin() + tmp, countsDiff.begin() + tmp + (_samples.numSamples()) };
             out << _samples.sampleName(s) << subvector << std::endl;
         }
-        _logfile->done();
-
+        //_logfile->done();
 
         //calculate sample F2
         std::vector<uint64_t> sampleF2 (_samples.numSamples() * _samples.numSamples());
@@ -146,7 +145,7 @@ namespace PopulationTools {
             std::vector<uint64_t> subvector = {sampleF2.begin() + tmp, sampleF2.begin() + tmp + (_samples.numSamples()) };
             outF2 << _samples.sampleName(s) << subvector << std::endl;
         }
-        _logfile->done();
+        //_logfile->done();
 
         //check if populations were provided
         if (_samples.numPopulations() > 0){
