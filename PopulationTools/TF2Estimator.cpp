@@ -132,8 +132,8 @@ namespace PopulationTools {
                 for (uint32_t s2 = s1+1; s2 < _samples.numSamples(); ++s2) {
                     // diff Sites / total compared sites
                     if ( countsDiff[(s2 * _samples.numSamples()) + s1] != 0){
-                        std::cout << "den" << sampleF2[(s2 * _samples.numSamples()) + s1] << std::endl;
-                        std::cout << "num" << sampleF2[(s1 * _samples.numSamples()) + s2] << std::endl;
+                        std::cout << "den" << countsDiff[(s2 * _samples.numSamples()) + s1] << std::endl;
+                        std::cout << "num" << countsDiff[(s1 * _samples.numSamples()) + s2] << std::endl;
                         sampleF2[(s1 * _samples.numSamples()) + s2] = countsDiff[(s1 * _samples.numSamples()) + s2] / countsDiff[(s2 * _samples.numSamples()) + s1];
                         sampleF2[(s2 * _samples.numSamples()) + s1] = sampleF2[(s1 * _samples.numSamples()) + s2];
                     }
