@@ -53,19 +53,16 @@ FetchContent_Declare(genometools
 FetchContent_Declare(bamtools
         GIT_REPOSITORY    https://github.com/pezmaster31/bamtools
         GIT_TAG           2b7f352
+	# not newer see https://github.com/DiltheyLab/HLA-LA/issues/59
         SOURCE_DIR        "${CMAKE_CURRENT_BINARY_DIR}/bamtools"
         )
 
 FetchContent_MakeAvailable(coretools stattools genometools bamtools)
 
-message("huhu")
-message(${FETCHCONTENT_BASE_DIR}bamtools-build/src)
-
 target_sources(${PROJECT_NAME} PRIVATE ${CORE_SOURCES})
 target_include_directories(${PROJECT_NAME} PRIVATE 
   ${CMAKE_CURRENT_BINARY_DIR}/coretools/core/IntegrationTests
   ${CMAKE_CURRENT_BINARY_DIR}/bamtools/src
-  ${FETCHCONTENT_BASE_DIR}bamtools-build/src
   BAM
   GenomeTasks
   GenotypeLikelihoods
@@ -75,7 +72,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
   TestUtilities
   VCF)
 
-target_link_libraries(${PROJECT_NAME} PRIVATE bamtools coretools stattools genometools ${ZLIB_LIBRARIES} ${ARMADILLO_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} PRIVATE BamTools coretools stattools genometools ${ZLIB_LIBRARIES} ${ARMADILLO_LIBRARIES})
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_EXTENSIONS OFF)
 target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra)
