@@ -150,7 +150,7 @@ namespace PopulationTools {
         _logfile->done();
 
         //check if populations were provided
-        std::cout << "POP"  << _samples.numPopulations() << std::endl;
+        std::cout << "POP "  << _samples.getPopulationName(0)<< std::endl;
         if (_samples.numPopulations() > 1) {
             //calculate within and between population average F2
             std::vector<double> popF2 (_samples.numPopulations() * _samples.numPopulations());
