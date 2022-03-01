@@ -153,12 +153,29 @@ namespace PopulationTools {
             //calculate within and between population average F2
             std::vector<uint32_t> popF2 (_samples.numPopulations() * _samples.numPopulations());
             for(uint32_t p1 = 0; p1 < _samples.numPopulations(); ++p1){
-                for(uint32_t s1 = _samples.startIndex(p1); s1 < _samples.startIndex(p1) + _samples.numSamplesInPop(p1); ++s1){
-                    for(uint32_t p2 = 0; p2 < _samples.numPopulations(); ++p2){
-                        for(uint32_t s2 = _samples.startIndex(p2); s2 < _samples.startIndex(p2) + _samples.numSamplesInPop(p2); ++s2){
+                for(uint32_t p2 = 0; p2 < _samples.numPopulations(); ++p2){
 
+                    if ( p1 == p2 ){
+                        uint32_t counts = 0;
+                        for(uint32_t s1 = _samples.startIndex(p1); s1 < _samples.startIndex(p1) + _samples.numSamplesInPop(p1) - 1; ++s1){
+                            for(uint32_t s2 = s1 + 1; s2 < _samples.startIndex(p2) + _samples.numSamplesInPop(p2); ++s2){
+                                popF2[p1 * _samples.numPopulations() + p2] += sampleF2[s1 * _samples.numSamples() + s2];
+                                ++counts;
+                            }
                         }
+                        popF2[p1 * _samples.numPopulations() + p2] /= counts;
+                    } else{
+                        uint32_t  counts = 0;
+                        for(uint32_t s1 = _samples.startIndex(p1); s1 < _samples.startIndex(p1) + _samples.numSamplesInPop(p1); ++s1){
+                            for(uint32_t s2 = _samples.startIndex(p2); s2 < _samples.startIndex(p2) + _samples.numSamplesInPop(p2); ++s2){
+                                popF2[p1 * _samples.numPopulations() + p2] += sampleF2[s1 * _samples.numSamples() + s2];
+                                ++counts;
+                            }
+                        }
+                        popF2[p1 * _samples.numPopulations() + p2] /= counts;
+                        popF2[p2 * _samples.numPopulations() + p1] = popF2[p1 * _samples.numPopulations() + p2];
                     }
+
                 }
             }
 
@@ -172,7 +189,7 @@ namespace PopulationTools {
             TOutputFile outPopF2(filename, Pops);
             for (uint32_t p = 0; p < _samples.numPopulations(); ++p) {
                 uint32_t tmp = p * _samples.numPopulations();
-                std::vector<uint32_t> subvector = {popF2.begin() + tmp, popF2.begin() + tmp + (_samples.numPopulations()) };
+                std::vector<uint32_t> subvector = {popF2.begin() + tmp, popF2.begin() + tmp + _samples.numPopulations() };
                 outPopF2 << _samples.getPopulationName(p) << subvector << std::endl;
             }
             _logfile->done();
