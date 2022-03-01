@@ -144,13 +144,13 @@ namespace PopulationTools {
         TOutputFile outF2(filename, header);
         for (uint32_t s = 0; s < _samples.numSamples(); ++s) {
             uint64_t tmp = s * _samples.numSamples();
-            std::vector<uint64_t> subvector = {sampleF2.begin() + tmp, sampleF2.begin() + tmp + (_samples.numSamples()) };
+            std::vector<double> subvector = {sampleF2.begin() + tmp, sampleF2.begin() + tmp + (_samples.numSamples()) };
             outF2 << _samples.sampleName(s) << subvector << std::endl;
         }
         _logfile->done();
-
+        std::cout << _samples.hasSamples() << std::endl;
         //check if populations were provided
-        if (_samples.numPopulations() > 0){
+        if (_samples.hasSamples()) {
             //calculate within and between population average F2
             std::vector<double> popF2 (_samples.numPopulations() * _samples.numPopulations());
             for(uint32_t p1 = 0; p1 < _samples.numPopulations(); ++p1){
@@ -190,7 +190,7 @@ namespace PopulationTools {
             TOutputFile outPopF2(filename, Pops);
             for (uint32_t p = 0; p < _samples.numPopulations(); ++p) {
                 uint32_t tmp = p * _samples.numPopulations();
-                std::vector<uint32_t> subvector = {popF2.begin() + tmp, popF2.begin() + tmp + _samples.numPopulations() };
+                std::vector<double> subvector = {popF2.begin() + tmp, popF2.begin() + tmp + _samples.numPopulations() };
                 outPopF2 << _samples.getPopulationName(p) << subvector << std::endl;
             }
             _logfile->done();
