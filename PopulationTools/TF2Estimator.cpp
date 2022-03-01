@@ -124,10 +124,10 @@ namespace PopulationTools {
             std::vector<uint64_t> subvector = {countsDiff.begin() + tmp, countsDiff.begin() + tmp + (_samples.numSamples()) };
             out << _samples.sampleName(s) << subvector << std::endl;
         }
-        //_logfile->done();
+        _logfile->done();
 
         //calculate sample F2
-        std::vector<uint64_t> sampleF2 (_samples.numSamples() * _samples.numSamples());
+        std::vector<double> sampleF2 (_samples.numSamples() * _samples.numSamples());
         for (uint32_t s1 = 0; s1 < _samples.numSamples()-1; ++s1) {
                 for (uint32_t s2 = s1+1; s2 < _samples.numSamples(); ++s2) {
                     // diff Sites / total compared sites
@@ -145,12 +145,12 @@ namespace PopulationTools {
             std::vector<uint64_t> subvector = {sampleF2.begin() + tmp, sampleF2.begin() + tmp + (_samples.numSamples()) };
             outF2 << _samples.sampleName(s) << subvector << std::endl;
         }
-        //_logfile->done();
+        _logfile->done();
 
         //check if populations were provided
         if (_samples.numPopulations() > 0){
             //calculate within and between population average F2
-            std::vector<uint32_t> popF2 (_samples.numPopulations() * _samples.numPopulations());
+            std::vector<double> popF2 (_samples.numPopulations() * _samples.numPopulations());
             for(uint32_t p1 = 0; p1 < _samples.numPopulations(); ++p1){
                 for(uint32_t p2 = 0; p2 < _samples.numPopulations(); ++p2){
 
