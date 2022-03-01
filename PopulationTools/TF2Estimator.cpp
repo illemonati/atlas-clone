@@ -150,6 +150,7 @@ namespace PopulationTools {
         _logfile->done();
 
         //check if populations were provided
+        std::cout << _samples.numPopulations() << std::endl;
         if (_samples.numPopulations() > 1) {
             //calculate within and between population average F2
             std::vector<double> popF2 (_samples.numPopulations() * _samples.numPopulations());
@@ -164,6 +165,7 @@ namespace PopulationTools {
                                 ++counts;
                             }
                         }
+                        std::cout << counts << std::endl;
                         popF2[p1 * _samples.numPopulations() + p2] /= counts;
                     } else{
                         uint32_t  counts = 0;
@@ -173,6 +175,7 @@ namespace PopulationTools {
                                 ++counts;
                             }
                         }
+                        std::cout << counts << std::endl;
                         popF2[p1 * _samples.numPopulations() + p2] /= counts;
                         popF2[p2 * _samples.numPopulations() + p1] = popF2[p1 * _samples.numPopulations() + p2];
                     }
