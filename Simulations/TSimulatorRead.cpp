@@ -156,43 +156,14 @@ void TSimulatorSingleEndRead::_simulateBasesQualities(BAM::TAlignment & alignmen
 	Then pass full alignment to recal to simulate bases according to the error rates
 	*/
 
-	_applyPMD(bases, readLength, alignment.isReverseStrand());
+	//_applyPMD(bases, readLength, alignment.isReverseStrand());
 	_alignment.setSequenceQualities(_cigar, bases, phredIntQualities);
 
-	/*
 	for (auto & b : _alignment) {
-		if (!b.isSecondMate()) _recal[0]->simulate(b, *_randomGenerator);
-		else _recal[1]->simulate(b, *_randomGenerator);
+		// apply pmd here
+		_pmd->simulate(b, *_randomGenerator);
+		_recal[b.isSecondMate()]->simulate(b, *_randomGenerator);
 	}
-
-	//simulate qualities and errors
-	qualityTransform->simulateQualitiesAndErrors(_bases, _phredIntQualities, readLength.read, isReverse);
-
-	//copy bases and qualities
-	std::string queryBases, qualities;
-	for(int p=0; p<readLength.read; ++p){
-	queryBases += _genoMap.baseToChar[_bases[p]];
-
-	CHECK!!! What do we have? Qual or phredInt? Use qualMap!
-
-	qualities += static_cast<char>(_phredIntQualities[p] + 33));
-	}
-
-	//--------------------------
-	 *
-	//adjust qualities for writing
-	_qualMap.adjustQualitiesForWriting(qualities);
-
-	//fill alignment
-	//TODO: verify that it should be negative in case of single end!
-	alignment.setSequenceQualitiesOnlyMatches(queryBases, qualities);
-	alignment.setIsReverseStrand(isReverse);
-	if(isReverse){
-	alignment.setInsertSize(-readLength.fragment);
-	} else {
-	alignment.setInsertSize(readLength.fragment);
-	}
-	*/
 }
 
 void TSimulatorSingleEndRead::simulate(const std::vector<Base>& haplotype, uint32_t refID, uint32_t pos, TSimulatorBamFile &bamFile) {

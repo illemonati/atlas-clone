@@ -23,6 +23,8 @@
 namespace GenotypeLikelihoods {
 namespace SequencingError {
 
+class TModelsMates {};
+
 //--------------------------------------------------------------------------
 // TModel
 // Object containing a vector of TModel

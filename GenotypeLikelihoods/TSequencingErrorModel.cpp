@@ -117,8 +117,7 @@ void TRho::addBaseForEstimation(genometools::Base base, const TBaseLikelihoods &
 	using genometools::Base;
 	using genometools::index;
 	for (auto b = Base::min; b < Base::max; ++b) {
-		if (base == b) continue;
-		rho[index(b)][index(base)] += EMWeights[b].get();
+		if (base != b) rho[index(b)][index(base)] += EMWeights[b].get();
 	}
 }
 
