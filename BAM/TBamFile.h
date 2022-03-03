@@ -165,7 +165,7 @@ public:
 	uint16_t curReadLength() const{ return _curCigar.lengthRead(); };
 	uint16_t curUsableSequence() const{ return _curCigar.lengthSequenced(); };
 	uint16_t curFragmentLength() const;
-	uint16_t curUsableAlignedLength(TQualityFilter & qualFilter) const;
+	[[deprecated]] uint16_t curUsableAlignedLength(TQualityFilter & ) const {return 0.;};
 	uint16_t curMappingQuality() const{ return _curBamAlignment.MapQuality; };
 	bool curIsPaired() const{ return _curBamAlignment.IsPaired(); };
 	bool curIsProperPair() const{ return _curBamAlignment.IsProperPair(); };
@@ -191,7 +191,7 @@ public:
 	std::string filename() const{ return _filename; };
 	uint16_t maxReadLength(){ return _readLengthFilter.range().max(); };
 	uint64_t numAlignmentsRead(){ return _numAlignmentRead; };
-	double positionInFile(){ return (double) _bamReader.tell() / (double) _fileSize; };
+	double positionInFile(){ return (double) _bamReader.Tell() / (double) _fileSize; };
 	uint16_t numReadGroups() const{ return _readGroups.size(); };
 
 	//progress reporting

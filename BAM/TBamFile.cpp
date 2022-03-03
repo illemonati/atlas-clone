@@ -400,7 +400,7 @@ void TBamFile::open(const std::string Filename, const bool IndexNotRequired, TLo
 	_bamReader.Jump(_chromosomes.size() - 1, 0);
 	BamTools::BamAlignment bamAlignment;
 	_bamReader.GetNextAlignment(bamAlignment);
-	_fileSize = _bamReader.tell();
+	_fileSize = _bamReader.Tell();
 	_bamReader.Rewind();
 
 	_logfile->done();
@@ -647,6 +647,7 @@ uint16_t TBamFile::curFragmentLength() const{
 	}
 };
 
+/*
 uint16_t TBamFile::curUsableAlignedLength(TQualityFilter & qualFilter) const{
 	constexpr char N = genometools::base2char(genometools::Base::N);
 	uint16_t counter = 0;
@@ -656,7 +657,7 @@ uint16_t TBamFile::curUsableAlignedLength(TQualityFilter & qualFilter) const{
 		}
 	}
 	return counter;
-};
+	};*/
 
 std::string TBamFile::curQuerySequence(const uint16_t start, const uint16_t length) const{
 	return _curBamAlignment.QueryBases.substr(start, length);
