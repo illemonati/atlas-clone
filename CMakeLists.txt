@@ -11,15 +11,6 @@ endif (POLICY CMP0048)
 # Project
 project(atlas VERSION 1.0.0 LANGUAGES CXX)
 
-# bamtools
-add_library(bamtools STATIC)
-
-file(GLOB_RECURSE BAMTOOLS_SOURCES bamtools/*)
-target_sources(bamtools PRIVATE ${BAMTOOLS_SOURCES})
-target_include_directories(bamtools PRIVATE bamtools SYSTEM INTERFACE bamtools)
-target_compile_features(bamtools PUBLIC cxx_std_17)
-set_target_properties(bamtools PROPERTIES CXX_EXTENSIONS OFF)
-
 # Atlas
 add_executable(${PROJECT_NAME} atlas.cpp)
 
@@ -58,11 +49,19 @@ FetchContent_Declare(genometools
         GIT_TAG           09e2742
         SOURCE_DIR        "${CMAKE_CURRENT_BINARY_DIR}/genometools"
         )
-FetchContent_MakeAvailable(coretools stattools genometools)
+
+FetchContent_Declare(bamtools
+        GIT_REPOSITORY    https://bitbucket.org/wegmannlab/bamtools.git
+        GIT_TAG           master
+	# not newer see https://github.com/DiltheyLab/HLA-LA/issues/59
+        SOURCE_DIR        "${CMAKE_CURRENT_BINARY_DIR}/bamtools"
+        )
+
+FetchContent_MakeAvailable(coretools stattools genometools bamtools)
 
 target_sources(${PROJECT_NAME} PRIVATE ${CORE_SOURCES})
 target_include_directories(${PROJECT_NAME} PRIVATE 
-  coretools/core/IntegrationTests
+  ${CMAKE_CURRENT_BINARY_DIR}/coretools/core/IntegrationTests
   BAM
   GenomeTasks
   GenotypeLikelihoods
@@ -72,7 +71,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
   TestUtilities
   VCF)
 
-target_link_libraries(${PROJECT_NAME} PRIVATE bamtools coretools stattools genometools ${ZLIB_LIBRARIES} ${ARMADILLO_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} PRIVATE BamTools BamTools-utils coretools stattools genometools ${ZLIB_LIBRARIES} ${ARMADILLO_LIBRARIES})
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_EXTENSIONS OFF)
 target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra)
@@ -114,7 +113,7 @@ target_include_directories("${PROJECT_NAME}_unitTests" PRIVATE
         TestUtilities
         VCF)
 
-target_link_libraries("${PROJECT_NAME}_unitTests" PRIVATE bamtools coretools stattools genometools ${ZLIB_LIBRARIES} ${ARMADILLO_LIBRARIES} gtest_main gmock_main)
+target_link_libraries("${PROJECT_NAME}_unitTests" PRIVATE BamTools BamTools-utils coretools stattools genometools ${ZLIB_LIBRARIES} ${ARMADILLO_LIBRARIES} gtest_main gmock_main)
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_EXTENSIONS OFF)
 target_compile_options("${PROJECT_NAME}_unitTests" PRIVATE -Wall -Wextra)
