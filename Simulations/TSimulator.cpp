@@ -192,7 +192,9 @@ void TSimulator::_initializeQualityTransformations(TParameters &params, const st
 		_recal.initializeFromFile(recalString, _readGroups, _logfile);
 
 		// add recal to simulators
-		for (size_t r = 0; r < _readSimulators.size(); ++r) { _readSimulators[r]->setPMD(&_PMD[r]); }
+		for (size_t r = 0; r < _readSimulators.size(); ++r) {
+			_readSimulators[r]->setRecal(&_recal(r, 0), &_recal(r, 1));
+		}
 	} else {
 		_logfile->list("Not simulating any quality transformation.");
 	}

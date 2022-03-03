@@ -55,7 +55,6 @@ protected:
 
 	// general functions
 	void _simulateQualitiesAndErrors(genometools::Base *_bases, int *_qualities, int &len);
-	void _applyPMD(std::vector<genometools::Base> &bases, const TReadLength &readLength, const bool isReverseStrand);
 	std::string _getNextReadName();
 	void _simulateBasesQualities(BAM::TAlignment &alignment, const std::vector<genometools::Base>& haplotype, const uint64_t pos,
 				     const TReadLength &readLength, bool readIsContaminated);//, TSimulatorQualityTransformation *qualityTransform);

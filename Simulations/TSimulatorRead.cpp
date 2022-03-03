@@ -88,22 +88,6 @@ void TSimulatorSingleEndRead::setPMD(GenotypeLikelihoods::TPMDType const *Pmd) {
 	_pmd = Pmd;
 }
 
-void TSimulatorSingleEndRead::_applyPMD(std::vector<Base> &bases, const TReadLength &readLength,
-					const bool isReverseStrand) {
-	if (_pmd && _pmd->hasDamage()) {
-		if (!isReverseStrand) {
-			for (uint16_t p = 0; p < readLength.read; ++p) {
-				_pmd->simulate(bases[p], p, readLength.fragment - p - 1, isReverseStrand, *_randomGenerator);
-			}
-		} else {
-			for (uint16_t p = 0; p < readLength.read; ++p) {
-				_pmd->simulate(bases[p], readLength.read - p - 1, readLength.fragment - readLength.read + p,
-							isReverseStrand, *_randomGenerator);
-			}
-		}
-	}
-}
-
 void TSimulatorSingleEndRead::setContamination(double rate, TSimulatorReference *source) {
 	_contaminationRate  = rate;
 	_contaminationSource = source;
@@ -148,21 +132,13 @@ void TSimulatorSingleEndRead::_simulateBasesQualities(BAM::TAlignment & alignmen
 	std::vector<genometools::PhredIntProbability> phredIntQualities(bases.size());
 	_qualityDist->sample(phredIntQualities);
 
-	// apply PMD
-
-	/*
-	I'm here!!!!!!
-	Write functions to pass full alignments to PMD to simulate PMD
-	Then pass full alignment to recal to simulate bases according to the error rates
-	*/
-
-	//_applyPMD(bases, readLength, alignment.isReverseStrand());
 	_alignment.setSequenceQualities(_cigar, bases, phredIntQualities);
 
 	for (auto & b : _alignment) {
-		// apply pmd here
-		_pmd->simulate(b, *_randomGenerator);
-		_recal[b.isSecondMate()]->simulate(b, *_randomGenerator);
+		if (_pmd && _pmd->hasDamage()) _pmd->simulate(b, *_randomGenerator);
+
+		const auto sm = b.isSecondMate();
+		if (_recal[sm]) _recal[sm]->simulate(b, *_randomGenerator);
 	}
 }
 
