@@ -49,7 +49,7 @@ public:
 
 	// covariate function
 	std::string functionString() const {
-		return _function ? _function->getModelString() : SequencingErrorCovariateFunction_none;
+		return _function ? _function->getModelString() : TCovariateFunction::name;
 	}
 
 	virtual bool checkParameterRange(const RecalEstimatorTools::TRecalDataTable &)  const noexcept = 0;

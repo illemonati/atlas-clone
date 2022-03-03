@@ -76,10 +76,10 @@ TCovariateFunction *function(size_t FirstParameterIndex, const std::string &func
 		throw "Failed to initialize recalibration covariate: missing [VALUES] in '" + functionString + "'!";
 
 	// create function
-	if (type == SequencingErrorCovariateFunction_polynomial) {
+	if (type == TCovariateFunction_polynomial::name) {
 		return polynomialFunction(FirstParameterIndex, functionString, args, values);
 	}
-	if (type == SequencingErrorCovariateFunction_specific) {
+	if (type == TCovariateFunction_specific::name) {
 		return new TCovariateFunction_specific(FirstParameterIndex, values);
 	} 
 
@@ -97,7 +97,7 @@ TCovariate_quality::TCovariate_quality(const size_t FirstParameterIndex, const s
 }
 
 TCovariate_quality::TCovariate_quality(const size_t FirstParameterIndex, const std::string &functionString) {
-	_function.reset(function(FirstParameterIndex, functionString, std::array<std::string, 1>{SequencingErrorCovariateFunction_specific}));
+	_function.reset(function(FirstParameterIndex, functionString, std::array<std::string, 1>{TCovariateFunction_specific::name}));
 }
 
 void TCovariate_quality::addFunction(const size_t FirstParameterIndex, const std::string &functionString,
@@ -108,12 +108,12 @@ void TCovariate_quality::addFunction(const size_t FirstParameterIndex, const std
 	parseModuleString(functionString, type, args, values);
 
 	// create function
-	if (type == SequencingErrorCovariateFunction_polynomial) {
+	if (type == TCovariateFunction_polynomial::name) {
 		_function.reset(polynomialFunction(FirstParameterIndex, functionString, args, values));
 
 		// if no values are provided, set first beta = 1
 		if (values.empty()) _function->setBeta(0, 1.0);
-	} else if (type == SequencingErrorCovariateFunction_specific) {
+	} else if (type == TCovariateFunction_specific::name) {
 		if (values.empty()) {
 			_function.reset(new TCovariateFunction_specificMap(FirstParameterIndex, dataTable.qualities().vectorOfUsed()));
 		} else {
@@ -139,9 +139,9 @@ void TCovariate_quality::addFunction(const size_t FirstParameterIndex, const std
 	}
 
 	// create function
-	if (type == SequencingErrorCovariateFunction_polynomial) {
+	if (type == TCovariateFunction_polynomial::name) {
 		_function.reset(polynomialFunction(FirstParameterIndex, functionString, args, values));
-	} else if (type == SequencingErrorCovariateFunction_specific) {
+	} else if (type == TCovariateFunction_specific::name) {
 		_function.reset(new TCovariateFunction_specificMap(FirstParameterIndex, values));
 	} else {
 		throw "Recalibration function '" + type + "' not valid for covariate quality!";
@@ -183,9 +183,9 @@ void TCovariate_position::addFunction(size_t FirstParameterIndex, const std::str
 	parseModuleString(functionString, type, args, values);
 
 	// create function
-	if (type == SequencingErrorCovariateFunction_polynomial) {
+	if (type == TCovariateFunction_polynomial::name) {
 		_function.reset(polynomialFunction(FirstParameterIndex, functionString, args, values));
-	} else if (type == SequencingErrorCovariateFunction_specific) {
+	} else if (type == TCovariateFunction_specific::name) {
 		if (values.empty()) {
 			_function.reset(new TCovariateFunction_specific(FirstParameterIndex, dataTable.positions().max()));
 		} else {
@@ -208,9 +208,9 @@ void TCovariate_position::addFunction(size_t FirstParameterIndex, const std::str
 	}
 
 	// create function
-	if (type == SequencingErrorCovariateFunction_polynomial) {
+	if (type == TCovariateFunction_polynomial::name) {
 		_function.reset(polynomialFunction(FirstParameterIndex, functionString, args, values));
-	} else if (type == SequencingErrorCovariateFunction_specific) {
+	} else if (type == TCovariateFunction_specific::name) {
 		_function.reset(new TCovariateFunction_specific(FirstParameterIndex, values));
 	} else {
 		throw "Recalibration function '" + type + "' not valid for covariate quality!";
@@ -249,7 +249,7 @@ void TCovariate_context::addFunction(size_t FirstParameterIndex, const std::stri
 	parseModuleString(functionString, type, args, values);
 
 	// create function
-	if (type == SequencingErrorCovariateFunction_specific) {
+	if (type == TCovariateFunction_specific::name) {
 		if (values.empty()) {
 			_function.reset(new TCovariateFunction_specific(FirstParameterIndex, numContext - 1));
 		} else {
@@ -272,7 +272,7 @@ void TCovariate_context::addFunction(size_t FirstParameterIndex, const std::stri
 	}
 
 	// create function
-	if (type == SequencingErrorCovariateFunction_specific) {
+	if (type == TCovariateFunction_specific::name) {
 		_function.reset(new TCovariateFunction_specific(FirstParameterIndex, values));
 	} else {
 		throw "Recalibration function '" + type + "' not valid for covariate quality!";
@@ -308,12 +308,12 @@ void TCovariate_fragmentLength::addFunction(const size_t FirstParameterIndex, co
 	parseModuleString(functionString, type, args, values);
 
 	// create function
-	if (type == SequencingErrorCovariateFunction_polynomial) {
+	if (type == TCovariateFunction_polynomial::name) {
 		_function.reset(polynomialFunction(FirstParameterIndex, functionString, args, values));
 
 		// if no values are provided, set first beta = 1
 		if (values.empty()) { _function->setBeta(0, 1.0); }
-	} else if (type == SequencingErrorCovariateFunction_specific) {
+	} else if (type == TCovariateFunction_specific::name) {
 		std::vector<uint16_t> usedLengths = dataTable.fragmentLengths().vectorOfUsed();
 		if (values.empty()) {
 			_function.reset(new TCovariateFunction_specificMap(FirstParameterIndex, usedLengths));
@@ -337,9 +337,9 @@ void TCovariate_fragmentLength::addFunction(size_t FirstParameterIndex, const st
 	}
 
 	// create function
-	if (type == SequencingErrorCovariateFunction_polynomial) {
+	if (type == TCovariateFunction_polynomial::name) {
 		_function.reset(polynomialFunction(FirstParameterIndex, functionString, args, values));
-	} else if (type == SequencingErrorCovariateFunction_specific) {
+	} else if (type == TCovariateFunction_specific::name) {
 		_function.reset(new TCovariateFunction_specificMap(FirstParameterIndex, values));
 	} else {
 		throw "Recalibration function '" + type + "' not valid for covariate quality!";
@@ -381,12 +381,12 @@ void TCovariate_mappingQuality::addFunction(const size_t FirstParameterIndex, co
 	parseModuleString(functionString, type, args, values);
 
 	// create function
-	if (type == SequencingErrorCovariateFunction_polynomial) {
+	if (type == TCovariateFunction_polynomial::name) {
 		_function.reset(polynomialFunction(FirstParameterIndex, functionString, args, values));
 
 		// if no values are provided, set first beta = 1
 		if (values.empty()) _function->setBeta(0, 1.0);
-	} else if (type == SequencingErrorCovariateFunction_specific) {
+	} else if (type == TCovariateFunction_specific::name) {
 		std::vector<uint16_t> usedMQ = dataTable.mappingQualities().vectorOfUsed();
 		if (values.empty()) {
 			_function.reset(new TCovariateFunction_specificMap(FirstParameterIndex, usedMQ));
@@ -410,9 +410,9 @@ void TCovariate_mappingQuality::addFunction(const size_t FirstParameterIndex, co
 	}
 
 	// create function
-	if (type == SequencingErrorCovariateFunction_polynomial) {
+	if (type == TCovariateFunction_polynomial::name) {
 		_function.reset(polynomialFunction(FirstParameterIndex, functionString, args, values));
-	} else if (type == SequencingErrorCovariateFunction_specific) {
+	} else if (type == TCovariateFunction_specific::name) {
 		_function.reset(new TCovariateFunction_specificMap(FirstParameterIndex, values));
 	} else {
 		throw "Recalibration function '" + type + "' not valid for covariate quality!";

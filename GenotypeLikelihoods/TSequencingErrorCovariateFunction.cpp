@@ -11,19 +11,10 @@
 namespace GenotypeLikelihoods{
 namespace SequencingError {
 
-//define module names
-extern const std::string SequencingErrorCovariateFunction_none = "none";
-extern const std::string SequencingErrorCovariateFunction_intercept = "intercept";
-extern const std::string SequencingErrorCovariateFunction_polynomial = "polynomial";
-extern const std::string SequencingErrorCovariateFunction_probit = "probit";
-extern const std::string SequencingErrorCovariateFunction_specific = "specific";
-extern const std::string SequencingErrorCovariateFunction_map = "map";
-
 //--------------------------------------------------------------
 // TRecalibrationEMCovariateFunction
 //--------------------------------------------------------------
 void TCovariateFunction::_init(uint16_t FirstParameterIndex){
-	_moduleName = SequencingErrorCovariateFunction_none;
 	_numParameters = 0;
 	_firstParameterIndex = FirstParameterIndex;
 	_numNonZeroFirstDerivatives = 0;
@@ -107,14 +98,13 @@ void TCovariateFunction::proposeNewParameters(const arma::mat & JxF, uint16_t & 
 };
 
 std::string TCovariateFunction::getModelString() const{
-	return _moduleName + "[" + coretools::str::concatenateString(_betas, ",") + "]";
+	return typeString() + "[" + coretools::str::concatenateString(_betas, ",") + "]";
 };
 
 //--------------------------------------------------------------
 // TRecalibrationEMCovariateFunction_intercept
 //--------------------------------------------------------------
 void TCovariateFunction_intercept::_init(){
-	_moduleName = SequencingErrorCovariateFunction_intercept;
 	_numParameters = 1;
 	_numNonZeroFirstDerivatives = 1;
 	_numNonZeroSecondDerivatives = 0;
@@ -176,7 +166,6 @@ void TCovariateFunction_intercept::fillDerivatives(uint16_t , TRecalibrationEMFi
 void TCovariateFunction_polynomial::_init(size_t order){
 	if(order < 1)
 		throw "Order of polynomial covariate function must be at least 1!";
-	_moduleName = SequencingErrorCovariateFunction_polynomial;
 	_numParameters = order;
 	_numNonZeroFirstDerivatives = order;
 	_numNonZeroSecondDerivatives = 0;
@@ -232,7 +221,6 @@ TProbitTmpStorage::TProbitTmpStorage(const std::vector<double> & betas, uint16_t
 };
 
 void TRecalibrationEMCovariateFunction_probit::_init(uint16_t MaxValue){
-	_moduleName = SequencingErrorCovariateFunction_probit;
 	_numParameters = 3;
 	_numNonZeroFirstDerivatives = 3;
 	_numNonZeroSecondDerivatives = 6;
@@ -307,7 +295,6 @@ TCovariateFunction_specific::TCovariateFunction_specific(uint16_t FirstParameter
 };
 
 void TCovariateFunction_specific::_init(uint16_t MaxValue){
-	_moduleName = SequencingErrorCovariateFunction_specific;
 	_maxValue = MaxValue;
 	_numParameters = _maxValue + 1;
 	_numNonZeroFirstDerivatives = 1;
@@ -333,8 +320,8 @@ void TCovariateFunction_specific::adjustValueRanges(const std::vector<uint16_t> 
 	}
 	for(uint16_t i=0; i<found.size(); ++i){
 		if(!found[i]){
-			throw "Can not adjust value range for recal function '" + SequencingErrorCovariateFunction_specific + "': value " + coretools::str::toString(i) + " is < max value but never used."
-				+ "\nConsider using recal function '" + SequencingErrorCovariateFunction_map + "'.";
+			throw "Can not adjust value range for recal function '" + name + "': value " + coretools::str::toString(i) + " is < max value but never used."
+				+ "\nConsider using recal function '" + TCovariateFunction_specificMap::name + "'.";
 		}
 	}
 };
@@ -347,7 +334,6 @@ void TCovariateFunction_specific::fillDerivatives(uint16_t val, TRecalibrationEM
 // TRecalibrationEMCovariateFunction_specificMap
 //--------------------------------------------------------------
 void TCovariateFunction_specificMap::_init(size_t NumParameters){
-	_moduleName = SequencingErrorCovariateFunction_specific;
 	_numParameters = NumParameters;
 	_numNonZeroFirstDerivatives = 1;
 	_numNonZeroSecondDerivatives = 0;

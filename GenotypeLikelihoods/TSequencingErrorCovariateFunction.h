@@ -17,14 +17,6 @@
 namespace GenotypeLikelihoods{
 namespace SequencingError {
 
-//define module names
-extern const std::string SequencingErrorCovariateFunction_none;
-extern const std::string SequencingErrorCovariateFunction_intercept;
-extern const std::string SequencingErrorCovariateFunction_polynomial;
-extern const std::string SequencingErrorCovariateFunction_probit;
-extern const std::string SequencingErrorCovariateFunction_specific;
-extern const std::string SequencingErrorCovariateFunction_map;
-
 //--------------------------------------------------------------
 // TCovariateFunction
 // Base class for recal covariate functions
@@ -35,7 +27,6 @@ protected:
 	uint16_t _firstParameterIndex;
 	uint16_t _numNonZeroFirstDerivatives;
 	uint16_t _numNonZeroSecondDerivatives;
-	std::string _moduleName;
 	std::vector<double> _betas; //betas of the model
 	std::vector<double> _oldBetas; //use during estimation
 
@@ -52,6 +43,7 @@ protected:
 	friend class TModel;
 
 public:
+	static inline const std::string name = "none";
 	TCovariateFunction(){
 		_init(0);
 	};
@@ -95,6 +87,7 @@ public:
 	};
 	virtual void fillDerivatives(uint16_t , TRecalibrationEMFirstDerivatives &, TRecalibrationEMSecondDerivatives &) const{};
 	virtual double adjustParametersPostEstimation(){ return 0.0; };
+	virtual std::string typeString() const noexcept {return name; }
 	std::string getModelString() const;
 };
 
@@ -107,6 +100,7 @@ protected:
 	void _init();
 
 public:
+	static inline const std::string name = "intercept";
 	TCovariateFunction_intercept();
 	TCovariateFunction_intercept(uint16_t FirstParameterIndex);
 	TCovariateFunction_intercept(uint16_t FirstParameterIndex, const std::vector<std::string> & values);
@@ -120,6 +114,7 @@ public:
 	double getEtaTerm(uint16_t val) const override;
 	void fillDerivatives(TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second) const;
 	void fillDerivatives(uint16_t val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second) const override;
+	virtual std::string typeString() const noexcept override {return name; }
 };
 
 //--------------------------------------------------------------
@@ -133,11 +128,13 @@ protected:
 	//TODO: add tmp storage for eta!
 
 public:
+	static inline const std::string name = "polynomial";
 	TCovariateFunction_polynomial(uint16_t FirstParameterIndex, size_t order);
 	TCovariateFunction_polynomial(uint16_t FirstParameterIndex, const std::vector<std::string> & values);
 
 	double getEtaTerm(uint16_t val) const;
 	void fillDerivatives(uint16_t val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second) const;
+	virtual std::string typeString() const noexcept override {return name; }
 };
 
 //--------------------------------------------------------------
@@ -172,11 +169,13 @@ protected:
 	void _expandTmpStorage(uint16_t MaxValue) const;
 
 public:
+	static inline const std::string name = "probit";
 	TRecalibrationEMCovariateFunction_probit(uint16_t FirstParameterIndex, uint16_t MaxValue);
 	TRecalibrationEMCovariateFunction_probit(uint16_t FirstParameterIndex, const std::vector<std::string> & values);
 
 	double getEtaTerm(uint16_t val) const override;
 	void fillDerivatives(uint16_t val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second) const override;
+	virtual std::string typeString() const noexcept override {return name; }
 };
 
 //--------------------------------------------------------------
@@ -190,6 +189,7 @@ protected:
 	void _init(uint16_t MaxValue);
 
 public:
+	static inline const std::string name = "specific";
 	TCovariateFunction_specific(uint16_t FirstParameterIndex, uint16_t MaxValue);
 	TCovariateFunction_specific(uint16_t FirstParameterIndex, const std::vector<std::string> & betas);
 
@@ -201,6 +201,7 @@ public:
 	};
 	void fillDerivatives(uint16_t val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second) const override;
 	double adjustParametersPostEstimation() override { return _normalizeParameters(); };
+	virtual std::string typeString() const noexcept override {return name; }
 };
 
 //--------------------------------------------------------------
@@ -226,6 +227,7 @@ protected:
 	void _initMapFromVector(const std::vector<uint16_t> & values);
 
 public:
+	static inline const std::string name = "map";
 	TCovariateFunction_specificMap(uint16_t FirstParameterIndex, const std::vector<uint16_t> & values);
 	TCovariateFunction_specificMap(uint16_t FirstParameterIndex, const std::vector<std::string> & values);
 	~TCovariateFunction_specificMap(){};
@@ -238,6 +240,7 @@ public:
 	};
 	void fillDerivatives(uint16_t val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second) const override;
 	double adjustParametersPostEstimation() override { return _normalizeParameters(); };
+	virtual std::string typeString() const noexcept override {return name; }
 };
 
 } // namespace SequencingError
