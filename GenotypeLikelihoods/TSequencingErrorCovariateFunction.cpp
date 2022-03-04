@@ -14,29 +14,16 @@ namespace SequencingError {
 //--------------------------------------------------------------
 // TRecalibrationEMCovariateFunction
 //--------------------------------------------------------------
-void TCovariateFunction::_init(uint16_t FirstParameterIndex){
-	_numParameters = 0;
-	_firstParameterIndex = FirstParameterIndex;
-	_numNonZeroFirstDerivatives = 0;
-	_numNonZeroSecondDerivatives = 0;
-	doTransformation = false;
-	transformationMap = nullptr;
-};
 
-void TCovariateFunction::_initializeBetas(){
-	_betas.resize(_numParameters);
-	_oldBetas.resize(_numParameters);
-
-	for(uint16_t i = 0; i < _numParameters; ++i){
-		_betas[i] = 0.0;
-		_oldBetas[i] = 0.0;
-	}
-};
+void TCovariateFunction::_initializeBetas() {
+	_betas.resize(numParameters());
+	_oldBetas.resize(numParameters());
+}
 
 void TCovariateFunction::_initializValues(const std::vector<std::string> & values){
 	if(!values.empty()){
-		if(values.size() != _numParameters){
-			throw coretools::str::toString("Failed to initialize recalibration module: wrong number of values (", values.size(), " instead of ", _numParameters, ")!");
+		if(values.size() != numParameters()){
+			throw coretools::str::toString("Failed to initialize recalibration module: wrong number of values (", values.size(), " instead of ", numParameters(), ")!");
 		}
 
 		for(size_t i=0; i<values.size(); ++i){
@@ -55,13 +42,13 @@ double TCovariateFunction::_getAsDouble(uint16_t val) const{
 
 double TCovariateFunction::_normalizeParameters(){
 	double mean = 0.0;
-	for(uint16_t i=0; i<_numParameters; ++i){
+	for(uint16_t i=0; i<_betas.size(); ++i){
 		mean += _betas[i];
 	}
-	mean /= (double) _numParameters;
+	mean /= (double) numParameters();
 
 
-	for(uint16_t i=0; i<_numParameters; ++i){
+	for(uint16_t i=0; i<numParameters(); ++i){
 		_betas[i] -= mean;
 	}
 
@@ -87,11 +74,11 @@ bool TCovariateFunction::checkValueRange(const std::vector<uint16_t> & values) c
 
 void TCovariateFunction::proposeNewParameters(const arma::mat & JxF, uint16_t & index, double & lambda){
 	//save old parameters
-	for(uint16_t i=0; i<_numParameters; ++i)
+	for(uint16_t i=0; i<numParameters(); ++i)
 		_oldBetas[i] = _betas[i];
 
 	//update new ones
-	for(uint16_t i=0; i<_numParameters; ++i){
+	for(uint16_t i=0; i<numParameters(); ++i){
 		_betas[i] = _oldBetas[i] - lambda * JxF(index);
 		++index;
 	}
@@ -105,15 +92,8 @@ std::string TCovariateFunction::getModelString() const{
 // TRecalibrationEMCovariateFunction_intercept
 //--------------------------------------------------------------
 void TCovariateFunction_intercept::_init(){
-	_numParameters = 1;
-	_numNonZeroFirstDerivatives = 1;
-	_numNonZeroSecondDerivatives = 0;
 	_initializeBetas();
 };
-
-TCovariateFunction_intercept::TCovariateFunction_intercept(){
-	_init();
-}
 
 TCovariateFunction_intercept::TCovariateFunction_intercept(uint16_t FirstParameterIndex):TCovariateFunction(FirstParameterIndex){
 	_init();
@@ -166,9 +146,7 @@ void TCovariateFunction_intercept::fillDerivatives(uint16_t , TRecalibrationEMFi
 void TCovariateFunction_polynomial::_init(size_t order){
 	if(order < 1)
 		throw "Order of polynomial covariate function must be at least 1!";
-	_numParameters = order;
-	_numNonZeroFirstDerivatives = order;
-	_numNonZeroSecondDerivatives = 0;
+	_order = order;
 	_initializeBetas();
 };
 
@@ -186,7 +164,7 @@ double TCovariateFunction_polynomial::getEtaTerm(uint16_t val) const{
 	double tmp = valAsDouble;
 	double sum = _betas[0] * tmp;
 
-	for(size_t i=1; i<_numParameters; ++i){
+	for(size_t i=1; i<numParameters(); ++i){
 		tmp *= valAsDouble;
 		sum += _betas[i] * tmp;
 	}
@@ -198,7 +176,7 @@ void TCovariateFunction_polynomial::fillDerivatives(uint16_t val, TRecalibration
 	double valAsDouble = _getAsDouble(val);
 	double tmp = valAsDouble;
 	first.add(_firstParameterIndex, tmp);
-	for(size_t i=1; i<_numParameters; ++i){
+	for(size_t i=1; i<numParameters(); ++i){
 		tmp *= valAsDouble;
 		first.add(_firstParameterIndex + i, tmp);
 	}
@@ -221,9 +199,6 @@ TProbitTmpStorage::TProbitTmpStorage(const std::vector<double> & betas, uint16_t
 };
 
 void TRecalibrationEMCovariateFunction_probit::_init(uint16_t MaxValue){
-	_numParameters = 3;
-	_numNonZeroFirstDerivatives = 3;
-	_numNonZeroSecondDerivatives = 6;
 	_initializeBetas();
 	_secondParameterIndex = _firstParameterIndex + 1;
 	_thirdParameterIndex = _firstParameterIndex + 2;
@@ -296,9 +271,6 @@ TCovariateFunction_specific::TCovariateFunction_specific(uint16_t FirstParameter
 
 void TCovariateFunction_specific::_init(uint16_t MaxValue){
 	_maxValue = MaxValue;
-	_numParameters = _maxValue + 1;
-	_numNonZeroFirstDerivatives = 1;
-	_numNonZeroSecondDerivatives = 0;
 	_initializeBetas();
 };
 
@@ -335,8 +307,6 @@ void TCovariateFunction_specific::fillDerivatives(uint16_t val, TRecalibrationEM
 //--------------------------------------------------------------
 void TCovariateFunction_specificMap::_init(size_t NumParameters){
 	_numParameters = NumParameters;
-	_numNonZeroFirstDerivatives = 1;
-	_numNonZeroSecondDerivatives = 0;
 	_initializeBetas();
 };
 

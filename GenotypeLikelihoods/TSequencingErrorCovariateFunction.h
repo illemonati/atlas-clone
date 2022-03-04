@@ -11,6 +11,7 @@
 #include "stringFunctions.h"
 #include "auxiliaryTools.h"
 #include "mathFunctions.h"
+#include <cstdint>
 #define ARMA_DONT_PRINT_ERRORS
 #include <armadillo>
 
@@ -23,20 +24,16 @@ namespace SequencingError {
 //--------------------------------------------------------------
 class TCovariateFunction{
 protected:
-	uint16_t _numParameters;
 	uint16_t _firstParameterIndex;
-	uint16_t _numNonZeroFirstDerivatives;
-	uint16_t _numNonZeroSecondDerivatives;
 	std::vector<double> _betas; //betas of the model
 	std::vector<double> _oldBetas; //use during estimation
 
 	//transform values?
-	TRecalibrationEMTransformationMap* transformationMap;
-	bool doTransformation;
+	TRecalibrationEMTransformationMap* transformationMap = nullptr;
+	bool doTransformation = false;
 
-	void _init(uint16_t FirstParameterIndex);
-	void _initializeBetas();
 	void _initializValues(const std::vector<std::string> & values);
+	void _initializeBetas();
 	double _getAsDouble(uint16_t val) const;
 	double _normalizeParameters();
 
@@ -44,24 +41,19 @@ protected:
 
 public:
 	static inline const std::string name = "none";
-	TCovariateFunction(){
-		_init(0);
-	};
-	TCovariateFunction(uint16_t FirstParameterIndex){
-		_init(FirstParameterIndex);
-	};
+	TCovariateFunction(uint16_t FirstParameterIndex = 0) : _firstParameterIndex(FirstParameterIndex) {}
 
-	virtual ~TCovariateFunction(){};
+	virtual ~TCovariateFunction() = default;
 
 	void setBeta(uint16_t index, double val){
-		if(index < _numParameters)
+		if(index < _betas.size())
 			_betas[index] = val;
 	};
 
 	//size
-	uint16_t numParameters() const noexcept { return _numParameters; };
-	uint16_t numNonZeroFirstDerivatives(){ return _numNonZeroFirstDerivatives; };
-	uint16_t numNonZeroSecondDerivatives(){ return _numNonZeroSecondDerivatives; };
+	virtual uint16_t numParameters() const noexcept { return 0; };
+	virtual uint16_t numNonZeroFirstDerivatives() const noexcept { return 0; };
+	virtual uint16_t numNonZeroSecondDerivatives() const noexcept { return 0; };
 
 	//check value range: to ensure that data can be recalibrated
 	virtual bool checkValueRange(uint16_t ) const { return true; };
@@ -81,11 +73,9 @@ public:
 		return 0.0;
 	};
 	void proposeNewParameters(const arma::mat & JxF, uint16_t & index, double & lambda);
-	void rejectProposedParameters(){
-		for(unsigned int i=0; i<_numParameters; ++i)
-			_betas[i] = _oldBetas[i];
-	};
-	virtual void fillDerivatives(uint16_t , TRecalibrationEMFirstDerivatives &, TRecalibrationEMSecondDerivatives &) const{};
+	void rejectProposedParameters() { std::copy(_oldBetas.begin(), _oldBetas.end(), _betas.begin()); }
+	virtual void fillDerivatives(uint16_t, TRecalibrationEMFirstDerivatives &,
+	                             TRecalibrationEMSecondDerivatives &) const {};
 	virtual double adjustParametersPostEstimation(){ return 0.0; };
 	virtual std::string typeString() const noexcept {return name; }
 	std::string getModelString() const;
@@ -101,9 +91,12 @@ protected:
 
 public:
 	static inline const std::string name = "intercept";
-	TCovariateFunction_intercept();
-	TCovariateFunction_intercept(uint16_t FirstParameterIndex);
+	TCovariateFunction_intercept(uint16_t FirstParameterIndex = 0);
 	TCovariateFunction_intercept(uint16_t FirstParameterIndex, const std::vector<std::string> & values);
+
+	uint16_t numParameters() const noexcept override { return 1; };
+	uint16_t numNonZeroFirstDerivatives() const noexcept override { return 1; };
+	uint16_t numNonZeroSecondDerivatives() const noexcept override { return 0; };
 
 	void initialize(uint16_t FirstParameterIndex);
 	void initialize(uint16_t FirstParameterIndex, const std::vector<std::string> & values);
@@ -124,6 +117,7 @@ public:
 class TCovariateFunction_polynomial:public TCovariateFunction{
 protected:
 	void _init(size_t order);
+	uint16_t _order;
 
 	//TODO: add tmp storage for eta!
 
@@ -132,8 +126,12 @@ public:
 	TCovariateFunction_polynomial(uint16_t FirstParameterIndex, size_t order);
 	TCovariateFunction_polynomial(uint16_t FirstParameterIndex, const std::vector<std::string> & values);
 
-	double getEtaTerm(uint16_t val) const;
-	void fillDerivatives(uint16_t val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second) const;
+	uint16_t numParameters() const noexcept override { return _order; };
+	uint16_t numNonZeroFirstDerivatives() const noexcept override { return _order; };
+	uint16_t numNonZeroSecondDerivatives() const noexcept override { return 0; };
+
+	double getEtaTerm(uint16_t val) const override;
+	void fillDerivatives(uint16_t val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second) const override;
 	virtual std::string typeString() const noexcept override {return name; }
 };
 
@@ -173,6 +171,9 @@ public:
 	TRecalibrationEMCovariateFunction_probit(uint16_t FirstParameterIndex, uint16_t MaxValue);
 	TRecalibrationEMCovariateFunction_probit(uint16_t FirstParameterIndex, const std::vector<std::string> & values);
 
+	uint16_t numParameters() const noexcept override { return 3; };
+	uint16_t numNonZeroFirstDerivatives() const noexcept override { return 3; };
+	uint16_t numNonZeroSecondDerivatives() const noexcept override { return 6; };
 	double getEtaTerm(uint16_t val) const override;
 	void fillDerivatives(uint16_t val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second) const override;
 	virtual std::string typeString() const noexcept override {return name; }
@@ -193,6 +194,9 @@ public:
 	TCovariateFunction_specific(uint16_t FirstParameterIndex, uint16_t MaxValue);
 	TCovariateFunction_specific(uint16_t FirstParameterIndex, const std::vector<std::string> & betas);
 
+	uint16_t numParameters() const noexcept override { return _maxValue + 1; };
+	uint16_t numNonZeroFirstDerivatives() const noexcept override { return 1; };
+	uint16_t numNonZeroSecondDerivatives() const noexcept override { return 0; };
 	bool checkValueRange(uint16_t val) const override;
 	void adjustValueRanges(const std::vector<uint16_t> & values) override;
 
@@ -220,6 +224,7 @@ struct TCovariateFunctionIndexMapEntry{
 
 class TCovariateFunction_specificMap:public TCovariateFunction{
 protected:
+	uint16_t _numParameters;
 	uint16_t _maxValue;
 	std::vector<TCovariateFunctionIndexMapEntry> _indexMap; //maps value to parameter index
 
@@ -231,6 +236,10 @@ public:
 	TCovariateFunction_specificMap(uint16_t FirstParameterIndex, const std::vector<uint16_t> & values);
 	TCovariateFunction_specificMap(uint16_t FirstParameterIndex, const std::vector<std::string> & values);
 	~TCovariateFunction_specificMap(){};
+
+	uint16_t numParameters() const noexcept override { return _numParameters; };
+	uint16_t numNonZeroFirstDerivatives() const noexcept override { return 1; };
+	uint16_t numNonZeroSecondDerivatives() const noexcept override { return 0; };
 
 	bool checkValueRange(uint16_t val) const override;
 	void adjustValueRanges(const std::vector<uint16_t> & values) override;
