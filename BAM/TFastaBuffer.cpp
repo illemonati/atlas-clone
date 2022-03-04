@@ -15,15 +15,24 @@ namespace BAM{
 using genometools::Base;
 
 void TFastaBuffer::_moveTo(const TGenomePosition Position) const{
-	//NOTE: bamtools was modified to append N in case pos < 0 or pos+length > is beyond chromosome. This is the expected behavior in ATLAS and must be preserved!
 	if(!_hasReference){
 		throw "Can not move reference: no FASTA file provided!";
 	}
 
 	_coordinates.move(Position, Position + _bufferSize);
 
-	if(!_reference.GetSequence(_coordinates.refID(), _coordinates.fromOnChr(), _coordinates.toOnChr(), _referenceSequence))
+	int fastaLength;
+	if (!_reference.GetLength(_coordinates.refID(), fastaLength))
+		throw "Problem reading Fasta length " + std::to_string(_coordinates.refID()) + " from index file!";
+
+	const int start          = _coordinates.fromOnChr();
+	const int end            = _coordinates.toOnChr();
+	const std::string before = start < 0 ? std::string(std::abs(start), 'N') : "";
+	const std::string after  = end > fastaLength ? std::string(end - fastaLength, 'N') : "";
+
+	if(!_reference.GetSequence(_coordinates.refID(), std::max(0, start), std::min(end, fastaLength), _referenceSequence))
 		throw "Problem reading " + std::to_string(_coordinates.refID()) + ":" + std::to_string(_coordinates.fromOnChr()) + "-" + std::to_string(_coordinates.toOnChr()) + " from fasta file! Are you using the correct fasta file?";
+	_referenceSequence = before + _referenceSequence + after;
 };
 
 void TFastaBuffer::initialize(std::string fastaFile, const uint32_t BufferSize){

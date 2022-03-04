@@ -51,9 +51,8 @@ FetchContent_Declare(genometools
         )
 
 FetchContent_Declare(bamtools
-        GIT_REPOSITORY    https://bitbucket.org/wegmannlab/bamtools.git
+        GIT_REPOSITORY    https://github.com/glis-glis/bamtools.git
         GIT_TAG           master
-	# not newer see https://github.com/DiltheyLab/HLA-LA/issues/59
         SOURCE_DIR        "${CMAKE_CURRENT_BINARY_DIR}/bamtools"
         )
 
