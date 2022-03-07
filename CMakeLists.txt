@@ -21,7 +21,7 @@ file(GLOB CORE_SOURCES CONFIGURE_DEPENDS
   GLF/*.h GLF/*.cpp
   PopulationTools/*.h PopulationTools/*.cpp
   Simulations/*.h Simulations/*.cpp
-  TestUtilities/*.h TestUtilities/*.cpp
+  #  TestUtilities/*.h TestUtilities/*.cpp
   VCF/*.h VCF/*.cpp)
 
 find_package(ZLIB REQUIRED)
@@ -67,7 +67,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
   GLF
   PopulationTools
   Simulations
-  TestUtilities
+#  TestUtilities
   VCF)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE BamTools BamTools-utils coretools stattools genometools ${ZLIB_LIBRARIES} ${ARMADILLO_LIBRARIES})
@@ -85,7 +85,7 @@ file(GLOB_RECURSE TEST_SOURCES CONFIGURE_DEPENDS
         GLF/tests/*.h GLF/tests/*.cpp
         PopulationTools/tests/*.h PopulationTools/tests/*.cpp
         Simulations/tests/*.h Simulations/tests/*.cpp
-        TestUtilities/tests/*.h TestUtilities/tests/*.cpp
+#        TestUtilities/tests/*.h TestUtilities/tests/*.cpp
         VCF/tests/*.h VCF/tests/*.cpp)
 
 FetchContent_Declare(
@@ -109,7 +109,7 @@ target_include_directories("${PROJECT_NAME}_unitTests" PRIVATE
         GLF
         PopulationTools
         Simulations
-        TestUtilities
+#        TestUtilities
         VCF)
 
 target_link_libraries("${PROJECT_NAME}_unitTests" PRIVATE BamTools BamTools-utils coretools stattools genometools ${ZLIB_LIBRARIES} ${ARMADILLO_LIBRARIES} gtest_main gmock_main)

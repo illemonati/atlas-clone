@@ -196,22 +196,23 @@ class TTask_simulate : public coretools::TTask {
 public:
 	TTask_simulate() { _explanation = "Generating simulations"; };
 
-	void run(coretools::TParameters &Parameters, coretools::TLog *Logfile) {
+	void run() {
+		using namespace coretools::instances;
 		// initialize simulator
 		std::unique_ptr<TSimulator> simulator;
-		std::string method = Parameters.getParameterWithDefault<std::string>("type", "one");
+		std::string method = parameters().getParameterWithDefault<std::string>("type", "one");
 		if (method == "one") {
-			Logfile->startIndent("Simulating a single individual (parameter type=one):");
-			simulator = std::make_unique<TSimulatorOne>(Logfile, Parameters, _randomGenerator);
+			logfile().startIndent("Simulating a single individual (parameter type=one):");
+			simulator = std::make_unique<TSimulatorOne>(&logfile(), parameters(), &randomGenerator());
 		} else if (method == "pair") {
-			Logfile->startIndent("Simulating a pair of individual (parameter type=pair):");
-			simulator = std::make_unique<TSimulatorPair>(Logfile, Parameters, _randomGenerator);
+			logfile().startIndent("Simulating a pair of individual (parameter type=pair):");
+			simulator = std::make_unique<TSimulatorPair>(&logfile(), parameters(), &randomGenerator());
 		} else if (method == "SFS") {
-			Logfile->startIndent("Simulating individuals from an SFS (parameter type=SFS):");
-			simulator = std::make_unique<TSimulatorSFS>(Logfile, Parameters, _randomGenerator);
+			logfile().startIndent("Simulating individuals from an SFS (parameter type=SFS):");
+			simulator = std::make_unique<TSimulatorSFS>(&logfile(), parameters(), &randomGenerator());
 		} else if (method == "HW") {
-			Logfile->startIndent("Simulating a individuals under Hardy-Weinberg (parameter type=HW):");
-			simulator = std::make_unique<TSimulatorHW>(Logfile, Parameters, _randomGenerator);
+			logfile().startIndent("Simulating a individuals under Hardy-Weinberg (parameter type=HW):");
+			simulator = std::make_unique<TSimulatorHW>(&logfile(), parameters(), &randomGenerator());
 		} else
 			throw "Unknown simulation method '" + method + "'!";
 
@@ -219,7 +220,7 @@ public:
 		simulator->runSimulations();
 
 		// clean up
-		Logfile->endIndent();
+		logfile().endIndent();
 	}
 };
 

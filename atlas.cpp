@@ -48,13 +48,14 @@
 //simulations
 #include "TSimulator.h"
 
+/*
 //tests
 #include "TAtlasTest.h"
 #include "TAtlasTestFilter.h"
 #include "TAtlasTestMergePairs.h"
 #include "TAtlasTestPMD.h"
 #include "TAtlasTestRecalibration.h"
-#include "TVcfTest.h"
+#include "TVcfTest.h"*/
 
 void addTaks(coretools::TMain & main) {
     // Use main.addRegularTask to add a regular task (shown in list of available tasks)
@@ -127,6 +128,7 @@ void addTaks(coretools::TMain & main) {
 void addTests(coretools::TMain & main){
     // Use testing.addTest to add a single test
 	main.addTest("empty", new coretools::TTest());
+	/*
     main.addTest("pileup", new TAtlasTest_pileup());
 	main.addTest("allelicDepth", new TAtlasTest_allelicDepth());
 	main.addTest("recalSimulation", new TAtlasTest_recalSimulation());
@@ -150,6 +152,7 @@ void addTests(coretools::TMain & main){
 	});
 
 	//TODO: add suits for VCF, BAM, PopTools etc.
+	*/
 };
 
 //---------------------------------------------------------------------------

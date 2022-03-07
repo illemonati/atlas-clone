@@ -222,9 +222,10 @@ class TTask_estimateDist:public coretools::TTask{
 public:
 	TTask_estimateDist(){ _explanation = "Estimating the genetic distance between individuals"; };
 
-	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
-		TDistanceEstimator distEst(Logfile, Parameters);
-		distEst.estimateDistances(Parameters);
+	void run(){
+		using namespace coretools::instances;
+		TDistanceEstimator distEst(&logfile(), parameters());
+		distEst.estimateDistances(parameters());
 	};
 };
 

@@ -45,8 +45,9 @@ class TTask_PSMC:public coretools::TTask{
 public:
 	TTask_PSMC(){ _explanation = "Generating a PSMC Input file probabilistically"; };
 
-	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
-		TPSMCInput psmc(Parameters, Logfile, _randomGenerator);
+	void run(){
+		using namespace coretools::instances;
+		TPSMCInput psmc(parameters(), &logfile(), &randomGenerator());
 		psmc.createPSMCInput();
 	};
 };

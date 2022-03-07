@@ -67,8 +67,9 @@ class TTask_assessSoftClipping:public coretools::TTask{
 public:
 	TTask_assessSoftClipping(){ _explanation = "Assessing level of soft clipping in BAM file"; };
 
-	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
-		TAssessSoftClipping assessor(Parameters, Logfile, _randomGenerator);
+	void run(){
+		using namespace coretools::instances;
+		TAssessSoftClipping assessor(parameters(), &logfile(), &randomGenerator());
 		assessor.assess();
 	};
 };
@@ -77,8 +78,9 @@ class TTask_removeSoftClippedBasesFromReads:public coretools::TTask{
 public:
 	TTask_removeSoftClippedBasesFromReads(){ _explanation = "Removing soft clipped bases from reads"; };
 
-	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
-		TRemoveSoftClippedBases remover(Parameters, Logfile, _randomGenerator);
+	void run(){
+		using namespace coretools::instances;
+		TRemoveSoftClippedBases remover(parameters(), &logfile(), &randomGenerator());
 		remover.removeSoftclippedBases();
 	};
 };

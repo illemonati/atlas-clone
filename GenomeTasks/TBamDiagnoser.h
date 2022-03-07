@@ -49,8 +49,9 @@ class TTask_BAMDiagnostics:public coretools::TTask{
 public:
 	TTask_BAMDiagnostics(){ _explanation = "Estimating approximate depth, read length frequencies and mapping quality frequencies"; };
 
-	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
-		TBamDiagnoser diagnoser(Parameters, Logfile, _randomGenerator);
+	void run(){
+		using namespace coretools::instances;
+		TBamDiagnoser diagnoser(parameters(), &logfile(), &randomGenerator());
 		diagnoser.diagnose();
 	};
 };

@@ -107,16 +107,16 @@ public:
 //--------------------------------------
 // Tasks
 //--------------------------------------
-class TTask_VcfCompare:public coretools::TTask{
+class TTask_VcfCompare : public coretools::TTask {
 public:
-	TTask_VcfCompare(){ _explanation = "Comparing genotype calls in two VCF files"; };
+	TTask_VcfCompare() { _explanation = "Comparing genotype calls in two VCF files"; };
 
-	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
-		TVcfCompare compare(Logfile);
-		compare.compareVCFFiles(Parameters);
+	void run() {
+		using namespace coretools::instances;
+		TVcfCompare compare(&logfile());
+		compare.compareVCFFiles(parameters());
 	};
 };
-
 
 }; //end namespace
 

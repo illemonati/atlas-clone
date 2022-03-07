@@ -143,9 +143,10 @@ class TTask_VCFDiagnostics:public TTask{
 public:
 	TTask_VCFDiagnostics(){ _explanation = "Diagnosing a VCF file"; };
 
-	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
-		VcfDiagnostics VcfDiagnoser(Parameters, Logfile);
-		VcfDiagnoser.assessAllelicImbalance(Parameters);
+	void run(){
+		using namespace coretools::instances;
+		VcfDiagnostics VcfDiagnoser(parameters(), &logfile());
+		VcfDiagnoser.assessAllelicImbalance(parameters());
 	};
 };
 
@@ -153,8 +154,9 @@ class TTask_VCFToInvariantBed:public TTask{
 public:
 	TTask_VCFToInvariantBed(){ _explanation = "Writing a BED file from invariant sites in a VCF file"; };
 
-	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
-		VcfDiagnostics VcfDiagnoser(Parameters, Logfile);
+	void run(){
+		using namespace coretools::instances;
+		VcfDiagnostics VcfDiagnoser(parameters(), &logfile());
 		VcfDiagnoser.vcfToInvariantBed();
 	};
 };
@@ -163,8 +165,9 @@ class TTask_VCFFixInt:public TTask{
 public:
 	TTask_VCFFixInt(){ _explanation = "Fixing integers printed as floats in VCF file"; };
 
-	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
-		VcfDiagnostics VcfDiagnoser(Parameters, Logfile);
+	void run(){
+		using namespace coretools::instances;
+		VcfDiagnostics VcfDiagnoser(parameters(), &logfile());
 		VcfDiagnoser.fixIntAsFloat();
 	};
 };

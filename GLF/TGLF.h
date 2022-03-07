@@ -253,8 +253,9 @@ class TTask_printGLF:public coretools::TTask{
 public:
 	TTask_printGLF(){ _explanation = "Printing a GLF file to screen"; };
 
-	void run(coretools::TParameters & parameters, coretools::TLog*){
-		std::string glf = parameters.getParameter<std::string>("glf");
+	void run(){
+		using coretools::instances::parameters;
+		std::string glf = parameters().getParameter<std::string>("glf");
 		TGlfReader reader(glf);
 		reader.printToEnd();
 	};

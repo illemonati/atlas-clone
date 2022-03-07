@@ -42,8 +42,9 @@ class TTask_duplicationQuantifier:public coretools::TTask{
 public:
 	TTask_duplicationQuantifier(){ _explanation = "Quantifying read duplication"; };
 
-	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
-		TDuplicateQuantifier duplicationQuantifier(Parameters, Logfile, _randomGenerator);
+	void run(){
+		using namespace coretools::instances;
+		TDuplicateQuantifier duplicationQuantifier(parameters(), &logfile(), &randomGenerator());
 		duplicationQuantifier.estimateDuplicationCounts();
 	};
 };

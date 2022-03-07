@@ -41,8 +41,9 @@ class TTask_estimatePMD:public coretools::TTask{
 public:
 	TTask_estimatePMD(){ _explanation = "Estimating Post-Mortem Damage (PMD) patterns"; };
 
-	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
-		TPMDEstimator estimator(Parameters, Logfile, _randomGenerator);
+	void run(){
+		using namespace coretools::instances;
+		TPMDEstimator estimator(parameters(), &logfile(), &randomGenerator());
 		estimator.estimatePMD();
 	};
 };

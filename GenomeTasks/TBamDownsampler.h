@@ -96,8 +96,9 @@ class TTask_downsample:public coretools::TTask{
 public:
 	TTask_downsample(){ _explanation = "Downsampling a BAM file by removing reads"; };
 
-	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
-		TBamDownsampler downsampler(Parameters, Logfile, _randomGenerator);
+	void run(){
+		using namespace coretools::instances;
+		TBamDownsampler downsampler(parameters(), &logfile(), &randomGenerator());
 		downsampler.downsample();
 	};
 };
@@ -106,8 +107,9 @@ class TTask_downSampleReads:public coretools::TTask{
 public:
 	TTask_downSampleReads(){ _explanation = "Downsampling a BAM file by setting bases to N"; };
 
-	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
-		TBamReadDownsampler downsampler(Parameters, Logfile, _randomGenerator);
+	void run(){
+		using namespace coretools::instances;
+		TBamReadDownsampler downsampler(parameters(), &logfile(), &randomGenerator());
 		downsampler.downsample();
 	};
 };
@@ -116,8 +118,9 @@ class TTask_separateReads:public coretools::TTask{
 public:
 	TTask_separateReads(){ _explanation = "Separating reads into different BAM files"; };
 
-	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
-		TBamSeparator separator(Parameters, Logfile, _randomGenerator);
+	void run(){
+		using namespace coretools::instances;
+		TBamSeparator separator(parameters(), &logfile(), &randomGenerator());
 		separator.separate();
 	};
 };

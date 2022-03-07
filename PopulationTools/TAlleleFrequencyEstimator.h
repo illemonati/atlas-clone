@@ -140,9 +140,10 @@ class TTask_estimateAlleleFreq:public coretools::TTask{
 public:
 	TTask_estimateAlleleFreq(){ _explanation = "Estimating population allele frequencies"; };
 
-	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
-		TAlleleFreqEstimator alleleFreqEstimator(Parameters, Logfile);
-		alleleFreqEstimator.estimateAlleleFreq(Parameters, _randomGenerator);
+	void run(){
+		using namespace coretools::instances;
+		TAlleleFreqEstimator alleleFreqEstimator(parameters(), &logfile());
+		alleleFreqEstimator.estimateAlleleFreq(parameters(), &randomGenerator());
 	};
 };
 
@@ -150,9 +151,11 @@ class TTask_compareAlleleFreq:public coretools::TTask{
 public:
 	TTask_compareAlleleFreq(){_explanation = "Pairwise comparison of population allele frequencies"; };
 
-	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
-		TAlleleFreqEstimator alleleFreqEstimator(Parameters, Logfile);
-		alleleFreqEstimator.compareAlleleFreq(Parameters, _randomGenerator);
+	void run(){
+		using namespace coretools::instances;
+		using namespace coretools::instances;
+		TAlleleFreqEstimator alleleFreqEstimator(parameters(), &logfile());
+		alleleFreqEstimator.compareAlleleFreq(parameters(), &randomGenerator());
 	};
 };
 
@@ -160,9 +163,10 @@ class TTask_alleleFreqLikelihoods:public coretools::TTask{
 public:
 	TTask_alleleFreqLikelihoods(){ _explanation = "Calculating population allele frequency likelihoods under Hardy-Weinberg"; };
 
-	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
-		TAlleleFreqEstimator alleleFreqEstimator(Parameters, Logfile);
-		alleleFreqEstimator.writeAlleleFrequencyLikelihoods(Parameters, _randomGenerator);
+	void run(){
+		using namespace coretools::instances;
+		TAlleleFreqEstimator alleleFreqEstimator(parameters(), &logfile());
+		alleleFreqEstimator.writeAlleleFrequencyLikelihoods(parameters(), &randomGenerator());
 	};
 };
 

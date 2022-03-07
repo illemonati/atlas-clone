@@ -36,8 +36,9 @@ class TTask_depthWriter:public coretools::TTask{
 public:
 	TTask_depthWriter(){ _explanation = "Estimating the distribution of depth among sites and writing depth per window"; };
 
-	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
-		TDepthWriter depthWriter(Parameters, Logfile, _randomGenerator);
+	void run(){
+		using namespace coretools::instances;
+		TDepthWriter depthWriter(parameters(), &logfile(), &randomGenerator());
 		depthWriter.writeDepth();
 	};
 };

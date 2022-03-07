@@ -86,9 +86,10 @@ class TTask_estimateAlleleCounts:public coretools::TTask{
 public:
 	TTask_estimateAlleleCounts(){ _explanation = "Estimating population allele counts"; };
 
-	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
-		TAlleleCountEstimator alleleCountEst(Parameters, Logfile);
-		alleleCountEst.estimateAlleleCounts(Parameters, _randomGenerator);
+	void run(){
+		using namespace coretools::instances;
+		TAlleleCountEstimator alleleCountEst(parameters(), &logfile());
+		alleleCountEst.estimateAlleleCounts(parameters(), &randomGenerator());
 	};
 };
 
@@ -96,9 +97,10 @@ class TTask_writeAlleleCountLikelihoods:public coretools::TTask{
 public:
 	TTask_writeAlleleCountLikelihoods(){ _explanation = "Writing sample allele count likelihoods"; };
 
-	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
-		TAlleleCountEstimator alleleCountEst(Parameters, Logfile);
-		alleleCountEst.writeAlleleFrequencyLikelihoods(Parameters);
+	void run(){
+		using namespace coretools::instances;
+		TAlleleCountEstimator alleleCountEst(parameters(), &logfile());
+		alleleCountEst.writeAlleleFrequencyLikelihoods(parameters());
 	};
 };
 
@@ -106,9 +108,10 @@ class TTask_transformAlleleCountFormat:public coretools::TTask{
 public:
 	TTask_transformAlleleCountFormat(){ _explanation = "Transforming allele counts file format"; };
 
-	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
-		TAlleleCountEstimator alleleCountEst(Parameters, Logfile);
-		alleleCountEst.transformFormat(Parameters);
+	void run(){
+		using namespace coretools::instances;
+		TAlleleCountEstimator alleleCountEst(parameters(), &logfile());
+		alleleCountEst.transformFormat(parameters());
 	};
 };
 

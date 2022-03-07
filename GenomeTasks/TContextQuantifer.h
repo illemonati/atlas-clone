@@ -34,8 +34,9 @@ class TTask_quantifyContext:public coretools::TTask{
 public:
 	TTask_quantifyContext(){ _explanation = "Writing context statistics to file"; };
 
-	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
-		TContextQuantifier quantifier(Parameters, Logfile, _randomGenerator);
+	void run(){
+		using namespace coretools::instances;
+		TContextQuantifier quantifier(parameters(), &logfile(), &randomGenerator());
 		quantifier.quantifyContexts();
 	};
 };

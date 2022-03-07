@@ -256,7 +256,7 @@ void TGenome_windows::_setSiteFilters(TParameters & params){
 		if(_depthFilter.larger(_downsampleDepth)){
 			_logfile->warning("Downsample depth is >= max of depth filter: no downsampling will occur.");
 		}
-		subsamplePicker = std::make_unique<coretools::TSubsamplePicker>(_randomGenerator, 30);
+		subsamplePicker = std::make_unique<coretools::TSubsamplePicker>(30);
 	}
 
 	//CpG filter

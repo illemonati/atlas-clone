@@ -10,6 +10,9 @@
 
 #include "TGenome.h"
 #include "TAlignmentStorage.h"
+#include "TLog.h"
+#include "TParameters.h"
+#include "TRandomGenerator.h"
 #include "TTask.h"
 
 namespace GenomeTasks{
@@ -179,8 +182,9 @@ public:
 public:
 	TTask_filterBAM(){ _explanation = "Writing reads that pass filters to BAM file"; };
 
-	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
-		TBamFilter filter(Parameters, Logfile, _randomGenerator);
+	void run(){
+		using namespace coretools::instances;
+		TBamFilter filter(parameters(), &logfile(), &randomGenerator());
 		filter.traverseBAM();
 	};
 };
@@ -189,8 +193,9 @@ class TTask_splitMerge:public coretools::TTask{
 public:
 	TTask_splitMerge(){ _explanation = "Splitting single-end reads and merging paired-end reads and in BAM file"; };
 
-	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
-		TAlignmentSplitMerger splitMerger(Parameters, Logfile, _randomGenerator);
+	void run(){
+		using namespace coretools::instances;
+		TAlignmentSplitMerger splitMerger(parameters(), &logfile(), &randomGenerator());
 		splitMerger.traverseBAM();
 	};
 };
@@ -199,8 +204,9 @@ class TTask_overlapQuantifier:public coretools::TTask{
 public:
 	TTask_overlapQuantifier(){ _explanation = "Estimating distribution of overlap of paired reads in BAM file"; };
 
-	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
-		TOverlapQuantifier overlapQuantifier(Parameters, Logfile, _randomGenerator);
+	void run(){
+		using namespace coretools::instances;
+		TOverlapQuantifier overlapQuantifier(parameters(), &logfile(), &randomGenerator());
 		overlapQuantifier.quantifyOverlap();
 	};
 };

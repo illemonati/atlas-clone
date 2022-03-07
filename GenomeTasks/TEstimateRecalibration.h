@@ -41,8 +41,9 @@ public:
 		_citations.insert("Kousathanas et al. (2017) Genetics");
 	};
 
-	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
-		TEstimateRecalibration estimator(Parameters, Logfile, _randomGenerator);
+	void run(){
+		using namespace coretools::instances;
+		TEstimateRecalibration estimator(parameters(), &logfile(), &randomGenerator());
 		estimator.estimateRecalibration();
 	};
 };

@@ -307,8 +307,9 @@ class TTask_call:public coretools::TTask{
 public:
 	TTask_call(){ _explanation = "Calling genotypes"; };
 
-	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
-		TCall caller(Parameters, Logfile, _randomGenerator);
+	void run(){
+		using namespace coretools::instances;
+		TCall caller(parameters(), &logfile(), &randomGenerator());
 		caller.call();
 	};
 };

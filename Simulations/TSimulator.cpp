@@ -407,7 +407,7 @@ void TSimulator::_simulateReadsFromHaplotypes(const BAM::TChromosome &thisChr, s
 
 	// initialize progress reporting
 	coretools::TProgressReporter<uint64_t> reporter(
-		_logfile, numReads, "Simulating about " + coretools::str::toString(numReads) + " reads" + extraProgressText);
+		numReads, "Simulating about " + coretools::str::toString(numReads) + " reads" + extraProgressText);
 
 	// now simulate
 	for (uint32_t l = 0; l < chrLengthForStart; ++l) {

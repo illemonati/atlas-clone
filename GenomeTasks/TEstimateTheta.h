@@ -122,8 +122,9 @@ class TTask_estimateTheta:public TThetaTask{
 public:
 	TTask_estimateTheta(){ _explanation = "Estimating heterozygosity (theta) per window"; };
 
-	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
-		TEstimateTheta estimator(Parameters, Logfile, _randomGenerator);
+	void run(){
+		using namespace coretools::instances;
+		TEstimateTheta estimator(parameters(), &logfile(), &randomGenerator());
 		estimator.estimateTheta();
 	};
 };
@@ -132,8 +133,9 @@ class TTask_estimateThetaGenomeWide:public TThetaTask{
 public:
 	TTask_estimateThetaGenomeWide(){ _explanation = "Estimating heterozygosity (theta) genome-wide"; };
 
-	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
-		TEstimateThetaGenomeWide estimator(Parameters, Logfile, _randomGenerator);
+	void run(){
+		using namespace coretools::instances;
+		TEstimateThetaGenomeWide estimator(parameters(), &logfile(), &randomGenerator());
 		estimator.estimateThetaGenomeWide();
 	};
 };
@@ -142,8 +144,9 @@ class TTask_thetaLLSurface:public TThetaTask{
 public:
 	TTask_thetaLLSurface(){	_explanation = "Calculating the theta LL surface for each window"; };
 
-	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
-		TEstimateThetaLLSurface estimator(Parameters, Logfile, _randomGenerator);
+	void run(){
+		using namespace coretools::instances;
+		TEstimateThetaLLSurface estimator(parameters(), &logfile(), &randomGenerator());
 		estimator.estimateThetaLLSurface();
 	};
 };
@@ -152,8 +155,9 @@ class TTask_downsamplingThetaQC:public TThetaTask{
 public:
 	TTask_downsamplingThetaQC(){ _explanation = "QC recalibration by estimating theta on downsampled data for each window"; };
 
-	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
-		TEstimateThetaDownsamplingQC estimator(Parameters, Logfile, _randomGenerator);
+	void run(){
+		using namespace coretools::instances;
+		TEstimateThetaDownsamplingQC estimator(parameters(), &logfile(), &randomGenerator());
 		estimator.runQC();
 	};
 };
@@ -162,8 +166,9 @@ class TTask_estimateThetaRatio:public TThetaTask{
 public:
 	TTask_estimateThetaRatio(){ _explanation = "Estimate the ratio in heterozygosity (theta) between genomic regions"; };
 
-	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
-		TEstimateThetaRatio estimator(Parameters, Logfile, _randomGenerator);
+	void run(){
+		using namespace coretools::instances;
+		TEstimateThetaRatio estimator(parameters(), &logfile(), &randomGenerator());
 		estimator.estimateThetaRation();
 	};
 };

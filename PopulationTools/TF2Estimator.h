@@ -39,16 +39,18 @@ namespace PopulationTools {
     //--------------------------------------
 // Tasks
 //--------------------------------------
-    class TTask_calculateF2:public coretools::TTask{
-    public:
-        TTask_calculateF2(){ _explanation = "Calculate F2 between different samples, and within and between populations"; };
+	class TTask_calculateF2 : public coretools::TTask {
+	public:
+		TTask_calculateF2() {
+			_explanation = "Calculate F2 between different samples, and within and between populations";
+		};
 
-        void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
-            TF2Estimator runF2(Parameters, Logfile, _randomGenerator);
-            runF2.calculateF2();
-        };
-    };
-
-}
+		void run() {
+			using namespace coretools::instances;
+			TF2Estimator runF2(parameters(), &logfile(), &randomGenerator());
+			runF2.calculateF2();
+		};
+	};
+	} // namespace PopulationTools
 
 #endif //ATLAS_TF2ESTIMATOR_H

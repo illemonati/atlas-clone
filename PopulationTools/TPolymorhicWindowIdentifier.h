@@ -29,9 +29,10 @@ class TTask_identifyPolymorphicWindows:public coretools::TTask{
 public:
 	TTask_identifyPolymorphicWindows(){ _explanation = "Identifying windows for which samples are polymoprhic"; };
 
-	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
-		TPolymorhicWindowIdentifier identifier(Parameters, Logfile);
-		identifier.identifyPolymorphicWindows(Parameters, _randomGenerator);
+	void run(){
+		using namespace coretools::instances;
+		TPolymorhicWindowIdentifier identifier(parameters(), &logfile());
+		identifier.identifyPolymorphicWindows(parameters(), &randomGenerator());
 	}
 };
 

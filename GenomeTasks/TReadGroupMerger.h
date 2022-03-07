@@ -32,8 +32,9 @@ class TTask_mergeReadGroups:public coretools::TTask{
 public:
 	TTask_mergeReadGroups(){ _explanation = "Merging read groups in a BAM file"; };
 
-	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
-		TReadGroupMerger readGroupMerger(Parameters, Logfile, _randomGenerator);
+	void run(){
+		using namespace coretools::instances;
+		TReadGroupMerger readGroupMerger(parameters(), &logfile(), &randomGenerator());
 		readGroupMerger.mergeReadGroups();
 	};
 };

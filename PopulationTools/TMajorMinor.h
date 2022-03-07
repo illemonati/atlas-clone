@@ -108,7 +108,7 @@ private:
 	genometools::PhredIntProbability minVariantQuality;
 
 public:
-	TMajorMinor(coretools::TLog* Logfile, coretools::TParameters & params, coretools::TRandomGenerator* RandomGenerator);
+	TMajorMinor(coretools::TParameters & params, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
 	~TMajorMinor(){};
 
 	void estimateMajorMinor(coretools::TParameters & params);
@@ -123,9 +123,10 @@ public:
 		_citations.insert("Skotte et al. (2012) Genetic Epidemiology");
 		_explanation = "Estimating major and minor alles"; };
 
-	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
-		TMajorMinor majorMinor(Logfile, Parameters, _randomGenerator);
-		majorMinor.estimateMajorMinor(Parameters);
+	void run(){
+		using namespace coretools::instances;
+		TMajorMinor majorMinor(parameters(), &logfile(), &randomGenerator());
+		majorMinor.estimateMajorMinor(parameters());
 	};
 };
 

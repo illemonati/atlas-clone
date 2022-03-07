@@ -40,8 +40,9 @@ public:
 		_citations.insert("Skoglund et al. (2014) PNAS");
 	};
 
-	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
-		TPMDSCalculator calculator(Parameters, Logfile, _randomGenerator);
+	void run(){
+		using namespace coretools::instances;
+		TPMDSCalculator calculator(parameters(), &logfile(), &randomGenerator());
 		calculator.calculatePMDS();
 	};
 };

@@ -49,8 +49,9 @@ class TTask_pileup:public coretools::TTask{
 public:
 	TTask_pileup(){ _explanation = "Printing pileup from BAM file"; };
 
-	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
-		TPileup pileup(Parameters, Logfile, _randomGenerator);
+	void run(){
+		using namespace coretools::instances;
+		TPileup pileup(parameters(), &logfile(), &randomGenerator());
 		pileup.printPileup();
 	};
 };

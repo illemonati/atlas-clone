@@ -90,17 +90,18 @@ class TTask_createMask:public coretools::TTask{
 public:
 	TTask_createMask(){ _explanation = "Creating a mask BED file"; };
 
-	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
+	void run(){
+		using namespace coretools::instances;
 
 		//which mask?
-		std::string mask = Parameters.getParameter<std::string>("mask");
+		std::string mask = parameters().getParameter<std::string>("mask");
 		if(mask == "depth"){
-			TCreateDepthBedMask depthMask(Parameters, Logfile, _randomGenerator);
+			TCreateDepthBedMask depthMask(parameters(), &logfile(), &randomGenerator());
 			depthMask.createDepthMask();
 		} else if(mask == "nonRef"){
 
 		} else if(mask == "invariant"){
-			TCreateInvariantBedMask conservedMask(Parameters, Logfile, _randomGenerator);
+			TCreateInvariantBedMask conservedMask(parameters(), &logfile(), &randomGenerator());
 			conservedMask.createInvariantMask();
 		} else if(mask == "variant"){
 

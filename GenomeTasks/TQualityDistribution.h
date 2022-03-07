@@ -51,8 +51,9 @@ class TTask_qualityDist:public coretools::TTask{
 public:
 	TTask_qualityDist(){ _explanation = "Printing Quality Distribution"; };
 
-	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
-		TQualityDistribution qualDist(Parameters, Logfile, _randomGenerator);
+	void run(){
+		using namespace coretools::instances;
+		TQualityDistribution qualDist(parameters(), &logfile(), &randomGenerator());
 		qualDist.compileQualityDistribution();
 	};
 };
@@ -61,8 +62,9 @@ class TTask_qualityTransformation:public coretools::TTask{
 public:
 	TTask_qualityTransformation(){ _explanation = "Printing Quality Transformation"; };
 
-	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
-		TQualityTransformation transformer(Parameters, Logfile, _randomGenerator);
+	void run(){
+		using namespace coretools::instances;
+		TQualityTransformation transformer(parameters(), &logfile(), &randomGenerator());
 		transformer.compileQualityTransformation();
 	};
 };

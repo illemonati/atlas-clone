@@ -69,7 +69,7 @@ void VcfDiagnostics::openVCF(std::string filename, TVcfFile_base & vcfFile){
 void VcfDiagnostics::initializeRandomGenerator(){
 	if(!randomGeneratorInitialized){
 		randomGenerator=new coretools::TRandomGenerator();
-		logfile->list("Random generator initialized with seed " + toString(randomGenerator->usedSeed));
+		logfile->list("Random generator initialized with seed " + toString(randomGenerator->getSeed()));
 		randomGeneratorInitialized=true;
 	}
 }

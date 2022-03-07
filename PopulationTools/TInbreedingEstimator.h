@@ -11,6 +11,7 @@
 #include "TParameters.h"
 #include "TLog.h"
 #include "TPopulationLikelihoods.h"
+#include "TRandomGenerator.h"
 #include <limits>
 
 namespace PopulationTools{
@@ -241,31 +242,32 @@ public:
 		_citations.emplace("Burger et al. (2020) Current Biology");
 	};
 
-	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
-		TInbreedingEstimator inbreedingEstimator(Parameters, Logfile, _randomGenerator);
-		inbreedingEstimator.runEstimation(Parameters);
+	void run(){
+		using namespace coretools::instances;
+		TInbreedingEstimator inbreedingEstimator(parameters(), &logfile(), &randomGenerator());
+		inbreedingEstimator.runEstimation(parameters());
 	};
 };
 
-class TTask_inbreedingLikelihood:public coretools::TTask{
+class TTask_inbreedingLikelihood : public coretools::TTask {
 public:
-	TTask_inbreedingLikelihood(){
+	TTask_inbreedingLikelihood() {
 		_explanation = "Estimating likelihood surfaces for the inbreeding model";
 		_citations.insert("Burger et al. (2020) Current Biology");
 	};
 
-	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
-		TInbreedingEstimator inbreedingEstimator(Parameters, Logfile, _randomGenerator);
-			if(Parameters.parameterExists("llGamma"))
-				inbreedingEstimator.writeLikelihoodForDebuggingGamma(Parameters);
-	//			if(parameters->parameterExists("llBeta"))
-	//				inbreedingEstimator.writeLikelihoodForDebuggingBeta(parameters);
-			else if(Parameters.parameterExists("llP"))
-				inbreedingEstimator.writeLikelihoodForDebuggingAlleleFreq(Parameters);
-			else if(Parameters.parameterExists("llF"))
-				inbreedingEstimator.writeLikelihoodForDebuggingF(Parameters);
-			else
-				throw "define parameter for which to calculate likelihood surface!";
+	void run() {
+		using namespace coretools::instances;
+		TInbreedingEstimator inbreedingEstimator(parameters(), &logfile(), &randomGenerator());
+		if (parameters().parameterExists("llGamma")) inbreedingEstimator.writeLikelihoodForDebuggingGamma(parameters());
+		//			if(parameters->parameterExists("llBeta"))
+		//				inbreedingEstimator.writeLikelihoodForDebuggingBeta(parameters);
+		else if (parameters().parameterExists("llP"))
+			inbreedingEstimator.writeLikelihoodForDebuggingAlleleFreq(parameters());
+		else if (parameters().parameterExists("llF"))
+			inbreedingEstimator.writeLikelihoodForDebuggingF(parameters());
+		else
+			throw "define parameter for which to calculate likelihood surface!";
 	};
 };
 

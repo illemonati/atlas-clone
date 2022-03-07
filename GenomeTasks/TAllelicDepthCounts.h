@@ -62,8 +62,9 @@ class TTask_allelicDepth:public coretools::TTask{
 public:
 	TTask_allelicDepth(){ _explanation = "Writing genotype likelihoods to a GLF file"; };
 
-	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
-		TAllelicDepth allelicDepth(Parameters, Logfile, _randomGenerator);
+	void run(){
+		using namespace coretools::instances;
+		TAllelicDepth allelicDepth(parameters(), &logfile(), &randomGenerator());
 		allelicDepth.quantifyAlleleicDepth();
 	}
 };

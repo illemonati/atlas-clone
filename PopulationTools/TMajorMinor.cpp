@@ -183,7 +183,7 @@ void TMajorMinorEstimatorMLE::findMLAllelicCombination(const TMultiGLFData & dat
 //---------------------------------------------------
 // TMajorMinor
 //---------------------------------------------------
-TMajorMinor::TMajorMinor(TLog* Logfile, TParameters &, TRandomGenerator* RandomGenerator){
+TMajorMinor::TMajorMinor(TParameters &, TLog* Logfile, TRandomGenerator* RandomGenerator){
 	logfile = Logfile;
 	hasReference = false;
 	randomGenerator = RandomGenerator;

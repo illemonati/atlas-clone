@@ -35,8 +35,9 @@ class TTask_writeGLF:public coretools::TTask{
 public:
 	TTask_writeGLF(){ _explanation = "Writing genotype likelihoods to a GLF file"; };
 
-	void run(coretools::TParameters & Parameters, coretools::TLog* Logfile){
-		TWriteGLF writer(Parameters, Logfile, _randomGenerator);
+	void run(){
+		using namespace coretools::instances;
+		TWriteGLF writer(parameters(), &logfile(), &randomGenerator());
 		writer.writeGLF();
 	}
 };
