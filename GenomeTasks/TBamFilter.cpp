@@ -263,8 +263,7 @@ void TBamFilter::_writeOrFilterAsOrphan(TAlignmentInStorage & it){
 		_writeAlignment(it);
 	} else {
 		//write reason to bam log
-		_bamFile.filterOut(it->alignment->name(), it->alignment->isReverseStrand());
-		//delete it->alignment;
+		_bamFile.filterOut(it->alignment->name(), it->alignment->isSecondMate());
 		it = _alignmentStorage.erase(it);
 	}
 };
@@ -348,9 +347,8 @@ void TBamFilter::traverseBAM(){
 				if(alignment->isPaired()){
 					//if mate is in blacklist: add as improper pair for writing
 					if(_blacklist.isInBlacklist(alignment->name())){
-
-						alignment->setIsProperPair(false);
-						_alignmentStorage.emplace_back(alignment, true);
+						//alignment->setIsProperPair(false);
+						_alignmentStorage.emplace_back(alignment, false);
 						_blacklist.remove(alignment->name());
 					} else {
 						//check if mate is in storage.
@@ -382,6 +380,11 @@ void TBamFilter::traverseBAM(){
 			//Did not pass QC: filter out
 			//need to store in blacklist if is was paired
 			if(_bamFile.curIsProperPair()){
+
+				if(_bamFile.curName() == "A00187:477:HV72CDSXY:4:1634:32777:14763"){
+					std::cout << "A00187:477:HV72CDSXY:4:1634:32777:14763: adding mate " << !_bamFile.curIsFirstMate() << " to blacklist." << std::endl;
+				}
+
 				_blacklist.add(_bamFile.curName());
 			}
 		}

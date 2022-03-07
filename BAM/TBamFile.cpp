@@ -46,6 +46,12 @@ TBamFile::TBamFile(){
 	_lastProgressPrinted = 0;
 };
 
+TBamFile::~TBamFile(){
+	if(_updateLog){
+		delete _bamLog;
+	}
+};
+
 void TBamFile::setLimits(TParameters & params, TLog* logfile){
 	//number of reads
 	if(params.parameterExists("limitReads")){
@@ -447,7 +453,7 @@ void TBamFile::_applyFilters(){
 		//fragment length
 		if(_QCFiltersPassed){
 			_QCFiltersPassed = _fragmentLengthFilter.pass(curFragmentLength(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
-				&& _longerThanFragmentFilter.pass(_curBamAlignment.IsProperPair() && _curBamAlignment.InsertSize < static_cast<int>(_curCigar.lengthAligned()), _curBamAlignment.Name, _curBamAlignment.IsSecondMate());
+				&& _longerThanFragmentFilter.pass(_curBamAlignment.IsProperPair() && abs(_curBamAlignment.InsertSize) < static_cast<int32_t>(_curCigar.lengthAligned()), _curBamAlignment.Name, _curBamAlignment.IsSecondMate());
 		}
 	}
 

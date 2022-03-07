@@ -87,7 +87,7 @@ public:
 
 		//get vec of all index at maximum
 		std::vector<IndexType> vec;
-		for(IndexType i=IndexType::min; i<IndexType::max; ++i){
+		for(i=IndexType::min; i<IndexType::max; ++i){
 			if(i != ExcludeIndex && _data[index(i)] == m){
 				vec.push_back(i);
 			}

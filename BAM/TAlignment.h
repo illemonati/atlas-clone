@@ -130,10 +130,11 @@ public:
 	std::string sequence() const;
 	std::string qualities() const;
 	bool isEmpty() const { return _empty; };
-	bool isParsed() const{ return _parsed; };
-	bool isReverseStrand() const{ return _flags.isReverseStrand(); };
-	bool isPaired() const{ return _flags.isPaired(); };
-	bool isProperPair() const{ return _flags.isProperPair(); };
+	bool isParsed() const { return _parsed; };
+	bool isReverseStrand() const { return _flags.isReverseStrand(); };
+	bool isPaired() const { return _flags.isPaired(); };
+	bool isProperPair() const { return _flags.isProperPair(); };
+	bool isSecondMate() const { return _flags.isSecondMate(); };
 
 	//looping
 	std::vector<TSequencedBase>::iterator begin(){ return _bases.begin(); };
