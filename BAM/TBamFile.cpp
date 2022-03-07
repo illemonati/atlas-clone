@@ -36,20 +36,10 @@ TBamFile::TBamFile(){
 	_keepAll = true; //by default, keep all reads
 	_allowTooLongReads = false;
 
-	//blacklist
-	_updateLog = false;
-	_bamLog = nullptr;
-
 	//progress reporting
 	_logfile = nullptr;
 	_progressFrequency = 100000;
 	_lastProgressPrinted = 0;
-};
-
-TBamFile::~TBamFile(){
-	if(_updateLog){
-		delete _bamLog;
-	}
 };
 
 void TBamFile::setLimits(TParameters & params, TLog* logfile){
@@ -195,13 +185,13 @@ void TBamFile::setFilters(TParameters & params, TLog* logfile){
 
 		//mate
 		if(params.parameterExists("keepOnlyFirst")){
-			_firstMateFilter.keep();
-			_secondMateFilter.filter("Second mate");
+			_firstMateFilter.filter("Second mate");
+			_secondMateFilter.keep();
 			logfile->list("Mate: keep only first. (parameter 'keepOnlyFirst')");
 		}
 		else if(params.parameterExists("keepOnlySecond")){
-			_firstMateFilter.filter("First mate");
-			_secondMateFilter.keep();
+			_firstMateFilter.keep();
+			_secondMateFilter.filter("First mate");
 			logfile->list("Mate: keep only second. (parameter 'keepOnlySecond')");
 		} else {
 			_firstMateFilter.keep();
@@ -275,7 +265,7 @@ void TBamFile::setExternalFilterReason(const std::string reason){
 };
 
 void TBamFile::openBamLog(TParameters & params, TLog* logfile){
-	if(params.parameterExists("bamLog") && !_updateLog){
+	if(params.parameterExists("bamLog") && !_bamLog){
 		std::string logFilename = params.getParameter<std::string>("bamLog");
 		if(logFilename.empty()){
 			logFilename = _filename;
@@ -283,8 +273,7 @@ void TBamFile::openBamLog(TParameters & params, TLog* logfile){
 			logFilename += ".bamlog.txt.gz";
 		}
 		logfile->list("Will write all filtered out reads to '" + logFilename + "'.");
-		_bamLog = new TBamFileLog(logFilename);
-		_updateLog = true;
+		_bamLog = std::make_shared<TBamFileLog>(logFilename);
 
 		//_log to filters
 		_duplicateFilter.setLog(_bamLog);
@@ -308,7 +297,7 @@ void TBamFile::openBamLog(TParameters & params, TLog* logfile){
 };
 
 void TBamFile::writeToBamLog(const std::string & alignmentName, const bool & isReverseStrand, const std::string & reason){
-	if(_updateLog){
+	if(_bamLog){
 		_bamLog->write(alignmentName, isReverseStrand, reason);
 	}
 };
@@ -434,26 +423,26 @@ void TBamFile::_applyFilters(){
 		_QCFiltersPassed = true;
 	} else {
 		//apply regular filters
-		_QCFiltersPassed =  _duplicateFilter.pass(_curBamAlignment.IsDuplicate(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
-						 && _softClippedFilter.pass(_curCigar.lengthSoftClipped() > 0, _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
-						 && _improperPairsFilter.pass(_curBamAlignment.IsPaired() && !_curBamAlignment.IsProperPair(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
-						 && _unmappedFilter.pass(!_curBamAlignment.IsMapped(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
-						 && _failedQCFilter.pass(_curBamAlignment.IsFailedQC(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
-						 && _secondaryFilter.pass(!_curBamAlignment.IsPrimaryAlignment(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
-						 && _supplementaryFilter.pass(_curBamAlignment.IsSupplementary(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
-						 && _readGroupFilter.pass(!_readGroups.readGroupInUse(_curReadGroupID), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
-						 && _fwdStrandFilter.pass(!_curBamAlignment.IsReverseStrand(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
-						 && _revStrandFilter.pass(_curBamAlignment.IsReverseStrand(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
+		_QCFiltersPassed =  _duplicateFilter.pass(!_curBamAlignment.IsDuplicate(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
+						 && _softClippedFilter.pass(_curCigar.lengthSoftClipped() == 0, _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
+						 && _improperPairsFilter.pass(!_curBamAlignment.IsPaired() || _curBamAlignment.IsProperPair(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
+						 && _unmappedFilter.pass(_curBamAlignment.IsMapped(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
+						 && _failedQCFilter.pass(!_curBamAlignment.IsFailedQC(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
+						 && _secondaryFilter.pass(_curBamAlignment.IsPrimaryAlignment(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
+						 && _supplementaryFilter.pass(!_curBamAlignment.IsSupplementary(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
+						 && _readGroupFilter.pass(_readGroups.readGroupInUse(_curReadGroupID), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
+						 && _fwdStrandFilter.pass(_curBamAlignment.IsReverseStrand(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
+						 && _revStrandFilter.pass(!_curBamAlignment.IsReverseStrand(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
 						 && _firstMateFilter.pass(_curBamAlignment.IsFirstMate(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
 						 && _secondMateFilter.pass(_curBamAlignment.IsSecondMate(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
 						 && _mappingQualityFilter.pass(_curBamAlignment.MapQuality, _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
-						 && _blacklistFilter.pass(_blacklist.isInBlacklist(_curBamAlignment.Name), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
+						 && _blacklistFilter.pass(!_blacklist.isInBlacklist(_curBamAlignment.Name), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
 						 && _readLengthFilter.pass(_curCigar.lengthRead(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate());
 
 		//fragment length
 		if(_QCFiltersPassed){
 			_QCFiltersPassed = _fragmentLengthFilter.pass(curFragmentLength(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
-				&& _longerThanFragmentFilter.pass(_curBamAlignment.IsProperPair() && abs(_curBamAlignment.InsertSize) < static_cast<int32_t>(_curCigar.lengthAligned()), _curBamAlignment.Name, _curBamAlignment.IsSecondMate());
+				&& _longerThanFragmentFilter.pass(!_curBamAlignment.IsProperPair() || abs(_curBamAlignment.InsertSize) >= static_cast<int32_t>(_curCigar.lengthAligned()), _curBamAlignment.Name, _curBamAlignment.IsSecondMate());
 		}
 	}
 

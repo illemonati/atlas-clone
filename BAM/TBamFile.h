@@ -85,8 +85,7 @@ private:
  	void _applyFilters();
 
 	//output filtered reads
-	bool _updateLog;
-	TBamFileLog* _bamLog; //TODO: switch to shared pointer used with TBamFilter
+	std::shared_ptr<TBamFileLog> _bamLog;
 
 	//report progress
 	coretools::TLog* _logfile;
@@ -99,7 +98,7 @@ private:
 
 public:
 	TBamFile();
-	~TBamFile();
+	~TBamFile() = default;
 
 	//access header info READ ONLY
 	const TChromosomes& chromosomes() const{ return _chromosomes; };

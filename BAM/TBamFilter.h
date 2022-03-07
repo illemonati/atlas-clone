@@ -41,19 +41,20 @@ protected:
 	uint64_t _counter;
 	std::string _reason; //used for reporting
 	bool _updateLog;
-	TBamFileLog* _log;
+	std::shared_ptr<TBamFileLog> _log;
 
 public:
 	TBamFileFilter();
 	void keep();
 	bool filters() const{ return !_keep; };
 	void setReason(const std::string reason);
-	void setLog(TBamFileLog* Log);
+	void setLog(std::shared_ptr<TBamFileLog> & Log);
 	void filterOut(const std::string & alignmentName, const bool & isReverseStrand);
 	void summary(coretools::TLog* logfile, uint64_t total);
 	uint64_t numFiltered() const { return _counter; }
 };
 
+//Filters out if pass(false), keeps if pass(true)
 class TBamFileFilterBool:public TBamFileFilter{
 public:
 	TBamFileFilterBool(){};

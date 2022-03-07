@@ -51,7 +51,7 @@ void TBamFileFilter::setReason(const std::string reason){
 	_reason = reason;
 };
 
-void TBamFileFilter::setLog(TBamFileLog* Log){
+void TBamFileFilter::setLog(std::shared_ptr<TBamFileLog> & Log){
 	_log = Log;
 	_updateLog = true;
 };
@@ -71,7 +71,7 @@ void TBamFileFilterBool::filter(const std::string Reason){
 };
 
 bool TBamFileFilterBool::pass(const bool state, const std::string & alignmentName, const bool & isReverseStrand){
-	if(state && !_keep){
+	if(!state && !_keep){
 		filterOut(alignmentName, isReverseStrand);
 		return false;
 	}
