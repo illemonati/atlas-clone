@@ -1,1560 +1,341 @@
-/*
- * TInbreedingEstimator.cpp
- *
- *  Created on: Dec 6, 2018
- *      Author: linkv
- */
+//
+// Created by caduffm on 3/8/22.
+//
 
 #include "TInbreedingEstimator.h"
-#include "GenotypeTypes.h"
-#include <string>
 
-namespace PopulationTools{
+namespace PopulationTools {
 
-using coretools::TRandomGenerator;
-using coretools::TLog;
-using coretools::TParameters;
-using coretools::gammaLog;
-using coretools::Probability;
+// TODO:
+//  - if F is in zero-model: don't add to meanVar; and don't adjust proposal kernel based on this
 
-//---------------------------
-// F
-//---------------------------
-TInbreedingF::TInbreedingF(){
-	_F = -1.0;
-	_probMovingToModelNoF = -1.0;
-	_sdProposal = -1.0;
-	_inModelWithF = false;
-	_lambda = -1.0;
-	_logLambda = -1.0;
-	_expMinusLambda = -1.0;
-	_posteriorProbModelWithF = -1;
-	_sumIterations = -1.0;
-	_sumOfSquaresIterations = -1.0;
-};
+//------------------------------------------
+// TInbreedingEstimatorPrior
+//------------------------------------------
 
-TInbreedingF::TInbreedingF(float & ProbMovingToModelNoF, double & SdProposal, bool InModelWithF, double Lambda){
-	_F = -1.0;
-	_probMovingToModelNoF = ProbMovingToModelNoF;
-	_sdProposal = SdProposal;
-	_inModelWithF = InModelWithF;
-	_lambda = Lambda;
-	_logLambda = log(Lambda);
-	_expMinusLambda = log(1-exp(-_lambda));
-	_posteriorProbModelWithF = 0;
-	_sumIterations = 0.0;
-	_sumOfSquaresIterations = 0.0;
+TInbreedingEstimatorPrior::TInbreedingEstimatorPrior(const std::shared_ptr<stattools::TParameterTyped<TypeF, 1>> &F,
+                                                     const std::shared_ptr<stattools::TParameterTyped<TypeP, 1>> &P,
+                                                     const std::shared_ptr<stattools::TParameterTyped<TypeZ, 1>> &Z) {
+    // set parameters
+    _F = F;
+    _p = P;
+    _z = Z;
+    _q_FModel_To_HWE = 0.0;
+    _log_q_FModel_To_HWE = 0.0;
+    _lambdaNewF = 0.0;
+
+    _registerPriorParameters();
 }
 
-void TInbreedingF::adjustProposalWidthAfterBurnin(int numAcceptedFModelF, int numIterInModelF){
-//	if(numAcceptedF == 0)
-//		throw "numAccepted = 0";
+void TInbreedingEstimatorPrior::_registerPriorParameters() {
+    _priorParameters.push_back(_F);
+    _priorParameters.push_back(_p);
+    _priorParameters.push_back(_z);
+}
 
-	if(numIterInModelF == 0){
-//		_lambda *= 10;
-//		_logLambda = log(_lambda);
-	} else {
-		double newProposalWidth = _sdProposal;
-		newProposalWidth *=  ((double) numAcceptedFModelF / (double) numIterInModelF) * 3.0;
+void TInbreedingEstimatorPrior::initializeStorageOfPriorParameters() {
+    // assemble dimension names from _likelihoods
+    auto lociNames = std::make_shared<stattools::TNamesPositions>(_likelihoods.positions());
 
-		if(newProposalWidth / _sdProposal < 0.1)
-			newProposalWidth = 0.1 * _sdProposal;
-		else if(_sdProposal / newProposalWidth < 0.1)
-			newProposalWidth = 10 * _sdProposal;
+    // F and z: one value
+    _F->initializeStorageSingleElementBasedOnPrior();
+    _z->initializeStorageSingleElementBasedOnPrior();
 
-		if(newProposalWidth > 1.0)
-			newProposalWidth = 1.0;
-		else if(newProposalWidth < 0.00001){
-			newProposalWidth = 0.00001;
-		}
-		_sdProposal = newProposalWidth;
-	}
-};
+    // p: linear of length L
+    _p->initializeStorageBasedOnPrior({_likelihoods.getNumLoci()}, {lociNames});
 
-double TInbreedingF::proposeNew(TRandomGenerator* randomGenerator){
-    double newF = _F + randomGenerator->getNormalRandom(0, _sdProposal);
-    while(newF > 1 || newF < 0){
-        //mirror
-        if(newF < 0)
-            newF = -newF;
-        if(newF > 1)
-            newF = 2 - newF;
+    // read command line parameters
+    _readCommandLineArguments();
+}
+
+void TInbreedingEstimatorPrior::_readCommandLineArguments(){
+    using namespace coretools::instances;
+    // parameters for model switch of F
+    _q_FModel_To_HWE = parameters().getParameterWithDefault("probMovingToModelNoF", 0.1);
+    if (_q_FModel_To_HWE < 0.0 || _q_FModel_To_HWE > 1.0){
+        throw "Invalid argument 'probMovingToModelNoF': Must be in interval [0,1] (not " + coretools::str::toString(_q_FModel_To_HWE) + ")!";
     }
-    if(newF < 0)
-    	throw "proposing F smaller than zero!";
-    if(newF > 1)
-    	throw "proposing F larger than one!";
-    return newF;
-};
+    _log_q_FModel_To_HWE = log(_q_FModel_To_HWE);
+    logfile().list("Will propose move to model without F with probability ", _q_FModel_To_HWE, ". (parameter 'probMovingToModelNoF')");
 
-void TInbreedingF::updatePosteriors(double value, const bool & inModelWithF){
-	_inModelWithF = inModelWithF;
-	_posteriorProbModelWithF += inModelWithF;
-	_sumIterations += value;
-	_sumOfSquaresIterations += (value * value);
-};
-
-void TInbreedingF::updateAndAccept(double value, const bool & inModelWithF){
-	_F = value;
-	updatePosteriors(value, inModelWithF);
+    // Read lambda for proposing new F
+    auto lambda = parameters().getParameterWithDefault<std::string>("lambdaF", "100.0");
+    logfile().list("Lambda of exponential distribution used for the proposal of new F after move to model with F is set to ", lambda, ". (parameter 'lambdaF')");
 }
 
-void TInbreedingF::updateAndReject(bool inModelWithF){
-	updatePosteriors(_F, inModelWithF);
+double TInbreedingEstimatorPrior::_getLogPriorDensity_vec(const std::shared_ptr<stattools::TParameterObservationTypedBase<TypeGTL, 2>> &, const size_t &) {
+    // TODO: Harmonize with observation!
 }
 
-void TInbreedingF::resetPosterior(){
-	_posteriorProbModelWithF = 0;
-	_sumIterations = 0.0;
-	_sumOfSquaresIterations = 0.0;
-};
-
-double TInbreedingF::getPosteriorMean(int numUpdates){
-	return _sumIterations / (double) numUpdates;
+coretools::LogProbability TInbreedingEstimatorPrior::_calculateLLSumOverIndividuals(TSampleLikelihoods* data, size_t N, const genometools::THardyWeinbergGenotypeProbabilities & Probs){
+    // sum over all individuals of log sum_g P(d|g)P(g|p,F)
+    coretools::LogProbability sum = 0.0;
+    for (size_t i = 0; i < N; i++){
+        sum += data[i].HWESum<coretools::LogProbability>(Probs);
+    }
+    return sum;
 }
 
-double TInbreedingF::getPosteriorVariance(int numUpdates){
-	return _sumOfSquaresIterations / (double) numUpdates - getPosteriorMean(numUpdates)*getPosteriorMean(numUpdates);
+coretools::LogProbability TInbreedingEstimatorPrior::_calculateLLSumOverIndividuals(TSampleLikelihoods* data, size_t N, double P){
+    return _calculateLLSumOverIndividuals(data, N, genometools::THardyWeinbergGenotypeProbabilities(P));
 }
 
-double TInbreedingF::logPDFExp(double thisF){
-	return _logLambda - _lambda * thisF;
+coretools::LogProbability TInbreedingEstimatorPrior::_calculateLLSumOverIndividuals(TSampleLikelihoods* data, size_t N, double P, double F){
+    return _calculateLLSumOverIndividuals(data, N, THardyWeinbergWithInbreedingGenotypeProbabilities(P, F));
 }
 
-double TInbreedingF::logPDFExp(){
-	return logPDFExp(_F);
+void TInbreedingEstimatorPrior::updateParams() {
+    _updateFAndZ();
+
+    size_t l = 0;
+    for (_likelihoods.begin(); !_likelihoods.end(); _likelihoods.next(), ++l) {
+        _updateP(_likelihoods.curData(), l);
+    }
 }
 
-double TInbreedingF::PDFExp(double thisF){
-	//truncated at 1 -> need to divide by cumulative prob at 1
-	return _lambda * exp(-_lambda* thisF) - _expMinusLambda;
+void TInbreedingEstimatorPrior::_updateFAndZ(){
+    using namespace coretools::instances;
+    if (_F->isUpdated()) {
+        if (_z->value()) { // we're in F-model
+            if (_z->isUpdated() && randomGenerator().getRand() < _q_FModel_To_HWE){
+                _updateFToHWE(); // propose model switch
+            } else {
+                _updateRegularF(); // update F
+            }
+        } else { // we're in HWE-model
+            if (_z->isUpdated()) {
+                _updateHWEToF(); // propose model switch
+            }
+        }
+    }
 }
 
-double TInbreedingF::PDFExp(){
-	return PDFExp(_F);
+double TInbreedingEstimatorPrior::_calculateProbabilityOfProposingThisF(double F) const{
+    // When switching from HWE to F-Model: propose values from truncated exponential distribution with a certain lambdaF
+    // -> in Hastings ratio, for the HWE-Model (without F), we need to know the probability of picking exactly that F
+    // corresponds to log f(F) in Hastings ratios
+    return coretools::TExponentialDistr::logDensity(F, _lambdaNewF);
 }
 
-float TInbreedingF::probMovingToModelNoF(){
-	return _probMovingToModelNoF;
+double TInbreedingEstimatorPrior::_getRandomNewF() const{
+    using namespace coretools::instances;
+    return randomGenerator().getExponentialRandomTruncated(_lambdaNewF, 0.0, 1.0);
 }
 
-double TInbreedingF::F(){
-	return _F;
+void TInbreedingEstimatorPrior::_updateFToHWE() {
+    // propose model switch: from F-Model to HWE-Model
+    _F->set(0.0);
+    _z->set(false);
+
+    // calculate RJ-MCMC term of Hastings ratio
+    double log_f_F = _calculateProbabilityOfProposingThisF(_F->oldValue()); // "compensating" the effect of no F in HWE model
+    double logH = log_f_F - _log_q_FModel_To_HWE + _F->getLogPriorDensity(); // TODO: If _F didn't have a uniform prior, how would this go into Hastings ratio in model switch?
+
+    // calculate LL Hastings-Ratio
+    size_t l = 0;
+    for (_likelihoods.begin(); !_likelihoods.end(); _likelihoods.next(), ++l){
+        logH +=  _calculateLLSumOverIndividuals(_likelihoods.curData(), _likelihoods.curSampleSize(), _p->value(l)) // HWE model
+                 - _calculateLLSumOverIndividuals(_likelihoods.curData(), _likelihoods.curSampleSize(), _p->value(l), _F->oldValue()); // F-Model
+    }
+
+    if (!_F->acceptOrReject(logH)){
+        // rejected -> re-set model
+        _z->set(true);
+    }
 }
 
-bool TInbreedingF::inModelWithF(){
-	return _inModelWithF;
+void TInbreedingEstimatorPrior::_updateRegularF() {
+    // update F without model switch: F -> F'
+    if (_F->update()) {
+        double logH = _F->getLogPriorRatio();
+        size_t l = 0;
+        for (_likelihoods.begin(); !_likelihoods.end(); _likelihoods.next(), ++l) {
+            logH += _calculateLLSumOverIndividuals(_likelihoods.curData(), _likelihoods.curSampleSize(), _p->value(l), _F->value())
+                    - _calculateLLSumOverIndividuals(_likelihoods.curData(), _likelihoods.curSampleSize(), _p->value(l), _F->oldValue());
+        }
+        _F->acceptOrReject(logH);
+    }
 }
 
-double TInbreedingF::lambda(){
-	return _lambda;
+void TInbreedingEstimatorPrior::_updateHWEToF(){
+    // propose model switch: from HWE-Model to F-Model
+    _F->set(_getRandomNewF());
+    _z->set(true);
+
+    // calculate RJ-MCMC term of Hastings ratio
+    double log_f_F = _calculateProbabilityOfProposingThisF(_F->value()); // "compensating" the effect of no F in HWE model
+    double logH = _log_q_FModel_To_HWE - log_f_F + _F->getLogPriorRatio(); // TODO: If _F didn't have a uniform prior, how would this go into Hastings ratio in model switch?
+
+    // calculate LL Hastings-Ratio
+    size_t l = 0;
+    for (_likelihoods.begin(); !_likelihoods.end(); _likelihoods.next(), ++l){
+        logH +=  _calculateLLSumOverIndividuals(_likelihoods.curData(), _likelihoods.curSampleSize(), _p->value(l), _F->value()) // F-Model
+                 - _calculateLLSumOverIndividuals(_likelihoods.curData(), _likelihoods.curSampleSize(), _p->value(l)); // HWE-Model
+    }
+
+    if (!_F->acceptOrReject(logH)){
+        // rejected -> re-set modelF
+        _z->set(false);
+    }
 }
 
-int TInbreedingF::posteriorProbModelWithF(){
-	return _posteriorProbModelWithF;
+void TInbreedingEstimatorPrior::_updateP(TSampleLikelihoods* data, size_t Locus){
+    if (_p->updateSpecificIndex(Locus)){
+        double logH = _p->getLogPriorRatio();
+        if (_z->value()){ // F-Model
+            logH += _calculateLLSumOverIndividuals(data, _likelihoods.curSampleSize(), _p->value(Locus), _F->value()) - _calculateLLSumOverIndividuals(data, _likelihoods.curSampleSize(), _p->oldValue(Locus), _F->value());
+        } else { // HWE-Model
+            logH += _calculateLLSumOverIndividuals(data, _likelihoods.curSampleSize(), _p->value(Locus)) - _calculateLLSumOverIndividuals(data, _likelihoods.curSampleSize(), _p->oldValue(Locus));
+        }
+
+        _p->acceptOrReject(Locus, logH);
+    }
 }
 
-double TInbreedingF::proposalWidth(){
-	return _sdProposal;
+void TInbreedingEstimatorPrior::_setInitialF(){
+    if (_F->hasFixedInitialValue()){
+        _F->value() == 0.0 ? _z->set(false) : _z->set(true);
+    } else {
+        // F: decide in which model to start
+        using namespace coretools::instances;
+        if (parameters().parameterExists("startInZeroModel")){
+            _z->set(false);
+            _F->set(0.0);
+        } else {
+            _z->set(true);
+            _F->set(_getRandomNewF());
+        }
+    }
 }
 
-//---------------------------
-// allele frequencies p
-//---------------------------
-TAlleleFreq::TAlleleFreq(){
-	numLoci = -1;
-	_numLociModelP = -1;
-	lambda = -1.0;
-	logLambda = -1.0;
-	expMinusLambda = -1.0;
-	minAlleleFreq = -1.0;
-	probMovingToModel0 = -1.0;
-	probMovingToModelP = -1.0;
-	logProbMovingToModel0 = -1.0;
-	logProbMovingToModelP = -1.0;
-	_numLociWithAcceptanceZero = -1;
+void TInbreedingEstimatorPrior::_setInitialP(){
+    using namespace coretools::instances;
+    std::vector<double> freqs;
+    if(parameters().parameterExists("trueAlleleFreq")){
+        freqs = _likelihoods.donateTrueAlleleFrequencies();
+        if (freqs.size() != _likelihoods.getNumLoci()){
+            throw coretools::str::toString("Failed to initialize p with true allele frequencies (parameter 'trueAlleleFreq'): Did not receive one allele frequency per locus! Number of loci from VCF: ", _likelihoods.getNumLoci(), " vs number of allele frequencies ", freqs.size(), ")");
+        }
+        logfile().list("Initializing allele frequencies to true values read from trueAlleleFreq file");
+        logfile().warning("This task is not implemented for multiple populations! Considering all samples to be from one population.");
+    } else {
+        freqs = _likelihoods.donateAlleleFrequencies();
+        logfile().list("Initializing allele frequencies to values estimated from sample genotype likelihoods");
+        logfile().warning("This task is not implemented for multiple populations! Considering all samples to be from one population.");
+    }
+
+    // now read values into _p
+    if (!_p->hasFixedInitialValue()){
+        for (size_t l = 0; l < _likelihoods.getNumLoci(); l++){
+            _p->set(l, freqs[l]);
+        }
+    }
 }
 
-
-TAlleleFreq::TAlleleFreq(std::vector<double> & P, double &, const int numSamples, double & ProbMovingToModel0, double & ProbMovingToModelP, double & Lambda, bool trueAlleleFreqProvided){
-	alleleFreq = P;
-	initialAlleleFreq = P;
-	numLoci = alleleFreq.size();
-	_numLociModelP = 0;
-	lambda = Lambda;
-	logLambda = log(Lambda);
-	expMinusLambda = log(1-exp(-lambda));
-	minAlleleFreq = 1.0 / (2.0 * (double) numSamples) / 100.0;
-	probMovingToModel0 = ProbMovingToModel0;
-	probMovingToModelP = ProbMovingToModelP;
-	logProbMovingToModel0 = log(probMovingToModel0);
-	logProbMovingToModelP = log(probMovingToModelP);
-	_numLociWithAcceptanceZero = -1;
-
-	if(!trueAlleleFreqProvided){
-		for(int l=0; l<numLoci; ++l){
-			double min = 1.0 / (2.0 * (double) numSamples);
-			if(alleleFreq[l] < min)
-				alleleFreq[l] = min;
-			else if(alleleFreq[l] > 1.0 - min)
-				alleleFreq[l] = 1.0 - min;
-		}
-	}
-
-
-	for(int l=0; l<numLoci; ++l){
-		posteriorProbModelP.push_back(0.0);
-//		if(alleleFreq[l] < 1.0 / (1.5 * (double) numSamples))
-//			proposalWidths.push_back(0.5 * alleleFreq[l]); //the 0.5 is because the proposal goes 0.5 * width below p
-////		if(alleleFreq[l] == 0)
-//			proposalWidths.push_back(initialProposalWidthFactor * minAlleleFreq);
-//		else {
-//			proposalWidths.push_back(initialProposalWidthFactor * alleleFreq[l]);
-			proposalWidths.push_back(0.5);
-//		}
-		sumIterations.push_back(0.0);
-		sumOfSquaresIterations.push_back(0.0);
-
-		//set models
-		if(probMovingToModel0 > 0.0 && (alleleFreq[l] == 0.0 || alleleFreq[l] < 0.1*minAlleleFreq)){
-			modelP.push_back(false);
-		} else {
-			modelP.push_back(true);
-		}
-		_numLociModelP = _numLociModelP + modelP[l];
-	}
-
-	//std::cout << "############# proposalWidths[1833] " << proposalWidths[1833] << " alleleFreq[1833] " << alleleFreq[1833] << std::endl;
+void TInbreedingEstimatorPrior::estimateInitialPriorParameters() {
+    _setInitialF();
+    _setInitialP();
 }
 
-void TAlleleFreq::setSumsForPosteriorToZero(){
-	for(int l=0; l<numLoci; ++l){
-		posteriorProbModelP[l] = 0.0;
-		sumIterations[l] = 0.0;
-		sumOfSquaresIterations[l] = 0.0;
-	}
+double TInbreedingEstimatorPrior::getSumLogPriorDensity(const std::shared_ptr<stattools::TParameterObservationTypedBase<TypeGTL, 2>> &) {
+    double sum = 0.;
+    size_t l = 0;
+    for (_likelihoods.begin(); !_likelihoods.end(); _likelihoods.next(), ++l){
+        if (_z->value()){
+            sum += _calculateLLSumOverIndividuals(_likelihoods.curData(), _likelihoods.curSampleSize(), _p->value(l), _F->value()); // F-Model
+        } else {
+            sum += _calculateLLSumOverIndividuals(_likelihoods.curData(), _likelihoods.curSampleSize(), _p->value(l)); // HWE-Model
+        }
+    }
+    return sum;
 }
 
-void TAlleleFreq::setToValue(double fixedValue){
-	for(int l=0; l<numLoci; ++l){
-		alleleFreq[l] = fixedValue;
-	}
-
-	if(fixedValue > 0){
-		_numLociModelP = numLoci;
-		for(int l=0; l<numLoci; ++l){
-			modelP[l] = true;
-		}
-	} else {
-		_numLociModelP = 0;
-		for(int l=0; l<numLoci; ++l){
-			modelP[l] = false;
-		}
-	}
+void TInbreedingEstimatorPrior::simulateUnderPrior() {
+    // TODO: ? In here or in Atlas simulator?
 }
 
-void TAlleleFreq::adjustProposalWidthAfterBurnin(std::vector<int> & numAcceptedP, std::vector<int> & numUpdates){
-	//adjust proposal with for p
-	_numLociWithAcceptanceZero = 0;
-	for(long l=0; l<numLoci; ++l){
-//		if(modelP[l]){
-			if(numAcceptedP[l] == 0){
-	//			double minFreq = 1.0 / (double) numSamples;
-	//			alleleFreq[l] = minFreq;
-				proposalWidths[l] *= 0.1;
-				++_numLociWithAcceptanceZero;
-			} else {
-				double newProposalWidth = proposalWidths[l];
-				newProposalWidth *=  (double) numAcceptedP[l] / (double) numUpdates[l] * 3.0;
-
-				if(newProposalWidth / proposalWidths[l] < 0.1)
-					newProposalWidth = 0.1 * proposalWidths[l];
-				else if(proposalWidths[l] / newProposalWidth < 0.1)
-					newProposalWidth = 10.0 * proposalWidths[l];
-
-				if(newProposalWidth > 0.25)
-					newProposalWidth = 0.25;
-
-				proposalWidths[l] = newProposalWidth;
-
-				if(proposalWidths[l] <= 0)
-					throw "Proposal width for allele frequency at locus " + coretools::str::toString(l) + " is not larger than 0!";
-			}
-
-			//make sure proposal width does not get too small
-			if(proposalWidths[l] < 0.1) proposalWidths[l] = 0.1;
-
-//		}
-	}
-
+double TInbreedingEstimatorPrior::_getPriorDensity_vec(const std::shared_ptr<stattools::TParameterObservationTypedBase<TypeGTL, 2>> &, const size_t &) {
+    throw std::runtime_error((std::string) __PRETTY_FUNCTION__ + ": not implemented.");
+}
+double TInbreedingEstimatorPrior::_getPriorDensityOld_vec(const std::shared_ptr<stattools::TParameterObservationTypedBase<TypeGTL, 2>> &, const size_t &) {
+    throw std::runtime_error((std::string) __PRETTY_FUNCTION__ + ": not implemented.");
+}
+double TInbreedingEstimatorPrior::_getLogPriorDensityOld_vec(const std::shared_ptr<stattools::TParameterObservationTypedBase<TypeGTL, 2>> &, const size_t &) {
+    throw std::runtime_error((std::string) __PRETTY_FUNCTION__ + ": not implemented.");
+}
+double TInbreedingEstimatorPrior::_getLogPriorRatio_vec(const std::shared_ptr<stattools::TParameterObservationTypedBase<TypeGTL, 2>> &, const size_t &) {
+    throw std::runtime_error((std::string) __PRETTY_FUNCTION__ + ": not implemented.");
+}
+double TInbreedingEstimatorPrior::_getExpectedValueFromPriorParameters(const std::shared_ptr<stattools::TParameterObservationTypedBase<TypeGTL, 2>> &, const size_t &){
+    throw std::runtime_error((std::string) __PRETTY_FUNCTION__ + ": not implemented.");
 }
 
-void TAlleleFreq::update(long index, double value, const bool ModelP){
-	//update numLociModelP
-	if(modelP[index] == false && ModelP == true){
-		++_numLociModelP;
-	} else if(modelP[index] == true && ModelP == false){
-		--_numLociModelP;
-	}
-	//update current model
-	modelP[index] = ModelP;
-
-	//update posteriors
-	posteriorProbModelP[index] += ModelP;
-	if(ModelP){
-		sumIterations[index] += value;
-		sumOfSquaresIterations[index] += (value*value);
-	}
-
-	//freq value
-	if(value < 0 || value > 1)
-		throw "Updating allele freq at locus " + coretools::str::toString(index) + " to value out of range!";
-	alleleFreq[index] = value;
-
-	if(modelP[index] == true && alleleFreq[index] == 0.0){
-		throw coretools::str::toString("allele freq at locus ", index, " is ", alleleFreq[index], " but locus is in modelP=", (bool) modelP[index]);
-	}
-}
-
-double TAlleleFreq::proposeNew(long locusNum, TRandomGenerator* randomGenerator){
-	double newP = (alleleFreq[locusNum] + randomGenerator->getRand() * proposalWidths[locusNum] - proposalWidths[locusNum] / 2.0);
-	if(newP < 0.0){
-		newP = - newP;
-	} else if(newP > 1.0){
-		newP = 2.0 - newP;
-	}
-	if(newP == 0.0){
-		throw "proposing allele frequency zero at locus " + coretools::str::toString(locusNum) + "!";
-	}
-	return newP;
-}
-
-double TAlleleFreq::getPosteriorMean(unsigned long index, int numUpdates){
-	return sumIterations[index] / (double) numUpdates;
-}
-
-double TAlleleFreq::getPosteriorVariance(unsigned long index, int numUpdates){
-	return sumOfSquaresIterations[index] / (double) numUpdates - getPosteriorMean(index, numUpdates)*getPosteriorMean(index, numUpdates);
-}
-
-double TAlleleFreq::getProposalWidth(const unsigned long & index){
-	return proposalWidths[index];
-}
-
-long TAlleleFreq::getNumLociInModelP(){
-	return _numLociModelP;
-}
-
-long TAlleleFreq::getNumLociInModel0(){
-	return numLoci - _numLociModelP;
-}
-
-long TAlleleFreq::numLociWithAcceptanceZero(){
-	return _numLociWithAcceptanceZero;
-}
-
-double TAlleleFreq::logPDFExp(double thisP){
-	//truncated at 1 -> need to divide by cumulative prob at 1
-	return logLambda - lambda * thisP - expMinusLambda;
-}
-
-double TAlleleFreq::logPDFExp(long thisLocus){
-	return logPDFExp(alleleFreq[thisLocus]);
-}
-
-
-//---------------------------
-// gamma
-//---------------------------
-
-TGamma::TGamma(){
-	proposalWidth = -1.0;
-	_gamma = -1.0;
-	_logGamma = -1.0;
-}
-
-TGamma::TGamma(double & ProposalWidth){
-	proposalWidth = ProposalWidth;
-	_gamma = -1.0;
-	_logGamma = -1.0;
-}
-
-void TGamma::update(double newLogValue, double newNaturalScaleValue){
-	if(newNaturalScaleValue < 0)
-		throw "updating gamma to negative value!";
-	_logGamma = newLogValue;
-	_gamma = newNaturalScaleValue;
-};
-
-void TGamma::adjustProposalWidthAfterBurnin(int numAccepted, int numUpdates){
-	//adjust proposal for alpha / beta
-	double newProposalWidth = proposalWidth;
-	newProposalWidth *= (double) numAccepted / (double) numUpdates * 3.0;
-
-	if(newProposalWidth / proposalWidth < 0.1)
-		newProposalWidth = 0.1 * proposalWidth;
-	else if(proposalWidth / newProposalWidth < 0.1)
-		newProposalWidth = 10 * proposalWidth;
-	if(newProposalWidth > 1.0)
-		newProposalWidth = 1.0;
-
-	proposalWidth = newProposalWidth;
-
-	if(proposalWidth <= 0)
-		throw "Proposal width for gamma is not larger than 0!";
-};
-
-double TGamma::getLogValue(){
-	return _logGamma;
-};
-
-double TGamma::getNaturalScaleValue(){
-	return _gamma;
-};
-
-double TGamma::getProposalWidth(){
-	return proposalWidth;
-};
-
-//---------------------------
-// pi
-//---------------------------
-
-TPi::TPi(){
-	proposalWidth = -1.0;
-	_pi = -1.0;
-	_minPi = -1.0;
-	_logPi = -1.0;
-	_logOneMinusPi = -1.0;
-};
-
-TPi::TPi(double & ProposalWidth, double & initialValue){
-	proposalWidth = ProposalWidth;
-	_pi = initialValue;
-	_logPi = log(_pi);
-	_logOneMinusPi = log(1.0 - _pi);
-	_minPi = 0.000000000000001;
-	if(_pi == 0.0)
-		_pi = _minPi;
-	else if(_pi >= 1)
-		_pi = 1 - _minPi;
-};
-
-void TPi::update(double newNaturalScaleValue){
-	if(newNaturalScaleValue < 0)
-		throw "updating pi to negative value!";
-	_pi = newNaturalScaleValue;
-	_logPi = log(_pi);
-	_logOneMinusPi = log(1.0 - _pi);
-};
-
-void TPi::adjustProposalWidthAfterBurnin(int numAccepted, int numUpdates){
-	double newProposalWidth = proposalWidth;
-	newProposalWidth *= (double) numAccepted / (double) numUpdates * 3.0;
-
-	if(newProposalWidth / proposalWidth < 0.1)
-		newProposalWidth = 0.1 * proposalWidth;
-	else if(proposalWidth / newProposalWidth < 0.1)
-		newProposalWidth = 10 * proposalWidth;
-	if(newProposalWidth > 0.5)
-		newProposalWidth = 0.5;
-
-	proposalWidth = newProposalWidth;
-
-	if(proposalWidth <= 0)
-		throw "Proposal width for pi is not larger than 0!";
-};
-
-double TPi::proposeNew(TRandomGenerator* randomGenerator){
-	double newPi = _pi + randomGenerator->getRand() * proposalWidth - proposalWidth / 2.0;
-	if(newPi < 0.0){
-		newPi = -newPi;
-	} else if(newPi > 1.0){
-		newPi = 2 - newPi;
-	}
-	return newPi;
-};
-
-double TPi::getPi(){
-	return _pi;
-};
-
-double TPi::getProposalWidth(){
-	return proposalWidth;
-};
-
-
-//---------------------------
+//------------------------------------------
 // TInbreedingEstimator
-//---------------------------
+//------------------------------------------
 
-TInbreedingEstimator::TInbreedingEstimator(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator){
-	logfile = Logfile;
-	randomGenerator = RandomGenerator;
+TInbreedingEstimator::TInbreedingEstimator(coretools::TParameters &, coretools::TLog *, coretools::TRandomGenerator *) {}
 
-	//algorithm params
-	numIterations = Parameters.getParameterWithDefault<int>("numIter", 1000);
-	logfile->list("Stopping MCMC after ", numIterations, " interations. (parameter 'numIter')");
-
-	numBurnins = Parameters.getParameterWithDefault<int>("numBurnins", 1);
-	burninLength = Parameters.getParameterWithDefault<int>("burninLength", 1000);
-	logfile->list("Will run ", numBurnins, " burnin(s) of length ", std::to_string(burninLength) + " and adjust the proposal kernel widths after each before starting the full MCMC. (parameters 'numBurnins' and 'burninLength')");
-
-	if(Parameters.parameterExists("noAdjustmentF")){
-		adjustFAfterBurnin = false;
-		logfile->list("Will not adjust proposal range of F after burnin. (parameter 'noAdjustmentF')");
-	} else
-		adjustFAfterBurnin = true;
-
-	if(Parameters.parameterExists("noAdjustmentP")){
-		adjustPAfterBurnin = false;
-		logfile->list("Will not adjust proposal range of any p's after burnin. (parameter 'noAdjustmentP')");
-	} else
-		adjustPAfterBurnin = true;
-
-	if(Parameters.parameterExists("noAdjustmentGamma")){
-		adjustGammaAfterBurnin = false;
-		logfile->list("Will not adjust proposal range of Gamma after burnin. (parameter 'noAdjustmentGamma')");
-	} else
-		adjustGammaAfterBurnin = true;
-
-	if(Parameters.parameterExists("noAdjustmentPi")){
-		adjustPiAfterBurnin = false;
-		logfile->list("Will not adjust proposal range of Pi after burnin. (parameter 'noAdjustmentPi')");
-	} else
-		adjustPiAfterBurnin = true;
-
-
-	thinning = Parameters.getParameterWithDefault<int>("thinning", 1);
-	if(thinning < 1 || thinning > numIterations)
-		throw "Thinning must be > 1 and < number iterations!";
-	if(thinning > 1){
-		if(thinning == 2)
-			logfile->list("Will print every second iterations to the output file (thinning = 2)");
-		else if(thinning == 3)
-			logfile->list("Will print every third iterations to the output file (thinning = 3)");
-		else
-			logfile->list("Will print every ", thinning, "th iterations to the output file (thinning = ", thinning, ")");
-	}
-
-	//read data
-	likelihoods.doSaveAlleleFrequencies();
-	if(Parameters.parameterExists("trueAlleleFreq")){
-		likelihoods.doSaveTrueAlleleFrequencies();
-		logfile->list("Will save true allele frequencies in populationLikelihoods object");
-	}
-	likelihoods.readData(Parameters, logfile);
-	numLoci = likelihoods.getNumLoci();
-
-	numLociToTrace = Parameters.getParameterWithDefault("numLociToTrace", 1000L);
-	if(numLociToTrace > numLoci)
-		numLociToTrace = numLoci;
-	logfile->list("Will write trace for first ", numLociToTrace, " loci to file. (parameter 'numLociToTrace')");
-
-	//initialize parameters
-	for(unsigned int i=0; i<numLoci; ++i){
-		numAcceptedP.push_back(0);
-		numAcceptedPModelP.push_back(0);
-		numIterInModelP.push_back(0);
-	}
-
-	initParams(randomGenerator, Parameters);
-	resetAcceptanceRates();
-
-	//output name
-	std::string vcfFileName = likelihoods.getVCFName();
-	vcfFileName = coretools::str::extractBeforeLast(vcfFileName, ".vcf");
-	outname = Parameters.getParameterWithDefault<std::string>("out", vcfFileName);
-};
-
-void TInbreedingEstimator::initializeGamma(TParameters & parameters){
-	// estimate alpha_f and beta_f by method of moments
-	if(parameters.parameterExists("initialGamma")){
-		double initialValue = parameters.getParameter<double>("initialGamma");
-		Gamma.update(log(initialValue), initialValue);
-	} else {
-		double mean = 0.0;
-		double sumXSquare = 0.0;
-		double alphaF;
-
-		for(unsigned int l = 0; l < numLoci; l++){
-			if(p.modelP[l]){
-				mean += p[l];
-				sumXSquare += p[l] * p[l];
-			}
-		}
-		mean /= (double) p.getNumLociInModelP();
-		sumXSquare /= (double) p.getNumLociInModelP();
-		double var = sumXSquare - mean  * mean;
-
-		//now estimate gamma -> just assume it's same as alpha
-		double tmp = ((mean * (1.0 - mean)) / var ) - 1.0;
-		alphaF = mean * tmp;
-		if(alphaF < 0.0)
-			alphaF = 0.01;
-		double logAlpha = log(alphaF);
-		Gamma.update(logAlpha, alphaF);
-	//	betaF = (1.0 - mean) * tmp;
-	//	if(betaF < 0.0)
-	//		betaF = 0.01;
-	//	double logBeta = log(betaF);
-	//	beta.update(logBeta, betaF);
-	}
-	logfile->list("Initialized gamma to ", Gamma.getNaturalScaleValue());
-
-	if(parameters.parameterExists("fixedGamma")){
-		shouldUpdateGamma = false;
-		logfile->list("Will not update gamma");
-	} else{
-		shouldUpdateGamma = true;
-	}
-};
-
-void TInbreedingEstimator::initF(TParameters & parameters){
-	sdF = parameters.getParameterWithDefault("sdF", 0.02);
-	logfile->list("Standard deviation of proposal kernel for F is set to ", sdF, ".");
-
-	float probMovingToModelNoF = parameters.getParameterWithDefault("probMovingToModelNoF", 0.1);
-	logfile->list("Will propose move to model without F with probability ", probMovingToModelNoF, ". (parameter 'probMovingToModelNoF')");
-
-	double lambdaF = parameters.getParameterWithDefault("lambdaF", 100.0);
-	logfile->list("Lambda of exponential distribution used for the proposal of new F after move to model with F is set to ", lambdaF, ". (parameter 'lambdaF')");
-
-	bool startInModelWithF = true;
-	if(parameters.parameterExists("startInZeroModel"))
-		startInModelWithF = false;
-	if(startInModelWithF){
-		F = TInbreedingF(probMovingToModelNoF, sdF, startInModelWithF, lambdaF);
-		F.updateAndAccept(randomGenerator->getExponentialRandomTruncated(lambdaF, 0, 1), true);
-//		F.updateAndAccept(0.2, true);
-		logfile->list("initialized F to ", F.F(), " in model ", F.inModelWithF());
-	} else {
-		F = TInbreedingF(probMovingToModelNoF, sdF, startInModelWithF, lambdaF);
-		F.updateAndAccept(randomGenerator->getExponentialRandomTruncated(lambdaF, 0, 1), true);
-		logfile->list("initialized F to ", F.F(), " in model ", F.inModelWithF());
-	}
-
-	if(parameters.parameterExists("initialF")){
-		double initialF = parameters.getParameter<double>("initialF");
-		if(initialF == 0.0)
-			F.updateAndAccept(initialF, false);
-		else if(initialF > 0.0)
-			F.updateAndAccept(initialF, true);
-		else
-			throw "Initial F cannot be a negative number!";
-		logfile->list("Initialized F to ", initialF, ". (parameter 'initialF')");
-	}
-
-	if(parameters.parameterExists("fixedF")){
-		shouldUpdateF = false;
-		logfile->list("Will not update F. (parameter 'fixedF')");
-	} else {
-		shouldUpdateF = true;
-	}
-};
-
-void TInbreedingEstimator::initAlleleFreq(TParameters & parameters){
-	double widthProposalKernelP = parameters.getParameterWithDefault("widthProposalKernelPFactor", 2.0);
-	logfile->list("Will use a proposal kernel of width ", widthProposalKernelP, " for updates of p within ModelP. (parameter 'widthProposalKernelPFactor')");
-
-	std::vector<double> tmp2;
-	if(parameters.parameterExists("trueAlleleFreq")){
-		tmp2 = likelihoods.donateTrueAlleleFrequencies();
-		trueAlleleFreq = tmp2;
-		trueAlleleFreqProvided = true;
-		logfile->list("Initializing allele frequencies to true values read from trueAlleleFreq file");
-		logfile->warning("This task is not implemented for multiple populations! Considering all samples to be from one population.");
-	} else if(parameters.parameterExists("initialP")){
-		p.setToValue(parameters.getParameter<double>("initialP"));
-		logfile->list("Initializing all allele frequencies to ", parameters.getParameter<double>("initialP"), ". (parameter 'initialP')");
-	} else {
-		tmp2 = likelihoods.donateAlleleFrequencies();
-		logfile->list("Initializing allele frequencies to values estimated from sample genotype likelihoods");
-		logfile->warning("This task is not implemented for multiple populations! Considering all samples to be from one population.");
-		trueAlleleFreqProvided = false;
-	}
-	double probMovingToModel0 = parameters.getParameterWithDefault("probMovingToModelP0", 0.1);
-	logfile->list("Will propose move to model with p = 0 with probability ", probMovingToModel0, ". (parameter 'probMovingToModelP0')");
-
-	double probMovingToModelP = 1.0;
-	logfile->list("Will propose move to model with p > 0 with probability ", probMovingToModelP, ".");
-
-	double lambdaP = parameters.getParameterWithDefault("lambdaP", 100.0);
-	logfile->list("Lambda of exponential distribution used for the proposal of new p after move to modelP is set to ", lambdaP, ". (parameter 'lambdaP')");
-
-	p = TAlleleFreq(tmp2, widthProposalKernelP, likelihoods.getNumIndividuals(), probMovingToModel0, probMovingToModelP, lambdaP, trueAlleleFreqProvided);
-
-	if(parameters.parameterExists("fixedP")){
-		shouldUpdateP = false;
-		logfile->list("Will not update allele frequencies. (parameter 'fixedP')");
-	} else {
-		shouldUpdateP = true;
-	}
-
-	if(p.numLoci != numLoci)
-		throw coretools::str::toString("Did not receive one allele frequency per locus! Number of loci=", numLoci, " and number of allele frequencies ", p.numLoci);
-	logfile->list("initialized allele frequencies for ", p.numLoci, " loci");
-};
-
-void TInbreedingEstimator::initParams(TRandomGenerator*, TParameters & parameters){
-	//F
-	initF(parameters);
-
-	//p
-	initAlleleFreq(parameters);
-
-	//gamma
-	double widthProposalKernelGamma = parameters.getParameterWithDefault("widthProposalKernelGamma", 0.1);
-	logfile->list("Will use a proposal kernel of width ", widthProposalKernelGamma, " for updates of log(gamma). (parameter 'widthProposalKernelGamma')");
-	Gamma = TGamma(widthProposalKernelGamma);
-	initializeGamma(parameters);
-
-	//pi
-	double widthProposalKernelPi = parameters.getParameterWithDefault("widthProposalKernelPi", 100.0 / (double) p.numLoci);
-	double initialValue;
-	if(parameters.parameterExists("initialPi")){
-		initialValue = parameters.getParameter<double>("initialPi");
-	} else {
-		initialValue = (double) p.getNumLociInModelP() / (double) p.numLoci;
-	}
-	pi = TPi(widthProposalKernelPi, initialValue);
-	logfile->list("initialized pi to ", pi.getPi(), ". (parameter 'initialPi')");
-
-	if(parameters.parameterExists("fixedPi")){
-		shouldUpdatePi = false;
-		logfile->list("Will not update pi. (parameter 'fixedPi')");
-	} else {
-		shouldUpdatePi = true;
-	}
+void TInbreedingEstimator::_defineF(){
+    auto priorOnF = std::make_shared<stattools::prior::TUniformFixed<TypeF, 1>>();
+    stattools::TParameterDefinition defF;
+    defF.setAllFiles(_filename);
+    auto F = std::make_shared<stattools::TParameterTyped<TypeF, 1>>("F", priorOnF, defF);
+    _dagBuilder->addToDAG(F);
 }
 
-void TInbreedingEstimator::resetToInitialValuesDebugging(){
-	p.setToValue(0.2);
-	Gamma.update(log(0.7), 0.7);
-	F.updateAndAccept(0.1, true);
+void TInbreedingEstimator::_defineP(){
+    // c
+    auto priorOnC = std::make_shared<stattools::prior::TUniformFixed<TypeC, 1>>();
+    stattools::TParameterDefinition defC;
+    defC.setAllFiles(_filename);
+    auto c = std::make_shared<stattools::TParameterTyped<TypeC, 1>>("c", priorOnC, defC);
+    _dagBuilder->addToDAG(c);
+
+    // p
+    auto priorOnP = std::make_shared<stattools::prior::TUniformFixed<TypeP, 1>>(); // std::make_shared<stattools::prior::TSymmetricBetaInferred<TypeP, 1, TypeC>>(c);
+    stattools::TParameterDefinition defP;
+    defP.setAllFiles(_filename);
+    defP.setJumpSizeForAll(false);
+    auto p = std::make_shared<stattools::TParameterTyped<TypeP, 1>>("p", priorOnP, defP);
+    _dagBuilder->addToDAG(p);
 }
 
-bool TInbreedingEstimator::updateF(){
-	if(F.inModelWithF()){
-		//try move to model without F
-		if(randomGenerator->getRand() < F.probMovingToModelNoF()){
-			double logH = F.logPDFExp() - log(F.probMovingToModelNoF());
-
-			long l = 0;
-			for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
-				logH += logLikelihoodAllInds(likelihoods.curData(), likelihoods.curSampleSize(), p[l], 0)
-				- logLikelihoodAllInds(likelihoods.curData(), likelihoods.curSampleSize(), p[l], F.F());
-			}
-
-			//accept?
-			if(log(randomGenerator->getRand()) < logH){
-				//move to model0
-				F.updateAndAccept(0, false);
-				return true;
-			} else {
-				//stay in modelF
-				++numIterInModelF;
-				F.updateAndReject(true);
-				return false;
-			}
-
-		} else {
-			//propose new F
-			++numIterInModelF;
-			double newF = F.proposeNew(randomGenerator);
-
-			long l = 0;
-			double logH = 0.0;
-			for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
-				logH += logLikelihoodAllInds(likelihoods.curData(), likelihoods.curSampleSize(), p[l], newF)
-				- logLikelihoodAllInds(likelihoods.curData(), likelihoods.curSampleSize(), p[l], F.F());
-			}
-
-			//accept?
-			if(log(randomGenerator->getRand()) < logH){
-				F.updateAndAccept(newF, true);
-				++numAcceptedFModelF;
-				return true;
-			} else {
-				//reject new value but still stay in modelF
-				F.updateAndReject(true);
-				return false;
-			}
-		}
-	}
-
-	//try to move to model with F
-	else {
-		double newF = randomGenerator->getExponentialRandomTruncated(F.lambda(), 0.0, 1.0);
-		double logH = log(F.probMovingToModelNoF()) - F.logPDFExp(newF);
-
-		long l = 0;
-		for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
-			logH += logLikelihoodAllInds(likelihoods.curData(), likelihoods.curSampleSize(), p[l], newF)
-			- logLikelihoodAllInds(likelihoods.curData(), likelihoods.curSampleSize(), p[l], 0);
-		}
-
-		//accept?
-		if(log(randomGenerator->getRand()) < logH){
-			//move to modelF
-			F.updateAndAccept(newF, true);
-			return true;
-		} else {
-			//stay in model0
-			F.updateAndReject(false);
-			return false;
-		}
-	}
+void TInbreedingEstimator::_readData(){
+    //read data
+    using namespace coretools::instances;
+    _likelihoods.doSaveAlleleFrequencies();
+    if(parameters().parameterExists("trueAlleleFreq")){
+        _likelihoods.doSaveTrueAlleleFrequencies();
+        logfile().list("Will save true allele frequencies in population_likelihoods object");
+    }
+    _likelihoods.readData(parameters(), &logfile());
 }
 
-bool TInbreedingEstimator::updateP(TSampleLikelihoods* data, const long locusNum, const int, TGamma Gamma){
-	if(p.modelP[locusNum]){
-		if(randomGenerator->getRand() < p.probMovingToModel0){
-			//propose model0
-			double gammaNat = Gamma.getNaturalScaleValue();
-			double logH = 2.0 * gammaLog(gammaNat)
-					+ pi.getLogOneMinusPi()
-					- p.logProbMovingToModelP
-					+ p.logPDFExp(locusNum)
-					- (gammaNat-1.0) * log(p[locusNum])
-					- (gammaNat-1.0) * log(1.0-p[locusNum])
-					- gammaLog(2.0*gammaNat)
-					- pi.getLogPi()
-					- p.logProbMovingToModel0 //if prob is zero we never get here
-					+ logLikelihoodAllInds(data, likelihoods.curSampleSize(), 0.0, F.F())
-					- logLikelihoodAllInds(data, likelihoods.curSampleSize(), p[locusNum], F.F());
+void TInbreedingEstimator::_defineDAG(){
+    _readData();
+    _defineF();
+    _defineP();
 
-			//accept?
-			double tmp = log(randomGenerator->getRand());
-
-			if(tmp < logH){
-				//move to model0
-				p.update(locusNum, 0.0, false);
-				return true;
-			} else {
-				//stay in modelP
-				++numIterInModelP[locusNum];
-				p.update(locusNum, p[locusNum], true);
-				return false;
-			}
-		} else {
-			//propose new p
-			++numIterInModelP[locusNum];
-			double newP = p.proposeNew(locusNum, randomGenerator);
-			if(newP < 0)
-				throw "proposed negative newP in move from modelP to modelP': " + coretools::str::toString(newP);
-
-			double logH = (Gamma.getNaturalScaleValue() - 1.0) * (log(newP) + log(1.0 - newP) - log(p[locusNum]) - log(1.0 - p[locusNum])) // - log(1.0 - p[locusNum]));													)
-						+ logLikelihoodAllInds(data, likelihoods.curSampleSize(), newP, F.F())
-						- logLikelihoodAllInds(data, likelihoods.curSampleSize(), p[locusNum], F.F());
-
-			//accept?
-			double tmp = log(randomGenerator->getRand());
-
-//			if(locusNum == 1833){
-//				std::cout << "#####\t" << p[1833] << "\t" << newP << "\t" << (p[1833] < newP) << "\t" << exp(logH) << "\t" << exp(tmp) << "\t" << (tmp < logH) <<  "\t" << p.getProposalWidth(1833) << std::endl;
-//			}
-			if(tmp < logH){
-				//update p
-				p.update(locusNum, newP, true);
-				++numAcceptedPModelP[locusNum];
-				return true;
-			} else {
-				//don't update p
-				p.update(locusNum, p[locusNum], true);
-				return false;
-			}
-		}
-
-	} else {
-		if(randomGenerator->getRand() < p.probMovingToModelP){
-			//move to model p
-			double newP = randomGenerator->getExponentialRandomTruncated(p.lambda, 0.0, 1.0);
-			if(newP < 0)
-				throw "proposed negative newP in move from model0 to modelP: " + coretools::str::toString(newP);
-			double gammaNat = Gamma.getNaturalScaleValue();
-			double logH = - 2.0 * gammaLog(gammaNat)
-					- pi.getLogOneMinusPi()
-					+ p.logProbMovingToModelP
-					- p.logPDFExp(newP)
-					+ (gammaNat-1.0) * log(newP)
-					+ (gammaNat-1.0) * log(1.0-newP)
-					+ gammaLog(2.0*gammaNat)
-					+ pi.getLogPi()
-					- logLikelihoodAllInds(data, likelihoods.curSampleSize(), 0.0, F.F())
-					+ logLikelihoodAllInds(data, likelihoods.curSampleSize(), newP, F.F());
-			if(p.probMovingToModel0 == 0.0){
-				logH += log(0.00000000000000000001);
-			} else {
-				logH += p.logProbMovingToModel0;
-			}
-
-			//accept?
-			double tmp = log(randomGenerator->getRand());
-			if(tmp < logH){
-				p.update(locusNum, newP, true);
-				return true;
-			} else {
-				p.update(locusNum, p[locusNum], false);
-				return false;
-			}
-
-		} else
-			return false;
-	}
+    // TODO: Create TInbreedingPrior to build the complete DAG!
 }
 
-bool TInbreedingEstimator::updateGamma(){
-	// propose new log(value) (uniform proposal kernel)
-	double newLogGamma = Gamma.getLogValue() + randomGenerator->getRand() * Gamma.proposalWidth - Gamma.proposalWidth / 2.0;
-	double newGamma = exp(newLogGamma);
-	if(newGamma < 0)
-		throw "proposed new log(alpha) that on natural scale is negative!";
+void TInbreedingEstimator::runEstimation(coretools::TParameters &Parameters) {
+    // read file names
+    std::string vcfFileName = _likelihoods.getVCFName();
+    vcfFileName = coretools::str::extractBeforeLast(vcfFileName, ".vcf");
+    _prefix = Parameters.getParameterWithDefault<std::string>("prefix", "");
+    _filename = Parameters.getParameterWithDefault<std::string>("out", vcfFileName);
 
-	//calc sum of log(f) and log(1-f)
-	double sumLogFreq = 0.0;
-	double sumLogOneMinusFreq = 0.0;
+    // build DAG
+    _dagBuilder = std::make_shared<stattools::TDAGBuilder>();
+    _defineDAG();
+    _dagBuilder->buildDAG();
 
-	for(unsigned long l=0; l<numLoci; ++l){
-		if(p.modelP[l]){
-			sumLogFreq += log(p[l]);
-			sumLogOneMinusFreq += log(1.0 - p[l]);
-		}
-	}
-
-	// compute log hastings ratio
-	double diffGammas = newGamma - Gamma.getNaturalScaleValue();
-	double logH = (double) p.getNumLociInModelP() *
-			(gammaLog(2.0*newGamma)
-			+ 2.0 * gammaLog(Gamma.getNaturalScaleValue())
-			- gammaLog(2.0*Gamma.getNaturalScaleValue())
-			- 2.0 * gammaLog(newGamma)
-			)
-			+ diffGammas * sumLogFreq
-			+ diffGammas * sumLogOneMinusFreq;
-
-/*
-	//Debug: print p's to debug h_gamma in R
-	int num = randomGenerator->getRand() * 100;
-	std::string filename = "pAtlas_" + toString(num) + ".txt";
-	std::ofstream out(filename.c_str());
-	for(unsigned long l=0; l<numLoci; ++l){
-		if(p.modelP[l]){
-			out << std::setprecision(20) << p[l] << "\n";
-		}
-	}
-	out.close();
-
-	std::cout << "pAtlas <- read.table(\"" << filename << "\", header=FALSE); pAtlas <- pAtlas[,1]; gamma_old <- " << Gamma.getNaturalScaleValue() << "; gamma_new <- " << newGamma << "; atlas_log_h <- " << logH << "; sumLogOneMinusFreq <- " << sumLogOneMinusFreq << ";" << std::endl;
-*/
-
-
-	// accept or reject
-	double tmp = log(randomGenerator->getRand());
-	if(tmp < logH){
-		Gamma.update(newLogGamma, newGamma);
-		return true;
-	}
-	else
-		return false;
-}
-
-bool TInbreedingEstimator::updatePi(){
-	// propose new log(value) (uniform proposal kernel)
-	double newPi = pi.proposeNew(randomGenerator);
-	double numLociInModelP = (double) p.getNumLociInModelP();
-	double numLociInModel0 = (double) p.getNumLociInModel0();
-
-	double logH = numLociInModelP * log(newPi) + numLociInModel0 * log(1.0-newPi)
-			 - numLociInModelP * log(pi.getPi()) - numLociInModel0 * log(1.0-pi.getPi());
-
-	// accept or reject
-	double tmp = log(randomGenerator->getRand());
-
-	if(tmp < logH){
-		pi.update(newPi);
-		return true;
-	}
-	else{
-		return false;
-	}
-}
-
-double TInbreedingEstimator::logLikelihoodAllInds(TSampleLikelihoods* data, const int curSampleSize, const double thisP, const double thisF){
-	using BG = genometools::BiallelicGenotype;
-	if(thisP < 0)
-		throw "allele freq is negative!";
-	//sum over all individuals of log sum_g P(d|g)P(g|p,F)
-	double sumOverInds = 0.0;
-
-	double PGeno[3];
-	if(thisP == 0.0){
-		PGeno[0] = 1.0;
-		PGeno[1] = 0.0;
-		PGeno[2] = 0.0;
-	} else {
-		PGeno[0] = (1.0 - thisF)*(1.0 - thisP)*(1.0 - thisP) + thisF*(1.0 - thisP);
-		PGeno[1] = 2.0*thisP*(1.0 - thisP)*(1.0 - thisF);
-		PGeno[2] = (1.0 - thisF)*thisP*thisP + thisF*thisP;
-	}
-
-	for(int s=0; s<curSampleSize; ++s){
-		if(!data[s].isMissing()){
-			double integrationOverGeno = 0;
-			if(data[s].isHaploid()){
-				integrationOverGeno += (Probability) data[s][BG::haploidFirst] * (1.0 - thisP);
-				integrationOverGeno += (Probability) data[s][BG::haploidSecond] * thisP;
-			} else {
-				//calculate and add ratio for each genotype
-				integrationOverGeno = (Probability) data[s][BG::homoFirst] * PGeno[0];
-				integrationOverGeno += (Probability) data[s][BG::het] * PGeno[1];
-				integrationOverGeno += (Probability) data[s][BG::homoSecond] * PGeno[2];
-
-				//check if likelihood of sample is a probability
-				if(integrationOverGeno < 0){
-					throw "Probability of genotype is negative: " + coretools::str::toString(integrationOverGeno);
-				}
-			}
-
-			sumOverInds += log(integrationOverGeno);
-		}
-	}
-
-	if(sumOverInds != sumOverInds )
-		throw "sumOverInds is not a number!";
-	return sumOverInds;
-}
-
-double TInbreedingEstimator::logProbPGivenGamma(){
-	//P(p|alpha, beta)
-	double posteriorProbability = 0.0;
-	//calc sum of log(f) and log(1-f)
-	double sumLogFreq = 0.0;
-	double sumLogOneMinusFreq = 0.0;
-
-	for(unsigned long l=0; l<numLoci; ++l){
-//		if(l == 736){
-			if(p.modelP[l]){
-				if(p[l] == 0.0)
-					throw "allele freq is zero when taking log";
-				sumLogFreq += log(p[l]);
-				sumLogOneMinusFreq += log(1.0 - p[l]);
-			}
-//		}
-	}
-
-	//add beta density
-	double gammaMinusOne = Gamma.getNaturalScaleValue() - 1.0;
-	posteriorProbability += gammaMinusOne * sumLogFreq + gammaMinusOne * sumLogOneMinusFreq;
-	posteriorProbability += (double) p.getNumLociInModelP() * (gammaLog(2.0*Gamma.getNaturalScaleValue()) - 2.0*gammaLog(Gamma.getNaturalScaleValue()));
-
-	return posteriorProbability;
-};
-
-double TInbreedingEstimator::getLogLikelihoodCurrentParams(){
-	double logLikelihood = 0.0;
-	long l = 0;
-	for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
-//		if(l == 736){
-			logLikelihood += logLikelihoodAllInds(likelihoods.curData(), likelihoods.curSampleSize(), p[l], F.F());
-//		}
-	}
-
-	//add P(p|alpha,beta)
-	logLikelihood += logProbPGivenGamma();
-	return logLikelihood;
-};
-
-double TInbreedingEstimator::compareLikelihoods(int numUpdates){
-	double logLikelihoodMeanF = 0.0;
-	double logLikelihoodF0 = 0.0;
-	long l = 0;
-	for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
-		logLikelihoodMeanF += logLikelihoodAllInds(likelihoods.curData(), likelihoods.curSampleSize(), p.getPosteriorMean(l, numUpdates), F.getPosteriorMean(numUpdates));
-		logLikelihoodF0 += logLikelihoodAllInds(likelihoods.curData(), likelihoods.curSampleSize(), p.getPosteriorMean(l, numUpdates), 0);
-	}
-	std::cout << "logLikelihoodMeanF " << logLikelihoodMeanF << " logLikelihoodF0 " << logLikelihoodF0 << std::endl;
-	return logLikelihoodMeanF - logLikelihoodF0;
-};
-
-
-
-void TInbreedingEstimator::oneMCMCIteration(){
-	//update params
-
-//	checkHastingsRatios();
-//	throw "checking ahstings ratios";
-
-	if(shouldUpdateF){
-		numAcceptedF += updateF();
-	}
-
-	if(shouldUpdateP){
-		long l = 0;
-		for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
-	//		if(l == 736){
-				numAcceptedP[l] += updateP(likelihoods.curData(), l, likelihoods.curSampleSize(), Gamma);
-	//		}
-		}
-	}
-
-	if(shouldUpdateGamma){
-		numAcceptedGamma += updateGamma();
-	}
-
-	if(shouldUpdatePi){
-		numAcceptedPi += updatePi();
-	}
-}
-
-void TInbreedingEstimator::printAcceptanceRates(int numIterations){
-	numIterations = (double) numIterations;
-	if(numIterInModelF == 0)
-		logfile->conclude("total acceptance rate for F is 0 and the acceptance rate for moves within M_F is 0");
-	else
-		logfile->conclude("total acceptance rate for F is ", (double) numAcceptedF / numIterations, " and acceptance rate for moves within M_F is ", (double) numAcceptedFModelF / (double) numIterInModelF);
-	logfile->conclude("total acceptance rate for gamma is ", (double) numAcceptedGamma / numIterations);
-	logfile->conclude("total acceptance rate for pi is ", (double) numAcceptedPi / numIterations);
-
-	if(numIterInModelP[0] > 0)
-		logfile->conclude("total acceptance rate for first locus is ", (double) numAcceptedP.at(0) / numIterations, " and acceptance rate for moves within M_p is ", (double) numAcceptedPModelP.at(0) / numIterInModelP[0]);
-	else
-		logfile->conclude("total acceptance rate for first locus is ", (double) numAcceptedP.at(0) / numIterations, ". There were no moves within Model_p.");
-
-	if(numIterInModelP[1] > 0)
-		logfile->conclude("total acceptance rate for second locus is ", (double) numAcceptedP.at(1) / numIterations, " and acceptance rate for moves within M_p is ", (double) numAcceptedPModelP.at(1) / numIterInModelP[1]);
-	else
-		logfile->conclude("total acceptance rate for second locus is ", (double) numAcceptedP.at(1) / numIterations, ". There were no moves within Model_p.");
-
-	if(numIterInModelP[2] > 0)
-		logfile->conclude("total acceptance rate for third locus is ", (double) numAcceptedP.at(2) / numIterations, " and acceptance rate for moves within M_p is ", (double) numAcceptedPModelP.at(2) / numIterInModelP[2]);
-	else
-		logfile->conclude("total acceptance rate for third locus is ", (double) numAcceptedP.at(2) / numIterations, ". There were no moves within Model_p.");
-	logfile->conclude("total acceptance rate for 1833 locus is ", (double) numAcceptedP.at(1833) / numIterations, ".");
-
-	long numLociWithAcceptanceZero = 0;
-	for(long l=0; l<numLoci; ++l){
-		if(numAcceptedP[l] == 0){
-			++numLociWithAcceptanceZero;
-		}
-	}
-
-	if(p.numLociWithAcceptanceZero() > 0){
-		logfile->conclude(numLociWithAcceptanceZero, " out of ", numLoci, " loci have an acceptance rate equal to zero");
-	}
+    // run MCMC
+    stattools::TMCMC mcmc;
+    mcmc.runMCMC(_prefix, _dagBuilder);
 }
 
 
-void TInbreedingEstimator::resetAcceptanceRates(){
-	numAcceptedF = 0;
-	numAcceptedFModelF = 0;
-	numIterInModelF = 0;
-	F.resetPosterior();
-	numAcceptedGamma = 0;
-	for(unsigned int l=0; l<numLoci; ++l){
-		numAcceptedP[l] = 0;
-		numAcceptedPModelP[l] = 0;
-		numIterInModelP[l] = 0;
-	}
-	p.setSumsForPosteriorToZero();
-	numAcceptedPi = 0;
-}
-
-void TInbreedingEstimator::adjustProposalWidths(){
-	if(adjustFAfterBurnin)
-		F.adjustProposalWidthAfterBurnin(numAcceptedFModelF, numIterInModelF);
-	if(adjustPAfterBurnin)
-		p.adjustProposalWidthAfterBurnin(numAcceptedPModelP, numIterInModelP);
-	if(adjustGammaAfterBurnin)
-		Gamma.adjustProposalWidthAfterBurnin(numAcceptedGamma, burninLength);
-	if(adjustPiAfterBurnin)
-		pi.adjustProposalWidthAfterBurnin(numAcceptedPi, burninLength);
-}
-
-void TInbreedingEstimator::writeParameterEstimatesOfIteration(std::ofstream & out){
-	out << F.F() << "\t" << Gamma.getNaturalScaleValue() << "\t" << Gamma.getLogValue() << "\t" << pi.getPi();
-	for(unsigned int l=0; l<numLociToTrace; ++l){
-		out << "\t" << p[l];
-	}
-
-	out << "\t" << getLogLikelihoodCurrentParams();
-	out << "\t" << p.getNumLociInModelP();
-	out << "\n";
-}
-
-void TInbreedingEstimator::writePosteriors(int i){
-	std::string tracefile = outname + "_" + coretools::str::toString(i) + "_inbreedingMCMC_posteriors.txt.gz";
-	gz::ogzstream outP(tracefile.c_str());
-	if(!outP)
-		throw "Failed to open file '" + tracefile + "' for writing!";
-
-	//header
-	outP << "param\tprop_in_nonZeroModel\tmean_posterior\tvar_posterior\tacceptance_rate_modelNonZero\tproposalWidth\tinitial_alleleFreq\tllMeanFMeanP\tllF0MeanP\tllMeanFP0\tllF0P0\n";
-
-	//F param
-	outP << "F\t" << (double) F.posteriorProbModelWithF() / (double) numIterations  << "\t" << F.getPosteriorMean(numIterations) << "\t"  << F.getPosteriorVariance(numIterations) << "\t" << (double) numAcceptedFModelF / (double) F.posteriorProbModelWithF() << "\t" << F.proposalWidth() << "\tNA\tNA\tNA\n";
-
-	//loci
-	for(unsigned long l=0; l<numLoci; ++l){
-		outP << "p[" << l << "]\t" << p.posteriorProbModelP[l] << "\t"<< p.getPosteriorMean(l, numIterations) << "\t" << p.getPosteriorVariance(l, numIterations)<< "\t" << numAcceptedPModelP[l] / (double) numIterInModelP[l] << "\t" << p.getProposalWidth(l);
-		if(trueAlleleFreqProvided)
-			outP << "\t" << trueAlleleFreq[l];
-		else
-//			outP << "\tNA";
-			outP << "\t" << p.initialAlleleFreq[l];
-
-		//likelihood of locus with mean F and mean p
-		outP << "\t" << logLikelihoodAllInds(likelihoods.getDataAtLocus(l), likelihoods.curSampleSize(), p.getPosteriorMean(l, numIterations), F.getPosteriorMean(numIterations));
-		//likelihood of locus with F == 0
-		outP << "\t" << logLikelihoodAllInds(likelihoods.getDataAtLocus(l), likelihoods.curSampleSize(), p.getPosteriorMean(l, numIterations), 0.0);
-		//likelihood of locus with mean F and p == 0
-		outP << "\t" << logLikelihoodAllInds(likelihoods.getDataAtLocus(l), likelihoods.curSampleSize(), 0.0, F.getPosteriorMean(numIterations));
-		//likelihood of locus with F == 0 and p == 0
-		outP << "\t" << logLikelihoodAllInds(likelihoods.getDataAtLocus(l), likelihoods.curSampleSize(), 0.0, 0.0);
-
-		outP << "\n";
-
-	}
-	outP.close();
-}
-
-void TInbreedingEstimator::runBurnins(std::ofstream & out, TParameters & params){
-	for(int b=0; b<numBurnins; ++b){
-		std::string reportString = coretools::str::toString("Running burnin (", b, ") of ", burninLength, " iterations (");
-		logfile->listFlush(reportString + "0%) ...");
-		int oldProg=0;
-		for(long i=0; i<burninLength; ++i){
-
-			oneMCMCIteration();
-
-			//write?
-			if(params.parameterExists("writeBurninToFile"))
-				writeParameterEstimatesOfIteration(out);
-
-			//report
-			int prog = floor((float) i / (float) burninLength * 100);
-			if(prog > oldProg){
-				oldProg = prog;
-				logfile->overListFlush(reportString, prog, "%) ...");
-			}
-		}
-		logfile->overList("Running a burnin of ", burninLength, " iterations ... done!  ");
-
-		//print acceptance rates
-		printAcceptanceRates(burninLength);
-
-		//adjust things after burnin
-		logfile->listFlush("Adjusting proposal widths ...");
-		adjustProposalWidths();
-		logfile->done();
-
-		//report new proposal widths
-		logfile->conclude("New proposal width for F is ", F.proposalWidth());
-		for(int l=0; l<5; ++l)
-			logfile->conclude("New proposal width for allele freq at locus ", l, " is ", p.getProposalWidth(l));
-//		logfile->conclude("New proposal width for allele freq at locus " + toString(1833) + " is " + toString(p.getProposalWidth(1833)));
-		logfile->conclude("New proposal width for Gamma is ", Gamma.getProposalWidth());
-		logfile->conclude("New proposal width for pi is ", pi.getProposalWidth());
-
-		resetAcceptanceRates();
-	}
-}
-
-void TInbreedingEstimator::runMCMC(std::ofstream & out, TParameters &){
-	//progress
-	int oldProg = 0;
-	std::string progressString = "Running MCMC chain of length " + coretools::str::toString(numIterations) + " ...";
-	logfile->listFlush(progressString + "(0%)");
-
-	//run MCMC
-	for(int i=0; i<numIterations; ++i){
-
-		//update
-		oneMCMCIteration();
-
-		//write chain
-		if(i % thinning == 0){
-			writeParameterEstimatesOfIteration(out);
-		}
-
-		//write posteriors
-		if(i % 1000 == 0){
-			writePosteriors(i);
-		}
-
-		// print progress
-		int prog = (double) i / (double) numIterations * 100.0;
-		if(prog > oldProg){
-			oldProg = prog;
-			logfile->overListFlush(progressString, " (", oldProg, "%)");
-		}
-	}
-	logfile->overList(progressString + " done!   ");
-}
-
-void TInbreedingEstimator::runEstimation(TParameters & params){
-	logfile->startIndent("Running MCMC to estimate inbreeding coefficient F and the allele frequency distribution:");
-
-	//open MCMC trace file
-	std::string tracefile = outname + "_inbreedingMCMC.txt";
-	logfile->list("Will write MCMC chain to file '" + tracefile + "'.");
-	std::ofstream out(tracefile.c_str());
-	if(!out)
-		throw "Failed to open file '" + tracefile + "' for writing!";
-
-	//write header of trace file
-	out << "F\tgamma\tgammaLog\tpi";
-	for(int l=0; l<numLociToTrace; ++l)
-		out << "\tp[" << l << "]";
-
-	out << "\tlogLikelihood\tp.getNumLociInModelP()\n";
-
-	//write initial parameters
-	writeParameterEstimatesOfIteration(out);
-
-	//announce names of posterior files
-	tracefile = outname + "_*_inbreedingMCMC_posteriors.txt.gz";
-	logfile->list("Will write posterior distribution statistics to file '" + tracefile + "'.");
-
-
-	//run burnins
-	runBurnins(out, params);
-
-	//run MCMC chain
-	runMCMC(out, params);
-
-	//results
-	printAcceptanceRates(numIterations);
-	writePosteriors(numIterations);
-
-	writeLikelihoodForDebuggingAlleleFreq(params);
-
-	//clean up
-	logfile->endIndent();
-	out.close();
-};
-
-
-//------------------------------
-// Debugging functions
-//------------------------------
-
-
-
-void TInbreedingEstimator::writeLikelihoodForDebuggingF(TParameters &){
-	//open output file
-	std::string tracefile = outname + "_logLikelihoodF.txt.gz";
-	logfile->list("Will write likelihood chain for grid of F to file '" + tracefile + "'.");
-	gz::ogzstream outP(tracefile.c_str());
-	if(!outP)
-		throw "Failed to open file '" + tracefile + "' for writing!";
-	std::cout << "first three true alleleFreq: " << p[0] << " " <<  p[1] << " " << p[2] << std::endl;
-
-	//initialize
-	double trueGamma = 0.2;
-	double trueLogGamma = log(trueGamma);
-	Gamma.update(trueLogGamma, trueGamma);
-
-	//make grid
-	int numProbs = 50;
-	float step = 1 / (float) numProbs;
-	std::cout << "step size "  << step << std::endl;
-
-	//calculate ll
-	for(int i=0; i<numProbs; ++i){
-		double logLikelihood = 0.0;
-		double thisF = 0.0;
-		thisF = thisF + (double) i*step;
-		if(thisF > 1)
-			break;
-
-		std::cout << "thisF " << thisF << std::endl;
-		long l = 0;
-		for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
-			logLikelihood += logLikelihoodAllInds(likelihoods.curData(), likelihoods.curSampleSize(), p[l], thisF);
-		}
-
-		//add P(p|alpha,beta)
-		logLikelihood += logProbPGivenGamma();
-		outP << thisF << "\t" << logLikelihood << "\n";
-		std::cout << logLikelihood << std::endl;
-	}
-	logfile->done();
-};
-
-void TInbreedingEstimator::writeLikelihoodForDebuggingAlleleFreq(TParameters &){
-	//which locus to update
-//	long index = params.getParameterInt("locus");
-	long index = 11;
-
-	//open output file
-	std::string tracefile = outname + "_logLikelihoodP[" + coretools::str::toString(index) + "].txt.gz";
-	logfile->list("Will write likelihood chain for grid of p[", index, "] to file '" + tracefile + "'.");
-	logfile->list("The true value for p[", std::to_string(index) + "] is: ", p[index]);
-	gz::ogzstream outP(tracefile.c_str());
-	if(!outP)
-		throw "Failed to open file '" + tracefile + "' for writing!";
-	std::cout << "first three true alleleFreq: " << p[0] << " " <<  p[1] << " " << p[2] << std::endl;
-
-//	//initialize
-//	double trueGamma = 0.5;
-//	double trueLogGamma = log(trueGamma);
-//	Gamma.update(trueLogGamma, trueGamma);
-//
-//	F.updateAndAccept(0.2, true);
-//	pi.update(0.8);
-//
-
-	//make grid
-	int numProbs = 100;
-	//float step = (float) numProbs;
-	//double pValue = 1.0;
-
-	//calculate ll
-	for(int i=0; i<numProbs; ++i){
-		double newPValue = pow(10,(double) -i);
-		std::cout << "calculating likelihood for p[" << index << "]=" << newPValue << " step " << (double) -i<< std::endl;
-		if(newPValue == 0)
-			p.update(index, newPValue, false);
-		else
-			p.update(index, newPValue, true);
-
-
-		double logLikelihood = getLogLikelihoodCurrentParams();
-		outP << newPValue << "\t" << logLikelihood << "\n";
-	}
-	logfile->done();
-};
-
-void TInbreedingEstimator::writeLikelihoodForDebuggingGamma(TParameters &){
-	//open output file
-	std::string tracefile = outname + "_logLikelihoodGamma.txt.gz";
-	logfile->list("Will write likelihoods for grid of gamma to '" + tracefile + "'.");
-	gz::ogzstream outP(tracefile.c_str());
-	if(!outP)
-		throw "Failed to open file '" + tracefile + "' for writing!";
-
-	//initialize
-	int numProbs = 100;
-	float step = 2.0 / (float) numProbs;
-	std::cout << "first three true alleleFreq: " << p[0] << " " <<  p[1] << " " << p[2] << std::endl;
-
-	F.updateAndAccept(0.2, true);
-
-	double logLikelihood = 0.0;
-	long l = 0;
-	for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
-		logLikelihood += logLikelihoodAllInds(likelihoods.curData(), likelihoods.curSampleSize(), p[l], F.F());
-		if(logLikelihood > 0)
-			throw "likelihood is larger than 1!";
-	}
-
-	double logLikelihoodAllInds = logLikelihood;
-
-	//calculate ll
-	for(int i=0; i<numProbs; ++i){
-		double newValue = (double) i*step;
-		std::cout << "calculating likelihood for alpha and beta =" << newValue << std::endl;
-		if(newValue == 0.0)
-			//a small number
-			newValue = 0.000000001;
-		double newValueLog = log(newValue);
-
-		//only when alpha and beta are equal the beta distribution is symetric and the P(p) = P(1-p),
-		// ---->  true MAF should give the same result as the true allele freq
-		Gamma.update(newValueLog, newValue);
-
-		//add P(p|alpha,beta)
-		logLikelihood = logLikelihoodAllInds + logProbPGivenGamma();
-		outP << Gamma.getNaturalScaleValue() << "\t" << logLikelihood << "\n";
-	}
-	logfile->done();
-};
-
-//void TInbreedingEstimator::writeLikelihoodForDebuggingPi(TParameters & params){
-//	//open output file
-//	std::string tracefile = outname + "_logLikelihoodPi.txt.gz";
-//	logfile->list("Will write likelihoods for grid of pi to '" + tracefile + "'.");
-//	gz::ogzstream outP(tracefile.c_str());
-//	if(!outP)
-//		throw "Failed to open file '" + tracefile + "' for writing!";
-//
-//	//initialize
-//	int numProbs = 100;
-//	float step = 2.0 / (float) numProbs;
-//	std::cout << "first three true alleleFreq: " << p[0] << " " <<  p[1] << " " << p[2] << std::endl;
-//
-//	F.updateAndAccept(0.2, true);
-//	Gamma.update(log(0.5), 0.5);
-//
-//	double logLikelihood = 0.0;
-//	long l = 0;
-//	for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
-//		uint8_t* data = likelihoods.curData();
-//		logLikelihood += logLikelihoodAllInds(data, likelihoods.curSampleSize(), p[l], F.F());
-//		if(logLikelihood > 0)
-//			throw "likelihood is larger than 1!";
-//	}
-//
-//	double logLikelihoodAllInds = logLikelihood;
-//	for(int i=0; i<numProbs; ++i){
-//		double newValue = (double) i*step;
-//		pi.update(newValue);
-//	}
-//
-//}
-
-void TInbreedingEstimator::checkHastingsRatios(){
-	//F hastings
-	resetToInitialValuesDebugging();
-
-	double newF = 0.15;
-	double logH = 0.0;
-	long l = 0;
-	for(likelihoods.begin(); !likelihoods.end(); likelihoods.next(), ++l){
-//		std::cout << "newLL " << logLikelihoodAllInds(likelihoods.curData(), likelihoods.curSampleSize(), p[l], newF, likelihoods.glfConverter) << std::endl;
-//		std::cout << "oldLL " << logLikelihoodAllInds(likelihoods.curData(), likelihoods.curSampleSize(), p[l], F.F(), likelihoods.glfConverter) << std::endl;
-		logH += logLikelihoodAllInds(likelihoods.curData(), likelihoods.curSampleSize(), p[l], newF)
-		- logLikelihoodAllInds(likelihoods.curData(), likelihoods.curSampleSize(), p[l], F.F());
-	}
-
-	std::cout << "\nF hastings log: " << logH << " natural: " << exp(logH) << std::endl;
-
-	//p hastings
-	resetToInitialValuesDebugging();
-
-	double newP = 0.3;
-	int locusNum = 9;
-	std::cout << "(Gamma.getNaturalScaleValue() - 1.0) * (log(newP) + log(1.0 - newP) - log(p[locusNum]) - log(1.0 - p[locusNum])) " << (Gamma.getNaturalScaleValue() - 1.0) * (log(newP) + log(1.0 - newP) - log(p[locusNum]) - log(1.0 - p[locusNum])) << std::endl;
-	logH = (Gamma.getNaturalScaleValue() - 1.0) * (log(newP) + log(1.0 - newP) - log(p[locusNum]) - log(1.0 - p[locusNum])) // - log(1.0 - p[locusNum]));													)
-				+ logLikelihoodAllInds(likelihoods.getDataAtLocus(locusNum), likelihoods.curSampleSize(), newP, F.F())
-				- logLikelihoodAllInds(likelihoods.getDataAtLocus(locusNum), likelihoods.curSampleSize(), p[locusNum], F.F());
-
-	std::cout << "\np[" << locusNum << "] hastings log: " << logH << " natural: " << exp(logH) << std::endl;
-
-	//gamma hastings
-	resetToInitialValuesDebugging();
-
-	double newGamma = 0.4;
-	double sumLogFreq = 0.0;
-	double sumLogOneMinusFreq = 0.0;
-
-	for(unsigned long l=0; l<numLoci; ++l){
-		if(p.modelP[l]){
-			sumLogFreq += log(p[l]);
-			sumLogOneMinusFreq += log(1.0 - p[l]);
-		}
-	}
-
-	double diffGammas = newGamma - Gamma.getNaturalScaleValue();
-	logH = (double) p.getNumLociInModelP() *
-			(gammaLog(2.0*newGamma)
-			+ 2.0 * gammaLog(Gamma.getNaturalScaleValue())
-			- gammaLog(2.0*Gamma.getNaturalScaleValue())
-			- 2.0*gammaLog(newGamma)
-			)
-			+ diffGammas * sumLogFreq
-			+ diffGammas * sumLogOneMinusFreq;
-};
-
-}; //end namespace
+} // end namespace PopulationTools

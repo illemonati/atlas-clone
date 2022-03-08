@@ -1,276 +1,169 @@
-/*
- * TInbreedingEstimator.h
- *
- *  Created on: Dec 6, 2018
- *      Author: linkv
- */
+//
+// Created by caduffm on 3/8/22.
+//
 
-#ifndef TINBREEDINGESTIMATOR_H_
-#define TINBREEDINGESTIMATOR_H_
+#ifndef ATLAS_TINBREEDINGESTIMATOR_H
+#define ATLAS_TINBREEDINGESTIMATOR_H
 
 #include "TParameters.h"
 #include "TLog.h"
 #include "TPopulationLikelihoods.h"
 #include "TRandomGenerator.h"
 #include <limits>
+#include "TDAGBuilder.h"
+#include "TPriorFixed.h"
+#include "TPriorInferred.h"
+#include "TMCMC.h"
 
-namespace PopulationTools{
+namespace PopulationTools {
 
+typedef coretools::Probability TypeF; // F in [0, 1]
+typedef coretools::ZeroOpenOneClosed<double> TypeP; // p in (0, 1]
+typedef coretools::WeakType<double> TypeC; // c in (-inf, inf) -> gamma = exp(c) is > 0
+typedef coretools::WeakType<bool> TypeZ; // z = 0,1
+typedef genometools::TSampleLikelihoods<genometools::HighPrecisionPhredIntProbability> TypeGTL;
 
-//---------------------------
-// F
-//---------------------------
-class TInbreedingF{
-private:
-	double _F;
-	float _probMovingToModelNoF;
-	double _sdProposal;
-	bool _inModelWithF;
-	double _lambda, _logLambda, _expMinusLambda;
-	int _posteriorProbModelWithF;
-	double _sumIterations, _sumOfSquaresIterations;
+//------------------------------------------
+// TInbreedingEstimatorPrior
+//------------------------------------------
 
+class InbreedingPrior : public stattools::MCMCPrior {
 public:
-	TInbreedingF();
-	TInbreedingF(float & ProbMovingToModelNoF, double & SdProposal, bool InModelWithF, double lambda);
-	void adjustProposalWidthAfterBurnin(int numAcceptedFModelF, int numIterInModelF);
-	double proposeNew(coretools::TRandomGenerator* randomGenerator);
-	void updatePosteriors(double value, const bool & inModelWithF);
-	void updateAndAccept(double value, const bool & inModelWithF);
-	void updateAndReject(bool inModelWithF);
-	void resetPosterior();
-	double getPosteriorMean(int numUpdates);
-	double getPosteriorVariance(int numUpdates);
-	float probMovingToModelNoF();
-	double F();
-	bool inModelWithF();
-	double logPDFExp(double thisF);
-	double logPDFExp();
-	double PDFExp(double thisF);
-	double PDFExp();
-	double lambda();
-	int posteriorProbModelWithF();
-	double proposalWidth();
-
+    inline static const std::string inbreeding = "inbreeding";
 };
 
-//---------------------------
-// allele frequencies p
-//---------------------------
-class TAlleleFreq{
-private:
-	std::vector<double> sumIterations;
-	std::vector<double> sumOfSquaresIterations;
-	std::vector<double> alleleFreq;
-	long _numLociModelP;
-	long _numLociWithAcceptanceZero;
-
+class THardyWeinbergWithInbreedingGenotypeProbabilities : public genometools::THardyWeinbergGenotypeProbabilities {
 public:
-	std::vector<bool> modelP;
-	std::vector<int> posteriorProbModelP;
-	std::vector<double> initialAlleleFreq;
-	std::vector<float> proposalWidths;
+    THardyWeinbergWithInbreedingGenotypeProbabilities(const coretools::Probability p = 0.5, const coretools::Probability F = 0.0) noexcept{ set(p, F); }
 
-	long numLoci;
-	double probMovingToModel0, probMovingToModelP;
-	double logProbMovingToModel0, logProbMovingToModelP;
-	double lambda, logLambda, expMinusLambda;
-	double minAlleleFreq;
-
-	TAlleleFreq();
-	TAlleleFreq(std::vector<double> & P, double & initialProposalWidthFactor, const int numSamples, double & ProbMovingToModel0, double & ProbMovingToModelP, double & Lambda, bool trueAlleleFreqProvided);
-
-	double operator[](long index){
-		//Note: no check on range!
-		return alleleFreq[index];
-	};
-//	void initializeModels();
-	void setSumsForPosteriorToZero();
-	void setToValue(double fixedValue);
-	void adjustProposalWidthAfterBurnin(std::vector<int> & numAcceptedP, std::vector<int> & numUpdates);
-	double proposeNew(long locusNum, coretools::TRandomGenerator* randomGenerator);
-	void update(long index, double value, const bool ModelP);
-	double getPosteriorMean(unsigned long index, int numUpdates);
-	double getPosteriorVariance(unsigned long index, int numUpdates);
-	double getProposalWidth(const unsigned long & index);
-	long getNumLociInModelP();
-	long getNumLociInModel0();
- 	long numLociWithAcceptanceZero();
-	double logPDFExp(double thisP);
-	double logPDFExp(long thisLocus);
+    constexpr void set(const coretools::Probability p, const coretools::Probability F) noexcept {
+        using BG = genometools::BiallelicGenotype;
+        _probabilities[index(BG::haploidFirst)]  = p.complement(); // (1-p)
+        _probabilities[index(BG::haploidSecond)] = p;              // p
+        _probabilities[index(BG::homoFirst)]     = F.complement() * _probabilities[index(BG::haploidFirst)] * _probabilities[index(BG::haploidFirst)]
+                                                        + F*_probabilities[index(BG::haploidFirst)]; // (1-F)*(1-p)^2 + F(1-p)
+        _probabilities[index(BG::het)]           = F.complement() * 2.0 * _probabilities[index(BG::haploidFirst)] * _probabilities[index(BG::haploidSecond)]; // (1-F)2p(1-p)
+        _probabilities[index(BG::homoSecond)]    = 1.0 - _probabilities[index(BG::homoFirst)] - _probabilities[index(BG::het)];
+    }
 };
 
-//---------------------------
-// gamma
-//---------------------------
-
-class TGamma{
+class TInbreedingEstimatorPrior : public stattools::prior::TBaseNonIID<TypeGTL, 2> {
 private:
-	double _gamma;
-	double _logGamma;
+    // parameters
+    std::shared_ptr<stattools::TParameterTyped<TypeF, 1>> _F;
+    std::shared_ptr<stattools::TParameterTyped<TypeP, 1>> _p;
+    std::shared_ptr<stattools::TParameterTyped<TypeZ, 1>> _z;
+
+
+    // proposal probability for model switch F
+    double _q_FModel_To_HWE;
+    double _log_q_FModel_To_HWE;
+
+    // propose new values after model switch
+    double _lambdaNewF;
+
+    // observation
+    TPopulationLikelihoods _likelihoods; // TODO: how to formalize those to observation class?
+
+    // calculate LL
+    static coretools::LogProbability _calculateLLSumOverIndividuals(TSampleLikelihoods* data, size_t N, const genometools::THardyWeinbergGenotypeProbabilities & Probs);
+    static coretools::LogProbability _calculateLLSumOverIndividuals(TSampleLikelihoods* data, size_t N, double P);
+    static coretools::LogProbability _calculateLLSumOverIndividuals(TSampleLikelihoods* data, size_t N, double P, double F);
+
+    // DAG
+    void _registerPriorParameters() override;
+    void _readCommandLineArguments();
+
+    // initial values
+    void _setInitialF();
+    void _setInitialP();
+
+    // log-densities
+    double _getPriorDensity_vec(const std::shared_ptr<stattools::TParameterObservationTypedBase<TypeGTL, 2>> & Data, const size_t & index) override;
+    double _getLogPriorDensity_vec(const std::shared_ptr<stattools::TParameterObservationTypedBase<TypeGTL, 2>> & Data, const size_t & index) override;
+    double _getPriorDensityOld_vec(const std::shared_ptr<stattools::TParameterObservationTypedBase<TypeGTL, 2>> & Data, const size_t & index) override;
+    double _getLogPriorDensityOld_vec(const std::shared_ptr<stattools::TParameterObservationTypedBase<TypeGTL, 2>> & Data, const size_t & index) override;
+    double _getLogPriorRatio_vec(const std::shared_ptr<stattools::TParameterObservationTypedBase<TypeGTL, 2>> & Data, const size_t & index) override;
+    double _getExpectedValueFromPriorParameters(const std::shared_ptr<stattools::TParameterObservationTypedBase<TypeGTL, 2>> & data, const size_t & index) override;
+
+    // update functions for F
+    void _updateFAndZ();
+    void _updateRegularF();
+    void _updateFToHWE();
+    void _updateHWEToF();
+    double _calculateProbabilityOfProposingThisF(double F) const;
+    double _getRandomNewF() const;
+
+    // update functions for p
+    void _updateP(TSampleLikelihoods* data, size_t Locus);
+
 public:
-	double proposalWidth;
+    TInbreedingEstimatorPrior(const std::shared_ptr<stattools::TParameterTyped<TypeF, 1>> & F,
+                              const std::shared_ptr<stattools::TParameterTyped<TypeP, 1>> & P,
+                              const std::shared_ptr<stattools::TParameterTyped<TypeZ, 1>> & Z);
+    ~TInbreedingEstimatorPrior() override = default;
+    void initializeStorageOfPriorParameters() override;
 
-	TGamma();
-	TGamma(double & ProposalWidth);
-	void update(double newLogValue, double newNaturalScaleValue);
-	void adjustProposalWidthAfterBurnin(int numAccepted, int numUpdates);
+    // estimate initial values
+    void estimateInitialPriorParameters() override;
 
-	double getLogValue();
-	double getNaturalScaleValue();
-	double getProposalWidth();
+    // full log densities
+    double getSumLogPriorDensity(const std::shared_ptr<stattools::TParameterObservationTypedBase<TypeGTL, 2>> & Data) override;
+
+    // update all hyperprior parameters
+    void updateParams() override;
+
+    // simulate values
+    void simulateUnderPrior() override;
 };
 
-//---------------------------
-// Pi
-//---------------------------
-
-class TPi{
-private:
-	double _pi;
-	double _minPi;
-	double _logPi;
-	double _logOneMinusPi;
-public:
-	double proposalWidth;
-
-	TPi();
-	TPi(double & ProposalWidth, double & initialValue);
-	void update(double newNaturalScaleValue);
-	void adjustProposalWidthAfterBurnin(int numAccepted, int numUpdates);
-
-	double getPi();
-	double getLogPi(){ return _logPi; };
-	double getLogOneMinusPi(){ return _logOneMinusPi; };
-	double getProposalWidth();
-	double proposeNew(coretools::TRandomGenerator* randomGenerator);
-};
-//---------------------------
+//------------------------------------------
 // TInbreedingEstimator
-//---------------------------
+//------------------------------------------
 
-class TInbreedingEstimator{
+class TInbreedingEstimator {
 private:
-	coretools::TRandomGenerator* randomGenerator;
-//	TQualityMap qualMap;
+    std::shared_ptr<stattools::TDAGBuilder> _dagBuilder;
 
-	//log
-	coretools::TLog* logfile;
-	std::string outname;
+    TPopulationLikelihoods _likelihoods;
 
-	//algorithm params
-	int numIterations;
-	double sdF;
-	int numAcceptedF;
-	int numAcceptedFModelF;
-	int numIterInModelF;
-	std::vector<int> numAcceptedP;
-	std::vector<int> numAcceptedPModelP;
-	std::vector<int> numIterInModelP;
-	int numAcceptedGamma;
-	int numAcceptedPi;
-	int numBurnins;
-	int burninLength;
-	int thinning;
+    // filenames
+    std::string _prefix;
+    std::string _filename;
 
-	long numLociToTrace;
+    // define DAG
+    void _defineDAG();
+    void _defineF();
+    void _defineP();
 
-	bool shouldUpdateF;
-	bool shouldUpdateP;
-	bool shouldUpdateGamma;
-	bool shouldUpdatePi;
-
-	bool adjustFAfterBurnin;
-	bool adjustPAfterBurnin;
-	bool adjustGammaAfterBurnin;
-	bool adjustPiAfterBurnin;
-
-	//data
-	TPopulationLikelihoods likelihoods;
-	unsigned int numLoci;
-
-	//params
-	TInbreedingF F;
-	//std::vector<double> p;
-	TAlleleFreq p;
-	bool trueAlleleFreqProvided;
-	std::vector<double> trueAlleleFreq;
-	TGamma Gamma;
-	TPi pi;
-
-//	void initializeAlphaBeta();
-	void initializeGamma(coretools::TParameters & parameters);
-	void initF(coretools::TParameters & parameters);
-	void initAlleleFreq(coretools::TParameters & parameters);
-	void initParams(coretools::TRandomGenerator* randomGenerator, coretools::TParameters & parameters);
-	void resetToInitialValuesDebugging();
-	void checkHastingsRatios();
-	bool updateF();
-	bool updateP(TSampleLikelihoods* data, const long locusNum, const int curSampleSize, const TGamma Gamma);
-	bool updateGamma();
-	bool updatePi();
-	double logProbPGivenGamma();
-	double logLikelihoodAllInds(TSampleLikelihoods* data, const int curSampleSize, const double thisP, const double thisF);
-	void wholeLogLikelihood();
-	double getLogLikelihoodCurrentParams();
-	double compareLikelihoods(int numUpdates);
-	void oneMCMCIteration();
-	void printAcceptanceRates(int numIterations);
-	void resetAcceptanceRates();
-	void adjustProposalWidths();
-	void writeParameterEstimatesOfIteration(std::ofstream & out);
-	void writePosteriors(int i);
-	void runBurnins(std::ofstream & out, coretools::TParameters & params);
-	void runMCMC(std::ofstream & out, coretools::TParameters & params);
+    // read input data
+    void _readData();
 
 public:
-	TInbreedingEstimator(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
-	~TInbreedingEstimator() = default;
-	void runEstimation(coretools::TParameters & params);
-	void writeLikelihoodForDebuggingGamma(coretools::TParameters & params);
-	void writeLikelihoodForDebuggingAlleleFreq(coretools::TParameters & params);
-	void writeLikelihoodForDebuggingF(coretools::TParameters & params);
+    TInbreedingEstimator(coretools::TParameters &Parameters, coretools::TLog *Logfile,
+                                  coretools::TRandomGenerator *RandomGenerator);
+
+    void runEstimation(coretools::TParameters &Parameters);
 };
+
 
 //--------------------------------------
 // Tasks
 //--------------------------------------
-class TTask_estimateInbreeding:public coretools::TTask{
+class TTask_estimateInbreeding : public coretools::TTask {
 public:
-	TTask_estimateInbreeding(){
-		_explanation = "Estimating the inbreeding coefficient";
-		_citations.emplace("Burger et al. (2020) Current Biology");
-	};
+    TTask_estimateInbreeding() {
+        _explanation = "Estimating the inbreeding coefficient";
+        _citations.emplace("Burger et al. (2020) Current Biology");
+    };
 
-	void run(){
-		using namespace coretools::instances;
-		TInbreedingEstimator inbreedingEstimator(parameters(), &logfile(), &randomGenerator());
-		inbreedingEstimator.runEstimation(parameters());
-	};
+    void run() override {
+        using namespace coretools::instances;
+        TInbreedingEstimator inbreedingEstimator(parameters(), &logfile(), &randomGenerator());
+        inbreedingEstimator.runEstimation(parameters());
+    };
 };
 
-class TTask_inbreedingLikelihood : public coretools::TTask {
-public:
-	TTask_inbreedingLikelihood() {
-		_explanation = "Estimating likelihood surfaces for the inbreeding model";
-		_citations.insert("Burger et al. (2020) Current Biology");
-	};
+}; // end namespace PopulationTools
 
-	void run() {
-		using namespace coretools::instances;
-		TInbreedingEstimator inbreedingEstimator(parameters(), &logfile(), &randomGenerator());
-		if (parameters().parameterExists("llGamma")) inbreedingEstimator.writeLikelihoodForDebuggingGamma(parameters());
-		//			if(parameters->parameterExists("llBeta"))
-		//				inbreedingEstimator.writeLikelihoodForDebuggingBeta(parameters);
-		else if (parameters().parameterExists("llP"))
-			inbreedingEstimator.writeLikelihoodForDebuggingAlleleFreq(parameters());
-		else if (parameters().parameterExists("llF"))
-			inbreedingEstimator.writeLikelihoodForDebuggingF(parameters());
-		else
-			throw "define parameter for which to calculate likelihood surface!";
-	};
-};
-
-}; //end namespace
-
-#endif /* TINBREEDINGESTIMATOR_H_ */
+#endif //ATLAS_TINBREEDINGESTIMATOR_H

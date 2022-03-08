@@ -122,7 +122,6 @@ void addTaks(coretools::TMain & main) {
 	// Use main.addDebugTask to add a debug task (not shown in list of available tasks)
 	//main.addDebugTask("recalLL", new GenomeTasks::TTask_recalLL());
 	main.addDebugTask("thetaLLSurface", new GenomeTasks::TTask_thetaLLSurface());
-	main.addDebugTask("inbreedingLikelihood", new PopulationTools::TTask_inbreedingLikelihood());
 };
 
 void addTests(coretools::TMain & main){

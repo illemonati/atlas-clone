@@ -1013,9 +1013,9 @@ TPopulationLikelihoods::~TPopulationLikelihoods(){
 
 void TPopulationLikelihoods::init(){
 	vcfRead = false;
-	_numLoci = 0;
 	saveAlleleFrequencies = false;
 	saveTrueAlleleFrequencies = false;
+    _positions = std::make_shared<stattools::TPositionsRaw>();
 };
 
 void TPopulationLikelihoods::clean(){
@@ -1070,16 +1070,12 @@ void TPopulationLikelihoods::readDataFromVCF(coretools::TParameters & Parameters
 
     //run through VCF file
     logfile->startIndent("Parsing VCF file:");
-    std::string curChr = "";
     while(reader.readDataFromVCF(data.back(), samples)){
-		//update chromosome name
-		if(reader.chr() != curChr){
-			chromosomes.emplace(_numLoci, reader.chr());
-			curChr = reader.chr();
-		}
 
-		//store SNP info
-		position.emplace_back(reader.position());
+        //store chromosome and position
+        _positions->add(reader.position(), reader.chr());
+
+		//store allele frequencies
 		if(saveAlleleFrequencies)
 			alleleFrequencies.emplace_back(reader.allelFrequency());
 		if(saveTrueAlleleFrequencies)
@@ -1092,15 +1088,15 @@ void TPopulationLikelihoods::readDataFromVCF(coretools::TParameters & Parameters
     //remove last, empty container
     delete data.back();
     data.pop_back();
+    _positions->finalizeFilling();
 
     //clean up
 	vcfRead = true;
-	_numLoci = data.size();
 
     //report final status
 	logfile->endIndent();
 	reader.concludeFilters();
-	if(_numLoci < 1)
+    if (_positions->size() < 1)
 		throw "No usable loci in VCF file '" + vcfFilename + "'!";
 	logfile->endIndent();
 };
@@ -1109,12 +1105,12 @@ void TPopulationLikelihoods::readDataFromVCF(coretools::TParameters & Parameters
 // get-functions                                                                                //
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
-int TPopulationLikelihoods::getNumIndividuals(){
+size_t TPopulationLikelihoods::getNumIndividuals() const {
 	return samples.numSamples();
 };
 
-long TPopulationLikelihoods::getNumLoci(){
-	return _numLoci;
+size_t TPopulationLikelihoods::getNumLoci() const {
+	return _positions->size();
 };
 
 TSampleLikelihoods* TPopulationLikelihoods::getDataAtLocus(long index){
@@ -1136,8 +1132,6 @@ void TPopulationLikelihoods::limitToSinglePopulation(int population){
 
 void TPopulationLikelihoods::begin(){
 	curLocusIndex = 0;
-	curChrIt = chromosomes.begin();
-	nextChrIt = std::next(chromosomes.begin(),1);
 };
 
 void TPopulationLikelihoods::beginAll(){
@@ -1151,17 +1145,11 @@ void TPopulationLikelihoods::beginOnePop(int population){
 };
 
 bool TPopulationLikelihoods::end(){
-	return curLocusIndex == _numLoci;
+	return curLocusIndex == _positions->size();
 };
 
 void TPopulationLikelihoods::next(){
 	++curLocusIndex;
-
-	//are we on new chromosome?
-	if(nextChrIt != chromosomes.end() && curLocusIndex == nextChrIt->first){
-		++curChrIt;
-		++nextChrIt;
-	}
 };
 
 TSampleLikelihoods* TPopulationLikelihoods::curData(){
@@ -1177,12 +1165,16 @@ int TPopulationLikelihoods::curSampleSize(){
 };
 
 std::string TPopulationLikelihoods::curChr(){
-	return curChrIt->second;
+	return _positions->getJunkName(curLocusIndex);
 };
 
 long TPopulationLikelihoods::curPosition(){
-	return position[curLocusIndex];
+	return _positions->getPosition(curLocusIndex);
 };
+
+const std::shared_ptr<stattools::TPositionsRaw> &TPopulationLikelihoods::positions() const {
+    return _positions;
+}
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
 // print data                                                                                   //

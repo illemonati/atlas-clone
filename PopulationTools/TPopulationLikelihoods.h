@@ -18,6 +18,7 @@
 #include "TGenotypeFrequencies.h"
 #include "TBed.h"
 #include "TVcfFile.h"
+#include "TDistances.h"
 
 namespace PopulationTools{
 
@@ -313,9 +314,7 @@ private:
 	TPopulationSamples samples;
 
 	//data on loci
-	long _numLoci;
-	std::map<int, std::string> chromosomes; //first SNP index and name
-	std::vector<long> position;
+    std::shared_ptr<stattools::TPositionsRaw> _positions;
     std::vector<TSampleLikelihoods*> data;
     std::vector<double> alleleFrequencies;
     std::vector<double> trueAlleleFrequencies;
@@ -324,8 +323,6 @@ private:
 
     //looping
     long curLocusIndex;
-    std::map<int, std::string>::iterator curChrIt;
-    std::map<int, std::string>::iterator nextChrIt;
     int individualStartIndex;
     int usedSampleSize;
 
@@ -367,10 +364,11 @@ public:
     int curSampleSize();
     std::string curChr();
     long curPosition();
+    const std::shared_ptr<stattools::TPositionsRaw> & positions() const;
 
-    // get main constants (n, L, D, K) and names of environmental variables
-    int getNumIndividuals();
-    long getNumLoci();
+    // get main constants
+    size_t getNumIndividuals() const;
+    size_t getNumLoci() const;
     TSampleLikelihoods* getDataAtLocus(long index);
     void print();
 };
