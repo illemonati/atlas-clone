@@ -25,9 +25,6 @@ file(GLOB CORE_SOURCES CONFIGURE_DEPENDS
   VCF/*.h VCF/*.cpp)
 
 find_package(ZLIB REQUIRED)
-
-# adjust search path for IBU Linux cluster (Bern) to locate correct armadillo
-list(APPEND CMAKE_PREFIX_PATH "/software/include" "/software/lib64")
 find_package(Armadillo REQUIRED)
 
 # Download coretools and stattools
