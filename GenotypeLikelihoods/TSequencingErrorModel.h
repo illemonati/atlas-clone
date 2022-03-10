@@ -163,7 +163,7 @@ public:
 	coretools::Probability getErrorRate(const BAM::TSequencedBase &base) const noexcept override;
 	genometools::PhredIntProbability getPhredInt(const BAM::TSequencedBase &base) const noexcept override;
 	void fillBaseLikelihoods(const BAM::TSequencedBase &base, TBaseLikelihoods &baseLikelihoods) const noexcept override;
-	virtual void simulate(BAM::TSequencedBase &base) const noexcept override{};
+	virtual void simulate(BAM::TSequencedBase &base) const noexcept override;
 
 	// functions to estimate
 	std::string checkParameterRange(RecalEstimatorTools::TRecalDataTable &DataTable) const;

@@ -153,12 +153,8 @@ void TModelNoRecal::fillBaseLikelihoods(const BAM::TSequencedBase &base,
 		baseLikelihoods.reset();
 	} else {
 		const auto eps = static_cast<Probability>(base.originalQuality_phredInt);
-		for (auto other = Base::min; other < Base::max; ++other) {
-			if (other == base.base)
-				baseLikelihoods[other] = eps.complement();
-			else
-				baseLikelihoods[other] = (1. / 3) * eps;
-		}
+		for (auto other = Base::min; other < Base::max; ++other) baseLikelihoods[other] = (1. / 3) * eps;
+		baseLikelihoods[base.base] = eps.complement();
 	}
 }
 
@@ -166,9 +162,9 @@ void TModelNoRecal::simulate(BAM::TSequencedBase &base) const noexcept {
 	using genometools::Base;
 	if (base.base == Base::N) return;
 
-	const auto eps = static_cast<Probability>(base.originalQuality_phredInt);
-	if (randomGenerator().getRand() < (1. / 3) * eps) {
-		const int i = randomGenerator().getRand(0, 3); // 3 bases to choose from
+	const auto e = static_cast<Probability>(base.originalQuality_phredInt);
+	if (randomGenerator().getRand() < e) {
+		const int i = randomGenerator().getRand(1, 4); // 3 bases to choose from
 		base.base   = Base((index(base.base) + i) % 4);
 	}
 }
@@ -293,16 +289,33 @@ genometools::PhredIntProbability TModelRecal::getPhredInt(const BAM::TSequencedB
 	return genometools::PhredIntProbability(_calcErrorRate(base));
 }
 
-void TModelRecal::fillBaseLikelihoods(const BAM::TSequencedBase &base, TBaseLikelihoods &baseLikelihoods) const noexcept {
+void TModelRecal::fillBaseLikelihoods(const BAM::TSequencedBase &base,
+				      TBaseLikelihoods &baseLikelihoods) const noexcept {
 	using genometools::Base;
 	if (base == Base::N) {
 		baseLikelihoods.reset();
 	} else {
 		const auto e = _calcErrorRate(base);
-		for (auto b = Base::min; b < Base::max; ++b) {
-			baseLikelihoods[b] = e * _rho(b, base.base);
-		}
+		for (auto b = Base::min; b < Base::max; ++b) baseLikelihoods[b] = e * _rho(b, base.base);
 		baseLikelihoods[base.base] = e.complement();
+	}
+}
+
+void TModelRecal::simulate(BAM::TSequencedBase &base) const noexcept {
+	using genometools::Base;
+	if (base.base == Base::N) return;
+
+	const auto e = _calcErrorRate(base);
+	if (randomGenerator().getRand() < e) {
+		const double r = randomGenerator().getRand();
+		double cumul   = 0.;
+		for (auto b = Base::min; b < Base::max; ++b) {
+			cumul += _rho(b, base.base); //_rho(base.base, base.base) = 0
+			if (r < cumul) {
+				base.base = b;
+				return;
+			}
+		}
 	}
 }
 
