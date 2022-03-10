@@ -253,7 +253,7 @@ TModelDefinition TModelRecal::getModelDefinition() const {
 
 std::string TModelRecal::getCovariateDefinition() const noexcept {
 	TCovariateDefinition def;
-	def.setIntercept(_intercept.getIntercept());
+	def.setIntercept(_intercept.intercept());
 	for (const auto &cov : _covariates) { def.addCovariate(cov->typeString(), cov->functionString()); }
 	return def.getModelString();
 }
@@ -475,7 +475,7 @@ bool TModelRecal::acceptProposedParametersBasedOnQ() {
 }
 
 void TModelRecal::adjustParametersPostEstimation() {
-	for (const auto it : _functions) _intercept.addToIntercept(it->adjustParametersPostEstimation());
+	for (const auto it : _functions) _intercept.intercept() += it->adjustParametersPostEstimation();
 }
 
 double TModelRecal::getSteepestGradient() const noexcept {
