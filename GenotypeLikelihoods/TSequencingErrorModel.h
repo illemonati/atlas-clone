@@ -101,7 +101,7 @@ public:
 	virtual genometools::PhredIntProbability getPhredInt(const BAM::TSequencedBase &base) const noexcept = 0;
 	virtual void fillBaseLikelihoods(const BAM::TSequencedBase &base,
 					 TBaseLikelihoods &baseLikelihoods) const noexcept                   = 0;
-	virtual void simulate(BAM::TSequencedBase &base, coretools::TRandomGenerator &RandomGenerator) const noexcept = 0;
+	virtual void simulate(BAM::TSequencedBase &base) const noexcept = 0;
 	virtual std::string getCovariateDefinition() const noexcept                                                   = 0;
 	virtual std::string getRhoDefinition() const noexcept                                                         = 0;
 };
@@ -117,7 +117,7 @@ public:
 	coretools::Probability getErrorRate(const BAM::TSequencedBase &base) const noexcept override;
 	genometools::PhredIntProbability getPhredInt(const BAM::TSequencedBase &base) const noexcept override;
 	void fillBaseLikelihoods(const BAM::TSequencedBase &base, TBaseLikelihoods &baseLikelihoods) const noexcept override;
-	virtual void simulate(BAM::TSequencedBase &base, coretools::TRandomGenerator &RandomGenerator) const noexcept override;
+	virtual void simulate(BAM::TSequencedBase &base) const noexcept override;
 
 	virtual std::string getCovariateDefinition() const noexcept override { return "-"; };
 	virtual std::string getRhoDefinition() const noexcept override { return "-"; };
@@ -163,7 +163,7 @@ public:
 	coretools::Probability getErrorRate(const BAM::TSequencedBase &base) const noexcept override;
 	genometools::PhredIntProbability getPhredInt(const BAM::TSequencedBase &base) const noexcept override;
 	void fillBaseLikelihoods(const BAM::TSequencedBase &base, TBaseLikelihoods &baseLikelihoods) const noexcept override;
-	virtual void simulate(BAM::TSequencedBase &base, coretools::TRandomGenerator &RandomGenerator) const noexcept override{};
+	virtual void simulate(BAM::TSequencedBase &base) const noexcept override{};
 
 	// functions to estimate
 	std::string checkParameterRange(RecalEstimatorTools::TRecalDataTable &DataTable) const;

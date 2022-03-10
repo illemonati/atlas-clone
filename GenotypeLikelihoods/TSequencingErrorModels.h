@@ -35,9 +35,8 @@ private:
 	TModelNoRecal _noRecal;
 public:
 	bool recalStringIsLikelyAModel(const std::string &RecalString) const noexcept;
-	void initialize(const std::string &RecalString, const std::string &RhoString, const BAM::TReadGroups &ReadGroups,
-			coretools::TLog *Logfile);
-	void initializeFromFile(const std::string &Filename, const BAM::TReadGroups &ReadGroups, coretools::TLog *Logfile);
+	void initialize(const std::string &RecalString, const std::string &RhoString, const BAM::TReadGroups &ReadGroups);
+	void initializeFromFile(const std::string &Filename, const BAM::TReadGroups &ReadGroups);
 	void checkReadGroups(const BAM::TReadGroups &ReadGroups, std::vector<uint16_t> &ReadGroupsWithoutRecal,
 			     std::vector<uint16_t> &ReadGroupsLikelySingleEnd) const noexcept;
 

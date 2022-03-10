@@ -191,7 +191,7 @@ void TSimulator::_initializeQualityTransformations(const std::string &ParameterN
 
 	if (parameters().parameterExists(ParameterName)) {
 		const auto recalString = parameters().getParameter<std::string>(ParameterName);
-		_recal.initializeFromFile(recalString, _readGroups, &logfile());
+		_recal.initializeFromFile(recalString, _readGroups);
 
 		// add recal to simulators
 		for (size_t r = 0; r < _readSimulators.size(); ++r) {

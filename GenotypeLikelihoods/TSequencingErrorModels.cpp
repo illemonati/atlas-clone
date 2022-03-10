@@ -6,6 +6,7 @@
  */
 
 #include "TSequencingErrorModels.h"
+#include "TLog.h"
 #include "TSequencingErrorModel.h"
 #include "mathFunctions.h"
 #include "probability.h"
@@ -17,6 +18,7 @@ namespace SequencingError {
 
 using coretools::Probability;
 using coretools::str::toString;
+using coretools::instances::logfile;
 
 //--------------------------------------------------------------------
 // TModels
@@ -27,7 +29,7 @@ bool TModels::recalStringIsLikelyAModel(const std::string &RecalString) const no
 }
 
 void TModels::initialize(const std::string &RecalString, const std::string &RhoString,
-					const BAM::TReadGroups &ReadGroups, coretools::TLog *) {
+					const BAM::TReadGroups &ReadGroups) {
 	if (!_models.empty())
 		throw std::runtime_error(
 			"void TModels::initialize(const std::string & RecalString, const std::string & RhoString, "
@@ -46,14 +48,13 @@ void TModels::initialize(const std::string &RecalString, const std::string &RhoS
 	}
 }
 
-void TModels::initializeFromFile(const std::string &Filename, const BAM::TReadGroups &ReadGroups,
-						coretools::TLog *Logfile) {
+void TModels::initializeFromFile(const std::string &Filename, const BAM::TReadGroups &ReadGroups) {
 	if (!_models.empty())
 		throw std::runtime_error("void TModels::initializeFromFile(const std::string & filename, const "
 					 "BAM::TReadGroups & ReadGroups, TLog* Logfile): Models already initialized!");
 
 	// read parameters from file
-	Logfile->listFlush("Initializing recalibration models from '" + Filename + "' ...");
+	logfile().listFlush("Initializing recalibration models from '" + Filename + "' ...");
 	coretools::TInputFile in(Filename, {"readGroup", "mate", "covariates", "rho"}, "/t", "//");
 
 	// prepare objects
@@ -82,7 +83,7 @@ void TModels::initializeFromFile(const std::string &Filename, const BAM::TReadGr
 			}
 		}
 	}
-	Logfile->done();
+	logfile().done();
 }
 
 void TModels::checkReadGroups(const BAM::TReadGroups &ReadGroups, std::vector<uint16_t> &ReadGroupsWithoutRecal,

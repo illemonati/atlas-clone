@@ -6,13 +6,15 @@
  */
 
 #include "TSequencingErrorModel.h"
+#include "TRandomGenerator.h"
+#include "devtools.h"
 #include "probability.h"
 #include <memory>
-#include "devtools.h"
 
 namespace GenotypeLikelihoods {
 namespace SequencingError {
 using coretools::Probability;
+using coretools::instances::randomGenerator;
 
 //*********************************************************
 // TRecalibrationEMModelCovariateDefinition
@@ -160,13 +162,13 @@ void TModelNoRecal::fillBaseLikelihoods(const BAM::TSequencedBase &base,
 	}
 }
 
-void TModelNoRecal::simulate(BAM::TSequencedBase &base, coretools::TRandomGenerator &RandomGenerator) const noexcept {
+void TModelNoRecal::simulate(BAM::TSequencedBase &base) const noexcept {
 	using genometools::Base;
 	if (base.base == Base::N) return;
 
 	const auto eps = static_cast<Probability>(base.originalQuality_phredInt);
-	if (RandomGenerator.getRand() < (1. / 3) * eps) {
-		const int i = RandomGenerator.getRand(0, 3); // 3 bases to choose from
+	if (randomGenerator().getRand() < (1. / 3) * eps) {
+		const int i = randomGenerator().getRand(0, 3); // 3 bases to choose from
 		base.base   = Base((index(base.base) + i) % 4);
 	}
 }

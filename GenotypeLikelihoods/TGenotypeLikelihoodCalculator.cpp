@@ -59,11 +59,11 @@ void TGenotypeLikelihoodCalculator::init(coretools::TParameters & params, const 
 			} else {
 				Logfile->list("Will use default rho. (use 'rho' to change)");
 			}
-			_sequencingErrorModels.initialize(recalString, rhoString, *ReadGroups, Logfile);
+			_sequencingErrorModels.initialize(recalString, rhoString, *ReadGroups);
 		} else {
 			//assume it it a recal file
 			Logfile->startIndent("Initializing recal models from file '" + recalString + "' (parameter 'recal'):");
-			_sequencingErrorModels.initializeFromFile(recalString, *ReadGroups, Logfile);
+			_sequencingErrorModels.initializeFromFile(recalString, *ReadGroups);
 
 			//warn if some read groups have no recal definition
 			std::vector<uint16_t> readGroupsWithoutRecal;
