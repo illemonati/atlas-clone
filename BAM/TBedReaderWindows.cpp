@@ -113,7 +113,7 @@ uint32_t TBedReaderChromosome::size(){
 //-----------------------
 // TBedReader
 //-----------------------
-void TBedReaderWindows::readFile(const TChromosomes & chromosomeList, uint32_t siteLimit, TLog* logfile){
+void TBedReaderWindows::readFile(const genometools::TChromosomes & chromosomeList, uint32_t siteLimit, TLog* logfile){
 	//open file
 	std::istream* myStream = NULL;
 	if(filename.find(".gz")) myStream = new gz::igzstream(filename.c_str());
@@ -156,7 +156,7 @@ void TBedReaderWindows::readFile(const TChromosomes & chromosomeList, uint32_t s
 	delete myStream;
 };
 
-TBedReaderWindows::TBedReaderWindows(std::string Filename, uint32_t WindowSize, const TChromosomes & chromosomeList, uint32_t siteLimit, TLog* logfile){
+TBedReaderWindows::TBedReaderWindows(std::string Filename, uint32_t WindowSize, const genometools::TChromosomes & chromosomeList, uint32_t siteLimit, TLog* logfile){
 	filename = Filename;
 	windowSize = WindowSize;
 	numPositionsAdded = 0;

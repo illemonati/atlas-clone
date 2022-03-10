@@ -106,7 +106,7 @@ public:
 	void addPreviousProgramInChain(const std::string ID, const std::string previousID);
 	void addComment(const std::string Comment){ _comments_CO.push_back(Comment); };
 	std::string compileSamHeader(const TReadGroups & ReadGroups) const;
-	std::string compileSamHeader(const TReadGroups & ReadGroups, const TChromosomes & Chromosomes) const;
+	std::string compileSamHeader(const TReadGroups & ReadGroups, const genometools::TChromosomes & Chromosomes) const;
 
     //getters
     std::string version() const{ return _HD.version(); };

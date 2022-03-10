@@ -13,9 +13,9 @@
 #include "TGLF.h"
 #include "TBed.h"
 #include "TVcfFile.h"
+#include "TVCFReader.h"
 
 namespace VCF{
-
 
 //------------------------------------------
 // TVcfConverter
@@ -24,12 +24,12 @@ class TVcfConverter {
 protected:
     std::string _outname;
 	coretools::TLog * _logfile;
-    PopulationTools::TPopulationLikelihoodReaderLocus _reader;
-    PopulationTools::TPopulationSamples _samples;
+    genometools::TPopulationLikelihoodReaderLocus _reader;
+    genometools::TPopulationSamples _samples;
 
     virtual void _initOutputFiles() = 0;
     virtual void _writeHeader();
-    virtual void _writeData(PopulationTools::TPopulationLikehoodLocus & data) = 0;
+    virtual void _writeData(genometools::TPopulationLikehoodLocus & data) = 0;
 	void _readOutputName(coretools::TParameters & Params, const std::string & VCFFilename);
 
 public:

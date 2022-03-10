@@ -98,11 +98,11 @@ public:
 class TEstimateThetaRatio:public TGenome_windows{
 private:
 	GenotypeLikelihoods::TThetaEstimatorRatio _thetaEstimatorRatio;
-	BAM::TBed _region1;
-	BAM::TBed _region2;
+    genometools::TBed _region1;
+    genometools::TBed _region2;
 
-	void _initializeRegion(coretools::TParameters & Parameters, BAM::TBed & region, const char num);
-	void _addSites(GenotypeLikelihoods::TThetaEstimatorData & data, BAM::TBed & regions);
+	void _initializeRegion(coretools::TParameters & Parameters, genometools::TBed & region, const char num);
+	void _addSites(GenotypeLikelihoods::TThetaEstimatorData & data, genometools::TBed & regions);
 	void _handleWindow();
 
 public:

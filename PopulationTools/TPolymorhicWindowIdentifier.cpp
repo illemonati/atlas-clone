@@ -7,6 +7,7 @@
 
 
 #include "GenotypeTypes.h"
+#include "TVCFReader.h"
 #include <TPolymorhicWindowIdentifier.h>
 
 namespace PopulationTools{
@@ -21,14 +22,14 @@ TPolymorhicWindowIdentifier::TPolymorhicWindowIdentifier(TParameters &, TLog* Lo
 void TPolymorhicWindowIdentifier::identifyPolymorphicWindows(TParameters & Parameters, TRandomGenerator*){
 	using BG = genometools::BiallelicGenotype;
 	//read samples
-	TPopulationSamples samples;
+	genometools::TPopulationSamples samples;
 	if(Parameters.parameterExists("samples"))
 		samples.readSamples(Parameters.getParameter<std::string>("samples"), logfile);
 
 	//open VCF reader
 	std::string vcfFilename = Parameters.getParameter<std::string>("vcf");
 	logfile->startIndent("Reading genotype likelihoods from VCF file '" + vcfFilename + "':");
-	TPopulationLikelihoodReaderWindow reader(Parameters, logfile, false);
+    genometools::TPopulationLikelihoodReaderWindow reader(Parameters, logfile, false);
 	reader.openVCF(vcfFilename);
 	logfile->endIndent();
 
@@ -50,7 +51,7 @@ void TPolymorhicWindowIdentifier::identifyPolymorphicWindows(TParameters & Param
 	out.writeHeader(header);
 
 	//create likelihood window
-	TPopulationLikehoodWindow window(0, samples.numSamples());
+    genometools::TPopulationLikehoodWindow<genometools::HighPrecisionPhredIntProbability> window(0, samples.numSamples());
 
     //run through VCF file
     logfile->startIndent("Parsing VCF file:");

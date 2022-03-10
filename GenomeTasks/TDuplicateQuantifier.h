@@ -24,10 +24,10 @@ private:
 	coretools::TCountDistribution _countsCombined;
 
 	std::vector<uint32_t> _countsAtPos;
-	BAM::TGenomePosition _curPos;
-	BAM::TGenomePosition _curChrEnd;
+    genometools::TGenomePosition _curPos;
+    genometools::TGenomePosition _curChrEnd;
 
-	void _addCurCounts(const BAM::TGenomePosition & nextPos);
+	void _addCurCounts(const genometools::TGenomePosition & nextPos);
 	void _handleAlignments();
 
 public:

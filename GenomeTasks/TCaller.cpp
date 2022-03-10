@@ -61,14 +61,14 @@ TCaller::~TCaller(){
 //-------------------------------------------------------------------------------------------
 // Output settings
 //-------------------------------------------------------------------------------------------
-void TCaller::_setAcceptableFields(VCF::TVCFFieldVector* fields, std::string tags){
+void TCaller::_setAcceptableFields(genometools::TVCFFieldVector* fields, std::string tags){
 	std::vector<std::string> vec;
 	fillContainerFromStringAny(tags, vec, ",", true);
 	for(std::vector<std::string>::iterator it = vec.begin(); it != vec.end(); ++it)
 		fields->acceptField(*it);
 };
 
-void TCaller::_printField(VCF::TVCFFieldVector* fields, std::string tag){
+void TCaller::_printField(genometools::TVCFFieldVector* fields, std::string tag){
 	if(!fields->useField(tag))
 		throw "VCF " +  fields->type() + " field '" + tag + "' can not be printed by the " + _callerName +"!";
 };

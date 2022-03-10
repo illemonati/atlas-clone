@@ -182,7 +182,7 @@ std::string TSamHeader::compileSamHeader(const TReadGroups & ReadGroups) const{
 	return header;
 };
 
-std::string TSamHeader::compileSamHeader(const TReadGroups & ReadGroups, const TChromosomes & Chromosomes) const{
+std::string TSamHeader::compileSamHeader(const TReadGroups & ReadGroups, const genometools::TChromosomes & Chromosomes) const{
 	std::string header = compileSamHeader(ReadGroups);
 
 	return header + Chromosomes.compileSamHeader();

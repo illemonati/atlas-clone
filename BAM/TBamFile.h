@@ -36,8 +36,8 @@ private:
  	int64_t _fileSize;
 
  	//header
- 	TChromosomes _chromosomes;
- 	std::vector<TChromosome>::iterator _curChromosome;
+ 	genometools::TChromosomes _chromosomes;
+ 	std::vector<genometools::TChromosome>::iterator _curChromosome;
  	TReadGroups _readGroups;
  	TSamHeader _samHeader;
 
@@ -51,7 +51,7 @@ private:
  	BamTools::BamAlignment _curBamAlignment;
  	uint16_t _curReadGroupID;
  	TCigar _curCigar;
- 	TGenomePosition _curAlignmentPosition, _previousAlignmentPosition;
+ 	genometools::TGenomePosition _curAlignmentPosition, _previousAlignmentPosition;
  	bool _chrChanged;
 
 	//alignment filters
@@ -80,7 +80,7 @@ private:
  	TBamFileFilter _externalFilter;
 
 	void _fillSamHeader(TSamHeader & SamHeader);
-	void _fillChromosomes(TChromosomes & chromosomes);
+	void _fillChromosomes(genometools::TChromosomes & chromosomes);
 	void _fillReadGroups(TReadGroups & readGroups);
  	void _applyFilters();
 
@@ -101,7 +101,7 @@ public:
 	~TBamFile() = default;
 
 	//access header info READ ONLY
-	const TChromosomes& chromosomes() const{ return _chromosomes; };
+	const genometools::TChromosomes& chromosomes() const{ return _chromosomes; };
 	const TReadGroups& readGroups() const { return _readGroups; };
 	const TSamHeader samHeader() const{ return _samHeader; };
 
@@ -147,7 +147,7 @@ public:
 	bool readNextAlignmentThatPassesFilters(TAlignment & alignment);
 	void fill(TAlignment & alignment) const;
 
-	bool jump(const TGenomePosition Position);
+	bool jump(const genometools::TGenomePosition Position);
 	void rewind();
 
 	//writing
@@ -155,9 +155,9 @@ public:
 
 	//getters for cur alignment
 	const std::string curName() const{ return _curBamAlignment.Name; };
-	TGenomePosition curPosition() const { return _curAlignmentPosition; };
+	genometools::TGenomePosition curPosition() const { return _curAlignmentPosition; };
 	uint32_t refID() const{ return _curChromosome->refID(); };
-	const TChromosome& curChromosome() const{ return *_curChromosome; };
+	const genometools::TChromosome& curChromosome() const{ return *_curChromosome; };
 	const TCigar& curCIGAR() const{ return _curCigar; };
 	uint16_t curReadGroupID() const{ return _curReadGroupID; };
 	bool chrChanged() const{ return _chrChanged; };
@@ -204,13 +204,13 @@ public:
 	void printEndNoEndIndent();
 
 	//comparisons
-	bool operator==(const TGenomePosition & Position) const{ return _curAlignmentPosition == Position; };
-	bool operator<(const TGenomePosition & Position) const{ return _curAlignmentPosition < Position; };
-	bool operator>(const TGenomePosition & Position) const{ return _curAlignmentPosition > Position; };
-	bool operator<(const TGenomeWindow & Window) const{ return _curAlignmentPosition < Window; };
-	bool operator>(const TGenomeWindow & Window) const{ return _curAlignmentPosition > Window; };
-	bool operator<(const TChromosome & Chromosome) const{ return _curAlignmentPosition < Chromosome.chrStart; };
-	bool operator>(const TChromosome & Chromosome) const{ return _curAlignmentPosition > Chromosome.chrEnd; };
+	bool operator==(const genometools::TGenomePosition & Position) const{ return _curAlignmentPosition == Position; };
+	bool operator<(const genometools::TGenomePosition & Position) const{ return _curAlignmentPosition < Position; };
+	bool operator>(const genometools::TGenomePosition & Position) const{ return _curAlignmentPosition > Position; };
+	bool operator<(const genometools::TGenomeWindow & Window) const{ return _curAlignmentPosition < Window; };
+	bool operator>(const genometools::TGenomeWindow & Window) const{ return _curAlignmentPosition > Window; };
+	bool operator<(const genometools::TChromosome & Chromosome) const{ return _curAlignmentPosition < Chromosome.chrStart; };
+	bool operator>(const genometools::TChromosome & Chromosome) const{ return _curAlignmentPosition > Chromosome.chrEnd; };
 };
 
 //------------------------------------------------
@@ -263,9 +263,9 @@ public:
  	TOutputBamFile(const std::string filename, const TBamFile & original);
  	~TOutputBamFile();
 
- 	void open(const std::string Filename, const TSamHeader & Header, const TChromosomes & Chromosomes, const TReadGroups & ReadGroups);
+ 	void open(const std::string Filename, const TSamHeader & Header, const genometools::TChromosomes & Chromosomes, const TReadGroups & ReadGroups);
 	void open(const std::string Filename, const TBamFile & Original);
-	void open(coretools::TParameters & params, coretools::TLog* logfile, const std::string Filename, const TSamHeader & Header, const TChromosomes & Chromosomes, const TReadGroups & ReadGroups);
+	void open(coretools::TParameters & params, coretools::TLog* logfile, const std::string Filename, const TSamHeader & Header, const genometools::TChromosomes & Chromosomes, const TReadGroups & ReadGroups);
 	void setQualityAdjusterForWriting(coretools::TParameters & params, coretools::TLog* logfile);
 	bool isOpen() const{ return _openForWriting; };
 	void close(coretools::TLog* logfile);

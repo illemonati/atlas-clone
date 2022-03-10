@@ -12,6 +12,7 @@
 #include "probability.h"
 #include <string>
 #include <map>
+#include "TTask.h"
 
 namespace PopulationTools{
 

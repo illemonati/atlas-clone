@@ -420,7 +420,7 @@ double TAlleleFreqEstimatorBayes::calcPosteriorf1smallerf2(std::vector<double> &
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // TAlleleFreqMCMCOutput                                                                       //
 ////////////////////////////////////////////////////////////////////////////////////////////////
-void TAlleleFreqMCMCOutput::initialize(std::string popString, TPopulationSamples & samples, std::string OutputName, TLog* logfile){
+void TAlleleFreqMCMCOutput::initialize(std::string popString, genometools::TPopulationSamples & samples, std::string OutputName, TLog* logfile){
 	//parse string to identify pops for which MCMC shoudl be written
 	std::vector<std::string> tmp;
 	coretools::str::fillContainerFromString(popString, tmp, ',');

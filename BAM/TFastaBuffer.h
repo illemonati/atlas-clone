@@ -29,9 +29,9 @@ private:
 	mutable BamTools::Fasta _reference;
 	mutable uint32_t _bufferSize;
 	mutable std::string _referenceSequence;
-	mutable TGenomeWindow _coordinates;
+	mutable genometools::TGenomeWindow _coordinates;
 
-	void _moveTo(const BAM::TGenomePosition Position) const;
+	void _moveTo(const genometools::TGenomePosition Position) const;
 	void _fill(std::vector<genometools::Base> & VecToFill, size_t Length, size_t Offset) const;
 
 public:
@@ -55,11 +55,11 @@ public:
 	bool hasReference() const { return _hasReference; };
 	explicit operator bool() const { return _hasReference; }
 
-	void fill(const TGenomeWindow & Window, std::vector<genometools::Base> & VecToFill) const;
-	void fill(const TGenomePosition & Position, uint32_t Length, std::vector<genometools::Base> & VecToFill) const;
-	void fill(const TGenomePosition & Start, const TGenomePosition & End, std::vector<genometools::Base> & VecToFill) const;
-	genometools::Base refAt(const TGenomePosition Position) const;
-	char refCharAt(const TGenomePosition Position) const;
+	void fill(const genometools::TGenomeWindow & Window, std::vector<genometools::Base> & VecToFill) const;
+	void fill(const genometools::TGenomePosition & Position, uint32_t Length, std::vector<genometools::Base> & VecToFill) const;
+	void fill(const genometools::TGenomePosition & Start, const genometools::TGenomePosition & End, std::vector<genometools::Base> & VecToFill) const;
+	genometools::Base refAt(const genometools::TGenomePosition Position) const;
+	char refCharAt(const genometools::TGenomePosition Position) const;
 
 	/*
 	void fill(uint16_t chr, const uint32_t start, const uint32_t end, std::string & ref);

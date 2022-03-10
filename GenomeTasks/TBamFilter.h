@@ -79,7 +79,7 @@ protected:
 	void _writeAlignment(TAlignmentInStorage & it);
 	void _writeOrFilterAsOrphan(TAlignmentInStorage & it);
 	void _writeAll();
-	void _writeUpTo(const BAM::TGenomePosition & position);
+	void _writeUpTo(const genometools::TGenomePosition & position);
 
 	BAM::TAlignment* _parseIntoNewAlignment();
 	virtual void _handleMates(BAM::TAlignment* alignment, TAlignmentInStorage & mate);

@@ -24,7 +24,7 @@ protected:
 
 public:
 	void openFileToWrite(std::string filename);
-	virtual void writeHeader(TPopulationSamples & samples, coretools::TParameters & params, coretools::TLog* logfile);
+	virtual void writeHeader(genometools::TPopulationSamples & samples, coretools::TParameters & params, coretools::TLog* logfile);
 	virtual void writeHeader(std::vector<std::string> populationNames, coretools::TParameters & params, coretools::TLog* logfile);
 	virtual void writePosition(std::string chr, long pos);
 	virtual void writePosition(std::string chr, std::string pos);
@@ -38,7 +38,7 @@ public:
 
 class TTreeMixFile:public TAlleleCountFile{
 public:
-	void writeHeader(TPopulationSamples & samples, coretools::TParameters & params, coretools::TLog* logfile);
+	void writeHeader(genometools::TPopulationSamples & samples, coretools::TParameters & params, coretools::TLog* logfile);
 	void writeHeader(std::vector<std::string> populationNames, coretools::TParameters & params, coretools::TLog* logfile);
 	void writePosition(std::string chr, long pos);
 	void writePosition(std::string chr, std::string pos);
@@ -52,7 +52,7 @@ public:
 
 class TFlinkFile:public TAlleleCountFile{
 public:
-	void writeHeader(TPopulationSamples & samples, coretools::TParameters & params, coretools::TLog* logfile);
+	void writeHeader(genometools::TPopulationSamples & samples, coretools::TParameters & params, coretools::TLog* logfile);
 	void writeHeader(std::vector<std::string> populationNames, coretools::TParameters & params, coretools::TLog* logfile);
 	void writePosition(std::string chr, long pos);
 	void writePosition(std::string chr, std::string pos);

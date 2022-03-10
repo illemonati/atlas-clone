@@ -279,7 +279,7 @@ void TBamFilter::_writeAll(){
 	_blacklist.clear();
 };
 
-void TBamFilter::_writeUpTo(const BAM::TGenomePosition & position){
+void TBamFilter::_writeUpTo(const genometools::TGenomePosition & position){
 	//writes all that are ready or too far away
 	TAlignmentInStorage it = _alignmentStorage.begin();
 	while(it != _alignmentStorage.end() && (it->ready || static_cast<uint32_t>(abs(position - *it->alignment)) > _maxDistanceBetweenMates)){

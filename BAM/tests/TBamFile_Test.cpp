@@ -56,8 +56,8 @@ public:
 
 TEST_F(TBamFile_Test_ReadWrite, chromosomes){
     // get chromosomes
-    BAM::TChromosomes chromosomesWritten = outputBam->chromosomes();
-    BAM::TChromosomes chromosomesRead = inputBam->chromosomes();
+    genometools::TChromosomes chromosomesWritten = outputBam->chromosomes();
+    genometools::TChromosomes chromosomesRead = inputBam->chromosomes();
 
     // compare size
     EXPECT_EQ(chromosomesWritten.size(), chromosomesRead.size());
@@ -182,7 +182,7 @@ TEST_F(TBamFile_Test_ReadWrite, alignments){
 
 class TGenomeWindow_Test : public GenomeTasks::TGenome_windows {
 protected:
-    std::vector<BAM::TGenomeWindow> _windows_visited;
+    std::vector<genometools::TGenomeWindow> _windows_visited;
 
     void _handleWindow() override{
         // store sites
@@ -190,7 +190,7 @@ protected:
         for (auto & it : _window)
             tmp.emplace_back(it);
         sites.emplace_back(tmp);
-        // store BAM::TGenomeWindow
+        // store genometools::TGenomeWindow
         _windows_visited.emplace_back(this->_window);
         // store GenotypeLikelihoods::TWindow attributes
         depth.emplace_back(_window.depth());
@@ -218,10 +218,10 @@ public:
     // size
     uint32_t numWindows(){ return _windows_visited.size(); };
     // loop
-    std::vector<BAM::TGenomeWindow >::iterator begin(){ return _windows_visited.begin(); };
-    std::vector<BAM::TGenomeWindow >::iterator end(){ return _windows_visited.end(); };
+    std::vector<genometools::TGenomeWindow >::iterator begin(){ return _windows_visited.begin(); };
+    std::vector<genometools::TGenomeWindow >::iterator end(){ return _windows_visited.end(); };
     // access
-    BAM::TGenomeWindow& operator[](uint32_t pos){ return _windows_visited[pos]; };
+    genometools::TGenomeWindow& operator[](uint32_t pos){ return _windows_visited[pos]; };
 };
 
 class TBamFile_Test_Windows : public ::testing::Test {
@@ -249,24 +249,24 @@ public:
         BAM::TCigar onlyMCigar;
         onlyMCigar.add('M', 20);
 
-        outputBam->writeDummyAlignment(Base::A, PhredIntProbability(1), BAM::TGenomePosition(0, 0), onlyMCigar);
-        outputBam->writeDummyAlignment(Base::C, PhredIntProbability(2), BAM::TGenomePosition(0, 10), onlyMCigar);
-        outputBam->writeDummyAlignment(Base::G, PhredIntProbability(3), BAM::TGenomePosition(0, 20), onlyMCigar);
+        outputBam->writeDummyAlignment(Base::A, PhredIntProbability(1), genometools::TGenomePosition(0, 0), onlyMCigar);
+        outputBam->writeDummyAlignment(Base::C, PhredIntProbability(2), genometools::TGenomePosition(0, 10), onlyMCigar);
+        outputBam->writeDummyAlignment(Base::G, PhredIntProbability(3), genometools::TGenomePosition(0, 20), onlyMCigar);
 
         // 2) alignments overlap 2 windows
-        outputBam->writeDummyAlignment(Base::T, PhredIntProbability(4), BAM::TGenomePosition(0, 80), onlyMCigar);
-        outputBam->writeDummyAlignment(Base::A, PhredIntProbability(5), BAM::TGenomePosition(0, 90), onlyMCigar);
-        outputBam->writeDummyAlignment(Base::C, PhredIntProbability(6), BAM::TGenomePosition(0, 95), onlyMCigar);
-        outputBam->writeDummyAlignment(Base::G, PhredIntProbability(7), BAM::TGenomePosition(0, 100), onlyMCigar);
+        outputBam->writeDummyAlignment(Base::T, PhredIntProbability(4), genometools::TGenomePosition(0, 80), onlyMCigar);
+        outputBam->writeDummyAlignment(Base::A, PhredIntProbability(5), genometools::TGenomePosition(0, 90), onlyMCigar);
+        outputBam->writeDummyAlignment(Base::C, PhredIntProbability(6), genometools::TGenomePosition(0, 95), onlyMCigar);
+        outputBam->writeDummyAlignment(Base::G, PhredIntProbability(7), genometools::TGenomePosition(0, 100), onlyMCigar);
 
         // 3) one alignment inside 1 window
-        outputBam->writeDummyAlignment(Base::T, PhredIntProbability(8), BAM::TGenomePosition(0, 220), onlyMCigar);
+        outputBam->writeDummyAlignment(Base::T, PhredIntProbability(8), genometools::TGenomePosition(0, 220), onlyMCigar);
 
         // 4) only 1 window per chromosome
-        outputBam->writeDummyAlignment(Base::A, PhredIntProbability(9), BAM::TGenomePosition(1, 10), onlyMCigar);
+        outputBam->writeDummyAlignment(Base::A, PhredIntProbability(9), genometools::TGenomePosition(1, 10), onlyMCigar);
 
         // 5) empty window
-        outputBam->writeDummyAlignment(Base::C, PhredIntProbability(0), BAM::TGenomePosition(2, 10), onlyMCigar);
+        outputBam->writeDummyAlignment(Base::C, PhredIntProbability(0), genometools::TGenomePosition(2, 10), onlyMCigar);
 
         // 6) empty chromosome
 
@@ -277,9 +277,9 @@ public:
         mixedCigar.add('D', 5);
         mixedCigar.add('I', 5);
         mixedCigar.add('S', 2);
-        outputBam->writeDummyAlignment(Base::A, PhredIntProbability(1), BAM::TGenomePosition(4, 0), mixedCigar);
-        outputBam->writeDummyAlignment(Base::C, PhredIntProbability(2), BAM::TGenomePosition(4, 4), mixedCigar);
-        outputBam->writeDummyAlignment(Base::G, PhredIntProbability(3), BAM::TGenomePosition(4, 8), mixedCigar);
+        outputBam->writeDummyAlignment(Base::A, PhredIntProbability(1), genometools::TGenomePosition(4, 0), mixedCigar);
+        outputBam->writeDummyAlignment(Base::C, PhredIntProbability(2), genometools::TGenomePosition(4, 4), mixedCigar);
+        outputBam->writeDummyAlignment(Base::G, PhredIntProbability(3), genometools::TGenomePosition(4, 8), mixedCigar);
 
         // 8) last window is empty
 

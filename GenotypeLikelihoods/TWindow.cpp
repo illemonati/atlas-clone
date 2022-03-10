@@ -87,20 +87,20 @@ void TWindow_base::move(const uint32_t RefID, const uint32_t Start, const uint32
 };
 */
 
-void TWindow_base::move(const BAM::TGenomePosition & From, const BAM::TGenomePosition & To, const std::string ChrName){
-	BAM::TGenomeWindow::move(From, To);
+void TWindow_base::move(const genometools::TGenomePosition & From, const genometools::TGenomePosition & To, const std::string ChrName){
+	genometools::TGenomeWindow::move(From, To);
 	_chrName = ChrName;
 	clear();
 };
 
-void TWindow_base::move(const BAM::TGenomePosition & From, uint32_t Length, const std::string ChrName){
-	BAM::TGenomeWindow::move(From, Length);
+void TWindow_base::move(const genometools::TGenomePosition & From, uint32_t Length, const std::string ChrName){
+	genometools::TGenomeWindow::move(From, Length);
 	_chrName = ChrName;
 	clear();
 };
 
-void TWindow_base::move(const BAM::TGenomeWindow & Window, const std::string ChrName){
-	BAM::TGenomeWindow::move(Window);
+void TWindow_base::move(const genometools::TGenomeWindow & Window, const std::string ChrName){
+	genometools::TGenomeWindow::move(Window);
 	_chrName = ChrName;
 	clear();
 };
@@ -257,10 +257,10 @@ void TWindow_base::addReferenceBaseToSites(TSiteSubset & subset){
 	}
 };
 
-void TWindow_base::applyMask(BAM::TBed & mask, bool doInverseMasking){
+void TWindow_base::applyMask(genometools::TBed & mask, bool doInverseMasking){
 	if(doInverseMasking){
 		//only keep sites in BED
-		BAM::TGenomePosition pos = _from;
+		genometools::TGenomePosition pos = _from;
 		//uint32_t pos = _from.position();
 		auto it = mask.lower_bound(*this);
 		while(it != mask.end() && this->overlaps(*it)){
@@ -281,7 +281,7 @@ void TWindow_base::applyMask(BAM::TBed & mask, bool doInverseMasking){
 		auto it = mask.lower_bound(*this);
 		while(it != mask.end() && this->overlaps(*it)){
 
-			for(BAM::TGenomePosition s = std::max(it->from(), _from); s < it->to(); ++s){
+			for(genometools::TGenomePosition s = std::max(it->from(), _from); s < it->to(); ++s){
 				_sites[s - _from].clear();
 			}
 			++it;
@@ -293,7 +293,7 @@ void TWindow_base::maskCpG(BAM::TFastaBuffer & reference){
 	using genometools::Base;
 	//get ref sequence with one extra base on either side of window
 	std::vector<Base> ref;
-	BAM::TGenomePosition pos = _from - 1;
+	genometools::TGenomePosition pos = _from - 1;
 	reference.fill(pos, size()+2, ref); //NOTE: appends N in case start < 0 or start + length > chr
 
 	//now check for each base. Index in ref is shifted by 1!
@@ -415,17 +415,17 @@ void TWindow::move(const uint32_t RefID, const uint32_t Start, const uint32_t En
 };
 */
 
-void TWindow::move(const BAM::TGenomePosition & From, uint32_t Length, const std::string ChrName){
+void TWindow::move(const genometools::TGenomePosition & From, uint32_t Length, const std::string ChrName){
 	TWindow_base::move(From, Length, ChrName);
 	_cleanUpUsedAlignments();
 };
 
-void TWindow::move(const BAM::TGenomePosition & From, const BAM::TGenomePosition & To, const std::string ChrName){
+void TWindow::move(const genometools::TGenomePosition & From, const genometools::TGenomePosition & To, const std::string ChrName){
 	TWindow_base::move(From, To, ChrName);
 	_cleanUpUsedAlignments();
 };
 
-void TWindow::move(const BAM::TGenomeWindow & Window, const std::string ChrName){
+void TWindow::move(const genometools::TGenomeWindow & Window, const std::string ChrName){
 	TWindow_base::move(Window, ChrName);
 	_cleanUpUsedAlignments();
 };

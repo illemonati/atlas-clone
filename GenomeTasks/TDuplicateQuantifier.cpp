@@ -15,7 +15,7 @@ namespace GenomeTasks{
 //----------------------------------------------
 TDuplicateQuantifier::TDuplicateQuantifier(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator):TGenome_filtered(Parameters, Logfile, RandomGenerator){};
 
-void TDuplicateQuantifier::_addCurCounts(const BAM::TGenomePosition & nextPos){
+void TDuplicateQuantifier::_addCurCounts(const genometools::TGenomePosition & nextPos){
 	//add current counts and zero for all positions until nextPos
 	uint32_t steps = nextPos - _curPos - 1;
 	uint32_t sum = 0;

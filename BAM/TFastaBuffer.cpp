@@ -14,7 +14,7 @@ namespace BAM{
 
 using genometools::Base;
 
-void TFastaBuffer::_moveTo(const TGenomePosition Position) const{
+void TFastaBuffer::_moveTo(const genometools::TGenomePosition Position) const{
 	if(!_hasReference){
 		throw "Can not move reference: no FASTA file provided!";
 	}
@@ -58,7 +58,7 @@ void TFastaBuffer::_fill(std::vector<Base> & VecToFill, size_t Length, size_t Of
 	}
 };
 
-void TFastaBuffer::fill(const TGenomeWindow & Window, std::vector<Base> & VecToFill) const {
+void TFastaBuffer::fill(const genometools::TGenomeWindow & Window, std::vector<Base> & VecToFill) const {
 	//move buffer, if necessary
 	if(!_coordinates.contains(Window)){
 		//adjust buffer size?
@@ -75,7 +75,7 @@ void TFastaBuffer::fill(const TGenomeWindow & Window, std::vector<Base> & VecToF
 
 };
 
-void TFastaBuffer::fill(const TGenomePosition & Position, uint32_t Length, std::vector<Base> & VecToFill) const {
+void TFastaBuffer::fill(const genometools::TGenomePosition & Position, uint32_t Length, std::vector<Base> & VecToFill) const {
 	//move buffer, if necessary
 	if(Position  < _coordinates || Position + Length - 1 > _coordinates){
 		if(Length > _bufferSize){
@@ -88,7 +88,7 @@ void TFastaBuffer::fill(const TGenomePosition & Position, uint32_t Length, std::
 	_fill(VecToFill, Length, Position - _coordinates);
 };
 
-void TFastaBuffer::fill(const TGenomePosition & Start, const TGenomePosition & End, std::vector<Base> & VecToFill) const {
+void TFastaBuffer::fill(const genometools::TGenomePosition & Start, const genometools::TGenomePosition & End, std::vector<Base> & VecToFill) const {
 	fill(Start, End - Start + 1, VecToFill);
 };
 
@@ -108,14 +108,14 @@ void TFastaBuffer::fill(const TGenomePosition & Position, const uint32_t end, st
 };
 */
 
-char TFastaBuffer::refCharAt(const TGenomePosition Position) const {
+char TFastaBuffer::refCharAt(const genometools::TGenomePosition Position) const {
 	if(Position  < _coordinates || Position > _coordinates){
 		_moveTo(Position);
 	}
 	return _referenceSequence[Position - _coordinates.from()];
 };
 
-Base TFastaBuffer::refAt(const TGenomePosition Position) const{
+Base TFastaBuffer::refAt(const genometools::TGenomePosition Position) const{
 	return genometools::char2base(refCharAt(Position));
 };
 

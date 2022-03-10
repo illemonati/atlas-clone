@@ -9,6 +9,7 @@
 #define POPULATIONTOOLS_TPOLYMORHICWINDOWIDENTIFIER_H_
 
 #include "TPopulationLikelihoods.h"
+#include "TTask.h"
 
 namespace PopulationTools{
 

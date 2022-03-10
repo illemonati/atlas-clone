@@ -13,6 +13,8 @@
 #include "TPopulationLikelihoods.h"
 #include "TRandomGenerator.h"
 #include "THardyWeinbergGenotypeProbabilities.h"
+#include "TVCFReader.h"
+#include "TTask.h"
 
 namespace PopulationTools{
 
@@ -96,10 +98,10 @@ private:
 
 public:
 	TAlleleFreqMCMCOutput(){}
-	TAlleleFreqMCMCOutput(std::string popString, TPopulationSamples & samples, std::string OutputName, coretools::TLog* logfile){
+	TAlleleFreqMCMCOutput(std::string popString, genometools::TPopulationSamples & samples, std::string OutputName, coretools::TLog* logfile){
 		initialize(popString, samples, OutputName, logfile);
 	};
-	void initialize(std::string popString, TPopulationSamples & samples, std::string OutputName, coretools::TLog* logfile);
+	void initialize(std::string popString, genometools::TPopulationSamples & samples, std::string OutputName, coretools::TLog* logfile);
 	void write(std::vector< std::vector<double> > & mcmc, const std::string chr, const uint64_t pos);
 };
 
@@ -114,9 +116,9 @@ private:
 	coretools::TLog* logfile;
 
 	// data on individuals
-	TPopulationLikelihoodReaderLocus reader;
-	TPopulationSamples samples;
-	TPopulationLikehoodLocus storage;
+    genometools::TPopulationLikelihoodReaderLocus reader;
+    genometools::TPopulationSamples samples;
+    genometools::TPopulationLikehoodLocus<genometools::HighPrecisionPhredIntProbability> storage;
 
 	void _openVCF(coretools::TParameters & Parameters);
 	void _closeVCF();

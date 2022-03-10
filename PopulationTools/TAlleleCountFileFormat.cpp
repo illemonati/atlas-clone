@@ -25,7 +25,7 @@ void TAlleleCountFile::openFileToWrite(std::string filename){
 		throw "Failed to open file '" + filename + "' for writing!";
 };
 
-void TAlleleCountFile::writeHeader(TPopulationSamples & samples, coretools::TParameters & params, coretools::TLog* logfile){
+void TAlleleCountFile::writeHeader(genometools::TPopulationSamples & samples, coretools::TParameters & params, coretools::TLog* logfile){
 	bool useLocusName = params.parameterExists("useLocusName");
 	if(useLocusName){
 		logfile->list("Will print locus names (rather than chromosome and position).");
@@ -79,7 +79,7 @@ TTreeMixFile::TTreeMixFile(std::string Filename):TAlleleCountFile(Filename){
 	filename = Filename;
 };
 
-void TTreeMixFile::writeHeader(TPopulationSamples & samples, coretools::TParameters &, coretools::TLog*){
+void TTreeMixFile::writeHeader(genometools::TPopulationSamples & samples, coretools::TParameters &, coretools::TLog*){
 	outFile << samples.getPopulationName(0);
 	for(size_t p=1; p<samples.numPopulations(); p++)
 		outFile << " " << samples.getPopulationName(p);
@@ -126,7 +126,7 @@ TFlinkFile::TFlinkFile(std::string Filename):TAlleleCountFile(Filename){
 	sep = "\t";
 };
 
-void TFlinkFile::writeHeader(TPopulationSamples & samples, coretools::TParameters &, coretools::TLog*){
+void TFlinkFile::writeHeader(genometools::TPopulationSamples & samples, coretools::TParameters &, coretools::TLog*){
 	outFile << "-\t-";
 	for(size_t g=0; g<samples.numPopulations(); ++g){
 		outFile << "\tGroup_A";

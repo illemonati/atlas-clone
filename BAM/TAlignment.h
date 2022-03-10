@@ -25,7 +25,7 @@ namespace BAM{
 //-----------------------------------------------------
 //TAlignment
 //-----------------------------------------------------
-class TAlignment:public TGenomePosition{
+class TAlignment:public genometools::TGenomePosition{
 private:
 	//Alignment data
 	std::string _name;
@@ -112,7 +112,7 @@ public:
 	bool isAlignedAtInternalPos(const uint32_t internalPosition) const;
 	genometools::Base referenceAtInternalPos(uint32_t internalPosition) const;
 	TGenomePosition positionInRef(uint32_t internalPosition) const;
-	const BAM::TGenomePosition& mateGenomicPosition() const{ return _mateGenomicPosition; };
+	const genometools::TGenomePosition& mateGenomicPosition() const{ return _mateGenomicPosition; };
 	uint32_t matePosition() const{ return _mateGenomicPosition.position(); };
 	uint32_t mateRefID() const{ return _mateGenomicPosition.refID(); };
 

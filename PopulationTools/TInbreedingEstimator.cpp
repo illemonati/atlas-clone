@@ -35,7 +35,7 @@ void TInbreedingEstimatorPrior::_registerPriorParameters() {
 
 void TInbreedingEstimatorPrior::initializeStorageOfPriorParameters() {
     // assemble dimension names from _likelihoods
-    auto lociNames = std::make_shared<stattools::TNamesPositions>(_likelihoods.positions());
+    auto lociNames = std::make_shared<genometools::TNamesPositions>(_likelihoods.positions());
 
     // F and z: one value
     _F->initializeStorageSingleElementBasedOnPrior();
@@ -63,7 +63,7 @@ void TInbreedingEstimatorPrior::_readCommandLineArguments(){
     logfile().list("Lambda of exponential distribution used for the proposal of new F after move to model with F is set to ", lambda, ". (parameter 'lambdaF')");
 }
 
-double TInbreedingEstimatorPrior::_getLogPriorDensity_vec(const std::shared_ptr<stattools::TParameterObservationTypedBase<TypeGTL, 2>> &, const size_t &) {
+double TInbreedingEstimatorPrior::_getLogPriorDensity_vec(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> &, size_t) const {
     // TODO: Harmonize with observation!
 }
 
@@ -237,7 +237,7 @@ void TInbreedingEstimatorPrior::estimateInitialPriorParameters() {
     _setInitialP();
 }
 
-double TInbreedingEstimatorPrior::getSumLogPriorDensity(const std::shared_ptr<stattools::TParameterObservationTypedBase<TypeGTL, 2>> &) {
+double TInbreedingEstimatorPrior::getSumLogPriorDensity(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> &) const {
     double sum = 0.;
     size_t l = 0;
     for (_likelihoods.begin(); !_likelihoods.end(); _likelihoods.next(), ++l){
@@ -254,19 +254,19 @@ void TInbreedingEstimatorPrior::simulateUnderPrior() {
     // TODO: ? In here or in Atlas simulator?
 }
 
-double TInbreedingEstimatorPrior::_getPriorDensity_vec(const std::shared_ptr<stattools::TParameterObservationTypedBase<TypeGTL, 2>> &, const size_t &) {
+double TInbreedingEstimatorPrior::_getPriorDensity_vec(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> &, size_t) const {
     throw std::runtime_error((std::string) __PRETTY_FUNCTION__ + ": not implemented.");
 }
-double TInbreedingEstimatorPrior::_getPriorDensityOld_vec(const std::shared_ptr<stattools::TParameterObservationTypedBase<TypeGTL, 2>> &, const size_t &) {
+double TInbreedingEstimatorPrior::_getPriorDensityOld_vec(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> &, size_t) const {
     throw std::runtime_error((std::string) __PRETTY_FUNCTION__ + ": not implemented.");
 }
-double TInbreedingEstimatorPrior::_getLogPriorDensityOld_vec(const std::shared_ptr<stattools::TParameterObservationTypedBase<TypeGTL, 2>> &, const size_t &) {
+double TInbreedingEstimatorPrior::_getLogPriorDensityOld_vec(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> &, size_t) const {
     throw std::runtime_error((std::string) __PRETTY_FUNCTION__ + ": not implemented.");
 }
-double TInbreedingEstimatorPrior::_getLogPriorRatio_vec(const std::shared_ptr<stattools::TParameterObservationTypedBase<TypeGTL, 2>> &, const size_t &) {
+double TInbreedingEstimatorPrior::_getLogPriorRatio_vec(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> &, size_t) const {
     throw std::runtime_error((std::string) __PRETTY_FUNCTION__ + ": not implemented.");
 }
-double TInbreedingEstimatorPrior::_getExpectedValueFromPriorParameters(const std::shared_ptr<stattools::TParameterObservationTypedBase<TypeGTL, 2>> &, const size_t &){
+double TInbreedingEstimatorPrior::_getExpectedValueFromPriorParameters(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> &, size_t) const{
     throw std::runtime_error((std::string) __PRETTY_FUNCTION__ + ": not implemented.");
 }
 
@@ -277,7 +277,7 @@ double TInbreedingEstimatorPrior::_getExpectedValueFromPriorParameters(const std
 TInbreedingEstimator::TInbreedingEstimator(coretools::TParameters &, coretools::TLog *, coretools::TRandomGenerator *) {}
 
 void TInbreedingEstimator::_defineF(){
-    auto priorOnF = std::make_shared<stattools::prior::TUniformFixed<TypeF, 1>>();
+    auto priorOnF = std::make_shared<stattools::prior::TUniformFixed<stattools::TValueUpdated, TypeF, 1>>();
     stattools::TParameterDefinition defF;
     defF.setAllFiles(_filename);
     auto F = std::make_shared<stattools::TParameterTyped<TypeF, 1>>("F", priorOnF, defF);
@@ -286,14 +286,14 @@ void TInbreedingEstimator::_defineF(){
 
 void TInbreedingEstimator::_defineP(){
     // c
-    auto priorOnC = std::make_shared<stattools::prior::TUniformFixed<TypeC, 1>>();
+    auto priorOnC = std::make_shared<stattools::prior::TUniformFixed<stattools::TValueUpdated, TypeC, 1>>();
     stattools::TParameterDefinition defC;
     defC.setAllFiles(_filename);
     auto c = std::make_shared<stattools::TParameterTyped<TypeC, 1>>("c", priorOnC, defC);
     _dagBuilder->addToDAG(c);
 
     // p
-    auto priorOnP = std::make_shared<stattools::prior::TUniformFixed<TypeP, 1>>(); // std::make_shared<stattools::prior::TSymmetricBetaInferred<TypeP, 1, TypeC>>(c);
+    auto priorOnP = std::make_shared<stattools::prior::TUniformFixed<stattools::TValueUpdated, TypeP, 1>>(); // std::make_shared<stattools::prior::TSymmetricBetaInferred<TypeP, 1, TypeC>>(c);
     stattools::TParameterDefinition defP;
     defP.setAllFiles(_filename);
     defP.setJumpSizeForAll(false);

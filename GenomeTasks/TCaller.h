@@ -12,7 +12,7 @@
 #include "TGenotypeData.h"
 #include "TGenome.h"
 #include "TTask.h"
-#include "TVCFFields.h"
+#include "VCF/TVCFFields.h"
 #include "stringFunctions.h"
 
 namespace GenomeTasks{
@@ -30,8 +30,8 @@ protected:
 	std::string _filenameExtention;
 
 	//lookup stuff
-	VCF::TVCFInfoFields _VCFInfoFields;
-	VCF::TVCFGenotypeFields _VCFGenotypeFields;
+	genometools::TVCFInfoFields _VCFInfoFields;
+	genometools::TVCFGenotypeFields _VCFGenotypeFields;
 	coretools::TRandomGenerator* _randomGenerator;
 
 	//output choices
@@ -61,8 +61,8 @@ protected:
 	bool _priorSet;
 
 	//functions regarding VCF file
-	void _setAcceptableFields(VCF::TVCFFieldVector* fields, std::string tags);
-	void _printField(VCF::TVCFFieldVector* fields, std::string tag);
+	void _setAcceptableFields(genometools::TVCFFieldVector* fields, std::string tags);
+	void _printField(genometools::TVCFFieldVector* fields, std::string tag);
 	void _writeVCFHeader(const std::string & sampleName);
 
 	//function to write info fields

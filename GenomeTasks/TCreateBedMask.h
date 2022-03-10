@@ -18,7 +18,7 @@ namespace GenomeTasks{
 //--------------------------------------
 class TCreateBedMask:public TGenome_windows{
 protected:
-	BAM::TBed _bed;
+	genometools::TBed _bed;
 	uint32_t _minDepthForMask;
 
 	void _createMask(const std::string fileTag);

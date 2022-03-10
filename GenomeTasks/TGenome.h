@@ -17,7 +17,7 @@
 #include "TWindow.h"
 #include "gzstream.h"
 #include "TLog.h"
-#include "TBed.h"
+#include "BED/TBed.h"
 #include "TGenotypeLikelihoodCalculator.h"
 #include "TGenotypePrior.h"
 #include "TBamFile.h"
@@ -99,8 +99,8 @@ public:
 //---------------------------------------------------------------
 class TGenome_windows:public TGenome_parsed{
 protected:
-	const BAM::TChromosomes& _chromosomes;
-	std::vector<BAM::TChromosome>::const_iterator _curChromosome;
+	const genometools::TChromosomes& _chromosomes;
+	std::vector<genometools::TChromosome>::const_iterator _curChromosome;
 
 	//window params
 	uint32_t _windowSize;
@@ -109,8 +109,8 @@ protected:
 	bool _chrChangedWindow;
 
 	//predefined windows
-	BAM::TGenomeWindowList _predefinedWindows;
-	std::multiset<BAM::TGenomeWindow>::iterator _curPredefinedWindow;
+    genometools::TGenomeWindowList _predefinedWindows;
+	std::multiset<genometools::TGenomeWindow>::iterator _curPredefinedWindow;
 
 	//window limits
 	long _limitWindows;
@@ -122,7 +122,7 @@ protected:
 
 	//mask
 	bool _doMasking, _considerRegions;
-	BAM::TBed _mask;
+    genometools::TBed _mask;
 
 	//sites
 	std::unique_ptr<GenotypeLikelihoods::TSiteSubset> _subset;

@@ -30,13 +30,13 @@ namespace GenotypeLikelihoods{
 //-----------------------------------------------
 // TSiteSubsetSite
 //-----------------------------------------------
-class TSiteSubsetSite:public BAM::TGenomePosition{
+class TSiteSubsetSite:public genometools::TGenomePosition{
 private:
 	genometools::Base _ref, _alt;
 
 public:
 	TSiteSubsetSite(uint32_t refID, uint32_t position, const genometools::Base & Ref, const genometools::Base & Alt);
-	TSiteSubsetSite(const BAM::TGenomePosition & Position, const genometools::Base & Ref, const genometools::Base & Alt);
+	TSiteSubsetSite(const genometools::TGenomePosition & Position, const genometools::Base & Ref, const genometools::Base & Alt);
 	TSiteSubsetSite(const TSiteSubsetSite & other) = default;
 	void write(coretools::TOutputFile & out) const;
 
@@ -56,15 +56,15 @@ private:
 	bool _storesInvariantSites;
 
 	void _checkAlleles(const std::string & chr, uint32_t pos, const genometools::Base & ref, const genometools::Base & alt, const std::string & refAllele, const std::string & altAllele);
-	void _readFile(const std::string Filename, const BAM::TChromosomes & Chromosomes, coretools::TLog* Logfile);
-	void _readFile(const std::string Filename, const BAM::TChromosomes & Chromosomes, coretools::TLog* Logfile, BAM::TFastaBuffer & Reference);
+	void _readFile(const std::string Filename, const genometools::TChromosomes & Chromosomes, coretools::TLog* Logfile);
+	void _readFile(const std::string Filename, const genometools::TChromosomes & Chromosomes, coretools::TLog* Logfile, BAM::TFastaBuffer & Reference);
 
 public:
-	TSiteSubset(const std::string Filename, const BAM::TChromosomes & Chromosomes, coretools::TLog* Logfile, bool InvariantSites);
-	TSiteSubset(const std::string Filename, const BAM::TChromosomes & Chromosomes, coretools::TLog* Logfile, bool InvariantSites, BAM::TFastaBuffer & Reference);
+	TSiteSubset(const std::string Filename, const genometools::TChromosomes & Chromosomes, coretools::TLog* Logfile, bool InvariantSites);
+	TSiteSubset(const std::string Filename, const genometools::TChromosomes & Chromosomes, coretools::TLog* Logfile, bool InvariantSites, BAM::TFastaBuffer & Reference);
 	void write(const std::string Filename) const;
-	bool hasPositionsInWindow(const BAM::TGenomeWindow & Window) const;
-	std::set<TSiteSubsetSite> getPositionInWindow(const BAM::TGenomeWindow & Window) const;
+	bool hasPositionsInWindow(const genometools::TGenomeWindow & Window) const;
+	std::set<TSiteSubsetSite> getPositionInWindow(const genometools::TGenomeWindow & Window) const;
 	size_t size();
 };
 

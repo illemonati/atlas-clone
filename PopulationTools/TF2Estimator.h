@@ -9,6 +9,7 @@
 #include "TPopulationLikelihoods.h"
 #include "TRandomGenerator.h"
 #include "mathFunctions.h"
+#include "TTask.h"
 
 namespace PopulationTools {
 //------------------------------------------------
@@ -22,12 +23,12 @@ namespace PopulationTools {
 
         //vcf-file
         std::string _vcfFilename;
-        VCF::TVcfFileSingleLine _vcfFile;
+        genometools::TVcfFileSingleLine _vcfFile;
         bool _limitLines;
         uint64_t _maxNumLines;
 
         //samples
-        TPopulationSamples _samples;
+        genometools::TPopulationSamples _samples;
 
         //genotype data
         //THWPopulations _populations;

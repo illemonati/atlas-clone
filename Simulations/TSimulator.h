@@ -46,7 +46,7 @@ protected:
 	double _maxReadLength       = 0;
 
 	// chromosomes
-	BAM::TChromosomes _chromosomes;
+    genometools::TChromosomes _chromosomes;
 	bool _writeTrueGenotypes            = false;
 	bool _writeVariantInvariantBedFiles = false;
 	TSimulatorReference _reference;
@@ -94,9 +94,9 @@ protected:
 	// functions to simulate
 	genometools::Base _sampleBase(const std::array<double, 4> &cumulProbs);
 	genometools::Base _mutateBase(genometools::Base base, const std::array<double, 4> &cumulProbs);
-	virtual void _simulateHaplotypesDiploid(TSimulatorHaplotypes &, const BAM::TChromosome &) = 0;
-	virtual void _simulateHaplotypesHaploid(TSimulatorHaplotypes &, const BAM::TChromosome &) = 0;
-	void _simulateReadsFromHaplotypes(const BAM::TChromosome &thisChr, std::array<std::vector<genometools::Base>,2> haplotypes, TSimulatorBamFile &bamFile,
+	virtual void _simulateHaplotypesDiploid(TSimulatorHaplotypes &, const genometools::TChromosome &) = 0;
+	virtual void _simulateHaplotypesHaploid(TSimulatorHaplotypes &, const genometools::TChromosome &) = 0;
+	void _simulateReadsFromHaplotypes(const genometools::TChromosome &thisChr, std::array<std::vector<genometools::Base>,2> haplotypes, TSimulatorBamFile &bamFile,
 					  std::string extraProgressText);
 
 public:
@@ -117,8 +117,8 @@ class TSimulatorOne : public TSimulator {
 private:
 	std::vector<double> _thetas;
 
-	void _simulateHaplotypesDiploid(TSimulatorHaplotypes &haplotypes, const BAM::TChromosome &chromosome) override;
-	void _simulateHaplotypesHaploid(TSimulatorHaplotypes &haplotypes, const BAM::TChromosome &chromosome) override;
+	void _simulateHaplotypesDiploid(TSimulatorHaplotypes &haplotypes, const genometools::TChromosome &chromosome) override;
+	void _simulateHaplotypesHaploid(TSimulatorHaplotypes &haplotypes, const genometools::TChromosome &chromosome) override;
 
 public:
 	TSimulatorOne(coretools::TLog *Logfile, coretools::TParameters &params, coretools::TRandomGenerator *RandomGenerator);
@@ -137,8 +137,8 @@ private:
 	std::array<std::vector<std::array<genometools::Base,4>>, 9> _genoTrans;
 
 	void _fillTables();
-	void _simulateHaplotypesDiploid(TSimulatorHaplotypes &haplotypes, const BAM::TChromosome &chromosome) override;
-	void _simulateHaplotypesHaploid(TSimulatorHaplotypes &haplotypes, const BAM::TChromosome &chromosome) override;
+	void _simulateHaplotypesDiploid(TSimulatorHaplotypes &haplotypes, const genometools::TChromosome &chromosome) override;
+	void _simulateHaplotypesHaploid(TSimulatorHaplotypes &haplotypes, const genometools::TChromosome &chromosome) override;
 
 public:
 	TSimulatorPair(coretools::TLog *Logfile, coretools::TParameters &params, coretools::TRandomGenerator *RandomGenerator);
@@ -154,8 +154,8 @@ private:
 
 	void _initializeSFS(const std::vector<double> &thetas);
 	void _initializeSFS(const std::vector<std::string> &sfsFileNames, bool folded);
-	void _simulateHaplotypesHaploid(TSimulatorHaplotypes &haplotypes, const BAM::TChromosome &chromosome) override;
-	void _simulateHaplotypesDiploid(TSimulatorHaplotypes &haplotypes, const BAM::TChromosome &chromosome) override;
+	void _simulateHaplotypesHaploid(TSimulatorHaplotypes &haplotypes, const genometools::TChromosome &chromosome) override;
+	void _simulateHaplotypesDiploid(TSimulatorHaplotypes &haplotypes, const genometools::TChromosome &chromosome) override;
 
 public:
 	TSimulatorSFS(coretools::TLog *Logfile, coretools::TParameters &params, coretools::TRandomGenerator *RandomGenerator);
@@ -182,8 +182,8 @@ private:
 	void _fillCumulGenoProb(double f);
 	void _simulateSite(TSimulatorHWSite &site, const std::string &chr, uint64_t pos);
 	void _fillhaplotypesMonomoprhic(TSimulatorHaplotypes &haplotypes, uint64_t locus, const TSimulatorHWSite &site);
-	void _simulateHaplotypesHaploid(TSimulatorHaplotypes &haplotypes, const BAM::TChromosome &chromosome) override;
-	void _simulateHaplotypesDiploid(TSimulatorHaplotypes &haplotypes, const BAM::TChromosome &chromosome) override;
+	void _simulateHaplotypesHaploid(TSimulatorHaplotypes &haplotypes, const genometools::TChromosome &chromosome) override;
+	void _simulateHaplotypesDiploid(TSimulatorHaplotypes &haplotypes, const genometools::TChromosome &chromosome) override;
 
 public:
 	TSimulatorHW(coretools::TLog *Logfile, coretools::TParameters &params, coretools::TRandomGenerator *RandomGenerator);

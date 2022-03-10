@@ -294,7 +294,7 @@ TEstimateThetaRatio::TEstimateThetaRatio(TParameters & Parameters, TLog* Logfile
 	_initializeRegion(Parameters, _region1, '2');
 };
 
-void TEstimateThetaRatio::_initializeRegion(TParameters & Parameters, BAM::TBed & region, const char num){
+void TEstimateThetaRatio::_initializeRegion(TParameters & Parameters, genometools::TBed & region, const char num){
 	_logfile->startIndent((std::string) "Region " + num + ":");
 	std::string regionsFile = Parameters.getParameter<std::string>("regions" + std::to_string(num));
 	_logfile->list((std::string) "Reading regions " + num + " from file '" + regionsFile  + " (parameter 'region" + num + "') ...");
@@ -303,11 +303,11 @@ void TEstimateThetaRatio::_initializeRegion(TParameters & Parameters, BAM::TBed 
 	_logfile->conclude("Read " + toString(region.size()) + " sites on " + toString(region.numChromosomesWithWindows()) + " chromosomes.");
 };
 
-void TEstimateThetaRatio::_addSites(GenotypeLikelihoods::TThetaEstimatorData & data, BAM::TBed & region){
+void TEstimateThetaRatio::_addSites(GenotypeLikelihoods::TThetaEstimatorData & data, genometools::TBed & region){
 	auto it = region.lower_bound(_window);
 
 	while(it != region.end() && _window.overlaps(*it)){
-		for(BAM::TGenomePosition s = std::max(it->from(), _window.from()); s < it->to() && s < _window.to(); ++s){
+		for(genometools::TGenomePosition s = std::max(it->from(), _window.from()); s < it->to() && s < _window.to(); ++s){
 			GenotypeLikelihoods::TGenotypeLikelihoods genoLik;
 			_genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(_window[s - _window.from()], genoLik);
 			data.add(_window[s - _window.from()], genoLik);

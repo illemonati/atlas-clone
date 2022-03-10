@@ -324,7 +324,7 @@ void TBamFile::_fillSamHeader(TSamHeader & SamHeader){
 	}
 };
 
-void TBamFile::_fillChromosomes(TChromosomes & Chromosomes){
+void TBamFile::_fillChromosomes(genometools::TChromosomes & Chromosomes){
 	if(_bamHeader.Sequences.Size() < 1){
 		throw "No chromosomes present in BAM header!";
 	}
@@ -576,7 +576,7 @@ bool TBamFile::readNextAlignmentThatPassesFilters(TAlignment & alignment){
 	return true;
 };
 
-bool TBamFile::jump(const TGenomePosition Position){
+bool TBamFile::jump(const genometools::TGenomePosition Position){
 	_previousAlignmentPosition.clear();
 	return _bamReader.Jump(Position.refID(), Position.position());
 };
@@ -826,7 +826,7 @@ TOutputBamFile::~TOutputBamFile(){
 	closeNoIndex();
 };
 
-void TOutputBamFile::open(const std::string Filename, const TSamHeader & Header, const TChromosomes & Chromosomes, const TReadGroups & ReadGroups){
+void TOutputBamFile::open(const std::string Filename, const TSamHeader & Header, const genometools::TChromosomes & Chromosomes, const TReadGroups & ReadGroups){
 	closeNoIndex();
 
 	_outputFilename = Filename;
@@ -853,7 +853,7 @@ void TOutputBamFile::open(const std::string Filename, const TBamFile & Original)
 	open(Filename, Original.samHeader(), Original.chromosomes(), Original.readGroups());
 };
 
-void TOutputBamFile::open(TParameters & params, TLog* logfile, const std::string Filename, const TSamHeader & Header, const TChromosomes & Chromosomes, const TReadGroups & ReadGroups){
+void TOutputBamFile::open(TParameters & params, TLog* logfile, const std::string Filename, const TSamHeader & Header, const genometools::TChromosomes & Chromosomes, const TReadGroups & ReadGroups){
 	logfile->startIndent("Writing alignments to new BAM to file '" + Filename + "':");
 
 	//first open bam file

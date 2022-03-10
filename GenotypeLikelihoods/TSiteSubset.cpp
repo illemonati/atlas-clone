@@ -20,7 +20,7 @@ TSiteSubsetSite::TSiteSubsetSite(uint32_t refID, uint32_t position, const genome
 	_alt = Alt;
 };
 
-TSiteSubsetSite::TSiteSubsetSite(const BAM::TGenomePosition & Position, const genometools::Base & Ref, const genometools::Base & Alt):TGenomePosition(Position){
+TSiteSubsetSite::TSiteSubsetSite(const genometools::TGenomePosition & Position, const genometools::Base & Ref, const genometools::Base & Alt):TGenomePosition(Position){
 	_ref = Ref;
 	_alt = Alt;
 };
@@ -48,7 +48,7 @@ void TSiteSubset::_checkAlleles(const std::string & chr, uint32_t pos, const gen
 	}
 };
 
-void TSiteSubset::_readFile(const std::string Filename, const BAM::TChromosomes & Chromosomes, coretools::TLog* Logfile){
+void TSiteSubset::_readFile(const std::string Filename, const genometools::TChromosomes & Chromosomes, coretools::TLog* Logfile){
 	Logfile->listFlushTime("Reading sites to be used from '" + Filename + "' ...");
 
 	//open file
@@ -58,7 +58,7 @@ void TSiteSubset::_readFile(const std::string Filename, const BAM::TChromosomes 
 	std::vector<std::string> line;
 	while(in.read(line)){
 		//get chromosome: throws error if chromosome does not exist
-		const BAM::TChromosome& chr = Chromosomes.getChromosome(line[0]);
+		const genometools::TChromosome& chr = Chromosomes.getChromosome(line[0]);
 		_refIDUsed.emplace(chr.refID());
 
 		//extract positions
@@ -78,7 +78,7 @@ void TSiteSubset::_readFile(const std::string Filename, const BAM::TChromosomes 
 	Logfile->conclude("Parsed " + toString(_sites.size()) + " sites on " + toString(_refIDUsed.size()) + " chromosomes.");
 };
 
-void TSiteSubset::_readFile(const std::string Filename, const BAM::TChromosomes & Chromosomes, coretools::TLog* Logfile, BAM::TFastaBuffer & Reference){ //version that checks witth fasta reference
+void TSiteSubset::_readFile(const std::string Filename, const genometools::TChromosomes & Chromosomes, coretools::TLog* Logfile, BAM::TFastaBuffer & Reference){ //version that checks witth fasta reference
 	Logfile->listFlushTime("Reading sites to be used from '" + Filename + "' ...");
 
 	//open file
@@ -92,7 +92,7 @@ void TSiteSubset::_readFile(const std::string Filename, const BAM::TChromosomes 
 	std::vector<std::string> line;
 	while(in.read(line)){
 		//get chromosome: throws error if chromosome does not exist
-		const BAM::TChromosome& chr = Chromosomes.getChromosome(line[0]);
+		const genometools::TChromosome& chr = Chromosomes.getChromosome(line[0]);
 		_refIDUsed.emplace(chr.refID());
 
 		//extract positions
@@ -104,7 +104,7 @@ void TSiteSubset::_readFile(const std::string Filename, const BAM::TChromosomes 
 		_checkAlleles(chr.name, pos, ref, alt, line[2], line[3]);
 
 		//check with reference
-		BAM::TGenomePosition genoPos(chr.refID(), pos);
+        genometools::TGenomePosition genoPos(chr.refID(), pos);
 		genometools::Base trueRef = Reference.refAt(genoPos);
 		if(trueRef != ref && trueRef != alt){
 			//conflict with fasta
@@ -130,12 +130,12 @@ void TSiteSubset::_readFile(const std::string Filename, const BAM::TChromosomes 
 	}
 };
 
-TSiteSubset::TSiteSubset(const std::string Filename, const BAM::TChromosomes & Chromosomes, coretools::TLog* Logfile, bool InvariantSites){
+TSiteSubset::TSiteSubset(const std::string Filename, const genometools::TChromosomes & Chromosomes, coretools::TLog* Logfile, bool InvariantSites){
 	_storesInvariantSites = InvariantSites;
 	_readFile(Filename, Chromosomes, Logfile);
 };
 
-TSiteSubset::TSiteSubset(const std::string Filename, const BAM::TChromosomes & Chromosomes, coretools::TLog* Logfile, bool InvariantSites, BAM::TFastaBuffer & Reference){
+TSiteSubset::TSiteSubset(const std::string Filename, const genometools::TChromosomes & Chromosomes, coretools::TLog* Logfile, bool InvariantSites, BAM::TFastaBuffer & Reference){
 	_storesInvariantSites = InvariantSites;
 	_readFile(Filename, Chromosomes, Logfile, Reference);
 };
@@ -147,7 +147,7 @@ void TSiteSubset::write(const std::string Filename) const{
 	}
 };
 
-bool TSiteSubset::hasPositionsInWindow(const BAM::TGenomeWindow & Window) const{
+bool TSiteSubset::hasPositionsInWindow(const genometools::TGenomeWindow & Window) const{
 	auto it = _sites.lower_bound(Window);
 	if(it == _sites.end() || *it < Window){
 		return false;
@@ -156,7 +156,7 @@ bool TSiteSubset::hasPositionsInWindow(const BAM::TGenomeWindow & Window) const{
 	}
 };
 
-std::set<TSiteSubsetSite> TSiteSubset::getPositionInWindow(const BAM::TGenomeWindow & Window) const{
+std::set<TSiteSubsetSite> TSiteSubset::getPositionInWindow(const genometools::TGenomeWindow & Window) const{
 	std::set<TSiteSubsetSite> set;
 	auto it = _sites.lower_bound(Window);
 	while(it != _sites.end() && *it < Window){

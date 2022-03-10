@@ -26,7 +26,7 @@ class TWindow;
 //---------------------------------------------------------------
 //TWindow_base
 //---------------------------------------------------------------
-class TWindow_base:public BAM::TGenomeWindow{
+class TWindow_base:public genometools::TGenomeWindow{
 protected:
 	std::vector<TSite> _sites;
 	uint32_t _numReadsInWindow;
@@ -53,10 +53,10 @@ public:
 	virtual ~TWindow_base();
 
 	//Allow to set chromosome name when jumping
-	using BAM::TGenomeWindow::move;
-	virtual void move(const BAM::TGenomePosition & From, uint32_t Length, const std::string ChrName);
-	virtual void move(const BAM::TGenomePosition & From, const BAM::TGenomePosition & To, const std::string ChrName);
-	virtual void move(const BAM::TGenomeWindow & Window, const std::string ChrName);
+	using genometools::TGenomeWindow::move;
+	virtual void move(const genometools::TGenomePosition & From, uint32_t Length, const std::string ChrName);
+	virtual void move(const genometools::TGenomePosition & From, const genometools::TGenomePosition & To, const std::string ChrName);
+	virtual void move(const genometools::TGenomeWindow & Window, const std::string ChrName);
 	void setChrName(const std::string ChrName);
 
 	//move / expand on same chromosome
@@ -71,7 +71,7 @@ public:
 
 	void addReferenceBaseToSites(BAM::TFastaBuffer & reference);
 	void addReferenceBaseToSites(TSiteSubset & subset);
-	void applyMask(BAM::TBed & mask, bool doInverseMasking);
+	void applyMask(genometools::TBed & mask, bool doInverseMasking);
 	void maskCpG(BAM::TFastaBuffer & reference);
 	void downsample(uint32_t maxDepth, const coretools::TSubsamplePicker & picker);
 	GenotypeLikelihoods::TBaseProbabilities estimateBaseFrequencies() const;
@@ -81,7 +81,7 @@ public:
 	TSite& operator[](uint32_t internalPos){ return _sites[internalPos]; };
 	const TSite& operator[](uint32_t internalPos) const { return _sites[internalPos]; };
 	const std::string& chrName() const{ return _chrName; };
-	BAM::TGenomePosition position(uint32_t internalPos) const{ return _from + internalPos; };
+    genometools::TGenomePosition position(uint32_t internalPos) const{ return _from + internalPos; };
 	uint32_t positionOnChr(uint32_t internalPos) const{ return _from.position() + internalPos; };
 
 	uint32_t numReadsInWindow() const { return _numReadsInWindow; };
@@ -134,9 +134,9 @@ public:
 
 	//Overload moving to take care of alignemnts
 	//void move(const uint32_t RefID, const uint32_t Start, const uint32_t End, const std::string ChrName);
-	void move(const BAM::TGenomePosition & From, uint32_t Length, const std::string ChrName);
-	void move(const BAM::TGenomePosition & From, const BAM::TGenomePosition & To, const std::string ChrName);
-	void move(const BAM::TGenomeWindow & Window, const std::string ChrName);
+	void move(const genometools::TGenomePosition & From, uint32_t Length, const std::string ChrName);
+	void move(const genometools::TGenomePosition & From, const genometools::TGenomePosition & To, const std::string ChrName);
+	void move(const genometools::TGenomeWindow & Window, const std::string ChrName);
 	void operator+=(uint32_t length);
 	void operator-=(uint32_t length);
 	void resize(uint32_t newLength);

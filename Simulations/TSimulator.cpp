@@ -396,7 +396,7 @@ Base TSimulator::_mutateBase(Base base, const std::array<double, 4> &cumulProbs)
 	return Base((index(base) + _randomGenerator->pickOne(cumulProbs)) % index(Base::max));
 }
 
-void TSimulator::_simulateReadsFromHaplotypes(const BAM::TChromosome &thisChr, std::array<std::vector<Base>,2> haplotypes,
+void TSimulator::_simulateReadsFromHaplotypes(const genometools::TChromosome &thisChr, std::array<std::vector<Base>,2> haplotypes,
 					      TSimulatorBamFile &bamFile, std::string extraProgressText) {
 	// Initialize probabilities to simulate reads
 	const uint64_t numReads = _averageReadLength == 0 ? 0 : thisChr.length * _seqDepth / _averageReadLength;
@@ -520,7 +520,7 @@ TSimulatorOne::TSimulatorOne(TLog *Logfile, TParameters &params, TRandomGenerato
 }
 
 void TSimulatorOne::_simulateHaplotypesDiploid(TSimulatorHaplotypes &haplotypes,
-							 const BAM::TChromosome &chromosome) {
+							 const genometools::TChromosome &chromosome) {
 	// fill mutation table
 	TSimulatorMutationtable mutTable(_baseFreq, _thetas[chromosome.refID()]);
 
@@ -538,7 +538,7 @@ void TSimulatorOne::_simulateHaplotypesDiploid(TSimulatorHaplotypes &haplotypes,
 }
 
 void TSimulatorOne::_simulateHaplotypesHaploid(TSimulatorHaplotypes &haplotypes,
-							 const BAM::TChromosome &chromosome) {
+							 const genometools::TChromosome &chromosome) {
 	// fill mutation table
 	TSimulatorMutationtable mutTable(_baseFreq, _thetas[chromosome.refID()]);
 
@@ -702,7 +702,7 @@ void TSimulatorPair::_fillTables() {
 }
 
 void TSimulatorPair::_simulateHaplotypesHaploid(TSimulatorHaplotypes &haplotypes,
-							     const BAM::TChromosome &chromosome) {
+							     const genometools::TChromosome &chromosome) {
 	// first run diploid
 	_simulateHaplotypesDiploid(haplotypes, chromosome);
 
@@ -715,7 +715,7 @@ void TSimulatorPair::_simulateHaplotypesHaploid(TSimulatorHaplotypes &haplotypes
 }
 
 void TSimulatorPair::_simulateHaplotypesDiploid(TSimulatorHaplotypes &haplotypes,
-							     const BAM::TChromosome &chromosome) {
+							     const genometools::TChromosome &chromosome) {
 	// run across loci
 	for (uint64_t l = 0; l < chromosome.length; ++l) {
 		// pick a case
@@ -834,7 +834,7 @@ void TSimulatorSFS::_initializeSFS(const std::vector<std::string> &sfsFileNames,
 
 int is_odd(int x) { return x & 1; }
 
-void TSimulatorSFS::_simulateHaplotypesHaploid(TSimulatorHaplotypes &haplotypes, const BAM::TChromosome &chromosome) {
+void TSimulatorSFS::_simulateHaplotypesHaploid(TSimulatorHaplotypes &haplotypes, const genometools::TChromosome &chromosome) {
 	// now simulate haplotypes
 	for (uint32_t l = 0; l < chromosome.length; ++l) {
 		// pick alleles
@@ -875,7 +875,7 @@ void TSimulatorSFS::_simulateHaplotypesHaploid(TSimulatorHaplotypes &haplotypes,
 	}
 }
 
-void TSimulatorSFS::_simulateHaplotypesDiploid(TSimulatorHaplotypes &haplotypes, const BAM::TChromosome &chromosome) {
+void TSimulatorSFS::_simulateHaplotypesDiploid(TSimulatorHaplotypes &haplotypes, const genometools::TChromosome &chromosome) {
 	const int numHaplotypes = 2 * _sampleSize;
 	for (uint64_t l = 0; l < chromosome.length; ++l) {
 		// pick alleles
@@ -1010,7 +1010,7 @@ void TSimulatorHW::_fillhaplotypesMonomoprhic(TSimulatorHaplotypes &haplotypes, 
 }
 
 void TSimulatorHW::_simulateHaplotypesHaploid(TSimulatorHaplotypes &haplotypes,
-							 const BAM::TChromosome &chromosome) {
+							 const genometools::TChromosome &chromosome) {
 	// storage
 
 	// now simulate haplotypes
@@ -1038,7 +1038,7 @@ void TSimulatorHW::_simulateHaplotypesHaploid(TSimulatorHaplotypes &haplotypes,
 }
 
 void TSimulatorHW::_simulateHaplotypesDiploid(TSimulatorHaplotypes &haplotypes,
-							 const BAM::TChromosome &chromosome) {
+							 const genometools::TChromosome &chromosome) {
 	// storage
 
 	// now simulate haplotypes

@@ -8,6 +8,7 @@
 
 #include "TAlleleCountEstimator.h"
 #include "GenotypeTypes.h"
+#include "TVCFReader.h"
 
 namespace PopulationTools{
 
@@ -328,14 +329,14 @@ TAlleleCountEstimator::~TAlleleCountEstimator(){};
 
 void TAlleleCountEstimator::estimateAlleleCounts(coretools::TParameters & params, coretools::TRandomGenerator* randomGenerator){
 	//read samples
-	TPopulationSamples samples;
+	genometools::TPopulationSamples samples;
 	if(params.parameterExists("samples"))
 		samples.readSamples(params.getParameter<std::string>("samples"), logfile);
 
 	//open VCF reader
 	std::string vcfFilename = params.getParameter<std::string>("vcf");
 	logfile->startIndent("Reading genotype likelihoods from VCF file '" + vcfFilename + "':");
-	TPopulationLikelihoodReaderLocus reader(params, logfile, false);
+	genometools::TPopulationLikelihoodReaderLocus reader(params, logfile, false);
 	reader.openVCF(vcfFilename);
 	logfile->endIndent();
 
@@ -363,7 +364,7 @@ void TAlleleCountEstimator::estimateAlleleCounts(coretools::TParameters & params
 
 	// initialize variables for vcf-file
 	struct timeval start; gettimeofday(&start, NULL);
-	TPopulationLikehoodLocus data(samples.numSamples());
+	genometools::TPopulationLikehoodLocus<genometools::HighPrecisionPhredIntProbability> data(samples.numSamples());
 
 	//run through VCF file
 	logfile->startIndent("Parsing VCF file and estimating allele counts:");
@@ -397,14 +398,14 @@ void TAlleleCountEstimator::estimateAlleleCounts(coretools::TParameters & params
 void TAlleleCountEstimator::writeAlleleFrequencyLikelihoods(coretools::TParameters & params){
 	//TODO: write proper saf
 	//read samples
-	TPopulationSamples samples;
+	genometools::TPopulationSamples samples;
 	if(params.parameterExists("samples"))
 		samples.readSamples(params.getParameter<std::string>("samples"), logfile);
 
 	//open VCF reader
 	std::string vcfFilename = params.getParameter<std::string>("vcf");
 	logfile->startIndent("Reading genotype likelihoods from VCF file '" + vcfFilename + "':");
-	TPopulationLikelihoodReaderLocus reader(params, logfile, false);
+	genometools::TPopulationLikelihoodReaderLocus reader(params, logfile, false);
 	reader.openVCF(vcfFilename);
 	logfile->endIndent();
 
@@ -444,7 +445,7 @@ void TAlleleCountEstimator::writeAlleleFrequencyLikelihoods(coretools::TParamete
 
 	// initialize variables for vcf-file
 	struct timeval start; gettimeofday(&start, NULL);
-	TPopulationLikehoodLocus data(samples.numSamples());
+	genometools::TPopulationLikehoodLocus<genometools::HighPrecisionPhredIntProbability> data(samples.numSamples());
 
 	//run through VCF file
 	logfile->startIndent("Parsing VCF file and estimating allele counts:");

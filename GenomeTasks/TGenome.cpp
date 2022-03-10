@@ -346,7 +346,7 @@ bool TGenome_windows::_incrementWindow(GenotypeLikelihoods::TWindow_base & windo
 		_numWindowsOnChr = ceil(_curChromosome->length / (double) _windowSize);
 
 		//move window to beginning of chromosome
-		BAM::TGenomePosition newFrom = _curChromosome->chrStart + _skipWindows * _windowSize;
+		genometools::TGenomePosition newFrom = _curChromosome->chrStart + _skipWindows * _windowSize;
 		window.move(newFrom, _windowSize , _curChromosome->name);
 	}
 

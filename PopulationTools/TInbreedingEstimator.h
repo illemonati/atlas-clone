@@ -14,6 +14,8 @@
 #include "TPriorFixed.h"
 #include "TPriorInferred.h"
 #include "TMCMC.h"
+#include "TTask.h"
+#include "TNamesPositions.h"
 
 namespace PopulationTools {
 
@@ -47,7 +49,7 @@ public:
     }
 };
 
-class TInbreedingEstimatorPrior : public stattools::prior::TBaseNonIID<TypeGTL, 2> {
+class TInbreedingEstimatorPrior : public stattools::prior::TBaseNonIID<stattools::TValueFixed, TypeGTL, 2> {
 private:
     // parameters
     std::shared_ptr<stattools::TParameterTyped<TypeF, 1>> _F;
@@ -79,12 +81,12 @@ private:
     void _setInitialP();
 
     // log-densities
-    double _getPriorDensity_vec(const std::shared_ptr<stattools::TParameterObservationTypedBase<TypeGTL, 2>> & Data, const size_t & index) override;
-    double _getLogPriorDensity_vec(const std::shared_ptr<stattools::TParameterObservationTypedBase<TypeGTL, 2>> & Data, const size_t & index) override;
-    double _getPriorDensityOld_vec(const std::shared_ptr<stattools::TParameterObservationTypedBase<TypeGTL, 2>> & Data, const size_t & index) override;
-    double _getLogPriorDensityOld_vec(const std::shared_ptr<stattools::TParameterObservationTypedBase<TypeGTL, 2>> & Data, const size_t & index) override;
-    double _getLogPriorRatio_vec(const std::shared_ptr<stattools::TParameterObservationTypedBase<TypeGTL, 2>> & Data, const size_t & index) override;
-    double _getExpectedValueFromPriorParameters(const std::shared_ptr<stattools::TParameterObservationTypedBase<TypeGTL, 2>> & data, const size_t & index) override;
+    double _getPriorDensity_vec(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> & Data, size_t index) const override;
+    double _getLogPriorDensity_vec(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> & Data, size_t index) const override;
+    double _getPriorDensityOld_vec(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> & Data, size_t index) const override;
+    double _getLogPriorDensityOld_vec(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> & Data, size_t index) const override;
+    double _getLogPriorRatio_vec(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> & Data, size_t index) const override;
+    double _getExpectedValueFromPriorParameters(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> & data, size_t index) const override;
 
     // update functions for F
     void _updateFAndZ();
@@ -108,7 +110,7 @@ public:
     void estimateInitialPriorParameters() override;
 
     // full log densities
-    double getSumLogPriorDensity(const std::shared_ptr<stattools::TParameterObservationTypedBase<TypeGTL, 2>> & Data) override;
+    double getSumLogPriorDensity(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> & Data) const override;
 
     // update all hyperprior parameters
     void updateParams() override;

@@ -329,7 +329,7 @@ genometools::Base TAlignment::referenceAtInternalPos(uint32_t internalPosition) 
 	return _referenceSequence[_alignedPosition[internalPosition]];
 };
 
-TGenomePosition TAlignment::positionInRef(uint32_t internalPosition) const{
+genometools::TGenomePosition TAlignment::positionInRef(uint32_t internalPosition) const{
 	//only makes sense if position is aligned!
 	return *this + _alignedPosition[internalPosition];
 };
