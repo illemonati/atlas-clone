@@ -9,8 +9,6 @@
 #define TSIMULATORAUXILIARYTOOLS_H_
 
 #include "TBamFile.h"
-#include "TLog.h"
-#include "TRandomGenerator.h"
 #include "globalConstants.h"
 #include "gzstream.h"
 #include "stringFunctions.h"
@@ -23,7 +21,6 @@ namespace Simulations {
 //---------------------------------------------------------
 class TSimulatorReference {
 private:
-	coretools::TLog *_logfile;
 
 	// fasta file
 	std::ofstream _fasta;
@@ -42,10 +39,10 @@ private:
 	void _writeRefToFasta();
 
 public:
-	TSimulatorReference(std::string Filename, coretools::TLog *Logfile);
+	TSimulatorReference(std::string Filename);
 	~TSimulatorReference();
 	void setChr(std::string ChrName, long ChrLength);
-	//	void simulateReferenceSequenceCurChromosome(coretools::TRandomGenerator * randomGenerator, float* cumulBaseFreq);
+	//	void simulateReferenceSequenceCurChromosome(float* cumulBaseFreq);
 
 	genometools::Base &operator[](size_t index) { return _ref[index]; }
 	const genometools::Base &operator[](size_t index) const { return _ref[index]; }
@@ -62,27 +59,26 @@ private:
 public:
 	TSimulatorBamFile(){}
 	TSimulatorBamFile(const std::string &Filename, const std::string &SampleName, BAM::TReadGroups &ReadGroups,
-			  const BAM::TChromosomes &Chromosomes, coretools::TLog *Logfile) {
-		open(Filename, SampleName, ReadGroups, Chromosomes, Logfile);
+			  const BAM::TChromosomes &Chromosomes) {
+		open(Filename, SampleName, ReadGroups, Chromosomes);
 	}
 	~TSimulatorBamFile();
 
 	void open(const std::string &Filename, const std::string &SampleName, BAM::TReadGroups &ReadGroups,
-		  const BAM::TChromosomes &Chromosomes, coretools::TLog *Logfile);
+		  const BAM::TChromosomes &Chromosomes);
 
 	void saveAlignment(const BAM::TAlignment &Alignment) {_outBam.writeAlignment(Alignment); }
-	void close(coretools::TLog *Logfile);
+	void close();
 	void indexBamFile();
 };
 
 class TSimulatorBamFiles {
 private:
 	std::vector<TSimulatorBamFile> _files;
-	coretools::TLog *_logfile;
 
 public:
 	TSimulatorBamFiles(uint32_t NumFiles, const std::string & Outname, BAM::TReadGroups & ReadGroups,
-			   const BAM::TChromosomes &Chromosomes, coretools::TLog *Logfile);
+			   const BAM::TChromosomes &Chromosomes);
 	~TSimulatorBamFiles();
 	TSimulatorBamFile &operator[](size_t i);
 };

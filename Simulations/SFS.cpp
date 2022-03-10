@@ -6,8 +6,10 @@
  */
 
 #include "SFS.h"
+#include "TRandomGenerator.h"
 
 namespace Simulations {
+using coretools::instances::randomGenerator;
 //--------------------------------
 // Class to store and SFS
 //--------------------------------
@@ -98,12 +100,12 @@ double SFS::calcLLOneSite(const std::vector<float> &gl) {
 	return log(LL);
 }
 
-double SFS::getRandomFrequency(coretools::TRandomGenerator *randomGenerator) {
-	return sfsFrequencies[randomGenerator->pickOne(sfsCumulative)];
+double SFS::getRandomFrequency() {
+	return sfsFrequencies[randomGenerator().pickOne(sfsCumulative)];
 }
 
-uint32_t SFS::getRandomAlleleCount(coretools::TRandomGenerator *randomGenerator) {
-	return randomGenerator->pickOne(sfsCumulative);
+uint32_t SFS::getRandomAlleleCount() {
+	return randomGenerator().pickOne(sfsCumulative);
 }
 
 //--------------------------------------

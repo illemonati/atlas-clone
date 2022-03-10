@@ -5,19 +5,20 @@
  *      Author: vivian
  */
 #include "TSimulatorRead.h"
+#include "TLog.h"
 #include "TRandomGenerator.h"
 #include <memory>
 
 namespace Simulations {
 using genometools::Base;
-using coretools::TLog;
-using coretools::TRandomGenerator;
+using coretools::instances::logfile;
+using coretools::instances::randomGenerator;
 
 //----------------------------------
 // TSimulatorSingleEndRead
 //----------------------------------
-TSimulatorSingleEndRead::TSimulatorSingleEndRead(const BAM::TReadGroup &ReadGroup, TRandomGenerator *RandomGenerator)
-	: _randomGenerator(RandomGenerator), _readGroup(ReadGroup),
+TSimulatorSingleEndRead::TSimulatorSingleEndRead(const BAM::TReadGroup &ReadGroup)
+	: _readGroup(ReadGroup),
 	  _readNamePrefix("ATL:0:A:1:" + coretools::str::toString(_readGroup.id) + ":") {
 	//readNamePrefix: "<instrument>:<run number>:<flowcell ID>:<lane>:<tile>:"  Still need to add "<x-pos>:<y-pos>"
 	// initialize bamAlignment
@@ -29,7 +30,7 @@ bool TSimulatorSingleEndRead::checkInitialization() {
 	return _readLengthDist && _qualityDist && _mappingQualityDist;
 }
 
-void TSimulatorSingleEndRead::setReadLengthDistribution(std::string s, TLog *logfile) {
+void TSimulatorSingleEndRead::setReadLengthDistribution(std::string s) {
 	const auto pos = s.find("(");
 	std::string tmp;
 
@@ -40,9 +41,9 @@ void TSimulatorSingleEndRead::setReadLengthDistribution(std::string s, TLog *log
 	s.erase(0, pos);
 
 	if (type == "gamma")
-		_readLengthDist = std::make_unique<TSimulatorReadLengthGamma>(s, _randomGenerator, logfile);
+		_readLengthDist = std::make_unique<TSimulatorReadLengthGamma>(s);
 	else if (type == "gammaMode") {
-		_readLengthDist = std::make_unique<TSimulatorReadLengthGammaMode>(s, _randomGenerator, logfile);
+		_readLengthDist = std::make_unique<TSimulatorReadLengthGammaMode>(s);
 	} else if (type == "fixed")
 		_readLengthDist = std::make_unique<TReadLengthDistribution>(s);
 	else
@@ -61,11 +62,11 @@ std::unique_ptr<TSimulatorQualityDist> TSimulatorSingleEndRead::_initializeQuali
 	if (type == "fixed")
 		return std::make_unique<TSimulatorQualityDistFixed>(s);
 	else if (type == "normal")
-		return std::make_unique<TSimulatorQualityDistNormal>(s, _randomGenerator);
+		return std::make_unique<TSimulatorQualityDistNormal>(s);
 	else if (type == "binned")
-		return std::make_unique<TSimulatorQualityDistBinned>(s, _randomGenerator);
+		return std::make_unique<TSimulatorQualityDistBinned>(s);
 	else if (type == "freq")
-		return std::make_unique<TSimulatorQualityDistFreq>(s, _randomGenerator);
+		return std::make_unique<TSimulatorQualityDistFreq>(s);
 	else
 		throw "Unknown read quality distribution '" + type + "'!";
 }
@@ -135,10 +136,10 @@ void TSimulatorSingleEndRead::_simulateBasesQualities(BAM::TAlignment & alignmen
 	_alignment.setSequenceQualities(_cigar, bases, phredIntQualities);
 
 	for (auto & b : _alignment) {
-		if (_pmd && _pmd->hasDamage()) _pmd->simulate(b, *_randomGenerator);
+		if (_pmd && _pmd->hasDamage()) _pmd->simulate(b);
 
 		const auto sm = b.isSecondMate();
-		if (_recal[sm]) _recal[sm]->simulate(b, *_randomGenerator);
+		if (_recal[sm]) _recal[sm]->simulate(b, randomGenerator());
 	}
 }
 
@@ -146,11 +147,11 @@ void TSimulatorSingleEndRead::simulate(const std::vector<Base>& haplotype, uint3
 	// prepare alignment
 	_alignment.move(refID, pos);
 	_alignment.setName(_getNextReadName());
-	_alignment.setIsReverseStrand(_randomGenerator->getRand() < 0.5);
+	_alignment.setIsReverseStrand(randomGenerator().getRand() < 0.5);
 
 	// pick a fragment and read length, strand and contamination
 	TReadLength readLength = _readLengthDist->sample();
-	bool readIsContaminated = _contaminationRate > 0. && _randomGenerator->getRand() < _contaminationRate;
+	bool readIsContaminated = _contaminationRate > 0. && randomGenerator().getRand() < _contaminationRate;
 
 	// simulated bases and qualities
 	_simulateBasesQualities(_alignment, haplotype, pos, readLength, readIsContaminated/*, _qualityTransform*/);
@@ -159,52 +160,49 @@ void TSimulatorSingleEndRead::simulate(const std::vector<Base>& haplotype, uint3
 	bamFile.saveAlignment(_alignment);
 }
 
-void TSimulatorSingleEndRead::printDetails(TLog *logfile) {
-	logfile->list(type() + ".");
+void TSimulatorSingleEndRead::printDetails() {
+	logfile().list(type() + ".");
 	if (_readLengthDist)
-		_readLengthDist->printDetails(logfile);
+		_readLengthDist->printDetails();
 	else
 		throw "Read length distribution not initialized!";
 
 	if (_mappingQualityDist)
-		_mappingQualityDist->printDetails(logfile, "Mapping quality");
+		_mappingQualityDist->printDetails("Mapping quality");
 	else
 		throw "Mapping quality distribution not initialized!";
 
 	if (_qualityDist)
-		_qualityDist->printDetails(logfile, "Base quality");
+		_qualityDist->printDetails("Base quality");
 	else
 		throw "Read quality distribution not initialized!";
 
 	if ((_recal[0] && _recal[0]->recalibrates())) {
 		// TODO: add recal string output
-		logfile->list("Recal First Mate: " + _recal[0]->getCovariateDefinition());
+		logfile().list("Recal First Mate: " + _recal[0]->getCovariateDefinition());
 	}
 
 	if ((_recal[1] && _recal[1]->recalibrates())) {
 		// TODO: add recal string output
-		logfile->list("Recal Second Mate: " + _recal[0]->getCovariateDefinition());
+		logfile().list("Recal Second Mate: " + _recal[0]->getCovariateDefinition());
 	}
 
 	if (_pmd && _pmd->hasDamage()) {
-		logfile->list("PMD: " + _pmd->functionString());
+		logfile().list("PMD: " + _pmd->functionString());
 	} else {
-		logfile->list("No PMD.");
+		logfile().list("No PMD.");
 	}
 
 	if (_contaminationRate > 0.)
-		logfile->list("Contaminated with rate ", _contaminationRate, ".");
+		logfile().list("Contaminated with rate ", _contaminationRate, ".");
 	else
-		logfile->list("Read group is not contaminated.");
+		logfile().list("Read group is not contaminated.");
 }
 
 //----------------------------------
 // TSimulatorPairedEndReads
 //----------------------------------
-TSimulatorPairedEndReads::TSimulatorPairedEndReads(const BAM::TReadGroup &ReadGroup,
-						   coretools::TRandomGenerator *RandomGenerator)
-	: TSimulatorSingleEndRead(ReadGroup, RandomGenerator) {
-
+TSimulatorPairedEndReads::TSimulatorPairedEndReads(const BAM::TReadGroup &ReadGroup) : TSimulatorSingleEndRead(ReadGroup){
 	// set SAM flags
 	_flags.setIsPaired(true);
 	_flags.setIsProperPair(true);
@@ -222,7 +220,7 @@ void TSimulatorPairedEndReads::simulate(const std::vector<Base>& haplotype, uint
 					TSimulatorBamFile &bamFile) {
 	// pick a fragment, read length and contamination
 	TReadLength readLength  = _readLengthDist->sample();
-	bool readIsContaminated = (_contaminationRate > 0.) && _randomGenerator->getRand() < _contaminationRate;
+	bool readIsContaminated = (_contaminationRate > 0.) && randomGenerator().getRand() < _contaminationRate;
 
 	// Fill FIRST mate
 	//------------------

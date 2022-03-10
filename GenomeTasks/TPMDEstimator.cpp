@@ -31,7 +31,7 @@ TPMDEstimator::TPMDEstimator(coretools::TParameters & Parameters, coretools::TLo
 
 	GenotypeLikelihoods::TPostMortemDamage& pmd = _genotypeLikelihoodCalculator.getPostMortemDamageModelsMutable();
 	for(auto& r : _readGroupMap->readGroupsInUse()){
-		pmd[r].parseEstimationParameters(_estimationParameters, Parameters, _logfile);
+		pmd[r].parseEstimationParameters(_estimationParameters);
 	}
 	_logfile->endIndent();
 

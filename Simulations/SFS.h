@@ -8,7 +8,6 @@
 #ifndef SFS_H_
 #define SFS_H_
 
-#include "TRandomGenerator.h"
 #include "stringFunctions.h"
 #include <iostream>
 #include <math.h>
@@ -37,8 +36,8 @@ public:
 	virtual uint32_t numChromosomes() const noexcept { return sfs.size() - 1; };
 	float monoFrac() const noexcept { return sfs.front(); };
 	void writeToFile(const std::string &filename, const bool &writeLog = false);
-	double getRandomFrequency(coretools::TRandomGenerator *randomGenerator);
-	uint32_t getRandomAlleleCount(coretools::TRandomGenerator *randomGenerator);
+	double getRandomFrequency();
+	uint32_t getRandomAlleleCount();
 	virtual double calcLLOneSite(const std::vector<float> &gl);
 };
 

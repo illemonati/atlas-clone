@@ -6,11 +6,13 @@
  */
 
 #include "TSimulatorReadLength.h"
+#include "TLog.h"
+#include "TRandomGenerator.h"
 
 namespace Simulations {
 
-using coretools::TLog;
-using coretools::TRandomGenerator;
+using coretools::instances::logfile;
+using coretools::instances::randomGenerator;
 using coretools::str::convertString;
 
 //---------------------------------------------------------
@@ -27,20 +29,18 @@ TReadLengthDistribution::TReadLengthDistribution(std::string &s) {
 	_positionProbs.resize(_meanLength, 1./_meanLength);
 }
 
-void TReadLengthDistribution::printDetails(TLog *logfile) {
-	logfile->list("Reads of fixed length ", _meanLength, ".");
+void TReadLengthDistribution::printDetails() {
+	logfile().list("Reads of fixed length ", _meanLength, ".");
 }
 
 //--------------------------------------------------
 // TSimulatorReadLengthGamma
 //--------------------------------------------------
-TSimulatorReadLengthGamma::TSimulatorReadLengthGamma(std::string &s, TRandomGenerator *RandomGenerator, TLog *Logfile)
-	: _randomGenerator(RandomGenerator) {
+TSimulatorReadLengthGamma::TSimulatorReadLengthGamma(std::string &s) {
 	parseFunctionString(s, _alpha, _beta);
 	if (_alpha <= 0.0) throw "Shape parameter alpha must be > 0.0!";
 	if (_beta <= 0.0) throw "Rate parameter alpha must be > 0.0!";
-
-	initiate(Logfile);
+	initiate();
 }
 
 void TSimulatorReadLengthGamma::parseFunctionString(std::string &s, double &param1, double &param2) {
@@ -77,7 +77,7 @@ void TSimulatorReadLengthGamma::parseFunctionString(std::string &s, double &para
 	if (_maxPlusOne < _min) throw "Fail to understand function '" + orig + "': max must be > min!";
 }
 
-void TSimulatorReadLengthGamma::initiate(TLog *logfile) {
+void TSimulatorReadLengthGamma::initiate() {
 	using coretools::TGammaDistr;
 	// prepare storage
 	_gammaDensity.resize(_maxPlusOne, 0.);
@@ -123,14 +123,14 @@ void TSimulatorReadLengthGamma::initiate(TLog *logfile) {
 	for (auto & p: _positionProbs) p/=sum;
 
 	if (_gammaCumulDensity[_min] > 0.5)
-		logfile->warning("This readLength distribution results in ", _gammaCumulDensity[_min] * 100,
+		logfile().warning("This readLength distribution results in ", _gammaCumulDensity[_min] * 100,
 				 "% discarded fragments because they are smaller than the minimum read length! Choose "
 				 "different parameters to reduce run time.");
 }
 
 TReadLength TSimulatorReadLengthGamma::sample() const noexcept {
-	uint16_t fragmentLength = round(_randomGenerator->getGammaRand(_alpha, _beta));
-	while (fragmentLength < _min) fragmentLength = round(_randomGenerator->getGammaRand(_alpha, _beta));
+	uint16_t fragmentLength = round(randomGenerator().getGammaRand(_alpha, _beta));
+	while (fragmentLength < _min) fragmentLength = round(randomGenerator().getGammaRand(_alpha, _beta));
 
 	if (fragmentLength < _maxPlusOne - 1) {
 		return TReadLength(fragmentLength, fragmentLength);
@@ -138,20 +138,18 @@ TReadLength TSimulatorReadLengthGamma::sample() const noexcept {
 	return TReadLength(_maxPlusOne - 1, fragmentLength);
 }
 
-void TSimulatorReadLengthGamma::printDetails(TLog *logfile) {
-	logfile->list("Gamma distributed fragment length with alpha=", _alpha, " and beta=", _beta, " of at least ", _min,
+void TSimulatorReadLengthGamma::printDetails() {
+	logfile().list("Gamma distributed fragment length with alpha=", _alpha, " and beta=", _beta, " of at least ", _min,
 		      ".");
-	logfile->list("Fragments  > ", _maxPlusOne, " will result in reads of length ", _maxPlusOne, ".");
+	logfile().list("Fragments  > ", _maxPlusOne, " will result in reads of length ", _maxPlusOne, ".");
 	if (probAcceptance() < 0.9)
-		logfile->warning("The chosen distribution will only result in ", probAcceptance(), " of draws being accepted.");
+		logfile().warning("The chosen distribution will only result in ", probAcceptance(), " of draws being accepted.");
 }
 
 //--------------------------------------------------
 // TSimulatorReadLengthGammaMode
 //--------------------------------------------------
-TSimulatorReadLengthGammaMode::TSimulatorReadLengthGammaMode(std::string &s, TRandomGenerator *RandomGenerator,
-							     TLog *Logfile)
-	: TSimulatorReadLengthGamma(RandomGenerator) {
+TSimulatorReadLengthGammaMode::TSimulatorReadLengthGammaMode(std::string &s) : TSimulatorReadLengthGamma() {
 	// here the parameters parsed are mode and variance, so adjust alpha and beta
 	parseFunctionString(s, _mode, _var);
 	if (_mode <= 0.0) throw "Mode of gamma distribution must be > 0.0!";
@@ -163,15 +161,15 @@ TSimulatorReadLengthGammaMode::TSimulatorReadLengthGammaMode(std::string &s, TRa
 	if (_alpha <= 0.0) throw "Provided mode and variance imply a shape parameter alpha <= 0.0!";
 	if (_beta <= 0.0) throw "Provided mode and variance imply a rate parameter beta <= 0.0!";
 
-	initiate(Logfile);
+	initiate();
 }
 
-void TSimulatorReadLengthGammaMode::printDetails(TLog *logfile) {
-	logfile->list("Gamma distributed fragment length with mode=", _mode, " and variance=", _var, " of at least ", _min,
+void TSimulatorReadLengthGammaMode::printDetails() {
+	logfile().list("Gamma distributed fragment length with mode=", _mode, " and variance=", _var, " of at least ", _min,
 		      ".");
-	logfile->list("Fragments  > ", _maxPlusOne, " will result in reads of length ", _maxPlusOne, ".");
+	logfile().list("Fragments  > ", _maxPlusOne, " will result in reads of length ", _maxPlusOne, ".");
 	if (probAcceptance() < 0.9)
-		logfile->warning("The chosen distribution will only result in ", probAcceptance(), " of draws being accepted.");
+		logfile().warning("The chosen distribution will only result in ", probAcceptance(), " of draws being accepted.");
 };
 
 }; // namespace Simulations

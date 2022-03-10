@@ -24,8 +24,6 @@ namespace Simulations {
 //-------------------------------
 class TSimulatorSingleEndRead {
 protected:
-	coretools::TRandomGenerator *_randomGenerator;
-
 	const BAM::TReadGroup &_readGroup;
 	std::string _readNamePrefix;
 	int _readXPos = 1;
@@ -60,11 +58,11 @@ protected:
 				     const TReadLength &readLength, bool readIsContaminated);//, TSimulatorQualityTransformation *qualityTransform);
 
 public:
-	TSimulatorSingleEndRead(const BAM::TReadGroup &ReadGroup, coretools::TRandomGenerator *RandomGenerator);
+	TSimulatorSingleEndRead(const BAM::TReadGroup &ReadGroup);
 	virtual ~TSimulatorSingleEndRead() = default;
 
 	bool checkInitialization();
-	void setReadLengthDistribution(std::string s, coretools::TLog *logfile);
+	void setReadLengthDistribution(std::string s);
 	void setQualityDistribution(std::string s);
 	void setMappingQualityDistribution(std::string s);
 	void setPMD(GenotypeLikelihoods::TPMDType const *Pmd);
@@ -84,7 +82,7 @@ public:
 
 	virtual void simulate(const std::vector<genometools::Base>& haplotype, uint32_t refID, uint32_t pos, TSimulatorBamFile &bamFile);
 
-	void printDetails(coretools::TLog *logfile);
+	void printDetails();
 	virtual void writeUnwrittenAlignments(long, TSimulatorBamFile &){};
 };
 
@@ -99,7 +97,7 @@ private:
 	std::vector<BAM::TAlignment> bamAlignmentSecondMates;
 
 public:
-	TSimulatorPairedEndReads(const BAM::TReadGroup &, coretools::TRandomGenerator *RandomGenerator);
+	TSimulatorPairedEndReads(const BAM::TReadGroup &);
 
 	void simulate(const std::vector<genometools::Base>& haplotype, uint32_t refID, uint32_t pos, TSimulatorBamFile &bamFile) override;
 	void writeUnwrittenAlignments(long pos, TSimulatorBamFile &bamFile) override;

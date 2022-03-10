@@ -6,14 +6,16 @@
  */
 
 #include "TSimulatorQuality.h"
+#include "TLog.h"
 #include "TRandomGenerator.h"
 #include "algorithmsAndVectors.h"
 #include "mathFunctions.h"
 
 namespace Simulations {
 using genometools::PhredIntProbability;
-using coretools::TRandomGenerator;
+using coretools::instances::randomGenerator;
 using coretools::str::toString;
+using coretools::instances::logfile;
 
 //----------------------------------
 // TSimulatorQualityDist
@@ -32,15 +34,14 @@ TSimulatorQualityDistFixed::TSimulatorQualityDistFixed(std::string &s) {
 	}
 }
 
-void TSimulatorQualityDistFixed::printDetails(coretools::TLog *logfile, const std::string &Name) const {
-	logfile->list(Name + ": fixed quality of " + toString(_max));
+void TSimulatorQualityDistFixed::printDetails(const std::string &Name) const {
+	logfile().list(Name + ": fixed quality of " + toString(_max));
 }
 
 //------------------------------------------------
 // TSimulatorQualityDistBinned
 //------------------------------------------------
-	TSimulatorQualityDistBinned::TSimulatorQualityDistBinned(std::string &s, TRandomGenerator *RandomGenerator) : _randomGenerator(RandomGenerator)
-	{
+TSimulatorQualityDistBinned::TSimulatorQualityDistBinned(std::string &s){
 	const auto pos1 = s.find("(");
 	if (pos1 == 0) {
 		s.erase(0, 1);
@@ -55,18 +56,17 @@ void TSimulatorQualityDistFixed::printDetails(coretools::TLog *logfile, const st
 }
 
 PhredIntProbability TSimulatorQualityDistBinned::sample() const noexcept {
-	return _qualBins[_randomGenerator->sample(_qualBins.size())];
+	return _qualBins[randomGenerator().sample(_qualBins.size())];
 }
 
-void TSimulatorQualityDistBinned::printDetails(coretools::TLog *logfile, const std::string &Name) const {
-	logfile->list(Name + ": uniformly distributed among the values " + coretools::str::concatenateString(_qualBins, ", "));
+void TSimulatorQualityDistBinned::printDetails(const std::string &Name) const {
+	logfile().list(Name + ": uniformly distributed among the values " + coretools::str::concatenateString(_qualBins, ", "));
 }
 
 //------------------------------------------------
 // TSimulatorQualityDistFreq
 //------------------------------------------------
-TSimulatorQualityDistFreq::TSimulatorQualityDistFreq(std::string &s, TRandomGenerator *RandomGenerator)
-	: _randomGenerator(RandomGenerator) {
+TSimulatorQualityDistFreq::TSimulatorQualityDistFreq(std::string &s){
 	const auto pos1 = s.find("(");
 	if (pos1 == 0) {
 		s.erase(0, 1);
@@ -103,26 +103,24 @@ TSimulatorQualityDistFreq::TSimulatorQualityDistFreq(std::string &s, TRandomGene
 }
 
 PhredIntProbability TSimulatorQualityDistFreq::sample() const noexcept {
-	return _qualBins[_randomGenerator->pickOne(_cumulativeFrequencies)];
+	return _qualBins[randomGenerator().pickOne(_cumulativeFrequencies)];
 }
 
-void TSimulatorQualityDistFreq::printDetails(coretools::TLog *logfile, const std::string &Name) const {
-	logfile->list(Name + ": frequency bins " +
+void TSimulatorQualityDistFreq::printDetails(const std::string &Name) const {
+	logfile().list(Name + ": frequency bins " +
 	       coretools::str::concatenateString(coretools::str::paste(_qualBins, _frequencies, ":"), ", "));
 }
 
 //------------------------------------------------
 // TSimulatorQualityDistNormal
 //------------------------------------------------
-TSimulatorQualityDistNormal::TSimulatorQualityDistNormal(std::string &s, TRandomGenerator *RandomGenerator)
-	: _randomGenerator(RandomGenerator) {
+TSimulatorQualityDistNormal::TSimulatorQualityDistNormal(std::string &s) {
 	parseFunctionString(s);
 	fillDensities();
 }
 
-TSimulatorQualityDistNormal::TSimulatorQualityDistNormal(double mean, double sd, int min, int max,
-							 TRandomGenerator *RandomGenerator)
-	: _randomGenerator(RandomGenerator), _mean(mean), _sd(sd), _min(min), _max(max) {
+TSimulatorQualityDistNormal::TSimulatorQualityDistNormal(double mean, double sd, int min, int max)
+	: _mean(mean), _sd(sd), _min(min), _max(max) {
 	fillDensities();
 }
 
@@ -187,11 +185,11 @@ void TSimulatorQualityDistNormal::fillDensities() {
 }
 
 PhredIntProbability TSimulatorQualityDistNormal::sample() const noexcept {
-	return PhredIntProbability(_randomGenerator->pickOne(_cumulDensities) + _min.get());
+	return PhredIntProbability(randomGenerator().pickOne(_cumulDensities) + _min.get());
 }
 
-void TSimulatorQualityDistNormal::printDetails(coretools::TLog *logfile, const std::string &Name) const {
-	logfile->list(Name + ": Normally distributed quality scores with mean=", _mean, " and sd=", _sd,
+void TSimulatorQualityDistNormal::printDetails(const std::string &Name) const {
+	logfile().list(Name + ": Normally distributed quality scores with mean=", _mean, " and sd=", _sd,
 		      ", truncated to [", _min, ",", _max, "].");
 }
 
