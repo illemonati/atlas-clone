@@ -128,10 +128,15 @@ public:
 //------------------------------------------------
 class TModelRecal : public TModel {
 private:
+	struct TCovariateModel {
+		std::unique_ptr<TCovariate> covariate;
+		std::unique_ptr<TFunction> function;
+		TCovariateModel(TCovariate* cov, TFunction* fn) : covariate(cov), function(fn) {}
+	};
 	TRho _rho;
-	TCovariateFunction_intercept _intercept;
-	std::vector<std::unique_ptr<TCovariate>> _covariates;
-	std::vector<TCovariateFunction *> _functions; // non-owning
+	TIntercept _intercept;
+	std::vector<TCovariateModel> _covariates;
+	std::vector<TFunction *> _functions; // non-owning
 	uint16_t _numParameters;
 
 	// Newton Raphson Parameters to estimate betas

@@ -22,7 +22,7 @@ namespace SequencingError {
 // TCovariateFunction
 // Base class for recal covariate functions
 //--------------------------------------------------------------
-class TCovariateFunction{
+class TFunction{
 private:
 	uint16_t _firstParameterIndex;
 protected:
@@ -33,8 +33,8 @@ protected:
 	double _normalizeParameters() noexcept;
 public:
 	static inline const std::string name = "none";
-	TCovariateFunction(uint16_t FirstParameterIndex = 0) : _firstParameterIndex(FirstParameterIndex) {}
-	virtual ~TCovariateFunction() = default;
+	TFunction(uint16_t FirstParameterIndex = 0) : _firstParameterIndex(FirstParameterIndex) {}
+	virtual ~TFunction() = default;
 	virtual double& beta(uint16_t index) noexcept = 0;
 	virtual double beta(uint16_t index) const noexcept = 0;
 
@@ -66,7 +66,7 @@ public:
 // TCovariateFunction_intercept
 // An intercept term
 //--------------------------------------------------------------
-class TCovariateFunction_intercept:public TCovariateFunction{
+class TIntercept:public TFunction{
 private:
 	double _beta;
 	double _oldbeta;
@@ -75,7 +75,7 @@ protected:
 	double _oldBeta(uint16_t ) const noexcept override {return _oldbeta;}
 public:
 	static inline const std::string name = "intercept";
-	TCovariateFunction_intercept() = default;
+	TIntercept() = default;
 
 	uint16_t numParameters() const noexcept override { return 1; };
 	uint16_t numNonZeroFirstDerivatives() const noexcept override { return 1; };
@@ -101,7 +101,7 @@ public:
 // TCovariateFunction_polynomial
 // A polynomial function
 //--------------------------------------------------------------
-class TCovariateFunction_polynomial:public TCovariateFunction{
+class TPolynomial:public TFunction{
 private:
 	std::vector<double> _betas; //betas of the model
 	std::vector<double> _oldBetas; //use during estimation
@@ -116,8 +116,8 @@ protected:
 
 public:
 	static inline const std::string name = "polynomial";
-	TCovariateFunction_polynomial(uint16_t FirstParameterIndex, size_t order, TRecalibrationEMTransformationMap* transformationMap = nullptr);
-	TCovariateFunction_polynomial(uint16_t FirstParameterIndex, const std::vector<std::string> & values, TRecalibrationEMTransformationMap* transformationMap = nullptr);
+	TPolynomial(uint16_t FirstParameterIndex, size_t order, TRecalibrationEMTransformationMap* transformationMap = nullptr);
+	TPolynomial(uint16_t FirstParameterIndex, const std::vector<std::string> & values, TRecalibrationEMTransformationMap* transformationMap = nullptr);
 
 	uint16_t numParameters() const noexcept override { return _order; };
 	uint16_t numNonZeroFirstDerivatives() const noexcept override { return _order; };
@@ -139,7 +139,7 @@ public:
 // A polynomial function
 //--------------------------------------------------------------
 
-class TRecalibrationEMCovariateFunction_probit:public TCovariateFunction{
+class TProbit:public TFunction{
 private:
 	struct TProbitTmpStorage {
 		double cumulDens_Phi;
@@ -168,8 +168,8 @@ protected:
 	double _oldBeta(uint16_t i) const noexcept override {return _oldBetas[i];}
 public:
 	static inline const std::string name = "probit";
-	TRecalibrationEMCovariateFunction_probit(uint16_t FirstParameterIndex, uint16_t MaxValue);
-	TRecalibrationEMCovariateFunction_probit(uint16_t FirstParameterIndex, const std::vector<std::string> & values);
+	TProbit(uint16_t FirstParameterIndex, uint16_t MaxValue);
+	TProbit(uint16_t FirstParameterIndex, const std::vector<std::string> & values);
 
 	uint16_t numParameters() const noexcept override { return 3; };
 	uint16_t numNonZeroFirstDerivatives() const noexcept override { return 3; };
@@ -187,7 +187,7 @@ public:
 // TCovariateFunction_specific
 // A term per discrete value from 0 to maxValue
 //--------------------------------------------------------------
-class TCovariateFunction_specific:public TCovariateFunction{
+class TSpecific:public TFunction{
 private:
 	uint16_t _maxValue;
 	std::vector<double> _betas; //betas of the model
@@ -199,8 +199,8 @@ protected:
 	double _oldBeta(uint16_t i) const noexcept override {return _oldBetas[i];}
 public:
 	static inline const std::string name = "specific";
-	TCovariateFunction_specific(uint16_t FirstParameterIndex, uint16_t MaxValue);
-	TCovariateFunction_specific(uint16_t FirstParameterIndex, const std::vector<std::string> & betas);
+	TSpecific(uint16_t FirstParameterIndex, uint16_t MaxValue);
+	TSpecific(uint16_t FirstParameterIndex, const std::vector<std::string> & betas);
 
 	uint16_t numParameters() const noexcept override { return _maxValue + 1; };
 	uint16_t numNonZeroFirstDerivatives() const noexcept override { return 1; };
@@ -224,18 +224,18 @@ public:
 // TCovariateFunction_specificMap
 // A term per discrete values as indicated with a map
 //--------------------------------------------------------------
-struct TCovariateFunctionIndexMapEntry{
+struct TIndexMapEntry{
 	uint16_t index = 0;
 	bool used = false;
 };
 
-class TCovariateFunction_specificMap:public TCovariateFunction{
+class TSpecificMap:public TFunction{
 private:
 	std::vector<double> _betas; //betas of the model
 	std::vector<double> _oldBetas; //use during estimation
 	uint16_t _numParameters;
 	uint16_t _maxValue;
-	std::vector<TCovariateFunctionIndexMapEntry> _indexMap; //maps value to parameter index
+	std::vector<TIndexMapEntry> _indexMap; //maps value to parameter index
 
 	void _init(size_t NumParameters);
 	void _initMapFromVector(const std::vector<uint16_t> & values);
@@ -244,9 +244,9 @@ protected:
 	double _oldBeta(uint16_t i) const noexcept override {return _oldBetas[i];}
 public:
 	static inline const std::string name = "map";
-	TCovariateFunction_specificMap(uint16_t FirstParameterIndex, const std::vector<uint16_t> & values);
-	TCovariateFunction_specificMap(uint16_t FirstParameterIndex, const std::vector<std::string> & values);
-	~TCovariateFunction_specificMap(){};
+	TSpecificMap(uint16_t FirstParameterIndex, const std::vector<uint16_t> & values);
+	TSpecificMap(uint16_t FirstParameterIndex, const std::vector<std::string> & values);
+	~TSpecificMap(){};
 
 	uint16_t numParameters() const noexcept override { return _numParameters; };
 	uint16_t numNonZeroFirstDerivatives() const noexcept override { return 1; };
