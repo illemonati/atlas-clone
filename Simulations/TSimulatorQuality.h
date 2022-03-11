@@ -9,9 +9,6 @@
 #define SIMULATIONS_TSIMULATORQUALITY_H_
 
 #include "../BAM/TSequencedBase.h"
-#include "TLog.h"
-#include "TParameters.h"
-#include "TRandomGenerator.h"
 #include "TSequencingErrorModel.h"
 #include "TSimulatorReadLength.h"
 #include "algorithmsAndVectors.h"
@@ -29,7 +26,7 @@ public:
 		for (auto &q : phredInt) q = sample();
 	}
 	virtual genometools::PhredIntProbability sample() const noexcept                                = 0;
-	virtual void printDetails(coretools::TLog *logfile, const std::string &Name) const = 0;
+	virtual void printDetails(const std::string &Name) const = 0;
 };
 
 //-------------------------------
@@ -44,7 +41,7 @@ public:
 	TSimulatorQualityDistFixed(std::string &s);
 
 	genometools::PhredIntProbability sample() const noexcept override { return _max; };
-	void printDetails(coretools::TLog *logfile, const std::string &Name) const override;
+	void printDetails(const std::string &Name) const override;
 };
 
 //------------------------------------------------
@@ -53,13 +50,12 @@ public:
 //------------------------------------------------
 class TSimulatorQualityDistBinned : public TSimulatorQualityDist {
 private:
-	coretools::TRandomGenerator *_randomGenerator;
 	std::vector<genometools::PhredIntProbability> _qualBins;
 public:
-	TSimulatorQualityDistBinned(std::string &s, coretools::TRandomGenerator *RandomGenerator);
+	TSimulatorQualityDistBinned(std::string &s);
 
 	genometools::PhredIntProbability sample() const noexcept override;
-	void printDetails(coretools::TLog *logfile, const std::string &Name) const override;
+	void printDetails(const std::string &Name) const override;
 };
 
 //------------------------------------------------
@@ -68,16 +64,15 @@ public:
 //------------------------------------------------
 class TSimulatorQualityDistFreq : public TSimulatorQualityDist {
 private:
-	coretools::TRandomGenerator *_randomGenerator;
 	std::vector<genometools::PhredIntProbability> _qualBins;
 	std::vector<coretools::Probability> _frequencies;
 	std::vector<coretools::Probability> _cumulativeFrequencies;
 
 public:
-	TSimulatorQualityDistFreq(std::string &s, coretools::TRandomGenerator *RandomGenerator);
+	TSimulatorQualityDistFreq(std::string &s);
 
 	genometools::PhredIntProbability sample() const noexcept override;
-	void printDetails(coretools::TLog *logfile, const std::string &Name) const override;
+	void printDetails(const std::string &Name) const override;
 };
 
 //------------------------------------------------
@@ -86,7 +81,6 @@ public:
 //------------------------------------------------
 class TSimulatorQualityDistNormal : public TSimulatorQualityDist {
 private:
-	coretools::TRandomGenerator *_randomGenerator;
 	// densities
 	std::vector<double> _densities;
 	std::vector<double> _cumulDensities;
@@ -95,8 +89,8 @@ private:
 	genometools::PhredIntProbability _min{0};
 	genometools::PhredIntProbability _max{30};
 public:
-	TSimulatorQualityDistNormal(std::string &s, coretools::TRandomGenerator *RandomGenerator);
-	TSimulatorQualityDistNormal(double mean, double sd, int min, int max, coretools::TRandomGenerator *RandomGenerator);
+	TSimulatorQualityDistNormal(std::string &s);
+	TSimulatorQualityDistNormal(double mean, double sd, int min, int max);
 
 	void parseFunctionString(std::string &s);
 	void fillDensities();
@@ -104,7 +98,7 @@ public:
 	double sd() const noexcept { return _sd; };
 
 	genometools::PhredIntProbability sample() const noexcept override;
-	void printDetails(coretools::TLog *logfile, const std::string &Name) const override;
+	void printDetails(const std::string &Name) const override;
 };
 
 } // namespace Simulations

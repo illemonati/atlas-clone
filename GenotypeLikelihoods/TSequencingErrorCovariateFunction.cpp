@@ -7,6 +7,8 @@
 
 
 #include "TSequencingErrorCovariateFunction.h"
+#include "stringFunctions.h"
+#include <algorithm>
 
 namespace GenotypeLikelihoods{
 namespace SequencingError {
@@ -15,272 +17,211 @@ namespace SequencingError {
 // TRecalibrationEMCovariateFunction
 //--------------------------------------------------------------
 
-void TCovariateFunction::_initializeBetas() {
-	_betas.resize(numParameters());
-	_oldBetas.resize(numParameters());
-}
-
-void TCovariateFunction::_initializValues(const std::vector<std::string> & values){
+void TFunction::_initializValues(const std::vector<std::string> & values){
 	if(!values.empty()){
 		if(values.size() != numParameters()){
 			throw coretools::str::toString("Failed to initialize recalibration module: wrong number of values (", values.size(), " instead of ", numParameters(), ")!");
 		}
 
 		for(size_t i=0; i<values.size(); ++i){
-			_betas[i] = coretools::str::convertStringCheck<double>(values[i]);
+			beta(i) = coretools::str::convertStringCheck<double>(values[i]);
 		}
 	}
-};
+}
 
-double TCovariateFunction::_getAsDouble(uint16_t val) const{
-	if(doTransformation){
-		return transformationMap->get(val);
-	} else {
-		return (double) val;
-	}
-};
-
-double TCovariateFunction::_normalizeParameters(){
+double TFunction::_normalizeParameters() noexcept{
 	double mean = 0.0;
-	for(uint16_t i=0; i<_betas.size(); ++i){
-		mean += _betas[i];
+	for(uint16_t i=0; i<numParameters(); ++i){
+		mean += beta(i);
 	}
-	mean /= (double) numParameters();
-
+	mean /= numParameters();
 
 	for(uint16_t i=0; i<numParameters(); ++i){
-		_betas[i] -= mean;
+		beta(i) -= mean;
 	}
-
 	return mean;
-};
+}
 
-bool TCovariateFunction::checkValueRange(const std::vector<uint16_t> & values) const{
+bool TFunction::checkValueRange(const std::vector<uint16_t> & values) const noexcept{
 	//check range for each value
 	for(uint16_t val : values){
 		if(!checkValueRange(val))
 			return false;
 	}
-	//check range regarding transformation
-	if(doTransformation){
-		for(uint16_t val : values){
-			if(!transformationMap->checkRange(val))
-				return false;
-		}
-	}
 	return true;
-};
+}
 
-
-void TCovariateFunction::proposeNewParameters(const arma::mat & JxF, uint16_t & index, double & lambda){
-	//save old parameters
-	for(uint16_t i=0; i<numParameters(); ++i)
-		_oldBetas[i] = _betas[i];
-
+void TFunction::proposeNewParameters(const arma::mat & JxF, uint16_t & index, double & lambda) noexcept {
 	//update new ones
-	for(uint16_t i=0; i<numParameters(); ++i){
-		_betas[i] = _oldBetas[i] - lambda * JxF(index);
+	for (uint16_t i = 0; i < numParameters(); ++i) {
+		_oldBeta(i) = beta(i);
+		beta(i)    -= lambda * JxF(index);
 		++index;
 	}
-};
+}
 
-std::string TCovariateFunction::getModelString() const{
-	return typeString() + "[" + coretools::str::concatenateString(_betas, ",") + "]";
-};
+void TFunction::rejectProposedParameters() noexcept {
+	for (size_t i = 0; i < numParameters(); ++i) beta(i) = _oldBeta(i);
+}
+
+std::string TFunction::getModelString() const{
+	using coretools::str::toString;
+	std::string s = typeString() + "[" + toString(beta(0));
+	for (size_t i = 1; i < numParameters(); ++i) s += "," + toString(beta(0));
+	return s + "]";
+}
 
 //--------------------------------------------------------------
 // TRecalibrationEMCovariateFunction_intercept
 //--------------------------------------------------------------
-void TCovariateFunction_intercept::_init(){
-	_initializeBetas();
-};
 
-TCovariateFunction_intercept::TCovariateFunction_intercept(uint16_t FirstParameterIndex):TCovariateFunction(FirstParameterIndex){
-	_init();
-};
+TIntercept::TIntercept(uint16_t FirstParameterIndex, const std::string &value)
+	: TFunction(FirstParameterIndex) {
+	_beta = coretools::str::convertStringCheck<double>(value);
+}
 
-TCovariateFunction_intercept::TCovariateFunction_intercept(uint16_t FirstParameterIndex, const std::vector<std::string> & values):TCovariateFunction(FirstParameterIndex){
-	_init();
-	_initializValues(values);
-};
+void TIntercept::fillDerivatives(TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives &) const noexcept {
+	first.add(firstParameterIndex(), 1.0);
+}
 
-void TCovariateFunction_intercept::initialize(uint16_t ){
-	_init();
-};
-
-void TCovariateFunction_intercept::initialize(uint16_t , const std::vector<std::string> & values){
-	_initializValues(values);
-};
-
-void TCovariateFunction_intercept::setIntercept(double val){
-	_betas[0] = val;
-};
-
-void TCovariateFunction_intercept::addToIntercept(double val){
-	_betas[0] += val;
-};
-
-double TCovariateFunction_intercept::getIntercept() const{
-	return _betas[0];
-};
-
-double TCovariateFunction_intercept::getEtaTerm() const{
-	return _betas[0];
-};
-
-double TCovariateFunction_intercept::getEtaTerm(uint16_t ) const{
-	return _betas[0];
-};
-
-void TCovariateFunction_intercept::fillDerivatives(TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives &) const{
-	first.add(_firstParameterIndex, 1.0);
-};
-
-void TCovariateFunction_intercept::fillDerivatives(uint16_t , TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives &) const{
-	first.add(_firstParameterIndex, 1.0);
-};
+void TIntercept::fillDerivatives(uint16_t , TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives &) const noexcept {
+	first.add(firstParameterIndex(), 1.0);
+}
 
 //--------------------------------------------------------------
 // TRecalibrationEMCovariateFunction_polynomial
 //--------------------------------------------------------------
-void TCovariateFunction_polynomial::_init(size_t order){
+void TPolynomial::_init(size_t order){
 	if(order < 1)
 		throw "Order of polynomial covariate function must be at least 1!";
 	_order = order;
-	_initializeBetas();
-};
+	_betas.resize(order);
+	_oldBetas.resize(order);
+}
 
-TCovariateFunction_polynomial::TCovariateFunction_polynomial(uint16_t FirstParameterIndex, size_t order):TCovariateFunction(FirstParameterIndex){
+	TPolynomial::TPolynomial(uint16_t FirstParameterIndex, size_t order, TRecalibrationEMTransformationMap* transformationMap):TFunction(FirstParameterIndex), _transformationMap(transformationMap){
 	_init(order);
-};
+}
 
-TCovariateFunction_polynomial::TCovariateFunction_polynomial(uint16_t FirstParameterIndex, const std::vector<std::string> & values):TCovariateFunction(FirstParameterIndex){
+	TPolynomial::TPolynomial(uint16_t FirstParameterIndex, const std::vector<std::string> & values, TRecalibrationEMTransformationMap* transformationMap):TFunction(FirstParameterIndex), _transformationMap(transformationMap){
 	_init(values.size());
 	_initializValues(values);
-};
+}
 
-double TCovariateFunction_polynomial::getEtaTerm(uint16_t val) const{
-	double valAsDouble = _getAsDouble(val);
-	double tmp = valAsDouble;
-	double sum = _betas[0] * tmp;
+double TPolynomial::getEtaTerm(uint16_t val) const noexcept {
+	const double v = _getAsDouble(val);
+	double vpi = v;
+	double sum = _betas[0] * vpi;
 
 	for(size_t i=1; i<numParameters(); ++i){
-		tmp *= valAsDouble;
-		sum += _betas[i] * tmp;
+		vpi *= v;
+		sum += _betas[i] * vpi;
 	}
-
 	return sum;
-};
+}
 
-void TCovariateFunction_polynomial::fillDerivatives(uint16_t val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives &) const{
-	double valAsDouble = _getAsDouble(val);
-	double tmp = valAsDouble;
-	first.add(_firstParameterIndex, tmp);
+void TPolynomial::fillDerivatives(uint16_t val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives &) const noexcept {
+	const double v = _getAsDouble(val);
+	double vpi     = v;
+	first.add(firstParameterIndex(), vpi);
 	for(size_t i=1; i<numParameters(); ++i){
-		tmp *= valAsDouble;
-		first.add(_firstParameterIndex + i, tmp);
+		vpi *= v;
+		first.add(firstParameterIndex() + i, vpi);
 	}
-};
+}
+
+bool TPolynomial::checkValueRange(uint16_t val) const noexcept {
+	return _transformationMap ? _transformationMap->checkRange(val) : true;
+}
 
 //--------------------------------------------------------------
 // TRecalibrationEMCovariateFunction_probit
 //--------------------------------------------------------------
-TProbitTmpStorage::TProbitTmpStorage(const std::vector<double> & betas, uint16_t q){
-	double z = betas[1] + betas[2] * (double) q;
-	_cumulDens_Phi = coretools::TNormalDistr::cumulativeDistrFunction(z);
-	_normalDens_phi = coretools::TNormalDistr::density(z);
-	_eta = _cumulDens_Phi * betas[0];
-	_normalDens_q = _normalDens_phi * (double) q;
-	_normalDens_Beta1 = _normalDens_phi * betas[0];
-	_normalDens_Beta1_q = _normalDens_Beta1 * (double) q;
-	_normalDens_Beta1_z = _normalDens_Beta1 * z;
-	_normalDens_Beta1_q_z = _normalDens_Beta1_q * z;
-	_normalDens_Beta1_q2_z = _normalDens_Beta1_q_z * (double) q;
-};
+TProbit::TProbitTmpStorage::TProbitTmpStorage(const std::array<double, 3> & betas, uint16_t q){
+	const double z = betas[1] + betas[2] * q;
+	cumulDens_Phi = coretools::TNormalDistr::cumulativeDistrFunction(z);
+	normalDens_phi = coretools::TNormalDistr::density(z);
+	eta = cumulDens_Phi * betas[0];
+	normalDens_q = normalDens_phi * q;
+	normalDens_Beta1 = normalDens_phi * betas[0];
+	normalDens_Beta1_q = normalDens_Beta1 * q;
+	normalDens_Beta1_z = normalDens_Beta1 * z;
+	normalDens_Beta1_q_z = normalDens_Beta1_q * z;
+	normalDens_Beta1_q2_z = normalDens_Beta1_q_z * q;
+}
 
-void TRecalibrationEMCovariateFunction_probit::_init(uint16_t MaxValue){
-	_initializeBetas();
-	_secondParameterIndex = _firstParameterIndex + 1;
-	_thirdParameterIndex = _firstParameterIndex + 2;
-
+void TProbit::_init(uint16_t MaxValue){
 	//prepare tmp storage for phi and Phi
-	if(MaxValue < 1){
-		_maxValue = 128;
-	}
-	_expandTmpStorage(MaxValue);
-};
+	_expandTmpStorage(MaxValue < 1 ? 128 : MaxValue);
+}
 
-void TRecalibrationEMCovariateFunction_probit::_expandTmpStorage(uint16_t MaxValue) const{
+void TProbit::_expandTmpStorage(uint16_t MaxValue) const{
 	for(uint16_t q = _maxValue + 1; q <= MaxValue; ++q){
 		_tmpStorage.emplace_back(_betas, q);
 	}
 	_maxValue = MaxValue;
-};
+}
 
-TRecalibrationEMCovariateFunction_probit::TRecalibrationEMCovariateFunction_probit(uint16_t FirstParameterIndex, uint16_t MaxValue):TCovariateFunction(FirstParameterIndex){
+TProbit::TProbit(uint16_t FirstParameterIndex, uint16_t MaxValue):TFunction(FirstParameterIndex){
 	_init(MaxValue);
-};
+}
 
-TRecalibrationEMCovariateFunction_probit::TRecalibrationEMCovariateFunction_probit(uint16_t FirstParameterIndex, const std::vector<std::string> & values):TCovariateFunction(FirstParameterIndex){
+TProbit::TProbit(uint16_t FirstParameterIndex, const std::vector<std::string> & values):TFunction(FirstParameterIndex){
 	_init(0);
 	_initializValues(values);
-};
+}
 
-double TRecalibrationEMCovariateFunction_probit::getEtaTerm(uint16_t val) const{
+double TProbit::getEtaTerm(uint16_t val) const noexcept{
 	if(val > _maxValue){
 		_expandTmpStorage(val);
 	}
+	return _tmpStorage[val].eta;
+}
 
-	return _tmpStorage[val]._eta;
-};
-
-void TRecalibrationEMCovariateFunction_probit::fillDerivatives(uint16_t val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second) const{
+void TProbit::fillDerivatives(uint16_t val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives & second) const noexcept {
 	if(val > _maxValue){
 		_expandTmpStorage(val);
 	}
+	const auto i1 = firstParameterIndex();
+	const auto i2 = i1 + 1;
+	const auto i3 = i1 + 2;
 
 	//first derivatives for each parameter
-	first.add(_firstParameterIndex, _tmpStorage[val]._cumulDens_Phi);
-	first.add(_secondParameterIndex, _tmpStorage[val]._normalDens_Beta1);
-	first.add(_thirdParameterIndex, _tmpStorage[val]._normalDens_Beta1_q);
+	first.add(i1, _tmpStorage[val].cumulDens_Phi);
+	first.add(i2, _tmpStorage[val].normalDens_Beta1);
+	first.add(i3, _tmpStorage[val].normalDens_Beta1_q);
 
 	//add second derivatives
-	second.add(_secondParameterIndex, _secondParameterIndex, - _tmpStorage[val]._normalDens_Beta1_z);
-	second.add(_thirdParameterIndex, _thirdParameterIndex, - _tmpStorage[val]._normalDens_Beta1_q2_z);
+	second.add(i2, i2, - _tmpStorage[val].normalDens_Beta1_z);
+	second.add(i3, i3, - _tmpStorage[val].normalDens_Beta1_q2_z);
 
-	second.add(_firstParameterIndex, _secondParameterIndex, _tmpStorage[val]._normalDens_phi);
-	second.add(_firstParameterIndex, _thirdParameterIndex, _tmpStorage[val]._normalDens_q);
-	second.add(_secondParameterIndex, _thirdParameterIndex, - _tmpStorage[val]._normalDens_Beta1_q_z);
-};
-
+	second.add(i1, i2, _tmpStorage[val].normalDens_phi);
+	second.add(i1, i3, _tmpStorage[val].normalDens_q);
+	second.add(i2, i3, - _tmpStorage[val].normalDens_Beta1_q_z);
+}
 
 //--------------------------------------------------------------
 // TRecalibrationEMCovariateFunction_specific
 //--------------------------------------------------------------
-TCovariateFunction_specific::TCovariateFunction_specific(uint16_t FirstParameterIndex, uint16_t MaxValue):TCovariateFunction(FirstParameterIndex){
+TSpecific::TSpecific(uint16_t FirstParameterIndex, uint16_t MaxValue):TFunction(FirstParameterIndex){
 	_init(MaxValue);
-};
+}
 
-TCovariateFunction_specific::TCovariateFunction_specific(uint16_t FirstParameterIndex, const std::vector<std::string> & betas):TCovariateFunction(FirstParameterIndex){
+TSpecific::TSpecific(uint16_t FirstParameterIndex, const std::vector<std::string> & betas):TFunction(FirstParameterIndex){
 	//init
 	_init(betas.size() - 1);
 
 	//now copy values
 	_initializValues(betas);
-};
+}
 
-void TCovariateFunction_specific::_init(uint16_t MaxValue){
+void TSpecific::_init(uint16_t MaxValue){
 	_maxValue = MaxValue;
-	_initializeBetas();
-};
+	_betas.reserve(numParameters());
+	_oldBetas.reserve(numParameters());
+}
 
-bool TCovariateFunction_specific::checkValueRange(uint16_t val) const {
-	if(val > _maxValue)
-		return false;
-	return true;
-};
-
-void TCovariateFunction_specific::adjustValueRanges(const std::vector<uint16_t> & usedValues){
+void TSpecific::adjustValueRanges(const std::vector<uint16_t> & usedValues){
 	//initialize with maximum
 	uint16_t max = *std::max_element(usedValues.begin(), usedValues.end());
 	_init(max);
@@ -293,32 +234,29 @@ void TCovariateFunction_specific::adjustValueRanges(const std::vector<uint16_t> 
 	for(uint16_t i=0; i<found.size(); ++i){
 		if(!found[i]){
 			throw "Can not adjust value range for recal function '" + name + "': value " + coretools::str::toString(i) + " is < max value but never used."
-				+ "\nConsider using recal function '" + TCovariateFunction_specificMap::name + "'.";
+				+ "\nConsider using recal function '" + TSpecificMap::name + "'.";
 		}
 	}
-};
+}
 
-void TCovariateFunction_specific::fillDerivatives(uint16_t val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives &) const{
-	first.add(_firstParameterIndex + val, 1.0);
-};
+void TSpecific::fillDerivatives(uint16_t val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives &) const noexcept {
+	first.add(firstParameterIndex() + val, 1.0);
+}
 
 //--------------------------------------------------------------
 // TRecalibrationEMCovariateFunction_specificMap
 //--------------------------------------------------------------
-void TCovariateFunction_specificMap::_init(size_t NumParameters){
+void TSpecificMap::_init(size_t NumParameters){
 	_numParameters = NumParameters;
-	_initializeBetas();
-};
+	_betas.reserve(numParameters());
+	_oldBetas.reserve(numParameters());
+}
 
-void TCovariateFunction_specificMap::_initMapFromVector(const std::vector<uint16_t> & values){
+void TSpecificMap::_initMapFromVector(const std::vector<uint16_t> & values){
 	_init(values.size());
 
 	//find largest value
-	_maxValue = 0;
-	for(uint16_t val : values){
-		if(val > _maxValue)
-			_maxValue = val;
-	}
+	_maxValue = std::max(_maxValue, *std::max_element(values.begin(), values.end()));
 
 	//create map
 	_indexMap.clear();
@@ -328,16 +266,15 @@ void TCovariateFunction_specificMap::_initMapFromVector(const std::vector<uint16
 		_indexMap[values[i]].index = i;
 		_indexMap[values[i]].index = true;
 	}
-};
+}
 
-TCovariateFunction_specificMap::TCovariateFunction_specificMap(uint16_t FirstParameterIndex, const std::vector<uint16_t> & values):TCovariateFunction(FirstParameterIndex){
+TSpecificMap::TSpecificMap(uint16_t FirstParameterIndex, const std::vector<uint16_t> & values):TFunction(FirstParameterIndex){
 	_initMapFromVector(values);
-};
+}
 
-TCovariateFunction_specificMap::TCovariateFunction_specificMap(uint16_t FirstParameterIndex, const std::vector<std::string> & values):TCovariateFunction(FirstParameterIndex){
+TSpecificMap::TSpecificMap(uint16_t FirstParameterIndex, const std::vector<std::string> & values):TFunction(FirstParameterIndex){
 	//parse values as pairs separated by a colon (:)
 	std::vector<uint16_t> valuesUsed;
-	std::vector<double> betas;
 	for(std::string s : values){
 		size_t pos = s.find(':');
 		if(pos == std::string::npos){
@@ -348,30 +285,19 @@ TCovariateFunction_specificMap::TCovariateFunction_specificMap(uint16_t FirstPar
 			throw "Duplicate entry for key " + coretools::str::toString(key) + "!";
 		}
 		valuesUsed.push_back(key);
-		betas.push_back(coretools::str::convertStringCheck<double>(s.substr(pos+1)));
+		_betas.push_back(coretools::str::convertStringCheck<double>(s.substr(pos+1)));
 	}
-
 	//init map
 	_initMapFromVector(valuesUsed);
+}
 
-	//copy betas
-	_betas = betas;
-};
-
-bool TCovariateFunction_specificMap::checkValueRange(uint16_t val) const{
-	if(val > _maxValue || !_indexMap[val].used){
-		return false;
-	}
-	return true;
-};
-
-void TCovariateFunction_specificMap::adjustValueRanges(const std::vector<uint16_t> & valuesUsed){
+void TSpecificMap::adjustValueRanges(const std::vector<uint16_t> & valuesUsed){
 	_initMapFromVector(valuesUsed);
-};
+}
 
-void TCovariateFunction_specificMap::fillDerivatives(uint16_t val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives &) const{
-	first.add(_firstParameterIndex + _indexMap[val].index, 1.0);
-};
+void TSpecificMap::fillDerivatives(uint16_t val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives &) const noexcept {
+	first.add(firstParameterIndex() + _indexMap[val].index, 1.0);
+}
 
 } // namespace SequencingError
 } // namespace GenotypeLikelihoods

@@ -55,7 +55,7 @@ TQualityTransformation::TQualityTransformation(coretools::TParameters & Paramete
 	if(Parameters.parameterExists("recal2")){
 		std::string filename = Parameters.getParameter<std::string>("recal2");
 		_logfile->startIndent("Comparing recalibrated qualities to those recalibrated with alternative parameters:");
-		_otherSeqErrors.initializeFromFile(filename, _bamFile.readGroups(), _logfile);
+		_otherSeqErrors.initializeFromFile(filename, _bamFile.readGroups());
 
 		_compareToOtherSeqErrors = true;
 		_label1 = "recalibratedQuality";

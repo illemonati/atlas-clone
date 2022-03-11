@@ -8,8 +8,6 @@
 #ifndef TSIMULATORREADLENGTH_H_
 #define TSIMULATORREADLENGTH_H_
 
-#include "TLog.h"
-#include "TRandomGenerator.h"
 #include "stringFunctions.h"
 #include <cstdint>
 
@@ -45,12 +43,11 @@ public:
 	virtual uint32_t max() const noexcept { return _meanLength; }
 	virtual double mean() const noexcept { return _meanLength; }
 	virtual double probAcceptance() const noexcept { return 1.0; }
-	virtual void printDetails(coretools::TLog *logfile);
+	virtual void printDetails();
 };
 
 class TSimulatorReadLengthGamma : public TReadLengthDistribution {
 protected:
-	coretools::TRandomGenerator *_randomGenerator;
 	double _meanLength = -1.;
 	double _alpha = -1.;
 	double _beta = -1.;
@@ -61,15 +58,15 @@ protected:
 	std::vector<double> _gammaCumulDensity;
 
 	void parseFunctionString(std::string &s, double &param1, double &param2);
-	void initiate(coretools::TLog *logfile);
+	void initiate();
 
 public:
-	TSimulatorReadLengthGamma(std::string &s, coretools::TRandomGenerator *RandomGenerator, coretools::TLog *Logfile);
-	TSimulatorReadLengthGamma(coretools::TRandomGenerator *RandomGenerator) : _randomGenerator(RandomGenerator){};
+	TSimulatorReadLengthGamma(std::string &s);
+	TSimulatorReadLengthGamma() = default;
 	TReadLength sample() const noexcept override;
 	uint32_t max() const noexcept override { return _maxPlusOne - 1; };
 	double mean() const noexcept override { return _meanLength; };
-	void printDetails(coretools::TLog *logfile) override;
+	void printDetails() override;
 	double probAcceptance() const noexcept override{ return 1.0 - _gammaCumulDensity.front(); };
 };
 
@@ -78,8 +75,8 @@ protected:
 	double _mode, _var;
 
 public:
-	TSimulatorReadLengthGammaMode(std::string &s, coretools::TRandomGenerator *RandomGenerator, coretools::TLog *Logfile);
-	void printDetails(coretools::TLog *logfile) override;
+	TSimulatorReadLengthGammaMode(std::string &s);
+	void printDetails() override;
 };
 
 }; // namespace Simulations

@@ -34,8 +34,6 @@ namespace Simulations {
 //---------------------------------------------------------
 class TSimulator {
 protected:
-	coretools::TLog *_logfile;
-	coretools::TRandomGenerator *_randomGenerator;
 	std::string _outname;
 
 	// general simulation parameters
@@ -68,28 +66,28 @@ protected:
 	std::array<double, 4> _cumulBaseFreq;
 	bool _refInitialized = false;
 
-	TSimulator(coretools::TLog *Logfile, coretools::TParameters &params, coretools::TRandomGenerator *RandomGenerator);
+	TSimulator();
 
 	// function to initialize read groups
 	std::vector<std::string> _readSimInfoPerReadGroup(const std::string &Filename, const std::string &Column,
 							  const std::string &Name);
 	void _initializeReadGroup(const std::string &readLengthString, const BAM::TReadGroup &ReadGroup);
-	void _initializeReadGroupsFromReadLengthDistribution(coretools::TParameters &params, const std::string &ParameterName,
+	void _initializeReadGroupsFromReadLengthDistribution(const std::string &ParameterName,
 							     const std::string &DefaultValue, const std::string &Name);
-	void _initializeDistribution(coretools::TParameters &params, const std::string &ParameterName, const std::string &DefaultValue,
+	void _initializeDistribution(const std::string &ParameterName, const std::string &DefaultValue,
 				     const std::string &Name,
 				     std::function<void(TSimulatorSingleEndRead &, std::string)> function);
-	void _initializePMD(coretools::TParameters &params, const std::string &ParameterName, const std::string &Name);
-	void _initializeQualityTransformations(coretools::TParameters &params, const std::string &ParameterName,
+	void _initializePMD(const std::string &ParameterName, const std::string &Name);
+	void _initializeQualityTransformations(const std::string &ParameterName,
 					       const std::string &Name);
-	void _initializeContamination(coretools::TParameters &params, bool &perReadGroup,
+	void _initializeContamination(bool &perReadGroup,
 				      std::map<std::string, double> &contaminationMap);
-	void _initializeChromosomes(coretools::TParameters &params);
-	void _initializeReadSimulator(coretools::TParameters &params);
-	void _initializeReadGroupFrequencies(coretools::TParameters &params);
+	void _initializeChromosomes();
+	void _initializeReadSimulator();
+	void _initializeReadGroupFrequencies();
 
 	void _addToReadGroupVector(std::vector<std::string> &vec, const std::string &rg);
-	void _addReadGroupsIfFile(const std::string &ParameterName, coretools::TParameters &Parameters, BAM::TReadGroups &ReadGroups);
+	void _addReadGroupsIfFile(const std::string &ParameterName, BAM::TReadGroups &ReadGroups);
 
 	// functions to simulate
 	genometools::Base _sampleBase(const std::array<double, 4> &cumulProbs);
@@ -121,7 +119,7 @@ private:
 	void _simulateHaplotypesHaploid(TSimulatorHaplotypes &haplotypes, const genometools::TChromosome &chromosome) override;
 
 public:
-	TSimulatorOne(coretools::TLog *Logfile, coretools::TParameters &params, coretools::TRandomGenerator *RandomGenerator);
+	TSimulatorOne();
 };
 
 //---------------------------------------------------------
@@ -141,7 +139,7 @@ private:
 	void _simulateHaplotypesHaploid(TSimulatorHaplotypes &haplotypes, const genometools::TChromosome &chromosome) override;
 
 public:
-	TSimulatorPair(coretools::TLog *Logfile, coretools::TParameters &params, coretools::TRandomGenerator *RandomGenerator);
+	TSimulatorPair();
 };
 
 //---------------------------------------------------------
@@ -158,7 +156,7 @@ private:
 	void _simulateHaplotypesDiploid(TSimulatorHaplotypes &haplotypes, const genometools::TChromosome &chromosome) override;
 
 public:
-	TSimulatorSFS(coretools::TLog *Logfile, coretools::TParameters &params, coretools::TRandomGenerator *RandomGenerator);
+	TSimulatorSFS();
 };
 
 //---------------------------------------------------------
@@ -186,7 +184,7 @@ private:
 	void _simulateHaplotypesDiploid(TSimulatorHaplotypes &haplotypes, const genometools::TChromosome &chromosome) override;
 
 public:
-	TSimulatorHW(coretools::TLog *Logfile, coretools::TParameters &params, coretools::TRandomGenerator *RandomGenerator);
+	TSimulatorHW();
 };
 
 //--------------------------------------
@@ -203,16 +201,16 @@ public:
 		std::string method = parameters().getParameterWithDefault<std::string>("type", "one");
 		if (method == "one") {
 			logfile().startIndent("Simulating a single individual (parameter type=one):");
-			simulator = std::make_unique<TSimulatorOne>(&logfile(), parameters(), &randomGenerator());
+			simulator = std::make_unique<TSimulatorOne>();
 		} else if (method == "pair") {
 			logfile().startIndent("Simulating a pair of individual (parameter type=pair):");
-			simulator = std::make_unique<TSimulatorPair>(&logfile(), parameters(), &randomGenerator());
+			simulator = std::make_unique<TSimulatorPair>();
 		} else if (method == "SFS") {
 			logfile().startIndent("Simulating individuals from an SFS (parameter type=SFS):");
-			simulator = std::make_unique<TSimulatorSFS>(&logfile(), parameters(), &randomGenerator());
+			simulator = std::make_unique<TSimulatorSFS>();
 		} else if (method == "HW") {
 			logfile().startIndent("Simulating a individuals under Hardy-Weinberg (parameter type=HW):");
-			simulator = std::make_unique<TSimulatorHW>(&logfile(), parameters(), &randomGenerator());
+			simulator = std::make_unique<TSimulatorHW>();
 		} else
 			throw "Unknown simulation method '" + method + "'!";
 

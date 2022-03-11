@@ -21,34 +21,6 @@
 namespace GenotypeLikelihoods {
 namespace SequencingError {
 
-//--------------------------------------------------------------------
-// TCovariateDef
-// class to store model definition. Used when parsing files
-//--------------------------------------------------------------------
-struct TCovariateDef {
-	std::string covariate;
-	std::string function;
-};
-
-class TCovariateDefinition {
-private:
-	std::vector<TCovariateDef> _covariateFunctions; //<covariate, function>
-	std::string _intercept = "";
-
-public:
-	TCovariateDefinition() = default;
-	TCovariateDefinition(const std::string &modelString);
-
-	void setIntercept(const double Intercept);
-	void addCovariate(const std::string &covariate, const std::string &function);
-	size_t size() const { return _covariateFunctions.size(); };
-	const std::string &intercept() const { return _intercept; };
-	auto begin() noexcept { return _covariateFunctions.begin(); };
-	auto end() noexcept { return _covariateFunctions.end(); };
-	auto cbegin() const noexcept { return _covariateFunctions.cbegin(); };
-	auto cend() const noexcept { return _covariateFunctions.cend(); };
-	std::string getModelString() const;
-};
 
 //--------------------------------------------------------------------
 // TRho
@@ -75,17 +47,26 @@ public:
 };
 
 //--------------------------------------------------------------------
+// TCovariateDef
+// class to store model definition. Used when parsing files
+//--------------------------------------------------------------------
+struct TCovariateDef {
+	std::string covariate;
+	std::string function;
+};
+
+//--------------------------------------------------------------------
 // TModelDefinition
 // class to store model definition. Used when parsing files
 //--------------------------------------------------------------------
 class TModelDefinition {
 public:
-	TCovariateDefinition covariates;
+	std::vector<TCovariateDef> covariates; 
+	std::string intercept;
 	TRho rho;
 
 	TModelDefinition() = default;
-	TModelDefinition(const std::string &covariateString, const std::string &rhoString)
-		: covariates(covariateString), rho(rhoString) {}
+	TModelDefinition(const std::string &covariateString, const std::string &rhoString);
 };
 
 //--------------------------------------------------------------------
@@ -101,7 +82,7 @@ public:
 	virtual genometools::PhredIntProbability getPhredInt(const BAM::TSequencedBase &base) const noexcept = 0;
 	virtual void fillBaseLikelihoods(const BAM::TSequencedBase &base,
 					 TBaseLikelihoods &baseLikelihoods) const noexcept                   = 0;
-	virtual void simulate(BAM::TSequencedBase &base, coretools::TRandomGenerator &RandomGenerator) const noexcept = 0;
+	virtual void simulate(BAM::TSequencedBase &base) const noexcept = 0;
 	virtual std::string getCovariateDefinition() const noexcept                                                   = 0;
 	virtual std::string getRhoDefinition() const noexcept                                                         = 0;
 };
@@ -117,7 +98,7 @@ public:
 	coretools::Probability getErrorRate(const BAM::TSequencedBase &base) const noexcept override;
 	genometools::PhredIntProbability getPhredInt(const BAM::TSequencedBase &base) const noexcept override;
 	void fillBaseLikelihoods(const BAM::TSequencedBase &base, TBaseLikelihoods &baseLikelihoods) const noexcept override;
-	virtual void simulate(BAM::TSequencedBase &base, coretools::TRandomGenerator &RandomGenerator) const noexcept override;
+	virtual void simulate(BAM::TSequencedBase &base) const noexcept override;
 
 	virtual std::string getCovariateDefinition() const noexcept override { return "-"; };
 	virtual std::string getRhoDefinition() const noexcept override { return "-"; };
@@ -128,10 +109,15 @@ public:
 //------------------------------------------------
 class TModelRecal : public TModel {
 private:
+	struct TCovariateModel {
+		std::unique_ptr<TCovariate> covariate;
+		std::unique_ptr<TFunction> function;
+		TCovariateModel(TCovariate* cov, TFunction* fn) : covariate(cov), function(fn) {}
+	};
 	TRho _rho;
-	TCovariateFunction_intercept _intercept;
-	std::vector<std::unique_ptr<TCovariate>> _covariates;
-	std::vector<TCovariateFunction *> _functions; // non-owning
+	TIntercept _intercept;
+	std::vector<TCovariateModel> _covariates;
+	std::vector<TFunction *> _functions; // non-owning
 	uint16_t _numParameters;
 
 	// Newton Raphson Parameters to estimate betas
@@ -146,7 +132,6 @@ private:
 	bool _NRStepAccepted;
 
 	void _initializeDerivatives();
-	coretools::Probability _calcEpsilon(double eta) const noexcept;
 	coretools::Probability _calcErrorRate(const BAM::TSequencedBase &base) const noexcept;
 
 public:
@@ -163,7 +148,7 @@ public:
 	coretools::Probability getErrorRate(const BAM::TSequencedBase &base) const noexcept override;
 	genometools::PhredIntProbability getPhredInt(const BAM::TSequencedBase &base) const noexcept override;
 	void fillBaseLikelihoods(const BAM::TSequencedBase &base, TBaseLikelihoods &baseLikelihoods) const noexcept override;
-	virtual void simulate(BAM::TSequencedBase &base, coretools::TRandomGenerator &RandomGenerator) const noexcept override{};
+	virtual void simulate(BAM::TSequencedBase &base) const noexcept override;
 
 	// functions to estimate
 	std::string checkParameterRange(RecalEstimatorTools::TRecalDataTable &DataTable) const;

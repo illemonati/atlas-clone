@@ -6,20 +6,22 @@
  */
 
 #include "TSimulatorAuxiliaryTools.h"
+#include "TLog.h"
+#include "TRandomGenerator.h"
 
 namespace Simulations {
 
 using coretools::str::toString;
-using coretools::TLog;
+using coretools::instances::logfile;
 using genometools::Base;
 
 //---------------------------------------------------
 // TSimulatorReference
 //---------------------------------------------------
 
-TSimulatorReference::TSimulatorReference(std::string Filename, TLog *Logfile) : _logfile(Logfile), _filename(Filename) {
+TSimulatorReference::TSimulatorReference(std::string Filename) : _filename(Filename) {
 	// open FASTA file for reference sequences
-	_logfile->list("Will write reference sequence to '" + _filename + "'.");
+	logfile().list("Will write reference sequence to '" + _filename + "'.");
 	_fasta.open(_filename.c_str());
 	if (!_fasta) throw "Failed to open file '" + _filename + "' for writing!";
 	_filename += ".fai";
@@ -90,8 +92,8 @@ void TSimulatorReference::setChr(std::string ChrName, long ChrLength) {
 // TSimulatorBamFile
 //---------------------------------------------------
 void TSimulatorBamFile::open(const std::string &Filename, const std::string &SampleName, BAM::TReadGroups &ReadGroups,
-			     const BAM::TChromosomes &Chromosomes, TLog *Logfile) {
-	Logfile->listFlush("Opening BAM file '" + Filename + "' ...");
+			     const BAM::TChromosomes &Chromosomes) {
+	logfile().listFlush("Opening BAM file '" + Filename + "' ...");
 
 	if (_outBam.isOpen()) throw "A BAM file is already open for writing!";
 
@@ -107,35 +109,34 @@ void TSimulatorBamFile::open(const std::string &Filename, const std::string &Sam
 	}
 	const BAM::TSamHeader header("1.6", "coordinate", "none");
 	_outBam.open(Filename, header, Chromosomes, ReadGroups);
-	Logfile->done();
+	logfile().done();
 }
 TSimulatorBamFile::~TSimulatorBamFile() { _outBam.closeNoIndex(); }
 
-void TSimulatorBamFile::close(TLog *Logfile) { _outBam.close(Logfile); }
+void TSimulatorBamFile::close() { _outBam.close(&logfile()); }
 
 TSimulatorBamFiles::TSimulatorBamFiles(uint32_t NumFiles, const std::string & Outname, BAM::TReadGroups & ReadGroups,
-				       const BAM::TChromosomes &Chromosomes, TLog *Logfile) {
+				       const BAM::TChromosomes &Chromosomes) {
 	if (NumFiles < 1) throw "Can not open less than one BAM file!";
-	_logfile = Logfile;
 	_files.resize(NumFiles);
 
 	// open BAM files
 	if (_files.size() == 1) {
-		_files[0].open(Outname + ".bam", "Ind1", ReadGroups, Chromosomes, Logfile);
+		_files[0].open(Outname + ".bam", "Ind1", ReadGroups, Chromosomes);
 	} else {
-		Logfile->startIndent("Opening ", _files.size(), " BAM files:");
+		logfile().startIndent("Opening ", _files.size(), " BAM files:");
 		for (size_t i = 0; i < _files.size(); ++i) {
 			_files[i].open(Outname + "_ind" + toString(i + 1) + ".bam", "Ind" + toString(i + 1), ReadGroups,
-				       Chromosomes, Logfile);
+				       Chromosomes);
 		}
-		Logfile->endIndent();
+		logfile().endIndent();
 	}
 }
 
 TSimulatorBamFiles::~TSimulatorBamFiles() {
-	_logfile->startIndent("Indexing BAM files:");
-	for (auto &f : _files) { f.close(_logfile); }
-	_logfile->endIndent();
+	logfile().startIndent("Indexing BAM files:");
+	for (auto &f : _files) { f.close(); }
+	logfile().endIndent();
 }
 
 TSimulatorBamFile &TSimulatorBamFiles::operator[](size_t i) {
