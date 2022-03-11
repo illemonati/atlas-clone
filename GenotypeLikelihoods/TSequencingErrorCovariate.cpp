@@ -12,14 +12,12 @@ namespace GenotypeLikelihoods {
 namespace SequencingError {
 
 namespace /*Anonymous*/ {
-void parseModuleString(const std::string &str, std::string &type, std::vector<std::string> &args,
-		       std::vector<std::string> &values) {
-	std::string format =
+	auto parseModuleString(const std::string &str) {
+	constexpr auto format =
 		"Expected format is TYPE(ARGS)[VALUES], where [VALUES] is optional and (ARGS) is only required for some TYPE.";
-
-	// empty
-	values.clear();
-	args.clear();
+	std::string type;
+	std::vector<std::string> args;
+	std::vector<std::string> values;
 
 	// split string into parameters and values
 	if (const auto pos = str.find('['); pos != std::string::npos) {
@@ -44,45 +42,82 @@ void parseModuleString(const std::string &str, std::string &type, std::vector<st
 		// extract type
 		type = type.substr(0, pos);
 	}
+	return std::make_tuple(type, args, values);
 }
 
 TCovariateFunction *polynomialFunction(size_t FirstParameterIndex, const std::string &functionString,
-					  std::vector<std::string> &args, std::vector<std::string> &values, TRecalibrationEMTransformationMap* transformationMap = nullptr) {
+				       const std::vector<std::string> &args, const std::vector<std::string> &values,
+				       TRecalibrationEMTransformationMap *transformationMap = nullptr) {
 	if (values.empty()) {
 		if (args.size() != 1) {
 			throw "Wrong number of arguments for polynomial recal function '" + functionString +
 				"': expect one argument (order).";
 		}
-		return new TCovariateFunction_polynomial(FirstParameterIndex,
+		auto f = new TCovariateFunction_polynomial(FirstParameterIndex,
 							 coretools::str::convertStringCheck<uint32_t>(args[0]), transformationMap);
+		// if no values are provided, set first beta = 1
+		f->beta(0) = 1;
+		return f;
 	}
 	return new TCovariateFunction_polynomial(FirstParameterIndex, values, transformationMap);
 }
 
-template<size_t N>
-TCovariateFunction *function(size_t FirstParameterIndex, const std::string &functionString, const std::array<std::string, N> & allowed) {
-	// parse
-	std::string type;
-	std::vector<std::string> values, args;
-	parseModuleString(functionString, type, args, values);
-
-	// Is this function allowed?
-	if (std::find(allowed.begin(), allowed.end(), type) == allowed.end())
-		throw "Recalibration function '" + type + "' not valid for covariate quality!";
-		
+template<bool poly, bool specific, bool specificMap>
+TCovariateFunction *function(const size_t FirstParameterIndex, const std::string &functionString,
+			     TRecalibrationEMTransformationMap *transformationMap = nullptr) {
+	const auto [type, values, args] = parseModuleString(functionString);
 
 	// are values provided?
-	if (values.empty()) 
+	if (values.empty()) {
 		throw "Failed to initialize recalibration covariate: missing [VALUES] in '" + functionString + "'!";
+	}
+	// create function
+	if constexpr (poly) {
+		if (type == TCovariateFunction_polynomial::name) {
+			return new TCovariateFunction_polynomial(FirstParameterIndex, values, transformationMap);
+		}
+	}
+	if constexpr (specific) {
+		if (type == TCovariateFunction_specific::name) {
+			return new TCovariateFunction_specific(FirstParameterIndex, values);
+		}
+	}
+	if constexpr (specificMap) {
+		if (type == TCovariateFunction_specificMap::name) {
+			return new TCovariateFunction_specificMap(FirstParameterIndex, values);
+		}
+	}
+	throw "Recalibration function '" + type + "' not valid for covariate!";
+}
+
+template<bool poly, bool specific, bool specificMap>
+TCovariateFunction *function(const size_t FirstParameterIndex, const std::string &functionString,
+			     const RecalEstimatorTools::TRecalDataTable &dataTable, int v = 0,
+			     TRecalibrationEMTransformationMap *transformationMap = nullptr) {
+	// parse
+	const auto [type, values, args] = parseModuleString(functionString);
 
 	// create function
-	if (type == TCovariateFunction_polynomial::name) {
-		return polynomialFunction(FirstParameterIndex, functionString, args, values);
+	if constexpr (poly) {
+		if (type == TCovariateFunction_polynomial::name) {
+			if (type == TCovariateFunction_polynomial::name) {
+				return polynomialFunction(FirstParameterIndex, functionString, args, values, transformationMap);
+			}
+		}
 	}
-	if (type == TCovariateFunction_specific::name) {
-		return new TCovariateFunction_specific(FirstParameterIndex, values);
-	} 
-
+	if constexpr (specific) {
+		if (type == TCovariateFunction_specific::name) {
+			if (values.empty()) return new TCovariateFunction_specific(FirstParameterIndex, v);
+			return new TCovariateFunction_specific(FirstParameterIndex, values);
+		}
+	}
+	if constexpr (specificMap) {
+		if (type == TCovariateFunction_specificMap::name) {
+			if (values.empty())
+				return new TCovariateFunction_specificMap(FirstParameterIndex, dataTable.qualities().vectorOfUsed());
+			return new TCovariateFunction_specificMap(FirstParameterIndex, values);
+		}
+	}
 	throw "Recalibration function '" + type + "' not valid for covariate quality!";
 }
 
@@ -93,59 +128,14 @@ TCovariateFunction *function(size_t FirstParameterIndex, const std::string &func
 //-------------------------------------------
 TCovariate_quality::TCovariate_quality(const size_t FirstParameterIndex, const std::string &functionString,
 				       const RecalEstimatorTools::TRecalDataTable &dataTable) {
-		addFunction(FirstParameterIndex, functionString, dataTable);
+	_function.reset(function<true, true, false>(FirstParameterIndex, functionString, dataTable, 0, &_qualityToLogit));
 }
 
 TCovariate_quality::TCovariate_quality(const size_t FirstParameterIndex, const std::string &functionString) {
-	_function.reset(function(FirstParameterIndex, functionString, std::array<std::string, 1>{TCovariateFunction_specific::name}));
+		_function.reset(function<true, true, false>(FirstParameterIndex, functionString, &_qualityToLogit));
 }
 
-void TCovariate_quality::addFunction(const size_t FirstParameterIndex, const std::string &functionString,
-				     const RecalEstimatorTools::TRecalDataTable &dataTable) {
-	// parse
-	std::string type;
-	std::vector<std::string> values, args;
-	parseModuleString(functionString, type, args, values);
-
-	// create function
-	if (type == TCovariateFunction_polynomial::name) {
-		_function.reset(polynomialFunction(FirstParameterIndex, functionString, args, values, &_qualityToLogit));
-
-		// if no values are provided, set first beta = 1
-		if (values.empty()) _function->beta(0) = 1.0;
-	} else if (type == TCovariateFunction_specific::name) {
-		if (values.empty()) {
-			_function.reset(new TCovariateFunction_specificMap(FirstParameterIndex, dataTable.qualities().vectorOfUsed()));
-		} else {
-			_function.reset(new TCovariateFunction_specificMap(FirstParameterIndex, values));
-		}
-	} else {
-		throw "Recalibration function '" + type + "' not valid for covariate quality!";
-	}
-}
-
-void TCovariate_quality::addFunction(const size_t FirstParameterIndex, const std::string &functionString) {
-	// parse
-	std::string type;
-	std::vector<std::string> values, args;
-	parseModuleString(functionString, type, args, values);
-
-	// are values provided?
-	if (values.empty()) {
-		throw "Failed to initialize recalibration covariate: missing [VALUES] in '" + functionString + "'!";
-	}
-
-	// create function
-	if (type == TCovariateFunction_polynomial::name) {
-		_function.reset(polynomialFunction(FirstParameterIndex, functionString, args, values, &_qualityToLogit));
-	} else if (type == TCovariateFunction_specific::name) {
-		_function.reset(new TCovariateFunction_specificMap(FirstParameterIndex, values));
-	} else {
-		throw "Recalibration function '" + type + "' not valid for covariate quality!";
-	}
-}
-
-	bool TCovariate_quality::checkParameterRange(const RecalEstimatorTools::TRecalDataTable &dataTable) const noexcept {
+bool TCovariate_quality::checkParameterRange(const RecalEstimatorTools::TRecalDataTable &dataTable) const noexcept {
 	return _function->checkValueRange(dataTable.qualities().vectorOfUsed());
 }
 
@@ -162,53 +152,11 @@ void TCovariate_quality::adjustParameterRange(const RecalEstimatorTools::TRecalD
 //-------------------------------------------
 TCovariate_position::TCovariate_position(size_t FirstParameterIndex, const std::string &functionString,
 					 const RecalEstimatorTools::TRecalDataTable &dataTable) {
-	addFunction(FirstParameterIndex, functionString, dataTable);
+	_function.reset(function<true, true, false>(FirstParameterIndex, functionString, dataTable, dataTable.positions().max()));
 }
 
 TCovariate_position::TCovariate_position(size_t FirstParameterIndex, const std::string &functionString) {
-	addFunction(FirstParameterIndex, functionString);
-}
-
-void TCovariate_position::addFunction(size_t FirstParameterIndex, const std::string &functionString,
-				      const RecalEstimatorTools::TRecalDataTable &dataTable) {
-	// parse
-	std::string type;
-	std::vector<std::string> values, args;
-	parseModuleString(functionString, type, args, values);
-
-	// create function
-	if (type == TCovariateFunction_polynomial::name) {
-		_function.reset(polynomialFunction(FirstParameterIndex, functionString, args, values));
-	} else if (type == TCovariateFunction_specific::name) {
-		if (values.empty()) {
-			_function.reset(new TCovariateFunction_specific(FirstParameterIndex, dataTable.positions().max()));
-		} else {
-			_function.reset(new TCovariateFunction_specific(FirstParameterIndex, values));
-		}
-	} else {
-		throw "Recalibration function '" + type + "' not valid for covariate quality!";
-	}
-}
-
-void TCovariate_position::addFunction(size_t FirstParameterIndex, const std::string &functionString) {
-	// parse
-	std::string type;
-	std::vector<std::string> values, args;
-	parseModuleString(functionString, type, args, values);
-
-	// are values provided?
-	if (values.empty()) {
-		throw "Failed to initialize recalibration covariate: missing [VALUES] in '" + functionString + "'!";
-	}
-
-	// create function
-	if (type == TCovariateFunction_polynomial::name) {
-		_function.reset(polynomialFunction(FirstParameterIndex, functionString, args, values));
-	} else if (type == TCovariateFunction_specific::name) {
-		_function.reset(new TCovariateFunction_specific(FirstParameterIndex, values));
-	} else {
-		throw "Recalibration function '" + type + "' not valid for covariate quality!";
-	}
+	_function.reset(function<true, true, false>(FirstParameterIndex, functionString));
 }
 
 bool TCovariate_position::checkParameterRange(const RecalEstimatorTools::TRecalDataTable &dataTable) const noexcept {
@@ -228,49 +176,11 @@ void TCovariate_position::adjustParameterRange(const RecalEstimatorTools::TRecal
 //-------------------------------------------
 TCovariate_context::TCovariate_context(size_t FirstParameterIndex, const std::string &functionString,
 				       const RecalEstimatorTools::TRecalDataTable &dataTable) {
-	addFunction(FirstParameterIndex, functionString, dataTable);
+	_function.reset(function<false, true, false>(FirstParameterIndex, functionString, dataTable, numContext - 1));
 }
 
 TCovariate_context::TCovariate_context(size_t FirstParameterIndex, const std::string &functionString) {
-	addFunction(FirstParameterIndex, functionString);
-}
-
-void TCovariate_context::addFunction(size_t FirstParameterIndex, const std::string &functionString,
-				     const RecalEstimatorTools::TRecalDataTable &) {
-	// parse
-	std::string type;
-	std::vector<std::string> values, args;
-	parseModuleString(functionString, type, args, values);
-
-	// create function
-	if (type == TCovariateFunction_specific::name) {
-		if (values.empty()) {
-			_function.reset(new TCovariateFunction_specific(FirstParameterIndex, numContext - 1));
-		} else {
-			_function.reset(new TCovariateFunction_specific(FirstParameterIndex, values));
-		}
-	} else {
-		throw "Recalibration function '" + type + "' not valid for covariate quality!";
-	}
-}
-
-void TCovariate_context::addFunction(size_t FirstParameterIndex, const std::string &functionString) {
-	// parse
-	std::string type;
-	std::vector<std::string> values, args;
-	parseModuleString(functionString, type, args, values);
-
-	// are values provided?
-	if (values.empty()) {
-		throw "Failed to initialize recalibration covariate: missing [VALUES] in '" + functionString + "'!";
-	}
-
-	// create function
-	if (type == TCovariateFunction_specific::name) {
-		_function.reset(new TCovariateFunction_specific(FirstParameterIndex, values));
-	} else {
-		throw "Recalibration function '" + type + "' not valid for covariate quality!";
-	}
+	_function.reset(function<false, true, false>(FirstParameterIndex, functionString));
 }
 
 bool TCovariate_context::checkParameterRange(const RecalEstimatorTools::TRecalDataTable &) const noexcept {
@@ -287,57 +197,11 @@ bool TCovariate_context::checkParameterRange(std::vector<uint16_t> &, uint16_t) 
 
 TCovariate_fragmentLength::TCovariate_fragmentLength(size_t FirstParameterIndex, const std::string &functionString,
 						     const RecalEstimatorTools::TRecalDataTable &dataTable) {
-	addFunction(FirstParameterIndex, functionString, dataTable);
+	_function.reset(function<true, false, true>(FirstParameterIndex, functionString, dataTable));
 }
 
 TCovariate_fragmentLength::TCovariate_fragmentLength(size_t FirstParameterIndex, const std::string &functionString) {
-	addFunction(FirstParameterIndex, functionString);
-}
-
-void TCovariate_fragmentLength::addFunction(const size_t FirstParameterIndex, const std::string &functionString,
-					    const RecalEstimatorTools::TRecalDataTable &dataTable) {
-	// parse
-	std::string type;
-	std::vector<std::string> values, args;
-	parseModuleString(functionString, type, args, values);
-
-	// create function
-	if (type == TCovariateFunction_polynomial::name) {
-		_function.reset(polynomialFunction(FirstParameterIndex, functionString, args, values));
-
-		// if no values are provided, set first beta = 1
-		if (values.empty()) { _function->beta(0) = 1.0; }
-	} else if (type == TCovariateFunction_specific::name) {
-		std::vector<uint16_t> usedLengths = dataTable.fragmentLengths().vectorOfUsed();
-		if (values.empty()) {
-			_function.reset(new TCovariateFunction_specificMap(FirstParameterIndex, usedLengths));
-		} else {
-			_function.reset(new TCovariateFunction_specificMap(FirstParameterIndex, values));
-		}
-	} else {
-		throw "Recalibration function '" + type + "' not valid for covariate quality!";
-	}
-}
-
-void TCovariate_fragmentLength::addFunction(size_t FirstParameterIndex, const std::string &functionString) {
-	// parse
-	std::string type;
-	std::vector<std::string> values, args;
-	parseModuleString(functionString, type, args, values);
-
-	// are values provided?
-	if (values.empty()) {
-		throw "Failed to initialize recalibration covariate: missing [VALUES] in '" + functionString + "'!";
-	}
-
-	// create function
-	if (type == TCovariateFunction_polynomial::name) {
-		_function.reset(polynomialFunction(FirstParameterIndex, functionString, args, values));
-	} else if (type == TCovariateFunction_specific::name) {
-		_function.reset(new TCovariateFunction_specificMap(FirstParameterIndex, values));
-	} else {
-		throw "Recalibration function '" + type + "' not valid for covariate quality!";
-	}
+	_function.reset(function<true, false, true>(FirstParameterIndex, functionString));
 }
 
 bool TCovariate_fragmentLength::checkParameterRange(const RecalEstimatorTools::TRecalDataTable &dataTable) const noexcept {
@@ -359,58 +223,12 @@ void TCovariate_fragmentLength::adjustParameterRange(const RecalEstimatorTools::
 TCovariate_mappingQuality::TCovariate_mappingQuality(const size_t FirstParameterIndex,
 						     const std::string &functionString,
 						     const RecalEstimatorTools::TRecalDataTable &dataTable) {
-	addFunction(FirstParameterIndex, functionString, dataTable);
+	_function.reset(function<true, false, true>(FirstParameterIndex, functionString, dataTable));
 }
 
 TCovariate_mappingQuality::TCovariate_mappingQuality(const size_t FirstParameterIndex,
 						     const std::string &functionString) {
-	addFunction(FirstParameterIndex, functionString);
-}
-
-void TCovariate_mappingQuality::addFunction(const size_t FirstParameterIndex, const std::string &functionString,
-					    const RecalEstimatorTools::TRecalDataTable &dataTable) {
-	// parse
-	std::string type;
-	std::vector<std::string> values, args;
-	parseModuleString(functionString, type, args, values);
-
-	// create function
-	if (type == TCovariateFunction_polynomial::name) {
-		_function.reset(polynomialFunction(FirstParameterIndex, functionString, args, values));
-
-		// if no values are provided, set first beta = 1
-		if (values.empty()) _function->beta(0) = 1.0;
-	} else if (type == TCovariateFunction_specific::name) {
-		std::vector<uint16_t> usedMQ = dataTable.mappingQualities().vectorOfUsed();
-		if (values.empty()) {
-			_function.reset(new TCovariateFunction_specificMap(FirstParameterIndex, usedMQ));
-		} else {
-			_function.reset(new TCovariateFunction_specificMap(FirstParameterIndex, values));
-		}
-	} else {
-		throw "Recalibration function '" + type + "' not valid for covariate quality!";
-	}
-}
-
-void TCovariate_mappingQuality::addFunction(const size_t FirstParameterIndex, const std::string &functionString) {
-	// parse
-	std::string type;
-	std::vector<std::string> values, args;
-	parseModuleString(functionString, type, args, values);
-
-	// are values provided?
-	if (values.empty()) {
-		throw "Failed to initialize recalibration covariate: missing [VALUES] in '" + functionString + "'!";
-	}
-
-	// create function
-	if (type == TCovariateFunction_polynomial::name) {
-		_function.reset(polynomialFunction(FirstParameterIndex, functionString, args, values));
-	} else if (type == TCovariateFunction_specific::name) {
-		_function.reset(new TCovariateFunction_specificMap(FirstParameterIndex, values));
-	} else {
-		throw "Recalibration function '" + type + "' not valid for covariate quality!";
-	}
+	_function.reset(function<true, false, true>(FirstParameterIndex, functionString));
 }
 
 bool TCovariate_mappingQuality::checkParameterRange(const RecalEstimatorTools::TRecalDataTable &dataTable) const noexcept {

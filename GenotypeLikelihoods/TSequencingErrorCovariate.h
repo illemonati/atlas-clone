@@ -26,14 +26,9 @@ namespace SequencingError {
 class TCovariate {
 protected:
 	std::unique_ptr<TCovariateFunction> _function;
-
-
 	// extract
 	virtual uint16_t _extractCovariate(const BAM::TSequencedBase &) const noexcept = 0;
 	TCovariate()                                                    = default;
-	virtual void addFunction(const size_t, const std::string &, const RecalEstimatorTools::TRecalDataTable &) = 0;
-	virtual void addFunction(const size_t, const std::string &)                                               = 0;
-
 public:
 	static inline const std::string name = "none";
 	virtual ~TCovariate()                                           = default;
@@ -65,7 +60,7 @@ public:
 			     TRecalibrationEMSecondDerivatives &second) {
 		_function->fillDerivatives(_extractCovariate(base), first, second);
 	}
-	double adjustParametersPostEstimation() { return _function->adjustParametersPostEstimation(); }
+	double adjustParametersPostEstimation() noexcept { return _function->adjustParametersPostEstimation(); }
 };
 
 //-------------------------------------------
@@ -86,9 +81,6 @@ public:
 	TCovariate_quality(size_t FirstParameterIndex, const std::string &functionString);
 
 	std::string typeString() const override { return name; }
-	void addFunction(size_t FirstParameterIndex, const std::string &functionString,
-			 const RecalEstimatorTools::TRecalDataTable &dataTable) override;
-	void addFunction(size_t FirstParameterIndex, const std::string &functionString) override;
 	bool checkParameterRange(const RecalEstimatorTools::TRecalDataTable &dataTable) const noexcept override;
 	bool checkParameterRange(std::vector<uint16_t> &usedValues, uint16_t maxPos) const noexcept override;
 	void adjustParameterRange(const RecalEstimatorTools::TRecalDataTable &dataTable) override;
@@ -108,9 +100,6 @@ public:
 	TCovariate_position(size_t FirstParameterIndex, const std::string &functionString);
 
 	std::string typeString() const override { return name; }
-	void addFunction(size_t FirstParameterIndex, const std::string &functionString,
-			 const RecalEstimatorTools::TRecalDataTable &dataTable) override;
-	void addFunction(size_t FirstParameterIndex, const std::string &functionString) override;
 	bool checkParameterRange(const RecalEstimatorTools::TRecalDataTable &dataTable) const noexcept override;
 	bool checkParameterRange(std::vector<uint16_t> &usedValues, uint16_t maxPos) const noexcept override;
 	void adjustParameterRange(const RecalEstimatorTools::TRecalDataTable &dataTable) override;
@@ -132,9 +121,6 @@ public:
 	TCovariate_context(size_t FirstParameterIndex, const std::string &functionString);
 
 	std::string typeString() const override { return name; }
-	void addFunction(size_t FirstParameterIndex, const std::string &functionString,
-			 const RecalEstimatorTools::TRecalDataTable &dataTable) override;
-	void addFunction(size_t FirstParameterIndex, const std::string &functionString) override;
 	bool checkParameterRange(const RecalEstimatorTools::TRecalDataTable &dataTable) const noexcept override;
 	bool checkParameterRange(std::vector<uint16_t> &usedValues, uint16_t maxPos) const noexcept override;
 	void adjustParameterRange(const RecalEstimatorTools::TRecalDataTable &) override{};
@@ -155,9 +141,6 @@ public:
 	TCovariate_fragmentLength(size_t FirstParameterIndex, const std::string &functionString);
 
 	std::string typeString() const override { return name; }
-	void addFunction(size_t FirstParameterIndex, const std::string &functionString,
-			 const RecalEstimatorTools::TRecalDataTable &dataTable) override;
-	void addFunction(size_t FirstParameterIndex, const std::string &functionString) override;
 	bool checkParameterRange(const RecalEstimatorTools::TRecalDataTable &dataTable) const noexcept override;
 	bool checkParameterRange(std::vector<uint16_t> &usedValues, uint16_t maxPos) const noexcept override;
 	void adjustParameterRange(const RecalEstimatorTools::TRecalDataTable &dataTable) override;
@@ -178,9 +161,6 @@ public:
 	TCovariate_mappingQuality(size_t FirstParameterIndex, const std::string &functionString);
 
 	std::string typeString() const override { return name; }
-	void addFunction(size_t FirstParameterIndex, const std::string &functionString,
-			 const RecalEstimatorTools::TRecalDataTable &dataTable) override;
-	void addFunction(size_t FirstParameterIndex, const std::string &functionString) override;
 	bool checkParameterRange(const RecalEstimatorTools::TRecalDataTable &dataTable) const noexcept override;
 	bool checkParameterRange(std::vector<uint16_t> &usedValues, uint16_t maxPos) const noexcept override;
 	void adjustParameterRange(const RecalEstimatorTools::TRecalDataTable &dataTable) override;
