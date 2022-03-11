@@ -21,7 +21,8 @@ namespace PopulationTools {
 
 typedef coretools::Probability TypeF; // F in [0, 1]
 typedef coretools::ZeroOpenOneClosed<double> TypeP; // p in (0, 1]
-typedef coretools::WeakType<double> TypeC; // c in (-inf, inf) -> gamma = exp(c) is > 0
+typedef coretools::WeakType<double> TypeLogAlpha; // log_alpha in (-inf, inf) -> alpha = exp(log_alpha) is > 0
+typedef coretools::WeakType<double> TypeLogBeta; // log_beta in (-inf, inf) -> beta = exp(log_beta) is > 0
 typedef coretools::WeakType<bool> TypeZ; // z = 0,1
 typedef genometools::HighPrecisionPhredIntProbability PhredType;
 typedef genometools::TSampleLikelihoods<PhredType> TypeGTL;
@@ -35,7 +36,7 @@ public:
     inline static const std::string inbreeding = "inbreeding";
 };
 
-class TInbreedingEstimatorPrior : public stattools::prior::TBaseNonIID<stattools::TValueFixed, TypeGTL, 2> {
+class TInbreedingEstimatorPrior : public stattools::prior::TBaseLikelihoodPrior<stattools::TValueFixed, TypeGTL, 2> {
 private:
     // parameters
     std::shared_ptr<stattools::TParameterTyped<TypeF, 1>> _F;
@@ -54,12 +55,12 @@ private:
     coretools::StrictlyPositive<double> _lambdaNewF;
 
     // initial estimates for p
-    std::vector<double>& _initialEstimatesP;
+    const std::vector<double>& _initialEstimatesP;
 
     // calculate LL
-    coretools::LogProbability _calculateLLSumOverIndividuals(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> & Data, size_t Locus, const genometools::THardyWeinbergGenotypeProbabilities & Probs) const;
-    coretools::LogProbability _calculateLLSumOverIndividuals(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> & Data, size_t Locus, double P) const;
-    coretools::LogProbability _calculateLLSumOverIndividuals(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> & Data, size_t Locus, double P, double F) const;
+    [[nodiscard]] coretools::LogProbability _calculateLLSumOverIndividuals(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> & Data, size_t Locus, const genometools::THardyWeinbergGenotypeProbabilities & Probs) const;
+    [[nodiscard]] coretools::LogProbability _calculateLLSumOverIndividuals(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> & Data, size_t Locus, double P) const;
+    [[nodiscard]] coretools::LogProbability _calculateLLSumOverIndividuals(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> & Data, size_t Locus, double P, double F) const;
 
     // DAG
     void _registerPriorParameters() override;
@@ -69,21 +70,13 @@ private:
     void _setInitialF();
     void _setInitialP();
 
-    // log-densities
-    double _getPriorDensity_vec(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> & Data, size_t index) const override;
-    double _getLogPriorDensity_vec(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> & Data, size_t index) const override;
-    double _getPriorDensityOld_vec(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> & Data, size_t index) const override;
-    double _getLogPriorDensityOld_vec(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> & Data, size_t index) const override;
-    double _getLogPriorRatio_vec(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> & Data, size_t index) const override;
-    double _getExpectedValueFromPriorParameters(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> & data, size_t index) const override;
-
     // update functions for F
     void _updateFAndZ(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> & Data);
     void _updateRegularF(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> & Data);
     void _updateFToHWE(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> & Data);
     void _updateHWEToF(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> & Data);
-    double _calculateProbabilityOfProposingThisF(double F) const;
-    double _getRandomNewF() const;
+    [[nodiscard]] double _calculateProbabilityOfProposingThisF(double F) const;
+    [[nodiscard]] double _getRandomNewF() const;
 
     // update functions for p
     void _updateP(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> & Data, size_t Locus);
@@ -100,7 +93,7 @@ public:
     void estimateInitialPriorParameters() override;
 
     // full log densities
-    double getSumLogPriorDensity(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> & Data) const override;
+    [[nodiscard]] double getSumLogPriorDensity(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> & Data) const override;
 
     // update all hyperprior parameters
     void updateParams() override;
@@ -125,7 +118,7 @@ private:
     // define DAG
     void _defineDAG();
     auto _defineFAndZ();
-    auto _definePAndC();
+    auto _definePAndAlphaBeta();
     void _defineObservation(const std::shared_ptr<stattools::TParameterTyped<TypeF, 1>> & F, const std::shared_ptr<stattools::TParameterTyped<TypeZ, 1>> & Z, const std::shared_ptr<stattools::TParameterTyped<TypeP, 1>> & P);
 
     // read input data
@@ -156,6 +149,6 @@ public:
     };
 };
 
-}; // end namespace PopulationTools
+} // end namespace PopulationTools
 
 #endif //ATLAS_TINBREEDINGESTIMATOR_H

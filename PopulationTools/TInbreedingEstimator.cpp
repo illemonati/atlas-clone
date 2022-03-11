@@ -8,9 +8,6 @@
 
 namespace PopulationTools {
 
-// TODO:
-//  - if F is in zero-model: don't add to meanVar; and don't adjust proposal kernel based on this
-
 //------------------------------------------
 // TInbreedingEstimatorPrior
 //------------------------------------------
@@ -20,7 +17,9 @@ TInbreedingEstimatorPrior::TInbreedingEstimatorPrior(std::shared_ptr<stattools::
                                                      std::shared_ptr<stattools::TParameterTyped<TypeZ, 1>> Z,
                                                      const std::vector<double> & InitialEstimatesP) :
                                                      _F(std::move(F)), _p(std::move(P)), _z(std::move(Z)), _initialEstimatesP(InitialEstimatesP){
-    // set parameters
+    _name = InbreedingPrior::inbreeding;
+
+    // set parameters to zero
     _q_FModel_To_HWE = 0.0;
     _log_q_FModel_To_HWE = 0.0;
     _lambdaNewF = 0.0;
@@ -230,8 +229,6 @@ void TInbreedingEstimatorPrior::_setInitialP(){
             _p->set(l, _initialEstimatesP[l]);
         }
     }
-    // clear initialEstimatesP
-    _initialEstimatesP.clear();
 }
 
 void TInbreedingEstimatorPrior::estimateInitialPriorParameters() {
@@ -253,25 +250,6 @@ double TInbreedingEstimatorPrior::getSumLogPriorDensity(const std::shared_ptr<co
 
 void TInbreedingEstimatorPrior::simulateUnderPrior() {
     // TODO: ? In here or in Atlas simulator?
-}
-
-double TInbreedingEstimatorPrior::_getLogPriorDensity_vec(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> & Data, size_t Index) const {
-    throw std::runtime_error((std::string) __PRETTY_FUNCTION__ + ": not implemented.");
-}
-double TInbreedingEstimatorPrior::_getPriorDensity_vec(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> &, size_t) const {
-    throw std::runtime_error((std::string) __PRETTY_FUNCTION__ + ": not implemented.");
-}
-double TInbreedingEstimatorPrior::_getPriorDensityOld_vec(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> &, size_t) const {
-    throw std::runtime_error((std::string) __PRETTY_FUNCTION__ + ": not implemented.");
-}
-double TInbreedingEstimatorPrior::_getLogPriorDensityOld_vec(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> &, size_t) const {
-    throw std::runtime_error((std::string) __PRETTY_FUNCTION__ + ": not implemented.");
-}
-double TInbreedingEstimatorPrior::_getLogPriorRatio_vec(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> &, size_t) const {
-    throw std::runtime_error((std::string) __PRETTY_FUNCTION__ + ": not implemented.");
-}
-double TInbreedingEstimatorPrior::_getExpectedValueFromPriorParameters(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> &, size_t) const{
-    throw std::runtime_error((std::string) __PRETTY_FUNCTION__ + ": not implemented.");
 }
 
 //------------------------------------------
@@ -296,16 +274,23 @@ auto TInbreedingEstimator::_defineFAndZ(){
     return std::make_tuple(F, z);
 }
 
-auto TInbreedingEstimator::_definePAndC(){
-    // c
-    auto priorOnC = std::make_shared<stattools::prior::TUniformFixed<stattools::TValueUpdated, TypeC, 1>>();
-    stattools::TParameterDefinition defC;
-    defC.setAllFiles(_filename);
-    auto c = std::make_shared<stattools::TParameterTyped<TypeC, 1>>("c", priorOnC, defC);
-    _dagBuilder->addToDAG(c);
+auto TInbreedingEstimator::_definePAndAlphaBeta(){
+    // log_alpha
+    auto priorOnLogAlpha = std::make_shared<stattools::prior::TUniformFixed<stattools::TValueUpdated, TypeLogAlpha, 1>>();
+    stattools::TParameterDefinition defLogAlpha;
+    defLogAlpha.setAllFiles(_filename);
+    auto log_alpha = std::make_shared<stattools::TParameterTyped<TypeLogAlpha, 1>>("log_alpha", priorOnLogAlpha, defLogAlpha);
+    _dagBuilder->addToDAG(log_alpha);
+
+    // log_beta
+    auto priorOnLogBeta = std::make_shared<stattools::prior::TUniformFixed<stattools::TValueUpdated, TypeLogBeta, 1>>();
+    stattools::TParameterDefinition defLogBeta;
+    defLogBeta.setAllFiles(_filename);
+    auto log_beta = std::make_shared<stattools::TParameterTyped<TypeLogAlpha, 1>>("log_beta", priorOnLogBeta, defLogBeta);
+    _dagBuilder->addToDAG(log_beta);
 
     // p
-    auto priorOnP = std::make_shared<stattools::prior::TUniformFixed<stattools::TValueUpdated, TypeP, 1>>(); // std::make_shared<stattools::prior::TSymmetricBetaInferred<TypeP, 1, TypeC>>(c);
+    auto priorOnP = std::make_shared<stattools::prior::TBetaInferred<stattools::TValueUpdated, TypeP, 1, TypeLogAlpha, TypeLogBeta, true, true>>(log_alpha, log_beta);
     stattools::TParameterDefinition defP;
     defP.setAllFiles(_filename);
     defP.setJumpSizeForAll(false);
@@ -339,11 +324,9 @@ void TInbreedingEstimator::_readData(){
 void TInbreedingEstimator::_defineDAG(){
     _readData();
 
-    // define F
+    // define parameters
     auto [F, z] = _defineFAndZ();
-
-    // define C and P
-    auto p = _definePAndC();
+    auto p = _definePAndAlphaBeta();
 
     // define observation
     _defineObservation(F, z, p);
