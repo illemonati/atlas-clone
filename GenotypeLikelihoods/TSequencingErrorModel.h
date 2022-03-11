@@ -21,34 +21,6 @@
 namespace GenotypeLikelihoods {
 namespace SequencingError {
 
-//--------------------------------------------------------------------
-// TCovariateDef
-// class to store model definition. Used when parsing files
-//--------------------------------------------------------------------
-struct TCovariateDef {
-	std::string covariate;
-	std::string function;
-};
-
-class TCovariateDefinition {
-private:
-	std::vector<TCovariateDef> _covariateFunctions; //<covariate, function>
-	std::string _intercept = "";
-
-public:
-	TCovariateDefinition() = default;
-	TCovariateDefinition(const std::string &modelString);
-
-	void setIntercept(const double Intercept);
-	void addCovariate(const std::string &covariate, const std::string &function);
-	size_t size() const { return _covariateFunctions.size(); };
-	const std::string &intercept() const { return _intercept; };
-	auto begin() noexcept { return _covariateFunctions.begin(); };
-	auto end() noexcept { return _covariateFunctions.end(); };
-	auto cbegin() const noexcept { return _covariateFunctions.cbegin(); };
-	auto cend() const noexcept { return _covariateFunctions.cend(); };
-	std::string getModelString() const;
-};
 
 //--------------------------------------------------------------------
 // TRho
@@ -75,17 +47,26 @@ public:
 };
 
 //--------------------------------------------------------------------
+// TCovariateDef
+// class to store model definition. Used when parsing files
+//--------------------------------------------------------------------
+struct TCovariateDef {
+	std::string covariate;
+	std::string function;
+};
+
+//--------------------------------------------------------------------
 // TModelDefinition
 // class to store model definition. Used when parsing files
 //--------------------------------------------------------------------
 class TModelDefinition {
 public:
-	TCovariateDefinition covariates;
+	std::vector<TCovariateDef> covariates; 
+	std::string intercept;
 	TRho rho;
 
 	TModelDefinition() = default;
-	TModelDefinition(const std::string &covariateString, const std::string &rhoString)
-		: covariates(covariateString), rho(rhoString) {}
+	TModelDefinition(const std::string &covariateString, const std::string &rhoString);
 };
 
 //--------------------------------------------------------------------
@@ -151,7 +132,6 @@ private:
 	bool _NRStepAccepted;
 
 	void _initializeDerivatives();
-	coretools::Probability _calcEpsilon(double eta) const noexcept;
 	coretools::Probability _calcErrorRate(const BAM::TSequencedBase &base) const noexcept;
 
 public:

@@ -75,8 +75,9 @@ std::string TFunction::getModelString() const{
 // TRecalibrationEMCovariateFunction_intercept
 //--------------------------------------------------------------
 
-void TIntercept::initialize(uint16_t, const std::vector<std::string> & values){
-	_initializValues(values);
+TIntercept::TIntercept(uint16_t FirstParameterIndex, const std::string &value)
+	: TFunction(FirstParameterIndex) {
+	_beta = coretools::str::convertStringCheck<double>(value);
 }
 
 void TIntercept::fillDerivatives(TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives &) const noexcept {

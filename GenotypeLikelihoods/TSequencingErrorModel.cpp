@@ -22,7 +22,7 @@ using coretools::instances::randomGenerator;
 // class to store model definition. Used when parsing files
 //*********************************************************
 
-TCovariateDefinition::TCovariateDefinition(const std::string &modelString) {
+TModelDefinition::TModelDefinition(const std::string &modelString, const std::string &rhoString) : rho(rhoString) {
 	// split string
 	std::vector<std::string> tmp;
 	coretools::str::fillContainerFromString(modelString, tmp, ';', true);
@@ -40,28 +40,16 @@ TCovariateDefinition::TCovariateDefinition(const std::string &modelString) {
 			if (pos_1 == std::string::npos) {
 				if (pos_2 != std::string::npos)
 					throw "Unable to understand model string '" + modelString + "': missing '['";
-				_intercept = "0.0";
+				intercept = "0.0";
 			} else {
 				if (pos_2 == std::string::npos)
 					throw "Unable to understand model string '" + modelString + "': missing ']'";
-				_intercept = s.substr(pos_1 + 1, pos_2 - pos_1 - 1);
+				intercept = s.substr(pos_1 + 1, pos_2 - pos_1 - 1);
 			}
 		} else {
-			_covariateFunctions.push_back({s.substr(0, pos), s.substr(pos + 1)});
+			covariates.push_back({s.substr(0, pos), s.substr(pos + 1)});
 		}
 	}
-}
-
-void TCovariateDefinition::setIntercept(double Intercept) { _intercept = coretools::str::toString(Intercept); };
-
-void TCovariateDefinition::addCovariate(const std::string &covariate, const std::string &function) {
-	_covariateFunctions.push_back({covariate, function});
-}
-
-std::string TCovariateDefinition::getModelString() const {
-	std::string modelString = "intercept[" + _intercept + "]";
-	for (auto &it : _covariateFunctions) { modelString += ";" + it.covariate + ":" + it.function; }
-	return modelString;
 }
 
 //*********************************************************
@@ -263,21 +251,16 @@ TFunction *function(const std::string &functionString, const size_t FirstParamet
 	throw "Recalibration function '" + type + "' not valid for covariate quality!";
 }
 
-TModelRecal::TModelRecal(const TModelDefinition &modelDef) {
-	const auto &covariateMap = modelDef.covariates;
-
-	_rho = modelDef.rho;
-
+TModelRecal::TModelRecal(const TModelDefinition &modelDef) : _rho(modelDef.rho), _intercept(0, modelDef.intercept) {
 	// create covariates
-	_intercept.initialize(0, {covariateMap.intercept()});
 	_functions.push_back(&_intercept);
 
 	_numParameters = _intercept.numParameters();
-	for (auto it = covariateMap.cbegin(); it != covariateMap.cend(); ++it) {
+	for (const auto & cov : modelDef.covariates) {
 		// create function for each covariate
-		if (it->covariate == TCovariate::name) continue;
+		if (cov.covariate == TCovariate::name) continue;
 
-		_covariates.push_back(TCovariateModel{covariate(it->covariate), function(it->function, _numParameters)});
+		_covariates.push_back(TCovariateModel{covariate(cov.covariate), function(cov.function, _numParameters)});
 		_functions.push_back(_covariates.back().function.get());
 
 		// add new parameters
@@ -288,21 +271,16 @@ TModelRecal::TModelRecal(const TModelDefinition &modelDef) {
 	setNewtonRaphsonParamsToZero();
 }
 
-TModelRecal::TModelRecal(const TModelDefinition &modelDef, const RecalEstimatorTools::TRecalDataTable &dataTable) {
-	const auto &covariateMap = modelDef.covariates;
-
-	_rho = modelDef.rho;
-
+TModelRecal::TModelRecal(const TModelDefinition &modelDef, const RecalEstimatorTools::TRecalDataTable &dataTable) : _rho(modelDef.rho), _intercept(0, modelDef.intercept){
 	// create covariates
-	_intercept.initialize(0, {covariateMap.intercept()});
 	_functions.push_back(&_intercept);
 
 	_numParameters = _intercept.numParameters();
-	for (auto it = covariateMap.cbegin(); it != covariateMap.cend(); ++it) {
+	for (const auto & cov : modelDef.covariates) {
 		// create function for each covariate
-		if (it->covariate == TCovariate::name) continue;
+		if (cov.covariate == TCovariate::name) continue;
 
-		_covariates.push_back(TCovariateModel{covariate(it->covariate), function(it->function, _numParameters, dataTable)});
+		_covariates.push_back(TCovariateModel{covariate(cov.covariate), function(cov.function, _numParameters, dataTable)});
 		_functions.push_back(_covariates.back().function.get());
 
 		// add new parameters
@@ -318,17 +296,18 @@ TModelDefinition TModelRecal::getModelDefinition() const {
 }
 
 std::string TModelRecal::getCovariateDefinition() const noexcept {
-	TCovariateDefinition def;
-	def.setIntercept(_intercept.intercept());
-	for (const auto &cov : _covariates) { def.addCovariate(cov.covariate->typeString(), cov.function->typeString()); }
-	return def.getModelString();
+	std::string modelString = "intercept[" + coretools::str::toString(_intercept.intercept()) + "]";
+	for (const auto &cov : _covariates) {
+		modelString += ";" + cov.covariate->typeString() + ":" +  cov.function->typeString();
+	}
+	return modelString;
 }
 
 //-------------------------------------------------
 // functions to calculate error rates
 //-------------------------------------------------
 
-Probability TModelRecal::_calcEpsilon(double eta) const noexcept {
+constexpr Probability calcEpsilon(double eta) noexcept {
 	if (eta > 23.03) return Probability(0.9999999999);
 	if (eta < -23.03) return Probability(0.0000000001);
 
@@ -337,11 +316,10 @@ Probability TModelRecal::_calcEpsilon(double eta) const noexcept {
 
 Probability TModelRecal::_calcErrorRate(const BAM::TSequencedBase &base) const noexcept {
 	// eta = bta[0] + SUM_i f(q[i]), where the functions are implemented as covariate function
-
 	auto eta = _intercept.getEtaTerm();
 	for (const auto &cov : _covariates) eta += cov.function->getEtaTerm(cov.covariate->extract(base));
 
-	return _calcEpsilon(eta);
+	return calcEpsilon(eta);
 }
 
 Probability TModelRecal::getErrorRate(const BAM::TSequencedBase &base) const noexcept {
@@ -415,7 +393,7 @@ void TModelRecal::_initializeDerivatives() {
 
 	// covariates
 	for (const auto &cov : _covariates) {
-		numNonZeroFirstDeriv += cov.function->numNonZeroFirstDerivatives();
+		numNonZeroFirstDeriv  += cov.function->numNonZeroFirstDerivatives();
 		numNonZeroSecondDeriv += cov.function->numNonZeroSecondDerivatives();
 	}
 
@@ -523,7 +501,7 @@ bool TModelRecal::solveJxF() {
 void TModelRecal::proposeNewParameters(double &lambda) {
 	if (!_NRStepAccepted) {
 		uint16_t index = 0;
-		for (const auto it : _functions) { it->proposeNewParameters(_JxF, index, lambda); }
+		for (const auto f : _functions) { f->proposeNewParameters(_JxF, index, lambda); }
 	}
 }
 
@@ -535,13 +513,13 @@ bool TModelRecal::acceptProposedParametersBasedOnQ() {
 	}
 	_NRStepAccepted = false;
 	_Q              = _oldQ;
-	for (const auto it : _functions) it->rejectProposedParameters();
+	for (const auto f : _functions) f->rejectProposedParameters();
 
 	return false;
 }
 
 void TModelRecal::adjustParametersPostEstimation() {
-	for (const auto it : _functions) _intercept.intercept() += it->adjustParametersPostEstimation();
+	for (const auto f : _functions) _intercept.intercept() += f->adjustParametersPostEstimation();
 }
 
 double TModelRecal::getSteepestGradient() const noexcept {

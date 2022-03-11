@@ -75,7 +75,7 @@ protected:
 	double _oldBeta(uint16_t ) const noexcept override {return _oldbeta;}
 public:
 	static inline const std::string name = "intercept";
-	TIntercept() = default;
+	TIntercept(uint16_t FirstParameterIndex, const std::string & value);
 
 	uint16_t numParameters() const noexcept override { return 1; };
 	uint16_t numNonZeroFirstDerivatives() const noexcept override { return 1; };
@@ -85,7 +85,6 @@ public:
 	double beta(uint16_t) const noexcept override {return _beta;}
 
 	bool checkValueRange(uint16_t ) const noexcept override {return true;}
-	void initialize(uint16_t FirstParameterIndex, const std::vector<std::string> & values);
 	constexpr double intercept() const noexcept {return _beta;}
 	constexpr double &intercept() noexcept {return _beta;}
 
