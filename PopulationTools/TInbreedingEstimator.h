@@ -23,7 +23,8 @@ typedef coretools::Probability TypeF; // F in [0, 1]
 typedef coretools::ZeroOpenOneClosed<double> TypeP; // p in (0, 1]
 typedef coretools::WeakType<double> TypeC; // c in (-inf, inf) -> gamma = exp(c) is > 0
 typedef coretools::WeakType<bool> TypeZ; // z = 0,1
-typedef genometools::TSampleLikelihoods<genometools::HighPrecisionPhredIntProbability> TypeGTL;
+typedef genometools::HighPrecisionPhredIntProbability PhredType;
+typedef genometools::TSampleLikelihoods<PhredType> TypeGTL;
 
 //------------------------------------------
 // TInbreedingEstimatorPrior
@@ -34,21 +35,6 @@ public:
     inline static const std::string inbreeding = "inbreeding";
 };
 
-class THardyWeinbergWithInbreedingGenotypeProbabilities : public genometools::THardyWeinbergGenotypeProbabilities {
-public:
-    THardyWeinbergWithInbreedingGenotypeProbabilities(const coretools::Probability p = 0.5, const coretools::Probability F = 0.0) noexcept{ set(p, F); }
-
-    constexpr void set(const coretools::Probability p, const coretools::Probability F) noexcept {
-        using BG = genometools::BiallelicGenotype;
-        _probabilities[index(BG::haploidFirst)]  = p.complement(); // (1-p)
-        _probabilities[index(BG::haploidSecond)] = p;              // p
-        _probabilities[index(BG::homoFirst)]     = F.complement() * _probabilities[index(BG::haploidFirst)] * _probabilities[index(BG::haploidFirst)]
-                                                        + F*_probabilities[index(BG::haploidFirst)]; // (1-F)*(1-p)^2 + F(1-p)
-        _probabilities[index(BG::het)]           = F.complement() * 2.0 * _probabilities[index(BG::haploidFirst)] * _probabilities[index(BG::haploidSecond)]; // (1-F)2p(1-p)
-        _probabilities[index(BG::homoSecond)]    = 1.0 - _probabilities[index(BG::homoFirst)] - _probabilities[index(BG::het)];
-    }
-};
-
 class TInbreedingEstimatorPrior : public stattools::prior::TBaseNonIID<stattools::TValueFixed, TypeGTL, 2> {
 private:
     // parameters
@@ -56,21 +42,24 @@ private:
     std::shared_ptr<stattools::TParameterTyped<TypeP, 1>> _p;
     std::shared_ptr<stattools::TParameterTyped<TypeZ, 1>> _z;
 
+    // dimensions
+    size_t _numLoci;
+    size_t _numSamples;
 
     // proposal probability for model switch F
-    double _q_FModel_To_HWE;
-    double _log_q_FModel_To_HWE;
+    coretools::Probability _q_FModel_To_HWE;
+    coretools::LogProbability _log_q_FModel_To_HWE;
 
     // propose new values after model switch
-    double _lambdaNewF;
+    coretools::StrictlyPositive<double> _lambdaNewF;
 
-    // observation
-    TPopulationLikelihoods _likelihoods; // TODO: how to formalize those to observation class?
+    // initial estimates for p
+    std::vector<double>& _initialEstimatesP;
 
     // calculate LL
-    static coretools::LogProbability _calculateLLSumOverIndividuals(TSampleLikelihoods* data, size_t N, const genometools::THardyWeinbergGenotypeProbabilities & Probs);
-    static coretools::LogProbability _calculateLLSumOverIndividuals(TSampleLikelihoods* data, size_t N, double P);
-    static coretools::LogProbability _calculateLLSumOverIndividuals(TSampleLikelihoods* data, size_t N, double P, double F);
+    coretools::LogProbability _calculateLLSumOverIndividuals(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> & Data, size_t Locus, const genometools::THardyWeinbergGenotypeProbabilities & Probs) const;
+    coretools::LogProbability _calculateLLSumOverIndividuals(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> & Data, size_t Locus, double P) const;
+    coretools::LogProbability _calculateLLSumOverIndividuals(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> & Data, size_t Locus, double P, double F) const;
 
     // DAG
     void _registerPriorParameters() override;
@@ -89,20 +78,21 @@ private:
     double _getExpectedValueFromPriorParameters(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> & data, size_t index) const override;
 
     // update functions for F
-    void _updateFAndZ();
-    void _updateRegularF();
-    void _updateFToHWE();
-    void _updateHWEToF();
+    void _updateFAndZ(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> & Data);
+    void _updateRegularF(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> & Data);
+    void _updateFToHWE(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> & Data);
+    void _updateHWEToF(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> & Data);
     double _calculateProbabilityOfProposingThisF(double F) const;
     double _getRandomNewF() const;
 
     // update functions for p
-    void _updateP(TSampleLikelihoods* data, size_t Locus);
+    void _updateP(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> & Data, size_t Locus);
 
 public:
-    TInbreedingEstimatorPrior(const std::shared_ptr<stattools::TParameterTyped<TypeF, 1>> & F,
-                              const std::shared_ptr<stattools::TParameterTyped<TypeP, 1>> & P,
-                              const std::shared_ptr<stattools::TParameterTyped<TypeZ, 1>> & Z);
+    TInbreedingEstimatorPrior(std::shared_ptr<stattools::TParameterTyped<TypeF, 1>>  F,
+                              std::shared_ptr<stattools::TParameterTyped<TypeP, 1>>  P,
+                              std::shared_ptr<stattools::TParameterTyped<TypeZ, 1>>  Z,
+                              const std::vector<double> & InitialEstimatesP);
     ~TInbreedingEstimatorPrior() override = default;
     void initializeStorageOfPriorParameters() override;
 
@@ -126,8 +116,7 @@ public:
 class TInbreedingEstimator {
 private:
     std::shared_ptr<stattools::TDAGBuilder> _dagBuilder;
-
-    TPopulationLikelihoods _likelihoods;
+    genometools::TPopulationLikelihoods<PhredType> _likelihoods;
 
     // filenames
     std::string _prefix;
@@ -135,8 +124,9 @@ private:
 
     // define DAG
     void _defineDAG();
-    void _defineF();
-    void _defineP();
+    auto _defineFAndZ();
+    auto _definePAndC();
+    void _defineObservation(const std::shared_ptr<stattools::TParameterTyped<TypeF, 1>> & F, const std::shared_ptr<stattools::TParameterTyped<TypeZ, 1>> & Z, const std::shared_ptr<stattools::TParameterTyped<TypeP, 1>> & P);
 
     // read input data
     void _readData();

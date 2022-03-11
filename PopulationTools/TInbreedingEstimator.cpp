@@ -4,6 +4,8 @@
 
 #include "TInbreedingEstimator.h"
 
+#include <utility>
+
 namespace PopulationTools {
 
 // TODO:
@@ -13,16 +15,17 @@ namespace PopulationTools {
 // TInbreedingEstimatorPrior
 //------------------------------------------
 
-TInbreedingEstimatorPrior::TInbreedingEstimatorPrior(const std::shared_ptr<stattools::TParameterTyped<TypeF, 1>> &F,
-                                                     const std::shared_ptr<stattools::TParameterTyped<TypeP, 1>> &P,
-                                                     const std::shared_ptr<stattools::TParameterTyped<TypeZ, 1>> &Z) {
+TInbreedingEstimatorPrior::TInbreedingEstimatorPrior(std::shared_ptr<stattools::TParameterTyped<TypeF, 1>> F,
+                                                     std::shared_ptr<stattools::TParameterTyped<TypeP, 1>> P,
+                                                     std::shared_ptr<stattools::TParameterTyped<TypeZ, 1>> Z,
+                                                     const std::vector<double> & InitialEstimatesP) :
+                                                     _F(std::move(F)), _p(std::move(P)), _z(std::move(Z)), _initialEstimatesP(InitialEstimatesP){
     // set parameters
-    _F = F;
-    _p = P;
-    _z = Z;
     _q_FModel_To_HWE = 0.0;
     _log_q_FModel_To_HWE = 0.0;
     _lambdaNewF = 0.0;
+    _numLoci = 0;
+    _numSamples = 0;
 
     _registerPriorParameters();
 }
@@ -34,15 +37,20 @@ void TInbreedingEstimatorPrior::_registerPriorParameters() {
 }
 
 void TInbreedingEstimatorPrior::initializeStorageOfPriorParameters() {
-    // assemble dimension names from _likelihoods
-    auto lociNames = std::make_shared<genometools::TNamesPositions>(_likelihoods.positions());
+    // get shared ptr to data
+    auto data = this->_getSharedPtrParam(this->_parametersBelow[0]);
+    const auto & lociNames = data->getDimensionName(0);
+
+    // set dimensions
+    _numLoci = data->dimensions()[0];
+    _numSamples = data->dimensions()[1];
 
     // F and z: one value
     _F->initializeStorageSingleElementBasedOnPrior();
     _z->initializeStorageSingleElementBasedOnPrior();
 
     // p: linear of length L
-    _p->initializeStorageBasedOnPrior({_likelihoods.getNumLoci()}, {lociNames});
+    _p->initializeStorageBasedOnPrior({_numLoci}, {lociNames});
 
     // read command line parameters
     _readCommandLineArguments();
@@ -52,59 +60,55 @@ void TInbreedingEstimatorPrior::_readCommandLineArguments(){
     using namespace coretools::instances;
     // parameters for model switch of F
     _q_FModel_To_HWE = parameters().getParameterWithDefault("probMovingToModelNoF", 0.1);
-    if (_q_FModel_To_HWE < 0.0 || _q_FModel_To_HWE > 1.0){
-        throw "Invalid argument 'probMovingToModelNoF': Must be in interval [0,1] (not " + coretools::str::toString(_q_FModel_To_HWE) + ")!";
-    }
     _log_q_FModel_To_HWE = log(_q_FModel_To_HWE);
     logfile().list("Will propose move to model without F with probability ", _q_FModel_To_HWE, ". (parameter 'probMovingToModelNoF')");
 
     // Read lambda for proposing new F
-    auto lambda = parameters().getParameterWithDefault<std::string>("lambdaF", "100.0");
-    logfile().list("Lambda of exponential distribution used for the proposal of new F after move to model with F is set to ", lambda, ". (parameter 'lambdaF')");
+    _lambdaNewF = parameters().getParameterWithDefault("lambdaF", 100.0);
+    logfile().list("Lambda of exponential distribution used for the proposal of new F after move to model with F is set to ", coretools::str::toString(_lambdaNewF), ". (parameter 'lambdaF')");
 }
 
-double TInbreedingEstimatorPrior::_getLogPriorDensity_vec(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> &, size_t) const {
-    // TODO: Harmonize with observation!
-}
-
-coretools::LogProbability TInbreedingEstimatorPrior::_calculateLLSumOverIndividuals(TSampleLikelihoods* data, size_t N, const genometools::THardyWeinbergGenotypeProbabilities & Probs){
+coretools::LogProbability TInbreedingEstimatorPrior::_calculateLLSumOverIndividuals(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> & Data, size_t Locus, const genometools::THardyWeinbergGenotypeProbabilities & Probs) const {
     // sum over all individuals of log sum_g P(d|g)P(g|p,F)
     coretools::LogProbability sum = 0.0;
-    for (size_t i = 0; i < N; i++){
-        sum += data[i].HWESum<coretools::LogProbability>(Probs);
+    for (size_t i = 0; i < _numSamples; i++){
+        const auto linearIndex = Data->getIndex({Locus, i});
+        sum += Data->value(linearIndex).HWESum<coretools::LogProbability>(Probs);
     }
     return sum;
 }
 
-coretools::LogProbability TInbreedingEstimatorPrior::_calculateLLSumOverIndividuals(TSampleLikelihoods* data, size_t N, double P){
-    return _calculateLLSumOverIndividuals(data, N, genometools::THardyWeinbergGenotypeProbabilities(P));
+coretools::LogProbability TInbreedingEstimatorPrior::_calculateLLSumOverIndividuals(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> &Data, size_t Locus, double P) const {
+    return _calculateLLSumOverIndividuals(Data, Locus, genometools::THardyWeinbergGenotypeProbabilities(P));
 }
 
-coretools::LogProbability TInbreedingEstimatorPrior::_calculateLLSumOverIndividuals(TSampleLikelihoods* data, size_t N, double P, double F){
-    return _calculateLLSumOverIndividuals(data, N, THardyWeinbergWithInbreedingGenotypeProbabilities(P, F));
+coretools::LogProbability TInbreedingEstimatorPrior::_calculateLLSumOverIndividuals(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> &Data, size_t Locus, double P, double F) const {
+    return _calculateLLSumOverIndividuals(Data, Locus, genometools::THardyWeinbergWithInbreedingGenotypeProbabilities(P, F));
 }
 
 void TInbreedingEstimatorPrior::updateParams() {
-    _updateFAndZ();
+    // get shared ptr to data
+    auto data = this->_getSharedPtrParam(this->_parametersBelow[0]);
 
-    size_t l = 0;
-    for (_likelihoods.begin(); !_likelihoods.end(); _likelihoods.next(), ++l) {
-        _updateP(_likelihoods.curData(), l);
+    _updateFAndZ(data);
+
+    for (size_t l = 0; l < _numLoci; l++) {
+        _updateP(data, l);
     }
 }
 
-void TInbreedingEstimatorPrior::_updateFAndZ(){
+void TInbreedingEstimatorPrior::_updateFAndZ(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> & Data){
     using namespace coretools::instances;
     if (_F->isUpdated()) {
         if (_z->value()) { // we're in F-model
             if (_z->isUpdated() && randomGenerator().getRand() < _q_FModel_To_HWE){
-                _updateFToHWE(); // propose model switch
+                _updateFToHWE(Data); // propose model switch
             } else {
-                _updateRegularF(); // update F
+                _updateRegularF(Data); // update F
             }
         } else { // we're in HWE-model
             if (_z->isUpdated()) {
-                _updateHWEToF(); // propose model switch
+                _updateHWEToF(Data); // propose model switch
             }
         }
     }
@@ -122,70 +126,79 @@ double TInbreedingEstimatorPrior::_getRandomNewF() const{
     return randomGenerator().getExponentialRandomTruncated(_lambdaNewF, 0.0, 1.0);
 }
 
-void TInbreedingEstimatorPrior::_updateFToHWE() {
+// TODO: Limit analysis to a single population?
+
+void TInbreedingEstimatorPrior::_updateFToHWE(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> & Data) {
     // propose model switch: from F-Model to HWE-Model
     _F->set(0.0);
     _z->set(false);
 
     // calculate RJ-MCMC term of Hastings ratio
-    double log_f_F = _calculateProbabilityOfProposingThisF(_F->oldValue()); // "compensating" the effect of no F in HWE model
-    double logH = log_f_F - _log_q_FModel_To_HWE + _F->getLogPriorDensity(); // TODO: If _F didn't have a uniform prior, how would this go into Hastings ratio in model switch?
+    double log_f_F = _calculateProbabilityOfProposingThisF(_F->oldValue());
+    double logH = log_f_F - _log_q_FModel_To_HWE - _F->getLogPriorDensityOld();
 
     // calculate LL Hastings-Ratio
-    size_t l = 0;
-    for (_likelihoods.begin(); !_likelihoods.end(); _likelihoods.next(), ++l){
-        logH +=  _calculateLLSumOverIndividuals(_likelihoods.curData(), _likelihoods.curSampleSize(), _p->value(l)) // HWE model
-                 - _calculateLLSumOverIndividuals(_likelihoods.curData(), _likelihoods.curSampleSize(), _p->value(l), _F->oldValue()); // F-Model
+    for (size_t l = 0; l < _numLoci; l++){
+        logH +=  _calculateLLSumOverIndividuals(Data, l, _p->value(l)) // HWE model
+                 - _calculateLLSumOverIndividuals(Data, l, _p->value(l), _F->oldValue()); // F-Model
     }
 
-    if (!_F->acceptOrReject(logH)){
-        // rejected -> re-set model
+    if (_F->acceptOrReject(logH, false)){
+        // accepted model switch -> we're now in null model
+        // -> stop adding to posterior mean/var
+        _F->doTrackMeanVar(false);
+    } else {
+        // rejected model switch -> we're still in F-model
         _z->set(true);
     }
 }
 
-void TInbreedingEstimatorPrior::_updateRegularF() {
+void TInbreedingEstimatorPrior::_updateRegularF(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> & Data) {
     // update F without model switch: F -> F'
     if (_F->update()) {
         double logH = _F->getLogPriorRatio();
-        size_t l = 0;
-        for (_likelihoods.begin(); !_likelihoods.end(); _likelihoods.next(), ++l) {
-            logH += _calculateLLSumOverIndividuals(_likelihoods.curData(), _likelihoods.curSampleSize(), _p->value(l), _F->value())
-                    - _calculateLLSumOverIndividuals(_likelihoods.curData(), _likelihoods.curSampleSize(), _p->value(l), _F->oldValue());
+        for (size_t l = 0; l < _numLoci; l++){
+            logH += _calculateLLSumOverIndividuals(Data, l, _p->value(l), _F->value())
+                    - _calculateLLSumOverIndividuals(Data, l, _p->value(l), _F->oldValue());
         }
         _F->acceptOrReject(logH);
     }
 }
 
-void TInbreedingEstimatorPrior::_updateHWEToF(){
+void TInbreedingEstimatorPrior::_updateHWEToF(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> & Data){
     // propose model switch: from HWE-Model to F-Model
     _F->set(_getRandomNewF());
     _z->set(true);
 
     // calculate RJ-MCMC term of Hastings ratio
     double log_f_F = _calculateProbabilityOfProposingThisF(_F->value()); // "compensating" the effect of no F in HWE model
-    double logH = _log_q_FModel_To_HWE - log_f_F + _F->getLogPriorRatio(); // TODO: If _F didn't have a uniform prior, how would this go into Hastings ratio in model switch?
+    double logH = _log_q_FModel_To_HWE + _F->getLogPriorDensity() - log_f_F;
 
     // calculate LL Hastings-Ratio
-    size_t l = 0;
-    for (_likelihoods.begin(); !_likelihoods.end(); _likelihoods.next(), ++l){
-        logH +=  _calculateLLSumOverIndividuals(_likelihoods.curData(), _likelihoods.curSampleSize(), _p->value(l), _F->value()) // F-Model
-                 - _calculateLLSumOverIndividuals(_likelihoods.curData(), _likelihoods.curSampleSize(), _p->value(l)); // HWE-Model
+    for (size_t l = 0; l < _numLoci; l++){
+        logH +=  _calculateLLSumOverIndividuals(Data, l, _p->value(l), _F->value()) // F-Model
+                 - _calculateLLSumOverIndividuals(Data, l, _p->value(l)); // HWE-Model
     }
 
-    if (!_F->acceptOrReject(logH)){
-        // rejected -> re-set modelF
+    if (_F->acceptOrReject(logH, false)){
+        // accepted model switch -> we're now in F-model
+        // -> start adding to posterior mean/var
+        _F->doTrackMeanVar(true); // F is in non-zero model -> add to posterior mean/var
+    } else {
+        // rejected model switch -> we're still in null-model
         _z->set(false);
     }
 }
 
-void TInbreedingEstimatorPrior::_updateP(TSampleLikelihoods* data, size_t Locus){
+void TInbreedingEstimatorPrior::_updateP(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> & Data, size_t Locus){
     if (_p->updateSpecificIndex(Locus)){
         double logH = _p->getLogPriorRatio();
         if (_z->value()){ // F-Model
-            logH += _calculateLLSumOverIndividuals(data, _likelihoods.curSampleSize(), _p->value(Locus), _F->value()) - _calculateLLSumOverIndividuals(data, _likelihoods.curSampleSize(), _p->oldValue(Locus), _F->value());
+            logH += _calculateLLSumOverIndividuals(Data, Locus, _p->value(Locus), _F->value())
+                    - _calculateLLSumOverIndividuals(Data, Locus, _p->oldValue(Locus), _F->value());
         } else { // HWE-Model
-            logH += _calculateLLSumOverIndividuals(data, _likelihoods.curSampleSize(), _p->value(Locus)) - _calculateLLSumOverIndividuals(data, _likelihoods.curSampleSize(), _p->oldValue(Locus));
+            logH += _calculateLLSumOverIndividuals(Data, Locus, _p->value(Locus))
+                    - _calculateLLSumOverIndividuals(Data, Locus, _p->oldValue(Locus));
         }
 
         _p->acceptOrReject(Locus, logH);
@@ -193,43 +206,32 @@ void TInbreedingEstimatorPrior::_updateP(TSampleLikelihoods* data, size_t Locus)
 }
 
 void TInbreedingEstimatorPrior::_setInitialF(){
-    if (_F->hasFixedInitialValue()){
-        _F->value() == 0.0 ? _z->set(false) : _z->set(true);
-    } else {
-        // F: decide in which model to start
-        using namespace coretools::instances;
-        if (parameters().parameterExists("startInZeroModel")){
-            _z->set(false);
+    // set initial F
+    if (!_F->hasFixedInitialValue()){
+        if (_z->hasFixedInitialValue() && _z->value() == 0){
+            // user wants to start in zero-model
             _F->set(0.0);
         } else {
-            _z->set(true);
             _F->set(_getRandomNewF());
         }
     }
+    // set initial z
+    _F->value() == 0.0 ? _z->set(false) : _z->set(true);
 }
 
 void TInbreedingEstimatorPrior::_setInitialP(){
     using namespace coretools::instances;
-    std::vector<double> freqs;
-    if(parameters().parameterExists("trueAlleleFreq")){
-        freqs = _likelihoods.donateTrueAlleleFrequencies();
-        if (freqs.size() != _likelihoods.getNumLoci()){
-            throw coretools::str::toString("Failed to initialize p with true allele frequencies (parameter 'trueAlleleFreq'): Did not receive one allele frequency per locus! Number of loci from VCF: ", _likelihoods.getNumLoci(), " vs number of allele frequencies ", freqs.size(), ")");
-        }
-        logfile().list("Initializing allele frequencies to true values read from trueAlleleFreq file");
-        logfile().warning("This task is not implemented for multiple populations! Considering all samples to be from one population.");
-    } else {
-        freqs = _likelihoods.donateAlleleFrequencies();
-        logfile().list("Initializing allele frequencies to values estimated from sample genotype likelihoods");
-        logfile().warning("This task is not implemented for multiple populations! Considering all samples to be from one population.");
-    }
+    logfile().list("Initializing allele frequencies to values estimated from sample genotype likelihoods");
+    logfile().warning("This task is not implemented for multiple populations! Considering all samples to be from one population.");
 
     // now read values into _p
     if (!_p->hasFixedInitialValue()){
-        for (size_t l = 0; l < _likelihoods.getNumLoci(); l++){
-            _p->set(l, freqs[l]);
+        for (size_t l = 0; l < _numLoci; l++){
+            _p->set(l, _initialEstimatesP[l]);
         }
     }
+    // clear initialEstimatesP
+    _initialEstimatesP.clear();
 }
 
 void TInbreedingEstimatorPrior::estimateInitialPriorParameters() {
@@ -237,14 +239,13 @@ void TInbreedingEstimatorPrior::estimateInitialPriorParameters() {
     _setInitialP();
 }
 
-double TInbreedingEstimatorPrior::getSumLogPriorDensity(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> &) const {
+double TInbreedingEstimatorPrior::getSumLogPriorDensity(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> & Data) const {
     double sum = 0.;
-    size_t l = 0;
-    for (_likelihoods.begin(); !_likelihoods.end(); _likelihoods.next(), ++l){
+    for (size_t l = 0; l < _numLoci; l++){
         if (_z->value()){
-            sum += _calculateLLSumOverIndividuals(_likelihoods.curData(), _likelihoods.curSampleSize(), _p->value(l), _F->value()); // F-Model
+            sum += _calculateLLSumOverIndividuals(Data, l, _p->value(l), _F->value()); // F-Model
         } else {
-            sum += _calculateLLSumOverIndividuals(_likelihoods.curData(), _likelihoods.curSampleSize(), _p->value(l)); // HWE-Model
+            sum += _calculateLLSumOverIndividuals(Data, l, _p->value(l)); // HWE-Model
         }
     }
     return sum;
@@ -254,6 +255,9 @@ void TInbreedingEstimatorPrior::simulateUnderPrior() {
     // TODO: ? In here or in Atlas simulator?
 }
 
+double TInbreedingEstimatorPrior::_getLogPriorDensity_vec(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> & Data, size_t Index) const {
+    throw std::runtime_error((std::string) __PRETTY_FUNCTION__ + ": not implemented.");
+}
 double TInbreedingEstimatorPrior::_getPriorDensity_vec(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> &, size_t) const {
     throw std::runtime_error((std::string) __PRETTY_FUNCTION__ + ": not implemented.");
 }
@@ -276,15 +280,23 @@ double TInbreedingEstimatorPrior::_getExpectedValueFromPriorParameters(const std
 
 TInbreedingEstimator::TInbreedingEstimator(coretools::TParameters &, coretools::TLog *, coretools::TRandomGenerator *) {}
 
-void TInbreedingEstimator::_defineF(){
+auto TInbreedingEstimator::_defineFAndZ(){
     auto priorOnF = std::make_shared<stattools::prior::TUniformFixed<stattools::TValueUpdated, TypeF, 1>>();
     stattools::TParameterDefinition defF;
     defF.setAllFiles(_filename);
     auto F = std::make_shared<stattools::TParameterTyped<TypeF, 1>>("F", priorOnF, defF);
     _dagBuilder->addToDAG(F);
+
+    auto priorOnZ = std::make_shared<stattools::prior::TUniformFixed<stattools::TValueUpdated, TypeZ, 1>>();
+    stattools::TParameterDefinition defZ;
+    defZ.setAllFiles(_filename);
+    auto z = std::make_shared<stattools::TParameterTyped<TypeZ, 1>>("z", priorOnZ, defZ);
+    _dagBuilder->addToDAG( z);
+
+    return std::make_tuple(F, z);
 }
 
-void TInbreedingEstimator::_defineP(){
+auto TInbreedingEstimator::_definePAndC(){
     // c
     auto priorOnC = std::make_shared<stattools::prior::TUniformFixed<stattools::TValueUpdated, TypeC, 1>>();
     stattools::TParameterDefinition defC;
@@ -299,6 +311,18 @@ void TInbreedingEstimator::_defineP(){
     defP.setJumpSizeForAll(false);
     auto p = std::make_shared<stattools::TParameterTyped<TypeP, 1>>("p", priorOnP, defP);
     _dagBuilder->addToDAG(p);
+
+    return p;
+}
+
+void TInbreedingEstimator::_defineObservation(const std::shared_ptr<stattools::TParameterTyped<TypeF, 1>> & F,
+                                              const std::shared_ptr<stattools::TParameterTyped<TypeZ, 1>> & Z,
+                                              const std::shared_ptr<stattools::TParameterTyped<TypeP, 1>> & P){
+    auto inbreedingPrior = std::make_shared<TInbreedingEstimatorPrior>(F, P, Z, _likelihoods.alleleFrequencies());
+    stattools::TObservationDefinition def;
+    auto observation = std::make_shared<stattools::TObservationTyped<TypeGTL, 2>>("genotypeLikelihoods", inbreedingPrior, def);
+    observation->setStorage(_likelihoods.getStorage());
+    _dagBuilder->addToDAG(observation);
 }
 
 void TInbreedingEstimator::_readData(){
@@ -307,22 +331,27 @@ void TInbreedingEstimator::_readData(){
     _likelihoods.doSaveAlleleFrequencies();
     if(parameters().parameterExists("trueAlleleFreq")){
         _likelihoods.doSaveTrueAlleleFrequencies();
-        logfile().list("Will save true allele frequencies in population_likelihoods object");
+        logfile().list("Will save true allele frequencies for population likelihoods.");
     }
     _likelihoods.readData(parameters(), &logfile());
 }
 
 void TInbreedingEstimator::_defineDAG(){
     _readData();
-    _defineF();
-    _defineP();
 
-    // TODO: Create TInbreedingPrior to build the complete DAG!
+    // define F
+    auto [F, z] = _defineFAndZ();
+
+    // define C and P
+    auto p = _definePAndC();
+
+    // define observation
+    _defineObservation(F, z, p);
 }
 
 void TInbreedingEstimator::runEstimation(coretools::TParameters &Parameters) {
     // read file names
-    std::string vcfFileName = _likelihoods.getVCFName();
+    std::string vcfFileName = Parameters.getParameter("vcf");
     vcfFileName = coretools::str::extractBeforeLast(vcfFileName, ".vcf");
     _prefix = Parameters.getParameterWithDefault<std::string>("prefix", "");
     _filename = Parameters.getParameterWithDefault<std::string>("out", vcfFileName);

@@ -13,7 +13,7 @@
 #include "TPopulationLikelihoods.h"
 #include "TRandomGenerator.h"
 #include "THardyWeinbergGenotypeProbabilities.h"
-#include "TVCFReader.h"
+#include "TPopulationLikelihoods.h"
 #include "TTask.h"
 
 namespace PopulationTools{

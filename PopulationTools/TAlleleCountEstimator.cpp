@@ -8,7 +8,7 @@
 
 #include "TAlleleCountEstimator.h"
 #include "GenotypeTypes.h"
-#include "TVCFReader.h"
+#include "TPopulationLikelihoods.h"
 
 namespace PopulationTools{
 

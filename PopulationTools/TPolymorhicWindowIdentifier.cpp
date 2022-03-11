@@ -7,7 +7,7 @@
 
 
 #include "GenotypeTypes.h"
-#include "TVCFReader.h"
+#include "TPopulationLikelihoods.h"
 #include <TPolymorhicWindowIdentifier.h>
 
 namespace PopulationTools{

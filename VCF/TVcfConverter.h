@@ -13,7 +13,7 @@
 #include "TGLF.h"
 #include "TBed.h"
 #include "TVcfFile.h"
-#include "TVCFReader.h"
+#include "TPopulationLikelihoods.h"
 
 namespace VCF{
 
