@@ -34,10 +34,10 @@ void TGlfChromosome::_setPloidy(const uint8_t & Ploidy){
 	if(Ploidy < 1 || Ploidy > 2)
 		throw "Currently GLFs only support ploidies 1 and 2 (not " + coretools::str::toString((int) Ploidy) + ")!";
 	if(Ploidy == 1){
-		isHaploid = true;
+		_isHaploid = true;
 		_numLikelihoodValues = 4;
 	} else {
-		isHaploid = false;
+		_isHaploid = false;
 		_numLikelihoodValues = 10;
 	}
 };
@@ -49,20 +49,19 @@ void TGlfChromosome::update(const std::string & Name, uint16_t RefId, uint32_t L
 	_setPloidy(Ploidy);
 };
 
-/*
+
 void TGlfChromosome::clear(){
 	_name = "";
 	_refId = 0;
 	_length = 0;
-	isHaploid = false;
+	_isHaploid = false;
 };
-*/
+
 
 //---------------------------------
 //TGlfWriter
 //---------------------------------
 void TGlfWriter::_init(){
-    _glfValues = new genometools::HighPrecisionPhredIntProbability[_curChr.maxNumLikelihoodValues];
     _oldPos = 0;
     _recordType1 = _one8 << 4;
 };
@@ -105,12 +104,11 @@ void TGlfWriter::newChromosome(const BAM::TChromosome & chromosome){
 
 	//write new chromosome: length of label, label, refId, length of ref sequence, ploidy
 	uint32_t labelLength = _curChr.name().size();
-    _write(&labelLength, sizeof(uint32_t));
+    _write(labelLength);
     _write(_curChr.name().c_str(), _curChr.name().length() * sizeof(char));
     _write(_curChr.refId());
     _write(_curChr.length());
-    uint8_t ploidy = _curChr.ploidy();
-    _write(&ploidy, sizeof(uint8_t)); // TODO: I get an "uninitialized variable" error with valgrind. Why?
+    _write(_curChr.ploidy()); // TODO: I get an "uninitialized variable" error with valgrind. Why?
 
 	//set oldPos and curChr
 	_oldPos = 0;
@@ -129,7 +127,6 @@ void TGlfWriter::writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual, Ge
 
 	//calculate likelihoods in GLF format
 	//Note: genotype likelihoods are given for the 10 diploid genotypes!!
-	//TODO: maybe do in GLFChromosomes?
 	if(_curChr.isHaploid()){
 		coretools::Probability maxLik = genotypeLikelihoods[Genotype::AA];
 		if(genotypeLikelihoods[Genotype::CC] > maxLik) maxLik = genotypeLikelihoods[Genotype::CC];
@@ -164,7 +161,7 @@ void TGlfWriter::writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual, Ge
     _write(&RMS_mappingQual, sizeof(uint8_t));
 
 	//genotype likelihoods
-    _write(_glfValues, _curChr.numLikelihoodValues() * sizeof(genometools::HighPrecisionPhredIntProbability));
+    _write(_glfValues.data(), _curChr.numLikelihoodValues() * sizeof(genometools::HighPrecisionPhredIntProbability));
 };
 
 //---------------------------------
@@ -271,7 +268,7 @@ void TGlfReader::_readSNPRecord(){
 	//RMS_mappingQual = (int) tmpInt8; DO WE NEED THIS??
 
 	//genotype likelihoods
-    _read(_genotypeLikelihoodsGLF, _curChr.numLikelihoodValues() * sizeof(genometools::HighPrecisionPhredIntProbability));
+    _read(_genotypeLikelihoodsGLF.data(), _curChr.numLikelihoodValues() * sizeof(genometools::HighPrecisionPhredIntProbability));
 };
 
 void TGlfReader::setFilename(const std::string& Filename){
@@ -424,7 +421,7 @@ bool TGlfReader::readNextWindow(std::vector<GLFLikelihoods> & genoLikelihoods, u
 
 //printing
 void TGlfReader::printChr(){
-	std::cout << "CHROMOSOME: '" << _curChr.name() << "' of length " << _curChr._length << " and ploidy " << (int) _curChr.ploidy() << "\n";
+	std::cout << "CHROMOSOME: '" << _curChr.name() << "' of length " << _curChr.length() << " and ploidy " << (int) _curChr.ploidy() << "\n";
 };
 
 void TGlfReader::printSite(){

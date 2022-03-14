@@ -135,7 +135,7 @@ private:
 	template <typename T> void _write(T var){
         _positionInFile += gzwrite(_gzfp, &var, sizeof(T));
 	};
-	void _write(void * buf, size_t len){
+	void _write(const void * buf, size_t len){
 		 _positionInFile += gzwrite(_gzfp, buf, len);
 	};
 

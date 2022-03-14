@@ -23,7 +23,7 @@ namespace GLF{
 //----------------------------------------------------
 class TMultiGLFDataSample{
 private:
-	genometools::HighPrecisionPhredIntProbability* _genotypeLikelihoodsGLF; //points to data TGlfReader
+	const GLFLikelihoods * _genotypeLikelihoodsGLF; //points to data TGlfReader
 	bool _hasData;
 	bool _isHaploid;
 	uint16_t _depth;
@@ -36,15 +36,15 @@ public:
 		_genotypeLikelihoodsGLF = nullptr;
 	};
 
-	void setDiploid(genometools::HighPrecisionPhredIntProbability* GLs, uint16_t Depth){
-		_genotypeLikelihoodsGLF = GLs;
+	void setDiploid(const GLFLikelihoods & GLs, uint16_t Depth){
+		_genotypeLikelihoodsGLF = &GLs;
 		_hasData = true;
 		_isHaploid = false;
 		_depth = Depth;
 	};
 
-	void setHaploid(genometools::HighPrecisionPhredIntProbability* GLs, uint16_t Depth){
-		_genotypeLikelihoodsGLF = GLs;
+	void setHaploid(const GLFLikelihoods & GLs, uint16_t Depth){
+		_genotypeLikelihoodsGLF = &GLs;
 		_hasData = true;
 		_isHaploid = true;
 		_depth = Depth;
@@ -76,7 +76,7 @@ public:
 		if(_isHaploid){
 			throw std::runtime_error("HighPrecisionPhredIntProbability TMultiGLFDataSample::operator[](const genometools::Genotype & G): sample is haploid!");
 		}
-		return _genotypeLikelihoodsGLF[genometools::index(G)];
+		return (*_genotypeLikelihoodsGLF)[genometools::index(G)];
 	};
 
 	const genometools::HighPrecisionPhredIntProbability operator[](const genometools::Base & B) const{
@@ -86,7 +86,7 @@ public:
 		if(!_isHaploid){
 			throw std::runtime_error("HighPrecisionPhredIntProbability TMultiGLFDataSample::operator[](const genometools::Base & B): sample is diploid!");
 		}
-		return _genotypeLikelihoodsGLF[genometools::index(B)];
+		return (*_genotypeLikelihoodsGLF)[genometools::index(B)];
 	};
 };
 

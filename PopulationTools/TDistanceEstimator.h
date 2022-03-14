@@ -155,7 +155,7 @@ public:
 	double LL;
 	double distance;
 
-	TEMforDistanceEstimation(coretools::TParameters & params);
+	TEMforDistanceEstimation();
 	~TEMforDistanceEstimation(){
 		delete distanceObject;
 	};
