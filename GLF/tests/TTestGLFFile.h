@@ -24,8 +24,8 @@ protected:
     GLF::TGlfWriter _glfFile;
 
     // chromosomes
-    BAM::TChromosomes _chromosomes;
-    std::vector<BAM::TChromosome>::iterator _dummyCurChr;
+    genometools::TChromosomes _chromosomes;
+    std::vector<genometools::TChromosome>::iterator _dummyCurChr;
 
     //tmp vars for dummy sites
     long _dummyPos; long _dummyDist; long _dummyMaxDist;
@@ -40,7 +40,7 @@ protected:
     virtual void _iterateGenotypeLikelihoods(uint32_t curDepth);
 
     //storage of written alignments
-    std::vector<BAM::TGenomePosition> _writtenPositions;
+    std::vector<genometools::TGenomePosition> _writtenPositions;
     std::vector<uint32_t> _writtenDepths;
     std::vector<uint8_t> _writtenRMSMappingQualities;
     std::vector<GenotypeLikelihoods::TGenotypeLikelihoods> _writtenGenotypeLikelihoods;
@@ -65,16 +65,16 @@ public:
 
     //getters
     std::string filename()const { return _filename; };
-    BAM::TChromosomes& chromosomes(){ return _chromosomes; };
-    std::vector<BAM::TChromosome>::iterator curChr(){return _dummyCurChr; };
+    genometools::TChromosomes& chromosomes(){ return _chromosomes; };
+    std::vector<genometools::TChromosome>::iterator curChr(){return _dummyCurChr; };
     std::vector<GenotypeLikelihoods::TGenotypeLikelihoods>::iterator beginGenotypeLikelihoods(){ return _writtenGenotypeLikelihoods.begin(); };
     std::vector<GenotypeLikelihoods::TGenotypeLikelihoods>::iterator endGenotypeLikelihoods(){ return _writtenGenotypeLikelihoods.end(); };
     std::vector<GenotypeLikelihoods::TGenotypeLikelihoods>::iterator beginGenotypeLikelihoodsWithMissingSites(){ return _writtenGenotypeLikelihoodsWithMissingSites.begin(); };
     std::vector<GenotypeLikelihoods::TGenotypeLikelihoods>::iterator endGenotypeLikelihoodsWithMissingSites(){ return _writtenGenotypeLikelihoodsWithMissingSites.end(); };
     GenotypeLikelihoods::TGenotypeLikelihoods genotypeLikelihoodsWithMissingSites(uint32_t index){ return _writtenGenotypeLikelihoodsWithMissingSites[index]; };
-    std::vector<BAM::TGenomePosition>::iterator beginPositions(){ return _writtenPositions.begin(); };
-    std::vector<BAM::TGenomePosition>::iterator endPositions(){ return _writtenPositions.end(); };
-    BAM::TGenomePosition position(uint32_t index){ return _writtenPositions[index]; };
+    std::vector<genometools::TGenomePosition>::iterator beginPositions(){ return _writtenPositions.begin(); };
+    std::vector<genometools::TGenomePosition>::iterator endPositions(){ return _writtenPositions.end(); };
+    genometools::TGenomePosition position(uint32_t index){ return _writtenPositions[index]; };
     std::vector<uint32_t>::iterator beginDepths(){ return _writtenDepths.begin(); };
     std::vector<uint32_t>::iterator endDepths(){ return _writtenDepths.end(); };
     uint32_t depth(uint32_t index){ return _writtenDepths[index]; };

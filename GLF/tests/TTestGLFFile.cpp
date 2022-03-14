@@ -61,7 +61,7 @@ void TTestGLFFile::_iteratePosition() {
     _dummyPos += _dummyDist + 1; // + 1 because % can return 0, but then we would like distance of 1
 
     // next chromosome?
-    if (BAM::TGenomePosition(_dummyCurChr->refID(), _dummyPos) >= _dummyCurChr->chrEnd){
+    if (genometools::TGenomePosition(_dummyCurChr->refID(), _dummyPos) >= _dummyCurChr->chrEnd){
         writeNewChromosome();
     }
 }

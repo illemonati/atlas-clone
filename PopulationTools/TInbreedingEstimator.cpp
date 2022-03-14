@@ -33,6 +33,8 @@ void TInbreedingEstimatorPrior::_registerPriorParameters() {
     _priorParameters.push_back(_F);
     _priorParameters.push_back(_p);
     _priorParameters.push_back(_z);
+
+    this->_flagPriorParameters();
 }
 
 void TInbreedingEstimatorPrior::initializeStorageOfPriorParameters() {
@@ -140,7 +142,7 @@ void TInbreedingEstimatorPrior::_updateFToHWE(const std::shared_ptr<const statto
                  - _calculateLLSumOverIndividuals(Data, l, _p->value(l), _F->oldValue()); // F-Model
     }
 
-    if (_F->acceptOrReject(logH, false)){
+    if (_F->acceptOrReject_DontCountRejection(logH)){
         // accepted model switch -> we're now in null model
         // -> stop adding to posterior mean/var
         _F->doTrackMeanVar(false);
@@ -177,7 +179,7 @@ void TInbreedingEstimatorPrior::_updateHWEToF(const std::shared_ptr<const statto
                  - _calculateLLSumOverIndividuals(Data, l, _p->value(l)); // HWE-Model
     }
 
-    if (_F->acceptOrReject(logH, false)){
+    if (_F->acceptOrReject_DontCountRejection(logH)){
         // accepted model switch -> we're now in F-model
         // -> start adding to posterior mean/var
         _F->doTrackMeanVar(true); // F is in non-zero model -> add to posterior mean/var
@@ -219,7 +221,6 @@ void TInbreedingEstimatorPrior::_setInitialF(){
 void TInbreedingEstimatorPrior::_setInitialP(){
     using namespace coretools::instances;
     logfile().list("Initializing allele frequencies to values estimated from sample genotype likelihoods");
-    logfile().warning("This task is not implemented for multiple populations! Considering all samples to be from one population.");
 
     // now read values into _p
     if (!_p->hasFixedInitialValue()){
