@@ -650,7 +650,7 @@ std::vector<std::string> TGlfMultiReader::sampleNamesOfActiveFiles(){
 
 genometools::Base TGlfMultiReader::refBase(){
 	if(hasReference){
-		return fastaBuffer.refAt(BAM::TGenomePosition(_curRefId, _position));
+		return fastaBuffer.refAt(genometools::TGenomePosition(_curRefId, _position));
 	} else return genometools::Base::N;
 };
 

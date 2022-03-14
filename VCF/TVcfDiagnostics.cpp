@@ -45,7 +45,7 @@ VcfDiagnostics::VcfDiagnostics(TParameters & Params, TLog* Logfile){
 }
 
 //open input stream
-void VcfDiagnostics::openVCF(std::string filename, TVcfFile_base & vcfFile){
+void VcfDiagnostics::openVCF(std::string filename, genometools::TVcfFile_base & vcfFile){
     //open vcf file
     if(filename.find(".gz") == std::string::npos){
         logfile->list("Reading vcf from file '" + filename + "'.");

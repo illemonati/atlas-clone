@@ -115,13 +115,13 @@ private:
 	bool verbose;
 	coretools::TRandomGenerator* randomGenerator;
 	bool randomGeneratorInitialized;
-	TVcfFileSingleLine vcfFile;
+	genometools::TVcfFileSingleLine vcfFile;
 	std::string outname;
 	bool isZipped;
 
 	void initializeRandomGenerator();
 	std::pair<char, char> getGenotypeFromIndex(int index);
-	void openVCF(std::string filename, TVcfFile_base & vcfFile);
+	void openVCF(std::string filename, genometools::TVcfFile_base & vcfFile);
 
 public:
 	int findLastPassedFilterIndex(int obsValue, std::vector<int> & filtersAscendingOrder);

@@ -60,7 +60,7 @@ class TVcfComapreVCF{
 private:
 	int sampleIndex;
 	std::vector<std::string> parsedChromosomes;
-	TVcfFileSingleLine* vcfFile;
+	genometools::TVcfFileSingleLine* vcfFile;
 	bool vcfFileOpen;
 
 	int minDepth;

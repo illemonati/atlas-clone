@@ -92,7 +92,7 @@ void TSimulatorReference::setChr(std::string ChrName, long ChrLength) {
 // TSimulatorBamFile
 //---------------------------------------------------
 void TSimulatorBamFile::open(const std::string &Filename, const std::string &SampleName, BAM::TReadGroups &ReadGroups,
-			     const BAM::TChromosomes &Chromosomes) {
+			     const genometools::TChromosomes &Chromosomes) {
 	logfile().listFlush("Opening BAM file '" + Filename + "' ...");
 
 	if (_outBam.isOpen()) throw "A BAM file is already open for writing!";
@@ -116,7 +116,7 @@ TSimulatorBamFile::~TSimulatorBamFile() { _outBam.closeNoIndex(); }
 void TSimulatorBamFile::close() { _outBam.close(&logfile()); }
 
 TSimulatorBamFiles::TSimulatorBamFiles(uint32_t NumFiles, const std::string & Outname, BAM::TReadGroups & ReadGroups,
-				       const BAM::TChromosomes &Chromosomes) {
+				       const genometools::TChromosomes &Chromosomes) {
 	if (NumFiles < 1) throw "Can not open less than one BAM file!";
 	_files.resize(NumFiles);
 

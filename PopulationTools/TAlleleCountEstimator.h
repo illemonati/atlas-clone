@@ -16,6 +16,8 @@
 
 namespace PopulationTools{
 
+using TSampleLikelihoods = genometools::TSampleLikelihoods<genometools::HighPrecisionPhredIntProbability>;
+
 //-------------------------------------------------
 // TSAFChooseStorage
 //-------------------------------------------------

@@ -249,7 +249,7 @@ double TInbreedingEstimatorPrior::getSumLogPriorDensity(const std::shared_ptr<co
 }
 
 void TInbreedingEstimatorPrior::simulateUnderPrior() {
-    // TODO: ? In here or in Atlas simulator?
+    throw std::runtime_error((std::string) __PRETTY_FUNCTION__ + ": Not implemented. Use Atlas simulator instead.");
 }
 
 //------------------------------------------

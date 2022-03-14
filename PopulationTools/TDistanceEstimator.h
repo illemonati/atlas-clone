@@ -61,7 +61,7 @@ inline std::string toString(DistancePhi dp) {
 //-------------------------------------
 // TDistanceData
 //-------------------------------------
-	class TDistanceData : public GenotypeLikelihoods::TData_base<double, DistancePhi, genometools::index(DistancePhi::max)>{
+class TDistanceData : public GenotypeLikelihoods::TData_base<double, DistancePhi, genometools::index(DistancePhi::max)>{
 private:
 	using GenotypeLikelihoods::TData_base<double, DistancePhi, genometools::index(DistancePhi::max)>::_data;
 

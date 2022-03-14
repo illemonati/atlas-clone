@@ -110,7 +110,7 @@ void TGlfWriter::open(const std::string& Filename, const std::string& Header){
     _writeHeader();
 };
 
-void TGlfWriter::newChromosome(const BAM::TChromosome & chromosome){
+void TGlfWriter::newChromosome(const genometools::TChromosome & chromosome){
     _write(&_zero8, sizeof(uint8_t));
 
 	//save cur info

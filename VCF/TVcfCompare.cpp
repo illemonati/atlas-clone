@@ -132,10 +132,10 @@ TVcfComapreVCF::TVcfComapreVCF(std::string & filename, std::string & sampleName,
 	//open vcf file
 	if(filename.find(".gz") == std::string::npos){
 		logfile->list("Reading sample '" + sampleName + "' from VCF file '" + filename + "'.");
-		vcfFile = new TVcfFileSingleLine(filename, false);
+		vcfFile = new genometools::TVcfFileSingleLine(filename, false);
 	} else {
 		logfile->list("Reading sample '" + sampleName + "' from gzipped VCF file '" + filename + "'.");
-		vcfFile = new TVcfFileSingleLine(filename, true);
+		vcfFile = new genometools::TVcfFileSingleLine(filename, true);
 	}
 	vcfFileOpen = true;
 

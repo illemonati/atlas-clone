@@ -158,7 +158,7 @@ public:
 	//open & close streams
 	void open(const std::string& Filename);
 	void open(const std::string& Filename, const std::string& Header);
-	void newChromosome(const BAM::TChromosome & chromosome);
+	void newChromosome(const genometools::TChromosome & chromosome);
 	void writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual, GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods);
 };
 

@@ -364,7 +364,7 @@ void TAlleleCountEstimator::estimateAlleleCounts(coretools::TParameters & params
 
 	// initialize variables for vcf-file
 	struct timeval start; gettimeofday(&start, NULL);
-	genometools::TPopulationLikehoodLocus<genometools::HighPrecisionPhredIntProbability> data(samples.numSamples());
+	genometools::TPopulationLikehoodLocus<TSampleLikelihoods> data(samples.numSamples());
 
 	//run through VCF file
 	logfile->startIndent("Parsing VCF file and estimating allele counts:");
@@ -445,7 +445,7 @@ void TAlleleCountEstimator::writeAlleleFrequencyLikelihoods(coretools::TParamete
 
 	// initialize variables for vcf-file
 	struct timeval start; gettimeofday(&start, NULL);
-	genometools::TPopulationLikehoodLocus<genometools::HighPrecisionPhredIntProbability> data(samples.numSamples());
+	genometools::TPopulationLikehoodLocus<TSampleLikelihoods> data(samples.numSamples());
 
 	//run through VCF file
 	logfile->startIndent("Parsing VCF file and estimating allele counts:");

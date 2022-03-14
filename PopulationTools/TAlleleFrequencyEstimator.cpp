@@ -625,7 +625,7 @@ void TAlleleFreqEstimator::estimateAlleleFreq(TParameters & Parameters, TRandomG
 
  		//write estimates based on genoFrequencies (if only 1 pop, use the one of reader)
  		if(samples.numPopulations() == 1){
- 			_writeEstimatesOnePop(out, *(reader.genotypeFrequencies()), reader.allelFrequency(), storage.samples(), samples.numSamples(), MLHWEstimator, BHWEstimator, epsF, writeGenoFreq, doBayesian);
+ 			_writeEstimatesOnePop(out, *(reader.genotypeFrequencies()), reader.alleleFrequency(), storage.samples(), samples.numSamples(), MLHWEstimator, BHWEstimator, epsF, writeGenoFreq, doBayesian);
  		} else {
  			genometools::TGenotypeFrequencies genoFrequencies;
  	 		for(size_t p=0; p<samples.numPopulations(); p++){

@@ -109,7 +109,7 @@ public:
 class TInbreedingEstimator {
 private:
     std::shared_ptr<stattools::TDAGBuilder> _dagBuilder;
-    genometools::TPopulationLikelihoods<PhredType> _likelihoods;
+    genometools::TPopulationLikelihoods<stattools::TValueFixed<TypeGTL>> _likelihoods;
 
     // filenames
     std::string _prefix;

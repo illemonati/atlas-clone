@@ -16,6 +16,8 @@
 #include "TPopulationLikelihoods.h"
 #include "TTask.h"
 
+using TSampleLikelihoods = genometools::TSampleLikelihoods<genometools::HighPrecisionPhredIntProbability>;
+
 namespace PopulationTools{
 
 //------------------------------------------------
@@ -118,7 +120,7 @@ private:
 	// data on individuals
     genometools::TPopulationLikelihoodReaderLocus reader;
     genometools::TPopulationSamples samples;
-    genometools::TPopulationLikehoodLocus<genometools::HighPrecisionPhredIntProbability> storage;
+    genometools::TPopulationLikehoodLocus<TSampleLikelihoods> storage;
 
 	void _openVCF(coretools::TParameters & Parameters);
 	void _closeVCF();

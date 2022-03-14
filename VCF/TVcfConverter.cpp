@@ -52,7 +52,7 @@ void TVcfConverter::readVcfAndWriteFile(TParameters & Params){
     _writeHeader();
 
     // initialize variables for vcf-file
-    PopulationTools::TPopulationLikehoodLocus data(_samples.numSamples());
+    genometools::TPopulationLikehoodLocus<PhredType> data(_samples.numSamples());
 
     // run through VCF file
     _logfile->list("Parsing VCF file...");
@@ -98,7 +98,7 @@ void TVcfToBeagle::_writeRefAndAlt(){
     _beagleFile << _reader.refAllele() << _reader.altAllele();
 };
 
-void TVcfToBeagle::_writeData(PopulationTools::TPopulationLikehoodLocus & data){
+void TVcfToBeagle::_writeData(genometools::TPopulationLikehoodLocus<PhredType> & data){
 	using coretools::Probability;
 	using BG = genometools::BiallelicGenotype;
     _writePosition();
@@ -153,7 +153,7 @@ void TVcfToGeno::_writePosition(){
     _lociNamesFile << _reader.chr() + ":" + coretools::str::toString(_reader.position());
 };
 
-void TVcfToGeno::_writeData(PopulationTools::TPopulationLikehoodLocus & data){
+void TVcfToGeno::_writeData(genometools::TPopulationLikehoodLocus<PhredType> & data){
     _writePosition();
 
     //write line
@@ -229,7 +229,7 @@ TVcfToLFMMCalledGeno::~TVcfToLFMMCalledGeno(){
         delete [] *it;
 };
 
-void TVcfToLFMMCalledGeno::_writeData(PopulationTools::TPopulationLikehoodLocus &){
+void TVcfToLFMMCalledGeno::_writeData(genometools::TPopulationLikehoodLocus<PhredType> &){
     // LFMM has individuals as rows and loci as columns -> we need to store these values first and then write
     storeCalledGenotypes();
     _storeLocusNames();
@@ -280,13 +280,13 @@ void TVcfToLFMMPostGeno::vcfToLFMM(TParameters & Params){
     _closeOutputFiles();
 };
 
-void TVcfToLFMMPostGeno::_writeData(PopulationTools::TPopulationLikehoodLocus & data){
+void TVcfToLFMMPostGeno::_writeData(genometools::TPopulationLikehoodLocus<PhredType> & data){
     // LFMM has individuals as rows and loci as columns -> we need to store these values first and then write
     _storePosteriorGenotypes(data);
     _storeLocusNames();
 };
 
-void TVcfToLFMMPostGeno::_storePosteriorGenotypes(PopulationTools::TPopulationLikehoodLocus & data){
+void TVcfToLFMMPostGeno::_storePosteriorGenotypes(genometools::TPopulationLikehoodLocus<PhredType> & data){
     auto * meanPostGenoForOneLocus = new double[_samples.numSamples()];
     for (size_t i = 0; i < _samples.numSamples(); i++){
         meanPostGenoForOneLocus[i] = _computePosteriorGenotype(data, i);
@@ -294,7 +294,7 @@ void TVcfToLFMMPostGeno::_storePosteriorGenotypes(PopulationTools::TPopulationLi
     _genotypes.emplace_back(meanPostGenoForOneLocus);
 };
 
-double TVcfToLFMMPostGeno::_computePosteriorGenotype(PopulationTools::TPopulationLikehoodLocus & data, uint32_t i){
+double TVcfToLFMMPostGeno::_computePosteriorGenotype(genometools::TPopulationLikehoodLocus<PhredType> & data, uint32_t i){
     if(data[i].isMissing()) {
         throw "Missing data at sample " + _samples.sampleName(i) + " and locus " + _reader.chr() + ":" + coretools::str::toString(_reader.position()) + "! LFMM2 does not accept missing genotypes, please impute your VCF file first.";
     }
@@ -331,7 +331,7 @@ void TVcfToPosFile::_writeRefAndAlt(){
     _posFile << _reader.refAllele() << _reader.altAllele();
 };
 
-void TVcfToPosFile::_writeData(PopulationTools::TPopulationLikehoodLocus &){
+void TVcfToPosFile::_writeData(genometools::TPopulationLikehoodLocus<PhredType> &){
     _writePosition();
     _writeRefAndAlt();
     _posFile.endLine();
@@ -388,9 +388,9 @@ void TVcfToGenotypeTruthSetFile::_writeHeader(){
 void TVcfToGenotypeTruthSetFile::_initOutputFiles() {
     _genFile.open(_outname + ".gen");
     // initialize bed files (we know how many samples there are)
-    _bedFiles = new BAM::TBed * [_samples.numSamples()];
+    _bedFiles = new genometools::TBed * [_samples.numSamples()];
     for (size_t s = 0; s < _samples.numSamples(); s++) {
-        _bedFiles[s] = new BAM::TBed;
+        _bedFiles[s] = new genometools::TBed;
     };
 
     // check if minNumSamplesWithData-Filter of TPopulationLikelihoods is zero
@@ -430,7 +430,7 @@ void TVcfToGenotypeTruthSetFile::_filterIndividualsWithHighestDepth(std::vector<
     }
 };
 
-void TVcfToGenotypeTruthSetFile::_filterIndividuals(PopulationTools::TPopulationLikehoodLocus & data){
+void TVcfToGenotypeTruthSetFile::_filterIndividuals(genometools::TPopulationLikehoodLocus<PhredType> & data){
     std::vector<uint32_t> samplesToKeep;
     long distanceToPreviousLocus = _reader.position() - _positionPreviousLocus;
     if (distanceToPreviousLocus >= _minDistanceToPreviousLocus) { // check if distance is big enough
@@ -484,7 +484,7 @@ void TVcfToGenotypeTruthSetFile::_storeInBedFile(const std::vector<uint32_t> & s
     _positionPreviousLocus = _reader.position();
 };
 
-void TVcfToGenotypeTruthSetFile::_writeData(PopulationTools::TPopulationLikehoodLocus & data){
+void TVcfToGenotypeTruthSetFile::_writeData(genometools::TPopulationLikehoodLocus<PhredType> & data){
     if (_curChr != _reader.chr()){ // new chromosome
         _curChr = _reader.chr();
         _resetDistance();
@@ -531,7 +531,7 @@ TVcfToVcf::TVcfToVcf(TLog *Logfile) : TVcfConverter(Logfile){
 	_reader.setOutStream(out);
 };
 
-void TVcfToVcf::_writeData(PopulationTools::TPopulationLikehoodLocus &){
+void TVcfToVcf::_writeData(genometools::TPopulationLikehoodLocus<PhredType> &){
 	_reader.writeVCFLine();
 };
 
