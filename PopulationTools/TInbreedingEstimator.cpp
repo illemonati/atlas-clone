@@ -125,8 +125,6 @@ double TInbreedingEstimatorPrior::_getRandomNewF() const{
     return randomGenerator().getExponentialRandomTruncated(_lambdaNewF, 0.0, 1.0);
 }
 
-// TODO: Limit analysis to a single population?
-
 void TInbreedingEstimatorPrior::_updateFToHWE(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> & Data) {
     // propose model switch: from F-Model to HWE-Model
     _F->set(0.0);

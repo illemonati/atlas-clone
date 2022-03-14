@@ -51,7 +51,8 @@ void TPolymorhicWindowIdentifier::identifyPolymorphicWindows(TParameters & Param
 	out.writeHeader(header);
 
 	//create likelihood window
-    genometools::TPopulationLikehoodWindow<genometools::HighPrecisionPhredIntProbability> window(0, samples.numSamples());
+    using TSampleLikelihoods = genometools::TSampleLikelihoods<genometools::HighPrecisionPhredIntProbability>;
+    genometools::TPopulationLikehoodWindow<TSampleLikelihoods> window(0, samples.numSamples());
 
     //run through VCF file
     logfile->startIndent("Parsing VCF file:");

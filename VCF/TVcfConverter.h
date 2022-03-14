@@ -17,7 +17,7 @@
 
 namespace VCF{
 
-using PhredType = genometools::HighPrecisionPhredIntProbability;
+using TSampleLikelihoods = genometools::TSampleLikelihoods<genometools::HighPrecisionPhredIntProbability>;
 
 //------------------------------------------
 // TVcfConverter
@@ -31,7 +31,7 @@ protected:
 
     virtual void _initOutputFiles() = 0;
     virtual void _writeHeader();
-    virtual void _writeData(genometools::TPopulationLikehoodLocus<PhredType> & data) = 0;
+    virtual void _writeData(genometools::TPopulationLikehoodLocus<TSampleLikelihoods> & data) = 0;
 	void _readOutputName(coretools::TParameters & Params, const std::string & VCFFilename);
 
 public:
@@ -50,7 +50,7 @@ private:
 
     // beagle
     void _writeHeader() override;
-    void _writeData(genometools::TPopulationLikehoodLocus<PhredType> & data) override;
+    void _writeData(genometools::TPopulationLikehoodLocus<TSampleLikelihoods> & data) override;
     void _initOutputFiles() override;
 
     void _writeRefAndAlt();
@@ -72,7 +72,7 @@ private:
     coretools::TOutputFile _lociNamesFile;
 
     // geno
-    void _writeData(genometools::TPopulationLikehoodLocus<PhredType> & data) override;
+    void _writeData(genometools::TPopulationLikehoodLocus<TSampleLikelihoods> & data) override;
     void _initOutputFiles() override;
     void _closeOutputFiles();
     void _writePosition();
@@ -121,7 +121,7 @@ public:
 //------------------------------------------
 class TVcfToLFMMCalledGeno : public TVcfToLFMM {
 private:
-    void _writeData(genometools::TPopulationLikehoodLocus<PhredType> & data) override ;
+    void _writeData(genometools::TPopulationLikehoodLocus<TSampleLikelihoods> & data) override ;
     void storeCalledGenotypes();
     std::vector<uint8_t *> _genotypes;
 
@@ -136,9 +136,9 @@ public:
 //------------------------------------------
 class TVcfToLFMMPostGeno : public TVcfToLFMM {
 private:
-    void _writeData(genometools::TPopulationLikehoodLocus<PhredType> & data) override ;
-    void _storePosteriorGenotypes(genometools::TPopulationLikehoodLocus<PhredType> & data);
-    double _computePosteriorGenotype(genometools::TPopulationLikehoodLocus<PhredType> & data, uint32_t i);
+    void _writeData(genometools::TPopulationLikehoodLocus<TSampleLikelihoods> & data) override ;
+    void _storePosteriorGenotypes(genometools::TPopulationLikehoodLocus<TSampleLikelihoods> & data);
+    double _computePosteriorGenotype(genometools::TPopulationLikehoodLocus<TSampleLikelihoods> & data, uint32_t i);
     std::vector<double *> _genotypes;
 
 public:
@@ -156,7 +156,7 @@ private:
     // beagle
     void _writeHeader() override;
     void _writeRefAndAlt();
-    void _writeData(genometools::TPopulationLikehoodLocus<PhredType> & data) override;
+    void _writeData(genometools::TPopulationLikehoodLocus<TSampleLikelihoods> & data) override;
     void _writePosition();
     void _initOutputFiles() override;
 
@@ -180,8 +180,8 @@ private:
     std::string _curChr;
 
     void _writeHeader() override;
-    void _writeData(genometools::TPopulationLikehoodLocus<PhredType> & data) override;
-    void _filterIndividuals(genometools::TPopulationLikehoodLocus<PhredType> & data);
+    void _writeData(genometools::TPopulationLikehoodLocus<TSampleLikelihoods> & data) override;
+    void _filterIndividuals(genometools::TPopulationLikehoodLocus<TSampleLikelihoods> & data);
     void _mapIndividualsToDepth(std::vector<uint32_t> & samplesToKeep);
     void _filterIndividualsWithHighestDepth(std::vector<uint32_t> & samplesToKeep, const std::map< double, std::vector<uint32_t>, std::greater<> > & depthVsSampleIndexMap);
     void _writeToGenFile(const std::vector<uint32_t> & samplesToKeep);
@@ -202,7 +202,7 @@ public:
 class TVcfToVcf: public TVcfConverter {
 private:
 	void _writeHeader() override;
-	void _writeData(genometools::TPopulationLikehoodLocus<PhredType> & data) override;
+	void _writeData(genometools::TPopulationLikehoodLocus<TSampleLikelihoods> & data) override;
 
 public:
 	TVcfToVcf(coretools::TLog *Logfile);
