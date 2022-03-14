@@ -123,9 +123,11 @@ public:
 //--------------------------------------------
 //TDistanceEstimate
 //--------------------------------------------
+
+typedef std::vector<GLF::GLFLikelihoods> GenotypeQualityVector;
+
 class TEMforDistanceEstimation{
 private:
-	coretools::TLog* logfile;
 	TGenocombinationToBaseMap genoToBaseMap;
 
 	//settings
@@ -136,15 +138,14 @@ private:
 	double old_LL;
 	TDistanceData K; //normalizing constant
 
-	double** probGeno;
-	double** P_G;
-	double** P_G_one_site;
-//	double* distanceWeight; //weight for each phi class towards the distance.
+	std::array< std::array<double, 10>, 10 > probGeno;
+	std::array< std::array<double, 10>, 10 > P_G;
+	std::array< std::array<double, 10>, 10 > P_G_one_site;
+
 	TDistance* distanceObject;
 
-//	void calculateDistance();
-	void guessPi(std::vector<genometools::HighPrecisionPhredIntProbability*> & genoQual1, std::vector<genometools::HighPrecisionPhredIntProbability*> & genoQual2);
-	void guessPhi(std::vector<genometools::HighPrecisionPhredIntProbability*> & genoQual1, std::vector<genometools::HighPrecisionPhredIntProbability*> & genoQual2);
+	void guessPi(GenotypeQualityVector & genoQual1, GenotypeQualityVector & genoQual2);
+	void guessPhi(GenotypeQualityVector & genoQual1, GenotypeQualityVector & genoQual2);
 	void fill_K(GenotypeLikelihoods::TBaseData  & thesePi);
 	void fill_P_g_given_phi_pi(const TDistanceData & phi, GenotypeLikelihoods::TBaseData & pi);
 
@@ -154,21 +155,12 @@ public:
 	double LL;
 	double distance;
 
-	TEMforDistanceEstimation(coretools::TLog* Logfile, coretools::TParameters & params);
+	TEMforDistanceEstimation(coretools::TParameters & params);
 	~TEMforDistanceEstimation(){
-		for(int g1=0; g1<10; ++g1){
-			delete[] probGeno[g1];
-			delete[] P_G[g1];
-			delete[] P_G_one_site[g1];
-		}
-		delete[] probGeno;
-		delete[] P_G;
-		delete[] P_G_one_site;
 		delete distanceObject;
-//		delete[] distanceWeight;
 	};
 
-	bool estimatePhiWithEM(std::vector<genometools::HighPrecisionPhredIntProbability*> & genoQual1, std::vector<genometools::HighPrecisionPhredIntProbability*> & genoQual2);
+	bool estimatePhiWithEM(GenotypeQualityVector & genoQual1, GenotypeQualityVector & genoQual2);
 };
 
 //--------------------------------------------
@@ -176,7 +168,6 @@ public:
 //--------------------------------------------
 class TDistanceEstimator{
 private:
-	coretools::TLog* logfile;
 	int maxNumEMIterations;
 	double epsilonForEM;
 	std::string outputName;
@@ -187,14 +178,14 @@ private:
 	GLF::TGlfReader* glfs;
 	bool readersOpened;
 
-	void openGLF(coretools::TParameters & params);
+	void openGLF();
 	void closeGLF();
 
 
 	void estimateDistanceGenomeWide(TEMforDistanceEstimation & EM_object);
 	bool moveToNextCommonChr(GLF::TGlfReader & g1, GLF::TGlfReader & g2);
 	bool advance(GLF::TGlfReader & g1, GLF::TGlfReader & g2);
-	void readCommonSites(std::vector<genometools::HighPrecisionPhredIntProbability*> & genoQual1, std::vector<genometools::HighPrecisionPhredIntProbability*> & genoQual2, GLF::TGlfReader & g1, GLF::TGlfReader & g2);
+	void readCommonSites(GenotypeQualityVector & genoQual1, GenotypeQualityVector & genoQual2, GLF::TGlfReader & g1, GLF::TGlfReader & g2);
 	void estimateDistanceGenomeWide(TEMforDistanceEstimation & EM_object, GLF::TGlfReader & g1, GLF::TGlfReader & g2, gz::ogzstream & out);
 
 	void estimateDistanceInWindows(TEMforDistanceEstimation & EM_object, uint32_t windowLen);
@@ -206,13 +197,13 @@ private:
 	void writeDistanceEstimatesNoData(gz::ogzstream & out);
 
 public:
-	TDistanceEstimator(coretools::TLog* Logfile, coretools::TParameters & params);
+	TDistanceEstimator();
 	~TDistanceEstimator(){
 		closeGLF();
 	};
 
-	void printGLF(coretools::TParameters & params);
-	void estimateDistances(coretools::TParameters & params);
+	void printGLF();
+	void estimateDistances();
 };
 
 //--------------------------------------
@@ -224,8 +215,8 @@ public:
 
 	void run(){
 		using namespace coretools::instances;
-		TDistanceEstimator distEst(&logfile(), parameters());
-		distEst.estimateDistances(parameters());
+		TDistanceEstimator distEst;
+		distEst.estimateDistances();
 	};
 };
 

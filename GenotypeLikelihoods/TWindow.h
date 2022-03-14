@@ -42,7 +42,6 @@ protected:
 
 	bool _passedFilters;
 
-	//TODO: make as much as possible private
 public:
 	//unsigned int startPos;
 	//unsigned int endPos; //end NOT included in window!

@@ -454,10 +454,10 @@ void TGlfMultiReader::_updateChromosomeInfo(){
 	int i=0;
 	for(TGlfReader* it : pointerToActiveGLFs){
 		if(it->fillPointerToChr(_curRefId, chr)){
-			if(chr->name != _curChr.name)
-				throw "Chrosomome names differ between files '" + pointerToActiveGLFs[0]->name() + "' and '" + it->name() + "': '" + _curChr.name + "' != '" + chr->name + "'!";
-			if(chr->length != _curChr.length)
-				throw "Chrosomome lengths differ between files '" + pointerToActiveGLFs[0]->name() + "' and '" + it->name() + "': '" + toString(_curChr.length) + "' != '" + toString(chr->length) + "'!";
+			if(chr->_name != _curChr._name)
+				throw "Chrosomome names differ between files '" + pointerToActiveGLFs[0]->name() + "' and '" + it->name() + "': '" + _curChr._name + "' != '" + chr->_name + "'!";
+			if(chr->_length != _curChr._length)
+				throw "Chrosomome lengths differ between files '" + pointerToActiveGLFs[0]->name() + "' and '" + it->name() + "': '" + toString(_curChr._length) + "' != '" + toString(chr->_length) + "'!";
 		} else {
 			throw "Chromosome with refId " + toString(_curRefId) + " not present in any GLF file provided! Limit to only sites with data?";
 		}
@@ -547,7 +547,7 @@ bool TGlfMultiReader::moveToNextChromosome(){
 
 bool TGlfMultiReader::readNext(){
 	//advance to next position
-	if(_nextPosition > _curChr.length){
+	if(_nextPosition > _curChr._length){
 		if(!moveToNextChromosome()) return false;
 	}
 
@@ -562,9 +562,9 @@ bool TGlfMultiReader::readNext(){
 
 		if(!it->eof() && it->position() == _nextPosition && it->refId() == _curRefId){
 			if(it->chrIsHaploid()){
-				data[i].setHaploid(it->pointerToGenotypeLikelihoodsGLF(), it->depth());
+				data[i].setHaploid(it->genotypeLikelihoodsGLF(), it->depth());
 			} else {
-				data[i].setDiploid(it->pointerToGenotypeLikelihoodsGLF(), it->depth());
+				data[i].setDiploid(it->genotypeLikelihoodsGLF(), it->depth());
 			}
 			++_numActiveFilesWithData;
 		} else {
@@ -598,7 +598,7 @@ bool TGlfMultiReader::readNext(){
 };
 
 void TGlfMultiReader::print(){
-	std::cout << std::endl << "Multi Reader at position " << _position << " on chromosome '" << _curChr.name << std::endl;
+	std::cout << std::endl << "Multi Reader at position " << _position << " on chromosome '" << _curChr._name << std::endl;
 	for(size_t i=0; i<numActiveFiles; ++i){
 		std::cout << "File " << i << ":";
 		if(data[i].isHaploid()){

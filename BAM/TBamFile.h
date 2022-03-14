@@ -119,6 +119,7 @@ public:
 	void writeToBamLog(const std::string & alignmentName, const bool & isReverseStrand, const std::string & reason);
 
 	//get filter status
+	/*
  	bool duplicateFilterEnabled() const{ return _duplicateFilter.filters(); };
  	bool softClippedFilterEnabled() const{ return _softClippedFilter.filters(); };
  	bool improperPairsFilterEnabled() const{ return _improperPairsFilter.filters(); };
@@ -136,6 +137,7 @@ public:
  	bool mappingQualityFilterEnabled() const{ return _mappingQualityFilter.filters(); };
  	bool fragmentLengthfilterEnabled() const{ return _fragmentLengthFilter.filters(); };
  	bool externalFilterEnabled() const{ return _externalFilter.filters(); };
+*/
 
 	//reading
 	void open(const std::string Filename, const bool IndexNotRequired, coretools::TLog* Logfile);
@@ -195,7 +197,6 @@ public:
 	uint16_t numReadGroups() const{ return _readGroups.size(); };
 
 	//progress reporting
-	//TODO: use progress tools from coretools
 	void printSummaryNoEndIndent();
 	void printSummary();
 	void startProgressReporting(uint32_t Frequency=1000000);

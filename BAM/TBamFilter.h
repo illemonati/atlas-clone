@@ -134,7 +134,6 @@ public:
 
 	void set(coretools::TParameters & params, coretools::TLog* logfile);
 
-	//TODO: check if we filter on TSequencedBase, and if yes, on which error rate (original or recal)
 	bool pass(const TSequencedBase & base) const override{
 		return _range.within(base.recalibratedQualityAsPhredInt);
 	};

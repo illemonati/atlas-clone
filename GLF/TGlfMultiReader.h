@@ -295,7 +295,7 @@ public:
 	uint32_t numSamples(){ return numGLFs; };
 	uint32_t numActiveSamples(){ return numActiveFiles; };
 	uint32_t numActiveSamplesWithData(){ return _numActiveFilesWithData; };
-	std::string chr(){return _curChr.name; };
+	std::string chr(){return _curChr.name(); };
 	uint32_t position(){return _position; };
 	genometools::Base refBase();
 };

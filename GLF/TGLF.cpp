@@ -16,24 +16,18 @@ using namespace GenotypeLikelihoods;
 //TGlfChromosome
 //----------------------------------------------------
 TGlfChromosome::TGlfChromosome(){
-	refId = 0;
-	length = 0;
-	isHaploid = false;
-	numLikelihoodValues = 10;
-	maxNumLikelihoodValues = 10;
-	name = "";
+	_refId = 0;
+	_length = 0;
+	_isHaploid = false;
+	_numLikelihoodValues = 10;
+	_name = "";
 };
 
 TGlfChromosome::TGlfChromosome(const std::string & Name, uint32_t Length, const uint8_t & Ploidy){
-	name = Name;
-	length = Length;
-	refId = 0;
-	maxNumLikelihoodValues = 10;
+	_name = Name;
+	_length = Length;
+	_refId = 0;
 	_setPloidy(Ploidy);
-};
-
-TGlfChromosome::TGlfChromosome(const TGlfChromosome & other){
-	update(other);
 };
 
 void TGlfChromosome::_setPloidy(const uint8_t & Ploidy){
@@ -41,35 +35,28 @@ void TGlfChromosome::_setPloidy(const uint8_t & Ploidy){
 		throw "Currently GLFs only support ploidies 1 and 2 (not " + coretools::str::toString((int) Ploidy) + ")!";
 	if(Ploidy == 1){
 		isHaploid = true;
-		numLikelihoodValues = 4;
+		_numLikelihoodValues = 4;
 	} else {
 		isHaploid = false;
-		numLikelihoodValues = 10;
+		_numLikelihoodValues = 10;
 	}
 };
 
 void TGlfChromosome::update(const std::string & Name, uint16_t RefId, uint32_t Length, const uint8_t & Ploidy){
-	name = Name;
-	refId = RefId;
-	length = Length;
+	_name = Name;
+	_refId = RefId;
+	_length = Length;
 	_setPloidy(Ploidy);
 };
 
-void TGlfChromosome::update(const TGlfChromosome & other){
-	name = other.name;
-	refId = other.refId;
-	length = other.length;
-	isHaploid = other.isHaploid;
-	numLikelihoodValues = other.numLikelihoodValues;
-	maxNumLikelihoodValues = other.maxNumLikelihoodValues;
-};
-
+/*
 void TGlfChromosome::clear(){
-	name = "";
-	refId = 0;
-	length = 0;
+	_name = "";
+	_refId = 0;
+	_length = 0;
 	isHaploid = false;
 };
+*/
 
 //---------------------------------
 //TGlfWriter
@@ -117,12 +104,12 @@ void TGlfWriter::newChromosome(const BAM::TChromosome & chromosome){
 	_curChr.update(chromosome.name, chromosome.refID(), chromosome.length, chromosome.ploidy);
 
 	//write new chromosome: length of label, label, refId, length of ref sequence, ploidy
-	uint32_t labelLength = _curChr.name.size();
+	uint32_t labelLength = _curChr.name().size();
     _write(&labelLength, sizeof(uint32_t));
-    _write(_curChr.name.c_str(), _curChr.name.length() * sizeof(char));
-    _write(&_curChr.refId, sizeof(uint32_t));
-    _write(&_curChr.length, sizeof(uint32_t));
-    uint8_t ploidy = 2 - _curChr.isHaploid;
+    _write(_curChr.name().c_str(), _curChr.name().length() * sizeof(char));
+    _write(_curChr.refId());
+    _write(_curChr.length());
+    uint8_t ploidy = _curChr.ploidy();
     _write(&ploidy, sizeof(uint8_t)); // TODO: I get an "uninitialized variable" error with valgrind. Why?
 
 	//set oldPos and curChr
@@ -143,7 +130,7 @@ void TGlfWriter::writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual, Ge
 	//calculate likelihoods in GLF format
 	//Note: genotype likelihoods are given for the 10 diploid genotypes!!
 	//TODO: maybe do in GLFChromosomes?
-	if(_curChr.isHaploid){
+	if(_curChr.isHaploid()){
 		coretools::Probability maxLik = genotypeLikelihoods[Genotype::AA];
 		if(genotypeLikelihoods[Genotype::CC] > maxLik) maxLik = genotypeLikelihoods[Genotype::CC];
 		if(genotypeLikelihoods[Genotype::GG] > maxLik) maxLik = genotypeLikelihoods[Genotype::GG];
@@ -158,7 +145,7 @@ void TGlfWriter::writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual, Ge
 		//ploidy is 2
 		coretools::Probability maxLik = genotypeLikelihoods.max();
 
-		//normalize and scale to uint16
+		//normalize and scale to genometools::HighPrecisionPhredIntProbability
 		for(auto g = Genotype::min; g < Genotype::max; ++g){
 			_glfValues[genometools::index(g)] = genotypeLikelihoods[g] / maxLik;
 		}
@@ -177,7 +164,7 @@ void TGlfWriter::writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual, Ge
     _write(&RMS_mappingQual, sizeof(uint8_t));
 
 	//genotype likelihoods
-    _write(_glfValues, _curChr.numLikelihoodValues * sizeof(uint16_t));
+    _write(_glfValues, _curChr.numLikelihoodValues() * sizeof(genometools::HighPrecisionPhredIntProbability));
 };
 
 //---------------------------------
@@ -197,13 +184,13 @@ void TGlfReader::_init(){
 	_lenRead = 0;
 	_eof = true;
 
-	_genotypeLikelihoodsGLF_missingData = new genometools::HighPrecisionPhredIntProbability[_curChr.maxNumLikelihoodValues];
-	for(int i=0; i < _curChr.maxNumLikelihoodValues; ++i)
-		_genotypeLikelihoodsGLF_missingData[i] = 0;
+	for(int i=0; i < 10; ++i){
+		_genotypeLikelihoodsGLF_missingData[i] = genometools::HighPrecisionPhredIntProbability::highest();
+	}
 };
 
 TGlfChromosome* TGlfReader::pointerToChr(uint32_t refId){
-	if(_curChr.refId == refId){
+	if(_curChr.refId() == refId){
 		return &_curChr;
 	} else {
 		auto it = _chromosomesAlreadyParsed.find(refId);
@@ -223,8 +210,8 @@ bool TGlfReader::fillPointerToChr(uint32_t refId, TGlfChromosome* & chr){
 
 bool TGlfReader::_readChr(){
 	//store current chromosome name in list of chromosomes parsed
-	if(!_curChr.name.empty())
-		_chromosomesAlreadyParsed.emplace(_curChr.refId, _curChr);
+	if(!_curChr.name().empty())
+		_chromosomesAlreadyParsed.emplace(_curChr.refId(), _curChr);
 
 	//read chromosome info
 	//name
@@ -284,7 +271,7 @@ void TGlfReader::_readSNPRecord(){
 	//RMS_mappingQual = (int) tmpInt8; DO WE NEED THIS??
 
 	//genotype likelihoods
-    _read(_genotypeLikelihoodsGLF, _curChr.numLikelihoodValues * sizeof(uint16_t));
+    _read(_genotypeLikelihoodsGLF, _curChr.numLikelihoodValues() * sizeof(genometools::HighPrecisionPhredIntProbability));
 };
 
 void TGlfReader::setFilename(const std::string& Filename){
@@ -374,11 +361,11 @@ bool TGlfReader::jumpToNextChr(){
 	return readNext();
 };
 
-bool TGlfReader::readNextWindow(std::vector<genometools::HighPrecisionPhredIntProbability*> & genoLikelihoods, uint32_t refId, uint32_t start, uint32_t end){
+bool TGlfReader::readNextWindow(std::vector<GLFLikelihoods> & genoLikelihoods, uint32_t refId, uint32_t start, uint32_t end){
 	if(_eof) return false;
 
 	//move to correct chromosome
-	while(_curChr.refId < refId){
+	while(_curChr.refId() < refId){
         if (!jumpToNextChr())
             return false; // chromosome id doesn't exist (reached eof)
     }
@@ -386,7 +373,7 @@ bool TGlfReader::readNextWindow(std::vector<genometools::HighPrecisionPhredIntPr
 	//jump to first position in window
     // if there is a position 0 on the first chromosome parsed and windows starts right there
     // -> we will not have read anything -> do this now
-	while(_recordType == 0 || (_position < start && _curChr.refId == refId)){
+	while(_recordType == 0 || (_position < start && _curChr.refId() == refId)){
 		if (!readNext())
             return false;
     }
@@ -399,61 +386,52 @@ bool TGlfReader::readNextWindow(std::vector<genometools::HighPrecisionPhredIntPr
 	uint32_t i = start;
 	int index = 0;
 
+	//ensure size of container
+	genoLikelihoods.resize(end - start + 1);
+
     //Assumes that windows are read in order: no jumping back!
-    if(refId < _curChr.refId){
+    if(refId < _curChr.refId()){
         return false;
     }
 
-	while(_position < end && _curChr.refId == refId) {
+	while(_position < end && _curChr.refId() == refId) {
         //fill in missing positions before
-        for (; i < _position; ++i, ++index)
-            memcpy(genoLikelihoods[index], _genotypeLikelihoodsGLF_missingData,_curChr.numLikelihoodValues * sizeof(uint16_t));
+        for (; i < _position; ++i, ++index){
+        	genoLikelihoods[index] = _genotypeLikelihoodsGLF_missingData;
+        }
 
         // fill in genotype likelihoods of current position
-        memcpy(genoLikelihoods[index], _genotypeLikelihoodsGLF, _curChr.numLikelihoodValues * sizeof(uint16_t));
+        genoLikelihoods[index] = _genotypeLikelihoodsGLF;
 		++index; ++i;
 
 		//read next record
 		if (!readNext())
 		    break; // reached eof
-        if(_curChr.refId != refId){ // reached next chromosome
-            for(; i<end; ++i, ++index)
-				memcpy(genoLikelihoods[index], _genotypeLikelihoodsGLF_missingData, _curChr.numLikelihoodValues * sizeof(uint16_t));
+        if(_curChr.refId() != refId){ // reached next chromosome
+        	for(; index < genoLikelihoods.size(); ++index){
+            	genoLikelihoods[index] = _genotypeLikelihoodsGLF_missingData;
+            }
 		}
 	}
 
 	// fill sites that were in the end of the window
-    for(; i<end; ++i, ++index) {
-        memcpy(genoLikelihoods[index], _genotypeLikelihoodsGLF_missingData,
-           _curChr.numLikelihoodValues * sizeof(uint16_t));
+    for(; index < genoLikelihoods.size(); ++index){
+    	genoLikelihoods[index] = _genotypeLikelihoodsGLF_missingData;
     }
 
 	return true;
 };
 
-void TGlfReader::fillGenotypeLikelihoodsGLF(genometools::HighPrecisionPhredIntProbability* destination){
-	//assumes pointer points to
-	memcpy(destination, _genotypeLikelihoodsGLF, _curChr.numLikelihoodValues * sizeof(genometools::HighPrecisionPhredIntProbability));
-};
-
-/*
-void TGlfReader::fillGenotypeLikelihoods(BAM::ErrorRate* destination){
-	for(int i=0; i < _curChr.numLikelihoodValues; ++i){
-		destination[i] = _genotypeLikelihoodsGLF[i];
-	}
-};
-*/
-
 //printing
 void TGlfReader::printChr(){
-	std::cout << "CHROMOSOME: '" << _curChr.name << "' of length " << _curChr.length << " and ploidy " << (int) 2-_curChr.isHaploid << "\n";
+	std::cout << "CHROMOSOME: '" << _curChr.name() << "' of length " << _curChr._length << " and ploidy " << (int) _curChr.ploidy() << "\n";
 };
 
 void TGlfReader::printSite(){
 	//std::cout << curChr.name << "\t" << position << "\t" << maxLL << "\t" << depth << "\t" << RMS_mappingQual;
 	// print position as 1-based, internally it is 0-based
-	std::cout << _curChr.name << "\t" << _position + 1 << "\t" << _depth << "\t" << _RMS_mappingQual;
-	for(int i=0; i < _curChr.numLikelihoodValues; ++i)
+	std::cout << _curChr.name() << "\t" << _position + 1 << "\t" << _depth << "\t" << _RMS_mappingQual;
+	for(int i=0; i < _curChr.numLikelihoodValues(); ++i)
 		std::cout << "\t" << _genotypeLikelihoodsGLF[i];
 	std::cout << "\n";
 };
@@ -465,11 +443,11 @@ void TGlfReader::printToEnd(){ //For debugging
 	printChr();
 
 	//now parse file
-	std::string oldChr = _curChr.name;
+	std::string oldChr = _curChr.name();
 	while(readNext()){
-		if(oldChr != _curChr.name){
+		if(oldChr != _curChr.name()){
 			printChr();
-			oldChr = _curChr.name;
+			oldChr = _curChr.name();
 		}
 		printSite();
 	}

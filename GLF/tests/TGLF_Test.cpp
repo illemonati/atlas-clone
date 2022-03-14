@@ -150,7 +150,7 @@ public:
     };
 };
 
-TEST_F(TGLF_Test_WriteRead, name){
+TEST_F(TGLF_Test_WriteRead, _name){
     write(300);
     read();
     EXPECT_EQ(inputGLF.name(), _filename);
@@ -184,11 +184,11 @@ TEST_F(TGLF_Test_WriteRead, chromosomes){
     for (int i = 0; i < 3; i++){
         inputGLF.fillPointerToChr(i, chr);
 
-        EXPECT_EQ(chr->refId, i);
-        EXPECT_EQ(chr->name, "Chr" + coretools::str::toString(i + 1));
-        EXPECT_EQ(chr->length, chrLength[i]);
+        EXPECT_EQ(chr->_refId, i);
+        EXPECT_EQ(chr->_name, "Chr" + coretools::str::toString(i + 1));
+        EXPECT_EQ(chr->_length, chrLength[i]);
         EXPECT_EQ(chr->isHaploid, false);
-        EXPECT_EQ(chr->numLikelihoodValues, 10); // diploid
+        EXPECT_EQ(chr->nu_mLikelihoodValues, 10); // diploid
         EXPECT_EQ(chr->maxNumLikelihoodValues, 10); // diploid
     }
 }
@@ -304,11 +304,11 @@ TEST_F(TGLF_Test_WriteRead, chromosomes_missingData){
     for (int i = 0; i < 5; i++){
         inputGLF.fillPointerToChr(i, chr);
 
-        EXPECT_EQ(chr->refId, i);
-        EXPECT_EQ(chr->name, "Chr" + coretools::str::toString(i + 1));
-        EXPECT_EQ(chr->length, chrLength[i]);
+        EXPECT_EQ(chr->_refId, i);
+        EXPECT_EQ(chr->_name, "Chr" + coretools::str::toString(i + 1));
+        EXPECT_EQ(chr->_length, chrLength[i]);
         EXPECT_EQ(chr->isHaploid, false);
-        EXPECT_EQ(chr->numLikelihoodValues, 10); // diploid
+        EXPECT_EQ(chr->nu_mLikelihoodValues, 10); // diploid
         EXPECT_EQ(chr->maxNumLikelihoodValues, 10); // diploid
     }
 }
@@ -385,17 +385,17 @@ TEST_F(TGLF_Test_WriteRead, chromosomes_withDifferentPloidies){
     for (int i = 0; i < 3; i++){
         inputGLF.fillPointerToChr(i, chr);
 
-        EXPECT_EQ(chr->refId, i);
-        EXPECT_EQ(chr->name, "Chr" + coretools::str::toString(i + 1));
-        EXPECT_EQ(chr->length, chrLength[i]);
+        EXPECT_EQ(chr->_refId, i);
+        EXPECT_EQ(chr->_name, "Chr" + coretools::str::toString(i + 1));
+        EXPECT_EQ(chr->_length, chrLength[i]);
         EXPECT_EQ(chr->maxNumLikelihoodValues, 10);
         if (i == 1){ // haploid
             EXPECT_EQ(chr->isHaploid, true);
-            EXPECT_EQ(chr->numLikelihoodValues, 4);
+            EXPECT_EQ(chr->nu_mLikelihoodValues, 4);
         }
         else { // diploid
             EXPECT_EQ(chr->isHaploid, false);
-            EXPECT_EQ(chr->numLikelihoodValues, 10);
+            EXPECT_EQ(chr->nu_mLikelihoodValues, 10);
         }
     }
 }
