@@ -16,24 +16,31 @@ namespace PopulationTools {
 //------------------------------------------------
     class TF2Estimator {
     private:
-        coretools::TLog *_logfile;
-        coretools::TRandomGenerator *_randonGenerator;
         std::string _outname;
 
-        //vcf-file
+        bool _initialized;
         std::string _vcfFilename;
         VCF::TVcfFileSingleLine _vcfFile;
         bool _limitLines;
         uint64_t _maxNumLines;
+        uint32_t _minDepth;
+        uint32_t _minNumSamplesWithData;
+        uint32_t _minVariantQuality;
 
         //samples
         TPopulationSamples _samples;
+        void _init();
+        void _initialize();
+        void _openVCF();
+        int _filterOnDepth();
+        bool _filterSite();
+        void _readVCF();
 
-        //genotype data
-        //THWPopulations _populations;
     public:
-        TF2Estimator(coretools::TParameters &Parameters, coretools::TLog *Logfile, coretools::TRandomGenerator *RandonGenerator);
-        void calculateF2();
+        TF2Estimator();
+        void run();
+        void calculateF2(const std::vector<uint64_t>& countsDiff);
+        void writeF2(const std::vector<uint64_t>& countsDiff, const std::vector<double>& sampleF2, const std::vector<double>& popF2);
     };
 
     //--------------------------------------
@@ -47,8 +54,8 @@ namespace PopulationTools {
 
 		void run() {
 			using namespace coretools::instances;
-			TF2Estimator runF2(parameters(), &logfile(), &randomGenerator());
-			runF2.calculateF2();
+			TF2Estimator F2;
+            F2.run();
 		};
 	};
 	} // namespace PopulationTools
