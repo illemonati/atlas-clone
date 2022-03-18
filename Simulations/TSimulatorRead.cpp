@@ -216,11 +216,11 @@ TSimulatorPairedEndReads::TSimulatorPairedEndReads(const BAM::TReadGroup &ReadGr
 	_mateFlags.setIsReverseStrand(true);
 }
 
-void TSimulatorPairedEndReads::simulate(const std::vector<Base>& haplotype, uint32_t refID, uint32_t pos,
+	void TSimulatorPairedEndReads::simulate(const std::vector<Base>& /*haplotype*/, uint32_t refID, uint32_t pos,
 					TSimulatorBamFile &bamFile) {
 	// pick a fragment, read length and contamination
 	TReadLength readLength  = _readLengthDist->sample();
-	bool readIsContaminated = (_contaminationRate > 0.) && randomGenerator().getRand() < _contaminationRate;
+	//bool readIsContaminated = (_contaminationRate > 0.) && randomGenerator().getRand() < _contaminationRate;
 
 	// Fill FIRST mate
 	//------------------
@@ -261,7 +261,7 @@ void TSimulatorPairedEndReads::simulate(const std::vector<Base>& haplotype, uint
 	}
 }
 
-void TSimulatorPairedEndReads::writeUnwrittenAlignments(long pos, TSimulatorBamFile &bamFile) {
+void TSimulatorPairedEndReads::writeUnwrittenAlignments(long , TSimulatorBamFile &bamFile) {
 	for (auto & a: bamAlignmentSecondMates) {
 		bamFile.saveAlignment(a);
 	}

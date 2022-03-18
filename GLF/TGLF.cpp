@@ -381,7 +381,7 @@ bool TGlfReader::readNextWindow(std::vector<GLFLikelihoods> & genoLikelihoods, u
 
 	//We are at first position in window with data
 	uint32_t i = start;
-	int index = 0;
+	size_t index = 0;
 
 	//ensure size of container
 	genoLikelihoods.resize(end - start + 1);
