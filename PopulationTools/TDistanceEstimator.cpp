@@ -14,7 +14,6 @@ namespace PopulationTools{
 using namespace GenotypeLikelihoods;
 using genometools::Genotype;
 using genometools::Base;
-using genometools::HighPrecisionPhredIntProbability;
 using coretools::Probability;
 
 //----------------------------------------------------
@@ -157,14 +156,14 @@ void TEMforDistanceEstimation::guessPi(GenotypeQualityVector & genoQual1, Genoty
 		double sum1 = 0.0;
 		double sum2 = 0.0;
 		for(Genotype g = Genotype::min; g < Genotype::max; ++g){
-			sum1 += (Probability) (*it1)[index(g)];
-			sum2 += (Probability) (*it2)[index(g)];
+			sum1 += (Probability) (*it1)[g];
+			sum2 += (Probability) (*it2)[g];
 		}
 		for(Genotype g = Genotype::min; g < Genotype::max; ++g){
-			double tmp = (Probability) (*it1)[index(g)] / sum1;
+			double tmp = (Probability) (*it1)[g] / sum1;
 			pi[first(g)] += tmp;
 			pi[second(g)] += tmp;
-			tmp = (Probability) (*it2)[index(g)] / sum2;
+			tmp = (Probability) (*it2)[g] / sum2;
 			pi[first(g)] += tmp;
 			pi[second(g)] += tmp;
 		}
@@ -190,13 +189,13 @@ void TEMforDistanceEstimation::guessPhi(GenotypeQualityVector & genoQual1, Genot
 	for(; it1 != genoQual1.end(); ++it1, ++it2){
 		double sum1 = 0.0; double sum2 = 0.0;
 		for(Genotype g = Genotype::min; g < Genotype::max; ++g){
-			sum1 += (Probability) (*it1)[index(g)];
-			sum2 += (Probability) (*it2)[index(g)];
+			sum1 += (Probability) (*it1)[g];
+			sum2 += (Probability) (*it2)[g];
 		}
 		for(Genotype g1 = Genotype::min; g1 < Genotype::max; ++g1){
-			double tmp = ((Probability) (*it1)[index(g1)] / sum1);
+			double tmp = ((Probability) (*it1)[g1] / sum1);
 			for(Genotype g2 = Genotype::min; g2 < Genotype::max; ++g2){
-				phi(g1, g2) += tmp * ((Probability) (*it2)[index(g2)] / sum2);
+				phi(g1, g2) += tmp * ((Probability) (*it2)[g2] / sum2);
 			}
 		}
 	}
@@ -400,6 +399,7 @@ bool TEMforDistanceEstimation::estimatePhiWithEM(GenotypeQualityVector & genoQua
 	//prepare estimates
 	using genometools::operator++;
 	using genometools::index;
+	using genometools::Genotype;
 	using namespace coretools::instances;
 	logfile().listFlush("Estimating initial base frequencies pi ...");
 	guessPi(genoQual1, genoQual2);
@@ -439,13 +439,16 @@ bool TEMforDistanceEstimation::estimatePhiWithEM(GenotypeQualityVector & genoQua
 		for(; it1 != genoQual1.end(); ++it1, ++it2){
 			//calculate P_G per site
 			double sum = 0.0;
-			for(int g1 = 0; g1<10; ++g1){
-				for(int g2 = 0; g2<10; ++g2){
-					P_G_one_site[g1][g2] = (coretools::Probability) (*it1)[g1] * (coretools::Probability) (*it2)[g2] * probGeno[g1][g2];
+			//for(int g1 = 0; g1<10; ++g1){
+			for (Genotype g1 = Genotype::min; g1 < Genotype::max; ++g1) {
+				const auto ig1 = index(g1);
+				for (Genotype g2 = Genotype::min; g2 < Genotype::max; ++g2) {
+				const auto ig2 = index(g2);
+					P_G_one_site[ig1][ig2] = (coretools::Probability) (*it1)[g1] * (coretools::Probability) (*it2)[g2] * probGeno[ig1][ig2];
 
 					//std::cout << g1 << "/" << g2 << ": " <<  phredToLik[genoQual1[s][g1]] << " * " << phredToLik[genoQual2[s][g2]] << " * " << probGeno[g1][g2] << " = " << P_G_one_site[g1][g2] << std::endl;
 
-					sum += P_G_one_site[g1][g2];
+					sum += P_G_one_site[ig1][ig2];
 				}
 			}
 

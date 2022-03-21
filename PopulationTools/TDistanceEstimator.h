@@ -124,7 +124,7 @@ public:
 //TDistanceEstimate
 //--------------------------------------------
 
-typedef std::vector<GLF::GLFLikelihoods> GenotypeQualityVector;
+typedef std::vector<GLF::TGLFLikelihoods> GenotypeQualityVector;
 
 class TEMforDistanceEstimation{
 private:
