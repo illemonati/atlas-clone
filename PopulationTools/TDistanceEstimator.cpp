@@ -653,7 +653,7 @@ void TDistanceEstimator::estimateDistanceGenomeWide(TEMforDistanceEstimation & E
 };
 
 bool TDistanceEstimator::moveToNextCommonChr(GLF::TGlfReader & g1, GLF::TGlfReader & g2){
-	while(g1.refId() != g2.refId() || g2.chrIsHaploid()){
+	while(g1.refId() != g2.refId() || g1.chrIsHaploid() || g2.chrIsHaploid()){
 		//advance the one laging behind
 		if(g1.refId() < g2.refId()){
 			if(!g1.jumpToNextChr()) return false;
