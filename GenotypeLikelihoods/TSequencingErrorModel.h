@@ -13,6 +13,7 @@
 #include "TFile.h"
 #include "TGenotypeData.h"
 #include "TSequencingErrorCovariate.h"
+#include "TSequencingErrorCovariateFunction.h"
 #include "auxiliaryTools.h"
 #include <memory>
 #include <string>
