@@ -31,9 +31,8 @@ private:
 	bool _isHaploid;
 
 public:
-	constexpr genometools::HighPrecisionPhredIntProbability *data() noexcept { return _likelihoods.data(); }
-	constexpr const genometools::HighPrecisionPhredIntProbability *data() const noexcept { return _likelihoods.data(); }
-
+	constexpr void setHaploid(bool isHaploid = true) noexcept {_isHaploid = isHaploid;}
+	constexpr void setDiploid(bool isDiploid = true) noexcept {_isHaploid = !isDiploid;}
 	constexpr genometools::HighPrecisionPhredIntProbability operator[](genometools::Base b) const {
 		if (!_isHaploid) throw "Using Base access but likelihoods are haploid";
 		return _likelihoods[genometools::index(b)];
@@ -46,6 +45,10 @@ public:
 	constexpr void fill(genometools::HighPrecisionPhredIntProbability p) {
 		_likelihoods.fill(p);
 	}
+
+	constexpr genometools::HighPrecisionPhredIntProbability *data() noexcept { return _likelihoods.data(); }
+	constexpr const genometools::HighPrecisionPhredIntProbability *data() const noexcept { return _likelihoods.data(); }
+
 };
 
 //----------------------------------------------------

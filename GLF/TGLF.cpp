@@ -131,12 +131,14 @@ void TGlfWriter::writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual,
 		if (genotypeLikelihoods[Genotype::TT] > maxLik) maxLik = genotypeLikelihoods[Genotype::TT];
 
 		// normalize and scale to uint16
+		_glfValues.setHaploid();
 		_glfValues[Base::A] = genotypeLikelihoods[Genotype::AA] / maxLik;
 		_glfValues[Base::C] = genotypeLikelihoods[Genotype::CC] / maxLik;
 		_glfValues[Base::G] = genotypeLikelihoods[Genotype::GG] / maxLik;
 		_glfValues[Base::T] = genotypeLikelihoods[Genotype::TT] / maxLik;
 	} else {
 		// ploidy is 2
+		_glfValues.setDiploid();
 		coretools::Probability maxLik = genotypeLikelihoods.max();
 
 		// normalize and scale to genometools::HighPrecisionPhredIntProbability
@@ -179,6 +181,7 @@ void TGlfReader::_init() {
 	_eof             = true;
 
 	_genotypeLikelihoodsGLF_missingData.fill(genometools::HighPrecisionPhredIntProbability::highest());
+	_genotypeLikelihoodsGLF_missingData.setDiploid();
 };
 
 TGlfChromosome *TGlfReader::pointerToChr(uint32_t refId) {
