@@ -36,11 +36,21 @@ public:
 
 	constexpr void setHaploid(bool isHaploid = true) noexcept {_isHaploid = isHaploid;}
 	constexpr void setDiploid(bool isDiploid = true) noexcept {_isHaploid = !isDiploid;}
+
 	constexpr genometools::HighPrecisionPhredIntProbability operator[](genometools::Base b) const {
 		if (!_isHaploid) throw "Using Base access but likelihoods are haploid";
 		return _likelihoods[genometools::index(b)];
 	}
+	constexpr genometools::HighPrecisionPhredIntProbability &operator[](genometools::Base b) {
+		if (!_isHaploid) throw "Using Base access but likelihoods are haploid";
+		return _likelihoods[genometools::index(b)];
+	}
+
 	constexpr genometools::HighPrecisionPhredIntProbability operator[](genometools::Genotype g) const {
+		if (_isHaploid) throw "Using Genotype access but likelihoods are diploid";
+		return _likelihoods[genometools::index(g)];
+	}
+	constexpr genometools::HighPrecisionPhredIntProbability &operator[](genometools::Genotype g) {
 		if (_isHaploid) throw "Using Genotype access but likelihoods are diploid";
 		return _likelihoods[genometools::index(g)];
 	}
@@ -55,6 +65,14 @@ public:
 	constexpr genometools::HighPrecisionPhredIntProbability *data() noexcept { return _likelihoods.data(); }
 	constexpr const genometools::HighPrecisionPhredIntProbability *data() const noexcept { return _likelihoods.data(); }
 
+	constexpr auto begin() noexcept {return _likelihoods.begin();}
+	constexpr auto end() noexcept {return _isHaploid ? _likelihoods.begin() + 4 : _likelihoods.end();}
+
+	constexpr auto begin() const noexcept {return _likelihoods.begin();}
+	constexpr auto end() const noexcept {return _isHaploid ? _likelihoods.begin() + 4 : _likelihoods.end();}
+
+	constexpr auto cbegin() const noexcept {return _likelihoods.cbegin();}
+	constexpr auto cend() const noexcept {return _isHaploid ? _likelihoods.begin() + 4 : _likelihoods.cend();}
 };
 
 //----------------------------------------------------

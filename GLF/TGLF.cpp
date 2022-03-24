@@ -8,9 +8,11 @@
 #include <algorithm>
 #include <cstdint>
 
+#include "PhredProbabilityTypes.h"
 #include "TGLF.h"
 #include "GenotypeTypes.h"
 #include "debugtools.h"
+#include "probability.h"
 
 namespace GLF {
 using namespace GenotypeLikelihoods;
@@ -63,7 +65,7 @@ void TGlfWriter::_writeHeader() {
 		_write(&labelLength, sizeof(uint32_t));
 		_write(_header.c_str(), labelLength * sizeof(char));
 	} else {
-		constexpr uint32_t zero32 = 0;
+		uint32_t zero32 = 0;
 		_write(&zero32, sizeof(uint32_t));
 	}
 };
@@ -82,7 +84,7 @@ void TGlfWriter::open(const std::string &Filename, const std::string &Header) {
 };
 
 void TGlfWriter::newChromosome(const BAM::TChromosome &chromosome) {
-	constexpr uint8_t zero8 = 0;
+	const uint8_t zero8 = 0;
 	_write(&zero8, sizeof(uint8_t));
 
 	// save cur info
@@ -103,13 +105,13 @@ void TGlfWriter::newChromosome(const BAM::TChromosome &chromosome) {
 void TGlfWriter::writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual,
 			   GenotypeLikelihoods::TGenotypeLikelihoods &genotypeLikelihoods) {
 	using genometools::Genotype;
-	constexpr uint8_t _recordType1 = 1 << 4;
+	const uint8_t _recordType1 = 1 << 4;
 	// record type
 	// TODO: add reference?
 	_write(&_recordType1, sizeof(uint8_t));
 
 	// offset
-	const auto offset = pos - _oldPos;
+	const uint32_t offset = pos - _oldPos;
 	_oldPos = pos;
 	_write(&offset, sizeof(uint32_t));
 
@@ -136,8 +138,12 @@ void TGlfWriter::writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual,
 		coretools::Probability maxLik = genotypeLikelihoods.max();
 
 		// normalize and scale to genometools::HighPrecisionPhredIntProbability
+
 		for (auto g = Genotype::min; g < Genotype::max; ++g) {
-			glfValues[g] = genotypeLikelihoods[g] / maxLik;
+			coretools::Probability p = genotypeLikelihoods[g];
+			genometools::HighPrecisionPhredIntProbability hp;
+			hp = (p/maxLik);
+			glfValues[g] = hp;
 		}
 	}
 

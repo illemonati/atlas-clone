@@ -8,6 +8,7 @@
 #include "TGLF.h"
 #include "debugtools.h"
 #include "TTestGLFFile.h"
+#include "stringFunctions.h"
 
 //-------------------------------------------------------------
 // TGLF_Test_ReadWrite
@@ -134,6 +135,12 @@ public:
         // read!
         while(inputGLF.readNext()){
             // store
+		std::cout << inputGLF.position() << ", " << inputGLF.depth() << "\n";
+		const auto glf = inputGLF.genotypeLikelihoodsGLF();
+		for (auto a : glf) {
+			std::cout << a << ", ";
+		}
+		std::cout << "\n";
             positions.push_back(inputGLF.position());
             depths.push_back(inputGLF.depth());
 	    genotypeLikelihoods.push_back(inputGLF.genotypeLikelihoodsGLF());
