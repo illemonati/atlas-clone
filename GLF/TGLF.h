@@ -12,7 +12,6 @@
 #include "TChromosomes.h"
 #include "TFastaBuffer.h"
 #include "TGenotypeData.h"
-#include "TParameters.h"
 #include "TTask.h"
 #include "gzstream.h"
 #include "stringFunctions.h"

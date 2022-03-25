@@ -7,606 +7,536 @@
 
 #include "TGlfMultiReader.h"
 #include "GenotypeTypes.h"
+#include "TLog.h"
+#include "TParameters.h"
+#include "TRandomGenerator.h"
 #include "debugtools.h"
+#include <algorithm>
+#include <iterator>
 
-namespace GLF{
-using coretools::TRandomGenerator;
-using coretools::TParameters;
-using coretools::TLog;
+namespace GLF {
+using coretools::instances::logfile;
+using coretools::instances::parameters;
+using coretools::instances::randomGenerator;
 using genometools::HighPrecisionPhredIntProbability;
 
 using coretools::str::toString;
 
-//----------------------------------------------------
-//TMultiGLFData
-//----------------------------------------------------
-TMultiGLFData::TMultiGLFData(uint32_t Size){
-	samples.resize(Size);
-};
-
-void TMultiGLFData::resize(uint32_t Size){
-	samples.resize(Size);
-};
-
-void TMultiGLFData::fill(TMultiGLFDataOneAllelicCombination & storage, const genometools::AllelicCombination & alleleicCombination) const{
+void fill(TMultiGLFDataOneAllelicCombination &storage, const TMultiGLFData &samples,
+	  const genometools::AllelicCombination &alleleicCombination) {
 	using namespace genometools;
-	storage.resize(samples.size());
-	for(uint32_t i=0; i<samples.size(); ++i){
-		if(samples[i].isHaploid()){
-			if(samples[i].hasData()){
-				storage[i].setHaploid(samples[i][first(alleleicCombination)],
-						              samples[i][second(alleleicCombination)]);
+	storage.clear();
+	storage.reserve(samples.size());
+	for (const auto &s : samples) {
+		if (s.isHaploid()) {
+			if (s.hasData()) {
+				storage.emplace_back(s[first(alleleicCombination)], s[second(alleleicCombination)]);
 			} else {
-				storage[i].setMissingHaploid();
+				storage.emplace_back(true);
 			}
 		} else {
-			if(samples[i].hasData()){
-				storage[i].setDiploid(samples[i][homoFirst(alleleicCombination)],
-						              samples[i][het(alleleicCombination)],
-									  samples[i][homoSecond(alleleicCombination)]);
+			if (s.hasData()) {
+				storage.emplace_back(s[homoFirst(alleleicCombination)], s[het(alleleicCombination)],
+						     s[homoSecond(alleleicCombination)]);
 			} else {
-				storage[i].setMissingDiploid();
+				storage.emplace_back(false);
 			}
 		}
 	}
 };
 
-uint32_t TMultiGLFData::totalDepth(){
+uint32_t totalDepth(const TMultiGLFData &samples) noexcept {
 	uint32_t tot = 0;
-	for(uint32_t i=0; i<samples.size(); ++i){
-		tot += samples[i].depth();
-	}
+	for (const auto &s : samples) tot += s.depth();
 	return tot;
 };
 
 //----------------------------------------------------
-//TGlfMultiReaderVcf
+// TGlfMultiReaderVcf
 //----------------------------------------------------
-TGlfMultiReaderVcf::TGlfMultiReaderVcf(const std::string filename, const std::string source, std::vector<std::string> & sampleNames, const bool & UsePhredScaledLikelihoods, TRandomGenerator* RandomGenerator){
-	_usePhredScaledLikelihoods = UsePhredScaledLikelihoods;
-	randomGenerator = RandomGenerator;
-
-	//open vcf file
+TGlfMultiReaderVcf::TGlfMultiReaderVcf(const std::string filename, const std::string source,
+				       std::vector<std::string> &sampleNames, bool UsePhredScaledLikelihoods)
+    : _usePhredScaledLikelihoods(UsePhredScaledLikelihoods) {
 	_openVCF(filename, source, sampleNames);
 };
 
-void TGlfMultiReaderVcf::_openVCF(const std::string & filename, const std::string & source, std::vector<std::string> & sampleNames){
+void TGlfMultiReaderVcf::_openVCF(const std::string &filename, const std::string &source,
+				  std::vector<std::string> &sampleNames) {
 	_closeVCF();
 
-	//open vcf file
+	// open vcf file
 	vcf.open(filename.c_str());
-	vcfOpened = true;
 
-	//write info
-	//TODO: create VCF class to harmonize code across different uses. Also include code in Tiger and other
+	// write info
+	// TODO: create VCF class to harmonize code across different uses. Also include code in Tiger and other
 	vcf << "##fileformat=VCFv4.2\n";
 	vcf << "##source=" << source << "\n";
 
-	//make sure the header matches the format used in writeSiteToVCF
+	// make sure the header matches the format used in writeSiteToVCF
 	vcf << "##INFO=<ID=DP,Number=1,Type=Integer,Description=\"Total Depth\">\n";
 	vcf << "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n";
 	vcf << "##FORMAT=<ID=GQ,Number=1,Type=Integer,Description=\"Genotype quality\">\n";
 	vcf << "##FORMAT=<ID=DP,Number=1,Type=Integer,Description=\"Total Depth\">\n";
-	if(_usePhredScaledLikelihoods){
+	if (_usePhredScaledLikelihoods) {
 		vcf << "##FORMAT=<ID=PL,Number=G,Type=Integer,Description=\"Phred-scaled normalized genotype likelihoods\">\n";
 	} else {
 		vcf << "##FORMAT=<ID=GL,Number=G,Type=Float,Description=\"Normalized genotype likelihoods\">\n";
 	}
 
-	//also write header with sample names
+	// also write header with sample names
 	vcf << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT";
-	for(std::string& name : sampleNames)
-		vcf << '\t' << name;
+	for (std::string &name : sampleNames) vcf << '\t' << name;
 	vcf << '\n';
 };
 
-void TGlfMultiReaderVcf::_closeVCF(){
+void TGlfMultiReaderVcf::_closeVCF() {
 	vcf.close();
-	vcfOpened = false;
 };
 
-void TGlfMultiReaderVcf::_setMajorMinor(const genometools::Base & refAllele, const genometools::Base & altAllele){
-	_ref = refAllele; _alt = altAllele;
-	_refHom = genometools::genotype(_ref,_ref);
-	_het = genometools::genotype(_ref,_alt);
-	_altHom = genometools::genotype(_alt,_alt);
+void TGlfMultiReaderVcf::_setMajorMinor(genometools::Base refAllele, genometools::Base altAllele) {
+	_ref    = refAllele;
+	_alt    = altAllele;
+	_refHom = genometools::genotype(_ref, _ref);
+	_het    = genometools::genotype(_ref, _alt);
+	_altHom = genometools::genotype(_alt, _alt);
 };
 
-void TGlfMultiReaderVcf::writeLikelihood(const HighPrecisionPhredIntProbability & likGlf){
-	if(_usePhredScaledLikelihoods){
-		vcf << (genometools::PhredIntProbability) likGlf;
+void TGlfMultiReaderVcf::writeLikelihood(HighPrecisionPhredIntProbability likGlf) {
+	if (_usePhredScaledLikelihoods) {
+		vcf << (genometools::PhredIntProbability)likGlf;
 	} else {
-		if(likGlf == 0) vcf << '0';
-		else vcf << (coretools::Log10Probability) likGlf;
+		if (likGlf == 0)
+			vcf << '0';
+		else
+			vcf << (coretools::Log10Probability)likGlf;
 	}
 };
 
-void TGlfMultiReaderVcf::writeSite(const std::string & chrName, uint32_t position, const genometools::PhredIntProbability & varianTQuality, TMultiGLFData & data, const genometools::Base refAllele, const genometools::Base altAllele){
-	//Note: we pass hom/het indexes to maintain the major / minor order! Passing the alleleic combination is not enough
-	//TODO: find way to harmonize code with TCaller
+void TGlfMultiReaderVcf::writeSite(const std::string &chrName, uint32_t position,
+				   const genometools::PhredIntProbability varianTQuality, TMultiGLFData &data,
+				   genometools::Base refAllele, genometools::Base altAllele) {
+	// Note: we pass hom/het indexes to maintain the major / minor order! Passing the alleleic combination is not enough
+	// TODO: find way to harmonize code with TCaller
 	_setMajorMinor(refAllele, altAllele);
 
-	//write position
-	vcf << chrName << '\t' << position + 1 <<"\t.\t"; //internal position is zero-based!
+	// write position
+	vcf << chrName << '\t' << position + 1 << "\t.\t"; // internal position is zero-based!
 
-	//write ref and alt alleles
+	// write ref and alt alleles
 	vcf << refAllele << '\t' << altAllele;
 
-	//write quality of variant
+	// write quality of variant
 	vcf << '\t' << varianTQuality;
 
-	//write info field: total depth
-	vcf << "\t.\tDP=" << data.totalDepth();
+	// write info field: total depth
+	vcf << "\t.\tDP=" << totalDepth(data);
 
-	//write filter, info and format
-	if(_usePhredScaledLikelihoods)
+	// write filter, info and format
+	if (_usePhredScaledLikelihoods)
 		vcf << "\tGT:GQ:DP:PL";
 	else
 		vcf << "\tGT:GQ:DP:GL";
 
-	//now write active samples
-	for(uint32_t i=0; i<data.size(); ++i){
-		if(data[i].isHaploid())
+	// now write active samples
+	for (uint32_t i = 0; i < data.size(); ++i) {
+		if (data[i].isHaploid())
 			writeHaploidIndividualToVCF(data[i]);
 		else
 			writeDiploidIndividualToVCF(data[i]);
 	}
 
-	//end of line
+	// end of line
 	vcf << '\n';
 };
 
-void TGlfMultiReaderVcf::writeDiploidIndividualToVCF(TMultiGLFDataSample & sample){
-	if(sample.hasData()){
-		//find min qual
-		HighPrecisionPhredIntProbability minQual = sample[_refHom];
-		if(sample[_het] < minQual) minQual = sample[_het];
-		if(sample[_altHom] < minQual) minQual = sample[_altHom];
-
-		//get all genotypes with minQual (=MLE)
-		std::vector<uint8_t> mleGenotypes;
-		if(sample[_refHom] == minQual) mleGenotypes.push_back(2);
-		if(sample[_het] == minQual) mleGenotypes.push_back(3);
-		if(sample[_altHom] == minQual) mleGenotypes.push_back(4);
-
-		//write MLE genoytpe
-		int mleGeno = mleGenotypes[randomGenerator->sample(mleGenotypes.size())];
-		vcf << '\t' << genotypeStrings[mleGeno] << ':';
-
-		//write genotype quality
-		if(mleGenotypes.size() > 1) vcf << "0:";
-		else {
-			//find second highest quality
-			HighPrecisionPhredIntProbability secondLowestQual = HighPrecisionPhredIntProbability::max();
-			if(sample[_refHom] > minQual){
-				secondLowestQual = sample[_refHom];
-			}
-			if(sample[_het] > minQual && sample[_het] < secondLowestQual){
-				secondLowestQual = sample[_het];
-			}
-			if(sample[_altHom] > minQual && sample[_altHom] < secondLowestQual){
-				secondLowestQual = sample[_altHom];
-			}
-			vcf << genometools::PhredIntProbability(secondLowestQual - minQual) << ":";
-		}
-
-		//write depth
-		vcf << sample.depth() << ':';
-
-		//write likelihoods
-		writeLikelihood(sample[_refHom] - minQual);
-		vcf << ',';
-		writeLikelihood(sample[_het] - minQual);
-		vcf << ',';
-		writeLikelihood(sample[_altHom] - minQual);
-	} else {
+void TGlfMultiReaderVcf::writeDiploidIndividualToVCF(TMultiGLFDataSample &sample) {
+	if (!sample.hasData()) {
 		vcf << "\t./.:.:.:.";
+		return;
 	}
+
+	constexpr std::array genotypeStrings = {"0", "1", "0/0", "0/1", "1/1"};
+	// find min qual
+	const std::array smp = {sample[_refHom], sample[_het], sample[_altHom]};
+	const auto min       = std::min_element(smp.cbegin(), smp.cend());
+	const auto minQual   = *min;
+	const auto in        = std::distance(smp.cbegin(), min);
+
+	// get all genotypes with minQual (=MLE)
+	std::vector mleGenotypes{(in + 2)};
+
+	// write MLE genoytpe
+	int mleGeno = mleGenotypes[randomGenerator().sample(mleGenotypes.size())];
+	vcf << '\t' << genotypeStrings[mleGeno] << ':';
+
+	// write genotype quality
+	if (mleGenotypes.size() > 1)
+		vcf << "0:";
+	else {
+		constexpr std::array<std::array<size_t, 2>, 3> a = {{{1, 2}, {0, 2}, {1, 2}}};
+		const auto slq = std::min(smp[a[in][0]], smp[a[in][1]]);
+		// find second highest quality
+		vcf << genometools::PhredIntProbability(slq - minQual) << ":";
+	}
+
+	// write depth
+	vcf << sample.depth() << ':';
+
+	// write likelihoods
+	writeLikelihood(sample[_refHom] - minQual);
+	vcf << ',';
+	writeLikelihood(sample[_het] - minQual);
+	vcf << ',';
+	writeLikelihood(sample[_altHom] - minQual);
 };
 
-void TGlfMultiReaderVcf::writeHaploidIndividualToVCF(TMultiGLFDataSample & sample){
+void TGlfMultiReaderVcf::writeHaploidIndividualToVCF(TMultiGLFDataSample &sample) {
+	if (!sample.hasData()) {
+		vcf << "\t./.:.:.:.";
+		return;
+	}
+
+	constexpr std::array genotypeStrings = {"0", "1", "0/0", "0/1", "1/1"};
 	using genometools::index;
-	if(sample.hasData()){
-		//find min qual
-		HighPrecisionPhredIntProbability minQual = sample[_ref];
-		if(sample[_alt] < minQual) minQual = sample[_alt];
+	// find min qual
+	const auto minQual = std::min(sample[_ref], sample[_alt]);
 
-		//get all genotypes with minQual (=MLE)
-		std::vector<genometools::Base> mleGenotypes;
-		if(sample[_ref] == minQual) mleGenotypes.push_back(_ref);
-		if(sample[_alt] == minQual) mleGenotypes.push_back(_alt);
+	// get all genotypes with minQual (=MLE)
+	std::vector<genometools::Base> mleGenotypes;
+	if (sample[_ref] == minQual) mleGenotypes.push_back(_ref);
+	if (sample[_alt] == minQual) mleGenotypes.push_back(_alt);
 
-		//write MLE genoytpe
-		const genometools::Base mleGeno = mleGenotypes[randomGenerator->sample(mleGenotypes.size())];
-		vcf << '\t' << genotypeStrings[index(mleGeno)] << ':';
+	// write MLE genoytpe
+	const genometools::Base mleGeno = mleGenotypes[randomGenerator().sample(mleGenotypes.size())];
+	vcf << '\t' << genotypeStrings[index(mleGeno)] << ':';
 
-		//write genotype quality
-		if(mleGeno == _ref) vcf << (genometools::PhredIntProbability) (sample[_alt] - minQual) << ":";
-		else  vcf << (genometools::PhredIntProbability) (sample[_ref] - minQual) << ":";
+	// write genotype quality
+	if (mleGeno == _ref)
+		vcf << (genometools::PhredIntProbability)(sample[_alt] - minQual) << ":";
+	else
+		vcf << (genometools::PhredIntProbability)(sample[_ref] - minQual) << ":";
 
-		//write depth
-		vcf << sample.depth() << ':';
+	// write depth
+	vcf << sample.depth() << ':';
 
-		//write likelihoods
-		writeLikelihood(sample[_ref] - minQual);
-		vcf << ',';
-		writeLikelihood(sample[_alt] - minQual);
-	} else {
-		vcf << "\t.:.:.:.";
-	}
+	// write likelihoods
+	writeLikelihood(sample[_ref] - minQual);
+	vcf << ',';
+	writeLikelihood(sample[_alt] - minQual);
 };
 
 //----------------------------------------------------
-//TGlfMultiReader
+// TGlfMultiReader
 //----------------------------------------------------
-TGlfMultiReader::TGlfMultiReader(){
-	init();
+TGlfMultiReader::TGlfMultiReader() {
+	setDepthFilter(parameters().getParameterWithDefault<int>("minDepth", 0));
 };
 
-TGlfMultiReader::TGlfMultiReader(std::vector<std::string> FileNames, TLog* logfile){
-	init();
-	openGLFs(FileNames, logfile);
+TGlfMultiReader::TGlfMultiReader(std::vector<std::string> FileNames) {
+	openGLFs(FileNames);
 };
 
-TGlfMultiReader::TGlfMultiReader(TParameters & params, TLog* logfile){
-	init();
-	openGLFs(params, logfile);
-	setDepthFilter(params.getParameterWithDefault<int>("minDepth", 0), logfile);
-};
-
-void TGlfMultiReader::init(){
-	numGLFs = 0;
-	readersOpened = false;
-	GLFs = nullptr;
-	GLFIsActive = nullptr;
-	numActiveFiles = 0;
-	_onlyJumpToPositionsWithData = false;
-
-	_position = 0;
-	_nextPosition = 0;
-	_numActiveFilesWithData = 0;
-
-	minDepth = 0;
-	hasReference = false;
-};
-
-TGlfMultiReader::~TGlfMultiReader(){
-	if(readersOpened){
-		delete[] GLFIsActive;
+TGlfMultiReader::~TGlfMultiReader() {
+	if (readersOpened) {
 		closeGLF();
 	}
 };
 
-void TGlfMultiReader::_openGLFs(TLog* logfile){
-	numGLFs = GLFNames.size();
-	GLFIsActive = new bool[numGLFs];
+void TGlfMultiReader::_openGLFs() {
+	numGLFs     = GLFNames.size();
+	GLFIsActive.resize(numGLFs);
 
-	//open files
-	GLFs = new TGlfReader[numGLFs];
+	// open files
+	GLFs.clear();
+	GLFs.reserve(numGLFs);
 	readersOpened = true;
-	logfile->startIndent("Opening " + toString(numGLFs) + " GLF files:");
-	int g = 0;
-	for(std::vector<std::string>::iterator it=GLFNames.begin(); it != GLFNames.end(); ++it, ++g){
-		logfile->listFlush("Opening GLF '" + *it + "' ...");
-		GLFs[g].open(*it);
-		logfile->done();
+	logfile().startIndent("Opening " + toString(numGLFs) + " GLF files:");
+	for (const auto &name : GLFNames) {
+		logfile().listFlush("Opening GLF '" + name + "' ...");
+		GLFs.emplace_back(name);
+		logfile().done();
 	}
-	logfile->endIndent();
-
+	logfile().endIndent();
 	_setAllInactive();
 };
 
-void TGlfMultiReader::openGLFs(const std::vector<std::string> & FileNames, TLog* logfile){
+void TGlfMultiReader::openGLFs(const std::vector<std::string> &FileNames) {
 	GLFNames = FileNames;
-	_openGLFs(logfile);
+	_openGLFs();
 };
 
-void TGlfMultiReader::openGLFs(TParameters & params, TLog* logfile){
-	std::string parameter = params.getParameter<std::string>("glf");
-	//assume that GLF file names are given in a file if string does not contain ".gz"
-	if(!coretools::str::stringContains(parameter,".gz")){
-		logfile->list("Reading glf input names from file '" + parameter + "'");
+void TGlfMultiReader::openGLFs() {
+	using namespace coretools::str;
+	const auto parameter = parameters().getParameter<std::string>("glf");
+	// assume that GLF file names are given in a file if string does not contain ".gz"
+	if (!stringContains(parameter, ".gz")) {
+		logfile().list("Reading glf input names from file '" + parameter + "'");
 		std::ifstream in(parameter.c_str());
-		if(!in) throw "Failed to open file '" + parameter + "'!";
+		if (!in) throw "Failed to open file '" + parameter + "'!";
 
-		//read file
-		std::vector<std::string> vec;
-		while(in.good() && !in.eof()){
+		// read file
+		while (in.good() && !in.eof()) {
 			std::string line;
 			std::getline(in, line);
-			coretools::str::fillContainerFromStringWhiteSpace(line, vec, true);
-			//skip empty lines
-			if(vec.size() > 0){
-				GLFNames.push_back(vec[0]);
-			}
+			std::vector<std::string> vec;
+			fillContainerFromStringWhiteSpace(line, vec, true);
+			// skip empty lines
+			if (vec.size() > 0) { GLFNames.push_back(vec[0]); }
 		}
 		in.close();
 	} else {
-		params.fillParameterIntoContainer("glf", GLFNames, ',');
+		parameters().fillParameterIntoContainer("glf", GLFNames, ',');
 	}
-	_openGLFs(logfile);
+	_openGLFs();
 };
 
-void TGlfMultiReader::closeGLF(){
-	if(readersOpened){
-		//close all glf handlers
-		for(int g=0; g<numGLFs; ++g)
-			GLFs[g].close();
+void TGlfMultiReader::closeGLF() {
+	if (readersOpened) {
+		// close all glf handlers
+		for (int g = 0; g < numGLFs; ++g) GLFs[g].close();
 
-		delete[] GLFs;
 		GLFNames.clear();
-		numGLFs = 0;
+		numGLFs       = 0;
 		readersOpened = false;
 	}
 };
 
-void TGlfMultiReader::setDepthFilter(int MinDepth, TLog* logfile){
+void TGlfMultiReader::setDepthFilter(int MinDepth) {
 	minDepth = MinDepth;
-	if(minDepth > 0)
-		logfile->list("Will only keep sites with depth >= " + toString(minDepth) + ".");
+	if (minDepth > 0) logfile().list("Will only keep sites with depth >= " + toString(minDepth) + ".");
 };
 
-void TGlfMultiReader::addReference(const std::string FastaFile){
+void TGlfMultiReader::addReference(const std::string &FastaFile) {
 	fastaBuffer.initialize(FastaFile, 1000000);
 	hasReference = true;
 };
 
 //-------------------------------------
-//set active / inactive
+// set active / inactive
 //-------------------------------------
-int TGlfMultiReader::_getGLFIndexFromName(const std::string & name){
-	int index = 0;
-	for(std::vector<std::string>::iterator it=GLFNames.begin(); it!=GLFNames.end(); ++it, ++index){
-		if(*it == name) return index;
-	}
-	throw "GLF with name '" + name + "' not in TGlfMultiReader!";
+int TGlfMultiReader::_getGLFIndexFromName(const std::string &name) const {
+	const auto res = std::find(GLFNames.cbegin(), GLFNames.cend(), name);
+	if (res == GLFNames.cend()) throw "GLF with name '" + name + "' not in TGlfMultiReader!";
+	return std::distance(GLFNames.begin(), res);
 };
 
-void TGlfMultiReader::_setActive(const int index){
-	if(index >= numGLFs) throw "Index out of range in TGlfMultiReader::setActive(const int index)!";
-	if(!GLFIsActive[index]){
+void TGlfMultiReader::_setActive(const int index) {
+	if (index >= numGLFs) throw "Index out of range in TGlfMultiReader::setActive(const int index)!";
+	if (!GLFIsActive[index]) {
 		GLFIsActive[index] = true;
-		activeGLFs.push_back(index);
 		pointerToActiveGLFs.push_back(&GLFs[index]);
 	}
 };
 
-void TGlfMultiReader::_setAllInactive(){
-	for(int i=0; i<numGLFs; ++i)
-		GLFIsActive[i] = false;
-	activeGLFs.clear();
+void TGlfMultiReader::_setAllInactive() {
+	for (int i = 0; i < numGLFs; ++i) GLFIsActive[i] = false;
 	pointerToActiveGLFs.clear();
 };
 
-void TGlfMultiReader::_prepareParsing(){
-	//prepare data
+void TGlfMultiReader::_prepareParsing() {
+	// prepare data
 	numActiveFiles = pointerToActiveGLFs.size();
-	data.resize(numActiveFiles);
+	data.clear();
+	data.reserve(numActiveFiles);
 
-	for(TGlfReader* it : pointerToActiveGLFs)
-		it->rewind();
+	for (TGlfReader *it : pointerToActiveGLFs) it->rewind();
 
-	//read first SNP record in all active files
-	for(TGlfReader* it : pointerToActiveGLFs){
-		it->readNext();
-	}
+	// read first SNP record in all active files
+	for (TGlfReader *it : pointerToActiveGLFs) { it->readNext(); }
 
-	//where to start?
-	if(_onlyJumpToPositionsWithData){
+	// where to start?
+	if (_onlyJumpToPositionsWithData) {
 		_jumpToNextPositionWithData();
 	} else {
-		_curRefId = 0;
-		_position = 0;
+		_curRefId     = 0;
+		_position     = 0;
 		_nextPosition = 0;
 
-		//fill chromosome info
+		// fill chromosome info
 		_updateChromosomeInfo();
 	}
 };
 
-bool TGlfMultiReader::_jumpToNextPositionWithData(){
-	//find min(refId) and min(pos)
+bool TGlfMultiReader::_jumpToNextPositionWithData() {
+	// find min(refId) and min(pos)
 	bool allFilesReachedEnd = true;
-	bool first = true;
-	_curRefId = pointerToActiveGLFs[0]->refId();
-	_position = pointerToActiveGLFs[0]->position();
+	bool first              = true;
+	_curRefId               = pointerToActiveGLFs[0]->refId();
+	_position               = pointerToActiveGLFs[0]->position();
 
-	for(TGlfReader* it : pointerToActiveGLFs){
-		if(!it->eof()){
+	for (TGlfReader *it : pointerToActiveGLFs) {
+		if (!it->eof()) {
 			allFilesReachedEnd = false;
 
-			if(first){
+			if (first) {
 				_curRefId = it->refId();
 				_position = it->position();
-				first = false;
+				first     = false;
 			} else {
-				if(it->refId() < _curRefId){
+				if (it->refId() < _curRefId) {
 					_curRefId = it->refId();
 					_position = it->position();
-				} else if(it->refId() == _curRefId && it->position() < _position){
+				} else if (it->refId() == _curRefId && it->position() < _position) {
 					_position = it->position();
 				}
 			}
 		}
 	}
 
-	//did we reach end?
-	if(allFilesReachedEnd) return false;
+	// did we reach end?
+	if (allFilesReachedEnd) return false;
 
-	//fill chromosome info
+	// fill chromosome info
 	_updateChromosomeInfo();
 
-	//make sure first record is used
+	// make sure first record is used
 	_nextPosition = _position;
 	return true;
 };
 
-void TGlfMultiReader::_updateChromosomeInfo(){
-	//update curChr
-	TGlfChromosome* chr = pointerToActiveGLFs[0]->pointerToChr(_curRefId);
-	if(chr == nullptr){
-		throw "Chromosome with refId " + toString(_curRefId) + " not present in GLF file '" + pointerToActiveGLFs[0]->name() + "!";
+void TGlfMultiReader::_updateChromosomeInfo() {
+	// update curChr
+	TGlfChromosome *chr = pointerToActiveGLFs[0]->pointerToChr(_curRefId);
+	if (chr == nullptr) {
+		throw "Chromosome with refId " + toString(_curRefId) + " not present in GLF file '" +
+		    pointerToActiveGLFs[0]->name() + "!";
 	}
 	_curChr = *chr;
 
-	//check that all files share the same chromosome info
-	chr = nullptr;
-	int i=0;
-	for(TGlfReader* it : pointerToActiveGLFs){
-		if(it->fillPointerToChr(_curRefId, chr)){
-			if(chr->name() != _curChr.name())
-				throw "Chrosomome names differ between files '" + pointerToActiveGLFs[0]->name() + "' and '" + it->name() + "': '" + _curChr.name() + "' != '" + chr->name() + "'!";
-			if(chr->length() != _curChr.length())
-				throw "Chrosomome lengths differ between files '" + pointerToActiveGLFs[0]->name() + "' and '" + it->name() + "': '" + toString(_curChr.length()) + "' != '" + toString(chr->length()) + "'!";
+	// check that all files share the same chromosome info
+	chr   = nullptr;
+	for (TGlfReader *it : pointerToActiveGLFs) {
+		if (it->fillPointerToChr(_curRefId, chr)) {
+			if (chr->name() != _curChr.name())
+				throw "Chrosomome names differ between files '" + pointerToActiveGLFs[0]->name() + "' and '" +
+				    it->name() + "': '" + _curChr.name() + "' != '" + chr->name() + "'!";
+			if (chr->length() != _curChr.length())
+				throw "Chrosomome lengths differ between files '" + pointerToActiveGLFs[0]->name() + "' and '" +
+				    it->name() + "': '" + toString(_curChr.length()) + "' != '" + toString(chr->length()) + "'!";
 		} else {
-			throw "Chromosome with refId " + toString(_curRefId) + " not present in any GLF file provided! Limit to only sites with data?";
+			throw "Chromosome with refId " + toString(_curRefId) +
+			    " not present in any GLF file provided! Limit to only sites with data?";
 		}
-		++i;
 	}
 };
 
-void TGlfMultiReader::setActive(const int index){
-	if(index >= numGLFs) throw "Index out of range in TGlfMultiReader::setActiveOnly(const int index)!";
+void TGlfMultiReader::setActive(const int index) {
+	if (index >= numGLFs) throw "Index out of range in TGlfMultiReader::setActiveOnly(const int index)!";
 	_setAllInactive();
 	_setActive(index);
 	_prepareParsing();
 };
 
-void TGlfMultiReader::setActive(const std::string & name){
-	int index = _getGLFIndexFromName(name);
-	setActive(index);
+void TGlfMultiReader::setActive(const std::string &name) {
+	setActive(_getGLFIndexFromName(name));
 };
 
-void TGlfMultiReader::setActive(const int index1, const int index2){
+void TGlfMultiReader::setActive(const int index1, const int index2) {
 	_setAllInactive();
 	_setActive(index1);
 	_setActive(index2);
 	_prepareParsing();
 };
 
-void TGlfMultiReader::setActive(const std::string & name1, const std::string & name2){
-	int index1 = _getGLFIndexFromName(name1);
-	int index2 = _getGLFIndexFromName(name2);
-	setActive(index1, index2);
+void TGlfMultiReader::setActive(const std::string &name1, const std::string &name2) {
+	setActive(_getGLFIndexFromName(name1), _getGLFIndexFromName(name2));
 };
 
-void TGlfMultiReader::setActive(std::vector<int> & indexes){
+void TGlfMultiReader::setActive(std::vector<int> &indexes) {
 	_setAllInactive();
-	for(std::vector<int>::iterator it=indexes.begin(); it!=indexes.end(); ++it)
-		_setActive(*it);
+	for (const auto i : indexes) _setActive(i);
 	_prepareParsing();
 };
 
-void TGlfMultiReader::setActive(std::vector<std::string> & names){
+void TGlfMultiReader::setActive(std::vector<std::string> &names) {
 	_setAllInactive();
-	for(std::vector<std::string>::iterator it=names.begin(); it!=names.end(); ++it){
-		int index = _getGLFIndexFromName(*it);
+	for (const auto &name : names) {
+		int index = _getGLFIndexFromName(name);
 		_setActive(index);
 	}
 	_prepareParsing();
 };
 
-void TGlfMultiReader::setAllActive(){
-	activeGLFs.clear();
-	for(int i=0; i<numGLFs; ++i)
-		_setActive(i);
+void TGlfMultiReader::setAllActive() {
+	for (int i = 0; i < numGLFs; ++i) _setActive(i);
 	_prepareParsing();
 };
 
 //-------------------------------------
-//Looping over active files
+// Looping over active files
 //-------------------------------------
-bool TGlfMultiReader::moveToNextChromosome(){
-	//increment chromosome ref_char id
+bool TGlfMultiReader::moveToNextChromosome() {
+	// increment chromosome ref_char id
 	++_curRefId;
 
-	//advance all active files behind
+	// advance all active files behind
 	bool allFilesReachedEnd = true;
-	for(TGlfReader* it : pointerToActiveGLFs){
-		while(!it->eof() && it->refId() < _curRefId)
-			it->jumpToNextChr();
-		if(!it->eof()) allFilesReachedEnd = false;
+	for (TGlfReader *it : pointerToActiveGLFs) {
+		while (!it->eof() && it->refId() < _curRefId) it->jumpToNextChr();
+		if (!it->eof()) allFilesReachedEnd = false;
 	}
 
-	//check if we reached end of all files
-	if(allFilesReachedEnd) return false;
+	// check if we reached end of all files
+	if (allFilesReachedEnd) return false;
 
-	//get name and length from first active file not at end
-	if(_onlyJumpToPositionsWithData){
+	// get name and length from first active file not at end
+	if (_onlyJumpToPositionsWithData) {
 		_jumpToNextPositionWithData();
 	} else {
-		_position = 0;
+		_position     = 0;
 		_nextPosition = 0;
 	}
 
-	//get pointer to chromosome
+	// get pointer to chromosome
 	_updateChromosomeInfo();
-
 	return true;
 };
 
-bool TGlfMultiReader::readNext(){
-	//advance to next position
-	if(_nextPosition > _curChr.length()){
-		if(!moveToNextChromosome()) return false;
-	}
+bool TGlfMultiReader::readNext() {
+	// advance to next position
+	if (_nextPosition > _curChr.length() && !moveToNextChromosome()) return false;
 
-	//advance all files behind next position
+	// advance all files behind next position
 	_numActiveFilesWithData = 0;
 	bool allFilesReachedEnd = true;
-	int i=0;
-	for(TGlfReader* it : pointerToActiveGLFs){
-		while(!it->eof() && it->refId() == _curRefId && it->position() < _nextPosition){
-			it->readNext();
-		}
+	for (TGlfReader *reader : pointerToActiveGLFs) {
+		while (!reader->eof() && reader->refId() == _curRefId && reader->position() < _nextPosition) { reader->readNext(); }
 
-		if(!it->eof() && it->position() == _nextPosition && it->refId() == _curRefId){
-			if(it->chrIsHaploid()){
-				data[i].setHaploid(it->genotypeLikelihoodsGLF(), it->depth());
-			} else {
-				data[i].setDiploid(it->genotypeLikelihoodsGLF(), it->depth());
-			}
+		if (!reader->eof() && reader->position() == _nextPosition && reader->refId() == _curRefId) {
+			data.emplace_back(&reader->genotypeLikelihoodsGLF(), reader->depth());
 			++_numActiveFilesWithData;
 		} else {
-			if(it->pointerToChr(_curRefId)->isHaploid()){
-				data[i].setMissingHaploid();
-			} else {
-				data[i].setMissingDiploid();
-			}
+			data.emplace_back(reader->pointerToChr(_curRefId)->isHaploid()); // data is missing
 		}
-
-		if(!it->eof()) allFilesReachedEnd = false;
-
-		++i;
+		if (!reader->eof()) allFilesReachedEnd = false;
 	}
 
-	//check if we reached end of all files
-	if(allFilesReachedEnd) return false;
+	// check if we reached end of all files
+	if (allFilesReachedEnd) return false;
 
-	//jump?
-	if(_onlyJumpToPositionsWithData && _numActiveFilesWithData == 0){
-		if(_jumpToNextPositionWithData())
-			return readNext();
-		else return false;
+	// jump?
+	if (_onlyJumpToPositionsWithData && _numActiveFilesWithData == 0) {
+		if (_jumpToNextPositionWithData()) return readNext();
+		return false;
 	}
 
-	//update position
+	// update position
 	_position = _nextPosition;
 	++_nextPosition;
 
 	return true;
 };
 
-void TGlfMultiReader::print(){
-	std::cout << std::endl << "Multi Reader at position " << _position << " on chromosome '" << _curChr.name() << std::endl;
-	for(size_t i=0; i<numActiveFiles; ++i){
+void TGlfMultiReader::print() const {
+	std::cout << "\nMulti Reader at position " << _position << " on chromosome '" << _curChr.name() << std::endl;
+	for (size_t i = 0; i < numActiveFiles; ++i) {
 		std::cout << "File " << i << ":";
-		if(data[i].isHaploid()){
-			for(genometools::Base g = genometools::Base::min; g < genometools::Base::max; ++g){
+		if (data[i].isHaploid()) {
+			for (genometools::Base g = genometools::Base::min; g < genometools::Base::max; ++g) {
 				std::cout << "\t" << data[i][g];
 			}
 		} else {
-			for(genometools::Genotype g = genometools::Genotype::min; g < genometools::Genotype::max; ++g){
+			for (genometools::Genotype g = genometools::Genotype::min; g < genometools::Genotype::max; ++g) {
 				std::cout << "\t" << data[i][g];
 			}
 		}
@@ -614,45 +544,33 @@ void TGlfMultiReader::print(){
 	}
 };
 
-void TGlfMultiReader::writeSampleNamesOfActiveFiles(gz::ogzstream & out, std::string sep){
-	//sample names are file names without glf ending
-	if(numActiveFiles > 0){
-		for(TGlfReader* it : pointerToActiveGLFs){
-			std::string name = it->name();
-			out << sep << coretools::str::readBeforeLast(name, ".glf");
-		}
+void TGlfMultiReader::writeSampleNamesOfActiveFiles(gz::ogzstream &out, std::string &sep) const {
+	// sample names are file names without glf ending
+	if (numActiveFiles > 0) {
+		for (TGlfReader *it : pointerToActiveGLFs) { out << sep << coretools::str::readBeforeLast(it->name(), ".glf"); }
 	}
 };
 
-std::vector<std::string> TGlfMultiReader::namesOfActiveFiles(){
+std::vector<std::string> TGlfMultiReader::namesOfActiveFiles() const {
 	std::vector<std::string> vec;
 
-	//sample names are file names without glf ending
-	if(numActiveFiles > 0){
-		for(TGlfReader* it : pointerToActiveGLFs){
-			vec.emplace_back(it->name());
-		}
+	// sample names are file names without glf ending
+	if (numActiveFiles > 0) {
+		for (TGlfReader *it : pointerToActiveGLFs) { vec.emplace_back(it->name()); }
 	}
 	return vec;
 };
 
-std::vector<std::string> TGlfMultiReader::sampleNamesOfActiveFiles(){
+std::vector<std::string> TGlfMultiReader::sampleNamesOfActiveFiles() const {
 	std::vector<std::string> vec;
 
-	//sample names are file names without glf ending
-	if(numActiveFiles > 0){
-		for(TGlfReader* it : pointerToActiveGLFs){
+	// sample names are file names without glf ending
+	if (numActiveFiles > 0) {
+		for (TGlfReader *it : pointerToActiveGLFs) {
 			vec.emplace_back(coretools::str::readBeforeLast(it->name(), ".glf"));
 		}
 	}
 	return vec;
 };
 
-genometools::Base TGlfMultiReader::refBase(){
-	if(hasReference){
-		return fastaBuffer.refAt(BAM::TGenomePosition(_curRefId, _position));
-	} else return genometools::Base::N;
-};
-
-
-}; //end namespace GLF
+}; // end namespace GLF

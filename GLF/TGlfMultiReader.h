@@ -8,298 +8,209 @@
 #ifndef GLF_TGLFMULTIREADER_H_
 #define GLF_TGLFMULTIREADER_H_
 
-
 #include "GenotypeTypes.h"
-#include "TGLF.h"
+#include "TBitSet.h"
 #include "TFastaBuffer.h"
-#include "TParameters.h"
+#include "TGLF.h"
 #include "stringFunctions.h"
 
-namespace GLF{
-
+namespace GLF {
 
 //----------------------------------------------------
 // TMultiGLFDataSample
 //----------------------------------------------------
-class TMultiGLFDataSample{
+
+class TMultiGLFDataSample {
 private:
-	const TGLFLikelihoods * _genotypeLikelihoodsGLF; //points to data TGlfReader
-	bool _hasData;
-	bool _isHaploid;
-	uint16_t _depth;
-
+	const TGLFLikelihoods *_glf = nullptr; // points to data TGlfReader
+	uint16_t _depth_or_haploid  = 0;
 public:
-	TMultiGLFDataSample(){
-		_hasData = false;
-		_isHaploid = false;
-		_depth = 0;
-		_genotypeLikelihoodsGLF = nullptr;
+	constexpr TMultiGLFDataSample() = default;
+	constexpr TMultiGLFDataSample(bool isHaploid) : _depth_or_haploid(isHaploid) {}
+	constexpr TMultiGLFDataSample(const TGLFLikelihoods *GLs, uint16_t Depth) : _glf(GLs), _depth_or_haploid(Depth){};
+
+	constexpr bool hasData() const noexcept { return _glf != nullptr; };
+	constexpr uint16_t depth() const noexcept { return hasData() ? _depth_or_haploid : 0; };
+	constexpr bool isHaploid() const noexcept { return hasData() ? _glf->isHaploid() : _depth_or_haploid; };
+
+	constexpr const genometools::HighPrecisionPhredIntProbability operator[](const genometools::Genotype &G) const {
+		if (!hasData()) { return genometools::HighPrecisionPhredIntProbability::highest(); }
+		return (*_glf)[G]; // throws if haploid
 	};
 
-	void setDiploid(const TGLFLikelihoods & GLs, uint16_t Depth){
-		_genotypeLikelihoodsGLF = &GLs;
-		_hasData = true;
-		_isHaploid = false;
-		_depth = Depth;
-	};
-
-	void setHaploid(const TGLFLikelihoods & GLs, uint16_t Depth){
-		_genotypeLikelihoodsGLF = &GLs;
-		_hasData = true;
-		_isHaploid = true;
-		_depth = Depth;
-	};
-
-	void setMissingDiploid(){
-		_hasData = false;
-		_depth = 0;
-		_isHaploid = false;
-	};
-
-	void setMissingHaploid(){
-		_hasData = false;
-		_depth = 0;
-		_isHaploid = true;
-	};
-
-	uint16_t depth() const { return _depth; };
-	bool hasData() const { return _hasData; };
-
-	bool isHaploid() const {
-		return _isHaploid;
-	};
-
-	const genometools::HighPrecisionPhredIntProbability operator[](const genometools::Genotype & G) const {
-		if(!_hasData){
-			return genometools::HighPrecisionPhredIntProbability::highest();
-		}
-		if(_isHaploid){
-			throw std::runtime_error("HighPrecisionPhredIntProbability TMultiGLFDataSample::operator[](const genometools::Genotype & G): sample is haploid!");
-		}
-		return (*_genotypeLikelihoodsGLF)[G];
-	};
-
-	const genometools::HighPrecisionPhredIntProbability operator[](const genometools::Base & B) const{
-		if(!_hasData){
-			return genometools::HighPrecisionPhredIntProbability::highest();
-		}
-		if(!_isHaploid){
-			throw std::runtime_error("HighPrecisionPhredIntProbability TMultiGLFDataSample::operator[](const genometools::Base & B): sample is diploid!");
-		}
-		return (*_genotypeLikelihoodsGLF)[B];
+	constexpr const genometools::HighPrecisionPhredIntProbability operator[](const genometools::Base &B) const {
+		if (!hasData()) { return genometools::HighPrecisionPhredIntProbability::highest(); }
+		return (*_glf)[B];// throws if diploid
 	};
 };
 
 //-------------------------------------
 // TGenotypeLikelihoodsOneAllelicCombination
 //-------------------------------------
-class TMultiGLFDataSampleOneAllelicCombination{
+class TMultiGLFDataSampleOneAllelicCombination {
 private:
-	bool _isMissing;
-	bool _isHaploid;
+	bool _isMissing = true;
+	bool _isHaploid = false;
 	std::array<genometools::HighPrecisionPhredIntProbability, 3> _GLs;
-	constexpr static const genometools::HighPrecisionPhredIntProbability _maxGTL = genometools::HighPrecisionPhredIntProbability::highest();
 
 public:
-	TMultiGLFDataSampleOneAllelicCombination() = default;
-	~TMultiGLFDataSampleOneAllelicCombination() = default;
+	constexpr TMultiGLFDataSampleOneAllelicCombination(bool isHaploid=false) : _isHaploid(isHaploid) {}
 
-	void setDiploid(const genometools::HighPrecisionPhredIntProbability & GL_homoFirst, const genometools::HighPrecisionPhredIntProbability & GL_het, const genometools::HighPrecisionPhredIntProbability & GL_homoSecond){
-		_GLs[0] = GL_homoFirst;
-		_GLs[1] = GL_het;
-		_GLs[2] = GL_homoSecond;
-		_isHaploid = false;
-		_isMissing = false;
-	};
+	constexpr TMultiGLFDataSampleOneAllelicCombination(genometools::HighPrecisionPhredIntProbability homoFirst,
+							   genometools::HighPrecisionPhredIntProbability het,
+							   genometools::HighPrecisionPhredIntProbability homoSecond)
+	    : _isMissing(false), _isHaploid(false), _GLs({homoFirst, het, homoSecond}) {}
 
-	void setHaploid(const genometools::HighPrecisionPhredIntProbability & GL_first, const genometools::HighPrecisionPhredIntProbability & GL_second){
-		_GLs[0] = GL_first;
-		_GLs[1] = GL_second;
-		_isHaploid = true;
-		_isMissing = false;
-	};
+	constexpr TMultiGLFDataSampleOneAllelicCombination(genometools::HighPrecisionPhredIntProbability first,
+							   genometools::HighPrecisionPhredIntProbability second)
+	    : _isMissing(false), _isHaploid(true), _GLs({first, second, genometools::HighPrecisionPhredIntProbability{}}) {}
 
-	void setMissingDiploid(){
-		_isHaploid = false;
-		_isMissing = true;
-	};
+	bool isMissing() const { return _isMissing; };
+	bool isHaploid() const { return _isHaploid; };
 
-	void setMissingHaploid(){
-		_isHaploid = true;
-		_isMissing = true;
-	};
+	constexpr genometools::HighPrecisionPhredIntProbability
+	operator[](genometools::BiallelicGenotype Genotype) const {
+		// check
+		if (_isHaploid && !genometools::isHaploid(Genotype)) {
+			throw std::runtime_error("constexpr const HighPrecisionPhredIntProbability& "
+						 "TGenotypeLikelihoodsOneAllelicCombination::operator[](const "
+						 "genometools::BiallelicGenotype & Genotype) const: sample is haploid!");
+		}
+		if (!_isHaploid && genometools::isDiploid(Genotype)) {
+			throw std::runtime_error("constexpr const HighPrecisionPhredIntProbability& "
+						 "TGenotypeLikelihoodsOneAllelicCombination::operator[](const "
+						 "genometools::BiallelicGenotype & Genotype) const: sample is Diploid!");
+		}
 
-	bool isMissing() const {
-		return _isMissing;
-	};
-
-	bool isHaploid() const {
-		return _isHaploid;
-	};
-
-	constexpr const genometools::HighPrecisionPhredIntProbability& operator[](const genometools::BiallelicGenotype & Genotype) const {
-		 //check
-		 if(_isHaploid){
-			 if(!genometools::isHaploid(Genotype)){
-				throw std::runtime_error("constexpr const HighPrecisionPhredIntProbability& TGenotypeLikelihoodsOneAllelicCombination::operator[](const genometools::BiallelicGenotype & Genotype) const: sample is haploid!");
-			 }
-		 } else {
-			 if(!genometools::isDiploid(Genotype)){
-				throw std::runtime_error("constexpr const HighPrecisionPhredIntProbability& TGenotypeLikelihoodsOneAllelicCombination::operator[](const genometools::BiallelicGenotype & Genotype) const: sample is Diploid!");
-			 }
-		 }
-
-		 //return
-		 if(_isMissing){
-			 return _maxGTL;
-		 } else {
-			 return _GLs[genometools::altAlleleCounts(Genotype)];
-		 }
+		// return
+		if (_isMissing) { return genometools::HighPrecisionPhredIntProbability::highest(); }
+		return _GLs[genometools::altAlleleCounts(Genotype)];
 	};
 };
 
 using TMultiGLFDataOneAllelicCombination = std::vector<TMultiGLFDataSampleOneAllelicCombination>;
+using TMultiGLFData                      = std::vector<TMultiGLFDataSample>;
 
-//------------------------------------------------
-// TMultiGLFData
-//------------------------------------------------
-class TMultiGLFData{
-private:
-	std::vector<TMultiGLFDataSample> samples;
-
-public:
-	TMultiGLFData() = default;
-	TMultiGLFData(uint32_t Size);
-	~TMultiGLFData(){};
-
-	void resize(uint32_t Size);
-	size_t size() const { return samples.size(); };
-	TMultiGLFDataSample& operator[](uint32_t Sample){ return samples[Sample]; };
-	const TMultiGLFDataSample& operator[](uint32_t Sample) const { return samples[Sample]; };
-	void fill(TMultiGLFDataOneAllelicCombination & storage, const genometools::AllelicCombination & alleleicCombination) const;
-	uint32_t totalDepth();
-};
+void fill(TMultiGLFDataOneAllelicCombination &storage, const TMultiGLFData &samples,
+	  const genometools::AllelicCombination &alleleicCombination);
 
 //----------------------------------------------------
-//TGlfMultiReaderVcfLocusDefinition
+// TGlfMultiReaderVcfLocusDefinition
 //----------------------------------------------------
-class TGlfMultiReaderVcf{
+class TGlfMultiReaderVcf {
 private:
-	std::vector<std::string> genotypeStrings = {"0", "1", "0/0", "0/1", "1/1"};
 	bool _usePhredScaledLikelihoods;
-
-	coretools::TRandomGenerator* randomGenerator;
 	gz::ogzstream vcf;
-	bool vcfOpened;
 
 	genometools::Base _ref, _alt;
-	//char ref_char, alt_char;
-	std::string _genotypeString[5];
+	// char ref_char, alt_char;
 	genometools::Genotype _refHom, _het, _altHom;
 
-	void _openVCF(const std::string & filename, const std::string & source, std::vector<std::string> & sampleNames);
+	void _openVCF(const std::string &filename, const std::string &source, std::vector<std::string> &sampleNames);
 	void _closeVCF();
-	void _setMajorMinor(const genometools::Base & refAllele, const genometools::Base & altAllele);
-	void writeLikelihood(const genometools::HighPrecisionPhredIntProbability & likGlf);
-	void writeDiploidIndividualToVCF(TMultiGLFDataSample & sample);
-	void writeHaploidIndividualToVCF(TMultiGLFDataSample & sample);
+	void _setMajorMinor(genometools::Base refAllele, genometools::Base altAllele);
+	void writeLikelihood(genometools::HighPrecisionPhredIntProbability likGlf);
+	void writeDiploidIndividualToVCF(TMultiGLFDataSample &sample);
+	void writeHaploidIndividualToVCF(TMultiGLFDataSample &sample);
 
 public:
-	TGlfMultiReaderVcf(const std::string filename, const std::string source, std::vector<std::string> & sampleNames, const bool & UsePhredScaledLikelihoods, coretools::TRandomGenerator* RandomGenerator);
-	~TGlfMultiReaderVcf(){
-		_closeVCF();
-	}
+	TGlfMultiReaderVcf(const std::string filename, const std::string source, std::vector<std::string> &sampleNames,
+			   bool UsePhredScaledLikelihoods);
+	~TGlfMultiReaderVcf() { _closeVCF(); }
 
-	void writeSite(const std::string & chrName, uint32_t position, const genometools::PhredIntProbability & varianTQuality, TMultiGLFData & data, const genometools::Base Ref, const genometools::Base Alt);
+	void writeSite(const std::string &chrName, uint32_t position, genometools::PhredIntProbability varianTQuality,
+		       TMultiGLFData &data, genometools::Base Ref, genometools::Base Alt);
 };
 
 //----------------------------------------------------
-//TGlfMultiReader
+// TGlfMultiReader
 //----------------------------------------------------
-class TGlfMultiReader{
+class TGlfMultiReader {
 private:
-	uint8_t numGLFs;
+	uint8_t numGLFs = 0;
 	std::vector<std::string> GLFNames;
-	TGlfReader* GLFs;
-	bool readersOpened;
+	std::vector<TGlfReader> GLFs;
+	bool readersOpened = false;
 
-	void _openGLFs(coretools::TLog* logfile);
+	// active files
+	// Object will loop only over active files
+	bool _onlyJumpToPositionsWithData = false;
+	uint32_t numActiveFiles = 0;
+	std::vector<bool> GLFIsActive;
+	std::vector<TGlfReader *> pointerToActiveGLFs;
 
-	//active files
-	//Object will loop only over active files
-	bool _onlyJumpToPositionsWithData;
-	uint32_t numActiveFiles;
-	bool* GLFIsActive;
-	std::vector<int> activeGLFs;
-	std::vector<TGlfReader*> pointerToActiveGLFs;
-	int _getGLFIndexFromName(const std::string & name);
+	// Moving along active files
+	uint32_t _position = 0;
+	uint32_t _nextPosition = 0; // next is anticipated position, used to advance
+	uint32_t _curRefId = 0;
+	TGlfChromosome _curChr;
+	uint32_t _numActiveFilesWithData = 0;
+	uint32_t minDepth = 0;
+
+	// reference
+	bool hasReference = false;
+	BAM::TFastaBuffer fastaBuffer;
+
+	void _openGLFs();
+	int _getGLFIndexFromName(const std::string &name) const;
 	void _setActive(const int index);
 	void _setAllInactive();
 	void _prepareParsing();
 	bool _jumpToNextPositionWithData();
 	void _updateChromosomeInfo();
 
-	//Moving along active files
-	uint32_t _position, _nextPosition; //next is anticipated position, used to advance
-	uint32_t _curRefId;
-	TGlfChromosome _curChr;
-	uint32_t _numActiveFilesWithData;
-	uint32_t minDepth;
-
-	//reference
-	bool hasReference;
-	BAM::TFastaBuffer fastaBuffer;
 
 	bool moveToNextChromosome();
 
-	void writeDiploidIndividualToVCF(int ind, gz::ogzstream & vcf, const genometools::Base & major, const genometools::Base & minor, const std::vector<std::string> & genotypeStrings, coretools::TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods);
-	void writeHaploidIndividualToVCF(int ind, gz::ogzstream & vcf, const genometools::Base & major, const genometools::Base & minor, const std::vector<std::string> & genotypeStrings, coretools::TRandomGenerator* randomGenerator, const bool & usePhredLikelihoods);
+	void writeDiploidIndividualToVCF(int ind, gz::ogzstream &vcf, genometools::Base major, genometools::Base minor,
+					 const std::vector<std::string> &genotypeStrings, bool usePhredLikelihoods);
+	void writeHaploidIndividualToVCF(int ind, gz::ogzstream &vcf, genometools::Base major, genometools::Base minor,
+					 const std::vector<std::string> &genotypeStrings, bool usePhredLikelihoods);
 
 public:
 	TMultiGLFData data;
 
 	TGlfMultiReader();
-	TGlfMultiReader(std::vector<std::string> FileNames, coretools::TLog* logfile);
-	TGlfMultiReader(coretools::TParameters & params, coretools::TLog* logfile);
-	void init();
+	TGlfMultiReader(std::vector<std::string> FileNames);
 
 	~TGlfMultiReader();
 
-	void openGLFs(const std::vector<std::string> & Filenames, coretools::TLog* logfile);
-	void openGLFs(coretools::TParameters & params, coretools::TLog* logfile);
+	void openGLFs(const std::vector<std::string> &Filenames);
+	void openGLFs();
 	void closeGLF();
-	void setDepthFilter(int MinDepth, coretools::TLog* logfile);
-	void addReference(const std::string FastaFile);
-	void onlyJumpToPositionsWithData(const bool & set = true){ _onlyJumpToPositionsWithData = set; };
+	void setDepthFilter(int MinDepth);
+	void addReference(const std::string& FastaFile);
+	void onlyJumpToPositionsWithData(bool set = true) { _onlyJumpToPositionsWithData = set; };
 
-
-	//set active / inactive
-	void setActive(const int index);
-	void setActive(const std::string & name);
-	void setActive(const int index1, const int index2);
-	void setActive(const std::string & name1, const std::string & name2);
-	void setActive(std::vector<int> & indexes);
-	void setActive(std::vector<std::string> & names);
+	// set active / inactive
+	void setActive(int index);
+	void setActive(const std::string &name);
+	void setActive(int index1, int index2);
+	void setActive(const std::string &name1, const std::string &name2);
+	void setActive(std::vector<int> &indexes);
+	void setActive(std::vector<std::string> &names);
 	void setAllActive();
 
-	//parse
+	// parse
 	bool readNext();
 
-	//output
-	void print();
-	void writeSampleNamesOfActiveFiles(gz::ogzstream & out, std::string sep);
-	std::vector<std::string> namesOfActiveFiles();
-	std::vector<std::string> sampleNamesOfActiveFiles();
+	// output
+	void print() const;
+	void writeSampleNamesOfActiveFiles(gz::ogzstream &out, std::string& sep) const;
+	std::vector<std::string> namesOfActiveFiles() const;
+	std::vector<std::string> sampleNamesOfActiveFiles() const;
 
-	//access data
-	uint32_t numSamples(){ return numGLFs; };
-	uint32_t numActiveSamples(){ return numActiveFiles; };
-	uint32_t numActiveSamplesWithData(){ return _numActiveFilesWithData; };
-	std::string chr(){return _curChr.name(); };
-	uint32_t position(){return _position; };
-	genometools::Base refBase();
+	// access data
+	constexpr uint32_t numSamples() const noexcept { return numGLFs; };
+	constexpr uint32_t numActiveSamples() const noexcept { return numActiveFiles; };
+	constexpr uint32_t numActiveSamplesWithData() const noexcept { return _numActiveFilesWithData; };
+	std::string chr() const { return _curChr.name(); };
+	constexpr uint32_t position() const noexcept { return _position; };
+	constexpr genometools::Base refBase() const noexcept {
+		return hasReference ? fastaBuffer.refAt(BAM::TGenomePosition(_curRefId, _position)) : genometools::Base::N;
+	};
 };
 
-}; //end namespace GLF
+}; // end namespace GLF
 
 #endif /* GLF_TGLFMULTIREADER_H_ */
