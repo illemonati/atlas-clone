@@ -348,7 +348,7 @@ bool TGlfReader::readNextWindow(std::vector<TGLFLikelihoods> &genoLikelihoods, u
 	// We are at first position in window with data
 
 	// ensure size of container, fill with missing Data
-	genoLikelihoods.resize(end - start, _genotypeLikelihoodsGLF_missingData);
+	genoLikelihoods.resize(end - start, TGLFLikelihoods{});
 
 	// Assumes that windows are read in order: no jumping back!
 	if (refId < _curChr.refId()) { return false; }

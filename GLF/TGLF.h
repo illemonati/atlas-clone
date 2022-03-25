@@ -187,7 +187,6 @@ private:
 	uint16_t _depth = 0;
 	int _RMS_mappingQual = 0;
 	TGLFLikelihoods _genotypeLikelihoodsGLF;
-	static constexpr TGLFLikelihoods _genotypeLikelihoodsGLF_missingData{};
 
 	// about chromosomes
 	std::map<uint32_t, TGlfChromosome> _chromosomesAlreadyParsed;
