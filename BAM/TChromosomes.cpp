@@ -21,11 +21,11 @@ TChromosome::TChromosome(uint32_t RefID, const std::string & Name, uint32_t Leng
 	_initialize(RefID, Name, Length, 2);
 };
 
-TChromosome::TChromosome(uint32_t RefID, const std::string & Name, uint32_t Length, const uint8_t & Ploidy){
+TChromosome::TChromosome(uint32_t RefID, const std::string & Name, uint32_t Length, uint8_t Ploidy){
 	_initialize(RefID, Name, Length, Ploidy);
 };
 
-void TChromosome::_initialize(uint32_t RefID, const std::string & Name, uint32_t Length, const uint8_t & Ploidy){
+void TChromosome::_initialize(uint32_t RefID, const std::string & Name, uint32_t Length, uint8_t Ploidy){
 	name = Name;
 	length = Length;
 	ploidy = Ploidy;
@@ -79,7 +79,7 @@ void TChromosomes::appendChromosome(const std::string & name, uint32_t length){
 	_chromosomes.emplace_back(_chromosomes.size(), name, length);
 };
 
-void TChromosomes::appendChromosome(const std::string & name, uint32_t length, const uint8_t & ploidy){
+void TChromosomes::appendChromosome(const std::string & name, uint32_t length, uint8_t ploidy){
 	_chromosomes.emplace_back(_chromosomes.size(), name, length, ploidy);
 };
 

@@ -24,7 +24,7 @@ namespace BAM{
 //---------------------------------------------------------
 class TChromosome{
 private:
-	void _initialize(uint32_t RefID, const std::string & Name, uint32_t Length, const uint8_t & Ploidy);
+	void _initialize(uint32_t RefID, const std::string & Name, uint32_t Length, uint8_t Ploidy);
 
 public:
 	std::string name; //SN field
@@ -44,7 +44,7 @@ public:
 	std::string uri; //UR field;
 
 	TChromosome(uint32_t RefID, const std::string & Name, uint32_t Length);
-	TChromosome(uint32_t RefID, const std::string & Name, uint32_t Length, const uint8_t & Ploidy);
+	TChromosome(uint32_t RefID, const std::string & Name, uint32_t Length, uint8_t Ploidy);
 
 
 	uint32_t refID() const { return chrStart.refID(); };
@@ -91,7 +91,7 @@ public:
 
 	void clear();
 	void appendChromosome(const std::string & name, uint32_t length);
-	void appendChromosome(const std::string & name, uint32_t length, const uint8_t & ploidy);
+	void appendChromosome(const std::string & name, uint32_t length, uint8_t ploidy);
 
 	void limitAndSetPloidy(coretools::TParameters & params, coretools::TLog* logfile);
 	void limitChr(coretools::TParameters & params, coretools::TLog* logfile);
