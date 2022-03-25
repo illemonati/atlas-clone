@@ -23,7 +23,7 @@ void TTestGLFFile::_initialize(const std::vector<uint32_t>& ChrLength, const std
     _dummy_RMS_mappingQual = 0; _dummyMax_RMS_mappingQual = 20;
 
     // initialize all entries of _writtenGenotypeLikelihoodsWithMissingSites with missing
-    for (int pos = 0; pos < _chromosomes.referenceLength(); pos++){
+    for (size_t pos = 0; pos < _chromosomes.referenceLength(); pos++){
         GenotypeLikelihoods::TGenotypeLikelihoods gtEmpty;
         _writtenGenotypeLikelihoodsWithMissingSites.push_back(gtEmpty);
     }

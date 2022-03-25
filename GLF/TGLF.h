@@ -33,6 +33,12 @@ private:
 public:
 	constexpr TGLFLikelihoods(bool isHaploid=false, genometools::HighPrecisionPhredIntProbability v = genometools::HighPrecisionPhredIntProbability::highest()) :_likelihoods{v, v, v, v, v, v, v, v, v, v}, _isHaploid(isHaploid) {}
 
+	constexpr TGLFLikelihoods(const TGLFLikelihoods& other) = default;
+	constexpr TGLFLikelihoods(TGLFLikelihoods&& other) = default;
+	constexpr TGLFLikelihoods& operator=(const TGLFLikelihoods& other) = default;
+	constexpr TGLFLikelihoods& operator=(TGLFLikelihoods&& other) = default;
+	~TGLFLikelihoods() = default;
+
 
 	constexpr void setHaploid(bool isHaploid = true) noexcept {_isHaploid = isHaploid;}
 	constexpr void setDiploid(bool isDiploid = true) noexcept {_isHaploid = !isDiploid;}

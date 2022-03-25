@@ -346,36 +346,19 @@ bool TGlfReader::readNextWindow(std::vector<TGLFLikelihoods> &genoLikelihoods, u
 	if (_position >= end) return false; // no data
 
 	// We are at first position in window with data
-	uint32_t i   = start;
-	size_t index = 0;
 
-	// ensure size of container
-	genoLikelihoods.resize(end - start + 1);
+	// ensure size of container, fill with missing Data
+	genoLikelihoods.resize(end - start, _genotypeLikelihoodsGLF_missingData);
 
 	// Assumes that windows are read in order: no jumping back!
 	if (refId < _curChr.refId()) { return false; }
 
 	while (_position < end && _curChr.refId() == refId) {
-		// fill in missing positions before
-		for (; i < _position; ++i, ++index) { genoLikelihoods[index] = _genotypeLikelihoodsGLF_missingData; }
-
 		// fill in genotype likelihoods of current position
-		genoLikelihoods[index] = _genotypeLikelihoodsGLF;
-		++index;
-		++i;
-
+		genoLikelihoods[_position - start] = _genotypeLikelihoodsGLF;
 		// read next record
 		if (!readNext()) break;         // reached eof
-		if (_curChr.refId() != refId) { // reached next chromosome
-			for (; index < genoLikelihoods.size(); ++index) {
-				genoLikelihoods[index] = _genotypeLikelihoodsGLF_missingData;
-			}
-		}
 	}
-
-	// fill sites that were in the end of the window
-	for (; index < genoLikelihoods.size(); ++index) { genoLikelihoods[index] = _genotypeLikelihoodsGLF_missingData; }
-
 	return true;
 };
 
