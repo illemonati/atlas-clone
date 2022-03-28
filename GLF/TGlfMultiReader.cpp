@@ -13,6 +13,7 @@
 #include "debugtools.h"
 #include <algorithm>
 #include <iterator>
+#include <numeric>
 
 namespace GLF {
 using coretools::instances::logfile;
@@ -46,9 +47,7 @@ void fill(TMultiGLFDataOneAllelicCombination &storage, const TMultiGLFData &samp
 };
 
 uint32_t totalDepth(const TMultiGLFData &samples) noexcept {
-	uint32_t tot = 0;
-	for (const auto &s : samples) tot += s.depth();
-	return tot;
+	return std::accumulate(samples.begin(), samples.end(), 0, [](auto tot, auto s) {return tot + s.depth();});
 };
 
 //----------------------------------------------------
@@ -101,7 +100,7 @@ void TGlfMultiReaderVcf::_setMajorMinor(genometools::Base refAllele, genometools
 	_altHom = genometools::genotype(_alt, _alt);
 };
 
-void TGlfMultiReaderVcf::writeLikelihood(HighPrecisionPhredIntProbability likGlf) {
+void TGlfMultiReaderVcf::writeLikelihood(HighPrecisionPhredIntProbability likGlf) const {
 	if (_usePhredScaledLikelihoods) {
 		vcf << (genometools::PhredIntProbability)likGlf;
 	} else {
@@ -138,24 +137,24 @@ void TGlfMultiReaderVcf::writeSite(const std::string &chrName, uint32_t position
 		vcf << "\tGT:GQ:DP:GL";
 
 	// now write active samples
-	for (uint32_t i = 0; i < data.size(); ++i) {
-		if (data[i].isHaploid())
-			writeHaploidIndividualToVCF(data[i]);
+	for (const auto &d : data) {
+		if (d.isHaploid())
+			writeHaploidIndividualToVCF(d);
 		else
-			writeDiploidIndividualToVCF(data[i]);
+			writeDiploidIndividualToVCF(d);
 	}
 
 	// end of line
 	vcf << '\n';
 };
 
-void TGlfMultiReaderVcf::writeDiploidIndividualToVCF(TMultiGLFDataSample &sample) {
+void TGlfMultiReaderVcf::writeDiploidIndividualToVCF(const TMultiGLFDataSample &sample) const {
 	if (!sample.hasData()) {
 		vcf << "\t./.:.:.:.";
 		return;
 	}
 
-	constexpr std::array genotypeStrings = {"0", "1", "0/0", "0/1", "1/1"};
+	constexpr std::array genotypeStrings = {"0/0", "0/1", "1/1"};
 	// find min qual
 	const std::array smp = {sample[_refHom], sample[_het], sample[_altHom]};
 	const auto min       = std::min_element(smp.cbegin(), smp.cend());
@@ -163,16 +162,17 @@ void TGlfMultiReaderVcf::writeDiploidIndividualToVCF(TMultiGLFDataSample &sample
 	const auto in        = std::distance(smp.cbegin(), min);
 
 	// get all genotypes with minQual (=MLE)
-	std::vector mleGenotypes{(in + 2)};
-
-	// write MLE genoytpe
-	int mleGeno = mleGenotypes[randomGenerator().sample(mleGenotypes.size())];
-	vcf << '\t' << genotypeStrings[mleGeno] << ':';
+	std::vector<size_t> mleGenotypes;
+	for (size_t i = 0; i < smp.size(); ++i)
+		if (smp[i] == minQual) mleGenotypes.push_back(i);
 
 	// write genotype quality
-	if (mleGenotypes.size() > 1)
+	if (mleGenotypes.size() > 1) {
+		const int mleGeno = mleGenotypes[randomGenerator().sample(mleGenotypes.size())];
+		vcf << '\t' << genotypeStrings[mleGeno] << ':';
 		vcf << "0:";
-	else {
+	} else {
+		vcf << '\t' << genotypeStrings[mleGenotypes.front()] << ':';
 		constexpr std::array<std::array<size_t, 2>, 3> a = {{{1, 2}, {0, 2}, {1, 2}}};
 		const auto slq = std::min(smp[a[in][0]], smp[a[in][1]]);
 		// find second highest quality
@@ -190,7 +190,7 @@ void TGlfMultiReaderVcf::writeDiploidIndividualToVCF(TMultiGLFDataSample &sample
 	writeLikelihood(sample[_altHom] - minQual);
 };
 
-void TGlfMultiReaderVcf::writeHaploidIndividualToVCF(TMultiGLFDataSample &sample) {
+void TGlfMultiReaderVcf::writeHaploidIndividualToVCF(const TMultiGLFDataSample &sample) const {
 	if (!sample.hasData()) {
 		vcf << "\t./.:.:.:.";
 		return;
@@ -292,10 +292,10 @@ void TGlfMultiReader::openGLFs() {
 
 void TGlfMultiReader::closeGLF() {
 	if (readersOpened) {
-		// close all glf handlers
-		for (int g = 0; g < numGLFs; ++g) GLFs[g].close();
+		for (auto& g: GLFs) g.close();
 
 		GLFNames.clear();
+		GLFs.clear();
 		numGLFs       = 0;
 		readersOpened = false;
 	}
@@ -329,7 +329,7 @@ void TGlfMultiReader::_setActive(const int index) {
 };
 
 void TGlfMultiReader::_setAllInactive() {
-	for (int i = 0; i < numGLFs; ++i) GLFIsActive[i] = false;
+	GLFIsActive.assign(numGLFs, false);
 	pointerToActiveGLFs.clear();
 };
 
@@ -451,8 +451,7 @@ void TGlfMultiReader::setActive(std::vector<int> &indexes) {
 void TGlfMultiReader::setActive(std::vector<std::string> &names) {
 	_setAllInactive();
 	for (const auto &name : names) {
-		int index = _getGLFIndexFromName(name);
-		_setActive(index);
+		_setActive(_getGLFIndexFromName(name));
 	}
 	_prepareParsing();
 };

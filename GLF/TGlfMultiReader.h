@@ -100,7 +100,7 @@ void fill(TMultiGLFDataOneAllelicCombination &storage, const TMultiGLFData &samp
 class TGlfMultiReaderVcf {
 private:
 	bool _usePhredScaledLikelihoods;
-	gz::ogzstream vcf;
+	mutable gz::ogzstream vcf;
 
 	genometools::Base _ref, _alt;
 	// char ref_char, alt_char;
@@ -109,9 +109,9 @@ private:
 	void _openVCF(const std::string &filename, const std::string &source, std::vector<std::string> &sampleNames);
 	void _closeVCF();
 	void _setMajorMinor(genometools::Base refAllele, genometools::Base altAllele);
-	void writeLikelihood(genometools::HighPrecisionPhredIntProbability likGlf);
-	void writeDiploidIndividualToVCF(TMultiGLFDataSample &sample);
-	void writeHaploidIndividualToVCF(TMultiGLFDataSample &sample);
+	void writeLikelihood(genometools::HighPrecisionPhredIntProbability likGlf) const;
+	void writeDiploidIndividualToVCF(const TMultiGLFDataSample &sample) const;
+	void writeHaploidIndividualToVCF(const TMultiGLFDataSample &sample) const;
 
 public:
 	TGlfMultiReaderVcf(const std::string filename, const std::string source, std::vector<std::string> &sampleNames,
