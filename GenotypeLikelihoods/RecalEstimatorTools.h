@@ -118,14 +118,17 @@ public:
 //------------------------------------------------
 class TModelStatusEntry{
 private:
-	bool _first;
-	bool _second;
+	bool _first = false;
+	bool _second = false;
 
 public:
-	TModelStatusEntry();
-
-	uint16_t size();
-	void set(const bool & IsSecondMate);
+	constexpr uint16_t size() const noexcept { return _first + _second; };
+	constexpr void set(const bool &IsSecondMate) noexcept {
+		if (IsSecondMate)
+			_first = true;
+		else
+			_second = true;
+	};
 	std::string getString() const;
 };
 
@@ -149,7 +152,7 @@ public:
 	void add(uint16_t ReadGroupId);
 	TModelStatus& operator[](uint16_t ReadGroupId);
 	uint16_t num(const ModelStatusTypes & Type);
-	void report(const ModelStatusTypes & Type, const std::string & Title, const BAM::TReadGroups & ReadGroups, coretools::TLog* Logfile);
+	void report(const ModelStatusTypes & Type, const std::string & Title, const BAM::TReadGroups & ReadGroups);
 };
 
 }; //end namespace RecalEstimatorTools

@@ -6,10 +6,13 @@
  */
 
 #include "RecalEstimatorTools.h"
+#include "TLog.h"
 
 namespace GenotypeLikelihoods {
 
 namespace RecalEstimatorTools {
+
+using coretools::instances::logfile;
 
 //--------------------------------------------------------------------
 // TRecalibrationEMDataTable
@@ -128,22 +131,6 @@ const TRecalDataTableOneReadGroup& TRecalDataTables::operator[](uint16_t readGro
 //------------------------------------------------
 // Classes to keep track of models to estimate
 //------------------------------------------------
-TModelStatusEntry::TModelStatusEntry(){
-	_first = false;
-	_second = false;
-};
-
-uint16_t TModelStatusEntry::size(){
-	return _first + _second;
-};
-
-void TModelStatusEntry::set(const bool & IsSecondMate){
-	if(!IsSecondMate){
-		_first = true;
-	} else {
-		_second = true;
-	}
-};
 
 std::string TModelStatusEntry::getString() const{
 	if(_first && _second){
@@ -177,15 +164,15 @@ uint16_t TModelStati::num(const ModelStatusTypes & Type){
 	return num;
 };
 
-void TModelStati::report(const ModelStatusTypes & Type, const std::string & Title, const BAM::TReadGroups & ReadGroups, coretools::TLog* Logfile){
+void TModelStati::report(const ModelStatusTypes & Type, const std::string & Title, const BAM::TReadGroups & ReadGroups){
 	if(num(Type) > 0){
-		Logfile->startIndent(Title);
+		logfile().startIndent(Title);
 		for(auto& m : modelStatus){
 			if(m.second[Type].size() > 0){
-				Logfile->list(ReadGroups.getName(m.first), " ", m.second[Type].getString());
+				logfile().list(ReadGroups.getName(m.first), " ", m.second[Type].getString());
 			}
 		}
-		Logfile->endIndent();
+		logfile().endIndent();
 	}
 };
 

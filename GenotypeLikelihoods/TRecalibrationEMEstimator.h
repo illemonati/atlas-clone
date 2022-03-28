@@ -9,79 +9,45 @@
 #define TRECALIBRATIONEMESTIMATOR_H_
 
 #include "RecalEstimatorTools.h"
-#include "auxiliaryTools.h"
+#include "TGenotypeDistribution.h"
+#include "TGenotypeLikelihoodCalculator.h"
 #include "TPostMortemDamage.h"
 #include "TSequencingErrorModels.h"
 #include "TSite.h"
-#include "TGenotypeDistribution.h"
-#include "TGenotypeLikelihoodCalculator.h"
+#include "auxiliaryTools.h"
 
-namespace GenotypeLikelihoods{
-
-namespace RecalEstimator{
-
-//--------------------------------------------------------------------------------------
-// TModelIndex
-// Object to map read group ID and mate to an internal index used to store recal models
-//--------------------------------------------------------------------------------------
-class TModelIndex{
-private:
-	std::vector< std::array< std::shared_ptr<SequencingError::TModelRecal>, 2> > _index;
-
-public:
-	TModelIndex(const BAM::TReadGroups& ReadGroups){
-		_index.resize(ReadGroups.size());
-	};
-	~TModelIndex() = default;
-
-	void set(uint16_t ReadGroupId, const bool & IsSecondMate, std::shared_ptr<SequencingError::TModelRecal> & Model, const BAM::TReadGroupMap & ReadGroupMap){
-		//also set for all models pooled
-		for(auto& r : ReadGroupMap.readGroupsPooledWith(ReadGroupId)){
-			_index[r][IsSecondMate] = Model;
-		}
-	};
-
-	bool inUse(const BAM::TSequencedBase & base) const{
-		return _index[base.readGroupID][(int) base.isSecondMate()].get();
-	};
-
-	SequencingError::TModelRecal& operator()(const BAM::TSequencedBase & base) const{
-		return *_index[base.readGroupID][base.isSecondMate()];
-	};
-};
+namespace GenotypeLikelihoods {
+namespace SequencingError {
 
 //--------------------------------------------------------------------------
 // TSequencingErrorModelVectorForEstimation
 // store pointers to models so that they can be estimated
 //--------------------------------------------------------------------------
 
-class TSequencingErrorModelVectorForEstimation{
+class TModelVectorForEstimation {
 private:
-	//vector of pointers to models that require estimation
-	std::vector< std::shared_ptr<SequencingError::TModelRecal> > _models;
-	TModelIndex _modelIndex;
+	// vector of pointers to models that require estimation
+	std::vector<std::shared_ptr<TModelRecal>> _models;
+	std::vector<std::array<std::shared_ptr<TModelRecal>, 2>> _modelIndex;
 
 public:
-	TSequencingErrorModelVectorForEstimation(SequencingError::TModels & SequencingErrorModels,
-										     const RecalEstimatorTools::TRecalDataTables & DataTables,
-											 const BAM::TReadGroups & ReadGroups,
-											 const BAM::TReadGroupMap & ReadGroupMap,
-											 uint32_t MinRequiredObservations,
-											 coretools::TLog* Logfile);
-	~TSequencingErrorModelVectorForEstimation() = default;
+	TModelVectorForEstimation(TModels &SequencingErrorModels, const RecalEstimatorTools::TRecalDataTables &DataTables,
+				  const BAM::TReadGroups &ReadGroups, const BAM::TReadGroupMap &ReadGroupMap,
+				  uint32_t MinRequiredObservations);
+	~TModelVectorForEstimation() = default;
 
 	size_t size() const { return _models.size(); };
-	void fillBaseLikelihoods(const BAM::TSequencedBase & base,  TBaseLikelihoods & baseLikelihoods) const;
+	void fillBaseLikelihoods(const BAM::TSequencedBase &base, TBaseLikelihoods &baseLikelihoods) const;
 
-	//functions to estimate rho
+	// functions to estimate rho
 	void prepareRhoEstimationFromEMWeights();
-	void addBaseForRhoEstimation(BAM::TSequencedBase & base, const TBaseLikelihoods & EMWeights);
+	void addBaseForRhoEstimation(BAM::TSequencedBase &base, const TBaseLikelihoods &EMWeights);
 	void estimateRho();
 
-	//functions to estimate beta
+	// functions to estimate beta
 	void setNewtonRaphsonParamsToZero();
-	void addToFandJacobian(const BAM::TSequencedBase & base, const TBaseLikelihoods & EM_weights_bbar_given_d);
-	void addToQ(const BAM::TSequencedBase & base, const TBaseLikelihoods & EM_weights_bbar_given_d);
+	void addToFandJacobian(const BAM::TSequencedBase &base, const TBaseLikelihoods &EM_weights_bbar_given_d);
+	void addToQ(const BAM::TSequencedBase &base, const TBaseLikelihoods &EM_weights_bbar_given_d);
 	void setQToZero();
 	double curQ();
 	bool solveJxF();
@@ -97,19 +63,18 @@ public:
 //--------------------------------------------------------------------
 // TRecalibrationEMEstimator
 //--------------------------------------------------------------------
-class TRecalibrationEMEstimator{
+class TRecalibrationEMEstimator {
 private:
-	coretools::TLog* _logfile;
 	std::vector<TSite> _sites;
 	std::unique_ptr<TGenotypeDistribution> _genoDist;
-	const BAM::TReadGroupMap* _readGroupMap;
-	const BAM::TReadGroups* _readGroups;
+	const BAM::TReadGroupMap *_readGroupMap;
+	const BAM::TReadGroups *_readGroups;
 
 	TGenotypeLikelihoodCalculator_simple _genotypeLikelihoodCalculator;
-	std::unique_ptr<TSequencingErrorModelVectorForEstimation> _modelsToEstimate;
+	std::unique_ptr<TModelVectorForEstimation> _modelsToEstimate;
 	RecalEstimatorTools::TRecalDataTables _dataTables;
 
-	//variables for estimation
+	// variables for estimation
 	bool equalBaseFrequencies;
 	int _numEMIterations;
 	double _minDeltaLL;
@@ -117,30 +82,30 @@ private:
 	double _NewtonRaphsonMaxF;
 	unsigned int _minRequiredObservations;
 	bool _writeTmpTables;
-	std::string _recalFile; //file name in case a file with model is provided
+	std::string _recalFile; // file name in case a file with model is provided
 
 	size_t _numSitesDepthTwoOrMore();
-	void _initializeModels(SequencingError::TModels & SequencingErrorModels);
-	void _runEM(std::string outputName, const TPostMortemDamage & PmdModels);
-	void _fillRelevantBaseFrequencies(TBaseProbabilities & baseFreq, const genometools::Genotype & genotype);
+	void _initializeModels(TModels &SequencingErrorModels);
+	void _runEM(std::string outputName, const TPostMortemDamage &PmdModels);
+	void _fillRelevantBaseFrequencies(TBaseProbabilities &baseFreq, const genometools::Genotype &genotype);
 
-	//functions to estimate theta_epsilon (sequencing error rates)
-	void _calculate_EMWeights_epsilon(std::vector<TBaseLikelihoods> & EMWeights, const TPostMortemDamage & PmdModels);
-	double _calculate_Q_beta(const std::vector<TBaseLikelihoods> & EM_weights_bbar_given_d);
-	void _calculate_J_F_beta(const std::vector<TBaseLikelihoods> & EM_weights_bbar_given_d);
-	void _updateEM_theta_epsilon(const TPostMortemDamage & PmdModels);
+	// functions to estimate theta_epsilon (sequencing error rates)
+	void _calculate_EMWeights_epsilon(std::vector<TBaseLikelihoods> &EMWeights, const TPostMortemDamage &PmdModels);
+	double _calculate_Q_beta(const std::vector<TBaseLikelihoods> &EM_weights_bbar_given_d);
+	void _calculate_J_F_beta(const std::vector<TBaseLikelihoods> &EM_weights_bbar_given_d);
+	void _updateEM_theta_epsilon(const TPostMortemDamage &PmdModels);
 
-	//function to calculate LL (currently uses haploid model)
-	double _calculateLL_fullModel(const TPostMortemDamage & PmdModels);
+	// function to calculate LL (currently uses haploid model)
+	double _calculateLL_fullModel(const TPostMortemDamage &PmdModels);
 
 public:
-	TRecalibrationEMEstimator(coretools::TParameters & args, coretools::TLog* Logfile, const BAM::TReadGroups* ReadGroups, const BAM::TReadGroupMap* ReadGroupMap);
+	TRecalibrationEMEstimator(const BAM::TReadGroups *ReadGroups, const BAM::TReadGroupMap *ReadGroupMap);
 
-	//functions to add data
-	void addSite(const TSite & site);
+	// functions to add data
+	void addSite(const TSite &site);
 
-	//function to estimate
-	void performEstimation(std::string outputName, SequencingError::TModels & SequencingErrorModels, const TPostMortemDamage & PmdModels);
+	// function to estimate
+	void performEstimation(std::string outputName, TModels &SequencingErrorModels, const TPostMortemDamage &PmdModels);
 
 	void writeCurrentEstimates(std::string filename);
 	double calcLL();
@@ -148,8 +113,8 @@ public:
 	void calcQSurface(std::string filename, int numMarginalGridPoints);
 };
 
-}; //end namespace RecalEstimator
+}; // namespace SequencingError
 
-}; //end namespace GenotypeLikelihoods
+}; // end namespace GenotypeLikelihoods
 
 #endif /* TRECALIBRATIONEMESTIMATOR_H_ */
