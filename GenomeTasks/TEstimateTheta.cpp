@@ -198,9 +198,25 @@ void TEstimateThetaLLSurface::estimateThetaLLSurface(){
 // TEstimateThetaDownsamplingQC
 //-----------------------------------
 TEstimateThetaDownsamplingQC::TEstimateThetaDownsamplingQC(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TEstimateTheta_base(Parameters, Logfile, RandomGenerator){
-	//parse downsampling parameters
-	Parameters.fillParameterIntoContainer("prob", downSampleProbVector, ',', "1.0,0.5,0.2,0.1,0.05,0.02,0.01");
 
+    //read downsampling rates
+    if(Parameters.parameterExists("prob")) {
+        Parameters.fillParameterIntoContainer("prob", downSampleProbVector, ',');
+    } else if(Parameters.parameterExists("depth")){
+        std::vector<double> depths;
+        Parameters.fillParameterIntoContainer("depth", depths, ',');
+        double averageDepth = Parameters.getParameter<double>("averageDepth");
+        for(auto& it : depths){
+            if(averageDepth >= it){
+                downSampleProbVector.push_back(it / averageDepth);
+            } else{
+                throw "Average Depth must be equal or bigger than provided lists of depths";
+            }
+        }
+    } else {
+        //parse downsampling parameters
+        Parameters.fillParameterIntoContainer("prob", downSampleProbVector, ',', "1.0,0.5,0.2,0.1,0.05,0.02,0.01");
+    }
 	//report probabilities
 	_logfile->list("Will estimate theta after downsampling reads with probabilities " + coretools::str::concatenateString(downSampleProbVector, ", ") + ". (parameter 'prob')");
 
