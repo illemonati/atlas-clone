@@ -245,7 +245,7 @@ TFunction *function(const std::string &functionString, const size_t FirstParamet
 		return new TSpecific(FirstParameterIndex, values);
 	}
 	if (type == TSpecificMap::name) {
-		if (values.empty()) return new TSpecificMap(FirstParameterIndex, dataTable.qualities().vectorOfUsed());
+		if (values.empty()) return new TSpecificMap(FirstParameterIndex, RecalEstimatorTools::vectorOfUsed(dataTable.qualities()));
 		return new TSpecificMap(FirstParameterIndex, values);
 	}
 	throw "Recalibration function '" + type + "' not valid for covariate quality!";

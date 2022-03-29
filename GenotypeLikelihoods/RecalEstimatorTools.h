@@ -10,6 +10,7 @@
 
 #include "TSite.h"
 #include "TReadGroups.h"
+#include "TStrongArray.h"
 
 namespace GenotypeLikelihoods{
 
@@ -23,7 +24,6 @@ template <typename T>
 class TRecalDataVector{
 private:
 	std::vector<uint32_t> _counts;
-
 public:
 	void add(const T & value){
 		if(_counts.size() <= value){
@@ -56,39 +56,32 @@ public:
 	};
 };
 
-class TRecalDataTable{
+std::vector<uint16_t> vectorOfUsed(const std::vector<uint32_t>& counts);
+
+constexpr uint16_t max(const std::vector<uint32_t> &counts) { return counts.size() - 1; };
+
+class TRecalDataTable {
 private:
-	uint64_t _counts;
+	uint64_t _counts = 0;
 	//all vectors are uint16_t, which is used by seq error models for all covariates
-	TRecalDataVector<uint16_t> _positions;
-	TRecalDataVector<uint16_t> _fragmentLengths;
-	TRecalDataVector<uint16_t> _qualities;
-	TRecalDataVector<uint16_t> _mappingQualities;
+// Object to store for which qualities and positions data is available.
+	std::vector<uint32_t> _positions;
+	std::vector<uint32_t> _fragmentLengths;
+	std::vector<uint32_t> _qualities;
+	std::vector<uint32_t> _mappingQualities;
 
 public:
-
-	TRecalDataTable();
-	~TRecalDataTable() = default;
-
-	void clear();
+	void clear() noexcept;
 	void add(const BAM::TSequencedBase & base);
 
-	size_t size() const;
-	const TRecalDataVector<uint16_t>& positions() const;
-	const TRecalDataVector<uint16_t>& fragmentLengths() const;
-	const TRecalDataVector<uint16_t>& qualities() const;
-	const TRecalDataVector<uint16_t>& mappingQualities() const;
+	constexpr size_t size() const noexcept {return _counts;};
+	const std::vector<uint32_t>& positions() const;
+	const std::vector<uint32_t>& fragmentLengths() const;
+	const std::vector<uint32_t>& qualities() const;
+	const std::vector<uint32_t>& mappingQualities() const;
 };
 
-class TRecalDataTableOneReadGroup{
-private:
-	std::array<TRecalDataTable, 2> _tables;
-
-public:
-	const TRecalDataTable& operator[](const bool & IsSecondMate) const;
-	void add(const BAM::TSequencedBase & base);
-	void clear();
-};
+using TRecalDataTableOneReadGroup = std::array<TRecalDataTable, 2>;
 
 class TRecalDataTables{
 private:
@@ -118,41 +111,27 @@ public:
 //------------------------------------------------
 class TModelStatusEntry{
 private:
-	bool _first = false;
-	bool _second = false;
-
+	coretools::TBitSet<2> _bs{};
 public:
-	constexpr uint16_t size() const noexcept { return _first + _second; };
+	constexpr uint16_t size() const noexcept { return _bs.get<0>() + _bs.get<1>(); };
 	constexpr void set(const bool &IsSecondMate) noexcept {
-		if (IsSecondMate)
-			_first = true;
-		else
-			_second = true;
+		_bs[IsSecondMate] = true;
 	};
 	std::string getString() const;
 };
 
 enum class ModelStatusTypes : uint8_t {copied=0, noData, littleData, dataButNoRecal};
+using TModelStatus = coretools::StrongTypes::TStrongArray<TModelStatusEntry, ModelStatusTypes, 4>;
 
-class TModelStatus{
-private:
-	std::array<TModelStatusEntry, 4> _status;
-
-public:
-	TModelStatus() = default;
-	TModelStatusEntry& operator[](const ModelStatusTypes & Type);
-};
 
 class TModelStati{
 private:
-	std::map<uint16_t, TModelStatus> modelStatus;
-
+	std::unordered_map<uint16_t, TModelStatus> modelStatus;
 public:
-
 	void add(uint16_t ReadGroupId);
 	TModelStatus& operator[](uint16_t ReadGroupId);
-	uint16_t num(const ModelStatusTypes & Type);
-	void report(const ModelStatusTypes & Type, const std::string & Title, const BAM::TReadGroups & ReadGroups);
+	uint16_t num(ModelStatusTypes Type);
+	void report(ModelStatusTypes Type, const std::string & Title, const BAM::TReadGroups & ReadGroups);
 };
 
 }; //end namespace RecalEstimatorTools
