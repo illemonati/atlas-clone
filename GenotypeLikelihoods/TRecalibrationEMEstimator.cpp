@@ -295,7 +295,7 @@ void TRecalibrationEMEstimator::_calculate_EMWeights_epsilon(std::vector<TBaseLi
 	for (auto &s : _sites) {
 		// get relevant base frequencies P(b): from known genotype or distribution if genotype is unknown
 		TBaseProbabilities baseFreq;
-		_fillRelevantBaseFrequencies(baseFreq, s.genotype());
+		_fillRelevantBaseFrequencies(baseFreq, s.genotype);
 
 		// calculate weights per base
 		for (auto &b : s) {
@@ -457,10 +457,10 @@ double TRecalibrationEMEstimator::_calculateLL_fullModel(const TPostMortemDamage
 		_genotypeLikelihoodCalculator.fillGenotypeLikelihoods(s, genotypeLikelihoods, PmdModels, *_modelsToEstimate);
 
 		// weight by genotype prior
-		if (s.genotype() == genometools::Genotype::NN) {
+		if (s.genotype == genometools::Genotype::NN) {
 			LL += log(genotypeLikelihoods.weightedSum(genoFreq));
 		} else {
-			LL += log(genotypeLikelihoods[s.genotype()].get());
+			LL += log(genotypeLikelihoods[s.genotype].get());
 		}
 	}
 

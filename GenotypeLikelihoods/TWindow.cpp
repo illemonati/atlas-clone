@@ -166,7 +166,7 @@ void TWindow_base::_calcDepth(){
 			} else if(depthPerSite > 1){
 				++plentyData;
 			}
-			if(s.refBase() == genometools::Base::N){
+			if(s.refBase == genometools::Base::N){
 				++_fractionRefIsN;
 			}
 		}
@@ -237,7 +237,7 @@ void TWindow_base::addReferenceBaseToSites(BAM::TFastaBuffer & reference){
 		std::vector<genometools::Base> ref; //fasta object fills string
 		reference.fill(*this, ref);
 		for(unsigned int i=0; i<size(); ++i){
-			_sites[i].setRefBase(ref[i]);
+			_sites[i].refBase = ref[i];
 		}
 		referenceBaseAdded = true;
 	}
@@ -250,7 +250,7 @@ void TWindow_base::addReferenceBaseToSites(TSiteSubset & subset){
 			std::set<TSiteSubsetSite> thesePositions = subset.getPositionInWindow(*this);
 			for(auto& it : thesePositions){
 				uint32_t pos = it - _from;
-				_sites[pos].setRefBase(it.ref());
+				_sites[pos].refBase = it.ref();
 			}
 		}
 		referenceBaseAdded = true;

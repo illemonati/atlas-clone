@@ -8,6 +8,8 @@
 #ifndef GENOMETASKS_TPILEUP_H_
 #define GENOMETASKS_TPILEUP_H_
 
+#include <array>
+
 #include "TGenome.h"
 #include "TTask.h"
 
@@ -24,7 +26,7 @@ private:
 
 	//tmp variables
 	GenotypeLikelihoods::TBaseCounts _alleleCounts;
-	int _counts[2];
+	std::array<int, 2> _counts;
 
 	//what to print?
 	bool _printDepth;
