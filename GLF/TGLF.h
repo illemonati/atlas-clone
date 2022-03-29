@@ -61,7 +61,7 @@ public:
 	}
 
 	constexpr void fill(genometools::HighPrecisionPhredIntProbability p) {
-		_likelihoods.fill(p);
+		for (auto & l: _likelihoods) l = p;
 	}
 
 	constexpr bool isHaploid() const noexcept {return _isHaploid;}
