@@ -6,7 +6,6 @@
 #include "../TVcfConverter.h"
 #include "TVcfFile.h"
 #include "TDataFile.h"
-#include "TObservationTypedDefault.h"
 
 using namespace testing;
 
