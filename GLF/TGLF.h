@@ -8,239 +8,228 @@
 #ifndef TGLF_H_
 #define TGLF_H_
 
-#include <cstring>
-#include "gzstream.h"
-#include <algorithm>
-#include <vector>
-#include <map>
-#include <TPopulationLikelihoodLocus.h>
-#include "TParameters.h"
-#include "stringFunctions.h"
 #include "GenotypeTypes.h"
+#include "TChromosomes.h"
 #include "TFastaBuffer.h"
 #include "TGenotypeData.h"
-#include "TChromosomes.h"
 #include "TTask.h"
+#include "gzstream.h"
+#include "stringFunctions.h"
+#include <TPopulationLikelihoodLocus.h>
+#include <algorithm>
+#include <array>
+#include <cstring>
+#include <map>
+#include <vector>
 
-namespace GLF{
+namespace GLF {
 
-/*
- * TODO: switch to using a proper container. Think about ploidy.
-//------------------------------------------------
-// TGenotypeHighPrecisionPhredIntProbability
-//------------------------------------------------
-class TGenotypeHighPrecisionPhredIntProbability : public TGenotypeData_base<genometools::HighPrecisionPhredIntProbability>{
-protected:
-	TGenotypeHighPrecisionPhredIntProbability() {};
-	TGenotypeHighPrecisionPhredIntProbability(const genometools::HighPrecisionPhredIntProbability & Val) : TGenotypeData_base<genometools::HighPrecisionPhredIntProbability>(Val) {};
-};
-*/
-
-//----------------------------------------------------
-//TGlfChromosome
-//struct to store info on chromosome
-//TODO: derive from TChromosome??
-//----------------------------------------------------
-class TGlfChromosome{
+struct TGLFLikelihoods {
 private:
-	void _setPloidy(const uint8_t & Ploidy);
+	std::array<genometools::HighPrecisionPhredIntProbability, 10> _likelihoods;
+	bool _isHaploid;
 
 public:
-	//current chromosome
-	std::string name;
-	uint32_t refId;
-	uint32_t length;
-	bool isHaploid;
-	uint8_t numLikelihoodValues; //depends on ploidy
-	uint8_t maxNumLikelihoodValues; //maximum possible
+	constexpr TGLFLikelihoods(bool isHaploid=false, genometools::HighPrecisionPhredIntProbability v = genometools::HighPrecisionPhredIntProbability::highest()) :_likelihoods{v, v, v, v, v, v, v, v, v, v}, _isHaploid(isHaploid) {}
 
-	TGlfChromosome();
-	TGlfChromosome(const std::string & Name, uint32_t Length, const uint8_t & Ploidy);
-	TGlfChromosome(const TGlfChromosome & other);
+	constexpr TGLFLikelihoods(const TGLFLikelihoods& other) = default;
+	constexpr TGLFLikelihoods(TGLFLikelihoods&& other) = default;
+	constexpr TGLFLikelihoods& operator=(const TGLFLikelihoods& other) = default;
+	constexpr TGLFLikelihoods& operator=(TGLFLikelihoods&& other) = default;
+	~TGLFLikelihoods() = default;
 
-	void update(const std::string & Name, uint16_t RefId, uint32_t Length, const uint8_t & Ploidy);
-	void update(const TGlfChromosome & other);
 
+	constexpr void setHaploid(bool isHaploid = true) noexcept {_isHaploid = isHaploid;}
+	constexpr void setDiploid(bool isDiploid = true) noexcept {_isHaploid = !isDiploid;}
+
+	constexpr genometools::HighPrecisionPhredIntProbability operator[](genometools::Base b) const {
+		if (!_isHaploid) throw "Using Base access but likelihoods are haploid";
+		return _likelihoods[genometools::index(b)];
+	}
+	constexpr genometools::HighPrecisionPhredIntProbability &operator[](genometools::Base b) {
+		if (!_isHaploid) throw "Using Base access but likelihoods are haploid";
+		return _likelihoods[genometools::index(b)];
+	}
+
+	constexpr genometools::HighPrecisionPhredIntProbability operator[](genometools::Genotype g) const {
+		if (_isHaploid) throw "Using Genotype access but likelihoods are diploid";
+		return _likelihoods[genometools::index(g)];
+	}
+	constexpr genometools::HighPrecisionPhredIntProbability &operator[](genometools::Genotype g) {
+		if (_isHaploid) throw "Using Genotype access but likelihoods are diploid";
+		return _likelihoods[genometools::index(g)];
+	}
+
+	constexpr void fill(genometools::HighPrecisionPhredIntProbability p) {
+		for (auto & l: _likelihoods) l = p;
+	}
+
+	constexpr bool isHaploid() const noexcept {return _isHaploid;}
+	constexpr bool isDiploid() const noexcept {return !_isHaploid;}
+
+	constexpr genometools::HighPrecisionPhredIntProbability *data() noexcept { return _likelihoods.data(); }
+	constexpr const genometools::HighPrecisionPhredIntProbability *data() const noexcept { return _likelihoods.data(); }
+
+	constexpr auto begin() noexcept {return _likelihoods.begin();}
+	constexpr auto end() noexcept {return _isHaploid ? _likelihoods.begin() + 4 : _likelihoods.end();}
+
+	constexpr auto begin() const noexcept {return _likelihoods.begin();}
+	constexpr auto end() const noexcept {return _isHaploid ? _likelihoods.begin() + 4 : _likelihoods.end();}
+
+	constexpr auto cbegin() const noexcept {return _likelihoods.cbegin();}
+	constexpr auto cend() const noexcept {return _isHaploid ? _likelihoods.begin() + 4 : _likelihoods.cend();}
+};
+
+//----------------------------------------------------
+// TGlfChromosome
+// struct to store info on chromosome
+// TODO: derive from TChromosome??
+//----------------------------------------------------
+class TGlfChromosome {
+private:
+	std::string _name = "";
+	uint32_t _refId = 0;
+	uint32_t _length = 0;
+	bool _isHaploid = false;
+	uint8_t _numLikelihoodValues = 10; // depends on ploidy
+
+	void _setPloidy(uint8_t Ploidy);
+
+public:
+	TGlfChromosome() = default;
+	TGlfChromosome(const std::string &Name, uint32_t Length, uint8_t Ploidy);
+
+	std::string name() const { return _name; };
+	uint32_t refId() const { return _refId; };
+	uint32_t length() const { return _length; };
+	bool isHaploid() const { return _isHaploid; };
+	uint8_t ploidy() const { return 2 - _isHaploid; };
+	uint8_t numLikelihoodValues() const { return _numLikelihoodValues; };
+
+	void update(const std::string &Name, uint16_t RefId, uint32_t Length, uint8_t Ploidy);
 	void clear();
 };
 
 //----------------------------------------------------
-//TGlfHandle
+// TGlfHandle
 //----------------------------------------------------
-class TGlfHandle{
+class TGlfHandle {
 protected:
 	std::string _filename;
-	gzFile _gzfp;
-	bool _isOpen;
-	uint32_t _offset;
-	std::string _version;
-	uint8_t _zero8, _one8;
-	uint32_t _zero32;
-	std::string _header;
-	uint64_t _positionInFile;
+	gzFile _gzfp         = nullptr;
+	std::string _version = "GLF2";
+	uint64_t _positionInFile = 0;
 	TGlfChromosome _curChr;
 
 public:
-	TGlfHandle(){
-        _isOpen = false;
-        _gzfp = nullptr;
-        _offset = 0;
-        _version = "GLF2"; //change to next version if older files will not work!
-		_zero8 = 0;
-        _one8 = 1;
-        _zero32 = 0;
-        _positionInFile = 0;
-	};
+	TGlfHandle() = default;
 
-	void close(){
-		if(_isOpen){
+	virtual ~TGlfHandle() {close();}
+
+	void close() {
+		if (_gzfp) {
 			gzclose(_gzfp);
-            _isOpen = false;
+			_gzfp = nullptr;
 		}
 	};
 
-	std::string name(){
-		return _filename;
-	};
+	std::string name() const { return _filename; };
 
-	std::string chr() const{
-		return _curChr.name;
-	};
+	std::string chr() const { return _curChr.name(); };
 
-	uint32_t refId() const{
-		return _curChr.refId;
-	};
+	uint32_t refId() const noexcept { return _curChr.refId(); };
 
-	uint32_t chrLength() const{
-		return _curChr.length;
-	};
+	uint32_t chrLength() const noexcept { return _curChr.length(); };
 
-	bool chrIsHaploid() const{
-		return _curChr.isHaploid;
-	};
+	bool chrIsHaploid() const noexcept { return _curChr.isHaploid(); };
 
-	uint8_t chrNumLikelihoodValues() const{
-		return _curChr.numLikelihoodValues;
-	};
+	uint8_t chrNumLikelihoodValues() const noexcept { return _curChr.numLikelihoodValues(); };
 };
 
 //----------------------------------------------------
-//TGlfWriter
+// TGlfWriter
 //----------------------------------------------------
-class TGlfWriter:public TGlfHandle{
+class TGlfWriter : public TGlfHandle {
 private:
-	long _oldPos;
-	uint8_t _recordType1;
-	genometools::HighPrecisionPhredIntProbability* _glfValues; //tmp used for writing
+	long _oldPos         = 0;
+	std::string _header;
 
-	void _init();
 	void _writeHeader();
 
-	template <typename T>
-	inline void _write(const T* buf, size_t len){
-        _positionInFile += gzwrite(_gzfp, buf, len);
-	};
+	template<typename T> void _write(T var) { _positionInFile += gzwrite(_gzfp, &var, sizeof(T)); };
+	void _write(const void *buf, size_t len) { _positionInFile += gzwrite(_gzfp, buf, len); };
 
 public:
-	TGlfWriter(){
-        _init();
-	};
-	TGlfWriter(const std::string& Filename){
-        _init();
+	TGlfWriter() = default;
+	TGlfWriter(const std::string &Filename) {
 		open(Filename, "");
 	};
 
-	~TGlfWriter(){
-		close();
-		delete[] _glfValues;
-	};
-
-	//open & close streams
-	void open(const std::string& Filename);
-	void open(const std::string& Filename, const std::string& Header);
-	void newChromosome(const genometools::TChromosome & chromosome);
-	void writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual, GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods);
+	// open & close streams
+	void open(const std::string &Filename, const std::string &Header = "");
+	void newChromosome(const genometools::TChromosome &chromosome);
+	void writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual,
+		       GenotypeLikelihoods::TGenotypeLikelihoods &genotypeLikelihoods);
 };
 
 //----------------------------------------------------
-//TGlfReader
+// TGlfReader
 //----------------------------------------------------
-class TGlfReader:public TGlfHandle{
+class TGlfReader : public TGlfHandle {
 private:
-    // file parsing
-	bool _reachedEndOfChr;
-	uint32_t _HeaderLen;
-	uint8_t _tmpInt8;
-	int _SNPRecordSize;
-	uint8_t _tmpRecordStorage[19];
-	int _lenRead;
-	bool _eof;
+	// file parsing
+	bool _eof = true;
 
 	// about site
-	int _recordType;
-	uint32_t _position;
-	uint16_t _depth;
-	int _RMS_mappingQual;
-	genometools::HighPrecisionPhredIntProbability _genotypeLikelihoodsGLF[10];
-	genometools::HighPrecisionPhredIntProbability* _genotypeLikelihoodsGLF_missingData;
+	int _recordType = 99;
+	uint32_t _position = 0;
+	uint16_t _depth = 0;
+	int _RMS_mappingQual = 0;
+	TGLFLikelihoods _genotypeLikelihoodsGLF;
 
 	// about chromosomes
-	std::map< uint32_t, TGlfChromosome > _chromosomesAlreadyParsed;
+	std::map<uint32_t, TGlfChromosome> _chromosomesAlreadyParsed;
 
 	// initializing
-	void _init();
 	void _open();
 
 	// read
-    template <typename T> inline bool _read(T* buf, size_t len){
-        _lenRead = gzread(_gzfp, buf, len);
-        if(!_lenRead) return false;
-        _positionInFile += _lenRead;
-        return true;
-    };
+	template<typename T> inline bool _read(T *buf, size_t len) {
+		const int _lenRead = gzread(_gzfp, buf, len);
+		if (!_lenRead) return false;
+		_positionInFile += _lenRead;
+		return true;
+	};
 	bool _readChr();
 	bool _readRecordType();
 	void _readSNPRecord();
-	inline void _skipRecord(){
-        _read(&_tmpRecordStorage, _SNPRecordSize); //just parse data of one SNP record into garbage
-	};
-
-    bool _jumpToEndOfChr();
+	bool _jumpToEndOfChr();
 
 public:
-	TGlfReader(){
-        _init();
-	};
-	TGlfReader(const std::string& Filename){
-        _init();
+	TGlfReader() = default;
+	TGlfReader(const std::string &Filename) {
 		open(Filename);
 	};
-	~TGlfReader(){
-		close();
-		delete[] _genotypeLikelihoodsGLF_missingData;
-	};
 
-	//get details
-	bool eof() const{ return _eof;};
-	TGlfChromosome* pointerToChr(uint32_t refId);
-	bool fillPointerToChr(uint32_t refId, TGlfChromosome* & chr);
-	uint32_t position() const{ return _position; };
-	uint16_t depth() const{ return _depth; };
-	genometools::HighPrecisionPhredIntProbability* pointerToGenotypeLikelihoodsGLF(){ return _genotypeLikelihoodsGLF; };
-    void fillGenotypeLikelihoodsGLF(genometools::HighPrecisionPhredIntProbability* destination);
-    //void fillGenotypeLikelihoods(BAM::ErrorRate* destination);
+	// get details
+	bool eof() const { return _eof; };
+	TGlfChromosome *pointerToChr(uint32_t refId);
+	bool fillPointerToChr(uint32_t refId, TGlfChromosome *&chr);
+	uint32_t position() const { return _position; };
+	uint16_t depth() const { return _depth; };
+	const TGLFLikelihoods &genotypeLikelihoodsGLF() const { return _genotypeLikelihoodsGLF; };
 
-	//open file and parse header
-	void setFilename(const std::string& Filename);
-	void open(const std::string& Filename);
+	// open file and parse header
+	void setFilename(const std::string &Filename);
+	void open(const std::string &Filename);
 	void rewind();
 
 	// parse file
 	bool readNext();
 	bool jumpToNextChr();
-	bool readNextWindow(std::vector<genometools::HighPrecisionPhredIntProbability*> & genoLikelihoods, uint32_t refId, uint32_t start, uint32_t end);
+	bool readNextWindow(std::vector<TGLFLikelihoods> &genoLikelihoods, uint32_t refId, uint32_t start, uint32_t end);
 
-	//printing
+	// printing
 	void printChr();
 	void printSite();
 	void printToEnd();
@@ -249,11 +238,11 @@ public:
 //------------------------------------------------
 // Tasks
 //------------------------------------------------
-class TTask_printGLF:public coretools::TTask{
+class TTask_printGLF : public coretools::TTask {
 public:
-	TTask_printGLF(){ _explanation = "Printing a GLF file to screen"; };
+	TTask_printGLF() { _explanation = "Printing a GLF file to screen"; };
 
-	void run(){
+	void run() {
 		using coretools::instances::parameters;
 		std::string glf = parameters().getParameter<std::string>("glf");
 		TGlfReader reader(glf);
@@ -261,6 +250,6 @@ public:
 	};
 };
 
-}; //end namespace
+}; // namespace GLF
 
 #endif /* TGLF_H_ */

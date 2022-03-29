@@ -38,7 +38,7 @@ TEstimateRecalibration::TEstimateRecalibration(coretools::TParameters & Paramete
 	}
 
 	//initialize recal estimator
-	recalObjectEM = std::make_unique<GenotypeLikelihoods::RecalEstimator::TRecalibrationEMEstimator>(Parameters, _logfile, &(_bamFile.readGroups()), _readGroupMap);
+	recalObjectEM = std::make_unique<GenotypeLikelihoods::SequencingError::TRecalibrationEMEstimator>(&(_bamFile.readGroups()), _readGroupMap);
 };
 
 TEstimateRecalibration::~TEstimateRecalibration(){

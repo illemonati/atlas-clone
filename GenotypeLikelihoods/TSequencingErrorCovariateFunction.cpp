@@ -13,34 +13,32 @@
 namespace GenotypeLikelihoods{
 namespace SequencingError {
 
+namespace /*anonymous*/ {
+void initializValues(TFunction &f, const std::vector<std::string> &values) {
+	if (!values.empty()) {
+		if (values.size() != f.numParameters()) {
+			throw coretools::str::toString("Failed to initialize recalibration module: wrong number of values (",
+						       values.size(), " instead of ", f.numParameters(), ")!");
+		}
+
+		for (size_t i = 0; i < values.size(); ++i) {
+			f.beta(i) = coretools::str::convertStringCheck<double>(values[i]);
+		}
+	}
+}
+
+double normalizeParameters(std::vector<double> &betas) noexcept {
+	double mean = 0.0;
+	for (const auto bi : betas) { mean += bi; }
+	mean /= betas.size();
+	for (auto &bi : betas) { bi -= mean; }
+	return mean;
+}
+} // namespace
+
 //--------------------------------------------------------------
 // TRecalibrationEMCovariateFunction
 //--------------------------------------------------------------
-
-void TFunction::_initializValues(const std::vector<std::string> & values){
-	if(!values.empty()){
-		if(values.size() != numParameters()){
-			throw coretools::str::toString("Failed to initialize recalibration module: wrong number of values (", values.size(), " instead of ", numParameters(), ")!");
-		}
-
-		for(size_t i=0; i<values.size(); ++i){
-			beta(i) = coretools::str::convertStringCheck<double>(values[i]);
-		}
-	}
-}
-
-double TFunction::_normalizeParameters() noexcept{
-	double mean = 0.0;
-	for(uint16_t i=0; i<numParameters(); ++i){
-		mean += beta(i);
-	}
-	mean /= numParameters();
-
-	for(uint16_t i=0; i<numParameters(); ++i){
-		beta(i) -= mean;
-	}
-	return mean;
-}
 
 bool TFunction::checkValueRange(const std::vector<uint16_t> & values) const noexcept{
 	//check range for each value
@@ -105,7 +103,7 @@ void TPolynomial::_init(size_t order){
 
 	TPolynomial::TPolynomial(uint16_t FirstParameterIndex, const std::vector<std::string> & values, TRecalibrationEMTransformationMap* transformationMap):TFunction(FirstParameterIndex), _transformationMap(transformationMap){
 	_init(values.size());
-	_initializValues(values);
+	initializValues(*this, values);
 }
 
 double TPolynomial::getEtaTerm(uint16_t val) const noexcept {
@@ -168,7 +166,7 @@ TProbit::TProbit(uint16_t FirstParameterIndex, uint16_t MaxValue):TFunction(Firs
 
 TProbit::TProbit(uint16_t FirstParameterIndex, const std::vector<std::string> & values):TFunction(FirstParameterIndex){
 	_init(0);
-	_initializValues(values);
+	initializValues(*this, values);
 }
 
 double TProbit::getEtaTerm(uint16_t val) const noexcept{
@@ -212,7 +210,7 @@ TSpecific::TSpecific(uint16_t FirstParameterIndex, const std::vector<std::string
 	_init(betas.size() - 1);
 
 	//now copy values
-	_initializValues(betas);
+	initializValues(*this, betas);
 }
 
 void TSpecific::_init(uint16_t MaxValue){
@@ -242,6 +240,8 @@ void TSpecific::adjustValueRanges(const std::vector<uint16_t> & usedValues){
 void TSpecific::fillDerivatives(uint16_t val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives &) const noexcept {
 	first.add(firstParameterIndex() + val, 1.0);
 }
+
+double TSpecific::adjustParametersPostEstimation() noexcept { return normalizeParameters(_betas); }
 
 //--------------------------------------------------------------
 // TRecalibrationEMCovariateFunction_specificMap
@@ -298,6 +298,8 @@ void TSpecificMap::adjustValueRanges(const std::vector<uint16_t> & valuesUsed){
 void TSpecificMap::fillDerivatives(uint16_t val, TRecalibrationEMFirstDerivatives & first, TRecalibrationEMSecondDerivatives &) const noexcept {
 	first.add(firstParameterIndex() + _indexMap[val].index, 1.0);
 }
+
+double TSpecificMap::adjustParametersPostEstimation() noexcept { return normalizeParameters(_betas); }
 
 } // namespace SequencingError
 } // namespace GenotypeLikelihoods

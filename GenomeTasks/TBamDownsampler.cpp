@@ -69,9 +69,23 @@ TBamDownsampler_base::TBamDownsampler_base(TParameters & Parameters, TLog* Logfi
 };
 
 void TBamDownsampler_base::_readVectorOfDownsamplingProbabilities(TParameters & Params){
-	//read downsampling rates
-	Params.fillParameterIntoContainer("prob", _probs, ',');
-
+    //read downsampling rates
+    if(Params.parameterExists("prob")) {
+        Params.fillParameterIntoContainer("prob", _probs, ',');
+    } else if(Params.parameterExists("depth")){
+        std::vector<double> depths;
+        Params.fillParameterIntoContainer("depth", depths, ',');
+        double averageDepth = Params.getParameter<double>("averageDepth");
+        for(auto& it : depths){
+            if(averageDepth >= it){
+                _probs.push_back(it / averageDepth);
+            } else{
+                throw "Average Depth must be equal or bigger than provided lists of depths";
+            }
+        }
+    } else {
+        throw "Either argument 'prob' or 'depth' must be provided!";
+    }
 	//get unique names
 	std::map <Probability, int> fracNames;
 	for(size_t i=0; i<_probs.size(); ++i){

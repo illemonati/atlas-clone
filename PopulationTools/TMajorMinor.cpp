@@ -137,9 +137,10 @@ TMajorMinorEstimatorSkotte::TMajorMinorEstimatorSkotte(TRandomGenerator* RandomG
 
 void TMajorMinorEstimatorSkotte::findMLAllelicCombination(const TMultiGLFData & data){
 	//calculate L10L for each allelic combination used
-	for(auto& ac : usedAllelicCombinations){
-		data.fill(genotypeLikelihoods, ac);
-		L10L_perCombination[ac] = priorGenotypeFrequencies.calculateLog10Likelihood(genotypeLikelihoods, genotypeLikelihoods.size());
+	for (auto &ac : usedAllelicCombinations) {
+		fill(genotypeLikelihoods, data, ac);
+		L10L_perCombination[ac] =
+		    priorGenotypeFrequencies.calculateLog10Likelihood(genotypeLikelihoods, genotypeLikelihoods.size());
 		L10L = L10L_perCombination[ac];
 	}
 
@@ -147,7 +148,7 @@ void TMajorMinorEstimatorSkotte::findMLAllelicCombination(const TMultiGLFData & 
 	chooseBestAllelicCombinationAmongThoseWithEqualScores();
 
 	//now estimate genotype frequencies at MLE allelic combination
-	data.fill(genotypeLikelihoods, bestAllelicCombination);
+	fill(genotypeLikelihoods, data, bestAllelicCombination);
 	genotypeFrequencies.estimate(genotypeLikelihoods, genotypeLikelihoods.size(), epsilonF);
 
 	//calculate likelihood again with better genotype frequencies
@@ -164,7 +165,7 @@ TMajorMinorEstimatorMLE::TMajorMinorEstimatorMLE(TRandomGenerator* RandomGenerat
 
 coretools::Log10Probability TMajorMinorEstimatorMLE::estimateGenotypeFrequencies(const TMultiGLFData & data, const AllelicCombination & thisAlleleicCombination){
 	using genometools::index;
-	data.fill(genotypeLikelihoods, thisAlleleicCombination);
+	fill(genotypeLikelihoods, data, thisAlleleicCombination);
 	tmpGenotypeFrequencies[index(thisAlleleicCombination)].estimate(genotypeLikelihoods, genotypeLikelihoods.size(), epsilonF);
 	return tmpGenotypeFrequencies[index(thisAlleleicCombination)].calculateLog10Likelihood(genotypeLikelihoods, genotypeLikelihoods.size());
 };
@@ -193,7 +194,8 @@ TMajorMinor::TMajorMinor(TParameters &, TLog* Logfile, TRandomGenerator* RandomG
 
 void TMajorMinor::estimateMajorMinor(TParameters & params){
 	//open GLF files
-	GLF::TGlfMultiReader glfReader(params, logfile);
+	GLF::TGlfMultiReader glfReader;
+	glfReader.openGLFs();
 	glfReader.setAllActive();
 
 	//add reference, if provided
@@ -304,7 +306,7 @@ void TMajorMinor::estimateMajorMinor(TParameters & params){
 	}
 
 	//open vcf file
-	GLF::TGlfMultiReaderVcf vcf(outname + ".vcf.gz", "ATLAS_GLF_Caller", sampleNames, usePhredLikelihoods, randomGenerator);
+	GLF::TGlfMultiReaderVcf vcf(outname + ".vcf.gz", "ATLAS_GLF_Caller", sampleNames, usePhredLikelihoods);
 
 	//vars
 	logfile->startIndent("Parsing through glf files:");

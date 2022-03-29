@@ -19,7 +19,7 @@ namespace GenomeTasks{
 //-----------------------------------------------------------
 class TEstimateRecalibration:public TGenome_windows{
 protected:
-	std::unique_ptr<GenotypeLikelihoods::RecalEstimator::TRecalibrationEMEstimator> recalObjectEM;
+	std::unique_ptr<GenotypeLikelihoods::SequencingError::TRecalibrationEMEstimator> recalObjectEM;
 	BAM::TReadGroupMap* _readGroupMap;
 
 	void _handleWindow();

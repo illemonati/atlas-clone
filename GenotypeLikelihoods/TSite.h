@@ -9,73 +9,62 @@
 #define TSITE_H_
 
 #include <vector>
-#include "../BAM/TSequencedBase.h"
+
+#include "TSequencedBase.h"
 #include "GenotypeTypes.h"
 #include "TGenotypeData.h"
 #include "TSubsamplePicker.h"
 
-namespace GenotypeLikelihoods{
+namespace GenotypeLikelihoods {
 
-
-//TODO: write as templated classes
+// TODO: write as templated classes
 //----------------------------------------------------------------------------------------------------------------------------------
-// TSite
-// Class that stores bases.
+//  TSite
+//  Class that stores bases.
 //----------------------------------------------------------------------------------------------------------------------------------
 class TSite {
-protected:
-    genometools::Base _referenceBase;
-    genometools::Genotype _genotype;
-
+private:
 	std::vector<BAM::TSequencedBase> _bases;
-
-	void normalizeGenotypeLikelihoods(double* emissionProbabilitiesPhredScaled, uint8_t* normalizedGL, uint32_t & maxLL, const int nGenotypes);
-
 public:
 	GenotypeLikelihoods::TGenotypeLikelihoods genotypeLikelihoods;
+	genometools::Base refBase = genometools::Base::N;
+	genometools::Genotype genotype  = genometools::Genotype::NN;
 
-	TSite() {
-		_referenceBase = genometools::Base::N;
-		_genotype      = genometools::Genotype::NN;
-	};
-
-	void clear();
+	void clear() noexcept;
 
 	// access
-	BAM::TSequencedBase& operator[](size_t i){ return _bases[i]; };
-	const BAM::TSequencedBase& operator[](size_t i) const { return _bases[i]; };
+	BAM::TSequencedBase &operator[](size_t i) noexcept { return _bases[i]; };
+	const BAM::TSequencedBase &operator[](size_t i) const noexcept{ return _bases[i]; };
 
-	// reference base
-    void setRefBase(const genometools::Base & ref){ _referenceBase = ref; };
-    genometools::Base refBase() const {return _referenceBase;};
-
-    // genotype
-    void setGenotype(const genometools::Genotype & genotype){ _genotype = genotype; };
-    genometools::Genotype genotype() const{ return _genotype; };
-
-    // add
-    void add(const BAM::TSequencedBase & base);
-    void addToBaseFrequencies(TBaseData & frequencies) const;
-	void downsample(uint32_t maxDepth, const coretools::TSubsamplePicker & picker);
+	// add
+	void add(const BAM::TSequencedBase &base);
+	void add(BAM::TSequencedBase &&base);
+	void addToBaseFrequencies(TBaseData &frequencies) const noexcept;
+	void downsample(uint32_t maxDepth, const coretools::TSubsamplePicker &picker);
 
 	// getters
-	bool empty() const{ return _bases.empty(); };
-	uint32_t depth() const;
+	bool empty() const noexcept { return _bases.empty(); };
+	uint32_t depth() const noexcept { return _bases.size(); };
 	uint32_t refDepth() const;
 	std::string getBases() const;
 	std::string getQualities() const;
 
-	void countAlleles(TBaseCounts & alleleCounts) const;
-	void countMates(int* mateCounts) const;
-	void countFwdRev(int* frCounts) const;
+	void countAlleles(TBaseCounts &alleleCounts) const;
+	void countMates(std::array<int, 2>& mateCounts) const;
+	void countFwdRev(std::array<int, 2> &) const;
 
-	//loop
-	std::vector<BAM::TSequencedBase>::iterator begin(){ return _bases.begin(); };
-	std::vector<BAM::TSequencedBase>::iterator end(){ return _bases.end(); };
-	std::vector<BAM::TSequencedBase>::const_iterator cbegin() const{ return _bases.cbegin(); };
-	std::vector<BAM::TSequencedBase>::const_iterator cend() const{ return _bases.cend(); };
+	// loop
+	using iterator       = std::vector<BAM::TSequencedBase>::iterator;
+	using const_iterator = std::vector<BAM::TSequencedBase>::const_iterator;
+
+	iterator begin() noexcept { return _bases.begin(); };
+	iterator end() noexcept{ return _bases.end(); };
+	const_iterator begin() const noexcept { return _bases.cbegin(); };
+	const_iterator end() const noexcept { return _bases.cend(); };
+	const_iterator cbegin() const noexcept { return _bases.cbegin(); };
+	const_iterator cend() const noexcept { return _bases.cend(); };
 };
 
-}; //end namespace
+}; // namespace GenotypeLikelihoods
 
 #endif /* TSITE_H_ */

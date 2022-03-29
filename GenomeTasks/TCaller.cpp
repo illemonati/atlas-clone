@@ -316,7 +316,7 @@ void TCaller::_writeCallToVCF(const std::string & chr, const long pos, const TSi
 	_vcf << chr << '\t' << pos + 1 << "\t.\t"; //all internal positions are zero-based!
 
 	//write reference and alternative alleles
-	_vcf << site.refBase() << "\t";
+	_vcf << site.refBase << "\t";
 	_writeAlternativeAllelesToVCF();
 
 	//write (no) variant quality and (no) filter
@@ -337,7 +337,7 @@ void TCaller::_writeCallToVCF(const std::string & chr, const long pos, const TSi
 
 void TCaller::_writeMissingDataToVCF(const TSite & site){
 	if(_printSitesWithNoData)
-		_vcf << "\t.\t" << site.refBase() << "\t.\t.\t.\t.\tGT:DP\t" << _missingGenotype << ":0";
+		_vcf << "\t.\t" << site.refBase << "\t.\t.\t.\t.\tGT:DP\t" << _missingGenotype << ":0";
 };
 
 void TCaller::_clearAfterCall(){
@@ -367,7 +367,7 @@ bool TCaller::_callGenotypeKnownAlleles(const TSite &, TGenotypeLikelihoods &){
 
 void TCaller::call(const std::string & chr, long pos, const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods){
 	//set reference base from site
-	referenceBase = site.refBase();
+	referenceBase = site.refBase;
 
 	//check if there is data
 	if(site.empty() || (referenceBase == genometools::Base::N && !_allowTriallelicSites) || !_callGenotype(site, genotypeLikelihoods))
@@ -381,7 +381,7 @@ void TCaller::call(const std::string & chr, long pos, const TSite & site, TGenot
 	//check if there is data
 	if(!site.empty()){
 		//set reference base from site
-		referenceBase = site.refBase();
+		referenceBase = site.refBase;
 
 		//call
 		if(referenceBase == firstAllele)
@@ -1241,7 +1241,7 @@ void TCall::_callKnwonAlleles(){
 			//calculate genotype likelihoods
 			uint32_t internalPos = it - _window.from();
 			TSite& site = _window[internalPos];
-			site.setRefBase(it.ref());
+			site.refBase = it.ref();
 			_genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(site, _genoLik);
 			_caller->call(_window.chrName(), _window.positionOnChr(internalPos), site, _genoLik, it.ref(), it.alt());
 		}

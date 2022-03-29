@@ -120,7 +120,7 @@ void TPileup::_handleWindow(){
 
 		//reference
 		if(_reference){
-			out << site.refBase();
+			out << site.refBase;
 		}
 
 		//depth
@@ -142,7 +142,7 @@ void TPileup::_handleWindow(){
 			site.countAlleles(_alleleCounts);
 			out << _alleleCounts[Base::A] << _alleleCounts[Base::C] << _alleleCounts[Base::G] << _alleleCounts[Base::T];
 			if(_reference){
-				out << _alleleCounts[site.refBase()] << _alleleCounts.size() - _alleleCounts[site.refBase()];
+				out << _alleleCounts[site.refBase] << _alleleCounts.size() - _alleleCounts[site.refBase];
 			}
 			out << (int) _alleleCounts.numAlleles();
 		}

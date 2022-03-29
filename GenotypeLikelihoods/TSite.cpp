@@ -7,134 +7,75 @@
 
 #include "TSite.h"
 #include "GenotypeTypes.h"
+#include <numeric>
 
-namespace GenotypeLikelihoods{
+namespace GenotypeLikelihoods {
 
 //-------------------------------------------------------
-//TSite
+// TSite
 //-------------------------------------------------------
-/*
-TSite::TSite(const TSite & site){
-    _referenceBase = site.refBase();
-    _genotype = site.genotype();
-    for(std::vector<BAM::TBase*>::const_iterator b = site.cbegin(); b != site.cend(); ++b){
-        _bases.emplace_back(**b);
-}
-};*/
 
-void TSite::clear(){
+void TSite::clear() noexcept {
 	_bases.clear();
-	_referenceBase = genometools::Base::N;
+	refBase  = genometools::Base::N;
+	genotype = genometools::Genotype::NN;
 };
 
-void TSite::add(const BAM::TSequencedBase & base){
-    _bases.emplace_back(base);
-};
+void TSite::add(const BAM::TSequencedBase &base) { _bases.push_back(base); };
+void TSite::add(BAM::TSequencedBase &&base) { _bases.push_back(base); };
 
-void TSite::addToBaseFrequencies(TBaseData & frequencies) const{
-	if(!empty()){
-		static double weight = 1.0 / _bases.size();
-		for(auto& b : _bases){
-			frequencies[b.base] += weight;
-		}
+void TSite::addToBaseFrequencies(TBaseData &frequencies) const noexcept {
+	if (!empty()) {
+		const double weight = 1.0 / _bases.size();
+		for (auto &b : _bases) { frequencies[b.base] += weight; }
 	}
 };
 
-void TSite::downsample(uint32_t maxDepth, const coretools::TSubsamplePicker & picker){
-	//only subsample if depth > maxDepth
-	if(_bases.size() > maxDepth){
-		//select subsample
-		const auto& subsample = picker.pick(_bases.size(), maxDepth);
+void TSite::downsample(uint32_t maxDepth, const coretools::TSubsamplePicker &picker) {
+	// only subsample if depth > maxDepth
+	if (_bases.size() > maxDepth) {
+		// select subsample
+		const auto &subsample = picker.pick(_bases.size(), maxDepth);
 
-		//copy bases to new vector
+		// copy bases to new vector
 		std::vector<BAM::TSequencedBase> newBases;
-		for(auto& it : subsample){
-			newBases.emplace_back(_bases[it]);
-		}
+		newBases.reserve(subsample.size());
+		for (auto i : subsample) { newBases.push_back(_bases[i]); }
 
-		//swap vectors
-		_bases = newBases;
+		// swap vectors
+		_bases = std::move(newBases);
 	}
 };
 
-std::string TSite::getBases() const{
-	if(empty()) return "-";
-	std::string s = "";
-	for(auto& b : _bases){
-		s +=  genometools::base2char(b.base);
-	}
-	return s;
+std::string TSite::getBases() const {
+	return std::accumulate(_bases.cbegin(), _bases.cend(), "",
+			       [](auto tot, auto b) { return tot + genometools::base2char(b.base); });
 };
 
-std::string TSite::getQualities() const{
-	if(empty()) return "-";
-	std::string s = "";
-	for(auto& b : _bases){
-		s +=  static_cast<char>(genometools::BaseQuality(b.recalibratedQualityAsPhredInt));
-	}
-	return s;
+std::string TSite::getQualities() const {
+	return std::accumulate(_bases.cbegin(), _bases.cend(), "", [](auto tot, auto b) {
+		return tot + static_cast<char>(genometools::BaseQuality(b.recalibratedQualityAsPhredInt)); });
+}
+
+uint32_t TSite::refDepth() const {
+	if (refBase == genometools::Base::N) return 0;
+
+	return std::count_if(_bases.cbegin(), _bases.cend(), [this](auto b) {return b.base == refBase;});
 };
 
-uint32_t TSite::depth() const{
-	return _bases.size();
-};
-
-uint32_t TSite::refDepth() const{
-	if(empty()) return 0;
-	if(_referenceBase == genometools::Base::N) return 0;
-	uint32_t counter = 0;
-	for(auto& b : _bases){
-		if(b.base == _referenceBase)
-			++counter;
-	}
-	return counter;
-};
-
-void TSite::countAlleles(TBaseCounts & alleleCounts) const{
+void TSite::countAlleles(TBaseCounts &alleleCounts) const {
 	alleleCounts.reset();
-	for(auto& b : _bases){
-		alleleCounts.add(b.base);
-	}
+	for (const auto &b : _bases) { alleleCounts.add(b.base); }
 };
 
-void TSite::countMates(int* mateCounts) const{
-	mateCounts[0] = 0;
-	mateCounts[1] = 0;
-
-	for(auto& it : _bases){
-		++mateCounts[it.isSecondMate()];
-	}
+void TSite::countMates(std::array<int, 2> &mateCounts) const {
+	mateCounts.fill(0);
+	for (const auto &b : _bases) { ++mateCounts[b.isSecondMate()]; }
 };
 
-void TSite::countFwdRev(int* frCounts) const{
-	frCounts[0] = 0;
-	frCounts[1] = 0;
-
-	for(auto& it : _bases){
-		++frCounts[it.isReverseStrand()];
-	}
+void TSite::countFwdRev(std::array<int, 2> &frCounts) const {
+	frCounts.fill(0);
+	for (const auto &b : _bases) { ++frCounts[b.isReverseStrand()]; }
 };
 
-}; //end namespace
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+}; // namespace GenotypeLikelihoods
