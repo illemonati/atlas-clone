@@ -207,7 +207,7 @@ public:
 	std::string chr() const { return _curChr.name(); };
 	constexpr uint32_t position() const noexcept { return _position; };
 	constexpr genometools::Base refBase() const noexcept {
-		return hasReference ? fastaBuffer.refAt(BAM::TGenomePosition(_curRefId, _position)) : genometools::Base::N;
+		return hasReference ? fastaBuffer.refAt(genometools::TGenomePosition(_curRefId, _position)) : genometools::Base::N;
 	};
 };
 
