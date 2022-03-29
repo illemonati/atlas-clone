@@ -72,6 +72,8 @@ public:
 	//loop
 	std::vector<BAM::TSequencedBase>::iterator begin(){ return _bases.begin(); };
 	std::vector<BAM::TSequencedBase>::iterator end(){ return _bases.end(); };
+	std::vector<BAM::TSequencedBase>::const_iterator begin() const{ return _bases.cbegin(); };
+	std::vector<BAM::TSequencedBase>::const_iterator end() const{ return _bases.cend(); };
 	std::vector<BAM::TSequencedBase>::const_iterator cbegin() const{ return _bases.cbegin(); };
 	std::vector<BAM::TSequencedBase>::const_iterator cend() const{ return _bases.cend(); };
 };
