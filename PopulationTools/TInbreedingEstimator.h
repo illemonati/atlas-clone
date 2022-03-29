@@ -5,25 +5,29 @@
 #ifndef ATLAS_TINBREEDINGESTIMATOR_H
 #define ATLAS_TINBREEDINGESTIMATOR_H
 
-#include "TParameters.h"
-#include "TLog.h"
-#include "TPopulationLikelihoods.h"
-#include "TRandomGenerator.h"
 #include <limits>
-#include "TDAGBuilder.h"
-#include "TPriorFixed.h"
-#include "TPriorInferred.h"
-#include "TMCMC.h"
+
+#include "TPopulationLikelihoods.h"
+
+#include "TLog.h"
+#include "TParameters.h"
+#include "TRandomGenerator.h"
 #include "TTask.h"
 #include "TNamesPositions.h"
 
+#include "TParameterTyped.h"
+#include "TDAGBuilder.h"
+#include "TMCMC.h"
+#include "TPriorBeta.h"
+#include "TPriorUniform.h"
+
 namespace PopulationTools {
 
-typedef coretools::Probability TypeF; // F in [0, 1]
+typedef coretools::Probability TypeF;               // F in [0, 1]
 typedef coretools::ZeroOpenOneClosed<double> TypeP; // p in (0, 1]
-typedef coretools::WeakType<double> TypeLogAlpha; // log_alpha in (-inf, inf) -> alpha = exp(log_alpha) is > 0
-typedef coretools::WeakType<double> TypeLogBeta; // log_beta in (-inf, inf) -> beta = exp(log_beta) is > 0
-typedef coretools::WeakType<bool> TypeZ; // z = 0,1
+typedef coretools::WeakType<double> TypeLogAlpha;   // log_alpha in (-inf, inf) -> alpha = exp(log_alpha) is > 0
+typedef coretools::WeakType<double> TypeLogBeta;    // log_beta in (-inf, inf) -> beta = exp(log_beta) is > 0
+typedef coretools::WeakType<bool> TypeZ;            // z = 0,1
 typedef genometools::HighPrecisionPhredIntProbability PhredType;
 typedef genometools::TSampleLikelihoods<PhredType> TypeGTL;
 
@@ -31,75 +35,93 @@ typedef genometools::TSampleLikelihoods<PhredType> TypeGTL;
 // TInbreedingEstimatorPrior
 //------------------------------------------
 
-class InbreedingPrior : public stattools::MCMCPrior {
+class TInbreedingEstimatorPrior
+    : public stattools::prior::TBaseLikelihoodPrior<stattools::TObservationBase,
+                                                    TypeGTL, 2> {
+private:
+  using typename TBase<stattools::TObservationBase, TypeGTL, 2>::Storage;
+
+  // parameters
+  stattools::TParameterTyped<TypeF, 1> *_F;
+  stattools::TParameterTyped<TypeP, 1> *_p;
+  stattools::TParameterTyped<TypeZ, 1> *_z;
+
+  // dimensions
+  size_t _numLoci = 0;
+  size_t _numSamples = 0;
+
+  // proposal probability for model switch F
+  coretools::Probability _q_FModel_To_HWE = 0;
+  coretools::LogProbability _log_q_FModel_To_HWE = 0;
+
+  // propose new values after model switch
+  coretools::StrictlyPositive<double> _lambdaNewF =
+      coretools::StrictlyPositive<double>::min();
+
+  // initial estimates for p
+  const std::vector<double> &_initialEstimatesP;
+
+  // calculate LL
+  [[nodiscard]] coretools::LogProbability _calculateLLSumOverIndividuals(const Storage &Data, size_t Locus, const genometools::THardyWeinbergGenotypeProbabilities &Probs) const;
+  [[nodiscard]] coretools::LogProbability _calculateLLSumOverIndividuals(const Storage &Data, size_t Locus, double P) const;
+  [[nodiscard]] coretools::LogProbability _calculateLLSumOverIndividuals(const Storage &Data, size_t Locus, double P, double F) const;
+
+  // DAG
+  void _readCommandLineArguments();
+
+  // initial values
+  void _setInitialF();
+  void _setInitialP();
+
+  // update functions for F
+  void _updateFAndZ(const Storage &Data);
+  void _updateRegularF(const Storage &Data);
+  void _updateFToHWE(const Storage &Data);
+  void _updateHWEToF(const Storage &Data);
+  [[nodiscard]] double _calculateProbabilityOfProposingThisF(double F) const;
+  [[nodiscard]] double _getRandomNewF() const;
+
+  // update functions for p
+  void _updateP(const Storage &Data, size_t Locus);
+
 public:
-    inline static const std::string inbreeding = "inbreeding";
+  TInbreedingEstimatorPrior(stattools::TParameterTyped<TypeF, 1> *F,
+                            stattools::TParameterTyped<TypeP, 1> *P,
+                            stattools::TParameterTyped<TypeZ, 1> *Z,
+                            const std::vector<double> &InitialEstimatesP);
+  void initializeStorageOfPriorParameters() override;
+
+  [[nodiscard]] std::string name() const override;
+
+  // estimate initial values
+  void estimateInitialPriorParameters() override;
+
+  // full log densities
+  [[nodiscard]] double getSumLogPriorDensity(const Storage &Data) const override;
+
+  // update all hyperprior parameters
+  void updateParams() override;
+
+  // simulate values
+  void simulateUnderPrior() override;
 };
 
-class TInbreedingEstimatorPrior : public stattools::prior::TBaseLikelihoodPrior<stattools::TValueFixed, TypeGTL, 2> {
+//------------------------------------------
+// TInbreedingEstimatorModel
+//------------------------------------------
+
+class TInbreedingEstimatorModel {
 private:
-    // parameters
-    std::shared_ptr<stattools::TParameterTyped<TypeF, 1>> _F;
-    std::shared_ptr<stattools::TParameterTyped<TypeP, 1>> _p;
-    std::shared_ptr<stattools::TParameterTyped<TypeZ, 1>> _z;
-
-    // dimensions
-    size_t _numLoci;
-    size_t _numSamples;
-
-    // proposal probability for model switch F
-    coretools::Probability _q_FModel_To_HWE;
-    coretools::LogProbability _log_q_FModel_To_HWE;
-
-    // propose new values after model switch
-    coretools::StrictlyPositive<double> _lambdaNewF;
-
-    // initial estimates for p
-    const std::vector<double>& _initialEstimatesP;
-
-    // calculate LL
-    [[nodiscard]] coretools::LogProbability _calculateLLSumOverIndividuals(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> & Data, size_t Locus, const genometools::THardyWeinbergGenotypeProbabilities & Probs) const;
-    [[nodiscard]] coretools::LogProbability _calculateLLSumOverIndividuals(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> & Data, size_t Locus, double P) const;
-    [[nodiscard]] coretools::LogProbability _calculateLLSumOverIndividuals(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> & Data, size_t Locus, double P, double F) const;
-
-    // DAG
-    void _registerPriorParameters() override;
-    void _readCommandLineArguments();
-
-    // initial values
-    void _setInitialF();
-    void _setInitialP();
-
-    // update functions for F
-    void _updateFAndZ(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> & Data);
-    void _updateRegularF(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> & Data);
-    void _updateFToHWE(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> & Data);
-    void _updateHWEToF(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> & Data);
-    [[nodiscard]] double _calculateProbabilityOfProposingThisF(double F) const;
-    [[nodiscard]] double _getRandomNewF() const;
-
-    // update functions for p
-    void _updateP(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> & Data, size_t Locus);
+  // parameters
+  stattools::TParameterTyped<TypeF, 1> _F;
+  stattools::TParameterTyped<TypeZ, 1> _z;
+  stattools::TParameterTyped<TypeLogAlpha, 1> _log_alpha;
+  stattools::TParameterTyped<TypeLogBeta, 1> _log_beta;
+  stattools::TParameterTyped<TypeP, 1> _p;
+  stattools::TObservationTyped<TypeGTL, 2> _observation;
 
 public:
-    TInbreedingEstimatorPrior(std::shared_ptr<stattools::TParameterTyped<TypeF, 1>>  F,
-                              std::shared_ptr<stattools::TParameterTyped<TypeP, 1>>  P,
-                              std::shared_ptr<stattools::TParameterTyped<TypeZ, 1>>  Z,
-                              const std::vector<double> & InitialEstimatesP);
-    ~TInbreedingEstimatorPrior() override = default;
-    void initializeStorageOfPriorParameters() override;
-
-    // estimate initial values
-    void estimateInitialPriorParameters() override;
-
-    // full log densities
-    [[nodiscard]] double getSumLogPriorDensity(const std::shared_ptr<const stattools::TParameterObservationTypedBase<stattools::TValueFixed, TypeGTL, 2>> & Data) const override;
-
-    // update all hyperprior parameters
-    void updateParams() override;
-
-    // simulate values
-    void simulateUnderPrior() override;
+  TInbreedingEstimatorModel(const std::string & Filename, std::shared_ptr<stattools::TDAGBuilder> & DAGBuilder, const genometools::TPopulationLikelihoods<stattools::TValueFixed<TypeGTL>> & Likelihoods);
 };
 
 //------------------------------------------
@@ -108,47 +130,33 @@ public:
 
 class TInbreedingEstimator {
 private:
-    std::shared_ptr<stattools::TDAGBuilder> _dagBuilder;
-    genometools::TPopulationLikelihoods<stattools::TValueFixed<TypeGTL>> _likelihoods;
+  // data
+  genometools::TPopulationLikelihoods<stattools::TValueFixed<TypeGTL>> _likelihoods;
 
-    // filenames
-    std::string _prefix;
-    std::string _filename;
-
-    // define DAG
-    void _defineDAG();
-    auto _defineFAndZ();
-    auto _definePAndAlphaBeta();
-    void _defineObservation(const std::shared_ptr<stattools::TParameterTyped<TypeF, 1>> & F, const std::shared_ptr<stattools::TParameterTyped<TypeZ, 1>> & Z, const std::shared_ptr<stattools::TParameterTyped<TypeP, 1>> & P);
-
-    // read input data
-    void _readData();
+  // read input data
+  void _readData();
 
 public:
-    TInbreedingEstimator(coretools::TParameters &Parameters, coretools::TLog *Logfile,
-                                  coretools::TRandomGenerator *RandomGenerator);
-
-    void runEstimation(coretools::TParameters &Parameters);
+  void runEstimation(coretools::TParameters &Parameters);
 };
-
 
 //--------------------------------------
 // Tasks
 //--------------------------------------
 class TTask_estimateInbreeding : public coretools::TTask {
 public:
-    TTask_estimateInbreeding() {
-        _explanation = "Estimating the inbreeding coefficient";
-        _citations.emplace("Burger et al. (2020) Current Biology");
-    };
+  TTask_estimateInbreeding() {
+    _explanation = "Estimating the inbreeding coefficient";
+    _citations.emplace("Burger et al. (2020) Current Biology");
+  };
 
-    void run() override {
-        using namespace coretools::instances;
-        TInbreedingEstimator inbreedingEstimator(parameters(), &logfile(), &randomGenerator());
-        inbreedingEstimator.runEstimation(parameters());
-    };
+  void run() override {
+    using namespace coretools::instances;
+    TInbreedingEstimator inbreedingEstimator;
+    inbreedingEstimator.runEstimation(parameters());
+  };
 };
 
 } // end namespace PopulationTools
 
-#endif //ATLAS_TINBREEDINGESTIMATOR_H
+#endif // ATLAS_TINBREEDINGESTIMATOR_H
