@@ -72,14 +72,10 @@ public:
 	operator[](genometools::BiallelicGenotype Genotype) const {
 		// check
 		if (_isHaploid && !genometools::isHaploid(Genotype)) {
-			throw std::runtime_error("constexpr const HighPrecisionPhredIntProbability& "
-						 "TGenotypeLikelihoodsOneAllelicCombination::operator[](const "
-						 "genometools::BiallelicGenotype & Genotype) const: sample is haploid!");
+		    throw std::runtime_error((std::string) __PRETTY_FUNCTION__ + ": sample is haploid!");
 		}
-		if (!_isHaploid && genometools::isDiploid(Genotype)) {
-			throw std::runtime_error("constexpr const HighPrecisionPhredIntProbability& "
-						 "TGenotypeLikelihoodsOneAllelicCombination::operator[](const "
-						 "genometools::BiallelicGenotype & Genotype) const: sample is Diploid!");
+		if (!_isHaploid && !genometools::isDiploid(Genotype)) {
+		    throw std::runtime_error((std::string) __PRETTY_FUNCTION__ + ": sample is diploid!");
 		}
 
 		// return
