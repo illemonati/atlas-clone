@@ -1,9 +1,8 @@
 #! /bin/bash
 
 root=`git rev-parse --show-toplevel`
-echo $root
-
 atlas=`find $root -type f -name atlas | tail -n 1`
+echo "Using $atlas"
 
 $atlas --task simulate --type HW --F 0.1 --chrLength 1000 --sampleSize 20 --fracPoly 1.0 --alpha 2.0 --beta 2.0 --fixedSeed 0
 
