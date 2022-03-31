@@ -48,12 +48,14 @@ void TSite::downsample(uint32_t maxDepth, const coretools::TSubsamplePicker &pic
 };
 
 std::string TSite::getBases() const {
-	return std::accumulate(_bases.cbegin(), _bases.cend(), "",
+	if (empty()) return "-";
+	return std::accumulate(_bases.cbegin(), _bases.cend(), std::string(""),
 			       [](auto tot, auto b) { return tot + genometools::base2char(b.base); });
 };
 
 std::string TSite::getQualities() const {
-	return std::accumulate(_bases.cbegin(), _bases.cend(), "", [](auto tot, auto b) {
+	if (empty()) return "-";
+	return std::accumulate(_bases.cbegin(), _bases.cend(), std::string(""), [](auto tot, auto b) {
 		return tot + static_cast<char>(genometools::BaseQuality(b.recalibratedQualityAsPhredInt)); });
 }
 
