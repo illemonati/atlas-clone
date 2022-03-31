@@ -197,7 +197,7 @@ public:
 
 	// access data
 	constexpr uint32_t numSamples() const noexcept { return numGLFs; };
-	constexpr uint32_t numActiveSamples() const noexcept { return pointerToActiveGLFs.size(); };
+	uint32_t numActiveSamples() const noexcept { return pointerToActiveGLFs.size(); };
 	constexpr uint32_t numActiveSamplesWithData() const noexcept { return _numActiveFilesWithData; };
 	std::string chr() const { return _curChr.name(); };
 	constexpr uint32_t position() const noexcept { return _position; };
