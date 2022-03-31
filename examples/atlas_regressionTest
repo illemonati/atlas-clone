@@ -1,0 +1,34 @@
+#! /bin/bash
+
+for f in *.sh; do (
+    fo=${f%.sh}
+    echo "Regresision Test: $fo"
+    if [[ ! -d ${fo}_ref ]]; then
+	echo "Creating reference ATLAS-files in folder ${fo}_ref"
+	mkdir -v ${fo}_ref
+	cd ${fo}_ref
+	bash ../$f > out 2> eout
+    else
+	echo "Found reference ATLAS-files in folder ${fo}_ref"
+	if [[ ! -d ${fo}_new ]]; then
+	    echo "Creating new ATLAS-files in folder ${fo}_new"
+	    mkdir -v ${fo}_new
+	    cd ${fo}_new
+	    bash ../$f > out 2> eout
+	else
+	    echo "Found new ATLAS-files in folder ${fo}_new"
+	    cd ${fo}_new
+	fi
+
+	echo "Comparing reference ATLAS-files to new ones"
+	for a in ATLAS_*; do
+	    if ! diff -q $a ../${fo}_ref/$a; then
+		differs=true
+	    fi
+	done
+	if [[ ! $differs ]]; then
+	    echo "All files are identical"
+	fi
+    fi
+    echo
+) done
