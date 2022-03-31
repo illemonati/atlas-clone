@@ -47,7 +47,7 @@ void fill(TMultiGLFDataOneAllelicCombination &storage, const TMultiGLFData &samp
 };
 
 uint32_t totalDepth(const TMultiGLFData &samples) noexcept {
-	return std::accumulate(samples.begin(), samples.end(), 0, [](auto tot, auto s) {return tot + s.depth();});
+	return std::accumulate(samples.begin(), samples.end(), uint32_t{}, [](auto tot, auto s) {return tot + s.depth();});
 };
 
 //----------------------------------------------------
@@ -232,8 +232,8 @@ TGlfMultiReader::TGlfMultiReader() {
 	setDepthFilter(parameters().getParameterWithDefault<int>("minDepth", 0));
 };
 
-TGlfMultiReader::TGlfMultiReader(std::vector<std::string> FileNames) {
-	openGLFs(FileNames);
+	TGlfMultiReader::TGlfMultiReader(const std::vector<std::string>& FileNames) : GLFNames(FileNames){
+	_openGLFs();
 };
 
 TGlfMultiReader::~TGlfMultiReader() {
@@ -244,7 +244,7 @@ TGlfMultiReader::~TGlfMultiReader() {
 
 void TGlfMultiReader::_openGLFs() {
 	numGLFs     = GLFNames.size();
-	GLFIsActive.resize(numGLFs);
+	GLFIsActive.resize(numGLFs, false);
 
 	// open files
 	GLFs.clear();
@@ -296,6 +296,7 @@ void TGlfMultiReader::closeGLF() {
 
 		GLFNames.clear();
 		GLFs.clear();
+		pointerToActiveGLFs.clear();
 		numGLFs       = 0;
 		readersOpened = false;
 	}
@@ -335,9 +336,8 @@ void TGlfMultiReader::_setAllInactive() {
 
 void TGlfMultiReader::_prepareParsing() {
 	// prepare data
-	numActiveFiles = pointerToActiveGLFs.size();
 	data.clear();
-	data.reserve(numActiveFiles);
+	data.reserve(numActiveSamples());
 
 	for (TGlfReader *it : pointerToActiveGLFs) it->rewind();
 
@@ -421,7 +421,6 @@ void TGlfMultiReader::_updateChromosomeInfo() {
 };
 
 void TGlfMultiReader::setActive(const int index) {
-	if (index >= numGLFs) throw "Index out of range in TGlfMultiReader::setActiveOnly(const int index)!";
 	_setAllInactive();
 	_setActive(index);
 	_prepareParsing();
@@ -457,6 +456,7 @@ void TGlfMultiReader::setActive(std::vector<std::string> &names) {
 };
 
 void TGlfMultiReader::setAllActive() {
+	_setAllInactive();
 	for (int i = 0; i < numGLFs; ++i) _setActive(i);
 	_prepareParsing();
 };
@@ -498,6 +498,7 @@ bool TGlfMultiReader::readNext() {
 	// advance all files behind next position
 	_numActiveFilesWithData = 0;
 	bool allFilesReachedEnd = true;
+	data.clear();
 	for (TGlfReader *reader : pointerToActiveGLFs) {
 		while (!reader->eof() && reader->refId() == _curRefId && reader->position() < _nextPosition) { reader->readNext(); }
 
@@ -528,7 +529,7 @@ bool TGlfMultiReader::readNext() {
 
 void TGlfMultiReader::print() const {
 	std::cout << "\nMulti Reader at position " << _position << " on chromosome '" << _curChr.name() << std::endl;
-	for (size_t i = 0; i < numActiveFiles; ++i) {
+	for (size_t i = 0; i < numActiveSamples(); ++i) {
 		std::cout << "File " << i << ":";
 		if (data[i].isHaploid()) {
 			for (genometools::Base g = genometools::Base::min; g < genometools::Base::max; ++g) {
@@ -545,18 +546,14 @@ void TGlfMultiReader::print() const {
 
 void TGlfMultiReader::writeSampleNamesOfActiveFiles(gz::ogzstream &out, std::string &sep) const {
 	// sample names are file names without glf ending
-	if (numActiveFiles > 0) {
-		for (TGlfReader *it : pointerToActiveGLFs) { out << sep << coretools::str::readBeforeLast(it->name(), ".glf"); }
-	}
+	for (TGlfReader *it : pointerToActiveGLFs) { out << sep << coretools::str::readBeforeLast(it->name(), ".glf"); }
 };
 
 std::vector<std::string> TGlfMultiReader::namesOfActiveFiles() const {
 	std::vector<std::string> vec;
 
 	// sample names are file names without glf ending
-	if (numActiveFiles > 0) {
-		for (TGlfReader *it : pointerToActiveGLFs) { vec.emplace_back(it->name()); }
-	}
+	for (TGlfReader *it : pointerToActiveGLFs) { vec.emplace_back(it->name()); }
 	return vec;
 };
 
@@ -564,11 +561,7 @@ std::vector<std::string> TGlfMultiReader::sampleNamesOfActiveFiles() const {
 	std::vector<std::string> vec;
 
 	// sample names are file names without glf ending
-	if (numActiveFiles > 0) {
-		for (TGlfReader *it : pointerToActiveGLFs) {
-			vec.emplace_back(coretools::str::readBeforeLast(it->name(), ".glf"));
-		}
-	}
+	for (TGlfReader *it : pointerToActiveGLFs) { vec.emplace_back(coretools::str::readBeforeLast(it->name(), ".glf")); }
 	return vec;
 };
 

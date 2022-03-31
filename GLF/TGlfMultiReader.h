@@ -131,7 +131,6 @@ private:
 	// active files
 	// Object will loop only over active files
 	bool _onlyJumpToPositionsWithData = false;
-	uint32_t numActiveFiles = 0;
 	std::vector<bool> GLFIsActive;
 	std::vector<TGlfReader *> pointerToActiveGLFs;
 
@@ -167,7 +166,7 @@ public:
 	TMultiGLFData data;
 
 	TGlfMultiReader();
-	TGlfMultiReader(std::vector<std::string> FileNames);
+	TGlfMultiReader(const std::vector<std::string>& FileNames);
 
 	~TGlfMultiReader();
 
@@ -198,7 +197,7 @@ public:
 
 	// access data
 	constexpr uint32_t numSamples() const noexcept { return numGLFs; };
-	constexpr uint32_t numActiveSamples() const noexcept { return numActiveFiles; };
+	constexpr uint32_t numActiveSamples() const noexcept { return pointerToActiveGLFs.size(); };
 	constexpr uint32_t numActiveSamplesWithData() const noexcept { return _numActiveFilesWithData; };
 	std::string chr() const { return _curChr.name(); };
 	constexpr uint32_t position() const noexcept { return _position; };
