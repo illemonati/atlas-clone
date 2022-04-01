@@ -12,7 +12,6 @@
 #include "TGenotypeFrequencies.h"
 #include "TGlfMultiReader.h"
 #include "TStrongArray.h"
-#include <TPopulationLikelihoodLocus.h>
 #include <math.h>
 
 namespace PopulationTools {
@@ -27,49 +26,44 @@ using TAlleleicCombinationData =
 
 class TMajorMinorEstimatorBase {
 protected:
-	using TAlleleicCombinations = std::array<genometools::AllelicCombination, genometools::index(genometools::AllelicCombination::max)>;
 	GLF::TMultiGLFDataOneAllelicCombination _genotypeLikelihoods;
 	genometools::TGenotypeFrequencies _genotypeFrequencies;
 	TAlleleicCombinationData _L10L_perCombination;
+	genometools::AllelicCombination _bestAllelicCombination = genometools::AllelicCombination::NN;
+	genometools::Base _minor                                = genometools::Base::N;
+	genometools::Base _major                                = genometools::Base::N;
+	genometools::PhredIntProbability _variantQuality{0}; // in phred format for VCF
 
-	//void useAllAlleleicCombinations();
-	//void useAllelicCombinationsThatContain(genometools::Base base);
-	void _chooseBestAllelicCombinationAmongThoseWithEqualScores();
-	virtual void _findMLAllelicCombination(const GLF::TMultiGLFData &data, const TAlleleicCombinations& used) = 0;
-	void _estimateMajorMinor(const GLF::TMultiGLFData &data);
+	virtual void _findMLAllelicCombination(const GLF::TMultiGLFData &data, genometools::Base base) = 0;
 public:
-	genometools::Base minor                                = genometools::Base::N;
-	genometools::Base major                                = genometools::Base::N;
-	genometools::AllelicCombination bestAllelicCombination = genometools::AllelicCombination::NN;
-	coretools::Log10Probability L10L                       = 0.0;
-	genometools::PhredIntProbability variantQuality{0}; // in phred format for VCF
-
 	virtual ~TMajorMinorEstimatorBase() = default;
 
-	void estimateMajorMinor(const GLF::TMultiGLFData &data);
-	void estimateMajorMinor(const GLF::TMultiGLFData &data, genometools::Base base);
+	void estimateMajorMinor(const GLF::TMultiGLFData &data, genometools::Base base = genometools::Base::N);
+	constexpr genometools::Base minor() const noexcept {return _minor;}
+	constexpr genometools::Base major() const noexcept {return _major;}
+	constexpr genometools::PhredIntProbability variantQuality() const noexcept {return _variantQuality;} ;
 };
 
 class TMajorMinorEstimatorSkotte : public TMajorMinorEstimatorBase {
 private:
-	double epsilonF;
-	genometools::TGenotypeFrequencies priorGenotypeFrequencies;
+	double _epsilonF;
+	genometools::TGenotypeFrequencies _priorGenotypeFrequencies;
 
-	void _findMLAllelicCombination(const GLF::TMultiGLFData &data, const TAlleleicCombinations& used) override;
+	void _findMLAllelicCombination(const GLF::TMultiGLFData &data, genometools::Base base) override;
 public:
 	TMajorMinorEstimatorSkotte(double EpsilonF);
 };
 
 class TMajorMinorEstimatorMLE : public TMajorMinorEstimatorBase {
 private:
-	double epsilonF;
-	std::array<genometools::TGenotypeFrequencies, 6> tmpGenotypeFrequencies;
+	double _epsilonF;
+	std::array<genometools::TGenotypeFrequencies, 6> _tmpGenotypeFrequencies;
 
-	coretools::Log10Probability estimateGenotypeFrequencies(const GLF::TMultiGLFData &data,
+	coretools::Log10Probability _estimateGenotypeFrequencies(const GLF::TMultiGLFData &data,
 								genometools::AllelicCombination alleleicCombination);
-	void _findMLAllelicCombination(const GLF::TMultiGLFData &data, const TAlleleicCombinations& used) override;
+	void _findMLAllelicCombination(const GLF::TMultiGLFData &data, genometools::Base base) override;
 public:
-	TMajorMinorEstimatorMLE(double EpsilonF) : epsilonF(EpsilonF) {};
+	TMajorMinorEstimatorMLE(double EpsilonF) : _epsilonF(EpsilonF) {};
 };
 
 void estimateMajorMinor();
