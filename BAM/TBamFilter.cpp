@@ -84,7 +84,6 @@ bool TBamFileFilterBool::pass(const bool state, const std::string & alignmentNam
 //---------------------------------------------------------------
 void TQualityFilter::_default(){
 	//default values according to SAM specifications
-	_filter = false;
 	_range.set(genometools::PhredIntProbability(1), true, genometools::PhredIntProbability(93), true);
 };
 
@@ -92,11 +91,11 @@ void TQualityFilter::set(coretools::TParameters & params, coretools::TLog* logfi
 	if(params.parameterExists("filterBaseQual")){
 		params.fillParameter("filterBaseQual", _range);
 		logfile->list("Will filter out bases with quality outside the range " + _range.rangeString() + " (parameter 'filterBaseQual')");
-		_filter = true;
 	} else {
 		_default();
-		logfile->list("Will keep bases regardless of quality (use 'filterBaseQual' to filter)");
+		logfile->list("Will filter out bases with quality outside the range " + _range.rangeString() + ". (use 'filterBaseQual' to change)");
 	}
+	_filter = true;
 };
 
 //-------------------------------------
