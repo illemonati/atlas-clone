@@ -77,7 +77,7 @@ public:
 };
 
 enum class ModelStatusTypes : uint8_t {copied=0, noData, littleData, dataButNoRecal};
-using TModelStatus = coretools::StrongTypes::TStrongArray<TModelStatusEntry, ModelStatusTypes, 4>;
+using TModelStatus = coretools::TStrongArray<TModelStatusEntry, ModelStatusTypes, 4>;
 
 class TModelStati{
 private:

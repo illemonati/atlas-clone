@@ -17,7 +17,7 @@
 namespace PopulationTools {
 
 using TAlleleicCombinationData =
-    coretools::StrongTypes::TStrongArray<coretools::Log10Probability, genometools::AllelicCombination>;
+    coretools::TStrongArray<coretools::Log10Probability, genometools::AllelicCombination>;
 
 
 //-----------------------------------------------
