@@ -90,6 +90,7 @@ void TQualityFilter::_default(){
 void TQualityFilter::set(coretools::TParameters & params, coretools::TLog* logfile){
 	if(params.parameterExists("filterBaseQual")){
 		params.fillParameter("filterBaseQual", _range);
+		if (_range.within(genometools::PhredIntProbability(0))){ throw "Base quality filter of 0 is not allowed (parameter 'filterBaseQual')"; }
 		logfile->list("Will filter out bases with quality outside the range " + _range.rangeString() + " (parameter 'filterBaseQual')");
 	} else {
 		_default();
