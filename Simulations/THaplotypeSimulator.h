@@ -12,6 +12,8 @@
 #include <vector>
 #include "TGenotypeData.h"
 #include "TSimulatorAuxiliaryTools.h"
+#include "TChromosomes.h"
+#include "SFS.h"
 
 namespace Simulations {
 
@@ -20,12 +22,14 @@ protected:
 	std::array<double, 4> _cumulRef;
 	GenotypeLikelihoods::TBaseProbabilities _baseFreq;
 	std::array<double, 4> _cumulBaseFreq;
-	int _sampleSize;
 	double _referenceDivergence;
 	THaplotypeSimulator();
 public:
-	virtual void simulateDiploid(TSimulatorHaplotypes &haplotypes, const genometools::TChromosome &chromosome);
-	virtual void simulateHaploid(TSimulatorHaplotypes &haplotypes, const genometools::TChromosome &chromosome);
+	virtual ~THaplotypeSimulator() = default;
+	virtual void simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference, const genometools::TChromosome &chromosome) = 0;
+	virtual void simulateHaploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference, const genometools::TChromosome &chromosome) = 0;
+
+	virtual size_t sampleSize() const noexcept = 0;
 };
 
 //---------------------------------------------------------
@@ -35,13 +39,15 @@ class TSimulatorOne : public THaplotypeSimulator {
 private:
 	std::vector<double> _thetas;
 
-	void _simulateHaplotypesDiploid(TSimulatorHaplotypes &haplotypes,
+public:
+	TSimulatorOne(size_t nChoromosomes);
+
+	void simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference,
 					const genometools::TChromosome &chromosome) override;
-	void _simulateHaplotypesHaploid(TSimulatorHaplotypes &haplotypes,
+	void simulateHaploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference,
 					const genometools::TChromosome &chromosome) override;
 
-public:
-	TSimulatorOne();
+	size_t sampleSize() const noexcept override {return 1;}
 };
 
 //---------------------------------------------------------
@@ -51,18 +57,21 @@ class TSimulatorPair : public THaplotypeSimulator {
 private:
 	static constexpr std::array<std::array<size_t, 4>, 4> _orderLookup = {
 	    {{0, 1, 2, 3}, {0, 1, 3, 2}, {1, 0, 2, 3}, {1, 0, 3, 2}}};
-	std::vector<double> _phis std::array<double, 9> _cumulGenoCaseFrequencies;
+	std::vector<double> _phis;
+	std::array<double, 9> _cumulGenoCaseFrequencies;
 	std::array<std::vector<double>, 9> _cumulGenoCombinationFreq;
 	std::array<std::vector<std::array<genometools::Base, 4>>, 9> _genoTrans;
 
 	void _fillTables();
-	void _simulateHaplotypesDiploid(TSimulatorHaplotypes &haplotypes,
-					const genometools::TChromosome &chromosome) override;
-	void _simulateHaplotypesHaploid(TSimulatorHaplotypes &haplotypes,
-					const genometools::TChromosome &chromosome) override;
 
 public:
 	TSimulatorPair();
+	void simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference,
+					const genometools::TChromosome &chromosome) override;
+	void simulateHaploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference,
+					const genometools::TChromosome &chromosome) override;
+
+	size_t sampleSize() const noexcept override {return 2;}
 };
 
 //---------------------------------------------------------
@@ -70,18 +79,20 @@ public:
 //---------------------------------------------------------
 class TSimulatorSFS : public THaplotypeSimulator {
 private:
+	int _sampleSize;
 	std::vector<std::unique_ptr<SFS>> _sfs;
 	TSimulatorMutationtable _mutTable;
 
-	void _initializeSFS(const std::vector<double> &thetas);
-	void _initializeSFS(const std::vector<std::string> &sfsFileNames, bool folded);
-	void _simulateHaplotypesHaploid(TSimulatorHaplotypes &haplotypes,
+	void _initializeSFS(const genometools::TChromosomes& chromosomes, const std::vector<double> &thetas);
+	void _initializeSFS(const genometools::TChromosomes& chromosomes, const std::vector<std::string> &sfsFileNames, bool folded);
+public:
+	TSimulatorSFS(const genometools::TChromosomes& chromosomes);
+	void simulateHaploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference,
 					const genometools::TChromosome &chromosome) override;
-	void _simulateHaplotypesDiploid(TSimulatorHaplotypes &haplotypes,
+	void simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference,
 					const genometools::TChromosome &chromosome) override;
 
-public:
-	TSimulatorSFS();
+	size_t sampleSize() const noexcept override {return _sampleSize;}
 };
 
 //---------------------------------------------------------
@@ -96,6 +107,7 @@ struct TSimulatorHWSite {
 
 class TSimulatorHW : public THaplotypeSimulator {
 private:
+	int _sampleSize;
 	double _fracPoly, _alpha, _beta, _F;
 	double _cumulGenoProb[3];
 	TSimulatorMutationtable _mutTable;
@@ -103,15 +115,18 @@ private:
 	coretools::TOutputFile _trueFreqFile;
 
 	void _fillCumulGenoProb(double f);
-	void _simulateSite(TSimulatorHWSite &site, const std::string &chr, uint64_t pos);
+	void _simulateSite(TSimulatorHWSite &site, TSimulatorReference &reference, const std::string &chr, uint64_t pos);
 	void _fillhaplotypesMonomoprhic(TSimulatorHaplotypes &haplotypes, uint64_t locus, const TSimulatorHWSite &site);
-	void _simulateHaplotypesHaploid(TSimulatorHaplotypes &haplotypes,
-					const genometools::TChromosome &chromosome) override;
-	void _simulateHaplotypesDiploid(TSimulatorHaplotypes &haplotypes,
-	                                const genometools::TChromosome &chromosome) override;
 
 public:
 	TSimulatorHW();
+
+	void simulateHaploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference,
+					const genometools::TChromosome &chromosome) override;
+	void simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference,
+	                                const genometools::TChromosome &chromosome) override;
+
+	size_t sampleSize() const noexcept override {return _sampleSize;}
 };
 } // namespace Simulations
 

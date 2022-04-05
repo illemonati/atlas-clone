@@ -41,18 +41,19 @@ protected:
 	bool _writeTrueGenotypes;
 	bool _writeVariantInvariantBedFiles;
 	TSimulatorReference _reference;
-
 	genometools::TChromosomes _chromosomes;
 
 	std::unique_ptr<THaplotypeSimulator> _haploSimulator;
 public:
-	TSimulator();
-	virtual void runSimulations();
+	TSimulator(const std::string& method);
+	virtual void runSimulations() = 0;
 	virtual ~TSimulator() = default;
 };
 
 class TVCFSimulator : public TSimulator {
-	void runSimulations() override;
+public:
+	TVCFSimulator(const std::string& method) : TSimulator(method) {};
+	void runSimulations() override {};
 };
 
 
@@ -86,7 +87,6 @@ protected:
 					       const std::string &Name);
 	void _initializeContamination(bool &perReadGroup,
 				      std::map<std::string, double> &contaminationMap);
-	void _initializeChromosomes();
 	void _initializeReadSimulator();
 	void _initializeReadGroupFrequencies();
 
@@ -94,7 +94,7 @@ protected:
 	void _simulateReadsFromHaplotypes(const genometools::TChromosome &thisChr, std::array<std::vector<genometools::Base>,2> haplotypes, TSimulatorBamFile &bamFile,
 					  std::string extraProgressText);
 public:
-	TBAMSimulator();
+	TBAMSimulator(const std::string& method);
 	// functions to set general parameters
 
 	void runSimulations() override;
@@ -111,25 +111,21 @@ public:
 	void run() {
 		using namespace coretools::instances;
 		// initialize simulator
-		std::unique_ptr<TSimulator> simulator;
-		std::string method = parameters().getParameterWithDefault<std::string>("type", "one");
-		if (method == "one") {
-			logfile().startIndent("Simulating a single individual (parameter type=one):");
-			simulator = std::make_unique<TSimulatorOne>();
-		} else if (method == "pair") {
-			logfile().startIndent("Simulating a pair of individual (parameter type=pair):");
-			simulator = std::make_unique<TSimulatorPair>();
-		} else if (method == "SFS") {
-			logfile().startIndent("Simulating individuals from an SFS (parameter type=SFS):");
-			simulator = std::make_unique<TSimulatorSFS>();
-		} else if (method == "HW") {
-			logfile().startIndent("Simulating a individuals under Hardy-Weinberg (parameter type=HW):");
-			simulator = std::make_unique<TSimulatorHW>();
-		} else
-			throw "Unknown simulation method '" + method + "'!";
+		std::unique_ptr<THaplotypeSimulator> haploSimulator;
+		std::string method = parameters().getParameterWithDefault<std::string>("type", "BAM:one");
+		const auto simMethod   = coretools::str::readBefore(method, ':');
+		const auto haploMethod = coretools::str::readAfter(method, ':');
 
-		// now run simulations
-		simulator->runSimulations();
+
+		if (simMethod == "BAM") {
+			auto simulator = TBAMSimulator{haploMethod};
+			simulator.runSimulations();
+		}
+		else if (simMethod == "VCF") {
+			auto simulator = TVCFSimulator{haploMethod};
+			simulator.runSimulations();
+		}
+		else throw "Unknown simulation method '" + simMethod + "'!";
 
 		// clean up
 		logfile().endIndent();
