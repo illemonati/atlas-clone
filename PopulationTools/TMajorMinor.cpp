@@ -42,17 +42,14 @@ constexpr coretools::TDualArray<AllelicCombination, 3, index(AllelicCombination:
 };
 
 AllelicCombination chooseBestAllelicCombination(const TAlleleicCombinationData& acd) {
-	// identify max L10L
-	const auto first_max = std::max_element(acd.begin(), acd.end());
-	const auto _L10L = *first_max;
-
-	// select MLE combination
-	std::array<AllelicCombination, index(AllelicCombination::max)> best_combinations;
+	std::array<size_t, index(AllelicCombination::max)> indices;
 	size_t i = 0;
-	for (auto ac = AllelicCombination(std::distance(acd.begin(), first_max)); ac < AllelicCombination::max; ++ac) {
-		if (acd[ac] == _L10L) best_combinations[i++] = ac;
+	auto max = std::max_element(acd.begin(), acd.end());
+	while (max != acd.end()) {
+		indices[i++] = std::distance(acd.begin(), max);
+		max = std::find(std::next(max), acd.end(), *max);
 	}
-	return i == 1 ? best_combinations.front() : best_combinations[randomGenerator().sample(i)];
+	return AllelicCombination(i == 1 ? indices.front() : indices[randomGenerator().sample(i)]);
 };
 
 } // namespace
