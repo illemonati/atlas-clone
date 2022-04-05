@@ -53,43 +53,42 @@ uint32_t totalDepth(const TMultiGLFData &samples) noexcept {
 //----------------------------------------------------
 // TGlfMultiReaderVcf
 //----------------------------------------------------
-TGlfMultiReaderVcf::TGlfMultiReaderVcf(const std::string filename, const std::string source,
-				       std::vector<std::string> &sampleNames, bool UsePhredScaledLikelihoods)
+TGlfMultiReaderVcf::TGlfMultiReaderVcf(const std::string & Filename, const std::string & Source,
+				       const std::vector<std::string> & SampleNames, bool UsePhredScaledLikelihoods)
     : _usePhredScaledLikelihoods(UsePhredScaledLikelihoods) {
-	_openVCF(filename, source, sampleNames);
+	_openVCF(Filename, Source, SampleNames);
 };
 
-void TGlfMultiReaderVcf::_openVCF(const std::string &filename, const std::string &source,
-				  std::vector<std::string> &sampleNames) {
+void TGlfMultiReaderVcf::_openVCF(const std::string & Filename, const std::string & Source, const std::vector<std::string> & SampleNames) {
 	_closeVCF();
 
 	// open vcf file
-	vcf.open(filename.c_str());
+	_vcf.open(Filename.c_str());
 
 	// write info
 	// TODO: create VCF class to harmonize code across different uses. Also include code in Tiger and other
-	vcf << "##fileformat=VCFv4.2\n";
-	vcf << "##source=" << source << "\n";
+	_vcf << "##fileformat=VCFv4.2\n";
+	_vcf << "##source=" << Source << "\n";
 
 	// make sure the header matches the format used in writeSiteToVCF
-	vcf << "##INFO=<ID=DP,Number=1,Type=Integer,Description=\"Total Depth\">\n";
-	vcf << "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n";
-	vcf << "##FORMAT=<ID=GQ,Number=1,Type=Integer,Description=\"Genotype quality\">\n";
-	vcf << "##FORMAT=<ID=DP,Number=1,Type=Integer,Description=\"Total Depth\">\n";
+	_vcf << "##INFO=<ID=DP,Number=1,Type=Integer,Description=\"Total Depth\">\n";
+	_vcf << "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n";
+	_vcf << "##FORMAT=<ID=GQ,Number=1,Type=Integer,Description=\"Genotype quality\">\n";
+	_vcf << "##FORMAT=<ID=DP,Number=1,Type=Integer,Description=\"Total Depth\">\n";
 	if (_usePhredScaledLikelihoods) {
-		vcf << "##FORMAT=<ID=PL,Number=G,Type=Integer,Description=\"Phred-scaled normalized genotype likelihoods\">\n";
+		_vcf << "##FORMAT=<ID=PL,Number=G,Type=Integer,Description=\"Phred-scaled normalized genotype likelihoods\">\n";
 	} else {
-		vcf << "##FORMAT=<ID=GL,Number=G,Type=Float,Description=\"Normalized genotype likelihoods\">\n";
+		_vcf << "##FORMAT=<ID=GL,Number=G,Type=Float,Description=\"Normalized genotype likelihoods\">\n";
 	}
 
 	// also write header with sample names
-	vcf << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT";
-	for (std::string &name : sampleNames) vcf << '\t' << name;
-	vcf << '\n';
+	_vcf << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT";
+	for (const std::string &name : SampleNames) _vcf << '\t' << name;
+	_vcf << '\n';
 };
 
 void TGlfMultiReaderVcf::_closeVCF() {
-	vcf.close();
+	_vcf.close();
 };
 
 void TGlfMultiReaderVcf::_setMajorMinor(genometools::Base refAllele, genometools::Base altAllele) {
@@ -100,129 +99,153 @@ void TGlfMultiReaderVcf::_setMajorMinor(genometools::Base refAllele, genometools
 	_altHom = genometools::genotype(_alt, _alt);
 };
 
-void TGlfMultiReaderVcf::writeLikelihood(HighPrecisionPhredIntProbability likGlf) const {
+void TGlfMultiReaderVcf::_writeLikelihood(HighPrecisionPhredIntProbability likGlf){
 	if (_usePhredScaledLikelihoods) {
-		vcf << (genometools::PhredIntProbability)likGlf;
+		_vcf << (genometools::PhredIntProbability)likGlf;
 	} else {
 		if (likGlf == 0)
-			vcf << '0';
+			_vcf << '0';
 		else
-			vcf << (coretools::Log10Probability)likGlf;
+			_vcf << (coretools::Log10Probability)likGlf;
 	}
 };
 
-void TGlfMultiReaderVcf::writeSite(const std::string &chrName, uint32_t position,
-				   const genometools::PhredIntProbability varianTQuality, TMultiGLFData &data,
-				   genometools::Base refAllele, genometools::Base altAllele) {
-	// Note: we pass hom/het indexes to maintain the major / minor order! Passing the alleleic combination is not enough
-	// TODO: find way to harmonize code with TCaller
-	_setMajorMinor(refAllele, altAllele);
+void TGlfMultiReaderVcf::_writeMissing() {
+	_vcf << "\t./.:.:.:.";
+};
 
+void TGlfMultiReaderVcf::_writeSiteInformation(const std::string & ChrName, uint32_t Position,
+                                               genometools::PhredIntProbability VariantQuality,
+                                               genometools::Base RefAllele, genometools::Base AltAllele,
+                                               size_t Depth){
 	// write position
-	vcf << chrName << '\t' << position + 1 << "\t.\t"; // internal position is zero-based!
+	_vcf << ChrName << '\t' << Position + 1 << "\t.\t"; // internal position is zero-based!
 
 	// write ref and alt alleles
-	vcf << refAllele << '\t' << altAllele;
+	_vcf << RefAllele << '\t' << AltAllele;
 
 	// write quality of variant
-	vcf << '\t' << varianTQuality;
+	_vcf << '\t' << VariantQuality;
 
 	// write info field: total depth
-	vcf << "\t.\tDP=" << totalDepth(data);
+	_vcf << "\t.\tDP=" << Depth;
 
 	// write filter, info and format
 	if (_usePhredScaledLikelihoods)
-		vcf << "\tGT:GQ:DP:PL";
+		_vcf << "\tGT:GQ:DP:PL";
 	else
-		vcf << "\tGT:GQ:DP:GL";
+		_vcf << "\tGT:GQ:DP:GL";
+}
+
+void TGlfMultiReaderVcf::writeSite(const std::string &ChrName, uint32_t Position,
+                                   const genometools::PhredIntProbability VariantQuality, TMultiGLFData &data,
+								   genometools::Base RefAllele, genometools::Base AltAllele){
+	// Note: we pass hom/het indexes to maintain the major / minor order! Passing the alleleic combination is not enough
+	// TODO: find way to harmonize code with TCaller
+
+	_setMajorMinor(RefAllele, AltAllele);
+	_writeSiteInformation(ChrName, Position, VariantQuality, RefAllele, AltAllele, totalDepth(data));
 
 	// now write active samples
 	for (const auto &d : data) {
 		if (d.isHaploid())
-			writeHaploidIndividualToVCF(d);
+			_writeHaploidIndividualToVCF(d);
 		else
-			writeDiploidIndividualToVCF(d);
+			_writeDiploidIndividualToVCF(d);
 	}
 
 	// end of line
-	vcf << '\n';
+	_vcf << '\n';
 };
 
-void TGlfMultiReaderVcf::writeDiploidIndividualToVCF(const TMultiGLFDataSample &sample) const {
-	if (!sample.hasData()) {
-		vcf << "\t./.:.:.:.";
-		return;
-	}
-
+genometools::HighPrecisionPhredIntProbability TGlfMultiReaderVcf::_writeGenotypeAndQualityDiploid(const std::array<genometools::HighPrecisionPhredIntProbability, 3> &GTL){
 	constexpr std::array genotypeStrings = {"0/0", "0/1", "1/1"};
-	// find min qual
-	const std::array smp = {sample[_refHom], sample[_het], sample[_altHom]};
-	const auto min       = std::min_element(smp.cbegin(), smp.cend());
+
+	const auto min       = std::min_element(GTL.cbegin(), GTL.cend());
 	const auto minQual   = *min;
-	const auto in        = std::distance(smp.cbegin(), min);
+	const auto in        = std::distance(GTL.cbegin(), min);
 
 	// get all genotypes with minQual (=MLE)
 	std::vector<size_t> mleGenotypes;
-	for (size_t i = 0; i < smp.size(); ++i)
-		if (smp[i] == minQual) mleGenotypes.push_back(i);
+	for (size_t i = 0; i < GTL.size(); ++i)
+		if (GTL[i] == minQual) mleGenotypes.push_back(i);
 
 	// write genotype quality
 	if (mleGenotypes.size() > 1) {
-		const int mleGeno = mleGenotypes[randomGenerator().sample(mleGenotypes.size())];
-		vcf << '\t' << genotypeStrings[mleGeno] << ':';
-		vcf << "0:";
+		const auto mleGeno = mleGenotypes[randomGenerator().sample(mleGenotypes.size())];
+		_vcf << '\t' << genotypeStrings[mleGeno] << ':';
+		_vcf << "0:";
 	} else {
-		vcf << '\t' << genotypeStrings[mleGenotypes.front()] << ':';
+		_vcf << '\t' << genotypeStrings[mleGenotypes.front()] << ':';
 		constexpr std::array<std::array<size_t, 2>, 3> a = {{{1, 2}, {0, 2}, {1, 2}}};
-		const auto slq = std::min(smp[a[in][0]], smp[a[in][1]]);
+		const auto slq = std::min(GTL[a[in][0]], GTL[a[in][1]]);
 		// find second highest quality
-		vcf << genometools::PhredIntProbability(slq - minQual) << ":";
+		_vcf << genometools::PhredIntProbability(slq - minQual) << ":";
 	}
 
-	// write depth
-	vcf << sample.depth() << ':';
+	return minQual;
+}
 
-	// write likelihoods
-	writeLikelihood(sample[_refHom] - minQual);
-	vcf << ',';
-	writeLikelihood(sample[_het] - minQual);
-	vcf << ',';
-	writeLikelihood(sample[_altHom] - minQual);
-};
-
-void TGlfMultiReaderVcf::writeHaploidIndividualToVCF(const TMultiGLFDataSample &sample) const {
+void TGlfMultiReaderVcf::_writeDiploidIndividualToVCF(const TMultiGLFDataSample &sample) {
 	if (!sample.hasData()) {
-		vcf << "\t./.:.:.:.";
+		_writeMissing();
 		return;
 	}
 
-	constexpr std::array genotypeStrings = {"0", "1", "0/0", "0/1", "1/1"};
+	// write genotype and genotype quality
+	const auto minQual = _writeGenotypeAndQualityDiploid({sample[_refHom], sample[_het], sample[_altHom]});
+
+	// write depth
+	_vcf << sample.depth() << ':';
+
+	// write likelihoods
+	_writeLikelihood(sample[_refHom] - minQual);
+	_vcf << ',';
+	_writeLikelihood(sample[_het] - minQual);
+	_vcf << ',';
+	_writeLikelihood(sample[_altHom] - minQual);
+};
+
+genometools::HighPrecisionPhredIntProbability  TGlfMultiReaderVcf::_writeGenotypeAndQualityHaploid(const std::array<genometools::HighPrecisionPhredIntProbability, 2> &GTL) {
+	constexpr std::array genotypeStrings = {"0", "1"};
 	using genometools::index;
 	// find min qual
-	const auto minQual = std::min(sample[_ref], sample[_alt]);
+	const auto minQual = std::min(GTL[index(_ref)], GTL[index(_alt)]);
 
 	// get all genotypes with minQual (=MLE)
 	std::vector<genometools::Base> mleGenotypes;
-	if (sample[_ref] == minQual) mleGenotypes.push_back(_ref);
-	if (sample[_alt] == minQual) mleGenotypes.push_back(_alt);
+	if (GTL[index(_ref)] == minQual) mleGenotypes.push_back(_ref);
+	if (GTL[index(_alt)] == minQual) mleGenotypes.push_back(_alt);
 
 	// write MLE genoytpe
 	const genometools::Base mleGeno = mleGenotypes[randomGenerator().sample(mleGenotypes.size())];
-	vcf << '\t' << genotypeStrings[index(mleGeno)] << ':';
+	_vcf << '\t' << genotypeStrings[index(mleGeno)] << ':'; // todo: does this work? mleGeno can be 0-3
 
 	// write genotype quality
 	if (mleGeno == _ref)
-		vcf << (genometools::PhredIntProbability)(sample[_alt] - minQual) << ":";
+		_vcf << (genometools::PhredIntProbability)(GTL[index(_alt)] - minQual) << ":";
 	else
-		vcf << (genometools::PhredIntProbability)(sample[_ref] - minQual) << ":";
+		_vcf << (genometools::PhredIntProbability)(GTL[index(_ref)] - minQual) << ":";
+
+	return minQual;
+}
+
+void TGlfMultiReaderVcf::_writeHaploidIndividualToVCF(const TMultiGLFDataSample &sample) {
+	if (!sample.hasData()) {
+		_writeMissing();
+		return;
+	}
+
+	// write genotype and genotype quality
+	const auto minQual = _writeGenotypeAndQualityHaploid({sample[_ref], sample[_alt]});
 
 	// write depth
-	vcf << sample.depth() << ':';
+	_vcf << sample.depth() << ':';
 
 	// write likelihoods
-	writeLikelihood(sample[_ref] - minQual);
-	vcf << ',';
-	writeLikelihood(sample[_alt] - minQual);
+	_writeLikelihood(sample[_ref] - minQual);
+	_vcf << ',';
+	_writeLikelihood(sample[_alt] - minQual);
 };
 
 //----------------------------------------------------

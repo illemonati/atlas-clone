@@ -44,23 +44,21 @@ protected:
 	genometools::TChromosomes _chromosomes;
 
 	std::unique_ptr<THaplotypeSimulator> _haploSimulator;
+
+	virtual void _simulateAndWrite(const genometools::TChromosome & Chromosome, TSimulatorHaplotypes & Haplotypes) = 0;
 public:
 	TSimulator(const std::string& method);
-	virtual void runSimulations() = 0;
+	void runSimulations();
 	virtual ~TSimulator() = default;
 };
-
-class TVCFSimulator : public TSimulator {
-public:
-	TVCFSimulator(const std::string& method) : TSimulator(method) {};
-	void runSimulations() override {};
-};
-
 
 class TBAMSimulator : public TSimulator {
 protected:
 	double _averageReadLength   = 0;
 	double _maxReadLength       = 0;
+
+	// bam files
+	std::unique_ptr<TSimulatorBamFiles> _bamFiles;
 
 	// simulation tools
 	BAM::TReadGroups _readGroups;
@@ -93,13 +91,13 @@ protected:
 	// functions to simulate
 	void _simulateReadsFromHaplotypes(const genometools::TChromosome &thisChr, std::array<std::vector<genometools::Base>,2> haplotypes, TSimulatorBamFile &bamFile,
 					  std::string extraProgressText);
+
+	// simulate reads and write bam files
+	void _simulateAndWrite(const genometools::TChromosome & Chromosome, TSimulatorHaplotypes & Haplotypes) override;
+
 public:
 	TBAMSimulator(const std::string& method);
-	// functions to set general parameters
-
-	void runSimulations() override;
 };
-
 
 //--------------------------------------
 // Tasks

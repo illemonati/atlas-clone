@@ -110,6 +110,56 @@ TSimulator::TSimulator(const std::string &method)
       _chromosomes(makeChromosomes()),
       _haploSimulator(makeHaploSimulator(method, _chromosomes)) {}
 
+void TSimulator::runSimulations() {
+	// prepare haplotypes and
+	TSimulatorHaplotypes haplotypes(_haploSimulator->sampleSize());
+
+	// open files to store extra info on sites
+	if (_writeTrueGenotypes) {
+		// open file for true genotypes
+		const auto filename = _outname + "_trueGenotypes.vcf.gz";
+		haplotypes.openTrueGenotypeVCF(filename);
+	}
+
+	TSimulatorVariantInvariantBedFiles bedFiles;
+	if (_writeVariantInvariantBedFiles) bedFiles.open(_outname);
+
+	// simulate sequences
+	for (auto &chr : _chromosomes) {
+		logfile().startIndent("Simulating chromosome " + chr.name + ":");
+
+		// update reference storage and update haplotype lengths
+		_reference.setChr(chr.name, chr.length);
+		haplotypes.setLength(chr.length);
+
+		// simulate genotypes
+		logfile().listFlush("Simulating genotypes ...");
+		if (chr.ploidy == 1)
+			_haploSimulator->simulateHaploid(haplotypes, _reference, chr);
+		else
+			_haploSimulator->simulateDiploid(haplotypes, _reference, chr);
+		logfile().done();
+
+		// write true genotypes
+		if (_writeTrueGenotypes) {
+			logfile().listFlush("Writing true genotypes ...");
+			haplotypes.writeTrueGenotypes(chr.name, _reference);
+			logfile().done();
+		}
+
+		// write BED files
+		if (_writeVariantInvariantBedFiles) bedFiles.write(haplotypes, chr.name);
+
+		// write bam / vcf files!
+		_simulateAndWrite(chr, haplotypes);
+
+		// end of chromosome
+		logfile().endIndent();
+	}
+	logfile().endIndent();
+}
+
+
 //---------------------------------------------------
 // TBamSimulator
 //---------------------------------------------------
@@ -120,6 +170,18 @@ TBAMSimulator::TBAMSimulator(const std::string& method) : TSimulator(method) {
 	logfile().list("Will simulate to an average depth of ", _seqDepth, ".");
 	logfile().list("Will write output files with tag '" + _outname + "'.");
 	_initializeReadSimulator();
+
+	// open bam files
+	_bamFiles = std::make_unique<TSimulatorBamFiles>(_haploSimulator->sampleSize(), _outname, _readGroups, _chromosomes);
+}
+
+void TBAMSimulator::_simulateAndWrite(const genometools::TChromosome & Chromosome, TSimulatorHaplotypes & Haplotypes){
+	// now simulate and write reads
+	logfile().startIndent("Simulating reads:");
+	for (size_t i = 0; i < _haploSimulator->sampleSize(); ++i)
+		_simulateReadsFromHaplotypes(Chromosome, Haplotypes.getHaplotypesOfIndividual(i), (*_bamFiles)[i],
+		                             " for individual " + coretools::str::toString(i + 1));
+	logfile().endIndent();
 }
 
 //--------------------------------------------------------------
@@ -429,62 +491,6 @@ void TBAMSimulator::_simulateReadsFromHaplotypes(const genometools::TChromosome 
 
 	reporter.done();
 	logfile().conclude("Simulated a total of ", numReadsSimulated, " reads.");
-}
-
-void TBAMSimulator::runSimulations() {
-	// open bam files
-	TSimulatorBamFiles bamFiles(_haploSimulator->sampleSize(), _outname, _readGroups, _chromosomes);
-
-	// prepare haplotypes and
-	TSimulatorHaplotypes haplotypes(_haploSimulator->sampleSize());
-
-	// open files to store extra info on sites
-	if (_writeTrueGenotypes) {
-		// open file for true genotypes
-		const auto filename = _outname + "_trueGenotypes.vcf.gz";
-		haplotypes.openTrueGenotypeVCF(filename);
-	}
-
-	TSimulatorVariantInvariantBedFiles bedFiles;
-	if (_writeVariantInvariantBedFiles) bedFiles.open(_outname);
-
-	// simulate sequences
-	for (auto &chr : _chromosomes) {
-		logfile().startIndent("Simulating chromosome " + chr.name + ":");
-
-		// update reference storage and update haplotype lengths
-		_reference.setChr(chr.name, chr.length);
-		haplotypes.setLength(chr.length);
-
-		// simulate genotypes
-		logfile().listFlush("Simulating genotypes ...");
-		if (chr.ploidy == 1)
-			_haploSimulator->simulateHaploid(haplotypes, _reference, chr);
-		else
-			_haploSimulator->simulateDiploid(haplotypes, _reference, chr);
-		logfile().done();
-
-		// write true genotypes
-		if (_writeTrueGenotypes) {
-			logfile().listFlush("Writing true genotypes ...");
-			haplotypes.writeTrueGenotypes(chr.name, _reference);
-			logfile().done();
-		}
-
-		// write BED files
-		if (_writeVariantInvariantBedFiles) bedFiles.write(haplotypes, chr.name);
-
-		// now simulate and write reads
-		logfile().startIndent("Simulating reads:");
-		for (size_t i = 0; i < _haploSimulator->sampleSize(); ++i)
-			_simulateReadsFromHaplotypes(chr, haplotypes.getHaplotypesOfIndividual(i), bamFiles[i],
-			                             " for individual " + coretools::str::toString(i + 1));
-		logfile().endIndent();
-
-		// end of chromosome
-		logfile().endIndent();
-	}
-	logfile().endIndent();
 }
 
 } // namespace Simulations

@@ -150,6 +150,7 @@ public:
 	void writeTrueGenotypes(const std::string &chrName, const TSimulatorReference &ref);
 	int size() const noexcept { return numInd; };
 	genometools::Base &operator()(int ind, int hap, uint64_t site) noexcept { return haplotypes[ind][hap][site]; };
+	const genometools::Base &operator()(int ind, int hap, uint64_t site) const noexcept { return haplotypes[ind][hap][site]; };
 	bool isPolymoprhic(uint64_t pos) const noexcept;
 };
 

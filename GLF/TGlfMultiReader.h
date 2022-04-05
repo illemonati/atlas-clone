@@ -96,21 +96,30 @@ void fill(TMultiGLFDataOneAllelicCombination &storage, const TMultiGLFData &samp
 class TGlfMultiReaderVcf {
 private:
 	bool _usePhredScaledLikelihoods;
-	mutable gz::ogzstream vcf;
 
-	genometools::Base _ref, _alt;
-	// char ref_char, alt_char;
-	genometools::Genotype _refHom, _het, _altHom;
+protected:
+	mutable gz::ogzstream _vcf;
 
-	void _openVCF(const std::string &filename, const std::string &source, std::vector<std::string> &sampleNames);
+	genometools::Base _ref{};
+	genometools::Base _alt{};
+
+	genometools::Genotype _refHom{};
+	genometools::Genotype _het{};
+	genometools::Genotype _altHom{};
+
+	void _openVCF(const std::string & Filename, const std::string & Source, const std::vector<std::string> & SampleNames);
 	void _closeVCF();
 	void _setMajorMinor(genometools::Base refAllele, genometools::Base altAllele);
-	void writeLikelihood(genometools::HighPrecisionPhredIntProbability likGlf) const;
-	void writeDiploidIndividualToVCF(const TMultiGLFDataSample &sample) const;
-	void writeHaploidIndividualToVCF(const TMultiGLFDataSample &sample) const;
+	void _writeLikelihood(genometools::HighPrecisionPhredIntProbability likGlf);
+	void _writeDiploidIndividualToVCF(const TMultiGLFDataSample &sample);
+	void _writeHaploidIndividualToVCF(const TMultiGLFDataSample &sample);
+	void _writeSiteInformation(const std::string & ChrName, uint32_t Position, genometools::PhredIntProbability VariantQuality, genometools::Base RefAllele, genometools::Base AltAllele, size_t Depth);
+	void _writeMissing();
+	genometools::HighPrecisionPhredIntProbability _writeGenotypeAndQualityDiploid(const std::array<genometools::HighPrecisionPhredIntProbability, 3> &GTL);
+	genometools::HighPrecisionPhredIntProbability  _writeGenotypeAndQualityHaploid(const std::array<genometools::HighPrecisionPhredIntProbability, 2> &GTL);
 
 public:
-	TGlfMultiReaderVcf(const std::string filename, const std::string source, std::vector<std::string> &sampleNames,
+	TGlfMultiReaderVcf(const std::string & Filename, const std::string & Source, const std::vector<std::string> &sampleNames,
 			   bool UsePhredScaledLikelihoods);
 	~TGlfMultiReaderVcf() { _closeVCF(); }
 
