@@ -8,6 +8,11 @@
 #ifndef THAPLOTYPESIMULATOR_H_
 #define THAPLOTYPESIMULATOR_H_
 
+#include <array>
+#include <vector>
+#include "TGenotypeData.h"
+#include "TSimulatorAuxiliaryTools.h"
+
 namespace Simulations {
 
 class THaplotypeSimulator {
@@ -15,7 +20,9 @@ protected:
 	std::array<double, 4> _cumulRef;
 	GenotypeLikelihoods::TBaseProbabilities _baseFreq;
 	std::array<double, 4> _cumulBaseFreq;
-
+	int _sampleSize;
+	double _referenceDivergence;
+	THaplotypeSimulator();
 public:
 	virtual void simulateDiploid(TSimulatorHaplotypes &haplotypes, const genometools::TChromosome &chromosome);
 	virtual void simulateHaploid(TSimulatorHaplotypes &haplotypes, const genometools::TChromosome &chromosome);

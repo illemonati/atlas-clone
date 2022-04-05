@@ -30,7 +30,6 @@ namespace Simulations {
 // TODO: add cross-contamination between samples or RGs? That would be easier to model contamination that the way it is
 // done now as it would allow for contaminated reads to have different characteristsics.
 
-
 //---------------------------------------------------------
 // TSimulator
 //---------------------------------------------------------
@@ -38,18 +37,16 @@ namespace Simulations {
 class TSimulator {
 protected:
 	std::string _outname;
-
-	int _sampleSize             = 0;
-	double _referenceDivergence = 0;
-	double _seqDepth            = 0;
+	double _seqDepth;
+	bool _writeTrueGenotypes;
+	bool _writeVariantInvariantBedFiles;
+	TSimulatorReference _reference;
 
 	genometools::TChromosomes _chromosomes;
-	bool _writeTrueGenotypes            = false;
-	bool _writeVariantInvariantBedFiles = false;
-	TSimulatorReference _reference;
 
 	std::unique_ptr<THaplotypeSimulator> _haploSimulator;
 public:
+	TSimulator();
 	virtual void runSimulations();
 	virtual ~TSimulator() = default;
 };
@@ -74,7 +71,6 @@ protected:
 	std::vector<std::unique_ptr<TSimulatorSingleEndRead>> _readSimulators;
 	std::vector<double> _simGroupFrequencies;
 	std::vector<double> _cumulSimGroupFrequenies;
-
 
 	// function to initialize read groups
 	std::vector<std::string> _readSimInfoPerReadGroup(const std::string &Filename, const std::string &Column,
