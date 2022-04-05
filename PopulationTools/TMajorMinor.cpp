@@ -5,14 +5,15 @@
  *      Author: phaentu
  */
 
-#include "TMajorMinor.h"
+#include <algorithm>
+#include <memory>
 
+#include "TMajorMinor.h"
 #include "GenotypeTypes.h"
 #include "TParameters.h"
 #include "TRandomGenerator.h"
 #include "debugtools.h"
-#include <algorithm>
-#include <memory>
+#include "TDualArray.h"
 
 namespace PopulationTools {
 
@@ -29,16 +30,14 @@ using GLF::TMultiGLFData;
 //---------------------------------------------------
 
 namespace /* anonymous */ {
-constexpr std::array<AllelicCombination, index(AllelicCombination::max)> useAllelicCombinationsThatContain(Base base) {
+constexpr coretools::TDualArray<AllelicCombination, 3, index(AllelicCombination::max)> useAllelicCombinationsThatContain(Base base) {
 	using AC = AllelicCombination;
-	constexpr auto i0 = AC(0); // unused
-	constexpr auto i3 = AC(3); // set .back() to usable_size() - 1
 	switch (base) {
-	case Base::A: return {AC::AC, AC::AG, AC::AT, i0, i0, i3};
-	case Base::C: return {AC::AC, AC::CG, AC::CT, i0, i0, i3};
-	case Base::G: return {AC::AG, AC::CG, AC::GT, i0, i0, i3};
-	case Base::T: return {AC::AT, AC::CT, AC::GT, i0, i0, i3};
-	case Base::N: return {AC::AC, AC::AG, AC::AT, AC::CG, AC::CT,AC::GT};
+	case Base::A: return std::array{AC::AC, AC::AG, AC::AT};
+	case Base::C: return std::array{AC::AC, AC::CG, AC::CT};
+	case Base::G: return std::array{AC::AG, AC::CG, AC::GT};
+	case Base::T: return std::array{AC::AT, AC::CT, AC::GT};
+	case Base::N: return std::array{AC::AC, AC::AG, AC::AT, AC::CG, AC::CT,AC::GT};
 	}
 };
 
@@ -111,9 +110,7 @@ TMajorMinorEstimatorSkotte::TMajorMinorEstimatorSkotte(double EpsilonF) : _epsil
 void TMajorMinorEstimatorSkotte::_findMLAllelicCombination(const TMultiGLFData &data, Base base) {
 	// calculate L10L for each allelic combination used
 	const auto used = useAllelicCombinationsThatContain(base);
-	const size_t N  = index(used.back()) + 1;
-	for (size_t i = 0; i < N; ++i) {
-		const auto ac = used[i];
+	for (const auto ac: used) {
 		fill(_genotypeLikelihoods, data, ac);
 		_L10L_perCombination[ac] =
 		    _priorGenotypeFrequencies.calculateLog10Likelihood(_genotypeLikelihoods, _genotypeLikelihoods.size());
@@ -146,9 +143,7 @@ coretools::Log10Probability TMajorMinorEstimatorMLE::_estimateGenotypeFrequencie
 void TMajorMinorEstimatorMLE::_findMLAllelicCombination(const TMultiGLFData &data, Base base) {
 	// calculate L10L for each allelic combination
 	const auto used = useAllelicCombinationsThatContain(base);
-	const size_t N  = index(used.back()) + 1;
-	for (size_t i = 0; i < N; ++i) {
-		const auto ac = used[i];
+	for (const auto ac: used) {
 		_L10L_perCombination[ac] = _estimateGenotypeFrequencies(data, ac);
 	}
 
@@ -286,28 +281,17 @@ void estimateMajorMinor() {
 		++counter;
 		// filter on missingness
 		if (glfReader.numActiveSamplesWithData() >= minSamplesWithData) {
+			const Base ref = glfReader.refBase(); // can be N
+			MMEstimator->estimateMajorMinor(glfReader.data, ref);
 			// do major minor
-			if (hasReference) {
-				const Base ref = glfReader.refBase();
-				MMEstimator->estimateMajorMinor(glfReader.data, ref);
-
-				// write to VCF
-				if (MMEstimator->variantQuality() >= minVariantQuality) {
-					if (MMEstimator->major() == ref) {
-						vcf.writeSite(glfReader.chr(), glfReader.position(), MMEstimator->variantQuality(),
-							      glfReader.data, MMEstimator->major(), MMEstimator->minor());
-					} else {
-						vcf.writeSite(glfReader.chr(), glfReader.position(), MMEstimator->variantQuality(),
-							      glfReader.data, MMEstimator->minor(), MMEstimator->major());
-					}
-				}
-			} else {
-				MMEstimator->estimateMajorMinor(glfReader.data);
-
-				// write to VCF
-				if (MMEstimator->variantQuality() >= minVariantQuality) {
+			// write to VCF
+			if (MMEstimator->variantQuality() >= minVariantQuality) {
+				if (hasReference && MMEstimator->minor() == ref) {
 					vcf.writeSite(glfReader.chr(), glfReader.position(), MMEstimator->variantQuality(), glfReader.data,
-					              MMEstimator->major(), MMEstimator->minor());
+						      ref, MMEstimator->major());
+				} else {
+					vcf.writeSite(glfReader.chr(), glfReader.position(), MMEstimator->variantQuality(), glfReader.data,
+						      MMEstimator->major(), MMEstimator->minor());
 				}
 			}
 		} // end filter on missingness
