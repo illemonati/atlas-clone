@@ -8,6 +8,13 @@
 #ifndef TSIMULATOR_H_
 #define TSIMULATOR_H_
 
+#include <algorithm>
+#include <filesystem>
+#include <functional>
+#include <math.h>
+#include <memory>
+#include <numeric>
+
 #include "SFS.h"
 #include "TFile.h"
 #include "TSimulatorAuxiliaryTools.h"
@@ -16,12 +23,7 @@
 #include "algorithmsAndVectors.h"
 #include "progressTools.h"
 #include "stringFunctions.h"
-#include <algorithm>
-#include <filesystem>
-#include <functional>
-#include <math.h>
-#include <memory>
-#include <numeric>
+#include "THaplotypeSimulator.h"
 
 namespace Simulations {
 
@@ -32,22 +34,35 @@ namespace Simulations {
 //---------------------------------------------------------
 // TSimulator
 //---------------------------------------------------------
+
 class TSimulator {
 protected:
 	std::string _outname;
 
-	// general simulation parameters
 	int _sampleSize             = 0;
 	double _referenceDivergence = 0;
 	double _seqDepth            = 0;
-	double _averageReadLength   = 0;
-	double _maxReadLength       = 0;
 
-	// chromosomes
-    genometools::TChromosomes _chromosomes;
+	genometools::TChromosomes _chromosomes;
 	bool _writeTrueGenotypes            = false;
 	bool _writeVariantInvariantBedFiles = false;
 	TSimulatorReference _reference;
+
+	std::unique_ptr<THaplotypeSimulator> _haploSimulator;
+public:
+	virtual void runSimulations();
+	virtual ~TSimulator() = default;
+};
+
+class TVCFSimulator : public TSimulator {
+	void runSimulations() override;
+};
+
+
+class TBAMSimulator : public TSimulator {
+protected:
+	double _averageReadLength   = 0;
+	double _maxReadLength       = 0;
 
 	// simulation tools
 	BAM::TReadGroups _readGroups;
@@ -60,13 +75,6 @@ protected:
 	std::vector<double> _simGroupFrequencies;
 	std::vector<double> _cumulSimGroupFrequenies;
 
-	// helper tools
-	std::array<double, 4> _cumulRef;
-	GenotypeLikelihoods::TBaseProbabilities _baseFreq;
-	std::array<double, 4> _cumulBaseFreq;
-	bool _refInitialized = false;
-
-	TSimulator();
 
 	// function to initialize read groups
 	std::vector<std::string> _readSimInfoPerReadGroup(const std::string &Filename, const std::string &Column,
@@ -86,106 +94,16 @@ protected:
 	void _initializeReadSimulator();
 	void _initializeReadGroupFrequencies();
 
-	void _addToReadGroupVector(std::vector<std::string> &vec, const std::string &rg);
-	void _addReadGroupsIfFile(const std::string &ParameterName, BAM::TReadGroups &ReadGroups);
-
 	// functions to simulate
-	genometools::Base _sampleBase(const std::array<double, 4> &cumulProbs);
-	genometools::Base _mutateBase(genometools::Base base, const std::array<double, 4> &cumulProbs);
-	virtual void _simulateHaplotypesDiploid(TSimulatorHaplotypes &, const genometools::TChromosome &) = 0;
-	virtual void _simulateHaplotypesHaploid(TSimulatorHaplotypes &, const genometools::TChromosome &) = 0;
 	void _simulateReadsFromHaplotypes(const genometools::TChromosome &thisChr, std::array<std::vector<genometools::Base>,2> haplotypes, TSimulatorBamFile &bamFile,
 					  std::string extraProgressText);
-
 public:
-	virtual ~TSimulator() = default;
+	TBAMSimulator();
 	// functions to set general parameters
-	void setQualityDistribution(double mean, double sd, int maxQual);
-	void setReadLength(std::string s);
-	void setDepth(double depth) noexcept { _seqDepth = depth; };
-	void setQualityTransformation(std::vector<double> &Betas);
 
-	void runSimulations();
+	void runSimulations() override;
 };
 
-//---------------------------------------------------------
-// TSimulatorOneIndividual
-//---------------------------------------------------------
-class TSimulatorOne : public TSimulator {
-private:
-	std::vector<double> _thetas;
-
-	void _simulateHaplotypesDiploid(TSimulatorHaplotypes &haplotypes, const genometools::TChromosome &chromosome) override;
-	void _simulateHaplotypesHaploid(TSimulatorHaplotypes &haplotypes, const genometools::TChromosome &chromosome) override;
-
-public:
-	TSimulatorOne();
-};
-
-//---------------------------------------------------------
-// TSimulatorPairOfIndividuals
-//---------------------------------------------------------
-class TSimulatorPair : public TSimulator {
-private:
-	static constexpr std::array<std::array<size_t, 4>, 4> _orderLookup =
-	{{{0, 1, 2, 3}, {0, 1, 3, 2}, {1, 0, 2, 3}, {1, 0, 3, 2}}};
-	std::vector<double> _phis;
-	std::array<double, 9> _cumulGenoCaseFrequencies;
-	std::array<std::vector<double>, 9> _cumulGenoCombinationFreq;
-	std::array<std::vector<std::array<genometools::Base,4>>, 9> _genoTrans;
-
-	void _fillTables();
-	void _simulateHaplotypesDiploid(TSimulatorHaplotypes &haplotypes, const genometools::TChromosome &chromosome) override;
-	void _simulateHaplotypesHaploid(TSimulatorHaplotypes &haplotypes, const genometools::TChromosome &chromosome) override;
-
-public:
-	TSimulatorPair();
-};
-
-//---------------------------------------------------------
-// TSimulatorSFS
-//---------------------------------------------------------
-class TSimulatorSFS : public TSimulator {
-private:
-	std::vector<std::unique_ptr<SFS>> _sfs;
-	TSimulatorMutationtable _mutTable;
-
-	void _initializeSFS(const std::vector<double> &thetas);
-	void _initializeSFS(const std::vector<std::string> &sfsFileNames, bool folded);
-	void _simulateHaplotypesHaploid(TSimulatorHaplotypes &haplotypes, const genometools::TChromosome &chromosome) override;
-	void _simulateHaplotypesDiploid(TSimulatorHaplotypes &haplotypes, const genometools::TChromosome &chromosome) override;
-
-public:
-	TSimulatorSFS();
-};
-
-//---------------------------------------------------------
-// TSimulatorHardyWeinberg
-//---------------------------------------------------------
-struct TSimulatorHWSite {
-	bool isPolymorphic;
-	genometools::Base reference;
-	genometools::Base alternative;
-	double f;
-};
-
-class TSimulatorHW : public TSimulator {
-private:
-	double _fracPoly, _alpha, _beta, _F;
-	double _cumulGenoProb[3];
-	TSimulatorMutationtable _mutTable;
-	bool _writeTrueAlleleFreq = false;
-	coretools::TOutputFile _trueFreqFile;
-
-	void _fillCumulGenoProb(double f);
-	void _simulateSite(TSimulatorHWSite &site, const std::string &chr, uint64_t pos);
-	void _fillhaplotypesMonomoprhic(TSimulatorHaplotypes &haplotypes, uint64_t locus, const TSimulatorHWSite &site);
-	void _simulateHaplotypesHaploid(TSimulatorHaplotypes &haplotypes, const genometools::TChromosome &chromosome) override;
-	void _simulateHaplotypesDiploid(TSimulatorHaplotypes &haplotypes, const genometools::TChromosome &chromosome) override;
-
-public:
-	TSimulatorHW();
-};
 
 //--------------------------------------
 // Tasks
