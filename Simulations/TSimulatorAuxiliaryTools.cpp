@@ -150,7 +150,7 @@ TSimulatorBamFile &TSimulatorBamFiles::operator[](size_t i) {
 void TSimulatorHaplotypes::allocateStorage() {
 	// allocate storage
 	haplotypes.resize(numInd);
-	for (int ind = 0; ind < numInd; ++ind) {
+	for (size_t ind = 0; ind < numInd; ++ind) {
 		haplotypes[ind][0].resize(_length);
 		haplotypes[ind][1].resize(_length);
 	}
@@ -173,11 +173,11 @@ void TSimulatorHaplotypes::openTrueGenotypeVCF(std::string filename) {
 	trueGenoVCF << "##source=ATLAS_Simulator\n";
 	trueGenoVCF << "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n";
 	trueGenoVCF << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT";
-	for (int ind = 0; ind < numInd; ++ind) trueGenoVCF << "\tInd" << ind + 1;
+	for (size_t ind = 0; ind < numInd; ++ind) trueGenoVCF << "\tInd" << ind + 1;
 	trueGenoVCF << '\n';
 }
 
-std::array<std::vector<Base>,2> TSimulatorHaplotypes::getHaplotypesOfIndividual(int i) {
+std::array<std::vector<Base>,2> TSimulatorHaplotypes::getHaplotypesOfIndividual(size_t i) {
 	if (i >= numInd)
 		throw "Haplotypes of individual " + toString(i + 1) + " requested, but defined for only " + toString(numInd) +
 			" individuals!";
@@ -198,7 +198,7 @@ void TSimulatorHaplotypes::writeTrueGenotypes(const std::string &chrName, const 
 		index.clear(ref[l]);
 
 		// loop over all individuals to figure out which alleles are used
-		for (int ind = 0; ind < numInd; ++ind) {
+		for (size_t ind = 0; ind < numInd; ++ind) {
 			// homozygous or heterozygous?
 			if (haplotypes[ind][0][l] == haplotypes[ind][1][l]) {
 				// make sure allele exists
@@ -235,7 +235,7 @@ void TSimulatorHaplotypes::writeTrueGenotypes(const std::string &chrName, const 
 bool TSimulatorHaplotypes::isPolymoprhic(uint64_t pos) const noexcept {
 	// count how many allele match that of first individual
 	const Base testBase = haplotypes[0][0][pos];
-	int counts    = 0;
+	size_t counts    = 0;
 	for (auto& h: haplotypes) {
 		if (h[0][pos] == testBase) ++counts;
 		if (h[1][pos] == testBase) ++counts;
@@ -281,7 +281,7 @@ void TSimulatorMutationtable::_normalizeAndMakeCumulative() {
 }
 
 void TSimulatorMutationtable::print() {
-	for (int i = 0; i < 4; ++i) {
+	for (size_t i = 0; i < 4; ++i) {
 		std::cout << "Mutation table " << i << ":";
 		for (auto &m : _mutTable[i]) std::cout << " " << m;
 		std::cout << std::endl;

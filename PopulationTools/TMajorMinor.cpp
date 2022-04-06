@@ -42,14 +42,7 @@ constexpr coretools::TDualArray<AllelicCombination, 3, index(AllelicCombination:
 };
 
 AllelicCombination chooseBestAllelicCombination(const TAlleleicCombinationData& acd) {
-	std::array<size_t, index(AllelicCombination::max)> indices;
-	size_t i = 0;
-	auto max = std::max_element(acd.begin(), acd.end());
-	while (max != acd.end()) {
-		indices[i++] = std::distance(acd.begin(), max);
-		max = std::find(std::next(max), acd.end(), *max);
-	}
-	return AllelicCombination(i == 1 ? indices.front() : indices[randomGenerator().sample(i)]);
+	return randomGenerator().sampleIndexOfMaxima<TAlleleicCombinationData, AllelicCombination, index(AllelicCombination::max)>(acd);
 };
 
 } // namespace

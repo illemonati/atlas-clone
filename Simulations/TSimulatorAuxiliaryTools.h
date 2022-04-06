@@ -88,7 +88,7 @@ public:
 //---------------------------------------------------------
 class TSimulatorAlleleIndex {
 private:
-	int nextIndex = 0;
+	size_t nextIndex = 0;
 	genometools::Base refBase = genometools::Base::N;
 	genometools::Base indexToBase[4];
 
@@ -119,7 +119,7 @@ public:
 			VCF << ".";
 		else {
 			VCF << indexToBase[1];
-			for (int i = 2; i < nextIndex; ++i) VCF << ',' << indexToBase[i];
+			for (size_t i = 2; i < nextIndex; ++i) VCF << ',' << indexToBase[i];
 		}
 	}
 };
@@ -129,7 +129,7 @@ public:
 //---------------------------------------------------------
 class TSimulatorHaplotypes {
 private:
-	int numInd;
+	size_t numInd;
 	uint32_t _length = 0;
 	std::vector<std::array<std::vector<genometools::Base>,2>> haplotypes;
 
@@ -138,19 +138,19 @@ private:
 
 	void allocateStorage();
 public:
-	TSimulatorHaplotypes(int NumIndividuals): numInd(NumIndividuals){};
+	TSimulatorHaplotypes(size_t NumIndividuals): numInd(NumIndividuals){};
 	~TSimulatorHaplotypes() {
 		if (trueGenoVCF) trueGenoVCF.close();
 	}
 	void setLength(uint32_t length) noexcept;
 	uint32_t length() const { return _length; };
 	void openTrueGenotypeVCF(std::string filename);
-	std::array<std::vector<genometools::Base>,2> getHaplotypesOfIndividual(int i);
+	std::array<std::vector<genometools::Base>,2> getHaplotypesOfIndividual(size_t i);
 	std::array<std::vector<genometools::Base>,2> getHaplotypesFirstIndividual() { return haplotypes[0]; };
 	void writeTrueGenotypes(const std::string &chrName, const TSimulatorReference &ref);
-	int size() const noexcept { return numInd; };
-	genometools::Base &operator()(int ind, int hap, uint64_t site) noexcept { return haplotypes[ind][hap][site]; };
-	const genometools::Base &operator()(int ind, int hap, uint64_t site) const noexcept { return haplotypes[ind][hap][site]; };
+	size_t size() const noexcept { return numInd; };
+	genometools::Base &operator()(size_t ind, size_t hap, uint64_t site) noexcept { return haplotypes[ind][hap][site]; };
+	const genometools::Base &operator()(size_t ind, size_t hap, uint64_t site) const noexcept { return haplotypes[ind][hap][site]; };
 	bool isPolymoprhic(uint64_t pos) const noexcept;
 };
 

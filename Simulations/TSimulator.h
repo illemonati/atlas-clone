@@ -17,13 +17,16 @@
 
 #include "SFS.h"
 #include "TFile.h"
+#include "TGenotypeFrequencies.h"
+#include "TGlfMultiReader.h"
+#include "THaplotypeSimulator.h"
 #include "TSimulatorAuxiliaryTools.h"
 #include "TSimulatorRead.h"
 #include "TTask.h"
 #include "algorithmsAndVectors.h"
+#include "probability.h"
 #include "progressTools.h"
 #include "stringFunctions.h"
-#include "THaplotypeSimulator.h"
 
 namespace Simulations {
 
@@ -45,17 +48,22 @@ protected:
 
 	std::unique_ptr<THaplotypeSimulator> _haploSimulator;
 
-	virtual void _simulateAndWrite(const genometools::TChromosome & Chromosome, TSimulatorHaplotypes & Haplotypes) = 0;
+	virtual void _simulateAndWrite(const genometools::TChromosome &Chromosome, TSimulatorHaplotypes &Haplotypes) = 0;
+
 public:
-	TSimulator(const std::string& method);
+	TSimulator(const std::string &method);
 	void runSimulations();
 	virtual ~TSimulator() = default;
 };
 
+//---------------------------------------------------------
+// TBAMSimulator
+//---------------------------------------------------------
+
 class TBAMSimulator : public TSimulator {
 protected:
-	double _averageReadLength   = 0;
-	double _maxReadLength       = 0;
+	double _averageReadLength = 0;
+	double _maxReadLength     = 0;
 
 	// bam files
 	std::unique_ptr<TSimulatorBamFiles> _bamFiles;
@@ -73,30 +81,64 @@ protected:
 
 	// function to initialize read groups
 	std::vector<std::string> _readSimInfoPerReadGroup(const std::string &Filename, const std::string &Column,
-							  const std::string &Name);
+	                                                  const std::string &Name);
 	void _initializeReadGroup(const std::string &readLengthString, const BAM::TReadGroup &ReadGroup);
 	void _initializeReadGroupsFromReadLengthDistribution(const std::string &ParameterName,
-							     const std::string &DefaultValue, const std::string &Name);
+	                                                     const std::string &DefaultValue, const std::string &Name);
 	void _initializeDistribution(const std::string &ParameterName, const std::string &DefaultValue,
-				     const std::string &Name,
-				     std::function<void(TSimulatorSingleEndRead &, std::string)> function);
+	                             const std::string &Name,
+	                             std::function<void(TSimulatorSingleEndRead &, std::string)> function);
 	void _initializePMD(const std::string &ParameterName, const std::string &Name);
-	void _initializeQualityTransformations(const std::string &ParameterName,
-					       const std::string &Name);
-	void _initializeContamination(bool &perReadGroup,
-				      std::map<std::string, double> &contaminationMap);
+	void _initializeQualityTransformations(const std::string &ParameterName, const std::string &Name);
+	void _initializeContamination(bool &perReadGroup, std::map<std::string, double> &contaminationMap);
 	void _initializeReadSimulator();
 	void _initializeReadGroupFrequencies();
 
 	// functions to simulate
-	void _simulateReadsFromHaplotypes(const genometools::TChromosome &thisChr, std::array<std::vector<genometools::Base>,2> haplotypes, TSimulatorBamFile &bamFile,
-					  std::string extraProgressText);
+	void _simulateReadsFromHaplotypes(const genometools::TChromosome &thisChr,
+	                                  std::array<std::vector<genometools::Base>, 2> haplotypes,
+	                                  TSimulatorBamFile &bamFile, const std::string &extraProgressText);
 
 	// simulate reads and write bam files
-	void _simulateAndWrite(const genometools::TChromosome & Chromosome, TSimulatorHaplotypes & Haplotypes) override;
+	void _simulateAndWrite(const genometools::TChromosome &Chromosome, TSimulatorHaplotypes &Haplotypes) override;
 
 public:
-	TBAMSimulator(const std::string& method);
+	TBAMSimulator(const std::string &method);
+};
+
+//---------------------------------------------------------
+// TVCFWriterSimulation
+//---------------------------------------------------------
+
+class TVCFWriterSimulation : public GLF::TGlfMultiReaderVcf {
+public:
+	TVCFWriterSimulation(const std::string &Filename, const std::string &Source,
+	                     const std::vector<std::string> &SampleNames, bool UsePhredScaledLikelihoods);
+
+	void writeSite(const std::string &ChrName, uint32_t Position, genometools::PhredIntProbability VariantQuality,
+	               genometools::Base RefAllele, genometools::Base AltAllele, size_t TotalDepth, bool IsDiploid,
+	               const GLF::TMultiGLFDataOneAllelicCombination &GenotypeLikelihoods,
+	               const std::vector<size_t> &Depths);
+};
+
+//---------------------------------------------------------
+// TVCFSimulator
+//---------------------------------------------------------
+
+class TVCFSimulator : public TSimulator {
+private:
+	coretools::Probability _error = 0.05;
+	std::unique_ptr<TVCFWriterSimulation> _vcf;
+
+	GLF::TMultiGLFDataSampleOneAllelicCombination _calculateGenotypeLikelihoods(size_t NumRef, size_t NumAlt,
+	                                                                            bool IsDiploid);
+	size_t _simulateNumReadsWithReferenceAllele(genometools::Base a, genometools::Base b, genometools::Base Ref,
+	                                            size_t Depth, bool IsDiploid);
+	auto _simulateDepthAndGTL(genometools::Base a, genometools::Base b, genometools::Base Ref, bool IsDiploid);
+	void _simulateAndWrite(const genometools::TChromosome &Chromosome, TSimulatorHaplotypes &Haplotypes) override;
+
+public:
+	TVCFSimulator(const std::string &method);
 };
 
 //--------------------------------------
@@ -110,20 +152,18 @@ public:
 		using namespace coretools::instances;
 		// initialize simulator
 		std::unique_ptr<THaplotypeSimulator> haploSimulator;
-		std::string method = parameters().getParameterWithDefault<std::string>("type", "BAM:one");
+		std::string method     = parameters().getParameterWithDefault<std::string>("type", "BAM:one");
 		const auto simMethod   = coretools::str::readBefore(method, ':');
 		const auto haploMethod = coretools::str::readAfter(method, ':');
-
 
 		if (simMethod == "BAM") {
 			auto simulator = TBAMSimulator{haploMethod};
 			simulator.runSimulations();
-		}
-		else if (simMethod == "VCF") {
+		} else if (simMethod == "VCF") {
 			auto simulator = TVCFSimulator{haploMethod};
 			simulator.runSimulations();
-		}
-		else throw "Unknown simulation method '" + simMethod + "'!";
+		} else
+			throw "Unknown simulation method '" + simMethod + "'!";
 
 		// clean up
 		logfile().endIndent();

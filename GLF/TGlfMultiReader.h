@@ -111,12 +111,71 @@ protected:
 	void _closeVCF();
 	void _setMajorMinor(genometools::Base refAllele, genometools::Base altAllele);
 	void _writeLikelihood(genometools::HighPrecisionPhredIntProbability likGlf);
-	void _writeDiploidIndividualToVCF(const TMultiGLFDataSample &sample);
-	void _writeHaploidIndividualToVCF(const TMultiGLFDataSample &sample);
-	void _writeSiteInformation(const std::string & ChrName, uint32_t Position, genometools::PhredIntProbability VariantQuality, genometools::Base RefAllele, genometools::Base AltAllele, size_t Depth);
-	void _writeMissing();
-	genometools::HighPrecisionPhredIntProbability _writeGenotypeAndQualityDiploid(const std::array<genometools::HighPrecisionPhredIntProbability, 3> &GTL);
-	genometools::HighPrecisionPhredIntProbability  _writeGenotypeAndQualityHaploid(const std::array<genometools::HighPrecisionPhredIntProbability, 2> &GTL);
+	void _writeSiteInformation(const std::string & ChrName, uint32_t Position, genometools::PhredIntProbability VariantQuality, size_t Depth);
+
+	template<size_t NumGeno>
+	auto _getSecondHighestGTL(size_t IndexBest,
+	                          const std::array<genometools::HighPrecisionPhredIntProbability, NumGeno> &GTL) {
+		if constexpr (NumGeno == 2) {
+			return GTL[1 - IndexBest]; // the other one
+		} else {
+			constexpr std::array<std::array<size_t, 2>, NumGeno> a = {{{1, 2}, {0, 2}, {0, 1}}}; // the two other ones
+			return std::min(GTL[a[IndexBest][0]], GTL[a[IndexBest][1]]);
+		}
+	}
+
+	template<size_t NumGeno>
+	auto _writeGenotypeAndQuality(const std::array<genometools::HighPrecisionPhredIntProbability, NumGeno> &GTL) {
+		std::array<std::string, NumGeno> genotypeStrings;
+		if constexpr (NumGeno == 2){ genotypeStrings = {"0", "1"}; }
+		else { genotypeStrings = {"0/0", "0/1", "1/1"}; }
+
+		const auto min     = std::min_element(GTL.cbegin(), GTL.cend());
+		const auto minQual = *min;
+		const auto in      = std::distance(GTL.cbegin(), min);
+
+		// get all genotypes with minQual (=MLE)
+		std::vector<size_t> mleGenotypes;
+		for (size_t i = 0; i < NumGeno; ++i) {
+			if (GTL[i] == minQual) { mleGenotypes.push_back(i); }
+		}
+
+		// write genotype quality
+		if (mleGenotypes.size() > 1) {
+			const auto mleGeno = mleGenotypes[coretools::instances::randomGenerator().sample(mleGenotypes.size())];
+			_vcf << '\t' << genotypeStrings[mleGeno] << ':';
+			_vcf << "0:"; // difference between best and second best is 0
+		} else {
+			_vcf << '\t' << genotypeStrings[mleGenotypes.front()] << ':';
+			// find second highest quality
+			auto slq = _getSecondHighestGTL(in, GTL);
+			_vcf << genometools::PhredIntProbability(slq - minQual) << ":";
+		}
+
+		return minQual;
+	}
+
+	template<size_t NumGeno>
+	void _writeCell(bool IsMissing, size_t Depth, const std::array<genometools::HighPrecisionPhredIntProbability, NumGeno> &GTL){
+		if (IsMissing) {
+			if constexpr (NumGeno == 2) { _vcf << "\t./.:.:.:."; }
+			else { _vcf << "\t.:.:.:."; }
+			return;
+		}
+
+		// write genotype and genotype quality
+		const auto minQual = _writeGenotypeAndQuality(GTL);
+
+		// write depth
+		_vcf << Depth << ':';
+
+		// write likelihoods
+		_writeLikelihood(GTL[0] - minQual);
+		for (size_t g = 1; g < NumGeno; g++){
+			_vcf << ',';
+			_writeLikelihood(GTL[g] - minQual);
+		}
+	}
 
 public:
 	TGlfMultiReaderVcf(const std::string & Filename, const std::string & Source, const std::vector<std::string> &sampleNames,

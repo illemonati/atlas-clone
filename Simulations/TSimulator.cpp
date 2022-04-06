@@ -17,14 +17,21 @@
 #include <numeric>
 
 namespace Simulations {
+using coretools::Probability;
 using coretools::instances::logfile;
 using coretools::instances::parameters;
 using coretools::instances::randomGenerator;
+using coretools::str::toString;
 using genometools::Base;
+using genometools::HighPrecisionPhredIntProbability;
 using genometools::TChromosomes;
 
+//---------------------------------------------------------
+// Helper functions
+//---------------------------------------------------------
+
 namespace /* anonymous */ {
-std::unique_ptr<THaplotypeSimulator> makeHaploSimulator(const std::string &method, const TChromosomes chs) {
+std::unique_ptr<THaplotypeSimulator> makeHaploSimulator(const std::string &method, const TChromosomes &chs) {
 	if (method == "one") {
 		logfile().startIndent("Simulating a single individual (parameter type=one):");
 		return std::make_unique<TSimulatorOne>(chs.size());
@@ -44,7 +51,6 @@ std::unique_ptr<THaplotypeSimulator> makeHaploSimulator(const std::string &metho
 	throw "Unknown simulation method '" + method + "'!";
 }
 
-
 TChromosomes makeChromosomes() {
 	TChromosomes chs;
 	chs.clear();
@@ -53,7 +59,7 @@ TChromosomes makeChromosomes() {
 
 	std::vector<uint32_t> chrLength;
 	coretools::str::repeatIndexes(string_vec, chrLength);
-	if (chrLength.size() < 1) throw "Issue understanding length of chromosomes!";
+	if (chrLength.empty()) throw "Issue understanding length of chromosomes!";
 
 	std::vector<uint8_t> ploidy;
 	if (parameters().parameterExists("ploidy")) {
@@ -102,13 +108,16 @@ TChromosomes makeChromosomes() {
 
 } // namespace
 
+//---------------------------------------------------------
+// TSimulator
+//---------------------------------------------------------
+
 TSimulator::TSimulator(const std::string &method)
     : _outname(parameters().getParameterWithDefault<std::string>("out", "ATLAS_simulations")),
       _seqDepth(parameters().getParameterWithDefault("depth", 10.0)),
       _writeTrueGenotypes(parameters().parameterExists("writeTrueGenotypes")),
       _writeVariantInvariantBedFiles(parameters().parameterExists("writeVariantBED")), _reference(_outname + ".fasta"),
-      _chromosomes(makeChromosomes()),
-      _haploSimulator(makeHaploSimulator(method, _chromosomes)) {}
+      _chromosomes(makeChromosomes()), _haploSimulator(makeHaploSimulator(method, _chromosomes)) {}
 
 void TSimulator::runSimulations() {
 	// prepare haplotypes and
@@ -159,12 +168,11 @@ void TSimulator::runSimulations() {
 	logfile().endIndent();
 }
 
-
 //---------------------------------------------------
 // TBamSimulator
 //---------------------------------------------------
 
-TBAMSimulator::TBAMSimulator(const std::string& method) : TSimulator(method) {
+TBAMSimulator::TBAMSimulator(const std::string &method) : TSimulator(method) {
 	using genometools::Base;
 	// depth
 	logfile().list("Will simulate to an average depth of ", _seqDepth, ".");
@@ -172,10 +180,11 @@ TBAMSimulator::TBAMSimulator(const std::string& method) : TSimulator(method) {
 	_initializeReadSimulator();
 
 	// open bam files
-	_bamFiles = std::make_unique<TSimulatorBamFiles>(_haploSimulator->sampleSize(), _outname, _readGroups, _chromosomes);
+	_bamFiles =
+	    std::make_unique<TSimulatorBamFiles>(_haploSimulator->sampleSize(), _outname, _readGroups, _chromosomes);
 }
 
-void TBAMSimulator::_simulateAndWrite(const genometools::TChromosome & Chromosome, TSimulatorHaplotypes & Haplotypes){
+void TBAMSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome, TSimulatorHaplotypes &Haplotypes) {
 	// now simulate and write reads
 	logfile().startIndent("Simulating reads:");
 	for (size_t i = 0; i < _haploSimulator->sampleSize(); ++i)
@@ -184,11 +193,9 @@ void TBAMSimulator::_simulateAndWrite(const genometools::TChromosome & Chromosom
 	logfile().endIndent();
 }
 
-//--------------------------------------------------------------
-// Function to initialize read groups
-//--------------------------------------------------------------
 std::vector<std::string> TBAMSimulator::_readSimInfoPerReadGroup(const std::string &Filename, const std::string &Column,
-								 const std::string &Name) {
+                                                                 const std::string &Name) {
+	// function to initialize read groups
 	logfile().listFlush("Reading " + Name + "(s) from file '" + Filename + "' ...");
 
 	coretools::TInputFile in(Filename, {"ReadGroup", Column}, "\t", "//");
@@ -229,8 +236,8 @@ void TBAMSimulator::_initializeReadGroup(const std::string &readLengthString, co
 }
 
 void TBAMSimulator::_initializeReadGroupsFromReadLengthDistribution(const std::string &ParameterName,
-								    const std::string &DefaultValue,
-								    const std::string &Name) {
+                                                                    const std::string &DefaultValue,
+                                                                    const std::string &Name) {
 	logfile().startIndent("Parsing read length distribution (parameter '" + ParameterName + "'):");
 	const auto s = parameters().getParameterWithDefault<std::string>(ParameterName, DefaultValue);
 	_readSimulators.clear();
@@ -240,7 +247,7 @@ void TBAMSimulator::_initializeReadGroupsFromReadLengthDistribution(const std::s
 	//   2) read-group specific as given in a file
 
 	// check if it is a file (should not contain a ':')
-	const auto pos = s.find(":");
+	const auto pos = s.find(':');
 	if (pos != std::string::npos) {
 		// Option 1: a single read length distribution for all
 		//---------------------------------------------------------------------
@@ -259,8 +266,8 @@ void TBAMSimulator::_initializeReadGroupsFromReadLengthDistribution(const std::s
 }
 
 void TBAMSimulator::_initializeDistribution(const std::string &ParameterName, const std::string &DefaultValue,
-					    const std::string &Name,
-					    std::function<void(TSimulatorSingleEndRead &, std::string)> function) {
+                                            const std::string &Name,
+                                            std::function<void(TSimulatorSingleEndRead &, std::string)> function) {
 	logfile().startIndent("Parsing " + Name + " (parameter " + ParameterName + "):");
 	const auto s = parameters().getParameterWithDefault<std::string>(ParameterName, DefaultValue);
 
@@ -269,7 +276,7 @@ void TBAMSimulator::_initializeDistribution(const std::string &ParameterName, co
 	//   2) read-group specific as given in a file
 
 	// check if it is a file (should not contain a '(')
-	const auto pos = s.find("(");
+	const auto pos = s.find('(');
 	if (pos != std::string::npos) {
 		// Option 1: a single read distribution for all
 		//---------------------------------------------------------------------
@@ -312,7 +319,7 @@ void TBAMSimulator::_initializeQualityTransformations(const std::string &Paramet
 
 		// add recal to simulators
 		for (size_t r = 0; r < _readSimulators.size(); ++r) {
-			_readSimulators[r]->setRecal(&_recal(r, 0), &_recal(r, 1));
+			_readSimulators[r]->setRecal(&_recal(r, false), &_recal(r, true));
 		}
 	} else {
 		logfile().list("Not simulating any quality transformation.");
@@ -374,12 +381,12 @@ void TBAMSimulator::_initializeReadSimulator() {
 	// B) initialize quality distribution
 	//-----------------------------------
 	_initializeDistribution("baseQuality", "normal(30,10)[0,93]", "base quality distribution",
-				&TSimulatorSingleEndRead::setQualityDistribution);
+	                        &TSimulatorSingleEndRead::setQualityDistribution);
 
 	// C) initialize mapping quality distribution
 	//-----------------------------------
 	_initializeDistribution("mappingQuality", "normal(60,10)[1,255]", "mapping quality distribution",
-				&TSimulatorSingleEndRead::setMappingQualityDistribution);
+	                        &TSimulatorSingleEndRead::setMappingQualityDistribution);
 
 	// D) initialize PMD
 	//------------------
@@ -446,17 +453,9 @@ void TBAMSimulator::_initializeReadGroupFrequencies() {
 	}
 }
 
-//--------------------------------------------------------------
-// Initialize chromosomes, depth and base frequencies
-//--------------------------------------------------------------
-
-//--------------------------------------------------------------
-// Run simulations
-//--------------------------------------------------------------
-
 void TBAMSimulator::_simulateReadsFromHaplotypes(const genometools::TChromosome &thisChr,
-						 std::array<std::vector<Base>, 2> haplotypes,
-						 TSimulatorBamFile &bamFile, std::string extraProgressText) {
+                                                 std::array<std::vector<Base>, 2> haplotypes,
+                                                 TSimulatorBamFile &bamFile, const std::string &extraProgressText) {
 	// Initialize probabilities to simulate reads
 	const uint64_t numReads = _averageReadLength == 0 ? 0 : thisChr.length * _seqDepth / _averageReadLength;
 
@@ -466,7 +465,7 @@ void TBAMSimulator::_simulateReadsFromHaplotypes(const genometools::TChromosome 
 
 	// initialize progress reporting
 	coretools::TProgressReporter<uint64_t> reporter(numReads, "Simulating about " + coretools::str::toString(numReads) +
-								      " reads" + extraProgressText);
+	                                                              " reads" + extraProgressText);
 
 	// now simulate
 	for (uint32_t l = 0; l < chrLengthForStart; ++l) {
@@ -491,6 +490,251 @@ void TBAMSimulator::_simulateReadsFromHaplotypes(const genometools::TChromosome 
 
 	reporter.done();
 	logfile().conclude("Simulated a total of ", numReadsSimulated, " reads.");
+}
+
+//-------------------------------------------
+// TVCFSimulationWriter
+//-------------------------------------------
+
+TVCFWriterSimulation::TVCFWriterSimulation(const std::string &Filename, const std::string &Source,
+                                           const std::vector<std::string> &SampleNames, bool UsePhredScaledLikelihoods)
+    : GLF::TGlfMultiReaderVcf(Filename, Source, SampleNames, UsePhredScaledLikelihoods) {}
+
+void TVCFWriterSimulation::writeSite(const std::string &ChrName, uint32_t Position,
+                                     genometools::PhredIntProbability VariantQuality, genometools::Base RefAllele,
+                                     genometools::Base AltAllele, size_t TotalDepth, bool IsDiploid,
+                                     const GLF::TMultiGLFDataOneAllelicCombination &GenotypeLikelihoods,
+                                     const std::vector<size_t> &Depths) {
+	_setMajorMinor(RefAllele, AltAllele);
+	_writeSiteInformation(ChrName, Position, VariantQuality, TotalDepth);
+
+	for (size_t i = 0; i < GenotypeLikelihoods.size(); ++i) {
+		const bool isMissing = (Depths[i] == 0);
+		if (IsDiploid) {
+			_writeCell<3>(isMissing, Depths[i],
+			              {GenotypeLikelihoods[i][genometools::BiallelicGenotype::homoFirst],
+			               GenotypeLikelihoods[i][genometools::BiallelicGenotype::het],
+			               GenotypeLikelihoods[i][genometools::BiallelicGenotype::homoSecond]});
+		} else {
+			_writeCell<2>(isMissing, Depths[i],
+			              {GenotypeLikelihoods[i][genometools::BiallelicGenotype::haploidFirst],
+			               GenotypeLikelihoods[i][genometools::BiallelicGenotype::haploidSecond]});
+		}
+	}
+
+	// end of line
+	_vcf << '\n';
+}
+
+//-------------------------------------------
+// Helper functions
+//-------------------------------------------
+
+namespace /* anonymous */ {
+
+auto calculateLog10ProbThisAllelicCombination(const GLF::TMultiGLFDataOneAllelicCombination &GenotypeLikelihoods) {
+	// estimate genotype frequencies
+	genometools::TGenotypeFrequencies genotypeFrequencies;
+	genotypeFrequencies.estimate(GenotypeLikelihoods, GenotypeLikelihoods.size(), 0.0000001);
+
+	// calculate log10 likelihood
+	return genotypeFrequencies.calculateLog10Likelihood(GenotypeLikelihoods, GenotypeLikelihoods.size());
+}
+
+auto calculateLog10ProbFixed(const GLF::TMultiGLFDataOneAllelicCombination &GenotypeLikelihoods,
+                             genometools::Base Major, genometools::Base Ref) {
+	using coretools::Log10Probability;
+
+	// todo: correct?
+	const bool majorIsRef = (Major == Ref);
+	const auto ref =
+	    majorIsRef ? genometools::BiallelicGenotype::haploidFirst : genometools::BiallelicGenotype::haploidSecond;
+	const auto refHomo =
+	    majorIsRef ? genometools::BiallelicGenotype::homoFirst : genometools::BiallelicGenotype::homoSecond;
+
+	Log10Probability LL_fixed_glfPhred = 0.0;
+	for (auto GenotypeLikelihood : GenotypeLikelihoods) {
+		if (GenotypeLikelihood.isHaploid()) {
+			LL_fixed_glfPhred += (Log10Probability)GenotypeLikelihood[ref];
+		} else {
+			LL_fixed_glfPhred += (Log10Probability)GenotypeLikelihood[refHomo];
+		}
+	}
+	return LL_fixed_glfPhred;
+}
+
+auto calculateVariantQuality(const GLF::TMultiGLFDataOneAllelicCombination &GenotypeLikelihoods,
+                             genometools::Base Major, genometools::Base Ref) {
+	const auto LL_allelicCombination = calculateLog10ProbThisAllelicCombination(GenotypeLikelihoods);
+	const auto LL_fixed              = calculateLog10ProbFixed(GenotypeLikelihoods, Major, Ref);
+
+	// calculate variant quality
+	return genometools::PhredIntProbability(LL_fixed > LL_allelicCombination ? coretools::Log10Probability(0.0)
+	                                                                         : LL_fixed - LL_allelicCombination);
+}
+
+auto findMajorMinorAllele(coretools::TStrongArray<size_t, genometools::Base, 4> AlleleCounts,
+                          genometools::Base RefAllele) {
+	// major allele = allele with the highest counts
+	const auto majorAllele = randomGenerator()
+	                             .sampleIndexOfMaxima<coretools::TStrongArray<size_t, genometools::Base, 4>,
+	                                            genometools::Base, index(genometools::Base::max)>(AlleleCounts);
+
+	if (majorAllele == RefAllele) {
+		// choose minor allele: can be any allele (except major)
+		// note: multiple alleles might have same counts, or they can all be zero
+		std::vector<genometools::Base> minorAlleles;
+		size_t secondMax = 0;
+		for (auto b = genometools::Base::min; b < genometools::Base::max; ++b) {
+			if (b == majorAllele) { continue; } // exclude major allele
+			if (AlleleCounts[b] > secondMax) {  // found new max
+				secondMax = AlleleCounts[b];
+				minorAlleles.clear();
+				minorAlleles.push_back(b);
+			} else if (AlleleCounts[b] == secondMax) { // found allele that is equally good
+				minorAlleles.push_back(b);
+			}
+		}
+		// randomly sample minor allele, if there are multiple
+		auto minorAllele = minorAlleles[randomGenerator().sample(minorAlleles.size())];
+		return std::make_pair(majorAllele, minorAllele);
+	} else {
+		// major allele is not refAllele -> minor allele must be ref-allele!
+		// quick check
+		for (auto b = genometools::Base::min; b < genometools::Base::max; ++b) {
+			if (b != majorAllele && b != RefAllele && AlleleCounts[b] > AlleleCounts[RefAllele]) {
+				throw std::runtime_error((std::string) __PRETTY_FUNCTION__ + ": reference allele (" +
+				                         toString(RefAllele) + ") is not major (" + toString(majorAllele) +
+				                         ") nor minor (" + toString(AlleleCounts[b]) + ") allele!");
+			}
+		}
+		return std::make_pair(majorAllele, RefAllele);
+	}
+}
+
+} // end namespace
+
+//-------------------------------------------
+// TVCFSimulator
+//-------------------------------------------
+
+TVCFSimulator::TVCFSimulator(const std::string &method) : TSimulator(method) {
+	// check if method is compatible with VCF: only allow bi-allelic haplotype simulators
+	if (!_haploSimulator->simulatesBiallelic()){
+		throw "Can not simulate VCF files with method '" + method + "': only bi-allelic haplotype simulators are allowed (parameter 'type'). Choose other method or simulate BAM files instead.";
+	}
+
+	// read simulation parameters
+	_error = parameters().getParameterWithDefault("error", 0.05);
+	logfile().list("Will use a per allele genotyping error rate of " + coretools::str::toString(_error) + ".");
+
+	const bool usePhredLikelihoods = parameters().parameterExists("phredLik");
+	if (usePhredLikelihoods) {
+		logfile().list("Will write phred-scaled likelihoods. (parameter phredLik)");
+	} else {
+		logfile().list("Will write raw likelihoods. (use phredLik to phred-scale)");
+	}
+
+	// generate sample names
+	std::vector<std::string> sampleNames(_haploSimulator->sampleSize());
+	for (size_t i = 0; i < _haploSimulator->sampleSize(); i++) {
+		sampleNames[i] = "ind_" + coretools::str::toString(i);
+	}
+
+	// open VCF file and write header
+	std::string filename = _outname + ".vcf.gz";
+	logfile().list("Writing vcf to file " + filename + "...");
+	_vcf = std::make_unique<TVCFWriterSimulation>(filename, "ATLAS_simulations", sampleNames, usePhredLikelihoods);
+}
+
+GLF::TMultiGLFDataSampleOneAllelicCombination TVCFSimulator::_calculateGenotypeLikelihoods(size_t NumRef, size_t NumAlt,
+                                                                                           bool IsDiploid) {
+	// TODO: correct?
+	const auto P0 =
+	    HighPrecisionPhredIntProbability(Probability(pow(1. - _error, NumRef) * pow(_error, (double)NumAlt)));
+	const auto P2 =
+	    HighPrecisionPhredIntProbability(Probability(pow(_error, (double)NumRef) * pow(1. - _error, (double)NumAlt)));
+	if (IsDiploid) {
+		const auto P1 = HighPrecisionPhredIntProbability(Probability(pow(0.5, NumRef + NumAlt)));
+		return {P0, P1, P2};
+	} else {
+		return {P0, P2};
+	}
+}
+
+size_t TVCFSimulator::_simulateNumReadsWithReferenceAllele(genometools::Base a, genometools::Base b,
+                                                           genometools::Base Ref, size_t Depth, bool IsDiploid) {
+	// TODO: correct?
+	if ((IsDiploid && a == b && a == Ref) || (!IsDiploid && a == Ref)) {
+		// homozygous reference (haploid and diploid)
+		return randomGenerator().getBinomialRand(1. - _error, Depth);
+	} else if ((IsDiploid && a == b && a != Ref) || (!IsDiploid && a != Ref)) {
+		// homozygous alternative (haploid and diploid)
+		return randomGenerator().getBinomialRand(_error, Depth);
+	}
+	// heterozygous
+	return randomGenerator().getBinomialRand(0.5, Depth);
+}
+
+auto TVCFSimulator::_simulateDepthAndGTL(genometools::Base a, genometools::Base b, genometools::Base Ref,
+                                         bool IsDiploid) {
+	// simulate depth
+	auto depth = randomGenerator().getPoissonRandom(_seqDepth);
+
+	// simulate number of reference and alternative alleles
+	auto numRef = _simulateNumReadsWithReferenceAllele(a, b, Ref, depth, IsDiploid);
+	auto numAlt = (int)depth - numRef;
+
+	// get genotype likelihoods
+	auto genotypeLikelihoods = _calculateGenotypeLikelihoods(numRef, numAlt, IsDiploid);
+
+	return std::make_pair(depth, genotypeLikelihoods);
+}
+
+void TVCFSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome, TSimulatorHaplotypes &Haplotypes) {
+	logfile().startIndent("Simulating genotype likelihoods:");
+
+	for (size_t l = 0; l < Chromosome.length; ++l) {
+
+		// prepare storage
+		GLF::TMultiGLFDataOneAllelicCombination genotypeLikelihoods(_haploSimulator->sampleSize());
+		std::vector<size_t> depths(_haploSimulator->sampleSize(), 0);
+		coretools::TStrongArray<size_t, genometools::Base, 4> alleleCounts({0, 0, 0, 0});
+		const bool isDiploid = Chromosome.ploidy == 2;
+
+		for (size_t i = 0; i < _haploSimulator->sampleSize(); ++i) {
+			// get haplotypes
+			const auto hap1 = Haplotypes((int)i, 0, l);
+			const auto hap2 = Haplotypes((int)i, 1, l);
+
+			// simulate depth and genotype likelihoods
+			auto [depth, GTL] = _simulateDepthAndGTL(hap1, hap2, _reference[l], isDiploid);
+
+			// store
+			genotypeLikelihoods[i] = GTL;
+			depths[i]              = depth;
+			alleleCounts[hap1]++;
+			if (isDiploid) { alleleCounts[hap2]++; }
+		}
+
+		// find major and minor allele
+		const auto refAllele                  = _reference[l];
+		const auto [majorAllele, minorAllele] = findMajorMinorAllele(alleleCounts, refAllele);
+		if (refAllele != majorAllele && refAllele != minorAllele) {
+			throw std::runtime_error((std::string) __PRETTY_FUNCTION__ + ": Locus " + toString(l) +
+			                         ": reference allele (" + toString(refAllele) + ") is not major (" +
+			                         toString(majorAllele) + ") nor minor (" + toString(minorAllele) + ") allele!");
+		}
+
+		// calculate variant quality
+		auto variantQuality = calculateVariantQuality(genotypeLikelihoods, majorAllele, refAllele);
+
+		// finally write site!
+		const auto altAllele = (refAllele == majorAllele) ? minorAllele : majorAllele;
+		_vcf->writeSite(Chromosome.name, l, variantQuality, refAllele, altAllele, coretools::containerSum(depths),
+		                isDiploid, genotypeLikelihoods, depths);
+	}
+	logfile().endIndent();
 }
 
 } // namespace Simulations

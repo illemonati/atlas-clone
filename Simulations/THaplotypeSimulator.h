@@ -29,7 +29,8 @@ public:
 	virtual void simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference, const genometools::TChromosome &chromosome) = 0;
 	virtual void simulateHaploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference, const genometools::TChromosome &chromosome) = 0;
 
-	virtual size_t sampleSize() const noexcept = 0;
+	[[nodiscard]] virtual bool simulatesBiallelic() const noexcept = 0;
+	[[nodiscard]] virtual size_t sampleSize() const noexcept = 0;
 };
 
 //---------------------------------------------------------
@@ -47,7 +48,8 @@ public:
 	void simulateHaploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference,
 					const genometools::TChromosome &chromosome) override;
 
-	size_t sampleSize() const noexcept override {return 1;}
+	[[nodiscard]] bool simulatesBiallelic() const noexcept override { return true; };
+	[[nodiscard]] size_t sampleSize() const noexcept override {return 1;}
 };
 
 //---------------------------------------------------------
@@ -71,7 +73,8 @@ public:
 	void simulateHaploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference,
 					const genometools::TChromosome &chromosome) override;
 
-	size_t sampleSize() const noexcept override {return 2;}
+	[[nodiscard]] bool simulatesBiallelic() const noexcept override { return false; };
+	[[nodiscard]] size_t sampleSize() const noexcept override {return 2;}
 };
 
 //---------------------------------------------------------
@@ -92,7 +95,8 @@ public:
 	void simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference,
 					const genometools::TChromosome &chromosome) override;
 
-	size_t sampleSize() const noexcept override {return _sampleSize;}
+	[[nodiscard]] bool simulatesBiallelic() const noexcept override { return true; };
+	[[nodiscard]] size_t sampleSize() const noexcept override {return _sampleSize;}
 };
 
 //---------------------------------------------------------
@@ -126,7 +130,8 @@ public:
 	void simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference,
 	                                const genometools::TChromosome &chromosome) override;
 
-	size_t sampleSize() const noexcept override {return _sampleSize;}
+	[[nodiscard]] bool simulatesBiallelic() const noexcept override { return true; };
+	[[nodiscard]] size_t sampleSize() const noexcept override {return _sampleSize;}
 };
 } // namespace Simulations
 
