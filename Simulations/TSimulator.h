@@ -130,12 +130,14 @@ private:
 	coretools::Probability _error = 0.05;
 	std::unique_ptr<TVCFWriterSimulation> _vcf;
 
+protected:
 	GLF::TMultiGLFDataSampleOneAllelicCombination _calculateGenotypeLikelihoods(size_t NumRef, size_t NumAlt,
 	                                                                            bool IsDiploid);
 	size_t _simulateNumReadsWithReferenceAllele(genometools::Base a, genometools::Base b, genometools::Base Ref,
 	                                            size_t Depth, bool IsDiploid);
-	auto _simulateDepthAndGTL(genometools::Base a, genometools::Base b, genometools::Base Ref, bool IsDiploid);
+	std::pair<size_t, GLF::TMultiGLFDataSampleOneAllelicCombination> _simulateDepthAndGTL(genometools::Base a, genometools::Base b, genometools::Base Ref, bool IsDiploid);
 	void _simulateAndWrite(const genometools::TChromosome &Chromosome, TSimulatorHaplotypes &Haplotypes) override;
+	std::pair<genometools::Base, genometools::Base> _findMajorMinorAllele(coretools::TStrongArray<size_t, genometools::Base, 4> AlleleCounts, genometools::Base RefAllele);
 
 public:
 	TVCFSimulator(const std::string &method);

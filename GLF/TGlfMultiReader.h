@@ -116,7 +116,7 @@ protected:
 	template<size_t NumGeno>
 	auto _getSecondHighestGTL(size_t IndexBest,
 	                          const std::array<genometools::HighPrecisionPhredIntProbability, NumGeno> &GTL) {
-		if constexpr (NumGeno == 2) {
+		if constexpr (NumGeno == 2) { // haploid
 			return GTL[1 - IndexBest]; // the other one
 		} else {
 			constexpr std::array<std::array<size_t, 2>, NumGeno> a = {{{1, 2}, {0, 2}, {0, 1}}}; // the two other ones
@@ -127,8 +127,8 @@ protected:
 	template<size_t NumGeno>
 	auto _writeGenotypeAndQuality(const std::array<genometools::HighPrecisionPhredIntProbability, NumGeno> &GTL) {
 		std::array<std::string, NumGeno> genotypeStrings;
-		if constexpr (NumGeno == 2){ genotypeStrings = {"0", "1"}; }
-		else { genotypeStrings = {"0/0", "0/1", "1/1"}; }
+		if constexpr (NumGeno == 2){ genotypeStrings = {"0", "1"}; } // haploid
+		else { genotypeStrings = {"0/0", "0/1", "1/1"}; } // diploid
 
 		const auto min     = std::min_element(GTL.cbegin(), GTL.cend());
 		const auto minQual = *min;
@@ -158,8 +158,8 @@ protected:
 	template<size_t NumGeno>
 	void _writeCell(bool IsMissing, size_t Depth, const std::array<genometools::HighPrecisionPhredIntProbability, NumGeno> &GTL){
 		if (IsMissing) {
-			if constexpr (NumGeno == 2) { _vcf << "\t./.:.:.:."; }
-			else { _vcf << "\t.:.:.:."; }
+			if constexpr (NumGeno == 3) { _vcf << "\t./.:.:.:."; } // diploid
+			else { _vcf << "\t.:.:.:."; } // haploid
 			return;
 		}
 

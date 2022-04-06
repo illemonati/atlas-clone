@@ -541,75 +541,37 @@ auto calculateLog10ProbThisAllelicCombination(const GLF::TMultiGLFDataOneAllelic
 	return genotypeFrequencies.calculateLog10Likelihood(GenotypeLikelihoods, GenotypeLikelihoods.size());
 }
 
+auto getRelevantBiallelicGenotype(genometools::Base Major, genometools::Base Ref, bool IsDiploid) {
+	if (IsDiploid) {
+		return (Major == Ref) ? genometools::BiallelicGenotype::homoFirst : genometools::BiallelicGenotype::homoSecond;
+	} else { // haploid
+		return (Major == Ref) ? genometools::BiallelicGenotype::haploidFirst
+		                      : genometools::BiallelicGenotype::haploidSecond;
+	}
+}
+
 auto calculateLog10ProbFixed(const GLF::TMultiGLFDataOneAllelicCombination &GenotypeLikelihoods,
-                             genometools::Base Major, genometools::Base Ref) {
+                             genometools::Base Major, genometools::Base Ref, bool IsDiploid) {
 	using coretools::Log10Probability;
 
 	// todo: correct?
-	const bool majorIsRef = (Major == Ref);
-	const auto ref =
-	    majorIsRef ? genometools::BiallelicGenotype::haploidFirst : genometools::BiallelicGenotype::haploidSecond;
-	const auto refHomo =
-	    majorIsRef ? genometools::BiallelicGenotype::homoFirst : genometools::BiallelicGenotype::homoSecond;
+	auto BG = getRelevantBiallelicGenotype(Major, Ref, IsDiploid);
 
 	Log10Probability LL_fixed_glfPhred = 0.0;
 	for (auto GenotypeLikelihood : GenotypeLikelihoods) {
-		if (GenotypeLikelihood.isHaploid()) {
-			LL_fixed_glfPhred += (Log10Probability)GenotypeLikelihood[ref];
-		} else {
-			LL_fixed_glfPhred += (Log10Probability)GenotypeLikelihood[refHomo];
-		}
+		LL_fixed_glfPhred += (Log10Probability)GenotypeLikelihood[BG];
 	}
 	return LL_fixed_glfPhred;
 }
 
 auto calculateVariantQuality(const GLF::TMultiGLFDataOneAllelicCombination &GenotypeLikelihoods,
-                             genometools::Base Major, genometools::Base Ref) {
+                             genometools::Base Major, genometools::Base Ref, bool IsDiploid) {
 	const auto LL_allelicCombination = calculateLog10ProbThisAllelicCombination(GenotypeLikelihoods);
-	const auto LL_fixed              = calculateLog10ProbFixed(GenotypeLikelihoods, Major, Ref);
+	const auto LL_fixed              = calculateLog10ProbFixed(GenotypeLikelihoods, Major, Ref, IsDiploid);
 
 	// calculate variant quality
 	return genometools::PhredIntProbability(LL_fixed > LL_allelicCombination ? coretools::Log10Probability(0.0)
 	                                                                         : LL_fixed - LL_allelicCombination);
-}
-
-auto findMajorMinorAllele(coretools::TStrongArray<size_t, genometools::Base, 4> AlleleCounts,
-                          genometools::Base RefAllele) {
-	// major allele = allele with the highest counts
-	const auto majorAllele = randomGenerator()
-	                             .sampleIndexOfMaxima<coretools::TStrongArray<size_t, genometools::Base, 4>,
-	                                            genometools::Base, index(genometools::Base::max)>(AlleleCounts);
-
-	if (majorAllele == RefAllele) {
-		// choose minor allele: can be any allele (except major)
-		// note: multiple alleles might have same counts, or they can all be zero
-		std::vector<genometools::Base> minorAlleles;
-		size_t secondMax = 0;
-		for (auto b = genometools::Base::min; b < genometools::Base::max; ++b) {
-			if (b == majorAllele) { continue; } // exclude major allele
-			if (AlleleCounts[b] > secondMax) {  // found new max
-				secondMax = AlleleCounts[b];
-				minorAlleles.clear();
-				minorAlleles.push_back(b);
-			} else if (AlleleCounts[b] == secondMax) { // found allele that is equally good
-				minorAlleles.push_back(b);
-			}
-		}
-		// randomly sample minor allele, if there are multiple
-		auto minorAllele = minorAlleles[randomGenerator().sample(minorAlleles.size())];
-		return std::make_pair(majorAllele, minorAllele);
-	} else {
-		// major allele is not refAllele -> minor allele must be ref-allele!
-		// quick check
-		for (auto b = genometools::Base::min; b < genometools::Base::max; ++b) {
-			if (b != majorAllele && b != RefAllele && AlleleCounts[b] > AlleleCounts[RefAllele]) {
-				throw std::runtime_error((std::string) __PRETTY_FUNCTION__ + ": reference allele (" +
-				                         toString(RefAllele) + ") is not major (" + toString(majorAllele) +
-				                         ") nor minor (" + toString(AlleleCounts[b]) + ") allele!");
-			}
-		}
-		return std::make_pair(majorAllele, RefAllele);
-	}
 }
 
 } // end namespace
@@ -620,8 +582,10 @@ auto findMajorMinorAllele(coretools::TStrongArray<size_t, genometools::Base, 4> 
 
 TVCFSimulator::TVCFSimulator(const std::string &method) : TSimulator(method) {
 	// check if method is compatible with VCF: only allow bi-allelic haplotype simulators
-	if (!_haploSimulator->simulatesBiallelic()){
-		throw "Can not simulate VCF files with method '" + method + "': only bi-allelic haplotype simulators are allowed (parameter 'type'). Choose other method or simulate BAM files instead.";
+	if (!_haploSimulator->simulatesBiallelic()) {
+		throw "Can not simulate VCF files with method '" + method +
+		    "': only bi-allelic haplotype simulators are allowed (parameter 'type'). Choose other method or simulate "
+		    "BAM files instead.";
 	}
 
 	// read simulation parameters
@@ -676,8 +640,8 @@ size_t TVCFSimulator::_simulateNumReadsWithReferenceAllele(genometools::Base a, 
 	return randomGenerator().getBinomialRand(0.5, Depth);
 }
 
-auto TVCFSimulator::_simulateDepthAndGTL(genometools::Base a, genometools::Base b, genometools::Base Ref,
-                                         bool IsDiploid) {
+std::pair<size_t, GLF::TMultiGLFDataSampleOneAllelicCombination>
+TVCFSimulator::_simulateDepthAndGTL(genometools::Base a, genometools::Base b, genometools::Base Ref, bool IsDiploid) {
 	// simulate depth
 	auto depth = randomGenerator().getPoissonRandom(_seqDepth);
 
@@ -689,6 +653,46 @@ auto TVCFSimulator::_simulateDepthAndGTL(genometools::Base a, genometools::Base 
 	auto genotypeLikelihoods = _calculateGenotypeLikelihoods(numRef, numAlt, IsDiploid);
 
 	return std::make_pair(depth, genotypeLikelihoods);
+}
+
+std::pair<genometools::Base, genometools::Base>
+TVCFSimulator::_findMajorMinorAllele(coretools::TStrongArray<size_t, genometools::Base, 4> AlleleCounts,
+                                     genometools::Base RefAllele) {
+	// major allele = allele with the highest counts
+	const auto majorAllele = randomGenerator()
+	                             .sampleIndexOfMaxima<coretools::TStrongArray<size_t, genometools::Base, 4>,
+	                                                  genometools::Base, index(genometools::Base::max)>(AlleleCounts);
+
+	if (majorAllele == RefAllele) {
+		// choose minor allele: can be any allele (except major)
+		// note: multiple alleles might have same counts
+		std::vector<genometools::Base> minorAlleles;
+		size_t secondMax = 0;
+		for (auto b = genometools::Base::min; b < genometools::Base::max; ++b) {
+			if (b == majorAllele) { continue; } // exclude major allele
+			if (AlleleCounts[b] > secondMax) {  // found new max
+				secondMax = AlleleCounts[b];
+				minorAlleles.clear();
+				minorAlleles.push_back(b);
+			} else if (AlleleCounts[b] == secondMax) { // found allele that is equally good
+				minorAlleles.push_back(b);
+			}
+		}
+		// randomly sample minor allele, if there are multiple
+		auto minorAllele = minorAlleles[randomGenerator().sample(minorAlleles.size())];
+		return std::make_pair(majorAllele, minorAllele);
+	} else {
+		// major allele is not refAllele -> minor allele must be ref-allele!
+		// quick check if this is valid (should always be true for bi-allelic simulators)
+		for (auto b = genometools::Base::min; b < genometools::Base::max; ++b) {
+			if (b != majorAllele && b != RefAllele && AlleleCounts[b] > AlleleCounts[RefAllele]) {
+				throw std::runtime_error((std::string) __PRETTY_FUNCTION__ + ": reference allele (" +
+				                         toString(RefAllele) + ") is not major (" + toString(majorAllele) +
+				                         ") nor minor (" + toString(AlleleCounts[b]) + ") allele!");
+			}
+		}
+		return std::make_pair(majorAllele, RefAllele);
+	}
 }
 
 void TVCFSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome, TSimulatorHaplotypes &Haplotypes) {
@@ -704,8 +708,8 @@ void TVCFSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome
 
 		for (size_t i = 0; i < _haploSimulator->sampleSize(); ++i) {
 			// get haplotypes
-			const auto hap1 = Haplotypes((int)i, 0, l);
-			const auto hap2 = Haplotypes((int)i, 1, l);
+			const auto hap1 = Haplotypes(i, 0, l);
+			const auto hap2 = Haplotypes(i, 1, l);
 
 			// simulate depth and genotype likelihoods
 			auto [depth, GTL] = _simulateDepthAndGTL(hap1, hap2, _reference[l], isDiploid);
@@ -719,7 +723,9 @@ void TVCFSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome
 
 		// find major and minor allele
 		const auto refAllele                  = _reference[l];
-		const auto [majorAllele, minorAllele] = findMajorMinorAllele(alleleCounts, refAllele);
+		const auto [majorAllele, minorAllele] = _findMajorMinorAllele(alleleCounts, refAllele);
+		// quick check if ref allele is either major or minor allele. Should always be true if _findMajorMinorAllele is
+		// working
 		if (refAllele != majorAllele && refAllele != minorAllele) {
 			throw std::runtime_error((std::string) __PRETTY_FUNCTION__ + ": Locus " + toString(l) +
 			                         ": reference allele (" + toString(refAllele) + ") is not major (" +
@@ -727,7 +733,7 @@ void TVCFSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome
 		}
 
 		// calculate variant quality
-		auto variantQuality = calculateVariantQuality(genotypeLikelihoods, majorAllele, refAllele);
+		auto variantQuality = calculateVariantQuality(genotypeLikelihoods, majorAllele, refAllele, isDiploid);
 
 		// finally write site!
 		const auto altAllele = (refAllele == majorAllele) ? minorAllele : majorAllele;
