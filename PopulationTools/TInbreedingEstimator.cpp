@@ -246,7 +246,7 @@ double TInbreedingEstimatorPrior::getSumLogPriorDensity(const Storage &Data) con
 	return sum;
 }
 
-void TInbreedingEstimatorPrior::simulateUnderPrior() {
+void TInbreedingEstimatorPrior::_simulateUnderPrior(Storage *) {
 	throw std::runtime_error((std::string) __PRETTY_FUNCTION__ + ": Not implemented. Use Atlas simulator instead.");
 }
 
