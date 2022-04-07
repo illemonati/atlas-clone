@@ -135,9 +135,12 @@ protected:
 	                                                                            bool IsDiploid);
 	size_t _simulateNumReadsWithReferenceAllele(genometools::Base a, genometools::Base b, genometools::Base Ref,
 	                                            size_t Depth, bool IsDiploid);
-	std::pair<size_t, GLF::TMultiGLFDataSampleOneAllelicCombination> _simulateDepthAndGTL(genometools::Base a, genometools::Base b, genometools::Base Ref, bool IsDiploid);
+	std::pair<size_t, GLF::TMultiGLFDataSampleOneAllelicCombination>
+	_simulateDepthAndGTL(genometools::Base a, genometools::Base b, genometools::Base Ref, bool IsDiploid);
 	void _simulateAndWrite(const genometools::TChromosome &Chromosome, TSimulatorHaplotypes &Haplotypes) override;
-	std::pair<genometools::Base, genometools::Base> _findMajorMinorAllele(coretools::TStrongArray<size_t, genometools::Base, 4> AlleleCounts, genometools::Base RefAllele);
+	std::pair<genometools::Base, genometools::Base>
+	_findMajorMinorAllele(coretools::TStrongArray<size_t, genometools::Base, 4> AlleleCounts,
+	                      genometools::Base RefAllele);
 
 public:
 	TVCFSimulator(const std::string &method);
@@ -154,18 +157,15 @@ public:
 		using namespace coretools::instances;
 		// initialize simulator
 		std::unique_ptr<THaplotypeSimulator> haploSimulator;
-		std::string method     = parameters().getParameterWithDefault<std::string>("type", "BAM:one");
-		const auto simMethod   = coretools::str::readBefore(method, ':');
-		const auto haploMethod = coretools::str::readAfter(method, ':');
+		auto method = parameters().getParameterWithDefault<std::string>("type", "one");
 
-		if (simMethod == "BAM") {
-			auto simulator = TBAMSimulator{haploMethod};
+		if (parameters().parameterExists("vcf")) {
+			auto simulator = TVCFSimulator{method};
 			simulator.runSimulations();
-		} else if (simMethod == "VCF") {
-			auto simulator = TVCFSimulator{haploMethod};
+		} else { // default: BAM simulator
+			auto simulator = TBAMSimulator{method};
 			simulator.runSimulations();
-		} else
-			throw "Unknown simulation method '" + simMethod + "'!";
+		}
 
 		// clean up
 		logfile().endIndent();
