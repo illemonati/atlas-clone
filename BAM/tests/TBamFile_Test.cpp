@@ -266,7 +266,7 @@ public:
         outputBam->writeDummyAlignment(Base::A, PhredIntProbability(9), genometools::TGenomePosition(1, 10), onlyMCigar);
 
         // 5) empty window
-        outputBam->writeDummyAlignment(Base::C, PhredIntProbability(0), genometools::TGenomePosition(2, 10), onlyMCigar);
+        outputBam->writeDummyAlignment(Base::C, PhredIntProbability(10), genometools::TGenomePosition(2, 10), onlyMCigar);
 
         // 6) empty chromosome
 
@@ -620,7 +620,7 @@ TEST_F(TBamFile_Test_Windows, sites_getQualities){
     c = 0;
     for (const auto& site : genomeWindow->sites[4]){ // 5. window
         if (c >= 10 && c < 30)
-            EXPECT_EQ(site.getQualities(), "!");
+            EXPECT_EQ(site.getQualities(), "+");
         else
             EXPECT_EQ(site.getQualities(), "-");
         c++;
