@@ -18,6 +18,7 @@
 
 namespace Simulations {
 using coretools::Probability;
+using coretools::LogProbability;
 using coretools::instances::logfile;
 using coretools::instances::parameters;
 using coretools::instances::randomGenerator;
@@ -543,7 +544,8 @@ auto calculateLog10ProbThisAllelicCombination(const GLF::TMultiGLFDataOneAllelic
 
 auto getRelevantBiallelicGenotype(genometools::Base Major, genometools::Base Ref, bool IsDiploid) {
 	if (IsDiploid) {
-		return (Major == Ref) ? genometools::BiallelicGenotype::homoFirst : genometools::BiallelicGenotype::homoSecond;
+		return (Major == Ref) ? genometools::BiallelicGenotype::homoFirst
+							  : genometools::BiallelicGenotype::homoSecond;
 	} else { // haploid
 		return (Major == Ref) ? genometools::BiallelicGenotype::haploidFirst
 		                      : genometools::BiallelicGenotype::haploidSecond;
@@ -554,7 +556,6 @@ auto calculateLog10ProbFixed(const GLF::TMultiGLFDataOneAllelicCombination &Geno
                              genometools::Base Major, genometools::Base Ref, bool IsDiploid) {
 	using coretools::Log10Probability;
 
-	// todo: correct?
 	auto BG = getRelevantBiallelicGenotype(Major, Ref, IsDiploid);
 
 	Log10Probability LL_fixed_glfPhred = 0.0;
@@ -613,13 +614,12 @@ TVCFSimulator::TVCFSimulator(const std::string &method) : TSimulator(method) {
 
 GLF::TMultiGLFDataSampleOneAllelicCombination TVCFSimulator::_calculateGenotypeLikelihoods(size_t NumRef, size_t NumAlt,
                                                                                            bool IsDiploid) {
-	// TODO: correct?
 	const auto P0 =
-	    HighPrecisionPhredIntProbability(Probability(pow(1. - _error, NumRef) * pow(_error, (double)NumAlt)));
+	    HighPrecisionPhredIntProbability(LogProbability(NumRef * log(_error.complement()) + NumAlt * log(_error)));
 	const auto P2 =
-	    HighPrecisionPhredIntProbability(Probability(pow(_error, (double)NumRef) * pow(1. - _error, (double)NumAlt)));
+	    HighPrecisionPhredIntProbability(LogProbability(NumRef * log(_error) + NumAlt * log(_error.complement())));
 	if (IsDiploid) {
-		const auto P1 = HighPrecisionPhredIntProbability(Probability(pow(0.5, NumRef + NumAlt)));
+		const auto P1 = HighPrecisionPhredIntProbability(LogProbability((NumRef + NumAlt) * lnOneHalf));
 		return {P0, P1, P2};
 	} else {
 		return {P0, P2};
@@ -628,7 +628,6 @@ GLF::TMultiGLFDataSampleOneAllelicCombination TVCFSimulator::_calculateGenotypeL
 
 size_t TVCFSimulator::_simulateNumReadsWithReferenceAllele(genometools::Base a, genometools::Base b,
                                                            genometools::Base Ref, size_t Depth, bool IsDiploid) {
-	// TODO: correct?
 	if ((IsDiploid && a == b && a == Ref) || (!IsDiploid && a == Ref)) {
 		// homozygous reference (haploid and diploid)
 		return randomGenerator().getBinomialRand(1. - _error, Depth);
