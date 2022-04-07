@@ -139,7 +139,7 @@ void TSimulatorSingleEndRead::_simulateBasesQualities(BAM::TAlignment & alignmen
 		if (_pmd && _pmd->hasDamage()) _pmd->simulate(b);
 
 		const auto sm = b.isSecondMate();
-		if (_recal[sm]) _recal[sm]->simulate(b);
+		_recal[sm]->simulate(b);
 	}
 }
 

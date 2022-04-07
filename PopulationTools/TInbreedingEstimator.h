@@ -86,6 +86,9 @@ private:
 	// update functions for p
 	void _updateP(const Storage &Data, size_t Locus);
 
+	// simulate values
+	void _simulateUnderPrior(Storage * Data) override;
+
 public:
 	TInbreedingEstimatorPrior(stattools::TParameterTyped<TypeF, 1> *F, stattools::TParameterTyped<TypeP, 1> *P,
 	                          stattools::TParameterTyped<TypeZ, 1> *Z, const std::vector<double> &InitialEstimatesP);
@@ -101,9 +104,6 @@ public:
 
 	// update all hyperprior parameters
 	void updateParams() override;
-
-	// simulate values
-	void simulateUnderPrior() override;
 };
 
 //------------------------------------------

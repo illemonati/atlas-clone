@@ -323,6 +323,10 @@ void TBAMSimulator::_initializeQualityTransformations(const std::string &Paramet
 			_readSimulators[r]->setRecal(&_recal(r, false), &_recal(r, true));
 		}
 	} else {
+		// add noRecal model. Is still needed for simulation of bases from base qualities!
+		for (size_t r = 0; r < _readSimulators.size(); ++r) {
+			_readSimulators[r]->setRecal(&_recal(r, false), &_recal(r, true));
+		}
 		logfile().list("Not simulating any quality transformation.");
 	}
 	logfile().endIndent();
