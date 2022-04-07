@@ -8,9 +8,14 @@
 #ifndef GENOMETASKS_TCONTEXTQUANTIFER_H_
 #define GENOMETASKS_TCONTEXTQUANTIFER_H_
 
+#include <string>
+
 #include "TGenome.h"
-#include "counters.h"
+#include "TLog.h"
+#include "TParameters.h"
+#include "TRandomGenerator.h"
 #include "TTask.h"
+#include "counters.h"
 
 namespace GenomeTasks{
 

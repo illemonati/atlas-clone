@@ -8,6 +8,14 @@
 
 #include "TReadGroups.h"
 
+#include <algorithm>
+#include <memory>
+#include <utility>
+
+#include "TFile.h"
+#include "TLog.h"
+#include "stringFunctions.h"
+
 namespace BAM{
 
 using coretools::str::toString;

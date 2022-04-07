@@ -7,6 +7,18 @@
 
 #include "TReadGroupMerger.h"
 
+#include <stddef.h>
+#include <algorithm>
+#include <cstdint>
+#include <exception>
+#include <ios>
+#include <set>
+#include <utility>
+
+#include "TBamFile.h"
+#include "TReadGroups.h"
+#include "stringFunctions.h"
+
 namespace GenomeTasks{
 
 TReadGroupMerger::TReadGroupMerger(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator):TGenome_basic(Parameters, Logfile, RandomGenerator){

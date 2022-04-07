@@ -6,7 +6,19 @@
  */
 
 #include "TAllelicDepthCounts.h"
+
+#include <algorithm>
+#include <cstdint>
+#include <map>
+#include <ostream>
+#include <vector>
+
 #include "GenotypeTypes.h"
+#include "TFile.h"
+#include "TGenotypeData.h"
+#include "TSite.h"
+#include "TWindow.h"
+#include "stringFunctions.h"
 
 namespace GenomeTasks{
 

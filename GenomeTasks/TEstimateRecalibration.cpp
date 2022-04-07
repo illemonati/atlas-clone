@@ -6,7 +6,21 @@
  */
 
 
+
 #include "TEstimateRecalibration.h"
+
+#include <stdint.h>
+#include <exception>
+#include <vector>
+
+#include "TBamFile.h"
+#include "TGenomePosition.h"
+#include "TGenotypeLikelihoodCalculator.h"
+#include "TReadGroups.h"
+#include "TRecalibrationEMEstimator.h"
+#include "TSite.h"
+#include "TSiteSubset.h"
+#include "TWindow.h"
 
 namespace GenomeTasks{
 

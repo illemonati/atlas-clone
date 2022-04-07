@@ -8,8 +8,16 @@
 #ifndef GENOMETASKS_TPMDSCALCULATOR_H_
 #define GENOMETASKS_TPMDSCALCULATOR_H_
 
+#include <set>
+#include <string>
+
+#include "TBamFile.h"
 #include "TGenome.h"
+#include "TLog.h"
+#include "TParameters.h"
+#include "TRandomGenerator.h"
 #include "TTask.h"
+#include "probability.h"
 
 namespace GenomeTasks{
 

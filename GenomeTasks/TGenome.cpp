@@ -5,7 +5,23 @@
  *      Author: wegmannd
  */
 
+
 #include "TGenome.h"
+
+#include <math.h>
+#include <cstdint>
+#include <exception>
+#include <iostream>
+#include <map>
+
+#include "TBed.h"
+#include "TLog.h"
+#include "TParameters.h"
+#include "TSiteSubset.h"
+#include "TSubsamplePicker.h"
+#include "stringFunctions.h"
+
+namespace coretools { class TRandomGenerator; }
 
 namespace GenomeTasks{
 
@@ -13,6 +29,7 @@ using coretools::TParameters;
 using coretools::TLog;
 using coretools::TRandomGenerator;
 using namespace coretools::str;
+
 
 //---------------------------------------------------------------
 // TGenome_basic

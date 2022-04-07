@@ -6,8 +6,29 @@
  */
 
 #include "TBamFilter.h"
-#include "debugtools.h"
+
+#include <math.h>
+#include <stdlib.h>
+
 #include <cstdint>
+#include <exception>
+#include <iostream>
+#include <utility>
+#include <vector>
+
+#include "GenotypeTypes.h"
+#include "PhredProbabilityTypes.h"
+#include "TAlignment.h"
+#include "TFile.h"
+#include "TGenomePosition.h"
+#include "TGenotypeData.h"
+#include "TGenotypeLikelihoodCalculator.h"
+#include "TReadGroups.h"
+#include "TSequencedBase.h"
+#include "counters.h"
+#include "probability.h"
+#include "stringFunctions.h"
+#include "strongTypes.h"
 
 namespace GenomeTasks{
 

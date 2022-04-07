@@ -8,8 +8,13 @@
 #ifndef GENOMETASKS_TWRITEGLF_H_
 #define GENOMETASKS_TWRITEGLF_H_
 
-#include "TGenome.h"
+#include <string>
+
 #include "TGLF.h"
+#include "TGenome.h"
+#include "TLog.h"
+#include "TParameters.h"
+#include "TRandomGenerator.h"
 #include "TTask.h"
 
 namespace GenomeTasks{

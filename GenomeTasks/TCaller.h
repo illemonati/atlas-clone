@@ -8,12 +8,25 @@
 #ifndef TCALLER_H_
 #define TCALLER_H_
 
-#include "gzstream.h"
-#include "TGenotypeData.h"
+#include <stdexcept>
+#include <stdint.h>
+#include <string>
+#include <vector>
+
+#include "GenotypeTypes.h"
 #include "TGenome.h"
+#include "TGenotypeData.h"
+#include "TLog.h"
+#include "TParameters.h"
+#include "TRandomGenerator.h"
 #include "TTask.h"
 #include "VCF/TVCFFields.h"
+#include "gzstream.h"
+#include "mathFunctions.h"
 #include "stringFunctions.h"
+
+namespace GenotypeLikelihoods { class TGenotypePrior; }
+namespace GenotypeLikelihoods { class TSite; }
 
 namespace GenomeTasks{
 

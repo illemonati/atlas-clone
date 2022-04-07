@@ -7,6 +7,16 @@
 
 #include "TBamDownsampler.h"
 
+#include <algorithm>
+#include <cstdint>
+#include <exception>
+#include <map>
+#include <stddef.h>
+#include <utility>
+
+#include "TAlignment.h"
+#include "stringFunctions.h"
+
 namespace GenomeTasks{
 
 using coretools::Probability;

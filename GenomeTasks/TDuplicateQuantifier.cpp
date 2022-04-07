@@ -6,7 +6,16 @@
  */
 
 
+
 #include "TDuplicateQuantifier.h"
+
+#include <stddef.h>
+#include <algorithm>
+#include <cstdint>
+#include "TBamFile.h"
+#include "TChromosomes.h"
+#include "TFile.h"
+#include "TReadGroups.h"
 
 namespace GenomeTasks{
 

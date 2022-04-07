@@ -7,6 +7,19 @@
 
 #include "TQualityDistribution.h"
 
+#include <stdint.h>
+#include <algorithm>
+#include <exception>
+#include <memory>
+
+#include "GenotypeTypes.h"
+#include "PhredProbabilityTypes.h"
+#include "TAlignment.h"
+#include "TBamFile.h"
+#include "TFile.h"
+#include "TReadGroups.h"
+#include "TSequencedBase.h"
+
 namespace GenomeTasks{
 
 //-----------------------------------

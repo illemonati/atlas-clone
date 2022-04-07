@@ -8,7 +8,14 @@
 #ifndef GENOMETASKS_TREADGROUPMERGER_H_
 #define GENOMETASKS_TREADGROUPMERGER_H_
 
+#include <stdint.h>
+#include <string>
+#include <vector>
+
 #include "TGenome.h"
+#include "TLog.h"
+#include "TParameters.h"
+#include "TRandomGenerator.h"
 #include "TTask.h"
 
 namespace GenomeTasks{

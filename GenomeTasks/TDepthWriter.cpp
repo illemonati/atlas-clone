@@ -7,6 +7,12 @@
 
 #include "TDepthWriter.h"
 
+#include <ostream>
+#include <vector>
+
+#include "TSite.h"
+#include "TWindow.h"
+
 namespace GenomeTasks{
 
 //----------------------------------------

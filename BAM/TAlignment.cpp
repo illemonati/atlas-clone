@@ -6,8 +6,20 @@
  */
 
 #include "TAlignment.h"
+#include <math.h>
+#include <stdlib.h>
+#include <algorithm>
+#include <iostream>
+#include <memory>
+#include <stdexcept>
 #include "GenotypeTypes.h"
-#include "debugtools.h"
+#include "PhredProbabilityTypes.h"
+#include "TBamFilter.h"
+#include "TFastaBuffer.h"
+#include "TGenotypeLikelihoodCalculator.h"
+#include "TRandomGenerator.h"
+#include "TSequencingErrorModels.h"
+#include "strongTypes.h"
 
 namespace BAM{
 

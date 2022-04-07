@@ -8,17 +8,23 @@
 #ifndef TALIGNMENT_H_
 #define TALIGNMENT_H_
 
-#include "TCigar.h"
-#include "TSamFlags.h"
-#include "stringFunctions.h"
-#include "TGenotypeLikelihoodCalculator.h"
-#include "TFastaBuffer.h"
-#include "TBamFilter.h"
-#include "TRandomGenerator.h"
-#include "TGenomePosition.h"
-#include "TSequencedBase.h"
-#include "GenotypeTypes.h"
+#include <stdint.h>
+#include <string>
 #include <vector>
+
+#include "GenotypeTypes.h"
+#include "TCigar.h"
+#include "TGenomePosition.h"
+#include "TSamFlags.h"
+#include "TSequencedBase.h"
+#include "probability.h"
+
+namespace BAM { class TBaseFilter; }
+namespace BAM { class TFastaBuffer; }
+namespace GenotypeLikelihoods { class TGenotypeLikelihoodCalculator; }
+namespace GenotypeLikelihoods { namespace SequencingError { class TModels; } }
+namespace coretools { class TRandomGenerator; }
+namespace genometools { class PhredIntProbability; }
 
 namespace BAM{
 

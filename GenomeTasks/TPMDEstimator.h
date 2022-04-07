@@ -8,9 +8,18 @@
 #ifndef GENOMETASKS_TPMDESTIMATOR_H_
 #define GENOMETASKS_TPMDESTIMATOR_H_
 
+#include <stdint.h>
+#include <string>
+
 #include "TGenome.h"
+#include "TLog.h"
+#include "TPMDTables.h"
+#include "TParameters.h"
 #include "TPostMortemDamage.h"
+#include "TRandomGenerator.h"
 #include "TTask.h"
+
+namespace BAM { class TReadGroupMap; }
 
 namespace GenomeTasks{
 

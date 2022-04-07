@@ -7,6 +7,15 @@
 
 #include "TPMDEstimator.h"
 
+#include <exception>
+#include <vector>
+
+#include "GenotypeTypes.h"
+#include "TAlignment.h"
+#include "TBamFile.h"
+#include "TGenotypeLikelihoodCalculator.h"
+#include "TReadGroups.h"
+
 namespace GenomeTasks{
 
 //----------------------------------------

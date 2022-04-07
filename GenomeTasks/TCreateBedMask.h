@@ -8,7 +8,16 @@
 #ifndef GENOMETASKS_TCREATEBEDMASK_H_
 #define GENOMETASKS_TCREATEBEDMASK_H_
 
+#include <stdint.h>
+#include <exception>
+#include <string>
+
+#include "TBed.h"
 #include "TGenome.h"
+#include "TGenotypeData.h"
+#include "TLog.h"
+#include "TParameters.h"
+#include "TRandomGenerator.h"
 #include "TTask.h"
 
 namespace GenomeTasks{

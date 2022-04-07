@@ -7,6 +7,11 @@
 
 #include "TSamHeader.h"
 
+#include <utility>
+
+#include "TChromosomes.h"
+#include "TReadGroups.h"
+
 namespace BAM{
 
 //---------------------------------

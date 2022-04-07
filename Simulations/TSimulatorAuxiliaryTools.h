@@ -8,10 +8,21 @@
 #ifndef TSIMULATORAUXILIARYTOOLS_H_
 #define TSIMULATORAUXILIARYTOOLS_H_
 
+#include <stddef.h>
+#include <stdint.h>
+#include <array>
+#include <ostream>
+#include <string>
+#include <vector>
+
+#include "GenotypeTypes.h"
+#include "TAlignment.h"
 #include "TBamFile.h"
-#include "globalConstants.h"
+#include "TGenotypeData.h"
 #include "gzstream.h"
-#include "stringFunctions.h"
+
+namespace BAM { class TReadGroups; }
+namespace genometools { class TChromosomes; }
 
 namespace Simulations {
 

@@ -8,9 +8,14 @@
 #ifndef BAM_TSAMHEADER_H_
 #define BAM_TSAMHEADER_H_
 
-#include "stringFunctions.h"
-#include "TReadGroups.h"
-#include "TChromosomes.h"
+#include <algorithm>
+#include <functional>
+#include <set>
+#include <string>
+#include <vector>
+
+namespace BAM { class TReadGroups; }
+namespace genometools { class TChromosomes; }
 
 namespace BAM{
 

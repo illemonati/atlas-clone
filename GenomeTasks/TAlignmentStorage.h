@@ -8,8 +8,9 @@
 #ifndef GENOMETASKS_TALIGNMENTSTORAGE_H_
 #define GENOMETASKS_TALIGNMENTSTORAGE_H_
 
-#include "TAlignment.h"
+#include <string>
 #include <vector>
+namespace BAM { class TAlignment; }
 
 namespace GenomeTasks{
 

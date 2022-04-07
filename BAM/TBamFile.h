@@ -8,14 +8,30 @@
 #ifndef BAM_TBAMFILE_H_
 #define BAM_TBAMFILE_H_
 
+#include <cstdint>
+#include <functional>
+#include <memory>
+#include <set>
+#include <string>
+#include <vector>
+#include "PhredProbabilityTypes.h"
+#include "TAlignment.h"
+#include "TBamFilter.h"
+#include "TChromosomes.h"
+#include "TCigar.h"
+#include "TGenomePosition.h"
+#include "TNumericRange.h"
+#include "TReadGroups.h"
+#include "TSamHeader.h"
+#include "TTimer.h"
+#include "api/BamAlignment.h"
+#include "api/BamAux.h"
 #include "api/BamReader.h"
 #include "api/BamWriter.h"
-#include "TBamFilter.h"
-#include "TSamHeader.h"
-#include "TAlignment.h"
-#include "TNumericRange.h"
-#include "globalConstants.h"
-#include "TParameters.h"
+#include "api/SamHeader.h"
+#include "stringFunctions.h"
+namespace coretools { class TLog; }
+namespace coretools { class TParameters; }
 
 namespace BAM{
 

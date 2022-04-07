@@ -6,6 +6,16 @@
  */
 
 #include <TBedReaderWindows.h>
+#include <stddef.h>
+#include <algorithm>
+#include <cstdint>
+#include <fstream>
+#include <iostream>
+#include <utility>
+#include "TChromosomes.h"
+#include "TLog.h"
+#include "gzstream.h"
+#include "stringFunctions.h"
 
 namespace BAM{
 

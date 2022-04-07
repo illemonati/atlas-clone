@@ -6,8 +6,22 @@
  */
 
 #include "TSimulatorAuxiliaryTools.h"
+
+#include <math.h>
+#include <algorithm>
+#include <iostream>
+#include <map>
+#include <memory>
+#include <numeric>
+
+#include "TChromosomes.h"
 #include "TLog.h"
-#include "TRandomGenerator.h"
+#include "TReadGroups.h"
+#include "TSamHeader.h"
+#include "globalConstants.h"
+#include "probability.h"
+#include "stringFunctions.h"
+#include "weakTypes.h"
 
 namespace Simulations {
 

@@ -6,6 +6,11 @@
  */
 
 #include "TCreateBedMask.h"
+#include <vector>
+#include "TGenomePosition.h"
+#include "TSite.h"
+#include "TWindow.h"
+#include "stringFunctions.h"
 
 namespace GenomeTasks{
 

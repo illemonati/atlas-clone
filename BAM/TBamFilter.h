@@ -8,15 +8,20 @@
 #ifndef BAM_TBAMFILTER_H_
 #define BAM_TBAMFILTER_H_
 
+#include <array>
+#include <memory>
 #include <set>
-#include "TLog.h"
-#include "TFile.h"
-#include "TNumericRange.h"
+#include <stdint.h>
+#include <string>
+
 #include "GenotypeTypes.h"
 #include "PhredProbabilityTypes.h"
+#include "TFile.h"
+#include "TNumericRange.h"
 #include "TSequencedBase.h"
-#include "TParameters.h"
-#include "TLog.h"
+
+namespace coretools { class TLog; }
+namespace coretools { class TParameters; }
 
 namespace BAM{
 

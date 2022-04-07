@@ -8,9 +8,18 @@
 #ifndef GENOMETASKS_TPSMCINPUT_H_
 #define GENOMETASKS_TPSMCINPUT_H_
 
+#include <stdint.h>
+#include <iosfwd>
+#include <memory>
+#include <string>
+
 #include "TGenome.h"
-#include "TThetaEstimator.h"
+#include "TGenotypeData.h"
+#include "TLog.h"
+#include "TParameters.h"
+#include "TRandomGenerator.h"
 #include "TTask.h"
+#include "TThetaEstimator.h"
 
 namespace GenomeTasks{
 

@@ -8,8 +8,21 @@
 #ifndef TBAMDOWNSAMPLER_H_
 #define TBAMDOWNSAMPLER_H_
 
+#include <string>
+#include <vector>
+
+#include "TBamFile.h"
+#include "TBamFilter.h"
 #include "TGenome.h"
+#include "TLog.h"
+#include "TParameters.h"
+#include "TRandomGenerator.h"
 #include "TTask.h"
+#include "probability.h"
+
+namespace BAM {
+class TAlignment;
+}
 
 namespace GenomeTasks{
 

@@ -6,9 +6,23 @@
  */
 
 #include "TBamFile.h"
-#include "GenotypeTypes.h"
+#include <math.h>
+#include <stdlib.h>
+#include <algorithm>
+#include <exception>
+#include "TLog.h"
 #include "TNumericRange.h"
-#include "debugtools.h"
+#include "TParameters.h"
+#include "TSamFlags.h"
+#include "api/BamIndex.h"
+#include "api/SamProgram.h"
+#include "api/SamProgramChain.h"
+#include "api/SamReadGroup.h"
+#include "api/SamReadGroupDictionary.h"
+#include "api/SamSequence.h"
+#include "api/SamSequenceDictionary.h"
+#include "globalConstants.h"
+#include "strongTypes.h"
 
 namespace BAM{
 using coretools::TParameters;

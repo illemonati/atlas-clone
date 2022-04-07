@@ -8,9 +8,16 @@
 #ifndef TBAMDIAGNOSER_H_
 #define TBAMDIAGNOSER_H_
 
+#include <string>
+#include <vector>
+
+#include "TBamFilter.h"
 #include "TGenome.h"
-#include "TFile.h"
+#include "TLog.h"
+#include "TParameters.h"
+#include "TRandomGenerator.h"
 #include "TTask.h"
+#include "counters.h"
 
 namespace GenomeTasks{
 

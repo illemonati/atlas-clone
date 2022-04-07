@@ -5,10 +5,16 @@
  *      Author: phaentu
  */
 
+
 #include "TContextQuantifer.h"
+
+#include <algorithm>
+#include <vector>
+
 #include "GenotypeTypes.h"
-#include "TParameters.h"
-#include "TRandomGenerator.h"
+#include "PhredProbabilityTypes.h"
+#include "TAlignment.h"
+#include "TSequencedBase.h"
 
 namespace GenomeTasks{
 

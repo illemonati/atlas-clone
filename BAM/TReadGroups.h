@@ -8,13 +8,13 @@
 #ifndef TREADGROUPS_H_
 #define TREADGROUPS_H_
 
-#include "stringFunctions.h"
-#include "TLog.h"
-#include "TParameters.h"
-#include <vector>
-#include <algorithm>
+#include <cstdint>
+#include <functional>
 #include <set>
-#include "counters.h"
+#include <string>
+#include <vector>
+
+namespace coretools { class TLog; }
 
 namespace BAM{
 

@@ -5,9 +5,9 @@
  *      Author: wegmannd
  */
 
-
 #include "TAlignmentStorage.h"
-#include "debugtools.h"
+#include <algorithm>
+#include "TAlignment.h"
 
 namespace GenomeTasks{
 

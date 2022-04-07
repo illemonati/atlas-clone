@@ -5,45 +5,47 @@
  *      Author: wegmannd
  */
 
-#include <TSubsamplePicker.h>
+#include <string>
+
 #include "TMain.h"
+#include "TTest.h"
 
 //BAM
-#include "GenomeTasks/TBamFilter.h"
-#include "TReadGroupMerger.h"
-#include "TPileup.h"
 #include "TBamDiagnoser.h"
-#include "TDuplicateQuantifier.h"
-#include "TSoftClipping.h"
-#include "TQualityDistribution.h"
+#include "GenomeTasks/TBamFilter.h"
 #include "TContextQuantifer.h"
+#include "TDuplicateQuantifier.h"
 #include "TPMDEstimator.h"
 #include "TPMDSCalculator.h"
+#include "TPileup.h"
+#include "TQualityDistribution.h"
+#include "TReadGroupMerger.h"
+#include "TSoftClipping.h"
 
 //window
-#include "TEstimateRecalibration.h"
-#include "TDepthWriter.h"
-#include "TCreateBedMask.h"
-#include "TAllelicDepthCounts.h"
-#include "TBamDownsampler.h"
-#include "TPSMCInput.h"
-#include "TCaller.h"
-#include "TEstimateTheta.h"
-#include "TWriteGLF.h"
-#include "TGLF.h"
-#include "TMajorMinor.h"
-#include "TDistanceEstimator.h"
 #include "TAlleleCountEstimator.h"
 #include "TAlleleFrequencyEstimator.h"
-#include "TInbreedingEstimator.h"
-#include "TPolymorhicWindowIdentifier.h"
-#include "THardyWeinbergTest.h"
+#include "TAllelicDepthCounts.h"
+#include "TBamDownsampler.h"
+#include "TCaller.h"
+#include "TCreateBedMask.h"
+#include "TDepthWriter.h"
+#include "TDistanceEstimator.h"
+#include "TEstimateRecalibration.h"
+#include "TEstimateTheta.h"
 #include "TF2Estimator.h"
+#include "TGLF.h"
+#include "THardyWeinbergTest.h"
+#include "TInbreedingEstimator.h"
+#include "TMajorMinor.h"
+#include "TPSMCInput.h"
+#include "TPolymorhicWindowIdentifier.h"
+#include "TWriteGLF.h"
 
 //VCF
 #include "TVcfCompare.h"
-#include "TVcfDiagnostics.h"
 #include "TVcfConverter.h"
+#include "TVcfDiagnostics.h"
 
 //simulations
 #include "TSimulator.h"

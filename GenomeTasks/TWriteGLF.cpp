@@ -8,6 +8,13 @@
 
 #include "TWriteGLF.h"
 
+#include <stdint.h>
+#include <vector>
+
+#include "TGenotypeLikelihoodCalculator.h"
+#include "TSite.h"
+#include "TWindow.h"
+
 namespace GenomeTasks{
 
 //-------------------------------------------

@@ -5,7 +5,23 @@
  *      Author: phaentu
  */
 
+
 #include "TEstimateTheta.h"
+
+#include <stddef.h>
+#include <algorithm>
+#include <exception>
+#include <map>
+#include <memory>
+
+#include "TBamFile.h"
+#include "TFile.h"
+#include "TGenomePosition.h"
+#include "TGenotypeData.h"
+#include "TGenotypeLikelihoodCalculator.h"
+#include "TThetaEstimatorData.h"
+#include "TTimer.h"
+#include "stringFunctions.h"
 
 namespace GenomeTasks{
 

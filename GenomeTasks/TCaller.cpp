@@ -5,10 +5,28 @@
  *      Author: phaentu
  */
 
-
 #include "TCaller.h"
+
+#include <math.h>
+#include <stddef.h>
+#include <algorithm>
+#include <exception>
+#include <memory>
+#include <ostream>
+#include <set>
+
 #include "GenotypeTypes.h"
+#include "PhredProbabilityTypes.h"
+#include "TGenomePosition.h"
+#include "TGenotypeLikelihoodCalculator.h"
+#include "TGenotypePrior.h"
+#include "TSequencedBase.h"
+#include "TSite.h"
+#include "TSiteSubset.h"
+#include "TVCFFields.h"
+#include "TWindow.h"
 #include "probability.h"
+#include "weakTypes.h"
 
 namespace GenomeTasks{
 

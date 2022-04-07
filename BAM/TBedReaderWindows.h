@@ -8,13 +8,12 @@
 #ifndef TBEDREADER_H_
 #define TBEDREADER_H_
 
-#include <fstream>
-#include <vector>
+#include <stdint.h>
 #include <map>
-#include "stringFunctions.h"
-#include "TLog.h"
-#include "gzstream.h"
-#include "TChromosomes.h"
+#include <string>
+#include <vector>
+namespace coretools { class TLog; }
+namespace genometools { class TChromosomes; }
 
 //read sorted bed files window by window
 //store all data in chr / window combinations using vectors

@@ -8,8 +8,15 @@
 #ifndef GENOMETASKS_TDEPTHWRITER_H_
 #define GENOMETASKS_TDEPTHWRITER_H_
 
+#include <string>
+
+#include "TFile.h"
 #include "TGenome.h"
+#include "TLog.h"
+#include "TParameters.h"
+#include "TRandomGenerator.h"
 #include "TTask.h"
+#include "counters.h"
 
 namespace GenomeTasks{
 

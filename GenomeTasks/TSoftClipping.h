@@ -8,8 +8,16 @@
 #ifndef TSOFTCLIPPING_H_
 #define TSOFTCLIPPING_H_
 
+#include <string>
+
+#include "TBamFile.h"
+#include "TFile.h"
 #include "TGenome.h"
+#include "TLog.h"
+#include "TParameters.h"
+#include "TRandomGenerator.h"
 #include "TTask.h"
+#include "counters.h"
 
 namespace GenomeTasks{
 

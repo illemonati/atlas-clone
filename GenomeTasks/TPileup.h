@@ -9,8 +9,15 @@
 #define GENOMETASKS_TPILEUP_H_
 
 #include <array>
+#include <set>
+#include <string>
 
+#include "TFile.h"
 #include "TGenome.h"
+#include "TGenotypeData.h"
+#include "TLog.h"
+#include "TParameters.h"
+#include "TRandomGenerator.h"
 #include "TTask.h"
 
 namespace GenomeTasks{

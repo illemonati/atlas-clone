@@ -5,10 +5,11 @@
  *      Author: vivian
  */
 
-
 #include "TFastaBuffer.h"
-#include "GenotypeTypes.h"
+#include <stdlib.h>
+#include <algorithm>
 #include <string>
+#include "GenotypeTypes.h"
 
 namespace BAM{
 

@@ -8,9 +8,21 @@
 #ifndef GENOMETASKS_TESTIMATETHETA_H_
 #define GENOMETASKS_TESTIMATETHETA_H_
 
+#include <stdint.h>
+#include <set>
+#include <string>
+#include <vector>
+
+#include "TBed.h"
 #include "TGenome.h"
-#include "TThetaEstimator.h"
+#include "TLog.h"
+#include "TParameters.h"
+#include "TRandomGenerator.h"
 #include "TTask.h"
+#include "TThetaEstimator.h"
+#include "TWindow.h"
+#include "probability.h"
+namespace GenotypeLikelihoods { class TThetaEstimatorData; }
 
 namespace GenomeTasks{
 

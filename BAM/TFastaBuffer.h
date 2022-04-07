@@ -8,10 +8,13 @@
 #ifndef TFASTABUFFER_H_
 #define TFASTABUFFER_H_
 
-#include "utils/bamtools_fasta.h"
-#include "TGenomePosition.h"
-#include "GenotypeTypes.h"
+#include <stddef.h>
+#include <stdint.h>
+#include <string>
 #include <vector>
+#include "GenotypeTypes.h"
+#include "TGenomePosition.h"
+#include "utils/bamtools_fasta.h"
 
 namespace BAM{
 

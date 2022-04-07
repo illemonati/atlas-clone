@@ -11,6 +11,7 @@
 #include "TBedReaderWindows.h"
 #include "TBed.h"
 #include "TLog.h"
+#include "TNumericRange.h"
 #include "TSiteSubset.h"
 #include "TAlignment.h"
 #include "TRandomGenerator.h"

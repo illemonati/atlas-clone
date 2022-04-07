@@ -8,6 +8,16 @@
 
 #include "TPMDSCalculator.h"
 
+#include <stdint.h>
+#include <exception>
+#include <vector>
+
+#include "GenotypeTypes.h"
+#include "TAlignment.h"
+#include "TGenotypeLikelihoodCalculator.h"
+#include "TSequencedBase.h"
+#include "stringFunctions.h"
+
 namespace GenomeTasks{
 
 using coretools::str::toString;

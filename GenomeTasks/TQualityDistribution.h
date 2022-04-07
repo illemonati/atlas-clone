@@ -8,8 +8,16 @@
 #ifndef TQUALITYDISTRIBUTION_H_
 #define TQUALITYDISTRIBUTION_H_
 
+#include <string>
+#include <vector>
+
 #include "TGenome.h"
+#include "TLog.h"
+#include "TParameters.h"
+#include "TRandomGenerator.h"
+#include "TSequencingErrorModels.h"
 #include "TTask.h"
+#include "counters.h"
 
 namespace GenomeTasks{
 

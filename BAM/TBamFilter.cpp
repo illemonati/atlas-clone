@@ -5,9 +5,18 @@
  *      Author: phaentu
  */
 
-
 #include "TBamFilter.h"
+
+#include <algorithm>
+#include <exception>
+#include <ostream>
+#include <vector>
+
 #include "GenotypeTypes.h"
+#include "TFile.h"
+#include "TLog.h"
+#include "TParameters.h"
+#include "stringFunctions.h"
 
 namespace BAM{
 

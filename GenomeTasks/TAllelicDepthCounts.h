@@ -8,9 +8,16 @@
 #ifndef TALLELICDEPTHCOUNTS_H_
 #define TALLELICDEPTHCOUNTS_H_
 
+#include <stdint.h>
+#include <string>
+
 #include "TGenome.h"
-#include <map>
+#include "TLog.h"
+#include "TParameters.h"
+#include "TRandomGenerator.h"
 #include "TTask.h"
+
+namespace GenotypeLikelihoods { class TBaseCounts; }
 
 namespace GenomeTasks{
 

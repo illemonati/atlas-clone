@@ -6,6 +6,14 @@
  */
 
 #include "TSoftClipping.h"
+#include <algorithm>
+#include <ostream>
+#include <vector>
+
+#include "TAlignment.h"
+#include "TChromosomes.h"
+#include "TCigar.h"
+#include "TGenomePosition.h"
 
 namespace GenomeTasks{
 

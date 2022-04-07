@@ -7,13 +7,19 @@
 
 
 #include "TBamDiagnoser.h"
+#include <stdint.h>
+#include <ostream>
+#include "TBamFile.h"
+#include "TChromosomes.h"
+#include "TCigar.h"
+#include "TFile.h"
+#include "TReadGroups.h"
 
 namespace GenomeTasks{
 
 using coretools::TParameters;
 using coretools::TLog;
 using coretools::TRandomGenerator;
-using coretools::TCountDistribution;
 using coretools::TCountDistributionVector;
 
 TBamDiagnoser::TBamDiagnoser(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_filtered(){

@@ -7,6 +7,17 @@
 
 #include "TPileup.h"
 
+#include <stdint.h>
+#include <algorithm>
+#include <ostream>
+#include <vector>
+
+#include "GenotypeTypes.h"
+#include "TFastaBuffer.h"
+#include "TGenotypeLikelihoodCalculator.h"
+#include "TSite.h"
+#include "TWindow.h"
+
 namespace GenomeTasks{
 
 //---------------------------------

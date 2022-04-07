@@ -8,10 +8,17 @@
 #ifndef TDUPLICATIONQUANTIFYER_H_
 #define TDUPLICATIONQUANTIFYER_H_
 
+#include <stdint.h>
+#include <string>
+#include <vector>
 
 #include "TGenome.h"
-#include "counters.h"
+#include "TGenomePosition.h"
+#include "TLog.h"
+#include "TParameters.h"
+#include "TRandomGenerator.h"
 #include "TTask.h"
+#include "counters.h"
 
 namespace GenomeTasks{
 

@@ -8,19 +8,29 @@
 #ifndef GENOME_H_
 #define GENOME_H_
 
+#include <stdint.h>
+#include <memory>
+#include <set>
+#include <string>
+#include <vector>
 
-#include <typeinfo>
-#include <map>
-#include <algorithm>
-
-#include "TGenotypeData.h"
-#include "TWindow.h"
-#include "gzstream.h"
-#include "TLog.h"
 #include "BED/TBed.h"
-#include "TGenotypeLikelihoodCalculator.h"
-#include "TGenotypePrior.h"
+#include "TAlignment.h"
 #include "TBamFile.h"
+#include "TChromosomes.h"
+#include "TFastaBuffer.h"
+#include "TGenomePosition.h"
+#include "TGenotypeData.h"
+#include "TGenotypeLikelihoodCalculator.h"
+#include "TNumericRange.h"
+#include "TTimer.h"
+#include "TWindow.h"
+
+namespace GenotypeLikelihoods { class TSiteSubset; }
+namespace coretools { class TLog; }
+namespace coretools { class TParameters; }
+namespace coretools { class TRandomGenerator; }
+namespace coretools { class TSubsamplePicker; }
 
 namespace GenomeTasks{
 

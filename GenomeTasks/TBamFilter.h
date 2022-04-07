@@ -8,12 +8,24 @@
 #ifndef TBAMFILTER_H_
 #define TBAMFILTER_H_
 
-#include "TGenome.h"
+#include <functional>
+#include <memory>
+#include <set>
+#include <stdint.h>
+#include <string>
+
 #include "TAlignmentStorage.h"
+#include "TBamFile.h"
+#include "TGenome.h"
 #include "TLog.h"
 #include "TParameters.h"
 #include "TRandomGenerator.h"
 #include "TTask.h"
+
+namespace BAM { class TAlignment; }
+namespace BAM { class TReadGroups; }
+namespace BAM { class TSequencedBase; }
+namespace genometools { class TGenomePosition; }
 
 namespace GenomeTasks{
 

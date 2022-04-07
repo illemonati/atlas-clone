@@ -8,9 +8,18 @@
 #ifndef GENOMETASKS_TESTIMATERECALIBRATION_H_
 #define GENOMETASKS_TESTIMATERECALIBRATION_H_
 
+#include <memory>
+#include <set>
+#include <string>
+
 #include "TGenome.h"
-#include "TRecalibrationEMEstimator.h"
+#include "TLog.h"
+#include "TParameters.h"
+#include "TRandomGenerator.h"
 #include "TTask.h"
+
+namespace BAM { class TReadGroupMap; }
+namespace GenotypeLikelihoods { namespace SequencingError { class TRecalibrationEMEstimator; } }
 
 namespace GenomeTasks{
 
