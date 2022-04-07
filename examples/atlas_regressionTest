@@ -1,5 +1,25 @@
 #! /bin/bash
 
+compare() {
+    echo "Comparing reference ATLAS-files to new ones"
+    for a in ATLAS_*; do
+	if [[ $a == *.bai ]]; then continue; fi
+	if [[ $a == *.bam ]]; then
+	    command -v samtools > /dev/null || continue
+
+	    if ! diff -q <(samtools view $a) <(samtools view ../${fo}_ref/$a); then
+		differs=true
+	    fi
+	fi
+	if ! diff -q $a ../${fo}_ref/$a; then
+	    differs=true
+	fi
+    done
+    if [[ ! $differs ]]; then
+	echo "All files are identical"
+    fi
+}
+
 for f in *.sh; do (
     fo=${f%.sh}
     echo "Regresision Test: $fo"
@@ -20,15 +40,7 @@ for f in *.sh; do (
 	    cd ${fo}_new
 	fi
 
-	echo "Comparing reference ATLAS-files to new ones"
-	for a in ATLAS_*; do
-	    if ! diff -q $a ../${fo}_ref/$a; then
-		differs=true
-	    fi
-	done
-	if [[ ! $differs ]]; then
-	    echo "All files are identical"
-	fi
+	compare
     fi
     echo
 ) done
