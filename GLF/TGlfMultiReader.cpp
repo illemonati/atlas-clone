@@ -6,14 +6,21 @@
  */
 
 #include "TGlfMultiReader.h"
+#include <algorithm>
+#include <cstdint>
+#include <exception>
+#include <iostream>
+#include <iterator>
+#include <memory>
+#include <numeric>
 #include "GenotypeTypes.h"
 #include "TLog.h"
 #include "TParameters.h"
 #include "TRandomGenerator.h"
-#include "debugtools.h"
-#include <algorithm>
-#include <iterator>
-#include <numeric>
+#include "probability.h"
+#include "stringFunctions.h"
+#include "strongTypes.h"
+#include "weakTypes.h"
 
 namespace GLF {
 using coretools::instances::logfile;

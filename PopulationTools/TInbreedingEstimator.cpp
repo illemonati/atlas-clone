@@ -4,7 +4,24 @@
 
 #include "TInbreedingEstimator.h"
 
-#include <utility>
+#include <math.h>
+#include <array>
+#include <exception>
+#include <stdexcept>
+
+#include "TDAGBuilder.h"
+#include "TDefinition.h"
+#include "TMCMC.h"
+#include "TParameterObservationTypedBase.h"
+#include "TPriorBeta.h"
+#include "TPriorUniform.h"
+#include "TProposal.h"
+#include "TRandomGenerator.h"
+#include "TStorage.h"
+#include "mathFunctions.h"
+#include "stringFunctions.h"
+namespace stattools { class TParameterBase; }
+namespace stattools { class TParameterObservationBase; }
 
 namespace PopulationTools {
 

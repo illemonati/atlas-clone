@@ -5,15 +5,25 @@
  *      Author: phaentu
  */
 
-#include <algorithm>
-#include <memory>
-
 #include "TMajorMinor.h"
+
+#include <stddef.h>
+#include <stdint.h>
+#include <algorithm>
+#include <exception>
+#include <memory>
+#include <vector>
+
 #include "GenotypeTypes.h"
+#include "TDualArray.h"
+#include "TLog.h"
 #include "TParameters.h"
 #include "TRandomGenerator.h"
-#include "debugtools.h"
-#include "TDualArray.h"
+#include "TTimer.h"
+#include "stringFunctions.h"
+#include "strongTypes.h"
+#include "weakTypes.h"
+
 
 namespace PopulationTools {
 

@@ -6,8 +6,18 @@
  */
 
 #include "TAlleleFrequencyEstimator.h"
-#include "GenotypeTypes.h"
+#include <math.h>
+#include <stddef.h>
+#include <algorithm>
+#include <cstdint>
+#include <exception>
+#include <memory>
+#include <ostream>
 #include <string>
+#include "GenotypeTypes.h"
+#include "TGenotypeFrequencies.h"
+#include "stringFunctions.h"
+#include "weakTypes.h"
 
 namespace PopulationTools{
 

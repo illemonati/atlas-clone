@@ -5,8 +5,13 @@
  *      Author: linkv
  */
 
-
 #include "TAlleleCountFileFormat.h"
+#include <stddef.h>
+#include <ostream>
+#include "TLog.h"
+#include "TParameters.h"
+#include "TPopulation.h"
+#include "stringFunctions.h"
 
 namespace PopulationTools{
 

@@ -8,10 +8,12 @@
 #ifndef POPULATIONTOOLS_TALLELECOUNTFILEFORMAT_H_
 #define POPULATIONTOOLS_TALLELECOUNTFILEFORMAT_H_
 
-#include "mathFunctions.h"
-#include "TPopulationLikelihoods.h"
-#include "TFile.h"
 #include <string>
+#include <vector>
+#include "gzstream.h"
+namespace coretools { class TLog; }
+namespace coretools { class TParameters; }
+namespace genometools { class TPopulationSamples; }
 
 namespace PopulationTools{
 

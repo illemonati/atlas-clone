@@ -8,11 +8,18 @@
 #ifndef TDISTANCEESTIMATOR_H_
 #define TDISTANCEESTIMATOR_H_
 
-#include "TParameters.h"
-#include "TGLF.h"
-#include <math.h>
+#include <stdint.h>
+#include <algorithm>
+#include <array>
+#include <string>
+#include <vector>
 #include "GenotypeTypes.h"
-#include "strongTypes.h"
+#include "TGLF.h"
+#include "TGenotypeData.h"
+#include "TParameters.h"
+#include "TTask.h"
+namespace gz { class ogzstream; }
+
 
 namespace PopulationTools{
 

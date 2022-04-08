@@ -8,8 +8,12 @@
 #ifndef POPULATIONTOOLS_TPOLYMORHICWINDOWIDENTIFIER_H_
 #define POPULATIONTOOLS_TPOLYMORHICWINDOWIDENTIFIER_H_
 
-#include "TPopulationLikelihoods.h"
+#include <string>
+#include "TLog.h"
+#include "TParameters.h"
+#include "TRandomGenerator.h"
 #include "TTask.h"
+
 
 namespace PopulationTools{
 

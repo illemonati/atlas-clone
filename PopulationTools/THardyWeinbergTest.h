@@ -8,11 +8,20 @@
 #ifndef POPULATIONTOOLS_THARDYWEINBERGTEST_H_
 #define POPULATIONTOOLS_THARDYWEINBERGTEST_H_
 
+#include <array>
+#include <cstdint>
+#include <map>
+#include <string>
+#include <vector>
+
+#include "GenotypeTypes.h"
+#include "TLog.h"
 #include "TParameters.h"
-#include "TPopulationLikelihoods.h"
+#include "TPopulation.h"
 #include "TRandomGenerator.h"
-#include "mathFunctions.h"
 #include "TTask.h"
+#include "TVcfFile.h"
+namespace coretools { class TOutputFile; }
 
 namespace PopulationTools{
 

@@ -8,11 +8,22 @@
 #ifndef GLF_TGLFMULTIREADER_H_
 #define GLF_TGLFMULTIREADER_H_
 
+#include <stddef.h>
+#include <stdint.h>
+#include <algorithm>
+#include <array>
+#include <iterator>
+#include <ostream>
+#include <stdexcept>
+#include <string>
+#include <vector>
 #include "GenotypeTypes.h"
-#include "TBitSet.h"
+#include "PhredProbabilityTypes.h"
 #include "TFastaBuffer.h"
 #include "TGLF.h"
-#include "stringFunctions.h"
+#include "TGenomePosition.h"
+#include "TRandomGenerator.h"
+#include "gzstream.h"
 
 namespace GLF {
 

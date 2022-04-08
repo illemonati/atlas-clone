@@ -5,21 +5,32 @@
 #ifndef ATLAS_TINBREEDINGESTIMATOR_H
 #define ATLAS_TINBREEDINGESTIMATOR_H
 
-#include <limits>
+#include <stddef.h>
+#include <algorithm>
+#include <memory>
+#include <set>
+#include <string>
+#include <vector>
 
-#include "TPopulationLikelihoods.h"
-
+#include "PhredProbabilityTypes.h"
+#include "TFile.h"
+#include "THardyWeinbergGenotypeProbabilities.h"
 #include "TLog.h"
-#include "TNamesPositions.h"
-#include "TParameters.h"
-#include "TRandomGenerator.h"
-#include "TTask.h"
-
-#include "TDAGBuilder.h"
-#include "TMCMC.h"
+#include "TObservationTyped.h"
 #include "TParameterTyped.h"
-#include "TPriorBeta.h"
-#include "TPriorUniform.h"
+#include "TParameters.h"
+#include "TPopulationLikelihoods.h"
+#include "TPriorBase.h"
+#include "TSampleLikelihoods.h"
+#include "TTask.h"
+#include "TValue.h"
+#include "commonWeakTypes.h"
+#include "probability.h"
+#include "strongTypes.h"
+#include "weakTypes.h"
+
+namespace stattools { class TDAGBuilder; }
+namespace stattools { class TObservationBase; }
 
 namespace PopulationTools {
 

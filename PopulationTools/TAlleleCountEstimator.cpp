@@ -7,8 +7,23 @@
 
 
 #include "TAlleleCountEstimator.h"
+#include <math.h>
+#include <stddef.h>
+#include <sys/time.h>
+#include <algorithm>
+#include <exception>
+#include <iostream>
+#include <memory>
+#include <utility>
 #include "GenotypeTypes.h"
+#include "TAlleleCountFileFormat.h"
+#include "TPopulation.h"
+#include "TPopulationLikelihoodLocus.h"
 #include "TPopulationLikelihoods.h"
+#include "gzstream.h"
+#include "mathFunctions.h"
+#include "stringFunctions.h"
+#include "weakTypes.h"
 
 namespace PopulationTools{
 

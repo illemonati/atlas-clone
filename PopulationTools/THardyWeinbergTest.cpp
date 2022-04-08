@@ -5,7 +5,22 @@
  *      Author: wegmannd
  */
 
+
 #include "THardyWeinbergTest.h"
+
+#include <math.h>
+#include <algorithm>
+#include <exception>
+#include <iostream>
+#include <memory>
+#include <tuple>
+#include <utility>
+
+#include "TFile.h"
+#include "TTimer.h"
+#include "TVcfParser.h"
+#include "mathFunctions.h"
+#include "stringFunctions.h"
 
 namespace PopulationTools{
 

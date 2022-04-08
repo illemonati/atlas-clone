@@ -8,11 +8,19 @@
 #ifndef TALLELECOUNTESTIMATOR_H_
 #define TALLELECOUNTESTIMATOR_H_
 
-#include "TAlleleCountFileFormat.h"
-#include "probability.h"
-#include <string>
+#include <stdint.h>
 #include <map>
+#include <string>
+#include <vector>
+#include "PhredProbabilityTypes.h"
+#include "TLog.h"
+#include "TParameters.h"
+#include "TRandomGenerator.h"
+#include "TSampleLikelihoods.h"
 #include "TTask.h"
+#include "probability.h"
+namespace PopulationTools { class TAlleleCountFile; }
+namespace gz { class ogzstream; }
 
 namespace PopulationTools{
 

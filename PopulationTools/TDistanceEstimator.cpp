@@ -6,8 +6,19 @@
  */
 
 #include "TDistanceEstimator.h"
+
+#include <math.h>
+#include <stddef.h>
+#include <exception>
+#include <ostream>
+
 #include "GenotypeTypes.h"
+#include "PhredProbabilityTypes.h"
+#include "TLog.h"
+#include "gzstream.h"
 #include "probability.h"
+#include "stringFunctions.h"
+#include "weakTypes.h"
 
 namespace PopulationTools{
 

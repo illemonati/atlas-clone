@@ -5,11 +5,14 @@
 #ifndef ATLAS_TF2ESTIMATOR_H
 #define ATLAS_TF2ESTIMATOR_H
 
+#include <stdint.h>
+#include <string>
+#include <vector>
+
 #include "TParameters.h"
-#include "TPopulationLikelihoods.h"
-#include "TRandomGenerator.h"
-#include "mathFunctions.h"
+#include "TPopulation.h"
 #include "TTask.h"
+#include "TVcfFile.h"
 
 namespace PopulationTools {
 //------------------------------------------------

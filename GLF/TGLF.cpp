@@ -5,14 +5,20 @@
  *      Author: phaentu
  */
 
+#include "TGLF.h"
+#include <ext/alloc_traits.h>
 #include <algorithm>
 #include <cstdint>
-
-#include "PhredProbabilityTypes.h"
-#include "TGLF.h"
+#include <iostream>
+#include <utility>
 #include "GenotypeTypes.h"
-#include "debugtools.h"
+#include "PhredProbabilityTypes.h"
+#include "TChromosomes.h"
+#include "TGenotypeData.h"
 #include "probability.h"
+#include "stringFunctions.h"
+#include "strongTypes.h"
+#include "weakTypes.h"
 
 namespace GLF {
 using namespace GenotypeLikelihoods;

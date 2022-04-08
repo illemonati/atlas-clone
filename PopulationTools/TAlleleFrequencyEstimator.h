@@ -8,13 +8,23 @@
 #ifndef POPULATIONTOOLS_TALLELEFREQUENCYESTIMATOR_H_
 #define POPULATIONTOOLS_TALLELEFREQUENCYESTIMATOR_H_
 
-
+#include <stdint.h>
+#include <string>
+#include <vector>
+#include "PhredProbabilityTypes.h"
+#include "TFile.h"
+#include "THardyWeinbergGenotypeProbabilities.h"
+#include "TLog.h"
 #include "TParameters.h"
+#include "TPopulation.h"
+#include "TPopulationLikelihoodLocus.h"
 #include "TPopulationLikelihoods.h"
 #include "TRandomGenerator.h"
-#include "THardyWeinbergGenotypeProbabilities.h"
-#include "TPopulationLikelihoods.h"
+#include "TSampleLikelihoods.h"
 #include "TTask.h"
+#include "probability.h"
+namespace genometools { class TGenotypeFrequencies; }
+
 
 using TSampleLikelihoods = genometools::TSampleLikelihoods<genometools::HighPrecisionPhredIntProbability>;
 

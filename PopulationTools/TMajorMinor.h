@@ -8,11 +8,17 @@
 #ifndef TMAJORMINOR_H_
 #define TMAJORMINOR_H_
 
-#include "TGenotypeData.h"
+#include <array>
+#include <set>
+#include <string>
+
+#include "GenotypeTypes.h"
+#include "PhredProbabilityTypes.h"
 #include "TGenotypeFrequencies.h"
 #include "TGlfMultiReader.h"
 #include "TStrongArray.h"
-#include <math.h>
+#include "TTask.h"
+#include "probability.h"
 
 namespace PopulationTools {
 

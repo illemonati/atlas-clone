@@ -8,19 +8,20 @@
 #ifndef TGLF_H_
 #define TGLF_H_
 
-#include "GenotypeTypes.h"
-#include "TChromosomes.h"
-#include "TFastaBuffer.h"
-#include "TGenotypeData.h"
-#include "TTask.h"
-#include "gzstream.h"
-#include "stringFunctions.h"
-#include <TPopulationLikelihoodLocus.h>
-#include <algorithm>
+#include <stdint.h>
+#include <zlib.h>
 #include <array>
 #include <cstring>
+#include <exception>
 #include <map>
+#include <string>
 #include <vector>
+#include "GenotypeTypes.h"
+#include "PhredProbabilityTypes.h"
+#include "TParameters.h"
+#include "TTask.h"
+namespace GenotypeLikelihoods { class TGenotypeLikelihoods; }
+namespace genometools { class TChromosome; }
 
 namespace GLF {
 

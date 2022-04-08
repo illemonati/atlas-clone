@@ -4,6 +4,20 @@
 
 #include "TF2Estimator.h"
 
+#include <algorithm>
+#include <cstdint>
+#include <exception>
+#include <ostream>
+
+#include "TFile.h"
+#include "TLog.h"
+#include "TRandomGenerator.h"
+#include "TTimer.h"
+#include "TVcfParser.h"
+#include "stringFunctions.h"
+
+namespace coretools { class TFactorial; }
+
 auto &parameters = coretools::instances::parameters();
 auto &logfile = coretools::instances::logfile();
 auto &randomgenerator = coretools::instances::randomGenerator();

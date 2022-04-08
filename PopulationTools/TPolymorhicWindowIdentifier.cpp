@@ -5,10 +5,23 @@
  *      Author: wegmannd
  */
 
+#include "TPolymorhicWindowIdentifier.h"
+
+#include <stdint.h>
+#include <algorithm>
+#include <exception>
+#include <ostream>
+#include <vector>
 
 #include "GenotypeTypes.h"
+#include "PhredProbabilityTypes.h"
+#include "TFile.h"
+#include "TPopulation.h"
+#include "TPopulationLikelihoodLocus.h"
 #include "TPopulationLikelihoods.h"
-#include <TPolymorhicWindowIdentifier.h>
+#include "TSampleLikelihoods.h"
+#include "stringFunctions.h"
+#include "strongTypes.h"
 
 namespace PopulationTools{
 using coretools::TParameters;
