@@ -48,7 +48,7 @@ FetchContent_Declare(genometools
         )
 
 FetchContent_Declare(bamtools
-        GIT_REPOSITORY    https://github.com/pezmaster31/bamtools.git
+        GIT_REPOSITORY    https://github.com/glis-glis/bamtools.git
         GIT_TAG           master
         SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/bamtools"
         )

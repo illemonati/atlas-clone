@@ -277,6 +277,10 @@ public:
  	TOutputBamFile();
  	TOutputBamFile(const std::string filename, const TBamFile & original);
  	~TOutputBamFile();
+ 	TOutputBamFile(const TOutputBamFile&) = default;
+ 	TOutputBamFile(TOutputBamFile&&) noexcept = default;
+ 	TOutputBamFile& operator=(const TOutputBamFile&) = default;
+ 	TOutputBamFile& operator=(TOutputBamFile&&) noexcept = default;
 
  	void open(const std::string Filename, const TSamHeader & Header, const genometools::TChromosomes & Chromosomes, const TReadGroups & ReadGroups);
 	void open(const std::string Filename, const TBamFile & Original);
