@@ -9,6 +9,7 @@
 #define GENOTYPELIKELIHOODS_TSEQUENCINGERRORCOVARIATE_H_
 
 #include "RecalEstimatorTools.h"
+#include "TSequencedBase.h"
 #include "auxiliaryTools.h"
 
 namespace GenotypeLikelihoods {

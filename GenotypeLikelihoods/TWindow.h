@@ -8,16 +8,27 @@
 #ifndef TWINDOW_H_
 #define TWINDOW_H_
 
-#include "TBedReaderWindows.h"
-#include "TBed.h"
-#include "TLog.h"
-#include "TNumericRange.h"
-#include "TSiteSubset.h"
-#include "TAlignment.h"
-#include "TRandomGenerator.h"
-#include "TGenotypeLikelihoodCalculator.h"
+#include <stdint.h>
+#include <iosfwd>
+#include <set>
+#include <string>
 #include <vector>
+
+#include "TAlignment.h"
 #include "TGenomePosition.h"
+#include "TGenotypeData.h"
+#include "TSite.h"
+#include "TSubsamplePicker.h"
+#include "probability.h"
+
+namespace BAM { class TFastaBuffer; }
+namespace GenotypeLikelihoods { class TSiteSubset; }
+namespace GenotypeLikelihoods { class TSiteSubsetSite; }
+namespace coretools { class TLog; }
+namespace coretools { class TOutputFile; }
+namespace coretools { class TRandomGenerator; }
+namespace coretools { template <typename T> class TNumericRange; }
+namespace genometools { class TBed; }
 
 namespace GenotypeLikelihoods{
 

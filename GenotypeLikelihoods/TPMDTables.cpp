@@ -7,6 +7,14 @@
 
 #include "TPMDTables.h"
 
+#include <stdint.h>
+#include <ostream>
+
+#include "TFile.h"
+#include "TReadGroups.h"
+#include "TSequencedBase.h"
+#include "stringFunctions.h"
+
 namespace GenotypeLikelihoods {
 
 //---------------------------------------------------------------

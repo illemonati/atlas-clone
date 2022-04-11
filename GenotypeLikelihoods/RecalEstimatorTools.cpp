@@ -6,8 +6,15 @@
  */
 
 #include "RecalEstimatorTools.h"
-#include "TLog.h"
+
+#include <algorithm>
 #include <numeric>
+#include <utility>
+
+#include "PhredProbabilityTypes.h"
+#include "TLog.h"
+#include "TSequencedBase.h"
+#include "TSite.h"
 
 namespace GenotypeLikelihoods::RecalEstimatorTools {
 

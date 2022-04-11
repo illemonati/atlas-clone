@@ -7,8 +7,13 @@
 
 
 #include "TSequencingErrorCovariateFunction.h"
-#include "stringFunctions.h"
+
 #include <algorithm>
+
+#include "commonWeakTypes.h"
+#include "mathFunctions.h"
+#include "probability.h"
+#include "stringFunctions.h"
 
 namespace GenotypeLikelihoods{
 namespace SequencingError {

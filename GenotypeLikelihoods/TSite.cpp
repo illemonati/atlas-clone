@@ -6,8 +6,13 @@
  */
 
 #include "TSite.h"
-#include "GenotypeTypes.h"
+
+#include <algorithm>
 #include <numeric>
+#include <utility>
+
+#include "GenotypeTypes.h"
+#include "PhredProbabilityTypes.h"
 
 namespace GenotypeLikelihoods {
 

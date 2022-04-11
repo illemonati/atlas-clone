@@ -8,10 +8,23 @@
 #ifndef GENOTYPELIKELIHOODS_TGENOTYPELIKELIHOODCALCULATOR_H_
 #define GENOTYPELIKELIHOODS_TGENOTYPELIKELIHOODCALCULATOR_H_
 
-#include "TParameters.h"
+#include <stddef.h>
+#include <algorithm>
+#include <vector>
+
+#include "GenotypeTypes.h"
+#include "PhredProbabilityTypes.h"
+#include "TGenotypeData.h"
 #include "TGenotypeDistribution.h"
 #include "TPostMortemDamage.h"
 #include "TSequencingErrorModels.h"
+#include "TSite.h"
+#include "probability.h"
+
+namespace BAM { class TReadGroups; }
+namespace BAM { class TSequencedBase; }
+namespace coretools { class TLog; }
+namespace coretools { class TParameters; }
 
 namespace GenotypeLikelihoods{
 

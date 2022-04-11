@@ -6,6 +6,7 @@
  */
 
 #include "TAlleleFrequencyEstimator.h"
+
 #include <math.h>
 #include <stddef.h>
 #include <algorithm>
@@ -14,6 +15,7 @@
 #include <memory>
 #include <ostream>
 #include <string>
+
 #include "GenotypeTypes.h"
 #include "TGenotypeFrequencies.h"
 #include "stringFunctions.h"

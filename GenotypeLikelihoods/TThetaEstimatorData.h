@@ -8,9 +8,16 @@
 #ifndef TTHETAESTIMATORDATA_H_
 #define TTHETAESTIMATORDATA_H_
 
-#include "TSite.h"
-#include "TFile.h"
-#include "TRandomGenerator.h"
+#include <stdint.h>
+#include <zlib.h>
+#include <string>
+#include <vector>
+
+#include "TGenotypeData.h"
+
+namespace GenotypeLikelihoods { class TSite; }
+namespace coretools { class TOutputFile; }
+namespace coretools { class TRandomGenerator; }
 #include "gzstream.h"
 
 namespace GenotypeLikelihoods{

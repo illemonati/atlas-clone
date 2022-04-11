@@ -12,6 +12,7 @@
 #include <map>
 #include <string>
 #include <vector>
+
 #include "PhredProbabilityTypes.h"
 #include "TLog.h"
 #include "TParameters.h"
@@ -19,6 +20,7 @@
 #include "TSampleLikelihoods.h"
 #include "TTask.h"
 #include "probability.h"
+
 namespace PopulationTools { class TAlleleCountFile; }
 namespace gz { class ogzstream; }
 

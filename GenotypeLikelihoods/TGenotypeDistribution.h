@@ -8,6 +8,7 @@
 #ifndef GENOTYPELIKELIHOODS_TGENOTYPEDISTRIBUTION_H_
 #define GENOTYPELIKELIHOODS_TGENOTYPEDISTRIBUTION_H_
 
+#include "GenotypeTypes.h"
 #include "TGenotypeData.h"
 
 namespace GenotypeLikelihoods{

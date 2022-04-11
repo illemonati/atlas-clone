@@ -13,13 +13,14 @@
 #include <array>
 #include <string>
 #include <vector>
+
 #include "GenotypeTypes.h"
 #include "TGLF.h"
 #include "TGenotypeData.h"
 #include "TParameters.h"
 #include "TTask.h"
-namespace gz { class ogzstream; }
 
+namespace gz { class ogzstream; }
 
 namespace PopulationTools{
 

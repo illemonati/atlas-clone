@@ -6,12 +6,22 @@
  */
 
 #include "TSequencingErrorModels.h"
+
+#include <algorithm>
+#include <cstdint>
+#include <memory>
+#include <ostream>
+#include <stdexcept>
+
+#include "TFile.h"
 #include "TLog.h"
+#include "TReadGroups.h"
+#include "TSequencedBase.h"
 #include "TSequencingErrorModel.h"
-#include "mathFunctions.h"
 #include "probability.h"
 #include "stringFunctions.h"
-#include <memory>
+
+namespace GenotypeLikelihoods { class TBaseLikelihoods; }
 
 namespace GenotypeLikelihoods {
 namespace SequencingError {

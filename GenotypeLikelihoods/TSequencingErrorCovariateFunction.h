@@ -8,12 +8,17 @@
 #ifndef GENOTYPELIKELIHOODS_TSEQUENCINGERRORCOVARIATEFUNCTION_H_
 #define GENOTYPELIKELIHOODS_TSEQUENCINGERRORCOVARIATEFUNCTION_H_
 
-#include "auxiliaryTools.h"
-#include "mathFunctions.h"
-#include "stringFunctions.h"
+#include <stddef.h>
+#include <array>
 #include <cstdint>
+#include <memory>
+#include <string>
+#include <vector>
+
 #define ARMA_DONT_PRINT_ERRORS
 #include <armadillo>
+
+#include "auxiliaryTools.h"
 
 namespace GenotypeLikelihoods {
 namespace SequencingError {

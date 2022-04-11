@@ -7,6 +7,14 @@
 
 #include "TThetaEstimatorData.h"
 
+#include <math.h>
+#include <stdio.h>
+#include <algorithm>
+#include <ostream>
+#include "TFile.h"
+#include "TRandomGenerator.h"
+#include "TSite.h"
+
 namespace GenotypeLikelihoods{
 
 //-------------------------------------------------------

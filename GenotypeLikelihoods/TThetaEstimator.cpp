@@ -6,9 +6,20 @@
  */
 
 #include "TThetaEstimator.h"
+
+#include <stdlib.h>
+#include <armadillo>
+#include <exception>
+
 #include "GenotypeTypes.h"
+#include "TGenotypeLikelihoodCalculator.h"
 #include "TParameters.h"
+#include "TRandomGenerator.h"
+#include "TSite.h"
+#include "gzstream.h"
+#include "probability.h"
 #include "stringFunctions.h"
+#include "weakTypes.h"
 
 namespace GenotypeLikelihoods{
 using coretools::TParameters;

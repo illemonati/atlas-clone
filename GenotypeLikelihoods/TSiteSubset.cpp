@@ -6,7 +6,17 @@
  */
 
 #include "TSiteSubset.h"
+
+#include <cstdint>
+#include <fstream>
+#include <map>
+
 #include "GenotypeTypes.h"
+#include "TChromosomes.h"
+#include "TFastaBuffer.h"
+#include "TFile.h"
+#include "TLog.h"
+#include "stringFunctions.h"
 
 namespace GenotypeLikelihoods{
 

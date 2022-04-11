@@ -8,17 +8,20 @@
 #ifndef TSITESUBSET_H_
 #define TSITESUBSET_H_
 
-#include <fstream>
+#include <stddef.h>
+#include <stdint.h>
+#include <functional>
 #include <set>
-#include <map>
-#include "TLog.h"
-#include "stringFunctions.h"
+#include <string>
+#include <vector>
 
-#include "TFastaBuffer.h"
-#include "TChromosomes.h"
-#include "TFile.h"
-#include "TGenomePosition.h"
 #include "GenotypeTypes.h"
+#include "TGenomePosition.h"
+
+namespace BAM { class TFastaBuffer; }
+namespace coretools { class TLog; }
+namespace coretools { class TOutputFile; }
+namespace genometools { class TChromosomes; }
 
 namespace GenotypeLikelihoods{
 

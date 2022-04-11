@@ -6,10 +6,22 @@
  */
 
 #include "TRecalibrationEMEstimator.h"
+#include <math.h>
+#include <algorithm>
+#include <exception>
+#include <iostream>
+#include <stdexcept>
+#include <armadillo>
+
 #include "GenotypeTypes.h"
 #include "RecalEstimatorTools.h"
 #include "TLog.h"
 #include "TParameters.h"
+#include "TPostMortemDamage.h"
+#include "TSequencedBase.h"
+#include "TSequencingErrorModel.h"
+#include "TSequencingErrorModels.h"
+#include "probability.h"
 #include "stringFunctions.h"
 
 namespace GenotypeLikelihoods {

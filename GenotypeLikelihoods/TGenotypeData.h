@@ -8,11 +8,22 @@
 #ifndef TGENOTYPEDATA_H_
 #define TGENOTYPEDATA_H_
 
-#include "TFile.h"
-#include "TRandomGenerator.h"
+#include <stddef.h>
 #include <algorithm>
+#include <array>
+#include <cstdint>
+#include <functional>
+#include <iosfwd>
+#include <numeric>
+#include <string>
+#include <vector>
+
+#include "TRandomGenerator.h"
 #include "GenotypeTypes.h"
 #include "probability.h"
+#include "stringFunctions.h"
+
+namespace coretools { class TOutputFile; }
 
 namespace GenotypeLikelihoods{
 

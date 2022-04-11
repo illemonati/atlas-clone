@@ -6,11 +6,25 @@
  */
 
 #include "TSequencingErrorModel.h"
+
+#include <math.h>
+#include <stdlib.h>
+#include <algorithm>
+#include <memory>
+#include <ostream>
+#include <tuple>
+#include <type_traits>
+#include <utility>
+
+#include "RecalEstimatorTools.h"
 #include "TRandomGenerator.h"
+#include "TSequencedBase.h"
 #include "TSequencingErrorCovariate.h"
 #include "devtools.h"
+#include "mathFunctions.h"
 #include "probability.h"
-#include <memory>
+#include "stringFunctions.h"
+#include "weakTypes.h"
 
 namespace GenotypeLikelihoods {
 namespace SequencingError {

@@ -7,6 +7,7 @@
 
 
 #include "TAlleleCountEstimator.h"
+
 #include <math.h>
 #include <stddef.h>
 #include <sys/time.h>
@@ -15,6 +16,7 @@
 #include <iostream>
 #include <memory>
 #include <utility>
+
 #include "GenotypeTypes.h"
 #include "TAlleleCountFileFormat.h"
 #include "TPopulation.h"

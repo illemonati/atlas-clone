@@ -5,7 +5,18 @@
  *      Author: phaentu
  */
 
-#include <TGenotypeLikelihoodCalculator.h>
+#include "TGenotypeLikelihoodCalculator.h"
+
+#include <math.h>
+#include <stdint.h>
+#include <exception>
+#include <string>
+
+#include "TLog.h"
+#include "TParameters.h"
+#include "TReadGroups.h"
+#include "TSequencedBase.h"
+#include "stringFunctions.h"
 
 namespace GenotypeLikelihoods{
 

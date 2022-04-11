@@ -10,7 +10,9 @@
 
 #include <string>
 #include <vector>
+
 #include "gzstream.h"
+
 namespace coretools { class TLog; }
 namespace coretools { class TParameters; }
 namespace genometools { class TPopulationSamples; }

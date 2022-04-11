@@ -8,17 +8,23 @@
 #ifndef TPOSTMORTEMDAMAGE_H_
 #define TPOSTMORTEMDAMAGE_H_
 
-#include "GenotypeTypes.h"
-#include "TPMDTables.h"
-#include "TSite.h"
-//#include "auxiliaryTools.h"
-
-#include <algorithm>
+#include <stdint.h>
 #include <array>
-#include <math.h>
+#include <map>
 #include <memory>
+#include <string>
+#include <vector>
+
 #define ARMA_DONT_PRINT_ERRORS
 #include <armadillo>
+
+#include "GenotypeTypes.h"
+#include "TGenotypeData.h"
+#include "TPMDTables.h"
+#include "TReadGroups.h"
+#include "stringFunctions.h"
+
+namespace BAM { class TSequencedBase; }
 
 namespace GenotypeLikelihoods {
 

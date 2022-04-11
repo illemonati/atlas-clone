@@ -8,15 +8,15 @@
 #ifndef TRECALIBRATIONEMAUXILIARYTOOLS_H_
 #define TRECALIBRATIONEMAUXILIARYTOOLS_H_
 
-#include "TSite.h"
-#include "TGenotypeData.h"
-#include "PhredProbabilityTypes.h"
-#include "stringFunctions.h"
-#include "TLog.h"
-#include "TReadGroups.h"
+#include <stddef.h>
+#include <stdint.h>
 #include <algorithm>
-#include "TFile.h"
-#include <set>
+#include <vector>
+
+#include "PhredProbabilityTypes.h"
+#include "mathFunctions.h"
+#include "probability.h"
+#include "strongTypes.h"
 
 namespace GenotypeLikelihoods{
 

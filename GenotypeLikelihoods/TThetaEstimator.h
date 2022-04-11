@@ -8,16 +8,26 @@
 #ifndef TTHETAESTIMATOR_H_
 #define TTHETAESTIMATOR_H_
 
-#include "TThetaEstimatorData.h"
-#include "TRandomGenerator.h"
+#include <math.h>
+#include <stdint.h>
 #include <stdio.h>
-#define ARMA_DONT_PRINT_ERRORS
-#include <armadillo>
+#include <algorithm>
+#include <ostream>
+#include <string>
+#include <vector>
+
+#include "GenotypeTypes.h"
 #include "TFile.h"
 #include "TGenotypeData.h"
 #include "TLog.h"
-#include "TParameters.h"
+#include "TThetaEstimatorData.h"
 #include "TWindow.h"
+#include "stringFunctions.h"
+
+namespace GenotypeLikelihoods { class TGenotypeLikelihoodCalculator; }
+namespace GenotypeLikelihoods { class TSite; }
+namespace coretools { class TParameters; }
+namespace coretools { class TRandomGenerator; }
 
 namespace GenotypeLikelihoods{
 

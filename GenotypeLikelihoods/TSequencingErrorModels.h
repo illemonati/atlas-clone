@@ -8,17 +8,20 @@
 #ifndef GENOTYPELIKELIHOODS_TSEQUENCINGERRORMODELS_H_
 #define GENOTYPELIKELIHOODS_TSEQUENCINGERRORMODELS_H_
 
-/*
- * TRecalibrationEMModel.h
- *
- *  Created on: Mar 7, 2019
- *      Author: phaentu
- */
-
-#include "TFile.h"
-#include "TSequencingErrorModel.h"
-#include "auxiliaryTools.h"
+#include <stddef.h>
+#include <stdint.h>
+#include <array>
 #include <memory>
+#include <string>
+#include <vector>
+
+#include "PhredProbabilityTypes.h"
+#include "TSequencingErrorModel.h"
+#include "probability.h"
+
+namespace BAM { class TReadGroups; }
+namespace BAM { class TSequencedBase; }
+namespace GenotypeLikelihoods { class TBaseLikelihoods; }
 
 namespace GenotypeLikelihoods {
 namespace SequencingError {

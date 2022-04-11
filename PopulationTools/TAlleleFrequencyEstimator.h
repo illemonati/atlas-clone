@@ -11,6 +11,7 @@
 #include <stdint.h>
 #include <string>
 #include <vector>
+
 #include "PhredProbabilityTypes.h"
 #include "TFile.h"
 #include "THardyWeinbergGenotypeProbabilities.h"
@@ -23,6 +24,7 @@
 #include "TSampleLikelihoods.h"
 #include "TTask.h"
 #include "probability.h"
+
 namespace genometools { class TGenotypeFrequencies; }
 
 

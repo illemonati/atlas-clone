@@ -8,9 +8,19 @@
 #ifndef GENOTYPELIKELIHOODS_TPMDTABLES_H_
 #define GENOTYPELIKELIHOODS_TPMDTABLES_H_
 
-#include "../BAM/TSequencedBase.h"
-#include "TFile.h"
-#include "TReadGroups.h"
+#include <stddef.h>
+#include <algorithm>
+#include <array>
+#include <cstdint>
+#include <string>
+#include <vector>
+
+#include "GenotypeTypes.h"
+
+namespace BAM { class TReadGroupMap; }
+namespace BAM { class TReadGroups; }
+namespace BAM { class TSequencedBase; }
+namespace coretools { class TOutputFile; }
 
 namespace GenotypeLikelihoods {
 

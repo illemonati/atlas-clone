@@ -8,13 +8,25 @@
 #ifndef TRECALIBRATIONEMESTIMATOR_H_
 #define TRECALIBRATIONEMESTIMATOR_H_
 
+#include <stddef.h>
+#include <stdint.h>
+#include <array>
+#include <memory>
+#include <string>
+#include <vector>
+
+#include "GenotypeTypes.h"
 #include "RecalEstimatorTools.h"
+#include "TGenotypeData.h"
 #include "TGenotypeDistribution.h"
 #include "TGenotypeLikelihoodCalculator.h"
-#include "TPostMortemDamage.h"
-#include "TSequencingErrorModels.h"
+#include "TReadGroups.h"
 #include "TSite.h"
-#include "auxiliaryTools.h"
+
+namespace BAM { class TSequencedBase; }
+namespace GenotypeLikelihoods { class TPostMortemDamage; }
+namespace GenotypeLikelihoods { namespace SequencingError { class TModelRecal; } }
+namespace GenotypeLikelihoods { namespace SequencingError { class TModels; } }
 
 namespace GenotypeLikelihoods {
 namespace SequencingError {

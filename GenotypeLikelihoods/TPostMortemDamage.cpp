@@ -13,12 +13,28 @@
  */
 
 #include "TPostMortemDamage.h"
+
+#include <math.h>
+#include <stddef.h>
+#include <algorithm>
+#include <array>
+#include <cmath>
+#include <cstdint>
+#include <exception>
+#include <iostream>
+#include <memory>
+#include <numeric>
+#include <stdexcept>
+#include <utility>
+
 #include "GenotypeTypes.h"
+#include "TFile.h"
 #include "TLog.h"
 #include "TParameters.h"
 #include "TRandomGenerator.h"
-#include <array>
-#include <memory>
+#include "TSequencedBase.h"
+#include "probability.h"
+
 
 namespace GenotypeLikelihoods {
 using coretools::instances::logfile;

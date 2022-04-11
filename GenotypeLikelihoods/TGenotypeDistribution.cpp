@@ -7,6 +7,7 @@
 
 #include "TGenotypeDistribution.h"
 #include "GenotypeTypes.h"
+#include "probability.h"
 
 namespace GenotypeLikelihoods{
 

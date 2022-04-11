@@ -8,16 +8,23 @@
 #ifndef TRECALIBRATIONEMMODEL_H_
 #define TRECALIBRATIONEMMODEL_H_
 
+#include <stdint.h>
+#include <array>
+#include <memory>
+#include <string>
+#include <vector>
+#include <armadillo>
+
 #include "GenotypeTypes.h"
 #include "PhredProbabilityTypes.h"
-#include "TFile.h"
 #include "TGenotypeData.h"
 #include "TSequencingErrorCovariate.h"
 #include "TSequencingErrorCovariateFunction.h"
 #include "auxiliaryTools.h"
-#include <memory>
-#include <string>
-#include <vector>
+#include "probability.h"
+
+namespace BAM { class TSequencedBase; }
+namespace GenotypeLikelihoods { namespace RecalEstimatorTools { class TRecalDataTable; } }
 
 namespace GenotypeLikelihoods {
 namespace SequencingError {

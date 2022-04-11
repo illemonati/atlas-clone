@@ -6,7 +6,12 @@
  */
 
 #include "TGenotypeData.h"
+
+#include <math.h>
+
 #include "GenotypeTypes.h"
+#include "TRandomGenerator.h"
+#include "weakTypes.h"
 
 namespace GenotypeLikelihoods{
 

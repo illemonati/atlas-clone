@@ -6,8 +6,23 @@
  */
 
 #include "TWindow.h"
+
+#include <algorithm>
+#include <iostream>
+#include <memory>
+#include <stdexcept>
+
+#include "GenotypeTypes.h"
+#include "TBed.h"
+#include "TFastaBuffer.h"
+#include "TFile.h"
+#include "TLog.h"
+#include "TNumericRange.h"
 #include "TRandomGenerator.h"
+#include "TSequencedBase.h"
+#include "TSiteSubset.h"
 #include "probability.h"
+#include "stringFunctions.h"
 
 namespace GenotypeLikelihoods{
 
