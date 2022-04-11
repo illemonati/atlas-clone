@@ -6,8 +6,17 @@
  */
 
 #include "TSimulatorReadLength.h"
+
+#include <math.h>
+#include <stddef.h>
+#include <algorithm>
+
 #include "TLog.h"
 #include "TRandomGenerator.h"
+#include "commonWeakTypes.h"
+#include "mathFunctions.h"
+#include "stringFunctions.h"
+#include "weakTypes.h"
 
 namespace Simulations {
 

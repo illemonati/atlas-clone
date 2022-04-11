@@ -3,13 +3,23 @@
 //
 
 #include "TVcfConverter.h"
+
+#include <algorithm>
+#include <cstdint>
+#include <ostream>
+#include <utility>
+
 #include "GenotypeTypes.h"
+#include "TBed.h"
+#include "TPopulationLikelihoodLocus.h"
+#include "gzstream.h"
 #include "probability.h"
+#include "stringFunctions.h"
+#include "weakTypes.h"
 
 namespace VCF{
 using coretools::TParameters;
 using coretools::TLog;
-using coretools::TOutputFile;
 
 //------------------------------------------
 // TVcfConverter

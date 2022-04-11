@@ -8,8 +8,9 @@
 #ifndef TSIMULATORREADLENGTH_H_
 #define TSIMULATORREADLENGTH_H_
 
-#include "stringFunctions.h"
 #include <cstdint>
+#include <string>
+#include <vector>
 
 namespace Simulations {
 

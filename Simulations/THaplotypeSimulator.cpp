@@ -1,9 +1,28 @@
+/*
+ * THaplotypeSimulator.cpp
+ *
+ *  Created on: Apr 7, 2017
+ *      Author: phaentu
+*/
+
+
 #include "THaplotypeSimulator.h"
+
+#include <math.h>
+#include <algorithm>
+#include <exception>
+#include <numeric>
+#include <ostream>
+#include <utility>
+
+#include "TChromosomes.h"
 #include "TLog.h"
 #include "TParameters.h"
 #include "TRandomGenerator.h"
 #include "TSimulatorAuxiliaryTools.h"
-#include <numeric>
+#include "probability.h"
+#include "stringFunctions.h"
+#include "weakTypes.h"
 
 namespace Simulations {
 using coretools::instances::logfile;

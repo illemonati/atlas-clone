@@ -5,15 +5,25 @@
 #ifndef ATLAS_TVCFCONVERTER_H
 #define ATLAS_TVCFCONVERTER_H
 
-#include "stringFunctions.h"
+#include <stddef.h>
+#include <stdint.h>
+#include <exception>
+#include <functional>
+#include <map>
+#include <string>
+#include <vector>
+
+#include "PhredProbabilityTypes.h"
+#include "TFile.h"
 #include "TLog.h"
 #include "TParameters.h"
+#include "TPopulation.h"
 #include "TPopulationLikelihoods.h"
-#include "TGenotypeFrequencies.h"
-#include "TGLF.h"
-#include "TBed.h"
-#include "TVcfFile.h"
-#include "TPopulationLikelihoods.h"
+#include "TSampleLikelihoods.h"
+#include "TTask.h"
+
+namespace genometools { class TBed; }
+namespace genometools { template <typename Type> class TPopulationLikehoodLocus; }
 
 namespace VCF{
 

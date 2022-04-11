@@ -8,9 +8,9 @@
 #ifndef SFS_H_
 #define SFS_H_
 
-#include "stringFunctions.h"
-#include <iostream>
-#include <math.h>
+#include <stdint.h>
+#include <string>
+#include <vector>
 
 namespace Simulations {
 //--------------------------------

@@ -8,11 +8,11 @@
 #ifndef SIMULATIONS_TSIMULATORQUALITY_H_
 #define SIMULATIONS_TSIMULATORQUALITY_H_
 
-#include "../BAM/TSequencedBase.h"
-#include "TSequencingErrorModel.h"
-#include "TSimulatorReadLength.h"
-#include "algorithmsAndVectors.h"
-#include "mathFunctions.h"
+#include <string>
+#include <vector>
+
+#include "PhredProbabilityTypes.h"
+#include "probability.h"
 
 namespace Simulations {
 

@@ -4,10 +4,19 @@
  *  Created on: Oct 5, 2017
  *      Author: vivian
  */
+
 #include "TSimulatorRead.h"
-#include "TLog.h"
-#include "TRandomGenerator.h"
+#include <algorithm>
 #include <memory>
+
+#include "PhredProbabilityTypes.h"
+#include "TLog.h"
+#include "TPostMortemDamage.h"
+#include "TRandomGenerator.h"
+#include "TSequencedBase.h"
+#include "TSequencingErrorModel.h"
+#include "TSimulatorAuxiliaryTools.h"
+#include "stringFunctions.h"
 
 namespace Simulations {
 using genometools::Base;

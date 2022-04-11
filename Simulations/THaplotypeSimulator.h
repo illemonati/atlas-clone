@@ -8,12 +8,21 @@
 #ifndef THAPLOTYPESIMULATOR_H_
 #define THAPLOTYPESIMULATOR_H_
 
+#include <stddef.h>
+#include <stdint.h>
 #include <array>
+#include <memory>
+#include <string>
 #include <vector>
+
+#include "GenotypeTypes.h"
+#include "SFS.h"
+#include "TFile.h"
 #include "TGenotypeData.h"
 #include "TSimulatorAuxiliaryTools.h"
-#include "TChromosomes.h"
-#include "SFS.h"
+
+namespace genometools { class TChromosome; }
+namespace genometools { class TChromosomes; }
 
 namespace Simulations {
 

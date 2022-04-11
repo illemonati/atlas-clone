@@ -6,10 +6,19 @@
  */
 
 #include "TSimulatorQuality.h"
+
+#include <stddef.h>
+#include <stdint.h>
+#include <algorithm>
+#include <memory>
+
 #include "TLog.h"
 #include "TRandomGenerator.h"
 #include "algorithmsAndVectors.h"
 #include "mathFunctions.h"
+#include "stringFunctions.h"
+#include "strongTypes.h"
+#include "weakTypes.h"
 
 namespace Simulations {
 using genometools::PhredIntProbability;

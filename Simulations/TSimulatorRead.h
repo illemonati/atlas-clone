@@ -8,13 +8,24 @@
 #ifndef TSIMULATORREAD_H_
 #define TSIMULATORREAD_H_
 
-#include "TPostMortemDamage.h"
+#include <stdint.h>
+#include <array>
+#include <memory>
+#include <string>
+#include <vector>
+
+#include "GenotypeTypes.h"
+#include "TAlignment.h"
+#include "TCigar.h"
 #include "TReadGroups.h"
-#include "TSequencingErrorModels.h"
-#include "TSimulatorAuxiliaryTools.h"
+#include "TSamFlags.h"
 #include "TSimulatorQuality.h"
 #include "TSimulatorReadLength.h"
-#include <memory>
+
+namespace GenotypeLikelihoods { class TPMDType; }
+namespace GenotypeLikelihoods { namespace SequencingError { class TModel; } }
+namespace Simulations { class TSimulatorBamFile; }
+namespace Simulations { class TSimulatorReference; }
 
 namespace Simulations {
 

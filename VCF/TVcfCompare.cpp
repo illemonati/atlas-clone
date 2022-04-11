@@ -6,6 +6,14 @@
  */
 
 #include "TVcfCompare.h"
+
+#include <stddef.h>
+#include <sys/time.h>
+#include <algorithm>
+#include <exception>
+#include <memory>
+
+#include "TFile.h"
 #include "stringFunctions.h"
 
 namespace VCF{

@@ -8,15 +8,17 @@
 #ifndef VCF_TVCFCOMPARE_H_
 #define VCF_TVCFCOMPARE_H_
 
+#include <stdint.h>
+#include <array>
+#include <string>
+#include <vector>
+#include "GenotypeTypes.h"
 #include "TLog.h"
 #include "TParameters.h"
-#include "TFile.h"
-#include "TVcfFile.h"
 #include "TTask.h"
+#include "TVcfFile.h"
 
 namespace VCF{
-
-
 
 //--------------------------------------------------------------
 // Tgenometools::GenotypeComparisonTable

@@ -8,25 +8,33 @@
 #ifndef TSIMULATOR_H_
 #define TSIMULATOR_H_
 
-#include <algorithm>
-#include <filesystem>
+#include <stddef.h>
+#include <stdint.h>
+#include <array>
+#include <exception>
 #include <functional>
-#include <math.h>
+#include <map>
 #include <memory>
-#include <numeric>
+#include <string>
+#include <utility>
+#include <vector>
 
-#include "SFS.h"
-#include "TFile.h"
-#include "TGenotypeFrequencies.h"
+#include "GenotypeTypes.h"
+#include "TChromosomes.h"
 #include "TGlfMultiReader.h"
 #include "THaplotypeSimulator.h"
+#include "TLog.h"
+#include "TParameters.h"
+#include "TPostMortemDamage.h"
+#include "TReadGroups.h"
+#include "TSequencingErrorModels.h"
 #include "TSimulatorAuxiliaryTools.h"
 #include "TSimulatorRead.h"
+#include "TStrongArray.h"
 #include "TTask.h"
-#include "algorithmsAndVectors.h"
 #include "probability.h"
-#include "progressTools.h"
-#include "stringFunctions.h"
+
+namespace genometools { class PhredIntProbability; }
 
 namespace Simulations {
 

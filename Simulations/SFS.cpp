@@ -6,7 +6,15 @@
  */
 
 #include "SFS.h"
+
+#include <math.h>
+#include <stddef.h>
+#include <algorithm>
+#include <cmath>
+#include <iostream>
+
 #include "TRandomGenerator.h"
+#include "stringFunctions.h"
 
 namespace Simulations {
 using coretools::instances::randomGenerator;

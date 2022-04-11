@@ -5,16 +5,34 @@
  *      Author: phaentu
  */
 
-#include "GenotypeTypes.h"
+#include "TSimulator.h"
 
+#include <math.h>
+#include <algorithm>
+#include <cstdint>
+#include <filesystem>
+#include <iterator>
+#include <memory>
+#include <numeric>
+#include <ostream>
+#include <stdexcept>
+#include <type_traits>
+
+#include "GenotypeTypes.h"
+#include "PhredProbabilityTypes.h"
 #include "TChromosomes.h"
+#include "TFile.h"
+#include "TGenotypeFrequencies.h"
 #include "THaplotypeSimulator.h"
 #include "TLog.h"
 #include "TParameters.h"
 #include "TRandomGenerator.h"
-#include "TSimulator.h"
-#include <memory>
-#include <numeric>
+#include "algorithmsAndVectors.h"
+#include "gzstream.h"
+#include "mathConstants.h"
+#include "progressTools.h"
+#include "stringFunctions.h"
+#include "weakTypes.h"
 
 namespace Simulations {
 using coretools::Probability;

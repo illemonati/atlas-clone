@@ -4,12 +4,18 @@
  *  Created on: Jun 15, 2011
  *      Author: wegmannd
  */
+
 #include "TVcfDiagnostics.h"
 
+#include <stdint.h>
+#include <stdlib.h>
 #include <algorithm>
-#include <typeinfo>
-#include <sstream>
+#include <exception>
+#include <map>
+
+#include "GenotypeTypes.h"
 #include "gzstream.h"
+#include "stringFunctions.h"
 
 namespace VCF{
 

@@ -8,18 +8,15 @@
 #ifndef TVCFDIAGNOSTICS_H_
 #define TVCFDIAGNOSTICS_H_
 
-#include "stringFunctions.h"
-#include <vector>
-#include "TParameters.h"
-#include <iostream>
 #include <fstream>
+#include <string>
+#include <utility>
+#include <vector>
+
+#include "TLog.h"
+#include "TParameters.h"
 #include "TRandomGenerator.h"
-#include <math.h>
-#include <stdlib.h>
-#include <algorithm>
-#include "TFile.h"
-#include "TGLF.h"
-#include "TGenotypeFrequencies.h"
+#include "TTask.h"
 #include "TVcfFile.h"
 
 namespace VCF{
