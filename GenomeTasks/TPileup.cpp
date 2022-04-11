@@ -14,6 +14,7 @@
 
 #include "GenotypeTypes.h"
 #include "TFastaBuffer.h"
+#include "TGenotypeData.h"
 #include "TGenotypeLikelihoodCalculator.h"
 #include "TSite.h"
 #include "TWindow.h"
@@ -155,7 +156,7 @@ void TPileup::_handleWindow(){
 			if(_reference){
 				out << _alleleCounts[site.refBase] << _alleleCounts.size() - _alleleCounts[site.refBase];
 			}
-			out << (int) _alleleCounts.numAlleles();
+			out << (int) GenotypeLikelihoods::numNonZero(_alleleCounts);
 		}
 
 		if(_printMates){

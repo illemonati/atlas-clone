@@ -46,7 +46,7 @@ template<typename Type, typename Index, size_t N>
 auto sampleFirstSecond(const coretools::TStrongArray<Type, Index, N> &c) {
 	using coretools::instances::randomGenerator;
 	std::array<Index, N> is;
-	std::iota(is.begin(), is.end(), 0);
+	std::iota(is.begin(), is.end(), Index{});
 	std::sort(is.begin(), is.end(), [&c](auto i, auto j){return c[i] > c[j];});
 
 	size_t count_1  = 0;

@@ -27,9 +27,9 @@ using TGenotypeLikelihoods   = coretools::TStrongArray<Likelihood, genometools::
 using TGenotypeProbabilities = coretools::TStrongArray<coretools::Probability, genometools::Genotype, 10>;
 using TGenotypeData          = coretools::TStrongArray<double, genometools::Genotype, 10>;
 
-template<template<typename... Args> typename Container, typename Type, typename... Args>
-void reset(Container<Type, Args...> & c) {
-	c.fill(Type{});
+template<typename Container>
+void reset(Container & c) {
+	std::fill(c.begin(), c.end(), typename Container::value_type{});
 }
 
 inline TGenotypeLikelihoods fillGLH(const std::vector<TBaseLikelihoods> &bases, const size_t size) {
@@ -73,8 +73,7 @@ inline TGenotypeLikelihoods fillGLH(const std::vector<TBaseLikelihoods> &bases, 
 
 template<typename Container>
 void normalize(Container& c) {
-	using T = typename Container::value_type;
-	const auto tot = std::accumulate(c.begin(), c.end(), T{});
+	const auto tot = std::accumulate(c.begin(), c.end(), typename Container::value_type{});
 	for (auto & v: c) v /= tot;
 };
 
@@ -82,8 +81,7 @@ inline TGenotypeProbabilities posterior(const TGenotypeLikelihoods &likelihoods,
 	using GT = genometools::Genotype;
 	TGenotypeProbabilities ret;
 	for (auto gt = GT::min; gt < GT::max; ++gt) ret[gt] = likelihoods[gt] * prior[gt];
-	const auto tot = std::accumulate(ret.begin(), ret.end(), coretools::Probability{});
-	for (auto & v: ret) v /= tot;
+	normalize(ret);
 	return ret;
 }
 
@@ -92,6 +90,19 @@ inline TBaseLikelihoods fromError(genometools::Base trueBase, coretools::Probabi
 	ret.fill(error/3.);
 	ret[trueBase] = error.complement();
 	return ret;
+}
+
+template<typename Container>
+size_t numNonZero(const Container & vs) {
+	return std::count_if(vs.begin(), vs.end(), [](auto v){return v > 0;});
+}
+
+constexpr coretools::Probability homozygous(const TGenotypeProbabilities &ps) {
+	using GT = genometools::Genotype;
+	return ps[GT::AA] + ps[GT::CC] + ps[GT::GG] + ps[GT::TT];
+}
+constexpr coretools::Probability heterozygous(const TGenotypeProbabilities &ps) {
+	return homozygous(ps).complement();
 }
 
 } // namespace GenotypeLikelihoods
