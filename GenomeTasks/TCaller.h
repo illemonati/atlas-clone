@@ -180,9 +180,9 @@ public:
 //------------------------------------------------------
 class TCallerAllelePresence:public TCaller{
 private:
-	GenotypeLikelihoods::TGenotypeProbabilities posterior;
-	GenotypeLikelihoods::TBaseLikelihoods allelePostProb;
-	genometools::Base MAP;
+	GenotypeLikelihoods::TGenotypeProbabilities _posterior;
+	GenotypeLikelihoods::TBaseLikelihoods _allelePostProb;
+	genometools::Base _MAP;
 
 	void _fillPosteriors(GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods);
 	bool _callGenotype(const GenotypeLikelihoods::TSite & site, GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods) override;
@@ -207,9 +207,9 @@ protected:
 	coretools::TBinomPValue _binomP;
 
 	void _clearAfterCall() override;
-	void callGenotypeFromMetric(const GenotypeLikelihoods::TGenotypeProbability_base & metric);
-	void callGenotypeFromMetricKnownAlleles(const GenotypeLikelihoods::TGenotypeProbability_base & metric);
-	bool callGenotypeFromMetricKnownAllelesUpdateIndex(const GenotypeLikelihoods::TGenotypeProbability_base & metric);
+	void callGenotypeFromMetric(const GenotypeLikelihoods::TGenotypeProbabilities & metric);
+	void callGenotypeFromMetricKnownAlleles(const GenotypeLikelihoods::TGenotypeProbabilities & metric);
+	bool callGenotypeFromMetricKnownAllelesUpdateIndex(const GenotypeLikelihoods::TGenotypeProbabilities & metric);
 
 	template<typename T> std::string _getPerGenotypeMetricString(const T & metric){
 		using genometools::Base;
@@ -281,7 +281,7 @@ public:
 //------------------------------------------------------
 class TCallerBayes:public TCallerDiploid{
 private:
-	GenotypeLikelihoods::TGenotypeProbabilities posterior;
+	GenotypeLikelihoods::TGenotypeProbabilities _posterior;
 
 	bool _callGenotype(const GenotypeLikelihoods::TSite & site, GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods) override;
 	bool _callGenotypeKnownAlleles(const GenotypeLikelihoods::TSite & site, GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods) override;

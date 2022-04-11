@@ -17,8 +17,6 @@
 #include "TRandomGenerator.h"
 #include "TTask.h"
 
-namespace GenotypeLikelihoods { class TBaseCounts; }
-
 namespace GenomeTasks{
 
 //------------------------------------------

@@ -43,13 +43,14 @@ public:
 
 	template <typename PMD, typename SEQERR>
 	void fillGenotypeLikelihoods(const TSite &site, TGenotypeLikelihoods &genotypeLikelihoods, const PMD & PmdModels, const SEQERR & SequencingErrorModels) const{
+		using GenotypeLikelihoods::reset;
 		//ensure base likelihoods have proper size
 		if(_baseLikelihoods.size() < site.depth()){
 			_baseLikelihoods.resize(site.depth());
 		}
 
 		if(site.empty()){
-			genotypeLikelihoods.reset();
+			reset(genotypeLikelihoods);
 		} else {
 			//calculate base likelihoods P(d|b, D, epsilon) = \sum_{\bar{b}} P(\bar{b}|b, D)P(d|\bar{b}, \epsilon)
 			for(size_t i=0; i<site.depth(); ++i){
@@ -57,7 +58,7 @@ public:
 			}
 
 			//calculate genotype likelihoods
-			genotypeLikelihoods.fill(_baseLikelihoods, site.depth());
+			genotypeLikelihoods = fillGLH(_baseLikelihoods, site.depth());
 		}
 	};
 };
