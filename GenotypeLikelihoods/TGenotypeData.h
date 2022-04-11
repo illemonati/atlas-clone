@@ -71,9 +71,10 @@ inline TGenotypeLikelihoods fillGLH(const std::vector<TBaseLikelihoods> &bases, 
 	}
 }
 
-template<template<typename... Args> typename Container, typename Type, typename... Args>
-void normalize(Container<Type, Args...>& c) {
-	const auto tot = std::accumulate(c.begin(), c.end(), Type{});
+template<typename Container>
+void normalize(Container& c) {
+	using T = typename Container::value_type;
+	const auto tot = std::accumulate(c.begin(), c.end(), T{});
 	for (auto & v: c) v /= tot;
 };
 
@@ -83,6 +84,13 @@ inline TGenotypeProbabilities posterior(const TGenotypeLikelihoods &likelihoods,
 	for (auto gt = GT::min; gt < GT::max; ++gt) ret[gt] = likelihoods[gt] * prior[gt];
 	const auto tot = std::accumulate(ret.begin(), ret.end(), coretools::Probability{});
 	for (auto & v: ret) v /= tot;
+	return ret;
+}
+
+inline TBaseLikelihoods fromError(genometools::Base trueBase, coretools::Probability error) {
+	TBaseLikelihoods ret;
+	ret.fill(error/3.);
+	ret[trueBase] = error.complement();
 	return ret;
 }
 
