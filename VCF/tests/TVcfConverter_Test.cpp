@@ -1,11 +1,27 @@
 //
 // Created by caduffm on 10/27/21.
 //
+#include "../TVcfConverter.h"
 #include "gtest/gtest.h"
 
-#include "../TVcfConverter.h"
-#include "TVcfFile.h"
-#include "TDataFile.h"
+#include <stddef.h>
+#include <cstdint>
+#include <memory>
+#include <ostream>
+#include <string>
+#include <type_traits>
+#include <vector>
+
+#include "GenotypeTypes.h"
+#include "PhredProbabilityTypes.h"
+#include "TFile.h"
+#include "TLog.h"
+#include "TParameters.h"
+#include "TRandomGenerator.h"
+#include "TSampleLikelihoods.h"
+#include "gzstream.h"
+#include "probability.h"
+#include "stringFunctions.h"
 
 using namespace testing;
 

@@ -1,11 +1,35 @@
+#include "TBamFile.h"
 #include "gtest/gtest.h"
 
-#include "TBamFile.h"
-#include "TTestBamFile.h"
+#include <stdio.h>
+#include <cstdint>
+#include <iostream>
+#include <map>
+#include <memory>
+#include <string>
+#include <vector>
+
+#include "GenotypeTypes.h"
+#include "PhredProbabilityTypes.h"
 #include "TAlignment.h"
+#include "TBamFilter.h"
+#include "TChromosomes.h"
+#include "TCigar.h"
+#include "TFile.h"
 #include "TGenome.h"
-#include "TBamDiagnoser.h"
-#include "debugtools.h"
+#include "TGenomePosition.h"
+#include "TLog.h"
+#include "TParameters.h"
+#include "TRandomGenerator.h"
+#include "TReadGroups.h"
+#include "TSamFlags.h"
+#include "TSamHeader.h"
+#include "TSequencedBase.h"
+#include "TSite.h"
+#include "TTestBamFile.h"
+#include "TWindow.h"
+#include "counters.h"
+#include "stringFunctions.h"
 
 using coretools::TLog;
 using coretools::TRandomGenerator;
@@ -1245,7 +1269,7 @@ TEST_F(TBamFilter_Test, MQ){
 
     EXPECT_EQ(bamFilter->totalReads.counts(), numReads - numReadsWithOutsideMQWritten);
 
-    for (int id = 0; id < bamFilter->mappingQuality.size(); id++){
+    for (size_t id = 0; id < bamFilter->mappingQuality.size(); id++){
         EXPECT_TRUE(bamFilter->mappingQuality[id].min() >= 80);
         EXPECT_TRUE(bamFilter->mappingQuality[id].max() <= 100);
     }
@@ -1276,7 +1300,7 @@ TEST_F(TBamFilter_Test, fragmentLength){
 
     EXPECT_EQ(bamFilter->totalReads.counts(), numReads - numReadsWithOutsideFragLengthWritten);
 
-    for (int id = 0; id < bamFilter->mappingQuality.size(); id++){
+    for (size_t id = 0; id < bamFilter->mappingQuality.size(); id++){
         if (!bamFilter->fragmentLength[id].empty()) {
             EXPECT_TRUE(bamFilter->fragmentLength[id].min() >= 80);
             EXPECT_TRUE(bamFilter->fragmentLength[id].max() <= 100);

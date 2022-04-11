@@ -1,10 +1,18 @@
 //
 // Created by caduffm on 8/4/20.
 //
-
+#include "BED/TBed.h"
 #include "gtest/gtest.h"
 
-#include "BED/TBed.h"
+#include <stdio.h>
+#include <map>
+#include <ostream>
+#include <stdexcept>
+#include <string>
+
+#include "TChromosomes.h"
+#include "TFile.h"
+#include "TGenomePosition.h"
 
 //-------------------------------------------------------------
 // TBedChromosome

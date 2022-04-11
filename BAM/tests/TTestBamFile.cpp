@@ -7,6 +7,18 @@
 
 #include "TTestBamFile.h"
 
+#include <cmath>
+#include <cstdint>
+#include <iostream>
+#include <memory>
+#include <stdexcept>
+
+#include "TCigar.h"
+#include "TGenomePosition.h"
+#include "globalConstants.h"
+#include "stringFunctions.h"
+#include "strongTypes.h"
+
 namespace BAM{
 
 //--------------------------------------

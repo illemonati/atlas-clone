@@ -1,11 +1,17 @@
 //
 // Created by linkv on 8/17/20.
 //
-
+#include "TGenotypeLikelihoodCalculator.h"
 #include "gtest/gtest.h"
 
+#include <memory>
+
 #include "GenotypeTypes.h"
-#include "TGenotypeLikelihoodCalculator.h"
+#include "PhredProbabilityTypes.h"
+#include "TGenotypeData.h"
+#include "TSequencedBase.h"
+#include "TSite.h"
+#include "probability.h"
 
 using namespace GenotypeLikelihoods;
 using genometools::Base;

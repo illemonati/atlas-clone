@@ -5,9 +5,14 @@
 #ifndef ATLAS_TTESTGLFFILE_H
 #define ATLAS_TTESTGLFFILE_H
 
+#include <stdint.h>
+#include <string>
+#include <vector>
+
+#include "TChromosomes.h"
 #include "TGLF.h"
-#include "globalConstants.h"
-#include "stringFunctions.h"
+#include "TGenomePosition.h"
+#include "TGenotypeData.h"
 
 namespace GLF {
 

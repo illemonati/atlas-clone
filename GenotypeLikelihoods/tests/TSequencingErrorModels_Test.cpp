@@ -1,11 +1,16 @@
 //
 // Created by vivian on 17.08.20.
 //
-
+#include "TSequencingErrorModels.h"
 #include "gtest/gtest.h"
 
-#include "TSequencingErrorModels.h"
-#include "TPostMortemDamage.h"
+#include <memory>
+
+#include "GenotypeTypes.h"
+#include "PhredProbabilityTypes.h"
+#include "TGenotypeData.h"
+#include "TSequencedBase.h"
+#include "probability.h"
 
 using namespace GenotypeLikelihoods;
 using genometools::Base;

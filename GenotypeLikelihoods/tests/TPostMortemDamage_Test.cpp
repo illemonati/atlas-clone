@@ -2,14 +2,29 @@
 // Created by vivian on 18.08.20.
 //
 
-#include "gtest/gtest.h"
-
-#include "TPMDTables.h"
 #include "TPostMortemDamage.h"
-#include "TSequencingErrorModels.h"
-#include <algorithm>
-#include <cstdint>
 #include <gtest/gtest.h>
+
+#include <stddef.h>
+#include <algorithm>
+#include <array>
+#include <cmath>
+#include <cstdint>
+#include <numeric>
+#include <string>
+#include <vector>
+
+#include "GenotypeTypes.h"
+#include "PhredProbabilityTypes.h"
+#include "TGenotypeData.h"
+#include "TLog.h"
+#include "TPMDTables.h"
+#include "TReadGroups.h"
+#include "TSequencedBase.h"
+#include "TSequencingErrorModels.h"
+#include "gtest/gtest.h"
+#include "probability.h"
+#include "weakTypes.h"
 
 using namespace GenotypeLikelihoods;
 using genometools::Base;

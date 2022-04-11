@@ -1,9 +1,13 @@
 //
 // Created by madleina on 02.08.20.
 //
-
-#include "gtest/gtest.h"
 #include "TGenomePosition.h"
+#include "gtest/gtest.h"
+
+#include <stdint.h>
+#include <iosfwd>
+#include <stdexcept>
+#include <string>
 
 //-----------------------------------------------------
 // TGenomePosition
