@@ -15,15 +15,19 @@
 #include "TParameterObservationTypedBase.h"
 #include "TPriorBeta.h"
 #include "TPriorUniform.h"
+#include "TPriorBernouilli.h"
 #include "TProposal.h"
 #include "TRandomGenerator.h"
 #include "TStorage.h"
 #include "mathFunctions.h"
 #include "stringFunctions.h"
+
 namespace stattools { class TParameterBase; }
 namespace stattools { class TParameterObservationBase; }
 
 namespace PopulationTools {
+
+// TODO: Update of gamma should only consider polyploid loci
 
 //------------------------------------------
 // TInbreedingEstimatorPrior
@@ -31,12 +35,14 @@ namespace PopulationTools {
 
 TInbreedingEstimatorPrior::TInbreedingEstimatorPrior(stattools::TParameterTyped<TypeF, 1> *F,
                                                      stattools::TParameterTyped<TypeP, 1> *P,
-                                                     stattools::TParameterTyped<TypeZ, 1> *Z,
+                                                     stattools::TParameterTyped<TypeFModel, 1> *FModel,
+                                                     stattools::TParameterTyped<TypePModel, 1> *PModel,
                                                      const std::vector<double> &InitialEstimatesP)
-    : _F(F), _p(P), _z(Z), _initialEstimatesP(InitialEstimatesP) {
+    : _F(F), _p(P), _FModel(FModel), _pModel(PModel), _initialEstimatesP(InitialEstimatesP) {
 	_priorParameters.push_back(_F);
 	_priorParameters.push_back(_p);
-	_priorParameters.push_back(_z);
+	_priorParameters.push_back(_FModel);
+	_priorParameters.push_back(_pModel);
 
 	this->_flagPriorParameters();
 }
@@ -52,12 +58,13 @@ void TInbreedingEstimatorPrior::initializeStorageOfPriorParameters() {
 	_numLoci    = data->dimensions()[0];
 	_numSamples = data->dimensions()[1];
 
-	// F and z: one value
+	// F and FModel: one value
 	_F->initializeStorageSingleElementBasedOnPrior();
-	_z->initializeStorageSingleElementBasedOnPrior();
+	_FModel->initializeStorageSingleElementBasedOnPrior();
 
-	// p: linear of length L
+	// p and pModel: linear of length L
 	_p->initializeStorageBasedOnPrior({_numLoci}, {lociNames});
+	_pModel->initializeStorageBasedOnPrior({_numLoci}, {lociNames});
 
 	// read command line parameters
 	_readCommandLineArguments();
@@ -76,6 +83,18 @@ void TInbreedingEstimatorPrior::_readCommandLineArguments() {
 	logfile().list("Lambda of exponential distribution used for the proposal of "
 	               "new F after move to model with F is set to ",
 	               coretools::str::toString(_lambdaNewF), ". (parameter 'lambdaF')");
+
+	// parameters for model switch of p
+	_q_PModel_To_NullModel     = parameters().getParameterWithDefault("probMovingToModelP0", 0.1);
+	_log_q_PModel_To_NullModel = log(_q_PModel_To_NullModel);
+	logfile().list("Will propose move to monomorphic model with probability ", _q_PModel_To_NullModel,
+	               ". (parameter 'probMovingToModelP0')");
+
+	// Read lambda for proposing new p
+	_lambdaNewP = parameters().getParameterWithDefault("lambdaP", 100.0);
+	logfile().list("Lambda of exponential distribution used for the proposal of "
+	               "new p after move to polymorphic model is set to ",
+	               coretools::str::toString(_lambdaNewP), ". (parameter 'lambdaP')");
 }
 
 coretools::LogProbability TInbreedingEstimatorPrior::_calculateLLSumOverIndividuals(
@@ -104,35 +123,38 @@ void TInbreedingEstimatorPrior::updateParams() {
 	// get ptr to data
 	auto data = *this->_storageBelow[0];
 
-	_updateFAndZ(data);
+	_updateFAndFModel(data);
 
 	for (size_t l = 0; l < _numLoci; l++) { _updateP(data, l); }
 }
 
-void TInbreedingEstimatorPrior::_updateFAndZ(const Storage &Data) {
+void TInbreedingEstimatorPrior::_updateFAndFModel(const Storage &Data) {
 	using namespace coretools::instances;
 	if (_F->isUpdated()) {
-		if (_z->value()) { // we're in F-model
-			if (_z->isUpdated() && randomGenerator().getRand() < _q_FModel_To_HWE) {
+		if (_FModel->value()) { // we're in F-model
+			if (_FModel->isUpdated() && randomGenerator().getRand() < _q_FModel_To_HWE) {
 				_updateFToHWE(Data); // propose model switch
 			} else {
 				_updateRegularF(Data); // update F
 			}
 		} else { // we're in HWE-model
-			if (_z->isUpdated()) {
+			if (_FModel->isUpdated()) {
 				_updateHWEToF(Data); // propose model switch
 			}
 		}
 	}
 }
 
-double TInbreedingEstimatorPrior::_calculateProbabilityOfProposingThisF(double F) const {
-	// When switching from HWE to F-Model: propose values from truncated
-	// exponential distribution with a certain lambdaF
-	// -> in Hastings ratio, for the HWE-Model (without F), we need to know the
-	// probability of picking exactly that F corresponds to log f(F) in Hastings
+double
+TInbreedingEstimatorPrior::_calculateProbabilityOfProposingThisFOrP(double Value,
+                                                                    coretools::StrictlyPositive<double> Lambda) const {
+	// When switching from One to Null-Model: propose values from truncated
+	// exponential distribution with a certain lambda
+	// -> in Hastings ratio, for the Null-Model, we need to know the
+	// probability of picking exactly that Value corresponds to log f(Value) in Hastings
 	// ratios
-	return coretools::TExponentialDistr::logDensity(F, _lambdaNewF);
+	// applies to model switches of both F and p
+	return coretools::TExponentialDistr::logDensity(Value, Lambda);
 }
 
 double TInbreedingEstimatorPrior::_getRandomNewF() const {
@@ -140,20 +162,27 @@ double TInbreedingEstimatorPrior::_getRandomNewF() const {
 	return randomGenerator().getExponentialRandomTruncated(_lambdaNewF, 0.0, 1.0);
 }
 
+double TInbreedingEstimatorPrior::_getRandomNewP() const {
+	using namespace coretools::instances;
+	return randomGenerator().getExponentialRandomTruncated(_lambdaNewP, 0.0, 1.0);
+}
+
 void TInbreedingEstimatorPrior::_updateFToHWE(const Storage &Data) {
 	// propose model switch: from F-Model to HWE-Model
 	_F->set(0.0);
-	_z->set(false);
+	_FModel->set(false);
 
 	// calculate RJ-MCMC term of Hastings ratio
-	double log_f_F = _calculateProbabilityOfProposingThisF(_F->oldValue());
+	double log_f_F = _calculateProbabilityOfProposingThisFOrP(_F->oldValue(), _lambdaNewF);
 	double logH    = log_f_F - _log_q_FModel_To_HWE - _F->getLogPriorDensityOld();
 
 	// calculate LL Hastings-Ratio
 	for (size_t l = 0; l < _numLoci; l++) {
-		logH += _calculateLLSumOverIndividuals(Data, l, _p->value(l)) // HWE model
-		        - _calculateLLSumOverIndividuals(Data, l, _p->value(l),
-		                                         _F->oldValue()); // F-Model
+		if (_pModel->value(l)) {                                          // only if polyploid
+			logH += _calculateLLSumOverIndividuals(Data, l, _p->value(l)) // HWE model
+			        - _calculateLLSumOverIndividuals(Data, l, _p->value(l),
+			                                         _F->oldValue()); // F-Model
+		}
 	}
 
 	if (_F->acceptOrReject_DontCountRejection(logH)) {
@@ -162,7 +191,7 @@ void TInbreedingEstimatorPrior::_updateFToHWE(const Storage &Data) {
 		_F->doTrackMeanVar(false);
 	} else {
 		// rejected model switch -> we're still in F-model
-		_z->set(true);
+		_FModel->set(true);
 	}
 }
 
@@ -171,8 +200,10 @@ void TInbreedingEstimatorPrior::_updateRegularF(const Storage &Data) {
 	if (_F->update()) {
 		double logH = _F->getLogPriorRatio();
 		for (size_t l = 0; l < _numLoci; l++) {
-			logH += _calculateLLSumOverIndividuals(Data, l, _p->value(l), _F->value()) -
-			        _calculateLLSumOverIndividuals(Data, l, _p->value(l), _F->oldValue());
+			if (_pModel->value(l)) { // only if polyploid
+				logH += _calculateLLSumOverIndividuals(Data, l, _p->value(l), _F->value()) -
+				        _calculateLLSumOverIndividuals(Data, l, _p->value(l), _F->oldValue());
+			}
 		}
 		_F->acceptOrReject(logH);
 	}
@@ -181,18 +212,20 @@ void TInbreedingEstimatorPrior::_updateRegularF(const Storage &Data) {
 void TInbreedingEstimatorPrior::_updateHWEToF(const Storage &Data) {
 	// propose model switch: from HWE-Model to F-Model
 	_F->set(_getRandomNewF());
-	_z->set(true);
+	_FModel->set(true);
 
 	// calculate RJ-MCMC term of Hastings ratio
-	double log_f_F =
-	    _calculateProbabilityOfProposingThisF(_F->value()); // "compensating" the effect of no F in HWE model
+	double log_f_F = _calculateProbabilityOfProposingThisFOrP(
+	    _F->value(), _lambdaNewF); // "compensating" the effect of no F in HWE model
 	double logH = _log_q_FModel_To_HWE + _F->getLogPriorDensity() - log_f_F;
 
 	// calculate LL Hastings-Ratio
 	for (size_t l = 0; l < _numLoci; l++) {
-		logH += _calculateLLSumOverIndividuals(Data, l, _p->value(l),
-		                                       _F->value())              // F-Model
-		        - _calculateLLSumOverIndividuals(Data, l, _p->value(l)); // HWE-Model
+		if (_pModel->value(l)) { // only if polyploid
+			logH += _calculateLLSumOverIndividuals(Data, l, _p->value(l),
+			                                       _F->value())              // F-Model
+			        - _calculateLLSumOverIndividuals(Data, l, _p->value(l)); // HWE-Model
+		}
 	}
 
 	if (_F->acceptOrReject_DontCountRejection(logH)) {
@@ -201,29 +234,93 @@ void TInbreedingEstimatorPrior::_updateHWEToF(const Storage &Data) {
 		_F->doTrackMeanVar(true); // F is in non-zero model -> add to posterior mean/var
 	} else {
 		// rejected model switch -> we're still in null-model
-		_z->set(false);
+		_FModel->set(false);
 	}
 }
 
 void TInbreedingEstimatorPrior::_updateP(const Storage &Data, size_t Locus) {
-	if (_p->updateSpecificIndex(Locus)) {
-		double logH = _p->getLogPriorRatio();
-		if (_z->value()) { // F-Model
-			logH += _calculateLLSumOverIndividuals(Data, Locus, _p->value(Locus), _F->value()) -
-			        _calculateLLSumOverIndividuals(Data, Locus, _p->oldValue(Locus), _F->value());
-		} else { // HWE-Model
-			logH += _calculateLLSumOverIndividuals(Data, Locus, _p->value(Locus)) -
-			        _calculateLLSumOverIndividuals(Data, Locus, _p->oldValue(Locus));
+	using namespace coretools::instances;
+	if (_p->isUpdated()) {
+		if (_pModel->value()) { // we're in the polyploid model
+			if (_pModel->isUpdated() && randomGenerator().getRand() < _q_PModel_To_NullModel) {
+				_updatePToNull(Data, Locus); // propose model switch
+			} else {
+				_updateRegularP(Data, Locus); // update p
+			}
+		} else { // we're in null-model
+			if (_pModel->isUpdated()) {
+				_updateNullToP(Data, Locus); // propose model switch
+			}
 		}
+	}
+}
 
+double TInbreedingEstimatorPrior::_calculateLLRatio_UpdateP(const Storage &Data, size_t Locus) {
+	if (_FModel->value()) { // F-Model
+		return _calculateLLSumOverIndividuals(Data, Locus, _p->value(Locus), _F->value()) -
+		       _calculateLLSumOverIndividuals(Data, Locus, _p->oldValue(Locus), _F->value());
+	} else { // HWE-Model
+		return _calculateLLSumOverIndividuals(Data, Locus, _p->value(Locus)) -
+		       _calculateLLSumOverIndividuals(Data, Locus, _p->oldValue(Locus));
+	}
+}
+
+void TInbreedingEstimatorPrior::_updatePToNull(const Storage &Data, size_t Locus) {
+	// propose model switch: from p-Model to null-Model
+	_p->set(Locus, 0.0);
+	_pModel->set(false);
+
+	// calculate RJ-MCMC term of Hastings ratio
+	double log_f_p = _calculateProbabilityOfProposingThisFOrP(_p->oldValue(Locus), _lambdaNewP);
+	double logH    = log_f_p - _log_q_PModel_To_NullModel - _p->getLogPriorDensityOld(Locus);
+	logH += _pModel->getLogPriorRatio(Locus);
+	logH += _calculateLLRatio_UpdateP(Data, Locus);
+
+	if (_p->acceptOrReject_DontCountRejection(Locus, logH)) {
+		// accepted model switch -> we're now in null model
+		// -> stop adding to posterior mean/var
+		_p->doTrackMeanVar(false); // TODO: should be specific for one locus
+	} else {
+		// rejected model switch -> we're still in P-model
+		_pModel->set(true);
+	}
+}
+
+void TInbreedingEstimatorPrior::_updateRegularP(const Storage &Data, size_t Locus) {
+	if (_p->updateSpecificIndex(Locus)) {
+		const double logH = _calculateLLRatio_UpdateP(Data, Locus) + _p->getLogPriorRatio(Locus);
 		_p->acceptOrReject(Locus, logH);
 	}
 }
 
+void TInbreedingEstimatorPrior::_updateNullToP(const Storage &Data, size_t Locus) {
+	// propose model switch: from null-Model to p-Model
+	_p->set(Locus, _getRandomNewP());
+	_pModel->set(true);
+
+	// calculate RJ-MCMC term of Hastings ratio
+	double log_f_p = _calculateProbabilityOfProposingThisFOrP(
+	    _p->value(Locus), _lambdaNewP); // "compensating" the effect of no p in Null-model
+	double logH = _log_q_PModel_To_NullModel + _p->getLogPriorDensity(Locus) - log_f_p;
+	logH += _pModel->getLogPriorRatio(Locus);
+	logH += _calculateLLRatio_UpdateP(Data, Locus);
+
+	if (_p->acceptOrReject_DontCountRejection(logH)) {
+		// accepted model switch -> we're now in P-model
+		// -> start adding to posterior mean/var
+		_p->doTrackMeanVar(true); // p is in non-zero model -> add to posterior mean/var
+	} else {
+		// rejected model switch -> we're still in null-model
+		_pModel->set(false);
+	}
+}
+
+// todo: posterior mean of p: average over models; also for F
+
 void TInbreedingEstimatorPrior::_setInitialF() {
 	// set initial F
 	if (!_F->hasFixedInitialValue()) {
-		if (_z->hasFixedInitialValue() && _z->value() == 0) {
+		if (_FModel->hasFixedInitialValue() && _FModel->value() == 0) {
 			// user wants to start in zero-model
 			_F->set(0.0);
 		} else {
@@ -231,7 +328,7 @@ void TInbreedingEstimatorPrior::_setInitialF() {
 		}
 	}
 	// set initial z
-	_F->value() == 0.0 ? _z->set(false) : _z->set(true);
+	_F->value() == 0.0 ? _FModel->set(false) : _FModel->set(true);
 }
 
 void TInbreedingEstimatorPrior::_setInitialP() {
@@ -253,7 +350,7 @@ void TInbreedingEstimatorPrior::estimateInitialPriorParameters() {
 double TInbreedingEstimatorPrior::getSumLogPriorDensity(const Storage &Data) const {
 	double sum = 0.;
 	for (size_t l = 0; l < _numLoci; l++) {
-		if (_z->value()) {
+		if (_FModel->value()) {
 			sum += _calculateLLSumOverIndividuals(Data, l, _p->value(l),
 			                                      _F->value()); // F-Model
 		} else {
@@ -275,26 +372,33 @@ TInbreedingEstimatorModel::TInbreedingEstimatorModel(
     const std::string &Filename, std::shared_ptr<stattools::TDAGBuilder> &DAGBuilder,
     const genometools::TPopulationLikelihoods<stattools::TValueFixed<TypeGTL>> &Likelihoods)
     : _F("F", std::make_shared<stattools::prior::TUniformFixed<stattools::TParameterBase, TypeF, 1>>(), {Filename}),
-      _z("z", std::make_shared<stattools::prior::TUniformFixed<stattools::TParameterBase, TypeZ, 1>>(), {Filename}),
-      _log_alpha("log_alpha",
-                 std::make_shared<stattools::prior::TUniformFixed<stattools::TParameterBase, TypeLogAlpha, 1>>(),
+      _FModel("FModel", std::make_shared<stattools::prior::TUniformFixed<stattools::TParameterBase, TypeFModel, 1>>(),
+              {Filename}),
+      _pi("pi", std::make_shared<stattools::prior::TUniformFixed<stattools::TParameterBase, TypePi, 1>>(), {Filename}),
+      _pModel("pModel",
+              std::make_shared<stattools::prior::TBernouilliInferred<stattools::TParameterBase, TypePModel, 1, TypePi>>(
+                  &_pi),
+              {Filename}),
+      _log_gamma("log_gamma",
+                 std::make_shared<stattools::prior::TUniformFixed<stattools::TParameterBase, TypeLogGamma, 1>>(),
                  {Filename}),
-      _log_beta("log_beta",
-                std::make_shared<stattools::prior::TUniformFixed<stattools::TParameterBase, TypeLogAlpha, 1>>(),
-                {Filename}),
       _p("p",
-         std::make_shared<stattools::prior::TBetaInferred<stattools::TParameterBase, TypeP, 1, TypeLogAlpha,
-                                                          TypeLogBeta, true, true>>(&_log_alpha, &_log_beta),
+         std::make_shared<
+             stattools::prior::TBetaSymmetricInferred<stattools::TParameterBase, TypeP, 1, TypeLogGamma, true>>(
+             &_log_gamma),
          {Filename}),
-      _observation("genotypeLikelihoods",
-                   std::make_shared<TInbreedingEstimatorPrior>(&_F, &_p, &_z, Likelihoods.alleleFrequencies()), {}) {
+      _observation(
+          "genotypeLikelihoods",
+          std::make_shared<TInbreedingEstimatorPrior>(&_F, &_p, &_FModel, &_pModel, Likelihoods.alleleFrequencies()),
+          {}) {
 
 	_p.getDefinition().setJumpSizeForAll(false);
 
 	DAGBuilder->addToDAG(_F);
-	DAGBuilder->addToDAG(_z);
-	DAGBuilder->addToDAG(_log_alpha);
-	DAGBuilder->addToDAG(_log_beta);
+	DAGBuilder->addToDAG(_FModel);
+	DAGBuilder->addToDAG(_pi);
+	DAGBuilder->addToDAG(_pModel);
+	DAGBuilder->addToDAG(_log_gamma);
 	DAGBuilder->addToDAG(_p);
 	DAGBuilder->addToDAG(_observation);
 
