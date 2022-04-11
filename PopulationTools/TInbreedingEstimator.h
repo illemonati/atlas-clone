@@ -5,10 +5,10 @@
 #ifndef ATLAS_TINBREEDINGESTIMATOR_H
 #define ATLAS_TINBREEDINGESTIMATOR_H
 
-#include <stddef.h>
 #include <algorithm>
 #include <memory>
 #include <set>
+#include <stddef.h>
 #include <string>
 #include <vector>
 
@@ -29,17 +29,21 @@
 #include "strongTypes.h"
 #include "weakTypes.h"
 
-namespace stattools { class TDAGBuilder; }
-namespace stattools { class TObservationBase; }
+namespace stattools {
+class TDAGBuilder;
+}
+namespace stattools {
+class TObservationBase;
+}
 
 namespace PopulationTools {
 
-typedef coretools::Probability TypeF;                // F in [0, 1]
-typedef coretools::ZeroOpenOneClosed<double> TypeP;  // p in (0, 1]
-typedef coretools::WeakType<double> TypeLogGamma;    // log_gamma in (-inf, inf) -> gamma = exp(log_gamma) is > 0
-typedef coretools::ZeroOneOpen<double> TypePi;       // pi in (0, 1)
-typedef coretools::WeakType<bool> TypeFModel;        // FModel = 0,1
-typedef coretools::WeakType<bool> TypePModel;        // FModel = 0,1
+typedef coretools::Probability TypeF;             // F in [0, 1]
+typedef coretools::Probability TypeP;             // p in [0, 1]
+typedef coretools::WeakType<double> TypeLogGamma; // log_gamma in (-inf, inf) -> gamma = exp(log_gamma) is > 0
+typedef coretools::ZeroOneOpen<double> TypePi;    // pi in (0, 1)
+typedef coretools::WeakType<bool> TypeFModel;     // FModel = 0,1
+typedef coretools::WeakType<bool> TypePModel;     // PModel = 0,1
 typedef genometools::HighPrecisionPhredIntProbability PhredType;
 typedef genometools::TSampleLikelihoods<PhredType> TypeGTL;
 
@@ -84,20 +88,22 @@ private:
 	_calculateLLSumOverIndividuals(const Storage &Data, size_t Locus,
 	                               const genometools::THardyWeinbergGenotypeProbabilities &Probs) const;
 	[[nodiscard]] coretools::LogProbability _calculateLLSumOverIndividuals(const Storage &Data, size_t Locus,
-	                                                                       double P) const;
-	[[nodiscard]] coretools::LogProbability _calculateLLSumOverIndividuals(const Storage &Data, size_t Locus, double P,
-	                                                                       double F) const;
+	                                                                       coretools::Probability P) const;
+	[[nodiscard]] coretools::LogProbability _calculateLLSumOverIndividuals(const Storage &Data, size_t Locus,
+	                                                                       coretools::Probability P,
+	                                                                       coretools::Probability F) const;
 
 	// DAG
 	void _readCommandLineArguments();
 
 	// initial values
 	void _setInitialF();
-	void _setInitialP();
+	void _setInitialPAndPModel();
 
 	// common update function
 	double _calculateLLRatio_UpdateP(const Storage &Data, size_t Locus);
-	[[nodiscard]] double _calculateProbabilityOfProposingThisFOrP(double Value, coretools::StrictlyPositive<double> Lambda) const;
+	[[nodiscard]] double _calculateProbabilityOfProposingThisFOrP(double Value,
+	                                                              coretools::StrictlyPositive<double> Lambda) const;
 
 	// update functions for F
 	void _updateFAndFModel(const Storage &Data);
@@ -118,7 +124,8 @@ private:
 
 public:
 	TInbreedingEstimatorPrior(stattools::TParameterTyped<TypeF, 1> *F, stattools::TParameterTyped<TypeP, 1> *P,
-	                          stattools::TParameterTyped<TypeFModel, 1> *FModel, stattools::TParameterTyped<TypeFModel, 1> *PModel,
+	                          stattools::TParameterTyped<TypeFModel, 1> *FModel,
+	                          stattools::TParameterTyped<TypeFModel, 1> *PModel,
 	                          const std::vector<double> &InitialEstimatesP);
 	void initializeStorageOfPriorParameters() override;
 

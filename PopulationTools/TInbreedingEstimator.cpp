@@ -4,30 +4,29 @@
 
 #include "TInbreedingEstimator.h"
 
-#include <math.h>
 #include <array>
 #include <exception>
+#include <math.h>
 #include <stdexcept>
 
 #include "TDAGBuilder.h"
-#include "TDefinition.h"
 #include "TMCMC.h"
 #include "TParameterObservationTypedBase.h"
+#include "TPriorBernouilli.h"
 #include "TPriorBeta.h"
 #include "TPriorUniform.h"
-#include "TPriorBernouilli.h"
-#include "TProposal.h"
 #include "TRandomGenerator.h"
-#include "TStorage.h"
 #include "mathFunctions.h"
 #include "stringFunctions.h"
 
-namespace stattools { class TParameterBase; }
-namespace stattools { class TParameterObservationBase; }
+namespace stattools {
+class TParameterBase;
+}
+namespace stattools {
+class TParameterObservationBase;
+}
 
 namespace PopulationTools {
-
-// TODO: Update of gamma should only consider polyploid loci
 
 //------------------------------------------
 // TInbreedingEstimatorPrior
@@ -109,12 +108,13 @@ coretools::LogProbability TInbreedingEstimatorPrior::_calculateLLSumOverIndividu
 }
 
 coretools::LogProbability TInbreedingEstimatorPrior::_calculateLLSumOverIndividuals(const Storage &Data, size_t Locus,
-                                                                                    double P) const {
+                                                                                    coretools::Probability P) const {
 	return _calculateLLSumOverIndividuals(Data, Locus, genometools::THardyWeinbergGenotypeProbabilities(P));
 }
 
 coretools::LogProbability TInbreedingEstimatorPrior::_calculateLLSumOverIndividuals(const Storage &Data, size_t Locus,
-                                                                                    double P, double F) const {
+                                                                                    coretools::Probability P,
+                                                                                    coretools::Probability F) const {
 	return _calculateLLSumOverIndividuals(Data, Locus,
 	                                      genometools::THardyWeinbergWithInbreedingGenotypeProbabilities(P, F));
 }
@@ -241,7 +241,7 @@ void TInbreedingEstimatorPrior::_updateHWEToF(const Storage &Data) {
 void TInbreedingEstimatorPrior::_updateP(const Storage &Data, size_t Locus) {
 	using namespace coretools::instances;
 	if (_p->isUpdated()) {
-		if (_pModel->value()) { // we're in the polyploid model
+		if (_pModel->value(Locus)) { // we're in the polyploid model
 			if (_pModel->isUpdated() && randomGenerator().getRand() < _q_PModel_To_NullModel) {
 				_updatePToNull(Data, Locus); // propose model switch
 			} else {
@@ -268,7 +268,7 @@ double TInbreedingEstimatorPrior::_calculateLLRatio_UpdateP(const Storage &Data,
 void TInbreedingEstimatorPrior::_updatePToNull(const Storage &Data, size_t Locus) {
 	// propose model switch: from p-Model to null-Model
 	_p->set(Locus, 0.0);
-	_pModel->set(false);
+	_pModel->set(Locus, false);
 
 	// calculate RJ-MCMC term of Hastings ratio
 	double log_f_p = _calculateProbabilityOfProposingThisFOrP(_p->oldValue(Locus), _lambdaNewP);
@@ -282,7 +282,7 @@ void TInbreedingEstimatorPrior::_updatePToNull(const Storage &Data, size_t Locus
 		_p->doTrackMeanVar(false); // TODO: should be specific for one locus
 	} else {
 		// rejected model switch -> we're still in P-model
-		_pModel->set(true);
+		_pModel->set(Locus, true);
 	}
 }
 
@@ -296,7 +296,7 @@ void TInbreedingEstimatorPrior::_updateRegularP(const Storage &Data, size_t Locu
 void TInbreedingEstimatorPrior::_updateNullToP(const Storage &Data, size_t Locus) {
 	// propose model switch: from null-Model to p-Model
 	_p->set(Locus, _getRandomNewP());
-	_pModel->set(true);
+	_pModel->set(Locus, true);
 
 	// calculate RJ-MCMC term of Hastings ratio
 	double log_f_p = _calculateProbabilityOfProposingThisFOrP(
@@ -305,13 +305,13 @@ void TInbreedingEstimatorPrior::_updateNullToP(const Storage &Data, size_t Locus
 	logH += _pModel->getLogPriorRatio(Locus);
 	logH += _calculateLLRatio_UpdateP(Data, Locus);
 
-	if (_p->acceptOrReject_DontCountRejection(logH)) {
+	if (_p->acceptOrReject_DontCountRejection(Locus, logH)) {
 		// accepted model switch -> we're now in P-model
 		// -> start adding to posterior mean/var
 		_p->doTrackMeanVar(true); // p is in non-zero model -> add to posterior mean/var
 	} else {
 		// rejected model switch -> we're still in null-model
-		_pModel->set(false);
+		_pModel->set(Locus, false);
 	}
 }
 
@@ -331,20 +331,36 @@ void TInbreedingEstimatorPrior::_setInitialF() {
 	_F->value() == 0.0 ? _FModel->set(false) : _FModel->set(true);
 }
 
-void TInbreedingEstimatorPrior::_setInitialP() {
+void TInbreedingEstimatorPrior::_setInitialPAndPModel() {
 	using namespace coretools::instances;
 	logfile().list("Initializing allele frequencies to values estimated from "
 	               "sample genotype likelihoods");
 
-	// now read values into _p
+	// now read values into _p and _pModel
 	if (!_p->hasFixedInitialValue()) {
-		for (size_t l = 0; l < _numLoci; l++) { _p->set(l, std::max(_initialEstimatesP[l], TypeP::min().get())); }
+		for (size_t l = 0; l < _numLoci; l++) {
+			if (_pModel->hasFixedInitialValue()) {
+				if (_pModel->value(l) == 0) {
+					_p->set(l, 0.0);
+				} else {
+					_p->set(l, std::max(_initialEstimatesP[l], TypeP::min().get())); // start in 1-model: prevent p = 0
+				}
+			} else {
+				if (_initialEstimatesP[l] == 0.0) {
+					_p->set(l, 0.0);
+					_pModel->set(l, false);
+				} else {
+					_p->set(l, _initialEstimatesP[l]);
+					_pModel->set(l, true);
+				}
+			}
+		}
 	}
 }
 
 void TInbreedingEstimatorPrior::estimateInitialPriorParameters() {
 	_setInitialF();
-	_setInitialP();
+	_setInitialPAndPModel();
 }
 
 double TInbreedingEstimatorPrior::getSumLogPriorDensity(const Storage &Data) const {
@@ -383,9 +399,9 @@ TInbreedingEstimatorModel::TInbreedingEstimatorModel(
                  std::make_shared<stattools::prior::TUniformFixed<stattools::TParameterBase, TypeLogGamma, 1>>(),
                  {Filename}),
       _p("p",
-         std::make_shared<
-             stattools::prior::TBetaSymmetricInferred<stattools::TParameterBase, TypeP, 1, TypeLogGamma, true>>(
-             &_log_gamma),
+         std::make_shared<stattools::prior::TBetaSymmetricZeroMixtureInferred<stattools::TParameterBase, TypeP, 1,
+                                                                              TypeLogGamma, TypePModel, true>>(
+             &_log_gamma, &_pModel),
          {Filename}),
       _observation(
           "genotypeLikelihoods",
