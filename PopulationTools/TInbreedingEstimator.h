@@ -8,7 +8,7 @@
 #include <algorithm>
 #include <memory>
 #include <set>
-#include <stddef.h>
+#include <cstddef>
 #include <string>
 #include <vector>
 
@@ -98,26 +98,22 @@ private:
 
 	// initial values
 	void _setInitialF();
-	void _setInitialPAndPModel();
+	void _setInitialP();
 
 	// common update function
 	double _calculateLLRatio_UpdateP(const Storage &Data, size_t Locus);
-	[[nodiscard]] double _calculateProbabilityOfProposingThisFOrP(double Value,
-	                                                              coretools::StrictlyPositive<double> Lambda) const;
 
 	// update functions for F
-	void _updateFAndFModel(const Storage &Data);
+	void _updateF(const Storage &Data);
 	void _updateRegularF(const Storage &Data);
 	void _updateFToHWE(const Storage &Data);
 	void _updateHWEToF(const Storage &Data);
-	[[nodiscard]] double _getRandomNewF() const;
 
 	// update functions for p
 	void _updateP(const Storage &Data, size_t Locus);
 	void _updatePToNull(const Storage &Data, size_t Locus);
 	void _updateRegularP(const Storage &Data, size_t Locus);
 	void _updateNullToP(const Storage &Data, size_t Locus);
-	[[nodiscard]] double _getRandomNewP() const;
 
 	// simulate values
 	void _simulateUnderPrior(Storage *) override;
