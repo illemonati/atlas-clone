@@ -8,8 +8,11 @@
 #ifndef TGENOTYPEDATA_H_
 #define TGENOTYPEDATA_H_
 
+#include <algorithm>
 #include <numeric>
 #include <stddef.h>
+#include <utility>
+#include <cassert>
 
 #include "GenotypeTypes.h"
 #include "probability.h"
@@ -72,9 +75,14 @@ inline TGenotypeLikelihoods fillGLH(const std::vector<TBaseLikelihoods> &bases, 
 }
 
 template<typename Container>
+void normalize(Container& c, typename Container::value_type tot) {
+	std::transform(c.begin(), c.end(), c.begin(), [tot](auto v){return v / tot;});
+};
+
+template<typename Container>
 void normalize(Container& c) {
 	const auto tot = std::accumulate(c.begin(), c.end(), typename Container::value_type{});
-	for (auto & v: c) v /= tot;
+	normalize(c, tot);
 };
 
 inline TGenotypeProbabilities posterior(const TGenotypeLikelihoods &likelihoods, const TGenotypeProbabilities &prior) {
@@ -84,6 +92,9 @@ inline TGenotypeProbabilities posterior(const TGenotypeLikelihoods &likelihoods,
 	normalize(ret);
 	return ret;
 }
+
+template<typename Index, size_t N=Index::max, typename Likelihood=Probability>
+TStrongArraySum1<Probability, Index, N> posterior(TStrongArray<Likelihood, Index, N> Likelihoods, TStrongArraySum1<Probability, Index, N> prior)
 
 inline TBaseLikelihoods fromError(genometools::Base trueBase, coretools::Probability error) {
 	TBaseLikelihoods ret;
@@ -97,12 +108,26 @@ size_t numNonZero(const Container & vs) {
 	return std::count_if(vs.begin(), vs.end(), [](auto v){return v > 0;});
 }
 
+template<typename Container1, typename Container2>
+double weightedSum(const Container1 & values, const Container2 & weights) {
+	assert(values.size() == weights.size());
+	return std::inner_product(values.begin(), values.end(), weights.begin(), 0.);
+}
+
 constexpr coretools::Probability homozygous(const TGenotypeProbabilities &ps) {
 	using GT = genometools::Genotype;
 	return ps[GT::AA] + ps[GT::CC] + ps[GT::GG] + ps[GT::TT];
 }
 constexpr coretools::Probability heterozygous(const TGenotypeProbabilities &ps) {
 	return homozygous(ps).complement();
+}
+
+template<typename Container>
+constexpr auto frequencies(const Container &vs) {
+	const auto tot = std::accumulate(vs.begin(), vs.end(), typename Container::value_type{});
+	coretools::TStrongArray<coretools::Probability, typename Container::index_type, Container::capacity> ret;
+	std::transform(vs.cbegin(), vs.cend(), ret.begin(), [tot](auto v){return v / tot;});
+	return ret;
 }
 
 } // namespace GenotypeLikelihoods

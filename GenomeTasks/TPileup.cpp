@@ -21,6 +21,20 @@
 
 namespace GenomeTasks{
 
+namespace /*anonymous */ {
+
+void addNames(std::vector<std::string> &vec) {
+	using GT = genometools::Genotype;
+	for (auto g = GT::min; g < GT::max; ++g) vec.push_back("P(D|" + genometools::toString(g) + ")");
+};
+
+void write(const GenotypeLikelihoods::TGenotypeLikelihoods& lhs, coretools::TOutputFile & out) {
+	for (const auto l: lhs)
+		out << l;
+};
+
+} // namespace
+
 //---------------------------------
 // TPileup
 //---------------------------------
@@ -95,7 +109,7 @@ TPileup::TPileup(coretools::TParameters & Parameters, coretools::TLog* Logfile, 
 		header.push_back("numReverseStrand");
 	}
 	if(_printLikelihoods){
-		_genoLik.addNames(header);
+		addNames(header);
 	}
 
 	out.writeHeader(header);
@@ -171,7 +185,7 @@ void TPileup::_handleWindow(){
 
 		if(_printLikelihoods){
 			_genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(site, _genoLik);
-			_genoLik.write(out);
+			write(_genoLik, out);
 		}
 
 		out << std::endl;

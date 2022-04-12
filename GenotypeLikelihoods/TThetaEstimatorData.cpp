@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <algorithm>
 #include <ostream>
+#include "GenotypeTypes.h"
 #include "TFile.h"
 #include "TRandomGenerator.h"
 #include "TSite.h"
@@ -95,12 +96,12 @@ bool TThetaEstimatorTemporaryFile::isEOF(){
 void TThetaEstimatorTemporaryFile::save(GenotypeLikelihoods::TGenotypeLikelihoods & genoLik){
 	if(!isOpenForWriting) throw "Can not add data to '" + filename + "': file is closed!";
 
-	gzwrite(fp, genoLik.pointerToData(), sizeOfData);
+	gzwrite(fp, genoLik.data(), sizeOfData);
 };
 
 bool TThetaEstimatorTemporaryFile::read(GenotypeLikelihoods::TGenotypeLikelihoods & genoLik){
 	if(!isOpenForReading) throw "Can not read data from '" + filename + "': file is closed!";
-	if(gzread(fp, genoLik.pointerToData(), sizeOfData)!=sizeOfData){
+	if(gzread(fp, genoLik.data(), sizeOfData)!=sizeOfData){
 		//is end-of-file?
 		if(gzeof(fp)) return false;
 
@@ -134,7 +135,7 @@ TThetaEstimatorData::TThetaEstimatorData(){
 };
 
 void TThetaEstimatorData::clear(){
-	tmpBaseFreq.set(0.0);
+	tmpBaseFreq.fill(0.0);
 	numSitesCoveredTwiceOrMore = 0;
 	totNumSitesAdded = 0;
 	numSitesWithData = 0;
@@ -165,19 +166,21 @@ void TThetaEstimatorData::add(const GenotypeLikelihoods::TSite & site, GenotypeL
 
 TBaseProbabilities TThetaEstimatorData::baseFrequencies(){
 	//estimate base frequencies
-	tmpBaseFreq.normalize();
-	return tmpBaseFreq.asFrequencies();
+	normalize(tmpBaseFreq);
+	return frequencies(tmpBaseFreq);
 };
 
 void TThetaEstimatorData::fillP_G(GenotypeLikelihoods::TGenotypeData & P_G, const GenotypeLikelihoods::TGenotypeProbabilities & pGenotype){
+	using genometools::Genotype;
 	//assumes that pGenotype is set!
-	P_G.set(0.0);
+	P_G.fill(0.0);
 
 	//calculate P_g for each site
 	begin();
 	do{
-		P_g_oneSite.fillBayesian(curGenotypeLikelihoods(), pGenotype);
-		P_G += P_g_oneSite;
+		const auto P_g_oneSite = posterior(curGenotypeLikelihoods(), pGenotype);
+		std::transform(P_G.begin(), P_G.end(), P_g_oneSite.begin(), P_G.begin(), std::plus<>());
+
 	} while(next());
 };
 
@@ -185,7 +188,7 @@ double TThetaEstimatorData::calcLogLikelihood(const GenotypeLikelihoods::TGenoty
 	double LL = 0.0;
 	begin();
 	do{
-		LL += log(curGenotypeLikelihoods().weightedSum(pGenotype));
+		LL += log(weightedSum(curGenotypeLikelihoods(), pGenotype));
 	} while(next());
 
 	return LL;
@@ -325,19 +328,19 @@ GenotypeLikelihoods::TGenotypeLikelihoods& TThetaEstimatorDataVector::curGenotyp
 
 void TThetaEstimatorDataVector::fillP_G(GenotypeLikelihoods::TGenotypeData & P_G, const GenotypeLikelihoods::TGenotypeProbabilities & pGenotype){
 	//assumes that pGenotype is set!
-	P_G.set(0.0);
+	P_G.fill(0.0);
 
 	//calculate P_g for each site
-	for(auto& it : sites){
-		P_g_oneSite.fillBayesian(it, pGenotype);
-		P_G += P_g_oneSite;
+	for(const auto& s : sites){
+		const auto P_g_oneSite = posterior(s, pGenotype);
+		std::transform(P_G.begin(), P_G.end(), P_g_oneSite.begin(), P_G.begin(), std::plus<>());
 	}
 };
 
 double TThetaEstimatorDataVector::calcLogLikelihood(const GenotypeLikelihoods::TGenotypeProbabilities & pGenotype) {
 	double LL = 0.0;
-	for(auto& it : sites){
-		LL += log(it.weightedSum(pGenotype));
+	for(const auto& s : sites){
+		LL += log(weightedSum(s, pGenotype));
 	}
 
 	return LL;

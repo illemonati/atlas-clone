@@ -172,7 +172,7 @@ double TGenotypeLikelihoodCalculator::calculateLogPMDS(const BAM::TSequencedBase
 	//calculate PMDS: true base in read == ref with prob. (1-pi) and different with prob. pi/3
 	TBaseLikelihoods tmpBaseData = fromError(ref, pi);
 
-	return log(baseLikelihoods.weightedSum(tmpBaseData) / baseLikelihoodsNoPMD.weightedSum(tmpBaseData));
+	return log(weightedSum(baseLikelihoods, tmpBaseData) / weightedSum(baseLikelihoodsNoPMD, tmpBaseData));
 };
 
 void TGenotypeLikelihoodCalculator::calculateGenotypeLikelihoods(const TSite &site, TGenotypeLikelihoods &genotypeLikelihoods) const {

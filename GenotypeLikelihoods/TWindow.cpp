@@ -16,6 +16,7 @@
 #include "TBed.h"
 #include "TFastaBuffer.h"
 #include "TFile.h"
+#include "TGenotypeData.h"
 #include "TLog.h"
 #include "TNumericRange.h"
 #include "TRandomGenerator.h"
@@ -328,12 +329,12 @@ void TWindow_base::downsample(uint32_t maxDepth, const coretools::TSubsamplePick
 
 GenotypeLikelihoods::TBaseProbabilities TWindow_base::estimateBaseFrequencies() const{
 	//estimate initial base frequencies
-	TBaseData tmp(0.0);
+	TBaseData tmp{};
 	for(auto& s : _sites){
 		s.addToBaseFrequencies(tmp);
 	}
-	tmp.normalize();
-	return tmp.asFrequencies();
+	normalize(tmp);
+	return frequencies(tmp);
 };
 
 

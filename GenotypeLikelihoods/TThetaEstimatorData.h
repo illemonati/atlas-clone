@@ -81,7 +81,6 @@ protected:
 	//tmp variables
 	int g;
 	double sum;
-	GenotypeLikelihoods::TGenotypeProbabilities P_g_oneSite;
 
 	virtual void saveSite(GenotypeLikelihoods::TGenotypeLikelihoods &){ throw "Not available in TThetaEstimatorData base class!"; };
 	virtual void emptyStorage(){};
