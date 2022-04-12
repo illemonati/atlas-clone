@@ -368,22 +368,22 @@ void TInbreedingEstimatorPrior::_simulateUnderPrior(Storage *) {
 TInbreedingEstimatorModel::TInbreedingEstimatorModel(
     const std::string &Filename, std::shared_ptr<stattools::TDAGBuilder> &DAGBuilder,
     const genometools::TPopulationLikelihoods<stattools::TValueFixed<TypeGTL>> &Likelihoods)
-    : _F("F", std::make_shared<stattools::prior::TUniformFixed<stattools::TParameterBase, TypeF, 1>>(), {Filename}),
+    : _F("F", std::make_shared<stattools::prior::TUniformFixed<stattools::TParameterBase, TypeF, 1>>(), {Filename + "_F"}),
       _FModel("withInbreeding", std::make_shared<stattools::prior::TUniformFixed<stattools::TParameterBase, TypeFModel, 1>>(),
-              {Filename}),
-      _pi("pi", std::make_shared<stattools::prior::TUniformFixed<stattools::TParameterBase, TypePi, 1>>(), {Filename}),
+              {Filename + "_F"}),
+      _pi("pi", std::make_shared<stattools::prior::TUniformFixed<stattools::TParameterBase, TypePi, 1>>(), {Filename + "_p"}),
       _pModel("isPolymorph",
               std::make_shared<stattools::prior::TBernouilliInferred<stattools::TParameterBase, TypePModel, 1, TypePi>>(
                   &_pi),
-              {Filename}),
+              {Filename + "_p"}),
       _log_gamma("log_gamma",
                  std::make_shared<stattools::prior::TUniformFixed<stattools::TParameterBase, TypeLogGamma, 1>>(),
-                 {Filename}),
+                 {Filename + "_p"}),
       _p("p",
          std::make_shared<stattools::prior::TBetaSymmetricZeroMixtureInferred<stattools::TParameterBase, TypeP, 1,
                                                                               TypeLogGamma, TypePModel, true>>(
              &_log_gamma, &_pModel),
-         {Filename}),
+         {Filename + "_p"}),
       _observation(
           "genotypeLikelihoods",
           std::make_shared<TInbreedingEstimatorPrior>(&_F, &_p, &_FModel, &_pModel, Likelihoods.alleleFrequencies()),
