@@ -35,7 +35,7 @@ void reset(Container & c) {
 inline TGenotypeLikelihoods fillGLH(const std::vector<TBaseLikelihoods> &bases, const size_t size) {
 	using genometools::Base;
 	using GT = genometools::Genotype;
-	using genometools::index;
+	using genometools::genotype;
 	// allows for vector to be longer than what is to be used
 	// do in log if depth is high
 	if (bases.size() > 50) {
@@ -44,15 +44,15 @@ inline TGenotypeLikelihoods fillGLH(const std::vector<TBaseLikelihoods> &bases, 
 		// add to log genotype data
 		for (size_t i = 0; i < size; ++i) {
 			for (auto b1 = Base::min; b1 < Base::max; ++b1) {
-				for (auto b2 = b1; b2 < Base::max; ++b2) {
-					const auto gt = genometools::genotype(b1, b2);
-					tmp[gt]      += log(0.5 * (bases[i][b1] + bases[i][b2]));
+				tmp[genotype(b1, b1)] += log(bases[i][b1]);
+				for (auto b2 = genometools::next(b1); b2 < Base::max; ++b2) {
+					tmp[genotype(b1, b2)] += log(0.5 * (bases[i][b1] + bases[i][b2]));
 				}
 			}
 		}
 
 		// standardize and de-log
-		double max           = *std::max_element(tmp.begin(), tmp.end());
+		const auto max = *std::max_element(tmp.begin(), tmp.end());
 		TGenotypeLikelihoods ret;
 		for (auto i = GT::min; i < GT::max; ++i) ret[i] = exp(tmp[i] - max);
 		return ret;
@@ -61,9 +61,9 @@ inline TGenotypeLikelihoods fillGLH(const std::vector<TBaseLikelihoods> &bases, 
 		TGenotypeLikelihoods ret{};
 		for (size_t i = 0; i < size; ++i) {
 			for (auto b1 = Base::min; b1 < Base::max; ++b1) {
-				for (auto b2 = b1; b2 < Base::max; ++b2) {
-					const auto gt = genometools::genotype(b1, b2);
-					ret[gt]      *= 0.5 * (bases[i][b1] + bases[i][b2]);
+				ret[genotype(b1, b1)] *= log(bases[i][b1]);
+				for (auto b2 = genometools::next(b1); b2 < Base::max; ++b2) {
+					ret[genotype(b1, b2)] *= 0.5 * (bases[i][b1] + bases[i][b2]);
 				}
 			}
 		}
