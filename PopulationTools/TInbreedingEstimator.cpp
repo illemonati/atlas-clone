@@ -158,7 +158,11 @@ double calcLogProposalProb(double Value, coretools::StrictlyPositive<double> Lam
 double getRandomExpTrunc(double Lambda) {
 	// When switching from null to One-Model: propose new value from truncated exponential distribution
 	// used for both F and p
-	return coretools::instances::randomGenerator().getExponentialRandomTruncated(Lambda, 0.0, 1.0);
+	auto val = coretools::instances::randomGenerator().getExponentialRandomTruncated(Lambda, 0.0, 1.0);
+	while (val == 0.0 || val == 1.0) { // make sure not to propose exactly 0 or 1
+		val = coretools::instances::randomGenerator().getExponentialRandomTruncated(Lambda, 0.0, 1.0);
+	}
+	return val;
 }
 
 void TInbreedingEstimatorPrior::_updateFToHWE(const Storage &Data) {
@@ -268,7 +272,8 @@ void TInbreedingEstimatorPrior::_updatePToNull(const Storage &Data, size_t Locus
 void TInbreedingEstimatorPrior::_updateRegularP(const Storage &Data, size_t Locus) {
 	if (_p->updateSpecificIndex(Locus)) {
 		double logH = std::numeric_limits<double>::min();
-		if (_p->value(Locus) != 0.0) { // prevent jumping to zero-model in here: always reject if p==0 (invalid for Beta-distribution)
+		if (_p->value(Locus) > 0.0 && _p->value(Locus) < 1.0) {
+			// prevent jumping to zero-model in here: always reject if p==0 or p==1 (invalid for Beta-distribution)
 			logH = _calculateLLRatio_UpdateP(Data, Locus) + _p->getLogPriorRatio(Locus);
 		}
 		_p->acceptOrReject(Locus, logH);
@@ -317,15 +322,16 @@ void TInbreedingEstimatorPrior::_setInitialP() {
 			if (_pModel->hasFixedInitialValue()) {
 				if (_pModel->value(l) == 0) { // user wants to start in 0-Model
 					_p->set(l, 0.0);
-				} else { // user wants to start in 1-model: prevent p = 0
-					_p->set(l, std::max(_initialEstimatesP[l], TypeP::min().get()));
+				} else { // user wants to start in 1-model: prevent p = 0 and p = 1
+					auto val = std::max(_initialEstimatesP[l], TypeP::min().get());
+					val      = std::min(_initialEstimatesP[l], TypeP::max().get());
+					_p->set(l, val);
 				}
 			} else {
-				if (_initialEstimatesP[l] == 0.0) {
-					_p->set(l, 0.0);
+				_p->set(l, _initialEstimatesP[l]);
+				if (_initialEstimatesP[l] == 0.0 || _initialEstimatesP[l] == 1.0) {
 					_pModel->set(l, false);
 				} else {
-					_p->set(l, _initialEstimatesP[l]);
 					_pModel->set(l, true);
 				}
 			}
@@ -333,7 +339,7 @@ void TInbreedingEstimatorPrior::_setInitialP() {
 	} else { // _p has fixed initial value -> set pModel
 		if (!_pModel->hasFixedInitialValue()) {
 			for (size_t l = 0; l < _numLoci; l++) {
-				(_p->value(l) == 0.0) ? _pModel->set(l, false) : _pModel->set(l, true);
+				(_p->value(l) == 0.0 || _p->value(l) == 1.0) ? _pModel->set(l, false) : _pModel->set(l, true);
 			}
 		}
 	}
