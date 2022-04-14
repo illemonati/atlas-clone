@@ -18,6 +18,7 @@
 #include "TGLF.h"
 #include "TGenotypeData.h"
 #include "TParameters.h"
+#include "TStrongArray.h"
 #include "TTask.h"
 
 namespace gz { class ogzstream; }
@@ -69,6 +70,10 @@ inline std::string toString(DistancePhi dp) {
 //-------------------------------------
 // TDistanceData
 //-------------------------------------
+
+using TDistanceData = coretools::TStrongArray<double, DistancePhi>;
+
+/*
 class TDistanceData : public GenotypeLikelihoods::TData_base<double, DistancePhi, genometools::index(DistancePhi::max)>{
 private:
 	using GenotypeLikelihoods::TData_base<double, DistancePhi, genometools::index(DistancePhi::max)>::_data;
@@ -80,7 +85,7 @@ public:
 	double& operator()(const genometools::Genotype & g1, const genometools::Genotype & g2){
 		return _data[genometools::index(distancePhi(g1, g2))];
 	};
-};
+	};*/
 
 //--------------------------------------------
 //TGenocombinationToBaseMap

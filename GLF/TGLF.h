@@ -18,9 +18,9 @@
 #include <vector>
 #include "GenotypeTypes.h"
 #include "PhredProbabilityTypes.h"
+#include "TGenotypeData.h"
 #include "TParameters.h"
 #include "TTask.h"
-namespace GenotypeLikelihoods { class TGenotypeLikelihoods; }
 namespace genometools { class TChromosome; }
 
 namespace GLF {

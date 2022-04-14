@@ -12,6 +12,7 @@
 #include <exception>
 #include <string>
 
+#include "TGenotypeData.h"
 #include "TLog.h"
 #include "TParameters.h"
 #include "TReadGroups.h"
@@ -162,17 +163,16 @@ void TGenotypeLikelihoodCalculator::recalibrateWithPMD(std::vector<BAM::TSequenc
 
 double TGenotypeLikelihoodCalculator::calculateLogPMDS(const BAM::TSequencedBase & base, const genometools::Base & ref, const coretools::Probability & pi) const{
 	//get base likelihoods
-	static TBaseLikelihoods baseLikelihoodsNoPMD;
+	TBaseLikelihoods baseLikelihoodsNoPMD;
 	_sequencingErrorModels.fillBaseLikelihoods(base, baseLikelihoodsNoPMD);
 
-	static TBaseLikelihoods baseLikelihoods;
+	TBaseLikelihoods baseLikelihoods;
 	_pmdModels.fillBaseLikelihoods(base, baseLikelihoodsNoPMD, baseLikelihoods);
 
 	//calculate PMDS: true base in read == ref with prob. (1-pi) and different with prob. pi/3
-	static TBaseLikelihoods tmpBaseData;
-	tmpBaseData.setFromError(ref, pi);
+	TBaseLikelihoods tmpBaseData = fromError(ref, pi);
 
-	return log(baseLikelihoods.weightedSum(tmpBaseData) / baseLikelihoodsNoPMD.weightedSum(tmpBaseData));
+	return log(weightedSum(baseLikelihoods, tmpBaseData) / weightedSum(baseLikelihoodsNoPMD, tmpBaseData));
 };
 
 void TGenotypeLikelihoodCalculator::calculateGenotypeLikelihoods(const TSite &site, TGenotypeLikelihoods &genotypeLikelihoods) const {

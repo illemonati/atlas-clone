@@ -21,8 +21,6 @@
 #include "probability.h"
 #include "stringFunctions.h"
 
-namespace GenotypeLikelihoods { class TBaseLikelihoods; }
-
 namespace GenotypeLikelihoods {
 namespace SequencingError {
 

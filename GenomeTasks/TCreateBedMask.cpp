@@ -8,6 +8,7 @@
 #include "TCreateBedMask.h"
 #include <vector>
 #include "TGenomePosition.h"
+#include "TGenotypeData.h"
 #include "TSite.h"
 #include "TWindow.h"
 #include "stringFunctions.h"
@@ -82,7 +83,7 @@ void TCreateInvariantBedMask::_handleWindow(){
 	for(auto& s : _window){
 		if(s.depth() >= _minDepthForMask){
 			s.countAlleles(_baseCounts);
-			if(_baseCounts.numAlleles() == 1){
+			if(GenotypeLikelihoods::numNonZero(_baseCounts) == 1){
 				_bed.add(_window.from() + p);
 			}
 		}
@@ -110,7 +111,7 @@ void TCreateVariantBedMask::_handleWindow(){
 	for(auto& s : _window){
 		if(s.depth() >= _minDepthForMask){
 			s.countAlleles(_baseCounts);
-			if(_baseCounts.numAlleles() > 1){
+			if(GenotypeLikelihoods::numNonZero(_baseCounts) > 1){
 				_bed.add(_window.from() + p);
 			}
 		}

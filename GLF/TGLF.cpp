@@ -141,7 +141,7 @@ void TGlfWriter::writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual,
 	} else {
 		// ploidy is 2
 		glfValues.setDiploid();
-		coretools::Probability maxLik = genotypeLikelihoods.max();
+		coretools::Probability maxLik = *std::max_element(genotypeLikelihoods.begin(), genotypeLikelihoods.end());
 
 		// normalize and scale to genometools::HighPrecisionPhredIntProbability
 

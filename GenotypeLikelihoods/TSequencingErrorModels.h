@@ -21,7 +21,6 @@
 
 namespace BAM { class TReadGroups; }
 namespace BAM { class TSequencedBase; }
-namespace GenotypeLikelihoods { class TBaseLikelihoods; }
 
 namespace GenotypeLikelihoods {
 namespace SequencingError {

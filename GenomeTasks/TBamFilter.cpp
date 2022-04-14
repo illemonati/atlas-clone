@@ -479,9 +479,14 @@ TAlignmentMerger_randomBase::TAlignmentMerger_randomBase(TRandomGenerator* Rando
 
 void TAlignmentMerger_randomBase::_mergeBasesCore(BAM::TSequencedBase & bestBase, BAM::TSequencedBase & worstBase){
 	if(_adaptQuality){
-		GenotypeLikelihoods::TBaseLikelihoods likelihood(bestBase.base, (coretools::Probability) bestBase.recalibratedQualityAsPhredInt);
-		likelihood *= GenotypeLikelihoods::TBaseLikelihoods(worstBase.base, (coretools::Probability) worstBase.recalibratedQualityAsPhredInt);
-		likelihood.normalize();
+		auto likelihood = GenotypeLikelihoods::fromError(
+		    bestBase.base, (coretools::Probability)bestBase.recalibratedQualityAsPhredInt);
+		const auto worst = GenotypeLikelihoods::fromError(
+		    worstBase.base, (coretools::Probability)worstBase.recalibratedQualityAsPhredInt);
+
+		for (auto b = genometools::Base::min; b < genometools::Base::max; ++b) likelihood[b] *= worst[b];
+
+		GenotypeLikelihoods::normalize(likelihood);
 		bestBase.recalibratedQualityAsPhredInt = likelihood[bestBase.base].complement();
 	}
 

@@ -6,6 +6,7 @@
  */
 
 #include "TRecalibrationEMEstimator.h"
+#include <functional>
 #include <math.h>
 #include <algorithm>
 #include <exception>
@@ -300,6 +301,7 @@ void TRecalibrationEMEstimator::_fillRelevantBaseFrequencies(TBaseProbabilities 
 
 void TRecalibrationEMEstimator::_calculate_EMWeights_epsilon(std::vector<TBaseLikelihoods> &EMWeights,
 							     const TPostMortemDamage &PmdModels) {
+	using genometools::Base;
 	// make sure EM-weight storage is of appropriate size
 	EMWeights.resize(_dataTables.size());
 	// loop over all bases and calculate EM-weights
@@ -319,8 +321,8 @@ void TRecalibrationEMEstimator::_calculate_EMWeights_epsilon(std::vector<TBaseLi
 			_modelsToEstimate->fillBaseLikelihoods(b, EMWeights[index]);
 
 			// calculate P(d|bbar) \propto P(d|bbar)P(bbar)
-			EMWeights[index] *= PMD;
-			EMWeights[index].normalize();
+			std::transform(EMWeights[index].begin(), EMWeights[index].end(), PMD.begin(), EMWeights[index].begin(), std::multiplies<>());
+			normalize(EMWeights[index]);
 
 			// increment index
 			++index;
@@ -470,7 +472,7 @@ double TRecalibrationEMEstimator::_calculateLL_fullModel(const TPostMortemDamage
 
 		// weight by genotype prior
 		if (s.genotype == genometools::Genotype::NN) {
-			LL += log(genotypeLikelihoods.weightedSum(genoFreq));
+			LL += log(weightedSum(genotypeLikelihoods, genoFreq));
 		} else {
 			LL += log(genotypeLikelihoods[s.genotype].get());
 		}

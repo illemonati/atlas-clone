@@ -269,9 +269,9 @@ double TThetaEstimator::_calcFisherInfo(const TGenotypeProbabilities & _pGenotyp
 	data->begin();
 	do{
 		//calc Ri
-		double Ri_a = data->curGenotypeLikelihoods().weightedSum(deriv_pGenotype);
-		double Ri_b = data->curGenotypeLikelihoods().weightedSum(_pGenotype);
-		double Ri = Ri_a / Ri_b;
+		const double Ri_a = weightedSum(data->curGenotypeLikelihoods(), deriv_pGenotype);
+		const double Ri_b = weightedSum(data->curGenotypeLikelihoods(), _pGenotype);
+		const double Ri = Ri_a / Ri_b;
 
 		//add to Fisher Info
 		FisherInfo += Ri * (Ri + 1.0);

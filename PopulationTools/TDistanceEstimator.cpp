@@ -108,7 +108,7 @@ TDistanceUser::TDistanceUser(std::vector<double> vec){
 //----------------------------------------------------
 TEMforDistanceEstimation::TEMforDistanceEstimation(){
 	//prepare storage
-	phi.set(0.0);
+	phi.fill(0.0);
 	LL = 0.0;
 	old_LL = 0.0;
 	distance = -1.0;
@@ -158,7 +158,7 @@ void TEMforDistanceEstimation::guessPi(GenotypeQualityVector & genoQual1, Genoty
 		throw "Provided genotype quality vectors are of different size in TEMforDistanceEstimation::guessPi!";
 
 	//just estimate pi as average posterior probability
-	pi.set(0.0);
+	pi.fill(0.0);
 
 	//now loop over sites
 	auto it1 = genoQual1.begin();
@@ -181,7 +181,7 @@ void TEMforDistanceEstimation::guessPi(GenotypeQualityVector & genoQual1, Genoty
 	}
 
 	//normalize
-	pi.normalize();
+	normalize(pi);
 }
 
 void TEMforDistanceEstimation::guessPhi(GenotypeQualityVector & genoQual1, GenotypeQualityVector & genoQual2){
@@ -192,7 +192,7 @@ void TEMforDistanceEstimation::guessPhi(GenotypeQualityVector & genoQual1, Genot
 		throw "Provided genotype quality vectors are of different size in TEMforDistanceEstimation::guessPhi!";
 
 	//set to zero
-	phi.set(0.0);
+	phi.fill(0.0);
 
 	//now loop over sites and add posterior probs
 	auto it1 = genoQual1.begin();
@@ -206,13 +206,13 @@ void TEMforDistanceEstimation::guessPhi(GenotypeQualityVector & genoQual1, Genot
 		for(Genotype g1 = Genotype::min; g1 < Genotype::max; ++g1){
 			double tmp = ((Probability) (*it1)[g1] / sum1);
 			for(Genotype g2 = Genotype::min; g2 < Genotype::max; ++g2){
-				phi(g1, g2) += tmp * ((Probability) (*it2)[g2] / sum2);
+				phi[distancePhi(g1, g2)] += tmp * ((Probability) (*it2)[g2] / sum2);
 			}
 		}
 	}
 
 	//normalize
-	phi.normalize();
+	normalize(phi);
 }
 
 void TEMforDistanceEstimation::fill_K(TBaseData & thesePi){
@@ -476,19 +476,19 @@ bool TEMforDistanceEstimation::estimatePhiWithEM(GenotypeQualityVector & genoQua
 		}
 
 		//update phi
-		phi.set(0.0);
+		phi.fill(0.0);
 
 		double sum = 0.0;
 		for(Genotype g1 = Genotype::min; g1 < Genotype::max; ++g1){
 			for(Genotype g2 = Genotype::min; g2 < Genotype::max; ++g2){
-				phi(g1,g2) += P_G[index(g1)][index(g2)];
+				phi[distancePhi(g1,g2)] += P_G[index(g1)][index(g2)];
 				sum += P_G[index(g1)][index(g2)];
 			}
 		}
-		phi.normalize(sum);
+		normalize(phi ,sum);
 
 		//update pi
-		pi.set(0.0);
+		pi.fill(0.0);
 		for(Genotype g1 = Genotype::min; g1 < Genotype::max; ++g1){
 			for(Genotype g2 = Genotype::min; g2 < Genotype::max; ++g2){
 				for(Base b = Base::min; b < Base::max; ++b){
@@ -498,7 +498,7 @@ bool TEMforDistanceEstimation::estimatePhiWithEM(GenotypeQualityVector & genoQua
 				}
 			}
 		}
-		pi.normalize();
+		normalize(pi);
 
 		//check if EM converged
 		logfile().done();

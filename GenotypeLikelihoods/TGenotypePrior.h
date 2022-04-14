@@ -35,7 +35,7 @@ public:
 class TGenotypePriorUniform:public TGenotypePrior{
 public:
 	TGenotypePriorUniform(){
-		genotypePrior.reset();
+		reset(genotypePrior);
 	};
 };
 
@@ -50,7 +50,8 @@ public:
 		thetaEstimator->setTheta(theta);
 		equalBaseFreq = EqualBaseFreq;
 		if(equalBaseFreq){
-			GenotypeLikelihoods::TBaseProbabilities freq(0.25);
+			GenotypeLikelihoods::TBaseProbabilities freq;
+			freq.fill(0.25);
 			thetaEstimator->setBaseFreq(freq);
 		}
 		thetaEstimator->fillPGenotype(genotypePrior);
@@ -122,7 +123,8 @@ public:
 			if(hasDefaultTheta){
 				logfile->conclude("Will use a default theta of " + coretools::str::toString(defaultTheta) + ".");
 				thetaEstimator->setTheta(defaultTheta);
-				GenotypeLikelihoods::TBaseProbabilities freq(0.25);
+				GenotypeLikelihoods::TBaseProbabilities freq;
+				freq.fill(0.25);
 				thetaEstimator->setBaseFreq(freq);
 			} else
 				throw "Please increase window size or provide a default theta!";

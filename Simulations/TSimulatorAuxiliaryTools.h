@@ -19,6 +19,7 @@
 #include "TAlignment.h"
 #include "TBamFile.h"
 #include "TGenotypeData.h"
+#include "TStrongArray.h"
 #include "gzstream.h"
 
 namespace BAM { class TReadGroups; }
@@ -104,11 +105,11 @@ private:
 	genometools::Base indexToBase[4];
 
 public:
-	GenotypeLikelihoods::TBaseData_base<int> index;
-	GenotypeLikelihoods::TBaseData_base<bool> used;
+	coretools::TStrongArray<int, genometools::Base, 4> index;
+	coretools::TStrongArray<bool, genometools::Base, 4> used;
 
 	void clear(const genometools::Base &ref) noexcept {
-		used.set(false);
+		used.fill(false);
 		used[ref]  = true;
 		index[ref] = 0;
 		nextIndex  = 1;
