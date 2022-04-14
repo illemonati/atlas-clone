@@ -41,7 +41,7 @@ inline TGenotypeLikelihoods fillGLH(const std::vector<TBaseLikelihoods> &bases, 
 	// do in log if depth is high
 	if (bases.size() > 50) {
 		// initialize tmp to zero
-		TGenotypeData tmp{};
+		TGenotypeData tmp{0.};
 		// add to log genotype data
 		for (size_t i = 0; i < size; ++i) {
 			for (auto b1 = Base::min; b1 < Base::max; ++b1) {
@@ -59,7 +59,7 @@ inline TGenotypeLikelihoods fillGLH(const std::vector<TBaseLikelihoods> &bases, 
 		return ret;
 	} else { // on natural scale
 		// initialize tmp to 1.0
-		TGenotypeLikelihoods ret{};
+		TGenotypeLikelihoods ret{1.};
 		for (size_t i = 0; i < size; ++i) {
 			for (auto b1 = Base::min; b1 < Base::max; ++b1) {
 				ret[genotype(b1, b1)] *= bases[i][b1];
