@@ -321,7 +321,7 @@ void TRecalibrationEMEstimator::_calculate_EMWeights_epsilon(std::vector<TBaseLi
 			_modelsToEstimate->fillBaseLikelihoods(b, EMWeights[index]);
 
 			// calculate P(d|bbar) \propto P(d|bbar)P(bbar)
-			std::transform(EMWeights.begin(), EMWeights.end(), PMD.begin(), EMWeights.begin(), std::multiplies<>());
+			std::transform(EMWeights[index].begin(), EMWeights[index].end(), PMD.begin(), EMWeights[index].begin(), std::multiplies<>());
 			normalize(EMWeights[index]);
 
 			// increment index

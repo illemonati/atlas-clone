@@ -20,13 +20,11 @@
 
 namespace GenotypeLikelihoods{
 
-using Likelihood = coretools::Probability;
-
 using TBaseProbabilities     = coretools::TStrongArray<coretools::Probability, genometools::Base, 4>;
-using TBaseLikelihoods       = coretools::TStrongArray<Likelihood, genometools::Base, 4>;
+using TBaseLikelihoods       = coretools::TStrongArray<coretools::Probability, genometools::Base, 4>;
 using TBaseData              = coretools::TStrongArray<double, genometools::Base, 4>;
 using TBaseCounts            = coretools::TStrongArray<uint32_t, genometools::Base, 5>;
-using TGenotypeLikelihoods   = coretools::TStrongArray<Likelihood, genometools::Genotype, 10>;
+using TGenotypeLikelihoods   = coretools::TStrongArray<coretools::Probability, genometools::Genotype, 10>;
 using TGenotypeProbabilities = coretools::TStrongArray<coretools::Probability, genometools::Genotype, 10>;
 using TGenotypeData          = coretools::TStrongArray<double, genometools::Genotype, 10>;
 
@@ -49,7 +47,7 @@ inline TGenotypeLikelihoods fillGLH(const std::vector<TBaseLikelihoods> &bases, 
 			for (auto b1 = Base::min; b1 < Base::max; ++b1) {
 				tmp[genotype(b1, b1)] += log(bases[i][b1]);
 				for (auto b2 = genometools::next(b1); b2 < Base::max; ++b2) {
-					tmp[genotype(b1, b2)] += log(0.5 * (bases[i][b1] + bases[i][b2]));
+					tmp[genotype(b1, b2)] += log(0.5 * ((double)bases[i][b1] + (double)bases[i][b2]));
 				}
 			}
 		}
@@ -64,7 +62,7 @@ inline TGenotypeLikelihoods fillGLH(const std::vector<TBaseLikelihoods> &bases, 
 		TGenotypeLikelihoods ret{};
 		for (size_t i = 0; i < size; ++i) {
 			for (auto b1 = Base::min; b1 < Base::max; ++b1) {
-				ret[genotype(b1, b1)] *= log(bases[i][b1]);
+				ret[genotype(b1, b1)] *= bases[i][b1];
 				for (auto b2 = genometools::next(b1); b2 < Base::max; ++b2) {
 					ret[genotype(b1, b2)] *= 0.5 * (bases[i][b1] + bases[i][b2]);
 				}
@@ -93,8 +91,8 @@ inline TGenotypeProbabilities posterior(const TGenotypeLikelihoods &likelihoods,
 	return ret;
 }
 
-template<typename Index, size_t N=Index::max, typename Likelihood=Probability>
-TStrongArraySum1<Probability, Index, N> posterior(TStrongArray<Likelihood, Index, N> Likelihoods, TStrongArraySum1<Probability, Index, N> prior)
+//template<typename Index, size_t N=Index::max, typename Likelihood=Probability>
+//TStrongArraySum1<Probability, Index, N> posterior(TStrongArray<Likelihood, Index, N> Likelihoods, TStrongArraySum1<Probability, Index, N> prior)
 
 inline TBaseLikelihoods fromError(genometools::Base trueBase, coretools::Probability error) {
 	TBaseLikelihoods ret;

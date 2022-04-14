@@ -485,7 +485,7 @@ bool TEMforDistanceEstimation::estimatePhiWithEM(GenotypeQualityVector & genoQua
 				sum += P_G[index(g1)][index(g2)];
 			}
 		}
-		phi.normalize(sum);
+		normalize(phi ,sum);
 
 		//update pi
 		pi.fill(0.0);

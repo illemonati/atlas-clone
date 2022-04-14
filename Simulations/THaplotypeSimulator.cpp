@@ -16,6 +16,7 @@
 #include <utility>
 
 #include "TChromosomes.h"
+#include "TGenotypeData.h"
 #include "TLog.h"
 #include "TParameters.h"
 #include "TRandomGenerator.h"
@@ -29,6 +30,17 @@ using coretools::instances::logfile;
 using coretools::instances::parameters;
 using coretools::instances::randomGenerator;
 using genometools::Base;
+using GenotypeLikelihoods::TBaseProbabilities;
+
+namespace impl {
+std::string toString(const TBaseProbabilities &probs) {
+	std::string s = "";
+	for (auto b = Base::min; b < Base::max; ++b) {
+		s += genometools::toString(b) + ": " + coretools::str::toString(probs[b]) + ", ";
+	}
+	return s.substr(0, s.size() - 1);
+}
+} // namespace impl
 
 Base sampleBase(const std::array<double, 4> &cumulProbs) {
 	return genometools::Base(randomGenerator().pickOne(cumulProbs));
@@ -59,7 +71,7 @@ THaplotypeSimulator::THaplotypeSimulator()
 	_baseFreq[Base::G] = freq[2] / sum;
 	_baseFreq[Base::T] = freq[3] / sum;
 
-	logfile().list("Simulating with base frequencies " + (std::string)_baseFreq);
+	logfile().list("Simulating with base frequencies " + impl::toString(_baseFreq));
 
 	_cumulBaseFreq[0] = _baseFreq[Base::A];
 	_cumulBaseFreq[1] = _cumulBaseFreq[0] + _baseFreq[Base::C];
