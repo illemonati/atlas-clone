@@ -7,9 +7,13 @@ compare() {
 	[[ $a == *.bai ]] && continue
 	if [[ $a == *.bam ]]; then
 	    command -v samtools > /dev/null || continue
-	    ! diff -q <(samtools view $a) <(samtools view ../${fo}_ref/$a) && differs=true
+	    if ! diff -q <(samtools view $a) <(samtools view ../${fo}_ref/$a) > /dev/null; then
+		echo "Files $a and ../${fo}_ref/$a differ"
+		differs=true
+	    fi
+	else
+	    ! diff -q $a ../${fo}_ref/$a &&  differs=true
 	fi
-	! diff -q $a ../${fo}_ref/$a &&  differs=true
     done
     [[ $differs ]] && return 1
     echo "All files are identical"
