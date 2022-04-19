@@ -28,10 +28,10 @@ using TGenotypeLikelihoods   = coretools::TStrongArray<coretools::Probability, g
 using TGenotypeProbabilities = coretools::TStrongArray<coretools::Probability, genometools::Genotype, 10>;
 using TGenotypeData          = coretools::TStrongArray<double, genometools::Genotype, 10>;
 
-template<typename Container>
+/*template<typename Container>
 void reset(Container & c) {
 	std::fill(c.begin(), c.end(), typename Container::value_type{});
-}
+	}*/
 
 template<template<typename...> typename Container, typename... Args>
 TGenotypeLikelihoods fillGLH(const Container<TBaseLikelihoods, Args...> &bases, const size_t size) {

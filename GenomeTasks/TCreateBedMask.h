@@ -83,9 +83,6 @@ public:
 class TCreateNonRefBedMask:public TCreateBedMask{
 private:
 	void _handleWindow();
-
-	//tmp variables
-	GenotypeLikelihoods::TBaseCounts _baseCounts;
 public:
 	TCreateNonRefBedMask(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
 	void createVariantMask();

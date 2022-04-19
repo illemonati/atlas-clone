@@ -19,7 +19,7 @@ using genometools::Genotype;
 
 TEST(TGenotypeLikelihoodCalculator_test, calculateGenotypeLikelihoods_emptySite){
     TSite site;
-    TGenotypeLikelihoods genotypeLikelihoods;
+    TGenotypeLikelihoods genotypeLikelihoods{1.};
     TGenotypeLikelihoodCalculator calculator;
 
     calculator.calculateGenotypeLikelihoods(site, genotypeLikelihoods);

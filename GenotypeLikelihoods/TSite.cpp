@@ -71,7 +71,7 @@ uint32_t TSite::refDepth() const {
 };
 
 void TSite::countAlleles(TBaseCounts &alleleCounts) const {
-	reset(alleleCounts);
+	alleleCounts.fill(0.);
 	for (const auto &b : _bases) { ++alleleCounts[b.base]; }
 };
 

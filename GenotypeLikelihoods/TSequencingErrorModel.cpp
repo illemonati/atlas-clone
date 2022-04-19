@@ -153,7 +153,7 @@ void TModelNoRecal::fillBaseLikelihoods(const BAM::TSequencedBase &base,
 					TBaseLikelihoods &baseLikelihoods) const noexcept {
 	using genometools::Base;
 	if (base == Base::N) {
-		reset(baseLikelihoods);
+		baseLikelihoods.fill(1.);
 	} else {
 		const auto eps = static_cast<Probability>(base.originalQuality_phredInt);
 		for (auto other = Base::min; other < Base::max; ++other) baseLikelihoods[other] = (1. / 3) * eps;
@@ -351,7 +351,7 @@ void TModelRecal::fillBaseLikelihoods(const BAM::TSequencedBase &base,
 				      TBaseLikelihoods &baseLikelihoods) const noexcept {
 	using genometools::Base;
 	if (base == Base::N) {
-		reset(baseLikelihoods);
+		baseLikelihoods.fill(1.);
 	} else {
 		const auto e = _calcErrorRate(base);
 		for (auto b = Base::min; b < Base::max; ++b) baseLikelihoods[b] = e * _rho(b, base.base);
