@@ -170,7 +170,7 @@ void TPileup::_handleWindow(){
 			if(_reference){
 				out << _alleleCounts[site.refBase] << _alleleCounts.size() - _alleleCounts[site.refBase];
 			}
-			out << (int) GenotypeLikelihoods::numNonZero(_alleleCounts);
+			out << (int) coretools::numNonZero(_alleleCounts);
 		}
 
 		if(_printMates){

@@ -83,7 +83,7 @@ void TCreateInvariantBedMask::_handleWindow(){
 	for(auto& s : _window){
 		if(s.depth() >= _minDepthForMask){
 			s.countAlleles(_baseCounts);
-			if(GenotypeLikelihoods::numNonZero(_baseCounts) == 1){
+			if(coretools::numNonZero(_baseCounts) == 1){
 				_bed.add(_window.from() + p);
 			}
 		}
@@ -111,7 +111,7 @@ void TCreateVariantBedMask::_handleWindow(){
 	for(auto& s : _window){
 		if(s.depth() >= _minDepthForMask){
 			s.countAlleles(_baseCounts);
-			if(GenotypeLikelihoods::numNonZero(_baseCounts) > 1){
+			if(coretools::numNonZero(_baseCounts) > 1){
 				_bed.add(_window.from() + p);
 			}
 		}

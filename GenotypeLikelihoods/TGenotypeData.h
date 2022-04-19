@@ -17,6 +17,7 @@
 #include "GenotypeTypes.h"
 #include "probability.h"
 #include "TStrongArray.h"
+#include "algorithmsAndVectors.h"
 
 namespace GenotypeLikelihoods{
 
@@ -27,11 +28,6 @@ using TBaseCounts            = coretools::TStrongArray<uint32_t, genometools::Ba
 using TGenotypeLikelihoods   = coretools::TStrongArray<coretools::Probability, genometools::Genotype, 10>;
 using TGenotypeProbabilities = coretools::TStrongArray<coretools::Probability, genometools::Genotype, 10>;
 using TGenotypeData          = coretools::TStrongArray<double, genometools::Genotype, 10>;
-
-/*template<typename Container>
-void reset(Container & c) {
-	std::fill(c.begin(), c.end(), typename Container::value_type{});
-	}*/
 
 template<template<typename...> typename Container, typename... Args>
 TGenotypeLikelihoods fillGLH(const Container<TBaseLikelihoods, Args...> &bases, const size_t size) {
@@ -75,22 +71,11 @@ TGenotypeLikelihoods fillGLH(const Container<TBaseLikelihoods, Args...> &bases) 
 	return fillGLH(bases, bases.size());
 }
 
-template<typename Container>
-void normalize(Container& c, typename Container::value_type tot) {
-	std::transform(c.begin(), c.end(), c.begin(), [tot](auto v){return v / tot;});
-};
-
-template<typename Container>
-void normalize(Container& c) {
-	const auto tot = std::accumulate(c.begin(), c.end(), typename Container::value_type{});
-	normalize(c, tot);
-};
-
 inline TGenotypeProbabilities posterior(const TGenotypeLikelihoods &likelihoods, const TGenotypeProbabilities &prior) {
 	using GT = genometools::Genotype;
 	TGenotypeProbabilities ret;
 	for (auto gt = GT::min; gt < GT::max; ++gt) ret[gt] = likelihoods[gt] * prior[gt];
-	normalize(ret);
+	coretools::normalize(ret);
 	return ret;
 }
 
@@ -104,16 +89,6 @@ inline TBaseLikelihoods fromError(genometools::Base trueBase, coretools::Probabi
 	return ret;
 }
 
-template<typename Container>
-size_t numNonZero(const Container & vs) {
-	return std::count_if(vs.begin(), vs.end(), [](auto v){return v > 0;});
-}
-
-template<typename Container1, typename Container2>
-double weightedSum(const Container1 & values, const Container2 & weights) {
-	assert(values.size() == weights.size());
-	return std::inner_product(values.begin(), values.end(), weights.begin(), 0.);
-}
 
 constexpr coretools::Probability homozygous(const TGenotypeProbabilities &ps) {
 	using GT = genometools::Genotype;

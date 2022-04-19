@@ -486,7 +486,7 @@ void TAlignmentMerger_randomBase::_mergeBasesCore(BAM::TSequencedBase & bestBase
 
 		for (auto b = genometools::Base::min; b < genometools::Base::max; ++b) likelihood[b] *= worst[b];
 
-		GenotypeLikelihoods::normalize(likelihood);
+		coretools::normalize(likelihood);
 		bestBase.recalibratedQualityAsPhredInt = likelihood[bestBase.base].complement();
 	}
 
