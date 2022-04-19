@@ -3,9 +3,11 @@
 //
 
 #include "gtest/gtest.h"
+#include <algorithm>
 
 #include "GenotypeTypes.h"
 #include "TGLF.h"
+#include "TGenotypeData.h"
 #include "TTestGLFFile.h"
 #include "debugtools.h"
 #include "stringFunctions.h"
@@ -72,20 +74,19 @@ public:
 		Base base                    = Base::N;
 		coretools::Probability error = 0.001;
 		for (uint32_t d = 0; d < 10; d++) {
-			TBaseLikelihoods baseData(base, error);
+			TBaseLikelihoods baseData = GenotypeLikelihoods::fromError(base, error);
 			bases.emplace_back(baseData);
 		}
-		GenotypeLikelihoods::TGenotypeLikelihoods gtL;
-		gtL.fill(bases);
+		GenotypeLikelihoods::TGenotypeLikelihoods gtL = GenotypeLikelihoods::fillGLH(bases);
 		outputGLF.writeDummySite(30, 0, gtL);
 		// 5) depth = 10, all bases are A, but mapping quality is zero
 		bases.clear();
 		base = Base::A;
 		for (uint32_t d = 0; d < 10; d++) {
-			TBaseLikelihoods baseData(base, error);
+			TBaseLikelihoods baseData = GenotypeLikelihoods::fromError(base, error);
 			bases.emplace_back(baseData);
 		}
-		gtL.fill(bases);
+		gtL = GenotypeLikelihoods::fillGLH(bases);
 		outputGLF.writeSite(40, 0, gtL, 0);
 
 		// 6) third chromosome is empty
@@ -189,7 +190,7 @@ TEST_F(TGLF_Test_WriteRead, chromosomes) {
 }
 
 void normalizeByMax_Diploid(GenotypeLikelihoods::TGenotypeLikelihoods &genotypeLikelihoods) {
-	genotypeLikelihoods.normalize(genotypeLikelihoods.max());
+	GenotypeLikelihoods::normalize(genotypeLikelihoods, *std::max_element(genotypeLikelihoods.begin(), genotypeLikelihoods.end()));
 }
 
 void normalizeByMax_Haploid(GenotypeLikelihoods::TGenotypeLikelihoods &genotypeLikelihoods) {

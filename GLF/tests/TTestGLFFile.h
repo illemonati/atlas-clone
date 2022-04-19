@@ -37,7 +37,7 @@ protected:
     uint32_t _dummyDepth; uint32_t _dummyMaxDepth;
     uint8_t _dummy_RMS_mappingQual; uint32_t _dummyMax_RMS_mappingQual;
     GenotypeLikelihoods::TGenotypeLikelihoods _dummyGenotypeLikelihoods;
-    GenotypeLikelihoods::TGenotypeLikelihoodsHaploid _dummyGenotypeLikelihoodsHaploid;
+    GenotypeLikelihoods::TGenotypeLikelihoods _dummyGenotypeLikelihoodsHaploid;
 
     void _iteratePosition();
     void _iterateDepth();

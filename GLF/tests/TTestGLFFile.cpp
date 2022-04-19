@@ -10,6 +10,7 @@
 #include <stdexcept>
 
 #include "GenotypeTypes.h"
+#include "TGenotypeData.h"
 #include "probability.h"
 #include "stringFunctions.h"
 #include "weakTypes.h"
@@ -89,7 +90,7 @@ void TTestGLFFile::_iterateGenotypeLikelihoods(uint32_t curDepth) {
         // pick a true base
     	genometools::Base trueBase = possibleBases[indexPossibleBases];
         // simulate a base with error
-        bases.emplace_back(trueBase, error);
+        bases.push_back(GenotypeLikelihoods::fromError(trueBase, error));
 
         // iterate, such that next base gets different values
         indexPossibleBases = (indexPossibleBases + 3) % possibleBases.size();
@@ -99,10 +100,10 @@ void TTestGLFFile::_iterateGenotypeLikelihoods(uint32_t curDepth) {
     }
 
     // fill genotype likelihood
-    if (_dummyCurChr->ploidy == 1)
+    _dummyGenotypeLikelihoods = GenotypeLikelihoods::fillGLH(bases);
+    /*if (_dummyCurChr->ploidy == 1)
         _dummyGenotypeLikelihoodsHaploid.fill(bases, bases.size());
-    else
-        _dummyGenotypeLikelihoods.fill(bases);
+	else*/
 };
 
 void TTestGLFFile::writeDummySites(uint32_t numSites) {

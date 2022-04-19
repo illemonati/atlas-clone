@@ -33,16 +33,15 @@ void reset(Container & c) {
 	std::fill(c.begin(), c.end(), typename Container::value_type{});
 }
 
-inline TGenotypeLikelihoods fillGLH(const std::vector<TBaseLikelihoods> &bases, const size_t size) {
+template<template<typename...> typename Container, typename... Args>
+TGenotypeLikelihoods fillGLH(const Container<TBaseLikelihoods, Args...> &bases, const size_t size) {
 	using genometools::Base;
 	using GT = genometools::Genotype;
 	using genometools::genotype;
 	// allows for vector to be longer than what is to be used
 	// do in log if depth is high
 	if (bases.size() > 50) {
-		// initialize tmp to zero
 		TGenotypeData tmp{0.};
-		// add to log genotype data
 		for (size_t i = 0; i < size; ++i) {
 			for (auto b1 = Base::min; b1 < Base::max; ++b1) {
 				tmp[genotype(b1, b1)] += log(bases[i][b1]);
@@ -58,7 +57,6 @@ inline TGenotypeLikelihoods fillGLH(const std::vector<TBaseLikelihoods> &bases, 
 		for (auto i = GT::min; i < GT::max; ++i) ret[i] = exp(tmp[i] - max);
 		return ret;
 	} else { // on natural scale
-		// initialize tmp to 1.0
 		TGenotypeLikelihoods ret{1.};
 		for (size_t i = 0; i < size; ++i) {
 			for (auto b1 = Base::min; b1 < Base::max; ++b1) {
@@ -70,6 +68,11 @@ inline TGenotypeLikelihoods fillGLH(const std::vector<TBaseLikelihoods> &bases, 
 		}
 		return ret;
 	}
+}
+
+template<template<typename...> typename Container, typename... Args>
+TGenotypeLikelihoods fillGLH(const Container<TBaseLikelihoods, Args...> &bases) {
+	return fillGLH(bases, bases.size());
 }
 
 template<typename Container>
