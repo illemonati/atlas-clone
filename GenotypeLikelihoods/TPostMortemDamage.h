@@ -135,8 +135,8 @@ public:
 	virtual void parseEstimationParameters(TPMDEstimationParameters &EstimationParameters) = 0;
 	virtual void estimate(const PMDTable_RG &PMDTable, const TPMDEstimationParameters &EstimationParameters) = 0;
 
-	virtual void fillBaseLikelihoods(const BAM::TSequencedBase &base, const TBaseProbabilities &baseLikelihoodsNoPMD,
-					 TBaseProbabilities &baseLikelihoods) const = 0;
+	virtual void fillBaseLikelihoods(const BAM::TSequencedBase &base, const TBaseLikelihoods &baseLikelihoodsNoPMD,
+					 TBaseLikelihoods &baseLikelihoods) const = 0;
 
 	virtual void simulate(BAM::TSequencedBase &base) const   = 0;
 	virtual void simulate(genometools::Base &base, uint16_t DistFrom5Prime, uint16_t DistFrom3Prime,
@@ -159,8 +159,8 @@ public:
 	void parseEstimationParameters(TPMDEstimationParameters &) override {}
 	void estimate(const PMDTable_RG &, const TPMDEstimationParameters &) override {}
 
-	void fillBaseLikelihoods(const BAM::TSequencedBase &, const TBaseProbabilities &baseLikelihoodsNoPMD,
-				 TBaseProbabilities &baseLikelihoods) const override {
+	void fillBaseLikelihoods(const BAM::TSequencedBase &, const TBaseLikelihoods &baseLikelihoodsNoPMD,
+				 TBaseLikelihoods &baseLikelihoods) const override {
 		// just copy
 		baseLikelihoods = baseLikelihoodsNoPMD;
 	}
@@ -190,8 +190,8 @@ public:
 	void parseEstimationParameters(TPMDEstimationParameters &EstimationParameters) override;
 	void estimate(const PMDTable_RG &PMDTable, const TPMDEstimationParameters &EstimationParameters) override;
 
-	void fillBaseLikelihoods(const BAM::TSequencedBase &base, const TBaseProbabilities &baseLikelihoodsNoPMD,
-	                         TBaseProbabilities &baseLikelihoods) const override;
+	void fillBaseLikelihoods(const BAM::TSequencedBase &base, const TBaseLikelihoods &baseLikelihoodsNoPMD,
+	                         TBaseLikelihoods &baseLikelihoods) const override;
 
 	void simulate(BAM::TSequencedBase &base) const override;
 	void simulate(genometools::Base &base, uint16_t DistFrom5Prime, uint16_t DistFrom3Prime,
@@ -219,8 +219,8 @@ public:
 	void parseEstimationParameters(TPMDEstimationParameters &EstimationParameters) override;
 	void estimate(const PMDTable_RG &PMDTable, const TPMDEstimationParameters &EstimationParameters) override;
 
-	void fillBaseLikelihoods(const BAM::TSequencedBase &base, const TBaseProbabilities &baseLikelihoodsNoPMD,
-				 TBaseProbabilities &baseLikelihoods) const override;
+	void fillBaseLikelihoods(const BAM::TSequencedBase &base, const TBaseLikelihoods &baseLikelihoodsNoPMD,
+				 TBaseLikelihoods &baseLikelihoods) const override;
 
 	void simulate(BAM::TSequencedBase &base) const override;
 	void simulate(genometools::Base &base, uint16_t DistFrom5Prime, uint16_t DistFrom3Prime,
@@ -254,8 +254,8 @@ public:
 	void writeToFile(const BAM::TReadGroups &ReadGroups, const std::string filename) const ;
 	void writeToFile(const BAM::TReadGroups &ReadGroups, const BAM::TReadGroupMap &ReadGroupMap,
 	                 const std::string filename) const;
-	void fillBaseLikelihoods(const BAM::TSequencedBase &base, const TBaseProbabilities &baseLikelihoodsNoPMD,
-	                         TBaseProbabilities &baseLikelihoods) const;
+	void fillBaseLikelihoods(const BAM::TSequencedBase &base, const TBaseLikelihoods &baseLikelihoodsNoPMD,
+	                         TBaseLikelihoods &baseLikelihoods) const;
 };
 
 }; // namespace GenotypeLikelihoods

@@ -16,6 +16,7 @@
 
 #include "GenotypeTypes.h"
 #include "RecalEstimatorTools.h"
+#include "TGenotypeData.h"
 #include "TLog.h"
 #include "TParameters.h"
 #include "TPostMortemDamage.h"
@@ -215,7 +216,6 @@ TRecalibrationEMEstimator::TRecalibrationEMEstimator(const BAM::TReadGroups *Rea
 	} else if (equalBaseFrequencies) {
 		logfile().list("Will assume equal base frequencies {0.25, 0.25, 0.25, 0.25}. (use 'estimateBaseFrequencies' to "
 			       "estimate them)");
-		_genoDist->reset();
 	}
 
 	// write tmp tables?
@@ -290,14 +290,6 @@ void TRecalibrationEMEstimator::performEstimation(std::string outputName,
 	logfile().done();
 };
 
-void TRecalibrationEMEstimator::_fillRelevantBaseFrequencies(TBaseProbabilities &baseFreq,
-							     const genometools::Genotype &genotype) {
-	if (genotype == genometools::Genotype::NN) {
-		baseFreq = _genoDist->baseFrequencies();
-	} else {
-		_genoDist->fillBaseFrequences(baseFreq, genotype);
-	}
-};
 
 void TRecalibrationEMEstimator::_calculate_EMWeights_epsilon(std::vector<TBaseLikelihoods> &EMWeights,
 							     const TPostMortemDamage &PmdModels) {
@@ -308,8 +300,7 @@ void TRecalibrationEMEstimator::_calculate_EMWeights_epsilon(std::vector<TBaseLi
 	size_t index = 0;
 	for (auto &s : _sites) {
 		// get relevant base frequencies P(b): from known genotype or distribution if genotype is unknown
-		TBaseProbabilities baseFreq;
-		_fillRelevantBaseFrequencies(baseFreq, s.genotype);
+		const TBaseLikelihoods baseFreq{s.genotype == genometools::Genotype::NN ? _genoDist->baseFrequencies() : fillBaseFrequences(s.genotype)};
 
 		// calculate weights per base
 		for (auto &b : s) {

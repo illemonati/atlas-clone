@@ -9,6 +9,7 @@
 #define TGENOTYPEDATA_H_
 
 #include <algorithm>
+#include <functional>
 #include <numeric>
 #include <stddef.h>
 #include <utility>
@@ -17,16 +18,17 @@
 #include "GenotypeTypes.h"
 #include "probability.h"
 #include "TStrongArray.h"
+#include "TMassFunction.h"
 #include "algorithmsAndVectors.h"
 
 namespace GenotypeLikelihoods{
 
-using TBaseProbabilities     = coretools::TStrongArray<coretools::Probability, genometools::Base, 4>;
+using TBaseProbabilities     = coretools::TStrongMassFunction<coretools::Probability, genometools::Base, 4>;
 using TBaseLikelihoods       = coretools::TStrongArray<coretools::Probability, genometools::Base, 4>;
 using TBaseData              = coretools::TStrongArray<double, genometools::Base, 4>;
 using TBaseCounts            = coretools::TStrongArray<uint32_t, genometools::Base, 5>;
 using TGenotypeLikelihoods   = coretools::TStrongArray<coretools::Probability, genometools::Genotype, 10>;
-using TGenotypeProbabilities = coretools::TStrongArray<coretools::Probability, genometools::Genotype, 10>;
+using TGenotypeProbabilities = coretools::TStrongMassFunction<coretools::Probability, genometools::Genotype, 10>;
 using TGenotypeData          = coretools::TStrongArray<double, genometools::Genotype, 10>;
 
 template<template<typename...> typename Container, typename... Args>
@@ -72,11 +74,7 @@ TGenotypeLikelihoods fillGLH(const Container<TBaseLikelihoods, Args...> &bases) 
 }
 
 inline TGenotypeProbabilities posterior(const TGenotypeLikelihoods &likelihoods, const TGenotypeProbabilities &prior) {
-	using GT = genometools::Genotype;
-	TGenotypeProbabilities ret;
-	for (auto gt = GT::min; gt < GT::max; ++gt) ret[gt] = likelihoods[gt] * prior[gt];
-	coretools::normalize(ret);
-	return ret;
+	return TGenotypeProbabilities(likelihoods, prior, std::multiplies<>());
 }
 
 //template<typename Index, size_t N=Index::max, typename Likelihood=Probability>

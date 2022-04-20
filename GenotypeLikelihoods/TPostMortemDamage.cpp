@@ -453,8 +453,8 @@ void TPMDTypeDoubleStrand::estimate(const PMDTable_RG &PMDTable,
 }
 
 void TPMDTypeDoubleStrand::fillBaseLikelihoods(const BAM::TSequencedBase &base,
-					       const TBaseProbabilities &baseLikelihoodsNoPMD,
-					       TBaseProbabilities &baseLikelihoods) const {
+					       const TBaseLikelihoods &baseLikelihoodsNoPMD,
+					       TBaseLikelihoods &baseLikelihoods) const {
 	using genometools::Base;
 	// Note: distances are as in original fragment (not BAM file), i.e. in direction of sequencing
 	// no PMD for A and C
@@ -551,8 +551,8 @@ void TPMDTypeSingleStrand::estimate(const PMDTable_RG &PMDTable,
 }
 
 void TPMDTypeSingleStrand::fillBaseLikelihoods(const BAM::TSequencedBase &base,
-					       const TBaseProbabilities &baseLikelihoodsNoPMD,
-					       TBaseProbabilities &baseLikelihoods) const {
+					       const TBaseLikelihoods &baseLikelihoodsNoPMD,
+					       TBaseLikelihoods &baseLikelihoods) const {
 	using genometools::Base;
 	// Note: distances are as in original fragment (not BAM file), i.e. in direction of sequencing
 	// no PMD for A, C and G
@@ -690,8 +690,8 @@ void TPostMortemDamage::initialize(const std::string &pmdString, const BAM::TRea
 }
 
 void TPostMortemDamage::fillBaseLikelihoods(const BAM::TSequencedBase &base,
-                                            const TBaseProbabilities &baseLikelihoodsNoPMD,
-                                            TBaseProbabilities &baseLikelihoods) const {
+                                            const TBaseLikelihoods &baseLikelihoodsNoPMD,
+                                            TBaseLikelihoods &baseLikelihoods) const {
 	if (_hasPMD) {
 		_pmdObjects[base.readGroupID]->fillBaseLikelihoods(base, baseLikelihoodsNoPMD, baseLikelihoods);
 	} else {

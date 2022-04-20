@@ -118,17 +118,14 @@ coretools::Probability TGenotypeLikelihoodCalculator::getErrorRate(const BAM::TS
 	return _sequencingErrorModels.getErrorRate(base);
 };
 
-coretools::Probability TGenotypeLikelihoodCalculator::getErrorWithPMD(const BAM::TSequencedBase & base) const{
-	if(base.base == genometools::Base::N){
-		return coretools::Probability::highest();
-	} else {
-		//calculate base likelihoods with PMD
-		static TBaseLikelihoods tmpBaseData;
-		_calculator.fillBaseLikelihoods(base, tmpBaseData, _pmdModels, _sequencingErrorModels);
+coretools::Probability TGenotypeLikelihoodCalculator::getErrorWithPMD(const BAM::TSequencedBase &base) const {
+	if (base.base == genometools::Base::N) { return coretools::Probability::highest(); }
+	// calculate base likelihoods with PMD
+	TBaseLikelihoods tmpBaseData;
+	_calculator.fillBaseLikelihoods(base, tmpBaseData, _pmdModels, _sequencingErrorModels);
 
-		//return 1 - P(base|base) as in mapdamage2
-		return tmpBaseData[base.base].complement();
-	}
+	// return 1 - P(base|base) as in mapdamage2
+	return tmpBaseData[base.base].complement();
 };
 
 genometools::PhredIntProbability TGenotypeLikelihoodCalculator::getPhredInt(const BAM::TSequencedBase & base) const{

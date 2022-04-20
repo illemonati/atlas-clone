@@ -84,7 +84,11 @@ struct Theta{
 //---------------------------------------------------------------
 //TThetaEstimator
 //---------------------------------------------------------------
-class TThetaEstimator_base{
+
+GenotypeLikelihoods::TGenotypeProbabilities getPGenotype(double expTheta, const TBaseProbabilities &baseFrequencies);
+GenotypeLikelihoods::TGenotypeProbabilities getPGenotype(const Theta &thisTheta);
+
+class TThetaEstimator_base {
 protected:
 	coretools::TLog* logfile;
 	coretools::TRandomGenerator* randomGenerator;
@@ -102,14 +106,12 @@ protected:
 
 	//estimation
 	int minSitesWithData;
-	GenotypeLikelihoods::TGenotypeProbabilities pGenotype; //P(g|pi, theta)
+	GenotypeLikelihoods::TGenotypeProbabilities _pGenotype; //P(g|pi, theta)
 	Theta theta;
 	bool extraVerbose;
 
 	void initDataStorage();
 	void readParametersRegardingInitialSearch(coretools::TParameters & params);
-	void fillPGenotype(GenotypeLikelihoods::TGenotypeProbabilities & pGeno, double expTheta, const TBaseProbabilities & baseFrequencies);
-	void fillPGenotype(GenotypeLikelihoods::TGenotypeProbabilities & pGeno, const Theta & thisTheta);
 
 	void findGoodStartingTheta(TThetaEstimatorData* thisData, Theta & thisTheta, std::string tag);
 
@@ -125,8 +127,7 @@ public:
 
 	TThetaEstimatorData* pointerToDataContainer(){ return data; };
 
-	void fillPGenotype(GenotypeLikelihoods::TGenotypeProbabilities & pGeno){ fillPGenotype(pGeno, theta); };
-
+	GenotypeLikelihoods::TGenotypeProbabilities pGenotype(){ return ::GenotypeLikelihoods::getPGenotype(theta); };
 };
 
 //---------------------------------------------------------------
@@ -145,7 +146,7 @@ private:
 	//tmp vectors
 	GenotypeLikelihoods::TGenotypeData P_G; // see paper
 
-	double _calcFisherInfo(const TGenotypeProbabilities & _pGenotype, const TGenotypeData deriv_pGenotype);
+	double _calcFisherInfo(const TGenotypeProbabilities & pGenotype, const TGenotypeData deriv_pGenotype);
 	bool _NRAllParams();
 	void _NROnlyTheta();
 	void _runEMForTheta();

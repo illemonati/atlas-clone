@@ -21,11 +21,13 @@
 #include "TGenotypeData.h"
 #include "TGenotypeLikelihoodCalculator.h"
 #include "TGenotypePrior.h"
+#include "TMassFunction.h"
 #include "TRandomGenerator.h"
 #include "TSequencedBase.h"
 #include "TSite.h"
 #include "TSiteSubset.h"
 #include "TStrongArray.h"
+#include "TMassFunction.h"
 #include "TVCFFields.h"
 #include "TWindow.h"
 #include "probability.h"
@@ -42,8 +44,8 @@ using genometools::Base;
 using namespace coretools::str;
 
 namespace /*anonymous*/ {
-template<typename Type, typename Index, size_t N>
-auto sampleFirstSecond(const coretools::TStrongArray<Type, Index, N> &c) {
+template<template<typename, typename, size_t, typename...> typename Container, typename Type, typename Index, size_t N, typename... Args>
+auto sampleFirstSecond(const Container<Type, Index, N, Args...> &c) {
 	using coretools::instances::randomGenerator;
 	std::array<Index, N> is;
 	std::iota(is.begin(), is.end(), Index{});

@@ -65,11 +65,7 @@ THaplotypeSimulator::THaplotypeSimulator()
 	    parameters().getParameterWithDefault<std::string>("baseFreq", "0.25,0.25,0.25,0.25"), freq, ',');
 	if (freq.size() != 4) throw "baseFreq vector must have size = 4!";
 
-	const auto sum     = std::accumulate(freq.begin(), freq.end(), 0.);
-	_baseFreq[Base::A] = freq[0] / sum;
-	_baseFreq[Base::C] = freq[1] / sum;
-	_baseFreq[Base::G] = freq[2] / sum;
-	_baseFreq[Base::T] = freq[3] / sum;
+	_baseFreq = GenotypeLikelihoods::TBaseProbabilities{freq};
 
 	logfile().list("Simulating with base frequencies " + impl::toString(_baseFreq));
 

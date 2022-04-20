@@ -53,7 +53,7 @@ void TPSMCInput::_handleWindow(){
 	_logfile->listFlushTime("Estimating heterozygosity status ...");
 
 	//calc prior probabilities on Genotypes
-	_thetaEstimator->fillPGenotype(_prior);
+	_prior = _thetaEstimator->pGenotype();
 
 	//estimating base frequencies
 	_thetaEstimator->setBaseFreq( _window.estimateBaseFrequencies() );

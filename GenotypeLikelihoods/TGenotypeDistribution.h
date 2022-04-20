@@ -18,22 +18,18 @@ namespace GenotypeLikelihoods{
 // Base class.
 //-------------------------------------------
 
+TBaseProbabilities fillBaseFrequences(genometools::Genotype genotype);
+
 class TGenotypeDistribution{
 protected:
-
 	TBaseProbabilities _baseFrequencies; //reflects expected base frequencies under the model
 	TGenotypeProbabilities _genotypeFrequencies;
 
 public:
-	TGenotypeDistribution(){};
-	virtual ~TGenotypeDistribution(){};
-
-	virtual void reset(){};
+	virtual ~TGenotypeDistribution() = default;
 
 	const TBaseProbabilities& baseFrequencies(){ return _baseFrequencies; };
 	const TGenotypeProbabilities& genotypeFrequencies(){ return _genotypeFrequencies; };
-
-	void fillBaseFrequences(TBaseProbabilities & baseFreq, const genometools::Genotype genotype);
 };
 
 //-------------------------------------------
@@ -42,12 +38,8 @@ public:
 //-------------------------------------------
 
 class TGenotypeDistribution_haploid:public TGenotypeDistribution{
-private:
-
 public:
 	TGenotypeDistribution_haploid();
-
-	void reset() override;
 };
 
 }; //end namespace

@@ -19,7 +19,7 @@ namespace GenotypeLikelihoods {
 //---------------------------------------------------------------------------------
 class TGenotypePrior {
 protected:
-	TGenotypeProbabilities genotypePrior{0.1};
+	TGenotypeProbabilities genotypePrior{};
 public:
 	virtual ~TGenotypePrior() = default;
 
@@ -41,11 +41,10 @@ public:
 		thetaEstimator->setTheta(theta);
 		equalBaseFreq = EqualBaseFreq;
 		if (equalBaseFreq) {
-			GenotypeLikelihoods::TBaseProbabilities freq;
-			freq.fill(0.25);
+			GenotypeLikelihoods::TBaseProbabilities freq{};
 			thetaEstimator->setBaseFreq(freq);
 		}
-		thetaEstimator->fillPGenotype(genotypePrior);
+		genotypePrior = thetaEstimator->pGenotype();
 	};
 
 	~TGenotypePriorFixedTheta() { delete thetaEstimator; };
@@ -60,7 +59,7 @@ public:
 			logfile->conclude("Estimated base frequencies: " + coretools::str::toString(freq[Base::A]) + ", " +
 					  coretools::str::toString(freq[Base::C]) + ", " + coretools::str::toString(freq[Base::G]) +
 					  ", " + coretools::str::toString(freq[Base::T]));
-			thetaEstimator->fillPGenotype(genotypePrior);
+			genotypePrior = thetaEstimator->pGenotype();
 		}
 	};
 };
@@ -116,15 +115,14 @@ public:
 			if (hasDefaultTheta) {
 				logfile->conclude("Will use a default theta of " + coretools::str::toString(defaultTheta) + ".");
 				thetaEstimator->setTheta(defaultTheta);
-				GenotypeLikelihoods::TBaseProbabilities freq;
-				freq.fill(0.25);
+				GenotypeLikelihoods::TBaseProbabilities freq{};
 				thetaEstimator->setBaseFreq(freq);
 			} else
 				throw "Please increase window size or provide a default theta!";
 		}
 
 		// update prior
-		thetaEstimator->fillPGenotype(genotypePrior);
+		genotypePrior = thetaEstimator->pGenotype();
 	};
 };
 
