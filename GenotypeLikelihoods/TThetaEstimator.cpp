@@ -287,6 +287,7 @@ double TThetaEstimator::_calcFisherInfo(const TGenotypeProbabilities & pGenotype
 
 bool TThetaEstimator::_NRAllParams(){
 	using namespace genometools;
+	using coretools::Probability;
 	//calculate substitution probabilities
 	_pGenotype = getPGenotype(theta);
 
@@ -343,10 +344,12 @@ bool TThetaEstimator::_NRAllParams(){
 		mu = data->sizeWithData();
 
 		if(solve(JxF, Jacobian, F)){
-			baseFreq = TBaseProbabilities(baseFreq, JxF, std::minus<>());
+			//baseFreq = TBaseProbabilities(baseFreq, JxF, std::minus<>());
 			/*for(Base k = Base::min; k < Base::max; ++k){
 				baseFreq[k] = baseFreq[k].get() - JxF(index(k));
 				}*/
+			baseFreq.for_each_index(
+			    [&JxF](Probability p, Base i) { return (Probability)p.get() - JxF(index(i)); });
 			rho -= JxF(4);
 			mu -= JxF(5);
 
