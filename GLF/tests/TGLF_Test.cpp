@@ -190,7 +190,7 @@ TEST_F(TGLF_Test_WriteRead, chromosomes) {
 }
 
 void normalizeByMax_Diploid(GenotypeLikelihoods::TGenotypeLikelihoods &genotypeLikelihoods) {
-	GenotypeLikelihoods::normalize(genotypeLikelihoods, *std::max_element(genotypeLikelihoods.begin(), genotypeLikelihoods.end()));
+	coretools::normalize(genotypeLikelihoods, *std::max_element(genotypeLikelihoods.begin(), genotypeLikelihoods.end()));
 }
 
 void normalizeByMax_Haploid(GenotypeLikelihoods::TGenotypeLikelihoods &genotypeLikelihoods) {
