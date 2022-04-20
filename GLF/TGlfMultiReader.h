@@ -202,7 +202,7 @@ public:
 //----------------------------------------------------
 class TGlfMultiReader {
 private:
-	uint8_t numGLFs = 0;
+	size_t numGLFs = 0;
 	std::vector<std::string> GLFNames;
 	std::vector<TGlfReader> GLFs;
 	bool readersOpened = false;
