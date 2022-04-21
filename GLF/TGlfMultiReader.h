@@ -45,11 +45,11 @@ public:
 
 	constexpr bool hasData() const noexcept { return _glf; };
 	constexpr uint16_t depth() const noexcept { return hasData() * _depth; };
-	constexpr bool isHaploid() const noexcept { return hasData() ? _glf->isHaploid() : _isHaploid; };
+	constexpr bool isHaploid() const noexcept { return hasData() ? _glf->type == Ploidy::haploid : _isHaploid; };
 
 	template<bool HasData>
 	constexpr bool isHaploid() const noexcept {
-		if constexpr (HasData) return _glf->isHaploid();
+		if constexpr (HasData) return _glf->type == Ploidy::haploid;
 		else return _isHaploid;
 	}
 

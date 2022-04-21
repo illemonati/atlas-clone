@@ -133,14 +133,14 @@ void TGlfWriter::writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual,
 		if (genotypeLikelihoods[Genotype::TT] > maxLik) maxLik = genotypeLikelihoods[Genotype::TT];
 
 		// normalize and scale to uint16
-		glfValues.setHaploid();
+		glfValues.type = Ploidy::haploid;
 		glfValues[Base::A] = genotypeLikelihoods[Genotype::AA] / maxLik;
 		glfValues[Base::C] = genotypeLikelihoods[Genotype::CC] / maxLik;
 		glfValues[Base::G] = genotypeLikelihoods[Genotype::GG] / maxLik;
 		glfValues[Base::T] = genotypeLikelihoods[Genotype::TT] / maxLik;
 	} else {
 		// ploidy is 2
-		glfValues.setDiploid();
+		glfValues.type = Ploidy::diploid;
 		coretools::Probability maxLik = *std::max_element(genotypeLikelihoods.begin(), genotypeLikelihoods.end());
 
 		// normalize and scale to genometools::HighPrecisionPhredIntProbability
@@ -245,7 +245,7 @@ void TGlfReader::_readSNPRecord() {
 	// genotype likelihoods
 	_read(_genotypeLikelihoodsGLF.data(),
 	      _curChr.numLikelihoodValues() * sizeof(genometools::HighPrecisionPhredIntProbability));
-	_genotypeLikelihoodsGLF.setHaploid(_curChr.isHaploid());
+	_genotypeLikelihoodsGLF.type = _curChr.isHaploid() ? Ploidy::haploid : Ploidy::diploid;
 };
 
 void TGlfReader::setFilename(const std::string &Filename) { _filename = Filename; };

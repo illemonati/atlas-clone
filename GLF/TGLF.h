@@ -8,6 +8,7 @@
 #ifndef TGLF_H_
 #define TGLF_H_
 
+#include <cstdint>
 #include <stdint.h>
 #include <zlib.h>
 #include <array>
@@ -18,6 +19,7 @@
 #include <vector>
 #include "GenotypeTypes.h"
 #include "PhredProbabilityTypes.h"
+#include "TDualStrongArray.h"
 #include "TGenotypeData.h"
 #include "TParameters.h"
 #include "TTask.h"
@@ -25,58 +27,9 @@ namespace genometools { class TChromosome; }
 
 namespace GLF {
 
-struct TGLFLikelihoods {
-private:
-	std::array<genometools::HighPrecisionPhredIntProbability, 10> _likelihoods;
-	bool _isHaploid;
+enum class Ploidy : uint8_t { min = 0, haploid = min, diploid = 1, max = 2 };
 
-public:
-	constexpr TGLFLikelihoods(bool isHaploid=false, genometools::HighPrecisionPhredIntProbability v = genometools::HighPrecisionPhredIntProbability::highest()) :_likelihoods{v, v, v, v, v, v, v, v, v, v}, _isHaploid(isHaploid) {}
-
-	constexpr void setHaploid(bool isHaploid = true) noexcept {_isHaploid = isHaploid;}
-	constexpr void setDiploid(bool isDiploid = true) noexcept {_isHaploid = !isDiploid;}
-
-	constexpr genometools::HighPrecisionPhredIntProbability operator[](genometools::Base b) const noexcept {
-		//if (!_isHaploid) throw "Using Base access but likelihoods are haploid";
-		assert(_isHaploid);
-		return _likelihoods[genometools::index(b)];
-	}
-	constexpr genometools::HighPrecisionPhredIntProbability &operator[](genometools::Base b) noexcept {
-		//if (!_isHaploid) throw "Using Base access but likelihoods are haploid";
-		assert(_isHaploid);
-		return _likelihoods[genometools::index(b)];
-	}
-
-	constexpr genometools::HighPrecisionPhredIntProbability operator[](genometools::Genotype g) const noexcept {
-		//if (_isHaploid) throw "Using Genotype access but likelihoods are diploid";
-		assert(!_isHaploid);
-		return _likelihoods[genometools::index(g)];
-	}
-	constexpr genometools::HighPrecisionPhredIntProbability &operator[](genometools::Genotype g) noexcept {
-		//if (_isHaploid) throw "Using Genotype access but likelihoods are diploid";
-		assert(!_isHaploid);
-		return _likelihoods[genometools::index(g)];
-	}
-
-	constexpr void fill(genometools::HighPrecisionPhredIntProbability p) {
-		for (auto & l: _likelihoods) l = p;
-	}
-
-	constexpr bool isHaploid() const noexcept {return _isHaploid;}
-	constexpr bool isDiploid() const noexcept {return !_isHaploid;}
-
-	constexpr genometools::HighPrecisionPhredIntProbability *data() noexcept { return _likelihoods.data(); }
-	constexpr const genometools::HighPrecisionPhredIntProbability *data() const noexcept { return _likelihoods.data(); }
-
-	constexpr auto begin() noexcept {return _likelihoods.begin();}
-	constexpr auto end() noexcept {return _isHaploid ? _likelihoods.begin() + 4 : _likelihoods.end();}
-
-	constexpr auto begin() const noexcept {return _likelihoods.begin();}
-	constexpr auto end() const noexcept {return _isHaploid ? _likelihoods.begin() + 4 : _likelihoods.end();}
-
-	constexpr auto cbegin() const noexcept {return _likelihoods.cbegin();}
-	constexpr auto cend() const noexcept {return _isHaploid ? _likelihoods.begin() + 4 : _likelihoods.cend();}
-};
+using TGLFLikelihoods = coretools::TDualStrongArray<genometools::HighPrecisionPhredIntProbability, genometools::Base, genometools::Genotype, 4, 10, Ploidy>;
 
 //----------------------------------------------------
 // TGlfChromosome
