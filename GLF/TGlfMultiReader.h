@@ -19,6 +19,7 @@
 #include <vector>
 #include "GenotypeTypes.h"
 #include "PhredProbabilityTypes.h"
+#include "TBitSet.h"
 #include "TFastaBuffer.h"
 #include "TGLF.h"
 #include "TGenomePosition.h"
@@ -30,28 +31,44 @@ namespace GLF {
 //----------------------------------------------------
 // TMultiGLFDataSample
 //----------------------------------------------------
-
 class TMultiGLFDataSample {
 private:
-	const TGLFLikelihoods *_glf = nullptr; // points to data TGlfReader
-	uint16_t _depth_or_haploid  = 0;
+	const TGLFLikelihoods *_glf;
+	union {
+		uint16_t _depth;
+		bool _isHaploid;
+	};
 public:
-	constexpr TMultiGLFDataSample() = default;
-	constexpr TMultiGLFDataSample(bool isHaploid) : _depth_or_haploid(isHaploid) {}
-	constexpr TMultiGLFDataSample(const TGLFLikelihoods *GLs, uint16_t Depth) : _glf(GLs), _depth_or_haploid(Depth){};
+	TMultiGLFDataSample() = default;
+	constexpr TMultiGLFDataSample(bool isHaploid) : _glf(nullptr), _isHaploid{isHaploid} {}
+	constexpr TMultiGLFDataSample(const TGLFLikelihoods *GLs, uint16_t Depth) : _glf(GLs), _depth{Depth}{};
 
-	constexpr bool hasData() const noexcept { return _glf != nullptr; };
-	constexpr uint16_t depth() const noexcept { return hasData() ? _depth_or_haploid : 0; };
-	constexpr bool isHaploid() const noexcept { return hasData() ? _glf->isHaploid() : _depth_or_haploid; };
+	constexpr bool hasData() const noexcept { return _glf; };
+	constexpr uint16_t depth() const noexcept { return hasData() * _depth; };
+	constexpr bool isHaploid() const noexcept { return hasData() ? _glf->isHaploid() : _isHaploid; };
 
-	constexpr const genometools::HighPrecisionPhredIntProbability operator[](const genometools::Genotype &G) const {
-		if (!hasData()) { return genometools::HighPrecisionPhredIntProbability::highest(); }
-		return (*_glf)[G]; // throws if haploid
+	template<bool HasData>
+	constexpr bool isHaploid() const noexcept {
+		if constexpr (HasData) return _glf->isHaploid();
+		else return _isHaploid;
+	}
+
+	constexpr const genometools::HighPrecisionPhredIntProbability get_with_data(const genometools::Genotype &G) const noexcept {
+		return (*_glf)[G]; // asserts if haploid
 	};
 
-	constexpr const genometools::HighPrecisionPhredIntProbability operator[](const genometools::Base &B) const {
-		if (!hasData()) { return genometools::HighPrecisionPhredIntProbability::highest(); }
-		return (*_glf)[B];// throws if diploid
+	constexpr const genometools::HighPrecisionPhredIntProbability get_with_data(const genometools::Base &B) const noexcept {
+		return (*_glf)[B];// asserts if diploid
+	};
+
+	constexpr const genometools::HighPrecisionPhredIntProbability operator[](const genometools::Genotype &G) const noexcept {
+		if (!_glf) { return genometools::HighPrecisionPhredIntProbability::highest(); }
+		return get_with_data(G);
+	};
+
+	constexpr const genometools::HighPrecisionPhredIntProbability operator[](const genometools::Base &B) const noexcept {
+		if (!_glf) { return genometools::HighPrecisionPhredIntProbability::highest(); }
+		return get_with_data(B);
 	};
 };
 
@@ -60,37 +77,31 @@ public:
 //-------------------------------------
 class TMultiGLFDataSampleOneAllelicCombination {
 private:
-	bool _isMissing = true;
-	bool _isHaploid = false;
-	std::array<genometools::HighPrecisionPhredIntProbability, 3> _GLs;
+	enum : uint8_t {NOTMISSING_DIPLOID = 0, MISSING_DIPLOID = 1, NOTMISSING_HAPLOID = 2, MISSING_HAPLOID = 3};
+
+	coretools::TBitSet<2> _flags{MISSING_DIPLOID};
+	std::array<genometools::HighPrecisionPhredIntProbability, 3> _GLs{genometools::HighPrecisionPhredIntProbability::highest(), genometools::HighPrecisionPhredIntProbability::highest(), genometools::HighPrecisionPhredIntProbability::highest()};
 
 public:
-	constexpr TMultiGLFDataSampleOneAllelicCombination(bool isHaploid=false) : _isHaploid(isHaploid) {}
+	constexpr TMultiGLFDataSampleOneAllelicCombination(bool isHaploid=false) : _flags(MISSING_DIPLOID | isHaploid * MISSING_HAPLOID){}
 
 	constexpr TMultiGLFDataSampleOneAllelicCombination(genometools::HighPrecisionPhredIntProbability homoFirst,
 							   genometools::HighPrecisionPhredIntProbability het,
 							   genometools::HighPrecisionPhredIntProbability homoSecond)
-	    : _isMissing(false), _isHaploid(false), _GLs({homoFirst, het, homoSecond}) {}
+		: _flags(NOTMISSING_DIPLOID), _GLs({homoFirst, het, homoSecond})  {}
 
 	constexpr TMultiGLFDataSampleOneAllelicCombination(genometools::HighPrecisionPhredIntProbability first,
 							   genometools::HighPrecisionPhredIntProbability second)
-	    : _isMissing(false), _isHaploid(true), _GLs({first, second, genometools::HighPrecisionPhredIntProbability{}}) {}
+		:  _flags(NOTMISSING_HAPLOID), _GLs({first, second, genometools::HighPrecisionPhredIntProbability::highest()})  {}
 
-	bool isMissing() const { return _isMissing; };
-	bool isHaploid() const { return _isHaploid; };
+	constexpr bool isMissing() const noexcept { return _flags.get<0>();}
+	constexpr bool isHaploid() const noexcept { return _flags.get<1>();}
 
 	constexpr genometools::HighPrecisionPhredIntProbability
-	operator[](genometools::BiallelicGenotype Genotype) const {
-		// check
-		if (_isHaploid && !genometools::isHaploid(Genotype)) {
-		    throw std::runtime_error((std::string) __PRETTY_FUNCTION__ + ": sample is haploid!");
-		}
-		if (!_isHaploid && !genometools::isDiploid(Genotype)) {
-		    throw std::runtime_error((std::string) __PRETTY_FUNCTION__ + ": sample is diploid!");
-		}
-
-		// return
-		if (_isMissing) { return genometools::HighPrecisionPhredIntProbability::highest(); }
+	operator[](genometools::BiallelicGenotype Genotype) const noexcept {
+		assert(isHaploid() && !genometools::isHaploid(Genotype));
+		assert(!isHaploid() && genometools::isHaploid(Genotype));
+		//if (isMissing()) { return genometools::HighPrecisionPhredIntProbability::highest(); }
 		return _GLs[genometools::altAlleleCounts(Genotype)];
 	};
 };
@@ -99,7 +110,7 @@ using TMultiGLFDataOneAllelicCombination = std::vector<TMultiGLFDataSampleOneAll
 using TMultiGLFData                      = std::vector<TMultiGLFDataSample>;
 
 void fill(TMultiGLFDataOneAllelicCombination &storage, const TMultiGLFData &samples,
-	  const genometools::AllelicCombination &alleleicCombination);
+	  genometools::AllelicCombination alleleicCombination);
 
 //----------------------------------------------------
 // TGlfMultiReaderVcfLocusDefinition
@@ -227,7 +238,7 @@ private:
 
 	void _openGLFs();
 	int _getGLFIndexFromName(const std::string &name) const;
-	void _setActive(const int index);
+	void _setActive(size_t index);
 	void _setAllInactive();
 	void _prepareParsing();
 	bool _jumpToNextPositionWithData();

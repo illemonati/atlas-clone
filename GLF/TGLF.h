@@ -33,31 +33,28 @@ private:
 public:
 	constexpr TGLFLikelihoods(bool isHaploid=false, genometools::HighPrecisionPhredIntProbability v = genometools::HighPrecisionPhredIntProbability::highest()) :_likelihoods{v, v, v, v, v, v, v, v, v, v}, _isHaploid(isHaploid) {}
 
-	constexpr TGLFLikelihoods(const TGLFLikelihoods& other) = default;
-	constexpr TGLFLikelihoods(TGLFLikelihoods&& other) = default;
-	constexpr TGLFLikelihoods& operator=(const TGLFLikelihoods& other) = default;
-	constexpr TGLFLikelihoods& operator=(TGLFLikelihoods&& other) = default;
-	~TGLFLikelihoods() = default;
-
-
 	constexpr void setHaploid(bool isHaploid = true) noexcept {_isHaploid = isHaploid;}
 	constexpr void setDiploid(bool isDiploid = true) noexcept {_isHaploid = !isDiploid;}
 
-	constexpr genometools::HighPrecisionPhredIntProbability operator[](genometools::Base b) const {
-		if (!_isHaploid) throw "Using Base access but likelihoods are haploid";
+	constexpr genometools::HighPrecisionPhredIntProbability operator[](genometools::Base b) const noexcept {
+		//if (!_isHaploid) throw "Using Base access but likelihoods are haploid";
+		assert(_isHaploid);
 		return _likelihoods[genometools::index(b)];
 	}
-	constexpr genometools::HighPrecisionPhredIntProbability &operator[](genometools::Base b) {
-		if (!_isHaploid) throw "Using Base access but likelihoods are haploid";
+	constexpr genometools::HighPrecisionPhredIntProbability &operator[](genometools::Base b) noexcept {
+		//if (!_isHaploid) throw "Using Base access but likelihoods are haploid";
+		assert(_isHaploid);
 		return _likelihoods[genometools::index(b)];
 	}
 
-	constexpr genometools::HighPrecisionPhredIntProbability operator[](genometools::Genotype g) const {
-		if (_isHaploid) throw "Using Genotype access but likelihoods are diploid";
+	constexpr genometools::HighPrecisionPhredIntProbability operator[](genometools::Genotype g) const noexcept {
+		//if (_isHaploid) throw "Using Genotype access but likelihoods are diploid";
+		assert(!_isHaploid);
 		return _likelihoods[genometools::index(g)];
 	}
-	constexpr genometools::HighPrecisionPhredIntProbability &operator[](genometools::Genotype g) {
-		if (_isHaploid) throw "Using Genotype access but likelihoods are diploid";
+	constexpr genometools::HighPrecisionPhredIntProbability &operator[](genometools::Genotype g) noexcept {
+		//if (_isHaploid) throw "Using Genotype access but likelihoods are diploid";
+		assert(!_isHaploid);
 		return _likelihoods[genometools::index(g)];
 	}
 

@@ -25,31 +25,20 @@
 namespace GLF {
 using coretools::instances::logfile;
 using coretools::instances::parameters;
-using coretools::instances::randomGenerator;
 using genometools::HighPrecisionPhredIntProbability;
 
 using coretools::str::toString;
 
 void fill(TMultiGLFDataOneAllelicCombination &storage, const TMultiGLFData &samples,
-	  const genometools::AllelicCombination &alleleicCombination) {
+	  genometools::AllelicCombination alleleicCombination) {
 	using namespace genometools;
 	storage.clear();
 	storage.reserve(samples.size());
 	for (const auto &s : samples) {
-		if (s.isHaploid()) {
-			if (s.hasData()) {
-				storage.emplace_back(s[first(alleleicCombination)], s[second(alleleicCombination)]);
-			} else {
-				storage.emplace_back(true);
-			}
-		} else {
-			if (s.hasData()) {
-				storage.emplace_back(s[homoFirst(alleleicCombination)], s[het(alleleicCombination)],
-						     s[homoSecond(alleleicCombination)]);
-			} else {
-				storage.emplace_back(false);
-			}
-		}
+		if (!s.hasData()) storage.emplace_back(s.isHaploid<false>());
+		else if (s.isHaploid<true>()) storage.emplace_back(s.get_with_data(first(alleleicCombination)), s.get_with_data(second(alleleicCombination)));
+		else storage.emplace_back(s.get_with_data(homoFirst(alleleicCombination)), s.get_with_data(het(alleleicCombination)),
+					  s.get_with_data(homoSecond(alleleicCombination)));
 	}
 };
 
@@ -257,7 +246,7 @@ int TGlfMultiReader::_getGLFIndexFromName(const std::string &name) const {
 	return std::distance(GLFNames.begin(), res);
 };
 
-void TGlfMultiReader::_setActive(const int index) {
+void TGlfMultiReader::_setActive(size_t index) {
 	if (index >= numGLFs) throw "Index out of range in TGlfMultiReader::setActive(const int index)!";
 	if (!GLFIsActive[index]) {
 		GLFIsActive[index] = true;
@@ -393,7 +382,7 @@ void TGlfMultiReader::setActive(std::vector<std::string> &names) {
 
 void TGlfMultiReader::setAllActive() {
 	_setAllInactive();
-	for (int i = 0; i < numGLFs; ++i) _setActive(i);
+	for (size_t i = 0; i < numGLFs; ++i) _setActive(i);
 	_prepareParsing();
 };
 
