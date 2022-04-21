@@ -101,7 +101,7 @@ TEST(TBed_baseTest, addChromosomes_throw){
     chrs.appendChromosome("chr3", 10); // add chr3 twice -> different refID's
 
     // add it to bedBase
-    EXPECT_THROW(bedBase.addChromosomes(chrs), std::runtime_error);
+    EXPECT_THROW(bedBase.addChromosomes(chrs), coretools::err::TDevError);
 }
 
 TEST(TBed_baseTest, addChromosomes_sameRefID_dontthrow){
@@ -157,8 +157,8 @@ TEST(TBed_baseTest, getters){
     EXPECT_FALSE(bedBase.hasWindowsOnChr(10));
 
     // invalid requests
-    EXPECT_THROW(bedBase.getRefID("1"), std::runtime_error);
-    EXPECT_THROW(bedBase.getChromosomeName(5), std::runtime_error);
+    EXPECT_THROW(bedBase.getRefID("1"), coretools::err::TDevError);
+    EXPECT_THROW(bedBase.getChromosomeName(5), coretools::err::TDevError);
 }
 
 //-------------------------------------------------------------
@@ -171,7 +171,7 @@ TEST(TBedTest, add_TGenomeWindow_otherChr){
     bed.addChromosome("chr1");
 
     // create window which has a different chromosome and add -> throws
-    EXPECT_THROW(bed.add(genometools::TGenomeWindow(1, 10, 20)), std::runtime_error);
+    EXPECT_THROW(bed.add(genometools::TGenomeWindow(1, 10, 20)), coretools::err::TDevError);
 }
 
 TEST(TBedTest, add_TGenomeWindow_overlapsOneDownstream){
@@ -419,7 +419,7 @@ TEST(TBedTest, add_RefID_pos){
     bed.add(0, 5);
     bed.add(0, 20);
     bed.add(0, 41);
-    EXPECT_THROW(bed.add(1, 10), std::runtime_error);
+    EXPECT_THROW(bed.add(1, 10), coretools::err::TDevError);
 
     // check if windows were merged
     EXPECT_TRUE(bed.exists(genometools::TGenomeWindow(0, 5, 6)));

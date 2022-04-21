@@ -93,7 +93,7 @@ TEST(TGenomePositionTest, operator_Minus_otherObject){
 
     // other chromosomes -> throw
     pos2.move(1, 100);
-    EXPECT_THROW(pos1 - pos2, std::runtime_error);
+    EXPECT_THROW(pos1 - pos2, coretools::err::TDevError);
 }
 
 TEST(TGenomePositionTest, operator_PlusEq){
@@ -412,9 +412,9 @@ TEST(TGenomeWindowTest, move_refId_from_to){
     EXPECT_EQ(window.toOnChr(), 11);
 
     // to == from -> throw
-    EXPECT_THROW(window.move(1, 10, 10), std::runtime_error);
+    EXPECT_THROW(window.move(1, 10, 10), coretools::err::TDevError);
     // to > from -> throw
-    EXPECT_THROW(window.move(1, 20, 10), std::runtime_error);
+    EXPECT_THROW(window.move(1, 20, 10), coretools::err::TDevError);
 }
 
 TEST(TGenomeWindowTest, move_from_length){
@@ -442,15 +442,15 @@ TEST(TGenomeWindowTest, move_from_to){
 
     // not same chr -> throw
     to.move(2, 11);
-    EXPECT_THROW(window.move(from, to), std::runtime_error);
+    EXPECT_THROW(window.move(from, to), coretools::err::TDevError);
 
     // to == from -> throw
     to.move(1, 10);
-    EXPECT_THROW(window.move(from, to), std::runtime_error);
+    EXPECT_THROW(window.move(from, to), coretools::err::TDevError);
 
     // to > from -> throw
     to.move(1, 9);
-    EXPECT_THROW(window.move(from, to), std::runtime_error);
+    EXPECT_THROW(window.move(from, to), coretools::err::TDevError);
 }
 
 TEST(TGenomeWindowTest, move_otherWindow){
@@ -914,11 +914,11 @@ TEST(TGenomeWindowTest, merge){
 
     // positions don't overlap -> nothing happens
     window2.move(1, 5, 9);
-    EXPECT_THROW(merge(window1, window2), std::runtime_error);
+    EXPECT_THROW(merge(window1, window2), coretools::err::TDevError);
 
     // chromosome is different -> nothing happens
     window2.move(2, 19, 25);
-    EXPECT_THROW(merge(window1, window2), std::runtime_error);
+    EXPECT_THROW(merge(window1, window2), coretools::err::TDevError);
 }
 
 TEST(TGenomeWindowTest, operator_stream){
