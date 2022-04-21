@@ -349,7 +349,7 @@ bool TThetaEstimator::_NRAllParams(){
 				baseFreq[k] = baseFreq[k].get() - JxF(index(k));
 				}*/
 			baseFreq.for_each_index(
-			    [&JxF](Probability p, Base i) { return (Probability)p.get() - JxF(index(i)); });
+				[&JxF](Probability p, Base i) { return static_cast<Probability>(p.get() - JxF(index(i))); });
 			rho -= JxF(4);
 			mu -= JxF(5);
 
