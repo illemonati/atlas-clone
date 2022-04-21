@@ -1,3 +1,5 @@
+cmake_minimum_required(VERSION 3.14)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif()
@@ -19,7 +21,6 @@ file(GLOB CORE_SOURCES CONFIGURE_DEPENDS
   GLF/*.h GLF/*.cpp
   PopulationTools/*.h PopulationTools/*.cpp
   Simulations/*.h Simulations/*.cpp
-  #  TestUtilities/*.h TestUtilities/*.cpp
   VCF/*.h VCF/*.cpp)
 
 find_package(ZLIB REQUIRED)
@@ -62,7 +63,6 @@ target_include_directories(${PROJECT_NAME} PRIVATE
   GLF
   PopulationTools
   Simulations
-#  TestUtilities
   VCF)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE BamTools BamTools-utils coretools stattools genometools ${ZLIB_LIBRARIES} ${ARMADILLO_LIBRARIES})
@@ -80,7 +80,6 @@ file(GLOB_RECURSE TEST_SOURCES CONFIGURE_DEPENDS
         GLF/tests/*.h GLF/tests/*.cpp
         PopulationTools/tests/*.h PopulationTools/tests/*.cpp
         Simulations/tests/*.h Simulations/tests/*.cpp
-#        TestUtilities/tests/*.h TestUtilities/tests/*.cpp
         VCF/tests/*.h VCF/tests/*.cpp)
 
 FetchContent_Declare(
@@ -88,7 +87,7 @@ FetchContent_Declare(
   GIT_REPOSITORY https://github.com/google/googletest.git
   GIT_TAG        main
 )
-#FetchContent_MakeAvailable(googletest)
+FetchContent_MakeAvailable(googletest)
 
 set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 option(gtest_disable_pthreads "Disable uses of pthreads in gtest." ON)
@@ -104,7 +103,6 @@ target_include_directories("${PROJECT_NAME}_unitTests" PRIVATE
         GLF
         PopulationTools
         Simulations
-#        TestUtilities
         VCF)
 
 target_link_libraries("${PROJECT_NAME}_unitTests" PRIVATE BamTools BamTools-utils coretools stattools genometools ${ZLIB_LIBRARIES} ${ARMADILLO_LIBRARIES} gtest_main gmock_main)
