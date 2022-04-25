@@ -30,13 +30,13 @@ find_package(Armadillo REQUIRED)
 include(FetchContent)
 FetchContent_Declare(coretools
         GIT_REPOSITORY    https://bitbucket.org/wegmannlab/coretools.git
-        GIT_TAG           8dc72b2
+        GIT_TAG           c43ece3
         SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/coretools"
         )
 
 FetchContent_Declare(stattools
         GIT_REPOSITORY    https://bitbucket.org/wegmannlab/stattools.git
-        GIT_TAG           835ab4a
+        GIT_TAG           6d2b6ea
         SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/stattools"
         )
 

@@ -38,12 +38,7 @@ TInbreedingEstimatorPrior::TInbreedingEstimatorPrior(stattools::TParameterTyped<
                                                      stattools::TParameterTyped<TypePModel, 1> *PModel,
                                                      const std::vector<double> &InitialEstimatesP)
     : _F(F), _p(P), _FModel(FModel), _pModel(PModel), _initialEstimatesP(InitialEstimatesP) {
-	_priorParameters.push_back(_F);
-	_priorParameters.push_back(_p);
-	_priorParameters.push_back(_FModel);
-	_priorParameters.push_back(_pModel);
-
-	this->_flagPriorParameters();
+	this->addPriorParameter({_F, _p, _FModel, _pModel});
 }
 
 std::string TInbreedingEstimatorPrior::name() const { return "inbreeding"; }
