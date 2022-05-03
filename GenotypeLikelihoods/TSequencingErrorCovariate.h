@@ -37,6 +37,7 @@ public:
 class TCovariate_quality : public TCovariate {
 private:
 	TRecalibrationEMQualityTransformationMap _qualityToLogit;
+
 public:
 	static inline const std::string name = "quality";
 
@@ -73,10 +74,13 @@ public:
 class TCovariate_context : public TCovariate {
 private:
 	static constexpr int numContext = 20;
+
 public:
 	static inline const std::string name = "context";
 
-	uint16_t extract(const BAM::TSequencedBase &base) const noexcept override { return genometools::index(base.context); }
+	uint16_t extract(const BAM::TSequencedBase &base) const noexcept override {
+		return genometools::index(base.context);
+	}
 
 	std::vector<uint16_t> range(const RecalEstimatorTools::TRecalDataTable &) const noexcept override {
 		return {numContext};

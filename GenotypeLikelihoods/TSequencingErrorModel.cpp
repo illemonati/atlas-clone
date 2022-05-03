@@ -221,7 +221,7 @@ TCovariate *covariate(const std::string &type) {
 
 TFunction *function(const std::string &functionString, const size_t FirstParameterIndex,
 			     TRecalibrationEMTransformationMap *transformationMap = nullptr) {
-	const auto [type, values, args] = parseModuleString(functionString);
+	const auto [type, args, values] = parseModuleString(functionString);
 	// are values provided?
 	if (values.empty())
 		throw "Failed to initialize recalibration covariate: missing [VALUES] in '" + functionString + "'!";
@@ -237,7 +237,7 @@ TFunction *function(const std::string &functionString, const size_t FirstParamet
 		    const RecalEstimatorTools::TRecalDataTable &dataTable, int v = 0,
 		    TRecalibrationEMTransformationMap *transformationMap = nullptr) {
 	// parse
-	const auto [type, values, args] = parseModuleString(functionString);
+	const auto [type, args, values] = parseModuleString(functionString);
 
 	// create function
 	if (type == TPolynomial::name) {
