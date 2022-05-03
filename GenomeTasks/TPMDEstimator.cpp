@@ -14,6 +14,7 @@
 #include "TAlignment.h"
 #include "TBamFile.h"
 #include "TGenotypeLikelihoodCalculator.h"
+#include "TParameters.h"
 #include "TReadGroups.h"
 
 namespace GenomeTasks{
@@ -82,7 +83,13 @@ void TPMDEstimator::estimatePMD(){
 	_logfile->endIndent();
 
 	// 3) estimate models
+	using coretools::instances::parameters;
 	GenotypeLikelihoods::TPostMortemDamage& pmd = _genotypeLikelihoodCalculator.getPostMortemDamageModelsMutable();
+	if(pmd.hasPMD()) {
+		if (!parameters().parameterExists("reestimate")) throw "not happy";
+	} else {
+		pmd.initialize(parameters().getParameterWithDefault("pmdModels", "doubleStrand:Empirical:Empirical"), _bamFile.readGroups(), _bamFile.readGroups());
+	}
 
 	//estimate all models with data, i.e. only one model per pool
 	for(auto& r : _readGroupMap->readGroupsInUse()){
