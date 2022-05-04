@@ -416,7 +416,7 @@ void TInbreedingEstimator::_readData() {
 		_likelihoods.doSaveTrueAlleleFrequencies();
 		logfile().list("Will save true allele frequencies for population likelihoods.");
 	}
-	_likelihoods.readData(parameters(), &logfile());
+	_likelihoods.readData();
 }
 
 void TInbreedingEstimator::runEstimation(coretools::TParameters &Parameters) {
