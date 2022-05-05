@@ -565,7 +565,7 @@ void TAlleleFreqEstimator::_openVCF(TParameters & Parameters){
 
 	//read samples
 	if(Parameters.parameterExists("samples"))
-		samples.readSamples(Parameters.getParameter<std::string>("samples"), logfile);
+		samples.readSamples(Parameters.getParameter<std::string>("samples"));
 
 	//create reader
 	bool saveAlleleFrequencies = true;

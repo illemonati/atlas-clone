@@ -78,7 +78,7 @@ namespace PopulationTools {
 
         //read list of provided samples
         if (parameters.parameterExists("samples")) {
-            _samples.readSamples(parameters.getParameter<std::string>("samples"), &logfile);
+            _samples.readSamples(parameters.getParameter<std::string>("samples"));
         }
         _initialized = true;
     }

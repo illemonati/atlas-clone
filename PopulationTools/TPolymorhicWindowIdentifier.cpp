@@ -37,7 +37,7 @@ void TPolymorhicWindowIdentifier::identifyPolymorphicWindows(TParameters & Param
 	//read samples
 	genometools::TPopulationSamples samples;
 	if(Parameters.parameterExists("samples"))
-		samples.readSamples(Parameters.getParameter<std::string>("samples"), logfile);
+		samples.readSamples(Parameters.getParameter<std::string>("samples"));
 
 	//open VCF reader
 	std::string vcfFilename = Parameters.getParameter<std::string>("vcf");

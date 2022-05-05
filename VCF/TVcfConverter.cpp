@@ -43,7 +43,7 @@ void TVcfConverter::readVcfAndWriteFile(TParameters & Params){
 
     // read samples
     if(Params.parameterExists("samples")) {
-        _samples.readSamples(Params.getParameter<std::string>("samples"), _logfile);
+        _samples.readSamples(Params.getParameter<std::string>("samples"));
     }
 
     // open VCF-reader

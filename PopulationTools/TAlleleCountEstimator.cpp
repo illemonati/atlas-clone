@@ -348,7 +348,7 @@ void TAlleleCountEstimator::estimateAlleleCounts(coretools::TParameters & params
 	//read samples
 	genometools::TPopulationSamples samples;
 	if(params.parameterExists("samples"))
-		samples.readSamples(params.getParameter<std::string>("samples"), logfile);
+		samples.readSamples(params.getParameter<std::string>("samples"));
 
 	//open VCF reader
 	std::string vcfFilename = params.getParameter<std::string>("vcf");
@@ -417,7 +417,7 @@ void TAlleleCountEstimator::writeAlleleFrequencyLikelihoods(coretools::TParamete
 	//read samples
 	genometools::TPopulationSamples samples;
 	if(params.parameterExists("samples"))
-		samples.readSamples(params.getParameter<std::string>("samples"), logfile);
+		samples.readSamples(params.getParameter<std::string>("samples"));
 
 	//open VCF reader
 	std::string vcfFilename = params.getParameter<std::string>("vcf");

@@ -322,7 +322,7 @@ THardyWeinbergTest::THardyWeinbergTest(TParameters & Parameters, TLog* logfile, 
 
 	//read samples
 	if(Parameters.parameterExists("samples")){
-		_samples.readSamples(Parameters.getParameter<std::string>("samples"), logfile);
+		_samples.readSamples(Parameters.getParameter<std::string>("samples"));
 	}
 
 	//open VCF
