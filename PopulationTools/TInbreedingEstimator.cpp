@@ -116,8 +116,8 @@ coretools::LogProbability TInbreedingEstimatorPrior::_calculateLLSumOverIndividu
 }
 
 void TInbreedingEstimatorPrior::updateParams() {
-	// get ptr to data
-	auto data = *this->_storageBelow[0];
+	// get reference to data
+	const auto &data = *this->_storageBelow[0];
 
 	_updateF(data);
 	for (size_t l = 0; l < _numLoci; l++) { _updateP(data, l); }
