@@ -98,8 +98,8 @@ protected:
 	void _setReadTrimming();
 
 	void _parseAlignment(BAM::TAlignment &alignment);
-	//void _traverseBAMPassedQC();
-	//virtual void _handleAlignment() = 0;
+	void _traverseBAMPassedQC();
+	virtual void _handleAlignment() = 0;
 public:
 	TGenome_parsed();
 };

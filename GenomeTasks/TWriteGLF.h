@@ -12,9 +12,6 @@
 
 #include "TGLF.h"
 #include "TGenome.h"
-#include "TLog.h"
-#include "TParameters.h"
-#include "TRandomGenerator.h"
 #include "TTask.h"
 
 namespace GenomeTasks{
@@ -26,10 +23,11 @@ class TWriteGLF:public TGenome_windows{
 private:
 	GLF::TGlfWriter _writer;
 	bool _printAll;
-	void _handleWindow();
+	void _handleWindow() override;
+	void _handleAlignment() override {}
 
 public:
-	TWriteGLF(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
+	TWriteGLF();
 	void writeGLF();
 };
 
@@ -41,8 +39,7 @@ public:
 	TTask_writeGLF(){ _explanation = "Writing genotype likelihoods to a GLF file"; };
 
 	void run(){
-		using namespace coretools::instances;
-		TWriteGLF writer(parameters(), &logfile(), &randomGenerator());
+		TWriteGLF writer;
 		writer.writeGLF();
 	}
 };

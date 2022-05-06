@@ -1208,7 +1208,7 @@ TCall::TCall():TGenome_windows(){
 	if(_caller->usesPrior()){
 		_initializeGenotypePrior();
 	} else {
-		_prior = new TGenotypePrior();
+		_prior = new TGenotypePriorUniform;
 	}
 	_caller->setPrior(_prior->getPointerToPrior());
 
@@ -1254,16 +1254,16 @@ void TCall::_initializeGenotypePrior(){
 				logfile().list("Will use equal base frequencies.");
 			else
 				logfile().list("Will estimate base frequencies individually for each window.");
-			_prior = new TGenotypePriorFixedTheta(theta, equalBaseFreq, &logfile(), &randomGenerator());
+			_prior = new TGenotypePriorFixedTheta(theta, equalBaseFreq);
 		} else {
 			logfile().list("Will use a prior based on theta and base frequencies estimated individually for each window.");
 			std::string thetaOuputName = _outputName + "_theta_estimates.txt.gz";
 			if(parameters().parameterExists("defaultTheta")){
 				double defaultTheta = parameters().getParameter<double>("defaultTheta");
 				logfile().list("Will use a default theta of ", defaultTheta, " for windows with limited data.");
-				_prior = new TGenotypePriorTheta(parameters(), thetaOuputName, defaultTheta, &logfile(), &randomGenerator());
+				_prior = new TGenotypePriorTheta(thetaOuputName, defaultTheta);
 			} else
-				_prior = new TGenotypePriorTheta(parameters(), thetaOuputName, &logfile(), &randomGenerator());
+				_prior = new TGenotypePriorTheta(thetaOuputName);
 		}
 	} else throw "Unknown prior type '" + priorMethod + "'!";
 	logfile().endIndent();
@@ -1301,7 +1301,7 @@ void TCall::_callKnwonAlleles(){
 void TCall::_handleWindow(){
 	if(_window.passedFilters() || _caller->printSitesWithNoData()){
 		//update genotype prior
-		_prior->update(_window, &logfile(), _genotypeLikelihoodCalculator);
+		_prior->update(_window, _genotypeLikelihoodCalculator);
 
 		//call
 		logfile().listFlushTime("Calling genotypes ...");

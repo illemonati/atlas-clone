@@ -13,9 +13,6 @@
 #include <vector>
 
 #include "TGenome.h"
-#include "TLog.h"
-#include "TParameters.h"
-#include "TRandomGenerator.h"
 #include "TTask.h"
 
 namespace GenomeTasks{
@@ -28,7 +25,7 @@ private:
 	std::vector<uint16_t> readGroupMap;
 
 public:
-	TReadGroupMerger(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
+	TReadGroupMerger();
 	void mergeReadGroups();
 };
 
@@ -40,8 +37,7 @@ public:
 	TTask_mergeReadGroups(){ _explanation = "Merging read groups in a BAM file"; };
 
 	void run(){
-		using namespace coretools::instances;
-		TReadGroupMerger readGroupMerger(parameters(), &logfile(), &randomGenerator());
+		TReadGroupMerger readGroupMerger;
 		readGroupMerger.mergeReadGroups();
 	};
 };

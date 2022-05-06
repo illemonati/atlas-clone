@@ -301,7 +301,8 @@ private:
 	void _initializeGenotypePrior();
 	void _call();
 	void _callKnwonAlleles();
-	void _handleWindow();
+	void _handleWindow() override;
+	void _handleAlignment() override {}
 
 public:
 	TCall();

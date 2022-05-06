@@ -39,7 +39,8 @@ class TCreateDepthBedMask:public TCreateBedMask{
 private:
 	uint32_t _maxDepthForMask;
 
-	void _handleWindow();
+	void _handleWindow() override;
+	void _handleAlignment() override {}
 public:
 	TCreateDepthBedMask();
 	void createDepthMask();
@@ -50,7 +51,8 @@ public:
 //--------------------------------------
 class TCreateInvariantBedMask:public TCreateBedMask{
 private:
-	void _handleWindow();
+	void _handleWindow() override;
+	void _handleAlignment() override {}
 
 	//tmp variables
 	GenotypeLikelihoods::TBaseCounts _baseCounts;
@@ -64,7 +66,7 @@ public:
 //--------------------------------------
 class TCreateVariantBedMask:public TCreateBedMask{
 private:
-	void _handleWindow();
+	void _handleWindow() override;
 
 	//tmp variables
 	GenotypeLikelihoods::TBaseCounts _baseCounts;

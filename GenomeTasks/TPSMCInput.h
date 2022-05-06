@@ -15,9 +15,6 @@
 
 #include "TGenome.h"
 #include "TGenotypeData.h"
-#include "TLog.h"
-#include "TParameters.h"
-#include "TRandomGenerator.h"
 #include "TTask.h"
 #include "TThetaEstimator.h"
 
@@ -41,9 +38,10 @@ private:
 	GenotypeLikelihoods::TGenotypeProbabilities _prior;
 	GenotypeLikelihoods::TGenotypeProbabilities _posterior;
 
-	void _handleWindow();
+	void _handleWindow() override;
+	void _handleAlignment() override {}
 public:
-	TPSMCInput(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
+	TPSMCInput();
 	void createPSMCInput();
 };
 
@@ -55,8 +53,7 @@ public:
 	TTask_PSMC(){ _explanation = "Generating a PSMC Input file probabilistically"; };
 
 	void run(){
-		using namespace coretools::instances;
-		TPSMCInput psmc(parameters(), &logfile(), &randomGenerator());
+		TPSMCInput psmc;
 		psmc.createPSMCInput();
 	};
 };

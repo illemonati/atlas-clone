@@ -13,6 +13,8 @@
 
 #include "TGenotypeData.h"
 #include "TGenotypeLikelihoodCalculator.h"
+#include "TLog.h"
+#include "TParameters.h"
 #include "TSite.h"
 #include "TThetaEstimator.h"
 #include "TWindow.h"
@@ -20,37 +22,40 @@
 
 namespace GenomeTasks{
 
+using coretools::instances::logfile;
+using coretools::instances::parameters;
+
 //----------------------------------------
 // TPSMCInput
 //----------------------------------------
-TPSMCInput::TPSMCInput(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator):TGenome_windows(Parameters, Logfile, RandomGenerator){
-	_theta = Parameters.getParameterWithDefault<double>("theta", 0.001);
-	_logfile->list("Using theta = ", _theta, ". (parameter 'theta')");
+TPSMCInput::TPSMCInput():TGenome_windows(){
+	_theta = parameters().getParameterWithDefault<double>("theta", 0.001);
+	logfile().list("Using theta = ", _theta, ". (parameter 'theta')");
 
-	_thetaEstimator = std::make_unique<GenotypeLikelihoods::TThetaEstimator>(_logfile, _randomGenerator);
+	_thetaEstimator = std::make_unique<GenotypeLikelihoods::TThetaEstimator>();
 	_thetaEstimator->setTheta(_theta);
 
-	_confidence = Parameters.getParameterWithDefault<double>("confidence", 0.99);
-	_logfile->list("Calling heterozygosity state with confidence > ", _confidence, ". (parameter 'confidence')");
+	_confidence = parameters().getParameterWithDefault<double>("confidence", 0.99);
+	logfile().list("Calling heterozygosity state with confidence > ", _confidence, ". (parameter 'confidence')");
 	_logConfidence = log(_confidence);
 	_logConfidenceHet = log(1.0 - _confidence);
 
 
-	_blockSize = Parameters.getParameterWithDefault<int>("block", 100);
+	_blockSize = parameters().getParameterWithDefault<int>("block", 100);
 	//make sure window size is a multiple of block length!
 	if(_windowSize % _blockSize != 0) throw "Window size is not a multiple of block size!";
 	_nBlocks = _window.size() / _blockSize;
 
 	//open output file
 	std::string outputFileName = _outputName + ".psmcfa";
-	_logfile->list("Writing PSMC input file to '" + outputFileName + "'.");
+	logfile().list("Writing PSMC input file to '" + outputFileName + "'.");
 	_out.open(outputFileName.c_str());
 	if(!_out) throw "Failed to open output file '" + outputFileName + "'!";
 	_nCharOnLine = 0;
 };
 
 void TPSMCInput::_handleWindow(){
-	_logfile->listFlushTime("Estimating heterozygosity status ...");
+	logfile().listFlushTime("Estimating heterozygosity status ...");
 
 	//calc prior probabilities on Genotypes
 	_prior = _thetaEstimator->pGenotype();
@@ -87,7 +92,7 @@ void TPSMCInput::_handleWindow(){
 		} else ++_nCharOnLine;
 	}
 
-	_logfile->doneTime();
+	logfile().doneTime();
 };
 
 void TPSMCInput::createPSMCInput(){

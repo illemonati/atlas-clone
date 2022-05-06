@@ -13,9 +13,6 @@
 
 #include "TBamFile.h"
 #include "TGenome.h"
-#include "TLog.h"
-#include "TParameters.h"
-#include "TRandomGenerator.h"
 #include "TTask.h"
 #include "probability.h"
 
@@ -31,10 +28,10 @@ private:
 	BAM::TOutputBamFile _outBam;
 
 	double _calculatePMDS();
-	void _handleAlignment();
+	void _handleAlignment() override;
 
 public:
-	TPMDSCalculator(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
+	TPMDSCalculator();
 	void calculatePMDS();
 };
 
@@ -49,8 +46,7 @@ public:
 	};
 
 	void run(){
-		using namespace coretools::instances;
-		TPMDSCalculator calculator(parameters(), &logfile(), &randomGenerator());
+		TPMDSCalculator calculator;
 		calculator.calculatePMDS();
 	};
 };

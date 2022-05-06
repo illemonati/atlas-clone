@@ -147,7 +147,7 @@ void TGenome_parsed::_parseAlignment(BAM::TAlignment & alignment){
 	}
 };
 
-/*void TGenome_parsed::_traverseBAMPassedQC(){
+void TGenome_parsed::_traverseBAMPassedQC(){
 	//parse through bam file
 	_bamFile.startProgressReporting();
 	while(_bamFile.readNextAlignmentThatPassesFilters(_alignment)){
@@ -163,7 +163,7 @@ void TGenome_parsed::_parseAlignment(BAM::TAlignment & alignment){
 
 	//report
 	_bamFile.printEndWithSummary();
-	};*/
+};
 
 //---------------------------------------------------------------
 // TGenome_windows

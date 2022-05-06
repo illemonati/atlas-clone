@@ -25,7 +25,8 @@ private:
 	coretools::TOutputFile _out;
 	coretools::TCountDistribution _distPerSite;
 
-	void _handleWindow();
+	void _handleWindow() override;
+	void _handleAlignment() override {}
 public:
 	void writeDepth();
 };

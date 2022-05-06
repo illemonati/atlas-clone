@@ -50,7 +50,8 @@ private:
 	TAllelicDepthCounts _counts;
 	bool _writeEmpty;
 
-	void _handleWindow();
+	void _handleWindow() override;
+	void _handleAlignment() override {}
 
 public:
 	TAllelicDepth();

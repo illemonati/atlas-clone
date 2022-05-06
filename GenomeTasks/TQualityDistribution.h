@@ -12,9 +12,6 @@
 #include <vector>
 
 #include "TGenome.h"
-#include "TLog.h"
-#include "TParameters.h"
-#include "TRandomGenerator.h"
 #include "TSequencingErrorModels.h"
 #include "TTask.h"
 #include "counters.h"
@@ -31,7 +28,6 @@ private:
 	void _handleAlignment();
 
 public:
-	TQualityDistribution(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
 	void compileQualityDistribution();
 };
 
@@ -48,7 +44,7 @@ private:
 	void _handleAlignment();
 
 public:
-	TQualityTransformation(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
+	TQualityTransformation();
 	void compileQualityTransformation();
 };
 
@@ -60,8 +56,7 @@ public:
 	TTask_qualityDist(){ _explanation = "Printing Quality Distribution"; };
 
 	void run(){
-		using namespace coretools::instances;
-		TQualityDistribution qualDist(parameters(), &logfile(), &randomGenerator());
+		TQualityDistribution qualDist;
 		qualDist.compileQualityDistribution();
 	};
 };
@@ -71,8 +66,7 @@ public:
 	TTask_qualityTransformation(){ _explanation = "Printing Quality Transformation"; };
 
 	void run(){
-		using namespace coretools::instances;
-		TQualityTransformation transformer(parameters(), &logfile(), &randomGenerator());
+		TQualityTransformation transformer;
 		transformer.compileQualityTransformation();
 	};
 };

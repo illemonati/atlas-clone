@@ -93,6 +93,7 @@ protected:
 	BAM::TAlignment* _parseIntoNewAlignment();
 	virtual void _handleMates(BAM::TAlignment* alignment, TAlignmentInStorage & mate);
 	virtual void _handleSingle(BAM::TAlignment* alignment);
+	void _handleAlignment() override {}
 
 public:
 	TBamFilter();

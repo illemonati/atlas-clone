@@ -17,18 +17,18 @@
 #include "TAlignment.h"
 #include "TBamFile.h"
 #include "TFile.h"
+#include "TLog.h"
+#include "TParameters.h"
 #include "TReadGroups.h"
 #include "TSequencedBase.h"
 
 namespace GenomeTasks{
+using coretools::instances::logfile;
+using coretools::instances::parameters;
 
 //-----------------------------------
 // TQualityDistribution
 //-----------------------------------
-TQualityDistribution::TQualityDistribution(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator):TGenome_parsed(Parameters, Logfile, RandomGenerator){
-
-};
-
 void TQualityDistribution::_handleAlignment(){
 	for(auto& b : _alignment){
 		if(b.base != genometools::Base::N){
@@ -47,7 +47,7 @@ void TQualityDistribution::compileQualityDistribution(){
 
 	//print distribution
 	std::string filename = _outputName + "_qualityDistribution.h";
-	_logfile->listFlush("Writing quality distribution to '" + filename + "' ...");
+	logfile().listFlush("Writing quality distribution to '" + filename + "' ...");
 	coretools::TOutputFile out(filename, {"readGroup", "quality", "counts"});
 
 	//get read group names
@@ -57,24 +57,24 @@ void TQualityDistribution::compileQualityDistribution(){
 	//write combined
 	_qualDist.writeCombined(out, "allReadGroups");
 	_qualDist.write(out, readGroupNames);
-	_logfile->done();
+	logfile().done();
 };
 
 //-----------------------------------
 // TQualityTransformation
 //-----------------------------------
-TQualityTransformation::TQualityTransformation(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator):TGenome_parsed(Parameters, Logfile, RandomGenerator){
+TQualityTransformation::TQualityTransformation():TGenome_parsed(){
 	//check what we compare
-	if(Parameters.parameterExists("recal2")){
-		std::string filename = Parameters.getParameter<std::string>("recal2");
-		_logfile->startIndent("Comparing recalibrated qualities to those recalibrated with alternative parameters:");
+	if(parameters().parameterExists("recal2")){
+		std::string filename = parameters().getParameter<std::string>("recal2");
+		logfile().startIndent("Comparing recalibrated qualities to those recalibrated with alternative parameters:");
 		_otherSeqErrors.initializeFromFile(filename, _bamFile.readGroups());
 
 		_compareToOtherSeqErrors = true;
 		_label1 = "recalibratedQuality";
 		_label2 = "recalbratedQuality2";
 	} else {
-		_logfile->startIndent("Comparing original to recalibrated qualities.");
+		logfile().startIndent("Comparing original to recalibrated qualities.");
 		_compareToOtherSeqErrors = false;
 		_label1 = "originalQuality";
 		_label2 = "recalbratedQuality";
@@ -105,13 +105,13 @@ void TQualityTransformation::compileQualityTransformation(){
 	_traverseBAMPassedQC();
 
 	//write read group specific files
-	_logfile->startIndent("Writing quality transformation for each read group:");
+	logfile().startIndent("Writing quality transformation for each read group:");
 	for(uint16_t rg=0; rg<_bamFile.numReadGroups(); ++rg){
 		std::string filename = _outputName + _bamFile.readGroups().getName(rg) + "_qualityTransformation.txt";
-		_logfile->listFlush("Writing '" + filename + "' ...");
+		logfile().listFlush("Writing '" + filename + "' ...");
 		_transformations[rg].writeAsMatrix(filename, _label1, _label2);
-		_logfile->done();
-		_logfile->conclude("R squared for read group " + _bamFile.readGroups().getName(rg) + " is ", _transformations[rg].RSquared(), ".");
+		logfile().done();
+		logfile().conclude("R squared for read group " + _bamFile.readGroups().getName(rg) + " is ", _transformations[rg].RSquared(), ".");
 	}
 
 	//write combined distribution
@@ -121,10 +121,10 @@ void TQualityTransformation::compileQualityTransformation(){
 	}
 
 	std::string filename = _outputName + "_qualityTransformation.txt";
-	_logfile->listFlush("Writing quality transformation of total data to '" + filename + "' ...");
+	logfile().listFlush("Writing quality transformation of total data to '" + filename + "' ...");
 	combined.writeAsMatrix(filename, _label1, _label2);
-	_logfile->done();
-	_logfile->conclude("R squared for total data is ", combined.RSquared(), ".");
+	logfile().done();
+	logfile().conclude("R squared for total data is ", combined.RSquared(), ".");
 
 };
 

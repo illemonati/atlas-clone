@@ -14,8 +14,12 @@
 #include "TChromosomes.h"
 #include "TCigar.h"
 #include "TGenomePosition.h"
+#include "TLog.h"
+#include "TParameters.h"
 
 namespace GenomeTasks{
+using coretools::instances::logfile;
+using coretools::instances::parameters;
 
 //------------------------------------------
 // TSoftClippingStatsFile
@@ -70,27 +74,27 @@ void TSoftClippingStatsFile::write(const BAM::TBamFile & bamFile){
 //--------------------------------------------------------
 // TAssessSoftClipping
 //--------------------------------------------------------
-TAssessSoftClipping::TAssessSoftClipping(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator):TGenome_filtered(Parameters, Logfile, RandomGenerator){
+TAssessSoftClipping::TAssessSoftClipping():TGenome_filtered(){
 	//limit input / output
-	if(Parameters.parameterExists("writeReads")){
+	if(parameters().parameterExists("writeReads")){
 		_writeAlignments = true;
 		std::string filename = _outputName + "_softClippingStats.txt.gz";
-		_logfile->list("Will write alignments with softclipping to file '" + filename + "'. (parameter 'writeReads')");
+		logfile().list("Will write alignments with softclipping to file '" + filename + "'. (parameter 'writeReads')");
 
 		//write all reads?
-		if(Parameters.parameterExists("printAll")){
+		if(parameters().parameterExists("printAll")){
 			_printAll = true;
-			_logfile->list("Writing soft clipping stats for all reads to file. (parameter 'printAll')");
+			logfile().list("Writing soft clipping stats for all reads to file. (parameter 'printAll')");
 		} else {
-			_logfile->list("Writing soft clipping stats of soft clipped reads to file. (use 'printAll' to write for all reads)");
+			logfile().list("Writing soft clipping stats of soft clipped reads to file. (use 'printAll' to write for all reads)");
 		}
 
 		bool printSequences = false;
-		if(Parameters.parameterExists("printSequences")){
+		if(parameters().parameterExists("printSequences")){
 			printSequences = true;
-			_logfile->list("Writing soft clipped bases to file. (parameter 'printSequences')");
+			logfile().list("Writing soft clipped bases to file. (parameter 'printSequences')");
 		} else {
-			_logfile->list("Writing only counts of soft clipped bases to file. (use 'printSequences' to also print sequences)");
+			logfile().list("Writing only counts of soft clipped bases to file. (use 'printSequences' to also print sequences)");
 		}
 
 		//open file
@@ -116,28 +120,28 @@ void TAssessSoftClipping::assess(){
 	_traverseBAMPassedQC();
 
 	//write counts
-	_logfile->startIndent("Writing soft clipping distributions:");
+	logfile().startIndent("Writing soft clipping distributions:");
 	std::string filename = _outputName + "_softClippingMatrixLeft.txt";
-	_logfile->listFlush("Writing distribution of soft clipping on left to file '" + filename + "' ...");
+	logfile().listFlush("Writing distribution of soft clipping on left to file '" + filename + "' ...");
 	left.write(filename, "readLength", "sofftclippedLengthLeft");
-	_logfile->done();
+	logfile().done();
 
 	filename = _outputName + "_softClippingMatrixRight.txt";
-	_logfile->listFlush("Writing distribution of soft clipping on right to file '" + filename + "' ...");
+	logfile().listFlush("Writing distribution of soft clipping on right to file '" + filename + "' ...");
 	left.write(filename, "readLength", "sofftclippedLengthRight");
-	_logfile->done();
+	logfile().done();
 
 	filename = _outputName + "_softClippingMatrixBoth.txt";
-	_logfile->listFlush("Writing distribution of soft clipping on both combined to file '" + filename + "' ...");
+	logfile().listFlush("Writing distribution of soft clipping on both combined to file '" + filename + "' ...");
 	left.write(filename, "readLength", "sofftclippedLengthBoth");
-	_logfile->done();
-	_logfile->endIndent();
+	logfile().done();
+	logfile().endIndent();
 };
 
 //--------------------------------------------------------
 // TRemoveSoftClippedBases
 //--------------------------------------------------------
-TRemoveSoftClippedBases::TRemoveSoftClippedBases(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator):TGenome_parsed(Parameters, Logfile, RandomGenerator){};
+TRemoveSoftClippedBases::TRemoveSoftClippedBases():TGenome_parsed(){};
 
 void TRemoveSoftClippedBases::_handleAlignment(){
 	if(_bamFile.curCIGAR().lengthSoftClipped() > 0){
@@ -154,14 +158,14 @@ void TRemoveSoftClippedBases::_handleAlignment(){
 
 void TRemoveSoftClippedBases::removeSoftclippedBases(){
 	std::string filename = _outputName + "_softClippedBasesRemoved.bam";
-	_logfile->list("Writing reads after soft-clip trimming to file '" + filename + "'.");
+	logfile().list("Writing reads after soft-clip trimming to file '" + filename + "'.");
 	_openBamForWriting(filename, _outBam);
 
 	//traverse BAM
 	_traverseBAMPassedQC();
 
 	//report
-	_outBam.close(_logfile);
+	_outBam.close(&logfile());
 };
 
 }; // end namespace

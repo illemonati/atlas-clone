@@ -28,7 +28,8 @@ protected:
 	std::unique_ptr<GenotypeLikelihoods::SequencingError::TRecalibrationEMEstimator> recalObjectEM;
 	BAM::TReadGroupMap* _readGroupMap;
 
-	void _handleWindow();
+	void _handleWindow() override;
+	void _handleAlignment() override {}
 
 public:
 	TEstimateRecalibration();
