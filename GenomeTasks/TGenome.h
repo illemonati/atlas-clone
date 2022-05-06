@@ -65,7 +65,7 @@ public:
 //---------------------------------------------------------------
 class TGenome_filtered : public TGenome_basic {
 protected:
-	void _traverseBAMPassedQC();
+	virtual void _traverseBAMPassedQC();
 	virtual void _handleAlignment() = 0;
 public:
 	TGenome_filtered();
@@ -75,7 +75,7 @@ public:
 // TGenome_parsed
 // A base class with BAM filters and a parsed, recalibrated alignment
 //---------------------------------------------------------------
-class TGenome_parsed : public TGenome_basic {
+class TGenome_parsed : public TGenome_filtered {
 protected:
 	BAM::TAlignment _alignment;
 	GenotypeLikelihoods::TGenotypeLikelihoodCalculator _genotypeLikelihoodCalculator;
@@ -98,8 +98,7 @@ protected:
 	void _setReadTrimming();
 
 	void _parseAlignment(BAM::TAlignment &alignment);
-	void _traverseBAMPassedQC();
-	virtual void _handleAlignment() = 0;
+	void _traverseBAMPassedQC() override;
 public:
 	TGenome_parsed();
 };

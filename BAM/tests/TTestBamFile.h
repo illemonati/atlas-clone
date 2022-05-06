@@ -92,6 +92,8 @@ protected:
     uint32_t _computeDistanceBetweenAlignments(uint32_t numAlignments);
 
 public:
+	virtual ~TTestBamFile() = default;
+
 	TTestBamFile(const std::vector<uint32_t> ChrLength, uint32_t NumReadGroups);
 	TTestBamFile(const std::string & Filename, const std::vector<uint32_t> ChrLength, uint32_t NumReadGroups);
 

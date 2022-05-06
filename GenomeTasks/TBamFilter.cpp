@@ -673,8 +673,6 @@ void TAlignmentSplitMerger::_handleSingle(BAM::TAlignment* alignment){
 //-----------------------------------------
 // TOverlapQuantifier
 //-----------------------------------------
-TOverlapQuantifier::TOverlapQuantifier():TGenome_filtered(){};
-
 
 void TOverlapQuantifier::quantifyOverlap(){
 	//prepare counter

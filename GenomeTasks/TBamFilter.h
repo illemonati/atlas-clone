@@ -178,7 +178,6 @@ private:
 	void _handleAlignment() override {};
 
 public:
-	TOverlapQuantifier();
 	void quantifyOverlap();
 };
 

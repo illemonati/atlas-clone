@@ -87,7 +87,7 @@ void TGenome_filtered::_traverseBAMPassedQC(){
 // TGenome_parsed
 // A base class with BAM filters and recalibration
 //---------------------------------------------------------------
-TGenome_parsed::TGenome_parsed(){
+TGenome_parsed::TGenome_parsed() {
 	//initialize genotype likelihoods
 	_genotypeLikelihoodCalculator.init(parameters(), &_bamFile.readGroupsMutable(), &logfile());
 
@@ -95,6 +95,7 @@ TGenome_parsed::TGenome_parsed(){
 	_setReadTrimming();
 	_qualityFilter.set(parameters(), &logfile());
 	_contextFilter.set(parameters(), &logfile());
+	_bamFile.setFilters(parameters(), &logfile());
 };
 
 void TGenome_parsed::_openReference(bool required){
@@ -170,7 +171,6 @@ void TGenome_parsed::_traverseBAMPassedQC(){
 // A base class to traverse a BAM file in windows
 //---------------------------------------------------------------
 TGenome_windows::TGenome_windows():
-	TGenome_parsed(),
 	_chromosomes(_bamFile.chromosomes()){
 	//reading parameters regarding windows
 	logfile().startIndent("Parsing window settings:");
