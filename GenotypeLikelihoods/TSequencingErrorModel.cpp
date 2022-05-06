@@ -275,8 +275,8 @@ TModelRecal::TModelRecal(const TModelDefinition &modelDef) : _rho(modelDef.rho),
 		if (cov.covariate == TCovariate::name) continue;
 
 		// Andreas
-		auto cov = covriate(cov.covariate);
-		auto fn = cov.getFunction(cov.function, _numParameters);
+		// auto cov = covriate(cov.covariate);
+		// auto fn = cov.getFunction(cov.function, _numParameters);
 		// Andreas
 		_covariates.push_back(TCovariateModel{covariate(cov.covariate), function(cov.function, _numParameters)});
 		_functions.push_back(_covariates.back().function.get());

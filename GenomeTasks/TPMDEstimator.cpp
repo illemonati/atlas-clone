@@ -18,7 +18,7 @@
 #include "TReadGroups.h"
 
 namespace GenomeTasks{
-
+using namespace std::literals;
 //----------------------------------------
 // TPMDEstimator.h
 //----------------------------------------
@@ -88,7 +88,8 @@ void TPMDEstimator::estimatePMD(){
 	if(pmd.hasPMD()) {
 		if (!parameters().parameterExists("reestimate")) throw "not happy";
 	} else {
-		pmd.initialize(parameters().getParameterWithDefault("pmdModels", "doubleStrand:Empirical:Empirical"), _bamFile.readGroups(), _bamFile.readGroups());
+		std::vector<uint16_t> tmp;
+		pmd.initialize(parameters().getParameterWithDefault("pmdModels", "doubleStrand:Empirical:Empirical"s), _bamFile.readGroups(), tmp);
 	}
 
 	//estimate all models with data, i.e. only one model per pool
