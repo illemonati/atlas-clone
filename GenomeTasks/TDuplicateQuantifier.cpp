@@ -15,6 +15,7 @@
 #include "TBamFile.h"
 #include "TChromosomes.h"
 #include "TFile.h"
+#include "TLog.h"
 #include "TReadGroups.h"
 
 namespace GenomeTasks{
@@ -22,7 +23,7 @@ namespace GenomeTasks{
 //----------------------------------------------
 // TDuplicateQuantifyer
 //----------------------------------------------
-TDuplicateQuantifier::TDuplicateQuantifier(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator):TGenome_filtered(Parameters, Logfile, RandomGenerator){};
+TDuplicateQuantifier::TDuplicateQuantifier():TGenome_filtered(){};
 
 void TDuplicateQuantifier::_addCurCounts(const genometools::TGenomePosition & nextPos){
 	//add current counts and zero for all positions until nextPos
@@ -61,6 +62,7 @@ void TDuplicateQuantifier::_handleAlignments(){
 };
 
 void TDuplicateQuantifier::estimateDuplicationCounts(){
+	using coretools::instances::logfile;
 	//assembles distribution of how often a read is duplicated
 	//now: just how many reads start at the same positions
 	_curChrEnd.clear();
@@ -72,14 +74,14 @@ void TDuplicateQuantifier::estimateDuplicationCounts(){
 
 	//write output
 	std::string filename = _outputName + "_readStartsPerSite.txt";
-	_logfile->listFlush("Writing distribution of read starts per site to '" + filename + "' ...");
+	logfile().listFlush("Writing distribution of read starts per site to '" + filename + "' ...");
 	coretools::TOutputFile out(filename, {"readGroup", "numReadStarts", "counts"});
 	_countsCombined.write(out, "allReadGroups");
 
 	std::vector<std::string> readGroupNames;
 	_bamFile.readGroups().fillVectorWithNames(readGroupNames);
 	_countsPerReadGroup.write(out, readGroupNames);
-	_logfile->done();
+	logfile().done();
 };
 
 }; // end namespace

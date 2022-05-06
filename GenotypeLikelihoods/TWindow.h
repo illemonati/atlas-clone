@@ -18,12 +18,11 @@
 #include "TGenomePosition.h"
 #include "TGenotypeData.h"
 #include "TSite.h"
+#include "TSiteSubset.h"
 #include "TSubsamplePicker.h"
 #include "probability.h"
 
 namespace BAM { class TFastaBuffer; }
-namespace GenotypeLikelihoods { class TSiteSubset; }
-namespace GenotypeLikelihoods { class TSiteSubsetSite; }
 namespace coretools { class TLog; }
 namespace coretools { class TOutputFile; }
 namespace coretools { class TRandomGenerator; }

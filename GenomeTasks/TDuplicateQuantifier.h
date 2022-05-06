@@ -14,9 +14,6 @@
 
 #include "TGenome.h"
 #include "TGenomePosition.h"
-#include "TLog.h"
-#include "TParameters.h"
-#include "TRandomGenerator.h"
 #include "TTask.h"
 #include "counters.h"
 
@@ -36,9 +33,10 @@ private:
 
 	void _addCurCounts(const genometools::TGenomePosition & nextPos);
 	void _handleAlignments();
+	void _handleAlignment() override {};
 
 public:
-	TDuplicateQuantifier(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
+	TDuplicateQuantifier();
 	void estimateDuplicationCounts();
 };
 
@@ -50,8 +48,7 @@ public:
 	TTask_duplicationQuantifier(){ _explanation = "Quantifying read duplication"; };
 
 	void run(){
-		using namespace coretools::instances;
-		TDuplicateQuantifier duplicationQuantifier(parameters(), &logfile(), &randomGenerator());
+		TDuplicateQuantifier duplicationQuantifier;
 		duplicationQuantifier.estimateDuplicationCounts();
 	};
 };

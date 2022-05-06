@@ -12,9 +12,6 @@
 
 #include "TFile.h"
 #include "TGenome.h"
-#include "TLog.h"
-#include "TParameters.h"
-#include "TRandomGenerator.h"
 #include "TTask.h"
 #include "counters.h"
 
@@ -28,13 +25,11 @@ private:
 	coretools::TOutputFile _out;
 	coretools::TCountDistribution _distPerSite;
 
-	void _handleWindow();
-
+	void _handleWindow() override;
+	void _handleAlignment() override {}
 public:
-	TDepthWriter(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
 	void writeDepth();
 };
-
 
 //--------------------------------------
 // Tasks
@@ -44,8 +39,7 @@ public:
 	TTask_depthWriter(){ _explanation = "Estimating the distribution of depth among sites and writing depth per window"; };
 
 	void run(){
-		using namespace coretools::instances;
-		TDepthWriter depthWriter(parameters(), &logfile(), &randomGenerator());
+		TDepthWriter depthWriter;
 		depthWriter.writeDepth();
 	};
 };

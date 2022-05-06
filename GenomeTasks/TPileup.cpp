@@ -16,6 +16,8 @@
 #include "TFastaBuffer.h"
 #include "TGenotypeData.h"
 #include "TGenotypeLikelihoodCalculator.h"
+#include "TLog.h"
+#include "TParameters.h"
 #include "TSite.h"
 #include "TWindow.h"
 
@@ -35,19 +37,22 @@ void write(const GenotypeLikelihoods::TGenotypeLikelihoods& lhs, coretools::TOut
 
 } // namespace
 
+using coretools::instances::logfile;
+using coretools::instances::parameters;
+
 //---------------------------------
 // TPileup
 //---------------------------------
-TPileup::TPileup(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator):TGenome_windows(Parameters, Logfile, RandomGenerator){
+TPileup::TPileup():TGenome_windows(){
 	//open output file
 	std::string filename = _outputName + "_pileup.txt.gz";
-	_logfile->list("Writing pileup to file '" + filename + "'.");
+	logfile().list("Writing pileup to file '" + filename + "'.");
 	out.open(filename);
 
 	//parse output fields
-	_logfile->startIndent("Will print the following pileup fields (parameter 'fields'):");
+	logfile().startIndent("Will print the following pileup fields (parameter 'fields'):");
 	std::set<std::string> fields;
-	Parameters.fillParameterIntoContainerWithDefault("fields", fields, ',', {"depth", "bases", "qualities", "alleles", "mates", "strands", "likelihoods"});
+	parameters().fillParameterIntoContainerWithDefault("fields", fields, ',', {"depth", "bases", "qualities", "alleles", "mates", "strands", "likelihoods"});
 
 	_parseField(fields, "depth", _printDepth, "sequencing depth");
 	_parseField(fields, "bases", _printBases, "pileup bases");
@@ -56,7 +61,7 @@ TPileup::TPileup(coretools::TParameters & Parameters, coretools::TLog* Logfile, 
 	_parseField(fields, "mates", _printMates, "mate information");
 	_parseField(fields, "strands", _printStrand, "strand information");
 	_parseField(fields, "likelihoods", _printLikelihoods, "genotype likelihoods");
-	_logfile->endIndent();
+	logfile().endIndent();
 
 	//check if unknown fields were given
 	if(!fields.empty()){
@@ -115,19 +120,19 @@ TPileup::TPileup(coretools::TParameters & Parameters, coretools::TLog* Logfile, 
 	out.writeHeader(header);
 
 	//print all sites, also those without data?
-	if(Parameters.parameterExists("printAll")){
+	if(parameters().parameterExists("printAll")){
 		printOnlySitesWithData = false;
-		_logfile->list("Will print all sites that pass filters, including those without data. (parameter 'printAll')");
+		logfile().list("Will print all sites that pass filters, including those without data. (parameter 'printAll')");
 	} else {
 		printOnlySitesWithData = true;
-		_logfile->list("Will print only sites with data. (use 'printAll' to print all)");
+		logfile().list("Will print only sites with data. (use 'printAll' to print all)");
 	}
 };
 
 void TPileup::_parseField(std::set<std::string> & fields, const std::string tag, bool & flag, const std::string explanation){
 	if(fields.find(tag) != fields.end()){
 		flag = true;
-		_logfile->list(explanation + " (" + tag + ")");
+		logfile().list(explanation + " (" + tag + ")");
 			fields.erase(fields.find(tag));
 	} else {
 		flag = false;
@@ -136,7 +141,7 @@ void TPileup::_parseField(std::set<std::string> & fields, const std::string tag,
 
 void TPileup::_handleWindow(){
 	using genometools::Base;
-	_logfile->listFlushTime("Writing pileup ...");
+	logfile().listFlushTime("Writing pileup ...");
 
 	uint32_t pos = 0;
 	for (auto & site : _window) {
@@ -191,7 +196,7 @@ void TPileup::_handleWindow(){
 		out << std::endl;
 	}
 
-	_logfile->doneTime();
+	logfile().doneTime();
 };
 
 void TPileup::printPileup(){

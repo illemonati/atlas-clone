@@ -15,24 +15,28 @@
 #include "GenotypeTypes.h"
 #include "TAlignment.h"
 #include "TGenotypeLikelihoodCalculator.h"
+#include "TLog.h"
 #include "TSequencedBase.h"
 #include "stringFunctions.h"
+#include "TParameters.h"
 
 namespace GenomeTasks{
 
 using coretools::str::toString;
+using coretools::instances::logfile;
+using coretools::instances::parameters;
 
 //----------------------------------------------
 // TPMDSCalculator
 //----------------------------------------------
 //TODO: should that filter pairs as in TBamFilter?
-TPMDSCalculator::TPMDSCalculator(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator):TGenome_parsed(Parameters, Logfile, RandomGenerator){
+TPMDSCalculator::TPMDSCalculator():TGenome_parsed(){
 	//get parameters
-	_pi = Parameters.getParameterWithDefault<coretools::Probability>("pi", coretools::Probability(0.001));
-	_logfile->list("Running PMDS with rate of polymorphism (pi) = " + toString(_pi));
-	_minPMDS = Parameters.getParameterWithDefault<double>("minPMDS", -10000);
-	_maxPMDS = Parameters.getParameterWithDefault<double>("maxPMDS", 10000);
-	_logfile->list("Filtering out reads with PMDS outside the range [" + toString(_minPMDS) + ", " + toString(_maxPMDS) + "].");
+	_pi = parameters().getParameterWithDefault<coretools::Probability>("pi", coretools::Probability(0.001));
+	logfile().list("Running PMDS with rate of polymorphism (pi) = " + toString(_pi));
+	_minPMDS = parameters().getParameterWithDefault<double>("minPMDS", -10000);
+	_maxPMDS = parameters().getParameterWithDefault<double>("maxPMDS", 10000);
+	logfile().list("Filtering out reads with PMDS outside the range [" + toString(_minPMDS) + ", " + toString(_maxPMDS) + "].");
 };
 
 double TPMDSCalculator::_calculatePMDS(){
@@ -79,7 +83,7 @@ void TPMDSCalculator::calculatePMDS(){
 	_traverseBAMPassedQC();
 
 	//report
-	_outBam.close(_logfile);
+	_outBam.close(&logfile());
 };
 
 }; // end namespace

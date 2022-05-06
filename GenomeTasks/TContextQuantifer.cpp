@@ -14,6 +14,7 @@
 #include "GenotypeTypes.h"
 #include "PhredProbabilityTypes.h"
 #include "TAlignment.h"
+#include "TLog.h"
 #include "TSequencedBase.h"
 
 namespace GenomeTasks{
@@ -25,7 +26,7 @@ using coretools::TRandomGenerator;
 //----------------------------------------------
 // TContextQuantifier
 //----------------------------------------------
-TContextQuantifier::TContextQuantifier(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_parsed(Parameters, Logfile, RandomGenerator){
+TContextQuantifier::TContextQuantifier():TGenome_parsed(){
 
 };
 
@@ -38,6 +39,7 @@ void TContextQuantifier::_handleAlignment(){
 };
 
 void TContextQuantifier::quantifyContexts(){
+	using coretools::instances::logfile;
 	_contextCounts.clear();
 
 	//traverse BAM and add to counts
@@ -45,7 +47,7 @@ void TContextQuantifier::quantifyContexts(){
 
 	//write counts
 	std::string outputFileName = _outputName + "_contextInformation.txt.gz";
-	_logfile->list("Writing context information to file '" + outputFileName + "'.");
+	logfile().list("Writing context information to file '" + outputFileName + "'.");
 
 	std::vector<std::string> contextLabels;
 

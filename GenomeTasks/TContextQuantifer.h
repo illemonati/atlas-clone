@@ -11,9 +11,6 @@
 #include <string>
 
 #include "TGenome.h"
-#include "TLog.h"
-#include "TParameters.h"
-#include "TRandomGenerator.h"
 #include "TTask.h"
 #include "counters.h"
 
@@ -22,13 +19,13 @@ namespace GenomeTasks{
 //----------------------------------------------
 // TContextQuantifier
 //----------------------------------------------
-class TContextQuantifier:public TGenome_parsed{
+class TContextQuantifier:public TGenome_parsed {
 private:
 	coretools::TCountDistributionVector _contextCounts;
 
 	void _handleAlignment();
 public:
-	TContextQuantifier(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
+	TContextQuantifier();
 	void quantifyContexts();
 };
 
@@ -40,8 +37,7 @@ public:
 	TTask_quantifyContext(){ _explanation = "Writing context statistics to file"; };
 
 	void run(){
-		using namespace coretools::instances;
-		TContextQuantifier quantifier(parameters(), &logfile(), &randomGenerator());
+		TContextQuantifier quantifier;
 		quantifier.quantifyContexts();
 	};
 };

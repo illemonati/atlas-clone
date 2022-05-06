@@ -15,9 +15,6 @@
 #include "TFile.h"
 #include "TGenome.h"
 #include "TGenotypeData.h"
-#include "TLog.h"
-#include "TParameters.h"
-#include "TRandomGenerator.h"
 #include "TTask.h"
 
 namespace GenomeTasks{
@@ -45,9 +42,10 @@ private:
 	bool _printLikelihoods;
 
 	void _parseField(std::set<std::string> & fields, const std::string tag, bool & flag, const std::string explanation);
-	void _handleWindow();
+	void _handleWindow() override;
+	void _handleAlignment() override {}
 public:
-	TPileup(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
+	TPileup();
 	void printPileup();
 };
 
@@ -59,8 +57,7 @@ public:
 	TTask_pileup(){ _explanation = "Printing pileup from BAM file"; };
 
 	void run(){
-		using namespace coretools::instances;
-		TPileup pileup(parameters(), &logfile(), &randomGenerator());
+		TPileup pileup;
 		pileup.printPileup();
 	};
 };

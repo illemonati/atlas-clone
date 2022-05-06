@@ -14,9 +14,6 @@
 #include "TBamFile.h"
 #include "TBamFilter.h"
 #include "TGenome.h"
-#include "TLog.h"
-#include "TParameters.h"
-#include "TRandomGenerator.h"
 #include "TTask.h"
 #include "probability.h"
 
@@ -43,10 +40,10 @@ public:
 	TBamSample(const coretools::Probability & Prob, const std::string & OutName);
 
 	void open(BAM::TBamFile & bamFile);
-	void close(coretools::TLog* logfile);
+	void close();
 
-	void sample(BAM::TBamFile & bamfile, coretools::TRandomGenerator & randomGenerator);
-	void downsampleRead(BAM::TAlignment & alignment, coretools::TRandomGenerator & randomGenerator);
+	void sample(BAM::TBamFile & bamfile);
+	void downsampleRead(BAM::TAlignment & alignment);
 };
 
 //-----------------------------------------
@@ -57,10 +54,7 @@ protected:
 	std::vector<coretools::Probability> _probs;
 	std::vector<std::string> _names;
 
-	void _readVectorOfDownsamplingProbabilities(coretools::TParameters & Parameters);
-
-public:
-	TBamDownsampler_base(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
+	void _readVectorOfDownsamplingProbabilities();
 };
 
 
@@ -71,9 +65,7 @@ class TBamDownsampler:public TBamDownsampler_base{
 protected:
 	std::vector<TBamSample> _bamSamples;
 public:
-	TBamDownsampler(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
-	virtual ~TBamDownsampler(){};
-
+	TBamDownsampler();
 	virtual void downsample();
 };
 
@@ -81,11 +73,7 @@ public:
 // TBamReadDownsampler
 //-----------------------------------------
 class TBamReadDownsampler:public TBamDownsampler{
-private:
-
 public:
-	TBamReadDownsampler(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
-
 	void downsample();
 };
 
@@ -95,10 +83,8 @@ public:
 class TBamSeparator:public TBamDownsampler_base{
 private:
 	std::vector<double> _cumulProbs;
-
 public:
-	TBamSeparator(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
-
+	TBamSeparator();
 	void separate();
 };
 
@@ -110,8 +96,7 @@ public:
 	TTask_downsample(){ _explanation = "Downsampling a BAM file by removing reads"; };
 
 	void run(){
-		using namespace coretools::instances;
-		TBamDownsampler downsampler(parameters(), &logfile(), &randomGenerator());
+		TBamDownsampler downsampler;
 		downsampler.downsample();
 	};
 };
@@ -121,8 +106,7 @@ public:
 	TTask_downSampleReads(){ _explanation = "Downsampling a BAM file by setting bases to N"; };
 
 	void run(){
-		using namespace coretools::instances;
-		TBamReadDownsampler downsampler(parameters(), &logfile(), &randomGenerator());
+		TBamReadDownsampler downsampler;
 		downsampler.downsample();
 	};
 };
@@ -132,8 +116,7 @@ public:
 	TTask_separateReads(){ _explanation = "Separating reads into different BAM files"; };
 
 	void run(){
-		using namespace coretools::instances;
-		TBamSeparator separator(parameters(), &logfile(), &randomGenerator());
+		TBamSeparator separator;
 		separator.separate();
 	};
 };

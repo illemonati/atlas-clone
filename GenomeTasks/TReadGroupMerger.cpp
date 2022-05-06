@@ -16,17 +16,21 @@
 #include <utility>
 
 #include "TBamFile.h"
+#include "TLog.h"
+#include "TParameters.h"
 #include "TReadGroups.h"
 #include "stringFunctions.h"
 
 namespace GenomeTasks{
+using coretools::instances::logfile;
+using coretools::instances::parameters;
 
-TReadGroupMerger::TReadGroupMerger(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator):TGenome_basic(Parameters, Logfile, RandomGenerator){
+TReadGroupMerger::TReadGroupMerger():TGenome_basic(){
 	BAM::TReadGroups& readGroups = _bamFile.readGroupsMutable();
 
 	//read read groups to be merged
-	std::string filename = Parameters.getParameter<std::string>("readGroups");
-	_logfile->startIndent("Reading read groups to be merged from file '" + filename + "':");
+	std::string filename = parameters().getParameter<std::string>("readGroups");
+	logfile().startIndent("Reading read groups to be merged from file '" + filename + "':");
 	std::ifstream file(filename.c_str());
 	if(!file) throw "Failed to open file '" + filename + "!";
 
@@ -48,7 +52,7 @@ TReadGroupMerger::TReadGroupMerger(coretools::TParameters & Parameters, coretool
 
 			//create new read group
 			uint16_t newId = readGroups.add(vec[0]).id;
-			_logfile->startIndent("The following read groups will be merged into '" + vec[0] + "':");
+			logfile().startIndent("The following read groups will be merged into '" + vec[0] + "':");
 
 			for(size_t i=1; i<vec.size(); ++i){
 				//check for duplicates
@@ -65,9 +69,9 @@ TReadGroupMerger::TReadGroupMerger(coretools::TParameters & Parameters, coretool
 				readGroupMap[oldId] = newId;
 
 				//report
-				_logfile->list(vec[i]);
+				logfile().list(vec[i]);
 			}
-			_logfile->endIndent();
+			logfile().endIndent();
 		}
 	}
 
@@ -80,11 +84,11 @@ TReadGroupMerger::TReadGroupMerger(coretools::TParameters & Parameters, coretool
 	}
 
 	if(unaffectedReadGroups.size() > 0){
-		_logfile->startIndent("The following read groups will be kept as is:");
+		logfile().startIndent("The following read groups will be kept as is:");
 		for(auto& s : unaffectedReadGroups){
-			_logfile->list(s);
+			logfile().list(s);
 		}
-		_logfile->endIndent();
+		logfile().endIndent();
 	}
 };
 
@@ -105,7 +109,7 @@ void TReadGroupMerger::mergeReadGroups(){
 	_bamFile.printEndWithSummary();
 
 	//close bam writer
-	outBam.close(_logfile);
+	outBam.close(&logfile());
 };
 
 }; // end namespace

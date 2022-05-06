@@ -12,21 +12,25 @@
 #include <vector>
 
 #include "TGenotypeLikelihoodCalculator.h"
+#include "TLog.h"
+#include "TParameters.h"
 #include "TSite.h"
 #include "TWindow.h"
 
 namespace GenomeTasks{
+using coretools::instances::logfile;
+using coretools::instances::parameters;
 
 //-------------------------------------------
 // TGLFWriter
 //-------------------------------------------
-TWriteGLF::TWriteGLF(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator):TGenome_windows(Parameters, Logfile, RandomGenerator){
-	if(Parameters.parameterExists("printAll")){
+TWriteGLF::TWriteGLF():TGenome_windows(){
+	if(parameters().parameterExists("printAll")){
 		_printAll = true;
-		_logfile->list("Will write all sites, even those without data. (parameter 'printAll')");
+		logfile().list("Will write all sites, even those without data. (parameter 'printAll')");
 	} else {
 		_printAll = false;
-		_logfile->list("Will only write sites with data. (use 'printAll' to write all sites)");
+		logfile().list("Will only write sites with data. (use 'printAll' to write all sites)");
 	}
 };
 
@@ -36,7 +40,7 @@ void TWriteGLF::_handleWindow(){
 	}
 
 	//TODO: calculate root mean squared mapping qualities for sites (now just passing 0). Would be helpful in VCFs as well
-	_logfile->listFlushTime("Adding window to GLF file ...");
+	logfile().listFlushTime("Adding window to GLF file ...");
 	uint32_t pos = 0;
 	for(auto& s : _window){
 		if(!s.empty() || _printAll){
@@ -45,13 +49,13 @@ void TWriteGLF::_handleWindow(){
 		}
 		++pos;
 	}
-	_logfile->doneTime();
+	logfile().doneTime();
 };
 
 void TWriteGLF::writeGLF(){
 	//open GLF file
 	std::string outputFileName = _outputName + ".glf.gz";
-	_logfile->list("Will write genotype likelihoods to GLF file '" + outputFileName + "'");
+	logfile().list("Will write genotype likelihoods to GLF file '" + outputFileName + "'");
 	_writer.open(outputFileName);
 
 	//traverse BAM

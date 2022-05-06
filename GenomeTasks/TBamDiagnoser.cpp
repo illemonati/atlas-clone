@@ -13,43 +13,43 @@
 #include "TChromosomes.h"
 #include "TCigar.h"
 #include "TFile.h"
+#include "TLog.h"
+#include "TRandomGenerator.h"
 #include "TReadGroups.h"
 
 namespace GenomeTasks{
 
-using coretools::TParameters;
-using coretools::TLog;
-using coretools::TRandomGenerator;
+using coretools::instances::parameters;
+using coretools::instances::logfile;
 using coretools::TCountDistributionVector;
 
-TBamDiagnoser::TBamDiagnoser(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_filtered(){
+TBamDiagnoser::TBamDiagnoser():TGenome_filtered(){
     // initialize TGenome_basic stuff
-    _initialize(Parameters, Logfile, RandomGenerator);
 
 	//settings
-	_qualFilter.set(Parameters, _logfile);
+	_qualFilter.set(parameters(), &logfile());
 	_bamFile.readGroups().fillVectorWithNames(_readGroupNames);
 
 	// should we filter -> only call setFilters if we want to filter!
 	// By default, all filters are off
-	if (Parameters.parameterExists("filterBAM")){
-	    _bamFile.setFilters(Parameters, Logfile);
+	if (parameters().parameterExists("filterBAM")){
+	    _bamFile.setFilters(parameters(), &logfile());
 	} else {
-	    _logfile->list("Will keep all reads. (use 'filterBAM' to limit)");
+	    logfile().list("Will keep all reads. (use 'filterBAM' to limit)");
 	}
 };
 
 void TBamDiagnoser::_writeHistogram(const TCountDistributionVector & distVec, const std::string& header, const std::string& name){
 	// 1) read length
 	std::string filename = _outputName + "_" + header + "Histogram.txt";
-	_logfile->listFlush("Writing " + name + " histogram to '" + filename + "' ...");
+	logfile().listFlush("Writing " + name + " histogram to '" + filename + "' ...");
 	coretools::TOutputFile out(filename, {"readGroup", header, "count"});
 
 	distVec.writeCombined(out, "allReadGroups");
 	distVec.write(out, _readGroupNames);
 
 	out.close();
-	_logfile->done();
+	logfile().done();
 };
 
 void TBamDiagnoser::_handleAlignment() {
@@ -89,14 +89,14 @@ void TBamDiagnoser::diagnose(){
 
 	//now parse through bam file
     _traverseBAMPassedQC();
-	_logfile->list("Approximate sequencing depth was estimated at ", (double) _usableLength.sum() / (double) totLengthOfGenome, ".");
+	logfile().list("Approximate sequencing depth was estimated at ", (double) _usableLength.sum() / (double) totLengthOfGenome, ".");
 
 	//writing output files
-	_logfile->startIndent("Writing output files:");
+	logfile().startIndent("Writing output files:");
 
 	//writing read group summary
 	std::string filename = _outputName + "_diagnostics.txt";
-	_logfile->listFlush("Writing general diagnostics to '" + filename + "' ...");
+	logfile().listFlush("Writing general diagnostics to '" + filename + "' ...");
 	coretools::TOutputFile out(filename, {"readGroup", "reads", "passedQC", "fracPassedQC", "avgReadLength", "maxReadLength", "properPairs", "avgFragmentLength", "softClipped", "avgSoftClippedLength", "avgUsableAlignedLength", "approximateDepth", "avgMappingQuality"});
 
 	//write for combined
@@ -119,7 +119,7 @@ void TBamDiagnoser::diagnose(){
 		out << _mappingQuality[rg].mean() << std::endl;
 	}
 	out.close();
-	_logfile->done();
+	logfile().done();
 
 	//TODO: write file used by split merge
 
@@ -130,7 +130,7 @@ void TBamDiagnoser::diagnose(){
 	_writeHistogram(_fragmentLength, "fragmentLength", "fragment length");
 	_writeHistogram(_mappingQuality, "mappingQuality", "mapping quality");
 
-    _logfile->endIndent(); //end writing output files
+    logfile().endIndent(); //end writing output files
 };
 
 }; // end namespace

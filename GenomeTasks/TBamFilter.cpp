@@ -23,6 +23,9 @@
 #include "TGenomePosition.h"
 #include "TGenotypeData.h"
 #include "TGenotypeLikelihoodCalculator.h"
+#include "TLog.h"
+#include "TParameters.h"
+#include "TRandomGenerator.h"
 #include "TReadGroups.h"
 #include "TSequencedBase.h"
 #include "counters.h"
@@ -32,9 +35,9 @@
 
 namespace GenomeTasks{
 
-using coretools::TParameters;
-using coretools::TLog;
-using coretools::TRandomGenerator;
+using coretools::instances::parameters;
+using coretools::instances::logfile;
+using coretools::instances::randomGenerator;
 using namespace coretools::str;
 
 bool operator<(const uint16_t left, const TAlignmentMergerReadGroupSetting & right){
@@ -44,13 +47,13 @@ bool operator<(const uint16_t left, const TAlignmentMergerReadGroupSetting & rig
 //-----------------------------------------
 // TAlignmentMergerReadGroupSettings
 //-----------------------------------------
-void TAlignmentMergerReadGroupSettings::initialize(TParameters & Params, TLog* logfile, BAM::TReadGroups & readGroups){
+void TAlignmentMergerReadGroupSettings::initialize(BAM::TReadGroups & readGroups){
 	//make sure set is empty
 	_settings.clear();
 
 	//check if we only merge without truncation
-	if(Params.parameterExists("pairedReadGroups")){
-		std::string pairedRG = Params.getParameter<std::string>("pairedReadGroups");
+	if(parameters().parameterExists("pairedReadGroups")){
+		std::string pairedRG = parameters().getParameter<std::string>("pairedReadGroups");
 		if(pairedRG == "all"){
 			//mark all as paired
 			for(uint16_t rg=0; rg<readGroups.size(); ++rg){
@@ -60,7 +63,7 @@ void TAlignmentMergerReadGroupSettings::initialize(TParameters & Params, TLog* l
 			//will merge a subset and treat others as unchanged
 			std::vector<std::string> vec;
 			fillContainerFromString(pairedRG, vec, ',');
-			logfile->listFlush("Parsing read group names from parameter 'pairedReadGroups' ...");
+			logfile().listFlush("Parsing read group names from parameter 'pairedReadGroups' ...");
 
 			//get IDs
 			std::set<uint16_t, std::less<>> pairedIds;
@@ -76,28 +79,28 @@ void TAlignmentMergerReadGroupSettings::initialize(TParameters & Params, TLog* l
 					_settings.emplace(rg, paired, 0);
 				}
 			}
-			logfile->done();
+			logfile().done();
 		}
-		_printSummary(logfile);
+		_printSummary();
 	} else {
 		//do we have to ignore read groups present in file?
 		std::vector<std::string> vec;
 		std::set<uint16_t> readGroupsToIgnore;
-		if(Params.parameterExists("ignoreReadGroups")){
-			std::string ignoredReadGroupsFile = Params.getParameter<std::string>("ignoreReadGroups");
-			logfile->listFlush("Reading read groups to ignore from file '" + ignoredReadGroupsFile + "' ...");
+		if(parameters().parameterExists("ignoreReadGroups")){
+			std::string ignoredReadGroupsFile = parameters().getParameter<std::string>("ignoreReadGroups");
+			logfile().listFlush("Reading read groups to ignore from file '" + ignoredReadGroupsFile + "' ...");
 			coretools::TInputFile in(ignoredReadGroupsFile, false);
 			while(in.read(vec)){
 				if(readGroups.readGroupExists(vec[0])){
 					readGroupsToIgnore.insert(readGroups.getId(vec[0]));
 				}
 			}
-			logfile->done();
+			logfile().done();
 		}
 
 		//read file with read group settings
-		std::string readGroupSettingsFile = Params.getParameter<std::string>("readGroupSettings");
-		logfile->listFlush("Reading read groups from file '" + readGroupSettingsFile + "' ...");
+		std::string readGroupSettingsFile = parameters().getParameter<std::string>("readGroupSettings");
+		logfile().listFlush("Reading read groups from file '" + readGroupSettingsFile + "' ...");
 		coretools::TInputFile in(readGroupSettingsFile, {"ReadGroup", "SeqType", "MaxCycles"});
 		if(in.numCols() != 3){
 			throw "Wrong number of entries in file '" + readGroupSettingsFile + "': need three columns corresponding to the read group name, read group type and max cycles!";
@@ -163,15 +166,15 @@ void TAlignmentMergerReadGroupSettings::initialize(TParameters & Params, TLog* l
 		}
 
 		//summarize
-		logfile->done();
-		_printSummary(logfile);
+		logfile().done();
+		_printSummary();
 		if(numNotInUse > 0){
-			logfile->warning(std::to_string(numNotInUse) + " read group(s) are present in file '" + in.name() + "' but are marked as not in use!");
+			logfile().warning(std::to_string(numNotInUse) + " read group(s) are present in file '" + in.name() + "' but are marked as not in use!");
 		}
 	}
 };
 
-void TAlignmentMergerReadGroupSettings::_printSummary(TLog* logfile){
+void TAlignmentMergerReadGroupSettings::_printSummary(){
 	//count
 	std::vector<uint16_t> counts(4, 0);
 	for(auto& s : _settings){
@@ -179,10 +182,10 @@ void TAlignmentMergerReadGroupSettings::_printSummary(TLog* logfile){
 	}
 
 	//summarize
-	if(counts[unchanged] > 0){ logfile->conclude(counts[unchanged], " read groups will remain unchanged."); }
-	if(counts[single] > 0   ){ logfile->conclude(counts[single], " single-end read groups will be split."); }
-	if(counts[mixed] > 0    ){ logfile->conclude(counts[mixed], " mixed read groups will be split and merged."); }
-	if(counts[paired] > 0   ){ logfile->conclude(counts[paired], " paired read groups to be merged."); }
+	if(counts[unchanged] > 0){ logfile().conclude(counts[unchanged], " read groups will remain unchanged."); }
+	if(counts[single] > 0   ){ logfile().conclude(counts[single], " single-end read groups will be split."); }
+	if(counts[mixed] > 0    ){ logfile().conclude(counts[mixed], " mixed read groups will be split and merged."); }
+	if(counts[paired] > 0   ){ logfile().conclude(counts[paired], " paired read groups to be merged."); }
 };
 
 void TAlignmentMergerReadGroupSettings::setAllAsUnchanged(const BAM::TReadGroups & readGroups){
@@ -203,7 +206,7 @@ bool TAlignmentMergerReadGroupSettings::needTruncation() const{
 };
 
 bool TAlignmentMergerReadGroupSettings::needsMerging() const{
-	for(auto& s : _settings){
+	for(const auto& s : _settings){
 		if(s.type == paired || s.type == mixed)
 			return true;
 	}
@@ -225,36 +228,36 @@ const TAlignmentMergerReadGroupSetting& TAlignmentMergerReadGroupSettings::getSe
 //-----------------------------------------
 // TBamFilter
 //-----------------------------------------
-TBamFilter::TBamFilter(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_parsed(Params, Logfile, RandomGenerator){
+TBamFilter::TBamFilter():TGenome_parsed(){
 	//max distance between mates
-	_maxDistanceBetweenMates = Params.getParameterWithDefault<int>("acceptedDistance", 2000);
-	_logfile->list("Mates that are farther than " + toString(_maxDistanceBetweenMates) + " apart will be considered orphans. (parameter 'acceptedDistance')");
+	_maxDistanceBetweenMates = parameters().getParameterWithDefault<int>("acceptedDistance", 2000);
+	logfile().list("Mates that are farther than " + toString(_maxDistanceBetweenMates) + " apart will be considered orphans. (parameter 'acceptedDistance')");
 
 	//keep orphans
-	if(Params.parameterExists("keepOrphans")){
+	if(parameters().parameterExists("keepOrphans")){
 		_keepOrphans = true;
-		_logfile->list("Will keep keep orphaned reads. (parameter 'keepOrphans')");
+		logfile().list("Will keep keep orphaned reads. (parameter 'keepOrphans')");
 	} else {
 		_keepOrphans = false;
-		_logfile->list("Will filter out orphaned reads (use 'keepOrphans' to keep them).");
+		logfile().list("Will filter out orphaned reads (use 'keepOrphans' to keep them).");
 	}
 
 	//recalibrate BAM?
-	if(_genotypeLikelihoodCalculator.recalibrationChangesQualities() || Params.parameterExists("incorporatePMD")){
+	if(_genotypeLikelihoodCalculator.recalibrationChangesQualities() || parameters().parameterExists("incorporatePMD")){
 		_recalibrate = true;
-		_logfile->list("Will write recalibrated quality scores.");
-		if(Params.parameterExists("incorporatePMD")){
-			_logfile->list("Probability of PMD will be reflected in new quality scores. (paramer 'incorporatePMD')");
+		logfile().list("Will write recalibrated quality scores.");
+		if(parameters().parameterExists("incorporatePMD")){
+			logfile().list("Probability of PMD will be reflected in new quality scores. (paramer 'incorporatePMD')");
 			_incorporatePMD = true;
 			if(!_genotypeLikelihoodCalculator.hasPMD()){
 				throw "No PMD probabilities provided! Provide PMD probabilities or remove parameter 'incorporatePMD'.";
 			}
 		} else {
 			_incorporatePMD = false;
-			_logfile->list("PMD will not be reflected in the quality scores. (recommended option. Use 'incorporatePMD' to overrule)");
+			logfile().list("PMD will not be reflected in the quality scores. (recommended option. Use 'incorporatePMD' to overrule)");
 		}
 	} else {
-		_logfile->list("Will write original quality scores. (provide recalibration parameters to update quality scores)");
+		logfile().list("Will write original quality scores. (provide recalibration parameters to update quality scores)");
 		_recalibrate = false;
 		_incorporatePMD = false;
 	}
@@ -420,7 +423,7 @@ void TBamFilter::traverseBAM(){
 	//done parsing bam file: report
 	_bamFile.printSummary();
 	_bamFile.close();
-	_outBam.close(_logfile);
+	_outBam.close(&logfile());
 };
 
 //-----------------------------------------
@@ -472,8 +475,7 @@ uint16_t TAlignmentMerger::merge(BAM::TAlignment & alignment, BAM::TAlignment & 
 
 // TAlignmentMergerType_randomBase
 //---------------------------------
-TAlignmentMerger_randomBase::TAlignmentMerger_randomBase(TRandomGenerator* RandomGenerator, const bool AdaptQuality){
-	_randomGenerator = RandomGenerator;
+TAlignmentMerger_randomBase::TAlignmentMerger_randomBase(const bool AdaptQuality){
 	_adaptQuality = AdaptQuality;
 };
 
@@ -496,7 +498,7 @@ void TAlignmentMerger_randomBase::_mergeBasesCore(BAM::TSequencedBase & bestBase
 };
 
 void TAlignmentMerger_randomBase::_mergeBases(BAM::TSequencedBase & alignment, BAM::TSequencedBase & mate){
-	if(_randomGenerator->pickOneOfTwo()){
+	if(randomGenerator().pickOneOfTwo()){
 		_mergeBasesCore(mate, alignment);
 	} else {
 		_mergeBasesCore(alignment, mate);
@@ -505,7 +507,7 @@ void TAlignmentMerger_randomBase::_mergeBases(BAM::TSequencedBase & alignment, B
 
 // TAlignmentMergerType_randomRead
 //---------------------------------
-TAlignmentMerger_randomRead::TAlignmentMerger_randomRead(TRandomGenerator* RandomGenerator, const bool AdaptQuality):TAlignmentMerger_randomBase(RandomGenerator, AdaptQuality){
+TAlignmentMerger_randomRead::TAlignmentMerger_randomRead(const bool AdaptQuality):TAlignmentMerger_randomBase(AdaptQuality){
 	_keepMate = false;
 };
 
@@ -518,13 +520,13 @@ void TAlignmentMerger_randomRead::_mergeBases(BAM::TSequencedBase & alignment, B
 };
 
 uint16_t TAlignmentMerger_randomRead::merge(BAM::TAlignment & alignment, BAM::TAlignment & mate){
-	_keepMate = _randomGenerator->pickOneOfTwo();
+	_keepMate = randomGenerator().pickOneOfTwo();
 	return TAlignmentMerger::merge(alignment, mate);
 };
 
 // TAlignmentMergerType_highestQuality
 //---------------------------------
-TAlignmentMerger_highestQuality::TAlignmentMerger_highestQuality(TRandomGenerator* RandomGenerator, const bool AdaptQuality):TAlignmentMerger_randomBase(RandomGenerator, AdaptQuality){};
+TAlignmentMerger_highestQuality::TAlignmentMerger_highestQuality(const bool AdaptQuality):TAlignmentMerger_randomBase(AdaptQuality){};
 
 void TAlignmentMerger_highestQuality::_mergeBases(BAM::TSequencedBase & alignment, BAM::TSequencedBase & mate){
 	if(mate.recalibratedQualityAsPhredInt > alignment.recalibratedQualityAsPhredInt){
@@ -540,65 +542,65 @@ void TAlignmentMerger_highestQuality::_mergeBases(BAM::TSequencedBase & alignmen
 //-----------------------------------------
 // TAlignmentSplitMerger
 //-----------------------------------------
-TAlignmentSplitMerger::TAlignmentSplitMerger(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator):TBamFilter(Params, Logfile, RandomGenerator){
+TAlignmentSplitMerger::TAlignmentSplitMerger() : TBamFilter(){
 	//parse read group settings
-	_rgSettings.initialize(Params, Logfile, _bamFile.readGroupsMutable());
+	_rgSettings.initialize(_bamFile.readGroupsMutable());
 
 	//other settings
 	_numReadsMerged = 0;
 	_numBasesMerged = 0;
 
 	//allow for reads to exceed max cycle length?
-	if(_rgSettings.needTruncation() || Params.parameterExists("allowForLarger")){
+	if(_rgSettings.needTruncation() || parameters().parameterExists("allowForLarger")){
 		_allowForLarger = true;
-		_logfile->list("Adding single end reads that are longer than maxCycles to 'truncated' read group without throwing an error. (parameter 'allowForLarger')");
+		logfile().list("Adding single end reads that are longer than maxCycles to 'truncated' read group without throwing an error. (parameter 'allowForLarger')");
 	} else {
 		_allowForLarger = false;
 	}
 
 	//initialize merger, if needed
 	if(_rgSettings.needsMerging()){
-		_initializeMerger(Params, Logfile, RandomGenerator);
+		_initializeMerger();
 	}
 };
 
-void TAlignmentSplitMerger::_initializeMerger(TParameters & Params, TLog*, TRandomGenerator* RandomGenerator){
-	//check if keepAllReads is turned on
-	//TODO: what is the basic set of filters needed?
+void TAlignmentSplitMerger::_initializeMerger() {
+	// check if keepAllReads is turned on
+	// TODO: what is the basic set of filters needed?
 	if(!_bamFile.improperPairsFilterEnabled()){
-		_logfile->warning("Improper pairs are kept but will not be merged!");
+		logfile().warning("Improper pairs are kept but will not be merged!");
 	}
 	/*
 	if(alignmentParser.getKeepAll()){
-		logfile->warning("Undefined behavior when merging reads that do not pass default filters. Consider removing 'keepAllReads'");
+		logfile().warning("Undefined behavior when merging reads that do not pass default filters. Consider removing 'keepAllReads'");
 	}
 	*/
 
 	//decide if we update quality score
 	bool adaptQuality;
-	if(Params.parameterExists("updateQuality")){
+	if(parameters().parameterExists("updateQuality")){
 		adaptQuality = true;
-		_logfile->list("Will update quality scores of preferred bases to reflect information from overlapping bases.");
+		logfile().list("Will update quality scores of preferred bases to reflect information from overlapping bases.");
 	} else {
 		adaptQuality = false;
-		_logfile->list("Will keep original quality scores of the preferred bases (use updateQuality to update quality scores).");
+		logfile().list("Will keep original quality scores of the preferred bases (use updateQuality to update quality scores).");
 	}
 
 	//set merging method
 	//TODO: update wiki to reflect change in names
-	std::string method = Params.getParameterWithDefault<std::string>("mergingMethod", "randomRead");
+	std::string method = parameters().getParameterWithDefault<std::string>("mergingMethod", "randomRead");
 	if(method == "none"){
 		_merger = std::make_unique<TAlignmentMerger>();
-		_logfile->list("Merging method: no merging.");
+		logfile().list("Merging method: no merging.");
 	} else if (method == "randomRead"){
-		_merger = std::make_unique<TAlignmentMerger_randomRead>(RandomGenerator, adaptQuality);
-		_logfile->list("Merging method: will keep random read for all overlapping positions");
+		_merger = std::make_unique<TAlignmentMerger_randomRead>(adaptQuality);
+		logfile().list("Merging method: will keep random read for all overlapping positions");
 	} else if(method == "randomBase"){
-		_merger = std::make_unique<TAlignmentMerger_randomBase>(RandomGenerator, adaptQuality);
-		_logfile->list("Merging method: will keep random base at each overlapping position.");
+		_merger = std::make_unique<TAlignmentMerger_randomBase>(adaptQuality);
+		logfile().list("Merging method: will keep random base at each overlapping position.");
 	} else if(method == "highestQuality"){
-		_merger = std::make_unique<TAlignmentMerger_highestQuality>(RandomGenerator, adaptQuality);
-		_logfile->list("Merging method: will keep base with highest quality at overlapping positions.");
+		_merger = std::make_unique<TAlignmentMerger_highestQuality>(adaptQuality);
+		logfile().list("Merging method: will keep base with highest quality at overlapping positions.");
 	} else {
 		throw "Unknown merging method " + method + "! Use 'none', 'randomRead', 'randomBase' and 'highestQuality'.";
 	}
@@ -671,7 +673,7 @@ void TAlignmentSplitMerger::_handleSingle(BAM::TAlignment* alignment){
 //-----------------------------------------
 // TOverlapQuantifier
 //-----------------------------------------
-TOverlapQuantifier::TOverlapQuantifier(TParameters & Params, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_filtered(Params, Logfile, RandomGenerator){};
+TOverlapQuantifier::TOverlapQuantifier():TGenome_filtered(){};
 
 
 void TOverlapQuantifier::quantifyOverlap(){
@@ -729,12 +731,12 @@ void TOverlapQuantifier::quantifyOverlap(){
 
 	//write distribution
 	std::string filename = _outputName + "_overlapStats.txt";
-	_logfile->listFlush("Writing distribution of fragment length and overlap to file '" + filename + "' ...");
+	logfile().listFlush("Writing distribution of fragment length and overlap to file '" + filename + "' ...");
 	const std::vector<std::string> header = {"fragmentLength", "overlap"};
 	coretools::TOutputFile out(filename, header);
 	overlapDist.write(out);
 	out.close();
-	_logfile->done();
+	logfile().done();
 };
 
 

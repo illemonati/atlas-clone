@@ -13,9 +13,6 @@
 #include "TBamFile.h"
 #include "TFile.h"
 #include "TGenome.h"
-#include "TLog.h"
-#include "TParameters.h"
-#include "TRandomGenerator.h"
 #include "TTask.h"
 #include "counters.h"
 
@@ -52,7 +49,7 @@ private:
 	void _handleAlignment();
 
 public:
-	TAssessSoftClipping(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
+	TAssessSoftClipping();
 	void assess();
 };
 
@@ -64,7 +61,7 @@ private:
 	BAM::TOutputBamFile _outBam;
 	void _handleAlignment();
 public:
-	TRemoveSoftClippedBases(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
+	TRemoveSoftClippedBases();
 	void removeSoftclippedBases();
 };
 
@@ -76,8 +73,7 @@ public:
 	TTask_assessSoftClipping(){ _explanation = "Assessing level of soft clipping in BAM file"; };
 
 	void run(){
-		using namespace coretools::instances;
-		TAssessSoftClipping assessor(parameters(), &logfile(), &randomGenerator());
+		TAssessSoftClipping assessor;
 		assessor.assess();
 	};
 };
@@ -87,8 +83,7 @@ public:
 	TTask_removeSoftClippedBasesFromReads(){ _explanation = "Removing soft clipped bases from reads"; };
 
 	void run(){
-		using namespace coretools::instances;
-		TRemoveSoftClippedBases remover(parameters(), &logfile(), &randomGenerator());
+		TRemoveSoftClippedBases remover;
 		remover.removeSoftclippedBases();
 	};
 };

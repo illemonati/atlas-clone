@@ -136,8 +136,7 @@ public:
 	double &beta(uint16_t i) noexcept override { return _betas[i]; }
 	double beta(uint16_t i) const noexcept override { return _betas[i]; }
 
-
-	bool checkValueRange(uint16_t) const noexcept override;
+	bool checkValueRange(uint16_t val) const noexcept override;
 	double adjustParametersPostEstimation() noexcept override { return 0.; }
 
 	double getEtaTerm(uint16_t val) const noexcept override;

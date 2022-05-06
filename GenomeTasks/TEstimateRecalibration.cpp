@@ -16,6 +16,8 @@
 #include "TBamFile.h"
 #include "TGenomePosition.h"
 #include "TGenotypeLikelihoodCalculator.h"
+#include "TLog.h"
+#include "TParameters.h"
 #include "TReadGroups.h"
 #include "TRecalibrationEMEstimator.h"
 #include "TSite.h"
@@ -23,31 +25,33 @@
 #include "TWindow.h"
 
 namespace GenomeTasks{
+using coretools::instances::parameters;
+using coretools::instances::logfile;
 
 //-----------------------------------------------------------
 // TEstimateRecalibration_base
 //-----------------------------------------------------------
-TEstimateRecalibration::TEstimateRecalibration(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator):TGenome_windows(Parameters, Logfile, RandomGenerator){
-	if(_genotypeLikelihoodCalculator.recalibrationChangesQualities() && !Parameters.parameterExists("rerecalibrate"))
+TEstimateRecalibration::TEstimateRecalibration():TGenome_windows(){
+	if(_genotypeLikelihoodCalculator.recalibrationChangesQualities() && !parameters().parameterExists("rerecalibrate"))
 		throw "Can not estimate recalibration: quality scores are already recalibrated while reading! (Use argument 'rerecalibrate' to overwrite this error)";
 
 	//limit to sites with known alleles?
-	if(Parameters.parameterExists("alleles")){
-		_logfile->startIndent("Will limit analysis to sites with known genotypes (parameter 'genotypes'):");
+	if(parameters().parameterExists("alleles")){
+		logfile().startIndent("Will limit analysis to sites with known genotypes (parameter 'genotypes'):");
 		_openSiteSubset("alleles");
-		_logfile->endIndent();
+		logfile().endIndent();
 	} else {
-		_logfile->list("Will use all sites without prior knowledge on alleles. (use 'genotypes' to provide known genotypes)");
+		logfile().list("Will use all sites without prior knowledge on alleles. (use 'genotypes' to provide known genotypes)");
 	}
 
 	//initialize maps
-	if(Parameters.parameterExists("poolReadGroups")){
-		std::string poolReadGroupsFile = Parameters.getParameter<std::string>("poolReadGroups");
-		_logfile->startIndent("Will pool read groups (parameter 'poolReadGroups'):");
-		_readGroupMap = new BAM::TReadGroupMap(_bamFile.readGroups(), poolReadGroupsFile, _logfile);
-		_logfile->endIndent();
+	if(parameters().parameterExists("poolReadGroups")){
+		std::string poolReadGroupsFile = parameters().getParameter<std::string>("poolReadGroups");
+		logfile().startIndent("Will pool read groups (parameter 'poolReadGroups'):");
+		_readGroupMap = new BAM::TReadGroupMap(_bamFile.readGroups(), poolReadGroupsFile, &logfile());
+		logfile().endIndent();
 	} else  {
-		_logfile->list("Will estimate recalibration parameters for each read group. (use 'poolReadGroups' to pool)");
+		logfile().list("Will estimate recalibration parameters for each read group. (use 'poolReadGroups' to pool)");
 		_readGroupMap = new BAM::TReadGroupMap(_bamFile.readGroups());
 	}
 
