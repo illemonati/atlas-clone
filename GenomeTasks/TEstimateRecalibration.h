@@ -13,9 +13,6 @@
 #include <string>
 
 #include "TGenome.h"
-#include "TLog.h"
-#include "TParameters.h"
-#include "TRandomGenerator.h"
 #include "TTask.h"
 
 namespace BAM { class TReadGroupMap; }
@@ -34,7 +31,7 @@ protected:
 	void _handleWindow();
 
 public:
-	TEstimateRecalibration(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
+	TEstimateRecalibration();
 	~TEstimateRecalibration();
 
 	void estimateRecalibration();
@@ -52,7 +49,7 @@ public:
 
 	void run(){
 		using namespace coretools::instances;
-		TEstimateRecalibration estimator(parameters(), &logfile(), &randomGenerator());
+		TEstimateRecalibration estimator;
 		estimator.estimateRecalibration();
 	};
 };

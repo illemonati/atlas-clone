@@ -16,9 +16,6 @@
 #include "GenotypeTypes.h"
 #include "TGenome.h"
 #include "TGenotypeData.h"
-#include "TLog.h"
-#include "TParameters.h"
-#include "TRandomGenerator.h"
 #include "TTask.h"
 #include "VCF/TVCFFields.h"
 #include "gzstream.h"
@@ -45,7 +42,6 @@ protected:
 	//lookup stuff
 	genometools::TVCFInfoFields _VCFInfoFields;
 	genometools::TVCFGenotypeFields _VCFGenotypeFields;
-	coretools::TRandomGenerator* _randomGenerator;
 
 	//output choices
 	bool _printSitesWithNoData;
@@ -110,7 +106,7 @@ protected:
 	virtual bool _callGenotypeKnownAlleles(const GenotypeLikelihoods::TSite & site, GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods);
 
 public:
-	TCaller(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
+	TCaller();
 	virtual ~TCaller();
 
 	std::string name() const{ return _callerName; };
@@ -122,11 +118,11 @@ public:
 	void printGenotypeFields(std::string tags);
 
 	//open / close _vcf file
-	void openVCF(const std::string Filename, const std::string sampleName, coretools::TLog* logfile);
+	void openVCF(const std::string Filename, const std::string sampleName);
 	void closeVCF();
 
 	//other output options
-	void initializeOutput(coretools::TParameters & Parameters, coretools::TLog* Logfile);
+	void initializeOutput();
 	bool printSitesWithNoData(){ return _printSitesWithNoData; };
 
 	//prior
@@ -145,7 +141,7 @@ private:
 	bool _callGenotypeKnownAlleles(const GenotypeLikelihoods::TSite & site, GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods) override;
 
 public:
-	TCallerRandomBase(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
+	TCallerRandomBase();
 };
 
 //------------------------------------------------------
@@ -157,7 +153,7 @@ private:
 	bool _callGenotypeKnownAlleles(const GenotypeLikelihoods::TSite & site, GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods) override;
 
 public:
-	TCallerMajorityBase(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
+	TCallerMajorityBase();
 };
 
 //------------------------------------------------------
@@ -172,7 +168,7 @@ private:
 	bool _callGenotypeKnownAlleles(const GenotypeLikelihoods::TSite & site, GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods) override;
 
 public:
-	TCallerConsensify(uint32_t DownsampleDepth, coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
+	TCallerConsensify(uint32_t DownsampleDepth);
 };
 
 //------------------------------------------------------
@@ -191,7 +187,7 @@ private:
 	std::string _getVCFGenotypeString_AP(const GenotypeLikelihoods::TSite & site, GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods) override;
 
 public:
-	TCallerAllelePresence(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
+	TCallerAllelePresence();
 };
 
 //------------------------------------------------------
@@ -258,7 +254,7 @@ protected:
 	std::string _getVCFGenotypeString_AI(const GenotypeLikelihoods::TSite & site, GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods) override;
 
 public:
-	TCallerDiploid(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
+	TCallerDiploid();
 };
 
 //------------------------------------------------------
@@ -273,7 +269,7 @@ private:
 	std::string _getVCFGenotypeString_PL(const GenotypeLikelihoods::TSite & site, GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods) override;
 
 public:
-	TCallerMLE(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
+	TCallerMLE();
 };
 
 //------------------------------------------------------
@@ -290,7 +286,7 @@ private:
 	std::string _getVCFGenotypeString_PP(const GenotypeLikelihoods::TSite & site, GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods);
 
 public:
-	TCallerBayes(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
+	TCallerBayes();
 };
 
 //------------------------------------------------------
@@ -302,13 +298,13 @@ private:
 	TCaller* _caller;
 	GenotypeLikelihoods::TGenotypePrior* _prior;
 
-	void _initializeGenotypePrior(coretools::TParameters & Parameters);
+	void _initializeGenotypePrior();
 	void _call();
 	void _callKnwonAlleles();
 	void _handleWindow();
 
 public:
-	TCall(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
+	TCall();
 	~TCall();
 	void call();
 };
@@ -322,7 +318,7 @@ public:
 
 	void run(){
 		using namespace coretools::instances;
-		TCall caller(parameters(), &logfile(), &randomGenerator());
+		TCall caller;
 		caller.call();
 	};
 };

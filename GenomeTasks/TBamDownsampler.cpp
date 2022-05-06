@@ -15,14 +15,17 @@
 #include <utility>
 
 #include "TAlignment.h"
+#include "TLog.h"
+#include "TParameters.h"
+#include "TRandomGenerator.h"
 #include "stringFunctions.h"
 
 namespace GenomeTasks{
 
 using coretools::Probability;
-using coretools::TParameters;
-using coretools::TLog;
-using coretools::TRandomGenerator;
+using coretools::instances::parameters;
+using coretools::instances::logfile;
+using coretools::instances::randomGenerator;
 using coretools::str::toString;
 
 //-----------------------------------------
@@ -37,17 +40,17 @@ void TBamSample::open(BAM::TBamFile & bamFile){
 	_out.open(_outName, bamFile);
 };
 
-void TBamSample::close(TLog* logfile){
-	_out.close(logfile);
+void TBamSample::close(){
+	_out.close(&logfile());
 };
 
-void TBamSample::sample(BAM::TBamFile & bamFile, TRandomGenerator & randomGenerator){
+void TBamSample::sample(BAM::TBamFile & bamFile){
 	if(_discard.isInBlacklist(bamFile.curName())){
 		_discard.remove(bamFile.curName());
 	} else if(_keep.isInBlacklist(bamFile.curName())){
 		bamFile.writeCurAlignment(_out);
 		_keep.remove(bamFile.curName());
-	} else if(randomGenerator.getRand() < _prob){
+	} else if(randomGenerator().getRand() < _prob){
 		bamFile.writeCurAlignment(_out);
 		if(bamFile.curIsProperPair()){
 			_keep.add(bamFile.curName());
@@ -60,12 +63,12 @@ void TBamSample::sample(BAM::TBamFile & bamFile, TRandomGenerator & randomGenera
 	}
 };
 
-void TBamSample::downsampleRead(BAM::TAlignment & alignment, TRandomGenerator & randomGenerator){
+void TBamSample::downsampleRead(BAM::TAlignment & alignment){
 	//parse again to get original bases and qualities
 	alignment.parse();
 
 	//downsample
-	alignment.downsampleAlignment(_prob, randomGenerator);
+	alignment.downsampleAlignment(_prob, randomGenerator());
 
 	//write
 	_out.writeAlignment(alignment);
@@ -74,18 +77,15 @@ void TBamSample::downsampleRead(BAM::TAlignment & alignment, TRandomGenerator & 
 //-----------------------------------------
 // TBamDownsampler_base
 //-----------------------------------------
-TBamDownsampler_base::TBamDownsampler_base(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_basic(Parameters, Logfile, RandomGenerator){
 
-};
-
-void TBamDownsampler_base::_readVectorOfDownsamplingProbabilities(TParameters & Params){
+void TBamDownsampler_base::_readVectorOfDownsamplingProbabilities(){
     //read downsampling rates
-    if(Params.parameterExists("prob")) {
-        Params.fillParameterIntoContainer("prob", _probs, ',');
-    } else if(Params.parameterExists("depth")){
+    if(parameters().parameterExists("prob")) {
+        parameters().fillParameterIntoContainer("prob", _probs, ',');
+    } else if(parameters().parameterExists("depth")){
         std::vector<double> depths;
-        Params.fillParameterIntoContainer("depth", depths, ',');
-        double averageDepth = Params.getParameter<double>("averageDepth");
+        parameters().fillParameterIntoContainer("depth", depths, ',');
+        double averageDepth = parameters().getParameter<double>("averageDepth");
         for(auto& it : depths){
             if(averageDepth >= it){
                 _probs.push_back(it / averageDepth);
@@ -113,13 +113,13 @@ void TBamDownsampler_base::_readVectorOfDownsamplingProbabilities(TParameters & 
 //-----------------------------------------
 // TBamDownsampler
 //-----------------------------------------
-TBamDownsampler::TBamDownsampler(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TBamDownsampler_base(Parameters, Logfile, RandomGenerator){
+TBamDownsampler::TBamDownsampler() : TBamDownsampler_base(){
 	//read downsampling rates
-	_readVectorOfDownsamplingProbabilities(Parameters);
+	_readVectorOfDownsamplingProbabilities();
 
 	//report
-	_logfile->list("Will accept reads with probabilities (parameter 'prob'): " + coretools::str::concatenateString(_probs, ", "));
-	if(*_probs.begin() == 1.0) _logfile->warning("Probability of 1 will result in identical file!");
+	logfile().list("Will accept reads with probabilities (parameter 'prob'): " + coretools::str::concatenateString(_probs, ", "));
+	if(*_probs.begin() == 1.0) logfile().warning("Probability of 1 will result in identical file!");
 
 	//create downsampling objects
 	for(size_t i=0; i<_probs.size(); ++i){
@@ -138,7 +138,7 @@ void TBamDownsampler::downsample(){
 	_bamFile.startProgressReporting();
 	while(_bamFile.readNextAlignment()){
 		for(auto& s : _bamSamples){
-			s.sample(_bamFile, *_randomGenerator);
+			s.sample(_bamFile);
 		}
 		_bamFile.printProgress();
 	}
@@ -146,16 +146,13 @@ void TBamDownsampler::downsample(){
 
 	//close
 	for(auto& s : _bamSamples){
-		s.close(_logfile);
+		s.close();
 	}
 };
 
 //-----------------------------------------
 // TBamReadDownsampler
 //-----------------------------------------
-TBamReadDownsampler::TBamReadDownsampler(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TBamDownsampler(Parameters, Logfile, RandomGenerator){
-
-};
 
 void TBamReadDownsampler::downsample(){
 	BAM::TAlignment alignment;
@@ -165,7 +162,7 @@ void TBamReadDownsampler::downsample(){
 	while(_bamFile.readNextAlignment()){
 		_bamFile.fill(alignment);
 		for(auto& s : _bamSamples){
-			s.downsampleRead(alignment, *_randomGenerator);
+			s.downsampleRead(alignment);
 		}
 		_bamFile.printProgress();
 	}
@@ -173,16 +170,16 @@ void TBamReadDownsampler::downsample(){
 
 	//close
 	for(auto& s : _bamSamples){
-		s.close(_logfile);
+		s.close();
 	}
 };
 
 //-----------------------------------------
 // TBamSeparator
 //-----------------------------------------
-TBamSeparator::TBamSeparator(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TBamDownsampler_base(Parameters, Logfile, RandomGenerator){
+TBamSeparator::TBamSeparator() : TBamDownsampler_base(){
 	//read downsampling rates
-	_readVectorOfDownsamplingProbabilities(Parameters);
+	_readVectorOfDownsamplingProbabilities();
 
 	//check that sum <= 1.0
 	double sum = 0.0;
@@ -197,8 +194,8 @@ TBamSeparator::TBamSeparator(TParameters & Parameters, TLog* Logfile, TRandomGen
 	}
 
 	//report
-	_logfile->list("Will separate reads with probabilities (parameter 'prob'): " + coretools::str::concatenateString(_probs, ", "));
-	if(*_probs.begin() == 1.0) _logfile->warning("Probability of 1 will result in identical file!");
+	logfile().list("Will separate reads with probabilities (parameter 'prob'): " + coretools::str::concatenateString(_probs, ", "));
+	if(*_probs.begin() == 1.0) logfile().warning("Probability of 1 will result in identical file!");
 };
 
 void TBamSeparator::separate(){
@@ -227,7 +224,7 @@ void TBamSeparator::separate(){
 				_mateWasWritten.erase(mate);
 			} else {
 				//assing to a bam file
-				double r = _randomGenerator->getRand();
+				double r = randomGenerator().getRand();
 
 				size_t index = 0;
 				while(r < _cumulProbs[index]){
@@ -251,7 +248,7 @@ void TBamSeparator::separate(){
 
 	//close
 	for(auto& s : out){
-		s.close(_logfile);
+		s.close();
 	}
 };
 

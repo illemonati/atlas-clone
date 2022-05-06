@@ -13,9 +13,6 @@
 
 #include "TBamFilter.h"
 #include "TGenome.h"
-#include "TLog.h"
-#include "TParameters.h"
-#include "TRandomGenerator.h"
 #include "TTask.h"
 #include "counters.h"
 
@@ -44,7 +41,7 @@ private:
     void _handleAlignment() override;
 
 public:
-	TBamDiagnoser(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
+	TBamDiagnoser();
 
 	void diagnose();
 };
@@ -58,7 +55,7 @@ public:
 
 	void run(){
 		using namespace coretools::instances;
-		TBamDiagnoser diagnoser(parameters(), &logfile(), &randomGenerator());
+		TBamDiagnoser diagnoser;
 		diagnoser.diagnose();
 	};
 };

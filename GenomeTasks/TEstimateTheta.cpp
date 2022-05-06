@@ -19,33 +19,36 @@
 #include "TGenomePosition.h"
 #include "TGenotypeData.h"
 #include "TGenotypeLikelihoodCalculator.h"
+#include "TLog.h"
+#include "TParameters.h"
+#include "TRandomGenerator.h"
 #include "TThetaEstimatorData.h"
 #include "TTimer.h"
 #include "stringFunctions.h"
 
 namespace GenomeTasks{
 
-using coretools::TParameters;
-using coretools::TLog;
-using coretools::TRandomGenerator;
+using coretools::instances::parameters;
+using coretools::instances::logfile;
+using coretools::instances::randomGenerator;
 using coretools::str::toString;
 
 //-----------------------------------
 // TEstimateTheta_base
 //-----------------------------------
-TEstimateTheta_base::TEstimateTheta_base(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):
-	TGenome_windows(Parameters, Logfile, RandomGenerator),
-	_thetaEstimator(Parameters, Logfile, RandomGenerator){
+TEstimateTheta_base::TEstimateTheta_base():
+	TGenome_windows(),
+	_thetaEstimator(){
 
 };
 
 void TEstimateTheta_base::_addSites(GenotypeLikelihoods::TWindow_base & window, GenotypeLikelihoods::TThetaEstimator & thetaEstimator){
-	_logfile->listFlushTime("Calculating genotype likelihoods ...");
+	logfile().listFlushTime("Calculating genotype likelihoods ...");
 	for(auto& s : window){
 		_genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(s, _genoLik);
 		thetaEstimator.add(s, _genoLik);
 	}
-	_logfile->doneTime();
+	logfile().doneTime();
 };
 
 void TEstimateTheta_base::_addSites(){
@@ -55,19 +58,19 @@ void TEstimateTheta_base::_addSites(){
 //-----------------------------------
 // TEstimateTheta
 //-----------------------------------
-TEstimateTheta::TEstimateTheta(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TEstimateTheta_base(Parameters, Logfile, RandomGenerator){
+TEstimateTheta::TEstimateTheta():TEstimateTheta_base(){
 	//open output file
 	std::string filename = _outputName + "_thetaPerWindow.txt.gz";
-	_thetaOut.open(&_thetaEstimator, filename, _logfile);
-	_logfile->list("Will write theta estimates to file '" + filename + "'.");
+	_thetaOut.open(&_thetaEstimator, filename);
+	logfile().list("Will write theta estimates to file '" + filename + "'.");
 
 	//print all windows?
-	if(Parameters.parameterExists("printAll")){
+	if(parameters().parameterExists("printAll")){
 		_printAll = true;
-		_logfile->list("Will print all windows, also those for which no estimation was possible. (parameter 'printAl')");
+		logfile().list("Will print all windows, also those for which no estimation was possible. (parameter 'printAl')");
 	} else {
 		_printAll = false;
-		_logfile->list("Will only print windows for which estimation was possible. (use 'printAll' to print all)");
+		logfile().list("Will only print windows for which estimation was possible. (use 'printAll' to print all)");
 	}
 };
 
@@ -79,12 +82,12 @@ bool TEstimateTheta::_estimateTheta(){
 };
 
 void TEstimateTheta::_handleWindow(){
-	_logfile->startIndent("Estimating Theta:");
+	logfile().startIndent("Estimating Theta:");
 	if(_estimateTheta() || _printAll){
 		_thetaOut.write(_window);
 	}
 	_thetaEstimator.clear();
-	_logfile->endIndent();
+	logfile().endIndent();
 };
 
 void TEstimateTheta::estimateTheta(){
@@ -94,27 +97,27 @@ void TEstimateTheta::estimateTheta(){
 //-----------------------------------
 // TEstimateThetaGenomeWide
 //-----------------------------------
-TEstimateThetaGenomeWide::TEstimateThetaGenomeWide(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TEstimateTheta_base(Parameters, Logfile, RandomGenerator){
+TEstimateThetaGenomeWide::TEstimateThetaGenomeWide():TEstimateTheta_base(){
 	if(_considerRegions){
-		_logfile->list("Estimating theta at specific sites. (parameter 'regions')");
+		logfile().list("Estimating theta at specific sites. (parameter 'regions')");
 	} else {
-		_logfile->list("Estimating theta genome-wide. (use 'regions' to limit)");
+		logfile().list("Estimating theta genome-wide. (use 'regions' to limit)");
 	}
 
 	//bootstraps
-	_numBootstraps = Parameters.getParameterWithDefault<int>("bootstraps", 0);
+	_numBootstraps = parameters().getParameterWithDefault<int>("bootstraps", 0);
 	if(_numBootstraps > 0){
-		_logfile->list("Will estimate theta fpr ", _numBootstraps, " bootstrap replicates. (parameter 'bootstraps')");
+		logfile().list("Will estimate theta fpr ", _numBootstraps, " bootstrap replicates. (parameter 'bootstraps')");
 	} else {
-		_logfile->list("Will not conduct any bootstrap replicates. (use 'bootstraps' to request)");
+		logfile().list("Will not conduct any bootstrap replicates. (use 'bootstraps' to request)");
 	}
 
-	if(Parameters.parameterExists("onlyBootstrap")){
+	if(parameters().parameterExists("onlyBootstrap")){
 		_onlyBootstraps = true;
-		_logfile->list("Will only ...");
+		logfile().list("Will only ...");
 	} else {
 		_onlyBootstraps = true;
-		_logfile->list("Will only ...");
+		logfile().list("Will only ...");
 	}
 };
 
@@ -128,25 +131,25 @@ void TEstimateThetaGenomeWide::_handleWindow(){
 };
 
 void TEstimateThetaGenomeWide::_bootstrapThetaEstimation(){
-	_logfile->startIndent("Generating " + toString(_numBootstraps) + " bootstrap estimates of theta:");
+	logfile().startIndent("Generating " + toString(_numBootstraps) + " bootstrap estimates of theta:");
 
 	//measure runtime
 	coretools::TTimer timer;
 
 	//loop over bootstraps
 	for(uint32_t s=0; s<_numBootstraps; ++s){
-		_logfile->startIndent("Bootstrap " + toString(s+1) + " of " + toString(_numBootstraps) + ":");
+		logfile().startIndent("Bootstrap " + toString(s+1) + " of " + toString(_numBootstraps) + ":");
 
 		//run bootstrap
 		_thetaEstimator.bootstrapTheta();
 		_thetaOut.write("Bootstrap_" + toString(s+1), "-", "-");
 
-		_logfile->endIndent();
+		logfile().endIndent();
 	}
 
 	//finish
-	_logfile->list("Total computation time for theta bootstrapping was ", timer.minutes());
-	_logfile->endIndent();
+	logfile().list("Total computation time for theta bootstrapping was ", timer.minutes());
+	logfile().endIndent();
 };
 
 void TEstimateThetaGenomeWide::estimateThetaGenomeWide(){
@@ -154,19 +157,19 @@ void TEstimateThetaGenomeWide::estimateThetaGenomeWide(){
 	_traverseBAMWindows();
 
 	if(!_onlyBootstraps){
-		_logfile->startIndent("Estimate theta based on a total of " + toString(_thetaEstimator.sizeWithData()) + " sites:");
+		logfile().startIndent("Estimate theta based on a total of " + toString(_thetaEstimator.sizeWithData()) + " sites:");
 		_thetaEstimator.estimateTheta();
 
 		//write estimates
 		std::string filename = _outputName + "_thetaGenomeWide.txt.gz";
-		_thetaOut.open(&_thetaEstimator, filename, _logfile);
-		_logfile->list("Will write theta estimates to file '" + filename + "'.");
+		_thetaOut.open(&_thetaEstimator, filename);
+		logfile().list("Will write theta estimates to file '" + filename + "'.");
 		if(_considerRegions){
 			_thetaOut.write("regions", "-", "-");
 		} else {
 			_thetaOut.write("genome-wide", "-", "-");
 		}
-		_logfile->endIndent();
+		logfile().endIndent();
 	}
 
 	//bootstrap
@@ -178,32 +181,32 @@ void TEstimateThetaGenomeWide::estimateThetaGenomeWide(){
 //-----------------------------------
 // TEstimateThetaLLSurface
 //-----------------------------------
-TEstimateThetaLLSurface::TEstimateThetaLLSurface(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TEstimateTheta_base(Parameters, Logfile, RandomGenerator){
-	_steps = Parameters.getParameterWithDefault<int>("steps", 100);
-	_logfile->list("Will calculate the LL-surface at ", _steps, " steps. (parameter 'steps')");
+TEstimateThetaLLSurface::TEstimateThetaLLSurface():TEstimateTheta_base(){
+	_steps = parameters().getParameterWithDefault<int>("steps", 100);
+	logfile().list("Will calculate the LL-surface at ", _steps, " steps. (parameter 'steps')");
 	if(_steps < 2){
 		throw "Th enumber of steps must be >= 2!";
 	}
 };
 
 void TEstimateThetaLLSurface::_handleWindow(){
-	_logfile->startIndent("Calculating likelihood surface for Theta:");
+	logfile().startIndent("Calculating likelihood surface for Theta:");
 
 	//adding sites to estimator
 	_addSites();
 
 	//open file
 	std::string filename = _outputName + _window.chrName() + "_" + toString(_window.from().position()) + "_LLsurface.txt";
-	_logfile->listFlushTime("Writing LL surface to file '" + filename + "' ...");
+	logfile().listFlushTime("Writing LL surface to file '" + filename + "' ...");
 	coretools::TOutputFile out(filename);
 
 	_thetaEstimator.calcLikelihoodSurface(out, _steps);
 
 	_thetaEstimator.clear();
-	_logfile->doneTime();
+	logfile().doneTime();
 
 	//finish
-	_logfile->endIndent();
+	logfile().endIndent();
 };
 
 void TEstimateThetaLLSurface::estimateThetaLLSurface(){
@@ -213,15 +216,15 @@ void TEstimateThetaLLSurface::estimateThetaLLSurface(){
 //-----------------------------------
 // TEstimateThetaDownsamplingQC
 //-----------------------------------
-TEstimateThetaDownsamplingQC::TEstimateThetaDownsamplingQC(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TEstimateTheta_base(Parameters, Logfile, RandomGenerator){
+TEstimateThetaDownsamplingQC::TEstimateThetaDownsamplingQC():TEstimateTheta_base(){
 
     //read downsampling rates
-    if(Parameters.parameterExists("prob")) {
-        Parameters.fillParameterIntoContainer("prob", downSampleProbVector, ',');
-    } else if(Parameters.parameterExists("depth")){
+    if(parameters().parameterExists("prob")) {
+        parameters().fillParameterIntoContainer("prob", downSampleProbVector, ',');
+    } else if(parameters().parameterExists("depth")){
         std::vector<double> depths;
-        Parameters.fillParameterIntoContainer("depth", depths, ',');
-        double averageDepth = Parameters.getParameter<double>("averageDepth");
+        parameters().fillParameterIntoContainer("depth", depths, ',');
+        double averageDepth = parameters().getParameter<double>("averageDepth");
         for(auto& it : depths){
             if(averageDepth >= it){
                 downSampleProbVector.push_back(it / averageDepth);
@@ -231,10 +234,10 @@ TEstimateThetaDownsamplingQC::TEstimateThetaDownsamplingQC(TParameters & Paramet
         }
     } else {
         //parse downsampling parameters
-        Parameters.fillParameterIntoContainer("prob", downSampleProbVector, ',', "1.0,0.5,0.2,0.1,0.05,0.02,0.01");
+        parameters().fillParameterIntoContainer("prob", downSampleProbVector, ',', "1.0,0.5,0.2,0.1,0.05,0.02,0.01");
     }
 	//report probabilities
-	_logfile->list("Will estimate theta after downsampling reads with probabilities " + coretools::str::concatenateString(downSampleProbVector, ", ") + ". (parameter 'prob')");
+	logfile().list("Will estimate theta after downsampling reads with probabilities " + coretools::str::concatenateString(downSampleProbVector, ", ") + ". (parameter 'prob')");
 
 	//check if full data is to be used (i.e. if prob = 1.0 is specified)
 	_printFullData = false;
@@ -252,7 +255,7 @@ TEstimateThetaDownsamplingQC::TEstimateThetaDownsamplingQC(TParameters & Paramet
 
 	//open output
 	std::string filename = _outputName + "_thetaQC.txt.gz";
-	_logfile->list("Will write theta estimates to file '" + filename + "'.");
+	logfile().list("Will write theta estimates to file '" + filename + "'.");
 	if(_printFullData){
 		_thetaOut.addEstimator(&_thetaEstimator, "p1.0_");
 	}
@@ -267,29 +270,29 @@ TEstimateThetaDownsamplingQC::TEstimateThetaDownsamplingQC(TParameters & Paramet
 		//now add estimator to output file
 		_thetaOut.addEstimator(&estimators[i], prefix);
 	}
-	_thetaOut.open(filename, _logfile);
+	_thetaOut.open(filename);
 };
 
 void TEstimateThetaDownsamplingQC::_handleWindow(){
 	//estimate on full data
 	if(_printFullData){
-		_logfile->startIndent("Estimating Theta on full data:");
+		logfile().startIndent("Estimating Theta on full data:");
 		_addSites();
 		_thetaEstimator.estimateTheta();
-		_logfile->endIndent();
+		logfile().endIndent();
 	}
 
 	for(size_t i=0; i<downSampleProbVector.size(); ++i){
 		coretools::Probability& p = downSampleProbVector[i];
-		_logfile->startIndent("Estimating Theta on downsampled data (p = " + toString(p) + "):");
+		logfile().startIndent("Estimating Theta on downsampled data (p = " + toString(p) + "):");
 
 		//downsample
-		_logfile->listFlush("Downsampling reads with p = " + toString(p) + " ...");
+		logfile().listFlush("Downsampling reads with p = " + toString(p) + " ...");
 		if(_subset)
-			destination.downsampleFromOther(_window, *_subset, _readUpToDepth, p, _randomGenerator);
+			destination.downsampleFromOther(_window, *_subset, _readUpToDepth, p, &randomGenerator());
 		else
-			destination.downsampleFromOther(_window, _readUpToDepth, p, _randomGenerator);
-		_logfile->done();
+			destination.downsampleFromOther(_window, _readUpToDepth, p, &randomGenerator());
+		logfile().done();
 
 		//apply filters
 		_applyWindowFilters(destination);
@@ -297,7 +300,7 @@ void TEstimateThetaDownsamplingQC::_handleWindow(){
 		//and estimate
 		_addSites(destination, estimators[i]);
 		estimators[i].estimateTheta();
-		_logfile->endIndent();
+		logfile().endIndent();
 	}
 
 	//write output
@@ -317,22 +320,22 @@ void TEstimateThetaDownsamplingQC::runQC(){
 //-----------------------------------
 // TEstimateThetaRatio
 //-----------------------------------
-TEstimateThetaRatio::TEstimateThetaRatio(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):
-		TGenome_windows(Parameters, Logfile, RandomGenerator),
-		_thetaEstimatorRatio(Parameters, Logfile, RandomGenerator){
+TEstimateThetaRatio::TEstimateThetaRatio():
+		TGenome_windows(),
+		_thetaEstimatorRatio(){
 	//read the two regions to be used
-	_logfile->startIndent("Reading regions:");
-	_initializeRegion(Parameters, _region1, '1');
-	_initializeRegion(Parameters, _region1, '2');
+	logfile().startIndent("Reading regions:");
+	_initializeRegion(_region1, '1');
+	_initializeRegion(_region1, '2');
 };
 
-void TEstimateThetaRatio::_initializeRegion(TParameters & Parameters, genometools::TBed & region, const char num){
-	_logfile->startIndent((std::string) "Region " + num + ":");
-	std::string regionsFile = Parameters.getParameter<std::string>("regions" + std::to_string(num));
-	_logfile->list((std::string) "Reading regions " + num + " from file '" + regionsFile  + " (parameter 'region" + num + "') ...");
+void TEstimateThetaRatio::_initializeRegion(genometools::TBed & region, const char num){
+	logfile().startIndent((std::string) "Region " + num + ":");
+	std::string regionsFile = parameters().getParameter<std::string>("regions" + std::to_string(num));
+	logfile().list((std::string) "Reading regions " + num + " from file '" + regionsFile  + " (parameter 'region" + num + "') ...");
 	region.add(regionsFile, _bamFile.chromosomes());
-	_logfile->done();
-	_logfile->conclude("Read " + toString(region.size()) + " sites on " + toString(region.numChromosomesWithWindows()) + " chromosomes.");
+	logfile().done();
+	logfile().conclude("Read " + toString(region.size()) + " sites on " + toString(region.numChromosomesWithWindows()) + " chromosomes.");
 };
 
 void TEstimateThetaRatio::_addSites(GenotypeLikelihoods::TThetaEstimatorData & data, genometools::TBed & region){
@@ -350,14 +353,14 @@ void TEstimateThetaRatio::_addSites(GenotypeLikelihoods::TThetaEstimatorData & d
 
 void TEstimateThetaRatio::_handleWindow(){
 	//adding sites to estimator
-	_logfile->listFlushTime("Calculating genotype likelihoods ...");
+	logfile().listFlushTime("Calculating genotype likelihoods ...");
 	try{
 		_addSites(*_thetaEstimatorRatio.pointerToDataContainer(), _region1);
 		_addSites(*_thetaEstimatorRatio.pointerToDataContainer2(), _region2);
 	} catch(...){
 		throw "Failed to allocate sufficient memory to store the data for so many sites. Consider selecting fewer regions or limiting to sites with a minimal depth (>=2 recommended).";
 	}
-	_logfile->doneTime();
+	logfile().doneTime();
 };
 
 void TEstimateThetaRatio::estimateThetaRation(){

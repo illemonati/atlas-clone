@@ -15,9 +15,6 @@
 #include "TBed.h"
 #include "TGenome.h"
 #include "TGenotypeData.h"
-#include "TLog.h"
-#include "TParameters.h"
-#include "TRandomGenerator.h"
 #include "TTask.h"
 
 namespace GenomeTasks{
@@ -31,9 +28,8 @@ protected:
 	uint32_t _minDepthForMask;
 
 	void _createMask(const std::string fileTag);
-
 public:
-	TCreateBedMask(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
+	TCreateBedMask();
 };
 
 //--------------------------------------
@@ -45,7 +41,7 @@ private:
 
 	void _handleWindow();
 public:
-	TCreateDepthBedMask(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
+	TCreateDepthBedMask();
 	void createDepthMask();
 };
 
@@ -59,7 +55,7 @@ private:
 	//tmp variables
 	GenotypeLikelihoods::TBaseCounts _baseCounts;
 public:
-	TCreateInvariantBedMask(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
+	TCreateInvariantBedMask();
 	void createInvariantMask();
 };
 
@@ -73,7 +69,7 @@ private:
 	//tmp variables
 	GenotypeLikelihoods::TBaseCounts _baseCounts;
 public:
-	TCreateVariantBedMask(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
+	TCreateVariantBedMask();
 	void createVariantMask();
 };
 
@@ -84,7 +80,7 @@ class TCreateNonRefBedMask:public TCreateBedMask{
 private:
 	void _handleWindow();
 public:
-	TCreateNonRefBedMask(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
+	TCreateNonRefBedMask();
 	void createVariantMask();
 };
 
@@ -102,12 +98,12 @@ public:
 		//which mask?
 		std::string mask = parameters().getParameter<std::string>("mask");
 		if(mask == "depth"){
-			TCreateDepthBedMask depthMask(parameters(), &logfile(), &randomGenerator());
+			TCreateDepthBedMask depthMask;
 			depthMask.createDepthMask();
 		} else if(mask == "nonRef"){
 
 		} else if(mask == "invariant"){
-			TCreateInvariantBedMask conservedMask(parameters(), &logfile(), &randomGenerator());
+			TCreateInvariantBedMask conservedMask;
 			conservedMask.createInvariantMask();
 		} else if(mask == "variant"){
 

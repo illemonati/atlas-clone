@@ -8,6 +8,7 @@
 #ifndef GENOMETASKS_TPMDESTIMATOR_H_
 #define GENOMETASKS_TPMDESTIMATOR_H_
 
+#include <memory>
 #include <stdint.h>
 #include <string>
 
@@ -19,44 +20,44 @@
 #include "TRandomGenerator.h"
 #include "TTask.h"
 
-namespace BAM { class TReadGroupMap; }
+namespace BAM {
+class TReadGroupMap;
+}
 
-namespace GenomeTasks{
+namespace GenomeTasks {
 
 //----------------------------------------
 // TPMDEstimator.h
 //----------------------------------------
 
-class TPMDEstimator:public TGenome_parsed{
+class TPMDEstimator : public TGenome_parsed {
 private:
 	uint16_t _maxLengthForInference;
-	BAM::TReadGroupMap* _readGroupMap;
+	std::unique_ptr<BAM::TReadGroupMap> _readGroupMap;
 	GenotypeLikelihoods::TPMDTables _pmdTables;
 	GenotypeLikelihoods::TPMDEstimationParameters _estimationParameters;
 
 	void _handleAlignment();
 
 public:
-	TPMDEstimator(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
-	~TPMDEstimator();
+	TPMDEstimator();
 	void estimatePMD();
 };
-
 
 //--------------------------------------
 // Tasks
 //--------------------------------------
-class TTask_estimatePMD:public coretools::TTask{
+class TTask_estimatePMD : public coretools::TTask {
 public:
-	TTask_estimatePMD(){ _explanation = "Estimating Post-Mortem Damage (PMD) patterns"; };
+	TTask_estimatePMD() { _explanation = "Estimating Post-Mortem Damage (PMD) patterns"; };
 
-	void run(){
+	void run() {
 		using namespace coretools::instances;
-		TPMDEstimator estimator(parameters(), &logfile(), &randomGenerator());
+		TPMDEstimator estimator;
 		estimator.estimatePMD();
 	};
 };
 
-}; // end namespace
+}; // namespace GenomeTasks
 
 #endif /* GENOMETASKS_TPMDESTIMATOR_H_ */

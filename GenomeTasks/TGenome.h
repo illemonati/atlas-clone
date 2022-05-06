@@ -1,16 +1,16 @@
 /*
- * loci.h
+ * TGenome.h
  *
  *  Created on: Feb 19, 2015
  *      Author: wegmannd
  */
 
-#ifndef GENOME_H_
-#define GENOME_H_
+#ifndef TGENOME_H_
+#define TGENOME_H_
 
-#include <stdint.h>
 #include <memory>
 #include <set>
+#include <stdint.h>
 #include <string>
 #include <vector>
 
@@ -26,118 +26,119 @@
 #include "TTimer.h"
 #include "TWindow.h"
 
-namespace GenotypeLikelihoods { class TSiteSubset; }
-namespace coretools { class TLog; }
-namespace coretools { class TParameters; }
-namespace coretools { class TRandomGenerator; }
-namespace coretools { class TSubsamplePicker; }
+namespace GenotypeLikelihoods {
+class TSiteSubset;
+}
+namespace coretools {
+class TLog;
+}
+namespace coretools {
+class TParameters;
+}
+namespace coretools {
+class TRandomGenerator;
+}
+namespace coretools {
+class TSubsamplePicker;
+}
 
-namespace GenomeTasks{
+namespace GenomeTasks {
 
 //---------------------------------------------------------------
 // TGenome_basic
 // A base class without filters and genotype likelihoods
 //---------------------------------------------------------------
-class TGenome_basic{
+class TGenome_basic {
 protected:
-	coretools::TLog* _logfile;
-	coretools::TParameters* _params;
 	BAM::TBamFile _bamFile;
-	coretools::TRandomGenerator* _randomGenerator;
 	std::string _outputName;
 
-	virtual void _openBamForWriting(const std::string filename, BAM::TOutputBamFile & outBam);
-	void _initialize(coretools::TParameters & Params, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
-
+	void _openBamForWriting(const std::string &filename, BAM::TOutputBamFile &outBam);
 public:
-    TGenome_basic();
-    TGenome_basic(coretools::TParameters & Params, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
-    virtual ~TGenome_basic(){};
+	TGenome_basic();
+	virtual ~TGenome_basic() = default;
 };
 
 //---------------------------------------------------------------
 // TGenome_filtered
 // A base class without recalibration but BAM filters enabled
 //---------------------------------------------------------------
-class TGenome_filtered:public TGenome_basic{
+class TGenome_filtered : public TGenome_basic {
 protected:
-	virtual void _traverseBAMPassedQC();
-	virtual void _handleAlignment(){ throw "_handleAlignment() not implemented for base class TGenome_filtered!"; };
-
+	void _traverseBAMPassedQC();
+	virtual void _handleAlignment() = 0;
 public:
-    TGenome_filtered();
-    TGenome_filtered(coretools::TParameters & Params, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
+	TGenome_filtered();
 };
-
 
 //---------------------------------------------------------------
 // TGenome_parsed
 // A base class with BAM filters and a parsed, recalibrated alignment
 //---------------------------------------------------------------
-class TGenome_parsed:public TGenome_filtered{
+class TGenome_parsed : public TGenome_basic {
 protected:
 	BAM::TAlignment _alignment;
 	GenotypeLikelihoods::TGenotypeLikelihoodCalculator _genotypeLikelihoodCalculator;
 	GenotypeLikelihoods::TGenotypeLikelihoods _genoLik;
 
-	//reference
+	// reference
 	BAM::TFastaBuffer _reference;
 	void _openReference(bool required = false);
 
-	//read trimming
+	// read trimming
 	bool _trimReads;
 	int _trimmingLength3Prime;
 	int _trimmingLength5Prime;
 
-	//filters
+	// filters
 	BAM::TQualityFilter _qualityFilter;
 	BAM::TContextFilter _contextFilter;
 
-	//functions for initialization
-	void _setReadTrimming(coretools::TParameters & params);
+	// functions for initialization
+	void _setReadTrimming();
 
-	void _parseAlignment(BAM::TAlignment & alignment);
-	void _traverseBAMPassedQC();
+	void _parseAlignment(BAM::TAlignment &alignment);
+	//void _traverseBAMPassedQC();
+	//virtual void _handleAlignment() = 0;
 public:
-	TGenome_parsed(coretools::TParameters & Params, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
-	virtual ~TGenome_parsed(){};
+	TGenome_parsed();
 };
 
 //---------------------------------------------------------------
 // TGenome_windows
 // A base class to traverse a BAM file in windows
 //---------------------------------------------------------------
-class TGenome_windows:public TGenome_parsed{
+class TGenome_windows : public TGenome_parsed {
 protected:
-	const genometools::TChromosomes& _chromosomes;
+	const genometools::TChromosomes &_chromosomes;
 	std::vector<genometools::TChromosome>::const_iterator _curChromosome;
 
-	//window params
+	// window params
 	uint32_t _windowSize;
 	uint32_t _numWindowsOnChr;
 	uint32_t _windowNumber;
 	bool _chrChangedWindow;
 
-	//predefined windows
-    genometools::TGenomeWindowList _predefinedWindows;
+	// predefined windows
+	genometools::TGenomeWindowList _predefinedWindows;
 	std::multiset<genometools::TGenomeWindow>::iterator _curPredefinedWindow;
 
-	//window limits
+	// window limits
 	long _limitWindows;
 	uint32_t _skipWindows;
 
-	//window filters
+	// window filters
 	double _maxMissing;
 	double _maxRefN;
 
-	//mask
+	// mask
 	bool _doMasking, _considerRegions;
-    genometools::TBed _mask;
+	genometools::TBed _mask;
 
-	//sites
+	// sites
 	std::unique_ptr<GenotypeLikelihoods::TSiteSubset> _subset;
 
-	//site filters
+	// site filters
 	bool _applyDepthFilter;
 	uint32_t _readUpToDepth;
 	coretools::TNumericRange<uint32_t> _depthFilter;
@@ -145,42 +146,40 @@ protected:
 	uint32_t _downsampleDepth;
 	std::unique_ptr<coretools::TSubsamplePicker> subsamplePicker;
 
-	//tmp variables
-	BAM::TAlignment* _curAlignment;
+	// tmp variables
+	std::unique_ptr<BAM::TAlignment> _curAlignment;
 	bool _hasWindowIndent;
 	coretools::TTimer _windowTimer;
 
-	//contructor functions
-	void _setWindowParameters(coretools::TParameters & params);
-	void _setParsingLimits(coretools::TParameters & params);
-	void _setWindowFilters(coretools::TParameters & params);
-	void _setSiteFilters(coretools::TParameters & params);
-	void _setMasks(coretools::TParameters & params);
-	void _openSiteSubset(const std::string filename);
+	// contructor functions
+	void _setWindowParameters();
+	void _setParsingLimits();
+	void _setWindowFilters();
+	void _setSiteFilters();
+	void _setMasks();
+	void _openSiteSubset(const std::string &filename);
 
-	//functions to traverse BAM in windows
+	// functions to traverse BAM in windows
 	GenotypeLikelihoods::TWindow _window;
 	void _jumpToEnd();
 	void _setCountersBeginningOfChromosome();
-	bool _incrementWindow(GenotypeLikelihoods::TWindow_base & window);
-	bool _moveToNextWindow(GenotypeLikelihoods::TWindow_base & window);
+	bool _incrementWindow(GenotypeLikelihoods::TWindow_base &window);
+	bool _moveToNextWindow(GenotypeLikelihoods::TWindow_base &window);
 	bool _incrementPredefinedWindow();
-	bool _moveToNextPredefinedWindow(GenotypeLikelihoods::TWindow_base & window);
+	bool _moveToNextPredefinedWindow(GenotypeLikelihoods::TWindow_base &window);
 
-	bool _moveWindow(GenotypeLikelihoods::TWindow_base & window);
-	void _readAlignmentsIntoWindow(GenotypeLikelihoods::TWindow & window);
-	void _applyWindowFilters(GenotypeLikelihoods::TWindow_base & window);
-    bool _readAndParseAlignment(BAM::TAlignment & alignment);
-    bool _readDataInNextWindow(GenotypeLikelihoods::TWindow & window);
+	bool _moveWindow(GenotypeLikelihoods::TWindow_base &window);
+	void _readAlignmentsIntoWindow(GenotypeLikelihoods::TWindow &window);
+	void _applyWindowFilters(GenotypeLikelihoods::TWindow_base &window);
+	bool _readAndParseAlignment(BAM::TAlignment &alignment);
+	bool _readDataInNextWindow(GenotypeLikelihoods::TWindow &window);
 
 	void _traverseBAMWindows();
-	virtual void _handleWindow(){ throw "_handleWindow() not implemented for base class TGenome_windows!"; };
-
+	virtual void _handleWindow() = 0;
 public:
-	TGenome_windows(coretools::TParameters & Params, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
-	~TGenome_windows();
+	TGenome_windows();
 };
 
-}; //end namespace
+}; // namespace GenomeTasks
 
 #endif /* GENOME_H_ */

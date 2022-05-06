@@ -22,6 +22,8 @@
 #include "TGenotypeLikelihoodCalculator.h"
 #include "TGenotypePrior.h"
 #include "TMassFunction.h"
+#include "TLog.h"
+#include "TParameters.h"
 #include "TRandomGenerator.h"
 #include "TSequencedBase.h"
 #include "TSite.h"
@@ -36,9 +38,9 @@
 namespace GenomeTasks{
 
 using namespace GenotypeLikelihoods;
-using coretools::TParameters;
-using coretools::TLog;
-using coretools::TRandomGenerator;
+using coretools::instances::parameters;
+using coretools::instances::logfile;
+using coretools::instances::randomGenerator;
 using coretools::Probability;
 using genometools::Base;
 using namespace coretools::str;
@@ -46,7 +48,6 @@ using namespace coretools::str;
 namespace /*anonymous*/ {
 template<template<typename, typename, size_t, typename...> typename Container, typename Type, typename Index, size_t N, typename... Args>
 auto sampleFirstSecond(const Container<Type, Index, N, Args...> &c) {
-	using coretools::instances::randomGenerator;
 	std::array<Index, N> is;
 	std::iota(is.begin(), is.end(), Index{});
 	std::sort(is.begin(), is.end(), [&c](auto i, auto j){return c[i] > c[j];});
@@ -73,10 +74,9 @@ auto sampleFirstSecond(const Container<Type, Index, N, Args...> &c) {
 /////////////////////////////////////////////////////////
 // TCaller
 /////////////////////////////////////////////////////////
-TCaller::TCaller(TParameters &, TLog*, TRandomGenerator* RandomGenerator){
+TCaller::TCaller(){
 	_callerName = "default caller";
 	_filenameExtention = ".vcf.gz";
-	_randomGenerator = RandomGenerator;
 
 	//output choices
 	_printSitesWithNoData = false;
@@ -151,71 +151,71 @@ void TCaller::printGenotypeFields(std::string tags){
 	printGenotypeFields(vec);
 };
 
-void TCaller::initializeOutput(TParameters & Parameters, TLog* Logfile){
+void TCaller::initializeOutput(){
 	//info fields
-	if(Parameters.parameterExists("infoFields")){
-		Logfile->listFlush("Parsing VCF info fields ...");
-		printInfoFields(Parameters.getParameter<std::string>("infoFields"));
-		Logfile->done();
+	if(parameters().parameterExists("infoFields")){
+		logfile().listFlush("Parsing VCF info fields ...");
+		printInfoFields(parameters().getParameter<std::string>("infoFields"));
+		logfile().done();
 	}
 	if(_VCFInfoFields.numUsed() > 0){
-		Logfile->list("Will print these VCF info fields: " + _VCFInfoFields.getListOfUsedFields(", ") + ". (parameter 'infoFields')");
+		logfile().list("Will print these VCF info fields: " + _VCFInfoFields.getListOfUsedFields(", ") + ". (parameter 'infoFields')");
 	} else {
-		Logfile->list("Will not print any VCF info fields. (parameter 'infoFields')");
+		logfile().list("Will not print any VCF info fields. (parameter 'infoFields')");
 	}
 
 	//genotype fields
-	if(Parameters.parameterExists("formatFields")){
-		Logfile->listFlush("Parsing VCF format fields ...");
-		printGenotypeFields(Parameters.getParameter<std::string>("formatFields"));
-		Logfile->done();
+	if(parameters().parameterExists("formatFields")){
+		logfile().listFlush("Parsing VCF format fields ...");
+		printGenotypeFields(parameters().getParameter<std::string>("formatFields"));
+		logfile().done();
 	}
 	if(_VCFGenotypeFields.numUsed() > 0){
-		Logfile->list("Will print these VCF format fields: " + _VCFGenotypeFields.getListOfUsedFields(", ") + ". (parameter 'formatFields')");
+		logfile().list("Will print these VCF format fields: " + _VCFGenotypeFields.getListOfUsedFields(", ") + ". (parameter 'formatFields')");
 	} else {
-		Logfile->list("Will not print any VCF format fields. (parameter 'formatFields')");
+		logfile().list("Will not print any VCF format fields. (parameter 'formatFields')");
 	}
 
 	//other output options
-	if(Parameters.parameterExists("printAll")){
+	if(parameters().parameterExists("printAll")){
 		_printSitesWithNoData = true;
-		Logfile->list("Will print all sites, also those without data. (parameter 'printAll')");
+		logfile().list("Will print all sites, also those without data. (parameter 'printAll')");
 	} else {
 		_printSitesWithNoData = false;
-		Logfile->list("Will print only sites with data. (use 'printAll' to print all);");
+		logfile().list("Will print only sites with data. (use 'printAll' to print all);");
 	}
 
-	if(Parameters.parameterExists("noAltIfHomoRef")){
+	if(parameters().parameterExists("noAltIfHomoRef")){
 		_printAltIfHomoRef = false;
-		Logfile->list("Will not print an alternative allele if the call is homozygous reference. (parameter 'noAltIfHomoRef')");
+		logfile().list("Will not print an alternative allele if the call is homozygous reference. (parameter 'noAltIfHomoRef')");
 	} else {
 		_printAltIfHomoRef = true;
-		Logfile->list("Will print the most likely alternative allele even if the call is homozygous reference. (use 'noAltIfHomoRef' to suppress)");
+		logfile().list("Will print the most likely alternative allele even if the call is homozygous reference. (use 'noAltIfHomoRef' to suppress)");
 	}
 
-	if(Parameters.parameterExists("noTriallelic")){
+	if(parameters().parameterExists("noTriallelic")){
 		_allowTriallelicSites = false;
-		Logfile->list("Will not call genotypes resulting in two alternative alleles. (parameter 'noTriallelic')");
+		logfile().list("Will not call genotypes resulting in two alternative alleles. (parameter 'noTriallelic')");
 	} else {
 		_allowTriallelicSites = true;
-		Logfile->list("Will allow for genotypes with two alternative alleles. (use 'noTriallelic' to suppress)");
+		logfile().list("Will allow for genotypes with two alternative alleles. (use 'noTriallelic' to suppress)");
 	}
 
-	if(Parameters.parameterExists("noCallsViolatingBest")){
+	if(parameters().parameterExists("noCallsViolatingBest")){
 		_allowKnownAllelesCallsDifferentFromBestCall = false;
-		Logfile->list("Will not call genotypes from known alleles that conflict with best call across all genotypes. (parameter 'noCallsViolatingBest')");
+		logfile().list("Will not call genotypes from known alleles that conflict with best call across all genotypes. (parameter 'noCallsViolatingBest')");
 	} else {
 		_allowKnownAllelesCallsDifferentFromBestCall = true;
-		Logfile->list("Will call genotypes from known alleles even if they differ from best call across all genotypes. (use 'noCallsViolatingBest' to suppress)");
+		logfile().list("Will call genotypes from known alleles even if they differ from best call across all genotypes. (use 'noCallsViolatingBest' to suppress)");
 	}
 }
 
 //-------------------------------------------------------------------------------------------
 // open / close VCF file, print header
 //-------------------------------------------------------------------------------------------
-void TCaller::openVCF(const std::string FilenameTag, const std::string sampleName, TLog* logfile){
+void TCaller::openVCF(const std::string FilenameTag, const std::string sampleName){
 	_filename = FilenameTag  + _filenameExtention + ".gz";
-	logfile->list("Writing calls to VCF file '" + _filename + "'.");
+	logfile().list("Writing calls to VCF file '" + _filename + "'.");
 	_vcf.open(_filename.c_str());
 	if(!_vcf) throw "Failed to open VCF file '" + _filename + "' for writing!";
 	_vcfOpen = true;
@@ -454,22 +454,22 @@ void TCaller::call(const std::string & chr, long pos, const TSite & site, TGenot
 /////////////////////////////////////////////////////////
 // TCallerRandomBase
 /////////////////////////////////////////////////////////
-TCallerRandomBase::TCallerRandomBase(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TCaller(Parameters, Logfile, RandomGenerator){
+TCallerRandomBase::TCallerRandomBase(){
 	//caller settings
 	_callerName = "Random Base Caller";
 	_filenameExtention = "_randomBase.vcf";
-	Logfile->list("Will use the " + _callerName + ".");
+	logfile().list("Will use the " + _callerName + ".");
 
 	//parse VCF fields
 	_setAcceptableFields(&_VCFInfoFields, "DP");
 	_setAcceptableFields(&_VCFGenotypeFields, "GT,DP,AD");
-	initializeOutput(Parameters, Logfile);
+	initializeOutput();
 
 };
 
 bool TCallerRandomBase::_callGenotype(const TSite & site, TGenotypeLikelihoods &){
 	//randomly pick a base
-	genometools::Base allele = site[_randomGenerator->sample(site.depth())].base;
+	genometools::Base allele = site[randomGenerator().sample(site.depth())].base;
 
 	//decide on alt
 	if(allele == referenceBase){
@@ -489,7 +489,7 @@ bool TCallerRandomBase::_callGenotypeKnownAlleles(const TSite & site, TGenotypeL
 		double probRef = (double) _alleleCounts[referenceBase] / (double) (_alleleCounts[referenceBase] + _alleleCounts[_altAlleles[0]]);
 
 		//pick among known alleles
-		if(_randomGenerator->getRand() < probRef){
+		if(randomGenerator().getRand() < probRef){
 			_calledGenotype = "0";
 		} else {
 			_calledGenotype = "1";
@@ -497,7 +497,7 @@ bool TCallerRandomBase::_callGenotypeKnownAlleles(const TSite & site, TGenotypeL
 		return true;
 	} else {
 		//pick among all alleles and check
-		genometools::Base allele = site[_randomGenerator->sample(site.depth())].base;
+		genometools::Base allele = site[randomGenerator().sample(site.depth())].base;
 		if(allele == referenceBase){
 			_calledGenotype = "0";
 			return true;
@@ -513,14 +513,14 @@ bool TCallerRandomBase::_callGenotypeKnownAlleles(const TSite & site, TGenotypeL
 /////////////////////////////////////////////////////////
 // TCallerMajorityCall
 /////////////////////////////////////////////////////////
-TCallerMajorityBase::TCallerMajorityBase(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TCaller(Parameters, Logfile, RandomGenerator){
+TCallerMajorityBase::TCallerMajorityBase(){
 	//general caller settings
 	_callerName = "Majority Base Caller";
 	_filenameExtention = "_majorityBase.vcf";
-	Logfile->list("Will use the " + _callerName + ".");
+	logfile().list("Will use the " + _callerName + ".");
 
 	//parse VCF fields
-	initializeOutput(Parameters, Logfile);
+	initializeOutput();
 };
 
 bool TCallerMajorityBase::_callGenotype(const TSite & site, TGenotypeLikelihoods &){
@@ -556,7 +556,7 @@ bool TCallerMajorityBase::_callGenotypeKnownAlleles(const TSite & site, TGenotyp
 			_calledGenotype = "1";
 		} else {
 			//equal counts: pick at random
-			if(_randomGenerator->getRand() < 0.5){
+			if(randomGenerator().getRand() < 0.5){
 				_calledGenotype = "0";
 			} else {
 				_calledGenotype = "1";
@@ -566,7 +566,7 @@ bool TCallerMajorityBase::_callGenotypeKnownAlleles(const TSite & site, TGenotyp
 	} else {
 		//pick among all alleles and check
 		//call majority
-		const auto majorityBase = _randomGenerator->sampleIndexOfMaxima<TBaseCounts, Base, 4>(_alleleCounts);
+		const auto majorityBase = randomGenerator().sampleIndexOfMaxima<TBaseCounts, Base, 4>(_alleleCounts);
 
 		//decide on call
 		if(majorityBase == referenceBase){
@@ -583,14 +583,14 @@ bool TCallerMajorityBase::_callGenotypeKnownAlleles(const TSite & site, TGenotyp
 /////////////////////////////////////////////////////////
 // TCallerConsensify
 /////////////////////////////////////////////////////////
-TCallerConsensify::TCallerConsensify(uint32_t DownsampleDepth, TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TCaller(Parameters, Logfile, RandomGenerator){
+TCallerConsensify::TCallerConsensify(uint32_t DownsampleDepth) : TCaller() {
 	//general caller settings
 	_callerName = "Consensify Base Caller";
 	_filenameExtention = "_consensifyBase.vcf";
-	Logfile->list("Will use the " + _callerName + ".");
+	logfile().list("Will use the " + _callerName + ".");
 
 	//parse VCF fields
-	initializeOutput(Parameters, Logfile);
+	initializeOutput();
 
 	//check downsample depth
 	if(DownsampleDepth < 1){
@@ -599,7 +599,7 @@ TCallerConsensify::TCallerConsensify(uint32_t DownsampleDepth, TParameters & Par
 	_downsampleDepth = DownsampleDepth;
 	_minMajorityDepth = ceil(_downsampleDepth / 2.0);
 
-	Logfile->list("Will call based on a majority out of " + toString(_downsampleDepth) + " bases. (parameter 'downsample')");
+	logfile().list("Will call based on a majority out of " + toString(_downsampleDepth) + " bases. (parameter 'downsample')");
 };
 
 bool TCallerConsensify::_callGenotype(const TSite & site, TGenotypeLikelihoods &){
@@ -641,7 +641,7 @@ bool TCallerConsensify::_callGenotypeKnownAlleles(const TSite & site, TGenotypeL
 	_countAlleles(site);
 
 	// call majority
-	const auto majorityBase = _randomGenerator->sampleIndexOfMaxima<TBaseCounts, Base, 4>(_alleleCounts);
+	const auto majorityBase = randomGenerator().sampleIndexOfMaxima<TBaseCounts, Base, 4>(_alleleCounts);
 
 	//check if we have sufficient depth to call
 	if(_alleleCounts[majorityBase] < _minMajorityDepth){
@@ -664,16 +664,16 @@ bool TCallerConsensify::_callGenotypeKnownAlleles(const TSite & site, TGenotypeL
 /////////////////////////////////////////////////////////
 // TCallerAllelePresence
 /////////////////////////////////////////////////////////
-TCallerAllelePresence::TCallerAllelePresence(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TCaller(Parameters, Logfile, RandomGenerator){
+TCallerAllelePresence::TCallerAllelePresence() : TCaller(){
 	//caller settings
 	_callerName = "Allele Presence Caller";
 	_filenameExtention = "_allelePresence.vcf";
-	Logfile->list("Will use the " + _callerName + ".");
+	logfile().list("Will use the " + _callerName + ".");
 	_usesPrior = true;
 
 	//parse VCF fields
 	_setAcceptableFields(&_VCFGenotypeFields, "GT,DP,AD,GQ,AP");
-	initializeOutput(Parameters, Logfile);
+	initializeOutput();
 
 	//initialize allele counts
 	_MAP = genometools::Base::N;
@@ -730,7 +730,7 @@ bool TCallerAllelePresence::_callGenotypeKnownAlleles(const TSite &, TGenotypeLi
 		_calledGenotype = "0";
 	} else {
 		//both are equal, pick at random
-		if(_randomGenerator->getRand() < 0.5){
+		if(randomGenerator().getRand() < 0.5){
 			_MAP = _altAlleles[0];
 			_calledGenotype = "1";
 		} else {
@@ -765,7 +765,7 @@ std::string TCallerAllelePresence::_getVCFGenotypeString_AP(const TSite &, TGeno
 // TCallerDiploid
 // common function between MLE, Bayes and gvcf callers
 /////////////////////////////////////////////////////////
-TCallerDiploid::TCallerDiploid(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TCaller(Parameters, Logfile, RandomGenerator){
+TCallerDiploid::TCallerDiploid() : TCaller(){
 	imbalanceCalculated = false;
 	_missingGenotype = "./.";
 
@@ -792,7 +792,7 @@ void TCallerDiploid::callGenotypeFromMetric(const TGenotypeProbabilities & metri
 				_altAlleles.push_back(first(genotypeAtSecond));
 			else {
 				//none is ref, pick at random
-				const auto b = _randomGenerator->getRand() < 0.5 ? first(genotypeAtSecond) : second(genotypeAtSecond);
+				const auto b = randomGenerator().getRand() < 0.5 ? first(genotypeAtSecond) : second(genotypeAtSecond);
 				_altAlleles.push_back( b );
 			}
 		} else {
@@ -823,7 +823,7 @@ void TCallerDiploid::callGenotypeFromMetric(const TGenotypeProbabilities & metri
 							_altAlleles.push_back(first(genotypeAtSecond));
 						else {
 							//none is ref, pick at random
-							const auto b = _randomGenerator->getRand() < 0.5 ? first(genotypeAtSecond) : second(genotypeAtSecond);
+							const auto b = randomGenerator().getRand() < 0.5 ? first(genotypeAtSecond) : second(genotypeAtSecond);
 							_altAlleles.push_back(b);
 						}
 					}
@@ -843,7 +843,7 @@ void TCallerDiploid::callGenotypeFromMetric(const TGenotypeProbabilities & metri
 							_altAlleles.push_back(second(genotypeAtMax));
 						else {
 							//neither alt 0 nor 1, pick at random
-							const auto b = _randomGenerator->getRand() < 0.5 ? first(genotypeAtMax) : second(genotypeAtMax);
+							const auto b = randomGenerator().getRand() < 0.5 ? first(genotypeAtMax) : second(genotypeAtMax);
 							_altAlleles.push_back(b);
 						}
 					} else {
@@ -853,7 +853,7 @@ void TCallerDiploid::callGenotypeFromMetric(const TGenotypeProbabilities & metri
 							_altAlleles.push_back(first(genotypeAtSecond));
 						} else {
 							//neither alt 0 nor 1, pick at random
-							const auto b = _randomGenerator->getRand() < 0.5 ? first(genotypeAtMax) : second(genotypeAtMax);
+							const auto b = randomGenerator().getRand() < 0.5 ? first(genotypeAtMax) : second(genotypeAtMax);
 							_altAlleles.push_back(b);
 						}
 					}
@@ -887,7 +887,7 @@ void TCallerDiploid::callGenotypeFromMetricKnownAlleles(const TGenotypeProbabili
 		vec.push_back("1/1");
 	}
 
-	_calledGenotype = vec[_randomGenerator->sample(vec.size())];
+	_calledGenotype = vec[randomGenerator().sample(vec.size())];
 };
 
 bool TCallerDiploid::callGenotypeFromMetricKnownAllelesUpdateIndex(const TGenotypeProbabilities & metric){
@@ -906,7 +906,7 @@ bool TCallerDiploid::callGenotypeFromMetricKnownAllelesUpdateIndex(const TGenoty
 				genotypeAtSecond = geno.homoSecond();
 			} else {
 				//het and homoSecond are equal: pick at random
-				if(_randomGenerator->getRand() < 0.5){
+				if(randomGenerator().getRand() < 0.5){
 					genotypeAtSecond = geno.het();
 				} else {
 					genotypeAtSecond = geno.homoSecond();
@@ -918,7 +918,7 @@ bool TCallerDiploid::callGenotypeFromMetricKnownAllelesUpdateIndex(const TGenoty
 			genotypeAtSecond = geno.homoFirst();
 		} else {
 			//homoFirst and homoSecond are equal: pick at random
-			if(_randomGenerator->getRand() < 0.5){
+			if(randomGenerator().getRand() < 0.5){
 				genotypeAtMax = geno.homoFirst();
 				_calledGenotype = "0/0";
 				genotypeAtSecond = geno.homoSecond();
@@ -938,7 +938,7 @@ bool TCallerDiploid::callGenotypeFromMetricKnownAllelesUpdateIndex(const TGenoty
 				genotypeAtSecond = geno.homoSecond();
 			} else {
 				//homoFirst and homoSecond are equal: pick at random
-				if(_randomGenerator->getRand() < 0.5){
+				if(randomGenerator().getRand() < 0.5){
 					genotypeAtSecond = geno.homoFirst();
 				} else {
 					genotypeAtSecond = geno.homoSecond();
@@ -950,7 +950,7 @@ bool TCallerDiploid::callGenotypeFromMetricKnownAllelesUpdateIndex(const TGenoty
 			genotypeAtSecond = geno.het();
 		} else {
 			//het and homoSecond are equal: pick at random
-			if(_randomGenerator->getRand() < 0.5){
+			if(randomGenerator().getRand() < 0.5){
 				genotypeAtMax = geno.het();
 				_calledGenotype = "0/1";
 				genotypeAtSecond = geno.homoSecond();
@@ -964,7 +964,7 @@ bool TCallerDiploid::callGenotypeFromMetricKnownAllelesUpdateIndex(const TGenoty
 		//homoFirst and het are equal
 		if(metric[geno.homoFirst()] > metric[geno.homoSecond()]){
 			//pick at random between homoFirst and het
-			if(_randomGenerator->getRand() < 0.5){
+			if(randomGenerator().getRand() < 0.5){
 				genotypeAtMax = geno.homoFirst();
 				_calledGenotype = "0/0";
 				genotypeAtSecond = geno.het();
@@ -976,25 +976,25 @@ bool TCallerDiploid::callGenotypeFromMetricKnownAllelesUpdateIndex(const TGenoty
 		} else if(metric[geno.homoFirst()] < metric[geno.homoSecond()]){
 			genotypeAtMax = geno.homoSecond();
 			//homoFirst and het are equal: pick at random
-			if(_randomGenerator->getRand() < 0.5){
+			if(randomGenerator().getRand() < 0.5){
 				genotypeAtSecond = geno.homoFirst();
 			} else {
 				genotypeAtSecond = geno.het();
 			}
 		} else {
 			//all are equal: pick at random
-			if(_randomGenerator->getRand() < 0.333333333333333){
+			if(randomGenerator().getRand() < 0.333333333333333){
 				genotypeAtMax = geno.homoFirst();
 				_calledGenotype = "0/0";
-				if(_randomGenerator->getRand() < 0.5){
+				if(randomGenerator().getRand() < 0.5){
 					genotypeAtSecond = geno.het();
 				} else {
 					genotypeAtSecond = geno.homoSecond();
 				}
-			} else if(_randomGenerator->getRand() < 0.66666666666666){
+			} else if(randomGenerator().getRand() < 0.66666666666666){
 				genotypeAtMax = geno.het();
 				_calledGenotype = "0/1";
-				if(_randomGenerator->getRand() < 0.5){
+				if(randomGenerator().getRand() < 0.5){
 					genotypeAtSecond = geno.homoFirst();
 				} else {
 					genotypeAtSecond = geno.homoSecond();
@@ -1002,7 +1002,7 @@ bool TCallerDiploid::callGenotypeFromMetricKnownAllelesUpdateIndex(const TGenoty
 			} else {
 				genotypeAtMax = geno.homoSecond();
 				_calledGenotype = "1/1";
-				if(_randomGenerator->getRand() < 0.5){
+				if(randomGenerator().getRand() < 0.5){
 					genotypeAtSecond = geno.het();
 				} else {
 					genotypeAtSecond = geno.homoFirst();
@@ -1074,16 +1074,16 @@ std::string TCallerDiploid::_getVCFGenotypeString_AI(const TSite & site, TGenoty
 /////////////////////////////////////////////////////////
 // TCallerMLE
 /////////////////////////////////////////////////////////
-TCallerMLE::TCallerMLE(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TCallerDiploid(Parameters, Logfile, RandomGenerator){
+TCallerMLE::TCallerMLE():TCallerDiploid(){
 	//caller settings
 	_callerName = "MLE Caller";
 	_filenameExtention = "_maximumLikelihood.vcf";
-	Logfile->list("Will use the " + _callerName + ".");
+	logfile().list("Will use the " + _callerName + ".");
 
 	//parse VCF fields
 	_setAcceptableFields(&_VCFGenotypeFields, "AD,GQ,GL,PL");
 	printGenotypeFields("GT,DP,AD,GQ,PL"); //set default tags to print
-	initializeOutput(Parameters, Logfile);
+	initializeOutput();
 };
 
 bool TCallerMLE::_callGenotype(const TSite &, TGenotypeLikelihoods & genotypeLikelihoods){
@@ -1128,17 +1128,17 @@ std::string TCallerMLE::_getVCFGenotypeString_PL(const TSite &, TGenotypeLikelih
 //------------------------------------------------------
 // TCallerBayes
 //------------------------------------------------------
-TCallerBayes::TCallerBayes(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TCallerDiploid(Parameters, Logfile, RandomGenerator){
+TCallerBayes::TCallerBayes():TCallerDiploid(){
 	//caller settings
 	_callerName = "Bayesian Caller";
 	_filenameExtention = "_maximumAPosteriori.vcf";
 	_usesPrior = true;
-	Logfile->list("Will use the " + _callerName + ".");
+	logfile().list("Will use the " + _callerName + ".");
 
 	//parse VCF fields
 	_setAcceptableFields(&_VCFGenotypeFields, "AD,GQ,GP");
 	printGenotypeFields("GT,DP,AD,GQ,GP");  //set default tags to print
-	initializeOutput(Parameters, Logfile);
+	initializeOutput();
 };
 
 
@@ -1182,55 +1182,55 @@ std::string TCallerBayes::_getVCFGenotypeString_GP(const TSite &, TGenotypeLikel
 // TCall
 // the class to perform calls based on windows
 //------------------------------------------------------
-TCall::TCall(TParameters & Parameters, TLog* Logfile, TRandomGenerator* RandomGenerator):TGenome_windows(Parameters, Logfile, RandomGenerator){
+TCall::TCall():TGenome_windows(){
 	//initialize caller
-	_logfile->startIndent("Initializing caller:");
-	std::string method = Parameters.getParameterWithDefault<std::string>("method", "MLE");
+	logfile().startIndent("Initializing caller:");
+	std::string method = parameters().getParameterWithDefault<std::string>("method", "MLE");
 	if(method == "randomBase"){
-		_caller = new TCallerRandomBase(Parameters, _logfile, _randomGenerator);
+		_caller = new TCallerRandomBase;
 	} else if(method == "majorityBase"){
-		_caller = new TCallerMajorityBase(Parameters, _logfile, _randomGenerator);
+		_caller = new TCallerMajorityBase;
 	} else if(method == "consensify"){
-		_caller = new TCallerConsensify(_downsampleDepth, Parameters, _logfile, _randomGenerator);
+		_caller = new TCallerConsensify(_downsampleDepth);
 	} else if(method == "allelePresence"){
-		_caller = new TCallerAllelePresence(Parameters, _logfile, _randomGenerator);
+		_caller = new TCallerAllelePresence;
 	} else if(method == "MLE"){
-		_caller = new TCallerMLE(Parameters, _logfile, _randomGenerator);
+		_caller = new TCallerMLE;
 	} else if(method == "Bayesian"){
-		_caller = new TCallerBayes(Parameters, _logfile, _randomGenerator);
+		_caller = new TCallerBayes;
 	} else if(method == "gVCF"){
 		throw "GVCF NOT YET IMPLEMENTED!";
 		_caller->printSitesWithNoData();
 	} else throw "Unknown calling method '" + method + "'! Use randomBase, allelePresence, MLE, Bayesian or gVCF.";
-	_logfile->list("Will use the " + _caller->name() + ".");
+	logfile().list("Will use the " + _caller->name() + ".");
 
 	//prior setting
 	if(_caller->usesPrior()){
-		_initializeGenotypePrior(Parameters);
+		_initializeGenotypePrior();
 	} else {
 		_prior = new TGenotypePrior();
 	}
 	_caller->setPrior(_prior->getPointerToPrior());
 
 	//read output settings
-	_caller->initializeOutput(Parameters, _logfile);
+	_caller->initializeOutput();
 
 	//open output file
-	std::string sampleName = Parameters.getParameterWithDefault<std::string>("indName", _outputName);
-	_logfile->list("Will use sample name '" + sampleName + "'. (parameter 'sampleName')");
-	_caller->openVCF(_outputName + "_calls", sampleName, _logfile);
+	std::string sampleName = parameters().getParameterWithDefault<std::string>("indName", _outputName);
+	logfile().list("Will use sample name '" + sampleName + "'. (parameter 'sampleName')");
+	_caller->openVCF(_outputName + "_calls", sampleName);
 
 	//limit to sites with known alleles?
-	if(Parameters.parameterExists("alleles")){
-		_logfile->startIndent("Will limit calls to sites with known alleles (parameter 'alleles'):");
+	if(parameters().parameterExists("alleles")){
+		logfile().startIndent("Will limit calls to sites with known alleles (parameter 'alleles'):");
 		_openSiteSubset("alleles");
-		_logfile->endIndent();
+		logfile().endIndent();
 	} else {
-		_logfile->list("Will call without prior knowledge on alleles. (use 'alleles' to provide known alleles)");
+		logfile().list("Will call without prior knowledge on alleles. (use 'alleles' to provide known alleles)");
 		//make sure FASTA is open unless alleles are provided
 		_openReference(true);
 	}
-	_logfile->endIndent();
+	logfile().endIndent();
 };
 
 TCall::~TCall(){
@@ -1238,35 +1238,35 @@ TCall::~TCall(){
 	delete _prior;
 };
 
-void TCall::_initializeGenotypePrior(TParameters & Parameters){
-	_logfile->startIndent("Initializing genotype prior:");
+void TCall::_initializeGenotypePrior(){
+	logfile().startIndent("Initializing genotype prior:");
 	//read prior from parameters
-	std::string priorMethod = Parameters.getParameterWithDefault<std::string>("prior", "theta");
+	std::string priorMethod = parameters().getParameterWithDefault<std::string>("prior", "theta");
 	if(priorMethod == "unif"){
 		_prior = new TGenotypePriorUniform();
-		_logfile->list("Will use a uniform prior with equal weights for all genotypes.");
+		logfile().list("Will use a uniform prior with equal weights for all genotypes.");
 	} else if(priorMethod == "theta"){
-		if(Parameters.parameterExists("fixedTheta")){
-			double theta = Parameters.getParameter<double>("fixedTheta");
-			_logfile->list("Will use a fixed theta = " + toString(theta));
-			bool equalBaseFreq = Parameters.parameterExists("equalBaseFreq");
+		if(parameters().parameterExists("fixedTheta")){
+			double theta = parameters().getParameter<double>("fixedTheta");
+			logfile().list("Will use a fixed theta = " + toString(theta));
+			bool equalBaseFreq = parameters().parameterExists("equalBaseFreq");
 			if(equalBaseFreq)
-				_logfile->list("Will use equal base frequencies.");
+				logfile().list("Will use equal base frequencies.");
 			else
-				_logfile->list("Will estimate base frequencies individually for each window.");
-			_prior = new TGenotypePriorFixedTheta(theta, equalBaseFreq, _logfile, _randomGenerator);
+				logfile().list("Will estimate base frequencies individually for each window.");
+			_prior = new TGenotypePriorFixedTheta(theta, equalBaseFreq, &logfile(), &randomGenerator());
 		} else {
-			_logfile->list("Will use a prior based on theta and base frequencies estimated individually for each window.");
+			logfile().list("Will use a prior based on theta and base frequencies estimated individually for each window.");
 			std::string thetaOuputName = _outputName + "_theta_estimates.txt.gz";
-			if(Parameters.parameterExists("defaultTheta")){
-				double defaultTheta = Parameters.getParameter<double>("defaultTheta");
-				_logfile->list("Will use a default theta of ", defaultTheta, " for windows with limited data.");
-				_prior = new TGenotypePriorTheta(Parameters, thetaOuputName, defaultTheta, _logfile, _randomGenerator);
+			if(parameters().parameterExists("defaultTheta")){
+				double defaultTheta = parameters().getParameter<double>("defaultTheta");
+				logfile().list("Will use a default theta of ", defaultTheta, " for windows with limited data.");
+				_prior = new TGenotypePriorTheta(parameters(), thetaOuputName, defaultTheta, &logfile(), &randomGenerator());
 			} else
-				_prior = new TGenotypePriorTheta(Parameters, thetaOuputName, _logfile, _randomGenerator);
+				_prior = new TGenotypePriorTheta(parameters(), thetaOuputName, &logfile(), &randomGenerator());
 		}
 	} else throw "Unknown prior type '" + priorMethod + "'!";
-	_logfile->endIndent();
+	logfile().endIndent();
 };
 
 void TCall::_call(){
@@ -1301,16 +1301,16 @@ void TCall::_callKnwonAlleles(){
 void TCall::_handleWindow(){
 	if(_window.passedFilters() || _caller->printSitesWithNoData()){
 		//update genotype prior
-		_prior->update(_window, _logfile, _genotypeLikelihoodCalculator);
+		_prior->update(_window, &logfile(), _genotypeLikelihoodCalculator);
 
 		//call
-		_logfile->listFlushTime("Calling genotypes ...");
+		logfile().listFlushTime("Calling genotypes ...");
 		if(_subset){
 			_callKnwonAlleles();
 		} else {
 			_call();
 		}
-		_logfile->doneTime();
+		logfile().doneTime();
 	}
 };
 

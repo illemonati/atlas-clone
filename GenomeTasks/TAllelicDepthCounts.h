@@ -12,9 +12,6 @@
 #include <string>
 
 #include "TGenome.h"
-#include "TLog.h"
-#include "TParameters.h"
-#include "TRandomGenerator.h"
 #include "TTask.h"
 
 namespace GenomeTasks{
@@ -56,7 +53,7 @@ private:
 	void _handleWindow();
 
 public:
-	TAllelicDepth(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
+	TAllelicDepth();
 	void quantifyAlleleicDepth();
 };
 
@@ -68,8 +65,7 @@ public:
 	TTask_allelicDepth(){ _explanation = "Writing genotype likelihoods to a GLF file"; };
 
 	void run(){
-		using namespace coretools::instances;
-		TAllelicDepth allelicDepth(parameters(), &logfile(), &randomGenerator());
+		TAllelicDepth allelicDepth;
 		allelicDepth.quantifyAlleleicDepth();
 	}
 };

@@ -19,15 +19,12 @@
 #include "GenotypeTypes.h"
 #include "TFile.h"
 #include "TGenotypeData.h"
-#include "TLog.h"
 #include "TThetaEstimatorData.h"
 #include "TWindow.h"
 #include "stringFunctions.h"
 
 namespace GenotypeLikelihoods { class TGenotypeLikelihoodCalculator; }
 namespace GenotypeLikelihoods { class TSite; }
-namespace coretools { class TParameters; }
-namespace coretools { class TRandomGenerator; }
 
 namespace GenotypeLikelihoods{
 
@@ -90,19 +87,16 @@ GenotypeLikelihoods::TGenotypeProbabilities getPGenotype(const Theta &thisTheta)
 
 class TThetaEstimator_base {
 protected:
-	coretools::TLog* logfile;
-	coretools::TRandomGenerator* randomGenerator;
-
 	//data
-	TThetaEstimatorData* data;
-	bool dataInitialized;
+	TThetaEstimatorData* data = nullptr;
+	bool dataInitialized = false;
 	bool useTmpFile;
 	std::string tmpFileName;
 
 	//initial theta
-	double initialTheta;
-	double initThetaSearchFactor;
-	int initThetaNumSearchIterations;
+	double initialTheta = 0.01;
+	double initThetaSearchFactor = 10;
+	int initThetaNumSearchIterations = 100;
 
 	//estimation
 	int minSitesWithData;
@@ -111,13 +105,12 @@ protected:
 	bool extraVerbose;
 
 	void initDataStorage();
-	void readParametersRegardingInitialSearch(coretools::TParameters & params);
+	void readParametersRegardingInitialSearch();
 
 	void findGoodStartingTheta(TThetaEstimatorData* thisData, Theta & thisTheta, std::string tag);
 
 public:
-	TThetaEstimator_base(coretools::TLog* Logfile, coretools::TRandomGenerator* randomGenerator);
-	TThetaEstimator_base(coretools::TParameters & params, coretools::TLog* Logfile, coretools::TRandomGenerator* randomGenerator);
+	TThetaEstimator_base();
 	TThetaEstimator_base(const TThetaEstimator_base & other);
 
 	virtual ~TThetaEstimator_base(){
@@ -153,8 +146,7 @@ private:
 	void _estimateConfidenceInterval();
 
 public:
-	TThetaEstimator(coretools::TParameters & params, coretools::TLog* Logfile, coretools::TRandomGenerator* randomGenerator);
-	TThetaEstimator(coretools::TLog* Logfile, coretools::TRandomGenerator* randomGenerator);
+	TThetaEstimator();
 	TThetaEstimator(const TThetaEstimator & other);
 
 	virtual ~TThetaEstimator(){};
@@ -209,7 +201,7 @@ private:
 	void oneMCMCIteration();
 
 public:
-	TThetaEstimatorRatio(coretools::TParameters & params, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
+	TThetaEstimatorRatio();
 	~TThetaEstimatorRatio(){
 		if(data2Initialized)
 			delete data2;
@@ -249,13 +241,9 @@ protected:
 public:
 	TThetaOutputFile(){};
 
-	TThetaOutputFile(TThetaEstimator* Estimator, const std::string Prefix){
-		addEstimator(Estimator, Prefix);
-	};
-
-	TThetaOutputFile(TThetaEstimator* Estimator, const std::string Filename, coretools::TLog* logfile){
+	TThetaOutputFile(TThetaEstimator* Estimator, const std::string Filename){
 		addEstimator(Estimator, "");
-		open(Filename, logfile);
+		open(Filename);
 	};
 
 	~TThetaOutputFile(){
@@ -272,16 +260,16 @@ public:
 		_prefixes.push_back(Prefix);
 	};
 
-	void open(const std::string Filename, coretools::TLog* logfile){
-		logfile->list("Will write theta estimates to file '" + Filename + "'.");
+	void open(const std::string Filename){
+		coretools::instances::logfile().list("Will write theta estimates to file '" + Filename + "'.");
 		_out.open(Filename);
 		_writeHeader();
 		_out.setPrecision(9);
 	};
 
-	void open(TThetaEstimator* Estimator, const std::string Filename, coretools::TLog* logfile){
+	void open(TThetaEstimator* Estimator, const std::string Filename){
 		addEstimator(Estimator, "");
-		open(Filename, logfile);
+		open(Filename);
 	};
 
 	void close(){

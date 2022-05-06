@@ -17,9 +17,6 @@
 #include "TAlignmentStorage.h"
 #include "TBamFile.h"
 #include "TGenome.h"
-#include "TLog.h"
-#include "TParameters.h"
-#include "TRandomGenerator.h"
 #include "TTask.h"
 
 namespace BAM { class TAlignment; }
@@ -57,12 +54,12 @@ class TAlignmentMergerReadGroupSettings{
 private:
 	std::set<TAlignmentMergerReadGroupSetting, std::less<> > _settings;
 
-	void _printSummary(coretools::TLog* logfile);
+	void _printSummary();
 
 public:
 	TAlignmentMergerReadGroupSettings(){};
 
-	void initialize(coretools::TParameters & Params, coretools::TLog* logfile, BAM::TReadGroups & readGroups);
+	void initialize(BAM::TReadGroups & readGroups);
 	void setAllAsUnchanged(const BAM::TReadGroups & readGroups);
 	bool needTruncation() const;
 	bool needsMerging() const;
@@ -98,8 +95,7 @@ protected:
 	virtual void _handleSingle(BAM::TAlignment* alignment);
 
 public:
-	TBamFilter(coretools::TParameters & Params, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
-	virtual ~TBamFilter(){};
+	TBamFilter();
 	virtual void traverseBAM();
 };
 
@@ -120,14 +116,13 @@ public:
 
 class TAlignmentMerger_randomBase:public TAlignmentMerger{
 protected:
-	coretools::TRandomGenerator* _randomGenerator;
 	bool _adaptQuality;
 
 	void _mergeBasesCore(BAM::TSequencedBase & bestBase, BAM::TSequencedBase & worstBase);
 	virtual void _mergeBases(BAM::TSequencedBase & alignment, BAM::TSequencedBase & mate);
 
 public:
-	TAlignmentMerger_randomBase(coretools::TRandomGenerator* RandomGenerator, const bool AdaptQuality);
+	TAlignmentMerger_randomBase(const bool AdaptQuality);
 	virtual ~TAlignmentMerger_randomBase(){};
 };
 
@@ -139,7 +134,7 @@ private:
 	bool _merge(BAM::TAlignment* alignment, BAM::TAlignment* mate);
 
 public:
-	TAlignmentMerger_randomRead(coretools::TRandomGenerator* RandomGenerator, const bool AdaptQuality);
+	TAlignmentMerger_randomRead(const bool AdaptQuality);
 
 	uint16_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate);
 };
@@ -148,7 +143,7 @@ class TAlignmentMerger_highestQuality:public TAlignmentMerger_randomBase{
 private:
 	void _mergeBases(BAM::TSequencedBase & alignment, BAM::TSequencedBase & mate);
 public:
-	TAlignmentMerger_highestQuality(coretools::TRandomGenerator* RandomGenerator, const bool AdaptQuality);
+	TAlignmentMerger_highestQuality(const bool AdaptQuality);
 };
 
 //-----------------------------------------
@@ -162,13 +157,13 @@ private:
 	uint8_t _considerAtMaxUpToDist;
 	bool _allowForLarger;
 
-	void _initializeMerger(coretools::TParameters & Params, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
+	void _initializeMerger();
 	void _openBamFileForWriting();
 	void _handleMates(BAM::TAlignment* alignment, TAlignmentInStorage & mate);
 	void _handleSingle(BAM::TAlignment* alignment);
 
 public:
-	TAlignmentSplitMerger(coretools::TParameters & Params, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
+	TAlignmentSplitMerger();
 
 };
 
@@ -179,9 +174,10 @@ class TOverlapQuantifier:public TGenome_filtered{
 private:
 	TAlignmentMerger _merger;
 	TAlignmentStorage _alignmentStorage;
+	void _handleAlignment() override {};
 
 public:
-	TOverlapQuantifier(coretools::TParameters & Params, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator);
+	TOverlapQuantifier();
 	void quantifyOverlap();
 };
 
@@ -195,8 +191,7 @@ public:
 	TTask_filterBAM(){ _explanation = "Writing reads that pass filters to BAM file"; };
 
 	void run(){
-		using namespace coretools::instances;
-		TBamFilter filter(parameters(), &logfile(), &randomGenerator());
+		TBamFilter filter;
 		filter.traverseBAM();
 	};
 };
@@ -206,8 +201,7 @@ public:
 	TTask_splitMerge(){ _explanation = "Splitting single-end reads and merging paired-end reads and in BAM file"; };
 
 	void run(){
-		using namespace coretools::instances;
-		TAlignmentSplitMerger splitMerger(parameters(), &logfile(), &randomGenerator());
+		TAlignmentSplitMerger splitMerger;
 		splitMerger.traverseBAM();
 	};
 };
@@ -217,8 +211,7 @@ public:
 	TTask_overlapQuantifier(){ _explanation = "Estimating distribution of overlap of paired reads in BAM file"; };
 
 	void run(){
-		using namespace coretools::instances;
-		TOverlapQuantifier overlapQuantifier(parameters(), &logfile(), &randomGenerator());
+		TOverlapQuantifier overlapQuantifier;
 		overlapQuantifier.quantifyOverlap();
 	};
 };

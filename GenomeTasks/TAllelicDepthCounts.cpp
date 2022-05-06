@@ -16,11 +16,14 @@
 #include "GenotypeTypes.h"
 #include "TFile.h"
 #include "TGenotypeData.h"
+#include "TParameters.h"
 #include "TSite.h"
 #include "TWindow.h"
 #include "stringFunctions.h"
 
 namespace GenomeTasks{
+using coretools::instances::parameters;
+using coretools::instances::logfile;
 
 TAllelicDepthCounts::TAllelicDepthCounts(){
 	_initialized = false;
@@ -164,30 +167,30 @@ void TAllelicDepthCounts::write(const std::string filename, bool printEmpty){
 //------------------------------------------
 // TAllelicDepth
 //------------------------------------------
-TAllelicDepth::TAllelicDepth(coretools::TParameters & Parameters, coretools::TLog* Logfile, coretools::TRandomGenerator* RandomGenerator):TGenome_windows(Parameters, Logfile, RandomGenerator){
-	_logfile->list("Will assemble allelic depth up to a max depth of " + coretools::str::toString(_readUpToDepth) + ". (parameter 'maxDepth')");
+TAllelicDepth::TAllelicDepth() : TGenome_windows(){
+	logfile().list("Will assemble allelic depth up to a max depth of " + coretools::str::toString(_readUpToDepth) + ". (parameter 'maxDepth')");
 	if(_readUpToDepth > 100){
-		_logfile->warning("Allocating count table for a max depth of " + coretools::str::toString(_readUpToDepth) + " uses a lot of memory! Use argument maxDepth to limit.");
+		logfile().warning("Allocating count table for a max depth of " + coretools::str::toString(_readUpToDepth) + " uses a lot of memory! Use argument maxDepth to limit.");
 	}
 	_counts.resize(_readUpToDepth);
 
-	if(Parameters.parameterExists("printAll")){
+	if(parameters().parameterExists("printAll")){
 		_writeEmpty = true;
-		_logfile->list("Will write full table, including cells with zero counts. (parameter 'printAll')");
+		logfile().list("Will write full table, including cells with zero counts. (parameter 'printAll')");
 	} else {
 		_writeEmpty = false;
-		_logfile->list("Will only print cells with non-zero counts. (use 'printAll' to print all cells)");
+		logfile().list("Will only print cells with non-zero counts. (use 'printAll' to print all cells)");
 	}
 };
 
 void TAllelicDepth::_handleWindow(){
-	_logfile->listFlushTime("Adding sites to allelic depth table ...");
+	logfile().listFlushTime("Adding sites to allelic depth table ...");
 	GenotypeLikelihoods::TBaseCounts alleleCounts;
 	for(auto& s : _window){
 		s.countAlleles(alleleCounts);
 		_counts.addSite(alleleCounts);
 	}
-	_logfile->doneTime();
+	logfile().doneTime();
 };
 
 void TAllelicDepth::quantifyAlleleicDepth(){
@@ -195,9 +198,9 @@ void TAllelicDepth::quantifyAlleleicDepth(){
 
 	//write to file
 	std::string outputFileName = _outputName + "_allelicDepth.txt.gz";
-	_logfile->listFlush("Writing allelic depth table to '" + outputFileName + "' ...");
+	logfile().listFlush("Writing allelic depth table to '" + outputFileName + "' ...");
 	_counts.write(outputFileName, _writeEmpty);
-	_logfile->done();
+	logfile().done();
 };
 
 }; // end namespace

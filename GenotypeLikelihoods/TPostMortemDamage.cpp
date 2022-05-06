@@ -79,11 +79,11 @@ std::unique_ptr<TPMDType> createPMDType(const std::string &pmdString) {
 
 	// switch type
 	if (details[0] == TPMDTypeNone::name)  return std::make_unique<TPMDTypeNone>();
-	if (details[0] == TPMDTypeSingleStrand::name) return std::make_unique<TPMDTypeSingleStrand>(details);
+	if (details[0] == TPMDTypeSingleStrand::gaga) return std::make_unique<TPMDTypeSingleStrand>(details);
 	if (details[0] == TPMDTypeDoubleStrand::name) return std::make_unique<TPMDTypeDoubleStrand>(details);
 
 	throw "Cannot initialize PMD: unknown PMD type '" + details[0] + "'!" + "\nUse " + TPMDTypeNone::name + " or " +
-		TPMDTypeSingleStrand::name + " or " + TPMDTypeDoubleStrand::name + ".";
+		TPMDTypeSingleStrand::gaga + " or " + TPMDTypeDoubleStrand::name + ".";
 }
 
 } // namespace
@@ -518,9 +518,9 @@ TPMDTypeSingleStrand::TPMDTypeSingleStrand(const std::vector<std::string> &Detai
 	// expect 2 elements: type, pmdCT
 	constexpr size_t nDetails = 3;
 	if (Details.size() != nDetails) {
-		throw "Cannot initialize PMD type " + name + ": expect " +
+		throw "Cannot initialize PMD type " + gaga + ": expect " +
 			std::to_string(nDetails) + " entries but found " + toString(Details.size()) + "!" + "\nProvided string: '" +
-			concatenateString(Details, ':') + "'." + "\nExpect string of the form '" + name +
+			concatenateString(Details, ':') + "'." + "\nExpect string of the form '" + gaga +
 			"':functionCT:functionGA'.";
 	}
 	_pmdCT3 = initializeFunction(Details[1]);
