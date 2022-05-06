@@ -793,6 +793,7 @@ class TBamFilter_Test : public ::testing::Test {
 protected:
     void _disableAllFilters(){
         // keep all reads
+		parameters().clear();
         parameters().addParameter("keepDuplicates");
         parameters().addParameter("keepImproperPairs");
         parameters().addParameter("keepUnmappedReads");
@@ -873,8 +874,9 @@ TEST_F(TBamFilter_Test, keepDuplicates){
     EXPECT_TRUE(bamFilter->duplicates.counts() > 0);
 };
 
-TEST_F(TBamFilter_Test, doNotkeepDuplicates){
+TEST_F(TBamFilter_Test, doNotKeepDuplicates){
     write(false);
+	parameters().clear();
     // 2) filter: do not specify 'keepDuplicates'
     parameters().addParameter("keepImproperPairs");
     parameters().addParameter("keepUnmappedReads");
@@ -936,8 +938,9 @@ TEST_F(TBamFilter_Test, keepImproperPairs){
     EXPECT_TRUE(bamFilter->improperPairs.counts() > 0);
 }
 
-TEST_F(TBamFilter_Test, doNotkeepImproperPairs){
+TEST_F(TBamFilter_Test, doNotKeepImproperPairs){
     write(true);
+	parameters().clear();
     // 2) filter: do not specify 'keepImproperPairs'
     parameters().addParameter("keepDuplicates");
     parameters().addParameter("keepUnmappedReads");
@@ -973,6 +976,7 @@ TEST_F(TBamFilter_Test, keepUnmappedReads){
 
 TEST_F(TBamFilter_Test, doNotKeepUnmappedReads){
     write(false);
+	parameters().clear();
     // 3) filter: do not specify 'keepUnmappedReads'
     parameters().addParameter("keepDuplicates");
     parameters().addParameter("keepImproperPairs");
@@ -1008,6 +1012,7 @@ TEST_F(TBamFilter_Test, keepFailedQC){
 
 TEST_F(TBamFilter_Test, doNotKeepFailedQC){
     write(false);
+	parameters().clear();
     // 3) filter: do not specify 'keepFailedQC'
     parameters().addParameter("keepDuplicates");
     parameters().addParameter("keepImproperPairs");
@@ -1043,6 +1048,7 @@ TEST_F(TBamFilter_Test, keepSecondaryReads){
 
 TEST_F(TBamFilter_Test, doNotKeepSecondaryReads){
     write(false);
+	parameters().clear();
     // 4) filter: do not specify 'keepSecondaryReads'
     parameters().addParameter("keepDuplicates");
     parameters().addParameter("keepImproperPairs");
@@ -1078,6 +1084,7 @@ TEST_F(TBamFilter_Test, keepSupplementaryReads){
 
 TEST_F(TBamFilter_Test, doNotKeepSupplementaryReads){
     write(false);
+	parameters().clear();
     // 5) filter: do not specify 'keepSupplementaryReads'
     parameters().addParameter("keepDuplicates");
     parameters().addParameter("keepImproperPairs");
@@ -1113,6 +1120,7 @@ TEST_F(TBamFilter_Test, keepReadsLongerThanFragment){
 
 TEST_F(TBamFilter_Test, doNotKeepReadsLongerThanFragmens){
     write(true);
+	parameters().clear();
     // 6) filter: do not specify 'keepReadsLongerThanFragment'
     parameters().addParameter("keepDuplicates");
     parameters().addParameter("keepImproperPairs");
