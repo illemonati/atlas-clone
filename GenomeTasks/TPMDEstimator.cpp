@@ -32,13 +32,13 @@ TPMDEstimator::TPMDEstimator(): TGenome_parsed(){
 	//make sure there is pmd
 	GenotypeLikelihoods::TPostMortemDamage& pmd = _genotypeLikelihoodCalculator.getPostMortemDamageModelsMutable();
 	if (_genotypeLikelihoodCalculator.hasPMD() && !parameters().parameterExists("reestimate")) {
-		throw "PMD model already estimated ! (Use argument 'reestimate' to overwrite this error)";
+		throw "PMD model already estimated! (Use argument 'reestimate' to overwrite this error)";
 
 	}
 	if (!_genotypeLikelihoodCalculator.hasPMD()) {
 		if (!parameters().parameterExists("pmdModels"))
-			throw "Can not estimate PMD: no PMD models provided! Use 'pmd' with 'reestimate' to provide a starting "
-				  "guess or 'pmdModels' to provide new PMD models.";
+			throw "Can not estimate PMD: no PMD models provided! Use 'pmdModels' to provide PMD models or 'pmd' with "
+				  "'reestimate' to provide a starting guess.";
 
 		std::vector<uint16_t> tmp;
 		pmd.initialize(parameters().getParameterWithDefault("pmdModels", "doubleStrand:Empirical:Empirical"s), _bamFile.readGroups(), tmp);
