@@ -30,8 +30,22 @@ using coretools::instances::parameters;
 //----------------------------------------
 TPMDEstimator::TPMDEstimator(): TGenome_parsed(){
 	//make sure there is pmd
-	if(!_genotypeLikelihoodCalculator.hasPMD()){
-		throw "Can not estimate PMD: no PMD models provided! Use 'pmd' to provide PMD models.";
+	GenotypeLikelihoods::TPostMortemDamage& pmd = _genotypeLikelihoodCalculator.getPostMortemDamageModelsMutable();
+	if (_genotypeLikelihoodCalculator.hasPMD() && !parameters().parameterExists("reestimate")) {
+		throw "PMD model already estimated ! (Use argument 'reestimate' to overwrite this error)";
+
+	}
+	if (!_genotypeLikelihoodCalculator.hasPMD()) {
+		if (!parameters().parameterExists("pmdModels"))
+			throw "Can not estimate PMD: no PMD models provided! Use 'pmd' with 'reestimate' to provide a starting "
+				  "guess or 'pmdModels' to provide new PMD models.";
+
+		std::vector<uint16_t> tmp;
+		pmd.initialize(parameters().getParameterWithDefault("pmdModels", "doubleStrand:Empirical:Empirical"s), _bamFile.readGroups(), tmp);
+	}
+
+	if(!_genotypeLikelihoodCalculator.hasPMD() && !parameters().parameterExists("pmdModels")){
+		throw "Can not estimate PMD: no PMD models provided! Use 'pmdModels' to provide PMD models.";
 	}
 
 	//make sure it has a reference
@@ -45,7 +59,6 @@ TPMDEstimator::TPMDEstimator(): TGenome_parsed(){
 	_maxLengthForInference = parameters().getParameterWithDefault<int>("length", 50);
 	logfile().list("Estimating PMD from the first ", _maxLengthForInference, " positions.");
 
-	GenotypeLikelihoods::TPostMortemDamage& pmd = _genotypeLikelihoodCalculator.getPostMortemDamageModelsMutable();
 	for(auto& r : _readGroupMap->readGroupsInUse()){
 		pmd[r].parseEstimationParameters(_estimationParameters);
 	}
@@ -87,12 +100,6 @@ void TPMDEstimator::estimatePMD(){
 	// 3) estimate models
 	using coretools::instances::parameters;
 	GenotypeLikelihoods::TPostMortemDamage& pmd = _genotypeLikelihoodCalculator.getPostMortemDamageModelsMutable();
-	if(pmd.hasPMD()) {
-		if (!parameters().parameterExists("reestimate")) throw "not happy";
-	} else {
-		std::vector<uint16_t> tmp;
-		pmd.initialize(parameters().getParameterWithDefault("pmdModels", "doubleStrand:Empirical:Empirical"s), _bamFile.readGroups(), tmp);
-	}
 
 	//estimate all models with data, i.e. only one model per pool
 	for(auto& r : _readGroupMap->readGroupsInUse()){
