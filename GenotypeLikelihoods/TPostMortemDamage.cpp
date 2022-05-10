@@ -107,7 +107,7 @@ TPMDFunctionExponential::TPMDFunctionExponential(const std::string &string) {
 	std::vector<double> params = parseParameters(string);
 	if (params.empty()) {
 		// parameters missing: set to no PMD
-		_lastPosition = 1;
+		_lastPosition = 0;
 		_a = _b = _c = 0.;
 	} else {
 		// parameters are provided

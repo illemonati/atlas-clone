@@ -87,7 +87,7 @@ public:
 	TPMDFunctionExponential(const std::string &string);
 	~TPMDFunctionExponential() = default;
 
-	bool hasDamage() const noexcept override { return true; }
+	bool hasDamage() const noexcept override { return _lastPosition > 0; }
 	std::string string() const noexcept override {
 		return name + "[" + coretools::str::toString(_lastPosition) + ',' +
 		       coretools::str::concatenateString(std::vector{_a, _b, _c}, ",") + "]";
@@ -109,7 +109,7 @@ public:
 	TPMDFunctionEmpiric(const std::string &string);
 	~TPMDFunctionEmpiric() = default;
 
-	bool hasDamage() const noexcept override { return true; }
+	bool hasDamage() const noexcept override { return _parameters.size() + _parameters.back() != 1.0; }
 	std::string string() const noexcept override { return name + "[" + coretools::str::concatenateString(_parameters, ",") + "]"; }
 
 	void parseEstimationParameters(TPMDEstimationParameters &) override{};
