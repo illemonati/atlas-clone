@@ -28,7 +28,7 @@ using coretools::instances::parameters;
 //----------------------------------------
 // TPMDEstimator.h
 //----------------------------------------
-TPMDEstimator::TPMDEstimator(): TGenome_parsed(){
+TPMDEstimator::TPMDEstimator(): TGenome_parsed() {
 	//make sure there is pmd
 	GenotypeLikelihoods::TPostMortemDamage& pmd = _genotypeLikelihoodCalculator.getPostMortemDamageModelsMutable();
 	if (_genotypeLikelihoodCalculator.hasPMD() && !parameters().parameterExists("reestimate")) {
@@ -42,10 +42,6 @@ TPMDEstimator::TPMDEstimator(): TGenome_parsed(){
 
 		std::vector<uint16_t> tmp;
 		pmd.initialize(parameters().getParameterWithDefault("pmdModels", "doubleStrand:Empirical:Empirical"s), _bamFile.readGroups(), tmp);
-	}
-
-	if(!_genotypeLikelihoodCalculator.hasPMD() && !parameters().parameterExists("pmdModels")){
-		throw "Can not estimate PMD: no PMD models provided! Use 'pmdModels' to provide PMD models.";
 	}
 
 	//make sure it has a reference

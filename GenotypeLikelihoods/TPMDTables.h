@@ -16,8 +16,8 @@
 #include <vector>
 
 #include "GenotypeTypes.h"
+#include "TReadGroups.h"
 
-namespace BAM { class TReadGroupMap; }
 namespace BAM { class TReadGroups; }
 namespace BAM { class TSequencedBase; }
 namespace coretools { class TOutputFile; }
@@ -74,7 +74,8 @@ public:
 		initialize(ReadGroups, TableLength, ReadGroupMap);
 	}
 	void initialize(const BAM::TReadGroups *ReadGroups, size_t TableLength, const BAM::TReadGroupMap *ReadGroupMap);
-	const PMDTable_RG &operator[](size_t ReadGroupID) const { return _tables[ReadGroupID]; }
+	//const PMDTable_RG &operator[](size_t ReadGroupID) const { return _tables[ReadGroupID]; }
+	const PMDTable_RG &operator[](size_t ReadGroupID) const { return _tables[_readGroupMap->pooledIndex(ReadGroupID)]; }
 	void add(const BAM::TSequencedBase &base, genometools::Base reference);
 	void write(std::string filename, bool normalize);
 };

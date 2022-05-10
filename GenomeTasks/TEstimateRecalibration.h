@@ -14,26 +14,32 @@
 
 #include "TGenome.h"
 #include "TTask.h"
+#include "TRecalibrationEMEstimator.h"
 
-namespace BAM { class TReadGroupMap; }
-namespace GenotypeLikelihoods { namespace SequencingError { class TRecalibrationEMEstimator; } }
+namespace BAM {
+class TReadGroupMap;
+}
+namespace GenotypeLikelihoods {
+namespace SequencingError {
+class TRecalibrationEMEstimator;
+}
+} // namespace GenotypeLikelihoods
 
-namespace GenomeTasks{
+namespace GenomeTasks {
 
 //-----------------------------------------------------------
 // TEstimateRecalibration_base
 //-----------------------------------------------------------
-class TEstimateRecalibration:public TGenome_windows{
+class TEstimateRecalibration : public TGenome_windows {
 protected:
 	std::unique_ptr<GenotypeLikelihoods::SequencingError::TRecalibrationEMEstimator> recalObjectEM;
-	BAM::TReadGroupMap* _readGroupMap;
+	std::unique_ptr<BAM::TReadGroupMap> _readGroupMap;
 
 	void _handleWindow() override;
 	void _handleAlignment() override {}
 
 public:
 	TEstimateRecalibration();
-	~TEstimateRecalibration();
 
 	void estimateRecalibration();
 };
@@ -41,21 +47,20 @@ public:
 //--------------------------------------
 // Tasks
 //--------------------------------------
-class TTask_recal:public coretools::TTask{
+class TTask_recal : public coretools::TTask {
 public:
-	TTask_recal(){
+	TTask_recal() {
 		_explanation = "Estimating error re-calibration parameters";
 		_citations.insert("Kousathanas et al. (2017) Genetics");
 	};
 
-	void run(){
+	void run() {
 		using namespace coretools::instances;
 		TEstimateRecalibration estimator;
 		estimator.estimateRecalibration();
 	};
 };
 
-
-}; // end namespace
+}; // namespace GenomeTasks
 
 #endif /* GENOMETASKS_TESTIMATERECALIBRATION_H_ */
