@@ -303,9 +303,9 @@ void TPMDFunctionExponential::learn(const TPMDTable &Table, const genometools::B
 				    const TPMDEstimationParameters &EstimationParameters) {
 	using genometools::index;
 	// extract counts in PMD direction and the inverse direction
-	const countVec &pmdCounts = Table[from][index(to)];
+	const countVec &pmdCounts = Table[from][to];
 	const countVec &pmdSums   = Table.sums(from);
-	const countVec &invCounts = Table[to][index(from)];
+	const countVec &invCounts = Table[to][from];
 	const countVec &invSums   = Table.sums(from);
 
 	// find last entry with counts
@@ -394,9 +394,9 @@ void TPMDFunctionEmpiric::learn(const TPMDTable &Table, const genometools::Base 
 	_parameters.resize(Table.size()); // include extra bin for sites beyond size (available in PMDTables)
 
 	// extract counts in PMD direction and the inverse direction
-	const countVec &pmdCounts = Table[from][index(to)];
+	const countVec &pmdCounts = Table[from][to];
 	const countVec &pmdSums   = Table.sums(from);
-	const countVec &invCounts = Table[to][index(from)];
+	const countVec &invCounts = Table[to][from];
 	const countVec &invSums   = Table.sums(from);
 
 	for (size_t p = 0; p < _parameters.size(); ++p) {

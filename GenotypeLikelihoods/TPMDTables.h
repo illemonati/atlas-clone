@@ -17,6 +17,7 @@
 
 #include "GenotypeTypes.h"
 #include "TReadGroups.h"
+#include "TStrongArray.h"
 
 namespace BAM { class TReadGroups; }
 namespace BAM { class TSequencedBase; }
@@ -27,15 +28,17 @@ namespace GenotypeLikelihoods {
 enum PMDTableType : uint8_t { forward3 = 0, forward5, reverse3, reverse5 };
 
 using countVec    = std::vector<uint64_t>;
-using PMDCounts   = std::array<countVec, 4>;
+using PMDCounts   = coretools::TStrongArray<countVec, genometools::Base>;
 
 //------------------------------------------------
 // TPMDTable
 //------------------------------------------------
 class TPMDTable {
 private:
-	std::array<PMDCounts, 4> _counts; //_counts[A,C,G,T] are counts from (ref)
-	std::array<countVec, 4> _sums;
+	coretools::TStrongArray<PMDCounts, genometools::Base> _counts;
+	coretools::TStrongArray<countVec, genometools::Base> _sums;
+	//std::array<PMDCounts, 4> _counts; //_counts[A,C,G,T] are counts from (ref)
+	//std::array<countVec, 4> _sums;
 public:
 	TPMDTable() = default;
 	TPMDTable(const TPMDTable &) = default;
@@ -43,13 +46,13 @@ public:
 	~TPMDTable() = default;
 
 	TPMDTable(size_t Size) { resize(Size); };
-	size_t size() const { return _sums[0].size() - 1; };
+	size_t size() const { return _sums.front().size() - 1; };
 	void resize(size_t Size);
 	void empty();
 	void add(size_t pos, genometools::Base ref, genometools::Base read);
 	void add(const TPMDTable &other);
-	const PMDCounts &operator[](genometools::Base b) const { return _counts[genometools::index(b)]; }
-	const countVec &sums(genometools::Base b) const { return _sums[genometools::index(b)]; }
+	const PMDCounts &operator[](genometools::Base b) const { return _counts[b]; }
+	const countVec &sums(genometools::Base b) const { return _sums[b]; }
 	void write(coretools::TOutputFile &out, std::vector<std::string> &prefix, bool normalized);
 };
 

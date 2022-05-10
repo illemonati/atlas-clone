@@ -36,18 +36,20 @@ void TPMDTable::empty() {
 void TPMDTable::add(size_t pos, genometools::Base ref, genometools::Base read) {
 	using genometools::index;
 	const auto p = std::min(pos, size());
-	++_counts[index(ref)][index(read)][p];
-	++_sums[index(ref)][p];
+	++_counts[ref][read][p];
+	++_sums[ref][p];
 }
 
 void TPMDTable::add(const TPMDTable &other) {
+	using genometools::Base;
 	if (size() != other.size()) return;
 
-	for (size_t f = 0; f < _counts.size(); ++f) 
-		for (size_t i = 0; i < size(); ++i) 
-			for (size_t t = 0; t < _counts[f].size(); ++t)  _counts[f][t][i] += other._counts[f][t][i]; 
+	//for (size_t f = 0; f < _counts.size(); ++f)
+	for (Base f = Base::min; f < Base::max; ++f)
+		for (Base t = Base::min; t < Base::max; ++t)
+			for (size_t i = 0; i < size(); ++i) _counts[f][t][i] += other._counts[f][t][i];
 
-	for (size_t f = 0; f < _sums.size(); ++f)
+	for (Base f = Base::min; f < Base::max; ++f)
 		for (size_t i = 0; i < _sums[f].size(); ++i) 
 			_sums[f][i] += other._sums[f][i];
 }
@@ -59,10 +61,10 @@ void TPMDTable::write(coretools::TOutputFile &out, std::vector<std::string> &pre
 		for (Base t = Base::min; t < Base::max; ++t) {
 			out << prefix << toString(t);
 			if (normalized) {
-				for (uint16_t i = 0; i < _sums[index(f)].size(); ++i)
-					out << static_cast<double>(_counts[index(f)][index(t)][i])/_sums[index(f)][i];
+				for (uint16_t i = 0; i < _sums[f].size(); ++i)
+					out << static_cast<double>(_counts[f][t][i])/_sums[f][i];
 			} else {
-				out << _counts[index(f)][index(t)];
+				out << _counts[f][t];
 			}
 			out << std::endl;
 		}
