@@ -34,7 +34,6 @@ void TPMDTable::empty() {
 }
 
 void TPMDTable::add(size_t pos, genometools::Base ref, genometools::Base read) {
-	using genometools::index;
 	const auto p = std::min(pos, size());
 	++_counts[ref][read][p];
 	++_sums[ref][p];

@@ -301,7 +301,6 @@ void TPMDFunctionExponential::_estimateWithNewtonRaphson(const countVec &pmdCoun
 
 void TPMDFunctionExponential::learn(const TPMDTable &Table, const genometools::Base &from, const genometools::Base &to,
 				    const TPMDEstimationParameters &EstimationParameters) {
-	using genometools::index;
 	// extract counts in PMD direction and the inverse direction
 	const countVec &pmdCounts = Table[from][to];
 	const countVec &pmdSums   = Table.sums(from);
@@ -389,7 +388,6 @@ TPMDFunctionEmpiric::TPMDFunctionEmpiric(const std::string &string) : _parameter
 
 void TPMDFunctionEmpiric::learn(const TPMDTable &Table, const genometools::Base &from, const genometools::Base &to,
 				const TPMDEstimationParameters &) {
-	using genometools::index;
 	// resize parameters
 	_parameters.resize(Table.size()); // include extra bin for sites beyond size (available in PMDTables)
 

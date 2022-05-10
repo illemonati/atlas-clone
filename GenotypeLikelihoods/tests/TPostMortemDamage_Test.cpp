@@ -28,7 +28,6 @@
 
 using namespace GenotypeLikelihoods;
 using genometools::Base;
-using genometools::index;
 
 TEST(TPostMortemDamage_test, PMDTable) {
 	using namespace genometools;
@@ -37,44 +36,44 @@ TEST(TPostMortemDamage_test, PMDTable) {
 	t1.resize(100);
 	EXPECT_EQ(t1.size(), 100);
 
-	EXPECT_EQ(t1[Base::G][index(Base::C)][99], 0);
+	EXPECT_EQ(t1[Base::G][Base::C][99], 0);
 	for (size_t _ = 0; _ < 3; ++_) t1.add(99, Base::G, Base::C);
 
 	t1.add(99, Base::G, Base::A);
 	t1.add(99, Base::G, Base::G);
 	t1.add(99, Base::G, Base::T);
-	EXPECT_EQ(t1[Base::G][index(Base::C)][99], 3);
-	EXPECT_EQ(t1[Base::G][index(Base::A)][99], 1);
-	EXPECT_EQ(t1[Base::G][index(Base::G)][99], 1);
-	EXPECT_EQ(t1[Base::G][index(Base::T)][99], 1);
+	EXPECT_EQ(t1[Base::G][Base::C][99], 3);
+	EXPECT_EQ(t1[Base::G][Base::A][99], 1);
+	EXPECT_EQ(t1[Base::G][Base::G][99], 1);
+	EXPECT_EQ(t1[Base::G][Base::T][99], 1);
 	EXPECT_EQ(t1.sums(Base::G)[99], 6);
 	t1.add(101, Base::A, Base::A);
 	t1.add(102, Base::A, Base::A);
 	t1.add(103, Base::A, Base::A);
 	t1.add(104, Base::A, Base::A);
 	t1.add(105, Base::A, Base::A);
-	EXPECT_EQ(t1[Base::A][index(Base::A)][t1.size()], 5);
+	EXPECT_EQ(t1[Base::A][Base::A][t1.size()], 5);
 
 	TPMDTable t2(100);
 	EXPECT_EQ(t2.size(), 100);
 	t2.add(99, Base::G, Base::C);
 	t2.add(0,Base::C, Base::T);
-	EXPECT_EQ(t2[Base::G][index(Base::C)][99], 1);
-	EXPECT_EQ(t2[Base::C][index(Base::T)][0], 1);
+	EXPECT_EQ(t2[Base::G][Base::C][99], 1);
+	EXPECT_EQ(t2[Base::C][Base::T][0], 1);
 	EXPECT_EQ(t2.sums(Base::G)[99], 1);
 	EXPECT_EQ(t2.sums(Base::C)[0], 1);
 
 	t1.add(t2);
-	EXPECT_EQ(t1[Base::G][index(Base::C)][99], 4);
-	EXPECT_EQ(t1[Base::G][index(Base::A)][99], 1);
-	EXPECT_EQ(t1[Base::G][index(Base::G)][99], 1);
-	EXPECT_EQ(t1[Base::G][index(Base::T)][99], 1);
-	EXPECT_EQ(t1[Base::C][index(Base::T)][0], 1);
+	EXPECT_EQ(t1[Base::G][Base::C][99], 4);
+	EXPECT_EQ(t1[Base::G][Base::A][99], 1);
+	EXPECT_EQ(t1[Base::G][Base::G][99], 1);
+	EXPECT_EQ(t1[Base::G][Base::T][99], 1);
+	EXPECT_EQ(t1[Base::C][Base::T][0], 1);
 	EXPECT_EQ(t1.sums(Base::G)[99], 7);
 	EXPECT_EQ(t1.sums(Base::C)[0], 1);
 
 	t1.empty();
-	EXPECT_EQ(t1[Base::G][index(Base::C)][99], 0);
+	EXPECT_EQ(t1[Base::G][Base::C][99], 0);
 	EXPECT_EQ(t1.sums(Base::G)[99], 0);
 }
 
@@ -95,41 +94,41 @@ TEST(TPostMortemDamage_test, PMDTables) {
 
 	// forward3
 	EXPECT_EQ(ts[0][forward3].sums(Base::C)[sqbase.distFrom3Prime], 0);
-	EXPECT_EQ(ts[0][forward3][Base::C][index(sqbase.base)][sqbase.distFrom3Prime], 0);
+	EXPECT_EQ(ts[0][forward3][Base::C][sqbase.base][sqbase.distFrom3Prime], 0);
 	ts.add(sqbase, Base::C);
 	EXPECT_EQ(ts[0][forward3].sums(Base::C)[sqbase.distFrom3Prime], 1);
-	EXPECT_EQ(ts[0][forward3][Base::C][index(sqbase.base)][sqbase.distFrom3Prime], 1);
+	EXPECT_EQ(ts[0][forward3][Base::C][sqbase.base][sqbase.distFrom3Prime], 1);
 
 	sqbase.base = Base::C;
 	ts.add(sqbase, Base::C);
 	EXPECT_EQ(ts[0][forward3].sums(Base::C)[sqbase.distFrom3Prime], 2);
-	EXPECT_EQ(ts[0][forward3][Base::C][index(sqbase.base)][sqbase.distFrom3Prime], 1);
+	EXPECT_EQ(ts[0][forward3][Base::C][sqbase.base][sqbase.distFrom3Prime], 1);
 
 	// forward5
 	EXPECT_EQ(ts[0][forward5].sums(Base::A)[sqbase.distFrom3Prime], 0);
-	EXPECT_EQ(ts[0][forward5][Base::A][index(sqbase.base)][sqbase.distFrom3Prime], 0);
+	EXPECT_EQ(ts[0][forward5][Base::A][sqbase.base][sqbase.distFrom3Prime], 0);
 	sqbase.distFrom5Prime = sqbase.distFrom3Prime;
 	ts.add(sqbase, Base::A);
 	EXPECT_EQ(ts[0][forward5].sums(Base::A)[sqbase.distFrom3Prime], 1);
-	EXPECT_EQ(ts[0][forward5][Base::A][index(sqbase.base)][sqbase.distFrom3Prime], 1);
+	EXPECT_EQ(ts[0][forward5][Base::A][sqbase.base][sqbase.distFrom3Prime], 1);
 
 	// reverse3
 	EXPECT_EQ(ts[0][reverse3].sums(Base::C)[sqbase.distFrom3Prime], 0);
-	EXPECT_EQ(ts[0][reverse3][Base::C][index(sqbase.base)][sqbase.distFrom3Prime], 0);
+	EXPECT_EQ(ts[0][reverse3][Base::C][sqbase.base][sqbase.distFrom3Prime], 0);
 	sqbase.distFrom5Prime++;
 	sqbase.setReverseStrand(true);
 	ts.add(sqbase, Base::G);
 	EXPECT_EQ(ts[0][reverse3].sums(Base::C)[sqbase.distFrom3Prime], 1);
-	EXPECT_EQ(ts[0][reverse3][Base::C][index(flipped(sqbase.base))][sqbase.distFrom3Prime], 1);
+	EXPECT_EQ(ts[0][reverse3][Base::C][flipped(sqbase.base)][sqbase.distFrom3Prime], 1);
 
 	// reverse5
 	EXPECT_EQ(ts[0][reverse5].sums(Base::A)[sqbase.distFrom3Prime], 0);
-	EXPECT_EQ(ts[0][reverse5][Base::A][index(sqbase.base)][sqbase.distFrom3Prime], 0);
+	EXPECT_EQ(ts[0][reverse5][Base::A][sqbase.base][sqbase.distFrom3Prime], 0);
 	sqbase.distFrom5Prime--;
 	sqbase.setReverseStrand(true);
 	ts.add(sqbase, Base::T);
 	EXPECT_EQ(ts[0][reverse5].sums(Base::A)[sqbase.distFrom3Prime], 1);
-	EXPECT_EQ(ts[0][reverse5][Base::A][index(flipped(sqbase.base))][sqbase.distFrom3Prime], 1);
+	EXPECT_EQ(ts[0][reverse5][Base::A][flipped(sqbase.base)][sqbase.distFrom3Prime], 1);
 }
 
 TEST(TPostMortemDamage_test, noPMD) {
@@ -147,7 +146,7 @@ TEST(TPostMortemDamage_test, exponential) {
 	EXPECT_ANY_THROW(TPMDFunctionExponential("[3, 4, 5]"));
 
 	const TPMDFunctionExponential fn0("[]");
-	EXPECT_TRUE(fn0.hasDamage());
+	EXPECT_FALSE(fn0.hasDamage());
 	EXPECT_FLOAT_EQ(fn0.prob(0), 0.);
 	EXPECT_FLOAT_EQ(fn0.prob(33), 0.);
 	EXPECT_FLOAT_EQ(fn0.prob(static_cast<uint16_t>(-1)), 0.);
@@ -171,7 +170,7 @@ TEST(TPostMortemDamage_test, empiric) {
 	EXPECT_ANY_THROW(TPMDFunctionEmpiric("[-0.3]"));
 
 	const TPMDFunctionEmpiric fn0("[]");
-	EXPECT_TRUE(fn0.hasDamage());
+	EXPECT_FALSE(fn0.hasDamage());
 	EXPECT_FLOAT_EQ(fn0.prob(0), 0.);
 	EXPECT_FLOAT_EQ(fn0.prob(33), 0.);
 	EXPECT_FLOAT_EQ(fn0.prob(static_cast<uint16_t>(-1)), 0.);
@@ -203,7 +202,7 @@ TEST(TPostMortemDamage_test, empiric_learn) {
 		for (size_t _ = 0; _ < N - i; ++_) t1.add(i, Base::G, Base::A);
 		for (size_t _ = 0; _ < i; ++_) t1.add(i, Base::G, Base::G);
 
-		EXPECT_EQ(t1[Base::G][index(Base::A)][i], N - i);
+		EXPECT_EQ(t1[Base::G][Base::A][i], N - i);
 		EXPECT_EQ(t1.sums(Base::G)[i], 10);
 	}
 
