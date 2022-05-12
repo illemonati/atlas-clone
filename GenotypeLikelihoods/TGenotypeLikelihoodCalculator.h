@@ -23,8 +23,6 @@
 
 namespace BAM { class TReadGroups; }
 namespace BAM { class TSequencedBase; }
-namespace coretools { class TLog; }
-namespace coretools { class TParameters; }
 
 namespace GenotypeLikelihoods{
 
@@ -32,7 +30,6 @@ class TGenotypeLikelihoodCalculator_simple{
 private:
 	mutable std::vector<TBaseLikelihoods> _baseLikelihoods;
 	mutable TBaseLikelihoods _baseLikelihoodsNoPMD;
-
 public:
 
 	template <typename PMD, typename SEQERR>
@@ -73,10 +70,10 @@ protected:
 
 public:
 	TGenotypeLikelihoodCalculator();
-	TGenotypeLikelihoodCalculator(coretools::TParameters & params, const BAM::TReadGroups* ReadGroups, coretools::TLog* Logfile);
+	TGenotypeLikelihoodCalculator(const BAM::TReadGroups* ReadGroups);
 	~TGenotypeLikelihoodCalculator() = default;
 
-	void init(coretools::TParameters & params, const BAM::TReadGroups* ReadGroups, coretools::TLog* Logfile);
+	void init(const BAM::TReadGroups* ReadGroups);
 	const SequencingError::TModels& getSequencingErrorModels() const { return _sequencingErrorModels; };
 	SequencingError::TModels& getSequencingErrorModelsMutable() { return _sequencingErrorModels; };
 	const TPostMortemDamage& getPostMortemDamageModels() const { return _pmdModels; };

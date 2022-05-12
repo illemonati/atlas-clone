@@ -31,10 +31,6 @@ using coretools::instances::logfile;
 //--------------------------------------------------------------------
 // TModels
 //--------------------------------------------------------------------
-bool TModels::recalStringIsLikelyAModel(const std::string &RecalString) const noexcept {
-	// check if it contains a ';', ':', '[' or ']'
-	return coretools::str::stringContainsAny(RecalString, ";:[]");
-}
 
 void TModels::initialize(const std::string &RecalString, const std::string &RhoString,
 					const BAM::TReadGroups &ReadGroups) {

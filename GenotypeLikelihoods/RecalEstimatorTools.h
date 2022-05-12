@@ -25,7 +25,6 @@ namespace GenotypeLikelihoods { class TSite; }
 namespace GenotypeLikelihoods::RecalEstimatorTools {
 
 std::vector<uint16_t> vectorOfUsed(const std::vector<uint32_t>& counts);
-inline uint16_t max(const std::vector<uint32_t> &counts) { return counts.size() - 1; };
 
 class TRecalDataTable {
 private:

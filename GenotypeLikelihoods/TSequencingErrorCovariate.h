@@ -19,16 +19,15 @@ namespace SequencingError {
 
 //------------------------------------------------------------------------------------
 // TCovariate
-// This is the base class without any covariate. Not intended to be used in models!
+// This is the base class without any covariate.
 //------------------------------------------------------------------------------------
 class TCovariate {
 public:
-	static inline const std::string name                                                             = "none";
-	TCovariate()                                                                                     = default;
-	virtual ~TCovariate()                                                                            = default;
-	virtual std::string typeString() const                                                           = 0;
-	virtual uint16_t extract(const BAM::TSequencedBase &) const noexcept                             = 0;
-	virtual std::vector<uint16_t> range(const RecalEstimatorTools::TRecalDataTable &) const noexcept = 0;
+	static inline const std::string name                                                                      = "none";
+	virtual ~TCovariate()                                                                                     = default;
+	virtual std::string typeString() const                                                                    = 0;
+	virtual uint16_t extract(const BAM::TSequencedBase &base) const noexcept                                  = 0;
+	virtual std::vector<uint16_t> range(const RecalEstimatorTools::TRecalDataTable &dataTable) const noexcept = 0;
 };
 
 //-------------------------------------------
@@ -37,7 +36,6 @@ public:
 class TCovariate_quality : public TCovariate {
 private:
 	TRecalibrationEMQualityTransformationMap _qualityToLogit;
-
 public:
 	static inline const std::string name = "quality";
 
@@ -62,7 +60,7 @@ public:
 	uint16_t extract(const BAM::TSequencedBase &base) const noexcept override { return base.distFrom5Prime; }
 
 	std::vector<uint16_t> range(const RecalEstimatorTools::TRecalDataTable &dataTable) const noexcept override {
-		return {RecalEstimatorTools::max(dataTable.positions())};
+		return {static_cast<uint16_t>(dataTable.positions().size() - 1)};
 	}
 
 	std::string typeString() const override { return name; }
@@ -74,7 +72,6 @@ public:
 class TCovariate_context : public TCovariate {
 private:
 	static constexpr int numContext = 20;
-
 public:
 	static inline const std::string name = "context";
 

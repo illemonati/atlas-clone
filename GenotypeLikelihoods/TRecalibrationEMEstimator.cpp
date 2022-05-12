@@ -57,29 +57,26 @@ TModelVectorForEstimation::TModelVectorForEstimation(TModels &SequencingErrorMod
 
 		// loop over mates
 		for (uint8_t mate = 0; mate < 2; ++mate) {
-
 			const RecalEstimatorTools::TRecalDataTable &table = DataTables[r][mate];
 
 			// check if there is sufficient data for _first mate
 			if (table.size() > 0) {
 				// check if model is estimatable
 				if (SequencingErrorModels(r, mate).estimatable()) {
-
 					// copy model and update index
 					std::shared_ptr<SequencingError::TModelRecal> model = SequencingErrorModels.getRecal(r, mate);
+					model->checkParameterRange(table);
 					_models.push_back(model);
 					modelStati[r][MS::copied].set(mate);
 					for (auto &rr : ReadGroupMap.readGroupsPooledWith(r)) { _modelIndex[rr][mate] = model; }
 
 					// check if there is limited data
 					if (table.size() < MinRequiredObservations) { modelStati[r][MS::littleData].set(mate); }
-
 				} else {
 					modelStati[r][MS::dataButNoRecal].set(mate);
 				}
-
-			} else {
-				if (SequencingErrorModels(r, mate).estimatable()) { modelStati[r][MS::noData].set(mate); }
+			} else if (SequencingErrorModels(r, mate).estimatable()) {
+				modelStati[r][MS::noData].set(mate);
 			}
 		}
 	}

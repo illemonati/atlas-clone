@@ -21,60 +21,71 @@
 
 namespace GenotypeLikelihoods{
 
+using coretools::instances::parameters;
+using coretools::instances::logfile;
+
+namespace impl {
+
+bool isLikelyAModel(const std::string &RecalString) noexcept {
+	// check if it contains a ';', ':', '[' or ']'
+	return coretools::str::stringContainsAny(RecalString, ";:[]");
+}
+} // namespace impl
+
 TGenotypeLikelihoodCalculator::TGenotypeLikelihoodCalculator(){
 	_initialized = false;
 };
 
-TGenotypeLikelihoodCalculator::TGenotypeLikelihoodCalculator(coretools::TParameters & params, const BAM::TReadGroups* ReadGroups, coretools::TLog* Logfile){
+TGenotypeLikelihoodCalculator::TGenotypeLikelihoodCalculator(const BAM::TReadGroups* ReadGroups){
 	_initialized = false;
-	init(params, ReadGroups, Logfile);
+	init(ReadGroups);
 };
 
-void TGenotypeLikelihoodCalculator::init(coretools::TParameters & params, const BAM::TReadGroups* ReadGroups, coretools::TLog* Logfile){
+void TGenotypeLikelihoodCalculator::init(const BAM::TReadGroups* ReadGroups){
 	if(_initialized){
 		throw "TGenotypeLikelihoodCalculator has already been initialized!";
 	}
 
 	//initialize PMD
 	//--------------
-	if(params.parameterExists("pmd")){
+	if(parameters().parameterExists("pmd")){
 		std::vector<uint16_t> readGroupsWithoutDef;
-		_pmdModels.initialize(params.getParameter<std::string>("pmd"), *ReadGroups, readGroupsWithoutDef);
+		_pmdModels.initialize(parameters().getParameter<std::string>("pmd"), *ReadGroups, readGroupsWithoutDef);
 
 		//Warn if some read groups have no PMD definition
 		if(readGroupsWithoutDef.size() > 0){
-			Logfile->warning("The following read groups do not have PMD definitions: "
+			logfile().warning("The following read groups do not have PMD definitions: "
 					         + coretools::str::concatenateString(ReadGroups->getNames(readGroupsWithoutDef), ", ")
 							 + "!");
-			if(!params.parameterExists("allowReadGroupsWithoutPMD")){
+			if(!parameters().parameterExists("allowReadGroupsWithoutPMD")){
 				throw "PMD is only defined for a subset of read groups. Did you use the wrong PMD file? (use allowReadGroupsWithoutPMD to ignore)";
 			}
 		}
 	} else {
-		Logfile->list("Assuming there is no PMD in the data. (use 'pmd' to add PMD definitions)");
+		logfile().list("Assuming there is no PMD in the data. (use 'pmd' to add PMD definitions)");
 	}
 
 	//initialize sequencing errors
 	//----------------------------
-	if(params.parameterExists("recal")){
-		std::string recalString = params.getParameter<std::string>("recal");
+	if(parameters().parameterExists("recal")){
+		std::string recalString = parameters().getParameter<std::string>("recal");
 
 		//check if it is recal string
-		if(_sequencingErrorModels.recalStringIsLikelyAModel(recalString)){
+		if(impl::isLikelyAModel(recalString)){
 			//assume it is a model string
-			Logfile->startIndent("Parsing common recal model for all read groups:");
-			Logfile->list("Provided model (parameter 'recal'): " + recalString);
+			logfile().startIndent("Parsing common recal model for all read groups:");
+			logfile().list("Provided model (parameter 'recal'): " + recalString);
 
-			std::string rhoString = params.getParameterWithDefault<std::string>("rho", "default");
-			if(params.parameterExists("rho")){
-				Logfile->list("Provided rho (parameter 'rho'): " + rhoString);
+			std::string rhoString = parameters().getParameterWithDefault<std::string>("rho", "default");
+			if(parameters().parameterExists("rho")){
+				logfile().list("Provided rho (parameter 'rho'): " + rhoString);
 			} else {
-				Logfile->list("Will use default rho. (use 'rho' to change)");
+				logfile().list("Will use default rho. (use 'rho' to change)");
 			}
 			_sequencingErrorModels.initialize(recalString, rhoString, *ReadGroups);
 		} else {
 			//assume it it a recal file
-			Logfile->startIndent("Initializing recal models from file '" + recalString + "' (parameter 'recal'):");
+			logfile().startIndent("Initializing recal models from file '" + recalString + "' (parameter 'recal'):");
 			_sequencingErrorModels.initializeFromFile(recalString, *ReadGroups);
 
 			//warn if some read groups have no recal definition
@@ -83,24 +94,24 @@ void TGenotypeLikelihoodCalculator::init(coretools::TParameters & params, const 
 			_sequencingErrorModels.checkReadGroups(*ReadGroups, readGroupsWithoutRecal, readGroupsLikelySingelEnd);
 
 			if(readGroupsWithoutRecal.size() > 0){
-				Logfile->warning("The following read groups do not have recal definitions: "
+				logfile().warning("The following read groups do not have recal definitions: "
 								 + coretools::str::concatenateString(ReadGroups->getNames(readGroupsWithoutRecal), ", ")
 								 + "!");
-				if(!params.parameterExists("allowReadGroupsWithoutRecal")){
+				if(!parameters().parameterExists("allowReadGroupsWithoutRecal")){
 					throw "Recal models are only defined for a subset of read groups. Did you use the wrong recal file? (use allowReadGroupsWithoutRecal to ignore)";
 				}
 			}
 
 			//Report if some read groups have only single-end definitions
 			if(readGroupsLikelySingelEnd.size() > 0){
-				Logfile->list("Read groups assumed single-end (no recal for second mate): "
+				logfile().list("Read groups assumed single-end (no recal for second mate): "
 							  + coretools::str::concatenateString(ReadGroups->getNames(readGroupsLikelySingelEnd), ", ")
 							  + ".");
 			}
-			Logfile->endIndent();
+			logfile().endIndent();
 		}
 	} else {
-		Logfile->list("Assuming that error rates in BAM files are correct. (use 'recal' to add recalibration)");
+		logfile().list("Assuming that error rates in BAM files are correct. (use 'recal' to add recalibration)");
 	}
 
 	_initialized = true;

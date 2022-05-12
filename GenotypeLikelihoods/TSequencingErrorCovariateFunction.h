@@ -39,6 +39,11 @@ public:
 	TFunction(uint16_t FirstParameterIndex = 0) : _firstParameterIndex(FirstParameterIndex) {}
 	virtual ~TFunction()                               = default;
 
+	// non-virtuals
+	void proposeNewParameters(const arma::mat &JxF, uint16_t &index, double &lambda) noexcept;
+	void rejectProposedParameters() noexcept;
+
+	// virtuals
 	virtual double &beta(uint16_t index) noexcept      = 0;
 	virtual double beta(uint16_t index) const noexcept = 0;
 
@@ -54,8 +59,6 @@ public:
 
 	// estimation
 	virtual double getEtaTerm(uint16_t) const noexcept = 0;
-	void proposeNewParameters(const arma::mat &JxF, uint16_t &index, double &lambda) noexcept;
-	void rejectProposedParameters() noexcept;
 	virtual void fillDerivatives(uint16_t, TRecalibrationEMFirstDerivatives &,
 				     TRecalibrationEMSecondDerivatives &) const noexcept = 0;
 	virtual double adjustParametersPostEstimation() noexcept                         = 0;
@@ -93,8 +96,6 @@ public:
 
 
 	double getEtaTerm(uint16_t = 0) const noexcept override { return _beta; };
-	void fillDerivatives(TRecalibrationEMFirstDerivatives &first,
-			     TRecalibrationEMSecondDerivatives &second) const noexcept;
 	void fillDerivatives(uint16_t val, TRecalibrationEMFirstDerivatives &first,
 			     TRecalibrationEMSecondDerivatives &second) const noexcept override;
 	double adjustParametersPostEstimation() noexcept override { return 0.; }

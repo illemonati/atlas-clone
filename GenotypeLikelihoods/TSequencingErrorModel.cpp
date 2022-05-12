@@ -31,6 +31,99 @@ namespace SequencingError {
 using coretools::Probability;
 using coretools::instances::randomGenerator;
 
+namespace impl {
+
+auto parseModuleString(const std::string &str) {
+	constexpr auto format =
+		"Expected format is TYPE(ARGS)[VALUES], where [VALUES] is optional and (ARGS) is only required for some TYPE.";
+	std::string type;
+	std::vector<std::string> args;
+	std::vector<std::string> values;
+
+	// split string into parameters and values
+	if (const auto pos = str.find('['); pos != std::string::npos) {
+		// extract type
+		type = str.substr(0, pos);
+
+		// extract parameters
+		const auto pos2 = str.find(']');
+		if (pos == std::string::npos) { throw "Wrong format for recal function '" + str + "': missing ']'! " + format; }
+		coretools::str::fillContainerFromStringAny(str.substr(pos + 1, pos2 - pos - 1), values, ",", true);
+	} else {
+		type = str;
+	}
+
+	// name might contain args
+	if (const auto pos = type.find('('); pos != std::string::npos) {
+		// extract parameters
+		const auto pos2 = str.find(')');
+		if (pos == std::string::npos) { throw "Wrong format for recal function '" + str + "': missing ')'! " + format; }
+		coretools::str::fillContainerFromStringAny(type.substr(pos + 1, pos2 - pos - 1), args, ",", true);
+
+		// extract type
+		type = type.substr(0, pos);
+	}
+	return std::make_tuple(type, args, values);
+}
+
+TCovariate *covariate(const std::string &type) {
+	if (type == TCovariate::name) return nullptr;
+	if (type == TCovariate_quality::name) return new TCovariate_quality;
+	if (type == TCovariate_position::name) return new TCovariate_position;
+	if (type == TCovariate_context::name) return new TCovariate_context;
+	if (type == TCovariate_fragmentLength::name) return new TCovariate_fragmentLength;
+	if (type == TCovariate_mappingQuality::name) return new TCovariate_mappingQuality;
+	throw "Unknown recalibration covariate '" + type;
+}
+
+TFunction *function(const std::string &functionString, const size_t FirstParameterIndex,
+					TRecalibrationEMTransformationMap *transformationMap = nullptr) {
+	const auto [type, args, values] = parseModuleString(functionString);
+	// are values provided?
+	if (values.empty())
+		throw "Failed to initialize recalibration covariate: missing [VALUES] in '" + functionString + "'!";
+
+	// create function
+	if (type == TPolynomial::name) { return new TPolynomial(FirstParameterIndex, values, transformationMap); }
+	if (type == TSpecific::name) { return new TSpecific(FirstParameterIndex, values); }
+	if (type == TSpecificMap::name) { return new TSpecificMap(FirstParameterIndex, values); }
+	throw "Recalibration function '" + type + "' not valid for covariate!";
+}
+
+TFunction *function(const std::string &functionString, const size_t FirstParameterIndex,
+					const RecalEstimatorTools::TRecalDataTable &dataTable, int v = 0,
+					TRecalibrationEMTransformationMap *transformationMap = nullptr) {
+	// parse
+	const auto [type, args, values] = parseModuleString(functionString);
+
+	// create function
+	if (type == TPolynomial::name) {
+		if (values.empty()) {
+			if (args.size() != 1) {
+				throw "Wrong number of arguments for polynomial recal function '" + functionString +
+					"': expect one argument (order).";
+			}
+			auto f     = new TPolynomial(FirstParameterIndex, coretools::str::convertStringCheck<uint32_t>(args[0]),
+										 transformationMap);
+			// if no values are provided, set first beta = 1
+			f->beta(0) = 1;
+			return f;
+		}
+		return new TPolynomial(FirstParameterIndex, values, transformationMap);
+	}
+	if (type == TSpecific::name) {
+		if (values.empty()) return new TSpecific(FirstParameterIndex, v);
+		return new TSpecific(FirstParameterIndex, values);
+	}
+	if (type == TSpecificMap::name) {
+		if (values.empty())
+			return new TSpecificMap(FirstParameterIndex, RecalEstimatorTools::vectorOfUsed(dataTable.qualities()));
+		return new TSpecificMap(FirstParameterIndex, values);
+	}
+	throw "Recalibration function '" + type + "' not valid for covariate quality!";
+}
+} // namespace impl
+
 //*********************************************************
 // TRecalibrationEMModelCovariateDefinition
 // class to store model definition. Used when parsing files
@@ -72,6 +165,7 @@ TModelDefinition::TModelDefinition(const std::string &modelString, const std::st
 
 TRho::TRho(const std::string &def) {
 	using coretools::str::toString;
+	using genometools::Base;
 	//"default" implies default rho
 	if (def == "default") {
 		return;
@@ -85,30 +179,31 @@ TRho::TRho(const std::string &def) {
 
 	// parse rows
 	std::vector<double> r;
-	for (size_t a = 0; a < vec.size(); ++a) {
-		std::string &row = vec[a];
+	for (Base a = Base::min; a < Base::max; ++a) {
+		std::string &row = vec[index(a)];
 		coretools::str::trimString(row, "()");
 		coretools::str::fillContainerFromString(row, r, ',');
 		if (r.size() != 4)
-			throw "Rho matrix has " + toString(r.size()) + " instead of 4 columns for row " + toString(a + 1) + "!";
+			throw "Rho matrix has " + toString(r.size()) + " instead of 4 columns for row " + toString(index(a) + 1) + "!";
 
 		// fill
-		for (size_t b = 0; b < 4; ++b) {
+		for (Base b = Base::min; b < Base::max; ++b) {
 			if (a == b) {
 				rho[a][b] = 0.0;
 			} else {
-				rho[a][b] = r[b];
+				rho[a][b] = r[index(b)];
 			}
 		}
 	}
 }
 
 std::string TRho::getDefinition() const noexcept {
+	using genometools::Base;
 	std::string def;
-	for (int a = 0; a < 4; ++a) {
-		if (a > 0) def += ";";
-		for (int b = 0; b < 4; ++b) {
-			if (b > 0) def += ",";
+	for (Base a = Base::min; a < Base::max; ++a) {
+		if (a > Base::min) def += ";";
+		for (Base b = Base::min; b < Base::max; ++b) {
+			if (b > Base::min) def += ",";
 			if (a != b)
 				def += coretools::str::toString(rho[a][b]);
 			else
@@ -122,12 +217,13 @@ void TRho::addBaseForEstimation(genometools::Base base, const TBaseLikelihoods &
 	using genometools::Base;
 	using genometools::index;
 	for (auto b = Base::min; b < Base::max; ++b) {
-		if (base != b) rho[index(b)][index(base)] += EMWeights[b].get();
+		if (base != b) rho[b][base] += EMWeights[b].get();
 	}
 }
 
 void TRho::estimate() noexcept {
-	for (int a = 0; a < 4; ++a) {
+	using genometools::Base;
+	for (Base a = Base::min; a < Base::max; ++a) {
 		rho[a][a] = 0.0;
 		double d  = 0.;
 		for (const auto r : rho[a]) d += r;
@@ -176,94 +272,6 @@ void TModelNoRecal::simulate(BAM::TSequencedBase &base) const noexcept {
 // TModelRecal
 //*********************************************************
 
-auto parseModuleString(const std::string &str) {
-	constexpr auto format =
-		"Expected format is TYPE(ARGS)[VALUES], where [VALUES] is optional and (ARGS) is only required for some TYPE.";
-	std::string type;
-	std::vector<std::string> args;
-	std::vector<std::string> values;
-
-	// split string into parameters and values
-	if (const auto pos = str.find('['); pos != std::string::npos) {
-		// extract type
-		type = str.substr(0, pos);
-
-		// extract parameters
-		const auto pos2 = str.find(']');
-		if (pos == std::string::npos) { throw "Wrong format for recal function '" + str + "': missing ']'! " + format; }
-		coretools::str::fillContainerFromStringAny(str.substr(pos + 1, pos2 - pos - 1), values, ",", true);
-	} else {
-		type = str;
-	}
-
-	// name might contain args
-	if (const auto pos = type.find('('); pos != std::string::npos) {
-		// extract parameters
-		const auto pos2 = str.find(')');
-		if (pos == std::string::npos) { throw "Wrong format for recal function '" + str + "': missing ')'! " + format; }
-		coretools::str::fillContainerFromStringAny(type.substr(pos + 1, pos2 - pos - 1), args, ",", true);
-
-		// extract type
-		type = type.substr(0, pos);
-	}
-	return std::make_tuple(type, args, values);
-}
-
-TCovariate *covariate(const std::string &type) {
-	if (type == TCovariate::name) return nullptr;
-	if (type == TCovariate_quality::name) return new TCovariate_quality;
-	if (type == TCovariate_position::name) return new TCovariate_position;
-	if (type == TCovariate_context::name) return new TCovariate_context;
-	if (type == TCovariate_fragmentLength::name) return new TCovariate_fragmentLength;
-	if (type == TCovariate_mappingQuality::name) return new TCovariate_mappingQuality;
-	throw "Unknown recalibration covariate '" + type;
-}
-
-TFunction *function(const std::string &functionString, const size_t FirstParameterIndex,
-			     TRecalibrationEMTransformationMap *transformationMap = nullptr) {
-	const auto [type, args, values] = parseModuleString(functionString);
-	// are values provided?
-	if (values.empty())
-		throw "Failed to initialize recalibration covariate: missing [VALUES] in '" + functionString + "'!";
-
-	// create function
-	if (type == TPolynomial::name) { return new TPolynomial(FirstParameterIndex, values, transformationMap); }
-	if (type == TSpecific::name) { return new TSpecific(FirstParameterIndex, values); }
-	if (type == TSpecificMap::name) { return new TSpecificMap(FirstParameterIndex, values); }
-	throw "Recalibration function '" + type + "' not valid for covariate!";
-}
-
-TFunction *function(const std::string &functionString, const size_t FirstParameterIndex,
-		    const RecalEstimatorTools::TRecalDataTable &dataTable, int v = 0,
-		    TRecalibrationEMTransformationMap *transformationMap = nullptr) {
-	// parse
-	const auto [type, args, values] = parseModuleString(functionString);
-
-	// create function
-	if (type == TPolynomial::name) {
-		if (values.empty()) {
-			if (args.size() != 1) {
-				throw "Wrong number of arguments for polynomial recal function '" + functionString +
-					"': expect one argument (order).";
-			}
-			auto f     = new TPolynomial(FirstParameterIndex, coretools::str::convertStringCheck<uint32_t>(args[0]),
-						     transformationMap);
-			// if no values are provided, set first beta = 1
-			f->beta(0) = 1;
-			return f;
-		}
-		return new TPolynomial(FirstParameterIndex, values, transformationMap);
-	}
-	if (type == TSpecific::name) {
-		if (values.empty()) return new TSpecific(FirstParameterIndex, v);
-		return new TSpecific(FirstParameterIndex, values);
-	}
-	if (type == TSpecificMap::name) {
-		if (values.empty()) return new TSpecificMap(FirstParameterIndex, RecalEstimatorTools::vectorOfUsed(dataTable.qualities()));
-		return new TSpecificMap(FirstParameterIndex, values);
-	}
-	throw "Recalibration function '" + type + "' not valid for covariate quality!";
-}
 
 TModelRecal::TModelRecal(const TModelDefinition &modelDef) : _rho(modelDef.rho), _intercept(0, modelDef.intercept) {
 	// create covariates
@@ -278,7 +286,7 @@ TModelRecal::TModelRecal(const TModelDefinition &modelDef) : _rho(modelDef.rho),
 		// auto cov = covriate(cov.covariate);
 		// auto fn = cov.getFunction(cov.function, _numParameters);
 		// Andreas
-		_covariates.push_back(TCovariateModel{covariate(cov.covariate), function(cov.function, _numParameters)});
+		_covariates.push_back(TCovariateModel{impl::covariate(cov.covariate), impl::function(cov.function, _numParameters)});
 		_functions.push_back(_covariates.back().function.get());
 
 		// add new parameters
@@ -289,7 +297,7 @@ TModelRecal::TModelRecal(const TModelDefinition &modelDef) : _rho(modelDef.rho),
 	setNewtonRaphsonParamsToZero();
 }
 
-TModelRecal::TModelRecal(const TModelDefinition &modelDef, const RecalEstimatorTools::TRecalDataTable &dataTable) : _rho(modelDef.rho), _intercept(0, modelDef.intercept){
+/*TModelRecal::TModelRecal(const TModelDefinition &modelDef, const RecalEstimatorTools::TRecalDataTable &dataTable) : _rho(modelDef.rho), _intercept(0, modelDef.intercept){
 	// create covariates
 	_functions.push_back(&_intercept);
 
@@ -298,7 +306,7 @@ TModelRecal::TModelRecal(const TModelDefinition &modelDef, const RecalEstimatorT
 		// create function for each covariate
 		if (cov.covariate == TCovariate::name) continue;
 
-		_covariates.push_back(TCovariateModel{covariate(cov.covariate), function(cov.function, _numParameters, dataTable)});
+		_covariates.push_back(TCovariateModel{impl::covariate(cov.covariate), impl::function(cov.function, _numParameters, dataTable)});
 		_functions.push_back(_covariates.back().function.get());
 
 		// add new parameters
@@ -307,7 +315,7 @@ TModelRecal::TModelRecal(const TModelDefinition &modelDef, const RecalEstimatorT
 
 	// prepare Newton-Raphson variables
 	setNewtonRaphsonParamsToZero();
-}
+	}*/
 
 TModelDefinition TModelRecal::getModelDefinition() const {
 	return TModelDefinition(getCovariateDefinition(), getRhoDefinition());
@@ -395,7 +403,7 @@ void TModelRecal::estimateRho() noexcept { _rho.estimate(); }
 //-------------------------------------------------
 // functions for estimation
 //-------------------------------------------------
-std::string TModelRecal::checkParameterRange(RecalEstimatorTools::TRecalDataTable &DataTable) const {
+std::string TModelRecal::checkParameterRange(const RecalEstimatorTools::TRecalDataTable &DataTable) const {
 	for (auto &cov : _covariates) {
 		if (!cov.function->checkValueRange(cov.covariate->range(DataTable))) {
 			 return "Function for covariate " + cov.function->typeString() + " does not cover full range of data";
