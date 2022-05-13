@@ -392,19 +392,20 @@ void TPMDFunctionEmpiric::learn(const TPMDTable &Table, const genometools::Base 
 	_parameters.resize(Table.size()); // include extra bin for sites beyond size (available in PMDTables)
 
 	// extract counts in PMD direction and the inverse direction
-	const countVec &pmdCounts = Table[from][to];
-	const countVec &pmdSums   = Table.sums(from);
-	const countVec &invCounts = Table[to][from];
-	const countVec &invSums   = Table.sums(from);
+	const countVec &forwardCounts  = Table[from][to]; //e.g. C -> T
+	const countVec &forwardSums    = Table.sums(from);
+	const countVec &backwardCounts = Table[to][from]; //e.g. T -> C
+	const countVec &backwardSums   = Table.sums(to);
 
 	for (size_t p = 0; p < _parameters.size(); ++p) {
-		if (pmdSums[p] == 0 || invSums[p] == 0) {
+		if (forwardSums[p] == 0 || backwardSums[p] == 0) {
 			_parameters[p] = 0.0;
 		} else {
-			double pmd = (double)pmdCounts[p] / pmdSums[p];
-			double inv = (double)invCounts[p] / invSums[p];
+			double forward  = (double)forwardCounts[p] / forwardSums[p]; //e.g. C -> T
+			double backward = (double)backwardCounts[p] / backwardSums[p]; //e.g. T -> C
 
-			_parameters[p] = std::max(0.0, (pmd - inv) / (1.0 - inv));
+			//forward = mu_CT + (1 - mu_CT) * PMD; mu_CT = mu_TC = backward
+			_parameters[p] = std::max(0.0, (forward - backward) / (1.0 - backward));
 		}
 	}
 }
