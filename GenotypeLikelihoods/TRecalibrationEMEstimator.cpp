@@ -65,7 +65,7 @@ TModelVectorForEstimation::TModelVectorForEstimation(TModels &SequencingErrorMod
 				if (SequencingErrorModels(r, mate).estimatable()) {
 					// copy model and update index
 					std::shared_ptr<SequencingError::TModelRecal> model = SequencingErrorModels.getRecal(r, mate);
-					model->checkParameterRange(table);
+					model->checkOrInit(table);
 					_models.push_back(model);
 					modelStati[r][MS::copied].set(mate);
 					for (auto &rr : ReadGroupMap.readGroupsPooledWith(r)) { _modelIndex[rr][mate] = model; }

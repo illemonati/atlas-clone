@@ -45,14 +45,6 @@ double normalizeParameters(std::vector<double> &betas) noexcept {
 // TRecalibrationEMCovariateFunction
 //--------------------------------------------------------------
 
-bool TFunction::checkValueRange(const std::vector<uint16_t> &values) const noexcept {
-	// check range for each value
-	for (uint16_t val : values) {
-		if (!checkValueRange(val)) return false;
-	}
-	return true;
-}
-
 void TFunction::proposeNewParameters(const arma::mat &JxF, uint16_t &index, double &lambda) noexcept {
 	// update new ones
 	for (uint16_t i = 0; i < numParameters(); ++i) {
@@ -77,8 +69,8 @@ std::string TFunction::getModelString() const {
 // TRecalibrationEMCovariateFunction_intercept
 //--------------------------------------------------------------
 
-TIntercept::TIntercept(uint16_t FirstParameterIndex, const std::string &value) : TFunction(FirstParameterIndex) {
-	_beta = coretools::str::convertStringCheck<double>(value);
+TIntercept::TIntercept(uint16_t FirstParameterIndex, const std::string &beta) : TFunction(FirstParameterIndex) {
+	_beta = coretools::str::convertStringCheck<double>(beta);
 }
 
 void TIntercept::fillDerivatives(uint16_t, TRecalibrationEMFirstDerivatives &first,
@@ -98,15 +90,16 @@ void TPolynomial::_init(size_t order) {
 
 TPolynomial::TPolynomial(uint16_t FirstParameterIndex, size_t order,
 						 TRecalibrationEMTransformationMap *transformationMap)
-	: TFunction(FirstParameterIndex), _transformationMap(transformationMap) {
+	: TFunction(FirstParameterIndex), _recal(false) , _transformationMap(transformationMap){
 	_init(order);
 }
 
-TPolynomial::TPolynomial(uint16_t FirstParameterIndex, const std::vector<std::string> &values,
+TPolynomial::TPolynomial(uint16_t FirstParameterIndex, const std::vector<std::string> &betas,
 						 TRecalibrationEMTransformationMap *transformationMap)
 	: TFunction(FirstParameterIndex), _transformationMap(transformationMap) {
-	_init(values.size());
-	impl::initializValues(*this, values);
+	_init(betas.size());
+	impl::initializValues(*this, betas);
+	_recal = std::find_if(_betas.cbegin(), _betas.cend(), [](auto v){return v != 0;}) != _betas.cend();
 }
 
 double TPolynomial::getEtaTerm(uint16_t val) const noexcept {
@@ -132,10 +125,6 @@ void TPolynomial::fillDerivatives(uint16_t val, TRecalibrationEMFirstDerivatives
 	}
 }
 
-bool TPolynomial::checkValueRange(uint16_t val) const noexcept {
-	return _transformationMap ? _transformationMap->checkRange(val) : true;
-}
-
 //--------------------------------------------------------------
 // TRecalibrationEMCovariateFunction_probit
 //--------------------------------------------------------------
@@ -152,32 +141,27 @@ TProbit::TProbitTmpStorage::TProbitTmpStorage(const std::array<double, 3> &betas
 	normalDens_Beta1_q2_z = normalDens_Beta1_q_z * q;
 }
 
-void TProbit::_init(uint16_t MaxValue) {
-	// prepare tmp storage for phi and Phi
-	_expandTmpStorage(MaxValue < 1 ? 128 : MaxValue);
-}
-
 void TProbit::_expandTmpStorage(uint16_t MaxValue) const {
-	for (uint16_t q = _maxValue + 1; q <= MaxValue; ++q) { _tmpStorage.emplace_back(_betas, q); }
-	_maxValue = MaxValue;
+	for (uint16_t q = _tmpStorage.size(); q <= MaxValue; ++q) { _tmpStorage.emplace_back(_betas, q); }
 }
 
-TProbit::TProbit(uint16_t FirstParameterIndex, uint16_t MaxValue) : TFunction(FirstParameterIndex) { _init(MaxValue); }
+TProbit::TProbit(uint16_t FirstParameterIndex) : TFunction(FirstParameterIndex), _recal(false) {}
 
-TProbit::TProbit(uint16_t FirstParameterIndex, const std::vector<std::string> &values)
+TProbit::TProbit(uint16_t FirstParameterIndex, const std::vector<std::string> &betas)
 	: TFunction(FirstParameterIndex) {
-	_init(0);
-	impl::initializValues(*this, values);
+	_expandTmpStorage(128);
+	impl::initializValues(*this, betas);
+	_recal = std::find_if(_betas.cbegin(), _betas.cend(), [](auto v){return v != 0;}) != _betas.cend();
 }
 
 double TProbit::getEtaTerm(uint16_t val) const noexcept {
-	if (val > _maxValue) { _expandTmpStorage(val); }
+	if (val >= _tmpStorage.size()) { _expandTmpStorage(val); }
 	return _tmpStorage[val].eta;
 }
 
 void TProbit::fillDerivatives(uint16_t val, TRecalibrationEMFirstDerivatives &first,
 							  TRecalibrationEMSecondDerivatives &second) const noexcept {
-	if (val > _maxValue) { _expandTmpStorage(val); }
+	if (val >= _tmpStorage.size()) { _expandTmpStorage(val); }
 	const auto i1 = firstParameterIndex();
 	const auto i2 = i1 + 1;
 	const auto i3 = i1 + 2;
@@ -199,37 +183,37 @@ void TProbit::fillDerivatives(uint16_t val, TRecalibrationEMFirstDerivatives &fi
 //--------------------------------------------------------------
 // TRecalibrationEMCovariateFunction_specific
 //--------------------------------------------------------------
-TSpecific::TSpecific(uint16_t FirstParameterIndex, uint16_t MaxValue) : TFunction(FirstParameterIndex) {
+TSpecific::TSpecific(uint16_t FirstParameterIndex) : TFunction(FirstParameterIndex), _recal(false) {}
+
+/*TSpecific::TSpecific(uint16_t FirstParameterIndex, uint16_t MaxValue) : TFunction(FirstParameterIndex), _recal(false) {
 	_init(MaxValue);
-}
+	}*/
 
 TSpecific::TSpecific(uint16_t FirstParameterIndex, const std::vector<std::string> &betas)
 	: TFunction(FirstParameterIndex) {
-	// init
-	_init(betas.size() - 1);
-
-	// now copy values
+	const auto maxValue = betas.size() - 1;
+	_init(maxValue);
 	impl::initializValues(*this, betas);
+	_recal = std::find_if(_betas.cbegin(), _betas.cend(), [](auto v){return v != 0;}) != _betas.cend();
 }
 
 void TSpecific::_init(uint16_t MaxValue) {
-	_maxValue = MaxValue;
-	_betas.resize(numParameters());
-	_oldBetas.resize(numParameters());
+	_betas.resize(MaxValue + 1);
+	_oldBetas.resize(MaxValue + 1);
 }
 
-void TSpecific::adjustValueRanges(const std::vector<uint16_t> &usedValues) {
+void TSpecific::_adjustValueRanges(const std::vector<uint16_t> &values) {
 	// initialize with maximum
-	uint16_t max = *std::max_element(usedValues.begin(), usedValues.end());
+	uint16_t max = *std::max_element(values.begin(), values.end());
 	_init(max);
 
 	// check that each value from 0 to max is actually used!
-	std::vector<bool> found(max + 1, false);
-	for (auto &i : usedValues) { found[i] = true; }
+	std::vector<bool> found(numParameters(), false);
+	for (auto &i : values) { found[i] = true; }
 	if (const auto f = std::find(found.cbegin(), found.cend(), false); f != found.cend()) {
-		const auto d = std::distance(f, found.cbegin());
-		throw "Can not adjust value range for recal function '" + name + "': value " + coretools::str::toString(d) +
-			" is < max value but never used." + "\nConsider using recal function '" + TSpecificMap::name + "'.";
+		throw "Can not adjust value range for recal function '" + name + "': value " +
+			coretools::str::toString(std::distance(f, found.cbegin())) + " is < max value but never used." +
+			"\nConsider using recal function '" + TSpecificMap::name + "'.";
 	}
 }
 
@@ -244,20 +228,19 @@ double TSpecific::adjustParametersPostEstimation() noexcept { return impl::norma
 // TRecalibrationEMCovariateFunction_specificMap
 //--------------------------------------------------------------
 void TSpecificMap::_init(size_t NumParameters) {
-	_numParameters = NumParameters;
-	_betas.reserve(numParameters());
-	_oldBetas.reserve(numParameters());
+	_betas.resize(NumParameters);
+	_oldBetas.resize(NumParameters);
 }
 
 void TSpecificMap::_initMapFromVector(const std::vector<uint16_t> &values) {
 	_init(values.size());
 
 	// find largest value
-	_maxValue = std::max(_maxValue, *std::max_element(values.begin(), values.end()));
+	const auto max = std::max((uint16_t)_indexMap.size(), *std::max_element(values.begin(), values.end()));
 
 	// create map
 	_indexMap.clear();
-	_indexMap.resize(_maxValue + 1);
+	_indexMap.resize(max + 1);
 
 	for (size_t i = 0; i < values.size(); ++i) {
 		_indexMap[values[i]].index = i;
@@ -265,30 +248,31 @@ void TSpecificMap::_initMapFromVector(const std::vector<uint16_t> &values) {
 	}
 }
 
-TSpecificMap::TSpecificMap(uint16_t FirstParameterIndex, const std::vector<uint16_t> &values)
-	: TFunction(FirstParameterIndex) {
+/*TSpecificMap::TSpecificMap(uint16_t FirstParameterIndex, const std::vector<uint16_t> &values)
+	: TFunction(FirstParameterIndex), _recal(false) {
 	_initMapFromVector(values);
-}
+	}*/
 
-TSpecificMap::TSpecificMap(uint16_t FirstParameterIndex, const std::vector<std::string> &values)
+TSpecificMap::TSpecificMap(uint16_t FirstParameterIndex, const std::vector<std::string> &betas)
 	: TFunction(FirstParameterIndex) {
 	// parse values as pairs separated by a colon (:)
-	std::vector<uint16_t> valuesUsed;
-	for (std::string s : values) {
+	std::vector<uint16_t> values;
+	for (std::string s : betas) {
 		size_t pos = s.find(':');
 		if (pos == std::string::npos) { throw "Can not parse value '" + s + "': missing ':'!"; }
-		uint16_t key = coretools::str::convertStringCheck<uint16_t>(s.substr(0, pos));
-		if (std::find(valuesUsed.begin(), valuesUsed.end(), key) != valuesUsed.end()) {
-			throw "Duplicate entry for key " + coretools::str::toString(key) + "!";
+		uint16_t val = coretools::str::convertStringCheck<uint16_t>(s.substr(0, pos));
+		if (std::find(values.begin(), values.end(), val) != values.end()) {
+			throw "Duplicate entry for key " + coretools::str::toString(val) + "!";
 		}
-		valuesUsed.push_back(key);
+		values.push_back(val);
 		_betas.push_back(coretools::str::convertStringCheck<double>(s.substr(pos + 1)));
 	}
 	// init map
-	_initMapFromVector(valuesUsed);
+	_initMapFromVector(values);
+	_recal = std::find_if(_betas.cbegin(), _betas.cend(), [](auto v){return v != 0;}) != _betas.cend();
 }
 
-void TSpecificMap::adjustValueRanges(const std::vector<uint16_t> &valuesUsed) { _initMapFromVector(valuesUsed); }
+void TSpecificMap::_adjustValueRanges(const std::vector<uint16_t> &values) { _initMapFromVector(values); }
 
 void TSpecificMap::fillDerivatives(uint16_t val, TRecalibrationEMFirstDerivatives &first,
 								   TRecalibrationEMSecondDerivatives &) const noexcept {

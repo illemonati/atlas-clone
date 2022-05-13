@@ -82,7 +82,6 @@ public:
 	std::string intercept;
 	TRho rho;
 
-	TModelDefinition() = default;
 	TModelDefinition(const std::string &covariateString, const std::string &rhoString);
 };
 
@@ -169,7 +168,7 @@ public:
 	virtual void simulate(BAM::TSequencedBase &base) const noexcept override;
 
 	// functions to estimate
-	std::string checkParameterRange(const RecalEstimatorTools::TRecalDataTable &DataTable) const;
+	std::string checkOrInit(const RecalEstimatorTools::TRecalDataTable &DataTable) const;
 	uint16_t numParameters() const noexcept { return _numParameters; }
 
 	// functions to estimate rho

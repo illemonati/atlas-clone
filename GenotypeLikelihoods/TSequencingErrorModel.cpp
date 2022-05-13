@@ -90,6 +90,7 @@ TFunction *function(const std::string &functionString, const size_t FirstParamet
 	throw "Recalibration function '" + type + "' not valid for covariate!";
 }
 
+	/*
 TFunction *function(const std::string &functionString, const size_t FirstParameterIndex,
 					const RecalEstimatorTools::TRecalDataTable &dataTable, int v = 0,
 					TRecalibrationEMTransformationMap *transformationMap = nullptr) {
@@ -122,6 +123,7 @@ TFunction *function(const std::string &functionString, const size_t FirstParamet
 	}
 	throw "Recalibration function '" + type + "' not valid for covariate quality!";
 }
+	*/
 } // namespace impl
 
 //*********************************************************
@@ -403,9 +405,9 @@ void TModelRecal::estimateRho() noexcept { _rho.estimate(); }
 //-------------------------------------------------
 // functions for estimation
 //-------------------------------------------------
-std::string TModelRecal::checkParameterRange(const RecalEstimatorTools::TRecalDataTable &DataTable) const {
+std::string TModelRecal::checkOrInit(const RecalEstimatorTools::TRecalDataTable &DataTable) const {
 	for (auto &cov : _covariates) {
-		if (!cov.function->checkValueRange(cov.covariate->range(DataTable))) {
+		if (!cov.function->checkOrInitValueRange(cov.covariate->range(DataTable))) {
 			 return "Function for covariate " + cov.function->typeString() + " does not cover full range of data";
 		}
 	}
