@@ -248,10 +248,7 @@ void TSpecificMap::_initMapFromVector(const std::vector<uint16_t> &values) {
 	}
 }
 
-/*TSpecificMap::TSpecificMap(uint16_t FirstParameterIndex, const std::vector<uint16_t> &values)
-	: TFunction(FirstParameterIndex), _recal(false) {
-	_initMapFromVector(values);
-	}*/
+TSpecificMap::TSpecificMap(uint16_t FirstParameterIndex) : TFunction(FirstParameterIndex), _recal(false) {}
 
 TSpecificMap::TSpecificMap(uint16_t FirstParameterIndex, const std::vector<std::string> &betas)
 	: TFunction(FirstParameterIndex) {

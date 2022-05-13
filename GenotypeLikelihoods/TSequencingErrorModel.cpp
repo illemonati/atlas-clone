@@ -35,10 +35,10 @@ namespace impl {
 
 auto parseModuleString(const std::string &str) {
 	constexpr auto format =
-		"Expected format is TYPE(ARGS)[VALUES], where [VALUES] is optional and (ARGS) is only required for some TYPE.";
+		"Expected format is TYPE(ARGS)[BETAS], where [BETAS] is optional and (ARGS) is only required for some TYPE.";
 	std::string type;
 	std::vector<std::string> args;
-	std::vector<std::string> values;
+	std::vector<std::string> betas;
 
 	// split string into parameters and values
 	if (const auto pos = str.find('['); pos != std::string::npos) {
@@ -48,7 +48,7 @@ auto parseModuleString(const std::string &str) {
 		// extract parameters
 		const auto pos2 = str.find(']');
 		if (pos == std::string::npos) { throw "Wrong format for recal function '" + str + "': missing ']'! " + format; }
-		coretools::str::fillContainerFromStringAny(str.substr(pos + 1, pos2 - pos - 1), values, ",", true);
+		coretools::str::fillContainerFromStringAny(str.substr(pos + 1, pos2 - pos - 1), betas, ",", true);
 	} else {
 		type = str;
 	}
@@ -63,7 +63,7 @@ auto parseModuleString(const std::string &str) {
 		// extract type
 		type = type.substr(0, pos);
 	}
-	return std::make_tuple(type, args, values);
+	return std::make_tuple(type, args, betas);
 }
 
 TCovariate *covariate(const std::string &type) {
@@ -78,15 +78,27 @@ TCovariate *covariate(const std::string &type) {
 
 TFunction *function(const std::string &functionString, const size_t FirstParameterIndex,
 					TRecalibrationEMTransformationMap *transformationMap = nullptr) {
-	const auto [type, args, values] = parseModuleString(functionString);
-	// are values provided?
-	if (values.empty())
-		throw "Failed to initialize recalibration covariate: missing [VALUES] in '" + functionString + "'!";
-
+	const auto [type, args, betas] = parseModuleString(functionString);
 	// create function
-	if (type == TPolynomial::name) { return new TPolynomial(FirstParameterIndex, values, transformationMap); }
-	if (type == TSpecific::name) { return new TSpecific(FirstParameterIndex, values); }
-	if (type == TSpecificMap::name) { return new TSpecificMap(FirstParameterIndex, values); }
+	if (type == TPolynomial::name) {
+		if (betas.empty()) {
+			if (args.size() != 1) {
+				throw "Wrong number of arguments for polynomial recal function '" + functionString +
+					"': expect one argument (order).";
+			}
+			return new TPolynomial(FirstParameterIndex, coretools::str::convertStringCheck<uint32_t>(args[0]),
+			                       transformationMap);
+		}
+		return new TPolynomial(FirstParameterIndex, betas, transformationMap);
+	}
+	if (type == TSpecific::name) {
+		if (betas.empty()) return new TSpecific(FirstParameterIndex);
+		return new TSpecific(FirstParameterIndex, betas);
+	}
+	if (type == TSpecificMap::name) {
+		if (betas.empty()) return new TSpecificMap(FirstParameterIndex);
+		return new TSpecificMap(FirstParameterIndex, betas);
+	}
 	throw "Recalibration function '" + type + "' not valid for covariate!";
 }
 
