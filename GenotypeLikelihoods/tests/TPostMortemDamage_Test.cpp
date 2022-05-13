@@ -201,6 +201,8 @@ TEST(TPostMortemDamage_test, empiric_learn) {
 	for (size_t i = 0; i < N; ++i) {
 		for (size_t _ = 0; _ < N - i; ++_) t1.add(i, Base::G, Base::A);
 		for (size_t _ = 0; _ < i; ++_) t1.add(i, Base::G, Base::G);
+		t1.add(i, Base::A, Base::G);
+		for (size_t _= 0; _ < N*N; ++_) t1.add(i, Base::A, Base::A);
 
 		EXPECT_EQ(t1[Base::G][Base::A][i], N - i);
 		EXPECT_EQ(t1.sums(Base::G)[i], 10);
@@ -208,7 +210,7 @@ TEST(TPostMortemDamage_test, empiric_learn) {
 
 	TPMDFunctionEmpiric fne("[]");
 	fne.learn(t1, Base::G, Base::A, TPMDEstimationParameters{});
-	EXPECT_EQ(fne.string(), "Empiric[1.000000,0.900000,0.800000,0.700000,0.600000,0.500000,0.400000,0.300000,0.200000,0.100000]");
+	EXPECT_EQ(fne.string(), "Empiric[1.000000,0.899000,0.798000,0.697000,0.596000,0.495000,0.394000,0.293000,0.192000,0.091000]");
 }
 
 TEST(TPostMortemDamage_test, exp_learn) {
