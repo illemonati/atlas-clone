@@ -22,7 +22,7 @@ compare() {
 err=0
 for f in *.sh; do
     fo=${f%.sh}
-    echo "Regresision Test: $fo"
+    echo "Regression Test: $fo"
     if [[ ! -d ${fo}_ref ]]; then
 	echo "Creating reference ATLAS-files in folder ${fo}_ref"
 	mkdir -v ${fo}_ref
