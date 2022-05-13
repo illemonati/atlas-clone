@@ -34,35 +34,33 @@ protected:
 	virtual double &_oldBeta(uint16_t index) noexcept      = 0;
 	virtual double _oldBeta(uint16_t index) const noexcept = 0;
 public:
-	static inline const std::string name = "none";
-
 	TFunction(uint16_t FirstParameterIndex = 0) : _firstParameterIndex(FirstParameterIndex) {}
-	virtual ~TFunction()                               = default;
+	virtual ~TFunction() = default;
 
 	// non-virtuals
 	void proposeNewParameters(const arma::mat &JxF, uint16_t &index, double &lambda) noexcept;
 	void rejectProposedParameters() noexcept;
+	constexpr uint16_t firstParameterIndex() const noexcept { return _firstParameterIndex; };
 
 	// virtuals
 	virtual double &beta(uint16_t index) noexcept      = 0;
 	virtual double beta(uint16_t index) const noexcept = 0;
 
-	// size
-	constexpr uint16_t firstParameterIndex() const noexcept { return _firstParameterIndex; };
+	virtual bool recalibrates() const noexcept = 0;
+
 	virtual uint16_t numParameters() const noexcept               = 0;
 	virtual uint16_t numNonZeroFirstDerivatives() const noexcept  = 0;
 	virtual uint16_t numNonZeroSecondDerivatives() const noexcept = 0;
 
 	// check value range: to ensure that data can be recalibrated
-	virtual bool checkValueRange(uint16_t) const noexcept = 0;
-	bool checkValueRange(const std::vector<uint16_t> &values) const noexcept;
+	virtual bool checkOrInitValueRange(const std::vector<uint16_t> &values) noexcept = 0;
 
 	// estimation
-	virtual double getEtaTerm(uint16_t) const noexcept = 0;
-	virtual void fillDerivatives(uint16_t, TRecalibrationEMFirstDerivatives &,
-				     TRecalibrationEMSecondDerivatives &) const noexcept = 0;
-	virtual double adjustParametersPostEstimation() noexcept                         = 0;
-	virtual std::string typeString() const noexcept                                  = 0;
+	virtual double getEtaTerm(uint16_t val) const noexcept                                 = 0;
+	virtual void fillDerivatives(uint16_t val, TRecalibrationEMFirstDerivatives &first,
+								 TRecalibrationEMSecondDerivatives &second) const noexcept = 0;
+	virtual double adjustParametersPostEstimation() noexcept                               = 0;
+	virtual std::string typeString() const noexcept                                        = 0;
 	std::string getModelString() const;
 };
 
@@ -72,16 +70,20 @@ public:
 //--------------------------------------------------------------
 class TIntercept : public TFunction {
 private:
-	double _beta;
-	double _oldbeta;
+	double _beta    = 0.;
+	double _oldbeta = 0.;
 
 protected:
 	double &_oldBeta(uint16_t) noexcept override { return _oldbeta; }
 	double _oldBeta(uint16_t) const noexcept override { return _oldbeta; }
-
 public:
 	static inline const std::string name = "intercept";
-	TIntercept(uint16_t FirstParameterIndex, const std::string &value);
+	// No beta
+	TIntercept(uint16_t FirstParameterIndex): TFunction(FirstParameterIndex) {};
+	// With beta
+	TIntercept(uint16_t FirstParameterIndex, const std::string &beta);
+
+	bool recalibrates() const noexcept override {return _beta != 0.;}
 
 	uint16_t numParameters() const noexcept override { return 1; };
 	uint16_t numNonZeroFirstDerivatives() const noexcept override { return 1; };
@@ -90,10 +92,10 @@ public:
 	double &beta(uint16_t) noexcept override { return _beta; }
 	double beta(uint16_t) const noexcept override { return _beta; }
 
-	bool checkValueRange(uint16_t) const noexcept override { return true; }
+	bool checkOrInitValueRange(const std::vector<uint16_t>&) noexcept override {return true;};
+
 	constexpr double intercept() const noexcept { return _beta; }
 	constexpr double &intercept() noexcept { return _beta; }
-
 
 	double getEtaTerm(uint16_t = 0) const noexcept override { return _beta; };
 	void fillDerivatives(uint16_t val, TRecalibrationEMFirstDerivatives &first,
@@ -111,24 +113,29 @@ class TPolynomial : public TFunction {
 private:
 	std::vector<double> _betas;    // betas of the model
 	std::vector<double> _oldBetas; // use during estimation
+	bool _recal;
 	void _init(size_t order);
 	uint16_t _order;
 	TRecalibrationEMTransformationMap *_transformationMap = nullptr;
+
 	double _getAsDouble(uint16_t val) const noexcept {
 		return _transformationMap ? _transformationMap->get(val) : val;
-	};
+	}
 
 protected:
 	double &_oldBeta(uint16_t i) noexcept override { return _oldBetas[i]; }
 	double _oldBeta(uint16_t i) const noexcept override { return _oldBetas[i]; }
-	// TODO: add tmp storage for eta!
-
 public:
 	static inline const std::string name = "polynomial";
+
+	// No betas
 	TPolynomial(uint16_t FirstParameterIndex, size_t order,
 		    TRecalibrationEMTransformationMap *transformationMap = nullptr);
-	TPolynomial(uint16_t FirstParameterIndex, const std::vector<std::string> &values,
+	// With betas
+	TPolynomial(uint16_t FirstParameterIndex, const std::vector<std::string> &betas,
 		    TRecalibrationEMTransformationMap *transformationMap = nullptr);
+
+	bool recalibrates() const noexcept override {return _recal;}
 
 	uint16_t numParameters() const noexcept override { return _order; };
 	uint16_t numNonZeroFirstDerivatives() const noexcept override { return _order; };
@@ -137,13 +144,17 @@ public:
 	double &beta(uint16_t i) noexcept override { return _betas[i]; }
 	double beta(uint16_t i) const noexcept override { return _betas[i]; }
 
-	bool checkValueRange(uint16_t val) const noexcept override;
+	bool checkOrInitValueRange(const std::vector<uint16_t> &values) noexcept override {
+		return !_transformationMap ||
+			   std::all_of(values.begin(), values.end(), [tm = this->_transformationMap](auto v) { return tm->checkRange(v); });
+	};
+
 	double adjustParametersPostEstimation() noexcept override { return 0.; }
 
 	double getEtaTerm(uint16_t val) const noexcept override;
 	void fillDerivatives(uint16_t val, TRecalibrationEMFirstDerivatives &first,
 			     TRecalibrationEMSecondDerivatives &second) const noexcept override;
-	virtual std::string typeString() const noexcept override { return name; }
+	std::string typeString() const noexcept override { return name; }
 };
 
 //--------------------------------------------------------------
@@ -168,12 +179,11 @@ private:
 	};
 	std::array<double, 3> _betas;    // betas of the model
 	std::array<double, 3> _oldBetas; // use during estimation
+	bool _recal;
 
 	// tmp storage
-	mutable unsigned int _maxValue;
 	mutable std::vector<TProbitTmpStorage> _tmpStorage;
 
-	void _init(uint16_t Maxvalue);
 	void _expandTmpStorage(uint16_t MaxValue) const;
 
 protected:
@@ -182,12 +192,18 @@ protected:
 
 public:
 	static inline const std::string name = "probit";
-	TProbit(uint16_t FirstParameterIndex, uint16_t MaxValue);
-	TProbit(uint16_t FirstParameterIndex, const std::vector<std::string> &values);
+	// No betas
+	TProbit(uint16_t FirstParameterIndex);
+	// With betas
+	TProbit(uint16_t FirstParameterIndex, const std::vector<std::string> &betas);
+
+	bool recalibrates() const noexcept override {return _recal;}
 
 	uint16_t numParameters() const noexcept override { return 3; };
 	uint16_t numNonZeroFirstDerivatives() const noexcept override { return 3; };
 	uint16_t numNonZeroSecondDerivatives() const noexcept override { return 6; };
+
+	bool checkOrInitValueRange(const std::vector<uint16_t>&) noexcept override {return true;};
 
 	double &beta(uint16_t i) noexcept override { return _betas[i]; }
 	double beta(uint16_t i) const noexcept override { return _betas[i]; }
@@ -204,30 +220,43 @@ public:
 //--------------------------------------------------------------
 class TSpecific : public TFunction {
 private:
-	uint16_t _maxValue;
 	std::vector<double> _betas;    // betas of the model
 	std::vector<double> _oldBetas; // use during estimation
+	bool _recal;
 
 	void _init(uint16_t MaxValue);
-
+	bool _checkValueRange(uint16_t val) const noexcept { return val < numParameters(); };
+	void _adjustValueRanges(const std::vector<uint16_t> &values);
 protected:
 	double &_oldBeta(uint16_t i) noexcept override { return _oldBetas[i]; }
 	double _oldBeta(uint16_t i) const noexcept override { return _oldBetas[i]; }
-
 public:
 	static inline const std::string name = "specific";
-	TSpecific(uint16_t FirstParameterIndex, uint16_t MaxValue);
+
+	// No Range nor betas
+	TSpecific(uint16_t FirstParameterIndex);
+	// Range and betas
 	TSpecific(uint16_t FirstParameterIndex, const std::vector<std::string> &betas);
 
-	uint16_t numParameters() const noexcept override { return _maxValue + 1; };
+	bool recalibrates() const noexcept override {return _recal;}
+
+	uint16_t numParameters() const noexcept override { return _betas.size(); };
 	uint16_t numNonZeroFirstDerivatives() const noexcept override { return 1; };
 	uint16_t numNonZeroSecondDerivatives() const noexcept override { return 0; };
 
 	double &beta(uint16_t i) noexcept override { return _betas[i]; }
 	double beta(uint16_t i) const noexcept override { return _betas[i]; }
 
-	bool checkValueRange(uint16_t val) const noexcept override { return val <= _maxValue; };
-	void adjustValueRanges(const std::vector<uint16_t> &values);
+	bool checkOrInitValueRange(const std::vector<uint16_t> &values) noexcept override {
+		if (numParameters() == 0) {
+			_adjustValueRanges(values);
+			return true;
+		}
+		for (uint16_t val : values) {
+			if (!_checkValueRange(val)) return false;
+		}
+		return true;
+	}
 
 	double adjustParametersPostEstimation() noexcept override;
 
@@ -250,32 +279,43 @@ class TSpecificMap : public TFunction {
 private:
 	std::vector<double> _betas;    // betas of the model
 	std::vector<double> _oldBetas; // use during estimation
-	uint16_t _numParameters;
-	uint16_t _maxValue;
 	std::vector<TIndexMapEntry> _indexMap; // maps value to parameter index
+	bool _recal;
 
 	void _init(size_t NumParameters);
 	void _initMapFromVector(const std::vector<uint16_t> &values);
-
+	bool _checkValueRange(uint16_t val) const noexcept { return val < _indexMap.size() && _indexMap[val].used; };
+	void _adjustValueRanges(const std::vector<uint16_t> &values);
 protected:
 	double &_oldBeta(uint16_t i) noexcept override { return _oldBetas[i]; }
 	double _oldBeta(uint16_t i) const noexcept override { return _oldBetas[i]; }
 
 public:
 	static inline const std::string name = "map";
-	TSpecificMap(uint16_t FirstParameterIndex, const std::vector<uint16_t> &values);
-	TSpecificMap(uint16_t FirstParameterIndex, const std::vector<std::string> &values);
-	~TSpecificMap(){};
+	// No Range nor betas
+	TSpecificMap(uint16_t FirstParameterIndex);
+	// betas and range
+	TSpecificMap(uint16_t FirstParameterIndex, const std::vector<std::string> &betas);
 
-	uint16_t numParameters() const noexcept override { return _numParameters; };
+	bool recalibrates() const noexcept override {return _recal;}
+
+	uint16_t numParameters() const noexcept override { return _betas.size(); };
 	uint16_t numNonZeroFirstDerivatives() const noexcept override { return 1; };
 	uint16_t numNonZeroSecondDerivatives() const noexcept override { return 0; };
 
 	double &beta(uint16_t i) noexcept override { return _betas[i]; }
 	double beta(uint16_t i) const noexcept override { return _betas[i]; }
 
-	bool checkValueRange(uint16_t val) const noexcept override { return val <= _maxValue || _indexMap[val].used; };
-	void adjustValueRanges(const std::vector<uint16_t> &values);
+	bool checkOrInitValueRange(const std::vector<uint16_t> &values) noexcept override {
+		if (numParameters() == 0) {
+			_adjustValueRanges(values);
+			return true;
+		}
+		for (uint16_t val : values) {
+			if (!_checkValueRange(val)) return false;
+		}
+		return true;
+	}
 
 	double adjustParametersPostEstimation() noexcept override;
 
