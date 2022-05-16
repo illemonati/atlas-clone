@@ -14,15 +14,18 @@
 #include "mathFunctions.h"
 #include "probability.h"
 #include "stringFunctions.h"
+#include "toString.h"
 
 namespace GenotypeLikelihoods {
 namespace SequencingError {
+
+using coretools::str::toString;
 
 namespace impl {
 void initializValues(TFunction &f, const std::vector<std::string> &values) {
 	if (!values.empty()) {
 		if (values.size() != f.numParameters()) {
-			throw coretools::str::toString("Failed to initialize recalibration module: wrong number of values (",
+			throw toString("Failed to initialize recalibration module: wrong number of values (",
 										   values.size(), " instead of ", f.numParameters(), ")!");
 		}
 
@@ -59,7 +62,6 @@ void TFunction::rejectProposedParameters() noexcept {
 }
 
 std::string TFunction::getModelString() const {
-	using coretools::str::toString;
 	std::string s = typeString() + "[" + toString(beta(0));
 	for (size_t i = 1; i < numParameters(); ++i) s += "," + toString(beta(0));
 	return s + "]";
@@ -78,51 +80,8 @@ void TIntercept::fillDerivatives(uint16_t, TRecalibrationEMFirstDerivatives &fir
 	first.add(firstParameterIndex(), 1.0);
 }
 
-//--------------------------------------------------------------
-// TRecalibrationEMCovariateFunction_polynomial
-//--------------------------------------------------------------
-void TPolynomial::_init(size_t order) {
-	if (order < 1) throw "Order of polynomial covariate function must be at least 1!";
-	_order = order;
-	_betas.resize(order);
-	_oldBetas.resize(order);
-}
-
-TPolynomial::TPolynomial(uint16_t FirstParameterIndex, size_t order,
-						 TRecalibrationEMTransformationMap *transformationMap)
-	: TFunction(FirstParameterIndex), _recal(false) , _transformationMap(transformationMap){
-	_init(order);
-}
-
-TPolynomial::TPolynomial(uint16_t FirstParameterIndex, const std::vector<std::string> &betas,
-						 TRecalibrationEMTransformationMap *transformationMap)
-	: TFunction(FirstParameterIndex), _transformationMap(transformationMap) {
-	_init(betas.size());
-	impl::initializValues(*this, betas);
-	_recal = std::find_if(_betas.cbegin(), _betas.cend(), [](auto v){return v != 0;}) != _betas.cend();
-}
-
-double TPolynomial::getEtaTerm(uint16_t val) const noexcept {
-	const double v = _getAsDouble(val);
-	double vpi     = v;
-	double sum     = _betas[0] * vpi;
-
-	for (size_t i = 1; i < numParameters(); ++i) {
-		vpi *= v;
-		sum += _betas[i] * vpi;
-	}
-	return sum;
-}
-
-void TPolynomial::fillDerivatives(uint16_t val, TRecalibrationEMFirstDerivatives &first,
-								  TRecalibrationEMSecondDerivatives &) const noexcept {
-	const double v = _getAsDouble(val);
-	double vpi     = v;
-	first.add(firstParameterIndex(), vpi);
-	for (size_t i = 1; i < numParameters(); ++i) {
-		vpi *= v;
-		first.add(firstParameterIndex() + i, vpi);
-	}
+std::string TIntercept::typeString() const noexcept {
+	return name + '[' + toString(_beta) + ']';
 }
 
 //--------------------------------------------------------------
@@ -212,7 +171,7 @@ void TSpecific::_adjustValueRanges(const std::vector<uint16_t> &values) {
 	for (auto &i : values) { found[i] = true; }
 	if (const auto f = std::find(found.cbegin(), found.cend(), false); f != found.cend()) {
 		throw "Can not adjust value range for recal function '" + name + "': value " +
-			coretools::str::toString(std::distance(f, found.cbegin())) + " is < max value but never used." +
+			toString(std::distance(f, found.cbegin())) + " is < max value but never used." +
 			"\nConsider using recal function '" + TSpecificMap::name + "'.";
 	}
 }
@@ -259,7 +218,7 @@ TSpecificMap::TSpecificMap(uint16_t FirstParameterIndex, const std::vector<std::
 		if (pos == std::string::npos) { throw "Can not parse value '" + s + "': missing ':'!"; }
 		uint16_t val = coretools::str::convertStringCheck<uint16_t>(s.substr(0, pos));
 		if (std::find(values.begin(), values.end(), val) != values.end()) {
-			throw "Duplicate entry for key " + coretools::str::toString(val) + "!";
+			throw "Duplicate entry for key " + toString(val) + "!";
 		}
 		values.push_back(val);
 		_betas.push_back(coretools::str::convertStringCheck<double>(s.substr(pos + 1)));

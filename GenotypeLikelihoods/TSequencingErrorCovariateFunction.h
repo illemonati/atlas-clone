@@ -102,20 +102,20 @@ public:
 			     TRecalibrationEMSecondDerivatives &second) const noexcept override;
 	double adjustParametersPostEstimation() noexcept override { return 0.; }
 
-	virtual std::string typeString() const noexcept override { return name; }
+	virtual std::string typeString() const noexcept override;
 };
 
 //--------------------------------------------------------------
 // TCovariateFunction_polynomial
 // A polynomial function
 //--------------------------------------------------------------
+template <size_t O>
 class TPolynomial : public TFunction {
+	static_assert(O > 0);
 private:
-	std::vector<double> _betas;    // betas of the model
-	std::vector<double> _oldBetas; // use during estimation
+	std::array<double, O> _betas;    // betas of the model
+	std::array<double, O> _oldBetas; // use during estimation
 	bool _recal;
-	void _init(size_t order);
-	uint16_t _order;
 	TRecalibrationEMTransformationMap *_transformationMap = nullptr;
 
 	double _getAsDouble(uint16_t val) const noexcept {
@@ -129,16 +129,21 @@ public:
 	static inline const std::string name = "polynomial";
 
 	// No betas
-	TPolynomial(uint16_t FirstParameterIndex, size_t order,
-		    TRecalibrationEMTransformationMap *transformationMap = nullptr);
+	TPolynomial(uint16_t FirstParameterIndex, TRecalibrationEMTransformationMap *transformationMap = nullptr)
+		: TFunction(FirstParameterIndex), _recal(false), _transformationMap(transformationMap) {
+		_betas.front() = 1.;
+	}
 	// With betas
 	TPolynomial(uint16_t FirstParameterIndex, const std::vector<std::string> &betas,
-		    TRecalibrationEMTransformationMap *transformationMap = nullptr);
+				TRecalibrationEMTransformationMap *transformationMap = nullptr)
+		: TFunction(FirstParameterIndex), _recal(true), _transformationMap(transformationMap) {
+		std::transform(betas.cbegin(), betas.cend(), _betas.begin(), coretools::str::convertStringCheck<double>);
+	}
 
 	bool recalibrates() const noexcept override {return _recal;}
 
-	uint16_t numParameters() const noexcept override { return _order; };
-	uint16_t numNonZeroFirstDerivatives() const noexcept override { return _order; };
+	uint16_t numParameters() const noexcept override { return O; };
+	uint16_t numNonZeroFirstDerivatives() const noexcept override { return O; };
 	uint16_t numNonZeroSecondDerivatives() const noexcept override { return 0; };
 
 	double &beta(uint16_t i) noexcept override { return _betas[i]; }
@@ -151,10 +156,55 @@ public:
 
 	double adjustParametersPostEstimation() noexcept override { return 0.; }
 
-	double getEtaTerm(uint16_t val) const noexcept override;
+	double getEtaTerm(uint16_t val) const noexcept override {
+		const double v = _getAsDouble(val);
+		if constexpr (O == 1) {
+			return _betas.front() * v;
+		} else if constexpr (O == 2) {
+			return v * (_betas[0] + v * _betas[1]);
+		} else if constexpr (O == 3) {
+			return v * (_betas[0] + v * (_betas[1] + _betas[2] * v));
+		} else {
+			double vpi = v;
+			double sum = _betas[0] * vpi;
+
+			for (size_t i = 1; i < O; ++i) {
+				vpi *= v;
+				sum += _betas[i] * vpi;
+			}
+			return sum;
+		}
+	};
+
 	void fillDerivatives(uint16_t val, TRecalibrationEMFirstDerivatives &first,
-			     TRecalibrationEMSecondDerivatives &second) const noexcept override;
-	std::string typeString() const noexcept override { return name; }
+						 TRecalibrationEMSecondDerivatives &) const noexcept override {
+		const double v = _getAsDouble(val);
+
+		if constexpr (O == 1) {
+			first.add(firstParameterIndex(), v);
+		} else if constexpr (O == 2) {
+			first.add(firstParameterIndex(), v);
+			first.add(firstParameterIndex() + 1, v*v);
+		} else if constexpr (O == 3) {
+			first.add(firstParameterIndex(), v);
+			first.add(firstParameterIndex() + 1, v*v);
+			first.add(firstParameterIndex() + 2, v*v*v);
+		} else {
+			double vpi = v;
+			first.add(firstParameterIndex(), vpi);
+			for (size_t i = 1; i < numParameters(); ++i) {
+				vpi *= v;
+				first.add(firstParameterIndex() + i, vpi);
+			}
+		}
+	}
+	std::string typeString() const noexcept override {
+		using coretools::str::toString;
+		std::string s = name + '(' + toString(O) + ')';
+		s += '[';
+		for (const auto b : _betas) { s += toString(b) + ','; }
+		return s.substr(0, s.size() - 1) + ']';
+	}
 };
 
 //--------------------------------------------------------------

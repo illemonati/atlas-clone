@@ -80,16 +80,33 @@ TFunction *function(const std::string &functionString, const size_t FirstParamet
 					TRecalibrationEMTransformationMap *transformationMap = nullptr) {
 	const auto [type, args, betas] = parseModuleString(functionString);
 	// create function
-	if (type == TPolynomial::name) {
+	if (type == TPolynomial<1>::name) {
 		if (betas.empty()) {
 			if (args.size() != 1) {
 				throw "Wrong number of arguments for polynomial recal function '" + functionString +
 					"': expect one argument (order).";
 			}
-			return new TPolynomial(FirstParameterIndex, coretools::str::convertStringCheck<uint32_t>(args[0]),
-			                       transformationMap);
+			size_t O = coretools::str::convertStringCheck<uint32_t>(args[0]);
+			// a bit ugly but allowing much faster polynomials
+			switch (O) {
+			case 1: return new TPolynomial<1>(FirstParameterIndex, transformationMap);
+			case 2: return new TPolynomial<2>(FirstParameterIndex, transformationMap);
+			case 3: return new TPolynomial<3>(FirstParameterIndex, transformationMap);
+			case 4: return new TPolynomial<4>(FirstParameterIndex, transformationMap);
+			case 5: return new TPolynomial<5>(FirstParameterIndex, transformationMap);
+			case 6: return new TPolynomial<6>(FirstParameterIndex, transformationMap);
+			}
 		}
-		return new TPolynomial(FirstParameterIndex, betas, transformationMap);
+		size_t O = betas.size();
+			// a bit ugly but allowing much faster polynomials
+			switch (O) {
+			case 1: return new TPolynomial<1>(FirstParameterIndex, betas, transformationMap);
+			case 2: return new TPolynomial<2>(FirstParameterIndex, betas, transformationMap);
+			case 3: return new TPolynomial<3>(FirstParameterIndex, betas, transformationMap);
+			case 4: return new TPolynomial<4>(FirstParameterIndex, betas, transformationMap);
+			case 5: return new TPolynomial<5>(FirstParameterIndex, betas, transformationMap);
+			case 6: return new TPolynomial<6>(FirstParameterIndex, betas, transformationMap);
+			}
 	}
 	if (type == TSpecific::name) {
 		if (betas.empty()) return new TSpecific(FirstParameterIndex);
