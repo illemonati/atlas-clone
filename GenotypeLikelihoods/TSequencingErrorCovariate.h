@@ -60,7 +60,10 @@ public:
 	uint16_t extract(const BAM::TSequencedBase &base) const noexcept override { return base.distFrom5Prime; }
 
 	std::vector<uint16_t> range(const RecalEstimatorTools::TRecalDataTable &dataTable) const noexcept override {
-		return {static_cast<uint16_t>(dataTable.positions().size() - 1)};
+		const auto N = dataTable.positions().size() - 1;
+		std::vector<uint16_t> v(N);
+		std::iota(v.begin(), v.end(), uint16_t{});
+		return v;
 	}
 
 	std::string typeString() const override { return name; }
@@ -79,8 +82,11 @@ public:
 		return genometools::index(base.context);
 	}
 
-	std::vector<uint16_t> range(const RecalEstimatorTools::TRecalDataTable &) const noexcept override {
-		return {numContext};
+	std::vector<uint16_t> range(const RecalEstimatorTools::TRecalDataTable &dataTable) const noexcept override {
+		const auto N = dataTable.positions().size() - 1;
+		std::vector<uint16_t> v(N);
+		std::iota(v.begin(), v.end(), uint16_t{});
+		return v;
 	}
 
 	std::string typeString() const override { return name; }
@@ -97,7 +103,7 @@ public:
 	uint16_t extract(const BAM::TSequencedBase &base) const noexcept override { return base.fragmentLength; }
 
 	std::vector<uint16_t> range(const RecalEstimatorTools::TRecalDataTable &dataTable) const noexcept override {
-		return RecalEstimatorTools::vectorOfUsed(dataTable.qualities());
+		return RecalEstimatorTools::vectorOfUsed(dataTable.fragmentLengths());
 	}
 
 	std::string typeString() const override { return name; }
@@ -114,7 +120,7 @@ public:
 	uint16_t extract(const BAM::TSequencedBase &base) const noexcept override { return base.mappingQuality; }
 
 	std::vector<uint16_t> range(const RecalEstimatorTools::TRecalDataTable &dataTable) const noexcept override {
-		return RecalEstimatorTools::vectorOfUsed(dataTable.qualities());
+		return RecalEstimatorTools::vectorOfUsed(dataTable.mappingQualities());
 	}
 
 	std::string typeString() const override { return name; }

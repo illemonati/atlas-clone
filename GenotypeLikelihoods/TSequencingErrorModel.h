@@ -168,7 +168,7 @@ public:
 	virtual void simulate(BAM::TSequencedBase &base) const noexcept override;
 
 	// functions to estimate
-	std::string checkOrInit(const RecalEstimatorTools::TRecalDataTable &DataTable) const;
+	void checkOrInit(const RecalEstimatorTools::TRecalDataTable &DataTable) const;
 	uint16_t numParameters() const noexcept { return _numParameters; }
 
 	// functions to estimate rho

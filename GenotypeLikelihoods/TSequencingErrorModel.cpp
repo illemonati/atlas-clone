@@ -417,13 +417,13 @@ void TModelRecal::estimateRho() noexcept { _rho.estimate(); }
 //-------------------------------------------------
 // functions for estimation
 //-------------------------------------------------
-std::string TModelRecal::checkOrInit(const RecalEstimatorTools::TRecalDataTable &DataTable) const {
+void TModelRecal::checkOrInit(const RecalEstimatorTools::TRecalDataTable &DataTable) const {
 	for (auto &cov : _covariates) {
 		if (!cov.function->checkOrInitValueRange(cov.covariate->range(DataTable))) {
-			 return "Function for covariate " + cov.function->typeString() + " does not cover full range of data";
+			throw "Function " + cov.function->typeString() + " does not cover full range of data of covariate " +
+				   cov.covariate->typeString() + '\n';
 		}
 	}
-	return "";
 }
 
 void TModelRecal::_initializeDerivatives() {

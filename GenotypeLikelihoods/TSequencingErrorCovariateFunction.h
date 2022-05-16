@@ -53,7 +53,7 @@ public:
 	virtual uint16_t numNonZeroSecondDerivatives() const noexcept = 0;
 
 	// check value range: to ensure that data can be recalibrated
-	virtual bool checkOrInitValueRange(const std::vector<uint16_t> &values) noexcept = 0;
+	virtual bool checkOrInitValueRange(const std::vector<uint16_t> &values) = 0;
 
 	// estimation
 	virtual double getEtaTerm(uint16_t val) const noexcept                                 = 0;
@@ -247,11 +247,12 @@ public:
 	double &beta(uint16_t i) noexcept override { return _betas[i]; }
 	double beta(uint16_t i) const noexcept override { return _betas[i]; }
 
-	bool checkOrInitValueRange(const std::vector<uint16_t> &values) noexcept override {
+	bool checkOrInitValueRange(const std::vector<uint16_t> &values) override {
 		if (numParameters() == 0) {
 			_adjustValueRanges(values);
 			return true;
 		}
+
 		for (uint16_t val : values) {
 			if (!_checkValueRange(val)) return false;
 		}
@@ -306,7 +307,7 @@ public:
 	double &beta(uint16_t i) noexcept override { return _betas[i]; }
 	double beta(uint16_t i) const noexcept override { return _betas[i]; }
 
-	bool checkOrInitValueRange(const std::vector<uint16_t> &values) noexcept override {
+	bool checkOrInitValueRange(const std::vector<uint16_t> &values) override {
 		if (numParameters() == 0) {
 			_adjustValueRanges(values);
 			return true;
