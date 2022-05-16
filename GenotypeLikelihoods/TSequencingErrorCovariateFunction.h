@@ -109,17 +109,17 @@ public:
 // TCovariateFunction_polynomial
 // A polynomial function
 //--------------------------------------------------------------
-template <size_t O>
+template <size_t O, typename Transformation=TNoTransformation>
 class TPolynomial : public TFunction {
 	static_assert(O > 0);
 private:
 	std::array<double, O> _betas;    // betas of the model
 	std::array<double, O> _oldBetas; // use during estimation
 	bool _recal;
-	TRecalibrationEMTransformationMap *_transformationMap = nullptr;
+	Transformation _transform;
 
 	double _getAsDouble(uint16_t val) const noexcept {
-		return _transformationMap ? _transformationMap->get(val) : val;
+		return _transform(val);
 	}
 
 protected:
@@ -129,14 +129,10 @@ public:
 	static inline const std::string name = "polynomial";
 
 	// No betas
-	TPolynomial(uint16_t FirstParameterIndex, TRecalibrationEMTransformationMap *transformationMap = nullptr)
-		: TFunction(FirstParameterIndex), _recal(false), _transformationMap(transformationMap) {
-		_betas.front() = 1.;
-	}
+	TPolynomial(uint16_t FirstParameterIndex) : TFunction(FirstParameterIndex), _recal(false) { _betas.front() = 1.; }
 	// With betas
-	TPolynomial(uint16_t FirstParameterIndex, const std::vector<std::string> &betas,
-				TRecalibrationEMTransformationMap *transformationMap = nullptr)
-		: TFunction(FirstParameterIndex), _recal(true), _transformationMap(transformationMap) {
+	TPolynomial(uint16_t FirstParameterIndex, const std::vector<std::string> &betas)
+		: TFunction(FirstParameterIndex), _recal(true) {
 		std::transform(betas.cbegin(), betas.cend(), _betas.begin(), coretools::str::convertStringCheck<double>);
 	}
 
@@ -150,8 +146,7 @@ public:
 	double beta(uint16_t i) const noexcept override { return _betas[i]; }
 
 	bool checkOrInitValueRange(const std::vector<uint16_t> &values) noexcept override {
-		return !_transformationMap ||
-			   std::all_of(values.begin(), values.end(), [tm = this->_transformationMap](auto v) { return tm->checkRange(v); });
+		return std::all_of(values.begin(), values.end(), [tm = this->_transform](auto v) { return tm.checkRange(v); });
 	};
 
 	double adjustParametersPostEstimation() noexcept override { return 0.; }
@@ -191,10 +186,9 @@ public:
 			first.add(firstParameterIndex() + 2, v*v*v);
 		} else {
 			double vpi = v;
-			first.add(firstParameterIndex(), vpi);
-			for (size_t i = 1; i < numParameters(); ++i) {
-				vpi *= v;
+			for (size_t i = 0; i < numParameters(); ++i) {
 				first.add(firstParameterIndex() + i, vpi);
+				vpi *= v;
 			}
 		}
 	}

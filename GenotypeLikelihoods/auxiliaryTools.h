@@ -20,77 +20,15 @@
 
 namespace GenotypeLikelihoods{
 
-//--------------------------------------------------------------
-// TRecalibrationEMTransformationMap
-//--------------------------------------------------------------
-class TRecalibrationEMTransformationMap{
-protected:
-	uint16_t size;
-	uint16_t max;
-	std::vector<double> map;
-
-public:
-	TRecalibrationEMTransformationMap(){
-		clear();
-	};
-
-	TRecalibrationEMTransformationMap(uint16_t Max){
-		initialize(Max);
-	};
-
-	~TRecalibrationEMTransformationMap(){
-		clear();
-	};
-
-	void clear(){
-		max = 0;
-		size = 0;
-		map.clear();
-	};
-
-	void initialize(uint16_t Max){
-		max = Max;
-		size = Max + 1;
-		map.resize(Max + 1);
-		std::fill(map.begin(), map.end(), 0.0);
-	};
-
-	void set(uint16_t x, double value){
-		map[x] = value;
-	};
-
-	bool checkRange(uint16_t val) const{
-		if(val <= max) return true;
-		else return false;
-	};
-
-	double operator[](int x){
-		return map[x];
-	};
-
-	double get(int x) const{
-		return map[x];
-	};
+struct TNoTransformation {
+	constexpr double operator()(uint val) const noexcept {return static_cast<double>(val);}
+	constexpr bool checkRange(uint) const noexcept {return true;}
 };
 
-class TRecalibrationEMQualityTransformationMap:public TRecalibrationEMTransformationMap{
-public:
-	TRecalibrationEMQualityTransformationMap(){
-		initialize(genometools::PhredIntProbability::max().get());
-
-		//now set
-		for(genometools::PhredIntProbability q = genometools::PhredIntProbability::min(); q <= genometools::PhredIntProbability::max(); ++q){
-			//convert phred int quality to error
-			coretools::Probability eps(q);
-
-			//ensure range
-			if(eps < 0.000'000'000'1) eps = 0.000'000'000'1;
-			else if(eps > 0.999'999'999'9) eps = 0.999'999'999'9;
-
-			//then transform into logit space
-			map[q.get()] = logit(eps);
-		}
-	}
+struct TQualityTransformation {
+public:	
+	constexpr double operator()(uint val) const noexcept {return logit(coretools::Probability(genometools::PhredIntProbability(val)));}
+	constexpr bool checkRange(uint val) const noexcept {return val <= genometools::PhredIntProbability::max().get();}
 };
 
 //--------------------------------------------------------------------
