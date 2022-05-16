@@ -35,7 +35,7 @@ public:
 //-------------------------------------------
 class TCovariate_quality : public TCovariate {
 private:
-	TRecalibrationEMQualityTransformationMap _qualityToLogit;
+	//TRecalibrationEMQualityTransformationMap _qualityToLogit;
 public:
 	static inline const std::string name = "quality";
 
