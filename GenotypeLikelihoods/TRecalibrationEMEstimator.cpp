@@ -6,13 +6,13 @@
  */
 
 #include "TRecalibrationEMEstimator.h"
-#include <functional>
-#include <math.h>
 #include <algorithm>
-#include <exception>
-#include <iostream>
-#include <stdexcept>
 #include <armadillo>
+#include <exception>
+#include <functional>
+#include <iostream>
+#include <math.h>
+#include <stdexcept>
 
 #include "GenotypeTypes.h"
 #include "RecalEstimatorTools.h"
@@ -38,10 +38,10 @@ using coretools::instances::parameters;
 //--------------------------------------------------------------------------
 
 TModelVectorForEstimation::TModelVectorForEstimation(TModels &SequencingErrorModels,
-						     const RecalEstimatorTools::TRecalDataTables &DataTables,
-						     const BAM::TReadGroups &ReadGroups,
-						     const BAM::TReadGroupMap &ReadGroupMap,
-						     uint32_t MinRequiredObservations)
+													 const RecalEstimatorTools::TRecalDataTables &DataTables,
+													 const BAM::TReadGroups &ReadGroups,
+													 const BAM::TReadGroupMap &ReadGroupMap,
+													 uint32_t MinRequiredObservations)
 	: _modelIndex(ReadGroups.size()) {
 	using MS = RecalEstimatorTools::ModelStatusTypes;
 	// Copy models that are 1) in use after pooling and 2) have data.
@@ -64,7 +64,7 @@ TModelVectorForEstimation::TModelVectorForEstimation(TModels &SequencingErrorMod
 				// check if model is estimatable
 				if (SequencingErrorModels(r, mate).estimatable()) {
 					// copy model and update index
-					std::shared_ptr<SequencingError::TModelRecal> model = SequencingErrorModels.getRecal(r, mate);
+					auto model = SequencingErrorModels.getRecal(r, mate);
 					model->checkOrInit(table);
 					_models.push_back(model);
 					modelStati[r][MS::copied].set(mate);
@@ -90,7 +90,7 @@ TModelVectorForEstimation::TModelVectorForEstimation(TModels &SequencingErrorMod
 };
 
 void TModelVectorForEstimation::fillBaseLikelihoods(const BAM::TSequencedBase &base,
-						    TBaseLikelihoods &baseLikelihoods) const {
+													TBaseLikelihoods &baseLikelihoods) const {
 	_modelIndex[base.readGroupID][base.isSecondMate()]->fillBaseLikelihoods(base, baseLikelihoods);
 };
 
@@ -113,12 +113,12 @@ void TModelVectorForEstimation::estimateRho() {
 //-------------------------------------------------------------------
 
 void TModelVectorForEstimation::addToFandJacobian(const BAM::TSequencedBase &base,
-						  const TBaseLikelihoods &EM_weights_bbar_given_d) {
+												  const TBaseLikelihoods &EM_weights_bbar_given_d) {
 	_modelIndex[base.readGroupID][base.isSecondMate()]->addToFandJacobian(base, EM_weights_bbar_given_d);
 };
 
 void TModelVectorForEstimation::addToQ(const BAM::TSequencedBase &base,
-				       const TBaseLikelihoods &EM_weights_bbar_given_d) {
+									   const TBaseLikelihoods &EM_weights_bbar_given_d) {
 	_modelIndex[base.readGroupID][base.isSecondMate()]->addToQ(base, EM_weights_bbar_given_d);
 };
 
@@ -171,6 +171,25 @@ double TModelVectorForEstimation::getSteepestGradient() {
 	return maxF;
 };
 
+void TModelVectorForEstimation::writeRecalFile(const BAM::TReadGroups &ReadGroups, const std::string & Filename) const {
+	TModelNoRecal _noRecal;
+	// open file and write header
+	coretools::TOutputFile out(Filename);
+	out.writeHeader({"readGroup", "mate", "covariates", "rho"});
+
+	// add models
+	for (uint16_t r = 0; r < ReadGroups.size(); ++r) {
+		for (uint8_t mate = 0; mate < 2; ++mate) {
+			out << ReadGroups.getName(r) << std::array{"first", "second"}[mate];
+			if (_modelIndex[r][mate])
+				out << _modelIndex[r][mate]->getCovariateDefinition() << _modelIndex[r][mate]->getRhoDefinition();
+			else 
+				out << _noRecal.getCovariateDefinition() << _noRecal.getRhoDefinition();
+			out << std::endl;
+		}
+	}
+}
+
 void TModelVectorForEstimation::print() {
 	for (auto &model : _models) {
 		std::cout << model->getCovariateDefinition() << "\t" << model->getRhoDefinition() << std::endl;
@@ -181,7 +200,7 @@ void TModelVectorForEstimation::print() {
 // TRecalibrationEMEstimator
 //---------------------------------------------------------------
 TRecalibrationEMEstimator::TRecalibrationEMEstimator(const BAM::TReadGroups *ReadGroups,
-						     const BAM::TReadGroupMap *ReadGroupMap) {
+													 const BAM::TReadGroupMap *ReadGroupMap) {
 	// read groups
 	_readGroups   = ReadGroups;
 	_readGroupMap = ReadGroupMap;
@@ -212,14 +231,14 @@ TRecalibrationEMEstimator::TRecalibrationEMEstimator(const BAM::TReadGroups *Rea
 		throw std::runtime_error("Estimation of genotype distribution not yet implemented!");
 	} else if (equalBaseFrequencies) {
 		logfile().list("Will assume equal base frequencies {0.25, 0.25, 0.25, 0.25}. (use 'estimateBaseFrequencies' to "
-			       "estimate them)");
+					   "estimate them)");
 	}
 
 	// write tmp tables?
 	if (parameters().parameterExists("writeTmpTables")) {
 		_writeTmpTables = true;
 		logfile().list(
-		    "Will write intermediate estimates of EM and Newton-Raphson to file. (parameter 'writeTmpTables')");
+			"Will write intermediate estimates of EM and Newton-Raphson to file. (parameter 'writeTmpTables')");
 	} else {
 		_writeTmpTables = false;
 		logfile().list("Will not write intermediate estimates. (use 'writeTmpTables' to get this debug information)");
@@ -257,7 +276,7 @@ void TRecalibrationEMEstimator::_initializeModels(SequencingError::TModels &Sequ
 	// identify models with data that can be estimated
 	logfile().startIndent("Identifying models to estimate:");
 	_modelsToEstimate = std::make_unique<TModelVectorForEstimation>(SequencingErrorModels, _dataTables, *_readGroups,
-									*_readGroupMap, _minRequiredObservations);
+																	*_readGroupMap, _minRequiredObservations);
 	logfile().endIndent();
 };
 
@@ -271,9 +290,9 @@ void TRecalibrationEMEstimator::addSite(const TSite &site) {
 //----------------------------
 // Functions for estimation
 //----------------------------
-void TRecalibrationEMEstimator::performEstimation(std::string outputName,
-						  SequencingError::TModels &SequencingErrorModels,
-						  const TPostMortemDamage &PmdModels) {
+void TRecalibrationEMEstimator::performEstimation(const std::string &outputName,
+												  SequencingError::TModels &SequencingErrorModels,
+												  const TPostMortemDamage &PmdModels) {
 	// initialize models
 	_initializeModels(SequencingErrorModels);
 
@@ -287,9 +306,8 @@ void TRecalibrationEMEstimator::performEstimation(std::string outputName,
 	logfile().done();
 };
 
-
 void TRecalibrationEMEstimator::_calculate_EMWeights_epsilon(std::vector<TBaseLikelihoods> &EMWeights,
-							     const TPostMortemDamage &PmdModels) {
+															 const TPostMortemDamage &PmdModels) {
 	using genometools::Base;
 	// make sure EM-weight storage is of appropriate size
 	EMWeights.resize(_dataTables.size());
@@ -297,7 +315,8 @@ void TRecalibrationEMEstimator::_calculate_EMWeights_epsilon(std::vector<TBaseLi
 	size_t index = 0;
 	for (auto &s : _sites) {
 		// get relevant base frequencies P(b): from known genotype or distribution if genotype is unknown
-		const TBaseLikelihoods baseFreq{s.genotype == genometools::Genotype::NN ? _genoDist->baseFrequencies() : fillBaseFrequences(s.genotype)};
+		const TBaseLikelihoods baseFreq{s.genotype == genometools::Genotype::NN ? _genoDist->baseFrequencies()
+																				: fillBaseFrequences(s.genotype)};
 
 		// calculate weights per base
 		for (auto &b : s) {
@@ -309,7 +328,8 @@ void TRecalibrationEMEstimator::_calculate_EMWeights_epsilon(std::vector<TBaseLi
 			_modelsToEstimate->fillBaseLikelihoods(b, EMWeights[index]);
 
 			// calculate P(d|bbar) \propto P(d|bbar)P(bbar)
-			std::transform(EMWeights[index].begin(), EMWeights[index].end(), PMD.begin(), EMWeights[index].begin(), std::multiplies<>());
+			std::transform(EMWeights[index].begin(), EMWeights[index].end(), PMD.begin(), EMWeights[index].begin(),
+						   std::multiplies<>());
 			normalize(EMWeights[index]);
 
 			// increment index
@@ -369,10 +389,10 @@ void TRecalibrationEMEstimator::_updateEM_theta_epsilon(const TPostMortemDamage 
 	_sequencingErrorModels.prepareRhoEstimationFromEMWeights();
 	size_t index = 0;
 	for(auto& s : _sites){
-	    for(auto& b : s){
+		for(auto& b : s){
 		_sequencingErrorModels.addBaseForRhoEstimation(b, EM_weights_bbar_given_d[index]);
 		++index;
-	    }
+		}
 	}
 	_sequencingErrorModels.estimateRho();
 	logfile().done();
@@ -419,7 +439,7 @@ void TRecalibrationEMEstimator::_updateEM_theta_epsilon(const TPostMortemDamage 
 			numUpdatedModels_old = numUpdatedModels;
 			numUpdatedModels     = _modelsToEstimate->acceptProposedParametersBasedOnQ();
 			logfile().write(toString(numUpdatedModels) + "/" + toString(_modelsToEstimate->size()) +
-					" models converged.");
+							" models converged.");
 
 			if (numUpdatedModels > numUpdatedModels_old) {
 				logfile().conclude("Q_beta was increased from " + toString(curQ) + " to " + toString(Q));
@@ -432,7 +452,7 @@ void TRecalibrationEMEstimator::_updateEM_theta_epsilon(const TPostMortemDamage 
 
 		if (numUpdatedModels < _modelsToEstimate->size()) {
 			logfile().conclude("Some models did not improve even with log2(lambda) = " + toString(log2_lambda) +
-					   ", aborting Newton-Raphson.");
+							   ", aborting Newton-Raphson.");
 		}
 
 		// c) adjust parameters post estimation
@@ -469,7 +489,7 @@ double TRecalibrationEMEstimator::_calculateLL_fullModel(const TPostMortemDamage
 	return LL;
 };
 
-void TRecalibrationEMEstimator::_runEM(std::string outputName, const TPostMortemDamage &PmdModels) {
+void TRecalibrationEMEstimator::_runEM(const std::string &outputName, const TPostMortemDamage &PmdModels) {
 	using coretools::str::toString;
 	// run EM
 	logfile().startNumbering("Running EM algorithm:");
@@ -522,28 +542,23 @@ void TRecalibrationEMEstimator::_runEM(std::string outputName, const TPostMortem
 //----------------------------
 // Other functions
 //----------------------------
-void TRecalibrationEMEstimator::writeCurrentEstimates(const std::string) {
-	// loop over read groups
-	for (uint16_t r = 0; r < _readGroups->size(); ++r) {
-		// loop over mates
-		for (uint8_t mate = 0; mate < 2; ++mate) {
-			// write model
-		}
-	}
+void TRecalibrationEMEstimator::writeCurrentEstimates(const std::string & Filename) {
+	// open file and write header
+	_modelsToEstimate->writeRecalFile(*_readGroups, Filename);
 };
 
 double TRecalibrationEMEstimator::calcLL() {
 	throw std::runtime_error("double TRecalibrationEMEstimator::calcLL() not yet implemented!");
 };
 
-void TRecalibrationEMEstimator::calcLikelihoodSurface(std::string, int) {
+void TRecalibrationEMEstimator::calcLikelihoodSurface(const std::string &, int) {
 	throw std::runtime_error("void TRecalibrationEMEstimator::calcLikelihoodSurface(std::string filename, int "
-	                         "numMarginalGridPoints) not yet implemented!");
+							 "numMarginalGridPoints) not yet implemented!");
 };
 
-void TRecalibrationEMEstimator::calcQSurface(std::string, int) {
+void TRecalibrationEMEstimator::calcQSurface(const std::string &, int) {
 	throw std::runtime_error("TRecalibrationEMEstimator::calcQSurface(std::string filename, int numMarginalGridPoints) "
-	                         "not yet implemented!");
+							 "not yet implemented!");
 };
 
 }; // namespace SequencingError

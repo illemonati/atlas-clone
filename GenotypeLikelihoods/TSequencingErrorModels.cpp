@@ -47,8 +47,8 @@ void TModels::initialize(const std::string &RecalString, const std::string &RhoS
 
 	// initialize models
 	for (auto &m : _models) {
-		m[0] = std::make_shared<TModelRecal>(modelDef);
-		m[1] = std::make_shared<TModelRecal>(modelDef);
+		m[0] = std::make_unique<TModelRecal>(modelDef);
+		m[1] = std::make_unique<TModelRecal>(modelDef);
 	}
 }
 
@@ -77,9 +77,9 @@ void TModels::initializeFromFile(const std::string &Filename, const BAM::TReadGr
 
 				// add model
 				if (vec[1] == "first")
-					_models[readGroupId][0] = std::make_shared<TModelRecal>(modelDef);
+					_models[readGroupId][0] = std::make_unique<TModelRecal>(modelDef);
 				else if (vec[1] == "second")
-					_models[readGroupId][1] = std::make_shared<TModelRecal>(modelDef);
+					_models[readGroupId][1] = std::make_unique<TModelRecal>(modelDef);
 				else
 					throw "Unknown mate '" + vec[1] + "! Must be 'first' or 'second'.";
 			} catch (const char *error) {

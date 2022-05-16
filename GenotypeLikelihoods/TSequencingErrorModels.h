@@ -31,7 +31,7 @@ namespace SequencingError {
 //--------------------------------------------------------------------------
 class TModels {
 private:
-	std::vector<std::array<std::shared_ptr<TModelRecal>, 2>> _models;
+	std::vector<std::array<std::unique_ptr<TModelRecal>, 2>> _models;
 	TModelNoRecal _noRecal;
 public:
 	void initialize(const std::string &RecalString, const std::string &RhoString, const BAM::TReadGroups &ReadGroups);
@@ -52,8 +52,8 @@ public:
 		return _noRecal;
 	}
 
-	std::shared_ptr<TModelRecal> getRecal(uint16_t ReadGroupIndex, bool IsSecondMate) noexcept {
-		return _models[ReadGroupIndex][IsSecondMate];
+	TModelRecal *getRecal(uint16_t ReadGroupIndex, bool IsSecondMate) noexcept {
+		return _models[ReadGroupIndex][IsSecondMate].get();
 	}
 
 	size_t numModels() const noexcept { return _models.size(); };

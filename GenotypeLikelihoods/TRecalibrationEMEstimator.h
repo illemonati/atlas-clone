@@ -8,10 +8,10 @@
 #ifndef TRECALIBRATIONEMESTIMATOR_H_
 #define TRECALIBRATIONEMESTIMATOR_H_
 
-#include <stddef.h>
-#include <stdint.h>
 #include <array>
 #include <memory>
+#include <stddef.h>
+#include <stdint.h>
 #include <string>
 #include <vector>
 
@@ -23,10 +23,22 @@
 #include "TReadGroups.h"
 #include "TSite.h"
 
-namespace BAM { class TSequencedBase; }
-namespace GenotypeLikelihoods { class TPostMortemDamage; }
-namespace GenotypeLikelihoods { namespace SequencingError { class TModelRecal; } }
-namespace GenotypeLikelihoods { namespace SequencingError { class TModels; } }
+namespace BAM {
+class TSequencedBase;
+}
+namespace GenotypeLikelihoods {
+class TPostMortemDamage;
+}
+namespace GenotypeLikelihoods {
+namespace SequencingError {
+class TModelRecal;
+}
+} // namespace GenotypeLikelihoods
+namespace GenotypeLikelihoods {
+namespace SequencingError {
+class TModels;
+}
+} // namespace GenotypeLikelihoods
 
 namespace GenotypeLikelihoods {
 namespace SequencingError {
@@ -39,13 +51,12 @@ namespace SequencingError {
 class TModelVectorForEstimation {
 private:
 	// vector of pointers to models that require estimation
-	std::vector<std::shared_ptr<TModelRecal>> _models;
-	std::vector<std::array<std::shared_ptr<TModelRecal>, 2>> _modelIndex;
-
+	std::vector<TModelRecal *> _models;                    // non-owning
+	std::vector<std::array<TModelRecal *, 2>> _modelIndex; // non-owning
 public:
 	TModelVectorForEstimation(TModels &SequencingErrorModels, const RecalEstimatorTools::TRecalDataTables &DataTables,
-				  const BAM::TReadGroups &ReadGroups, const BAM::TReadGroupMap &ReadGroupMap,
-				  uint32_t MinRequiredObservations);
+							  const BAM::TReadGroups &ReadGroups, const BAM::TReadGroupMap &ReadGroupMap,
+							  uint32_t MinRequiredObservations);
 	~TModelVectorForEstimation() = default;
 
 	size_t size() const { return _models.size(); };
@@ -68,6 +79,8 @@ public:
 	unsigned int acceptProposedParametersBasedOnQ();
 	void adjustParametersPostEstimation();
 	double getSteepestGradient();
+
+	void writeRecalFile(const BAM::TReadGroups &ReadGroups, const std::string & Filename) const;
 
 	void print();
 };
@@ -98,7 +111,7 @@ private:
 
 	size_t _numSitesDepthTwoOrMore();
 	void _initializeModels(TModels &SequencingErrorModels);
-	void _runEM(std::string outputName, const TPostMortemDamage &PmdModels);
+	void _runEM(const std::string &outputName, const TPostMortemDamage &PmdModels);
 
 	// functions to estimate theta_epsilon (sequencing error rates)
 	void _calculate_EMWeights_epsilon(std::vector<TBaseLikelihoods> &EMWeights, const TPostMortemDamage &PmdModels);
@@ -116,12 +129,13 @@ public:
 	void addSite(const TSite &site);
 
 	// function to estimate
-	void performEstimation(std::string outputName, TModels &SequencingErrorModels, const TPostMortemDamage &PmdModels);
+	void performEstimation(const std::string &outputName, TModels &SequencingErrorModels,
+						   const TPostMortemDamage &PmdModels);
 
-	void writeCurrentEstimates(std::string filename);
+	void writeCurrentEstimates(const std::string &filename);
 	double calcLL();
-	void calcLikelihoodSurface(std::string filename, int numMarginalGridPoints);
-	void calcQSurface(std::string filename, int numMarginalGridPoints);
+	void calcLikelihoodSurface(const std::string &filename, int numMarginalGridPoints);
+	void calcQSurface(const std::string &filename, int numMarginalGridPoints);
 };
 
 }; // namespace SequencingError
