@@ -41,13 +41,13 @@ public:
 
 	// access models
 	TModel &operator()(uint16_t ReadGroupIndex, bool IsSecondMate) noexcept {
-		if (_models.size() < ReadGroupIndex && _models[ReadGroupIndex][IsSecondMate])
+		if (_models.size() > ReadGroupIndex && _models[ReadGroupIndex][IsSecondMate])
 			return *_models[ReadGroupIndex][IsSecondMate];
 		return _noRecal;
 	}
 
 	const TModel &operator()(uint16_t ReadGroupIndex, bool IsSecondMate) const noexcept {
-		if (_models.size() < ReadGroupIndex && _models[ReadGroupIndex][IsSecondMate])
+		if (_models.size() > ReadGroupIndex && _models[ReadGroupIndex][IsSecondMate])
 			return *_models[ReadGroupIndex][IsSecondMate];
 		return _noRecal;
 	}
