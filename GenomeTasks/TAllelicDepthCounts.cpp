@@ -25,10 +25,16 @@ namespace GenomeTasks{
 using coretools::instances::parameters;
 using coretools::instances::logfile;
 
+namespace impl {
+constexpr size_t index(size_t i1, size_t i2, size_t i3, size_t i4, size_t N) noexcept {
+	assert(i1 < N && i2 < N && i3 < N && i4 < N);
+	return N * (N * (N * i1 + i2) + i3) + i4;
+}
+} // namespace impl
+
 TAllelicDepthCounts::TAllelicDepthCounts(){
 	_initialized = false;
 	_maxAllelicDepth = 0;
-	_counts = nullptr;
 	_size = 0;
 };
 
@@ -37,18 +43,15 @@ TAllelicDepthCounts::TAllelicDepthCounts(const uint32_t MaxAllelicDepth){
 	resize(MaxAllelicDepth);
 };
 
-TAllelicDepthCounts::~TAllelicDepthCounts(){
-	_freeStorage();
-};
-
 void TAllelicDepthCounts::resize(const uint32_t MaxAllelicDepth){
 	if(_maxAllelicDepth != MaxAllelicDepth){
 		_freeStorage();
 		_maxAllelicDepth = MaxAllelicDepth;
 		_size = _maxAllelicDepth + 1;
+		_counts.resize(_size*_size*_size*_size);
 
 		//allocate
-		_counts = new uint32_t***[_size];
+		/*_counts = new uint32_t***[_size];
 		for(uint32_t i=0; i<_size; ++i){
 			_counts[i] = new uint32_t**[_size];
 			for(uint32_t j=0; j<_size; ++j){
@@ -57,7 +60,7 @@ void TAllelicDepthCounts::resize(const uint32_t MaxAllelicDepth){
 					_counts[i][j][k] = new uint32_t[_size];
 				}
 			}
-		}
+			}*/
 		_initialized = true;
 	}
 
@@ -66,45 +69,30 @@ void TAllelicDepthCounts::resize(const uint32_t MaxAllelicDepth){
 };
 
 void TAllelicDepthCounts::clear(){
-	for(uint32_t i=0; i<_size; ++i){
-		for(uint32_t j=0; j<_size; ++j){
-			for(uint32_t k=0; k<_size; ++k){
-				for(uint32_t l=0; l<_size; ++l){
-					_counts[i][j][k][l] = 0;
-				}
-			}
-		}
-	}
+	std::fill(_counts.begin(), _counts.end(), 0);
 };
 
 void TAllelicDepthCounts::_freeStorage(){
-	if(_initialized){
-		for(uint32_t i=0; i<_size; ++i){
-			for(uint32_t j=0; j<_size; ++j){
-				for(uint32_t k=0; k<_size; ++k){
-					delete[] _counts[i][j][k];
-				}
-				delete[] _counts[i][j];
-			}
-			delete[] _counts[i];
-		}
-		delete[] _counts;
-	}
+	_counts.clear();
 };
 
 
 void TAllelicDepthCounts::addSite(const GenotypeLikelihoods::TBaseCounts & alleleCounts){
 	using genometools::Base;
-	if(alleleCounts[Base::A] < _size && alleleCounts[Base::C] < _size && alleleCounts[Base::G] < _size && alleleCounts[Base::T] < _size)
-		++_counts[alleleCounts[Base::A]][alleleCounts[Base::C]][alleleCounts[Base::G]][alleleCounts[Base::T]];
+	const auto aA = alleleCounts[Base::A];
+	const auto aC = alleleCounts[Base::C];
+	const auto aG = alleleCounts[Base::G];
+	const auto aT = alleleCounts[Base::T];
+	if (aA < _size && aC < _size && aG < _size && aT < _size) {
+		++_counts[impl::index(aA, aC, aG, aT, _size)];
+	}
 };
-
 
 void TAllelicDepthCounts::addSiteZeroDepth(){
-	++_counts[0][0][0][0];
+	++_counts.front();
 };
 
-void TAllelicDepthCounts::write(const std::string filename, bool printEmpty){
+void TAllelicDepthCounts::write(const std::string &filename, bool printEmpty){
 	//open file
 	coretools::TOutputFile out(filename);
 
@@ -117,7 +105,7 @@ void TAllelicDepthCounts::write(const std::string filename, bool printEmpty){
 		for(uint32_t j=0; j<_size; ++j){
 			for(uint32_t k=0; k<_size; ++k){
 				for(uint32_t l=0; l<_size; ++l){
-					if(printEmpty || _counts[i][j][k][l] > 0){
+					if(printEmpty || _counts[impl::index(i,j,k,l, _size)] > 0){
 						//write numA, C, G and T and depth
 						out << i << j << k << l << i+j+k+l;
 
@@ -156,7 +144,7 @@ void TAllelicDepthCounts::write(const std::string filename, bool printEmpty){
 						}
 
 						//write counts
-						out << _counts[i][j][k][l] << std::endl;
+						out << _counts[impl::index(i,j,k,l, _size)] << std::endl;
 					}
 				}
 			}

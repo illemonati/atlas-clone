@@ -23,23 +23,23 @@ class TAllelicDepthCounts{
 private:
 	uint32_t _maxAllelicDepth;
 	uint32_t _size;
-	uint32_t**** _counts;
+	//uint32_t**** _counts;
+	std::vector<uint32_t> _counts;
 	bool _initialized;
 
 
-	void _allocateStorage(const uint32_t MaxAllelicDepth);
+	void _allocateStorage(uint32_t MaxAllelicDepth);
 	void _freeStorage();
 
 public:
 	TAllelicDepthCounts();
-	TAllelicDepthCounts(const uint32_t MaxAllelicDepth);
-	~TAllelicDepthCounts();
+	TAllelicDepthCounts(uint32_t MaxAllelicDepth);
 
-	void resize(const uint32_t MaxAllelicDepth);
+	void resize(uint32_t MaxAllelicDepth);
 	void clear();
 	void addSite(const GenotypeLikelihoods::TBaseCounts & alleleCounts);
 	void addSiteZeroDepth();
-	void write(const std::string filename, bool printEmpty);
+	void write(const std::string &filename, bool printEmpty);
 };
 
 //------------------------------------------
