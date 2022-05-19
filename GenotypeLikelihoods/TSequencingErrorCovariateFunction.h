@@ -109,17 +109,19 @@ public:
 // TCovariateFunction_polynomial
 // A polynomial function
 //--------------------------------------------------------------
-template <size_t O, typename Transformation=TNoTransformation>
+template <size_t O, bool transform=false>
 class TPolynomial : public TFunction {
 	static_assert(O > 0);
 private:
-	std::array<double, O> _betas;    // betas of the model
-	std::array<double, O> _oldBetas; // use during estimation
-	bool _recal;
-	Transformation _transform;
+	std::array<double, O> _betas{};    // betas of the model
+	std::array<double, O> _oldBetas{}; // use during estimation
+	bool _recal = false;
 
 	double _getAsDouble(uint16_t val) const noexcept {
-		return _transform(val);
+		if constexpr (transform) {
+			return logit(coretools::Probability(genometools::PhredIntProbability(val)));
+		} else
+			return static_cast<double>(val);
 	}
 
 protected:
@@ -146,7 +148,10 @@ public:
 	double beta(uint16_t i) const noexcept override { return _betas[i]; }
 
 	bool checkOrInitValueRange(const std::vector<uint16_t> &values) noexcept override {
-		return std::all_of(values.begin(), values.end(), [tm = this->_transform](auto v) { return tm.checkRange(v); });
+		if constexpr (transform) {
+		return std::all_of(values.begin(), values.end(), [tm = this->_transform](auto v) {return v <= genometools::PhredIntProbability::max().get();});
+		}
+		else return true;
 	};
 
 	double adjustParametersPostEstimation() noexcept override { return 0.; }
