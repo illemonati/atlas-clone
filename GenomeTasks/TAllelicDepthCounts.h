@@ -21,18 +21,12 @@ namespace GenomeTasks{
 //------------------------------------------
 class TAllelicDepthCounts{
 private:
-	uint32_t _maxAllelicDepth;
-	uint32_t _size;
-	//uint32_t**** _counts;
+	uint32_t _size            = 0;
 	std::vector<uint32_t> _counts;
-	bool _initialized;
-
 
 	void _allocateStorage(uint32_t MaxAllelicDepth);
-	void _freeStorage();
-
 public:
-	TAllelicDepthCounts();
+	TAllelicDepthCounts() = default;
 	TAllelicDepthCounts(uint32_t MaxAllelicDepth);
 
 	void resize(uint32_t MaxAllelicDepth);

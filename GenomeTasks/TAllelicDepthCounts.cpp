@@ -32,36 +32,14 @@ constexpr size_t index(size_t i1, size_t i2, size_t i3, size_t i4, size_t N) noe
 }
 } // namespace impl
 
-TAllelicDepthCounts::TAllelicDepthCounts(){
-	_initialized = false;
-	_maxAllelicDepth = 0;
-	_size = 0;
-};
-
 TAllelicDepthCounts::TAllelicDepthCounts(const uint32_t MaxAllelicDepth){
-	_initialized = false;
 	resize(MaxAllelicDepth);
 };
 
 void TAllelicDepthCounts::resize(const uint32_t MaxAllelicDepth){
-	if(_maxAllelicDepth != MaxAllelicDepth){
-		_freeStorage();
-		_maxAllelicDepth = MaxAllelicDepth;
-		_size = _maxAllelicDepth + 1;
+	if(_size != MaxAllelicDepth + 1){
+		_size = MaxAllelicDepth + 1;
 		_counts.resize(_size*_size*_size*_size);
-
-		//allocate
-		/*_counts = new uint32_t***[_size];
-		for(uint32_t i=0; i<_size; ++i){
-			_counts[i] = new uint32_t**[_size];
-			for(uint32_t j=0; j<_size; ++j){
-				_counts[i][j] = new uint32_t*[_size];
-				for(uint32_t k=0; k<_size; ++k){
-					_counts[i][j][k] = new uint32_t[_size];
-				}
-			}
-			}*/
-		_initialized = true;
 	}
 
 	//set all counts to zero
@@ -71,11 +49,6 @@ void TAllelicDepthCounts::resize(const uint32_t MaxAllelicDepth){
 void TAllelicDepthCounts::clear(){
 	std::fill(_counts.begin(), _counts.end(), 0);
 };
-
-void TAllelicDepthCounts::_freeStorage(){
-	_counts.clear();
-};
-
 
 void TAllelicDepthCounts::addSite(const GenotypeLikelihoods::TBaseCounts & alleleCounts){
 	using genometools::Base;
@@ -101,50 +74,51 @@ void TAllelicDepthCounts::write(const std::string &filename, bool printEmpty){
 
 	//write counts
 	//uint32_t max = 0;
-	for(uint32_t i=0; i<_size; ++i){
-		for(uint32_t j=0; j<_size; ++j){
-			for(uint32_t k=0; k<_size; ++k){
-				for(uint32_t l=0; l<_size; ++l){
-					if(printEmpty || _counts[impl::index(i,j,k,l, _size)] > 0){
+	for(uint32_t a=0; a<_size; ++a){
+		for(uint32_t c=0; c<_size; ++c){
+			for(uint32_t g=0; g<_size; ++g){
+				for(uint32_t t=0; t<_size; ++t){
+					if(printEmpty || _counts[impl::index(a,c,g,t, _size)] > 0){
 						//write numA, C, G and T and depth
-						out << i << j << k << l << i+j+k+l;
+						out << a << c << g << t << a+c+g+t;
 
 						//find max
-						uint32_t max = i;
-						if(j > max) max = j;
-						if(k > max) max = k;
-						if(l > max) max = l;
+						uint32_t max = a;
+						if(c > max) max = c;
+						if(g > max) max = g;
+						if(t > max) max = t;
 
 						//identify those that are at max
-						std::vector<char> tmp;
-						if(i == max) tmp.push_back('A');
-						if(j == max) tmp.push_back('C');
-						if(k == max) tmp.push_back('G');
-						if(l == max) tmp.push_back('T');
+						std::array<char, 4> tmp;
+						size_t size = 0;
+						if(a == max) tmp[size++] = 'A';
+						if(c == max) tmp[size++] = 'C';
+						if(g == max) tmp[size++] = 'G';
+						if(t == max) tmp[size++] = 'T';
 
 						//write major
-						out << tmp[0] << max;
+						out << tmp.front() << max;
 
 						//find minor
-						if(tmp.size() > 1){
+						if(size > 1){
 							out << tmp[1] << 0;
 						} else {
 							//find second
 							uint32_t second = 0;
-							if(i < max && i > second) second = i;
-							if(j < max && j > second) second = j;
-							if(k < max && k > second) second = k;
-							if(l < max && l > second) second = l;
+							if(a < max && a > second) second = a;
+							if(c < max && c > second) second = c;
+							if(g < max && g > second) second = g;
+							if(t < max && t > second) second = t;
 
 							//print minor
-							if(i == second) out << 'A' << i;
-							else if(j == second) out << 'C' << j;
-							else if(k == second) out << 'G' << k;
-							else out << 'T' << l;
+							if(a == second) out << 'A' << a;
+							else if(c == second) out << 'C' << c;
+							else if(g == second) out << 'G' << g;
+							else out << 'T' << t;
 						}
 
 						//write counts
-						out << _counts[impl::index(i,j,k,l, _size)] << std::endl;
+						out << _counts[impl::index(a,c,g,t, _size)] << std::endl;
 					}
 				}
 			}
