@@ -31,8 +31,14 @@ class TFunction {
 private:
 	uint16_t _firstParameterIndex;
 protected:
-	virtual double &_oldBeta(uint16_t index) noexcept      = 0;
-	virtual double _oldBeta(uint16_t index) const noexcept = 0;
+	virtual double *_begin() noexcept  = 0;
+	virtual double *_end() noexcept    = 0;
+	virtual const double *_cbegin() const noexcept  = 0;
+	virtual const double *_cend() const noexcept    = 0;
+	virtual double *_obegin() noexcept = 0;
+	virtual double *_oend() noexcept = 0;
+
+	void _initializeValues(const std::vector<std::string> &betas);
 public:
 	TFunction(uint16_t FirstParameterIndex = 0) : _firstParameterIndex(FirstParameterIndex) {}
 	virtual ~TFunction() = default;
@@ -43,11 +49,6 @@ public:
 	constexpr uint16_t firstParameterIndex() const noexcept { return _firstParameterIndex; };
 
 	// virtuals
-	virtual double &beta(uint16_t index) noexcept      = 0;
-	virtual double beta(uint16_t index) const noexcept = 0;
-
-	virtual bool recalibrates() const noexcept = 0;
-
 	virtual uint16_t numParameters() const noexcept               = 0;
 	virtual uint16_t numNonZeroFirstDerivatives() const noexcept  = 0;
 	virtual uint16_t numNonZeroSecondDerivatives() const noexcept = 0;
@@ -61,7 +62,7 @@ public:
 								 TRecalibrationEMSecondDerivatives &second) const noexcept = 0;
 	virtual double adjustParametersPostEstimation() noexcept                               = 0;
 	virtual std::string typeString() const noexcept                                        = 0;
-	std::string getModelString() const;
+	std::string modelString() const;
 };
 
 //--------------------------------------------------------------
@@ -71,26 +72,23 @@ public:
 class TIntercept : public TFunction {
 private:
 	double _beta    = 0.;
-	double _oldbeta = 0.;
+	double _oldBeta = 0.;
 
 protected:
-	double &_oldBeta(uint16_t) noexcept override { return _oldbeta; }
-	double _oldBeta(uint16_t) const noexcept override { return _oldbeta; }
+	double* _begin() noexcept override {return &_beta;}
+	double* _end() noexcept override {return &_beta + 1;}
+	const double* _cbegin() const noexcept override {return &_beta;}
+	const double* _cend() const noexcept override {return &_beta + 1;}
+	double* _obegin() noexcept override {return &_oldBeta;}
+	double* _oend() noexcept override {return &_oldBeta + 1;}
 public:
 	static inline const std::string name = "intercept";
-	// No beta
-	TIntercept(uint16_t FirstParameterIndex): TFunction(FirstParameterIndex) {};
-	// With beta
-	TIntercept(uint16_t FirstParameterIndex, const std::string &beta);
 
-	bool recalibrates() const noexcept override {return _beta != 0.;}
+	TIntercept(uint16_t FirstParameterIndex, const std::string &beta);
 
 	uint16_t numParameters() const noexcept override { return 1; };
 	uint16_t numNonZeroFirstDerivatives() const noexcept override { return 1; };
 	uint16_t numNonZeroSecondDerivatives() const noexcept override { return 0; };
-
-	double &beta(uint16_t) noexcept override { return _beta; }
-	double beta(uint16_t) const noexcept override { return _beta; }
 
 	bool checkOrInitValueRange(const std::vector<uint16_t>&) noexcept override {return true;};
 
@@ -102,54 +100,49 @@ public:
 			     TRecalibrationEMSecondDerivatives &second) const noexcept override;
 	double adjustParametersPostEstimation() noexcept override { return 0.; }
 
-	virtual std::string typeString() const noexcept override;
+	virtual std::string typeString() const noexcept override {return name;};
 };
 
 //--------------------------------------------------------------
 // TCovariateFunction_polynomial
 // A polynomial function
 //--------------------------------------------------------------
-template <size_t O, bool transform=false>
+template <size_t O, bool transform=true>
 class TPolynomial : public TFunction {
 	static_assert(O > 0);
 private:
-	std::array<double, O> _betas{};    // betas of the model
+	std::array<double, O> _betas{1.};    // betas of the model
 	std::array<double, O> _oldBetas{}; // use during estimation
-	bool _recal = false;
+	TQualityTransformation tr;
 
 	double _getAsDouble(uint16_t val) const noexcept {
 		if constexpr (transform) {
-			return logit(coretools::Probability(genometools::PhredIntProbability(val)));
+			return tr(val);
 		} else
 			return static_cast<double>(val);
 	}
-
 protected:
-	double &_oldBeta(uint16_t i) noexcept override { return _oldBetas[i]; }
-	double _oldBeta(uint16_t i) const noexcept override { return _oldBetas[i]; }
+	double* _begin() noexcept override {return _betas.data();}
+	double* _end() noexcept override {return _betas.data() + O;}
+	const double* _cbegin() const noexcept override {return _betas.data();}
+	const double* _cend() const noexcept override {return _betas.data() + O;}
+	double* _obegin() noexcept override {return _oldBetas.data();}
+	double* _oend() noexcept override {return _oldBetas.data() + O;}
 public:
 	static inline const std::string name = "polynomial";
 
-	// No betas
-	TPolynomial(uint16_t FirstParameterIndex) : TFunction(FirstParameterIndex), _recal(false) { _betas.front() = 1.; }
-	// With betas
 	TPolynomial(uint16_t FirstParameterIndex, const std::vector<std::string> &betas)
-		: TFunction(FirstParameterIndex), _recal(true) {
-		std::transform(betas.cbegin(), betas.cend(), _betas.begin(), coretools::str::convertStringCheck<double>);
+		: TFunction(FirstParameterIndex) {
+		_initializeValues(betas);
 	}
-
-	bool recalibrates() const noexcept override {return _recal;}
 
 	uint16_t numParameters() const noexcept override { return O; };
 	uint16_t numNonZeroFirstDerivatives() const noexcept override { return O; };
 	uint16_t numNonZeroSecondDerivatives() const noexcept override { return 0; };
 
-	double &beta(uint16_t i) noexcept override { return _betas[i]; }
-	double beta(uint16_t i) const noexcept override { return _betas[i]; }
-
 	bool checkOrInitValueRange(const std::vector<uint16_t> &values) noexcept override {
 		if constexpr (transform) {
-		return std::all_of(values.begin(), values.end(), [tm = this->_transform](auto v) {return v <= genometools::PhredIntProbability::max().get();});
+		return std::all_of(values.begin(), values.end(), [](auto v) {return v <= genometools::PhredIntProbability::max().get();});
 		}
 		else return true;
 	};
@@ -199,10 +192,7 @@ public:
 	}
 	std::string typeString() const noexcept override {
 		using coretools::str::toString;
-		std::string s = name + '(' + toString(O) + ')';
-		s += '[';
-		for (const auto b : _betas) { s += toString(b) + ','; }
-		return s.substr(0, s.size() - 1) + ']';
+		return name + '(' + toString(O) + ')';
 	}
 };
 
@@ -228,34 +218,27 @@ private:
 	};
 	std::array<double, 3> _betas;    // betas of the model
 	std::array<double, 3> _oldBetas; // use during estimation
-	bool _recal;
 
 	// tmp storage
 	mutable std::vector<TProbitTmpStorage> _tmpStorage;
 
 	void _expandTmpStorage(uint16_t MaxValue) const;
-
 protected:
-	double &_oldBeta(uint16_t i) noexcept override { return _oldBetas[i]; }
-	double _oldBeta(uint16_t i) const noexcept override { return _oldBetas[i]; }
-
+	double* _begin() noexcept override {return _betas.data();}
+	double* _end() noexcept override {return _betas.data() + _betas.size();}
+	const double* _cbegin() const noexcept override {return _betas.data();}
+	const double* _cend() const noexcept override {return _betas.data() + _betas.size();}
+	double* _obegin() noexcept override {return _oldBetas.data();}
+	double* _oend() noexcept override {return _oldBetas.data() + _oldBetas.size();}
 public:
 	static inline const std::string name = "probit";
-	// No betas
-	TProbit(uint16_t FirstParameterIndex);
-	// With betas
 	TProbit(uint16_t FirstParameterIndex, const std::vector<std::string> &betas);
-
-	bool recalibrates() const noexcept override {return _recal;}
 
 	uint16_t numParameters() const noexcept override { return 3; };
 	uint16_t numNonZeroFirstDerivatives() const noexcept override { return 3; };
 	uint16_t numNonZeroSecondDerivatives() const noexcept override { return 6; };
 
 	bool checkOrInitValueRange(const std::vector<uint16_t>&) noexcept override {return true;};
-
-	double &beta(uint16_t i) noexcept override { return _betas[i]; }
-	double beta(uint16_t i) const noexcept override { return _betas[i]; }
 
 	double getEtaTerm(uint16_t val) const noexcept override;
 	void fillDerivatives(uint16_t val, TRecalibrationEMFirstDerivatives &first,
@@ -271,30 +254,25 @@ class TSpecific : public TFunction {
 private:
 	std::vector<double> _betas;    // betas of the model
 	std::vector<double> _oldBetas; // use during estimation
-	bool _recal;
 
-	void _init(uint16_t MaxValue);
+	void _resize(uint16_t MaxValue);
 	bool _checkValueRange(uint16_t val) const noexcept { return val < numParameters(); };
 	void _adjustValueRanges(const std::vector<uint16_t> &values);
 protected:
-	double &_oldBeta(uint16_t i) noexcept override { return _oldBetas[i]; }
-	double _oldBeta(uint16_t i) const noexcept override { return _oldBetas[i]; }
+	double* _begin() noexcept override {return _betas.data();}
+	double* _end() noexcept override {return _betas.data() + _betas.size();}
+	const double* _cbegin() const noexcept override {return _betas.data();}
+	const double* _cend() const noexcept override {return _betas.data() + _betas.size();}
+	double* _obegin() noexcept override {return _oldBetas.data();}
+	double* _oend() noexcept override {return _oldBetas.data() + _betas.size();}
 public:
 	static inline const std::string name = "specific";
 
-	// No Range nor betas
-	TSpecific(uint16_t FirstParameterIndex);
-	// Range and betas
 	TSpecific(uint16_t FirstParameterIndex, const std::vector<std::string> &betas);
-
-	bool recalibrates() const noexcept override {return _recal;}
 
 	uint16_t numParameters() const noexcept override { return _betas.size(); };
 	uint16_t numNonZeroFirstDerivatives() const noexcept override { return 1; };
 	uint16_t numNonZeroSecondDerivatives() const noexcept override { return 0; };
-
-	double &beta(uint16_t i) noexcept override { return _betas[i]; }
-	double beta(uint16_t i) const noexcept override { return _betas[i]; }
 
 	bool checkOrInitValueRange(const std::vector<uint16_t> &values) override {
 		if (numParameters() == 0) {
@@ -330,31 +308,25 @@ private:
 	std::vector<double> _betas;    // betas of the model
 	std::vector<double> _oldBetas; // use during estimation
 	std::vector<TIndexMapEntry> _indexMap; // maps value to parameter index
-	bool _recal;
 
-	void _init(size_t NumParameters);
+	void _resize(size_t NumParameters);
 	void _initMapFromVector(const std::vector<uint16_t> &values);
 	bool _checkValueRange(uint16_t val) const noexcept { return val < _indexMap.size() && _indexMap[val].used; };
 	void _adjustValueRanges(const std::vector<uint16_t> &values);
 protected:
-	double &_oldBeta(uint16_t i) noexcept override { return _oldBetas[i]; }
-	double _oldBeta(uint16_t i) const noexcept override { return _oldBetas[i]; }
-
+	double* _begin() noexcept override {return _betas.data();}
+	double* _end() noexcept override {return _betas.data() + _betas.size();}
+	const double* _cbegin() const noexcept override {return _betas.data();}
+	const double* _cend() const noexcept override {return _betas.data() + _betas.size();}
+	double* _obegin() noexcept override {return _oldBetas.data();}
+	double* _oend() noexcept override {return _oldBetas.data() + _betas.size();}
 public:
 	static inline const std::string name = "map";
-	// No Range nor betas
-	TSpecificMap(uint16_t FirstParameterIndex);
-	// betas and range
 	TSpecificMap(uint16_t FirstParameterIndex, const std::vector<std::string> &betas);
-
-	bool recalibrates() const noexcept override {return _recal;}
 
 	uint16_t numParameters() const noexcept override { return _betas.size(); };
 	uint16_t numNonZeroFirstDerivatives() const noexcept override { return 1; };
 	uint16_t numNonZeroSecondDerivatives() const noexcept override { return 0; };
-
-	double &beta(uint16_t i) noexcept override { return _betas[i]; }
-	double beta(uint16_t i) const noexcept override { return _betas[i]; }
 
 	bool checkOrInitValueRange(const std::vector<uint16_t> &values) override {
 		if (numParameters() == 0) {

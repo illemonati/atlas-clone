@@ -25,9 +25,16 @@ struct TNoTransformation {
 	constexpr bool checkRange(uint) const noexcept {return true;}
 };
 
-struct TQualityTransformation {
+class TQualityTransformation {
+private:
+	std::array<double, 256> _map;
 public:	
-	constexpr double operator()(uint val) const noexcept {return logit(coretools::Probability(genometools::PhredIntProbability(val)));}
+	TQualityTransformation() {
+		for(size_t v = 0; v <_map.size(); ++v) {
+			_map[v] = logit(coretools::Probability(genometools::PhredIntProbability(v)));
+		}
+	}
+	constexpr double operator()(uint16_t val) const noexcept {return _map[val];}
 	constexpr bool checkRange(uint val) const noexcept {return val <= genometools::PhredIntProbability::max().get();}
 };
 

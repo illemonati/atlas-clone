@@ -22,23 +22,8 @@ namespace SequencingError {
 using coretools::str::toString;
 
 namespace impl {
-void initializValues(TFunction &f, const std::vector<std::string> &values) {
-	if (!values.empty()) {
-		if (values.size() != f.numParameters()) {
-			throw toString("Failed to initialize recalibration module: wrong number of values (",
-										   values.size(), " instead of ", f.numParameters(), ")!");
-		}
-
-		for (size_t i = 0; i < values.size(); ++i) {
-			f.beta(i) = coretools::str::convertStringCheck<double>(values[i]);
-		}
-	}
-}
-
 double normalizeParameters(std::vector<double> &betas) noexcept {
-	double mean = 0.0;
-	for (const auto bi : betas) { mean += bi; }
-	mean /= betas.size();
+	const double mean = std::accumulate(betas.begin(), betas.end(), 0.) / betas.size();
 	for (auto &bi : betas) { bi -= mean; }
 	return mean;
 }
@@ -48,23 +33,31 @@ double normalizeParameters(std::vector<double> &betas) noexcept {
 // TRecalibrationEMCovariateFunction
 //--------------------------------------------------------------
 
+void TFunction::_initializeValues(const std::vector<std::string> &betas) {
+	if (!betas.empty()) {
+		if (betas.size() != numParameters()) {
+			throw toString("Failed to initialize recalibration module: wrong number of values (", betas.size(),
+						   " instead of ", numParameters(), ")!");
+		}
+		std::transform(betas.cbegin(), betas.cend(), _begin(), coretools::str::convertStringCheck<double>);
+	}
+}
+
 void TFunction::proposeNewParameters(const arma::mat &JxF, uint16_t &index, double &lambda) noexcept {
 	// update new ones
-	for (uint16_t i = 0; i < numParameters(); ++i) {
-		_oldBeta(i) = beta(i);
-		beta(i) -= lambda * JxF(index);
-		++index;
+	std::copy(_cbegin(), _cend(), _obegin());
+	for(auto it = _begin(); it != _end(); ++it) {
+		*it -= lambda * JxF(index++);
 	}
 }
 
 void TFunction::rejectProposedParameters() noexcept {
-	for (size_t i = 0; i < numParameters(); ++i) beta(i) = _oldBeta(i);
+	std::copy(_obegin(), _oend(), _begin());
 }
 
-std::string TFunction::getModelString() const {
-	std::string s = typeString() + "[" + toString(beta(0));
-	for (size_t i = 1; i < numParameters(); ++i) s += "," + toString(beta(0));
-	return s + "]";
+std::string TFunction::modelString() const {
+	std::string s = typeString() + "[" + std::accumulate(_cbegin(), _cend(), std::string{}, [](auto tot, auto b){return tot + toString(b) + ",";});
+	return s.substr(0, s.size() - 1) + "]";
 }
 
 //--------------------------------------------------------------
@@ -78,10 +71,6 @@ TIntercept::TIntercept(uint16_t FirstParameterIndex, const std::string &beta) : 
 void TIntercept::fillDerivatives(uint16_t, TRecalibrationEMFirstDerivatives &first,
 								 TRecalibrationEMSecondDerivatives &) const noexcept {
 	first.add(firstParameterIndex(), 1.0);
-}
-
-std::string TIntercept::typeString() const noexcept {
-	return name + '[' + toString(_beta) + ']';
 }
 
 //--------------------------------------------------------------
@@ -104,13 +93,10 @@ void TProbit::_expandTmpStorage(uint16_t MaxValue) const {
 	for (uint16_t q = _tmpStorage.size(); q <= MaxValue; ++q) { _tmpStorage.emplace_back(_betas, q); }
 }
 
-TProbit::TProbit(uint16_t FirstParameterIndex) : TFunction(FirstParameterIndex), _recal(false) {}
-
 TProbit::TProbit(uint16_t FirstParameterIndex, const std::vector<std::string> &betas)
 	: TFunction(FirstParameterIndex) {
+	_initializeValues(betas);
 	_expandTmpStorage(128);
-	impl::initializValues(*this, betas);
-	_recal = std::find_if(_betas.cbegin(), _betas.cend(), [](auto v){return v != 0;}) != _betas.cend();
 }
 
 double TProbit::getEtaTerm(uint16_t val) const noexcept {
@@ -142,29 +128,20 @@ void TProbit::fillDerivatives(uint16_t val, TRecalibrationEMFirstDerivatives &fi
 //--------------------------------------------------------------
 // TRecalibrationEMCovariateFunction_specific
 //--------------------------------------------------------------
-TSpecific::TSpecific(uint16_t FirstParameterIndex) : TFunction(FirstParameterIndex), _recal(false) {}
-
-/*TSpecific::TSpecific(uint16_t FirstParameterIndex, uint16_t MaxValue) : TFunction(FirstParameterIndex), _recal(false) {
-	_init(MaxValue);
-	}*/
-
 TSpecific::TSpecific(uint16_t FirstParameterIndex, const std::vector<std::string> &betas)
 	: TFunction(FirstParameterIndex) {
-	const auto maxValue = betas.size() - 1;
-	_init(maxValue);
-	impl::initializValues(*this, betas);
-	_recal = std::find_if(_betas.cbegin(), _betas.cend(), [](auto v){return v != 0;}) != _betas.cend();
+	_resize(betas.size());
+	_initializeValues(betas);
 }
 
-void TSpecific::_init(uint16_t MaxValue) {
-	_betas.resize(MaxValue + 1);
-	_oldBetas.resize(MaxValue + 1);
+void TSpecific::_resize(uint16_t size) {
+	_betas.resize(size);
+	_oldBetas.resize(size);
 }
 
 void TSpecific::_adjustValueRanges(const std::vector<uint16_t> &values) {
 	// initialize with maximum
-	uint16_t max = *std::max_element(values.begin(), values.end());
-	_init(max);
+	_resize(*std::max_element(values.begin(), values.end()) + 1);
 
 	// check that each value from 0 to max is actually used!
 	std::vector<bool> found(numParameters(), false);
@@ -186,14 +163,12 @@ double TSpecific::adjustParametersPostEstimation() noexcept { return impl::norma
 //--------------------------------------------------------------
 // TRecalibrationEMCovariateFunction_specificMap
 //--------------------------------------------------------------
-void TSpecificMap::_init(size_t NumParameters) {
+void TSpecificMap::_resize(size_t NumParameters) {
 	_betas.resize(NumParameters);
 	_oldBetas.resize(NumParameters);
 }
 
 void TSpecificMap::_initMapFromVector(const std::vector<uint16_t> &values) {
-	_init(values.size());
-
 	// find largest value
 	const auto max = std::max((uint16_t)_indexMap.size(), *std::max_element(values.begin(), values.end()));
 
@@ -206,8 +181,6 @@ void TSpecificMap::_initMapFromVector(const std::vector<uint16_t> &values) {
 		_indexMap[values[i]].index = true;
 	}
 }
-
-TSpecificMap::TSpecificMap(uint16_t FirstParameterIndex) : TFunction(FirstParameterIndex), _recal(false) {}
 
 TSpecificMap::TSpecificMap(uint16_t FirstParameterIndex, const std::vector<std::string> &betas)
 	: TFunction(FirstParameterIndex) {
@@ -225,10 +198,12 @@ TSpecificMap::TSpecificMap(uint16_t FirstParameterIndex, const std::vector<std::
 	}
 	// init map
 	_initMapFromVector(values);
-	_recal = std::find_if(_betas.cbegin(), _betas.cend(), [](auto v){return v != 0;}) != _betas.cend();
 }
 
-void TSpecificMap::_adjustValueRanges(const std::vector<uint16_t> &values) { _initMapFromVector(values); }
+void TSpecificMap::_adjustValueRanges(const std::vector<uint16_t> &values) {
+	_resize(values.size());
+	_initMapFromVector(values);
+}
 
 void TSpecificMap::fillDerivatives(uint16_t val, TRecalibrationEMFirstDerivatives &first,
 								   TRecalibrationEMSecondDerivatives &) const noexcept {

@@ -17,6 +17,7 @@
 #include <utility>
 
 #include "RecalEstimatorTools.h"
+#include "TError.h"
 #include "TRandomGenerator.h"
 #include "TSequencedBase.h"
 #include "TSequencingErrorCovariate.h"
@@ -76,82 +77,46 @@ TCovariate *covariate(const std::string &type) {
 	throw "Unknown recalibration covariate '" + type;
 }
 
+template<size_t O = 6>
+TFunction *poly(size_t order, const size_t FirstParameterIndex, const std::vector<std::string> &betas) {
+	if constexpr (O == 0)
+		UERROR("Polynomial Order must be at least 1");
+	else {
+		if (order > O) UERROR("Polynomial Order cannot be higher than ", O);
+		if (order == O)
+			return new TPolynomial<O>(FirstParameterIndex, betas);
+		else
+			return poly<O - 1>(order, FirstParameterIndex, betas);
+	}
+}
+
+/*
+template<>
+TFunction *poly<0>(size_t, const size_t) {
+UERROR("Polynomial Order must be at least 1");
+}
+*/
+
 TFunction *function(const std::string &functionString, const size_t FirstParameterIndex) {
-	const auto [type, args, betas] = parseModuleString(functionString);
-	// create function
-	if (type == TPolynomial<1>::name) {
-		if (betas.empty()) {
-			if (args.size() != 1) {
+		const auto [type, args, betas] = parseModuleString(functionString);
+		// create function
+		if (type == TPolynomial<1>::name) {
+			if (betas.empty() && args.size() != 1) {
 				throw "Wrong number of arguments for polynomial recal function '" + functionString +
 					"': expect one argument (order).";
 			}
-			size_t O = coretools::str::convertStringCheck<uint32_t>(args[0]);
-			// a bit ugly but allowing much faster polynomials
-			switch (O) {
-			case 1: return new TPolynomial<1>(FirstParameterIndex);
-			case 2: return new TPolynomial<2>(FirstParameterIndex);
-			case 3: return new TPolynomial<3>(FirstParameterIndex);
-			case 4: return new TPolynomial<4>(FirstParameterIndex);
-			case 5: return new TPolynomial<5>(FirstParameterIndex);
-			case 6: return new TPolynomial<6>(FirstParameterIndex);
-			}
+			const size_t order = betas.empty() ? coretools::str::convertStringCheck<uint32_t>(args[0]) : betas.size();
+			return poly(order, FirstParameterIndex, betas);
+	    }
+	    if (type == TSpecific::name) {
+			return new TSpecific(FirstParameterIndex, betas);
 		}
-		size_t O = betas.size();
-			// a bit ugly but allowing much faster polynomials
-			switch (O) {
-			case 1: return new TPolynomial<1>(FirstParameterIndex, betas);
-			case 2: return new TPolynomial<2>(FirstParameterIndex, betas);
-			case 3: return new TPolynomial<3>(FirstParameterIndex, betas);
-			case 4: return new TPolynomial<4>(FirstParameterIndex, betas);
-			case 5: return new TPolynomial<5>(FirstParameterIndex, betas);
-			case 6: return new TPolynomial<6>(FirstParameterIndex, betas);
-			}
-	}
-	if (type == TSpecific::name) {
-		if (betas.empty()) return new TSpecific(FirstParameterIndex);
-		return new TSpecific(FirstParameterIndex, betas);
-	}
-	if (type == TSpecificMap::name) {
-		if (betas.empty()) return new TSpecificMap(FirstParameterIndex);
-		return new TSpecificMap(FirstParameterIndex, betas);
-	}
-	throw "Recalibration function '" + type + "' not valid for covariate!";
-}
+		if (type == TSpecificMap::name) {
+		    return new TSpecificMap(FirstParameterIndex, betas);
+	    }
+	    throw "Recalibration function '" + type + "' not valid for covariate!";
+    }
 
-	/*
-TFunction *function(const std::string &functionString, const size_t FirstParameterIndex,
-					const RecalEstimatorTools::TRecalDataTable &dataTable, int v = 0,
-					TRecalibrationEMTransformationMap *transformationMap = nullptr) {
-	// parse
-	const auto [type, args, values] = parseModuleString(functionString);
-
-	// create function
-	if (type == TPolynomial::name) {
-		if (values.empty()) {
-			if (args.size() != 1) {
-				throw "Wrong number of arguments for polynomial recal function '" + functionString +
-					"': expect one argument (order).";
-			}
-			auto f     = new TPolynomial(FirstParameterIndex, coretools::str::convertStringCheck<uint32_t>(args[0]),
-										 transformationMap);
-			// if no values are provided, set first beta = 1
-			f->beta(0) = 1;
-			return f;
-		}
-		return new TPolynomial(FirstParameterIndex, values, transformationMap);
-	}
-	if (type == TSpecific::name) {
-		if (values.empty()) return new TSpecific(FirstParameterIndex, v);
-		return new TSpecific(FirstParameterIndex, values);
-	}
-	if (type == TSpecificMap::name) {
-		if (values.empty())
-			return new TSpecificMap(FirstParameterIndex, RecalEstimatorTools::vectorOfUsed(dataTable.qualities()));
-		return new TSpecificMap(FirstParameterIndex, values);
-	}
-	throw "Recalibration function '" + type + "' not valid for covariate quality!";
-}
-	*/
 } // namespace impl
 
 //*********************************************************
@@ -327,34 +292,14 @@ TModelRecal::TModelRecal(const TModelDefinition &modelDef) : _rho(modelDef.rho),
 	setNewtonRaphsonParamsToZero();
 }
 
-/*TModelRecal::TModelRecal(const TModelDefinition &modelDef, const RecalEstimatorTools::TRecalDataTable &dataTable) : _rho(modelDef.rho), _intercept(0, modelDef.intercept){
-	// create covariates
-	_functions.push_back(&_intercept);
-
-	_numParameters = _intercept.numParameters();
-	for (const auto & cov : modelDef.covariates) {
-		// create function for each covariate
-		if (cov.covariate == TCovariate::name) continue;
-
-		_covariates.push_back(TCovariateModel{impl::covariate(cov.covariate), impl::function(cov.function, _numParameters, dataTable)});
-		_functions.push_back(_covariates.back().function.get());
-
-		// add new parameters
-		_numParameters += _covariates.back().function->numParameters();
-	}
-
-	// prepare Newton-Raphson variables
-	setNewtonRaphsonParamsToZero();
-	}*/
-
 TModelDefinition TModelRecal::getModelDefinition() const {
 	return TModelDefinition(getCovariateDefinition(), getRhoDefinition());
 }
 
 std::string TModelRecal::getCovariateDefinition() const noexcept {
-	std::string modelString = "intercept[" + coretools::str::toString(_intercept.intercept()) + "]";
+	std::string modelString = _intercept.modelString();
 	for (const auto &cov : _covariates) {
-		modelString += ";" + cov.covariate->typeString() + ":" +  cov.function->typeString();
+		modelString += ";" + cov.covariate->typeString() + ":" +  cov.function->modelString();
 	}
 	return modelString;
 }
