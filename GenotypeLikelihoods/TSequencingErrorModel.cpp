@@ -36,7 +36,7 @@ namespace impl {
 
 auto parseModuleString(const std::string &str) {
 	constexpr auto format =
-		"Expected format is TYPE(ARGS)[BETAS], where [BETAS] is optional and (ARGS) is only required for some TYPE.";
+		"Expected format is TYPE(ARGS)[BETAS], where (ARGS) is only required for some TYPE and [BETAS] is optional.";
 	std::string type;
 	std::vector<std::string> args;
 	std::vector<std::string> betas;
@@ -89,13 +89,6 @@ TFunction *poly(size_t order, const size_t FirstParameterIndex, const std::vecto
 			return poly<O - 1>(order, FirstParameterIndex, betas);
 	}
 }
-
-/*
-template<>
-TFunction *poly<0>(size_t, const size_t) {
-UERROR("Polynomial Order must be at least 1");
-}
-*/
 
 TFunction *function(const std::string &functionString, const size_t FirstParameterIndex) {
 		const auto [type, args, betas] = parseModuleString(functionString);
