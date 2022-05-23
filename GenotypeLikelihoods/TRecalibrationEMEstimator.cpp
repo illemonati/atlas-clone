@@ -383,6 +383,7 @@ void TRecalibrationEMEstimator::_updateEM_theta_epsilon(const TPostMortemDamage 
 	std::vector<TBaseLikelihoods> EM_weights_bbar_given_d;
 	_calculate_EMWeights_epsilon(EM_weights_bbar_given_d, PmdModels);
 	logfile().done();
+	OUT(EM_weights_bbar_given_d.size());
 
 	// 2) update rho
 	//-------------------------

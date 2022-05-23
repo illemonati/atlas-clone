@@ -113,14 +113,21 @@ class TPolynomial : public TFunction {
 private:
 	std::array<double, O> _betas{1.};    // betas of the model
 	std::array<double, O> _oldBetas{}; // use during estimation
-	TQualityTransformation tr;
 
 	double _getAsDouble(uint16_t val) const noexcept {
 		if constexpr (transform) {
-			return tr(val);
+			static const std::array<double, 256> map = []() {
+				std::array<double, 256> fs;
+				for (size_t v = 0; v < fs.size(); ++v) {
+					fs[v] = logit(coretools::Probability(genometools::PhredIntProbability(v)));
+				}
+				return fs;
+			}();
+			return map[val];
 		} else
 			return static_cast<double>(val);
 	}
+
 protected:
 	double* _begin() noexcept override {return _betas.data();}
 	double* _end() noexcept override {return _betas.data() + O;}
