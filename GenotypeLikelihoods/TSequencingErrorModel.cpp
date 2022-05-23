@@ -408,6 +408,7 @@ void TModelRecal::setNewtonRaphsonParamsToZero() {
 	_numSitesAdded  = 0;
 	_NRconverged    = false;
 	_NRStepAccepted = false;
+	_Q              = 0.;
 }
 
 void TModelRecal::setQToZero() noexcept {
@@ -448,10 +449,10 @@ void TModelRecal::addToFandJacobian(const BAM::TSequencedBase &base, const TBase
 	const auto weight1 = 1.0 - eps - EM_weights_bbar_given_d[base.base].get();
 	const auto weight2 = (1.0 - eps) * eps;
 
-	OUT(weight1);
-	OUT(weight2);
-	OUT(eps);
-	OUT(EM_weights_bbar_given_d[base.base]);
+	//OUT(weight1);
+	//OUT(weight2);
+	//OUT(eps);
+	//OUT(EM_weights_bbar_given_d[base.base]);
 
 	// add first derivatives
 	for (auto it = _firstDerivatives.begin(); it != _firstDerivatives.end(); ++it) {
@@ -485,8 +486,8 @@ bool TModelRecal::solveJxF() {
 	_Jacobian = _Jacobian / (double)_numSitesAdded;
 	_F        = _F / (double)_numSitesAdded;
 
-	OUT(_Jacobian);
-	OUT(_F);
+	//OUT(_Jacobian);
+	//OUT(_F);
 
 	// now solve J^-1 x F
 	return solve(_JxF, _Jacobian, _F);

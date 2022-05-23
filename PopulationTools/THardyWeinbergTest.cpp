@@ -28,7 +28,6 @@ using coretools::TParameters;
 using coretools::TLog;
 using coretools::TRandomGenerator;
 using coretools::TOutputFile;
-using coretools::TFactorial;
 
 //------------------------------------------------
 //THWHetProb
@@ -38,6 +37,7 @@ THWHetProb::THWHetProb(){
 };
 
 THWHetProb::THWHetProb(uint32_t numInd_N, uint32_t alleleFreq_n_A){
+	using namespace coretools::TFactorial;
 	if(alleleFreq_n_A > 0 && alleleFreq_n_A < 2*numInd_N){
 		//max num het
 		_maxNumHetPlusOne = std::min(alleleFreq_n_A, 2*numInd_N - alleleFreq_n_A) + 1;
@@ -46,8 +46,8 @@ THWHetProb::THWHetProb(uint32_t numInd_N, uint32_t alleleFreq_n_A){
 
 		//tmp variables
 		uint32_t n_B = 2*numInd_N - alleleFreq_n_A;
-		double logNFactorial = TFactorial::factorialLog(numInd_N);
-		double logTwoNFactorial = TFactorial::factorialLog(2*numInd_N);
+		double logNFactorial = factorialLog(numInd_N);
+		double logTwoNFactorial = factorialLog(2*numInd_N);
 
 		//fill probabilities
 		_probs.resize(_maxNumHetPlusOne);
@@ -62,8 +62,8 @@ THWHetProb::THWHetProb(uint32_t numInd_N, uint32_t alleleFreq_n_A){
 					uint32_t n_BB = numInd_N - n_AB - n_AA;
 
 					_probs[n_AB] = exp(n_AB * 0.6931472
-								 + logNFactorial - TFactorial::factorialLog(n_AA) - TFactorial::factorialLog(n_AB) - TFactorial::factorialLog(n_BB)
-								 + TFactorial::factorialLog(alleleFreq_n_A) + TFactorial::factorialLog(n_B) - logTwoNFactorial);
+								 + logNFactorial - factorialLog(n_AA) - factorialLog(n_AB) - factorialLog(n_BB)
+								 + factorialLog(alleleFreq_n_A) + factorialLog(n_B) - logTwoNFactorial);
 				} else {
 					_probs[n_AB] = 0.0;
 				}

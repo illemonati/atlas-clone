@@ -32,6 +32,7 @@
 #include "TMassFunction.h"
 #include "TVCFFields.h"
 #include "TWindow.h"
+#include "mathFunctions.h"
 #include "probability.h"
 #include "weakTypes.h"
 
@@ -1021,6 +1022,7 @@ bool TCallerDiploid::callGenotypeFromMetricKnownAllelesUpdateIndex(const TGenoty
 };
 
 void TCallerDiploid::calculateImbalance(const TSite & site){
+	using coretools::TBinomPValue::binomPValue;
 	if(!imbalanceCalculated){
 		if(!_altAlleles.empty()){
 			_countAlleles(site);
@@ -1031,7 +1033,7 @@ void TCallerDiploid::calculateImbalance(const TSite & site){
 					AB = '.'; AI = '.';
 				} else {
 					AB = toString(_alleleCounts[referenceBase] / sum);
-					AI = toString(_binomP.binomPValue(_alleleCounts[referenceBase], _alleleCounts[_altAlleles[0]]));
+					AI = toString(binomPValue(_alleleCounts[referenceBase], _alleleCounts[_altAlleles[0]]));
 				}
 			} else {
 				if(isHeterozygous(genotypeAtMax)){
@@ -1040,7 +1042,7 @@ void TCallerDiploid::calculateImbalance(const TSite & site){
 						AB = '.'; AI = '.';
 					} else {
 						AB = toString(_alleleCounts[first(genotypeAtMax)] / sum);
-						AI = toString(_binomP.binomPValue(_alleleCounts[first(genotypeAtMax)], _alleleCounts[second(genotypeAtMax)]));
+						AI = toString(binomPValue(_alleleCounts[first(genotypeAtMax)], _alleleCounts[second(genotypeAtMax)]));
 					}
 				} else { // is homo -> do it against the second alternative allele
 					double sum = (double) _alleleCounts[_altAlleles[0]] + _alleleCounts[_altAlleles[1]];
@@ -1048,7 +1050,7 @@ void TCallerDiploid::calculateImbalance(const TSite & site){
 						AB = '.'; AI = '.';
 					} else {
 						AB = toString(_alleleCounts[_altAlleles[0]] / sum);
-						AI = toString(_binomP.binomPValue(_alleleCounts[_altAlleles[0]], _alleleCounts[_altAlleles[1]]));
+						AI = toString(binomPValue(_alleleCounts[_altAlleles[0]], _alleleCounts[_altAlleles[1]]));
 					}
 				}
 			}

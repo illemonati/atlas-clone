@@ -26,6 +26,8 @@
 #include "probability.h"
 #include "stringFunctions.h"
 
+#include "devtools.h"
+
 namespace GenotypeLikelihoods {
 
 namespace SequencingError {
@@ -433,7 +435,8 @@ void TRecalibrationEMEstimator::_updateEM_theta_epsilon(const TPostMortemDamage 
 			// calculate Q at new location
 			double Q = _calculate_Q_beta(EM_weights_bbar_given_d);
 
-			std::cout << "curQ = " << curQ << ", newQ = " << Q << std::endl;
+			OUT(curQ);
+			OUT(Q);
 
 			// check if we accept or backtrack
 			numUpdatedModels_old = numUpdatedModels;

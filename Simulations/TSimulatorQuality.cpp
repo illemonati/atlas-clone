@@ -168,18 +168,18 @@ void TSimulatorQualityDistNormal::parseFunctionString(std::string &s) {
 }
 
 void TSimulatorQualityDistNormal::fillDensities() {
-	using coretools::TNormalDistr;
+	using namespace coretools::TNormalDistr;
 	// fill densities
 	const auto size = _max.get() + 1 - _min.get();
 	_densities.resize(size);
 	_cumulDensities.resize(size);
 
-	double nextDens = TNormalDistr::cumulativeDistrFunction(_min.get() - 0.5, _mean, _sd * _sd);
+	double nextDens = cumulativeDistrFunction(_min.get() - 0.5, _mean, _sd * _sd);
 	double prevDens;
 	double sum = 0;
 	for (int i = 0; i < size; ++i) {
 		prevDens      = nextDens;
-		nextDens      = TNormalDistr::cumulativeDistrFunction(_min.get() + i + 0.5, _mean, _sd * _sd);
+		nextDens      = cumulativeDistrFunction(_min.get() + i + 0.5, _mean, _sd * _sd);
 		_densities[i] = nextDens - prevDens;
 		sum += _densities[i];
 	}

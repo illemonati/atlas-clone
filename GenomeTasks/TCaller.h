@@ -200,7 +200,6 @@ protected:
 	std::string AB, AI;
 	bool imbalanceCalculated;
 	//TGenotypeData tmpGenoData;
-	coretools::TBinomPValue _binomP;
 
 	void _clearAfterCall() override;
 	void callGenotypeFromMetric(const GenotypeLikelihoods::TGenotypeProbabilities & metric);

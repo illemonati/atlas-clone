@@ -16,19 +16,12 @@
 #include "TVcfParser.h"
 #include "stringFunctions.h"
 
-namespace coretools { class TFactorial; }
-
 auto &parameters = coretools::instances::parameters();
 auto &logfile = coretools::instances::logfile();
 auto &randomgenerator = coretools::instances::randomGenerator();
 
 namespace PopulationTools {
-
-    using coretools::TParameters;
-    using coretools::TLog;
-    using coretools::TRandomGenerator;
-    using coretools::TOutputFile;
-    using coretools::TFactorial;
+using coretools::TOutputFile;
 
 //------------------------------------------------
 //TF2Estimator

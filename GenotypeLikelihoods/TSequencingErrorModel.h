@@ -138,15 +138,16 @@ private:
 	uint16_t _numParameters;
 
 	// Newton Raphson Parameters to estimate betas
-	double _Q, _oldQ;
+	double _Q    = 0.;
+	double _oldQ = 0.;
 	arma::mat _Jacobian;
 	arma::vec _F;
 	arma::mat _JxF;
 	TRecalibrationEMFirstDerivatives _firstDerivatives;
 	TRecalibrationEMSecondDerivatives _secondDerivatives;
-	unsigned int _numSitesAdded;
-	bool _NRconverged;
-	bool _NRStepAccepted;
+	unsigned int _numSitesAdded = 0;
+	bool _NRconverged           = false;
+	bool _NRStepAccepted        = false;
 
 	void _initializeDerivatives();
 	coretools::Probability _calcErrorRate(const BAM::TSequencedBase &base) const noexcept;
