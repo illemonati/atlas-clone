@@ -27,7 +27,7 @@ struct TNoTransformation {
 
 struct TQualityTransformation {
 public:	
-	constexpr double operator()(uint val) const noexcept {return logit(coretools::Probability(genometools::PhredIntProbability(val)));}
+	double operator()(uint val) const noexcept {return logit(coretools::Probability(genometools::PhredIntProbability(val)));}
 	constexpr bool checkRange(uint val) const noexcept {return val <= genometools::PhredIntProbability::max().get();}
 };
 
