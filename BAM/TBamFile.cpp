@@ -267,11 +267,11 @@ void TBamFile::setFilters(TParameters & params, TLog* logfile){
 };
 
 void TBamFile::curFilterOut(){
-	_externalFilter.filterOut(_curBamAlignment.Name, _curBamAlignment.IsReverseStrand());
+	_externalFilter.filterOut(_curBamAlignment.Name, _curBamAlignment.IsReverseStrand(), _curReadGroupID);
 };
 
-void TBamFile::filterOut(const std::string & alignmentName, const bool & isReverseStrand){
-	_externalFilter.filterOut(alignmentName, isReverseStrand);
+void TBamFile::filterOut(const std::string & alignmentName, const bool & isReverseStrand, const uint16_t readGroup){
+	_externalFilter.filterOut(alignmentName, isReverseStrand, readGroup);
 };
 
 void TBamFile::setExternalFilterReason(const std::string reason){
@@ -425,7 +425,7 @@ void TBamFile::close(){
 void TBamFile::_applyFilters(){
 	//check read length
 	//read length is special as it affects our storage
-	if(!_mappedLengthFilter.pass(_curCigar.lengthMapped(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())){
+	if(!_mappedLengthFilter.pass(_curCigar.lengthMapped(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID)){
 		if(!_allowTooLongReads){
 			throw "The mapping length of alignment '" +  _curBamAlignment.Name + "' is beyond the range " + _mappedLengthFilter.rangeString() + "!\n"
 			     + "You see this error because " + coretools::__GLOBAL_APPLICATION_NAME__ + " was run with default mapping length filters. Either set your filters using 'filterMappingLength' or add 'allowTooLongReads' to ignore this error.";
@@ -437,26 +437,26 @@ void TBamFile::_applyFilters(){
 		_QCFiltersPassed = true;
 	} else {
 		//apply regular filters
-		_QCFiltersPassed =  _duplicateFilter.pass(!_curBamAlignment.IsDuplicate(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
-						 && _softClippedFilter.pass(_curCigar.lengthSoftClipped() == 0, _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
-						 && _improperPairsFilter.pass(!_curBamAlignment.IsPaired() || _curBamAlignment.IsProperPair(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
-						 && _unmappedFilter.pass(_curBamAlignment.IsMapped(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
-						 && _failedQCFilter.pass(!_curBamAlignment.IsFailedQC(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
-						 && _secondaryFilter.pass(_curBamAlignment.IsPrimaryAlignment(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
-						 && _supplementaryFilter.pass(!_curBamAlignment.IsSupplementary(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
-						 && _readGroupFilter.pass(_readGroups.readGroupInUse(_curReadGroupID), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
-						 && _fwdStrandFilter.pass(_curBamAlignment.IsReverseStrand(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
-						 && _revStrandFilter.pass(!_curBamAlignment.IsReverseStrand(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
-						 && _firstMateFilter.pass(_curBamAlignment.IsFirstMate(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
-						 && _secondMateFilter.pass(_curBamAlignment.IsSecondMate(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
-						 && _mappingQualityFilter.pass(_curBamAlignment.MapQuality, _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
-						 && _blacklistFilter.pass(!_blacklist.isInBlacklist(_curBamAlignment.Name), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
-						 && _readLengthFilter.pass(_curCigar.lengthRead(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate());
+		_QCFiltersPassed =  _duplicateFilter.pass(!_curBamAlignment.IsDuplicate(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID)
+						 && _softClippedFilter.pass(_curCigar.lengthSoftClipped() == 0, _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID)
+						 && _improperPairsFilter.pass(!_curBamAlignment.IsPaired() || _curBamAlignment.IsProperPair(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID)
+						 && _unmappedFilter.pass(_curBamAlignment.IsMapped(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID)
+						 && _failedQCFilter.pass(!_curBamAlignment.IsFailedQC(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID)
+						 && _secondaryFilter.pass(_curBamAlignment.IsPrimaryAlignment(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID)
+						 && _supplementaryFilter.pass(!_curBamAlignment.IsSupplementary(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID)
+						 && _readGroupFilter.pass(_readGroups.readGroupInUse(_curReadGroupID), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID)
+						 && _fwdStrandFilter.pass(_curBamAlignment.IsReverseStrand(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID)
+						 && _revStrandFilter.pass(!_curBamAlignment.IsReverseStrand(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID)
+						 && _firstMateFilter.pass(_curBamAlignment.IsFirstMate(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID)
+						 && _secondMateFilter.pass(_curBamAlignment.IsSecondMate(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID)
+						 && _mappingQualityFilter.pass(_curBamAlignment.MapQuality, _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID)
+						 && _blacklistFilter.pass(!_blacklist.isInBlacklist(_curBamAlignment.Name), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID)
+						 && _readLengthFilter.pass(_curCigar.lengthRead(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID);
 
 		//fragment length
 		if(_QCFiltersPassed){
-			_QCFiltersPassed = _fragmentLengthFilter.pass(curFragmentLength(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate())
-				&& _longerThanFragmentFilter.pass(!_curBamAlignment.IsProperPair() || abs(_curBamAlignment.InsertSize) >= static_cast<int32_t>(_curCigar.lengthAligned()), _curBamAlignment.Name, _curBamAlignment.IsSecondMate());
+			_QCFiltersPassed = _fragmentLengthFilter.pass(curFragmentLength(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID)
+				&& _longerThanFragmentFilter.pass(!_curBamAlignment.IsProperPair() || abs(_curBamAlignment.InsertSize) >= static_cast<int32_t>(_curCigar.lengthAligned()), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID);
 		}
 	}
 
@@ -707,23 +707,23 @@ void TBamFile::printSummaryNoEndIndent(){
 	if(numFiltered > 0){
 		_logfile->addIndent();
 
-		_duplicateFilter.summary(_logfile, numFiltered);
-		_softClippedFilter.summary(_logfile, numFiltered);
-		_improperPairsFilter.summary(_logfile, numFiltered);
-		_unmappedFilter.summary(_logfile, numFiltered);
-		_failedQCFilter.summary(_logfile, numFiltered);
-		_secondaryFilter.summary(_logfile, numFiltered);
-		_supplementaryFilter.summary(_logfile, numFiltered);
-		_longerThanFragmentFilter.summary(_logfile, numFiltered);
-		_readGroupFilter.summary(_logfile, numFiltered);
-		_fwdStrandFilter.summary(_logfile, numFiltered);
-		_revStrandFilter.summary(_logfile, numFiltered);
-		_firstMateFilter.summary(_logfile, numFiltered);
-		_secondMateFilter.summary(_logfile, numFiltered);
-		_blacklistFilter.summary(_logfile, numFiltered);
-		_mappingQualityFilter.summary(_logfile, numFiltered);
-		_fragmentLengthFilter.summary(_logfile, numFiltered);
-		_externalFilter.summary(_logfile, numFiltered);
+		_duplicateFilter.summary(_logfile, numFiltered, _curReadGroupID);
+		_softClippedFilter.summary(_logfile, numFiltered, _curReadGroupID);
+		_improperPairsFilter.summary(_logfile, numFiltered, _curReadGroupID);
+		_unmappedFilter.summary(_logfile, numFiltered, _curReadGroupID);
+		_failedQCFilter.summary(_logfile, numFiltered, _curReadGroupID);
+		_secondaryFilter.summary(_logfile, numFiltered, _curReadGroupID);
+		_supplementaryFilter.summary(_logfile, numFiltered, _curReadGroupID);
+		_longerThanFragmentFilter.summary(_logfile, numFiltered, _curReadGroupID);
+		_readGroupFilter.summary(_logfile, numFiltered, _curReadGroupID);
+		_fwdStrandFilter.summary(_logfile, numFiltered, _curReadGroupID);
+		_revStrandFilter.summary(_logfile, numFiltered, _curReadGroupID);
+		_firstMateFilter.summary(_logfile, numFiltered, _curReadGroupID);
+		_secondMateFilter.summary(_logfile, numFiltered, _curReadGroupID);
+		_blacklistFilter.summary(_logfile, numFiltered, _curReadGroupID);
+		_mappingQualityFilter.summary(_logfile, numFiltered, _curReadGroupID);
+		_fragmentLengthFilter.summary(_logfile, numFiltered, _curReadGroupID);
+		_externalFilter.summary(_logfile, numFiltered, _curReadGroupID);
 		_logfile->endIndent();
 	}
 };

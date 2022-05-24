@@ -45,8 +45,8 @@ TBamFileFilter::TBamFileFilter(){
 	_log = nullptr;
 };
 
-void TBamFileFilter::filterOut(const std::string & alignmentName, const bool & isReverseStrand){
-	++_counter;
+void TBamFileFilter::filterOut(const std::string & alignmentName, const bool & isReverseStrand, const uint16_t readGroup){
+	_counter.add(readGroup);
 	if(_updateLog){
 		_log->write(alignmentName, isReverseStrand, _reason);
 	}
@@ -65,9 +65,9 @@ void TBamFileFilter::setLog(std::shared_ptr<TBamFileLog> & Log){
 	_updateLog = true;
 };
 
-void TBamFileFilter::summary(TLog* logfile, uint64_t total){
-	if(!_keep && _counter  > 0){
-		logfile->list(_reason + ": ", _counter, " (" + coretools::str::toPercentString(_counter, total, 3) + "%)");
+void TBamFileFilter::summary(TLog* logfile, uint64_t total, const uint16_t readGroup){
+	if(!_keep && _counter[readGroup]  > 0){
+		logfile->list(_reason + ": ", _counter[readGroup], " (" + coretools::str::toPercentString(_counter[readGroup], total, 3) + "%)");
 	}
 };
 
@@ -79,9 +79,9 @@ void TBamFileFilterBool::filter(const std::string Reason){
 	_reason = Reason;
 };
 
-bool TBamFileFilterBool::pass(const bool state, const std::string & alignmentName, const bool & isReverseStrand){
+bool TBamFileFilterBool::pass(const bool state, const std::string & alignmentName, const bool & isReverseStrand, const uint16_t readGroup){
 	if(!state && !_keep){
-		filterOut(alignmentName, isReverseStrand);
+		filterOut(alignmentName, isReverseStrand, readGroup);
 		return false;
 	}
 	return true;
