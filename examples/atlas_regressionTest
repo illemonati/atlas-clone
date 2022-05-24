@@ -28,7 +28,7 @@ for f in *.sh; do
 	mkdir -v ${fo}_ref
 	cd ${fo}_ref
 	bash ../$f > out 2> eout
-	[[ -s eout ]] && echo "Reference simulation of $fo ended with errors"; cat eout
+	[[ -s eout ]] && echo "Reference simulation of $fo ended with errors"; head eout
     else
 	echo "Found reference ATLAS-files in folder ${fo}_ref"
 	if [[ ! -d ${fo}_new ]]; then
@@ -36,7 +36,7 @@ for f in *.sh; do
 	    mkdir -v ${fo}_new
 	    cd ${fo}_new
 	    bash ../$f > out 2> eout
-	    [[ -s eout ]] && echo "New simulation of $fo ended with errors"; cat eout
+	    [[ -s eout ]] && echo "New simulation of $fo ended with errors"; head eout
 	else
 	    echo "Found new ATLAS-files in folder ${fo}_new"
 	    cd ${fo}_new

@@ -23,7 +23,10 @@
 
 namespace GenomeTasks{
 
-namespace /*anonymous */ {
+using coretools::instances::logfile;
+using coretools::instances::parameters;
+
+namespace impl {
 
 void addNames(std::vector<std::string> &vec) {
 	using GT = genometools::Genotype;
@@ -35,32 +38,38 @@ void write(const GenotypeLikelihoods::TGenotypeLikelihoods& lhs, coretools::TOut
 		out << l;
 };
 
-} // namespace
+bool parseField(std::set<std::string> &fields, const std::string &tag, const std::string &explanation) {
+	if (fields.find(tag) != fields.end()) {
+		logfile().list(explanation + " (" + tag + ")");
+		fields.erase(fields.find(tag));
+		return true;
+	}
+	return false;
+}
 
-using coretools::instances::logfile;
-using coretools::instances::parameters;
+} // namespace
 
 //---------------------------------
 // TPileup
 //---------------------------------
 TPileup::TPileup():TGenome_windows(){
 	//open output file
-	std::string filename = _outputName + "_pileup.txt.gz";
+	const std::string filename = _outputName + "_pileup.txt.gz";
 	logfile().list("Writing pileup to file '" + filename + "'.");
-	out.open(filename);
+	_out.open(filename);
 
 	//parse output fields
 	logfile().startIndent("Will print the following pileup fields (parameter 'fields'):");
 	std::set<std::string> fields;
 	parameters().fillParameterIntoContainerWithDefault("fields", fields, ',', {"depth", "bases", "qualities", "alleles", "mates", "strands", "likelihoods"});
 
-	_parseField(fields, "depth", _printDepth, "sequencing depth");
-	_parseField(fields, "bases", _printBases, "pileup bases");
-	_parseField(fields, "qualities", _printQualities, "pileup qualities");
-	_parseField(fields, "alleles", _printAlleles, "allele counts");
-	_parseField(fields, "mates", _printMates, "mate information");
-	_parseField(fields, "strands", _printStrand, "strand information");
-	_parseField(fields, "likelihoods", _printLikelihoods, "genotype likelihoods");
+	_printSettings.set<Depth>(impl::parseField(fields, "depth", "sequencing depth"));
+	_printSettings.set<Bases>(impl::parseField(fields, "bases", "pileup bases"));
+	_printSettings.set<Qualities>(impl::parseField(fields, "qualities", "pileup qualities"));
+	_printSettings.set<Alleles>(impl::parseField(fields, "alleles", "allele counts"));
+	_printSettings.set<Mates>(impl::parseField(fields, "mates", "mate information"));
+	_printSettings.set<Strand>(impl::parseField(fields, "strands", "strand information"));
+	_printSettings.set<Likelihoods>(impl::parseField(fields, "likelihoods", "genotype likelihoods"));
 	logfile().endIndent();
 
 	//check if unknown fields were given
@@ -68,33 +77,26 @@ TPileup::TPileup():TGenome_windows(){
 		if(fields.size() == 1){
 			throw "Unknown field '" + *fields.begin() + "'! Valid fields are 'depth', 'bases', 'qualities', 'alleles', 'mates' and 'strands'.";
 		} else {
-			bool first = true;
 			std::string f;
 			for(auto i : fields){
-				if(first){
-					first = false;
-					f = "'";
-				} else {
-					f += ", '";
-				}
-				f += i + "'";
+				f += '\'' + i + "', ";
 			}
-			throw "Unknown fields: " + f + "! Valid fields are 'depth', 'bases', 'qualities', 'alleles', 'mates',  'strands' and 'likelihoods'.";
+			throw "Unknown fields: " + f.substr(0, f.size() - 2) + "! Valid fields are 'depth', 'bases', 'qualities', 'alleles', 'mates',  'strands' and 'likelihoods'.";
 		}
 	}
 
 	//compile header
 	std::vector<std::string> header = {"chromosome", "position"};
 	if(_reference){ header.push_back("reference"); }
-	if(_printDepth){
+	if(_printSettings.get<Depth>()){
 		header.push_back("depth");
 		if(_reference){
 			header.push_back("refDepth");
 		}
 	}
-	if(_printBases){ header.push_back("bases"); }
-	if(_printQualities){ header.push_back("qualities"); }
-	if(_printAlleles){
+	if(_printSettings.get<Bases>()){ header.push_back("bases"); }
+	if(_printSettings.get<Qualities>()){ header.push_back("qualities"); }
+	if(_printSettings.get<Alleles>()){
 		header.push_back("numA");
 		header.push_back("numC");
 		header.push_back("numG");
@@ -105,95 +107,80 @@ TPileup::TPileup():TGenome_windows(){
 		}
 		header.push_back("numAlleles");
 	}
-	if(_printMates){
+	if(_printSettings.get<Mates>()){
 		header.push_back("numFirstMate");
 		header.push_back("numSeondMate");
 	}
-	if(_printStrand){
+	if(_printSettings.get<Strand>()){
 		header.push_back("numForwardStrand");
 		header.push_back("numReverseStrand");
 	}
-	if(_printLikelihoods){
-		addNames(header);
+	if(_printSettings.get<Likelihoods>()){
+		impl::addNames(header);
 	}
 
-	out.writeHeader(header);
+	_out.writeHeader(header);
 
 	//print all sites, also those without data?
 	if(parameters().parameterExists("printAll")){
-		printOnlySitesWithData = false;
+		_printSettings.set<OnlySitesWithData>(false);
 		logfile().list("Will print all sites that pass filters, including those without data. (parameter 'printAll')");
 	} else {
-		printOnlySitesWithData = true;
+		_printSettings.set<OnlySitesWithData>(true);
 		logfile().list("Will print only sites with data. (use 'printAll' to print all)");
 	}
 };
 
-void TPileup::_parseField(std::set<std::string> & fields, const std::string tag, bool & flag, const std::string explanation){
-	if(fields.find(tag) != fields.end()){
-		flag = true;
-		logfile().list(explanation + " (" + tag + ")");
-			fields.erase(fields.find(tag));
-	} else {
-		flag = false;
-	}
-};
 
 void TPileup::_handleWindow(){
 	using genometools::Base;
 	logfile().listFlushTime("Writing pileup ...");
 
-	uint32_t pos = 0;
-	for (auto & site : _window) {
-		if (printOnlySitesWithData && site.empty()) continue;
-		out << _window.chrName();
-		out << _window.positionOnChr(pos++) + 1; //positions are zero-based internally
+	for (size_t pos = 0; pos < _window.size(); ++pos) {
+		const auto &site = _window[pos];
+		if (_printSettings.get<OnlySitesWithData>() && site.empty()) continue;
+		_out << _window.chrName();
+		_out << _window.positionOnChr(pos) + 1; // positions are zero-based internally
 
-		//reference
 		if(_reference){
-			out << site.refBase;
+			_out << site.refBase;
 		}
-
-		//depth
-		if(_printDepth){
-			out << site.depth();
+		if(_printSettings.get<Depth>()){
+			_out << site.depth();
 			if(_reference){
-				out << site.refDepth();
+				_out << site.refDepth();
 			}
 		}
-
-		if(_printBases){
-			out << site.getBases();
+		if(_printSettings.get<Bases>()){
+			_out << site.getBases();
 		}
-		if(_printQualities){
-			out << site.getQualities();
+		if(_printSettings.get<Qualities>()){
+			_out << site.getQualities();
 		}
-
-		if(_printAlleles){
-			site.countAlleles(_alleleCounts);
-			out << _alleleCounts[Base::A] << _alleleCounts[Base::C] << _alleleCounts[Base::G] << _alleleCounts[Base::T];
+		if(_printSettings.get<Alleles>()){
+			GenotypeLikelihoods::TBaseCounts alleleCounts;
+			site.countAlleles(alleleCounts);
+			_out << alleleCounts[Base::A] << alleleCounts[Base::C] << alleleCounts[Base::G] << alleleCounts[Base::T];
 			if(_reference){
-				out << _alleleCounts[site.refBase] << _alleleCounts.size() - _alleleCounts[site.refBase];
+				_out << alleleCounts[site.refBase] << alleleCounts.size() - alleleCounts[site.refBase];
 			}
-			out << (int) coretools::numNonZero(_alleleCounts);
+			_out << (int) coretools::numNonZero(alleleCounts);
 		}
-
-		if(_printMates){
-			site.countMates(_counts);
-			out << _counts[0] << _counts[1];
+		if(_printSettings.get<Mates>()){
+			std::array<int, 2> mateCounts;
+			site.countMates(mateCounts);
+			_out << mateCounts[0] << mateCounts[1];
 		}
-
-		if(_printStrand){
-			site.countFwdRev(_counts);
-			out << _counts[0] << _counts[1];
+		if(_printSettings.get<Strand>()){
+			std::array<int, 2> strandCounts;
+			site.countFwdRev(strandCounts);
+			_out << strandCounts[0] << strandCounts[1];
 		}
-
-		if(_printLikelihoods){
+		if(_printSettings.get<Likelihoods>()){
 			_genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(site, _genoLik);
-			write(_genoLik, out);
+			impl::write(_genoLik, _out);
 		}
-
-		out << std::endl;
+		_out << std::endl;
 	}
 
 	logfile().doneTime();

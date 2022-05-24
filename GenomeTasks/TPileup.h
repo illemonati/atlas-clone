@@ -12,36 +12,25 @@
 #include <set>
 #include <string>
 
+#include "TBitSet.h"
 #include "TFile.h"
 #include "TGenome.h"
 #include "TGenotypeData.h"
 #include "TTask.h"
 
-namespace GenomeTasks{
-
+namespace GenomeTasks {
 
 //---------------------------------
 // TPileup
 //---------------------------------
-class TPileup:public TGenome_windows{
+class TPileup : public TGenome_windows {
 private:
-	coretools::TOutputFile out;
-	bool printOnlySitesWithData;
+	coretools::TOutputFile _out;
 
-	//tmp variables
-	GenotypeLikelihoods::TBaseCounts _alleleCounts;
-	std::array<int, 2> _counts;
+	// what to print?
+	coretools::TBitSet<8> _printSettings;
+	enum {OnlySitesWithData, Depth, Bases, Qualities, Alleles, Mates, Strand, Likelihoods};
 
-	//what to print?
-	bool _printDepth;
-	bool _printBases;
-	bool _printQualities;
-	bool _printAlleles;
-	bool _printMates;
-	bool _printStrand;
-	bool _printLikelihoods;
-
-	void _parseField(std::set<std::string> & fields, const std::string tag, bool & flag, const std::string explanation);
 	void _handleWindow() override;
 	void _handleAlignment() override {}
 public:
@@ -52,17 +41,16 @@ public:
 //--------------------------------------
 // Tasks
 //--------------------------------------
-class TTask_pileup:public coretools::TTask{
+class TTask_pileup : public coretools::TTask {
 public:
-	TTask_pileup(){ _explanation = "Printing pileup from BAM file"; };
+	TTask_pileup() { _explanation = "Printing pileup from BAM file"; };
 
-	void run(){
+	void run() {
 		TPileup pileup;
 		pileup.printPileup();
 	};
 };
 
-
-}; // end namespace
+}; // namespace GenomeTasks
 
 #endif /* GENOMETASKS_TPILEUP_H_ */
