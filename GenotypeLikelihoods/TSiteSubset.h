@@ -19,7 +19,6 @@
 #include "TGenomePosition.h"
 
 namespace BAM { class TFastaBuffer; }
-namespace coretools { class TLog; }
 namespace coretools { class TOutputFile; }
 namespace genometools { class TChromosomes; }
 
@@ -36,15 +35,16 @@ namespace GenotypeLikelihoods{
 class TSiteSubsetSite:public genometools::TGenomePosition{
 private:
 	genometools::Base _ref, _alt;
-
 public:
-	TSiteSubsetSite(uint32_t refID, uint32_t position, const genometools::Base & Ref, const genometools::Base & Alt);
-	TSiteSubsetSite(const genometools::TGenomePosition & Position, const genometools::Base & Ref, const genometools::Base & Alt);
-	TSiteSubsetSite(const TSiteSubsetSite & other) = default;
+	constexpr TSiteSubsetSite(uint32_t refID, uint32_t position, genometools::Base Ref, genometools::Base Alt)
+		: TGenomePosition(refID, position), _ref(Ref), _alt(Alt){};
+	constexpr TSiteSubsetSite(const genometools::TGenomePosition &Position, genometools::Base Ref,
+							  genometools::Base Alt)
+		: TGenomePosition(Position), _ref(Ref), _alt(Alt){};
 	void write(coretools::TOutputFile & out) const;
 
-	genometools::Base ref() const{ return _ref; };
-	genometools::Base alt() const{ return _alt; };
+	constexpr genometools::Base ref() const noexcept { return _ref; };
+	constexpr genometools::Base alt() const noexcept { return _alt; };
 };
 
 //-----------------------------------------------
@@ -55,20 +55,18 @@ private:
 	std::set<uint32_t> _refIDUsed;
 	std::set<TSiteSubsetSite, std::less<>> _sites;
 
-	std::vector<TSiteSubsetSite> empty; //an empty vector to be returned in case there are no positions
 	bool _storesInvariantSites;
 
-	void _checkAlleles(const std::string & chr, uint32_t pos, const genometools::Base & ref, const genometools::Base & alt, const std::string & refAllele, const std::string & altAllele);
-	void _readFile(const std::string Filename, const genometools::TChromosomes & Chromosomes, coretools::TLog* Logfile);
-	void _readFile(const std::string Filename, const genometools::TChromosomes & Chromosomes, coretools::TLog* Logfile, BAM::TFastaBuffer & Reference);
+	void _readFile(const std::string &Filename, const genometools::TChromosomes & Chromosomes);
+	void _readFile(const std::string &Filename, const genometools::TChromosomes & Chromosomes, BAM::TFastaBuffer & Reference);
 
 public:
-	TSiteSubset(const std::string Filename, const genometools::TChromosomes & Chromosomes, coretools::TLog* Logfile, bool InvariantSites);
-	TSiteSubset(const std::string Filename, const genometools::TChromosomes & Chromosomes, coretools::TLog* Logfile, bool InvariantSites, BAM::TFastaBuffer & Reference);
-	void write(const std::string Filename) const;
+	TSiteSubset(const std::string &Filename, const genometools::TChromosomes & Chromosomes, bool InvariantSites);
+	TSiteSubset(const std::string &Filename, const genometools::TChromosomes & Chromosomes, bool InvariantSites, BAM::TFastaBuffer & Reference);
+	void write(const std::string &Filename) const;
 	bool hasPositionsInWindow(const genometools::TGenomeWindow & Window) const;
 	std::set<TSiteSubsetSite> getPositionInWindow(const genometools::TGenomeWindow & Window) const;
-	size_t size();
+	size_t size() const noexcept { return _sites.size(); }
 };
 
 }; //end namespace

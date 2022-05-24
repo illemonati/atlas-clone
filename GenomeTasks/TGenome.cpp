@@ -312,7 +312,7 @@ void TGenome_windows::_openSiteSubset(const std::string &paramName){
 	if(_considerRegions) throw "Site subsets (parameter '" + paramName + "') and regions (parameter 'regions') can not be used at the same time!";
 	if(_doMasking) throw "Site subsets (parameter '" + paramName + "') and masks (parameter 'mask') can not be used at the same time!";
 
-	_subset = std::make_unique<GenotypeLikelihoods::TSiteSubset>(filename, _bamFile.chromosomes(), &logfile(), false, _reference);
+	_subset = std::make_unique<GenotypeLikelihoods::TSiteSubset>(filename, _bamFile.chromosomes(), false, _reference);
 };
 
 void TGenome_windows::_setCountersBeginningOfChromosome(){

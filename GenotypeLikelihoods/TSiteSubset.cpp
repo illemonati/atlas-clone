@@ -21,19 +21,31 @@
 namespace GenotypeLikelihoods{
 
 using coretools::str::toString;
+using coretools::instances::logfile;
+
+namespace impl {
+
+void checkAlleles(const std::string &chr, uint32_t pos, const genometools::Base &ref, const genometools::Base &alt,
+				  const std::string &refAllele, const std::string &altAllele, bool storesInvariantSites) {
+	if (ref == genometools::Base::N) {
+		throw "Unknown reference allele '" + refAllele + "' on chr " + chr + " at " + toString(pos + 1) + "!";
+	}
+	if (alt == genometools::Base::N) {
+		throw "Unknown alternative allele '" + altAllele + "' on chr " + chr + " at " + toString(pos + 1) + "!";
+	}
+
+	if (ref == alt && !storesInvariantSites) {
+		throw "Site on chr " + chr + " at " + toString(pos + 1) + " is invariant!";
+	}
+	if (ref != alt && storesInvariantSites) {
+		throw "Site on chr " + chr + " at " + toString(pos + 1) + " is polymorphic!";
+	}
+};
+} // namespace impl
 
 //-------------------------------------------------
 // TSiteSubsetSite
 //-------------------------------------------------
-TSiteSubsetSite::TSiteSubsetSite(uint32_t refID, uint32_t position, const genometools::Base & Ref, const genometools::Base & Alt):TGenomePosition(refID, position){
-	_ref = Ref;
-	_alt = Alt;
-};
-
-TSiteSubsetSite::TSiteSubsetSite(const genometools::TGenomePosition & Position, const genometools::Base & Ref, const genometools::Base & Alt):TGenomePosition(Position){
-	_ref = Ref;
-	_alt = Alt;
-};
 
 void TSiteSubsetSite::write(coretools::TOutputFile & out) const{
 	out << _refID << _position << _ref << _alt << std::endl;
@@ -42,24 +54,9 @@ void TSiteSubsetSite::write(coretools::TOutputFile & out) const{
 //-------------------------------------------------
 // TSiteSubset
 //-------------------------------------------------
-void TSiteSubset::_checkAlleles(const std::string & chr, uint32_t pos, const genometools::Base & ref, const genometools::Base & alt, const std::string & refAllele, const std::string & altAllele){
-	if(ref == genometools::Base::N){
-		throw "Unknown reference allele '" + refAllele + "' on chr " + chr + " at " + toString(pos+1) + "!";
-	}
-	if(alt == genometools::Base::N){
-		throw "Unknown alternative allele '" + altAllele + "' on chr " + chr + " at " + toString(pos+1) + "!";
-	}
 
-	if(ref == alt && !_storesInvariantSites){
-		throw "Site on chr " + chr + " at " + toString(pos+1) + " is invariant!";
-	}
-	if(ref != alt && _storesInvariantSites){
-		throw "Site on chr " + chr + " at " + toString(pos+1) + " is polymorphic!";
-	}
-};
-
-void TSiteSubset::_readFile(const std::string Filename, const genometools::TChromosomes & Chromosomes, coretools::TLog* Logfile){
-	Logfile->listFlushTime("Reading sites to be used from '" + Filename + "' ...");
+void TSiteSubset::_readFile(const std::string &Filename, const genometools::TChromosomes & Chromosomes){
+	logfile().listFlushTime("Reading sites to be used from '" + Filename + "' ...");
 
 	//open file
 	coretools::TInputFile in(Filename, 4);
@@ -77,19 +74,19 @@ void TSiteSubset::_readFile(const std::string Filename, const genometools::TChro
 		const genometools::Base alt = genometools::char2base(line[3][0]);
 
 		//check alleles
-		_checkAlleles(chr.name, pos, ref, alt, line[2], line[3]);
+		impl::checkAlleles(chr.name, pos, ref, alt, line[2], line[3], _storesInvariantSites);
 
 		//add site
 		_sites.emplace(chr.refID(), pos, ref, alt);
 	}
 
 	//report
-	Logfile->doneTime();
-	Logfile->conclude("Parsed " + toString(_sites.size()) + " sites on " + toString(_refIDUsed.size()) + " chromosomes.");
+	logfile().doneTime();
+	logfile().conclude("Parsed " + toString(_sites.size()) + " sites on " + toString(_refIDUsed.size()) + " chromosomes.");
 };
 
-void TSiteSubset::_readFile(const std::string Filename, const genometools::TChromosomes & Chromosomes, coretools::TLog* Logfile, BAM::TFastaBuffer & Reference){ //version that checks witth fasta reference
-	Logfile->listFlushTime("Reading sites to be used from '" + Filename + "' ...");
+void TSiteSubset::_readFile(const std::string &Filename, const genometools::TChromosomes & Chromosomes, BAM::TFastaBuffer & Reference){ //version that checks witth fasta reference
+	logfile().listFlushTime("Reading sites to be used from '" + Filename + "' ...");
 
 	//open file
 	coretools::TInputFile in(Filename, 4);
@@ -111,7 +108,7 @@ void TSiteSubset::_readFile(const std::string Filename, const genometools::TChro
 		const genometools::Base alt = genometools::char2base(line[3][0]);
 
 		//check alleles
-		_checkAlleles(chr.name, pos, ref, alt, line[2], line[3]);
+		impl::checkAlleles(chr.name, pos, ref, alt, line[2], line[3], _storesInvariantSites);
 
 		//check with reference
         genometools::TGenomePosition genoPos(chr.refID(), pos);
@@ -121,6 +118,7 @@ void TSiteSubset::_readFile(const std::string Filename, const genometools::TChro
 			if(!conflictsFound){
 				conflicts.open(Filename + ".conflicts.gz");
 				conflicts.writeHeader({"chr", "position", "reference", "allele1", "allele2"});
+				conflictsFound = true;
 			}
 			conflicts << chr.name << pos+1 << trueRef << ref << alt << std::endl;
 		}
@@ -130,27 +128,27 @@ void TSiteSubset::_readFile(const std::string Filename, const genometools::TChro
 	}
 
 	//report
-	Logfile->doneTime();
-	Logfile->conclude("Parsed " + toString(_sites.size()) + " sites on " + toString(_refIDUsed.size()) + " chromosomes.");
+	logfile().doneTime();
+	logfile().conclude("Parsed " + toString(_sites.size()) + " sites on " + toString(_refIDUsed.size()) + " chromosomes.");
 
 	//write conflicts, if any
 	if(conflictsFound){
-		Logfile->conclude("Reference conflicted with provided alleles at " + toString(conflicts.lineNumber() - 1) + " positions!");
-		Logfile->conclude("These positions were written to " + conflicts.name());
+		logfile().conclude("Reference conflicted with provided alleles at " + toString(conflicts.lineNumber() - 1) + " positions!");
+		logfile().conclude("These positions were written to " + conflicts.name());
 	}
 };
 
-TSiteSubset::TSiteSubset(const std::string Filename, const genometools::TChromosomes & Chromosomes, coretools::TLog* Logfile, bool InvariantSites){
+TSiteSubset::TSiteSubset(const std::string &Filename, const genometools::TChromosomes & Chromosomes, bool InvariantSites){
 	_storesInvariantSites = InvariantSites;
-	_readFile(Filename, Chromosomes, Logfile);
+	_readFile(Filename, Chromosomes);
 };
 
-TSiteSubset::TSiteSubset(const std::string Filename, const genometools::TChromosomes & Chromosomes, coretools::TLog* Logfile, bool InvariantSites, BAM::TFastaBuffer & Reference){
+TSiteSubset::TSiteSubset(const std::string &Filename, const genometools::TChromosomes & Chromosomes, bool InvariantSites, BAM::TFastaBuffer & Reference){
 	_storesInvariantSites = InvariantSites;
-	_readFile(Filename, Chromosomes, Logfile, Reference);
+	_readFile(Filename, Chromosomes, Reference);
 };
 
-void TSiteSubset::write(const std::string Filename) const{
+void TSiteSubset::write(const std::string &Filename) const{
 	coretools::TOutputFile out(Filename, 4);
 	for(auto& s : _sites){
 		s.write(out);
@@ -159,11 +157,7 @@ void TSiteSubset::write(const std::string Filename) const{
 
 bool TSiteSubset::hasPositionsInWindow(const genometools::TGenomeWindow & Window) const{
 	auto it = _sites.lower_bound(Window);
-	if(it == _sites.end() || *it < Window){
-		return false;
-	} else {
-		return true;
-	}
+	return !(it == _sites.end() || *it < Window);
 };
 
 std::set<TSiteSubsetSite> TSiteSubset::getPositionInWindow(const genometools::TGenomeWindow & Window) const{
@@ -175,10 +169,6 @@ std::set<TSiteSubsetSite> TSiteSubset::getPositionInWindow(const genometools::TG
 	}
 
 	return set;
-};
-
-size_t TSiteSubset::size(){
-	return _sites.size();
 };
 
 }; //end namespace
