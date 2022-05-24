@@ -147,7 +147,7 @@ void TPileup::_handleWindow(){
 	for (auto & site : _window) {
 		if (printOnlySitesWithData && site.empty()) continue;
 		out << _window.chrName();
-		out << _window.positionOnChr(pos) + 1; //positions are zero-based internally
+		out << _window.positionOnChr(pos++) + 1; //positions are zero-based internally
 
 		//reference
 		if(_reference){
