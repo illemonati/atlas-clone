@@ -29,7 +29,6 @@ private:
 	std::vector<std::string> _readGroupNames;
 
     // distributions
-    coretools::TCountDistribution _totalReads;
     coretools::TCountDistribution _passedQC;
     coretools::TCountDistribution _numDuplicates;
     coretools::TCountDistributionVector _readLength;

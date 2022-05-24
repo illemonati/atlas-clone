@@ -55,7 +55,6 @@ void TBamDiagnoser::_writeHistogram(const TCountDistributionVector & distVec, co
 void TBamDiagnoser::_handleAlignment() {
     //get read group
     uint16_t readGroup = _bamFile.curReadGroupID();
-    _totalReads.add(readGroup);
 
     //passed filters?
     _passedQC.add(readGroup);
@@ -83,7 +82,6 @@ void TBamDiagnoser::diagnose(){
     uint32_t numRG = _bamFile.readGroups().size();
 
     // resize distributions
-    _totalReads.resize(numRG);
     _passedQC.resize(numRG);
     _numDuplicates.resize(numRG);
     _readLength.resize(numRG);
@@ -102,11 +100,11 @@ void TBamDiagnoser::diagnose(){
 	//writing read group summary
 	std::string filename = _outputName + "_diagnostics.txt";
 	logfile().listFlush("Writing general diagnostics to '" + filename + "' ...");
-	coretools::TOutputFile out(filename, {"readGroup", "reads", "passedQC", "fracPassedQC", "avgReadLength", "maxReadLength", "properPairs", "avgFragmentLength", "softClipped", "avgSoftClippedLength", "avgUsableAlignedLength", "approximateDepth", "avgMappingQuality", "numDuplicates"});
+	coretools::TOutputFile out(filename, {"readGroup", "passedQC", "avgReadLength", "maxReadLength", "properPairs", "avgFragmentLength", "softClipped", "avgSoftClippedLength", "avgUsableAlignedLength", "approximateDepth", "avgMappingQuality", "numDuplicates"});
 
 	//write for combined
 	out << "allReadGroups";
-	out << _totalReads.counts() << _passedQC.counts() << (double) _passedQC.counts() / (double) _totalReads.counts();
+	out << _passedQC.counts();
 	out << _readLength.mean() << _readLength.max();
 	out << _fragmentLength.counts() << _fragmentLength.mean();
 	out << _softClippedLength.countsLargerZero() << _softClippedLength.mean();
@@ -117,7 +115,7 @@ void TBamDiagnoser::diagnose(){
 	//write per read group
 	for(uint32_t rg = 0; rg < numRG; ++rg){
 		out << _bamFile.readGroups().getName(rg);
-		out << _totalReads[rg] << _passedQC[rg] << (double) _passedQC[rg] / (double) _totalReads[rg];
+		out << _passedQC[rg];
 		out << _readLength.mean() << _readLength.max();
 		out << _fragmentLength[rg].counts() << _fragmentLength.mean();
 		out << _softClippedLength[rg].countsLargerZero() << _softClippedLength[rg].mean();
