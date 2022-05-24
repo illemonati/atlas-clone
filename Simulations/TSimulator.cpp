@@ -333,8 +333,9 @@ void TBAMSimulator::_initializeQualityTransformations(const std::string &Paramet
 	logfile().startIndent("Parsing " + Name + " (parameter " + ParameterName + "):");
 
 	if (parameters().parameterExists(ParameterName)) {
+		const std::string rhoString = parameters().getParameterWithDefault<std::string>("rho", "default");
 		const auto recalString = parameters().getParameter<std::string>(ParameterName);
-		_recal.initializeFromFile(recalString, _readGroups);
+		_recal.initialize(recalString, rhoString, _readGroups);
 
 		// add recal to simulators
 		for (size_t r = 0; r < _readSimulators.size(); ++r) {
