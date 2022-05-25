@@ -195,7 +195,6 @@ void TGenome_windows::_setWindowParameters(){
 		_windowSize = convertString<int>(tmp);
 		logfile().list("Setting window size to " + toString(_windowSize) + ". (parameter 'window')");
 		if(_windowSize < _bamFile.maxReadLength()){
-			std::cout << "Window size " + tmp + " out of range! Windows must be at least as large as the max read length (" + toString(_bamFile.maxReadLength()) + " bp). (use parameter 'maxReadLength' to change)!" << std::endl;
 			throw "Window size " + tmp + " out of range! Windows must be at least as large as the max read length (" + toString(_bamFile.maxReadLength()) + " bp). (use parameter 'maxReadLength' to change)!";
 		}
 	} else {

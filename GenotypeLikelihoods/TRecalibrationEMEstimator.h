@@ -73,7 +73,7 @@ public:
 	void addToQ(const BAM::TSequencedBase &base, const TBaseLikelihoods &EM_weights_bbar_given_d);
 	void setQToZero();
 	double curQ();
-	bool solveJxF();
+	void solveJxF();
 	void proposeNewParameters(double lambda);
 	void scaleParameters();
 	unsigned int acceptProposedParametersBasedOnQ();
@@ -82,7 +82,7 @@ public:
 
 	void writeRecalFile(const BAM::TReadGroups &ReadGroups, const std::string & Filename) const;
 
-	void print();
+	std::string getModelsDefinition();
 };
 
 //--------------------------------------------------------------------

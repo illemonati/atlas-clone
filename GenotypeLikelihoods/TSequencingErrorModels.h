@@ -67,7 +67,6 @@ public:
 	TBaseLikelihoods getBaseLikelihoods(const BAM::TSequencedBase &base) const noexcept;
 
 	void writeRecalFile(const BAM::TReadGroups &ReadGroups, const std::string & Filename) const;
-	void print() const;
 };
 } // namespace SequencingError
 }; // namespace GenotypeLikelihoods

@@ -137,16 +137,12 @@ double TModelVectorForEstimation::curQ() {
 	return Q;
 };
 
-bool TModelVectorForEstimation::solveJxF() {
-	bool couldSolve = true;
+void TModelVectorForEstimation::solveJxF() {
 	for (auto &model : _models) {
 		if (!model->solveJxF()) {
-			std::cout << "Jacobian:\n" << model->Jacobian() << std::endl;
-			throw "Issue solving JxF! This may be due to a lack of data. Consider adding more sites.";
-			couldSolve = false;
+			UERROR("Issue solving JxF! This may be due to a lack of data. Consider adding more sites. Jacobian: ");
 		}
 	}
-	return couldSolve;
 };
 
 void TModelVectorForEstimation::proposeNewParameters(double lambda) {
@@ -191,10 +187,12 @@ void TModelVectorForEstimation::writeRecalFile(const BAM::TReadGroups &ReadGroup
 	}
 }
 
-void TModelVectorForEstimation::print() {
+std::string TModelVectorForEstimation::getModelsDefinition() {
+	std::string s;
 	for (auto &model : _models) {
-		std::cout << model->getCovariateDefinition() << "\t" << model->getRhoDefinition() << std::endl;
+		s += model->getCovariateDefinition() + '\t' + model->getRhoDefinition() + '\n';
 	}
+	return s;
 };
 
 //---------------------------------------------------------------
@@ -427,9 +425,7 @@ void TRecalibrationEMEstimator::_updateEM_theta_epsilon(const TPostMortemDamage 
 			logfile().listFlush("Proposing move with log2(lambda) = " + toString(log2_lambda) + " ... ");
 			_modelsToEstimate->proposeNewParameters(lambda);
 
-			std::cout << std::endl;
-			_modelsToEstimate->print();
-			std::cout << std::endl;
+			OUT(_modelsToEstimate->getModelsDefinition());
 
 			// calculate Q at new location
 			double Q = _calculate_Q_beta(EM_weights_bbar_given_d);

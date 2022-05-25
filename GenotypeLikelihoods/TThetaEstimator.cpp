@@ -425,8 +425,6 @@ void TThetaEstimator::_runEMForTheta(){
 
 		if(extraVerbose)
 			logfile().list(toString(iter) + ") current theta = " + toString(theta.theta));
-		//For debugging
-		//std::cout << std::setprecision(9) << iter << ") theta = " << thetaContainer.theta << "\tLL = " << thetaContainer.LL << "\teps = " << fabs(oldLL - thetaContainer.LL) << std::endl;
 	}
 	if(extraVerbose) logfile().list("EM converged, current theta = " + toString(theta.theta));
 

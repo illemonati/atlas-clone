@@ -404,11 +404,6 @@ void TBamFilter::traverseBAM(){
 			//Did not pass QC: filter out
 			//need to store in blacklist if is was paired
 			if(_bamFile.curIsProperPair()){
-
-				if(_bamFile.curName() == "A00187:477:HV72CDSXY:4:1634:32777:14763"){
-					std::cout << "A00187:477:HV72CDSXY:4:1634:32777:14763: adding mate " << !_bamFile.curIsFirstMate() << " to blacklist." << std::endl;
-				}
-
 				_blacklist.add(_bamFile.curName());
 			}
 		}

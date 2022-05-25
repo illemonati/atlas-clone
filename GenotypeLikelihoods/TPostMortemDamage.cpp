@@ -28,6 +28,7 @@
 #include <utility>
 
 #include "GenotypeTypes.h"
+#include "TError.h"
 #include "TFile.h"
 #include "TLog.h"
 #include "TParameters.h"
@@ -276,8 +277,7 @@ void TPMDFunctionExponential::_estimateWithNewtonRaphson(const countVec &pmdCoun
 		_fillFAndJacobian(F, J, pmdCounts, pmdSums, Parameters);
 
 		if (!solve(JxF, J, F)) {
-			std::cout << std::endl << std::endl << "JACOBIAN:" << std::endl << J << std::endl << std::endl;
-			throw std::runtime_error("Issue solving JxF in TPMDTable::fitExponentialModel!");
+			DEVERROR("Issue solving JxF in TPMDTable::fitExponentialModel!");
 		}
 
 		// estimate new params
