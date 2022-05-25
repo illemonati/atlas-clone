@@ -16,6 +16,8 @@
 #include "stringFunctions.h"
 #include "toString.h"
 
+#include "devtools.h"
+
 namespace GenotypeLikelihoods {
 namespace SequencingError {
 
@@ -43,11 +45,15 @@ void TFunction::_initializeValues(const std::vector<std::string> &betas) {
 	}
 }
 
-void TFunction::proposeNewParameters(const arma::mat &JxF, uint16_t &index, double &lambda) noexcept {
+void TFunction::proposeNewParameters(const arma::mat &JxF, uint16_t &index, double lambda) noexcept {
 	// update new ones
+	OUT(lambda);
 	std::copy(_cbegin(), _cend(), _obegin());
-	for(auto it = _begin(); it != _end(); ++it) {
+	for (auto it = _begin(); it != _end(); ++it) {
+		OUT(*it);
+		OUT(JxF(index));
 		*it -= lambda * JxF(index++);
+		OUT(*it);
 	}
 }
 

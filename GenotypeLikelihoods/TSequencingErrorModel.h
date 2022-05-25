@@ -182,7 +182,7 @@ public:
 	double curQ() const noexcept { return _Q; }
 	void addToFandJacobian(const BAM::TSequencedBase &base, const TBaseLikelihoods &EM_weights_bbar_given_d);
 	bool solveJxF();
-	void proposeNewParameters(double &lambda);
+	void proposeNewParameters(double lambda);
 	bool acceptProposedParametersBasedOnQ();
 	void adjustParametersPostEstimation();
 	double getSteepestGradient() const noexcept;

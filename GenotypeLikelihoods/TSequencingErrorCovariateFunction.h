@@ -44,7 +44,7 @@ public:
 	virtual ~TFunction() = default;
 
 	// non-virtuals
-	void proposeNewParameters(const arma::mat &JxF, uint16_t &index, double &lambda) noexcept;
+	void proposeNewParameters(const arma::mat &JxF, uint16_t &index, double lambda) noexcept;
 	void rejectProposedParameters() noexcept;
 	constexpr uint16_t firstParameterIndex() const noexcept { return _firstParameterIndex; };
 

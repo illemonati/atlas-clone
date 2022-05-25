@@ -305,13 +305,12 @@ void TRecalibrationEMEstimator::performEstimation(const std::string &outputName,
 	logfile().done();
 };
 
-void TRecalibrationEMEstimator::_calculate_EMWeights_epsilon(std::vector<TBaseLikelihoods> &EMWeights,
-															 const TPostMortemDamage &PmdModels) {
+std::vector<TBaseLikelihoods> TRecalibrationEMEstimator::_calculate_EMWeights_epsilon(const TPostMortemDamage &PmdModels) {
 	using genometools::Base;
 	// make sure EM-weight storage is of appropriate size
-	EMWeights.resize(_dataTables.size());
+	std::vector<TBaseLikelihoods> EMWeights;
+	EMWeights.reserve(_dataTables.size());
 	// loop over all bases and calculate EM-weights
-	size_t index = 0;
 	for (auto &s : _sites) {
 		// get relevant base frequencies P(b): from known genotype or distribution if genotype is unknown
 		const TBaseLikelihoods baseFreq{s.genotype == genometools::Genotype::NN ? _genoDist->baseFrequencies()
@@ -323,17 +322,16 @@ void TRecalibrationEMEstimator::_calculate_EMWeights_epsilon(std::vector<TBaseLi
 			const auto PMD = PmdModels.getBaseLikelihoods(b, baseFreq);
 
 			// calculate P(d|bbar)
-			EMWeights[index] = _modelsToEstimate->getBaseLikelihoods(b);
+			EMWeights.push_back(_modelsToEstimate->getBaseLikelihoods(b));
+			auto &EMi = EMWeights.back();
 
 			// calculate P(d|bbar) \propto P(d|bbar)P(bbar)
-			std::transform(EMWeights[index].cbegin(), EMWeights[index].cend(), PMD.cbegin(), EMWeights[index].begin(),
+			std::transform(EMi.cbegin(), EMi.cend(), PMD.cbegin(), EMi.begin(),
 						   std::multiplies<>());
-			normalize(EMWeights[index]);
-
-			// increment index
-			++index;
+			normalize(EMi);
 		}
 	}
+	return EMWeights;
 };
 
 double TRecalibrationEMEstimator::_calculate_Q_beta(const std::vector<TBaseLikelihoods> &EM_weights_bbar_given_d) {
@@ -376,8 +374,7 @@ void TRecalibrationEMEstimator::_updateEM_theta_epsilon(const TPostMortemDamage 
 	// 1) calculate EM weights
 	//-------------------------
 	logfile().listFlushDots("Calculating EM weights");
-	std::vector<TBaseLikelihoods> EM_weights_bbar_given_d;
-	_calculate_EMWeights_epsilon(EM_weights_bbar_given_d, PmdModels);
+	const auto EM_weights_bbar_given_d = _calculate_EMWeights_epsilon(PmdModels);
 	logfile().done();
 	OUT(EM_weights_bbar_given_d.size());
 

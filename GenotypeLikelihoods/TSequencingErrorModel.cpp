@@ -414,6 +414,8 @@ void TModelRecal::setQToZero() noexcept {
 	if (!_NRconverged) {
 		_oldQ = _Q;
 		_Q    = 0.0;
+		OUT(_oldQ);
+		OUT(_Q);
 	}
 }
 
@@ -492,7 +494,7 @@ bool TModelRecal::solveJxF() {
 	return solve(_JxF, _Jacobian, _F);
 }
 
-void TModelRecal::proposeNewParameters(double &lambda) {
+void TModelRecal::proposeNewParameters(double lambda) {
 	if (!_NRStepAccepted) {
 		uint16_t index = 0;
 		for (const auto f : _functions) { f->proposeNewParameters(_JxF, index, lambda); }
