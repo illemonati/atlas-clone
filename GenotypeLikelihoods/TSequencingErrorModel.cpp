@@ -478,10 +478,14 @@ bool TModelRecal::solveJxF() {
 	// Need to copy numbers to other triangle in Jacobian, as only upper triangle is filled when parsing sites
 	for (int i = 0; i < (numParameters() - 1); ++i) {
 		for (unsigned int j = i + 1; j < numParameters(); ++j) {
+			OUT(_Jacobian(j, i));
 			// copy from upper triangle to lower triangle
 			_Jacobian(j, i) = _Jacobian(i, j);
 		}
+		OUT(_F(i));
 	}
+
+	OUT(_numSitesAdded);
 
 	// scale F and J by 1/#sites
 	_Jacobian = _Jacobian / (double)_numSitesAdded;
