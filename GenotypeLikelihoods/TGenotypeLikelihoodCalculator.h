@@ -28,34 +28,27 @@ namespace GenotypeLikelihoods{
 
 class TGenotypeLikelihoodCalculator_simple{
 private:
-	mutable std::vector<TBaseLikelihoods> _baseLikelihoods;
-	mutable TBaseLikelihoods _baseLikelihoodsNoPMD;
 public:
 
 	template <typename PMD, typename SEQERR>
-	void fillBaseLikelihoods(const BAM::TSequencedBase & base, TBaseLikelihoods & BaseLikelihoods, const PMD & PmdModels, const SEQERR & SequencingErrorModels) const{
-		SequencingErrorModels.fillBaseLikelihoods(base, _baseLikelihoodsNoPMD);
-		PmdModels.fillBaseLikelihoods(base, _baseLikelihoodsNoPMD, BaseLikelihoods);
+	TBaseLikelihoods getBaseLikelihoods(const BAM::TSequencedBase & base, const PMD & PmdModels, const SEQERR & SequencingErrorModels) const{
+		TBaseLikelihoods baseLikelihoodsNoPMD = SequencingErrorModels.getBaseLikelihoods(base);
+		return PmdModels.getBaseLikelihoods(base, baseLikelihoodsNoPMD);
 	};
 
-	template <typename PMD, typename SEQERR>
-	void fillGenotypeLikelihoods(const TSite &site, TGenotypeLikelihoods &genotypeLikelihoods, const PMD & PmdModels, const SEQERR & SequencingErrorModels) const{
-		//ensure base likelihoods have proper size
-		if(_baseLikelihoods.size() < site.depth()){
-			_baseLikelihoods.resize(site.depth());
+	template<typename PMD, typename SEQERR>
+	TGenotypeLikelihoods getGenotypeLikelihoods(const TSite &site, const PMD &PmdModels,
+												 const SEQERR &SequencingErrorModels) const {
+		if (site.empty()) { return TGenotypeLikelihoods{1.}; }
+		std::vector<TBaseLikelihoods> baseLikelihoods;
+		baseLikelihoods.reserve(site.depth());
+		// calculate base likelihoods P(d|b, D, epsilon) = \sum_{\bar{b}} P(\bar{b}|b, D)P(d|\bar{b}, \epsilon)
+		for (const auto &s : site) {
+			baseLikelihoods.push_back(getBaseLikelihoods(s, PmdModels, SequencingErrorModels));
 		}
 
-		if(site.empty()){
-			genotypeLikelihoods.fill(1.);
-		} else {
-			//calculate base likelihoods P(d|b, D, epsilon) = \sum_{\bar{b}} P(\bar{b}|b, D)P(d|\bar{b}, \epsilon)
-			for(size_t i=0; i<site.depth(); ++i){
-				fillBaseLikelihoods(site[i], _baseLikelihoods[i], PmdModels, SequencingErrorModels);
-			}
-
-			//calculate genotype likelihoods
-			genotypeLikelihoods = fillGLH(_baseLikelihoods, site.depth());
-		}
+		// calculate genotype likelihoods
+		return getGLH(baseLikelihoods, site.depth());
 	};
 };
 
@@ -95,7 +88,7 @@ public:
 	double calculateLogPMDS(const BAM::TSequencedBase & base, const genometools::Base & ref, const coretools::Probability & pi) const; //TODO: move to PMDS class?
 
 	//functions performed on sites
-	void calculateGenotypeLikelihoods(const TSite & site, TGenotypeLikelihoods & genotypeLikelihoods) const;
+	TGenotypeLikelihoods calculateGenotypeLikelihoods(const TSite & site) const;
 };
 
 

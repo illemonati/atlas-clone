@@ -64,7 +64,7 @@ public:
 	genometools::PhredIntProbability getPhredInt(const BAM::TSequencedBase &base) const noexcept;
 	void recalibrate(BAM::TSequencedBase &base) const noexcept;
 	void recalibrate(std::vector<BAM::TSequencedBase> &bases) const noexcept;
-	void fillBaseLikelihoods(const BAM::TSequencedBase &base, TBaseLikelihoods &baseLikelihoods) const noexcept;
+	TBaseLikelihoods getBaseLikelihoods(const BAM::TSequencedBase &base) const noexcept;
 
 	void writeRecalFile(const BAM::TReadGroups &ReadGroups, const std::string & Filename) const;
 	void print() const;

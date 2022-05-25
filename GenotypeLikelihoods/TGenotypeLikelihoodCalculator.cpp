@@ -132,8 +132,7 @@ coretools::Probability TGenotypeLikelihoodCalculator::getErrorRate(const BAM::TS
 coretools::Probability TGenotypeLikelihoodCalculator::getErrorWithPMD(const BAM::TSequencedBase &base) const {
 	if (base.base == genometools::Base::N) { return coretools::Probability::highest(); }
 	// calculate base likelihoods with PMD
-	TBaseLikelihoods tmpBaseData;
-	_calculator.fillBaseLikelihoods(base, tmpBaseData, _pmdModels, _sequencingErrorModels);
+	TBaseLikelihoods tmpBaseData = _calculator.getBaseLikelihoods(base, _pmdModels, _sequencingErrorModels);
 
 	// return 1 - P(base|base) as in mapdamage2
 	return tmpBaseData[base.base].complement();
@@ -171,20 +170,18 @@ void TGenotypeLikelihoodCalculator::recalibrateWithPMD(std::vector<BAM::TSequenc
 
 double TGenotypeLikelihoodCalculator::calculateLogPMDS(const BAM::TSequencedBase & base, const genometools::Base & ref, const coretools::Probability & pi) const{
 	//get base likelihoods
-	TBaseLikelihoods baseLikelihoodsNoPMD;
-	_sequencingErrorModels.fillBaseLikelihoods(base, baseLikelihoodsNoPMD);
+	const TBaseLikelihoods baseLikelihoodsNoPMD = _sequencingErrorModels.getBaseLikelihoods(base);
 
-	TBaseLikelihoods baseLikelihoods;
-	_pmdModels.fillBaseLikelihoods(base, baseLikelihoodsNoPMD, baseLikelihoods);
+	const TBaseLikelihoods baseLikelihoods = _pmdModels.getBaseLikelihoods(base, baseLikelihoodsNoPMD);
 
 	//calculate PMDS: true base in read == ref with prob. (1-pi) and different with prob. pi/3
-	TBaseLikelihoods tmpBaseData = fromError(ref, pi);
+	const TBaseLikelihoods tmpBaseData = fromError(ref, pi);
 
 	return log(weightedSum(baseLikelihoods, tmpBaseData) / weightedSum(baseLikelihoodsNoPMD, tmpBaseData));
 };
 
-void TGenotypeLikelihoodCalculator::calculateGenotypeLikelihoods(const TSite &site, TGenotypeLikelihoods &genotypeLikelihoods) const {
-	_calculator.fillGenotypeLikelihoods(site, genotypeLikelihoods, _pmdModels, _sequencingErrorModels);
+TGenotypeLikelihoods TGenotypeLikelihoodCalculator::calculateGenotypeLikelihoods(const TSite &site) const {
+	return _calculator.getGenotypeLikelihoods(site, _pmdModels, _sequencingErrorModels);
 };
 
 }; //end namespace

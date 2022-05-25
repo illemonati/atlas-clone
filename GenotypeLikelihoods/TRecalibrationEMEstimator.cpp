@@ -91,9 +91,8 @@ TModelVectorForEstimation::TModelVectorForEstimation(TModels &SequencingErrorMod
 	modelStati.report(MS::littleData, "Read groups with very little data (consider pooling):", ReadGroups);
 };
 
-void TModelVectorForEstimation::fillBaseLikelihoods(const BAM::TSequencedBase &base,
-													TBaseLikelihoods &baseLikelihoods) const {
-	_modelIndex[base.readGroupID][base.isSecondMate()]->fillBaseLikelihoods(base, baseLikelihoods);
+TBaseLikelihoods TModelVectorForEstimation::getBaseLikelihoods(const BAM::TSequencedBase &base) const {
+	return _modelIndex[base.readGroupID][base.isSecondMate()]->getBaseLikelihoods(base);
 };
 
 // functions to estimate rho
@@ -323,14 +322,13 @@ void TRecalibrationEMEstimator::_calculate_EMWeights_epsilon(std::vector<TBaseLi
 		// calculate weights per base
 		for (auto &b : s) {
 			// calculate P(bbar) = \sum_b P(bbar|b)P(b)
-			TBaseLikelihoods PMD;
-			PmdModels.fillBaseLikelihoods(b, baseFreq, PMD);
+			const auto PMD = PmdModels.getBaseLikelihoods(b, baseFreq);
 
 			// calculate P(d|bbar)
-			_modelsToEstimate->fillBaseLikelihoods(b, EMWeights[index]);
+			EMWeights[index] = _modelsToEstimate->getBaseLikelihoods(b);
 
 			// calculate P(d|bbar) \propto P(d|bbar)P(bbar)
-			std::transform(EMWeights[index].begin(), EMWeights[index].end(), PMD.begin(), EMWeights[index].begin(),
+			std::transform(EMWeights[index].cbegin(), EMWeights[index].cend(), PMD.cbegin(), EMWeights[index].begin(),
 						   std::multiplies<>());
 			normalize(EMWeights[index]);
 
@@ -477,10 +475,9 @@ void TRecalibrationEMEstimator::_updateEM_theta_epsilon(const TPostMortemDamage 
 double TRecalibrationEMEstimator::_calculateLL_fullModel(const TPostMortemDamage &PmdModels) {
 	double LL                              = 0.0;
 	const TGenotypeProbabilities &genoFreq = _genoDist->genotypeFrequencies();
-	static TGenotypeLikelihoods genotypeLikelihoods;
 	for (auto &s : _sites) {
 		// calculate genotype likelihoods
-		_genotypeLikelihoodCalculator.fillGenotypeLikelihoods(s, genotypeLikelihoods, PmdModels, *_modelsToEstimate);
+		const TGenotypeLikelihoods genotypeLikelihoods = _genotypeLikelihoodCalculator.getGenotypeLikelihoods(s, PmdModels, *_modelsToEstimate);
 
 		// weight by genotype prior
 		if (s.genotype == genometools::Genotype::NN) {

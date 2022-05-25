@@ -19,12 +19,11 @@ using genometools::Genotype;
 
 TEST(TGenotypeLikelihoodCalculator_test, calculateGenotypeLikelihoods_emptySite){
     TSite site;
-    TGenotypeLikelihoods genotypeLikelihoods{1.};
     TGenotypeLikelihoodCalculator calculator;
 
-    calculator.calculateGenotypeLikelihoods(site, genotypeLikelihoods);
+	const auto genotypeLikelihoods = calculator.calculateGenotypeLikelihoods(site);
 
-    EXPECT_EQ(genotypeLikelihoods[Genotype::AA],1);
+	EXPECT_EQ(genotypeLikelihoods[Genotype::AA],1);
     EXPECT_EQ(genotypeLikelihoods[Genotype::AC],1);
     EXPECT_EQ(genotypeLikelihoods[Genotype::AG],1);
     EXPECT_EQ(genotypeLikelihoods[Genotype::AT],1);
@@ -38,7 +37,6 @@ TEST(TGenotypeLikelihoodCalculator_test, calculateGenotypeLikelihoods_emptySite)
 
 TEST(TGenotypeLikelihoodCalculator_test, calculateGenotypeLikelihoods_noPMDnoRecal){
     TSite site;
-    TGenotypeLikelihoods genotypeLikelihoods;
     TGenotypeLikelihoodCalculator calculator;
 
     BAM::TSequencedBase base;
@@ -48,7 +46,7 @@ TEST(TGenotypeLikelihoodCalculator_test, calculateGenotypeLikelihoods_noPMDnoRec
     base.base = Base::A;
     site.add(base);
 
-    calculator.calculateGenotypeLikelihoods(site, genotypeLikelihoods);
+    const auto genotypeLikelihoods = calculator.calculateGenotypeLikelihoods(site);
 
     EXPECT_FLOAT_EQ(genotypeLikelihoods[Genotype::AA],oneMinusError);
     EXPECT_FLOAT_EQ(genotypeLikelihoods[Genotype::AC],0.5 - errorOneThird);

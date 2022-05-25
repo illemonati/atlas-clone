@@ -18,6 +18,7 @@
 
 #include "RecalEstimatorTools.h"
 #include "TError.h"
+#include "TGenotypeData.h"
 #include "TRandomGenerator.h"
 #include "TSequencedBase.h"
 #include "TSequencingErrorCovariate.h"
@@ -233,16 +234,15 @@ genometools::PhredIntProbability TModelNoRecal::getPhredInt(const BAM::TSequence
 	return base.originalQuality_phredInt;
 }
 
-void TModelNoRecal::fillBaseLikelihoods(const BAM::TSequencedBase &base,
-					TBaseLikelihoods &baseLikelihoods) const noexcept {
+TBaseLikelihoods TModelNoRecal::getBaseLikelihoods(const BAM::TSequencedBase &base) const noexcept {
 	using genometools::Base;
 	if (base == Base::N) {
-		baseLikelihoods.fill(1.);
-	} else {
-		const auto eps = static_cast<Probability>(base.originalQuality_phredInt);
-		for (auto other = Base::min; other < Base::max; ++other) baseLikelihoods[other] = (1. / 3) * eps;
-		baseLikelihoods[base.base] = eps.complement();
+		return TBaseLikelihoods{1.};
 	}
+	const auto eps = static_cast<Probability>(base.originalQuality_phredInt);
+	TBaseLikelihoods baseLikelihoods{(1./3)*eps};
+	baseLikelihoods[base.base] = eps.complement();
+	return baseLikelihoods;
 }
 
 void TModelNoRecal::simulate(BAM::TSequencedBase &base) const noexcept {
@@ -327,16 +327,16 @@ genometools::PhredIntProbability TModelRecal::getPhredInt(const BAM::TSequencedB
 	return genometools::PhredIntProbability(_calcErrorRate(base));
 }
 
-void TModelRecal::fillBaseLikelihoods(const BAM::TSequencedBase &base,
-				      TBaseLikelihoods &baseLikelihoods) const noexcept {
+TBaseLikelihoods TModelRecal::getBaseLikelihoods(const BAM::TSequencedBase &base) const noexcept {
 	using genometools::Base;
 	if (base == Base::N) {
-		baseLikelihoods.fill(1.);
-	} else {
-		const auto e = _calcErrorRate(base);
-		for (auto b = Base::min; b < Base::max; ++b) baseLikelihoods[b] = e * _rho(b, base.base);
-		baseLikelihoods[base.base] = e.complement();
+		return TBaseLikelihoods{1.};
 	}
+	const auto e = _calcErrorRate(base);
+	TBaseLikelihoods baseLikelihoods;
+	for (auto b = Base::min; b < Base::max; ++b) baseLikelihoods[b] = e * _rho(b, base.base);
+	baseLikelihoods[base.base] = e.complement();
+	return baseLikelihoods;
 }
 
 void TModelRecal::simulate(BAM::TSequencedBase &base) const noexcept {
@@ -408,7 +408,6 @@ void TModelRecal::setNewtonRaphsonParamsToZero() {
 	_numSitesAdded  = 0;
 	_NRconverged    = false;
 	_NRStepAccepted = false;
-	_Q              = 0.;
 }
 
 void TModelRecal::setQToZero() noexcept {

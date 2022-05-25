@@ -17,7 +17,6 @@ using genometools::Base;
 
 TEST(TSequencingErrorModels_test, oneBase){
 	SequencingError::TModels _sequencingErrorModels;
-    TBaseLikelihoods _baseLikelihoods;
 
     BAM::TSequencedBase base;
     base.originalQuality_phredInt = 20;
@@ -26,7 +25,7 @@ TEST(TSequencingErrorModels_test, oneBase){
 
     for(Base b = Base::min; b < Base::max; ++b){
         base.base = b;
-        _sequencingErrorModels.fillBaseLikelihoods(base, _baseLikelihoods);
+        const auto _baseLikelihoods = _sequencingErrorModels.getBaseLikelihoods(base);
 
         for(Base trueBase = Base::min; trueBase < Base::max; ++trueBase){
             //true base is A

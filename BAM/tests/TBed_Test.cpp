@@ -39,6 +39,7 @@ TEST(TBedChromosomeTest, operator_smaller){
     EXPECT_TRUE("chr1" < chr2);
 }
 
+/*
 //-------------------------------------------------------------
 // TBed_base
 //-------------------------------------------------------------
@@ -160,6 +161,7 @@ TEST(TBed_baseTest, getters){
     EXPECT_THROW(bedBase.getRefID("1"), coretools::err::TDevError);
     EXPECT_THROW(bedBase.getChromosomeName(5), coretools::err::TDevError);
 }
+*/
 
 //-------------------------------------------------------------
 // TBed

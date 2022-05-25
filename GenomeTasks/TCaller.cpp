@@ -1274,7 +1274,7 @@ void TCall::_initializeGenotypePrior(){
 void TCall::_call(){
 	uint32_t pos = 0;
 	for(auto& s : _window){
-		_genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(s, _genoLik);
+		_genoLik = _genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(s);
 		_caller->call(_window.chrName(), _window.positionOnChr(pos), s, _genoLik);
 		++pos;
 	}
@@ -1293,7 +1293,7 @@ void TCall::_callKnwonAlleles(){
 			uint32_t internalPos = it - _window.from();
 			TSite& site = _window[internalPos];
 			site.refBase = it.ref();
-			_genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(site, _genoLik);
+			_genoLik = _genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(site);
 			_caller->call(_window.chrName(), _window.positionOnChr(internalPos), site, _genoLik, it.ref(), it.alt());
 		}
 	}

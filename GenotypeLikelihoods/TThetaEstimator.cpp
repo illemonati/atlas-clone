@@ -221,15 +221,13 @@ void TThetaEstimator::clear(){
 	estimationSuccessful = false;
 };
 
-void TThetaEstimator::add(const GenotypeLikelihoods::TSite & site, GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods){
+void TThetaEstimator::add(const GenotypeLikelihoods::TSite & site, const GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods){
 	data->add(site, genotypeLikelihoods);
 };
 
 void TThetaEstimator::add(const TWindow & window, const TGenotypeLikelihoodCalculator & glCalculator){
-	TGenotypeLikelihoods genoLik;
 	for(std::vector<TSite>::const_iterator it = window.cbegin(); it != window.cend(); ++it){
-		glCalculator.calculateGenotypeLikelihoods(*it, genoLik);
-		add(*it, genoLik);
+		add(*it, glCalculator.calculateGenotypeLikelihoods(*it));
 	}
 };
 

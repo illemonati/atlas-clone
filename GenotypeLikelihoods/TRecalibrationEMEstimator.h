@@ -60,7 +60,7 @@ public:
 	~TModelVectorForEstimation() = default;
 
 	size_t size() const { return _models.size(); };
-	void fillBaseLikelihoods(const BAM::TSequencedBase &base, TBaseLikelihoods &baseLikelihoods) const;
+	TBaseLikelihoods getBaseLikelihoods(const BAM::TSequencedBase &base) const;
 
 	// functions to estimate rho
 	void prepareRhoEstimationFromEMWeights();

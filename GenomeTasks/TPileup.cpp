@@ -177,7 +177,7 @@ void TPileup::_handleWindow(){
 			_out << strandCounts[0] << strandCounts[1];
 		}
 		if(_printSettings.get<Likelihoods>()){
-			_genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(site, _genoLik);
+			_genoLik = _genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(site);
 			impl::write(_genoLik, _out);
 		}
 		_out << std::endl;

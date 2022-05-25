@@ -9,23 +9,29 @@
 #define TTHETAESTIMATORDATA_H_
 
 #include <stdint.h>
-#include <zlib.h>
 #include <string>
 #include <vector>
+#include <zlib.h>
 
 #include "TGenotypeData.h"
 
-namespace GenotypeLikelihoods { class TSite; }
-namespace coretools { class TOutputFile; }
-namespace coretools { class TRandomGenerator; }
+namespace GenotypeLikelihoods {
+class TSite;
+}
+namespace coretools {
+class TOutputFile;
+}
+namespace coretools {
+class TRandomGenerator;
+}
 #include "gzstream.h"
 
-namespace GenotypeLikelihoods{
+namespace GenotypeLikelihoods {
 
 //---------------------------------------------------------------
-//TThetaEstimatorTemporaryFile
+// TThetaEstimatorTemporaryFile
 //---------------------------------------------------------------
-class TThetaEstimatorTemporaryFile{
+class TThetaEstimatorTemporaryFile {
 private:
 	std::string filename;
 	gzFile fp;
@@ -39,9 +45,7 @@ private:
 public:
 	TThetaEstimatorTemporaryFile();
 	TThetaEstimatorTemporaryFile(std::string filename);
-	~TThetaEstimatorTemporaryFile(){
-		clean();
-	};
+	~TThetaEstimatorTemporaryFile() { clean(); };
 
 	void init(std::string filename);
 
@@ -51,17 +55,16 @@ public:
 	void clean();
 	bool isEOF();
 
-	void save(GenotypeLikelihoods::TGenotypeLikelihoods & genoLik);
-	bool read(GenotypeLikelihoods::TGenotypeLikelihoods & genoLik);
+	void save(const GenotypeLikelihoods::TGenotypeLikelihoods &genoLik);
+	bool read(GenotypeLikelihoods::TGenotypeLikelihoods &genoLik);
 };
 
-
 //---------------------------------------------------------------
-//TThetaEstimatorData
+// TThetaEstimatorData
 //---------------------------------------------------------------
-class TThetaEstimatorData{
+class TThetaEstimatorData {
 protected:
-	//counters
+	// counters
 	long numSitesCoveredTwiceOrMore;
 	long totNumSitesAdded;
 	double cumulativeDepth;
@@ -70,111 +73,109 @@ protected:
 	bool isBootstrapped;
 	long numBootstrappedSites;
 	int maxKforPoissonPlusOne;
-	double* poissonProb;
-	uint8_t* numBootstrapRepsPerEntry;
+	double *poissonProb;
+	uint8_t *numBootstrapRepsPerEntry;
 	bool numBootstrapRepsPerEntryInitialized;
 
 	bool readState;
 	long curSite;
 	uint8_t curRep;
 
-	//tmp variables
+	// tmp variables
 	int g;
 	double sum;
 
-	virtual void saveSite(GenotypeLikelihoods::TGenotypeLikelihoods &){ throw "Not available in TThetaEstimatorData base class!"; };
+	virtual void saveSite(const GenotypeLikelihoods::TGenotypeLikelihoods &) {
+		throw "Not available in TThetaEstimatorData base class!";
+	};
 	virtual void emptyStorage(){};
 	void fillPoissonForBootstrap(const double lambda);
-	virtual void _begin(){ throw "Not available in TThetaEstimatorData base class!"; };
-	virtual void readNext(){ throw "Not available in TThetaEstimatorData base class!"; };
+	virtual void _begin() { throw "Not available in TThetaEstimatorData base class!"; };
+	virtual void readNext() { throw "Not available in TThetaEstimatorData base class!"; };
 
 public:
 	TThetaEstimatorData();
-	virtual ~TThetaEstimatorData(){
+	virtual ~TThetaEstimatorData() {
 		clear();
 		delete[] poissonProb;
-		if(numBootstrapRepsPerEntryInitialized)
-			delete[] numBootstrapRepsPerEntry;
+		if (numBootstrapRepsPerEntryInitialized) delete[] numBootstrapRepsPerEntry;
 	};
 	long numSitesWithData;
 
-	void add(const GenotypeLikelihoods::TSite & site, GenotypeLikelihoods::TGenotypeLikelihoods & genoLik);
+	void add(const GenotypeLikelihoods::TSite &site, const GenotypeLikelihoods::TGenotypeLikelihoods &genoLik);
 	void clear();
 
-	void bootstrap(coretools::TRandomGenerator & randomGenerator);
+	void bootstrap(coretools::TRandomGenerator &randomGenerator);
 	void clearBootstrap();
 
 	virtual bool begin();
 	virtual bool next();
-	virtual bool isEnd(){ throw "Not available in TThetaEstimatorData base class!"; };
-	virtual GenotypeLikelihoods::TGenotypeLikelihoods& curGenotypeLikelihoods(){ throw "Not available in TThetaEstimatorData base class!"; };
+	virtual bool isEnd() { throw "Not available in TThetaEstimatorData base class!"; };
+	virtual GenotypeLikelihoods::TGenotypeLikelihoods &curGenotypeLikelihoods() {
+		throw "Not available in TThetaEstimatorData base class!";
+	};
 
-	long size(){return totNumSitesAdded;};
-	long sizeWithData(){
-		if(isBootstrapped)
-			return numBootstrappedSites;
+	long size() { return totNumSitesAdded; };
+	long sizeWithData() {
+		if (isBootstrapped) return numBootstrappedSites;
 		return numSitesWithData;
 	};
 
-	void addToHeader(std::vector<std::string> & header, const std::string prefix);
-	void writeSite(coretools::TOutputFile & out);
+	void addToHeader(std::vector<std::string> &header, const std::string prefix);
+	void writeSite(coretools::TOutputFile &out);
 	TBaseProbabilities baseFrequencies();
-	virtual void fillP_G(GenotypeLikelihoods::TGenotypeData & P_G, const GenotypeLikelihoods::TGenotypeProbabilities & pGenotype);
-	virtual double calcLogLikelihood(const GenotypeLikelihoods::TGenotypeProbabilities & pGenotype);
+	virtual void fillP_G(GenotypeLikelihoods::TGenotypeData &P_G,
+						 const GenotypeLikelihoods::TGenotypeProbabilities &pGenotype);
+	virtual double calcLogLikelihood(const GenotypeLikelihoods::TGenotypeProbabilities &pGenotype);
 };
 
 //---------------------------------------------------------------
-//TThetaEstimatorDataVector
+// TThetaEstimatorDataVector
 //---------------------------------------------------------------
-class TThetaEstimatorDataVector:public TThetaEstimatorData{
+class TThetaEstimatorDataVector : public TThetaEstimatorData {
 private:
 	std::vector<GenotypeLikelihoods::TGenotypeLikelihoods> sites;
 	std::vector<GenotypeLikelihoods::TGenotypeLikelihoods>::iterator siteIt;
 
-	void saveSite(GenotypeLikelihoods::TGenotypeLikelihoods & genoLik) override;
+	void saveSite(const GenotypeLikelihoods::TGenotypeLikelihoods &genoLik) override;
 	void emptyStorage() override;
 	void readNext() override;
 
 public:
 	TThetaEstimatorDataVector();
-	virtual ~TThetaEstimatorDataVector(){
-		clear();
-	};
+	virtual ~TThetaEstimatorDataVector() { clear(); };
 
 	void _begin() override;
 	bool isEnd() override;
-	GenotypeLikelihoods::TGenotypeLikelihoods& curGenotypeLikelihoods() override;
-	void fillP_G(GenotypeLikelihoods::TGenotypeData & P_G, const GenotypeLikelihoods::TGenotypeProbabilities & pGenotype) override;
-	double calcLogLikelihood(const GenotypeLikelihoods::TGenotypeProbabilities & pGenotype) override;
+	GenotypeLikelihoods::TGenotypeLikelihoods &curGenotypeLikelihoods() override;
+	void fillP_G(GenotypeLikelihoods::TGenotypeData &P_G,
+				 const GenotypeLikelihoods::TGenotypeProbabilities &pGenotype) override;
+	double calcLogLikelihood(const GenotypeLikelihoods::TGenotypeProbabilities &pGenotype) override;
 };
 
 //---------------------------------------------------------------
-//TThetaEstimatorDataFile
+// TThetaEstimatorDataFile
 //---------------------------------------------------------------
-class TThetaEstimatorDataFile:public TThetaEstimatorData{
+class TThetaEstimatorDataFile : public TThetaEstimatorData {
 protected:
 	std::string dataFileName;
 
 	TThetaEstimatorTemporaryFile sites;
 	GenotypeLikelihoods::TGenotypeLikelihoods genotypeLikelihoods;
 
-	void saveSite(GenotypeLikelihoods::TGenotypeLikelihoods & genoLik);
-	void emptyStorage();
-	void readNext();
+	void saveSite(const GenotypeLikelihoods::TGenotypeLikelihoods &genoLik) override;
+	void emptyStorage() override;
+	void readNext() override;
 
 public:
 	TThetaEstimatorDataFile(std::string TmpFileName);
-	~TThetaEstimatorDataFile(){
-		clear();
-	};
+	~TThetaEstimatorDataFile() { clear(); };
 
-	void _begin();
-	bool isEnd();
-	GenotypeLikelihoods::TGenotypeLikelihoods& curGenotypeLikelihoods();
+	void _begin() override;
+	bool isEnd() override;
+	GenotypeLikelihoods::TGenotypeLikelihoods &curGenotypeLikelihoods() override;
 };
 
-
-}; //end namespace
-
+}; // namespace GenotypeLikelihoods
 
 #endif /* TTHETAESTIMATORDATA_H_ */

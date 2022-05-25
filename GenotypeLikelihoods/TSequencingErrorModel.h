@@ -10,6 +10,7 @@
 
 #include <armadillo>
 #include <array>
+#include <limits>
 #include <memory>
 #include <stdint.h>
 #include <string>
@@ -96,8 +97,7 @@ public:
 	virtual bool recalibrates() const noexcept                                                           = 0;
 	virtual coretools::Probability getErrorRate(const BAM::TSequencedBase &base) const noexcept          = 0;
 	virtual genometools::PhredIntProbability getPhredInt(const BAM::TSequencedBase &base) const noexcept = 0;
-	virtual void fillBaseLikelihoods(const BAM::TSequencedBase &base,
-									 TBaseLikelihoods &baseLikelihoods) const noexcept                   = 0;
+	virtual TBaseLikelihoods getBaseLikelihoods(const BAM::TSequencedBase &base) const noexcept          = 0;
 	virtual void simulate(BAM::TSequencedBase &base) const noexcept                                      = 0;
 	virtual std::string getCovariateDefinition() const noexcept                                          = 0;
 	virtual std::string getRhoDefinition() const noexcept                                                = 0;
@@ -113,8 +113,7 @@ public:
 
 	coretools::Probability getErrorRate(const BAM::TSequencedBase &base) const noexcept override;
 	genometools::PhredIntProbability getPhredInt(const BAM::TSequencedBase &base) const noexcept override;
-	void fillBaseLikelihoods(const BAM::TSequencedBase &base,
-							 TBaseLikelihoods &baseLikelihoods) const noexcept override;
+	TBaseLikelihoods getBaseLikelihoods(const BAM::TSequencedBase &base) const noexcept override;
 	virtual void simulate(BAM::TSequencedBase &base) const noexcept override;
 
 	virtual std::string getCovariateDefinition() const noexcept override { return "-"; };
@@ -138,8 +137,8 @@ private:
 	uint16_t _numParameters;
 
 	// Newton Raphson Parameters to estimate betas
-	double _Q    = 0.;
-	double _oldQ = 0.;
+	double _Q    = std::numeric_limits<double>::lowest();
+	double _oldQ = std::numeric_limits<double>::lowest();
 	arma::mat _Jacobian;
 	arma::vec _F;
 	arma::mat _JxF;
@@ -164,8 +163,7 @@ public:
 	// get error rates
 	coretools::Probability getErrorRate(const BAM::TSequencedBase &base) const noexcept override;
 	genometools::PhredIntProbability getPhredInt(const BAM::TSequencedBase &base) const noexcept override;
-	void fillBaseLikelihoods(const BAM::TSequencedBase &base,
-							 TBaseLikelihoods &baseLikelihoods) const noexcept override;
+	TBaseLikelihoods getBaseLikelihoods(const BAM::TSequencedBase &base) const noexcept override;
 	virtual void simulate(BAM::TSequencedBase &base) const noexcept override;
 
 	// functions to estimate

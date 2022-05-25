@@ -242,21 +242,15 @@ TEST(TPostMortemDamage_test, baseANoPMD) {
 		constexpr auto err = 0.01;
 
 		SequencingError::TModels sem;
-		TBaseLikelihoods sem_likelihoods;
 		TPostMortemDamage pmd;
-		TBaseLikelihoods pmd_likelihoods;
 
 		BAM::TSequencedBase base;
 		base.originalQuality_phredInt = 20;
-		base.base                     = Base::A;
-
-		sem.fillBaseLikelihoods(base, sem_likelihoods);
-		pmd.fillBaseLikelihoods(base, sem_likelihoods, pmd_likelihoods);
 
 		for (Base b = Base::min; b < Base::max; ++b) {
 			base.base = b;
-			sem.fillBaseLikelihoods(base, sem_likelihoods);
-			pmd.fillBaseLikelihoods(base, sem_likelihoods, pmd_likelihoods);
+			const auto sem_likelihoods = sem.getBaseLikelihoods(base);
+			const auto pmd_likelihoods = pmd.getBaseLikelihoods(base, sem_likelihoods);
 
 			for (Base trueBase = Base::min; trueBase < Base::max; ++trueBase) {
 				if (trueBase == b) {
@@ -275,8 +269,6 @@ TEST(TPostMortemDamage_test, baseAWithPMD) {
 	constexpr auto err = 0.01;
 
 	SequencingError::TModels sem;
-	TBaseLikelihoods sem_likelihoods;
-	TBaseLikelihoods pmd_likelihoods;
 
 	BAM::TSequencedBase base;
 	base.originalQuality_phredInt = 20;
@@ -300,8 +292,8 @@ TEST(TPostMortemDamage_test, baseAWithPMD) {
 		for (Base b = Base::min; b < Base::max; ++b) {
 			base.base = b;
 
-			sem.fillBaseLikelihoods(base, sem_likelihoods);
-			pmd.fillBaseLikelihoods(base, sem_likelihoods, pmd_likelihoods);
+			const auto sem_likelihoods = sem.getBaseLikelihoods(base);
+			const auto pmd_likelihoods = pmd.getBaseLikelihoods(base, sem_likelihoods);
 
 			for (Base trueBase = Base::min; trueBase < Base::max; ++trueBase) {
 

@@ -152,7 +152,7 @@ public:
 	virtual ~TThetaEstimator(){};
 
 	void clear();
-	void add(const TSite & site, GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods);
+	void add(const TSite & site, const GenotypeLikelihoods::TGenotypeLikelihoods & genotypeLikelihoods);
 	void add(const TWindow & window, const TGenotypeLikelihoodCalculator & glCalculator);
 	long sizeWithData(){ return data->sizeWithData();};
 	bool estimateTheta();

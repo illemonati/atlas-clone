@@ -70,7 +70,7 @@ void TPSMCInput::_handleWindow(){
 
 		for(uint32_t i=0; i<_blockSize; ++i){
 			if(!_window[blockStart + i].empty()){
-				_genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(_window[blockStart + 1], _genoLik);
+				_genoLik = _genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(_window[blockStart + 1]);
 				_posterior = GenotypeLikelihoods::posterior(_genoLik, _prior);
 				logPHomo += coretools::LogProbability(GenotypeLikelihoods::homozygous(_posterior));
 			}

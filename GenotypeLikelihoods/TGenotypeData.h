@@ -32,7 +32,7 @@ using TGenotypeProbabilities = coretools::TStrongMassFunction<coretools::Probabi
 using TGenotypeData          = coretools::TStrongArray<double, genometools::Genotype, 10>;
 
 template<template<typename...> typename Container, typename... Args>
-TGenotypeLikelihoods fillGLH(const Container<TBaseLikelihoods, Args...> &bases, const size_t size) {
+TGenotypeLikelihoods getGLH(const Container<TBaseLikelihoods, Args...> &bases, const size_t size) {
 	using genometools::Base;
 	using GT = genometools::Genotype;
 	using genometools::genotype;
@@ -70,7 +70,7 @@ TGenotypeLikelihoods fillGLH(const Container<TBaseLikelihoods, Args...> &bases, 
 
 template<template<typename...> typename Container, typename... Args>
 TGenotypeLikelihoods fillGLH(const Container<TBaseLikelihoods, Args...> &bases) {
-	return fillGLH(bases, bases.size());
+	return getGLH(bases, bases.size());
 }
 
 inline TGenotypeProbabilities posterior(const TGenotypeLikelihoods &likelihoods, const TGenotypeProbabilities &prior) {

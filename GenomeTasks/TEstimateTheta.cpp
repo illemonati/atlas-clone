@@ -45,7 +45,7 @@ TEstimateTheta_base::TEstimateTheta_base():
 void TEstimateTheta_base::_addSites(GenotypeLikelihoods::TWindow_base & window, GenotypeLikelihoods::TThetaEstimator & thetaEstimator){
 	logfile().listFlushTime("Calculating genotype likelihoods ...");
 	for(auto& s : window){
-		_genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(s, _genoLik);
+		_genoLik = _genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(s);
 		thetaEstimator.add(s, _genoLik);
 	}
 	logfile().doneTime();
@@ -344,7 +344,7 @@ void TEstimateThetaRatio::_addSites(GenotypeLikelihoods::TThetaEstimatorData & d
 	while(it != region.end() && _window.overlaps(*it)){
 		for(genometools::TGenomePosition s = std::max(it->from(), _window.from()); s < it->to() && s < _window.to(); ++s){
 			GenotypeLikelihoods::TGenotypeLikelihoods genoLik;
-			_genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(_window[s - _window.from()], genoLik);
+			genoLik = _genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(_window[s - _window.from()]);
 			data.add(_window[s - _window.from()], genoLik);
 		}
 		++it;

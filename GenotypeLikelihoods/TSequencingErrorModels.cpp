@@ -123,10 +123,10 @@ void TModels::recalibrate(std::vector<BAM::TSequencedBase> &bases) const noexcep
 	for (auto &b : bases) recalibrate(b);
 }
 
-void TModels::fillBaseLikelihoods(const BAM::TSequencedBase &base,
-						 TBaseLikelihoods &baseLikelihoods) const noexcept {
-	if (!_models.empty()) _models[base.readGroupID][base.isSecondMate()]->fillBaseLikelihoods(base, baseLikelihoods);
-	else _noRecal.fillBaseLikelihoods(base, baseLikelihoods);
+TBaseLikelihoods TModels::getBaseLikelihoods(const BAM::TSequencedBase &base) const noexcept {
+	if (!_models.empty())
+		return _models[base.readGroupID][base.isSecondMate()]->getBaseLikelihoods(base);
+	return _noRecal.getBaseLikelihoods(base);
 }
 
 // functions to write file
