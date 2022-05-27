@@ -65,7 +65,7 @@ void TBamDiagnoser::_handleAlignment() {
 
     //add to counters
     _readLength.add(readGroup, _bamFile.curCIGAR().lengthRead());
-    _usableLength.add(readGroup, _bamFile.curUsableAlignedLength(_qualFilter));
+    _usableLength.add(readGroup, _bamFile.curCIGAR().lengthAligned());
     _softClippedLength.add(readGroup, _bamFile.curCIGAR().lengthSoftClipped());
     _mappingQuality.add(readGroup, _bamFile.curMappingQuality());
 
