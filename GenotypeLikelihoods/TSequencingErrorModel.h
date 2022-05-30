@@ -22,7 +22,6 @@
 #include "TSequencingErrorCovariate.h"
 #include "TSequencingErrorCovariateFunction.h"
 #include "TStrongArray.h"
-#include "auxiliaryTools.h"
 #include "probability.h"
 
 namespace BAM {
@@ -142,13 +141,10 @@ private:
 	arma::mat _Jacobian;
 	arma::vec _F;
 	arma::mat _JxF;
-	TRecalibrationEMFirstDerivatives _firstDerivatives;
-	TRecalibrationEMSecondDerivatives _secondDerivatives;
 	unsigned int _numSitesAdded = 0;
 	bool _NRconverged           = false;
 	bool _NRStepAccepted        = false;
 
-	void _initializeDerivatives();
 	coretools::Probability _calcErrorRate(const BAM::TSequencedBase &base) const noexcept;
 
 public:

@@ -313,22 +313,43 @@ std::vector<TBaseLikelihoods> TRecalibrationEMEstimator::_calculate_EMWeights_ep
 	// loop over all bases and calculate EM-weights
 	for (auto &s : _sites) {
 		// get relevant base frequencies P(b): from known genotype or distribution if genotype is unknown
-		const TBaseLikelihoods baseFreq{s.genotype == genometools::Genotype::NN ? _genoDist->baseFrequencies()
-																				: fillBaseFrequences(s.genotype)};
+		OUT(genometools::toString(s.genotype));
+		const TBaseLikelihoods baseFreq{fillBaseFrequences(s.genotype)};
+		OUT(baseFreq[Base::A]);
+		OUT(baseFreq[Base::C]);
+		OUT(baseFreq[Base::G]);
+		OUT(baseFreq[Base::T]);
 
 		// calculate weights per base
 		for (auto &b : s) {
 			// calculate P(bbar) = \sum_b P(bbar|b)P(b)
 			const auto PMD = PmdModels.getBaseLikelihoods(b, baseFreq);
+			OUT(PMD[Base::A]);
+			OUT(PMD[Base::C]);
+			OUT(PMD[Base::G]);
+			OUT(PMD[Base::T]);
 
 			// calculate P(d|bbar)
 			EMWeights.push_back(_modelsToEstimate->getBaseLikelihoods(b));
 			auto &EMi = EMWeights.back();
+			OUT(EMi[Base::A]);
+			OUT(EMi[Base::C]);
+			OUT(EMi[Base::G]);
+			OUT(EMi[Base::T]);
 
 			// calculate P(d|bbar) \propto P(d|bbar)P(bbar)
 			std::transform(EMi.cbegin(), EMi.cend(), PMD.cbegin(), EMi.begin(),
 						   std::multiplies<>());
+			OUT(EMi[Base::A]);
+			OUT(EMi[Base::C]);
+			OUT(EMi[Base::G]);
+			OUT(EMi[Base::T]);
 			normalize(EMi);
+			OUT(EMi[Base::A]);
+			OUT(EMi[Base::C]);
+			OUT(EMi[Base::G]);
+			OUT(EMi[Base::T]);
+			ECHO("");
 		}
 	}
 	return EMWeights;

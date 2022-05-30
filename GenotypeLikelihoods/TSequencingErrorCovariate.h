@@ -10,7 +10,6 @@
 
 #include "RecalEstimatorTools.h"
 #include "TSequencedBase.h"
-#include "auxiliaryTools.h"
 
 namespace GenotypeLikelihoods {
 namespace SequencingError {

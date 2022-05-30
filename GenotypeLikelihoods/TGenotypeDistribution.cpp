@@ -32,7 +32,7 @@ TBaseProbabilities fillBaseFrequences(const genometools::Genotype genotype){
 	case Genotype::GT: return TBaseProbabilities({0., 0., .5, .5});
 
 	case Genotype::TT: return TBaseProbabilities({0., 0., 0., 1.});
-	default: return TBaseProbabilities{}; // NN
+	default: return TBaseProbabilities({0.25, 0.25, 0.25, 0.25}); // NN
 	}
 }
 

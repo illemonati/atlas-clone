@@ -67,19 +67,6 @@ std::string TFunction::modelString() const {
 }
 
 //--------------------------------------------------------------
-// TRecalibrationEMCovariateFunction_intercept
-//--------------------------------------------------------------
-
-TIntercept::TIntercept(uint16_t FirstParameterIndex, const std::string &beta) : TFunction(FirstParameterIndex) {
-	_beta = coretools::str::convertStringCheck<double>(beta);
-}
-
-void TIntercept::fillDerivatives(uint16_t, TRecalibrationEMFirstDerivatives &first,
-								 TRecalibrationEMSecondDerivatives &) const noexcept {
-	first.add(firstParameterIndex(), 1.0);
-}
-
-//--------------------------------------------------------------
 // TRecalibrationEMCovariateFunction_probit
 //--------------------------------------------------------------
 TProbit::TProbitTmpStorage::TProbitTmpStorage(const std::array<double, 3> &betas, uint16_t q) {
@@ -110,25 +97,37 @@ double TProbit::getEtaTerm(uint16_t val) const noexcept {
 	return _tmpStorage[val].eta;
 }
 
-void TProbit::fillDerivatives(uint16_t val, TRecalibrationEMFirstDerivatives &first,
-							  TRecalibrationEMSecondDerivatives &second) const noexcept {
+T1stDerivative TProbit::get1stDerivatives(uint16_t val, size_t i) const noexcept {
 	if (val >= _tmpStorage.size()) { _expandTmpStorage(val); }
-	const auto i1 = firstParameterIndex();
-	const auto i2 = i1 + 1;
-	const auto i3 = i1 + 2;
+	switch (i) {
+	case 0: return {firstParameterIndex(), _tmpStorage[val].cumulDens_Phi};
+	case 1: return {firstParameterIndex() + 1, _tmpStorage[val].normalDens_Beta1};
+	default: return {firstParameterIndex() + 1, _tmpStorage[val].normalDens_Beta1_q};
+	}
+}
 
-	// first derivatives for each parameter
-	first.add(i1, _tmpStorage[val].cumulDens_Phi);
-	first.add(i2, _tmpStorage[val].normalDens_Beta1);
-	first.add(i3, _tmpStorage[val].normalDens_Beta1_q);
-
-	// add second derivatives
-	second.add(i2, i2, -_tmpStorage[val].normalDens_Beta1_z);
-	second.add(i3, i3, -_tmpStorage[val].normalDens_Beta1_q2_z);
-
-	second.add(i1, i2, _tmpStorage[val].normalDens_phi);
-	second.add(i1, i3, _tmpStorage[val].normalDens_q);
-	second.add(i2, i3, -_tmpStorage[val].normalDens_Beta1_q_z);
+T2ndDerivative TProbit::get2ndDerivatives(uint16_t val, size_t i, size_t j) const noexcept {
+	if (val >= _tmpStorage.size()) { _expandTmpStorage(val); }
+	switch (i) {
+	case 0:
+		switch (j) {
+		case 0: return {firstParameterIndex(), firstParameterIndex(), 0.};
+		case 1: return {firstParameterIndex(), firstParameterIndex() + 1, -_tmpStorage[val].normalDens_phi};
+		default: return {firstParameterIndex(), firstParameterIndex() + 2, -_tmpStorage[val].normalDens_q};
+		}
+	case 1:
+		switch (j) {
+		case 0: return {firstParameterIndex() + 1, firstParameterIndex(), 0.};
+		case 1: return {firstParameterIndex() + 1, firstParameterIndex() + 1, -_tmpStorage[val].normalDens_Beta1_z};
+		default: return {firstParameterIndex() + 1, firstParameterIndex() + 2, -_tmpStorage[val].normalDens_Beta1_q_z};
+		}
+	default: // 2
+		switch (j) {
+		case 0: return {firstParameterIndex() + 2, firstParameterIndex(), 0.};
+		case 1: return {firstParameterIndex() + 2, firstParameterIndex() + 1, 0.};
+		default: return {firstParameterIndex() + 2, firstParameterIndex() + 2, -_tmpStorage[val].normalDens_Beta1_q2_z};
+		}
+	}
 }
 
 //--------------------------------------------------------------
@@ -159,9 +158,8 @@ void TSpecific::_adjustValueRanges(const std::vector<uint16_t> &values) {
 	}
 }
 
-void TSpecific::fillDerivatives(uint16_t val, TRecalibrationEMFirstDerivatives &first,
-								TRecalibrationEMSecondDerivatives &) const noexcept {
-	first.add(firstParameterIndex() + val, 1.0);
+T1stDerivative TSpecific::get1stDerivatives(uint16_t val, size_t) const noexcept {
+	return {firstParameterIndex() + val, 1.0};
 }
 
 double TSpecific::adjustParametersPostEstimation() noexcept { return impl::normalizeParameters(_betas); }
@@ -211,9 +209,8 @@ void TSpecificMap::_adjustValueRanges(const std::vector<uint16_t> &values) {
 	_initMapFromVector(values);
 }
 
-void TSpecificMap::fillDerivatives(uint16_t val, TRecalibrationEMFirstDerivatives &first,
-								   TRecalibrationEMSecondDerivatives &) const noexcept {
-	first.add(firstParameterIndex() + _indexMap[val].index, 1.0);
+T1stDerivative TSpecificMap::get1stDerivatives(uint16_t val, size_t) const noexcept {
+	return {firstParameterIndex() + _indexMap[val].index, 1.0};
 }
 
 double TSpecificMap::adjustParametersPostEstimation() noexcept { return impl::normalizeParameters(_betas); }

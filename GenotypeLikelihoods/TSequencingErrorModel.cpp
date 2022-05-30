@@ -380,21 +380,6 @@ void TModelRecal::checkOrInit(const RecalEstimatorTools::TRecalDataTable &DataTa
 	}
 }
 
-void TModelRecal::_initializeDerivatives() {
-	// intercept
-	size_t numNonZeroFirstDeriv  = _intercept.numNonZeroFirstDerivatives();
-	size_t numNonZeroSecondDeriv = _intercept.numNonZeroSecondDerivatives();
-
-	// covariates
-	for (const auto &cov : _covariates) {
-		numNonZeroFirstDeriv  += cov.function->numNonZeroFirstDerivatives();
-		numNonZeroSecondDeriv += cov.function->numNonZeroSecondDerivatives();
-	}
-
-	_firstDerivatives.resize(numNonZeroFirstDeriv);
-	_secondDerivatives.resize(numNonZeroSecondDeriv);
-}
-
 void TModelRecal::setNewtonRaphsonParamsToZero() {
 	_Jacobian.resize(numParameters(), numParameters());
 	_F.resize(numParameters());
@@ -402,8 +387,6 @@ void TModelRecal::setNewtonRaphsonParamsToZero() {
 
 	_Jacobian.zeros();
 	_F.zeros();
-
-	_initializeDerivatives();
 
 	_numSitesAdded  = 0;
 	_NRconverged    = false;
@@ -430,44 +413,50 @@ void TModelRecal::addToQ(const BAM::TSequencedBase &base, const TBaseLikelihoods
 }
 
 void TModelRecal::addToFandJacobian(const BAM::TSequencedBase &base, const TBaseLikelihoods &EM_weights_bbar_given_d) {
-	// 1) Calculate epsilon
-	//--------------------
 	const auto eps = getErrorRate(base).get();
-
-	// 2 ) fill derivatives
-	//--------------------
-	_firstDerivatives.restart();
-	_secondDerivatives.restart();
-
-	// fill derivatives of intercept
-	_intercept.fillDerivatives(0.0, _firstDerivatives, _secondDerivatives);
-
-	// fill derivatives of covariates
-	for (const auto &cov : _covariates) cov.function->fillDerivatives(cov.covariate->extract(base), _firstDerivatives, _secondDerivatives);
-
-	// 3) add derivatives to F and Jacobian
-	// calculate weights
+	// page 10 of grant: const auto w = (1 - EM_weights_bbar_given_d[base.base].get()) * (1 - eps) - EM_weights_bbar_given_d[base.base].get()*eps;
 	const auto weight1 = 1.0 - eps - EM_weights_bbar_given_d[base.base].get();
 	const auto weight2 = (1.0 - eps) * eps;
 
-	//OUT(weight1);
-	//OUT(weight2);
-	//OUT(eps);
-	//OUT(EM_weights_bbar_given_d[base.base]);
+	OUT(numParameters());
+	OUT(EM_weights_bbar_given_d[base.base]);
+	OUT(eps);
+	OUT(weight1);
+	OUT(std::log10(weight1));
+	OUT(weight2);
+
+	std::vector<T1stDerivative> der1st;
+	std::vector<T2ndDerivative> der2nd;
+	der1st.push_back(_intercept.get1stDerivatives());
+	OUT(_intercept.getEtaTerm());
+	OUT(der1st.back().derivative);
+
+	for (const auto & cov: _covariates) {
+		for (size_t i = 0; i < cov.function->numNonZeroFirstDerivatives(); ++i) {
+			der1st.push_back(cov.function->get1stDerivatives(cov.covariate->extract(base), i));
+			OUT(cov.covariate->extract(base));
+			OUT(cov.function->getEtaTerm(cov.covariate->extract(base)));
+			OUT(der1st.back().derivative);
+			for (size_t j = i+1; j < cov.function->numNonZeroSecondDerivatives(); ++j) {
+				der2nd.push_back(cov.function->get2ndDerivatives(cov.covariate->extract(base), i, j));
+				OUT(der2nd.back().derivative);
+			}
+		}
+	}
 
 	// add first derivatives
-	for (auto it = _firstDerivatives.begin(); it != _firstDerivatives.end(); ++it) {
+	for (auto d1 = der1st.begin(); d1 != der1st.end(); ++d1) {
 		// add to F
-		_F(it->index) += weight1 * it->derivative;
+		_F(d1->index) += weight1 * d1->derivative;
 
 		// add to J
-		for (auto it2 = it; it2 != _firstDerivatives.end(); ++it2) {
-			_Jacobian(it->index, it2->index) += weight2 * it->derivative * it2->derivative;
+		for (auto d2 = d1; d2 != der1st.end(); ++d2) {
+			_Jacobian(d1->index, d2->index) += weight2 * d1->derivative * d2->derivative;
 		}
 	}
 
 	// add second derivatives to Jacobian (happens to have the same weigth as F!)
-	for (auto &it : _secondDerivatives) _Jacobian(it.index1, it.index2) += weight1 * it.derivative;
+	for (auto &it : der2nd) _Jacobian(it.index1, it.index2) += weight1 * it.derivative;
 
 	++_numSitesAdded;
 }
