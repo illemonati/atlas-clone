@@ -707,23 +707,70 @@ void TBamFile::printSummaryNoEndIndent(){
 	if(numFiltered > 0){
 		_logfile->addIndent();
 
-		_duplicateFilter.summary(_logfile, numFiltered, _curReadGroupID);
-		_softClippedFilter.summary(_logfile, numFiltered, _curReadGroupID);
-		_improperPairsFilter.summary(_logfile, numFiltered, _curReadGroupID);
-		_unmappedFilter.summary(_logfile, numFiltered, _curReadGroupID);
-		_failedQCFilter.summary(_logfile, numFiltered, _curReadGroupID);
-		_secondaryFilter.summary(_logfile, numFiltered, _curReadGroupID);
-		_supplementaryFilter.summary(_logfile, numFiltered, _curReadGroupID);
-		_longerThanFragmentFilter.summary(_logfile, numFiltered, _curReadGroupID);
-		_readGroupFilter.summary(_logfile, numFiltered, _curReadGroupID);
-		_fwdStrandFilter.summary(_logfile, numFiltered, _curReadGroupID);
-		_revStrandFilter.summary(_logfile, numFiltered, _curReadGroupID);
-		_firstMateFilter.summary(_logfile, numFiltered, _curReadGroupID);
-		_secondMateFilter.summary(_logfile, numFiltered, _curReadGroupID);
-		_blacklistFilter.summary(_logfile, numFiltered, _curReadGroupID);
-		_mappingQualityFilter.summary(_logfile, numFiltered, _curReadGroupID);
-		_fragmentLengthFilter.summary(_logfile, numFiltered, _curReadGroupID);
-		_externalFilter.summary(_logfile, numFiltered, _curReadGroupID);
+		//write counts of filtered reads for each read group to _filterSummary.txt file
+				std::string filename = _filename.erase(_filename.size() - 4, 4) + "_filterSummary.txt";
+				coretools::instances::logfile().listFlush("Writing general filter counts to '" + filename + "' ...");
+
+				//creating header
+				std::vector<uint16_t> rg_IDs;
+				for (uint16_t it = 0; it < _readGroups.size(); it++){
+						rg_IDs.push_back(it);
+					}
+				std::vector<std::string> rg_names;
+				rg_names.push_back("Filter");
+				for (auto rg: _readGroups.getNames(rg_IDs)){
+					rg_names.push_back(rg);
+				}
+				coretools::TOutputFile out(filename, rg_names, "\t");
+
+				_duplicateFilter.printCounts(out, _readGroups.size());
+				_softClippedFilter.printCounts(out, _readGroups.size());
+				_improperPairsFilter.printCounts(out, _readGroups.size());
+				_unmappedFilter.printCounts(out, _readGroups.size());
+				_failedQCFilter.printCounts(out, _readGroups.size());
+				_secondaryFilter.printCounts(out, _readGroups.size());
+				_supplementaryFilter.printCounts(out, _readGroups.size());
+				_longerThanFragmentFilter.printCounts(out, _readGroups.size());
+				_readGroupFilter.printCounts(out, _readGroups.size());
+				_fwdStrandFilter.printCounts(out, _readGroups.size());
+				_revStrandFilter.printCounts(out, _readGroups.size());
+				_firstMateFilter.printCounts(out, _readGroups.size());
+				_secondMateFilter.printCounts(out, _readGroups.size());
+				_blacklistFilter.printCounts(out, _readGroups.size());
+				_mappingQualityFilter.printCounts(out, _readGroups.size());
+				_fragmentLengthFilter.printCounts(out, _readGroups.size());
+				_externalFilter.printCounts(out, _readGroups.size());
+				_readLengthFilter.printCounts(out, _readGroups.size());
+				_mappedLengthFilter.printCounts(out, _readGroups.size());
+
+				out.close();
+				coretools::instances::logfile().done();
+
+
+		//print counts of filtered reads for each read group to terminal
+		for (uint16_t it = 0; it < _readGroups.size(); it++){
+			_logfile->newLine();
+			_logfile->list("Number of reads filtered from read group: '" + coretools::str::toString(_readGroups.getName(it)) + "'");
+			_duplicateFilter.summary(_logfile, numFiltered, it);
+			_softClippedFilter.summary(_logfile, numFiltered, it);
+			_improperPairsFilter.summary(_logfile, numFiltered, it);
+			_unmappedFilter.summary(_logfile, numFiltered, it);
+			_failedQCFilter.summary(_logfile, numFiltered, it);
+			_secondaryFilter.summary(_logfile, numFiltered, it);
+			_supplementaryFilter.summary(_logfile, numFiltered, it);
+			_longerThanFragmentFilter.summary(_logfile, numFiltered, it);
+			_readGroupFilter.summary(_logfile, numFiltered, it);
+			_fwdStrandFilter.summary(_logfile, numFiltered, it);
+			_revStrandFilter.summary(_logfile, numFiltered, it);
+			_firstMateFilter.summary(_logfile, numFiltered, it);
+			_secondMateFilter.summary(_logfile, numFiltered, it);
+			_blacklistFilter.summary(_logfile, numFiltered, it);
+			_mappingQualityFilter.summary(_logfile, numFiltered, it);
+			_fragmentLengthFilter.summary(_logfile, numFiltered, it);
+			_externalFilter.summary(_logfile, numFiltered, it);
+			_readLengthFilter.summary(_logfile, numFiltered, it);
+			_mappedLengthFilter.summary(_logfile, numFiltered, it);
+		}
 		_logfile->endIndent();
 	}
 };

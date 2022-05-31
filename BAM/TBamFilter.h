@@ -59,6 +59,8 @@ public:
 	void filterOut(const std::string & alignmentName, const bool & isReverseStrand, const uint16_t readGroup);
 	void summary(coretools::TLog* logfile, uint64_t total, const uint16_t readGroup);
 	coretools::TCountDistribution numFiltered() const { return _counter; }
+	std::string getReason() const { return _reason; }
+	void printCounts(coretools::TOutputFile &out, uint16_t rg_size);
 };
 
 //Filters out if pass(false), keeps if pass(true)

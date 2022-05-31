@@ -46,6 +46,7 @@ TBamFileFilter::TBamFileFilter(){
 };
 
 void TBamFileFilter::filterOut(const std::string & alignmentName, const bool & isReverseStrand, const uint16_t readGroup){
+	//counts filtered reads per read group and filter
 	_counter.add(readGroup);
 	if(_updateLog){
 		_log->write(alignmentName, isReverseStrand, _reason);
@@ -70,6 +71,15 @@ void TBamFileFilter::summary(TLog* logfile, uint64_t total, const uint16_t readG
 		logfile->list(_reason + ": ", _counter[readGroup], " (" + coretools::str::toPercentString(_counter[readGroup], total, 3) + "%)");
 	}
 };
+
+void TBamFileFilter::printCounts(coretools::TOutputFile &out, uint16_t rg_size){
+	if (!getReason().empty()){
+		out << getReason();
+		coretools::TCountDistribution FilterCount = numFiltered();
+		for (uint16_t it = 0; it < rg_size; it++){out << FilterCount[it];}
+		out << std::endl;
+	}
+}
 
 //-----------------------------------------------------
 //TBamFileFilterBool
