@@ -30,7 +30,7 @@ find_package(Armadillo REQUIRED)
 include(FetchContent)
 FetchContent_Declare(coretools
         GIT_REPOSITORY    https://bitbucket.org/wegmannlab/coretools.git
-        GIT_TAG           2015897
+        GIT_TAG           b9ba2dd
         SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/coretools"
         )
 
@@ -69,7 +69,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE BamTools BamTools-utils coretools 
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_EXTENSIONS OFF)
 target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra)
-target_compile_definitions(${PROJECT_NAME} PRIVATE WITH_ARMADILLO DEVTOOLS DEV_LOCATION)
+target_compile_definitions(${PROJECT_NAME} PRIVATE WITH_ARMADILLO DEVTOOLS)
 
 add_executable("${PROJECT_NAME}_unitTests" EXCLUDE_FROM_ALL)
 

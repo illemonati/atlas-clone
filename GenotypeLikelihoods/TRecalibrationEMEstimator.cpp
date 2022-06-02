@@ -313,7 +313,7 @@ std::vector<TBaseLikelihoods> TRecalibrationEMEstimator::_calculate_EMWeights_ep
 	// loop over all bases and calculate EM-weights
 	for (auto &s : _sites) {
 		// get relevant base frequencies P(b): from known genotype or distribution if genotype is unknown
-		OUT(genometools::toString(s.genotype));
+		OUT(s.genotype);
 		const TBaseLikelihoods baseFreq{fillBaseFrequences(s.genotype)};
 		OUT(baseFreq[Base::A]);
 		OUT(baseFreq[Base::C]);
