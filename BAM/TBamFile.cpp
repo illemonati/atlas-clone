@@ -707,7 +707,7 @@ void TBamFile::printSummaryNoEndIndent(){
 	if(numFiltered > 0){
 		_logfile->addIndent();
 
-		//write counts of filtered reads for each read group to _filterSummary.txt file
+				//write counts of filtered reads for each read group to _filterSummary.txt file
 				std::string filename = _filename.erase(_filename.size() - 4, 4) + "_filterSummary.txt";
 				coretools::instances::logfile().listFlush("Writing general filter counts to '" + filename + "' ...");
 
@@ -716,13 +716,14 @@ void TBamFile::printSummaryNoEndIndent(){
 				for (uint16_t it = 0; it < _readGroups.size(); it++){
 						rg_IDs.push_back(it);
 					}
-				std::vector<std::string> rg_names;
-				rg_names.push_back("Filter");
+				std::vector<std::string> header;
+				header.push_back("Filter");
 				for (auto rg: _readGroups.getNames(rg_IDs)){
-					rg_names.push_back(rg);
+					header.push_back(rg);
 				}
-				coretools::TOutputFile out(filename, rg_names, "\t");
+				coretools::TOutputFile out(filename, header, "\t");
 
+				//writes numbers of removed reads for each applied filter per read group, also lists filters if no reads were removed
 				_duplicateFilter.printCounts(out, _readGroups.size());
 				_softClippedFilter.printCounts(out, _readGroups.size());
 				_improperPairsFilter.printCounts(out, _readGroups.size());
@@ -747,7 +748,7 @@ void TBamFile::printSummaryNoEndIndent(){
 				coretools::instances::logfile().done();
 
 
-		//print counts of filtered reads for each read group to terminal
+		//print counts of filtered reads for each read group to terminal, doesn't list filters if no reads were removed
 		for (uint16_t it = 0; it < _readGroups.size(); it++){
 			_logfile->newLine();
 			_logfile->list("Number of reads filtered from read group: '" + coretools::str::toString(_readGroups.getName(it)) + "'");

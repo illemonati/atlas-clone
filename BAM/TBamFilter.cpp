@@ -73,6 +73,7 @@ void TBamFileFilter::summary(TLog* logfile, uint64_t total, const uint16_t readG
 };
 
 void TBamFileFilter::printCounts(coretools::TOutputFile &out, uint16_t rg_size){
+	//Reason is only set if filter is applied (see TBamFile::setFilters), in which case reason and number of removed reads per read group are printed here
 	if (!getReason().empty()){
 		out << getReason();
 		coretools::TCountDistribution FilterCount = numFiltered();

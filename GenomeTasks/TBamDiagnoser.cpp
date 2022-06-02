@@ -59,10 +59,6 @@ void TBamDiagnoser::_handleAlignment() {
     //passed filters?
     _passedQC.add(readGroup);
 
-    if(_bamFile.curIsDuplicate()) {
-    	_numDuplicates.add(readGroup);
-    	}
-
     //add to counters
     _readLength.add(readGroup, _bamFile.curCIGAR().lengthRead());
     _usableLength.add(readGroup, _bamFile.curCIGAR().lengthAligned());
@@ -83,7 +79,6 @@ void TBamDiagnoser::diagnose(){
 
     // resize distributions
     _passedQC.resize(numRG);
-    _numDuplicates.resize(numRG);
     _readLength.resize(numRG);
     _usableLength.resize(numRG);
     _softClippedLength.resize(numRG);
@@ -100,7 +95,7 @@ void TBamDiagnoser::diagnose(){
 	//writing read group summary
 	std::string filename = _outputName + "_diagnostics.txt";
 	logfile().listFlush("Writing general diagnostics to '" + filename + "' ...");
-	coretools::TOutputFile out(filename, {"readGroup", "passedQC", "avgReadLength", "maxReadLength", "properPairs", "avgFragmentLength", "softClipped", "avgSoftClippedLength", "avgUsableAlignedLength", "approximateDepth", "avgMappingQuality", "numDuplicates"});
+	coretools::TOutputFile out(filename, {"readGroup", "passedQC", "avgReadLength", "maxReadLength", "properPairs", "avgFragmentLength", "softClipped", "avgSoftClippedLength", "avgUsableAlignedLength", "approximateDepth", "avgMappingQuality"});
 
 	//write for combined
 	out << "allReadGroups";
@@ -109,8 +104,7 @@ void TBamDiagnoser::diagnose(){
 	out << _fragmentLength.counts() << _fragmentLength.mean();
 	out << _softClippedLength.countsLargerZero() << _softClippedLength.mean();
 	out << _usableLength.mean() << (double) _usableLength.sum() / (double) totLengthOfGenome;
-	out << _mappingQuality.mean();
-	out << _numDuplicates.counts() << std::endl;
+	out << _mappingQuality.mean() << std::endl;
 
 	//write per read group
 	for(uint32_t rg = 0; rg < numRG; ++rg){
@@ -120,8 +114,7 @@ void TBamDiagnoser::diagnose(){
 		out << _fragmentLength[rg].counts() << _fragmentLength.mean();
 		out << _softClippedLength[rg].countsLargerZero() << _softClippedLength[rg].mean();
 		out << _usableLength[rg].mean() << (double) _usableLength[rg].sum() / (double) totLengthOfGenome;
-		out << _mappingQuality[rg].mean();
-		out << _numDuplicates[rg] << std::endl;
+		out << _mappingQuality[rg].mean() << std::endl;
 	}
 	out.close();
 	logfile().done();
