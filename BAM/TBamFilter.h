@@ -19,6 +19,8 @@
 #include "TFile.h"
 #include "TNumericRange.h"
 #include "TSequencedBase.h"
+#include "counters.h"
+
 
 namespace coretools { class TLog; }
 namespace coretools { class TParameters; }
@@ -43,7 +45,7 @@ public:
 class TBamFileFilter{
 protected:
 	bool _keep;
-	uint64_t _counter;
+	coretools::TCountDistribution _counter;
 	std::string _reason; //used for reporting
 	bool _updateLog;
 	std::shared_ptr<TBamFileLog> _log;
@@ -54,9 +56,11 @@ public:
 	bool filters() const{ return !_keep; };
 	void setReason(const std::string reason);
 	void setLog(std::shared_ptr<TBamFileLog> & Log);
-	void filterOut(const std::string & alignmentName, const bool & isReverseStrand);
-	void summary(coretools::TLog* logfile, uint64_t total);
-	uint64_t numFiltered() const { return _counter; }
+	void filterOut(const std::string & alignmentName, const bool & isReverseStrand, const uint16_t readGroup);
+	void summary(coretools::TLog* logfile, uint64_t total, const uint16_t readGroup);
+	coretools::TCountDistribution numFiltered() const { return _counter; }
+	std::string getReason() const { return _reason; }
+	void printCounts(coretools::TOutputFile &out, uint16_t rg_size);
 };
 
 //Filters out if pass(false), keeps if pass(true)
@@ -64,7 +68,7 @@ class TBamFileFilterBool:public TBamFileFilter{
 public:
 	TBamFileFilterBool(){};
 	void filter(const std::string Reason);
-	bool pass(const bool state, const std::string & alignmentName, const bool & isReverseStrand);
+	bool pass(const bool state, const std::string & alignmentName, const bool & isReverseStrand, const uint16_t readGroup);
 };
 
 template <typename T>
@@ -88,9 +92,9 @@ public:
 		return _range.rangeString();
 	};
 
-	bool pass(const T & value, const std::string & alignmentName, const bool & isReverseStrand){
+	bool pass(const T & value, const std::string & alignmentName, const bool & isReverseStrand, const uint16_t readGroup){
 		if(!_keep && !_range.within(value)){
-			filterOut(alignmentName, isReverseStrand);
+			filterOut(alignmentName, isReverseStrand, readGroup);
 			return false;
 		}
 		return true;

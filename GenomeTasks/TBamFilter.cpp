@@ -287,7 +287,7 @@ void TBamFilter::_writeOrFilterAsOrphan(TAlignmentInStorage & it){
 		_writeAlignment(it);
 	} else {
 		//write reason to bam log
-		_bamFile.filterOut(it->alignment->name(), it->alignment->isSecondMate());
+		_bamFile.filterOut(it->alignment->name(), it->alignment->isSecondMate(), it->alignment->readGroupId());
 		it = _alignmentStorage.erase(it);
 	}
 };
@@ -660,7 +660,7 @@ void TAlignmentSplitMerger::_handleSingle(BAM::TAlignment* alignment){
 			_alignmentStorage.emplace_back(alignment, true);
 		} else {
 			//filter out (ignore) but write reason to bam log
-			_bamFile.filterOut(alignment->name(), alignment->isReverseStrand());
+			_bamFile.filterOut(alignment->name(), alignment->isReverseStrand(), alignment->readGroupId());
 		}
 	}
 };

@@ -129,7 +129,7 @@ public:
 	void setLimits(coretools::TParameters & params, coretools::TLog* logfile);
 	void setKeepAll();
 	void curFilterOut();
-	void filterOut(const std::string & alignmentName, const bool & isReverseStrand);
+	void filterOut(const std::string & alignmentName, const bool & isReverseStrand, const uint16_t readGroup);
 	void setExternalFilterReason(const std::string reason);
 	void openBamLog(coretools::TParameters & params, coretools::TLog* logfile);
 	void writeToBamLog(const std::string & alignmentName, const bool & isReverseStrand, const std::string & reason);
