@@ -46,34 +46,6 @@ TWindow_base::TWindow_base(){
 	_depthCalculated = false;
 };
 
-/*
-TWindow_base::TWindow_base(TWindow_base & other){
-	//initialize coordinates and sites
-	sites = NULL;
-	sitesInitialized = false;
-	stealFromOther(other);
-};
-
-void TWindow_base::stealFromOther(TWindow_base & other){
-	//initialize coordinates and sites
-	setCoordinates(other.start, other.end, other.chrNumber);
-
-	//copy data
-	for(unsigned int i=0; i<length; ++i){
-		sites[i].stealFromOther(&other.sites[i]);
-	}
-
-	depth = other.depth;
-	fractionSitesNoData = other.fractionSitesNoData;
-	fractionRefIsN = other.fractionRefIsN;
-	fractionDepthAtLeastTwo = other.fractionDepthAtLeastTwo;
-	numSitesWithData = other.numSitesWithData;
-	numReadsInWindow = other.numReadsInWindow;
-	referenceBaseAdded = other.referenceBaseAdded;
-	passedFilters = other.passedFilters;
-};
-*/
-
 TWindow_base::TWindow_base(TWindow & other, const int readUpToDepth, const Probability & downsamplingProb, TRandomGenerator* randomGenerator){
 	//initialize coordinates and sites
 	downsampleFromOther(other, readUpToDepth, downsamplingProb, randomGenerator);
@@ -94,14 +66,6 @@ void TWindow_base::clear(){
 	referenceBaseAdded = false;
 	_passedFilters = false;
 };
-
-/*
-void TWindow_base::move(const uint32_t RefID, const uint32_t Start, const uint32_t End, const std::string ChrName){
-	update(RefID, Start, End);
-	_chrName = ChrName;
-	clear();
-};
-*/
 
 void TWindow_base::move(const genometools::TGenomePosition & From, const genometools::TGenomePosition & To, const std::string ChrName){
 	genometools::TGenomeWindow::move(From, To);
@@ -368,68 +332,25 @@ TWindow::~TWindow(){
 	for(std::vector<BAM::TAlignment*>::iterator alignmentIt=usedAlignments.begin(); alignmentIt != usedAlignments.end(); ++alignmentIt)
 		delete *alignmentIt;
 	usedAlignments.clear();
-
-	for(std::vector<BAM::TAlignment*>::iterator alignmentIt=emptyAlignments.begin(); alignmentIt != emptyAlignments.end(); ++alignmentIt)
-		delete *alignmentIt;
-	emptyAlignments.clear();
 };
 
-BAM::TAlignment* TWindow::swapUsedForEmptyAlignment(BAM::TAlignment* usedAlignment){
-	//save used alignment on proper stack
+BAM::TAlignment *TWindow::swapUsedForEmptyAlignment(BAM::TAlignment *usedAlignment) {
+	// save used alignment on proper stack
 	usedAlignments.push_back(usedAlignment);
-
-	//return empty alignment, either from stack or create new
-	if(emptyAlignments.size() > 0){
-		BAM::TAlignment* alignment = *(emptyAlignments.rbegin());
-		emptyAlignments.pop_back();
-		return alignment;
-	} else {
-		BAM::TAlignment* alignment = new BAM::TAlignment();
-		return alignment;
-	}
+	return new BAM::TAlignment();
 };
 
-void TWindow::review(){
-	//update pointers
-	/*
-	firstAlignmentwithPosOutsideWindow = usedAlignments.end()-1;
-	while((*firstAlignmentwithPosOutsideWindow)->position > end && firstAlignmentwithPosOutsideWindow != usedAlignments.begin())
-		--firstAlignmentwithPosOutsideWindow;
-		*/
-
-	//fillSites();
-	//calcDepth();
-};
-
-void TWindow::_cleanUpUsedAlignments(){
-	if(usedAlignments.size() > 0){
-		//go through alignments
-		for(std::vector<BAM::TAlignment*>::iterator alignmentIt=usedAlignments.begin(); alignmentIt != usedAlignments.end(); ){
-			if(*(*alignmentIt) < _to && (*alignmentIt)->lastAlignedPositionWithRespectToRef() >= _from){
-				++alignmentIt;
-			} else{
-				(*alignmentIt)->clear();
-				emptyAlignments.push_back(*alignmentIt);
-				alignmentIt = usedAlignments.erase(alignmentIt);
-			}
-		}
-	}
+void TWindow::_cleanUpUsedAlignments() {
+	usedAlignments.erase(std::remove_if(usedAlignments.begin(), usedAlignments.end(),
+										[t = _to, f = _from](auto &a) {
+											return *a >= t || a->lastAlignedPositionWithRespectToRef() < f;
+										}),
+	                     usedAlignments.end());
 };
 
 void TWindow::_clearAllUsedAlignments(){
-	for(std::vector<BAM::TAlignment*>::iterator alignmentIt=usedAlignments.begin(); alignmentIt != usedAlignments.end();){
-		(*alignmentIt)->clear();
-		emptyAlignments.push_back(*alignmentIt);
-		alignmentIt = usedAlignments.erase(alignmentIt);
-	}
+	usedAlignments.clear();
 };
-
-/*
-void TWindow::move(const uint32_t RefID, const uint32_t Start, const uint32_t End, const std::string ChrName){
-	TWindow_base::move(RefID, Start, End, ChrName);
-	_cleanUpUsedAlignments();
-};
-*/
 
 void TWindow::move(const genometools::TGenomePosition & From, uint32_t Length, const std::string ChrName){
 	TWindow_base::move(From, Length, ChrName);
@@ -459,18 +380,6 @@ void TWindow::operator-=(uint32_t length){
 void TWindow::resize(uint32_t newLength){
 	TWindow_base::resize(newLength);
 	_cleanUpUsedAlignments();
-};
-
-void TWindow::printStacks(){
-	std::cout << "USED ALIGMENTS:";
-	for(BAM::TAlignment* alignmentIt : usedAlignments)
-		std::cout << " " << alignmentIt << " : " << alignmentIt->name() << " at " << alignmentIt->position();
-	std::cout << std::endl;
-
-	std::cout << "EMPTY ALIGMENTS:";
-	for(std::vector<BAM::TAlignment*>::iterator alignmentIt=emptyAlignments.begin(); alignmentIt != emptyAlignments.end(); ++alignmentIt)
-		std::cout << " " << *alignmentIt;
-	std::cout << std::endl;
 };
 
 uint32_t TWindow::_findFirstPositionWithinWindow(const BAM::TAlignment & alignment){

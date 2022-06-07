@@ -122,7 +122,6 @@ friend class TWindow_base;
 private:
 	//alignment stacks
 	std::vector<BAM::TAlignment*> usedAlignments;
-	std::vector<BAM::TAlignment*> emptyAlignments;
 
 	void _cleanUpUsedAlignments();
 	void _clearAllUsedAlignments();
@@ -150,9 +149,6 @@ public:
 	void operator+=(uint32_t length);
 	void operator-=(uint32_t length);
 	void resize(uint32_t newLength);
-
-	void review();
-	void printStacks();
 
 	void fillSites(uint32_t readUpToDepth);
 	void fillSitesSubset(TSiteSubset & subset, uint32_t readUpToDepth);
