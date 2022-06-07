@@ -45,8 +45,9 @@ TBamFileFilter::TBamFileFilter(){
 	_log = nullptr;
 };
 
-void TBamFileFilter::filterOut(const std::string & alignmentName, const bool & isReverseStrand){
-	++_counter;
+void TBamFileFilter::filterOut(const std::string & alignmentName, const bool & isReverseStrand, const uint16_t readGroup){
+	//counts filtered reads per read group and filter
+	_counter.add(readGroup);
 	if(_updateLog){
 		_log->write(alignmentName, isReverseStrand, _reason);
 	}
@@ -65,11 +66,21 @@ void TBamFileFilter::setLog(std::shared_ptr<TBamFileLog> & Log){
 	_updateLog = true;
 };
 
-void TBamFileFilter::summary(TLog* logfile, uint64_t total){
-	if(!_keep && _counter  > 0){
-		logfile->list(_reason + ": ", _counter, " (" + coretools::str::toPercentString(_counter, total, 3) + "%)");
+void TBamFileFilter::summary(TLog* logfile, uint64_t total, const uint16_t readGroup){
+	if(!_keep && _counter[readGroup]  > 0){
+		logfile->list(_reason + ": ", _counter[readGroup], " (" + coretools::str::toPercentString(_counter[readGroup], total, 3) + "%)");
 	}
 };
+
+void TBamFileFilter::printCounts(coretools::TOutputFile &out, uint16_t rg_size){
+	//Reason is only set if filter is applied (see TBamFile::setFilters), in which case reason and number of removed reads per read group are printed here
+	if (!getReason().empty()){
+		out << getReason();
+		coretools::TCountDistribution FilterCount = numFiltered();
+		for (uint16_t it = 0; it < rg_size; it++){out << FilterCount[it];}
+		out << std::endl;
+	}
+}
 
 //-----------------------------------------------------
 //TBamFileFilterBool
@@ -79,9 +90,9 @@ void TBamFileFilterBool::filter(const std::string Reason){
 	_reason = Reason;
 };
 
-bool TBamFileFilterBool::pass(const bool state, const std::string & alignmentName, const bool & isReverseStrand){
+bool TBamFileFilterBool::pass(const bool state, const std::string & alignmentName, const bool & isReverseStrand, const uint16_t readGroup){
 	if(!state && !_keep){
-		filterOut(alignmentName, isReverseStrand);
+		filterOut(alignmentName, isReverseStrand, readGroup);
 		return false;
 	}
 	return true;
