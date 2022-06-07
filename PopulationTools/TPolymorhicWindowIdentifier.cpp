@@ -42,7 +42,7 @@ void TPolymorhicWindowIdentifier::identifyPolymorphicWindows(TParameters & Param
 	//open VCF reader
 	std::string vcfFilename = Parameters.getParameter<std::string>("vcf");
 	logfile->startIndent("Reading genotype likelihoods from VCF file '" + vcfFilename + "':");
-    genometools::TPopulationLikelihoodReaderWindow reader(Parameters, logfile, false);
+    genometools::TPopulationLikelihoodReaderWindow reader(false);
 	reader.openVCF(vcfFilename);
 	logfile->endIndent();
 
