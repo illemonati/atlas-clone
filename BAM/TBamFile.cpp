@@ -752,6 +752,7 @@ void TBamFile::printSummaryNoEndIndent(){
 		for (uint16_t it = 0; it < _readGroups.size(); it++){
 			_logfile->newLine();
 			_logfile->list("Number of reads filtered from read group: '" + coretools::str::toString(_readGroups.getName(it)) + "'");
+			_logfile->addIndent();
 			_duplicateFilter.summary(_logfile, numFiltered, it);
 			_softClippedFilter.summary(_logfile, numFiltered, it);
 			_improperPairsFilter.summary(_logfile, numFiltered, it);
@@ -772,6 +773,7 @@ void TBamFile::printSummaryNoEndIndent(){
 			_readLengthFilter.summary(_logfile, numFiltered, it);
 			_mappedLengthFilter.summary(_logfile, numFiltered, it);
 		}
+		_logfile->endIndent();
 		_logfile->endIndent();
 	}
 };
