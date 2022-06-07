@@ -180,8 +180,6 @@ TGenome_windows::TGenome_windows():
 	_setMasks();
 	_setSiteFilters();
 	logfile().endIndent();
-
-    _curAlignment = std::make_unique<BAM::TAlignment>();
 };
 
 void TGenome_windows::_setWindowParameters(){
@@ -441,12 +439,10 @@ bool TGenome_windows::_moveToNextPredefinedWindow(GenotypeLikelihoods::TWindow_b
 		//same chromosome: jump only if we are far away
 		if(_bamFile.curPosition() > window.from() || _bamFile.curPosition() < window.from() - _bamFile.maxReadLength()){
 			_bamFile.jump(window.from() - _bamFile.maxReadLength());
-			_curAlignment->clear();
 		}
 	} else {
 		//different chromosome: jump
 		_bamFile.jump(window.from() - _bamFile.maxReadLength());
-		_curAlignment->clear();
     }
 
 	//return true as we continue reading
@@ -514,29 +510,21 @@ bool TGenome_windows::_readAndParseAlignment(BAM::TAlignment & alignment){
     return true;
 };
 
-void TGenome_windows::_readAlignmentsIntoWindow(GenotypeLikelihoods::TWindow & window){
-	//measure runtime
+void TGenome_windows::_readAlignmentsIntoWindow(GenotypeLikelihoods::TWindow &window) {
+	// measure runtime
 	logfile().listFlushTime("Reading data ...");
 
-	//make sure oldAligment is set
-	if(_curAlignment->isEmpty()){
-	    _readAndParseAlignment(*_curAlignment);
+	for (;;) {
+		BAM::TAlignment a;
+		if (!_readAndParseAlignment(a)) break;
+		if (a >= window.to()) break;
+		// check if alignment contains part of the window
+		// if read continues outside of window, this is dealt with by window object
+		if (a.lastAlignedPositionWithRespectToRef() >= window.from()) { window.addAlignment(std::move(a)); }
 	}
 
-	while(*(_curAlignment) < window.to()){
-        //check if alignment contains part of the window
-		//if read continues outside of window, this is dealt with by window object
-        if(_curAlignment->lastAlignedPositionWithRespectToRef() >= window.from()){
-            _curAlignment.reset(window.swapUsedForEmptyAlignment(_curAlignment.release()));
-		}
-
-		//read next alignment
-        if (!_readAndParseAlignment(*_curAlignment))
-            break;
-	}
-
-	//fill sites
-	if(_subset){
+	// fill sites
+	if (_subset) {
 		window.fillSitesSubset(*_subset, _readUpToDepth);
 		window.addReferenceBaseToSites(*_subset);
 	} else {
@@ -544,10 +532,10 @@ void TGenome_windows::_readAlignmentsIntoWindow(GenotypeLikelihoods::TWindow & w
 		window.addReferenceBaseToSites(_reference);
 	}
 
-	//report
+	// report
 	logfile().doneTime();
 
-	//apply filters
+	// apply filters
 	_applyWindowFilters(window);
 };
 
@@ -594,7 +582,6 @@ void TGenome_windows::_traverseBAMWindows(){
 	//initializing
 	_hasWindowIndent = false;
 	_curChromosome = _chromosomes.cend(); //set chromosome to end to trigger restart.
-	_curAlignment->clear();
 
 	//iterate through windows
 	while(_readDataInNextWindow(_window)){

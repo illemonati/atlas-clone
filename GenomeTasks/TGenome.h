@@ -147,7 +147,6 @@ protected:
 	std::unique_ptr<coretools::TSubsamplePicker> subsamplePicker;
 
 	// tmp variables
-	std::unique_ptr<BAM::TAlignment> _curAlignment;
 	bool _hasWindowIndent;
 	coretools::TTimer _windowTimer;
 

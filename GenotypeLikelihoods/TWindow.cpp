@@ -325,27 +325,25 @@ coretools::TOutputFile& operator<<(coretools::TOutputFile& out, const TWindow_ba
 //-------------------------------------------------------
 //Twindow
 //-------------------------------------------------------
-TWindow::TWindow():TWindow_base(){};
 
-TWindow::~TWindow(){
-	//delete alignments
-	for(std::vector<BAM::TAlignment*>::iterator alignmentIt=usedAlignments.begin(); alignmentIt != usedAlignments.end(); ++alignmentIt)
-		delete *alignmentIt;
-	usedAlignments.clear();
-};
-
-BAM::TAlignment *TWindow::swapUsedForEmptyAlignment(BAM::TAlignment *usedAlignment) {
-	// save used alignment on proper stack
-	usedAlignments.push_back(usedAlignment);
-	return new BAM::TAlignment();
+void TWindow::addAlignment(BAM::TAlignment usedAlignment) {
+	usedAlignments.push_back(std::move(usedAlignment));
 };
 
 void TWindow::_cleanUpUsedAlignments() {
+	OUT(usedAlignments.size());
+	for (size_t i = 0; i < usedAlignments.size(); ++i) {
+		const auto &a = usedAlignments[i];
+		if (!(a >= _to || a.lastAlignedPositionWithRespectToRef() < _from)) {
+				OUT(i);
+			}
+	}
 	usedAlignments.erase(std::remove_if(usedAlignments.begin(), usedAlignments.end(),
-										[t = _to, f = _from](auto &a) {
-											return *a >= t || a->lastAlignedPositionWithRespectToRef() < f;
+										[t = _to, f = _from](auto a) {
+											return a >= t || a.lastAlignedPositionWithRespectToRef() < f;
 										}),
 	                     usedAlignments.end());
+	OUT(usedAlignments.size());
 };
 
 void TWindow::_clearAllUsedAlignments(){
@@ -426,9 +424,9 @@ void TWindow::_fillSites(std::vector<TSite> & sites, uint32_t readUpToDepth){
 	sites.resize(size());
 
 	//add reads in usedAlignments to sites in window
-	for(BAM::TAlignment* alignmentIt : usedAlignments){
+	for(auto & a : usedAlignments){
 		//now fill
-		_fillSites(*alignmentIt, sites, readUpToDepth);
+		_fillSites(a, sites, readUpToDepth);
 	}
 };
 
@@ -437,10 +435,10 @@ int TWindow::_fillSitesDownsampling(std::vector<TSite> & sites, uint32_t readUpT
 
 	//add reads in usedAlignments to sites in window
 	int counter = 0;
-	for(BAM::TAlignment* alignmentIt : usedAlignments){
+	for(auto& a : usedAlignments){
 		//fill if alignment is to be used
 		if(randomGenerator->getRand() < downsamplingProb){
-			_fillSites(*alignmentIt, sites, readUpToDepth);
+			_fillSites(a, sites, readUpToDepth);
 			++counter;
 		}
 	}
@@ -492,9 +490,9 @@ void TWindow::_fillSitesSubset(std::vector<TSite> & sites, TSiteSubset & subset,
 	std::set<TSiteSubsetSite> thesePositions = subset.getPositionInWindow(*this);
 
 	//add reads in usedAlignments to sites in window
-	for(BAM::TAlignment* alignmentIt : usedAlignments){
+	for(auto & a : usedAlignments){
 		//now fill
-		_fillSitesSubset(*alignmentIt, sites, thesePositions, readUpToDepth);
+		_fillSitesSubset(a, sites, thesePositions, readUpToDepth);
 	}
 };
 
@@ -506,11 +504,11 @@ int TWindow::_fillSitesSubsetDownsampling(std::vector<TSite> & sites, TSiteSubse
 
 	//add reads in usedAlignments to sites in window
 	int counter = 0;
-	for(BAM::TAlignment* alignmentIt : usedAlignments){
+	for(auto & a : usedAlignments){
 		//check if alignment is to be used
 		if(randomGenerator->getRand() < downsamplingProb){
 			//now fill
-			_fillSitesSubset(*alignmentIt, sites, thesePositions, readUpToDepth);
+			_fillSitesSubset(a, sites, thesePositions, readUpToDepth);
 			++counter;
 		}
 	}
