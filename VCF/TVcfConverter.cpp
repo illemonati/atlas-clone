@@ -100,7 +100,9 @@ void TVcfToBeagle::_writeHaploid(genometools::TPopulationLikehoodLocus<TSampleLi
 	if (data[s].isMissing()) {
 		_beagleFile << 0.5 << 0.5 << 0; // use 0.5 instead of 1 as ANGSD requires GTL to sum to one
 	} else {
-		_beagleFile << (Probability)data[s][BG::haploidFirst] << (Probability)data[s][BG::haploidSecond] << 0.0;
+		std::array<double, 2> GTL = {(Probability)data[s][BG::haploidFirst], (Probability)data[s][BG::haploidSecond]};
+		coretools::normalize(GTL);
+		_beagleFile << GTL[0] << GTL[1] << 0.0;
 	}
 }
 
@@ -110,10 +112,13 @@ void TVcfToBeagle::_writeDiploid(genometools::TPopulationLikehoodLocus<TSampleLi
 
 	// ANGSD: 3rd gtl for haploids must be zero
 	if (data[s].isMissing()) {
-		_beagleFile << 0.333 << 0.333 << 0.333; // use 1/3 instead of 1 as ANGSD requires GTL to sum to one
+		constexpr static double m = 1. / 3.;
+		_beagleFile << m << m << m; // use 1/3 instead of 1 as ANGSD requires GTL to sum to one
 	} else {
-		_beagleFile << (Probability)data[s][BG::homoFirst] << (Probability)data[s][BG::het]
-		            << (Probability)data[s][BG::homoSecond];
+		std::array<double, 3> GTL = {(Probability)data[s][BG::homoFirst], (Probability)data[s][BG::het],
+		                             (Probability)data[s][BG::homoSecond]};
+		coretools::normalize(GTL);
+		_beagleFile << GTL[0] << GTL[1] << GTL[2];
 	}
 }
 
@@ -267,13 +272,6 @@ void TVcfToGenotypeTruthSetFile::_initOutputFiles() {
 
 	// initialize bed files (we know how many samples there are)
 	_bedFiles.resize(_samples.numSamples());
-
-	// check if minNumSamplesWithData-Filter of TPopulationLikelihoods is zero
-	// (even if all samples have missing data, we still need to keep the locus, because otherwise
-	// positions in posfile and genfile do not match)
-	if (_reader.getMinNumSamplesWithData() != 0) {
-		UERROR("Parameter 'minSamplesWithData' must be 0 for this task! Please specify 'minSamplesWithData=0'.");
-	}
 }
 
 void TVcfToGenotypeTruthSetFile::_mapIndividualsToDepth(std::vector<size_t> &samplesToKeep) {

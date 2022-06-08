@@ -28,14 +28,14 @@ using namespace genometools;
 class TVCFConverterTest : public Test {
 protected:
 	std::vector<uint16_t> phred_g1         = {0, 1, 0, 0, 3, 0, 1, 2, 0, 0, 2, 0, 1, 0, 0, 1, 0, 0, 1, 1, 1, 0, 0, 3, 1,
-	                                          0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 1, 2, 3, 2, 0, 3, 0, 0, 1, 0, 0, 0, 1, 2, 0};
+                                      0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 1, 2, 3, 2, 0, 3, 0, 0, 1, 0, 0, 0, 1, 2, 0};
 	std::vector<uint16_t> phred_g2         = {1, 2, 0, 0, 0, 1, 1, 0, 1, 1, 1, 0, 0, 2, 1, 2, 2, 0, 1, 1, 0, 2, 0, 0, 0,
-	                                          0, 0, 0, 2, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1};
+                                      0, 0, 0, 2, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 1};
 	std::vector<uint16_t> phred_g3         = {1, 0, 1, 3, 1, 2, 0, 1, 0, 1, 0, 0, 1, 0, 2, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0,
-	                                          1, 3, 0, 0, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 1, 2, 3, 0, 0, 1, 0, 2, 1, 0, 1};
+                                      1, 3, 0, 0, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 1, 2, 3, 0, 0, 1, 0, 2, 1, 0, 1};
 	std::vector<uint16_t> depth            = {14, 11, 9, 9, 6,  8, 12, 9,  10, 11, 5,  14, 7,  13, 13, 11, 11,
-	                                          5,  9,  8, 9, 8,  6, 7,  10, 14, 10, 11, 13, 10, 7,  9,  11, 13,
-	                                          8,  7,  9, 6, 10, 6, 15, 15, 10, 9,  11, 9,  6,  14, 9,  14};
+                                   5,  9,  8, 9, 8,  6, 7,  10, 14, 10, 11, 13, 10, 7,  9,  11, 13,
+                                   8,  7,  9, 6, 10, 6, 15, 15, 10, 9,  11, 9,  6,  14, 9,  14};
 	std::vector<std::string> sampleNames   = {"Indiv1", "Indiv2", "Indiv3", "Indiv4", "Indiv5"};
 	std::vector<std::string> samplesToKeep = {"Indiv4", "Indiv1", "Indiv5"}; // omit Indiv3 and Indiv4; and shuffle
 	std::vector<size_t> indexInSampleNames = {3, 0, 4};
@@ -139,13 +139,18 @@ TEST_F(TVCFConverterTest, beagle) {
 		EXPECT_EQ(line[1], "A");
 		EXPECT_EQ(line[2], "C");
 		for (size_t i = 0; i < numIndiv; ++i, ++linearIndex) {
+			const double sum = (Probability)PhredIntProbability(phred_g1[linearIndex]) +
+			                   (Probability)PhredIntProbability(phred_g2[linearIndex]) +
+			                   (Probability)PhredIntProbability(phred_g3[linearIndex]);
+			const double gtl1 = convertString<Probability>(line[3 + i * 3]);
+			const double gtl2 = convertString<Probability>(line[3 + i * 3 + 1]);
+			const double gtl3 = convertString<Probability>(line[3 + i * 3 + 2]);
+
 			// genotype likelihoods (we loose some precision when reading/writing, so only expect near)
-			EXPECT_NEAR(convertString<Probability>(line[3 + i * 3]),
-			            (Probability)PhredIntProbability(phred_g1[linearIndex]), 0.00001);
-			EXPECT_NEAR(convertString<Probability>(line[3 + i * 3 + 1]),
-			            (Probability)PhredIntProbability(phred_g2[linearIndex]), 0.00001);
-			EXPECT_NEAR(convertString<Probability>(line[3 + i * 3 + 2]),
-			            (Probability)PhredIntProbability(phred_g3[linearIndex]), 0.00001);
+			EXPECT_NEAR(gtl1, (Probability)PhredIntProbability(phred_g1[linearIndex]) / sum, 0.00001);
+			EXPECT_NEAR(gtl2, (Probability)PhredIntProbability(phred_g2[linearIndex]) / sum, 0.00001);
+			EXPECT_NEAR(gtl3, (Probability)PhredIntProbability(phred_g3[linearIndex]) / sum, 0.00001);
+			EXPECT_NEAR(gtl1 + gtl2 + gtl3, 1.0, 0.00001);
 		}
 	}
 }
@@ -179,12 +184,16 @@ TEST_F(TVCFConverterTest, beagle_withSamples) {
 		for (size_t i = 0; i < samplesToKeep.size(); ++i) {
 			size_t relevantIndex = l * numIndiv + indexInSampleNames[i];
 			// genotype likelihoods (we loose some precision when reading/writing, so only expect near)
-			EXPECT_NEAR(convertString<Probability>(line[3 + i * 3]),
-			            (Probability)PhredIntProbability(phred_g1[relevantIndex]), 0.00001);
-			EXPECT_NEAR(convertString<Probability>(line[3 + i * 3 + 1]),
-			            (Probability)PhredIntProbability(phred_g2[relevantIndex]), 0.00001);
-			EXPECT_NEAR(convertString<Probability>(line[3 + i * 3 + 2]),
-			            (Probability)PhredIntProbability(phred_g3[relevantIndex]), 0.00001);
+			const double sum     = (Probability)PhredIntProbability(phred_g1[relevantIndex]) +
+			                   (Probability)PhredIntProbability(phred_g2[relevantIndex]) +
+			                   (Probability)PhredIntProbability(phred_g3[relevantIndex]);
+			const double gtl1 = convertString<Probability>(line[3 + i * 3]);
+			const double gtl2 = convertString<Probability>(line[3 + i * 3 + 1]);
+			const double gtl3 = convertString<Probability>(line[3 + i * 3 + 2]);
+			EXPECT_NEAR(gtl1, (Probability)PhredIntProbability(phred_g1[relevantIndex]) / sum, 0.00001);
+			EXPECT_NEAR(gtl2, (Probability)PhredIntProbability(phred_g2[relevantIndex]) / sum, 0.00001);
+			EXPECT_NEAR(gtl3, (Probability)PhredIntProbability(phred_g3[relevantIndex]) / sum, 0.00001);
+			EXPECT_NEAR(gtl1 + gtl2 + gtl3, 1.0, 0.00001);
 		}
 	}
 }

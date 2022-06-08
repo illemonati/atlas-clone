@@ -231,13 +231,13 @@ class TVcfToGenotypeTruthSetFile : public TVcfConverter {
 	// produces genotype truth set (genfile) for STITCH and bed files for samples
 	// idea: first locus -> find 0-n samples that have depth higher than minDepth
 	//                   -> write position of this locus into bed-files for these individuals
-	//                   -> write _genotypes of these individuals to genfile; write _genotypes of all other individuals
+	//                   -> write genotypes of these individuals to genfile; write genotypes of all other individuals
 	//                   as NA to genfile
 	//       next locus  -> is distance to previous locus more than x basepairs?
 	//                   -> If yes: find 0-n samples that have depth higher than minDepth
-	//                              -> write _genotypes of these individuals to genfile; write _genotypes of all other
+	//                              -> write genotypes of these individuals to genfile; write genotypes of all other
 	//                              individuals as NA to genfile
-	//                   -> Else: write _genotypes of all individuals as NA to genfile
+	//                   -> Else: write genotypes of all individuals as NA to genfile
 	// format:
 	//   - produces a BED file (3 columns, col 1 = chromosome, col 2 = start (1-based), col 3 = stop) for each
 	//   individual
@@ -308,18 +308,18 @@ public:
 			} else {
 				UERROR("Unknown genotype method '", genoType, "'! Use either 'call' or 'posterior'");
 			}
-		} else if (format == "positions") {
+		} else if (format == "posfile") {
 			logfile().startIndent("Converting a VCF file to posfile format used by STITCH (parameter 'format'):");
 			TVcfToPosFile VcfToPosFile;
 			VcfToPosFile.run();
-		} else if (format == "genoTruthStitch") {
+		} else if (format == "genfile") {
 			logfile().startIndent(
 			    "Converting a VCF file to genotype truth set format used by STITCH (parameter 'format'):");
 			TVcfToGenotypeTruthSetFile VcfToGenotypeTruthSetFile;
 			VcfToGenotypeTruthSetFile.run();
 		} else {
 			UERROR("Unknown format '", format,
-			       "'! Use either 'beagle', 'geno', 'LFMM', 'positions' or 'genoTruthStitch'.");
+				   "'! Use either 'beagle', 'geno', 'LFMM', 'posfile' or 'genfile'.");
 		}
 		logfile().endIndent();
 	};
