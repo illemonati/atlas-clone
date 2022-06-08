@@ -52,19 +52,19 @@ using genometools::TChromosomes;
 namespace /* anonymous */ {
 std::unique_ptr<THaplotypeSimulator> makeHaploSimulator(const std::string &method, const TChromosomes &chs) {
 	if (method == "one") {
-		logfile().startIndent("Simulating a single individual (parameter type=one):");
+		logfile().list("Simulating a single individual (parameter type=one):");
 		return std::make_unique<TSimulatorOne>(chs.size());
 	}
 	if (method == "pair") {
-		logfile().startIndent("Simulating a pair of individual (parameter type=pair):");
+		logfile().list("Simulating a pair of individual (parameter type=pair):");
 		return std::make_unique<TSimulatorPair>();
 	}
 	if (method == "SFS") {
-		logfile().startIndent("Simulating individuals from an SFS (parameter type=SFS):");
+		logfile().list("Simulating individuals from an SFS (parameter type=SFS):");
 		return std::make_unique<TSimulatorSFS>(chs);
 	}
 	if (method == "HW") {
-		logfile().startIndent("Simulating a individuals under Hardy-Weinberg (parameter type=HW):");
+		logfile().list("Simulating a individuals under Hardy-Weinberg (parameter type=HW):");
 		return std::make_unique<TSimulatorHW>();
 	}
 	throw "Unknown simulation method '" + method + "'!";
@@ -327,6 +327,7 @@ void TBAMSimulator::_initializePMD(const std::string &ParameterName, const std::
 	} else {
 		logfile().list("Not simulating any PMD.");
 	}
+	logfile().endIndent();
 }
 
 void TBAMSimulator::_initializeQualityTransformations(const std::string &ParameterName, const std::string &Name) {
@@ -429,6 +430,8 @@ void TBAMSimulator::_initializeReadSimulator() {
 
 	// initialize read group frequencies frequencies
 	_initializeReadGroupFrequencies();
+
+	logfile().endIndent();
 }
 
 void TBAMSimulator::_initializeReadGroupFrequencies() {

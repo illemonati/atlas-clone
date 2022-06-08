@@ -60,8 +60,9 @@ void TVcfConverter::_parseVCF() {
 	genometools::TPopulationLikehoodLocus<TSampleLikelihoods> data(_samples.numSamples());
 
 	// run through VCF file
-	logfile().list("Parsing VCF file...");
+	logfile().startIndent("Parsing VCF file...");
 	while (_reader.readDataFromVCF(data, _samples)) { _write(data); }
+	logfile().endIndent();
 
 	// end of vcf file reached
 	_reader.concludeFilters();
