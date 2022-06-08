@@ -131,7 +131,7 @@ private:
 	void _default();
 
 public:
-	explicit constexpr TQualityFilter(){
+	explicit TQualityFilter(){
 		_default();
 	};
 

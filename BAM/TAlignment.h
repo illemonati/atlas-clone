@@ -18,6 +18,7 @@
 #include "TSamFlags.h"
 #include "TSequencedBase.h"
 #include "probability.h"
+#include "devtools.h"
 
 namespace BAM { class TBaseFilter; }
 namespace BAM { class TFastaBuffer; }
@@ -80,6 +81,11 @@ public:
 	TAlignment(uint32_t RefID, uint32_t Position);
 	TAlignment(const TGenomePosition & other);
 	TAlignment();
+	~TAlignment() = default;
+	TAlignment(const TAlignment&) = default;
+	TAlignment(TAlignment&&) = default;
+	TAlignment& operator=(const TAlignment&) = default;
+	TAlignment& operator=(TAlignment&&) = default;
 
 	//clear, fill and parse
 	void clear();

@@ -121,8 +121,7 @@ class TWindow:public TWindow_base{
 friend class TWindow_base;
 private:
 	//alignment stacks
-	std::vector<BAM::TAlignment*> usedAlignments;
-	std::vector<BAM::TAlignment*> emptyAlignments;
+	std::vector<BAM::TAlignment> usedAlignments;
 
 	void _cleanUpUsedAlignments();
 	void _clearAllUsedAlignments();
@@ -139,8 +138,7 @@ private:
 	int _fillSitesSubsetDownsampling(std::vector<TSite> & sites, TSiteSubset & subset, uint32_t readUpToDepth, const coretools::Probability & downsamplingProb, coretools::TRandomGenerator* randomGenerator);
 
 public:
-	TWindow();
-	~TWindow();
+	TWindow():TWindow_base(){};
 
 	//Overload moving to take care of alignemnts
 	//void move(const uint32_t RefID, const uint32_t Start, const uint32_t End, const std::string ChrName);
@@ -151,13 +149,10 @@ public:
 	void operator-=(uint32_t length);
 	void resize(uint32_t newLength);
 
-	void review();
-	void printStacks();
-
 	void fillSites(uint32_t readUpToDepth);
 	void fillSitesSubset(TSiteSubset & subset, uint32_t readUpToDepth);
 
-	BAM::TAlignment* swapUsedForEmptyAlignment(BAM::TAlignment* usedAlignment);
+	void addAlignment(BAM::TAlignment usedAlignment);
 };
 
 }; //end namespace

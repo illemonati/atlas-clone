@@ -130,7 +130,9 @@ void TAlignment::_parseBasesQualities(const std::vector<genometools::Base> & Seq
 
 	//initialize
 	_bases.resize(_cigar.lengthRead());
-	_alignedPosition.resize(_cigar.lengthRead());
+	//_alignedPosition.resize(_cigar.lengthRead());
+	_alignedPosition.clear();
+	_alignedPosition.reserve(_cigar.lengthRead());
 	int d = 0; //index regarding data structures and inside read
 	int p = 0; //index regarding reference position (!= d for soft clipping & indels)
 
@@ -147,7 +149,7 @@ void TAlignment::_parseBasesQualities(const std::vector<genometools::Base> & Seq
 					_bases[d].base = Sequence[d];
 					_bases[d].originalQuality_phredInt = Qualities[d];
 					_bases[d].setAligned(true);
-					_alignedPosition[d] = p;
+					_alignedPosition.push_back(p);
 				}
 				_lastAlignedPos = d - 1; //Note: for loop ends with d one too large
 				break;
@@ -161,7 +163,7 @@ void TAlignment::_parseBasesQualities(const std::vector<genometools::Base> & Seq
 					_bases[d].base = Sequence[d];
 					_bases[d].originalQuality_phredInt = Qualities[d];
 					_bases[d].setAligned(false);
-					_alignedPosition[d] = -1;
+					_alignedPosition.push_back(-1);
 				}
 				break;
 
@@ -171,7 +173,7 @@ void TAlignment::_parseBasesQualities(const std::vector<genometools::Base> & Seq
 					_bases[d].base = Sequence[d];
 					_bases[d].originalQuality_phredInt = Qualities[d];
 					_bases[d].setAligned(false);
-					_alignedPosition[d] = -1;
+					_alignedPosition.push_back(-1);
 				}
 				break;
 
