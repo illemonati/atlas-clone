@@ -54,6 +54,7 @@ protected:
 	std::string _outputName;
 
 	void _openBamForWriting(const std::string &filename, BAM::TOutputBamFile &outBam);
+
 public:
 	TGenome_basic();
 	virtual ~TGenome_basic() = default;
@@ -67,6 +68,7 @@ class TGenome_filtered : public TGenome_basic {
 protected:
 	void _traverseBAMPassedQC();
 	virtual void _handleAlignment() = 0;
+
 public:
 	TGenome_filtered();
 };
@@ -100,6 +102,7 @@ protected:
 	void _parseAlignment(BAM::TAlignment &alignment);
 	void _traverseBAMPassedQC();
 	virtual void _handleAlignment() = 0;
+
 public:
 	TGenome_parsed();
 };
@@ -147,6 +150,7 @@ protected:
 	std::unique_ptr<coretools::TSubsamplePicker> subsamplePicker;
 
 	// tmp variables
+	BAM::TAlignment _curAlignment;
 	bool _hasWindowIndent;
 	coretools::TTimer _windowTimer;
 
@@ -175,6 +179,7 @@ protected:
 
 	void _traverseBAMWindows();
 	virtual void _handleWindow() = 0;
+
 public:
 	TGenome_windows();
 };

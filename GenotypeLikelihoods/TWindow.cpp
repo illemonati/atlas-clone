@@ -262,8 +262,6 @@ void TWindow_base::applyMask(genometools::TBed & mask, bool doInverseMasking){
 		while(it != mask.end() && this->overlaps(*it)){
 
 			for(genometools::TGenomePosition s = std::max(it->from(), _from); s < std::min(it->to(), _to); ++s){
-				OUT(_sites.size());
-				OUT(s - _from);
 				_sites[s - _from].clear();
 			}
 			++it;
