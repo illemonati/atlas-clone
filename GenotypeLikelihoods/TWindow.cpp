@@ -261,7 +261,9 @@ void TWindow_base::applyMask(genometools::TBed & mask, bool doInverseMasking){
 		auto it = mask.lower_bound(*this);
 		while(it != mask.end() && this->overlaps(*it)){
 
-			for(genometools::TGenomePosition s = std::max(it->from(), _from); s < it->to(); ++s){
+			for(genometools::TGenomePosition s = std::max(it->from(), _from); s < std::min(it->to(), _to); ++s){
+				OUT(_sites.size());
+				OUT(s - _from);
 				_sites[s - _from].clear();
 			}
 			++it;
@@ -331,19 +333,10 @@ void TWindow::addAlignment(BAM::TAlignment usedAlignment) {
 };
 
 void TWindow::_cleanUpUsedAlignments() {
-	OUT(usedAlignments.size());
-	for (size_t i = 0; i < usedAlignments.size(); ++i) {
-		const auto &a = usedAlignments[i];
-		if (!(a >= _to || a.lastAlignedPositionWithRespectToRef() < _from)) {
-				OUT(i);
-			}
-	}
-	usedAlignments.erase(std::remove_if(usedAlignments.begin(), usedAlignments.end(),
-										[t = _to, f = _from](auto a) {
-											return a >= t || a.lastAlignedPositionWithRespectToRef() < f;
-										}),
-	                     usedAlignments.end());
-	OUT(usedAlignments.size());
+	usedAlignments.erase(
+		std::remove_if(usedAlignments.begin(), usedAlignments.end(),
+					   [t = _to, f = _from](auto a) { return a >= t || a.lastAlignedPositionWithRespectToRef() < f; }),
+		usedAlignments.end());
 };
 
 void TWindow::_clearAllUsedAlignments(){
@@ -401,12 +394,9 @@ uint32_t TWindow::_findFirstPositionWithinWindow(const BAM::TAlignment & alignme
 //fill sites
 //------------------------------------------------------
 void TWindow::_fillSites(BAM::TAlignment & alignment, std::vector<TSite> & sites, uint32_t readUpToDepth){
-	//genomic position of alignment as seen from window perspective
-	uint32_t p = _findFirstPositionWithinWindow(alignment);
-
 	//position in window where first one = 0
 	//p is at first position of read in window
-	for(; p < alignment.parsedLength(); ++p){
+	for(uint32_t p = _findFirstPositionWithinWindow(alignment); p < alignment.parsedLength(); ++p){
 		if(alignment.isAlignedAtInternalPos(p) && alignment[p] != genometools::Base::N){
 			uint32_t internalPos = alignment.positionInRef(p) - _from;
 
