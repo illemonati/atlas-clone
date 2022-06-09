@@ -27,24 +27,17 @@ TBamDiagnoser::TBamDiagnoser():TGenome_filtered(){
     // initialize TGenome_basic stuff
 
 	//settings
-	_qualFilter.set(parameters(), &logfile());
 	_bamFile.readGroups().fillVectorWithNames(_readGroupNames);
 
-	// should we filter -> only call setFilters if we want to filter!
-	// By default, all filters are off
-	if (parameters().parameterExists("filterBAM")){
-	    _bamFile.setFilters(parameters(), &logfile());
-	} else {
-	    logfile().list("Will keep all reads. (use 'filterBAM' to limit)");
-	}
 };
 
 void TBamDiagnoser::_writeHistogram(const TCountDistributionVector & distVec, const std::string& header, const std::string& name){
-	// 1) read length
+	//displays distributions of type 'TCountDistributionVector' as a histogram
 	std::string filename = _outputName + "_" + header + "Histogram.txt";
 	logfile().listFlush("Writing " + name + " histogram to '" + filename + "' ...");
 	coretools::TOutputFile out(filename, {"readGroup", header, "count"});
 
+	//First write values for all read groups combined, then write them per read group
 	distVec.writeCombined(out, "allReadGroups");
 	distVec.write(out, _readGroupNames);
 
@@ -56,7 +49,7 @@ void TBamDiagnoser::_handleAlignment() {
     //get read group
     uint16_t readGroup = _bamFile.curReadGroupID();
 
-    //passed filters?
+    //increments for each read that passed filters
     _passedQC.add(readGroup);
 
     //add to counters
@@ -123,7 +116,7 @@ void TBamDiagnoser::diagnose(){
 
 	//writing distributions
 	_writeHistogram(_readLength, "readLength", "read length");
-	_writeHistogram(_usableLength, "usableLength", "usable length");
+	_writeHistogram(_usableLength, "alignedLength", "aligned length");
 	_writeHistogram(_softClippedLength, "softClippedLength", "soft clipped length");
 	_writeHistogram(_fragmentLength, "fragmentLength", "fragment length");
 	_writeHistogram(_mappingQuality, "mappingQuality", "mapping quality");

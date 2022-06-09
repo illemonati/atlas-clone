@@ -221,6 +221,7 @@ void TBamFile::setFilters(TParameters & params, TLog* logfile){
 			_blacklistFilter.filter("Was in provided blacklist");
 		} else {
 			_blacklistFilter.keep();
+			logfile->list("Blacklist: keep all. (use 'blacklist' to provide a list and filter specific reads)");
 		}
 
 		//Mapping quality filter
@@ -718,6 +719,7 @@ void TBamFile::printSummaryNoEndIndent(){
 					}
 				std::vector<std::string> header;
 				header.push_back("Filter");
+				header.push_back("allReadgroups");
 				for (auto rg: _readGroups.getNames(rg_IDs)){
 					header.push_back(rg);
 				}
@@ -772,8 +774,9 @@ void TBamFile::printSummaryNoEndIndent(){
 			_externalFilter.summary(_logfile, numFiltered, it);
 			_readLengthFilter.summary(_logfile, numFiltered, it);
 			_mappedLengthFilter.summary(_logfile, numFiltered, it);
+			_logfile->endIndent();
 		}
-		_logfile->endIndent();
+
 		_logfile->endIndent();
 	}
 };
