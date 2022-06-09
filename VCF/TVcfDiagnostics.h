@@ -18,23 +18,9 @@
 #include "TRandomGenerator.h"
 #include "TTask.h"
 #include "TVcfFile.h"
+#include "TBed.h"
 
 namespace VCF{
-
-
-class TGenotype{
-	public:
-		char first;
-		char second;
-		TGenotype(char & f, char & s){
-			first=f;
-			second=s;
-		};
-		TGenotype(char f){
-			first=f;
-			second=f;
-		};
-};
 
 class TCountTable{
 private:
@@ -103,33 +89,23 @@ public:
 	}
 };
 
-class VcfDiagnostics{
+class TVcfDiagnostics{
 private:
-	coretools::TLog* logfile;
-	int chr;
-	std::ifstream vcfFileStream;
-	std::ofstream vcfOutFilestream;
-	bool verbose;
-	coretools::TRandomGenerator* randomGenerator;
-	bool randomGeneratorInitialized;
-	genometools::TVcfFileSingleLine vcfFile;
-	std::string outname;
-	bool isZipped;
+	int chr = -1;
+	std::ifstream _vcfFileStream;
+	std::ofstream _vcfOutFilestream;
+	genometools::TVcfFileSingleLine _vcfFile;
+	std::string _outName;
 
-	void initializeRandomGenerator();
-	std::pair<char, char> getGenotypeFromIndex(int index);
-	void openVCF(std::string filename, genometools::TVcfFile_base & vcfFile);
+	void _openVCF(const std::string &VCFName, bool isZipped);
 
 public:
+	TVcfDiagnostics();
+
 	int findLastPassedFilterIndex(int obsValue, std::vector<int> & filtersAscendingOrder);
-	void assessAllelicImbalance(coretools::TParameters & Params);
-	//void filterAllelicImbalance();
+	void assessAllelicImbalance();
 	void vcfToInvariantBed();
-
 	void fixIntAsFloat();
-
-	VcfDiagnostics(coretools::TParameters & Params, coretools::TLog* Logfile);
-	~VcfDiagnostics(){if(randomGeneratorInitialized) delete randomGenerator;};
 };
 
 //--------------------------------------
@@ -140,10 +116,9 @@ class TTask_VCFDiagnostics:public TTask{
 public:
 	TTask_VCFDiagnostics(){ _explanation = "Diagnosing a VCF file"; };
 
-	void run(){
-		using namespace coretools::instances;
-		VcfDiagnostics VcfDiagnoser(parameters(), &logfile());
-		VcfDiagnoser.assessAllelicImbalance(parameters());
+	void run() override{
+		TVcfDiagnostics VcfDiagnoser;
+		VcfDiagnoser.assessAllelicImbalance();
 	};
 };
 
@@ -151,9 +126,8 @@ class TTask_VCFToInvariantBed:public TTask{
 public:
 	TTask_VCFToInvariantBed(){ _explanation = "Writing a BED file from invariant sites in a VCF file"; };
 
-	void run(){
-		using namespace coretools::instances;
-		VcfDiagnostics VcfDiagnoser(parameters(), &logfile());
+	void run() override{
+		TVcfDiagnostics VcfDiagnoser;
 		VcfDiagnoser.vcfToInvariantBed();
 	};
 };
@@ -162,9 +136,8 @@ class TTask_VCFFixInt:public TTask{
 public:
 	TTask_VCFFixInt(){ _explanation = "Fixing integers printed as floats in VCF file"; };
 
-	void run(){
-		using namespace coretools::instances;
-		VcfDiagnostics VcfDiagnoser(parameters(), &logfile());
+	void run() override{
+		TVcfDiagnostics VcfDiagnoser;
 		VcfDiagnoser.fixIntAsFloat();
 	};
 };
