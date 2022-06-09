@@ -198,7 +198,7 @@ public:
 
 class TTask_splitMerge:public coretools::TTask{
 public:
-	TTask_splitMerge(){ _explanation = "Splitting single-end reads and merging paired-end reads and in BAM file"; };
+	TTask_splitMerge(){ _explanation = "Splitting single-end reads and merging paired-end reads in BAM file"; };
 
 	void run(){
 		TAlignmentSplitMerger splitMerger;
