@@ -236,7 +236,7 @@ TBamFilter::TBamFilter():TGenome_parsed(){
 	//keep orphans
 	if(parameters().parameterExists("keepOrphans")){
 		_keepOrphans = true;
-		logfile().list("Will keep keep orphaned reads. (parameter 'keepOrphans')");
+		logfile().list("Will keep orphaned reads. (parameter 'keepOrphans')");
 	} else {
 		_keepOrphans = false;
 		logfile().list("Will filter out orphaned reads. (use 'keepOrphans' to keep them)");
@@ -247,7 +247,7 @@ TBamFilter::TBamFilter():TGenome_parsed(){
 		_recalibrate = true;
 		logfile().list("Will write recalibrated quality scores.");
 		if(parameters().parameterExists("incorporatePMD")){
-			logfile().list("Probability of PMD will be reflected in new quality scores. (paramer 'incorporatePMD')");
+			logfile().list("Probability of PMD will be reflected in new quality scores. (parameter 'incorporatePMD')");
 			_incorporatePMD = true;
 			if(!_genotypeLikelihoodCalculator.hasPMD()){
 				throw "No PMD probabilities provided! Provide PMD probabilities or remove parameter 'incorporatePMD'.";
