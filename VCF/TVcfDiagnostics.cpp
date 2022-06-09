@@ -1,5 +1,5 @@
 /*
- * TVcfDiagnostics.cpp
+ * TTVcfDiagnostics.cpp
  *
  *  Created on: Jun 15, 2011
  *      Author: wegmannd
@@ -7,9 +7,9 @@
 
 #include "TVcfDiagnostics.h"
 
-#include <stdint.h>
-#include <stdlib.h>
 #include <algorithm>
+#include <cstdint>
+#include <cstdlib>
 #include <exception>
 #include <map>
 
@@ -17,147 +17,115 @@
 #include "gzstream.h"
 #include "stringFunctions.h"
 
-namespace VCF{
+namespace VCF {
 
-using coretools::TLog;
-using coretools::TParameters;
 using coretools::str::toString;
+using namespace coretools::instances;
 
 //---------------------------------------------------
-//TAnnotator
+// TAnnotator
 //---------------------------------------------------
 
-VcfDiagnostics::VcfDiagnostics(TParameters & Params, TLog* Logfile){
-    logfile = Logfile;
-    randomGeneratorInitialized = false;
-    randomGenerator = NULL;
-    chr=-1;
+TVcfDiagnostics::TVcfDiagnostics() {
+	chr = -1;
 
-    //open vcf file
-    openVCF(Params.getParameter<std::string>("vcf"), vcfFile);
+	// open vcf file
+	std::string vcfFileName = parameters().getParameterFilename("vcf");
+	std::string ending      = coretools::str::readAfterLast(vcfFileName, '.');
+	bool isZipped           = (ending == "gz");
+	_openVCF(vcfFileName, isZipped);
 
-    //outputname
-    outname = Params.getParameterWithDefault<std::string>("out", "");
-    if(outname == ""){
-        //guess from filename
-        outname = vcfFile.filename;
-        outname = coretools::str::extractBeforeLast(outname, ".");
-        if(isZipped)
-            //if zipped there is extra .gz
-            outname = coretools::str::extractBeforeLast(outname, ".");
-
-    }
-    logfile->list("Writing output files with prefix '" + outname + "'.");
+	// read output name
+	std::string tmp = coretools::str::readBeforeLast(vcfFileName, ".vcf");
+	_outName        = parameters().getParameterWithDefault<std::string>("out", tmp);
+	logfile().list("Writing output files with prefix '" + _outName + "'. (specify with 'out')");
 }
 
-//open input stream
-void VcfDiagnostics::openVCF(std::string filename, genometools::TVcfFile_base & vcfFile){
-    //open vcf file
-    if(filename.find(".gz") == std::string::npos){
-        logfile->list("Reading vcf from file '" + filename + "'.");
-        isZipped = false;
-    } else {
-        logfile->list("Reading vcf from gzipped file '" + filename + "'.");
-        isZipped = true;
-    }
-
-    vcfFile.openStream(filename, isZipped);
-
-    //enable parsers
-    vcfFile.enablePositionParsing();
-    vcfFile.enableVariantParsing();
-    vcfFile.enableVariantQualityParsing();
-    vcfFile.enableFormatParsing();
-    vcfFile.enableSampleParsing();
-    vcfFile.enableInfoParsing();
-}
-
-void VcfDiagnostics::initializeRandomGenerator(){
-	if(!randomGeneratorInitialized){
-		randomGenerator=new coretools::TRandomGenerator();
-		logfile->list("Random generator initialized with seed " + toString(randomGenerator->getSeed()));
-		randomGeneratorInitialized=true;
+void TVcfDiagnostics::_openVCF(const std::string &VCFName, bool isZipped) {
+	// open vcf file
+	if (isZipped) {
+		logfile().list("Reading vcf from gzipped file '" + VCFName + "'.");
+	} else {
+		logfile().list("Reading vcf from file '" + VCFName + "'.");
 	}
+
+	_vcfFile.openStream(VCFName, isZipped);
+
+	// enable parsers
+	_vcfFile.enablePositionParsing();
+	_vcfFile.enableVariantParsing();
+	_vcfFile.enableVariantQualityParsing();
+	_vcfFile.enableFormatParsing();
+	_vcfFile.enableSampleParsing();
+	_vcfFile.enableInfoParsing();
 }
 
-void VcfDiagnostics::vcfToInvariantBed(){
-	//open vcf file
-	logfile->list("Writing sites that are invariant across individuals to bed:");
+void TVcfDiagnostics::vcfToInvariantBed() {
+	// TODO: check what this function is supposed to do; switch to TBed!
+	// open vcf file
+	logfile().list("Writing sites that are invariant across individuals to bed:");
 
-	//open output
-	logfile->list("Writing files to '" + outname + ".bed.gz'");
-	gz::ogzstream bedFile((outname + (std::string) ".bed.gz").c_str());
+	// open output
+	coretools::TOutputFile bedFile(_outName + ".bed.gz");
+	logfile().list("Writing files to '", bedFile.name(), "'");
 
-	//parse vcf file
-	std::map<char, int> bases = {{'A', 1}, {'C', 1}, {'G', 1}, {'T', 1}};
-	int counter = 0;
-	int curStartRegion = -1;
+	// parse vcf file
+	std::array<char, 4> bases   = {'A', 'C', 'G', 'T'};
+	int counter                 = 0;
+	int curStartRegion          = -1;
 	bool previousStartIsVariant = false;
 	std::string curChr;
 	bool updateStart = true;
 	long lastPosition;
-	while(vcfFile.next()){
+	while (_vcfFile.next()) {
 		++counter;
-		if(updateStart){
-			curStartRegion = vcfFile.position();
-			curChr = vcfFile.chr();
-			updateStart = false;
+		if (updateStart) {
+			curStartRegion = _vcfFile.position();
+			curChr         = _vcfFile.chr();
+			updateStart    = false;
 		}
-		if(bases.find(vcfFile.getRefAllele()[0]) == bases.end()) {//!= 'A' && vcfFile.getRefAllele() != 'C' && vcfFile.getRefAllele() != 'G' && vcfFile.getRefAllele() != 'T'
-			continue; //ignore indels
-		}
-
-		if(curChr != vcfFile.chr()){
-			//is previous site invariant? -> write to file
-			if(!previousStartIsVariant){
-				bedFile << curChr << "\t" << curStartRegion - 1 << "\t" << lastPosition << std::endl;
-			} else {
-			}
-			//update start directly, don't just set to true
-			curStartRegion = vcfFile.position();
-			curChr = vcfFile.chr();
+		if (std::find(bases.begin(), bases.end(), _vcfFile.getRefAllele()[0]) == bases.end()) {
+			continue; // ignore indels
 		}
 
-		int indCounter = 0;
-		genometools::Base allele = vcfFile.getFirstAlleleOfSample(0);
-		for(int ind=0; ind<vcfFile.numSamples(); ++ind){
-			++indCounter;
-			if(vcfFile.getFirstAlleleOfSample(ind) != allele || vcfFile.getSecondAlleleOfSample(ind) != allele){
-				//there was a variant site, is previous site invariant? -> write to file
-				if(previousStartIsVariant == false && counter != 1){
-					bedFile << vcfFile.chr() << "\t" << curStartRegion - 1 << "\t" << vcfFile.position() - 1 << std::endl;
+		if (curChr != _vcfFile.chr()) {
+			// is previous site invariant? -> write to file
+			if (!previousStartIsVariant) { bedFile << curChr << curStartRegion - 1 << lastPosition << std::endl; }
+			// update start directly, don't just set to true
+			curStartRegion = _vcfFile.position();
+			curChr         = _vcfFile.chr();
+		}
+
+		genometools::Base allele = _vcfFile.getFirstAlleleOfSample(0);
+		for (int i = 0; i < _vcfFile.numSamples(); ++i) {
+			if (_vcfFile.getFirstAlleleOfSample(i) != allele || _vcfFile.getSecondAlleleOfSample(i) != allele) {
+				// there was a variant site, is previous site invariant? -> write to file
+				if (!previousStartIsVariant && counter != 1) {
+					bedFile << _vcfFile.chr() << curStartRegion - 1 << _vcfFile.positionZeroBased() << std::endl;
 				}
-				updateStart = true;
+				updateStart            = true;
 				previousStartIsVariant = true;
 				break;
-			}
-			else {
+			} else {
 				previousStartIsVariant = false;
 			}
 		}
 
-
-//		if(indCounter == vcfFile.numSamples()){
-//			//bed is 0-based
-//			bedFile << vcfFile.chr() << "\t" << vcfFile.position() - 1 << "\t" << vcfFile.position() << std::endl;
-//		}
-
-		//in case of chr change, this is needed to write last region of previous chr
-		lastPosition = vcfFile.position();
-
+		// in case of chr change, this is needed to write last region of previous chr
+		lastPosition = _vcfFile.position();
 	}
 
-	//write last region to file
-	if(!previousStartIsVariant){
-		bedFile << vcfFile.chr() << "\t" << curStartRegion - 1 << "\t" << vcfFile.position() << std::endl;
+	// write last region to file
+	if (!previousStartIsVariant) {
+		bedFile << _vcfFile.chr() << curStartRegion - 1 << _vcfFile.positionZeroBased() << std::endl;
 	}
 	bedFile.close();
 }
 
-int VcfDiagnostics::findLastPassedFilterIndex(int obsValue, std::vector<int> & filtersAscendingOrder){
+int TVcfDiagnostics::findLastPassedFilterIndex(int obsValue, std::vector<int> &filtersAscendingOrder) {
 	int lastPassedFilterIndex = 0;
-	for(unsigned int i=0; i<filtersAscendingOrder.size(); ++i){
-		if(obsValue < filtersAscendingOrder[i])
+	for (unsigned int i = 0; i < filtersAscendingOrder.size(); ++i) {
+		if (obsValue < filtersAscendingOrder[i])
 			break;
 		else
 			lastPassedFilterIndex = i;
@@ -165,223 +133,128 @@ int VcfDiagnostics::findLastPassedFilterIndex(int obsValue, std::vector<int> & f
 	return lastPassedFilterIndex;
 }
 
-void VcfDiagnostics::assessAllelicImbalance(TParameters & Params){
-	//output
-	logfile->list("Writing files to '" + outname + "_allelicDepth.txt'");
+void TVcfDiagnostics::assessAllelicImbalance() {
+	// output
+	logfile().list("Writing files to '" + _outName + "_allelicDepth.txt'");
 
-	//limit input?
-	int maxDP = Params.getParameterWithDefault<int>("maxDepth", 100);
-	logfile->list("Ignoring sites with depth larger than " + toString(maxDP) + ".");
+	// limit input?
+	int maxDP = parameters().getParameterWithDefault<int>("maxDepth", 100);
+	logfile().list("Ignoring sites with depth larger than " + toString(maxDP) + ".");
 
-	int inputLines = Params.getParameterWithDefault<int>("inputLines", -1);
-	if(inputLines <= 0){
-		logfile->list("Reading whole vcf.");
+	int inputLines = parameters().getParameterWithDefault<int>("inputLines", -1);
+	if (inputLines <= 0) {
+		logfile().list("Reading whole vcf.");
 	} else
-		logfile->list("Limiting input to " + toString(inputLines) + " lines.");
+		logfile().list("Limiting input to " + toString(inputLines) + " lines.");
 
-	//initialize tables
-	logfile->startIndent("Initializing count tables:");
-	std::string qualityString = Params.getParameterWithDefault<std::string>("qualities", "0,10,20,30,40,50");
+	// initialize tables
+	logfile().startIndent("Initializing count tables:");
+	std::string qualityString = parameters().getParameterWithDefault<std::string>("qualities", "0,10,20,30,40,50");
 	std::vector<int> qualities;
 	coretools::str::fillContainerFromString(qualityString, qualities, ',');
 
-	std::vector<TCountTable*> countTables;
-	for(unsigned int i=0; i<qualities.size(); ++i){
-		countTables.emplace_back(new TCountTable(maxDP, maxDP, outname + "_qual" + toString(qualities[i]) + "_allelicDepth.txt", logfile));
+	std::vector<TCountTable *> countTables;
+	for (unsigned int i = 0; i < qualities.size(); ++i) {
+		// countTables.emplace_back(
+		// new TCountTable(maxDP, maxDP, _outName + "_qual" + toString(qualities[i]) + "_allelicDepth.txt", logfile));
 	}
-	logfile->endIndent();
+	logfile().endIndent();
 
-	//temp variables
+	// temp variables
 	int counter = 0;
-	int numHet = 0;
+	int numHet  = 0;
 
-	logfile->startIndent("Parsing vcf file:");
-	while(vcfFile.next()){
+	logfile().startIndent("Parsing vcf file:");
+	while (_vcfFile.next()) {
 		++counter;
 
-		//get allelic depth at hetero sites across all samples. One table per quality filter.
-		for(int i=0; i < vcfFile.numSamples(); ++i){
-			if(!vcfFile.sampleIsMissing(i) && vcfFile.sampleIsHeteroRefNonref(i)){
+		// get allelic depth at hetero sites across all samples. One table per quality filter.
+		for (int i = 0; i < _vcfFile.numSamples(); ++i) {
+			if (!_vcfFile.sampleIsMissing(i) && _vcfFile.sampleIsHeteroRefNonref(i)) {
 				++numHet;
 
-				//which position in table does site correspond to?
+				// which position in table does site correspond to?
 				std::vector<std::string> tmp;
-				std::string tag="AD";
-				coretools::str::fillContainerFromString(vcfFile.getSampleContentAt(tag, i), tmp, ',');
+				std::string tag = "AD";
+				coretools::str::fillContainerFromString(_vcfFile.getSampleContentAt(tag, i), tmp, ',');
 				int numRef = coretools::str::convertString<int>(tmp[0]);
 				int numAlt = coretools::str::convertString<int>(tmp[1]);
-				if(numRef == 0 || numAlt == 0)
-					throw "Call at position " + toString(vcfFile.position()) + " is heterozygous but reference or alternative allelic depth is 0!";
-				if(vcfFile.depthAsIntNoCheckForMissingSample("DP", i) > maxDP){
-					logfile->warning("DP is " + toString(vcfFile.depthAsIntNoCheckForMissingSample("DP", i)) + " at pos " + toString(vcfFile.position()) + ". This site will be ignored.");
+				if (numRef == 0 || numAlt == 0)
+					throw "Call at position " + toString(_vcfFile.position()) +
+					    " is heterozygous but reference or alternative allelic depth is 0!";
+				if (_vcfFile.depthAsIntNoCheckForMissingSample("DP", i) > maxDP) {
+					logfile().warning("DP is " + toString(_vcfFile.depthAsIntNoCheckForMissingSample("DP", i)) +
+					                  " at pos " + toString(_vcfFile.position()) + ". This site will be ignored.");
 					continue;
 				}
 
-				//add count to correct table
-				int quality = coretools::str::convertString<int>(vcfFile.getSampleContentAt("GQ", i));
-				int index = findLastPassedFilterIndex(quality, qualities);
-				for(int i=0; i<(index+1); ++i){
-					++(countTables.at(i))->table[numRef][numAlt];
-				}
+				// add count to correct table
+				int quality = coretools::str::convertString<int>(_vcfFile.getSampleContentAt("GQ", i));
+				int index   = findLastPassedFilterIndex(quality, qualities);
+				for (int i = 0; i < (index + 1); ++i) { ++(countTables.at(i))->table[numRef][numAlt]; }
 			}
 		}
-		if(verbose && counter % 1000000 == 0)
-			logfile->list("read " + toString(counter) + " lines, " + toString(numHet) + " heterozygous sites were found.");
-		if(inputLines != -1 && counter > inputLines){
-			logfile->list("reached input limit!");
+		if (counter % 1000000 == 0)
+			logfile().list("read " + toString(counter) + " lines, " + toString(numHet) +
+			               " heterozygous sites were found.");
+		if (inputLines != -1 && counter > inputLines) {
+			logfile().list("reached input limit!");
 			break;
 		}
 	}
 
-	logfile->endIndent("done!");
+	logfile().endIndent("done!");
 
 	std::string description = "ref_depth/alt_depth";
-	std::string rowPrefix = "ref_";
-	std::string colPrefix = "alt_";
+	std::string rowPrefix   = "ref_";
+	std::string colPrefix   = "alt_";
 
-
-	//write tables
-	for(unsigned int i=0; i<countTables.size(); ++i){
+	// write tables
+	for (unsigned int i = 0; i < countTables.size(); ++i) {
 		countTables[i]->writeTable(description, rowPrefix, colPrefix);
 		delete countTables[i];
 	}
 
-	//clean up
-//	for(int i=0; i<countTables.size(); ++i){
-//		delete countTables.at(i);
-//	}
-
+	// clean up
+	//	for(int i=0; i<countTables.size(); ++i){
+	//		delete countTables.at(i);
+	//	}
 }
 
-/*
-void VcfDiagnostics::filterAllelicImbalance(){
-	//open vcf file
-	if(verbose) std::cerr << " - Filtering sites with allelic imbalance:" << std::endl;
+void TVcfDiagnostics::fixIntAsFloat() {
+	// open vcf file
+	logfile().list("Fixing integers that are printed as floats:");
 
-	double pValFilter = params->getParameterWithDefault("pValFilter", 0.001);
-
-	openVCF(vcfFile);
-
-	//enable parsers
-	vcfFile.enablePositionParsing();
-	vcfFile.enableFormatParsing();
-	vcfFile.enableSampleParsing();
-	vcfFile.enableVariantParsing();
-	vcfFile.enableWriting();
-
-	//prepare output vcf
-	prepareVcfOutput(vcfFile);
-	vcfFile.writeHeaderVCF_4_0();
-
-	//how to filter?
-	int counter = 0;
-	std::string tag="AD";
-	int numRef; int numAlt; int tot;
-	int numHet;
-	std::vector<int> tmp;
-	double logHalf = log(0.5);
-	double cumul;
-	int i;
-	long numFiltered = 0;
-	long numPassedFilter = 0;
-
-	//open log file for sites
-	std::string filename = params->getParameterWithDefault<std::string>("infoOut", "ImbalanceFilter_siteInfo.txt");
-	std::ofstream sitesInfoOut(filename.c_str());
-	if(!sitesInfoOut)
-		throw "Failed to open file '" + filename + " for writing!";
-	sitesInfoOut << "chr\tpos\tnumHet\tnumRef\tnumAlt\taltFrac\tpVal\tstatus\n";
-
-	while(vcfFile.next()){
-		++counter;
-
-		//count allelic depth across all samples
-		numRef = 0; numAlt = 0;
-		numHet = 0;
-		for(int i=0; i < vcfFile.numSamples(); ++i){
-			if(!vcfFile.sampleIsMissing(i) && vcfFile.sampleIsHeteroRefNonref(i)){
-				fillContainerFromString(vcfFile.getSampleContentAt(tag, i), tmp, ',');
-				numRef += tmp[0]; numAlt += tmp[1];
-				++numHet;
-			}
-		}
-
-		//write info
-		sitesInfoOut << vcfFile.chr() << "\t" << vcfFile.position() << "\t" << numHet;
-
-		//calculate p-value for sampling
-		if(numHet > 0){
-			sitesInfoOut << "\t" << numRef << "\t" << numAlt << "\t" << (double) numAlt / (double)(numAlt+numRef);
-			cumul = 0.0;
-			tot = numAlt + numRef;
-			if(numAlt < numRef){
-				for(i = 0; i <= numAlt; ++i)
-					cumul += exp(randomGenerator->binomCoeffLn(tot, i) + logHalf*tot);
-			} else {
-				for(i = numAlt; i <= tot; ++i)
-					cumul += exp(randomGenerator->binomCoeffLn(tot, i) + logHalf*tot);
-			}
-
-			//now filter
-			if(cumul < pValFilter){
-				++numFiltered;
-				vcfFile.written = true;
-				sitesInfoOut << "\t" << cumul << "\tfiltered\n";
-			} else {
-				vcfFile.writeLine();
-				++numPassedFilter;
-				sitesInfoOut << "\t" << cumul << "\tpassed\n";
-			}
-		} else {
-			++numPassedFilter;
-			sitesInfoOut << "\t-\t-\t-\t-\tpassed\n";
-		}
-
-		if(verbose && counter % 1000 == 0)	std::cerr << "    - read " << counter << " lines, " << numPassedFilter << " passed, " << numFiltered << " were filtered out." << std::endl;
-	}
-
-	//clean up
-	sitesInfoOut.close();
-}
-
-*/
-
-
-void VcfDiagnostics::fixIntAsFloat(){
-	//open vcf file
-	logfile->list("Fixing integers that are printed as floats:");
-
-	//open output file
-	std::string filename = outname + (std::string) "_fixed.vcf.gz";
+	// open output file
+	std::string filename = _outName + (std::string) "_fixed.vcf.gz";
 	gz::ogzstream out(filename.c_str());
-	if(!out) throw "Failed to open outputfile '" + filename + "'!";
-	vcfFile.setOutStream(out);
-	vcfFile.writeHeaderVCF_4_0();
+	if (!out) throw "Failed to open outputfile '" + filename + "'!";
+	_vcfFile.setOutStream(out);
+	_vcfFile.writeHeaderVCF_4_0();
 
-	//tmp vars
+	// tmp vars
 	int counter = 0;
 	std::vector<int> vec;
 
-	//parse VCF
+	// parse VCF
 
-	logfile->startIndent("Parsing vcf file:");
-	while(vcfFile.next()){
+	logfile().startIndent("Parsing vcf file:");
+	while (_vcfFile.next()) {
 		++counter;
 
-		//fix GP field
-		std::string gp = vcfFile.fieldContentAsString("GP", 0);
+		// fix GP field
+		std::string gp = _vcfFile.fieldContentAsString("GP", 0);
 		coretools::str::fillContainerFromString(gp, vec, ',');
 		gp = std::to_string(vec[0]) + ',' + std::to_string(vec[1]) + ',' + std::to_string(vec[2]);
-		vcfFile.updateField("GP", gp, 0);
+		_vcfFile.updateField("GP", gp, 0);
 
-		//write output
-		vcfFile.writeLine();
+		// write output
+		_vcfFile.writeLine();
 
-		//report progress
-		if(verbose && counter % 1000000 == 0)
-			logfile->list("read " + toString(counter) + " lines.");
+		// report progress
+		if (counter % 1000000 == 0) logfile().list("read " + toString(counter) + " lines.");
 	}
-	logfile->endIndent();
+	logfile().endIndent();
 };
 
-}; //end namespace
+}; // namespace VCF
