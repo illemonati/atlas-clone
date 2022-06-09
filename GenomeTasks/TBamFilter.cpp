@@ -239,7 +239,7 @@ TBamFilter::TBamFilter():TGenome_parsed(){
 		logfile().list("Will keep keep orphaned reads. (parameter 'keepOrphans')");
 	} else {
 		_keepOrphans = false;
-		logfile().list("Will filter out orphaned reads (use 'keepOrphans' to keep them).");
+		logfile().list("Will filter out orphaned reads. (use 'keepOrphans' to keep them)");
 	}
 
 	//recalibrate BAM?
@@ -402,7 +402,7 @@ void TBamFilter::traverseBAM(){
 			}
 		} else {
 			//Did not pass QC: filter out
-			//need to store in blacklist if is was paired
+			//need to store in blacklist if it was paired
 			if(_bamFile.curIsProperPair()){
 				_blacklist.add(_bamFile.curName());
 			}
@@ -433,7 +433,7 @@ uint16_t TAlignmentMerger::merge(BAM::TAlignment & alignment, BAM::TAlignment & 
 		return 0;
 	}
 
-	//prepare (e.g. pick random number
+	//prepare (e.g. pick random number)
 	uint16_t numOverlap = 0;
 
 	//go through alignments
