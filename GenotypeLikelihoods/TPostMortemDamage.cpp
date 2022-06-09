@@ -627,7 +627,7 @@ void TPostMortemDamage::_initializeFromFile(const BAM::TReadGroups &ReadGroups, 
 	// read from file for each read group
 
 	logfile().listFlush("Initializing PMD from file '" + filename + "' ...");
-	coretools::TInputFile in(filename, {"readGroup", "pmd"}, "/t", "//");
+	coretools::TInputFile in(filename, {"readGroup", "pmd"}, "\t", "//");
 
 	// parse file that has structure: ReadGroup, Type, Functions
 	std::vector<std::string> vec;
