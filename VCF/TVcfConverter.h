@@ -5,8 +5,8 @@
 #ifndef ATLAS_TVCFCONVERTER_H
 #define ATLAS_TVCFCONVERTER_H
 
-#include <stddef.h>
-#include <stdint.h>
+#include <cstddef>
+#include <cstdint>
 #include <exception>
 #include <functional>
 #include <map>
@@ -20,12 +20,17 @@
 #include "TPopulation.h"
 #include "TPopulationLikelihoods.h"
 #include "TSampleLikelihoods.h"
+#include "TStorage.h"
 #include "TTask.h"
 
-namespace genometools { class TBed; }
-namespace genometools { template <typename Type> class TPopulationLikehoodLocus; }
+namespace genometools {
+class TBed;
+}
+namespace genometools {
+template<typename Type> class TPopulationLikehoodLocus;
+}
 
-namespace VCF{
+namespace VCF {
 
 using TSampleLikelihoods = genometools::TSampleLikelihoods<genometools::HighPrecisionPhredIntProbability>;
 
@@ -34,21 +39,27 @@ using TSampleLikelihoods = genometools::TSampleLikelihoods<genometools::HighPrec
 //------------------------------------------
 class TVcfConverter {
 protected:
-    std::string _outname;
-	coretools::TLog * _logfile;
-    genometools::TPopulationLikelihoodReaderLocus _reader;
-    genometools::TPopulationSamples _samples;
+	// filenames
+	std::string _vcfName;
+	std::string _outName;
 
-    virtual void _initOutputFiles() = 0;
-    virtual void _writeHeader();
-    virtual void _writeData(genometools::TPopulationLikehoodLocus<TSampleLikelihoods> & data) = 0;
-	void _readOutputName(coretools::TParameters & Params, const std::string & VCFFilename);
+	// vcf reader
+	genometools::TPopulationLikelihoodReaderLocus _reader;
+
+	// specify population and samples to keep
+	genometools::TPopulationSamples _samples;
+
+	void _openVCF();
+	void _readSamples();
+	void _parseVCF();
+
+	virtual void _initOutputFiles() = 0;
+	virtual void _writeHeader();
+	virtual void _write(genometools::TPopulationLikehoodLocus<TSampleLikelihoods> &data) = 0;
 
 public:
-    TVcfConverter(coretools::TLog * Logfile);
-    virtual ~TVcfConverter() = default;
-
-    void readVcfAndWriteFile(coretools::TParameters & Params);
+	TVcfConverter();
+	virtual ~TVcfConverter() = default;
 };
 
 //------------------------------------------
@@ -57,217 +68,263 @@ public:
 class TVcfToBeagle : protected TVcfConverter {
 private:
 	coretools::TOutputFile _beagleFile;
+	bool _foundHaploid = false;
 
-    // beagle
-    void _writeHeader() override;
-    void _writeData(genometools::TPopulationLikehoodLocus<TSampleLikelihoods> & data) override;
-    void _initOutputFiles() override;
+	void _writeHeader() override;
+	void _write(genometools::TPopulationLikehoodLocus<TSampleLikelihoods> &data) override;
+	void _initOutputFiles() override;
 
-    void _writeRefAndAlt();
-    void _writePosition();
+	void _writeHaploid(genometools::TPopulationLikehoodLocus<TSampleLikelihoods> &data, size_t s);
+	void _writeDiploid(genometools::TPopulationLikehoodLocus<TSampleLikelihoods> &data, size_t s);
 
 public:
-    TVcfToBeagle(coretools::TLog *Logfile);
-    ~TVcfToBeagle() override = default;
+	TVcfToBeagle();
+	~TVcfToBeagle() override = default;
 
-    void vcfToBeagle(coretools::TParameters & Params);
+	void run();
 };
 
 //------------------------------------------
 // TVcfToGeno
 //------------------------------------------
 class TVcfToGeno : protected TVcfConverter {
+	// geno format: used in LEA package (https://www.rdocumentation.org/packages/LEA/versions/1.4.0/topics/geno)
+	// rows = SNPs, cols = individuals (without delim, just pasted together)
+	// Each data point represents the number of copies of reference allele. Missing data encoded by 9.
+	// Note: we usually define genotype as number of copies of alternative allele -> might be confusing, I stick
+	// to the file format here, i.e. I use number of copies of reference allele.
 private:
 	coretools::TOutputFile _genoFile;
-    coretools::TOutputFile _lociNamesFile;
+	coretools::TOutputFile _lociNamesFile;
 
-    // geno
-    void _writeData(genometools::TPopulationLikehoodLocus<TSampleLikelihoods> & data) override;
-    void _initOutputFiles() override;
-    void _closeOutputFiles();
-    void _writePosition();
+	void _write(genometools::TPopulationLikehoodLocus<TSampleLikelihoods> &data) override;
+	void _initOutputFiles() override;
+	void _closeOutputFiles();
 
 public:
-    TVcfToGeno(coretools::TLog *Logfile);
-    ~TVcfToGeno() override = default;
+	TVcfToGeno();
+	~TVcfToGeno() override = default;
 
-    void vcfToGeno(coretools::TParameters & Params);
+	void run();
 };
 
 //------------------------------------------
 // TVcfToLFMM
 //------------------------------------------
-class TVcfToLFMM : protected TVcfConverter {
+
+template<typename T> class TVcfToLFMM : protected TVcfConverter {
 protected:
-    coretools::TOutputFile _lfmmFile;
-    coretools::TOutputFile _lociNamesFile;
-    std::vector<std::string> _loci_names;
+	// genotypes
+	coretools::TMultiDimensionalStorage<T, 2> _genotypes;
 
-    void _storeLocusNames();
-    void _writeLociNames();
-    void _initOutputFiles() override;
-    void _closeOutputFiles();
+	// files
+	coretools::TOutputFile _lfmmFile;
+	coretools::TOutputFile _lociNamesFile;
+	std::vector<std::string> _loci_names;
 
-    template <class T>
-    void _writeLFMM(T Genotypes) {
-        size_t numLoci = Genotypes.size();
-        for (size_t i = 0; i < _samples.numSamples(); i++){
-            for (size_t l = 0; l < numLoci; l++){
-                _lfmmFile << (double) Genotypes[l][i];
-            }
-            _lfmmFile.endLine();
-        }
-    }
+	void _writeLociNames() {
+		_lociNamesFile.noHeader(_loci_names.size());
+		for (auto &it : _loci_names) _lociNamesFile << it;
+		_lociNamesFile.endLine();
+	};
 
-    void _prepareAndReadVcf(coretools::TParameters & Params);
+	void _initOutputFiles() override {
+		_lfmmFile.open(_outName + ".lfmm");
+		_lociNamesFile.open(_outName + ".lfmm.kept_loci");
+	};
+
+	void _closeOutputFiles() {
+		_lfmmFile.close();
+		_lociNamesFile.close();
+	};
+
+	void _writeLFMM() {
+		size_t numLoci = _genotypes.dimensions()[0];
+		for (size_t i = 0; i < _samples.numSamples(); i++) {
+			for (size_t l = 0; l < numLoci; l++) { _lfmmFile << (double)_genotypes(l, i); }
+			_lfmmFile.endLine();
+		}
+	}
+
+	void _write(genometools::TPopulationLikehoodLocus<TSampleLikelihoods> &data) override {
+		// LFMM has individuals as rows and loci as columns (transposed)
+		// -> we need to store these values first and then write
+		_store(data);
+		_loci_names.emplace_back(_reader.chrPos());
+	}
+
+	virtual void _store(genometools::TPopulationLikehoodLocus<TSampleLikelihoods> &data) = 0;
 
 public:
-    TVcfToLFMM(coretools::TLog *Logfile);
-    ~TVcfToLFMM() override;
+	TVcfToLFMM() : TVcfConverter(){};
+	~TVcfToLFMM() override = default;
+
+	void run() {
+		_genotypes.prepareFillData(10000, {_samples.numSamples()});
+		_parseVCF();
+		_genotypes.finalizeFillData();
+
+		// write actual lfmm
+		_lfmmFile.noHeader(_genotypes.dimensions()[0]); // we only know now how many loci there are
+		_writeLFMM();
+
+		// write loci names
+		_writeLociNames();
+
+		_closeOutputFiles();
+	}
 };
 
 //------------------------------------------
 // TVcfToLFMMCalledGeno
 //------------------------------------------
-class TVcfToLFMMCalledGeno : public TVcfToLFMM {
+class TVcfToLFMMCalledGeno : public TVcfToLFMM<uint8_t> {
 private:
-    void _writeData(genometools::TPopulationLikehoodLocus<TSampleLikelihoods> & data) override ;
-    void storeCalledGenotypes();
-    std::vector<uint8_t *> _genotypes;
+	void _store(genometools::TPopulationLikehoodLocus<TSampleLikelihoods> &data) override;
 
 public:
-    TVcfToLFMMCalledGeno(coretools::TLog *Logfile);
-    ~TVcfToLFMMCalledGeno() override;
-    void vcfToLFMM(coretools::TParameters & Params);
+	TVcfToLFMMCalledGeno();
+	~TVcfToLFMMCalledGeno() override = default;
 };
 
 //------------------------------------------
 // TVcfToLFMMPostGeno
 //------------------------------------------
-class TVcfToLFMMPostGeno : public TVcfToLFMM {
+class TVcfToLFMMPostGeno : public TVcfToLFMM<double> {
 private:
-    void _writeData(genometools::TPopulationLikehoodLocus<TSampleLikelihoods> & data) override ;
-    void _storePosteriorGenotypes(genometools::TPopulationLikehoodLocus<TSampleLikelihoods> & data);
-    double _computePosteriorGenotype(genometools::TPopulationLikehoodLocus<TSampleLikelihoods> & data, uint32_t i);
-    std::vector<double *> _genotypes;
+	void _store(genometools::TPopulationLikehoodLocus<TSampleLikelihoods> &data) override;
 
 public:
-    TVcfToLFMMPostGeno(coretools::TLog *Logfile);
-    ~TVcfToLFMMPostGeno() override;
-    void vcfToLFMM(coretools::TParameters & Params);
+	TVcfToLFMMPostGeno();
+	~TVcfToLFMMPostGeno() override = default;
 };
 
 //------------------------------------------
 // TVcfToPosFile
 //------------------------------------------
 class TVcfToPosFile : public TVcfConverter {
+	// posFile is needed as input for STITCH
+	// format:
+	//   - tab-separated
+	//   - no header
+	//   - 4 columns: col 1 = chromosome, col 2 = physical position (sorted from smallest to largest), col 3 =
+	//   reference base, col 4 = alternate base
+	//   - one row per SNP
+	// Idea: one posfile per chromosome -> use option keepChromosomes
+
 private:
-    coretools::TOutputFile _posFile;
-    // beagle
-    void _writeHeader() override;
-    void _writeRefAndAlt();
-    void _writeData(genometools::TPopulationLikehoodLocus<TSampleLikelihoods> & data) override;
-    void _writePosition();
-    void _initOutputFiles() override;
+	coretools::TOutputFile _posFile;
+
+	void _initOutputFiles() override;
+	void _writeHeader() override;
+	void _write(genometools::TPopulationLikehoodLocus<TSampleLikelihoods> &data) override;
 
 public:
-    TVcfToPosFile(coretools::TLog *Logfile);
-    ~TVcfToPosFile() override = default;
-    void vcfToPosFile(coretools::TParameters & Params);
+	~TVcfToPosFile() override = default;
+	void run();
 };
 
 //------------------------------------------
 // TVcfToGenotypeTruthSetFile
 //------------------------------------------
 class TVcfToGenotypeTruthSetFile : public TVcfConverter {
+	// produces genotype truth set (genfile) for STITCH and bed files for samples
+	// idea: first locus -> find 0-n samples that have depth higher than minDepth
+	//                   -> write position of this locus into bed-files for these individuals
+	//                   -> write genotypes of these individuals to genfile; write genotypes of all other individuals
+	//                   as NA to genfile
+	//       next locus  -> is distance to previous locus more than x basepairs?
+	//                   -> If yes: find 0-n samples that have depth higher than minDepth
+	//                              -> write genotypes of these individuals to genfile; write genotypes of all other
+	//                              individuals as NA to genfile
+	//                   -> Else: write genotypes of all individuals as NA to genfile
+	// format:
+	//   - produces a BED file (3 columns, col 1 = chromosome, col 2 = start (1-based), col 3 = stop) for each
+	//   individual
+	//   - produces a genfile
+	//      - tab-separated
+	//      - header = sample names from vcf
+	//      - one row per SNP
+	//      - genotypes encoded as 0,1,2 or NA
+
 private:
-    genometools::TBed ** _bedFiles;
-    coretools::TOutputFile _genFile;
+	std::vector<genometools::TBed> _bedFiles;
+	coretools::TOutputFile _genFile;
 
-    int _minDistanceToPreviousLocus;
-    long _positionPreviousLocus;
-    int _numSamplesPerLocus;
-    std::string _curChr;
+	bool _first                        = true;
+	size_t _minDistanceToPreviousLocus = 0;
+	size_t _positionPreviousLocus      = 0;
+	size_t _numSamplesPerLocus         = 0;
+	std::string _curChr;
 
-    void _writeHeader() override;
-    void _writeData(genometools::TPopulationLikehoodLocus<TSampleLikelihoods> & data) override;
-    void _filterIndividuals(genometools::TPopulationLikehoodLocus<TSampleLikelihoods> & data);
-    void _mapIndividualsToDepth(std::vector<uint32_t> & samplesToKeep);
-    void _filterIndividualsWithHighestDepth(std::vector<uint32_t> & samplesToKeep, const std::map< double, std::vector<uint32_t>, std::greater<> > & depthVsSampleIndexMap);
-    void _writeToGenFile(const std::vector<uint32_t> & samplesToKeep);
-    void _storeInBedFile(const std::vector<uint32_t> & samplesToKeep);
-    void _initOutputFiles() override;
-    void _resetDistance();
-
-public:
-    TVcfToGenotypeTruthSetFile(coretools::TLog *Logfile);
-    ~TVcfToGenotypeTruthSetFile() override;
-    void vcfToGenotypeTruthSetFile(coretools::TParameters & Params);
-};
-
-//------------------------------------------
-// TVcfToVcf
-//------------------------------------------
-//TODO: finish VCfToVCf converter for filtering
-class TVcfToVcf: public TVcfConverter {
-private:
 	void _writeHeader() override;
-	void _writeData(genometools::TPopulationLikehoodLocus<TSampleLikelihoods> & data) override;
+	void _write(genometools::TPopulationLikehoodLocus<TSampleLikelihoods> &data) override;
+	void _filterIndividuals(genometools::TPopulationLikehoodLocus<TSampleLikelihoods> &data);
+	void _mapIndividualsToDepth(std::vector<size_t> &samplesToKeep);
+	void _filterIndividualsWithHighestDepth(
+	    std::vector<size_t> &samplesToKeep,
+	    const std::map<double, std::vector<size_t>, std::greater<>> &depthVsSampleIndexMap) const;
+	void _writeToGenFile(const std::vector<size_t> &samplesToKeep);
+	void _storeInBedFile(const std::vector<size_t> &samplesToKeep);
+	void _initOutputFiles() override;
+	void _resetDistance();
 
 public:
-	TVcfToVcf(coretools::TLog *Logfile);
-	~TVcfToVcf() override = default;
+	TVcfToGenotypeTruthSetFile();
+	~TVcfToGenotypeTruthSetFile() override = default;
+	void run();
 };
 
 //--------------------------------------
 // Tasks
 //--------------------------------------
-class TTask_VcfConverter:public coretools::TTask{
+class TTask_VcfConverter : public coretools::TTask {
 public:
-	TTask_VcfConverter(){ _explanation = "Converting a VCF file to other formats"; };
+	TTask_VcfConverter() { _explanation = "Converting a VCF file to other formats"; };
 
-	void run(){
+	void run() override {
 		using namespace coretools::instances;
 		std::string format = parameters().getParameter<std::string>("format");
 
-		if(format == "beagle"){
+		if (format == "beagle") {
 			logfile().startIndent("Converting a VCF to Beagle format (parameter 'format'):");
-			TVcfToBeagle VcfToBeagle(&logfile());
-			VcfToBeagle.vcfToBeagle(parameters());
-		} else if (format == "geno"){
+			TVcfToBeagle VcfToBeagle;
+			VcfToBeagle.run();
+		} else if (format == "geno") {
 			logfile().startIndent("Converting a VCF to geno format (parameter 'format'):");
-			TVcfToGeno vcfToGeno(&logfile());
-		    vcfToGeno.vcfToGeno(parameters());
-		} else if(format == "LFMM"){
+			TVcfToGeno vcfToGeno;
+			vcfToGeno.run();
+		} else if (format == "LFMM") {
 			logfile().startIndent("Converting a VCF to LFMM format (parameter 'format'):");
 
-            //posterior or calls?
-            std::string genoType = parameters().getParameterWithDefault<std::string>("genotypes", "calls");
-            if(genoType == "posterior"){
-		    TVcfToLFMMPostGeno vcfToLFMMPostGeno(&logfile());
-                vcfToLFMMPostGeno.vcfToLFMM(parameters());
-            } else if(genoType == "calls"){
-		    TVcfToLFMMCalledGeno vcfToLFMMCalledGeno(&logfile());
-                vcfToLFMMCalledGeno.vcfToLFMM(parameters());
-            } else {
-                throw "Unknown genotype method '" + genoType + "'! Use either 'calls' or 'posterior'";
-            }
-		} else if(format == "posFile"){
+			// posterior or call?
+			std::string genoType = parameters().getParameterWithDefault<std::string>("genotypes", "call");
+			if (genoType == "posterior") {
+				TVcfToLFMMPostGeno vcfToLFMMPostGeno;
+				vcfToLFMMPostGeno.run();
+			} else if (genoType == "call") {
+				TVcfToLFMMCalledGeno vcfToLFMMCalledGeno;
+				vcfToLFMMCalledGeno.run();
+			} else {
+				UERROR("Unknown genotype method '", genoType, "'! Use either 'call' or 'posterior'");
+			}
+		} else if (format == "posfile") {
 			logfile().startIndent("Converting a VCF file to posfile format used by STITCH (parameter 'format'):");
-			TVcfToPosFile VcfToPosFile(&logfile());
-			VcfToPosFile.vcfToPosFile(parameters());
-		} else if(format == "truthSet"){
-			logfile().startIndent("Converting a VCF file to genotype truth set format (parameter 'format'):");
-			TVcfToGenotypeTruthSetFile VcfToGenotypeTruthSetFile(&logfile());
-			VcfToGenotypeTruthSetFile.vcfToGenotypeTruthSetFile(parameters());
+			TVcfToPosFile VcfToPosFile;
+			VcfToPosFile.run();
+		} else if (format == "genfile") {
+			logfile().startIndent(
+			    "Converting a VCF file to genotype truth set format used by STITCH (parameter 'format'):");
+			TVcfToGenotypeTruthSetFile VcfToGenotypeTruthSetFile;
+			VcfToGenotypeTruthSetFile.run();
 		} else {
-			throw "Unknown format '" + format + "'! Use either 'beagle', 'geno', 'LFMM', 'posFile' or 'truthSet'.";
+			UERROR("Unknown format '", format,
+				   "'! Use either 'beagle', 'geno', 'LFMM', 'posfile' or 'genfile'.");
 		}
 		logfile().endIndent();
 	};
-
 };
 
-}; //end namespace
+} // namespace VCF
 
-#endif //ATLAS_TVCFCONVERTER_H
+#endif // ATLAS_TVCFCONVERTER_H

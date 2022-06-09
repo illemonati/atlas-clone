@@ -569,7 +569,7 @@ void TAlleleFreqEstimator::_openVCF(TParameters & Parameters){
 
 	//create reader
 	bool saveAlleleFrequencies = true;
-	reader.initialize(Parameters, logfile, saveAlleleFrequencies);
+	reader.initialize(saveAlleleFrequencies);
 	reader.doEstimateGenotypeFrequencies();
 
 	// open vcf file
