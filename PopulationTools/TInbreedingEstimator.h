@@ -170,7 +170,7 @@ private:
 	void _readData();
 
 public:
-	void runEstimation(coretools::TParameters &Parameters);
+	void run();
 };
 
 //--------------------------------------
@@ -184,9 +184,8 @@ public:
 	};
 
 	void run() override {
-		using namespace coretools::instances;
 		TInbreedingEstimator inbreedingEstimator;
-		inbreedingEstimator.runEstimation(parameters());
+		inbreedingEstimator.run();
 	};
 };
 

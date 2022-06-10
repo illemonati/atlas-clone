@@ -28,6 +28,8 @@ class TParameterObservationBase;
 
 namespace PopulationTools {
 
+using namespace coretools::instances;
+
 //------------------------------------------
 // TInbreedingEstimatorPrior
 //------------------------------------------
@@ -39,6 +41,9 @@ TInbreedingEstimatorPrior::TInbreedingEstimatorPrior(stattools::TParameterTyped<
                                                      const std::vector<double> &InitialEstimatesP)
     : _F(F), _p(P), _FModel(FModel), _pModel(PModel), _initialEstimatesP(InitialEstimatesP) {
 	this->addPriorParameter({_F, _p, _FModel, _pModel});
+
+	// read command line parameters
+	_readCommandLineArguments();
 }
 
 std::string TInbreedingEstimatorPrior::name() const { return "inbreeding"; }
@@ -59,37 +64,32 @@ void TInbreedingEstimatorPrior::initializeStorageOfPriorParameters() {
 	// p and pModel: linear of length L
 	_p->initializeStorageBasedOnPrior({_numLoci}, {lociNames});
 	_pModel->initializeStorageBasedOnPrior({_numLoci}, {lociNames});
-
-	// read command line parameters
-	_readCommandLineArguments();
 }
 
 void TInbreedingEstimatorPrior::_readCommandLineArguments() {
-	using namespace coretools::instances;
-
 	// parameters for model switch of F
 	_q_FModel_To_HWE     = parameters().getParameterWithDefault("probMovingToModelNoF", 0.1);
 	_log_q_FModel_To_HWE = log(_q_FModel_To_HWE);
 	logfile().list("Will propose move to model without F with probability ", _q_FModel_To_HWE,
-	               ". (parameter 'probMovingToModelNoF')");
+	               ". (use 'probMovingToModelNoF' to change)");
 
 	// Read lambda for proposing new F
 	_lambdaNewF = parameters().getParameterWithDefault("lambdaF", 100.0);
-	logfile().list("Lambda of exponential distribution used for the proposal of "
-	               "new F after move to model with F is set to ",
-	               coretools::str::toString(_lambdaNewF), ". (parameter 'lambdaF')");
+	logfile().list("Setting lambda of exponential distribution used for the proposal of "
+	               "new F after move to model with F to ",
+	               _lambdaNewF, ". (use 'lambdaF' to change)");
 
 	// parameters for model switch of p
 	_q_PModel_To_NullModel     = parameters().getParameterWithDefault("probMovingToModelP0", 0.1);
 	_log_q_PModel_To_NullModel = log(_q_PModel_To_NullModel);
 	logfile().list("Will propose move to monomorphic model with probability ", _q_PModel_To_NullModel,
-	               ". (parameter 'probMovingToModelP0')");
+	               ". (use 'probMovingToModelP0' to change)");
 
 	// Read lambda for proposing new p
 	_lambdaNewP = parameters().getParameterWithDefault("lambdaP", 100.0);
 	logfile().list("Lambda of exponential distribution used for the proposal of "
 	               "new p after move to polymorphic model is set to ",
-	               coretools::str::toString(_lambdaNewP), ". (parameter 'lambdaP')");
+	               _lambdaNewP, ". (use 'lambdaP' to change)");
 }
 
 coretools::LogProbability TInbreedingEstimatorPrior::_calculateLLSumOverIndividuals(
@@ -124,7 +124,6 @@ void TInbreedingEstimatorPrior::updateParams() {
 }
 
 void TInbreedingEstimatorPrior::_updateF(const Storage &Data) {
-	using namespace coretools::instances;
 	if (_F->isUpdated()) {
 		if (_FModel->value()) { // we're in F-model
 			if (_FModel->isUpdated() && randomGenerator().getRand() < _q_FModel_To_HWE) {
@@ -221,7 +220,6 @@ void TInbreedingEstimatorPrior::_updateHWEToF(const Storage &Data) {
 }
 
 void TInbreedingEstimatorPrior::_updateP(const Storage &Data, size_t Locus) {
-	using namespace coretools::instances;
 	if (_p->isUpdated()) {
 		if (_pModel->value(Locus)) { // we're in the polyploid model
 			if (_pModel->isUpdated() && randomGenerator().getRand() < _q_PModel_To_NullModel) {
@@ -307,9 +305,8 @@ void TInbreedingEstimatorPrior::_setInitialF() {
 }
 
 void TInbreedingEstimatorPrior::_setInitialP() {
-	using namespace coretools::instances;
 	logfile().list("Initializing allele frequencies to values estimated from "
-	               "sample genotype likelihoods");
+	               "sample genotype likelihoods.");
 
 	// now read values into _p and _pModel
 	if (!_p->hasFixedInitialValue()) {
@@ -410,7 +407,6 @@ TInbreedingEstimatorModel::TInbreedingEstimatorModel(
 
 void TInbreedingEstimator::_readData() {
 	// read data
-	using namespace coretools::instances;
 	_likelihoods.doSaveAlleleFrequencies();
 	if (parameters().parameterExists("trueAlleleFreq")) {
 		_likelihoods.doSaveTrueAlleleFrequencies();
@@ -419,12 +415,12 @@ void TInbreedingEstimator::_readData() {
 	_likelihoods.readData();
 }
 
-void TInbreedingEstimator::runEstimation(coretools::TParameters &Parameters) {
+void TInbreedingEstimator::run() {
 	// read file names
-	std::string vcfFileName = Parameters.getParameter("vcf");
+	std::string vcfFileName = parameters().getParameter("vcf");
 	vcfFileName             = coretools::str::extractBeforeLast(vcfFileName, ".vcf");
-	auto prefix             = Parameters.getParameterWithDefault<std::string>("prefix", "");
-	auto filename           = Parameters.getParameterWithDefault<std::string>("out", vcfFileName);
+	auto prefix             = parameters().getParameterWithDefault<std::string>("prefix", "");
+	auto filename           = parameters().getParameterWithDefault<std::string>("out", vcfFileName);
 
 	// read data
 	_readData();
