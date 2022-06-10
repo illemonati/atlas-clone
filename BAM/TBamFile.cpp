@@ -784,7 +784,6 @@ void TBamFile::printSummaryNoEndIndent(){
 void TBamFile::printSummary(){
 	printSummaryNoEndIndent();
 	_logfile->endIndent();
-	_logfile->endIndent();
 };
 
 void TBamFile::startProgressReporting(uint32_t Frequency){

@@ -16,37 +16,37 @@
 #include "TTask.h"
 #include "counters.h"
 
-namespace GenomeTasks{
+namespace GenomeTasks {
 
-//TODO: does using "left" and "right" make sense? Should we not rather use 3' and 5' ends?
+// TODO: does using "left" and "right" make sense? Should we not rather use 3' and 5' ends?
 
 //--------------------------------------------------------
 // TSoftClippingStatsFile
 //--------------------------------------------------------
-class TSoftClippingStatsFile{
+class TSoftClippingStatsFile {
 private:
 	coretools::TOutputFile _out;
-	bool _printSequences;
+	bool _printSequences = false;
 
 public:
-	TSoftClippingStatsFile(){ _printSequences = false; };
-	TSoftClippingStatsFile(const std::string filename, const bool PrintSequences);
-	void open(const std::string filename, const bool PrintSequences);
-	void write(const BAM::TBamFile & bamFile);
+	TSoftClippingStatsFile() = default;
+	TSoftClippingStatsFile(const std::string &Filename, bool PrintSequences);
+	void open(const std::string &Filename, bool PrintSequences);
+	void write(const BAM::TBamFile &bamFile);
 };
 
 //--------------------------------------------------------
 // TAssessSoftClipping
 //--------------------------------------------------------
-class TAssessSoftClipping:public TGenome_filtered{
+class TAssessSoftClipping : public TGenome_filtered {
 private:
-	bool _writeAlignments;
-	bool _printAll;
+	bool _writeAlignments = false;
+	bool _printAll        = false;
 
 	coretools::TCountDistributionVector left, right, total;
 	TSoftClippingStatsFile statFile;
 
-	void _handleAlignment();
+	void _handleAlignment() override;
 
 public:
 	TAssessSoftClipping();
@@ -56,38 +56,39 @@ public:
 //--------------------------------------------------------
 // TRemoveSoftClippedBases
 //--------------------------------------------------------
-class TRemoveSoftClippedBases:public TGenome_parsed{
+class TRemoveSoftClippedBases : public TGenome_parsed {
 private:
 	BAM::TOutputBamFile _outBam;
-	void _handleAlignment();
+	void _handleAlignment() override;
+
 public:
 	TRemoveSoftClippedBases();
-	void removeSoftclippedBases();
+	void removeSoftClippedBases();
 };
 
 //--------------------------------------
 // Tasks
 //--------------------------------------
-class TTask_assessSoftClipping:public coretools::TTask{
+class TTask_assessSoftClipping : public coretools::TTask {
 public:
-	TTask_assessSoftClipping(){ _explanation = "Assessing level of soft clipping in BAM file"; };
+	TTask_assessSoftClipping() { _explanation = "Assessing level of soft clipping in BAM file"; };
 
-	void run(){
+	void run() override {
 		TAssessSoftClipping assessor;
 		assessor.assess();
 	};
 };
 
-class TTask_removeSoftClippedBasesFromReads:public coretools::TTask{
+class TTask_removeSoftClippedBasesFromReads : public coretools::TTask {
 public:
-	TTask_removeSoftClippedBasesFromReads(){ _explanation = "Removing soft clipped bases from reads"; };
+	TTask_removeSoftClippedBasesFromReads() { _explanation = "Removing soft clipped bases from reads"; };
 
-	void run(){
+	void run() override {
 		TRemoveSoftClippedBases remover;
-		remover.removeSoftclippedBases();
+		remover.removeSoftClippedBases();
 	};
 };
 
-}; // end namespace
+}; // namespace GenomeTasks
 
 #endif /* TSOFTCLIPPING_H_ */
