@@ -541,10 +541,6 @@ TAlignmentSplitMerger::TAlignmentSplitMerger() : TBamFilter(){
 	//parse read group settings
 	_rgSettings.initialize(_bamFile.readGroupsMutable());
 
-	//other settings
-	_numReadsMerged = 0;
-	_numBasesMerged = 0;
-
 	//allow for reads to exceed max cycle length?
 	if(_rgSettings.needTruncation() || parameters().parameterExists("allowForLarger")){
 		_allowForLarger = true;
@@ -622,12 +618,6 @@ void TAlignmentSplitMerger::_handleMates(BAM::TAlignment* alignment, TAlignmentI
 		if(!mate->alignment->isParsed()){
 			mate->alignment->parse();
 		}
-
-		uint16_t overlap = _merger->merge(*alignment, *mate->alignment);
-		if(overlap > 0){
-			++_numReadsMerged;
-			_numBasesMerged += overlap;
-		}
 	}
 
 	//mark both as ready for writing
@@ -643,9 +633,9 @@ void TAlignmentSplitMerger::_handleSingle(BAM::TAlignment* alignment){
 		_alignmentStorage.emplace_back(alignment, true);
 	} else if(settings.type == single || settings.type == mixed){
 		//truncate
-		if(alignment->parsedLength() > settings.maxCycles && !_allowForLarger){
+		if(!_allowForLarger && alignment->length() > settings.maxCycles){
 			throw("Length of read " + alignment->name() + " is > max cycles for its read group (" + toString(settings.maxCycles) + ")! Use parameter 'allowForLarger' to ignore and put read in truncated read group.");
-		} else if(alignment->parsedLength() >= settings.maxCycles - _considerAtMaxUpToDist){
+		} else if(alignment->length() >= settings.maxCycles){
 			//add to truncated read group
 			alignment->setReadGroup(settings.altReadGroupId);
 		}

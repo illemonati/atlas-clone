@@ -153,9 +153,6 @@ public:
 class TAlignmentSplitMerger:public TBamFilter{
 private:
 	std::unique_ptr<TAlignmentMerger> _merger;
-	uint64_t _numReadsMerged;
-	uint64_t _numBasesMerged;
-	uint8_t _considerAtMaxUpToDist;
 	bool _allowForLarger;
 
 	void _initializeMerger();
