@@ -16,7 +16,23 @@ cmake=cmake
 
 # define he help
 usage='
-
+\n \******************************COMPILING ATLAS*****************************************\
+\n
+\n\t This script compiles the atlas executable.
+\n\t Usage: bash compile_atlas.sh [options]
+\n\t 
+\n\t 
+\n\t Optional parameters:
+\n\t  -h \t open this page
+\n\t 
+\n\t  -c \t specify the full path to a cmake executable. 
+\n\t     \t Required version: 2.14 or higher
+\n\t     \t Default: cmake
+\n\t 
+\n\t  -a \t specify the full path to a locally installed Armadillo library.
+\n\t 
+\n\t 
+\n \**************************************************************************************\
 '
 
 while getopts ":hc:a:" OPTION
