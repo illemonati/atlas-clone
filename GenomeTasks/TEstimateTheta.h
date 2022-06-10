@@ -8,8 +8,8 @@
 #ifndef GENOMETASKS_TESTIMATETHETA_H_
 #define GENOMETASKS_TESTIMATETHETA_H_
 
-#include <stdint.h>
 #include <set>
+#include <stdint.h>
 #include <string>
 #include <vector>
 
@@ -19,20 +19,23 @@
 #include "TThetaEstimator.h"
 #include "TWindow.h"
 #include "probability.h"
-namespace GenotypeLikelihoods { class TThetaEstimatorData; }
+namespace GenotypeLikelihoods {
+class TThetaEstimatorData;
+}
 
-namespace GenomeTasks{
+namespace GenomeTasks {
 
 //-----------------------------------
 // TEstimateTheta_base
 //-----------------------------------
-class TEstimateTheta_base:public TGenome_windows{
+class TEstimateTheta_base : public TGenome_windows {
 protected:
 	GenotypeLikelihoods::TThetaEstimator _thetaEstimator;
 	GenotypeLikelihoods::TThetaOutputFile _thetaOut;
 
-	void _addSites(GenotypeLikelihoods::TWindow_base & window, GenotypeLikelihoods::TThetaEstimator & thetaEstimator);
+	void _addSites(GenotypeLikelihoods::TWindow_base &window, GenotypeLikelihoods::TThetaEstimator &thetaEstimator);
 	void _addSites();
+
 public:
 	TEstimateTheta_base();
 };
@@ -40,7 +43,7 @@ public:
 //-----------------------------------
 // TEstimateTheta
 //-----------------------------------
-class TEstimateTheta:public TEstimateTheta_base{
+class TEstimateTheta : public TEstimateTheta_base {
 private:
 	bool _printAll;
 
@@ -53,11 +56,10 @@ public:
 	void estimateTheta();
 };
 
-
 //-----------------------------------
 // TEstimateThetaGenomeWide
 //-----------------------------------
-class TEstimateThetaGenomeWide:public TEstimateTheta_base{
+class TEstimateThetaGenomeWide : public TEstimateTheta_base {
 private:
 	uint32_t _numBootstraps;
 	bool _onlyBootstraps;
@@ -65,6 +67,7 @@ private:
 	void _bootstrapThetaEstimation();
 	void _handleWindow() override;
 	void _handleAlignment() override {}
+
 public:
 	TEstimateThetaGenomeWide();
 	void estimateThetaGenomeWide();
@@ -73,13 +76,14 @@ public:
 //-----------------------------------
 // TEstimateThetaLLSurface
 //-----------------------------------
-class TEstimateThetaLLSurface:public TEstimateTheta_base{
+class TEstimateThetaLLSurface : public TEstimateTheta_base {
 private:
 	uint32_t _steps;
 
 	void _bootstrapThetaEstimation();
 	void _handleWindow() override;
 	void _handleAlignment() override {}
+
 public:
 	TEstimateThetaLLSurface();
 	void estimateThetaLLSurface();
@@ -88,17 +92,18 @@ public:
 //-----------------------------------
 // TEstimateThetaDownsamplingQC
 //-----------------------------------
-class TEstimateThetaDownsamplingQC:public TEstimateTheta_base{
+class TEstimateThetaDownsamplingQC : public TEstimateTheta_base {
 private:
 	std::vector<coretools::Probability> downSampleProbVector;
 	std::vector<GenotypeLikelihoods::TThetaEstimator> estimators;
 	bool _printFullData;
 
-	//tmp
+	// tmp
 	GenotypeLikelihoods::TWindow_base destination;
 
 	void _handleWindow() override;
 	void _handleAlignment() override {}
+
 public:
 	TEstimateThetaDownsamplingQC();
 	void runQC();
@@ -107,14 +112,14 @@ public:
 //-----------------------------------
 // TEstimateThetaRatio
 //-----------------------------------
-class TEstimateThetaRatio:public TGenome_windows{
+class TEstimateThetaRatio : public TGenome_windows {
 private:
 	GenotypeLikelihoods::TThetaEstimatorRatio _thetaEstimatorRatio;
-    genometools::TBed _region1;
-    genometools::TBed _region2;
+	genometools::TBed _region1;
+	genometools::TBed _region2;
 
-	void _initializeRegion(genometools::TBed & region, const char num);
-	void _addSites(GenotypeLikelihoods::TThetaEstimatorData & data, genometools::TBed & regions);
+	void _initializeRegion(genometools::TBed &region, const char num);
+	void _addSites(GenotypeLikelihoods::TThetaEstimatorData &data, genometools::TBed &regions);
 	void _handleWindow() override;
 	void _handleAlignment() override {}
 
@@ -126,63 +131,65 @@ public:
 //--------------------------------------
 // Tasks
 //--------------------------------------
-class TThetaTask:public coretools::TTask{
+class TThetaTask : public coretools::TTask {
 public:
-	TThetaTask(){ _citations.insert("Kousathanas et al. (2017) Genetics"); };
+	TThetaTask() { _citations.insert("Kousathanas et al. (2017) Genetics"); };
 };
 
-class TTask_estimateTheta:public TThetaTask{
+class TTask_estimateTheta : public TThetaTask {
 public:
-	TTask_estimateTheta(){ _explanation = "Estimating heterozygosity (theta) per window"; };
+	TTask_estimateTheta() { _explanation = "Estimating heterozygosity (theta) per window"; };
 
-	void run(){
+	void run() {
 		TEstimateTheta estimator;
 		estimator.estimateTheta();
 	};
 };
 
-class TTask_estimateThetaGenomeWide:public TThetaTask{
+class TTask_estimateThetaGenomeWide : public TThetaTask {
 public:
-	TTask_estimateThetaGenomeWide(){ _explanation = "Estimating heterozygosity (theta) genome-wide"; };
+	TTask_estimateThetaGenomeWide() { _explanation = "Estimating heterozygosity (theta) genome-wide"; };
 
-	void run(){
+	void run() {
 		TEstimateThetaGenomeWide estimator;
 		estimator.estimateThetaGenomeWide();
 	};
 };
 
-class TTask_thetaLLSurface:public TThetaTask{
+class TTask_thetaLLSurface : public TThetaTask {
 public:
-	TTask_thetaLLSurface(){	_explanation = "Calculating the theta LL surface for each window"; };
+	TTask_thetaLLSurface() { _explanation = "Calculating the theta LL surface for each window"; };
 
-	void run(){
+	void run() {
 		TEstimateThetaLLSurface estimator;
 		estimator.estimateThetaLLSurface();
 	};
 };
 
-class TTask_downsamplingThetaQC:public TThetaTask{
+class TTask_downsamplingThetaQC : public TThetaTask {
 public:
-	TTask_downsamplingThetaQC(){ _explanation = "QC recalibration by estimating theta on downsampled data for each window"; };
+	TTask_downsamplingThetaQC() {
+		_explanation = "QC recalibration by estimating theta on downsampled data for each window";
+	};
 
-	void run(){
+	void run() {
 		TEstimateThetaDownsamplingQC estimator;
 		estimator.runQC();
 	};
 };
 
-class TTask_estimateThetaRatio:public TThetaTask{
+class TTask_estimateThetaRatio : public TThetaTask {
 public:
-	TTask_estimateThetaRatio(){ _explanation = "Estimate the ratio in heterozygosity (theta) between genomic regions"; };
+	TTask_estimateThetaRatio() {
+		_explanation = "Estimate the ratio in heterozygosity (theta) between genomic regions";
+	};
 
-	void run(){
+	void run() {
 		TEstimateThetaRatio estimator;
 		estimator.estimateThetaRation();
 	};
 };
 
-
-}; // end namespace
+}; // namespace GenomeTasks
 
 #endif /* GENOMETASKS_TESTIMATETHETA_H_ */
-
