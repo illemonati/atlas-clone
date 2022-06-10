@@ -348,14 +348,6 @@ genometools::TGenomePosition TAlignment::positionInRef(uint32_t internalPosition
 	return *this + _alignedPosition[internalPosition];
 };
 
-uint32_t TAlignment::parsedLength() const{
-	if(_parsed){
-		return _cigar.lengthRead();
-	} else {
-		return 0;
-	}
-};
-
 void TAlignment::_updateSequenceAndQualities() const{
 	if(_sequenceAndQualitiesChanged){
 		//update according to what is stored in bases

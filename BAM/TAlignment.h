@@ -128,13 +128,14 @@ public:
 	uint32_t matePosition() const{ return _mateGenomicPosition.position(); };
 	uint32_t mateRefID() const{ return _mateGenomicPosition.refID(); };
 
-	std::string name() const{ return _name; };
+	std::string name() const { return _name; };
 	uint16_t readGroupId() const { return _readGroupID; };
-	uint32_t parsedLength() const;
-	int32_t insertSize() const{ return _insertSize_TLEN; };
-	uint16_t mappingQuality() const{ return _mappingQuality; };
-	uint16_t flags() const{ return _flags.asInt(); };
-	const TCigar& cigar() const{ return _cigar; };
+	uint32_t parsedLength() const { return _parsed ? length() : 0; };
+	uint32_t length() const { return _cigar.lengthRead(); };
+	int32_t insertSize() const { return _insertSize_TLEN; };
+	uint16_t mappingQuality() const { return _mappingQuality; };
+	uint16_t flags() const { return _flags.asInt(); };
+	const TCigar &cigar() const { return _cigar; };
 
 	TSequencedBase& operator[](const uint32_t internalPos){ return _bases[internalPos]; };
 	const TSequencedBase& operator[](const uint32_t internalPos) const { return _bases[internalPos]; };

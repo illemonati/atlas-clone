@@ -59,7 +59,7 @@ void TModels::initializeFromFile(const std::string &Filename, const BAM::TReadGr
 
 	// read parameters from file
 	logfile().listFlush("Initializing recalibration models from '" + Filename + "' ...");
-	coretools::TInputFile in(Filename, {"readGroup", "mate", "covariates", "rho"}, "/t", "//");
+	coretools::TInputFile in(Filename, {"readGroup", "mate", "covariates", "rho"}, "\t", "//");
 
 	// prepare objects
 	_models.resize(ReadGroups.size());
