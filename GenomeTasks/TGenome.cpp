@@ -231,7 +231,7 @@ void TGenome_windows::_setWindowFilters() {
 	if (_maxRefN < 1.0 && !_reference.hasReference())
 		throw "Can only calculate percentage of reference bases that are 'N' in window if reference file is provided! "
 			  "(use 'fasta' to provide a reference)";
-	logfile().list("Will filter out windows with a fraction of 'N' in reference > " + toString(_maxMissing) +
+	logfile().list("Will filter out windows with a fraction of 'N' in reference > " + toString(_maxRefN) +
 				   ". (parameter 'maxRefN')");
 };
 
