@@ -231,7 +231,7 @@ void TGenome_windows::_setWindowFilters() {
 	if (_maxRefN < 1.0 && !_reference.hasReference())
 		throw "Can only calculate percentage of reference bases that are 'N' in window if reference file is provided! "
 			  "(use 'fasta' to provide a reference)";
-	logfile().list("Will filter out windows with a fraction of 'N' in reference > " + toString(_maxMissing) +
+	logfile().list("Will filter out windows with a fraction of 'N' in reference > " + toString(_maxRefN) +
 				   ". (parameter 'maxRefN')");
 };
 
@@ -565,7 +565,7 @@ void TGenome_windows::_applyWindowFilters(GenotypeLikelihoods::TWindow_base &win
 };
 
 void TGenome_windows::_traverseBAMWindows() {
-	logfile().startIndent("Traversing BAM file in windows");
+	logfile().startIndent("Traversing BAM file in windows:");
 
 	// initializing
 	_hasWindowIndent = false;

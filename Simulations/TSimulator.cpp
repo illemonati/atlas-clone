@@ -388,9 +388,9 @@ void TBAMSimulator::_initializeReadSimulator() {
 		for (int i = 0; i < numRG; ++i) { _readGroups.add("SimReadGroup" + coretools::str::toString(i + 1)); }
 		// report
 		if (numRG == 1) {
-			logfile().startIndent("Initializing one read group (parameter 'numreadGroups'):");
+			logfile().startIndent("Initializing one read group (parameter 'numReadGroups'):");
 		} else if (numRG > 1) {
-			logfile().startIndent("Initializing ", numRG, " identical read groups (parameter 'numreadGroups'):");
+			logfile().startIndent("Initializing ", numRG, " identical read groups (parameter 'numReadGroups'):");
 		} else {
 			throw "numReadGroups must be at least 1!";
 		}

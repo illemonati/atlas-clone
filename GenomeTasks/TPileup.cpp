@@ -63,13 +63,13 @@ TPileup::TPileup():TGenome_windows(){
 	std::set<std::string> fields;
 	parameters().fillParameterIntoContainerWithDefault("fields", fields, ',', {"depth", "bases", "qualities", "alleles", "mates", "strands", "likelihoods"});
 
-	_printSettings.set<Depth>(impl::parseField(fields, "depth", "sequencing depth"));
-	_printSettings.set<Bases>(impl::parseField(fields, "bases", "pileup bases"));
-	_printSettings.set<Qualities>(impl::parseField(fields, "qualities", "pileup qualities"));
-	_printSettings.set<Alleles>(impl::parseField(fields, "alleles", "allele counts"));
-	_printSettings.set<Mates>(impl::parseField(fields, "mates", "mate information"));
-	_printSettings.set<Strand>(impl::parseField(fields, "strands", "strand information"));
-	_printSettings.set<Likelihoods>(impl::parseField(fields, "likelihoods", "genotype likelihoods"));
+	_printSettings.set<Depth>(impl::parseField(fields, "depth", "Sequencing depth"));
+	_printSettings.set<Bases>(impl::parseField(fields, "bases", "Pileup bases"));
+	_printSettings.set<Qualities>(impl::parseField(fields, "qualities", "Pileup qualities"));
+	_printSettings.set<Alleles>(impl::parseField(fields, "alleles", "Allele counts"));
+	_printSettings.set<Mates>(impl::parseField(fields, "mates", "Mate information"));
+	_printSettings.set<Strand>(impl::parseField(fields, "strands", "Strand information"));
+	_printSettings.set<Likelihoods>(impl::parseField(fields, "likelihoods", "Genotype likelihoods"));
 	logfile().endIndent();
 
 	//check if unknown fields were given
