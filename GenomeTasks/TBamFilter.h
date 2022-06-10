@@ -33,32 +33,30 @@ enum ReadGroupType : uint8_t { unchanged=0, single, mixed, paired};
 
 struct TAlignmentMergerReadGroupSetting{
 	uint16_t readGroupId;
-	mutable uint16_t altReadGroupId;
-	mutable ReadGroupType type;
-	mutable uint16_t maxCycles;
+	uint16_t altReadGroupId;
+	ReadGroupType type;
+	uint16_t maxCycles;
 
-	TAlignmentMergerReadGroupSetting(const uint16_t ReadGroupId, const ReadGroupType Type, const uint16_t MaxCycles){
-		readGroupId = ReadGroupId;
-		altReadGroupId = readGroupId;
-		type = Type;
-		maxCycles = MaxCycles;
-	};
+	constexpr TAlignmentMergerReadGroupSetting(const uint16_t ReadGroupId, const ReadGroupType Type, const uint16_t MaxCycles)
+		: readGroupId(ReadGroupId), altReadGroupId(ReadGroupId), type(Type), maxCycles(MaxCycles){};
 
-	bool operator<(const TAlignmentMergerReadGroupSetting & right) const { return readGroupId < right.readGroupId; };
-	bool operator<(const uint16_t right) const { return readGroupId < right; };
+	constexpr TAlignmentMergerReadGroupSetting(const uint16_t ReadGroupId, uint16_t AltReadGroupId, const ReadGroupType Type, const uint16_t MaxCycles)
+		: readGroupId(ReadGroupId), altReadGroupId(AltReadGroupId), type(Type), maxCycles(MaxCycles){};
+
+	constexpr bool operator<(const TAlignmentMergerReadGroupSetting & right) const noexcept { return readGroupId < right.readGroupId; };
+	constexpr bool operator<(const uint16_t right) const noexcept { return readGroupId < right; };
 };
 
-bool operator<(const uint16_t left, const TAlignmentMergerReadGroupSetting & right);
+constexpr bool operator<(const uint16_t left, const TAlignmentMergerReadGroupSetting & right) noexcept {
+	return left < right.readGroupId;
+};
 
 class TAlignmentMergerReadGroupSettings{
 private:
 	std::set<TAlignmentMergerReadGroupSetting, std::less<> > _settings;
 
 	void _printSummary();
-
 public:
-	TAlignmentMergerReadGroupSettings(){};
-
 	void initialize(BAM::TReadGroups & readGroups);
 	void setAllAsUnchanged(const BAM::TReadGroups & readGroups);
 	bool needTruncation() const;
