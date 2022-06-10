@@ -55,7 +55,7 @@ void TWriteGLF::_handleWindow(){
 void TWriteGLF::writeGLF(){
 	//open GLF file
 	std::string outputFileName = _outputName + ".glf.gz";
-	logfile().list("Will write genotype likelihoods to GLF file '" + outputFileName + "'");
+	logfile().list("Will write genotype likelihoods to GLF file '" + outputFileName + "'.");
 	_writer.open(outputFileName);
 
 	//traverse BAM

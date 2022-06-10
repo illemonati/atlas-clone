@@ -813,8 +813,8 @@ void TBamFile::printEndWithSummary(){
 };
 
 void TBamFile::printEndNoEndIndent(){
-	_logfile->list("Reached end of BAM file in " + _timer.formattedTime());
-	_logfile->conclude("Parsed a total of " + _millionReadsRead() + " million reads in " + _timer.formattedTime());
+	_logfile->list("Reached end of BAM file in " + _timer.formattedTime() + ':');
+	_logfile->conclude("Parsed a total of " + _millionReadsRead() + " million reads in " + _timer.formattedTime() + '.');
 };
 
 //------------------------------------------------

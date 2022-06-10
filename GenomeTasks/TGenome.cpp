@@ -565,7 +565,7 @@ void TGenome_windows::_applyWindowFilters(GenotypeLikelihoods::TWindow_base &win
 };
 
 void TGenome_windows::_traverseBAMWindows() {
-	logfile().startIndent("Traversing BAM file in windows");
+	logfile().startIndent("Traversing BAM file in windows:");
 
 	// initializing
 	_hasWindowIndent = false;
