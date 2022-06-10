@@ -40,10 +40,6 @@ using coretools::instances::logfile;
 using coretools::instances::randomGenerator;
 using namespace coretools::str;
 
-bool operator<(const uint16_t left, const TAlignmentMergerReadGroupSetting & right){
-	return left < right.readGroupId;
-};
-
 //-----------------------------------------
 // TAlignmentMergerReadGroupSettings
 //-----------------------------------------
@@ -138,8 +134,7 @@ void TAlignmentMergerReadGroupSettings::initialize(BAM::TReadGroups & readGroups
 					}
 
 					//add to settings and create truncated read group
-					auto it = _settings.emplace(rgId, single, maxCycles);
-					it.first->altReadGroupId = readGroups.addAlternativeRG(vec[0] + "_truncated", vec[0]).id;
+					_settings.emplace(rgId, readGroups.addAlternativeRG(vec[0] + "_truncated", vec[0]).id, single, maxCycles);
 
 				} else if(vec[1] == "mixed"){
 					if(maxCycles < 1){
@@ -147,8 +142,7 @@ void TAlignmentMergerReadGroupSettings::initialize(BAM::TReadGroups & readGroups
 					}
 
 					//add to settings and create truncated read group
-					auto it = _settings.emplace(rgId, mixed, maxCycles);
-					it.first->altReadGroupId = readGroups.addAlternativeRG(vec[0] + "_truncated", vec[0]).id;
+					_settings.emplace(rgId, readGroups.addAlternativeRG(vec[0] + "_truncated", vec[0]).id, mixed, maxCycles);
 
 				} else if(vec[1] == "paired"){
 					_settings.emplace(rgId, paired, 0);
