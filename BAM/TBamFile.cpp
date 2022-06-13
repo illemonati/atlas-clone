@@ -713,38 +713,76 @@ void TBamFile::printSummaryNoEndIndent(){
 				coretools::instances::logfile().listFlush("Writing general filter counts to '" + filename + "' ...");
 
 				//creating header
-				std::vector<uint16_t> rg_IDs;
-				for (uint16_t it = 0; it < _readGroups.size(); it++){
-						rg_IDs.push_back(it);
-					}
 				std::vector<std::string> header;
-				header.push_back("Filter");
-				header.push_back("allReadgroups");
-				for (auto rg: _readGroups.getNames(rg_IDs)){
-					header.push_back(rg);
-				}
+				header.push_back("readGroup");
+				_duplicateFilter.fillHeader(header);
+				_softClippedFilter.fillHeader(header);
+				_improperPairsFilter.fillHeader(header);
+				_unmappedFilter.fillHeader(header);
+				_failedQCFilter.fillHeader(header);
+				_secondaryFilter.fillHeader(header);
+				_supplementaryFilter.fillHeader(header);
+				_longerThanFragmentFilter.fillHeader(header);
+				_readGroupFilter.fillHeader(header);
+				_fwdStrandFilter.fillHeader(header);
+				_revStrandFilter.fillHeader(header);
+				_firstMateFilter.fillHeader(header);
+				_secondMateFilter.fillHeader(header);
+				_blacklistFilter.fillHeader(header);
+				_mappingQualityFilter.fillHeader(header);
+				_fragmentLengthFilter.fillHeader(header);
+				_externalFilter.fillHeader(header);
+				_readLengthFilter.fillHeader(header);
+				_mappedLengthFilter.fillHeader(header);
 				coretools::TOutputFile out(filename, header, "\t");
 
+				out << "allReadGroups";
+				_duplicateFilter.printCombinedCounts(out);
+				_softClippedFilter.printCombinedCounts(out);
+				_improperPairsFilter.printCombinedCounts(out);
+				_unmappedFilter.printCombinedCounts(out);
+				_failedQCFilter.printCombinedCounts(out);
+				_secondaryFilter.printCombinedCounts(out);
+				_supplementaryFilter.printCombinedCounts(out);
+				_longerThanFragmentFilter.printCombinedCounts(out);
+				_readGroupFilter.printCombinedCounts(out);
+				_fwdStrandFilter.printCombinedCounts(out);
+				_revStrandFilter.printCombinedCounts(out);
+				_firstMateFilter.printCombinedCounts(out);
+				_secondMateFilter.printCombinedCounts(out);
+				_blacklistFilter.printCombinedCounts(out);
+				_mappingQualityFilter.printCombinedCounts(out);
+				_fragmentLengthFilter.printCombinedCounts(out);
+				_externalFilter.printCombinedCounts(out);
+				_readLengthFilter.printCombinedCounts(out);
+				_mappedLengthFilter.printCombinedCounts(out);
+				out << std::endl;
+
+
 				//writes numbers of removed reads for each applied filter per read group, also lists filters if no reads were removed
-				_duplicateFilter.printCounts(out, _readGroups.size());
-				_softClippedFilter.printCounts(out, _readGroups.size());
-				_improperPairsFilter.printCounts(out, _readGroups.size());
-				_unmappedFilter.printCounts(out, _readGroups.size());
-				_failedQCFilter.printCounts(out, _readGroups.size());
-				_secondaryFilter.printCounts(out, _readGroups.size());
-				_supplementaryFilter.printCounts(out, _readGroups.size());
-				_longerThanFragmentFilter.printCounts(out, _readGroups.size());
-				_readGroupFilter.printCounts(out, _readGroups.size());
-				_fwdStrandFilter.printCounts(out, _readGroups.size());
-				_revStrandFilter.printCounts(out, _readGroups.size());
-				_firstMateFilter.printCounts(out, _readGroups.size());
-				_secondMateFilter.printCounts(out, _readGroups.size());
-				_blacklistFilter.printCounts(out, _readGroups.size());
-				_mappingQualityFilter.printCounts(out, _readGroups.size());
-				_fragmentLengthFilter.printCounts(out, _readGroups.size());
-				_externalFilter.printCounts(out, _readGroups.size());
-				_readLengthFilter.printCounts(out, _readGroups.size());
-				_mappedLengthFilter.printCounts(out, _readGroups.size());
+				for (uint16_t it = 0; it < _readGroups.size(); it++){
+					out << _readGroups.getName(it);
+					_duplicateFilter.printCounts(out, it);
+					_softClippedFilter.printCounts(out, it);
+					_improperPairsFilter.printCounts(out, it);
+					_unmappedFilter.printCounts(out, it);
+					_failedQCFilter.printCounts(out, it);
+					_secondaryFilter.printCounts(out, it);
+					_supplementaryFilter.printCounts(out, it);
+					_longerThanFragmentFilter.printCounts(out, it);
+					_readGroupFilter.printCounts(out, it);
+					_fwdStrandFilter.printCounts(out, it);
+					_revStrandFilter.printCounts(out, it);
+					_firstMateFilter.printCounts(out, it);
+					_secondMateFilter.printCounts(out, it);
+					_blacklistFilter.printCounts(out, it);
+					_mappingQualityFilter.printCounts(out, it);
+					_fragmentLengthFilter.printCounts(out, it);
+					_externalFilter.printCounts(out, it);
+					_readLengthFilter.printCounts(out, it);
+					_mappedLengthFilter.printCounts(out, it);
+					out << std::endl;
+				}
 
 				out.close();
 				coretools::instances::logfile().done();

@@ -74,7 +74,6 @@ void TModels::initializeFromFile(const std::string &Filename, const BAM::TReadGr
 			const uint16_t readGroupId = ReadGroups.getId(vec[0]);
 			try {
 				const TModelDefinition modelDef(vec[2], vec[3]);
-
 				// add model
 				if (vec[1] == "first")
 					_models[readGroupId][0] = std::make_unique<TModelRecal>(modelDef);

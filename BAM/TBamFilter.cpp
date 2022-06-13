@@ -72,15 +72,27 @@ void TBamFileFilter::summary(TLog* logfile, uint64_t total, const uint16_t readG
 	}
 };
 
-void TBamFileFilter::printCounts(coretools::TOutputFile &out, uint16_t rg_size){
+void TBamFileFilter::fillHeader(std::vector<std::string> &header){
+	if (!getReason().empty()){
+			header.push_back(getReason());
+		}
+};
+
+void TBamFileFilter::printCounts(coretools::TOutputFile &out, uint16_t rg_ID) {
 	//Reason is only set if filter is applied (see TBamFile::setFilters), in which case reason and number of removed reads per read group are printed here
 	if (!getReason().empty()){
 		coretools::TCountDistribution FilterCount = numFiltered();
-		out << getReason() << FilterCount.counts();
-		for (uint16_t it = 0; it < rg_size; it++){out << FilterCount[it];}
-		out << std::endl;
+		out << FilterCount[rg_ID];
 	}
-}
+};
+
+void TBamFileFilter::printCombinedCounts(coretools::TOutputFile &out) {
+	//Reason is only set if filter is applied (see TBamFile::setFilters), in which case reason and number of removed reads per read group are printed here
+	if (!getReason().empty()){
+		coretools::TCountDistribution FilterCount = numFiltered();
+		out << FilterCount.counts();
+	}
+};
 
 //-----------------------------------------------------
 //TBamFileFilterBool

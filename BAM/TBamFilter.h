@@ -60,7 +60,9 @@ public:
 	void summary(coretools::TLog* logfile, uint64_t total, const uint16_t readGroup);
 	coretools::TCountDistribution numFiltered() const { return _counter; }
 	std::string getReason() const { return _reason; }
-	void printCounts(coretools::TOutputFile &out, uint16_t rg_size);
+	void fillHeader(std::vector<std::string> &header);
+	void printCounts(coretools::TOutputFile &out, uint16_t rg_ID);
+	void printCombinedCounts(coretools::TOutputFile &out);
 };
 
 //Filters out if pass(false), keeps if pass(true)

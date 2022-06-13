@@ -122,7 +122,6 @@ TModelDefinition::TModelDefinition(const std::string &modelString, const std::st
 	// split string
 	std::vector<std::string> tmp;
 	coretools::str::fillContainerFromString(modelString, tmp, ';', true);
-
 	// loop over entries
 	for (std::string s : tmp) {
 		const auto pos = s.find(':');
