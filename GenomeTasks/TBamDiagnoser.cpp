@@ -80,6 +80,9 @@ void TBamDiagnoser::diagnose(){
 
 	//now parse through bam file
     _traverseBAMPassedQC();
+    if(!parameters().parameterExists("splitMergeInput")){
+    	logfile().list("Will not create input file for splitMerge. (use 'splitMergeInput' to do so).");
+    }
 	logfile().list("Approximate sequencing depth was estimated at ", (double) _usableLength.sum() / (double) totLengthOfGenome, ".");
 
 	//writing output files
@@ -135,9 +138,10 @@ void TBamDiagnoser::diagnose(){
 	out.close();
 	logfile().done();
 
+	if(parameters().parameterExists("splitMergeInput")){
 	//write file used by split merge
 	std::string splitmergename = _outputName + "_splitMergeInput.txt";
-	logfile().listFlush("Outputting input file for splitMerge-task to '" + splitmergename + "' ...");
+	logfile().listFlush("Outputting input file for splitMerge to '" + splitmergename + "' ...");
 	coretools::TOutputFile splitm (splitmergename, {"ReadGroup", "SeqType", "MaxCycles"});
 	for(uint32_t rg = 0; rg < numRG; ++rg){
 		splitm << _bamFile.readGroups().getName(rg);
@@ -150,6 +154,7 @@ void TBamDiagnoser::diagnose(){
 	}
 	splitm.close();
 	logfile().done();
+	}
 
 
 	//writing distributions
