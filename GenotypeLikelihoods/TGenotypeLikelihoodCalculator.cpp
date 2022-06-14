@@ -87,10 +87,10 @@ void TGenotypeLikelihoodCalculator::init(const BAM::TReadGroups* ReadGroups){
 			//assume it it a recal file
 			logfile().startIndent("Initializing recal models from file '" + recalString + "' (parameter 'recal'):");
 			_sequencingErrorModels.initializeFromFile(recalString, *ReadGroups);
-
 			//warn if some read groups have no recal definition
 			std::vector<uint16_t> readGroupsWithoutRecal;
 			std::vector<uint16_t> readGroupsLikelySingelEnd;
+
 			_sequencingErrorModels.checkReadGroups(*ReadGroups, readGroupsWithoutRecal, readGroupsLikelySingelEnd);
 
 			if(readGroupsWithoutRecal.size() > 0){
