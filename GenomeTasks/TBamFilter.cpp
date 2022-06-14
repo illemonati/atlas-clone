@@ -612,6 +612,7 @@ void TAlignmentSplitMerger::_handleMates(BAM::TAlignment* alignment, TAlignmentI
 		if(!mate->alignment->isParsed()){
 			mate->alignment->parse();
 		}
+		_merger->merge(*alignment, *mate->alignment);
 	}
 
 	//mark both as ready for writing
