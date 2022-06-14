@@ -8,7 +8,6 @@
 #include <string>
 
 #include "TMain.h"
-#include "TTest.h"
 
 //BAM
 #include "TBamDiagnoser.h"

@@ -14,7 +14,7 @@
 
 #include "TLog.h"
 #include "TRandomGenerator.h"
-#include "algorithmsAndVectors.h"
+#include "algorithms.h"
 #include "mathFunctions.h"
 #include "stringFunctions.h"
 #include "strongTypes.h"

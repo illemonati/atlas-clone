@@ -27,7 +27,7 @@
 #include "TLog.h"
 #include "TParameters.h"
 #include "TRandomGenerator.h"
-#include "algorithmsAndVectors.h"
+#include "algorithms.h"
 #include "gzstream.h"
 #include "mathConstants.h"
 #include "progressTools.h"

@@ -19,7 +19,7 @@
 #include "probability.h"
 #include "TStrongArray.h"
 #include "TMassFunction.h"
-#include "algorithmsAndVectors.h"
+#include "algorithms.h"
 
 namespace GenotypeLikelihoods{
 

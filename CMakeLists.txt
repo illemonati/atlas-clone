@@ -8,6 +8,27 @@ if (POLICY CMP0048)
   cmake_policy(SET CMP0048 NEW)
 endif (POLICY CMP0048)
 
+if("${CMAKE_BUILD_TYPE}" STREQUAL "Asan")
+  set(SAN "-O1;-g;-fsanitize=address;-fno-omit-frame-pointer")
+  set(SAN_LINK "-fsanitize=address")
+  message("Compiling and linking with adress sanitizer")
+elseif("${CMAKE_BUILD_TYPE}" STREQUAL "Msan")
+  set(SAN "-O1;-g;-fsanitize=memory;-fno-omit-frame-pointer;-fsanitize-memory-track-origins")
+  set(SAN_LINK "-fsanitize=memory")
+  message("Compiling and linking with memory sanitizer")
+elseif("${CMAKE_BUILD_TYPE}" STREQUAL "UBsan")
+  set(SAN "-O1;-g;-fsanitize=undefined;-fno-omit-frame-pointer")
+  set(SAN_LINK "-fsanitize=undefined")
+  message("Compiling and linking with undefined behavior sanitizer")
+elseif("${CMAKE_BUILD_TYPE}" STREQUAL "Perf")
+  set(SAN "-O3;-DNDEBUG;-fno-omit-frame-pointer")
+  set(SAN_LINK "")
+  message("Compiling and linking for performance measurements")
+else()
+  set(SAN "")
+  set(SAN_LINK "")
+endif()
+
 # Project
 project(atlas VERSION 1.0.0 LANGUAGES CXX)
 
@@ -30,19 +51,19 @@ find_package(Armadillo REQUIRED)
 include(FetchContent)
 FetchContent_Declare(coretools
         GIT_REPOSITORY    https://bitbucket.org/wegmannlab/coretools.git
-        GIT_TAG           a9e35e0
+        GIT_TAG           c6df779
         SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/coretools"
         )
 
 FetchContent_Declare(stattools
         GIT_REPOSITORY    https://bitbucket.org/wegmannlab/stattools.git
-        GIT_TAG           19e7571
+        GIT_TAG           5e1fe63
         SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/stattools"
         )
 
 FetchContent_Declare(genometools
         GIT_REPOSITORY    https://bitbucket.org/wegmannlab/genometools.git
-        GIT_TAG           842de0d
+        GIT_TAG           d853f3e
         SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/genometools"
         )
 
@@ -65,11 +86,11 @@ target_include_directories(${PROJECT_NAME} PRIVATE
   Simulations
   VCF)
 
-target_link_libraries(${PROJECT_NAME} PRIVATE BamTools BamTools-utils coretools stattools genometools ${ZLIB_LIBRARIES} ${ARMADILLO_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} PRIVATE BamTools BamTools-utils coretools stattools genometools ${ZLIB_LIBRARIES} ${ARMADILLO_LIBRARIES} ${SAN_LINK})
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_EXTENSIONS OFF)
 target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra)
-target_compile_definitions(${PROJECT_NAME} PRIVATE WITH_ARMADILLO DEVTOOLS)
+target_compile_definitions(${PROJECT_NAME} PRIVATE WITH_ARMADILLO DEVTOOLS ${SAN})
 
 add_executable("${PROJECT_NAME}_unitTests" EXCLUDE_FROM_ALL)
 
@@ -106,7 +127,7 @@ target_include_directories("${PROJECT_NAME}_unitTests" PRIVATE
         Simulations
         VCF)
 
-target_link_libraries("${PROJECT_NAME}_unitTests" PRIVATE BamTools BamTools-utils coretools stattools genometools ${ZLIB_LIBRARIES} ${ARMADILLO_LIBRARIES} gtest_main gmock_main)
+target_link_libraries("${PROJECT_NAME}_unitTests" PRIVATE BamTools BamTools-utils coretools stattools genometools ${ZLIB_LIBRARIES} ${ARMADILLO_LIBRARIES} gtest_main gmock_main ${SAN_LINK})
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_EXTENSIONS OFF)
-target_compile_options("${PROJECT_NAME}_unitTests" PRIVATE -Wall -Wextra)
+target_compile_options("${PROJECT_NAME}_unitTests" PRIVATE -Wall -Wextra ${SAN})
