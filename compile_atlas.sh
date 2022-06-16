@@ -8,11 +8,8 @@ versionMajor=$(echo $version | cut -d. -f1)
 if [ $versionMajor -gt 7 ]; then echo "GCC version is sufficient for ATLAS"; else echo "ERR: please use GCC version 8 or higher."; exit 1 ;fi
 
 
-mkdir -p build
-cd build
-
 cmake=cmake
-
+update=FALSE
 
 # define he help
 usage='
@@ -31,11 +28,12 @@ usage='
 \n\t 
 \n\t  -a \t specify the full path to a locally installed Armadillo library.
 \n\t 
+\n\t  -u \t update ATLAS to the newest version
 \n\t 
 \n \**************************************************************************************\
 '
 
-while getopts ":hc:a:" OPTION
+while getopts ":hc:a:u" OPTION
 do
     case $OPTION in
     h)
@@ -61,6 +59,10 @@ do
         echo -e $usage
         exit 1
       fi
+      ;;
+    u)
+      update=TRUE
+      echo "Will update ATLAS to the newest version"
     ;;
     \?)
       echo -e "ERROR: no valid parameters defined! \n\n"
@@ -84,6 +86,17 @@ if ( [ $version1 == 2 ] && [ $version2 -gt 13 ]) || [ $version1 -gt 2 ] ; then e
 
 
 
+if [[ $update == "TRUE" ]]; then
+  echo -e "updating ATLAS ...."
+  # git clean -df ##if you update from a much older version and cannot properly compile, try uncommenting this line
+  git pull 
+  echo -e "done updating"
+fi
+
+mkdir -p build
+cd build
+
+echo -e "compiling...."
 if [ -z $arm ]; then
   $cmake ../
   make
@@ -92,6 +105,6 @@ else
   make
 fi
 
-echo "done compiling. \n"
+echo -e "Done. The ATLAS executable is located in build/atlas. \n"
 
 cd ..
