@@ -29,14 +29,14 @@ private:
 	std::vector<std::string> _readGroupNames;
 
     // distributions
-    coretools::TCountDistribution _passedQC;
-    coretools::TCountDistributionVector _readLength;
-    coretools::TCountDistributionVector _usableLength;
-    coretools::TCountDistributionVector _softClippedLength;
-    coretools::TCountDistributionVector _mappingQuality;
-    coretools::TCountDistributionVector _fragmentLength;
+    coretools::TCountDistribution<> _passedQC;
+    coretools::TCountDistributionVector<> _readLength;
+    coretools::TCountDistributionVector<> _usableLength;
+    coretools::TCountDistributionVector<> _softClippedLength;
+    coretools::TCountDistributionVector<> _mappingQuality;
+    coretools::TCountDistributionVector<> _fragmentLength;
 
-	void _writeHistogram(const coretools::TCountDistributionVector & distVec, const std::string& header, const std::string& name);
+	void _writeHistogram(const coretools::TCountDistributionVector<> & distVec, const std::string& header, const std::string& name);
     void _handleAlignment() override;
 
 public:

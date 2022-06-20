@@ -43,7 +43,7 @@ private:
 	bool _writeAlignments = false;
 	bool _printAll        = false;
 
-	coretools::TCountDistributionVector left, right, total;
+	coretools::TCountDistributionVector<> left, right, total;
 	TSoftClippingStatsFile statFile;
 
 	void _handleAlignment() override;

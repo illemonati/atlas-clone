@@ -31,7 +31,7 @@ TBamDiagnoser::TBamDiagnoser():TGenome_filtered(){
 
 };
 
-void TBamDiagnoser::_writeHistogram(const TCountDistributionVector & distVec, const std::string& header, const std::string& name){
+void TBamDiagnoser::_writeHistogram(const TCountDistributionVector<> & distVec, const std::string& header, const std::string& name){
 	//displays distributions of type 'TCountDistributionVector' as a histogram
 	std::string filename = _outputName + "_" + header + "Histogram.txt";
 	logfile().listFlush("Writing " + name + " histogram to '" + filename + "' ...");

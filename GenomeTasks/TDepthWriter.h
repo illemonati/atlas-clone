@@ -23,7 +23,7 @@ namespace GenomeTasks{
 class TDepthWriter:public TGenome_windows{
 private:
 	coretools::TOutputFile _out;
-	coretools::TCountDistribution _distPerSite;
+	coretools::TCountDistribution<> _distPerSite;
 
 	void _handleWindow() override;
 	void _handleAlignment() override {}

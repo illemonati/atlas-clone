@@ -39,7 +39,6 @@ void TBamFileLog::write(const std::string & alignmentName, const bool & isRevers
 //TBamFileFilter_base
 //-----------------------------------------------------
 TBamFileFilter::TBamFileFilter(){
-	_counter = 0;
 	_keep = true;
 	_updateLog = false;
 	_log = nullptr;
