@@ -230,7 +230,7 @@ std::vector<std::string> TBAMSimulator::_readSimInfoPerReadGroup(const std::stri
 		ret[rg]       = vec[1];
 	}
 	logfile().done();
-	logfile().conclude("Read " + Name + "s for ", in.lineNumber(), " read groups.");
+	logfile().conclude("Read " + Name + "s for ", in.lineNumber() - 1, " read groups.");
 
 	// check if there was data for each read group
 	for (size_t i = 0; i < found.size(); ++i) {
