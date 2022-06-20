@@ -62,7 +62,6 @@ SFS::SFS(uint32_t numChr, float theta) {
 		sum += sfs.back();
 	}
 	if (sum > 1.0) throw "The choice of theta and sample size results in too many mutations in the SFS!";
-
 	sfs.front() = 1.0 - sum;
 	_fillFrequencies();
 	_fillCumulative();
