@@ -77,12 +77,18 @@ SFS::SFS(uint32_t numChr, uint32_t onlyThisBin) {
 }
 
 void SFS::_fillFrequencies() {
-	sfsFrequencies[0] = 0.0;
+	if (sfsFrequencies.size() == 0)
+		sfsFrequencies.push_back(0.0);
+	else
+		sfsFrequencies[0] = 0.0;
 	for (uint32_t i = 1; i < sfs.size(); ++i) sfsFrequencies.push_back((float)i / numChromosomes());
 }
 
 void SFS::_fillCumulative() {
-	sfsCumulative[0] = sfs[0];
+	if (sfsCumulative.size() == 0)
+		sfsCumulative.push_back(sfs[0]);
+	else
+		sfsCumulative[0] = sfs[0];
 	for (uint32_t i = 1; i < sfs.size(); ++i) sfsCumulative.push_back(sfsCumulative[i - 1] + sfs[i]);
 	sfsCumulative.back() = 1.0;
 }

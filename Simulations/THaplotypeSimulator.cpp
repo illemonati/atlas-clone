@@ -377,7 +377,6 @@ void TSimulatorSFS::_initializeSFS(const genometools::TChromosomes& chromosomes,
 	logfile().listFlush("Initializing SFS ...");
 	for (size_t i = 0; i < chromosomes.size(); ++i) {
 		_sfs.push_back(std::make_unique<SFS>(chromosomes[i].ploidy * _sampleSize, (float)thetas[i]));
-
 		// save true SFS
 		const auto filename = outname + "_trueSFS_chr" + coretools::str::toString(chromosomes[i].refID()) + ".txt";
 		_sfs.back()->writeToFile(filename);
