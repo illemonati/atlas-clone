@@ -21,7 +21,7 @@ namespace GenomeTasks{
 //----------------------------------------------
 class TContextQuantifier:public TGenome_parsed {
 private:
-	coretools::TCountDistributionVector _contextCounts;
+	coretools::TCountDistributionVector<> _contextCounts;
 
 	void _handleAlignment();
 public:

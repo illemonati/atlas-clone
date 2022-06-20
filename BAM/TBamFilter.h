@@ -45,7 +45,7 @@ public:
 class TBamFileFilter{
 protected:
 	bool _keep;
-	coretools::TCountDistribution _counter;
+	coretools::TCountDistribution<> _counter;
 	std::string _reason; //used for reporting
 	bool _updateLog;
 	std::shared_ptr<TBamFileLog> _log;
@@ -58,7 +58,7 @@ public:
 	void setLog(std::shared_ptr<TBamFileLog> & Log);
 	void filterOut(const std::string & alignmentName, const bool & isReverseStrand, const uint16_t readGroup);
 	void summary(coretools::TLog* logfile, uint64_t total, const uint16_t readGroup);
-	coretools::TCountDistribution numFiltered() const { return _counter; }
+	coretools::TCountDistribution<> numFiltered() const { return _counter; }
 	std::string getReason() const { return _reason; }
 	void fillHeader(std::vector<std::string> &header);
 	void printCounts(coretools::TOutputFile &out, uint16_t rg_ID);
