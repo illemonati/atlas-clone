@@ -33,7 +33,7 @@ public:
 	SFS(uint32_t numChr, uint32_t onlyThisBin);
 	virtual ~SFS() = default;
 
-	virtual uint32_t numChromosomes() const noexcept { return sfs.size() ; };
+	virtual uint32_t numChromosomes() const noexcept { return sfs.size() - 1; };
 	float monoFrac() const noexcept { return sfs.front(); };
 	void writeToFile(const std::string &filename, const bool &writeLog = false);
 	double getRandomFrequency();
@@ -43,7 +43,7 @@ public:
 
 class SFSfolded : public SFS {
 public:
-	virtual uint32_t numChromosomes() const noexcept override { return 2 * sfs.size(); };
+	virtual uint32_t numChromosomes() const noexcept override { return 2 * sfs.size() - 2; };
 	SFSfolded(const std::string &filename) : SFS(filename){};
 	SFSfolded(const SFSfolded &other, float MonoFrac) : SFS(other, MonoFrac){};
 	SFSfolded(uint32_t numChr, float theta) :SFS(numChr, theta){}

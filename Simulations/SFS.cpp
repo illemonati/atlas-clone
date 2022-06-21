@@ -57,6 +57,7 @@ SFS::SFS(const SFS &other, float MonoFrac) {
 SFS::SFS(uint32_t numChr, float theta) {
 	// generate sfs from theta
 	float sum = 0;
+	sfs.push_back(0);
 	for (uint32_t i = 1; i < numChr + 1; ++i) {
 		sfs.push_back(theta / i);
 		sum += sfs.back();

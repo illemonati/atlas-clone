@@ -98,10 +98,10 @@ void TBamDiagnoser::diagnose(){
 	uint32_t single_count = 0;
 	for(uint32_t rg = 0; rg < numRG; ++rg){
 		if (_fragmentLength[rg].counts() == 0){
-					++single_count;
-				} else {
-					++paired_count;
-				}
+			++single_count;
+		} else {
+			++paired_count;
+		}
 	}
 
 	//write for combined
