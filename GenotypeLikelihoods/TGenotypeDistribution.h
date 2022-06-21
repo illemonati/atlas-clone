@@ -18,7 +18,7 @@ namespace GenotypeLikelihoods{
 // Base class.
 //-------------------------------------------
 
-TBaseProbabilities fillBaseFrequences(genometools::Genotype genotype);
+TBaseProbabilities getBaseFrequences(genometools::Genotype genotype);
 
 class TGenotypeDistribution{
 protected:

@@ -313,47 +313,37 @@ std::vector<TBaseLikelihoods> TRecalibrationEMEstimator::_calculate_EMWeights_ep
 	// loop over all bases and calculate EM-weights
 	for (auto &s : _sites) {
 		// get relevant base frequencies P(b): from known genotype or distribution if genotype is unknown
-		OUT(s.genotype);
-		const TBaseLikelihoods baseFreq{fillBaseFrequences(s.genotype)};
-		OUT(baseFreq[Base::A]);
-		OUT(baseFreq[Base::C]);
-		OUT(baseFreq[Base::G]);
-		OUT(baseFreq[Base::T]);
+		const TBaseLikelihoods baseFreq{getBaseFrequences(s.genotype)};
 
 		// calculate weights per base
 		for (auto &b : s) {
 			// calculate P(bbar) = \sum_b P(bbar|b)P(b)
 			const auto PMD = PmdModels.getBaseLikelihoods(b, baseFreq);
-			OUT(PMD[Base::A]);
-			OUT(PMD[Base::C]);
-			OUT(PMD[Base::G]);
-			OUT(PMD[Base::T]);
 
 			// calculate P(d|bbar)
 			EMWeights.push_back(_modelsToEstimate->getBaseLikelihoods(b));
 			auto &EMi = EMWeights.back();
-			OUT(EMi[Base::A]);
-			OUT(EMi[Base::C]);
-			OUT(EMi[Base::G]);
-			OUT(EMi[Base::T]);
 
 			// calculate P(d|bbar) \propto P(d|bbar)P(bbar)
-			std::transform(EMi.cbegin(), EMi.cend(), PMD.cbegin(), EMi.begin(),
-						   std::multiplies<>());
-			OUT(EMi[Base::A]);
-			OUT(EMi[Base::C]);
-			OUT(EMi[Base::G]);
-			OUT(EMi[Base::T]);
+			EMi *= PMD;
 			normalize(EMi);
-			OUT(EMi[Base::A]);
-			OUT(EMi[Base::C]);
-			OUT(EMi[Base::G]);
-			OUT(EMi[Base::T]);
-			ECHO("");
 		}
 	}
 	return EMWeights;
 };
+
+std::vector<TBaseLikelihoods> TRecalibrationEMEstimator::_updateRho_getWeights(const TPostMortemDamage &PmdModels) {
+	std::vector<TBaseLikelihoods> weights;
+	weights.reserve(_dataTables.size());
+	for (auto &s_i : _sites) {
+		for (auto &d_ij : s_i) {
+			const auto P_d_I_bbar = _modelsToEstimate->getBaseLikelihoods(d_ij);
+			const auto P_bbar_I_b = PmdModels.getBaseLikelihoods(d_ij, P_d_I_bbar);
+			const auto P_b_I_g    = getBaseFrequences(s_i.genotype);
+		}
+	}
+	return weights;
+}
 
 double TRecalibrationEMEstimator::_calculate_Q_beta(const std::vector<TBaseLikelihoods> &EM_weights_bbar_given_d) {
 	_modelsToEstimate->setQToZero();

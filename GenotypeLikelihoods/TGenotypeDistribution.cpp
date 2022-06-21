@@ -15,7 +15,7 @@ namespace GenotypeLikelihoods{
 // TGenotypeDistribution
 // Base class.
 //-------------------------------------------
-TBaseProbabilities fillBaseFrequences(const genometools::Genotype genotype){
+TBaseProbabilities getBaseFrequences(const genometools::Genotype genotype){
 	using genometools::Base;
 	using genometools::Genotype;
 	switch(genotype) {

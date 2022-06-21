@@ -43,8 +43,8 @@ public:
 		std::vector<TBaseLikelihoods> baseLikelihoods;
 		baseLikelihoods.reserve(site.depth());
 		// calculate base likelihoods P(d|b, D, epsilon) = \sum_{\bar{b}} P(\bar{b}|b, D)P(d|\bar{b}, \epsilon)
-		for (const auto &s : site) {
-			baseLikelihoods.push_back(getBaseLikelihoods(s, PmdModels, SequencingErrorModels));
+		for (const auto &d : site) {
+			baseLikelihoods.push_back(getBaseLikelihoods(d, PmdModels, SequencingErrorModels));
 		}
 
 		// calculate genotype likelihoods
