@@ -97,7 +97,7 @@ constexpr coretools::Probability heterozygous(const TGenotypeProbabilities &ps) 
 }
 
 template<typename Container>
-constexpr auto frequencies(const Container &vs) {
+auto frequencies(const Container &vs) {
 	const auto tot = std::accumulate(vs.begin(), vs.end(), typename Container::value_type{});
 	coretools::TStrongArray<coretools::Probability, typename Container::index_type, Container::capacity> ret;
 	std::transform(vs.cbegin(), vs.cend(), ret.begin(), [tot](auto v){return v / tot;});
