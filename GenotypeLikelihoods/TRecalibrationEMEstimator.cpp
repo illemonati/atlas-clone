@@ -39,17 +39,19 @@ using coretools::instances::parameters;
 // TSequencingErrorModelVectorForEstimation
 //--------------------------------------------------------------------------
 
-TModelVectorForEstimation::TModelVectorForEstimation(TModels &SequencingErrorModels,
+void TModelVectorForEstimation::reset(TModels &SequencingErrorModels,
 													 const RecalEstimatorTools::TRecalDataTables &DataTables,
 													 const BAM::TReadGroups &ReadGroups,
 													 const BAM::TReadGroupMap &ReadGroupMap,
-													 uint32_t MinRequiredObservations)
-	: _modelIndex(ReadGroups.size()) {
+													 uint32_t MinRequiredObservations) {
 	using MS = RecalEstimatorTools::ModelStatusTypes;
 	// Copy models that are 1) in use after pooling and 2) have data.
 	// Note: data table is already pooled!
 
 	// prepare storage for reporting
+	_modelIndex.clear();
+	_models.clear();
+	_modelIndex.resize(ReadGroups.size());
 	RecalEstimatorTools::TModelStati modelStati;
 
 	// copy models
@@ -274,8 +276,7 @@ void TRecalibrationEMEstimator::_initializeModels(SequencingError::TModels &Sequ
 
 	// identify models with data that can be estimated
 	logfile().startIndent("Identifying models to estimate:");
-	_modelsToEstimate = std::make_unique<TModelVectorForEstimation>(SequencingErrorModels, _dataTables, *_readGroups,
-																	*_readGroupMap, _minRequiredObservations);
+	_modelsToEstimate.reset(SequencingErrorModels, _dataTables, *_readGroups, *_readGroupMap, _minRequiredObservations);
 	logfile().endIndent();
 };
 
@@ -321,7 +322,7 @@ std::vector<TBaseLikelihoods> TRecalibrationEMEstimator::_calculate_EMWeights_ep
 			const auto PMD = PmdModels.getBaseLikelihoods(b, baseFreq);
 
 			// calculate P(d|bbar)
-			EMWeights.push_back(_modelsToEstimate->getBaseLikelihoods(b));
+			EMWeights.push_back(_modelsToEstimate.getBaseLikelihoods(b));
 			auto &EMi = EMWeights.back();
 
 			// calculate P(d|bbar) \propto P(d|bbar)P(bbar)
@@ -337,7 +338,7 @@ std::vector<TBaseLikelihoods> TRecalibrationEMEstimator::_updateRho_getWeights(c
 	weights.reserve(_dataTables.size());
 	for (auto &s_i : _sites) {
 		for (auto &d_ij : s_i) {
-			const auto P_d_I_bbar = _modelsToEstimate->getBaseLikelihoods(d_ij);
+			const auto P_d_I_bbar = _modelsToEstimate.getBaseLikelihoods(d_ij);
 			const auto P_bbar_I_b = PmdModels.getBaseLikelihoods(d_ij, P_d_I_bbar);
 			const auto P_b_I_g    = getBaseFrequences(s_i.genotype);
 		}
@@ -346,35 +347,35 @@ std::vector<TBaseLikelihoods> TRecalibrationEMEstimator::_updateRho_getWeights(c
 }
 
 double TRecalibrationEMEstimator::_calculate_Q_beta(const std::vector<TBaseLikelihoods> &EM_weights_bbar_given_d) {
-	_modelsToEstimate->setQToZero();
+	_modelsToEstimate.setQToZero();
 
 	// loop over all bases and add them to Q
 	size_t index = 0;
 	for (auto &s : _sites) {
 		for (auto &b : s) {
-			_modelsToEstimate->addToQ(b, EM_weights_bbar_given_d[index]);
+			_modelsToEstimate.addToQ(b, EM_weights_bbar_given_d[index]);
 			++index;
 		}
 	}
 
 	// return total Q
-	return _modelsToEstimate->curQ();
+	return _modelsToEstimate.curQ();
 };
 
 void TRecalibrationEMEstimator::_calculate_J_F_beta(const std::vector<TBaseLikelihoods> &EM_weights_bbar_given_d) {
 	logfile().listFlush("Calculating Jacobian and gradient ...");
-	_modelsToEstimate->setNewtonRaphsonParamsToZero();
+	_modelsToEstimate.setNewtonRaphsonParamsToZero();
 
 	size_t index = 0;
 	for (auto &s : _sites) {
 		for (auto &b : s) {
-			_modelsToEstimate->addToFandJacobian(b, EM_weights_bbar_given_d[index]);
+			_modelsToEstimate.addToFandJacobian(b, EM_weights_bbar_given_d[index]);
 			++index;
 		}
 	}
 
 	// solve J^-1 x F
-	_modelsToEstimate->solveJxF();
+	_modelsToEstimate.solveJxF();
 	logfile().done();
 };
 
@@ -428,12 +429,12 @@ void TRecalibrationEMEstimator::_updateEM_theta_epsilon(const TPostMortemDamage 
 		size_t numUpdatedModels = 0;
 		size_t numUpdatedModels_old;
 
-		while (numUpdatedModels < _modelsToEstimate->size() && lambda > 1.0E-20) {
+		while (numUpdatedModels < _modelsToEstimate.size() && lambda > 1.0E-20) {
 			// propose move
 			logfile().listFlush("Proposing move with log2(lambda) = " + toString(log2_lambda) + " ... ");
-			_modelsToEstimate->proposeNewParameters(lambda);
+			_modelsToEstimate.proposeNewParameters(lambda);
 
-			OUT(_modelsToEstimate->getModelsDefinition());
+			OUT(_modelsToEstimate.getModelsDefinition());
 
 			// calculate Q at new location
 			double Q = _calculate_Q_beta(EM_weights_bbar_given_d);
@@ -443,8 +444,8 @@ void TRecalibrationEMEstimator::_updateEM_theta_epsilon(const TPostMortemDamage 
 
 			// check if we accept or backtrack
 			numUpdatedModels_old = numUpdatedModels;
-			numUpdatedModels     = _modelsToEstimate->acceptProposedParametersBasedOnQ();
-			logfile().write(toString(numUpdatedModels) + "/" + toString(_modelsToEstimate->size()) +
+			numUpdatedModels     = _modelsToEstimate.acceptProposedParametersBasedOnQ();
+			logfile().write(toString(numUpdatedModels) + "/" + toString(_modelsToEstimate.size()) +
 							" models converged.");
 
 			if (numUpdatedModels > numUpdatedModels_old) {
@@ -456,16 +457,16 @@ void TRecalibrationEMEstimator::_updateEM_theta_epsilon(const TPostMortemDamage 
 			--log2_lambda;
 		}
 
-		if (numUpdatedModels < _modelsToEstimate->size()) {
+		if (numUpdatedModels < _modelsToEstimate.size()) {
 			logfile().conclude("Some models did not improve even with log2(lambda) = " + toString(log2_lambda) +
 							   ", aborting Newton-Raphson.");
 		}
 
 		// c) adjust parameters post estimation
-		_modelsToEstimate->adjustParametersPostEstimation();
+		_modelsToEstimate.adjustParametersPostEstimation();
 
 		// d) get largest gradient (F) to check if we break NR optimization
-		double maxF = _modelsToEstimate->getSteepestGradient();
+		double maxF = _modelsToEstimate.getSteepestGradient();
 		logfile().conclude("max(F) = " + toString(maxF));
 		logfile().endIndent();
 		if (maxF < _NewtonRaphsonMaxF || numUpdatedModels == 0) break;
@@ -481,6 +482,8 @@ double TRecalibrationEMEstimator::_calculateLL_fullModel(const TPostMortemDamage
 	const TGenotypeProbabilities &genoFreq = _genoDist->genotypeFrequencies();
 	for (auto &s : _sites) {
 		// calculate genotype likelihoods
+		// Andreas: rewrite!
+		/*
 		const TGenotypeLikelihoods genotypeLikelihoods = _genotypeLikelihoodCalculator.getGenotypeLikelihoods(s, PmdModels, *_modelsToEstimate);
 
 		// weight by genotype prior
@@ -489,6 +492,7 @@ double TRecalibrationEMEstimator::_calculateLL_fullModel(const TPostMortemDamage
 		} else {
 			LL += log(genotypeLikelihoods[s.genotype].get());
 		}
+		*/
 	}
 
 	return LL;
@@ -549,7 +553,7 @@ void TRecalibrationEMEstimator::_runEM(const std::string &outputName, const TPos
 //----------------------------
 void TRecalibrationEMEstimator::writeCurrentEstimates(const std::string & Filename) {
 	// open file and write header
-	_modelsToEstimate->writeRecalFile(*_readGroups, Filename);
+	_modelsToEstimate.writeRecalFile(*_readGroups, Filename);
 };
 
 double TRecalibrationEMEstimator::calcLL() {

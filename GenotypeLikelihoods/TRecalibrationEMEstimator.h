@@ -54,10 +54,10 @@ private:
 	std::vector<TModelRecal *> _models;                    // non-owning
 	std::vector<std::array<TModelRecal *, 2>> _modelIndex; // non-owning
 public:
-	TModelVectorForEstimation(TModels &SequencingErrorModels, const RecalEstimatorTools::TRecalDataTables &DataTables,
-							  const BAM::TReadGroups &ReadGroups, const BAM::TReadGroupMap &ReadGroupMap,
-							  uint32_t MinRequiredObservations);
-	~TModelVectorForEstimation() = default;
+	TModelVectorForEstimation() = default;
+	void reset(TModels &SequencingErrorModels, const RecalEstimatorTools::TRecalDataTables &DataTables,
+			   const BAM::TReadGroups &ReadGroups, const BAM::TReadGroupMap &ReadGroupMap,
+			   uint32_t MinRequiredObservations);
 
 	size_t size() const { return _models.size(); };
 	TBaseLikelihoods getBaseLikelihoods(const BAM::TSequencedBase &base) const;
@@ -95,8 +95,8 @@ private:
 	const BAM::TReadGroupMap *_readGroupMap;
 	const BAM::TReadGroups *_readGroups;
 
-	TGenotypeLikelihoodCalculator_simple _genotypeLikelihoodCalculator;
-	std::unique_ptr<TModelVectorForEstimation> _modelsToEstimate;
+	//TGenotypeLikelihoodCalculator_simple _genotypeLikelihoodCalculator;
+	TModelVectorForEstimation _modelsToEstimate;
 	RecalEstimatorTools::TRecalDataTables _dataTables;
 
 	// variables for estimation

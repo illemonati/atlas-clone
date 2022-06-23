@@ -132,10 +132,8 @@ coretools::Probability TGenotypeLikelihoodCalculator::getErrorRate(const BAM::TS
 coretools::Probability TGenotypeLikelihoodCalculator::getErrorWithPMD(const BAM::TSequencedBase &base) const {
 	if (base.base == genometools::Base::N) { return coretools::Probability::highest(); }
 	// calculate base likelihoods with PMD
-	TBaseLikelihoods tmpBaseData = _calculator.getBaseLikelihoods(base, _pmdModels, _sequencingErrorModels);
 
-	// return 1 - P(base|base) as in mapdamage2
-	return tmpBaseData[base.base].complement();
+	return _pmdModels.getBaseLikelihoods(base, _sequencingErrorModels.getBaseLikelihoods(base))[base.base].complement();
 };
 
 genometools::PhredIntProbability TGenotypeLikelihoodCalculator::getPhredInt(const BAM::TSequencedBase & base) const{
@@ -181,7 +179,16 @@ double TGenotypeLikelihoodCalculator::calculateLogPMDS(const BAM::TSequencedBase
 };
 
 TGenotypeLikelihoods TGenotypeLikelihoodCalculator::calculateGenotypeLikelihoods(const TSite &site) const {
-	return _calculator.getGenotypeLikelihoods(site, _pmdModels, _sequencingErrorModels);
+		if (site.empty()) { return TGenotypeLikelihoods{1.}; }
+		std::vector<TBaseLikelihoods> baseLikelihoods;
+		baseLikelihoods.reserve(site.depth());
+		// calculate base likelihoods P(d|b, D, epsilon) = \sum_{\bar{b}} P(\bar{b}|b, D)P(d|\bar{b}, \epsilon)
+		for (const auto &d : site) {
+			baseLikelihoods.push_back(_pmdModels.getBaseLikelihoods(d, _sequencingErrorModels.getBaseLikelihoods(d)));
+		}
+
+		// calculate genotype likelihoods
+		return getGLH(baseLikelihoods, site.depth());
 };
 
 }; //end namespace

@@ -69,7 +69,7 @@ TGenotypeLikelihoods getGLH(const Container<TBaseLikelihoods, Args...> &bases, c
 }
 
 template<template<typename...> typename Container, typename... Args>
-TGenotypeLikelihoods fillGLH(const Container<TBaseLikelihoods, Args...> &bases) {
+TGenotypeLikelihoods getGLH(const Container<TBaseLikelihoods, Args...> &bases) {
 	return getGLH(bases, bases.size());
 }
 

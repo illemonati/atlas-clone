@@ -26,6 +26,7 @@ namespace BAM { class TSequencedBase; }
 
 namespace GenotypeLikelihoods{
 
+	/*
 class TGenotypeLikelihoodCalculator_simple{
 private:
 public:
@@ -51,13 +52,14 @@ public:
 		return getGLH(baseLikelihoods, site.depth());
 	};
 };
+	*/
 
 class TGenotypeLikelihoodCalculator{
 protected:
 	bool _initialized;
-	TGenotypeLikelihoodCalculator_simple _calculator;
+	//TGenotypeLikelihoodCalculator_simple _calculator;
 
-	TGenotypeDistribution _genotypeDistribution;
+	//TGenotypeDistribution _genotypeDistribution;
 	TPostMortemDamage _pmdModels;
 	SequencingError::TModels _sequencingErrorModels;
 
