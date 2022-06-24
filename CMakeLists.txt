@@ -45,19 +45,18 @@ file(GLOB CORE_SOURCES CONFIGURE_DEPENDS
   VCF/*.h VCF/*.cpp)
 
 find_package(ZLIB REQUIRED)
-find_package(Armadillo REQUIRED)
 
 # Download coretools and stattools
 include(FetchContent)
 FetchContent_Declare(coretools
         GIT_REPOSITORY    https://bitbucket.org/wegmannlab/coretools.git
-        GIT_TAG           4fcbb57
+        GIT_TAG           8047070
         SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/coretools"
         )
 
 FetchContent_Declare(stattools
         GIT_REPOSITORY    https://bitbucket.org/wegmannlab/stattools.git
-        GIT_TAG           0c33012
+        GIT_TAG           5128b3e
         SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/stattools"
         )
 
@@ -73,7 +72,12 @@ FetchContent_Declare(bamtools
         SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/bamtools"
         )
 
-FetchContent_MakeAvailable(coretools stattools genometools bamtools)
+FetchContent_Declare(armadillo
+		  GIT_REPOSITORY https://gitlab.com/conradsnicta/armadillo-code.git
+		  GIT_TAG        11.2.x
+		)
+
+FetchContent_MakeAvailable(coretools stattools genometools bamtools armadillo)
 
 target_sources(${PROJECT_NAME} PRIVATE ${CORE_SOURCES})
 target_include_directories(${PROJECT_NAME} PRIVATE 
@@ -86,7 +90,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
   Simulations
   VCF)
 
-target_link_libraries(${PROJECT_NAME} PRIVATE BamTools BamTools-utils coretools stattools genometools ${ZLIB_LIBRARIES} ${ARMADILLO_LIBRARIES} ${SAN_LINK})
+target_link_libraries(${PROJECT_NAME} PRIVATE BamTools BamTools-utils coretools stattools genometools ${ZLIB_LIBRARIES} armadillo ${SAN_LINK})
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_EXTENSIONS OFF)
 target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra)
@@ -127,7 +131,7 @@ target_include_directories("${PROJECT_NAME}_unitTests" PRIVATE
         Simulations
         VCF)
 
-target_link_libraries("${PROJECT_NAME}_unitTests" PRIVATE BamTools BamTools-utils coretools stattools genometools ${ZLIB_LIBRARIES} ${ARMADILLO_LIBRARIES} gtest_main gmock_main ${SAN_LINK})
+target_link_libraries("${PROJECT_NAME}_unitTests" PRIVATE BamTools BamTools-utils coretools stattools genometools ${ZLIB_LIBRARIES} armadillo gtest_main gmock_main ${SAN_LINK})
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_EXTENSIONS OFF)
 target_compile_options("${PROJECT_NAME}_unitTests" PRIVATE -Wall -Wextra ${SAN})
