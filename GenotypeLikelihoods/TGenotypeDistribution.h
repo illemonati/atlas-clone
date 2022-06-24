@@ -10,38 +10,51 @@
 
 #include "GenotypeTypes.h"
 #include "TGenotypeData.h"
+#include "TSequencedBase.h"
+#include "probability.h"
 
-namespace GenotypeLikelihoods{
+namespace GenotypeLikelihoods {
 
 //-------------------------------------------
 // TGenotypeDistribution
 // Base class.
 //-------------------------------------------
 
-TBaseProbabilities getBaseFrequences(genometools::Genotype genotype);
-
-class TGenotypeDistribution{
-protected:
-	TBaseProbabilities _baseFrequencies; //reflects expected base frequencies under the model
-	TGenotypeProbabilities _genotypeFrequencies;
-
+class TGenotypeDistribution {
 public:
-	virtual ~TGenotypeDistribution() = default;
-
-	const TBaseProbabilities& baseFrequencies(){ return _baseFrequencies; };
-	const TGenotypeProbabilities& genotypeFrequencies(){ return _genotypeFrequencies; };
+	TGenotypeDistribution()                                                                             = default;
+	virtual ~TGenotypeDistribution()                                                                    = default;
+	virtual TGenotypeLikelihoods getGenotypeLikelihoods(const TBaseLikelihoods &baseLikelihoods) const  = 0;
+	virtual coretools::Probability getGenotypeLikelihood(const TBaseLikelihoods &baseLikelihoods,
+														 genometools::Genotype genotype) const          = 0;
+	virtual coretools::Probability getGenotypeLikelihood(const TBaseLikelihoods &baseLikelihoods) const = 0;
+	virtual std::string typeString() const noexcept                                                     = 0;
 };
 
-//-------------------------------------------
-// TGenotypeDistribution_haploid
-// Only haploid genotypes (A,C,G,T) with different frequencies
-//-------------------------------------------
-
-class TGenotypeDistribution_haploid:public TGenotypeDistribution{
+class THaploidDistribution final : public TGenotypeDistribution {
+	static constexpr TGenotypeProbabilities _weights{{0.25, 0., 0., 0., 0.25, 0., 0., 0.25, 0., 0.25}};
 public:
-	TGenotypeDistribution_haploid();
+	static inline const std::string name = "haploid";
+	THaploidDistribution()               = default;
+	TGenotypeLikelihoods getGenotypeLikelihoods(const TBaseLikelihoods &baseLikelihoods) const override;
+	coretools::Probability getGenotypeLikelihood(const TBaseLikelihoods &baseLikelihoods,
+												 genometools::Genotype genotype) const override;
+	coretools::Probability getGenotypeLikelihood(const TBaseLikelihoods &baseLikelihoods) const override;
+	std::string typeString() const noexcept override { return name; }
 };
 
-}; //end namespace
+class TDiploidDistribution final : public TGenotypeDistribution {
+	constexpr static TGenotypeProbabilities _weights{}; // 0.1 everywhere
+public:
+	static inline const std::string name = "diploid";
+	TDiploidDistribution()               = default;
+	TGenotypeLikelihoods getGenotypeLikelihoods(const TBaseLikelihoods &baseLikelihoods) const override;
+	coretools::Probability getGenotypeLikelihood(const TBaseLikelihoods &baseLikelihoods,
+												 genometools::Genotype genotype) const override;
+	coretools::Probability getGenotypeLikelihood(const TBaseLikelihoods &baseLikelihoods) const override;
+	std::string typeString() const noexcept override { return name; }
+};
+
+}; // namespace GenotypeLikelihoods
 
 #endif /* GENOTYPELIKELIHOODS_TGENOTYPEDISTRIBUTION_H_ */

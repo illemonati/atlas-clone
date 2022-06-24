@@ -51,7 +51,7 @@ find_package(Armadillo REQUIRED)
 include(FetchContent)
 FetchContent_Declare(coretools
         GIT_REPOSITORY    https://bitbucket.org/wegmannlab/coretools.git
-        GIT_TAG           d25a040
+        GIT_TAG           4fcbb57
         SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/coretools"
         )
 

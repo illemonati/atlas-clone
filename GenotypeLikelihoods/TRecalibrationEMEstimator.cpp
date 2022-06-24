@@ -17,6 +17,7 @@
 #include "GenotypeTypes.h"
 #include "RecalEstimatorTools.h"
 #include "TGenotypeData.h"
+#include "TGenotypeDistribution.h"
 #include "TLog.h"
 #include "TParameters.h"
 #include "TPostMortemDamage.h"
@@ -40,10 +41,9 @@ using coretools::instances::parameters;
 //--------------------------------------------------------------------------
 
 void TModelVectorForEstimation::reset(TModels &SequencingErrorModels,
-													 const RecalEstimatorTools::TRecalDataTables &DataTables,
-													 const BAM::TReadGroups &ReadGroups,
-													 const BAM::TReadGroupMap &ReadGroupMap,
-													 uint32_t MinRequiredObservations) {
+									  const RecalEstimatorTools::TRecalDataTables &DataTables,
+									  const BAM::TReadGroups &ReadGroups, const BAM::TReadGroupMap &ReadGroupMap,
+									  uint32_t MinRequiredObservations) {
 	using MS = RecalEstimatorTools::ModelStatusTypes;
 	// Copy models that are 1) in use after pooling and 2) have data.
 	// Note: data table is already pooled!
@@ -207,7 +207,8 @@ TRecalibrationEMEstimator::TRecalibrationEMEstimator(const BAM::TReadGroups *Rea
 	_readGroupMap = ReadGroupMap;
 
 	// genotype distribution: currently only allow for haploid
-	_genoDist = std::make_unique<TGenotypeDistribution_haploid>();
+	_genoDist = std::make_unique<THaploidDistribution>();
+	logfile().list("Will use a ", _genoDist->typeString(), " genotype distribution.");
 
 	// estimation parameters
 	logfile().startIndent("Settings regarding the EM algorithm:");
@@ -306,41 +307,14 @@ void TRecalibrationEMEstimator::performEstimation(const std::string &outputName,
 	logfile().done();
 };
 
-std::vector<TBaseLikelihoods> TRecalibrationEMEstimator::_calculate_EMWeights_epsilon(const TPostMortemDamage &PmdModels) {
-	using genometools::Base;
-	// make sure EM-weight storage is of appropriate size
-	std::vector<TBaseLikelihoods> EMWeights;
-	EMWeights.reserve(_dataTables.size());
-	// loop over all bases and calculate EM-weights
-	for (auto &s : _sites) {
-		// get relevant base frequencies P(b): from known genotype or distribution if genotype is unknown
-		const TBaseLikelihoods baseFreq{getBaseFrequences(s.genotype)};
-
-		// calculate weights per base
-		for (auto &b : s) {
-			// calculate P(bbar) = \sum_b P(bbar|b)P(b)
-			const auto PMD = PmdModels.getBaseLikelihoods(b, baseFreq);
-
-			// calculate P(d|bbar)
-			EMWeights.push_back(_modelsToEstimate.getBaseLikelihoods(b));
-			auto &EMi = EMWeights.back();
-
-			// calculate P(d|bbar) \propto P(d|bbar)P(bbar)
-			EMi *= PMD;
-			normalize(EMi);
-		}
-	}
-	return EMWeights;
-};
-
 std::vector<TBaseLikelihoods> TRecalibrationEMEstimator::_updateRho_getWeights(const TPostMortemDamage &PmdModels) {
 	std::vector<TBaseLikelihoods> weights;
 	weights.reserve(_dataTables.size());
 	for (auto &s_i : _sites) {
 		for (auto &d_ij : s_i) {
-			const auto P_d_I_bbar = _modelsToEstimate.getBaseLikelihoods(d_ij);
-			const auto P_bbar_I_b = PmdModels.getBaseLikelihoods(d_ij, P_d_I_bbar);
-			const auto P_b_I_g    = getBaseFrequences(s_i.genotype);
+			const auto L_eps = _modelsToEstimate.getBaseLikelihoods(d_ij);
+			const auto L_D = PmdModels.getBaseLikelihoods(d_ij, L_eps);
+			const auto L_g = _genoDist->getGenotypeLikelihoods(L_D);
 		}
 	}
 	return weights;
@@ -386,7 +360,7 @@ void TRecalibrationEMEstimator::_updateEM_theta_epsilon(const TPostMortemDamage 
 	// 1) calculate EM weights
 	//-------------------------
 	logfile().listFlushDots("Calculating EM weights");
-	const auto EM_weights_bbar_given_d = _calculate_EMWeights_epsilon(PmdModels);
+	const auto EM_weights_bbar_given_d = _updateRho_getWeights(PmdModels);
 	logfile().done();
 	OUT(EM_weights_bbar_given_d.size());
 
@@ -478,21 +452,15 @@ void TRecalibrationEMEstimator::_updateEM_theta_epsilon(const TPostMortemDamage 
 };
 
 double TRecalibrationEMEstimator::_calculateLL_fullModel(const TPostMortemDamage &PmdModels) {
-	double LL                              = 0.0;
-	const TGenotypeProbabilities &genoFreq = _genoDist->genotypeFrequencies();
-	for (auto &s : _sites) {
-		// calculate genotype likelihoods
-		// Andreas: rewrite!
-		/*
-		const TGenotypeLikelihoods genotypeLikelihoods = _genotypeLikelihoodCalculator.getGenotypeLikelihoods(s, PmdModels, *_modelsToEstimate);
+	double LL = 0.0;
 
-		// weight by genotype prior
-		if (s.genotype == genometools::Genotype::NN) {
-			LL += log(weightedSum(genotypeLikelihoods, genoFreq));
-		} else {
-			LL += log(genotypeLikelihoods[s.genotype].get());
+	for (auto &s_i : _sites) {
+		for (auto &d_ij : s_i) {
+			const auto L_eps = _modelsToEstimate.getBaseLikelihoods(d_ij);
+			const auto L_D   = PmdModels.getBaseLikelihoods(d_ij, L_eps);
+			LL += log(s_i.genotype == genometools::Genotype::NN ? _genoDist->getGenotypeLikelihood(L_D)
+			                                                    : _genoDist->getGenotypeLikelihood(L_D, s_i.genotype));
 		}
-		*/
 	}
 
 	return LL;

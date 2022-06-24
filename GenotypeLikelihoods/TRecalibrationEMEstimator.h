@@ -114,7 +114,6 @@ private:
 	void _runEM(const std::string &outputName, const TPostMortemDamage &PmdModels);
 
 	// functions to estimate theta_epsilon (sequencing error rates)
-	std::vector<TBaseLikelihoods> _calculate_EMWeights_epsilon(const TPostMortemDamage &PmdModels);
 	std::vector<TBaseLikelihoods> _updateRho_getWeights(const TPostMortemDamage &PmdModels);
 	double _calculate_Q_beta(const std::vector<TBaseLikelihoods> &EM_weights_bbar_given_d);
 	void _calculate_J_F_beta(const std::vector<TBaseLikelihoods> &EM_weights_bbar_given_d);
