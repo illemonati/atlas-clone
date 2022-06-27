@@ -27,9 +27,9 @@ coretools::Probability THaploidDistribution::getGenotypeLikelihood(const TBaseLi
 	return baseLikelihoods[genometools::first(genotype)];
 }
 
-coretools::Probability THaploidDistribution::getGenotypeLikelihood(const TBaseLikelihoods &baseLikelihoods) const {
-	return baseLikelihoods[Base::A] * _weights[Genotype::AA] + baseLikelihoods[Base::C] * _weights[Genotype::CC] +
-		   baseLikelihoods[Base::G] * _weights[Genotype::GG] + baseLikelihoods[Base::T] * _weights[Genotype::TT];
+double THaploidDistribution::weightedSum(const TGenotypeLikelihoods &likelihoods) const {
+	return likelihoods[Genotype::AA] * _weights[Genotype::AA] + likelihoods[Genotype::CC] * _weights[Genotype::CC] +
+		   likelihoods[Genotype::GG] * _weights[Genotype::GG] + likelihoods[Genotype::TT] * _weights[Genotype::TT];
 }
 
 TGenotypeLikelihoods TDiploidDistribution::getGenotypeLikelihoods(const TBaseLikelihoods &baseLikelihoods) const {
@@ -48,10 +48,8 @@ coretools::Probability TDiploidDistribution::getGenotypeLikelihood(const TBaseLi
 	return 0.5 * (baseLikelihoods[genometools::first(genotype)] + baseLikelihoods[genometools::second(genotype)]);
 }
 
-coretools::Probability TDiploidDistribution::getGenotypeLikelihood(const TBaseLikelihoods &baseLikelihoods) const {
-	const auto Ls = getGenotypeLikelihoods(baseLikelihoods);
-	return coretools::weightedSum(Ls, _weights);
-	
+double TDiploidDistribution::weightedSum(const TGenotypeLikelihoods &likelihoods) const {
+	return coretools::weightedSum(likelihoods, _weights);
 }
 
 }; // namespace GenotypeLikelihoods

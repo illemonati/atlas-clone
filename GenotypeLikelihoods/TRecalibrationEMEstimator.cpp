@@ -24,6 +24,7 @@
 #include "TSequencedBase.h"
 #include "TSequencingErrorModel.h"
 #include "TSequencingErrorModels.h"
+#include "algorithms.h"
 #include "probability.h"
 #include "stringFunctions.h"
 
@@ -455,11 +456,25 @@ double TRecalibrationEMEstimator::_calculateLL_fullModel(const TPostMortemDamage
 	double LL = 0.0;
 
 	for (auto &s_i : _sites) {
-		for (auto &d_ij : s_i) {
-			const auto L_eps = _modelsToEstimate.getBaseLikelihoods(d_ij);
-			const auto L_D   = PmdModels.getBaseLikelihoods(d_ij, L_eps);
-			LL += log(s_i.genotype == genometools::Genotype::NN ? _genoDist->getGenotypeLikelihood(L_D)
-			                                                    : _genoDist->getGenotypeLikelihood(L_D, s_i.genotype));
+		if (s_i.genotype == genometools::Genotype::NN) {
+
+			TGenotypeLikelihoods L{1.};
+			for (auto &d_ij : s_i) {
+				const auto L_eps = _modelsToEstimate.getBaseLikelihoods(d_ij);
+				const auto L_D   = PmdModels.getBaseLikelihoods(d_ij, L_eps);
+				L *= _genoDist->getGenotypeLikelihoods(L_D);
+			}
+			LL += log(_genoDist->weightedSum(L));
+			// unknow genotype
+		} else {
+			// know genotype
+			double L = 1.;
+			for (auto &d_ij : s_i) {
+				const auto L_eps = _modelsToEstimate.getBaseLikelihoods(d_ij);
+				const auto L_D   = PmdModels.getBaseLikelihoods(d_ij, L_eps);
+				L *= _genoDist->getGenotypeLikelihood(L_D, s_i.genotype);
+			}
+			LL += log(L);
 		}
 	}
 

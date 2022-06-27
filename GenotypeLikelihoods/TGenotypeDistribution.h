@@ -22,13 +22,13 @@ namespace GenotypeLikelihoods {
 
 class TGenotypeDistribution {
 public:
-	TGenotypeDistribution()                                                                             = default;
-	virtual ~TGenotypeDistribution()                                                                    = default;
-	virtual TGenotypeLikelihoods getGenotypeLikelihoods(const TBaseLikelihoods &baseLikelihoods) const  = 0;
+	TGenotypeDistribution()                                                                            = default;
+	virtual ~TGenotypeDistribution()                                                                   = default;
+	virtual TGenotypeLikelihoods getGenotypeLikelihoods(const TBaseLikelihoods &baseLikelihoods) const = 0;
+	virtual double weightedSum(const TGenotypeLikelihoods &likelihoods) const            = 0;
 	virtual coretools::Probability getGenotypeLikelihood(const TBaseLikelihoods &baseLikelihoods,
-														 genometools::Genotype genotype) const          = 0;
-	virtual coretools::Probability getGenotypeLikelihood(const TBaseLikelihoods &baseLikelihoods) const = 0;
-	virtual std::string typeString() const noexcept                                                     = 0;
+														 genometools::Genotype genotype) const         = 0;
+	virtual std::string typeString() const noexcept                                                    = 0;
 };
 
 class THaploidDistribution final : public TGenotypeDistribution {
@@ -36,10 +36,11 @@ class THaploidDistribution final : public TGenotypeDistribution {
 public:
 	static inline const std::string name = "haploid";
 	THaploidDistribution()               = default;
+
+	double weightedSum(const TGenotypeLikelihoods &likelihoods) const override;
 	TGenotypeLikelihoods getGenotypeLikelihoods(const TBaseLikelihoods &baseLikelihoods) const override;
 	coretools::Probability getGenotypeLikelihood(const TBaseLikelihoods &baseLikelihoods,
 												 genometools::Genotype genotype) const override;
-	coretools::Probability getGenotypeLikelihood(const TBaseLikelihoods &baseLikelihoods) const override;
 	std::string typeString() const noexcept override { return name; }
 };
 
@@ -48,10 +49,11 @@ class TDiploidDistribution final : public TGenotypeDistribution {
 public:
 	static inline const std::string name = "diploid";
 	TDiploidDistribution()               = default;
+
+	double weightedSum(const TGenotypeLikelihoods &likelihoods) const override;
 	TGenotypeLikelihoods getGenotypeLikelihoods(const TBaseLikelihoods &baseLikelihoods) const override;
 	coretools::Probability getGenotypeLikelihood(const TBaseLikelihoods &baseLikelihoods,
 												 genometools::Genotype genotype) const override;
-	coretools::Probability getGenotypeLikelihood(const TBaseLikelihoods &baseLikelihoods) const override;
 	std::string typeString() const noexcept override { return name; }
 };
 
