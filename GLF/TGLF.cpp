@@ -6,7 +6,6 @@
  */
 
 #include "TGLF.h"
-#include <ext/alloc_traits.h>
 #include <algorithm>
 #include <cstdint>
 #include <iostream>
