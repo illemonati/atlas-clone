@@ -58,7 +58,7 @@ TSimulatorQualityDistBinned::TSimulatorQualityDistBinned(std::string &s){
 		if (pos2 == std::string::npos || pos2 != s.size() - 1)
 			throw "Failed to understand binned distribution '" + s + "'! Use binned(quality_1,quality_2,..,quality_n).";
 		s.erase(pos2, 1);
-		coretools::str::fillContainerFromString(s, _qualBins, ',', false, true, false);
+		coretools::str::fillContainerFromString(s, _qualBins, ',', true, true, false);
 	} else {
 		throw "Failed to understand binned distribution '" + s + "'! Use binned(quality_1,quality_2,..,quality_n).";
 	}

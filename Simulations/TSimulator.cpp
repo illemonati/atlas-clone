@@ -270,7 +270,7 @@ void TBAMSimulator::_initializeReadGroupsFromReadLengthDistribution(const std::s
 	if (pos != std::string::npos) {
 		// Option 1: a single read length distribution for all
 		//---------------------------------------------------------------------
-		logfile().list("Will use '" + s + " for all read groups.");
+		logfile().list("Will use '" + s + "' for all read groups.");
 
 		// create read groups
 		for (auto &r : _readGroups) { _initializeReadGroup(s, r); }
@@ -299,7 +299,7 @@ void TBAMSimulator::_initializeDistribution(const std::string &ParameterName, co
 	if (pos != std::string::npos) {
 		// Option 1: a single read distribution for all
 		//---------------------------------------------------------------------
-		logfile().list("Will use '" + s + " for all read groups.");
+		logfile().list("Will use '" + s + "' for all read groups.");
 
 		// create read groups
 		for (auto &r : _readSimulators) { function(*r, s); }

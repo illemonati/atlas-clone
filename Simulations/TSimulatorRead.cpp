@@ -62,7 +62,6 @@ void TSimulatorSingleEndRead::setReadLengthDistribution(std::string s) {
 std::unique_ptr<TSimulatorQualityDist> TSimulatorSingleEndRead::_initializeQualityDistribution(std::string s) {
 	const auto pos = s.find("(");
 	std::string tmp;
-
 	if (pos == std::string::npos) throw "Unable to understand distribution '" + s + "'!";
 
 	// initialize appropriate function
@@ -131,12 +130,21 @@ void TSimulatorSingleEndRead::_simulateBasesQualities(BAM::TAlignment & alignmen
 	}
 
 	// simulate true bases
+	uint16_t sClippedLength3 = 2;
+	uint16_t sClippedLength5 = 3;
+	uint16_t mappedLength = readLength.read - sClippedLength3 - sClippedLength5;
 	std::vector<Base> bases;
+
 	const auto start = readIsContaminated ? _contaminationSource->reference().cbegin() + pos : haplotype.cbegin() + pos;
-	bases.assign(start, start + readLength.read);
+
+	for (size_t i = 1; i <= sClippedLength3; i++) bases.push_back(static_cast<Base>(randomGenerator().getRand<uint8_t>(0,4)));
+	bases.insert(bases.end(), start, start + mappedLength);
+	for (size_t i = 1; i <= sClippedLength5; i++) bases.push_back(static_cast<Base>(randomGenerator().getRand<uint8_t>(0,4)));
 
 	_cigar.clear();
-	_cigar.add('M', readLength.read);
+	_cigar.add('S', sClippedLength3);
+	_cigar.add('M', mappedLength);
+	_cigar.add('S', sClippedLength5);
 
 	// simulate true qualities
 	std::vector<genometools::PhredIntProbability> phredIntQualities(bases.size());
@@ -164,6 +172,9 @@ void TSimulatorSingleEndRead::simulate(const std::vector<Base>& haplotype, uint3
 
 	// simulated bases and qualities
 	_simulateBasesQualities(_alignment, haplotype, pos, readLength, readIsContaminated/*, _qualityTransform*/);
+
+	//set mapping quality
+	_alignment.setMappingQuality(static_cast<uint8_t>(_mappingQualityDist->sample()));
 
 	// write bam alignment
 	bamFile.saveAlignment(_alignment);
