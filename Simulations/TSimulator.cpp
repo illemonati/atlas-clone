@@ -427,7 +427,8 @@ void TBAMSimulator::_initializeReadSimulator() {
 
 	// F) other things
 	//----------------
-
+	_initializeDistribution("softClips", "fixed(0)", "soft-clipped base distribution",
+	                        &TSimulatorSingleEndRead::setSoftClipDistribution);
 	// initialize read group frequencies frequencies
 	_initializeReadGroupFrequencies();
 
