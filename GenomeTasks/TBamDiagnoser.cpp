@@ -91,7 +91,7 @@ void TBamDiagnoser::diagnose(){
 	//writing read group summary
 	std::string filename = _outputName + "_diagnostics.txt";
 	logfile().listFlush("Writing general diagnostics to '" + filename + "' ...");
-	coretools::TOutputFile out(filename, {"readGroup", "passedQC", "avgReadLength", "maxReadLength", "properPairs", "avgFragmentLength", "softClipped", "avgSoftClippedLength", "avgUsableAlignedLength", "approximateDepth", "avgMappingQuality", "seqType"});
+	coretools::TOutputFile out(filename, {"readGroup", "totalReads", "passedQC", "avgReadLength", "maxReadLength", "properPairs", "avgFragmentLength", "softClipped", "avgSoftClippedLength", "avgUsableAlignedLength", "approximateDepth", "avgMappingQuality", "seqType"});
 
 	//determine sequencing type of BAM file
 	uint32_t paired_count = 0;
@@ -106,6 +106,7 @@ void TBamDiagnoser::diagnose(){
 
 	//write for combined
 	out << "allReadGroups";
+	out << (_bamFile.numAlignmentsReadPerReadGroup()).counts();
 	out << _passedQC.counts();
 	out << _readLength.mean() << _readLength.max();
 	out << _fragmentLength.counts() << _fragmentLength.mean();
@@ -123,6 +124,7 @@ void TBamDiagnoser::diagnose(){
 	//write per read group
 	for(uint32_t rg = 0; rg < numRG; ++rg){
 		out << _bamFile.readGroups().getName(rg);
+		out << (_bamFile.numAlignmentsReadPerReadGroup())[rg];
 		out << _passedQC[rg];
 		out << _readLength.mean() << _readLength.max();
 		out << _fragmentLength[rg].counts() << _fragmentLength.mean();

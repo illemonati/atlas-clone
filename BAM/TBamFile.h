@@ -30,6 +30,7 @@
 #include "api/BamWriter.h"
 #include "api/SamHeader.h"
 #include "stringFunctions.h"
+#include "counters.h"
 namespace coretools { class TLog; }
 namespace coretools { class TParameters; }
 
@@ -59,6 +60,7 @@ private:
 
  	//counters
  	uint64_t _numAlignmentRead;
+ 	coretools::TCountDistribution<> _numAlignmentReadPerReadGroup;
  	uint64_t _numAlignmentsPassedQC;
  	bool _limitNumReads;
  	uint64_t _maxNumReadsToRead;
@@ -207,6 +209,7 @@ public:
 	std::string filename() const{ return _filename; };
 	uint16_t maxReadLength(){ return _readLengthFilter.range().max(); };
 	uint64_t numAlignmentsRead(){ return _numAlignmentRead; };
+	coretools::TCountDistribution<> numAlignmentsReadPerReadGroup() { return _numAlignmentReadPerReadGroup; };
 	double positionInFile(){ return (double) _bamReader.Tell() / (double) _fileSize; };
 	uint16_t numReadGroups() const{ return _readGroups.size(); };
 

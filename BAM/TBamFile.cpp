@@ -537,6 +537,9 @@ bool TBamFile::readNextAlignment(){
 	_curBamAlignment.GetTag("RG", readGroup);
 	_curReadGroupID = _readGroups.getId(readGroup);
 
+	//also update counter per readgroup
+	_numAlignmentReadPerReadGroup.add(_curReadGroupID);
+
 	//parse CIGAR
 	_curCigar.clear();
 	for(auto& it : _curBamAlignment.CigarData){
