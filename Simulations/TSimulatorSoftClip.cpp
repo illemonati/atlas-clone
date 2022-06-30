@@ -1,8 +1,8 @@
 /*
- * TSimulatorSoftClip.cpp
+ * TSimulatorSoftClip.h
  *
- *  Created on: Apr 27, 2021
- *      Author: phaentu
+ *  Created on: Jun 30, 2022
+ *      Author: raphael
  */
 
 #include "TSimulatorSoftClip.h"
@@ -30,9 +30,7 @@ using coretools::instances::logfile;
 //----------------------------------
 TSimulatorSoftClipDistFixed::TSimulatorSoftClipDistFixed(std::string &s) {
 	const auto pos1 = s.find("(");
-	if (pos1 == std::string::npos)
-		_max = coretools::str::convertStringCheck<uint8_t>(s);
-	else if (pos1 == 0) {
+	if (pos1 == 0) {
 		const auto pos2 = s.find(')');
 		if (pos2 != s.size() - 1)
 			throw "Failed to understand fixed distribution '" + s + "'!";
