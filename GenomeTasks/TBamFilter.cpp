@@ -97,7 +97,7 @@ void TAlignmentMergerReadGroupSettings::initialize(BAM::TReadGroups & readGroups
 		//read file with read group settings
 		std::string readGroupSettingsFile = parameters().getParameter<std::string>("readGroupSettings");
 		logfile().listFlush("Reading read groups from file '" + readGroupSettingsFile + "' ...");
-		coretools::TInputFile in(readGroupSettingsFile, {"ReadGroup", "SeqType", "MaxCycles"});
+		coretools::TInputFile in(readGroupSettingsFile, {"readGroup", "seqType", "maxCycles"});
 		if(in.numCols() != 3){
 			throw "Wrong number of entries in file '" + readGroupSettingsFile + "': need three columns corresponding to the read group name, read group type and max cycles!";
 		}

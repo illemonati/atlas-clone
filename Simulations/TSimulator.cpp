@@ -217,7 +217,7 @@ std::vector<std::string> TBAMSimulator::_readSimInfoPerReadGroup(const std::stri
 	// function to initialize read groups
 	logfile().listFlush("Reading " + Name + "(s) from file '" + Filename + "' ...");
 
-	coretools::TInputFile in(Filename, {"ReadGroup", Column}, "\t", "//");
+	coretools::TInputFile in(Filename, {"readGroup", Column}, "\t", "//");
 	std::vector<std::string> vec;
 	std::vector<bool> found(_readGroups.size(), false);
 	std::vector<std::string> ret(_readGroups.size());
@@ -401,7 +401,7 @@ void addReadGroupsIfFile(const std::string &ParameterName, BAM::TReadGroups &Rea
 		if (!coretools::str::stringContains(s, ":")) {
 			// is probably a file -> try to open it
 			if (std::filesystem::exists(s)) {
-				coretools::TInputFile in(s, {"ReadGroup"}, "\t", "//");
+				coretools::TInputFile in(s, {"readGroup"}, "\t", "//");
 				std::vector<std::string> tmp;
 				while (in.read(tmp)) {
 					// add all non-existing elemets

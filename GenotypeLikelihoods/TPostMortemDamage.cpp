@@ -590,7 +590,7 @@ void TPMDTypeSingleStrand::simulate(genometools::Base &base, uint16_t DistFrom5P
 //------------------------------------------------------
 
 void TPostMortemDamage::writeToFile(const BAM::TReadGroups &ReadGroups, const std::string filename) const {
-	std::vector<std::string> header = {"ReadGroup", "Type", "Functions"};
+	std::vector<std::string> header = {"readGroup", "type", "functions"};
 	coretools::TOutputFile out(filename, header);
 
 	// write for each read group
@@ -600,7 +600,7 @@ void TPostMortemDamage::writeToFile(const BAM::TReadGroups &ReadGroups, const st
 
 void TPostMortemDamage::writeToFile(const BAM::TReadGroups &ReadGroups, const BAM::TReadGroupMap &ReadGroupMap,
 				    const std::string filename) const {
-	std::vector<std::string> header = {"ReadGroup", "Type", "Functions"};
+	std::vector<std::string> header = {"readGroup", "type", "functions"};
 	coretools::TOutputFile out(filename, header);
 
 	// write for each read group

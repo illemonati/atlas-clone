@@ -104,7 +104,7 @@ void TPMDTables::add(const BAM::TSequencedBase &base, genometools::Base referenc
 
 void TPMDTables::write(std::string filename, bool normalize) {
 	// compile header
-	std::vector<std::string> header = {"ReadGroup", "direction", "fromEnd", "referenceBase", "sequencedBase"};
+	std::vector<std::string> header = {"readGroup", "direction", "fromEnd", "referenceBase", "sequencedBase"};
 	for (size_t p = 1; p <= _tableLength; ++p) header.push_back("position_" + coretools::str::toString(p));
 	header.push_back("position_>" + coretools::str::toString(_tableLength));
 

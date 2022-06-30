@@ -144,7 +144,7 @@ void TBamDiagnoser::diagnose(){
 	//write file used by split merge
 	std::string splitmergename = _outputName + "_splitMergeInput.txt";
 	logfile().listFlush("Outputting input file for splitMerge to '" + splitmergename + "' ...");
-	coretools::TOutputFile splitm (splitmergename, {"ReadGroup", "SeqType", "MaxCycles"});
+	coretools::TOutputFile splitm (splitmergename, {"readGroup", "seqType", "maxCycles"});
 	for(uint32_t rg = 0; rg < numRG; ++rg){
 		splitm << _bamFile.readGroups().getName(rg);
 		if (_fragmentLength[rg].counts() == 0){
