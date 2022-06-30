@@ -313,6 +313,40 @@ void TBAMSimulator::_initializeDistribution(const std::string &ParameterName, co
 	logfile().endIndent();
 }
 
+void TBAMSimulator::_initializeSCDistribution(const std::string &ParameterName, const std::string &DefaultValue,
+                                            const std::string &Name,
+                                            std::function<void(TSimulatorSingleEndRead &, std::string, int distNumber)> function) {
+	logfile().startIndent("Parsing " + Name + " (parameter " + ParameterName + "):");
+	const auto s = parameters().getParameterWithDefault<std::string>(ParameterName, DefaultValue);
+
+	// We allow for two options:
+	//   1) initialized from the command line (one for all read groups)
+	//   2) read-group specific as given in a file
+
+	// check if it is a file (should not contain a '(')
+	const auto pos = s.find('(');
+	if (pos != std::string::npos) {
+		// Option 1: a single read distribution for all
+		//---------------------------------------------------------------------
+		logfile().list("Will use '" + s + "' for all read groups.");
+
+		// create read groups, check if two different
+		const auto pos1 = s.find(":");
+			if (pos1 == std::string::npos){
+				for (auto &r : _readSimulators) { function(*r, s, 1);}
+			} else {
+				for (auto &r : _readSimulators) { function(*r, s, 2); }
+			}
+	} else {
+		// Option 2: read group specific, given in a file
+		//---------------------------------------------------------------------
+		const std::vector<std::string> dist = _readSimInfoPerReadGroup(s, ParameterName, Name);
+
+		//for (uint32_t r = 0; r < _readSimulators.size(); ++r) { function(*_readSimulators[r], dist[r]); }
+	}
+	logfile().endIndent();
+}
+
 void TBAMSimulator::_initializePMD(const std::string &ParameterName, const std::string &Name) {
 
 	logfile().startIndent("Parsing " + Name + " (parameter " + ParameterName + "):");
@@ -427,7 +461,7 @@ void TBAMSimulator::_initializeReadSimulator() {
 
 	// F) other things
 	//----------------
-	_initializeDistribution("softClips", "fixed(0)", "soft-clipped base distribution",
+	_initializeSCDistribution("softClips", "fixed(0)", "soft-clipped base distribution",
 	                        &TSimulatorSingleEndRead::setSoftClipDistribution);
 	// initialize read group frequencies frequencies
 	_initializeReadGroupFrequencies();

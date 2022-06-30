@@ -47,7 +47,11 @@ protected:
 	// qualities
 	std::unique_ptr<TSimulatorQualityDist> _qualityDist;
 	std::unique_ptr<TSimulatorQualityDist> _mappingQualityDist;
+
+	//length of soft clipped bases
 	std::unique_ptr<TSimulatorSoftClipDist> _softClipDist;
+	std::unique_ptr<TSimulatorSoftClipDist> _softClipDist5;
+	std::unique_ptr<TSimulatorSoftClipDist> _softClipDist3;
 
 	GenotypeLikelihoods::TPMDType const *_pmd = nullptr;
 	std::array<GenotypeLikelihoods::SequencingError::TModel const *, 2> _recal;
@@ -64,6 +68,7 @@ protected:
 	// function initialize
 	std::unique_ptr<TSimulatorQualityDist> _initializeQualityDistribution(std::string s);
 	std::unique_ptr<TSimulatorSoftClipDist> _initializeSoftClipDistribution(std::string s);
+	std::unique_ptr<TSimulatorSoftClipDist> _initializeSoftClipDistributions(std::string s, int endNumber);
 
 	// general functions
 	void _simulateQualitiesAndErrors(genometools::Base *_bases, int *_qualities, int &len);
@@ -79,7 +84,7 @@ public:
 	void setReadLengthDistribution(std::string s);
 	void setQualityDistribution(std::string s);
 	void setMappingQualityDistribution(std::string s);
-	void setSoftClipDistribution(std::string s);
+	void setSoftClipDistribution(std::string s, int distNumber);
 	void setPMD(GenotypeLikelihoods::TPMDType const *Pmd);
 	void setRecal(GenotypeLikelihoods::SequencingError::TModel const *Recal1, GenotypeLikelihoods::SequencingError::TModel const *Recal2);
 	void setContamination(double rate, TSimulatorReference *source);
