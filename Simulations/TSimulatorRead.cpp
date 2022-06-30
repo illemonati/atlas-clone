@@ -92,8 +92,8 @@ std::unique_ptr<TSimulatorSoftClipDist> TSimulatorSingleEndRead::_initializeSoft
 		return std::make_unique<TSimulatorSoftClipDistBinned>(s);
 	else if (type == "freq")
 		return std::make_unique<TSimulatorSoftClipDistFreq>(s);
-	/*else if (type == "poisson")
-		return std::make_unique<TSimulatorSoftClipDistPoisson>(s);*/
+	else if (type == "poisson")
+		return std::make_unique<TSimulatorSoftClipDistPois>(s);
 	else
 		throw "Unknown read quality distribution '" + type + "'!";
 }

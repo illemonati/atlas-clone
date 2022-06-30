@@ -108,4 +108,23 @@ uint16_t TSimulatorSoftClipDistFreq::sample() const noexcept {
 	return _sCBins[randomGenerator().pickOne(_cumulativeFrequencies)];
 }
 
+//------------------------------------------------
+// TSimulatorSoftClipDistPois
+//------------------------------------------------
+TSimulatorSoftClipDistPois::TSimulatorSoftClipDistPois(std::string &s) {
+	const auto pos1 = s.find("(");
+	if (pos1 == 0) {
+		const auto pos2 = s.find(')');
+		if (pos2 != s.size() - 1)
+			throw "Failed to understand Poisson distribution '" + s + "'!";
+		_lambda = coretools::str::convertStringCheck<double>(s.substr(1, pos2 - 1));
+		} else {
+			throw "Failed to understand Poisson distribution '" + s + "'!";
+		}
+}
+
+uint16_t TSimulatorSoftClipDistPois::sample() const noexcept {
+	return randomGenerator().getPoissonRandom(_lambda);
+}
+
 } // namespace Simulations

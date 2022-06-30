@@ -34,7 +34,7 @@ public:
 // Class of a fixed value
 class TSimulatorSoftClipDistFixed : public TSimulatorSoftClipDist {
 private:
-	uint16_t _max{30};
+	uint16_t _max;
 public:
 	TSimulatorSoftClipDistFixed(std::string &s);
 
@@ -72,8 +72,18 @@ public:
 
 //------------------------------------------------
 // TSimulatorSoftClipDistPoisson
-// Class of a normal distribution
+// Class of a Poisson distribution
 //------------------------------------------------
+class TSimulatorSoftClipDistPois : public TSimulatorSoftClipDist {
+private:
+	double _lambda;
+
+public:
+	TSimulatorSoftClipDistPois(std::string &s);
+
+	uint16_t sample() const noexcept override;
+};
+
 
 } // namespace Simulations
 
