@@ -32,7 +32,6 @@ TSimulatorSingleEndRead::TSimulatorSingleEndRead(const BAM::TReadGroup &ReadGrou
 	//readNamePrefix: "<instrument>:<run number>:<flowcell ID>:<lane>:<tile>:"  Still need to add "<x-pos>:<y-pos>"
 	// initialize bamAlignment
 	_alignment.setReadGroup(_readGroup.id);
-	_alignment.setMappingQuality(50);
 }
 
 bool TSimulatorSingleEndRead::checkInitialization() {
@@ -62,7 +61,6 @@ void TSimulatorSingleEndRead::setReadLengthDistribution(std::string s) {
 std::unique_ptr<TSimulatorQualityDist> TSimulatorSingleEndRead::_initializeQualityDistribution(std::string s) {
 	const auto pos = s.find("(");
 	std::string tmp;
-
 	if (pos == std::string::npos) throw "Unable to understand distribution '" + s + "'!";
 
 	// initialize appropriate function
@@ -80,12 +78,71 @@ std::unique_ptr<TSimulatorQualityDist> TSimulatorSingleEndRead::_initializeQuali
 		throw "Unknown read quality distribution '" + type + "'!";
 }
 
+std::unique_ptr<TSimulatorSoftClipDist> TSimulatorSingleEndRead::_initializeSoftClipDistribution(std::string s) {
+	const auto pos = s.find("(");
+	if (pos == std::string::npos) throw "Unable to understand distribution '" + s + "'!";
+
+	// initialize appropriate function
+	const auto type = s.substr(0, pos);
+	s.erase(0, pos);
+	if (type == "fixed")
+		return std::make_unique<TSimulatorSoftClipDistFixed>(s);
+	else if (type == "binned")
+		return std::make_unique<TSimulatorSoftClipDistBinned>(s);
+	else if (type == "freq")
+		return std::make_unique<TSimulatorSoftClipDistFreq>(s);
+	else if (type == "poisson")
+		return std::make_unique<TSimulatorSoftClipDistPois>(s);
+	else
+		throw "Unknown soft clip distribution '" + type + "'!";
+
+}
+
+std::unique_ptr<TSimulatorSoftClipDist> TSimulatorSingleEndRead::_initializeSoftClipDistributions(std::string s, int endNumber) {
+	const auto pos = s.find(":");
+	std::string type;
+	if( endNumber == 5) {
+		s.erase(pos, s.size() - 1);
+		const auto pos1 = s.find("(");
+		if (pos1 ==  std::string::npos) throw "Unable to understand 5' end distribution '" + s + "'!";
+		type = s.substr(0, pos1);
+		s.erase(0, pos1);
+	} else {
+		s.erase(0, pos+1);
+		const auto pos1 = s.find("(");
+		if (pos1 ==  std::string::npos) throw "Unable to understand 3' end distribution '" + s + "'!";
+		type = s.substr(0, pos1);
+		s.erase(0, pos1);
+	}
+	// initialize appropriate function
+	if (type == "fixed")
+		return std::make_unique<TSimulatorSoftClipDistFixed>(s);
+	else if (type == "binned")
+		return std::make_unique<TSimulatorSoftClipDistBinned>(s);
+	else if (type == "freq")
+		return std::make_unique<TSimulatorSoftClipDistFreq>(s);
+	else if (type == "poisson")
+		return std::make_unique<TSimulatorSoftClipDistPois>(s);
+	else
+		throw "Unknown soft clip distribution '" + type + "'!";
+
+}
+
 void TSimulatorSingleEndRead::setQualityDistribution(std::string s) {
 	_qualityDist = _initializeQualityDistribution(s);
 }
 
 void TSimulatorSingleEndRead::setMappingQualityDistribution(std::string s) {
 	_mappingQualityDist = _initializeQualityDistribution(s);
+}
+
+void TSimulatorSingleEndRead::setSoftClipDistribution(std::string s, int distNumber) {
+	if (distNumber == 1)
+		_softClipDist = _initializeSoftClipDistribution(s);
+	else {
+		_softClipDist5 = _initializeSoftClipDistributions(s, 5);
+		_softClipDist3 = _initializeSoftClipDistributions(s, 3);}
+
 }
 
 void TSimulatorSingleEndRead::setRecal(
@@ -131,12 +188,31 @@ void TSimulatorSingleEndRead::_simulateBasesQualities(BAM::TAlignment & alignmen
 	}
 
 	// simulate true bases
+	uint16_t sClippedLength5 {};
+	uint16_t sClippedLength3 {};
+	if (_softClipDist != nullptr) {
+		sClippedLength5 = static_cast<uint16_t>(_softClipDist->sample());
+		sClippedLength3 = static_cast<uint16_t>(_softClipDist->sample());
+	} else {
+		sClippedLength5 = static_cast<uint16_t>(_softClipDist5->sample());
+		sClippedLength3 = static_cast<uint16_t>(_softClipDist3->sample());
+	}
+	if ((sClippedLength5 + sClippedLength3) >= readLength.read)
+		throw "Number of softclipped bases either equal or exceed read length. Either increase read length or decrease softclipped length.";
+	uint16_t mappedLength = readLength.read - sClippedLength5 - sClippedLength3;
 	std::vector<Base> bases;
+
 	const auto start = readIsContaminated ? _contaminationSource->reference().cbegin() + pos : haplotype.cbegin() + pos;
-	bases.assign(start, start + readLength.read);
+
+	for (size_t i = 1; i <= sClippedLength5; i++) bases.push_back(static_cast<Base>(randomGenerator().getRand<uint8_t>(0,4)));
+	bases.insert(bases.end(), start, start + mappedLength);
+	for (size_t i = 1; i <= sClippedLength3; i++) bases.push_back(static_cast<Base>(randomGenerator().getRand<uint8_t>(0,4)));
 
 	_cigar.clear();
-	_cigar.add('M', readLength.read);
+	if (sClippedLength5 > 0) _cigar.add('S', sClippedLength5);
+	_cigar.add('M', mappedLength);
+	if (sClippedLength3 > 0) _cigar.add('S', sClippedLength3);
+	
 
 	// simulate true qualities
 	std::vector<genometools::PhredIntProbability> phredIntQualities(bases.size());
@@ -164,6 +240,9 @@ void TSimulatorSingleEndRead::simulate(const std::vector<Base>& haplotype, uint3
 
 	// simulated bases and qualities
 	_simulateBasesQualities(_alignment, haplotype, pos, readLength, readIsContaminated/*, _qualityTransform*/);
+
+	//set mapping quality
+	_alignment.setMappingQuality(static_cast<uint8_t>(_mappingQualityDist->sample()));
 
 	// write bam alignment
 	bamFile.saveAlignment(_alignment);

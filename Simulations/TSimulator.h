@@ -93,6 +93,9 @@ protected:
 	void _initializeReadGroup(const std::string &readLengthString, const BAM::TReadGroup &ReadGroup);
 	void _initializeReadGroupsFromReadLengthDistribution(const std::string &ParameterName,
 	                                                     const std::string &DefaultValue, const std::string &Name);
+	void _initializeSCDistribution(const std::string &ParameterName, const std::string &DefaultValue,
+	                               const std::string &Name,
+	                               std::function<void(TSimulatorSingleEndRead &, std::string, int distNumber)> function);
 	void _initializeDistribution(const std::string &ParameterName, const std::string &DefaultValue,
 	                             const std::string &Name,
 	                             std::function<void(TSimulatorSingleEndRead &, std::string)> function);
