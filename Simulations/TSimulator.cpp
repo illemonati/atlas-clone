@@ -341,8 +341,14 @@ void TBAMSimulator::_initializeSCDistribution(const std::string &ParameterName, 
 		// Option 2: read group specific, given in a file
 		//---------------------------------------------------------------------
 		const std::vector<std::string> dist = _readSimInfoPerReadGroup(s, ParameterName, Name);
-
-		//for (uint32_t r = 0; r < _readSimulators.size(); ++r) { function(*_readSimulators[r], dist[r]); }
+		for (uint32_t r = 0; r < _readSimulators.size(); ++r) {
+			const auto pos1 = dist[r].find(":");
+			if (pos1 == std::string::npos){
+				function(*_readSimulators[r], dist[r], 1);
+			} else {
+				function(*_readSimulators[r], dist[r], 2);
+			}
+		}
 	}
 	logfile().endIndent();
 }
