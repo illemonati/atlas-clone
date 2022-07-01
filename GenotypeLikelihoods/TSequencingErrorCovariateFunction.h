@@ -20,7 +20,6 @@
 #include "mathFunctions.h"
 #include "probability.h"
 
-#define ARMA_DONT_PRINT_ERRORS
 #include <armadillo>
 
 namespace GenotypeLikelihoods {

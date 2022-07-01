@@ -26,12 +26,15 @@
 #include "mathFunctions.h"
 #include "probability.h"
 #include "stringFunctions.h"
+#include "toString.h"
 #include "weakTypes.h"
 
 namespace GenotypeLikelihoods {
 namespace SequencingError {
 using coretools::Probability;
 using coretools::instances::randomGenerator;
+using genometools::Base;
+using namespace std::literals;
 
 namespace impl {
 
@@ -153,7 +156,6 @@ TModelDefinition::TModelDefinition(const std::string &modelString, const std::st
 
 TRho::TRho(const std::string &def) {
 	using coretools::str::toString;
-	using genometools::Base;
 	//"default" implies default rho
 	if (def == "default") {
 		return;
@@ -186,31 +188,20 @@ TRho::TRho(const std::string &def) {
 }
 
 std::string TRho::getDefinition() const noexcept {
-	using genometools::Base;
-	std::string def;
-	for (Base a = Base::min; a < Base::max; ++a) {
-		if (a > Base::min) def += ";";
-		for (Base b = Base::min; b < Base::max; ++b) {
-			if (b > Base::min) def += ",";
-			if (a != b)
-				def += coretools::str::toString(rho[a][b]);
-			else
-				def += "-";
-		}
-	}
-	return def;
+	using coretools::str::toString;
+	return "-,"s + toString(rho[Base::A][Base::C]) + ',' + toString(rho[Base::A][Base::G]) + ',' + toString(rho[Base::A][Base::T]) + ';'
+		+ toString(rho[Base::C][Base::A]) + "-," + toString(rho[Base::C][Base::G]) + toString(rho[Base::C][Base::T]) + ';'
+		+ toString(rho[Base::G][Base::A]) + ',' + toString(rho[Base::G][Base::C]) + "-," + toString(rho[Base::G][Base::T]) + ';'
+		+ toString(rho[Base::T][Base::A]) + ',' + toString(rho[Base::T][Base::C]) + ',' + toString(rho[Base::T][Base::G]) + '-';
 }
 
-void TRho::addBaseForEstimation(genometools::Base base, const TBaseLikelihoods &EMWeights) noexcept {
-	using genometools::Base;
-	using genometools::index;
+void TRho::addBaseForEstimation(Base base, const TBaseLikelihoods &EMWeights) noexcept {
 	for (auto b = Base::min; b < Base::max; ++b) {
-		if (base != b) rho[b][base] += EMWeights[b].get();
+		rho[b][base] += EMWeights[b].get();
 	}
 }
 
 void TRho::estimate() noexcept {
-	using genometools::Base;
 	for (Base a = Base::min; a < Base::max; ++a) {
 		rho[a][a] = 0.0;
 		double d  = 0.;
@@ -223,18 +214,17 @@ void TRho::estimate() noexcept {
 // TModelNoRecal
 //*********************************************************
 Probability TModelNoRecal::getErrorRate(const BAM::TSequencedBase &base) const noexcept {
-	if (base == genometools::Base::N) return Probability(1.0);
+	if (base == Base::N) return Probability(1.0);
 	return (Probability)base.originalQuality_phredInt;
 }
 
 genometools::PhredIntProbability TModelNoRecal::getPhredInt(const BAM::TSequencedBase &base) const noexcept {
 	// Todo: change to maxProb() one available.
-	if (base == genometools::Base::N) return genometools::PhredIntProbability(0);
+	if (base == Base::N) return genometools::PhredIntProbability(0);
 	return base.originalQuality_phredInt;
 }
 
 TBaseLikelihoods TModelNoRecal::getBaseLikelihoods(const BAM::TSequencedBase &base) const noexcept {
-	using genometools::Base;
 	if (base == Base::N) {
 		return TBaseLikelihoods{1.};
 	}
@@ -245,7 +235,6 @@ TBaseLikelihoods TModelNoRecal::getBaseLikelihoods(const BAM::TSequencedBase &ba
 }
 
 void TModelNoRecal::simulate(BAM::TSequencedBase &base) const noexcept {
-	using genometools::Base;
 	if (base.base == Base::N) return;
 
 	const auto e = static_cast<Probability>(base.originalQuality_phredInt);
@@ -316,18 +305,17 @@ Probability TModelRecal::_calcErrorRate(const BAM::TSequencedBase &base) const n
 }
 
 Probability TModelRecal::getErrorRate(const BAM::TSequencedBase &base) const noexcept {
-	if (base == genometools::Base::N) return Probability::highest();
+	if (base == Base::N) return Probability::highest();
 	return _calcErrorRate(base);
 }
 
 genometools::PhredIntProbability TModelRecal::getPhredInt(const BAM::TSequencedBase &base) const noexcept {
 	// Todo: change to maxProb() one available.
-	if (base == genometools::Base::N) return genometools::PhredIntProbability(0);
+	if (base == Base::N) return genometools::PhredIntProbability(0);
 	return genometools::PhredIntProbability(_calcErrorRate(base));
 }
 
 TBaseLikelihoods TModelRecal::getBaseLikelihoods(const BAM::TSequencedBase &base) const noexcept {
-	using genometools::Base;
 	if (base == Base::N) {
 		return TBaseLikelihoods{1.};
 	}
@@ -339,7 +327,6 @@ TBaseLikelihoods TModelRecal::getBaseLikelihoods(const BAM::TSequencedBase &base
 }
 
 void TModelRecal::simulate(BAM::TSequencedBase &base) const noexcept {
-	using genometools::Base;
 	if (base.base == Base::N) return;
 
 	const auto e = _calcErrorRate(base);
