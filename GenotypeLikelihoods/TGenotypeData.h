@@ -30,6 +30,7 @@ using TBaseCounts            = coretools::TStrongArray<uint32_t, genometools::Ba
 using TGenotypeLikelihoods   = coretools::TStrongArray<coretools::Probability, genometools::Genotype, 10>;
 using TGenotypeProbabilities = coretools::TStrongMassFunction<coretools::Probability, genometools::Genotype, 10>;
 using TGenotypeData          = coretools::TStrongArray<double, genometools::Genotype, 10>;
+using TBaseMassFunctions     = coretools::TStrongArray<TBaseProbabilities, genometools::Base, 4>;
 
 template<template<typename...> typename Container, typename... Args>
 TGenotypeLikelihoods getGLH(const Container<TBaseLikelihoods, Args...> &bases, const size_t size) {

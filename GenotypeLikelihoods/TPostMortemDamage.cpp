@@ -44,7 +44,7 @@ using coretools::instances::randomGenerator;
 
 using namespace coretools::str;
 
-namespace /* anonymous */ {
+namespace impl {
 
 std::vector<double> parseParameters(const std::string &string) {
 	// expect string of the form NAME[P1,P2,...]
@@ -93,7 +93,7 @@ std::unique_ptr<TPMDType> createPMDType(const std::string &pmdString) {
 // TPMDFunctionNoPMD
 //---------------------------------------------------------------
 TPMDFunctionNoPMD::TPMDFunctionNoPMD(const std::string &string) {
-	const std::vector<double> params = parseParameters(string);
+	const std::vector<double> params = impl::parseParameters(string);
 	if (params.size() != 0) {
 		throw "Cannot initialize PMD function '" + name + "': expected 0 but found " +
 			toString(params.size()) + " parameters!";
@@ -105,7 +105,7 @@ TPMDFunctionNoPMD::TPMDFunctionNoPMD(const std::string &string) {
 //--------------------------------------------------------------
 TPMDFunctionExponential::TPMDFunctionExponential(const std::string &string) {
 	constexpr size_t nParams = 4;
-	std::vector<double> params = parseParameters(string);
+	std::vector<double> params = impl::parseParameters(string);
 	if (params.empty()) {
 		// parameters missing: set to no PMD
 		_lastPosition = 0;
@@ -371,7 +371,7 @@ double TPMDFunctionExponential::prob(uint16_t pos) const noexcept {
 //---------------------------------------------------------------
 // TPMDFunctionEmpiric
 //---------------------------------------------------------------
-TPMDFunctionEmpiric::TPMDFunctionEmpiric(const std::string &string) : _parameters(parseParameters(string)) {
+	TPMDFunctionEmpiric::TPMDFunctionEmpiric(const std::string &string) : _parameters(impl::parseParameters(string)) {
 	if (_parameters.empty()) {
 		// parameters missing: set to no PMD
 		_parameters = {0.0};
@@ -427,8 +427,8 @@ TPMDTypeDoubleStrand::TPMDTypeDoubleStrand(const std::vector<std::string> &Detai
 			concatenateString(Details, ':') + "'." + "\nExpect string of the form '" + name +
 			"':functionCT:functionGA'.";
 	}
-	_pmdCT = initializeFunction(Details[1]);
-	_pmdGA = initializeFunction(Details[2]);
+	_pmdCT = impl::initializeFunction(Details[1]);
+	_pmdGA = impl::initializeFunction(Details[2]);
 }
 
 void TPMDTypeDoubleStrand::parseEstimationParameters(TPMDEstimationParameters &EstimationParameters){
@@ -483,6 +483,26 @@ TBaseLikelihoods TPMDTypeDoubleStrand::getBaseLikelihoods(const BAM::TSequencedB
 	return baseLikelihoods;
 }
 
+TBaseMassFunctions TPMDTypeDoubleStrand::getMassFunctions(const BAM::TSequencedBase &base) const {
+	const auto from3  = base.distFrom3Prime < base.distFrom5Prime;
+	double pmdProb_CT = 0;
+	double pmdProb_GA = 0;
+	if (!base.isReverseStrand()) {
+		if (from3)
+			pmdProb_GA = _pmdGA->prob(base.distFrom3Prime);
+		else
+			pmdProb_CT = _pmdCT->prob(base.distFrom5Prime);
+	} else {
+		// ??? Newest insight
+		if (from3)
+			pmdProb_CT = _pmdGA->prob(base.distFrom3Prime);
+		else
+			pmdProb_GA = _pmdCT->prob(base.distFrom5Prime);
+	}
+
+	return TBaseMassFunctions{{TBaseProbabilities{{1., 0., 0., 0.}}, {{0., (1. - pmdProb_CT), 0., pmdProb_CT}}, {{pmdProb_GA, 0., (1-pmdProb_GA), 0.}}, {{0., 0., 1., 0.}}}};
+}
+
 void TPMDTypeDoubleStrand::simulate(BAM::TSequencedBase &base) const {
 	simulate(base.base, base.distFrom5Prime, base.distFrom3Prime, base.isReverseStrand());
 }
@@ -521,8 +541,8 @@ TPMDTypeSingleStrand::TPMDTypeSingleStrand(const std::vector<std::string> &Detai
 			concatenateString(Details, ':') + "'." + "\nExpect string of the form '" + name +
 			"':functionCT:functionGA'.";
 	}
-	_pmdCT3 = initializeFunction(Details[1]);
-	_pmdCT5 = initializeFunction(Details[2]);
+	_pmdCT3 = impl::initializeFunction(Details[1]);
+	_pmdCT5 = impl::initializeFunction(Details[2]);
 }
 
 void TPMDTypeSingleStrand::parseEstimationParameters(TPMDEstimationParameters &EstimationParameters) {
@@ -566,6 +586,14 @@ TBaseLikelihoods TPMDTypeSingleStrand::getBaseLikelihoods(const BAM::TSequencedB
 	baseLikelihoods[Base::C] = (1.0 - pmdProb_CT) * baseLikelihoodsNoPMD[Base::C].get() +
 					  pmdProb_CT * baseLikelihoodsNoPMD[Base::T].get();
 	return baseLikelihoods;
+}
+
+TBaseMassFunctions TPMDTypeSingleStrand::getMassFunctions(const BAM::TSequencedBase &base) const {
+
+	const double pmdProb_CT = base.distFrom3Prime < base.distFrom5Prime ? _pmdCT3->prob(base.distFrom3Prime)
+									    : _pmdCT5->prob(base.distFrom5Prime);
+
+	return TBaseMassFunctions{{TBaseProbabilities{{1., 0., 0., 0.}}, {{0., (1. - pmdProb_CT), 0., pmdProb_CT}}, {{0., 0., 1., 0.}}, {{0., 0., 1., 0.}}}};
 }
 
 void TPMDTypeSingleStrand::simulate(BAM::TSequencedBase &base) const {
@@ -613,7 +641,7 @@ void TPostMortemDamage::_initializeFromString(const std::string &pmdString) {
 	// not a file: initialize all read groups have the same pmd
 	logfile().startIndent("PMD function used for all read groups:");
 
-	for (auto &p : _pmdObjects) { p = createPMDType(pmdString); }
+	for (auto &p : _pmdObjects) { p = impl::createPMDType(pmdString); }
 
 	// report
 	logfile().list(_pmdObjects[0]->functionString());
@@ -637,7 +665,7 @@ void TPostMortemDamage::_initializeFromFile(const BAM::TReadGroups &ReadGroups, 
 			uint16_t readGroupId = ReadGroups.getId(vec[0]);
 
 			// create type
-			_pmdObjects[readGroupId] = createPMDType(vec[1]);
+			_pmdObjects[readGroupId] = impl::createPMDType(vec[1]);
 		}
 	}
 	logfile().done();
@@ -646,7 +674,7 @@ void TPostMortemDamage::_initializeFromFile(const BAM::TReadGroups &ReadGroups, 
 	// create no-PMD types for all remaining ones and return their indexes
 	for (uint16_t i = 0; i < ReadGroups.size(); ++i) {
 		if (!_pmdObjects[i]) {
-			_pmdObjects[i] = createPMDType("non");
+			_pmdObjects[i] = impl::createPMDType("non");
 			ReadGroupsWithoutPMD.push_back(i);
 		}
 	}

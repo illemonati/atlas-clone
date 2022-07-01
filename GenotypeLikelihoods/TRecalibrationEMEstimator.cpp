@@ -316,6 +316,7 @@ std::vector<TBaseLikelihoods> TRecalibrationEMEstimator::_updateRho_getWeights(c
 			const auto L_eps = _modelsToEstimate.getBaseLikelihoods(d_ij);
 			const auto L_D = PmdModels.getBaseLikelihoods(d_ij, L_eps);
 			const auto L_g = _genoDist->getGenotypeLikelihoods(L_D);
+			//_modelsToEstimate.addBaseForRhoEstimation(b, EM_weights_bbar_given_d[index]);
 		}
 	}
 	return weights;

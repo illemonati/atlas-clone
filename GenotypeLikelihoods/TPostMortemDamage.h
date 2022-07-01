@@ -8,6 +8,9 @@
 #ifndef TPOSTMORTEMDAMAGE_H_
 #define TPOSTMORTEMDAMAGE_H_
 
+#include "TMassFunction.h"
+#include "TStrongArray.h"
+#include "probability.h"
 #include <array>
 #include <map>
 #include <memory>
@@ -15,7 +18,6 @@
 #include <string>
 #include <vector>
 
-#define ARMA_DONT_PRINT_ERRORS
 #include <armadillo>
 
 #include "GenotypeTypes.h"
@@ -50,12 +52,11 @@ public:
 	virtual double prob(uint16_t pos) const noexcept                                       = 0;
 };
 
-class TPMDFunctionNoPMD : public TPMDFunction {
+class TPMDFunctionNoPMD final : public TPMDFunction {
 public:
 	static inline const std::string name    = "none";
 	static inline const std::string example = name;
 	TPMDFunctionNoPMD(const std::string &string);
-	~TPMDFunctionNoPMD() = default;
 
 	bool hasDamage() const noexcept override { return false; }
 	std::string string() const noexcept override { return name + "[]"; }
@@ -67,7 +68,7 @@ public:
 	double prob(uint16_t) const noexcept override { return 0.0; }
 };
 
-class TPMDFunctionExponential : public TPMDFunction {
+class TPMDFunctionExponential final : public TPMDFunction {
 private:
 	uint16_t _lastPosition;
 	double _a, _b, _c;
@@ -87,7 +88,6 @@ public:
 	static inline const std::string epsilon = "PMDExponentialEpsilon";
 	static inline const std::string numNR   = "PMDExponentialNumNR";
 	TPMDFunctionExponential(const std::string &string);
-	~TPMDFunctionExponential() = default;
 
 	bool hasDamage() const noexcept override { return _lastPosition > 0; }
 	std::string string() const noexcept override {
@@ -102,7 +102,7 @@ public:
 	double prob(uint16_t pos) const noexcept override;
 };
 
-class TPMDFunctionEmpiric : public TPMDFunction {
+class TPMDFunctionEmpiric final : public TPMDFunction {
 private:
 	std::vector<double> _parameters;
 
@@ -110,7 +110,6 @@ public:
 	static inline const std::string name    = "Empiric";
 	static inline const std::string example = name + "[p1,p2,...]";
 	TPMDFunctionEmpiric(const std::string &string);
-	~TPMDFunctionEmpiric() = default;
 
 	bool hasDamage() const noexcept override { return _parameters.size() + _parameters.back() != 1.0; }
 	std::string string() const noexcept override {
@@ -142,6 +141,7 @@ public:
 
 	virtual TBaseLikelihoods getBaseLikelihoods(const BAM::TSequencedBase &base,
 												const TBaseLikelihoods &baseLikelihoodsNoPMD) const = 0;
+	virtual TBaseMassFunctions getMassFunctions(const BAM::TSequencedBase &base) const              = 0;
 
 	virtual void simulate(BAM::TSequencedBase &base) const   = 0;
 	virtual void simulate(genometools::Base &base, uint16_t DistFrom5Prime, uint16_t DistFrom3Prime,
@@ -151,11 +151,13 @@ public:
 //------------------------------------------------
 // TPMDTypeNone
 //------------------------------------------------
-class TPMDTypeNone : public TPMDType {
+class TPMDTypeNone final : public TPMDType {
+	static constexpr TBaseMassFunctions _massFunctions{
+		{TBaseProbabilities{{1., 0., 0., 0.}}, {{0., 1., 0., 0.}}, {{0., 0., 1., 0.}}, {{0., 0., 1., 0.}}}};
+
 public:
 	static inline const std::string name = "none";
 	TPMDTypeNone()                       = default;
-	~TPMDTypeNone()                      = default;
 
 	bool hasDamage() const noexcept override { return false; }
 	std::string functionString() const noexcept override { return "none"; }
@@ -170,6 +172,8 @@ public:
 		return baseLikelihoodsNoPMD;
 	}
 
+	TBaseMassFunctions getMassFunctions(const BAM::TSequencedBase &) const override { return _massFunctions; }
+
 	void simulate(BAM::TSequencedBase &) const override {}
 	void simulate(genometools::Base &, uint16_t, uint16_t, const bool &) const override {}
 };
@@ -177,7 +181,7 @@ public:
 //------------------------------------------------------
 // TPMDTypeDoubleStrand
 //------------------------------------------------------
-class TPMDTypeDoubleStrand : public TPMDType {
+class TPMDTypeDoubleStrand final : public TPMDType {
 private:
 	std::unique_ptr<TPMDFunction> _pmdCT;
 	std::unique_ptr<TPMDFunction> _pmdGA;
@@ -185,7 +189,6 @@ private:
 public:
 	static inline const std::string name = "doubleStrand";
 	TPMDTypeDoubleStrand(const std::vector<std::string> &Details);
-	~TPMDTypeDoubleStrand() = default;
 
 	bool hasDamage() const noexcept override { return _pmdCT->hasDamage() || _pmdGA->hasDamage(); };
 	std::string functionString() const noexcept override {
@@ -199,6 +202,8 @@ public:
 	TBaseLikelihoods getBaseLikelihoods(const BAM::TSequencedBase &base,
 										const TBaseLikelihoods &baseLikelihoodsNoPMD) const override;
 
+	TBaseMassFunctions getMassFunctions(const BAM::TSequencedBase &base) const override;
+
 	void simulate(BAM::TSequencedBase &base) const override;
 	void simulate(genometools::Base &base, uint16_t DistFrom5Prime, uint16_t DistFrom3Prime,
 				  const bool &IsReverseStrand) const override;
@@ -207,7 +212,7 @@ public:
 //------------------------------------------------------
 // TPMDTypeSingleStrand
 //------------------------------------------------------
-class TPMDTypeSingleStrand : public TPMDType {
+class TPMDTypeSingleStrand final : public TPMDType {
 private:
 	std::unique_ptr<TPMDFunction> _pmdCT3;
 	std::unique_ptr<TPMDFunction> _pmdCT5;
@@ -215,7 +220,6 @@ private:
 public:
 	static inline const std::string name = "singleStrand";
 	TPMDTypeSingleStrand(const std::vector<std::string> &Details);
-	~TPMDTypeSingleStrand() = default;
 
 	bool hasDamage() const noexcept override { return _pmdCT3->hasDamage() || _pmdCT5->hasDamage(); };
 	std::string functionString() const noexcept override {
@@ -228,6 +232,8 @@ public:
 
 	TBaseLikelihoods getBaseLikelihoods(const BAM::TSequencedBase &base,
 										const TBaseLikelihoods &baseLikelihoodsNoPMD) const override;
+
+	TBaseMassFunctions getMassFunctions(const BAM::TSequencedBase &base) const override;
 
 	void simulate(BAM::TSequencedBase &base) const override;
 	void simulate(genometools::Base &base, uint16_t DistFrom5Prime, uint16_t DistFrom3Prime,
@@ -261,8 +267,9 @@ public:
 					std::vector<uint16_t> &ReadGroupsWithoutPMD);
 	void writeToFile(const BAM::TReadGroups &ReadGroups, const std::string filename) const;
 	void writeToFile(const BAM::TReadGroups &ReadGroups, const BAM::TReadGroupMap &ReadGroupMap,
-					 const std::string filename) const;
-	TBaseLikelihoods getBaseLikelihoods(const BAM::TSequencedBase &base, const TBaseLikelihoods &baseLikelihoodsNoPMD) const;
+	                 const std::string filename) const;
+	TBaseLikelihoods getBaseLikelihoods(const BAM::TSequencedBase &base,
+	                                    const TBaseLikelihoods &baseLikelihoodsNoPMD) const;
 };
 
 }; // namespace GenotypeLikelihoods
