@@ -761,4 +761,10 @@ TBaseLikelihoods TPostMortemDamage::getBaseLikelihoods(const BAM::TSequencedBase
 		: baseLikelihoodsNoPMD;
 }
 
+TBaseProbabilities TPostMortemDamage::getMassFunction(genometools::Base b, const BAM::TSequencedBase &data,
+													  const TBaseLikelihoods &baseLikelihoodsNoPMD) const {
+	return _hasPMD ? _pmdObjects[data.readGroupID]->getMassFunction(b, data, baseLikelihoodsNoPMD)
+	               : TPMDTypeNone::massFunctions[b];
+}
+
 }; // namespace GenotypeLikelihoods

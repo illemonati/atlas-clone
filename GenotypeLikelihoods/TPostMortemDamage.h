@@ -154,10 +154,10 @@ public:
 // TPMDTypeNone
 //------------------------------------------------
 class TPMDTypeNone final : public TPMDType {
-	static constexpr TBaseMassFunctions _massFunctions{
+public:
+	static constexpr TBaseMassFunctions massFunctions{
 		{TBaseProbabilities{{1., 0., 0., 0.}}, {{0., 1., 0., 0.}}, {{0., 0., 1., 0.}}, {{0., 0., 1., 0.}}}};
 
-public:
 	static inline const std::string name = "none";
 	TPMDTypeNone()                       = default;
 
@@ -174,9 +174,9 @@ public:
 		return baseLikelihoodsNoPMD;
 	}
 
-	TBaseMassFunctions getMassFunctions(const BAM::TSequencedBase &) const override { return _massFunctions; }
+	TBaseMassFunctions getMassFunctions(const BAM::TSequencedBase &) const override { return massFunctions; }
 	TBaseProbabilities getMassFunction(genometools::Base b, const BAM::TSequencedBase &, const TBaseLikelihoods &) const override {
-		return _massFunctions[b];
+		return massFunctions[b];
 	}
 
 	void simulate(BAM::TSequencedBase &) const override {}
@@ -279,6 +279,9 @@ public:
 	                 const std::string filename) const;
 	TBaseLikelihoods getBaseLikelihoods(const BAM::TSequencedBase &data,
 	                                    const TBaseLikelihoods &baseLikelihoodsNoPMD) const;
+	TBaseProbabilities getMassFunction(genometools::Base b, const BAM::TSequencedBase &data,
+									   const TBaseLikelihoods &baseLikelihoodsNoPMD) const;
+
 };
 
 }; // namespace GenotypeLikelihoods

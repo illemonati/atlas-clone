@@ -310,10 +310,15 @@ void TRecalibrationEMEstimator::performEstimation(const std::string &outputName,
 
 void TRecalibrationEMEstimator::_updateRho(const TPostMortemDamage &PmdModels) {
 	using genometools::Genotype;
+	using genometools::Base;
 	for (size_t i = 0; i < _sites.size(); ++i) {
 		for (auto &d_ij : _sites[i]) {
-			for (auto g = Genotype::min; g < Genotype::max; ++g) {
-				//_modelsToEstimate.addBaseForRhoEstimation(d_ij, _P_g_I_d[i][g]);
+			const auto L_eps = _modelsToEstimate.getBaseLikelihoods(d_ij);
+			//for (auto g = Genotype::min; g < Genotype::max; ++g) {
+			for (auto b = Base::min; b < Base::max; ++b) {
+				TBaseLikelihoods lk{PmdModels.getMassFunction(b, d_ij, L_eps)};
+				lk *= _P_g_I_d[i][genometools::genotype(b, b)];
+				_modelsToEstimate.addBaseForRhoEstimation(d_ij, lk);
 			}
 		}
 	}
