@@ -313,7 +313,7 @@ void TRecalibrationEMEstimator::_updateRho(const TPostMortemDamage &PmdModels) {
 	for (size_t i = 0; i < _sites.size(); ++i) {
 		for (auto &d_ij : _sites[i]) {
 			for (auto g = Genotype::min; g < Genotype::max; ++g) {
-				_modelsToEstimate.addBaseForRhoEstimation(d_ij, _P_g_I_d[i][g]);
+				//_modelsToEstimate.addBaseForRhoEstimation(d_ij, _P_g_I_d[i][g]);
 			}
 		}
 	}

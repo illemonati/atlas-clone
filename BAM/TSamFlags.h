@@ -21,7 +21,7 @@ namespace BAM {
 class TSamFlags {
 private:
 	using bitset = coretools::TBitSet<12>;
-	bitset _flags = 0;
+	bitset _flags{0};
 public:
 	TSamFlags() noexcept = default;
 	TSamFlags(const TSamFlags&) noexcept = default;

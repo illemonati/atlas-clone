@@ -24,7 +24,7 @@ class TSequencedBase {
 private:
 	using bitset = coretools::TBitSet<3>;
 	// flags: isReverseStrand, isSecondMate, isAligned
-	bitset flags = 0; // initialized as 0,0,0
+	bitset flags{0}; // initialized as 0,0,0
 public:
 	genometools::Base base           = genometools::Base::N;
 	genometools::BaseContext context = genometools::BaseContext::NN;
