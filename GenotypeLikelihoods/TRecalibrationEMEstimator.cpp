@@ -308,28 +308,26 @@ void TRecalibrationEMEstimator::performEstimation(const std::string &outputName,
 	logfile().done();
 };
 
-std::vector<TBaseLikelihoods> TRecalibrationEMEstimator::_updateRho_getWeights(const TPostMortemDamage &PmdModels) {
-	std::vector<TBaseLikelihoods> weights;
-	weights.reserve(_dataTables.size());
-	for (auto &s_i : _sites) {
-		for (auto &d_ij : s_i) {
-			const auto L_eps = _modelsToEstimate.getBaseLikelihoods(d_ij);
-			const auto L_D = PmdModels.getBaseLikelihoods(d_ij, L_eps);
-			const auto L_g = _genoDist->getGenotypeLikelihoods(L_D);
-			//_modelsToEstimate.addBaseForRhoEstimation(b, EM_weights_bbar_given_d[index]);
+void TRecalibrationEMEstimator::_updateRho(const TPostMortemDamage &PmdModels) {
+	using genometools::Genotype;
+	for (size_t i = 0; i < _sites.size(); ++i) {
+		for (auto &d_ij : _sites[i]) {
+			for (auto g = Genotype::min; g < Genotype::max; ++g) {
+				_modelsToEstimate.addBaseForRhoEstimation(d_ij, _P_g_I_d[i][g]);
+			}
 		}
 	}
-	return weights;
+	_modelsToEstimate.estimateRho();
 }
 
-double TRecalibrationEMEstimator::_calculate_Q_beta(const std::vector<TBaseLikelihoods> &EM_weights_bbar_given_d) {
+double TRecalibrationEMEstimator::_calculate_Q_beta() {
 	_modelsToEstimate.setQToZero();
 
 	// loop over all bases and add them to Q
 	size_t index = 0;
 	for (auto &s : _sites) {
 		for (auto &b : s) {
-			_modelsToEstimate.addToQ(b, EM_weights_bbar_given_d[index]);
+			//_modelsToEstimate.addToQ(b, EM_weights_bbar_given_d[index]);
 			++index;
 		}
 	}
@@ -338,14 +336,14 @@ double TRecalibrationEMEstimator::_calculate_Q_beta(const std::vector<TBaseLikel
 	return _modelsToEstimate.curQ();
 };
 
-void TRecalibrationEMEstimator::_calculate_J_F_beta(const std::vector<TBaseLikelihoods> &EM_weights_bbar_given_d) {
+void TRecalibrationEMEstimator::_calculate_J_F_beta() {
 	logfile().listFlush("Calculating Jacobian and gradient ...");
 	_modelsToEstimate.setNewtonRaphsonParamsToZero();
 
 	size_t index = 0;
 	for (auto &s : _sites) {
 		for (auto &b : s) {
-			_modelsToEstimate.addToFandJacobian(b, EM_weights_bbar_given_d[index]);
+			//_modelsToEstimate.addToFandJacobian(b, EM_weights_bbar_given_d[index]);
 			++index;
 		}
 	}
@@ -359,33 +357,18 @@ void TRecalibrationEMEstimator::_updateEM_theta_epsilon(const TPostMortemDamage 
 	using coretools::str::toString;
 	logfile().startIndent("Updating sequencing error models (theta_epsilon):");
 
-	// 1) calculate EM weights
-	//-------------------------
-	logfile().listFlushDots("Calculating EM weights");
-	const auto EM_weights_bbar_given_d = _updateRho_getWeights(PmdModels);
-	logfile().done();
-	OUT(EM_weights_bbar_given_d.size());
+	// 1) Weights are calculated during LL calculation
 
 	// 2) update rho
 	//-------------------------
-	/*
 	logfile().listFlushDots("Updating rho");
-	_sequencingErrorModels.prepareRhoEstimationFromEMWeights();
-	size_t index = 0;
-	for(auto& s : _sites){
-		for(auto& b : s){
-		_sequencingErrorModels.addBaseForRhoEstimation(b, EM_weights_bbar_given_d[index]);
-		++index;
-		}
-	}
-	_sequencingErrorModels.estimateRho();
+	_updateRho(PmdModels);
 	logfile().done();
-	*/
 
 	// 3) Calculate Q_beta at current location
 	//-------------------------
 	logfile().listFlushDots("Calculating Q_beta at current location");
-	double curQ = _calculate_Q_beta(EM_weights_bbar_given_d);
+	double curQ = _calculate_Q_beta();
 	logfile().done();
 	logfile().conclude("Q_beta = ", curQ);
 
@@ -397,7 +380,7 @@ void TRecalibrationEMEstimator::_updateEM_theta_epsilon(const TPostMortemDamage 
 		logfile().startIndent("Running Newton-Raphson iteration " + toString(i + 1) + ":");
 
 		// a) fill Jacobin and F
-		_calculate_J_F_beta(EM_weights_bbar_given_d);
+		_calculate_J_F_beta();
 
 		// b) update parameters using backtracking
 		double lambda           = 1.0;
@@ -413,7 +396,7 @@ void TRecalibrationEMEstimator::_updateEM_theta_epsilon(const TPostMortemDamage 
 			OUT(_modelsToEstimate.getModelsDefinition());
 
 			// calculate Q at new location
-			double Q = _calculate_Q_beta(EM_weights_bbar_given_d);
+			double Q = _calculate_Q_beta();
 
 			OUT(curQ);
 			OUT(Q);
@@ -453,22 +436,24 @@ void TRecalibrationEMEstimator::_updateEM_theta_epsilon(const TPostMortemDamage 
 	logfile().endIndent();
 };
 
-double TRecalibrationEMEstimator::_calculateLL_fullModel(const TPostMortemDamage &PmdModels) {
+double TRecalibrationEMEstimator::_calculate_LL_updateWeights(const TPostMortemDamage &PmdModels) {
+	_P_g_I_d.clear();
 	double LL = 0.0;
-
 	for (auto &s_i : _sites) {
 		if (s_i.genotype == genometools::Genotype::NN) {
-
-			TGenotypeLikelihoods L{1.};
+			_P_g_I_d.emplace_back(1.); // Start at 1,1,1,1,1,1,1,1
+			auto &L = _P_g_I_d.back();
 			for (auto &d_ij : s_i) {
 				const auto L_eps = _modelsToEstimate.getBaseLikelihoods(d_ij);
 				const auto L_D   = PmdModels.getBaseLikelihoods(d_ij, L_eps);
 				L *= _genoDist->getGenotypeLikelihoods(L_D);
 			}
-			LL += log(_genoDist->weightedSum(L));
+			LL += log(_genoDist->normalize(L));
 			// unknow genotype
 		} else {
-			// know genotype
+			// know genotype, probability of correct genotype is 1
+			_P_g_I_d.emplace_back(0.); 
+			_P_g_I_d.back()[s_i.genotype] = 1; 
 			double L = 1.;
 			for (auto &d_ij : s_i) {
 				const auto L_eps = _modelsToEstimate.getBaseLikelihoods(d_ij);
@@ -491,11 +476,11 @@ void TRecalibrationEMEstimator::_runEM(const std::string &outputName, const TPos
 	std::string filename;
 
 	// calculate initial LL
-	double oldLL = _calculateLL_fullModel(PmdModels);
+	double oldLL = _calculate_LL_updateWeights(PmdModels);
 	logfile().conclude("Initial log Likelihood = " + toString(oldLL));
 
 	// running iterations
-	for (int iter = 0; iter < _numEMIterations; ++iter) {
+	for (int i = 0; i < _numEMIterations; ++i) {
 		logfile().number("EM Iteration:");
 		logfile().addIndent();
 
@@ -503,13 +488,13 @@ void TRecalibrationEMEstimator::_runEM(const std::string &outputName, const TPos
 		_updateEM_theta_epsilon(PmdModels);
 
 		// calculate LL
-		double LL = _calculateLL_fullModel(PmdModels);
+		const double LL = _calculate_LL_updateWeights(PmdModels);
 		logfile().conclude("Current Log Likelihood = " + toString(LL));
 
 		// check if we break based on LL
 		double deltaLL = LL - oldLL;
 		logfile().conclude("delta LL = " + toString(deltaLL));
-		if (iter > 0 && deltaLL < _minDeltaLL) {
+		if (i > 0 && deltaLL < _minDeltaLL) {
 			logfile().conclude("EM has converged (delta LL < " + toString(_minDeltaLL) + ")");
 			break;
 		}
@@ -517,7 +502,7 @@ void TRecalibrationEMEstimator::_runEM(const std::string &outputName, const TPos
 
 		// write current estimates to file
 		if (_writeTmpTables) {
-			filename = outputName + "_recalibrationEM_Loop" + toString(iter) + ".txt";
+			filename = outputName + "_recalibrationEM_Loop" + toString(i) + ".txt";
 			logfile().listFlush("Writing current estimates to file '" + filename + "' ...");
 			writeCurrentEstimates(filename);
 			logfile().done();
@@ -525,7 +510,7 @@ void TRecalibrationEMEstimator::_runEM(const std::string &outputName, const TPos
 
 		// end loop
 		logfile().endIndent();
-		if (iter == _numEMIterations - 1) logfile().warning("EM has not converged after maximum number of iterations!");
+		if (i == _numEMIterations - 1) logfile().warning("EM has not converged after maximum number of iterations!");
 	}
 
 	// finalize

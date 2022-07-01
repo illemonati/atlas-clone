@@ -30,6 +30,7 @@
 #include "GenotypeTypes.h"
 #include "TError.h"
 #include "TFile.h"
+#include "TGenotypeData.h"
 #include "TLog.h"
 #include "TParameters.h"
 #include "TRandomGenerator.h"
@@ -41,6 +42,7 @@ namespace GenotypeLikelihoods {
 using coretools::instances::logfile;
 using coretools::instances::parameters;
 using coretools::instances::randomGenerator;
+using genometools::Base;
 
 using namespace coretools::str;
 
@@ -299,7 +301,7 @@ void TPMDFunctionExponential::_estimateWithNewtonRaphson(const countVec &pmdCoun
 	}
 }
 
-void TPMDFunctionExponential::learn(const TPMDTable &Table, const genometools::Base &from, const genometools::Base &to,
+void TPMDFunctionExponential::learn(const TPMDTable &Table, const Base &from, const Base &to,
 				    const TPMDEstimationParameters &EstimationParameters) {
 	// extract counts in PMD direction and the inverse direction
 	const countVec &pmdCounts = Table[from][to];
@@ -386,7 +388,7 @@ double TPMDFunctionExponential::prob(uint16_t pos) const noexcept {
 	}
 }
 
-void TPMDFunctionEmpiric::learn(const TPMDTable &Table, const genometools::Base &from, const genometools::Base &to,
+void TPMDFunctionEmpiric::learn(const TPMDTable &Table, const Base &from, const Base &to,
 				const TPMDEstimationParameters &) {
 	// resize parameters
 	_parameters.resize(Table.size()); // include extra bin for sites beyond size (available in PMDTables)
@@ -438,7 +440,6 @@ void TPMDTypeDoubleStrand::parseEstimationParameters(TPMDEstimationParameters &E
 
 void TPMDTypeDoubleStrand::estimate(const PMDTable_RG &PMDTable,
 				    const TPMDEstimationParameters &EstimationParameters) {
-	using genometools::Base;
 	// Note: TPMDTables stores bases as during sequencing (not as after mapping)
 	// Assumption: C->T pattern is the same for forward and reverse reads from their respective 5-prime ends.
 	TPMDTable from5(PMDTable[forward5]);
@@ -451,65 +452,91 @@ void TPMDTypeDoubleStrand::estimate(const PMDTable_RG &PMDTable,
 	_pmdGA->learn(from3, Base::G, Base::A, EstimationParameters);
 }
 
-TBaseLikelihoods TPMDTypeDoubleStrand::getBaseLikelihoods(const BAM::TSequencedBase &base,
+TBaseLikelihoods TPMDTypeDoubleStrand::getBaseLikelihoods(const BAM::TSequencedBase &data,
 					       const TBaseLikelihoods &baseLikelihoodsNoPMD) const {
-	using genometools::Base;
 	// Note: distances are as in original fragment (not BAM file), i.e. in direction of sequencing
 	// no PMD for A and C
 	TBaseLikelihoods baseLikelihoods(baseLikelihoodsNoPMD);
 
 	// get relevant PMD probabilities
-	const auto from3  = base.distFrom3Prime < base.distFrom5Prime;
+	const auto from3  = data.distFrom3Prime < data.distFrom5Prime;
 	double pmdProb_CT = 0;
 	double pmdProb_GA = 0;
-	if (!base.isReverseStrand()) {
+	if (!data.isReverseStrand()) {
 		if (from3)
-			pmdProb_GA = _pmdGA->prob(base.distFrom3Prime);
+			pmdProb_GA = _pmdGA->prob(data.distFrom3Prime);
 		else
-			pmdProb_CT = _pmdCT->prob(base.distFrom5Prime);
+			pmdProb_CT = _pmdCT->prob(data.distFrom5Prime);
 	} else {
 		// ??? Newest insight
 		if (from3)
-			pmdProb_CT = _pmdGA->prob(base.distFrom3Prime);
+			pmdProb_CT = _pmdGA->prob(data.distFrom3Prime);
 		else
-			pmdProb_GA = _pmdCT->prob(base.distFrom5Prime);
+			pmdProb_GA = _pmdCT->prob(data.distFrom5Prime);
 	}
 
 	// add PMD
 	baseLikelihoods[Base::C] =
-		(1.0 - pmdProb_CT) * baseLikelihoodsNoPMD[Base::C].get() + pmdProb_CT * baseLikelihoodsNoPMD[Base::T].get();
+		(1.0 - pmdProb_CT) * baseLikelihoodsNoPMD[Base::C] + pmdProb_CT * baseLikelihoodsNoPMD[Base::T];
 	baseLikelihoods[Base::G] =
-		(1.0 - pmdProb_GA) * baseLikelihoodsNoPMD[Base::G].get() + pmdProb_GA * baseLikelihoodsNoPMD[Base::A].get();
+		(1.0 - pmdProb_GA) * baseLikelihoodsNoPMD[Base::G] + pmdProb_GA * baseLikelihoodsNoPMD[Base::A];
 	return baseLikelihoods;
 }
 
-TBaseMassFunctions TPMDTypeDoubleStrand::getMassFunctions(const BAM::TSequencedBase &base) const {
-	const auto from3  = base.distFrom3Prime < base.distFrom5Prime;
+TBaseMassFunctions TPMDTypeDoubleStrand::getMassFunctions(const BAM::TSequencedBase &data) const {
+	const auto from3  = data.distFrom3Prime < data.distFrom5Prime;
 	double pmdProb_CT = 0;
 	double pmdProb_GA = 0;
-	if (!base.isReverseStrand()) {
+	if (!data.isReverseStrand()) {
 		if (from3)
-			pmdProb_GA = _pmdGA->prob(base.distFrom3Prime);
+			pmdProb_GA = _pmdGA->prob(data.distFrom3Prime);
 		else
-			pmdProb_CT = _pmdCT->prob(base.distFrom5Prime);
+			pmdProb_CT = _pmdCT->prob(data.distFrom5Prime);
 	} else {
 		// ??? Newest insight
 		if (from3)
-			pmdProb_CT = _pmdGA->prob(base.distFrom3Prime);
+			pmdProb_CT = _pmdGA->prob(data.distFrom3Prime);
 		else
-			pmdProb_GA = _pmdCT->prob(base.distFrom5Prime);
+			pmdProb_GA = _pmdCT->prob(data.distFrom5Prime);
 	}
 
 	return TBaseMassFunctions{{TBaseProbabilities{{1., 0., 0., 0.}}, {{0., (1. - pmdProb_CT), 0., pmdProb_CT}}, {{pmdProb_GA, 0., (1-pmdProb_GA), 0.}}, {{0., 0., 1., 0.}}}};
 }
 
-void TPMDTypeDoubleStrand::simulate(BAM::TSequencedBase &base) const {
-	simulate(base.base, base.distFrom5Prime, base.distFrom3Prime, base.isReverseStrand());
+TBaseProbabilities TPMDTypeDoubleStrand::getMassFunction(Base b, const BAM::TSequencedBase &data,
+														 const TBaseLikelihoods &baseLikelihoodsNoPMD) const {
+	if (b == Base::A) return TBaseProbabilities{{1., 0., 0., 0.}};
+	if (b == Base::T) return TBaseProbabilities{{0., 0., 0., 1.}};
+
+	const auto from3  = data.distFrom3Prime < data.distFrom5Prime;
+	double pmdProb_CT = 0;
+	double pmdProb_GA = 0;
+	if (!data.isReverseStrand()) {
+		if (from3)
+			pmdProb_GA = _pmdGA->prob(data.distFrom3Prime);
+		else
+			pmdProb_CT = _pmdCT->prob(data.distFrom5Prime);
+	} else {
+		// ??? Newest insight
+		if (from3)
+			pmdProb_CT = _pmdGA->prob(data.distFrom3Prime);
+		else
+			pmdProb_GA = _pmdCT->prob(data.distFrom5Prime);
+	}
+
+	// The BaseProbability constructor will normalize
+	if (b == Base::C) return TBaseProbabilities{{0., (1. - pmdProb_CT)*baseLikelihoodsNoPMD[Base::C], 0., pmdProb_CT*baseLikelihoodsNoPMD[Base::T]}};
+
+	// we expect b not to be N
+	return TBaseProbabilities{{pmdProb_GA*baseLikelihoodsNoPMD[Base::A], 0., (1-pmdProb_GA)*baseLikelihoodsNoPMD[Base::G], 0.}};
 }
 
-void TPMDTypeDoubleStrand::simulate(genometools::Base &base, uint16_t DistFrom5Prime, uint16_t DistFrom3Prime,
+void TPMDTypeDoubleStrand::simulate(BAM::TSequencedBase &data) const {
+	simulate(data.base, data.distFrom5Prime, data.distFrom3Prime, data.isReverseStrand());
+}
+
+void TPMDTypeDoubleStrand::simulate(Base &base, uint16_t DistFrom5Prime, uint16_t DistFrom3Prime,
 				       const bool &IsReverseStrand) const {
-	using genometools::Base;
 	// simulate PMD
 	if (!IsReverseStrand) {
 		// forward strand
@@ -555,7 +582,6 @@ void TPMDTypeSingleStrand::estimate(const PMDTable_RG &PMDTable,
 	// Note: TPMDTables stores bases as during sequencing (not as after mapping)
 	// Assumption: 5-prime C->T pattern is the same for forward and reverse reads from their respective
 	// 5-prime ends.
-	using genometools::Base;
 	TPMDTable from5(PMDTable[forward5]);
 	from5.add(PMDTable[reverse5]);
 	_pmdCT5->learn(from5, Base::C, Base::T, EstimationParameters);
@@ -568,9 +594,8 @@ void TPMDTypeSingleStrand::estimate(const PMDTable_RG &PMDTable,
 	_pmdCT3->learn(from3, Base::C, Base::T, EstimationParameters);
 }
 
-TBaseLikelihoods TPMDTypeSingleStrand::getBaseLikelihoods(const BAM::TSequencedBase &base,
+TBaseLikelihoods TPMDTypeSingleStrand::getBaseLikelihoods(const BAM::TSequencedBase &data,
 					       const TBaseLikelihoods &baseLikelihoodsNoPMD) const {
-	using genometools::Base;
 	// Note: distances are as in original fragment (not BAM file), i.e. in direction of sequencing
 	// no PMD for A, C and G
 	TBaseLikelihoods baseLikelihoods(baseLikelihoodsNoPMD);
@@ -579,8 +604,8 @@ TBaseLikelihoods TPMDTypeSingleStrand::getBaseLikelihoods(const BAM::TSequencedB
 	baseLikelihoods[Base::G] = baseLikelihoodsNoPMD[Base::G];
 
 	// get relevant PMD probabilities
-	const double pmdProb_CT = base.distFrom3Prime < base.distFrom5Prime ? _pmdCT3->prob(base.distFrom3Prime)
-									    : _pmdCT5->prob(base.distFrom5Prime);
+	const double pmdProb_CT = data.distFrom3Prime < data.distFrom5Prime ? _pmdCT3->prob(data.distFrom3Prime)
+									    : _pmdCT5->prob(data.distFrom5Prime);
 
 	// add PMD
 	baseLikelihoods[Base::C] = (1.0 - pmdProb_CT) * baseLikelihoodsNoPMD[Base::C].get() +
@@ -588,21 +613,34 @@ TBaseLikelihoods TPMDTypeSingleStrand::getBaseLikelihoods(const BAM::TSequencedB
 	return baseLikelihoods;
 }
 
-TBaseMassFunctions TPMDTypeSingleStrand::getMassFunctions(const BAM::TSequencedBase &base) const {
+TBaseMassFunctions TPMDTypeSingleStrand::getMassFunctions(const BAM::TSequencedBase &data) const {
 
-	const double pmdProb_CT = base.distFrom3Prime < base.distFrom5Prime ? _pmdCT3->prob(base.distFrom3Prime)
-									    : _pmdCT5->prob(base.distFrom5Prime);
+	const double pmdProb_CT = data.distFrom3Prime < data.distFrom5Prime ? _pmdCT3->prob(data.distFrom3Prime)
+									    : _pmdCT5->prob(data.distFrom5Prime);
 
 	return TBaseMassFunctions{{TBaseProbabilities{{1., 0., 0., 0.}}, {{0., (1. - pmdProb_CT), 0., pmdProb_CT}}, {{0., 0., 1., 0.}}, {{0., 0., 1., 0.}}}};
 }
 
-void TPMDTypeSingleStrand::simulate(BAM::TSequencedBase &base) const {
-	simulate(base.base, base.distFrom5Prime, base.distFrom3Prime, base.isReverseStrand());
+TBaseProbabilities TPMDTypeSingleStrand::getMassFunction(Base b, const BAM::TSequencedBase &data,
+														 const TBaseLikelihoods &baseLikelihoodsNoPMD) const {
+	if (b == Base::A) return TBaseProbabilities{{1., 0., 0., 0.}};
+	if (b == Base::G) return TBaseProbabilities{{0., 0., 1., 0.}};
+	if (b == Base::T) return TBaseProbabilities{{0., 0., 0., 1.}};
+
+	// else we expect b not to be N
+
+	const double pmdProb_CT = data.distFrom3Prime < data.distFrom5Prime ? _pmdCT3->prob(data.distFrom3Prime)
+									    : _pmdCT5->prob(data.distFrom5Prime);
+	return TBaseProbabilities{{0., (1. - pmdProb_CT)*baseLikelihoodsNoPMD[Base::C], 0., pmdProb_CT*baseLikelihoodsNoPMD[Base::T]}};
+
 }
 
-void TPMDTypeSingleStrand::simulate(genometools::Base &base, uint16_t DistFrom5Prime, uint16_t DistFrom3Prime,
+void TPMDTypeSingleStrand::simulate(BAM::TSequencedBase &data) const {
+	simulate(data.base, data.distFrom5Prime, data.distFrom3Prime, data.isReverseStrand());
+}
+
+void TPMDTypeSingleStrand::simulate(Base &base, uint16_t DistFrom5Prime, uint16_t DistFrom3Prime,
 				       const bool &) const {
-	using genometools::Base;
 	if (!(base == Base::C)) return;
 
 	// simulate PMD
@@ -716,10 +754,10 @@ void TPostMortemDamage::initialize(const std::string &pmdString, const BAM::TRea
 	_setHasDamage();
 }
 
-TBaseLikelihoods TPostMortemDamage::getBaseLikelihoods(const BAM::TSequencedBase &base,
+TBaseLikelihoods TPostMortemDamage::getBaseLikelihoods(const BAM::TSequencedBase &data,
                                             const TBaseLikelihoods &baseLikelihoodsNoPMD) const {
 	return _hasPMD
-		? _pmdObjects[base.readGroupID]->getBaseLikelihoods(base, baseLikelihoodsNoPMD)
+		? _pmdObjects[data.readGroupID]->getBaseLikelihoods(data, baseLikelihoodsNoPMD)
 		: baseLikelihoodsNoPMD;
 }
 

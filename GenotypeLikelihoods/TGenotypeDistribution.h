@@ -28,6 +28,7 @@ public:
 	virtual double weightedSum(const TGenotypeLikelihoods &likelihoods) const            = 0;
 	virtual coretools::Probability getGenotypeLikelihood(const TBaseLikelihoods &baseLikelihoods,
 														 genometools::Genotype genotype) const         = 0;
+	virtual double normalize(TGenotypeLikelihoods &likelihoods) const                                  = 0;
 	virtual std::string typeString() const noexcept                                                    = 0;
 };
 
@@ -41,6 +42,7 @@ public:
 	TGenotypeLikelihoods getGenotypeLikelihoods(const TBaseLikelihoods &baseLikelihoods) const override;
 	coretools::Probability getGenotypeLikelihood(const TBaseLikelihoods &baseLikelihoods,
 												 genometools::Genotype genotype) const override;
+	virtual double normalize(TGenotypeLikelihoods &likelihoods) const override;
 	std::string typeString() const noexcept override { return name; }
 };
 
@@ -54,6 +56,7 @@ public:
 	TGenotypeLikelihoods getGenotypeLikelihoods(const TBaseLikelihoods &baseLikelihoods) const override;
 	coretools::Probability getGenotypeLikelihood(const TBaseLikelihoods &baseLikelihoods,
 												 genometools::Genotype genotype) const override;
+	virtual double normalize(TGenotypeLikelihoods &likelihoods) const override;
 	std::string typeString() const noexcept override { return name; }
 };
 

@@ -92,6 +92,7 @@ class TRecalibrationEMEstimator {
 private:
 	std::vector<TSite> _sites;
 	std::unique_ptr<TGenotypeDistribution> _genoDist;
+	std::vector<TGenotypeLikelihoods> _P_g_I_d;
 	const BAM::TReadGroupMap *_readGroupMap;
 	const BAM::TReadGroups *_readGroups;
 
@@ -114,13 +115,11 @@ private:
 	void _runEM(const std::string &outputName, const TPostMortemDamage &PmdModels);
 
 	// functions to estimate theta_epsilon (sequencing error rates)
-	std::vector<TBaseLikelihoods> _updateRho_getWeights(const TPostMortemDamage &PmdModels);
-	double _calculate_Q_beta(const std::vector<TBaseLikelihoods> &EM_weights_bbar_given_d);
-	void _calculate_J_F_beta(const std::vector<TBaseLikelihoods> &EM_weights_bbar_given_d);
+	void _updateRho(const TPostMortemDamage &PmdModels);
+	double _calculate_Q_beta();
+	void _calculate_J_F_beta();
 	void _updateEM_theta_epsilon(const TPostMortemDamage &PmdModels);
-
-	// function to calculate LL (currently uses haploid model)
-	double _calculateLL_fullModel(const TPostMortemDamage &PmdModels);
+	double _calculate_LL_updateWeights(const TPostMortemDamage &PmdModels);
 
 public:
 	TRecalibrationEMEstimator(const BAM::TReadGroups *ReadGroups, const BAM::TReadGroupMap *ReadGroupMap);

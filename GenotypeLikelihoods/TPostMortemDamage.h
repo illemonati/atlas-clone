@@ -139,11 +139,13 @@ public:
 	virtual void parseEstimationParameters(TPMDEstimationParameters &EstimationParameters)                   = 0;
 	virtual void estimate(const PMDTable_RG &PMDTable, const TPMDEstimationParameters &EstimationParameters) = 0;
 
-	virtual TBaseLikelihoods getBaseLikelihoods(const BAM::TSequencedBase &base,
+	virtual TBaseLikelihoods getBaseLikelihoods(const BAM::TSequencedBase &data,
 												const TBaseLikelihoods &baseLikelihoodsNoPMD) const = 0;
-	virtual TBaseMassFunctions getMassFunctions(const BAM::TSequencedBase &base) const              = 0;
+	virtual TBaseMassFunctions getMassFunctions(const BAM::TSequencedBase &data) const              = 0;
+	virtual TBaseProbabilities getMassFunction(genometools::Base b, const BAM::TSequencedBase &data, 
+											   const TBaseLikelihoods &baseLikelihoodsNoPMD) const  = 0;
 
-	virtual void simulate(BAM::TSequencedBase &base) const   = 0;
+	virtual void simulate(BAM::TSequencedBase &data) const   = 0;
 	virtual void simulate(genometools::Base &base, uint16_t DistFrom5Prime, uint16_t DistFrom3Prime,
 						  const bool &IsReverseStrand) const = 0;
 };
@@ -173,6 +175,9 @@ public:
 	}
 
 	TBaseMassFunctions getMassFunctions(const BAM::TSequencedBase &) const override { return _massFunctions; }
+	TBaseProbabilities getMassFunction(genometools::Base b, const BAM::TSequencedBase &, const TBaseLikelihoods &) const override {
+		return _massFunctions[b];
+	}
 
 	void simulate(BAM::TSequencedBase &) const override {}
 	void simulate(genometools::Base &, uint16_t, uint16_t, const bool &) const override {}
@@ -199,12 +204,14 @@ public:
 	void parseEstimationParameters(TPMDEstimationParameters &EstimationParameters) override;
 	void estimate(const PMDTable_RG &PMDTable, const TPMDEstimationParameters &EstimationParameters) override;
 
-	TBaseLikelihoods getBaseLikelihoods(const BAM::TSequencedBase &base,
+	TBaseLikelihoods getBaseLikelihoods(const BAM::TSequencedBase &data,
 										const TBaseLikelihoods &baseLikelihoodsNoPMD) const override;
 
-	TBaseMassFunctions getMassFunctions(const BAM::TSequencedBase &base) const override;
+	TBaseMassFunctions getMassFunctions(const BAM::TSequencedBase &data) const override;
+	TBaseProbabilities getMassFunction(genometools::Base b, const BAM::TSequencedBase &data,
+									   const TBaseLikelihoods &baseLikelihoodsNoPMD) const override;
 
-	void simulate(BAM::TSequencedBase &base) const override;
+	void simulate(BAM::TSequencedBase &data) const override;
 	void simulate(genometools::Base &base, uint16_t DistFrom5Prime, uint16_t DistFrom3Prime,
 				  const bool &IsReverseStrand) const override;
 };
@@ -230,12 +237,14 @@ public:
 	void parseEstimationParameters(TPMDEstimationParameters &EstimationParameters) override;
 	void estimate(const PMDTable_RG &PMDTable, const TPMDEstimationParameters &EstimationParameters) override;
 
-	TBaseLikelihoods getBaseLikelihoods(const BAM::TSequencedBase &base,
+	TBaseLikelihoods getBaseLikelihoods(const BAM::TSequencedBase &data,
 										const TBaseLikelihoods &baseLikelihoodsNoPMD) const override;
 
-	TBaseMassFunctions getMassFunctions(const BAM::TSequencedBase &base) const override;
+	TBaseMassFunctions getMassFunctions(const BAM::TSequencedBase &data) const override;
+	TBaseProbabilities getMassFunction(genometools::Base b, const BAM::TSequencedBase &data,
+									   const TBaseLikelihoods &baseLikelihoodsNoPMD) const override;
 
-	void simulate(BAM::TSequencedBase &base) const override;
+	void simulate(BAM::TSequencedBase &data) const override;
 	void simulate(genometools::Base &base, uint16_t DistFrom5Prime, uint16_t DistFrom3Prime,
 				  const bool &IsReverseStrand) const override;
 };
@@ -268,7 +277,7 @@ public:
 	void writeToFile(const BAM::TReadGroups &ReadGroups, const std::string filename) const;
 	void writeToFile(const BAM::TReadGroups &ReadGroups, const BAM::TReadGroupMap &ReadGroupMap,
 	                 const std::string filename) const;
-	TBaseLikelihoods getBaseLikelihoods(const BAM::TSequencedBase &base,
+	TBaseLikelihoods getBaseLikelihoods(const BAM::TSequencedBase &data,
 	                                    const TBaseLikelihoods &baseLikelihoodsNoPMD) const;
 };
 

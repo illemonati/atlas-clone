@@ -32,6 +32,21 @@ double THaploidDistribution::weightedSum(const TGenotypeLikelihoods &likelihoods
 		   likelihoods[Genotype::GG] * _weights[Genotype::GG] + likelihoods[Genotype::TT] * _weights[Genotype::TT];
 }
 
+double THaploidDistribution::normalize(TGenotypeLikelihoods &likelihoods) const {
+	double sum = 0;
+	// only four
+	for(auto b = Base::min; b < Base::max; ++b) {
+		const auto g = genometools::genotype(b, b);
+		likelihoods[g] *= _weights[g];
+		sum += likelihoods[g];
+	}
+	for(auto b = Base::min; b < Base::max; ++b) {
+		const auto g = genometools::genotype(b, b);
+		likelihoods[g] /= sum;
+	}
+	return sum;
+}
+
 TGenotypeLikelihoods TDiploidDistribution::getGenotypeLikelihoods(const TBaseLikelihoods &baseLikelihoods) const {
 	return TGenotypeLikelihoods({baseLikelihoods[Base::A], 0.5 * (baseLikelihoods[Base::A] + baseLikelihoods[Base::C]),
 								 0.5 * (baseLikelihoods[Base::A] + baseLikelihoods[Base::G]),
@@ -50,6 +65,19 @@ coretools::Probability TDiploidDistribution::getGenotypeLikelihood(const TBaseLi
 
 double TDiploidDistribution::weightedSum(const TGenotypeLikelihoods &likelihoods) const {
 	return coretools::weightedSum(likelihoods, _weights);
+}
+
+double TDiploidDistribution::normalize(TGenotypeLikelihoods &likelihoods) const {
+	double sum = 0;
+	// all 10
+	for(auto g = Genotype::min; g < Genotype::max; ++g) {
+		likelihoods[g] *= _weights[g];
+		sum += likelihoods[g];
+	}
+	for(auto g = Genotype::min; g < Genotype::max; ++g) {
+		likelihoods[g] /= sum;
+	}
+	return sum;
 }
 
 }; // namespace GenotypeLikelihoods
