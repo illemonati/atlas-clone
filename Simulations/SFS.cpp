@@ -125,6 +125,19 @@ uint32_t SFS::getRandomAlleleCount() {
 //--------------------------------------
 // SFSfolded
 //--------------------------------------
+SFSfolded::SFSfolded(uint32_t sampleSize, float theta) {
+	// generate sfs from theta
+	float sum = 0;
+	sfs.push_back(0);
+	for (uint32_t i = 1; i < sampleSize + 1; ++i) {
+		sfs.push_back((theta / i)+(theta/(2*sampleSize-i)));
+		sum += sfs.back();
+	}
+	if (sum > 1.0) throw "The choice of theta and sample size results in too many mutations in the SFS!";
+	sfs.front() = 1.0 - sum;
+	_fillFrequencies();
+	_fillCumulative();
+}
 
 double SFSfolded::calcLLOneSite(const std::vector<float> &gl) {
 	const auto dimension = sfs.size();

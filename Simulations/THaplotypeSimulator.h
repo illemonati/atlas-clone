@@ -95,7 +95,7 @@ private:
 	std::vector<std::unique_ptr<SFS>> _sfs;
 	TSimulatorMutationtable _mutTable;
 
-	void _initializeSFS(const genometools::TChromosomes& chromosomes, const std::vector<double> &thetas);
+	void _initializeSFS(const genometools::TChromosomes& chromosomes, const std::vector<double> &thetas, bool folded);
 	void _initializeSFS(const genometools::TChromosomes& chromosomes, const std::vector<std::string> &sfsFileNames, bool folded);
 public:
 	TSimulatorSFS(const genometools::TChromosomes& chromosomes);

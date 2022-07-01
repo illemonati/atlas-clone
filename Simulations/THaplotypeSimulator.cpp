@@ -361,7 +361,8 @@ void TSimulatorPair::simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulato
 			logfile().list("Will simulate data from chromosome specific SFS with thetas " +
 				       coretools::str::concatenateString(thetas, ", "));
 		}
-		_initializeSFS(chromosomes, thetas);
+		const bool folded = parameters().parameterExists("folded");
+		_initializeSFS(chromosomes, thetas, folded);
 	} else
 		throw "Either argument sfs or theta must be provided to simulate population samples!";
 
@@ -369,17 +370,25 @@ void TSimulatorPair::simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulato
 	logfile().endIndent();
 }
 
-void TSimulatorSFS::_initializeSFS(const genometools::TChromosomes& chromosomes, const std::vector<double> &thetas) {
+void TSimulatorSFS::_initializeSFS(const genometools::TChromosomes& chromosomes, const std::vector<double> &thetas, bool folded) {
 	if (thetas.size() != chromosomes.size()) throw "Number of theta values does not match number of chromosomes!";
 	const auto outname = parameters().getParameterWithDefault<std::string>("out", "ATLAS_simulations");
 
 	// generate SFS for each chromosome
 	logfile().listFlush("Initializing SFS ...");
 	for (size_t i = 0; i < chromosomes.size(); ++i) {
-		_sfs.push_back(std::make_unique<SFS>(chromosomes[i].ploidy * _sampleSize, (float)thetas[i]));
-		// save true SFS
+		if (folded){
+			_sfs.push_back(std::make_unique<SFSfolded>(_sampleSize, (float)thetas[i]));
+			/*// save true SFS
+			const auto filename = outname + "_trueSFS_chr" + coretools::str::toString(chromosomes[i].refID() + 1) + ".txt";
+			_sfs.back()->writeToFile(filename);*/
+		} else
+			_sfs.push_back(std::make_unique<SFS>(chromosomes[i].ploidy * _sampleSize, (float)thetas[i]));
+
+		// save true SFS}
 		const auto filename = outname + "_trueSFS_chr" + coretools::str::toString(chromosomes[i].refID() + 1) + ".txt";
 		_sfs.back()->writeToFile(filename);
+
 	}
 	logfile().done();
 	logfile().conclude("True SFS written to '" + outname + "_trueSFS_chr*.txt'.");

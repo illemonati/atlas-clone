@@ -46,7 +46,7 @@ public:
 	virtual uint32_t numChromosomes() const noexcept override { return 2 * sfs.size() - 2; };
 	SFSfolded(const std::string &filename) : SFS(filename){};
 	SFSfolded(const SFSfolded &other, float MonoFrac) : SFS(other, MonoFrac){};
-	SFSfolded(uint32_t numChr, float theta) :SFS(numChr, theta){}
+	SFSfolded(uint32_t numChr, float theta);
 	double calcLLOneSite(const std::vector<float> &gl) override;
 };
 
