@@ -52,19 +52,19 @@ using genometools::TChromosomes;
 namespace /* anonymous */ {
 std::unique_ptr<THaplotypeSimulator> makeHaploSimulator(const std::string &method, const TChromosomes &chs) {
 	if (method == "one") {
-		logfile().list("Simulating a single individual (parameter type=one):");
+		logfile().list("Simulating a single individual (parameter --type one):");
 		return std::make_unique<TSimulatorOne>(chs.size());
 	}
 	if (method == "pair") {
-		logfile().list("Simulating a pair of individual (parameter type=pair):");
+		logfile().list("Simulating a pair of individual (parameter --type pair):");
 		return std::make_unique<TSimulatorPair>();
 	}
 	if (method == "SFS") {
-		logfile().list("Simulating individuals from an SFS (parameter type=SFS):");
+		logfile().list("Simulating individuals from an SFS (parameter --type SFS):");
 		return std::make_unique<TSimulatorSFS>(chs);
 	}
 	if (method == "HW") {
-		logfile().list("Simulating a individuals under Hardy-Weinberg (parameter type=HW):");
+		logfile().list("Simulating a individuals under Hardy-Weinberg (parameter --type HW):");
 		return std::make_unique<TSimulatorHW>();
 	}
 	throw "Unknown simulation method '" + method + "'!";

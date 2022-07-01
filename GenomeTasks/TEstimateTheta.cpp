@@ -109,7 +109,7 @@ TEstimateThetaGenomeWide::TEstimateThetaGenomeWide() : TEstimateTheta_base() {
 		_onlyBootstraps = true;
 		logfile().list("Will only ...");
 	} else {
-		_onlyBootstraps = true;
+		_onlyBootstraps = false;
 		logfile().list("Will only ...");
 	}
 };
@@ -150,16 +150,13 @@ void TEstimateThetaGenomeWide::_bootstrapThetaEstimation() {
 void TEstimateThetaGenomeWide::estimateThetaGenomeWide() {
 	// read data
 	_traverseBAMWindows();
-
 	if (!_onlyBootstraps) {
 		logfile().startIndent("Estimate theta based on a total of " + toString(_thetaEstimator.sizeWithData()) +
 							  " sites:");
 		_thetaEstimator.estimateTheta();
-
 		// write estimates
 		std::string filename = _outputName + "_thetaGenomeWide.txt.gz";
 		_thetaOut.open(&_thetaEstimator, filename);
-		logfile().list("Will write theta estimates to file '" + filename + "'.");
 		if (_considerRegions) {
 			_thetaOut.write("regions", "-", "-");
 		} else {
