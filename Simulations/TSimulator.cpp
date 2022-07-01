@@ -331,8 +331,9 @@ void TBAMSimulator::_initializeSCDistribution(const std::string &ParameterName, 
 		logfile().list("Will use '" + s + "' for all read groups.");
 
 		// create read groups, check if two different
-		const auto pos1 = s.find(":");
-			if (pos1 == std::string::npos){
+		const auto pos1 = s.find(")");
+		const auto pos2 = s.find(":", pos1);
+			if (pos2 == std::string::npos){
 				for (auto &r : _readSimulators) { function(*r, s, 1);}
 			} else {
 				for (auto &r : _readSimulators) { function(*r, s, 2); }

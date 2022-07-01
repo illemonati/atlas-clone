@@ -99,7 +99,8 @@ std::unique_ptr<TSimulatorSoftClipDist> TSimulatorSingleEndRead::_initializeSoft
 }
 
 std::unique_ptr<TSimulatorSoftClipDist> TSimulatorSingleEndRead::_initializeSoftClipDistributions(std::string s, int endNumber) {
-	const auto pos = s.find(":");
+	const auto pos2 = s.find(")");
+	const auto pos = s.find(":", pos2);
 	std::string type;
 	if( endNumber == 5) {
 		s.erase(pos, s.size() - 1);
