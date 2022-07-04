@@ -22,6 +22,7 @@
 #include "TGenotypeLikelihoodCalculator.h"
 #include "TReadGroups.h"
 #include "TSite.h"
+#include "probability.h"
 
 namespace BAM {
 class TSequencedBase;
@@ -68,10 +69,8 @@ public:
 	void estimateRho();
 
 	// functions to estimate beta
-	void setNewtonRaphsonParamsToZero();
-	void addToFandJacobian(const BAM::TSequencedBase &base, const TBaseLikelihoods &EM_weights_bbar_given_d);
-	void addToQ(const BAM::TSequencedBase &base, const TBaseLikelihoods &EM_weights_bbar_given_d);
-	void setQToZero();
+	void setQJF_0();
+	void addToQFJ(const BAM::TSequencedBase &base, coretools::Probability p_g_I_d, coretools::Probability p_bbar_I_gd);
 	double curQ();
 	void solveJxF();
 	void proposeNewParameters(double lambda);
@@ -116,8 +115,7 @@ private:
 
 	// functions to estimate theta_epsilon (sequencing error rates)
 	void _updateRho(const TPostMortemDamage &PmdModels);
-	double _calculate_Q_beta();
-	void _calculate_J_F_beta();
+	double _calculate_Q_updateJF(const TPostMortemDamage &PmdModels);
 	void _updateEM_theta_epsilon(const TPostMortemDamage &PmdModels);
 	double _calculate_LL_updateWeights(const TPostMortemDamage &PmdModels);
 
@@ -133,8 +131,6 @@ public:
 
 	void writeCurrentEstimates(const std::string &filename);
 	double calcLL();
-	void calcLikelihoodSurface(const std::string &filename, int numMarginalGridPoints);
-	void calcQSurface(const std::string &filename, int numMarginalGridPoints);
 };
 
 }; // namespace SequencingError

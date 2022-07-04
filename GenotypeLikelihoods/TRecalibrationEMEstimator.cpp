@@ -36,6 +36,8 @@ namespace SequencingError {
 
 using coretools::instances::logfile;
 using coretools::instances::parameters;
+using genometools::Genotype;
+using genometools::Base;
 
 //--------------------------------------------------------------------------
 // TSequencingErrorModelVectorForEstimation
@@ -116,28 +118,18 @@ void TModelVectorForEstimation::estimateRho() {
 // functions to estimate beta
 //-------------------------------------------------------------------
 
-void TModelVectorForEstimation::addToFandJacobian(const BAM::TSequencedBase &base,
-												  const TBaseLikelihoods &EM_weights_bbar_given_d) {
-	_modelIndex[base.readGroupID][base.isSecondMate()]->addToFandJacobian(base, EM_weights_bbar_given_d);
+void TModelVectorForEstimation::addToQFJ(const BAM::TSequencedBase &base, coretools::Probability p_g_I_d, coretools::Probability p_bbar_I_gd) {
+		_modelIndex[base.readGroupID][base.isSecondMate()]->addToQFJ(base, p_g_I_d, p_bbar_I_gd);
 };
 
-void TModelVectorForEstimation::addToQ(const BAM::TSequencedBase &base,
-									   const TBaseLikelihoods &EM_weights_bbar_given_d) {
-	_modelIndex[base.readGroupID][base.isSecondMate()]->addToQ(base, EM_weights_bbar_given_d);
-};
-
-void TModelVectorForEstimation::setNewtonRaphsonParamsToZero() {
-	for (auto &model : _models) { model->setNewtonRaphsonParamsToZero(); }
-};
-
-void TModelVectorForEstimation::setQToZero() {
-	for (auto &model : _models) { model->setQToZero(); }
+void TModelVectorForEstimation::setQJF_0() {
+	for (auto &model : _models) {
+		model->setQFJ_0();
+	}
 };
 
 double TModelVectorForEstimation::curQ() {
-	double Q = 0.0;
-	for (auto &model : _models) { Q += model->curQ(); }
-	return Q;
+	return std::accumulate(_models.begin(), _models.end(), 0.0, [](auto tot, const auto &val) { return tot + val->curQ(); });
 };
 
 void TModelVectorForEstimation::solveJxF() {
@@ -309,18 +301,15 @@ void TRecalibrationEMEstimator::performEstimation(const std::string &outputName,
 };
 
 void TRecalibrationEMEstimator::_updateRho(const TPostMortemDamage &PmdModels) {
-	using genometools::Genotype;
-	using genometools::Base;
 	for (size_t i = 0; i < _sites.size(); ++i) {
 		for (auto &d_ij : _sites[i]) {
 			const auto L_eps = _modelsToEstimate.getBaseLikelihoods(d_ij);
 			for (auto a = Base::min; a < Base::max; ++a) {
 				const TBaseLikelihoods lk_a{PmdModels.getMassFunction(a, d_ij, L_eps)};
-				if (_genoDist->isInvariant()) {
-					_modelsToEstimate.addBaseForRhoEstimation(d_ij, _P_g_I_d[i][genometools::genotype(a, a)] * lk_a);
-				}
-				else {
-					for (auto b = Base::min; b < Base::max; ++b) {
+
+				_modelsToEstimate.addBaseForRhoEstimation(d_ij, _P_g_I_d[i][genometools::genotype(a, a)] * lk_a);
+				if (!_genoDist->isInvariant()) {
+					for (auto b = genometools::next(a); b < Base::max; ++b) {
 						const TBaseLikelihoods lk_b{PmdModels.getMassFunction(b, d_ij, L_eps)};
 						const coretools::Probability p = 0.5*_P_g_I_d[i][genometools::genotype(a, b)];
 						_modelsToEstimate.addBaseForRhoEstimation(d_ij, p * (lk_a + lk_b));
@@ -332,37 +321,29 @@ void TRecalibrationEMEstimator::_updateRho(const TPostMortemDamage &PmdModels) {
 	_modelsToEstimate.estimateRho();
 }
 
-double TRecalibrationEMEstimator::_calculate_Q_beta() {
-	_modelsToEstimate.setQToZero();
+double TRecalibrationEMEstimator::_calculate_Q_updateJF(const TPostMortemDamage &PmdModels) {
+	_modelsToEstimate.setQJF_0();
 
-	// loop over all bases and add them to Q
-	size_t index = 0;
-	for (auto &s : _sites) {
-		for (auto &b : s) {
-			//_modelsToEstimate.addToQ(b, EM_weights_bbar_given_d[index]);
-			++index;
+	for (size_t i = 0; i < _sites.size(); ++i) {
+		for (auto &d_ij : _sites[i]) {
+			const auto L_eps = _modelsToEstimate.getBaseLikelihoods(d_ij);
+			for (auto a = Base::min; a < Base::max; ++a) {
+				const TBaseLikelihoods lk_a{PmdModels.getMassFunction(a, d_ij, L_eps)};
+				_modelsToEstimate.addToQFJ(d_ij, _P_g_I_d[i][genometools::genotype(a, a)], lk_a[d_ij.base]);
+				if (!_genoDist->isInvariant()) {
+					for (auto b = genometools::next(a); b < Base::max; ++b) {
+						TBaseLikelihoods lk_ab{PmdModels.getMassFunction(b, d_ij, L_eps)};
+						lk_ab += lk_a;
+						lk_ab *= 0.5;
+						_modelsToEstimate.addToQFJ(d_ij, _P_g_I_d[i][genometools::genotype(a, b)], lk_ab[d_ij.base]);
+					}
+				}
+			}
 		}
 	}
 
 	// return total Q
 	return _modelsToEstimate.curQ();
-};
-
-void TRecalibrationEMEstimator::_calculate_J_F_beta() {
-	logfile().listFlush("Calculating Jacobian and gradient ...");
-	_modelsToEstimate.setNewtonRaphsonParamsToZero();
-
-	size_t index = 0;
-	for (auto &s : _sites) {
-		for (auto &b : s) {
-			//_modelsToEstimate.addToFandJacobian(b, EM_weights_bbar_given_d[index]);
-			++index;
-		}
-	}
-
-	// solve J^-1 x F
-	_modelsToEstimate.solveJxF();
-	logfile().done();
 };
 
 void TRecalibrationEMEstimator::_updateEM_theta_epsilon(const TPostMortemDamage &PmdModels) {
@@ -380,7 +361,7 @@ void TRecalibrationEMEstimator::_updateEM_theta_epsilon(const TPostMortemDamage 
 	// 3) Calculate Q_beta at current location
 	//-------------------------
 	logfile().listFlushDots("Calculating Q_beta at current location");
-	double curQ = _calculate_Q_beta();
+	double curQ = _calculate_Q_updateJF(PmdModels);
 	logfile().done();
 	logfile().conclude("Q_beta = ", curQ);
 
@@ -392,7 +373,9 @@ void TRecalibrationEMEstimator::_updateEM_theta_epsilon(const TPostMortemDamage 
 		logfile().startIndent("Running Newton-Raphson iteration " + toString(i + 1) + ":");
 
 		// a) fill Jacobin and F
-		_calculate_J_F_beta();
+		logfile().listFlush("Calculating Jacobian and gradient ...");
+		_modelsToEstimate.solveJxF();
+		logfile().done();
 
 		// b) update parameters using backtracking
 		double lambda           = 1.0;
@@ -408,7 +391,7 @@ void TRecalibrationEMEstimator::_updateEM_theta_epsilon(const TPostMortemDamage 
 			OUT(_modelsToEstimate.getModelsDefinition());
 
 			// calculate Q at new location
-			double Q = _calculate_Q_beta();
+			double Q = _calculate_Q_updateJF(PmdModels);
 
 			OUT(curQ);
 			OUT(Q);
@@ -452,7 +435,7 @@ double TRecalibrationEMEstimator::_calculate_LL_updateWeights(const TPostMortemD
 	_P_g_I_d.clear();
 	double LL = 0.0;
 	for (auto &s_i : _sites) {
-		if (s_i.genotype == genometools::Genotype::NN) {
+		if (s_i.genotype == Genotype::NN) {
 			_P_g_I_d.emplace_back(1.); // Start at 1,1,1,1,1,1,1,1
 			auto &L = _P_g_I_d.back();
 			for (auto &d_ij : s_i) {
@@ -484,9 +467,6 @@ void TRecalibrationEMEstimator::_runEM(const std::string &outputName, const TPos
 	// run EM
 	logfile().startNumbering("Running EM algorithm:");
 
-	std::ofstream out;
-	std::string filename;
-
 	// calculate initial LL
 	double oldLL = _calculate_LL_updateWeights(PmdModels);
 	logfile().conclude("Initial log Likelihood = " + toString(oldLL));
@@ -514,7 +494,7 @@ void TRecalibrationEMEstimator::_runEM(const std::string &outputName, const TPos
 
 		// write current estimates to file
 		if (_writeTmpTables) {
-			filename = outputName + "_recalibrationEM_Loop" + toString(i) + ".txt";
+			std::string filename = outputName + "_recalibrationEM_Loop" + toString(i) + ".txt";
 			logfile().listFlush("Writing current estimates to file '" + filename + "' ...");
 			writeCurrentEstimates(filename);
 			logfile().done();
@@ -535,20 +515,6 @@ void TRecalibrationEMEstimator::_runEM(const std::string &outputName, const TPos
 void TRecalibrationEMEstimator::writeCurrentEstimates(const std::string & Filename) {
 	// open file and write header
 	_modelsToEstimate.writeRecalFile(*_readGroups, Filename);
-};
-
-double TRecalibrationEMEstimator::calcLL() {
-	throw std::runtime_error("double TRecalibrationEMEstimator::calcLL() not yet implemented!");
-};
-
-void TRecalibrationEMEstimator::calcLikelihoodSurface(const std::string &, int) {
-	throw std::runtime_error("void TRecalibrationEMEstimator::calcLikelihoodSurface(std::string filename, int "
-							 "numMarginalGridPoints) not yet implemented!");
-};
-
-void TRecalibrationEMEstimator::calcQSurface(const std::string &, int) {
-	throw std::runtime_error("TRecalibrationEMEstimator::calcQSurface(std::string filename, int numMarginalGridPoints) "
-							 "not yet implemented!");
 };
 
 }; // namespace SequencingError

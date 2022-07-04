@@ -142,7 +142,6 @@ private:
 	arma::vec _F;
 	arma::mat _JxF;
 	unsigned int _numSitesAdded = 0;
-	bool _NRconverged           = false;
 	bool _NRStepAccepted        = false;
 
 	coretools::Probability _calcErrorRate(const BAM::TSequencedBase &base) const noexcept;
@@ -172,11 +171,9 @@ public:
 	void estimateRho() noexcept;
 
 	// functions to estimate betas
-	void setNewtonRaphsonParamsToZero();
-	void setQToZero() noexcept;
-	void addToQ(const BAM::TSequencedBase &base, const TBaseLikelihoods &EM_weights_bbar_given_d);
+	void setQFJ_0() noexcept;
+	void addToQFJ(const BAM::TSequencedBase &base, coretools::Probability p_g_I_d, coretools::Probability p_bbar_I_gd);
 	double curQ() const noexcept { return _Q; }
-	void addToFandJacobian(const BAM::TSequencedBase &base, const TBaseLikelihoods &EM_weights_bbar_given_d);
 	bool solveJxF();
 	void proposeNewParameters(double lambda);
 	bool acceptProposedParametersBasedOnQ();

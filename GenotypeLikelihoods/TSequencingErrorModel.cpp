@@ -270,7 +270,9 @@ TModelRecal::TModelRecal(const TModelDefinition &modelDef) : _rho(modelDef.rho),
 	}
 
 	// prepare Newton-Raphson variables
-	setNewtonRaphsonParamsToZero();
+	_Jacobian.resize(numParameters(), numParameters());
+	_F.resize(numParameters());
+	_JxF.resize(numParameters(), 1);
 }
 
 TModelDefinition TModelRecal::getModelDefinition() const {
@@ -366,66 +368,36 @@ void TModelRecal::checkOrInit(const RecalEstimatorTools::TRecalDataTable &DataTa
 	}
 }
 
-void TModelRecal::setNewtonRaphsonParamsToZero() {
-	_Jacobian.resize(numParameters(), numParameters());
-	_F.resize(numParameters());
-	_JxF.resize(numParameters(), 1);
-
+void TModelRecal::setQFJ_0() noexcept {
 	_Jacobian.zeros();
 	_F.zeros();
-
 	_numSitesAdded  = 0;
-	_NRconverged    = false;
 	_NRStepAccepted = false;
+	_oldQ = _Q;
+	_Q    = 0.0;
+	OUT(_oldQ);
+	OUT(_Q);
 }
 
-void TModelRecal::setQToZero() noexcept {
-	if (!_NRconverged) {
-		_oldQ = _Q;
-		_Q    = 0.0;
-		OUT(_oldQ);
-		OUT(_Q);
-	}
-}
+void TModelRecal::addToQFJ(const BAM::TSequencedBase &base, Probability p_g_I_d, Probability p_bbar_I_gd) {
+	// get error rate
+	const auto eps = getErrorRate(base);
 
-void TModelRecal::addToQ(const BAM::TSequencedBase &base, const TBaseLikelihoods &EM_weights_bbar_given_d) {
-	if (!_NRconverged) {
-		// get error rate
-		const auto eps = getErrorRate(base);
-		// calculate sum_bbar [ Ind(bbar=d)log(1-eps) + Ind(bbar!=d)log(eps) ]
-		_Q += EM_weights_bbar_given_d[base.base].get() * log(eps.complement().get()) +
-		      EM_weights_bbar_given_d[base.base].complement().get() * log(eps.get());
-	}
-}
+	// add Q
+	_Q += p_g_I_d * (p_bbar_I_gd * eps.complement() + p_bbar_I_gd.complement() * eps);
 
-void TModelRecal::addToFandJacobian(const BAM::TSequencedBase &base, const TBaseLikelihoods &EM_weights_bbar_given_d) {
-	const auto eps = getErrorRate(base).get();
-	// page 10 of grant: const auto w = (1 - EM_weights_bbar_given_d[base.base].get()) * (1 - eps) - EM_weights_bbar_given_d[base.base].get()*eps;
-	const auto weight1 = 1.0 - eps - EM_weights_bbar_given_d[base.base].get();
-	const auto weight2 = (1.0 - eps) * eps;
-
-	OUT(numParameters());
-	OUT(EM_weights_bbar_given_d[base.base]);
-	OUT(eps);
-	OUT(weight1);
-	OUT(std::log10(weight1));
-	OUT(weight2);
+	// F and J
+	const auto w_ij = p_g_I_d * (1.0 - eps - p_bbar_I_gd);
 
 	std::vector<T1stDerivative> der1st;
 	std::vector<T2ndDerivative> der2nd;
 	der1st.push_back(_intercept.get1stDerivatives());
-	OUT(_intercept.getEtaTerm());
-	OUT(der1st.back().derivative);
 
 	for (const auto & cov: _covariates) {
 		for (size_t i = 0; i < cov.function->numNonZeroFirstDerivatives(); ++i) {
 			der1st.push_back(cov.function->get1stDerivatives(cov.covariate->extract(base), i));
-			OUT(cov.covariate->extract(base));
-			OUT(cov.function->getEtaTerm(cov.covariate->extract(base)));
-			OUT(der1st.back().derivative);
 			for (size_t j = i+1; j < cov.function->numNonZeroSecondDerivatives(); ++j) {
 				der2nd.push_back(cov.function->get2ndDerivatives(cov.covariate->extract(base), i, j));
-				OUT(der2nd.back().derivative);
 			}
 		}
 	}
@@ -433,23 +405,22 @@ void TModelRecal::addToFandJacobian(const BAM::TSequencedBase &base, const TBase
 	// add first derivatives
 	for (auto d1 = der1st.begin(); d1 != der1st.end(); ++d1) {
 		// add to F
-		_F(d1->index) += weight1 * d1->derivative;
+		_F(d1->index) += w_ij * d1->derivative;
 
 		// add to J
 		for (auto d2 = d1; d2 != der1st.end(); ++d2) {
-			_Jacobian(d1->index, d2->index) += weight2 * d1->derivative * d2->derivative;
+			_Jacobian(d1->index, d2->index) += (1.0 - eps) * eps * d1->derivative * d2->derivative;
 		}
 	}
 
 	// add second derivatives to Jacobian (happens to have the same weigth as F!)
-	for (auto &it : der2nd) _Jacobian(it.index1, it.index2) += weight1 * it.derivative;
+	for (auto &it : der2nd) _Jacobian(it.index1, it.index2) += w_ij * it.derivative;
 
 	++_numSitesAdded;
 }
 
-bool TModelRecal::solveJxF() {
-	if (_NRconverged) return true;
 
+bool TModelRecal::solveJxF() {
 	// Need to copy numbers to other triangle in Jacobian, as only upper triangle is filled when parsing sites
 	for (int i = 0; i < (numParameters() - 1); ++i) {
 		for (unsigned int j = i + 1; j < numParameters(); ++j) {
