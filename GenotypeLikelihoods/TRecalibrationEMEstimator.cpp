@@ -314,11 +314,18 @@ void TRecalibrationEMEstimator::_updateRho(const TPostMortemDamage &PmdModels) {
 	for (size_t i = 0; i < _sites.size(); ++i) {
 		for (auto &d_ij : _sites[i]) {
 			const auto L_eps = _modelsToEstimate.getBaseLikelihoods(d_ij);
-			//for (auto g = Genotype::min; g < Genotype::max; ++g) {
-			for (auto b = Base::min; b < Base::max; ++b) {
-				TBaseLikelihoods lk{PmdModels.getMassFunction(b, d_ij, L_eps)};
-				lk *= _P_g_I_d[i][genometools::genotype(b, b)];
-				_modelsToEstimate.addBaseForRhoEstimation(d_ij, lk);
+			for (auto a = Base::min; a < Base::max; ++a) {
+				const TBaseLikelihoods lk_a{PmdModels.getMassFunction(a, d_ij, L_eps)};
+				if (_genoDist->isInvariant()) {
+					_modelsToEstimate.addBaseForRhoEstimation(d_ij, _P_g_I_d[i][genometools::genotype(a, a)] * lk_a);
+				}
+				else {
+					for (auto b = Base::min; b < Base::max; ++b) {
+						const TBaseLikelihoods lk_b{PmdModels.getMassFunction(b, d_ij, L_eps)};
+						const coretools::Probability p = 0.5*_P_g_I_d[i][genometools::genotype(a, b)];
+						_modelsToEstimate.addBaseForRhoEstimation(d_ij, p * (lk_a + lk_b));
+					}
+				}
 			}
 		}
 	}

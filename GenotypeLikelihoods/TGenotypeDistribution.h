@@ -30,6 +30,7 @@ public:
 														 genometools::Genotype genotype) const         = 0;
 	virtual double normalize(TGenotypeLikelihoods &likelihoods) const                                  = 0;
 	virtual std::string typeString() const noexcept                                                    = 0;
+	virtual bool isInvariant() const noexcept                                                          = 0;
 };
 
 class THaploidDistribution final : public TGenotypeDistribution {
@@ -44,6 +45,7 @@ public:
 												 genometools::Genotype genotype) const override;
 	virtual double normalize(TGenotypeLikelihoods &likelihoods) const override;
 	std::string typeString() const noexcept override { return name; }
+	bool isInvariant() const noexcept override {return true;}
 };
 
 class TDiploidDistribution final : public TGenotypeDistribution {
@@ -58,6 +60,7 @@ public:
 												 genometools::Genotype genotype) const override;
 	virtual double normalize(TGenotypeLikelihoods &likelihoods) const override;
 	std::string typeString() const noexcept override { return name; }
+	bool isInvariant() const noexcept override {return false;}
 };
 
 }; // namespace GenotypeLikelihoods
