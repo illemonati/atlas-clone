@@ -301,18 +301,30 @@ void TRecalibrationEMEstimator::performEstimation(const std::string &outputName,
 };
 
 void TRecalibrationEMEstimator::_updateRho(const TPostMortemDamage &PmdModels) {
+	using genometools::genotype;
+	_Pijs.clear();
 	for (size_t i = 0; i < _sites.size(); ++i) {
 		for (auto &d_ij : _sites[i]) {
+			_Pijs.emplace_back(0.);
+			auto& Pij = _Pijs.back();
 			const auto L_eps = _modelsToEstimate.getBaseLikelihoods(d_ij);
 			for (auto a = Base::min; a < Base::max; ++a) {
+				const auto g_aa = genometools::genotype(a, a);
 				const TBaseLikelihoods lk_a{PmdModels.getMassFunction(a, d_ij, L_eps)};
 
-				_modelsToEstimate.addBaseForRhoEstimation(d_ij, _P_g_I_d[i][genometools::genotype(a, a)] * lk_a);
+				Pij[g_aa] = lk_a[d_ij.base];
+
+				_modelsToEstimate.addBaseForRhoEstimation(d_ij, _Pis[i][g_aa] * lk_a);
 				if (!_genoDist->isInvariant()) {
 					for (auto b = genometools::next(a); b < Base::max; ++b) {
-						const TBaseLikelihoods lk_b{PmdModels.getMassFunction(b, d_ij, L_eps)};
-						const coretools::Probability p = 0.5*_P_g_I_d[i][genometools::genotype(a, b)];
-						_modelsToEstimate.addBaseForRhoEstimation(d_ij, p * (lk_a + lk_b));
+						const auto g_ab = genometools::genotype(a, b);
+						constexpr auto p05 = coretools::Probability(0.5);
+						const TBaseLikelihoods lk_ab =
+							p05 * lk_a + p05 * TBaseLikelihoods(PmdModels.getMassFunction(b, d_ij, L_eps));
+
+						Pij[genotype(a, b)] = lk_ab[d_ij.base];
+
+						_modelsToEstimate.addBaseForRhoEstimation(d_ij, _Pis[i][g_ab] * lk_ab);
 					}
 				}
 			}
@@ -321,21 +333,21 @@ void TRecalibrationEMEstimator::_updateRho(const TPostMortemDamage &PmdModels) {
 	_modelsToEstimate.estimateRho();
 }
 
-double TRecalibrationEMEstimator::_calculate_Q_updateJF(const TPostMortemDamage &PmdModels) {
+double TRecalibrationEMEstimator::_calculate_Q_updateJF() {
 	_modelsToEstimate.setQJF_0();
 
+	size_t ij = 0;
 	for (size_t i = 0; i < _sites.size(); ++i) {
+		const auto& Pi = _Pis[i];
 		for (auto &d_ij : _sites[i]) {
-			const auto L_eps = _modelsToEstimate.getBaseLikelihoods(d_ij);
+			const auto &Pij = _Pis[ij++];
 			for (auto a = Base::min; a < Base::max; ++a) {
-				const TBaseLikelihoods lk_a{PmdModels.getMassFunction(a, d_ij, L_eps)};
-				_modelsToEstimate.addToQFJ(d_ij, _P_g_I_d[i][genometools::genotype(a, a)], lk_a[d_ij.base]);
+				const auto g_aa = genometools::genotype(a, a);
+				_modelsToEstimate.addToQFJ(d_ij, Pi[g_aa], Pij[g_aa]);
 				if (!_genoDist->isInvariant()) {
 					for (auto b = genometools::next(a); b < Base::max; ++b) {
-						TBaseLikelihoods lk_ab{PmdModels.getMassFunction(b, d_ij, L_eps)};
-						lk_ab += lk_a;
-						lk_ab *= 0.5;
-						_modelsToEstimate.addToQFJ(d_ij, _P_g_I_d[i][genometools::genotype(a, b)], lk_ab[d_ij.base]);
+						const auto g_ab = genometools::genotype(a, b);
+						_modelsToEstimate.addToQFJ(d_ij, Pi[g_ab], Pij[g_ab]);
 					}
 				}
 			}
@@ -361,7 +373,7 @@ void TRecalibrationEMEstimator::_updateEM_theta_epsilon(const TPostMortemDamage 
 	// 3) Calculate Q_beta at current location
 	//-------------------------
 	logfile().listFlushDots("Calculating Q_beta at current location");
-	double curQ = _calculate_Q_updateJF(PmdModels);
+	double curQ = _calculate_Q_updateJF();
 	logfile().done();
 	logfile().conclude("Q_beta = ", curQ);
 
@@ -391,7 +403,7 @@ void TRecalibrationEMEstimator::_updateEM_theta_epsilon(const TPostMortemDamage 
 			OUT(_modelsToEstimate.getModelsDefinition());
 
 			// calculate Q at new location
-			double Q = _calculate_Q_updateJF(PmdModels);
+			const double Q = _calculate_Q_updateJF();
 
 			OUT(curQ);
 			OUT(Q);
@@ -432,12 +444,12 @@ void TRecalibrationEMEstimator::_updateEM_theta_epsilon(const TPostMortemDamage 
 };
 
 double TRecalibrationEMEstimator::_calculate_LL_updateWeights(const TPostMortemDamage &PmdModels) {
-	_P_g_I_d.clear();
+	_Pis.clear();
 	double LL = 0.0;
 	for (auto &s_i : _sites) {
 		if (s_i.genotype == Genotype::NN) {
-			_P_g_I_d.emplace_back(1.); // Start at 1,1,1,1,1,1,1,1
-			auto &L = _P_g_I_d.back();
+			_Pis.emplace_back(1.); // Start at 1,1,1,1,1,1,1,1
+			auto &L = _Pis.back();
 			for (auto &d_ij : s_i) {
 				const auto L_eps = _modelsToEstimate.getBaseLikelihoods(d_ij);
 				const auto L_D   = PmdModels.getBaseLikelihoods(d_ij, L_eps);
@@ -447,8 +459,8 @@ double TRecalibrationEMEstimator::_calculate_LL_updateWeights(const TPostMortemD
 			// unknow genotype
 		} else {
 			// know genotype, probability of correct genotype is 1
-			_P_g_I_d.emplace_back(0.); 
-			_P_g_I_d.back()[s_i.genotype] = 1; 
+			_Pis.emplace_back(0.); 
+			_Pis.back()[s_i.genotype] = 1; 
 			double L = 1.;
 			for (auto &d_ij : s_i) {
 				const auto L_eps = _modelsToEstimate.getBaseLikelihoods(d_ij);
