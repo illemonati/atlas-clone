@@ -309,7 +309,7 @@ void TRecalibrationEMEstimator::_updateRho(const TPostMortemDamage &PmdModels) {
 			auto& Pij = _Pijs.back();
 			const auto L_eps = _modelsToEstimate.getBaseLikelihoods(d_ij);
 			for (auto a = Base::min; a < Base::max; ++a) {
-				const auto g_aa = genometools::genotype(a, a);
+				const auto g_aa = genotype(a, a);
 				const TBaseLikelihoods lk_a{PmdModels.getMassFunction(a, d_ij, L_eps)};
 
 				Pij[g_aa] = lk_a[d_ij.base];
@@ -317,7 +317,7 @@ void TRecalibrationEMEstimator::_updateRho(const TPostMortemDamage &PmdModels) {
 				_modelsToEstimate.addBaseForRhoEstimation(d_ij, _Pis[i][g_aa] * lk_a);
 				if (!_genoDist->isInvariant()) {
 					for (auto b = genometools::next(a); b < Base::max; ++b) {
-						const auto g_ab = genometools::genotype(a, b);
+						const auto g_ab = genotype(a, b);
 						constexpr auto p05 = coretools::Probability(0.5);
 						const TBaseLikelihoods lk_ab =
 							p05 * lk_a + p05 * TBaseLikelihoods(PmdModels.getMassFunction(b, d_ij, L_eps));
@@ -340,7 +340,7 @@ double TRecalibrationEMEstimator::_calculate_Q_updateJF() {
 	for (size_t i = 0; i < _sites.size(); ++i) {
 		const auto& Pi = _Pis[i];
 		for (auto &d_ij : _sites[i]) {
-			const auto &Pij = _Pis[ij++];
+			const auto &Pij = _Pijs[ij++];
 			for (auto a = Base::min; a < Base::max; ++a) {
 				const auto g_aa = genometools::genotype(a, a);
 				_modelsToEstimate.addToQFJ(d_ij, Pi[g_aa], Pij[g_aa]);

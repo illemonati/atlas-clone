@@ -96,7 +96,6 @@ private:
 	const BAM::TReadGroupMap *_readGroupMap;
 	const BAM::TReadGroups *_readGroups;
 
-	//TGenotypeLikelihoodCalculator_simple _genotypeLikelihoodCalculator;
 	TModelVectorForEstimation _modelsToEstimate;
 	RecalEstimatorTools::TRecalDataTables _dataTables;
 
