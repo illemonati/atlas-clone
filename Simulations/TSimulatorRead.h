@@ -19,9 +19,10 @@
 #include "TCigar.h"
 #include "TReadGroups.h"
 #include "TSamFlags.h"
-#include "TSimulatorQuality.h"
+#include "TSimulatorDistributions.h"
 #include "TSimulatorReadLength.h"
 #include "TSimulatorSoftClip.h"
+#include "PhredProbabilityTypes.h"
 
 namespace GenotypeLikelihoods { class TPMDType; }
 namespace GenotypeLikelihoods { namespace SequencingError { class TModel; } }
@@ -30,6 +31,7 @@ namespace Simulations { class TSimulatorReference; }
 
 namespace Simulations {
 
+using genometools::Base;
 
 //-------------------------------
 // TSimulatorSingleEndRead
@@ -45,13 +47,12 @@ protected:
 	std::unique_ptr<TReadLengthDistribution> _readLengthDist;
 
 	// qualities
-	std::unique_ptr<TSimulatorQualityDist> _qualityDist;
-	std::unique_ptr<TSimulatorQualityDist> _mappingQualityDist;
+	std::unique_ptr<TSimulatorDistribution<genometools::PhredIntProbability>> _qualityDist;
+	std::unique_ptr<TSimulatorDistribution<genometools::PhredIntProbability>> _mappingQualityDist;
 
 	//length of soft clipped bases
-	std::unique_ptr<TSimulatorSoftClipDist> _softClipDist;
-	std::unique_ptr<TSimulatorSoftClipDist> _softClipDist5;
-	std::unique_ptr<TSimulatorSoftClipDist> _softClipDist3;
+	std::unique_ptr<TSimulatorDistribution<uint16_t>> _softClipDist5;
+	std::unique_ptr<TSimulatorDistribution<uint16_t>> _softClipDist3;
 
 	GenotypeLikelihoods::TPMDType const *_pmd = nullptr;
 	std::array<GenotypeLikelihoods::SequencingError::TModel const *, 2> _recal;
@@ -66,14 +67,32 @@ protected:
 	BAM::TAlignment _alignment;
 
 	// function initialize
-	std::unique_ptr<TSimulatorQualityDist> _initializeQualityDistribution(std::string s);
-	std::unique_ptr<TSimulatorSoftClipDist> _initializeSoftClipDistribution(std::string s);
-	std::unique_ptr<TSimulatorSoftClipDist> _initializeSoftClipDistributions(std::string s, int endNumber);
+	template <typename distType>
+	void _initializeDistribution(std::unique_ptr<TSimulatorDistribution<distType>> & pointer, std::string s){
+		const auto pos = s.find("(");
+		std::string tmp;
+		if (pos == std::string::npos) throw "Unable to understand distribution '" + s + "'!";
+
+		// initialize appropriate function
+		const auto type = s.substr(0, pos);
+		s.erase(0, pos);
+		if (type == "fixed")
+			pointer = std::make_unique<TSimulatorDistributionFixed<distType>>(s);
+		else if (type == "normal")
+			pointer = std::make_unique<TSimulatorDistributionNormal<distType>>(s);
+		else if (type == "binned")
+			pointer = std::make_unique<TSimulatorDistributionBinned<distType>>(s);
+		else if (type == "freq")
+			pointer = std::make_unique<TSimulatorDistributionFreq<distType>>(s);
+		else
+			throw "Unknown read quality distribution '" + type + "'!";
+	}
 
 	// general functions
-	void _simulateQualitiesAndErrors(genometools::Base *_bases, int *_qualities, int &len);
+	void _simulateQualitiesAndErrors(Base *_bases, int *_qualities, int &len);
 	std::string _getNextReadName();
-	void _simulateBasesQualities(BAM::TAlignment &alignment, const std::vector<genometools::Base>& haplotype, const uint64_t pos,
+	void _addSoftclippedBases(std::vector<Base> & bases, const std::unique_ptr<TSimulatorDistribution<uint16_t>> & softClippedDist);
+	void _simulateBasesQualities(BAM::TAlignment &alignment, const std::vector<Base>& haplotype, const uint64_t pos,
 				     const TReadLength &readLength, bool readIsContaminated);//, TSimulatorQualityTransformation *qualityTransform);
 
 public:
@@ -84,7 +103,7 @@ public:
 	void setReadLengthDistribution(std::string s);
 	void setQualityDistribution(std::string s);
 	void setMappingQualityDistribution(std::string s);
-	void setSoftClipDistribution(std::string s, int distNumber);
+	void setSoftClipDistribution(std::string s);
 	void setPMD(GenotypeLikelihoods::TPMDType const *Pmd);
 	void setRecal(GenotypeLikelihoods::SequencingError::TModel const *Recal1, GenotypeLikelihoods::SequencingError::TModel const *Recal2);
 	void setContamination(double rate, TSimulatorReference *source);
@@ -100,9 +119,9 @@ public:
 		return _readLengthDist->max();
 	};
 
-	virtual void simulate(const std::vector<genometools::Base>& haplotype, uint32_t refID, uint32_t pos, TSimulatorBamFile &bamFile);
+	virtual void simulate(const std::vector<Base>& haplotype, uint32_t refID, uint32_t pos, TSimulatorBamFile &bamFile);
 
-	void printDetails();
+	void printDetails(double frequency);
 	virtual void writeUnwrittenAlignments(long, TSimulatorBamFile &){};
 };
 

@@ -30,6 +30,7 @@ struct TReadLength {
 //---------------------------------------------------------
 class TReadLengthDistribution {
 protected:
+
 	uint32_t _meanLength = -1;
 	std::vector<double> _positionProbs; // normalized (1 - cumulDensity)
 

@@ -104,6 +104,7 @@ protected:
 	void _initializeContamination(bool &perReadGroup, std::map<std::string, double> &contaminationMap);
 	void _initializeReadSimulator();
 	void _initializeReadGroupFrequencies();
+	void _printSimulationDetailsAllReadGroups();
 
 	// functions to simulate
 	void _simulateReadsFromHaplotypes(const genometools::TChromosome &thisChr,

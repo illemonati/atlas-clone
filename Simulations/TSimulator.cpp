@@ -313,47 +313,6 @@ void TBAMSimulator::_initializeDistribution(const std::string &ParameterName, co
 	logfile().endIndent();
 }
 
-void TBAMSimulator::_initializeSCDistribution(const std::string &ParameterName, const std::string &DefaultValue,
-                                            const std::string &Name,
-                                            std::function<void(TSimulatorSingleEndRead &, std::string, int distNumber)> function) {
-	logfile().startIndent("Parsing " + Name + " (parameter " + ParameterName + "):");
-	const auto s = parameters().getParameterWithDefault<std::string>(ParameterName, DefaultValue);
-
-	// We allow for two options:
-	//   1) initialized from the command line (one for all read groups)
-	//   2) read-group specific as given in a file
-
-	// check if it is a file (should not contain a '(')
-	const auto pos = s.find('(');
-	if (pos != std::string::npos) {
-		// Option 1: a single read distribution for all
-		//---------------------------------------------------------------------
-		logfile().list("Will use '" + s + "' for all read groups.");
-
-		// create read groups, check if two different
-		const auto pos1 = s.find(")");
-		const auto pos2 = s.find(":", pos1);
-			if (pos2 == std::string::npos){
-				for (auto &r : _readSimulators) { function(*r, s, 1);}
-			} else {
-				for (auto &r : _readSimulators) { function(*r, s, 2); }
-			}
-	} else {
-		// Option 2: read group specific, given in a file
-		//---------------------------------------------------------------------
-		const std::vector<std::string> dist = _readSimInfoPerReadGroup(s, ParameterName, Name);
-		for (uint32_t r = 0; r < _readSimulators.size(); ++r) {
-			const auto pos1 = dist[r].find(":");
-			if (pos1 == std::string::npos){
-				function(*_readSimulators[r], dist[r], 1);
-			} else {
-				function(*_readSimulators[r], dist[r], 2);
-			}
-		}
-	}
-	logfile().endIndent();
-}
-
 void TBAMSimulator::_initializePMD(const std::string &ParameterName, const std::string &Name) {
 
 	logfile().startIndent("Parsing " + Name + " (parameter " + ParameterName + "):");
@@ -416,6 +375,7 @@ void addReadGroupsIfFile(const std::string &ParameterName, BAM::TReadGroups &Rea
 void TBAMSimulator::_initializeReadSimulator() {
 	// For which read groups?
 	// Check for each parameter if it is given per read group (a file) or common to all
+	//TODO: use one single file for all settings once ATLAS is able to write such files from data.
 	_readGroups.clear();
 	addReadGroupsIfFile("readLength", _readGroups);
 	addReadGroupsIfFile("qualityDist", _readGroups);
@@ -435,7 +395,6 @@ void TBAMSimulator::_initializeReadSimulator() {
 		} else {
 			throw "numReadGroups must be at least 1!";
 		}
-
 	} else {
 		logfile().startIndent("Initializing ", _readGroups.size(), " individual read group(s):");
 	}
@@ -466,14 +425,20 @@ void TBAMSimulator::_initializeReadSimulator() {
 	//----------------------------
 	// TODO: Think about contamination object for both estimation and simulation
 
-	// F) other things
+	// F) Soft Clips
 	//----------------
-	_initializeSCDistribution("softClips", "fixed(0)", "soft-clipped base distribution",
+	_initializeDistribution("softClips", "fixed(0)", "soft-clipped base distribution",
 	                        &TSimulatorSingleEndRead::setSoftClipDistribution);
+
+	// G) other things
+	//----------------
 	// initialize read group frequencies frequencies
 	_initializeReadGroupFrequencies();
 
 	logfile().endIndent();
+
+	//report all read groups
+	_printSimulationDetailsAllReadGroups();
 }
 
 void TBAMSimulator::_initializeReadGroupFrequencies() {
@@ -520,6 +485,16 @@ void TBAMSimulator::_initializeReadGroupFrequencies() {
 		_averageReadLength += _simGroupFrequencies[i] * _readSimulators[i]->meanReadLength();
 		if (_readSimulators[i]->maxReadLength() > _maxReadLength) _maxReadLength = _readSimulators[i]->maxReadLength();
 	}
+}
+
+void TBAMSimulator::_printSimulationDetailsAllReadGroups(){
+	logfile().startIndent("Will simulate the following read groups:");
+
+	for(size_t rs = 0; rs < _readSimulators.size(); ++rs){
+		_readSimulators[rs]->printDetails(_simGroupFrequencies[rs]);
+	}
+
+	//TODO write file with settings
 }
 
 void TBAMSimulator::_simulateReadsFromHaplotypes(const genometools::TChromosome &thisChr,
