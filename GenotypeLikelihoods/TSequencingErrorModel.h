@@ -23,6 +23,7 @@
 #include "TSequencingErrorCovariateFunction.h"
 #include "TStrongArray.h"
 #include "probability.h"
+#include "devtools.h"
 
 namespace BAM {
 class TSequencedBase;
@@ -58,8 +59,8 @@ public:
 	std::string getDefinition() const noexcept;
 
 	// functions used to estimate
-	void prepareEstimationFromEMWeights() noexcept { rho.fill({{0., 0., 0., 0.}}); }
-	void addBaseForEstimation(genometools::Base base, const TBaseLikelihoods &EMWeights) noexcept;
+	void reset() noexcept { rho.fill({{0., 0., 0., 0.}}); }
+	void add(genometools::Base base, const TBaseLikelihoods &EMWeights) noexcept;
 	void estimate() noexcept;
 };
 
@@ -166,12 +167,12 @@ public:
 	uint16_t numParameters() const noexcept { return _numParameters; }
 
 	// functions to estimate rho
-	void prepareRhoEstimationFromEMWeights() noexcept;
-	void addBaseForRhoEstimation(BAM::TSequencedBase &base, const TBaseLikelihoods &EMWeights) noexcept;
+	void resetRho() noexcept;
+	void addToRho(const BAM::TSequencedBase &base, const TBaseLikelihoods &EMWeights) noexcept;
 	void estimateRho() noexcept;
 
 	// functions to estimate betas
-	void setQFJ_0() noexcept;
+	void resetQFJ() noexcept;
 	void addToQFJ(const BAM::TSequencedBase &base, coretools::Probability p_g_I_d, coretools::Probability p_bbar_I_gd);
 	double curQ() const noexcept { return _Q; }
 	bool solveJxF();

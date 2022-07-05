@@ -64,12 +64,12 @@ public:
 	TBaseLikelihoods getBaseLikelihoods(const BAM::TSequencedBase &base) const;
 
 	// functions to estimate rho
-	void prepareRhoEstimationFromEMWeights();
-	void addBaseForRhoEstimation(BAM::TSequencedBase &base, const TBaseLikelihoods &EMWeights);
+	void resetRho();
+	void addToRho(const BAM::TSequencedBase &base, const TBaseLikelihoods &EMWeights);
 	void estimateRho();
 
 	// functions to estimate beta
-	void setQJF_0();
+	void resetQJF();
 	void addToQFJ(const BAM::TSequencedBase &base, coretools::Probability p_g_I_d, coretools::Probability p_bbar_I_gd);
 	double curQ();
 	void solveJxF();
@@ -116,9 +116,9 @@ private:
 
 	// functions to estimate theta_epsilon (sequencing error rates)
 	void _estimateRho_updatePij(const TPostMortemDamage &PmdModels);
-	double _calculate_Q_updateJF();
+	double _calculateQ_updateJF();
 	void _updateEpsilon(const TPostMortemDamage &PmdModels);
-	double _calculate_LL_updatePi(const TPostMortemDamage &PmdModels);
+	double _calculateLL_updatePi(const TPostMortemDamage &PmdModels);
 
 public:
 	TRecalibrationEMEstimator(const BAM::TReadGroups *ReadGroups, const BAM::TReadGroupMap *ReadGroupMap);

@@ -190,18 +190,20 @@ TRho::TRho(const std::string &def) {
 std::string TRho::getDefinition() const noexcept {
 	using coretools::str::toString;
 	return "-,"s + toString(rho[Base::A][Base::C]) + ',' + toString(rho[Base::A][Base::G]) + ',' + toString(rho[Base::A][Base::T]) + ';'
-		+ toString(rho[Base::C][Base::A]) + "-," + toString(rho[Base::C][Base::G]) + toString(rho[Base::C][Base::T]) + ';'
-		+ toString(rho[Base::G][Base::A]) + ',' + toString(rho[Base::G][Base::C]) + "-," + toString(rho[Base::G][Base::T]) + ';'
-		+ toString(rho[Base::T][Base::A]) + ',' + toString(rho[Base::T][Base::C]) + ',' + toString(rho[Base::T][Base::G]) + '-';
+		+ toString(rho[Base::C][Base::A]) + ",-," + toString(rho[Base::C][Base::G]) + toString(rho[Base::C][Base::T]) + ';'
+		+ toString(rho[Base::G][Base::A]) + ',' + toString(rho[Base::G][Base::C]) + ",-," + toString(rho[Base::G][Base::T]) + ';'
+		+ toString(rho[Base::T][Base::A]) + ',' + toString(rho[Base::T][Base::C]) + ',' + toString(rho[Base::T][Base::G]) + ",-";
 }
 
-void TRho::addBaseForEstimation(Base base, const TBaseLikelihoods &EMWeights) noexcept {
+void TRho::add(Base base, const TBaseLikelihoods &EMWeights) noexcept {
+	if (base == Base::T) OUT(EMWeights);
 	for (auto b = Base::min; b < Base::max; ++b) {
 		rho[b][base] += EMWeights[b].get();
 	}
 }
 
 void TRho::estimate() noexcept {
+	OUT(rho);
 	for (Base a = Base::min; a < Base::max; ++a) {
 		rho[a][a] = 0.0;
 		double d  = 0.;
@@ -348,10 +350,10 @@ void TModelRecal::simulate(BAM::TSequencedBase &base) const noexcept {
 //-------------------------------------------------
 // functions to estimate rho
 //-------------------------------------------------
-void TModelRecal::prepareRhoEstimationFromEMWeights() noexcept { _rho.prepareEstimationFromEMWeights(); }
+void TModelRecal::resetRho() noexcept { _rho.reset(); }
 
-void TModelRecal::addBaseForRhoEstimation(BAM::TSequencedBase &base, const TBaseLikelihoods &EMWeights) noexcept {
-	_rho.addBaseForEstimation(base.base, EMWeights);
+void TModelRecal::addToRho(const BAM::TSequencedBase &base, const TBaseLikelihoods &EMWeights) noexcept {
+	_rho.add(base.base, EMWeights);
 }
 
 void TModelRecal::estimateRho() noexcept { _rho.estimate(); }
@@ -368,7 +370,7 @@ void TModelRecal::checkOrInit(const RecalEstimatorTools::TRecalDataTable &DataTa
 	}
 }
 
-void TModelRecal::setQFJ_0() noexcept {
+void TModelRecal::resetQFJ() noexcept {
 	_Jacobian.zeros();
 	_F.zeros();
 	_numSitesAdded  = 0;
