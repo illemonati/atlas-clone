@@ -12,6 +12,7 @@
 #include <functional>
 #include <iostream>
 #include <math.h>
+#include <numeric>
 #include <stdexcept>
 
 #include "GenotypeTypes.h"
@@ -96,19 +97,18 @@ void TModelVectorForEstimation::reset(TModels &SequencingErrorModels,
 	modelStati.report(MS::littleData, "Read groups with very little data (consider pooling):", ReadGroups);
 };
 
-TBaseLikelihoods TModelVectorForEstimation::getBaseLikelihoods(const BAM::TSequencedBase &base) const {
-	return _modelIndex[base.readGroupID][base.isSecondMate()]->getBaseLikelihoods(base);
+TBaseLikelihoods TModelVectorForEstimation::getBaseLikelihoods(const BAM::TSequencedBase &data) const {
+	return _modelIndex[data.readGroupID][data.isSecondMate()]->getBaseLikelihoods(data);
 };
 
-// functions to estimate rho
 //-------------------------------------------------------------------
 // functions to estimate rho
 void TModelVectorForEstimation::prepareRhoEstimationFromEMWeights() {
 	for (auto &model : _models) { model->prepareRhoEstimationFromEMWeights(); }
 };
 
-void TModelVectorForEstimation::addBaseForRhoEstimation(BAM::TSequencedBase &base, const TBaseLikelihoods &EMWeights) {
-	_modelIndex[base.readGroupID][base.isSecondMate()]->addBaseForRhoEstimation(base, EMWeights);
+void TModelVectorForEstimation::addBaseForRhoEstimation(BAM::TSequencedBase &data, const TBaseLikelihoods &EMWeights) {
+	_modelIndex[data.readGroupID][data.isSecondMate()]->addBaseForRhoEstimation(data, EMWeights);
 };
 
 void TModelVectorForEstimation::estimateRho() {
@@ -118,8 +118,8 @@ void TModelVectorForEstimation::estimateRho() {
 // functions to estimate beta
 //-------------------------------------------------------------------
 
-void TModelVectorForEstimation::addToQFJ(const BAM::TSequencedBase &base, coretools::Probability p_g_I_d, coretools::Probability p_bbar_I_gd) {
-		_modelIndex[base.readGroupID][base.isSecondMate()]->addToQFJ(base, p_g_I_d, p_bbar_I_gd);
+void TModelVectorForEstimation::addToQFJ(const BAM::TSequencedBase &data, coretools::Probability p_g_I_d, coretools::Probability p_bbar_I_gd) {
+		_modelIndex[data.readGroupID][data.isSecondMate()]->addToQFJ(data, p_g_I_d, p_bbar_I_gd);
 };
 
 void TModelVectorForEstimation::setQJF_0() {
@@ -183,11 +183,17 @@ void TModelVectorForEstimation::writeRecalFile(const BAM::TReadGroups &ReadGroup
 }
 
 std::string TModelVectorForEstimation::getModelsDefinition() {
-	std::string s;
-	for (auto &model : _models) {
-		s += model->getCovariateDefinition() + '\t' + model->getRhoDefinition() + '\n';
-	}
-	return s;
+	if (_models.empty()) return std::string{};
+
+	return std::accumulate(_models.begin() + 1, _models.end(), _models.front()->getCovariateDefinition(),
+						   [](auto tot, auto &model) { return tot + '\n' + model->getCovariateDefinition(); });
+};
+
+std::string TModelVectorForEstimation::getRhoDefinition() {
+	if (_models.empty()) return std::string{};
+
+	return std::accumulate(_models.begin() + 1, _models.end(), _models.front()->getRhoDefinition(),
+						   [](auto tot, auto &model) { return tot + '\n' + model->getRhoDefinition(); });
 };
 
 //---------------------------------------------------------------
@@ -294,13 +300,13 @@ void TRecalibrationEMEstimator::performEstimation(const std::string &outputName,
 	_runEM(outputName, PmdModels);
 
 	// writing final estimates
-	std::string filename = outputName + "_recalibrationEM.txt";
+	const std::string filename = outputName + "_recalibrationEM.txt";
 	logfile().listFlush("Writing final estimates to file '" + filename + "' ...");
 	writeCurrentEstimates(filename);
 	logfile().done();
 };
 
-void TRecalibrationEMEstimator::_updateRho(const TPostMortemDamage &PmdModels) {
+void TRecalibrationEMEstimator::_estimateRho_updatePij(const TPostMortemDamage &PmdModels) {
 	using genometools::genotype;
 	_Pijs.clear();
 	for (size_t i = 0; i < _sites.size(); ++i) {
@@ -358,7 +364,7 @@ double TRecalibrationEMEstimator::_calculate_Q_updateJF() {
 	return _modelsToEstimate.curQ();
 };
 
-void TRecalibrationEMEstimator::_updateEM_theta_epsilon(const TPostMortemDamage &PmdModels) {
+void TRecalibrationEMEstimator::_updateEpsilon(const TPostMortemDamage &PmdModels) {
 	using coretools::str::toString;
 	logfile().startIndent("Updating sequencing error models (theta_epsilon):");
 
@@ -367,19 +373,22 @@ void TRecalibrationEMEstimator::_updateEM_theta_epsilon(const TPostMortemDamage 
 	// 2) update rho
 	//-------------------------
 	logfile().listFlushDots("Updating rho");
-	_updateRho(PmdModels);
+	_estimateRho_updatePij(PmdModels);
 	logfile().done();
+	logfile().conclude("rho = ", _modelsToEstimate.getRhoDefinition());
 
 	// 3) Calculate Q_beta at current location
 	//-------------------------
 	logfile().listFlushDots("Calculating Q_beta at current location");
-	double curQ = _calculate_Q_updateJF();
+	const double curQ = _calculate_Q_updateJF();
 	logfile().done();
 	logfile().conclude("Q_beta = ", curQ);
 
 	// 4) Use Newton-Raphson to optimize
 	//-------------------------
 	logfile().startIndent("Optimizing Q_beta using a Newton-Raphson algorithm:");
+
+	const auto nTot = _modelsToEstimate.size();
 
 	for (int i = 0; i < _NewtonRaphsonNumIterations; ++i) {
 		logfile().startIndent("Running Newton-Raphson iteration " + toString(i + 1) + ":");
@@ -390,31 +399,29 @@ void TRecalibrationEMEstimator::_updateEM_theta_epsilon(const TPostMortemDamage 
 		logfile().done();
 
 		// b) update parameters using backtracking
-		double lambda           = 1.0;
-		int log2_lambda         = 0;
-		size_t numUpdatedModels = 0;
-		size_t numUpdatedModels_old;
+		double lambda   = 1.0;
+		int log2_lambda = 0;
+		size_t nUpdated = 0;
 
-		while (numUpdatedModels < _modelsToEstimate.size() && lambda > 1.0E-20) {
+		while (nUpdated < nTot && lambda > 1.0E-20) {
 			// propose move
 			logfile().listFlush("Proposing move with log2(lambda) = " + toString(log2_lambda) + " ... ");
 			_modelsToEstimate.proposeNewParameters(lambda);
-
-			OUT(_modelsToEstimate.getModelsDefinition());
+			const auto pModels = _modelsToEstimate.getModelsDefinition();
 
 			// calculate Q at new location
 			const double Q = _calculate_Q_updateJF();
 
-			OUT(curQ);
-			OUT(Q);
-
 			// check if we accept or backtrack
-			numUpdatedModels_old = numUpdatedModels;
-			numUpdatedModels     = _modelsToEstimate.acceptProposedParametersBasedOnQ();
-			logfile().write(toString(numUpdatedModels) + "/" + toString(_modelsToEstimate.size()) +
-							" models converged.");
+			const auto numUpdatedModels_old = nUpdated;
+			nUpdated                = _modelsToEstimate.acceptProposedParametersBasedOnQ();
+			logfile().write(toString(nUpdated) + "/" + toString(nTot) +
+			                " models converged.");
 
-			if (numUpdatedModels > numUpdatedModels_old) {
+			logfile().conclude("Model = ", pModels);
+			logfile().conclude("Q_beta = ", Q);
+
+			if (nUpdated > numUpdatedModels_old) {
 				logfile().conclude("Q_beta was increased from " + toString(curQ) + " to " + toString(Q));
 			}
 
@@ -423,7 +430,7 @@ void TRecalibrationEMEstimator::_updateEM_theta_epsilon(const TPostMortemDamage 
 			--log2_lambda;
 		}
 
-		if (numUpdatedModels < _modelsToEstimate.size()) {
+		if (nUpdated < nTot) {
 			logfile().conclude("Some models did not improve even with log2(lambda) = " + toString(log2_lambda) +
 							   ", aborting Newton-Raphson.");
 		}
@@ -435,7 +442,7 @@ void TRecalibrationEMEstimator::_updateEM_theta_epsilon(const TPostMortemDamage 
 		double maxF = _modelsToEstimate.getSteepestGradient();
 		logfile().conclude("max(F) = " + toString(maxF));
 		logfile().endIndent();
-		if (maxF < _NewtonRaphsonMaxF || numUpdatedModels == 0) break;
+		if (maxF < _NewtonRaphsonMaxF || nUpdated == 0) break;
 
 		logfile().endIndent();
 	}
@@ -443,7 +450,7 @@ void TRecalibrationEMEstimator::_updateEM_theta_epsilon(const TPostMortemDamage 
 	logfile().endIndent();
 };
 
-double TRecalibrationEMEstimator::_calculate_LL_updateWeights(const TPostMortemDamage &PmdModels) {
+double TRecalibrationEMEstimator::_calculate_LL_updatePi(const TPostMortemDamage &PmdModels) {
 	_Pis.clear();
 	double LL = 0.0;
 	for (auto &s_i : _sites) {
@@ -480,7 +487,7 @@ void TRecalibrationEMEstimator::_runEM(const std::string &outputName, const TPos
 	logfile().startNumbering("Running EM algorithm:");
 
 	// calculate initial LL
-	double oldLL = _calculate_LL_updateWeights(PmdModels);
+	double oldLL = _calculate_LL_updatePi(PmdModels);
 	logfile().conclude("Initial log Likelihood = " + toString(oldLL));
 
 	// running iterations
@@ -489,10 +496,10 @@ void TRecalibrationEMEstimator::_runEM(const std::string &outputName, const TPos
 		logfile().addIndent();
 
 		// update theta_epsilon (sequencing errors)
-		_updateEM_theta_epsilon(PmdModels);
+		_updateEpsilon(PmdModels);
 
 		// calculate LL
-		const double LL = _calculate_LL_updateWeights(PmdModels);
+		const double LL = _calculate_LL_updatePi(PmdModels);
 		logfile().conclude("Current Log Likelihood = " + toString(LL));
 
 		// check if we break based on LL

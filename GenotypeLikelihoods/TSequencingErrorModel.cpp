@@ -375,19 +375,18 @@ void TModelRecal::setQFJ_0() noexcept {
 	_NRStepAccepted = false;
 	_oldQ = _Q;
 	_Q    = 0.0;
-	OUT(_oldQ);
-	OUT(_Q);
 }
 
 void TModelRecal::addToQFJ(const BAM::TSequencedBase &base, Probability p_g_I_d, Probability p_bbar_I_gd) {
 	// get error rate
-	const auto eps = getErrorRate(base);
+	const double eps   = getErrorRate(base);
+	const double eps_c = 1. - eps;
 
 	// add Q
-	_Q += p_g_I_d * (p_bbar_I_gd * eps.complement() + p_bbar_I_gd.complement() * eps);
+	_Q += p_g_I_d * (p_bbar_I_gd * eps_c + p_bbar_I_gd.complement() * eps);
 
 	// F and J
-	const auto w_ij = p_g_I_d * (1.0 - eps - p_bbar_I_gd);
+	const double w_ij = p_g_I_d * (eps_c - p_bbar_I_gd);
 
 	std::vector<T1stDerivative> der1st;
 	std::vector<T2ndDerivative> der2nd;
@@ -403,18 +402,18 @@ void TModelRecal::addToQFJ(const BAM::TSequencedBase &base, Probability p_g_I_d,
 	}
 
 	// add first derivatives
-	for (auto d1 = der1st.begin(); d1 != der1st.end(); ++d1) {
+	for (auto dm = der1st.begin(); dm != der1st.end(); ++dm) {
 		// add to F
-		_F(d1->index) += w_ij * d1->derivative;
+		_F(dm->index) += w_ij * dm->derivative;
 
 		// add to J
-		for (auto d2 = d1; d2 != der1st.end(); ++d2) {
-			_Jacobian(d1->index, d2->index) += (1.0 - eps) * eps * d1->derivative * d2->derivative;
+		for (auto dn = dm; dn != der1st.end(); ++dn) {
+			_Jacobian(dm->index, dn->index) -= eps_c * eps * dm->derivative * dn->derivative;
 		}
 	}
 
 	// add second derivatives to Jacobian (happens to have the same weigth as F!)
-	for (auto &it : der2nd) _Jacobian(it.index1, it.index2) += w_ij * it.derivative;
+	for (auto &dmn : der2nd) _Jacobian(dmn.index1, dmn.index2) += w_ij * dmn.derivative;
 
 	++_numSitesAdded;
 }
@@ -424,21 +423,17 @@ bool TModelRecal::solveJxF() {
 	// Need to copy numbers to other triangle in Jacobian, as only upper triangle is filled when parsing sites
 	for (int i = 0; i < (numParameters() - 1); ++i) {
 		for (unsigned int j = i + 1; j < numParameters(); ++j) {
-			OUT(_Jacobian(j, i));
 			// copy from upper triangle to lower triangle
 			_Jacobian(j, i) = _Jacobian(i, j);
 		}
-		OUT(_F(i));
 	}
-
-	OUT(_numSitesAdded);
 
 	// scale F and J by 1/#sites
 	_Jacobian = _Jacobian / (double)_numSitesAdded;
 	_F        = _F / (double)_numSitesAdded;
 
-	//OUT(_Jacobian);
-	//OUT(_F);
+	OUT(_Jacobian);
+	OUT(_F);
 
 	// now solve J^-1 x F
 	return solve(_JxF, _Jacobian, _F);
@@ -452,6 +447,8 @@ void TModelRecal::proposeNewParameters(double lambda) {
 }
 
 bool TModelRecal::acceptProposedParametersBasedOnQ() {
+	OUT(_Q);
+	OUT(_oldQ);
 	if (_NRStepAccepted) return true;
 	if (_Q > _oldQ) {
 		_NRStepAccepted = true;
