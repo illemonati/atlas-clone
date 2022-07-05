@@ -63,6 +63,15 @@ void TBamDiagnoser::_handleAlignment() {
         _fragmentLength.add(readGroup, _bamFile.curFragmentLength());
 }
 
+std::string TBamDiagnoser::_getSeqType(uint32_t counts, uint32_t singleCounts, uint32_t pairedCounts){
+	if (counts == singleCounts){
+		return readGroupType2String(BAM::single);
+	} else if (counts == pairedCounts){
+		return readGroupType2String(BAM::paired);
+	}
+	return readGroupType2String(BAM::mixed);
+}
+
 void TBamDiagnoser::diagnose(){
     //calculate length of genome
     double totLengthOfGenome = _bamFile.chromosomes().referenceLength();
@@ -80,9 +89,6 @@ void TBamDiagnoser::diagnose(){
 
 	//now parse through bam file
     _traverseBAMPassedQC();
-    if(!parameters().parameterExists("splitMergeInput")){
-    	logfile().list("Will not create input file for splitMerge. (use 'splitMergeInput' to do so).");
-    }
 	logfile().list("Approximate sequencing depth was estimated at ", (double) _usableLength.sum() / (double) totLengthOfGenome, ".");
 
 	//writing output files
@@ -113,13 +119,7 @@ void TBamDiagnoser::diagnose(){
 	out << _softClippedLength.countsLargerZero() << _softClippedLength.mean();
 	out << _usableLength.mean() << (double) _usableLength.sum() / (double) totLengthOfGenome;
 	out << _mappingQuality.mean();
-	if (numRG == single_count){
-		out << "single-end" << std::endl;
-	} else if (numRG == paired_count) {
-		out << "paired-end" << std::endl;
-	} else {
-		out << "mixed" << std::endl; }
-
+	out << _getSeqType(numRG, single_count, paired_count) << std::endl;
 
 	//write per read group
 	for(uint32_t rg = 0; rg < numRG; ++rg){
@@ -131,33 +131,10 @@ void TBamDiagnoser::diagnose(){
 		out << _softClippedLength[rg].countsLargerZero() << _softClippedLength[rg].mean();
 		out << _usableLength[rg].mean() << (double) _usableLength[rg].sum() / (double) totLengthOfGenome;
 		out << _mappingQuality[rg].mean();
-		if (_fragmentLength[rg].counts() == 0){
-			out << "single-end" << std::endl;
-		} else {
-			out << "paired-end" << std::endl;
-		}
+		out << _getSeqType(_passedQC[rg], _passedQC[rg] - _fragmentLength[rg].counts(), _fragmentLength[rg].counts()) << std::endl;
 	}
 	out.close();
 	logfile().done();
-
-	if(parameters().parameterExists("splitMergeInput")){
-	//write file used by split merge
-	std::string splitmergename = _outputName + "_splitMergeInput.txt";
-	logfile().listFlush("Outputting input file for splitMerge to '" + splitmergename + "' ...");
-	coretools::TOutputFile splitm (splitmergename, {"readGroup", "seqType", "maxCycles"});
-	for(uint32_t rg = 0; rg < numRG; ++rg){
-		splitm << _bamFile.readGroups().getName(rg);
-		if (_fragmentLength[rg].counts() == 0){
-			splitm << "single-end";
-		} else {
-			splitm << "paired-end";
-		}
-		splitm << _readLength.max() << std::endl;
-	}
-	splitm.close();
-	logfile().done();
-	}
-
 
 	//writing distributions
 	_writeHistogram(_readLength, "readLength", "read length");

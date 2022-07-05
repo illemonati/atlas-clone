@@ -18,37 +18,71 @@
 #include "TBamFile.h"
 #include "TGenome.h"
 #include "TTask.h"
+#include "TReadGroups.h"
 
 namespace BAM { class TAlignment; }
 namespace BAM { class TReadGroups; }
 namespace BAM { class TSequencedBase; }
 namespace genometools { class TGenomePosition; }
 
+using BAM::ReadGroupType;
+using BAM::readGroupType2String;
+
 namespace GenomeTasks{
 
 //-----------------------------------------
 // TAlignmentMergerReadGroupSettings
 //-----------------------------------------
-enum ReadGroupType : uint8_t { unchanged=0, single, mixed, paired};
+class TAlignmentMergerReadGroupSetting{
+private:
+	uint16_t _readGroupId;
+	ReadGroupType _type;
+	uint16_t _maxCycles;
 
-struct TAlignmentMergerReadGroupSetting{
-	uint16_t readGroupId;
-	uint16_t altReadGroupId;
-	ReadGroupType type;
-	uint16_t maxCycles;
+	uint16_t _splittingThreshold;
+	std::vector<uint16_t> _altReadGroupIds; //indexed by length > threshold
 
-	constexpr TAlignmentMergerReadGroupSetting(const uint16_t ReadGroupId, const ReadGroupType Type, const uint16_t MaxCycles)
-		: readGroupId(ReadGroupId), altReadGroupId(ReadGroupId), type(Type), maxCycles(MaxCycles){};
+public:
+	constexpr TAlignmentMergerReadGroupSetting(const uint16_t ReadGroupId, const ReadGroupType Type, const uint16_t MaxCycles):
+		_readGroupId(ReadGroupId),
+		_type(Type),
+		_maxCycles(MaxCycles),
+		_splittingThreshold(MaxCycles+1){};
 
-	constexpr TAlignmentMergerReadGroupSetting(const uint16_t ReadGroupId, uint16_t AltReadGroupId, const ReadGroupType Type, const uint16_t MaxCycles)
-		: readGroupId(ReadGroupId), altReadGroupId(AltReadGroupId), type(Type), maxCycles(MaxCycles){};
+	constexpr TAlignmentMergerReadGroupSetting(const uint16_t ReadGroupId, const ReadGroupType Type, const uint16_t MaxCycles, uint16_t NumSplitCategories, BAM::TReadGroups & readGroups):
+		_readGroupId(ReadGroupId),
+		_type(Type),
+		_maxCycles(MaxCycles){
 
-	constexpr bool operator<(const TAlignmentMergerReadGroupSetting & right) const noexcept { return readGroupId < right.readGroupId; };
-	constexpr bool operator<(const uint16_t right) const noexcept { return readGroupId < right; };
+		//create alternative read groups
+		if(NumSplitCategories > _maxCycles){
+			NumSplitCategories = _maxCycles;
+		}
+		_splittingThreshold = _maxCycles - NumSplitCategories + 2;
+
+		_altReadGroupIds.resize(NumSplitCategories - 1);
+
+		for(size_t i=0; i<(NumSplitCategories-1); ++i){
+			_altReadGroupIds[i] = readGroups.addAlternativeRG(readGroups[ReadGroupId].name_ID + "_Length" + toString(_maxCycles-i), ReadGroupId);
+		}
+	};
+
+	constexpr bool operator<(const TAlignmentMergerReadGroupSetting & right) const noexcept { return _readGroupId < right._readGroupId; };
+	constexpr bool operator<(const uint16_t right) const noexcept { return _readGroupId < right; };
+
+	//getters
+	ReadGroupType type(){ return _type; };
+	uint16_t maxCycles(){ return _maxCycles; };
+	uint16_t readGroupId(){ return _readGroupId; };
+	void splitReadGroup(BAM::TAlignment* alignment){
+		if(alignment->length() >= _splittingThreshold){
+			alignment->setReadGroup(_altReadGroupIds[alignment->length() - _splittingThreshold]);
+		}
+	};
 };
 
 constexpr bool operator<(const uint16_t left, const TAlignmentMergerReadGroupSetting & right) noexcept {
-	return left < right.readGroupId;
+	return left < right._readGroupId;
 };
 
 class TAlignmentMergerReadGroupSettings{

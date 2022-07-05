@@ -16,6 +16,10 @@
 #include "TTask.h"
 #include "counters.h"
 
+using BAM::ReadGroupType;
+using BAM::readGroupType2String;
+
+
 namespace GenomeTasks{
 
 //-------------------------------------------
@@ -38,6 +42,7 @@ private:
 
 	void _writeHistogram(const coretools::TCountDistributionVector<> & distVec, const std::string& header, const std::string& name);
     void _handleAlignment() override;
+    std::string _getSeqType(uint32_t counts, uint32_t singleCounts, uint32_t pairedCounts);
 
 public:
 	TBamDiagnoser();

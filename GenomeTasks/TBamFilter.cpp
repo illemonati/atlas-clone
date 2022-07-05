@@ -43,6 +43,17 @@ using namespace coretools::str;
 //-----------------------------------------
 // TAlignmentMergerReadGroupSettings
 //-----------------------------------------
+void TAlignmentMergerReadGroupSettings::addAlternativeReadGroups(){
+	if(maxCycles < 1){
+		throw "Error reading file '", in.name(), "' on line ", in.lineNumber(), ": max cycles must be > 0 for read groups of type '", readGroupType2String(BAM::single), "'!";
+	}
+
+	//add to settings and create truncated read group
+	for(int i=0; i<(maxCycles-1); ++i){
+		_settings.emplace(rgId, readGroups.addAlternativeRG(vec[0] + "_Length" + toString(maxCycles-i), vec[0]).id, BAM::single, maxCycles);
+	}
+};
+
 void TAlignmentMergerReadGroupSettings::initialize(BAM::TReadGroups & readGroups){
 	//make sure set is empty
 	_settings.clear();
@@ -53,7 +64,7 @@ void TAlignmentMergerReadGroupSettings::initialize(BAM::TReadGroups & readGroups
 		if(pairedRG == "all"){
 			//mark all as paired
 			for(uint16_t rg=0; rg<readGroups.size(); ++rg){
-				_settings.emplace(rg, paired, 0);
+				_settings.emplace(rg, BAM::paired, 0);
 			}
 		} else {
 			//will merge a subset and treat others as unchanged
@@ -70,9 +81,9 @@ void TAlignmentMergerReadGroupSettings::initialize(BAM::TReadGroups & readGroups
 			//add as unchanged or paired
 			for(uint16_t rg=0; rg<readGroups.size(); ++rg){
 				if(pairedIds.find(rg) == pairedIds.end()){
-					_settings.emplace(rg, unchanged, 0);
+					_settings.emplace(rg, BAM::unchanged, 0);
 				} else {
-					_settings.emplace(rg, paired, 0);
+					_settings.emplace(rg, BAM::paired, 0);
 				}
 			}
 			logfile().done();
@@ -97,9 +108,17 @@ void TAlignmentMergerReadGroupSettings::initialize(BAM::TReadGroups & readGroups
 		//read file with read group settings
 		std::string readGroupSettingsFile = parameters().getParameter<std::string>("readGroupSettings");
 		logfile().listFlush("Reading read groups from file '" + readGroupSettingsFile + "' ...");
-		coretools::TInputFile in(readGroupSettingsFile, {"readGroup", "seqType", "maxCycles"});
+		coretools::TInputFile in(readGroupSettingsFile, {"readGroup", "seqType", "maxReadLength"});
 		if(in.numCols() != 3){
 			throw "Wrong number of entries in file '" + readGroupSettingsFile + "': need three columns corresponding to the read group name, read group type and max cycles!";
+		}
+
+		//read num length categories to treat separately
+		int numSplitCategories = parameters().getParameterWithDefault("numSplitCategories", 2);
+		if(numSplitCategories < 2){
+			throw "Need at least two categories for splitting (argument 'numSplitCategories')!";
+		} else {
+			logfile().list("Will split single-end reads into up to ", numSplitCategories, " length categories. (argument 'numSplitCategories')");
 		}
 
 		//read settings file
@@ -126,28 +145,33 @@ void TAlignmentMergerReadGroupSettings::initialize(BAM::TReadGroups & readGroups
 				}
 
 				//act based on seqeuncing type (second column). Ignored read groups will be marked as "unchanged"
-				if(readGroupsToIgnore.find(rgId) != readGroupsToIgnore.end() || vec[1] == "unchanged"){
-					_settings.emplace(rgId, unchanged, 0);
-				} else if(vec[1] == "single"){
+				if(readGroupsToIgnore.find(rgId) != readGroupsToIgnore.end() || vec[1] == readGroupType2String(BAM::unchanged)){
+					_settings.emplace(rgId, BAM::unchanged, 0);
+				} else if(vec[1] == readGroupType2String(BAM::single)){
 					if(maxCycles < 1){
-						throw "Error reading file '" + in.name() + "' on line " + toString(in.lineNumber()) + ": max cycles must be > 0 for read groups of type 'single'!";
+						throw "Error reading file '", in.name(), "' on line ", in.lineNumber(), ": max cycles must be > 0 for read groups of type '", readGroupType2String(BAM::single), "'!";
 					}
 
 					//add to settings and create truncated read group
-					_settings.emplace(rgId, readGroups.addAlternativeRG(vec[0] + "_truncated", vec[0]).id, single, maxCycles);
+					for(int i=0; i<(maxCycles-1); ++i){
+						_settings.emplace(rgId, readGroups.addAlternativeRG(vec[0] + "_Length" + toString(maxCycles-i), vec[0]).id, BAM::single, maxCycles);
+					}
 
-				} else if(vec[1] == "mixed"){
+
+				} else if(vec[1] == readGroupType2String(BAM::mixed)){
 					if(maxCycles < 1){
-						throw "Error reading file '" + in.name() + "' on line " + toString(in.lineNumber()) + ": max cycles must be > 0 for read groups of type 'mixed'!";
+						throw "Error reading file '", in.name(), "' on line ", in.lineNumber(), ": max cycles must be > 0 for read groups of type '", readGroupType2String(BAM::mixed), "'!";
 					}
 
 					//add to settings and create truncated read group
-					_settings.emplace(rgId, readGroups.addAlternativeRG(vec[0] + "_truncated", vec[0]).id, mixed, maxCycles);
+					_settings.emplace(rgId, readGroups.addAlternativeRG(vec[0] + "_truncated", vec[0]).id, BAM::mixed, maxCycles);
 
-				} else if(vec[1] == "paired"){
-					_settings.emplace(rgId, paired, 0);
+
+
+				} else if(vec[1] == readGroupType2String(BAM::paired)){
+					_settings.emplace(rgId, BAM::paired, 0);
 				} else {
-					throw "Error reading file '" + in.name() + "' on line " + toString(in.lineNumber()) + ": Unknown read group type '" + vec[1] + "'! Expected 'unchanged', 'single', 'mixed' or 'paired'.";
+					throw "Error reading file '", in.name(), "' on line ", in.lineNumber(), ": Unknown read group type '", vec[1], "'! Expected '", readGroupType2String(BAM::unchanged), "', '", readGroupType2String(BAM::single), "', '", readGroupType2String(BAM::mixed), "' or '", readGroupType2String(BAM::paired), "'.";
 				}
 			}
 		}
@@ -155,7 +179,7 @@ void TAlignmentMergerReadGroupSettings::initialize(BAM::TReadGroups & readGroups
 		//set missing read groups to "unchanged"
 		for(uint16_t rg=0; rg < readGroups.size(); ++rg){
 			if(readGroups.readGroupInUse(rg) && _settings.find(rg)==_settings.end()){
-				_settings.emplace(rg, unchanged, 0);
+				_settings.emplace(rg, BAM::unchanged, 0);
 			}
 		}
 
@@ -176,24 +200,24 @@ void TAlignmentMergerReadGroupSettings::_printSummary(){
 	}
 
 	//summarize
-	if(counts[unchanged] > 0){ logfile().conclude(counts[unchanged], " read groups will remain unchanged."); }
-	if(counts[single] > 0   ){ logfile().conclude(counts[single], " single-end read groups will be split."); }
-	if(counts[mixed] > 0    ){ logfile().conclude(counts[mixed], " mixed read groups will be split and merged."); }
-	if(counts[paired] > 0   ){ logfile().conclude(counts[paired], " paired read groups to be merged."); }
+	if(counts[BAM::unchanged] > 0){ logfile().conclude(counts[BAM::unchanged], " read groups will remain unchanged."); }
+	if(counts[BAM::single] > 0   ){ logfile().conclude(counts[BAM::single], " single-end read groups will be split."); }
+	if(counts[BAM::mixed] > 0    ){ logfile().conclude(counts[BAM::mixed], " mixed read groups will be split and merged."); }
+	if(counts[BAM::paired] > 0   ){ logfile().conclude(counts[BAM::paired], " paired read groups to be merged."); }
 };
 
 void TAlignmentMergerReadGroupSettings::setAllAsUnchanged(const BAM::TReadGroups & readGroups){
 	_settings.clear();
 	for(uint16_t rg=0; rg < readGroups.size(); ++rg){
 		if(readGroups.readGroupInUse(rg)){
-			_settings.emplace(rg, unchanged, 0);
+			_settings.emplace(rg, BAM::unchanged, 0);
 		}
 	}
 };
 
 bool TAlignmentMergerReadGroupSettings::needTruncation() const{
 	for(auto& s : _settings){
-		if(s.type == single || s.type == mixed)
+		if(s.type == BAM::single || s.type == BAM::mixed)
 			return true;
 	}
 	return false;
@@ -201,7 +225,7 @@ bool TAlignmentMergerReadGroupSettings::needTruncation() const{
 
 bool TAlignmentMergerReadGroupSettings::needsMerging() const{
 	for(const auto& s : _settings){
-		if(s.type == paired || s.type == mixed)
+		if(s.type == BAM::paired || s.type == BAM::mixed)
 			return true;
 	}
 	return false;
@@ -355,7 +379,7 @@ void TBamFilter::traverseBAM(){
 		//check if read passed filters
 		if(_bamFile.curPassedQC()){
 			//if single end, unchanged and storage is empty: write directly
-			if(!_recalibrate && !_bamFile.curIsPaired() && _alignmentStorage.empty() && _rgSettings.getType(_bamFile.curReadGroupID())==unchanged){
+			if(!_recalibrate && !_bamFile.curIsPaired() && _alignmentStorage.empty() && _rgSettings.getType(_bamFile.curReadGroupID()) == BAM::unchanged){
 				_bamFile.writeCurAlignment(_outBam);
 			} else {
 				//parse alignment
@@ -598,12 +622,12 @@ void TAlignmentSplitMerger::_openBamFileForWriting(){
 void TAlignmentSplitMerger::_handleMates(BAM::TAlignment* alignment, TAlignmentInStorage & mate){
 	ReadGroupType type = _rgSettings.getType(alignment->readGroupId());
 
-	if(type == single){
-		throw "Paired reads found in single-end read group '" + _bamFile.readGroups().getName(alignment->readGroupId()) + "'! Is this a 'mixed' read group?";
+	if(type == BAM::single){
+		throw "Paired reads found in single-end read group '" + _bamFile.readGroups().getName(alignment->readGroupId()) + "'! Is this a '" + readGroupType2String(BAM::mixed) + "' read group?";
 	} else if(!alignment->isProperPair()){
 		//not a proper pair: mark mate as as improper too
 		mate->setAsNonProperPair();
-	} else if(type == paired || type == mixed){
+	} else if(type == BAM::paired || type == BAM::mixed){
 		//attempt merging: make sure alignments are parsed
 		//Note: if we recalibrate, they were already parsed
 		if(!alignment->isParsed()){
@@ -623,10 +647,10 @@ void TAlignmentSplitMerger::_handleMates(BAM::TAlignment* alignment, TAlignmentI
 void TAlignmentSplitMerger::_handleSingle(BAM::TAlignment* alignment){
 	const TAlignmentMergerReadGroupSetting& settings = _rgSettings.getSettings(alignment->readGroupId());
 
-	if(settings.type == unchanged){
+	if(settings.type == BAM::unchanged){
 		//add as ready for writing
 		_alignmentStorage.emplace_back(alignment, true);
-	} else if(settings.type == single || settings.type == mixed){
+	} else if(settings.type == BAM::single || settings.type == BAM::mixed){
 		//truncate
 		if(!_allowForLarger && alignment->length() > settings.maxCycles){
 			throw("Length of read " + alignment->name() + " is > max cycles for its read group (" + toString(settings.maxCycles) + ")! Use parameter 'allowForLarger' to ignore and put read in truncated read group.");
@@ -638,7 +662,7 @@ void TAlignmentSplitMerger::_handleSingle(BAM::TAlignment* alignment){
 		//add as ready for writing
 		_alignmentStorage.emplace_back(alignment, true);
 
-	} else if(settings.type == paired){
+	} else if(settings.type == BAM::paired){
 		//is orphan
 		if(_keepOrphans){
 			//add as ready for writing

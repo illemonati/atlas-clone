@@ -18,6 +18,16 @@ namespace coretools { class TLog; }
 
 namespace BAM{
 
+//------------------------------------------------
+// ReadGroupType
+//------------------------------------------------
+enum ReadGroupType : uint8_t { unchanged=0, single, mixed, paired};
+
+constexpr char readGroupType2String(ReadGroupType type) noexcept {
+	static std::array<std::string, 4> name = {"unchanged", "single-end", "mixed", "paired-end"};
+	return name[type];
+};
+
 //---------------------------------------------------------------
 //TReadGroupMaxLength
 //---------------------------------------------------------------
@@ -91,6 +101,9 @@ public:
 	void clear();
 	const TReadGroup& add(const std::string name);
 	const TReadGroup& addAlternativeRG(const std::string Name, const std::string original);
+	const TReadGroup& addAlternativeRG(const std::string Name, const uint16_t original);
+	const TReadGroup& addAlternativeRG(const std::string Name, const TReadGroup original);
+
 	uint16_t size() const;
 	bool empty() const;
 

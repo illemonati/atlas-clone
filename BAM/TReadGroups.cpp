@@ -153,13 +153,22 @@ const TReadGroup& TReadGroups::addAlternativeRG(const std::string Name, const st
 	//getId original
 	const TReadGroup& rg = getReadGroup(original);
 
+	return addAlternativeRG(Name, rg);
+};
+
+const TReadGroup& TReadGroups::addAlternativeRG(const std::string Name, const uint16_t original){
+	//getId original
+	return addAlternativeRG(Name, this->operator [](original));
+};
+
+const TReadGroup& TReadGroups::addAlternativeRG(const std::string Name, const TReadGroup original){
 	//make sure new name does not yet exist
 	if(readGroupExists(Name)){
 		throw "Can not add truncated or merged read group '" + Name + "': read group already exists!";
 	}
 
 	//make copy
-	TReadGroup newRg(rg);
+	TReadGroup newRg(original);
 
 	//set name and give new id
 	newRg.name_ID = Name;
@@ -173,6 +182,7 @@ const TReadGroup& TReadGroups::addAlternativeRG(const std::string Name, const st
 
 	return *r.first;
 };
+
 
 uint16_t TReadGroups::size() const{
 	return _readGroups.size();
