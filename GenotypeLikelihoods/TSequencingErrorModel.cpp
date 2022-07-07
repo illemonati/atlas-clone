@@ -176,40 +176,32 @@ TRho::TRho(const std::string &def) {
 		if (r.size() != 4)
 			throw "Rho matrix has " + toString(r.size()) + " instead of 4 columns for row " + toString(index(a) + 1) + "!";
 
-		// fill
-		for (Base b = Base::min; b < Base::max; ++b) {
-			if (a == b) {
-				rho[a][b] = 0.0;
-			} else {
-				rho[a][b] = r[index(b)];
-			}
-		}
+		r[index(a)] = 0.;
+		_rho[a]     = r;
 	}
 }
 
 std::string TRho::getDefinition() const noexcept {
 	using coretools::str::toString;
-	return "-,"s + toString(rho[Base::A][Base::C]) + ',' + toString(rho[Base::A][Base::G]) + ',' + toString(rho[Base::A][Base::T]) + ';'
-		+ toString(rho[Base::C][Base::A]) + ",-," + toString(rho[Base::C][Base::G]) + toString(rho[Base::C][Base::T]) + ';'
-		+ toString(rho[Base::G][Base::A]) + ',' + toString(rho[Base::G][Base::C]) + ",-," + toString(rho[Base::G][Base::T]) + ';'
-		+ toString(rho[Base::T][Base::A]) + ',' + toString(rho[Base::T][Base::C]) + ',' + toString(rho[Base::T][Base::G]) + ",-";
+	return "-,"s + toString(_rho[Base::A][Base::C]) + ',' + toString(_rho[Base::A][Base::G]) + ',' + toString(_rho[Base::A][Base::T]) + ';'
+		+ toString(_rho[Base::C][Base::A]) + ",-," + toString(_rho[Base::C][Base::G]) + toString(_rho[Base::C][Base::T]) + ';'
+		+ toString(_rho[Base::G][Base::A]) + ',' + toString(_rho[Base::G][Base::C]) + ",-," + toString(_rho[Base::G][Base::T]) + ';'
+		+ toString(_rho[Base::T][Base::A]) + ',' + toString(_rho[Base::T][Base::C]) + ',' + toString(_rho[Base::T][Base::G]) + ",-";
 }
 
-void TRho::add(genometools::Base base, coretools::Probability P_g_I_d, const TBaseLikelihoods &P_bbar_I_d) noexcept {
+void TRho::add(genometools::Base base, coretools::Probability P_g_I_d, const TBaseProbabilities &P_bbar_I_d) noexcept {
 	for (auto b = Base::min; b < Base::max; ++b) {
-		rho[b][base] += P_g_I_d*P_bbar_I_d[b];
+		_rhoSum[b][base] += P_g_I_d*P_bbar_I_d[b];
 	}
 }
 
 void TRho::estimate() noexcept {
-	OUT(rho);
 	for (Base a = Base::min; a < Base::max; ++a) {
-		rho[a][a] = 0.0;
-		double d  = 0.;
-		for (const auto r : rho[a]) d += r;
-		for (auto &r : rho[a]) r /= d;
+		_rhoSum[a][a] = 0.0;
+		_rho[a] = _rhoSum[a];
 	}
-	OUT(rho);
+	// reset
+	_rhoSum.fill({});
 }
 
 //*********************************************************
@@ -325,7 +317,7 @@ TBaseLikelihoods TModelRecal::getBaseLikelihoods(const BAM::TSequencedBase &base
 	}
 	const auto e = _calcErrorRate(base);
 	TBaseLikelihoods baseLikelihoods;
-	for (auto b = Base::min; b < Base::max; ++b) baseLikelihoods[b] = e * _rho(b, base.base);
+	for (auto b = Base::min; b < Base::max; ++b) baseLikelihoods[b] = e * _rho[b][base.base];
 	baseLikelihoods[base.base] = e.complement();
 	return baseLikelihoods;
 }
@@ -338,7 +330,7 @@ void TModelRecal::simulate(BAM::TSequencedBase &base) const noexcept {
 		const double r = randomGenerator().getRand();
 		double cumul   = 0.;
 		for (auto b = Base::min; b < Base::max; ++b) {
-			cumul += _rho(b, base.base); //_rho(base.base, base.base) = 0
+			cumul += _rho[b][base.base]; //_rho(base.base, base.base) = 0
 			if (r < cumul) {
 				base.base = b;
 				return;
@@ -350,9 +342,7 @@ void TModelRecal::simulate(BAM::TSequencedBase &base) const noexcept {
 //-------------------------------------------------
 // functions to estimate rho
 //-------------------------------------------------
-void TModelRecal::resetRho() noexcept { _rho.reset(); }
-
-void TModelRecal::addToRho(const BAM::TSequencedBase &data, coretools::Probability P_g_I_d, const TBaseLikelihoods &P_bbar_I_d) noexcept {
+void TModelRecal::addToRho(const BAM::TSequencedBase &data, coretools::Probability P_g_I_d, const TBaseProbabilities &P_bbar_I_d) noexcept {
 	_rho.add(data.base, P_g_I_d, P_bbar_I_d);
 }
 
@@ -449,8 +439,6 @@ void TModelRecal::proposeNewParameters(double lambda) {
 }
 
 bool TModelRecal::acceptProposedParametersBasedOnQ() {
-	OUT(_Q);
-	OUT(_oldQ);
 	if (_NRStepAccepted) return true;
 	if (_Q > _oldQ) {
 		_NRStepAccepted = true;

@@ -64,8 +64,7 @@ public:
 	TBaseLikelihoods getBaseLikelihoods(const BAM::TSequencedBase &data) const;
 
 	// functions to estimate rho
-	void resetRho();
-	void addToRho(const BAM::TSequencedBase &data, coretools::Probability P_g_I_d, const TBaseLikelihoods &P_bbar_I_d);
+	void addToRho(const BAM::TSequencedBase &data, coretools::Probability P_g_I_d, const TBaseProbabilities &P_bbar_I_d);
 	void estimateRho();
 
 	// functions to estimate beta

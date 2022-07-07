@@ -18,8 +18,10 @@ using genometools::Base;
 using genometools::Genotype;
 
 TGenotypeLikelihoods THaploidDistribution::getGenotypeLikelihoods(const TBaseLikelihoods &baseLikelihoods) const {
-	return TGenotypeLikelihoods({baseLikelihoods[Base::A], 0., 0., 0., baseLikelihoods[Base::C], 0., 0.,
-								 baseLikelihoods[Base::G], 0., baseLikelihoods[Base::G]});
+	return TGenotypeLikelihoods({baseLikelihoods[Base::A], 0., 0., 0.,
+			                     baseLikelihoods[Base::C], 0., 0.,
+								 baseLikelihoods[Base::G], 0.,
+								 baseLikelihoods[Base::T]});
 }
 coretools::Probability THaploidDistribution::getGenotypeLikelihood(const TBaseLikelihoods &baseLikelihoods,
 																   Genotype genotype) const {
@@ -33,7 +35,7 @@ double THaploidDistribution::weightedSum(const TGenotypeLikelihoods &likelihoods
 }
 
 double THaploidDistribution::normalize(TGenotypeLikelihoods &likelihoods) const {
-	double sum = 0;
+	double sum = 0.;
 	// only four
 	for(auto b = Base::min; b < Base::max; ++b) {
 		const auto g = genometools::genotype(b, b);

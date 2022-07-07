@@ -103,11 +103,8 @@ TBaseLikelihoods TModelVectorForEstimation::getBaseLikelihoods(const BAM::TSeque
 
 //-------------------------------------------------------------------
 // functions to estimate rho
-void TModelVectorForEstimation::resetRho() {
-	for (auto &model : _models) { model->resetRho(); }
-};
 
-void TModelVectorForEstimation::addToRho(const BAM::TSequencedBase &data, coretools::Probability P_g_I_d, const TBaseLikelihoods &P_bbar_I_d) {
+void TModelVectorForEstimation::addToRho(const BAM::TSequencedBase &data, coretools::Probability P_g_I_d, const TBaseProbabilities &P_bbar_I_d) {
 	_modelIndex[data.readGroupID][data.isSecondMate()]->addToRho(data, P_g_I_d, P_bbar_I_d);
 };
 
@@ -309,7 +306,6 @@ void TRecalibrationEMEstimator::performEstimation(const std::string &outputName,
 void TRecalibrationEMEstimator::_estimateRho_updatePij(const TPostMortemDamage &PmdModels) {
 	using genometools::genotype;
 	_P_bbar_I_gds.clear();
-	_modelsToEstimate.resetRho();
 	for (size_t i = 0; i < _sites.size(); ++i) {
 		for (const auto &d_ij : _sites[i]) {
 			_P_bbar_I_gds.emplace_back(0.);
@@ -317,21 +313,18 @@ void TRecalibrationEMEstimator::_estimateRho_updatePij(const TPostMortemDamage &
 			const auto L_eps = _modelsToEstimate.getBaseLikelihoods(d_ij);
 			for (auto a = Base::min; a < Base::max; ++a) {
 				const auto g_aa = genotype(a, a);
-				const TBaseLikelihoods lk_a{PmdModels.getMassFunction(a, d_ij, L_eps)};
+				const auto P_aa = PmdModels.getMassFunction(a, d_ij, L_eps);
 
-				Pij[g_aa] = lk_a[d_ij.base];
+				Pij[g_aa] = P_aa[d_ij.base];
 
-				_modelsToEstimate.addToRho(d_ij, _P_g_I_ds[i][g_aa], lk_a);
+				_modelsToEstimate.addToRho(d_ij, _P_g_I_ds[i][g_aa], P_aa);
 				if (!_genoDist->isInvariant()) {
 					for (auto b = genometools::next(a); b < Base::max; ++b) {
 						const auto g_ab = genotype(a, b);
-						constexpr auto p05 = coretools::Probability(0.5);
-						const TBaseLikelihoods lk_ab =
-							p05 * lk_a + p05 * TBaseLikelihoods(PmdModels.getMassFunction(b, d_ij, L_eps));
+						const TBaseProbabilities P_ab{P_aa, PmdModels.getMassFunction(b, d_ij, L_eps), std::plus<>()};
+						Pij[g_ab] = P_ab[d_ij.base];
 
-						Pij[g_ab] = lk_ab[d_ij.base];
-
-						_modelsToEstimate.addToRho(d_ij, _P_g_I_ds[i][g_ab], lk_ab);
+						_modelsToEstimate.addToRho(d_ij, _P_g_I_ds[i][g_ab], P_ab);
 					}
 				}
 			}
@@ -466,6 +459,7 @@ double TRecalibrationEMEstimator::_calculateLL_updatePi(const TPostMortemDamage 
 			}
 			LL += log(_genoDist->normalize(L));
 		} else { // known genotype.
+			ECHO("really happening");
 			_P_g_I_ds.emplace_back(0.); 
 			_P_g_I_ds.back()[s_i.genotype] = 1; // Probability of correct genotype is 1
 			double L = 1.;
@@ -484,6 +478,8 @@ void TRecalibrationEMEstimator::_runEM(const std::string &outputName, const TPos
 	using coretools::str::toString;
 	// run EM
 	logfile().startNumbering("Running EM algorithm:");
+	logfile().conclude("Initial rho: ",_modelsToEstimate.getRhoDefinition());
+	logfile().conclude("Initial model: ",_modelsToEstimate.getModelsDefinition());
 
 	// calculate initial LL
 	double oldLL = _calculateLL_updatePi(PmdModels);
