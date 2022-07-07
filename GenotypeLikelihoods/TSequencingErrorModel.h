@@ -60,7 +60,7 @@ public:
 
 	// functions used to estimate
 	void reset() noexcept { rho.fill({{0., 0., 0., 0.}}); }
-	void add(genometools::Base base, const TBaseLikelihoods &EMWeights) noexcept;
+	void add(genometools::Base base, coretools::Probability P_g_I_d, const TBaseLikelihoods &P_bbar_I_d) noexcept;
 	void estimate() noexcept;
 };
 
@@ -168,12 +168,12 @@ public:
 
 	// functions to estimate rho
 	void resetRho() noexcept;
-	void addToRho(const BAM::TSequencedBase &base, const TBaseLikelihoods &EMWeights) noexcept;
+	void addToRho(const BAM::TSequencedBase &data, coretools::Probability P_g_I_d, const TBaseLikelihoods &P_bbar_I_d) noexcept; 
 	void estimateRho() noexcept;
 
 	// functions to estimate betas
 	void resetQFJ() noexcept;
-	void addToQFJ(const BAM::TSequencedBase &base, coretools::Probability p_g_I_d, coretools::Probability p_bbar_I_gd);
+	void addToQFJ(const BAM::TSequencedBase &base, coretools::Probability P_g_I_d, coretools::Probability P_bbar_I_gd);
 	double curQ() const noexcept { return _Q; }
 	bool solveJxF();
 	void proposeNewParameters(double lambda);

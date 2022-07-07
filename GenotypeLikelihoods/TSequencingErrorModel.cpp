@@ -195,10 +195,9 @@ std::string TRho::getDefinition() const noexcept {
 		+ toString(rho[Base::T][Base::A]) + ',' + toString(rho[Base::T][Base::C]) + ',' + toString(rho[Base::T][Base::G]) + ",-";
 }
 
-void TRho::add(Base base, const TBaseLikelihoods &EMWeights) noexcept {
-	if (base == Base::T) OUT(EMWeights);
+void TRho::add(genometools::Base base, coretools::Probability P_g_I_d, const TBaseLikelihoods &P_bbar_I_d) noexcept {
 	for (auto b = Base::min; b < Base::max; ++b) {
-		rho[b][base] += EMWeights[b].get();
+		rho[b][base] += P_g_I_d*P_bbar_I_d[b];
 	}
 }
 
@@ -210,6 +209,7 @@ void TRho::estimate() noexcept {
 		for (const auto r : rho[a]) d += r;
 		for (auto &r : rho[a]) r /= d;
 	}
+	OUT(rho);
 }
 
 //*********************************************************
@@ -352,8 +352,8 @@ void TModelRecal::simulate(BAM::TSequencedBase &base) const noexcept {
 //-------------------------------------------------
 void TModelRecal::resetRho() noexcept { _rho.reset(); }
 
-void TModelRecal::addToRho(const BAM::TSequencedBase &base, const TBaseLikelihoods &EMWeights) noexcept {
-	_rho.add(base.base, EMWeights);
+void TModelRecal::addToRho(const BAM::TSequencedBase &data, coretools::Probability P_g_I_d, const TBaseLikelihoods &P_bbar_I_d) noexcept {
+	_rho.add(data.base, P_g_I_d, P_bbar_I_d);
 }
 
 void TModelRecal::estimateRho() noexcept { _rho.estimate(); }
@@ -379,16 +379,16 @@ void TModelRecal::resetQFJ() noexcept {
 	_Q    = 0.0;
 }
 
-void TModelRecal::addToQFJ(const BAM::TSequencedBase &base, Probability p_g_I_d, Probability p_bbar_I_gd) {
+void TModelRecal::addToQFJ(const BAM::TSequencedBase &base, Probability P_g_I_d, Probability P_bbar_I_gd) {
 	// get error rate
 	const double eps   = getErrorRate(base);
 	const double eps_c = 1. - eps;
 
 	// add Q
-	_Q += p_g_I_d * (p_bbar_I_gd * eps_c + p_bbar_I_gd.complement() * eps);
+	_Q += P_g_I_d * (P_bbar_I_gd * eps_c + P_bbar_I_gd.complement() * eps);
 
 	// F and J
-	const double w_ij = p_g_I_d * (eps_c - p_bbar_I_gd);
+	const double w_ij = P_g_I_d * (eps_c - P_bbar_I_gd);
 
 	std::vector<T1stDerivative> der1st;
 	std::vector<T2ndDerivative> der2nd;
@@ -456,7 +456,8 @@ bool TModelRecal::acceptProposedParametersBasedOnQ() {
 		_NRStepAccepted = true;
 		return true;
 	}
-	_NRStepAccepted = false;
+
+	// else
 	_Q              = _oldQ;
 	for (const auto f : _functions) f->rejectProposedParameters();
 

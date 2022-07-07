@@ -61,16 +61,16 @@ public:
 			   uint32_t MinRequiredObservations);
 
 	size_t size() const { return _models.size(); };
-	TBaseLikelihoods getBaseLikelihoods(const BAM::TSequencedBase &base) const;
+	TBaseLikelihoods getBaseLikelihoods(const BAM::TSequencedBase &data) const;
 
 	// functions to estimate rho
 	void resetRho();
-	void addToRho(const BAM::TSequencedBase &base, const TBaseLikelihoods &EMWeights);
+	void addToRho(const BAM::TSequencedBase &data, coretools::Probability P_g_I_d, const TBaseLikelihoods &P_bbar_I_d);
 	void estimateRho();
 
 	// functions to estimate beta
 	void resetQJF();
-	void addToQFJ(const BAM::TSequencedBase &base, coretools::Probability p_g_I_d, coretools::Probability p_bbar_I_gd);
+	void addToQFJ(const BAM::TSequencedBase &data, coretools::Probability P_g_I_d, coretools::Probability P_bbar_I_gd);
 	double curQ();
 	void solveJxF();
 	void proposeNewParameters(double lambda);
@@ -92,8 +92,8 @@ class TRecalibrationEMEstimator {
 private:
 	std::vector<TSite> _sites;
 	std::unique_ptr<TGenotypeDistribution> _genoDist;
-	std::vector<TGenotypeLikelihoods> _Pis;
-	std::vector<TGenotypeLikelihoods> _Pijs;
+	std::vector<TGenotypeLikelihoods> _P_g_I_ds;
+	std::vector<TGenotypeLikelihoods> _P_bbar_I_gds;
 	const BAM::TReadGroupMap *_readGroupMap;
 	const BAM::TReadGroups *_readGroups;
 

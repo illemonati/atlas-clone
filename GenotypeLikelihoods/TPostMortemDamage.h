@@ -156,7 +156,7 @@ public:
 class TPMDTypeNone final : public TPMDType {
 public:
 	static constexpr TBaseMassFunctions massFunctions{
-		{TBaseProbabilities{{1., 0., 0., 0.}}, {{0., 1., 0., 0.}}, {{0., 0., 1., 0.}}, {{0., 0., 1., 0.}}}};
+		{TBaseProbabilities{{1., 0., 0., 0.}}, {{0., 1., 0., 0.}}, {{0., 0., 1., 0.}}, {{0., 0., 0., 1.}}}};
 
 	static inline const std::string name = "none";
 	TPMDTypeNone()                       = default;
