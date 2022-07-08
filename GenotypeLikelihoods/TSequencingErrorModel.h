@@ -23,6 +23,7 @@
 #include "TSequencingErrorCovariateFunction.h"
 #include "TStrongArray.h"
 #include "probability.h"
+#include "devtools.h"
 
 namespace BAM {
 class TSequencedBase;
@@ -41,25 +42,27 @@ namespace SequencingError {
 //--------------------------------------------------------------------
 class TRho {
 private:
-	coretools::TStrongArray<coretools::TStrongArray<double, genometools::Base>, genometools::Base> rho{
+	coretools::TStrongArray<TBaseProbabilities, genometools::Base> _rho{
 		{coretools::TStrongArray<double, genometools::Base>{{0., 1. / 3, 1. / 3, 1. / 3}},
 		 coretools::TStrongArray<double, genometools::Base>{{1. / 3, 0., 1. / 3, 1. / 3}},
 		 coretools::TStrongArray<double, genometools::Base>{{1. / 3, 1. / 3, 0., 1. / 3}},
 		 coretools::TStrongArray<double, genometools::Base>{{1. / 3, 1. / 3, 1. / 3, 0.}}}}; //[from][to]
+
+	coretools::TStrongArray<coretools::TStrongArray<double, genometools::Base>, genometools::Base> _rhoSum{};
 public:
 	TRho() = default;
 	TRho(const std::string &def);
 	TRho(const TRho &other) = default;
 	TRho &operator=(const TRho &other) = default;
 
-	double operator()(genometools::Base from, const genometools::Base to) const noexcept {
-		return rho[from][to];
+
+	const TBaseProbabilities& operator[](genometools::Base from) const noexcept {
+		return _rho[from];
 	}
 	std::string getDefinition() const noexcept;
 
 	// functions used to estimate
-	void prepareEstimationFromEMWeights() noexcept { rho.fill({{0., 0., 0., 0.}}); }
-	void addBaseForEstimation(genometools::Base base, const TBaseLikelihoods &EMWeights) noexcept;
+	void add(genometools::Base base, coretools::Probability P_g_I_d, const TBaseProbabilities &P_bbar_I_d) noexcept;
 	void estimate() noexcept;
 };
 
@@ -166,13 +169,12 @@ public:
 	uint16_t numParameters() const noexcept { return _numParameters; }
 
 	// functions to estimate rho
-	void prepareRhoEstimationFromEMWeights() noexcept;
-	void addBaseForRhoEstimation(BAM::TSequencedBase &base, const TBaseLikelihoods &EMWeights) noexcept;
+	void addToRho(const BAM::TSequencedBase &data, coretools::Probability P_g_I_d, const TBaseProbabilities &P_bbar_I_d) noexcept; 
 	void estimateRho() noexcept;
 
 	// functions to estimate betas
-	void setQFJ_0() noexcept;
-	void addToQFJ(const BAM::TSequencedBase &base, coretools::Probability p_g_I_d, coretools::Probability p_bbar_I_gd);
+	void resetQFJ() noexcept;
+	void addToQFJ(const BAM::TSequencedBase &base, coretools::Probability P_g_I_d, coretools::Probability P_bbar_I_gd);
 	double curQ() const noexcept { return _Q; }
 	bool solveJxF();
 	void proposeNewParameters(double lambda);
