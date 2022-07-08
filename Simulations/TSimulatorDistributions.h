@@ -153,6 +153,33 @@ public:
 			       coretools::str::concatenateString(coretools::str::paste(_valueBins, _frequencies, ":"), ", "));
 	}
 };
+//------------------------------------------------
+// TSimulatorDistributionPois
+// Class of a Poisson distribution
+//------------------------------------------------
+template <typename valueType>
+class TSimulatorPoissonDistribution : public TSimulatorDistribution<valueType> {
+private:
+	double _lambda;
+
+public:
+	TSimulatorPoissonDistribution(std::string &s) {
+		const auto pos1 = s.find("(");
+		if (pos1 == 0) {
+			const auto pos2 = s.find(')');
+			if (pos2 != s.size() - 1)
+				throw "Failed to understand Poisson distribution '" + s + "'!";
+			_lambda = coretools::str::convertStringCheck<double>(s.substr(1, pos2 - 1));
+			} else {
+				throw "Failed to understand Poisson distribution '" + s + "'!";
+			}
+	}
+
+	valueType sample() const noexcept override 	{
+		return randomGenerator().getPoissonRandom(_lambda);
+	}
+
+};
 
 //------------------------------------------------
 // TSimulatorDistributionDiscretized
@@ -176,7 +203,7 @@ public:
 };
 
 //------------------------------------------------
-// TSimulatorQualityDistNormal
+// TSimulatorDistributionNormal
 // Class of a normal distribution
 //------------------------------------------------
 
@@ -261,6 +288,96 @@ public:
 	}
 };
 
+//------------------------------------------------
+// TSimulatorDistributionGamma
+// Class of a normal distribution
+//------------------------------------------------
+
+template <typename valueType>
+class TSimulatorDistributionGamma : public TSimulatorDistributionDiscretized<valueType> {
+protected:
+	double _meanLength = -1.;
+	double _alpha = -1.;
+	double _beta = -1.;
+	uint32_t _min = 0;
+	uint32_t _maxPlusOne = 1;
+
+	std::vector<valueType> _cumulDensity;
+
+	void parseFunctionString(std::string &s, double &param1, double &param2);
+	void initiate();
+
+public:
+	TSimulatorDistributionGamma::TSimulatorDistributionGamma(std::string &s) {
+		parseFunctionString(s, _alpha, _beta);
+		if (_alpha <= 0.0) throw "Shape parameter alpha must be > 0.0!";
+		if (_beta <= 0.0) throw "Rate parameter alpha must be > 0.0!";
+		initiate();
+	}
+
+	void TSimulatorDistributionGamma::parseFunctionString(std::string &s, double &param1, double &param2) {
+		std::string orig = s;
+
+		if (s[0] != '(') throw "Fail to understand function '" + orig + "': use format function(var1,var2)[min,max].";
+		s.erase(0, 1);
+
+		auto pos = s.find(",");
+		if (pos == std::string::npos)
+			throw "Fail to understand function '" + orig + "': use format function(var1,var2)[min,max].";
+		param1 = convertString<double>(s.substr(0, pos));
+
+		s.erase(0, pos + 1);
+
+		pos = s.find(")");
+		if (pos == std::string::npos)
+			throw "Fail to understand function '" + orig + "': use format function(var1,var2)[min,max].";
+		param2 = convertString<double>(s.substr(0, pos));
+		s.erase(0, pos + 1);
+
+		if (s[0] != '[') throw "Fail to understand function '" + orig + "': use format function(var1,var2)[min,max].";
+		s.erase(0, 1);
+		pos = s.find(",");
+		if (pos == std::string::npos)
+			throw "Fail to understand function '" + orig + "': use format function(var1,var2)[min,max].";
+		_min = convertString<double>(s.substr(0, pos));
+		if (_min <= 0) throw "Fail to understand function '" + orig + "': min read length must be > 0!";
+		s.erase(0, pos + 1);
+		pos = s.find("]");
+		if (pos == std::string::npos)
+			throw "Fail to understand function '" + orig + "': use format function(var1,var2)[min,max].";
+		_maxPlusOne = convertString<double>(s.substr(0, pos)) + 1;
+		if (_maxPlusOne < _min) throw "Fail to understand function '" + orig + "': max must be > min!";
+	}
+
+	void TSimulatorDistributionGamma::initiate() {
+		using namespace coretools::TGammaDistr;
+		// prepare storage
+		gammaDensity.resize(_maxPlusOne, 0.);
+		_gammaCumulDensity.resize(_maxPlusOne);
+		_positionProbs.resize(_maxPlusOne);
+
+		// 1) calc density and get weighted average
+		// first set all bins < _min to zero
+		double totalArea = 0.0;
+
+		// then calculate densities for all bins <_max
+		for (size_t i = _min; i < (_maxPlusOne - 1); ++i) {
+			_gammaDensity[i] = density(i, _alpha, _beta);
+			totalArea += _gammaDensity[i];
+		}
+
+		// add area >= max
+		_gammaDensity[_maxPlusOne - 1] =
+			1.0 - cumulativeDistrFunction(_maxPlusOne - 0.5, _alpha, _beta);
+		totalArea += _gammaDensity[_maxPlusOne - 1];
+
+		// normalize densities (needed because truncated at _min)
+		// also calc mean read length
+		_meanLength = 0;
+		for (uint32_t i = _min; i < _maxPlusOne; ++i) {
+			_gammaDensity[i] /= totalArea;
+			_meanLength += i * _gammaDensity[i];
+		}
 } // namespace Simulations
 
 #endif /* SIMULATIONS_TSIMULATORDISTRIBUTIONS_H_ */
