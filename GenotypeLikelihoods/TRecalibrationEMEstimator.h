@@ -114,10 +114,10 @@ private:
 	void _runEM(const std::string &outputName, const TPostMortemDamage &PmdModels);
 
 	// functions to estimate theta_epsilon (sequencing error rates)
-	void _estimateRho_updatePij(const TPostMortemDamage &PmdModels);
+	void _estimateRho_updatePbbar(const TPostMortemDamage &PmdModels);
 	double _calculateQ_updateJF();
 	void _updateEpsilon(const TPostMortemDamage &PmdModels);
-	double _calculateLL_updatePi(const TPostMortemDamage &PmdModels);
+	double _calculateLL_updatePg(const TPostMortemDamage &PmdModels);
 
 public:
 	TRecalibrationEMEstimator(const BAM::TReadGroups *ReadGroups, const BAM::TReadGroupMap *ReadGroupMap);

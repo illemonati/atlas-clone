@@ -375,7 +375,7 @@ void TModelRecal::addToQFJ(const BAM::TSequencedBase &base, Probability P_g_I_d,
 	const double eps_c = 1. - eps;
 
 	// add Q
-	_Q += P_g_I_d * (P_bbar_I_gd * eps_c + P_bbar_I_gd.complement() * eps);
+	_Q += P_g_I_d.get() * (P_bbar_I_gd.get() * eps_c + P_bbar_I_gd.complement().get() * eps);
 
 	// F and J
 	const double w_ij = P_g_I_d * (eps_c - P_bbar_I_gd);
@@ -387,7 +387,7 @@ void TModelRecal::addToQFJ(const BAM::TSequencedBase &base, Probability P_g_I_d,
 	for (const auto & cov: _covariates) {
 		for (size_t i = 0; i < cov.function->numNonZeroFirstDerivatives(); ++i) {
 			der1st.push_back(cov.function->get1stDerivatives(cov.covariate->extract(base), i));
-			for (size_t j = i+1; j < cov.function->numNonZeroSecondDerivatives(); ++j) {
+			for (size_t j = i; j < cov.function->numNonZeroSecondDerivatives(); ++j) {
 				der2nd.push_back(cov.function->get2ndDerivatives(cov.covariate->extract(base), i, j));
 			}
 		}
@@ -424,9 +424,6 @@ bool TModelRecal::solveJxF() {
 	_Jacobian = _Jacobian / (double)_numSitesAdded;
 	_F        = _F / (double)_numSitesAdded;
 
-	OUT(_Jacobian);
-	OUT(_F);
-
 	// now solve J^-1 x F
 	return solve(_JxF, _Jacobian, _F);
 }
@@ -457,7 +454,7 @@ void TModelRecal::adjustParametersPostEstimation() {
 }
 
 double TModelRecal::getSteepestGradient() const noexcept {
-	if (_NRStepAccepted) return 0.0;
+	if (!_NRStepAccepted) return 0.0;
 	double maxF = 0.0;
 	for (unsigned int i = 0; i < numParameters(); ++i) maxF = std::max(maxF, fabs(_F(i)));
 	return maxF;

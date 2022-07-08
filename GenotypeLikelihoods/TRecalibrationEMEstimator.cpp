@@ -154,8 +154,7 @@ void TModelVectorForEstimation::adjustParametersPostEstimation() {
 double TModelVectorForEstimation::getSteepestGradient() {
 	double maxF = 0.0;
 	for (auto &model : _models) {
-		double tmp = model->getSteepestGradient();
-		if (fabs(tmp) > maxF) maxF = fabs(tmp);
+		maxF = std::max(maxF, model->getSteepestGradient());
 	}
 	return maxF;
 };
@@ -303,7 +302,7 @@ void TRecalibrationEMEstimator::performEstimation(const std::string &outputName,
 	logfile().done();
 };
 
-void TRecalibrationEMEstimator::_estimateRho_updatePij(const TPostMortemDamage &PmdModels) {
+void TRecalibrationEMEstimator::_estimateRho_updatePbbar(const TPostMortemDamage &PmdModels) {
 	using genometools::genotype;
 	_P_bbar_I_gds.clear();
 	for (size_t i = 0; i < _sites.size(); ++i) {
@@ -367,7 +366,7 @@ void TRecalibrationEMEstimator::_updateEpsilon(const TPostMortemDamage &PmdModel
 	// 2) update rho
 	//-------------------------
 	logfile().listFlushDots("Updating rho");
-	_estimateRho_updatePij(PmdModels);
+	_estimateRho_updatePbbar(PmdModels);
 	logfile().done();
 	logfile().conclude("rho = ", _modelsToEstimate.getRhoDefinition());
 
@@ -408,9 +407,8 @@ void TRecalibrationEMEstimator::_updateEpsilon(const TPostMortemDamage &PmdModel
 
 			// check if we accept or backtrack
 			const auto numUpdatedModels_old = nUpdated;
-			nUpdated                = _modelsToEstimate.acceptProposedParametersBasedOnQ();
-			logfile().write(toString(nUpdated) + "/" + toString(nTot) +
-			                " models converged.");
+			nUpdated                        = _modelsToEstimate.acceptProposedParametersBasedOnQ();
+			logfile().write(toString(nUpdated) + "/" + toString(nTot) + " models converged.");
 
 			logfile().conclude("Model = ", pModels);
 			logfile().conclude("Q_beta = ", Q);
@@ -433,7 +431,7 @@ void TRecalibrationEMEstimator::_updateEpsilon(const TPostMortemDamage &PmdModel
 		_modelsToEstimate.adjustParametersPostEstimation();
 
 		// d) get largest gradient (F) to check if we break NR optimization
-		double maxF = _modelsToEstimate.getSteepestGradient();
+		const double maxF = _modelsToEstimate.getSteepestGradient();
 		logfile().conclude("max(F) = " + toString(maxF));
 		logfile().endIndent();
 		if (maxF < _NewtonRaphsonMaxF || nUpdated == 0) break;
@@ -444,7 +442,7 @@ void TRecalibrationEMEstimator::_updateEpsilon(const TPostMortemDamage &PmdModel
 	logfile().endIndent();
 };
 
-double TRecalibrationEMEstimator::_calculateLL_updatePi(const TPostMortemDamage &PmdModels) {
+double TRecalibrationEMEstimator::_calculateLL_updatePg(const TPostMortemDamage &PmdModels) {
 	_P_g_I_ds.clear();
 
 	double LL = 0.0;
@@ -459,7 +457,6 @@ double TRecalibrationEMEstimator::_calculateLL_updatePi(const TPostMortemDamage 
 			}
 			LL += log(_genoDist->normalize(L));
 		} else { // known genotype.
-			ECHO("really happening");
 			_P_g_I_ds.emplace_back(0.); 
 			_P_g_I_ds.back()[s_i.genotype] = 1; // Probability of correct genotype is 1
 			double L = 1.;
@@ -482,7 +479,7 @@ void TRecalibrationEMEstimator::_runEM(const std::string &outputName, const TPos
 	logfile().conclude("Initial model: ",_modelsToEstimate.getModelsDefinition());
 
 	// calculate initial LL
-	double oldLL = _calculateLL_updatePi(PmdModels);
+	double oldLL = _calculateLL_updatePg(PmdModels);
 	logfile().conclude("Initial log Likelihood = " + toString(oldLL));
 
 	// running iterations
@@ -494,7 +491,7 @@ void TRecalibrationEMEstimator::_runEM(const std::string &outputName, const TPos
 		_updateEpsilon(PmdModels);
 
 		// calculate LL
-		const double LL = _calculateLL_updatePi(PmdModels);
+		const double LL = _calculateLL_updatePg(PmdModels);
 		logfile().conclude("Current Log Likelihood = " + toString(LL));
 
 		// check if we break based on LL
