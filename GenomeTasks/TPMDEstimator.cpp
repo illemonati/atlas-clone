@@ -65,11 +65,10 @@ TPMDEstimator::TPMDEstimator(): TGenome_parsed() {
 };
 
 void TPMDEstimator::_handleAlignment(){
-	uint32_t d = 0;
-	for(auto& b : _alignment){
-		genometools::Base ref = _alignment.referenceAtInternalPos(d);
+	for (size_t d = 0; d < _alignment.size(); ++d) {
+		const auto &b               = _alignment[d];
+		const genometools::Base ref = _alignment.referenceAtInternalPos(d);
 		_pmdTables.add(b, ref);
-		++d;
 	}
 };
 

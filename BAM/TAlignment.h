@@ -142,16 +142,19 @@ public:
 
 	std::string sequence() const;
 	std::string qualities() const;
-	bool isEmpty() const { return _empty; };
-	bool isParsed() const { return _parsed; };
-	bool isReverseStrand() const { return _flags.isReverseStrand(); };
-	bool isPaired() const { return _flags.isPaired(); };
-	bool isProperPair() const { return _flags.isProperPair(); };
-	bool isSecondMate() const { return _flags.isSecondMate(); };
+	bool isEmpty() const noexcept { return _empty; };
+	bool isParsed() const noexcept { return _parsed; };
+	bool isReverseStrand() const noexcept { return _flags.isReverseStrand(); };
+	bool isPaired() const noexcept { return _flags.isPaired(); };
+	bool isProperPair() const noexcept { return _flags.isProperPair(); };
+	bool isSecondMate() const noexcept { return _flags.isSecondMate(); };
 
 	//looping
-	std::vector<TSequencedBase>::iterator begin(){ return _bases.begin(); };
-	std::vector<TSequencedBase>::iterator end(){ return _bases.end(); };
+	std::vector<TSequencedBase>::iterator begin() noexcept { return _bases.begin(); };
+	std::vector<TSequencedBase>::iterator end()noexcept { return _bases.end(); };
+	std::vector<TSequencedBase>::const_iterator begin() const { return _bases.begin(); };
+	std::vector<TSequencedBase>::const_iterator end()const { return _bases.end(); };
+	size_t size() const noexcept {return _bases.size();}
 
 	//filters and other functions to modify data
 	void filter(const TBaseFilter & Filter);
