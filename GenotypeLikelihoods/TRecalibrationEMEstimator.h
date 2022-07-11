@@ -22,6 +22,7 @@
 #include "TGenotypeLikelihoodCalculator.h"
 #include "TReadGroups.h"
 #include "TSite.h"
+#include "probability.h"
 
 namespace BAM {
 class TSequencedBase;
@@ -60,18 +61,15 @@ public:
 			   uint32_t MinRequiredObservations);
 
 	size_t size() const { return _models.size(); };
-	TBaseLikelihoods getBaseLikelihoods(const BAM::TSequencedBase &base) const;
+	TBaseLikelihoods getBaseLikelihoods(const BAM::TSequencedBase &data) const;
 
 	// functions to estimate rho
-	void prepareRhoEstimationFromEMWeights();
-	void addBaseForRhoEstimation(BAM::TSequencedBase &base, const TBaseLikelihoods &EMWeights);
+	void addToRho(const BAM::TSequencedBase &data, coretools::Probability P_g_I_d, const TBaseProbabilities &P_bbar_I_d);
 	void estimateRho();
 
 	// functions to estimate beta
-	void setNewtonRaphsonParamsToZero();
-	void addToFandJacobian(const BAM::TSequencedBase &base, const TBaseLikelihoods &EM_weights_bbar_given_d);
-	void addToQ(const BAM::TSequencedBase &base, const TBaseLikelihoods &EM_weights_bbar_given_d);
-	void setQToZero();
+	void resetQJF();
+	void addToQFJ(const BAM::TSequencedBase &data, coretools::Probability P_g_I_d, coretools::Probability P_bbar_I_gd);
 	double curQ();
 	void solveJxF();
 	void proposeNewParameters(double lambda);
@@ -83,6 +81,7 @@ public:
 	void writeRecalFile(const BAM::TReadGroups &ReadGroups, const std::string & Filename) const;
 
 	std::string getModelsDefinition();
+	std::string getRhoDefinition();
 };
 
 //--------------------------------------------------------------------
@@ -92,11 +91,11 @@ class TRecalibrationEMEstimator {
 private:
 	std::vector<TSite> _sites;
 	std::unique_ptr<TGenotypeDistribution> _genoDist;
-	std::vector<TGenotypeLikelihoods> _P_g_I_d;
+	std::vector<TGenotypeLikelihoods> _P_g_I_ds;
+	std::vector<TGenotypeLikelihoods> _P_bbar_I_gds;
 	const BAM::TReadGroupMap *_readGroupMap;
 	const BAM::TReadGroups *_readGroups;
 
-	//TGenotypeLikelihoodCalculator_simple _genotypeLikelihoodCalculator;
 	TModelVectorForEstimation _modelsToEstimate;
 	RecalEstimatorTools::TRecalDataTables _dataTables;
 
@@ -115,11 +114,10 @@ private:
 	void _runEM(const std::string &outputName, const TPostMortemDamage &PmdModels);
 
 	// functions to estimate theta_epsilon (sequencing error rates)
-	void _updateRho(const TPostMortemDamage &PmdModels);
-	double _calculate_Q_beta();
-	void _calculate_J_F_beta();
-	void _updateEM_theta_epsilon(const TPostMortemDamage &PmdModels);
-	double _calculate_LL_updateWeights(const TPostMortemDamage &PmdModels);
+	void _estimateRho_updatePij(const TPostMortemDamage &PmdModels);
+	double _calculateQ_updateJF();
+	void _updateEpsilon(const TPostMortemDamage &PmdModels);
+	double _calculateLL_updatePi(const TPostMortemDamage &PmdModels);
 
 public:
 	TRecalibrationEMEstimator(const BAM::TReadGroups *ReadGroups, const BAM::TReadGroupMap *ReadGroupMap);
@@ -133,8 +131,6 @@ public:
 
 	void writeCurrentEstimates(const std::string &filename);
 	double calcLL();
-	void calcLikelihoodSurface(const std::string &filename, int numMarginalGridPoints);
-	void calcQSurface(const std::string &filename, int numMarginalGridPoints);
 };
 
 }; // namespace SequencingError

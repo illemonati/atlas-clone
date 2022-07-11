@@ -176,38 +176,32 @@ TRho::TRho(const std::string &def) {
 		if (r.size() != 4)
 			throw "Rho matrix has " + toString(r.size()) + " instead of 4 columns for row " + toString(index(a) + 1) + "!";
 
-		// fill
-		for (Base b = Base::min; b < Base::max; ++b) {
-			if (a == b) {
-				rho[a][b] = 0.0;
-			} else {
-				rho[a][b] = r[index(b)];
-			}
-		}
+		r[index(a)] = 0.;
+		_rho[a]     = r;
 	}
 }
 
 std::string TRho::getDefinition() const noexcept {
 	using coretools::str::toString;
-	return "-,"s + toString(rho[Base::A][Base::C]) + ',' + toString(rho[Base::A][Base::G]) + ',' + toString(rho[Base::A][Base::T]) + ';'
-		+ toString(rho[Base::C][Base::A]) + "-," + toString(rho[Base::C][Base::G]) + toString(rho[Base::C][Base::T]) + ';'
-		+ toString(rho[Base::G][Base::A]) + ',' + toString(rho[Base::G][Base::C]) + "-," + toString(rho[Base::G][Base::T]) + ';'
-		+ toString(rho[Base::T][Base::A]) + ',' + toString(rho[Base::T][Base::C]) + ',' + toString(rho[Base::T][Base::G]) + '-';
+	return "-,"s + toString(_rho[Base::A][Base::C]) + ',' + toString(_rho[Base::A][Base::G]) + ',' + toString(_rho[Base::A][Base::T]) + ';'
+		+ toString(_rho[Base::C][Base::A]) + ",-," + toString(_rho[Base::C][Base::G]) + toString(_rho[Base::C][Base::T]) + ';'
+		+ toString(_rho[Base::G][Base::A]) + ',' + toString(_rho[Base::G][Base::C]) + ",-," + toString(_rho[Base::G][Base::T]) + ';'
+		+ toString(_rho[Base::T][Base::A]) + ',' + toString(_rho[Base::T][Base::C]) + ',' + toString(_rho[Base::T][Base::G]) + ",-";
 }
 
-void TRho::addBaseForEstimation(Base base, const TBaseLikelihoods &EMWeights) noexcept {
+void TRho::add(genometools::Base base, coretools::Probability P_g_I_d, const TBaseProbabilities &P_bbar_I_d) noexcept {
 	for (auto b = Base::min; b < Base::max; ++b) {
-		rho[b][base] += EMWeights[b].get();
+		_rhoSum[b][base] += P_g_I_d*P_bbar_I_d[b];
 	}
 }
 
 void TRho::estimate() noexcept {
 	for (Base a = Base::min; a < Base::max; ++a) {
-		rho[a][a] = 0.0;
-		double d  = 0.;
-		for (const auto r : rho[a]) d += r;
-		for (auto &r : rho[a]) r /= d;
+		_rhoSum[a][a] = 0.0;
+		_rho[a] = _rhoSum[a];
 	}
+	// reset
+	_rhoSum.fill({});
 }
 
 //*********************************************************
@@ -270,7 +264,9 @@ TModelRecal::TModelRecal(const TModelDefinition &modelDef) : _rho(modelDef.rho),
 	}
 
 	// prepare Newton-Raphson variables
-	setNewtonRaphsonParamsToZero();
+	_Jacobian.resize(numParameters(), numParameters());
+	_F.resize(numParameters());
+	_JxF.resize(numParameters(), 1);
 }
 
 TModelDefinition TModelRecal::getModelDefinition() const {
@@ -321,7 +317,7 @@ TBaseLikelihoods TModelRecal::getBaseLikelihoods(const BAM::TSequencedBase &base
 	}
 	const auto e = _calcErrorRate(base);
 	TBaseLikelihoods baseLikelihoods;
-	for (auto b = Base::min; b < Base::max; ++b) baseLikelihoods[b] = e * _rho(b, base.base);
+	for (auto b = Base::min; b < Base::max; ++b) baseLikelihoods[b] = e * _rho[b][base.base];
 	baseLikelihoods[base.base] = e.complement();
 	return baseLikelihoods;
 }
@@ -334,7 +330,7 @@ void TModelRecal::simulate(BAM::TSequencedBase &base) const noexcept {
 		const double r = randomGenerator().getRand();
 		double cumul   = 0.;
 		for (auto b = Base::min; b < Base::max; ++b) {
-			cumul += _rho(b, base.base); //_rho(base.base, base.base) = 0
+			cumul += _rho[b][base.base]; //_rho(base.base, base.base) = 0
 			if (r < cumul) {
 				base.base = b;
 				return;
@@ -346,10 +342,8 @@ void TModelRecal::simulate(BAM::TSequencedBase &base) const noexcept {
 //-------------------------------------------------
 // functions to estimate rho
 //-------------------------------------------------
-void TModelRecal::prepareRhoEstimationFromEMWeights() noexcept { _rho.prepareEstimationFromEMWeights(); }
-
-void TModelRecal::addBaseForRhoEstimation(BAM::TSequencedBase &base, const TBaseLikelihoods &EMWeights) noexcept {
-	_rho.addBaseForEstimation(base.base, EMWeights);
+void TModelRecal::addToRho(const BAM::TSequencedBase &data, coretools::Probability P_g_I_d, const TBaseProbabilities &P_bbar_I_d) noexcept {
+	_rho.add(data.base, P_g_I_d, P_bbar_I_d);
 }
 
 void TModelRecal::estimateRho() noexcept { _rho.estimate(); }
@@ -366,108 +360,72 @@ void TModelRecal::checkOrInit(const RecalEstimatorTools::TRecalDataTable &DataTa
 	}
 }
 
-void TModelRecal::setNewtonRaphsonParamsToZero() {
-	_Jacobian.resize(numParameters(), numParameters());
-	_F.resize(numParameters());
-	_JxF.resize(numParameters(), 1);
-
+void TModelRecal::resetQFJ() noexcept {
 	_Jacobian.zeros();
 	_F.zeros();
-
 	_numSitesAdded  = 0;
-	_NRconverged    = false;
 	_NRStepAccepted = false;
+	_oldQ = _Q;
+	_Q    = 0.0;
 }
 
-void TModelRecal::setQToZero() noexcept {
-	if (!_NRconverged) {
-		_oldQ = _Q;
-		_Q    = 0.0;
-		OUT(_oldQ);
-		OUT(_Q);
-	}
-}
+void TModelRecal::addToQFJ(const BAM::TSequencedBase &base, Probability P_g_I_d, Probability P_bbar_I_gd) {
+	// get error rate
+	const double eps   = getErrorRate(base);
+	const double eps_c = 1. - eps;
 
-void TModelRecal::addToQ(const BAM::TSequencedBase &base, const TBaseLikelihoods &EM_weights_bbar_given_d) {
-	if (!_NRconverged) {
-		// get error rate
-		const auto eps = getErrorRate(base);
-		// calculate sum_bbar [ Ind(bbar=d)log(1-eps) + Ind(bbar!=d)log(eps) ]
-		_Q += EM_weights_bbar_given_d[base.base].get() * log(eps.complement().get()) +
-		      EM_weights_bbar_given_d[base.base].complement().get() * log(eps.get());
-	}
-}
+	// add Q
+	_Q += P_g_I_d * (P_bbar_I_gd * eps_c + P_bbar_I_gd.complement() * eps);
 
-void TModelRecal::addToFandJacobian(const BAM::TSequencedBase &base, const TBaseLikelihoods &EM_weights_bbar_given_d) {
-	const auto eps = getErrorRate(base).get();
-	// page 10 of grant: const auto w = (1 - EM_weights_bbar_given_d[base.base].get()) * (1 - eps) - EM_weights_bbar_given_d[base.base].get()*eps;
-	const auto weight1 = 1.0 - eps - EM_weights_bbar_given_d[base.base].get();
-	const auto weight2 = (1.0 - eps) * eps;
-
-	OUT(numParameters());
-	OUT(EM_weights_bbar_given_d[base.base]);
-	OUT(eps);
-	OUT(weight1);
-	OUT(std::log10(weight1));
-	OUT(weight2);
+	// F and J
+	const double w_ij = P_g_I_d * (eps_c - P_bbar_I_gd);
 
 	std::vector<T1stDerivative> der1st;
 	std::vector<T2ndDerivative> der2nd;
 	der1st.push_back(_intercept.get1stDerivatives());
-	OUT(_intercept.getEtaTerm());
-	OUT(der1st.back().derivative);
 
 	for (const auto & cov: _covariates) {
 		for (size_t i = 0; i < cov.function->numNonZeroFirstDerivatives(); ++i) {
 			der1st.push_back(cov.function->get1stDerivatives(cov.covariate->extract(base), i));
-			OUT(cov.covariate->extract(base));
-			OUT(cov.function->getEtaTerm(cov.covariate->extract(base)));
-			OUT(der1st.back().derivative);
 			for (size_t j = i+1; j < cov.function->numNonZeroSecondDerivatives(); ++j) {
 				der2nd.push_back(cov.function->get2ndDerivatives(cov.covariate->extract(base), i, j));
-				OUT(der2nd.back().derivative);
 			}
 		}
 	}
 
 	// add first derivatives
-	for (auto d1 = der1st.begin(); d1 != der1st.end(); ++d1) {
+	for (auto dm = der1st.begin(); dm != der1st.end(); ++dm) {
 		// add to F
-		_F(d1->index) += weight1 * d1->derivative;
+		_F(dm->index) += w_ij * dm->derivative;
 
 		// add to J
-		for (auto d2 = d1; d2 != der1st.end(); ++d2) {
-			_Jacobian(d1->index, d2->index) += weight2 * d1->derivative * d2->derivative;
+		for (auto dn = dm; dn != der1st.end(); ++dn) {
+			_Jacobian(dm->index, dn->index) -= eps_c * eps * dm->derivative * dn->derivative;
 		}
 	}
 
 	// add second derivatives to Jacobian (happens to have the same weigth as F!)
-	for (auto &it : der2nd) _Jacobian(it.index1, it.index2) += weight1 * it.derivative;
+	for (auto &dmn : der2nd) _Jacobian(dmn.index1, dmn.index2) += w_ij * dmn.derivative;
 
 	++_numSitesAdded;
 }
 
-bool TModelRecal::solveJxF() {
-	if (_NRconverged) return true;
 
+bool TModelRecal::solveJxF() {
 	// Need to copy numbers to other triangle in Jacobian, as only upper triangle is filled when parsing sites
 	for (int i = 0; i < (numParameters() - 1); ++i) {
 		for (unsigned int j = i + 1; j < numParameters(); ++j) {
-			OUT(_Jacobian(j, i));
 			// copy from upper triangle to lower triangle
 			_Jacobian(j, i) = _Jacobian(i, j);
 		}
-		OUT(_F(i));
 	}
-
-	OUT(_numSitesAdded);
 
 	// scale F and J by 1/#sites
 	_Jacobian = _Jacobian / (double)_numSitesAdded;
 	_F        = _F / (double)_numSitesAdded;
 
-	//OUT(_Jacobian);
-	//OUT(_F);
+	OUT(_Jacobian);
+	OUT(_F);
 
 	// now solve J^-1 x F
 	return solve(_JxF, _Jacobian, _F);
@@ -486,7 +444,8 @@ bool TModelRecal::acceptProposedParametersBasedOnQ() {
 		_NRStepAccepted = true;
 		return true;
 	}
-	_NRStepAccepted = false;
+
+	// else
 	_Q              = _oldQ;
 	for (const auto f : _functions) f->rejectProposedParameters();
 
