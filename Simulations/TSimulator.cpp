@@ -397,6 +397,7 @@ void TBAMSimulator::_initializePMD(const std::string &ParameterName, const std::
 
 	if (parameters().parameterExists(ParameterName)) {
 		const auto pmdString = parameters().getParameter<std::string>(ParameterName);
+		logfile().list("Will use '", pmdString, "' for all read groups.");
 		std::vector<uint16_t> ReadGroupsWithoutPMD;
 		_PMD.initialize(pmdString, _readGroups, ReadGroupsWithoutPMD);
 
@@ -415,6 +416,7 @@ void TBAMSimulator::_initializeQualityTransformations(const std::string &Paramet
 		const std::string rhoString = parameters().getParameterWithDefault<std::string>("rho", "default");
 		const auto recalString = parameters().getParameter<std::string>(ParameterName);
 		_recal.initialize(recalString, rhoString, _readGroups);
+		logfile().list("Will use '", recalString, "' for all read groups.");
 
 		// add recal to simulators
 		for (size_t r = 0; r < _readSimulators.size(); ++r) {
