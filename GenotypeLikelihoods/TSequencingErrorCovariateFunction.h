@@ -200,8 +200,7 @@ public:
 	T1stDerivative get1stDerivatives(uint16_t val, size_t i) const noexcept override {
 		const double v = _getAsDouble(val);
 		if constexpr (O == 1) { return {firstParameterIndex(), v}; }
-		const int exp = i + 1;
-		return {firstParameterIndex() + i, std::pow(v, exp)};
+		else return {firstParameterIndex() + i, coretools::uPow(v, i + 1)};
 	}
 
 	T2ndDerivative get2ndDerivatives(uint16_t, size_t, size_t) const noexcept override {

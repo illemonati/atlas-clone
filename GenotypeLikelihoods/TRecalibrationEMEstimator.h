@@ -68,8 +68,8 @@ public:
 	void estimateRho();
 
 	// functions to estimate beta
-	void resetQJF();
-	void addToQFJ(const BAM::TSequencedBase &data, coretools::Probability P_g_I_d, coretools::Probability P_bbar_I_gd);
+	void resetQ();
+	void addToQFJ(const BAM::TSequencedBase &data, coretools::Probability P_g_I_d, coretools::Probability P_bbar_I_gd, bool updateJF = false);
 	double curQ();
 	void solveJxF();
 	void proposeNewParameters(double lambda);
@@ -115,7 +115,7 @@ private:
 
 	// functions to estimate theta_epsilon (sequencing error rates)
 	void _estimateRho_updatePbbar(const TPostMortemDamage &PmdModels);
-	double _calculateQ_updateJF();
+	double _calculateQ_updateJF(bool updateJF=false);
 	void _updateEpsilon(const TPostMortemDamage &PmdModels);
 	double _calculateLL_updatePg(const TPostMortemDamage &PmdModels);
 

@@ -114,15 +114,12 @@ void TModelVectorForEstimation::estimateRho() {
 
 // functions to estimate beta
 //-------------------------------------------------------------------
+void TModelVectorForEstimation::resetQ() {
+	for (auto &m : _models) m->resetQ();
+}
 
-void TModelVectorForEstimation::addToQFJ(const BAM::TSequencedBase &data, coretools::Probability P_g_I_d, coretools::Probability P_bbar_I_gd) {
-		_modelIndex[data.readGroupID][data.isSecondMate()]->addToQFJ(data, P_g_I_d, P_bbar_I_gd);
-};
-
-void TModelVectorForEstimation::resetQJF() {
-	for (auto &model : _models) {
-		model->resetQFJ();
-	}
+void TModelVectorForEstimation::addToQFJ(const BAM::TSequencedBase &data, coretools::Probability P_g_I_d, coretools::Probability P_bbar_I_gd, bool updateJF) {
+	_modelIndex[data.readGroupID][data.isSecondMate()]->addToQFJ(data, P_g_I_d, P_bbar_I_gd, updateJF);
 };
 
 double TModelVectorForEstimation::curQ() {
@@ -131,9 +128,7 @@ double TModelVectorForEstimation::curQ() {
 
 void TModelVectorForEstimation::solveJxF() {
 	for (auto &model : _models) {
-		if (!model->solveJxF()) {
-			UERROR("Issue solving JxF! This may be due to a lack of data. Consider adding more sites. Jacobian: ");
-		}
+		model->solveJxF();
 	}
 };
 
@@ -154,7 +149,7 @@ void TModelVectorForEstimation::adjustParametersPostEstimation() {
 double TModelVectorForEstimation::getSteepestGradient() {
 	double maxF = 0.0;
 	for (auto &model : _models) {
-		maxF = std::max(maxF, model->getSteepestGradient());
+		maxF = std::max(maxF, model->maxF());
 	}
 	return maxF;
 };
@@ -332,9 +327,8 @@ void TRecalibrationEMEstimator::_estimateRho_updatePbbar(const TPostMortemDamage
 	_modelsToEstimate.estimateRho();
 }
 
-double TRecalibrationEMEstimator::_calculateQ_updateJF() {
-	_modelsToEstimate.resetQJF();
-
+double TRecalibrationEMEstimator::_calculateQ_updateJF(bool updateJF) {
+	_modelsToEstimate.resetQ();
 	size_t ij = 0;
 	for (size_t i = 0; i < _sites.size(); ++i) {
 		const auto& Pi = _P_g_I_ds[i];
@@ -342,11 +336,11 @@ double TRecalibrationEMEstimator::_calculateQ_updateJF() {
 			const auto &Pij = _P_bbar_I_gds[ij++];
 			for (auto a = Base::min; a < Base::max; ++a) {
 				const auto g_aa = genometools::genotype(a, a);
-				_modelsToEstimate.addToQFJ(d_ij, Pi[g_aa], Pij[g_aa]);
+				_modelsToEstimate.addToQFJ(d_ij, Pi[g_aa], Pij[g_aa], updateJF);
 				if (!_genoDist->isInvariant()) {
 					for (auto b = genometools::next(a); b < Base::max; ++b) {
 						const auto g_ab = genometools::genotype(a, b);
-						_modelsToEstimate.addToQFJ(d_ij, Pi[g_ab], Pij[g_ab]);
+						_modelsToEstimate.addToQFJ(d_ij, Pi[g_ab], Pij[g_ab], updateJF);
 					}
 				}
 			}
@@ -361,83 +355,54 @@ void TRecalibrationEMEstimator::_updateEpsilon(const TPostMortemDamage &PmdModel
 	using coretools::str::toString;
 	logfile().startIndent("Updating sequencing error models (theta_epsilon):");
 
-	// 1) Weights are calculated during LL calculation
-
-	// 2) update rho
-	//-------------------------
 	logfile().listFlushDots("Updating rho");
 	_estimateRho_updatePbbar(PmdModels);
-	logfile().done();
-	logfile().conclude("rho = ", _modelsToEstimate.getRhoDefinition());
+	logfile().write(_modelsToEstimate.getRhoDefinition());
 
-	// 3) Calculate Q_beta at current location
-	//-------------------------
-	logfile().listFlushDots("Calculating Q_beta at current location");
-	const double curQ = _calculateQ_updateJF();
-	logfile().done();
-	logfile().conclude("Q_beta = ", curQ);
+	logfile().startIndent("Updating epsilon:");
 
-	// 4) Use Newton-Raphson to optimize
-	//-------------------------
 	logfile().startIndent("Optimizing Q_beta using a Newton-Raphson algorithm:");
 
 	const auto nTot = _modelsToEstimate.size();
 
 	for (int i = 0; i < _NewtonRaphsonNumIterations; ++i) {
+		const double curQ = _calculateQ_updateJF(true);
+		logfile().list("Current Q_beta = ", curQ);
 		logfile().startIndent("Running Newton-Raphson iteration " + toString(i + 1) + ":");
 
-		// a) fill Jacobin and F
-		logfile().listFlush("Calculating Jacobian and gradient ...");
 		_modelsToEstimate.solveJxF();
-		logfile().done();
 
-		// b) update parameters using backtracking
 		double lambda   = 1.0;
-		int log2_lambda = 0;
 		size_t nUpdated = 0;
 
 		while (nUpdated < nTot && lambda > 1.0E-20) {
-			// propose move
-			logfile().listFlush("Proposing move with log2(lambda) = " + toString(log2_lambda) + " ... ");
 			_modelsToEstimate.proposeNewParameters(lambda);
-			const auto pModels = _modelsToEstimate.getModelsDefinition();
+			logfile().listFlushDots("Proposing model ", _modelsToEstimate.getModelsDefinition());
 
-			// calculate Q at new location
 			const double Q = _calculateQ_updateJF();
+			nUpdated = _modelsToEstimate.acceptProposedParametersBasedOnQ();
 
-			// check if we accept or backtrack
-			const auto numUpdatedModels_old = nUpdated;
-			nUpdated                        = _modelsToEstimate.acceptProposedParametersBasedOnQ();
 			logfile().write(toString(nUpdated) + "/" + toString(nTot) + " models converged.");
-
-			logfile().conclude("Model = ", pModels);
-			logfile().conclude("Q_beta = ", Q);
-
-			if (nUpdated > numUpdatedModels_old) {
-				logfile().conclude("Q_beta was increased from " + toString(curQ) + " to " + toString(Q));
-			}
+			logfile().conclude("Delta Q = ", Q - curQ);
 
 			// backtrack
 			lambda = lambda / 2.0; // backtrack;
-			--log2_lambda;
 		}
+		logfile().endIndent();
 
-		if (nUpdated < nTot) {
-			logfile().conclude("Some models did not improve even with log2(lambda) = " + toString(log2_lambda) +
-							   ", aborting Newton-Raphson.");
-		}
-
-		// c) adjust parameters post estimation
 		_modelsToEstimate.adjustParametersPostEstimation();
 
-		// d) get largest gradient (F) to check if we break NR optimization
+		if (nUpdated < nTot) {
+			logfile().conclude("Some models did not improve even with log2(lambda) = " + toString(std::log2(lambda)) +
+							   ", aborting Newton-Raphson.");
+			break;
+		}
+
 		const double maxF = _modelsToEstimate.getSteepestGradient();
 		logfile().conclude("max(F) = " + toString(maxF));
-		logfile().endIndent();
-		if (maxF < _NewtonRaphsonMaxF || nUpdated == 0) break;
-
-		logfile().endIndent();
+		if (maxF < _NewtonRaphsonMaxF) break;
 	}
+	logfile().endIndent();
 	logfile().endIndent();
 	logfile().endIndent();
 };
