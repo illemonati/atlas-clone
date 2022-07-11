@@ -27,7 +27,7 @@ using coretools::str::convertString;
 //---------------------------------------------------------
 // TReadLengthDistribution
 //---------------------------------------------------------
-TReadLengthDistribution::TReadLengthDistribution(std::string &s) {
+TFragmentLengthDistribution::TFragmentLengthDistribution(std::string &s) {
 
 	// expect string (x) -> remov ( and )!
 	s.erase(0, 1);
@@ -38,7 +38,7 @@ TReadLengthDistribution::TReadLengthDistribution(std::string &s) {
 	_positionProbs.resize(_meanLength, 1./_meanLength);
 }
 
-void TReadLengthDistribution::printDetails() {
+void TFragmentLengthDistribution::printDetails() {
 	logfile().list("Reads of fixed length ", _meanLength, ".");
 }
 
@@ -137,14 +137,14 @@ void TSimulatorReadLengthGamma::initiate() {
 				 "different parameters to reduce run time.");
 }
 
-TReadLength TSimulatorReadLengthGamma::sample() const noexcept {
+TReadAndFragmentLength TSimulatorReadLengthGamma::sample() const noexcept {
 	uint16_t fragmentLength = round(randomGenerator().getGammaRand(_alpha, _beta));
 	while (fragmentLength < _min) fragmentLength = round(randomGenerator().getGammaRand(_alpha, _beta));
 
 	if (fragmentLength < _maxPlusOne - 1) {
-		return TReadLength(fragmentLength, fragmentLength);
+		return TReadAndFragmentLength(fragmentLength, fragmentLength);
 	} 
-	return TReadLength(_maxPlusOne - 1, fragmentLength);
+	return TReadAndFragmentLength(_maxPlusOne - 1, fragmentLength);
 }
 
 void TSimulatorReadLengthGamma::printDetails() {

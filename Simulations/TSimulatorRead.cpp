@@ -20,8 +20,10 @@
 
 namespace Simulations {
 using genometools::Base;
+using genometools::PhredIntProbability;
 using coretools::instances::logfile;
 using coretools::instances::randomGenerator;
+using coretools::probdist::createDiscreteDistribution;
 
 //----------------------------------
 // TSimulatorSingleEndRead
@@ -53,17 +55,17 @@ void TSimulatorSingleEndRead::setReadLengthDistribution(std::string s) {
 	else if (type == "gammaMode") {
 		_readLengthDist = std::make_unique<TSimulatorReadLengthGammaMode>(s);
 	} else if (type == "fixed")
-		_readLengthDist = std::make_unique<TReadLengthDistribution>(s);
+		_readLengthDist = std::make_unique<TFragmentLengthDistribution>(s);
 	else
 		throw "Unknown read length distribution '" + type + "'!";
 }
 
 void TSimulatorSingleEndRead::setQualityDistribution(std::string s) {
-	_initializeDistribution(_qualityDist, s);
+	createDiscreteDistribution(_qualityDist, s);
 }
 
 void TSimulatorSingleEndRead::setMappingQualityDistribution(std::string s) {
-	_initializeDistribution(_mappingQualityDist, s);
+	createDiscreteDistribution(_mappingQualityDist, s);
 }
 
 void TSimulatorSingleEndRead::setSoftClipDistribution(std::string s) {
@@ -120,7 +122,7 @@ void TSimulatorSingleEndRead::_addSoftclippedBases(std::vector<Base> & bases, co
 void TSimulatorSingleEndRead::_simulateBasesQualities(BAM::TAlignment & alignment,
 						      const std::vector<Base>& haplotype,
 						      const uint64_t pos,
-						      const TReadLength & readLength,
+						      const TReadAndFragmentLength & readLength,
 						      bool readIsContaminated/*,
 										     TSimulatorQualityTransformation* qualityTransform*/){
 
@@ -167,7 +169,7 @@ void TSimulatorSingleEndRead::simulate(const std::vector<Base>& haplotype, uint3
 	_alignment.setIsReverseStrand(randomGenerator().getRand() < 0.5);
 
 	// pick a fragment and read length, strand and contamination
-	TReadLength readLength = _readLengthDist->sample();
+	TReadAndFragmentLength readLength = _readLengthDist->sample();
 	bool readIsContaminated = _contaminationRate > 0. && randomGenerator().getRand() < _contaminationRate;
 
 	// simulated bases and qualities
@@ -243,7 +245,7 @@ TSimulatorPairedEndReads::TSimulatorPairedEndReads(const BAM::TReadGroup &ReadGr
 	void TSimulatorPairedEndReads::simulate(const std::vector<Base>& /*haplotype*/, uint32_t refID, uint32_t pos,
 					TSimulatorBamFile &bamFile) {
 	// pick a fragment, read length and contamination
-	TReadLength readLength  = _readLengthDist->sample();
+	TReadAndFragmentLength readLength  = _readLengthDist->sample();
 	//bool readIsContaminated = (_contaminationRate > 0.) && randomGenerator().getRand() < _contaminationRate;
 
 	// Fill FIRST mate

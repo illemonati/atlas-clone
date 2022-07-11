@@ -12,73 +12,56 @@
 #include <string>
 #include <vector>
 
+#include "TCategoricalDistribution.h"
+
 namespace Simulations {
 
 
 //---------------------------------------------------------
 // ReadLength
 //---------------------------------------------------------
-struct TReadLength {
+struct TReadAndFragmentLength {
 	uint16_t read;
 	uint16_t fragment;
-	TReadLength(uint16_t Read, uint16_t Fragment) : read(Read), fragment(Fragment) {}
+	TReadAndFragmentLength(uint16_t Read, uint16_t Fragment) : read(Read), fragment(Fragment) {}
 	uint16_t diff() { return fragment - read; } //danger if read > fragment!
 };
 
 //---------------------------------------------------------
 // TReadLengthDistribution
 //---------------------------------------------------------
-class TReadLengthDistribution {
+class TFragmentLengthDistribution {
 protected:
-
-	uint32_t _meanLength = -1;
-	std::vector<double> _positionProbs; // normalized (1 - cumulDensity)
+	std::unique_ptr<coretools::probdist::TCategoricalDistribution<uint16_t>> _fragmentLengthDistr;
+	uint16_t _maxReadLength{}; //number of cycles on an illumina machine
 
 public:
-	TReadLengthDistribution(std::string &s);
-	TReadLengthDistribution() = default;
-	virtual ~TReadLengthDistribution() = default;
+	TFragmentLengthDistribution(const uint16_t MaxReadLength, std::string &s){
+		set(MaxReadLength, s);
+	}
+	TFragmentLengthDistribution() = default;
+
+	virtual ~TFragmentLengthDistribution() = default;
+
+	void set(const uint16_t MaxReadLength, std::string &s){
+		_maxReadLength = MaxReadLength;
+		coretools::probdist::createDiscreteDistribution(_fragmentLengthDistr, s);
+	}
 
 	double operator[](const uint32_t position) const { return _positionProbs[position]; };
 
-	virtual TReadLength sample() const noexcept { return TReadLength(_meanLength, _meanLength); }
-	virtual uint32_t max() const noexcept { return _meanLength; }
-	virtual double mean() const noexcept { return _meanLength; }
-	virtual double probAcceptance() const noexcept { return 1.0; }
-	virtual void printDetails();
-};
+	TReadAndFragmentLength sample() const noexcept {
+		uint16_t fragmentLength = _fragmentLengthDistr->sample();
+		if(fragmentLength > _maxReadLength){
+			return TReadAndFragmentLength(_maxReadLength, fragmentLength);
+		} else {
+			return TReadAndFragmentLength(fragmentLength, fragmentLength);
+		}
+	}
+	uint32_t max() const noexcept { return _fragmentLengthDistr->max(); }
+	double mean() const noexcept { return _fragmentLengthDistr->mean(); }
+	std::string functionString(){ return _fragmentLengthDistr};
 
-class TSimulatorReadLengthGamma : public TReadLengthDistribution {
-protected:
-	double _meanLength = -1.;
-	double _alpha = -1.;
-	double _beta = -1.;
-	uint32_t _min = 0;
-	uint32_t _maxPlusOne = 1;
-
-	std::vector<double> _gammaDensity;
-	std::vector<double> _gammaCumulDensity;
-
-	void parseFunctionString(std::string &s, double &param1, double &param2);
-	void initiate();
-
-public:
-	TSimulatorReadLengthGamma(std::string &s);
-	TSimulatorReadLengthGamma() = default;
-	TReadLength sample() const noexcept override;
-	uint32_t max() const noexcept override { return _maxPlusOne - 1; };
-	double mean() const noexcept override { return _meanLength; };
-	void printDetails() override;
-	double probAcceptance() const noexcept override{ return 1.0 - _gammaCumulDensity.front(); };
-};
-
-class TSimulatorReadLengthGammaMode : public TSimulatorReadLengthGamma {
-protected:
-	double _mode, _var;
-
-public:
-	TSimulatorReadLengthGammaMode(std::string &s);
-	void printDetails() override;
 };
 
 }; // namespace Simulations

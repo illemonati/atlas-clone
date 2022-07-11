@@ -23,6 +23,7 @@
 #include "TSimulatorReadLength.h"
 #include "TSimulatorSoftClip.h"
 #include "PhredProbabilityTypes.h"
+#include "TCategoricalDistribution.h"
 
 namespace GenotypeLikelihoods { class TPMDType; }
 namespace GenotypeLikelihoods { namespace SequencingError { class TModel; } }
@@ -32,6 +33,9 @@ namespace Simulations { class TSimulatorReference; }
 namespace Simulations {
 
 using genometools::Base;
+using genometools::PhredIntProbability;
+using coretools::probdist::TCategoricalDistribution;
+using coretools::probdist::createDiscreteDistribution;
 
 //-------------------------------
 // TSimulatorSingleEndRead
@@ -44,11 +48,11 @@ protected:
 	int _readYPos = 1;
 
 	// read length
-	std::unique_ptr<TReadLengthDistribution> _readLengthDist;
+	std::unique_ptr<TFragmentLengthDistribution> _readLengthDist;
 
 	// qualities
-	std::unique_ptr<TSimulatorDistribution<genometools::PhredIntProbability>> _qualityDist;
-	std::unique_ptr<TSimulatorDistribution<genometools::PhredIntProbability>> _mappingQualityDist;
+	std::unique_ptr<TCategoricalDistribution<PhredIntProbability>> _qualityDist;
+	std::unique_ptr<TCategoricalDistribution<PhredIntProbability>> _mappingQualityDist;
 
 	//length of soft clipped bases
 	std::unique_ptr<TSimulatorDistribution<uint16_t>> _softClipDist5;
@@ -66,34 +70,12 @@ protected:
 	BAM::TCigar _cigar;
 	BAM::TAlignment _alignment;
 
-	// function initialize
-	template <typename distType>
-	void _initializeDistribution(std::unique_ptr<TSimulatorDistribution<distType>> & pointer, std::string s){
-		const auto pos = s.find("(");
-		std::string tmp;
-		if (pos == std::string::npos) throw "Unable to understand distribution '" + s + "'!";
-
-		// initialize appropriate function
-		const auto type = s.substr(0, pos);
-		s.erase(0, pos);
-		if (type == "fixed")
-			pointer = std::make_unique<TSimulatorDistributionFixed<distType>>(s);
-		else if (type == "normal")
-			pointer = std::make_unique<TSimulatorDistributionNormal<distType>>(s);
-		else if (type == "binned")
-			pointer = std::make_unique<TSimulatorDistributionBinned<distType>>(s);
-		else if (type == "freq")
-			pointer = std::make_unique<TSimulatorDistributionFreq<distType>>(s);
-		else
-			throw "Unknown read quality distribution '" + type + "'!";
-	}
-
 	// general functions
 	void _simulateQualitiesAndErrors(Base *_bases, int *_qualities, int &len);
 	std::string _getNextReadName();
 	void _addSoftclippedBases(std::vector<Base> & bases, const std::unique_ptr<TSimulatorDistribution<uint16_t>> & softClippedDist);
 	void _simulateBasesQualities(BAM::TAlignment &alignment, const std::vector<Base>& haplotype, const uint64_t pos,
-				     const TReadLength &readLength, bool readIsContaminated);//, TSimulatorQualityTransformation *qualityTransform);
+				     const TReadAndFragmentLength &readLength, bool readIsContaminated);//, TSimulatorQualityTransformation *qualityTransform);
 
 public:
 	TSimulatorSingleEndRead(const BAM::TReadGroup &ReadGroup);
