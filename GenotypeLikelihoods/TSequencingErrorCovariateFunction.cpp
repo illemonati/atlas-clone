@@ -15,6 +15,7 @@
 #include "probability.h"
 #include "stringFunctions.h"
 #include "toString.h"
+#include "TProbabilityDistributions.h"
 
 #include "devtools.h"
 
@@ -66,9 +67,10 @@ std::string TFunction::modelString() const {
 // TRecalibrationEMCovariateFunction_probit
 //--------------------------------------------------------------
 TProbit::TProbitTmpStorage::TProbitTmpStorage(const std::array<double, 3> &betas, uint16_t q) {
+	using namespace coretools::probdist;
 	const double z        = betas[1] + betas[2] * q;
-	cumulDens_Phi         = coretools::TNormalDistr::cumulativeDistrFunction(z);
-	normalDens_phi        = coretools::TNormalDistr::density(z);
+	cumulDens_Phi         = coretools::probdist::TNormalDistr::cumulativeDensity(z, 0, 1);
+	normalDens_phi        = coretools::probdist::TNormalDistr::density(z, 0, 1);
 	eta                   = cumulDens_Phi * betas[0];
 	normalDens_q          = normalDens_phi * q;
 	normalDens_Beta1      = normalDens_phi * betas[0];

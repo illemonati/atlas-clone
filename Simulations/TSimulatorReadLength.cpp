@@ -18,6 +18,8 @@
 #include "stringFunctions.h"
 #include "weakTypes.h"
 
+#include "TProbabilityDistributions.h"
+
 namespace Simulations {
 
 using coretools::instances::logfile;
@@ -87,7 +89,7 @@ void TSimulatorReadLengthGamma::parseFunctionString(std::string &s, double &para
 }
 
 void TSimulatorReadLengthGamma::initiate() {
-	using namespace coretools::TGammaDistr;
+	using namespace coretools::probdist; //TGammaDistr;
 	// prepare storage
 	_gammaDensity.resize(_maxPlusOne, 0.);
 	_gammaCumulDensity.resize(_maxPlusOne);
@@ -99,13 +101,13 @@ void TSimulatorReadLengthGamma::initiate() {
 
 	// then calculate densities for all bins <_max
 	for (size_t i = _min; i < (_maxPlusOne - 1); ++i) {
-		_gammaDensity[i] = density(i, _alpha, _beta);
+		_gammaDensity[i] = TGammaDistr::density(i, _alpha, _beta);
 		totalArea += _gammaDensity[i];
 	}
 
 	// add area >= max
 	_gammaDensity[_maxPlusOne - 1] =
-		1.0 - cumulativeDistrFunction(_maxPlusOne - 0.5, _alpha, _beta);
+		1.0 - TGammaDistr::cumulativeDensity(_maxPlusOne - 0.5, _alpha, _beta);
 	totalArea += _gammaDensity[_maxPlusOne - 1];
 
 	// normalize densities (needed because truncated at _min)

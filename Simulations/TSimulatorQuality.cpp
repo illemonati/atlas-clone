@@ -19,6 +19,7 @@
 #include "stringFunctions.h"
 #include "strongTypes.h"
 #include "weakTypes.h"
+#include "TProbabilityDistributions.h"
 
 namespace Simulations {
 using genometools::PhredIntProbability;
@@ -168,18 +169,18 @@ void TSimulatorQualityDistNormal::parseFunctionString(std::string &s) {
 }
 
 void TSimulatorQualityDistNormal::fillDensities() {
-	using namespace coretools::TNormalDistr;
+	using namespace coretools::probdist;
 	// fill densities
 	const auto size = _max.get() + 1 - _min.get();
 	_densities.resize(size);
 	_cumulDensities.resize(size);
 
-	double nextDens = cumulativeDistrFunction(_min.get() - 0.5, _mean, _sd * _sd);
+	double nextDens = TNormalDistr::cumulativeDensity(_min.get() - 0.5, _mean, _sd * _sd);
 	double prevDens;
 	double sum = 0;
 	for (int i = 0; i < size; ++i) {
 		prevDens      = nextDens;
-		nextDens      = cumulativeDistrFunction(_min.get() + i + 0.5, _mean, _sd * _sd);
+		nextDens      = TNormalDistr::cumulativeDensity(_min.get() + i + 0.5, _mean, _sd * _sd);
 		_densities[i] = nextDens - prevDens;
 		sum += _densities[i];
 	}
