@@ -366,7 +366,7 @@ void TModelRecal::addToQFJ(const BAM::TSequencedBase &base, Probability P_g_I_d,
 	const double eps_c = 1. - eps;
 
 	// add Q
-	_Q += P_g_I_d.get() * (P_bbar_I_gd.get() * eps_c + P_bbar_I_gd.complement().get() * eps);
+	_Q += P_g_I_d.get() * (P_bbar_I_gd.get() * log(eps_c) + P_bbar_I_gd.complement().get() * log(eps));
 
 	if (!update) return;
 
@@ -392,9 +392,9 @@ void TModelRecal::addToQFJ(const BAM::TSequencedBase &base, Probability P_g_I_d,
 	for (auto dm = der1st.begin(); dm != der1st.end(); ++dm) {
 		// add to F
 		_F(dm->index) += w_ij * dm->derivative;
-		_Jacobian(dm->index, dm->index) -= eps_c * eps * dm->derivative * dm->derivative;
 
 		// add to J
+		_Jacobian(dm->index, dm->index) -= eps_c * eps * dm->derivative * dm->derivative;
 		for (auto dn = dm + 1; dn != der1st.end(); ++dn) {
 			_Jacobian(dm->index, dn->index) -= eps_c * eps * dm->derivative * dn->derivative;
 		}
