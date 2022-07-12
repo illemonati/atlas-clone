@@ -351,7 +351,7 @@ double TRecalibrationEMEstimator::_calculateQ_updateJF(bool updateJF) {
 	return _modelsToEstimate.curQ();
 };
 
-void TRecalibrationEMEstimator::_updateEpsilon(const TPostMortemDamage &PmdModels) {
+	void TRecalibrationEMEstimator::_updateEpsilon(const TPostMortemDamage &PmdModels, double MaxF) {
 	using coretools::str::toString;
 	logfile().startIndent("Updating sequencing error models (theta_epsilon):");
 
@@ -400,7 +400,7 @@ void TRecalibrationEMEstimator::_updateEpsilon(const TPostMortemDamage &PmdModel
 
 		const double maxF = _modelsToEstimate.getSteepestGradient();
 		logfile().conclude("max(F) = " + toString(maxF));
-		if (maxF < _NewtonRaphsonMaxF) break;
+		if (maxF < MaxF) break;
 	}
 	logfile().endIndent();
 	logfile().endIndent();
@@ -453,7 +453,7 @@ void TRecalibrationEMEstimator::_runEM(const std::string &outputName, const TPos
 		logfile().addIndent();
 
 		// update theta_epsilon (sequencing errors)
-		_updateEpsilon(PmdModels);
+		_updateEpsilon(PmdModels, std::max(_NewtonRaphsonMaxF, coretools::uPow(0.1, i)));
 
 		// calculate LL
 		const double LL = _calculateLL_updatePg(PmdModels);
