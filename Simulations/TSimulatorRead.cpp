@@ -41,7 +41,7 @@ bool TSimulatorSingleEndRead::checkInitialization() {
 	return _readLengthDist && _qualityDist && _mappingQualityDist;
 }
 
-void TSimulatorSingleEndRead::setReadLengthDistribution(std::string s) {
+void TSimulatorSingleEndRead::setFragmentLengthDistribution(std::string s) {
 	_readLengthDist.set(_numCycles, s);
 }
 
@@ -56,7 +56,7 @@ void TSimulatorSingleEndRead::setMappingQualityDistribution(std::string s) {
 void TSimulatorSingleEndRead::setSoftClipDistribution(std::string s) {
 	const auto pos = s.find("]:");
 	if(pos == std::string::npos){
-		const auto pos = s.find("):"); //maybe first is categorical distribution ending with )
+		pos = s.find("):"); //maybe first is categorical distribution ending with )
 	}
 	if(pos == std::string::npos){
 		createDiscreteDistribution(_softClipDist5, s);
@@ -177,13 +177,13 @@ void TSimulatorSingleEndRead::printDetails(double frequency) {
 	logfile().list("Frequency: ", frequency, ".");
 
 	if (_readLengthDist)
-		_readLengthDist->printDetails();
+		_readLengthDist.printDetails();
 	else
 		throw "Read length distribution not initialized!";
 
-	if (_mappingQualityDist)
+	if (_mappingQualityDist){
 		_mappingQualityDist->printDetails("Mapping quality");
-	else
+	} else
 		throw "Mapping quality distribution not initialized!";
 
 	if (_qualityDist)
@@ -216,7 +216,8 @@ void TSimulatorSingleEndRead::printDetails(double frequency) {
 //----------------------------------
 // TSimulatorPairedEndReads
 //----------------------------------
-TSimulatorPairedEndReads::TSimulatorPairedEndReads(const BAM::TReadGroup &ReadGroup) : TSimulatorSingleEndRead(ReadGroup){
+TSimulatorPairedEndReads::TSimulatorPairedEndReads(const BAM::TReadGroup &, const uint16_t NumCyclesFirst, const uint16_t NumCyclesSecond) : TSimulatorSingleEndRead(ReadGroup, NumCclesFirst){
+	_numCyclesSecond = NumCyclesSecond;
 	// set SAM flags
 	_flags.setIsPaired(true);
 	_flags.setIsProperPair(true);
@@ -230,7 +231,7 @@ TSimulatorPairedEndReads::TSimulatorPairedEndReads(const BAM::TReadGroup &ReadGr
 	_mateFlags.setIsReverseStrand(true);
 }
 
-	void TSimulatorPairedEndReads::simulate(const std::vector<Base>& /*haplotype*/, uint32_t refID, uint32_t pos,
+void TSimulatorPairedEndReads::simulate(const std::vector<Base>& /*haplotype*/, uint32_t refID, uint32_t pos,
 					TSimulatorBamFile &bamFile) {
 	// pick a fragment, read length and contamination
 	TReadAndFragmentLength readLength  = _readLengthDist->sample();

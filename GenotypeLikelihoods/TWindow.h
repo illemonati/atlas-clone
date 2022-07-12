@@ -100,7 +100,7 @@ public:
 	double fractionDepthAtLeastTwo();
 	uint32_t numSitesWithData();
 	double fractionRefIsN();
-	void dataSummary(coretools::TLog* Logfile);
+	void dataSummary();
 	bool filter(const double maxFracMissing, const double maxRefN, coretools::TLog* Logfile);
 	bool passedFilters() const{ return _passedFilters; };
 

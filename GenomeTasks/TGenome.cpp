@@ -557,7 +557,7 @@ void TGenome_windows::_applyWindowFilters(GenotypeLikelihoods::TWindow_base &win
 
 	// report
 	if (window.numReadsInWindow() > 0) {
-		window.dataSummary(&logfile());
+		window.dataSummary();
 	} else {
 		logfile().conclude("No data in this window.");
 	}

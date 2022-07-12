@@ -184,12 +184,13 @@ double TWindow_base::fractionRefIsN(){
 	return _fractionRefIsN;
 };
 
-void TWindow_base::dataSummary(coretools::TLog* Logfile){
+void TWindow_base::dataSummary(){
 	_calcDepth();
-	Logfile->conclude("Read data from " + toString(_numReadsInWindow) + " reads.");
-	Logfile->conclude("Sequencing depth is " + toString(_depth) + ".");
-	Logfile->conclude(toString(_fractionDepthAtLeastTwo * 100) + "% of all sites are covered at least twice.");
-	Logfile->conclude(toString(_fractionSitesNoData * 100) + "% of all sites have no data.");
+	using coretools::instances::logfile;
+	logfile().conclude("Read data from " + toString(_numReadsInWindow) + " reads.");
+	logfile().conclude("Sequencing depth is " + toString(_depth) + ".");
+	logfile().conclude(toString(_fractionDepthAtLeastTwo * 100) + "% of all sites are covered at least twice.");
+	logfile().conclude(toString(_fractionSitesNoData * 100) + "% of all sites have no data.");
 };
 
 bool TWindow_base::filter(const double maxFracMissing, const double maxRefN, coretools::TLog* Logfile){

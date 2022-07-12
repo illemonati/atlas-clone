@@ -277,24 +277,26 @@ std::vector<std::string> TBAMSimulator::_readSimInfoPerReadGroup(const std::stri
 	return ret;
 }
 
-void TBAMSimulator::_initializeReadGroup(const std::string &readLengthString, const BAM::TReadGroup &ReadGroup) {
+void TBAMSimulator::_initializeReadGroup(std::string readGroupTypeString, const BAM::TReadGroup &ReadGroup) {
 	// single or paired end? Is indicated at beginning of readLengthString!
-	if (readLengthString.find("single:") == 0) {
-		_readSimulators.push_back(std::make_unique<TSimulatorSingleEndRead>(ReadGroup));
-	} else if (readLengthString.find("paired:") == 0) {
-		_readSimulators.push_back(std::make_unique<TSimulatorPairedEndReads>(ReadGroup));
+	if (readGroupTypeString.find("single(") == 0) {
+		std::string tmp = coretools::str::extractAfter(readGroupTypeString, '(');
+		tmp = coretools::str::readBefore(tmp, ')');
+		_readSimulators.push_back(std::make_unique<TSimulatorSingleEndRead>(ReadGroup, coretools::str::convertString<uint16_t>(tmp)));
+	} else if(readGroupTypeString.find("paired(") == 0) {
+		std::string tmp = coretools::str::extractAfter(readGroupTypeString, '(');
+		std::string first = coretools::str::extractBefore(tmp, ',');
+		tmp.erase(0,1);
+		tmp = coretools::str::readBefore(tmp, ')');
+		_readSimulators.push_back(std::make_unique<TSimulatorPairedEndReads>(ReadGroup, coretools::str::convertString<uint16_t>(first), coretools::str::convertString<uint16_t>(tmp)));
 	} else
-		throw "Unable to understand string '" + readLengthString + "'!";
-
-	// add read Length distribution
-	const auto readLengthDist = coretools::str::readAfterLast(readLengthString, ':');
-	_readSimulators.back()->setReadLengthDistribution(readLengthDist);
+		throw "Unable to understand read group type '" + readGroupTypeString + "'! Use either 'single(numCycles)' or 'paired(numCyclesFirst,numCyclesSecond)'.";
 }
 
-void TBAMSimulator::_initializeReadGroupsFromReadLengthDistribution(const std::string &ParameterName,
+void TBAMSimulator::_initializeReadGroupsFromReadGroupType(const std::string &ParameterName,
                                                                     const std::string &DefaultValue,
                                                                     const std::string &Name) {
-	logfile().startIndent("Parsing read length distribution (parameter '" + ParameterName + "'):");
+	logfile().startIndent("Parsing read group types (parameter '" + ParameterName + "'):");
 	const auto s = parameters().getParameterWithDefault<std::string>(ParameterName, DefaultValue);
 	_readSimulators.clear();
 
@@ -303,20 +305,20 @@ void TBAMSimulator::_initializeReadGroupsFromReadLengthDistribution(const std::s
 	//   2) read-group specific as given in a file
 
 	// check if it is a file (should not contain a ':')
-	const auto pos = s.find(':');
+	const auto pos = s.find('(');
 	if (pos != std::string::npos) {
 		// Option 1: a single read length distribution for all
 		//---------------------------------------------------------------------
-		logfile().list("Will use '" + s + "' for all read groups.");
+		logfile().list("Will use type '" + s + "' for all read groups.");
 
 		// create read groups
 		for (auto &r : _readGroups) { _initializeReadGroup(s, r); }
 	} else {
 		// Option 2: read group specific, given in a file
 		//---------------------------------------------------------------------
-		const std::vector<std::string> dist = _readSimInfoPerReadGroup(s, ParameterName, Name);
+		const std::vector<std::string> type = _readSimInfoPerReadGroup(s, ParameterName, Name);
 
-		for (size_t r = 0; r < dist.size(); ++r) { _initializeReadGroup(dist[r], _readGroups[r]); }
+		for (size_t r = 0; r < type.size(); ++r) { _initializeReadGroup(type[r], _readGroups[r]); }
 	}
 	logfile().endIndent();
 }
@@ -356,6 +358,7 @@ void TBAMSimulator::_initializePMD(const std::string &ParameterName, const std::
 
 	if (parameters().parameterExists(ParameterName)) {
 		const auto pmdString = parameters().getParameter<std::string>(ParameterName);
+		logfile().list("Will use '", pmdString, "' for all read groups.");
 		std::vector<uint16_t> ReadGroupsWithoutPMD;
 		_PMD.initialize(pmdString, _readGroups, ReadGroupsWithoutPMD);
 
@@ -374,6 +377,7 @@ void TBAMSimulator::_initializeQualityTransformations(const std::string &Paramet
 		const std::string rhoString = parameters().getParameterWithDefault<std::string>("rho", "default");
 		const auto recalString = parameters().getParameter<std::string>(ParameterName);
 		_recal.initialize(recalString, rhoString, _readGroups);
+		logfile().list("Will use '", recalString, "' for all read groups.");
 
 		// add recal to simulators
 		for (size_t r = 0; r < _readSimulators.size(); ++r) {
@@ -414,7 +418,8 @@ void TBAMSimulator::_initializeReadSimulator() {
 	// Check for each parameter if it is given per read group (a file) or common to all
 	//TODO: use one single file for all settings once ATLAS is able to write such files from data.
 	_readGroups.clear();
-	addReadGroupsIfFile("readLength", _readGroups);
+	addReadGroupsIfFile("readGroupType", _readGroups);
+	addReadGroupsIfFile("fragmentLength", _readGroups);
 	addReadGroupsIfFile("qualityDist", _readGroups);
 	addReadGroupsIfFile("pmd", _readGroups);
 	addReadGroupsIfFile("recal", _readGroups);
@@ -436,9 +441,13 @@ void TBAMSimulator::_initializeReadSimulator() {
 		logfile().startIndent("Initializing ", _readGroups.size(), " individual read group(s):");
 	}
 
-	// A) read length: used to create simulator read groups
+	// 0) type: used to create simulator read groups
+	_initializeReadGroupsFromReadGroupType("readLength", "single(100)", "read length");
+
+	// A) fragment length
 	//---------------
-	_initializeReadGroupsFromReadLengthDistribution("readLength", "single:fixed(100)", "read length");
+	_initializeDistribution("fragmentLength", "fixed(100)", "fragment length distribution",
+							&TSimulatorSingleEndRead::setFragmentLengthDistribution);
 
 	// B) initialize quality distribution
 	//-----------------------------------

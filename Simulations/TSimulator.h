@@ -90,8 +90,8 @@ protected:
 	// function to initialize read groups
 	std::vector<std::string> _readSimInfoPerReadGroup(const std::string &Filename, const std::string &Column,
 	                                                  const std::string &Name);
-	void _initializeReadGroup(const std::string &readLengthString, const BAM::TReadGroup &ReadGroup);
-	void _initializeReadGroupsFromReadLengthDistribution(const std::string &ParameterName,
+	void _initializeReadGroup(std::string readGroupTypeString, const BAM::TReadGroup &ReadGroup);
+	void _initializeReadGroupsFromReadGroupType(const std::string &ParameterName,
 	                                                     const std::string &DefaultValue, const std::string &Name);
 	void _initializeSCDistribution(const std::string &ParameterName, const std::string &DefaultValue,
 	                               const std::string &Name,

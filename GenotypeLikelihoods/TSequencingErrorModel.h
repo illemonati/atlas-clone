@@ -136,16 +136,19 @@ private:
 	TIntercept _intercept;
 	std::vector<TCovariateModel> _covariates;
 	std::vector<TFunction *> _functions; // non-owning
-	uint16_t _numParameters;
+	size_t _numParameters;
+	size_t _num1stDerivatives;
+	size_t _num2ndDerivatives;
+
 
 	// Newton Raphson Parameters to estimate betas
-	double _Q    = std::numeric_limits<double>::lowest();
+	double _Q    = 0.;
 	double _oldQ = std::numeric_limits<double>::lowest();
+	double _maxF = 0.;
 	arma::mat _Jacobian;
 	arma::vec _F;
 	arma::mat _JxF;
 	unsigned int _numSitesAdded = 0;
-	bool _NRStepAccepted        = false;
 
 	coretools::Probability _calcErrorRate(const BAM::TSequencedBase &base) const noexcept;
 
@@ -166,23 +169,20 @@ public:
 
 	// functions to estimate
 	void checkOrInit(const RecalEstimatorTools::TRecalDataTable &DataTable) const;
-	uint16_t numParameters() const noexcept { return _numParameters; }
 
 	// functions to estimate rho
 	void addToRho(const BAM::TSequencedBase &data, coretools::Probability P_g_I_d, const TBaseProbabilities &P_bbar_I_d) noexcept; 
 	void estimateRho() noexcept;
 
 	// functions to estimate betas
-	void resetQFJ() noexcept;
-	void addToQFJ(const BAM::TSequencedBase &base, coretools::Probability P_g_I_d, coretools::Probability P_bbar_I_gd);
+	void resetQ() noexcept {_oldQ = _Q; _Q = 0;};
+	void addToQFJ(const BAM::TSequencedBase &base, coretools::Probability P_g_I_d, coretools::Probability P_bbar_I_gd, bool update=false);
 	double curQ() const noexcept { return _Q; }
-	bool solveJxF();
+	void solveJxF();
 	void proposeNewParameters(double lambda);
 	bool acceptProposedParametersBasedOnQ();
 	void adjustParametersPostEstimation();
-	double getSteepestGradient() const noexcept;
-
-	const auto &Jacobian() const noexcept { return _Jacobian; }
+	double maxF() const noexcept {return _maxF;};
 };
 
 } // namespace SequencingError

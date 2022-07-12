@@ -183,10 +183,10 @@ TRho::TRho(const std::string &def) {
 
 std::string TRho::getDefinition() const noexcept {
 	using coretools::str::toString;
-	return "-,"s + toString(_rho[Base::A][Base::C]) + ',' + toString(_rho[Base::A][Base::G]) + ',' + toString(_rho[Base::A][Base::T]) + ';'
-		+ toString(_rho[Base::C][Base::A]) + ",-," + toString(_rho[Base::C][Base::G]) + toString(_rho[Base::C][Base::T]) + ';'
-		+ toString(_rho[Base::G][Base::A]) + ',' + toString(_rho[Base::G][Base::C]) + ",-," + toString(_rho[Base::G][Base::T]) + ';'
-		+ toString(_rho[Base::T][Base::A]) + ',' + toString(_rho[Base::T][Base::C]) + ',' + toString(_rho[Base::T][Base::G]) + ",-";
+	return "[[-,"s + toString(_rho[Base::A][Base::C]) + ',' + toString(_rho[Base::A][Base::G]) + ',' + toString(_rho[Base::A][Base::T]) + "]["
+		+ toString(_rho[Base::C][Base::A]) + ",-," + toString(_rho[Base::C][Base::G]) + toString(_rho[Base::C][Base::T]) + "]["
+		+ toString(_rho[Base::G][Base::A]) + ',' + toString(_rho[Base::G][Base::C]) + ",-," + toString(_rho[Base::G][Base::T]) + "]["
+		+ toString(_rho[Base::T][Base::A]) + ',' + toString(_rho[Base::T][Base::C]) + ',' + toString(_rho[Base::T][Base::G]) + ",-]]";
 }
 
 void TRho::add(genometools::Base base, coretools::Probability P_g_I_d, const TBaseProbabilities &P_bbar_I_d) noexcept {
@@ -247,26 +247,26 @@ TModelRecal::TModelRecal(const TModelDefinition &modelDef) : _rho(modelDef.rho),
 	// create covariates
 	_functions.push_back(&_intercept);
 
-	_numParameters = _intercept.numParameters();
-	for (const auto & cov : modelDef.covariates) {
+	_numParameters     = _intercept.numParameters();
+	_num1stDerivatives = _intercept.numNonZeroFirstDerivatives();
+	_num2ndDerivatives = _intercept.numNonZeroFirstDerivatives();
+	for (const auto &cov : modelDef.covariates) {
 		// create function for each covariate
 		if (cov.covariate == TCovariate::name) continue;
 
-		// Andreas
-		// auto cov = covriate(cov.covariate);
-		// auto fn = cov.getFunction(cov.function, _numParameters);
-		// Andreas
 		_covariates.push_back(TCovariateModel{impl::covariate(cov.covariate), impl::function(cov.function, _numParameters)});
 		_functions.push_back(_covariates.back().function.get());
 
 		// add new parameters
-		_numParameters += _covariates.back().function->numParameters();
+		_numParameters     += _covariates.back().function->numParameters();
+		_num1stDerivatives += _covariates.back().function->numNonZeroFirstDerivatives();
+		_num2ndDerivatives += _covariates.back().function->numNonZeroSecondDerivatives();
 	}
 
 	// prepare Newton-Raphson variables
-	_Jacobian.resize(numParameters(), numParameters());
-	_F.resize(numParameters());
-	_JxF.resize(numParameters(), 1);
+	_Jacobian.resize(_numParameters, _numParameters);
+	_F.resize(_numParameters);
+	_JxF.resize(_numParameters, 1);
 }
 
 TModelDefinition TModelRecal::getModelDefinition() const {
@@ -360,34 +360,29 @@ void TModelRecal::checkOrInit(const RecalEstimatorTools::TRecalDataTable &DataTa
 	}
 }
 
-void TModelRecal::resetQFJ() noexcept {
-	_Jacobian.zeros();
-	_F.zeros();
-	_numSitesAdded  = 0;
-	_NRStepAccepted = false;
-	_oldQ = _Q;
-	_Q    = 0.0;
-}
-
-void TModelRecal::addToQFJ(const BAM::TSequencedBase &base, Probability P_g_I_d, Probability P_bbar_I_gd) {
+void TModelRecal::addToQFJ(const BAM::TSequencedBase &base, Probability P_g_I_d, Probability P_bbar_I_gd, bool update) {
 	// get error rate
 	const double eps   = getErrorRate(base);
 	const double eps_c = 1. - eps;
 
 	// add Q
-	_Q += P_g_I_d * (P_bbar_I_gd * eps_c + P_bbar_I_gd.complement() * eps);
+	_Q += P_g_I_d.get() * (P_bbar_I_gd.get() * log(eps_c) + P_bbar_I_gd.complement().get() * log(eps));
+
+	if (!update) return;
 
 	// F and J
-	const double w_ij = P_g_I_d * (eps_c - P_bbar_I_gd);
+	const double w_ij = P_g_I_d * (eps_c - P_bbar_I_gd.get());
 
-	std::vector<T1stDerivative> der1st;
-	std::vector<T2ndDerivative> der2nd;
+	static std::vector<T1stDerivative> der1st;
+	der1st.clear();
+	static std::vector<T2ndDerivative> der2nd;
+	der2nd.clear();
 	der1st.push_back(_intercept.get1stDerivatives());
 
 	for (const auto & cov: _covariates) {
 		for (size_t i = 0; i < cov.function->numNonZeroFirstDerivatives(); ++i) {
 			der1st.push_back(cov.function->get1stDerivatives(cov.covariate->extract(base), i));
-			for (size_t j = i+1; j < cov.function->numNonZeroSecondDerivatives(); ++j) {
+			for (size_t j = i; j < cov.function->numNonZeroSecondDerivatives(); ++j) {
 				der2nd.push_back(cov.function->get2ndDerivatives(cov.covariate->extract(base), i, j));
 			}
 		}
@@ -399,7 +394,8 @@ void TModelRecal::addToQFJ(const BAM::TSequencedBase &base, Probability P_g_I_d,
 		_F(dm->index) += w_ij * dm->derivative;
 
 		// add to J
-		for (auto dn = dm; dn != der1st.end(); ++dn) {
+		_Jacobian(dm->index, dm->index) -= eps_c * eps * dm->derivative * dm->derivative;
+		for (auto dn = dm + 1; dn != der1st.end(); ++dn) {
 			_Jacobian(dm->index, dn->index) -= eps_c * eps * dm->derivative * dn->derivative;
 		}
 	}
@@ -411,10 +407,10 @@ void TModelRecal::addToQFJ(const BAM::TSequencedBase &base, Probability P_g_I_d,
 }
 
 
-bool TModelRecal::solveJxF() {
+void TModelRecal::solveJxF() {
 	// Need to copy numbers to other triangle in Jacobian, as only upper triangle is filled when parsing sites
-	for (int i = 0; i < (numParameters() - 1); ++i) {
-		for (unsigned int j = i + 1; j < numParameters(); ++j) {
+	for (size_t i = 0; i < _numParameters - 1; ++i) {
+		for (size_t j = i + 1; j < _numParameters; ++j) {
 			// copy from upper triangle to lower triangle
 			_Jacobian(j, i) = _Jacobian(i, j);
 		}
@@ -423,30 +419,27 @@ bool TModelRecal::solveJxF() {
 	// scale F and J by 1/#sites
 	_Jacobian = _Jacobian / (double)_numSitesAdded;
 	_F        = _F / (double)_numSitesAdded;
+	_maxF     = std::max(_F.max(), -_F.min());
+	if (!solve(_JxF, _Jacobian, _F)) UERROR("Issue solving JxF! This may be due to a lack of data. Consider adding more sites. Jacobian: ", _Jacobian);
 
-	OUT(_Jacobian);
-	OUT(_F);
-
-	// now solve J^-1 x F
-	return solve(_JxF, _Jacobian, _F);
+	// automatically reset
+	_Jacobian.zeros();
+	_F.zeros();
+	_numSitesAdded = 0;
 }
 
 void TModelRecal::proposeNewParameters(double lambda) {
-	if (!_NRStepAccepted) {
-		uint16_t index = 0;
-		for (const auto f : _functions) { f->proposeNewParameters(_JxF, index, lambda); }
-	}
+	uint16_t index = 0;
+	for (const auto f : _functions) { f->proposeNewParameters(_JxF, index, lambda); }
 }
 
 bool TModelRecal::acceptProposedParametersBasedOnQ() {
-	if (_NRStepAccepted) return true;
 	if (_Q > _oldQ) {
-		_NRStepAccepted = true;
 		return true;
 	}
 
 	// else
-	_Q              = _oldQ;
+	_Q = _oldQ;
 	for (const auto f : _functions) f->rejectProposedParameters();
 
 	return false;
@@ -454,13 +447,6 @@ bool TModelRecal::acceptProposedParametersBasedOnQ() {
 
 void TModelRecal::adjustParametersPostEstimation() {
 	for (const auto f : _functions) _intercept.intercept() += f->adjustParametersPostEstimation();
-}
-
-double TModelRecal::getSteepestGradient() const noexcept {
-	if (_NRStepAccepted) return 0.0;
-	double maxF = 0.0;
-	for (unsigned int i = 0; i < numParameters(); ++i) maxF = std::max(maxF, fabs(_F(i)));
-	return maxF;
 }
 
 } // namespace SequencingError

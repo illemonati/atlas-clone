@@ -19,7 +19,6 @@
 #include "TCigar.h"
 #include "TReadGroups.h"
 #include "TSamFlags.h"
-#include "TSimulatorSoftClip.h"
 #include "PhredProbabilityTypes.h"
 #include "TCategoricalDistribution.h"
 #include "TFragmentLengthDistribution.h"
@@ -42,10 +41,10 @@ using coretools::probdist::createDiscreteDistribution;
 class TSimulatorSingleEndRead {
 protected:
 	const BAM::TReadGroup &_readGroup;
+	uint16_t _numCycles;
 	std::string _readNamePrefix;
 	int _readXPos = 1;
 	int _readYPos = 1;
-	uint16_t _numCycles;
 
 	// read length
 	TFragmentLengthDistribution _readLengthDist;
@@ -82,7 +81,7 @@ public:
 	virtual ~TSimulatorSingleEndRead() = default;
 
 	bool checkInitialization();
-	void setReadLengthDistribution(std::string s);
+	void setFragmentLengthDistribution(std::string s);
 	void setQualityDistribution(std::string s);
 	void setMappingQualityDistribution(std::string s);
 	void setSoftClipDistribution(std::string s);
@@ -114,11 +113,12 @@ class TSimulatorPairedEndReads : public TSimulatorSingleEndRead {
 private:
 	BAM::TSamFlags _mateFlags;
 	// BAM::TAlignment _mate;
+	uint16_t _numCyclesSecond;
 
 	std::vector<BAM::TAlignment> bamAlignmentSecondMates;
 
 public:
-	TSimulatorPairedEndReads(const BAM::TReadGroup &);
+	TSimulatorPairedEndReads(const BAM::TReadGroup &, const uint16_t NumCyclesFirst, const uint16_t NumCyclesSecond);
 
 	void simulate(const std::vector<genometools::Base>& haplotype, uint32_t refID, uint32_t pos, TSimulatorBamFile &bamFile) override;
 	void writeUnwrittenAlignments(long pos, TSimulatorBamFile &bamFile) override;

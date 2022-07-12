@@ -146,7 +146,7 @@ double calcLogProposalProb(double Value, coretools::StrictlyPositive<double> Lam
 	// probability of picking exactly that Value corresponds to log f(Value) in Hastings
 	// ratios
 	// applies to model switches of both F and p
-	return coretools::TExponentialDistr::logDensity(Value, Lambda);
+	return coretools::probdist::TExponentialDistr::logDensity(Value, Lambda);
 }
 
 double getRandomExpTrunc(double Lambda) {
