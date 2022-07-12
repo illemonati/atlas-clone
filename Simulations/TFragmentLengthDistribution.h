@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "TCategoricalDistribution.h"
+#include "TLog.h"
 
 namespace Simulations {
 
@@ -48,9 +49,28 @@ public:
 		coretools::probdist::createDiscreteDistribution(_fragmentLengthDistr, s);
 	}
 
-	double operator[](const uint32_t position) const { return _positionProbs[position]; };
+	operator bool() const {
+		return (bool) _fragmentLengthDistr;
+	}
 
-	TReadAndFragmentLength sample() const noexcept {
+	[[nodiscard]] uint32_t max() const noexcept {
+		return _fragmentLengthDistr->max();
+	}
+
+	[[nodiscard]] double mean() const noexcept {
+		return _fragmentLengthDistr->mean();
+	}
+
+	[[nodiscard]] std::string functionString(){
+		return _fragmentLengthDistr->functionString();
+	};
+
+	void printDetails(){
+		//TODO: add max length info
+		coretools::instances::logfile().list(_fragmentLengthDistr->verbalizedString());
+	};
+
+	[[nodiscard]] TReadAndFragmentLength sample() const noexcept {
 		uint16_t fragmentLength = _fragmentLengthDistr->sample();
 		if(fragmentLength > _maxReadLength){
 			return TReadAndFragmentLength(_maxReadLength, fragmentLength);
@@ -58,10 +78,6 @@ public:
 			return TReadAndFragmentLength(fragmentLength, fragmentLength);
 		}
 	}
-	uint32_t max() const noexcept { return _fragmentLengthDistr->max(); }
-	double mean() const noexcept { return _fragmentLengthDistr->mean(); }
-	std::string functionString(){ return _fragmentLengthDistr};
-
 };
 
 }; // namespace Simulations

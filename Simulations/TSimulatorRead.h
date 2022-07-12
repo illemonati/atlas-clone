@@ -19,11 +19,10 @@
 #include "TCigar.h"
 #include "TReadGroups.h"
 #include "TSamFlags.h"
-#include "TSimulatorDistributions.h"
-#include "TSimulatorReadLength.h"
 #include "TSimulatorSoftClip.h"
 #include "PhredProbabilityTypes.h"
 #include "TCategoricalDistribution.h"
+#include "TFragmentLengthDistribution.h"
 
 namespace GenotypeLikelihoods { class TPMDType; }
 namespace GenotypeLikelihoods { namespace SequencingError { class TModel; } }
@@ -46,17 +45,18 @@ protected:
 	std::string _readNamePrefix;
 	int _readXPos = 1;
 	int _readYPos = 1;
+	uint16_t _numCycles;
 
 	// read length
-	std::unique_ptr<TFragmentLengthDistribution> _readLengthDist;
+	TFragmentLengthDistribution _readLengthDist;
 
 	// qualities
 	std::unique_ptr<TCategoricalDistribution<PhredIntProbability>> _qualityDist;
 	std::unique_ptr<TCategoricalDistribution<PhredIntProbability>> _mappingQualityDist;
 
 	//length of soft clipped bases
-	std::unique_ptr<TSimulatorDistribution<uint16_t>> _softClipDist5;
-	std::unique_ptr<TSimulatorDistribution<uint16_t>> _softClipDist3;
+	std::unique_ptr<TCategoricalDistribution<uint16_t>> _softClipDist5;
+	std::unique_ptr<TCategoricalDistribution<uint16_t>> _softClipDist3;
 
 	GenotypeLikelihoods::TPMDType const *_pmd = nullptr;
 	std::array<GenotypeLikelihoods::SequencingError::TModel const *, 2> _recal;
@@ -73,12 +73,12 @@ protected:
 	// general functions
 	void _simulateQualitiesAndErrors(Base *_bases, int *_qualities, int &len);
 	std::string _getNextReadName();
-	void _addSoftclippedBases(std::vector<Base> & bases, const std::unique_ptr<TSimulatorDistribution<uint16_t>> & softClippedDist);
+	void _addSoftclippedBases(std::vector<Base> & bases, const std::unique_ptr<TCategoricalDistribution<uint16_t>> & softClippedDist);
 	void _simulateBasesQualities(BAM::TAlignment &alignment, const std::vector<Base>& haplotype, const uint64_t pos,
 				     const TReadAndFragmentLength &readLength, bool readIsContaminated);//, TSimulatorQualityTransformation *qualityTransform);
 
 public:
-	TSimulatorSingleEndRead(const BAM::TReadGroup &ReadGroup);
+	TSimulatorSingleEndRead(const BAM::TReadGroup &ReadGroup, const uint16_t NumCycles);
 	virtual ~TSimulatorSingleEndRead() = default;
 
 	bool checkInitialization();
@@ -94,11 +94,11 @@ public:
 	virtual std::string type() const {return "single-end";}
 	double meanReadLength() {
 		if (!_readLengthDist) throw "Read length distribution not initialized!";
-		return _readLengthDist->mean();
+		return _readLengthDist.mean();
 	};
 	double maxReadLength() {
 		if (!_readLengthDist) throw "Read length distribution not initialized!";
-		return _readLengthDist->max();
+		return _readLengthDist.max();
 	};
 
 	virtual void simulate(const std::vector<Base>& haplotype, uint32_t refID, uint32_t pos, TSimulatorBamFile &bamFile);

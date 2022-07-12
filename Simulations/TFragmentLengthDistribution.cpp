@@ -5,10 +5,9 @@
  *      Author: vivian
  */
 
-#include "TSimulatorReadLength.h"
-
 #include <math.h>
 #include <stddef.h>
+#include <TFragmentLengthDistribution.h>
 #include <algorithm>
 
 #include "TLog.h"
@@ -23,6 +22,8 @@ namespace Simulations {
 using coretools::instances::logfile;
 using coretools::instances::randomGenerator;
 using coretools::str::convertString;
+
+/*
 
 //---------------------------------------------------------
 // TReadLengthDistribution
@@ -180,5 +181,7 @@ void TSimulatorReadLengthGammaMode::printDetails() {
 	if (probAcceptance() < 0.9)
 		logfile().warning("The chosen distribution will only result in ", probAcceptance(), " of draws being accepted.");
 };
+
+*/
 
 }; // namespace Simulations

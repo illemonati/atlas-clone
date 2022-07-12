@@ -28,8 +28,9 @@ using coretools::probdist::createDiscreteDistribution;
 //----------------------------------
 // TSimulatorSingleEndRead
 //----------------------------------
-TSimulatorSingleEndRead::TSimulatorSingleEndRead(const BAM::TReadGroup &ReadGroup)
+TSimulatorSingleEndRead::TSimulatorSingleEndRead(const BAM::TReadGroup &ReadGroup, const uint16_t NumCycles)
 	: _readGroup(ReadGroup),
+	  _numCycles(NumCycles),
 	  _readNamePrefix("ATL:0:A:1:" + coretools::str::toString(_readGroup.id) + ":") {
 	//readNamePrefix: "<instrument>:<run number>:<flowcell ID>:<lane>:<tile>:"  Still need to add "<x-pos>:<y-pos>"
 	// initialize bamAlignment
@@ -41,23 +42,7 @@ bool TSimulatorSingleEndRead::checkInitialization() {
 }
 
 void TSimulatorSingleEndRead::setReadLengthDistribution(std::string s) {
-	const auto pos = s.find("(");
-	std::string tmp;
-
-	if (pos == std::string::npos) throw "Unable to understand read length distribution '" + s + "'!";
-
-	// initialize appropriate function
-	const auto type = s.substr(0, pos);
-	s.erase(0, pos);
-
-	if (type == "gamma")
-		_readLengthDist = std::make_unique<TSimulatorReadLengthGamma>(s);
-	else if (type == "gammaMode") {
-		_readLengthDist = std::make_unique<TSimulatorReadLengthGammaMode>(s);
-	} else if (type == "fixed")
-		_readLengthDist = std::make_unique<TFragmentLengthDistribution>(s);
-	else
-		throw "Unknown read length distribution '" + type + "'!";
+	_readLengthDist.set(_numCycles, s);
 }
 
 void TSimulatorSingleEndRead::setQualityDistribution(std::string s) {
@@ -69,13 +54,16 @@ void TSimulatorSingleEndRead::setMappingQualityDistribution(std::string s) {
 }
 
 void TSimulatorSingleEndRead::setSoftClipDistribution(std::string s) {
-	const auto pos = s.find("):");
+	const auto pos = s.find("]:");
 	if(pos == std::string::npos){
-		_initializeDistribution(_softClipDist5, s);
-		_initializeDistribution(_softClipDist3, s);
+		const auto pos = s.find("):"); //maybe first is categorical distribution ending with )
+	}
+	if(pos == std::string::npos){
+		createDiscreteDistribution(_softClipDist5, s);
+		createDiscreteDistribution(_softClipDist3, s);
 	} else {
-		_initializeDistribution(_softClipDist5, s.substr(0, pos+1));
-		_initializeDistribution(_softClipDist5, s.substr(pos+2));
+		createDiscreteDistribution(_softClipDist5, s.substr(0, pos+1));
+		createDiscreteDistribution(_softClipDist5, s.substr(pos+2));
 	}
 }
 
@@ -107,7 +95,7 @@ std::string TSimulatorSingleEndRead::_getNextReadName() {
 	return coretools::str::toString(_readNamePrefix, _readXPos, ":", _readYPos);
 }
 
-void TSimulatorSingleEndRead::_addSoftclippedBases(std::vector<Base> & bases, const std::unique_ptr<TSimulatorDistribution<uint16_t>> & softClippedDist){
+void TSimulatorSingleEndRead::_addSoftclippedBases(std::vector<Base> & bases, const std::unique_ptr<TCategoricalDistribution<uint16_t>> & softClippedDist){
 	if(softClippedDist){
 		auto len = softClippedDist->sample();
 		if(len > 0){
@@ -169,7 +157,7 @@ void TSimulatorSingleEndRead::simulate(const std::vector<Base>& haplotype, uint3
 	_alignment.setIsReverseStrand(randomGenerator().getRand() < 0.5);
 
 	// pick a fragment and read length, strand and contamination
-	TReadAndFragmentLength readLength = _readLengthDist->sample();
+	TReadAndFragmentLength readLength = _readLengthDist.sample();
 	bool readIsContaminated = _contaminationRate > 0. && randomGenerator().getRand() < _contaminationRate;
 
 	// simulated bases and qualities
