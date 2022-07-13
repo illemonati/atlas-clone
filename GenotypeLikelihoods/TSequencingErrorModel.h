@@ -135,7 +135,6 @@ private:
 	TRho _rho;
 	TIntercept _intercept;
 	std::vector<TCovariateModel> _covariates;
-	std::vector<TFunction *> _functions; // non-owning
 	size_t _numParameters;
 	size_t _num1stDerivatives;
 	size_t _num2ndDerivatives;

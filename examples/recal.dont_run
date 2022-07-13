@@ -4,5 +4,5 @@ root=`git rev-parse --show-toplevel`
 atlas=`find $root -type f -name atlas | tail -n 1`
 echo "Using $atlas"
 
-$atlas --task simulate --recal "intercept[0.3];quality:polynomial()[1.1,-0.1]" --fixedSeed 0
+$atlas --task simulate --recal "intercept[0.1];quality:polynomial()[0.5]" --fixedSeed 0
 $atlas --task recal --bam ATLAS_simulations.bam --fasta ATLAS_simulations.fasta --recal "intercept;quality:polynomial(2)" --rerecalibrate --fixedSeed 0

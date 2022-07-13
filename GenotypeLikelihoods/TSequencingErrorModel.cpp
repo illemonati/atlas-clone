@@ -245,8 +245,6 @@ void TModelNoRecal::simulate(BAM::TSequencedBase &base) const noexcept {
 
 TModelRecal::TModelRecal(const TModelDefinition &modelDef) : _rho(modelDef.rho), _intercept(0, modelDef.intercept) {
 	// create covariates
-	_functions.push_back(&_intercept);
-
 	_numParameters     = _intercept.numParameters();
 	_num1stDerivatives = _intercept.numNonZeroFirstDerivatives();
 	_num2ndDerivatives = _intercept.numNonZeroFirstDerivatives();
@@ -255,7 +253,6 @@ TModelRecal::TModelRecal(const TModelDefinition &modelDef) : _rho(modelDef.rho),
 		if (cov.covariate == TCovariate::name) continue;
 
 		_covariates.push_back(TCovariateModel{impl::covariate(cov.covariate), impl::function(cov.function, _numParameters)});
-		_functions.push_back(_covariates.back().function.get());
 
 		// add new parameters
 		_numParameters     += _covariates.back().function->numParameters();
@@ -430,7 +427,8 @@ void TModelRecal::solveJxF() {
 
 void TModelRecal::proposeNewParameters(double lambda) {
 	uint16_t index = 0;
-	for (const auto f : _functions) { f->proposeNewParameters(_JxF, index, lambda); }
+	_intercept.proposeNewParameters(_JxF, index, lambda);
+	for (const auto& cov: _covariates) cov.function->proposeNewParameters(_JxF, index, lambda);
 }
 
 bool TModelRecal::acceptProposedParametersBasedOnQ() {
@@ -439,14 +437,15 @@ bool TModelRecal::acceptProposedParametersBasedOnQ() {
 	}
 
 	// else
+	_intercept.rejectProposedParameters();
+	for (const auto& cov: _covariates) cov.function->rejectProposedParameters();
 	_Q = _oldQ;
-	for (const auto f : _functions) f->rejectProposedParameters();
 
 	return false;
 }
 
 void TModelRecal::adjustParametersPostEstimation() {
-	for (const auto f : _functions) _intercept.intercept() += f->adjustParametersPostEstimation();
+	for (const auto& cov: _covariates) _intercept.intercept() += cov.function->adjustParametersPostEstimation();
 }
 
 } // namespace SequencingError

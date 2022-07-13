@@ -156,10 +156,6 @@ void TSpecific::_adjustValueRanges(const std::vector<uint16_t> &values) {
 	}
 }
 
-T1stDerivative TSpecific::get1stDerivatives(uint16_t val, size_t) const noexcept {
-	return {firstParameterIndex() + val, 1.0};
-}
-
 double TSpecific::adjustParametersPostEstimation() noexcept { return impl::normalizeParameters(_betas); }
 
 //--------------------------------------------------------------

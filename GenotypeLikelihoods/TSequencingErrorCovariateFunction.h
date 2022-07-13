@@ -86,12 +86,11 @@ public:
 // TCovariateFunction_intercept
 // An intercept term
 //--------------------------------------------------------------
-class TIntercept : public TFunction {
+class TIntercept final : public TFunction {
 private:
 	double _beta    = 0.;
 	double _oldBeta = 0.;
 
-protected:
 	double *_begin() noexcept override { return &_beta; }
 	double *_end() noexcept override { return &_beta + 1; }
 	const double *_cbegin() const noexcept override { return &_beta; }
@@ -218,7 +217,7 @@ struct TLogitTransform {
 // TCovariateFunction_polynomial
 // A polynomial function
 //--------------------------------------------------------------
-template<size_t O, typename Transformer = impl::TLogitTransform> class TPolynomial : public TFunction {
+template<size_t O, typename Transformer = impl::TLogitTransform> class TPolynomial final : public TFunction {
 	static_assert(O > 0);
 
 private:
@@ -229,7 +228,6 @@ private:
 		return Transformer::transform(val);
 	}
 
-protected:
 	double *_begin() noexcept override { return _betas.data(); }
 	double *_end() noexcept override { return _betas.data() + O; }
 	const double *_cbegin() const noexcept override { return _betas.data(); }
@@ -299,7 +297,7 @@ public:
 // A polynomial function
 //--------------------------------------------------------------
 
-class TProbit : public TFunction {
+class TProbit final : public TFunction {
 private:
 	struct TProbitTmpStorage {
 		double cumulDens_Phi;
@@ -322,7 +320,6 @@ private:
 
 	void _expandTmpStorage(uint16_t MaxValue) const;
 
-protected:
 	double *_begin() noexcept override { return _betas.data(); }
 	double *_end() noexcept override { return _betas.data() + _betas.size(); }
 	const double *_cbegin() const noexcept override { return _betas.data(); }
@@ -344,14 +341,15 @@ public:
 	bool checkOrInitValueRange(const std::vector<uint16_t> &) noexcept override { return true; };
 
 	double getEtaTerm(uint16_t val) const noexcept override;
-	virtual std::string typeString() const noexcept override { return name; }
+	double adjustParametersPostEstimation() noexcept override {return 0.;}
+	std::string typeString() const noexcept override { return name; }
 };
 
 //--------------------------------------------------------------
 // TCovariateFunction_specific
 // A term per discrete value from 0 to maxValue
 //--------------------------------------------------------------
-class TSpecific : public TFunction {
+class TSpecific final : public TFunction {
 private:
 	std::vector<double> _betas;    // betas of the model
 	std::vector<double> _oldBetas; // use during estimation
@@ -360,7 +358,6 @@ private:
 	bool _checkValueRange(uint16_t val) const noexcept { return val < numParameters(); };
 	void _adjustValueRanges(const std::vector<uint16_t> &values);
 
-protected:
 	double *_begin() noexcept override { return _betas.data(); }
 	double *_end() noexcept override { return _betas.data() + _betas.size(); }
 	const double *_cbegin() const noexcept override { return _betas.data(); }
@@ -377,8 +374,10 @@ public:
 	uint16_t numNonZeroFirstDerivatives() const noexcept override { return 1; };
 	uint16_t numNonZeroSecondDerivatives() const noexcept override { return 0; };
 
-	T1stDerivative get1stDerivatives(uint16_t val, size_t i) const noexcept override;
-	T2ndDerivative get2ndDerivatives(uint16_t, size_t, size_t ) const noexcept override {
+	T1stDerivative get1stDerivatives(uint16_t val, size_t) const noexcept override {
+		return {firstParameterIndex() + val, 1.0};
+	}
+	T2ndDerivative get2ndDerivatives(uint16_t, size_t, size_t) const noexcept override {
 		return {firstParameterIndex(), firstParameterIndex(), 0.};
 	};
 
@@ -409,7 +408,7 @@ struct TIndexMapEntry {
 	bool used      = false;
 };
 
-class TSpecificMap : public TFunction {
+class TSpecificMap final : public TFunction {
 private:
 	std::vector<double> _betas;            // betas of the model
 	std::vector<double> _oldBetas;         // use during estimation

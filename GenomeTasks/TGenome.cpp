@@ -100,8 +100,9 @@ void TGenome_parsed::_openReference(bool required) {
 	if (!_reference.hasReference()) {
 		if (parameters().parameterExists("fasta")) {
 			std::string fastaFile = parameters().getParameter<std::string>("fasta");
+			int bufferSize = parameters().getParameterWithDefault<int>("fastaBuffer", 100'000);
 			logfile().list("Reading reference sequence from '" + fastaFile + "'. (parameter fasta)");
-			_reference.initialize(fastaFile);
+			_reference.initialize(fastaFile, bufferSize);
 		} else {
 			if (required) { throw "No reference provided! (Use parameter fasta to provide a reference)"; }
 		}
