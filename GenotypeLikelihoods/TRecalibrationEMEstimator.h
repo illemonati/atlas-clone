@@ -116,8 +116,9 @@ private:
 	// functions to estimate theta_epsilon (sequencing error rates)
 	void _estimateRho_updatePbbar(const TPostMortemDamage &PmdModels);
 	double _calculateQ_updateJF(bool updateJF=false);
-	void _updateEpsilon(const TPostMortemDamage &PmdModels, double MaxF);
+	void _updateEpsilon(const TPostMortemDamage &PmdModels, double deltaDeltaLL);
 	double _calculateLL_updatePg(const TPostMortemDamage &PmdModels);
+	void _writeCurrentEstimates(const std::string &filename);
 
 public:
 	TRecalibrationEMEstimator(const BAM::TReadGroups *ReadGroups, const BAM::TReadGroupMap *ReadGroupMap);
@@ -129,8 +130,7 @@ public:
 	void performEstimation(const std::string &outputName, TModels &SequencingErrorModels,
 						   const TPostMortemDamage &PmdModels);
 
-	void writeCurrentEstimates(const std::string &filename);
-	double calcLL();
+	void calcLL(TModels &SequencingErrorModels, const TPostMortemDamage &PmdModels);
 };
 
 }; // namespace SequencingError

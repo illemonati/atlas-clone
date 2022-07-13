@@ -293,7 +293,7 @@ void TRecalibrationEMEstimator::performEstimation(const std::string &outputName,
 	// writing final estimates
 	const std::string filename = outputName + "_recalibrationEM.txt";
 	logfile().listFlush("Writing final estimates to file '" + filename + "' ...");
-	writeCurrentEstimates(filename);
+	_writeCurrentEstimates(filename);
 	logfile().done();
 };
 
@@ -351,7 +351,7 @@ double TRecalibrationEMEstimator::_calculateQ_updateJF(bool updateJF) {
 	return _modelsToEstimate.curQ();
 };
 
-	void TRecalibrationEMEstimator::_updateEpsilon(const TPostMortemDamage &PmdModels, double MaxF) {
+	void TRecalibrationEMEstimator::_updateEpsilon(const TPostMortemDamage &PmdModels, double deltaDeltaLL) {
 	using coretools::str::toString;
 	logfile().startIndent("Updating sequencing error models (theta_epsilon):");
 
@@ -400,7 +400,7 @@ double TRecalibrationEMEstimator::_calculateQ_updateJF(bool updateJF) {
 
 		const double maxF = _modelsToEstimate.getSteepestGradient();
 		logfile().conclude("max(F) = " + toString(maxF));
-		if (maxF < MaxF) break;
+		if (maxF < _NewtonRaphsonMaxF) break;
 	}
 	logfile().endIndent();
 	logfile().endIndent();
@@ -445,6 +445,7 @@ void TRecalibrationEMEstimator::_runEM(const std::string &outputName, const TPos
 
 	// calculate initial LL
 	double oldLL = _calculateLL_updatePg(PmdModels);
+	double deltaLL = 1;
 	logfile().conclude("Initial log Likelihood = " + toString(oldLL));
 
 	// running iterations
@@ -453,14 +454,14 @@ void TRecalibrationEMEstimator::_runEM(const std::string &outputName, const TPos
 		logfile().addIndent();
 
 		// update theta_epsilon (sequencing errors)
-		_updateEpsilon(PmdModels, std::max(_NewtonRaphsonMaxF, coretools::uPow(0.1, i)));
+		_updateEpsilon(PmdModels, deltaLL/oldLL);
 
 		// calculate LL
 		const double LL = _calculateLL_updatePg(PmdModels);
 		logfile().conclude("Current Log Likelihood = " + toString(LL));
 
 		// check if we break based on LL
-		double deltaLL = LL - oldLL;
+		deltaLL = LL - oldLL;
 		logfile().conclude("delta LL = " + toString(deltaLL));
 		if (i > 0 && deltaLL < _minDeltaLL) {
 			logfile().conclude("EM has converged (delta LL < " + toString(_minDeltaLL) + ")");
@@ -472,7 +473,7 @@ void TRecalibrationEMEstimator::_runEM(const std::string &outputName, const TPos
 		if (_writeTmpTables) {
 			std::string filename = outputName + "_recalibrationEM_Loop" + toString(i) + ".txt";
 			logfile().listFlush("Writing current estimates to file '" + filename + "' ...");
-			writeCurrentEstimates(filename);
+			_writeCurrentEstimates(filename);
 			logfile().done();
 		}
 
@@ -485,10 +486,24 @@ void TRecalibrationEMEstimator::_runEM(const std::string &outputName, const TPos
 	logfile().endNumbering();
 };
 
+void TRecalibrationEMEstimator::calcLL(TModels &SequencingErrorModels, const TPostMortemDamage &PmdModels) {
+	_initializeModels(SequencingErrorModels);
+
+	logfile().startIndent("Recal Model:");
+	logfile().conclude("Rho: ",_modelsToEstimate.getRhoDefinition());
+	logfile().conclude("Rodel: ",_modelsToEstimate.getModelsDefinition());
+	logfile().endIndent();
+
+	logfile().listFlushDots("Calculating log likelihood");
+	const double ll = _calculateLL_updatePg(PmdModels);
+	logfile().write(ll);
+
+}
+
 //----------------------------
 // Other functions
 //----------------------------
-void TRecalibrationEMEstimator::writeCurrentEstimates(const std::string & Filename) {
+void TRecalibrationEMEstimator::_writeCurrentEstimates(const std::string & Filename) {
 	// open file and write header
 	_modelsToEstimate.writeRecalFile(*_readGroups, Filename);
 };

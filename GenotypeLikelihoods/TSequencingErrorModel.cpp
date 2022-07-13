@@ -348,12 +348,22 @@ void TModelRecal::estimateRho() noexcept { _rho.estimate(); }
 //-------------------------------------------------
 // functions for estimation
 //-------------------------------------------------
-void TModelRecal::checkOrInit(const RecalEstimatorTools::TRecalDataTable &DataTable) const {
+void TModelRecal::checkOrInit(const RecalEstimatorTools::TRecalDataTable &DataTable) {
+	// these may change, recalculate
+	_numParameters     = _intercept.numParameters();
+	_num1stDerivatives = _intercept.numNonZeroFirstDerivatives();
+	_num2ndDerivatives = _intercept.numNonZeroFirstDerivatives();
+
 	for (auto &cov : _covariates) {
 		if (!cov.function->checkOrInitValueRange(cov.covariate->range(DataTable))) {
 			throw "Function " + cov.function->typeString() + " does not cover full range of data of covariate " +
 				   cov.covariate->typeString() + '\n';
 		}
+
+		// these may change, recalculate
+		_numParameters     += _covariates.back().function->numParameters();
+		_num1stDerivatives += _covariates.back().function->numNonZeroFirstDerivatives();
+		_num2ndDerivatives += _covariates.back().function->numNonZeroSecondDerivatives();
 	}
 }
 

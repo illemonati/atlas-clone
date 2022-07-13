@@ -167,7 +167,7 @@ public:
 	virtual void simulate(BAM::TSequencedBase &base) const noexcept override;
 
 	// functions to estimate
-	void checkOrInit(const RecalEstimatorTools::TRecalDataTable &DataTable) const;
+	void checkOrInit(const RecalEstimatorTools::TRecalDataTable &DataTable);
 
 	// functions to estimate rho
 	void addToRho(const BAM::TSequencedBase &data, coretools::Probability P_g_I_d, const TBaseProbabilities &P_bbar_I_d) noexcept; 
