@@ -93,8 +93,8 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 target_link_libraries(${PROJECT_NAME} PRIVATE BamTools BamTools-utils coretools stattools genometools ${ZLIB_LIBRARIES} armadillo ${SAN_LINK})
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_EXTENSIONS OFF)
-target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra)
-target_compile_definitions(${PROJECT_NAME} PRIVATE WITH_ARMADILLO ARMA_WARN_LEVEL=0 DEVTOOLS ${SAN})
+target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra ${SAN})
+target_compile_definitions(${PROJECT_NAME} PRIVATE WITH_ARMADILLO ARMA_WARN_LEVEL=0 DEVTOOLS)
 
 add_executable("${PROJECT_NAME}_unitTests" EXCLUDE_FROM_ALL)
 
