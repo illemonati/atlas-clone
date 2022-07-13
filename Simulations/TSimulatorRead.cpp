@@ -23,7 +23,6 @@ using genometools::Base;
 using genometools::PhredIntProbability;
 using coretools::instances::logfile;
 using coretools::instances::randomGenerator;
-using coretools::probdist::createDiscreteDistribution;
 
 //----------------------------------
 // TSimulatorSingleEndRead

@@ -33,45 +33,35 @@ struct TReadAndFragmentLength {
 //---------------------------------------------------------
 class TFragmentLengthDistribution {
 protected:
-	std::unique_ptr<coretools::probdist::TCategoricalDistribution<uint16_t>> _fragmentLengthDistr;
 	uint16_t _maxReadLength{}; //number of cycles on an illumina machine
+	coretools::probdist::TCategoricalDistribution<uint16_t> _fragmentLengthDistr;
 
 public:
-	TFragmentLengthDistribution(const uint16_t MaxReadLength, std::string &s){
-		set(MaxReadLength, s);
-	}
-	TFragmentLengthDistribution() = default;
+	TFragmentLengthDistribution(const std::string & FragmentLengthDistribution, const uint16_t MaxReadLength)
+	: _maxReadLength(MaxReadLength),
+	  _fragmentLengthDistr(FragmentLengthDistribution){};
 
-	virtual ~TFragmentLengthDistribution() = default;
+	~TFragmentLengthDistribution() = default;
 
-	void set(const uint16_t MaxReadLength, std::string &s){
-		_maxReadLength = MaxReadLength;
-		coretools::probdist::createDiscreteDistribution(_fragmentLengthDistr, s);
+	[[nodiscard]] uint32_t max() const {
+		return _fragmentLengthDistr.max();
 	}
 
-	operator bool() const {
-		return (bool) _fragmentLengthDistr;
+	[[nodiscard]] double mean() const {
+		return _fragmentLengthDistr.mean();
 	}
 
-	[[nodiscard]] uint32_t max() const noexcept {
-		return _fragmentLengthDistr->max();
-	}
-
-	[[nodiscard]] double mean() const noexcept {
-		return _fragmentLengthDistr->mean();
-	}
-
-	[[nodiscard]] std::string functionString(){
-		return _fragmentLengthDistr->functionString();
+	[[nodiscard]] std::string functionString() const {
+		return _fragmentLengthDistr.functionString();
 	};
 
-	void printDetails(){
+	void printDetails() const {
 		//TODO: add max length info
-		coretools::instances::logfile().list(_fragmentLengthDistr->verbalizedString());
+		coretools::instances::logfile().list(_fragmentLengthDistr.verbalizedString());
 	};
 
-	[[nodiscard]] TReadAndFragmentLength sample() const noexcept {
-		uint16_t fragmentLength = _fragmentLengthDistr->sample();
+	[[nodiscard]] TReadAndFragmentLength sample() const {
+		uint16_t fragmentLength = _fragmentLengthDistr.sample();
 		if(fragmentLength > _maxReadLength){
 			return TReadAndFragmentLength(_maxReadLength, fragmentLength);
 		} else {

@@ -33,7 +33,7 @@ namespace Simulations {
 using genometools::Base;
 using genometools::PhredIntProbability;
 using coretools::probdist::TCategoricalDistribution;
-using coretools::probdist::createDiscreteDistribution;
+
 
 //-------------------------------
 // TSimulatorSingleEndRead
@@ -50,12 +50,12 @@ protected:
 	TFragmentLengthDistribution _readLengthDist;
 
 	// qualities
-	std::unique_ptr<TCategoricalDistribution<PhredIntProbability>> _qualityDist;
-	std::unique_ptr<TCategoricalDistribution<PhredIntProbability>> _mappingQualityDist;
+	TCategoricalDistribution<PhredIntProbability> _qualityDist;
+	TCategoricalDistribution<PhredIntProbability> _mappingQualityDist;
 
 	//length of soft clipped bases
-	std::unique_ptr<TCategoricalDistribution<uint16_t>> _softClipDist5;
-	std::unique_ptr<TCategoricalDistribution<uint16_t>> _softClipDist3;
+	TCategoricalDistribution<uint16_t> _softClipDist5;
+	TCategoricalDistribution<uint16_t> _softClipDist3;
 
 	GenotypeLikelihoods::TPMDType const *_pmd = nullptr;
 	std::array<GenotypeLikelihoods::SequencingError::TModel const *, 2> _recal;
@@ -92,11 +92,9 @@ public:
 	std::string name() const { return _readGroup.name_ID; };
 	virtual std::string type() const {return "single-end";}
 	double meanReadLength() {
-		if (!_readLengthDist) throw "Read length distribution not initialized!";
 		return _readLengthDist.mean();
 	};
 	double maxReadLength() {
-		if (!_readLengthDist) throw "Read length distribution not initialized!";
 		return _readLengthDist.max();
 	};
 
