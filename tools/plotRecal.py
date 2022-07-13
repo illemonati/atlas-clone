@@ -22,10 +22,8 @@ if __name__ == "__main__":
     qs = np.r_[0:93:1]
     ps = 10**(-qs/10)
     vs = logit(ps)
-    print("vs",vs)
     for i, fn in enumerate(fns):
         etas = fn(vs)
-        print("etas",etas)
         recals = -10*np.log10(expit(etas))
         plt.plot(qs, recals, label=args.models[i])
 
