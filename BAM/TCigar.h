@@ -8,63 +8,52 @@
 #ifndef BAM_TCIGAR_H_
 #define BAM_TCIGAR_H_
 
-#include <vector>
 #include <cstdint>
+#include <vector>
 
-namespace BAM{
+namespace BAM {
 
 //-----------------------------------------------------
-//TCigar
-//A class to store, access and manipulate CIGAR operators
+// TCigar
+// A class to store, access and manipulate CIGAR operators
 //-----------------------------------------------------
 struct CigarOperator {
-    char     type;
-    uint32_t length;
+	char type       = '\0';
+	uint32_t length = 0;
 
-    CigarOperator(){
-    	type = '\0';
-    	length = 0;
-    };
-    CigarOperator(char Type, uint32_t Length){
-    	type = Type;
-    	length = Length;
-    };
+	CigarOperator(char Type, uint32_t Length) : type(Type), length(Length) {}
 };
 
-class TCigar{
+class TCigar {
 private:
 	std::vector<CigarOperator> _cigar;
-	uint32_t _lengthAligned;
-	uint32_t _lengthInserted;
-	uint32_t _lengthDeleted;
-	uint32_t _lengthSkipped;
-	uint32_t _lengthSoftClippedLeft;
-	uint32_t _lengthSoftClippedRight;
-	bool _addSoftClippedLeft;
-	bool _softClippedAddedOnRight;
+	uint32_t _lengthAligned          = 0;
+	uint32_t _lengthInserted         = 0;
+	uint32_t _lengthDeleted          = 0;
+	uint32_t _lengthSkipped          = 0;
+	uint32_t _lengthSoftClippedLeft  = 0;
+	uint32_t _lengthSoftClippedRight = 0;
 
 public:
-	TCigar(){
-		clear();
-	};
-
 	void clear();
-	std::vector<CigarOperator>::const_iterator begin() const { return _cigar.begin(); }
-	std::vector<CigarOperator>::const_iterator end() const { return _cigar.end(); }
-    void add(char Type, uint32_t Length);
-    void removeSoftClips();
+	std::vector<CigarOperator>::const_iterator begin() const noexcept { return _cigar.begin(); }
+	std::vector<CigarOperator>::const_iterator end() const noexcept { return _cigar.end(); }
+	void add(char Type, uint32_t Length);
+	void removeSoftClips();
 
-    uint32_t lengthAligned() const { return _lengthAligned; };
-    uint32_t lengthInserted() const { return _lengthInserted; };
-    uint32_t lengthDeleted() const { return _lengthDeleted; };
-    uint32_t lengthSoftClippedLeft() const { return _lengthSoftClippedLeft; };
-    uint32_t lengthSoftClippedRight() const { return _lengthSoftClippedRight; };
-    uint32_t lengthSoftClipped() const { return _lengthSoftClippedLeft + _lengthSoftClippedRight; };
-    uint32_t lengthSequenced() const { return _lengthAligned + _lengthInserted; };
-    uint32_t lengthRead() const { return _lengthAligned + _lengthInserted + _lengthSoftClippedLeft + _lengthSoftClippedRight; };
-    uint32_t lengthMapped() const { return _lengthAligned + _lengthDeleted + _lengthSkipped; };
+	constexpr uint32_t lengthAligned() const noexcept { return _lengthAligned; };
+	constexpr uint32_t lengthInserted() const noexcept { return _lengthInserted; };
+	constexpr uint32_t lengthDeleted() const noexcept { return _lengthDeleted; };
+	constexpr uint32_t lengthSoftClippedLeft() const noexcept { return _lengthSoftClippedLeft; };
+	constexpr uint32_t lengthSoftClippedRight() const noexcept { return _lengthSoftClippedRight; };
+	constexpr uint32_t lengthSoftClipped() const noexcept { return _lengthSoftClippedLeft + _lengthSoftClippedRight; };
+	constexpr uint32_t lengthSequenced() const noexcept { return _lengthAligned + _lengthInserted; };
+	constexpr uint32_t lengthRead() const noexcept {
+		return _lengthAligned + _lengthInserted + _lengthSoftClippedLeft + _lengthSoftClippedRight;
+	};
+	uint32_t lengthMapped() const noexcept { return _lengthAligned + _lengthDeleted + _lengthSkipped; };
 };
 
-}; //end namespace
+}; // namespace BAM
 
 #endif /* BAM_TCIGAR_H_ */

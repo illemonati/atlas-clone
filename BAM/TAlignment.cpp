@@ -23,6 +23,38 @@
 
 namespace BAM {
 
+void TAlignment::clear() {
+	TGenomePosition::clear();
+	_name.clear();
+	_flags.reset();
+	_mappingQuality = 0;
+	_cigar.clear();
+	_mateGenomicPosition.clear();
+	_insertSize_TLEN = 0;
+	_readGroupID    = 0;
+	_fragmentLength = 0;
+
+	_lastAlignedPositionWithRespectToRef.clear();
+	_lastAlignedPos = 0;
+
+	// booleans
+	_empty   = true;
+	_parsed  = false;
+
+	// sequence and qualities. Mutable so that they can be recreated from bases even for const TAlignment
+	_sequence.clear();
+	_qualities.clear();
+	_sequenceAndQualitiesChanged = false;
+
+	// per base data
+	_bases.clear();
+	_alignedPosition.clear();
+
+	// reference
+	_hasReference = false;
+	_referenceSequence.clear();
+}
+
 //--------------------------------------
 // functions to fill alignment
 //--------------------------------------
@@ -33,7 +65,14 @@ void TAlignment::fill(const std::string &Name, const TSamFlags &Flags, uint32_t 
 					  uint16_t ReadGroupId) {
 
 	// empty alignment
-	clear();
+	_lastAlignedPositionWithRespectToRef.clear();
+	_lastAlignedPos = 0;
+	_parsed  = false;
+	_sequenceAndQualitiesChanged = false;
+	_bases.clear();
+	_alignedPosition.clear();
+	_hasReference = false;
+	_referenceSequence.clear();
 
 	// copy data
 	_name  = Name;
@@ -276,13 +315,11 @@ void TAlignment::setSequenceQualities(const TCigar &Cigar, const std::vector<gen
 	// parse bases and qualities
 	_parseBasesQualities(Sequence, Qualities);
 	_setQualitiesNoRecal();
-	_changed                     = true;
 	_sequenceAndQualitiesChanged = true; // will trigger that the strings are read form the bases
 };
 
 void TAlignment::setReadGroup(const uint16_t readGroupId) {
 	_readGroupID = readGroupId;
-	_changed     = true;
 };
 
 //--------------------------------------
@@ -354,7 +391,6 @@ void TAlignment::trimRead(int trimmingLength3Prime, int trimmingLength5Prime) {
 	}
 
 	_sequenceAndQualitiesChanged = true;
-	_changed                     = true;
 };
 
 void TAlignment::removeSoftClippedBases() {
@@ -380,7 +416,6 @@ void TAlignment::removeSoftClippedBases() {
 
 		// set has changed
 		_sequenceAndQualitiesChanged = true;
-		_changed                     = true;
 	}
 };
 
@@ -393,13 +428,11 @@ void TAlignment::binQualityScoresIllumina() {
 	for (auto &b : _bases) { b.recalibratedQualityAsPhredInt.makeIllumina(); }
 
 	_sequenceAndQualitiesChanged = true;
-	_changed                     = true;
 };
 
 void TAlignment::recalibrateWithPMD(const GenotypeLikelihoods::TGenotypeLikelihoodCalculator &GLCalculator) {
 	GLCalculator.recalibrateWithPMD(_bases);
 	_sequenceAndQualitiesChanged = true;
-	_changed                     = true;
 };
 
 void TAlignment::setIsProperPair(const bool &ok) { _flags.setIsProperPair(ok); };
@@ -427,7 +460,6 @@ void TAlignment::downsampleAlignment(const coretools::Probability &fractionToKee
 		}
 	}
 	_sequenceAndQualitiesChanged = true;
-	_changed                     = true;
 };
 
 //--------------------------------------------

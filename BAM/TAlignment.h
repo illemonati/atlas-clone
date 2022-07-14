@@ -46,7 +46,7 @@ namespace BAM {
 //-----------------------------------------------------
 // TAlignment
 //-----------------------------------------------------
-class TAlignment : public genometools::TGenomePosition {
+class TAlignment final : public genometools::TGenomePosition {
 private:
 	// Alignment data
 	std::string _name;
@@ -64,7 +64,6 @@ private:
 	// booleans
 	bool _empty   = true;
 	bool _parsed  = false;
-	bool _changed = false;
 
 	// sequence and qualities. Mutable so that they can be recreated from bases even for const TAlignment
 	mutable std::string _sequence;
@@ -96,7 +95,7 @@ public:
 	TAlignment() = default;
 
 	// clear, fill and parse
-	void clear() {*this = TAlignment{};};
+	void clear();
 	void fill(const std::string &Name, const TSamFlags &Flags, uint32_t RefID, uint32_t Position,
 			  uint16_t MappingQuality, const TCigar &Cigar, uint32_t MateRefID, uint32_t MatePosition,
 			  const int32_t &InsertSize_TLEN, const std::string &Sequence, const std::string &Qualities,
@@ -155,8 +154,8 @@ public:
 	// looping
 	std::vector<TSequencedBase>::iterator begin() noexcept { return _bases.begin(); };
 	std::vector<TSequencedBase>::iterator end() noexcept { return _bases.end(); };
-	std::vector<TSequencedBase>::const_iterator begin() const { return _bases.begin(); };
-	std::vector<TSequencedBase>::const_iterator end() const { return _bases.end(); };
+	std::vector<TSequencedBase>::const_iterator begin() const noexcept { return _bases.begin(); };
+	std::vector<TSequencedBase>::const_iterator end() const noexcept { return _bases.end(); };
 	size_t size() const noexcept { return _bases.size(); }
 
 	// filters and other functions to modify data

@@ -495,10 +495,10 @@ bool TGenome_windows::_readDataInNextWindow(GenotypeLikelihoods::TWindow &window
 	return true;
 };
 
-bool TGenome_windows::_readAndParseAlignment(BAM::TAlignment &alignment) {
-	if (!_bamFile.readNextAlignmentThatPassesFilters(alignment)) { return false; }
+bool TGenome_windows::_readAndParseAlignment() {
+	if (!_bamFile.readNextAlignmentThatPassesFilters(_curAlignment)) { return false; }
 
-	_parseAlignment(alignment);
+	_parseAlignment(_curAlignment);
 	return true;
 };
 
@@ -507,15 +507,14 @@ void TGenome_windows::_readAlignmentsIntoWindow(GenotypeLikelihoods::TWindow &wi
 	logfile().listFlushTime("Reading data ...");
 
 	// use last read from last window
-	if (_curAlignment.isEmpty() && !_readAndParseAlignment(_curAlignment)) return;
+	if (_curAlignment.isEmpty() && !_readAndParseAlignment()) return;
 
 	do {
 		if (_curAlignment >= window.to()) break; 
 		if (_curAlignment.lastAlignedPositionWithRespectToRef() >= window.from()) {
 			window.addAlignment(_curAlignment);
-			_curAlignment.clear();
 		}
-	} while (_readAndParseAlignment(_curAlignment));
+	} while (_readAndParseAlignment());
 	// _curAlignment now holds first alignment of next window, don't discard!
 
 	// fill sites
