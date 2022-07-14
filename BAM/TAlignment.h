@@ -17,128 +17,131 @@
 #include "TGenomePosition.h"
 #include "TSamFlags.h"
 #include "TSequencedBase.h"
-#include "probability.h"
 #include "devtools.h"
+#include "probability.h"
 
-namespace BAM { class TBaseFilter; }
-namespace BAM { class TFastaBuffer; }
-namespace GenotypeLikelihoods { class TGenotypeLikelihoodCalculator; }
-namespace GenotypeLikelihoods { namespace SequencingError { class TModels; } }
-namespace coretools { class TRandomGenerator; }
-namespace genometools { class PhredIntProbability; }
+namespace BAM {
+class TBaseFilter;
+}
+namespace BAM {
+class TFastaBuffer;
+}
+namespace GenotypeLikelihoods {
+class TGenotypeLikelihoodCalculator;
+}
+namespace GenotypeLikelihoods {
+namespace SequencingError {
+class TModels;
+}
+} // namespace GenotypeLikelihoods
+namespace coretools {
+class TRandomGenerator;
+}
+namespace genometools {
+class PhredIntProbability;
+}
 
-namespace BAM{
+namespace BAM {
 
 //-----------------------------------------------------
-//TAlignment
+// TAlignment
 //-----------------------------------------------------
-class TAlignment:public genometools::TGenomePosition{
+class TAlignment : public genometools::TGenomePosition {
 private:
-	//Alignment data
+	// Alignment data
 	std::string _name;
 	TSamFlags _flags;
-	uint16_t _mappingQuality;
+	uint16_t _mappingQuality = 0;
 	TCigar _cigar;
 	TGenomePosition _mateGenomicPosition;
-	int32_t _insertSize_TLEN;
-	uint16_t _readGroupID;
-	uint16_t _fragmentLength;
+	int32_t _insertSize_TLEN = 0;
+	uint16_t _readGroupID    = 0;
+	uint16_t _fragmentLength = 0;
 
 	TGenomePosition _lastAlignedPositionWithRespectToRef;
-	int32_t _lastAlignedPos;
+	int32_t _lastAlignedPos = 0;
 
-	//booleans
-	bool _empty;
-	bool _parsed;
-	bool _changed;
+	// booleans
+	bool _empty   = true;
+	bool _parsed  = false;
+	bool _changed = false;
 
-	//sequence and qualities. Mutable so that they can be recreated from bases even for const TAlignment
+	// sequence and qualities. Mutable so that they can be recreated from bases even for const TAlignment
 	mutable std::string _sequence;
 	mutable std::string _qualities;
-	mutable bool _sequenceAndQualitiesChanged;
+	mutable bool _sequenceAndQualitiesChanged = false;
 
-	//per base data
+	// per base data
 	std::vector<TSequencedBase> _bases;
 	std::vector<int> _alignedPosition;
 
-	//reference
-	bool _hasReference;
+	// reference
+	bool _hasReference = false;
 	std::vector<genometools::Base> _referenceSequence;
 
-	void _initialize();
-
-	//functions to read and parse
+	// functions to read and parse
 	void _parseBasesQualities();
-	void _parseBasesQualities(const std::vector<genometools::Base> & Sequence, const std::vector<genometools::PhredIntProbability> & Qualities);
+	void _parseBasesQualities(const std::vector<genometools::Base> &Sequence,
+							  const std::vector<genometools::PhredIntProbability> &Qualities);
 	void _setQualitiesNoRecal();
 	void _setDistancesFromEnds();
 	void _fillContext();
 
-	//functions to modify data
+	// functions to modify data
 	void _updateSequenceAndQualities() const;
 
 public:
-	TAlignment(uint32_t RefID, uint32_t Position);
-	TAlignment(const TGenomePosition & other);
-	TAlignment();
-	~TAlignment() = default;
-	TAlignment(const TAlignment&) = default;
-	TAlignment(TAlignment&&) = default;
-	TAlignment& operator=(const TAlignment&) = default;
-	TAlignment& operator=(TAlignment&&) = default;
+	TAlignment(uint32_t RefID, uint32_t Position) : TGenomePosition(RefID, Position) {}
+	TAlignment(const TGenomePosition &other) : TGenomePosition(other){};
+	TAlignment() = default;
 
-	//clear, fill and parse
-	void clear();
-	void fill(const	std::string & Name,
-			  const TSamFlags & Flags,
-			  uint32_t RefID,
-			  uint32_t Position,
-			  uint16_t MappingQuality,
-			  const TCigar & Cigar,
-			  uint32_t MateRefID,
-			  uint32_t MatePosition,
-			  const int32_t & InsertSize_TLEN,
-			  const std::string & Sequence,
-			  const std::string & Qualities,
+	// clear, fill and parse
+	void clear() {*this = TAlignment{};};
+	void fill(const std::string &Name, const TSamFlags &Flags, uint32_t RefID, uint32_t Position,
+			  uint16_t MappingQuality, const TCigar &Cigar, uint32_t MateRefID, uint32_t MatePosition,
+			  const int32_t &InsertSize_TLEN, const std::string &Sequence, const std::string &Qualities,
 			  uint16_t ReadGroupId);
 	void parse();
-	void parse(const GenotypeLikelihoods::SequencingError::TModels & seqErrorModels);
+	void parse(const GenotypeLikelihoods::SequencingError::TModels &seqErrorModels);
 
-	//setters
-	void addReference(TFastaBuffer & fasta);
-	void setSequenceAndQualitiesChanged(){ _sequenceAndQualitiesChanged = true; };
-	void setName(const std::string Name){ _name = Name; };
-	void setMappingQuality(const uint16_t Mappingquality){ _mappingQuality = Mappingquality; };
-	void setMateGenomicPosition(const uint32_t RefID, const uint32_t Position){ _mateGenomicPosition.move(RefID, Position); };
-	void setInsertSize(const int32_t InsertSize){ _insertSize_TLEN = InsertSize; };
-	void setSequenceQualities(const TCigar & Cigar, const std::vector<genometools::Base> & Sequence, const std::vector<genometools::PhredIntProbability> & Quals);
+	// setters
+	void addReference(TFastaBuffer &fasta);
+	void setSequenceAndQualitiesChanged() { _sequenceAndQualitiesChanged = true; };
+	void setName(const std::string Name) { _name = Name; };
+	void setMappingQuality(const uint16_t Mappingquality) { _mappingQuality = Mappingquality; };
+	void setMateGenomicPosition(const uint32_t RefID, const uint32_t Position) {
+		_mateGenomicPosition.move(RefID, Position);
+	};
+	void setInsertSize(const int32_t InsertSize) { _insertSize_TLEN = InsertSize; };
+	void setSequenceQualities(const TCigar &Cigar, const std::vector<genometools::Base> &Sequence,
+							  const std::vector<genometools::PhredIntProbability> &Quals);
 	void setReadGroup(const uint16_t readGroupId);
-	void setIsReverseStrand(const bool IsReverse){ _flags.setIsReverseStrand(IsReverse); };
-    void setIsRead1(const bool IsRead1){ _flags.setIsRead1(IsRead1); };
-    void setIsRead2(const bool IsRead2){ _flags.setIsRead2(IsRead2); };
-    void setSamFlags(const BAM::TSamFlags Flags){_flags = Flags; };
+	void setIsReverseStrand(const bool IsReverse) { _flags.setIsReverseStrand(IsReverse); };
+	void setIsRead1(const bool IsRead1) { _flags.setIsRead1(IsRead1); };
+	void setIsRead2(const bool IsRead2) { _flags.setIsRead2(IsRead2); };
+	void setSamFlags(const BAM::TSamFlags Flags) { _flags = Flags; };
 
-	//getters: position
-	uint32_t lastAlingedInternalPos() const{ return _lastAlignedPos; };
-	TGenomePosition lastAlignedPositionWithRespectToRef() const{ return _lastAlignedPositionWithRespectToRef; };
+	// getters: position
+	uint32_t lastAlingedInternalPos() const { return _lastAlignedPos; };
+	TGenomePosition lastAlignedPositionWithRespectToRef() const { return _lastAlignedPositionWithRespectToRef; };
 	bool isAlignedAtInternalPos(const uint32_t internalPosition) const;
 	genometools::Base referenceAtInternalPos(uint32_t internalPosition) const;
 	TGenomePosition positionInRef(uint32_t internalPosition) const;
-	const genometools::TGenomePosition& mateGenomicPosition() const{ return _mateGenomicPosition; };
-	uint32_t matePosition() const{ return _mateGenomicPosition.position(); };
-	uint32_t mateRefID() const{ return _mateGenomicPosition.refID(); };
+	const genometools::TGenomePosition &mateGenomicPosition() const { return _mateGenomicPosition; };
+	uint32_t matePosition() const { return _mateGenomicPosition.position(); };
+	uint32_t mateRefID() const { return _mateGenomicPosition.refID(); };
 
 	std::string name() const { return _name; };
 	uint16_t readGroupId() const { return _readGroupID; };
-	uint32_t parsedLength() const { return _parsed ? length() : 0; };
+	uint32_t parsedLength() const { return _alignedPosition.size(); };
 	uint32_t length() const { return _cigar.lengthRead(); };
 	int32_t insertSize() const { return _insertSize_TLEN; };
 	uint16_t mappingQuality() const { return _mappingQuality; };
 	uint16_t flags() const { return _flags.asInt(); };
 	const TCigar &cigar() const { return _cigar; };
 
-	TSequencedBase& operator[](const uint32_t internalPos){ return _bases[internalPos]; };
-	const TSequencedBase& operator[](const uint32_t internalPos) const { return _bases[internalPos]; };
+	TSequencedBase &operator[](const uint32_t internalPos) { return _bases[internalPos]; };
+	const TSequencedBase &operator[](const uint32_t internalPos) const { return _bases[internalPos]; };
 
 	std::string sequence() const;
 	std::string qualities() const;
@@ -149,26 +152,26 @@ public:
 	bool isProperPair() const noexcept { return _flags.isProperPair(); };
 	bool isSecondMate() const noexcept { return _flags.isSecondMate(); };
 
-	//looping
+	// looping
 	std::vector<TSequencedBase>::iterator begin() noexcept { return _bases.begin(); };
-	std::vector<TSequencedBase>::iterator end()noexcept { return _bases.end(); };
+	std::vector<TSequencedBase>::iterator end() noexcept { return _bases.end(); };
 	std::vector<TSequencedBase>::const_iterator begin() const { return _bases.begin(); };
-	std::vector<TSequencedBase>::const_iterator end()const { return _bases.end(); };
-	size_t size() const noexcept {return _bases.size();}
+	std::vector<TSequencedBase>::const_iterator end() const { return _bases.end(); };
+	size_t size() const noexcept { return _bases.size(); }
 
-	//filters and other functions to modify data
-	void filter(const TBaseFilter & Filter);
+	// filters and other functions to modify data
+	void filter(const TBaseFilter &Filter);
 	void trimRead(int trimmingLength3Prime, int trimmingLength5Prime);
 	void removeSoftClippedBases();
 	void binQualityScoresIllumina();
-	void recalibrateWithPMD(const GenotypeLikelihoods::TGenotypeLikelihoodCalculator & GLCalculator);
-	void setIsProperPair(const bool & ok);
-	void downsampleAlignment(const coretools::Probability & fraction, coretools::TRandomGenerator& randomGenerator);
+	void recalibrateWithPMD(const GenotypeLikelihoods::TGenotypeLikelihoodCalculator &GLCalculator);
+	void setIsProperPair(const bool &ok);
+	void downsampleAlignment(const coretools::Probability &fraction, coretools::TRandomGenerator &randomGenerator);
 
-	//debug functions
+	// debug functions
 	void print();
 };
 
-}; //end namespace
+}; // namespace BAM
 
 #endif /* TALIGNMENT_H_ */
