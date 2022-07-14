@@ -512,7 +512,8 @@ void TGenome_windows::_readAlignmentsIntoWindow(GenotypeLikelihoods::TWindow &wi
 	do {
 		if (_curAlignment >= window.to()) break; 
 		if (_curAlignment.lastAlignedPositionWithRespectToRef() >= window.from()) {
-			window.addAlignment(std::move(_curAlignment));
+			window.addAlignment(_curAlignment);
+			_curAlignment.clear();
 		}
 	} while (_readAndParseAlignment(_curAlignment));
 	// _curAlignment now holds first alignment of next window, don't discard!
