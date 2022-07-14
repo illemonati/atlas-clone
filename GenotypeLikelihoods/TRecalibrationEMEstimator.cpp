@@ -351,7 +351,7 @@ double TRecalibrationEMEstimator::_calculateQ_updateJF(bool updateJF) {
 	return _modelsToEstimate.curQ();
 };
 
-	void TRecalibrationEMEstimator::_updateEpsilon(const TPostMortemDamage &PmdModels, double deltaDeltaLL) {
+void TRecalibrationEMEstimator::_updateEpsilon(const TPostMortemDamage &PmdModels, double deltaLL) {
 	using coretools::str::toString;
 	logfile().startIndent("Updating sequencing error models (theta_epsilon):");
 
@@ -366,29 +366,29 @@ double TRecalibrationEMEstimator::_calculateQ_updateJF(bool updateJF) {
 	const auto nTot = _modelsToEstimate.size();
 
 	for (int i = 0; i < _NewtonRaphsonNumIterations; ++i) {
+		logfile().startIndent("Running Newton-Raphson iteration " + toString(i + 1) + ":");
 		const double curQ = _calculateQ_updateJF(true);
 		logfile().list("Current Q_beta = ", curQ);
-		logfile().startIndent("Running Newton-Raphson iteration " + toString(i + 1) + ":");
 
 		_modelsToEstimate.solveJxF();
 
 		double lambda   = 1.0;
 		size_t nUpdated = 0;
+		double deltaQ   = 0;
 
 		while (nUpdated < nTot && lambda > 1.0E-20) {
 			_modelsToEstimate.proposeNewParameters(lambda);
 			logfile().listFlushDots("Proposing model ", _modelsToEstimate.getModelsDefinition());
 
-			const double Q = _calculateQ_updateJF();
+			deltaQ = _calculateQ_updateJF() - curQ;
 			nUpdated = _modelsToEstimate.acceptProposedParametersBasedOnQ();
 
 			logfile().write(toString(nUpdated) + "/" + toString(nTot) + " models converged.");
-			logfile().conclude("Delta Q = ", Q - curQ);
+			logfile().conclude("Delta Q = ", deltaQ);
 
 			// backtrack
 			lambda = lambda / 2.0; // backtrack;
 		}
-		logfile().endIndent();
 
 		_modelsToEstimate.adjustParametersPostEstimation();
 
@@ -398,9 +398,20 @@ double TRecalibrationEMEstimator::_calculateQ_updateJF(bool updateJF) {
 			break;
 		}
 
-		const double maxF = _modelsToEstimate.getSteepestGradient();
-		logfile().conclude("max(F) = " + toString(maxF));
-		if (maxF < _NewtonRaphsonMaxF) break;
+		const double maxF  = _modelsToEstimate.getSteepestGradient();
+		if (maxF < _NewtonRaphsonMaxF) {
+			logfile().conclude("max(F) = ", maxF, " < ", _NewtonRaphsonMaxF, ", ending Newton-Raphson.");
+			logfile().endIndent();
+			break;
+		} 
+		logfile().conclude("max(F) = ", toString(maxF));
+
+		if (const auto pdQ = std::abs(deltaQ/curQ); pdQ < deltaLL) {
+			logfile().conclude("proportional deltaQ = ", pdQ, " < proportional deltaLL = ", deltaLL, ", ending Newton-Raphson.");
+			logfile().endIndent();
+			break;
+		} 
+		logfile().endIndent();
 	}
 	logfile().endIndent();
 	logfile().endIndent();
@@ -444,8 +455,8 @@ void TRecalibrationEMEstimator::_runEM(const std::string &outputName, const TPos
 	logfile().conclude("Initial model: ",_modelsToEstimate.getModelsDefinition());
 
 	// calculate initial LL
-	double oldLL = _calculateLL_updatePg(PmdModels);
-	double deltaLL = 1;
+	double oldLL   = _calculateLL_updatePg(PmdModels);
+	double deltaLL = abs(oldLL);
 	logfile().conclude("Initial log Likelihood = " + toString(oldLL));
 
 	// running iterations
@@ -454,7 +465,7 @@ void TRecalibrationEMEstimator::_runEM(const std::string &outputName, const TPos
 		logfile().addIndent();
 
 		// update theta_epsilon (sequencing errors)
-		_updateEpsilon(PmdModels, deltaLL/oldLL);
+		_updateEpsilon(PmdModels, std::abs(deltaLL/oldLL));
 
 		// calculate LL
 		const double LL = _calculateLL_updatePg(PmdModels);
