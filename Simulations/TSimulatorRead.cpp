@@ -23,46 +23,46 @@ using genometools::Base;
 using genometools::PhredIntProbability;
 using coretools::instances::logfile;
 using coretools::instances::randomGenerator;
+using Simulations::RGInfo::TSimulatorReadGroupInfoEntry;
+using Simulations::RGInfo::InfoType;
+
 
 //----------------------------------
 // TSimulatorSingleEndRead
 //----------------------------------
-TSimulatorSingleEndRead::TSimulatorSingleEndRead(const BAM::TReadGroup &ReadGroup, const uint16_t NumCycles)
+TSimulatorSingleEndRead::TSimulatorSingleEndRead(const BAM::TReadGroup & ReadGroup, const TSimulatorReadGroupInfoEntry & RGInfo)
 	: _readGroup(ReadGroup),
-	  _numCycles(NumCycles),
-	  _readNamePrefix("ATL:0:A:1:" + coretools::str::toString(_readGroup.id) + ":") {
-	//readNamePrefix: "<instrument>:<run number>:<flowcell ID>:<lane>:<tile>:"  Still need to add "<x-pos>:<y-pos>"
+	  _readGroupInfo(RGInfo),
+	  _fragmentLengthDist(_readGroupInfo.get(InfoType::fragmentLengthDistr)),
+	  _qualityDist(_readGroupInfo.get(InfoType::baseQualityDistr)),
+	  _mappingQualityDist(_readGroupInfo.get(InfoType::mappingQualityDistr))
+	  {
+
 	// initialize bamAlignment
 	_alignment.setReadGroup(_readGroup.id);
-}
 
-bool TSimulatorSingleEndRead::checkInitialization() {
-	return _readLengthDist && _qualityDist && _mappingQualityDist;
-}
+	//readNamePrefix: "<instrument>:<run number>:<flowcell ID>:<lane>:<tile>:"  Still need to add "<x-pos>:<y-pos>"
+	_readNamePrefix = "ATL:0:A:1:" + coretools::str::toString(_readGroup.id) + ":";
 
-void TSimulatorSingleEndRead::setFragmentLengthDistribution(std::string s) {
-	_readLengthDist.set(_numCycles, s);
-}
+	//num cycles
+	_numCycles = coretools::str::convertString(_readGroupInfo.get(InfoType::numCycles), Simulations::RGInfo::infoType2Description(InfoType::numCycles) + " must be within [1,65535].", _numCycles);
 
-void TSimulatorSingleEndRead::setQualityDistribution(std::string s) {
-	createDiscreteDistribution(_qualityDist, s);
-}
-
-void TSimulatorSingleEndRead::setMappingQualityDistribution(std::string s) {
-	createDiscreteDistribution(_mappingQualityDist, s);
-}
-
-void TSimulatorSingleEndRead::setSoftClipDistribution(std::string s) {
-	const auto pos = s.find("]:");
-	if(pos == std::string::npos){
-		pos = s.find("):"); //maybe first is categorical distribution ending with )
-	}
-	if(pos == std::string::npos){
-		createDiscreteDistribution(_softClipDist5, s);
-		createDiscreteDistribution(_softClipDist3, s);
-	} else {
-		createDiscreteDistribution(_softClipDist5, s.substr(0, pos+1));
-		createDiscreteDistribution(_softClipDist5, s.substr(pos+2));
+	//soft clip
+	std::string sc = _readGroupInfo.get(InfoType::softClipDistr);
+	if(!sc.empty()){
+		//check if one or two values are given
+		if(sc.find(':') == std::string::npos){
+			//one distribution for both
+			if(sc != "-" && sc != "fixed(0)"){
+				_softClipDist3 = std::make_unique(sc);
+				_softClipDist5 = std::make_unique(sc);
+			} else {
+				std::string sc3 = coretools::str::extractBefore(sc, ":");
+				sc.erase(0,1);
+				_softClipDist3 = std::make_unique(sc3);
+				_softClipDist5 = std::make_unique(sc);
+			}
+		}
 	}
 }
 
@@ -156,7 +156,7 @@ void TSimulatorSingleEndRead::simulate(const std::vector<Base>& haplotype, uint3
 	_alignment.setIsReverseStrand(randomGenerator().getRand() < 0.5);
 
 	// pick a fragment and read length, strand and contamination
-	TReadAndFragmentLength readLength = _readLengthDist.sample();
+	TReadAndFragmentLength readLength = _fragmentLengthDist.sample();
 	bool readIsContaminated = _contaminationRate > 0. && randomGenerator().getRand() < _contaminationRate;
 
 	// simulated bases and qualities
@@ -175,8 +175,8 @@ void TSimulatorSingleEndRead::printDetails(double frequency) {
 	logfile().list("Type: ", type(), ".");
 	logfile().list("Frequency: ", frequency, ".");
 
-	if (_readLengthDist)
-		_readLengthDist.printDetails();
+	if (_fragmentLengthDist)
+		_fragmentLengthDist.printDetails();
 	else
 		throw "Read length distribution not initialized!";
 
@@ -233,7 +233,7 @@ TSimulatorPairedEndReads::TSimulatorPairedEndReads(const BAM::TReadGroup &, cons
 void TSimulatorPairedEndReads::simulate(const std::vector<Base>& /*haplotype*/, uint32_t refID, uint32_t pos,
 					TSimulatorBamFile &bamFile) {
 	// pick a fragment, read length and contamination
-	TReadAndFragmentLength readLength  = _readLengthDist->sample();
+	TReadAndFragmentLength readLength  = _fragmentLengthDist->sample();
 	//bool readIsContaminated = (_contaminationRate > 0.) && randomGenerator().getRand() < _contaminationRate;
 
 	// Fill FIRST mate

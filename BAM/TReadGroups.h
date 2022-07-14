@@ -20,6 +20,7 @@ namespace BAM{
 
 //---------------------------------------------------------------
 //TReadGroupMaxLength
+// ToDo: remove?
 //---------------------------------------------------------------
 struct TReadGroupMaxLength{
 public:

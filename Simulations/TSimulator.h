@@ -33,6 +33,7 @@
 #include "TStrongArray.h"
 #include "TTask.h"
 #include "probability.h"
+#include "TSimulatorReadGroupInfo.h"
 
 namespace genometools { class PhredIntProbability; }
 
@@ -79,7 +80,6 @@ protected:
 	// simulation tools
 	BAM::TReadGroups _readGroups;
 	GenotypeLikelihoods::TPostMortemDamage _PMD;
-	// BAM::TReadGroupMap _readGroupMap; //needed by recal REALLYY??????
 	GenotypeLikelihoods::SequencingError::TModels _recal;
 
 	// read simulator

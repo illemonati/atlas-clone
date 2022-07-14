@@ -22,6 +22,7 @@
 #include "PhredProbabilityTypes.h"
 #include "TCategoricalDistribution.h"
 #include "TFragmentLengthDistribution.h"
+#include "TSimulatorReadGroupInfo.h"
 
 namespace GenotypeLikelihoods { class TPMDType; }
 namespace GenotypeLikelihoods { namespace SequencingError { class TModel; } }
@@ -33,7 +34,7 @@ namespace Simulations {
 using genometools::Base;
 using genometools::PhredIntProbability;
 using coretools::probdist::TCategoricalDistribution;
-
+using Simulations::RGInfo::TSimulatorReadGroupInfoEntry;
 
 //-------------------------------
 // TSimulatorSingleEndRead
@@ -41,22 +42,20 @@ using coretools::probdist::TCategoricalDistribution;
 class TSimulatorSingleEndRead {
 protected:
 	const BAM::TReadGroup &_readGroup;
-	uint16_t _numCycles;
+	const TSimulatorReadGroupInfoEntry & _readGroupInfo;
 	std::string _readNamePrefix;
-	int _readXPos = 1;
-	int _readYPos = 1;
 
-	// read length
-	TFragmentLengthDistribution _readLengthDist;
-
-	// qualities
+	// required distributions
+	TFragmentLengthDistribution _fragmentLengthDist;
 	TCategoricalDistribution<PhredIntProbability> _qualityDist;
 	TCategoricalDistribution<PhredIntProbability> _mappingQualityDist;
 
-	//length of soft clipped bases
-	TCategoricalDistribution<uint16_t> _softClipDist5;
-	TCategoricalDistribution<uint16_t> _softClipDist3;
-
+	// Additional info
+	coretools::StrictlyPositive<uint16_t> _numCycles;
+	int _readXPos = 1;
+	int _readYPos = 1;
+	std::unique_ptr<TCategoricalDistribution<uint16_t>> _softClipDist5;
+	std::unique_ptr<TCategoricalDistribution<uint16_t>> _softClipDist3;
 	GenotypeLikelihoods::TPMDType const *_pmd = nullptr;
 	std::array<GenotypeLikelihoods::SequencingError::TModel const *, 2> _recal;
 
@@ -77,14 +76,9 @@ protected:
 				     const TReadAndFragmentLength &readLength, bool readIsContaminated);//, TSimulatorQualityTransformation *qualityTransform);
 
 public:
-	TSimulatorSingleEndRead(const BAM::TReadGroup &ReadGroup, const uint16_t NumCycles);
+	TSimulatorSingleEndRead(const BAM::TReadGroup & ReadGroup, const TSimulatorReadGroupInfoEntry & RGInfo);
 	virtual ~TSimulatorSingleEndRead() = default;
 
-	bool checkInitialization();
-	void setFragmentLengthDistribution(std::string s);
-	void setQualityDistribution(std::string s);
-	void setMappingQualityDistribution(std::string s);
-	void setSoftClipDistribution(std::string s);
 	void setPMD(GenotypeLikelihoods::TPMDType const *Pmd);
 	void setRecal(GenotypeLikelihoods::SequencingError::TModel const *Recal1, GenotypeLikelihoods::SequencingError::TModel const *Recal2);
 	void setContamination(double rate, TSimulatorReference *source);
@@ -92,10 +86,10 @@ public:
 	std::string name() const { return _readGroup.name_ID; };
 	virtual std::string type() const {return "single-end";}
 	double meanReadLength() {
-		return _readLengthDist.mean();
+		return _fragmentLengthDist.mean();
 	};
 	double maxReadLength() {
-		return _readLengthDist.max();
+		return _fragmentLengthDist.max();
 	};
 
 	virtual void simulate(const std::vector<Base>& haplotype, uint32_t refID, uint32_t pos, TSimulatorBamFile &bamFile);
