@@ -18,6 +18,7 @@
 #include "stringFunctions.h"
 #include "strongTypes.h"
 #include "weakTypes.h"
+#include "devtools.h"
 
 namespace GLF {
 using namespace GenotypeLikelihoods;

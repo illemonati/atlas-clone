@@ -99,8 +99,8 @@ public:
 
 	constexpr genometools::HighPrecisionPhredIntProbability
 	operator[](genometools::BiallelicGenotype Genotype) const noexcept {
-		assert(isHaploid() && !genometools::isHaploid(Genotype));
-		assert(!isHaploid() && genometools::isHaploid(Genotype));
+		//assert(isHaploid() && !genometools::isHaploid(Genotype));
+		//assert(!isHaploid() && genometools::isHaploid(Genotype));
 		//if (isMissing()) { return genometools::HighPrecisionPhredIntProbability::highest(); }
 		return _GLs[genometools::altAlleleCounts(Genotype)];
 	};
@@ -213,24 +213,24 @@ public:
 //----------------------------------------------------
 class TGlfMultiReader {
 private:
-	size_t numGLFs = 0;
-	std::vector<std::string> GLFNames;
-	std::vector<TGlfReader> GLFs;
-	bool readersOpened = false;
+	size_t _numGLFs = 0;
+	std::vector<std::string> _GLFNames;
+	std::vector<TGlfReader> _GLFs;
+	bool _readersOpened = false;
 
 	// active files
 	// Object will loop only over active files
 	bool _onlyJumpToPositionsWithData = false;
-	std::vector<bool> GLFIsActive;
-	std::vector<TGlfReader *> pointerToActiveGLFs;
+	std::vector<bool> _GLFIsActive;
+	std::vector<TGlfReader *> _pointerToActiveGLFs;
 
 	// Moving along active files
 	uint32_t _position = 0;
 	uint32_t _nextPosition = 0; // next is anticipated position, used to advance
 	uint32_t _curRefId = 0;
-	TGlfChromosome _curChr;
+	TGlfChromosome* _curChr;
 	uint32_t _numActiveFilesWithData = 0;
-	uint32_t minDepth = 0;
+	uint32_t _minDepth = 0;
 
 	// reference
 	bool hasReference = false;
@@ -241,15 +241,13 @@ private:
 	void _setActive(size_t index);
 	void _setAllInactive();
 	void _prepareParsing();
-	bool _jumpToNextPositionWithData();
-	void _updateChromosomeInfo();
+	bool _jumpToNextPosition();
 
+	bool _moveToNextChromosome();
 
-	bool moveToNextChromosome();
-
-	void writeDiploidIndividualToVCF(int ind, gz::ogzstream &vcf, genometools::Base major, genometools::Base minor,
+	void _writeDiploidIndividualToVCF(int ind, gz::ogzstream &vcf, genometools::Base major, genometools::Base minor,
 					 const std::vector<std::string> &genotypeStrings, bool usePhredLikelihoods);
-	void writeHaploidIndividualToVCF(int ind, gz::ogzstream &vcf, genometools::Base major, genometools::Base minor,
+	void _writeHaploidIndividualToVCF(int ind, gz::ogzstream &vcf, genometools::Base major, genometools::Base minor,
 					 const std::vector<std::string> &genotypeStrings, bool usePhredLikelihoods);
 
 public:
@@ -286,10 +284,10 @@ public:
 	std::vector<std::string> sampleNamesOfActiveFiles() const;
 
 	// access data
-	constexpr uint32_t numSamples() const noexcept { return numGLFs; };
-	uint32_t numActiveSamples() const noexcept { return pointerToActiveGLFs.size(); };
+	constexpr uint32_t numSamples() const noexcept { return _numGLFs; };
+	uint32_t numActiveSamples() const noexcept { return _pointerToActiveGLFs.size(); };
 	constexpr uint32_t numActiveSamplesWithData() const noexcept { return _numActiveFilesWithData; };
-	std::string chr() const { return _curChr.name(); };
+	std::string chr() const { return _curChr->name(); };
 	constexpr uint32_t position() const noexcept { return _position; };
 	constexpr genometools::Base refBase() const noexcept {
 		return hasReference ? fastaBuffer.refAt(genometools::TGenomePosition(_curRefId, _position)) : genometools::Base::N;

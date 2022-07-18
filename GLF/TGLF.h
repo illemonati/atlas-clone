@@ -169,6 +169,7 @@ public:
 	uint32_t position() const { return _position; };
 	uint16_t depth() const { return _depth; };
 	const TGLFLikelihoods &genotypeLikelihoodsGLF() const { return _genotypeLikelihoodsGLF; };
+	TGlfChromosome *curChr() {return &_curChr;};
 
 	// open file and parse header
 	void setFilename(const std::string &Filename);
