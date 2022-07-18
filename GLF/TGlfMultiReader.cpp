@@ -17,7 +17,6 @@
 #include "TLog.h"
 #include "TParameters.h"
 #include "TRandomGenerator.h"
-#include "devtools.h"
 #include "probability.h"
 #include "stringFunctions.h"
 #include "strongTypes.h"
@@ -32,7 +31,7 @@ using coretools::str::toString;
 
 namespace impl {
 
-TGlfReader * nextChr(std::vector<TGlfReader *> ps, bool onlyData) {
+TGlfReader * nextChr(const std::vector<TGlfReader *>& ps, bool onlyData) {
 	if (onlyData) {
 		return *std::min_element(ps.begin(), ps.end(), [](auto p1, auto p2) {
 			if (p1->refId() < p2->refId()) return true;
@@ -46,19 +45,19 @@ TGlfReader * nextChr(std::vector<TGlfReader *> ps, bool onlyData) {
 	}
 }
 
-void _checkChromosomeInfo(TGlfChromosome* _curChr, std::vector<TGlfReader *> _pointerToActiveGLFs) {
+void _checkChromosomeInfo(TGlfChromosome* _curChr, const std::vector<TGlfReader *>& ps) {
 	// check that all files share the same chromosome info
-	for (TGlfReader *it : _pointerToActiveGLFs) {
-		TGlfChromosome *chr;
-		if (it->fillPointerToChr(_curChr->refId(), chr)) {
+	for (const auto p: ps) {
+		TGlfChromosome *chr = p->pointerToChr(_curChr->refId());
+		if (chr) {
 			if (chr->name() != _curChr->name())
-				throw "Chrosomome names differ between files '" + _pointerToActiveGLFs[0]->name() + "' and '" +
-				    it->name() + "': '" + _curChr->name() + "' != '" + chr->name() + "'!";
+				throw "Chrosomome names differ between files '" + ps[0]->name() + "' and '" +
+				    p->name() + "': '" + _curChr->name() + "' != '" + chr->name() + "'!";
 			if (chr->length() != _curChr->length())
-				throw "Chrosomome lengths differ between files '" + _pointerToActiveGLFs[0]->name() + "' and '" +
-				    it->name() + "': '" + toString(_curChr->length()) + "' != '" + toString(chr->length()) + "'!";
+				throw "Chrosomome lengths differ between files '" + ps[0]->name() + "' and '" +
+				    p->name() + "': '" + toString(_curChr->length()) + "' != '" + toString(chr->length()) + "'!";
 		} else {
-			logfile().list(it->name(), " does not have contig ", _curChr->name(), ", considering all data empty.");
+			logfile().list(p->name(), " does not have contig ", _curChr->name(), ", considering all data empty.");
 		}
 	}
 };
@@ -263,7 +262,7 @@ void TGlfMultiReader::closeGLF() {
 
 		_GLFNames.clear();
 		_GLFs.clear();
-		_pointerToActiveGLFs.clear();
+		_activeGLFs.clear();
 		_numGLFs       = 0;
 		_readersOpened = false;
 	}
@@ -292,13 +291,13 @@ void TGlfMultiReader::_setActive(size_t index) {
 	if (index >= _numGLFs) throw "Index out of range in TGlfMultiReader::setActive(const int index)!";
 	if (!_GLFIsActive[index]) {
 		_GLFIsActive[index] = true;
-		_pointerToActiveGLFs.push_back(&_GLFs[index]);
+		_activeGLFs.push_back(&_GLFs[index]);
 	}
 };
 
 void TGlfMultiReader::_setAllInactive() {
 	_GLFIsActive.assign(_numGLFs, false);
-	_pointerToActiveGLFs.clear();
+	_activeGLFs.clear();
 };
 
 void TGlfMultiReader::_prepareParsing() {
@@ -306,10 +305,10 @@ void TGlfMultiReader::_prepareParsing() {
 	data.clear();
 	data.reserve(numActiveSamples());
 
-	for (TGlfReader *it : _pointerToActiveGLFs) it->rewind();
+	for (TGlfReader *it : _activeGLFs) it->rewind();
 
 	// read first SNP record in all active files
-	for (TGlfReader *it : _pointerToActiveGLFs) { it->readNext(); }
+	for (TGlfReader *it : _activeGLFs) { it->readNext(); }
 
 	// where to start?
 
@@ -317,12 +316,12 @@ void TGlfMultiReader::_prepareParsing() {
 };
 
 bool TGlfMultiReader::_jumpToNextPosition() {
-	auto min      = impl::nextChr(_pointerToActiveGLFs, _onlyJumpToPositionsWithData);
+	auto min      = impl::nextChr(_activeGLFs, _onlyPositionsWithData);
 	_curChr       = min->curChr();
 	_curRefId     = min->refId();
-	_position     = _onlyJumpToPositionsWithData*min->position();
+	_position     = _onlyPositionsWithData*min->position(); // 0 if not jump to position
 	_nextPosition = _position;
-	impl::_checkChromosomeInfo(_curChr, _pointerToActiveGLFs);
+	impl::_checkChromosomeInfo(_curChr, _activeGLFs);
 
 	return !min->eof();
 };
@@ -378,7 +377,7 @@ bool TGlfMultiReader::_moveToNextChromosome() {
 
 	// advance all active files behind
 	bool allFilesReachedEnd = true;
-	for (TGlfReader *it : _pointerToActiveGLFs) {
+	for (TGlfReader *it : _activeGLFs) {
 		while (!it->eof() && it->refId() < _curRefId) it->jumpToNextChr();
 		if (!it->eof()) allFilesReachedEnd = false;
 	}
@@ -399,7 +398,7 @@ bool TGlfMultiReader::readNext() {
 	_numActiveFilesWithData = 0;
 	bool allFilesReachedEnd = true;
 	data.clear();
-	for (TGlfReader *reader : _pointerToActiveGLFs) {
+	for (TGlfReader *reader : _activeGLFs) {
 		while (!reader->eof() && reader->refId() == _curRefId && reader->position() < _nextPosition) { reader->readNext(); }
 
 		if (!reader->eof() && reader->position() == _nextPosition && reader->refId() == _curRefId) {
@@ -415,7 +414,7 @@ bool TGlfMultiReader::readNext() {
 	if (allFilesReachedEnd) return false;
 
 	// jump?
-	if (_onlyJumpToPositionsWithData && _numActiveFilesWithData == 0) {
+	if (_onlyPositionsWithData && _numActiveFilesWithData == 0) {
 		if (_jumpToNextPosition()) return readNext();
 		return false;
 	}
@@ -446,14 +445,14 @@ void TGlfMultiReader::print() const {
 
 void TGlfMultiReader::writeSampleNamesOfActiveFiles(gz::ogzstream &out, std::string &sep) const {
 	// sample names are file names without glf ending
-	for (TGlfReader *it : _pointerToActiveGLFs) { out << sep << coretools::str::readBeforeLast(it->name(), ".glf"); }
+	for (TGlfReader *it : _activeGLFs) { out << sep << coretools::str::readBeforeLast(it->name(), ".glf"); }
 };
 
 std::vector<std::string> TGlfMultiReader::namesOfActiveFiles() const {
 	std::vector<std::string> vec;
 
 	// sample names are file names without glf ending
-	for (TGlfReader *it : _pointerToActiveGLFs) { vec.emplace_back(it->name()); }
+	for (TGlfReader *it : _activeGLFs) { vec.emplace_back(it->name()); }
 	return vec;
 };
 
@@ -461,7 +460,7 @@ std::vector<std::string> TGlfMultiReader::sampleNamesOfActiveFiles() const {
 	std::vector<std::string> vec;
 
 	// sample names are file names without glf ending
-	for (TGlfReader *it : _pointerToActiveGLFs) { vec.emplace_back(coretools::str::readBeforeLast(it->name(), ".glf")); }
+	for (TGlfReader *it : _activeGLFs) { vec.emplace_back(coretools::str::readBeforeLast(it->name(), ".glf")); }
 	return vec;
 };
 

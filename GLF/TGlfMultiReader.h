@@ -220,9 +220,9 @@ private:
 
 	// active files
 	// Object will loop only over active files
-	bool _onlyJumpToPositionsWithData = false;
+	bool _onlyPositionsWithData = false;
 	std::vector<bool> _GLFIsActive;
-	std::vector<TGlfReader *> _pointerToActiveGLFs;
+	std::vector<TGlfReader *> _activeGLFs;
 
 	// Moving along active files
 	uint32_t _position = 0;
@@ -263,7 +263,7 @@ public:
 	void closeGLF();
 	void setDepthFilter(int MinDepth);
 	void addReference(const std::string& FastaFile);
-	void onlyJumpToPositionsWithData(bool set = true) { _onlyJumpToPositionsWithData = set; };
+	void onlyPositionsWithData(bool set = true) { _onlyPositionsWithData = set; };
 
 	// set active / inactive
 	void setActive(int index);
@@ -285,7 +285,7 @@ public:
 
 	// access data
 	constexpr uint32_t numSamples() const noexcept { return _numGLFs; };
-	uint32_t numActiveSamples() const noexcept { return _pointerToActiveGLFs.size(); };
+	uint32_t numActiveSamples() const noexcept { return _activeGLFs.size(); };
 	constexpr uint32_t numActiveSamplesWithData() const noexcept { return _numActiveFilesWithData; };
 	std::string chr() const { return _curChr->name(); };
 	constexpr uint32_t position() const noexcept { return _position; };

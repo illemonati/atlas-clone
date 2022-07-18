@@ -215,7 +215,7 @@ void estimateMajorMinor() {
 				      " samples have data. (parameter minVariantQual)");
 		}
 	}
-	glfReader.onlyJumpToPositionsWithData(minSamplesWithData > 0);
+	glfReader.onlyPositionsWithData(minSamplesWithData > 0);
 
 	// limit input
 	const long limitSites = parameters().getParameterWithDefault("limitSites", 0);
