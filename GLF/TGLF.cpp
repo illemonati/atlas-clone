@@ -198,7 +198,7 @@ bool TGlfReader::_readChr() {
 	std::string name(tmp, len);
 	delete[] tmp;
 
-	uint16_t refId;
+	uint32_t refId;
 	_read(&refId, sizeof(uint32_t));
 
 	uint32_t length;
