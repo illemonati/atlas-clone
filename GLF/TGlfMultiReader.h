@@ -99,9 +99,7 @@ public:
 
 	constexpr genometools::HighPrecisionPhredIntProbability
 	operator[](genometools::BiallelicGenotype Genotype) const noexcept {
-		//assert(isHaploid() && !genometools::isHaploid(Genotype));
-		//assert(!isHaploid() && genometools::isHaploid(Genotype));
-		//if (isMissing()) { return genometools::HighPrecisionPhredIntProbability::highest(); }
+		assert(isHaploid() == genometools::isHaploid(Genotype));
 		return _GLs[genometools::altAlleleCounts(Genotype)];
 	};
 };
