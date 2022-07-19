@@ -115,11 +115,11 @@ void TModelVectorForEstimation::estimateRho() {
 // functions to estimate beta
 //-------------------------------------------------------------------
 void TModelVectorForEstimation::resetQ() {
-	for (auto &m : _models) m->resetQ();
+	for (auto &m : _models) m->resetEpsilon();
 }
 
 void TModelVectorForEstimation::addToQFJ(const BAM::TSequencedBase &data, coretools::Probability P_g_I_d, coretools::Probability P_bbar_I_gd, bool updateJF) {
-	_modelIndex[data.readGroupID][data.isSecondMate()]->addToQFJ(data, P_g_I_d, P_bbar_I_gd, updateJF);
+	_modelIndex[data.readGroupID][data.isSecondMate()]->addToEpsilon(data, P_g_I_d, P_bbar_I_gd, updateJF);
 };
 
 double TModelVectorForEstimation::curQ() {
@@ -327,7 +327,7 @@ void TRecalibrationEMEstimator::_estimateRho_updatePbbar(const TPostMortemDamage
 	_modelsToEstimate.estimateRho();
 }
 
-double TRecalibrationEMEstimator::_calculateQ_updateJF(bool updateJF) {
+void TRecalibrationEMEstimator::_calculateQ_updateJF(bool updateJF) {
 	_modelsToEstimate.resetQ();
 	size_t ij = 0;
 	for (size_t i = 0; i < _sites.size(); ++i) {
@@ -346,9 +346,6 @@ double TRecalibrationEMEstimator::_calculateQ_updateJF(bool updateJF) {
 			}
 		}
 	}
-
-	// return total Q
-	return _modelsToEstimate.curQ();
 };
 
 void TRecalibrationEMEstimator::_updateEpsilon(const TPostMortemDamage &PmdModels, double deltaLL) {
@@ -360,17 +357,15 @@ void TRecalibrationEMEstimator::_updateEpsilon(const TPostMortemDamage &PmdModel
 	logfile().write(_modelsToEstimate.getRhoDefinition());
 
 	logfile().startIndent("Updating epsilon:");
-
 	logfile().startIndent("Optimizing Q_beta using a Newton-Raphson algorithm:");
 
 	const auto nTot = _modelsToEstimate.size();
 
 	for (int i = 0; i < _NewtonRaphsonNumIterations; ++i) {
 		logfile().startIndent("Running Newton-Raphson iteration " + toString(i + 1) + ":");
-		const double curQ = _calculateQ_updateJF(true);
+		_solveDerivative();
+		const double curQ = _modelsToEstimate.curQ();
 		logfile().list("Current Q_beta = ", curQ);
-
-		_modelsToEstimate.solveJxF();
 
 		double lambda   = 1.0;
 		size_t nUpdated = 0;
@@ -380,7 +375,8 @@ void TRecalibrationEMEstimator::_updateEpsilon(const TPostMortemDamage &PmdModel
 			_modelsToEstimate.proposeNewParameters(lambda);
 			logfile().listFlushDots("Proposing model ", _modelsToEstimate.getModelsDefinition());
 
-			deltaQ = _calculateQ_updateJF() - curQ;
+			_calculateQ();
+			deltaQ   = _modelsToEstimate.curQ() - curQ;
 			nUpdated = _modelsToEstimate.acceptProposedParametersBasedOnQ();
 
 			logfile().write(toString(nUpdated) + "/" + toString(nTot) + " models converged.");
@@ -407,7 +403,7 @@ void TRecalibrationEMEstimator::_updateEpsilon(const TPostMortemDamage &PmdModel
 		logfile().conclude("max(F) = ", toString(maxF));
 
 		if (const auto pdQ = std::abs(deltaQ/curQ); pdQ < deltaLL) {
-			logfile().conclude("proportional deltaQ = ", pdQ, " < proportional deltaLL = ", deltaLL, ", ending Newton-Raphson.");
+			logfile().conclude("deltaQ/Q = ", pdQ, " < deltaLL/LL = ", deltaLL, ", ending Newton-Raphson.");
 			logfile().endIndent();
 			break;
 		} 

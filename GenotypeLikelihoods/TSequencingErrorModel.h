@@ -108,7 +108,7 @@ public:
 //------------------------------------------------
 // TModelNoRecal
 //------------------------------------------------
-class TModelNoRecal : public TModel {
+class TModelNoRecal final : public TModel {
 public:
 	virtual bool estimatable() const noexcept override { return false; };
 	virtual bool recalibrates() const noexcept override { return false; };
@@ -125,7 +125,7 @@ public:
 //------------------------------------------------
 // TModelRecal
 //------------------------------------------------
-class TModelRecal : public TModel {
+class TModelRecal final : public TModel {
 private:
 	struct TCovariateModel {
 		std::unique_ptr<TCovariate> covariate;
@@ -174,8 +174,8 @@ public:
 	void estimateRho() noexcept;
 
 	// functions to estimate betas
-	void resetQ() noexcept {_oldQ = _Q; _Q = 0;};
-	void addToQFJ(const BAM::TSequencedBase &base, coretools::Probability P_g_I_d, coretools::Probability P_bbar_I_gd, bool update=false);
+	void resetEpsilon() noexcept {_oldQ = _Q; _Q = 0;};
+	void addToEpsilon(const BAM::TSequencedBase &base, coretools::Probability P_g_I_d, coretools::Probability P_bbar_I_gd, bool update=false);
 	double curQ() const noexcept { return _Q; }
 	void solveJxF();
 	void proposeNewParameters(double lambda);

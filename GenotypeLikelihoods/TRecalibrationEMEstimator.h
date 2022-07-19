@@ -115,7 +115,12 @@ private:
 
 	// functions to estimate theta_epsilon (sequencing error rates)
 	void _estimateRho_updatePbbar(const TPostMortemDamage &PmdModels);
-	double _calculateQ_updateJF(bool updateJF=false);
+	void _calculateQ_updateJF(bool updateJF);
+	void _solveDerivative() {
+		_calculateQ_updateJF(true);
+		_modelsToEstimate.solveJxF();
+	}
+	void _calculateQ() { _calculateQ_updateJF(false); }
 	void _updateEpsilon(const TPostMortemDamage &PmdModels, double deltaDeltaLL);
 	double _calculateLL_updatePg(const TPostMortemDamage &PmdModels);
 	void _writeCurrentEstimates(const std::string &filename);

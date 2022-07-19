@@ -367,7 +367,7 @@ void TModelRecal::checkOrInit(const RecalEstimatorTools::TRecalDataTable &DataTa
 	}
 }
 
-void TModelRecal::addToQFJ(const BAM::TSequencedBase &base, Probability P_g_I_d, Probability P_bbar_I_gd, bool update) {
+void TModelRecal::addToEpsilon(const BAM::TSequencedBase &base, Probability P_g_I_d, Probability P_bbar_I_gd, bool update) {
 	// get error rate
 	const double eps   = getErrorRate(base);
 	const double eps_c = 1. - eps;
