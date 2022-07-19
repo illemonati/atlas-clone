@@ -114,16 +114,13 @@ void TModelVectorForEstimation::estimateRho() {
 
 // functions to estimate beta
 //-------------------------------------------------------------------
-void TModelVectorForEstimation::resetQ() {
-	for (auto &m : _models) m->resetEpsilon();
-}
 
 void TModelVectorForEstimation::addToQFJ(const BAM::TSequencedBase &data, coretools::Probability P_g_I_d, coretools::Probability P_bbar_I_gd, bool updateJF) {
 	_modelIndex[data.readGroupID][data.isSecondMate()]->addToEpsilon(data, P_g_I_d, P_bbar_I_gd, updateJF);
 };
 
-double TModelVectorForEstimation::curQ() {
-	return std::accumulate(_models.begin(), _models.end(), 0.0, [](auto tot, const auto &val) { return tot + val->curQ(); });
+double TModelVectorForEstimation::resetQ() {
+	return std::accumulate(_models.begin(), _models.end(), 0.0, [](auto tot, const auto &val) { return tot + val->resetQ(); });
 };
 
 void TModelVectorForEstimation::solveJxF() {
@@ -328,7 +325,6 @@ void TRecalibrationEMEstimator::_estimateRho_updatePbbar(const TPostMortemDamage
 }
 
 void TRecalibrationEMEstimator::_calculateQ_updateJF(bool updateJF) {
-	_modelsToEstimate.resetQ();
 	size_t ij = 0;
 	for (size_t i = 0; i < _sites.size(); ++i) {
 		const auto& Pi = _P_g_I_ds[i];
@@ -364,7 +360,7 @@ void TRecalibrationEMEstimator::_updateEpsilon(const TPostMortemDamage &PmdModel
 	for (int i = 0; i < _NewtonRaphsonNumIterations; ++i) {
 		logfile().startIndent("Running Newton-Raphson iteration " + toString(i + 1) + ":");
 		_solveDerivative();
-		const double curQ = _modelsToEstimate.curQ();
+		const double curQ = _modelsToEstimate.resetQ();
 		logfile().list("Current Q_beta = ", curQ);
 
 		double lambda   = 1.0;
@@ -376,7 +372,7 @@ void TRecalibrationEMEstimator::_updateEpsilon(const TPostMortemDamage &PmdModel
 			logfile().listFlushDots("Proposing model ", _modelsToEstimate.getModelsDefinition());
 
 			_calculateQ();
-			deltaQ   = _modelsToEstimate.curQ() - curQ;
+			deltaQ   = _modelsToEstimate.resetQ() - curQ;
 			nUpdated = _modelsToEstimate.acceptProposedParametersBasedOnQ();
 
 			logfile().write(toString(nUpdated) + "/" + toString(nTot) + " models converged.");

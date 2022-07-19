@@ -68,9 +68,8 @@ public:
 	void estimateRho();
 
 	// functions to estimate beta
-	void resetQ();
 	void addToQFJ(const BAM::TSequencedBase &data, coretools::Probability P_g_I_d, coretools::Probability P_bbar_I_gd, bool updateJF = false);
-	double curQ();
+	double resetQ();
 	void solveJxF();
 	void proposeNewParameters(double lambda);
 	void scaleParameters();
