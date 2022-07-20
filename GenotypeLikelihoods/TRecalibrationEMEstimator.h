@@ -68,14 +68,14 @@ public:
 	void estimateRho();
 
 	// functions to estimate beta
-	void addToQFJ(const BAM::TSequencedBase &data, coretools::Probability P_g_I_d, coretools::Probability P_bbar_I_gd, bool updateJF = false);
-	double resetQ();
+	void addToEpsilon(const BAM::TSequencedBase &data, coretools::Probability P_g_I_d, coretools::Probability P_bbar_I_gd, bool updateJF = false);
+	double Q();
 	void solveJxF();
-	void proposeNewParameters(double lambda);
+	void propose(double lambda);
 	void scaleParameters();
-	unsigned int acceptProposedParametersBasedOnQ();
-	void adjustParametersPostEstimation();
-	double getSteepestGradient();
+	unsigned int acceptOrReject();
+	void adjust();
+	double maxF();
 
 	void writeRecalFile(const BAM::TReadGroups &ReadGroups, const std::string & Filename) const;
 
@@ -114,12 +114,12 @@ private:
 
 	// functions to estimate theta_epsilon (sequencing error rates)
 	void _estimateRho_updatePbbar(const TPostMortemDamage &PmdModels);
-	void _calculateQ_updateJF(bool updateJF);
+	void _calculateQ(bool updateJF);
 	void _solveDerivative() {
-		_calculateQ_updateJF(true);
+		_calculateQ(true);
 		_modelsToEstimate.solveJxF();
 	}
-	void _calculateQ() { _calculateQ_updateJF(false); }
+	void _calculateQ() { _calculateQ(false); }
 	void _updateEpsilon(const TPostMortemDamage &PmdModels, double deltaDeltaLL);
 	double _calculateLL_updatePg(const TPostMortemDamage &PmdModels);
 	void _writeCurrentEstimates(const std::string &filename);

@@ -46,13 +46,14 @@ public:
 	void checkOrInit(const RecalEstimatorTools::TRecalDataTable &DataTable);
 
 	coretools::Probability calcErrorRate(const BAM::TSequencedBase &base) const noexcept; 
-	double resetQ() noexcept {_oldQ = _Q; _Q = 0; return _oldQ;};
-	void addToEpsilon(const BAM::TSequencedBase &base, coretools::Probability P_g_I_d, coretools::Probability P_bbar_I_gd, bool update=false);
-	void solveJxF();
-	void proposeNewParameters(double lambda);
-	bool acceptProposedParametersBasedOnQ();
-	void adjustParametersPostEstimation();
+	double Q() const noexcept {return _Q;};
 	double maxF() const noexcept {return _maxF;};
+
+	void addToEpsilon(const BAM::TSequencedBase &base, coretools::Probability P_g_I_d, coretools::Probability P_bbar_I_gd, bool updateJF=false);
+	void solveJxF();
+	void propose(double lambda);
+	bool acceptOrReject();
+	void adjust();
 
 	std::string getDefinition() const noexcept;
 };

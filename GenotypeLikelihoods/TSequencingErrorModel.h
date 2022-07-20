@@ -125,14 +125,14 @@ public:
 	void estimateRho() noexcept {_rho.estimate();};
 
 	// functions to estimate betas
-	double resetQ() noexcept {return _epsilon.resetQ();}
+	double Q() const noexcept {return _epsilon.Q();}
 	void addToEpsilon(const BAM::TSequencedBase &base, coretools::Probability P_g_I_d, coretools::Probability P_bbar_I_gd, bool update) {
 		_epsilon.addToEpsilon(base, P_g_I_d, P_bbar_I_gd, update);
 	}
 	void solveJxF() {_epsilon.solveJxF();}
-	void proposeNewParameters(double lambda) {_epsilon.proposeNewParameters(lambda);}
-	bool acceptProposedParametersBasedOnQ() {return _epsilon.acceptProposedParametersBasedOnQ();}
-	void adjustParametersPostEstimation() {_epsilon.adjustParametersPostEstimation();}
+	void propose(double lambda) {_epsilon.propose(lambda);}
+	bool acceptOrReject() {return _epsilon.acceptOrReject();}
+	void adjust() {_epsilon.adjust();}
 	double maxF() const noexcept {return _epsilon.maxF();}
 };
 

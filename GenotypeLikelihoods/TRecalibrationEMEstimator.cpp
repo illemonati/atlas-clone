@@ -115,12 +115,12 @@ void TModelVectorForEstimation::estimateRho() {
 // functions to estimate beta
 //-------------------------------------------------------------------
 
-void TModelVectorForEstimation::addToQFJ(const BAM::TSequencedBase &data, coretools::Probability P_g_I_d, coretools::Probability P_bbar_I_gd, bool updateJF) {
+void TModelVectorForEstimation::addToEpsilon(const BAM::TSequencedBase &data, coretools::Probability P_g_I_d, coretools::Probability P_bbar_I_gd, bool updateJF) {
 	_modelIndex[data.readGroupID][data.isSecondMate()]->addToEpsilon(data, P_g_I_d, P_bbar_I_gd, updateJF);
 };
 
-double TModelVectorForEstimation::resetQ() {
-	return std::accumulate(_models.begin(), _models.end(), 0.0, [](auto tot, const auto &val) { return tot + val->resetQ(); });
+double TModelVectorForEstimation::Q() {
+	return std::accumulate(_models.begin(), _models.end(), 0.0, [](auto tot, const auto &val) { return tot + val->Q(); });
 };
 
 void TModelVectorForEstimation::solveJxF() {
@@ -129,21 +129,21 @@ void TModelVectorForEstimation::solveJxF() {
 	}
 };
 
-void TModelVectorForEstimation::proposeNewParameters(double lambda) {
-	for (auto &model : _models) { model->proposeNewParameters(lambda); }
+void TModelVectorForEstimation::propose(double lambda) {
+	for (auto &model : _models) { model->propose(lambda); }
 };
 
-unsigned int TModelVectorForEstimation::acceptProposedParametersBasedOnQ() {
+unsigned int TModelVectorForEstimation::acceptOrReject() {
 	unsigned int numAccepted = 0;
-	for (auto &model : _models) { numAccepted += (unsigned int)model->acceptProposedParametersBasedOnQ(); }
+	for (auto &model : _models) { numAccepted += (unsigned int)model->acceptOrReject(); }
 	return numAccepted;
 };
 
-void TModelVectorForEstimation::adjustParametersPostEstimation() {
-	for (auto &model : _models) { model->adjustParametersPostEstimation(); }
+void TModelVectorForEstimation::adjust() {
+	for (auto &model : _models) { model->adjust(); }
 };
 
-double TModelVectorForEstimation::getSteepestGradient() {
+double TModelVectorForEstimation::maxF() {
 	double maxF = 0.0;
 	for (auto &model : _models) {
 		maxF = std::max(maxF, model->maxF());
@@ -324,7 +324,7 @@ void TRecalibrationEMEstimator::_estimateRho_updatePbbar(const TPostMortemDamage
 	_modelsToEstimate.estimateRho();
 }
 
-void TRecalibrationEMEstimator::_calculateQ_updateJF(bool updateJF) {
+void TRecalibrationEMEstimator::_calculateQ(bool updateJF) {
 	size_t ij = 0;
 	for (size_t i = 0; i < _sites.size(); ++i) {
 		const auto& Pi = _P_g_I_ds[i];
@@ -332,11 +332,11 @@ void TRecalibrationEMEstimator::_calculateQ_updateJF(bool updateJF) {
 			const auto &Pij = _P_bbar_I_gds[ij++];
 			for (auto a = Base::min; a < Base::max; ++a) {
 				const auto g_aa = genometools::genotype(a, a);
-				_modelsToEstimate.addToQFJ(d_ij, Pi[g_aa], Pij[g_aa], updateJF);
+				_modelsToEstimate.addToEpsilon(d_ij, Pi[g_aa], Pij[g_aa], updateJF);
 				if (!_genoDist->isInvariant()) {
 					for (auto b = genometools::next(a); b < Base::max; ++b) {
 						const auto g_ab = genometools::genotype(a, b);
-						_modelsToEstimate.addToQFJ(d_ij, Pi[g_ab], Pij[g_ab], updateJF);
+						_modelsToEstimate.addToEpsilon(d_ij, Pi[g_ab], Pij[g_ab], updateJF);
 					}
 				}
 			}
@@ -344,7 +344,7 @@ void TRecalibrationEMEstimator::_calculateQ_updateJF(bool updateJF) {
 	}
 };
 
-void TRecalibrationEMEstimator::_updateEpsilon(const TPostMortemDamage &PmdModels, double deltaLL) {
+void TRecalibrationEMEstimator::_updateEpsilon(const TPostMortemDamage &PmdModels, double deltaLL_LL) {
 	using coretools::str::toString;
 	logfile().startIndent("Updating sequencing error models (theta_epsilon):");
 
@@ -352,15 +352,14 @@ void TRecalibrationEMEstimator::_updateEpsilon(const TPostMortemDamage &PmdModel
 	_estimateRho_updatePbbar(PmdModels);
 	logfile().write(_modelsToEstimate.getRhoDefinition());
 
-	logfile().startIndent("Updating epsilon:");
-	logfile().startIndent("Optimizing Q_beta using a Newton-Raphson algorithm:");
+	logfile().startIndent("Updating epsilon by optimizing Q_beta using a Newton-Raphson algorithm:");
 
 	const auto nTot = _modelsToEstimate.size();
 
 	for (int i = 0; i < _NewtonRaphsonNumIterations; ++i) {
 		logfile().startIndent("Running Newton-Raphson iteration " + toString(i + 1) + ":");
 		_solveDerivative();
-		const double curQ = _modelsToEstimate.resetQ();
+		const double curQ = _modelsToEstimate.Q();
 		logfile().list("Current Q_beta = ", curQ);
 
 		double lambda   = 1.0;
@@ -368,12 +367,12 @@ void TRecalibrationEMEstimator::_updateEpsilon(const TPostMortemDamage &PmdModel
 		double deltaQ   = 0;
 
 		while (nUpdated < nTot && lambda > 1.0E-20) {
-			_modelsToEstimate.proposeNewParameters(lambda);
+			_modelsToEstimate.propose(lambda);
 			logfile().listFlushDots("Proposing model ", _modelsToEstimate.getModelsDefinition());
 
 			_calculateQ();
-			deltaQ   = _modelsToEstimate.resetQ() - curQ;
-			nUpdated = _modelsToEstimate.acceptProposedParametersBasedOnQ();
+			deltaQ   = _modelsToEstimate.Q() - curQ;
+			nUpdated = _modelsToEstimate.acceptOrReject();
 
 			logfile().write(toString(nUpdated) + "/" + toString(nTot) + " models converged.");
 			logfile().conclude("Delta Q = ", deltaQ);
@@ -382,7 +381,7 @@ void TRecalibrationEMEstimator::_updateEpsilon(const TPostMortemDamage &PmdModel
 			lambda = lambda / 2.0; // backtrack;
 		}
 
-		_modelsToEstimate.adjustParametersPostEstimation();
+		_modelsToEstimate.adjust();
 
 		if (nUpdated < nTot) {
 			logfile().conclude("Some models did not improve even with log2(lambda) = " + toString(std::log2(lambda)) +
@@ -390,7 +389,7 @@ void TRecalibrationEMEstimator::_updateEpsilon(const TPostMortemDamage &PmdModel
 			break;
 		}
 
-		const double maxF  = _modelsToEstimate.getSteepestGradient();
+		const double maxF  = _modelsToEstimate.maxF();
 		if (maxF < _NewtonRaphsonMaxF) {
 			logfile().conclude("max(F) = ", maxF, " < ", _NewtonRaphsonMaxF, ", ending Newton-Raphson.");
 			logfile().endIndent();
@@ -398,14 +397,13 @@ void TRecalibrationEMEstimator::_updateEpsilon(const TPostMortemDamage &PmdModel
 		} 
 		logfile().conclude("max(F) = ", toString(maxF));
 
-		if (const auto pdQ = std::abs(deltaQ/curQ); pdQ < deltaLL) {
-			logfile().conclude("deltaQ/Q = ", pdQ, " < deltaLL/LL = ", deltaLL, ", ending Newton-Raphson.");
+		if (const auto pdQ = std::abs(deltaQ/curQ); pdQ < deltaLL_LL) {
+			logfile().conclude("deltaQ/Q = ", pdQ, " < deltaLL/LL = ", deltaLL_LL, ", ending Newton-Raphson.");
 			logfile().endIndent();
 			break;
 		} 
 		logfile().endIndent();
 	}
-	logfile().endIndent();
 	logfile().endIndent();
 	logfile().endIndent();
 };
@@ -494,7 +492,7 @@ void TRecalibrationEMEstimator::calcLL(TModels &SequencingErrorModels, const TPo
 
 	logfile().startIndent("Recal Model:");
 	logfile().conclude("Rho: ",_modelsToEstimate.getRhoDefinition());
-	logfile().conclude("Rodel: ",_modelsToEstimate.getModelsDefinition());
+	logfile().conclude("Epsilon: ",_modelsToEstimate.getModelsDefinition());
 	logfile().endIndent();
 
 	logfile().listFlushDots("Calculating log likelihood");

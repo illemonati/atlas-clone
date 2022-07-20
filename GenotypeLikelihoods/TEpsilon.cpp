@@ -182,7 +182,7 @@ coretools::Probability TEpsilon::calcErrorRate(const BAM::TSequencedBase &base) 
 }
 
 void TEpsilon::addToEpsilon(const BAM::TSequencedBase &base, coretools::Probability P_g_I_d,
-							coretools::Probability P_bbar_I_gd, bool update) {
+							coretools::Probability P_bbar_I_gd, bool updateJF) {
 	if (base == genometools::Base::N) return;
 
 	// get error rate
@@ -192,7 +192,7 @@ void TEpsilon::addToEpsilon(const BAM::TSequencedBase &base, coretools::Probabil
 	// add Q
 	_Q += P_g_I_d.get() * (P_bbar_I_gd.get() * log(eps_c) + P_bbar_I_gd.complement().get() * log(eps));
 
-	if (!update) return;
+	if (!updateJF) return;
 
 	// F and J
 	const double w_ij = P_g_I_d * (eps_c - P_bbar_I_gd.get());
@@ -251,23 +251,30 @@ void TEpsilon::solveJxF() {
 	_Jacobian.zeros();
 	_F.zeros();
 	_numSitesAdded = 0;
+	_oldQ = _Q;  // set Q to value before proposal
 }
-void TEpsilon::proposeNewParameters(double lambda) {
+void TEpsilon::propose(double lambda) {
 	uint16_t index = 0;
 	_intercept.proposeNewParameters(_JxF, index, lambda);
 	for (const auto &cov : _covariates) cov.function->proposeNewParameters(_JxF, index, lambda);
+
+	_Q = 0; // not valid anymore
 }
-bool TEpsilon::acceptProposedParametersBasedOnQ() {
-	if (_Q > _oldQ) { return true; }
+
+bool TEpsilon::acceptOrReject() {
+	if (_Q > _oldQ) {
+		_Q = 0; // reset for next iteration
+		return true;
+	}
 
 	// else
 	_intercept.rejectProposedParameters();
 	for (const auto &cov : _covariates) cov.function->rejectProposedParameters();
-	_Q = _oldQ;
+	_Q = 0.; // not valid anymore
 
 	return false;
 }
-void TEpsilon::adjustParametersPostEstimation() {
+void TEpsilon::adjust() {
 	for (const auto &cov : _covariates) _intercept.intercept() += cov.function->adjustParametersPostEstimation();
 }
 
