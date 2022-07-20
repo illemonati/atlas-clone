@@ -118,7 +118,7 @@ private:
 	genometools::TBed _region1;
 	genometools::TBed _region2;
 
-	void _initializeRegion(genometools::TBed &region, const char num);
+	void _initializeRegion(genometools::TBed &region, const int num);
 	void _addSites(GenotypeLikelihoods::TThetaEstimatorData &data, genometools::TBed &regions);
 	void _handleWindow() override;
 	void _handleAlignment() override {}
