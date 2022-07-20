@@ -12,7 +12,6 @@
 #include "TFastaBuffer.h"
 #include "TGenotypeLikelihoodCalculator.h"
 #include "TRandomGenerator.h"
-#include "TSequencingErrorModels.h"
 #include "strongTypes.h"
 #include <algorithm>
 #include <iostream>

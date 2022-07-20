@@ -14,7 +14,7 @@
 
 #include "TGenome.h"
 #include "TTask.h"
-#include "TRecalibrationEMEstimator.h"
+#include "SequencingError/TRecalEstimator.h"
 
 namespace BAM {
 class TReadGroupMap;

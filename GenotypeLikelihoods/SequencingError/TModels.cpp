@@ -5,7 +5,7 @@
  *      Author: phaentu
  */
 
-#include "TSequencingErrorModels.h"
+#include "SequencingError/TModels.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -17,7 +17,7 @@
 #include "TLog.h"
 #include "TReadGroups.h"
 #include "TSequencedBase.h"
-#include "TSequencingErrorModel.h"
+#include "SequencingError/TModel.h"
 #include "probability.h"
 #include "stringFunctions.h"
 

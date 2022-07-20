@@ -19,7 +19,7 @@
 
 #include "PhredProbabilityTypes.h"
 #include "TProbabilityDistributions.h"
-#include "TSequencingErrorCovariate.h"
+#include "SequencingError/TCovariate.h"
 #include "devtools.h"
 #include "mathFunctions.h"
 #include "probability.h"
@@ -85,7 +85,7 @@ public:
 	virtual bool checkOrInitValueRange(const RecalEstimatorTools::TRecalDataTable &dataTable) = 0;
 
 	// estimation
-	virtual double getEtaTerm(const BAM::TSequencedBase &base) const noexcept = 0;
+	virtual double getEta(const BAM::TSequencedBase &base) const noexcept = 0;
 	virtual double adjustParametersPostEstimation() noexcept                  = 0;
 	virtual std::string typeString() const noexcept                           = 0;
 	std::string modelString() const;
@@ -124,7 +124,7 @@ public:
 	constexpr double intercept() const noexcept { return _beta; }
 	constexpr double &intercept() noexcept { return _beta; }
 
-	double getEtaTerm(const BAM::TSequencedBase &) const noexcept override { return _beta; };
+	double getEta(const BAM::TSequencedBase &) const noexcept override { return _beta; };
 	T1stDerivative get1stDerivatives(const BAM::TSequencedBase &, size_t) const noexcept override { return {firstParameterIndex(), 1.}; };
 	T2ndDerivative get2ndDerivatives(const BAM::TSequencedBase &, size_t, size_t) const noexcept override {
 		return {firstParameterIndex(), firstParameterIndex(), 0.};
@@ -285,7 +285,7 @@ public:
 
 	double adjustParametersPostEstimation() noexcept override { return 0.; }
 
-	double getEtaTerm(const BAM::TSequencedBase &base) const noexcept override {
+	double getEta(const BAM::TSequencedBase &base) const noexcept override {
 		const double v = Transformer::transform(Covariate::extract(base));
 		if constexpr (O == 1) {
 			return _betas.front() * v;
@@ -421,7 +421,7 @@ public:
 
 	bool checkOrInitValueRange(const RecalEstimatorTools::TRecalDataTable &) noexcept override { return true; };
 
-	double getEtaTerm(const BAM::TSequencedBase &base) const noexcept override {
+	double getEta(const BAM::TSequencedBase &base) const noexcept override {
 		const auto val = Covariate::extract(base);
 		if (val >= _tmpStorage.size()) { _expandTmpStorage(val); }
 		return _tmpStorage[val].eta;
@@ -503,7 +503,7 @@ public:
 
 	double adjustParametersPostEstimation() noexcept override { return normalizeParameters(_betas); };
 
-	double getEtaTerm(const BAM::TSequencedBase &base) const noexcept override {
+	double getEta(const BAM::TSequencedBase &base) const noexcept override {
 		return _betas[Covariate::extract(base)];
 	};
 	virtual std::string typeString() const noexcept override { return Covariate::name + ':' + name; }
@@ -608,7 +608,7 @@ public:
 
 	;
 
-	double getEtaTerm(const BAM::TSequencedBase &base) const noexcept override {
+	double getEta(const BAM::TSequencedBase &base) const noexcept override {
 		return _betas[_indexMap[Covariate::extract(base)].index];
 	};
 	virtual std::string typeString() const noexcept override { return Covariate::name + ':' + name; }

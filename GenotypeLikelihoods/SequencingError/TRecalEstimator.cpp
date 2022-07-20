@@ -5,7 +5,7 @@
  *      Author: phaentu
  */
 
-#include "TRecalibrationEMEstimator.h"
+#include "SequencingError/TRecalEstimator.h"
 #include <algorithm>
 #include <armadillo>
 #include <exception>
@@ -23,8 +23,8 @@
 #include "TParameters.h"
 #include "TPostMortemDamage.h"
 #include "TSequencedBase.h"
-#include "TSequencingErrorModel.h"
-#include "TSequencingErrorModels.h"
+#include "SequencingError/TModel.h"
+#include "SequencingError/TModels.h"
 #include "algorithms.h"
 #include "probability.h"
 #include "stringFunctions.h"

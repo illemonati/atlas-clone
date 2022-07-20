@@ -5,7 +5,7 @@
  *      Author: wegmannd
  */
 
-#include "TSequencingErrorCovariateFunction.h"
+#include "SequencingError/TFunction.h"
 
 #include <algorithm>
 #include <iterator>

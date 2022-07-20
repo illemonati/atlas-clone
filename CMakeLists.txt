@@ -39,6 +39,7 @@ file(GLOB CORE_SOURCES CONFIGURE_DEPENDS
   BAM/*.h BAM/*.cpp
   GenomeTasks/*.h GenomeTasks/*.cpp
   GenotypeLikelihoods/*.h GenotypeLikelihoods/*.cpp
+  GenotypeLikelihoods/SequencingError/*.h GenotypeLikelihoods/SequencingError/*.cpp
   GLF/*.h GLF/*.cpp
   PopulationTools/*.h PopulationTools/*.cpp
   Simulations/*.h Simulations/*.cpp

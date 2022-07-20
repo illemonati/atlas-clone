@@ -17,7 +17,7 @@
 #include "TGenotypeData.h"
 #include "TGenotypeDistribution.h"
 #include "TPostMortemDamage.h"
-#include "TSequencingErrorModels.h"
+#include "SequencingError/TModels.h"
 #include "TSite.h"
 #include "probability.h"
 

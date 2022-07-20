@@ -6,8 +6,8 @@
  */
 
 #include "TEpsilon.h"
-#include "TSequencingErrorCovariate.h"
-#include "TSequencingErrorCovariateFunction.h"
+#include "SequencingError/TCovariate.h"
+#include "SequencingError/TFunction.h"
 #include "stringFunctions.h"
 
 namespace GenotypeLikelihoods {
@@ -171,7 +171,7 @@ void TEpsilon::checkOrInit(const RecalEstimatorTools::TRecalDataTable &DataTable
 coretools::Probability TEpsilon::calcErrorRate(const BAM::TSequencedBase &base) const noexcept {
 	// eta = bta[0] + SUM_i f(q[i]), where the functions are implemented as covariate function
 	double eta = 0.;
-	for (const auto& fn: _functions) eta += fn->getEtaTerm(base);
+	for (const auto& fn: _functions) eta += fn->getEta(base);
 	return impl::calcEpsilon(eta);
 }
 
