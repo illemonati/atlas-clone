@@ -12,25 +12,18 @@
 #include <memory>
 
 #include "RecalEstimatorTools.h"
-#include "TSequencingErrorCovariate.h"
-#include "TSequencingErrorCovariateFunction.h"
 #include "probability.h"
 
 namespace GenotypeLikelihoods {
 namespace SequencingError {
 
-struct TCovariateModel {
-	std::unique_ptr<TCovariate> covariate;
-	std::unique_ptr<TFunction> function;
-	TCovariateModel(TCovariate *cov, TFunction *fn) : covariate(cov), function(fn) {}
-};
+class TFunction;
 
 class TEpsilon {
-	TIntercept _intercept;
-	std::vector<TCovariateModel> _covariates;
-	size_t _numParameters;
-	size_t _num1stDerivatives;
-	size_t _num2ndDerivatives;
+	std::vector<std::unique_ptr<TFunction>> _functions;
+	size_t _numParameters     = 0;
+	size_t _num1stDerivatives = 0;
+	size_t _num2ndDerivatives = 0;
 
 	double _Q    = 0.;
 	double _oldQ = std::numeric_limits<double>::lowest();
@@ -42,6 +35,7 @@ class TEpsilon {
 
 public:
 	TEpsilon(const std::string& Def);
+	~TEpsilon();
 
 	void checkOrInit(const RecalEstimatorTools::TRecalDataTable &DataTable);
 

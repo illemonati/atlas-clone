@@ -8,16 +8,36 @@
 #include "TEpsilon.h"
 #include "TSequencingErrorCovariate.h"
 #include "TSequencingErrorCovariateFunction.h"
+#include "stringFunctions.h"
 
 namespace GenotypeLikelihoods {
 namespace SequencingError {
 
+using namespace coretools::str;
+
 namespace impl {
 
+auto parseFunctions(const std::string &Defs) {
+	struct Voldemort {
+		std::string covariate;
+		std::string function;
+		Voldemort(std::string Covariate, std::string Function): covariate(std::move(Covariate)), function(std::move(Function)) {}
+	};
+	std::vector<Voldemort> functions;
+	std::vector<std::string> defs;
+	coretools::str::fillContainerFromString(Defs, defs, ';', true);
 
-auto parseModuleString(const std::string &str) {
+	for (const auto& def: defs) {
+		const auto pos  = def.find(':');
+		if (pos == std::string::npos) functions.emplace_back("", def);
+		else functions.emplace_back(def.substr(0, pos), def.substr(pos + 1));
+	}
+	return functions;
+}
+
+auto parseFunction(const std::string &str) {
 	constexpr auto format =
-		"Expected format is TYPE(ARGS)[BETAS], where (ARGS) is only required for some TYPE and [BETAS] is optional.";
+	    "Expected format is TYPE(ARGS)[BETAS], where (ARGS) is only required for some TYPE and [BETAS] is optional.";
 	std::string type;
 	std::vector<std::string> args;
 	std::vector<std::string> betas;
@@ -48,49 +68,55 @@ auto parseModuleString(const std::string &str) {
 	return std::make_tuple(type, args, betas);
 }
 
-TCovariate *covariate(const std::string &type) {
-	if (type == TCovariate::name) return nullptr;
-	if (type == TCovariate_quality::name) return new TCovariate_quality;
-	if (type == TCovariate_position::name) return new TCovariate_position;
-	if (type == TCovariate_context::name) return new TCovariate_context;
-	if (type == TCovariate_fragmentLength::name) return new TCovariate_fragmentLength;
-	if (type == TCovariate_mappingQuality::name) return new TCovariate_mappingQuality;
-	throw "Unknown recalibration covariate '" + type;
-}
-
-template<size_t O = 6>
-TFunction *poly(size_t order, const size_t FirstParameterIndex, const std::vector<std::string> &betas) {
-	if constexpr (O == 0)
-		UERROR("Polynomial Order must be at least 1");
-	else {
-		if (order > O) UERROR("Polynomial Order cannot be higher than ", O);
-		if (order == O)
-			return new TPolynomial<O>(FirstParameterIndex, betas);
-		else
-			return poly<O - 1>(order, FirstParameterIndex, betas);
-	}
-}
-
-TFunction *function(const std::string &functionString, const size_t FirstParameterIndex) {
-		const auto [type, args, betas] = parseModuleString(functionString);
-		// create function
-		if (type == TPolynomial<1>::name) {
-			if (betas.empty() && args.size() != 1) {
-				throw "Wrong number of arguments for polynomial recal function '" + functionString +
-					"': expect one argument (order).";
-			}
-			const size_t order = betas.empty() ? coretools::str::convertStringCheck<uint32_t>(args[0]) : betas.size();
-			return poly(order, FirstParameterIndex, betas);
-	    }
-	    if (type == TSpecific::name) {
-			return new TSpecific(FirstParameterIndex, betas);
+template<typename Covariate> TFunction *makeCovFunction(const std::string &Function, size_t FirstParameterIndex) {
+	const auto [type, args, betas] = parseFunction(Function);
+	if (type == TPolynomial<1, Covariate>::name) {
+		size_t O = 0;
+		if (betas.empty()) {
+			if (args.empty()) throw "You must specify betas or order of Polynomial function!";
+			O = args.size();
+		} else {
+			if (!args.empty() && (args.size() != betas.size())) throw "Number of betas does not correspond to order";
+			O = betas.size();
 		}
-		if (type == TSpecificMap::name) {
-		    return new TSpecificMap(FirstParameterIndex, betas);
-	    }
-	    throw "Recalibration function '" + type + "' not valid for covariate!";
-    }
+		if (O == 1) return new TPolynomial<1, Covariate>(FirstParameterIndex, betas);
+		if (O == 2) return new TPolynomial<2, Covariate>(FirstParameterIndex, betas);
+		if (O == 3) return new TPolynomial<3, Covariate>(FirstParameterIndex, betas);
+		if (O == 4) return new TPolynomial<4, Covariate>(FirstParameterIndex, betas);
+		if (O == 5) return new TPolynomial<5, Covariate>(FirstParameterIndex, betas);
+		if (O == 6) return new TPolynomial<6, Covariate>(FirstParameterIndex, betas);
+		throw "Only Polynomials up to order 6 can be used!";
+	}
+	if (!args.empty()) throw type + " cannot have arguments";
+	if (type == TProbit<Covariate>::name) { return new TProbit<Covariate>(FirstParameterIndex, betas); }
+	if (type == TSpecific<Covariate>::name) { return new TSpecific<Covariate>(FirstParameterIndex, betas); }
+	if (type == TSpecificMap<Covariate>::name) { return new TSpecificMap<Covariate>(FirstParameterIndex, betas); }
 
+	throw "Function '" + type + "' does not exist!";
+}
+
+TFunction *makeFunction(const std::string &Covariate, const std::string &Function, size_t FirstParameterIndex) {
+	// No covariate
+	if (Covariate.empty()) {
+		const auto [type, args, betas] = parseFunction(Function);
+		if (type != TIntercept::name) throw "You must specify a covariate";
+		if (!args.empty()) throw "Intercept cannot have arguments";
+		return new TIntercept(FirstParameterIndex, betas);
+	}
+
+	if (Covariate == TCovariate_quality::name)
+		return makeCovFunction<TCovariate_quality>(Function, FirstParameterIndex);
+	if (Covariate == TCovariate_position::name)
+		return makeCovFunction<TCovariate_position>(Function, FirstParameterIndex);
+	if (Covariate == TCovariate_context::name)
+		return makeCovFunction<TCovariate_context>(Function, FirstParameterIndex);
+	if (Covariate == TCovariate_fragmentLength::name)
+		return makeCovFunction<TCovariate_fragmentLength>(Function, FirstParameterIndex);
+	if (Covariate == TCovariate_mappingQuality::name)
+		return makeCovFunction<TCovariate_mappingQuality>(Function, FirstParameterIndex);
+
+	throw "Covariate '" + Covariate + "' does not exist!";
+}
 
 constexpr coretools::Probability calcEpsilon(double eta) noexcept {
 	if (eta > 23.03) return coretools::Probability(0.9999999999);
@@ -99,52 +125,18 @@ constexpr coretools::Probability calcEpsilon(double eta) noexcept {
 	return coretools::logistic(eta);
 }
 
-std::string parseIntercept(const std::string &Def) {
-	if (!(Def.rfind("intercept", 0) == 0)) throw "you must define an intercept!";
-
-	const auto pos_1 = Def.find('[');
-	const auto pos_2 = Def.find(']');
-	if (pos_1 == std::string::npos) {
-		if (pos_2 != std::string::npos) throw "Unable to understand model string '" + Def + "': missing '['";
-		return "0.0";
-	}
-	if (pos_2 == std::string::npos) throw "Unable to understand model string '" + Def + "': missing ']'";
-	return Def.substr(pos_1 + 1, pos_2 - pos_1 - 1);
-}
-
-auto parseCovariates(const std::string &Defs) {
-	std::vector<std::pair<std::string, std::string>> covariates;
-	std::vector<std::string> defs;
-	coretools::str::fillContainerFromString(Defs, defs, ';', true);
-
-	// skip first as intercept is already parsed
-	for (size_t i = 1; i < defs.size(); ++i) {
-		const auto &def = defs[i];
-		const auto pos  = def.find(':');
-		covariates.push_back({def.substr(0, pos), def.substr(pos + 1)});
-	}
-	return covariates;
-}
 } // namespace impl
 
-TEpsilon::TEpsilon(const std::string &Def) : _intercept(0, impl::parseIntercept(Def)) {
-	// create covariates
-	_numParameters     = _intercept.numParameters();
-	_num1stDerivatives = _intercept.numNonZeroFirstDerivatives();
-	_num2ndDerivatives = _intercept.numNonZeroFirstDerivatives();
-
-	const auto modelDef = impl::parseCovariates(Def);
+TEpsilon::TEpsilon(const std::string &Def) {
+	// create functions
+	const auto modelDef = impl::parseFunctions(Def);
 	for (const auto &cov : modelDef) {
-		// create function for each covariate
-		if (cov.first == TCovariate::name) continue;
-
-		_covariates.push_back(
-			TCovariateModel{impl::covariate(cov.first), impl::function(cov.second, _numParameters)});
+		_functions.emplace_back(impl::makeFunction(cov.covariate, cov.function, _numParameters));
 
 		// add new parameters
-		_numParameters += _covariates.back().function->numParameters();
-		_num1stDerivatives += _covariates.back().function->numNonZeroFirstDerivatives();
-		_num2ndDerivatives += _covariates.back().function->numNonZeroSecondDerivatives();
+		_numParameters += _functions.back()->numParameters();
+		_num1stDerivatives += _functions.back()->numNonZeroFirstDerivatives();
+		_num2ndDerivatives += _functions.back()->numNonZeroSecondDerivatives();
 	}
 
 	// prepare Newton-Raphson variables
@@ -153,36 +145,38 @@ TEpsilon::TEpsilon(const std::string &Def) : _intercept(0, impl::parseIntercept(
 	_JxF.resize(_numParameters, 1);
 }
 
+TEpsilon::~TEpsilon() = default;
 
 void TEpsilon::checkOrInit(const RecalEstimatorTools::TRecalDataTable &DataTable) {
 	// these may change, recalculate
-	_numParameters     = _intercept.numParameters();
-	_num1stDerivatives = _intercept.numNonZeroFirstDerivatives();
-	_num2ndDerivatives = _intercept.numNonZeroFirstDerivatives();
+	_numParameters     = 0;
+	_num1stDerivatives = 0;
+	_num2ndDerivatives = 0;
 
-	for (auto &cov : _covariates) {
-		if (!cov.function->checkOrInitValueRange(cov.covariate->range(DataTable))) {
-			throw "Function " + cov.function->typeString() + " does not cover full range of data of covariate " +
-				   cov.covariate->typeString() + '\n';
+	for (auto &fn : _functions) {
+		if (!fn->checkOrInitValueRange(DataTable)) {
+			throw "Function " + fn->typeString() + " does not cover full range of data";
 		}
-
-		// these may change, recalculate
-		_numParameters     += _covariates.back().function->numParameters();
-		_num1stDerivatives += _covariates.back().function->numNonZeroFirstDerivatives();
-		_num2ndDerivatives += _covariates.back().function->numNonZeroSecondDerivatives();
+		_numParameters += fn->numParameters();
+		_num1stDerivatives += fn->numNonZeroFirstDerivatives();
+		_num2ndDerivatives += fn->numNonZeroSecondDerivatives();
 	}
+
+	// prepare Newton-Raphson variables
+	_Jacobian.resize(_numParameters, _numParameters);
+	_F.resize(_numParameters);
+	_JxF.resize(_numParameters, 1);
 }
 
 coretools::Probability TEpsilon::calcErrorRate(const BAM::TSequencedBase &base) const noexcept {
 	// eta = bta[0] + SUM_i f(q[i]), where the functions are implemented as covariate function
-	auto eta = _intercept.getEtaTerm();
-	for (const auto &cov : _covariates) eta += cov.function->getEtaTerm(cov.covariate->extract(base));
-
+	double eta = 0.;
+	for (const auto& fn: _functions) eta += fn->getEtaTerm(base);
 	return impl::calcEpsilon(eta);
 }
 
 void TEpsilon::addToEpsilon(const BAM::TSequencedBase &base, coretools::Probability P_g_I_d,
-							coretools::Probability P_bbar_I_gd, bool updateJF) {
+                            coretools::Probability P_bbar_I_gd, bool updateJF) {
 	if (base == genometools::Base::N) return;
 
 	// get error rate
@@ -201,13 +195,12 @@ void TEpsilon::addToEpsilon(const BAM::TSequencedBase &base, coretools::Probabil
 	der1st.clear();
 	static std::vector<T2ndDerivative> der2nd;
 	der2nd.clear();
-	der1st.push_back(_intercept.get1stDerivatives());
 
-	for (const auto &cov : _covariates) {
-		for (size_t i = 0; i < cov.function->numNonZeroFirstDerivatives(); ++i) {
-			der1st.push_back(cov.function->get1stDerivatives(cov.covariate->extract(base), i));
-			for (size_t j = i; j < cov.function->numNonZeroSecondDerivatives(); ++j) {
-				der2nd.push_back(cov.function->get2ndDerivatives(cov.covariate->extract(base), i, j));
+	for (const auto &fn : _functions) {
+		for (size_t i = 0; i < fn->numNonZeroFirstDerivatives(); ++i) {
+			der1st.push_back(fn->get1stDerivatives(base, i));
+			for (size_t j = i; j < fn->numNonZeroSecondDerivatives(); ++j) {
+				der2nd.push_back(fn->get2ndDerivatives(base, i, j));
 			}
 		}
 	}
@@ -245,18 +238,17 @@ void TEpsilon::solveJxF() {
 	_maxF     = std::max(_F.max(), -_F.min());
 	if (!solve(_JxF, _Jacobian, _F))
 		UERROR("Issue solving JxF! This may be due to a lack of data. Consider adding more sites. Jacobian: ",
-			   _Jacobian);
+		       _Jacobian);
 
 	// automatically reset
 	_Jacobian.zeros();
 	_F.zeros();
 	_numSitesAdded = 0;
-	_oldQ = _Q;  // set Q to value before proposal
+	_oldQ          = _Q; // set Q to value before proposal
 }
 void TEpsilon::propose(double lambda) {
-	uint16_t index = 0;
-	_intercept.proposeNewParameters(_JxF, index, lambda);
-	for (const auto &cov : _covariates) cov.function->proposeNewParameters(_JxF, index, lambda);
+	size_t index = 0;
+	for (const auto &fn : _functions) fn->proposeNewParameters(_JxF, index, lambda);
 
 	_Q = 0; // not valid anymore
 }
@@ -268,20 +260,20 @@ bool TEpsilon::acceptOrReject() {
 	}
 
 	// else
-	_intercept.rejectProposedParameters();
-	for (const auto &cov : _covariates) cov.function->rejectProposedParameters();
+	for (const auto &fn : _functions) fn->rejectProposedParameters();
 	_Q = 0.; // not valid anymore
 
 	return false;
 }
 void TEpsilon::adjust() {
-	for (const auto &cov : _covariates) _intercept.intercept() += cov.function->adjustParametersPostEstimation();
+	//for (const auto &fn : _functions) _intercept.intercept() += cov.function->adjustParametersPostEstimation();
 }
 
 std::string TEpsilon::getDefinition() const noexcept {
-	std::string modelString = _intercept.modelString();
-	for (const auto &cov : _covariates) {
-		modelString += ";" + cov.covariate->typeString() + ":" + cov.function->modelString();
+	std::string modelString = _functions.front()->modelString();
+	for (size_t i = 1; i < _functions.size(); ++i) {
+		const auto &fn = _functions[i];
+		modelString += ";" + fn->modelString();
 	}
 	return modelString;
 }
