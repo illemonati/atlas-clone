@@ -364,12 +364,15 @@ void TInbreedingEstimatorPrior::_simulateUnderPrior(Storage *) {
 //------------------------------------------
 
 TInbreedingEstimatorModel::TInbreedingEstimatorModel(
-    const std::string &Filename, std::shared_ptr<stattools::TDAGBuilder> &DAGBuilder,
+    const std::string &Filename, stattools::TDAGBuilder &DAGBuilder,
     const genometools::TPopulationLikelihoods<stattools::TValueFixed<TypeGTL>> &Likelihoods)
-    : _F("F", std::make_shared<stattools::prior::TUniformFixed<stattools::TParameterBase, TypeF, 1>>(), {Filename + "_F"}),
-      _FModel("withInbreeding", std::make_shared<stattools::prior::TUniformFixed<stattools::TParameterBase, TypeFModel, 1>>(),
+    : _F("F", std::make_shared<stattools::prior::TUniformFixed<stattools::TParameterBase, TypeF, 1>>(),
+         {Filename + "_F"}),
+      _FModel("withInbreeding",
+              std::make_shared<stattools::prior::TUniformFixed<stattools::TParameterBase, TypeFModel, 1>>(),
               {Filename + "_F"}),
-      _pi("pi", std::make_shared<stattools::prior::TUniformFixed<stattools::TParameterBase, TypePi, 1>>(), {Filename + "_p"}),
+      _pi("pi", std::make_shared<stattools::prior::TUniformFixed<stattools::TParameterBase, TypePi, 1>>(),
+          {Filename + "_p"}),
       _pModel("isPolymorph",
               std::make_shared<stattools::prior::TBernouilliInferred<stattools::TParameterBase, TypePModel, 1, TypePi>>(
                   &_pi),
@@ -389,13 +392,13 @@ TInbreedingEstimatorModel::TInbreedingEstimatorModel(
 
 	_p.getDefinition().setJumpSizeForAll(false);
 
-	DAGBuilder->addToDAG(_F);
-	DAGBuilder->addToDAG(_FModel);
-	DAGBuilder->addToDAG(_pi);
-	DAGBuilder->addToDAG(_pModel);
-	DAGBuilder->addToDAG(_log_gamma);
-	DAGBuilder->addToDAG(_p);
-	DAGBuilder->addToDAG(_observation);
+	DAGBuilder.addToDAG(_F);
+	DAGBuilder.addToDAG(_FModel);
+	DAGBuilder.addToDAG(_pi);
+	DAGBuilder.addToDAG(_pModel);
+	DAGBuilder.addToDAG(_log_gamma);
+	DAGBuilder.addToDAG(_p);
+	DAGBuilder.addToDAG(_observation);
 
 	// set storage
 	_observation.storage() = Likelihoods.getStorage();
@@ -426,13 +429,13 @@ void TInbreedingEstimator::run() {
 	_readData();
 
 	// build DAG
-	auto dagBuilder = std::make_shared<stattools::TDAGBuilder>();
+	stattools::TDAGBuilder dagBuilder;
 	TInbreedingEstimatorModel model(filename, dagBuilder, _likelihoods);
-	dagBuilder->buildDAG();
+	dagBuilder.buildDAG();
 
 	// run MCMC
 	stattools::TMCMC mcmc;
-	mcmc.runMCMC(prefix, dagBuilder);
+	mcmc.runMCMC(prefix, &dagBuilder);
 }
 
 } // end namespace PopulationTools
