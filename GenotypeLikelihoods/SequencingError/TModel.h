@@ -126,8 +126,9 @@ public:
 
 	// functions to estimate betas
 	double Q() const noexcept {return _epsilon.Q();}
-	void addToEpsilon(const BAM::TSequencedBase &base, coretools::Probability P_g_I_d, coretools::Probability P_bbar_I_gd, bool update) {
-		_epsilon.addToEpsilon(base, P_g_I_d, P_bbar_I_gd, update);
+	template<bool updateJF, bool isInvariant>
+	void addToEpsilon(const BAM::TSequencedBase &base, const TGenotypeLikelihoods &P_g_I_ds, const TGenotypeLikelihoods &P_bbar_I_gds) {
+		_epsilon.addToEpsilon<updateJF, isInvariant>(base, P_g_I_ds, P_bbar_I_gds);
 	}
 	void solveJxF() {_epsilon.solveJxF();}
 	void propose(double lambda) {_epsilon.propose(lambda);}

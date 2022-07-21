@@ -1,7 +1,7 @@
 //
 // Created by vivian on 17.08.20.
 //
-#include "TSequencingErrorModels.h"
+#include "SequencingError/TModels.h"
 #include "gtest/gtest.h"
 
 #include <memory>

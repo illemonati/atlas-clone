@@ -21,7 +21,7 @@
 #include "TPMDTables.h"
 #include "TReadGroups.h"
 #include "TSequencedBase.h"
-#include "TSequencingErrorModels.h"
+#include "SequencingError/TModels.h"
 #include "gtest/gtest.h"
 #include "probability.h"
 #include "weakTypes.h"

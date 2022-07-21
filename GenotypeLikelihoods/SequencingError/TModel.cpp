@@ -5,7 +5,7 @@
  *      Author: phaentu
  */
 
-#include "TSequencingErrorModel.h"
+#include "SequencingError/TModel.h"
 
 #include <math.h>
 #include <stdlib.h>
@@ -21,7 +21,7 @@
 #include "TGenotypeData.h"
 #include "TRandomGenerator.h"
 #include "TSequencedBase.h"
-#include "TSequencingErrorCovariate.h"
+#include "SequencingError/TCovariate.h"
 #include "devtools.h"
 #include "mathFunctions.h"
 #include "probability.h"
