@@ -26,22 +26,13 @@
 #include "probability.h"
 #include "stringFunctions.h"
 #include "toString.h"
+#include "SequencingError/TEpsilon.h"
 
 #include <armadillo>
 
 namespace GenotypeLikelihoods {
 namespace SequencingError {
 
-struct T1stDerivative {
-	size_t index;
-	double derivative;
-};
-
-struct T2ndDerivative {
-	size_t index1;
-	size_t index2;
-	double derivative;
-};
 //--------------------------------------------------------------
 // TCovariateFunction
 // Base class for recal covariate functions
@@ -76,19 +67,16 @@ public:
 
 	// virtuals
 	virtual size_t numParameters() const noexcept               = 0;
-	virtual size_t numNonZeroFirstDerivatives() const noexcept  = 0;
-	virtual size_t numNonZeroSecondDerivatives() const noexcept = 0;
-
-	virtual T1stDerivative get1stDerivatives(const BAM::TSequencedBase &base, size_t i) const noexcept           = 0;
-	virtual T2ndDerivative get2ndDerivatives(const BAM::TSequencedBase &base, size_t i, size_t j) const noexcept = 0;
 
 	// check value range: to ensure that data can be recalibrated
 	virtual bool checkOrInitValueRange(const RecalEstimatorTools::TRecalDataTable &dataTable) = 0;
 
 	// estimation
-	virtual double getEta(const BAM::TSequencedBase &base) const noexcept = 0;
-	virtual double adjustParametersPostEstimation() noexcept                  = 0;
-	virtual std::string typeString() const noexcept                           = 0;
+	virtual double getEta(const BAM::TSequencedBase &base) const noexcept   = 0;
+	virtual double getEta(const BAM::TSequencedBase &base, std::vector<T1stDerivative> &der1,
+						  std::vector<T2ndDerivative> &der2) const noexcept = 0;
+	virtual double adjustParametersPostEstimation() noexcept                = 0;
+	virtual std::string typeString() const noexcept                         = 0;
 	std::string modelString() const;
 };
 
@@ -117,8 +105,6 @@ public:
 	};
 
 	size_t numParameters() const noexcept override { return 1; };
-	size_t numNonZeroFirstDerivatives() const noexcept override { return 1; };
-	size_t numNonZeroSecondDerivatives() const noexcept override { return 0; };
 
 	bool checkOrInitValueRange(const RecalEstimatorTools::TRecalDataTable &) noexcept override { return true; };
 
@@ -126,10 +112,13 @@ public:
 	constexpr double &intercept() noexcept { return _beta; }
 
 	double getEta(const BAM::TSequencedBase &) const noexcept override { return _beta; };
-	T1stDerivative get1stDerivatives(const BAM::TSequencedBase &, size_t) const noexcept override { return {firstParameterIndex(), 1.}; };
-	T2ndDerivative get2ndDerivatives(const BAM::TSequencedBase &, size_t, size_t) const noexcept override {
-		return {firstParameterIndex(), firstParameterIndex(), 0.};
-	};
+
+	double getEta(const BAM::TSequencedBase &, std::vector<T1stDerivative> &der1,
+						  std::vector<T2ndDerivative> &) const noexcept override {
+		der1.emplace_back(firstParameterIndex(), 1.);
+		return _beta;
+	}
+
 	double adjustParametersPostEstimation() noexcept override { return 0.; }
 
 	std::string typeString() const noexcept override { return std::string(name); };
@@ -137,14 +126,8 @@ public:
 
 namespace impl {
 struct TNoTransform {
-	static inline const std::array<double, 256> _map = []() {
-		std::array<double, 256> fs{};
-		for (size_t v = 0; v < fs.size(); ++v) { fs[v] = static_cast<double>(v); }
-		return fs;
-	}();
-
 	static constexpr bool hasRange = false;
-	static double transform(uint16_t val) noexcept { return _map[val]; }
+	static double transform(uint16_t val) noexcept { return static_cast<double>(val); }
 };
 
 struct TLogitTransform {
@@ -272,8 +255,6 @@ public:
 	}
 
 	size_t numParameters() const noexcept override { return O; };
-	size_t numNonZeroFirstDerivatives() const noexcept override { return O; };
-	size_t numNonZeroSecondDerivatives() const noexcept override { return 0; };
 
 	bool checkOrInitValueRange(const RecalEstimatorTools::TRecalDataTable &dataTable) noexcept override {
 		if constexpr (Transformer::hasRange) {
@@ -306,17 +287,36 @@ public:
 		}
 	};
 
-	T1stDerivative get1stDerivatives(const BAM::TSequencedBase &base, size_t i) const noexcept override {
+	double getEta(const BAM::TSequencedBase &base, std::vector<T1stDerivative> &der1,
+						  std::vector<T2ndDerivative> &) const noexcept override {
 		const double v = Transformer::transform(Covariate::extract(base));
 		if constexpr (O == 1) {
-			return {firstParameterIndex(), v};
-		} else
-			return {firstParameterIndex() + i, coretools::uPow(v, i + 1)};
-	}
+			der1.emplace_back(firstParameterIndex(), v);
+			return _betas.front() * v;
+		} else if constexpr (O == 2) {
+			der1.emplace_back(firstParameterIndex(), v);
+			der1.emplace_back(firstParameterIndex() + 1, v*v);
+			return v * (_betas[0] + v * _betas[1]);
+		} else if constexpr (O == 3) {
+			der1.emplace_back(firstParameterIndex(), v);
+			der1.emplace_back(firstParameterIndex() + 1, v*v);
+			der1.emplace_back(firstParameterIndex() + 2, v*v*v);
+			return v * (_betas[0] + v * _betas[1]);
+		} else if constexpr (O == 3) {
+			return v * (_betas[0] + v * (_betas[1] + _betas[2] * v));
+		} else {
+			der1.emplace_back(firstParameterIndex(), v);
+			double vpi = v;
+			double sum = _betas[0] * vpi;
 
-	T2ndDerivative get2ndDerivatives(const BAM::TSequencedBase &, size_t, size_t) const noexcept override {
-		return {firstParameterIndex(), firstParameterIndex(), 0.};
-	};
+			for (size_t i = 1; i < O; ++i) {
+				vpi *= v;
+				sum += _betas[i] * vpi;
+				der1.emplace_back(firstParameterIndex() + i, vpi);
+			}
+			return sum;
+		}
+	}
 
 	std::string typeString() const noexcept override {
 		using coretools::str::toString;
@@ -381,50 +381,34 @@ public:
 	}
 
 	size_t numParameters() const noexcept override { return 3; };
-	size_t numNonZeroFirstDerivatives() const noexcept override { return 3; };
-	size_t numNonZeroSecondDerivatives() const noexcept override { return 6; };
-
-	T1stDerivative get1stDerivatives(const BAM::TSequencedBase &base, size_t i) const noexcept override {
-		const auto val = Covariate::extract(base);
-		if (val >= _tmpStorage.size()) { _expandTmpStorage(val); }
-		switch (i) {
-		case 0: return {firstParameterIndex(), _tmpStorage[val].cumulDens_Phi};
-		case 1: return {firstParameterIndex() + 1, _tmpStorage[val].normalDens_Beta1};
-		default: return {firstParameterIndex() + 1, _tmpStorage[val].normalDens_Beta1_q};
-		}
-	};
-	T2ndDerivative get2ndDerivatives(const BAM::TSequencedBase &base, size_t i, size_t j) const noexcept override {
-		const auto val = Covariate::extract(base);
-		if (val >= _tmpStorage.size()) { _expandTmpStorage(val); }
-		switch (i) {
-		case 0:
-			switch (j) {
-			case 0: return {firstParameterIndex(), firstParameterIndex(), 0.};
-			case 1: return {firstParameterIndex(), firstParameterIndex() + 1, -_tmpStorage[val].normalDens_phi};
-			default: return {firstParameterIndex(), firstParameterIndex() + 2, -_tmpStorage[val].normalDens_q};
-			}
-		case 1:
-			switch (j) {
-			case 0: return {firstParameterIndex() + 1, firstParameterIndex(), 0.};
-			case 1: return {firstParameterIndex() + 1, firstParameterIndex() + 1, -_tmpStorage[val].normalDens_Beta1_z};
-			default:
-				return {firstParameterIndex() + 1, firstParameterIndex() + 2, -_tmpStorage[val].normalDens_Beta1_q_z};
-			}
-		default: // 2
-			switch (j) {
-			case 0: return {firstParameterIndex() + 2, firstParameterIndex(), 0.};
-			case 1: return {firstParameterIndex() + 2, firstParameterIndex() + 1, 0.};
-			default:
-				return {firstParameterIndex() + 2, firstParameterIndex() + 2, -_tmpStorage[val].normalDens_Beta1_q2_z};
-			}
-		}
-	};
 
 	bool checkOrInitValueRange(const RecalEstimatorTools::TRecalDataTable &) noexcept override { return true; };
 
 	double getEta(const BAM::TSequencedBase &base) const noexcept override {
 		const auto val = Covariate::extract(base);
 		if (val >= _tmpStorage.size()) { _expandTmpStorage(val); }
+		return _tmpStorage[val].eta;
+	}
+
+	double getEta(const BAM::TSequencedBase &base, std::vector<T1stDerivative> &der1,
+				  std::vector<T2ndDerivative> &der2) const noexcept override {
+		const auto val = Covariate::extract(base);
+		if (val >= _tmpStorage.size()) { _expandTmpStorage(val); }
+
+		der1.emplace_back(firstParameterIndex(), _tmpStorage[val].cumulDens_Phi);
+		der1.emplace_back(firstParameterIndex() + 1, _tmpStorage[val].normalDens_Beta1);
+		der1.emplace_back(firstParameterIndex() + 1, _tmpStorage[val].normalDens_Beta1_q);
+
+		der2.emplace_back(firstParameterIndex(), firstParameterIndex(), 0.);
+		der2.emplace_back(firstParameterIndex(), firstParameterIndex() + 1, -_tmpStorage[val].normalDens_phi);
+		der2.emplace_back(firstParameterIndex(), firstParameterIndex() + 2, -_tmpStorage[val].normalDens_q);
+		der2.emplace_back(firstParameterIndex() + 1, firstParameterIndex(), 0.);
+		der2.emplace_back(firstParameterIndex() + 1, firstParameterIndex() + 1, -_tmpStorage[val].normalDens_Beta1_z);
+		der2.emplace_back(firstParameterIndex() + 1, firstParameterIndex() + 2, -_tmpStorage[val].normalDens_Beta1_q_z);
+		der2.emplace_back(firstParameterIndex() + 2, firstParameterIndex(), 0.);
+		der2.emplace_back(firstParameterIndex() + 2, firstParameterIndex() + 1, 0.);
+		der2.emplace_back(firstParameterIndex() + 2, firstParameterIndex() + 2, -_tmpStorage[val].normalDens_Beta1_q2_z);
+
 		return _tmpStorage[val].eta;
 	}
 
@@ -478,15 +462,6 @@ public:
 	}
 
 	size_t numParameters() const noexcept override { return _betas.size(); };
-	size_t numNonZeroFirstDerivatives() const noexcept override { return 1; };
-	size_t numNonZeroSecondDerivatives() const noexcept override { return 0; };
-
-	T1stDerivative get1stDerivatives(const BAM::TSequencedBase &base, size_t) const noexcept override {
-		return {firstParameterIndex() + Covariate::extract(base), 1.0};
-	}
-	T2ndDerivative get2ndDerivatives(const BAM::TSequencedBase &, size_t, size_t) const noexcept override {
-		return {firstParameterIndex(), firstParameterIndex(), 0.};
-	};
 
 	bool checkOrInitValueRange(const RecalEstimatorTools::TRecalDataTable &dataTable) override {
 		const auto values = Covariate::range(dataTable);
@@ -506,7 +481,15 @@ public:
 	double getEta(const BAM::TSequencedBase &base) const noexcept override {
 		return _betas[Covariate::extract(base)];
 	};
-	virtual std::string typeString() const noexcept override { return std::string(Covariate::name).append(1, ':').append(name); }
+
+	double getEta(const BAM::TSequencedBase &base, std::vector<T1stDerivative> &der1,
+						  std::vector<T2ndDerivative> &) const noexcept override {
+		const auto val = Covariate::extract(base);
+		der1.emplace_back(firstParameterIndex() + Covariate::extract(base), 1.0);
+		return _betas[val];
+		
+	}
+	std::string typeString() const noexcept override { return std::string(Covariate::name).append(1, ':').append(name); }
 };
 
 //--------------------------------------------------------------
@@ -577,17 +560,6 @@ public:
 	}
 
 	size_t numParameters() const noexcept override { return _betas.size(); };
-	size_t numNonZeroFirstDerivatives() const noexcept override { return 1; };
-	size_t numNonZeroSecondDerivatives() const noexcept override { return 0; };
-
-	T1stDerivative get1stDerivatives(const BAM::TSequencedBase &base, size_t) const noexcept override{
-		return {firstParameterIndex() + _indexMap[Covariate::extract(base)].index, 1.0};
-}
-
-
-	T2ndDerivative get2ndDerivatives(const BAM::TSequencedBase &, size_t, size_t) const noexcept override {
-		return {firstParameterIndex(), firstParameterIndex(), 0.};
-	};
 
 	bool checkOrInitValueRange(const RecalEstimatorTools::TRecalDataTable &dataTable) override {
 		const auto values = Covariate::range(dataTable);
@@ -610,7 +582,16 @@ public:
 	double getEta(const BAM::TSequencedBase &base) const noexcept override {
 		return _betas[_indexMap[Covariate::extract(base)].index];
 	};
-	virtual std::string typeString() const noexcept override { return std::string(Covariate::name).append(1, ':').append(name); }
+
+	double getEta(const BAM::TSequencedBase &base, std::vector<T1stDerivative> &der1,
+				  std::vector<T2ndDerivative> &) const noexcept override {
+		const auto val = Covariate::extract(base);
+		der1.emplace_back(firstParameterIndex() + _indexMap[Covariate::extract(base)].index, 1.0);
+		return _betas[_indexMap[val].index];
+		
+	}
+
+	std::string typeString() const noexcept override { return std::string(Covariate::name).append(1, ':').append(name); }
 };
 
 } // namespace SequencingError

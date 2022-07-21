@@ -98,14 +98,14 @@ void TModelVectorForEstimation::reset(TModels &SequencingErrorModels,
 };
 
 TBaseLikelihoods TModelVectorForEstimation::getBaseLikelihoods(const BAM::TSequencedBase &data) const {
-	return _modelIndex[data.readGroupID][data.isSecondMate()]->getBaseLikelihoods(data);
+	return model(data)->getBaseLikelihoods(data);
 };
 
 //-------------------------------------------------------------------
 // functions to estimate rho
 
 void TModelVectorForEstimation::addToRho(const BAM::TSequencedBase &data, coretools::Probability P_g_I_d, const TBaseProbabilities &P_bbar_I_d) {
-	_modelIndex[data.readGroupID][data.isSecondMate()]->addToRho(data, P_g_I_d, P_bbar_I_d);
+	model(data)->addToRho(data, P_g_I_d, P_bbar_I_d);
 };
 
 void TModelVectorForEstimation::estimateRho() {
@@ -115,11 +115,7 @@ void TModelVectorForEstimation::estimateRho() {
 // functions to estimate beta
 //-------------------------------------------------------------------
 
-void TModelVectorForEstimation::addToEpsilon(const BAM::TSequencedBase &data, coretools::Probability P_g_I_d, coretools::Probability P_bbar_I_gd, bool updateJF) {
-	_modelIndex[data.readGroupID][data.isSecondMate()]->addToEpsilon(data, P_g_I_d, P_bbar_I_gd, updateJF);
-};
-
-double TModelVectorForEstimation::Q() {
+double TModelVectorForEstimation::Q() const {
 	return std::accumulate(_models.begin(), _models.end(), 0.0, [](auto tot, const auto &val) { return tot + val->Q(); });
 };
 
@@ -143,7 +139,7 @@ void TModelVectorForEstimation::adjust() {
 	for (auto &model : _models) { model->adjust(); }
 };
 
-double TModelVectorForEstimation::maxF() {
+double TModelVectorForEstimation::maxF() const {
 	double maxF = 0.0;
 	for (auto &model : _models) {
 		maxF = std::max(maxF, model->maxF());
@@ -323,26 +319,6 @@ void TRecalibrationEMEstimator::_estimateRho_updatePbbar(const TPostMortemDamage
 	}
 	_modelsToEstimate.estimateRho();
 }
-
-void TRecalibrationEMEstimator::_calculateQ(bool updateJF) {
-	size_t ij = 0;
-	for (size_t i = 0; i < _sites.size(); ++i) {
-		const auto& Pi = _P_g_I_ds[i];
-		for (auto &d_ij : _sites[i]) {
-			const auto &Pij = _P_bbar_I_gds[ij++];
-			for (auto a = Base::min; a < Base::max; ++a) {
-				const auto g_aa = genometools::genotype(a, a);
-				_modelsToEstimate.addToEpsilon(d_ij, Pi[g_aa], Pij[g_aa], updateJF);
-				if (!_genoDist->isInvariant()) {
-					for (auto b = genometools::next(a); b < Base::max; ++b) {
-						const auto g_ab = genometools::genotype(a, b);
-						_modelsToEstimate.addToEpsilon(d_ij, Pi[g_ab], Pij[g_ab], updateJF);
-					}
-				}
-			}
-		}
-	}
-};
 
 void TRecalibrationEMEstimator::_updateEpsilon(const TPostMortemDamage &PmdModels, double deltaLL_LL) {
 	using coretools::str::toString;

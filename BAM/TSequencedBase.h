@@ -53,6 +53,7 @@ public:
 	bool operator==(genometools::Base b) const noexcept { return base == b; }
 	bool operator!=(genometools::Base b) const noexcept { return base != b; }
 	void operator=(genometools::Base b) noexcept { base = b; }
+	operator bool() const noexcept {return base != genometools::Base::N;}
 
 	void print() const;
 };

@@ -134,14 +134,13 @@ constexpr coretools::Probability calcEpsilon(double eta) noexcept {
 
 TEpsilon::TEpsilon(const std::string &Def) {
 	// create functions
+	size_t _numParameters = 0;
 	const auto modelDef = impl::parseFunctions(Def);
 	for (const auto &cov : modelDef) {
 		_functions.emplace_back(impl::makeFunction(cov.covariate, cov.function, _numParameters));
 
 		// add new parameters
 		_numParameters += _functions.back()->numParameters();
-		_num1stDerivatives += _functions.back()->numNonZeroFirstDerivatives();
-		_num2ndDerivatives += _functions.back()->numNonZeroSecondDerivatives();
 	}
 
 	// prepare Newton-Raphson variables
@@ -154,17 +153,13 @@ TEpsilon::~TEpsilon() = default;
 
 void TEpsilon::checkOrInit(const RecalEstimatorTools::TRecalDataTable &DataTable) {
 	// these may change, recalculate
-	_numParameters     = 0;
-	_num1stDerivatives = 0;
-	_num2ndDerivatives = 0;
+	size_t _numParameters     = 0;
 
 	for (auto &fn : _functions) {
 		if (!fn->checkOrInitValueRange(DataTable)) {
 			throw "Function " + fn->typeString() + " does not cover full range of data";
 		}
 		_numParameters += fn->numParameters();
-		_num1stDerivatives += fn->numNonZeroFirstDerivatives();
-		_num2ndDerivatives += fn->numNonZeroSecondDerivatives();
 	}
 
 	// prepare Newton-Raphson variables
@@ -180,66 +175,22 @@ coretools::Probability TEpsilon::calcErrorRate(const BAM::TSequencedBase &base) 
 	return impl::calcEpsilon(eta);
 }
 
-void TEpsilon::addToEpsilon(const BAM::TSequencedBase &base, coretools::Probability P_g_I_d,
-                            coretools::Probability P_bbar_I_gd, bool updateJF) {
-	if (base == genometools::Base::N) return;
-
-	// get error rate
-	const double eps   = calcErrorRate(base);
-	const double eps_c = 1. - eps;
-
-	// add Q
-	_Q += P_g_I_d.get() * (P_bbar_I_gd.get() * log(eps_c) + P_bbar_I_gd.complement().get() * log(eps));
-
-	if (!updateJF) return;
-
-	// F and J
-	const double w_ij = P_g_I_d * (eps_c - P_bbar_I_gd.get());
-
-	static std::vector<T1stDerivative> der1st;
-	der1st.clear();
-	static std::vector<T2ndDerivative> der2nd;
-	der2nd.clear();
-
-	for (const auto &fn : _functions) {
-		for (size_t i = 0; i < fn->numNonZeroFirstDerivatives(); ++i) {
-			der1st.push_back(fn->get1stDerivatives(base, i));
-			for (size_t j = i; j < fn->numNonZeroSecondDerivatives(); ++j) {
-				der2nd.push_back(fn->get2ndDerivatives(base, i, j));
-			}
-		}
-	}
-
-	// add first derivatives
-	for (auto dm = der1st.begin(); dm != der1st.end(); ++dm) {
-		// add to F
-		_F(dm->index) += w_ij * dm->derivative;
-
-		// add to J
-		_Jacobian(dm->index, dm->index) -= eps_c * eps * dm->derivative * dm->derivative;
-		for (auto dn = dm + 1; dn != der1st.end(); ++dn) {
-			_Jacobian(dm->index, dn->index) -= eps_c * eps * dm->derivative * dn->derivative;
-		}
-	}
-
-	// add second derivatives to Jacobian (happens to have the same weigth as F!)
-	for (auto &dmn : der2nd) _Jacobian(dmn.index1, dmn.index2) += w_ij * dmn.derivative;
-
-	++_numSitesAdded;
+coretools::Probability TEpsilon::_calcErrorRate(const BAM::TSequencedBase &base, std::vector<T1stDerivative> &der1,
+											   std::vector<T2ndDerivative> &der2) const noexcept {
+	// eta = bta[0] + SUM_i f(q[i]), where the functions are implemented as covariate function
+	double eta = 0.;
+	for (const auto &fn : _functions) eta += fn->getEta(base, der1, der2);
+	return impl::calcEpsilon(eta);
 }
+
 
 void TEpsilon::solveJxF() {
 	// Need to copy numbers to other triangle in Jacobian, as only upper triangle is filled when parsing sites
-	for (size_t i = 0; i < _numParameters - 1; ++i) {
-		for (size_t j = i + 1; j < _numParameters; ++j) {
-			// copy from upper triangle to lower triangle
-			_Jacobian(j, i) = _Jacobian(i, j);
-		}
-	}
+	_Jacobian = arma::symmatu(_Jacobian);
 
 	// scale F and J by 1/#sites
-	_Jacobian = _Jacobian / (double)_numSitesAdded;
-	_F        = _F / (double)_numSitesAdded;
+	_Jacobian = _Jacobian / _numSitesAdded;
+	_F        = _F / _numSitesAdded;
 	_maxF     = std::max(_F.max(), -_F.min());
 	if (!solve(_JxF, _Jacobian, _F))
 		UERROR("Issue solving JxF! This may be due to a lack of data. Consider adding more sites. Jacobian: ",
