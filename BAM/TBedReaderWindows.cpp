@@ -181,6 +181,14 @@ TBedReaderWindows::~TBedReaderWindows(){
 	}
 	chromosomes.clear();
 };
+void TBedReaderWindows::set(std::string Filename, uint32_t WindowSize, const genometools::TChromosomes & chromosomeList, uint32_t siteLimit, coretools::TLog* logfile){
+	filename = Filename;
+	windowSize = WindowSize;
+	numPositionsAdded = 0;
+	curChr = "";
+	readFile(chromosomeList, siteLimit, logfile);
+}
+
 
 void TBedReaderWindows::setChr(const std::string & chr){
 	curChr = chr;

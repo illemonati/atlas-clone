@@ -40,7 +40,7 @@
 #include "TPSMCInput.h"
 #include "TPolymorhicWindowIdentifier.h"
 #include "TWriteGLF.h"
-#include "TSexEstimator.h"
+//#include "TSexEstimator.h"
 
 //VCF
 #include "TVcfCompare.h"

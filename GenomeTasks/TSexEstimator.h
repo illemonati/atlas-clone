@@ -1,34 +1,31 @@
 /*
- * TDepthWriter.h
+ * TSexEstimator.h
  *
- *  Created on: Jul 18, 2022
- *      Author: reckel
+ *  Created on: Jul 20, 2022
+ *      Author: raphael
  */
 
 #ifndef GENOMETASKS_TSEXESTIMATOR_H_
 #define GENOMETASKS_TSEXESTIMATOR_H_
 
-#include <string>
 
-#include "TFile.h"
+
 #include "TGenome.h"
 #include "TTask.h"
-#include "counters.h"
+
 
 namespace GenomeTasks{
 
 //----------------------------------------
 // TSexEstimator
 //----------------------------------------
-class TSexEstimator:public TGenome_windows{
+class TSexEstimator : public TGenome_windows {
 private:
-	coretools::TOutputFile _out;
-	coretools::TCountDistribution<> _distPerSite;
-
 	void _handleWindow() override;
-	void _handleAlignment() override {}
+	void _handleAlignment() override {};
+
 public:
-	void writeDepth();
+	TSexEstimator();
 };
 
 //--------------------------------------
@@ -40,12 +37,10 @@ public:
 
 	void run(){
 		TSexEstimator sexEstimator;
-		//sexEstimator.writeDepth();
 	};
 };
 
 }; // end namespace
 
 
-
-#endif /* GENOMETASKS_TDEPTHWRITER_H_ */
+#endif /* GENOMETASKS_TSEXESTIMATOR_H_ */
