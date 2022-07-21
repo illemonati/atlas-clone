@@ -12,6 +12,7 @@
 
 #include "TGenome.h"
 #include "TTask.h"
+#include "TBedReaderWindows.h"
 
 
 namespace GenomeTasks{
@@ -21,11 +22,23 @@ namespace GenomeTasks{
 //----------------------------------------
 class TSexEstimator : public TGenome_windows {
 private:
+	coretools::TOutputFile _out1;
+	coretools::TOutputFile _out2;
+	coretools::TCountDistribution<> _distPerSite1;
+	coretools::TCountDistribution<> _distPerSite2;
+	std::unique_ptr<BAM::TBedReaderWindows> _region1;
+	std::unique_ptr<BAM::TBedReaderWindows> _region2;
+	void _initializeRegion(std::unique_ptr<BAM::TBedReaderWindows> &region, const int num);
 	void _handleWindow() override;
 	void _handleAlignment() override {};
+	void _considerRegion(std::unique_ptr<BAM::TBedReaderWindows> &region, coretools::TCountDistribution<> &distPerSite, coretools::TOutputFile &out);
+	void _writeDepthPerWindow(coretools::TOutputFile &out, const int num);
+	void _writeHistogram(coretools::TCountDistribution<> &distPerSite, const int num);
+
 
 public:
 	TSexEstimator();
+	void writeDepth();
 };
 
 //--------------------------------------
@@ -37,6 +50,7 @@ public:
 
 	void run(){
 		TSexEstimator sexEstimator;
+		sexEstimator.writeDepth();
 	};
 };
 

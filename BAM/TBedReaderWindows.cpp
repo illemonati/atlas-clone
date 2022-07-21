@@ -98,6 +98,7 @@ void TBedReaderChromosome::addPosition(std::vector<std::string> & tmp, uint32_t 
 };
 
 void TBedReaderChromosome::print(){
+	std::cout << name << ":" << std::endl;
 	for(windowIt=windows.begin(); windowIt!=windows.end(); ++windowIt) windowIt->second->print();
 };
 
@@ -181,14 +182,6 @@ TBedReaderWindows::~TBedReaderWindows(){
 	}
 	chromosomes.clear();
 };
-void TBedReaderWindows::set(std::string Filename, uint32_t WindowSize, const genometools::TChromosomes & chromosomeList, uint32_t siteLimit, coretools::TLog* logfile){
-	filename = Filename;
-	windowSize = WindowSize;
-	numPositionsAdded = 0;
-	curChr = "";
-	readFile(chromosomeList, siteLimit, logfile);
-}
-
 
 void TBedReaderWindows::setChr(const std::string & chr){
 	curChr = chr;
@@ -222,6 +215,13 @@ uint32_t TBedReaderWindows::getNumChromosomes(){
 	return chromosomes.size();
 };
 
-}; //end namesapce
+bool TBedReaderWindows::containsChromosome(std::string chrName) const{
+	return chromosomes.count(chrName);
+}
+
+TBedReaderChromosome* TBedReaderWindows::findChromosome(std::string chrName) const{
+	return chromosomes.find(chrName)->second;
+}
+}; //end namespace
 
 

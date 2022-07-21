@@ -67,14 +67,14 @@ public:
 	TBedReaderWindows(std::string Filename, uint32_t WindowSize, const genometools::TChromosomes & chromosomes, uint32_t siteLimit, coretools::TLog* logfile);
 	TBedReaderWindows();
 	~TBedReaderWindows();
-	void set(std::string Filename, uint32_t WindowSize, const genometools::TChromosomes & chromosomeList, uint32_t siteLimit, coretools::TLog* logfile);
 	void setChr(const std::string & chr);
 	void print();
 	bool hasPositionsInWindow(uint32_t windowStart);
 	std::vector<uint32_t>& getPositionInWindow(uint32_t & windowStart);
 	uint32_t size();
 	uint32_t getNumChromosomes();
-
+	bool containsChromosome(std::string chrName) const;
+	TBedReaderChromosome* findChromosome(std::string chrName) const;
 };
 
 }; //end namesapce
