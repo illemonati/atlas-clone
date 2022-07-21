@@ -89,8 +89,13 @@ template<typename Covariate> TFunction *makeCovFunction(const std::string &Funct
 	}
 	if (!args.empty()) throw type + " cannot have arguments";
 	if (type == TProbit<Covariate>::name) { return new TProbit<Covariate>(FirstParameterIndex, betas); }
-	if (type == TSpecific<Covariate>::name) { return new TSpecific<Covariate>(FirstParameterIndex, betas); }
-	if (type == TSpecificMap<Covariate>::name) { return new TSpecificMap<Covariate>(FirstParameterIndex, betas); }
+	if (type == TEmpiric<Covariate>::name) {
+		if (Covariate::isIndexed)
+			return new TIndexedEmpiric<Covariate>(FirstParameterIndex, betas);
+		else
+			return new TEmpiric<Covariate>(FirstParameterIndex, betas);
+	}
+	if (type == TIndexedEmpiric<Covariate>::name) { return new TIndexedEmpiric<Covariate>(FirstParameterIndex, betas); }
 
 	throw "Function '" + type + "' does not exist!";
 }

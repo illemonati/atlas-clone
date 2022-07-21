@@ -20,14 +20,15 @@ namespace SequencingError {
 // TCovariate_quality
 //-------------------------------------------
 struct TCovariate_quality {
-	static inline const std::string name = "quality";
+	static constexpr std::string_view name = "quality";
+	static constexpr bool isIndexed        = true;
 
 	static uint16_t extract(const BAM::TSequencedBase &base) noexcept {
 		return base.originalQuality_phredInt.get();
 	}
 
 	static std::vector<uint16_t> range(const RecalEstimatorTools::TRecalDataTable &dataTable) noexcept {
-		return RecalEstimatorTools::vectorOfUsed(dataTable.qualities());
+		return RecalEstimatorTools::indexedRange(dataTable.qualities());
 	}
 };
 
@@ -36,15 +37,13 @@ struct TCovariate_quality {
 //-------------------------------------------
 class TCovariate_position {
 public:
-	static inline const std::string name = "position";
+	static constexpr std::string_view name = "position";
+	static constexpr bool isIndexed        = false;
 
 	static uint16_t extract(const BAM::TSequencedBase &base) noexcept { return base.distFrom5Prime; }
 
 	static std::vector<uint16_t> range(const RecalEstimatorTools::TRecalDataTable &dataTable) noexcept {
-		const auto N = dataTable.positions().size() - 1;
-		std::vector<uint16_t> v(N);
-		std::iota(v.begin(), v.end(), uint16_t{});
-		return v;
+		return RecalEstimatorTools::fullRange(dataTable.positions());
 	}
 };
 
@@ -55,17 +54,16 @@ class TCovariate_context {
 private:
 	static constexpr int numContext = 20;
 public:
-	static inline const std::string name = "context";
+	static constexpr std::string_view name = "context";
+	static constexpr bool isIndexed        = false;
 
 	static uint16_t extract(const BAM::TSequencedBase &base) noexcept {
 		return genometools::index(base.context);
 	}
 
 	static std::vector<uint16_t> range(const RecalEstimatorTools::TRecalDataTable &dataTable) noexcept {
-		const auto N = dataTable.positions().size() - 1;
-		std::vector<uint16_t> v(N);
-		std::iota(v.begin(), v.end(), uint16_t{});
-		return v;
+		// There is a context for each position
+		return RecalEstimatorTools::fullRange(dataTable.positions());
 	}
 };
 
@@ -75,12 +73,13 @@ public:
 
 class TCovariate_fragmentLength {
 public:
-	static inline std::string name = "fragmentLength";
+	static constexpr std::string_view name = "fragmentLength";
+	static constexpr bool isIndexed        = true;
 
 	static uint16_t extract(const BAM::TSequencedBase &base) noexcept { return base.fragmentLength; }
 
 	static std::vector<uint16_t> range(const RecalEstimatorTools::TRecalDataTable &dataTable) noexcept {
-		return RecalEstimatorTools::vectorOfUsed(dataTable.fragmentLengths());
+		return RecalEstimatorTools::indexedRange(dataTable.fragmentLengths());
 	}
 };
 
@@ -90,12 +89,13 @@ public:
 
 class TCovariate_mappingQuality {
 public:
-	static inline const std::string name = "mappingQuality";
+	static constexpr std::string_view name = "mappingQuality";
+	static constexpr bool isIndexed        = true;
 
 	static uint16_t extract(const BAM::TSequencedBase &base) noexcept { return base.mappingQuality; }
 
 	static std::vector<uint16_t> range(const RecalEstimatorTools::TRecalDataTable &dataTable) noexcept {
-		return RecalEstimatorTools::vectorOfUsed(dataTable.mappingQualities());
+		return RecalEstimatorTools::indexedRange(dataTable.mappingQualities());
 	}
 };
 

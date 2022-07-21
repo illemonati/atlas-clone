@@ -14,6 +14,7 @@
 #include <memory>
 #include <stddef.h>
 #include <string>
+#include <string_view>
 #include <type_traits>
 #include <vector>
 
@@ -108,7 +109,7 @@ private:
 	double *_oend() noexcept override { return &_oldBeta + 1; }
 
 public:
-	static inline const std::string name = "intercept";
+	static constexpr std::string_view name = "intercept";
 
 	TIntercept(size_t FirstParameterIndex, const std::vector<std::string> &Betas)
 		: TFunction(FirstParameterIndex) {
@@ -131,7 +132,7 @@ public:
 	};
 	double adjustParametersPostEstimation() noexcept override { return 0.; }
 
-	virtual std::string typeString() const noexcept override { return name; };
+	std::string typeString() const noexcept override { return std::string(name); };
 };
 
 namespace impl {
@@ -264,7 +265,7 @@ private:
 	double *_oend() noexcept override { return _oldBetas.data() + O; }
 
 public:
-	static inline const std::string name = "polynomial";
+	static constexpr std::string_view name = "polynomial";
 
 	TPolynomial(size_t FirstParameterIndex, const std::vector<std::string> &betas) : TFunction(FirstParameterIndex) {
 		_initializeValues(betas);
@@ -319,7 +320,7 @@ public:
 
 	std::string typeString() const noexcept override {
 		using coretools::str::toString;
-		return Covariate::name + ':' + name + '(' + toString(O) + ')';
+		return std::string(Covariate::name).append(1, ':').append(name).append(1, '(').append(toString(O)).append(1,')');
 	}
 };
 
@@ -373,7 +374,7 @@ private:
 	double *_oend() noexcept override { return _oldBetas.data() + _oldBetas.size(); }
 
 public:
-	static inline const std::string name = "probit";
+	static constexpr std::string_view name = "probit";
 	TProbit(size_t FirstParameterIndex, const std::vector<std::string> &betas) : TFunction(FirstParameterIndex) {
 		_initializeValues(betas);
 		_expandTmpStorage(128);
@@ -428,15 +429,14 @@ public:
 	}
 
 	double adjustParametersPostEstimation() noexcept override { return 0.; }
-	std::string typeString() const noexcept override { return Covariate::name + ':' + name; }
+	std::string typeString() const noexcept override { return std::string(Covariate::name).append(1, ':').append(name); }
 };
 
 //--------------------------------------------------------------
-// TCovariateFunction_specific
 // A term per discrete value from 0 to maxValue
 //--------------------------------------------------------------
 
-template<typename Covariate> class TSpecific final : public TFunction {
+template<typename Covariate> class TEmpiric final : public TFunction {
 private:
 	std::vector<double> _betas;    // betas of the model
 	std::vector<double> _oldBetas; // use during estimation
@@ -456,7 +456,7 @@ private:
 		std::vector<bool> found(numParameters(), false);
 		for (auto &i : values) { found[i] = true; }
 		if (const auto f = std::find(found.cbegin(), found.cend(), false); f != found.cend()) {
-			throw "Can not adjust value range for recal function '" + name + "': value " +
+			throw "Can not adjust value range for recal function '" + std::string(name) + "': value " +
 				toString(std::distance(f, found.cbegin())) + " is < max value but never used." +
 				"\nConsider using recal function 'SpecificMap'.";
 		}
@@ -470,9 +470,9 @@ private:
 	double *_oend() noexcept override { return _oldBetas.data() + _betas.size(); }
 
 public:
-	static inline const std::string name = "specific";
+	static constexpr std::string_view name = "empiric";
 
-	TSpecific(size_t FirstParameterIndex, const std::vector<std::string> &betas) : TFunction(FirstParameterIndex) {
+	TEmpiric(size_t FirstParameterIndex, const std::vector<std::string> &betas) : TFunction(FirstParameterIndex) {
 		_resize(betas.size());
 		_initializeValues(betas);
 	}
@@ -506,11 +506,10 @@ public:
 	double getEta(const BAM::TSequencedBase &base) const noexcept override {
 		return _betas[Covariate::extract(base)];
 	};
-	virtual std::string typeString() const noexcept override { return Covariate::name + ':' + name; }
+	virtual std::string typeString() const noexcept override { return std::string(Covariate::name).append(1, ':').append(name); }
 };
 
 //--------------------------------------------------------------
-// TCovariateFunction_specificMap
 // A term per discrete values as indicated with a map
 //--------------------------------------------------------------
 struct TIndexMapEntry {
@@ -518,7 +517,7 @@ struct TIndexMapEntry {
 	bool used      = false;
 };
 
-template<typename Covariate> class TSpecificMap final : public TFunction {
+template<typename Covariate> class TIndexedEmpiric final : public TFunction {
 private:
 	std::vector<double> _betas;            // betas of the model
 	std::vector<double> _oldBetas;         // use during estimation
@@ -558,8 +557,8 @@ protected:
 	double *_oend() noexcept override { return _oldBetas.data() + _betas.size(); }
 
 public:
-	static inline const std::string name = "map";
-	TSpecificMap(size_t FirstParameterIndex, const std::vector<std::string> &betas) : TFunction(FirstParameterIndex) {
+	static constexpr std::string_view name = "empiric"; // same as TEmpiric, as atlas user does not see a difference
+	TIndexedEmpiric(size_t FirstParameterIndex, const std::vector<std::string> &betas) : TFunction(FirstParameterIndex) {
 		using coretools::str::toString;
 		// parse values as pairs separated by a colon (:)
 		std::vector<uint16_t> values;
@@ -611,7 +610,7 @@ public:
 	double getEta(const BAM::TSequencedBase &base) const noexcept override {
 		return _betas[_indexMap[Covariate::extract(base)].index];
 	};
-	virtual std::string typeString() const noexcept override { return Covariate::name + ':' + name; }
+	virtual std::string typeString() const noexcept override { return std::string(Covariate::name).append(1, ':').append(name); }
 };
 
 } // namespace SequencingError
