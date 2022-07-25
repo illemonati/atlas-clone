@@ -12,6 +12,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include "counters.h"
 namespace coretools { class TLog; }
 namespace genometools { class TChromosomes; }
 
@@ -40,6 +41,7 @@ public:
 	std::map<uint32_t, TBedReaderWindow*> windows;
 	std::map<uint32_t, TBedReaderWindow*>::iterator windowIt;
 	int windowSize;
+	coretools::TCountDistribution<> distPerSites;
 
 	TBedReaderChromosome(std::string & Name, uint32_t & WindowSize);
 	~TBedReaderChromosome();
@@ -75,6 +77,7 @@ public:
 	uint32_t getNumChromosomes();
 	bool containsChromosome(std::string chrName) const;
 	TBedReaderChromosome* findChromosome(std::string chrName) const;
+	void listInitializedChromosomes(std::vector<std::string> &initializedChromosomes);
 };
 
 }; //end namesapce

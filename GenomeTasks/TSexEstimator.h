@@ -22,8 +22,6 @@ namespace GenomeTasks{
 //----------------------------------------
 class TSexEstimator : public TGenome_windows {
 private:
-	coretools::TOutputFile _out1;
-	coretools::TOutputFile _out2;
 	coretools::TCountDistribution<> _distPerSite1;
 	coretools::TCountDistribution<> _distPerSite2;
 	std::unique_ptr<BAM::TBedReaderWindows> _region1;
@@ -31,9 +29,10 @@ private:
 	void _initializeRegion(std::unique_ptr<BAM::TBedReaderWindows> &region, const int num);
 	void _handleWindow() override;
 	void _handleAlignment() override {};
-	void _considerRegion(std::unique_ptr<BAM::TBedReaderWindows> &region, coretools::TCountDistribution<> &distPerSite, coretools::TOutputFile &out);
+	void _considerRegion(std::unique_ptr<BAM::TBedReaderWindows> &region, coretools::TCountDistribution<> &distPerSite);
 	void _writeDepthPerWindow(coretools::TOutputFile &out, const int num);
 	void _writeHistogram(coretools::TCountDistribution<> &distPerSite, const int num);
+	void _writeDepthPerChromosome(std::unique_ptr<BAM::TBedReaderWindows> &region, const int num);
 
 
 public:

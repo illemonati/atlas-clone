@@ -222,6 +222,15 @@ bool TBedReaderWindows::containsChromosome(std::string chrName) const{
 TBedReaderChromosome* TBedReaderWindows::findChromosome(std::string chrName) const{
 	return chromosomes.find(chrName)->second;
 }
+
+void TBedReaderWindows::listInitializedChromosomes(std::vector<std::string> &initializedChromosomes) {
+	for(chrIt=chromosomes.begin(); chrIt!=chromosomes.end(); ++chrIt){
+		if (chrIt->second->size() > 0){
+			initializedChromosomes.push_back(chrIt->second->name);
+		}
+	}
+}
+
 }; //end namespace
 
 
