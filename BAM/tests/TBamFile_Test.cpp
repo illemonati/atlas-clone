@@ -690,29 +690,29 @@ class TBamFilter : public GenomeTasks::TGenome_filtered {
     // class very similar to TBamDiagnoser, but inherits from TGenome_filtered -> can apply all filters
 public:
     // distributions
-    TCountDistribution totalReads;
+    TCountDistribution<> totalReads;
 
-    TCountDistribution duplicates;
-    TCountDistribution improperPairs;
-    TCountDistribution failedQC;
-    TCountDistribution unmapped;
-    TCountDistribution secondary;
-    TCountDistribution supplementary;
-    TCountDistribution longerThanFragmentLength;
-    TCountDistribution fwdStrand;
-    TCountDistribution revStrand;
-    TCountDistribution firstMate;
-    TCountDistribution secondMate;
+    TCountDistribution<> duplicates;
+    TCountDistribution<> improperPairs;
+    TCountDistribution<> failedQC;
+    TCountDistribution<> unmapped;
+    TCountDistribution<> secondary;
+    TCountDistribution<> supplementary;
+    TCountDistribution<> longerThanFragmentLength;
+    TCountDistribution<> fwdStrand;
+    TCountDistribution<> revStrand;
+    TCountDistribution<> firstMate;
+    TCountDistribution<> secondMate;
     std::vector<std::string> names; // for blacklist
 
-    TCountDistributionVector readLength;
-    TCountDistributionVector usableLength;
-    TCountDistributionVector softClippedLength;
-    TCountDistributionVector mappingQuality;
-    TCountDistributionVector fragmentLength;
+    TCountDistributionVector<> readLength;
+    TCountDistributionVector<> usableLength;
+    TCountDistributionVector<> softClippedLength;
+    TCountDistributionVector<> mappingQuality;
+    TCountDistributionVector<> fragmentLength;
 
-    TCountDistribution readGroup;
-    TCountDistribution refIDs;
+    TCountDistribution<> readGroup;
+    TCountDistribution<> refIDs;
 
     BAM::TQualityFilter qualFilter;
     std::vector<std::string> readGroupNames;

@@ -42,20 +42,20 @@ private:
 	uint32_t _refId = 0;
 	uint32_t _length = 0;
 	bool _isHaploid = false;
-	uint8_t _numLikelihoodValues = 10; // depends on ploidy
-
-	void _setPloidy(uint8_t Ploidy);
 
 public:
 	TGlfChromosome() = default;
 	TGlfChromosome(const std::string &Name, uint32_t Length, uint8_t Ploidy);
 
 	std::string name() const { return _name; };
-	uint32_t refId() const { return _refId; };
-	uint32_t length() const { return _length; };
-	bool isHaploid() const { return _isHaploid; };
-	uint8_t ploidy() const { return 2 - _isHaploid; };
-	uint8_t numLikelihoodValues() const { return _numLikelihoodValues; };
+	uint32_t refId() const noexcept { return _refId; };
+	uint32_t length() const noexcept { return _length; };
+	bool isHaploid() const noexcept { return _isHaploid; };
+	uint8_t ploidy() const noexcept { return 2 - _isHaploid; };
+	size_t numLikelihoodValues() const noexcept {
+		std::array<size_t, 2> N{10, 4};
+		return N[_isHaploid];
+	};
 
 	void update(const std::string &Name, uint16_t RefId, uint32_t Length, uint8_t Ploidy);
 	void clear();
@@ -165,10 +165,10 @@ public:
 	// get details
 	bool eof() const { return _eof; };
 	TGlfChromosome *pointerToChr(uint32_t refId);
-	bool fillPointerToChr(uint32_t refId, TGlfChromosome *&chr);
 	uint32_t position() const { return _position; };
 	uint16_t depth() const { return _depth; };
 	const TGLFLikelihoods &genotypeLikelihoodsGLF() const { return _genotypeLikelihoodsGLF; };
+	TGlfChromosome *curChr() {return &_curChr;};
 
 	// open file and parse header
 	void setFilename(const std::string &Filename);

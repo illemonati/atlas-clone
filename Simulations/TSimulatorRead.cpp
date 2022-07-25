@@ -14,7 +14,7 @@
 #include "TPostMortemDamage.h"
 #include "TRandomGenerator.h"
 #include "TSequencedBase.h"
-#include "TSequencingErrorModel.h"
+#include "SequencingError/TModel.h"
 #include "TSimulatorAuxiliaryTools.h"
 #include "stringFunctions.h"
 

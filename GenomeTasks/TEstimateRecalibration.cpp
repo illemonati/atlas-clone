@@ -18,7 +18,7 @@
 #include "TLog.h"
 #include "TParameters.h"
 #include "TReadGroups.h"
-#include "TRecalibrationEMEstimator.h"
+#include "SequencingError/TRecalEstimator.h"
 #include "TSite.h"
 #include "TSiteSubset.h"
 #include "TWindow.h"

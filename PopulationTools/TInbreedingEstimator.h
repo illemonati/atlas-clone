@@ -153,7 +153,7 @@ private:
 	stattools::TObservationTyped<TypeGTL, 2> _observation;
 
 public:
-	TInbreedingEstimatorModel(const std::string &Filename, std::shared_ptr<stattools::TDAGBuilder> &DAGBuilder,
+	TInbreedingEstimatorModel(const std::string &Filename, stattools::TDAGBuilder &DAGBuilder,
 	                          const genometools::TPopulationLikelihoods<stattools::TValueFixed<TypeGTL>> &Likelihoods);
 };
 

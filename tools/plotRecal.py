@@ -11,7 +11,7 @@ def modelFn(model):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Plot recal model(s)")
-    parser.add_argument("models", nargs='*', default=["0 + x"], help="models to parse")
+    parser.add_argument("models", nargs='*', default=["x"], help="models to parse")
 
     args = parser.parse_args()
 

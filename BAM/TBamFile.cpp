@@ -97,7 +97,7 @@ void TBamFile::setFilters(TParameters & params, TLog* logfile){
 		_allowTooLongReads = params.parameterExists("allowTooLongReads");
 	}
 	_mappedLengthFilter.filter(mappingLengthRange, "Mapped length outside " + mappingLengthRange.rangeString());
-	logfile->list("Mapped length: restrict to range " + _mappedLengthFilter.rangeString() + ". (parameter 'filterMappedLength')");
+	logfile->list("Mapped length: restrict to range " + _mappedLengthFilter.rangeString() + ". (parameter 'filterMappingLength')");
 	if(mappingLengthRange.max() > 100000){
 		logfile->warning("The chosen mapping length filter allows for reads to span >100kb of the reference genome. This may affect performance in case of paired-end reads.");
 	}
