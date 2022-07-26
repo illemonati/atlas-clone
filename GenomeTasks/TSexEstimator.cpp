@@ -66,7 +66,6 @@ void TSexEstimator::_considerRegion(std::unique_ptr<BAM::TBedReaderWindows> &reg
 			for (; pos.position() <=  window->positions.back(); ++pos){
 				//if the position in the genome and bed window are equal, add the depth at this site to the histogram and increment the bed iterator
 				if (pos.position() == *it){
-					std::cout << pos.position() << std::endl;
 					distPerSite.add(siteIterator->depth());
 					chromosome->distPerSites.add(siteIterator->depth());
 					++it;
@@ -90,7 +89,7 @@ void TSexEstimator::_writeDepthPerWindow(coretools::TOutputFile &out, const int 
 }
 
 void TSexEstimator::_writeDepthPerChromosome(std::unique_ptr<BAM::TBedReaderWindows> &region, coretools::TCountDistribution<> &distPerSite, const int num){
-	std::string filename = _outputName + "_depthPerChromosome_" + std::to_string(num) + ".txt.gz";
+	std::string filename = _outputName + "_depthPerChromosome_" + std::to_string(num) + ".txt";
 	logfile().list("Writing per chromosome depth estimates to '" + filename + "'.");
 	const std::vector<std::string> header = {"chromosome", "mean depth"};
 
@@ -120,6 +119,7 @@ void TSexEstimator::writeDepth(){
 
 	_writeDepthPerChromosome(_region1, _distPerSite1, 1);
 	_writeDepthPerChromosome(_region2, _distPerSite2, 2);
+	logfile().list("Ratio of region1_meanDepth/region2_meanDepth: " + std::to_string(_distPerSite1.mean()/_distPerSite2.mean()));
 };
 
 

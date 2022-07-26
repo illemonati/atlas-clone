@@ -85,8 +85,9 @@ void TBedReaderChromosome::addPosition(std::vector<std::string> & tmp, uint32_t 
 
 	//add to counter
 	numPositionsAdded += end - start;
-	if(numPositionsAdded > siteLimit)
-		end -= numPositionsAdded - siteLimit;
+	if (siteLimit > 0)
+		if(numPositionsAdded > siteLimit)
+			end -= numPositionsAdded - siteLimit;
 
 	//identify window
 	findOrCreateWindow(start);
