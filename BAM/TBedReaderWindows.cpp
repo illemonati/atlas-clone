@@ -79,12 +79,14 @@ void TBedReaderChromosome::findOrCreateWindow(uint32_t pos){
 	}
 }
 
-void TBedReaderChromosome::addPosition(std::vector<std::string> & tmp, uint32_t & numPositionsAdded){
+void TBedReaderChromosome::addPosition(std::vector<std::string> & tmp, uint32_t & numPositionsAdded, uint32_t siteLimit){
 	uint64_t start = convertString<uint64_t>(tmp[1]);
 	uint64_t end = convertString<uint64_t>(tmp[2]);
 
 	//add to counter
 	numPositionsAdded += end - start;
+	if(numPositionsAdded > siteLimit)
+		end -= numPositionsAdded - siteLimit;
 
 	//identify window
 	findOrCreateWindow(start);
@@ -147,6 +149,8 @@ void TBedReaderWindows::readFile(const genometools::TChromosomes & chromosomeLis
 		//skip empty lines
 		if(vec.size() > 0){
 			if(vec.size() < 3) throw "Less than three columns in bed file '" + filename + "' on line " + toString(lineNum) + "!";
+			if(convertString<int>(vec[1]) < 0 || convertString<int>(vec[2]) < 0) throw "Negative value in '" + filename + "' on line " + toString(lineNum) + "!";
+			if(convertString<int>(vec[2]) <= convertString<int>(vec[1])) throw "Error: End position <= start position ('" + filename + "', line " + toString(lineNum) + ")";
 			//get chromosome
 			if(!chromosomeList.exists(vec[0])) logfile->warning("Chromosome '" + vec[0] + "' from BED file is not present in the BAM header!");
 			if(vec[0] != curChr){
@@ -159,7 +163,7 @@ void TBedReaderWindows::readFile(const genometools::TChromosomes & chromosomeLis
 			}
 
 			//add positions
-			chrIt->second->addPosition(vec, numPositionsAdded);
+			chrIt->second->addPosition(vec, numPositionsAdded, siteLimit);
 		}
 	}
 

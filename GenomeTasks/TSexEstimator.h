@@ -32,7 +32,7 @@ private:
 	void _considerRegion(std::unique_ptr<BAM::TBedReaderWindows> &region, coretools::TCountDistribution<> &distPerSite);
 	void _writeDepthPerWindow(coretools::TOutputFile &out, const int num);
 	void _writeHistogram(coretools::TCountDistribution<> &distPerSite, const int num);
-	void _writeDepthPerChromosome(std::unique_ptr<BAM::TBedReaderWindows> &region, const int num);
+	void _writeDepthPerChromosome(std::unique_ptr<BAM::TBedReaderWindows> &region, coretools::TCountDistribution<> &distPerSite, const int num);
 
 
 public:

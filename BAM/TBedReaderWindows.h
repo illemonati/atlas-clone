@@ -47,7 +47,7 @@ public:
 	~TBedReaderChromosome();
 	void findWindow(uint32_t pos);
 	void findOrCreateWindow(uint32_t pos);
-	void addPosition(std::vector<std::string> & tmp, uint32_t & numPositionsAdded);
+	void addPosition(std::vector<std::string> & tmp, uint32_t & numPositionsAdded, uint32_t siteLimit);
 	void print();
 	bool hasPositionsInWindow(uint32_t windowStart);
 	std::vector<uint32_t>& getPositionInWindow(uint32_t windowStart);

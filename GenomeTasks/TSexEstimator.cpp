@@ -24,11 +24,15 @@ TSexEstimator::TSexEstimator():TGenome_windows() {
 void TSexEstimator::_initializeRegion(std::unique_ptr<BAM::TBedReaderWindows> &region, const int num) {
 	logfile().startIndent((std::string) "Region " + std::to_string(num) + ":");
 	std::string regionsFile = parameters().getParameter<std::string>("region" + std::to_string(num));
-	logfile().list((std::string) "Reading regions " + std::to_string(num) + " from file '" + regionsFile + " (parameter 'region" + std::to_string(num) +
+	logfile().list((std::string) "Reading regions " + std::to_string(num) + " from file '" + regionsFile + "' (parameter 'region" + std::to_string(num) +
 				   "') ...");
-
-	//regularly exceeds sitelimit as it is only checked at the beginning of every line and not for every site
+	//add limit to amount of sites that are processed, no limit if siteLimit==0
 	uint32_t siteLimit = parameters().getParameterWithDefault<uint32_t>("siteLimit", 0);
+	if(siteLimit == 0){
+		logfile().list("Will not use a site limit. (use 'siteLimit' to do so)");
+	} else {
+		logfile().list("Will only process up to " + std::to_string(siteLimit) + " sites. (parameter 'siteLimit')");
+	}
 
 
 	region = std::make_unique<BAM::TBedReaderWindows>(regionsFile, _windowSize, _chromosomes, siteLimit, &logfile());
@@ -62,7 +66,7 @@ void TSexEstimator::_considerRegion(std::unique_ptr<BAM::TBedReaderWindows> &reg
 			for (; pos.position() <=  window->positions.back(); ++pos){
 				//if the position in the genome and bed window are equal, add the depth at this site to the histogram and increment the bed iterator
 				if (pos.position() == *it){
-					std::cout << pos.position() << std::endl << *it << std::endl;
+					std::cout << pos.position() << std::endl;
 					distPerSite.add(siteIterator->depth());
 					chromosome->distPerSites.add(siteIterator->depth());
 					++it;
@@ -85,7 +89,7 @@ void TSexEstimator::_writeDepthPerWindow(coretools::TOutputFile &out, const int 
 	out.open(filename, header);
 }
 
-void TSexEstimator::_writeDepthPerChromosome(std::unique_ptr<BAM::TBedReaderWindows> &region, const int num){
+void TSexEstimator::_writeDepthPerChromosome(std::unique_ptr<BAM::TBedReaderWindows> &region, coretools::TCountDistribution<> &distPerSite, const int num){
 	std::string filename = _outputName + "_depthPerChromosome_" + std::to_string(num) + ".txt.gz";
 	logfile().list("Writing per chromosome depth estimates to '" + filename + "'.");
 	const std::vector<std::string> header = {"chromosome", "mean depth"};
@@ -95,18 +99,14 @@ void TSexEstimator::_writeDepthPerChromosome(std::unique_ptr<BAM::TBedReaderWind
 	coretools::TOutputFile out(filename, header);
 
 	for (auto &s: initializedChromosomes){
-		//out << s << region->findChromosome(s)->distPerSites.mean() << std::endl;
-		if(num==2){
-			std::cout << s << "\t";
-			region->findChromosome(s)->distPerSites.print();
-			std::cout << std::endl;}
+		out << s << region->findChromosome(s)->distPerSites.mean() << std::endl;
 	}
+	out << "all" << distPerSite.mean() << std::endl;
 }
 
 void TSexEstimator::_writeHistogram(coretools::TCountDistribution<> &distPerSite, const int num){
 	std::string filename = _outputName + "_depthPerSiteHistogram_" + std::to_string(num) + ".txt";
 	logfile().list("Writing depth per site distribution to file '" + filename + "' ...");
-	distPerSite.print();
 	distPerSite.write(filename, "depth");
 }
 
@@ -118,8 +118,8 @@ void TSexEstimator::writeDepth(){
 	_writeHistogram(_distPerSite1, 1);
 	_writeHistogram(_distPerSite2, 2);
 
-	_writeDepthPerChromosome(_region1, 1);
-	_writeDepthPerChromosome(_region2, 2);
+	_writeDepthPerChromosome(_region1, _distPerSite1, 1);
+	_writeDepthPerChromosome(_region2, _distPerSite2, 2);
 };
 
 
