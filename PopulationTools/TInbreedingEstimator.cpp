@@ -48,7 +48,7 @@ TInbreedingEstimatorPrior::TInbreedingEstimatorPrior(stattools::TParameterTyped<
 
 std::string TInbreedingEstimatorPrior::name() const { return "inbreeding"; }
 
-void TInbreedingEstimatorPrior::initializeStorageOfPriorParameters() {
+void TInbreedingEstimatorPrior::initializeInferred() {
 	assert(this->_storageBelow.size() == 1);
 	auto data             = this->_storageBelow[0];
 	const auto &lociNames = data->getDimensionName(0);
@@ -58,12 +58,12 @@ void TInbreedingEstimatorPrior::initializeStorageOfPriorParameters() {
 	_numSamples = data->dimensions()[1];
 
 	// F and FModel: one value
-	_F->initializeStorageSingleElementBasedOnPrior();
-	_FModel->initializeStorageSingleElementBasedOnPrior();
+	_F->initStorage();
+	_FModel->initStorage();
 
 	// p and pModel: linear of length L
-	_p->initializeStorageBasedOnPrior({_numLoci}, {lociNames});
-	_pModel->initializeStorageBasedOnPrior({_numLoci}, {lociNames});
+	_p->initStorage({_numLoci}, {lociNames});
+	_pModel->initStorage({_numLoci}, {lociNames});
 }
 
 void TInbreedingEstimatorPrior::_readCommandLineArguments() {
@@ -388,20 +388,12 @@ TInbreedingEstimatorModel::TInbreedingEstimatorModel(
       _observation(
           "genotypeLikelihoods",
           std::make_shared<TInbreedingEstimatorPrior>(&_F, &_p, &_FModel, &_pModel, Likelihoods.alleleFrequencies()),
-          {}) {
+          Likelihoods.getStorage(), {}) {
 
 	_p.getDefinition().setJumpSizeForAll(false);
 
-	DAGBuilder.addToDAG(_F);
-	DAGBuilder.addToDAG(_FModel);
-	DAGBuilder.addToDAG(_pi);
-	DAGBuilder.addToDAG(_pModel);
-	DAGBuilder.addToDAG(_log_gamma);
-	DAGBuilder.addToDAG(_p);
-	DAGBuilder.addToDAG(_observation);
-
-	// set storage
-	_observation.storage() = Likelihoods.getStorage();
+	DAGBuilder.addToDAG({&_F, &_FModel, &_pi, &_pModel, &_log_gamma, &_p});
+	DAGBuilder.addToDAG(&_observation);
 }
 
 //------------------------------------------

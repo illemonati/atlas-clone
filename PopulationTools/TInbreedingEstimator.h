@@ -123,7 +123,7 @@ public:
 	                          stattools::TParameterTyped<TypeFModel, 1> *FModel,
 	                          stattools::TParameterTyped<TypeFModel, 1> *PModel,
 	                          const std::vector<double> &InitialEstimatesP);
-	void initializeStorageOfPriorParameters() override;
+	void initializeInferred() override;
 
 	[[nodiscard]] std::string name() const override;
 
