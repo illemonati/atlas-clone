@@ -97,57 +97,57 @@ void TAlignmentMergerReadGroupSettings::initialize(BAM::TReadGroups & readGroups
 		//read file with read group settings
 		std::string readGroupSettingsFile = parameters().getParameter<std::string>("readGroupSettings");
 		logfile().listFlush("Reading read groups from file '" + readGroupSettingsFile + "' ...");
-		coretools::TInputFile in(readGroupSettingsFile, {"readGroup", "seqType", "maxCycles"});
-		if(in.numCols() != 3){
-			throw "Wrong number of entries in file '" + readGroupSettingsFile + "': need three columns corresponding to the read group name, read group type and max cycles!";
-		}
+		coretools::TInputFile in(readGroupSettingsFile, {"readGroup", "seqType", "maxReadLength"});
 
 		//read settings file
 		uint16_t numNotInUse = 0;
 		while(in.read(vec)){
-			//get read group ID
-			//read groups not in use will get a warning and be ignored
-			uint16_t rgId = readGroups.getId(vec[0]);
-			if(!readGroups.readGroupInUse(rgId)){
-				++numNotInUse;
-			} else {
-				//parse max cycles
-				uint16_t maxCycles = 0;
-				if(vec[2] != "NA" && vec[2] != "-"){
-					if(!stringContainsOnlyNumbers(vec[2])){
-						throw "Error reading file '" + in.name() + "' on line " + toString(in.lineNumber()) + ": max cycles should be a number!";
-					}
-					maxCycles = convertString<int>(vec[2]);
-				}
-
-				//check for duplicate entries
-				if(_settings.find(rgId) != _settings.end()){
-					throw "Duplicate entry in file '" + in.name() + "' for read group '" + vec[0] + "'!";
-				}
-
-				//act based on seqeuncing type (second column). Ignored read groups will be marked as "unchanged"
-				if(readGroupsToIgnore.find(rgId) != readGroupsToIgnore.end() || vec[1] == "unchanged"){
-					_settings.emplace(rgId, unchanged, 0);
-				} else if(vec[1] == "single"){
-					if(maxCycles < 1){
-						throw "Error reading file '" + in.name() + "' on line " + toString(in.lineNumber()) + ": max cycles must be > 0 for read groups of type 'single'!";
-					}
-
-					//add to settings and create truncated read group
-					_settings.emplace(rgId, readGroups.addAlternativeRG(vec[0] + "_truncated", vec[0]).id, single, maxCycles);
-
-				} else if(vec[1] == "mixed"){
-					if(maxCycles < 1){
-						throw "Error reading file '" + in.name() + "' on line " + toString(in.lineNumber()) + ": max cycles must be > 0 for read groups of type 'mixed'!";
-					}
-
-					//add to settings and create truncated read group
-					_settings.emplace(rgId, readGroups.addAlternativeRG(vec[0] + "_truncated", vec[0]).id, mixed, maxCycles);
-
-				} else if(vec[1] == "paired"){
-					_settings.emplace(rgId, paired, 0);
+			//ignore "allReadGroups" from BAMD output
+			if (vec[0] != "allReadGroups"){
+				//get read group ID
+				//read groups not in use will get a warning and be ignored
+				uint16_t rgId = readGroups.getId(vec[0]);
+				if(!readGroups.readGroupInUse(rgId)){
+					++numNotInUse;
 				} else {
-					throw "Error reading file '" + in.name() + "' on line " + toString(in.lineNumber()) + ": Unknown read group type '" + vec[1] + "'! Expected 'unchanged', 'single', 'mixed' or 'paired'.";
+					//parse max cycles
+					uint16_t maxCycles = 0;
+					if(vec[2] != "NA" && vec[2] != "-"){
+						if(!stringContainsOnlyNumbers(vec[2])){
+							throw "Error reading file '" + in.name() + "' on line " + toString(in.lineNumber()) + ": max cycles should be a number!";
+						}
+						maxCycles = convertString<int>(vec[2]);
+					}
+
+					//check for duplicate entries
+					if(_settings.find(rgId) != _settings.end()){
+						throw "Duplicate entry in file '" + in.name() + "' for read group '" + vec[0] + "'!";
+					}
+
+					//act based on seqeuncing type (second column). Ignored read groups will be marked as "unchanged"
+					if(readGroupsToIgnore.find(rgId) != readGroupsToIgnore.end() || vec[1] == "unchanged"){
+						_settings.emplace(rgId, unchanged, 0);
+					} else if(vec[1] == "single-end"){
+						if(maxCycles < 1){
+							throw "Error reading file '" + in.name() + "' on line " + toString(in.lineNumber()) + ": max cycles must be > 0 for read groups of type 'single'!";
+						}
+
+						//add to settings and create truncated read group
+						_settings.emplace(rgId, readGroups.addAlternativeRG(vec[0] + "_truncated", vec[0]).id, single, maxCycles);
+
+					} else if(vec[1] == "mixed"){
+						if(maxCycles < 1){
+							throw "Error reading file '" + in.name() + "' on line " + toString(in.lineNumber()) + ": max cycles must be > 0 for read groups of type 'mixed'!";
+						}
+
+						//add to settings and create truncated read group
+						_settings.emplace(rgId, readGroups.addAlternativeRG(vec[0] + "_truncated", vec[0]).id, mixed, maxCycles);
+
+					} else if(vec[1] == "paired-end"){
+						_settings.emplace(rgId, paired, 0);
+					} else {
+						throw "Error reading file '" + in.name() + "' on line " + toString(in.lineNumber()) + ": Unknown read group type '" + vec[1] + "'! Expected 'unchanged', 'single', 'mixed' or 'paired'.";
+					}
 				}
 			}
 		}
