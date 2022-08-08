@@ -316,7 +316,7 @@ void TInbreedingEstimatorPrior::_setInitialP() {
 					_p->set(l, 0.0);
 				} else { // user wants to start in 1-model: prevent p = 0 and p = 1
 					auto val = std::max(_initialEstimatesP[l], TypeP::min().get());
-					val      = std::min(_initialEstimatesP[l], TypeP::max().get());
+					val      = std::min(val, TypeP::max().get());
 					_p->set(l, val);
 				}
 			} else {
