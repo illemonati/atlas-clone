@@ -149,7 +149,7 @@ void TPMDFunctionExponential::_fillPMDProbabilities() {
 		double numNRIterations = parameters().getParameterWithDefault<int>(numNR, 100);
 		EstimationParameters.emplace(numNR, numNRIterations);
 		logfile().list("Will run up to " + toString(numNRIterations) + " Newton-Raphson iterations. (parameter '" +
-			      numNR + ")");
+			      numNR + "')");
 	}
 }
 
@@ -693,7 +693,7 @@ void TPostMortemDamage::_initializeFromFile(const BAM::TReadGroups &ReadGroups, 
 	// read from file for each read group
 
 	logfile().listFlush("Initializing PMD from file '" + filename + "' ...");
-	coretools::TInputFile in(filename, {"readGroup", "pmd"}, "\t", "//");
+	coretools::TInputFile in(filename, {"readGroup", "functions"}, "\t", "//");
 
 	// parse file that has structure: ReadGroup, Type, Functions
 	std::vector<std::string> vec;
