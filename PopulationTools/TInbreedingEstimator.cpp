@@ -264,7 +264,7 @@ void TInbreedingEstimatorPrior::_updatePToNull(const Storage &Data, size_t Locus
 
 void TInbreedingEstimatorPrior::_updateRegularP(const Storage &Data, size_t Locus) {
 	if (_p->updateSpecificIndex(Locus)) {
-		double logH = std::numeric_limits<double>::min();
+		double logH = std::numeric_limits<double>::lowest();
 		if (_p->value(Locus) > 0.0 && _p->value(Locus) < 1.0) {
 			// prevent jumping to zero-model in here: always reject if p==0 or p==1 (invalid for Beta-distribution)
 			logH = _calculateLLRatio_UpdateP(Data, Locus) + _p->getLogPriorRatio(Locus);
@@ -391,6 +391,7 @@ TInbreedingEstimatorModel::TInbreedingEstimatorModel(
           Likelihoods.getStorage(), {}) {
 
 	_p.getDefinition().setJumpSizeForAll(false);
+	_p.getDefinition().setEqualNumberOfUpdates(false);
 
 	DAGBuilder.addToDAG({&_F, &_FModel, &_pi, &_pModel, &_log_gamma, &_p});
 	DAGBuilder.addToDAG(&_observation);
