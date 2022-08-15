@@ -34,6 +34,7 @@ namespace Simulations {
 using genometools::Base;
 using genometools::PhredIntProbability;
 using coretools::probdist::TCategoricalDistribution;
+using BAM::RGInfo::TReadGroupInfoEntry;
 
 
 //-------------------------------
@@ -42,7 +43,7 @@ using coretools::probdist::TCategoricalDistribution;
 class TSimulatorSingleEndRead {
 protected:
 	const BAM::TReadGroup &_readGroup;
-	const TSimulatorReadGroupInfoEntry & _readGroupInfo;
+	const TReadGroupInfoEntry & _readGroupInfo;
 	std::string _readNamePrefix;
 
 	// required distributions
@@ -76,7 +77,7 @@ protected:
 				     const TReadAndFragmentLength &readLength, bool readIsContaminated);//, TSimulatorQualityTransformation *qualityTransform);
 
 public:
-	TSimulatorSingleEndRead(const BAM::TReadGroup & ReadGroup, const TSimulatorReadGroupInfoEntry & RGInfo);
+	TSimulatorSingleEndRead(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo);
 	virtual ~TSimulatorSingleEndRead() = default;
 
 	void setPMD(GenotypeLikelihoods::TPMDType const *Pmd);

@@ -16,7 +16,6 @@
 #include "TLog.h"
 #include "TReadGroups.h"
 #include "TPostMortemDamage.h"
-#include "TSequencingErrorModels.h"
 
 namespace BAM {
 
@@ -115,9 +114,6 @@ public:
 //------------------------------------------------
 class TReadGroupInfo{
 private:
-	static inline const std::string _RGInfoArgument = "readGroupInfo";
-	static inline const std::string _numRGArgument = "numReadGroups";
-
 	std::vector<TReadGroupInfoEntry> _info;
 
 	void _setAllReadGroups(InfoType Info, const std::string & Val);
@@ -131,7 +127,11 @@ private:
 	void _matchReadGroups(BAM::TReadGroups & ReadGroups);
 
 public:
-	TReadGroupInfo();
+	static inline const std::string _RGInfoArgument = "readGroupInfo";
+	static inline const std::string _numRGArgument = "numReadGroups";
+
+	TReadGroupInfo() = default;
+	~TReadGroupInfo() = default;
 
 	// either: read info from file and match with TReadGroups (used for analyzes)
 	void readInfoAndMatchReadGroups(const BAM::TReadGroups & ReadGroups);
@@ -147,15 +147,13 @@ public:
 		return _info.cend();
 	}
 
-	size_t size() const {
+	size_t size() const noexcept {
 		return _info.size();
 	}
 
 	const TReadGroupInfoEntry& operator[](size_t index) const {
 		return _info[index];
 	}
-
-
 };
 
 } //end namespace RGInfo
