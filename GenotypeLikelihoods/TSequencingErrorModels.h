@@ -35,6 +35,7 @@ private:
 	TModelNoRecal _noRecal;
 public:
 	void initialize(const std::string &RecalString, const std::string &RhoString, const BAM::TReadGroups &ReadGroups);
+	void initialize(const std::vector<std::string> & RecalStringPerReadGroup, const std::vector<std::string> & RhoStringPerReadGroup, const BAM::TReadGroups &ReadGroups);
 	void initializeFromFile(const std::string &Filename, const BAM::TReadGroups &ReadGroups);
 	void checkReadGroups(const BAM::TReadGroups &ReadGroups, std::vector<uint16_t> &ReadGroupsWithoutRecal,
 			     std::vector<uint16_t> &ReadGroupsLikelySingleEnd) const noexcept;

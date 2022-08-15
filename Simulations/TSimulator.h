@@ -18,7 +18,7 @@
 #include <string>
 #include <utility>
 #include <vector>
-
+#include "../BAM/TReadGroupInfo.h"
 #include "GenotypeTypes.h"
 #include "TChromosomes.h"
 #include "TGlfMultiReader.h"
@@ -33,7 +33,6 @@
 #include "TStrongArray.h"
 #include "TTask.h"
 #include "probability.h"
-#include "TSimulatorReadGroupInfo.h"
 
 namespace genometools { class PhredIntProbability; }
 
@@ -88,19 +87,10 @@ protected:
 	std::vector<double> _cumulSimGroupFrequenies;
 
 	// function to initialize read groups
-	std::vector<std::string> _readSimInfoPerReadGroup(const std::string &Filename, const std::string &Column,
-	                                                  const std::string &Name);
-	void _initializeReadGroup(std::string readGroupTypeString, const BAM::TReadGroup &ReadGroup);
-	void _initializeReadGroupsFromReadGroupType(const std::string &ParameterName,
-	                                                     const std::string &DefaultValue, const std::string &Name);
-	void _initializeSCDistribution(const std::string &ParameterName, const std::string &DefaultValue,
-	                               const std::string &Name,
-	                               std::function<void(TSimulatorSingleEndRead &, std::string, int distNumber)> function);
-	void _initializeDistribution(const std::string &ParameterName, const std::string &DefaultValue,
-	                             const std::string &Name,
-	                             std::function<void(TSimulatorSingleEndRead &, std::string)> function);
-	void _initializePMD(const std::string &ParameterName, const std::string &Name);
-	void _initializeQualityTransformations(const std::string &ParameterName, const std::string &Name);
+	void _initializeReadGroups(const BAM::RGInfo::TReadGroupInfoEntry & RGinfo);
+
+	void _initializePMD();
+	void _initializeQualityTransformations();
 	void _initializeContamination(bool &perReadGroup, std::map<std::string, double> &contaminationMap);
 	void _initializeReadSimulator();
 	void _initializeReadGroupFrequencies();

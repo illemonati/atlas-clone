@@ -13,7 +13,7 @@
 #include <memory>
 #include <string>
 #include <vector>
-
+#include "../BAM/TReadGroupInfo.h"
 #include "GenotypeTypes.h"
 #include "TAlignment.h"
 #include "TCigar.h"
@@ -22,7 +22,7 @@
 #include "PhredProbabilityTypes.h"
 #include "TCategoricalDistribution.h"
 #include "TFragmentLengthDistribution.h"
-#include "TSimulatorReadGroupInfo.h"
+#include "TReadGroupInfo.h"
 
 namespace GenotypeLikelihoods { class TPMDType; }
 namespace GenotypeLikelihoods { namespace SequencingError { class TModel; } }
@@ -34,7 +34,7 @@ namespace Simulations {
 using genometools::Base;
 using genometools::PhredIntProbability;
 using coretools::probdist::TCategoricalDistribution;
-using Simulations::RGInfo::TSimulatorReadGroupInfoEntry;
+
 
 //-------------------------------
 // TSimulatorSingleEndRead
