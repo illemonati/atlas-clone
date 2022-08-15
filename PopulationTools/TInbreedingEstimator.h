@@ -123,7 +123,7 @@ public:
 	                          stattools::TParameterTyped<TypeFModel, 1> *FModel,
 	                          stattools::TParameterTyped<TypeFModel, 1> *PModel,
 	                          const std::vector<double> &InitialEstimatesP);
-	void initializeStorageOfPriorParameters() override;
+	void initializeInferred() override;
 
 	[[nodiscard]] std::string name() const override;
 
@@ -153,7 +153,7 @@ private:
 	stattools::TObservationTyped<TypeGTL, 2> _observation;
 
 public:
-	TInbreedingEstimatorModel(const std::string &Filename, std::shared_ptr<stattools::TDAGBuilder> &DAGBuilder,
+	TInbreedingEstimatorModel(const std::string &Filename, stattools::TDAGBuilder &DAGBuilder,
 	                          const genometools::TPopulationLikelihoods<stattools::TValueFixed<TypeGTL>> &Likelihoods);
 };
 

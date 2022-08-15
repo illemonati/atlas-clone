@@ -40,6 +40,7 @@
 #include "TPSMCInput.h"
 #include "TPolymorhicWindowIdentifier.h"
 #include "TWriteGLF.h"
+#include "TSexEstimator.h"
 
 //VCF
 #include "TVcfCompare.h"
@@ -93,6 +94,7 @@ void addTaks(coretools::TMain & main) {
 	main.addRegularTask("thetaRatio", new GenomeTasks::TTask_estimateThetaRatio());
 	main.addRegularTask("thetaQC", new GenomeTasks::TTask_downsamplingThetaQC());
 	main.addRegularTask("GLF", new GenomeTasks::TTask_writeGLF());
+	main.addRegularTask("sexEstimation", new GenomeTasks::TTask_estimateSex());
 
 	//Population tools
 	main.addRegularTask("printGLF", new GLF::TTask_printGLF());

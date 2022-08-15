@@ -27,7 +27,7 @@
 #include "TParameters.h"
 #include "TPostMortemDamage.h"
 #include "TReadGroups.h"
-#include "TSequencingErrorModels.h"
+#include "SequencingError/TModels.h"
 #include "TSimulatorAuxiliaryTools.h"
 #include "TSimulatorRead.h"
 #include "TStrongArray.h"

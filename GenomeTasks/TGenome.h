@@ -174,7 +174,7 @@ protected:
 	bool _moveWindow(GenotypeLikelihoods::TWindow_base &window);
 	void _readAlignmentsIntoWindow(GenotypeLikelihoods::TWindow &window);
 	void _applyWindowFilters(GenotypeLikelihoods::TWindow_base &window);
-	bool _readAndParseAlignment(BAM::TAlignment &alignment);
+	bool _readAndParseAlignment();
 	bool _readDataInNextWindow(GenotypeLikelihoods::TWindow &window);
 
 	void _traverseBAMWindows();

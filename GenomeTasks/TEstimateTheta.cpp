@@ -304,14 +304,14 @@ void TEstimateThetaDownsamplingQC::runQC() { _traverseBAMWindows(); };
 TEstimateThetaRatio::TEstimateThetaRatio() : TGenome_windows(), _thetaEstimatorRatio() {
 	// read the two regions to be used
 	logfile().startIndent("Reading regions:");
-	_initializeRegion(_region1, '1');
-	_initializeRegion(_region1, '2');
+	_initializeRegion(_region1, 1);
+	_initializeRegion(_region2, 2);
 };
 
-void TEstimateThetaRatio::_initializeRegion(genometools::TBed &region, const char num) {
-	logfile().startIndent((std::string) "Region " + num + ":");
-	std::string regionsFile = parameters().getParameter<std::string>("regions" + std::to_string(num));
-	logfile().list((std::string) "Reading regions " + num + " from file '" + regionsFile + " (parameter 'region" + num +
+void TEstimateThetaRatio::_initializeRegion(genometools::TBed &region, const int num) {
+	logfile().startIndent((std::string) "Region " + std::to_string(num) + ":");
+	std::string regionsFile = parameters().getParameter<std::string>("region" + std::to_string(num));
+	logfile().list((std::string) "Reading regions " + std::to_string(num) + " from file '" + regionsFile + " (parameter 'region" + std::to_string(num) +
 				   "') ...");
 	region.add(regionsFile, _bamFile.chromosomes());
 	logfile().done();

@@ -12,7 +12,7 @@
 #include <vector>
 
 #include "TGenome.h"
-#include "TSequencingErrorModels.h"
+#include "SequencingError/TModels.h"
 #include "TTask.h"
 #include "counters.h"
 

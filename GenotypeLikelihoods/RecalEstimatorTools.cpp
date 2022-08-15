@@ -20,7 +20,7 @@ namespace GenotypeLikelihoods::RecalEstimatorTools {
 
 using coretools::instances::logfile;
 
-std::vector<uint16_t> vectorOfUsed(const std::vector<uint32_t> & counts) {
+std::vector<uint16_t> indexedRange(const std::vector<uint32_t> & counts) {
 	//insert all with counts
 	std::vector<uint16_t> vec;
 	for(size_t i = 0; i < counts.size(); ++i){
@@ -31,7 +31,14 @@ std::vector<uint16_t> vectorOfUsed(const std::vector<uint32_t> & counts) {
 	return vec;
 };
 
-namespace /*anonymous*/ {
+std::vector<uint16_t> fullRange(const std::vector<uint32_t>& counts) {
+		const auto N = counts.size() - 1;
+		std::vector<uint16_t> v(N);
+		std::iota(v.begin(), v.end(), uint16_t{});
+		return v;
+}
+
+namespace impl {
 void addCount(std::vector<uint32_t> &counts, uint16_t value) {
 	if (counts.size() <= value) counts.resize(value + 1, 0);
 	++counts[value];
@@ -46,10 +53,10 @@ void TRecalDataTable::add(const BAM::TSequencedBase & base){
 	++_counts;
 
 	//add quality
-	addCount(_positions, base.distFrom5Prime);
-	addCount(_fragmentLengths, base.fragmentLength);
-	addCount(_qualities, base.originalQuality_phredInt.get());
-	addCount(_mappingQualities, base.mappingQuality);
+	impl::addCount(_positions, base.distFrom5Prime);
+	impl::addCount(_fragmentLengths, base.fragmentLength);
+	impl::addCount(_qualities, base.originalQuality_phredInt.get());
+	impl::addCount(_mappingQualities, base.mappingQuality);
 };
 
 void TRecalDataTable::clear() noexcept {

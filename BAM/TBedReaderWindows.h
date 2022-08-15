@@ -12,6 +12,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include "counters.h"
 namespace coretools { class TLog; }
 namespace genometools { class TChromosomes; }
 
@@ -40,12 +41,13 @@ public:
 	std::map<uint32_t, TBedReaderWindow*> windows;
 	std::map<uint32_t, TBedReaderWindow*>::iterator windowIt;
 	int windowSize;
+	coretools::TCountDistribution<> distPerSites;
 
 	TBedReaderChromosome(std::string & Name, uint32_t & WindowSize);
 	~TBedReaderChromosome();
 	void findWindow(uint32_t pos);
 	void findOrCreateWindow(uint32_t pos);
-	void addPosition(std::vector<std::string> & tmp, uint32_t & numPositionsAdded);
+	void addPosition(std::vector<std::string> & tmp, uint32_t & numPositionsAdded, uint32_t siteLimit);
 	void print();
 	bool hasPositionsInWindow(uint32_t windowStart);
 	std::vector<uint32_t>& getPositionInWindow(uint32_t windowStart);
@@ -65,6 +67,7 @@ private:
 public:
 	std::string filename;
 	TBedReaderWindows(std::string Filename, uint32_t WindowSize, const genometools::TChromosomes & chromosomes, uint32_t siteLimit, coretools::TLog* logfile);
+	TBedReaderWindows();
 	~TBedReaderWindows();
 	void setChr(const std::string & chr);
 	void print();
@@ -72,7 +75,9 @@ public:
 	std::vector<uint32_t>& getPositionInWindow(uint32_t & windowStart);
 	uint32_t size();
 	uint32_t getNumChromosomes();
-
+	bool containsChromosome(std::string chrName) const;
+	TBedReaderChromosome* findChromosome(std::string chrName) const;
+	void listInitializedChromosomes(std::vector<std::string> &initializedChromosomes);
 };
 
 }; //end namesapce

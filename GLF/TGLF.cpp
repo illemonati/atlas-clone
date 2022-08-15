@@ -26,29 +26,27 @@ using namespace GenotypeLikelihoods;
 // TGlfChromosome
 //----------------------------------------------------
 
-TGlfChromosome::TGlfChromosome(const std::string &Name, uint32_t Length, uint8_t Ploidy)
-    : _name(Name), _length(Length) {
-	_setPloidy(Ploidy);
-};
+namespace impl {
 
-void TGlfChromosome::_setPloidy(uint8_t Ploidy) {
-	if (Ploidy < 1 || Ploidy > 2) {
-		throw "Currently GLFs only support ploidies 1 and 2 (not " + coretools::str::toString((int)Ploidy) + ")!";
-	}
+constexpr bool isHaploid(uint8_t Ploidy) {
 	if (Ploidy == 1) {
-		_isHaploid           = true;
-		_numLikelihoodValues = 4;
-	} else {
-		_isHaploid           = false;
-		_numLikelihoodValues = 10;
+		return true;
+	} else if (Ploidy == 2) {
+		return false;
 	}
+	throw "Currently GLFs only support ploidies 1 and 2 (not " + coretools::str::toString((int)Ploidy) + ")!";
 };
+} // namespace impl
+
+TGlfChromosome::TGlfChromosome(const std::string &Name, uint32_t Length, uint8_t Ploidy)
+    : _name(Name), _length(Length), _isHaploid(impl::isHaploid(Ploidy)) {};
+
 
 void TGlfChromosome::update(const std::string &Name, uint16_t RefId, uint32_t Length, uint8_t Ploidy) {
 	_name   = Name;
 	_refId  = RefId;
 	_length = Length;
-	_setPloidy(Ploidy);
+	_isHaploid = impl::isHaploid(Ploidy);
 };
 
 void TGlfChromosome::clear() {
@@ -173,13 +171,9 @@ void TGlfWriter::writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual,
 //---------------------------------
 TGlfChromosome *TGlfReader::pointerToChr(uint32_t refId) {
 	if (_curChr.refId() == refId) { return &_curChr; }
+	
 	auto it = _chromosomesAlreadyParsed.find(refId);
 	return it == _chromosomesAlreadyParsed.end() ? nullptr : &it->second;
-};
-
-bool TGlfReader::fillPointerToChr(uint32_t refId, TGlfChromosome *&chr) {
-	if (chr = pointerToChr(refId); chr == nullptr) return false;
-	return true;
 };
 
 bool TGlfReader::_readChr() {
@@ -198,7 +192,7 @@ bool TGlfReader::_readChr() {
 	std::string name(tmp, len);
 	delete[] tmp;
 
-	uint16_t refId;
+	uint32_t refId;
 	_read(&refId, sizeof(uint32_t));
 
 	uint32_t length;
@@ -377,7 +371,7 @@ void TGlfReader::printSite() {
 	// std::cout << curChr.name << "\t" << position << "\t" << maxLL << "\t" << depth << "\t" << RMS_mappingQual;
 	//  print position as 1-based, internally it is 0-based
 	std::cout << _curChr.name() << "\t" << _position + 1 << "\t" << _depth << "\t" << _RMS_mappingQual;
-	for (int i = 0; i < _curChr.numLikelihoodValues(); ++i) std::cout << "\t" << _genotypeLikelihoodsGLF.data()[i];
+	for (size_t i = 0; i < _curChr.numLikelihoodValues(); ++i) std::cout << "\t" << _genotypeLikelihoodsGLF.data()[i];
 	std::cout << "\n";
 };
 

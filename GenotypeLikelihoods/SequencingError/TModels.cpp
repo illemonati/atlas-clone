@@ -5,7 +5,7 @@
  *      Author: phaentu
  */
 
-#include "TSequencingErrorModels.h"
+#include "SequencingError/TModels.h"
 
 #include <algorithm>
 #include <cstdint>
@@ -17,7 +17,7 @@
 #include "TLog.h"
 #include "TReadGroups.h"
 #include "TSequencedBase.h"
-#include "TSequencingErrorModel.h"
+#include "SequencingError/TModel.h"
 #include "probability.h"
 #include "stringFunctions.h"
 
@@ -41,13 +41,10 @@ void TModels::initialize(const std::string &RecalString, const std::string &RhoS
 	// prepare objects
 	_models.resize(ReadGroups.size());
 
-	// create model definition
-	TModelDefinition modelDef(RecalString, RhoString);
-
 	// initialize models
 	for (auto &m : _models) {
-		m[0] = std::make_unique<TModelRecal>(modelDef);
-		m[1] = std::make_unique<TModelRecal>(modelDef);
+		m[0] = std::make_unique<TModelRecal>(RhoString, RecalString);
+		m[1] = std::make_unique<TModelRecal>(RhoString, RecalString);
 	}
 }
 
@@ -93,13 +90,14 @@ void TModels::initializeFromFile(const std::string &Filename, const BAM::TReadGr
 		if (ReadGroups.readGroupExists(vec[0])) { // ignore if it does not exist
 			// get read group
 			const uint16_t readGroupId = ReadGroups.getId(vec[0]);
+			const auto& rhoDef = vec[3];
+			const auto& epsilonDef = vec[2];
 			try {
-				const TModelDefinition modelDef(vec[2], vec[3]);
 				// add model
 				if (vec[1] == "first")
-					_models[readGroupId][0] = std::make_unique<TModelRecal>(modelDef);
+					_models[readGroupId][0] = std::make_unique<TModelRecal>(rhoDef, epsilonDef);
 				else if (vec[1] == "second")
-					_models[readGroupId][1] = std::make_unique<TModelRecal>(modelDef);
+					_models[readGroupId][1] = std::make_unique<TModelRecal>(rhoDef, epsilonDef);
 				else
 					throw "Unknown mate '" + vec[1] + "! Must be 'first' or 'second'.";
 			} catch (const char *error) {

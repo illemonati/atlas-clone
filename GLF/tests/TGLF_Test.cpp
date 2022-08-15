@@ -9,7 +9,6 @@
 #include "TGLF.h"
 #include "TGenotypeData.h"
 #include "TTestGLFFile.h"
-#include "debugtools.h"
 #include "stringFunctions.h"
 
 //-------------------------------------------------------------
@@ -77,7 +76,7 @@ public:
 			TBaseLikelihoods baseData = GenotypeLikelihoods::fromError(base, error);
 			bases.emplace_back(baseData);
 		}
-		GenotypeLikelihoods::TGenotypeLikelihoods gtL = GenotypeLikelihoods::fillGLH(bases);
+		GenotypeLikelihoods::TGenotypeLikelihoods gtL = GenotypeLikelihoods::getGLH(bases);
 		outputGLF.writeDummySite(30, 0, gtL);
 		// 5) depth = 10, all bases are A, but mapping quality is zero
 		bases.clear();
@@ -86,7 +85,7 @@ public:
 			TBaseLikelihoods baseData = GenotypeLikelihoods::fromError(base, error);
 			bases.emplace_back(baseData);
 		}
-		gtL = GenotypeLikelihoods::fillGLH(bases);
+		gtL = GenotypeLikelihoods::getGLH(bases);
 		outputGLF.writeSite(40, 0, gtL, 0);
 
 		// 6) third chromosome is empty

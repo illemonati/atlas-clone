@@ -18,7 +18,7 @@
 #include "TLog.h"
 #include "TParameters.h"
 #include "TReadGroups.h"
-#include "TRecalibrationEMEstimator.h"
+#include "SequencingError/TRecalEstimator.h"
 #include "TSite.h"
 #include "TSiteSubset.h"
 #include "TWindow.h"
@@ -56,6 +56,8 @@ TEstimateRecalibration::TEstimateRecalibration() : TGenome_windows() {
 		_readGroupMap = std::make_unique<BAM::TReadGroupMap>(_bamFile.readGroups());
 	}
 
+	_onlyLL = parameters().parameterExists("onlyLL");
+
 	// initialize recal estimator
 	recalObjectEM = std::make_unique<GenotypeLikelihoods::SequencingError::TRecalibrationEMEstimator>(
 		&(_bamFile.readGroups()), _readGroupMap.get());
@@ -80,9 +82,15 @@ void TEstimateRecalibration::estimateRecalibration() {
 	// read data
 	_traverseBAMWindows();
 
-	// estimate recal parameters
-	recalObjectEM->performEstimation(_outputName, _genotypeLikelihoodCalculator.getSequencingErrorModelsMutable(),
-									 _genotypeLikelihoodCalculator.getPostMortemDamageModelsMutable());
+	if (_onlyLL) {
+		recalObjectEM->calcLL(_genotypeLikelihoodCalculator.getSequencingErrorModelsMutable(),
+							  _genotypeLikelihoodCalculator.getPostMortemDamageModelsMutable());
+
+	} else {
+		// estimate recal parameters
+		recalObjectEM->performEstimation(_outputName, _genotypeLikelihoodCalculator.getSequencingErrorModelsMutable(),
+										 _genotypeLikelihoodCalculator.getPostMortemDamageModelsMutable());
+	}
 };
 
 }; // namespace GenomeTasks

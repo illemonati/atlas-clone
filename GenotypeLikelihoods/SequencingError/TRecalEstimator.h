@@ -62,22 +62,27 @@ public:
 
 	size_t size() const { return _models.size(); };
 	TBaseLikelihoods getBaseLikelihoods(const BAM::TSequencedBase &data) const;
+	TModelRecal* model(const BAM::TSequencedBase &data) noexcept {return _modelIndex[data.readGroupID][data.isSecondMate()];}
+	TModelRecal* model(const BAM::TSequencedBase &data) const noexcept {return _modelIndex[data.readGroupID][data.isSecondMate()];}
 
 	// functions to estimate rho
 	void addToRho(const BAM::TSequencedBase &data, coretools::Probability P_g_I_d, const TBaseProbabilities &P_bbar_I_d);
 	void estimateRho();
 
 	// functions to estimate beta
-	void resetQ();
-	void addToQFJ(const BAM::TSequencedBase &data, coretools::Probability P_g_I_d, coretools::Probability P_bbar_I_gd, bool updateJF = false);
-	double curQ();
+	template<bool updateJF>
+	void addToEpsilon(const BAM::TSequencedBase &data, coretools::Probability P_g_I_d,
+					  coretools::Probability P_bbar_I_gd) {
+		model(data)->addToEpsilon<updateJF>(data, P_g_I_d, P_bbar_I_gd);
+	}
 	void solveJxF();
-	void proposeNewParameters(double lambda);
+	void propose(double lambda);
 	void scaleParameters();
-	unsigned int acceptProposedParametersBasedOnQ();
-	void adjustParametersPostEstimation();
-	double getSteepestGradient();
+	unsigned int acceptOrReject();
+	void adjust();
 
+	double Q() const;
+	double maxF() const;
 	void writeRecalFile(const BAM::TReadGroups &ReadGroups, const std::string & Filename) const;
 
 	std::string getModelsDefinition();
@@ -115,9 +120,32 @@ private:
 
 	// functions to estimate theta_epsilon (sequencing error rates)
 	void _estimateRho_updatePbbar(const TPostMortemDamage &PmdModels);
-	double _calculateQ_updateJF(bool updateJF=false);
-	void _updateEpsilon(const TPostMortemDamage &PmdModels);
+	template<bool updateJF, bool isInvariant>
+	void _calculateQ() {
+		size_t ij = 0;
+		for (size_t i = 0; i < _sites.size(); ++i) {
+			const auto &Pi = _P_g_I_ds[i];
+			for (auto &d_ij : _sites[i]) {
+				if (!d_ij) continue;
+				auto m = _modelsToEstimate.model(d_ij);
+
+				const auto &Pij = _P_bbar_I_gds[ij++];
+				m->addToEpsilon<updateJF, isInvariant>(d_ij, Pi, Pij);
+			}
+		}
+	}
+	void _solveDerivative() {
+		if (_genoDist->isInvariant()) _calculateQ<true, true>();
+		else _calculateQ<true, false>(); 
+		_modelsToEstimate.solveJxF();
+	}
+	void _calculateQ() {
+		if (_genoDist->isInvariant()) _calculateQ<false, true>();
+		else _calculateQ<false, false>(); 
+	}
+	void _updateEpsilon(const TPostMortemDamage &PmdModels, double deltaDeltaLL);
 	double _calculateLL_updatePg(const TPostMortemDamage &PmdModels);
+	void _writeCurrentEstimates(const std::string &filename);
 
 public:
 	TRecalibrationEMEstimator(const BAM::TReadGroups *ReadGroups, const BAM::TReadGroupMap *ReadGroupMap);
@@ -129,8 +157,7 @@ public:
 	void performEstimation(const std::string &outputName, TModels &SequencingErrorModels,
 						   const TPostMortemDamage &PmdModels);
 
-	void writeCurrentEstimates(const std::string &filename);
-	double calcLL();
+	void calcLL(TModels &SequencingErrorModels, const TPostMortemDamage &PmdModels);
 };
 
 }; // namespace SequencingError

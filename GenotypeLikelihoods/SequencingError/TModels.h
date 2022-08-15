@@ -1,5 +1,5 @@
 /*
- * TSequencingErrorModels.h
+ * SequencingError/TModels.h
  *
  *  Created on: May 14, 2020
  *      Author: phaentu
@@ -16,7 +16,7 @@
 #include <vector>
 
 #include "PhredProbabilityTypes.h"
-#include "TSequencingErrorModel.h"
+#include "SequencingError/TModel.h"
 #include "probability.h"
 
 namespace BAM { class TReadGroups; }

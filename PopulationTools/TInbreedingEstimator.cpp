@@ -48,7 +48,7 @@ TInbreedingEstimatorPrior::TInbreedingEstimatorPrior(stattools::TParameterTyped<
 
 std::string TInbreedingEstimatorPrior::name() const { return "inbreeding"; }
 
-void TInbreedingEstimatorPrior::initializeStorageOfPriorParameters() {
+void TInbreedingEstimatorPrior::initializeInferred() {
 	assert(this->_storageBelow.size() == 1);
 	auto data             = this->_storageBelow[0];
 	const auto &lociNames = data->getDimensionName(0);
@@ -58,12 +58,12 @@ void TInbreedingEstimatorPrior::initializeStorageOfPriorParameters() {
 	_numSamples = data->dimensions()[1];
 
 	// F and FModel: one value
-	_F->initializeStorageSingleElementBasedOnPrior();
-	_FModel->initializeStorageSingleElementBasedOnPrior();
+	_F->initStorage();
+	_FModel->initStorage();
 
 	// p and pModel: linear of length L
-	_p->initializeStorageBasedOnPrior({_numLoci}, {lociNames});
-	_pModel->initializeStorageBasedOnPrior({_numLoci}, {lociNames});
+	_p->initStorage({_numLoci}, {lociNames});
+	_pModel->initStorage({_numLoci}, {lociNames});
 }
 
 void TInbreedingEstimatorPrior::_readCommandLineArguments() {
@@ -264,7 +264,7 @@ void TInbreedingEstimatorPrior::_updatePToNull(const Storage &Data, size_t Locus
 
 void TInbreedingEstimatorPrior::_updateRegularP(const Storage &Data, size_t Locus) {
 	if (_p->updateSpecificIndex(Locus)) {
-		double logH = std::numeric_limits<double>::min();
+		double logH = std::numeric_limits<double>::lowest();
 		if (_p->value(Locus) > 0.0 && _p->value(Locus) < 1.0) {
 			// prevent jumping to zero-model in here: always reject if p==0 or p==1 (invalid for Beta-distribution)
 			logH = _calculateLLRatio_UpdateP(Data, Locus) + _p->getLogPriorRatio(Locus);
@@ -316,7 +316,7 @@ void TInbreedingEstimatorPrior::_setInitialP() {
 					_p->set(l, 0.0);
 				} else { // user wants to start in 1-model: prevent p = 0 and p = 1
 					auto val = std::max(_initialEstimatesP[l], TypeP::min().get());
-					val      = std::min(_initialEstimatesP[l], TypeP::max().get());
+					val      = std::min(val, TypeP::max().get());
 					_p->set(l, val);
 				}
 			} else {
@@ -364,12 +364,15 @@ void TInbreedingEstimatorPrior::_simulateUnderPrior(Storage *) {
 //------------------------------------------
 
 TInbreedingEstimatorModel::TInbreedingEstimatorModel(
-    const std::string &Filename, std::shared_ptr<stattools::TDAGBuilder> &DAGBuilder,
+    const std::string &Filename, stattools::TDAGBuilder &DAGBuilder,
     const genometools::TPopulationLikelihoods<stattools::TValueFixed<TypeGTL>> &Likelihoods)
-    : _F("F", std::make_shared<stattools::prior::TUniformFixed<stattools::TParameterBase, TypeF, 1>>(), {Filename + "_F"}),
-      _FModel("withInbreeding", std::make_shared<stattools::prior::TUniformFixed<stattools::TParameterBase, TypeFModel, 1>>(),
+    : _F("F", std::make_shared<stattools::prior::TUniformFixed<stattools::TParameterBase, TypeF, 1>>(),
+         {Filename + "_F"}),
+      _FModel("withInbreeding",
+              std::make_shared<stattools::prior::TUniformFixed<stattools::TParameterBase, TypeFModel, 1>>(),
               {Filename + "_F"}),
-      _pi("pi", std::make_shared<stattools::prior::TUniformFixed<stattools::TParameterBase, TypePi, 1>>(), {Filename + "_p"}),
+      _pi("pi", std::make_shared<stattools::prior::TUniformFixed<stattools::TParameterBase, TypePi, 1>>(),
+          {Filename + "_p"}),
       _pModel("isPolymorph",
               std::make_shared<stattools::prior::TBernouilliInferred<stattools::TParameterBase, TypePModel, 1, TypePi>>(
                   &_pi),
@@ -385,20 +388,13 @@ TInbreedingEstimatorModel::TInbreedingEstimatorModel(
       _observation(
           "genotypeLikelihoods",
           std::make_shared<TInbreedingEstimatorPrior>(&_F, &_p, &_FModel, &_pModel, Likelihoods.alleleFrequencies()),
-          {}) {
+          Likelihoods.getStorage(), {}) {
 
 	_p.getDefinition().setJumpSizeForAll(false);
+	_p.getDefinition().setEqualNumberOfUpdates(false);
 
-	DAGBuilder->addToDAG(_F);
-	DAGBuilder->addToDAG(_FModel);
-	DAGBuilder->addToDAG(_pi);
-	DAGBuilder->addToDAG(_pModel);
-	DAGBuilder->addToDAG(_log_gamma);
-	DAGBuilder->addToDAG(_p);
-	DAGBuilder->addToDAG(_observation);
-
-	// set storage
-	_observation.storage() = Likelihoods.getStorage();
+	DAGBuilder.addToDAG({&_F, &_FModel, &_pi, &_pModel, &_log_gamma, &_p});
+	DAGBuilder.addToDAG(&_observation);
 }
 
 //------------------------------------------
@@ -426,13 +422,13 @@ void TInbreedingEstimator::run() {
 	_readData();
 
 	// build DAG
-	auto dagBuilder = std::make_shared<stattools::TDAGBuilder>();
+	stattools::TDAGBuilder dagBuilder;
 	TInbreedingEstimatorModel model(filename, dagBuilder, _likelihoods);
-	dagBuilder->buildDAG();
+	dagBuilder.buildDAG();
 
 	// run MCMC
 	stattools::TMCMC mcmc;
-	mcmc.runMCMC(prefix, dagBuilder);
+	mcmc.runMCMC(prefix, &dagBuilder);
 }
 
 } // end namespace PopulationTools
