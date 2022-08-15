@@ -32,12 +32,13 @@ using coretools::instances::logfile;
 // TModels
 //--------------------------------------------------------------------
 
-//TODO: think about initialization. Should probably be one string per RG?
 void TModels::initialize(const std::string &RecalString, const std::string &RhoString,
 					const BAM::TReadGroups &ReadGroups) {
-	if (!_models.empty()){
-		DEVERROR("Models already initialized!");
-	}
+	if (!_models.empty())
+		throw std::runtime_error(
+			"void TModels::initialize(const std::string & RecalString, const std::string & RhoString, "
+		    "const BAM::TReadGroups & ReadGroups, TLog* Logfile): Models already initialized!");
+
 	// prepare objects
 	_models.resize(ReadGroups.size());
 
@@ -45,28 +46,6 @@ void TModels::initialize(const std::string &RecalString, const std::string &RhoS
 	for (auto &m : _models) {
 		m[0] = std::make_unique<TModelRecal>(RhoString, RecalString);
 		m[1] = std::make_unique<TModelRecal>(RhoString, RecalString);
-	}
-}
-
-void TModels::initialize(BAM::TRe,
-					const BAM::TReadGroups &ReadGroups) {
-	if (!_models.empty()){
-		DEVERROR("Models already initialized!");
-	}
-	if(ReadGroups.size() != RecalStringPerReadGroup.size() || ReadGroups.size() != RhoStringPerReadGroup.size()){
-		DEVERROR("Length of recal and / pr rho strings does not match numbe rof read groups!");
-	}
-
-	// prepare objects
-	_models.resize(ReadGroups.size());
-
-	// create model definition
-	for(size_t i = 0; i < ReadGroups.size(); ++i){
-		TModelDefinition modelDef(RecalStringPerReadGroup[i], RhoStringPerReadGroup[i]);
-
-		// initialize models
-		_models[i][0] = std::make_unique<TModelRecal>(modelDef);
-		_models[i][1] = std::make_unique<TModelRecal>(modelDef);
 	}
 }
 

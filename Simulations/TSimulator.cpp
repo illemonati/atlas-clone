@@ -45,6 +45,8 @@ using genometools::Base;
 using genometools::HighPrecisionPhredIntProbability;
 using genometools::TChromosomes;
 using genometools::TChromosome;
+using BAM::RGInfo::TReadGroupInfo;
+using BAM::RGInfo::TReadGroupInfoEntry;
 
 //---------------------------------------------------------
 // Helper functions
@@ -249,13 +251,10 @@ void TBAMSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome
 	logfile().endIndent();
 }
 
-void TBAMSimulator::_initializeReadGroups(const Simulations::RGInfo::TSimulatorReadGroupInfo & RGinfo) {
-	//fill TReadGroups
-	RGinfo.createReadGroups(_readGroups);
-
+void TBAMSimulator::_initializeReadGroups(const TReadGroupInfo & RGinfo) {
 	// create simulation read groups
 	for(size_t i = 0; i < RGinfo.size(); ++i){
-		std::string type = RGinfo[i].get(RGInfo::InfoType::seqType);
+		std::string type = RGinfo[i].get(BAM::RGInfo::InfoType::seqType);
 		if(type == "single"){
 			_readSimulators.push_back(std::make_unique<TSimulatorSingleEndRead>(_readGroups[i], RGinfo[i]));
 		} else if(type == "paired"){
@@ -286,7 +285,7 @@ void TBAMSimulator::_initializeQualityTransformations() {
 	const std::string arg = "recal";
 	if (parameters().parameterExists(arg)) {
 		const std::string rhoString = parameters().getParameterWithDefault<std::string>("rho", "default");
-		const auto recalString = parameters().getParameter<std::string>(ParameterName);
+		const auto recalString = parameters().getParameter<std::string>(arg);
 		_recal.initialize(recalString, rhoString, _readGroups);
 		logfile().list("Will use '", recalString, "' for all read groups.");
 
@@ -306,7 +305,8 @@ void TBAMSimulator::_initializeQualityTransformations() {
 
 void TBAMSimulator::_initializeReadSimulator() {
 	// A) initialize read groups from RG Info / Command line
-	Simulations::RGInfo::TSimulatorReadGroupInfo RGinfo;
+	TReadGroupInfo RGinfo;
+	RGinfo.readInfoAndCreateReadGroups(_readGroups);
 	_initializeReadGroups(RGinfo);
 
 	// B) initialize PMD

@@ -23,14 +23,14 @@ using genometools::Base;
 using genometools::PhredIntProbability;
 using coretools::instances::logfile;
 using coretools::instances::randomGenerator;
-using Simulations::RGInfo::TSimulatorReadGroupInfoEntry;
-using Simulations::RGInfo::InfoType;
+using BAM::RGInfo::TReadGroupInfoEntry;
+using BAM::RGInfo::InfoType;
 
 
 //----------------------------------
 // TSimulatorSingleEndRead
 //----------------------------------
-TSimulatorSingleEndRead::TSimulatorSingleEndRead(const BAM::TReadGroup & ReadGroup, const TSimulatorReadGroupInfoEntry & RGInfo)
+TSimulatorSingleEndRead::TSimulatorSingleEndRead(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo)
 	: _readGroup(ReadGroup),
 	  _readGroupInfo(RGInfo),
 	  _fragmentLengthDist(_readGroupInfo.get(InfoType::fragmentLengthDistr)),

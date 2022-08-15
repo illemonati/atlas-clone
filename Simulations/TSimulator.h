@@ -87,7 +87,7 @@ protected:
 	std::vector<double> _cumulSimGroupFrequenies;
 
 	// function to initialize read groups
-	void _initializeReadGroups(const BAM::RGInfo::TReadGroupInfoEntry & RGinfo);
+	void _initializeReadGroups(const BAM::RGInfo::TReadGroupInfo & RGinfo);
 
 	void _initializePMD();
 	void _initializeQualityTransformations();
