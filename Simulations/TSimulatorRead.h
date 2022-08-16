@@ -36,11 +36,11 @@ using genometools::PhredIntProbability;
 using coretools::probdist::TCategoricalDistribution;
 using BAM::RGInfo::TReadGroupInfoEntry;
 
-
-//-------------------------------
-// TSimulatorSingleEndRead
-//-------------------------------
-class TSimulatorSingleEndRead {
+//-------------------------------------
+// TSimulatorRead
+// a pure abstract base-class
+//-------------------------------------
+class TSimulatorRead{
 protected:
 	const BAM::TReadGroup &_readGroup;
 	const TReadGroupInfoEntry & _readGroupInfo;
@@ -52,7 +52,6 @@ protected:
 	TCategoricalDistribution<PhredIntProbability> _mappingQualityDist;
 
 	// Additional info
-	coretools::StrictlyPositive<uint16_t> _numCycles;
 	int _readXPos = 1;
 	int _readYPos = 1;
 	std::unique_ptr<TCategoricalDistribution<uint16_t>> _softClipDist5;
@@ -77,15 +76,21 @@ protected:
 				     const TReadAndFragmentLength &readLength, bool readIsContaminated);//, TSimulatorQualityTransformation *qualityTransform);
 
 public:
-	TSimulatorSingleEndRead(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo);
-	virtual ~TSimulatorSingleEndRead() = default;
+	TSimulatorRead(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo);
+	virtual ~TSimulatorRead() = default;
 
+	//setters
 	void setPMD(GenotypeLikelihoods::TPMDType const *Pmd);
 	void setRecal(GenotypeLikelihoods::SequencingError::TModel const *Recal1, GenotypeLikelihoods::SequencingError::TModel const *Recal2);
 	void setContamination(double rate, TSimulatorReference *source);
 
+	//simulate
+	virtual void simulate(const std::vector<Base>& haplotype, uint32_t refID, uint32_t pos, TSimulatorBamFile &bamFile) = 0;
+	virtual void writeUnwrittenAlignments(long, TSimulatorBamFile &){};
+
+	//getters
 	std::string name() const { return _readGroup.name_ID; };
-	virtual std::string type() const {return "single-end";}
+	virtual std::string type() const = 0;
 	double meanReadLength() {
 		return _fragmentLengthDist.mean();
 	};
@@ -93,17 +98,31 @@ public:
 		return _fragmentLengthDist.max();
 	};
 
-	virtual void simulate(const std::vector<Base>& haplotype, uint32_t refID, uint32_t pos, TSimulatorBamFile &bamFile);
-
+	//unsure if needed
 	void printDetails(double frequency);
-	virtual void writeUnwrittenAlignments(long, TSimulatorBamFile &){};
+};
+
+//-------------------------------
+// TSimulatorSingleEndRead
+//-------------------------------
+class TSimulatorSingleEndRead final : public TSimulatorRead {
+private:
+	coretools::StrictlyPositive<uint16_t> _numCycles;
+
+public:
+	TSimulatorSingleEndRead(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo);
+	virtual ~TSimulatorSingleEndRead() = default;
+
+	virtual std::string type() const {return "single-end";}
+	virtual void simulate(const std::vector<Base>& haplotype, uint32_t refID, uint32_t pos, TSimulatorBamFile &bamFile);
 };
 
 //-------------------------------
 // TSimulatorPairedEndReads
 //-------------------------------
-class TSimulatorPairedEndReads : public TSimulatorSingleEndRead {
+class TSimulatorPairedEndReads final : public TSimulatorRead {
 private:
+	std::array<coretools::StrictlyPositive<uint16_t>, 2> _numCycles;
 	BAM::TSamFlags _mateFlags;
 	// BAM::TAlignment _mate;
 	uint16_t _numCyclesSecond;

@@ -27,25 +27,22 @@ using BAM::RGInfo::TReadGroupInfoEntry;
 using BAM::RGInfo::InfoType;
 
 
-//----------------------------------
-// TSimulatorSingleEndRead
-//----------------------------------
-TSimulatorSingleEndRead::TSimulatorSingleEndRead(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo)
+//------------------------------------------------
+// TSimulatorRead
+//------------------------------------------------
+TSimulatorRead::TSimulatorRead(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo)
 	: _readGroup(ReadGroup),
 	  _readGroupInfo(RGInfo),
 	  _fragmentLengthDist(_readGroupInfo.get(InfoType::fragmentLengthDistr)),
 	  _qualityDist(_readGroupInfo.get(InfoType::baseQualityDistr)),
 	  _mappingQualityDist(_readGroupInfo.get(InfoType::mappingQualityDistr))
-	  {
+	{
 
 	// initialize bamAlignment
 	_alignment.setReadGroup(_readGroup.id);
 
 	//readNamePrefix: "<instrument>:<run number>:<flowcell ID>:<lane>:<tile>:"  Still need to add "<x-pos>:<y-pos>"
 	_readNamePrefix = "ATL:0:A:1:" + coretools::str::toString(_readGroup.id) + ":";
-
-	//num cycles
-	_numCycles = coretools::str::convertString(_readGroupInfo.get(InfoType::numCycles), Simulations::RGInfo::infoType2Description(InfoType::numCycles) + " must be within [1,65535].", _numCycles);
 
 	//soft clip
 	std::string sc = _readGroupInfo.get(InfoType::softClipDistr);
@@ -66,35 +63,8 @@ TSimulatorSingleEndRead::TSimulatorSingleEndRead(const BAM::TReadGroup & ReadGro
 	}
 }
 
-void TSimulatorSingleEndRead::setRecal(
-	GenotypeLikelihoods::SequencingError::TModel const *Recal1, GenotypeLikelihoods::SequencingError::TModel const *Recal2) {
-	_recal[0] = Recal1;
-	_recal[1] = Recal2;
-}
 
-void TSimulatorSingleEndRead::setPMD(GenotypeLikelihoods::TPMDType const *Pmd) {
-	_pmd = Pmd;
-}
-
-void TSimulatorSingleEndRead::setContamination(double rate, TSimulatorReference *source) {
-	_contaminationRate  = rate;
-	_contaminationSource = source;
-
-	// check
-	if (_contaminationRate < 0.0) throw "Contamination rate must be >= 0.0!";
-	if (_contaminationRate > 1.0) throw "Contamination rate must be <= 0.0!";
-}
-
-std::string TSimulatorSingleEndRead::_getNextReadName() {
-	++_readXPos;
-	if (_readXPos == 65536) {
-		++_readYPos;
-		_readXPos = 1;
-	}
-	return coretools::str::toString(_readNamePrefix, _readXPos, ":", _readYPos);
-}
-
-void TSimulatorSingleEndRead::_addSoftclippedBases(std::vector<Base> & bases, const std::unique_ptr<TCategoricalDistribution<uint16_t>> & softClippedDist){
+void TSimulatorRead::_addSoftclippedBases(std::vector<Base> & bases, const std::unique_ptr<TCategoricalDistribution<uint16_t>> & softClippedDist){
 	if(softClippedDist){
 		auto len = softClippedDist->sample();
 		if(len > 0){
@@ -106,7 +76,7 @@ void TSimulatorSingleEndRead::_addSoftclippedBases(std::vector<Base> & bases, co
 	}
 }
 
-void TSimulatorSingleEndRead::_simulateBasesQualities(BAM::TAlignment & alignment,
+void TSimulatorRead::_simulateBasesQualities(BAM::TAlignment & alignment,
 						      const std::vector<Base>& haplotype,
 						      const uint64_t pos,
 						      const TReadAndFragmentLength & readLength,
@@ -137,7 +107,7 @@ void TSimulatorSingleEndRead::_simulateBasesQualities(BAM::TAlignment & alignmen
 	
 	// simulate true qualities
 	std::vector<genometools::PhredIntProbability> phredIntQualities(bases.size());
-	_qualityDist->sample(phredIntQualities);
+	_qualityDist.sample(phredIntQualities);
 
 	_alignment.setSequenceQualities(_cigar, bases, phredIntQualities);
 
@@ -148,6 +118,48 @@ void TSimulatorSingleEndRead::_simulateBasesQualities(BAM::TAlignment & alignmen
 		_recal[sm]->simulate(b);
 	}
 }
+
+void TSimulatorRead::setRecal(
+	GenotypeLikelihoods::SequencingError::TModel const *Recal1, GenotypeLikelihoods::SequencingError::TModel const *Recal2) {
+	_recal[0] = Recal1;
+	_recal[1] = Recal2;
+}
+
+void TSimulatorRead::setPMD(GenotypeLikelihoods::TPMDType const *Pmd) {
+	_pmd = Pmd;
+}
+
+void TSimulatorRead::setContamination(double rate, TSimulatorReference *source) {
+	_contaminationRate  = rate;
+	_contaminationSource = source;
+
+	// check
+	if (_contaminationRate < 0.0) throw "Contamination rate must be >= 0.0!";
+	if (_contaminationRate > 1.0) throw "Contamination rate must be <= 0.0!";
+}
+
+std::string TSimulatorRead::_getNextReadName() {
+	++_readXPos;
+	if (_readXPos == 65536) {
+		++_readYPos;
+		_readXPos = 1;
+	}
+	return coretools::str::toString(_readNamePrefix, _readXPos, ":", _readYPos);
+}
+
+
+//----------------------------------
+// TSimulatorSingleEndRead
+//----------------------------------
+TSimulatorSingleEndRead::TSimulatorSingleEndRead(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo)
+	: TSimulatorRead(ReadGroup, RGInfo){
+
+	//num cycles
+	_numCycles = coretools::str::convertString< coretools::StrictlyPositive<uint16_t> >(_readGroupInfo.get(InfoType::numCycles),
+			BAM::RGInfo::infoType2Description(InfoType::numCycles) + " must be within [1,65535].", _numCycles);
+}
+
+
 
 void TSimulatorSingleEndRead::simulate(const std::vector<Base>& haplotype, uint32_t refID, uint32_t pos, TSimulatorBamFile &bamFile) {
 	// prepare alignment
@@ -163,7 +175,7 @@ void TSimulatorSingleEndRead::simulate(const std::vector<Base>& haplotype, uint3
 	_simulateBasesQualities(_alignment, haplotype, pos, readLength, readIsContaminated/*, _qualityTransform*/);
 
 	//set mapping quality
-	_alignment.setMappingQuality(static_cast<uint8_t>(_mappingQualityDist->sample()));
+	_alignment.setMappingQuality(static_cast<uint8_t>(_mappingQualityDist.sample()));
 
 	// write bam alignment
 	bamFile.saveAlignment(_alignment);
@@ -175,20 +187,9 @@ void TSimulatorSingleEndRead::printDetails(double frequency) {
 	logfile().list("Type: ", type(), ".");
 	logfile().list("Frequency: ", frequency, ".");
 
-	if (_fragmentLengthDist)
-		_fragmentLengthDist.printDetails();
-	else
-		throw "Read length distribution not initialized!";
-
-	if (_mappingQualityDist){
-		_mappingQualityDist->printDetails("Mapping quality");
-	} else
-		throw "Mapping quality distribution not initialized!";
-
-	if (_qualityDist)
-		_qualityDist->printDetails("Base quality");
-	else
-		throw "Read quality distribution not initialized!";
+	_fragmentLengthDist.printDetails();
+	_mappingQualityDist.printDetails("Mapping quality");
+	_qualityDist.printDetails("Base quality");
 
 	if ((_recal[0] && _recal[0]->recalibrates())) {
 		// TODO: add recal string output
@@ -215,7 +216,10 @@ void TSimulatorSingleEndRead::printDetails(double frequency) {
 //----------------------------------
 // TSimulatorPairedEndReads
 //----------------------------------
-TSimulatorPairedEndReads::TSimulatorPairedEndReads(const BAM::TReadGroup &, const uint16_t NumCyclesFirst, const uint16_t NumCyclesSecond) : TSimulatorSingleEndRead(ReadGroup, NumCclesFirst){
+TSimulatorPairedEndReads::TSimulatorPairedEndReads(
+		const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo)
+
+		const BAM::TReadGroup &, const uint16_t NumCyclesFirst, const uint16_t NumCyclesSecond) : TSimulatorSingleEndRead(ReadGroup, NumCclesFirst){
 	_numCyclesSecond = NumCyclesSecond;
 	// set SAM flags
 	_flags.setIsPaired(true);
@@ -230,10 +234,11 @@ TSimulatorPairedEndReads::TSimulatorPairedEndReads(const BAM::TReadGroup &, cons
 	_mateFlags.setIsReverseStrand(true);
 }
 
-void TSimulatorPairedEndReads::simulate(const std::vector<Base>& /*haplotype*/, uint32_t refID, uint32_t pos,
+void TSimulatorPairedEndReads::simulate(
+		const std::vector<Base>& /*haplotype*/, uint32_t refID, uint32_t pos,
 					TSimulatorBamFile &bamFile) {
 	// pick a fragment, read length and contamination
-	TReadAndFragmentLength readLength  = _fragmentLengthDist->sample();
+	TReadAndFragmentLength readLength  = _fragmentLengthDist.sample();
 	//bool readIsContaminated = (_contaminationRate > 0.) && randomGenerator().getRand() < _contaminationRate;
 
 	// Fill FIRST mate
