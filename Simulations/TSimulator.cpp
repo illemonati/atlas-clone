@@ -777,8 +777,8 @@ TVCFSimulator::_findMajorMinorAllele(coretools::TStrongArray<size_t, genometools
                                      genometools::Base RefAllele) {
 	// major allele = allele with the highest counts
 	const auto majorAllele = randomGenerator()
-	                             .sampleIndexOfMaxima<coretools::TStrongArray<size_t, genometools::Base, 4>,
-	                                                  genometools::Base, index(genometools::Base::max)>(AlleleCounts);
+	                             .sampleIndexOfMaxima<coretools::TStrongArray<size_t, genometools::Base, 4>, Base,
+	                                                  coretools::index(genometools::Base::max)>(AlleleCounts);
 
 	if (majorAllele == RefAllele) {
 		// choose minor allele: can be any allele (except major)

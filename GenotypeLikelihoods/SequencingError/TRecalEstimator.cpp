@@ -306,7 +306,7 @@ void TRecalibrationEMEstimator::_estimateRho_updatePbbar(const TPostMortemDamage
 
 				_modelsToEstimate.addToRho(d_ij, _P_g_I_ds[i][g_aa], P_aa);
 				if (!_genoDist->isInvariant()) {
-					for (auto b = genometools::next(a); b < Base::max; ++b) {
+					for (auto b = coretools::next(a); b < Base::max; ++b) {
 						const auto g_ab = genotype(a, b);
 						const TBaseProbabilities P_ab{P_aa, PmdModels.getMassFunction(b, d_ij, L_eps), std::plus<>()};
 						Pij[g_ab] = P_ab[d_ij.base];

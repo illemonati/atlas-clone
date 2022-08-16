@@ -58,7 +58,7 @@ public:
 	static constexpr bool isIndexed        = false;
 
 	static uint16_t extract(const BAM::TSequencedBase &base) noexcept {
-		return genometools::index(base.context);
+		return coretools::index(base.context);
 	}
 
 	static std::vector<uint16_t> range(const RecalEstimatorTools::TRecalDataTable &dataTable) noexcept {

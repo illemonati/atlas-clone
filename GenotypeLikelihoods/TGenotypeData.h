@@ -15,6 +15,7 @@
 #include <utility>
 #include <cassert>
 
+#include "enum.h"
 #include "GenotypeTypes.h"
 #include "probability.h"
 #include "TStrongArray.h"
@@ -37,6 +38,7 @@ TGenotypeLikelihoods getGLH(const Container<TBaseLikelihoods, Args...> &bases, c
 	using genometools::Base;
 	using GT = genometools::Genotype;
 	using genometools::genotype;
+	static_assert(std::is_enum_v<Base>);
 	// allows for vector to be longer than what is to be used
 	// do in log if depth is high
 	if (bases.size() > 50) {
@@ -44,7 +46,7 @@ TGenotypeLikelihoods getGLH(const Container<TBaseLikelihoods, Args...> &bases, c
 		for (size_t i = 0; i < size; ++i) {
 			for (auto b1 = Base::min; b1 < Base::max; ++b1) {
 				tmp[genotype(b1, b1)] += log(bases[i][b1]);
-				for (auto b2 = genometools::next(b1); b2 < Base::max; ++b2) {
+				for (auto b2 = coretools::next(b1); b2 < Base::max; ++b2) {
 					tmp[genotype(b1, b2)] += log(0.5 * ((double)bases[i][b1] + (double)bases[i][b2]));
 				}
 			}
@@ -60,7 +62,7 @@ TGenotypeLikelihoods getGLH(const Container<TBaseLikelihoods, Args...> &bases, c
 		for (size_t i = 0; i < size; ++i) {
 			for (auto b1 = Base::min; b1 < Base::max; ++b1) {
 				ret[genotype(b1, b1)] *= bases[i][b1];
-				for (auto b2 = genometools::next(b1); b2 < Base::max; ++b2) {
+				for (auto b2 = coretools::next(b1); b2 < Base::max; ++b2) {
 					ret[genotype(b1, b2)] *= 0.5 * (bases[i][b1] + bases[i][b2]);
 				}
 			}

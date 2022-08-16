@@ -12,6 +12,7 @@
 #include <exception>
 #include <ostream>
 
+#include "enum.h"
 #include "GenotypeTypes.h"
 #include "PhredProbabilityTypes.h"
 #include "TLog.h"
@@ -31,7 +32,7 @@ using coretools::Probability;
 //TGenocombinationToBaseMap
 //----------------------------------------------------
 TGenocombinationToBaseMap::TGenocombinationToBaseMap(){
-	using genometools::index;
+	using coretools::index;
 	using genometools::first;
 	using genometools::second;
 	for(Genotype g1 = Genotype::min; g1 < Genotype::max; ++g1){
@@ -52,7 +53,7 @@ TGenocombinationToBaseMap::TGenocombinationToBaseMap(){
 //----------------------------------------------------
 TDistance::TDistance(){
 	using DP = DistancePhi;
-	using genometools::index;
+	using coretools::index;
 	//squared difference between genotypes
 	_distanceWeight[DP::aa_aa] = 0.0;
 	_distanceWeight[DP::ab_aa] = 1.0;
@@ -97,8 +98,7 @@ double TDistanceEuclidian::calculateDistance(const TDistanceData & phi){
 };
 
 TDistanceUser::TDistanceUser(std::vector<double> vec){
-	using genometools::operator++;
-	using genometools::index;
+	using coretools::index;
 	for(DistancePhi d = DistancePhi::min; d < DistancePhi::max; ++d)
 		_distanceWeight[d] = vec[index(d)];
 };
@@ -152,8 +152,7 @@ TEMforDistanceEstimation::TEMforDistanceEstimation(){
 
 void TEMforDistanceEstimation::guessPi(GenotypeQualityVector & genoQual1, GenotypeQualityVector & genoQual2){
 	//check sizes are equal
-	using genometools::operator++;
-	using genometools::index;
+	using coretools::index;
 	if(genoQual1.size() != genoQual2.size())
 		throw "Provided genotype quality vectors are of different size in TEMforDistanceEstimation::guessPi!";
 
@@ -185,8 +184,7 @@ void TEMforDistanceEstimation::guessPi(GenotypeQualityVector & genoQual1, Genoty
 }
 
 void TEMforDistanceEstimation::guessPhi(GenotypeQualityVector & genoQual1, GenotypeQualityVector & genoQual2){
-	using genometools::operator++;
-	using genometools::index;
+	using coretools::index;
 	//check sizes are equal
 	if(genoQual1.size() != genoQual2.size())
 		throw "Provided genotype quality vectors are of different size in TEMforDistanceEstimation::guessPhi!";
@@ -250,7 +248,7 @@ void TEMforDistanceEstimation::fill_K(TBaseData & thesePi){
 
 void TEMforDistanceEstimation::fill_P_g_given_phi_pi(const TDistanceData & thesePhi, TBaseData & thesePi){
 	using genometools::Base;
-	using genometools::index;
+	using coretools::index;
 	using DP = DistancePhi;
 	using GT = genometools::Genotype;
 	//0: case aa/aa (K[0]=1)
@@ -408,8 +406,7 @@ void TEMforDistanceEstimation::fill_P_g_given_phi_pi(const TDistanceData & these
 
 bool TEMforDistanceEstimation::estimatePhiWithEM(GenotypeQualityVector & genoQual1, GenotypeQualityVector & genoQual2){
 	//prepare estimates
-	using genometools::operator++;
-	using genometools::index;
+	using coretools::index;
 	using genometools::Genotype;
 	using namespace coretools::instances;
 	logfile().listFlush("Estimating initial base frequencies pi ...");
@@ -873,8 +870,7 @@ void TDistanceEstimator::writeDistanceEstimates(gz::ogzstream & out, std::string
 };
 
 void TDistanceEstimator::writeDistanceEstimates(gz::ogzstream & out, int numsitesWithData, TEMforDistanceEstimation & EM_object){
-	using genometools::operator++;
-	using genometools::index;
+	using coretools::index;
 	out << "\t" << numsitesWithData;
 	//write pi
 	for(Base b = Base::min; b < Base::max; ++b){

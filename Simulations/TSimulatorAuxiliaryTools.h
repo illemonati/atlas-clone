@@ -171,14 +171,13 @@ public:
 //---------------------------------------------------------
 class TSimulatorMutationtable {
 private:
-	std::array<std::array<double, 4>, 4> _mutTable;
+	coretools::TStrongArray<coretools::TStrongArray<double, genometools::Base>, genometools::Base> _mutTable;
 	void _normalizeAndMakeCumulative();
 public:
 	TSimulatorMutationtable(const GenotypeLikelihoods::TBaseProbabilities &baseFreq);
 	TSimulatorMutationtable(const GenotypeLikelihoods::TBaseProbabilities &baseFreq, double theta);
-	~TSimulatorMutationtable() = default;
-	const std::array<double, 4> operator[](genometools::Base base) const noexcept { return _mutTable[genometools::index(base)]; }
-	void print();
+
+	const coretools::TStrongArray<double, genometools::Base> &operator[](genometools::Base base) const noexcept { return _mutTable[base]; }
 };
 
 //---------------------------------------------------------

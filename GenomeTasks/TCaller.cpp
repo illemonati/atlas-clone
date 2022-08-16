@@ -50,7 +50,7 @@ namespace /*anonymous*/ {
 template<template<typename, typename, size_t, typename...> typename Container, typename Type, typename Index, size_t N, typename... Args>
 auto sampleFirstSecond(const Container<Type, Index, N, Args...> &c) {
 	std::array<Index, N> is;
-	std::iota(is.begin(), is.end(), Index{});
+	for (size_t i = 0; i < N; ++i) is[i] = Index(i);
 	std::sort(is.begin(), is.end(), [&c](auto i, auto j){return c[i] > c[j];});
 
 	size_t count_1  = 0;

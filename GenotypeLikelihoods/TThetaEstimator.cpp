@@ -42,7 +42,7 @@ TGenotypeProbabilities getPGenotype(double expTheta, const TBaseProbabilities &b
 		Genotype hom = genotype(b, b);
 		lGeno[hom]   = baseFrequencies[b] * (expTheta + baseFrequencies[b].get() * (1.0 - expTheta));
 		// heterozygous genotypes
-		for (Base c = next(b); c < Base::max; ++c) {
+		for (Base c = coretools::next(b); c < Base::max; ++c) {
 			Genotype het = genotype(b, c);
 			lGeno[het]   = 2.0 * baseFrequencies[b].get() * baseFrequencies[c].get() * (1.0 - expTheta);
 		}
@@ -280,7 +280,7 @@ bool TThetaEstimator::_NRAllParams() {
 					tmpSum += P_G[het];
 				}
 			}
-			F(index(k)) =
+			F(coretools::index(k)) =
 				P_G[hom] * (1.0 + baseFreq[k].get() / (rho + baseFreq[k].get())) + tmpSum - mu * baseFreq[k].get();
 			F(4) -= P_G[hom] * (rho + 1.0) / (rho + baseFreq[k].get());
 			F(5) += baseFreq[k].get();
@@ -296,7 +296,7 @@ bool TThetaEstimator::_NRAllParams() {
 		}
 
 		for (Base k = Base::min; k < Base::max; ++k) {
-			const auto i   = index(k);
+			const auto i   = coretools::index(k);
 			Jacobian(i, i) = tmp[k] * rho - mu;
 			Jacobian(i, 4) = -tmp[k];
 			Jacobian(5, i) = 1.0;
@@ -314,7 +314,7 @@ bool TThetaEstimator::_NRAllParams() {
 				baseFreq[k] = baseFreq[k].get() - JxF(index(k));
 				}*/
 			baseFreq.for_each_index(
-				[&JxF](Probability p, Base i) { return static_cast<Probability>(p.get() - JxF(index(i))); });
+				[&JxF](Probability p, Base i) { return static_cast<Probability>(p.get() - JxF(coretools::index(i))); });
 			rho -= JxF(4);
 			mu -= JxF(5);
 
@@ -445,7 +445,7 @@ void TThetaEstimator::_estimateConfidenceInterval() {
 		deriv_pGenotype[hom] =
 			(theta.baseFreq[k].get() * theta.baseFreq[k].get() - theta.baseFreq[k].get()) * theta.expTheta;
 		// heterozygous genotypes
-		for (Base l = next(k); l < Base::max; ++l) {
+		for (Base l = coretools::next(k); l < Base::max; ++l) {
 			const auto het       = genotype(k, l);
 			deriv_pGenotype[het] = 2.0 * theta.baseFreq[k].get() * theta.baseFreq[l].get() * theta.expTheta;
 		}
