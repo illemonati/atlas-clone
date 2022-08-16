@@ -11,6 +11,7 @@
 // TODO: turn into read group info also used by TGenome
 
 #include <vector>
+#include "TStrongArray.h"
 #include "stringFunctions.h"
 #include "TParameters.h"
 #include "TLog.h"
@@ -25,7 +26,23 @@ namespace RGInfo{
 // TInfoValue
 //------------------------------------------------
 //TODO: find a better way
-enum class InfoType {RGName=0, seqType, numCycles, fragmentLengthDistr, baseQualityDistr, mappingQualityDistr, softClipDistr, recal, rho, COUNT};
+enum class InfoType {min=0, RGName=0, seqType, numCycles, fragmentLengthDistr, baseQualityDistr, mappingQualityDistr, softClipDistr, recal, rho, max};
+
+struct TInfo {
+	std::string argument;
+	std::string description;
+	std::string defaults;
+	TInfo() = default;
+	TInfo(std::string_view Argument, std::string_view Description, std::string_view Defaults)
+		: argument(std::move(Argument)), description(std::move(Description)), defaults(std::move(Defaults)) {}
+};
+
+inline const coretools::TStrongArray<TInfo, InfoType> infos = []() {
+	coretools::TStrongArray<TInfo, InfoType> i;
+	i[InfoType::RGName] = {"readGroupname", "readGroupname", "readGroupname"};
+	// ...
+	return i;
+}();
 
 std::string infoType2ArgumentString(InfoType Info) {
 	switch (Info) {
@@ -79,6 +96,9 @@ std::string infoType2DefaultValue(InfoType Info) {
 //------------------------------------------------
 // TReadGroupInfoEntry
 //------------------------------------------------
+
+// Alternative:
+using Entry = coretools::TStrongArray<std::string, InfoType>;
 
 class TReadGroupInfoEntry{
 private:
