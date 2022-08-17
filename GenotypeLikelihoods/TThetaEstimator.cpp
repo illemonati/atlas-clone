@@ -281,7 +281,7 @@ bool TThetaEstimator::_NRAllParams() {
 					tmpSum += P_G[het];
 				}
 			}
-			F(index(k)) =
+			F(coretools::index(k)) =
 				P_G[hom] * (1.0 + baseFreq[k].get() / (rho + baseFreq[k].get())) + tmpSum - mu * baseFreq[k].get();
 			F(4) -= P_G[hom] * (rho + 1.0) / (rho + baseFreq[k].get());
 			F(5) += baseFreq[k].get();
@@ -297,7 +297,7 @@ bool TThetaEstimator::_NRAllParams() {
 		}
 
 		for (Base k = Base::min; k < Base::max; ++k) {
-			const auto i   = index(k);
+			const auto i   = coretools::index(k);
 			Jacobian(i, i) = tmp[k] * rho - mu;
 			Jacobian(i, 4) = -tmp[k];
 			Jacobian(5, i) = 1.0;
@@ -315,7 +315,7 @@ bool TThetaEstimator::_NRAllParams() {
 				baseFreq[k] = baseFreq[k].get() - JxF(index(k));
 				}*/
 			baseFreq.for_each_index(
-				[&JxF](Probability p, Base i) { return static_cast<Probability>(p.get() - JxF(index(i))); });
+				[&JxF](Probability p, Base i) { return static_cast<Probability>(p.get() - JxF(coretools::index(i))); });
 			rho -= JxF(4);
 			mu -= JxF(5);
 

@@ -263,9 +263,9 @@ bool TSimulatorHaplotypes::isPolymoprhic(uint64_t pos) const noexcept {
 TSimulatorMutationtable::TSimulatorMutationtable(const GenotypeLikelihoods::TBaseProbabilities &baseFreq) {
 	for (Base a = Base::min; a < Base::max; ++a) {
 		for (Base b = Base::min; b < Base::max; ++b) {
-			_mutTable[index(a)][index(b)] = baseFreq[a] * baseFreq[b];
+			_mutTable[a][b] = baseFreq[a] * baseFreq[b];
 		}
-		_mutTable[index(a)][index(a)] = 0.0;
+		_mutTable[a][a] = 0.0;
 	}
 	_normalizeAndMakeCumulative();
 }
@@ -276,9 +276,9 @@ TSimulatorMutationtable::TSimulatorMutationtable(const GenotypeLikelihoods::TBas
 	const double o_exp_t = 1 - exp_t;
 	for (Base a = Base::min; a < Base::max; ++a) {
 		for (Base b = Base::min; b < Base::max; ++b) {
-			_mutTable[index(a)][index(b)] = baseFreq[a] * baseFreq[b] * o_exp_t;
+			_mutTable[a][b] = baseFreq[a] * baseFreq[b] * o_exp_t;
 		}
-		_mutTable[index(a)][index(a)] += baseFreq[a]*exp_t;
+		_mutTable[a][a] += baseFreq[a]*exp_t;
 	}
 	_normalizeAndMakeCumulative();
 }
@@ -287,18 +287,10 @@ void TSimulatorMutationtable::_normalizeAndMakeCumulative() {
 	// normalize within row
 	for (auto & mu : _mutTable) {
 		const double sum = std::accumulate(mu.begin(), mu.end(), 0.);
-		mu[0]           /= sum;
-		mu[1]            = mu[1] / sum + mu[0];
-		mu[2]            = mu[2] / sum + mu[1];
-		mu[3]            = 1.0;
-	}
-}
-
-void TSimulatorMutationtable::print() {
-	for (size_t i = 0; i < 4; ++i) {
-		std::cout << "Mutation table " << i << ":";
-		for (auto &m : _mutTable[i]) std::cout << " " << m;
-		std::cout << std::endl;
+		mu[Base::A] /= sum;
+		mu[Base::C] = mu[Base::C] / sum + mu[Base::A];
+		mu[Base::G] = mu[Base::G] / sum + mu[Base::C];
+		mu[Base::T] = 1.0;
 	}
 }
 

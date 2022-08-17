@@ -20,6 +20,7 @@
 #include "TFile.h"
 #include "TGenotypeData.h"
 #include "TSimulatorAuxiliaryTools.h"
+#include "TStrongArray.h"
 
 namespace genometools { class TChromosome; }
 namespace genometools { class TChromosomes; }
@@ -28,9 +29,9 @@ namespace Simulations {
 
 class THaplotypeSimulator {
 protected:
-	std::array<double, 4> _cumulRef;
+	coretools::TStrongArray<double, genometools::Base> _cumulRef;
 	GenotypeLikelihoods::TBaseProbabilities _baseFreq;
-	std::array<double, 4> _cumulBaseFreq;
+	 coretools::TStrongArray<double, genometools::Base>_cumulBaseFreq;
 	double _referenceDivergence;
 	THaplotypeSimulator();
 public:

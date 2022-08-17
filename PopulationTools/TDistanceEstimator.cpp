@@ -12,6 +12,7 @@
 #include <exception>
 #include <ostream>
 
+#include "enum.h"
 #include "GenotypeTypes.h"
 #include "PhredProbabilityTypes.h"
 #include "TLog.h"
@@ -405,7 +406,6 @@ void TEMforDistanceEstimation::fill_P_g_given_phi_pi(const TDistanceData & these
 
 bool TEMforDistanceEstimation::estimatePhiWithEM(GenotypeQualityVector & genoQual1, GenotypeQualityVector & genoQual2){
 	//prepare estimates
-	using genometools::operator++;
 	using coretools::index;
 	using genometools::Genotype;
 	using namespace coretools::instances;
@@ -870,7 +870,6 @@ void TDistanceEstimator::writeDistanceEstimates(gz::ogzstream & out, std::string
 };
 
 void TDistanceEstimator::writeDistanceEstimates(gz::ogzstream & out, int numsitesWithData, TEMforDistanceEstimation & EM_object){
-	using genometools::operator++;
 	using coretools::index;
 	out << "\t" << numsitesWithData;
 	//write pi

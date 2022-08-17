@@ -28,10 +28,12 @@
 #include "stringFunctions.h"
 #include "toString.h"
 #include "weakTypes.h"
+#include "enum.h"
 
 namespace GenotypeLikelihoods {
 namespace SequencingError {
 using coretools::Probability;
+using coretools::index;
 using coretools::instances::randomGenerator;
 using genometools::Base;
 using namespace std::literals;

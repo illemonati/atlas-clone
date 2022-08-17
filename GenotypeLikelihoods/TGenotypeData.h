@@ -15,6 +15,7 @@
 #include <utility>
 #include <cassert>
 
+#include "enum.h"
 #include "GenotypeTypes.h"
 #include "probability.h"
 #include "TStrongArray.h"
@@ -37,6 +38,7 @@ TGenotypeLikelihoods getGLH(const Container<TBaseLikelihoods, Args...> &bases, c
 	using genometools::Base;
 	using GT = genometools::Genotype;
 	using genometools::genotype;
+	static_assert(std::is_enum_v<Base>);
 	// allows for vector to be longer than what is to be used
 	// do in log if depth is high
 	if (bases.size() > 50) {

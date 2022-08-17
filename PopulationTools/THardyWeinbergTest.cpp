@@ -227,7 +227,7 @@ void THWGenotypes::add(const genometools::BiallelicGenotype & genotype){
 	using namespace genometools;
 	//ToDo: extend test to haploid
 	if(!isMissing(genotype) && isDiploid(genotype)){
-		++_genoCounts[index(genotype)];
+		++_genoCounts[coretools::index(genotype)];
 	}
 };
 

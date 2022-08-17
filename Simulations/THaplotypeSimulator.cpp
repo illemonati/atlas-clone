@@ -42,22 +42,22 @@ std::string toString(const TBaseProbabilities &probs) {
 }
 } // namespace impl
 
-Base sampleBase(const std::array<double, 4> &cumulProbs) {
+Base sampleBase(const coretools::TStrongArray<double, Base> &cumulProbs) {
 	return genometools::Base(randomGenerator().pickOne(cumulProbs));
 }
 
-Base mutateBase(Base base, const std::array<double, 4> &cumulProbs) {
+Base mutateBase(Base base, const coretools::TStrongArray<double, Base> &cumulProbs) {
 	using namespace genometools;
-	return Base((index(base) + randomGenerator().pickOne(cumulProbs)) % index(Base::max));
+	return Base((coretools::index(base) + randomGenerator().pickOne(cumulProbs)) % coretools::index(Base::max));
 }
 
 THaplotypeSimulator::THaplotypeSimulator()
     : _referenceDivergence(parameters().getParameterWithDefault("refDiv", 0.01)) {
 	logfile().list("Will simulate data with reference divergence = ", _referenceDivergence, ".");
-	_cumulRef[0] = 1.0 - _referenceDivergence;
-	_cumulRef[1] = _cumulRef[0] + _referenceDivergence / 3.0;
-	_cumulRef[2] = _cumulRef[1] + _referenceDivergence / 3.0;
-	_cumulRef[3] = 1.0;
+	_cumulRef[Base::A] = 1.0 - _referenceDivergence;
+	_cumulRef[Base::C] = _cumulRef[Base::A] + _referenceDivergence / 3.0;
+	_cumulRef[Base::G] = _cumulRef[Base::C] + _referenceDivergence / 3.0;
+	_cumulRef[Base::T] = 1.0;
 
 	// base frequencies
 	std::vector<double> freq;
@@ -69,10 +69,10 @@ THaplotypeSimulator::THaplotypeSimulator()
 
 	logfile().list("Simulating with base frequencies " + impl::toString(_baseFreq));
 
-	_cumulBaseFreq[0] = _baseFreq[Base::A];
-	_cumulBaseFreq[1] = _cumulBaseFreq[0] + _baseFreq[Base::C];
-	_cumulBaseFreq[2] = _cumulBaseFreq[1] + _baseFreq[Base::G];
-	_cumulBaseFreq[3] = 1.0;
+	_cumulBaseFreq[Base::A] = _baseFreq[Base::A];
+	_cumulBaseFreq[Base::C] = _cumulBaseFreq[Base::A] + _baseFreq[Base::C];
+	_cumulBaseFreq[Base::G] = _cumulBaseFreq[Base::C] + _baseFreq[Base::G];
+	_cumulBaseFreq[Base::T] = 1.0;
 }
 
 //---------------------------------------------------------
@@ -209,7 +209,7 @@ void TSimulatorPair::_fillTables() {
 	//-----------------------------------------
 	sum = 0.0;
 	for (Base a = Base::min; a < genometools::Base::T; ++a) {
-		for (Base b = genometools::next(a); b < Base::max; ++b) {
+		for (Base b = coretools::next(a); b < Base::max; ++b) {
 			sum += _baseFreq[a] * _baseFreq[b];
 
 			_cumulGenoCombinationFreq[4].push_back(sum);

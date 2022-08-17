@@ -21,6 +21,7 @@
 namespace BAM{
 
 using coretools::TLog;
+using coretools::index;
 
 //-----------------------------------------------------
 //TBamFileLog

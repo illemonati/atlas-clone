@@ -38,55 +38,55 @@ TGenotypeComparisonTable::TGenotypeComparisonTable(){
 
 //add haploid genotypes
 void TGenotypeComparisonTable::add(const Base b1, const Base b2){
-	++counts[index(b1)][index(b2)];
+	++counts[coretools::index(b1)][coretools::index(b2)];
 };
 
 void TGenotypeComparisonTable::addOtherMissing(const int sample, const Base b){
 	if(sample == 0){
-		++counts[index(b)][missingIndex];
+		++counts[coretools::index(b)][missingIndex];
 	} else {
-		++counts[missingIndex][index(b)];
+		++counts[missingIndex][coretools::index(b)];
 	}
 };
 
 
 void TGenotypeComparisonTable::addFirstMissing(const Base b2){
-	++counts[missingIndex][index(b2)];
+	++counts[missingIndex][coretools::index(b2)];
 };
 
 void TGenotypeComparisonTable::addSecondMissing(const Base b1){
-	++counts[index(b1)][missingIndex];
+	++counts[coretools::index(b1)][missingIndex];
 };
 
 //add diploid genotypes
 void TGenotypeComparisonTable::add(Genotype g1, Genotype g2){
-	++counts[firstDiploidIndex + index(g1)][firstDiploidIndex + index(g2)];
+	++counts[firstDiploidIndex + coretools::index(g1)][firstDiploidIndex + coretools::index(g2)];
 };
 
 void TGenotypeComparisonTable::addOtherMissing(const int sample, const Genotype g){
 	if(sample == 0){
-		++counts[firstDiploidIndex + index(g)][missingIndex];
+		++counts[firstDiploidIndex + coretools::index(g)][missingIndex];
 	} else {
-		++counts[missingIndex][firstDiploidIndex + index(g)];
+		++counts[missingIndex][firstDiploidIndex + coretools::index(g)];
 	}
 };
 
 void TGenotypeComparisonTable::addFirstMissing(Genotype g2){
-	++counts[missingIndex][firstDiploidIndex + index(g2)];
+	++counts[missingIndex][firstDiploidIndex + coretools::index(g2)];
 };
 
 void TGenotypeComparisonTable::addSecondMissing(Genotype g1){
-	++counts[firstDiploidIndex + index(g1)][missingIndex];
+	++counts[firstDiploidIndex + coretools::index(g1)][missingIndex];
 };
 
 
 //add haploid / diploid combination of genotypes
 void TGenotypeComparisonTable::add(const Genotype g1, const Base b2){
-	++counts[firstDiploidIndex + index(g1)][index(b2)];
+	++counts[firstDiploidIndex + coretools::index(g1)][coretools::index(b2)];
 };
 
 void TGenotypeComparisonTable::add(const Base b1, const Genotype g2){
-	++counts[index(b1)][firstDiploidIndex + index(g2)];
+	++counts[coretools::index(b1)][firstDiploidIndex + coretools::index(g2)];
 };
 
 //write
