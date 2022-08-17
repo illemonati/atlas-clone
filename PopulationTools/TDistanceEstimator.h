@@ -59,12 +59,12 @@ constexpr DistancePhi distancePhi(genometools::Genotype a, genometools::Genotype
 		{DP::nn_nn, DP::nn_nn, DP::nn_nn, DP::nn_nn, DP::nn_nn, DP::nn_nn, DP::nn_nn, DP::nn_nn, DP::nn_nn, DP::nn_nn,
 	     DP::nn_nn} // NN
 	}};
-	return dphi[genometools::index(a)][genometools::index(b)];
+	return dphi[coretools::index(a)][coretools::index(b)];
 }
 
 inline std::string toString(DistancePhi dp) {
 	std::array strs = {"aa_aa", "aa_ab", "ab_aa", "aa_bb", "ab_ab", "ab_ac", "aa_bc", "ab_cc", "ab_cd", "nn_nn"};
-	return strs[genometools::index(dp)];
+	return strs[coretools::index(dp)];
 }
 
 //-------------------------------------
@@ -74,16 +74,16 @@ inline std::string toString(DistancePhi dp) {
 using TDistanceData = coretools::TStrongArray<double, DistancePhi>;
 
 /*
-class TDistanceData : public GenotypeLikelihoods::TData_base<double, DistancePhi, genometools::index(DistancePhi::max)>{
+class TDistanceData : public GenotypeLikelihoods::TData_base<double, DistancePhi, coretools::index(DistancePhi::max)>{
 private:
-	using GenotypeLikelihoods::TData_base<double, DistancePhi, genometools::index(DistancePhi::max)>::_data;
+	using GenotypeLikelihoods::TData_base<double, DistancePhi, coretools::index(DistancePhi::max)>::_data;
 
 public:
-	TDistanceData() : GenotypeLikelihoods::TData_base<double, DistancePhi, genometools::index(DistancePhi::max)>(0.0) {};
+	TDistanceData() : GenotypeLikelihoods::TData_base<double, DistancePhi, coretools::index(DistancePhi::max)>(0.0) {};
 	~TDistanceData() = default;
 
 	double& operator()(const genometools::Genotype & g1, const genometools::Genotype & g2){
-		return _data[genometools::index(distancePhi(g1, g2))];
+		return _data[coretools::index(distancePhi(g1, g2))];
 	};
 	};*/
 
@@ -98,7 +98,7 @@ public:
 	~TGenocombinationToBaseMap() = default;
 
 	bool operator()(const genometools::Genotype &g1, const genometools::Genotype &g2, const genometools::Base &b) {
-		using genometools::index;
+		using coretools::index;
 		return genotypeCombinationHasBase[index(g1)][index(g2)][index(b)];
 	};
 };

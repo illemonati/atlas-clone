@@ -33,7 +33,7 @@ using coretools::instances::parameters;
 using coretools::instances::randomGenerator;
 using genometools::AllelicCombination;
 using genometools::Base;
-using genometools::index;
+using coretools::index;
 using GLF::TMultiGLFData;
 //---------------------------------------------------
 // TMajorMinorEstimatorBase
@@ -133,7 +133,7 @@ void TMajorMinorEstimatorSkotte::_findMLAllelicCombination(const TMultiGLFData &
 //---------------------------------------------------
 coretools::Log10Probability TMajorMinorEstimatorMLE::_estimateGenotypeFrequencies(const TMultiGLFData &data,
 										 AllelicCombination ac) {
-	using genometools::index;
+	using coretools::index;
 	fill(_genotypeLikelihoods, data, ac);
 	const auto sz = _genotypeLikelihoods.size();
 	_tmpGenotypeFrequencies[index(ac)].estimate(_genotypeLikelihoods, sz, _epsilonF);

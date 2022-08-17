@@ -33,7 +33,7 @@ TContextQuantifier::TContextQuantifier():TGenome_parsed(){
 void TContextQuantifier::_handleAlignment(){
 	for(auto& b : _alignment){
 		if(b.context != genometools::BaseContext::NN){
-			_contextCounts.add(b.recalibratedQualityAsPhredInt.get(), genometools::index(b.context));
+			_contextCounts.add(b.recalibratedQualityAsPhredInt.get(), coretools::index(b.context));
 		}
 	}
 };

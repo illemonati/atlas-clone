@@ -134,7 +134,11 @@ void TQualityFilter::set(coretools::TParameters & params, coretools::TLog* logfi
 // TContextFilter
 //-------------------------------------
 void TContextFilter::set(coretools::TParameters & params, coretools::TLog* logfile){
-	using namespace genometools;
+	using genometools::Base;
+	using genometools::BaseContext;
+	using genometools::baseContext;
+	using genometools::char2base;
+	using coretools::index;
 	_filter = false;
 	if(params.parameterExists("ignoreContexts")){
 		std::vector<std::string> contexts;
@@ -174,7 +178,7 @@ void TContextFilter::set(coretools::TParameters & params, coretools::TLog* logfi
 };
 
 bool TContextFilter::pass(const TSequencedBase & base) const{
-	return _keptContexts[index(base.context)];
+	return _keptContexts[coretools::index(base.context)];
 };
 
 //-----------------------------------------------------

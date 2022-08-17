@@ -42,6 +42,7 @@ using namespace std::literals;
 
 TRho::TRho(const std::string &Def) {
 	using coretools::str::toString;
+	using coretools::index;
 	//"default" implies default rho
 	if (Def == "default") {
 		return;
@@ -120,7 +121,7 @@ void TModelNoRecal::simulate(BAM::TSequencedBase &base) const noexcept {
 	const auto e = static_cast<Probability>(base.originalQuality_phredInt);
 	if (randomGenerator().getRand() < e) {
 		const int i = randomGenerator().getRand(1, 4); // 3 bases to choose from
-		base.base   = Base((index(base.base) + i) % 4);
+		base.base   = Base((coretools::index(base.base) + i) % 4);
 	}
 }
 

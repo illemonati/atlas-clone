@@ -23,6 +23,33 @@ namespace RGInfo{
 
 namespace impl{
 	//------------------------------------------------
+	// argument string, description and default for each info type
+	//------------------------------------------------
+
+	struct TInfo {
+		std::string argument;
+		std::string description;
+		std::string defaults;
+		TInfo() = default;
+		TInfo(std::string_view Argument, std::string_view Description, std::string_view Defaults)
+			: argument(std::move(Argument)), description(std::move(Description)), defaults(std::move(Defaults)) {}
+	};
+
+	inline const coretools::TStrongArray<TInfo, InfoType> infos = []() {
+		coretools::TStrongArray<TInfo, InfoType> i;
+		i[InfoType::RGName] = {"readGroupName", "read group name", "SimReadGroup"};
+		i[InfoType::seqType] = {"seqType", "sequencing type", "single"};
+		i[InfoType::numCycles] = {"numCycles", "number of sequencing cycles", "150"};
+		i[InfoType::fragmentLengthDistr] = {"fragmentLengthDistr", "fragment length distribution", "fixed(300)"};
+		i[InfoType::baseQualityDistr] = {"baseQualityDistr", "base quality distribution", "normal(30,10)[0,93]"};
+		i[InfoType::mappingQualityDistr] = {"mappingQualityDistr", "maping quality distribution", "normal(60,10)[1,255]"};
+		i[InfoType::softClipDistr] = {"softClipDistr", "readGroupname", "-"};
+		i[InfoType::recal] = {"recal", "base quality score recalibration model", "-"};
+		i[InfoType::rho] = {"rho", "base quality score recalibration rho", "-"};
+		return i;
+	}();
+
+	//------------------------------------------------
 	// class / functions to initialize: only visible in cpp file
 	//------------------------------------------------
 
@@ -44,10 +71,10 @@ namespace impl{
 
 			//extract RG column
 			//check that file has a column named "readGroup"
-			if(!in.hasColname(infoType2ArgumentString(InfoType::RGName))){
-				UERROR("Column '", infoType2ArgumentString(InfoType::RGName), "' missing in file '", Filename, "'!");
+			if(!in.hasColname(impl::infos[InfoType::RGName].argument)){
+				UERROR("Column '", impl::infos[InfoType::RGName].argument, "' missing in file '", Filename, "'!");
 			}
-			auto rgCol = in.getIndexOfColname(infoType2ArgumentString(InfoType::RGName));
+			auto rgCol = in.getIndexOfColname(impl::infos[InfoType::RGName].argument);
 
 			//read file and create read group entries
 			std::vector<std::string> tmp;
@@ -69,16 +96,16 @@ namespace impl{
 		const std::vector<std::string> header() const { return _header; }
 
 		bool hasInfo(InfoType Info) const noexcept {
-			auto it = find(_header.cbegin(), _header.cend(), infoType2ArgumentString(Info));
+			auto it = find(_header.cbegin(), _header.cend(), impl::infos[Info].argument);
 			return it != _header.cend();
 		}
 
 		size_t getInfoCol(InfoType Info) const {
-			auto it = find(_header.cbegin(), _header.cend(), infoType2ArgumentString(Info));
+			auto it = find(_header.cbegin(), _header.cend(), impl::infos[Info].argument);
 			if(it != _header.cend()){
 				return it - _header.cbegin();
 			}
-			DEVERROR("Info '", infoType2ArgumentString(Info), "' not present in read group info file!");
+			DEVERROR("Info '", impl::infos[Info].argument, "' not present in read group info file!");
 		}
 
 		size_t size() const noexcept {
@@ -92,7 +119,7 @@ namespace impl{
 		size_t getRow(const std::string & ReadGroupName) const {
 			auto it = std::find(_rgNames.cbegin(), _rgNames.cend(), ReadGroupName);
 			if(it == _rgNames.cend()){
-				UERROR("Read group '", ReadGroupName, "' missing in rea dgroup info file '", _filename, "'!");
+				UERROR("Read group '", ReadGroupName, "' missing in read group info file '", _filename, "'!");
 			}
 			return it - _rgNames.cbegin();
 		}
@@ -106,45 +133,45 @@ namespace impl{
 
 	void setAllReadGroups(InfoVec & Vec, InfoType Info, const std::string & Val){
 		for(auto& i : Vec){
-			i.set(Info, Val);
+			i[Info] = Val;
 		}
 	}
 
 	void setDefault(InfoVec & Vec, InfoType Info){
 		//use default values
 		logfile().list("Initializing ",
-				       infoType2Description(Info),
+					   impl::infos[Info].description,
 					   " with default value '",
-					   infoType2DefaultValue(Info),
+					   impl::infos[Info].defaults,
 					   "' for all read groups. (set with '",
 					   TReadGroupInfo::_RGInfoArgument,
 					   "' or '",
-					   infoType2ArgumentString(Info),
+					   impl::infos[Info].argument,
 					   "')");
-		setAllReadGroups(Vec, Info, infoType2DefaultValue(Info));
+		setAllReadGroups(Vec, Info, impl::infos[Info].defaults);
 	}
 
 	void setFromCommandLine(InfoVec & Vec, InfoType Info){
 		//read from command line
-		std::string arg = infoType2ArgumentString(Info);
+		const std::string& arg = impl::infos[Info].argument;
 		std::string val = parameters().getParameter<std::string>(arg);
-		logfile().list("Initializing ", infoType2Description(Info), " with '", val, "' for all read groups. (argument '", arg, "')");
+		logfile().list("Initializing ", impl::infos[Info].description, " with '", val, "' for all read groups. (argument '", arg, "')");
 		setAllReadGroups(Vec, Info, val);
 	}
 
 	void setFromRGInfoFile(InfoVec & Vec, InfoType Info, const TFileData & FileData){
 	 	 //present in file -> read for each read group
-		logfile().list("Initializing ", infoType2Description(Info), " from read group info file. (overwrite with '", infoType2ArgumentString(Info), "')");
+		logfile().list("Initializing ", impl::infos[Info].description, " from read group info file. (overwrite with '", impl::infos[Info].argument, "')");
 		auto col = FileData.getInfoCol(Info);
 		for(auto& r : Vec){
-			auto row = FileData.getRow(r.get(InfoType::RGName));
-			r.set(Info, FileData[row][col]);
+			auto row = FileData.getRow(r[InfoType::RGName]);
+			r[Info] = FileData[row][col];
 		}
 	}
 
 	void setPerReadGroup(InfoVec Vec, InfoType Info, const TFileData & FileData){
 		//check if info is provided on the command line -> overwrites file
-		std::string arg = infoType2ArgumentString(Info);
+		std::string arg = impl::infos[Info].argument;
 		if(parameters().parameterExists(arg)){
 			setFromCommandLine(Vec, Info);
 		} else {
@@ -159,7 +186,7 @@ namespace impl{
 
 	void setPerReadGroup(InfoVec Vec, InfoType Info){
 		//check if info is provided on the command line -> overwrites file
-		std::string arg = infoType2ArgumentString(Info);
+		std::string arg = impl::infos[Info].argument;
 		if(parameters().parameterExists(arg)){
 			setFromCommandLine(Vec, Info);
 		} else {
@@ -168,14 +195,14 @@ namespace impl{
 	}
 
 	void setAllPerReadGroup(InfoVec Vec, const TFileData & FileData){
-		for(int i = static_cast<int>(InfoType::seqType); i < static_cast<int>(InfoType::COUNT); i++){
-			setPerReadGroup(Vec, static_cast<InfoType>(i), FileData);
+		for(auto i = InfoType::min; i < InfoType::max; ++i){
+			setPerReadGroup(Vec, i, FileData);
 		}
 	}
 
 	void setAllPerReadGroup(InfoVec Vec){
-		for(int i = static_cast<int>(InfoType::seqType); i < static_cast<int>(InfoType::COUNT); i++){
-			setPerReadGroup(Vec, static_cast<InfoType>(i));
+		for(auto i = InfoType::min; i < InfoType::max; ++i){
+			setPerReadGroup(Vec, i);
 		}
 	}
 }
@@ -191,9 +218,9 @@ void TReadGroupInfo::readInfoAndMatchReadGroups(const BAM::TReadGroups & ReadGro
 	}
 
 	//create read group info entries
-	_info.reserve(ReadGroups.size());
-	for(auto r = ReadGroups.cbegin(); r != ReadGroups.cend(); ++r){
-		_info.push_back(r->name_ID);
+	_info.resize(ReadGroups.size());
+	for(auto i = 0; i < ReadGroups.size(); ++i){
+		_info[i][InfoType::RGName] = ReadGroups[i].name_ID;
 	}
 
 	//read file, if provided
@@ -208,13 +235,13 @@ void TReadGroupInfo::readInfoAndMatchReadGroups(const BAM::TReadGroups & ReadGro
 }
 
 // or: read info and fill TReadGroups (used for simulations)
-void TReadGroupInfo::readInfoAndCreateReadGroups(BAM::TReadGroups & ReadGroups){
+BAM::TReadGroups TReadGroupInfo::readInfoAndCreateReadGroups(){
 	if(!_info.empty()){
 		DEVERROR("Read group info already read!");
 	}
 
-	//empty read groups
-	ReadGroups.clear();
+	//create empty read groups
+	BAM::TReadGroups readGroups;
 
 	// Info is provided as a) a RG info file OR b) as the number of read groups and default arguments
 	if(parameters().parameterExists(_RGInfoArgument)){
@@ -225,7 +252,7 @@ void TReadGroupInfo::readInfoAndCreateReadGroups(BAM::TReadGroups & ReadGroups){
 		//create read groups
 		auto col = data.getInfoCol(InfoType::RGName);
 		for(auto i = 0; i < data.size(); i++){
-			ReadGroups.add(data[i][col]);
+			readGroups.add(data[i][col]);
 		}
 
 		//initialize from RG file or command line
@@ -241,12 +268,13 @@ void TReadGroupInfo::readInfoAndCreateReadGroups(BAM::TReadGroups & ReadGroups){
 
 		//create read groups
 		for (int i = 0; i < numRG; ++i) {
-			ReadGroups.add("SimReadGroup" + coretools::str::toString(i + 1));
+			readGroups.add("SimReadGroup" + coretools::str::toString(i + 1));
 		}
 
 		//initialize from command line or with default
 		impl::setAllPerReadGroup(_info);
 	}
+	return readGroups;
 }
 
 } //end namespace RGInfo

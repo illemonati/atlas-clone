@@ -177,7 +177,7 @@ public:
 	TSimulatorMutationtable(const GenotypeLikelihoods::TBaseProbabilities &baseFreq);
 	TSimulatorMutationtable(const GenotypeLikelihoods::TBaseProbabilities &baseFreq, double theta);
 	~TSimulatorMutationtable() = default;
-	const std::array<double, 4> operator[](genometools::Base base) const noexcept { return _mutTable[genometools::index(base)]; }
+	const std::array<double, 4> operator[](genometools::Base base) const noexcept { return _mutTable[coretools::index(base)]; }
 	void print();
 };
 

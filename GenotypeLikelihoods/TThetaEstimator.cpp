@@ -42,7 +42,7 @@ TGenotypeProbabilities getPGenotype(double expTheta, const TBaseProbabilities &b
 		Genotype hom = genotype(b, b);
 		lGeno[hom]   = baseFrequencies[b] * (expTheta + baseFrequencies[b].get() * (1.0 - expTheta));
 		// heterozygous genotypes
-		for (Base c = next(b); c < Base::max; ++c) {
+		for (Base c = coretools::next(b); c < Base::max; ++c) {
 			Genotype het = genotype(b, c);
 			lGeno[het]   = 2.0 * baseFrequencies[b].get() * baseFrequencies[c].get() * (1.0 - expTheta);
 		}
@@ -252,6 +252,7 @@ double TThetaEstimator::_calcFisherInfo(const TGenotypeProbabilities &pGenotype,
 bool TThetaEstimator::_NRAllParams() {
 	using namespace genometools;
 	using coretools::Probability;
+	using coretools::index;
 	// calculate substitution probabilities
 	_pGenotype = getPGenotype(theta);
 
@@ -445,7 +446,7 @@ void TThetaEstimator::_estimateConfidenceInterval() {
 		deriv_pGenotype[hom] =
 			(theta.baseFreq[k].get() * theta.baseFreq[k].get() - theta.baseFreq[k].get()) * theta.expTheta;
 		// heterozygous genotypes
-		for (Base l = next(k); l < Base::max; ++l) {
+		for (Base l = coretools::next(k); l < Base::max; ++l) {
 			const auto het       = genotype(k, l);
 			deriv_pGenotype[het] = 2.0 * theta.baseFreq[k].get() * theta.baseFreq[l].get() * theta.expTheta;
 		}
