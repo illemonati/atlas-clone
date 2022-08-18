@@ -32,20 +32,7 @@ bool isLikelyAModel(const std::string &RecalString) noexcept {
 }
 } // namespace impl
 
-TGenotypeLikelihoodCalculator::TGenotypeLikelihoodCalculator(){
-	_initialized = false;
-};
-
 TGenotypeLikelihoodCalculator::TGenotypeLikelihoodCalculator(const BAM::TReadGroups* ReadGroups){
-	_initialized = false;
-	init(ReadGroups);
-};
-
-void TGenotypeLikelihoodCalculator::init(const BAM::TReadGroups* ReadGroups){
-	if(_initialized){
-		throw "TGenotypeLikelihoodCalculator has already been initialized!";
-	}
-
 	//initialize PMD
 	//--------------
 	if(parameters().parameterExists("pmd")){
@@ -111,10 +98,9 @@ void TGenotypeLikelihoodCalculator::init(const BAM::TReadGroups* ReadGroups){
 			logfile().endIndent();
 		}
 	} else {
+		_sequencingErrorModels.initializeNoRecal(*ReadGroups);
 		logfile().list("Assuming that error rates in BAM files are correct. (use 'recal' to add recalibration)");
 	}
-
-	_initialized = true;
 };
 
 bool TGenotypeLikelihoodCalculator::hasPMD() const{

@@ -63,7 +63,7 @@ public:
 	// non-virtuals
 	void proposeNewParameters(const arma::mat &JxF, size_t &index, double lambda) noexcept;
 	void rejectProposedParameters() noexcept;
-	constexpr size_t firstParameterIndex() const noexcept { return _firstParameterIndex; };
+	constexpr size_t firstParameterIndex() const noexcept { return _firstParameterIndex; }
 
 	// virtuals
 	virtual size_t numParameters() const noexcept               = 0;
@@ -102,16 +102,16 @@ public:
 	TIntercept(size_t FirstParameterIndex, const std::vector<std::string> &Betas)
 		: TFunction(FirstParameterIndex) {
 		_initializeValues(Betas);
-	};
+	}
 
-	size_t numParameters() const noexcept override { return 1; };
+	size_t numParameters() const noexcept override { return 1; }
 
-	bool checkOrInitValueRange(const RecalEstimatorTools::TRecalDataTable &) noexcept override { return true; };
+	bool checkOrInitValueRange(const RecalEstimatorTools::TRecalDataTable &) noexcept override { return true; }
 
 	constexpr double intercept() const noexcept { return _beta; }
 	constexpr double &intercept() noexcept { return _beta; }
 
-	double getEta(const BAM::TSequencedBase &) const noexcept override { return _beta; };
+	double getEta(const BAM::TSequencedBase &) const noexcept override { return _beta; }
 
 	double getEta(const BAM::TSequencedBase &, std::vector<T1stDerivative> &der1,
 						  std::vector<T2ndDerivative> &) const noexcept override {
@@ -121,7 +121,7 @@ public:
 
 	double adjustParametersPostEstimation() noexcept override { return 0.; }
 
-	std::string typeString() const noexcept override { return std::string(name); };
+	std::string typeString() const noexcept override { return std::string(name); }
 };
 
 namespace impl {
@@ -254,7 +254,7 @@ public:
 		_initializeValues(betas);
 	}
 
-	size_t numParameters() const noexcept override { return O; };
+	size_t numParameters() const noexcept override { return O; }
 
 	bool checkOrInitValueRange(const RecalEstimatorTools::TRecalDataTable &dataTable) noexcept override {
 		if constexpr (Transformer::hasRange) {
@@ -263,7 +263,7 @@ public:
 							   [](auto v) { return v <= genometools::PhredIntProbability::max().get(); });
 		} else
 			return true;
-	};
+	}
 
 	double adjustParametersPostEstimation() noexcept override { return 0.; }
 
@@ -285,7 +285,7 @@ public:
 			}
 			return sum;
 		}
-	};
+	}
 
 	double getEta(const BAM::TSequencedBase &base, std::vector<T1stDerivative> &der1,
 						  std::vector<T2ndDerivative> &) const noexcept override {
@@ -364,7 +364,7 @@ private:
 
 	void _expandTmpStorage(size_t MaxValue) const {
 		for (size_t q = _tmpStorage.size(); q <= MaxValue; ++q) { _tmpStorage.emplace_back(_betas, q); }
-	};
+	}
 
 	double *_begin() noexcept override { return _betas.data(); }
 	double *_end() noexcept override { return _betas.data() + _betas.size(); }
@@ -380,9 +380,9 @@ public:
 		_expandTmpStorage(128);
 	}
 
-	size_t numParameters() const noexcept override { return 3; };
+	size_t numParameters() const noexcept override { return 3; }
 
-	bool checkOrInitValueRange(const RecalEstimatorTools::TRecalDataTable &) noexcept override { return true; };
+	bool checkOrInitValueRange(const RecalEstimatorTools::TRecalDataTable &) noexcept override { return true; }
 
 	double getEta(const BAM::TSequencedBase &base) const noexcept override {
 		const auto val = Covariate::extract(base);
@@ -430,7 +430,7 @@ private:
 		_oldBetas.resize(size);
 	}
 
-	bool _checkValueRange(size_t val) const noexcept { return val < numParameters(); };
+	bool _checkValueRange(size_t val) const noexcept { return val < numParameters(); }
 	void _adjustValueRanges(const std::vector<uint16_t> &values) {
 		// initialize with maximum
 		using coretools::str::toString;
@@ -461,7 +461,7 @@ public:
 		_initializeValues(betas);
 	}
 
-	size_t numParameters() const noexcept override { return _betas.size(); };
+	size_t numParameters() const noexcept override { return _betas.size(); }
 
 	bool checkOrInitValueRange(const RecalEstimatorTools::TRecalDataTable &dataTable) override {
 		const auto values = Covariate::range(dataTable);
@@ -476,11 +476,11 @@ public:
 		return true;
 	}
 
-	double adjustParametersPostEstimation() noexcept override { return normalizeParameters(_betas); };
+	double adjustParametersPostEstimation() noexcept override { return normalizeParameters(_betas); }
 
 	double getEta(const BAM::TSequencedBase &base) const noexcept override {
 		return _betas[Covariate::extract(base)];
-	};
+	}
 
 	double getEta(const BAM::TSequencedBase &base, std::vector<T1stDerivative> &der1,
 						  std::vector<T2ndDerivative> &) const noexcept override {
@@ -495,39 +495,36 @@ public:
 //--------------------------------------------------------------
 // A term per discrete values as indicated with a map
 //--------------------------------------------------------------
-struct TIndexMapEntry {
-	uint16_t index = 0;
-	bool used      = false;
-};
 
 template<typename Covariate> class TIndexedEmpiric final : public TFunction {
 private:
-	std::vector<double> _betas;            // betas of the model
-	std::vector<double> _oldBetas;         // use during estimation
-	std::vector<TIndexMapEntry> _indexMap; // maps value to parameter index
+	std::vector<double> _betas;    // betas of the model
+	std::vector<double> _oldBetas; // use during estimation
+	std::vector<int> _indexMap;    // maps value to parameter index
 
-	void _resize(size_t NumParameters) {
-		_betas.resize(NumParameters);
-		_oldBetas.resize(NumParameters);
+	void _resizeBetas(size_t n) {
+		_betas.resize(n);
+		_oldBetas.resize(n);
 	}
 
 	void _initMapFromVector(const std::vector<uint16_t> &values) {
+		_indexMap.clear();
+		if (values.empty()) return;
+
 		// find largest value
 		const auto max = std::max((uint16_t)_indexMap.size(), *std::max_element(values.begin(), values.end()));
 
 		// create map
-		_indexMap.clear();
-		_indexMap.resize(max + 1);
+		_indexMap.resize(max + 1, -1);
 
 		for (size_t i = 0; i < values.size(); ++i) {
-			_indexMap[values[i]].index = i;
-			_indexMap[values[i]].index = true;
+			_indexMap[values[i]] = i;
 		}
 	}
 
-	bool _checkValueRange(uint16_t val) const noexcept { return val < _indexMap.size() && _indexMap[val].used; };
+	bool _checkValueRange(uint16_t val) const noexcept { return val < _indexMap.size() && (_indexMap[val] >= 0); }
 	void _adjustValueRanges(const std::vector<uint16_t> &values) {
-		_resize(values.size());
+		_resizeBetas(values.size());
 		_initMapFromVector(values);
 	}
 
@@ -559,7 +556,7 @@ public:
 		_initMapFromVector(values);
 	}
 
-	size_t numParameters() const noexcept override { return _betas.size(); };
+	size_t numParameters() const noexcept override { return _betas.size(); }
 
 	bool checkOrInitValueRange(const RecalEstimatorTools::TRecalDataTable &dataTable) override {
 		const auto values = Covariate::range(dataTable);
@@ -577,18 +574,15 @@ public:
 		return normalizeParameters(_betas);
 	}
 
-	;
-
 	double getEta(const BAM::TSequencedBase &base) const noexcept override {
-		return _betas[_indexMap[Covariate::extract(base)].index];
-	};
+		return _betas[_indexMap[Covariate::extract(base)]];
+	}
 
 	double getEta(const BAM::TSequencedBase &base, std::vector<T1stDerivative> &der1,
 				  std::vector<T2ndDerivative> &) const noexcept override {
 		const auto val = Covariate::extract(base);
-		der1.emplace_back(firstParameterIndex() + _indexMap[Covariate::extract(base)].index, 1.0);
-		return _betas[_indexMap[val].index];
-		
+		der1.emplace_back(firstParameterIndex() + _indexMap[Covariate::extract(base)], 1.0);
+		return _betas[_indexMap[val]];
 	}
 
 	std::string typeString() const noexcept override { return std::string(Covariate::name).append(1, ':').append(name); }

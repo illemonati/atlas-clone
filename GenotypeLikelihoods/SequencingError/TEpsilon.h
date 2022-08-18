@@ -50,10 +50,9 @@ class TEpsilon {
 												   std::vector<T2ndDerivative> &der2) const noexcept;
 
 	template<bool isInvariant> static constexpr auto _makeGenotype() {
-		using coretools::index;
-		using genometools::Base;
 		using genometools::Genotype;
 		if constexpr (isInvariant) {
+			using genometools::Base;
 			std::array<Genotype, 4> ar{};
 			for (size_t i = 0; i < ar.size(); ++i) {
 				const auto a = Base(i);

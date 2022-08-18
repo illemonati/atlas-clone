@@ -31,9 +31,9 @@ namespace SequencingError {
 //--------------------------------------------------------------------------
 class TModels {
 private:
-	std::vector<std::array<std::unique_ptr<TModelRecal>, 2>> _models;
-	TModelNoRecal _noRecal;
+	std::vector<std::array<std::unique_ptr<TModel>, 2>> _models;
 public:
+	void initializeNoRecal(const BAM::TReadGroups &ReadGroups);
 	void initialize(const std::string &RecalString, const std::string &RhoString, const BAM::TReadGroups &ReadGroups);
 	void initialize(const std::vector<std::string> & RecalStringPerReadGroup, const std::vector<std::string> & RhoStringPerReadGroup, const BAM::TReadGroups &ReadGroups);
 	void initializeFromFile(const std::string &Filename, const BAM::TReadGroups &ReadGroups);
@@ -42,23 +42,19 @@ public:
 
 	// access models
 	TModel &operator()(uint16_t ReadGroupIndex, bool IsSecondMate) noexcept {
-		if (_models.size() > ReadGroupIndex && _models[ReadGroupIndex][IsSecondMate])
-			return *_models[ReadGroupIndex][IsSecondMate];
-		return _noRecal;
+		return *_models[ReadGroupIndex][IsSecondMate];
 	}
 
 	const TModel &operator()(uint16_t ReadGroupIndex, bool IsSecondMate) const noexcept {
-		if (_models.size() > ReadGroupIndex && _models[ReadGroupIndex][IsSecondMate])
-			return *_models[ReadGroupIndex][IsSecondMate];
-		return _noRecal;
+		return *_models[ReadGroupIndex][IsSecondMate];
 	}
 
-	TModelRecal *getRecal(uint16_t ReadGroupIndex, bool IsSecondMate) noexcept {
-		return _models[ReadGroupIndex][IsSecondMate].get();
+	bool recalibrationChangesQualities() const noexcept {
+		for (const auto& m: _models) {
+			if (m[0]->recalibrates() || m[1]->recalibrates()) return true;
+		}
+		return false;
 	}
-
-	size_t numModels() const noexcept { return _models.size(); };
-	bool recalibrationChangesQualities() const noexcept { return !_models.empty(); }
 
 	// calculate error rates
 	coretools::Probability getErrorRate(const BAM::TSequencedBase &base) const noexcept;

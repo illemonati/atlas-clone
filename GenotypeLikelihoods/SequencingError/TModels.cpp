@@ -32,6 +32,15 @@ using coretools::instances::logfile;
 // TModels
 //--------------------------------------------------------------------
 
+
+void TModels::initializeNoRecal(const BAM::TReadGroups &ReadGroups) {
+	_models.resize(ReadGroups.size());
+	for (auto &m : _models) {
+		m[0] = std::make_unique<TModelNoRecal>();
+		m[1] = std::make_unique<TModelNoRecal>();
+	}
+}
+
 void TModels::initialize(const std::string &RecalString, const std::string &RhoString,
 					const BAM::TReadGroups &ReadGroups) {
 	if (!_models.empty())
@@ -84,6 +93,13 @@ void TModels::initializeFromFile(const std::string &Filename, const BAM::TReadGr
 			}
 		}
 	}
+
+	// Fill remaining with NoRecal
+	for (auto &m : _models) {
+		if (!m[0]) m[0] = std::make_unique<TModelNoRecal>();
+		if (!m[1]) m[1] = std::make_unique<TModelNoRecal>();
+	}
+
 	logfile().done();
 }
 
@@ -103,13 +119,11 @@ void TModels::checkReadGroups(const BAM::TReadGroups &ReadGroups, std::vector<ui
 // functions to get error rates
 //-------------------------------------------------------
 Probability TModels::getErrorRate(const BAM::TSequencedBase &base) const noexcept {
-	if (!_models.empty()) return _models[base.readGroupID][base.isSecondMate()]->getErrorRate(base);
-	return _noRecal.getErrorRate(base);
+	return _models[base.readGroupID][base.isSecondMate()]->getErrorRate(base);
 }
 
 genometools::PhredIntProbability TModels::getPhredInt(const BAM::TSequencedBase &base) const noexcept {
-	if (!_models.empty()) return _models[base.readGroupID][base.isSecondMate()]->getPhredInt(base);
-	return _noRecal.getPhredInt(base);
+	return _models[base.readGroupID][base.isSecondMate()]->getPhredInt(base);
 }
 
 void TModels::recalibrate(BAM::TSequencedBase &base) const noexcept {
@@ -121,9 +135,7 @@ void TModels::recalibrate(std::vector<BAM::TSequencedBase> &bases) const noexcep
 }
 
 TBaseLikelihoods TModels::getBaseLikelihoods(const BAM::TSequencedBase &base) const noexcept {
-	if (!_models.empty())
-		return _models[base.readGroupID][base.isSecondMate()]->getBaseLikelihoods(base);
-	return _noRecal.getBaseLikelihoods(base);
+	return _models[base.readGroupID][base.isSecondMate()]->getBaseLikelihoods(base);
 }
 
 // functions to write file
