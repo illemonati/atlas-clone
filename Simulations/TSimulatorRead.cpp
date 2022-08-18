@@ -51,19 +51,19 @@ TSimulatorRead::TSimulatorRead(const BAM::TReadGroup & ReadGroup, const TReadGro
 		if(sc.find(':') == std::string::npos){
 			//one distribution for both
 			if(sc != "-" && sc != "fixed(0)"){
-				_softClipDist3 = std::make_unique(sc);
-				_softClipDist5 = std::make_unique(sc);
+				_softClipDist3 = std::make_unique<TCategoricalDistribution<uint16_t>>(sc);
+				_softClipDist5 = std::make_unique<TCategoricalDistribution<uint16_t>>(sc);
 			} else {
 				std::string sc3 = coretools::str::extractBefore(sc, ":");
 				sc.erase(0,1);
-				_softClipDist3 = std::make_unique(sc3);
-				_softClipDist5 = std::make_unique(sc);
+				_softClipDist3 = std::make_unique<TCategoricalDistribution<uint16_t>>(sc3);
+				_softClipDist5 = std::make_unique<TCategoricalDistribution<uint16_t>>(sc);
 			}
 		}
 	}
 }
 
-double TSimulatorRead::_calcMeanReadLength(const uint16_t maxLen) {
+double TSimulatorRead::_calcMeanReadLength(const uint16_t maxLen) const {
 	// if fragments are always shorter than _numcycles, return mean fragment length
 	if(_fragmentLengthDistr.max() < maxLen){
 		return _fragmentLengthDistr.mean();
@@ -223,7 +223,7 @@ TSimulatorSingleEndRead::TSimulatorSingleEndRead(const BAM::TReadGroup & ReadGro
 			BAM::RGInfo::infos[InfoType::numCycles].description + " must be within [1,65535].", _numCycles);
 }
 
-double TSimulatorSingleEndRead::meanReadLength() {
+double TSimulatorSingleEndRead::meanReadLength() const {
 	return _calcMeanReadLength(_numCycles);
 }
 
@@ -275,7 +275,7 @@ TSimulatorPairedEndReads::TSimulatorPairedEndReads(const BAM::TReadGroup & ReadG
 	_mateFlags.setIsReverseStrand(true);
 }
 
-double TSimulatorSingleEndRead::meanReadLength() {
+double TSimulatorPairedEndReads::meanReadLength() const {
 	return _calcMeanReadLength(_numCycles[0] + _numCycles[1]);
 }
 
@@ -283,7 +283,6 @@ void TSimulatorPairedEndReads::simulate(const std::vector<Base>& haplotype, uint
 	// pick a fragment
 	uint16_t fragmentLength = _fragmentLengthDistr.sample();
 	bool readIsContaminated = _simulateContamination();
-	uint8_t mappingQual = _mappingQualityDist.sample();
 
 	// Fill FIRST mate
 	//------------------
@@ -303,7 +302,7 @@ void TSimulatorPairedEndReads::simulate(const std::vector<Base>& haplotype, uint
 	if(fragmentLength <= _numCycles[1]){
 		matePos = pos;
 	} else {
-		matePos = pos + fragmentLength - _numCycles[1];
+		matePos = pos + (uint32_t) fragmentLength - (uint32_t) _numCycles[1];
 	}
 
 	// create new alignment

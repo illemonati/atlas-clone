@@ -68,7 +68,7 @@ protected:
 	BAM::TAlignment _alignment;
 
 	// general functions
-	double _calcMeanReadLength(const uint16_t maxLen);
+	double _calcMeanReadLength(const uint16_t maxLen) const;
 	std::string _getNextReadName();
 	void _simulateAlignmentDetails(uint32_t refID, uint32_t pos);
 	bool _simulateContamination();
@@ -96,7 +96,7 @@ public:
 	//getters
 	std::string name() const { return _readGroup.name_ID; };
 	virtual std::string type() const = 0;
-	virtual double meanReadLength() const = 0;
+	[[nodiscard]] virtual double meanReadLength() const = 0;
 	double maxFragmentLength() {
 		return _fragmentLengthDistr.max();
 	};
@@ -118,7 +118,7 @@ public:
 
 	std::string type() const {return "single-end";}
 	void simulate(const std::vector<Base>& haplotype, uint32_t refID, uint32_t pos, TSimulatorBamFile &bamFile);
-	double meanReadLength() const override;
+	[[nodiscard]] double meanReadLength() const override;
 };
 
 //-------------------------------
@@ -134,13 +134,13 @@ private:
 	std::vector<BAM::TAlignment> bamAlignmentSecondMates;
 
 public:
-	TSimulatorPairedEndReads(const BAM::TReadGroup &, const uint16_t NumCyclesFirst, const uint16_t NumCyclesSecond);
+	TSimulatorPairedEndReads(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo);
 	~TSimulatorPairedEndReads() = default;
 
 	void simulate(const std::vector<genometools::Base>& haplotype, uint32_t refID, uint32_t pos, TSimulatorBamFile &bamFile) override;
 	void writeUnwrittenAlignments(long pos, TSimulatorBamFile &bamFile) override;
 	std::string type() const override {return "paired-end";} 
-	double meanReadLength() const override;
+	[[nodiscard]] double meanReadLength() const override;
 };
 
 }; // namespace Simulations
