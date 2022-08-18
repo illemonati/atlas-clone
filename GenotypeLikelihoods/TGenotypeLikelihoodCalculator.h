@@ -56,7 +56,6 @@ public:
 
 class TGenotypeLikelihoodCalculator{
 protected:
-	bool _initialized;
 	//TGenotypeLikelihoodCalculator_simple _calculator;
 
 	//TGenotypeDistribution _genotypeDistribution;
@@ -64,11 +63,8 @@ protected:
 	SequencingError::TModels _sequencingErrorModels;
 
 public:
-	TGenotypeLikelihoodCalculator();
 	TGenotypeLikelihoodCalculator(const BAM::TReadGroups* ReadGroups);
-	~TGenotypeLikelihoodCalculator() = default;
 
-	void init(const BAM::TReadGroups* ReadGroups);
 	const SequencingError::TModels& getSequencingErrorModels() const { return _sequencingErrorModels; };
 	SequencingError::TModels& getSequencingErrorModelsMutable() { return _sequencingErrorModels; };
 	const TPostMortemDamage& getPostMortemDamageModels() const { return _pmdModels; };

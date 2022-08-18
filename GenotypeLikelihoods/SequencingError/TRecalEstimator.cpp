@@ -72,7 +72,8 @@ void TModelVectorForEstimation::reset(TModels &SequencingErrorModels,
 				// check if model is estimatable
 				if (SequencingErrorModels(r, mate).estimatable()) {
 					// copy model and update index
-					auto model = SequencingErrorModels.getRecal(r, mate);
+					TModelRecal *model = reinterpret_cast<TModelRecal*>(&SequencingErrorModels(r, mate));
+					//auto model = SequencingErrorModels.getRecal(r, mate);
 					model->checkOrInit(table);
 					_models.push_back(model);
 					modelStati[r][MS::copied].set(mate);
