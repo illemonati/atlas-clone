@@ -33,7 +33,12 @@ using genometools::Base;
 // TSimulatorReference
 //---------------------------------------------------
 
-TSimulatorReference::TSimulatorReference(std::string Filename) : _filename(Filename) {
+TSimulatorReference::TSimulatorReference(std::string Filename){
+	open(Filename);
+}
+
+void TSimulatorReference::open(std::string Filename){
+	_filename = Filename;
 	// open FASTA file for reference sequences
 	logfile().list("Will write reference sequence to '" + _filename + "'.");
 	_fasta.open(_filename.c_str());
@@ -76,6 +81,9 @@ void TSimulatorReference::_allocateStorage(long length) {
 }
 
 void TSimulatorReference::setChr(std::string ChrName, long ChrLength) {
+	if(!_fasta){
+		DEVERROR("Fasta file not opened yet!");
+	}
 	// write if not yet written
 	if (_chrName != "" && _needsWriting) _writeRefToFasta();
 

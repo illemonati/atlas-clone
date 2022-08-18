@@ -51,8 +51,10 @@ private:
 	void _writeRefToFasta();
 
 public:
+	TSimulatorReference() = default;
 	TSimulatorReference(std::string Filename);
 	~TSimulatorReference();
+	void open(std::string Filename);
 	void setChr(std::string ChrName, long ChrLength);
 	//	void simulateReferenceSequenceCurChromosome(float* cumulBaseFreq);
 

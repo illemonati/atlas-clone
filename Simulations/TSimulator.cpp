@@ -167,11 +167,35 @@ void makeChromosomes(TChromosomes & chs, std::vector<uint32_t> & depths){
 // TSimulator
 //---------------------------------------------------------
 
-TSimulator::TSimulator(const std::string &method)
-    : _outname(parameters().getParameterWithDefault<std::string>("out", "ATLAS_simulations")),
-      _writeTrueGenotypes(parameters().parameterExists("writeTrueGenotypes")),
-      _writeVariantInvariantBedFiles(parameters().parameterExists("writeVariantBED")), _reference(_outname + ".fasta")
-{
+TSimulator::TSimulator(const std::string &method){
+	// output settings
+	logfile().startIndent("Output settings:");
+	if(parameters().parameterExists("out")){
+		_outname = parameters().getParameter<std::string>("out");
+		logfile().list("Will write output files with tag '" + _outname + "'. (parameter 'out')");
+	} else {
+		_outname = "ATLAS_simulations";
+		logfile().list("Will write output files with tag '" + _outname + "'. (set with 'out')");
+	}
+
+	_writeTrueGenotypes = parameters().parameterExists("writeTrueGenotypes");
+	if(_writeTrueGenotypes){
+		logfile().list("Will write true genotypes to file. (parameter 'writeTrueGenotypes')");
+	} else {
+		logfile().list("Will NOT write true genotypes to file. (request with 'writeTrueGenotypes')");
+	}
+
+	_writeVariantInvariantBedFiles = parameters().parameterExists("writeVariantBED");
+	if(_writeVariantInvariantBedFiles){
+		logfile().list("Will write BED files with variant and invariant positions. (parameter 'writeVariantBED')");
+	} else {
+		logfile().list("Will NOT write BED files with variant and invariant positions. (request with 'writeVariantBED')");
+	}
+
+	_reference.open(_outname + ".fasta");
+
+	logfile().endIndent();
+
 	//parse sequencing depth
 	makeChromosomes(_chromosomes, _seqDepth);
 	_haploSimulator = makeHaploSimulator(method, _chromosomes);
@@ -233,8 +257,6 @@ void TSimulator::runSimulations() {
 
 TBAMSimulator::TBAMSimulator(const std::string &method) : TSimulator(method) {
 	using genometools::Base;
-	// depth
-	logfile().list("Will write output files with tag '" + _outname + "'.");
 	_initializeReadSimulator();
 
 	// open bam files
@@ -307,6 +329,10 @@ void TBAMSimulator::_initializeReadSimulator() {
 	// A) initialize read groups from RG Info / Command line
 	TReadGroupInfo RGinfo;
 	_readGroups = RGinfo.readInfoAndCreateReadGroups();
+
+	using BAM::RGInfo::InfoType;
+	RGinfo.parse(InfoType::seqType, InfoType::numCycles, InfoType::fragmentLengthDistr, InfoType::baseQualityDistr, InfoType::mappingQualityDistr, InfoType::softClipDistr);
+
 	_initializeReadGroups(RGinfo);
 
 	// B) initialize PMD

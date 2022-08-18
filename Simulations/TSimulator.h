@@ -158,13 +158,14 @@ public:
 	void run() {
 		using namespace coretools::instances;
 		// initialize simulator
-		std::unique_ptr<THaplotypeSimulator> haploSimulator;
 		auto method = parameters().getParameterWithDefault<std::string>("type", "one");
 
 		if (parameters().parameterExists("vcf")) {
+			logfile().startIndent("Simulating VCF Files:");
 			auto simulator = TVCFSimulator{method};
 			simulator.runSimulations();
 		} else { // default: BAM simulator
+			logfile().startIndent("Simulating BAM Files:");
 			auto simulator = TBAMSimulator{method};
 			simulator.runSimulations();
 		}

@@ -18,95 +18,70 @@ using coretools::instances::logfile;
 
 
 namespace BAM {
-
 namespace RGInfo{
 
+TFileData::TFileData(const std::string & Filename){
+	//open RG file
+	_filename = Filename;
+	logfile().listFlush("Reading read group info from file '" + _filename + "' ... ");
+	coretools::TInputFile in(Filename, coretools::TFile_Filetype::header, "\t", "//");
+	_header = in.header();
+
+	//extract RG column
+	//check that file has a column named "readGroup"
+	if(!in.hasColname(infos[InfoType::RGName].argument)){
+		UERROR("Column '", infos[InfoType::RGName].argument, "' missing in file '", Filename, "'!");
+	}
+	auto rgCol = in.getIndexOfColname(infos[InfoType::RGName].argument);
+
+	//read file and create read group entries
+	std::vector<std::string> tmp;
+	while (in.read(tmp)) {
+		_fileData.push_back(tmp);
+		_rgNames.push_back(tmp[rgCol]);
+	}
+	logfile().done();
+	logfile().conclude("Found ", _rgNames.size(), " read groups.");
+
+	// ensure names are unique
+	std::vector<std::string> rgNames = _rgNames;
+	sort(rgNames.begin(), rgNames.end());
+	if(std::adjacent_find(rgNames.cbegin(), rgNames.cend()) != rgNames.cend()){
+		DEVERROR("Duplicate read group names in file '", Filename, "'!");
+	}
+}
+
+bool TFileData::hasInfo(InfoType Info) const noexcept {
+	auto it = find(_header.cbegin(), _header.cend(), infos[Info].argument);
+	return it != _header.cend();
+}
+
+size_t TFileData::getInfoCol(InfoType Info) const {
+	auto it = find(_header.cbegin(), _header.cend(), infos[Info].argument);
+	if(it != _header.cend()){
+		return it - _header.cbegin();
+	}
+	DEVERROR("Info '", infos[Info].argument, "' not present in read group info file!");
+}
+
+size_t TFileData::getRow(const std::string & ReadGroupName) const {
+	auto it = std::find(_rgNames.cbegin(), _rgNames.cend(), ReadGroupName);
+	if(it == _rgNames.cend()){
+		UERROR("Read group '", ReadGroupName, "' missing in read group info file '", _filename, "'!");
+	}
+	return it - _rgNames.cbegin();
+}
+
+//------------------------------------------------
+// Functions to initialize: only visible in cpp file
+//------------------------------------------------
 namespace impl{
-	//------------------------------------------------
-	// class / functions to initialize: only visible in cpp file
-	//------------------------------------------------
-
-	class TFileData{
-	private:
-		std::string _filename;
-		std::vector< std::vector<std::string> > _fileData;
-		std::vector<std::string> _header;
-		std::vector<std::string> _rgNames;
-
-	public:
-
-		TFileData(const std::string & Filename){
-			//open RG file
-			_filename = Filename;
-			logfile().listFlush("Reading read group info from file '" + _filename + "' ... ");
-			coretools::TInputFile in(Filename, coretools::TFile_Filetype::header, "\t", "//");
-			_header = in.header();
-
-			//extract RG column
-			//check that file has a column named "readGroup"
-			if(!in.hasColname(infos[InfoType::RGName].argument)){
-				UERROR("Column '", infos[InfoType::RGName].argument, "' missing in file '", Filename, "'!");
-			}
-			auto rgCol = in.getIndexOfColname(infos[InfoType::RGName].argument);
-
-			//read file and create read group entries
-			std::vector<std::string> tmp;
-			while (in.read(tmp)) {
-				_fileData.push_back(tmp);
-				_rgNames.push_back(tmp[rgCol]);
-			}
-			logfile().done();
-			logfile().conclude("Found ", _rgNames.size(), " read groups.");
-
-			// ensure names are unique
-			std::vector<std::string> rgNames = _rgNames;
-			sort(rgNames.begin(), rgNames.end());
-			if(std::adjacent_find(rgNames.cbegin(), rgNames.cend()) != rgNames.cend()){
-				DEVERROR("Duplicate read group names in file '", Filename, "'!");
-			}
-		}
-
-		const std::vector<std::string> header() const { return _header; }
-
-		bool hasInfo(InfoType Info) const noexcept {
-			auto it = find(_header.cbegin(), _header.cend(), infos[Info].argument);
-			return it != _header.cend();
-		}
-
-		size_t getInfoCol(InfoType Info) const {
-			auto it = find(_header.cbegin(), _header.cend(), infos[Info].argument);
-			if(it != _header.cend()){
-				return it - _header.cbegin();
-			}
-			DEVERROR("Info '", infos[Info].argument, "' not present in read group info file!");
-		}
-
-		size_t size() const noexcept {
-			return _fileData.size();
-		}
-
-		const std::vector<std::string> operator[](size_t row) const noexcept {
-			return _fileData[row];
-		}
-
-		size_t getRow(const std::string & ReadGroupName) const {
-			auto it = std::find(_rgNames.cbegin(), _rgNames.cend(), ReadGroupName);
-			if(it == _rgNames.cend()){
-				UERROR("Read group '", ReadGroupName, "' missing in read group info file '", _filename, "'!");
-			}
-			return it - _rgNames.cbegin();
-		}
-	};
-
-	//------------------------------------------------
-	// Functions to set info
-	//------------------------------------------------
 
 	using InfoVec = std::vector<TReadGroupInfoEntry>;
 
 	void setAllReadGroups(InfoVec & Vec, InfoType Info, const std::string & Val){
 		for(auto& i : Vec){
-			i[Info] = Val;
+			i.set(Info, Val);
 		}
 	}
 
@@ -138,10 +113,10 @@ namespace impl{
 		auto col = FileData.getInfoCol(Info);
 		for(auto& r : Vec){
 			auto row = FileData.getRow(r[InfoType::RGName]);
-			r[Info] = FileData[row][col];
+			r.set(Info, FileData[row][col]);
 		}
 	}
-
+/*
 	void setPerReadGroup(InfoVec Vec, InfoType Info, const TFileData & FileData){
 		//check if info is provided on the command line -> overwrites file
 		std::string arg = infos[Info].argument;
@@ -166,17 +141,13 @@ namespace impl{
 			setDefault(Vec, Info);
 		}
 	}
-
-	void setAllPerReadGroup(InfoVec Vec, const TFileData & FileData){
+*/
+	InfoType argument2InfoType(const std::string & Argument){
 		for(auto i = InfoType::min; i < InfoType::max; ++i){
-			setPerReadGroup(Vec, i, FileData);
+			if(infos[i].argument == Argument)
+				return i;
 		}
-	}
-
-	void setAllPerReadGroup(InfoVec Vec){
-		for(auto i = InfoType::min; i < InfoType::max; ++i){
-			setPerReadGroup(Vec, i);
-		}
+		return InfoType::max;
 	}
 }
 
@@ -191,20 +162,12 @@ void TReadGroupInfo::readInfoAndMatchReadGroups(const BAM::TReadGroups & ReadGro
 	}
 
 	//create read group info entries
-	_info.resize(ReadGroups.size());
+	_info.reserve(ReadGroups.size());
 	for(auto i = 0; i < ReadGroups.size(); ++i){
-		_info[i][InfoType::RGName] = ReadGroups[i].name_ID;
+		_info.push_back(ReadGroups[i].name_ID);
 	}
-
-	//read file, if provided
-	if(parameters().parameterExists(_RGInfoArgument)){
-		impl::TFileData data(parameters().getParameter<std::string>(_RGInfoArgument));
-
-		//initialize from RG file or command line
-		impl::setAllPerReadGroup(_info, data);
-	} else {
-		impl::setAllPerReadGroup(_info);
-	}
+	_parsed[InfoType::RGName];
+	_readFileIfProvided();
 }
 
 // or: read info and fill TReadGroups (used for simulations)
@@ -217,19 +180,14 @@ BAM::TReadGroups TReadGroupInfo::readInfoAndCreateReadGroups(){
 	BAM::TReadGroups readGroups;
 
 	// Info is provided as a) a RG info file OR b) as the number of read groups and default arguments
-	if(parameters().parameterExists(_RGInfoArgument)){
+	_readFileIfProvided();
+	if(_fileData){
 		// create RGs from RG info file
-		// read RG info file
-		impl::TFileData data(parameters().getParameter<std::string>(_RGInfoArgument));
-
 		//create read groups
-		auto col = data.getInfoCol(InfoType::RGName);
-		for(size_t i = 0; i < data.size(); i++){
-			readGroups.add(data[i][col]);
+		auto col = _fileData->getInfoCol(InfoType::RGName);
+		for(size_t i = 0; i < _fileData->size(); i++){
+			readGroups.add((*_fileData)[i][col]);
 		}
-
-		//initialize from RG file or command line
-		impl::setAllPerReadGroup(_info, data);
 	} else {
 		// create identical read groups from command line
 		const auto numRG = parameters().getParameterWithDefault<coretools::StrictlyPositive<int>>(_numRGArgument, 1);
@@ -243,11 +201,119 @@ BAM::TReadGroups TReadGroupInfo::readInfoAndCreateReadGroups(){
 		for (int i = 0; i < numRG; ++i) {
 			readGroups.add("SimReadGroup" + coretools::str::toString(i + 1));
 		}
-
-		//initialize from command line or with default
-		impl::setAllPerReadGroup(_info);
 	}
+	_parsed[InfoType::RGName];
 	return readGroups;
+}
+
+void TReadGroupInfo::_readFileIfProvided(){
+	if(parameters().parameterExists(_RGInfoArgument)){
+		_fileData = std::make_unique<TFileData>(parameters().getParameter<std::string>(_RGInfoArgument));
+	}
+}
+
+void TReadGroupInfo::parse(const InfoType Info){
+	//check if info is provided on the command line -> overwrites file
+	std::string arg = infos[Info].argument;
+	if(parameters().parameterExists(arg)){
+		impl::setFromCommandLine(_info, Info);
+	} else {
+		//check if provided in file
+		if(_fileData && _fileData->hasInfo(Info)){
+			impl::setFromRGInfoFile(_info, Info, *_fileData);
+		} else {
+			impl::setDefault(_info, Info);
+		}
+	}
+	_parsed[Info];
+}
+
+void TReadGroupInfo::set(const uint16_t RGIndex, const InfoType Info, const std::string & Value){
+	//check if info was already parsed. Else, add
+	_parsed[Info] = true;
+
+	//now add to specific
+	_info[RGIndex].set(Info, Value);
+}
+
+void TReadGroupInfo::write(const std::string & Filename){
+	//write RG info file
+	if(_fileData){
+		// keep order of original file and add new columns at end
+
+		// 1) compile header and open file
+		// keep original header without RGName columns (we will put that first)
+		std::vector<std::string> header;
+		std::vector<std::string> fileHeader = _fileData->header();
+		header.push_back(infos[InfoType::RGName].argument);
+		for(auto& s : fileHeader){
+			if(s != infos[InfoType::RGName].argument){
+				 header.push_back(s);
+			 }
+		}
+
+		//add novel columns
+		for(auto i = InfoType::min; i < InfoType::max; ++i){
+			if(_parsed[i] && (!_fileData || !_fileData->hasInfo(i))){
+				header.push_back(infos[i].argument);
+			}
+		}
+
+		//open file
+		coretools::TOutputFile out(Filename, header);
+
+		// 2) figure out what to write from where
+		std::vector<bool> colFromFile(header.size());
+		std::vector<InfoType> colInfoType(header.size());
+		std::vector<size_t> colInFile(header.size());
+
+		for(size_t c = 0; c < header.size(); ++c){
+			auto i = impl::argument2InfoType(header[c]);
+			if(i != InfoType::max && _parsed[i]){
+				colFromFile[c] = false;
+				colInfoType[c] = i;
+			} else {
+				colFromFile[c] = true;
+				colInFile[c] = std::find(fileHeader.begin(), fileHeader.end(), header[c]) - fileHeader.begin();
+			}
+		}
+
+		// 3) write file
+		for(auto rg : _info){
+			//find RG info in file
+			size_t row = _fileData->getRow(rg[InfoType::RGName]);
+			for(size_t c = 0; c < header.size(); ++c){
+				if(colFromFile[c]){
+					out << (*_fileData)[row][colInFile[c]];
+				} else {
+					out << rg[colInfoType[c]];
+				}
+			}
+			out << std::endl;
+		}
+	} else {
+		//no file was written: use order of enum
+		std::vector<std::string> header;
+		std::vector<InfoType> colInfoType;
+
+		for(auto i = InfoType::min; i < InfoType::max; ++i){
+			if(_parsed[i]){
+				header.push_back(infos[i].argument);
+				colInfoType.push_back(i);
+			}
+		}
+
+		//open file
+		coretools::TOutputFile out(Filename, header);
+
+		//and write
+		for(auto rg : _info){
+			for(size_t c = 0; c < header.size(); ++c){
+				out << rg[colInfoType[c]];
+			}
+			out << std::endl;
+		}
+	}
 }
 
 } //end namespace RGInfo

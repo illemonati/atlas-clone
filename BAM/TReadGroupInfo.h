@@ -17,6 +17,7 @@
 #include "TLog.h"
 #include "TReadGroups.h"
 #include "TPostMortemDamage.h"
+#include "TError.h"
 
 namespace BAM {
 
@@ -55,37 +56,69 @@ inline const coretools::TStrongArray<TInfo, InfoType> infos = []() {
 }();
 
 //------------------------------------------------
+// TFileData
+//------------------------------------------------
+class TFileData{
+private:
+	std::string _filename;
+	std::vector< std::vector<std::string> > _fileData;
+	std::vector<std::string> _header;
+	std::vector<std::string> _rgNames;
+
+public:
+	TFileData(const std::string & Filename);
+	const std::vector<std::string> header() const { return _header; }
+	bool hasInfo(InfoType Info) const noexcept;
+	size_t getInfoCol(InfoType Info) const;
+	size_t size() const noexcept {
+		return _fileData.size();
+	}
+	const std::vector<std::string> operator[](size_t row) const noexcept {
+		return _fileData[row];
+	}
+	size_t getRow(const std::string & ReadGroupName) const;
+};
+
+//------------------------------------------------
 // TReadGroupInfoEntry
 //------------------------------------------------
 
-// Alternative:
-using TReadGroupInfoEntry = coretools::TStrongArray<std::string, InfoType>;
-
-/*
 class TReadGroupInfoEntry{
 private:
-	std::array<std::string, static_cast<size_t>(InfoType::COUNT)> _rgInfo;
+	std::map<InfoType, std::string> _info;
 
 public:
-	TReadGroupInfoEntry(const std::string & Name){
-		set(InfoType::RGName, Name);
+	TReadGroupInfoEntry(const std::string & RgName){
+		_info.insert_or_assign(InfoType::RGName, RgName);
 	}
 
-	void set(InfoType Type, const std::string & Value){
-		if(Type == InfoType::COUNT){
-			DEVERROR("InfoType::COUNT not meant to be used.");
+	void set(const InfoType Info, const std::string & Value){
+		if(Value != "" && Value != "-"){
+			_info.insert_or_assign(Info, Value);
 		}
-		_rgInfo[static_cast<size_t>(Type)] = Value;
 	}
 
-	std::string get(InfoType Type) const {
-		if(Type == InfoType::COUNT){
-			DEVERROR("InfoType::COUNT not meant to be used.");
+	bool has(const InfoType Info) const {
+		return _info.find(Info) != _info.end();
+	}
+
+	const std::string& operator[](const InfoType Info) const {
+		auto it = _info.find(Info);
+		if(it == _info.end()){
+			DEVERROR("Info of type '" + infos[Info].argument + "' was never parsed!");
 		}
-		return _rgInfo[static_cast<size_t>(Type)];
+		return it->second;
+	}
+
+	void write(coretools::TOutputFile & Out, const InfoType Info) const {
+		auto it = _info.find(Info);
+		if(it == _info.end()){
+			Out << "-";
+		} else{
+			Out << it->second;
+		}
 	}
 };
-*/
 
 //------------------------------------------------
 // TReadGroupInfo
@@ -98,16 +131,10 @@ public:
 class TReadGroupInfo{
 private:
 	std::vector<TReadGroupInfoEntry> _info;
+	std::unique_ptr<TFileData> _fileData;
+	coretools::TStrongArray<bool, InfoType> _parsed;
 
-	void _setAllReadGroups(InfoType Info, const std::string & Val);
-	void _readInfoFromCommandLine(InfoType Info);
-	void _readInfoFromRGInfoFile(InfoType Info, const std::vector< std::vector<std::string> > & fileData, size_t col);
-	void _setDefault(InfoType Info);
-	void _readInfoPerReadGroup(InfoType Info);
-	void _readInfoPerReadGroup(InfoType Info, const std::vector<std::string> & header, const std::vector< std::vector<std::string> > & fileData);
-	void _initializeFromRGInfoFile();
-	void _initializeFromCommandLine();
-	void _matchReadGroups(BAM::TReadGroups & ReadGroups);
+	void _readFileIfProvided();
 
 public:
 	static inline const std::string _RGInfoArgument = "readGroupInfo";
@@ -122,6 +149,15 @@ public:
 	// or: read info and fill TReadGroups (used for simulations)
 	BAM::TReadGroups readInfoAndCreateReadGroups();
 
+	//functions to parse certain info
+	void parse(const InfoType Info);
+
+	template <typename... Ts>
+	void parse(const InfoType Info, Ts... others){
+		parse(Info);
+		parse(others...);
+	}
+
 	// getters
 	std::vector<TReadGroupInfoEntry>::const_iterator cbegin(){
 		return _info.cbegin();
@@ -134,9 +170,19 @@ public:
 		return _info.size();
 	}
 
-	const TReadGroupInfoEntry& operator[](size_t index) const {
-		return _info[index];
+	const TReadGroupInfoEntry& operator[](uint16_t RGIndex) const {
+		return _info[RGIndex];
 	}
+
+	const std::string& get(uint16_t RGIndex, const InfoType Info) const {
+		return _info[RGIndex][Info];
+	}
+
+	// setters
+	void set(const uint16_t RGIndex, const InfoType Info, const std::string & Value);
+
+	//writing
+	void write(const std::string & Filename);
 };
 
 } //end namespace RGInfo
