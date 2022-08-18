@@ -19,6 +19,7 @@
 namespace GenomeTasks {
 
 // TODO: does using "left" and "right" make sense? Should we not rather use 3' and 5' ends?
+// YES, we should use 3' and 5', please change.
 
 //--------------------------------------------------------
 // TSoftClippingStatsFile

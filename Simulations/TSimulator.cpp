@@ -254,7 +254,7 @@ void TBAMSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome
 void TBAMSimulator::_initializeReadGroups(const TReadGroupInfo & RGinfo) {
 	// create simulation read groups
 	for(size_t i = 0; i < RGinfo.size(); ++i){
-		std::string type = RGinfo[i].get(BAM::RGInfo::InfoType::seqType);
+		std::string type = RGinfo[i][BAM::RGInfo::InfoType::seqType];
 		if(type == "single"){
 			_readSimulators.push_back(std::make_unique<TSimulatorSingleEndRead>(_readGroups[i], RGinfo[i]));
 		} else if(type == "paired"){
@@ -306,7 +306,7 @@ void TBAMSimulator::_initializeQualityTransformations() {
 void TBAMSimulator::_initializeReadSimulator() {
 	// A) initialize read groups from RG Info / Command line
 	TReadGroupInfo RGinfo;
-	RGinfo.readInfoAndCreateReadGroups(_readGroups);
+	_readGroups = RGinfo.readInfoAndCreateReadGroups();
 	_initializeReadGroups(RGinfo);
 
 	// B) initialize PMD
@@ -370,17 +370,19 @@ void TBAMSimulator::_initializeReadGroupFrequencies() {
 
 	// precalculate some stuff
 	_averageReadLength = 0;
-	_maxReadLength     = 0;
+	_maxFragmentLength     = 0;
 
 	for (size_t i = 0; i < _readSimulators.size(); ++i) {
 		_averageReadLength += _simGroupFrequencies[i] * _readSimulators[i]->meanReadLength();
-		if (_readSimulators[i]->maxReadLength() > _maxReadLength) _maxReadLength = _readSimulators[i]->maxReadLength();
+		if (_readSimulators[i]->maxFragmentLength() > _maxFragmentLength){
+			_maxFragmentLength = _readSimulators[i]->maxFragmentLength();
+		}
 	}
 
 	//check if read length match chr length
 	for(auto& chr : _chromosomes){
-		if(_maxReadLength > chr.length){
-			throw "Length of chromosome '" + chr.name + "' is less than the max read length!";
+		if(_maxFragmentLength > chr.length){
+			throw "Length of chromosome '" + chr.name + "' is less than the max fragment length!";
 
 		}
 	}
@@ -404,7 +406,7 @@ void TBAMSimulator::_simulateReadsFromHaplotypes(const genometools::TChromosome 
 	// Initialize probabilities to simulate reads
 	const uint64_t numReads = _averageReadLength == 0 ? 0 : thisChr.length * avgDepth / _averageReadLength;
 
-	const uint64_t chrLengthForStart = thisChr.length - _maxReadLength + 1;
+	const uint64_t chrLengthForStart = thisChr.length - _maxFragmentLength + 1;
 	const double probReadPerSite     = 1.0 / chrLengthForStart;
 	uint64_t numReadsSimulated       = 0;
 

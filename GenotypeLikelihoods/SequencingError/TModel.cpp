@@ -102,8 +102,7 @@ Probability TModelNoRecal::getErrorRate(const BAM::TSequencedBase &base) const n
 }
 
 genometools::PhredIntProbability TModelNoRecal::getPhredInt(const BAM::TSequencedBase &base) const noexcept {
-	// Todo: change to maxProb() one available.
-	if (base == Base::N) return genometools::PhredIntProbability(0);
+	if (base == Base::N) return genometools::PhredIntProbability::highest();
 	return base.originalQuality_phredInt;
 }
 
@@ -152,8 +151,7 @@ Probability TModelRecal::getErrorRate(const BAM::TSequencedBase &base) const noe
 }
 
 genometools::PhredIntProbability TModelRecal::getPhredInt(const BAM::TSequencedBase &base) const noexcept {
-	// Todo: change to maxProb() one available.
-	if (base == Base::N) return genometools::PhredIntProbability(0);
+	if (base == Base::N) return genometools::PhredIntProbability::highest();
 	return genometools::PhredIntProbability(_epsilon.calcErrorRate(base));
 }
 

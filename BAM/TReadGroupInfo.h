@@ -28,6 +28,33 @@ namespace RGInfo{
 enum class InfoType {min=0, RGName=0, seqType, numCycles, fragmentLengthDistr, baseQualityDistr, mappingQualityDistr, softClipDistr, recal, rho, max};
 
 //------------------------------------------------
+// argument string, description and default for each info type
+//------------------------------------------------
+
+struct TInfo {
+	std::string argument;
+	std::string description;
+	std::string defaults;
+	TInfo() = default;
+	TInfo(std::string_view Argument, std::string_view Description, std::string_view Defaults)
+		: argument(std::move(Argument)), description(std::move(Description)), defaults(std::move(Defaults)) {}
+};
+
+inline const coretools::TStrongArray<TInfo, InfoType> infos = []() {
+	coretools::TStrongArray<TInfo, InfoType> i;
+	i[InfoType::RGName] = {"readGroupName", "read group name", "SimReadGroup"};
+	i[InfoType::seqType] = {"seqType", "sequencing type", "single"};
+	i[InfoType::numCycles] = {"numCycles", "number of sequencing cycles", "150"};
+	i[InfoType::fragmentLengthDistr] = {"fragmentLengthDistr", "fragment length distribution", "fixed(300)"};
+	i[InfoType::baseQualityDistr] = {"baseQualityDistr", "base quality distribution", "normal(30,10)[0,93]"};
+	i[InfoType::mappingQualityDistr] = {"mappingQualityDistr", "maping quality distribution", "normal(60,10)[1,255]"};
+	i[InfoType::softClipDistr] = {"softClipDistr", "readGroupname", "-"};
+	i[InfoType::recal] = {"recal", "base quality score recalibration model", "-"};
+	i[InfoType::rho] = {"rho", "base quality score recalibration rho", "-"};
+	return i;
+}();
+
+//------------------------------------------------
 // TReadGroupInfoEntry
 //------------------------------------------------
 

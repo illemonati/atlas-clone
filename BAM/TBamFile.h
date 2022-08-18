@@ -234,7 +234,6 @@ public:
 //------------------------------------------------
 // TQualityAdjusterForWriting
 // Manages the printing of quality scores when writing BAM files
-//TODO: shoudl be removed as we now use genomtools::Quality?
 //------------------------------------------------
 class TQualityAdjusterForWriting{
 private:

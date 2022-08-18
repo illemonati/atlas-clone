@@ -71,7 +71,7 @@ public:
 class TBAMSimulator : public TSimulator {
 protected:
 	double _averageReadLength = 0;
-	double _maxReadLength     = 0;
+	double _maxFragmentLength = 0;
 
 	// bam files
 	std::unique_ptr<TSimulatorBamFiles> _bamFiles;

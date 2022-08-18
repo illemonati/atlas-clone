@@ -107,7 +107,7 @@ public:
 	void addReference(TFastaBuffer &fasta);
 	void setSequenceAndQualitiesChanged() { _sequenceAndQualitiesChanged = true; };
 	void setName(const std::string Name) { _name = Name; };
-	void setMappingQuality(const uint16_t Mappingquality) { _mappingQuality = Mappingquality; };
+	void setMappingQuality(const uint16_t Mappingquality) { _mappingQuality = Mappingquality; }; //TODO: why is this not a PhredInt probability?
 	void setMateGenomicPosition(const uint32_t RefID, const uint32_t Position) {
 		_mateGenomicPosition.move(RefID, Position);
 	};

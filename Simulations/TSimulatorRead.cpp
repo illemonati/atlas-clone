@@ -33,9 +33,9 @@ using BAM::RGInfo::InfoType;
 TSimulatorRead::TSimulatorRead(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo)
 	: _readGroup(ReadGroup),
 	  _readGroupInfo(RGInfo),
-	  _fragmentLengthDist(_readGroupInfo.get(InfoType::fragmentLengthDistr)),
-	  _qualityDist(_readGroupInfo.get(InfoType::baseQualityDistr)),
-	  _mappingQualityDist(_readGroupInfo.get(InfoType::mappingQualityDistr))
+	  _fragmentLengthDistr(_readGroupInfo[InfoType::fragmentLengthDistr]),
+	  _qualityDist(_readGroupInfo[InfoType::baseQualityDistr]),
+	  _mappingQualityDist(_readGroupInfo[InfoType::mappingQualityDistr])
 	{
 
 	// initialize bamAlignment
@@ -45,7 +45,7 @@ TSimulatorRead::TSimulatorRead(const BAM::TReadGroup & ReadGroup, const TReadGro
 	_readNamePrefix = "ATL:0:A:1:" + coretools::str::toString(_readGroup.id) + ":";
 
 	//soft clip
-	std::string sc = _readGroupInfo.get(InfoType::softClipDistr);
+	std::string sc = _readGroupInfo[InfoType::softClipDistr];
 	if(!sc.empty()){
 		//check if one or two values are given
 		if(sc.find(':') == std::string::npos){
@@ -63,6 +63,46 @@ TSimulatorRead::TSimulatorRead(const BAM::TReadGroup & ReadGroup, const TReadGro
 	}
 }
 
+double TSimulatorRead::_calcMeanReadLength(const uint16_t maxLen) {
+	// if fragments are always shorter than _numcycles, return mean fragment length
+	if(_fragmentLengthDistr.max() < maxLen){
+		return _fragmentLengthDistr.mean();
+	}
+
+	// else: take into account that read length is always <= _numCycles
+	double m = 0.0;
+	double cumul = 0.0;
+	for(uint16_t i = 1; i <= maxLen; ++i){
+		double f = _fragmentLengthDistr.density(i);
+		m += f * (double) i;
+		cumul += f;
+	}
+
+	//remaining are all of lenth _numCycles
+	m += (1. - cumul) * maxLen;
+	return m;
+}
+
+std::string TSimulatorRead::_getNextReadName() {
+	++_readXPos;
+	if (_readXPos == 65536) {
+		++_readYPos;
+		_readXPos = 1;
+	}
+	return coretools::str::toString(_readNamePrefix, _readXPos, ":", _readYPos);
+}
+
+void TSimulatorRead::_simulateAlignmentDetails(uint32_t refID, uint32_t pos){
+	_alignment.move(refID, pos);
+	_alignment.setName(_getNextReadName());
+
+	//simulate mapping quality
+	_alignment.setMappingQuality(_mappingQualityDist.sample().get());
+}
+
+bool TSimulatorRead::_simulateContamination(){
+	return _contaminationRate > 0. && randomGenerator().getRand() < _contaminationRate;
+}
 
 void TSimulatorRead::_addSoftclippedBases(std::vector<Base> & bases, const std::unique_ptr<TCategoricalDistribution<uint16_t>> & softClippedDist){
 	if(softClippedDist){
@@ -79,25 +119,25 @@ void TSimulatorRead::_addSoftclippedBases(std::vector<Base> & bases, const std::
 void TSimulatorRead::_simulateBasesQualities(BAM::TAlignment & alignment,
 						      const std::vector<Base>& haplotype,
 						      const uint64_t pos,
-						      const TReadAndFragmentLength & readLength,
-						      bool readIsContaminated/*,
-										     TSimulatorQualityTransformation* qualityTransform*/){
+							  const uint16_t fragmentLength,
+						      const uint16_t readLength,
+						      bool readIsContaminated){
 
 	//prepare vector of bases
 	std::vector<Base> bases;
 
 	// set read length
 	if (alignment.isReverseStrand()) {
-		alignment.setInsertSize(-readLength.fragment);
+		alignment.setInsertSize(-fragmentLength);
 		_addSoftclippedBases(bases, _softClipDist3);
 	} else {
-		alignment.setInsertSize(readLength.fragment);
+		alignment.setInsertSize(fragmentLength);
 		_addSoftclippedBases(bases, _softClipDist5);
 	}
 
 	// simulate true bases
 	const auto start = readIsContaminated ? _contaminationSource->reference().cbegin() + pos : haplotype.cbegin() + pos;
-	bases.insert(bases.end(), start, start + readLength.read);
+	bases.insert(bases.end(), start, start + std::min(fragmentLength, readLength));
 
 	if (alignment.isReverseStrand()) {
 		_addSoftclippedBases(bases, _softClipDist5);
@@ -138,51 +178,9 @@ void TSimulatorRead::setContamination(double rate, TSimulatorReference *source) 
 	if (_contaminationRate > 1.0) throw "Contamination rate must be <= 0.0!";
 }
 
-std::string TSimulatorRead::_getNextReadName() {
-	++_readXPos;
-	if (_readXPos == 65536) {
-		++_readYPos;
-		_readXPos = 1;
-	}
-	return coretools::str::toString(_readNamePrefix, _readXPos, ":", _readYPos);
-}
-
-
-//----------------------------------
-// TSimulatorSingleEndRead
-//----------------------------------
-TSimulatorSingleEndRead::TSimulatorSingleEndRead(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo)
-	: TSimulatorRead(ReadGroup, RGInfo){
-
-	//num cycles
-	_numCycles = coretools::str::convertString< coretools::StrictlyPositive<uint16_t> >(_readGroupInfo.get(InfoType::numCycles),
-			BAM::RGInfo::infoType2Description(InfoType::numCycles) + " must be within [1,65535].", _numCycles);
-}
-
-
-
-void TSimulatorSingleEndRead::simulate(const std::vector<Base>& haplotype, uint32_t refID, uint32_t pos, TSimulatorBamFile &bamFile) {
-	// prepare alignment
-	_alignment.move(refID, pos);
-	_alignment.setName(_getNextReadName());
-	_alignment.setIsReverseStrand(randomGenerator().getRand() < 0.5);
-
-	// pick a fragment and read length, strand and contamination
-	TReadAndFragmentLength readLength = _fragmentLengthDist.sample();
-	bool readIsContaminated = _contaminationRate > 0. && randomGenerator().getRand() < _contaminationRate;
-
-	// simulated bases and qualities
-	_simulateBasesQualities(_alignment, haplotype, pos, readLength, readIsContaminated/*, _qualityTransform*/);
-
-	//set mapping quality
-	_alignment.setMappingQuality(static_cast<uint8_t>(_mappingQualityDist.sample()));
-
-	// write bam alignment
-	bamFile.saveAlignment(_alignment);
-}
-
-void TSimulatorSingleEndRead::printDetails(double frequency) {
+void TSimulatorRead::printDetails(double frequency) {
 	//TODO: complete with all information
+	/*
 	logfile().startIndent("Read group '", _readGroup.name_ID, "':");
 	logfile().list("Type: ", type(), ".");
 	logfile().list("Frequency: ", frequency, ".");
@@ -211,21 +209,64 @@ void TSimulatorSingleEndRead::printDetails(double frequency) {
 		logfile().list("Contaminated with rate ", _contaminationRate, ".");
 	else
 		logfile().list("Read group is not contaminated.");
+	*/
+}
+
+//----------------------------------
+// TSimulatorSingleEndRead
+//----------------------------------
+TSimulatorSingleEndRead::TSimulatorSingleEndRead(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo)
+	: TSimulatorRead(ReadGroup, RGInfo){
+
+	//num cycles
+	coretools::str::convertString< coretools::StrictlyPositive<uint16_t> >(_readGroupInfo[InfoType::numCycles],
+			BAM::RGInfo::infos[InfoType::numCycles].description + " must be within [1,65535].", _numCycles);
+}
+
+double TSimulatorSingleEndRead::meanReadLength() {
+	return _calcMeanReadLength(_numCycles);
+}
+
+void TSimulatorSingleEndRead::simulate(const std::vector<Base>& haplotype, uint32_t refID, uint32_t pos, TSimulatorBamFile &bamFile) {
+	// prepare alignment
+	_simulateAlignmentDetails(refID, pos);
+	_alignment.setIsReverseStrand(randomGenerator().getRand() < 0.5);
+
+	// simulate read length
+	uint16_t fragmentLength = _fragmentLengthDistr.sample();
+
+	// simulated bases and qualities
+	_simulateBasesQualities(_alignment, haplotype, pos, fragmentLength, _numCycles, _simulateContamination());
+
+	// write bam alignment
+	bamFile.saveAlignment(_alignment);
 }
 
 //----------------------------------
 // TSimulatorPairedEndReads
 //----------------------------------
-TSimulatorPairedEndReads::TSimulatorPairedEndReads(
-		const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo)
+TSimulatorPairedEndReads::TSimulatorPairedEndReads(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo)
+	: TSimulatorRead(ReadGroup, RGInfo){
 
-		const BAM::TReadGroup &, const uint16_t NumCyclesFirst, const uint16_t NumCyclesSecond) : TSimulatorSingleEndRead(ReadGroup, NumCclesFirst){
-	_numCyclesSecond = NumCyclesSecond;
+	//num cycles
+	if(coretools::str::stringContains(_readGroupInfo[InfoType::numCycles], ',')){
+		//two values: one for first and one for second mate
+		coretools::str::convertString< coretools::StrictlyPositive<uint16_t> >(coretools::str::readBefore(_readGroupInfo[InfoType::numCycles], ','),
+				BAM::RGInfo::infos[InfoType::numCycles].description + " must be within [1,65535].", _numCycles[0]);
+		coretools::str::convertString< coretools::StrictlyPositive<uint16_t> >(coretools::str::readAfter(_readGroupInfo[InfoType::numCycles], ','),
+				BAM::RGInfo::infos[InfoType::numCycles].description + " must be within [1,65535].", _numCycles[1]);
+	} else {
+		//one value to be used for both mates
+		coretools::str::convertString< coretools::StrictlyPositive<uint16_t> >(_readGroupInfo[InfoType::numCycles],
+				BAM::RGInfo::infos[InfoType::numCycles].description + " must be within [1,65535].", _numCycles[0]);
+		_numCycles[1] = _numCycles[0];
+	}
+
 	// set SAM flags
 	_flags.setIsPaired(true);
 	_flags.setIsProperPair(true);
 	_flags.setIsRead1(true);
-	_flags.setMateIsReverseStrand(true);
+	_flags.setMateIsReverseStrand(false);
 
 	// set SAM flags of second mate
 	_mateFlags.setIsPaired(true);
@@ -234,43 +275,47 @@ TSimulatorPairedEndReads::TSimulatorPairedEndReads(
 	_mateFlags.setIsReverseStrand(true);
 }
 
-void TSimulatorPairedEndReads::simulate(
-		const std::vector<Base>& /*haplotype*/, uint32_t refID, uint32_t pos,
-					TSimulatorBamFile &bamFile) {
-	// pick a fragment, read length and contamination
-	TReadAndFragmentLength readLength  = _fragmentLengthDist.sample();
-	//bool readIsContaminated = (_contaminationRate > 0.) && randomGenerator().getRand() < _contaminationRate;
+double TSimulatorSingleEndRead::meanReadLength() {
+	return _calcMeanReadLength(_numCycles[0] + _numCycles[1]);
+}
+
+void TSimulatorPairedEndReads::simulate(const std::vector<Base>& haplotype, uint32_t refID, uint32_t pos, TSimulatorBamFile &bamFile) {
+	// pick a fragment
+	uint16_t fragmentLength = _fragmentLengthDistr.sample();
+	bool readIsContaminated = _simulateContamination();
+	uint8_t mappingQual = _mappingQualityDist.sample();
 
 	// Fill FIRST mate
 	//------------------
+	// prepare alignment
+	_simulateAlignmentDetails(refID, pos);
+
 	// simulated bases and qualities
-	//_simulateBasesQualities(_alignment, haplotype, pos, readLength, readIsContaminated, false, _qualityTransform);
+	_simulateBasesQualities(_alignment, haplotype, pos, fragmentLength, _numCycles[0], readIsContaminated);
 
 	// write bam alignment
-	_alignment.move(refID, pos);
-	_alignment.setName(_getNextReadName());
 	bamFile.saveAlignment(_alignment);
 
 	// Fill SECOND mate
 	//------------------
 	// identify position
-	uint32_t matePos = pos + readLength.diff();
+	uint32_t matePos;
+	if(fragmentLength <= _numCycles[1]){
+		matePos = pos;
+	} else {
+		matePos = pos + fragmentLength - _numCycles[1];
+	}
 
-	// create alignment
-
+	// create new alignment
 	BAM::TAlignment secondMate;
-	// create new
 	secondMate.setReadGroup(_readGroup.id);
-	secondMate.setMappingQuality(50);
-	secondMate.setIsReverseStrand(true);
-
-	// simulated bases and qualities
-	//_simulateBasesQualities(*secondMate, haplotype, matePos, readLength, readIsContaminated, true,
-	//qualityTransform_secondMate);
-
-	// fill bam alignment
 	secondMate.move(refID, matePos);
 	secondMate.setName(_alignment.name());
+	secondMate.setMappingQuality(_alignment.mappingQuality());
+	secondMate.setSamFlags(_mateFlags);
+
+	// simulated bases and qualities
+	_simulateBasesQualities(secondMate, haplotype, matePos, fragmentLength, _numCycles[1], readIsContaminated);
 
 	// write if it starts at same position as first, and keep for writing later otherwiese
 	if (matePos == pos) {

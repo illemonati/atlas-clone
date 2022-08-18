@@ -23,33 +23,6 @@ namespace RGInfo{
 
 namespace impl{
 	//------------------------------------------------
-	// argument string, description and default for each info type
-	//------------------------------------------------
-
-	struct TInfo {
-		std::string argument;
-		std::string description;
-		std::string defaults;
-		TInfo() = default;
-		TInfo(std::string_view Argument, std::string_view Description, std::string_view Defaults)
-			: argument(std::move(Argument)), description(std::move(Description)), defaults(std::move(Defaults)) {}
-	};
-
-	inline const coretools::TStrongArray<TInfo, InfoType> infos = []() {
-		coretools::TStrongArray<TInfo, InfoType> i;
-		i[InfoType::RGName] = {"readGroupName", "read group name", "SimReadGroup"};
-		i[InfoType::seqType] = {"seqType", "sequencing type", "single"};
-		i[InfoType::numCycles] = {"numCycles", "number of sequencing cycles", "150"};
-		i[InfoType::fragmentLengthDistr] = {"fragmentLengthDistr", "fragment length distribution", "fixed(300)"};
-		i[InfoType::baseQualityDistr] = {"baseQualityDistr", "base quality distribution", "normal(30,10)[0,93]"};
-		i[InfoType::mappingQualityDistr] = {"mappingQualityDistr", "maping quality distribution", "normal(60,10)[1,255]"};
-		i[InfoType::softClipDistr] = {"softClipDistr", "readGroupname", "-"};
-		i[InfoType::recal] = {"recal", "base quality score recalibration model", "-"};
-		i[InfoType::rho] = {"rho", "base quality score recalibration rho", "-"};
-		return i;
-	}();
-
-	//------------------------------------------------
 	// class / functions to initialize: only visible in cpp file
 	//------------------------------------------------
 
@@ -71,10 +44,10 @@ namespace impl{
 
 			//extract RG column
 			//check that file has a column named "readGroup"
-			if(!in.hasColname(impl::infos[InfoType::RGName].argument)){
-				UERROR("Column '", impl::infos[InfoType::RGName].argument, "' missing in file '", Filename, "'!");
+			if(!in.hasColname(infos[InfoType::RGName].argument)){
+				UERROR("Column '", infos[InfoType::RGName].argument, "' missing in file '", Filename, "'!");
 			}
-			auto rgCol = in.getIndexOfColname(impl::infos[InfoType::RGName].argument);
+			auto rgCol = in.getIndexOfColname(infos[InfoType::RGName].argument);
 
 			//read file and create read group entries
 			std::vector<std::string> tmp;
@@ -96,16 +69,16 @@ namespace impl{
 		const std::vector<std::string> header() const { return _header; }
 
 		bool hasInfo(InfoType Info) const noexcept {
-			auto it = find(_header.cbegin(), _header.cend(), impl::infos[Info].argument);
+			auto it = find(_header.cbegin(), _header.cend(), infos[Info].argument);
 			return it != _header.cend();
 		}
 
 		size_t getInfoCol(InfoType Info) const {
-			auto it = find(_header.cbegin(), _header.cend(), impl::infos[Info].argument);
+			auto it = find(_header.cbegin(), _header.cend(), infos[Info].argument);
 			if(it != _header.cend()){
 				return it - _header.cbegin();
 			}
-			DEVERROR("Info '", impl::infos[Info].argument, "' not present in read group info file!");
+			DEVERROR("Info '", infos[Info].argument, "' not present in read group info file!");
 		}
 
 		size_t size() const noexcept {
@@ -140,28 +113,28 @@ namespace impl{
 	void setDefault(InfoVec & Vec, InfoType Info){
 		//use default values
 		logfile().list("Initializing ",
-					   impl::infos[Info].description,
+					   infos[Info].description,
 					   " with default value '",
-					   impl::infos[Info].defaults,
+					   infos[Info].defaults,
 					   "' for all read groups. (set with '",
 					   TReadGroupInfo::_RGInfoArgument,
 					   "' or '",
-					   impl::infos[Info].argument,
+					   infos[Info].argument,
 					   "')");
-		setAllReadGroups(Vec, Info, impl::infos[Info].defaults);
+		setAllReadGroups(Vec, Info, infos[Info].defaults);
 	}
 
 	void setFromCommandLine(InfoVec & Vec, InfoType Info){
 		//read from command line
-		const std::string& arg = impl::infos[Info].argument;
+		const std::string& arg = infos[Info].argument;
 		std::string val = parameters().getParameter<std::string>(arg);
-		logfile().list("Initializing ", impl::infos[Info].description, " with '", val, "' for all read groups. (argument '", arg, "')");
+		logfile().list("Initializing ", infos[Info].description, " with '", val, "' for all read groups. (argument '", arg, "')");
 		setAllReadGroups(Vec, Info, val);
 	}
 
 	void setFromRGInfoFile(InfoVec & Vec, InfoType Info, const TFileData & FileData){
 	 	 //present in file -> read for each read group
-		logfile().list("Initializing ", impl::infos[Info].description, " from read group info file. (overwrite with '", impl::infos[Info].argument, "')");
+		logfile().list("Initializing ", infos[Info].description, " from read group info file. (overwrite with '", infos[Info].argument, "')");
 		auto col = FileData.getInfoCol(Info);
 		for(auto& r : Vec){
 			auto row = FileData.getRow(r[InfoType::RGName]);
@@ -171,7 +144,7 @@ namespace impl{
 
 	void setPerReadGroup(InfoVec Vec, InfoType Info, const TFileData & FileData){
 		//check if info is provided on the command line -> overwrites file
-		std::string arg = impl::infos[Info].argument;
+		std::string arg = infos[Info].argument;
 		if(parameters().parameterExists(arg)){
 			setFromCommandLine(Vec, Info);
 		} else {
@@ -186,7 +159,7 @@ namespace impl{
 
 	void setPerReadGroup(InfoVec Vec, InfoType Info){
 		//check if info is provided on the command line -> overwrites file
-		std::string arg = impl::infos[Info].argument;
+		std::string arg = infos[Info].argument;
 		if(parameters().parameterExists(arg)){
 			setFromCommandLine(Vec, Info);
 		} else {
@@ -251,7 +224,7 @@ BAM::TReadGroups TReadGroupInfo::readInfoAndCreateReadGroups(){
 
 		//create read groups
 		auto col = data.getInfoCol(InfoType::RGName);
-		for(auto i = 0; i < data.size(); i++){
+		for(size_t i = 0; i < data.size(); i++){
 			readGroups.add(data[i][col]);
 		}
 

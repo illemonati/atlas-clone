@@ -21,7 +21,6 @@
 #include "TSamFlags.h"
 #include "PhredProbabilityTypes.h"
 #include "TCategoricalDistribution.h"
-#include "TFragmentLengthDistribution.h"
 #include "TReadGroupInfo.h"
 
 namespace GenotypeLikelihoods { class TPMDType; }
@@ -47,7 +46,7 @@ protected:
 	std::string _readNamePrefix;
 
 	// required distributions
-	TFragmentLengthDistribution _fragmentLengthDist;
+	TCategoricalDistribution<uint16_t> _fragmentLengthDistr;
 	TCategoricalDistribution<PhredIntProbability> _qualityDist;
 	TCategoricalDistribution<PhredIntProbability> _mappingQualityDist;
 
@@ -69,11 +68,17 @@ protected:
 	BAM::TAlignment _alignment;
 
 	// general functions
-	void _simulateQualitiesAndErrors(Base *_bases, int *_qualities, int &len);
+	double _calcMeanReadLength(const uint16_t maxLen);
 	std::string _getNextReadName();
+	void _simulateAlignmentDetails(uint32_t refID, uint32_t pos);
+	bool _simulateContamination();
 	void _addSoftclippedBases(std::vector<Base> & bases, const std::unique_ptr<TCategoricalDistribution<uint16_t>> & softClippedDist);
-	void _simulateBasesQualities(BAM::TAlignment &alignment, const std::vector<Base>& haplotype, const uint64_t pos,
-				     const TReadAndFragmentLength &readLength, bool readIsContaminated);//, TSimulatorQualityTransformation *qualityTransform);
+	void _simulateBasesQualities(BAM::TAlignment &alignment,
+								 const std::vector<Base>& haplotype,
+								 const uint64_t pos,
+								 const uint16_t fragmentLength,
+								 const uint16_t readLength,
+								 bool readIsContaminated);
 
 public:
 	TSimulatorRead(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo);
@@ -91,11 +96,9 @@ public:
 	//getters
 	std::string name() const { return _readGroup.name_ID; };
 	virtual std::string type() const = 0;
-	double meanReadLength() {
-		return _fragmentLengthDist.mean();
-	};
-	double maxReadLength() {
-		return _fragmentLengthDist.max();
+	virtual double meanReadLength() const = 0;
+	double maxFragmentLength() {
+		return _fragmentLengthDistr.max();
 	};
 
 	//unsure if needed
@@ -111,10 +114,11 @@ private:
 
 public:
 	TSimulatorSingleEndRead(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo);
-	virtual ~TSimulatorSingleEndRead() = default;
+	~TSimulatorSingleEndRead() = default;
 
-	virtual std::string type() const {return "single-end";}
-	virtual void simulate(const std::vector<Base>& haplotype, uint32_t refID, uint32_t pos, TSimulatorBamFile &bamFile);
+	std::string type() const {return "single-end";}
+	void simulate(const std::vector<Base>& haplotype, uint32_t refID, uint32_t pos, TSimulatorBamFile &bamFile);
+	double meanReadLength() const override;
 };
 
 //-------------------------------
@@ -131,10 +135,12 @@ private:
 
 public:
 	TSimulatorPairedEndReads(const BAM::TReadGroup &, const uint16_t NumCyclesFirst, const uint16_t NumCyclesSecond);
+	~TSimulatorPairedEndReads() = default;
 
 	void simulate(const std::vector<genometools::Base>& haplotype, uint32_t refID, uint32_t pos, TSimulatorBamFile &bamFile) override;
 	void writeUnwrittenAlignments(long pos, TSimulatorBamFile &bamFile) override;
 	std::string type() const override {return "paired-end";} 
+	double meanReadLength() const override;
 };
 
 }; // namespace Simulations
