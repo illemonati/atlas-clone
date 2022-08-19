@@ -41,9 +41,9 @@ public:
 //TReadGroup
 //---------------------------------------------------------------
 class TReadGroup{
+private:
+	uint16_t _id; //internal ID
 public:
-	uint16_t id; //internal ID
-
 	std::string name_ID;
 	mutable std::string barcodeSequence_BC;
 	mutable std::string sequencingCenter_CN;
@@ -67,6 +67,10 @@ public:
     TReadGroup(const TReadGroup & other) = default;
     TReadGroup* getPointer(){ return this; };
     std::string compileSamHeader() const;
+
+    //getters
+    uint16_t id() const { return _id; };
+    void setId(const uint16_t id){ _id = id; };
 
     bool operator<(const TReadGroup & right) const;
     bool operator<(const std::string & right) const;

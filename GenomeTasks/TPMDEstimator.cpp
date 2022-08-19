@@ -40,8 +40,7 @@ TPMDEstimator::TPMDEstimator(): TGenome_parsed() {
 			throw "Can not estimate PMD: no PMD models provided! Use 'pmdModels' to provide PMD models or 'pmd' with "
 				  "'reestimate' to provide a starting guess.";
 
-		std::vector<uint16_t> tmp;
-		pmd.initialize(parameters().getParameterWithDefault("pmdModels", "doubleStrand:Empirical:Empirical"s), _bamFile.readGroups(), tmp);
+		pmd.initialize(parameters().getParameterWithDefault("pmdModels", "doubleStrand:Empirical:Empirical"s), _bamFile.readGroups());
 	}
 
 	//make sure it has a reference

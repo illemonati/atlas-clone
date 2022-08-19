@@ -53,10 +53,11 @@ Base mutateBase(Base base, const coretools::TStrongArray<double, Base> &cumulPro
 
 THaplotypeSimulator::THaplotypeSimulator(){
     if(parameters().parameterExists("refDiv")){
-    	_referenceDivergence = parameters().getParameter("refDiv");
+    	parameters().fillParameter("refDiv", _referenceDivergence);
+    	_referenceDivergence = parameters().getParameter<coretools::Probability>("refDiv");
     	logfile().list("Will simulate data with reference divergence = ", _referenceDivergence, ". (parameter 'refDiv')");
     } else {
-    	_referenceDivergence = parameters().getParameter("refDiv");
+    	_referenceDivergence = 0.01;
         logfile().list("Will simulate data with default reference divergence = ", _referenceDivergence, ". (set with 'refDiv')");
     }
 	_cumulRef[Base::A] = 1.0 - _referenceDivergence;
@@ -72,7 +73,7 @@ THaplotypeSimulator::THaplotypeSimulator(){
 		_baseFreq = GenotypeLikelihoods::TBaseProbabilities{freq};
 		logfile().list("Simulating with base frequencies " + impl::toString(_baseFreq) + ". (parameter 'baseFreq')");
 	} else {
-		_baseFreq = GenotypeLikelihoods::TBaseProbabilities{0.25, 0.25, 0.25, 0.25};
+		_baseFreq = std::array<double,4>({0.25, 0.25, 0.25, 0.25});
 		logfile().list("Simulating with default base frequencies " + impl::toString(_baseFreq) + ". (set with 'baseFreq')");
 	}
 
@@ -86,8 +87,6 @@ THaplotypeSimulator::THaplotypeSimulator(){
 // TSimulatorOneIndividual
 //---------------------------------------------------------
 TSimulatorOne::TSimulatorOne(size_t nChoromosomes) : THaplotypeSimulator() {
-	logfile().startIndent("Reading parameters to simulate a single individual:");
-
 	// now theta
 	std::vector<std::string> tmp;
 	parameters().fillParameterIntoContainerWithDefault("theta", tmp, ',', {"0.001"});
@@ -103,12 +102,9 @@ TSimulatorOne::TSimulatorOne(size_t nChoromosomes) : THaplotypeSimulator() {
 	// one theta per chromosome
 	if (_thetas.size() != nChoromosomes)
 		throw "Number of theta values provided does not match number of chromosomes to simulate!";
-
-	// done
-	logfile().endIndent();
 }
 
-	void TSimulatorOne::simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference,
+void TSimulatorOne::simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference,
 					       const genometools::TChromosome &chromosome) {
 	// fill mutation table
 	TSimulatorMutationtable mutTable(_baseFreq, _thetas[chromosome.refID()]);

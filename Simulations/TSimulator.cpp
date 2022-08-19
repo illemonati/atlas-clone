@@ -54,59 +54,48 @@ using BAM::RGInfo::TReadGroupInfoEntry;
 
 namespace /* anonymous */ {
 std::unique_ptr<THaplotypeSimulator> makeHaploSimulator(const std::string &method, const TChromosomes &chs) {
-	if (method == "one") {
-		logfile().startIndent("Simulating a single individual (parameter --type one):");
+	if (method == TSimulatorOne::name) {
+		logfile().startIndent("Simulating a single individual (parameter 'type' = '", method, "')");
 		return std::make_unique<TSimulatorOne>(chs.size());
 	}
-	if (method == "pair") {
-		logfile().startIndent("Simulating a pair of individual (parameter --type pair):");
+	if (method == TSimulatorPair::name) {
+		logfile().startIndent("Simulating a pair of individual (parameter 'type' = '", method, "')");
 		return std::make_unique<TSimulatorPair>();
 	}
-	if (method == "SFS") {
-		logfile().startIndent("Simulating individuals from an SFS (parameter --type SFS):");
+	if (method == TSimulatorSFS::name) {
+		logfile().startIndent("Simulating individuals from an SFS (parameter 'type' = '", method, "')");
 		return std::make_unique<TSimulatorSFS>(chs);
 	}
-	if (method == "HW") {
-		logfile().startIndent("Simulating a individuals under Hardy-Weinberg (parameter --type HW):");
+	if (method == TSimulatorHW::name) {
+		logfile().startIndent("Simulating a individuals under Hardy-Weinberg (parameter 'type' = '", method, "')");
 		return std::make_unique<TSimulatorHW>();
 	}
-	throw "Unknown simulation method '" + method + "'!";
-	logfile().endIndent(out);
+	throw "Unknown simulation method '" + method + "'! Use '" + TSimulatorOne::name + "', '" + TSimulatorPair::name + "', '" + TSimulatorSFS::name + "' or '" + TSimulatorHW::name + "'";
+	logfile().endIndent();
 }
 
-std::vector<uint8_t> parsePloidy(){
-	//parse ploidy parameters
-	std::vector<std::string> string_vec;
-	std::vector<uint8_t> ploidy;
-	if (parameters().parameterExists("ploidy")) {
-		parameters().fillParameterIntoContainer("ploidy", string_vec, ',');
-		coretools::str::repeatIndexes(string_vec, ploidy);
+template <typename T>
+std::vector<T> parse(const std::string & Argument, const std::string & Explanation, const T Default){
+	std::vector<T> res;
+	if(parameters().parameterExists(Argument)){
+		std::vector<std::string> string_vec;
+		parameters().fillParameterIntoContainer(Argument, string_vec, ',');
+
+		coretools::str::repeatIndexes(string_vec, res);
+		if(res.empty()) throw "Issue understanding " + Explanation + " '" + coretools::str::concatenateString(string_vec, ",") + "' (parameter '" + Argument + "')!";
+
+		if(res.size() == 1){
+			logfile().list("Will use ", Explanation, " ", res[0], ". (parameter '", Argument, "')");
+		} else {
+			//logfile().list("Will use ", Explanation, "s ", coretools::str::concatenateString(res, ","), ". (parameter '", Argument, "')");
+			logfile().list("Will use ", Explanation, "s ", res, ". (parameter '", Argument, "')");
+		}
+
 	} else {
-		ploidy.push_back(2); //default ploidy = 2
-		return ploidy;
+		res.push_back(Default); //default ploidy = 2
+		logfile().list("Will use default chromosome length of ", res[0], ". (set with '", Argument, "')");
 	}
-
-	//check if ploidy is supported
-	for (auto &p : ploidy) {
-		if (p != 1 && p != 2) { throw "Currently only ploidy 1 (haploid) or 2 (diploid) is supported!"; }
-	}
-
-	return ploidy;
-}
-
-std::vector<uint32_t> parseSeqDepth(){
-	//parse ploidy parameters
-	std::vector<std::string> string_vec;
-	std::vector<uint32_t> depth;
-	if (parameters().parameterExists("depth")) {
-		parameters().fillParameterIntoContainer("depth", string_vec, ',');
-		coretools::str::repeatIndexes(string_vec, depth);
-	} else {
-		depth.push_back(10); //default depth = 10
-		return depth;
-	}
-
-	return depth;
+	return res;
 }
 
 template <typename Vec>
@@ -122,20 +111,19 @@ void checkLength(Vec & vec, size_t numChr){
 
 void makeChromosomes(TChromosomes & chs, std::vector<uint32_t> & depths){
 	//TODO: make it possible to initialize chromosomes from a file with length, ploidy and depth
+	logfile().startIndent("Parameters regarding chromosomes:");
 	chs.clear();
 	depths.clear();
 
-	//parse chromosome lengths
-	std::vector<std::string> string_vec;
-	parameters().fillParameterIntoContainerWithDefault("chrLength", string_vec, ',', {"1000000"});
+	//parse chr details
+	auto chrLengths = parse<uint32_t>("chrLength", "chromosome length", 1000000);
+	depths = parse<uint32_t>("depth", "sequencing depth", 10);
+	auto ploidies = parse<uint8_t>("ploidy", "ploidy", 2);
 
-	std::vector<uint32_t> chrLengths;
-	coretools::str::repeatIndexes(string_vec, chrLengths);
-	if (chrLengths.empty()) throw "Issue understanding length of chromosomes!";
-
-	//parse ploidies and depth
-	std::vector<uint8_t> ploidies = parsePloidy();
-	depths = parseSeqDepth();
+	//check if ploidy is supported
+	for (auto &p : ploidies) {
+		if (p != 1 && p != 2) { throw "Currently only ploidy 1 (haploid) or 2 (diploid) is supported!"; }
+	}
 
 	//check length
 	size_t numChr = std::max( {chrLengths.size(), ploidies.size(), depths.size()} );
@@ -144,7 +132,7 @@ void makeChromosomes(TChromosomes & chs, std::vector<uint32_t> & depths){
 	checkLength(depths, numChr);
 
 	//report and create
-	logfile().startIndent("Will simulate ", chrLengths.size(), " chromosome(s):");
+	logfile().startIndent("List of ", chrLengths.size(), " chromosome(s) to simulate:");
 	for(size_t i = 0; i < chrLengths.size(); ++i){
 		//create chromosome
 		const TChromosome& chr = chs.appendChromosome("chr" + coretools::str::toString(i + 1), chrLengths[i], ploidies[i]);
@@ -158,6 +146,7 @@ void makeChromosomes(TChromosomes & chs, std::vector<uint32_t> & depths){
 		text += "of length " + coretools::str::toString(chrLengths[i]) + " and average depth " + coretools::str::toString(depths[i]) + ".";
 		logfile().list(text);
 	}
+	logfile().endIndent();
 	logfile().endIndent();
 }
 
@@ -292,15 +281,13 @@ void TBAMSimulator::_initializePMD(){
 	const std::string arg = "pmd";
 	if (parameters().parameterExists(arg)) {
 		const auto pmdString = parameters().getParameter<std::string>(arg);
-		std::vector<uint16_t> ReadGroupsWithoutPMD;
-		_PMD.initialize(pmdString, _readGroups, ReadGroupsWithoutPMD);
+		_PMD.initialize(pmdString, _readGroups);
 
 		// add PMD to simulators
 		for (size_t r = 0; r < _readSimulators.size(); ++r) { _readSimulators[r]->setPMD(&_PMD[r]); }
 	} else {
 		logfile().list("Not simulating any PMD.");
 	}
-	logfile().endIndent();
 }
 
 void TBAMSimulator::_initializeQualityTransformations() {
@@ -326,7 +313,7 @@ void TBAMSimulator::_initializeQualityTransformations() {
 }
 
 void TBAMSimulator::_initializeReadSimulator() {
-	logfile().startIndent("Initializing read groups":);
+	logfile().startIndent("Parameters regarding sequencing:");
 	// A) initialize read groups from RG Info / Command line
 	TReadGroupInfo RGinfo;
 	_readGroups = RGinfo.readInfoAndCreateReadGroups();
@@ -398,7 +385,7 @@ void TBAMSimulator::_initializeReadGroupFrequencies() {
 
 	// precalculate some stuff
 	_averageReadLength = 0;
-	_maxFragmentLength     = 0;
+	_maxFragmentLength = 0;
 
 	for (size_t i = 0; i < _readSimulators.size(); ++i) {
 		_averageReadLength += _simGroupFrequencies[i] * _readSimulators[i]->meanReadLength();
@@ -433,6 +420,8 @@ void TBAMSimulator::_simulateReadsFromHaplotypes(const genometools::TChromosome 
 												 const std::string &extraProgressText) {
 	// Initialize probabilities to simulate reads
 	const uint64_t numReads = _averageReadLength == 0 ? 0 : thisChr.length * avgDepth / _averageReadLength;
+
+	OUT(_averageReadLength);
 
 	const uint64_t chrLengthForStart = thisChr.length - _maxFragmentLength + 1;
 	const double probReadPerSite     = 1.0 / chrLengthForStart;

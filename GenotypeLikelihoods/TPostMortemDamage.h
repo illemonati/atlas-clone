@@ -258,22 +258,20 @@ private:
 	bool _hasPMD = false;
 
 	void _initializeFromString(const std::string &pmdString);
-	void _initializeFromFile(const BAM::TReadGroups &ReadGroups, const std::string &filename,
-							 std::vector<uint16_t> &ReadGroupsWithoutPMD);
+	std::vector<uint16_t> _initializeFromFile(const BAM::TReadGroups &ReadGroups, const std::string &filename);
 	void _setHasDamage();
 
 public:
 	TPostMortemDamage() = default;
 	TPostMortemDamage(const std::string &pmdString, const BAM::TReadGroups &ReadGroups,
 					  std::vector<uint16_t> &ReadGroupsWithoutPMD) {
-		initialize(pmdString, ReadGroups, ReadGroupsWithoutPMD);
+		ReadGroupsWithoutPMD = initialize(pmdString, ReadGroups);
 	}
 	constexpr bool hasPMD() const noexcept { return _hasPMD; };
 	const TPMDType &operator[](uint16_t ReadGroupIndex) const noexcept { return *_pmdObjects[ReadGroupIndex]; }
 	TPMDType &operator[](uint16_t ReadGroupIndex) noexcept { return *_pmdObjects[ReadGroupIndex]; }
 
-	void initialize(const std::string &pmdString, const BAM::TReadGroups &ReadGroups,
-					std::vector<uint16_t> &ReadGroupsWithoutPMD);
+	std::vector<uint16_t> initialize(const std::string &pmdString, const BAM::TReadGroups &ReadGroups);
 	void writeToFile(const BAM::TReadGroups &ReadGroups, const std::string filename) const;
 	void writeToFile(const BAM::TReadGroups &ReadGroups, const BAM::TReadGroupMap &ReadGroupMap,
 	                 const std::string filename) const;

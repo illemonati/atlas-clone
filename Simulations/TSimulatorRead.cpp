@@ -39,31 +39,36 @@ TSimulatorRead::TSimulatorRead(const BAM::TReadGroup & ReadGroup, const TReadGro
 	{
 
 	// initialize bamAlignment
-	_alignment.setReadGroup(_readGroup.id);
+	_alignment.setReadGroup(_readGroup.id());
 
 	//readNamePrefix: "<instrument>:<run number>:<flowcell ID>:<lane>:<tile>:"  Still need to add "<x-pos>:<y-pos>"
-	_readNamePrefix = "ATL:0:A:1:" + coretools::str::toString(_readGroup.id) + ":";
+	_readNamePrefix = "ATL:0:A:1:" + coretools::str::toString(_readGroup.id()) + ":";
 
 	//soft clip
-	std::string sc = _readGroupInfo[InfoType::softClipDistr];
-	if(!sc.empty()){
-		//check if one or two values are given
-		if(sc.find(':') == std::string::npos){
-			//one distribution for both
-			if(sc != "-" && sc != "fixed(0)"){
-				_softClipDist3 = std::make_unique<TCategoricalDistribution<uint16_t>>(sc);
-				_softClipDist5 = std::make_unique<TCategoricalDistribution<uint16_t>>(sc);
-			} else {
-				std::string sc3 = coretools::str::extractBefore(sc, ":");
-				sc.erase(0,1);
-				_softClipDist3 = std::make_unique<TCategoricalDistribution<uint16_t>>(sc3);
-				_softClipDist5 = std::make_unique<TCategoricalDistribution<uint16_t>>(sc);
+	if(_readGroupInfo.has(InfoType::softClipDistr)){
+		std::string sc = _readGroupInfo[InfoType::softClipDistr];
+		if(!sc.empty()){
+			//check if one or two values are given
+			if(sc.find(':') == std::string::npos){
+				//one distribution for both
+				if(sc != "-" && sc != "fixed(0)"){
+					_softClipDist3 = std::make_unique<TCategoricalDistribution<uint16_t>>(sc);
+					_softClipDist5 = std::make_unique<TCategoricalDistribution<uint16_t>>(sc);
+				} else {
+					std::string sc3 = coretools::str::extractBefore(sc, ":");
+					sc.erase(0,1);
+					_softClipDist3 = std::make_unique<TCategoricalDistribution<uint16_t>>(sc3);
+					_softClipDist5 = std::make_unique<TCategoricalDistribution<uint16_t>>(sc);
+				}
 			}
 		}
 	}
 }
 
 double TSimulatorRead::_calcMeanReadLength(const uint16_t maxLen) const {
+
+	std::cout << std::endl << "ESTIMATING MEAN READ LENGHT:" << std::endl;
+
 	// if fragments are always shorter than _numcycles, return mean fragment length
 	if(_fragmentLengthDistr.max() < maxLen){
 		return _fragmentLengthDistr.mean();
@@ -76,10 +81,15 @@ double TSimulatorRead::_calcMeanReadLength(const uint16_t maxLen) const {
 		double f = _fragmentLengthDistr.density(i);
 		m += f * (double) i;
 		cumul += f;
+
+		std::cout << "i = " << i << ", m = " << m << std::endl;
 	}
 
 	//remaining are all of lenth _numCycles
 	m += (1. - cumul) * maxLen;
+
+	std::cout << "cumul = " << cumul << ", m = " << m << std::endl;
+
 	return m;
 }
 
@@ -307,7 +317,7 @@ void TSimulatorPairedEndReads::simulate(const std::vector<Base>& haplotype, uint
 
 	// create new alignment
 	BAM::TAlignment secondMate;
-	secondMate.setReadGroup(_readGroup.id);
+	secondMate.setReadGroup(_readGroup.id());
 	secondMate.move(refID, matePos);
 	secondMate.setName(_alignment.name());
 	secondMate.setMappingQuality(_alignment.mappingQuality());

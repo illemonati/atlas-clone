@@ -48,7 +48,7 @@ inline const coretools::TStrongArray<TInfo, InfoType> infos = []() {
 	i[InfoType::numCycles] = {"numCycles", "number of sequencing cycles", "150"};
 	i[InfoType::fragmentLengthDistr] = {"fragmentLengthDistr", "fragment length distribution", "fixed(300)"};
 	i[InfoType::baseQualityDistr] = {"baseQualityDistr", "base quality distribution", "normal(30,10)[0,93]"};
-	i[InfoType::mappingQualityDistr] = {"mappingQualityDistr", "maping quality distribution", "normal(60,10)[1,255]"};
+	i[InfoType::mappingQualityDistr] = {"mappingQualityDistr", "mapping quality distribution", "normal(60,10)[1,255]"};
 	i[InfoType::softClipDistr] = {"softClipDistr", "soft clipping distribution", "-"};
 	i[InfoType::recal] = {"recal", "base quality score recalibration model", "-"};
 	i[InfoType::rho] = {"rho", "base quality score recalibration rho", "-"};
@@ -67,7 +67,8 @@ private:
 
 public:
 	TFileData(const std::string & Filename);
-	const std::vector<std::string> header() const { return _header; }
+	const std::string& fileName() const { return _filename; }
+	const std::vector<std::string>& header() const { return _header; }
 	bool hasInfo(InfoType Info) const noexcept;
 	size_t getInfoCol(InfoType Info) const;
 	size_t size() const noexcept {
@@ -105,7 +106,7 @@ public:
 	const std::string& operator[](const InfoType Info) const {
 		auto it = _info.find(Info);
 		if(it == _info.end()){
-			DEVERROR("Info of type '" + infos[Info].argument + "' was never parsed!");
+			DEVERROR("Info of type '" + infos[Info].argument + "' does not exist!");
 		}
 		return it->second;
 	}
@@ -134,6 +135,7 @@ private:
 	std::unique_ptr<TFileData> _fileData;
 	coretools::TStrongArray<bool, InfoType> _parsed;
 
+	void _createReadGroupInfoentries(const BAM::TReadGroups & ReadGroups);
 	void _readFileIfProvided();
 
 public:

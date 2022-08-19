@@ -133,7 +133,7 @@ void TAlignmentMergerReadGroupSettings::initialize(BAM::TReadGroups & readGroups
 						}
 
 						//add to settings and create truncated read group
-						_settings.emplace(rgId, readGroups.addAlternativeRG(vec[0] + "_truncated", vec[0]).id, single, maxCycles);
+						_settings.emplace(rgId, readGroups.addAlternativeRG(vec[0] + "_truncated", vec[0]).id(), single, maxCycles);
 
 					} else if(vec[1] == "mixed"){
 						if(maxCycles < 1){
@@ -141,7 +141,7 @@ void TAlignmentMergerReadGroupSettings::initialize(BAM::TReadGroups & readGroups
 						}
 
 						//add to settings and create truncated read group
-						_settings.emplace(rgId, readGroups.addAlternativeRG(vec[0] + "_truncated", vec[0]).id, mixed, maxCycles);
+						_settings.emplace(rgId, readGroups.addAlternativeRG(vec[0] + "_truncated", vec[0]).id(), mixed, maxCycles);
 
 					} else if(vec[1] == "paired-end"){
 						_settings.emplace(rgId, paired, 0);
