@@ -51,23 +51,30 @@ Base mutateBase(Base base, const coretools::TStrongArray<double, Base> &cumulPro
 	return Base((coretools::index(base) + randomGenerator().pickOne(cumulProbs)) % coretools::index(Base::max));
 }
 
-THaplotypeSimulator::THaplotypeSimulator()
-    : _referenceDivergence(parameters().getParameterWithDefault("refDiv", 0.01)) {
-	logfile().list("Will simulate data with reference divergence = ", _referenceDivergence, ".");
+THaplotypeSimulator::THaplotypeSimulator(){
+    if(parameters().parameterExists("refDiv")){
+    	_referenceDivergence = parameters().getParameter("refDiv");
+    	logfile().list("Will simulate data with reference divergence = ", _referenceDivergence, ". (parameter 'refDiv')");
+    } else {
+    	_referenceDivergence = parameters().getParameter("refDiv");
+        logfile().list("Will simulate data with default reference divergence = ", _referenceDivergence, ". (set with 'refDiv')");
+    }
 	_cumulRef[Base::A] = 1.0 - _referenceDivergence;
 	_cumulRef[Base::C] = _cumulRef[Base::A] + _referenceDivergence / 3.0;
 	_cumulRef[Base::G] = _cumulRef[Base::C] + _referenceDivergence / 3.0;
 	_cumulRef[Base::T] = 1.0;
 
 	// base frequencies
-	std::vector<double> freq;
-	coretools::str::fillContainerFromString(
-	    parameters().getParameterWithDefault<std::string>("baseFreq", "0.25,0.25,0.25,0.25"), freq, ',');
-	if (freq.size() != 4) throw "baseFreq vector must have size = 4!";
-
-	_baseFreq = GenotypeLikelihoods::TBaseProbabilities{freq};
-
-	logfile().list("Simulating with base frequencies " + impl::toString(_baseFreq));
+	if(parameters().parameterExists("baseFreq)")){
+		std::vector<double> freq;
+		coretools::str::fillContainerFromString(parameters().getParameter<std::string>("baseFreq"), freq, ',');
+		if (freq.size() != 4) throw "baseFreq vector must have size = 4!";
+		_baseFreq = GenotypeLikelihoods::TBaseProbabilities{freq};
+		logfile().list("Simulating with base frequencies " + impl::toString(_baseFreq) + ". (parameter 'baseFreq')");
+	} else {
+		_baseFreq = GenotypeLikelihoods::TBaseProbabilities{0.25, 0.25, 0.25, 0.25};
+		logfile().list("Simulating with default base frequencies " + impl::toString(_baseFreq) + ". (set with 'baseFreq')");
+	}
 
 	_cumulBaseFreq[Base::A] = _baseFreq[Base::A];
 	_cumulBaseFreq[Base::C] = _cumulBaseFreq[Base::A] + _baseFreq[Base::C];

@@ -55,25 +55,24 @@ using BAM::RGInfo::TReadGroupInfoEntry;
 namespace /* anonymous */ {
 std::unique_ptr<THaplotypeSimulator> makeHaploSimulator(const std::string &method, const TChromosomes &chs) {
 	if (method == "one") {
-		logfile().list("Simulating a single individual (parameter --type one):");
+		logfile().startIndent("Simulating a single individual (parameter --type one):");
 		return std::make_unique<TSimulatorOne>(chs.size());
 	}
 	if (method == "pair") {
-		logfile().list("Simulating a pair of individual (parameter --type pair):");
+		logfile().startIndent("Simulating a pair of individual (parameter --type pair):");
 		return std::make_unique<TSimulatorPair>();
 	}
 	if (method == "SFS") {
-		logfile().list("Simulating individuals from an SFS (parameter --type SFS):");
+		logfile().startIndent("Simulating individuals from an SFS (parameter --type SFS):");
 		return std::make_unique<TSimulatorSFS>(chs);
 	}
 	if (method == "HW") {
-		logfile().list("Simulating a individuals under Hardy-Weinberg (parameter --type HW):");
+		logfile().startIndent("Simulating a individuals under Hardy-Weinberg (parameter --type HW):");
 		return std::make_unique<TSimulatorHW>();
 	}
 	throw "Unknown simulation method '" + method + "'!";
+	logfile().endIndent(out);
 }
-
-
 
 std::vector<uint8_t> parsePloidy(){
 	//parse ploidy parameters
@@ -122,6 +121,7 @@ void checkLength(Vec & vec, size_t numChr){
 }
 
 void makeChromosomes(TChromosomes & chs, std::vector<uint32_t> & depths){
+	//TODO: make it possible to initialize chromosomes from a file with length, ploidy and depth
 	chs.clear();
 	depths.clear();
 
@@ -326,6 +326,7 @@ void TBAMSimulator::_initializeQualityTransformations() {
 }
 
 void TBAMSimulator::_initializeReadSimulator() {
+	logfile().startIndent("Initializing read groups":);
 	// A) initialize read groups from RG Info / Command line
 	TReadGroupInfo RGinfo;
 	_readGroups = RGinfo.readInfoAndCreateReadGroups();
@@ -356,6 +357,7 @@ void TBAMSimulator::_initializeReadSimulator() {
 
 	//report all read groups
 	_printSimulationDetailsAllReadGroups();
+	logfile().endIndent();
 }
 
 void TBAMSimulator::_initializeReadGroupFrequencies() {

@@ -49,7 +49,7 @@ inline const coretools::TStrongArray<TInfo, InfoType> infos = []() {
 	i[InfoType::fragmentLengthDistr] = {"fragmentLengthDistr", "fragment length distribution", "fixed(300)"};
 	i[InfoType::baseQualityDistr] = {"baseQualityDistr", "base quality distribution", "normal(30,10)[0,93]"};
 	i[InfoType::mappingQualityDistr] = {"mappingQualityDistr", "maping quality distribution", "normal(60,10)[1,255]"};
-	i[InfoType::softClipDistr] = {"softClipDistr", "readGroupname", "-"};
+	i[InfoType::softClipDistr] = {"softClipDistr", "soft clipping distribution", "-"};
 	i[InfoType::recal] = {"recal", "base quality score recalibration model", "-"};
 	i[InfoType::rho] = {"rho", "base quality score recalibration rho", "-"};
 	return i;
