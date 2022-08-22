@@ -20,6 +20,10 @@ using coretools::instances::logfile;
 namespace BAM {
 namespace RGInfo{
 
+//------------------------------------------------
+// TFileData
+//------------------------------------------------
+
 TFileData::TFileData(const std::string & Filename){
 	//open RG file
 	_filename = Filename;
@@ -116,32 +120,7 @@ namespace impl{
 			r.set(Info, FileData[row][col]);
 		}
 	}
-/*
-	void setPerReadGroup(InfoVec Vec, InfoType Info, const TFileData & FileData){
-		//check if info is provided on the command line -> overwrites file
-		std::string arg = infos[Info].argument;
-		if(parameters().parameterExists(arg)){
-			setFromCommandLine(Vec, Info);
-		} else {
-			//check if provided in file
-			if(FileData.hasInfo(Info)){
-				setFromRGInfoFile(Vec, Info, FileData);
-			} else {
-				setDefault(Vec, Info);
-			}
-		}
-	}
 
-	void setPerReadGroup(InfoVec Vec, InfoType Info){
-		//check if info is provided on the command line -> overwrites file
-		std::string arg = infos[Info].argument;
-		if(parameters().parameterExists(arg)){
-			setFromCommandLine(Vec, Info);
-		} else {
-			setDefault(Vec, Info);
-		}
-	}
-*/
 	InfoType argument2InfoType(const std::string & Argument){
 		for(auto i = InfoType::min; i < InfoType::max; ++i){
 			if(infos[i].argument == Argument)
@@ -227,6 +206,28 @@ void TReadGroupInfo::parse(const InfoType Info){
 	}
 	_parsed[Info];
 }
+
+std::vector<std::string> TReadGroupInfo::getUnusedColumnsInFile(){
+	std::vector<std::string> ret;
+	if(_fileData){
+		for(auto& s : _fileData->header()){
+			InfoType arg = impl::argument2InfoType(s);
+			if(arg == InfoType::max || !_parsed[arg]){
+				 ret.push_back(s);
+			}
+		}
+	}
+	return ret;
+}
+
+void TReadGroupInfo::warnAboutUnusedColumnsInFile(){
+	if(_fileData){
+		auto up = getUnusedColumnsInFile();
+		if(!up.empty()){
+			logfile().warning("The following columns in read group info file '", _fileData->filename(), "' were never used: ", coretools::str::concatenateString(up, ", "), "!");
+		}
+	}
+};
 
 void TReadGroupInfo::set(const uint16_t RGIndex, const InfoType Info, const std::string & Value){
 	//check if info was already parsed. Else, add

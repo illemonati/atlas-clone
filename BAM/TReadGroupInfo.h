@@ -73,6 +73,7 @@ public:
 	size_t size() const noexcept {
 		return _fileData.size();
 	}
+	const std::string& filename(){ return _filename; };
 	const std::vector<std::string> operator[](size_t row) const noexcept {
 		return _fileData[row];
 	}
@@ -177,6 +178,11 @@ public:
 	const std::string& get(uint16_t RGIndex, const InfoType Info) const {
 		return _info[RGIndex][Info];
 	}
+
+	bool hasFile(){ return _fileData; };
+
+	std::vector<std::string> getUnusedColumnsInFile();
+	void warnAboutUnusedColumnsInFile();
 
 	// setters
 	void set(const uint16_t RGIndex, const InfoType Info, const std::string & Value);
