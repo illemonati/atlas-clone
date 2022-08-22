@@ -91,9 +91,8 @@ namespace impl{
 
 	void setDefault(InfoVec & Vec, InfoType Info){
 		//use default values
-		logfile().list("Initializing ",
-					   infos[Info].description,
-					   " with default value '",
+		logfile().list(coretools::str::capitalizeFirst(infos[Info].description),
+					   ": default value '",
 					   infos[Info].defaults,
 					   "' for all read groups. (set with '",
 					   TReadGroupInfo::_RGInfoArgument,
@@ -107,13 +106,13 @@ namespace impl{
 		//read from command line
 		const std::string& arg = infos[Info].argument;
 		std::string val = parameters().getParameter<std::string>(arg);
-		logfile().list("Initializing ", infos[Info].description, " with '", val, "' for all read groups. (argument '", arg, "')");
+		logfile().list(coretools::str::capitalizeFirst(infos[Info].description), ": using '", val, "' for all read groups. (argument '", arg, "')");
 		setAllReadGroups(Vec, Info, val);
 	}
 
 	void setFromRGInfoFile(InfoVec & Vec, InfoType Info, const TFileData & FileData){
 	 	 //present in file -> read for each read group
-		logfile().list("Initializing ", infos[Info].description, " from read group info file. (overwrite with '", infos[Info].argument, "')");
+		logfile().list(coretools::str::capitalizeFirst(infos[Info].description), ": reading read-specific settings from read group info file '", FileData.fileName(), "'. (overwrite with '", infos[Info].argument, "')");
 		auto col = FileData.getInfoCol(Info);
 		for(auto& r : Vec){
 			auto row = FileData.getRow(r[InfoType::RGName]);
@@ -134,8 +133,13 @@ namespace impl{
 // TReadGroupInfo
 //------------------------------------------------
 
-// either: read info from file and match with TReadGroups (used for analyzes)
-void TReadGroupInfo::readInfoAndMatchReadGroups(const BAM::TReadGroups & ReadGroups){
+void TReadGroupInfo::_readFileIfProvided(){
+	if(parameters().parameterExists(_RGInfoArgument)){
+		_fileData = std::make_unique<TFileData>(parameters().getParameter<std::string>(_RGInfoArgument));
+	}
+}
+
+void TReadGroupInfo::_createReadGroupInfoentries(const BAM::TReadGroups & ReadGroups){
 	if(!_info.empty()){
 		DEVERROR("Read group info already read!");
 	}
@@ -146,6 +150,15 @@ void TReadGroupInfo::readInfoAndMatchReadGroups(const BAM::TReadGroups & ReadGro
 		_info.push_back(ReadGroups[i].name_ID);
 	}
 	_parsed[InfoType::RGName];
+}
+
+// either: read info from file and match with TReadGroups (used for analyzes)
+void TReadGroupInfo::readInfoAndMatchReadGroups(const BAM::TReadGroups & ReadGroups){
+	if(!_info.empty()){
+		DEVERROR("Read group info already read!");
+	}
+
+	_createReadGroupInfoentries(ReadGroups);
 	_readFileIfProvided();
 }
 
@@ -181,14 +194,8 @@ BAM::TReadGroups TReadGroupInfo::readInfoAndCreateReadGroups(){
 			readGroups.add("SimReadGroup" + coretools::str::toString(i + 1));
 		}
 	}
-	_parsed[InfoType::RGName];
+	_createReadGroupInfoentries(readGroups);
 	return readGroups;
-}
-
-void TReadGroupInfo::_readFileIfProvided(){
-	if(parameters().parameterExists(_RGInfoArgument)){
-		_fileData = std::make_unique<TFileData>(parameters().getParameter<std::string>(_RGInfoArgument));
-	}
 }
 
 void TReadGroupInfo::parse(const InfoType Info){

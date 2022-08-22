@@ -24,7 +24,7 @@ using coretools::str::toString;
 //TReadGroup
 //---------------------------------------------------------------
 TReadGroup::TReadGroup(const uint16_t ID, const std::string Name){
-	id = ID;
+	_id = ID;
 	name_ID = Name;
 	inUse = true;
 	writeToHeader = true;
@@ -136,7 +136,7 @@ void TReadGroups::clear(){
 void TReadGroups::_fillLookupFromId(){
 	_readGroupsById.resize(_readGroups.size());
 	for(const TReadGroup& rg : _readGroups){
-		int id = rg.id;
+		int id = rg.id();
 		_readGroupsById[id] = &rg;
 	}
 };
@@ -163,7 +163,7 @@ const TReadGroup& TReadGroups::addAlternativeRG(const std::string Name, const st
 
 	//set name and give new id
 	newRg.name_ID = Name;
-	newRg.id = _readGroups.size();
+	newRg.setId(_readGroups.size());
 
 	//add to set and inUse
 	auto r = _readGroups.insert(newRg);
@@ -200,7 +200,7 @@ std::vector<std::string> TReadGroups::getNames(std::vector<uint16_t> & readGroup
 uint16_t TReadGroups::getId(const std::string & name) const{
 	auto rg = _readGroups.find(name);
 	if(rg != _readGroups.end())
-		return rg->id;
+		return rg->id();
 	throw "Read Group '" + name + "' is not present in header of bam file!";
 };
 
@@ -277,7 +277,7 @@ void TReadGroups::printReadgroupsInUse(coretools::TLog* logfile) const{
 void TReadGroups::fillVectorWithNames(std::vector<std::string> & vec) const{
 	vec.resize(_readGroups.size());
 	for(auto& rg : _readGroups){
-		vec[rg.id] = rg.name_ID;
+		vec[rg.id()] = rg.name_ID;
 	}
 };
 

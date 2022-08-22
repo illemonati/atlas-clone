@@ -661,7 +661,7 @@ void TPostMortemDamage::writeToFile(const BAM::TReadGroups &ReadGroups, const st
 
 	// write for each read group
 	for (auto r = ReadGroups.cbegin(); r != ReadGroups.cend(); ++r)
-		out << r->name_ID << _pmdObjects[r->id]->typeString() << _pmdObjects[r->id]->functionString() << std::endl;
+		out << r->name_ID << _pmdObjects[r->id()]->typeString() << _pmdObjects[r->id()]->functionString() << std::endl;
 }
 
 void TPostMortemDamage::writeToFile(const BAM::TReadGroups &ReadGroups, const BAM::TReadGroupMap &ReadGroupMap,
@@ -671,8 +671,8 @@ void TPostMortemDamage::writeToFile(const BAM::TReadGroups &ReadGroups, const BA
 
 	// write for each read group
 	for (auto r = ReadGroups.cbegin(); r != ReadGroups.cend(); ++r)
-		out << r->name_ID << _pmdObjects[r->id]->typeString()
-			<< _pmdObjects[ReadGroupMap.pooledIndex(r->id)]->functionString() << std::endl;
+		out << r->name_ID << _pmdObjects[r->id()]->typeString()
+			<< _pmdObjects[ReadGroupMap.pooledIndex(r->id())]->functionString() << std::endl;
 }
 
 void TPostMortemDamage::_initializeFromString(const std::string &pmdString) {
@@ -686,8 +686,7 @@ void TPostMortemDamage::_initializeFromString(const std::string &pmdString) {
 	logfile().endIndent();
 }
 
-void TPostMortemDamage::_initializeFromFile(const BAM::TReadGroups &ReadGroups, const std::string &filename,
-					    std::vector<uint16_t> &ReadGroupsWithoutPMD) {
+std::vector<uint16_t> TPostMortemDamage::_initializeFromFile(const BAM::TReadGroups &ReadGroups, const std::string &filename) {
 	// create an array of TPMD objects for each read group
 	// also works if no parameters are provided (e.g. for estimation)
 	// read from file for each read group
@@ -710,12 +709,14 @@ void TPostMortemDamage::_initializeFromFile(const BAM::TReadGroups &ReadGroups, 
 
 	// check if we have a function for all read groups
 	// create no-PMD types for all remaining ones and return their indexes
+	std::vector<uint16_t> readGroupsWithoutPMD;
 	for (uint16_t i = 0; i < ReadGroups.size(); ++i) {
 		if (!_pmdObjects[i]) {
 			_pmdObjects[i] = impl::createPMDType("non");
-			ReadGroupsWithoutPMD.push_back(i);
+			readGroupsWithoutPMD.push_back(i);
 		}
 	}
+	return readGroupsWithoutPMD;
 }
 
 void TPostMortemDamage::_setHasDamage() {
@@ -729,8 +730,7 @@ void TPostMortemDamage::_setHasDamage() {
 	}
 }
 
-void TPostMortemDamage::initialize(const std::string &pmdString, const BAM::TReadGroups &ReadGroups,
-				   std::vector<uint16_t> &ReadGroupsWithoutPMD) {
+std::vector<uint16_t> TPostMortemDamage::initialize(const std::string &pmdString, const BAM::TReadGroups &ReadGroups) {
 	if (_hasPMD) {
 		throw std::runtime_error(
 			"void TPostMortemDamage::initialize(const std::string & pmdString, const BAM::TReadGroups & ReadGroups, "
@@ -738,7 +738,7 @@ void TPostMortemDamage::initialize(const std::string &pmdString, const BAM::TRea
 	}
 
 	// prepare objects
-	ReadGroupsWithoutPMD.clear();
+	std::vector<uint16_t> readGroupsWithoutPMD;
 	_pmdObjects.resize(ReadGroups.size());
 
 	// expect either a file name or a type of the form "type:functions"
@@ -747,11 +747,12 @@ void TPostMortemDamage::initialize(const std::string &pmdString, const BAM::TRea
 		_initializeFromString(pmdString);
 	} else {
 		// probably a file
-		_initializeFromFile(ReadGroups, pmdString, ReadGroupsWithoutPMD);
+		readGroupsWithoutPMD = _initializeFromFile(ReadGroups, pmdString);
 	}
 
 	// check if there is PMD for at least one read group
 	_setHasDamage();
+	return readGroupsWithoutPMD;
 }
 
 TBaseLikelihoods TPostMortemDamage::getBaseLikelihoods(const BAM::TSequencedBase &data,

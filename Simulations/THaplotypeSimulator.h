@@ -27,12 +27,14 @@ namespace genometools { class TChromosomes; }
 
 namespace Simulations {
 
+
+
 class THaplotypeSimulator {
 protected:
 	coretools::TStrongArray<double, genometools::Base> _cumulRef;
 	GenotypeLikelihoods::TBaseProbabilities _baseFreq;
 	 coretools::TStrongArray<double, genometools::Base>_cumulBaseFreq;
-	double _referenceDivergence;
+	coretools::Probability _referenceDivergence;
 	THaplotypeSimulator();
 public:
 	virtual ~THaplotypeSimulator() = default;
@@ -52,6 +54,7 @@ private:
 
 public:
 	TSimulatorOne(size_t nChoromosomes);
+	static inline const std::string name = "one";
 
 	void simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference,
 					const genometools::TChromosome &chromosome) override;
@@ -78,6 +81,7 @@ private:
 
 public:
 	TSimulatorPair();
+	static inline const std::string name = "pair";
 	void simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference,
 					const genometools::TChromosome &chromosome) override;
 	void simulateHaploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference,
@@ -100,6 +104,7 @@ private:
 	void _initializeSFS(const genometools::TChromosomes& chromosomes, const std::vector<std::string> &sfsFileNames, bool folded);
 public:
 	TSimulatorSFS(const genometools::TChromosomes& chromosomes);
+	static inline const std::string name = "SFS";
 	void simulateHaploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference,
 					const genometools::TChromosome &chromosome) override;
 	void simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference,
@@ -134,7 +139,7 @@ private:
 
 public:
 	TSimulatorHW();
-
+	static inline const std::string name = "HW";
 	void simulateHaploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference,
 					const genometools::TChromosome &chromosome) override;
 	void simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference,

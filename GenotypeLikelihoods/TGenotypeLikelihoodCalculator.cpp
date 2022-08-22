@@ -36,8 +36,7 @@ TGenotypeLikelihoodCalculator::TGenotypeLikelihoodCalculator(const BAM::TReadGro
 	//initialize PMD
 	//--------------
 	if(parameters().parameterExists("pmd")){
-		std::vector<uint16_t> readGroupsWithoutDef;
-		_pmdModels.initialize(parameters().getParameter<std::string>("pmd"), *ReadGroups, readGroupsWithoutDef);
+		std::vector<uint16_t> readGroupsWithoutDef = _pmdModels.initialize(parameters().getParameter<std::string>("pmd"), *ReadGroups);
 
 		//Warn if some read groups have no PMD definition
 		if(readGroupsWithoutDef.size() > 0){
