@@ -73,10 +73,12 @@ template<typename Covariate> TFunction *makeCovFunction(const std::string &Funct
 	if (type == TPolynomial<1, Covariate>::name) {
 		size_t O = 0;
 		if (betas.empty()) {
-			if (args.empty()) throw "You must specify betas or order of Polynomial function!";
-			O = args.size();
+			if (args.size() != 1) throw "You must specify betas or order of Polynomial function!";
+			fillFromString(args.front(), O);
 		} else {
-			if (!args.empty() && (args.size() != betas.size())) throw "Number of betas does not correspond to order";
+			if (((args.size() == 1) && (convertStringCheck<size_t>(args.front()) != betas.size()))
+				|| !args.empty())
+				throw "Number of betas does not correspond to order";
 			O = betas.size();
 		}
 		if (O == 1) return new TPolynomial<1, Covariate>(FirstParameterIndex, betas);

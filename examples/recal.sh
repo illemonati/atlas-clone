@@ -14,6 +14,7 @@ $atlas --task recal --bam ATLAS_simulations.bam --fasta ATLAS_simulations.fasta 
 # estimate recal model using empiric
 $atlas --task recal --bam ATLAS_simulations.bam --fasta ATLAS_simulations.fasta --recal "intercept;quality:empiric" --rerecalibrate --minDeltaLL 1 --fixedSeed 0 --out ATLAS_empiric --logFile recal_empiric.out
 
-echo "Log likelihood of simulated data:      " $(grep "Log Likelihood" recal_onlyLL.out | tail -n 1 | awk '{print $5}') > ATLAS_ll.txt
-echo "Log likelihood of polynomial estimate: " $(grep "Log Likelihood" recal_polynomial.out | tail -n 1 | awk '{print $6}') >> ATLAS_ll.txt
-echo "Log likelihood of empiric estimate:    " $(grep "Log Likelihood" recal_empiric.out | tail -n 1 | awk '{print $6}') >> ATLAS_ll.txt
+printf "#%-10s %s\n" "LL" "model" > ATLAS_ll.txt
+printf "%.4e %s\n" $(grep "Log Likelihood" recal_onlyLL.out | tail -n 1 | awk '{print $5}') "simulation" >> ATLAS_ll.txt
+printf "%.4e %s\n" $(grep "Log Likelihood" recal_polynomial.out | tail -n 1 | awk '{print $6}') "polynomial"  >> ATLAS_ll.txt
+printf "%.4e %s\n" $(grep "Log Likelihood" recal_empiric.out | tail -n 1 | awk '{print $6}') "empiric"  >> ATLAS_ll.txt
