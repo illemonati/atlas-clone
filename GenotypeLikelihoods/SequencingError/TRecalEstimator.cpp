@@ -472,9 +472,9 @@ void TRecalibrationEMEstimator::calcLL(TModels &SequencingErrorModels, const TPo
 	logfile().conclude("Epsilon: ",_modelsToEstimate.getModelsDefinition());
 	logfile().endIndent();
 
-	logfile().listFlushDots("Calculating log likelihood");
-	const double ll = _calculateLL_updatePg(PmdModels);
-	logfile().write(ll);
+	logfile().startIndent("Calculating log likelihood:");
+	const double LL = _calculateLL_updatePg(PmdModels);
+	logfile().conclude("Log Likelihood = ", LL);
 
 }
 

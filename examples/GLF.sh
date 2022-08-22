@@ -1,8 +1,6 @@
 #! /bin/bash
 
-root=`git rev-parse --show-toplevel`
-atlas=`find $root -type f -name atlas | tail -n 1`
-echo "Using $atlas"
+. $(dirname $0)/find_atlas
 
-$atlas --task simulate --fixedSeed 0
-$atlas --task GLF --bam ATLAS_simulations.bam --printAll
+$atlas --task simulate --fixedSeed 0 --logFile simulate.out
+$atlas --task GLF --bam ATLAS_simulations.bam --printAll --logFile GLF.out
