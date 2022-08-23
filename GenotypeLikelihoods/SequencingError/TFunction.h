@@ -301,8 +301,6 @@ public:
 			der1.emplace_back(firstParameterIndex(), v);
 			der1.emplace_back(firstParameterIndex() + 1, v*v);
 			der1.emplace_back(firstParameterIndex() + 2, v*v*v);
-			return v * (_betas[0] + v * _betas[1]);
-		} else if constexpr (O == 3) {
 			return v * (_betas[0] + v * (_betas[1] + _betas[2] * v));
 		} else {
 			der1.emplace_back(firstParameterIndex(), v);

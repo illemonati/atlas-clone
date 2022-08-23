@@ -253,10 +253,10 @@ void TRecalibrationEMEstimator::_initializeModels(SequencingError::TModels &Sequ
 	_dataTables.add(_sites);
 	logfile().done();
 
-	logfile().conclude("Number of sites with data: " + toString(_sites.size()));
+	logfile().conclude("Number of sites with data: ", _sites.size());
 	size_t numSitesDepthTwoOrMore = _numSitesDepthTwoOrMore();
-	logfile().conclude("Number of sites with depth > 1: " + toString(numSitesDepthTwoOrMore));
-	logfile().conclude("Number of bases: " + toString(_dataTables.size()));
+	logfile().conclude("Number of sites with depth > 1: ", numSitesDepthTwoOrMore);
+	logfile().conclude("Number of bases: ", _dataTables.size());
 	if (numSitesDepthTwoOrMore < 100) throw "Less than 100 sites with depth >= 2 available - aborting estimation!";
 
 	// identify models with data that can be estimated
@@ -286,7 +286,7 @@ void TRecalibrationEMEstimator::performEstimation(const std::string &outputName,
 
 	// writing final estimates
 	const std::string filename = outputName + "_recalibrationEM.txt";
-	logfile().listFlush("Writing final estimates to file '" + filename + "' ...");
+	logfile().listFlush("Writing final estimates to file '", filename, "' ...");
 	_writeCurrentEstimates(filename);
 	logfile().done();
 };
@@ -334,7 +334,7 @@ void TRecalibrationEMEstimator::_updateEpsilon(const TPostMortemDamage &PmdModel
 	const auto nTot = _modelsToEstimate.size();
 
 	for (int i = 0; i < _NewtonRaphsonNumIterations; ++i) {
-		logfile().startIndent("Running Newton-Raphson iteration " + toString(i + 1) + ":");
+		logfile().startIndent("Running Newton-Raphson iteration ", i + 1, ":");
 		_solveDerivative();
 		const double curQ = _modelsToEstimate.Q();
 		logfile().list("Current Q_beta = ", curQ);
@@ -351,7 +351,7 @@ void TRecalibrationEMEstimator::_updateEpsilon(const TPostMortemDamage &PmdModel
 			deltaQ   = _modelsToEstimate.Q() - curQ;
 			nUpdated = _modelsToEstimate.acceptOrReject();
 
-			logfile().write(toString(nUpdated) + "/" + toString(nTot) + " models converged.");
+			logfile().write(toString(nUpdated), "/", nTot, " models converged.");
 			logfile().conclude("Delta Q = ", deltaQ);
 
 			// backtrack
@@ -361,7 +361,7 @@ void TRecalibrationEMEstimator::_updateEpsilon(const TPostMortemDamage &PmdModel
 		_modelsToEstimate.adjust();
 
 		if (nUpdated < nTot) {
-			logfile().conclude("Some models did not improve even with log2(lambda) = " + toString(std::log2(lambda)) +
+			logfile().conclude("Some models did not improve even with log2(lambda) = ", std::log2(lambda),
 							   ", aborting Newton-Raphson.");
 			break;
 		}
@@ -372,7 +372,7 @@ void TRecalibrationEMEstimator::_updateEpsilon(const TPostMortemDamage &PmdModel
 			logfile().endIndent();
 			break;
 		} 
-		logfile().conclude("max(F) = ", toString(maxF));
+		logfile().conclude("max(F) = ", maxF);
 
 		if (const auto pdQ = std::abs(deltaQ/curQ); pdQ < deltaLL_LL) {
 			logfile().conclude("deltaQ/Q = ", pdQ, " < deltaLL/LL = ", deltaLL_LL, ", ending Newton-Raphson.");
@@ -418,13 +418,13 @@ void TRecalibrationEMEstimator::_runEM(const std::string &outputName, const TPos
 	using coretools::str::toString;
 	// run EM
 	logfile().startNumbering("Running EM algorithm:");
-	logfile().conclude("Initial rho: ",_modelsToEstimate.getRhoDefinition());
-	logfile().conclude("Initial model: ",_modelsToEstimate.getModelsDefinition());
+	logfile().conclude("Initial rho: ", _modelsToEstimate.getRhoDefinition());
+	logfile().conclude("Initial model: ", _modelsToEstimate.getModelsDefinition());
 
 	// calculate initial LL
 	double oldLL   = _calculateLL_updatePg(PmdModels);
 	double deltaLL = abs(oldLL);
-	logfile().conclude("Initial log Likelihood = " + toString(oldLL));
+	logfile().conclude("Initial log Likelihood = ", oldLL);
 
 	// running iterations
 	for (int i = 0; i < _numEMIterations; ++i) {
@@ -434,15 +434,17 @@ void TRecalibrationEMEstimator::_runEM(const std::string &outputName, const TPos
 		// update theta_epsilon (sequencing errors)
 		_updateEpsilon(PmdModels, std::abs(deltaLL/oldLL));
 
+		logfile().conclude("Current model: ", _modelsToEstimate.getModelsDefinition());
+
 		// calculate LL
 		const double LL = _calculateLL_updatePg(PmdModels);
-		logfile().conclude("Current Log Likelihood = " + toString(LL));
+		logfile().conclude("Current Log Likelihood = ", LL);
 
 		// check if we break based on LL
 		deltaLL = LL - oldLL;
-		logfile().conclude("delta LL = " + toString(deltaLL));
+		logfile().conclude("delta LL = ", deltaLL);
 		if (i > 0 && deltaLL < _minDeltaLL) {
-			logfile().conclude("EM has converged (delta LL < " + toString(_minDeltaLL) + ")");
+			logfile().conclude("EM has converged (delta LL < ", _minDeltaLL, ")");
 			break;
 		}
 		oldLL = LL;
@@ -450,7 +452,7 @@ void TRecalibrationEMEstimator::_runEM(const std::string &outputName, const TPos
 		// write current estimates to file
 		if (_writeTmpTables) {
 			std::string filename = outputName + "_recalibrationEM_Loop" + toString(i) + ".txt";
-			logfile().listFlush("Writing current estimates to file '" + filename + "' ...");
+			logfile().listFlush("Writing current estimates to file '", filename, "' ...");
 			_writeCurrentEstimates(filename);
 			logfile().done();
 		}

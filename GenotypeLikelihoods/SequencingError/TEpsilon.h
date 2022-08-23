@@ -100,8 +100,7 @@ class TEpsilon {
 		const double leps   = std::log(eps);
 		const double leps_c = std::log(eps_c);
 
-		constexpr auto gs = _makeGenotype<isInvariant>();
-		for (auto g : gs) {
+		for (auto g : _makeGenotype<isInvariant>()) {
 			const double P_bbar_I_gd = P_bbar_I_gds[g];
 			const double P_g_I_d     = P_g_I_ds[g];
 
