@@ -107,7 +107,6 @@ class TEpsilon {
 			// add Q
 			_Q += P_g_I_d * (P_bbar_I_gd * leps_c + (1 - P_bbar_I_gd) * leps);
 
-			// F and J
 			const double w_ij = P_g_I_d * (eps_c - P_bbar_I_gd);
 
 			// add first derivatives
@@ -115,7 +114,7 @@ class TEpsilon {
 				// add to F
 				_F(dm->index) += w_ij * dm->derivative;
 
-				// add to J
+				// add to upper half of J
 				_Jacobian(dm->index, dm->index) -= eps_c * eps * dm->derivative * dm->derivative;
 				for (auto dn = dm + 1; dn != der1st.end(); ++dn) {
 					_Jacobian(dm->index, dn->index) -= eps_c * eps * dm->derivative * dn->derivative;
