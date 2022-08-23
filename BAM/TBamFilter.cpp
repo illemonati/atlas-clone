@@ -135,11 +135,7 @@ void TQualityFilter::set(coretools::TParameters & params, coretools::TLog* logfi
 // TContextFilter
 //-------------------------------------
 void TContextFilter::set(coretools::TParameters & params, coretools::TLog* logfile){
-	using genometools::Base;
-	using genometools::BaseContext;
-	using genometools::baseContext;
-	using genometools::char2base;
-	using coretools::index;
+	using namespace genometools;
 	_filter = false;
 	if(params.parameterExists("ignoreContexts")){
 		std::vector<std::string> contexts;
@@ -159,13 +155,13 @@ void TContextFilter::set(coretools::TParameters & params, coretools::TLog* logfi
 				}
 
 				//save context
-				_keptContexts[index(baseContext(first, second))] = false;
+				_keptContexts[baseContext(first, second)] = false;
 			}
 
 			std::vector<std::string> rep;
-			for(auto i = 0; i <= index(BaseContext::NN); ++i){
+			for(auto i = BaseContext::min; i <= BaseContext::max; ++i){ //including max
 				if(!_keptContexts[i]){
-					rep.push_back(toString(BaseContext(i)));
+					rep.push_back(toString(i));
 				}
 			}
 			logfile->list("Will ignore the following contexts: " + coretools::str::concatenateString(rep, ", ")  + ". (parameter 'ignoreContexts')");
@@ -179,7 +175,7 @@ void TContextFilter::set(coretools::TParameters & params, coretools::TLog* logfi
 };
 
 bool TContextFilter::pass(const TSequencedBase & base) const{
-	return _keptContexts[coretools::index(base.context)];
+	return _keptContexts[base.context()];
 };
 
 //-----------------------------------------------------

@@ -30,7 +30,7 @@ using coretools::instances::parameters;
 //----------------------------------------
 TPMDEstimator::TPMDEstimator(): TGenome_parsed() {
 	//make sure there is pmd
-	GenotypeLikelihoods::TPostMortemDamage& pmd = _genotypeLikelihoodCalculator.getPostMortemDamageModelsMutable();
+	GenotypeLikelihoods::TPostMortemDamage& pmd = _genotypeLikelihoodCalculator.getPostMortemDamageModels();
 	if (_genotypeLikelihoodCalculator.hasPMD() && !parameters().parameterExists("reestimate")) {
 		throw "PMD model already estimated! (Use argument 'reestimate' to overwrite this error)";
 
@@ -93,7 +93,7 @@ void TPMDEstimator::estimatePMD(){
 
 	// 3) estimate models
 	using coretools::instances::parameters;
-	GenotypeLikelihoods::TPostMortemDamage& pmd = _genotypeLikelihoodCalculator.getPostMortemDamageModelsMutable();
+	GenotypeLikelihoods::TPostMortemDamage& pmd = _genotypeLikelihoodCalculator.getPostMortemDamageModels();
 
 	//estimate all models with data, i.e. only one model per pool
 	for(auto& r : _readGroupMap->readGroupsInUse()){

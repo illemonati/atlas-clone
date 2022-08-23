@@ -66,9 +66,9 @@ public:
 	TGenotypeLikelihoodCalculator(const BAM::TReadGroups* ReadGroups);
 
 	const SequencingError::TModels& getSequencingErrorModels() const { return _sequencingErrorModels; };
-	SequencingError::TModels& getSequencingErrorModelsMutable() { return _sequencingErrorModels; };
+	SequencingError::TModels& getSequencingErrorModels() { return _sequencingErrorModels; };
 	const TPostMortemDamage& getPostMortemDamageModels() const { return _pmdModels; };
-	TPostMortemDamage& getPostMortemDamageModelsMutable() { return _pmdModels; };
+	TPostMortemDamage& getPostMortemDamageModels() { return _pmdModels; };
 
 	bool hasPMD() const;
 	bool recalibrationChangesQualities() const;

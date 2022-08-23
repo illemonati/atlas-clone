@@ -310,6 +310,7 @@ void TBAMSimulator::_initializeQualityTransformations() {
 			_readSimulators[r]->setRecal(&_recal(r, false), &_recal(r, true));
 		}
 	} else {
+		_recal.initializeNoRecal(_readGroups);
 		// add noRecal model. Is still needed for simulation of bases from base qualities!
 		_recal.initializeNoRecal(_readGroups);
 		for (size_t r = 0; r < _readSimulators.size(); ++r) {

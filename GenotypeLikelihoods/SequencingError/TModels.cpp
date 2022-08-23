@@ -13,6 +13,7 @@
 #include <ostream>
 #include <stdexcept>
 
+#include "TError.h"
 #include "TFile.h"
 #include "TLog.h"
 #include "TReadGroups.h"
@@ -39,6 +40,20 @@ void TModels::initializeNoRecal(const BAM::TReadGroups &ReadGroups) {
 		m[0] = std::make_unique<TModelNoRecal>();
 		m[1] = std::make_unique<TModelNoRecal>();
 	}
+}
+
+std::vector<std::array<std::unique_ptr<TModel>, 2>> TModels::forget() {
+	std::vector<std::array<std::unique_ptr<TModel>, 2>> forgottenModels(_models.size());
+	for (auto &m : forgottenModels) {
+		m[0] = std::make_unique<TModelNoRecal>();
+		m[1] = std::make_unique<TModelNoRecal>();
+	}
+	std::swap(_models, forgottenModels);
+	return forgottenModels;
+}
+void TModels::remember(std::vector<std::array<std::unique_ptr<TModel>, 2>>& forgottenModels) {
+	if (forgottenModels.size() != _models.size()) DEVERROR("Forgotten models are not correct size!");
+	std::swap(_models, forgottenModels);
 }
 
 void TModels::initialize(const std::string &RecalString, const std::string &RhoString,

@@ -40,6 +40,9 @@ public:
 	void checkReadGroups(const BAM::TReadGroups &ReadGroups, std::vector<uint16_t> &ReadGroupsWithoutRecal,
 			     std::vector<uint16_t> &ReadGroupsLikelySingleEnd) const noexcept;
 
+	std::vector<std::array<std::unique_ptr<TModel>, 2>> forget();
+	void remember(std::vector<std::array<std::unique_ptr<TModel>, 2>>& forgottenModels);
+
 	// access models
 	TModel &operator()(uint16_t ReadGroupIndex, bool IsSecondMate) noexcept {
 		return *_models[ReadGroupIndex][IsSecondMate];

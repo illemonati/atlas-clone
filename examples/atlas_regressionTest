@@ -28,7 +28,7 @@ for f in *.sh; do
 		echo "Creating reference ATLAS-files in folder ${fo}_ref"
 		mkdir -v ${fo}_ref
 		cd ${fo}_ref
-		bash ../$f > out 2> eout
+		bash ../$f > /dev/null 2> eout
 		[[ -s eout ]] && echo "Reference simulation of $fo ended with errors"; head eout
 		cd ..
 	else
@@ -37,7 +37,7 @@ for f in *.sh; do
 			echo "Creating new ATLAS-files in folder ${fo}_new"
 			mkdir -v ${fo}_new
 			cd ${fo}_new
-			bash ../$f > out 2> eout
+			bash ../$f > /dev/null 2> eout
 			[[ -s eout ]] && echo "New simulation of $fo ended with errors"; head eout
 		else
 			echo "Found new ATLAS-files in folder ${fo}_new"

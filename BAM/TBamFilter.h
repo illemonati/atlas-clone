@@ -19,6 +19,7 @@
 #include "TFile.h"
 #include "TNumericRange.h"
 #include "TSequencedBase.h"
+#include "TStrongArray.h"
 #include "counters.h"
 
 
@@ -159,7 +160,8 @@ public:
 //-------------------------------------
 class TContextFilter : public TBaseFilter{
 private:
-	std::array<bool, static_cast<uint8_t>(genometools::BaseContext::max) + 1> _keptContexts;
+	//std::array<bool, static_cast<uint8_t>(genometools::BaseContext::max) + 1> _keptContexts;
+	coretools::TStrongArray<bool, genometools::BaseContext, coretools::index(genometools::BaseContext::max) + 1> _keptContexts;
 
 public:
 	explicit TContextFilter(){

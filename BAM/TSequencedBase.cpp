@@ -11,14 +11,14 @@ namespace BAM {
 
 void TSequencedBase::print() const {
 	std::cout << "base: " << base << '\n'
-		  << "originalQuality_phredInt: " << originalQuality_phredInt << '\n'
-		  << "recalibratedQualityAsPhredInt: " << recalibratedQualityAsPhredInt << '\n'
-		  << "distFrom5Prime: " << distFrom5Prime << '\n'
-		  << "distFrom3Prime: " << distFrom3Prime << '\n'
-		  << "readGroupID: " << readGroupID << '\n'
-		  << "context: " << context << '\n'
-		  << "mappingQuality: " << mappingQuality << '\n'
-		  << "fragmentLength: " << fragmentLength << std::endl;
+			  << "originalQuality_phredInt: " << originalQuality_phredInt << '\n'
+			  << "recalibratedQualityAsPhredInt: " << recalibratedQualityAsPhredInt << '\n'
+			  << "distFrom5Prime: " << distFrom5Prime << '\n'
+			  << "distFrom3Prime: " << distFrom3Prime << '\n'
+			  << "readGroupID: " << readGroupID << '\n'
+			  << "context: " << context() << '\n'
+			  << "mappingQuality: " << mappingQuality << '\n'
+			  << "fragmentLength: " << fragmentLength << std::endl;
 }
 
 }; // namespace BAM

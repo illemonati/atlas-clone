@@ -301,8 +301,6 @@ public:
 			der1.emplace_back(firstParameterIndex(), v);
 			der1.emplace_back(firstParameterIndex() + 1, v*v);
 			der1.emplace_back(firstParameterIndex() + 2, v*v*v);
-			return v * (_betas[0] + v * _betas[1]);
-		} else if constexpr (O == 3) {
 			return v * (_betas[0] + v * (_betas[1] + _betas[2] * v));
 		} else {
 			der1.emplace_back(firstParameterIndex(), v);
@@ -332,32 +330,18 @@ public:
 template<typename Covariate> class TProbit final : public TFunction {
 private:
 	struct TProbitTmpStorage {
-		double cumulDens_Phi;
-		double normalDens_phi;
-		double eta;
-		double normalDens_q;
-		double normalDens_Beta1;
-		double normalDens_Beta1_q;
-		double normalDens_Beta1_z;
-		double normalDens_Beta1_q_z;
-		double normalDens_Beta1_q2_z;
+		double phi;
+		double phiCumul;
 
 		TProbitTmpStorage(const std::array<double, 3> &betas, uint16_t q) {
 			using namespace coretools::probdist;
-			const double z        = betas[1] + betas[2] * q;
-			cumulDens_Phi         = coretools::probdist::TNormalDistr::cumulativeDensity(z, 0, 1);
-			normalDens_phi        = coretools::probdist::TNormalDistr::density(z, 0, 1);
-			eta                   = cumulDens_Phi * betas[0];
-			normalDens_q          = normalDens_phi * q;
-			normalDens_Beta1      = normalDens_phi * betas[0];
-			normalDens_Beta1_q    = normalDens_Beta1 * q;
-			normalDens_Beta1_z    = normalDens_Beta1 * z;
-			normalDens_Beta1_q_z  = normalDens_Beta1_q * z;
-			normalDens_Beta1_q2_z = normalDens_Beta1_q_z * q;
+			const double z = betas[1] + betas[2] * q;
+			phiCumul       = coretools::probdist::TNormalDistr::cumulativeDensity(z, 0, 1);
+			phi            = coretools::probdist::TNormalDistr::density(z, 0, 1);
 		}
 	};
-	std::array<double, 3> _betas;    // betas of the model
-	std::array<double, 3> _oldBetas; // use during estimation
+	std::array<double, 3> _betas{1., 0, 1.};    // betas of the model
+	std::array<double, 3> _oldBetas{}; // use during estimation
 
 	// tmp storage
 	mutable std::vector<TProbitTmpStorage> _tmpStorage;
@@ -385,31 +369,44 @@ public:
 	bool checkOrInitValueRange(const RecalEstimatorTools::TRecalDataTable &) noexcept override { return true; }
 
 	double getEta(const BAM::TSequencedBase &base) const noexcept override {
-		const auto val = Covariate::extract(base);
-		if (val >= _tmpStorage.size()) { _expandTmpStorage(val); }
-		return _tmpStorage[val].eta;
+		const auto q = Covariate::extract(base);
+		if (q >= _tmpStorage.size()) { _expandTmpStorage(q); }
+		return _tmpStorage[q].phiCumul*_betas.front();
 	}
 
 	double getEta(const BAM::TSequencedBase &base, std::vector<T1stDerivative> &der1,
 				  std::vector<T2ndDerivative> &der2) const noexcept override {
-		const auto val = Covariate::extract(base);
-		if (val >= _tmpStorage.size()) { _expandTmpStorage(val); }
+		const auto q = Covariate::extract(base);
+		if (q >= _tmpStorage.size()) { _expandTmpStorage(q); }
 
-		der1.emplace_back(firstParameterIndex(), _tmpStorage[val].cumulDens_Phi);
-		der1.emplace_back(firstParameterIndex() + 1, _tmpStorage[val].normalDens_Beta1);
-		der1.emplace_back(firstParameterIndex() + 1, _tmpStorage[val].normalDens_Beta1_q);
+		const auto b1 = firstParameterIndex();
+		const auto b2 = b1 + 1;
+		const auto b3 = b1 + 2;
 
-		der2.emplace_back(firstParameterIndex(), firstParameterIndex(), 0.);
-		der2.emplace_back(firstParameterIndex(), firstParameterIndex() + 1, -_tmpStorage[val].normalDens_phi);
-		der2.emplace_back(firstParameterIndex(), firstParameterIndex() + 2, -_tmpStorage[val].normalDens_q);
-		der2.emplace_back(firstParameterIndex() + 1, firstParameterIndex(), 0.);
-		der2.emplace_back(firstParameterIndex() + 1, firstParameterIndex() + 1, -_tmpStorage[val].normalDens_Beta1_z);
-		der2.emplace_back(firstParameterIndex() + 1, firstParameterIndex() + 2, -_tmpStorage[val].normalDens_Beta1_q_z);
-		der2.emplace_back(firstParameterIndex() + 2, firstParameterIndex(), 0.);
-		der2.emplace_back(firstParameterIndex() + 2, firstParameterIndex() + 1, 0.);
-		der2.emplace_back(firstParameterIndex() + 2, firstParameterIndex() + 2, -_tmpStorage[val].normalDens_Beta1_q2_z);
+		const auto z        = _betas[1] + _betas[2] * q;
+		const auto phi      = _tmpStorage[q].phi;
+		const auto phiCumul = _tmpStorage[q].phiCumul;
+		const double bPhi   = phi * _betas.front();
+		const double bPhiQ  = bPhi * q;
+		const double bPhiQZ = bPhiQ * z;
 
-		return _tmpStorage[val].eta;
+		der1.emplace_back(b1, phiCumul);
+		der1.emplace_back(b2, bPhi);
+		der1.emplace_back(b3, bPhiQ);
+
+		//der2.emplace_back(b1, b1, 0.); this is zero
+		der2.emplace_back(b1, b2, phi);
+		der2.emplace_back(b1, b3, phi*q);
+
+		//der2.emplace_back(b2, b1, phi); only upper half
+		der2.emplace_back(b2, b2, -bPhi*z);
+		der2.emplace_back(b2, b3, -bPhiQZ*q);
+
+		//der2.emplace_back(b3, b1, phi*p); only upper half
+		//der2.emplace_back(b3, b2, -bPhi*z); only upper half
+		der2.emplace_back(b3, b3, -bPhiQZ);
+
+		return phiCumul *_betas.front();
 	}
 
 	double adjustParametersPostEstimation() noexcept override { return 0.; }
