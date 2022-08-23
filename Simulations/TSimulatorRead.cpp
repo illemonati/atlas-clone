@@ -10,7 +10,6 @@
 #include <memory>
 
 #include "PhredProbabilityTypes.h"
-#include "TLog.h"
 #include "TPostMortemDamage.h"
 #include "TRandomGenerator.h"
 #include "TSequencedBase.h"
@@ -30,13 +29,9 @@ using BAM::RGInfo::InfoType;
 //------------------------------------------------
 // TSimulatorRead
 //------------------------------------------------
+
 TSimulatorRead::TSimulatorRead(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo)
-	: _readGroup(ReadGroup),
-	  _readGroupInfo(RGInfo),
-	  _fragmentLengthDistr(_readGroupInfo[InfoType::fragmentLength]),
-	  _qualityDist(_readGroupInfo[InfoType::baseQuality]),
-	  _mappingQualityDist(_readGroupInfo[InfoType::mappingQuality])
-	{
+	: _readGroup(ReadGroup){
 
 	// initialize bamAlignment
 	_alignment.setReadGroup(_readGroup.id());
@@ -44,9 +39,14 @@ TSimulatorRead::TSimulatorRead(const BAM::TReadGroup & ReadGroup, const TReadGro
 	//readNamePrefix: "<instrument>:<run number>:<flowcell ID>:<lane>:<tile>:"  Still need to add "<x-pos>:<y-pos>"
 	_readNamePrefix = "ATL:0:A:1:" + coretools::str::toString(_readGroup.id()) + ":";
 
+	//initialize distributions
+	_initDistribution(_fragmentLengthDistr, RGInfo, InfoType::fragmentLength);
+	_initDistribution(_mappingQualityDist, RGInfo, InfoType::mappingQuality);
+	_initDistribution(_qualityDist, RGInfo, InfoType::baseQuality);
+
 	//soft clip
-	if(_readGroupInfo.has(InfoType::softClipping)){
-		std::string sc = _readGroupInfo[InfoType::softClipping];
+	if(RGInfo.has(InfoType::softClipping)){
+		std::string sc = RGInfo[InfoType::softClipping];
 		if(!sc.empty()){
 			//check if one or two values are given
 			if(sc.find(':') == std::string::npos){
@@ -224,7 +224,7 @@ TSimulatorSingleEndRead::TSimulatorSingleEndRead(const BAM::TReadGroup & ReadGro
 	: TSimulatorRead(ReadGroup, RGInfo){
 
 	//num cycles
-	coretools::str::convertString< coretools::StrictlyPositive<uint16_t> >(_readGroupInfo[InfoType::numCycles],
+	coretools::str::convertString< coretools::StrictlyPositive<uint16_t> >(RGInfo[InfoType::numCycles],
 			BAM::RGInfo::infos[InfoType::numCycles].description + " must be within [1,65535].", _numCycles);
 }
 
@@ -254,15 +254,15 @@ TSimulatorPairedEndReads::TSimulatorPairedEndReads(const BAM::TReadGroup & ReadG
 	: TSimulatorRead(ReadGroup, RGInfo){
 
 	//num cycles
-	if(coretools::str::stringContains(_readGroupInfo[InfoType::numCycles], ',')){
+	if(coretools::str::stringContains(RGInfo[InfoType::numCycles], ',')){
 		//two values: one for first and one for second mate
-		coretools::str::convertString< coretools::StrictlyPositive<uint16_t> >(coretools::str::readBefore(_readGroupInfo[InfoType::numCycles], ','),
+		coretools::str::convertString< coretools::StrictlyPositive<uint16_t> >(coretools::str::readBefore(RGInfo[InfoType::numCycles], ','),
 				BAM::RGInfo::infos[InfoType::numCycles].description + " must be within [1,65535].", _numCycles[0]);
-		coretools::str::convertString< coretools::StrictlyPositive<uint16_t> >(coretools::str::readAfter(_readGroupInfo[InfoType::numCycles], ','),
+		coretools::str::convertString< coretools::StrictlyPositive<uint16_t> >(coretools::str::readAfter(RGInfo[InfoType::numCycles], ','),
 				BAM::RGInfo::infos[InfoType::numCycles].description + " must be within [1,65535].", _numCycles[1]);
 	} else {
 		//one value to be used for both mates
-		coretools::str::convertString< coretools::StrictlyPositive<uint16_t> >(_readGroupInfo[InfoType::numCycles],
+		coretools::str::convertString< coretools::StrictlyPositive<uint16_t> >(RGInfo[InfoType::numCycles],
 				BAM::RGInfo::infos[InfoType::numCycles].description + " must be within [1,65535].", _numCycles[0]);
 		_numCycles[1] = _numCycles[0];
 	}

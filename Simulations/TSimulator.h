@@ -83,18 +83,17 @@ protected:
 
 	// read simulator
 	std::vector<std::unique_ptr<TSimulatorSingleEndRead>> _readSimulators;
-	std::vector<double> _simGroupFrequencies;
-	std::vector<double> _cumulSimGroupFrequenies;
+	std::vector<coretools::Probability> _simGroupFrequencies;
+	std::vector<coretools::Probability> _cumulSimGroupFrequenies;
 
 	// function to initialize read groups
 	void _initializeReadGroups(const BAM::RGInfo::TReadGroupInfo & RGinfo);
-
 	void _initializePMD();
 	void _initializeQualityTransformations();
 	void _initializeContamination(bool &perReadGroup, std::map<std::string, double> &contaminationMap);
 	void _initializeReadSimulator();
-	void _initializeReadGroupFrequencies();
-	void _printSimulationDetailsAllReadGroups();
+	void _initializeReadGroupFrequencies(const BAM::RGInfo::TReadGroupInfo & RGinfo);
+	void _prepareSimulations();
 
 	// functions to simulate
 	void _simulateReadsFromHaplotypes(const genometools::TChromosome &thisChr,

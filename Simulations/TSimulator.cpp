@@ -264,8 +264,14 @@ void TBAMSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome
 
 void TBAMSimulator::_initializeReadGroups(const TReadGroupInfo & RGinfo) {
 	// create simulation read groups
+	using BAM::RGInfo::InfoType;
 	for(size_t i = 0; i < RGinfo.size(); ++i){
-		std::string type = RGinfo[i][BAM::RGInfo::InfoType::seqType];
+		logfile().startIndent("Read group '", RGinfo[i][InfoType::RGName], "':");
+		std::string type = RGinfo[i][InfoType::seqType];
+		logfile().list("Sequencing type: ", type);
+		logfile().list("Frequency: ", _simGroupFrequencies[i]);
+
+		//initialize by type
 		if(type == "single"){
 			_readSimulators.push_back(std::make_unique<TSimulatorSingleEndRead>(_readGroups[i], RGinfo[i]));
 		} else if(type == "paired"){
@@ -274,6 +280,7 @@ void TBAMSimulator::_initializeReadGroups(const TReadGroupInfo & RGinfo) {
 		} else {
 			UERROR("Unable to understand read group type '" + type + "'! Use either 'single' or 'paired'.");
 		}
+		logfile().endIndent();
 	}
 }
 
@@ -315,13 +322,17 @@ void TBAMSimulator::_initializeQualityTransformations() {
 
 void TBAMSimulator::_initializeReadSimulator() {
 	logfile().startIndent("Parameters regarding sequencing:");
-	// A) initialize read groups from RG Info / Command line
+	// Read sequencing parameters from RG Info / Command line
 	TReadGroupInfo RGinfo;
 	_readGroups = RGinfo.readInfoAndCreateReadGroups();
 
 	using BAM::RGInfo::InfoType;
-	RGinfo.parse(InfoType::seqType, InfoType::numCycles, InfoType::fragmentLength, InfoType::baseQuality, InfoType::mappingQuality, InfoType::softClipping);
+	RGinfo.parse(InfoType::RGFrequency, InfoType::seqType, InfoType::numCycles, InfoType::fragmentLength, InfoType::baseQuality, InfoType::mappingQuality, InfoType::softClipping);
+	_initializeReadGroupFrequencies(RGinfo);
+	logfile().endIndent();
 
+	//Initialize read groups
+	logfile().startIndent("Initializing ", _readGroups.size(), " read groups:");
 	_initializeReadGroups(RGinfo);
 
 	// B) initialize PMD
@@ -339,54 +350,35 @@ void TBAMSimulator::_initializeReadSimulator() {
 	// G) other things
 	//----------------
 	// initialize read group frequencies frequencies
-	_initializeReadGroupFrequencies();
+
 
 	logfile().endIndent();
 
 	//warn ig read group info columns were not used
 	RGinfo.warnAboutUnusedColumnsInFile();
-
-	//report all read groups
-	_printSimulationDetailsAllReadGroups();
 	logfile().endIndent();
 }
 
-void TBAMSimulator::_initializeReadGroupFrequencies() {
-	_cumulSimGroupFrequenies.reserve(_readSimulators.size());
-	_simGroupFrequencies.reserve(_readSimulators.size());
-	if (parameters().parameterExists("readGroupFreq")) {
-		// read frequencies
-		std::vector<std::string> vec;
-		parameters().fillParameterIntoContainer("readGroupFreq", vec, true);
-		std::vector<double> freq;
-		coretools::str::repeatIndexes(vec, freq);
-		if (freq.size() != _readSimulators.size())
-			throw "Provided read group frequencies do not match number of read groups!";
+void TBAMSimulator::_initializeReadGroupFrequencies(const TReadGroupInfo & RGinfo) {
+	_cumulSimGroupFrequenies.resize(RGinfo.size());
+	_simGroupFrequencies.resize(RGinfo.size());
 
-		// normalize and print
-		const auto sum = std::accumulate(freq.cbegin(), freq.cend(), 0.);
-
-		logfile().startIndent("Will simulate read groups with the following frequencies:");
-		for (size_t i = 0; i < _readSimulators.size(); ++i) {
-			_simGroupFrequencies[i] = freq[i] / sum;
-			logfile().list(_simGroupFrequencies[i], " " + _readSimulators[i]->name());
-		}
-		logfile().endIndent();
-
-		// fill cumulative
-		_cumulSimGroupFrequenies[0] = _simGroupFrequencies[0];
-		for (size_t i = 1; i < _readSimulators.size(); ++i)
-			_cumulSimGroupFrequenies[i] = _cumulSimGroupFrequenies[i - 1] + _simGroupFrequencies[i];
-		_cumulSimGroupFrequenies[_readSimulators.size() - 1] = 1.0; // ensure last entry is 1.0
+	using BAM::RGInfo::InfoType;
+	if(RGinfo.hasInfo(InfoType::RGFrequency)){
+		//fill frequencies and cumulative frequencies
+		std::vector<double> tmp;
+		RGinfo.fillContainerPerReadGroup(tmp, InfoType::RGFrequency);
+		coretools::fillFromNormalized(_simGroupFrequencies, tmp);
 	} else {
-		// equal frequencies
-		logfile().list("Will simulate reads equally distributed among read groups.");
-		for (size_t i = 0; i < _readSimulators.size(); ++i) {
-			_simGroupFrequencies[i]     = 1.0 / _readSimulators.size();
-			_cumulSimGroupFrequenies[i] = (double)(i + 1) / _readSimulators.size();
+		Probability equal = 1.0 / (double) RGinfo.size();
+		for (size_t i = 0; i < RGinfo.size(); ++i) {
+			_simGroupFrequencies[i] = equal;
 		}
 	}
+	coretools::fillCumulative(_simGroupFrequencies, _cumulSimGroupFrequenies);
+}
 
+void TBAMSimulator::_prepareSimulations(){
 	// precalculate some stuff
 	_averageReadLength = 0;
 	_maxFragmentLength = 0;
@@ -405,16 +397,6 @@ void TBAMSimulator::_initializeReadGroupFrequencies() {
 
 		}
 	}
-}
-
-void TBAMSimulator::_printSimulationDetailsAllReadGroups(){
-	logfile().startIndent("Will simulate the following read groups:");
-
-	for(size_t rs = 0; rs < _readSimulators.size(); ++rs){
-		_readSimulators[rs]->printDetails(_simGroupFrequencies[rs]);
-	}
-
-	//TODO write file with settings
 }
 
 void TBAMSimulator::_simulateReadsFromHaplotypes(const genometools::TChromosome &thisChr,

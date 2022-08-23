@@ -26,7 +26,7 @@ namespace RGInfo{
 //------------------------------------------------
 // TInfoValue
 //------------------------------------------------
-enum class InfoType {min=0, RGName=0, seqType, numCycles, fragmentLength, baseQuality, mappingQuality, softClipping, recal, rho, max};
+enum class InfoType {min=0, RGName=0, RGFrequency, seqType, numCycles, fragmentLength, baseQuality, mappingQuality, softClipping, recal, rho, max};
 
 //------------------------------------------------
 // argument string, description and default for each info type
@@ -44,6 +44,7 @@ struct TInfo {
 inline const coretools::TStrongArray<TInfo, InfoType> infos = []() {
 	coretools::TStrongArray<TInfo, InfoType> i;
 	i[InfoType::RGName] = {"readGroup", "read group name", "SimReadGroup"};
+	i[InfoType::RGFrequency] = {"frequency", "read group frequency", "1.0"};
 	i[InfoType::seqType] = {"seqType", "sequencing type", "single"};
 	i[InfoType::numCycles] = {"numCycles", "number of sequencing cycles", "150"};
 	i[InfoType::fragmentLength] = {"fragmentLength", "fragment length distribution", "fixed(300)"};
@@ -173,6 +174,10 @@ public:
 		return _info.size();
 	}
 
+	bool hasInfo(const InfoType Info) const {
+		return _parsed[Info];
+	};
+
 	const TReadGroupInfoEntry& operator[](uint16_t RGIndex) const {
 		return _info[RGIndex];
 	}
@@ -180,6 +185,14 @@ public:
 	const std::string& get(uint16_t RGIndex, const InfoType Info) const {
 		return _info[RGIndex][Info];
 	}
+
+	template <typename Container>
+	void fillContainerPerReadGroup(Container Vec, const InfoType Info) const{
+		Vec.resize(size());
+		for(size_t i = 0; i < size(); ++i){
+			coretools::str::fillFromString(get(i, Info), Vec[i]);
+		}
+	};
 
 	bool hasFile(){ return _fileData.operator bool(); };
 

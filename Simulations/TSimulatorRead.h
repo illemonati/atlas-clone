@@ -22,6 +22,7 @@
 #include "PhredProbabilityTypes.h"
 #include "TCategoricalDistribution.h"
 #include "TReadGroupInfo.h"
+#include "TLog.h"
 
 namespace GenotypeLikelihoods { class TPMDType; }
 namespace GenotypeLikelihoods { namespace SequencingError { class TModel; } }
@@ -42,7 +43,7 @@ using BAM::RGInfo::TReadGroupInfoEntry;
 class TSimulatorRead{
 protected:
 	const BAM::TReadGroup &_readGroup;
-	const TReadGroupInfoEntry & _readGroupInfo;
+	//const TReadGroupInfoEntry & _readGroupInfo;
 	std::string _readNamePrefix;
 
 	// required distributions
@@ -65,6 +66,13 @@ protected:
 	// alignment
 	BAM::TSamFlags _flags;
 	BAM::TAlignment _alignment;
+
+	//initialization functions
+	template <typename Distr>
+	void _initDistribution(Distr & Dist, const TReadGroupInfoEntry & RGInfo, const BAM::RGInfo::InfoType & Info){
+		coretools::instances::logfile().list(BAM::RGInfo::infos[Info].description, ": ", RGInfo[Info]);
+		Dist.set(RGInfo[Info]);
+	};
 
 	// general functions
 	double _calcMeanReadLength(const uint16_t maxLen) const;

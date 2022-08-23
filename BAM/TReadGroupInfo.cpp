@@ -28,11 +28,9 @@ namespace RGInfo{
 TFileData::TFileData(const std::string & Filename){
 	//open RG file
 	_filename = Filename;
-	logfile().listFlush("Reading read group info from file '" + _filename + "' ... ");
+	logfile().listFlush("Reading read group info from file '" + _filename + "'... ");
 	coretools::TInputFile in(Filename, coretools::TFile_Filetype::header, "\t", "//");
 	_header = in.header();
-
-	OUT(_header);
 
 	//extract RG column
 	//check that file has a column named "readGroup"
@@ -94,8 +92,7 @@ namespace impl{
 
 	void setDefault(InfoVec & Vec, InfoType Info){
 		//use default values
-		logfile().list(coretools::str::capitalizeFirst(infos[Info].description),
-					   ": default value '",
+		logfile().write("default value '",
 					   infos[Info].defaults,
 					   "' for all read groups. (set with '",
 					   TReadGroupInfo::_RGInfoArgument,
@@ -108,14 +105,26 @@ namespace impl{
 	void setFromCommandLine(InfoVec & Vec, InfoType Info){
 		//read from command line
 		const std::string& arg = infos[Info].argument;
-		std::string val = parameters().getParameter<std::string>(arg);
-		logfile().list(coretools::str::capitalizeFirst(infos[Info].description), ": using '", val, "' for all read groups. (argument '", arg, "')");
-		setAllReadGroups(Vec, Info, val);
+
+		std::vector<std::string> tmp, argVec;
+		parameters().fillParameterIntoContainer(arg, tmp, true);
+		coretools::str::repeatIndexes(tmp, argVec);
+		if (argVec.size() == 1){
+			logfile().write("using '", argVec[0], "' for all read groups. (argument '", arg, "')");
+			setAllReadGroups(Vec, Info, argVec[0]);
+		} else if (argVec.size() == Vec.size()){
+			logfile().write("using read group specific settings provided on the command line. (argument '", arg, "')");
+			for(size_t i = 0; i < Vec.size(); ++i){
+				Vec[i].set(Info, argVec[i]);
+			}
+		} else {
+			UERROR("Number of provided values does not match number of read groups!");
+		}
 	}
 
 	void setFromRGInfoFile(InfoVec & Vec, InfoType Info, const TFileData & FileData){
 	 	 //present in file -> read for each read group
-		logfile().list(coretools::str::capitalizeFirst(infos[Info].description), ": reading read-specific settings from read group info file '", FileData.fileName(), "'. (overwrite with '", infos[Info].argument, "')");
+		logfile().write("reading read group specific settings from read group info file '", FileData.fileName(), "'. (overwrite with '", infos[Info].argument, "')");
 		auto col = FileData.getInfoCol(Info);
 		for(auto& r : Vec){
 			auto row = FileData.getRow(r[InfoType::RGName]);
@@ -152,7 +161,9 @@ void TReadGroupInfo::_createReadGroupInfoEntries(const BAM::TReadGroups & ReadGr
 	for(auto i = 0; i < ReadGroups.size(); ++i){
 		_info.push_back(ReadGroups[i].name_ID);
 	}
-	_parsed[InfoType::RGName];
+	std::fill(_parsed.begin(), _parsed.end(), false);
+	_parsed[InfoType::RGName] = true;
+
 }
 
 // either: read info from file and match with TReadGroups (used for analyzes)
@@ -210,6 +221,7 @@ BAM::TReadGroups TReadGroupInfo::readInfoAndCreateReadGroups(){
 
 void TReadGroupInfo::parse(const InfoType Info){
 	//check if info is provided on the command line -> overwrites file
+	logfile().listFlush(coretools::str::capitalizeFirst(infos[Info].description), ": ");
 	std::string arg = infos[Info].argument;
 	if(parameters().parameterExists(arg)){
 		impl::setFromCommandLine(_info, Info);
@@ -221,7 +233,7 @@ void TReadGroupInfo::parse(const InfoType Info){
 			impl::setDefault(_info, Info);
 		}
 	}
-	_parsed[Info];
+	_parsed[Info] = true;
 }
 
 std::vector<std::string> TReadGroupInfo::getUnusedColumnsInFile(){
