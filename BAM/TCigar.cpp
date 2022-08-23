@@ -7,7 +7,7 @@
 
 #include "TCigar.h"
 #include <algorithm>
-#include <string>
+#include "stringFunctions.h"
 
 namespace BAM {
 
@@ -26,7 +26,7 @@ void TCigar::clear() {
 };
 
 void TCigar::add(char Type, uint32_t Length) {
-	if (_lengthSoftClippedRight) { throw "Cigar string contains entries past softclipping on right!"; }
+	if (_lengthSoftClippedRight) { throw "Cigar string contains entries past soft clipping on right!"; }
 	if (Type == 'M' || Type == '=' || Type == 'X') {
 		_lengthAligned += Length;
 	} else if (Type == 'I') {
@@ -56,5 +56,17 @@ void TCigar::removeSoftClips() {
 	_lengthSoftClippedLeft  = 0;
 	_lengthSoftClippedRight = 0;
 };
+
+std::string TCigar::compileString() const{
+	std::string s;
+	for(auto& it : _cigar){
+		s += coretools::str::toString(it.length) + it.type;
+	}
+	return s;
+}
+
+TCigar::operator std::string() const {
+	return compileString();
+}
 
 }; // namespace BAM

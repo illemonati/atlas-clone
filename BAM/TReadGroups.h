@@ -43,6 +43,7 @@ public:
 class TReadGroup{
 private:
 	uint16_t _id; //internal ID
+
 public:
 	std::string name_ID;
 	mutable std::string barcodeSequence_BC;
@@ -92,6 +93,10 @@ private:
 public:
 	TReadGroups();
 	~TReadGroups(){};
+
+	TReadGroups(const TReadGroups && other);
+	TReadGroups& operator=(const TReadGroups & other);
+	TReadGroups& operator=(const TReadGroups && other);
 
 	void clear();
 	const TReadGroup& add(const std::string name);

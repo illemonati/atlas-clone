@@ -64,7 +64,6 @@ protected:
 
 	// alignment
 	BAM::TSamFlags _flags;
-	BAM::TCigar _cigar;
 	BAM::TAlignment _alignment;
 
 	// general functions
@@ -72,7 +71,7 @@ protected:
 	std::string _getNextReadName();
 	void _simulateAlignmentDetails(uint32_t refID, uint32_t pos);
 	bool _simulateContamination();
-	void _addSoftclippedBases(std::vector<Base> & bases, const std::unique_ptr<TCategoricalDistribution<uint16_t>> & softClippedDist);
+	void _addSoftclippedBases(std::vector<Base> & bases, const std::unique_ptr<TCategoricalDistribution<uint16_t>> & softClippedDist, BAM::TCigar & Cigar);
 	void _simulateBasesQualities(BAM::TAlignment &alignment,
 								 const std::vector<Base>& haplotype,
 								 const uint64_t pos,
@@ -128,8 +127,6 @@ class TSimulatorPairedEndReads final : public TSimulatorRead {
 private:
 	std::array<coretools::StrictlyPositive<uint16_t>, 2> _numCycles;
 	BAM::TSamFlags _mateFlags;
-	// BAM::TAlignment _mate;
-	uint16_t _numCyclesSecond;
 
 	std::vector<BAM::TAlignment> bamAlignmentSecondMates;
 

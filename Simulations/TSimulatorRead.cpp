@@ -33,9 +33,9 @@ using BAM::RGInfo::InfoType;
 TSimulatorRead::TSimulatorRead(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo)
 	: _readGroup(ReadGroup),
 	  _readGroupInfo(RGInfo),
-	  _fragmentLengthDistr(_readGroupInfo[InfoType::fragmentLengthDistr]),
-	  _qualityDist(_readGroupInfo[InfoType::baseQualityDistr]),
-	  _mappingQualityDist(_readGroupInfo[InfoType::mappingQualityDistr])
+	  _fragmentLengthDistr(_readGroupInfo[InfoType::fragmentLength]),
+	  _qualityDist(_readGroupInfo[InfoType::baseQuality]),
+	  _mappingQualityDist(_readGroupInfo[InfoType::mappingQuality])
 	{
 
 	// initialize bamAlignment
@@ -45,8 +45,8 @@ TSimulatorRead::TSimulatorRead(const BAM::TReadGroup & ReadGroup, const TReadGro
 	_readNamePrefix = "ATL:0:A:1:" + coretools::str::toString(_readGroup.id()) + ":";
 
 	//soft clip
-	if(_readGroupInfo.has(InfoType::softClipDistr)){
-		std::string sc = _readGroupInfo[InfoType::softClipDistr];
+	if(_readGroupInfo.has(InfoType::softClipping)){
+		std::string sc = _readGroupInfo[InfoType::softClipping];
 		if(!sc.empty()){
 			//check if one or two values are given
 			if(sc.find(':') == std::string::npos){
@@ -66,9 +66,6 @@ TSimulatorRead::TSimulatorRead(const BAM::TReadGroup & ReadGroup, const TReadGro
 }
 
 double TSimulatorRead::_calcMeanReadLength(const uint16_t maxLen) const {
-
-	std::cout << std::endl << "ESTIMATING MEAN READ LENGHT:" << std::endl;
-
 	// if fragments are always shorter than _numcycles, return mean fragment length
 	if(_fragmentLengthDistr.max() < maxLen){
 		return _fragmentLengthDistr.mean();
@@ -81,15 +78,10 @@ double TSimulatorRead::_calcMeanReadLength(const uint16_t maxLen) const {
 		double f = _fragmentLengthDistr.density(i);
 		m += f * (double) i;
 		cumul += f;
-
-		std::cout << "i = " << i << ", m = " << m << std::endl;
 	}
 
 	//remaining are all of lenth _numCycles
 	m += (1. - cumul) * maxLen;
-
-	std::cout << "cumul = " << cumul << ", m = " << m << std::endl;
-
 	return m;
 }
 
@@ -114,14 +106,14 @@ bool TSimulatorRead::_simulateContamination(){
 	return _contaminationRate > 0. && randomGenerator().getRand() < _contaminationRate;
 }
 
-void TSimulatorRead::_addSoftclippedBases(std::vector<Base> & bases, const std::unique_ptr<TCategoricalDistribution<uint16_t>> & softClippedDist){
-	if(softClippedDist){
-		auto len = softClippedDist->sample();
+void TSimulatorRead::_addSoftclippedBases(std::vector<Base> & Bases, const std::unique_ptr<TCategoricalDistribution<uint16_t>> & SoftClippedDist, BAM::TCigar & Cigar){
+	if(SoftClippedDist){
+		auto len = SoftClippedDist->sample();
 		if(len > 0){
 			for (size_t i = 0; i < len; i++){
-				bases.push_back(static_cast<Base>(randomGenerator().getRand<uint8_t>(0,4)));
+				Bases.push_back(static_cast<Base>(randomGenerator().getRand<uint8_t>(0,4)));
 			}
-			_cigar.add('S', len);
+			Cigar.add('S', len);
 		}
 	}
 }
@@ -135,31 +127,34 @@ void TSimulatorRead::_simulateBasesQualities(BAM::TAlignment & alignment,
 
 	//prepare vector of bases
 	std::vector<Base> bases;
+	BAM::TCigar cigar;
 
 	// set read length
 	if (alignment.isReverseStrand()) {
 		alignment.setInsertSize(-fragmentLength);
-		_addSoftclippedBases(bases, _softClipDist3);
+		_addSoftclippedBases(bases, _softClipDist3, cigar);
 	} else {
 		alignment.setInsertSize(fragmentLength);
-		_addSoftclippedBases(bases, _softClipDist5);
+		_addSoftclippedBases(bases, _softClipDist5, cigar);
 	}
 
 	// simulate true bases
 	const auto start = readIsContaminated ? _contaminationSource->reference().cbegin() + pos : haplotype.cbegin() + pos;
-	bases.insert(bases.end(), start, start + std::min(fragmentLength, readLength));
+	auto len = std::min(fragmentLength, readLength);
+	bases.insert(bases.end(), start, start + len);
+	cigar.add('M', len);
 
 	if (alignment.isReverseStrand()) {
-		_addSoftclippedBases(bases, _softClipDist5);
+		_addSoftclippedBases(bases, _softClipDist5, cigar);
 	} else {
-		_addSoftclippedBases(bases, _softClipDist3);
+		_addSoftclippedBases(bases, _softClipDist3, cigar);
 	}
 	
 	// simulate true qualities
 	std::vector<genometools::PhredIntProbability> phredIntQualities(bases.size());
 	_qualityDist.sample(phredIntQualities);
 
-	_alignment.setSequenceQualities(_cigar, bases, phredIntQualities);
+	_alignment.setSequenceQualities(cigar, bases, phredIntQualities);
 
 	for (auto & b : _alignment) {
 		if (_pmd && _pmd->hasDamage()) _pmd->simulate(b);

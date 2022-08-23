@@ -128,6 +128,26 @@ TReadGroups::TReadGroups(){
 	_limitReadGroups = false;
 };
 
+TReadGroups::TReadGroups(const TReadGroups && other){
+	_readGroups = other._readGroups;
+	_limitReadGroups = other._limitReadGroups;
+	_fillLookupFromId();
+}
+
+TReadGroups& TReadGroups::operator=(const TReadGroups & other){
+	_readGroups = other._readGroups;
+	_limitReadGroups = other._limitReadGroups;
+	_fillLookupFromId();
+	return *this;
+}
+
+TReadGroups& TReadGroups::operator=(const TReadGroups && other){
+	_readGroups = std::move(other._readGroups);
+	_limitReadGroups = std::move(other._limitReadGroups);
+	_fillLookupFromId();
+	return *this;
+}
+
 void TReadGroups::clear(){
 	_readGroups.clear();
 	_readGroupsById.clear();

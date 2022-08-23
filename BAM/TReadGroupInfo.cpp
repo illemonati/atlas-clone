@@ -12,6 +12,7 @@
 #include "TReadGroupInfo.h"
 #include "TLog.h"
 #include "TParameters.h"
+#include "devtools.h"
 
 using coretools::instances::parameters;
 using coretools::instances::logfile;
@@ -30,6 +31,8 @@ TFileData::TFileData(const std::string & Filename){
 	logfile().listFlush("Reading read group info from file '" + _filename + "' ... ");
 	coretools::TInputFile in(Filename, coretools::TFile_Filetype::header, "\t", "//");
 	_header = in.header();
+
+	OUT(_header);
 
 	//extract RG column
 	//check that file has a column named "readGroup"
@@ -139,7 +142,7 @@ void TReadGroupInfo::_readFileIfProvided(){
 	}
 }
 
-void TReadGroupInfo::_createReadGroupInfoentries(const BAM::TReadGroups & ReadGroups){
+void TReadGroupInfo::_createReadGroupInfoEntries(const BAM::TReadGroups & ReadGroups){
 	if(!_info.empty()){
 		DEVERROR("Read group info already read!");
 	}
@@ -158,7 +161,7 @@ void TReadGroupInfo::readInfoAndMatchReadGroups(const BAM::TReadGroups & ReadGro
 		DEVERROR("Read group info already read!");
 	}
 
-	_createReadGroupInfoentries(ReadGroups);
+	_createReadGroupInfoEntries(ReadGroups);
 	_readFileIfProvided();
 }
 
@@ -182,11 +185,17 @@ BAM::TReadGroups TReadGroupInfo::readInfoAndCreateReadGroups(){
 		}
 	} else {
 		// create identical read groups from command line
-		const auto numRG = parameters().getParameterWithDefault<coretools::StrictlyPositive<int>>(_numRGArgument, 1);
-		if (numRG == 1) {
-			logfile().list("Initializing one read group from arguments. (parameter '", _numRGArgument, "')");
+		uint16_t numRG;
+		if(parameters().parameterExists(_numRGArgument)){
+			numRG = parameters().getParameter<coretools::StrictlyPositive<int>>(_numRGArgument);
+			if (numRG == 1) {
+				logfile().list("Initializing one read group from arguments. (parameter '", _numRGArgument, "')");
+			} else {
+				logfile().list("Initializing ", numRG, " identical read groups from arguments (parameter '", _numRGArgument, "').");
+			}
 		} else {
-			logfile().list("Initializing ", numRG, " identical read groups from arguments (parameter '", _numRGArgument, "').");
+			numRG = 1;
+			logfile().list("Initializing one read group from arguments. (set with '", _numRGArgument, "')");
 		}
 
 		//create read groups
@@ -194,7 +203,8 @@ BAM::TReadGroups TReadGroupInfo::readInfoAndCreateReadGroups(){
 			readGroups.add("SimReadGroup" + coretools::str::toString(i + 1));
 		}
 	}
-	_createReadGroupInfoentries(readGroups);
+	_createReadGroupInfoEntries(readGroups);
+
 	return readGroups;
 }
 

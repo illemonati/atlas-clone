@@ -26,7 +26,7 @@ namespace RGInfo{
 //------------------------------------------------
 // TInfoValue
 //------------------------------------------------
-enum class InfoType {min=0, RGName=0, seqType, numCycles, fragmentLengthDistr, baseQualityDistr, mappingQualityDistr, softClipDistr, recal, rho, max};
+enum class InfoType {min=0, RGName=0, seqType, numCycles, fragmentLength, baseQuality, mappingQuality, softClipping, recal, rho, max};
 
 //------------------------------------------------
 // argument string, description and default for each info type
@@ -43,13 +43,13 @@ struct TInfo {
 
 inline const coretools::TStrongArray<TInfo, InfoType> infos = []() {
 	coretools::TStrongArray<TInfo, InfoType> i;
-	i[InfoType::RGName] = {"readGroupName", "read group name", "SimReadGroup"};
+	i[InfoType::RGName] = {"readGroup", "read group name", "SimReadGroup"};
 	i[InfoType::seqType] = {"seqType", "sequencing type", "single"};
 	i[InfoType::numCycles] = {"numCycles", "number of sequencing cycles", "150"};
-	i[InfoType::fragmentLengthDistr] = {"fragmentLengthDistr", "fragment length distribution", "fixed(300)"};
-	i[InfoType::baseQualityDistr] = {"baseQualityDistr", "base quality distribution", "normal(30,10)[0,93]"};
-	i[InfoType::mappingQualityDistr] = {"mappingQualityDistr", "mapping quality distribution", "normal(60,10)[1,255]"};
-	i[InfoType::softClipDistr] = {"softClipDistr", "soft clipping distribution", "-"};
+	i[InfoType::fragmentLength] = {"fragmentLength", "fragment length distribution", "fixed(300)"};
+	i[InfoType::baseQuality] = {"baseQuality", "base quality distribution", "normal(30,10)[0,93]"};
+	i[InfoType::mappingQuality] = {"mappingQuality", "mapping quality distribution", "normal(60,10)[1,255]"};
+	i[InfoType::softClipping] = {"softClipping", "soft clipping distribution", "-"};
 	i[InfoType::recal] = {"recal", "base quality score recalibration model", "-"};
 	i[InfoType::rho] = {"rho", "base quality score recalibration rho", "-"};
 	return i;
@@ -136,11 +136,11 @@ private:
 	std::unique_ptr<TFileData> _fileData;
 	coretools::TStrongArray<bool, InfoType> _parsed;
 
-	void _createReadGroupInfoentries(const BAM::TReadGroups & ReadGroups);
+	void _createReadGroupInfoEntries(const BAM::TReadGroups & ReadGroups);
 	void _readFileIfProvided();
 
 public:
-	static inline const std::string _RGInfoArgument = "readGroupInfo";
+	static inline const std::string _RGInfoArgument = "RGInfo";
 	static inline const std::string _numRGArgument = "numReadGroups";
 
 	TReadGroupInfo() = default;
@@ -181,7 +181,7 @@ public:
 		return _info[RGIndex][Info];
 	}
 
-	bool hasFile(){ return _fileData; };
+	bool hasFile(){ return _fileData.operator bool(); };
 
 	std::vector<std::string> getUnusedColumnsInFile();
 	void warnAboutUnusedColumnsInFile();

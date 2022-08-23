@@ -304,6 +304,7 @@ void TBAMSimulator::_initializeQualityTransformations() {
 		}
 	} else {
 		// add noRecal model. Is still needed for simulation of bases from base qualities!
+		_recal.initializeNoRecal(_readGroups);
 		for (size_t r = 0; r < _readSimulators.size(); ++r) {
 			_readSimulators[r]->setRecal(&_recal(r, false), &_recal(r, true));
 		}
@@ -319,7 +320,7 @@ void TBAMSimulator::_initializeReadSimulator() {
 	_readGroups = RGinfo.readInfoAndCreateReadGroups();
 
 	using BAM::RGInfo::InfoType;
-	RGinfo.parse(InfoType::seqType, InfoType::numCycles, InfoType::fragmentLengthDistr, InfoType::baseQualityDistr, InfoType::mappingQualityDistr, InfoType::softClipDistr);
+	RGinfo.parse(InfoType::seqType, InfoType::numCycles, InfoType::fragmentLength, InfoType::baseQuality, InfoType::mappingQuality, InfoType::softClipping);
 
 	_initializeReadGroups(RGinfo);
 
@@ -341,6 +342,9 @@ void TBAMSimulator::_initializeReadSimulator() {
 	_initializeReadGroupFrequencies();
 
 	logfile().endIndent();
+
+	//warn ig read group info columns were not used
+	RGinfo.warnAboutUnusedColumnsInFile();
 
 	//report all read groups
 	_printSimulationDetailsAllReadGroups();
@@ -420,9 +424,6 @@ void TBAMSimulator::_simulateReadsFromHaplotypes(const genometools::TChromosome 
 												 const std::string &extraProgressText) {
 	// Initialize probabilities to simulate reads
 	const uint64_t numReads = _averageReadLength == 0 ? 0 : thisChr.length * avgDepth / _averageReadLength;
-
-	OUT(_averageReadLength);
-
 	const uint64_t chrLengthForStart = thisChr.length - _maxFragmentLength + 1;
 	const double probReadPerSite     = 1.0 / chrLengthForStart;
 	uint64_t numReadsSimulated       = 0;
