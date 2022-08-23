@@ -32,7 +32,7 @@ std::vector<uint16_t> indexedRange(const std::vector<uint32_t> & counts) {
 };
 
 std::vector<uint16_t> fullRange(const std::vector<uint32_t>& counts) {
-		const auto N = counts.size() - 1;
+		const auto N = counts.size();
 		std::vector<uint16_t> v(N);
 		std::iota(v.begin(), v.end(), uint16_t{});
 		return v;

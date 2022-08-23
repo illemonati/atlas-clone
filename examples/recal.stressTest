@@ -4,11 +4,11 @@ root=`git rev-parse --show-toplevel`
 atlas=`find $root -type f -name atlas | tail -n 1`
 echo "Using $atlas"
 
-fn="polynomial(2) empiric probit"
-cov="quality position context fragmentLength mappingQuality"
+fn="empiric probit polynomial(3)"
+cov="position quality context fragmentLength mappingQuality"
 
 # noRecal
-$atlas --task simulate --fixedSeed 0 --out noRecal --logFile simulate_noRecal.out > /dev/null
+$atlas --task simulate --readLength "single:gamma(75,1)[30,150]" --fixedSeed 0 --out noRecal --logFile simulate_noRecal.out > /dev/null
 
 printf "#%-10s %s\n" "LL" "model" > ATLAS_ll.txt
 
