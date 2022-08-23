@@ -26,8 +26,8 @@ private:
 	// flags: isReverseStrand, isSecondMate, isAligned
 	bitset flags{0}; // initialized as 0,0,0
 public:
-	genometools::Base base           = genometools::Base::N;
-	genometools::BaseContext context = genometools::BaseContext::NN;
+	genometools::Base base         = genometools::Base::N;
+	genometools::Base previousBase = genometools::Base::N;
 
 	// original quality as in BAM file, but transformed to phredInt
 	genometools::PhredIntProbability originalQuality_phredInt{0};
@@ -54,6 +54,8 @@ public:
 	bool operator!=(genometools::Base b) const noexcept { return base != b; }
 	void operator=(genometools::Base b) noexcept { base = b; }
 	operator bool() const noexcept {return base != genometools::Base::N;}
+
+	constexpr genometools::BaseContext context() const {return genometools::baseContext(previousBase, base);}
 
 	void print() const;
 };

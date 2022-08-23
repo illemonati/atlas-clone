@@ -273,14 +273,14 @@ void TAlignment::_fillContext() {
 	if (_flags.isReverseStrand()) {
 		// reverse
 		for (size_t d = 0; d < (_cigar.lengthSequenced() - 1); ++d) {
-			_bases[d].context = baseContext(_bases[d + 1].base, _bases[d].base);
+			_bases[d].previousBase = _bases[d + 1].base;
 		}
-		_bases[_cigar.lengthSequenced() - 1].context = baseContext(Base::N, _bases[_cigar.lengthSequenced() - 1].base);
+		_bases[_cigar.lengthSequenced() - 1].previousBase = Base::N;
 	} else {
 		// forward
-		_bases[0].context = baseContext(Base::N, _bases[0].base);
+		_bases[0].previousBase = Base::N;
 		for (size_t d = 1; d < _cigar.lengthSequenced(); ++d)
-			_bases[d].context = baseContext(_bases[d - 1].base, _bases[d].base);
+			_bases[d].previousBase = _bases[d - 1].base;
 	}
 };
 

@@ -21,7 +21,6 @@
 namespace BAM{
 
 using coretools::TLog;
-using coretools::index;
 
 //-----------------------------------------------------
 //TBamFileLog
@@ -155,13 +154,13 @@ void TContextFilter::set(coretools::TParameters & params, coretools::TLog* logfi
 				}
 
 				//save context
-				_keptContexts[index(baseContext(first, second))] = false;
+				_keptContexts[baseContext(first, second)] = false;
 			}
 
 			std::vector<std::string> rep;
-			for(auto i = 0; i <= index(BaseContext::NN); ++i){
+			for(auto i = BaseContext::min; i <= BaseContext::max; ++i){ //including max
 				if(!_keptContexts[i]){
-					rep.push_back(toString(BaseContext(i)));
+					rep.push_back(toString(i));
 				}
 			}
 			logfile->list("Will ignore the following contexts: " + coretools::str::concatenateString(rep, ", ")  + ". (parameter 'ignoreContexts')");
@@ -175,7 +174,7 @@ void TContextFilter::set(coretools::TParameters & params, coretools::TLog* logfi
 };
 
 bool TContextFilter::pass(const TSequencedBase & base) const{
-	return _keptContexts[index(base.context)];
+	return _keptContexts[base.context()];
 };
 
 //-----------------------------------------------------

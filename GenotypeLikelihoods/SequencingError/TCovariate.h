@@ -51,19 +51,20 @@ public:
 // TCovariate_context
 //-------------------------------------------
 class TCovariate_context {
-private:
-	static constexpr int numContext = 20;
 public:
 	static constexpr std::string_view name = "context";
 	static constexpr bool isIndexed        = false;
 
 	static uint16_t extract(const BAM::TSequencedBase &base) noexcept {
-		return coretools::index(base.context);
+		return coretools::index(base.previousBase);
 	}
 
-	static std::vector<uint16_t> range(const RecalEstimatorTools::TRecalDataTable &dataTable) noexcept {
+	static std::vector<uint16_t> range(const RecalEstimatorTools::TRecalDataTable &) noexcept {
 		// There is a context for each position
-		return RecalEstimatorTools::fullRange(dataTable.positions());
+		const auto N = coretools::index(genometools::Base::N) + 1; // including N
+		std::vector<uint16_t> v(N);
+		std::iota(v.begin(), v.end(), uint16_t{});
+		return v;
 	}
 };
 

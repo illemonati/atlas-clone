@@ -16,7 +16,7 @@ void TSequencedBase::print() const {
 		  << "distFrom5Prime: " << distFrom5Prime << '\n'
 		  << "distFrom3Prime: " << distFrom3Prime << '\n'
 		  << "readGroupID: " << readGroupID << '\n'
-		  << "context: " << context << '\n'
+			  << "context: " << context() << '\n'
 		  << "mappingQuality: " << mappingQuality << '\n'
 		  << "fragmentLength: " << fragmentLength << std::endl;
 }
