@@ -350,7 +350,7 @@ void TReadGroupMap::_fillFromFile(const TReadGroups & ReadGroups, const std::str
 
 	//read read groups and their expected lengths
 	logfile->listFlush("Reading read groups to be pooled from file '" + filename + "' ...");
-	coretools::TInputFile in(filename, {"readGroup", "poolWith"}, "/t", "//");
+	coretools::TInputFile in(filename, {"readGroup", "poolWith"}, "\t", "//");
 
 	std::vector< std::vector<std::string> > readGroupsToMerge;
 
