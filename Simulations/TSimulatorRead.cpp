@@ -5,7 +5,7 @@
  *      Author: vivian
  */
 
-#include "TSimulatorRead.h"
+#include "TReadSimulator.h"
 #include <algorithm>
 #include <memory>
 
