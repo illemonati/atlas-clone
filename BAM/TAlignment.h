@@ -79,6 +79,7 @@ private:
 	std::vector<genometools::Base> _referenceSequence;
 
 	// functions to read and parse
+	void _setCigar(const TCigar &Cigar);
 	void _parseBasesQualities();
 	void _parseBasesQualities(const std::vector<genometools::Base> &Sequence,
 							  const std::vector<genometools::PhredIntProbability> &Qualities);
@@ -168,7 +169,7 @@ public:
 	void downsampleAlignment(const coretools::Probability &fraction, coretools::TRandomGenerator &randomGenerator);
 
 	// debug functions
-	void print();
+	void print() const;
 };
 
 }; // namespace BAM

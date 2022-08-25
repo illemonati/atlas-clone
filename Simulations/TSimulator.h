@@ -29,7 +29,7 @@
 #include "TReadGroups.h"
 #include "SequencingError/TModels.h"
 #include "TSimulatorAuxiliaryTools.h"
-#include "TSimulatorRead.h"
+#include "TReadSimulator.h"
 #include "TStrongArray.h"
 #include "TTask.h"
 #include "probability.h"

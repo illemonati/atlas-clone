@@ -178,6 +178,10 @@ void TReadGroupInfo::readInfoAndMatchReadGroups(const BAM::TReadGroups & ReadGro
 
 // or: read info and fill TReadGroups (used for simulations)
 BAM::TReadGroups TReadGroupInfo::readInfoAndCreateReadGroups(){
+	return readInfoAndCreateReadGroups(parameters().getParameter<std::string>(_RGInfoArgument, false));
+}
+
+BAM::TReadGroups TReadGroupInfo::readInfoAndCreateReadGroups(const std::string & RgInfoFileName){
 	if(!_info.empty()){
 		DEVERROR("Read group info already read!");
 	}
@@ -186,8 +190,9 @@ BAM::TReadGroups TReadGroupInfo::readInfoAndCreateReadGroups(){
 	BAM::TReadGroups readGroups;
 
 	// Info is provided as a) a RG info file OR b) as the number of read groups and default arguments
-	_readFileIfProvided();
-	if(_fileData){
+	if(!RgInfoFileName.empty()){
+		_fileData = std::make_unique<TFileData>(RgInfoFileName);
+
 		// create RGs from RG info file
 		//create read groups
 		auto col = _fileData->getInfoCol(InfoType::RGName);
@@ -220,20 +225,23 @@ BAM::TReadGroups TReadGroupInfo::readInfoAndCreateReadGroups(){
 }
 
 void TReadGroupInfo::parse(const InfoType Info){
-	//check if info is provided on the command line -> overwrites file
-	logfile().listFlush(coretools::str::capitalizeFirst(infos[Info].description), ": ");
-	std::string arg = infos[Info].argument;
-	if(parameters().parameterExists(arg)){
-		impl::setFromCommandLine(_info, Info);
-	} else {
-		//check if provided in file
-		if(_fileData && _fileData->hasInfo(Info)){
-			impl::setFromRGInfoFile(_info, Info, *_fileData);
+	if(!_parsed[Info]){
+		logfile().listFlush(coretools::str::capitalizeFirst(infos[Info].description), ": ");
+		std::string arg = infos[Info].argument;
+
+		//check if info is provided on the command line -> overwrites file
+		if(parameters().parameterExists(arg)){
+			impl::setFromCommandLine(_info, Info);
 		} else {
-			impl::setDefault(_info, Info);
+			//check if provided in file
+			if(_fileData && _fileData->hasInfo(Info)){
+				impl::setFromRGInfoFile(_info, Info, *_fileData);
+			} else {
+				impl::setDefault(_info, Info);
+			}
 		}
+		_parsed[Info] = true;
 	}
-	_parsed[Info] = true;
 }
 
 std::vector<std::string> TReadGroupInfo::getUnusedColumnsInFile(){

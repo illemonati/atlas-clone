@@ -45,6 +45,7 @@ using genometools::Base;
 using genometools::HighPrecisionPhredIntProbability;
 using genometools::TChromosomes;
 using genometools::TChromosome;
+using genometools::TGenomePosition;
 using BAM::RGInfo::TReadGroupInfo;
 using BAM::RGInfo::TReadGroupInfoEntry;
 
@@ -417,9 +418,9 @@ void TBAMSimulator::_simulateReadsFromHaplotypes(const genometools::TChromosome 
 	                                                              " reads" + extraProgressText);
 
 	// now simulate
-	for (uint32_t l = 0; l < chrLengthForStart; ++l) {
+	for(TGenomePosition pos(thisChr.refID(), 0); pos.position() < chrLengthForStart; ++pos){
 		// write unwritten alignments
-		for (auto &rs : _readSimulators) rs->writeUnwrittenAlignments(l, bamFile);
+		for (auto &rs : _readSimulators) rs->writeUnwrittenAlignments(pos, bamFile);
 
 		// draw random number to get number of reads starting at this position
 		const auto numReadsHere = randomGenerator().getBinomialRand(probReadPerSite, numReads);
@@ -429,14 +430,14 @@ void TBAMSimulator::_simulateReadsFromHaplotypes(const genometools::TChromosome 
 			numReadsSimulated += numReadsHere;
 			for (uint32_t r = 0; r < numReadsHere; ++r) {
 				const auto rg = randomGenerator().pickOne(_readSimulators.size(), _cumulSimGroupFrequenies.data());
-				_readSimulators[rg]->simulate(haplotypes[randomGenerator().sample(2)], thisChr.refID(), l, bamFile);
+				_readSimulators[rg]->simulate(haplotypes[randomGenerator().sample(2)], pos, bamFile);
 			}
 			// report progress
 			reporter.next();
 		}
 	}
 	// write unwritten alignments
-	for (auto &rs : _readSimulators) rs->writeUnwrittenAlignments(thisChr.length, bamFile);
+	for (auto &rs : _readSimulators) rs->writeUnwrittenAlignments(TGenomePosition(thisChr.refID(), thisChr.length), bamFile);
 
 	reporter.done();
 	logfile().conclude("Simulated a total of ", numReadsSimulated, " reads.");

@@ -5,7 +5,7 @@
  *      Author: vivian
  */
 
-#include "TSimulatorRead.h"
+#include "TReadSimulator.h"
 #include <algorithm>
 #include <memory>
 
@@ -20,11 +20,11 @@
 namespace Simulations {
 using genometools::Base;
 using genometools::PhredIntProbability;
+using genometools::TGenomePosition;
 using coretools::instances::logfile;
 using coretools::instances::randomGenerator;
 using BAM::RGInfo::TReadGroupInfoEntry;
 using BAM::RGInfo::InfoType;
-
 
 //------------------------------------------------
 // TSimulatorRead
@@ -98,8 +98,8 @@ std::string TSimulatorRead::_getNextReadName() {
 	return coretools::str::toString(_readNamePrefix, _readXPos, ":", _readYPos);
 }
 
-void TSimulatorRead::_simulateAlignmentDetails(uint32_t refID, uint32_t pos){
-	_alignment.move(refID, pos);
+void TSimulatorRead::_simulateAlignmentDetails(const TGenomePosition & Position){	;
+	_alignment.move(Position);
 	_alignment.setName(_getNextReadName());
 
 	//simulate mapping quality
@@ -124,7 +124,6 @@ void TSimulatorRead::_addSoftclippedBases(std::vector<Base> & Bases, const std::
 
 void TSimulatorRead::_simulateBasesQualities(BAM::TAlignment & alignment,
 						      const std::vector<Base>& haplotype,
-						      const uint64_t pos,
 							  const uint16_t fragmentLength,
 						      const uint16_t readLength,
 						      bool readIsContaminated){
@@ -143,7 +142,7 @@ void TSimulatorRead::_simulateBasesQualities(BAM::TAlignment & alignment,
 	}
 
 	// simulate true bases
-	const auto start = readIsContaminated ? _contaminationSource->reference().cbegin() + pos : haplotype.cbegin() + pos;
+	const auto start = readIsContaminated ? _contaminationSource->reference().cbegin() + alignment.position() : haplotype.cbegin() + alignment.position();
 	auto len = std::min(fragmentLength, readLength);
 	bases.insert(bases.end(), start, start + len);
 	cigar.add('M', len);
@@ -158,9 +157,9 @@ void TSimulatorRead::_simulateBasesQualities(BAM::TAlignment & alignment,
 	std::vector<genometools::PhredIntProbability> phredIntQualities(bases.size());
 	_qualityDist.sample(phredIntQualities);
 
-	_alignment.setSequenceQualities(cigar, bases, phredIntQualities);
+	alignment.setSequenceQualities(cigar, bases, phredIntQualities);
 
-	for (auto & b : _alignment) {
+	for (auto & b : alignment) {
 		if (_pmd && _pmd->hasDamage()) _pmd->simulate(b);
 
 		const auto sm = b.isSecondMate();
@@ -197,25 +196,27 @@ TSimulatorSingleEndRead::TSimulatorSingleEndRead(const BAM::TReadGroup & ReadGro
 	logfile().list(BAM::RGInfo::infos[InfoType::cycles].description, ": ", RGInfo[InfoType::cycles]);
 	coretools::str::convertString< coretools::StrictlyPositive<uint16_t> >(RGInfo[InfoType::cycles],
 			coretools::str::capitalizeFirst(BAM::RGInfo::infos[InfoType::cycles].description) + " must be a single number within [1,65535].", _numCycles);
+
+	_alignment.setSamFlags(_flags);
 }
 
 double TSimulatorSingleEndRead::meanReadLength() const {
 	return _calcMeanReadLength(_numCycles);
 }
 
-void TSimulatorSingleEndRead::simulate(const std::vector<Base>& haplotype, uint32_t refID, uint32_t pos, TSimulatorBamFile &bamFile) {
+void TSimulatorSingleEndRead::simulate(const std::vector<Base>& Haplotype, const TGenomePosition & Position, TSimulatorBamFile &BamFile) {
 	// prepare alignment
-	_simulateAlignmentDetails(refID, pos);
+	_simulateAlignmentDetails(Position);
 	_alignment.setIsReverseStrand(randomGenerator().getRand() < 0.5);
 
 	// simulate read length
 	uint16_t fragmentLength = _fragmentLengthDistr.sample();
 
 	// simulated bases and qualities
-	_simulateBasesQualities(_alignment, haplotype, pos, fragmentLength, _numCycles, _simulateContamination());
+	_simulateBasesQualities(_alignment, Haplotype, fragmentLength, _numCycles, _simulateContamination());
 
 	// write bam alignment
-	bamFile.saveAlignment(_alignment);
+	BamFile.saveAlignment(_alignment);
 }
 
 //----------------------------------
@@ -243,6 +244,7 @@ TSimulatorPairedEndReads::TSimulatorPairedEndReads(const BAM::TReadGroup & ReadG
 	_flags.setIsProperPair(true);
 	_flags.setIsRead1(true);
 	_flags.setMateIsReverseStrand(false);
+	_alignment.setSamFlags(_flags);
 
 	// set SAM flags of second mate
 	_mateFlags.setIsPaired(true);
@@ -255,7 +257,7 @@ double TSimulatorPairedEndReads::meanReadLength() const {
 	return _calcMeanReadLength(_numCycles[0] + _numCycles[1]);
 }
 
-void TSimulatorPairedEndReads::simulate(const std::vector<Base>& haplotype, uint32_t refID, uint32_t pos, TSimulatorBamFile &bamFile) {
+void TSimulatorPairedEndReads::simulate(const std::vector<Base>& Haplotype, const TGenomePosition & Position, TSimulatorBamFile &BamFile) {
 	// pick a fragment
 	uint16_t fragmentLength = _fragmentLengthDistr.sample();
 	bool readIsContaminated = _simulateContamination();
@@ -263,54 +265,48 @@ void TSimulatorPairedEndReads::simulate(const std::vector<Base>& haplotype, uint
 	// Fill FIRST mate
 	//------------------
 	// prepare alignment
-	_simulateAlignmentDetails(refID, pos);
+	_simulateAlignmentDetails(Position);
 
 	// simulated bases and qualities
-	_simulateBasesQualities(_alignment, haplotype, pos, fragmentLength, _numCycles[0], readIsContaminated);
+	_simulateBasesQualities(_alignment, Haplotype, fragmentLength, _numCycles[0], readIsContaminated);
 
 	// write bam alignment
-	bamFile.saveAlignment(_alignment);
+	BamFile.saveAlignment(_alignment);
 
 	// Fill SECOND mate
 	//------------------
 	// identify position
-	uint32_t matePos;
-	if(fragmentLength <= _numCycles[1]){
-		matePos = pos;
-	} else {
-		matePos = pos + (uint32_t) fragmentLength - (uint32_t) _numCycles[1];
+	TGenomePosition & matePosition(_alignment);
+	if(fragmentLength > _numCycles[1]){
+		matePosition += (uint32_t) fragmentLength - (uint32_t) _numCycles[1];
 	}
 
 	// create new alignment
-	BAM::TAlignment secondMate;
+	BAM::TAlignment secondMate(matePosition);
 	secondMate.setReadGroup(_readGroup.id());
-	secondMate.move(refID, matePos);
 	secondMate.setName(_alignment.name());
 	secondMate.setMappingQuality(_alignment.mappingQuality());
 	secondMate.setSamFlags(_mateFlags);
 
-	std::cout << "SIM SECOND pos = " << pos << ", matePos = " << matePos << ", cycles = " << _numCycles[1] << ", fragmentLength = " << fragmentLength << std::endl;
-
 	// simulated bases and qualities
-	_simulateBasesQualities(secondMate, haplotype, matePos, fragmentLength, _numCycles[1], readIsContaminated);
-
-	secondMate.print();
+	_simulateBasesQualities(secondMate, Haplotype, fragmentLength, _numCycles[1], readIsContaminated);
 
 	// write if it starts at same position as first, and keep for writing later otherwise
-	if (matePos == pos) {
-		std::cout << "WRITE NOW!" << std::endl;
-		bamFile.saveAlignment(secondMate);
+	if (matePosition == Position) {
+		BamFile.saveAlignment(secondMate);
 	} else {
-		std::cout << "WRITE LATER!" << std::endl;
-		bamAlignmentSecondMates.push_back(secondMate);
+		_bamAlignmentSecondMates.insert(secondMate);
 	}
 }
 
-void TSimulatorPairedEndReads::writeUnwrittenAlignments(uint32_t pos, TSimulatorBamFile &bamFile) {
-	for (auto & a: bamAlignmentSecondMates) {
-		bamFile.saveAlignment(a);
+void TSimulatorPairedEndReads::writeUnwrittenAlignments(const genometools::TGenomePosition & Position, TSimulatorBamFile &BamFile) {
+	if(!_bamAlignmentSecondMates.empty()){
+		auto it = _bamAlignmentSecondMates.begin();
+		while(it != _bamAlignmentSecondMates.end() && *it <= Position){
+			BamFile.saveAlignment(*it);
+			it = _bamAlignmentSecondMates.erase(it);
+		}
 	}
-	bamAlignmentSecondMates.clear();
 }
 
 } // namespace Simulations

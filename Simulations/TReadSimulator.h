@@ -13,6 +13,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <set>
 #include "../BAM/TReadGroupInfo.h"
 #include "GenotypeTypes.h"
 #include "TAlignment.h"
@@ -33,6 +34,7 @@ namespace Simulations {
 
 using genometools::Base;
 using genometools::PhredIntProbability;
+using genometools::TGenomePosition;
 using coretools::probdist::TCategoricalDistribution;
 using BAM::RGInfo::TReadGroupInfoEntry;
 
@@ -77,12 +79,11 @@ protected:
 	// general functions
 	double _calcMeanReadLength(const uint16_t maxLen) const;
 	std::string _getNextReadName();
-	void _simulateAlignmentDetails(uint32_t refID, uint32_t pos);
+	void _simulateAlignmentDetails(const TGenomePosition & Position);
 	bool _simulateContamination();
 	void _addSoftclippedBases(std::vector<Base> & bases, const std::unique_ptr<TCategoricalDistribution<uint16_t>> & softClippedDist, BAM::TCigar & Cigar);
 	void _simulateBasesQualities(BAM::TAlignment &alignment,
 								 const std::vector<Base>& haplotype,
-								 const uint64_t pos,
 								 const uint16_t fragmentLength,
 								 const uint16_t readLength,
 								 bool readIsContaminated);
@@ -97,12 +98,11 @@ public:
 	void setContamination(double rate, TSimulatorReference *source);
 
 	//simulate
-	virtual void simulate(const std::vector<Base>& haplotype, uint32_t refID, uint32_t pos, TSimulatorBamFile &bamFile) = 0;
-	virtual void writeUnwrittenAlignments(uint32_t, TSimulatorBamFile &){};
+	virtual void simulate(const std::vector<Base>& Haplotype, const TGenomePosition & Position, TSimulatorBamFile &BamFile) = 0;
+	virtual void writeUnwrittenAlignments(const genometools::TGenomePosition &, TSimulatorBamFile &){};
 
 	//getters
 	std::string name() const { return _readGroup.name_ID; };
-	virtual std::string type() const = 0;
 	[[nodiscard]] virtual double meanReadLength() const = 0;
 	double maxFragmentLength() {
 		return _fragmentLengthDistr.max();
@@ -120,8 +120,7 @@ public:
 	TSimulatorSingleEndRead(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo);
 	~TSimulatorSingleEndRead() = default;
 
-	std::string type() const {return "single-end";}
-	void simulate(const std::vector<Base>& haplotype, uint32_t refID, uint32_t pos, TSimulatorBamFile &bamFile);
+	void simulate(const std::vector<Base>& Haplotype, const TGenomePosition & Position, TSimulatorBamFile &BamFile) override;
 	[[nodiscard]] double meanReadLength() const override;
 };
 
@@ -133,15 +132,14 @@ private:
 	std::array<coretools::StrictlyPositive<uint16_t>, 2> _numCycles;
 	BAM::TSamFlags _mateFlags;
 
-	std::vector<BAM::TAlignment> bamAlignmentSecondMates;
+	std::multiset<BAM::TAlignment> _bamAlignmentSecondMates;
 
 public:
 	TSimulatorPairedEndReads(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo);
 	~TSimulatorPairedEndReads() = default;
 
-	void simulate(const std::vector<genometools::Base>& haplotype, uint32_t refID, uint32_t pos, TSimulatorBamFile &bamFile) override;
-	void writeUnwrittenAlignments(uint32_t pos, TSimulatorBamFile &bamFile) override;
-	std::string type() const override {return "paired-end";} 
+	void simulate(const std::vector<genometools::Base>& Haplotype, const TGenomePosition & Position, TSimulatorBamFile &BamFile) override;
+	void writeUnwrittenAlignments(const genometools::TGenomePosition & Position, TSimulatorBamFile &BamFile) override;
 	[[nodiscard]] double meanReadLength() const override;
 };
 

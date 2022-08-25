@@ -46,7 +46,7 @@ inline const coretools::TStrongArray<TInfo, InfoType> infos = []() {
 	i[InfoType::RGName] = {"readGroup", "read group name", "SimReadGroup"};
 	i[InfoType::RGFrequency] = {"frequency", "read group frequency", "1.0"};
 	i[InfoType::seqType] = {"seqType", "sequencing type", "single"};
-	i[InfoType::cycles] = {"cycles", "number of sequencing cycles", "100"};
+	i[InfoType::cycles] = {"seqCycles", "number of sequencing cycles", "100"};
 	i[InfoType::fragmentLength] = {"fragmentLength", "fragment length distribution", "fixed(300)"};
 	i[InfoType::baseQuality] = {"baseQuality", "base quality distribution", "normal(30,10)[0,93]"};
 	i[InfoType::mappingQuality] = {"mappingQuality", "mapping quality distribution", "normal(60,10)[1,255]"};
@@ -152,6 +152,7 @@ public:
 
 	// or: read info and fill TReadGroups (used for simulations)
 	BAM::TReadGroups readInfoAndCreateReadGroups();
+	BAM::TReadGroups readInfoAndCreateReadGroups(const std::string & RgInfoFileName);
 
 	//functions to parse certain info
 	void parse(const InfoType Info);
