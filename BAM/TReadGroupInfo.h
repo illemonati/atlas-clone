@@ -152,6 +152,7 @@ public:
 
 	// or: read info and fill TReadGroups (used for simulations)
 	BAM::TReadGroups readInfoAndCreateReadGroups();
+	BAM::TReadGroups readInfoAndCreateReadGroups(const std::string & RgInfoFileName);
 
 	//functions to parse certain info
 	void parse(const InfoType Info);

@@ -178,6 +178,10 @@ void TReadGroupInfo::readInfoAndMatchReadGroups(const BAM::TReadGroups & ReadGro
 
 // or: read info and fill TReadGroups (used for simulations)
 BAM::TReadGroups TReadGroupInfo::readInfoAndCreateReadGroups(){
+	return readInfoAndCreateReadGroups(parameters().getParameter<std::string>(_RGInfoArgument, false));
+}
+
+BAM::TReadGroups TReadGroupInfo::readInfoAndCreateReadGroups(const std::string & RgInfoFileName){
 	if(!_info.empty()){
 		DEVERROR("Read group info already read!");
 	}
@@ -186,8 +190,9 @@ BAM::TReadGroups TReadGroupInfo::readInfoAndCreateReadGroups(){
 	BAM::TReadGroups readGroups;
 
 	// Info is provided as a) a RG info file OR b) as the number of read groups and default arguments
-	_readFileIfProvided();
-	if(_fileData){
+	if(!RgInfoFileName.empty()){
+		_fileData = std::make_unique<TFileData>(RgInfoFileName);
+
 		// create RGs from RG info file
 		//create read groups
 		auto col = _fileData->getInfoCol(InfoType::RGName);

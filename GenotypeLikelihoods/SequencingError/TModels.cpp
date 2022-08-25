@@ -118,6 +118,10 @@ void TModels::initializeFromFile(const std::string &Filename, const BAM::TReadGr
 	logfile().done();
 }
 
+void TModels::initialize(BAM::RGInfo::TReadGroupInfo & RgInfo) {
+	//TODO
+}
+
 void TModels::checkReadGroups(const BAM::TReadGroups &ReadGroups, std::vector<uint16_t> &ReadGroupsWithoutRecal,
 			      std::vector<uint16_t> &ReadGroupsLikelySingleEnd) const noexcept {
 	ReadGroupsWithoutRecal.clear();

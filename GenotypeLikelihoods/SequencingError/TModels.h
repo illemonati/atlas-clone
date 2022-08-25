@@ -18,6 +18,7 @@
 #include "PhredProbabilityTypes.h"
 #include "SequencingError/TModel.h"
 #include "probability.h"
+#include "TReadGroupInfo.h"
 
 namespace BAM { class TReadGroups; }
 namespace BAM { class TSequencedBase; }
@@ -37,6 +38,7 @@ public:
 	void initialize(const std::string &RecalString, const std::string &RhoString, const BAM::TReadGroups &ReadGroups);
 	void initialize(const std::vector<std::string> & RecalStringPerReadGroup, const std::vector<std::string> & RhoStringPerReadGroup, const BAM::TReadGroups &ReadGroups);
 	void initializeFromFile(const std::string &Filename, const BAM::TReadGroups &ReadGroups);
+	void initialize(BAM::RGInfo::TReadGroupInfo & RgInfo);
 	void checkReadGroups(const BAM::TReadGroups &ReadGroups, std::vector<uint16_t> &ReadGroupsWithoutRecal,
 			     std::vector<uint16_t> &ReadGroupsLikelySingleEnd) const noexcept;
 
