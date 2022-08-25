@@ -91,7 +91,7 @@ void TBamDiagnoser::diagnose(){
 	//writing read group summary
 	std::string filename = _outputName + "_diagnostics.txt";
 	logfile().listFlush("Writing general diagnostics to '" + filename + "' ...");
-	coretools::TOutputFile out(filename, {"readGroup", "totalReads", "passedQC", "avgReadLength", "maxReadLength", "properPairs", "avgFragmentLength", "softClipped", "avgSoftClippedLength", "avgUsableAlignedLength", "approximateDepth", "avgMappingQuality", "seqType"});
+	coretools::TOutputFile out(filename, {"readGroup", "totalReads", "passedQC", "avgReadLength", "seqCycles", "properPairs", "avgFragmentLength", "softClipped", "avgSoftClippedLength", "avgUsableAlignedLength", "approximateDepth", "avgMappingQuality", "seqType"});
 
 	//determine sequencing type of BAM file
 	uint32_t paired_count = 0;

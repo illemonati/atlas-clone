@@ -2,7 +2,7 @@
 
 . $(dirname $0)/find_atlas
 
-$atlas --task simulate --type HW --F 0.1 --chrLength 1000 --sampleSize 20 --fracPoly 1.0 --alpha 2.0 --beta 2.0 --seqType single --cycles 100 --fragmentLength "gamma(10,0.2)[30,201]" --fixedSeed 0 --logFile simulate.out
+$atlas --task simulate --type HW --F 0.1 --chrLength 1000 --sampleSize 20 --fracPoly 1.0 --alpha 2.0 --beta 2.0 --seqType single --seqCycles 100 --fragmentLength "gamma(10,0.2)[30,201]" --fixedSeed 0 --logFile simulate.out
 
 for i in {1..20}; do
 samtools view ATLAS_simulations_ind$i.bam | head -250 | tail -10 | cut -f1 > blacklist_$i.txt

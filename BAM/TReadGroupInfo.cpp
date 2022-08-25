@@ -220,20 +220,23 @@ BAM::TReadGroups TReadGroupInfo::readInfoAndCreateReadGroups(){
 }
 
 void TReadGroupInfo::parse(const InfoType Info){
-	//check if info is provided on the command line -> overwrites file
-	logfile().listFlush(coretools::str::capitalizeFirst(infos[Info].description), ": ");
-	std::string arg = infos[Info].argument;
-	if(parameters().parameterExists(arg)){
-		impl::setFromCommandLine(_info, Info);
-	} else {
-		//check if provided in file
-		if(_fileData && _fileData->hasInfo(Info)){
-			impl::setFromRGInfoFile(_info, Info, *_fileData);
+	if(!_parsed[Info]){
+		logfile().listFlush(coretools::str::capitalizeFirst(infos[Info].description), ": ");
+		std::string arg = infos[Info].argument;
+
+		//check if info is provided on the command line -> overwrites file
+		if(parameters().parameterExists(arg)){
+			impl::setFromCommandLine(_info, Info);
 		} else {
-			impl::setDefault(_info, Info);
+			//check if provided in file
+			if(_fileData && _fileData->hasInfo(Info)){
+				impl::setFromRGInfoFile(_info, Info, *_fileData);
+			} else {
+				impl::setDefault(_info, Info);
+			}
 		}
+		_parsed[Info] = true;
 	}
-	_parsed[Info] = true;
 }
 
 std::vector<std::string> TReadGroupInfo::getUnusedColumnsInFile(){

@@ -78,7 +78,6 @@ void TAlignment::fill(const std::string &Name, const TSamFlags &Flags, uint32_t 
 	_flags = Flags;
 	move(RefID, Position);
 	_mappingQuality  = MappingQuality;
-	_cigar           = Cigar;
 	_insertSize_TLEN = InsertSize_TLEN;
 	_sequence        = Sequence;
 	_qualities       = Qualities;
@@ -90,6 +89,13 @@ void TAlignment::fill(const std::string &Name, const TSamFlags &Flags, uint32_t 
 	} else {
 		_mateGenomicPosition.move(0, 0); // 0 is not paired
 	}
+
+	_setCigar(Cigar);
+};
+
+void TAlignment::_setCigar(const TCigar &Cigar){
+	_cigar = Cigar;
+
 	// set fragment length
 	if (_flags.isProperPair()) {
 		_fragmentLength = abs(_insertSize_TLEN) + _cigar.lengthInserted() - _cigar.lengthDeleted();
@@ -309,7 +315,7 @@ void TAlignment::setSequenceQualities(const TCigar &Cigar, const std::vector<gen
 			"void TAlignment::setSequenceQualities(const TCigar & Cigar, const std::vector<Base> & Sequence, const "
 			"std::vector<PhredIntProbability> & Qualities): length of CIGAR, Sequences and Qualities do not match!");
 	}
-	_cigar = Cigar;
+	_setCigar(Cigar);
 
 	// parse bases and qualities
 	_parseBasesQualities(Sequence, Qualities);
@@ -464,7 +470,7 @@ void TAlignment::downsampleAlignment(const coretools::Probability &fractionToKee
 //--------------------------------------------
 // functions to write / print alignment
 //--------------------------------------------
-void TAlignment::print() {
+void TAlignment::print() const {
 	std::cout << std::endl << "NAME:\t" << _name << std::endl;
 	std::cout << "LEN:\t" << _bases.size() << std::endl;
 

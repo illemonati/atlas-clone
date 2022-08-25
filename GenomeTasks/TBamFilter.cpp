@@ -97,7 +97,7 @@ void TAlignmentMergerReadGroupSettings::initialize(BAM::TReadGroups & readGroups
 		//read file with read group settings
 		std::string readGroupSettingsFile = parameters().getParameter<std::string>("readGroupSettings");
 		logfile().listFlush("Reading read groups from file '" + readGroupSettingsFile + "' ...");
-		coretools::TInputFile in(readGroupSettingsFile, {"readGroup", "seqType", "maxReadLength"});
+		coretools::TInputFile in(readGroupSettingsFile, {"readGroup", "seqType", "seqCycles"});
 
 		//read settings file
 		uint16_t numNotInUse = 0;
