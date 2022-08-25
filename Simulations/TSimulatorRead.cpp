@@ -306,7 +306,7 @@ void TSimulatorPairedEndReads::simulate(const std::vector<Base>& haplotype, uint
 	}
 }
 
-void TSimulatorPairedEndReads::writeUnwrittenAlignments(long , TSimulatorBamFile &bamFile) {
+void TSimulatorPairedEndReads::writeUnwrittenAlignments(uint32_t pos, TSimulatorBamFile &bamFile) {
 	for (auto & a: bamAlignmentSecondMates) {
 		bamFile.saveAlignment(a);
 	}

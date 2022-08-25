@@ -98,7 +98,7 @@ public:
 
 	//simulate
 	virtual void simulate(const std::vector<Base>& haplotype, uint32_t refID, uint32_t pos, TSimulatorBamFile &bamFile) = 0;
-	virtual void writeUnwrittenAlignments(long, TSimulatorBamFile &){};
+	virtual void writeUnwrittenAlignments(uint32_t, TSimulatorBamFile &){};
 
 	//getters
 	std::string name() const { return _readGroup.name_ID; };
