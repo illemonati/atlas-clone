@@ -33,13 +33,8 @@ TPMDEstimator::TPMDEstimator(): TGenome_parsed() {
 	GenotypeLikelihoods::TPostMortemDamage& pmd = _genotypeLikelihoodCalculator.getPostMortemDamageModels();
 	if (_genotypeLikelihoodCalculator.hasPMD() && !parameters().parameterExists("reestimate")) {
 		throw "PMD model already estimated! (Use argument 'reestimate' to overwrite this error)";
-
 	}
 	if (!_genotypeLikelihoodCalculator.hasPMD()) {
-		if (!parameters().parameterExists("pmdModels"))
-			throw "Can not estimate PMD: no PMD models provided! Use 'pmdModels' to provide PMD models or 'pmd' with "
-				  "'reestimate' to provide a starting guess.";
-
 		pmd.initialize(parameters().getParameterWithDefault("pmdModels", "doubleStrand:Empirical:Empirical"s), _bamFile.readGroups());
 	}
 

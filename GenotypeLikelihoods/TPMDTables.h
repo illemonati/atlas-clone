@@ -18,6 +18,7 @@
 #include "GenotypeTypes.h"
 #include "TReadGroups.h"
 #include "TStrongArray.h"
+#include "devtools.h"
 
 namespace BAM { class TReadGroups; }
 namespace BAM { class TSequencedBase; }
@@ -37,13 +38,8 @@ class TPMDTable {
 private:
 	coretools::TStrongArray<PMDCounts, genometools::Base> _counts;
 	coretools::TStrongArray<countVec, genometools::Base> _sums;
-	//std::array<PMDCounts, 4> _counts; //_counts[A,C,G,T] are counts from (ref)
-	//std::array<countVec, 4> _sums;
 public:
 	TPMDTable() = default;
-	TPMDTable(const TPMDTable &) = default;
-	TPMDTable& operator=(const TPMDTable &) = default;
-	~TPMDTable() = default;
 
 	TPMDTable(size_t Size) { resize(Size); };
 	size_t size() const { return _sums.front().size() - 1; };
@@ -69,15 +65,11 @@ private:
 	std::vector<PMDTable_RG> _tables;
 public:
 	TPMDTables() = default;
-	TPMDTables(const TPMDTables &) = default;
-	TPMDTables& operator=(const TPMDTables &) = default;
-	~TPMDTables() = default;
 
 	TPMDTables(const BAM::TReadGroups *ReadGroups, size_t TableLength, const BAM::TReadGroupMap *ReadGroupMap) {
 		initialize(ReadGroups, TableLength, ReadGroupMap);
 	}
 	void initialize(const BAM::TReadGroups *ReadGroups, size_t TableLength, const BAM::TReadGroupMap *ReadGroupMap);
-	//const PMDTable_RG &operator[](size_t ReadGroupID) const { return _tables[ReadGroupID]; }
 	const PMDTable_RG &operator[](size_t ReadGroupID) const { return _tables[_readGroupMap->pooledIndex(ReadGroupID)]; }
 	void add(const BAM::TSequencedBase &base, genometools::Base reference);
 	void write(std::string filename, bool normalize);
