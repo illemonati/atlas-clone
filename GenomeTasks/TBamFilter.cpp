@@ -146,7 +146,7 @@ void TAlignmentMergerReadGroupSettings::initialize(BAM::TReadGroups & readGroups
 					} else if(vec[1] == "paired-end"){
 						_settings.emplace(rgId, paired, 0);
 					} else {
-						throw "Error reading file '" + in.name() + "' on line " + toString(in.lineNumber()) + ": Unknown read group type '" + vec[1] + "'! Expected 'unchanged', 'single', 'mixed' or 'paired'.";
+						throw "Error reading file '" + in.name() + "' on line " + toString(in.lineNumber()) + ": Unknown read group type '" + vec[1] + "'! Expected 'unchanged', 'single-end', 'mixed' or 'paired-end'.";
 					}
 				}
 			}

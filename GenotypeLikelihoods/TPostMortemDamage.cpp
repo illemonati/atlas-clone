@@ -656,7 +656,7 @@ void TPMDTypeSingleStrand::simulate(Base &base, uint16_t DistFrom5Prime, uint16_
 //------------------------------------------------------
 
 void TPostMortemDamage::writeToFile(const BAM::TReadGroups &ReadGroups, const std::string filename) const {
-	std::vector<std::string> header = {"readGroup", "type", "functions"};
+	std::vector<std::string> header = {"readGroup", "type", "pmd"};
 	coretools::TOutputFile out(filename, header);
 
 	// write for each read group
@@ -666,7 +666,7 @@ void TPostMortemDamage::writeToFile(const BAM::TReadGroups &ReadGroups, const st
 
 void TPostMortemDamage::writeToFile(const BAM::TReadGroups &ReadGroups, const BAM::TReadGroupMap &ReadGroupMap,
 				    const std::string filename) const {
-	std::vector<std::string> header = {"readGroup", "type", "functions"};
+	std::vector<std::string> header = {"readGroup", "type", "pmd"};
 	coretools::TOutputFile out(filename, header);
 
 	// write for each read group
@@ -692,9 +692,9 @@ std::vector<uint16_t> TPostMortemDamage::_initializeFromFile(const BAM::TReadGro
 	// read from file for each read group
 
 	logfile().listFlush("Initializing PMD from file '" + filename + "' ...");
-	coretools::TInputFile in(filename, {"readGroup", "functions"}, "\t", "//");
+	coretools::TInputFile in(filename, {"readGroup", "pmd"}, "\t", "//");
 
-	// parse file that has structure: ReadGroup, Type, Functions
+	// parse file that has structure: ReadGroup, Type, pmd
 	std::vector<std::string> vec;
 	while (in.read(vec)) {
 		if (ReadGroups.readGroupExists(vec[0])) { // ignore if it does not exist
