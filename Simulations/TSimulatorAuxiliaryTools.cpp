@@ -135,7 +135,9 @@ void TSimulatorBamFile::open(const std::string &Filename, const std::string &Sam
 }
 TSimulatorBamFile::~TSimulatorBamFile() { _outBam.closeNoIndex(); }
 
-void TSimulatorBamFile::close() { _outBam.close(&logfile()); }
+void TSimulatorBamFile::close() {
+	_outBam.close(&logfile());
+}
 
 TSimulatorBamFiles::TSimulatorBamFiles(uint32_t NumFiles, const std::string & Outname, BAM::TReadGroups & ReadGroups,
 				       const genometools::TChromosomes &Chromosomes) {

@@ -107,9 +107,6 @@ public:
 	double maxFragmentLength() {
 		return _fragmentLengthDistr.max();
 	};
-
-	//unsure if needed
-	void printDetails(double frequency);
 };
 
 //-------------------------------
@@ -143,7 +140,7 @@ public:
 	~TSimulatorPairedEndReads() = default;
 
 	void simulate(const std::vector<genometools::Base>& haplotype, uint32_t refID, uint32_t pos, TSimulatorBamFile &bamFile) override;
-	void writeUnwrittenAlignments(long pos, TSimulatorBamFile &bamFile) override;
+	void writeUnwrittenAlignments(uint32_t pos, TSimulatorBamFile &bamFile) override;
 	std::string type() const override {return "paired-end";} 
 	[[nodiscard]] double meanReadLength() const override;
 };

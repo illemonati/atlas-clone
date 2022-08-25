@@ -275,8 +275,7 @@ void TBAMSimulator::_initializeReadGroups(const TReadGroupInfo & RGinfo) {
 		if(type == "single"){
 			_readSimulators.push_back(std::make_unique<TSimulatorSingleEndRead>(_readGroups[i], RGinfo[i]));
 		} else if(type == "paired"){
-			DEVERROR("Paired-end read groups not yet implemented!");
-			//_readSimulators.push_back(std::make_unique<TSimulatorSingleEndRead>(RGinfo.readGroup(i), RGinfo[i]));
+			_readSimulators.push_back(std::make_unique<TSimulatorPairedEndReads>(_readGroups[i], RGinfo[i]));
 		} else {
 			UERROR("Unable to understand read group type '" + type + "'! Use either 'single' or 'paired'.");
 		}
@@ -328,7 +327,7 @@ void TBAMSimulator::_initializeReadSimulator() {
 	_readGroups = RGinfo.readInfoAndCreateReadGroups();
 
 	using BAM::RGInfo::InfoType;
-	RGinfo.parse(InfoType::RGFrequency, InfoType::seqType, InfoType::numCycles, InfoType::fragmentLength, InfoType::baseQuality, InfoType::mappingQuality, InfoType::softClipping);
+	RGinfo.parse(InfoType::RGFrequency, InfoType::seqType, InfoType::cycles, InfoType::fragmentLength, InfoType::baseQuality, InfoType::mappingQuality, InfoType::softClipping);
 	_initializeReadGroupFrequencies(RGinfo);
 	logfile().endIndent();
 
@@ -352,12 +351,14 @@ void TBAMSimulator::_initializeReadSimulator() {
 	//----------------
 	// initialize read group frequencies frequencies
 
-
 	logfile().endIndent();
 
-	//warn ig read group info columns were not used
+	//warn if read group info columns were not used
 	RGinfo.warnAboutUnusedColumnsInFile();
 	logfile().endIndent();
+
+	//prepare simulations
+	_prepareSimulations();
 }
 
 void TBAMSimulator::_initializeReadGroupFrequencies(const TReadGroupInfo & RGinfo) {

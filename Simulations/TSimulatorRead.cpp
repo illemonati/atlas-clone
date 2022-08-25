@@ -45,7 +45,9 @@ TSimulatorRead::TSimulatorRead(const BAM::TReadGroup & ReadGroup, const TReadGro
 	_initDistribution(_qualityDist, RGInfo, InfoType::baseQuality);
 
 	//soft clip
+	logfile().listFlush(BAM::RGInfo::infos[InfoType::softClipping].description, ": ");
 	if(RGInfo.has(InfoType::softClipping)){
+		logfile().write(RGInfo[InfoType::softClipping]);
 		std::string sc = RGInfo[InfoType::softClipping];
 		if(!sc.empty()){
 			//check if one or two values are given
@@ -62,6 +64,8 @@ TSimulatorRead::TSimulatorRead(const BAM::TReadGroup & ReadGroup, const TReadGro
 				}
 			}
 		}
+	} else {
+		logfile().write("none");
 	}
 }
 
@@ -183,40 +187,6 @@ void TSimulatorRead::setContamination(double rate, TSimulatorReference *source) 
 	if (_contaminationRate > 1.0) throw "Contamination rate must be <= 0.0!";
 }
 
-void TSimulatorRead::printDetails(double frequency) {
-	//TODO: complete with all information
-	/*
-	logfile().startIndent("Read group '", _readGroup.name_ID, "':");
-	logfile().list("Type: ", type(), ".");
-	logfile().list("Frequency: ", frequency, ".");
-
-	_fragmentLengthDist.printDetails();
-	_mappingQualityDist.printDetails("Mapping quality");
-	_qualityDist.printDetails("Base quality");
-
-	if ((_recal[0] && _recal[0]->recalibrates())) {
-		// TODO: add recal string output
-		logfile().list("Recal First Mate: " + _recal[0]->getCovariateDefinition());
-	}
-
-	if ((_recal[1] && _recal[1]->recalibrates())) {
-		// TODO: add recal string output
-		logfile().list("Recal Second Mate: " + _recal[0]->getCovariateDefinition());
-	}
-
-	if (_pmd && _pmd->hasDamage()) {
-		logfile().list("PMD: " + _pmd->functionString());
-	} else {
-		logfile().list("No PMD.");
-	}
-
-	if (_contaminationRate > 0.)
-		logfile().list("Contaminated with rate ", _contaminationRate, ".");
-	else
-		logfile().list("Read group is not contaminated.");
-	*/
-}
-
 //----------------------------------
 // TSimulatorSingleEndRead
 //----------------------------------
@@ -224,8 +194,9 @@ TSimulatorSingleEndRead::TSimulatorSingleEndRead(const BAM::TReadGroup & ReadGro
 	: TSimulatorRead(ReadGroup, RGInfo){
 
 	//num cycles
-	coretools::str::convertString< coretools::StrictlyPositive<uint16_t> >(RGInfo[InfoType::numCycles],
-			BAM::RGInfo::infos[InfoType::numCycles].description + " must be within [1,65535].", _numCycles);
+	logfile().list(BAM::RGInfo::infos[InfoType::cycles].description, ": ", RGInfo[InfoType::cycles]);
+	coretools::str::convertString< coretools::StrictlyPositive<uint16_t> >(RGInfo[InfoType::cycles],
+			coretools::str::capitalizeFirst(BAM::RGInfo::infos[InfoType::cycles].description) + " must be a single number within [1,65535].", _numCycles);
 }
 
 double TSimulatorSingleEndRead::meanReadLength() const {
@@ -252,18 +223,18 @@ void TSimulatorSingleEndRead::simulate(const std::vector<Base>& haplotype, uint3
 //----------------------------------
 TSimulatorPairedEndReads::TSimulatorPairedEndReads(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo)
 	: TSimulatorRead(ReadGroup, RGInfo){
-
 	//num cycles
-	if(coretools::str::stringContains(RGInfo[InfoType::numCycles], ',')){
+	logfile().list(BAM::RGInfo::infos[InfoType::cycles].description, ": ", RGInfo[InfoType::cycles]);
+	if(coretools::str::stringContains(RGInfo[InfoType::cycles], ',')){
 		//two values: one for first and one for second mate
-		coretools::str::convertString< coretools::StrictlyPositive<uint16_t> >(coretools::str::readBefore(RGInfo[InfoType::numCycles], ','),
-				BAM::RGInfo::infos[InfoType::numCycles].description + " must be within [1,65535].", _numCycles[0]);
-		coretools::str::convertString< coretools::StrictlyPositive<uint16_t> >(coretools::str::readAfter(RGInfo[InfoType::numCycles], ','),
-				BAM::RGInfo::infos[InfoType::numCycles].description + " must be within [1,65535].", _numCycles[1]);
+		coretools::str::convertString< coretools::StrictlyPositive<uint16_t> >(coretools::str::readBefore(RGInfo[InfoType::cycles], ','),
+				BAM::RGInfo::infos[InfoType::cycles].description + " must be within [1,65535].", _numCycles[0]);
+		coretools::str::convertString< coretools::StrictlyPositive<uint16_t> >(coretools::str::readAfter(RGInfo[InfoType::cycles], ','),
+				BAM::RGInfo::infos[InfoType::cycles].description + " must be within [1,65535].", _numCycles[1]);
 	} else {
 		//one value to be used for both mates
-		coretools::str::convertString< coretools::StrictlyPositive<uint16_t> >(RGInfo[InfoType::numCycles],
-				BAM::RGInfo::infos[InfoType::numCycles].description + " must be within [1,65535].", _numCycles[0]);
+		coretools::str::convertString< coretools::StrictlyPositive<uint16_t> >(RGInfo[InfoType::cycles],
+				BAM::RGInfo::infos[InfoType::cycles].description + " must be within [1,65535].", _numCycles[0]);
 		_numCycles[1] = _numCycles[0];
 	}
 
@@ -318,13 +289,19 @@ void TSimulatorPairedEndReads::simulate(const std::vector<Base>& haplotype, uint
 	secondMate.setMappingQuality(_alignment.mappingQuality());
 	secondMate.setSamFlags(_mateFlags);
 
+	std::cout << "SIM SECOND pos = " << pos << ", matePos = " << matePos << ", cycles = " << _numCycles[1] << ", fragmentLength = " << fragmentLength << std::endl;
+
 	// simulated bases and qualities
 	_simulateBasesQualities(secondMate, haplotype, matePos, fragmentLength, _numCycles[1], readIsContaminated);
 
-	// write if it starts at same position as first, and keep for writing later otherwiese
+	secondMate.print();
+
+	// write if it starts at same position as first, and keep for writing later otherwise
 	if (matePos == pos) {
+		std::cout << "WRITE NOW!" << std::endl;
 		bamFile.saveAlignment(secondMate);
 	} else {
+		std::cout << "WRITE LATER!" << std::endl;
 		bamAlignmentSecondMates.push_back(secondMate);
 	}
 }

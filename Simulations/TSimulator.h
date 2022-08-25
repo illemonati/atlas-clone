@@ -82,7 +82,7 @@ protected:
 	GenotypeLikelihoods::SequencingError::TModels _recal;
 
 	// read simulator
-	std::vector<std::unique_ptr<TSimulatorSingleEndRead>> _readSimulators;
+	std::vector<std::unique_ptr<TSimulatorRead>> _readSimulators;
 	std::vector<coretools::Probability> _simGroupFrequencies;
 	std::vector<coretools::Probability> _cumulSimGroupFrequenies;
 
