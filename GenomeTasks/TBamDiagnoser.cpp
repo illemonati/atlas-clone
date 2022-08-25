@@ -114,9 +114,9 @@ void TBamDiagnoser::diagnose(){
 	out << _usableLength.mean() << (double) _usableLength.sum() / (double) totLengthOfGenome;
 	out << _mappingQuality.mean();
 	if (numRG == single_count){
-		out << "single-end" << std::endl;
+		out << "single" << std::endl;
 	} else if (numRG == paired_count) {
-		out << "paired-end" << std::endl;
+		out << "paired" << std::endl;
 	} else {
 		out << "mixed" << std::endl;
 	}
