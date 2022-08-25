@@ -127,7 +127,7 @@ void TAlignmentMergerReadGroupSettings::initialize(BAM::TReadGroups & readGroups
 					//act based on seqeuncing type (second column). Ignored read groups will be marked as "unchanged"
 					if(readGroupsToIgnore.find(rgId) != readGroupsToIgnore.end() || vec[1] == "unchanged"){
 						_settings.emplace(rgId, unchanged, 0);
-					} else if(vec[1] == "single-end"){
+					} else if(vec[1] == "single"){
 						if(maxCycles < 1){
 							throw "Error reading file '" + in.name() + "' on line " + toString(in.lineNumber()) + ": max cycles must be > 0 for read groups of type 'single'!";
 						}
@@ -143,10 +143,10 @@ void TAlignmentMergerReadGroupSettings::initialize(BAM::TReadGroups & readGroups
 						//add to settings and create truncated read group
 						_settings.emplace(rgId, readGroups.addAlternativeRG(vec[0] + "_truncated", vec[0]).id(), mixed, maxCycles);
 
-					} else if(vec[1] == "paired-end"){
+					} else if(vec[1] == "paired"){
 						_settings.emplace(rgId, paired, 0);
 					} else {
-						throw "Error reading file '" + in.name() + "' on line " + toString(in.lineNumber()) + ": Unknown read group type '" + vec[1] + "'! Expected 'unchanged', 'single-end', 'mixed' or 'paired-end'.";
+						throw "Error reading file '" + in.name() + "' on line " + toString(in.lineNumber()) + ": Unknown read group type '" + vec[1] + "'! Expected 'unchanged', 'single', 'mixed' or 'paired'.";
 					}
 				}
 			}
