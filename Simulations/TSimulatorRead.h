@@ -99,7 +99,7 @@ public:
 
 	//simulate
 	virtual void simulate(const std::vector<Base>& Haplotype, const TGenomePosition & Position, TSimulatorBamFile &BamFile) = 0;
-	virtual void writeUnwrittenAlignments(const genometools::TGenomePosition & Position, TSimulatorBamFile &BamFile){};
+	virtual void writeUnwrittenAlignments(const genometools::TGenomePosition &, TSimulatorBamFile &){};
 
 	//getters
 	std::string name() const { return _readGroup.name_ID; };

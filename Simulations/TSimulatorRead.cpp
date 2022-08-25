@@ -196,6 +196,8 @@ TSimulatorSingleEndRead::TSimulatorSingleEndRead(const BAM::TReadGroup & ReadGro
 	logfile().list(BAM::RGInfo::infos[InfoType::cycles].description, ": ", RGInfo[InfoType::cycles]);
 	coretools::str::convertString< coretools::StrictlyPositive<uint16_t> >(RGInfo[InfoType::cycles],
 			coretools::str::capitalizeFirst(BAM::RGInfo::infos[InfoType::cycles].description) + " must be a single number within [1,65535].", _numCycles);
+
+	_alignment.setSamFlags(_flags);
 }
 
 double TSimulatorSingleEndRead::meanReadLength() const {
@@ -242,6 +244,7 @@ TSimulatorPairedEndReads::TSimulatorPairedEndReads(const BAM::TReadGroup & ReadG
 	_flags.setIsProperPair(true);
 	_flags.setIsRead1(true);
 	_flags.setMateIsReverseStrand(false);
+	_alignment.setSamFlags(_flags);
 
 	// set SAM flags of second mate
 	_mateFlags.setIsPaired(true);
@@ -292,7 +295,7 @@ void TSimulatorPairedEndReads::simulate(const std::vector<Base>& Haplotype, cons
 	if (matePosition == Position) {
 		BamFile.saveAlignment(secondMate);
 	} else {
-		auto it = _bamAlignmentSecondMates.insert(secondMate);
+		_bamAlignmentSecondMates.insert(secondMate);
 	}
 }
 
