@@ -5,7 +5,7 @@
  *      Author: vivian
  */
 
-#include "TSimulatorRead.h"
+#include <TReadSimulator.h>
 #include <algorithm>
 #include <memory>
 
@@ -30,7 +30,7 @@ using BAM::RGInfo::InfoType;
 // TSimulatorRead
 //------------------------------------------------
 
-TSimulatorRead::TSimulatorRead(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo)
+TReadSimulator::TReadSimulator(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo)
 	: _readGroup(ReadGroup){
 
 	// initialize bamAlignment
@@ -69,7 +69,7 @@ TSimulatorRead::TSimulatorRead(const BAM::TReadGroup & ReadGroup, const TReadGro
 	}
 }
 
-double TSimulatorRead::_calcMeanReadLength(const uint16_t maxLen) const {
+double TReadSimulator::_calcMeanReadLength(const uint16_t maxLen) const {
 	// if fragments are always shorter than _numcycles, return mean fragment length
 	if(_fragmentLengthDistr.max() < maxLen){
 		return _fragmentLengthDistr.mean();
@@ -89,7 +89,7 @@ double TSimulatorRead::_calcMeanReadLength(const uint16_t maxLen) const {
 	return m;
 }
 
-std::string TSimulatorRead::_getNextReadName() {
+std::string TReadSimulator::_getNextReadName() {
 	++_readXPos;
 	if (_readXPos == 65536) {
 		++_readYPos;
@@ -98,7 +98,7 @@ std::string TSimulatorRead::_getNextReadName() {
 	return coretools::str::toString(_readNamePrefix, _readXPos, ":", _readYPos);
 }
 
-void TSimulatorRead::_simulateAlignmentDetails(const TGenomePosition & Position){	;
+void TReadSimulator::_simulateAlignmentDetails(const TGenomePosition & Position){	;
 	_alignment.move(Position);
 	_alignment.setName(_getNextReadName());
 
@@ -106,11 +106,11 @@ void TSimulatorRead::_simulateAlignmentDetails(const TGenomePosition & Position)
 	_alignment.setMappingQuality(_mappingQualityDist.sample().get());
 }
 
-bool TSimulatorRead::_simulateContamination(){
+bool TReadSimulator::_simulateContamination(){
 	return _contaminationRate > 0. && randomGenerator().getRand() < _contaminationRate;
 }
 
-void TSimulatorRead::_addSoftclippedBases(std::vector<Base> & Bases, const std::unique_ptr<TCategoricalDistribution<uint16_t>> & SoftClippedDist, BAM::TCigar & Cigar){
+void TReadSimulator::_addSoftclippedBases(std::vector<Base> & Bases, const std::unique_ptr<TCategoricalDistribution<uint16_t>> & SoftClippedDist, BAM::TCigar & Cigar){
 	if(SoftClippedDist){
 		auto len = SoftClippedDist->sample();
 		if(len > 0){
@@ -122,7 +122,7 @@ void TSimulatorRead::_addSoftclippedBases(std::vector<Base> & Bases, const std::
 	}
 }
 
-void TSimulatorRead::_simulateBasesQualities(BAM::TAlignment & alignment,
+void TReadSimulator::_simulateBasesQualities(BAM::TAlignment & alignment,
 						      const std::vector<Base>& haplotype,
 							  const uint16_t fragmentLength,
 						      const uint16_t readLength,
@@ -167,17 +167,17 @@ void TSimulatorRead::_simulateBasesQualities(BAM::TAlignment & alignment,
 	}
 }
 
-void TSimulatorRead::setRecal(
+void TReadSimulator::setRecal(
 	GenotypeLikelihoods::SequencingError::TModel const *Recal1, GenotypeLikelihoods::SequencingError::TModel const *Recal2) {
 	_recal[0] = Recal1;
 	_recal[1] = Recal2;
 }
 
-void TSimulatorRead::setPMD(GenotypeLikelihoods::TPMDType const *Pmd) {
+void TReadSimulator::setPMD(GenotypeLikelihoods::TPMDType const *Pmd) {
 	_pmd = Pmd;
 }
 
-void TSimulatorRead::setContamination(double rate, TSimulatorReference *source) {
+void TReadSimulator::setContamination(double rate, TSimulatorReference *source) {
 	_contaminationRate  = rate;
 	_contaminationSource = source;
 
@@ -189,8 +189,8 @@ void TSimulatorRead::setContamination(double rate, TSimulatorReference *source) 
 //----------------------------------
 // TSimulatorSingleEndRead
 //----------------------------------
-TSimulatorSingleEndRead::TSimulatorSingleEndRead(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo)
-	: TSimulatorRead(ReadGroup, RGInfo){
+TReadSimulatorSingleEnd::TReadSimulatorSingleEnd(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo)
+	: TReadSimulator(ReadGroup, RGInfo){
 
 	//num cycles
 	logfile().list(BAM::RGInfo::infos[InfoType::cycles].description, ": ", RGInfo[InfoType::cycles]);
@@ -200,11 +200,11 @@ TSimulatorSingleEndRead::TSimulatorSingleEndRead(const BAM::TReadGroup & ReadGro
 	_alignment.setSamFlags(_flags);
 }
 
-double TSimulatorSingleEndRead::meanReadLength() const {
+double TReadSimulatorSingleEnd::meanReadLength() const {
 	return _calcMeanReadLength(_numCycles);
 }
 
-void TSimulatorSingleEndRead::simulate(const std::vector<Base>& Haplotype, const TGenomePosition & Position, TSimulatorBamFile &BamFile) {
+void TReadSimulatorSingleEnd::simulate(const std::vector<Base>& Haplotype, const TGenomePosition & Position, TSimulatorBamFile &BamFile) {
 	// prepare alignment
 	_simulateAlignmentDetails(Position);
 	_alignment.setIsReverseStrand(randomGenerator().getRand() < 0.5);
@@ -222,8 +222,8 @@ void TSimulatorSingleEndRead::simulate(const std::vector<Base>& Haplotype, const
 //----------------------------------
 // TSimulatorPairedEndReads
 //----------------------------------
-TSimulatorPairedEndReads::TSimulatorPairedEndReads(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo)
-	: TSimulatorRead(ReadGroup, RGInfo){
+TReadSimulatorPairedEnd::TReadSimulatorPairedEnd(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo)
+	: TReadSimulator(ReadGroup, RGInfo){
 	//num cycles
 	logfile().list(BAM::RGInfo::infos[InfoType::cycles].description, ": ", RGInfo[InfoType::cycles]);
 	if(coretools::str::stringContains(RGInfo[InfoType::cycles], ',')){
@@ -253,11 +253,11 @@ TSimulatorPairedEndReads::TSimulatorPairedEndReads(const BAM::TReadGroup & ReadG
 	_mateFlags.setIsReverseStrand(true);
 }
 
-double TSimulatorPairedEndReads::meanReadLength() const {
+double TReadSimulatorPairedEnd::meanReadLength() const {
 	return _calcMeanReadLength(_numCycles[0] + _numCycles[1]);
 }
 
-void TSimulatorPairedEndReads::simulate(const std::vector<Base>& Haplotype, const TGenomePosition & Position, TSimulatorBamFile &BamFile) {
+void TReadSimulatorPairedEnd::simulate(const std::vector<Base>& Haplotype, const TGenomePosition & Position, TSimulatorBamFile &BamFile) {
 	// pick a fragment
 	uint16_t fragmentLength = _fragmentLengthDistr.sample();
 	bool readIsContaminated = _simulateContamination();
@@ -299,7 +299,7 @@ void TSimulatorPairedEndReads::simulate(const std::vector<Base>& Haplotype, cons
 	}
 }
 
-void TSimulatorPairedEndReads::writeUnwrittenAlignments(const genometools::TGenomePosition & Position, TSimulatorBamFile &BamFile) {
+void TReadSimulatorPairedEnd::writeUnwrittenAlignments(const genometools::TGenomePosition & Position, TSimulatorBamFile &BamFile) {
 	if(!_bamAlignmentSecondMates.empty()){
 		auto it = _bamAlignmentSecondMates.begin();
 		while(it != _bamAlignmentSecondMates.end() && *it <= Position){

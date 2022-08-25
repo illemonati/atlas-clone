@@ -21,6 +21,7 @@
 #include "TGenotypeData.h"
 #include "TStrongArray.h"
 #include "gzstream.h"
+#include "TReadSimulators.h"
 
 namespace BAM { class TReadGroups; }
 namespace genometools { class TChromosomes; }
@@ -91,8 +92,7 @@ private:
 	std::vector<TSimulatorBamFile> _files;
 
 public:
-	TSimulatorBamFiles(uint32_t NumFiles, const std::string & Outname, BAM::TReadGroups & ReadGroups,
-			   const genometools::TChromosomes &Chromosomes);
+	TSimulatorBamFiles(uint32_t NumFiles, const std::string & Outname, const TReadSimulators & ReadSimulator, const genometools::TChromosomes &Chromosomes);
 	~TSimulatorBamFiles();
 	TSimulatorBamFile &operator[](size_t i);
 };

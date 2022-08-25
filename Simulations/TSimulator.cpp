@@ -254,162 +254,73 @@ TBAMSimulator::TBAMSimulator(const std::string &method) : TSimulator(method) {
 	    std::make_unique<TSimulatorBamFiles>(_haploSimulator->sampleSize(), _outname, _readGroups, _chromosomes);
 }
 
-void TBAMSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome, TSimulatorHaplotypes &Haplotypes, uint32_t avgDepth) {
-	// now simulate and write reads
-	logfile().startIndent("Simulating reads:");
-	for (size_t i = 0; i < _haploSimulator->sampleSize(); ++i)
-		_simulateReadsFromHaplotypes(Chromosome, Haplotypes.getHaplotypesOfIndividual(i), avgDepth, (*_bamFiles)[i],
-		                             " for individual " + coretools::str::toString(i + 1));
-	logfile().endIndent();
-}
+void TBAMSimulator::_initializeReadSimulator(){
+	//read RGInfo files from command line
+	std::vector<std::string> filenames;
+	if(parameters().parameterExists(BAM::RGInfo::TReadGroupInfo::_RGInfoArgument)){
+		std::vector<std::string> tmp, filenames;
+		parameters().fillParameterIntoContainer(BAM::RGInfo::TReadGroupInfo::_RGInfoArgument, filenames, ',');
+		coretools::str::repeatIndexes(tmp, filenames);
+	} else {
+		filenames.push_back("");
+	}
 
-void TBAMSimulator::_initializeReadGroups(const TReadGroupInfo & RGinfo) {
-	// create simulation read groups
-	using BAM::RGInfo::InfoType;
-	for(size_t i = 0; i < RGinfo.size(); ++i){
-		logfile().startIndent("Read group '", RGinfo[i][InfoType::RGName], "':");
-		std::string type = RGinfo[i][InfoType::seqType];
-		logfile().list("Sequencing type: ", type);
-		logfile().list("Frequency: ", _simGroupFrequencies[i]);
-
-		//initialize by type
-		if(type == "single"){
-			_readSimulators.push_back(std::make_unique<TSimulatorSingleEndRead>(_readGroups[i], RGinfo[i]));
-		} else if(type == "paired"){
-			_readSimulators.push_back(std::make_unique<TSimulatorPairedEndReads>(_readGroups[i], RGinfo[i]));
+	//create read simulators
+	if(filenames.size() == 1){
+		_readSimulators.emplace_back(filenames.front());
+	} else {
+		//check sizes matches sample size
+		if(_haploSimulator->sampleSize() != filenames.size()){
+			UERROR("Number of read group info files does not match sample size!");
 		} else {
-			UERROR("Unable to understand read group type '" + type + "'! Use either 'single' or 'paired'.");
-		}
-		logfile().endIndent();
-	}
-}
-
-void TBAMSimulator::_initializePMD(){
-	const std::string arg = "pmd";
-	if (parameters().parameterExists(arg)) {
-		const auto pmdString = parameters().getParameter<std::string>(arg);
-		_PMD.initialize(pmdString, _readGroups);
-
-		// add PMD to simulators
-		for (size_t r = 0; r < _readSimulators.size(); ++r) { _readSimulators[r]->setPMD(&_PMD[r]); }
-	} else {
-		logfile().list("Not simulating any PMD.");
-	}
-}
-
-void TBAMSimulator::_initializeQualityTransformations() {
-	const std::string arg = "recal";
-	if (parameters().parameterExists(arg)) {
-		const std::string rhoString = parameters().getParameterWithDefault<std::string>("rho", "default");
-		const auto recalString = parameters().getParameter<std::string>(arg);
-		_recal.initialize(recalString, rhoString, _readGroups);
-		logfile().list("Will use '", recalString, "' for all read groups.");
-
-		// add recal to simulators
-		for (size_t r = 0; r < _readSimulators.size(); ++r) {
-			_readSimulators[r]->setRecal(&_recal(r, false), &_recal(r, true));
-		}
-	} else {
-		_recal.initializeNoRecal(_readGroups);
-		// add noRecal model. Is still needed for simulation of bases from base qualities!
-		_recal.initializeNoRecal(_readGroups);
-		for (size_t r = 0; r < _readSimulators.size(); ++r) {
-			_readSimulators[r]->setRecal(&_recal(r, false), &_recal(r, true));
-		}
-		logfile().list("Not simulating any quality transformation.");
-	}
-	logfile().endIndent();
-}
-
-void TBAMSimulator::_initializeReadSimulator() {
-	logfile().startIndent("Parameters regarding sequencing:");
-	// Read sequencing parameters from RG Info / Command line
-	TReadGroupInfo RGinfo;
-	_readGroups = RGinfo.readInfoAndCreateReadGroups();
-
-	using BAM::RGInfo::InfoType;
-	RGinfo.parse(InfoType::RGFrequency, InfoType::seqType, InfoType::cycles, InfoType::fragmentLength, InfoType::baseQuality, InfoType::mappingQuality, InfoType::softClipping);
-	_initializeReadGroupFrequencies(RGinfo);
-	logfile().endIndent();
-
-	//Initialize read groups
-	logfile().startIndent("Initializing ", _readGroups.size(), " read groups:");
-	_initializeReadGroups(RGinfo);
-
-	// B) initialize PMD
-	//------------------
-	_initializePMD();
-
-	// E) initialize quality transformation
-	//-------------------------------------
-	_initializeQualityTransformations();
-
-	// E) initialize contamination
-	//----------------------------
-	// TODO: Think about contamination object for both estimation and simulation
-
-	// G) other things
-	//----------------
-	// initialize read group frequencies frequencies
-
-	logfile().endIndent();
-
-	//warn if read group info columns were not used
-	RGinfo.warnAboutUnusedColumnsInFile();
-	logfile().endIndent();
-
-	//prepare simulations
-	_prepareSimulations();
-}
-
-void TBAMSimulator::_initializeReadGroupFrequencies(const TReadGroupInfo & RGinfo) {
-	_cumulSimGroupFrequenies.resize(RGinfo.size());
-	_simGroupFrequencies.resize(RGinfo.size());
-
-	using BAM::RGInfo::InfoType;
-	if(RGinfo.hasInfo(InfoType::RGFrequency)){
-		//fill frequencies and cumulative frequencies
-		std::vector<double> tmp;
-		RGinfo.fillContainerPerReadGroup(tmp, InfoType::RGFrequency);
-		coretools::fillFromNormalized(_simGroupFrequencies, tmp);
-	} else {
-		Probability equal = 1.0 / (double) RGinfo.size();
-		for (size_t i = 0; i < RGinfo.size(); ++i) {
-			_simGroupFrequencies[i] = equal;
-		}
-	}
-	coretools::fillCumulative(_simGroupFrequencies, _cumulSimGroupFrequenies);
-}
-
-void TBAMSimulator::_prepareSimulations(){
-	// precalculate some stuff
-	_averageReadLength = 0;
-	_maxFragmentLength = 0;
-
-	for (size_t i = 0; i < _readSimulators.size(); ++i) {
-		_averageReadLength += _simGroupFrequencies[i] * _readSimulators[i]->meanReadLength();
-		if (_readSimulators[i]->maxFragmentLength() > _maxFragmentLength){
-			_maxFragmentLength = _readSimulators[i]->maxFragmentLength();
+			for(auto& s : filenames){
+				_readSimulators.emplace_back(s);
+			}
 		}
 	}
 
 	//check if read length match chr length
 	for(auto& chr : _chromosomes){
-		if(_maxFragmentLength > chr.length){
-			throw "Length of chromosome '" + chr.name + "' is less than the max fragment length!";
-
+		for(auto& rs : _readSimulators){
+			if(rs.maxFragmentLength() > chr.length){
+				throw "Length of chromosome '" + chr.name + "' is less than the max fragment length of some read groups!";
+			}
 		}
 	}
+};
+
+void TBAMSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome, TSimulatorHaplotypes &Haplotypes, uint32_t avgDepth) {
+	// now simulate and write reads
+	logfile().startIndent("Simulating reads:");
+	for (size_t i = 0; i < _haploSimulator->sampleSize(); ++i){
+		if(_readSimulators.size() == 1){
+			_simulateReadsFromHaplotypes(Chromosome,
+										 Haplotypes.getHaplotypesOfIndividual(i),
+										 _readSimulators.front(),
+										 avgDepth,
+										 (*_bamFiles)[i],
+										 " for individual " + coretools::str::toString(i + 1));
+		} else {
+			_simulateReadsFromHaplotypes(Chromosome,
+										 Haplotypes.getHaplotypesOfIndividual(i),
+										 _readSimulators[i],
+										 avgDepth,
+										 (*_bamFiles)[i],
+										 " for individual " + coretools::str::toString(i + 1));
+		}
+	}
+	logfile().endIndent();
 }
 
 void TBAMSimulator::_simulateReadsFromHaplotypes(const genometools::TChromosome &thisChr,
                                                  std::array<std::vector<Base>, 2> haplotypes,
+												 const TReadSimulators & readSimulator,
 												 uint32_t avgDepth,
                                                  TSimulatorBamFile &bamFile,
 												 const std::string &extraProgressText) {
 	// Initialize probabilities to simulate reads
-	const uint64_t numReads = _averageReadLength == 0 ? 0 : thisChr.length * avgDepth / _averageReadLength;
-	const uint64_t chrLengthForStart = thisChr.length - _maxFragmentLength + 1;
+	const uint64_t numReads = thisChr.length * avgDepth / readSimulator.averageFragmentLength();
+	const uint64_t chrLengthForStart = thisChr.length - readSimulator.maxFragmentLength() + 1;
 	const double probReadPerSite     = 1.0 / chrLengthForStart;
 	uint64_t numReadsSimulated       = 0;
 

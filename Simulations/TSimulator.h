@@ -29,10 +29,11 @@
 #include "TReadGroups.h"
 #include "SequencingError/TModels.h"
 #include "TSimulatorAuxiliaryTools.h"
-#include "TSimulatorRead.h"
 #include "TStrongArray.h"
 #include "TTask.h"
 #include "probability.h"
+#include "TReadSimulator.h"
+#include "TReadSimulators.h"
 
 namespace genometools { class PhredIntProbability; }
 
@@ -70,30 +71,12 @@ public:
 
 class TBAMSimulator : public TSimulator {
 protected:
-	double _averageReadLength = 0;
-	double _maxFragmentLength = 0;
-
 	// bam files
 	std::unique_ptr<TSimulatorBamFiles> _bamFiles;
 
-	// simulation tools
-	BAM::TReadGroups _readGroups;
-	GenotypeLikelihoods::TPostMortemDamage _PMD;
-	GenotypeLikelihoods::SequencingError::TModels _recal;
-
 	// read simulator
-	std::vector<std::unique_ptr<TSimulatorRead>> _readSimulators;
-	std::vector<coretools::Probability> _simGroupFrequencies;
-	std::vector<coretools::Probability> _cumulSimGroupFrequenies;
-
-	// function to initialize read groups
-	void _initializeReadGroups(const BAM::RGInfo::TReadGroupInfo & RGinfo);
-	void _initializePMD();
-	void _initializeQualityTransformations();
-	void _initializeContamination(bool &perReadGroup, std::map<std::string, double> &contaminationMap);
+	std::vector<TReadSimulators*> _readSimulators; // one per sample
 	void _initializeReadSimulator();
-	void _initializeReadGroupFrequencies(const BAM::RGInfo::TReadGroupInfo & RGinfo);
-	void _prepareSimulations();
 
 	// functions to simulate
 	void _simulateReadsFromHaplotypes(const genometools::TChromosome &thisChr,
