@@ -24,7 +24,9 @@ class SFS {
 protected:
 	SFS() = default;
 
+	std::vector<size_t> _numChrPerPop;
 	std::vector<size_t> _dimensions;
+	size_t _numChr{};
 	std::vector<double> sfs;
 	std::vector<double> sfsCumulative;
 
@@ -44,7 +46,7 @@ public:
 	SFS(uint32_t numChr, uint32_t onlyThisBin);
 	virtual ~SFS() = default;
 
-	virtual uint32_t numChromosomes() const noexcept { return sfs.size() - 1; };
+	virtual uint32_t numChromosomes() const noexcept { return _numChr; };
 	double monoFrac() const noexcept { return sfs.front(); };
 	void writeToFile(const std::string &filename, const bool &writeLog = false);
 

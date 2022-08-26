@@ -29,7 +29,14 @@ SFS::SFS(const std::string &filename) {
 	if (!file) throw "Failed to open SFS file '" + filename + "'!";
 
 	//read dimensions
-	coretools::str::fillContainerFromLineWhiteSpace(file, _dimensions, true, true);
+	coretools::str::fillContainerFromLineWhiteSpace(file, _numChrPerPop, true, true);
+	_numChr = std::accumulate(_numChrPerPop.begin(), _numChrPerPop.end(), 0);
+
+	//add one to each dimension as what is given is #haplotypes = #entries - 1
+	_dimensions.resize(_numChrPerPop.size());
+	for(size_t i = 0; i < _numChrPerPop.size(); ++i){
+		_dimensions[i] = _numChrPerPop[i] + 1;
+	}
 
 	//read values
 	std::vector<double> vec;
@@ -44,6 +51,8 @@ SFS::SFS(const SFS &other, float MonoFrac) {
 	// construct from other SFS, but rescale SFS to have a specific fraction of monomorphic sites
 	// now copy and rescale
 	_dimensions = other._dimensions;
+	_numChrPerPop = other._numChrPerPop;
+	_numChr = other._numChr;
 	double sum = 0.0;
 	sfs.push_back(MonoFrac);
 	for (uint32_t i = 1; i < other.sfs.size(); ++i) {
@@ -57,7 +66,9 @@ SFS::SFS(const SFS &other, float MonoFrac) {
 
 SFS::SFS(uint32_t numChr, float theta) {
 	// generate sfs from theta
-	_dimensions = { numChr };
+	_numChrPerPop = { numChr };
+	_dimensions = { numChr + 1 };
+	_numChr = numChr;
 	float sum = 0;
 	sfs.push_back(0);
 	for (uint32_t i = 1; i < _dimensions[0] + 1; ++i) {
@@ -71,7 +82,9 @@ SFS::SFS(uint32_t numChr, float theta) {
 
 SFS::SFS(uint32_t numChr, uint32_t onlyThisBin) {
 	// set all to zero except this one bin
-	_dimensions = { numChr };
+	_numChrPerPop = { numChr };
+	_dimensions = { numChr + 1 };
+	_numChr = numChr;
 	sfs.resize(numChr + 1, 0.);
 	sfs[onlyThisBin] = 1.0;
 	coretools::fillCumulative(sfs, sfsCumulative);
@@ -85,7 +98,7 @@ void SFS::writeToFile(const std::string &filename, const bool &writeLog) {
 	auto it = _dimensions.begin();
 	out << *it;
 	for(; it != _dimensions.end(); ++it){
-		out << "\t" << *it;
+		out << "\t" << *it - 1; //substract one as we write #haplotypes, not #entries
 	}
 	out << "\n";
 
@@ -148,9 +161,11 @@ size_t SFS::_simulateSite(const uint32_t l, TSimulatorHaplotypes & haplotypes, c
 	// is polymorphic
 	auto subscripts = coretools::getSubscripts(index, _dimensions);
 	size_t shift = 0;
-	for(size_t pop = 0; pop < _dimensions.size(); ++pop){
-		func(l, haplotypes, _dimensions[pop], subscripts[pop], shift, derived);
-		shift += _dimensions[pop];
+	for(size_t pop = 0; pop < _numChrPerPop.size(); ++pop){
+		if(subscripts[pop] > 0){
+			func(l, haplotypes, _numChrPerPop[pop], subscripts[pop], shift, derived);
+		}
+		shift += _numChrPerPop[pop];
 	}
 	return std::accumulate(subscripts.begin(), subscripts.end(), 0);
 }
