@@ -29,6 +29,7 @@ namespace SequencingError {
 using coretools::Probability;
 using coretools::str::toString;
 using coretools::instances::logfile;
+	using namespace std::string_literals;
 
 //--------------------------------------------------------------------
 // TModels
@@ -36,10 +37,13 @@ using coretools::instances::logfile;
 
 namespace impl {
 
-auto epsRho(const std::string &s) {
+std::pair<std::string, std::string> epsRho(const std::string &s) {
 	// Format: intercept[];cov1:function1[];cov2:function2[];...;rho[[]]
 	const auto rBegin = s.find("rho");
-	if (rBegin == std::string::npos) UERROR("Recal string ", s, " does not contain 'rho'");
+	if (rBegin == std::string::npos) {
+		// no rho definition
+		return std::make_pair(s, "default"s);
+	}
 	return std::make_pair(s.substr(0, rBegin-1), s.substr(rBegin + 3, s.size()));
 }
 } // namespace impl
@@ -135,16 +139,18 @@ void TModels::initialize(BAM::RGInfo::TReadGroupInfo &RgInfo) {
 	RgInfo.parse(InfoType::recal1, InfoType::recal2);
 
 	for (size_t rg = 0; rg < RgInfo.size(); ++rg) {
-		const auto s = RgInfo.get(rg, InfoType::recal1);
-		if (s == "-") { _models[rg][0] = std::make_unique<TModelNoRecal>(); }
-		const auto [e, r] = impl::epsRho(s);
-		_models[rg][0]    = std::make_unique<TModelRecal>(e, r);
-	}
-	for (size_t rg = 0; rg < RgInfo.size(); ++rg) {
-		const auto s = RgInfo.get(rg, InfoType::recal2);
-		if (s == "-") { _models[rg][1] = std::make_unique<TModelNoRecal>(); }
-		const auto [e, r] = impl::epsRho(s);
-		_models[rg][1]    = std::make_unique<TModelRecal>(e, r);
+		if (RgInfo.has(rg, InfoType::recal1)) {
+			const auto [e, r] = impl::epsRho(RgInfo.get(rg, InfoType::recal1));
+			_models[rg][0]    = std::make_unique<TModelRecal>(e, r);
+		} else {
+			_models[rg][0] = std::make_unique<TModelNoRecal>();
+		}
+		if (RgInfo.has(rg, InfoType::recal2)) {
+			const auto [e, r] = impl::epsRho(RgInfo.get(rg, InfoType::recal2));
+			_models[rg][1]    = std::make_unique<TModelRecal>(e, r);
+		} else {
+			_models[rg][1] = std::make_unique<TModelNoRecal>();
+		}
 	}
 }
 

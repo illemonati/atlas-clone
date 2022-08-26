@@ -183,7 +183,11 @@ public:
 		return _info[RGIndex];
 	}
 
-	const std::string& get(uint16_t RGIndex, const InfoType Info) const {
+	bool has(size_t RGIndex, InfoType Info) const noexcept {
+		return _info[RGIndex].has(Info);
+	};
+
+	const std::string& get(size_t RGIndex, const InfoType Info) const {
 		return _info[RGIndex][Info];
 	}
 
