@@ -16,7 +16,6 @@
 #include "TParameters.h"
 #include "TLog.h"
 #include "TReadGroups.h"
-#include "TPostMortemDamage.h"
 #include "TError.h"
 
 namespace BAM {
@@ -26,7 +25,7 @@ namespace RGInfo{
 //------------------------------------------------
 // TInfoValue
 //------------------------------------------------
-enum class InfoType {min=0, RGName=0, RGFrequency, seqType, cycles, fragmentLength, baseQuality, mappingQuality, softClipping, recal1, recal2, max};
+enum class InfoType {min=0, RGName=0, RGFrequency, seqType, cycles, fragmentLength, baseQuality, mappingQuality, softClipping, recal1, recal2, pmd, max};
 
 //------------------------------------------------
 // argument string, description and default for each info type
@@ -53,6 +52,7 @@ inline const coretools::TStrongArray<TInfo, InfoType> infos = []() {
 	i[InfoType::softClipping] = {"softClipping", "soft clipping distribution", "-"};
 	i[InfoType::recal1] = {"recal1", "base quality score recalibration model for 1st mate", "-"};
 	i[InfoType::recal2] = {"recal2", "base quality score recalibration model for 2nd mate", "-"};
+	i[InfoType::pmd] = {"pmd", "Postmortem damage model", "-"};
 	return i;
 }();
 
@@ -187,8 +187,12 @@ public:
 		return _info[RGIndex].has(Info);
 	};
 
-	const std::string& get(size_t RGIndex, const InfoType Info) const {
+	const std::string& get(size_t RGIndex, const InfoType Info) const noexcept {
 		return _info[RGIndex][Info];
+	}
+
+	std::string get(size_t RGIndex, const InfoType Info, const std::string& defValue) const noexcept {
+		return has(RGIndex, Info) ? get(RGIndex, Info) : defValue;
 	}
 
 	template <typename Container>

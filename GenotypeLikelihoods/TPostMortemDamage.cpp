@@ -34,6 +34,7 @@
 #include "TLog.h"
 #include "TParameters.h"
 #include "TRandomGenerator.h"
+#include "TReadGroupInfo.h"
 #include "TSequencedBase.h"
 #include "probability.h"
 
@@ -719,6 +720,7 @@ std::vector<uint16_t> TPostMortemDamage::_initializeFromFile(const BAM::TReadGro
 	return readGroupsWithoutPMD;
 }
 
+
 void TPostMortemDamage::_setHasDamage() {
 	// check if there is PMD for at least one read group
 	_hasPMD = false;
@@ -753,6 +755,17 @@ std::vector<uint16_t> TPostMortemDamage::initialize(const std::string &pmdString
 	// check if there is PMD for at least one read group
 	_setHasDamage();
 	return readGroupsWithoutPMD;
+}
+
+void TPostMortemDamage::initialize(BAM::RGInfo::TReadGroupInfo &RgInfo) {
+	using BAM::RGInfo::InfoType;
+
+	_pmdObjects.resize(RgInfo.size());
+	RgInfo.parse(InfoType::pmd);
+
+	for (size_t rg = 0; rg < RgInfo.size(); ++rg) {
+		_pmdObjects[rg] = impl::createPMDType(RgInfo.get(rg, InfoType::pmd, TPMDFunctionNoPMD::name));
+	}
 }
 
 TBaseLikelihoods TPostMortemDamage::getBaseLikelihoods(const BAM::TSequencedBase &data,

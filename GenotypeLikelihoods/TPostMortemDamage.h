@@ -9,6 +9,7 @@
 #define TPOSTMORTEMDAMAGE_H_
 
 #include "TMassFunction.h"
+#include "TReadGroupInfo.h"
 #include "TStrongArray.h"
 #include "probability.h"
 #include <array>
@@ -272,6 +273,7 @@ public:
 	TPMDType &operator[](uint16_t ReadGroupIndex) noexcept { return *_pmdObjects[ReadGroupIndex]; }
 
 	std::vector<uint16_t> initialize(const std::string &pmdString, const BAM::TReadGroups &ReadGroups);
+	void initialize(BAM::RGInfo::TReadGroupInfo & RgInfo);
 	void writeToFile(const BAM::TReadGroups &ReadGroups, const std::string filename) const;
 	void writeToFile(const BAM::TReadGroups &ReadGroups, const BAM::TReadGroupMap &ReadGroupMap,
 	                 const std::string filename) const;
