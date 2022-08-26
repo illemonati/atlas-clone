@@ -60,6 +60,7 @@ protected:
 	std::unique_ptr<TCategoricalDistribution<uint16_t>> _softClipDist3;
 	GenotypeLikelihoods::TPMDType const *_pmd = nullptr;
 	std::array<GenotypeLikelihoods::SequencingError::TModel const *, 2> _recal;
+	bool _hasRecal;
 
 	// contamination
 	double _contaminationRate = 0.;

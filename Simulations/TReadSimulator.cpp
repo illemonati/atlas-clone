@@ -67,6 +67,9 @@ TReadSimulator::TReadSimulator(const BAM::TReadGroup & ReadGroup, const TReadGro
 	} else {
 		logfile().write("none");
 	}
+
+	//others
+	_hasRecal = false;
 }
 
 double TReadSimulator::_calcMeanReadLength(const uint16_t maxLen) const {
@@ -159,11 +162,19 @@ void TReadSimulator::_simulateBasesQualities(BAM::TAlignment & alignment,
 
 	alignment.setSequenceQualities(cigar, bases, phredIntQualities);
 
-	for (auto & b : alignment) {
-		if (_pmd && _pmd->hasDamage()) _pmd->simulate(b);
+	//add PMD
+	if (_pmd && _pmd->hasDamage()){
+		for (auto & b : alignment) {
+			_pmd->simulate(b);
+		}
+	}
 
-		const auto sm = b.isSecondMate();
-		_recal[sm]->simulate(b);
+	//add recal
+	if(_hasRecal){
+		for (auto & b : alignment) {
+			const auto sm = b.isSecondMate();
+			_recal[sm]->simulate(b);
+		}
 	}
 }
 
@@ -171,6 +182,7 @@ void TReadSimulator::setRecal(
 	GenotypeLikelihoods::SequencingError::TModel const *Recal1, GenotypeLikelihoods::SequencingError::TModel const *Recal2) {
 	_recal[0] = Recal1;
 	_recal[1] = Recal2;
+	_hasRecal = true;
 }
 
 void TReadSimulator::setPMD(GenotypeLikelihoods::TPMDType const *Pmd) {

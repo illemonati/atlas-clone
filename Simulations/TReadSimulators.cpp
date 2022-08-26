@@ -10,6 +10,7 @@
 #include "TRandomGenerator.h"
 #include "TReadSimulators.h"
 #include "probability.h"
+#include "globalConstants.h"
 
 namespace Simulations {
 
@@ -117,10 +118,17 @@ TReadSimulators::TReadSimulators(const std::string & RgInfoFileName){
 	TReadGroupInfo RGinfo;
 	_readGroups = RGinfo.readInfoAndCreateReadGroups(RgInfoFileName);
 
+	// complete RG details
+	for (auto &rg : _readGroups) {
+		rg.sequencingCenter_CN =
+			coretools::__GLOBAL_APPLICATION_NAME__ + " " + coretools::__GLOBAL_APPLICATION_VERSION__;
+		rg.description_DS          = "Simulated with commit " + coretools::__GLOBAL_APPLICATION_COMMIT__;
+		rg.sequencingTechnology_PL = "ILLUMINA";
+	}
+
 	using BAM::RGInfo::InfoType;
 	RGinfo.parse(InfoType::RGFrequency, InfoType::seqType, InfoType::cycles, InfoType::fragmentLength, InfoType::baseQuality, InfoType::mappingQuality, InfoType::softClipping);
 	_initializeReadGroupFrequencies(RGinfo);
-	logfile().endIndent();
 
 	//Initialize read groups
 	logfile().startIndent("Initializing ", _readGroups.size(), " read groups:");
@@ -142,9 +150,8 @@ TReadSimulators::TReadSimulators(const std::string & RgInfoFileName){
 	//----------------
 	// initialize read group frequencies frequencies
 
-	logfile().endIndent();
-
 	//warn if read group info columns were not used
+	logfile().endIndent();
 	RGinfo.warnAboutUnusedColumnsInFile();
 	logfile().endIndent();
 
@@ -160,7 +167,8 @@ void TReadSimulators::writeUnwrittenAlignments(const genometools::TGenomePositio
 
 void TReadSimulators::simulate(const genometools::TGenomePosition & Position, const std::vector<Base>& Haplotype, TSimulatorBamFile &BamFile){
 	//sample which simulator to use
-	_readSimulators[randomGenerator().pickOne(_cumulSimGroupFrequenies)]->simulate(Position, Haplotype, BamFile);
+	size_t thisSimulator = randomGenerator().pickOne(_cumulSimGroupFrequenies);
+	_readSimulators[thisSimulator]->simulate(Position, Haplotype, BamFile);
 }
 
 std::unique_ptr<TReadSimulator>& TReadSimulators::sample(){

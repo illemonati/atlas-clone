@@ -113,7 +113,7 @@ void TSimulatorReference::setChr(std::string ChrName, long ChrLength) {
 //---------------------------------------------------
 // TSimulatorBamFile
 //---------------------------------------------------
-void TSimulatorBamFile::open(const std::string &Filename, const std::string &SampleName, BAM::TReadGroups ReadGroups,
+void TSimulatorBamFile::open(const std::string &Filename, const std::string &SampleName, BAM::TReadGroups & ReadGroups,
 			     const genometools::TChromosomes &Chromosomes) {
 	logfile().listFlush("Opening BAM file '" + Filename + "' ...");
 
@@ -123,14 +123,17 @@ void TSimulatorBamFile::open(const std::string &Filename, const std::string &Sam
 
 	// create header, read group and chromosome objects
 	for (auto &rg : ReadGroups) {
-		rg.sequencingCenter_CN =
-			coretools::__GLOBAL_APPLICATION_NAME__ + " " + coretools::__GLOBAL_APPLICATION_VERSION__;
-		rg.description_DS          = "Simulated with commit " + coretools::__GLOBAL_APPLICATION_COMMIT__;
-		rg.sample_SM               = SampleName;
-		rg.sequencingTechnology_PL = "ILLUMINA";
+		rg.sample_SM = SampleName;
 	}
 	const BAM::TSamHeader header("1.6", "coordinate", "none");
 	_outBam.open(Filename, header, Chromosomes, ReadGroups);
+
+	//unset sample name
+	//TODO: ugly hack, find way to copy TReadGroups
+	for (auto &rg : ReadGroups) {
+		rg.sample_SM = "";
+	}
+
 	logfile().done();
 }
 TSimulatorBamFile::~TSimulatorBamFile() { _outBam.closeNoIndex(); }
@@ -153,9 +156,18 @@ TSimulatorBamFiles::TSimulatorBamFiles(uint32_t NumFiles, const std::string & Ou
 		_files[0].open(Outname + ".bam", "Ind1", ReadSimulators.front().readGroups(), Chromosomes);
 	} else {
 		logfile().startIndent("Opening ", _files.size(), " BAM files:");
-		for (size_t i = 0; i < _files.size(); ++i) {
-			std::string filename = Outname + "_ind" + toString(i + 1) + ".bam";
-			_files[i].open(filename, "Ind" + toString(i + 1), ReadSimulators[i].readGroups(), Chromosomes);
+
+		//check if ReadSimulators are shared
+		if(ReadSimulators.size() == 1){
+			for (size_t i = 0; i < _files.size(); ++i) {
+				std::string filename = Outname + "_ind" + toString(i + 1) + ".bam";
+				_files[i].open(filename, "Ind" + toString(i + 1), ReadSimulators.front().readGroups(), Chromosomes);
+			}
+		} else {
+			for (size_t i = 0; i < _files.size(); ++i) {
+				std::string filename = Outname + "_ind" + toString(i + 1) + ".bam";
+				_files[i].open(filename, "Ind" + toString(i + 1), ReadSimulators[i].readGroups(), Chromosomes);
+			}
 		}
 		logfile().endIndent();
 	}

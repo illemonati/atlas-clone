@@ -51,7 +51,7 @@ public:
 	[[nodiscard]] std::unique_ptr<TReadSimulator>& sample();
 	[[nodiscard]] double maxFragmentLength() const { return _maxFragmentLength; };
 	[[nodiscard]] double averageFragmentLength() const { return _averageReadLength; };
-	const BAM::TReadGroups& readGroups() const { return _readGroups; };
+	BAM::TReadGroups& readGroups() { return _readGroups; };
 
 	std::vector<std::unique_ptr<TReadSimulator>>::iterator begin(){ return _readSimulators.begin(); };
 	std::vector<std::unique_ptr<TReadSimulator>>::iterator end(){ return _readSimulators.end(); };

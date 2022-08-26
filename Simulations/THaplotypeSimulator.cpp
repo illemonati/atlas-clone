@@ -514,17 +514,19 @@ TSimulatorHW::TSimulatorHW()
       _alpha(parameters().getParameterWithDefault("alpha", 0.5)),
       _beta(parameters().getParameterWithDefault("beta", 0.5)), _F(parameters().getParameterWithDefault("F", 0.0)),
       _mutTable(_baseFreq) {
-	logfile().startIndent("Reading parameters to simulate a population sample under Hardy-Weinberg equilibrium:");
 
 	// sample size
 	_sampleSize = parameters().getParameterWithDefault<int>("sampleSize", 10);
+	logfile().list("Will simulate ", _sampleSize, " individuals. (parameter 'sampleSize')");
 
 	// parameters of beta distribution
+	logfile().startIndent("Parameters regarding Hardy-Weinberg equilibrium:");
+
 	logfile().list("Will simulate ", _fracPoly, " of all sites as polymorphic. (parameter fracPoly)");
 	if (_alpha <= 0.0) throw "Alpha must be > 0!";
 	if (_beta <= 0.0) throw "Beta must be > 0!";
 	logfile().list("Polymoprhic sites will have derived allele frequencies f~Beta(", _alpha, ", ", _beta,
-		       "). (parameters alpha, beta)");
+		       "). (parameters 'alpha', 'beta')");
 	if (_F == 0.0) {
 		logfile().list("Will assume no inbreeding. (parameter F=0)");
 	} else {

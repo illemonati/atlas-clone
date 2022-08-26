@@ -68,7 +68,7 @@ std::unique_ptr<THaplotypeSimulator> makeHaploSimulator(const std::string &metho
 		return std::make_unique<TSimulatorSFS>(chs);
 	}
 	if (method == TSimulatorHW::name) {
-		logfile().startIndent("Simulating a individuals under Hardy-Weinberg (parameter 'type' = '", method, "')");
+		logfile().startIndent("Simulating individuals under Hardy-Weinberg (parameter 'type' = '", method, "')");
 		return std::make_unique<TSimulatorHW>();
 	}
 	throw "Unknown simulation method '" + method + "'! Use '" + TSimulatorOne::name + "', '" + TSimulatorPair::name + "', '" + TSimulatorSFS::name + "' or '" + TSimulatorHW::name + "'";
@@ -259,8 +259,8 @@ void TBAMSimulator::_initializeReadSimulator(){
 	//read RGInfo files from command line
 	std::vector<std::string> filenames;
 	if(parameters().parameterExists(BAM::RGInfo::TReadGroupInfo::_RGInfoArgument)){
-		std::vector<std::string> tmp, filenames;
-		parameters().fillParameterIntoContainer(BAM::RGInfo::TReadGroupInfo::_RGInfoArgument, filenames, ',');
+		std::vector<std::string> tmp;
+		parameters().fillParameterIntoContainer(BAM::RGInfo::TReadGroupInfo::_RGInfoArgument, tmp, ',');
 		coretools::str::repeatIndexes(tmp, filenames);
 	} else {
 		filenames.push_back("");
@@ -269,19 +269,27 @@ void TBAMSimulator::_initializeReadSimulator(){
 	//create read simulators
 	_readSimulators.reserve(filenames.size());
 	if(filenames.size() == 1){
+
 		if(_haploSimulator->sampleSize() > 1){
-			logfile().startIndent("Using individual-specific sequencing parameters:");
+			logfile().startIndent("Using one set of sequencing parameters for all ", _haploSimulator->sampleSize(), " individuals:");
 		}
 		_readSimulators.emplace_back(filenames.front());
+		if(_haploSimulator->sampleSize() > 1){
+			logfile().endIndent();
+		}
 	} else {
+		logfile().startNumbering("Using individual-specific sequencing parameters:");
 		//check sizes matches sample size
 		if(_haploSimulator->sampleSize() != filenames.size()){
 			UERROR("Number of read group info files does not match sample size!");
-		} else {
-			for(auto& s : filenames){
-				_readSimulators.emplace_back(s);
-			}
 		}
+
+		for(auto& s : filenames){
+			logfile().numberWithIndent("Sequencing parameters for individual 1");
+			_readSimulators.emplace_back(s);
+		}
+		logfile().endNumbering();
+		logfile().endIndent();
 	}
 
 	//check if read length match chr length
