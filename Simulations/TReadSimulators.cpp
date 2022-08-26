@@ -54,27 +54,11 @@ void TReadSimulators::_initializePMD(){
 }
 
 void TReadSimulators::_initializeQualityTransformations() {
-	const std::string arg = "recal";
-	if (parameters().parameterExists(arg)) {
-		const std::string rhoString = parameters().getParameterWithDefault<std::string>("rho", "default");
-		const auto recalString = parameters().getParameter<std::string>(arg);
-		_recal.initialize(recalString, rhoString, _readGroups);
-		logfile().list("Will use '", recalString, "' for all read groups.");
+	// add recal to simulators
 
-		// add recal to simulators
-		for (size_t r = 0; r < _readSimulators.size(); ++r) {
-			_readSimulators[r]->setRecal(&_recal(r, false), &_recal(r, true));
-		}
-	} else {
-		_recal.initializeNoRecal(_readGroups);
-		// add noRecal model. Is still needed for simulation of bases from base qualities!
-		_recal.initializeNoRecal(_readGroups);
-		for (size_t r = 0; r < _readSimulators.size(); ++r) {
-			_readSimulators[r]->setRecal(&_recal(r, false), &_recal(r, true));
-		}
-		logfile().list("Not simulating any quality transformation.");
+	for (size_t r = 0; r < _readSimulators.size(); ++r) {
+		_readSimulators[r]->setRecal(&_recal(r, false), &_recal(r, true));
 	}
-	logfile().endIndent();
 }
 
 void TReadSimulators::_initializeReadGroupFrequencies(const TReadGroupInfo & RGinfo) {
@@ -140,7 +124,10 @@ TReadSimulators::TReadSimulators(const std::string & RgInfoFileName){
 
 	// E) initialize quality transformation
 	//-------------------------------------
-	//_initializeQualityTransformations();
+	_recal.initialize(RGinfo);
+	for (size_t r = 0; r < _readSimulators.size(); ++r) {
+		_readSimulators[r]->setRecal(&_recal(r, false), &_recal(r, true));
+	}
 
 	// E) initialize contamination
 	//----------------------------
