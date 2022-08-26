@@ -1,7 +1,7 @@
 #! /bin/bash
 
 compare() {
-	echo "Comparing reference ATLAS-files to new ones"
+	echo "- Comparing reference ATLAS-files to new ones"
 	local differs=""
 	for a_ref in ${1}_ref/ATLAS_*; do
 		[[ $a_ref == *.bai ]] && continue
@@ -17,37 +17,41 @@ compare() {
 		fi
 	done
 	[[ $differs ]] && return 1
-	echo "All files are identical"
+	echo "- All files are identical"
 }
 
 err=0
+cnt=0
 for f in *.sh; do
 	fo=${f%.sh}
-	echo "Regression Test: $fo"
+	((cnt++))
+	echo "$cnt) Regression Test: $fo"
 	if [[ ! -d ${fo}_ref ]]; then
-		echo "Creating reference ATLAS-files in folder ${fo}_ref"
-		mkdir -v ${fo}_ref
+		echo "- Creating reference ATLAS-files in folder ${fo}_ref"
+		mkdir ${fo}_ref
 		cd ${fo}_ref
 		bash ../$f > /dev/null 2> eout
-		[[ -s eout ]] && echo "Reference simulation of $fo ended with errors"; head eout
+		[[ -s eout ]] && echo "Reference simulation of $fo ended with errors:"; head eout
 		cd ..
 	else
-		echo "Found reference ATLAS-files in folder ${fo}_ref"
+		echo "- Found reference ATLAS-files in folder ${fo}_ref"
+		[[ -s ${fo}_ref/eout ]] && echo "Reference simulation of $fo ended with errors:"; head ${fo}_ref/eout
 		if [[ ! -d ${fo}_new ]]; then
-			echo "Creating new ATLAS-files in folder ${fo}_new"
-			mkdir -v ${fo}_new
+			echo "- Creating new ATLAS-files in folder ${fo}_new"
+			mkdir ${fo}_new
 			cd ${fo}_new
 			bash ../$f > /dev/null 2> eout
-			[[ -s eout ]] && echo "New simulation of $fo ended with errors"; head eout
+			[[ -s eout ]] && echo "New simulation of $fo ended with errors:"; head eout
 		else
-			echo "Found new ATLAS-files in folder ${fo}_new"
+			echo "- Found new ATLAS-files in folder ${fo}_new"
+			[[ -s ${fo}_new/eout ]] && echo "New simulation of $fo ended with errors:"; head ${fo}_new/eout
 			cd ${fo}_new
 		fi
 
 		cd ..
 		! compare $fo && err=1
 	fi
-	echo
+	echo "------------------------------------------------------------"
 done
 
 exit $err
