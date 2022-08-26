@@ -16,6 +16,7 @@ namespace Simulations {
 //--------------------------------
 // Class to store and SFS
 //--------------------------------
+
 class SFS {
 protected:
 	void _fillFrequencies();

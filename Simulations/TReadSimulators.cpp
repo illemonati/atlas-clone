@@ -1,0 +1,173 @@
+/*
+ * TReadSimulator.cpp
+ *
+ */
+
+#include "TReadGroupInfo.h"
+#include "stringFunctions.h"
+#include "TParameters.h"
+#include "TLog.h"
+#include "TRandomGenerator.h"
+#include "TReadSimulators.h"
+#include "probability.h"
+
+namespace Simulations {
+
+using BAM::RGInfo::TReadGroupInfo;
+using coretools::instances::logfile;
+using coretools::instances::parameters;
+using coretools::instances::randomGenerator;
+
+void TReadSimulators::_initializeReadGroups(const TReadGroupInfo & RGinfo) {
+	// create simulation read groups
+	using BAM::RGInfo::InfoType;
+	for(size_t i = 0; i < RGinfo.size(); ++i){
+		logfile().startIndent("Read group '", RGinfo[i][InfoType::RGName], "':");
+		std::string type = RGinfo[i][InfoType::seqType];
+		logfile().list("Sequencing type: ", type);
+		logfile().list("Frequency: ", _simGroupFrequencies[i]);
+
+		//initialize by type
+		if(type == "single"){
+			_readSimulators.push_back(std::make_unique<TReadSimulatorSingleEnd>(_readGroups[i], RGinfo[i]));
+		} else if(type == "paired"){
+			_readSimulators.push_back(std::make_unique<TReadSimulatorPairedEnd>(_readGroups[i], RGinfo[i]));
+		} else {
+			UERROR("Unable to understand read group type '" + type + "'! Use either 'single' or 'paired'.");
+		}
+		logfile().endIndent();
+	}
+}
+
+void TReadSimulators::_initializePMD(){
+	const std::string arg = "pmd";
+	if (parameters().parameterExists(arg)) {
+		const auto pmdString = parameters().getParameter<std::string>(arg);
+		_PMD.initialize(pmdString, _readGroups);
+
+		// add PMD to simulators
+		for (size_t r = 0; r < _readSimulators.size(); ++r) { _readSimulators[r]->setPMD(&_PMD[r]); }
+	} else {
+		logfile().list("Not simulating any PMD.");
+	}
+}
+
+void TReadSimulators::_initializeQualityTransformations() {
+	const std::string arg = "recal";
+	if (parameters().parameterExists(arg)) {
+		const std::string rhoString = parameters().getParameterWithDefault<std::string>("rho", "default");
+		const auto recalString = parameters().getParameter<std::string>(arg);
+		_recal.initialize(recalString, rhoString, _readGroups);
+		logfile().list("Will use '", recalString, "' for all read groups.");
+
+		// add recal to simulators
+		for (size_t r = 0; r < _readSimulators.size(); ++r) {
+			_readSimulators[r]->setRecal(&_recal(r, false), &_recal(r, true));
+		}
+	} else {
+		_recal.initializeNoRecal(_readGroups);
+		// add noRecal model. Is still needed for simulation of bases from base qualities!
+		_recal.initializeNoRecal(_readGroups);
+		for (size_t r = 0; r < _readSimulators.size(); ++r) {
+			_readSimulators[r]->setRecal(&_recal(r, false), &_recal(r, true));
+		}
+		logfile().list("Not simulating any quality transformation.");
+	}
+	logfile().endIndent();
+}
+
+void TReadSimulators::_initializeReadGroupFrequencies(const TReadGroupInfo & RGinfo) {
+	_cumulSimGroupFrequenies.resize(RGinfo.size());
+	_simGroupFrequencies.resize(RGinfo.size());
+
+	using BAM::RGInfo::InfoType;
+	if(RGinfo.hasInfo(InfoType::RGFrequency)){
+		//fill frequencies and cumulative frequencies
+		std::vector<double> tmp;
+		RGinfo.fillContainerPerReadGroup(tmp, InfoType::RGFrequency);
+		coretools::fillFromNormalized(_simGroupFrequencies, tmp);
+	} else {
+		coretools::Probability equal = 1.0 / (double) RGinfo.size();
+		for (size_t i = 0; i < RGinfo.size(); ++i) {
+			_simGroupFrequencies[i] = equal;
+		}
+	}
+	coretools::fillCumulative(_simGroupFrequencies, _cumulSimGroupFrequenies);
+}
+
+void TReadSimulators::_determineMaxFragmentLength(){
+	// precalculate some stuff
+	_averageReadLength = 0;
+	_maxFragmentLength = 0;
+
+	for (size_t i = 0; i < _readSimulators.size(); ++i) {
+		_averageReadLength += _simGroupFrequencies[i] * _readSimulators[i]->meanReadLength();
+		if (_readSimulators[i]->maxFragmentLength() > _maxFragmentLength){
+			_maxFragmentLength = _readSimulators[i]->maxFragmentLength();
+		}
+	}
+
+	if(_averageReadLength < 1.0){
+		UERROR("Chosen parameters result in an average fragment length across read groups < 1.0!");
+	}
+}
+
+TReadSimulators::TReadSimulators(const std::string & RgInfoFileName){
+	// Read sequencing parameters from RG Info / Command line
+	TReadGroupInfo RGinfo;
+	_readGroups = RGinfo.readInfoAndCreateReadGroups(RgInfoFileName);
+
+	using BAM::RGInfo::InfoType;
+	RGinfo.parse(InfoType::RGFrequency, InfoType::seqType, InfoType::cycles, InfoType::fragmentLength, InfoType::baseQuality, InfoType::mappingQuality, InfoType::softClipping);
+	_initializeReadGroupFrequencies(RGinfo);
+	logfile().endIndent();
+
+	//Initialize read groups
+	logfile().startIndent("Initializing ", _readGroups.size(), " read groups:");
+	_initializeReadGroups(RGinfo);
+
+	// B) initialize PMD
+	//------------------
+	//_initializePMD();
+
+	// E) initialize quality transformation
+	//-------------------------------------
+	//_initializeQualityTransformations();
+
+	// E) initialize contamination
+	//----------------------------
+	// TODO: Think about contamination object for both estimation and simulation
+
+	// G) other things
+	//----------------
+	// initialize read group frequencies frequencies
+
+	logfile().endIndent();
+
+	//warn if read group info columns were not used
+	RGinfo.warnAboutUnusedColumnsInFile();
+	logfile().endIndent();
+
+	//prepare simulations
+	_determineMaxFragmentLength();
+}
+
+void TReadSimulators::writeUnwrittenAlignments(const genometools::TGenomePosition & Position, TSimulatorBamFile &BamFile){
+	for(auto& ptr : _readSimulators){
+		ptr->writeUnwrittenAlignments(Position, BamFile);
+	}
+}
+
+void TReadSimulators::simulate(const genometools::TGenomePosition & Position, const std::vector<Base>& Haplotype, TSimulatorBamFile &BamFile){
+	//sample which simulator to use
+	_readSimulators[randomGenerator().pickOne(_cumulSimGroupFrequenies)]->simulate(Position, Haplotype, BamFile);
+}
+
+std::unique_ptr<TReadSimulator>& TReadSimulators::sample(){
+	return _readSimulators[randomGenerator().pickOne(_cumulSimGroupFrequenies)];
+}
+
+
+} // end namespace Simulations
+
+

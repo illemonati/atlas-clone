@@ -79,7 +79,7 @@ public:
 	}
 	~TSimulatorBamFile();
 
-	void open(const std::string &Filename, const std::string &SampleName, BAM::TReadGroups &ReadGroups,
+	void open(const std::string &Filename, const std::string &SampleName, BAM::TReadGroups ReadGroups,
 		  const genometools::TChromosomes &Chromosomes);
 
 	void saveAlignment(const BAM::TAlignment &Alignment) {_outBam.writeAlignment(Alignment); }
@@ -92,7 +92,7 @@ private:
 	std::vector<TSimulatorBamFile> _files;
 
 public:
-	TSimulatorBamFiles(uint32_t NumFiles, const std::string & Outname, const TReadSimulators & ReadSimulator, const genometools::TChromosomes &Chromosomes);
+	TSimulatorBamFiles(uint32_t NumFiles, const std::string & Outname, std::vector<TReadSimulators> & ReadSimulators, const genometools::TChromosomes &Chromosomes);
 	~TSimulatorBamFiles();
 	TSimulatorBamFile &operator[](size_t i);
 };

@@ -113,7 +113,7 @@ void TSimulatorReference::setChr(std::string ChrName, long ChrLength) {
 //---------------------------------------------------
 // TSimulatorBamFile
 //---------------------------------------------------
-void TSimulatorBamFile::open(const std::string &Filename, const std::string &SampleName, BAM::TReadGroups &ReadGroups,
+void TSimulatorBamFile::open(const std::string &Filename, const std::string &SampleName, BAM::TReadGroups ReadGroups,
 			     const genometools::TChromosomes &Chromosomes) {
 	logfile().listFlush("Opening BAM file '" + Filename + "' ...");
 
@@ -139,19 +139,23 @@ void TSimulatorBamFile::close() {
 	_outBam.close(&logfile());
 }
 
-TSimulatorBamFiles::TSimulatorBamFiles(uint32_t NumFiles, const std::string & Outname, BAM::TReadGroups & ReadGroups,
+TSimulatorBamFiles::TSimulatorBamFiles(uint32_t NumFiles, const std::string & Outname, std::vector<TReadSimulators> & ReadSimulators,
 				       const genometools::TChromosomes &Chromosomes) {
-	if (NumFiles < 1) throw "Can not open less than one BAM file!";
+	if (NumFiles < 1) DEVERROR("Can not open less than one BAM file!");
 	_files.resize(NumFiles);
+
+	if(ReadSimulators.size() > 1 && ReadSimulators.size() != NumFiles){
+		DEVERROR("Numbe rof read simulators does not match number of files!");
+	}
 
 	// open BAM files
 	if (_files.size() == 1) {
-		_files[0].open(Outname + ".bam", "Ind1", ReadGroups, Chromosomes);
+		_files[0].open(Outname + ".bam", "Ind1", ReadSimulators.front().readGroups(), Chromosomes);
 	} else {
 		logfile().startIndent("Opening ", _files.size(), " BAM files:");
 		for (size_t i = 0; i < _files.size(); ++i) {
-			_files[i].open(Outname + "_ind" + toString(i + 1) + ".bam", "Ind" + toString(i + 1), ReadGroups,
-				       Chromosomes);
+			std::string filename = Outname + "_ind" + toString(i + 1) + ".bam";
+			_files[i].open(filename, "Ind" + toString(i + 1), ReadSimulators[i].readGroups(), Chromosomes);
 		}
 		logfile().endIndent();
 	}

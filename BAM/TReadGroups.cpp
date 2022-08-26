@@ -134,6 +134,12 @@ TReadGroups::TReadGroups(const TReadGroups && other){
 	_fillLookupFromId();
 }
 
+TReadGroups::TReadGroups(const TReadGroups & other){
+	_readGroups = other._readGroups;
+	_limitReadGroups = other._limitReadGroups;
+	_fillLookupFromId();
+}
+
 TReadGroups& TReadGroups::operator=(const TReadGroups & other){
 	_readGroups = other._readGroups;
 	_limitReadGroups = other._limitReadGroups;

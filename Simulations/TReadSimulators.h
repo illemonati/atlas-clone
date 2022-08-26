@@ -9,6 +9,8 @@
 #define SIMULATIONS_TREADSIMULATORS_H_
 
 #include "TReadSimulator.h"
+#include "../GenotypeLikelihoods/SequencingError/TModels.h"
+#include "TGenomePosition.h"
 
 namespace Simulations {
 
@@ -39,13 +41,20 @@ private:
 
 public:
 	TReadSimulators(const std::string & RgInfoFileName);
+	TReadSimulators(TReadSimulators && other) = default;
+
+	//interact
+	void writeUnwrittenAlignments(const genometools::TGenomePosition & Position, TSimulatorBamFile &BamFile);
+	void simulate(const genometools::TGenomePosition & Position, const std::vector<Base>& Haplotype, TSimulatorBamFile &BamFile);
 
 	//getters
-	[[nodiscard]] TReadSimulator& sample();
+	[[nodiscard]] std::unique_ptr<TReadSimulator>& sample();
 	[[nodiscard]] double maxFragmentLength() const { return _maxFragmentLength; };
 	[[nodiscard]] double averageFragmentLength() const { return _averageReadLength; };
+	const BAM::TReadGroups& readGroups() const { return _readGroups; };
 
-
+	std::vector<std::unique_ptr<TReadSimulator>>::iterator begin(){ return _readSimulators.begin(); };
+	std::vector<std::unique_ptr<TReadSimulator>>::iterator end(){ return _readSimulators.end(); };
 };
 
 } // end namespace Simulations

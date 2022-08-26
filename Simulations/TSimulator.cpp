@@ -251,10 +251,11 @@ TBAMSimulator::TBAMSimulator(const std::string &method) : TSimulator(method) {
 
 	// open bam files
 	_bamFiles =
-	    std::make_unique<TSimulatorBamFiles>(_haploSimulator->sampleSize(), _outname, _readGroups, _chromosomes);
+	    std::make_unique<TSimulatorBamFiles>(_haploSimulator->sampleSize(), _outname, _readSimulators, _chromosomes);
 }
 
 void TBAMSimulator::_initializeReadSimulator(){
+	logfile().startIndent("Parameters regarding sequencing:");
 	//read RGInfo files from command line
 	std::vector<std::string> filenames;
 	if(parameters().parameterExists(BAM::RGInfo::TReadGroupInfo::_RGInfoArgument)){
@@ -266,7 +267,11 @@ void TBAMSimulator::_initializeReadSimulator(){
 	}
 
 	//create read simulators
+	_readSimulators.reserve(filenames.size());
 	if(filenames.size() == 1){
+		if(_haploSimulator->sampleSize() > 1){
+			logfile().startIndent("Using individual-specific sequencing parameters:");
+		}
 		_readSimulators.emplace_back(filenames.front());
 	} else {
 		//check sizes matches sample size
@@ -314,13 +319,13 @@ void TBAMSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome
 
 void TBAMSimulator::_simulateReadsFromHaplotypes(const genometools::TChromosome &thisChr,
                                                  std::array<std::vector<Base>, 2> haplotypes,
-												 const TReadSimulators & readSimulator,
+												 TReadSimulators & readSimulators,
 												 uint32_t avgDepth,
                                                  TSimulatorBamFile &bamFile,
 												 const std::string &extraProgressText) {
 	// Initialize probabilities to simulate reads
-	const uint64_t numReads = thisChr.length * avgDepth / readSimulator.averageFragmentLength();
-	const uint64_t chrLengthForStart = thisChr.length - readSimulator.maxFragmentLength() + 1;
+	const uint64_t numReads = thisChr.length * avgDepth / readSimulators.averageFragmentLength();
+	const uint64_t chrLengthForStart = thisChr.length - readSimulators.maxFragmentLength() + 1;
 	const double probReadPerSite     = 1.0 / chrLengthForStart;
 	uint64_t numReadsSimulated       = 0;
 
@@ -331,7 +336,7 @@ void TBAMSimulator::_simulateReadsFromHaplotypes(const genometools::TChromosome 
 	// now simulate
 	for(TGenomePosition pos(thisChr.refID(), 0); pos.position() < chrLengthForStart; ++pos){
 		// write unwritten alignments
-		for (auto &rs : _readSimulators) rs->writeUnwrittenAlignments(pos, bamFile);
+		readSimulators.writeUnwrittenAlignments(pos, bamFile);
 
 		// draw random number to get number of reads starting at this position
 		const auto numReadsHere = randomGenerator().getBinomialRand(probReadPerSite, numReads);
@@ -340,15 +345,14 @@ void TBAMSimulator::_simulateReadsFromHaplotypes(const genometools::TChromosome 
 		if (numReadsHere > 0) {
 			numReadsSimulated += numReadsHere;
 			for (uint32_t r = 0; r < numReadsHere; ++r) {
-				const auto rg = randomGenerator().pickOne(_readSimulators.size(), _cumulSimGroupFrequenies.data());
-				_readSimulators[rg]->simulate(haplotypes[randomGenerator().sample(2)], pos, bamFile);
+				readSimulators.simulate(pos, haplotypes[randomGenerator().sample(2)], bamFile);
 			}
 			// report progress
 			reporter.next();
 		}
 	}
 	// write unwritten alignments
-	for (auto &rs : _readSimulators) rs->writeUnwrittenAlignments(TGenomePosition(thisChr.refID(), thisChr.length), bamFile);
+	readSimulators.writeUnwrittenAlignments(TGenomePosition(thisChr.refID(), thisChr.length), bamFile);
 
 	reporter.done();
 	logfile().conclude("Simulated a total of ", numReadsSimulated, " reads.");

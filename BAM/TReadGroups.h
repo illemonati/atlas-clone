@@ -95,6 +95,7 @@ public:
 	~TReadGroups(){};
 
 	TReadGroups(const TReadGroups && other);
+	TReadGroups(const TReadGroups & other);
 	TReadGroups& operator=(const TReadGroups & other);
 	TReadGroups& operator=(const TReadGroups && other);
 

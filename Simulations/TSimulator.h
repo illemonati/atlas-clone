@@ -75,12 +75,14 @@ protected:
 	std::unique_ptr<TSimulatorBamFiles> _bamFiles;
 
 	// read simulator
-	std::vector<TReadSimulators*> _readSimulators; // one per sample
+	std::vector<TReadSimulators> _readSimulators; // one per sample
 	void _initializeReadSimulator();
 
 	// functions to simulate
 	void _simulateReadsFromHaplotypes(const genometools::TChromosome &thisChr,
-	                                  std::array<std::vector<genometools::Base>, 2> haplotypes, uint32_t avgDepth,
+	                                  std::array<std::vector<genometools::Base>, 2> haplotypes,
+									  TReadSimulators & readSimulator,
+									  uint32_t avgDepth,
 	                                  TSimulatorBamFile &bamFile, const std::string &extraProgressText);
 
 	// simulate reads and write bam files

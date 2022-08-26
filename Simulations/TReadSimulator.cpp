@@ -1,158 +1,312 @@
 /*
- * TReadSimulator.cpp
+ * TSimulatorQuality.cpp
  *
+ *  Created on: Oct 5, 2017
+ *      Author: vivian
  */
 
-#include "TReadGroupInfo.h"
-#include "stringFunctions.h"
-#include "TParameters.h"
-#include "TLog.h"
+#include <TReadSimulator.h>
+#include <algorithm>
+#include <memory>
+
+#include "PhredProbabilityTypes.h"
+#include "TPostMortemDamage.h"
 #include "TRandomGenerator.h"
-#include "TReadSimulators.h"
+#include "TSequencedBase.h"
+#include "SequencingError/TModel.h"
+#include "TSimulatorAuxiliaryTools.h"
+#include "stringFunctions.h"
 
 namespace Simulations {
+using genometools::Base;
+using genometools::PhredIntProbability;
+using genometools::TGenomePosition;
+using coretools::instances::logfile;
+using coretools::instances::randomGenerator;
+using BAM::RGInfo::TReadGroupInfoEntry;
+using BAM::RGInfo::InfoType;
 
+//------------------------------------------------
+// TSimulatorRead
+//------------------------------------------------
 
-void TReadSimulators::_initializeReadGroups(const TReadGroupInfo & RGinfo) {
-	// create simulation read groups
-	using BAM::RGInfo::InfoType;
-	for(size_t i = 0; i < RGinfo.size(); ++i){
-		logfile().startIndent("Read group '", RGinfo[i][InfoType::RGName], "':");
-		std::string type = RGinfo[i][InfoType::seqType];
-		logfile().list("Sequencing type: ", type);
-		logfile().list("Frequency: ", _simGroupFrequencies[i]);
+TReadSimulator::TReadSimulator(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo)
+	: _readGroup(ReadGroup){
 
-		//initialize by type
-		if(type == "single"){
-			_readSimulators.push_back(std::make_unique<TReadSimulatorSingleEnd>(_readGroups[i], RGinfo[i]));
-		} else if(type == "paired"){
-			_readSimulators.push_back(std::make_unique<TReadSimulatorPairedEnd>(_readGroups[i], RGinfo[i]));
-		} else {
-			UERROR("Unable to understand read group type '" + type + "'! Use either 'single' or 'paired'.");
-		}
-		logfile().endIndent();
-	}
-}
+	// initialize bamAlignment
+	_alignment.setReadGroup(_readGroup.id());
 
-void TReadSimulators::_initializePMD(){
-	const std::string arg = "pmd";
-	if (parameters().parameterExists(arg)) {
-		const auto pmdString = parameters().getParameter<std::string>(arg);
-		_PMD.initialize(pmdString, _readGroups);
+	//readNamePrefix: "<instrument>:<run number>:<flowcell ID>:<lane>:<tile>:"  Still need to add "<x-pos>:<y-pos>"
+	_readNamePrefix = "ATL:0:A:1:" + coretools::str::toString(_readGroup.id()) + ":";
 
-		// add PMD to simulators
-		for (size_t r = 0; r < _readSimulators.size(); ++r) { _readSimulators[r]->setPMD(&_PMD[r]); }
-	} else {
-		logfile().list("Not simulating any PMD.");
-	}
-}
+	//initialize distributions
+	_initDistribution(_fragmentLengthDistr, RGInfo, InfoType::fragmentLength);
+	_initDistribution(_mappingQualityDist, RGInfo, InfoType::mappingQuality);
+	_initDistribution(_qualityDist, RGInfo, InfoType::baseQuality);
 
-void TReadSimulators::_initializeQualityTransformations() {
-	const std::string arg = "recal";
-	if (parameters().parameterExists(arg)) {
-		const std::string rhoString = parameters().getParameterWithDefault<std::string>("rho", "default");
-		const auto recalString = parameters().getParameter<std::string>(arg);
-		_recal.initialize(recalString, rhoString, _readGroups);
-		logfile().list("Will use '", recalString, "' for all read groups.");
-
-		// add recal to simulators
-		for (size_t r = 0; r < _readSimulators.size(); ++r) {
-			_readSimulators[r]->setRecal(&_recal(r, false), &_recal(r, true));
+	//soft clip
+	logfile().listFlush(BAM::RGInfo::infos[InfoType::softClipping].description, ": ");
+	if(RGInfo.has(InfoType::softClipping)){
+		logfile().write(RGInfo[InfoType::softClipping]);
+		std::string sc = RGInfo[InfoType::softClipping];
+		if(!sc.empty()){
+			//check if one or two values are given
+			if(sc.find(':') == std::string::npos){
+				//one distribution for both
+				if(sc != "-" && sc != "fixed(0)"){
+					_softClipDist3 = std::make_unique<TCategoricalDistribution<uint16_t>>(sc);
+					_softClipDist5 = std::make_unique<TCategoricalDistribution<uint16_t>>(sc);
+				} else {
+					std::string sc3 = coretools::str::extractBefore(sc, ":");
+					sc.erase(0,1);
+					_softClipDist3 = std::make_unique<TCategoricalDistribution<uint16_t>>(sc3);
+					_softClipDist5 = std::make_unique<TCategoricalDistribution<uint16_t>>(sc);
+				}
+			}
 		}
 	} else {
-		_recal.initializeNoRecal(_readGroups);
-		// add noRecal model. Is still needed for simulation of bases from base qualities!
-		_recal.initializeNoRecal(_readGroups);
-		for (size_t r = 0; r < _readSimulators.size(); ++r) {
-			_readSimulators[r]->setRecal(&_recal(r, false), &_recal(r, true));
-		}
-		logfile().list("Not simulating any quality transformation.");
+		logfile().write("none");
 	}
-	logfile().endIndent();
 }
 
-void TReadSimulators::_initializeReadGroupFrequencies(const TReadGroupInfo & RGinfo) {
-	_cumulSimGroupFrequenies.resize(RGinfo.size());
-	_simGroupFrequencies.resize(RGinfo.size());
+double TReadSimulator::_calcMeanReadLength(const uint16_t maxLen) const {
+	// if fragments are always shorter than _numcycles, return mean fragment length
+	if(_fragmentLengthDistr.max() < maxLen){
+		return _fragmentLengthDistr.mean();
+	}
 
-	using BAM::RGInfo::InfoType;
-	if(RGinfo.hasInfo(InfoType::RGFrequency)){
-		//fill frequencies and cumulative frequencies
-		std::vector<double> tmp;
-		RGinfo.fillContainerPerReadGroup(tmp, InfoType::RGFrequency);
-		coretools::fillFromNormalized(_simGroupFrequencies, tmp);
+	// else: take into account that read length is always <= _numCycles
+	double m = 0.0;
+	double cumul = 0.0;
+	for(uint16_t i = 1; i <= maxLen; ++i){
+		double f = _fragmentLengthDistr.density(i);
+		m += f * (double) i;
+		cumul += f;
+	}
+
+	//remaining are all of lenth _numCycles
+	m += (1. - cumul) * maxLen;
+	return m;
+}
+
+std::string TReadSimulator::_getNextReadName() {
+	++_readXPos;
+	if (_readXPos == 65536) {
+		++_readYPos;
+		_readXPos = 1;
+	}
+	return coretools::str::toString(_readNamePrefix, _readXPos, ":", _readYPos);
+}
+
+void TReadSimulator::_simulateAlignmentDetails(const TGenomePosition & Position){	;
+	_alignment.move(Position);
+	_alignment.setName(_getNextReadName());
+
+	//simulate mapping quality
+	_alignment.setMappingQuality(_mappingQualityDist.sample().get());
+}
+
+bool TReadSimulator::_simulateContamination(){
+	return _contaminationRate > 0. && randomGenerator().getRand() < _contaminationRate;
+}
+
+void TReadSimulator::_addSoftclippedBases(std::vector<Base> & Bases, const std::unique_ptr<TCategoricalDistribution<uint16_t>> & SoftClippedDist, BAM::TCigar & Cigar){
+	if(SoftClippedDist){
+		auto len = SoftClippedDist->sample();
+		if(len > 0){
+			for (size_t i = 0; i < len; i++){
+				Bases.push_back(static_cast<Base>(randomGenerator().getRand<uint8_t>(0,4)));
+			}
+			Cigar.add('S', len);
+		}
+	}
+}
+
+void TReadSimulator::_simulateBasesQualities(BAM::TAlignment & alignment,
+						      const std::vector<Base>& haplotype,
+							  const uint16_t fragmentLength,
+						      const uint16_t readLength,
+						      bool readIsContaminated){
+
+	//prepare vector of bases
+	std::vector<Base> bases;
+	BAM::TCigar cigar;
+
+	// set read length
+	if (alignment.isReverseStrand()) {
+		alignment.setInsertSize(-fragmentLength);
+		_addSoftclippedBases(bases, _softClipDist3, cigar);
 	} else {
-		Probability equal = 1.0 / (double) RGinfo.size();
-		for (size_t i = 0; i < RGinfo.size(); ++i) {
-			_simGroupFrequencies[i] = equal;
-		}
+		alignment.setInsertSize(fragmentLength);
+		_addSoftclippedBases(bases, _softClipDist5, cigar);
 	}
-	coretools::fillCumulative(_simGroupFrequencies, _cumulSimGroupFrequenies);
+
+	// simulate true bases
+	const auto start = readIsContaminated ? _contaminationSource->reference().cbegin() + alignment.position() : haplotype.cbegin() + alignment.position();
+	auto len = std::min(fragmentLength, readLength);
+	bases.insert(bases.end(), start, start + len);
+	cigar.add('M', len);
+
+	if (alignment.isReverseStrand()) {
+		_addSoftclippedBases(bases, _softClipDist5, cigar);
+	} else {
+		_addSoftclippedBases(bases, _softClipDist3, cigar);
+	}
+	
+	// simulate true qualities
+	std::vector<genometools::PhredIntProbability> phredIntQualities(bases.size());
+	_qualityDist.sample(phredIntQualities);
+
+	alignment.setSequenceQualities(cigar, bases, phredIntQualities);
+
+	for (auto & b : alignment) {
+		if (_pmd && _pmd->hasDamage()) _pmd->simulate(b);
+
+		const auto sm = b.isSecondMate();
+		_recal[sm]->simulate(b);
+	}
 }
 
-void TReadSimulators::_determineMaxFragmentLength(){
-	// precalculate some stuff
-	_averageReadLength = 0;
-	_maxFragmentLength = 0;
-
-	for (size_t i = 0; i < _readSimulators.size(); ++i) {
-		_averageReadLength += _simGroupFrequencies[i] * _readSimulators[i]->meanReadLength();
-		if (_readSimulators[i]->maxFragmentLength() > _maxFragmentLength){
-			_maxFragmentLength = _readSimulators[i]->maxFragmentLength();
-		}
-	}
-
-	if(_averageReadLength < 1.0){
-		UERROR("Chosen parameters result in an average fragment length across read groups < 1.0!");
-	}
+void TReadSimulator::setRecal(
+	GenotypeLikelihoods::SequencingError::TModel const *Recal1, GenotypeLikelihoods::SequencingError::TModel const *Recal2) {
+	_recal[0] = Recal1;
+	_recal[1] = Recal2;
 }
 
-TReadSimulators::TReadSimulators(const std::string & RgInfoFileName){
-	logfile().startIndent("Parameters regarding sequencing:");
-	// Read sequencing parameters from RG Info / Command line
-	TReadGroupInfo RGinfo;
-	_readGroups = RGinfo.readInfoAndCreateReadGroups(RgInfoFileName);
+void TReadSimulator::setPMD(GenotypeLikelihoods::TPMDType const *Pmd) {
+	_pmd = Pmd;
+}
 
-	using BAM::RGInfo::InfoType;
-	RGinfo.parse(InfoType::RGFrequency, InfoType::seqType, InfoType::cycles, InfoType::fragmentLength, InfoType::baseQuality, InfoType::mappingQuality, InfoType::softClipping);
-	_initializeReadGroupFrequencies(RGinfo);
-	logfile().endIndent();
+void TReadSimulator::setContamination(double rate, TSimulatorReference *source) {
+	_contaminationRate  = rate;
+	_contaminationSource = source;
 
-	//Initialize read groups
-	logfile().startIndent("Initializing ", _readGroups.size(), " read groups:");
-	_initializeReadGroups(RGinfo);
+	// check
+	if (_contaminationRate < 0.0) throw "Contamination rate must be >= 0.0!";
+	if (_contaminationRate > 1.0) throw "Contamination rate must be <= 0.0!";
+}
 
-	// B) initialize PMD
+//----------------------------------
+// TSimulatorSingleEndRead
+//----------------------------------
+TReadSimulatorSingleEnd::TReadSimulatorSingleEnd(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo)
+	: TReadSimulator(ReadGroup, RGInfo){
+
+	//num cycles
+	logfile().list(BAM::RGInfo::infos[InfoType::cycles].description, ": ", RGInfo[InfoType::cycles]);
+	coretools::str::convertString< coretools::StrictlyPositive<uint16_t> >(RGInfo[InfoType::cycles],
+			coretools::str::capitalizeFirst(BAM::RGInfo::infos[InfoType::cycles].description) + " must be a single number within [1,65535].", _numCycles);
+
+	_alignment.setSamFlags(_flags);
+}
+
+double TReadSimulatorSingleEnd::meanReadLength() const {
+	return _calcMeanReadLength(_numCycles);
+}
+
+void TReadSimulatorSingleEnd::simulate(const TGenomePosition & Position, const std::vector<Base>& Haplotype, TSimulatorBamFile &BamFile) {
+	// prepare alignment
+	_simulateAlignmentDetails(Position);
+	_alignment.setIsReverseStrand(randomGenerator().getRand() < 0.5);
+
+	// simulate read length
+	uint16_t fragmentLength = _fragmentLengthDistr.sample();
+
+	// simulated bases and qualities
+	_simulateBasesQualities(_alignment, Haplotype, fragmentLength, _numCycles, _simulateContamination());
+
+	// write bam alignment
+	BamFile.saveAlignment(_alignment);
+}
+
+//----------------------------------
+// TSimulatorPairedEndReads
+//----------------------------------
+TReadSimulatorPairedEnd::TReadSimulatorPairedEnd(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo)
+	: TReadSimulator(ReadGroup, RGInfo){
+	//num cycles
+	logfile().list(BAM::RGInfo::infos[InfoType::cycles].description, ": ", RGInfo[InfoType::cycles]);
+	if(coretools::str::stringContains(RGInfo[InfoType::cycles], ',')){
+		//two values: one for first and one for second mate
+		coretools::str::convertString< coretools::StrictlyPositive<uint16_t> >(coretools::str::readBefore(RGInfo[InfoType::cycles], ','),
+				BAM::RGInfo::infos[InfoType::cycles].description + " must be within [1,65535].", _numCycles[0]);
+		coretools::str::convertString< coretools::StrictlyPositive<uint16_t> >(coretools::str::readAfter(RGInfo[InfoType::cycles], ','),
+				BAM::RGInfo::infos[InfoType::cycles].description + " must be within [1,65535].", _numCycles[1]);
+	} else {
+		//one value to be used for both mates
+		coretools::str::convertString< coretools::StrictlyPositive<uint16_t> >(RGInfo[InfoType::cycles],
+				BAM::RGInfo::infos[InfoType::cycles].description + " must be within [1,65535].", _numCycles[0]);
+		_numCycles[1] = _numCycles[0];
+	}
+
+	// set SAM flags
+	_flags.setIsPaired(true);
+	_flags.setIsProperPair(true);
+	_flags.setIsRead1(true);
+	_flags.setMateIsReverseStrand(false);
+	_alignment.setSamFlags(_flags);
+
+	// set SAM flags of second mate
+	_mateFlags.setIsPaired(true);
+	_mateFlags.setIsProperPair(true);
+	_mateFlags.setIsRead2(true);
+	_mateFlags.setIsReverseStrand(true);
+}
+
+double TReadSimulatorPairedEnd::meanReadLength() const {
+	return _calcMeanReadLength(_numCycles[0] + _numCycles[1]);
+}
+
+void TReadSimulatorPairedEnd::simulate(const TGenomePosition & Position, const std::vector<Base>& Haplotype, TSimulatorBamFile &BamFile) {
+	// pick a fragment
+	uint16_t fragmentLength = _fragmentLengthDistr.sample();
+	bool readIsContaminated = _simulateContamination();
+
+	// Fill FIRST mate
 	//------------------
-	//_initializePMD();
+	// prepare alignment
+	_simulateAlignmentDetails(Position);
 
-	// E) initialize quality transformation
-	//-------------------------------------
-	//_initializeQualityTransformations();
+	// simulated bases and qualities
+	_simulateBasesQualities(_alignment, Haplotype, fragmentLength, _numCycles[0], readIsContaminated);
 
-	// E) initialize contamination
-	//----------------------------
-	// TODO: Think about contamination object for both estimation and simulation
+	// write bam alignment
+	BamFile.saveAlignment(_alignment);
 
-	// G) other things
-	//----------------
-	// initialize read group frequencies frequencies
+	// Fill SECOND mate
+	//------------------
+	// identify position
+	TGenomePosition & matePosition(_alignment);
+	if(fragmentLength > _numCycles[1]){
+		matePosition += (uint32_t) fragmentLength - (uint32_t) _numCycles[1];
+	}
 
-	logfile().endIndent();
+	// create new alignment
+	BAM::TAlignment secondMate(matePosition);
+	secondMate.setReadGroup(_readGroup.id());
+	secondMate.setName(_alignment.name());
+	secondMate.setMappingQuality(_alignment.mappingQuality());
+	secondMate.setSamFlags(_mateFlags);
 
-	//warn if read group info columns were not used
-	RGinfo.warnAboutUnusedColumnsInFile();
-	logfile().endIndent();
+	// simulated bases and qualities
+	_simulateBasesQualities(secondMate, Haplotype, fragmentLength, _numCycles[1], readIsContaminated);
 
-	//prepare simulations
-	_determineMaxFragmentLength();
+	// write if it starts at same position as first, and keep for writing later otherwise
+	if (matePosition == Position) {
+		BamFile.saveAlignment(secondMate);
+	} else {
+		_bamAlignmentSecondMates.insert(secondMate);
+	}
 }
 
-TReadSimulator& TReadSimulators::sample(){
-	return _readSimulators[randomGenerator().pickOne(_readSimulators.size())];
+void TReadSimulatorPairedEnd::writeUnwrittenAlignments(const genometools::TGenomePosition & Position, TSimulatorBamFile &BamFile) {
+	if(!_bamAlignmentSecondMates.empty()){
+		auto it = _bamAlignmentSecondMates.begin();
+		while(it != _bamAlignmentSecondMates.end() && *it <= Position){
+			BamFile.saveAlignment(*it);
+			it = _bamAlignmentSecondMates.erase(it);
+		}
+	}
 }
 
-
-} // end namespace Simulations
-
-
+} // namespace Simulations
