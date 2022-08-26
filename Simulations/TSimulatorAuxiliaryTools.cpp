@@ -151,6 +151,9 @@ TSimulatorBamFiles::TSimulatorBamFiles(uint32_t NumFiles, const std::string & Ou
 		DEVERROR("Numbe rof read simulators does not match number of files!");
 	}
 
+	//read quality adjustment for wiriting
+	BAM::TQualityAdjusterForWriting qualityAdjuster(coretools::instances::parameters(), &logfile());
+
 	// open BAM files
 	if (_files.size() == 1) {
 		_files[0].open(Outname + ".bam", "Ind1", ReadSimulators.front().readGroups(), Chromosomes);
@@ -170,6 +173,11 @@ TSimulatorBamFiles::TSimulatorBamFiles(uint32_t NumFiles, const std::string & Ou
 			}
 		}
 		logfile().endIndent();
+	}
+
+	//set quality adjuster
+	for(auto& f : _files){
+		f.setQualityAdjusterForWriting(qualityAdjuster);
 	}
 }
 
