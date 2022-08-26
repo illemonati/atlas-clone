@@ -16,6 +16,7 @@
 #include "TError.h"
 #include "TFile.h"
 #include "TLog.h"
+#include "TReadGroupInfo.h"
 #include "TReadGroups.h"
 #include "TSequencedBase.h"
 #include "SequencingError/TModel.h"
@@ -33,6 +34,15 @@ using coretools::instances::logfile;
 // TModels
 //--------------------------------------------------------------------
 
+namespace impl {
+
+auto epsRho(const std::string &s) {
+	// Format: intercept[];cov1:function1[];cov2:function2[];...;rho[[]]
+	const auto rBegin = s.find("rho");
+	if (rBegin == std::string::npos) UERROR("Recal string ", s, " does not contain 'rho'");
+	return std::make_pair(s.substr(0, rBegin-1), s.substr(rBegin + 3, s.size()));
+}
+} // namespace impl
 
 void TModels::initializeNoRecal(const BAM::TReadGroups &ReadGroups) {
 	_models.resize(ReadGroups.size());
@@ -118,8 +128,24 @@ void TModels::initializeFromFile(const std::string &Filename, const BAM::TReadGr
 	logfile().done();
 }
 
-void TModels::initialize(BAM::RGInfo::TReadGroupInfo & RgInfo) {
-	//TODO
+void TModels::initialize(BAM::RGInfo::TReadGroupInfo &RgInfo) {
+	using BAM::RGInfo::InfoType;
+
+	_models.resize(RgInfo.size());
+	RgInfo.parse(InfoType::recal1, InfoType::recal2);
+
+	for (size_t rg = 0; rg < RgInfo.size(); ++rg) {
+		const auto s = RgInfo.get(rg, InfoType::recal1);
+		if (s == "-") { _models[rg][0] = std::make_unique<TModelNoRecal>(); }
+		const auto [e, r] = impl::epsRho(s);
+		_models[rg][0]    = std::make_unique<TModelRecal>(e, r);
+	}
+	for (size_t rg = 0; rg < RgInfo.size(); ++rg) {
+		const auto s = RgInfo.get(rg, InfoType::recal2);
+		if (s == "-") { _models[rg][1] = std::make_unique<TModelNoRecal>(); }
+		const auto [e, r] = impl::epsRho(s);
+		_models[rg][1]    = std::make_unique<TModelRecal>(e, r);
+	}
 }
 
 void TModels::checkReadGroups(const BAM::TReadGroups &ReadGroups, std::vector<uint16_t> &ReadGroupsWithoutRecal,
