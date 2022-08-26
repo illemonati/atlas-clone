@@ -173,12 +173,12 @@ void TBamFile::setFilters(TParameters & params, TLog* logfile){
 		}
 
 		//fragment length
-		if(params.parameterExists("keepReadsLongerThanFragment")){
-			_longerThanFragmentFilter.keep();
-			logfile->list("Reads longer than fragment size: keep. (parameter 'keepReadsLongerThanFragment')");
-		} else {
+		if(params.parameterExists("filterReadsLongerThanFragment")){
 			_longerThanFragmentFilter.filter("Longer than fragment");
-			logfile->list("Reads longer than fragment size: filter out. (use 'keepReadsLongerThanFragment' to keep)");
+			logfile->list("Reads longer than fragment size: filter out. (parameter 'filterReadsLongerThanFragment')");
+		} else {
+			_longerThanFragmentFilter.keep();
+			logfile->list("Reads longer than fragment size: keep. (use 'filterReadsLongerThanFragment' to filter out)");
 		}
 
 		//strand
