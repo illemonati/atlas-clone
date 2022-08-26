@@ -381,10 +381,11 @@ void TSimulatorSFS::_initializeSFS(const genometools::TChromosomes& chromosomes,
 	logfile().listFlush("Initializing SFS ...");
 	for (size_t i = 0; i < chromosomes.size(); ++i) {
 		if (folded){
-			_sfs.push_back(std::make_unique<SFSfolded>(_sampleSize, (float)thetas[i]));
+			//_sfs.push_back(std::make_unique<SFSfolded>(_sampleSize, (float)thetas[i]));
 			/*// save true SFS
 			const auto filename = outname + "_trueSFS_chr" + coretools::str::toString(chromosomes[i].refID() + 1) + ".txt";
 			_sfs.back()->writeToFile(filename);*/
+			DEVERROR("Folded SFS currently not supported.");
 		} else
 			_sfs.push_back(std::make_unique<SFS>(chromosomes[i].ploidy * _sampleSize, (float)thetas[i]));
 
@@ -404,10 +405,12 @@ void TSimulatorSFS::_initializeSFS(const genometools::TChromosomes& chromosomes,
 	for (size_t i = 0; i < chromosomes.size(); ++i) {
 		logfile().listFlush("Reading the sfs of chromosome '" + chromosomes[i].name + "' from file '" +
 				    sfsFileNames[i] + "' ...");
-		if (folded)
-			_sfs.push_back(std::make_unique<SFSfolded>(sfsFileNames[i]));
-		else
+		if (folded){
+			//_sfs.push_back(std::make_unique<SFSfolded>(sfsFileNames[i]));
+			DEVERROR("Folded SFS currently not supported.");
+		} else {
 			_sfs.push_back(std::make_unique<SFS>(sfsFileNames[i]));
+		}
 		logfile().done();
 
 		const uint32_t nChr = chromosomes[i].ploidy * _sampleSize;
@@ -418,8 +421,6 @@ void TSimulatorSFS::_initializeSFS(const genometools::TChromosomes& chromosomes,
 	}
 }
 
-constexpr int is_odd(int x) noexcept { return x & 1; }
-
 void TSimulatorSFS::simulateHaploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference,
 					       const genometools::TChromosome &chromosome) {
 	// now simulate haplotypes
@@ -428,77 +429,38 @@ void TSimulatorSFS::simulateHaploid(TSimulatorHaplotypes &haplotypes, TSimulator
 		const Base ancestral = sampleBase(_cumulBaseFreq);
 		const Base derived   = sampleBase(_mutTable[ancestral]);
 
-		// pick derived allele frequency
-		const int alleleCount = _sfs[chromosome.refID()]->getRandomAlleleCount();
+		//simulate haplotypes
+		size_t alleleCount = _sfs[chromosome.refID()]->simulateSiteHaploid(l, haplotypes, ancestral, derived);
 
-		// pick haplotypes that are derived
-		int numNeeded = alleleCount;
-		for (int i = 0; i < _sampleSize; ++i) {
-			if (randomGenerator().getRand() < (double)numNeeded / (_sampleSize - i)) {
-				haplotypes(i, 0, l) = derived;
-				--numNeeded;
-				if (numNeeded == 0) {
-					for (int j = i + 1; j < _sampleSize; ++j) {
-						haplotypes(i, 0, l) = ancestral;
-						haplotypes(i, 1, l) = ancestral;
-					}
-					break;
-				}
-			} else
-				haplotypes(i, 0, l) = ancestral;
-			// make homozygous
-			haplotypes(i, 1, l) = haplotypes(i, 0, l);
-		}
-
-		// decide on reference sequence
-		if (alleleCount > 0) {
-			if (randomGenerator().getRand() < (double)alleleCount / _sampleSize)
+		//simulate size
+		if(alleleCount == 0){
+			//site was monomorphic
+			reference[l] = mutateBase(ancestral, _cumulRef);
+		} else {
+			// site was polymorphic
+			if (randomGenerator().getRand() < (double) alleleCount / (double) haplotypes.size())
 				reference[l] = derived;
 			else
 				reference[l] = ancestral;
-		} else {
-			reference[l] = mutateBase(ancestral, _cumulRef);
 		}
 	}
 }
 
 void TSimulatorSFS::simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference,
 					       const genometools::TChromosome &chromosome) {
-	const int numHaplotypes = 2 * _sampleSize;
 	for (uint64_t l = 0; l < chromosome.length; ++l) {
 		// pick alleles
 		const Base ancestral = sampleBase(_cumulBaseFreq);
 		const Base derived   = sampleBase(_mutTable[ancestral]);
 
-		// pick derived allele frequency
-		const int alleleCount = _sfs[chromosome.refID()]->getRandomAlleleCount();
-		// oo << alleleCount << "\n";
+		//simulate haplotypes
+		size_t alleleCount = _sfs[chromosome.refID()]->simulateSiteDiploid(l, haplotypes, ancestral, derived);
 
-		// pick haplotypes that are derived
+		// decide on reference sequence
 		if (alleleCount == 0) {
-			for (int i = 0; i < _sampleSize; ++i) {
-				haplotypes(i, 0, l) = ancestral;
-				haplotypes(i, 1, l) = ancestral;
-			}
-			// decide on reference sequence
 			reference[l] = mutateBase(ancestral, _cumulRef);
 		} else {
-			int numNeeded = alleleCount;
-			for (int i = 0; i < numHaplotypes; ++i) {
-				double prob = (double)numNeeded / (numHaplotypes - i);
-				if (randomGenerator().getRand() < prob) {
-					haplotypes(i / 2, is_odd(i), l) = derived;
-					--numNeeded;
-					if (numNeeded == 0) {
-						for (int j = i + 1; j < numHaplotypes; ++j) haplotypes(j / 2, is_odd(j), l) = ancestral;
-						break;
-					}
-				} else
-					haplotypes(i / 2, is_odd(i), l) = ancestral;
-			}
-
-			// decide on reference sequence
-			if (randomGenerator().getRand() < (double)alleleCount / (double)numHaplotypes)
+			if (randomGenerator().getRand() < (double) alleleCount / (double) haplotypes.size() / 2.0) //division by 2 as we have twice as many haplotypes as samples
 				reference[l] = derived;
 			else
 				reference[l] = ancestral;

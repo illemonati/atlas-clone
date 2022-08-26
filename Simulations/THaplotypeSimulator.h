@@ -27,8 +27,6 @@ namespace genometools { class TChromosomes; }
 
 namespace Simulations {
 
-
-
 class THaplotypeSimulator {
 protected:
 	coretools::TStrongArray<double, genometools::Base> _cumulRef;

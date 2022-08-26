@@ -282,8 +282,6 @@ void TReadSimulatorPairedEnd::simulate(const TGenomePosition & Position, const s
 	// simulated bases and qualities
 	_simulateBasesQualities(_alignment, Haplotype, fragmentLength, _numCycles[0], readIsContaminated);
 
-	// write bam alignment
-	BamFile.saveAlignment(_alignment);
 
 	// Fill SECOND mate
 	//------------------
@@ -300,10 +298,20 @@ void TReadSimulatorPairedEnd::simulate(const TGenomePosition & Position, const s
 	secondMate.setMappingQuality(_alignment.mappingQuality());
 	secondMate.setSamFlags(_mateFlags);
 
+
 	// simulated bases and qualities
 	_simulateBasesQualities(secondMate, Haplotype, fragmentLength, _numCycles[1], readIsContaminated);
 
-	// write if it starts at same position as first, and keep for writing later otherwise
+	// WRITE ALIGNMENTS
+	//-----------------
+	//set mate positions
+	_alignment.setMateGenomicPosition(secondMate);
+	secondMate.setMateGenomicPosition(_alignment);
+
+	// write bam alignment
+	BamFile.saveAlignment(_alignment);
+
+	// write mate if it starts at same position as first, and keep for writing later otherwise
 	if (matePosition == Position) {
 		BamFile.saveAlignment(secondMate);
 	} else {

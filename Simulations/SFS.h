@@ -11,6 +11,9 @@
 #include <stdint.h>
 #include <string>
 #include <vector>
+#include "TSimulatorAuxiliaryTools.h"
+#include "TSubsamplePicker.h"
+#include <functional>
 
 namespace Simulations {
 //--------------------------------
@@ -19,14 +22,21 @@ namespace Simulations {
 
 class SFS {
 protected:
-	void _fillFrequencies();
-	void _fillCumulative();
 	SFS() = default;
 
+	std::vector<size_t> _dimensions;
+	std::vector<double> sfs;
+	std::vector<double> sfsCumulative;
+
+	coretools::TSubsamplePicker _picker;
+
+	void _setDerivedDiploid(const uint32_t l, TSimulatorHaplotypes & haplotypes, const size_t N, const size_t k, const size_t shift, const Base derived);
+	void _setDerivedHaploid(const uint32_t l, TSimulatorHaplotypes & haplotypes, const size_t N, const size_t k, const size_t shift, const Base derived);
+
+	size_t _simulateSite(const uint32_t l, TSimulatorHaplotypes & haplotypes, const Base ancestral, const Base derived, std::function<void(const uint32_t, TSimulatorHaplotypes &, const size_t, const size_t, const size_t, const Base)> func);
+
 public:
-	std::vector<float> sfs;
-	std::vector<float> sfsCumulative;
-	std::vector<float> sfsFrequencies;
+
 
 	SFS(const std::string &filename);
 	SFS(const SFS &other, float MonoFrac);
@@ -35,13 +45,16 @@ public:
 	virtual ~SFS() = default;
 
 	virtual uint32_t numChromosomes() const noexcept { return sfs.size() - 1; };
-	float monoFrac() const noexcept { return sfs.front(); };
+	double monoFrac() const noexcept { return sfs.front(); };
 	void writeToFile(const std::string &filename, const bool &writeLog = false);
-	double getRandomFrequency();
-	uint32_t getRandomAlleleCount();
+
+	size_t simulateSiteDiploid(const uint32_t l, TSimulatorHaplotypes & haplotypes, const Base ancestral, const Base derived); //return true if site was polymorphic
+	size_t simulateSiteHaploid(const uint32_t l, TSimulatorHaplotypes & haplotypes, const Base ancestral, const Base derived); //return true if site was polymorphic
+
 	virtual double calcLLOneSite(const std::vector<float> &gl);
 };
 
+/*
 class SFSfolded : public SFS {
 public:
 	virtual uint32_t numChromosomes() const noexcept override { return 2 * sfs.size() - 2; };
@@ -50,6 +63,6 @@ public:
 	SFSfolded(uint32_t numChr, float theta);
 	double calcLLOneSite(const std::vector<float> &gl) override;
 };
-
+*/
 } // namespace Simulations
 #endif /* SFS_H_ */
