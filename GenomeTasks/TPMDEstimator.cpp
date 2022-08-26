@@ -35,7 +35,7 @@ TPMDEstimator::TPMDEstimator(): TGenome_parsed() {
 		throw "PMD model already estimated! (Use argument 'reestimate' to overwrite this error)";
 	}
 	if (!_genotypeLikelihoodCalculator.hasPMD()) {
-		pmd.initialize(parameters().getParameterWithDefault("pmdModels", "doubleStrand:Empirical:Empirical"s), _bamFile.readGroups());
+		pmd.initialize(parameters().getParameterWithDefault("pmdModels", "doubleStrand:Empiric:Empiric"s), _bamFile.readGroups());
 	}
 
 	//make sure it has a reference

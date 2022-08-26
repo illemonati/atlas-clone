@@ -37,14 +37,14 @@ using coretools::instances::logfile;
 
 namespace impl {
 
-std::pair<std::string, std::string> epsRho(const std::string &s) {
+std::pair<std::string, std::string> rhoEps(const std::string &s) {
 	// Format: intercept[];cov1:function1[];cov2:function2[];...;rho[[]]
 	const auto rBegin = s.find("rho");
 	if (rBegin == std::string::npos) {
 		// no rho definition
-		return std::make_pair(s, "default"s);
+		return std::make_pair("default"s, s);
 	}
-	return std::make_pair(s.substr(0, rBegin-1), s.substr(rBegin + 3, s.size()));
+	return std::make_pair(s.substr(rBegin + 3, s.size()), s.substr(0, rBegin-1));
 }
 } // namespace impl
 
@@ -140,14 +140,14 @@ void TModels::initialize(BAM::RGInfo::TReadGroupInfo &RgInfo) {
 
 	for (size_t rg = 0; rg < RgInfo.size(); ++rg) {
 		if (RgInfo.has(rg, InfoType::recal1)) {
-			const auto [e, r] = impl::epsRho(RgInfo.get(rg, InfoType::recal1));
-			_models[rg][0]    = std::make_unique<TModelRecal>(e, r);
+			const auto [r, e] = impl::rhoEps(RgInfo.get(rg, InfoType::recal1));
+			_models[rg][0]    = std::make_unique<TModelRecal>(r, e);
 		} else {
 			_models[rg][0] = std::make_unique<TModelNoRecal>();
 		}
 		if (RgInfo.has(rg, InfoType::recal2)) {
-			const auto [e, r] = impl::epsRho(RgInfo.get(rg, InfoType::recal2));
-			_models[rg][1]    = std::make_unique<TModelRecal>(e, r);
+			const auto [r, e] = impl::rhoEps(RgInfo.get(rg, InfoType::recal2));
+			_models[rg][1]    = std::make_unique<TModelRecal>(r, e);
 		} else {
 			_models[rg][1] = std::make_unique<TModelNoRecal>();
 		}

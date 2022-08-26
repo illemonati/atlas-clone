@@ -40,27 +40,6 @@ void TReadSimulators::_initializeReadGroups(const TReadGroupInfo & RGinfo) {
 	}
 }
 
-void TReadSimulators::_initializePMD(){
-	const std::string arg = "pmd";
-	if (parameters().parameterExists(arg)) {
-		const auto pmdString = parameters().getParameter<std::string>(arg);
-		_PMD.initialize(pmdString, _readGroups);
-
-		// add PMD to simulators
-		for (size_t r = 0; r < _readSimulators.size(); ++r) { _readSimulators[r]->setPMD(&_PMD[r]); }
-	} else {
-		logfile().list("Not simulating any PMD.");
-	}
-}
-
-void TReadSimulators::_initializeQualityTransformations() {
-	// add recal to simulators
-
-	for (size_t r = 0; r < _readSimulators.size(); ++r) {
-		_readSimulators[r]->setRecal(&_recal(r, false), &_recal(r, true));
-	}
-}
-
 void TReadSimulators::_initializeReadGroupFrequencies(const TReadGroupInfo & RGinfo) {
 	_cumulSimGroupFrequenies.resize(RGinfo.size());
 	_simGroupFrequencies.resize(RGinfo.size());
@@ -120,7 +99,12 @@ TReadSimulators::TReadSimulators(const std::string & RgInfoFileName){
 
 	// B) initialize PMD
 	//------------------
-	//_initializePMD();
+	_PMD.initialize(RGinfo);
+
+	// add PMD to simulators
+	for (size_t r = 0; r < _readSimulators.size(); ++r) {
+		_readSimulators[r]->setPMD(&_PMD[r]);
+	}
 
 	// E) initialize quality transformation
 	//-------------------------------------

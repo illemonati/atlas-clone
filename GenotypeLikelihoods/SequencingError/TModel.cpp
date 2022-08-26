@@ -46,6 +46,7 @@ TRho::TRho(const std::string &Def) {
 	using coretools::str::toString;
 	using coretools::index;
 	//"default" implies default rho
+
 	if (Def == "default") {
 		return;
 	}

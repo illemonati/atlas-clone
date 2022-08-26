@@ -10,6 +10,7 @@
 
 #include "TReadSimulator.h"
 #include "../GenotypeLikelihoods/SequencingError/TModels.h"
+#include "TPostMortemDamage.h"
 #include "TGenomePosition.h"
 
 namespace Simulations {
@@ -32,8 +33,6 @@ private:
 
 	// function to initialize read groups
 	void _initializeReadGroups(const BAM::RGInfo::TReadGroupInfo & RGinfo);
-	void _initializePMD();
-	void _initializeQualityTransformations();
 	void _initializeContamination(bool &perReadGroup, std::map<std::string, double> &contaminationMap);
 	void _initializeReadSimulator();
 	void _initializeReadGroupFrequencies(const BAM::RGInfo::TReadGroupInfo & RGinfo);
