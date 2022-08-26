@@ -866,6 +866,40 @@ TQualityAdjusterForWriting::TQualityAdjusterForWriting(){
 	_limitRange = false;
 };
 
+TQualityAdjusterForWriting::TQualityAdjusterForWriting(coretools::TParameters & params, coretools::TLog* logfile){
+	initialize(params, logfile);
+}
+
+void TQualityAdjusterForWriting::initialize(coretools::TParameters & params, coretools::TLog* logfile){
+	if(params.parameterExists("outQual")){
+		TNumericRange<uint8_t> qualRange;
+		params.fillParameter("outQual",  qualRange);
+		limitRange(qualRange);
+
+		logfile->list("Will print qualities truncated to ", rangeString(), " (parameter 'outQual')");
+
+
+		if(qualRange.max() > BaseQuality::max().get()){
+			logfile->warning("Truncated quality range to BAM limits!");
+		}
+
+	} else {
+		logfile->list("Will use the full range of quality scores when writing alignments. (use 'outQual' to constrain).");
+	}
+
+	//quality binning
+	if(params.parameterExists("writeBinnedQualities")){
+		logfile->list("Will write Illumina-binned quality scores. (parameter 'writeBinnedQualities')");
+
+		if(adjusts()){
+			logfile->warning("If both 'outQual' and 'writeBinnedQualities' are given, qualities will be truncated first, then binned, and may thus fall outside the requested range.");
+		}
+		binQualitiesIllumina();
+	} else {
+		logfile->list("Will write raw quality scores. (use 'writeBinnedQualities' to bin)");
+	}
+};
+
 void TQualityAdjusterForWriting::binQualitiesIllumina(){
 	_binIllumina = true;
 	_adjust = true;
@@ -967,34 +1001,15 @@ void TOutputBamFile::open(TParameters & params, TLog* logfile, const std::string
 	open(Filename, Header, Chromosomes, ReadGroups);
 
 	//read output settings
-	//quality truncation
-	if(params.parameterExists("outQual")){
-		TNumericRange<uint8_t> qualRange;
-		params.fillParameter("outQual",  qualRange);
-		_qualityAdjuster.limitRange(qualRange);
+	setQualityAdjusterForWriting(params, logfile);
+};
 
-		logfile->list("Will print qualities truncated to " + _qualityAdjuster.rangeString() + " (parameter 'outQual')");
+void TOutputBamFile::setQualityAdjusterForWriting(coretools::TParameters & params, coretools::TLog* logfile){
+	_qualityAdjuster.initialize(params, logfile);
+};
 
-
-		if(qualRange.max() > BaseQuality::max().get()){
-			logfile->warning("Truncated quality range to BAM limits!");
-		}
-
-	} else {
-		logfile->list("Will use the full range of quality scores when writing alignments. (use 'outQual' to constrain).");
-	}
-
-	//quality binning
-	if(params.parameterExists("writeBinnedQualities")){
-		logfile->list("Will write Illumina-binned quality scores. (parameter 'writeBinnedQualities')");
-
-		if(_qualityAdjuster.adjusts()){
-			logfile->warning("If both 'outQual' and 'writeBinnedQualities' are given, qualities will be truncated first, then binned, and may thus fall outside the requested range.");
-		}
-		_qualityAdjuster.binQualitiesIllumina();
-	} else {
-		logfile->list("Will write raw quality scores. (use 'writeBinnedQualities' to bin)");
-	}
+void TOutputBamFile::setQualityAdjusterForWriting(const TQualityAdjusterForWriting & QualityAdjuster){
+	_qualityAdjuster = QualityAdjuster;
 };
 
 void TOutputBamFile::close(TLog* logfile){

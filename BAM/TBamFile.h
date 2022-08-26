@@ -247,7 +247,9 @@ private:
 
 public:
 	TQualityAdjusterForWriting();
+	TQualityAdjusterForWriting(coretools::TParameters & params, coretools::TLog* logfile);
 
+	void initialize(coretools::TParameters & params, coretools::TLog* logfile);
 	bool adjusts() const { return _adjust; };
 	void binQualitiesIllumina();
 	void limitRange(const genometools::BaseQuality & min, const genometools::BaseQuality & max);
@@ -289,6 +291,7 @@ public:
 	void open(const std::string Filename, const TBamFile & Original);
 	void open(coretools::TParameters & params, coretools::TLog* logfile, const std::string Filename, const TSamHeader & Header, const genometools::TChromosomes & Chromosomes, const TReadGroups & ReadGroups);
 	void setQualityAdjusterForWriting(coretools::TParameters & params, coretools::TLog* logfile);
+	void setQualityAdjusterForWriting(const TQualityAdjusterForWriting & QualityAdjuster);
 	bool isOpen() const{ return _openForWriting; };
 	void close(coretools::TLog* logfile);
 	void close();
