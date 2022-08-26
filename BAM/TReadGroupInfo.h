@@ -26,7 +26,7 @@ namespace RGInfo{
 //------------------------------------------------
 // TInfoValue
 //------------------------------------------------
-enum class InfoType {min=0, RGName=0, RGFrequency, seqType, cycles, fragmentLength, baseQuality, mappingQuality, softClipping, recal, rho, max};
+enum class InfoType {min=0, RGName=0, RGFrequency, seqType, cycles, fragmentLength, baseQuality, mappingQuality, softClipping, recal1, recal2, max};
 
 //------------------------------------------------
 // argument string, description and default for each info type
@@ -51,8 +51,8 @@ inline const coretools::TStrongArray<TInfo, InfoType> infos = []() {
 	i[InfoType::baseQuality] = {"baseQuality", "base quality distribution", "normal(30,10)[0,93]"};
 	i[InfoType::mappingQuality] = {"mappingQuality", "mapping quality distribution", "normal(60,10)[1,255]"};
 	i[InfoType::softClipping] = {"softClipping", "soft clipping distribution", "-"};
-	i[InfoType::recal] = {"recal", "base quality score recalibration model", "-"};
-	i[InfoType::rho] = {"rho", "base quality score recalibration rho", "-"};
+	i[InfoType::recal1] = {"recal1", "base quality score recalibration model for 1st mate", "-"};
+	i[InfoType::recal2] = {"recal2", "base quality score recalibration model for 2nd mate", "-"};
 	return i;
 }();
 
