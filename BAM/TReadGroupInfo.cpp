@@ -12,6 +12,7 @@
 #include "TReadGroupInfo.h"
 #include "TLog.h"
 #include "TParameters.h"
+#include "commonWeakTypes.h"
 #include "devtools.h"
 
 using coretools::instances::parameters;
