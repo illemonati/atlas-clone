@@ -77,7 +77,7 @@ public:
 						  std::vector<T2ndDerivative> &der2) const noexcept = 0;
 	virtual double adjustParametersPostEstimation() noexcept                = 0;
 	virtual std::string typeString() const noexcept                         = 0;
-	std::string modelString() const;
+	virtual std::string modelString() const;
 };
 
 //--------------------------------------------------------------
@@ -583,6 +583,15 @@ public:
 	}
 
 	std::string typeString() const noexcept override { return std::string(Covariate::name).append(1, ':').append(name); }
+
+	std::string modelString() const override {
+		using coretools::str::toString;
+		std::string s = typeString() + "[";
+		for (size_t i = 0; i < _indexMap.size(); ++i) {
+			s += toString(i) + ":" + toString(_betas[i]) + ",";
+		}
+		return s.substr(0, s.size() - 1) + "]";
+	};
 };
 
 } // namespace SequencingError

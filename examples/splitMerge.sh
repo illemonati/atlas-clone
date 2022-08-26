@@ -3,7 +3,7 @@
 . $(dirname $0)/find_atlas
 
 $atlas --task simulate --numReadGroups 10 --fixedSeed 0 --fragmentLength "gamma(75,1)[30,200]" --logFile simulate.out
-echo "readGroup seqType maxCycles" > rgs.txt
+echo "readGroup seqType seqCycles" > rgs.txt
 echo "SimReadGroup1 single 75" >> rgs.txt
 echo "SimReadGroup3 single 75" >> rgs.txt
 echo "SimReadGroup5 single 75" >> rgs.txt
