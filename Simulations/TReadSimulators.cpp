@@ -108,6 +108,7 @@ TReadSimulators::TReadSimulators(const std::string & RgInfoFileName){
 
 	// E) initialize quality transformation
 	//-------------------------------------
+	//TODO: Recal MUST be set -> change so that is ensured!
 	_recal.initialize(RGinfo);
 	for (size_t r = 0; r < _readSimulators.size(); ++r) {
 		_readSimulators[r]->setRecal(&_recal(r, false), &_recal(r, true));

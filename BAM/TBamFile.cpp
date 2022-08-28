@@ -242,7 +242,7 @@ void TBamFile::setFilters(TParameters & params, TLog* logfile){
 			params.fillParameter("filterReadLength", Range);
 
 			_readLengthFilter.filter(Range, "Read length outside " + Range.rangeString());
-			logfile->list("Read length: restrict to range " + _readLengthFilter.rangeString() + ". (parameter 'filterFragmentLength')");
+			logfile->list("Read length: restrict to range " + _readLengthFilter.rangeString() + ". (parameter 'filterReadLength')");
 		} else {
 			_readLengthFilter.keep();
 			logfile->list("Read length: keep all. (use 'filterReadLength' to limit)");

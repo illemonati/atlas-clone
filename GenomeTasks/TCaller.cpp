@@ -55,20 +55,23 @@ auto sampleFirstSecond(const Container<Type, Index, N, Args...> &c) {
 
 	size_t count_1  = 0;
 	const auto max1 = c[is.front()];
-	while (c[is[count_1++]] == max1) {}
+	while (c[is[count_1]] == max1) {++count_1;}
 
-	if (count_1 != 1) { // several max
+	if(count_1 == 1){
+		size_t count_2  = 1;
+		const auto max2 = c[is[1]];
+		while (c[is[count_2]] == max2) {++count_2;}
+
+		return std::make_tuple(is[0], is[randomGenerator().sample(count_2) + 1]);
+	} else if(count_1 == 2){
+		const auto i1 = randomGenerator().sample(count_1);
+		return std::make_tuple(is[i1], is[1-i1]);
+	} else { // more than two max
 		const auto i1 = randomGenerator().sample(count_1);
 		auto i2 = i1;
 		while (i2 == i1) i2 = randomGenerator().sample(count_1);
 		return std::make_tuple(is[i1], is[i2]);
 	}
-
-	size_t count_2  = 1;
-	const auto max2 = c[is[1]];
-	while (c[is[count_2++]] == max2) {}
-
-	return std::make_tuple(is[0], is[randomGenerator().sample(count_2) + 1]);
 }
 } // namespace
 
@@ -798,12 +801,12 @@ void TCallerDiploid::callGenotypeFromMetric(const TGenotypeProbabilities & metri
 			}
 		} else {
 			_altAlleles.push_back(second(genotypeAtMax));
-			_calledGenotype = "0/1";
+			_calledGenotype = "0/1A";
 		}
 	} else {
 		if(second(genotypeAtMax) == referenceBase){
 			_altAlleles.push_back(first(genotypeAtMax));
-			_calledGenotype = "0/1";
+			_calledGenotype = "0/1B";
 		} else {
 			if(isHomozygous(genotypeAtMax)){
 				_altAlleles.push_back(first(genotypeAtMax));
@@ -1204,7 +1207,7 @@ TCall::TCall():TGenome_windows(){
 		throw "GVCF NOT YET IMPLEMENTED!";
 		_caller->printSitesWithNoData();
 	} else throw "Unknown calling method '" + method + "'! Use randomBase, allelePresence, MLE, Bayesian or gVCF.";
-	logfile().list("Will use the " + _caller->name() + ".");
+	logfile().list("Will use the " + _caller->name() + ". (parameter 'method')");
 
 	//prior setting
 	if(_caller->usesPrior()){

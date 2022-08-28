@@ -186,7 +186,7 @@ void TGenome_windows::_setWindowParameters() {
 		logfile().list("Setting window size to " + toString(_windowSize) + ". (parameter 'window')");
 		if (_windowSize < _bamFile.maxReadLength()) {
 			throw "Window size " + tmp + " out of range! Windows must be at least as large as the max read length (" +
-				toString(_bamFile.maxReadLength()) + " bp). (use parameter 'maxReadLength' to change)!";
+				toString(_bamFile.maxReadLength()) + " bp). (use parameter 'filterReadLength' to change)!";
 		}
 	} else {
 		logfile().listFlush("Limiting analysis to windows defined in BED file '" + tmp + "' (parameter window) ...");
