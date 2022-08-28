@@ -81,6 +81,9 @@ public:
 
 	void open(const std::string &Filename, const std::string &SampleName, BAM::TReadGroups & ReadGroups,
 		  const genometools::TChromosomes &Chromosomes);
+	void setQualityAdjusterForWriting(const BAM::TQualityAdjusterForWriting & QualityAdjuster){
+		_outBam.setQualityAdjusterForWriting(QualityAdjuster);
+	};
 
 	void saveAlignment(const BAM::TAlignment &Alignment) {_outBam.writeAlignment(Alignment); }
 	void close();
