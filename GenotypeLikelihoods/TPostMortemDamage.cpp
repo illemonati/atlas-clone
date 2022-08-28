@@ -501,7 +501,7 @@ TBaseMassFunctions TPMDTypeDoubleStrand::getMassFunctions(const BAM::TSequencedB
 			pmdProb_GA = _pmdCT->prob(data.distFrom5Prime);
 	}
 
-	return TBaseMassFunctions{{TBaseProbabilities{{1., 0., 0., 0.}}, {{0., (1. - pmdProb_CT), 0., pmdProb_CT}}, {{pmdProb_GA, 0., (1-pmdProb_GA), 0.}}, {{0., 0., 1., 0.}}}};
+	return TBaseMassFunctions{{TBaseProbabilities{{1., 0., 0., 0.}}, {{0., (1. - pmdProb_CT), 0., pmdProb_CT}}, {{pmdProb_GA, 0., (1.-pmdProb_GA), 0.}}, {{0., 0., 0., 1.}}}};
 }
 
 TBaseProbabilities TPMDTypeDoubleStrand::getMassFunction(Base b, const BAM::TSequencedBase &data,
@@ -619,7 +619,7 @@ TBaseMassFunctions TPMDTypeSingleStrand::getMassFunctions(const BAM::TSequencedB
 	const double pmdProb_CT = data.distFrom3Prime < data.distFrom5Prime ? _pmdCT3->prob(data.distFrom3Prime)
 									    : _pmdCT5->prob(data.distFrom5Prime);
 
-	return TBaseMassFunctions{{TBaseProbabilities{{1., 0., 0., 0.}}, {{0., (1. - pmdProb_CT), 0., pmdProb_CT}}, {{0., 0., 1., 0.}}, {{0., 0., 1., 0.}}}};
+	return TBaseMassFunctions{{TBaseProbabilities{{1., 0., 0., 0.}}, {{0., (1. - pmdProb_CT), 0., pmdProb_CT}}, {{0., 0., 1., 0.}}, {{0., 0., 0., 1.}}}};
 }
 
 TBaseProbabilities TPMDTypeSingleStrand::getMassFunction(Base b, const BAM::TSequencedBase &data,
