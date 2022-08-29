@@ -126,7 +126,7 @@ void TBamDiagnoser::diagnose(){
 		out << _bamFile.readGroups().getName(rg);
 		out << (_bamFile.numAlignmentsReadPerReadGroup())[rg];
 		out << _passedQC[rg];
-		out << _readLength.mean() << _readLength.max();
+		out << _readLength[rg].mean() << _readLength[rg].max();
 		out << _fragmentLength[rg].counts() << _fragmentLength.mean();
 		out << _softClippedLength[rg].countsLargerZero() << _softClippedLength[rg].mean();
 		out << _usableLength[rg].mean() << (double) _usableLength[rg].sum() / (double) totLengthOfGenome;
