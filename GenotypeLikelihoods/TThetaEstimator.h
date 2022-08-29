@@ -36,26 +36,26 @@ namespace GenotypeLikelihoods {
 // Theta
 //---------------------------------------------------------------
 struct Theta {
-	double theta, expTheta, logTheta, thetaConfidence, LL;
+	double theta, expMinusTheta, logTheta, thetaConfidence, LL;
 	TBaseProbabilities baseFreq;
 
 	Theta() {
 		theta           = 0.0;
 		thetaConfidence = 0.0;
-		expTheta        = 0.0;
+		expMinusTheta        = 0.0;
 		logTheta        = -9e100;
 		LL              = -9e100;
 	};
 
 	void setTheta(const double val) {
 		theta    = val;
-		expTheta = exp(-theta);
+		expMinusTheta = exp(-theta);
 		logTheta = log(theta);
 		LL       = -9e100;
 	};
 
 	void setExpTheta(const double val) {
-		expTheta = val;
+		expMinusTheta = val;
 		theta    = -log(val);
 		logTheta = log(theta);
 		LL       = -9e100;
@@ -64,14 +64,14 @@ struct Theta {
 	void setLogTheta(const double val) {
 		logTheta = val;
 		theta    = exp(val);
-		expTheta = exp(-theta);
+		expMinusTheta = exp(-theta);
 		LL       = -9e100;
 	};
 
 	void setLogTheta(double val, double newLL) {
 		logTheta = val;
 		theta    = exp(val);
-		expTheta = exp(-theta);
+		expMinusTheta = exp(-theta);
 		LL       = newLL;
 	};
 
@@ -138,6 +138,7 @@ private:
 	int NewtonRaphsonNumIterations;
 	double NewtonRaphsonMaxF;
 	bool estimationSuccessful;
+	double _expectedHet;
 
 	// tmp vectors
 	GenotypeLikelihoods::TGenotypeData P_G; // see paper
@@ -147,6 +148,7 @@ private:
 	void _NROnlyTheta();
 	void _runEMForTheta();
 	void _estimateConfidenceInterval();
+	void _calcExpectedHet();
 
 public:
 	TThetaEstimator();

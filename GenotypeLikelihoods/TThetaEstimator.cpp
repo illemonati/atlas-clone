@@ -51,7 +51,7 @@ TGenotypeProbabilities getPGenotype(double expTheta, const TBaseProbabilities &b
 };
 
 GenotypeLikelihoods::TGenotypeProbabilities getPGenotype(const Theta &thisTheta) {
-	return getPGenotype(thisTheta.expTheta, thisTheta.baseFreq);
+	return getPGenotype(thisTheta.expMinusTheta, thisTheta.baseFreq);
 };
 
 TThetaEstimator_base::TThetaEstimator_base()
@@ -183,6 +183,7 @@ TThetaEstimator::TThetaEstimator() : TThetaEstimator_base() {
 	initialTheta                 = 0.0;
 	initThetaSearchFactor        = -1;
 	initThetaNumSearchIterations = -1;
+	_expectedHet 				 = 0.0;
 
 	// parse
 	logfile().startIndent("Parameters of EM algorithm to infer theta:");
@@ -214,6 +215,7 @@ TThetaEstimator::TThetaEstimator(const TThetaEstimator &other) : TThetaEstimator
 	initThetaSearchFactor        = other.initThetaSearchFactor;
 	initThetaNumSearchIterations = other.initThetaNumSearchIterations;
 	estimationSuccessful         = other.estimationSuccessful;
+	_expectedHet				 = other._expectedHet;
 };
 
 void TThetaEstimator::clear() {
@@ -264,7 +266,7 @@ bool TThetaEstimator::_NRAllParams() {
 	arma::vec F(6);
 	arma::mat JxF(6, 6);
 
-	double rho = theta.expTheta / (1.0 - theta.expTheta);
+	double rho = theta.expMinusTheta / (1.0 - theta.expMinusTheta);
 	double mu  = data->sizeWithData();
 
 	TBaseProbabilities &baseFreq = theta.baseFreq; // for cleaner code
@@ -344,7 +346,7 @@ void TThetaEstimator::_NROnlyTheta() {
 	// Calculate all genotype probabilities for all sites
 	data->fillP_G(P_G, _pGenotype);
 
-	double rho = theta.expTheta / (1.0 - theta.expTheta);
+	double rho = theta.expMinusTheta / (1.0 - theta.expMinusTheta);
 
 	for (int n = 0; n < NewtonRaphsonNumIterations; ++n) {
 
@@ -444,11 +446,11 @@ void TThetaEstimator::_estimateConfidenceInterval() {
 		// homozygous genotype
 		const auto hom = genotype(k, k);
 		deriv_pGenotype[hom] =
-			(theta.baseFreq[k].get() * theta.baseFreq[k].get() - theta.baseFreq[k].get()) * theta.expTheta;
+			(theta.baseFreq[k].get() * theta.baseFreq[k].get() - theta.baseFreq[k].get()) * theta.expMinusTheta;
 		// heterozygous genotypes
 		for (Base l = coretools::next(k); l < Base::max; ++l) {
 			const auto het       = genotype(k, l);
-			deriv_pGenotype[het] = 2.0 * theta.baseFreq[k].get() * theta.baseFreq[l].get() * theta.expTheta;
+			deriv_pGenotype[het] = 2.0 * theta.baseFreq[k].get() * theta.baseFreq[l].get() * theta.expMinusTheta;
 		}
 	}
 
@@ -457,6 +459,16 @@ void TThetaEstimator::_estimateConfidenceInterval() {
 	// estimate confidence interval
 	// TODO: Fisher Info can be negative -> SQRT will be nan!
 	theta.thetaConfidence = 1.96 / sqrt(FisherInfo);
+}
+
+void TThetaEstimator::_calcExpectedHet(){
+	using namespace genometools;
+	//calculating epxected heterozygosity under the Felsenstein model
+	double hom = 0.0;
+	for (Base k = Base::min; k < Base::max; ++k) {
+		hom += theta.baseFreq[k] * (theta.expMinusTheta + theta.baseFreq[k] * (1.0 - theta.expMinusTheta));
+	}
+	_expectedHet = 1.0 - hom;
 }
 
 //------------------------------------------------------------
@@ -484,6 +496,8 @@ bool TThetaEstimator::estimateTheta() {
 		logfile().done();
 	}
 	logfile().conclude("theta was estimated at ", theta.theta);
+	_calcExpectedHet();
+	logfile().conclude("implies expected heterozygosity of ", _expectedHet);
 
 	// confidence intervals
 	logfile().listFlush("Estimating approximate confidence intervals from Fisher-Information ...");
@@ -510,6 +524,7 @@ void TThetaEstimator::addToHeader(std::vector<std::string> &header, const std::s
 	header.push_back(prefix + "theta_C95_l");
 	header.push_back(prefix + "theta_C95_u");
 	header.push_back(prefix + "LL");
+	header.push_back(prefix + "expHet_MLE");
 }
 
 void TThetaEstimator::writeEstimateFrequenciesAndTheta(coretools::TOutputFile &out) {
@@ -524,6 +539,7 @@ void TThetaEstimator::writeEstimateFrequenciesAndTheta(coretools::TOutputFile &o
 		out << theta.theta - theta.thetaConfidence;
 		out << theta.theta + theta.thetaConfidence;
 		out << theta.LL;
+		out << _expectedHet;
 	} else {
 		// frequencies
 		out << "-"
@@ -533,6 +549,7 @@ void TThetaEstimator::writeEstimateFrequenciesAndTheta(coretools::TOutputFile &o
 
 		// theta estimates
 		out << "-"
+			<< "-"
 			<< "-"
 			<< "-"
 			<< "-";
@@ -558,7 +575,7 @@ void TThetaEstimator::calcLikelihoodSurface(coretools::TOutputFile &out, uint32_
 	double stepSize    = (maxLogTheta - minLogTheta) / ((double)steps - 1.0);
 
 	for (uint32_t i = 0; i < steps; ++i) {
-		// calc theta and expTheta
+		// calc theta and expMinusTheta
 		theta.setLogTheta(minLogTheta + stepSize * i);
 
 		// calculate	substitution probabilities and Likelihood
@@ -789,7 +806,7 @@ bool TThetaEstimatorRatio::updateBaseFrequencies(TThetaEstimatorData *thisData, 
 	TBaseProbabilities tmpBaseFreq{tmpBaseLik};
 
 	// calc LL & hastings ratio (use uniform prior, i.e. all combinations are equally likely)
-	_pGenotype   = getPGenotype(thisTheta.expTheta, tmpBaseFreq);
+	_pGenotype   = getPGenotype(thisTheta.expMinusTheta, tmpBaseFreq);
 	double newLL = thisData->calcLogLikelihood(_pGenotype);
 	double logH  = newLL - thisTheta.LL;
 
