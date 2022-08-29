@@ -15,6 +15,7 @@
 #include <math.h>
 #include <ostream>
 #include <stdio.h>
+#include "devtools.h"
 
 namespace GenotypeLikelihoods {
 
@@ -115,6 +116,7 @@ TThetaEstimatorData::TThetaEstimatorData() {
 	cumulativeDepth            = 0.0;
 	sum                        = 0.0;
 	g                          = 0;
+	tmpBaseFreq.fill(0.0);
 
 	isBootstrapped        = false;
 	numBootstrappedSites  = false;
