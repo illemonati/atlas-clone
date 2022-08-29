@@ -111,11 +111,19 @@ void TModels::initializeFromFile(const std::string &Filename, const BAM::TReadGr
 			const auto& epsilonDef = vec[2];
 			try {
 				// add model
-				if (vec[1] == "first")
-					_models[readGroupId][0] = std::make_unique<TModelRecal>(rhoDef, epsilonDef);
-				else if (vec[1] == "second")
-					_models[readGroupId][1] = std::make_unique<TModelRecal>(rhoDef, epsilonDef);
-				else
+				if (vec[1] == "first") {
+					if (epsilonDef == "-" || epsilonDef == "default") {
+						_models[readGroupId][0] = std::make_unique<TModelNoRecal>();
+					} else {
+						_models[readGroupId][0] = std::make_unique<TModelRecal>(rhoDef, epsilonDef);
+					}
+				} else if (vec[1] == "second") {
+					if (epsilonDef == "-" || epsilonDef == "default") {
+						_models[readGroupId][1] = std::make_unique<TModelNoRecal>();
+					} else {
+						_models[readGroupId][1] = std::make_unique<TModelRecal>(rhoDef, epsilonDef);
+					}
+				} else
 					throw "Unknown mate '" + vec[1] + "! Must be 'first' or 'second'.";
 			} catch (const char *error) {
 				throw std::string(error) + " in file '" + Filename + "' on line " + toString(in.lineNumber()) + "!";
