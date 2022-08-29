@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.14)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE Release)
+  set(CMAKE_BUILD_TYPE Release)
 endif()
 
 if (POLICY CMP0048)
@@ -50,33 +50,33 @@ find_package(ZLIB REQUIRED)
 # Download coretools and stattools
 include(FetchContent)
 FetchContent_Declare(coretools
-        GIT_REPOSITORY    https://bitbucket.org/wegmannlab/coretools.git
-        GIT_TAG           17af274
-        SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/coretools"
-        )
+  GIT_REPOSITORY    https://bitbucket.org/wegmannlab/coretools.git
+  GIT_TAG           17af274
+  SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/coretools"
+)
 
 FetchContent_Declare(stattools
-        GIT_REPOSITORY    https://bitbucket.org/wegmannlab/stattools.git
-        GIT_TAG           fcfa7ff
-        SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/stattools"
-        )
+  GIT_REPOSITORY    https://bitbucket.org/wegmannlab/stattools.git
+  GIT_TAG           a7418f9   
+  SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/stattools"
+)
 
 FetchContent_Declare(genometools
-        GIT_REPOSITORY    https://bitbucket.org/wegmannlab/genometools.git
-        GIT_TAG			  d0167fd
-        SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/genometools"
-        )
+  GIT_REPOSITORY    https://bitbucket.org/wegmannlab/genometools.git
+  GIT_TAG			  d0167fd
+  SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/genometools"
+)
 
 FetchContent_Declare(bamtools
-        GIT_REPOSITORY    https://github.com/glis-glis/bamtools.git
-        GIT_TAG           master
-        SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/bamtools"
-        )
+  GIT_REPOSITORY    https://github.com/glis-glis/bamtools.git
+  GIT_TAG           master
+  SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/bamtools"
+)
 
 FetchContent_Declare(armadillo
-		  GIT_REPOSITORY https://gitlab.com/conradsnicta/armadillo-code.git
-		  GIT_TAG        11.2.x
-		)
+  GIT_REPOSITORY https://gitlab.com/conradsnicta/armadillo-code.git
+  GIT_TAG        11.2.x
+)
 
 FetchContent_MakeAvailable(coretools stattools genometools bamtools armadillo)
 
@@ -100,14 +100,14 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE WITH_ARMADILLO ARMA_WARN_LEVE
 add_executable("${PROJECT_NAME}_unitTests" EXCLUDE_FROM_ALL)
 
 file(GLOB_RECURSE TEST_SOURCES CONFIGURE_DEPENDS 
-        BAM/tests/*.h BAM/tests/*.cpp
-        bamtools/tests/*
-        GenomeTasks/tests/*.h GenomeTasks/tests/*.cpp
-        GenotypeLikelihoods/tests/*.h GenotypeLikelihoods/tests/*.cpp
-        GLF/tests/*.h GLF/tests/*.cpp
-        PopulationTools/tests/*.h PopulationTools/tests/*.cpp
-        Simulations/tests/*.h Simulations/tests/*.cpp
-        VCF/tests/*.h VCF/tests/*.cpp)
+  BAM/tests/*.h BAM/tests/*.cpp
+  bamtools/tests/*
+  GenomeTasks/tests/*.h GenomeTasks/tests/*.cpp
+  GenotypeLikelihoods/tests/*.h GenotypeLikelihoods/tests/*.cpp
+  GLF/tests/*.h GLF/tests/*.cpp
+  PopulationTools/tests/*.h PopulationTools/tests/*.cpp
+  Simulations/tests/*.h Simulations/tests/*.cpp
+  VCF/tests/*.h VCF/tests/*.cpp)
 
 FetchContent_Declare(
   googletest
@@ -124,13 +124,13 @@ target_sources("${PROJECT_NAME}_unitTests" PRIVATE ${CORE_SOURCES} ${TEST_SOURCE
 target_include_directories("${PROJECT_NAME}_unitTests" PRIVATE 
   coretools/core/IntegrationTests
   coretools/tests
-        BAM
-        GenomeTasks
-        GenotypeLikelihoods
-        GLF
-        PopulationTools
-        Simulations
-        VCF)
+  BAM
+  GenomeTasks
+  GenotypeLikelihoods
+  GLF
+  PopulationTools
+  Simulations
+  VCF)
 
 target_link_libraries("${PROJECT_NAME}_unitTests" PRIVATE BamTools BamTools-utils coretools stattools genometools ${ZLIB_LIBRARIES} armadillo gtest_main gmock_main ${SAN_LINK})
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)

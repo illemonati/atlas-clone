@@ -8,6 +8,7 @@ model="intercept[0.1];quality:polynomial()[0.8,0.2,0.01]"
 # Simululate polynomial model
 $atlas --task simulate --recal1 $model --recal2 $model --fixedSeed 0 --logFile simulate.out
 
+model="ATLAS_polynomial_recalibrationEM.txt"
 # Calculate log Likelihood of model given simulated data
 $atlas --task recal --bam ATLAS_simulations.bam --recal $model --rerecalibrate --onlyLL --fixedSeed 0 --logFile recal_onlyLL.out
 
