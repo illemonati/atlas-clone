@@ -41,7 +41,7 @@ private:
 		{coretools::TStrongArray<double, genometools::Base>{{0., 1. / 3, 1. / 3, 1. / 3}},
 		 coretools::TStrongArray<double, genometools::Base>{{1. / 3, 0., 1. / 3, 1. / 3}},
 		 coretools::TStrongArray<double, genometools::Base>{{1. / 3, 1. / 3, 0., 1. / 3}},
-		 coretools::TStrongArray<double, genometools::Base>{{1. / 3, 1. / 3, 1. / 3, 0.}}}}; //[from][to]
+		 coretools::TStrongArray<double, genometools::Base>{{1. / 3, 1. / 3, 1. / 3, 0.}}}}; //[from k][to l]
 
 	coretools::TStrongArray<coretools::TStrongArray<double, genometools::Base>, genometools::Base> _rhoSum{};
 public:
@@ -57,7 +57,7 @@ public:
 	std::string getDefinition() const noexcept;
 
 	// functions used to estimate
-	void add(genometools::Base base, coretools::Probability P_g_I_d, const TBaseProbabilities &P_bbar_I_d) noexcept;
+	void add(genometools::Base l, coretools::Probability P_g_I_d, const TBaseProbabilities &P_bbar_I_d) noexcept;
 	void estimate() noexcept;
 };
 
