@@ -186,7 +186,7 @@ public:
 	TTask_filterBAM(){ _explanation = "Writing reads that pass filters to BAM file"; };
 
 	void run(){
-		TBamFilter filter;
+		TBamFilter filter; 
 		filter.traverseBAM();
 	};
 };

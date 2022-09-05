@@ -79,7 +79,7 @@ void TGenome_filtered::_traverseBAMPassedQC() {
 	}
 
 	// report
-	_bamFile.printEndWithSummary();
+	_bamFile.printEndWithSummary(_outputName);
 };
 
 //---------------------------------------------------------------
@@ -156,7 +156,7 @@ void TGenome_parsed::_traverseBAMPassedQC() {
 	}
 
 	// report
-	_bamFile.printEndWithSummary();
+	_bamFile.printEndWithSummary(_outputName);
 };
 
 //---------------------------------------------------------------
@@ -585,7 +585,7 @@ void TGenome_windows::_traverseBAMWindows() {
 	logfile().endIndent();
 
 	// report
-	_bamFile.printEndWithSummary();
+	_bamFile.printEndWithSummary(_outputName);
 };
 
 }; // namespace GenomeTasks
