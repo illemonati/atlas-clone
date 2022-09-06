@@ -29,7 +29,19 @@ namespace SequencingError {
 using coretools::Probability;
 using coretools::str::toString;
 using coretools::instances::logfile;
-	using namespace std::string_literals;
+using namespace std::string_literals;
+
+//-------------------------------------
+// TReadGroupModels
+//-------------------------------------
+TReadGroupModels::TReadGroupModels(){
+	_models[0] = std::make_unique<TModelNoRecal>();
+	_models[1] = std::make_unique<TModelNoRecal>();
+}
+
+TReadGroupModels::TReadGroupModels(){
+
+}
 
 //--------------------------------------------------------------------
 // TModels
@@ -46,26 +58,28 @@ std::pair<std::string, std::string> rhoEps(const std::string &s) {
 	}
 	return std::make_pair(s.substr(rBegin + 3, s.size()), s.substr(0, rBegin-1));
 }
+
+void fillNoRecal(std::vector<TReadGroupModels> & vec, const size_t size){
+	vec.reserve(size);
+	for(uint16_t i = 0; i < size; ++i){
+		vec.emplace_back(); //constructor without arguments
+	}
+}
+
 } // namespace impl
 
 void TModels::initializeNoRecal(const BAM::TReadGroups &ReadGroups) {
-	_models.resize(ReadGroups.size());
-	for (auto &m : _models) {
-		m[0] = std::make_unique<TModelNoRecal>();
-		m[1] = std::make_unique<TModelNoRecal>();
-	}
+	impl::fillNoRecal(_models, ReadGroups.size());
 }
 
-std::vector<std::array<std::unique_ptr<TModel>, 2>> TModels::forget() {
-	std::vector<std::array<std::unique_ptr<TModel>, 2>> forgottenModels(_models.size());
-	for (auto &m : forgottenModels) {
-		m[0] = std::make_unique<TModelNoRecal>();
-		m[1] = std::make_unique<TModelNoRecal>();
-	}
+std::vector<TReadGroupModels> TModels::forget() {
+	std::vector<TReadGroupModels> forgottenModels;
+	impl::fillNoRecal(forgottenModels, _models.size());
 	std::swap(_models, forgottenModels);
 	return forgottenModels;
 }
-void TModels::remember(std::vector<std::array<std::unique_ptr<TModel>, 2>>& forgottenModels) {
+
+void TModels::remember(std::vector<TReadGroupModels>& forgottenModels) {
 	if (forgottenModels.size() != _models.size()) DEVERROR("Forgotten models are not correct size!");
 	std::swap(_models, forgottenModels);
 }
@@ -73,9 +87,7 @@ void TModels::remember(std::vector<std::array<std::unique_ptr<TModel>, 2>>& forg
 void TModels::initialize(const std::string &RecalString, const std::string &RhoString,
 					const BAM::TReadGroups &ReadGroups) {
 	if (!_models.empty())
-		throw std::runtime_error(
-			"void TModels::initialize(const std::string & RecalString, const std::string & RhoString, "
-		    "const BAM::TReadGroups & ReadGroups, TLog* Logfile): Models already initialized!");
+		DEVERROR("Models already initialized!");
 
 	// prepare objects
 	_models.resize(ReadGroups.size());
@@ -89,8 +101,7 @@ void TModels::initialize(const std::string &RecalString, const std::string &RhoS
 
 void TModels::initializeFromFile(const std::string &Filename, const BAM::TReadGroups &ReadGroups) {
 	if (!_models.empty())
-		throw std::runtime_error("void TModels::initializeFromFile(const std::string & filename, const "
-					 "BAM::TReadGroups & ReadGroups, TLog* Logfile): Models already initialized!");
+		DEVERROR("Models already initialized!");
 
 	// read parameters from file
 	logfile().listFlush("Initializing recalibration models from '" + Filename + "' ...");
@@ -178,11 +189,11 @@ void TModels::checkReadGroups(const BAM::TReadGroups &ReadGroups, std::vector<ui
 // functions to get error rates
 //-------------------------------------------------------
 Probability TModels::getErrorRate(const BAM::TSequencedBase &base) const noexcept {
-	return _models[base.readGroupID][base.isSecondMate()]->getErrorRate(base);
+	return _models[base.readGroupID][base.isSecondMate()].getErrorRate(base);
 }
 
 genometools::PhredIntProbability TModels::getPhredInt(const BAM::TSequencedBase &base) const noexcept {
-	return _models[base.readGroupID][base.isSecondMate()]->getPhredInt(base);
+	return _models[base.readGroupID][base.isSecondMate()].getPhredInt(base);
 }
 
 void TModels::recalibrate(BAM::TSequencedBase &base) const noexcept {
@@ -194,7 +205,7 @@ void TModels::recalibrate(std::vector<BAM::TSequencedBase> &bases) const noexcep
 }
 
 TBaseLikelihoods TModels::getBaseLikelihoods(const BAM::TSequencedBase &base) const noexcept {
-	return _models[base.readGroupID][base.isSecondMate()]->getBaseLikelihoods(base);
+	return _models[base.readGroupID][base.isSecondMate()].getBaseLikelihoods(base);
 }
 
 // functions to write file
