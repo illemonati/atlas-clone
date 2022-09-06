@@ -121,7 +121,7 @@ void TMajorMinorEstimatorSkotte::_findMLAllelicCombination(const TMultiGLFData &
 
 	// now estimate genotype frequencies at MLE allelic combination
 	fill(_genotypeLikelihoods, data, _bestAllelicCombination);
-	_genotypeFrequencies.estimate(_genotypeLikelihoods, _genotypeLikelihoods.size(), _epsilonF);
+	_genotypeFrequencies.estimate<false>(_genotypeLikelihoods, _genotypeLikelihoods.size(), _epsilonF);
 
 	// calculate likelihood again with better genotype frequencies
 	_L10L_perCombination[_bestAllelicCombination] =
@@ -136,7 +136,7 @@ coretools::Log10Probability TMajorMinorEstimatorMLE::_estimateGenotypeFrequencie
 	using coretools::index;
 	fill(_genotypeLikelihoods, data, ac);
 	const auto sz = _genotypeLikelihoods.size();
-	_tmpGenotypeFrequencies[index(ac)].estimate(_genotypeLikelihoods, sz, _epsilonF);
+	_tmpGenotypeFrequencies[index(ac)].estimate<false>(_genotypeLikelihoods, sz, _epsilonF);
 	return _tmpGenotypeFrequencies[index(ac)].calculateLog10Likelihood(_genotypeLikelihoods, sz);
 };
 

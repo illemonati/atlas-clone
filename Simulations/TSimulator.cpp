@@ -409,7 +409,7 @@ namespace /* anonymous */ {
 auto calculateLog10ProbThisAllelicCombination(const GLF::TMultiGLFDataOneAllelicCombination &GenotypeLikelihoods) {
 	// estimate genotype frequencies
 	genometools::TGenotypeFrequencies genotypeFrequencies;
-	genotypeFrequencies.estimate(GenotypeLikelihoods, GenotypeLikelihoods.size(), 0.0000001);
+	genotypeFrequencies.estimate<true>(GenotypeLikelihoods, GenotypeLikelihoods.size(), 0.0000001);
 
 	// calculate log10 likelihood
 	return genotypeFrequencies.calculateLog10Likelihood(GenotypeLikelihoods, GenotypeLikelihoods.size());
