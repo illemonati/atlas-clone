@@ -37,9 +37,13 @@ void TBamDiagnoser::_writeHistogram(const TCountDistributionVector<> & distVec, 
 	logfile().listFlush("Writing " + name + " histogram to '" + filename + "' ...");
 	coretools::TOutputFile out(filename, {"readGroup", header, "count"});
 
-	//First write values for all read groups combined, then write them per read group
-	distVec.writeCombined(out, "allReadGroups");
-	distVec.write(out, _readGroupNames);
+    // Should file contain read groups with 0 counts?
+    bool write_0 = false;
+    if (parameters().parameterExists("writeZeroCounts")) { write_0 = true; }
+
+	// First write values for all read groups combined, then write them per read group
+	distVec.writeCombined(out, "allReadGroups", write_0);
+	distVec.write(out, _readGroupNames, write_0);
 
 	out.close();
 	logfile().done();
