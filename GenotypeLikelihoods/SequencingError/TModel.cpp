@@ -7,6 +7,7 @@
 
 #include "SequencingError/TModel.h"
 
+#include <array>
 #include <math.h>
 #include <stdlib.h>
 #include <algorithm>
@@ -22,6 +23,7 @@
 #include "TRandomGenerator.h"
 #include "TSequencedBase.h"
 #include "SequencingError/TCovariate.h"
+#include "TStrongArray.h"
 #include "devtools.h"
 #include "mathFunctions.h"
 #include "probability.h"
@@ -58,10 +60,10 @@ TRho::TRho(const std::string &Def) {
 	if (vec.size() != 4) throw "Rho matrix has " + toString(vec.size()) + " instead of 4 rows!";
 
 	// parse rows
-	std::vector<double> r;
 	for (Base a = Base::min; a < Base::max; ++a) {
 		std::string &row = vec[index(a)];
-		coretools::str::trimString(row, "()");
+		coretools::str::trimString(row, "[]");
+		std::vector<double> r;
 		coretools::str::fillContainerFromString(row, r, ',');
 		if (r.size() != 4)
 			throw "Rho matrix has " + toString(r.size()) + " instead of 4 columns for row " + toString(index(a) + 1) + "!";
@@ -79,16 +81,16 @@ std::string TRho::getDefinition() const noexcept {
 		+ toString(_rho[Base::T][Base::A]) + ',' + toString(_rho[Base::T][Base::C]) + ',' + toString(_rho[Base::T][Base::G]) + ",-]]";
 }
 
-void TRho::add(genometools::Base base, coretools::Probability P_g_I_d, const TBaseProbabilities &P_bbar_I_d) noexcept {
-	for (auto b = Base::min; b < Base::max; ++b) {
-		_rhoSum[b][base] += P_g_I_d*P_bbar_I_d[b];
+void TRho::add(genometools::Base l, coretools::Probability P_g_I_d, const TBaseProbabilities &P_bbar_I_d) noexcept {
+	for (auto k = Base::min; k < Base::max; ++k) {
+		_rhoSum[k][l] += P_g_I_d*P_bbar_I_d[k];
 	}
 }
 
 void TRho::estimate() noexcept {
-	for (Base a = Base::min; a < Base::max; ++a) {
-		_rhoSum[a][a] = 0.0;
-		_rho[a] = _rhoSum[a];
+	for (Base k = Base::min; k < Base::max; ++k) {
+		_rhoSum[k][k] = 0.0;
+		_rho[k] = _rhoSum[k];
 	}
 	// reset
 	_rhoSum.fill({});
@@ -161,9 +163,10 @@ TBaseLikelihoods TModelRecal::getBaseLikelihoods(const BAM::TSequencedBase &base
 		return TBaseLikelihoods{1.};
 	}
 	const auto e = _epsilon.calcErrorRate(base);
+	const auto l = base.base;
 	TBaseLikelihoods baseLikelihoods;
-	for (auto b = Base::min; b < Base::max; ++b) baseLikelihoods[b] = e * _rho[b][base.base];
-	baseLikelihoods[base.base] = e.complement();
+	for (auto k = Base::min; k < Base::max; ++k) baseLikelihoods[k] = e * _rho[k][l];
+	baseLikelihoods[l] = e.complement();
 	return baseLikelihoods;
 }
 
@@ -172,15 +175,25 @@ void TModelRecal::simulate(BAM::TSequencedBase &base) const noexcept {
 
 	const auto e = _epsilon.calcErrorRate(base);
 	if (randomGenerator().getRand() < e) {
-		const double r = randomGenerator().getRand();
-		double cumul   = 0.;
-		for (auto b = Base::min; b < Base::max; ++b) {
-			cumul += _rho[b][base.base]; //_rho(base.base, base.base) = 0
-			if (r < cumul) {
-				base.base = b;
-				return;
-			}
+		const auto k = base.base;
+		constexpr coretools::TStrongArray<std::array<Base, 3>, Base> lss({std::array<Base, 3>{Base::C, Base::G, Base::T},
+																		 {Base::A, Base::G, Base::T},
+																		 {Base::A, Base::C, Base::T},
+																		 {Base::A, Base::C, Base::G}});
+		const auto ls = lss[k];
+
+		double r = randomGenerator().getRand();
+		if (r < _rho[k][ls[0]]) {
+			base.base = ls[0];
+			return;
 		}
+		r -= _rho[k][ls[0]];
+		if ((r < _rho[k][ls[1]])) {
+			base.base = ls[1];
+			return;
+		}
+		// else
+		base.base = ls[2];
 	}
 }
 

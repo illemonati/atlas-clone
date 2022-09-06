@@ -701,7 +701,7 @@ void TBamFile::curAddSamField(const std::string tag, const float value){
 //-----------------------------------------------------
 // Reporting
 //-----------------------------------------------------
-void TBamFile::printSummaryNoEndIndent(){
+void TBamFile::printSummaryNoEndIndent(std::string &outputName){
 	_logfile->startIndent("Summary of parsed reads from BAM file '" + _filename + "':");
 	_logfile->list("Total number of reads read: " + coretools::str::toString(_numAlignmentRead));
 	_logfile->list("Reads that passed filters: " + coretools::str::toString(_numAlignmentsPassedQC) + " (" + coretools::str::toPercentString(_numAlignmentsPassedQC, _numAlignmentRead, 3) + "%)");
@@ -712,7 +712,7 @@ void TBamFile::printSummaryNoEndIndent(){
 		_logfile->addIndent();
 
 				//write counts of filtered reads for each read group to _filterSummary.txt file
-				std::string filename = _filename.erase(_filename.size() - 4, 4) + "_filterSummary.txt";
+				std::string filename = outputName + "_filterSummary.txt";
 				coretools::instances::logfile().listFlush("Writing general filter counts to '" + filename + "' ...");
 
 				//creating header
@@ -822,8 +822,8 @@ void TBamFile::printSummaryNoEndIndent(){
 	}
 };
 
-void TBamFile::printSummary(){
-	printSummaryNoEndIndent();
+void TBamFile::printSummary(std::string &outputName){
+	printSummaryNoEndIndent(outputName);
 	_logfile->endIndent();
 };
 
@@ -846,10 +846,10 @@ void TBamFile::printProgress(){
 	}
 };
 
-void TBamFile::printEndWithSummary(){
+void TBamFile::printEndWithSummary(std::string &outputName){
 	printEndNoEndIndent();
 	_logfile->endIndent();
-	printSummary();
+	printSummary(outputName);
 };
 
 void TBamFile::printEndNoEndIndent(){

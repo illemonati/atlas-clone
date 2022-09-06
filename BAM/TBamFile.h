@@ -214,11 +214,11 @@ public:
 	uint16_t numReadGroups() const{ return _readGroups.size(); };
 
 	//progress reporting
-	void printSummaryNoEndIndent();
-	void printSummary();
+	void printSummaryNoEndIndent(std::string &outputName);
+	void printSummary(std::string &outputName);
 	void startProgressReporting(uint32_t Frequency=1000000);
 	void printProgress();
-	void printEndWithSummary();
+	void printEndWithSummary(std::string &outputName);
 	void printEndNoEndIndent();
 
 	//comparisons

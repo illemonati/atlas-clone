@@ -142,7 +142,7 @@ void TBamDownsampler::downsample(){
 		}
 		_bamFile.printProgress();
 	}
-	_bamFile.printEndWithSummary();
+	_bamFile.printEndWithSummary(_outputName);
 
 	//close
 	for(auto& s : _bamSamples){
@@ -166,7 +166,7 @@ void TBamReadDownsampler::downsample(){
 		}
 		_bamFile.printProgress();
 	}
-	_bamFile.printEndWithSummary();
+	_bamFile.printEndWithSummary(_outputName);
 
 	//close
 	for(auto& s : _bamSamples){

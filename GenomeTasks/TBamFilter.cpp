@@ -410,7 +410,7 @@ void TBamFilter::traverseBAM(){
 	_writeAll();
 
 	//done parsing bam file: report
-	_bamFile.printSummary();
+	_bamFile.printSummary(_outputName);
 	_bamFile.close();
 	_outBam.close(&logfile());
 };
@@ -704,7 +704,7 @@ void TOverlapQuantifier::quantifyOverlap(){
 	}
 
 	//done parsing bam file: report
-	_bamFile.printSummary();
+	_bamFile.printSummary(_outputName);
 	_bamFile.close();
 
 	//write distribution

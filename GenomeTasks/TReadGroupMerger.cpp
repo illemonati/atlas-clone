@@ -106,7 +106,7 @@ void TReadGroupMerger::mergeReadGroups(){
 		//report
 		_bamFile.printProgress();
 	}
-	_bamFile.printEndWithSummary();
+	_bamFile.printEndWithSummary(_outputName);
 
 	//close bam writer
 	outBam.close(&logfile());
