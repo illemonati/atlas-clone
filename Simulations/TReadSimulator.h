@@ -26,7 +26,7 @@
 #include "TLog.h"
 
 namespace GenotypeLikelihoods { class TPMDType; }
-namespace GenotypeLikelihoods { namespace SequencingError { class TModel; } }
+namespace GenotypeLikelihoods { namespace SequencingError { class TReadGroupModels; } }
 namespace Simulations { class TSimulatorBamFile; }
 namespace Simulations { class TSimulatorReference; }
 
@@ -59,8 +59,7 @@ protected:
 	std::unique_ptr<TCategoricalDistribution<uint16_t>> _softClipDist5;
 	std::unique_ptr<TCategoricalDistribution<uint16_t>> _softClipDist3;
 	GenotypeLikelihoods::TPMDType const *_pmd = nullptr;
-	std::array<GenotypeLikelihoods::SequencingError::TModel const *, 2> _recal;
-	bool _hasRecal;
+	std::unique_ptr<GenotypeLikelihoods::SequencingError::TReadGroupModels> _recalModels;
 
 	// contamination
 	double _contaminationRate = 0.;
@@ -73,7 +72,7 @@ protected:
 	//initialization functions
 	template <typename Distr>
 	void _initDistribution(Distr & Dist, const TReadGroupInfoEntry & RGInfo, const BAM::RGInfo::InfoType & Info){
-		coretools::instances::logfile().list(BAM::RGInfo::infos[Info].description, ": ", RGInfo[Info]);
+		coretools::instances::logfile().list(coretools::str::capitalizeFirst(BAM::RGInfo::infos[Info].description), ": ", RGInfo[Info]);
 		Dist.set(RGInfo[Info]);
 	};
 
@@ -95,7 +94,6 @@ public:
 
 	//setters
 	void setPMD(GenotypeLikelihoods::TPMDType const *Pmd);
-	void setRecal(GenotypeLikelihoods::SequencingError::TModel const *Recal1, GenotypeLikelihoods::SequencingError::TModel const *Recal2);
 	void setContamination(double rate, TSimulatorReference *source);
 
 	//simulate

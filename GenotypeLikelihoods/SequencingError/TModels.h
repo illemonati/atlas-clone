@@ -19,6 +19,7 @@
 #include "SequencingError/TModel.h"
 #include "probability.h"
 #include "TReadGroupInfo.h"
+#include "TAlignment.h"
 
 namespace BAM { class TReadGroups; }
 namespace BAM { class TSequencedBase; }
@@ -28,6 +29,7 @@ namespace SequencingError {
 
 //-------------------------------------
 // TReadGroupModels
+// Object containing a TModel for the first and second mate
 //-------------------------------------
 class TReadGroupModels{
 private:
@@ -35,29 +37,34 @@ private:
 
 public:
 	TReadGroupModels();
+	TReadGroupModels(const std::string &RecalString, const std::string &RhoString);
+	TReadGroupModels(const std::string &RecalString1, const std::string &RhoString1, const std::string &RecalString2, const std::string &RhoString2);
+	TReadGroupModels(const BAM::RGInfo::TReadGroupInfoEntry & Info);
+	TReadGroupModels(TReadGroupModels&&) = default;
 	~TReadGroupModels() = default;
 
 	void initializeNoRecal();
 	void initialize(const std::string &RecalString, const std::string &RhoString);
 
-	TModel operator[](bool isSecondMate) noexcept {
-		return *_models[isSecondMate];
+	TModel& operator[](bool isSecondMate) noexcept {
+		return *_models[isSecondMate].get();
 	}
 
-	const TModel operator[](bool isSecondMate) const noexcept {
-		return *_models[isSecondMate];
+	const TModel& operator[](bool isSecondMate) const noexcept {
+		return *_models[isSecondMate].get();
 	}
 
 	bool recalibrationChangesQualities() const  noexcept {
 		if (_models[0]->recalibrates() || _models[1]->recalibrates()) return true;
 		return false;
 	}
-};
 
+	void simulate(BAM::TAlignment & Alignment) const;
+};
 
 //--------------------------------------------------------------------------
 // TModels
-// Object containing a vector of TModel
+// Object containing a vector of TReadGroupModels
 //--------------------------------------------------------------------------
 class TModels {
 private:
@@ -75,11 +82,11 @@ public:
 	void remember(std::vector<TReadGroupModels>& forgottenModels);
 
 	// access models
-	TModel &operator()(uint16_t ReadGroupIndex, bool IsSecondMate) noexcept {
+	TModel& operator()(uint16_t ReadGroupIndex, bool IsSecondMate) noexcept {
 		return _models[ReadGroupIndex][IsSecondMate];
 	}
 
-	const TModel &operator()(uint16_t ReadGroupIndex, bool IsSecondMate) const noexcept {
+	const TModel& operator()(uint16_t ReadGroupIndex, bool IsSecondMate) const noexcept {
 		return _models[ReadGroupIndex][IsSecondMate];
 	}
 
