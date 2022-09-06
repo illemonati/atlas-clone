@@ -386,13 +386,13 @@ void TVCFWriterSimulation::writeSite(const std::string &ChrName, uint32_t Positi
 		const bool isMissing = (Depths[i] == 0);
 		if (IsDiploid) {
 			_writeCell<3>(isMissing, Depths[i],
-			              {GenotypeLikelihoods[i][genometools::BiallelicGenotype::homoFirst],
-			               GenotypeLikelihoods[i][genometools::BiallelicGenotype::het],
-			               GenotypeLikelihoods[i][genometools::BiallelicGenotype::homoSecond]});
+			              {HighPrecisionPhredIntProbability(GenotypeLikelihoods[i][genometools::BiallelicGenotype::homoFirst]),
+			               HighPrecisionPhredIntProbability(GenotypeLikelihoods[i][genometools::BiallelicGenotype::het]),
+			               HighPrecisionPhredIntProbability(GenotypeLikelihoods[i][genometools::BiallelicGenotype::homoSecond])});
 		} else {
 			_writeCell<2>(isMissing, Depths[i],
-			              {GenotypeLikelihoods[i][genometools::BiallelicGenotype::haploidFirst],
-			               GenotypeLikelihoods[i][genometools::BiallelicGenotype::haploidSecond]});
+			              {HighPrecisionPhredIntProbability(GenotypeLikelihoods[i][genometools::BiallelicGenotype::haploidFirst]),
+			               HighPrecisionPhredIntProbability(GenotypeLikelihoods[i][genometools::BiallelicGenotype::haploidSecond])});
 		}
 	}
 

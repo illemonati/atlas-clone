@@ -25,6 +25,7 @@
 #include "TGenomePosition.h"
 #include "TRandomGenerator.h"
 #include "gzstream.h"
+#include "probability.h"
 
 namespace GLF {
 
@@ -80,7 +81,7 @@ private:
 	enum : uint8_t {NOTMISSING_DIPLOID = 0, MISSING_DIPLOID = 1, NOTMISSING_HAPLOID = 2, MISSING_HAPLOID = 3};
 
 	coretools::TBitSet<2> _flags{MISSING_DIPLOID};
-	std::array<genometools::HighPrecisionPhredIntProbability, 3> _GLs{genometools::HighPrecisionPhredIntProbability::highest(), genometools::HighPrecisionPhredIntProbability::highest(), genometools::HighPrecisionPhredIntProbability::highest()};
+	std::array<coretools::Probability, 3> _GLs{coretools::Probability::highest(), coretools::Probability::highest(), coretools::Probability::highest()};
 
 public:
 	constexpr TMultiGLFDataSampleOneAllelicCombination(bool isHaploid=false) : _flags(MISSING_DIPLOID | isHaploid * MISSING_HAPLOID){}
@@ -88,16 +89,16 @@ public:
 	constexpr TMultiGLFDataSampleOneAllelicCombination(genometools::HighPrecisionPhredIntProbability homoFirst,
 							   genometools::HighPrecisionPhredIntProbability het,
 							   genometools::HighPrecisionPhredIntProbability homoSecond)
-		: _flags(NOTMISSING_DIPLOID), _GLs({homoFirst, het, homoSecond})  {}
+		: _flags(NOTMISSING_DIPLOID), _GLs({coretools::Probability(homoFirst), coretools::Probability(het), coretools::Probability(homoSecond)})  {}
 
 	constexpr TMultiGLFDataSampleOneAllelicCombination(genometools::HighPrecisionPhredIntProbability first,
 							   genometools::HighPrecisionPhredIntProbability second)
-		:  _flags(NOTMISSING_HAPLOID), _GLs({first, second, genometools::HighPrecisionPhredIntProbability::highest()})  {}
+		:  _flags(NOTMISSING_HAPLOID), _GLs({coretools::Probability(first), coretools::Probability(second), coretools::Probability::highest()})  {}
 
 	constexpr bool isMissing() const noexcept { return _flags.get<0>();}
 	constexpr bool isHaploid() const noexcept { return _flags.get<1>();}
 
-	constexpr genometools::HighPrecisionPhredIntProbability
+	constexpr coretools::Probability
 	operator[](genometools::BiallelicGenotype Genotype) const noexcept {
 		assert(isHaploid() == genometools::isHaploid(Genotype));
 		return _GLs[genometools::altAlleleCounts(Genotype)];
