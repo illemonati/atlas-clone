@@ -112,7 +112,7 @@ void addTaks(coretools::TMain & main) {
 
 
     //VCF
-	main.addRegularTask("VCFDiagnositics", new VCF::TTask_VCFDiagnostics());
+	main.addRegularTask("VCFDiagnostics", new VCF::TTask_VCFDiagnostics());
 	main.addRegularTask("VCFToInvariantBed", new VCF::TTask_VCFToInvariantBed());
 	main.addRegularTask("convertVCF", new VCF::TTask_VcfConverter());
     main.addRegularTask("VCFFixInt", new VCF::TTask_VCFFixInt());

@@ -32,7 +32,7 @@ public:
 //--------------------------------------
 class TTask_identifyPolymorphicWindows:public coretools::TTask{
 public:
-	TTask_identifyPolymorphicWindows(){ _explanation = "Identifying windows for which samples are polymoprhic"; };
+	TTask_identifyPolymorphicWindows(){ _explanation = "Identifying windows for which samples are polymorphic"; };
 
 	void run(){
 		using namespace coretools::instances;

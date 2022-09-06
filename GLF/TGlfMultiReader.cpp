@@ -21,6 +21,7 @@
 #include "stringFunctions.h"
 #include "strongTypes.h"
 #include "weakTypes.h"
+#include "devtools.h"
 
 namespace GLF {
 using coretools::instances::logfile;
@@ -69,11 +70,12 @@ void fill(TMultiGLFDataOneAllelicCombination &storage, const TMultiGLFData &samp
 		  genometools::AllelicCombination alleleicCombination) {
 	using namespace genometools;
 	storage.clear();
-	storage.reserve(samples.size());
+	//storage.reserve(samples.size());
 	for (const auto &s : samples) {
-		if (!s.hasData())
-			storage.emplace_back(s.isHaploid<false>());
-		else if (s.isHaploid<true>())
+		if (!s.hasData()) {
+			continue;
+		}
+		if (s.isHaploid<true>())
 			storage.emplace_back(s.get_with_data(first(alleleicCombination)),
 								 s.get_with_data(second(alleleicCombination)));
 		else

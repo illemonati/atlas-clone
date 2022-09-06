@@ -37,9 +37,13 @@ void TBamDiagnoser::_writeHistogram(const TCountDistributionVector<> & distVec, 
 	logfile().listFlush("Writing " + name + " histogram to '" + filename + "' ...");
 	coretools::TOutputFile out(filename, {"readGroup", header, "count"});
 
-	//First write values for all read groups combined, then write them per read group
-	distVec.writeCombined(out, "allReadGroups");
-	distVec.write(out, _readGroupNames);
+    // Should file contain read groups with 0 counts?
+    bool write_0 = false;
+    if (parameters().parameterExists("writeZeroCounts")) { write_0 = true; }
+
+	// First write values for all read groups combined, then write them per read group
+	distVec.writeCombined(out, "allReadGroups", write_0);
+	distVec.write(out, _readGroupNames, write_0);
 
 	out.close();
 	logfile().done();
@@ -144,7 +148,7 @@ void TBamDiagnoser::diagnose(){
 	//write file used by split merge
 	std::string splitmergename = _outputName + "_splitMergeInput.txt";
 	logfile().listFlush("Outputting input file for splitMerge to '" + splitmergename + "' ...");
-	coretools::TOutputFile splitm (splitmergename, {"readGroup", "seqType", "maxCycles"});
+	coretools::TOutputFile splitm (splitmergename, {"readGroup", "seqType", "seqCycles"});
 	for(uint32_t rg = 0; rg < numRG; ++rg){
 		splitm << _bamFile.readGroups().getName(rg);
 		if (_fragmentLength[rg].counts() == 0){

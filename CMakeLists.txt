@@ -51,7 +51,7 @@ find_package(ZLIB REQUIRED)
 include(FetchContent)
 FetchContent_Declare(coretools
   GIT_REPOSITORY    https://bitbucket.org/wegmannlab/coretools.git
-  GIT_TAG           17af274
+  GIT_TAG           768c6a7
   SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/coretools"
 )
 
@@ -63,7 +63,7 @@ FetchContent_Declare(stattools
 
 FetchContent_Declare(genometools
   GIT_REPOSITORY    https://bitbucket.org/wegmannlab/genometools.git
-  GIT_TAG			  d0167fd
+  GIT_TAG			09f7dad
   SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/genometools"
 )
 
