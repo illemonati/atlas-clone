@@ -428,6 +428,7 @@ void TBamFile::_applyFilters(){
 	//read length is special as it affects our storage
 	if(!_mappedLengthFilter.pass(_curCigar.lengthMapped(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID)){
 		if(!_allowTooLongReads){
+			// TODO: allowTooLongReads: is that a good name?
 			throw "The mapping length of alignment '" +  _curBamAlignment.Name + "' is beyond the range " + _mappedLengthFilter.rangeString() + "!\n"
 			     + "You see this error because " + coretools::__GLOBAL_APPLICATION_NAME__ + " was run with default mapping length filters. Either set your filters using 'filterMappingLength' or add 'allowTooLongReads' to ignore this error.";
 		} else {

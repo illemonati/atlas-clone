@@ -78,7 +78,11 @@ FetchContent_Declare(armadillo
 		  GIT_TAG        11.2.x
 		)
 
-FetchContent_MakeAvailable(coretools stattools genometools bamtools armadillo)
+FetchContent_Declare(json
+		  URL https://github.com/nlohmann/json/releases/download/v3.11.2/json.tar.xz
+		  )
+
+FetchContent_MakeAvailable(coretools stattools genometools bamtools armadillo json)
 
 target_sources(${PROJECT_NAME} PRIVATE ${CORE_SOURCES})
 target_include_directories(${PROJECT_NAME} PRIVATE 
@@ -91,7 +95,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
   Simulations
   VCF)
 
-target_link_libraries(${PROJECT_NAME} PRIVATE BamTools BamTools-utils coretools stattools genometools ${ZLIB_LIBRARIES} armadillo ${SAN_LINK})
+target_link_libraries(${PROJECT_NAME} PRIVATE BamTools BamTools-utils coretools stattools genometools ${ZLIB_LIBRARIES} armadillo ${SAN_LINK} nlohmann_json::nlohmann_json)
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_EXTENSIONS OFF)
 target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra ${SAN})
