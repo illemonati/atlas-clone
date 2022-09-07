@@ -27,6 +27,8 @@ class TBamDiagnoser:public TGenome_filtered{
 private:
 	BAM::TQualityFilter _qualFilter;
 	std::vector<std::string> _readGroupNames;
+	bool _write_0;
+	bool _writeSplitMergeInput;
 
     // distributions
     coretools::TCountDistribution<> _passedQC;

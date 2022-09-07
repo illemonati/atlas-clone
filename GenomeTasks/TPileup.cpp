@@ -21,6 +21,7 @@
 #include "TSite.h"
 #include "TWindow.h"
 
+
 namespace GenomeTasks{
 
 using coretools::instances::logfile;
@@ -52,6 +53,18 @@ bool parseField(std::set<std::string> &fields, const std::string &tag, const std
 //---------------------------------
 // TPileup
 //---------------------------------
+namespace impl{
+	void parseHistogramRequest(const std::string & Param, const std::string & Name, bool & Write){
+		if(parameters().parameterExists(Param)){
+			Write = true;
+			logfile().list("Will collect ", Name, " histogram. (parameter '", Param, "')");
+		} else {
+			Write = false;
+			logfile().list("Will not collect ", Name, " histogram. (request with '", Param, "')");
+		}
+	}
+}
+
 TPileup::TPileup():TGenome_windows(){
 	//open output file
 	const std::string filename = _outputName + "_pileup.txt.gz";
@@ -129,8 +142,22 @@ TPileup::TPileup():TGenome_windows(){
 		_printSettings.set<OnlySitesWithData>(true);
 		logfile().list("Will print only sites with data. (use 'printAll' to print all)");
 	}
-};
 
+	// histogram settings
+	impl::parseHistogramRequest("writeDepthHisto", "depth per site", _writeDepthHisto);
+	impl::parseHistogramRequest("writeBaseQualHisto", "base quality", _writeBaseQualHisto);
+
+	// Should file contain read groups with 0 counts?
+	_write_0 = false;
+	if(_writeDepthHisto || _writeBaseQualHisto){
+		if (parameters().parameterExists("writeZeroCounts")){
+			_write_0 = true;
+			logfile().list("Will also write empty bins of histograms. (parameter 'writeZeroCounts')");
+		} else {
+			logfile().list("Will only write histogram bins with data. (request empty bins with 'writeZeroCounts')");
+		}
+	}
+};
 
 void TPileup::_handleWindow(){
 	using genometools::Base;
@@ -181,6 +208,17 @@ void TPileup::_handleWindow(){
 			impl::write(_genoLik, _out);
 		}
 		_out << std::endl;
+
+		//collect data for histograms
+		if(_writeDepthHisto){
+			_depthHisto.add(site.depth());
+		}
+
+		if(_writeBaseQualHisto){
+			for(auto& b : site){
+				_baseQualHisto.add(b.readGroupID, b.originalQuality_phredInt);
+			}
+		}
 	}
 
 	logfile().doneTime();
@@ -188,6 +226,14 @@ void TPileup::_handleWindow(){
 
 void TPileup::printPileup(){
 	_traverseBAMWindows();
+
+	//write histograms
+	if(_writeDepthHisto){
+		_depthHisto.write(_outputName + "_depthHistogram.txt", "depth", _write_0);
+	}
+	if(_writeBaseQualHisto){
+		_baseQualHisto.writeIncludingCombined(_outputName + "_depthHistogram.txt", "readGroup", "depth", "allReadGroups", _write_0);
+	}
 };
 
 }; // end namespace

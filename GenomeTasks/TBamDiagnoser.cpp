@@ -24,11 +24,28 @@ using coretools::instances::logfile;
 using coretools::TCountDistributionVector;
 
 TBamDiagnoser::TBamDiagnoser():TGenome_filtered(){
-    // initialize TGenome_basic stuff
+	// Should file contain read groups with 0 counts?
+	const std::string writeZeroName = "writeZeroCounts";
+	if (parameters().parameterExists(writeZeroName)){
+		_write_0 = true;
+		logfile().list("Will also write empty bins of histograms. (parameter '", writeZeroName, "')");
+	} else {
+		_write_0 = false;
+		logfile().list("Will only write histogram bins with data. (request empty bins with '", writeZeroName, "')");
+	}
+
+	//writing split-merge input?
+	const std::string splitMergeName = "splitMergeInput";
+    if(parameters().parameterExists(splitMergeName)){
+    	_writeSplitMergeInput = true;
+    	logfile().list("Will write splitMerge input file. (parameter '", splitMergeName, "')");
+    } else {
+    	_writeSplitMergeInput = false;
+    	logfile().list("Will not create input file for splitMerge. (request with '", splitMergeName, "').");
+    }
 
 	//settings
 	_bamFile.readGroups().fillVectorWithNames(_readGroupNames);
-
 };
 
 void TBamDiagnoser::_writeHistogram(const TCountDistributionVector<> & distVec, const std::string& header, const std::string& name){
@@ -37,9 +54,9 @@ void TBamDiagnoser::_writeHistogram(const TCountDistributionVector<> & distVec, 
 	logfile().listFlush("Writing " + name + " histogram to '" + filename + "' ...");
 	coretools::TOutputFile out(filename, {"readGroup", header, "count"});
 
-	//First write values for all read groups combined, then write them per read group
-	distVec.writeCombined(out, "allReadGroups");
-	distVec.write(out, _readGroupNames);
+	// First write values for all read groups combined, then write them per read group
+	distVec.writeCombined(out, "allReadGroups", _write_0);
+	distVec.write(out, _readGroupNames, _write_0);
 
 	out.close();
 	logfile().done();
@@ -80,9 +97,6 @@ void TBamDiagnoser::diagnose(){
 
 	//now parse through bam file
     _traverseBAMPassedQC();
-    if(!parameters().parameterExists("splitMergeInput")){
-    	logfile().list("Will not create input file for splitMerge. (use 'splitMergeInput' to do so).");
-    }
 	logfile().list("Approximate sequencing depth was estimated at ", (double) _usableLength.sum() / (double) totLengthOfGenome, ".");
 
 	//writing output files
@@ -140,24 +154,23 @@ void TBamDiagnoser::diagnose(){
 	out.close();
 	logfile().done();
 
-	if(parameters().parameterExists("splitMergeInput")){
 	//write file used by split merge
-	std::string splitmergename = _outputName + "_splitMergeInput.txt";
-	logfile().listFlush("Outputting input file for splitMerge to '" + splitmergename + "' ...");
-	coretools::TOutputFile splitm (splitmergename, {"readGroup", "seqType", "maxCycles"});
-	for(uint32_t rg = 0; rg < numRG; ++rg){
-		splitm << _bamFile.readGroups().getName(rg);
-		if (_fragmentLength[rg].counts() == 0){
-			splitm << "single";
-		} else {
-			splitm << "paired";
+	if(_writeSplitMergeInput){
+		std::string splitmergename = _outputName + "_splitMergeInput.txt";
+		logfile().listFlush("Outputting input file for splitMerge to '" + splitmergename + "' ...");
+		coretools::TOutputFile splitm (splitmergename, {"readGroup", "seqType", "seqCycles"});
+		for(uint32_t rg = 0; rg < numRG; ++rg){
+			splitm << _bamFile.readGroups().getName(rg);
+			if (_fragmentLength[rg].counts() == 0){
+				splitm << "single";
+			} else {
+				splitm << "paired";
+			}
+			splitm << _readLength.max() << std::endl;
 		}
-		splitm << _readLength.max() << std::endl;
+		splitm.close();
+		logfile().done();
 	}
-	splitm.close();
-	logfile().done();
-	}
-
 
 	//writing distributions
 	_writeHistogram(_readLength, "readLength", "read length");

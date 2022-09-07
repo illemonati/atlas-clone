@@ -16,6 +16,7 @@
 #include "SequencingError/TModel.h"
 #include "TSimulatorAuxiliaryTools.h"
 #include "stringFunctions.h"
+#include "SequencingError/TModels.h"
 
 namespace Simulations {
 using genometools::Base;
@@ -67,9 +68,6 @@ TReadSimulator::TReadSimulator(const BAM::TReadGroup & ReadGroup, const TReadGro
 	} else {
 		logfile().write("none");
 	}
-
-	//others
-	_hasRecal = false;
 }
 
 double TReadSimulator::_calcMeanReadLength(const uint16_t maxLen) const {
@@ -170,19 +168,7 @@ void TReadSimulator::_simulateBasesQualities(BAM::TAlignment & alignment,
 	}
 
 	//add recal
-	if(_hasRecal){
-		for (auto & b : alignment) {
-			const auto sm = b.isSecondMate();
-			_recal[sm]->simulate(b);
-		}
-	}
-}
-
-void TReadSimulator::setRecal(
-	GenotypeLikelihoods::SequencingError::TModel const *Recal1, GenotypeLikelihoods::SequencingError::TModel const *Recal2) {
-	_recal[0] = Recal1;
-	_recal[1] = Recal2;
-	_hasRecal = true;
+	_recalModels->simulate(alignment);
 }
 
 void TReadSimulator::setPMD(GenotypeLikelihoods::TPMDType const *Pmd) {
@@ -210,6 +196,13 @@ TReadSimulatorSingleEnd::TReadSimulatorSingleEnd(const BAM::TReadGroup & ReadGro
 			coretools::str::capitalizeFirst(BAM::RGInfo::infos[InfoType::cycles].description) + " must be a single number within [1,65535].", _numCycles);
 
 	_alignment.setSamFlags(_flags);
+
+	//recal
+	logfile().list(coretools::str::capitalizeFirst(BAM::RGInfo::infos[InfoType::recal1].description), ": ", RGInfo[InfoType::recal1]);
+	if(RGInfo.has(InfoType::recal2)){
+		logfile().warning(coretools::str::capitalizeFirst(BAM::RGInfo::infos[InfoType::recal2].description), " provided for single-en read group! It will be ignored.");
+	}
+	_recalModels = std::make_unique<GenotypeLikelihoods::SequencingError::TReadGroupModels>(RGInfo);
 }
 
 double TReadSimulatorSingleEnd::meanReadLength() const {
@@ -250,6 +243,11 @@ TReadSimulatorPairedEnd::TReadSimulatorPairedEnd(const BAM::TReadGroup & ReadGro
 				BAM::RGInfo::infos[InfoType::cycles].description + " must be within [1,65535].", _numCycles[0]);
 		_numCycles[1] = _numCycles[0];
 	}
+
+	//recal
+	logfile().list(coretools::str::capitalizeFirst(BAM::RGInfo::infos[InfoType::recal1].description), ": ", RGInfo[InfoType::recal1]);
+	logfile().list(coretools::str::capitalizeFirst(BAM::RGInfo::infos[InfoType::recal2].description), ": ", RGInfo[InfoType::recal2]);
+	_recalModels = std::make_unique<GenotypeLikelihoods::SequencingError::TReadGroupModels>(RGInfo);
 
 	// set SAM flags
 	_flags.setIsPaired(true);

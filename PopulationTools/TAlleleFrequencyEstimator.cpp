@@ -641,7 +641,7 @@ void TAlleleFreqEstimator::estimateAlleleFreq(TParameters & Parameters, TRandomG
  		} else {
  			genometools::TGenotypeFrequencies genoFrequencies;
  	 		for(size_t p=0; p<samples.numPopulations(); p++){
- 	 			genoFrequencies.estimate(&storage[samples.startIndex(p)], samples.numSamplesInPop(p), epsF);
+ 	 			genoFrequencies.estimate<true>(&storage[samples.startIndex(p)], samples.numSamplesInPop(p), epsF);
  	 			_writeEstimatesOnePop(out, genoFrequencies, genoFrequencies.alleleFrequency(), &storage[samples.startIndex(p)], samples.numSamplesInPop(p), MLHWEstimator, BHWEstimator, epsF, writeGenoFreq, doBayesian);
  	 		}
  		}
@@ -733,7 +733,7 @@ void TAlleleFreqEstimator::compareAlleleFreq(TParameters & Parameters, TRandomGe
  		logfile->listFlush("Running estimates for " + reader.chr() + ":" + toString(reader.position()) + " ...");
  		for(size_t p=0; p<samples.numPopulations(); p++){
 			//write num samples with data
-			genoFrequencies.estimate(&storage[samples.startIndex(p)], samples.numSamplesInPop(p), Parameters.getParameterWithDefault("epsF", 0.0000001));
+			genoFrequencies.estimate<true>(&storage[samples.startIndex(p)], samples.numSamplesInPop(p), Parameters.getParameterWithDefault("epsF", 0.0000001));
 			out << genoFrequencies.numDiploid();
 			out << genoFrequencies.numHaploid();
 

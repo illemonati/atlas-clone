@@ -105,12 +105,16 @@ public:
 		return _info.find(Info) != _info.end();
 	}
 
-	const std::string& operator[](const InfoType Info) const {
+	const std::string& get(const InfoType Info) const {
 		auto it = _info.find(Info);
 		if(it == _info.end()){
 			DEVERROR("Info of type '" + infos[Info].argument + "' does not exist!");
 		}
 		return it->second;
+	}
+
+	const std::string& operator[](const InfoType Info) const {
+		return get(Info);
 	}
 
 	void write(coretools::TOutputFile & Out, const InfoType Info) const {
