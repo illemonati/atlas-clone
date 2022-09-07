@@ -51,7 +51,7 @@ find_package(ZLIB REQUIRED)
 include(FetchContent)
 FetchContent_Declare(coretools
   GIT_REPOSITORY    https://bitbucket.org/wegmannlab/coretools.git
-  GIT_TAG           768c6a7
+  GIT_TAG	        63bbeb7
   SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/coretools"
 )
 
@@ -79,8 +79,8 @@ FetchContent_Declare(armadillo
 )
 
 FetchContent_Declare(json
-		  URL https://github.com/nlohmann/json/releases/download/v3.11.2/json.tar.xz
-		  )
+  URL https://github.com/nlohmann/json/releases/download/v3.11.2/json.tar.xz
+)
 
 FetchContent_MakeAvailable(coretools stattools genometools bamtools armadillo json)
 
