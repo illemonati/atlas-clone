@@ -17,6 +17,7 @@
 #include "TGenome.h"
 #include "TGenotypeData.h"
 #include "TTask.h"
+#include "counters.h"
 
 namespace GenomeTasks {
 
@@ -30,6 +31,13 @@ private:
 	// what to print?
 	coretools::TBitSet<8> _printSettings;
 	enum {OnlySitesWithData, Depth, Bases, Qualities, Alleles, Mates, Strand, Likelihoods};
+
+	// which histograms
+	coretools::TCountDistribution<> _depthHisto;
+	bool _writeDepthHisto;
+	coretools::TCountDistributionVector<genometools::PhredIntProbability> _baseQualHisto;
+	bool _writeBaseQualHisto;
+	bool _write_0;
 
 	void _handleWindow() override;
 	void _handleAlignment() override {}

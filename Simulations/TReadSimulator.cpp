@@ -16,7 +16,7 @@
 #include "SequencingError/TModel.h"
 #include "TSimulatorAuxiliaryTools.h"
 #include "stringFunctions.h"
-#include "TModels.h"
+#include "SequencingError/TModels.h"
 
 namespace Simulations {
 using genometools::Base;

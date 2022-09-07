@@ -93,7 +93,7 @@ TReadGroupModels::TReadGroupModels(const BAM::RGInfo::TReadGroupInfoEntry & Info
 }
 
 void TReadGroupModels::simulate(BAM::TAlignment & Alignment) const {
-	const TModel& mod = _models[Alignment.isSecondMate()];
+	const TModel& mod = *_models[Alignment.isSecondMate()];
 	for (auto & b : Alignment) {
 		mod.simulate(b);
 	}
