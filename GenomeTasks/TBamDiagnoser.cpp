@@ -38,12 +38,13 @@ void TBamDiagnoser::_writeHistogram(const TCountDistributionVector<> & distVec, 
 	coretools::TOutputFile out(filename, {"readGroup", header, "count"});
 
     // Should file contain read groups with 0 counts?
-    bool write_0 = false;
-    if (parameters().parameterExists("writeZeroCounts")) { write_0 = true; }
-
-	// First write values for all read groups combined, then write them per read group
-	distVec.writeCombined(out, "allReadGroups", write_0);
-	distVec.write(out, _readGroupNames, write_0);
+	if (parameters().parameterExists("writeZeroCounts")) {
+		distVec.template writeCombined<true>(out, "allReadGroups");
+		distVec.template write<true>(out, _readGroupNames);
+	} else {
+		distVec.template writeCombined<false>(out, "allReadGroups");
+		distVec.template write<false>(out, _readGroupNames);
+	}
 
 	out.close();
 	logfile().done();

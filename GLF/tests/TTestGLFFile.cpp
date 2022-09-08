@@ -99,7 +99,7 @@ void TTestGLFFile::_iterateGenotypeLikelihoods(uint32_t curDepth) {
     }
 
     // fill genotype likelihood
-    _dummyGenotypeLikelihoods = GenotypeLikelihoods::fillGLH(bases);
+    _dummyGenotypeLikelihoods = GenotypeLikelihoods::getGLH(bases);
     /*if (_dummyCurChr->ploidy == 1)
         _dummyGenotypeLikelihoodsHaploid.fill(bases, bases.size());
 	else*/

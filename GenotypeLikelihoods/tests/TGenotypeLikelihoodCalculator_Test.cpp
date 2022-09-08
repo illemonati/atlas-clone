@@ -19,7 +19,7 @@ using genometools::Genotype;
 
 TEST(TGenotypeLikelihoodCalculator_test, calculateGenotypeLikelihoods_emptySite){
     TSite site;
-    TGenotypeLikelihoodCalculator calculator;
+    TGenotypeLikelihoodCalculator calculator(nullptr);
 
 	const auto genotypeLikelihoods = calculator.calculateGenotypeLikelihoods(site);
 
@@ -37,7 +37,7 @@ TEST(TGenotypeLikelihoodCalculator_test, calculateGenotypeLikelihoods_emptySite)
 
 TEST(TGenotypeLikelihoodCalculator_test, calculateGenotypeLikelihoods_noPMDnoRecal){
     TSite site;
-    TGenotypeLikelihoodCalculator calculator;
+    TGenotypeLikelihoodCalculator calculator(nullptr);
 
     BAM::TSequencedBase base;
     base.originalQuality_phredInt = 20;

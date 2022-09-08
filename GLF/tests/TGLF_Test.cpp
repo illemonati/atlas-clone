@@ -176,9 +176,8 @@ TEST_F(TGLF_Test_WriteRead, chromosomes) {
 	write(300);
 	read();
 	// check if written and read chromosomes are equal
-	TGlfChromosome *chr;
 	for (int i = 0; i < 3; i++) {
-		inputGLF.fillPointerToChr(i, chr);
+		const auto chr = inputGLF.pointerToChr(i);
 
 		EXPECT_EQ(chr->refId(), i);
 		EXPECT_EQ(chr->name(), "Chr" + coretools::str::toString(i + 1));
@@ -303,9 +302,8 @@ TEST_F(TGLF_Test_WriteRead, chromosomes_missingData) {
 	read();
 	// check if written and read chromosomes are equal
 	// first chromosome
-	TGlfChromosome *chr;
 	for (int i = 0; i < 5; i++) {
-		inputGLF.fillPointerToChr(i, chr);
+		const auto chr = inputGLF.pointerToChr(i);
 
 		EXPECT_EQ(chr->refId(), i);
 		EXPECT_EQ(chr->name(), "Chr" + coretools::str::toString(i + 1));
@@ -394,9 +392,8 @@ TEST_F(TGLF_Test_WriteRead, chromosomes_withDifferentPloidies) {
 	read();
 	// check if written and read chromosomes are equal
 	// first chromosome
-	TGlfChromosome *chr;
 	for (int i = 0; i < 3; i++) {
-		inputGLF.fillPointerToChr(i, chr);
+		const auto chr = inputGLF.pointerToChr(i);
 
 		EXPECT_EQ(chr->refId(), i);
 		EXPECT_EQ(chr->name(), "Chr" + coretools::str::toString(i + 1));

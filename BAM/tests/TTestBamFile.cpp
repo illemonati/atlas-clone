@@ -378,12 +378,12 @@ void TTestBamFilePairedEnd::writeDummyAlignments(uint32_t numAlignments, const b
         BAM::TAlignment & mate2 = _pickSecondMate(mate1.refID(), used);
 
         // set mate information
-        mate1.setMateGenomicPosition(mate2.refID(), mate2.position());
+        mate1.setMateGenomicPosition(mate2);
         mate1.setInsertSize(mate2.position() - mate1.position());
         mate1.setIsReverseStrand(false);
         mate1.setIsRead1(true); mate1.setIsRead2(false);
 
-        mate2.setMateGenomicPosition(mate1.refID(), mate1.position());
+        mate2.setMateGenomicPosition(mate1);
         mate2.setInsertSize(mate2.position() - mate1.position());
         mate2.setIsReverseStrand(true);
         mate2.setIsRead1(false); mate2.setIsRead2(true);
