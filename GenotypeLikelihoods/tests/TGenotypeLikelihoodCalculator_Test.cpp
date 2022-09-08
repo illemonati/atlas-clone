@@ -9,6 +9,7 @@
 #include "GenotypeTypes.h"
 #include "PhredProbabilityTypes.h"
 #include "TGenotypeData.h"
+#include "TReadGroups.h"
 #include "TSequencedBase.h"
 #include "TSite.h"
 #include "probability.h"
@@ -19,7 +20,8 @@ using genometools::Genotype;
 
 TEST(TGenotypeLikelihoodCalculator_test, calculateGenotypeLikelihoods_emptySite){
     TSite site;
-    TGenotypeLikelihoodCalculator calculator(nullptr);
+	BAM::TReadGroups rg;
+    TGenotypeLikelihoodCalculator calculator(&rg);
 
 	const auto genotypeLikelihoods = calculator.calculateGenotypeLikelihoods(site);
 
@@ -37,13 +39,16 @@ TEST(TGenotypeLikelihoodCalculator_test, calculateGenotypeLikelihoods_emptySite)
 
 TEST(TGenotypeLikelihoodCalculator_test, calculateGenotypeLikelihoods_noPMDnoRecal){
     TSite site;
-    TGenotypeLikelihoodCalculator calculator(nullptr);
+	BAM::TReadGroups rg;
+	rg.add("test");
+    TGenotypeLikelihoodCalculator calculator(&rg);
 
     BAM::TSequencedBase base;
     base.originalQuality_phredInt = 20;
     float oneMinusError = 0.99;
     float errorOneThird = 0.01 / 3;
     base.base = Base::A;
+	base.readGroupID = 0;
     site.add(base);
 
     const auto genotypeLikelihoods = calculator.calculateGenotypeLikelihoods(site);

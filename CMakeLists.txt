@@ -136,3 +136,4 @@ target_link_libraries("${PROJECT_NAME}_unitTests" PRIVATE BamTools BamTools-util
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_EXTENSIONS OFF)
 target_compile_options("${PROJECT_NAME}_unitTests" PRIVATE -Wall -Wextra ${SAN})
+target_compile_definitions("${PROJECT_NAME}_unitTests" PRIVATE WITH_ARMADILLO ARMA_WARN_LEVEL=0 DEVTOOLS)
