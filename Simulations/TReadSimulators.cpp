@@ -23,8 +23,8 @@ void TReadSimulators::_initializeReadGroups(const TReadGroupInfo & RGinfo) {
 	// create simulation read groups
 	using BAM::RGInfo::InfoType;
 	for(size_t i = 0; i < RGinfo.size(); ++i){
-		logfile().startIndent("Read group '", RGinfo[i][InfoType::RGName], "':");
-		std::string type = RGinfo[i][InfoType::seqType];
+		logfile().startIndent("Read group '", RGinfo[i].name(), "':");
+		std::string type = RGinfo[i].getString(InfoType::seqType);
 		logfile().list("Sequencing type: ", type);
 		logfile().list("Frequency: ", _simGroupFrequencies[i]);
 
@@ -121,12 +121,6 @@ TReadSimulators::TReadSimulators(const std::string & RgInfoFileName){
 
 	//prepare simulations
 	_determineMaxFragmentLength();
-}
-
-void TReadSimulators::writeUnwrittenAlignments(const genometools::TGenomePosition & Position, TSimulatorBamFile &BamFile){
-	for(auto& ptr : _readSimulators){
-		ptr->writeUnwrittenAlignments(Position, BamFile);
-	}
 }
 
 void TReadSimulators::simulate(const genometools::TGenomePosition & Position, const std::vector<Base>& Haplotype, TSimulatorBamFile &BamFile){

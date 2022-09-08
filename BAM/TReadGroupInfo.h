@@ -17,6 +17,8 @@
 #include "TLog.h"
 #include "TReadGroups.h"
 #include "TError.h"
+#include "TTask.h"
+#include "nlohmann/json.hpp"
 
 namespace BAM {
 
@@ -56,39 +58,14 @@ inline const coretools::TStrongArray<TInfo, InfoType> infos = []() {
 	return i;
 }();
 
-//------------------------------------------------
-// TFileData
-//------------------------------------------------
-class TFileData{
-private:
-	std::string _filename;
-	std::vector< std::vector<std::string> > _fileData;
-	std::vector<std::string> _header;
-	std::vector<std::string> _rgNames;
 
-public:
-	TFileData(const std::string & Filename);
-	const std::string& fileName() const { return _filename; }
-	const std::vector<std::string>& header() const { return _header; }
-	bool hasInfo(InfoType Info) const noexcept;
-	size_t getInfoCol(InfoType Info) const;
-	size_t size() const noexcept {
-		return _fileData.size();
-	}
-	const std::string& filename(){ return _filename; };
-	const std::vector<std::string> operator[](size_t row) const noexcept {
-		return _fileData[row];
-	}
-	size_t getRow(const std::string & ReadGroupName) const;
-};
-
+using nlohmann::ordered_json;
 //------------------------------------------------
 // TReadGroupInfoEntry
 //------------------------------------------------
-
 class TReadGroupInfoEntry{
 private:
-	std::map<InfoType, std::string> _info;
+	std::map<InfoType, ordered_json> _info;
 
 public:
 	TReadGroupInfoEntry(const std::string & RgName){
@@ -105,7 +82,7 @@ public:
 		return _info.find(Info) != _info.end();
 	}
 
-	const std::string& get(const InfoType Info) const {
+	const ordered_json& get(const InfoType Info) const {
 		auto it = _info.find(Info);
 		if(it == _info.end()){
 			DEVERROR("Info of type '" + infos[Info].argument + "' does not exist!");
@@ -113,7 +90,13 @@ public:
 		return it->second;
 	}
 
-	const std::string& operator[](const InfoType Info) const {
+	std::string getString(const InfoType Info) const {
+		return get(Info).get<std::string>();
+	}
+
+	std::string name() const { return getString(InfoType::RGName); }
+
+	const ordered_json& operator[](const InfoType Info) const {
 		return get(Info);
 	}
 
@@ -138,11 +121,17 @@ public:
 class TReadGroupInfo{
 private:
 	std::vector<TReadGroupInfoEntry> _info;
-	std::unique_ptr<TFileData> _fileData;
+	ordered_json _json;
+	std::string _filename;
 	coretools::TStrongArray<bool, InfoType> _parsed;
 
+	void _setAllReadGroups(InfoType Info, const std::string & Val);
+	void _setDefault(InfoType Info);
+	void _setFromCommandLine(InfoType Info);
+	void _setFromRGInfoFile(InfoType Info);
+	bool _readGroupExists(const std::string & Name);
+	void _readFile(const std::string & Filename);
 	void _createReadGroupInfoEntries(const BAM::TReadGroups & ReadGroups);
-	void _readFileIfProvided();
 
 public:
 	static inline const std::string _RGInfoArgument = "RGInfo";
@@ -152,7 +141,7 @@ public:
 	~TReadGroupInfo() = default;
 
 	// either: read info from file and match with TReadGroups (used for analyzes)
-	void readInfoAndMatchReadGroups(const BAM::TReadGroups & ReadGroups);
+	void readInfoAndMatchReadGroups(const BAM::TReadGroups & ReadGroups, const std::string & Filename = "");
 
 	// or: read info and fill TReadGroups (used for simulations)
 	BAM::TReadGroups readInfoAndCreateReadGroups();
@@ -191,12 +180,20 @@ public:
 		return _info[RGIndex].has(Info);
 	};
 
-	const std::string& get(size_t RGIndex, const InfoType Info) const noexcept {
+	const ordered_json& get(size_t RGIndex, const InfoType Info) const noexcept {
 		return _info[RGIndex][Info];
 	}
 
-	std::string get(size_t RGIndex, const InfoType Info, const std::string& defValue) const noexcept {
+	const ordered_json& get(size_t RGIndex, const InfoType Info, const ordered_json& defValue) const noexcept {
 		return has(RGIndex, Info) ? get(RGIndex, Info) : defValue;
+	}
+
+	std::string getString(size_t RGIndex, const InfoType Info) const noexcept {
+		return get(RGIndex, Info).dump();
+	}
+
+	std::string getString(size_t RGIndex, const InfoType Info, const std::string & defValue) const noexcept {
+		return has(RGIndex, Info) ? getString(RGIndex, Info) : defValue;
 	}
 
 	template <typename Container>
@@ -207,17 +204,29 @@ public:
 		}
 	};
 
-	bool hasFile(){ return _fileData.operator bool(); };
+	bool hasFile() const { return _json.size() > 0; };
+	bool fileHasInfo(const InfoType Info) const;
 
-	std::vector<std::string> getUnusedColumnsInFile();
+	std::vector<std::string> getUnusedAttributesInFile();
 	void warnAboutUnusedColumnsInFile();
 
 	// setters
-	void set(const uint16_t RGIndex, const InfoType Info, const std::string & Value);
+	void set(const uint16_t RGIndex, const InfoType Info, const ordered_json & Value);
 
 	//writing
 	void write(const std::string & Filename);
 };
+
+//-------------------------------------------
+// TTask_testReadGroupInfo
+//-------------------------------------------
+class TTask_testReadGroupInfo : public coretools::TTask{
+public:
+	TTask_testReadGroupInfo(){ _explanation = "Testing JSON stuff"; };
+
+	void run();
+};
+
 
 } //end namespace RGInfo
 

@@ -85,7 +85,8 @@ public:
 		_outBam.setQualityAdjusterForWriting(QualityAdjuster);
 	};
 
-	void saveAlignment(const BAM::TAlignment &Alignment) {_outBam.writeAlignment(Alignment); }
+	void writeAlignment(const BAM::TAlignment &Alignment) {_outBam.writeAlignment(Alignment); }
+	void writeAlignmentLater(const BAM::TAlignment &Alignment) {_outBam.writeAlignmentLater(Alignment); }
 	void close();
 	void indexBamFile();
 };

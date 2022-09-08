@@ -343,9 +343,6 @@ void TBAMSimulator::_simulateReadsFromHaplotypes(const genometools::TChromosome 
 
 	// now simulate
 	for(TGenomePosition pos(thisChr.refID(), 0); pos.position() < chrLengthForStart; ++pos){
-		// write unwritten alignments
-		readSimulators.writeUnwrittenAlignments(pos, bamFile);
-
 		// draw random number to get number of reads starting at this position
 		const auto numReadsHere = randomGenerator().getBinomialRand(probReadPerSite, numReads);
 
@@ -359,9 +356,6 @@ void TBAMSimulator::_simulateReadsFromHaplotypes(const genometools::TChromosome 
 			reporter.next();
 		}
 	}
-	// write unwritten alignments
-	readSimulators.writeUnwrittenAlignments(TGenomePosition(thisChr.refID(), thisChr.length), bamFile);
-
 	reporter.done();
 	logfile().conclude("Simulated a total of ", numReadsSimulated, " reads.");
 }

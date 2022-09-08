@@ -48,8 +48,9 @@ TReadSimulator::TReadSimulator(const BAM::TReadGroup & ReadGroup, const TReadGro
 	//soft clip
 	logfile().listFlush(BAM::RGInfo::infos[InfoType::softClipping].description, ": ");
 	if(RGInfo.has(InfoType::softClipping)){
-		logfile().write(RGInfo[InfoType::softClipping]);
-		std::string sc = RGInfo[InfoType::softClipping];
+		std::string sc = RGInfo.getString(InfoType::softClipping);
+		logfile().write(sc);
+
 		if(!sc.empty()){
 			//check if one or two values are given
 			if(sc.find(':') == std::string::npos){
@@ -221,7 +222,7 @@ void TReadSimulatorSingleEnd::simulate(const TGenomePosition & Position, const s
 	_simulateBasesQualities(_alignment, Haplotype, fragmentLength, _numCycles, _simulateContamination());
 
 	// write bam alignment
-	BamFile.saveAlignment(_alignment);
+	BamFile.writeAlignment(_alignment);
 }
 
 //----------------------------------
@@ -261,6 +262,7 @@ TReadSimulatorPairedEnd::TReadSimulatorPairedEnd(const BAM::TReadGroup & ReadGro
 	_mateFlags.setIsProperPair(true);
 	_mateFlags.setIsRead2(true);
 	_mateFlags.setIsReverseStrand(true);
+	_secondMate.setSamFlags(_mateFlags);
 }
 
 double TReadSimulatorPairedEnd::meanReadLength() const {
@@ -280,50 +282,36 @@ void TReadSimulatorPairedEnd::simulate(const TGenomePosition & Position, const s
 	// simulated bases and qualities
 	_simulateBasesQualities(_alignment, Haplotype, fragmentLength, _numCycles[0], readIsContaminated);
 
-
 	// Fill SECOND mate
 	//------------------
 	// identify position
-	TGenomePosition & matePosition(_alignment);
+	_secondMate = _alignment;
 	if(fragmentLength > _numCycles[1]){
-		matePosition += (uint32_t) fragmentLength - (uint32_t) _numCycles[1];
+		_secondMate += (uint32_t) fragmentLength - (uint32_t) _numCycles[1];
 	}
 
 	// create new alignment
-	BAM::TAlignment secondMate(matePosition);
-	secondMate.setReadGroup(_readGroup.id());
-	secondMate.setName(_alignment.name());
-	secondMate.setMappingQuality(_alignment.mappingQuality());
-	secondMate.setSamFlags(_mateFlags);
-
+	_secondMate.setReadGroup(_readGroup.id());
+	_secondMate.setName(_alignment.name());
+	_secondMate.setMappingQuality(_alignment.mappingQuality());
 
 	// simulated bases and qualities
-	_simulateBasesQualities(secondMate, Haplotype, fragmentLength, _numCycles[1], readIsContaminated);
+	_simulateBasesQualities(_secondMate, Haplotype, fragmentLength, _numCycles[1], readIsContaminated);
 
 	// WRITE ALIGNMENTS
 	//-----------------
 	//set mate positions
-	_alignment.setMateGenomicPosition(secondMate);
-	secondMate.setMateGenomicPosition(_alignment);
+	_alignment.setMateGenomicPosition(_secondMate);
+	_secondMate.setMateGenomicPosition(_alignment);
 
 	// write bam alignment
-	BamFile.saveAlignment(_alignment);
+	BamFile.writeAlignment(_alignment);
 
 	// write mate if it starts at same position as first, and keep for writing later otherwise
-	if (matePosition == Position) {
-		BamFile.saveAlignment(secondMate);
+	if (_secondMate == _alignment) {
+		BamFile.writeAlignment(_secondMate);
 	} else {
-		_bamAlignmentSecondMates.insert(secondMate);
-	}
-}
-
-void TReadSimulatorPairedEnd::writeUnwrittenAlignments(const genometools::TGenomePosition & Position, TSimulatorBamFile &BamFile) {
-	if(!_bamAlignmentSecondMates.empty()){
-		auto it = _bamAlignmentSecondMates.begin();
-		while(it != _bamAlignmentSecondMates.end() && *it <= Position){
-			BamFile.saveAlignment(*it);
-			it = _bamAlignmentSecondMates.erase(it);
-		}
+		BamFile.writeAlignmentLater(_secondMate);
 	}
 }
 

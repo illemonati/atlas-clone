@@ -72,8 +72,8 @@ protected:
 	//initialization functions
 	template <typename Distr>
 	void _initDistribution(Distr & Dist, const TReadGroupInfoEntry & RGInfo, const BAM::RGInfo::InfoType & Info){
-		coretools::instances::logfile().list(coretools::str::capitalizeFirst(BAM::RGInfo::infos[Info].description), ": ", RGInfo[Info]);
-		Dist.set(RGInfo[Info]);
+		coretools::instances::logfile().list(coretools::str::capitalizeFirst(BAM::RGInfo::infos[Info].description), ": ", RGInfo.getString(Info));
+		Dist.set(RGInfo.getString(Info));
 	};
 
 	// general functions
@@ -98,7 +98,6 @@ public:
 
 	//simulate
 	virtual void simulate(const TGenomePosition & Position, const std::vector<Base>& Haplotype, TSimulatorBamFile &BamFile) = 0;
-	virtual void writeUnwrittenAlignments(const genometools::TGenomePosition &, TSimulatorBamFile &){};
 
 	//getters
 	std::string name() const { return _readGroup.name_ID; };
@@ -129,16 +128,14 @@ public:
 class TReadSimulatorPairedEnd final : public TReadSimulator {
 private:
 	std::array<coretools::StrictlyPositive<uint16_t>, 2> _numCycles;
+	BAM::TAlignment _secondMate;
 	BAM::TSamFlags _mateFlags;
-
-	std::multiset<BAM::TAlignment> _bamAlignmentSecondMates;
 
 public:
 	TReadSimulatorPairedEnd(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo);
 	~TReadSimulatorPairedEnd() = default;
 
 	void simulate(const TGenomePosition & Position, const std::vector<genometools::Base>& Haplotype, TSimulatorBamFile &BamFile) override;
-	void writeUnwrittenAlignments(const genometools::TGenomePosition & Position, TSimulatorBamFile &BamFile) override;
 	[[nodiscard]] double meanReadLength() const override;
 };
 

@@ -48,12 +48,12 @@ std::pair<std::string, std::string> rhoEps(const std::string &s) {
 }
 
 void initModel(std::unique_ptr<TModel> & model, const BAM::RGInfo::TReadGroupInfoEntry & Info, const BAM::RGInfo::InfoType Type){
-	if(Info.has(BAM::RGInfo::InfoType::recal1)){
-			const auto [r, e] = rhoEps(Info.get(Type));
-			model = std::make_unique<TModelRecal>(r, e);
-		} else {
-			model = std::make_unique<TModelNoRecal>();
-		}
+	if(Info.has(Type)){
+		const auto [r, e] = rhoEps(Info.get(Type));
+		model = std::make_unique<TModelRecal>(r, e);
+	} else {
+		model = std::make_unique<TModelNoRecal>();
+	}
 }
 
 } // namespace impl
