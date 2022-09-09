@@ -239,36 +239,48 @@ TEST(TPostMortemDamage_test, exp_learn) {
 }
 
 TEST(TPostMortemDamage_test, baseANoPMD) {
-		constexpr auto err = 0.01;
+	constexpr auto err = 0.01;
 
-		SequencingError::TModels sem;
-		TPostMortemDamage pmd;
+	// initialize RG
+	BAM::TReadGroups rgs;
+	rgs.add("testRG");
 
-		BAM::TSequencedBase base;
-		base.originalQuality_phredInt = 20;
+	SequencingError::TModels sem;
+	TPostMortemDamage pmd;
 
-		for (Base b = Base::min; b < Base::max; ++b) {
-			base.base = b;
-			const auto sem_likelihoods = sem.getBaseLikelihoods(base);
-			const auto pmd_likelihoods = pmd.getBaseLikelihoods(base, sem_likelihoods);
+	sem.initializeNoRecal(rgs);
 
-			for (Base trueBase = Base::min; trueBase < Base::max; ++trueBase) {
-				if (trueBase == b) {
-					EXPECT_FLOAT_EQ(sem_likelihoods[trueBase], 1. - err);
-					EXPECT_FLOAT_EQ(pmd_likelihoods[trueBase], 1. - err);
-				} else {
-					EXPECT_FLOAT_EQ(sem_likelihoods[trueBase], err / 3);
-					EXPECT_FLOAT_EQ(pmd_likelihoods[trueBase], err / 3);
-				}
+	BAM::TSequencedBase base;
+	base.originalQuality_phredInt = 20;
+	base.readGroupID = 0;
+
+	for (Base b = Base::min; b < Base::max; ++b) {
+		base.base                  = b;
+		const auto sem_likelihoods = sem.getBaseLikelihoods(base);
+		const auto pmd_likelihoods = pmd.getBaseLikelihoods(base, sem_likelihoods);
+
+		for (Base trueBase = Base::min; trueBase < Base::max; ++trueBase) {
+			if (trueBase == b) {
+				EXPECT_FLOAT_EQ(sem_likelihoods[trueBase], 1. - err);
+				EXPECT_FLOAT_EQ(pmd_likelihoods[trueBase], 1. - err);
+			} else {
+				EXPECT_FLOAT_EQ(sem_likelihoods[trueBase], err / 3);
+				EXPECT_FLOAT_EQ(pmd_likelihoods[trueBase], err / 3);
 			}
 		}
+	}
 }
 
 TEST(TPostMortemDamage_test, baseAWithPMD) {
 	using namespace genometools;
 	constexpr auto err = 0.01;
 
+	// initialize RG
+	BAM::TReadGroups rgs;
+	rgs.add("testRG");
+
 	SequencingError::TModels sem;
+	sem.initializeNoRecal(rgs);
 
 	BAM::TSequencedBase base;
 	base.originalQuality_phredInt = 20;
@@ -277,14 +289,11 @@ TEST(TPostMortemDamage_test, baseAWithPMD) {
 	base.distFrom5Prime           = 2;
 	base.setReverseStrand(false);
 
-	// initialize RG
-	BAM::TReadGroups ReadGroups;
-	ReadGroups.add("testRG");
 
 	// initialize PMD
 	coretools::TLog logfile;
 	std::vector<uint16_t> ReadGroupsWithoutPMD;
-	TPostMortemDamage pmd("doubleStrand:Empiric[0.3]:Empiric[0.1]", ReadGroups, ReadGroupsWithoutPMD);
+	TPostMortemDamage pmd("doubleStrand:Empiric[0.3]:Empiric[0.1]", rgs, ReadGroupsWithoutPMD);
 
 	for (uint16_t dfrom3 = 0; dfrom3 < 3; dfrom3 += 2) {
 		base.distFrom3Prime = dfrom3;
@@ -301,23 +310,23 @@ TEST(TPostMortemDamage_test, baseAWithPMD) {
 					EXPECT_FLOAT_EQ(sem_likelihoods[trueBase], 1. - err);
 					if (from3 && trueBase == Base::G) {
 						EXPECT_FLOAT_EQ(pmd_likelihoods[trueBase],
-								(1.0 - 0.1) * sem_likelihoods[Base::G] + 0.1 * sem_likelihoods[Base::A]);
+										(1.0 - 0.1) * sem_likelihoods[Base::G] + 0.1 * sem_likelihoods[Base::A]);
 					} else if (!from3 && trueBase == Base::C) {
 						EXPECT_FLOAT_EQ(pmd_likelihoods[trueBase],
-								(1.0 - 0.3) * sem_likelihoods[Base::C] + 0.3 * sem_likelihoods[Base::T]);
+										(1.0 - 0.3) * sem_likelihoods[Base::C] + 0.3 * sem_likelihoods[Base::T]);
 					} else {
 						EXPECT_FLOAT_EQ(pmd_likelihoods[trueBase], 1. - err);
 					}
 				} else {
-					EXPECT_FLOAT_EQ(sem_likelihoods[trueBase], err/3);
+					EXPECT_FLOAT_EQ(sem_likelihoods[trueBase], err / 3);
 					if (from3 && trueBase == Base::G) {
 						EXPECT_FLOAT_EQ(pmd_likelihoods[trueBase],
-								(1.0 - 0.1) * sem_likelihoods[Base::G] + 0.1 * sem_likelihoods[Base::A]);
+										(1.0 - 0.1) * sem_likelihoods[Base::G] + 0.1 * sem_likelihoods[Base::A]);
 					} else if (!from3 && trueBase == Base::C) {
 						EXPECT_FLOAT_EQ(pmd_likelihoods[trueBase],
-								(1.0 - 0.3) * sem_likelihoods[Base::C] + 0.3 * sem_likelihoods[Base::T]);
+										(1.0 - 0.3) * sem_likelihoods[Base::C] + 0.3 * sem_likelihoods[Base::T]);
 					} else {
-						EXPECT_FLOAT_EQ(pmd_likelihoods[trueBase], err/3);
+						EXPECT_FLOAT_EQ(pmd_likelihoods[trueBase], err / 3);
 					}
 				}
 			}

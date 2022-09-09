@@ -1118,7 +1118,7 @@ TEST_F(TBamFilter_Test, keepReadsLongerThanFragment){
     EXPECT_TRUE(bamFilter->longerThanFragmentLength.counts() > 0);
 }
 
-TEST_F(TBamFilter_Test, doNotKeepReadsLongerThanFragmens){
+TEST_F(TBamFilter_Test, filterReadsLongerThanFragment){
     write(true);
 	parameters().clear();
     // 6) filter: do not specify 'keepReadsLongerThanFragment'
@@ -1128,6 +1128,7 @@ TEST_F(TBamFilter_Test, doNotKeepReadsLongerThanFragmens){
     parameters().addParameter("keepFailedQC");
     parameters().addParameter("keepSecondaryReads");
     parameters().addParameter("keepSupplementaryReads");
+    parameters().addParameter("filterReadsLongerThanFragment");
     read();
 
     // count number of reads that are longer than fragments in simulated alignments
