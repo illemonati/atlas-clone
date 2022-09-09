@@ -13,6 +13,7 @@
 #include "PhredProbabilityTypes.h"
 #include "TRandomGenerator.h"
 #include "TSampleLikelihoods.h"
+#include "devtools.h"
 #include "probability.h"
 
 using namespace testing;
@@ -92,9 +93,13 @@ TEST_F(TSiteAlleleFrequencyLikelihoods_Test, onlyDiploid){
     BridgeTSiteAlleleFrequencyLikelihoods estimator(N);
     for (size_t r = 0; r < 2; r++){ // test both _fillNatural and _fillLog
         if (r == 0){
+			OUT(r);
             estimator._fillNatural(sampleLikelihoods, N);
+			ECHO("");
         } else {
+			OUT(r);
             estimator._fillLog(sampleLikelihoods, N);
+			ECHO("");
         }
         auto estimatedLogAlleleFrequencyLikelihoods = estimator.getLogAlleleFrequencyLikelihoods();
 

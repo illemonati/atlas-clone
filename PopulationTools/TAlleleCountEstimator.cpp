@@ -22,6 +22,7 @@
 #include "TPopulation.h"
 #include "TPopulationLikelihoodLocus.h"
 #include "TPopulationLikelihoods.h"
+#include "devtools.h"
 #include "gzstream.h"
 #include "mathFunctions.h"
 #include "stringFunctions.h"
@@ -113,6 +114,7 @@ void TSiteAlleleFrequencyLikelihoods::normalize(){
 };
 
 void TSiteAlleleFrequencyLikelihoods::_fillLog(TSampleLikelihoods* data, uint32_t numSamples){
+	OUT(numSamples);
 	using BG = genometools::BiallelicGenotype;
 	//Calculating allele frequency likelihoods according to Nielsen et al. (2012) PLoS One, page 3
 	//adapted to also work for haploid individuals (which only have likelihoods for genotypes 0 and 1)
@@ -127,6 +129,7 @@ void TSiteAlleleFrequencyLikelihoods::_fillLog(TSampleLikelihoods* data, uint32_
 	while(s < numSamples && data[s].isMissing()){
 		++s;
 	}
+	OUT(s);
 
 	if(s < numSamples){
 		//initialize with first individual
@@ -140,13 +143,18 @@ void TSiteAlleleFrequencyLikelihoods::_fillLog(TSampleLikelihoods* data, uint32_
 			alleleFrequencyLikelihoods_h[2] = (LogProbability) data[s][BG::homoSecond];
 			numAlleleCounts = 2;
 		}
+		OUT(numAlleleCounts);
 
 		//Recursion
 		for(++s; s<numSamples; ++s){
+			OUT(s);
+			OUT(numAlleleCounts);
 			if(!data[s].isMissing()){
 				int j = numAlleleCounts;
+				OUT(j);
 
 				if(data[s].isHaploid()){
+					ECHO("haplo");
 					//first fill new ones to avoid multiplication with zero (relevant in log)
 					alleleFrequencyLikelihoods_h[j+1] = (LogProbability) data[s][BG::haploidSecond] + alleleFrequencyLikelihoods_h[j];
 
@@ -163,6 +171,7 @@ void TSiteAlleleFrequencyLikelihoods::_fillLog(TSampleLikelihoods* data, uint32_
 					//increase total number of haplotypes by one
 					numAlleleCounts += 1;
 				} else {
+					ECHO("diplo");
 					//first fill new ones to avoid multiplication with zero (relevant in log)
 					alleleFrequencyLikelihoods_h[j+2] = (LogProbability) data[s][BG::homoSecond] + alleleFrequencyLikelihoods_h[j];
 					alleleFrequencyLikelihoods_h[j+1] = _protectedSumInLog(

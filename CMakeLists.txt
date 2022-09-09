@@ -9,7 +9,7 @@ if (POLICY CMP0048)
 endif (POLICY CMP0048)
 
 if("${CMAKE_BUILD_TYPE}" STREQUAL "Asan")
-  set(SAN "-O1;-g;-fsanitize=address;-fno-omit-frame-pointer;-DNDEBUG")
+  set(SAN "-O1;-g;-fsanitize=address;-fno-omit-frame-pointer")
   set(SAN_LINK "-fsanitize=address")
   message("Compiling and linking with adress sanitizer")
 elseif("${CMAKE_BUILD_TYPE}" STREQUAL "Msan")
