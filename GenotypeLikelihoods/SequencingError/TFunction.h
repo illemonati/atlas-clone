@@ -586,11 +586,16 @@ public:
 
 	std::string modelString() const override {
 		using coretools::str::toString;
+		if (_indexMap.empty()) return typeString() + "[]";
+
 		std::string s = typeString() + "[";
 		for (size_t i = 0; i < _indexMap.size(); ++i) {
-			s += toString(i) + ":" + toString(_betas[i]) + ",";
+			if(_indexMap[i] >= 0) {
+				s.append(toString(i)).append(1, ':').append(toString(_betas[_indexMap[i]])).append(1, ',');
+			}
 		}
-		return s.substr(0, s.size() - 1) + "]";
+		s.pop_back(); // remove last ','
+		return s.append(1, ']');
 	};
 };
 
