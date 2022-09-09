@@ -192,7 +192,20 @@ TReadSimulatorSingleEnd::TReadSimulatorSingleEnd(const BAM::TReadGroup & ReadGro
 	: TReadSimulator(ReadGroup, RGInfo){
 
 	//num cycles
-	logfile().list(BAM::RGInfo::infos[InfoType::cycles].description, ": ", RGInfo[InfoType::cycles]);
+	//logfile().list(BAM::RGInfo::infos[InfoType::cycles].description, ": ", RGInfo.getString(InfoType::cycles));
+
+	auto& j = RGInfo[InfoType::cycles];
+	//if(j.is)
+
+	std::cout << RGInfo[InfoType::cycles] << std::endl;
+	std::cout << "Size = " << RGInfo[InfoType::cycles].size() << std::endl;
+	std::cout << "Number ? " << RGInfo[InfoType::cycles].is_number() << std::endl;
+	std::cout << "string ? " << RGInfo[InfoType::cycles].is_string() << std::endl;
+	std::cout << "object ? " << RGInfo[InfoType::cycles].is_object() << std::endl;
+	std::cout << "array ? " << RGInfo[InfoType::cycles].is_array() << std::endl;
+
+	throw "done!";
+
 	coretools::str::convertString< coretools::StrictlyPositive<uint16_t> >(RGInfo[InfoType::cycles],
 			coretools::str::capitalizeFirst(BAM::RGInfo::infos[InfoType::cycles].description) + " must be a single number within [1,65535].", _numCycles);
 

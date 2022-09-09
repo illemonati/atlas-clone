@@ -17,7 +17,7 @@
 
 using coretools::instances::parameters;
 using coretools::instances::logfile;
-using nlohmann::json;
+using nlohmann::ordered_json;
 
 namespace BAM {
 namespace RGInfo{
@@ -32,6 +32,35 @@ namespace implJson{
 				return i;
 		}
 		return InfoType::max;
+	}
+}
+
+//------------------------------------------------
+// TReadGroupInfoEntry
+//------------------------------------------------
+const ordered_json& TReadGroupInfoEntry::get(const InfoType Info) const {
+	auto it = _info.find(Info);
+	if(it == _info.end()){
+		DEVERROR("Info of type '" + infos[Info].argument + "' does not exist!");
+	}
+	return it->second;
+}
+
+std::string TReadGroupInfoEntry::getString(const InfoType Info) const {
+	const ordered_json& j = get(Info);
+	//if(j.is_string() || j.is_number()){
+		return j.get<std::string>();
+	//} else {
+	//	return j.dump();
+	//}
+}
+
+void TReadGroupInfoEntry::write(coretools::TOutputFile & Out, const InfoType Info) const {
+	auto it = _info.find(Info);
+	if(it == _info.end()){
+		Out << "-";
+	} else{
+		Out << it->second;
 	}
 }
 
@@ -106,7 +135,7 @@ void TReadGroupInfo::_readFile(const std::string & Filename){
 	try {
 		_json = nlohmann::ordered_json::parse(in);
 	}
-	catch (json::parse_error& ex)
+	catch (nlohmann::json::parse_error& ex)
 	{
 		UERROR("Failed to parse read group info file '", Filename, "': JSON error '", ex.what(), " at byte ", ex.byte, "!");
 	}
@@ -272,7 +301,7 @@ void TReadGroupInfo::write(const std::string & Filename){
 	for(auto& r : _info){
 		//make sure json has entry for that read group
 		if(!_json.contains(r.name())){
-			_json[r.name()] = json::object();
+			_json[r.name()] = ordered_json::object();
 		}
 
 		// add (or overwrite) all parsed attributes

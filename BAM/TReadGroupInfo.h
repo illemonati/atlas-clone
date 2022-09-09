@@ -72,7 +72,7 @@ public:
 		_info.insert_or_assign(InfoType::RGName, RgName);
 	}
 
-	void set(const InfoType Info, const std::string & Value){
+	void set(const InfoType Info, const ordered_json & Value){
 		if(Value != "" && Value != "-"){
 			_info.insert_or_assign(Info, Value);
 		}
@@ -82,17 +82,9 @@ public:
 		return _info.find(Info) != _info.end();
 	}
 
-	const ordered_json& get(const InfoType Info) const {
-		auto it = _info.find(Info);
-		if(it == _info.end()){
-			DEVERROR("Info of type '" + infos[Info].argument + "' does not exist!");
-		}
-		return it->second;
-	}
+	const ordered_json& get(const InfoType Info) const;
 
-	std::string getString(const InfoType Info) const {
-		return get(Info).get<std::string>();
-	}
+	std::string getString(const InfoType Info) const;
 
 	std::string name() const { return getString(InfoType::RGName); }
 
@@ -100,14 +92,7 @@ public:
 		return get(Info);
 	}
 
-	void write(coretools::TOutputFile & Out, const InfoType Info) const {
-		auto it = _info.find(Info);
-		if(it == _info.end()){
-			Out << "-";
-		} else{
-			Out << it->second;
-		}
-	}
+	void write(coretools::TOutputFile & Out, const InfoType Info) const;
 };
 
 //------------------------------------------------
