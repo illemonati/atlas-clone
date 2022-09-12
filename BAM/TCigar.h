@@ -36,6 +36,8 @@ private:
 	uint32_t _lengthSoftClippedRight = 0;
 
 public:
+	TCigar()=default;
+	TCigar(TCigar cigar, uint16_t overlapLength);
 	void clear();
 	std::vector<CigarOperator>::const_iterator begin() const noexcept { return _cigar.begin(); }
 	std::vector<CigarOperator>::const_iterator end() const noexcept { return _cigar.end(); }

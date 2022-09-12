@@ -15,6 +15,27 @@ namespace BAM {
 // TCigar
 // A class to store, access and manipulate CIGAR operators
 //-----------------------------------------------------
+TCigar::TCigar(TCigar cigar, uint16_t overlapLength) {
+	auto iterator = cigar.begin();
+	uint16_t overlap;
+	while (lengthMapped() < (cigar.lengthMapped() - overlapLength)) {
+		if (lengthMapped()+iterator->length > cigar.lengthMapped() - overlapLength) {
+			overlap = (lengthMapped()+iterator->length) - cigar.lengthMapped() - overlapLength;
+			add(iterator->type,iterator->length - overlap);
+			iterator++;
+		} else {
+			add(iterator->type,iterator->length);
+			iterator++;
+		}
+	}
+	while (iterator != cigar.end()) {
+		if (iterator->type == 'M' || iterator->type == 'I' || iterator->type == '=' || iterator->type == 'X' || iterator->type == 'S' || iterator->type == 'N')
+			overlap+=iterator->length;
+		iterator++;
+	}
+	add('S',overlap);
+}
+
 void TCigar::clear() {
 	_cigar.clear();
 	_lengthAligned           = 0;

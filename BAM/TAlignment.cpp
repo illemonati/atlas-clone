@@ -327,6 +327,12 @@ void TAlignment::setReadGroup(const uint16_t readGroupId) {
 	_readGroupID = readGroupId;
 };
 
+void TAlignment::setCigar() {
+	uint16_t overlapLength = cigar().lengthMapped() - (mateGenomicPosition() - lastAlignedPositionWithRespectToRef());
+
+	_setCigar(TCigar(cigar(), overlapLength));
+}
+
 //--------------------------------------
 // getters
 //--------------------------------------

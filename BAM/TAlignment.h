@@ -120,6 +120,7 @@ public:
 	void setIsRead1(const bool IsRead1) { _flags.setIsRead1(IsRead1); };
 	void setIsRead2(const bool IsRead2) { _flags.setIsRead2(IsRead2); };
 	void setSamFlags(const BAM::TSamFlags Flags) { _flags = Flags; };
+	void setCigar();
 
 	// getters: position
 	uint32_t lastAlingedInternalPos() const { return _lastAlignedPos; };
