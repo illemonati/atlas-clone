@@ -128,10 +128,9 @@ public:
 
 		outputGLF.closeOutput();
 	}
-
-	virtual void read() {
+	virtual void read(bool open=true) {
 		// open GLF for reading
-		inputGLF.open(_filename);
+		if (open) inputGLF.open(_filename);
 
 		// read!
 		while (inputGLF.readNext()) {
@@ -227,7 +226,7 @@ TEST_F(TGLF_Test_WriteRead, rewind) {
 	read();
 	positions.clear();
 	inputGLF.rewind();
-	read();
+	read(false);
 
 	// check if written and read positions are equal
 	int c = 0;
@@ -444,9 +443,9 @@ protected:
 	static constexpr uint32_t windowLen = 20;
 	std::vector<std::vector<TGLFLikelihoods>> genotypeLikelihoods_perWindow;
 public:
-	void read() override {
+	void read(bool open=true) override {
 		// open GLF for reading
-		inputGLF.open(_filename);
+		if (open) inputGLF.open(_filename);
 
 		// parse GLFs in windows
 		while (!inputGLF.eof()) {

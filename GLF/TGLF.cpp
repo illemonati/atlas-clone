@@ -249,11 +249,12 @@ void TGlfReader::open(const std::string &Filename) {
 };
 
 void TGlfReader::_open() {
-	_gzfp = nullptr;
+	if (_gzfp) UERROR(_filename, " is already open!");
 	_gzfp = gzopen(_filename.c_str(), "rb");
 
 	if (_gzfp == nullptr) throw "Failed to open file '" + _filename + "' for reading!";
 	_curChr.clear();
+	_chromosomesAlreadyParsed.clear();
 	_positionInFile = 0;
 
 	// parse header
@@ -273,11 +274,11 @@ void TGlfReader::_open() {
 	if (headerLen > 0) {
 		char *header = new char[headerLen];
 		_read(&header, headerLen * sizeof(char));
+		delete[] header;
 	}
 	_eof = false;
 
 	// read info of first chromosome
-	_chromosomesAlreadyParsed.clear();
 	_readRecordType();
 	if (_recordType != 0)
 		throw "GLF file does not start with chromosome entry. The GLF format has changed with ATLAS 1.0, are you using "
