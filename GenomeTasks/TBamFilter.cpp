@@ -420,6 +420,7 @@ void TBamFilter::traverseBAM(){
 //-----------------------------------------
 void TAlignmentMerger::merge(BAM::TAlignment & alignment, BAM::TAlignment & mate){
 	//check if reads overlap
+	//TODO: what if there are inserts after the last aligned positions? --> would create overlap which might not be accounted for
 	if (alignment.isReverseStrand()) {
 		if (alignment < mate.lastAlignedPositionWithRespectToRef())
 			alignment.merge(mate);
@@ -532,6 +533,7 @@ void TAlignmentMerger_highestQuality::merge(BAM::TAlignment & alignment, BAM::TA
 		TAlignmentMerger_randomBase::_mergeBases(alignment, mate);
 	}*/
 
+	//TODO: only check base qualities in overlap
 	genometools::PhredIntProbability mateMinQual = findMinQual(mate);
 	genometools::PhredIntProbability alignmentMinQual = findMinQual(alignment);
 
