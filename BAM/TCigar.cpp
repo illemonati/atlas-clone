@@ -15,25 +15,57 @@ namespace BAM {
 // TCigar
 // A class to store, access and manipulate CIGAR operators
 //-----------------------------------------------------
-TCigar::TCigar(TCigar cigar, uint16_t overlapLength) {
-	auto iterator = cigar.begin();
-	uint16_t overlap;
-	while (lengthMapped() < (cigar.lengthMapped() - overlapLength)) {
-		if (lengthMapped()+iterator->length > cigar.lengthMapped() - overlapLength) {
-			overlap = (lengthMapped()+iterator->length) - cigar.lengthMapped() - overlapLength;
-			add(iterator->type,iterator->length - overlap);
-			iterator++;
-		} else {
-			add(iterator->type,iterator->length);
+TCigar::TCigar(TCigar cigar, uint16_t overlapLength, bool isReverseStrand) {
+	uint16_t overlap = 0;
+	uint16_t nonOverlapLength = cigar.lengthMapped() - overlapLength;
+	if (!isReverseStrand) {
+		auto iterator = cigar.begin();
+		while (lengthMapped() <= nonOverlapLength) {
+			if (lengthMapped()+iterator->length > nonOverlapLength) {
+				overlap = (lengthRead()+iterator->length) - nonOverlapLength;
+				if (iterator->length > overlap)
+					add(iterator->type,iterator->length - overlap);
+				iterator++;
+			} else {
+				add(iterator->type,iterator->length);
+				iterator++;
+			}
+		}
+		while (iterator != cigar.end()) {
+			if (iterator->type == 'M' || iterator->type == 'I' || iterator->type == '=' || iterator->type == 'X' || iterator->type == 'S')
+				overlap+=iterator->length;
 			iterator++;
 		}
+		add('S',overlap);
+	} else {
+		auto iterator = cigar.end();
+		while (lengthRead() <= nonOverlapLength) {
+					if (lengthMapped()+iterator->length > nonOverlapLength) {
+						overlap = (lengthMapped()+iterator->length) - nonOverlapLength;
+						if (iterator->length > overlap)
+							add(iterator->type,iterator->length - overlap);
+						iterator--;
+					} else {
+						add(iterator->type,iterator->length);
+						iterator--;
+					}
+				}
+		while (iterator != cigar.begin()) {
+			if (iterator->type == 'M' || iterator->type == 'I' || iterator->type == '=' || iterator->type == 'X' || iterator->type == 'S') {
+				overlap+=iterator->length;
+				iterator--;
+			}
+		}
+		add('S',overlap);
+		_flipCigar();
 	}
-	while (iterator != cigar.end()) {
-		if (iterator->type == 'M' || iterator->type == 'I' || iterator->type == '=' || iterator->type == 'X' || iterator->type == 'S' || iterator->type == 'N')
-			overlap+=iterator->length;
-		iterator++;
-	}
-	add('S',overlap);
+}
+
+void TCigar::_flipCigar() {
+	std::reverse(_cigar.begin(), _cigar.end());
+	uint32_t temp = lengthSoftClippedLeft();
+	_lengthSoftClippedLeft = lengthSoftClippedRight();
+	_lengthSoftClippedRight = temp;
 }
 
 void TCigar::clear() {

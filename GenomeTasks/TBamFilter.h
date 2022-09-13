@@ -103,16 +103,12 @@ public:
 // base class does not merge
 //-----------------------------------------
 class TAlignmentMerger{
-protected:
-	virtual void _mergeBases(BAM::TSequencedBase &, BAM::TSequencedBase &){};
-
 public:
 	TAlignmentMerger(){};
 	virtual ~TAlignmentMerger(){};
-
-	virtual uint16_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate);
+	virtual void merge(BAM::TAlignment & alignment, BAM::TAlignment & mate);
 };
-
+/*
 class TAlignmentMerger_randomBase:public TAlignmentMerger{
 protected:
 	bool _adaptQuality;
@@ -124,25 +120,20 @@ public:
 	TAlignmentMerger_randomBase(const bool AdaptQuality);
 	virtual ~TAlignmentMerger_randomBase(){};
 };
-
-class TAlignmentMerger_randomRead:public TAlignmentMerger_randomBase{
+*/
+class TAlignmentMerger_randomRead:public TAlignmentMerger{
 private:
 	bool _keepMate;
-
-	void _mergeBases(BAM::TSequencedBase & alignment, BAM::TSequencedBase & mate);
-	bool _merge(BAM::TAlignment* alignment, BAM::TAlignment* mate);
-
 public:
-	TAlignmentMerger_randomRead(const bool AdaptQuality);
-
-	uint16_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate);
+	TAlignmentMerger_randomRead();
+	void merge(BAM::TAlignment & alignment, BAM::TAlignment & mate);
 };
 
-class TAlignmentMerger_highestQuality:public TAlignmentMerger_randomBase{
-private:
-	void _mergeBases(BAM::TSequencedBase & alignment, BAM::TSequencedBase & mate);
+class TAlignmentMerger_highestQuality:public TAlignmentMerger{
 public:
-	TAlignmentMerger_highestQuality(const bool AdaptQuality);
+	TAlignmentMerger_highestQuality();
+	void merge(BAM::TAlignment & alignment, BAM::TAlignment & mate);
+	genometools::PhredIntProbability findMinQual(BAM::TAlignment & alignment) const;
 };
 
 //-----------------------------------------

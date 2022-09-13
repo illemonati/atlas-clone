@@ -103,7 +103,6 @@ public:
 			  uint16_t ReadGroupId);
 	void parse();
 	void parse(const GenotypeLikelihoods::SequencingError::TModels &seqErrorModels);
-
 	// setters
 	void addReference(TFastaBuffer &fasta);
 	void setSequenceAndQualitiesChanged() { _sequenceAndQualitiesChanged = true; };
@@ -120,7 +119,6 @@ public:
 	void setIsRead1(const bool IsRead1) { _flags.setIsRead1(IsRead1); };
 	void setIsRead2(const bool IsRead2) { _flags.setIsRead2(IsRead2); };
 	void setSamFlags(const BAM::TSamFlags Flags) { _flags = Flags; };
-	void setCigar();
 
 	// getters: position
 	uint32_t lastAlingedInternalPos() const { return _lastAlignedPos; };
@@ -168,6 +166,7 @@ public:
 	void recalibrateWithPMD(const GenotypeLikelihoods::TGenotypeLikelihoodCalculator &GLCalculator);
 	void setIsProperPair(const bool &ok);
 	void downsampleAlignment(const coretools::Probability &fraction, coretools::TRandomGenerator &randomGenerator);
+	void merge(BAM::TAlignment & mate);
 
 	// debug functions
 	void print() const;

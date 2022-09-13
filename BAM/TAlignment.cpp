@@ -95,7 +95,7 @@ void TAlignment::fill(const std::string &Name, const TSamFlags &Flags, uint32_t 
 
 void TAlignment::_setCigar(const TCigar &Cigar){
 	_cigar = Cigar;
-
+	_parsed = false;
 	// set fragment length
 	if (_flags.isProperPair()) {
 		_fragmentLength = abs(_insertSize_TLEN) + _cigar.lengthInserted() - _cigar.lengthDeleted();
@@ -327,10 +327,8 @@ void TAlignment::setReadGroup(const uint16_t readGroupId) {
 	_readGroupID = readGroupId;
 };
 
-void TAlignment::setCigar() {
-	uint16_t overlapLength = cigar().lengthMapped() - (mateGenomicPosition() - lastAlignedPositionWithRespectToRef());
-
-	_setCigar(TCigar(cigar(), overlapLength));
+void TAlignment::merge(BAM::TAlignment & mate) {
+	_setCigar(TCigar(cigar(), isReverseStrand() ? parsedLength() - (*this - mate) : parsedLength() - (mate - *this), isReverseStrand()));
 }
 
 //--------------------------------------

@@ -418,15 +418,17 @@ void TBamFilter::traverseBAM(){
 //-----------------------------------------
 // TAlignmentMergerType
 //-----------------------------------------
-uint16_t TAlignmentMerger::merge(BAM::TAlignment & alignment, BAM::TAlignment & mate){
-	//NOTE: mate is earlier!
-	//deletions and insertions are kept as is. these positions are not compared
-
+void TAlignmentMerger::merge(BAM::TAlignment & alignment, BAM::TAlignment & mate){
 	//check if reads overlap
-	if(alignment > mate.lastAlignedPositionWithRespectToRef()){
-		return 0;
+	if (alignment.isReverseStrand()) {
+		if (alignment < mate.lastAlignedPositionWithRespectToRef())
+			alignment.merge(mate);
+	} else {
+		if (alignment.lastAlignedPositionWithRespectToRef() > mate)
+			alignment.merge(mate);
+		//maybe just count softclipped right/left here to quantify overlap, else return 0
 	}
-
+/*
 	//prepare (e.g. pick random number)
 	uint16_t numOverlap = 0;
 
@@ -459,9 +461,9 @@ uint16_t TAlignmentMerger::merge(BAM::TAlignment & alignment, BAM::TAlignment & 
 		mate.setSequenceAndQualitiesChanged();
 	}
 
-	return numOverlap;
+	return numOverlap;*/
 };
-
+/*
 // TAlignmentMergerType_randomBase
 //---------------------------------
 TAlignmentMerger_randomBase::TAlignmentMerger_randomBase(const bool AdaptQuality){
@@ -492,41 +494,67 @@ void TAlignmentMerger_randomBase::_mergeBases(BAM::TSequencedBase & alignment, B
 	} else {
 		_mergeBasesCore(alignment, mate);
 	}
-};
+};*/
 
 // TAlignmentMergerType_randomRead
 //---------------------------------
-TAlignmentMerger_randomRead::TAlignmentMerger_randomRead(const bool AdaptQuality):TAlignmentMerger_randomBase(AdaptQuality){
+TAlignmentMerger_randomRead::TAlignmentMerger_randomRead():TAlignmentMerger(){
 	_keepMate = false;
 };
-
+/*
 void TAlignmentMerger_randomRead::_mergeBases(BAM::TSequencedBase & alignment, BAM::TSequencedBase & mate){
 	if(_keepMate){
 		_mergeBasesCore(mate, alignment);
 	} else {
 		_mergeBasesCore(alignment, mate);
 	}
-};
+};*/
 
-uint16_t TAlignmentMerger_randomRead::merge(BAM::TAlignment & alignment, BAM::TAlignment & mate){
+void TAlignmentMerger_randomRead::merge(BAM::TAlignment & alignment, BAM::TAlignment & mate){
 	_keepMate = randomGenerator().pickOneOfTwo();
-	return TAlignmentMerger::merge(alignment, mate);
+	if (_keepMate)
+		TAlignmentMerger::merge(mate, alignment);
+	else
+		TAlignmentMerger::merge(alignment, mate);
 };
 
 // TAlignmentMergerType_highestQuality
 //---------------------------------
-TAlignmentMerger_highestQuality::TAlignmentMerger_highestQuality(const bool AdaptQuality):TAlignmentMerger_randomBase(AdaptQuality){};
+TAlignmentMerger_highestQuality::TAlignmentMerger_highestQuality():TAlignmentMerger(){};
 
-void TAlignmentMerger_highestQuality::_mergeBases(BAM::TSequencedBase & alignment, BAM::TSequencedBase & mate){
-	if(mate.recalibratedQualityAsPhredInt > alignment.recalibratedQualityAsPhredInt){
+void TAlignmentMerger_highestQuality::merge(BAM::TAlignment & alignment, BAM::TAlignment & mate){
+	/*if(mate.recalibratedQualityAsPhredInt > alignment.recalibratedQualityAsPhredInt){
 		_mergeBasesCore(mate, alignment);
 	} else if(alignment.recalibratedQualityAsPhredInt > mate.recalibratedQualityAsPhredInt){
 		_mergeBasesCore(alignment, mate);
 	} else {
 		//pick randomly
 		TAlignmentMerger_randomBase::_mergeBases(alignment, mate);
+	}*/
+
+	genometools::PhredIntProbability mateMinQual = findMinQual(mate);
+	genometools::PhredIntProbability alignmentMinQual = findMinQual(alignment);
+
+	if(mateMinQual>alignmentMinQual)
+		TAlignmentMerger::merge(mate, alignment);
+	else if (alignmentMinQual > mateMinQual)
+		TAlignmentMerger::merge(alignment, mate);
+	else {
+		TAlignmentMerger_randomRead random;
+		random.merge(alignment, mate);
 	}
 };
+
+genometools::PhredIntProbability TAlignmentMerger_highestQuality::findMinQual(BAM::TAlignment & alignment) const {
+	auto iterator = alignment.begin();
+	genometools::PhredIntProbability minQual = iterator->originalQuality_phredInt;
+	while (iterator != alignment.end()) {
+		iterator++;
+		if(iterator->originalQuality_phredInt < minQual)
+			minQual = iterator->originalQuality_phredInt;
+	}
+	return minQual;
+}
 
 //-----------------------------------------
 // TAlignmentSplitMerger
@@ -559,7 +587,7 @@ void TAlignmentSplitMerger::_initializeMerger() {
 	if(alignmentParser.getKeepAll()){
 		logfile().warning("Undefined behavior when merging reads that do not pass default filters. Consider removing 'keepAllReads'");
 	}
-	*/
+
 
 	//decide if we update quality score
 	bool adaptQuality;
@@ -569,7 +597,7 @@ void TAlignmentSplitMerger::_initializeMerger() {
 	} else {
 		adaptQuality = false;
 		logfile().list("Will keep original quality scores of the preferred bases (use updateQuality to update quality scores).");
-	}
+	}*/
 
 	//set merging method
 	//TODO: update wiki to reflect change in names
@@ -578,16 +606,13 @@ void TAlignmentSplitMerger::_initializeMerger() {
 		_merger = std::make_unique<TAlignmentMerger>();
 		logfile().list("Merging method: no merging.");
 	} else if (method == "randomRead"){
-		_merger = std::make_unique<TAlignmentMerger_randomRead>(adaptQuality);
+		_merger = std::make_unique<TAlignmentMerger_randomRead>();
 		logfile().list("Merging method: will keep random read for all overlapping positions");
-	} else if(method == "randomBase"){
-		_merger = std::make_unique<TAlignmentMerger_randomBase>(adaptQuality);
-		logfile().list("Merging method: will keep random base at each overlapping position.");
 	} else if(method == "highestQuality"){
-		_merger = std::make_unique<TAlignmentMerger_highestQuality>(adaptQuality);
+		_merger = std::make_unique<TAlignmentMerger_highestQuality>();
 		logfile().list("Merging method: will keep base with highest quality at overlapping positions.");
 	} else {
-		throw "Unknown merging method " + method + "! Use 'none', 'randomRead', 'randomBase' and 'highestQuality'.";
+		throw "Unknown merging method " + method + "! Use 'none', 'randomRead' or 'highestQuality'.";
 	}
 };
 

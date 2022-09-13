@@ -34,10 +34,11 @@ private:
 	uint32_t _lengthSkipped          = 0;
 	uint32_t _lengthSoftClippedLeft  = 0;
 	uint32_t _lengthSoftClippedRight = 0;
+	void _flipCigar();
 
 public:
 	TCigar()=default;
-	TCigar(TCigar cigar, uint16_t overlapLength);
+	TCigar(TCigar cigar, uint16_t overlapLength, bool isReverseStrand);
 	void clear();
 	std::vector<CigarOperator>::const_iterator begin() const noexcept { return _cigar.begin(); }
 	std::vector<CigarOperator>::const_iterator end() const noexcept { return _cigar.end(); }
