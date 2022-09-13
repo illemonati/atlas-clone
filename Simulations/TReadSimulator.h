@@ -27,6 +27,7 @@
 
 namespace GenotypeLikelihoods { class TPMDType; }
 namespace GenotypeLikelihoods { namespace SequencingError { class TReadGroupModels; } }
+namespace GenotypeLikelihoods { namespace SequencingError { class TModel; } }
 namespace Simulations { class TSimulatorBamFile; }
 namespace Simulations { class TSimulatorReference; }
 
@@ -59,7 +60,6 @@ protected:
 	std::unique_ptr<TCategoricalDistribution<uint16_t>> _softClipDist5;
 	std::unique_ptr<TCategoricalDistribution<uint16_t>> _softClipDist3;
 	GenotypeLikelihoods::TPMDType const *_pmd = nullptr;
-	std::unique_ptr<GenotypeLikelihoods::SequencingError::TReadGroupModels> _recalModels;
 
 	// contamination
 	double _contaminationRate = 0.;
@@ -86,7 +86,8 @@ protected:
 								 const std::vector<Base>& haplotype,
 								 const uint16_t fragmentLength,
 								 const uint16_t readLength,
-								 bool readIsContaminated);
+								 bool readIsContaminated,
+								 const GenotypeLikelihoods::SequencingError::TModel & model);
 
 public:
 	TReadSimulator(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo);
@@ -113,6 +114,7 @@ public:
 class TReadSimulatorSingleEnd final : public TReadSimulator {
 private:
 	coretools::StrictlyPositive<uint16_t> _numCycles;
+	std::unique_ptr<GenotypeLikelihoods::SequencingError::TModel> _recalModel;
 
 public:
 	TReadSimulatorSingleEnd(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo);
@@ -127,9 +129,10 @@ public:
 //-------------------------------
 class TReadSimulatorPairedEnd final : public TReadSimulator {
 private:
-	std::array<coretools::StrictlyPositive<uint16_t>, 2> _numCycles;
 	BAM::TAlignment _secondMate;
 	BAM::TSamFlags _mateFlags;
+	std::array<coretools::StrictlyPositive<uint16_t>, 2> _numCycles;
+	GenotypeLikelihoods::SequencingError::TReadGroupModels _recalModels;
 
 public:
 	TReadSimulatorPairedEnd(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo);

@@ -125,6 +125,63 @@ TFunction *makeFunction(const std::string &Covariate, const std::string &Functio
 	throw "Covariate '" + Covariate + "' does not exist!";
 }
 
+template<typename Covariate> TFunction *makeCovFunction(const BAM::RGInfo::TInfo Info, size_t FirstParameterIndex) {
+	//extract function
+	if(!Info.containes(TEpsilon::attributeFunction)){
+		UERROR("Failed to parse recal covariate '", Covariate::name, "': missing attribute '", TEpsilon::attributeFunction, "'!");
+	}
+	const auto func = BAM::RGInfo::toString(Info[TEpsilon::attributeFunction]);
+
+	// extract values
+
+	//create function
+	using coretools::str;
+	if (stringContains(func, TPolynomial<1, Covariate>::name)){
+		//extract order from name
+
+		size_t order = convertString<size_t>(readBefore(readAfter(func, '('), ')'));
+
+		if (order == 1) return new TPolynomial<1, Covariate>(FirstParameterIndex, betas);
+		if (order == 2) return new TPolynomial<2, Covariate>(FirstParameterIndex, betas);
+		if (order == 3) return new TPolynomial<3, Covariate>(FirstParameterIndex, betas);
+		if (order == 4) return new TPolynomial<4, Covariate>(FirstParameterIndex, betas);
+		if (order == 5) return new TPolynomial<5, Covariate>(FirstParameterIndex, betas);
+		if (order == 6) return new TPolynomial<6, Covariate>(FirstParameterIndex, betas);
+		throw "Only Polynomials up to order 6 can be used!";
+	}
+	if (!args.empty()) throw type + " cannot have arguments";
+	if (func == TProbit<Covariate>::name) { return new TProbit<Covariate>(FirstParameterIndex, betas); }
+	if (func == TEmpiric<Covariate>::name) {
+		if (Covariate::isIndexed)
+			return new TIndexedEmpiric<Covariate>(FirstParameterIndex, betas);
+		else
+			return new TEmpiric<Covariate>(FirstParameterIndex, betas);
+	}
+	if (func == TIndexedEmpiric<Covariate>::name) { return new TIndexedEmpiric<Covariate>(FirstParameterIndex, betas); }
+
+	UERROR("Failed to parse recal covariate '", Covariate::name, "': function '", func, "' does not exist! Use either '", TPolynomial<1, Covariate>::name, "', '", TProbit<Covariate>::name, "' or '", TEmpiric<Covariate>::name, "'.");
+}
+
+TFunction *makeFunction(const std::string &Covariate, const BAM::RGInfo::TInfo & Function, size_t FirstParameterIndex) {
+	// No covariate
+	if (Covariate == TIntercept::name) {
+		return new TIntercept(Function, FirstParameterIndex);
+	}
+	if (Covariate == TCovariate_quality::name)
+		return makeCovFunction<TCovariate_quality>(Function, FirstParameterIndex);
+	if (Covariate == TCovariate_position::name)
+		return makeCovFunction<TCovariate_position>(Function, FirstParameterIndex);
+	if (Covariate == TCovariate_context::name)
+		return makeCovFunction<TCovariate_context>(Function, FirstParameterIndex);
+	if (Covariate == TCovariate_fragmentLength::name)
+		return makeCovFunction<TCovariate_fragmentLength>(Function, FirstParameterIndex);
+	if (Covariate == TCovariate_mappingQuality::name)
+		return makeCovFunction<TCovariate_mappingQuality>(Function, FirstParameterIndex);
+
+	UERROR("Failed to parse recal covariate: covariate '" + Covariate + "' does not exist!");
+}
+
+
 constexpr coretools::Probability calcEpsilon(double eta) noexcept {
 	if (eta > 23.03) return coretools::Probability(0.9999999999);
 	if (eta < -23.03) return coretools::Probability(0.0000000001);
@@ -149,6 +206,13 @@ TEpsilon::TEpsilon(const std::string &Def) {
 	_Jacobian.resize(_numParameters, _numParameters);
 	_F.resize(_numParameters);
 	_JxF.resize(_numParameters, 1);
+}
+
+
+void TEpsilon::initialize(const BAM::RGInfo::TInfo & Def){
+	for (auto it = Def.begin(); it != Def.end(); ++it){
+		_functions.emplace_back(impl::makeFunction(it.key(), it.value()), _numParameters);
+	}
 }
 
 TEpsilon::~TEpsilon() = default;
@@ -234,6 +298,15 @@ std::string TEpsilon::getDefinition() const noexcept {
 		modelString += ";" + fn->modelString();
 	}
 	return modelString;
+}
+
+BAM::RGInfo::TInfo TEpsilon::getInfo() const noexcept{
+	//add each info
+	TInfo info;
+	for(auto& f : _functions){
+		info.push_back(f->modelInfo());
+	}
+	return info;
 }
 
 } // namespace SequencingError

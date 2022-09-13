@@ -31,6 +31,7 @@
 #include "toString.h"
 #include "weakTypes.h"
 #include "enum.h"
+#include "TError.h"
 
 namespace GenotypeLikelihoods {
 namespace SequencingError {
@@ -73,12 +74,61 @@ TRho::TRho(const std::string &Def) {
 	}
 }
 
+void TRho::set(const BAM::RGInfo::TInfo & Def){
+	if(Def.is_string() && Def.get() == "default"){
+		return;
+	}
+
+	//check if definition is complete
+	std::string expl = "Require four attributed 'A', 'C', 'G' and 'T', each specifying an array of four floating point numbers.";
+	if(Def.size() != 4){
+		UERROR("Unable to understand rho: ", expl);
+	}
+
+	//parse each FROM base
+	for (Base from = Base::min; from < Base::max; ++from) {
+		using genometools::toString;
+
+		//check that attribute exists
+		if(!Def.contains(toString(from))){
+			UERROR("Unable to understand rho: missing attribute '", toString(from),"'! ", expl);
+		}
+
+		//ensure it is an array of length 4
+		const BAM::RGInfo::TInfo& x = Def[toString(from)];
+		if(!x.is_array() || x.size() != 4){
+			UERROR("Unable to understand rho: attribute '", toString(from), "' does not specify an array of length 4! ", expl);
+		}
+
+		//parse row for each TO base
+		for (Base to = Base::min; to < Base::max; ++to) {
+			r[from][to] = x[index(to)];
+			r[from][from] = 0.0;
+		}
+	}
+}
+
 std::string TRho::getDefinition() const noexcept {
 	using coretools::str::toString;
 	return "[[-,"s + toString(_rho[Base::A][Base::C]) + ',' + toString(_rho[Base::A][Base::G]) + ',' + toString(_rho[Base::A][Base::T]) + "];["
 		+ toString(_rho[Base::C][Base::A]) + ",-," + toString(_rho[Base::C][Base::G]) + ',' + toString(_rho[Base::C][Base::T]) + "];["
 		+ toString(_rho[Base::G][Base::A]) + ',' + toString(_rho[Base::G][Base::C]) + ",-," + toString(_rho[Base::G][Base::T]) + "];["
 		+ toString(_rho[Base::T][Base::A]) + ',' + toString(_rho[Base::T][Base::C]) + ',' + toString(_rho[Base::T][Base::G]) + ",-]]";
+}
+
+BAM::RGInfo::TInfo TRho::getInfo() const noexcept{
+	//TODO: find better conversion StribngArray -> JSON
+	BAM::RGInfo::TInfo info;
+	for (Base from = Base::min; from < Base::max; ++from) {
+		std::vector<double> vec;
+		vec.reserve(4);
+		for (Base to = Base::min; to < Base::max; ++to) {
+			vec.push_back(_rho[from][to]);
+		}
+
+		info[toString(from)] = vec;
+	}
+	return info;
 }
 
 void TRho::add(genometools::Base l, coretools::Probability P_g_I_d, const TBaseProbabilities &P_bbar_I_d) noexcept {
@@ -136,6 +186,24 @@ void TModelNoRecal::simulate(BAM::TSequencedBase &base) const noexcept {
 
 TModelRecal::TModelRecal(const std::string& RhoDef, const std::string &EpsilonDef): _rho(RhoDef), _epsilon(EpsilonDef) {}
 
+TModelRecal::TModelRecal(BAM::RGInfo::TInfo & Def){
+	//Extract RHO, if given
+	if(Def.contains(TRho::name)){
+		_rho.set(Def[TRho::name]);
+
+		//remove rho from TInfo
+		Def.erase(TRho::name);
+	}
+
+	//initialize covariates using provided definition
+	_epsilon.initialize(Def);
+}
+
+BAM::RGInfo::TInfo TModelRecal::getInfo() const noexcept{
+	BAM::RGInfo::TInfo info = _epsilon.getInfo();
+	info.push_back(_rho.getInfo());
+	return info;
+}
 
 //-------------------------------------------------
 // functions to calculate error rates

@@ -22,6 +22,7 @@
 #include "SequencingError/TModel.h"
 #include "probability.h"
 #include "stringFunctions.h"
+#include "nlohmann/json.hpp"
 
 namespace GenotypeLikelihoods {
 namespace SequencingError {
@@ -53,6 +54,14 @@ void initModel(std::unique_ptr<TModel> & model, const BAM::RGInfo::TReadGroupInf
 		model = std::make_unique<TModelRecal>(r, e);
 	} else {
 		model = std::make_unique<TModelNoRecal>();
+	}
+}
+
+void initModel(std::unique_ptr<TModel> & model, const BAM::RGInfo::TInfo & info){
+	if(info.empty() || (info.is_string() && info.get<std::string>() == "default")){
+		model = std::make_unique<TModelNoRecal>();
+	} else {
+		model = std::make_unique<TModelRecal>(info);
 	}
 }
 
@@ -88,8 +97,43 @@ TReadGroupModels::TReadGroupModels(const std::string &RecalString1, const std::s
 
 TReadGroupModels::TReadGroupModels(const BAM::RGInfo::TReadGroupInfoEntry & Info){
 	using BAM::RGInfo::InfoType;
-	impl::initModel(_models[0], Info, InfoType::recal1);
-	impl::initModel(_models[1], Info, InfoType::recal2);
+
+	//check if recal is provided
+	if(Info.has(InfoType::recal)){
+		auto& json = Info[InfoType::recal];
+
+		//is this a single-end read group?
+		bool single = false;
+		if(Info.has(InfoType::seqType) && Info[InfoType::seqType] == BAM::RGInfo::seqType::single){
+			single = true;
+			_models[0] = std::make_unique<TModelNoRecal>();
+		}
+
+		//check if two mates are provided
+		if(json.contains("first")){
+			impl::initModel(_models[0], json["first"]);
+			if(json.contains("second")){
+				if(single){
+					UERROR("Recal provided for second mate of single-end read group '", Info.name(), "'!");
+				} else {
+					impl::initModel(_models[0], json["second"]);
+				}
+			} else {
+				_models[1] = std::make_unique<TModelNoRecal>();
+			}
+		} else {
+			//assume a single recal model is provided
+			impl::initModel(_models[0], json);
+			if(!single){
+				impl::initModel(_models[1], json);
+			}
+		}
+
+	} else {
+		//initialize no recal model
+		_models[0] = std::make_unique<TModelNoRecal>();
+		_models[1] = std::make_unique<TModelNoRecal>();
+	}
 }
 
 void TReadGroupModels::simulate(BAM::TAlignment & Alignment) const {
@@ -97,6 +141,13 @@ void TReadGroupModels::simulate(BAM::TAlignment & Alignment) const {
 	for (auto & b : Alignment) {
 		mod.simulate(b);
 	}
+}
+
+BAM::RGInfo::TInfo TReadGroupModels::getInfo() const{
+	BAM::RGInfo::TInfo info;
+	info["first"] = _models[0]->getInfo();
+	info["second"] = _models[0]->getInfo();
+	return info;
 }
 
 //--------------------------------------------------------------------
@@ -184,7 +235,7 @@ void TModels::initializeFromFile(const std::string &Filename, const BAM::TReadGr
 void TModels::initialize(BAM::RGInfo::TReadGroupInfo &RgInfo) {
 	using BAM::RGInfo::InfoType;
 
-	RgInfo.parse(InfoType::recal1, InfoType::recal2);
+	RgInfo.parse(InfoType::recal);
 	_models.reserve(RgInfo.size());
 
 	for (size_t rg = 0; rg < RgInfo.size(); ++rg) {
@@ -242,6 +293,12 @@ void TModels::writeRecalFile(const BAM::TReadGroups &ReadGroups, const std::stri
 				<< _models[r][mate].getRhoDefinition();
 		}
 		out.endLine();
+	}
+}
+
+void TModels::addToRGInfo(BAM::RGInfo::TReadGroupInfo & RgInfo) const {
+	for(size_t r = 0; r < _models.size(); ++r){
+		RgInfo.set(r, BAM::RGInfo::InfoType::recal, _models[r].getInfo());
 	}
 }
 

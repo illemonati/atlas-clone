@@ -15,6 +15,7 @@
 #include "RecalEstimatorTools.h"
 #include "TGenotypeData.h"
 #include "probability.h"
+#include "TReadGroupInfo.h"
 
 namespace GenotypeLikelihoods {
 namespace SequencingError {
@@ -130,9 +131,15 @@ class TEpsilon {
 
 public:
 	TEpsilon(const std::string& Def);
+	TEpsilon(const BAM::RGInfo::TInfo & Def){ initialize(Def); };
 	~TEpsilon();
 
+	void initialize(const BAM::RGInfo::TInfo & Def);
+
 	void checkOrInit(const RecalEstimatorTools::TRecalDataTable &DataTable);
+	static constexpr std::string_view attributeFunction = "function";
+	static constexpr std::string_view attributeArguments = "arguments";
+	static constexpr std::string_view attributeValues = "values";
 
 	coretools::Probability calcErrorRate(const BAM::TSequencedBase &base) const noexcept; 
 	double Q() const noexcept {return _Q;};
@@ -149,6 +156,7 @@ public:
 	void adjust();
 
 	std::string getDefinition() const noexcept;
+	BAM::RGInfo::TInfo getInfo() const noexcept;
 };
 } // namespace SequencingError
 } // namespace GenotypeLikelihoods

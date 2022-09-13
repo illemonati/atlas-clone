@@ -27,11 +27,14 @@
 #include "stringFunctions.h"
 #include "toString.h"
 #include "SequencingError/TEpsilon.h"
+#include "TReadGroupInfo.h"
 
 #include <armadillo>
 
 namespace GenotypeLikelihoods {
 namespace SequencingError {
+
+using BAM::RGInfo::TInfo;
 
 //--------------------------------------------------------------
 // TCovariateFunction
@@ -78,6 +81,8 @@ public:
 	virtual double adjustParametersPostEstimation() noexcept                = 0;
 	virtual std::string typeString() const noexcept                         = 0;
 	virtual std::string modelString() const;
+
+	virtual TInfo modelInfo() const 							= 0;
 };
 
 //--------------------------------------------------------------
@@ -104,6 +109,10 @@ public:
 		_initializeValues(Betas);
 	}
 
+	TIntercept(size_t FirstParameterIndex, const TInfo &Betas): TFunction(FirstParameterIndex) {
+		_initializeValues(Betas);
+	}
+
 	size_t numParameters() const noexcept override { return 1; }
 
 	bool checkOrInitValueRange(const RecalEstimatorTools::TRecalDataTable &) noexcept override { return true; }
@@ -122,6 +131,10 @@ public:
 	double adjustParametersPostEstimation() noexcept override { return 0.; }
 
 	std::string typeString() const noexcept override { return std::string(name); }
+
+	TInfo modelInfo() const {
+		return TInfo{ {name, _beta } };
+	}
 };
 
 namespace impl {
@@ -254,6 +267,10 @@ public:
 		_initializeValues(betas);
 	}
 
+	TPolynomial(size_t FirstParameterIndex, const TInfo &betas) : TFunction(FirstParameterIndex) {
+		_initializeValues(betas);
+	}
+
 	size_t numParameters() const noexcept override { return O; }
 
 	bool checkOrInitValueRange(const RecalEstimatorTools::TRecalDataTable &dataTable) noexcept override {
@@ -320,6 +337,10 @@ public:
 		using coretools::str::toString;
 		return std::string(Covariate::name).append(1, ':').append(name).append(1, '(').append(toString(O)).append(1,')');
 	}
+
+	TInfo modelInfo() const {
+		return TInfo{ { Covariate::name, { std::string(name) + "(" + O + ")", _betas } } };
+	}
 };
 
 //--------------------------------------------------------------
@@ -360,6 +381,11 @@ private:
 public:
 	static constexpr std::string_view name = "probit";
 	TProbit(size_t FirstParameterIndex, const std::vector<std::string> &betas) : TFunction(FirstParameterIndex) {
+		_initializeValues(betas);
+		_expandTmpStorage(128);
+	}
+
+	TProbit(size_t FirstParameterIndex, const TInfo &betas) : TFunction(FirstParameterIndex) {
 		_initializeValues(betas);
 		_expandTmpStorage(128);
 	}
@@ -411,6 +437,10 @@ public:
 
 	double adjustParametersPostEstimation() noexcept override { return 0.; }
 	std::string typeString() const noexcept override { return std::string(Covariate::name).append(1, ':').append(name); }
+
+	TInfo modelInfo() const {
+		return TInfo{ { Covariate::name, { std::string(name), _betas } } };
+	}
 };
 
 //--------------------------------------------------------------
@@ -458,6 +488,11 @@ public:
 		_initializeValues(betas);
 	}
 
+	TEmpiric(size_t FirstParameterIndex, const TInfo &betas) : TFunction(FirstParameterIndex) {
+		_resize(betas.size());
+		_initializeValues(betas);
+	}
+
 	size_t numParameters() const noexcept override { return _betas.size(); }
 
 	bool checkOrInitValueRange(const RecalEstimatorTools::TRecalDataTable &dataTable) override {
@@ -487,6 +522,10 @@ public:
 		
 	}
 	std::string typeString() const noexcept override { return std::string(Covariate::name).append(1, ':').append(name); }
+
+	TInfo modelInfo() const {
+		return TInfo{ { Covariate::name, { std::string(name), _betas } } };
+	}
 };
 
 //--------------------------------------------------------------
@@ -553,6 +592,19 @@ public:
 		_initMapFromVector(values);
 	}
 
+	TIndexedEmpiric(size_t FirstParameterIndex, const TInfo &betas) : TFunction(FirstParameterIndex) {
+		//betas are JSON objects with keys indicating indexes and values corresponding betas
+		std::vector<uint16_t> values;
+		for(auto it = betas.begin(); it != betas.end(); ++it){
+			uint16_t val = coretools::str::convertStringCheck<uint16_t>(it.key());
+			if (std::find(values.begin(), values.end(), val) != values.end()) {
+				UERROR("Failed to initialize recal function '", typeString(), "': Duplicate entry for key " + toString(val) + "!");
+			}
+			values.push_back(val);
+			_betas.push_back(it.value());
+		}
+	}
+
 	size_t numParameters() const noexcept override { return _betas.size(); }
 
 	bool checkOrInitValueRange(const RecalEstimatorTools::TRecalDataTable &dataTable) override {
@@ -592,6 +644,17 @@ public:
 		}
 		return s.substr(0, s.size() - 1) + "]";
 	};
+
+	TInfo modelInfo() const {
+		//first create map
+		TInfo map;
+		for (size_t i = 0; i < _indexMap.size(); ++i) {
+			map[toString(_indexMap[i])] = _betas[i];
+		}
+
+		//then combined type
+		return TInfo{ { Covariate::name, { std::string(name), map } } };
+	}
 };
 
 } // namespace SequencingError

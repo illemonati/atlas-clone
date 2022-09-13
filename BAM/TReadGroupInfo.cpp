@@ -17,7 +17,6 @@
 
 using coretools::instances::parameters;
 using coretools::instances::logfile;
-using nlohmann::ordered_json;
 
 namespace BAM {
 namespace RGInfo{
@@ -38,7 +37,7 @@ namespace implJson{
 //------------------------------------------------
 // TReadGroupInfoEntry
 //------------------------------------------------
-const ordered_json& TReadGroupInfoEntry::get(const InfoType Info) const {
+const TInfo& TReadGroupInfoEntry::get(const InfoType Info) const {
 	auto it = _info.find(Info);
 	if(it == _info.end()){
 		DEVERROR("Info of type '" + infos[Info].argument + "' does not exist!");
@@ -46,13 +45,13 @@ const ordered_json& TReadGroupInfoEntry::get(const InfoType Info) const {
 	return it->second;
 }
 
-std::string TReadGroupInfoEntry::getString(const InfoType Info) const {
-	const ordered_json& j = get(Info);
-	//if(j.is_string() || j.is_number()){
+std::string TReadGroupInfoEntry::getString(const InfoType Type) const {
+	const TInfo& j = get(Type);
+	if(j.is_string() || j.is_number()){
 		return j.get<std::string>();
-	//} else {
-	//	return j.dump();
-	//}
+	} else {
+		return j.dump();
+	}
 }
 
 void TReadGroupInfoEntry::write(coretools::TOutputFile & Out, const InfoType Info) const {
@@ -287,12 +286,12 @@ void TReadGroupInfo::warnAboutUnusedColumnsInFile(){
 };
 
 
-void TReadGroupInfo::set(const uint16_t RGIndex, const InfoType Info, const ordered_json & Value){
+void TReadGroupInfo::set(const uint16_t RGIndex, const InfoType Type, const TInfo & Value){
 	//check if info was already parsed. Else, add
-	_parsed[Info] = true;
+	_parsed[Type] = true;
 
 	//now add to specific
-	_info[RGIndex].set(Info, Value);
+	_info[RGIndex].set(Type, Value);
 }
 
 void TReadGroupInfo::write(const std::string & Filename){
@@ -305,7 +304,7 @@ void TReadGroupInfo::write(const std::string & Filename){
 		}
 
 		// add (or overwrite) all parsed attributes
-		ordered_json& x = _json[r.name()];
+		TInfo& x = _json[r.name()];
 
 		for(auto i = InfoType::min; i < InfoType::max; ++i){
 			if(_parsed[i]){

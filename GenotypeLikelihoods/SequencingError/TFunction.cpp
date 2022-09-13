@@ -27,11 +27,28 @@ using coretools::str::toString;
 //--------------------------------------------------------------
 // TRecalibrationEMCovariateFunction
 //--------------------------------------------------------------
+void TFunction::_initializeValues(const BAM::RGInfo::Info &betas) {
+	if (!betas.empty()) {
+		if (betas.size() != numParameters()) {
+			UERROR("Failed to initialize recal function '", typeString(), "': wrong number of values (", betas.size(),
+						   " instead of ", numParameters(), ")!");
+		}
+		if(betas.is_array()){
+			for(size_t i = 0; i < numParameters(); ++i){
+				_betas[i] = betas[i];
+			}
+		} else if(numParameters() == 1 && betas.is_number()){
+			_betas[0] = betas.get();
+		} else {
+			UERROR("Failed to initialize recal function '", typeString(), "': expected an array of values!");
+		}
+	}
+}
 
 void TFunction::_initializeValues(const std::vector<std::string> &betas) {
 	if (!betas.empty()) {
 		if (betas.size() != numParameters()) {
-			throw toString("Failed to initialize recalibration module: wrong number of values (", betas.size(),
+			throw toString("Failed to initialize recal function '", typeString(), "': wrong number of values (", betas.size(),
 						   " instead of ", numParameters(), ")!");
 		}
 		std::transform(betas.cbegin(), betas.cend(), _begin(), coretools::str::convertStringCheck<double>);
@@ -54,6 +71,11 @@ std::string TFunction::modelString() const {
 	std::string s = typeString() + "[" + std::accumulate(_cbegin(), _cend(), std::string{}, [](auto tot, auto b){return tot + toString(b) + ",";});
 	return s.substr(0, s.size() - 1) + "]";
 }
+
+virtual BAM::RGInfo::TInfo TFunction::modelInfo() const {
+	return BAM::RGInfo::TInfo{ {typeString(), _betas}  };
+}
+
 
 } // namespace SequencingError
 } // namespace GenotypeLikelihoods

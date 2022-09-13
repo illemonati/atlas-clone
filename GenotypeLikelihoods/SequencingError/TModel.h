@@ -19,6 +19,7 @@
 #include "TStrongArray.h"
 #include "TEpsilon.h"
 #include "probability.h"
+#include "TReadGroupInfo.h"
 
 namespace BAM {
 class TSequencedBase;
@@ -47,14 +48,18 @@ private:
 public:
 	TRho() = default;
 	TRho(const std::string &Def);
+	TRho(const BAM::RGInfo::TInfo & Def){ set(Def); };
 	TRho(const TRho &other) = default;
 	TRho &operator=(const TRho &other) = default;
 
+	const static constexpr std::string_view name = "rho";
+	void set(const BAM::RGInfo::TInfo & Def);
 
 	const TBaseProbabilities& operator[](genometools::Base from) const noexcept {
 		return _rho[from];
 	}
 	std::string getDefinition() const noexcept;
+	BAM::RGInfo::TInfo getInfo() const noexcept;
 
 	// functions used to estimate
 	void add(genometools::Base l, coretools::Probability P_g_I_d, const TBaseProbabilities &P_bbar_I_d) noexcept;
@@ -77,6 +82,7 @@ public:
 	virtual void simulate(BAM::TSequencedBase &base) const noexcept                                      = 0;
 	virtual std::string getCovariateDefinition() const noexcept                                          = 0;
 	virtual std::string getRhoDefinition() const noexcept                                                = 0;
+	virtual BAM::RGInfo::TInfo getInfo() const noexcept                                        			 = 0;
 };
 
 //------------------------------------------------
@@ -90,10 +96,12 @@ public:
 	coretools::Probability getErrorRate(const BAM::TSequencedBase &base) const noexcept override;
 	genometools::PhredIntProbability getPhredInt(const BAM::TSequencedBase &base) const noexcept override;
 	TBaseLikelihoods getBaseLikelihoods(const BAM::TSequencedBase &base) const noexcept override;
-	virtual void simulate(BAM::TSequencedBase &base) const noexcept override;
+	void simulate(BAM::TSequencedBase &base) const noexcept override;
 
-	virtual std::string getCovariateDefinition() const noexcept override { return "-"; };
-	virtual std::string getRhoDefinition() const noexcept override { return "-"; };
+	std::string getCovariateDefinition() const noexcept override { return "-"; };
+	std::string getRhoDefinition() const noexcept override { return "-"; };
+
+	BAM::RGInfo::TInfo getInfo() const noexcept{ return BAM::RGInfo::TInfo(); };
 };
 
 //------------------------------------------------
@@ -105,11 +113,14 @@ private:
 	TEpsilon _epsilon;
 public:
 	TModelRecal(const std::string& RhoDef, const std::string &EpsilonDef);
+	TModelRecal(const BAM::RGInfo::TInfo & Def);
 
 	bool estimatable() const noexcept override { return true; };
 	bool recalibrates() const noexcept override { return true; };
 	std::string getCovariateDefinition() const noexcept override {return _epsilon.getDefinition();};
 	std::string getRhoDefinition() const noexcept override { return _rho.getDefinition(); };
+
+	BAM::RGInfo::TInfo getInfo() const noexcept;
 
 	// get error rates
 	coretools::Probability getErrorRate(const BAM::TSequencedBase &base) const noexcept override;

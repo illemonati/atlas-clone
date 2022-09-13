@@ -25,25 +25,35 @@ namespace BAM {
 namespace RGInfo{
 
 //------------------------------------------------
+// Info and functions to extract data
+//------------------------------------------------
+
+typedef nlohmann::ordered_json TInfo;
+
+std::string toString(const TInfo& info){
+	return info.get<std::string>();
+}
+
+//------------------------------------------------
 // TInfoValue
 //------------------------------------------------
-enum class InfoType {min=0, RGName=0, RGFrequency, seqType, cycles, fragmentLength, baseQuality, mappingQuality, softClipping, recal1, recal2, pmd, max};
+enum class InfoType {min=0, RGName=0, RGFrequency, seqType, cycles, fragmentLength, baseQuality, mappingQuality, softClipping, recal, pmd, max};
 
 //------------------------------------------------
 // argument string, description and default for each info type
 //------------------------------------------------
 
-struct TInfo {
+struct TInfoArgument {
 	std::string argument;
 	std::string description;
 	std::string defaults;
-	TInfo() = default;
-	TInfo(std::string_view Argument, std::string_view Description, std::string_view Defaults)
+	TInfoArgument() = default;
+	TInfoArgument(std::string_view Argument, std::string_view Description, std::string_view Defaults)
 		: argument(std::move(Argument)), description(std::move(Description)), defaults(std::move(Defaults)) {}
 };
 
-inline const coretools::TStrongArray<TInfo, InfoType> infos = []() {
-	coretools::TStrongArray<TInfo, InfoType> i;
+inline const coretools::TStrongArray<TInfoArgument, InfoType> infos = []() {
+	coretools::TStrongArray<TInfoArgument, InfoType> i;
 	i[InfoType::RGName] = {"readGroup", "read group name", "SimReadGroup"};
 	i[InfoType::RGFrequency] = {"frequency", "read group frequency", "1.0"};
 	i[InfoType::seqType] = {"seqType", "sequencing type", "single"};
@@ -52,20 +62,27 @@ inline const coretools::TStrongArray<TInfo, InfoType> infos = []() {
 	i[InfoType::baseQuality] = {"baseQuality", "base quality distribution", "normal(30,10)[0,93]"};
 	i[InfoType::mappingQuality] = {"mappingQuality", "mapping quality distribution", "normal(60,10)[1,255]"};
 	i[InfoType::softClipping] = {"softClipping", "soft clipping distribution", "-"};
-	i[InfoType::recal1] = {"recal1", "base quality score recalibration model for 1st mate", "-"};
-	i[InfoType::recal2] = {"recal2", "base quality score recalibration model for 2nd mate", "-"};
+	i[InfoType::recal] = {"recal", "base quality score recalibration model", "-"};
 	i[InfoType::pmd] = {"pmd", "Postmortem damage model", "-"};
 	return i;
 }();
 
+//------------------------------------------------
+// Predefined tags
+//------------------------------------------------
+namespace seqType{
+	static constexpr std::string_view single = "single";
+	static constexpr std::string_view paired = "paired";
+}
 
-using nlohmann::ordered_json;
 //------------------------------------------------
 // TReadGroupInfoEntry
 //------------------------------------------------
+using nlohmann::ordered_json;
+
 class TReadGroupInfoEntry{
 private:
-	std::map<InfoType, ordered_json> _info;
+	std::map<InfoType, TInfo> _info;
 
 public:
 	TReadGroupInfoEntry(const std::string & RgName){
@@ -82,13 +99,13 @@ public:
 		return _info.find(Info) != _info.end();
 	}
 
-	const ordered_json& get(const InfoType Info) const;
+	const TInfo& get(const InfoType Info) const;
 
 	std::string getString(const InfoType Info) const;
 
 	std::string name() const { return getString(InfoType::RGName); }
 
-	const ordered_json& operator[](const InfoType Info) const {
+	const TInfo& operator[](const InfoType Info) const {
 		return get(Info);
 	}
 
@@ -165,11 +182,11 @@ public:
 		return _info[RGIndex].has(Info);
 	};
 
-	const ordered_json& get(size_t RGIndex, const InfoType Info) const noexcept {
+	const TInfo& get(size_t RGIndex, const InfoType Info) const noexcept {
 		return _info[RGIndex][Info];
 	}
 
-	const ordered_json& get(size_t RGIndex, const InfoType Info, const ordered_json& defValue) const noexcept {
+	const TInfo& get(size_t RGIndex, const InfoType Info, const ordered_json& defValue) const noexcept {
 		return has(RGIndex, Info) ? get(RGIndex, Info) : defValue;
 	}
 

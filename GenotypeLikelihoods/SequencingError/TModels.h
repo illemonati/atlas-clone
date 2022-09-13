@@ -60,6 +60,8 @@ public:
 	}
 
 	void simulate(BAM::TAlignment & Alignment) const;
+
+	BAM::RGInfo::TInfo getInfo() const;
 };
 
 //--------------------------------------------------------------------------
@@ -105,6 +107,8 @@ public:
 	TBaseLikelihoods getBaseLikelihoods(const BAM::TSequencedBase &base) const noexcept;
 
 	void writeRecalFile(const BAM::TReadGroups &ReadGroups, const std::string & Filename) const;
+
+	void addToRGInfo(BAM::RGInfo::TReadGroupInfo & RgInfo) const;
 };
 } // namespace SequencingError
 }; // namespace GenotypeLikelihoods

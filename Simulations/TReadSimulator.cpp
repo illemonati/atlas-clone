@@ -191,28 +191,35 @@ void TReadSimulator::setContamination(double rate, TSimulatorReference *source) 
 TReadSimulatorSingleEnd::TReadSimulatorSingleEnd(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo)
 	: TReadSimulator(ReadGroup, RGInfo){
 
-	//num cycles
-	//logfile().list(BAM::RGInfo::infos[InfoType::cycles].description, ": ", RGInfo.getString(InfoType::cycles));
-
-	auto& j = RGInfo[InfoType::cycles];
-	//if(j.is)
-
-	std::cout << RGInfo[InfoType::cycles] << std::endl;
-	std::cout << "Size = " << RGInfo[InfoType::cycles].size() << std::endl;
-	std::cout << "Number ? " << RGInfo[InfoType::cycles].is_number() << std::endl;
-	std::cout << "string ? " << RGInfo[InfoType::cycles].is_string() << std::endl;
-	std::cout << "object ? " << RGInfo[InfoType::cycles].is_object() << std::endl;
-	std::cout << "array ? " << RGInfo[InfoType::cycles].is_array() << std::endl;
-
-	throw "done!";
-
-	coretools::str::convertString< coretools::StrictlyPositive<uint16_t> >(RGInfo[InfoType::cycles],
-			coretools::str::capitalizeFirst(BAM::RGInfo::infos[InfoType::cycles].description) + " must be a single number within [1,65535].", _numCycles);
-
 	_alignment.setSamFlags(_flags);
 
+	//num cycles
+	logfile().list(BAM::RGInfo::infos[InfoType::cycles].description, ": ", RGInfo.getString(InfoType::cycles));
+	std::string error = "For single-end read groups, " + BAM::RGInfo::infos[InfoType::cycles].description + " must be a single integer within [1,65535].";
+	auto& json = RGInfo[InfoType::cycles];
+	if(json.is_number()){
+		_numCycles = json.get<int>();
+	} else if(json.is_string()){
+		coretools::str::convertString< coretools::StrictlyPositive<uint16_t> >(json, error, _numCycles);
+	} else if(json.is_array() && json.size() == 1){
+			coretools::str::convertString< coretools::StrictlyPositive<uint16_t> >(json[0], error, _numCycles);
+	} else if(json.is_array() && json.size() == 2){
+		UERROR(error);
+	} else {
+		UERROR("Unable to understand ", BAM::RGInfo::infos[InfoType::cycles].description, ": expect a single integer within [1,65535].");
+	}
+
 	//recal
-	logfile().list(coretools::str::capitalizeFirst(BAM::RGInfo::infos[InfoType::recal1].description), ": ", RGInfo[InfoType::recal1]);
+	logfile().list(coretools::str::capitalizeFirst(BAM::RGInfo::infos[InfoType::recal].description), ": ", RGInfo.getString(InfoType::recal));
+
+	auto& r = RGInfo[InfoType::recal];
+	if(r.contains("first")){
+		if(r.contains("second")){
+
+		}
+		_recalModels = std::make_unique<GenotypeLikelihoods::SequencingError::TReadGroupModels>(RGInfo);
+	}
+
 	if(RGInfo.has(InfoType::recal2)){
 		logfile().warning(coretools::str::capitalizeFirst(BAM::RGInfo::infos[InfoType::recal2].description), " provided for single-en read group! It will be ignored.");
 	}
