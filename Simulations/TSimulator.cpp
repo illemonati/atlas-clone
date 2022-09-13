@@ -30,6 +30,7 @@
 #include "algorithms.h"
 #include "gzstream.h"
 #include "mathConstants.h"
+#include "probability.h"
 #include "progressTools.h"
 #include "stringFunctions.h"
 #include "weakTypes.h"
@@ -440,12 +441,13 @@ auto calculateLog10ProbFixed(const GLF::TMultiGLFDataOneAllelicCombination &Geno
 
 auto calculateVariantQuality(const GLF::TMultiGLFDataOneAllelicCombination &GenotypeLikelihoods,
                              genometools::Base Major, genometools::Base Ref, bool IsDiploid) {
+	using coretools::Log10Probability;
 	const auto LL_allelicCombination = calculateLog10ProbThisAllelicCombination(GenotypeLikelihoods);
 	const auto LL_fixed              = calculateLog10ProbFixed(GenotypeLikelihoods, Major, Ref, IsDiploid);
 
 	// calculate variant quality
-	return genometools::PhredIntProbability(LL_fixed > LL_allelicCombination ? coretools::Log10Probability(0.0)
-	                                                                         : LL_fixed - LL_allelicCombination);
+	return genometools::PhredIntProbability(
+		LL_fixed > LL_allelicCombination ? Log10Probability(0.0) : Log10Probability(LL_fixed - LL_allelicCombination));
 }
 
 } // end namespace

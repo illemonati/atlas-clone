@@ -198,10 +198,10 @@ void normalizeByMax_Haploid(GenotypeLikelihoods::TGenotypeLikelihoods &genotypeL
 	if (genotypeLikelihoods[Genotype::TT] > maxLL) maxLL = genotypeLikelihoods[Genotype::TT];
 
 	// normalize
-	genotypeLikelihoods[Genotype::AA] /= maxLL;
-	genotypeLikelihoods[Genotype::CC] /= maxLL;
-	genotypeLikelihoods[Genotype::GG] /= maxLL;
-	genotypeLikelihoods[Genotype::TT] /= maxLL;
+	genotypeLikelihoods[Genotype::AA].scale(maxLL);
+	genotypeLikelihoods[Genotype::CC].scale(maxLL);
+	genotypeLikelihoods[Genotype::GG].scale(maxLL);
+	genotypeLikelihoods[Genotype::TT].scale(maxLL);
 }
 
 TEST_F(TGLF_Test_WriteRead, genotypeLikelihoods) {

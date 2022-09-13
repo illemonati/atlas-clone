@@ -85,7 +85,7 @@ const std::vector<double> &TSiteAlleleFrequencyLikelihoods::_getLogChoose(int co
 void TSiteAlleleFrequencyLikelihoods::normalize() {
 	const LogProbability max = *std::max_element(log_alleleFrequencyLikelihoods_h.begin(), log_alleleFrequencyLikelihoods_h.end());
 	for (auto & lf: log_alleleFrequencyLikelihoods_h) {
-		lf -= max;
+		lf.scale(max);
 	}
 };
 
