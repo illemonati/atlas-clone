@@ -93,7 +93,7 @@ void TTestGLFFile::_iterateGenotypeLikelihoods(uint32_t curDepth) {
 
         // iterate, such that next base gets different values
         indexPossibleBases = (indexPossibleBases + 3) % possibleBases.size();
-        error += 0.02;
+        error = error + 0.02;
         if (error > maxError)
             error = 0.01;
     }

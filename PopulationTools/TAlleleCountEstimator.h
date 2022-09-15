@@ -14,9 +14,6 @@
 #include <vector>
 
 #include "PhredProbabilityTypes.h"
-#include "TLog.h"
-#include "TParameters.h"
-#include "TRandomGenerator.h"
 #include "TSampleLikelihoods.h"
 #include "TTask.h"
 #include "probability.h"
@@ -28,37 +25,20 @@ namespace PopulationTools{
 
 using TSampleLikelihoods = genometools::TSampleLikelihoods<genometools::HighPrecisionPhredIntProbability>;
 
-//-------------------------------------------------
-// TSAFChooseStorage
-//-------------------------------------------------
-class TSAFChooseStorage{
-private:
-	int _k;
-	double* log_choose_k_j;
-
-public:
-	TSAFChooseStorage(int k);
-	~TSAFChooseStorage();
-
-	double logChoose(int j);
-	double operator[](int j);
-};
 
 //-------------------------------------------------
 // TSiteAlleleFrequencyLikelihoods
 //-------------------------------------------------
 class TSiteAlleleFrequencyLikelihoods{
 private:
-	double logOf2;
+	static constexpr double logOf2 = 0.6931471805599453;
 	uint32_t numAlleleCounts; //from 0 to 2k
 	std::vector<coretools::LogProbability> log_alleleFrequencyLikelihoods_h;
-	std::map<int, TSAFChooseStorage*> log_choose;
+	std::map<int, std::vector<double>> log_choose;
 
-	coretools::LogProbability _protectedSumInLog(const coretools::LogProbability a, const coretools::LogProbability c);
-	coretools::LogProbability _protectedSumInLog(const coretools::LogProbability a, const coretools::LogProbability b, const coretools::LogProbability c);
 	void normalize();
 
-	TSAFChooseStorage* _getLogChoose(int counts);
+	const std::vector<double>& _getLogChoose(int counts);
 
 protected:
     void _fillLog(TSampleLikelihoods* data, uint32_t numSamples);
@@ -66,11 +46,10 @@ protected:
 
 public:
 	TSiteAlleleFrequencyLikelihoods(int numIndividuals);
-	~TSiteAlleleFrequencyLikelihoods();
 	void fill(TSampleLikelihoods* data, uint32_t numSamples);
 	void print();
 	void write(gz::ogzstream & file);
-	int getMLAlleleCount(coretools::TRandomGenerator & randomGenerator);
+	int getMLAlleleCount();
 	int getNumAlleles(){ return numAlleleCounts; };
 	const std::vector<coretools::LogProbability> & getLogAlleleFrequencyLikelihoods() const;
 };
@@ -79,17 +58,11 @@ public:
 // TAlleleCountEstimator
 //-------------------------------------------------
 class TAlleleCountEstimator{
-private:
-	coretools::TLog* logfile;
-
 public:
-	TAlleleCountEstimator(coretools::TParameters & params, coretools::TLog* Logfile);
-	~TAlleleCountEstimator();
-
-	void estimateAlleleCounts(coretools::TParameters & params, coretools::TRandomGenerator* randomGenerator);
-	void writeAlleleFrequencyLikelihoods(coretools::TParameters & params);
-	TAlleleCountFile* prepareOutputFile(std::string type, std::string filePrefix, coretools::TParameters& params);
-	void transformFormat(coretools::TParameters & params);
+	void estimateAlleleCounts();
+	void writeAlleleFrequencyLikelihoods();
+	TAlleleCountFile* prepareOutputFile(const std::string &type, std::string filePrefix);
+	void transformFormat();
 };
 
 //--------------------------------------
@@ -101,8 +74,8 @@ public:
 
 	void run(){
 		using namespace coretools::instances;
-		TAlleleCountEstimator alleleCountEst(parameters(), &logfile());
-		alleleCountEst.estimateAlleleCounts(parameters(), &randomGenerator());
+		TAlleleCountEstimator alleleCountEst;
+		alleleCountEst.estimateAlleleCounts();
 	};
 };
 
@@ -112,8 +85,8 @@ public:
 
 	void run(){
 		using namespace coretools::instances;
-		TAlleleCountEstimator alleleCountEst(parameters(), &logfile());
-		alleleCountEst.writeAlleleFrequencyLikelihoods(parameters());
+		TAlleleCountEstimator alleleCountEst;
+		alleleCountEst.writeAlleleFrequencyLikelihoods();
 	};
 };
 
@@ -123,8 +96,8 @@ public:
 
 	void run(){
 		using namespace coretools::instances;
-		TAlleleCountEstimator alleleCountEst(parameters(), &logfile());
-		alleleCountEst.transformFormat(parameters());
+		TAlleleCountEstimator alleleCountEst;
+		alleleCountEst.transformFormat();
 	};
 };
 

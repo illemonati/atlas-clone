@@ -9,6 +9,7 @@
 
 #include "GenotypeTypes.h"
 #include "TFile.h"
+#include "TGenotypeData.h"
 #include "TRandomGenerator.h"
 #include "TSite.h"
 #include <algorithm>
@@ -162,8 +163,7 @@ void TThetaEstimatorData::add(const GenotypeLikelihoods::TSite &site,
 
 TBaseProbabilities TThetaEstimatorData::baseFrequencies() {
 	// estimate base frequencies
-	normalize(tmpBaseFreq);
-	return frequencies(tmpBaseFreq);
+	return TBaseProbabilities::normalize(tmpBaseFreq);
 };
 
 void TThetaEstimatorData::fillP_G(GenotypeLikelihoods::TGenotypeData &P_G,

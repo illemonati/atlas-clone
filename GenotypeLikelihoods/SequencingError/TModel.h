@@ -38,10 +38,10 @@ namespace SequencingError {
 class TRho {
 private:
 	coretools::TStrongArray<TBaseProbabilities, genometools::Base> _rho{
-		{coretools::TStrongArray<double, genometools::Base>{{0., 1. / 3, 1. / 3, 1. / 3}},
-		 coretools::TStrongArray<double, genometools::Base>{{1. / 3, 0., 1. / 3, 1. / 3}},
-		 coretools::TStrongArray<double, genometools::Base>{{1. / 3, 1. / 3, 0., 1. / 3}},
-		 coretools::TStrongArray<double, genometools::Base>{{1. / 3, 1. / 3, 1. / 3, 0.}}}}; //[from k][to l]
+		{TBaseProbabilities::normalize({0., 1. / 3, 1. / 3, 1. / 3}),
+		 TBaseProbabilities::normalize({1. / 3, 0., 1. / 3, 1. / 3}),
+		 TBaseProbabilities::normalize({1. / 3, 1. / 3, 0., 1. / 3}),
+		 TBaseProbabilities::normalize({1. / 3, 1. / 3, 1. / 3, 0.})}}; //[from k][to l]
 
 	coretools::TStrongArray<coretools::TStrongArray<double, genometools::Base>, genometools::Base> _rhoSum{};
 public:

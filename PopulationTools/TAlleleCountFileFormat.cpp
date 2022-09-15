@@ -16,6 +16,8 @@
 #include "stringFunctions.h"
 
 namespace PopulationTools{
+using coretools::instances::logfile;
+using coretools::instances::parameters;
 
 //------------------------------
 // TAlleleCountFile
@@ -32,10 +34,10 @@ void TAlleleCountFile::openFileToWrite(std::string filename){
 		throw "Failed to open file '" + filename + "' for writing!";
 };
 
-void TAlleleCountFile::writeHeader(genometools::TPopulationSamples & samples, coretools::TParameters & params, coretools::TLog* logfile){
-	bool useLocusName = params.parameterExists("useLocusName");
+void TAlleleCountFile::writeHeader(genometools::TPopulationSamples & samples){
+	bool useLocusName = parameters().parameterExists("useLocusName");
 	if(useLocusName){
-		logfile->list("Will print locus names (rather than chromosome and position).");
+		logfile().list("Will print locus names (rather than chromosome and position).");
 		outFile << "Locus";
 		sep = '_';
 	}
@@ -45,10 +47,10 @@ void TAlleleCountFile::writeHeader(genometools::TPopulationSamples & samples, co
 	outFile << "\n";
 };
 
-void TAlleleCountFile::writeHeader(std::vector<std::string> populationNames, coretools::TParameters & params, coretools::TLog* logfile){
-	bool useLocusName = params.parameterExists("useLocusName");
+void TAlleleCountFile::writeHeader(std::vector<std::string> populationNames){
+	bool useLocusName = parameters().parameterExists("useLocusName");
 	if(useLocusName){
-		logfile->list("Will print locus names (rather than chromosome and position).");
+		logfile().list("Will print locus names (rather than chromosome and position).");
 		outFile << "Locus";
 		sep = '_';
 	}
@@ -86,14 +88,14 @@ TTreeMixFile::TTreeMixFile(std::string Filename):TAlleleCountFile(Filename){
 	filename = Filename;
 };
 
-void TTreeMixFile::writeHeader(genometools::TPopulationSamples & samples, coretools::TParameters &, coretools::TLog*){
+void TTreeMixFile::writeHeader(genometools::TPopulationSamples & samples){
 	outFile << samples.getPopulationName(0);
 	for(size_t p=1; p<samples.numPopulations(); p++)
 		outFile << " " << samples.getPopulationName(p);
 	outFile << "\n";
 };
 
-void TTreeMixFile::writeHeader(std::vector<std::string> populationNames, coretools::TParameters &, coretools::TLog*){
+void TTreeMixFile::writeHeader(std::vector<std::string> populationNames){
 	outFile << populationNames[0];
 		for(size_t p=1; p<populationNames.size(); p++)
 			outFile << " " << populationNames[p];
@@ -133,7 +135,7 @@ TFlinkFile::TFlinkFile(std::string Filename):TAlleleCountFile(Filename){
 	sep = "\t";
 };
 
-void TFlinkFile::writeHeader(genometools::TPopulationSamples & samples, coretools::TParameters &, coretools::TLog*){
+void TFlinkFile::writeHeader(genometools::TPopulationSamples & samples){
 	outFile << "-\t-";
 	for(size_t g=0; g<samples.numPopulations(); ++g){
 		outFile << "\tGroup_A";
@@ -146,7 +148,7 @@ void TFlinkFile::writeHeader(genometools::TPopulationSamples & samples, coretool
 
 };
 
-void TFlinkFile::writeHeader(std::vector<std::string> populationNames, coretools::TParameters &, coretools::TLog*){
+void TFlinkFile::writeHeader(std::vector<std::string> populationNames){
 	outFile << "-\t-";
 		for(unsigned int g=0; g<populationNames.size(); ++g){
 			outFile << "\tGroup_A";

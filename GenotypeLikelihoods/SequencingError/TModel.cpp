@@ -68,8 +68,12 @@ TRho::TRho(const std::string &Def) {
 		if (r.size() != 4)
 			throw "Rho matrix has " + toString(r.size()) + " instead of 4 columns for row " + toString(index(a) + 1) + "!";
 
-		r[index(a)] = 0.;
-		_rho[a]     = r;
+		std::array<double, 4> ar;
+		std::copy(r.begin(), r.end(), ar.begin());
+
+		ar[index(a)] = 0.;
+
+		_rho[a]     = TBaseProbabilities::normalize(ar);
 	}
 }
 
@@ -90,7 +94,7 @@ void TRho::add(genometools::Base l, coretools::Probability P_g_I_d, const TBaseP
 void TRho::estimate() noexcept {
 	for (Base k = Base::min; k < Base::max; ++k) {
 		_rhoSum[k][k] = 0.0;
-		_rho[k] = _rhoSum[k];
+		_rho[k] = TBaseProbabilities::normalize(_rhoSum[k]);
 	}
 	// reset
 	_rhoSum.fill({});

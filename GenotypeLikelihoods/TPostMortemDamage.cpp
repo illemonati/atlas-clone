@@ -501,13 +501,16 @@ TBaseMassFunctions TPMDTypeDoubleStrand::getMassFunctions(const BAM::TSequencedB
 			pmdProb_GA = _pmdCT->prob(data.distFrom5Prime);
 	}
 
-	return TBaseMassFunctions{{TBaseProbabilities{{1., 0., 0., 0.}}, {{0., (1. - pmdProb_CT), 0., pmdProb_CT}}, {{pmdProb_GA, 0., (1.-pmdProb_GA), 0.}}, {{0., 0., 0., 1.}}}};
+	return TBaseMassFunctions{{TBaseProbabilities::normalize({1., 0., 0., 0.}),
+							  TBaseProbabilities::normalize({0., (1. - pmdProb_CT), 0., pmdProb_CT}),
+							  TBaseProbabilities::normalize({pmdProb_GA, 0., (1. - pmdProb_GA), 0.}),
+							  TBaseProbabilities::normalize({0., 0., 0., 1.})}};
 }
 
 TBaseProbabilities TPMDTypeDoubleStrand::getMassFunction(Base b, const BAM::TSequencedBase &data,
 														 const TBaseLikelihoods &baseLikelihoodsNoPMD) const {
-	if (b == Base::A) return TBaseProbabilities{{1., 0., 0., 0.}};
-	if (b == Base::T) return TBaseProbabilities{{0., 0., 0., 1.}};
+	if (b == Base::A) return TBaseProbabilities::normalize({1., 0., 0., 0.});
+	if (b == Base::T) return TBaseProbabilities::normalize({0., 0., 0., 1.});
 
 	const auto from3  = data.distFrom3Prime < data.distFrom5Prime;
 	double pmdProb_CT = 0;
@@ -526,10 +529,10 @@ TBaseProbabilities TPMDTypeDoubleStrand::getMassFunction(Base b, const BAM::TSeq
 	}
 
 	// The BaseProbability constructor will normalize
-	if (b == Base::C) return TBaseProbabilities{{0., (1. - pmdProb_CT)*baseLikelihoodsNoPMD[Base::C], 0., pmdProb_CT*baseLikelihoodsNoPMD[Base::T]}};
+	if (b == Base::C) return TBaseProbabilities::normalize({0., (1. - pmdProb_CT)*baseLikelihoodsNoPMD[Base::C], 0., pmdProb_CT*baseLikelihoodsNoPMD[Base::T]});
 
 	// we expect b not to be N
-	return TBaseProbabilities{{pmdProb_GA*baseLikelihoodsNoPMD[Base::A], 0., (1-pmdProb_GA)*baseLikelihoodsNoPMD[Base::G], 0.}};
+	return TBaseProbabilities::normalize({pmdProb_GA*baseLikelihoodsNoPMD[Base::A], 0., (1-pmdProb_GA)*baseLikelihoodsNoPMD[Base::G], 0.});
 }
 
 void TPMDTypeDoubleStrand::simulate(BAM::TSequencedBase &data) const {
@@ -619,20 +622,23 @@ TBaseMassFunctions TPMDTypeSingleStrand::getMassFunctions(const BAM::TSequencedB
 	const double pmdProb_CT = data.distFrom3Prime < data.distFrom5Prime ? _pmdCT3->prob(data.distFrom3Prime)
 									    : _pmdCT5->prob(data.distFrom5Prime);
 
-	return TBaseMassFunctions{{TBaseProbabilities{{1., 0., 0., 0.}}, {{0., (1. - pmdProb_CT), 0., pmdProb_CT}}, {{0., 0., 1., 0.}}, {{0., 0., 0., 1.}}}};
+	return TBaseMassFunctions{{TBaseProbabilities::normalize({1., 0., 0., 0.}),
+							   TBaseProbabilities::normalize({0., (1. - pmdProb_CT), 0., pmdProb_CT}),
+							   TBaseProbabilities::normalize({0., 0., 1., 0.}),
+							   TBaseProbabilities::normalize({0., 0., 0., 1.})}};
 }
 
 TBaseProbabilities TPMDTypeSingleStrand::getMassFunction(Base b, const BAM::TSequencedBase &data,
 														 const TBaseLikelihoods &baseLikelihoodsNoPMD) const {
-	if (b == Base::A) return TBaseProbabilities{{1., 0., 0., 0.}};
-	if (b == Base::G) return TBaseProbabilities{{0., 0., 1., 0.}};
-	if (b == Base::T) return TBaseProbabilities{{0., 0., 0., 1.}};
+	if (b == Base::A) return TBaseProbabilities::normalize({1., 0., 0., 0.});
+	if (b == Base::G) return TBaseProbabilities::normalize({0., 0., 1., 0.});
+	if (b == Base::T) return TBaseProbabilities::normalize({0., 0., 0., 1.});
 
 	// else we expect b not to be N
 
 	const double pmdProb_CT = data.distFrom3Prime < data.distFrom5Prime ? _pmdCT3->prob(data.distFrom3Prime)
 									    : _pmdCT5->prob(data.distFrom5Prime);
-	return TBaseProbabilities{{0., (1. - pmdProb_CT)*baseLikelihoodsNoPMD[Base::C], 0., pmdProb_CT*baseLikelihoodsNoPMD[Base::T]}};
+	return TBaseProbabilities::normalize({0., (1. - pmdProb_CT)*baseLikelihoodsNoPMD[Base::C], 0., pmdProb_CT*baseLikelihoodsNoPMD[Base::T]});
 
 }
 

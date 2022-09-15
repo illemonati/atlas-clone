@@ -9,7 +9,7 @@ if (POLICY CMP0048)
 endif (POLICY CMP0048)
 
 if("${CMAKE_BUILD_TYPE}" STREQUAL "Asan")
-  set(SAN "-O1;-g;-fsanitize=address;-fno-omit-frame-pointer;-DNDEBUG")
+  set(SAN "-O1;-g;-fsanitize=address;-fno-omit-frame-pointer")
   set(SAN_LINK "-fsanitize=address")
   message("Compiling and linking with adress sanitizer")
 elseif("${CMAKE_BUILD_TYPE}" STREQUAL "Msan")
@@ -51,7 +51,7 @@ find_package(ZLIB REQUIRED)
 include(FetchContent)
 FetchContent_Declare(coretools
   GIT_REPOSITORY    https://bitbucket.org/wegmannlab/coretools.git
-  GIT_TAG           203011c
+  GIT_TAG           519e647
   SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/coretools"
 )
 
@@ -63,13 +63,13 @@ FetchContent_Declare(stattools
 
 FetchContent_Declare(genometools
   GIT_REPOSITORY    https://bitbucket.org/wegmannlab/genometools.git
-  GIT_TAG			6374a8c
+  GIT_TAG           02e26d1
   SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/genometools"
 )
 
 FetchContent_Declare(bamtools
   GIT_REPOSITORY    https://github.com/glis-glis/bamtools.git
-  GIT_TAG           master
+  GIT_TAG           6bcd40f
   SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/bamtools"
 )
 

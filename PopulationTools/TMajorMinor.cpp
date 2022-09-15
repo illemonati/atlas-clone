@@ -20,6 +20,7 @@
 #include "TParameters.h"
 #include "TRandomGenerator.h"
 #include "TTimer.h"
+#include "probability.h"
 #include "stringFunctions.h"
 #include "strongTypes.h"
 #include "weakTypes.h"
@@ -86,7 +87,7 @@ void TMajorMinorEstimatorBase::estimateMajorMinor(const TMultiGLFData &data, Bas
 				LL_fixed_glfPhred += (Log10Probability)data[i][refHom];
 		}
 	}
-	_variantQuality = LL_fixed_glfPhred > _L10L_perCombination[_bestAllelicCombination] ? Log10Probability(0.0) : LL_fixed_glfPhred - _L10L_perCombination[_bestAllelicCombination];
+	_variantQuality = LL_fixed_glfPhred > _L10L_perCombination[_bestAllelicCombination] ? Log10Probability(0.0) : Log10Probability(LL_fixed_glfPhred - _L10L_perCombination[_bestAllelicCombination]);
 };
 
 //---------------------------------------------------
