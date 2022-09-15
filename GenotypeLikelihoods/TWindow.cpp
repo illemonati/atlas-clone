@@ -298,8 +298,7 @@ GenotypeLikelihoods::TBaseProbabilities TWindow_base::estimateBaseFrequencies() 
 	for(auto& s : _sites){
 		s.addToBaseFrequencies(tmp);
 	}
-	normalize(tmp);
-	return frequencies(tmp);
+	return TBaseProbabilities::normalize(tmp);
 };
 
 

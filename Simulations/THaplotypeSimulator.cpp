@@ -70,10 +70,12 @@ THaplotypeSimulator::THaplotypeSimulator(){
 		std::vector<double> freq;
 		coretools::str::fillContainerFromString(parameters().getParameter<std::string>("baseFreq"), freq, ',');
 		if (freq.size() != 4) throw "baseFreq vector must have size = 4!";
-		_baseFreq = GenotypeLikelihoods::TBaseProbabilities{freq};
+		std::array<double, 4> ar;
+		std::copy(freq.begin(), freq.end(), ar.begin());
+		_baseFreq = TBaseProbabilities::normalize(ar);
 		logfile().list("Simulating with base frequencies " + impl::toString(_baseFreq) + ". (parameter 'baseFreq')");
 	} else {
-		_baseFreq = std::array<double,4>({0.25, 0.25, 0.25, 0.25});
+		_baseFreq = TBaseProbabilities::normalize({0.25, 0.25, 0.25, 0.25});
 		logfile().list("Simulating with default base frequencies " + impl::toString(_baseFreq) + ". (set with 'baseFreq')");
 	}
 

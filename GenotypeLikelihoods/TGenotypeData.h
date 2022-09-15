@@ -77,7 +77,7 @@ TGenotypeLikelihoods getGLH(const Container<TBaseLikelihoods, Args...> &bases) {
 }
 
 inline TGenotypeProbabilities posterior(const TGenotypeLikelihoods &likelihoods, const TGenotypeProbabilities &prior) {
-	return TGenotypeProbabilities(likelihoods, prior, std::multiplies<>());
+	return TGenotypeProbabilities::normalize(likelihoods, prior, std::multiplies<>());
 }
 
 //template<typename Index, size_t N=Index::max, typename Likelihood=Probability>

@@ -1092,12 +1092,12 @@ TCallerMLE::TCallerMLE():TCallerDiploid(){
 };
 
 bool TCallerMLE::_callGenotype(const TSite &, TGenotypeLikelihoods & genotypeLikelihoods){
-	callGenotypeFromMetric(genotypeLikelihoods);
+	callGenotypeFromMetric(TGenotypeProbabilities::normalize(genotypeLikelihoods));
 	return true;
 };
 
 bool TCallerMLE::_callGenotypeKnownAlleles(const TSite &, TGenotypeLikelihoods & genotypeLikelihoods){
-	return callGenotypeFromMetricKnownAllelesUpdateIndex(genotypeLikelihoods);
+	return callGenotypeFromMetricKnownAllelesUpdateIndex(TGenotypeProbabilities::normalize(genotypeLikelihoods));
 };
 
 std::string TCallerMLE::_getVCFGenotypeString_GQ(const TSite &, TGenotypeLikelihoods & genotypeLikelihoods){

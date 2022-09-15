@@ -47,7 +47,7 @@ TGenotypeProbabilities getPGenotype(double expTheta, const TBaseProbabilities &b
 			lGeno[het]   = 2.0 * baseFrequencies[b].get() * baseFrequencies[c].get() * (1.0 - expTheta);
 		}
 	}
-	return TGenotypeProbabilities{lGeno};
+	return TGenotypeProbabilities::normalize(lGeno);
 };
 
 GenotypeLikelihoods::TGenotypeProbabilities getPGenotype(const Theta &thisTheta) {
@@ -803,7 +803,7 @@ bool TThetaEstimatorRatio::updateBaseFrequencies(TThetaEstimatorData *thisData, 
 		if (k != thisBase) { tmpBaseLik[k] = thisTheta.baseFreq[thisBase].get() * scale; }
 	}
 
-	TBaseProbabilities tmpBaseFreq{tmpBaseLik};
+	const auto tmpBaseFreq = TBaseProbabilities::normalize(tmpBaseLik);
 
 	// calc LL & hastings ratio (use uniform prior, i.e. all combinations are equally likely)
 	_pGenotype   = getPGenotype(thisTheta.expMinusTheta, tmpBaseFreq);
