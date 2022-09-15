@@ -1,0 +1,16 @@
+#! /bin/bash
+
+root=`git rev-parse --show-toplevel`
+cd $root
+
+echo "digraph {"
+
+for f in $(git ls-files | grep -e "\.cpp$" -e "\.h$"); do
+	bn=$(basename $f)
+	for h in $(grep "^\#include " $f | awk '{print $2}' | sed 's/"//g'); do
+		echo "\"$bn\" -> \"$h\""
+	done
+done
+echo "}"
+
+# awk '{print $3}' test | sort | uniq -c | sort -nrk1 | less
