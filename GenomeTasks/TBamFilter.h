@@ -106,7 +106,7 @@ class TAlignmentMerger{
 public:
 	TAlignmentMerger(){};
 	virtual ~TAlignmentMerger(){};
-	virtual void merge(BAM::TAlignment & alignment, BAM::TAlignment & mate);
+	virtual uint16_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate);
 };
 /*
 class TAlignmentMerger_randomBase:public TAlignmentMerger{
@@ -126,13 +126,13 @@ private:
 	bool _keepMate;
 public:
 	TAlignmentMerger_randomRead();
-	void merge(BAM::TAlignment & alignment, BAM::TAlignment & mate);
+	uint16_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate);
 };
 
 class TAlignmentMerger_highestQuality:public TAlignmentMerger{
 public:
 	TAlignmentMerger_highestQuality();
-	void merge(BAM::TAlignment & alignment, BAM::TAlignment & mate);
+	uint16_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate);
 	genometools::PhredIntProbability findMinQual(BAM::TAlignment & alignment) const;
 };
 

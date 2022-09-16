@@ -418,112 +418,45 @@ void TBamFilter::traverseBAM(){
 //-----------------------------------------
 // TAlignmentMergerType
 //-----------------------------------------
-void TAlignmentMerger::merge(BAM::TAlignment & alignment, BAM::TAlignment & mate){
+uint16_t TAlignmentMerger::merge(BAM::TAlignment & alignment, BAM::TAlignment & mate){
 	//check if reads overlap
 	//TODO: what if there are inserts after the last aligned positions? --> would create overlap which might not be accounted for
 	if (alignment.isReverseStrand()) {
-		if (alignment < mate.lastAlignedPositionWithRespectToRef())
+		if (alignment < mate.lastAlignedPositionWithRespectToRef()) {
 			alignment.merge(mate);
-	} else {
-		if (alignment.lastAlignedPositionWithRespectToRef() > mate)
-			alignment.merge(mate);
-		//maybe just count softclipped right/left here to quantify overlap, else return 0
-	}
-/*
-	//prepare (e.g. pick random number)
-	uint16_t numOverlap = 0;
-
-	//go through alignments
-	uint32_t fwdP = 0; uint32_t revP = 0;
-	while(fwdP <= alignment.lastAlingedInternalPos() && revP <= mate.lastAlingedInternalPos()){
-		
-		//make sure we compare at the same position in respect to ref
-		if(!alignment.isAlignedAtInternalPos(fwdP)){
-			++fwdP;
-		} else if(!mate.isAlignedAtInternalPos(revP)){
-			++revP;
-		} else if(alignment.positionInRef(fwdP) < mate.positionInRef(revP)){
-			++fwdP;
-		} else if(alignment.positionInRef(fwdP) > mate.positionInRef(revP)){
-			++revP;
+			return alignment.cigar().lengthSoftClippedLeft();
 		} else {
-			//at same position: merge
-			++numOverlap;
-			_mergeBases(alignment[fwdP], mate[revP]);
-
-			//advance in both reads
-			++fwdP; ++revP;
+			return 0;
+		}
+	} else {
+		if (alignment.lastAlignedPositionWithRespectToRef() > mate) {
+			alignment.merge(mate);
+			return alignment.cigar().lengthSoftClippedRight();
+		} else {
+			return 0;
 		}
 	}
-
-	//check if alignments changed
-	if(numOverlap > 0){
-		alignment.setSequenceAndQualitiesChanged();
-		mate.setSequenceAndQualitiesChanged();
-	}
-
-	return numOverlap;*/
 };
-/*
-// TAlignmentMergerType_randomBase
-//---------------------------------
-TAlignmentMerger_randomBase::TAlignmentMerger_randomBase(const bool AdaptQuality){
-	_adaptQuality = AdaptQuality;
-};
-
-void TAlignmentMerger_randomBase::_mergeBasesCore(BAM::TSequencedBase & bestBase, BAM::TSequencedBase & worstBase){
-	if(_adaptQuality){
-		auto likelihood = GenotypeLikelihoods::fromError(
-		    bestBase.base, (coretools::Probability)bestBase.recalibratedQualityAsPhredInt);
-		const auto worst = GenotypeLikelihoods::fromError(
-		    worstBase.base, (coretools::Probability)worstBase.recalibratedQualityAsPhredInt);
-
-		for (auto b = genometools::Base::min; b < genometools::Base::max; ++b) likelihood[b] *= worst[b];
-
-		coretools::normalize(likelihood);
-		bestBase.recalibratedQualityAsPhredInt = likelihood[bestBase.base].complement();
-	}
-
-	//set other to missing
-	worstBase.recalibratedQualityAsPhredInt = 0.0;
-	worstBase.base = genometools::Base::N;
-};
-
-void TAlignmentMerger_randomBase::_mergeBases(BAM::TSequencedBase & alignment, BAM::TSequencedBase & mate){
-	if(randomGenerator().pickOneOfTwo()){
-		_mergeBasesCore(mate, alignment);
-	} else {
-		_mergeBasesCore(alignment, mate);
-	}
-};*/
 
 // TAlignmentMergerType_randomRead
 //---------------------------------
 TAlignmentMerger_randomRead::TAlignmentMerger_randomRead():TAlignmentMerger(){
 	_keepMate = false;
 };
-/*
-void TAlignmentMerger_randomRead::_mergeBases(BAM::TSequencedBase & alignment, BAM::TSequencedBase & mate){
-	if(_keepMate){
-		_mergeBasesCore(mate, alignment);
-	} else {
-		_mergeBasesCore(alignment, mate);
-	}
-};*/
 
-void TAlignmentMerger_randomRead::merge(BAM::TAlignment & alignment, BAM::TAlignment & mate){
+uint16_t TAlignmentMerger_randomRead::merge(BAM::TAlignment & alignment, BAM::TAlignment & mate){
 	_keepMate = randomGenerator().pickOneOfTwo();
 	if (_keepMate)
-		TAlignmentMerger::merge(mate, alignment);
+		return TAlignmentMerger::merge(mate, alignment);
 	else
-		TAlignmentMerger::merge(alignment, mate);
+		return TAlignmentMerger::merge(alignment, mate);
 };
 
 // TAlignmentMergerType_highestQuality
 //---------------------------------
 TAlignmentMerger_highestQuality::TAlignmentMerger_highestQuality():TAlignmentMerger(){};
 
-void TAlignmentMerger_highestQuality::merge(BAM::TAlignment & alignment, BAM::TAlignment & mate){
+uint16_t TAlignmentMerger_highestQuality::merge(BAM::TAlignment & alignment, BAM::TAlignment & mate){
 	/*if(mate.recalibratedQualityAsPhredInt > alignment.recalibratedQualityAsPhredInt){
 		_mergeBasesCore(mate, alignment);
 	} else if(alignment.recalibratedQualityAsPhredInt > mate.recalibratedQualityAsPhredInt){
@@ -538,12 +471,12 @@ void TAlignmentMerger_highestQuality::merge(BAM::TAlignment & alignment, BAM::TA
 	genometools::PhredIntProbability alignmentMinQual = findMinQual(alignment);
 
 	if(mateMinQual>alignmentMinQual)
-		TAlignmentMerger::merge(mate, alignment);
+		return TAlignmentMerger::merge(mate, alignment);
 	else if (alignmentMinQual > mateMinQual)
-		TAlignmentMerger::merge(alignment, mate);
+		return TAlignmentMerger::merge(alignment, mate);
 	else {
 		TAlignmentMerger_randomRead random;
-		random.merge(alignment, mate);
+		return random.merge(alignment, mate);
 	}
 };
 
