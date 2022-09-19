@@ -107,6 +107,8 @@ public:
 	TAlignmentMerger(){};
 	virtual ~TAlignmentMerger(){};
 	virtual uint16_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate);
+	virtual uint32_t calculateFirstReadPositionWithOverlap(BAM::TAlignment & alignment) const;
+	virtual uint32_t calculateLastReadPositionWithOverlap(BAM::TAlignment & alignment) const;
 };
 /*
 class TAlignmentMerger_randomBase:public TAlignmentMerger{
@@ -133,7 +135,10 @@ class TAlignmentMerger_highestQuality:public TAlignmentMerger{
 public:
 	TAlignmentMerger_highestQuality();
 	uint16_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate);
-	genometools::PhredIntProbability findMinQual(BAM::TAlignment & alignment) const;
+	bool minQual(const BAM::TAlignment & alignment, const BAM::TAlignment & mate, bool & overlap);
+	std::pair<genometools::TGenomePosition,genometools::PhredIntProbability> findMinQualAndFinalReadPos(const BAM::TAlignment & alignment) const;
+	bool compareMinQual(genometools::PhredIntProbability & alignmentMinQual, genometools::PhredIntProbability & mateMinQual) const;
+
 };
 
 //-----------------------------------------
