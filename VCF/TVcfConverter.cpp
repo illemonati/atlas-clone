@@ -6,11 +6,17 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <fstream>
+#include <memory>
 #include <ostream>
+#include <string>
+#include <string_view>
+#include <charconv>
 
 #include "GenotypeTypes.h"
 #include "TBed.h"
 #include "TPopulationLikelihoodLocus.h"
+#include "gzstream.h"
 #include "probability.h"
 #include "stringFunctions.h"
 
@@ -150,6 +156,176 @@ void TVcfToBeagle::run() {
 	}
 
 	_beagleFile.close();
+}
+
+class TLineReader {
+	std::istream *_stream; // non-owning
+	std::string _line;     // current line
+public:
+	// see https://www.informit.com/articles/printerfriendly/1407357 for interface discussion
+
+	// Not taking ownership of stream
+	TLineReader(std::istream & Stream): _stream(&Stream) {
+		// Read first line
+		popFront();
+	}
+
+	bool empty() const noexcept {
+		assert(_stream);
+		return _stream->eof();
+	}
+
+	// IMPORTANT: as soon as popFront is called, this string_view will be invalidated
+	std::string_view front() const noexcept {
+		assert(!empty());
+		return std::string_view{_line}; //does not make a copy
+	};
+	void popFront() {
+		assert(_stream);
+		assert(!empty());
+		std::getline(*_stream, _line);
+	};
+};
+
+template<typename Delim = char>
+class TSplitter {
+	static_assert(std::is_same_v<Delim, char> || std::is_same_v<Delim, std::string> || std::is_same_v<Delim, std::string_view>);
+	std::string_view _sv;
+	Delim _delim;
+	size_t _start=0;
+	size_t _count;
+
+public:
+	TSplitter(std::string_view Sv, Delim delim) : _sv(Sv), _delim(delim), _count(_sv.find(_delim)) {}
+
+	bool empty() const noexcept { return _start >= _sv.size(); }
+
+	std::string_view front() const noexcept {
+		assert(!empty());
+		return _sv.substr(_start, _count);
+	}
+
+	void popFront() noexcept {
+		assert(!empty());
+		if constexpr (std::is_same_v<Delim, char>) _start += _count + 1;
+		else _start += _count + _delim.size();
+
+		_count = _sv.find(_delim, _start);
+		if (_count == std::string_view::npos) {
+			_count = _sv.size() - _start;
+		} else {
+			_count -= _start;
+		}
+	}
+};
+
+template<typename Range>
+void skip(Range& range, size_t nGaps = 1) {
+	for (size_t _ = 0; _ < nGaps; ++_) range.popFront();
+}
+
+void TVcfBeagleNew::run() {
+	const auto inName = parameters().getParameterFilename("vcf");
+	const auto outName =
+		parameters().getParameterWithDefault<std::string>("out", coretools::str::readBeforeLast(inName, ".vcf")) + ".beagle.gz";
+
+	std::unique_ptr<std::istream> istream;
+	if (coretools::str::readAfterLast(inName, '.') == "gz")
+		istream = std::make_unique<gz::igzstream>(inName.c_str());
+	else
+		istream = std::make_unique<std::ifstream>(inName);
+
+	TLineReader lineReader(*istream);
+
+	// Read info lines
+	bool hasGL = false;
+	bool hasPL = false;
+
+	for (; lineReader.front().substr(0, 2) == "##"; lineReader.popFront()) {
+		const auto line = lineReader.front();
+		constexpr std::string_view glString = "##FORMAT=<ID=GL";
+		constexpr std::string_view plString = "##FORMAT=<ID=PL";
+		if (line.substr(0, glString.size()) == glString) hasGL = true;
+		if (line.substr(0, plString.size()) == plString) hasPL = true;
+	}
+
+	if (!hasGL && !hasPL) UERROR("vcf file needs field GL or PL");
+
+	// Print header
+	if (lineReader.front().substr(0, 6) != "#CHROM") UERROR("vcf file needs header");
+	gz::ogzstream ostream(outName.c_str());
+	ostream << "marker\tallele1\tallele2";
+
+	TSplitter header{lineReader.front(), '\t'};
+	skip(header, 9);
+
+	for (; !header.empty(); header.popFront()) {
+		const auto s = header.front();
+		for (size_t _ = 0; _ < 3; ++_) {
+			ostream << '\t' << s ;
+		}
+	}
+	ostream << '\n';
+
+	// Lines
+	lineReader.popFront();
+	TSplitter line1{lineReader.front(), '\t'};
+	skip(line1, 8);
+
+	// find GL
+	TSplitter format{line1.front(), ':'};
+	int nGL = -1;
+	for(; !format.empty(); format.popFront()) {
+		++nGL;
+		if (format.front() == "GL") break;
+	}
+	if (format.empty()) UERROR("FORMAT string neets GL");
+
+	for(; !lineReader.empty(); lineReader.popFront()) {
+		TSplitter line{lineReader.front(), '\t'};
+		ostream << line.front(); // CHROM
+
+		line.popFront();
+		ostream << '_' << line.front(); // POS
+
+		line.popFront(); // skip ID
+		line.popFront();
+		ostream << '\t' << line.front(); // REF
+
+		line.popFront();
+		ostream << '\t' << line.front(); // ALT
+
+		line.popFront(); // skip QUAL
+		line.popFront(); // skip FILTER
+		line.popFront(); // skip INFO
+		line.popFront(); // skip FORMAT
+
+		line.popFront(); // First sample
+		for(; !line.empty(); line.popFront()) {
+			TSplitter sample{line.front(), ':'};
+			skip(sample, nGL); // go to GL field
+			if (sample.front()[0] == '.') {
+				ostream << "\t0.333333\t0.333333\t0.333333"; 
+				continue;
+			}
+			TSplitter gls_sv{sample.front(), ','};
+			std::array<double, 3> gls;
+
+			for (size_t i = 0; i < 3; ++i) { // haploid left as an exercice
+				const auto sv = gls_sv.front();
+				std::from_chars(sv.data(), sv.data() + sv.size(), gls[i]);
+				gls_sv.popFront();
+			}
+
+			for (auto &gl : gls) { gl = exp10(gl); }
+
+			const auto tot = std::accumulate(gls.begin(), gls.end(), 0.);
+			for (auto &gl : gls) { gl /= tot; }
+
+			ostream << '\t' << gls[0] << '\t' << gls[1] << '\t' << gls[2];
+		}
+		ostream << '\n';
+	}
 }
 
 //------------------------------------------

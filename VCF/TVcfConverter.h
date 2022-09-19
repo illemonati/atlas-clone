@@ -84,6 +84,11 @@ public:
 	void run();
 };
 
+class TVcfBeagleNew {
+public:
+	void run();
+};
+
 //------------------------------------------
 // TVcfToGeno
 //------------------------------------------
@@ -287,8 +292,12 @@ public:
 		std::string format = parameters().getParameter<std::string>("format");
 
 		if (format == "beagle") {
-			logfile().startIndent("Converting a VCF to Beagle format (parameter 'format'):");
+			logfile().startIndent("Converting a VCF to Beagle format, old version (parameter 'format'):");
 			TVcfToBeagle VcfToBeagle;
+			VcfToBeagle.run();
+		} else if (format == "beagleNew") {
+			logfile().startIndent("Converting a VCF to Beagle format, new version (parameter 'format'):");
+			TVcfBeagleNew VcfToBeagle;
 			VcfToBeagle.run();
 		} else if (format == "geno") {
 			logfile().startIndent("Converting a VCF to geno format (parameter 'format'):");
