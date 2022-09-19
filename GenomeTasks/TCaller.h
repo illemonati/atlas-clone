@@ -39,9 +39,21 @@ protected:
 	std::string _callerName;
 	std::string _filenameExtention;
 
-	//lookup stuff
-	genometools::TVCFInfoFields _VCFInfoFields;
-	genometools::TVCFGenotypeFields _VCFGenotypeFields;
+	// lookup stuff
+	genometools::TVCFFieldVector _VCFInfoFields{"INFO", {{"DP", "Number=1,Type=Integer,Description=\"Total Depth\""}}};
+	genometools::TVCFFieldVector _VCFGenotypeFields{
+		"FORMAT",
+		{{"GT", "Number=1,Type=String,Description=\"Genotype\""},
+		 {"DP", "Number=1,Type=Integer,Description=\"Total Depth\""},
+		 {"GQ", "Number=1,Type=Integer,Description=\"Genotype quality\""},
+		 {"AD", "Number=.,Type=Integer,Description=\"Allelic depths for the ref and alt alleles in the order listed\""},
+		 {"AP", "Number=4,Type=Integer,Description=\"Phred-scaled allelic posterior probabilities for the four "
+				"alleles A, C, G and T\""},
+		 {"GL", "Number=G,Type=Float,Description=\"Normalized genotype likelihoods\""},
+		 {"PL", "Number=G,Type=Integer,Description=\"Phred-scaled normalized genotype likelihoods\""},
+		 {"GP", "Number=G,Type=Integer,Description=\"Genotype posterior probabilities (phred-scaled)\""},
+		 {"AB", "Number=1,Type=Float,Description=\"Allelic imbalance\""},
+		 {"AI", "Number=1,Type=Float,Description=\"Binomial probability of allelic imbalance if Hz site\""}}};
 
 	//output choices
 	bool _printSitesWithNoData;

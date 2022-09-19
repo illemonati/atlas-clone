@@ -1,0 +1,6 @@
+#! /bin/bash
+
+nComments=$(zgrep -m 1 -n "^\#CHROM" $1 | awk '{print $1}' FS=":")
+zgrep -m 1 "^\#CHROM" $1 | awk '{printf "marker\tallele1\tallele2"; for (i = 10; i <= NF; ++i) printf "\t%s",$(i); printf "\n"}' | gzip -c
+ 
+zcat $1 | awk "NR > $nComments"' {printf $1"_"$2"\t"$4"\t"$5; for (i = 10; i <= NF; ++i) {n=split($(i), a, ":"); gsub(",", "\t", a[n]); printf "\t"a[n]};printf "\n"}' | gzip -c
