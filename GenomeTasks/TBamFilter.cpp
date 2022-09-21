@@ -425,7 +425,8 @@ uint16_t TAlignmentMerger::merge(BAM::TAlignment & alignment, BAM::TAlignment & 
 		uint32_t firstReadPosition = calculateFirstReadPositionWithOverlap(alignment);
 		uint32_t mateLastReadPosition = calculateLastReadPositionWithOverlap(mate);
 		if (firstReadPosition < mateLastReadPosition) {
-			alignment.merge(mate);
+			uint16_t overlapLength = mateLastReadPosition - firstReadPosition;
+			alignment.merge(overlapLength);
 			return alignment.cigar().lengthSoftClippedLeft();
 		} else {
 			return 0;
@@ -434,7 +435,8 @@ uint16_t TAlignmentMerger::merge(BAM::TAlignment & alignment, BAM::TAlignment & 
 		uint32_t lastReadPosition = calculateLastReadPositionWithOverlap(alignment);
 		uint32_t mateFirstReadPosition = calculateFirstReadPositionWithOverlap(mate);
 		if (lastReadPosition > mateFirstReadPosition) {
-			alignment.merge(mate);
+			uint16_t overlapLength = lastReadPosition - mateFirstReadPosition;
+			alignment.merge(overlapLength);
 			return alignment.cigar().lengthSoftClippedRight();
 		} else {
 			return 0;
@@ -488,18 +490,23 @@ uint16_t TAlignmentMerger_highestQuality::merge(BAM::TAlignment & alignment, BAM
 
 	if (alignment.isReverseStrand()) {
 		if (alignmentPosAndQual.first < matePosAndQual.first) {
+			uint32_t overlapLength = matePosAndQual.first - alignmentPosAndQual.first;
 			if (alignmentPosAndQual.second > matePosAndQual.second) {
-				mate.merge(alignment);
+				mate.merge(overlapLength);
+				std::cout << overlapLength << std::endl << mate.cigar().lengthSoftClippedLeft() << std::endl;
 				return mate.cigar().lengthSoftClippedLeft();
 			} else if (alignmentPosAndQual.second < matePosAndQual.second) {
-				alignment.merge(mate);
+				std::cout << overlapLength << std::endl << alignment.cigar().lengthSoftClippedLeft() << std::endl;
+				alignment.merge(overlapLength);
 				return alignment.cigar().lengthSoftClippedLeft();
 			} else {
 				if (randomGenerator().pickOneOfTwo()) {
-					alignment.merge(mate);
+					alignment.merge(overlapLength);
+					std::cout << overlapLength << std::endl << alignment.cigar().lengthSoftClippedLeft() << std::endl;
 					return alignment.cigar().lengthSoftClippedLeft();
 				} else {
-					mate.merge(alignment);
+					mate.merge(overlapLength);
+					std::cout << overlapLength << std::endl << mate.cigar().lengthSoftClippedLeft() << std::endl;
 					return mate.cigar().lengthSoftClippedLeft();
 				}
 			}
@@ -508,18 +515,23 @@ uint16_t TAlignmentMerger_highestQuality::merge(BAM::TAlignment & alignment, BAM
 		}
 	} else {
 		if (alignmentPosAndQual.first > matePosAndQual.first) {
+			uint32_t overlapLength = alignmentPosAndQual.first - matePosAndQual.first;
 			if (alignmentPosAndQual.second > matePosAndQual.second) {
-				mate.merge(alignment);
-				return alignment.cigar().lengthSoftClippedRight();
+				mate.merge(overlapLength);
+				std::cout << overlapLength << std::endl << mate.cigar().lengthSoftClippedRight() << std::endl;
+				return mate.cigar().lengthSoftClippedRight();
 			} else if (alignmentPosAndQual.second < matePosAndQual.second) {
-				alignment.merge(mate);
+					alignment.merge(overlapLength);
+					std::cout << overlapLength << std::endl << alignment.cigar().lengthSoftClippedRight() << std::endl;
 					return alignment.cigar().lengthSoftClippedRight();
 			} else {
 				if (randomGenerator().pickOneOfTwo()) {
-					mate.merge(alignment);
-					return alignment.cigar().lengthSoftClippedRight();
+					mate.merge(overlapLength);
+					std::cout << overlapLength << std::endl << alignment.cigar().lengthSoftClippedRight() << std::endl;
+					return mate.cigar().lengthSoftClippedRight();
 				} else {
-					alignment.merge(mate);
+					alignment.merge(overlapLength);
+					std::cout << overlapLength << std::endl << alignment.cigar().lengthSoftClippedRight() << std::endl;
 					return alignment.cigar().lengthSoftClippedRight();
 				}
 			}
@@ -664,13 +676,13 @@ void TAlignmentSplitMerger::_initializeMerger() {
 	std::string method = parameters().getParameterWithDefault<std::string>("mergingMethod", "randomRead");
 	if(method == "none"){
 		_merger = std::make_unique<TAlignmentMerger>();
-		logfile().list("Merging method: no merging.");
+		logfile().list("Merging method: no merging. (parameter 'mergingMethod')");
 	} else if (method == "randomRead"){
 		_merger = std::make_unique<TAlignmentMerger_randomRead>();
-		logfile().list("Merging method: will keep random read for all overlapping positions");
+		logfile().list("Merging method: will keep random read for all overlapping positions. (parameter 'mergingMethod')");
 	} else if(method == "highestQuality"){
 		_merger = std::make_unique<TAlignmentMerger_highestQuality>();
-		logfile().list("Merging method: will keep base with highest quality at overlapping positions.");
+		logfile().list("Merging method: will keep base with highest quality at overlapping positions. (parameter 'mergingMethod')");
 	} else {
 		throw "Unknown merging method " + method + "! Use 'none', 'randomRead' or 'highestQuality'.";
 	}

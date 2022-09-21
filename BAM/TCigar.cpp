@@ -16,26 +16,19 @@ namespace BAM {
 // A class to store, access and manipulate CIGAR operators
 //----------------------------------------------------------
 TCigar::TCigar(TCigar cigar, uint16_t overlapLength, bool isReverseStrand) {
-	std::cout << "START" << std::endl;
-	std::cout << overlapLength << std::endl;
-	std::cout << cigar.lengthMapped() << std::endl;
 	uint16_t overlap = 0;
-	//dont use lengthMapped but lengthRead maybe? Since we include Inserts (and possibly softclips)
-	//in the calculation of overlap in the merge function
-	uint16_t nonOverlapLength = cigar.lengthMapped() - overlapLength;
-	std::cout << nonOverlapLength << std::endl;
+	uint16_t nonOverlapLength = cigar.lengthRead() - overlapLength;
 	if (!isReverseStrand) {
 		auto iterator = cigar.begin();
-		while (lengthMapped() <= nonOverlapLength) {
-			if (lengthMapped()+iterator->length > nonOverlapLength) {
+		while (lengthRead() < nonOverlapLength) {
+			if (lengthRead()+iterator->length > nonOverlapLength) {
 				overlap = (lengthRead()+iterator->length) - nonOverlapLength;
-				if (iterator->length > overlap){
-					std::cout << "1 " << iterator->type << std::endl;
-					add(iterator->type,iterator->length - overlap);}
-				iterator++;
+				add(iterator->type,iterator->length - overlap);
+				if (iterator != cigar.end()){
+					iterator++;
+				}
 			} else {
 				add(iterator->type,iterator->length);
-				std::cout << "2 " << iterator->type << " " << iterator->length << std::endl;
 				iterator++;
 			}
 		}
@@ -44,19 +37,17 @@ TCigar::TCigar(TCigar cigar, uint16_t overlapLength, bool isReverseStrand) {
 				overlap+=iterator->length;
 			iterator++;
 		}
-		std::cout << "3 " << iterator->type << std::endl;
 		add('S',overlap);
 	} else {
-		auto iterator = cigar.end();
-		while (lengthRead() <= nonOverlapLength) {
-					if (lengthMapped()+iterator->length > nonOverlapLength) {
-						overlap = (lengthMapped()+iterator->length) - nonOverlapLength;
-						if (iterator->length > overlap){
-							std::cout << "4 " << iterator->type << std::endl;
-							add(iterator->type,iterator->length - overlap);}
-						iterator--;
+		auto iterator = --cigar.end();
+		while (lengthRead() < nonOverlapLength) {
+					if (lengthRead()+iterator->length > nonOverlapLength) {
+						overlap = (lengthRead()+iterator->length) - nonOverlapLength;
+						add(iterator->type,iterator->length - overlap);
+						if (iterator != cigar.begin()) {
+							iterator--;
+						}
 					} else {
-						std::cout << "5 " << iterator->type << std::endl;
 						add(iterator->type,iterator->length);
 						iterator--;
 					}
@@ -67,7 +58,6 @@ TCigar::TCigar(TCigar cigar, uint16_t overlapLength, bool isReverseStrand) {
 				iterator--;
 			}
 		}
-		std::cout << "6 " << iterator->type << std::endl;
 		add('S',overlap);
 		_flipCigar();
 	}
@@ -91,7 +81,6 @@ void TCigar::clear() {
 };
 
 void TCigar::add(char Type, uint32_t Length) {
-	std::cout << Type << std::endl;
 	if (_lengthSoftClippedRight) { throw "Cigar string contains entries past soft clipping on right!"; }
 	if (Type == 'M' || Type == '=' || Type == 'X') {
 		_lengthAligned += Length;
