@@ -11,12 +11,14 @@
 
 namespace BAM {
 
-//-----------------------------------------------------
+//----------------------------------------------------------
 // TCigar
 // A class to store, access and manipulate CIGAR operators
-//-----------------------------------------------------
+//----------------------------------------------------------
 TCigar::TCigar(TCigar cigar, uint16_t overlapLength, bool isReverseStrand) {
 	uint16_t overlap = 0;
+	//dont use lengthMapped but lengthRead maybe? Since we include Inserts (and possibly softclips)
+	//in the calculation of overlap in the merge function
 	uint16_t nonOverlapLength = cigar.lengthMapped() - overlapLength;
 	if (!isReverseStrand) {
 		auto iterator = cigar.begin();

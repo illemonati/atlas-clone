@@ -326,7 +326,7 @@ void TAlignment::setSequenceQualities(const TCigar &Cigar, const std::vector<gen
 void TAlignment::setReadGroup(const uint16_t readGroupId) {
 	_readGroupID = readGroupId;
 };
-
+//get overlap length from previous function and pass it on to cigar constructor
 void TAlignment::merge(BAM::TAlignment & mate) {
 	_setCigar(TCigar(cigar(), isReverseStrand() ? parsedLength() - (*this - mate) : parsedLength() - (mate - *this), isReverseStrand()));
 }

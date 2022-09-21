@@ -441,7 +441,7 @@ uint16_t TAlignmentMerger::merge(BAM::TAlignment & alignment, BAM::TAlignment & 
 		}
 	}
 };
-
+//it iteratortype=S, dont count it to overlap at first, but run a second counter where it does keep count for overlap length used in merge
 uint32_t TAlignmentMerger::calculateFirstReadPositionWithOverlap(BAM::TAlignment & alignment) const{
 	auto iterator = alignment.cigar().begin();
 	genometools::TGenomePosition firstReadPositionWithOverlap = alignment;
