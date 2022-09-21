@@ -482,21 +482,54 @@ uint16_t TAlignmentMerger_randomRead::merge(BAM::TAlignment & alignment, BAM::TA
 TAlignmentMerger_highestQuality::TAlignmentMerger_highestQuality():TAlignmentMerger(){};
 
 uint16_t TAlignmentMerger_highestQuality::merge(BAM::TAlignment & alignment, BAM::TAlignment & mate){
-///
-bool overlap = false;
-bool minQua = minQual(alignment, mate, overlap);
-if (overlap == false)
-	return 0;
-else {
-	if (minQua == true)
-		return TAlignmentMerger::merge(mate, alignment);
-	else 
-		return TAlignmentMerger::merge(alignment, mate);
-}
-///
+
+	std::pair<genometools::TGenomePosition,genometools::PhredIntProbability> alignmentPosAndQual = findMinQualAndFinalReadPos(alignment);
+	std::pair<genometools::TGenomePosition,genometools::PhredIntProbability> matePosAndQual = findMinQualAndFinalReadPos(mate);
+
+	if (alignment.isReverseStrand()) {
+		if (alignmentPosAndQual.first < matePosAndQual.first) {
+			if (alignmentPosAndQual.second > matePosAndQual.second) {
+				mate.merge(alignment);
+				return mate.cigar().lengthSoftClippedLeft();
+			} else if (alignmentPosAndQual.second < matePosAndQual.second) {
+				alignment.merge(mate);
+				return alignment.cigar().lengthSoftClippedLeft();
+			} else {
+				if (randomGenerator().pickOneOfTwo()) {
+					alignment.merge(mate);
+					return alignment.cigar().lengthSoftClippedLeft();
+				} else {
+					mate.merge(alignment);
+					return mate.cigar().lengthSoftClippedLeft();
+				}
+			}
+		} else {
+			return 0;
+		}
+	} else {
+		if (alignmentPosAndQual.first > matePosAndQual.first) {
+			if (alignmentPosAndQual.second > matePosAndQual.second) {
+				mate.merge(alignment);
+				return alignment.cigar().lengthSoftClippedRight();
+			} else if (alignmentPosAndQual.second < matePosAndQual.second) {
+				alignment.merge(mate);
+					return alignment.cigar().lengthSoftClippedRight();
+			} else {
+				if (randomGenerator().pickOneOfTwo()) {
+					mate.merge(alignment);
+					return alignment.cigar().lengthSoftClippedRight();
+				} else {
+					alignment.merge(mate);
+					return alignment.cigar().lengthSoftClippedRight();
+				}
+			}
+		} else {
+			return 0;
+		}
+	}
 };
-//maybe dont return bool but just merge right here and return the overlap length??
-bool TAlignmentMerger_highestQuality::minQual(const BAM::TAlignment & alignment, const BAM::TAlignment & mate, bool & overlap) {
+/*
+uint32_t TAlignmentMerger_highestQuality::minQual(const BAM::TAlignment & alignment, const BAM::TAlignment & mate, bool & overlap) {
 	
 	std::pair<genometools::TGenomePosition,genometools::PhredIntProbability> alignmentPosAndQual = findMinQualAndFinalReadPos(alignment);
 	std::pair<genometools::TGenomePosition,genometools::PhredIntProbability> matePosAndQual = findMinQualAndFinalReadPos(mate);
@@ -504,24 +537,52 @@ bool TAlignmentMerger_highestQuality::minQual(const BAM::TAlignment & alignment,
 	if (alignment.isReverseStrand()) {
 		if (alignmentPosAndQual.first < matePosAndQual.first) {
 			overlap = true;
-			return compareMinQual(alignmentPosAndQual.second, matePosAndQual.second);
+			if (alignmentPosAndQual.second > matePosAndQual.second) {
+				mate.merge(alignment);
+				return mate.cigar().lengthSoftClippedLeft();
+			} else if (alignmentPosAndQual.second < matePosAndQual.second) {
+				alignment.merge(mate);
+				return alignment.cigar().lengthSoftClippedLeft();
+			} else {
+				if (randomGenerator().pickOneOfTwo()) {
+					alignment.merge(mate);
+					return alignment.cigar().lengthSoftClippedLeft();
+				} else {
+					mate.merge(alignment);
+					return mate.cigar().lengthSoftClippedLeft();
+				}
+			}
 		} else {
 			overlap = false;
-			return false;
+			return 0;
 		}
 	} else {
 		if (alignmentPosAndQual.first > matePosAndQual.first) {
 			overlap = true;
-			return compareMinQual(alignmentPosAndQual.second, matePosAndQual.second);
+			if (alignmentPosAndQual.second > matePosAndQual.second) {
+				mate.merge(alignment);
+				return alignment.cigar().lengthSoftClippedRight();
+			} else if (alignmentPosAndQual.second < matePosAndQual.second) {
+				alignment.merge(mate);
+					return alignment.cigar().lengthSoftClippedRight();
+			} else {
+				if (randomGenerator().pickOneOfTwo()) {
+					mate.merge(alignment);
+					return alignment.cigar().lengthSoftClippedRight();
+				} else {
+					alignment.merge(mate);
+					return alignment.cigar().lengthSoftClippedRight();
+				}
+			}
 		} else {
 			overlap = false;
-			return false;
+			return 0;
 		}
 	}			
 }
+*/
 
-
-std::pair<genometools::TGenomePosition,genometools::PhredIntProbability> TAlignmentMerger_highestQuality::findMinQualAndFinalReadPos(const BAM::TAlignment & alignment) const {
+std::pair<genometools::TGenomePosition,genometools::PhredIntProbability> TAlignmentMerger_highestQuality::findMinQualAndFinalReadPos(BAM::TAlignment & alignment) const {
 	genometools::PhredIntProbability alignmentMinQual;
 	genometools::TGenomePosition finalReadPositionWithOverlap;
 	if (alignment.isReverseStrand()) {
@@ -552,15 +613,6 @@ std::pair<genometools::TGenomePosition,genometools::PhredIntProbability> TAlignm
 		}
 	}
 	return std::make_pair(finalReadPositionWithOverlap, alignmentMinQual);
-}
-
-bool TAlignmentMerger_highestQuality::compareMinQual(genometools::PhredIntProbability & alignmentMinQual, genometools::PhredIntProbability & mateMinQual) const {
-	if (alignmentMinQual > mateMinQual)
-		return true;
-	else if (alignmentMinQual < mateMinQual)
-		return false;
-	else
-		return randomGenerator().pickOneOfTwo();
 }
 
 
