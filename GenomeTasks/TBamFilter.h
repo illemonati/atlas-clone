@@ -135,10 +135,7 @@ class TAlignmentMerger_highestQuality:public TAlignmentMerger{
 public:
 	TAlignmentMerger_highestQuality();
 	uint16_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate);
-	bool minQual(const BAM::TAlignment & alignment, const BAM::TAlignment & mate, bool & overlap);
-	std::pair<genometools::TGenomePosition,genometools::PhredIntProbability> findMinQualAndFinalReadPos(const BAM::TAlignment & alignment) const;
-	bool compareMinQual(genometools::PhredIntProbability & alignmentMinQual, genometools::PhredIntProbability & mateMinQual) const;
-
+	std::pair<genometools::TGenomePosition,genometools::PhredIntProbability> findMinQualAndFinalReadPos(BAM::TAlignment & alignment) const;
 };
 
 //-----------------------------------------
