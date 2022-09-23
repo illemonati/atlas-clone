@@ -76,9 +76,16 @@ FetchContent_Declare(bamtools
 FetchContent_Declare(armadillo
   GIT_REPOSITORY https://gitlab.com/conradsnicta/armadillo-code.git
   GIT_TAG        11.2.x
+  SOURCE_DIR     "${CMAKE_CURRENT_SOURCE_DIR}/armadillo"
 )
 
-FetchContent_MakeAvailable(coretools stattools genometools bamtools armadillo)
+FetchContent_Declare(fmt
+  GIT_REPOSITORY https://github.com/fmtlib/fmt.git
+  GIT_TAG        master
+  SOURCE_DIR     "${CMAKE_CURRENT_SOURCE_DIR}/fmt"
+)
+
+FetchContent_MakeAvailable(coretools stattools genometools bamtools armadillo fmt)
 
 target_sources(${PROJECT_NAME} PRIVATE ${CORE_SOURCES})
 target_include_directories(${PROJECT_NAME} PRIVATE 
@@ -91,7 +98,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
   Simulations
   VCF)
 
-target_link_libraries(${PROJECT_NAME} PRIVATE BamTools BamTools-utils coretools stattools genometools ${ZLIB_LIBRARIES} armadillo ${SAN_LINK})
+target_link_libraries(${PROJECT_NAME} PRIVATE BamTools BamTools-utils coretools stattools genometools ${ZLIB_LIBRARIES} armadillo ${SAN_LINK} fmt::fmt)
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_EXTENSIONS OFF)
 target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra ${SAN})
@@ -132,7 +139,7 @@ target_include_directories("${PROJECT_NAME}_unitTests" PRIVATE
   Simulations
   VCF)
 
-target_link_libraries("${PROJECT_NAME}_unitTests" PRIVATE BamTools BamTools-utils coretools stattools genometools ${ZLIB_LIBRARIES} armadillo gtest_main gmock_main ${SAN_LINK})
+target_link_libraries("${PROJECT_NAME}_unitTests" PRIVATE BamTools BamTools-utils coretools stattools genometools ${ZLIB_LIBRARIES} armadillo gtest_main gmock_main ${SAN_LINK}  fmt::fmt)
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_EXTENSIONS OFF)
 target_compile_options("${PROJECT_NAME}_unitTests" PRIVATE -Wall -Wextra ${SAN})

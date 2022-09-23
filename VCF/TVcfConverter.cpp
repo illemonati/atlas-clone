@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <fstream>
+#include <iterator>
 #include <memory>
 #include <ostream>
 #include <string>
@@ -227,8 +228,8 @@ void skip(Range& range, size_t nGaps = 1) {
 void TVcfBeagleNew::run() {
 	const auto inName = parameters().getParameterFilename("vcf");
 	const auto outName =
-		parameters().getParameterWithDefault<std::string>("out", coretools::str::readBeforeLast(inName, ".vcf")) + ".beagle";
-	//parameters().getParameterWithDefault<std::string>("out", coretools::str::readBeforeLast(inName, ".vcf")) + ".beagle.gz";
+		parameters().getParameterWithDefault<std::string>("out", coretools::str::readBeforeLast(inName, ".vcf")) +
+		".beagle.gz";
 
 	std::unique_ptr<std::istream> istream;
 	if (coretools::str::readAfterLast(inName, '.') == "gz")
@@ -254,9 +255,14 @@ void TVcfBeagleNew::run() {
 
 	// Print header
 	if (lineReader.front().substr(0, 6) != "#CHROM") UERROR("vcf file needs header");
-	//gz::ogzstream ostream(outName.c_str());
-	std::ofstream ostream(outName);
-	ostream << "marker\tallele1\tallele2";
+
+	// open gzFile
+	auto ostream = gz::ogzstream(outName.c_str());
+
+	fmt::memory_buffer buf;
+	auto bIt = std::back_inserter(buf);
+
+	fmt::format_to(bIt, "marker\tallele1\tallele2");
 
 	TSplitter header{lineReader.front(), '\t'};
 	skip(header, 9);
@@ -264,10 +270,11 @@ void TVcfBeagleNew::run() {
 	for (; !header.empty(); header.popFront()) {
 		const auto s = header.front();
 		for (size_t _ = 0; _ < 3; ++_) {
-			ostream << '\t' << s ;
+			fmt::format_to(bIt, "\t{}", s);
 		}
 	}
-	ostream << '\n';
+	fmt::format_to(bIt, "\n");
+	ostream.write(buf.data(), buf.size());
 
 	// Lines
 	lineReader.popFront();
@@ -284,18 +291,20 @@ void TVcfBeagleNew::run() {
 	if (format.empty()) UERROR("FORMAT string neets GL");
 
 	for(; !lineReader.empty(); lineReader.popFront()) {
+		buf.clear();
+		auto bIt = std::back_inserter(buf);
 		TSplitter line{lineReader.front(), '\t'};
-		ostream << line.front(); // CHROM
+		fmt::format_to(bIt, line.front());
 
 		line.popFront();
-		ostream << '_' << line.front(); // POS
+		fmt::format_to(bIt, "_{}", line.front()); // POS
 
 		line.popFront(); // skip ID
 		line.popFront();
-		ostream << '\t' << line.front(); // REF
+		fmt::format_to(bIt, "\t{}", line.front()); // REF
 
 		line.popFront();
-		ostream << '\t' << line.front(); // ALT
+		fmt::format_to(bIt, "\t{}", line.front()); // ALT
 
 		line.popFront(); // skip QUAL
 		line.popFront(); // skip FILTER
@@ -307,33 +316,32 @@ void TVcfBeagleNew::run() {
 			TSplitter sample{line.front(), ':'};
 			skip(sample, nGL); // go to GL field
 			if (sample.front()[0] == '.') {
-				ostream << "\t0.333333\t0.333333\t0.333333"; 
+				fmt::format_to(bIt, "\t0.333333\t0.333333\t0.333333"); 
 				continue;
 			}
 			TSplitter gls_sv{sample.front(), ','};
 			std::array<double, 3> gls;
-			double tot = 0.;
+			double tot = 1.;
 
 			for (size_t i = 0; i < 3; ++i) { // haploid left as an exercice
 				const auto sv = gls_sv.front();
 				if (sv[0] == '0') {
+					// sample.front(): 0,-3.902,-17.902
 					gls[i] = 1.;
 				} else {
 					std::from_chars(sv.data(), sv.data() + sv.size(), gls[i]);
 					gls[i] = exp10(gls[i]);
+					tot += gls[i];
 				}
-				tot += gls[i];
 				gls_sv.popFront();
 			}
 
 			for (auto &gl : gls) { gl /= tot; }
 
-			char buffer[40];
-			sprintf(buffer, "\t%f\t%f\t%f", gls[0], gls[1], gls[2]);
-			ostream << buffer;
-			//ostream << '\t' << gls[0] << '\t' << gls[1] << '\t' << gls[2];
+			fmt::format_to(bIt, "\t{:.4}\t{:.4}\t{:.4}", gls[0], gls[1], gls[2]);
 		}
-		ostream << '\n';
+		fmt::format_to(bIt, "\n");
+		ostream.write(buf.data(), buf.size());
 	}
 }
 
