@@ -13,6 +13,8 @@
 #include <string_view>
 #include <charconv>
 
+#include <fmt/os.h>
+
 #include "GenotypeTypes.h"
 #include "TBed.h"
 #include "TPopulationLikelihoodLocus.h"
@@ -192,29 +194,27 @@ class TSplitter {
 	static_assert(std::is_same_v<Delim, char> || std::is_same_v<Delim, std::string> || std::is_same_v<Delim, std::string_view>);
 	std::string_view _sv;
 	Delim _delim;
-	size_t _start=0;
 	size_t _count;
 
 public:
 	TSplitter(std::string_view Sv, Delim delim) : _sv(Sv), _delim(delim), _count(_sv.find(_delim)) {}
 
-	bool empty() const noexcept { return _start >= _sv.size(); }
+	bool empty() const noexcept { return _sv.empty(); }
 
 	std::string_view front() const noexcept {
 		assert(!empty());
-		return _sv.substr(_start, _count);
+		return _sv.substr(0, _count);
 	}
 
 	void popFront() noexcept {
 		assert(!empty());
-		if constexpr (std::is_same_v<Delim, char>) _start += _count + 1;
-		else _start += _count + _delim.size();
-
-		_count = _sv.find(_delim, _start);
 		if (_count == std::string_view::npos) {
-			_count = _sv.size() - _start;
+			_sv.remove_prefix(_sv.size());
 		} else {
-			_count -= _start;
+			if constexpr (std::is_same_v<Delim, char>) _sv.remove_prefix(_count + 1);
+			else _sv.remove_prefix(_count + _delim.size());
+
+			_count = _sv.find(_delim); // will be npos for last element
 		}
 	}
 };
@@ -227,7 +227,8 @@ void skip(Range& range, size_t nGaps = 1) {
 void TVcfBeagleNew::run() {
 	const auto inName = parameters().getParameterFilename("vcf");
 	const auto outName =
-		parameters().getParameterWithDefault<std::string>("out", coretools::str::readBeforeLast(inName, ".vcf")) + ".beagle.gz";
+		parameters().getParameterWithDefault<std::string>("out", coretools::str::readBeforeLast(inName, ".vcf")) + ".beagle";
+	//parameters().getParameterWithDefault<std::string>("out", coretools::str::readBeforeLast(inName, ".vcf")) + ".beagle.gz";
 
 	std::unique_ptr<std::istream> istream;
 	if (coretools::str::readAfterLast(inName, '.') == "gz")
@@ -253,7 +254,8 @@ void TVcfBeagleNew::run() {
 
 	// Print header
 	if (lineReader.front().substr(0, 6) != "#CHROM") UERROR("vcf file needs header");
-	gz::ogzstream ostream(outName.c_str());
+	//gz::ogzstream ostream(outName.c_str());
+	std::ofstream ostream(outName);
 	ostream << "marker\tallele1\tallele2";
 
 	TSplitter header{lineReader.front(), '\t'};
@@ -310,19 +312,26 @@ void TVcfBeagleNew::run() {
 			}
 			TSplitter gls_sv{sample.front(), ','};
 			std::array<double, 3> gls;
+			double tot = 0.;
 
 			for (size_t i = 0; i < 3; ++i) { // haploid left as an exercice
 				const auto sv = gls_sv.front();
-				std::from_chars(sv.data(), sv.data() + sv.size(), gls[i]);
+				if (sv[0] == '0') {
+					gls[i] = 1.;
+				} else {
+					std::from_chars(sv.data(), sv.data() + sv.size(), gls[i]);
+					gls[i] = exp10(gls[i]);
+				}
+				tot += gls[i];
 				gls_sv.popFront();
 			}
 
-			for (auto &gl : gls) { gl = exp10(gl); }
-
-			const auto tot = std::accumulate(gls.begin(), gls.end(), 0.);
 			for (auto &gl : gls) { gl /= tot; }
 
-			ostream << '\t' << gls[0] << '\t' << gls[1] << '\t' << gls[2];
+			char buffer[40];
+			sprintf(buffer, "\t%f\t%f\t%f", gls[0], gls[1], gls[2]);
+			ostream << buffer;
+			//ostream << '\t' << gls[0] << '\t' << gls[1] << '\t' << gls[2];
 		}
 		ostream << '\n';
 	}
