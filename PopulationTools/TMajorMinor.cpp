@@ -198,6 +198,7 @@ void estimateMajorMinor() {
 	// read filters
 	uint32_t minSamplesWithData = 1;
 	genometools::PhredIntProbability minVariantQuality{0};
+	size_t nVariantQuality = 0;
 	if (parameters().parameterExists("printAll")) {
 		logfile().list("Will all sites and samples. (parameter printAll)");
 		minSamplesWithData = 0;
@@ -217,6 +218,14 @@ void estimateMajorMinor() {
 		}
 	}
 	glfReader.onlyPositionsWithData(minSamplesWithData > 0);
+
+	coretools::Probability minMAF = parameters().getParameterWithDefault("minMAF", 0.0);
+	size_t nMAFMAF = 0;
+	if (minMAF > 0.0) {
+		logfile().list("Will filter on a minor allele frequency of ", minMAF, ". (parameter 'minMAF')");
+	} else {
+		logfile().list("Will keep sites regardless of their minor allele frequency. (use 'minMAF' to filter)");
+	}
 
 	// limit input
 	const long limitSites = parameters().getParameterWithDefault("limitSites", 0);
@@ -279,16 +288,24 @@ void estimateMajorMinor() {
 		if (glfReader.numActiveSamplesWithData() >= minSamplesWithData) {
 			const Base ref = glfReader.refBase(); // can be N
 			MMEstimator->estimateMajorMinor(glfReader.data, ref);
-			// do major minor
+
+			// pass filter?
+			if (MMEstimator->genotypeFrequencies().MAF() < minMAF) {
+				++nMAFMAF;
+				continue;
+			}
+			if (MMEstimator->variantQuality() < minVariantQuality) {
+				++nVariantQuality;
+				continue;
+			}
+
 			// write to VCF
-			if (MMEstimator->variantQuality() >= minVariantQuality) {
-				if (hasReference && MMEstimator->minor() == ref) {
-					vcf.writeSite(glfReader.chr(), glfReader.position(), MMEstimator->variantQuality(), glfReader.data,
-						      ref, MMEstimator->major());
-				} else {
-					vcf.writeSite(glfReader.chr(), glfReader.position(), MMEstimator->variantQuality(), glfReader.data,
-						      MMEstimator->major(), MMEstimator->minor());
-				}
+			if (hasReference && MMEstimator->minor() == ref) {
+				vcf.writeSite(glfReader.chr(), glfReader.position(), MMEstimator->variantQuality(), glfReader.data, ref,
+							  MMEstimator->major());
+			} else {
+				vcf.writeSite(glfReader.chr(), glfReader.position(), MMEstimator->variantQuality(), glfReader.data,
+							  MMEstimator->major(), MMEstimator->minor());
 			}
 		} // end filter on missingness
 
@@ -302,6 +319,13 @@ void estimateMajorMinor() {
 	}
 
 	logfile().list("Reached end of glf files!");
+
+	if (minVariantQuality > genometools::PhredIntProbability::highest()) {
+		logfile().conclude("Filtered ", nVariantQuality, " sites with variant quality < ", minVariantQuality, ".");
+	}
+	if (minMAF > 0) {
+		logfile().conclude("Filtered ", nMAFMAF, " sites with MAF < ", minMAF, ".");
+	}
 	logfile().removeIndent();
 };
 

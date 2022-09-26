@@ -48,6 +48,7 @@ public:
 	constexpr genometools::Base minor() const noexcept {return _minor;}
 	constexpr genometools::Base major() const noexcept {return _major;}
 	constexpr genometools::PhredIntProbability variantQuality() const noexcept {return _variantQuality;} ;
+	const genometools::TGenotypeFrequencies& genotypeFrequencies() const noexcept {return _genotypeFrequencies;}
 };
 
 class TMajorMinorEstimatorSkotte : public TMajorMinorEstimatorBase {
