@@ -113,7 +113,7 @@ void TGlfMultiReaderVcf::_openVCF(const std::string & Filename, const std::strin
 	_vcf << "##INFO=<ID=DP,Number=1,Type=Integer,Description=\"Total Depth\">\n";
 	_vcf << "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n";
 	_vcf << "##FORMAT=<ID=GQ,Number=1,Type=Integer,Description=\"Genotype quality\">\n";
-	_vcf << "##FORMAT=<ID=DP,Number=1,Type=Integer,Description=\"Total Depth\">\n";
+	_vcf << "##FORMAT=<ID=DP,Number=1,Type=Integer,Description=\"Read Depth\">\n";
 	if (_usePhredScaledLikelihoods) {
 		_vcf << "##FORMAT=<ID=PL,Number=G,Type=Integer,Description=\"Phred-scaled normalized genotype likelihoods\">\n";
 	} else {
