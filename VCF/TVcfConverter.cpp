@@ -12,7 +12,6 @@
 #include <ostream>
 #include <string>
 #include <string_view>
-#include <charconv>
 
 #include <fmt/os.h>
 
@@ -22,6 +21,7 @@
 #include "gzstream.h"
 #include "probability.h"
 #include "stringFunctions.h"
+#include "fromString.h"
 
 namespace VCF {
 
@@ -329,7 +329,7 @@ void TVcfBeagleNew::run() {
 					// sample.front(): 0,-3.902,-17.902
 					gls[i] = 1.;
 				} else {
-					std::from_chars(sv.data(), sv.data() + sv.size(), gls[i]);
+					coretools::str::fromString(sv, gls[i]);
 					gls[i] = exp10(gls[i]);
 					tot += gls[i];
 				}
