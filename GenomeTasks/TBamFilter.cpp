@@ -421,39 +421,10 @@ void TBamFilter::traverseBAM(){
 uint16_t TAlignmentMerger::merge(BAM::TAlignment & alignment, BAM::TAlignment & mate){
 	//check if reads overlap
 	//We have to check if there are inserts after the first/last aligned position
-	/*uint32_t firstReadPosition = calculateFirstReadPositionWithOverlap(alignment);
-	uint32_t lastReadPosition = calculateLastReadPositionWithOverlap(alignment);
-
-	uint32_t mateFirstReadPosition = calculateFirstReadPositionWithOverlap(mate);
-	uint32_t mateLastReadPosition = calculateLastReadPositionWithOverlap(mate);
-
-	std::cout << alignment.name() << std::endl;
-	std::cout << "aligFirst: " << firstReadPosition << std::endl << "aligLast: " << lastReadPosition << std::endl;
-	std::cout << "mateFirst: " << mateFirstReadPosition << std::endl << "mateLast: " << mateLastReadPosition << std::endl;
-
-
-	if (firstReadPosition < mateLastReadPosition) {
-		uint16_t overlapLength = mateLastReadPosition - firstReadPosition;
-		std::cout << "first if: " << overlapLength << std::endl;
-		alignment.merge(overlapLength);
-		return alignment.cigar().lengthSoftClippedLeft();
-	} else if (mateFirstReadPosition < lastReadPosition) {
-		uint16_t overlapLength = lastReadPosition - mateFirstReadPosition;
-		std::cout << "second if: " << overlapLength << std::endl;
-		alignment.merge(overlapLength);
-		return alignment.cigar().lengthSoftClippedRight();
-	} else {
-		return 0;
-	}*/
-
 	if (alignment > mate) {
-		std::cout << "second" << alignment.isSecondMate() << std::endl;
 		uint32_t firstReadPosition = calculateFirstReadPositionWithOverlap(alignment);
 		uint32_t mateLastReadPosition = calculateLastReadPositionWithOverlap(mate);
 		if (firstReadPosition < mateLastReadPosition) {
-			std::cout << "NAME: " << alignment.name() << std::endl;
-			std::cout << "first read pos: " << firstReadPosition << std::endl;
-			std::cout << "mate last read pos: " << mateLastReadPosition << std::endl;
 			uint16_t overlapLength = mateLastReadPosition - firstReadPosition;
 			if (overlapLength > (mate.cigar().lengthSoftClippedRight() + alignment.cigar().lengthSoftClippedLeft())){
 				alignment.merge(overlapLength);
@@ -461,12 +432,9 @@ uint16_t TAlignmentMerger::merge(BAM::TAlignment & alignment, BAM::TAlignment & 
 			}
 		}
 	} else {
-		std::cout << "NAME: " << alignment.name() << std::endl;
 		uint32_t lastReadPosition = calculateLastReadPositionWithOverlap(alignment);
 		uint32_t mateFirstReadPosition = calculateFirstReadPositionWithOverlap(mate);
 		if (lastReadPosition > mateFirstReadPosition) {
-			std::cout << "last read pos: " << lastReadPosition << std::endl;
-			std::cout << "mate first read pos: " << mateFirstReadPosition << std::endl;
 			uint16_t overlapLength = lastReadPosition - mateFirstReadPosition;
 			if (overlapLength > (mate.cigar().lengthSoftClippedLeft() + alignment.cigar().lengthSoftClippedRight())){
 				alignment.merge(overlapLength);
@@ -500,20 +468,6 @@ uint32_t TAlignmentMerger::calculateLastReadPositionWithOverlap(BAM::TAlignment 
 		iterator++;
 	}
 	return lastReadPositionWithOverlap.position();
-/*
-
-	auto iterator = --alignment.cigar().end();
-	genometools::TGenomePosition lastReadPositionWithOverlap = alignment.lastAlignedPositionWithRespectToRef();
-	std::cout << "START: " << lastReadPositionWithOverlap.position() << std::endl;
-	while (iterator->type != 'M' && iterator->type != 'X' && iterator->type != '=' && iterator->type != 'D' && iterator->type != 'N') {
-		if (iterator->type != 'S'){
-			std::cout << "CALC: " << lastReadPositionWithOverlap.position() << " + " << iterator->length << " = ";
-			lastReadPositionWithOverlap=lastReadPositionWithOverlap+iterator->length;
-			std::cout << lastReadPositionWithOverlap.position() << std::endl;
-		}
-		iterator--;
-	}
-	return lastReadPositionWithOverlap.position();*/
 }
 // TAlignmentMergerType_randomRead
 //---------------------------------

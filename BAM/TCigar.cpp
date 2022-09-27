@@ -18,10 +18,7 @@ namespace BAM {
 TCigar::TCigar(TCigar cigar, uint16_t overlapLength, bool isReverseStrand) {
 	uint16_t overlap = 0;
 	uint16_t nonOverlapLength = cigar.lengthRead() - overlapLength;
-	std::cout << cigar.lengthRead() << ";" << overlapLength << std::endl;
-	std::cout << nonOverlapLength << std::endl;
 	if (!isReverseStrand) {
-		std::cout << "forward" << std::endl;
 		auto iterator = cigar.begin();
 		while (lengthRead() < nonOverlapLength) {
 			if (lengthRead()+iterator->length > nonOverlapLength) {
@@ -47,16 +44,13 @@ TCigar::TCigar(TCigar cigar, uint16_t overlapLength, bool isReverseStrand) {
 		}
 		add('S',overlap);
 	} else {
-		std::cout << "reverse" << std::endl;
 		auto iterator = --cigar.end();
 		while (lengthRead() < nonOverlapLength) {
 					if (lengthRead()+iterator->length > nonOverlapLength) {
 						if (iterator->type != 'S'){
 							overlap = (lengthRead()+iterator->length) - nonOverlapLength;
-							std::cout << "1 " << overlap << std::endl;
 							add(iterator->type,iterator->length - overlap);
 							if (iterator != cigar.begin()) {
-								std::cout << "test" << std::endl;
 								iterator--;
 							}
 						} else {
@@ -65,15 +59,13 @@ TCigar::TCigar(TCigar cigar, uint16_t overlapLength, bool isReverseStrand) {
 						}
 
 					} else {
-						std::cout << "2 " << iterator->type << iterator->length << std::endl;
 						add(iterator->type,iterator->length);
-						std::cout << lengthRead() << std::endl;
 						iterator--;
 					}
 				}
 		while (iterator != cigar.begin()) {
-			std::cout << iterator->type << std::endl;
 			if (iterator->type == 'M' || iterator->type == 'I' || iterator->type == '=' || iterator->type == 'X' || iterator->type == 'S') {
+				overlap+=iterator->length;
 			}
 			iterator--;
 		}
