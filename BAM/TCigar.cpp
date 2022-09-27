@@ -18,14 +18,22 @@ namespace BAM {
 TCigar::TCigar(TCigar cigar, uint16_t overlapLength, bool isReverseStrand) {
 	uint16_t overlap = 0;
 	uint16_t nonOverlapLength = cigar.lengthRead() - overlapLength;
+	std::cout << cigar.lengthRead() << ";" << overlapLength << std::endl;
+	std::cout << nonOverlapLength << std::endl;
 	if (!isReverseStrand) {
+		std::cout << "forward" << std::endl;
 		auto iterator = cigar.begin();
 		while (lengthRead() < nonOverlapLength) {
 			if (lengthRead()+iterator->length > nonOverlapLength) {
-				overlap = (lengthRead()+iterator->length) - nonOverlapLength;
-				add(iterator->type,iterator->length - overlap);
-				if (iterator != cigar.end()){
-					iterator++;
+				if (iterator->type != 'S'){
+					overlap = (lengthRead()+iterator->length) - nonOverlapLength;
+					add(iterator->type,iterator->length - overlap);
+					if (iterator != cigar.end()){
+						iterator++;
+					}
+				} else {
+					overlap = iterator->length;
+					nonOverlapLength = lengthRead();
 				}
 			} else {
 				add(iterator->type,iterator->length);
@@ -39,24 +47,35 @@ TCigar::TCigar(TCigar cigar, uint16_t overlapLength, bool isReverseStrand) {
 		}
 		add('S',overlap);
 	} else {
+		std::cout << "reverse" << std::endl;
 		auto iterator = --cigar.end();
 		while (lengthRead() < nonOverlapLength) {
 					if (lengthRead()+iterator->length > nonOverlapLength) {
-						overlap = (lengthRead()+iterator->length) - nonOverlapLength;
-						add(iterator->type,iterator->length - overlap);
-						if (iterator != cigar.begin()) {
-							iterator--;
+						if (iterator->type != 'S'){
+							overlap = (lengthRead()+iterator->length) - nonOverlapLength;
+							std::cout << "1 " << overlap << std::endl;
+							add(iterator->type,iterator->length - overlap);
+							if (iterator != cigar.begin()) {
+								std::cout << "test" << std::endl;
+								iterator--;
+							}
+						} else {
+							overlap = iterator->length;
+							nonOverlapLength = lengthRead();
 						}
+
 					} else {
+						std::cout << "2 " << iterator->type << iterator->length << std::endl;
 						add(iterator->type,iterator->length);
+						std::cout << lengthRead() << std::endl;
 						iterator--;
 					}
 				}
 		while (iterator != cigar.begin()) {
+			std::cout << iterator->type << std::endl;
 			if (iterator->type == 'M' || iterator->type == 'I' || iterator->type == '=' || iterator->type == 'X' || iterator->type == 'S') {
-				overlap+=iterator->length;
-				iterator--;
 			}
+			iterator--;
 		}
 		add('S',overlap);
 		_flipCigar();
