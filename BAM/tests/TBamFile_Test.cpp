@@ -1232,9 +1232,9 @@ TEST_F(TBamFilter_Test, blacklist){
     // 9) filter: 'blacklist'
 
     // generate blacklist
-    coretools::TOutputFile blackList("blacklist.txt", 1);
+    coretools::TOutputFile blackList("blacklist.txt", "");
     for (int i = 0; i < 200; i++){ // add first 200 reads to blacklist
-        blackList << "alignment_" + coretools::str::toString(i) << std::endl;
+        blackList.writeln("alignment_", i);
     }
     blackList.close();
 

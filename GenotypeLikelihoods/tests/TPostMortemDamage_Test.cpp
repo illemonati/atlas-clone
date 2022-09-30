@@ -210,7 +210,7 @@ TEST(TPostMortemDamage_test, empiric_learn) {
 
 	TPMDFunctionEmpiric fne("[]");
 	fne.learn(t1, Base::G, Base::A, TPMDEstimationParameters{});
-	EXPECT_EQ(fne.string(), "Empiric[1.000000,0.899000,0.798000,0.697000,0.596000,0.495000,0.394000,0.293000,0.192000,0.091000]");
+	EXPECT_EQ(fne.string(), "Empiric[1,0.899,0.798,0.697,0.596,0.495,0.394,0.293,0.192,0.091]");
 }
 
 TEST(TPostMortemDamage_test, exp_learn) {

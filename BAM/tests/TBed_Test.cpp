@@ -11,7 +11,7 @@
 #include <string>
 
 #include "TChromosomes.h"
-#include "TFile.h"
+#include "TOutputFile.h"
 #include "TGenomePosition.h"
 
 //-------------------------------------------------------------
@@ -455,12 +455,12 @@ TEST(TBedTest, add_Chr_pos){
 
 void writeInputBed(){
     coretools::TOutputFile out("bed.bed", 3);
-    out << "chr1" << 10 << 20 << std::endl;
-    out << "chr1" << 30 << 40 << std::endl;
-    out << "chr1" << 50 << 60 << std::endl;
-    out << "chr1" << 15 << 35 << std::endl;
-    out << "chr1" << 1 << 2 << std::endl;
-    out << "chr2" << 55 << 100 << std::endl;
+    out.writeln("chr1", 10, 20);
+    out.writeln("chr1", 30, 40);
+    out.writeln("chr1", 50, 60);
+    out.writeln("chr1", 15, 35);
+    out.writeln("chr1", 1, 2);
+    out.writeln("chr2", 55, 100);
     out.close();
 }
 
