@@ -567,7 +567,7 @@ void TThetaEstimator::writeResultsToFile(coretools::TOutputFile &out) {
 void TThetaEstimator::calcLikelihoodSurface(coretools::TOutputFile &out, uint32_t steps) {
 	// write header
 	out.writeHeader({"log10(theta)", "theta", "LL"});
-	out.setPrecision(12);
+	out.precision(12);
 
 	// calculate likelihood surface
 	double minLogTheta = -5.0;
@@ -583,7 +583,7 @@ void TThetaEstimator::calcLikelihoodSurface(coretools::TOutputFile &out, uint32_
 		theta.LL   = data->calcLogLikelihood(_pGenotype);
 
 		// write results
-		out << theta.logTheta << theta.theta << theta.LL << std::endl;
+		out.writeln(theta.logTheta, theta.theta, theta.LL);
 	}
 };
 

@@ -100,9 +100,7 @@ void TPolymorhicWindowIdentifier::identifyPolymorphicWindows(TParameters & Param
  		}
 
  		//write data
- 		out << numWindowsWithData << numWindowsWithData - numWindowsPoly << numWindowsPoly;
- 		out.write(ind);
- 		out << std::endl;
+ 		out.writeln(numWindowsWithData, numWindowsWithData - numWindowsPoly, numWindowsPoly, ind);
 
  		//update global counts
  		totalWindowsChecked += numWindowsWithData;

@@ -145,7 +145,7 @@ void TVcfToBeagle::_write(genometools::TPopulationLikehoodLocus<TSampleLikelihoo
 		}
 	}
 
-	_beagleFile.endLine();
+	_beagleFile.endln();
 }
 
 void TVcfToBeagle::run() {
@@ -358,7 +358,7 @@ void TVcfToGeno::_initOutputFiles() {
 
 void TVcfToGeno::_closeOutputFiles() {
 	_genoFile.close();
-	_lociNamesFile.endLine();
+	_lociNamesFile.endln();
 	_lociNamesFile.close();
 }
 
@@ -376,7 +376,7 @@ void TVcfToGeno::_write(genometools::TPopulationLikehoodLocus<TSampleLikelihoods
 			line += coretools::str::toString(2 - altAlleleCounts(_reader.biallelicGenotype(_samples, s)));
 		}
 	}
-	_genoFile << line << std::endl;
+	_genoFile.writeln(line);
 }
 
 void TVcfToGeno::run() {
@@ -428,13 +428,13 @@ void TVcfToLFMMPostGeno::_store(genometools::TPopulationLikehoodLocus<TSampleLik
 
 void TVcfToPosFile::_writeHeader() {
 	// no header
-	_posFile.noHeader(4);
+	_posFile.numCols(4);
 }
 
 void TVcfToPosFile::_initOutputFiles() { _posFile.open(_outName + ".pos"); }
 
 void TVcfToPosFile::_write(genometools::TPopulationLikehoodLocus<TSampleLikelihoods> &) {
-	_posFile << _reader.chr() << _reader.position() << _reader.refAllele() << _reader.altAllele() << std::endl;
+	_posFile.writeln(_reader.chr(), _reader.position(), _reader.refAllele(), _reader.altAllele());
 }
 
 void TVcfToPosFile::run() {
@@ -537,7 +537,7 @@ void TVcfToGenotypeTruthSetFile::_writeToGenFile(const std::vector<size_t> &samp
 			_genFile << "NA";
 		}
 	}
-	_genFile.endLine();
+	_genFile.endln();
 }
 
 void TVcfToGenotypeTruthSetFile::_storeInBedFile(const std::vector<size_t> &samplesToKeep) {

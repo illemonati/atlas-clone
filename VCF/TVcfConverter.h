@@ -128,9 +128,9 @@ protected:
 	std::vector<std::string> _loci_names;
 
 	void _writeLociNames() {
-		_lociNamesFile.noHeader(_loci_names.size());
+		_lociNamesFile.numCols(_loci_names.size());
 		for (auto &it : _loci_names) _lociNamesFile << it;
-		_lociNamesFile.endLine();
+		_lociNamesFile.endln();
 	};
 
 	void _initOutputFiles() override {
@@ -147,7 +147,7 @@ protected:
 		size_t numLoci = _genotypes.dimensions()[0];
 		for (size_t i = 0; i < _samples.numSamples(); i++) {
 			for (size_t l = 0; l < numLoci; l++) { _lfmmFile << (double)_genotypes(l, i); }
-			_lfmmFile.endLine();
+			_lfmmFile.endln();
 		}
 	}
 
@@ -170,7 +170,7 @@ public:
 		_genotypes.finalizeFillData();
 
 		// write actual lfmm
-		_lfmmFile.noHeader(_genotypes.dimensions()[0]); // we only know now how many loci there are
+		_lfmmFile.numCols(_genotypes.dimensions()[0]); // we only know now how many loci there are
 		_writeLFMM();
 
 		// write loci names

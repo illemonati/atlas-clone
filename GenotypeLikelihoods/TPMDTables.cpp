@@ -10,7 +10,7 @@
 #include <stdint.h>
 #include <ostream>
 
-#include "TFile.h"
+#include "TOutputFile.h"
 #include "TReadGroups.h"
 #include "TSequencedBase.h"
 #include "stringFunctions.h"
@@ -58,14 +58,14 @@ void TPMDTable::write(coretools::TOutputFile &out, std::vector<std::string> &pre
 	for (Base f = Base::min; f < Base::max; ++f) {
 		prefix[3] = toString(f);
 		for (Base t = Base::min; t < Base::max; ++t) {
-			out << prefix << toString(t);
+			out.write(prefix, toString(t));
 			if (normalized) {
 				for (uint16_t i = 0; i < _sums[f].size(); ++i)
-					out << static_cast<double>(_counts[f][t][i])/_sums[f][i];
+					out.write(static_cast<double>(_counts[f][t][i])/_sums[f][i]);
 			} else {
-				out << _counts[f][t];
+				out.write(_counts[f][t]);
 			}
-			out << std::endl;
+			out.endln();
 		}
 	}
 }

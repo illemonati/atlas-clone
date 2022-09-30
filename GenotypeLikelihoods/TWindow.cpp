@@ -15,7 +15,7 @@
 #include "GenotypeTypes.h"
 #include "TBed.h"
 #include "TFastaBuffer.h"
-#include "TFile.h"
+#include "TOutputFile.h"
 #include "TGenotypeData.h"
 #include "TLog.h"
 #include "TNumericRange.h"

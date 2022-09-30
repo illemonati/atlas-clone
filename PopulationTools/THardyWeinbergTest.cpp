@@ -16,7 +16,7 @@
 #include <tuple>
 #include <utility>
 
-#include "TFile.h"
+#include "TOutputFile.h"
 #include "TTimer.h"
 #include "TVcfParser.h"
 #include "mathFunctions.h"
@@ -310,7 +310,7 @@ void THWPopulations::runTest(TOutputFile & out){
 	//calculate p-values
 	double pLess = probs.sum(obsNumHet);
 	double MAF = std::min(obsNumA, 2*obsN - obsNumA) / (double) (obsN * 2.0);
-	out << obsN << obsNumA << MAF << obsNumHet << pLess << 1.0 - pLess + probs[obsNumHet] << std::endl;
+	out.writeln(obsN, obsNumA, MAF, obsNumHet, pLess, 1.0 - pLess + probs[obsNumHet]);
 };
 
 //------------------------------------------------

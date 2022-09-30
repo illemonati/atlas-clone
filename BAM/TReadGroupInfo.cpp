@@ -328,7 +328,7 @@ void TReadGroupInfo::write(const std::string & Filename){
 					out << rg[colInfoType[c]];
 				}
 			}
-			out << std::endl;
+			out.endln();
 		}
 	} else {
 		//no file was written: use order of enum
@@ -350,7 +350,7 @@ void TReadGroupInfo::write(const std::string & Filename){
 			for(size_t c = 0; c < header.size(); ++c){
 				out << rg[colInfoType[c]];
 			}
-			out << std::endl;
+			out.endln();
 		}
 	}
 }

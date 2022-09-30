@@ -544,8 +544,8 @@ void TSimulatorHW::_simulateSite(TSimulatorHWSite &site, TSimulatorReference &re
 
 	// write true frequency: pos is 1 based!
 	if (_writeTrueAlleleFreq) {
-		_trueFreqFile << chr << pos + 1 << site.reference << site.alternative << site.f;
-		_trueFreqFile << (site.f < 0.5 ? site.f : 1. - site.f) << std::endl;
+		_trueFreqFile.writeln(chr, pos + 1, site.reference, site.alternative, site.f,
+							  (site.f < 0.5 ? site.f : 1. - site.f));
 	}
 }
 

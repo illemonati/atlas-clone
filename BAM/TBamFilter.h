@@ -36,7 +36,7 @@ private:
 	coretools::TOutputFile _log;
 
 public:
-	TBamFileLog(const std::string filename);
+	TBamFileLog(const std::string &filename): _log(filename, 3){};
 	void write(const std::string & alignmentName, const bool & isReverseStrand, const std::string & reason);
 };
 

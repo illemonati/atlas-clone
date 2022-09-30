@@ -21,19 +21,12 @@
 namespace BAM{
 
 using coretools::TLog;
-using coretools::index;
 
 //-----------------------------------------------------
 //TBamFileLog
 //-----------------------------------------------------
-TBamFileLog::TBamFileLog(const std::string filename){
-	_log.open(filename);
-	//_log.writeHeader({"Alignment", "isSecondMate", "Reason"});
-	_log.noHeader(3); //write no header so it can be used as blacklist
-};
-
 void TBamFileLog::write(const std::string & alignmentName, const bool & isReverseStrand, const std::string & reason){
-	_log << alignmentName << isReverseStrand << reason << std::endl;
+	_log.writeln(alignmentName, isReverseStrand, reason);
 };
 
 //-----------------------------------------------------

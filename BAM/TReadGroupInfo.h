@@ -17,6 +17,7 @@
 #include "TLog.h"
 #include "TReadGroups.h"
 #include "TError.h"
+#include "TOutputFile.h"
 
 namespace BAM {
 
@@ -116,9 +117,9 @@ public:
 	void write(coretools::TOutputFile & Out, const InfoType Info) const {
 		auto it = _info.find(Info);
 		if(it == _info.end()){
-			Out << "-";
+			Out.write('-');
 		} else{
-			Out << it->second;
+			Out.write(it->second);
 		}
 	}
 };

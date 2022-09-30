@@ -759,7 +759,7 @@ void TBamFile::printSummaryNoEndIndent(std::string &outputName){
 				_externalFilter.printCombinedCounts(out);
 				_readLengthFilter.printCombinedCounts(out);
 				_mappedLengthFilter.printCombinedCounts(out);
-				out << std::endl;
+				out.endln();
 
 
 				//writes numbers of removed reads for each applied filter per read group, also lists filters if no reads were removed
@@ -784,7 +784,7 @@ void TBamFile::printSummaryNoEndIndent(std::string &outputName){
 					_externalFilter.printCounts(out, it);
 					_readLengthFilter.printCounts(out, it);
 					_mappedLengthFilter.printCounts(out, it);
-					out << std::endl;
+					out.endln();
 				}
 
 				out.close();

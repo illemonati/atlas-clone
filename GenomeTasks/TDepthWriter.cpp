@@ -22,7 +22,7 @@ using coretools::instances::logfile;
 //----------------------------------------
 void TDepthWriter::_handleWindow(){
 	logfile().listFlush("Writing sequencing depth estimates to file ...");
-	_out << _window << _window.depth() << std::endl;
+	_out.writeln(_window, _window.depth());
 	logfile().done();
 
 	logfile().listFlush("Adding per site depth to distribution ...");

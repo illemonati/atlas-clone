@@ -10,7 +10,7 @@
 
 #include <string>
 
-#include "TFile.h"
+#include "TOutputFile.h"
 #include "TGenome.h"
 #include "TTask.h"
 #include "counters.h"

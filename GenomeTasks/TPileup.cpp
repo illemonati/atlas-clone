@@ -180,7 +180,7 @@ void TPileup::_handleWindow(){
 			_genoLik = _genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(site);
 			impl::write(_genoLik, _out);
 		}
-		_out << std::endl;
+		_out.endln();
 	}
 
 	logfile().doneTime();

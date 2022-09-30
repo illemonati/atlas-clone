@@ -8,7 +8,7 @@
 #include "TThetaEstimatorData.h"
 
 #include "GenotypeTypes.h"
-#include "TFile.h"
+#include "TOutputFile.h"
 #include "TGenotypeData.h"
 #include "TRandomGenerator.h"
 #include "TSite.h"

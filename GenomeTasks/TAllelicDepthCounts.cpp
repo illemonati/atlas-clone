@@ -118,7 +118,7 @@ void TAllelicDepthCounts::write(const std::string &filename, bool printEmpty){
 						}
 
 						//write counts
-						out << _counts[impl::index(a,c,g,t, _size)] << std::endl;
+						out.writeln(_counts[impl::index(a,c,g,t, _size)]);
 					}
 				}
 			}

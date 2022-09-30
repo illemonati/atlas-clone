@@ -69,7 +69,7 @@ void TSoftClippingStatsFile::write(const BAM::TBamFile &bamFile) {
 			_out << "";
 		}
 	}
-	_out << std::endl;
+	_out.endln();
 };
 
 //--------------------------------------------------------

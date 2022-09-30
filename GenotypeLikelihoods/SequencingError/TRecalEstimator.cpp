@@ -151,18 +151,16 @@ double TModelVectorForEstimation::maxF() const {
 void TModelVectorForEstimation::writeRecalFile(const BAM::TReadGroups &ReadGroups, const std::string & Filename) const {
 	TModelNoRecal _noRecal;
 	// open file and write header
-	coretools::TOutputFile out(Filename);
-	out.writeHeader({"readGroup", "mate", "covariates", "rho"});
+	coretools::TOutputFile out(Filename, {"readGroup", "mate", "covariates", "rho"});
 
 	// add models
 	for (uint16_t r = 0; r < ReadGroups.size(); ++r) {
 		for (uint8_t mate = 0; mate < 2; ++mate) {
-			out << ReadGroups.getName(r) << std::array{"first", "second"}[mate];
+			out.write(ReadGroups.getName(r), std::array{"first", "second"}[mate]);
 			if (_modelIndex[r][mate])
-				out << _modelIndex[r][mate]->getCovariateDefinition() << _modelIndex[r][mate]->getRhoDefinition();
+				out.writeln(_modelIndex[r][mate]->getCovariateDefinition(), _modelIndex[r][mate]->getRhoDefinition());
 			else 
-				out << _noRecal.getCovariateDefinition() << _noRecal.getRhoDefinition();
-			out << std::endl;
+				out.writeln(_noRecal.getCovariateDefinition(), _noRecal.getRhoDefinition());
 		}
 	}
 }

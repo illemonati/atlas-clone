@@ -110,36 +110,28 @@ void TBamDiagnoser::diagnose(){
 	}
 
 	//write for combined
-	out << "allReadGroups";
-	out << (_bamFile.numAlignmentsReadPerReadGroup()).counts();
-	out << _passedQC.counts();
-	out << _readLength.mean() << _readLength.max();
-	out << _fragmentLength.counts() << _fragmentLength.mean();
-	out << _softClippedLength.countsLargerZero() << _softClippedLength.mean();
-	out << _usableLength.mean() << (double) _usableLength.sum() / (double) totLengthOfGenome;
-	out << _mappingQuality.mean();
-	if (numRG == single_count){
-		out << "single" << std::endl;
+	out.write("allReadGroups", (_bamFile.numAlignmentsReadPerReadGroup()).counts(), _passedQC.counts(),
+			  _readLength.mean(), _readLength.max(), _fragmentLength.counts(), _fragmentLength.mean(),
+			  _softClippedLength.countsLargerZero(), _softClippedLength.mean(), _usableLength.mean(),
+			  (double)_usableLength.sum() / (double)totLengthOfGenome, _mappingQuality.mean());
+	if (numRG == single_count) {
+		out.writeln("single");
 	} else if (numRG == paired_count) {
-		out << "paired" << std::endl;
+		out.writeln("paired");
 	} else {
-		out << "mixed" << std::endl;
+		out.writeln("mixed");
 	}
 
 	//write per read group
 	for(uint32_t rg = 0; rg < numRG; ++rg){
-		out << _bamFile.readGroups().getName(rg);
-		out << (_bamFile.numAlignmentsReadPerReadGroup())[rg];
-		out << _passedQC[rg];
-		out << _readLength[rg].mean() << _readLength[rg].max();
-		out << _fragmentLength[rg].counts() << _fragmentLength.mean();
-		out << _softClippedLength[rg].countsLargerZero() << _softClippedLength[rg].mean();
-		out << _usableLength[rg].mean() << (double) _usableLength[rg].sum() / (double) totLengthOfGenome;
-		out << _mappingQuality[rg].mean();
-		if (_fragmentLength[rg].counts() == 0){
-			out << "single" << std::endl;
+		out.write(_bamFile.readGroups().getName(rg), (_bamFile.numAlignmentsReadPerReadGroup())[rg], _passedQC[rg],
+				  _readLength[rg].mean(), _readLength[rg].max(), _fragmentLength[rg].counts(), _fragmentLength.mean(),
+				  _softClippedLength[rg].countsLargerZero(), _softClippedLength[rg].mean(), _usableLength[rg].mean(),
+				  (double)_usableLength[rg].sum() / (double)totLengthOfGenome, _mappingQuality[rg].mean());
+		if (_fragmentLength[rg].counts() == 0) {
+			out.writeln("single");
 		} else {
-			out << "paired" << std::endl;
+			out.writeln("paired");
 		}
 	}
 	out.close();
@@ -157,7 +149,7 @@ void TBamDiagnoser::diagnose(){
 		} else {
 			splitm << "paired";
 		}
-		splitm << _readLength.max() << std::endl;
+		splitm.writeln(_readLength.max());
 	}
 	splitm.close();
 	logfile().done();

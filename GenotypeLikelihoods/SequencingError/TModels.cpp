@@ -126,7 +126,7 @@ void TModels::initializeFromFile(const std::string &Filename, const BAM::TReadGr
 				} else
 					throw "Unknown mate '" + vec[1] + "! Must be 'first' or 'second'.";
 			} catch (const char *error) {
-				throw std::string(error) + " in file '" + Filename + "' on line " + toString(in.lineNumber()) + "!";
+				throw std::string(error) + " in file '" + Filename + "' on line " + toString(in.curLine()) + "!";
 			}
 		}
 	}
@@ -201,15 +201,14 @@ TBaseLikelihoods TModels::getBaseLikelihoods(const BAM::TSequencedBase &base) co
 //-------------------------------------------------------------------
 void TModels::writeRecalFile(const BAM::TReadGroups &ReadGroups, const std::string & Filename) const {
 	// open file and write header
-	coretools::TOutputFile out(Filename);
-	out.writeHeader({"readGroup", "mate", "covariates", "rho"});
+	coretools::TOutputFile out(Filename, {"readGroup", "mate", "covariates", "rho"});
 
 	// add models
 	for (uint16_t r = 0; r < ReadGroups.size(); ++r) {
 		for (uint8_t mate = 0; mate < 2; ++mate) {
 			const auto s = mate == 0 ? "first" : "second";
-			out << ReadGroups.getName(r) << s << _models[r][mate]->getCovariateDefinition()
-				<< _models[r][mate]->getRhoDefinition() << std::endl;
+			out.writeln(ReadGroups.getName(r), s, _models[r][mate]->getCovariateDefinition(),
+						_models[r][mate]->getRhoDefinition());
 		}
 	}
 }
