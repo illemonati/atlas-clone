@@ -18,22 +18,22 @@
 #include <stdexcept>
 #include <type_traits>
 
-#include "GenotypeTypes.h"
-#include "PhredProbabilityTypes.h"
-#include "TChromosomes.h"
-#include "TFile.h"
-#include "TGenotypeFrequencies.h"
+#include "genometools/GenotypeTypes.h"
+#include "genometools/PhredProbabilityTypes.h"
+#include "genometools/GenomePositions/TChromosomes.h"
+#include "coretools/Files/TFile.h"
+#include "genometools/TGenotypeFrequencies.h"
 #include "THaplotypeSimulator.h"
-#include "TLog.h"
-#include "TParameters.h"
-#include "TRandomGenerator.h"
-#include "algorithms.h"
-#include "gzstream.h"
-#include "mathConstants.h"
-#include "probability.h"
-#include "progressTools.h"
-#include "stringFunctions.h"
-#include "weakTypes.h"
+#include "coretools/Main/TLog.h"
+#include "coretools/Main/TParameters.h"
+#include "coretools/Main/TRandomGenerator.h"
+#include "coretools/algorithms.h"
+#include "coretools/Files/gzstream.h"
+#include "coretools/Math/mathConstants.h"
+#include "coretools/Types/probability.h"
+#include "coretools/Main/progressTools.h"
+#include "coretools/Strings/stringFunctions.h"
+#include "coretools/Types/weakTypes.h"
 
 namespace Simulations {
 using coretools::Probability;

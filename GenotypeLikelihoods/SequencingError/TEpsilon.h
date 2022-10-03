@@ -11,10 +11,10 @@
 #include <armadillo>
 #include <memory>
 
-#include "GenotypeTypes.h"
+#include "genometools/GenotypeTypes.h"
 #include "RecalEstimatorTools.h"
 #include "TGenotypeData.h"
-#include "probability.h"
+#include "coretools/Types/probability.h"
 
 namespace GenotypeLikelihoods {
 namespace SequencingError {

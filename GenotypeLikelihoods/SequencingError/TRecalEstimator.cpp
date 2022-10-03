@@ -15,21 +15,21 @@
 #include <numeric>
 #include <stdexcept>
 
-#include "GenotypeTypes.h"
+#include "genometools/GenotypeTypes.h"
 #include "RecalEstimatorTools.h"
 #include "TGenotypeData.h"
 #include "TGenotypeDistribution.h"
-#include "TLog.h"
-#include "TParameters.h"
+#include "coretools/Main/TLog.h"
+#include "coretools/Main/TParameters.h"
 #include "TPostMortemDamage.h"
 #include "TSequencedBase.h"
 #include "SequencingError/TModel.h"
 #include "SequencingError/TModels.h"
-#include "algorithms.h"
-#include "probability.h"
-#include "stringFunctions.h"
+#include "coretools/algorithms.h"
+#include "coretools/Types/probability.h"
+#include "coretools/Strings/stringFunctions.h"
 
-#include "devtools.h"
+#include "coretools/devtools.h"
 
 namespace GenotypeLikelihoods {
 

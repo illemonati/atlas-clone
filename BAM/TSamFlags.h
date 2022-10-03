@@ -8,7 +8,7 @@
 #ifndef BAM_TSAMFLAGS_H_
 #define BAM_TSAMFLAGS_H_
 
-#include "TBitSet.h"
+#include "coretools/Containers/TBitSet.h"
 
 namespace BAM {
 

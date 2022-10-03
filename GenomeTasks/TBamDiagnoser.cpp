@@ -10,11 +10,11 @@
 #include <stdint.h>
 #include <ostream>
 #include "TBamFile.h"
-#include "TChromosomes.h"
+#include "genometools/GenomePositions/TChromosomes.h"
 #include "TCigar.h"
-#include "TFile.h"
-#include "TLog.h"
-#include "TRandomGenerator.h"
+#include "coretools/Files/TFile.h"
+#include "coretools/Main/TLog.h"
+#include "coretools/Main/TRandomGenerator.h"
 #include "TReadGroups.h"
 
 namespace GenomeTasks{

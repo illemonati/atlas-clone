@@ -16,12 +16,12 @@
 #include <string>
 #include <vector>
 
-#include "GenotypeTypes.h"
-#include "TOutputFile.h"
+#include "genometools/GenotypeTypes.h"
+#include "coretools/Files/TOutputFile.h"
 #include "TGenotypeData.h"
 #include "TThetaEstimatorData.h"
 #include "TWindow.h"
-#include "stringFunctions.h"
+#include "coretools/Strings/stringFunctions.h"
 
 namespace GenotypeLikelihoods {
 class TGenotypeLikelihoodCalculator;

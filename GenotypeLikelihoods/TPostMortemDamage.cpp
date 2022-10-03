@@ -27,16 +27,16 @@
 #include <stdexcept>
 #include <utility>
 
-#include "GenotypeTypes.h"
-#include "TError.h"
-#include "TOutputFile.h"
+#include "genometools/GenotypeTypes.h"
+#include "coretools/Main/TError.h"
+#include "coretools/Files/TOutputFile.h"
 #include "TGenotypeData.h"
-#include "TLog.h"
-#include "TParameters.h"
-#include "TRandomGenerator.h"
+#include "coretools/Main/TLog.h"
+#include "coretools/Main/TParameters.h"
+#include "coretools/Main/TRandomGenerator.h"
 #include "TReadGroupInfo.h"
 #include "TSequencedBase.h"
-#include "probability.h"
+#include "coretools/Types/probability.h"
 
 
 namespace GenotypeLikelihoods {

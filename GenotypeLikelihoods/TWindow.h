@@ -15,12 +15,12 @@
 #include <vector>
 
 #include "TAlignment.h"
-#include "TGenomePosition.h"
+#include "genometools/GenomePositions/TGenomePosition.h"
 #include "TGenotypeData.h"
 #include "TSite.h"
 #include "TSiteSubset.h"
-#include "TSubsamplePicker.h"
-#include "probability.h"
+#include "coretools/Math/TSubsamplePicker.h"
+#include "coretools/Types/probability.h"
 
 namespace BAM { class TFastaBuffer; }
 namespace coretools { class TLog; }

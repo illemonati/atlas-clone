@@ -16,19 +16,19 @@
 #include <sys/time.h>
 #include <utility>
 
-#include "GenotypeTypes.h"
+#include "genometools/GenotypeTypes.h"
 #include "TAlleleCountFileFormat.h"
-#include "TLog.h"
-#include "TParameters.h"
-#include "TPopulation.h"
-#include "TPopulationLikelihoodLocus.h"
-#include "TPopulationLikelihoods.h"
-#include "TRandomGenerator.h"
-#include "gzstream.h"
-#include "mathFunctions.h"
-#include "probability.h"
-#include "stringFunctions.h"
-#include "weakTypes.h"
+#include "coretools/Main/TLog.h"
+#include "coretools/Main/TParameters.h"
+#include "genometools/VCF/TPopulation.h"
+#include "genometools/VCF/TPopulationLikelihoodLocus.h"
+#include "genometools/VCF/TPopulationLikelihoods.h"
+#include "coretools/Main/TRandomGenerator.h"
+#include "coretools/Files/gzstream.h"
+#include "coretools/Math/mathFunctions.h"
+#include "coretools/Types/probability.h"
+#include "coretools/Strings/stringFunctions.h"
+#include "coretools/Types/weakTypes.h"
 
 namespace PopulationTools {
 

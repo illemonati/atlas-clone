@@ -9,18 +9,18 @@
 #include <string>
 #include <vector>
 
-#include "GenotypeTypes.h"
-#include "PhredProbabilityTypes.h"
+#include "genometools/GenotypeTypes.h"
+#include "genometools/PhredProbabilityTypes.h"
 #include "TAlignment.h"
 #include "TBamFilter.h"
-#include "TChromosomes.h"
+#include "genometools/GenomePositions/TChromosomes.h"
 #include "TCigar.h"
-#include "TFile.h"
+#include "coretools/Files/TFile.h"
 #include "TGenome.h"
-#include "TGenomePosition.h"
-#include "TLog.h"
-#include "TParameters.h"
-#include "TRandomGenerator.h"
+#include "genometools/GenomePositions/TGenomePosition.h"
+#include "coretools/Main/TLog.h"
+#include "coretools/Main/TParameters.h"
+#include "coretools/Main/TRandomGenerator.h"
 #include "TReadGroups.h"
 #include "TSamFlags.h"
 #include "TSamHeader.h"
@@ -28,8 +28,8 @@
 #include "TSite.h"
 #include "TTestBamFile.h"
 #include "TWindow.h"
-#include "counters.h"
-#include "stringFunctions.h"
+#include "coretools/Math/counters.h"
+#include "coretools/Strings/stringFunctions.h"
 
 using coretools::instances::logfile;
 using coretools::instances::parameters;

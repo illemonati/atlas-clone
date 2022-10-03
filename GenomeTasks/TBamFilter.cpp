@@ -16,22 +16,22 @@
 #include <utility>
 #include <vector>
 
-#include "GenotypeTypes.h"
-#include "PhredProbabilityTypes.h"
+#include "genometools/GenotypeTypes.h"
+#include "genometools/PhredProbabilityTypes.h"
 #include "TAlignment.h"
-#include "TFile.h"
-#include "TGenomePosition.h"
+#include "coretools/Files/TFile.h"
+#include "genometools/GenomePositions/TGenomePosition.h"
 #include "TGenotypeData.h"
 #include "TGenotypeLikelihoodCalculator.h"
-#include "TLog.h"
-#include "TParameters.h"
-#include "TRandomGenerator.h"
+#include "coretools/Main/TLog.h"
+#include "coretools/Main/TParameters.h"
+#include "coretools/Main/TRandomGenerator.h"
 #include "TReadGroups.h"
 #include "TSequencedBase.h"
-#include "counters.h"
-#include "probability.h"
-#include "stringFunctions.h"
-#include "strongTypes.h"
+#include "coretools/Math/counters.h"
+#include "coretools/Types/probability.h"
+#include "coretools/Strings/stringFunctions.h"
+#include "coretools/Types/strongTypes.h"
 
 namespace GenomeTasks{
 

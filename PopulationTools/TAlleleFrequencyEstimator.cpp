@@ -16,10 +16,10 @@
 #include <ostream>
 #include <string>
 
-#include "GenotypeTypes.h"
-#include "TGenotypeFrequencies.h"
-#include "stringFunctions.h"
-#include "weakTypes.h"
+#include "genometools/GenotypeTypes.h"
+#include "genometools/TGenotypeFrequencies.h"
+#include "coretools/Strings/stringFunctions.h"
+#include "coretools/Types/weakTypes.h"
 
 namespace PopulationTools{
 

@@ -11,8 +11,8 @@
 #include <numeric>
 #include <utility>
 
-#include "GenotypeTypes.h"
-#include "PhredProbabilityTypes.h"
+#include "genometools/GenotypeTypes.h"
+#include "genometools/PhredProbabilityTypes.h"
 
 namespace GenotypeLikelihoods {
 

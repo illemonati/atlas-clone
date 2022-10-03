@@ -13,14 +13,14 @@
 #include <string>
 #include <vector>
 
-#include "GenotypeTypes.h"
+#include "genometools/GenotypeTypes.h"
 #include "TGenome.h"
 #include "TGenotypeData.h"
-#include "TTask.h"
-#include "VCF/TVCFFields.h"
-#include "gzstream.h"
-#include "mathFunctions.h"
-#include "stringFunctions.h"
+#include "coretools/Main/TTask.h"
+#include "genometools/VCF/TVCFFields.h"
+#include "coretools/Files/gzstream.h"
+#include "coretools/Math/mathFunctions.h"
+#include "coretools/Strings/stringFunctions.h"
 
 namespace GenotypeLikelihoods { class TGenotypePrior; }
 namespace GenotypeLikelihoods { class TSite; }

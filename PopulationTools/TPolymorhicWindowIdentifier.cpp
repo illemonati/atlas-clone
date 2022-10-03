@@ -13,15 +13,15 @@
 #include <ostream>
 #include <vector>
 
-#include "GenotypeTypes.h"
-#include "PhredProbabilityTypes.h"
-#include "TFile.h"
-#include "TPopulation.h"
-#include "TPopulationLikelihoodLocus.h"
-#include "TPopulationLikelihoods.h"
-#include "TSampleLikelihoods.h"
-#include "stringFunctions.h"
-#include "strongTypes.h"
+#include "genometools/GenotypeTypes.h"
+#include "genometools/PhredProbabilityTypes.h"
+#include "coretools/Files/TFile.h"
+#include "genometools/VCF/TPopulation.h"
+#include "genometools/VCF/TPopulationLikelihoodLocus.h"
+#include "genometools/VCF/TPopulationLikelihoods.h"
+#include "genometools/TSampleLikelihoods.h"
+#include "coretools/Strings/stringFunctions.h"
+#include "coretools/Types/strongTypes.h"
 
 namespace PopulationTools{
 using coretools::TParameters;

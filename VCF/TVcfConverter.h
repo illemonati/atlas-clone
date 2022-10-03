@@ -13,15 +13,15 @@
 #include <string>
 #include <vector>
 
-#include "PhredProbabilityTypes.h"
-#include "TFile.h"
-#include "TLog.h"
-#include "TParameters.h"
-#include "TPopulation.h"
-#include "TPopulationLikelihoods.h"
-#include "TSampleLikelihoods.h"
-#include "TStorage.h"
-#include "TTask.h"
+#include "genometools/PhredProbabilityTypes.h"
+#include "coretools/Files/TFile.h"
+#include "coretools/Main/TLog.h"
+#include "coretools/Main/TParameters.h"
+#include "genometools/VCF/TPopulation.h"
+#include "genometools/VCF/TPopulationLikelihoods.h"
+#include "genometools/TSampleLikelihoods.h"
+#include "coretools/Storage/TStorage.h"
+#include "coretools/Main/TTask.h"
 
 namespace genometools {
 class TBed;

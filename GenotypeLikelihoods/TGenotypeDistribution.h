@@ -8,10 +8,10 @@
 #ifndef GENOTYPELIKELIHOODS_TGENOTYPEDISTRIBUTION_H_
 #define GENOTYPELIKELIHOODS_TGENOTYPEDISTRIBUTION_H_
 
-#include "GenotypeTypes.h"
+#include "genometools/GenotypeTypes.h"
 #include "TGenotypeData.h"
 #include "TSequencedBase.h"
-#include "probability.h"
+#include "coretools/Types/probability.h"
 
 namespace GenotypeLikelihoods {
 

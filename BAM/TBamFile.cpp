@@ -10,9 +10,9 @@
 #include <stdlib.h>
 #include <algorithm>
 #include <exception>
-#include "TLog.h"
-#include "TNumericRange.h"
-#include "TParameters.h"
+#include "coretools/Main/TLog.h"
+#include "coretools/Math/TNumericRange.h"
+#include "coretools/Main/TParameters.h"
 #include "TSamFlags.h"
 #include "api/BamIndex.h"
 #include "api/SamProgram.h"
@@ -21,8 +21,8 @@
 #include "api/SamReadGroupDictionary.h"
 #include "api/SamSequence.h"
 #include "api/SamSequenceDictionary.h"
-#include "globalConstants.h"
-#include "strongTypes.h"
+#include "coretools/Main/globalConstants.h"
+#include "coretools/Types/strongTypes.h"
 
 namespace BAM{
 using coretools::TParameters;

@@ -9,14 +9,14 @@
 #include <stdexcept>
 #include <string>
 
-#include "../genometools/core/VCF/TVcfFile.h"
-#include "GenotypeTypes.h"
-#include "PhredProbabilityTypes.h"
+#include "genometools/VCF/TVcfFile.h"
+#include "genometools/GenotypeTypes.h"
+#include "genometools/PhredProbabilityTypes.h"
 #include "SFS.h"
 #include "TGlfMultiReader.h"
-#include "TParameters.h"
-#include "TRandomGenerator.h"
-#include "TStrongArray.h"
+#include "coretools/Main/TParameters.h"
+#include "coretools/Main/TRandomGenerator.h"
+#include "coretools/Containers/TStrongArray.h"
 
 using namespace testing;
 using namespace genometools;

@@ -11,17 +11,17 @@
 #include <exception>
 #include <stdlib.h>
 
-#include "GenotypeTypes.h"
+#include "genometools/GenotypeTypes.h"
 #include "TGenotypeData.h"
 #include "TGenotypeLikelihoodCalculator.h"
-#include "TLog.h"
-#include "TParameters.h"
-#include "TRandomGenerator.h"
+#include "coretools/Main/TLog.h"
+#include "coretools/Main/TParameters.h"
+#include "coretools/Main/TRandomGenerator.h"
 #include "TSite.h"
-#include "gzstream.h"
-#include "probability.h"
-#include "stringFunctions.h"
-#include "weakTypes.h"
+#include "coretools/Files/gzstream.h"
+#include "coretools/Types/probability.h"
+#include "coretools/Strings/stringFunctions.h"
+#include "coretools/Types/weakTypes.h"
 
 namespace GenotypeLikelihoods {
 using coretools::instances::logfile;

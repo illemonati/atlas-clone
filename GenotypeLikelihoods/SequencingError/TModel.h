@@ -12,13 +12,13 @@
 #include <stdint.h>
 #include <string>
 
-#include "GenotypeTypes.h"
-#include "PhredProbabilityTypes.h"
+#include "genometools/GenotypeTypes.h"
+#include "genometools/PhredProbabilityTypes.h"
 #include "TGenotypeData.h"
 #include "TSequencedBase.h"
-#include "TStrongArray.h"
+#include "coretools/Containers/TStrongArray.h"
 #include "TEpsilon.h"
-#include "probability.h"
+#include "coretools/Types/probability.h"
 
 namespace BAM {
 class TSequencedBase;

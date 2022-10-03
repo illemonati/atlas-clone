@@ -14,10 +14,10 @@
 #include <stdexcept>
 
 #include "TCigar.h"
-#include "TGenomePosition.h"
-#include "globalConstants.h"
-#include "stringFunctions.h"
-#include "strongTypes.h"
+#include "genometools/GenomePositions/TGenomePosition.h"
+#include "coretools/Main/globalConstants.h"
+#include "coretools/Strings/stringFunctions.h"
+#include "coretools/Types/strongTypes.h"
 
 namespace BAM{
 

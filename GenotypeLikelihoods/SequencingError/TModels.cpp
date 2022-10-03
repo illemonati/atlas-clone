@@ -13,15 +13,15 @@
 #include <ostream>
 #include <stdexcept>
 
-#include "TError.h"
-#include "TFile.h"
-#include "TLog.h"
+#include "coretools/Main/TError.h"
+#include "coretools/Files/TFile.h"
+#include "coretools/Main/TLog.h"
 #include "TReadGroupInfo.h"
 #include "TReadGroups.h"
 #include "TSequencedBase.h"
 #include "SequencingError/TModel.h"
-#include "probability.h"
-#include "stringFunctions.h"
+#include "coretools/Types/probability.h"
+#include "coretools/Strings/stringFunctions.h"
 
 namespace GenotypeLikelihoods {
 namespace SequencingError {

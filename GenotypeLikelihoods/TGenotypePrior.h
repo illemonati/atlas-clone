@@ -8,7 +8,7 @@
 #ifndef GENOTYPELIKELIHOODS_TGENOTYPEPRIOR_H_
 #define GENOTYPELIKELIHOODS_TGENOTYPEPRIOR_H_
 
-#include "TLog.h"
+#include "coretools/Main/TLog.h"
 #include "TThetaEstimator.h"
 #include "TWindow.h"
 

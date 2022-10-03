@@ -15,14 +15,14 @@
 #include <string>
 #include <vector>
 
-#include "GenotypeTypes.h"
+#include "genometools/GenotypeTypes.h"
 #include "RecalEstimatorTools.h"
 #include "TGenotypeData.h"
 #include "TGenotypeDistribution.h"
 #include "TGenotypeLikelihoodCalculator.h"
 #include "TReadGroups.h"
 #include "TSite.h"
-#include "probability.h"
+#include "coretools/Types/probability.h"
 
 namespace BAM {
 class TSequencedBase;

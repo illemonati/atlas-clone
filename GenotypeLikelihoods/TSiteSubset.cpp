@@ -11,12 +11,12 @@
 #include <fstream>
 #include <map>
 
-#include "GenotypeTypes.h"
-#include "TChromosomes.h"
+#include "genometools/GenotypeTypes.h"
+#include "genometools/GenomePositions/TChromosomes.h"
 #include "TFastaBuffer.h"
-#include "TOutputFile.h"
-#include "TLog.h"
-#include "stringFunctions.h"
+#include "coretools/Files/TOutputFile.h"
+#include "coretools/Main/TLog.h"
+#include "coretools/Strings/stringFunctions.h"
 
 namespace GenotypeLikelihoods{
 

@@ -12,18 +12,18 @@
 #include <string>
 #include <vector>
 
-#include "PhredProbabilityTypes.h"
-#include "TFile.h"
-#include "THardyWeinbergGenotypeProbabilities.h"
-#include "TLog.h"
-#include "TParameters.h"
-#include "TPopulation.h"
-#include "TPopulationLikelihoodLocus.h"
-#include "TPopulationLikelihoods.h"
-#include "TRandomGenerator.h"
-#include "TSampleLikelihoods.h"
-#include "TTask.h"
-#include "probability.h"
+#include "genometools/PhredProbabilityTypes.h"
+#include "coretools/Files/TFile.h"
+#include "genometools/THardyWeinbergGenotypeProbabilities.h"
+#include "coretools/Main/TLog.h"
+#include "coretools/Main/TParameters.h"
+#include "genometools/VCF/TPopulation.h"
+#include "genometools/VCF/TPopulationLikelihoodLocus.h"
+#include "genometools/VCF/TPopulationLikelihoods.h"
+#include "coretools/Main/TRandomGenerator.h"
+#include "genometools/TSampleLikelihoods.h"
+#include "coretools/Main/TTask.h"
+#include "coretools/Types/probability.h"
 
 namespace genometools { class TGenotypeFrequencies; }
 

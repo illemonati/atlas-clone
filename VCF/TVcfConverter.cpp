@@ -15,13 +15,13 @@
 
 #include <fmt/os.h>
 
-#include "GenotypeTypes.h"
-#include "TBed.h"
-#include "TPopulationLikelihoodLocus.h"
-#include "gzstream.h"
-#include "probability.h"
-#include "stringFunctions.h"
-#include "fromString.h"
+#include "genometools/GenotypeTypes.h"
+#include "genometools/BED/TBed.h"
+#include "genometools/VCF/TPopulationLikelihoodLocus.h"
+#include "coretools/Files/gzstream.h"
+#include "coretools/Types/probability.h"
+#include "coretools/Strings/stringFunctions.h"
+#include "coretools/Strings/fromString.h"
 
 namespace VCF {
 

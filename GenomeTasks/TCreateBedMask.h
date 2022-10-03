@@ -12,10 +12,10 @@
 #include <exception>
 #include <string>
 
-#include "TBed.h"
+#include "genometools/BED/TBed.h"
 #include "TGenome.h"
 #include "TGenotypeData.h"
-#include "TTask.h"
+#include "coretools/Main/TTask.h"
 
 namespace GenomeTasks{
 

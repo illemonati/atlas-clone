@@ -12,11 +12,11 @@
 #include <ostream>
 #include <vector>
 
-#include "GenotypeTypes.h"
-#include "TFile.h"
-#include "TLog.h"
-#include "TParameters.h"
-#include "stringFunctions.h"
+#include "genometools/GenotypeTypes.h"
+#include "coretools/Files/TFile.h"
+#include "coretools/Main/TLog.h"
+#include "coretools/Main/TParameters.h"
+#include "coretools/Strings/stringFunctions.h"
 
 namespace BAM{
 

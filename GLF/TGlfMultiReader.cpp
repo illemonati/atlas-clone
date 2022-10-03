@@ -13,15 +13,15 @@
 #include <iterator>
 #include <memory>
 #include <numeric>
-#include "GenotypeTypes.h"
-#include "TLog.h"
-#include "TParameters.h"
-#include "TRandomGenerator.h"
-#include "probability.h"
-#include "stringFunctions.h"
-#include "strongTypes.h"
-#include "weakTypes.h"
-#include "devtools.h"
+#include "genometools/GenotypeTypes.h"
+#include "coretools/Main/TLog.h"
+#include "coretools/Main/TParameters.h"
+#include "coretools/Main/TRandomGenerator.h"
+#include "coretools/Types/probability.h"
+#include "coretools/Strings/stringFunctions.h"
+#include "coretools/Types/strongTypes.h"
+#include "coretools/Types/weakTypes.h"
+#include "coretools/devtools.h"
 
 namespace GLF {
 using coretools::instances::logfile;

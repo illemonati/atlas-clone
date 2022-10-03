@@ -14,23 +14,23 @@
 #include <set>
 #include <string>
 #include <vector>
-#include "PhredProbabilityTypes.h"
+#include "genometools/PhredProbabilityTypes.h"
 #include "TAlignment.h"
 #include "TBamFilter.h"
-#include "TChromosomes.h"
+#include "genometools/GenomePositions/TChromosomes.h"
 #include "TCigar.h"
-#include "TGenomePosition.h"
-#include "TNumericRange.h"
+#include "genometools/GenomePositions/TGenomePosition.h"
+#include "coretools/Math/TNumericRange.h"
 #include "TReadGroups.h"
 #include "TSamHeader.h"
-#include "TTimer.h"
+#include "coretools/TTimer.h"
 #include "api/BamAlignment.h"
 #include "api/BamAux.h"
 #include "api/BamReader.h"
 #include "api/BamWriter.h"
 #include "api/SamHeader.h"
-#include "stringFunctions.h"
-#include "counters.h"
+#include "coretools/Strings/stringFunctions.h"
+#include "coretools/Math/counters.h"
 namespace coretools { class TLog; }
 namespace coretools { class TParameters; }
 

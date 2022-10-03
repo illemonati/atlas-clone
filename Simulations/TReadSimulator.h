@@ -15,15 +15,15 @@
 #include <vector>
 #include <set>
 #include "../BAM/TReadGroupInfo.h"
-#include "GenotypeTypes.h"
+#include "genometools/GenotypeTypes.h"
 #include "TAlignment.h"
 #include "TCigar.h"
 #include "TReadGroups.h"
 #include "TSamFlags.h"
-#include "PhredProbabilityTypes.h"
-#include "TCategoricalDistribution.h"
+#include "genometools/PhredProbabilityTypes.h"
+#include "coretools/Math/TCategoricalDistribution.h"
 #include "TReadGroupInfo.h"
-#include "TLog.h"
+#include "coretools/Main/TLog.h"
 
 namespace GenotypeLikelihoods { class TPMDType; }
 namespace GenotypeLikelihoods { namespace SequencingError { class TModel; } }

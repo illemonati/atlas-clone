@@ -11,11 +11,11 @@
 #include <vector>
 
 #include "TAlignment.h"
-#include "TChromosomes.h"
+#include "genometools/GenomePositions/TChromosomes.h"
 #include "TCigar.h"
-#include "TGenomePosition.h"
-#include "TLog.h"
-#include "TParameters.h"
+#include "genometools/GenomePositions/TGenomePosition.h"
+#include "coretools/Main/TLog.h"
+#include "coretools/Main/TParameters.h"
 
 namespace GenomeTasks {
 using coretools::instances::logfile;

@@ -9,9 +9,9 @@
 #include <string>
 #include <vector>
 
-#include "TChromosomes.h"
+#include "genometools/GenomePositions/TChromosomes.h"
 #include "TGLF.h"
-#include "TGenomePosition.h"
+#include "genometools/GenomePositions/TGenomePosition.h"
 #include "TGenotypeData.h"
 
 namespace GLF {

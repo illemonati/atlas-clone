@@ -12,13 +12,13 @@
 #include <exception>
 #include <vector>
 
-#include "GenotypeTypes.h"
+#include "genometools/GenotypeTypes.h"
 #include "TAlignment.h"
 #include "TGenotypeLikelihoodCalculator.h"
-#include "TLog.h"
+#include "coretools/Main/TLog.h"
 #include "TSequencedBase.h"
-#include "stringFunctions.h"
-#include "TParameters.h"
+#include "coretools/Strings/stringFunctions.h"
+#include "coretools/Main/TParameters.h"
 
 namespace GenomeTasks{
 

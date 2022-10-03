@@ -12,9 +12,9 @@
 #include <memory>
 #include <utility>
 
-#include "TFile.h"
-#include "TLog.h"
-#include "stringFunctions.h"
+#include "coretools/Files/TFile.h"
+#include "coretools/Main/TLog.h"
+#include "coretools/Strings/stringFunctions.h"
 
 namespace BAM{
 

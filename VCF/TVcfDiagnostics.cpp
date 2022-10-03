@@ -13,10 +13,10 @@
 #include <exception>
 #include <map>
 
-#include "GenotypeTypes.h"
-#include "gzstream.h"
-#include "stringFunctions.h"
-#include "TOutputFile.h"
+#include "genometools/GenotypeTypes.h"
+#include "coretools/Files/gzstream.h"
+#include "coretools/Strings/stringFunctions.h"
+#include "coretools/Files/TOutputFile.h"
 
 namespace VCF {
 

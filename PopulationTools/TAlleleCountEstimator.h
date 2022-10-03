@@ -13,10 +13,10 @@
 #include <string>
 #include <vector>
 
-#include "PhredProbabilityTypes.h"
-#include "TSampleLikelihoods.h"
-#include "TTask.h"
-#include "probability.h"
+#include "genometools/PhredProbabilityTypes.h"
+#include "genometools/TSampleLikelihoods.h"
+#include "coretools/Main/TTask.h"
+#include "coretools/Types/probability.h"
 
 namespace PopulationTools { class TAlleleCountFile; }
 namespace gz { class ogzstream; }

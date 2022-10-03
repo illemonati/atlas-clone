@@ -10,10 +10,10 @@
 #include <stddef.h>
 #include <ostream>
 
-#include "TLog.h"
-#include "TParameters.h"
-#include "TPopulation.h"
-#include "stringFunctions.h"
+#include "coretools/Main/TLog.h"
+#include "coretools/Main/TParameters.h"
+#include "genometools/VCF/TPopulation.h"
+#include "coretools/Strings/stringFunctions.h"
 
 namespace PopulationTools{
 using coretools::instances::logfile;

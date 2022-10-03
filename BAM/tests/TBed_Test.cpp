@@ -1,7 +1,7 @@
 //
 // Created by caduffm on 8/4/20.
 //
-#include "BED/TBed.h"
+#include "genometools/BED/TBed.h"
 #include "gtest/gtest.h"
 
 #include <stdio.h>
@@ -10,9 +10,9 @@
 #include <stdexcept>
 #include <string>
 
-#include "TChromosomes.h"
-#include "TOutputFile.h"
-#include "TGenomePosition.h"
+#include "genometools/GenomePositions/TChromosomes.h"
+#include "coretools/Files/TOutputFile.h"
+#include "genometools/GenomePositions/TGenomePosition.h"
 
 //-------------------------------------------------------------
 // TBedChromosome

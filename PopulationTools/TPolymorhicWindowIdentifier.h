@@ -9,10 +9,10 @@
 #define POPULATIONTOOLS_TPOLYMORHICWINDOWIDENTIFIER_H_
 
 #include <string>
-#include "TLog.h"
-#include "TParameters.h"
-#include "TRandomGenerator.h"
-#include "TTask.h"
+#include "coretools/Main/TLog.h"
+#include "coretools/Main/TParameters.h"
+#include "coretools/Main/TRandomGenerator.h"
+#include "coretools/Main/TTask.h"
 
 
 namespace PopulationTools{

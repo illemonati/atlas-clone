@@ -14,16 +14,16 @@
 #include <stddef.h>
 
 #include "TBamFile.h"
-#include "TFile.h"
-#include "TGenomePosition.h"
+#include "coretools/Files/TFile.h"
+#include "genometools/GenomePositions/TGenomePosition.h"
 #include "TGenotypeData.h"
 #include "TGenotypeLikelihoodCalculator.h"
-#include "TLog.h"
-#include "TParameters.h"
-#include "TRandomGenerator.h"
+#include "coretools/Main/TLog.h"
+#include "coretools/Main/TParameters.h"
+#include "coretools/Main/TRandomGenerator.h"
 #include "TThetaEstimatorData.h"
-#include "TTimer.h"
-#include "stringFunctions.h"
+#include "coretools/TTimer.h"
+#include "coretools/Strings/stringFunctions.h"
 
 namespace GenomeTasks {
 

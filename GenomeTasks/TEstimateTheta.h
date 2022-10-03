@@ -13,12 +13,12 @@
 #include <string>
 #include <vector>
 
-#include "TBed.h"
+#include "genometools/BED/TBed.h"
 #include "TGenome.h"
-#include "TTask.h"
+#include "coretools/Main/TTask.h"
 #include "TThetaEstimator.h"
 #include "TWindow.h"
-#include "probability.h"
+#include "coretools/Types/probability.h"
 namespace GenotypeLikelihoods {
 class TThetaEstimatorData;
 }

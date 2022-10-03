@@ -13,8 +13,8 @@
 #include <exception>
 #include <memory>
 
-#include "TOutputFile.h"
-#include "stringFunctions.h"
+#include "coretools/Files/TOutputFile.h"
+#include "coretools/Strings/stringFunctions.h"
 
 namespace VCF{
 

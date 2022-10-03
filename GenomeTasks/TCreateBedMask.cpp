@@ -7,14 +7,14 @@
 
 #include "TCreateBedMask.h"
 #include <vector>
-#include "TGenomePosition.h"
+#include "genometools/GenomePositions/TGenomePosition.h"
 #include "TGenotypeData.h"
-#include "TLog.h"
-#include "TParameters.h"
-#include "TRandomGenerator.h"
+#include "coretools/Main/TLog.h"
+#include "coretools/Main/TParameters.h"
+#include "coretools/Main/TRandomGenerator.h"
 #include "TSite.h"
 #include "TWindow.h"
-#include "stringFunctions.h"
+#include "coretools/Strings/stringFunctions.h"
 
 namespace GenomeTasks{
 

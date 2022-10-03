@@ -15,12 +15,12 @@
 #include <utility>
 #include <cassert>
 
-#include "enum.h"
-#include "GenotypeTypes.h"
-#include "probability.h"
-#include "TStrongArray.h"
-#include "TMassFunction.h"
-#include "algorithms.h"
+#include "coretools/enum.h"
+#include "genometools/GenotypeTypes.h"
+#include "coretools/Types/probability.h"
+#include "coretools/Containers/TStrongArray.h"
+#include "coretools/Containers/TMassFunction.h"
+#include "coretools/algorithms.h"
 
 namespace GenotypeLikelihoods{
 

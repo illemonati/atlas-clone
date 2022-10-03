@@ -10,10 +10,10 @@
 #include <stdint.h>
 #include <ostream>
 
-#include "TOutputFile.h"
+#include "coretools/Files/TOutputFile.h"
 #include "TReadGroups.h"
 #include "TSequencedBase.h"
-#include "stringFunctions.h"
+#include "coretools/Strings/stringFunctions.h"
 
 namespace GenotypeLikelihoods {
 

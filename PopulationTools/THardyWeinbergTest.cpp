@@ -16,11 +16,11 @@
 #include <tuple>
 #include <utility>
 
-#include "TOutputFile.h"
-#include "TTimer.h"
-#include "TVcfParser.h"
-#include "mathFunctions.h"
-#include "stringFunctions.h"
+#include "coretools/Files/TOutputFile.h"
+#include "coretools/TTimer.h"
+#include "genometools/VCF/TVcfParser.h"
+#include "coretools/Math/mathFunctions.h"
+#include "coretools/Strings/stringFunctions.h"
 
 namespace PopulationTools{
 

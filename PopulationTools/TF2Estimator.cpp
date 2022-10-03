@@ -9,12 +9,12 @@
 #include <exception>
 #include <ostream>
 
-#include "TFile.h"
-#include "TLog.h"
-#include "TRandomGenerator.h"
-#include "TTimer.h"
-#include "TVcfParser.h"
-#include "stringFunctions.h"
+#include "coretools/Files/TFile.h"
+#include "coretools/Main/TLog.h"
+#include "coretools/Main/TRandomGenerator.h"
+#include "coretools/TTimer.h"
+#include "genometools/VCF/TVcfParser.h"
+#include "coretools/Strings/stringFunctions.h"
 
 namespace PopulationTools {
 using coretools::TOutputFile;

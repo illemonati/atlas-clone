@@ -14,17 +14,17 @@
 #include <string>
 #include <vector>
 
-#include "GenotypeTypes.h"
-#include "PhredProbabilityTypes.h"
+#include "genometools/GenotypeTypes.h"
+#include "genometools/PhredProbabilityTypes.h"
 #include "TGenotypeData.h"
-#include "TLog.h"
+#include "coretools/Main/TLog.h"
 #include "TPMDTables.h"
 #include "TReadGroups.h"
 #include "TSequencedBase.h"
 #include "SequencingError/TModels.h"
 #include "gtest/gtest.h"
-#include "probability.h"
-#include "weakTypes.h"
+#include "coretools/Types/probability.h"
+#include "coretools/Types/weakTypes.h"
 
 using namespace GenotypeLikelihoods;
 using genometools::Base;

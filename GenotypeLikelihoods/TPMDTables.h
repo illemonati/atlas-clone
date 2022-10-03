@@ -15,10 +15,10 @@
 #include <string>
 #include <vector>
 
-#include "GenotypeTypes.h"
+#include "genometools/GenotypeTypes.h"
 #include "TReadGroups.h"
-#include "TStrongArray.h"
-#include "devtools.h"
+#include "coretools/Containers/TStrongArray.h"
+#include "coretools/devtools.h"
 
 namespace BAM { class TReadGroups; }
 namespace BAM { class TSequencedBase; }

@@ -11,7 +11,7 @@
 #include <string>
 #include <vector>
 
-#include "gzstream.h"
+#include "coretools/Files/gzstream.h"
 
 namespace genometools { class TPopulationSamples; }
 

@@ -17,15 +17,15 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
-#include "GenotypeTypes.h"
-#include "PhredProbabilityTypes.h"
-#include "TBitSet.h"
+#include "genometools/GenotypeTypes.h"
+#include "genometools/PhredProbabilityTypes.h"
+#include "coretools/Containers/TBitSet.h"
 #include "TFastaBuffer.h"
 #include "TGLF.h"
-#include "TGenomePosition.h"
-#include "TRandomGenerator.h"
-#include "gzstream.h"
-#include "probability.h"
+#include "genometools/GenomePositions/TGenomePosition.h"
+#include "coretools/Main/TRandomGenerator.h"
+#include "coretools/Files/gzstream.h"
+#include "coretools/Types/probability.h"
 
 namespace GLF {
 
