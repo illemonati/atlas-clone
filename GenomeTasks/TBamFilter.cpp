@@ -427,10 +427,10 @@ uint16_t TAlignmentMerger::merge(BAM::TAlignment & alignment, BAM::TAlignment & 
 	std::pair<uint16_t,bool> overlapLength = determineOverlapLength(alignmentEndPositions, mateEndPositions);
 
 	if (overlapLength.second == false && overlapLength.first > (mate.cigar().lengthSoftClippedRight() + alignment.cigar().lengthSoftClippedLeft())){
-		alignment.merge(overlapLength.first);
+		alignment.merge(overlapLength.first, overlapLength.second);
 		return overlapLength.first;
 	} else if (overlapLength.second == true && overlapLength.first > (mate.cigar().lengthSoftClippedLeft() + alignment.cigar().lengthSoftClippedRight())){
-		alignment.merge(overlapLength.first);
+		alignment.merge(overlapLength.first, overlapLength.second);
 		return overlapLength.first;
 	} else {
 		return 0;
@@ -583,17 +583,17 @@ uint16_t TAlignmentMerger_highestQuality::merge(BAM::TAlignment & alignment, BAM
 	if (overlapLength.first > 0) {
 		std::pair<genometools::PhredIntProbability,genometools::PhredIntProbability> minQuals = getMinQuals(alignment, mate, overlapLength);
 		if (minQuals.first > minQuals.second){
-			mate.merge(overlapLength.first);
+			mate.merge(overlapLength.first, overlapLength.second);
 			return overlapLength.first;
 		} else if (minQuals.second > minQuals.first){
-			alignment.merge(overlapLength.first);
+			alignment.merge(overlapLength.first, overlapLength.second);
 			return overlapLength.first;
 		} else {
 				if (randomGenerator().pickOneOfTwo()) {
-					mate.merge(overlapLength.first);
+					mate.merge(overlapLength.first, overlapLength.second);
 					return overlapLength.first;
 				} else {
-					alignment.merge(overlapLength.first);
+					alignment.merge(overlapLength.first, overlapLength.second);
 					// instead use return alignment.cigar().lengthSoftClippedRight();?
 					return overlapLength.first;
 				}
