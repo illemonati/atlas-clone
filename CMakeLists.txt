@@ -25,6 +25,20 @@ file(GLOB CORE_SOURCES CONFIGURE_DEPENDS
   VCF/*.h VCF/*.cpp)
 
 include(FetchContent)
+FetchContent_Declare(coretools
+  GIT_REPOSITORY    https://bitbucket.org/wegmannlab/coretools.git
+  GIT_TAG           andreas/newHeader
+  SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/coretools"
+)
+
+include(FetchContent)
+FetchContent_Declare(genometools
+  GIT_REPOSITORY    https://bitbucket.org/wegmannlab/genometools.git
+  GIT_TAG           andreas/newHeader
+  SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/genometools"
+)
+
+include(FetchContent)
 FetchContent_Declare(stattools
   GIT_REPOSITORY    https://bitbucket.org/wegmannlab/stattools.git
   GIT_TAG           andreas/newHeader
@@ -37,7 +51,7 @@ FetchContent_Declare(bamtools
   SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/bamtools"
 )
 
-FetchContent_MakeAvailable(stattools bamtools)
+FetchContent_MakeAvailable(coretools genometools stattools bamtools)
 
 target_sources(${PROJECT_NAME} PRIVATE ${CORE_SOURCES})
 target_include_directories(${PROJECT_NAME} PRIVATE 

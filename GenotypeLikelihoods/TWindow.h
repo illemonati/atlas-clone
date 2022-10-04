@@ -104,6 +104,11 @@ public:
 	bool filter(const double maxFracMissing, const double maxRefN, coretools::TLog* Logfile);
 	bool passedFilters() const{ return _passedFilters; };
 
+	explicit operator std::string() const { return fmt::format("{}:{}-{}", chrName(), from().position() + 1, to().position()); }
+
+	template<typename Iterator>
+	Iterator toBuffer(Iterator b) const { return fmt::format_to(b, "{}:{}-{}", chrName(), from().position() + 1, to().position()); }
+
 	//loop over sites
 	std::vector<TSite>::iterator begin(){ return _sites.begin(); };
 	std::vector<TSite>::iterator end(){ return _sites.end(); };
@@ -112,7 +117,6 @@ public:
 };
 
 std::ostream& operator<<(std::ostream& os, const TWindow_base & window);
-coretools::TOutputFile& operator<<(coretools::TOutputFile& out, const TWindow_base & window);
 
 //---------------------------------------------------------------
 //TWindow

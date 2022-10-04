@@ -317,11 +317,6 @@ std::ostream& operator<<(std::ostream& os, const TWindow_base & window){
 	return os;
 };
 
-coretools::TOutputFile& operator<<(coretools::TOutputFile& out, const TWindow_base & window){
-	out << window.chrName() << window.from().position()+1 << window.to().position();
-	return out;
-};
-
 //-------------------------------------------------------
 //Twindow
 //-------------------------------------------------------
