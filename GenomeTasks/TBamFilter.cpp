@@ -421,6 +421,7 @@ void TBamFilter::traverseBAM(){
 uint16_t TAlignmentMerger::merge(BAM::TAlignment & alignment, BAM::TAlignment & mate){
 	//check if reads overlap
 	//We have to check if there are inserts after the first/last aligned position
+	std::cout << alignment.name() << std::endl;
 	std::pair<genometools::TGenomePosition,genometools::TGenomePosition> alignmentEndPositions = findFirstAndLastReadPos(alignment); 
 	std::pair<genometools::TGenomePosition,genometools::TGenomePosition> mateEndPositions = findFirstAndLastReadPos(mate); 
 
@@ -543,12 +544,12 @@ std::pair<genometools::TGenomePosition,genometools::TGenomePosition> TAlignmentM
 std::pair<uint16_t,bool> TAlignmentMerger::determineOverlapLength(std::pair<genometools::TGenomePosition,genometools::TGenomePosition> alignmentEndPositions, std::pair<genometools::TGenomePosition,genometools::TGenomePosition> mateEndPositions){
 	if (alignmentEndPositions.first > mateEndPositions.first){
 		if (alignmentEndPositions.first < mateEndPositions.second){
-			uint16_t overlapLength = mateEndPositions.second - alignmentEndPositions.first;
+			uint16_t overlapLength = mateEndPositions.second - alignmentEndPositions.first; // - mate.cigar().lengthDeleted();
 			bool alignmentFirst = false;
 			return std::make_pair(overlapLength,alignmentFirst);
 		}
 	} else {
-		if (alignmentEndPositions.second < mateEndPositions.first){
+		if (mateEndPositions.first < alignmentEndPositions.second){
 			uint16_t overlapLength = mateEndPositions.first - alignmentEndPositions.second;
 			bool alignmentFirst = true;
 			return std::make_pair(overlapLength,alignmentFirst);	
@@ -568,6 +569,28 @@ uint16_t TAlignmentMerger_randomRead::merge(BAM::TAlignment & alignment, BAM::TA
 		return TAlignmentMerger::merge(mate, alignment);
 	else
 		return TAlignmentMerger::merge(alignment, mate);
+};
+
+// TAlignmentMergerType_firstMate
+//---------------------------------
+TAlignmentMerger_firstMate::TAlignmentMerger_firstMate():TAlignmentMerger(){};
+
+uint16_t TAlignmentMerger_firstMate::merge(BAM::TAlignment & alignment, BAM::TAlignment & mate){
+	if (alignment.isSecondMate())
+		return TAlignmentMerger::merge(mate, alignment);
+	else
+		return TAlignmentMerger::merge(alignment, mate);
+};
+
+// TAlignmentMergerType_secondMate
+//---------------------------------
+TAlignmentMerger_secondMate::TAlignmentMerger_secondMate():TAlignmentMerger(){};
+
+uint16_t TAlignmentMerger_secondMate::merge(BAM::TAlignment & alignment, BAM::TAlignment & mate){
+	if (alignment.isSecondMate())
+		return TAlignmentMerger::merge(alignment, mate);
+	else
+		return TAlignmentMerger::merge(mate, alignment);
 };
 
 // TAlignmentMergerType_highestQuality
@@ -831,7 +854,13 @@ void TAlignmentSplitMerger::_initializeMerger() {
 		logfile().list("Merging method: will keep random read for all overlapping positions. (parameter 'mergingMethod')");
 	} else if(method == "highestQuality"){
 		_merger = std::make_unique<TAlignmentMerger_highestQuality>();
-		logfile().list("Merging method: will keep base with highest quality at overlapping positions. (parameter 'mergingMethod')");
+		logfile().list("Merging method: will keep read with highest quality at overlapping positions. (parameter 'mergingMethod')");
+	} else if(method == "firstMate"){
+		_merger = std::make_unique<TAlignmentMerger_firstMate>();
+		logfile().list("Merging method: will keep first mate at overlapping positions. (parameter 'mergingMethod')");
+	} else if(method == "secondMate"){
+		_merger = std::make_unique<TAlignmentMerger_secondMate>();
+		logfile().list("Merging method: will keep second mate at overlapping positions. (parameter 'mergingMethod')");
 	} else {
 		throw "Unknown merging method " + method + "! Use 'none', 'randomRead' or 'highestQuality'.";
 	}

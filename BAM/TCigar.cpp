@@ -17,62 +17,63 @@ namespace BAM {
 //----------------------------------------------------------
 TCigar::TCigar(TCigar cigar, uint16_t overlapLength, bool isFirst) {
 	uint16_t overlap = 0;
-	uint16_t nonOverlapLength = cigar.lengthRead() - overlapLength;
-	if (isFirst) {
-		auto iterator = cigar.begin();
-		while (lengthRead() < nonOverlapLength) {
-			std::cout << lengthRead() << " " << nonOverlapLength << std::endl;
-			if (lengthRead()+iterator->length > nonOverlapLength) {
-				if (iterator->type != 'S'){
-					overlap = (lengthRead()+iterator->length) - nonOverlapLength;
-					std::cout << "S:" << overlap << std::endl;
-					add(iterator->type,iterator->length - overlap);
-					iterator++;
+	if (overlapLength > cigar.lengthRead()) {
+		add('S', cigar.lengthRead());
+		std::cout << "CHeck this^" << std::endl;
+	} else {
+		uint16_t nonOverlapLength = cigar.lengthRead() - overlapLength;
+		if (isFirst) {
+			auto iterator = cigar.begin();
+			while (lengthRead() < nonOverlapLength) {
+				if (lengthRead()+iterator->length > nonOverlapLength) {
+					if (iterator->type != 'S'){
+						overlap = (lengthRead()+iterator->length) - nonOverlapLength;
+						add(iterator->type,iterator->length - overlap);
+						iterator++;
+					} else {
+						overlap += iterator->length;
+						nonOverlapLength = lengthRead();
+						iterator++;
+					}
 				} else {
-					overlap += iterator->length;
-					nonOverlapLength = lengthRead();
+					add(iterator->type,iterator->length);
 					iterator++;
 				}
-			} else {
-				add(iterator->type,iterator->length);
+			}
+			while (iterator != cigar.end()) {
+				if (iterator->type == 'M' || iterator->type == 'I' || iterator->type == '=' || iterator->type == 'X' || iterator->type == 'S')
+					overlap+=iterator->length;
 				iterator++;
 			}
-		}
-		while (iterator != cigar.end()) {
-			if (iterator->type == 'M' || iterator->type == 'I' || iterator->type == '=' || iterator->type == 'X' || iterator->type == 'S')
-				overlap+=iterator->length;
-			iterator++;
-		}
-		add('S',overlap);
-	} else {
-		auto iterator = --cigar.end();
-		while (lengthRead() < nonOverlapLength) {
-					if (lengthRead()+iterator->length > nonOverlapLength) {
-						if (iterator->type != 'S'){
-							overlap = (lengthRead()+iterator->length) - nonOverlapLength;
-							add(iterator->type,iterator->length - overlap);
-							iterator--;
+			add('S',overlap);
+		} else {
+			auto iterator = --cigar.end();
+			while (lengthRead() < nonOverlapLength) {
+						if (lengthRead()+iterator->length > nonOverlapLength) {
+							if (iterator->type != 'S'){
+								overlap = (lengthRead()+iterator->length) - nonOverlapLength;
+								add(iterator->type,iterator->length - overlap);
+								iterator--;
+							} else {
+								overlap += iterator->length;
+								nonOverlapLength = lengthRead();
+								iterator--;
+							}
 						} else {
-							overlap += iterator->length;
-							nonOverlapLength = lengthRead();
+							add(iterator->type,iterator->length);
 							iterator--;
 						}
-					} else {
-						add(iterator->type,iterator->length);
-						iterator--;
 					}
-				}
 
-		while (iterator != --cigar.begin()) {
-			if (iterator->type == 'M' || iterator->type == 'I' || iterator->type == '=' || iterator->type == 'X' || iterator->type == 'S') {
-				std::cout << iterator->type << iterator->length << std::endl;
-				overlap+=iterator->length;
+			while (iterator != --cigar.begin()) {
+				if (iterator->type == 'M' || iterator->type == 'I' || iterator->type == '=' || iterator->type == 'X' || iterator->type == 'S') {
+					overlap+=iterator->length;
+				}
+				iterator--;
 			}
-			iterator--;
+			add('S',overlap);
+			_flipCigar();
 		}
-		std::cout << overlap << std::endl;
-		add('S',overlap);
-		_flipCigar();
 	}
 }
 

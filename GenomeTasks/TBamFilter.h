@@ -133,6 +133,18 @@ public:
 	uint16_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate);
 };
 
+class TAlignmentMerger_firstMate:public TAlignmentMerger{
+public:
+	TAlignmentMerger_firstMate();
+	uint16_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate);
+};
+
+class TAlignmentMerger_secondMate:public TAlignmentMerger{
+public:
+	TAlignmentMerger_secondMate();
+	uint16_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate);
+};
+
 class TAlignmentMerger_highestQuality:public TAlignmentMerger{
 public:
 	TAlignmentMerger_highestQuality();
