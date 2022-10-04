@@ -102,28 +102,28 @@ void TGlfMultiReaderVcf::_openVCF(const std::string & Filename, const std::strin
 	_closeVCF();
 
 	// open vcf file
-	_vcf.open(Filename.c_str());
+	_vcf.open(Filename.c_str(), "\t");
 
 	// write info
 	// TODO: create VCF class to harmonize code across different uses. Also include code in Tiger and other
-	_vcf << "##fileformat=VCFv4.2\n";
-	_vcf << "##source=" << Source << "\n";
+	_vcf.writeln("##fileformat=VCFv4.2");
+	fmt::format_to(_vcf.buffer(), "##source={}\n", Source);
 
 	// make sure the header matches the format used in writeSiteToVCF
-	_vcf << "##INFO=<ID=DP,Number=1,Type=Integer,Description=\"Total Depth\">\n";
-	_vcf << "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n";
-	_vcf << "##FORMAT=<ID=GQ,Number=1,Type=Integer,Description=\"Genotype quality\">\n";
-	_vcf << "##FORMAT=<ID=DP,Number=1,Type=Integer,Description=\"Read Depth\">\n";
+	_vcf.writeln("##INFO=<ID=DP,Number=1,Type=Integer,Description=\"Total Depth\">");
+	_vcf.writeln("##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">");
+	_vcf.writeln("##FORMAT=<ID=GQ,Number=1,Type=Integer,Description=\"Genotype quality\">");
+	_vcf.writeln("##FORMAT=<ID=DP,Number=1,Type=Integer,Description=\"Read Depth\">");
 	if (_usePhredScaledLikelihoods) {
-		_vcf << "##FORMAT=<ID=PL,Number=G,Type=Integer,Description=\"Phred-scaled normalized genotype likelihoods\">\n";
+		_vcf.writeln("##FORMAT=<ID=PL,Number=G,Type=Integer,Description=\"Phred-scaled normalized genotype likelihoods\">");
 	} else {
-		_vcf << "##FORMAT=<ID=GL,Number=G,Type=Float,Description=\"Normalized genotype likelihoods\">\n";
+		_vcf.writeln("##FORMAT=<ID=GL,Number=G,Type=Float,Description=\"Normalized genotype likelihoods\">");
 	}
 
 	// also write header with sample names
-	_vcf << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT";
-	for (const std::string &name : SampleNames) _vcf << '\t' << name;
-	_vcf << '\n';
+	_vcf.write("#CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT");
+	for (const std::string &name : SampleNames) _vcf.write(name);
+	_vcf.endln();
 };
 
 void TGlfMultiReaderVcf::_closeVCF() {
@@ -140,35 +140,29 @@ void TGlfMultiReaderVcf::_setMajorMinor(genometools::Base refAllele, genometools
 
 void TGlfMultiReaderVcf::_writeLikelihood(HighPrecisionPhredIntProbability likGlf) {
 	if (_usePhredScaledLikelihoods) {
-		_vcf << (genometools::PhredIntProbability)likGlf;
+		fmt::format_to(_vcf.buffer(), "{:.6}", ((genometools::PhredIntProbability)likGlf).get());
 	} else {
 		if (likGlf == 0)
-			_vcf << '0';
+			_vcf.buffer() = '0';
 		else
-			_vcf << (coretools::Log10Probability)likGlf;
+			fmt::format_to(_vcf.buffer(), "{:.6}", ((coretools::Log10Probability)likGlf).get());
 	}
 };
 
 void TGlfMultiReaderVcf::_writeSiteInformation(const std::string & ChrName, uint32_t Position,
                                                genometools::PhredIntProbability VariantQuality,
                                                size_t Depth){
-	// write position
-	_vcf << ChrName << '\t' << Position + 1 << "\t.\t"; // internal position is zero-based!
-
-	// write ref and alt alleles
-	_vcf << _ref << '\t' << _alt;
-
-	// write quality of variant
-	_vcf << '\t' << VariantQuality;
+	_vcf.write(ChrName, Position + 1, '.', _ref, _alt, VariantQuality, '.'); // internal position is zero-based!
 
 	// write info field: total depth
-	_vcf << "\t.\tDP=" << Depth;
+	fmt::format_to(_vcf.buffer(), "DP={}", Depth);
+	_vcf.writeDelim();
 
 	// write filter, info and format
 	if (_usePhredScaledLikelihoods)
-		_vcf << "\tGT:GQ:DP:PL";
+		_vcf.write("GT:GQ:DP:PL");
 	else
-		_vcf << "\tGT:GQ:DP:GL";
+		_vcf.write("GT:GQ:DP:GL");
 }
 
 void TGlfMultiReaderVcf::writeSite(const std::string &ChrName, uint32_t Position,
@@ -190,7 +184,7 @@ void TGlfMultiReaderVcf::writeSite(const std::string &ChrName, uint32_t Position
 	}
 
 	// end of line
-	_vcf << '\n';
+	_vcf.endln();
 };
 
 //----------------------------------------------------

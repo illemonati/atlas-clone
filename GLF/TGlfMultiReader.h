@@ -17,6 +17,8 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include "coretools/Files/TOutputFile.h"
+#include "fmt/core.h"
 #include "genometools/GenotypeTypes.h"
 #include "genometools/PhredProbabilityTypes.h"
 #include "coretools/Containers/TBitSet.h"
@@ -119,7 +121,7 @@ private:
 	bool _usePhredScaledLikelihoods;
 
 protected:
-	mutable gz::ogzstream _vcf;
+	coretools::TOutputFile _vcf;
 
 	genometools::Base _ref{};
 	genometools::Base _alt{};
@@ -164,14 +166,12 @@ protected:
 		// write genotype quality
 		if (mleGenotypes.size() > 1) {
 			const auto mleGeno = mleGenotypes[coretools::instances::randomGenerator().sample(mleGenotypes.size())];
-			_vcf << '\t' << genotypeStrings[mleGeno] << ':';
-			_vcf << "0:"; // difference between best and second best is 0
+			fmt::format_to(_vcf.buffer(), "{}:0:", genotypeStrings[mleGeno]);
 		} else {
-			_vcf << '\t' << genotypeStrings[mleGenotypes.front()] << ':';
-			// find second highest quality
 			auto slq = _getSecondHighestGTL(in, GTL);
-			_vcf << genometools::PhredIntProbability(slq - minQual) << ":";
+			fmt::format_to(_vcf.buffer(), "{}:{}:", genotypeStrings[mleGenotypes.front()], genometools::PhredIntProbability(slq - minQual).get());
 		}
+		_vcf.writeDelim();
 
 		return minQual;
 	}
@@ -179,8 +179,8 @@ protected:
 	template<size_t NumGeno>
 	void _writeCell(bool IsMissing, size_t Depth, const std::array<genometools::HighPrecisionPhredIntProbability, NumGeno> &GTL){
 		if (IsMissing) {
-			if constexpr (NumGeno == 3) { _vcf << "\t./.:.:.:."; } // diploid
-			else { _vcf << "\t.:.:.:."; } // haploid
+			if constexpr (NumGeno == 3) { _vcf.write("./.:.:.:."); } // diploid
+			else { _vcf.write(".:.:.:."); } // haploid
 			return;
 		}
 
@@ -188,14 +188,15 @@ protected:
 		const auto minQual = _writeGenotypeAndQuality(GTL);
 
 		// write depth
-		_vcf << Depth << ':';
+		fmt::format_to(_vcf.buffer(), "{}:", Depth);
 
 		// write likelihoods
 		_writeLikelihood(GTL[0] - minQual);
 		for (size_t g = 1; g < NumGeno; g++){
-			_vcf << ',';
+			_vcf.buffer() = ',';
 			_writeLikelihood(GTL[g] - minQual);
 		}
+		_vcf.writeDelim();
 	}
 
 public:
