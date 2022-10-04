@@ -15,22 +15,23 @@ namespace BAM {
 // TCigar
 // A class to store, access and manipulate CIGAR operators
 //----------------------------------------------------------
-TCigar::TCigar(TCigar cigar, uint16_t overlapLength, bool isReverseStrand) {
+TCigar::TCigar(TCigar cigar, uint16_t overlapLength, bool isFirst) {
 	uint16_t overlap = 0;
 	uint16_t nonOverlapLength = cigar.lengthRead() - overlapLength;
-	if (!isReverseStrand) {
+	if (isFirst) {
 		auto iterator = cigar.begin();
 		while (lengthRead() < nonOverlapLength) {
+			std::cout << lengthRead() << " " << nonOverlapLength << std::endl;
 			if (lengthRead()+iterator->length > nonOverlapLength) {
 				if (iterator->type != 'S'){
 					overlap = (lengthRead()+iterator->length) - nonOverlapLength;
+					std::cout << "S:" << overlap << std::endl;
 					add(iterator->type,iterator->length - overlap);
-					if (iterator != cigar.end()){
-						iterator++;
-					}
+					iterator++;
 				} else {
-					overlap = iterator->length;
+					overlap += iterator->length;
 					nonOverlapLength = lengthRead();
+					iterator++;
 				}
 			} else {
 				add(iterator->type,iterator->length);
@@ -50,25 +51,26 @@ TCigar::TCigar(TCigar cigar, uint16_t overlapLength, bool isReverseStrand) {
 						if (iterator->type != 'S'){
 							overlap = (lengthRead()+iterator->length) - nonOverlapLength;
 							add(iterator->type,iterator->length - overlap);
-							if (iterator != cigar.begin()) {
-								iterator--;
-							}
+							iterator--;
 						} else {
-							overlap = iterator->length;
+							overlap += iterator->length;
 							nonOverlapLength = lengthRead();
+							iterator--;
 						}
-
 					} else {
 						add(iterator->type,iterator->length);
 						iterator--;
 					}
 				}
-		while (iterator != cigar.begin()) {
+
+		while (iterator != --cigar.begin()) {
 			if (iterator->type == 'M' || iterator->type == 'I' || iterator->type == '=' || iterator->type == 'X' || iterator->type == 'S') {
+				std::cout << iterator->type << iterator->length << std::endl;
 				overlap+=iterator->length;
 			}
 			iterator--;
 		}
+		std::cout << overlap << std::endl;
 		add('S',overlap);
 		_flipCigar();
 	}

@@ -38,7 +38,7 @@ private:
 
 public:
 	TCigar()=default;
-	TCigar(TCigar cigar, uint16_t overlapLength, bool isReverseStrand);
+	TCigar(TCigar cigar, uint16_t overlapLength, bool isFirst);
 	void clear();
 	std::vector<CigarOperator>::const_iterator begin() const noexcept { return _cigar.begin(); }
 	std::vector<CigarOperator>::const_iterator end() const noexcept { return _cigar.end(); }

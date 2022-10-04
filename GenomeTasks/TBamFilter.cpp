@@ -421,27 +421,60 @@ void TBamFilter::traverseBAM(){
 uint16_t TAlignmentMerger::merge(BAM::TAlignment & alignment, BAM::TAlignment & mate){
 	//check if reads overlap
 	//We have to check if there are inserts after the first/last aligned position
+	std::cout << alignment.name() << std::endl;
+	if (alignment.name() == "HS2000-355_269:1:1315:13911:90264"){
+		auto iterator = alignment.cigar().begin();
+		while (iterator != alignment.cigar().end()){
+			std::cout << iterator->type << iterator->length << std::endl;
+			iterator++;
+		}
+		std::cout << alignment.cigar().lengthRead() << std::endl;
+		std::cout << std::endl;
+	}
+	bool isFirst;
 	if (alignment > mate) {
+		isFirst = false;
 		uint32_t firstReadPosition = calculateFirstReadPositionWithOverlap(alignment);
 		uint32_t mateLastReadPosition = calculateLastReadPositionWithOverlap(mate);
+		//std::cout << alignment.position() << " " << firstReadPosition << " " << mateLastReadPosition << std::endl;
 		if (firstReadPosition < mateLastReadPosition) {
 			uint16_t overlapLength = mateLastReadPosition - firstReadPosition;
-			if (overlapLength > (mate.cigar().lengthSoftClippedRight() + alignment.cigar().lengthSoftClippedLeft())){
-				alignment.merge(overlapLength);
+			//if (overlapLength > (mate.cigar().lengthSoftClippedRight() + alignment.cigar().lengthSoftClippedLeft())){
+				alignment.merge(overlapLength, isFirst);
+				if (alignment.name() == "HS2000-355_269:1:1315:13911:90264"){
+					std::cout << "second" << std::endl;
+					auto iterator = alignment.cigar().begin();
+					while (iterator != alignment.cigar().end()){
+						std::cout << iterator->type << iterator->length << std::endl;
+						iterator++;
+					}
+					std::cout << overlapLength << " " << alignment.cigar().lengthRead() << std::endl;
+				}
+				//}
 				return alignment.cigar().lengthSoftClippedLeft();
 			}
-		}
 	} else {
+		isFirst = true;
 		uint32_t lastReadPosition = calculateLastReadPositionWithOverlap(alignment);
 		uint32_t mateFirstReadPosition = calculateFirstReadPositionWithOverlap(mate);
+		//std::cout << alignment.position() << " " << lastReadPosition << " " << mateFirstReadPosition << std::endl;
 		if (lastReadPosition > mateFirstReadPosition) {
 			uint16_t overlapLength = lastReadPosition - mateFirstReadPosition;
-			if (overlapLength > (mate.cigar().lengthSoftClippedLeft() + alignment.cigar().lengthSoftClippedRight())){
-				alignment.merge(overlapLength);
+			//if (overlapLength > (mate.cigar().lengthSoftClippedLeft() + alignment.cigar().lengthSoftClippedRight())){
+				alignment.merge(overlapLength, isFirst);
+				if (alignment.name() == "HS2000-355_269:1:1315:13911:90264"){
+					std::cout << "first" << std::endl;
+					auto iterator = alignment.cigar().begin();
+					while (iterator != alignment.cigar().end()){
+						std::cout << iterator->type << iterator->length << std::endl;
+						iterator++;
+					}
+					std::cout << overlapLength << " " << alignment.cigar().lengthRead() << std::endl;
+				}
+				//}
 				return alignment.cigar().lengthSoftClippedRight();
 			}
 		}
-	}
 	return 0;
 };
 
@@ -496,20 +529,20 @@ uint16_t TAlignmentMerger_highestQuality::merge(BAM::TAlignment & alignment, BAM
 		if (alignmentPosAndQual.first < matePosAndQual.first) {
 			uint32_t overlapLength = matePosAndQual.first - alignmentPosAndQual.first;
 			if (alignmentPosAndQual.second > matePosAndQual.second) {
-				mate.merge(overlapLength);
+				mate.merge(overlapLength, true);
 				std::cout << overlapLength << std::endl << mate.cigar().lengthSoftClippedLeft() << std::endl;
 				return mate.cigar().lengthSoftClippedLeft();
 			} else if (alignmentPosAndQual.second < matePosAndQual.second) {
 				std::cout << overlapLength << std::endl << alignment.cigar().lengthSoftClippedLeft() << std::endl;
-				alignment.merge(overlapLength);
+				alignment.merge(overlapLength, true);
 				return alignment.cigar().lengthSoftClippedLeft();
 			} else {
 				if (randomGenerator().pickOneOfTwo()) {
-					alignment.merge(overlapLength);
+					alignment.merge(overlapLength, true);
 					std::cout << overlapLength << std::endl << alignment.cigar().lengthSoftClippedLeft() << std::endl;
 					return alignment.cigar().lengthSoftClippedLeft();
 				} else {
-					mate.merge(overlapLength);
+					mate.merge(overlapLength, true);
 					std::cout << overlapLength << std::endl << mate.cigar().lengthSoftClippedLeft() << std::endl;
 					return mate.cigar().lengthSoftClippedLeft();
 				}
@@ -521,20 +554,20 @@ uint16_t TAlignmentMerger_highestQuality::merge(BAM::TAlignment & alignment, BAM
 		if (alignmentPosAndQual.first > matePosAndQual.first) {
 			uint32_t overlapLength = alignmentPosAndQual.first - matePosAndQual.first;
 			if (alignmentPosAndQual.second > matePosAndQual.second) {
-				mate.merge(overlapLength);
+				mate.merge(overlapLength, false);
 				std::cout << overlapLength << std::endl << mate.cigar().lengthSoftClippedRight() << std::endl;
 				return mate.cigar().lengthSoftClippedRight();
 			} else if (alignmentPosAndQual.second < matePosAndQual.second) {
-					alignment.merge(overlapLength);
+					alignment.merge(overlapLength, false);
 					std::cout << overlapLength << std::endl << alignment.cigar().lengthSoftClippedRight() << std::endl;
 					return alignment.cigar().lengthSoftClippedRight();
 			} else {
 				if (randomGenerator().pickOneOfTwo()) {
-					mate.merge(overlapLength);
+					mate.merge(overlapLength, false);
 					std::cout << overlapLength << std::endl << alignment.cigar().lengthSoftClippedRight() << std::endl;
 					return mate.cigar().lengthSoftClippedRight();
 				} else {
-					alignment.merge(overlapLength);
+					alignment.merge(overlapLength, false);
 					std::cout << overlapLength << std::endl << alignment.cigar().lengthSoftClippedRight() << std::endl;
 					return alignment.cigar().lengthSoftClippedRight();
 				}
