@@ -422,28 +422,6 @@ bool TGlfMultiReader::readNext() {
 	return true;
 };
 
-void TGlfMultiReader::print() const {
-	std::cout << "\nMulti Reader at position " << _position << " on chromosome '" << _curChr->name() << std::endl;
-	for (size_t i = 0; i < numActiveSamples(); ++i) {
-		std::cout << "File " << i << ":";
-		if (data[i].isHaploid()) {
-			for (genometools::Base g = genometools::Base::min; g < genometools::Base::max; ++g) {
-				std::cout << "\t" << data[i][g];
-			}
-		} else {
-			for (genometools::Genotype g = genometools::Genotype::min; g < genometools::Genotype::max; ++g) {
-				std::cout << "\t" << data[i][g];
-			}
-		}
-		std::cout << std::endl;
-	}
-};
-
-void TGlfMultiReader::writeSampleNamesOfActiveFiles(gz::ogzstream &out, std::string &sep) const {
-	// sample names are file names without glf ending
-	for (TGlfReader *it : _activeGLFs) { out << sep << coretools::str::readBeforeLast(it->name(), ".glf"); }
-};
-
 std::vector<std::string> TGlfMultiReader::namesOfActiveFiles() const {
 	std::vector<std::string> vec;
 

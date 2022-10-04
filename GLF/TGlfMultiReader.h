@@ -171,7 +171,6 @@ protected:
 			auto slq = _getSecondHighestGTL(in, GTL);
 			fmt::format_to(_vcf.buffer(), "{}:{}:", genotypeStrings[mleGenotypes.front()], genometools::PhredIntProbability(slq - minQual).get());
 		}
-		_vcf.writeDelim();
 
 		return minQual;
 	}
@@ -245,11 +244,6 @@ private:
 
 	bool _moveToNextChromosome();
 
-	void _writeDiploidIndividualToVCF(int ind, gz::ogzstream &vcf, genometools::Base major, genometools::Base minor,
-					 const std::vector<std::string> &genotypeStrings, bool usePhredLikelihoods);
-	void _writeHaploidIndividualToVCF(int ind, gz::ogzstream &vcf, genometools::Base major, genometools::Base minor,
-					 const std::vector<std::string> &genotypeStrings, bool usePhredLikelihoods);
-
 public:
 	TMultiGLFData data;
 
@@ -278,8 +272,6 @@ public:
 	bool readNext();
 
 	// output
-	void print() const;
-	void writeSampleNamesOfActiveFiles(gz::ogzstream &out, std::string& sep) const;
 	std::vector<std::string> namesOfActiveFiles() const;
 	std::vector<std::string> sampleNamesOfActiveFiles() const;
 
