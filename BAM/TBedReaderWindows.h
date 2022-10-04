@@ -12,7 +12,7 @@
 #include <map>
 #include <string>
 #include <vector>
-#include "counters.h"
+#include "coretools/Math/counters.h"
 namespace coretools { class TLog; }
 namespace genometools { class TChromosomes; }
 

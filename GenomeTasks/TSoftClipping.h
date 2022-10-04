@@ -11,10 +11,10 @@
 #include <string>
 
 #include "TBamFile.h"
-#include "TFile.h"
+#include "coretools/Files/TFile.h"
 #include "TGenome.h"
-#include "TTask.h"
-#include "counters.h"
+#include "coretools/Main/TTask.h"
+#include "coretools/Math/counters.h"
 
 namespace GenomeTasks {
 

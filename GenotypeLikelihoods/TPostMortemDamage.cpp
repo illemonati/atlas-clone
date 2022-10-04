@@ -27,16 +27,16 @@
 #include <stdexcept>
 #include <utility>
 
-#include "GenotypeTypes.h"
-#include "TError.h"
-#include "TFile.h"
+#include "genometools/GenotypeTypes.h"
+#include "coretools/Main/TError.h"
+#include "coretools/Files/TOutputFile.h"
 #include "TGenotypeData.h"
-#include "TLog.h"
-#include "TParameters.h"
-#include "TRandomGenerator.h"
+#include "coretools/Main/TLog.h"
+#include "coretools/Main/TParameters.h"
+#include "coretools/Main/TRandomGenerator.h"
 #include "TReadGroupInfo.h"
 #include "TSequencedBase.h"
-#include "probability.h"
+#include "coretools/Types/probability.h"
 
 
 namespace GenotypeLikelihoods {
@@ -668,7 +668,7 @@ void TPostMortemDamage::writeToFile(const BAM::TReadGroups &ReadGroups, const st
 
 	// write for each read group
 	for (auto r = ReadGroups.cbegin(); r != ReadGroups.cend(); ++r)
-		out << r->name_ID << _pmdObjects[r->id()]->typeString() << _pmdObjects[r->id()]->functionString() << std::endl;
+		out.writeln(r->name_ID, _pmdObjects[r->id()]->typeString(), _pmdObjects[r->id()]->functionString());
 }
 
 void TPostMortemDamage::writeToFile(const BAM::TReadGroups &ReadGroups, const BAM::TReadGroupMap &ReadGroupMap,
@@ -678,8 +678,8 @@ void TPostMortemDamage::writeToFile(const BAM::TReadGroups &ReadGroups, const BA
 
 	// write for each read group
 	for (auto r = ReadGroups.cbegin(); r != ReadGroups.cend(); ++r)
-		out << r->name_ID << _pmdObjects[r->id()]->typeString()
-			<< _pmdObjects[ReadGroupMap.pooledIndex(r->id())]->functionString() << std::endl;
+		out.writeln(r->name_ID, _pmdObjects[r->id()]->typeString(),
+					_pmdObjects[ReadGroupMap.pooledIndex(r->id())]->functionString());
 }
 
 void TPostMortemDamage::_initializeFromString(const std::string &pmdString) {

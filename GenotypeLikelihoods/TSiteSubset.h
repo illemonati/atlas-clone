@@ -15,8 +15,8 @@
 #include <string>
 #include <vector>
 
-#include "GenotypeTypes.h"
-#include "TGenomePosition.h"
+#include "genometools/GenotypeTypes.h"
+#include "genometools/GenomePositions/TGenomePosition.h"
 
 namespace BAM { class TFastaBuffer; }
 namespace coretools { class TOutputFile; }

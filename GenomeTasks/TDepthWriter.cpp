@@ -10,7 +10,7 @@
 #include <ostream>
 #include <vector>
 
-#include "TLog.h"
+#include "coretools/Main/TLog.h"
 #include "TSite.h"
 #include "TWindow.h"
 
@@ -22,7 +22,9 @@ using coretools::instances::logfile;
 //----------------------------------------
 void TDepthWriter::_handleWindow(){
 	logfile().listFlush("Writing sequencing depth estimates to file ...");
-	_out << _window << _window.depth() << std::endl;
+	_window.toBuffer(_out.buffer());
+	_out.writeDelim();
+	_out.writeln(_window.depth());
 	logfile().done();
 
 	logfile().listFlush("Adding per site depth to distribution ...");

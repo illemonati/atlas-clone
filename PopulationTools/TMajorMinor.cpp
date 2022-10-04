@@ -14,16 +14,16 @@
 #include <memory>
 #include <vector>
 
-#include "GenotypeTypes.h"
-#include "TDualArray.h"
-#include "TLog.h"
-#include "TParameters.h"
-#include "TRandomGenerator.h"
-#include "TTimer.h"
-#include "probability.h"
-#include "stringFunctions.h"
-#include "strongTypes.h"
-#include "weakTypes.h"
+#include "genometools/GenotypeTypes.h"
+#include "coretools/Containers/TDualArray.h"
+#include "coretools/Main/TLog.h"
+#include "coretools/Main/TParameters.h"
+#include "coretools/Main/TRandomGenerator.h"
+#include "coretools/TTimer.h"
+#include "coretools/Types/probability.h"
+#include "coretools/Strings/stringFunctions.h"
+#include "coretools/Types/strongTypes.h"
+#include "coretools/Types/weakTypes.h"
 
 
 namespace PopulationTools {

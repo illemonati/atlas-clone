@@ -10,14 +10,14 @@
 #include <cstdint>
 #include <iostream>
 #include <utility>
-#include "GenotypeTypes.h"
-#include "PhredProbabilityTypes.h"
-#include "TChromosomes.h"
+#include "genometools/GenotypeTypes.h"
+#include "genometools/PhredProbabilityTypes.h"
+#include "genometools/GenomePositions/TChromosomes.h"
 #include "TGenotypeData.h"
-#include "probability.h"
-#include "stringFunctions.h"
-#include "strongTypes.h"
-#include "weakTypes.h"
+#include "coretools/Types/probability.h"
+#include "coretools/Strings/stringFunctions.h"
+#include "coretools/Types/strongTypes.h"
+#include "coretools/Types/weakTypes.h"
 
 namespace GLF {
 using namespace GenotypeLikelihoods;

@@ -15,12 +15,12 @@
 #include <string>
 #include <vector>
 
-#include "GenotypeTypes.h"
+#include "genometools/GenotypeTypes.h"
 #include "TAlignment.h"
 #include "TBamFile.h"
 #include "TGenotypeData.h"
-#include "TStrongArray.h"
-#include "gzstream.h"
+#include "coretools/Containers/TStrongArray.h"
+#include "coretools/Files/gzstream.h"
 #include "TReadSimulators.h"
 
 namespace BAM { class TReadGroups; }

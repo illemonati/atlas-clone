@@ -13,13 +13,13 @@
 #include <ostream>
 #include <vector>
 
-#include "GenotypeTypes.h"
-#include "TFile.h"
+#include "genometools/GenotypeTypes.h"
+#include "coretools/Files/TFile.h"
 #include "TGenotypeData.h"
-#include "TParameters.h"
+#include "coretools/Main/TParameters.h"
 #include "TSite.h"
 #include "TWindow.h"
-#include "stringFunctions.h"
+#include "coretools/Strings/stringFunctions.h"
 
 namespace GenomeTasks{
 using coretools::instances::parameters;
@@ -118,7 +118,7 @@ void TAllelicDepthCounts::write(const std::string &filename, bool printEmpty){
 						}
 
 						//write counts
-						out << _counts[impl::index(a,c,g,t, _size)] << std::endl;
+						out.writeln(_counts[impl::index(a,c,g,t, _size)]);
 					}
 				}
 			}

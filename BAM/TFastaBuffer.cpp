@@ -9,7 +9,7 @@
 #include <stdlib.h>
 #include <algorithm>
 #include <string>
-#include "GenotypeTypes.h"
+#include "genometools/GenotypeTypes.h"
 
 namespace BAM{
 

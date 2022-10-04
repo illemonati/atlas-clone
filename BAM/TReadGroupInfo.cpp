@@ -6,14 +6,14 @@
  */
 
 
-#include "TFile.h"
-#include "TError.h"
+#include "coretools/Files/TFile.h"
+#include "coretools/Main/TError.h"
 #include <vector>
 #include "TReadGroupInfo.h"
-#include "TLog.h"
-#include "TParameters.h"
-#include "commonWeakTypes.h"
-#include "devtools.h"
+#include "coretools/Main/TLog.h"
+#include "coretools/Main/TParameters.h"
+#include "coretools/Types/commonWeakTypes.h"
+#include "coretools/devtools.h"
 
 using coretools::instances::parameters;
 using coretools::instances::logfile;
@@ -328,7 +328,7 @@ void TReadGroupInfo::write(const std::string & Filename){
 					out << rg[colInfoType[c]];
 				}
 			}
-			out << std::endl;
+			out.endln();
 		}
 	} else {
 		//no file was written: use order of enum
@@ -350,7 +350,7 @@ void TReadGroupInfo::write(const std::string & Filename){
 			for(size_t c = 0; c < header.size(); ++c){
 				out << rg[colInfoType[c]];
 			}
-			out << std::endl;
+			out.endln();
 		}
 	}
 }

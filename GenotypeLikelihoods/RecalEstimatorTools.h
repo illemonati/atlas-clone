@@ -15,9 +15,9 @@
 #include <unordered_map>
 #include <vector>
 
-#include "TBitSet.h"
+#include "coretools/Containers/TBitSet.h"
 #include "TReadGroups.h"
-#include "TStrongArray.h"
+#include "coretools/Containers/TStrongArray.h"
 
 namespace BAM { class TSequencedBase; }
 namespace GenotypeLikelihoods { class TSite; }

@@ -14,10 +14,10 @@
 #include <string>
 #include <vector>
 
-#include "GenotypeTypes.h"
+#include "genometools/GenotypeTypes.h"
 #include "TGenotypeData.h"
 #include "TSequencedBase.h"
-#include "TSubsamplePicker.h"
+#include "coretools/Math/TSubsamplePicker.h"
 
 namespace GenotypeLikelihoods {
 

@@ -13,9 +13,9 @@
 #include <vector>
 
 #include "TGenome.h"
-#include "TGenomePosition.h"
-#include "TTask.h"
-#include "counters.h"
+#include "genometools/GenomePositions/TGenomePosition.h"
+#include "coretools/Main/TTask.h"
+#include "coretools/Math/counters.h"
 
 namespace GenomeTasks{
 

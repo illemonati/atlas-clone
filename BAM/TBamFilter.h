@@ -14,13 +14,13 @@
 #include <stdint.h>
 #include <string>
 
-#include "GenotypeTypes.h"
-#include "PhredProbabilityTypes.h"
-#include "TFile.h"
-#include "TNumericRange.h"
+#include "genometools/GenotypeTypes.h"
+#include "genometools/PhredProbabilityTypes.h"
+#include "coretools/Files/TFile.h"
+#include "coretools/Math/TNumericRange.h"
 #include "TSequencedBase.h"
-#include "TStrongArray.h"
-#include "counters.h"
+#include "coretools/Containers/TStrongArray.h"
+#include "coretools/Math/counters.h"
 
 
 namespace coretools { class TLog; }
@@ -36,7 +36,7 @@ private:
 	coretools::TOutputFile _log;
 
 public:
-	TBamFileLog(const std::string filename);
+	TBamFileLog(const std::string &filename): _log(filename, 3){};
 	void write(const std::string & alignmentName, const bool & isReverseStrand, const std::string & reason);
 };
 

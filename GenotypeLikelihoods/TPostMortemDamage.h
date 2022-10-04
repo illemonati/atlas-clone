@@ -8,10 +8,10 @@
 #ifndef TPOSTMORTEMDAMAGE_H_
 #define TPOSTMORTEMDAMAGE_H_
 
-#include "TMassFunction.h"
+#include "coretools/Containers/TMassFunction.h"
 #include "TReadGroupInfo.h"
-#include "TStrongArray.h"
-#include "probability.h"
+#include "coretools/Containers/TStrongArray.h"
+#include "coretools/Types/probability.h"
 #include <array>
 #include <map>
 #include <memory>
@@ -21,11 +21,11 @@
 
 #include <armadillo>
 
-#include "GenotypeTypes.h"
+#include "genometools/GenotypeTypes.h"
 #include "TGenotypeData.h"
 #include "TPMDTables.h"
 #include "TReadGroups.h"
-#include "stringFunctions.h"
+#include "coretools/Strings/stringFunctions.h"
 
 namespace BAM {
 class TSequencedBase;

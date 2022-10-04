@@ -16,10 +16,10 @@
 #include <utility>
 
 #include "TBamFile.h"
-#include "TLog.h"
-#include "TParameters.h"
+#include "coretools/Main/TLog.h"
+#include "coretools/Main/TParameters.h"
 #include "TReadGroups.h"
-#include "stringFunctions.h"
+#include "coretools/Strings/stringFunctions.h"
 
 namespace GenomeTasks{
 using coretools::instances::logfile;

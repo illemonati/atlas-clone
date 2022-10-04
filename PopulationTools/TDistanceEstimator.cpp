@@ -12,14 +12,14 @@
 #include <exception>
 #include <ostream>
 
-#include "enum.h"
-#include "GenotypeTypes.h"
-#include "PhredProbabilityTypes.h"
-#include "TLog.h"
-#include "gzstream.h"
-#include "probability.h"
-#include "stringFunctions.h"
-#include "weakTypes.h"
+#include "coretools/enum.h"
+#include "genometools/GenotypeTypes.h"
+#include "genometools/PhredProbabilityTypes.h"
+#include "coretools/Main/TLog.h"
+#include "coretools/Files/gzstream.h"
+#include "coretools/Types/probability.h"
+#include "coretools/Strings/stringFunctions.h"
+#include "coretools/Types/weakTypes.h"
 
 namespace PopulationTools{
 

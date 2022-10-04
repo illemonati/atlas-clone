@@ -12,14 +12,14 @@
 #include <algorithm>
 #include <vector>
 
-#include "GenotypeTypes.h"
-#include "PhredProbabilityTypes.h"
+#include "genometools/GenotypeTypes.h"
+#include "genometools/PhredProbabilityTypes.h"
 #include "TGenotypeData.h"
 #include "TGenotypeDistribution.h"
 #include "TPostMortemDamage.h"
 #include "SequencingError/TModels.h"
 #include "TSite.h"
-#include "probability.h"
+#include "coretools/Types/probability.h"
 
 namespace BAM { class TReadGroups; }
 namespace BAM { class TSequencedBase; }

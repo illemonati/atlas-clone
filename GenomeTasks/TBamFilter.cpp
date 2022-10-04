@@ -16,22 +16,22 @@
 #include <utility>
 #include <vector>
 
-#include "GenotypeTypes.h"
-#include "PhredProbabilityTypes.h"
+#include "genometools/GenotypeTypes.h"
+#include "genometools/PhredProbabilityTypes.h"
 #include "TAlignment.h"
-#include "TFile.h"
-#include "TGenomePosition.h"
+#include "coretools/Files/TFile.h"
+#include "genometools/GenomePositions/TGenomePosition.h"
 #include "TGenotypeData.h"
 #include "TGenotypeLikelihoodCalculator.h"
-#include "TLog.h"
-#include "TParameters.h"
-#include "TRandomGenerator.h"
+#include "coretools/Main/TLog.h"
+#include "coretools/Main/TParameters.h"
+#include "coretools/Main/TRandomGenerator.h"
 #include "TReadGroups.h"
 #include "TSequencedBase.h"
-#include "counters.h"
-#include "probability.h"
-#include "stringFunctions.h"
-#include "strongTypes.h"
+#include "coretools/Math/counters.h"
+#include "coretools/Types/probability.h"
+#include "coretools/Strings/stringFunctions.h"
+#include "coretools/Types/strongTypes.h"
 
 namespace GenomeTasks{
 
@@ -114,7 +114,7 @@ void TAlignmentMergerReadGroupSettings::initialize(BAM::TReadGroups & readGroups
 					uint16_t maxCycles = 0;
 					if(vec[2] != "NA" && vec[2] != "-"){
 						if(!stringContainsOnlyNumbers(vec[2])){
-							throw "Error reading file '" + in.name() + "' on line " + toString(in.lineNumber()) + ": max cycles should be a number!";
+							throw "Error reading file '" + in.name() + "' on line " + toString(in.curLine()) + ": max cycles should be a number!";
 						}
 						maxCycles = convertString<int>(vec[2]);
 					}
@@ -129,7 +129,7 @@ void TAlignmentMergerReadGroupSettings::initialize(BAM::TReadGroups & readGroups
 						_settings.emplace(rgId, unchanged, 0);
 					} else if(vec[1] == "single"){
 						if(maxCycles < 1){
-							throw "Error reading file '" + in.name() + "' on line " + toString(in.lineNumber()) + ": max cycles must be > 0 for read groups of type 'single'!";
+							throw "Error reading file '" + in.name() + "' on line " + toString(in.curLine()) + ": max cycles must be > 0 for read groups of type 'single'!";
 						}
 
 						//add to settings and create truncated read group
@@ -137,7 +137,7 @@ void TAlignmentMergerReadGroupSettings::initialize(BAM::TReadGroups & readGroups
 
 					} else if(vec[1] == "mixed"){
 						if(maxCycles < 1){
-							throw "Error reading file '" + in.name() + "' on line " + toString(in.lineNumber()) + ": max cycles must be > 0 for read groups of type 'mixed'!";
+							throw "Error reading file '" + in.name() + "' on line " + toString(in.curLine()) + ": max cycles must be > 0 for read groups of type 'mixed'!";
 						}
 
 						//add to settings and create truncated read group
@@ -146,7 +146,7 @@ void TAlignmentMergerReadGroupSettings::initialize(BAM::TReadGroups & readGroups
 					} else if(vec[1] == "paired"){
 						_settings.emplace(rgId, paired, 0);
 					} else {
-						throw "Error reading file '" + in.name() + "' on line " + toString(in.lineNumber()) + ": Unknown read group type '" + vec[1] + "'! Expected 'unchanged', 'single', 'mixed' or 'paired'.";
+						throw "Error reading file '" + in.name() + "' on line " + toString(in.curLine()) + ": Unknown read group type '" + vec[1] + "'! Expected 'unchanged', 'single', 'mixed' or 'paired'.";
 					}
 				}
 			}

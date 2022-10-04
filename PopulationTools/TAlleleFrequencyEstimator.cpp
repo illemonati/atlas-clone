@@ -16,10 +16,10 @@
 #include <ostream>
 #include <string>
 
-#include "GenotypeTypes.h"
-#include "TGenotypeFrequencies.h"
-#include "stringFunctions.h"
-#include "weakTypes.h"
+#include "genometools/GenotypeTypes.h"
+#include "genometools/TGenotypeFrequencies.h"
+#include "coretools/Strings/stringFunctions.h"
+#include "coretools/Types/weakTypes.h"
 
 namespace PopulationTools{
 
@@ -486,7 +486,7 @@ void TAlleleFreqMCMCOutput::write(std::vector< std::vector<double> > & mcmc, con
 			for(auto& p : popIndex){
 				outFile << mcmc[p][i];
 			}
-			outFile.endLine();
+			outFile.endln();
 		}
 
 		//close file
@@ -647,7 +647,7 @@ void TAlleleFreqEstimator::estimateAlleleFreq(TParameters & Parameters, TRandomG
  		}
 
  		//end line
- 		out << std::endl;
+ 		out.endln();
      }
 
     //clean up
@@ -752,7 +752,7 @@ void TAlleleFreqEstimator::compareAlleleFreq(TParameters & Parameters, TRandomGe
 				out << BHWEstimator.calcPosteriorf1smallerf2(mcmcChains[p1], mcmcChains[p2]);
 			}
 		}
- 		out << std::endl;
+ 		out.endln();
  		logfile->done();
     }
 
@@ -814,7 +814,7 @@ void TAlleleFreqEstimator::writeAlleleFrequencyLikelihoods(TParameters & Paramet
 				}
 				out[p] << LL;
 			}
-			out[p] << std::endl;
+			out[p].endln();
 		}
 	}
 

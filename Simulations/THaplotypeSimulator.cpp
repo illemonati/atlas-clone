@@ -15,15 +15,15 @@
 #include <ostream>
 #include <utility>
 
-#include "TChromosomes.h"
+#include "genometools/GenomePositions/TChromosomes.h"
 #include "TGenotypeData.h"
-#include "TLog.h"
-#include "TParameters.h"
-#include "TRandomGenerator.h"
+#include "coretools/Main/TLog.h"
+#include "coretools/Main/TParameters.h"
+#include "coretools/Main/TRandomGenerator.h"
 #include "TSimulatorAuxiliaryTools.h"
-#include "probability.h"
-#include "stringFunctions.h"
-#include "weakTypes.h"
+#include "coretools/Types/probability.h"
+#include "coretools/Strings/stringFunctions.h"
+#include "coretools/Types/weakTypes.h"
 
 namespace Simulations {
 using coretools::instances::logfile;
@@ -544,8 +544,8 @@ void TSimulatorHW::_simulateSite(TSimulatorHWSite &site, TSimulatorReference &re
 
 	// write true frequency: pos is 1 based!
 	if (_writeTrueAlleleFreq) {
-		_trueFreqFile << chr << pos + 1 << site.reference << site.alternative << site.f;
-		_trueFreqFile << (site.f < 0.5 ? site.f : 1. - site.f) << std::endl;
+		_trueFreqFile.writeln(chr, pos + 1, site.reference, site.alternative, site.f,
+							  (site.f < 0.5 ? site.f : 1. - site.f));
 	}
 }
 

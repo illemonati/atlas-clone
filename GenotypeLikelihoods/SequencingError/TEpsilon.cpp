@@ -8,7 +8,7 @@
 #include "TEpsilon.h"
 #include "SequencingError/TCovariate.h"
 #include "SequencingError/TFunction.h"
-#include "stringFunctions.h"
+#include "coretools/Strings/stringFunctions.h"
 
 namespace GenotypeLikelihoods {
 namespace SequencingError {

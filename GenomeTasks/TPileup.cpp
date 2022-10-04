@@ -12,12 +12,12 @@
 #include <ostream>
 #include <vector>
 
-#include "GenotypeTypes.h"
+#include "genometools/GenotypeTypes.h"
 #include "TFastaBuffer.h"
 #include "TGenotypeData.h"
 #include "TGenotypeLikelihoodCalculator.h"
-#include "TLog.h"
-#include "TParameters.h"
+#include "coretools/Main/TLog.h"
+#include "coretools/Main/TParameters.h"
 #include "TSite.h"
 #include "TWindow.h"
 
@@ -180,7 +180,7 @@ void TPileup::_handleWindow(){
 			_genoLik = _genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(site);
 			impl::write(_genoLik, _out);
 		}
-		_out << std::endl;
+		_out.endln();
 	}
 
 	logfile().doneTime();

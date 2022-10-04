@@ -11,12 +11,13 @@
 // TODO: turn into read group info also used by TGenome
 
 #include <vector>
-#include "TStrongArray.h"
-#include "stringFunctions.h"
-#include "TParameters.h"
-#include "TLog.h"
+#include "coretools/Containers/TStrongArray.h"
+#include "coretools/Strings/stringFunctions.h"
+#include "coretools/Main/TParameters.h"
+#include "coretools/Main/TLog.h"
 #include "TReadGroups.h"
-#include "TError.h"
+#include "coretools/Main/TError.h"
+#include "coretools/Files/TOutputFile.h"
 
 namespace BAM {
 
@@ -116,9 +117,9 @@ public:
 	void write(coretools::TOutputFile & Out, const InfoType Info) const {
 		auto it = _info.find(Info);
 		if(it == _info.end()){
-			Out << "-";
+			Out.write('-');
 		} else{
-			Out << it->second;
+			Out.write(it->second);
 		}
 	}
 };

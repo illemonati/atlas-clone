@@ -11,14 +11,14 @@
 #include <string>
 #include <vector>
 
-#include "GenotypeTypes.h"
-#include "PhredProbabilityTypes.h"
-#include "TFile.h"
-#include "TParameters.h"
-#include "TSampleLikelihoods.h"
-#include "gzstream.h"
-#include "probability.h"
-#include "stringFunctions.h"
+#include "genometools/GenotypeTypes.h"
+#include "genometools/PhredProbabilityTypes.h"
+#include "coretools/Files/TFile.h"
+#include "coretools/Main/TParameters.h"
+#include "genometools/TSampleLikelihoods.h"
+#include "coretools/Files/gzstream.h"
+#include "coretools/Types/probability.h"
+#include "coretools/Strings/stringFunctions.h"
 
 using namespace testing;
 using namespace coretools::instances;

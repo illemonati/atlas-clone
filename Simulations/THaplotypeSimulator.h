@@ -15,12 +15,12 @@
 #include <string>
 #include <vector>
 
-#include "GenotypeTypes.h"
+#include "genometools/GenotypeTypes.h"
 #include "SFS.h"
-#include "TFile.h"
+#include "coretools/Files/TFile.h"
 #include "TGenotypeData.h"
 #include "TSimulatorAuxiliaryTools.h"
-#include "TStrongArray.h"
+#include "coretools/Containers/TStrongArray.h"
 
 namespace genometools { class TChromosome; }
 namespace genometools { class TChromosomes; }

@@ -15,9 +15,9 @@
 #include <string>
 #include <vector>
 
-#include "PhredProbabilityTypes.h"
+#include "genometools/PhredProbabilityTypes.h"
 #include "SequencingError/TModel.h"
-#include "probability.h"
+#include "coretools/Types/probability.h"
 #include "TReadGroupInfo.h"
 
 namespace BAM { class TReadGroups; }

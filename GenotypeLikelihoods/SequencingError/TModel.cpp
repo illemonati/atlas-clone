@@ -18,19 +18,19 @@
 #include <utility>
 
 #include "RecalEstimatorTools.h"
-#include "TError.h"
+#include "coretools/Main/TError.h"
 #include "TGenotypeData.h"
-#include "TRandomGenerator.h"
+#include "coretools/Main/TRandomGenerator.h"
 #include "TSequencedBase.h"
 #include "SequencingError/TCovariate.h"
-#include "TStrongArray.h"
-#include "devtools.h"
-#include "mathFunctions.h"
-#include "probability.h"
-#include "stringFunctions.h"
-#include "toString.h"
-#include "weakTypes.h"
-#include "enum.h"
+#include "coretools/Containers/TStrongArray.h"
+#include "coretools/devtools.h"
+#include "coretools/Math/mathFunctions.h"
+#include "coretools/Types/probability.h"
+#include "coretools/Strings/stringFunctions.h"
+#include "coretools/Strings/toString.h"
+#include "coretools/Types/weakTypes.h"
+#include "coretools/enum.h"
 
 namespace GenotypeLikelihoods {
 namespace SequencingError {

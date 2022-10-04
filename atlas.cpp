@@ -7,7 +7,7 @@
 
 #include <string>
 
-#include "TMain.h"
+#include "coretools/Main/TMain.h"
 
 //BAM
 #include "TBamDiagnoser.h"

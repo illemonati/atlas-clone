@@ -9,10 +9,10 @@
 #include <string>
 #include <vector>
 
-#include "TParameters.h"
-#include "TPopulation.h"
-#include "TPopulationLikelihoods.h"
-#include "TTask.h"
+#include "coretools/Main/TParameters.h"
+#include "genometools/VCF/TPopulation.h"
+#include "genometools/VCF/TPopulationLikelihoods.h"
+#include "coretools/Main/TTask.h"
 
 namespace PopulationTools {
 //------------------------------------------------

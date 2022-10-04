@@ -16,10 +16,10 @@
 #include <iterator>
 #include <string>
 #include <vector>
-#include "GenotypeTypes.h"
-#include "PhredProbabilityTypes.h"
+#include "genometools/GenotypeTypes.h"
+#include "genometools/PhredProbabilityTypes.h"
 #include "TAlignment.h"
-#include "TChromosomes.h"
+#include "genometools/GenomePositions/TChromosomes.h"
 #include "TReadGroups.h"
 #include "TSamFlags.h"
 #include "TSamHeader.h"

@@ -14,12 +14,12 @@
 #include <string>
 #include <vector>
 
-#include "GenotypeTypes.h"
+#include "genometools/GenotypeTypes.h"
 #include "TGLF.h"
 #include "TGenotypeData.h"
-#include "TParameters.h"
-#include "TStrongArray.h"
-#include "TTask.h"
+#include "coretools/Main/TParameters.h"
+#include "coretools/Containers/TStrongArray.h"
+#include "coretools/Main/TTask.h"
 
 namespace gz { class ogzstream; }
 

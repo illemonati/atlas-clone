@@ -15,7 +15,7 @@
 
 #include "TGenome.h"
 #include "TGenotypeData.h"
-#include "TTask.h"
+#include "coretools/Main/TTask.h"
 #include "TThetaEstimator.h"
 
 namespace GenomeTasks{

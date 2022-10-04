@@ -17,7 +17,7 @@
 #include "TAlignmentStorage.h"
 #include "TBamFile.h"
 #include "TGenome.h"
-#include "TTask.h"
+#include "coretools/Main/TTask.h"
 
 namespace BAM { class TAlignment; }
 namespace BAM { class TReadGroups; }

@@ -98,9 +98,9 @@ void TSexEstimator::_writeDepthPerChromosome(std::unique_ptr<BAM::TBedReaderWind
 	coretools::TOutputFile out(filename, header);
 
 	for (auto &s: initializedChromosomes){
-		out << s << region->findChromosome(s)->distPerSites.mean() << std::endl;
+		out.writeln(s, region->findChromosome(s)->distPerSites.mean());
 	}
-	out << "all" << distPerSite.mean() << std::endl;
+	out.writeln("all", distPerSite.mean());
 }
 
 void TSexEstimator::_writeHistogram(coretools::TCountDistribution<> &distPerSite, const int num){

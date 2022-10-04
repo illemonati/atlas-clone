@@ -13,7 +13,7 @@
 #include <vector>
 
 #include "TGenome.h"
-#include "TTask.h"
+#include "coretools/Main/TTask.h"
 
 namespace GenomeTasks{
 

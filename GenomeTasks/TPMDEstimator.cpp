@@ -11,13 +11,13 @@
 #include <memory>
 #include <vector>
 
-#include "GenotypeTypes.h"
+#include "genometools/GenotypeTypes.h"
 #include "TAlignment.h"
 #include "TBamFile.h"
 #include "TGenome.h"
 #include "TGenotypeLikelihoodCalculator.h"
-#include "TLog.h"
-#include "TParameters.h"
+#include "coretools/Main/TLog.h"
+#include "coretools/Main/TParameters.h"
 #include "TReadGroups.h"
 
 namespace GenomeTasks{

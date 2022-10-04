@@ -12,8 +12,8 @@
 #include <stdint.h>
 #include <string>
 #include <vector>
-#include "GenotypeTypes.h"
-#include "TGenomePosition.h"
+#include "genometools/GenotypeTypes.h"
+#include "genometools/GenomePositions/TGenomePosition.h"
 #include "utils/bamtools_fasta.h"
 
 namespace BAM{

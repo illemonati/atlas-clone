@@ -11,8 +11,8 @@
 #include <numeric>
 #include <utility>
 
-#include "PhredProbabilityTypes.h"
-#include "TLog.h"
+#include "genometools/PhredProbabilityTypes.h"
+#include "coretools/Main/TLog.h"
 #include "TSequencedBase.h"
 #include "TSite.h"
 

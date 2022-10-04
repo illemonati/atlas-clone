@@ -9,12 +9,12 @@
 #include <exception>
 #include <ostream>
 
-#include "TFile.h"
-#include "TLog.h"
-#include "TRandomGenerator.h"
-#include "TTimer.h"
-#include "TVcfParser.h"
-#include "stringFunctions.h"
+#include "coretools/Files/TFile.h"
+#include "coretools/Main/TLog.h"
+#include "coretools/Main/TRandomGenerator.h"
+#include "coretools/TTimer.h"
+#include "genometools/VCF/TVcfParser.h"
+#include "coretools/Strings/stringFunctions.h"
 
 namespace PopulationTools {
 using coretools::TOutputFile;
@@ -149,7 +149,7 @@ void TF2Estimator::writeF2(const std::vector<uint64_t> &countsDiff, const std::v
 		uint64_t tmp                    = s * _samples.numSamples();
 		std::vector<uint64_t> subvector = {countsDiff.begin() + tmp,
 		                                   countsDiff.begin() + tmp + (_samples.numSamples())};
-		out << _samples.sampleName(s) << subvector << std::endl;
+		out.writeln(_samples.sampleName(s), subvector);
 	}
 	logfile().done();
 
@@ -161,7 +161,7 @@ void TF2Estimator::writeF2(const std::vector<uint64_t> &countsDiff, const std::v
 	for (uint32_t s = 0; s < _samples.numSamples(); ++s) {
 		uint64_t tmp                  = s * _samples.numSamples();
 		std::vector<double> subvector = {sampleF2.begin() + tmp, sampleF2.begin() + tmp + (_samples.numSamples())};
-		outF2 << _samples.sampleName(s) << subvector << std::endl;
+		outF2.writeln(_samples.sampleName(s), subvector);
 	}
 	logfile().done();
 
@@ -175,7 +175,7 @@ void TF2Estimator::writeF2(const std::vector<uint64_t> &countsDiff, const std::v
 	for (uint32_t p = 0; p < _samples.numPopulations(); ++p) {
 		uint32_t tmp                  = p * _samples.numPopulations();
 		std::vector<double> subvector = {popF2.begin() + tmp, popF2.begin() + tmp + _samples.numPopulations()};
-		outPopF2 << _samples.getPopulationName(p) << subvector << std::endl;
+		outPopF2.writeln(_samples.getPopulationName(p), subvector);
 	}
 	logfile().done();
 	logfile().endIndent();

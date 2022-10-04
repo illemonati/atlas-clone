@@ -24,7 +24,7 @@ class TOutputFile;
 namespace coretools {
 class TRandomGenerator;
 }
-#include "gzstream.h"
+#include "coretools/Files/gzstream.h"
 
 namespace GenotypeLikelihoods {
 

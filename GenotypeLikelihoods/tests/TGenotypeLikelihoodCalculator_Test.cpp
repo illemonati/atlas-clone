@@ -6,13 +6,13 @@
 
 #include <memory>
 
-#include "GenotypeTypes.h"
-#include "PhredProbabilityTypes.h"
+#include "genometools/GenotypeTypes.h"
+#include "genometools/PhredProbabilityTypes.h"
 #include "TGenotypeData.h"
 #include "TReadGroups.h"
 #include "TSequencedBase.h"
 #include "TSite.h"
-#include "probability.h"
+#include "coretools/Types/probability.h"
 
 using namespace GenotypeLikelihoods;
 using genometools::Base;

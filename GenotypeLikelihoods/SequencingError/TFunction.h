@@ -18,14 +18,14 @@
 #include <type_traits>
 #include <vector>
 
-#include "PhredProbabilityTypes.h"
-#include "TProbabilityDistributions.h"
+#include "genometools/PhredProbabilityTypes.h"
+#include "coretools/Math/TProbabilityDistributions.h"
 #include "SequencingError/TCovariate.h"
-#include "devtools.h"
-#include "mathFunctions.h"
-#include "probability.h"
-#include "stringFunctions.h"
-#include "toString.h"
+#include "coretools/devtools.h"
+#include "coretools/Math/mathFunctions.h"
+#include "coretools/Types/probability.h"
+#include "coretools/Strings/stringFunctions.h"
+#include "coretools/Strings/toString.h"
 #include "SequencingError/TEpsilon.h"
 
 #include <armadillo>

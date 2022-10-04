@@ -14,17 +14,17 @@
 #include <string>
 #include <vector>
 
-#include "GenotypeTypes.h"
-#include "PhredProbabilityTypes.h"
+#include "genometools/GenotypeTypes.h"
+#include "genometools/PhredProbabilityTypes.h"
 #include "TGenotypeData.h"
-#include "TLog.h"
+#include "coretools/Main/TLog.h"
 #include "TPMDTables.h"
 #include "TReadGroups.h"
 #include "TSequencedBase.h"
 #include "SequencingError/TModels.h"
 #include "gtest/gtest.h"
-#include "probability.h"
-#include "weakTypes.h"
+#include "coretools/Types/probability.h"
+#include "coretools/Types/weakTypes.h"
 
 using namespace GenotypeLikelihoods;
 using genometools::Base;
@@ -210,7 +210,7 @@ TEST(TPostMortemDamage_test, empiric_learn) {
 
 	TPMDFunctionEmpiric fne("[]");
 	fne.learn(t1, Base::G, Base::A, TPMDEstimationParameters{});
-	EXPECT_EQ(fne.string(), "Empiric[1.000000,0.899000,0.798000,0.697000,0.596000,0.495000,0.394000,0.293000,0.192000,0.091000]");
+	EXPECT_EQ(fne.string(), "Empiric[1,0.899,0.798,0.697,0.596,0.495,0.394,0.293,0.192,0.091]");
 }
 
 TEST(TPostMortemDamage_test, exp_learn) {

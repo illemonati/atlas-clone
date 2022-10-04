@@ -9,13 +9,13 @@
 #include <algorithm>
 #include <memory>
 
-#include "PhredProbabilityTypes.h"
+#include "genometools/PhredProbabilityTypes.h"
 #include "TPostMortemDamage.h"
-#include "TRandomGenerator.h"
+#include "coretools/Main/TRandomGenerator.h"
 #include "TSequencedBase.h"
 #include "SequencingError/TModel.h"
 #include "TSimulatorAuxiliaryTools.h"
-#include "stringFunctions.h"
+#include "coretools/Strings/stringFunctions.h"
 
 namespace Simulations {
 using genometools::Base;

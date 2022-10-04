@@ -6,11 +6,11 @@
  */
 
 #include "TGenotypeDistribution.h"
-#include "GenotypeTypes.h"
+#include "genometools/GenotypeTypes.h"
 #include "TGenotypeData.h"
 #include "TSequencedBase.h"
-#include "algorithms.h"
-#include "probability.h"
+#include "coretools/algorithms.h"
+#include "coretools/Types/probability.h"
 
 namespace GenotypeLikelihoods {
 using genometools::Base;

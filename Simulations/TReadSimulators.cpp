@@ -4,13 +4,13 @@
  */
 
 #include "TReadGroupInfo.h"
-#include "stringFunctions.h"
-#include "TParameters.h"
-#include "TLog.h"
-#include "TRandomGenerator.h"
+#include "coretools/Strings/stringFunctions.h"
+#include "coretools/Main/TParameters.h"
+#include "coretools/Main/TLog.h"
+#include "coretools/Main/TRandomGenerator.h"
 #include "TReadSimulators.h"
-#include "probability.h"
-#include "globalConstants.h"
+#include "coretools/Types/probability.h"
+#include "coretools/Main/globalConstants.h"
 
 namespace Simulations {
 

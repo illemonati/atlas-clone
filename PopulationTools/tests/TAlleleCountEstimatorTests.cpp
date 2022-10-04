@@ -9,11 +9,11 @@
 #include <memory>
 #include <vector>
 
-#include "GenotypeTypes.h"
-#include "PhredProbabilityTypes.h"
-#include "TRandomGenerator.h"
-#include "TSampleLikelihoods.h"
-#include "probability.h"
+#include "genometools/GenotypeTypes.h"
+#include "genometools/PhredProbabilityTypes.h"
+#include "coretools/Main/TRandomGenerator.h"
+#include "genometools/TSampleLikelihoods.h"
+#include "coretools/Types/probability.h"
 
 using namespace testing;
 using namespace genometools;
