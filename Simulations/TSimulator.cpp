@@ -398,7 +398,7 @@ void TVCFWriterSimulation::writeSite(const std::string &ChrName, uint32_t Positi
 	}
 
 	// end of line
-	_vcf << '\n';
+	_vcf.endln();
 }
 
 //-------------------------------------------

@@ -21,7 +21,6 @@
 #include "coretools/Strings/stringFunctions.h"
 #include "coretools/Types/strongTypes.h"
 #include "coretools/Types/weakTypes.h"
-#include "coretools/devtools.h"
 
 namespace GLF {
 using coretools::instances::logfile;
@@ -107,7 +106,7 @@ void TGlfMultiReaderVcf::_openVCF(const std::string & Filename, const std::strin
 	// write info
 	// TODO: create VCF class to harmonize code across different uses. Also include code in Tiger and other
 	_vcf.writeln("##fileformat=VCFv4.2");
-	fmt::format_to(_vcf.buffer(), "##source={}\n", Source);
+	_vcf.writeNoDelim("##source=", Source).endln();
 
 	// make sure the header matches the format used in writeSiteToVCF
 	_vcf.writeln("##INFO=<ID=DP,Number=1,Type=Integer,Description=\"Total Depth\">");
@@ -140,12 +139,12 @@ void TGlfMultiReaderVcf::_setMajorMinor(genometools::Base refAllele, genometools
 
 void TGlfMultiReaderVcf::_writeLikelihood(HighPrecisionPhredIntProbability likGlf) {
 	if (_usePhredScaledLikelihoods) {
-		fmt::format_to(_vcf.buffer(), "{:.6}", ((genometools::PhredIntProbability)likGlf).get());
+		_vcf.writeNoDelim(genometools::PhredIntProbability(likGlf));
 	} else {
 		if (likGlf == 0)
-			_vcf.buffer() = '0';
+			_vcf.writeNoDelim('0');
 		else
-			fmt::format_to(_vcf.buffer(), "{:.6}", ((coretools::Log10Probability)likGlf).get());
+			_vcf.writeNoDelim(coretools::Log10Probability(likGlf));
 	}
 };
 
@@ -155,8 +154,7 @@ void TGlfMultiReaderVcf::_writeSiteInformation(const std::string & ChrName, uint
 	_vcf.write(ChrName, Position + 1, '.', _ref, _alt, VariantQuality, '.'); // internal position is zero-based!
 
 	// write info field: total depth
-	fmt::format_to(_vcf.buffer(), "DP={}", Depth);
-	_vcf.writeDelim();
+	_vcf.writeNoDelim("DP=", Depth).writeDelim();
 
 	// write filter, info and format
 	if (_usePhredScaledLikelihoods)

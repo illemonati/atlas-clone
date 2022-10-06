@@ -17,17 +17,21 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
-#include "coretools/Files/TOutputFile.h"
+
 #include "fmt/core.h"
+
+#include "coretools/Containers/TBitSet.h"
+#include "coretools/Files/TOutputFile.h"
+#include "coretools/Files/gzstream.h"
+#include "coretools/Main/TRandomGenerator.h"
+#include "coretools/Types/probability.h"
+
+#include "genometools/GenomePositions/TGenomePosition.h"
 #include "genometools/GenotypeTypes.h"
 #include "genometools/PhredProbabilityTypes.h"
-#include "coretools/Containers/TBitSet.h"
+
 #include "TFastaBuffer.h"
 #include "TGLF.h"
-#include "genometools/GenomePositions/TGenomePosition.h"
-#include "coretools/Main/TRandomGenerator.h"
-#include "coretools/Files/gzstream.h"
-#include "coretools/Types/probability.h"
 
 namespace GLF {
 
@@ -166,10 +170,10 @@ protected:
 		// write genotype quality
 		if (mleGenotypes.size() > 1) {
 			const auto mleGeno = mleGenotypes[coretools::instances::randomGenerator().sample(mleGenotypes.size())];
-			fmt::format_to(_vcf.buffer(), "{}:0:", genotypeStrings[mleGeno]);
+			_vcf.writeNoDelim(genotypeStrings[mleGeno], ":0:");
 		} else {
 			auto slq = _getSecondHighestGTL(in, GTL);
-			fmt::format_to(_vcf.buffer(), "{}:{}:", genotypeStrings[mleGenotypes.front()], genometools::PhredIntProbability(slq - minQual).get());
+			_vcf.writeNoDelim(genotypeStrings[mleGenotypes.front()], ':', genometools::PhredIntProbability(slq - minQual).get(), ':');
 		}
 
 		return minQual;
@@ -187,12 +191,12 @@ protected:
 		const auto minQual = _writeGenotypeAndQuality(GTL);
 
 		// write depth
-		fmt::format_to(_vcf.buffer(), "{}:", Depth);
+		_vcf.writeNoDelim(Depth, ':');
 
 		// write likelihoods
 		_writeLikelihood(GTL[0] - minQual);
 		for (size_t g = 1; g < NumGeno; g++){
-			_vcf.buffer() = ',';
+			_vcf.writeNoDelim(',');
 			_writeLikelihood(GTL[g] - minQual);
 		}
 		_vcf.writeDelim();
