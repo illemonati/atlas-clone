@@ -200,7 +200,7 @@ public:
 	void fillContainerPerReadGroup(Container & Vec, const InfoType Info) const{
 		Vec.resize(size());
 		for(size_t i = 0; i < size(); ++i){
-			coretools::str::fillFromString(get(i, Info), Vec[i]);
+			coretools::str::fromString(get(i, Info), Vec[i]);
 		}
 	};
 

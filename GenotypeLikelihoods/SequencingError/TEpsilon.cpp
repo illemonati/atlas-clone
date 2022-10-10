@@ -8,7 +8,7 @@
 #include "TEpsilon.h"
 #include "SequencingError/TCovariate.h"
 #include "SequencingError/TFunction.h"
-#include "coretools/Strings/stringFunctions.h"
+#include "coretools/Strings/fromString.h"
 
 namespace GenotypeLikelihoods {
 namespace SequencingError {
@@ -74,7 +74,7 @@ template<typename Covariate> TFunction *makeCovFunction(const std::string &Funct
 		size_t O = 0;
 		if (betas.empty()) {
 			if (args.size() != 1) throw "You must specify betas or order of Polynomial function!";
-			fillFromString(args.front(), O);
+			fromString(args.front(), O);
 		} else {
 			if (((args.size() == 1) && (convertStringCheck<size_t>(args.front()) != betas.size()))
 				|| args.size() > 1)
