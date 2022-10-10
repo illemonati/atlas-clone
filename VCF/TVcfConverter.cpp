@@ -15,6 +15,7 @@
 
 #include <fmt/os.h>
 
+#include "coretools/Files/TOutputFile.h"
 #include "genometools/GenotypeTypes.h"
 #include "genometools/BED/TBed.h"
 #include "genometools/VCF/TPopulationLikelihoodLocus.h"
@@ -257,12 +258,9 @@ void TVcfBeagleNew::run() {
 	if (lineReader.front().substr(0, 6) != "#CHROM") UERROR("vcf file needs header");
 
 	// open gzFile
-	auto ostream = gz::ogzstream(outName.c_str());
+	coretools::TOutputFile ofile(outName, "\t");
 
-	fmt::memory_buffer buf;
-	auto bIt = std::back_inserter(buf);
-
-	fmt::format_to(bIt, "marker\tallele1\tallele2");
+	ofile.write("marker", "allele1", "allele2");
 
 	TSplitter header{lineReader.front(), '\t'};
 	skip(header, 9);
@@ -270,11 +268,11 @@ void TVcfBeagleNew::run() {
 	for (; !header.empty(); header.popFront()) {
 		const auto s = header.front();
 		for (size_t _ = 0; _ < 3; ++_) {
-			fmt::format_to(bIt, "\t{}", s);
+			ofile.write(s);
 		}
 	}
-	fmt::format_to(bIt, "\n");
-	ostream.write(buf.data(), buf.size());
+	ofile.numCols(ofile.curCol());
+	ofile.endln();
 
 	// Lines
 	lineReader.popFront();
@@ -291,20 +289,18 @@ void TVcfBeagleNew::run() {
 	if (format.empty()) UERROR("FORMAT string neets GL");
 
 	for(; !lineReader.empty(); lineReader.popFront()) {
-		buf.clear();
-		auto bIt = std::back_inserter(buf);
 		TSplitter line{lineReader.front(), '\t'};
-		fmt::format_to(bIt, line.front());
+		ofile.writeNoDelim(line.front(), '_');
 
 		line.popFront();
-		fmt::format_to(bIt, "_{}", line.front()); // POS
+		ofile.write(line.front());
 
 		line.popFront(); // skip ID
 		line.popFront();
-		fmt::format_to(bIt, "\t{}", line.front()); // REF
+		ofile.write(line.front());
 
 		line.popFront();
-		fmt::format_to(bIt, "\t{}", line.front()); // ALT
+		ofile.write(line.front());
 
 		line.popFront(); // skip QUAL
 		line.popFront(); // skip FILTER
@@ -316,7 +312,7 @@ void TVcfBeagleNew::run() {
 			TSplitter sample{line.front(), ':'};
 			skip(sample, nGL); // go to GL field
 			if (sample.front()[0] == '.') {
-				fmt::format_to(bIt, "\t0.333333\t0.333333\t0.333333"); 
+				ofile.write("0.333333", "0.333333", "0.333333"); 
 				continue;
 			}
 			TSplitter gls_sv{sample.front(), ','};
@@ -338,10 +334,9 @@ void TVcfBeagleNew::run() {
 
 			for (auto &gl : gls) { gl /= tot; }
 
-			fmt::format_to(bIt, "\t{:.4}\t{:.4}\t{:.4}", gls[0], gls[1], gls[2]);
+			ofile.write(gls);
 		}
-		fmt::format_to(bIt, "\n");
-		ostream.write(buf.data(), buf.size());
+		ofile.endln();
 	}
 }
 
