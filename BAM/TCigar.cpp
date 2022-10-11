@@ -17,22 +17,21 @@ namespace BAM {
 //----------------------------------------------------------
 TCigar::TCigar(TCigar cigar, uint16_t overlapLength, bool isFirst) {
 	uint16_t overlap = 0;
-	if (overlapLength > cigar.lengthRead()) {
-		add('S', cigar.lengthRead());
-		std::cout << "CHeck this^" << std::endl;
+	if (overlapLength > cigar.lengthAligned()) {
+		add('S', cigar.lengthAligned());
 	} else {
-		uint16_t nonOverlapLength = cigar.lengthRead() - overlapLength;
+		uint16_t nonOverlapLength = cigar.lengthAligned() - overlapLength;
 		if (isFirst) {
 			auto iterator = cigar.begin();
-			while (lengthRead() < nonOverlapLength) {
-				if (lengthRead()+iterator->length > nonOverlapLength) {
+			while (lengthAligned() < nonOverlapLength) {
+				if (lengthAligned()+iterator->length > nonOverlapLength) {
 					if (iterator->type != 'S'){
-						overlap = (lengthRead()+iterator->length) - nonOverlapLength;
+						overlap = (lengthAligned()+iterator->length) - nonOverlapLength;
 						add(iterator->type,iterator->length - overlap);
 						iterator++;
 					} else {
 						overlap += iterator->length;
-						nonOverlapLength = lengthRead();
+						nonOverlapLength = lengthAligned();
 						iterator++;
 					}
 				} else {
@@ -48,15 +47,15 @@ TCigar::TCigar(TCigar cigar, uint16_t overlapLength, bool isFirst) {
 			add('S',overlap);
 		} else {
 			auto iterator = --cigar.end();
-			while (lengthRead() < nonOverlapLength) {
-						if (lengthRead()+iterator->length > nonOverlapLength) {
+			while (lengthAligned() < nonOverlapLength) {
+						if (lengthAligned()+iterator->length > nonOverlapLength) {
 							if (iterator->type != 'S'){
-								overlap = (lengthRead()+iterator->length) - nonOverlapLength;
+								overlap = (lengthAligned()+iterator->length) - nonOverlapLength;
 								add(iterator->type,iterator->length - overlap);
 								iterator--;
 							} else {
 								overlap += iterator->length;
-								nonOverlapLength = lengthRead();
+								nonOverlapLength = lengthAligned();
 								iterator--;
 							}
 						} else {

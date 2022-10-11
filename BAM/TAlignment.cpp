@@ -338,6 +338,10 @@ bool TAlignment::isAlignedAtInternalPos(const uint32_t internalPosition) const {
 	return _alignedPosition[internalPosition] >= 0;
 };
 
+uint32_t TAlignment::getLastInternalPos() {
+	return (_alignedPosition.size()-1);
+}
+
 genometools::Base TAlignment::referenceAtInternalPos(uint32_t internalPosition) const {
 	if (!_hasReference) {
 		throw std::runtime_error("genometools::Base TAlignment::referenceAtInternalPos(const uint32_t "

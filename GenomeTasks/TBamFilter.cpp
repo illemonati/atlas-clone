@@ -420,137 +420,23 @@ void TBamFilter::traverseBAM(){
 //-----------------------------------------
 uint16_t TAlignmentMerger::merge(BAM::TAlignment & alignment, BAM::TAlignment & mate){
 	//check if reads overlap
-	//We have to check if there are inserts after the first/last aligned position
-	std::cout << alignment.name() << std::endl;
-	std::pair<genometools::TGenomePosition,genometools::TGenomePosition> alignmentEndPositions = findFirstAndLastReadPos(alignment); 
-	std::pair<genometools::TGenomePosition,genometools::TGenomePosition> mateEndPositions = findFirstAndLastReadPos(mate); 
-
-	std::pair<uint16_t,bool> overlapLength = determineOverlapLength(alignmentEndPositions, mateEndPositions);
-
-	if (overlapLength.second == false && overlapLength.first > (mate.cigar().lengthSoftClippedRight() + alignment.cigar().lengthSoftClippedLeft())){
+	std::pair<uint32_t,bool> overlapLength = determineOverlapLength(alignment, mate);
+	if (overlapLength.first != 0){
 		alignment.merge(overlapLength.first, overlapLength.second);
-		return overlapLength.first;
-	} else if (overlapLength.second == true && overlapLength.first > (mate.cigar().lengthSoftClippedLeft() + alignment.cigar().lengthSoftClippedRight())){
-		alignment.merge(overlapLength.first, overlapLength.second);
-		return overlapLength.first;
-	} else {
-		return 0;
 	}
-
-	/*
-	std::cout << alignment.name() << std::endl;
-	if (alignment.name() == "HS2000-355_269:1:1315:13911:90264"){
-		auto iterator = alignment.cigar().begin();
-		while (iterator != alignment.cigar().end()){
-			std::cout << iterator->type << iterator->length << std::endl;
-			iterator++;
-		}
-		std::cout << alignment.cigar().lengthRead() << std::endl;
-		std::cout << std::endl;
-	}
-	bool isFirst;
-	if (alignment > mate) {
-		isFirst = false;
-		uint32_t firstReadPosition = calculateFirstReadPositionWithOverlap(alignment);
-		uint32_t mateLastReadPosition = calculateLastReadPositionWithOverlap(mate);
-		//std::cout << alignment.position() << " " << firstReadPosition << " " << mateLastReadPosition << std::endl;
-		if (firstReadPosition < mateLastReadPosition) {
-			uint16_t overlapLength = mateLastReadPosition - firstReadPosition;
-			//if (overlapLength > (mate.cigar().lengthSoftClippedRight() + alignment.cigar().lengthSoftClippedLeft())){
-				alignment.merge(overlapLength, isFirst);
-				if (alignment.name() == "HS2000-355_269:1:1315:13911:90264"){
-					std::cout << "second" << std::endl;
-					auto iterator = alignment.cigar().begin();
-					while (iterator != alignment.cigar().end()){
-						std::cout << iterator->type << iterator->length << std::endl;
-						iterator++;
-					}
-					std::cout << overlapLength << " " << alignment.cigar().lengthRead() << std::endl;
-				}
-				//}
-				return alignment.cigar().lengthSoftClippedLeft();
-			}
-	} else {
-		isFirst = true;
-		uint32_t lastReadPosition = calculateLastReadPositionWithOverlap(alignment);
-		uint32_t mateFirstReadPosition = calculateFirstReadPositionWithOverlap(mate);
-		//std::cout << alignment.position() << " " << lastReadPosition << " " << mateFirstReadPosition << std::endl;
-		if (lastReadPosition > mateFirstReadPosition) {
-			uint16_t overlapLength = lastReadPosition - mateFirstReadPosition;
-			//if (overlapLength > (mate.cigar().lengthSoftClippedLeft() + alignment.cigar().lengthSoftClippedRight())){
-				alignment.merge(overlapLength, isFirst);
-				if (alignment.name() == "HS2000-355_269:1:1315:13911:90264"){
-					std::cout << "first" << std::endl;
-					auto iterator = alignment.cigar().begin();
-					while (iterator != alignment.cigar().end()){
-						std::cout << iterator->type << iterator->length << std::endl;
-						iterator++;
-					}
-					std::cout << overlapLength << " " << alignment.cigar().lengthRead() << std::endl;
-				}
-				//}
-				return alignment.cigar().lengthSoftClippedRight();
-			}
-		}
-	return 0;
-	*/
+	return overlapLength.first;
 };
 
-uint32_t TAlignmentMerger::calculateFirstReadPositionWithOverlap(BAM::TAlignment & alignment) const{
-	auto iterator = alignment.cigar().begin();
-	genometools::TGenomePosition firstReadPositionWithOverlap = alignment;
-	while (iterator->type != 'M' && iterator->type != 'X' && iterator->type != '=' && iterator->type != 'D' && iterator->type != 'N') {
-		if (iterator->type != 'S')
-			firstReadPositionWithOverlap=firstReadPositionWithOverlap-iterator->length;
-		iterator++;
-	}
-	return firstReadPositionWithOverlap.position();
-}
-
-uint32_t TAlignmentMerger::calculateLastReadPositionWithOverlap(BAM::TAlignment & alignment) const{
-	auto iterator = alignment.cigar().begin();
-	genometools::TGenomePosition lastReadPositionWithOverlap = alignment;
-	while (iterator->type != 'M' && iterator->type != 'X' && iterator->type != '=' && iterator->type != 'D' && iterator->type != 'N') {
-		iterator++;
-	}
-	while (iterator != alignment.cigar().end()) {
-		if (iterator->type != 'S' && iterator->type !='D' && iterator->type != 'N' && iterator->type != 'P' && iterator->type != 'H')
-			lastReadPositionWithOverlap=lastReadPositionWithOverlap+iterator->length;
-		iterator++;
-	}
-	return lastReadPositionWithOverlap.position();
-}
-
-std::pair<genometools::TGenomePosition,genometools::TGenomePosition> TAlignmentMerger::findFirstAndLastReadPos(BAM::TAlignment & alignment) const {
-	genometools::TGenomePosition firstReadPosWithOverlap = alignment;
-	genometools::TGenomePosition lastReadPosWithOverlap = alignment.lastAlignedPositionWithRespectToRef();
-
-	auto iteratorBegin = alignment.cigar().begin();
-	while (iteratorBegin->type != 'M' && iteratorBegin->type != 'X' && iteratorBegin->type != '=' && iteratorBegin->type != 'D' && iteratorBegin->type != 'N') {
-		if (iteratorBegin->type != 'S')
-			firstReadPosWithOverlap-=iteratorBegin->length;
-		iteratorBegin++;
-	}
-
-	auto iteratorEnd = --alignment.cigar().end();
-	while (iteratorEnd->type != 'M' && iteratorEnd->type != 'X' && iteratorEnd->type != '=' && iteratorEnd->type != 'D' && iteratorEnd->type != 'N') {
-		if (iteratorEnd->type != 'S')
-			lastReadPosWithOverlap+=iteratorEnd->length;
-		iteratorEnd--;
-	}
-	return std::make_pair(firstReadPosWithOverlap, lastReadPosWithOverlap);
-}
-
-std::pair<uint16_t,bool> TAlignmentMerger::determineOverlapLength(std::pair<genometools::TGenomePosition,genometools::TGenomePosition> alignmentEndPositions, std::pair<genometools::TGenomePosition,genometools::TGenomePosition> mateEndPositions){
-	if (alignmentEndPositions.first > mateEndPositions.first){
-		if (alignmentEndPositions.first < mateEndPositions.second){
-			uint16_t overlapLength = mateEndPositions.second - alignmentEndPositions.first; // - mate.cigar().lengthDeleted();
+std::pair<uint32_t,bool> TAlignmentMerger::determineOverlapLength(BAM::TAlignment & alignment, BAM::TAlignment & mate){
+	if (alignment > mate){
+		if (alignment.position()  < mate.position()+mate.cigar().lengthAligned()){
+			uint32_t overlapLength = mate.position()+mate.cigar().lengthAligned() - alignment.position();
 			bool alignmentFirst = false;
 			return std::make_pair(overlapLength,alignmentFirst);
 		}
 	} else {
-		if (mateEndPositions.first < alignmentEndPositions.second){
-			uint16_t overlapLength = mateEndPositions.first - alignmentEndPositions.second;
+		if (mate.position()  < alignment.position()+alignment.cigar().lengthAligned()){
+			uint32_t overlapLength =alignment.position()+alignment.cigar().lengthAligned() - mate.position();
 			bool alignmentFirst = true;
 			return std::make_pair(overlapLength,alignmentFirst);	
 		}
@@ -559,13 +445,10 @@ std::pair<uint16_t,bool> TAlignmentMerger::determineOverlapLength(std::pair<geno
 }
 // TAlignmentMergerType_randomRead
 //---------------------------------
-TAlignmentMerger_randomRead::TAlignmentMerger_randomRead():TAlignmentMerger(){
-	_keepMate = false;
-};
+TAlignmentMerger_randomRead::TAlignmentMerger_randomRead():TAlignmentMerger(){};
 
 uint16_t TAlignmentMerger_randomRead::merge(BAM::TAlignment & alignment, BAM::TAlignment & mate){
-	_keepMate = randomGenerator().pickOneOfTwo();
-	if (_keepMate)
+	if (randomGenerator().pickOneOfTwo())
 		return TAlignmentMerger::merge(mate, alignment);
 	else
 		return TAlignmentMerger::merge(alignment, mate);
@@ -599,11 +482,8 @@ TAlignmentMerger_highestQuality::TAlignmentMerger_highestQuality():TAlignmentMer
 
 uint16_t TAlignmentMerger_highestQuality::merge(BAM::TAlignment & alignment, BAM::TAlignment & mate){
 
-	std::pair<genometools::TGenomePosition,genometools::TGenomePosition> alignmentEndPositions = TAlignmentMerger::findFirstAndLastReadPos(alignment); 
-	std::pair<genometools::TGenomePosition,genometools::TGenomePosition> mateEndPositions = TAlignmentMerger::findFirstAndLastReadPos(mate); 
-
-	std::pair<uint16_t,bool> overlapLength = TAlignmentMerger::determineOverlapLength(alignmentEndPositions, mateEndPositions);
-	if (overlapLength.first > 0) {
+	std::pair<uint32_t,bool> overlapLength = TAlignmentMerger::determineOverlapLength(alignment, mate);
+	if (overlapLength.first != 0) {
 		std::pair<genometools::PhredIntProbability,genometools::PhredIntProbability> minQuals = getMinQuals(alignment, mate, overlapLength);
 		if (minQuals.first > minQuals.second){
 			mate.merge(overlapLength.first, overlapLength.second);
@@ -617,184 +497,45 @@ uint16_t TAlignmentMerger_highestQuality::merge(BAM::TAlignment & alignment, BAM
 					return overlapLength.first;
 				} else {
 					alignment.merge(overlapLength.first, overlapLength.second);
-					// instead use return alignment.cigar().lengthSoftClippedRight();?
 					return overlapLength.first;
 				}
 		}
 	} else 
 		return 0;
 }
- 
- /*
-	std::pair<genometools::TGenomePosition,genometools::PhredIntProbability> alignmentPosAndQual = findMinQualAndFinalReadPos(alignment);
-	std::pair<genometools::TGenomePosition,genometools::PhredIntProbability> matePosAndQual = findMinQualAndFinalReadPos(mate);
-
-	if (alignment.isReverseStrand()) {
-		if (alignmentPosAndQual.first < matePosAndQual.first) {
-			uint32_t overlapLength = matePosAndQual.first - alignmentPosAndQual.first;
-			if (alignmentPosAndQual.second > matePosAndQual.second) {
-				mate.merge(overlapLength, true);
-				std::cout << overlapLength << std::endl << mate.cigar().lengthSoftClippedLeft() << std::endl;
-				return mate.cigar().lengthSoftClippedLeft();
-			} else if (alignmentPosAndQual.second < matePosAndQual.second) {
-				std::cout << overlapLength << std::endl << alignment.cigar().lengthSoftClippedLeft() << std::endl;
-				alignment.merge(overlapLength, true);
-				return alignment.cigar().lengthSoftClippedLeft();
-			} else {
-				if (randomGenerator().pickOneOfTwo()) {
-					alignment.merge(overlapLength, true);
-					std::cout << overlapLength << std::endl << alignment.cigar().lengthSoftClippedLeft() << std::endl;
-					return alignment.cigar().lengthSoftClippedLeft();
-				} else {
-					mate.merge(overlapLength, true);
-					std::cout << overlapLength << std::endl << mate.cigar().lengthSoftClippedLeft() << std::endl;
-					return mate.cigar().lengthSoftClippedLeft();
-				}
-			}
-		} else {
-			return 0;
-		}
-	} else {
-		if (alignmentPosAndQual.first > matePosAndQual.first) {
-			uint32_t overlapLength = alignmentPosAndQual.first - matePosAndQual.first;
-			if (alignmentPosAndQual.second > matePosAndQual.second) {
-				mate.merge(overlapLength, false);
-				std::cout << overlapLength << std::endl << mate.cigar().lengthSoftClippedRight() << std::endl;
-				return mate.cigar().lengthSoftClippedRight();
-			} else if (alignmentPosAndQual.second < matePosAndQual.second) {
-					alignment.merge(overlapLength, false);
-					std::cout << overlapLength << std::endl << alignment.cigar().lengthSoftClippedRight() << std::endl;
-					return alignment.cigar().lengthSoftClippedRight();
-			} else {
-				if (randomGenerator().pickOneOfTwo()) {
-					mate.merge(overlapLength, false);
-					std::cout << overlapLength << std::endl << alignment.cigar().lengthSoftClippedRight() << std::endl;
-					return mate.cigar().lengthSoftClippedRight();
-				} else {
-					alignment.merge(overlapLength, false);
-					std::cout << overlapLength << std::endl << alignment.cigar().lengthSoftClippedRight() << std::endl;
-					return alignment.cigar().lengthSoftClippedRight();
-				}
-			}
-		} else {
-			return 0;
-		}
-	}
-};
-
-uint32_t TAlignmentMerger_highestQuality::minQual(const BAM::TAlignment & alignment, const BAM::TAlignment & mate, bool & overlap) {
-	
-	std::pair<genometools::TGenomePosition,genometools::PhredIntProbability> alignmentPosAndQual = findMinQualAndFinalReadPos(alignment);
-	std::pair<genometools::TGenomePosition,genometools::PhredIntProbability> matePosAndQual = findMinQualAndFinalReadPos(mate);
-
-	if (alignment.isReverseStrand()) {
-		if (alignmentPosAndQual.first < matePosAndQual.first) {
-			overlap = true;
-			if (alignmentPosAndQual.second > matePosAndQual.second) {
-				mate.merge(alignment);
-				return mate.cigar().lengthSoftClippedLeft();
-			} else if (alignmentPosAndQual.second < matePosAndQual.second) {
-				alignment.merge(mate);
-				return alignment.cigar().lengthSoftClippedLeft();
-			} else {
-				if (randomGenerator().pickOneOfTwo()) {
-					alignment.merge(mate);
-					return alignment.cigar().lengthSoftClippedLeft();
-				} else {
-					mate.merge(alignment);
-					return mate.cigar().lengthSoftClippedLeft();
-				}
-			}
-		} else {
-			overlap = false;
-			return 0;
-		}
-	} else {
-		if (alignmentPosAndQual.first > matePosAndQual.first) {
-			overlap = true;
-			if (alignmentPosAndQual.second > matePosAndQual.second) {
-				mate.merge(alignment);
-				return alignment.cigar().lengthSoftClippedRight();
-			} else if (alignmentPosAndQual.second < matePosAndQual.second) {
-				alignment.merge(mate);
-					return alignment.cigar().lengthSoftClippedRight();
-			} else {
-				if (randomGenerator().pickOneOfTwo()) {
-					mate.merge(alignment);
-					return alignment.cigar().lengthSoftClippedRight();
-				} else {
-					alignment.merge(mate);
-					return alignment.cigar().lengthSoftClippedRight();
-				}
-			}
-		} else {
-			overlap = false;
-			return 0;
-		}
-	}			
-}
-*/
 
 std::pair<genometools::PhredIntProbability,genometools::PhredIntProbability> TAlignmentMerger_highestQuality::getMinQuals(BAM::TAlignment & alignment, BAM::TAlignment & mate, std::pair<uint16_t,bool> overlapLength) const {
-
 	if (overlapLength.second == true)
-		return minQual(alignment,mate,overlapLength.first);
+		return minQual(alignment,mate);
 	else {
-		std::pair<genometools::PhredIntProbability,genometools::PhredIntProbability> flippedResult = minQual(mate,alignment,overlapLength.first);
+		std::pair<genometools::PhredIntProbability,genometools::PhredIntProbability> flippedResult = minQual(mate,alignment);
 		return std::make_pair(flippedResult.second,flippedResult.first);	
 	}
-	/*
-	genometools::PhredIntProbability alignmentMinQual;
-	genometools::TGenomePosition finalReadPositionWithOverlap;
-	if (alignment.isReverseStrand()) {
-		auto cigarIterator = alignment.cigar().begin();
-		auto baseIterator = alignment.begin();
-		alignmentMinQual = baseIterator->originalQuality_phredInt;
-		finalReadPositionWithOverlap = alignment;
-		while (cigarIterator->type != 'M' && cigarIterator->type != 'X' && cigarIterator->type != '=' && cigarIterator->type != 'D' && cigarIterator->type != 'N') {
-			if (cigarIterator->type != 'S')
-				finalReadPositionWithOverlap=finalReadPositionWithOverlap-1;
-			cigarIterator++;
-			if(baseIterator->originalQuality_phredInt < alignmentMinQual)
-				alignmentMinQual = baseIterator->originalQuality_phredInt;
-			baseIterator++;		
-		}
-	} else {
-		auto cigarIterator = alignment.cigar().end();
-		auto baseIterator = alignment.end();
-		alignmentMinQual = baseIterator->originalQuality_phredInt;
-		finalReadPositionWithOverlap = alignment.lastAlignedPositionWithRespectToRef();
-		while (cigarIterator->type != 'M' && cigarIterator->type != 'X' && cigarIterator->type != '=' && cigarIterator->type != 'D' && cigarIterator->type != 'N') {
-			if (cigarIterator->type != 'S')
-				finalReadPositionWithOverlap=finalReadPositionWithOverlap+1;
-			cigarIterator--;
-			if(baseIterator->originalQuality_phredInt < alignmentMinQual)
-				alignmentMinQual = baseIterator->originalQuality_phredInt;
-			baseIterator--;		
-		}
-	}
-	return std::make_pair(finalReadPositionWithOverlap, alignmentMinQual);*/
 }
 
-std::pair<genometools::PhredIntProbability,genometools::PhredIntProbability> TAlignmentMerger_highestQuality::minQual(BAM::TAlignment & firstRead, BAM::TAlignment & secondRead, uint16_t &overlapLength) const {
+std::pair<genometools::PhredIntProbability,genometools::PhredIntProbability> TAlignmentMerger_highestQuality::minQual(BAM::TAlignment & firstRead, BAM::TAlignment & secondRead) const {
 	auto baseIterator = secondRead.begin();
-	uint16_t overlapChecked = 0;
-	genometools::PhredIntProbability secondReadMinQual = baseIterator->originalQuality_phredInt;
-	while (overlapChecked < overlapLength) {
-		if (baseIterator->originalQuality_phredInt < secondReadMinQual)
-			secondReadMinQual = baseIterator->originalQuality_phredInt;
+	uint16_t internalPos = 0;
+	genometools::PhredIntProbability secondReadMinQual {0};
+
+	while(secondRead.positionInRef(internalPos).position() != firstRead.lastAlignedPositionWithRespectToRef().position()){
+		if(secondRead.isAlignedAtInternalPos(internalPos))
+			if (baseIterator->originalQuality_phredInt < secondReadMinQual)
+				secondReadMinQual = baseIterator->originalQuality_phredInt;
 		baseIterator++;
-		overlapChecked++;
+		internalPos++;
 	}
 
-	overlapChecked = 0;
 	baseIterator = --firstRead.end();
-	genometools::PhredIntProbability firstReadMinQual = baseIterator->originalQuality_phredInt;
-	while (overlapChecked < overlapLength) {
-		if (baseIterator->originalQuality_phredInt < firstReadMinQual)
-			firstReadMinQual = baseIterator->originalQuality_phredInt;
+	internalPos = firstRead.getLastInternalPos();
+	genometools::PhredIntProbability firstReadMinQual {0};
+
+	while (firstRead.positionInRef(internalPos).position() != secondRead.position()) {
+		if(firstRead.isAlignedAtInternalPos(internalPos))
+			if (baseIterator->originalQuality_phredInt < secondReadMinQual)
+				firstReadMinQual = baseIterator->originalQuality_phredInt;
 		baseIterator--;
-		overlapChecked++;
+		internalPos++;
 	}
 	return std::make_pair(firstReadMinQual,secondReadMinQual);
 }
@@ -932,7 +673,6 @@ void TAlignmentSplitMerger::_handleSingle(BAM::TAlignment* alignment){
 void TOverlapQuantifier::quantifyOverlap(){
 	//prepare counter
 	coretools::TCountDistributionVector overlapDist;
-
 	//parse BAM file
 	_bamFile.startProgressReporting(1000000);
 	while(_bamFile.readNextAlignment()){
@@ -968,7 +708,9 @@ void TOverlapQuantifier::quantifyOverlap(){
 
 				//calculate overlap and fragment length and add to storage
 				uint16_t overlap = _merger.merge(*alignment, *mate->alignment);
+				//std::cout << "overlap: " << overlap << std::endl;
 				uint16_t fragmentLength = alignment->parsedLength() + mate->alignment->parsedLength() - overlap;
+				//std::cout << "fragmentLength: " << fragmentLength << std::endl;
 
 				overlapDist.add(fragmentLength, overlap);
 			}
@@ -987,7 +729,9 @@ void TOverlapQuantifier::quantifyOverlap(){
 	logfile().listFlush("Writing distribution of fragment length and overlap to file '" + filename + "' ...");
 	const std::vector<std::string> header = {"fragmentLength", "overlap"};
 	coretools::TOutputFile out(filename, header);
+	std::cout << "TEST" << std::endl;
 	overlapDist.write(out);
+	std::cout << "TEST" << std::endl;
 	out.close();
 	logfile().done();
 };

@@ -122,6 +122,7 @@ public:
 
 	// getters: position
 	uint32_t lastAlingedInternalPos() const { return _lastAlignedPos; };
+	uint32_t getLastInternalPos();
 	TGenomePosition lastAlignedPositionWithRespectToRef() const { return _lastAlignedPositionWithRespectToRef; };
 	bool isAlignedAtInternalPos(const uint32_t internalPosition) const;
 	genometools::Base referenceAtInternalPos(uint32_t internalPosition) const;

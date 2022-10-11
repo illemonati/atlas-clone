@@ -107,27 +107,11 @@ public:
 	TAlignmentMerger(){};
 	virtual ~TAlignmentMerger(){};
 	virtual uint16_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate);
-	virtual uint32_t calculateFirstReadPositionWithOverlap(BAM::TAlignment & alignment) const;
-	virtual uint32_t calculateLastReadPositionWithOverlap(BAM::TAlignment & alignment) const;
 	std::pair<genometools::TGenomePosition,genometools::TGenomePosition> findFirstAndLastReadPos(BAM::TAlignment & alignment) const;
-	std::pair<uint16_t,bool> determineOverlapLength(std::pair<genometools::TGenomePosition,genometools::TGenomePosition> alignmentEndPositions, std::pair<genometools::TGenomePosition,genometools::TGenomePosition> mateEndPositions);
+	std::pair<uint32_t,bool> determineOverlapLength(BAM::TAlignment & alignment, BAM::TAlignment & mate);
 };
-/*
-class TAlignmentMerger_randomBase:public TAlignmentMerger{
-protected:
-	bool _adaptQuality;
 
-	void _mergeBasesCore(BAM::TSequencedBase & bestBase, BAM::TSequencedBase & worstBase);
-	virtual void _mergeBases(BAM::TSequencedBase & alignment, BAM::TSequencedBase & mate);
-
-public:
-	TAlignmentMerger_randomBase(const bool AdaptQuality);
-	virtual ~TAlignmentMerger_randomBase(){};
-};
-*/
 class TAlignmentMerger_randomRead:public TAlignmentMerger{
-private:
-	bool _keepMate;
 public:
 	TAlignmentMerger_randomRead();
 	uint16_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate);
@@ -150,7 +134,7 @@ public:
 	TAlignmentMerger_highestQuality();
 	uint16_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate);
 std::pair<genometools::PhredIntProbability,genometools::PhredIntProbability> getMinQuals(BAM::TAlignment & alignment, BAM::TAlignment & mate, std::pair<uint16_t,bool> overlapLength) const;
-std::pair<genometools::PhredIntProbability,genometools::PhredIntProbability> minQual(BAM::TAlignment & firstRead, BAM::TAlignment & secondRead, uint16_t &overlapLength) const;
+std::pair<genometools::PhredIntProbability,genometools::PhredIntProbability> minQual(BAM::TAlignment & firstRead, BAM::TAlignment & secondRead) const;
 };
 
 //-----------------------------------------
