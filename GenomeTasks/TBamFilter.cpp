@@ -707,10 +707,9 @@ void TOverlapQuantifier::quantifyOverlap(){
 				}
 
 				//calculate overlap and fragment length and add to storage
-				uint16_t overlap = _merger.merge(*alignment, *mate->alignment);
-				//std::cout << "overlap: " << overlap << std::endl;
-				uint16_t fragmentLength = alignment->parsedLength() + mate->alignment->parsedLength() - overlap;
-				//std::cout << "fragmentLength: " << fragmentLength << std::endl;
+				uint16_t overlap = _merger.determineOverlapLength(*alignment, *mate->alignment).first;
+				uint16_t fragmentLength = alignment->cigar().lengthAligned() + mate->alignment->cigar().lengthAligned() - overlap;
+				//std::cout << alignment->cigar().lengthAligned() << " " << mate->alignment->cigar().lengthAligned() << " " << overlap << std::endl;
 
 				overlapDist.add(fragmentLength, overlap);
 			}
@@ -727,7 +726,7 @@ void TOverlapQuantifier::quantifyOverlap(){
 	//write distribution
 	std::string filename = _outputName + "_overlapStats.txt";
 	logfile().listFlush("Writing distribution of fragment length and overlap to file '" + filename + "' ...");
-	const std::vector<std::string> header = {"fragmentLength", "overlap"};
+	const std::vector<std::string> header = {"fragmentLength", "overlap", "count"};
 	coretools::TOutputFile out(filename, header);
 	std::cout << "TEST" << std::endl;
 	overlapDist.write(out);
