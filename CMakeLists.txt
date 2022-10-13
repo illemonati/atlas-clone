@@ -51,7 +51,12 @@ FetchContent_Declare(bamtools
   SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/bamtools"
 )
 
-FetchContent_MakeAvailable(coretools genometools stattools bamtools)
+FetchContent_Declare(json
+  URL https://github.com/nlohmann/json/releases/download/v3.11.2/json.tar.xz
+  SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/json"
+)
+
+FetchContent_MakeAvailable(coretools genometools stattools bamtools json)
 
 target_sources(${PROJECT_NAME} PRIVATE ${CORE_SOURCES})
 target_include_directories(${PROJECT_NAME} PRIVATE 
@@ -64,7 +69,7 @@ target_include_directories(${PROJECT_NAME} PRIVATE
   Simulations
   VCF)
 
-target_link_libraries(${PROJECT_NAME} PRIVATE BamTools BamTools-utils stattools)
+target_link_libraries(${PROJECT_NAME} PRIVATE BamTools BamTools-utils stattools nlohmann_json::nlohmann_json)
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_EXTENSIONS OFF)
 target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra ${SAN})
@@ -93,7 +98,7 @@ target_include_directories("${PROJECT_NAME}_unitTests" PRIVATE
   Simulations
   VCF)
 
-target_link_libraries("${PROJECT_NAME}_unitTests" PRIVATE BamTools BamTools-utils stattools gtest_main gmock_main)
+target_link_libraries("${PROJECT_NAME}_unitTests" PRIVATE BamTools BamTools-utils stattools gtest_main gmock_main nlohmann_json::nlohmann_json)
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_EXTENSIONS OFF)
 target_compile_options("${PROJECT_NAME}_unitTests" PRIVATE -Wall -Wextra)

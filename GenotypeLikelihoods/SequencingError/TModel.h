@@ -12,6 +12,7 @@
 #include <stdint.h>
 #include <string>
 
+#include "TReadGroupInfo.h"
 #include "genometools/GenotypeTypes.h"
 #include "genometools/PhredProbabilityTypes.h"
 #include "TGenotypeData.h"
@@ -105,6 +106,7 @@ private:
 	TEpsilon _epsilon;
 public:
 	TModelRecal(const std::string& RhoDef, const std::string &EpsilonDef);
+	TModelRecal(const BAM::RGInfo::TInfo & info) : _epsilon(""){};
 
 	bool estimatable() const noexcept override { return true; };
 	bool recalibrates() const noexcept override { return true; };

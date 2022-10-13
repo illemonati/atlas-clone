@@ -74,7 +74,7 @@ protected:
 	template <typename Distr>
 	void _initDistribution(Distr & Dist, const TReadGroupInfoEntry & RGInfo, const BAM::RGInfo::InfoType & Info){
 		coretools::instances::logfile().list(BAM::RGInfo::infos[Info].description, ": ", RGInfo[Info]);
-		Dist.set(RGInfo[Info]);
+		Dist.set(RGInfo.getString(Info));
 	};
 
 	// general functions

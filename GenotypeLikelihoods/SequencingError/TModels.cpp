@@ -27,7 +27,6 @@ namespace GenotypeLikelihoods {
 namespace SequencingError {
 
 using coretools::Probability;
-using coretools::str::toString;
 using coretools::instances::logfile;
 	using namespace std::string_literals;
 
@@ -46,26 +45,137 @@ std::pair<std::string, std::string> rhoEps(const std::string &s) {
 	}
 	return std::make_pair(s.substr(rBegin + 3, s.size()), s.substr(0, rBegin-1));
 }
+
+void initModel(std::unique_ptr<TModel> & model, const BAM::RGInfo::TReadGroupInfoEntry & Info, const BAM::RGInfo::InfoType Type){
+	if(Info.has(Type)){
+		const auto [r, e] = rhoEps(Info.get(Type));
+		model = std::make_unique<TModelRecal>(r, e);
+	} else {
+		model = std::make_unique<TModelNoRecal>();
+	}
+}
+
+void initModel(std::unique_ptr<TModel> & model, const BAM::RGInfo::TInfo & info){
+	if(info.empty() || (info.is_string() && info.get<std::string>() == "default")){
+		model = std::make_unique<TModelNoRecal>();
+	} else {
+		// TODO
+		model = std::make_unique<TModelRecal>(info);
+	}
+}
+
+} // namespace impl
+
+TReadGroupModels::TReadGroupModels(){
+	_models[0] = std::make_unique<TModelNoRecal>();
+	_models[1] = std::make_unique<TModelNoRecal>();
+}
+
+TReadGroupModels::TReadGroupModels(const std::string &RecalString, const std::string &RhoString){
+	if(RecalString.empty() || RecalString == "-" || RecalString == "default"){
+		_models[0] = std::make_unique<TModelNoRecal>();
+		_models[1] = std::make_unique<TModelNoRecal>();
+	} else {
+		_models[0] = std::make_unique<TModelRecal>(RhoString, RecalString);
+		_models[1] = std::make_unique<TModelRecal>(RhoString, RecalString);
+	}
+}
+
+TReadGroupModels::TReadGroupModels(const std::string &RecalString1, const std::string &RhoString1, const std::string &RecalString2, const std::string &RhoString2){
+	if(RecalString1.empty() || RecalString1 == "-" || RecalString1 == "default"){
+		_models[0] = std::make_unique<TModelNoRecal>();
+	} else {
+		_models[0] = std::make_unique<TModelRecal>(RhoString1, RecalString1);
+	}
+	if(RecalString2.empty() || RecalString2 == "-" || RecalString2 == "default"){
+		_models[1] = std::make_unique<TModelNoRecal>();
+	} else {
+		_models[1] = std::make_unique<TModelRecal>(RhoString2, RecalString2);
+	}
+}
+
+TReadGroupModels::TReadGroupModels(const BAM::RGInfo::TReadGroupInfoEntry & Info){
+	using BAM::RGInfo::InfoType;
+
+	//check if recal is provided
+	if(Info.has(InfoType::recal)){
+		auto& json = Info[InfoType::recal];
+
+		//is this a single-end read group?
+		bool single = false;
+		if(Info.has(InfoType::seqType) && Info[InfoType::seqType] == BAM::RGInfo::seqType::single){
+			single = true;
+			_models[0] = std::make_unique<TModelNoRecal>();
+		}
+
+		//check if two mates are provided
+		if(json.contains("first")){
+			impl::initModel(_models[0], json["first"]);
+			if(json.contains("second")){
+				if(single){
+					UERROR("Recal provided for second mate of single-end read group '", Info.name(), "'!");
+				} else {
+					impl::initModel(_models[0], json["second"]);
+				}
+			} else {
+				_models[1] = std::make_unique<TModelNoRecal>();
+			}
+		} else {
+			//assume a single recal model is provided
+			impl::initModel(_models[0], json);
+			if(!single){
+				impl::initModel(_models[1], json);
+			}
+		}
+
+	} else {
+		//initialize no recal model
+		_models[0] = std::make_unique<TModelNoRecal>();
+		_models[1] = std::make_unique<TModelNoRecal>();
+	}
+}
+
+void TReadGroupModels::simulate(BAM::TAlignment & Alignment) const {
+	const TModel& mod = *_models[Alignment.isSecondMate()];
+	for (auto & b : Alignment) {
+		mod.simulate(b);
+	}
+}
+
+BAM::RGInfo::TInfo TReadGroupModels::getInfo() const{
+	BAM::RGInfo::TInfo info;
+	//info["first"] = _models[0]->getInfo();
+	//info["second"] = _models[0]->getInfo();
+	return info;
+}
+
+//--------------------------------------------------------------------
+// TModels
+//--------------------------------------------------------------------
+
+namespace impl {
+
+void fillNoRecal(std::vector<TReadGroupModels> & vec, const size_t size){
+	vec.reserve(size);
+	for(uint16_t i = 0; i < size; ++i){
+		vec.emplace_back(); //constructor without arguments
+	}
+}
+
 } // namespace impl
 
 void TModels::initializeNoRecal(const BAM::TReadGroups &ReadGroups) {
-	_models.resize(ReadGroups.size());
-	for (auto &m : _models) {
-		m[0] = std::make_unique<TModelNoRecal>();
-		m[1] = std::make_unique<TModelNoRecal>();
-	}
+	impl::fillNoRecal(_models, ReadGroups.size());
 }
 
-std::vector<std::array<std::unique_ptr<TModel>, 2>> TModels::forget() {
-	std::vector<std::array<std::unique_ptr<TModel>, 2>> forgottenModels(_models.size());
-	for (auto &m : forgottenModels) {
-		m[0] = std::make_unique<TModelNoRecal>();
-		m[1] = std::make_unique<TModelNoRecal>();
-	}
+std::vector<TReadGroupModels> TModels::forget() {
+	std::vector<TReadGroupModels> forgottenModels;
+	impl::fillNoRecal(forgottenModels, _models.size());
 	std::swap(_models, forgottenModels);
 	return forgottenModels;
 }
-void TModels::remember(std::vector<std::array<std::unique_ptr<TModel>, 2>>& forgottenModels) {
+
+void TModels::remember(std::vector<TReadGroupModels>& forgottenModels) {
 	if (forgottenModels.size() != _models.size()) DEVERROR("Forgotten models are not correct size!");
 	std::swap(_models, forgottenModels);
 }
@@ -73,28 +183,24 @@ void TModels::remember(std::vector<std::array<std::unique_ptr<TModel>, 2>>& forg
 void TModels::initialize(const std::string &RecalString, const std::string &RhoString,
 					const BAM::TReadGroups &ReadGroups) {
 	if (!_models.empty())
-		throw std::runtime_error(
-			"void TModels::initialize(const std::string & RecalString, const std::string & RhoString, "
-		    "const BAM::TReadGroups & ReadGroups, TLog* Logfile): Models already initialized!");
+		DEVERROR("Models already initialized!");
 
 	// prepare objects
-	_models.resize(ReadGroups.size());
+	_models.reserve(ReadGroups.size());
 
 	// initialize models
-	for (auto &m : _models) {
-		m[0] = std::make_unique<TModelRecal>(RhoString, RecalString);
-		m[1] = std::make_unique<TModelRecal>(RhoString, RecalString);
+	for(uint16_t i = 0; i < ReadGroups.size(); ++i){
+		_models.emplace_back(RhoString, RecalString);
 	}
 }
 
 void TModels::initializeFromFile(const std::string &Filename, const BAM::TReadGroups &ReadGroups) {
 	if (!_models.empty())
-		throw std::runtime_error("void TModels::initializeFromFile(const std::string & filename, const "
-					 "BAM::TReadGroups & ReadGroups, TLog* Logfile): Models already initialized!");
+		DEVERROR("Models already initialized!");
 
 	// read parameters from file
 	logfile().listFlush("Initializing recalibration models from '" + Filename + "' ...");
-	coretools::TInputFile in(Filename, {"readGroup", "mate", "covariates", "rho"}, "\t", "//");
+	coretools::TInputFile in(Filename, {"readGroup", "covariates1", "rho1", "covariates2", "rho2"}, "\t", "//");
 
 	// prepare objects
 	_models.resize(ReadGroups.size());
@@ -102,39 +208,25 @@ void TModels::initializeFromFile(const std::string &Filename, const BAM::TReadGr
 	// tmp variables for reading
 	std::vector<std::string> vec;
 
+	//store per RG info
+	std::vector< std::vector<std::string> > info(ReadGroups.size());
+
 	// parse file to read details for each read group
 	while (in.read(vec)) {
 		if (ReadGroups.readGroupExists(vec[0])) { // ignore if it does not exist
-			// get read group
-			const uint16_t readGroupId = ReadGroups.getId(vec[0]);
-			const auto& rhoDef = vec[3];
-			const auto& epsilonDef = vec[2];
-			try {
-				// add model
-				if (vec[1] == "first") {
-					if (epsilonDef == "-" || epsilonDef == "default") {
-						_models[readGroupId][0] = std::make_unique<TModelNoRecal>();
-					} else {
-						_models[readGroupId][0] = std::make_unique<TModelRecal>(rhoDef, epsilonDef);
-					}
-				} else if (vec[1] == "second") {
-					if (epsilonDef == "-" || epsilonDef == "default") {
-						_models[readGroupId][1] = std::make_unique<TModelNoRecal>();
-					} else {
-						_models[readGroupId][1] = std::make_unique<TModelRecal>(rhoDef, epsilonDef);
-					}
-				} else
-					throw "Unknown mate '" + vec[1] + "! Must be 'first' or 'second'.";
-			} catch (const char *error) {
-				throw std::string(error) + " in file '" + Filename + "' on line " + toString(in.curLine()) + "!";
-			}
+			// store by read group id
+			info[ReadGroups.getId(vec[0])] = vec;
 		}
 	}
 
-	// Fill remaining with NoRecal
-	for (auto &m : _models) {
-		if (!m[0]) m[0] = std::make_unique<TModelNoRecal>();
-		if (!m[1]) m[1] = std::make_unique<TModelNoRecal>();
+	//create models
+	_models.reserve(ReadGroups.size());
+	for(uint16_t r = 0; r < ReadGroups.size(); ++r){
+		try {
+			_models.emplace_back(info[r][1], info[r][2], info[r][3], info[r][4]);
+		} catch (const char *error) {
+			throw std::string(error) + " for read group " + ReadGroups[r].name_ID + " in file '" + Filename + "!";
+		}
 	}
 
 	logfile().done();
@@ -143,22 +235,11 @@ void TModels::initializeFromFile(const std::string &Filename, const BAM::TReadGr
 void TModels::initialize(BAM::RGInfo::TReadGroupInfo &RgInfo) {
 	using BAM::RGInfo::InfoType;
 
-	_models.resize(RgInfo.size());
-	RgInfo.parse(InfoType::recal1, InfoType::recal2);
+	RgInfo.parse(InfoType::recal);
+	_models.reserve(RgInfo.size());
 
 	for (size_t rg = 0; rg < RgInfo.size(); ++rg) {
-		if (RgInfo.has(rg, InfoType::recal1)) {
-			const auto [r, e] = impl::rhoEps(RgInfo.get(rg, InfoType::recal1));
-			_models[rg][0]    = std::make_unique<TModelRecal>(r, e);
-		} else {
-			_models[rg][0] = std::make_unique<TModelNoRecal>();
-		}
-		if (RgInfo.has(rg, InfoType::recal2)) {
-			const auto [r, e] = impl::rhoEps(RgInfo.get(rg, InfoType::recal2));
-			_models[rg][1]    = std::make_unique<TModelRecal>(r, e);
-		} else {
-			_models[rg][1] = std::make_unique<TModelNoRecal>();
-		}
+		_models.emplace_back(RgInfo[rg]);
 	}
 }
 
@@ -167,9 +248,9 @@ void TModels::checkReadGroups(const BAM::TReadGroups &ReadGroups, std::vector<ui
 	ReadGroupsWithoutRecal.clear();
 	ReadGroupsLikelySingleEnd.clear();
 	for (uint16_t r = 0; r < ReadGroups.size(); ++r) {
-		if (!_models[r][0]->recalibrates()) {
+		if (!_models[r][0].recalibrates()) {
 			ReadGroupsWithoutRecal.push_back(r);
-		} else if (!_models[r][1]->recalibrates()) {
+		} else if (!_models[r][1].recalibrates()) {
 			ReadGroupsLikelySingleEnd.push_back(r);
 		}
 	}
@@ -178,11 +259,11 @@ void TModels::checkReadGroups(const BAM::TReadGroups &ReadGroups, std::vector<ui
 // functions to get error rates
 //-------------------------------------------------------
 Probability TModels::getErrorRate(const BAM::TSequencedBase &base) const noexcept {
-	return _models[base.readGroupID][base.isSecondMate()]->getErrorRate(base);
+	return _models[base.readGroupID][base.isSecondMate()].getErrorRate(base);
 }
 
 genometools::PhredIntProbability TModels::getPhredInt(const BAM::TSequencedBase &base) const noexcept {
-	return _models[base.readGroupID][base.isSecondMate()]->getPhredInt(base);
+	return _models[base.readGroupID][base.isSecondMate()].getPhredInt(base);
 }
 
 void TModels::recalibrate(BAM::TSequencedBase &base) const noexcept {
@@ -194,22 +275,30 @@ void TModels::recalibrate(std::vector<BAM::TSequencedBase> &bases) const noexcep
 }
 
 TBaseLikelihoods TModels::getBaseLikelihoods(const BAM::TSequencedBase &base) const noexcept {
-	return _models[base.readGroupID][base.isSecondMate()]->getBaseLikelihoods(base);
+	return _models[base.readGroupID][base.isSecondMate()].getBaseLikelihoods(base);
 }
 
 // functions to write file
 //-------------------------------------------------------------------
 void TModels::writeRecalFile(const BAM::TReadGroups &ReadGroups, const std::string & Filename) const {
 	// open file and write header
-	coretools::TOutputFile out(Filename, {"readGroup", "mate", "covariates", "rho"});
+	coretools::TOutputFile out(Filename);
+	out.writeHeader({"readGroup", "covariates1", "rho1", "covariates2", "rho2"});
 
 	// add models
 	for (uint16_t r = 0; r < ReadGroups.size(); ++r) {
+		out << ReadGroups.getName(r);
 		for (uint8_t mate = 0; mate < 2; ++mate) {
-			const auto s = mate == 0 ? "first" : "second";
-			out.writeln(ReadGroups.getName(r), s, _models[r][mate]->getCovariateDefinition(),
-						_models[r][mate]->getRhoDefinition());
+			out << _models[r][mate].getCovariateDefinition()
+				<< _models[r][mate].getRhoDefinition();
 		}
+		out.endln();
+	}
+}
+
+void TModels::addToRGInfo(BAM::RGInfo::TReadGroupInfo & RgInfo) const {
+	for(size_t r = 0; r < _models.size(); ++r){
+		RgInfo.set(r, BAM::RGInfo::InfoType::recal, _models[r].getInfo());
 	}
 }
 

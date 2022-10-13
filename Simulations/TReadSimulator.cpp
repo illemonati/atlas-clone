@@ -238,9 +238,9 @@ TReadSimulatorPairedEnd::TReadSimulatorPairedEnd(const BAM::TReadGroup & ReadGro
 	: TReadSimulator(ReadGroup, RGInfo){
 	//num cycles
 	logfile().list(BAM::RGInfo::infos[InfoType::cycles].description, ": ", RGInfo[InfoType::cycles]);
-	if(coretools::str::stringContains(RGInfo[InfoType::cycles], ',')){
+	if(coretools::str::stringContains(RGInfo.getString(InfoType::cycles), ',')){
 		//two values: one for first and one for second mate
-		coretools::str::convertString< coretools::StrictlyPositive<uint16_t> >(coretools::str::readBefore(RGInfo[InfoType::cycles], ','),
+		coretools::str::convertString< coretools::StrictlyPositive<uint16_t> >(coretools::str::readBefore(RGInfo.getString(InfoType::cycles), ','),
 				BAM::RGInfo::infos[InfoType::cycles].description + " must be within [1,65535].", _numCycles[0]);
 		coretools::str::convertString< coretools::StrictlyPositive<uint16_t> >(coretools::str::readAfter(RGInfo[InfoType::cycles], ','),
 				BAM::RGInfo::infos[InfoType::cycles].description + " must be within [1,65535].", _numCycles[1]);
