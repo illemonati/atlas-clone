@@ -27,6 +27,7 @@
 #include "coretools/Strings/stringFunctions.h"
 #include "coretools/Strings/toString.h"
 #include "SequencingError/TEpsilon.h"
+#include "TReadGroupInfo.h"
 
 #include <armadillo>
 
@@ -49,7 +50,6 @@ protected:
 	virtual double *_obegin() noexcept             = 0;
 	virtual double *_oend() noexcept               = 0;
 
-	void _initializeValues(const std::vector<std::string> &betas);
 	static double normalizeParameters(std::vector<double> &betas) noexcept {
 		const double mean = std::accumulate(betas.begin(), betas.end(), 0.) / betas.size();
 		for (auto &bi : betas) { bi -= mean; }
@@ -57,7 +57,7 @@ protected:
 	}
 
 public:
-	TFunction(size_t FirstParameterIndex = 0) : _firstParameterIndex(FirstParameterIndex) {}
+	TFunction(size_t FirstParameterIndex) : _firstParameterIndex(FirstParameterIndex) {}
 	virtual ~TFunction() = default;
 
 	// non-virtuals
@@ -99,9 +99,9 @@ private:
 public:
 	static constexpr std::string_view name = "intercept";
 
-	TIntercept(size_t FirstParameterIndex, const std::vector<std::string> &Betas)
+	TIntercept(size_t FirstParameterIndex, double Beta)
 		: TFunction(FirstParameterIndex) {
-		_initializeValues(Betas);
+		_beta = Beta;
 	}
 
 	size_t numParameters() const noexcept override { return 1; }
@@ -248,10 +248,10 @@ private:
 	double *_oend() noexcept override { return _oldBetas.data() + O; }
 
 public:
-	static constexpr std::string_view name = "polynomial";
+	static inline std::string name = std::string("polynomial").append(1, '0' + O);
 
-	TPolynomial(size_t FirstParameterIndex, const std::vector<std::string> &betas) : TFunction(FirstParameterIndex) {
-		_initializeValues(betas);
+	TPolynomial(size_t FirstParameterIndex, const std::vector<double> &Betas) : TFunction(FirstParameterIndex) {
+		std::copy(Betas.begin(), Betas.end(), _betas.begin());
 	}
 
 	size_t numParameters() const noexcept override { return O; }
@@ -359,8 +359,8 @@ private:
 
 public:
 	static constexpr std::string_view name = "probit";
-	TProbit(size_t FirstParameterIndex, const std::vector<std::string> &betas) : TFunction(FirstParameterIndex) {
-		_initializeValues(betas);
+	TProbit(size_t FirstParameterIndex, const std::vector<double> &Betas) : TFunction(FirstParameterIndex) {
+		std::copy(Betas.begin(), Betas.end(), _betas.begin());
 		_expandTmpStorage(128);
 	}
 
@@ -453,9 +453,9 @@ private:
 public:
 	static constexpr std::string_view name = "empiric";
 
-	TEmpiric(size_t FirstParameterIndex, const std::vector<std::string> &betas) : TFunction(FirstParameterIndex) {
-		_resize(betas.size());
-		_initializeValues(betas);
+	TEmpiric(size_t FirstParameterIndex, const std::vector<double> &Betas) : TFunction(FirstParameterIndex) {
+		_resize(Betas.size());
+		std::copy(Betas.begin(), Betas.end(), _betas.begin());
 	}
 
 	size_t numParameters() const noexcept override { return _betas.size(); }
@@ -551,6 +551,19 @@ public:
 		}
 		// init map
 		_initMapFromVector(values);
+	}
+
+	TIndexedEmpiric(size_t FirstParameterIndex, const BAM::RGInfo::TInfo &betas) : TFunction(FirstParameterIndex) {
+		//betas are JSON objects with keys indicating indexes and values corresponding betas
+		std::vector<uint16_t> values;
+		for(auto it = betas.begin(); it != betas.end(); ++it){
+			uint16_t val = coretools::str::convertStringCheck<uint16_t>(it.key());
+			if (std::find(values.begin(), values.end(), val) != values.end()) {
+				UERROR("Failed to initialize recal function '", typeString(), "': Duplicate entry for key " + coretools::str::toString(val) + "!");
+			}
+			values.push_back(val);
+			_betas.push_back(it.value());
+		}
 	}
 
 	size_t numParameters() const noexcept override { return _betas.size(); }

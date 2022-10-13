@@ -8,7 +8,9 @@
 #include "TEpsilon.h"
 #include "SequencingError/TCovariate.h"
 #include "SequencingError/TFunction.h"
+#include "coretools/Main/TError.h"
 #include "coretools/Strings/fromString.h"
+#include "coretools/Strings/splitters.h"
 
 namespace GenotypeLikelihoods {
 namespace SequencingError {
@@ -35,12 +37,11 @@ auto parseFunctions(const std::string &Defs) {
 	return functions;
 }
 
-auto parseFunction(const std::string &str) {
+auto parseFunction(std::string_view str) {
 	constexpr auto format =
 	    "Expected format is TYPE(ARGS)[BETAS], where (ARGS) is only required for some TYPE and [BETAS] is optional.";
-	std::string type;
-	std::vector<std::string> args;
-	std::vector<std::string> betas;
+	std::string_view type;
+	std::vector<double> betas;
 
 	// split string into parameters and values
 	if (const auto pos = str.find('['); pos != std::string::npos) {
@@ -49,47 +50,28 @@ auto parseFunction(const std::string &str) {
 
 		// extract parameters
 		const auto pos2 = str.find(']');
-		if (pos == std::string::npos) { throw "Wrong format for recal function '" + str + "': missing ']'! " + format; }
-		coretools::str::fillContainerFromStringAny(str.substr(pos + 1, pos2 - pos - 1), betas, ",", true);
+		if (pos == std::string::npos) { UERROR("Wrong format for recal function '", str, "': missing ']'! ", format); }
+		TSplitter spl{str.substr(pos + 1, pos2 - pos - 1), ','};
+		for (auto s: spl) {
+			double d;
+			fromString(s, d);
+			betas.push_back(d);
+		}
 	} else {
 		type = str;
 	}
 
-	// name might contain args
-	if (const auto pos = type.find('('); pos != std::string::npos) {
-		// extract parameters
-		const auto pos2 = str.find(')');
-		if (pos == std::string::npos) { throw "Wrong format for recal function '" + str + "': missing ')'! " + format; }
-		coretools::str::fillContainerFromStringAny(type.substr(pos + 1, pos2 - pos - 1), args, ",", true);
-
-		// extract type
-		type = type.substr(0, pos);
-	}
-	return std::make_tuple(type, args, betas);
+	return std::make_tuple(type, betas);
 }
 
 template<typename Covariate> TFunction *makeCovFunction(const std::string &Function, size_t FirstParameterIndex) {
-	const auto [type, args, betas] = parseFunction(Function);
-	if (type == TPolynomial<1, Covariate>::name) {
-		size_t O = 0;
-		if (betas.empty()) {
-			if (args.size() != 1) throw "You must specify betas or order of Polynomial function!";
-			fromString(args.front(), O);
-		} else {
-			if (((args.size() == 1) && (convertStringCheck<size_t>(args.front()) != betas.size()))
-				|| args.size() > 1)
-				throw "Number of betas does not correspond to order";
-			O = betas.size();
-		}
-		if (O == 1) return new TPolynomial<1, Covariate>(FirstParameterIndex, betas);
-		if (O == 2) return new TPolynomial<2, Covariate>(FirstParameterIndex, betas);
-		if (O == 3) return new TPolynomial<3, Covariate>(FirstParameterIndex, betas);
-		if (O == 4) return new TPolynomial<4, Covariate>(FirstParameterIndex, betas);
-		if (O == 5) return new TPolynomial<5, Covariate>(FirstParameterIndex, betas);
-		if (O == 6) return new TPolynomial<6, Covariate>(FirstParameterIndex, betas);
-		throw "Only Polynomials up to order 6 can be used!";
-	}
-	if (!args.empty()) throw type + " cannot have arguments";
+	const auto [type, betas] = parseFunction(Function);
+	if (type == TPolynomial<1, Covariate>::name) return new TPolynomial<1, Covariate>(FirstParameterIndex, betas);
+	if (type == TPolynomial<2, Covariate>::name) return new TPolynomial<2, Covariate>(FirstParameterIndex, betas);
+	if (type == TPolynomial<3, Covariate>::name) return new TPolynomial<3, Covariate>(FirstParameterIndex, betas);
+	if (type == TPolynomial<4, Covariate>::name) return new TPolynomial<4, Covariate>(FirstParameterIndex, betas);
+	if (type == TPolynomial<5, Covariate>::name) return new TPolynomial<5, Covariate>(FirstParameterIndex, betas);
+	if (type == TPolynomial<6, Covariate>::name) return new TPolynomial<6, Covariate>(FirstParameterIndex, betas);
 	if (type == TProbit<Covariate>::name) { return new TProbit<Covariate>(FirstParameterIndex, betas); }
 	if (type == TEmpiric<Covariate>::name) {
 		if (Covariate::isIndexed)
@@ -99,16 +81,15 @@ template<typename Covariate> TFunction *makeCovFunction(const std::string &Funct
 	}
 	if (type == TIndexedEmpiric<Covariate>::name) { return new TIndexedEmpiric<Covariate>(FirstParameterIndex, betas); }
 
-	throw "Function '" + type + "' does not exist!";
+	UERROR("Function '", type, "' does not exist!");
 }
 
 TFunction *makeFunction(const std::string &Covariate, const std::string &Function, size_t FirstParameterIndex) {
 	// No covariate
 	if (Covariate.empty()) {
-		const auto [type, args, betas] = parseFunction(Function);
+		const auto [type, betas] = parseFunction(Function);
 		if (type != TIntercept::name) throw "You must specify a covariate";
-		if (!args.empty()) throw "Intercept cannot have arguments";
-		return new TIntercept(FirstParameterIndex, betas);
+		return new TIntercept(FirstParameterIndex, betas.front());
 	}
 
 	if (Covariate == TCovariate_quality::name)
@@ -124,6 +105,27 @@ TFunction *makeFunction(const std::string &Covariate, const std::string &Functio
 
 	throw "Covariate '" + Covariate + "' does not exist!";
 }
+
+
+TFunction *makeFunction(const std::string &Covariate, const BAM::RGInfo::TInfo & Function, size_t FirstParameterIndex) {
+	// No covariate
+	if (Covariate == TIntercept::name) {
+		return new TIntercept(Function, FirstParameterIndex);
+	}
+	if (Covariate == TCovariate_quality::name)
+		return makeCovFunction<TCovariate_quality>(Function, FirstParameterIndex);
+	if (Covariate == TCovariate_position::name)
+		return makeCovFunction<TCovariate_position>(Function, FirstParameterIndex);
+	if (Covariate == TCovariate_context::name)
+		return makeCovFunction<TCovariate_context>(Function, FirstParameterIndex);
+	if (Covariate == TCovariate_fragmentLength::name)
+		return makeCovFunction<TCovariate_fragmentLength>(Function, FirstParameterIndex);
+	if (Covariate == TCovariate_mappingQuality::name)
+		return makeCovFunction<TCovariate_mappingQuality>(Function, FirstParameterIndex);
+
+	UERROR("Failed to parse recal covariate: covariate '" + Covariate + "' does not exist!");
+}
+
 
 constexpr coretools::Probability calcEpsilon(double eta) noexcept {
 	if (eta > 23.03) return coretools::Probability(0.9999999999);
@@ -150,6 +152,7 @@ TEpsilon::TEpsilon(const std::string &Def) {
 	_F.resize(_numParameters);
 	_JxF.resize(_numParameters, 1);
 }
+
 
 TEpsilon::~TEpsilon() = default;
 

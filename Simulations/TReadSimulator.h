@@ -15,6 +15,7 @@
 #include <vector>
 #include <set>
 #include "../BAM/TReadGroupInfo.h"
+#include "SequencingError/TModels.h"
 #include "genometools/GenotypeTypes.h"
 #include "TAlignment.h"
 #include "TCigar.h"
@@ -26,6 +27,7 @@
 #include "coretools/Main/TLog.h"
 
 namespace GenotypeLikelihoods { class TPMDType; }
+namespace GenotypeLikelihoods { namespace SequencingError { class TReadGroupModels; } }
 namespace GenotypeLikelihoods { namespace SequencingError { class TModel; } }
 namespace Simulations { class TSimulatorBamFile; }
 namespace Simulations { class TSimulatorReference; }
@@ -59,8 +61,6 @@ protected:
 	std::unique_ptr<TCategoricalDistribution<uint16_t>> _softClipDist5;
 	std::unique_ptr<TCategoricalDistribution<uint16_t>> _softClipDist3;
 	GenotypeLikelihoods::TPMDType const *_pmd = nullptr;
-	std::array<GenotypeLikelihoods::SequencingError::TModel const *, 2> _recal;
-	bool _hasRecal;
 
 	// contamination
 	double _contaminationRate = 0.;
@@ -73,8 +73,8 @@ protected:
 	//initialization functions
 	template <typename Distr>
 	void _initDistribution(Distr & Dist, const TReadGroupInfoEntry & RGInfo, const BAM::RGInfo::InfoType & Info){
-		coretools::instances::logfile().list(BAM::RGInfo::infos[Info].description, ": ", RGInfo[Info]);
-		Dist.set(RGInfo[Info]);
+		coretools::instances::logfile().list(coretools::str::capitalizeFirst(BAM::RGInfo::infos[Info].description), ": ", RGInfo.getString(Info));
+		Dist.set(RGInfo.getString(Info));
 	};
 
 	// general functions
@@ -95,7 +95,6 @@ public:
 
 	//setters
 	void setPMD(GenotypeLikelihoods::TPMDType const *Pmd);
-	void setRecal(GenotypeLikelihoods::SequencingError::TModel const *Recal1, GenotypeLikelihoods::SequencingError::TModel const *Recal2);
 	void setContamination(double rate, TSimulatorReference *source);
 
 	//simulate
@@ -116,6 +115,7 @@ public:
 class TReadSimulatorSingleEnd final : public TReadSimulator {
 private:
 	coretools::StrictlyPositive<uint16_t> _numCycles;
+	std::unique_ptr<GenotypeLikelihoods::SequencingError::TModel> _recalModel;
 
 public:
 	TReadSimulatorSingleEnd(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo);
@@ -130,10 +130,10 @@ public:
 //-------------------------------
 class TReadSimulatorPairedEnd final : public TReadSimulator {
 private:
-	std::array<coretools::StrictlyPositive<uint16_t>, 2> _numCycles;
+	BAM::TAlignment _secondMate;
 	BAM::TSamFlags _mateFlags;
-
-	std::multiset<BAM::TAlignment> _bamAlignmentSecondMates;
+	std::array<coretools::StrictlyPositive<uint16_t>, 2> _numCycles;
+	GenotypeLikelihoods::SequencingError::TReadGroupModels _recalModels;
 
 public:
 	TReadSimulatorPairedEnd(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo);

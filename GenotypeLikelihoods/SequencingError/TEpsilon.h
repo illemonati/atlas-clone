@@ -11,6 +11,7 @@
 #include <armadillo>
 #include <memory>
 
+#include "TReadGroupInfo.h"
 #include "genometools/GenotypeTypes.h"
 #include "RecalEstimatorTools.h"
 #include "TGenotypeData.h"
@@ -133,7 +134,6 @@ public:
 	~TEpsilon();
 
 	void checkOrInit(const RecalEstimatorTools::TRecalDataTable &DataTable);
-
 	coretools::Probability calcErrorRate(const BAM::TSequencedBase &base) const noexcept; 
 	double Q() const noexcept {return _Q;};
 	double maxF() const noexcept {return _maxF;};
