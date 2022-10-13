@@ -190,7 +190,7 @@ void TModels::initialize(const std::string &RecalString, const std::string &RhoS
 
 	// initialize models
 	for(uint16_t i = 0; i < ReadGroups.size(); ++i){
-		_models.emplace_back(RhoString, RecalString);
+		_models.emplace_back(RecalString, RhoString);
 	}
 }
 
