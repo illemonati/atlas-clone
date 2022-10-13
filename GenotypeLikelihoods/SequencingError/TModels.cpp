@@ -36,31 +36,31 @@ using coretools::instances::logfile;
 
 namespace impl {
 
-std::pair<std::string, std::string> rhoEps(const std::string &s) {
+std::pair<std::string, std::string> epsRho(const std::string &s) {
 	// Format: intercept[];cov1:function1[];cov2:function2[];...;rho[[]]
 	const auto rBegin = s.find("rho");
 	if (rBegin == std::string::npos) {
 		// no rho definition
-		return std::make_pair("default"s, s);
+		return std::make_pair(s, "default"s);
 	}
-	return std::make_pair(s.substr(rBegin + 3, s.size()), s.substr(0, rBegin-1));
+	return std::make_pair(s.substr(0, rBegin-1), s.substr(rBegin + 3, s.size()));
 }
 
 void initModel(std::unique_ptr<TModel> & model, const BAM::RGInfo::TReadGroupInfoEntry & Info, const BAM::RGInfo::InfoType Type){
 	if(Info.has(Type)){
-		const auto [r, e] = rhoEps(Info.get(Type));
-		model = std::make_unique<TModelRecal>(r, e);
+		const auto [e, r] = epsRho(Info.get(Type));
+		model = std::make_unique<TModelRecal>(e, r);
 	} else {
 		model = std::make_unique<TModelNoRecal>();
 	}
 }
 
 void initModel(std::unique_ptr<TModel> & model, const BAM::RGInfo::TInfo & info){
-	if(info.empty() || (info.is_string() && info.get<std::string>() == "default")){
+	if(info.empty() || (info.is_string() && info.get<std::string_view>() == "default")){
 		model = std::make_unique<TModelNoRecal>();
 	} else {
 		// TODO
-		model = std::make_unique<TModelRecal>(info);
+		model = std::make_unique<TModelRecal>(info.get<std::string>());
 	}
 }
 
@@ -76,8 +76,8 @@ TReadGroupModels::TReadGroupModels(const std::string &RecalString, const std::st
 		_models[0] = std::make_unique<TModelNoRecal>();
 		_models[1] = std::make_unique<TModelNoRecal>();
 	} else {
-		_models[0] = std::make_unique<TModelRecal>(RhoString, RecalString);
-		_models[1] = std::make_unique<TModelRecal>(RhoString, RecalString);
+		_models[0] = std::make_unique<TModelRecal>(RecalString, RhoString);
+		_models[1] = std::make_unique<TModelRecal>(RecalString, RhoString);
 	}
 }
 
@@ -85,12 +85,12 @@ TReadGroupModels::TReadGroupModels(const std::string &RecalString1, const std::s
 	if(RecalString1.empty() || RecalString1 == "-" || RecalString1 == "default"){
 		_models[0] = std::make_unique<TModelNoRecal>();
 	} else {
-		_models[0] = std::make_unique<TModelRecal>(RhoString1, RecalString1);
+		_models[0] = std::make_unique<TModelRecal>(RecalString1, RhoString1);
 	}
 	if(RecalString2.empty() || RecalString2 == "-" || RecalString2 == "default"){
 		_models[1] = std::make_unique<TModelNoRecal>();
 	} else {
-		_models[1] = std::make_unique<TModelRecal>(RhoString2, RecalString2);
+		_models[1] = std::make_unique<TModelRecal>(RecalString2, RhoString2);
 	}
 }
 
@@ -289,7 +289,7 @@ void TModels::writeRecalFile(const BAM::TReadGroups &ReadGroups, const std::stri
 	for (uint16_t r = 0; r < ReadGroups.size(); ++r) {
 		out << ReadGroups.getName(r);
 		for (uint8_t mate = 0; mate < 2; ++mate) {
-			out << _models[r][mate].getCovariateDefinition()
+			out << _models[r][mate].getEpsilonDefinition()
 				<< _models[r][mate].getRhoDefinition();
 		}
 		out.endln();
