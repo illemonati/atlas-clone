@@ -66,6 +66,8 @@ protected:
 	double _contaminationRate = 0.;
 	TSimulatorReference *_contaminationSource = nullptr;
 
+	GenotypeLikelihoods::SequencingError::TReadGroupModels _recalModels;
+
 	// alignment
 	BAM::TSamFlags _flags;
 	BAM::TAlignment _alignment;
@@ -115,7 +117,6 @@ public:
 class TReadSimulatorSingleEnd final : public TReadSimulator {
 private:
 	coretools::StrictlyPositive<uint16_t> _numCycles;
-	std::unique_ptr<GenotypeLikelihoods::SequencingError::TModel> _recalModel;
 
 public:
 	TReadSimulatorSingleEnd(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo);
@@ -133,7 +134,6 @@ private:
 	BAM::TAlignment _secondMate;
 	BAM::TSamFlags _mateFlags;
 	std::array<coretools::StrictlyPositive<uint16_t>, 2> _numCycles;
-	GenotypeLikelihoods::SequencingError::TReadGroupModels _recalModels;
 
 public:
 	TReadSimulatorPairedEnd(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo);

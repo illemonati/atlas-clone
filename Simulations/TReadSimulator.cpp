@@ -31,7 +31,7 @@ using BAM::RGInfo::InfoType;
 //------------------------------------------------
 
 TReadSimulator::TReadSimulator(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo)
-	: _readGroup(ReadGroup){
+	: _readGroup(ReadGroup), _recalModels(RGInfo){
 
 	// initialize bamAlignment
 	_alignment.setReadGroup(_readGroup.id());
@@ -168,8 +168,7 @@ void TReadSimulator::_simulateBasesQualities(BAM::TAlignment & alignment,
 	}
 
 	//add recal
-	// TODO
-	//_recalModel->simulate(alignment);
+	_recalModels.simulate(alignment);
 }
 
 void TReadSimulator::setPMD(GenotypeLikelihoods::TPMDType const *Pmd) {
@@ -189,7 +188,7 @@ void TReadSimulator::setContamination(double rate, TSimulatorReference *source) 
 // TSimulatorSingleEndRead
 //----------------------------------
 TReadSimulatorSingleEnd::TReadSimulatorSingleEnd(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo)
-	: TReadSimulator(ReadGroup, RGInfo){
+	: TReadSimulator(ReadGroup, RGInfo) {
 
 	_alignment.setSamFlags(_flags);
 
@@ -207,20 +206,6 @@ TReadSimulatorSingleEnd::TReadSimulatorSingleEnd(const BAM::TReadGroup & ReadGro
 		UERROR(error);
 	} else {
 		UERROR("Unable to understand ", BAM::RGInfo::infos[InfoType::cycles].description, ": expect a single integer within [1,65535].");
-	}
-
-	//recal
-	logfile().list(coretools::str::capitalizeFirst(BAM::RGInfo::infos[InfoType::recal].description), ": ", RGInfo.getString(InfoType::recal));
-
-	auto& r = RGInfo[InfoType::recal];
-	if(r.contains("first")){
-		if (r.contains("second")) {
-			logfile().warning("Second mate provided for single-en read group! It will be ignored.");
-		}
-		_recalModel = std::make_unique<GenotypeLikelihoods::SequencingError::TModelRecal>(r);
-	}
-	else {
-		_recalModel = std::make_unique<GenotypeLikelihoods::SequencingError::TModelNoRecal>();
 	}
 }
 
@@ -249,9 +234,8 @@ void TReadSimulatorSingleEnd::simulate(const TGenomePosition & Position, const s
 TReadSimulatorPairedEnd::TReadSimulatorPairedEnd(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo)
 	: TReadSimulator(ReadGroup, RGInfo){
 	//num cycles
-	/*
 	logfile().list(BAM::RGInfo::infos[InfoType::cycles].description, ": ", RGInfo[InfoType::cycles]);
-	if(coretools::str::stringContains(RGInfo[InfoType::cycles], ',')){
+	if(coretools::str::stringContains(RGInfo.getString(InfoType::cycles), ',')){
 		//two values: one for first and one for second mate
 		coretools::str::convertString< coretools::StrictlyPositive<uint16_t> >(coretools::str::readBefore(RGInfo[InfoType::cycles], ','),
 				BAM::RGInfo::infos[InfoType::cycles].description + " must be within [1,65535].", _numCycles[0]);
@@ -263,12 +247,6 @@ TReadSimulatorPairedEnd::TReadSimulatorPairedEnd(const BAM::TReadGroup & ReadGro
 				BAM::RGInfo::infos[InfoType::cycles].description + " must be within [1,65535].", _numCycles[0]);
 		_numCycles[1] = _numCycles[0];
 	}
-
-	//recal
-	logfile().list(coretools::str::capitalizeFirst(BAM::RGInfo::infos[InfoType::recal1].description), ": ", RGInfo[InfoType::recal1]);
-	logfile().list(coretools::str::capitalizeFirst(BAM::RGInfo::infos[InfoType::recal2].description), ": ", RGInfo[InfoType::recal2]);
-	_recalModels = std::make_unique<GenotypeLikelihoods::SequencingError::TReadGroupModels>(RGInfo);
-	*/
 
 	// set SAM flags
 	_flags.setIsPaired(true);
