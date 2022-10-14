@@ -158,9 +158,9 @@ void TModelVectorForEstimation::writeRecalFile(const BAM::TReadGroups &ReadGroup
 		for (uint8_t mate = 0; mate < 2; ++mate) {
 			out.write(ReadGroups.getName(r), std::array{"first", "second"}[mate]);
 			if (_modelIndex[r][mate])
-				out.writeln(_modelIndex[r][mate]->getCovariateDefinition(), _modelIndex[r][mate]->getRhoDefinition());
+				out.writeln(_modelIndex[r][mate]->getEpsilonDefinition(), _modelIndex[r][mate]->getRhoDefinition());
 			else 
-				out.writeln(_noRecal.getCovariateDefinition(), _noRecal.getRhoDefinition());
+				out.writeln(_noRecal.getEpsilonDefinition(), _noRecal.getRhoDefinition());
 		}
 	}
 }
@@ -168,8 +168,8 @@ void TModelVectorForEstimation::writeRecalFile(const BAM::TReadGroups &ReadGroup
 std::string TModelVectorForEstimation::getModelsDefinition() {
 	if (_models.empty()) return std::string{};
 
-	return std::accumulate(_models.begin() + 1, _models.end(), _models.front()->getCovariateDefinition(),
-						   [](auto tot, auto &model) { return tot + '\n' + model->getCovariateDefinition(); });
+	return std::accumulate(_models.begin() + 1, _models.end(), _models.front()->getEpsilonDefinition(),
+						   [](auto tot, auto &model) { return tot + '\n' + model->getEpsilonDefinition(); });
 };
 
 std::string TModelVectorForEstimation::getRhoDefinition() {
