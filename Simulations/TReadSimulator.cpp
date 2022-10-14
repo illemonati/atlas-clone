@@ -31,7 +31,7 @@ using BAM::RGInfo::InfoType;
 //------------------------------------------------
 
 TReadSimulator::TReadSimulator(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo)
-	: _readGroup(ReadGroup){
+	: _readGroup(ReadGroup), _recalModels(RGInfo){
 
 	// initialize bamAlignment
 	_alignment.setReadGroup(_readGroup.id());
@@ -47,8 +47,9 @@ TReadSimulator::TReadSimulator(const BAM::TReadGroup & ReadGroup, const TReadGro
 	//soft clip
 	logfile().listFlush(BAM::RGInfo::infos[InfoType::softClipping].description, ": ");
 	if(RGInfo.has(InfoType::softClipping)){
-		logfile().write(RGInfo[InfoType::softClipping]);
-		std::string sc = RGInfo[InfoType::softClipping];
+		std::string sc = RGInfo.getString(InfoType::softClipping);
+		logfile().write(sc);
+
 		if(!sc.empty()){
 			//check if one or two values are given
 			if(sc.find(':') == std::string::npos){
@@ -67,9 +68,6 @@ TReadSimulator::TReadSimulator(const BAM::TReadGroup & ReadGroup, const TReadGro
 	} else {
 		logfile().write("none");
 	}
-
-	//others
-	_hasRecal = false;
 }
 
 double TReadSimulator::_calcMeanReadLength(const uint16_t maxLen) const {
@@ -170,19 +168,7 @@ void TReadSimulator::_simulateBasesQualities(BAM::TAlignment & alignment,
 	}
 
 	//add recal
-	if(_hasRecal){
-		for (auto & b : alignment) {
-			const auto sm = b.isSecondMate();
-			_recal[sm]->simulate(b);
-		}
-	}
-}
-
-void TReadSimulator::setRecal(
-	GenotypeLikelihoods::SequencingError::TModel const *Recal1, GenotypeLikelihoods::SequencingError::TModel const *Recal2) {
-	_recal[0] = Recal1;
-	_recal[1] = Recal2;
-	_hasRecal = true;
+	_recalModels.simulate(alignment);
 }
 
 void TReadSimulator::setPMD(GenotypeLikelihoods::TPMDType const *Pmd) {
@@ -202,14 +188,25 @@ void TReadSimulator::setContamination(double rate, TSimulatorReference *source) 
 // TSimulatorSingleEndRead
 //----------------------------------
 TReadSimulatorSingleEnd::TReadSimulatorSingleEnd(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo)
-	: TReadSimulator(ReadGroup, RGInfo){
-
-	//num cycles
-	logfile().list(BAM::RGInfo::infos[InfoType::cycles].description, ": ", RGInfo[InfoType::cycles]);
-	coretools::str::convertString< coretools::StrictlyPositive<uint16_t> >(RGInfo[InfoType::cycles],
-			coretools::str::capitalizeFirst(BAM::RGInfo::infos[InfoType::cycles].description) + " must be a single number within [1,65535].", _numCycles);
+	: TReadSimulator(ReadGroup, RGInfo) {
 
 	_alignment.setSamFlags(_flags);
+
+	//num cycles
+	logfile().list(BAM::RGInfo::infos[InfoType::cycles].description, ": ", RGInfo.getString(InfoType::cycles));
+	std::string error = "For single-end read groups, " + BAM::RGInfo::infos[InfoType::cycles].description + " must be a single integer within [1,65535].";
+	auto& json = RGInfo[InfoType::cycles];
+	if(json.is_number()){
+		_numCycles = json.get<int>();
+	} else if(json.is_string()){
+		coretools::str::convertString< coretools::StrictlyPositive<uint16_t> >(json, error, _numCycles);
+	} else if(json.is_array() && json.size() == 1){
+			coretools::str::convertString< coretools::StrictlyPositive<uint16_t> >(json[0], error, _numCycles);
+	} else if(json.is_array() && json.size() == 2){
+		UERROR(error);
+	} else {
+		UERROR("Unable to understand ", BAM::RGInfo::infos[InfoType::cycles].description, ": expect a single integer within [1,65535].");
+	}
 }
 
 double TReadSimulatorSingleEnd::meanReadLength() const {
@@ -228,7 +225,7 @@ void TReadSimulatorSingleEnd::simulate(const TGenomePosition & Position, const s
 	_simulateBasesQualities(_alignment, Haplotype, fragmentLength, _numCycles, _simulateContamination());
 
 	// write bam alignment
-	BamFile.saveAlignment(_alignment);
+	BamFile.writeAlignment(_alignment);
 }
 
 //----------------------------------
@@ -263,6 +260,7 @@ TReadSimulatorPairedEnd::TReadSimulatorPairedEnd(const BAM::TReadGroup & ReadGro
 	_mateFlags.setIsProperPair(true);
 	_mateFlags.setIsRead2(true);
 	_mateFlags.setIsReverseStrand(true);
+	_secondMate.setSamFlags(_mateFlags);
 }
 
 double TReadSimulatorPairedEnd::meanReadLength() const {
@@ -286,40 +284,39 @@ void TReadSimulatorPairedEnd::simulate(const TGenomePosition & Position, const s
 	// Fill SECOND mate
 	//------------------
 	// identify position
-	TGenomePosition & matePosition(_alignment);
+	_secondMate = _alignment;
 	if(fragmentLength > _numCycles[1]){
-		matePosition += (uint32_t) fragmentLength - (uint32_t) _numCycles[1];
+		_secondMate += (uint32_t) fragmentLength - (uint32_t) _numCycles[1];
 	}
 
 	// create new alignment
-	BAM::TAlignment secondMate(matePosition);
-	secondMate.setReadGroup(_readGroup.id());
-	secondMate.setName(_alignment.name());
-	secondMate.setMappingQuality(_alignment.mappingQuality());
-	secondMate.setSamFlags(_mateFlags);
-
+	_secondMate.setReadGroup(_readGroup.id());
+	_secondMate.setName(_alignment.name());
+	_secondMate.setMappingQuality(_alignment.mappingQuality());
 
 	// simulated bases and qualities
-	_simulateBasesQualities(secondMate, Haplotype, fragmentLength, _numCycles[1], readIsContaminated);
+	_simulateBasesQualities(_secondMate, Haplotype, fragmentLength, _numCycles[1], readIsContaminated);
 
 	// WRITE ALIGNMENTS
 	//-----------------
 	//set mate positions
-	_alignment.setMateGenomicPosition(secondMate);
-	secondMate.setMateGenomicPosition(_alignment);
+	_alignment.setMateGenomicPosition(_secondMate);
+	_secondMate.setMateGenomicPosition(_alignment);
 
 	// write bam alignment
-	BamFile.saveAlignment(_alignment);
+	BamFile.writeAlignment(_alignment);
 
 	// write mate if it starts at same position as first, and keep for writing later otherwise
-	if (matePosition == Position) {
-		BamFile.saveAlignment(secondMate);
+	if (_secondMate == _alignment) {
+		BamFile.writeAlignment(_secondMate);
 	} else {
-		_bamAlignmentSecondMates.insert(secondMate);
+		BamFile.writeAlignmentLater(_secondMate);
 	}
 }
 
 void TReadSimulatorPairedEnd::writeUnwrittenAlignments(const genometools::TGenomePosition & Position, TSimulatorBamFile &BamFile) {
+	//TODO
+	/*
 	if(!_bamAlignmentSecondMates.empty()){
 		auto it = _bamAlignmentSecondMates.begin();
 		while(it != _bamAlignmentSecondMates.end() && *it <= Position){
@@ -327,6 +324,7 @@ void TReadSimulatorPairedEnd::writeUnwrittenAlignments(const genometools::TGenom
 			it = _bamAlignmentSecondMates.erase(it);
 		}
 	}
+	*/
 }
 
 } // namespace Simulations

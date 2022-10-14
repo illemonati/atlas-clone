@@ -23,8 +23,8 @@ void TReadSimulators::_initializeReadGroups(const TReadGroupInfo & RGinfo) {
 	// create simulation read groups
 	using BAM::RGInfo::InfoType;
 	for(size_t i = 0; i < RGinfo.size(); ++i){
-		logfile().startIndent("Read group '", RGinfo[i][InfoType::RGName], "':");
-		std::string type = RGinfo[i][InfoType::seqType];
+		logfile().startIndent("Read group '", RGinfo[i].name(), "':");
+		std::string type = RGinfo[i].getString(InfoType::seqType);
 		logfile().list("Sequencing type: ", type);
 		logfile().list("Frequency: ", _simGroupFrequencies[i]);
 
@@ -90,7 +90,7 @@ TReadSimulators::TReadSimulators(const std::string & RgInfoFileName){
 	}
 
 	using BAM::RGInfo::InfoType;
-	RGinfo.parse(InfoType::RGFrequency, InfoType::seqType, InfoType::cycles, InfoType::fragmentLength, InfoType::baseQuality, InfoType::mappingQuality, InfoType::softClipping);
+	RGinfo.parse(InfoType::RGFrequency, InfoType::seqType, InfoType::cycles, InfoType::fragmentLength, InfoType::baseQuality, InfoType::mappingQuality, InfoType::softClipping, InfoType::recal);
 	_initializeReadGroupFrequencies(RGinfo);
 
 	//Initialize read groups
@@ -106,19 +106,11 @@ TReadSimulators::TReadSimulators(const std::string & RgInfoFileName){
 		_readSimulators[r]->setPMD(&_PMD[r]);
 	}
 
-	// E) initialize quality transformation
-	//-------------------------------------
-	//TODO: Recal MUST be set -> change so that is ensured!
-	_recal.initialize(RGinfo);
-	for (size_t r = 0; r < _readSimulators.size(); ++r) {
-		_readSimulators[r]->setRecal(&_recal(r, false), &_recal(r, true));
-	}
-
-	// E) initialize contamination
+	// C) initialize contamination
 	//----------------------------
 	// TODO: Think about contamination object for both estimation and simulation
 
-	// G) other things
+	// D) other things
 	//----------------
 	// initialize read group frequencies frequencies
 

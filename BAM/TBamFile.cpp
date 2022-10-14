@@ -1034,6 +1034,13 @@ void TOutputBamFile::close(TLog* logfile){
 
 void TOutputBamFile::close(){
 	if(_openForWriting){
+		//write all future alignments
+		for(auto& a : _futureAlignments){
+			_writeAlignment(a);
+		}
+		_futureAlignments.clear();
+
+		//close
 		_bamWriter.Close();
 
 		// create index of BAM file
@@ -1106,11 +1113,12 @@ void TOutputBamFile::_writeAlignment(const TAlignment & alignment){
 };
 
 void TOutputBamFile::writeAlignment(const TAlignment & alignment){
+	//write alignments BEFORE alignment to write next
 	auto it = _futureAlignments.begin();
 	if(it != _futureAlignments.end()){
-		//write alignments BEFORE alignment to write next
-		while(it != _futureAlignments.end() && *it < alignment){
+		while(it != _futureAlignments.end() && *it <= alignment){
 			_writeAlignment(*it);
+			++it;
 		}
 
 		//remove written alignments
@@ -1120,6 +1128,10 @@ void TOutputBamFile::writeAlignment(const TAlignment & alignment){
 	//write next alignment
 	_writeAlignment(alignment);
 };
+
+void TOutputBamFile::writeAlignmentLater(const TAlignment & alignment){
+	_futureAlignments.insert(alignment);
+}
 
 }; //end namespace
 

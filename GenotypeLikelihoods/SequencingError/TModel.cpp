@@ -140,7 +140,6 @@ void TModelNoRecal::simulate(BAM::TSequencedBase &base) const noexcept {
 
 TModelRecal::TModelRecal(const std::string &EpsilonDef, const std::string& RhoDef): _rho(RhoDef), _epsilon(EpsilonDef) {}
 
-
 //-------------------------------------------------
 // functions to calculate error rates
 //-------------------------------------------------

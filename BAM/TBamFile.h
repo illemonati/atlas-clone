@@ -297,6 +297,7 @@ public:
 	void close();
 	void closeNoIndex();
 	void writeAlignment(const TAlignment & alignment);
+	void writeAlignmentLater(const TAlignment & alignment);
 };
 
 }; //end namespace

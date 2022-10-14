@@ -85,16 +85,16 @@ public:
 //------------------------------------------------
 class TModelNoRecal final : public TModel {
 public:
-	virtual bool estimatable() const noexcept override { return false; };
-	virtual bool recalibrates() const noexcept override { return false; };
+	bool estimatable() const noexcept override { return false; };
+	bool recalibrates() const noexcept override { return false; };
 
 	coretools::Probability getErrorRate(const BAM::TSequencedBase &base) const noexcept override;
 	genometools::PhredIntProbability getPhredInt(const BAM::TSequencedBase &base) const noexcept override;
 	TBaseLikelihoods getBaseLikelihoods(const BAM::TSequencedBase &base) const noexcept override;
-	virtual void simulate(BAM::TSequencedBase &base) const noexcept override;
+	void simulate(BAM::TSequencedBase &base) const noexcept override;
 
-	virtual std::string getEpsilonDefinition() const noexcept override { return "-"; };
-	virtual std::string getRhoDefinition() const noexcept override { return "-"; };
+	std::string getEpsilonDefinition() const noexcept override { return "-"; };
+	std::string getRhoDefinition() const noexcept override { return "-"; };
 };
 
 //------------------------------------------------
