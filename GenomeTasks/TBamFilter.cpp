@@ -419,16 +419,17 @@ void TBamFilter::traverseBAM(){
 // TAlignmentMergerType
 //-----------------------------------------
 uint16_t TAlignmentMerger::merge(BAM::TAlignment & alignment, BAM::TAlignment & mate){
-	//check if reads overlap
+	//check if reads overlap	
 	std::pair<uint32_t,bool> overlapLength = determineOverlapLength(alignment, mate);
-	if (overlapLength.first != 0){
-		std::cout << alignment.name() << " " << overlapLength.second << std::endl;
+	if (overlapLength.first > 0){
 		alignment.merge(overlapLength.first, overlapLength.second);
 	}
 	return overlapLength.first;
 };
 
 std::pair<uint32_t,bool> TAlignmentMerger::determineOverlapLength(BAM::TAlignment & alignment, BAM::TAlignment & mate){
+	if (alignment.cigar().lengthAligned() == 0 || mate.cigar().lengthAligned() == 0)
+		return std::make_pair(0,true);
 	if (alignment > mate){
 		if (alignment.position()  < mate.position() + mate.cigar().lengthAligned()){
 			uint32_t overlapLength = mate.position() + mate.cigar().lengthAligned() - alignment.position();
@@ -710,7 +711,6 @@ void TOverlapQuantifier::quantifyOverlap(){
 				//calculate overlap and fragment length and add to storage
 				uint32_t overlap = _merger.determineOverlapLength(*alignment, *mate->alignment).first;
 				if (overlap > 0)
-					std::cout << alignment->name() << std::endl;
 				uint32_t fragmentLength = alignment->fragmentLength();
 			
 				overlapDist.add(fragmentLength, overlap);

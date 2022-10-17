@@ -25,7 +25,7 @@ TCigar::TCigar(TCigar cigar, uint16_t overlapLength, bool isFirst) {
 		if (isFirst) {
 			auto iterator = cigar.begin();
 			while (lengthAligned() < nonOverlapLength) {
-				if (lengthAligned()+iterator->length > nonOverlapLength) {
+				if (lengthAligned()+iterator->length > nonOverlapLength && (iterator->type =='M' || iterator->type == '=' || iterator->type == 'X')) {
 					if (iterator->type != 'S'){
 						overlap = (lengthAligned()+iterator->length) - nonOverlapLength;
 						add(iterator->type,iterator->length - overlap);
@@ -49,7 +49,7 @@ TCigar::TCigar(TCigar cigar, uint16_t overlapLength, bool isFirst) {
 		} else {
 			auto iterator = --cigar.end();
 			while (lengthAligned() < nonOverlapLength) {
-						if (lengthAligned()+iterator->length > nonOverlapLength) {
+						if (lengthAligned()+iterator->length > nonOverlapLength && (iterator->type =='M' || iterator->type == '=' || iterator->type == 'X')) {
 							if (iterator->type != 'S'){
 								overlap = (lengthAligned()+iterator->length) - nonOverlapLength;
 								add(iterator->type,iterator->length - overlap);

@@ -328,6 +328,9 @@ void TAlignment::setReadGroup(const uint16_t readGroupId) {
 };
 //get overlap length from previous function and pass it on to cigar constructor
 void TAlignment::merge(uint16_t overlapLength, bool isFirst) {
+	if(!isFirst){
+		this->moveOnRef(this->position() + overlapLength);
+		
 	_setCigar(TCigar(cigar(), overlapLength, isFirst));
 }
 
