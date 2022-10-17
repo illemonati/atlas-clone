@@ -130,6 +130,7 @@ public:
 	const genometools::TGenomePosition &mateGenomicPosition() const { return _mateGenomicPosition; };
 	uint32_t matePosition() const { return _mateGenomicPosition.position(); };
 	uint32_t mateRefID() const { return _mateGenomicPosition.refID(); };
+	uint16_t fragmentLength() const { return _fragmentLength; };
 
 	std::string name() const { return _name; };
 	uint16_t readGroupId() const { return _readGroupID; };

@@ -18,9 +18,10 @@ namespace BAM {
 TCigar::TCigar(TCigar cigar, uint16_t overlapLength, bool isFirst) {
 	uint16_t overlap = 0;
 	if (overlapLength > cigar.lengthAligned()) {
-		add('S', cigar.lengthAligned());
+		add('S', cigar.lengthRead());
 	} else {
 		uint16_t nonOverlapLength = cigar.lengthAligned() - overlapLength;
+		std::cout << nonOverlapLength << std::endl;
 		if (isFirst) {
 			auto iterator = cigar.begin();
 			while (lengthAligned() < nonOverlapLength) {

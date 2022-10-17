@@ -422,6 +422,7 @@ uint16_t TAlignmentMerger::merge(BAM::TAlignment & alignment, BAM::TAlignment & 
 	//check if reads overlap
 	std::pair<uint32_t,bool> overlapLength = determineOverlapLength(alignment, mate);
 	if (overlapLength.first != 0){
+		std::cout << alignment.name() << " " << overlapLength.second << std::endl;
 		alignment.merge(overlapLength.first, overlapLength.second);
 	}
 	return overlapLength.first;
@@ -429,20 +430,20 @@ uint16_t TAlignmentMerger::merge(BAM::TAlignment & alignment, BAM::TAlignment & 
 
 std::pair<uint32_t,bool> TAlignmentMerger::determineOverlapLength(BAM::TAlignment & alignment, BAM::TAlignment & mate){
 	if (alignment > mate){
-		if (alignment.position()  < mate.position()+mate.cigar().lengthAligned()){
-			uint32_t overlapLength = mate.position()+mate.cigar().lengthAligned() - alignment.position();
+		if (alignment.position()  < mate.position() + mate.cigar().lengthAligned()){
+			uint32_t overlapLength = mate.position() + mate.cigar().lengthAligned() - alignment.position();
 			bool alignmentFirst = false;
 			return std::make_pair(overlapLength,alignmentFirst);
-		}
+		} return std::make_pair(0,false);
 	} else {
-		if (mate.position()  < alignment.position()+alignment.cigar().lengthAligned()){
-			uint32_t overlapLength =alignment.position()+alignment.cigar().lengthAligned() - mate.position();
+		if (mate.position()  < alignment.position() + alignment.cigar().lengthAligned()){
+			uint32_t overlapLength = alignment.position() + alignment.cigar().lengthAligned() - mate.position();
 			bool alignmentFirst = true;
 			return std::make_pair(overlapLength,alignmentFirst);	
-		}
+		} return std::make_pair(0,true);
 	}
-	return std::make_pair(0,false);
 }
+
 // TAlignmentMergerType_randomRead
 //---------------------------------
 TAlignmentMerger_randomRead::TAlignmentMerger_randomRead():TAlignmentMerger(){};
@@ -707,10 +708,11 @@ void TOverlapQuantifier::quantifyOverlap(){
 				}
 
 				//calculate overlap and fragment length and add to storage
-				uint16_t overlap = _merger.determineOverlapLength(*alignment, *mate->alignment).first;
-				uint16_t fragmentLength = alignment->cigar().lengthAligned() + mate->alignment->cigar().lengthAligned() - overlap;
-				//std::cout << alignment->cigar().lengthAligned() << " " << mate->alignment->cigar().lengthAligned() << " " << overlap << std::endl;
-
+				uint32_t overlap = _merger.determineOverlapLength(*alignment, *mate->alignment).first;
+				if (overlap > 0)
+					std::cout << alignment->name() << std::endl;
+				uint32_t fragmentLength = alignment->fragmentLength();
+			
 				overlapDist.add(fragmentLength, overlap);
 			}
 		}
@@ -728,9 +730,7 @@ void TOverlapQuantifier::quantifyOverlap(){
 	logfile().listFlush("Writing distribution of fragment length and overlap to file '" + filename + "' ...");
 	const std::vector<std::string> header = {"fragmentLength", "overlap", "count"};
 	coretools::TOutputFile out(filename, header);
-	std::cout << "TEST" << std::endl;
 	overlapDist.write(out);
-	std::cout << "TEST" << std::endl;
 	out.close();
 	logfile().done();
 };

@@ -141,21 +141,21 @@ void TBamDiagnoser::diagnose(){
 	logfile().done();
 
 	if(parameters().parameterExists("splitMergeInput")){
-	//write file used by split merge
-	std::string splitmergename = _outputName + "_splitMergeInput.txt";
-	logfile().listFlush("Outputting input file for splitMerge to '" + splitmergename + "' ...");
-	coretools::TOutputFile splitm (splitmergename, {"readGroup", "seqType", "maxCycles"});
-	for(uint32_t rg = 0; rg < numRG; ++rg){
-		splitm << _bamFile.readGroups().getName(rg);
-		if (_fragmentLength[rg].counts() == 0){
-			splitm << "single";
-		} else {
-			splitm << "paired";
+		//write file used by split merge
+		std::string splitmergename = _outputName + "_splitMergeInput.txt";
+		logfile().listFlush("Outputting input file for splitMerge to '" + splitmergename + "' ...");
+		coretools::TOutputFile splitm (splitmergename, {"readGroup", "seqType", "seqCycles"});
+		for(uint32_t rg = 0; rg < numRG; ++rg){
+			splitm << _bamFile.readGroups().getName(rg);
+			if (_fragmentLength[rg].counts() == 0){
+				splitm << "single";
+			} else {
+				splitm << "paired";
+			}
+			splitm << _readLength.max() << std::endl;
 		}
-		splitm << _readLength.max() << std::endl;
-	}
-	splitm.close();
-	logfile().done();
+		splitm.close();
+		logfile().done();
 	}
 
 
