@@ -710,7 +710,6 @@ void TOverlapQuantifier::quantifyOverlap(){
 
 				//calculate overlap and fragment length and add to storage
 				uint32_t overlap = _merger.determineOverlapLength(*alignment, *mate->alignment).first;
-				if (overlap > 0)
 				uint32_t fragmentLength = alignment->fragmentLength();
 			
 				overlapDist.add(fragmentLength, overlap);
