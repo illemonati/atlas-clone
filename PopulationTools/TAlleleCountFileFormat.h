@@ -12,6 +12,8 @@
 #include <vector>
 
 #include "coretools/Files/gzstream.h"
+#include "genometools/VCF/TPopulationLikelihoods.h"
+#include "coretools/Main/TError.h"
 
 namespace genometools { class TPopulationSamples; }
 
@@ -30,6 +32,7 @@ public:
 	virtual void writeHeader(std::vector<std::string> populationNames);
 	virtual void writePosition(std::string chr, long pos);
 	virtual void writePosition(std::string chr, std::string pos);
+	virtual void writePosition(const genometools::TPopulationLikelihoodReaderLocus & reader);
 	virtual void writeCounts(int count, int numAlleles, int populationNum);
 	virtual void writeCounts(std::string count, std::string numAlleles, int populationNum);
 	void endl();
@@ -38,16 +41,29 @@ public:
 	virtual ~TAlleleCountFile(){};
 };
 
+class TAlleleCountFileWithAlleles:public TAlleleCountFile{
+public:
+	virtual void writeHeader(genometools::TPopulationSamples & samples);
+	virtual void writeHeader(std::vector<std::string> populationNames);
+	virtual void writePosition(std::string chr, long pos){ DEVERROR("Need to provide alleles for this format!"); }
+	virtual void writePosition(std::string chr, std::string pos){ DEVERROR("Need to provide alleles for this format!"); }
+	virtual void writePosition(const genometools::TPopulationLikelihoodReaderLocus & reader);
+
+	TAlleleCountFileWithAlleles(std::string Filename):TAlleleCountFile(Filename){};
+	~TAlleleCountFileWithAlleles(){};
+};
+
 class TTreeMixFile:public TAlleleCountFile{
 public:
 	void writeHeader(genometools::TPopulationSamples & samples);
 	void writeHeader(std::vector<std::string> populationNames);
 	void writePosition(std::string chr, long pos);
 	void writePosition(std::string chr, std::string pos);
+	void writePosition(const genometools::TPopulationLikelihoodReaderLocus & reader);
 	void writeCounts(int count, int numAlleles, int populationNum);
 	void writeCounts(std::string count, std::string numAlleles, int populationNum);
 
-	TTreeMixFile(std::string Filename);
+	TTreeMixFile(std::string Filename):TAlleleCountFile(Filename){};
 	~TTreeMixFile(){};
 
 };
@@ -58,11 +74,12 @@ public:
 	void writeHeader(std::vector<std::string> populationNames);
 	void writePosition(std::string chr, long pos);
 	void writePosition(std::string chr, std::string pos);
+	void writePosition(const genometools::TPopulationLikelihoodReaderLocus & reader);
 	void writeCounts(int count, int numAlleles, int populationNum);
 	void writeCounts(std::string count, std::string numAlleles, int populationNum);
 
 
-	TFlinkFile(std::string Filename);
+	TFlinkFile(std::string Filename):TAlleleCountFile(Filename){};
 	~TFlinkFile(){};
 
 };

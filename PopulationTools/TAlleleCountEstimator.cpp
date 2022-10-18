@@ -368,7 +368,7 @@ void TAlleleCountEstimator::estimateAlleleCounts() {
 	logfile().startIndent("Parsing VCF file and estimating allele counts:");
 	while (reader.readDataFromVCF(data, samples)) {
 		// write chromosome and position
-		alleleCountFile->writePosition(reader.chr(), reader.position());
+		alleleCountFile->writePosition(reader);
 
 		// print MLE count for each population
 		for (size_t p = 0; p < samples.numPopulations(); p++) {
@@ -479,6 +479,9 @@ TAlleleCountFile *TAlleleCountEstimator::prepareOutputFile(const std::string & t
 	if (type == "default") {
 		filePrefix      = filePrefix + "_alleleCounts.txt.gz";
 		alleleCountFile = new TAlleleCountFile(filePrefix);
+	} else if (type == "withAlleles") {
+		filePrefix      = filePrefix + "_alleleCounts.txt.gz";
+		alleleCountFile = new TAlleleCountFileWithAlleles(filePrefix);
 	} else if (type == "treemix") {
 		filePrefix      = filePrefix + "_treemix_alleleCounts.txt.gz";
 		alleleCountFile = new TTreeMixFile(filePrefix);
@@ -505,6 +508,7 @@ void TAlleleCountEstimator::transformFormat() {
 	std::string outname        = parameters().getParameterWithDefault<std::string>("out", tmp);
 	std::string type           = parameters().getParameterWithDefault<std::string>("outFormat", "default");
 	if (type == "default") { throw "Cannot transform alleleCounts file to original format!"; }
+	if (type == "withAlleles") { throw "Cannot transform to 'withAlleles' format from original format!"; }
 
 	// open input file
 	std::string origFileName = tmp + "_alleleCounts.txt.gz";

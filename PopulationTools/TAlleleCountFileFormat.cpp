@@ -68,6 +68,10 @@ void TAlleleCountFile::writePosition(std::string chr, std::string pos){
 	outFile << chr << sep << pos;
 };
 
+void TAlleleCountFile::writePosition(const genometools::TPopulationLikelihoodReaderLocus & reader){
+	outFile << reader.chr() << sep << reader.position();
+}
+
 void TAlleleCountFile::writeCounts(int count, int numAlleles, int){
 	outFile << "\t" << count << "/" << numAlleles;
 };
@@ -80,13 +84,43 @@ void TAlleleCountFile::endl(){
 	outFile << "\n";
 };
 
+//------------------------------
+// TAlleleCountFileWithAlleles
+//------------------------------
+
+void TAlleleCountFileWithAlleles::writeHeader(genometools::TPopulationSamples & samples){
+	bool useLocusName = parameters().parameterExists("useLocusName");
+	if(useLocusName){
+		logfile().list("Will print locus names (rather than chromosome and position).");
+		outFile << "Locus";
+		sep = '_';
+	}
+	outFile << "chr" << sep << "pos" << sep <<"ref" << sep << "alt";
+	for(size_t p=0; p<samples.numPopulations(); p++)
+		outFile << "\t" << samples.getPopulationName(p);
+	outFile << "\n";
+};
+
+void TAlleleCountFileWithAlleles::writeHeader(std::vector<std::string> populationNames){
+	bool useLocusName = parameters().parameterExists("useLocusName");
+	if(useLocusName){
+		logfile().list("Will print locus names (rather than chromosome and position).");
+		outFile << "Locus";
+		sep = '_';
+	}
+	outFile << "chr" << sep << "pos" << sep <<"ref" << sep << "alt";
+	for(size_t p=0; p<populationNames.size(); p++)
+		outFile << "\t" << populationNames[p];
+	outFile << "\n";
+};
+
+void TAlleleCountFileWithAlleles::writePosition(const genometools::TPopulationLikelihoodReaderLocus & reader){
+	outFile << reader.chr() << sep << reader.position() << sep << reader.refAllele() << sep << reader.altAllele();
+}
+
 //------------------
 // TTreeMixFile
 //------------------
-
-TTreeMixFile::TTreeMixFile(std::string Filename):TAlleleCountFile(Filename){
-	filename = Filename;
-};
 
 void TTreeMixFile::writeHeader(genometools::TPopulationSamples & samples){
 	outFile << samples.getPopulationName(0);
@@ -111,6 +145,10 @@ void TTreeMixFile::writePosition(std::string, std::string){
 	//do nothing, treemix does not need position
 };
 
+void TTreeMixFile::writePosition(const genometools::TPopulationLikelihoodReaderLocus & reader){
+	//do nothing, treemix does not need position
+}
+
 void TTreeMixFile::writeCounts(int count, int numAlleles, int populationNum){
 	if(populationNum == 0)
 		outFile << count << "," << numAlleles - count;
@@ -125,15 +163,9 @@ void TTreeMixFile::writeCounts(std::string count, std::string numAlleles, int po
 		outFile << " " << count << "," << coretools::str::convertString<int>(numAlleles) - coretools::str::convertString<int>(count);
 };
 
-
 //------------------
 // TFlinkFile
 //------------------
-
-TFlinkFile::TFlinkFile(std::string Filename):TAlleleCountFile(Filename){
-	filename = Filename;
-	sep = "\t";
-};
 
 void TFlinkFile::writeHeader(genometools::TPopulationSamples & samples){
 	outFile << "-\t-";
@@ -167,6 +199,10 @@ void TFlinkFile::writePosition(std::string chr, long pos){
 void TFlinkFile::writePosition(std::string chr, std::string pos){
 	outFile << chr << sep << pos;
 };
+
+void TFlinkFile::writePosition(const genometools::TPopulationLikelihoodReaderLocus & reader){
+	outFile << reader.chr() << sep << reader.position();
+}
 
 void TFlinkFile::writeCounts(int count, int numAlleles, int){
 		outFile << "\t" << count << "/" << numAlleles;
