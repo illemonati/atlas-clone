@@ -300,7 +300,7 @@ void TBamFilter::_writeAll(){
 void TBamFilter::_writeUpTo(const genometools::TGenomePosition & position){
 	//writes all that are ready or too far away
 	TAlignmentInStorage it = _alignmentStorage.begin();
-	while(it != _alignmentStorage.end() && (it->ready || static_cast<uint32_t>(abs(position - *it->alignment)) > _maxDistanceBetweenMates)){
+	while(it != _alignmentStorage.end() && *it->alignment < position && (it->ready || static_cast<uint32_t>(abs(position - *it->alignment)) > _maxDistanceBetweenMates)){
 		_writeOrFilterAsOrphan(it);
 	}
 };
@@ -365,6 +365,7 @@ void TBamFilter::traverseBAM(){
 				if(alignment->isPaired()){
 					//if mate is in blacklist: add as improper pair for writing
 					if(_blacklist.isInBlacklist(alignment->name())){
+						//TODO: should we mark them as improper or not?? Are all in blacklist already improper pair?
 						//alignment->setIsProperPair(false);
 						_alignmentStorage.emplace_back(alignment, false);
 						_blacklist.remove(alignment->name());
