@@ -21,7 +21,6 @@ TCigar::TCigar(TCigar cigar, uint16_t overlapLength, bool isFirst) {
 		add('S', cigar.lengthRead());
 	} else {
 		uint16_t nonOverlapLength = cigar.lengthAligned() - overlapLength;
-		std::cout << nonOverlapLength << std::endl;
 		if (isFirst) {
 			auto iterator = cigar.begin();
 			while (lengthAligned() < nonOverlapLength) {
