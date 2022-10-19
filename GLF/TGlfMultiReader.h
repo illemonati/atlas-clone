@@ -231,7 +231,7 @@ private:
 	uint32_t _position = 0;
 	uint32_t _nextPosition = 0; // next is anticipated position, used to advance
 	uint32_t _curRefId = 0;
-	TGlfChromosome* _curChr;
+	TGlfChromosome _curChr;
 	uint32_t _numActiveFilesWithData = 0;
 	uint32_t _minDepth = 0;
 
@@ -283,7 +283,7 @@ public:
 	constexpr uint32_t numSamples() const noexcept { return _numGLFs; };
 	uint32_t numActiveSamples() const noexcept { return _activeGLFs.size(); };
 	constexpr uint32_t numActiveSamplesWithData() const noexcept { return _numActiveFilesWithData; };
-	std::string chr() const { return _curChr->name(); };
+	std::string chr() const { return _curChr.name(); };
 	constexpr uint32_t position() const noexcept { return _position; };
 	constexpr genometools::Base refBase() const noexcept {
 		return hasReference ? fastaBuffer.refAt(genometools::TGenomePosition(_curRefId, _position)) : genometools::Base::N;

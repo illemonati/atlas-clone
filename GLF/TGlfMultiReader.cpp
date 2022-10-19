@@ -45,19 +45,19 @@ TGlfReader * nextChr(const std::vector<TGlfReader *>& ps, bool onlyData) {
 	}
 }
 
-void _checkChromosomeInfo(TGlfChromosome* _curChr, const std::vector<TGlfReader *>& ps) {
+void _checkChromosomeInfo(const TGlfChromosome & _curChr, const std::vector<TGlfReader *>& ps) {
 	// check that all files share the same chromosome info
 	for (const auto p: ps) {
-		TGlfChromosome *chr = p->pointerToChr(_curChr->refId());
+		TGlfChromosome *chr = p->pointerToChr(_curChr.refId());
 		if (chr) {
-			if (chr->name() != _curChr->name())
+			if (chr->name() != _curChr.name())
 				throw "Chrosomome names differ between files '" + ps[0]->name() + "' and '" +
-				    p->name() + "': '" + _curChr->name() + "' != '" + chr->name() + "'!";
-			if (chr->length() != _curChr->length())
+				    p->name() + "': '" + _curChr.name() + "' != '" + chr->name() + "'!";
+			if (chr->length() != _curChr.length())
 				throw "Chrosomome lengths differ between files '" + ps[0]->name() + "' and '" +
-				    p->name() + "': '" + toString(_curChr->length()) + "' != '" + toString(chr->length()) + "'!";
+				    p->name() + "': '" + toString(_curChr.length()) + "' != '" + toString(chr->length()) + "'!";
 		} else {
-			logfile().list(p->name(), " does not have contig ", _curChr->name(), ", considering all data empty.");
+			logfile().list(p->name(), " does not have contig ", _curChr.name(), ", considering all data empty.");
 		}
 	}
 };
@@ -311,15 +311,14 @@ void TGlfMultiReader::_prepareParsing() {
 
 bool TGlfMultiReader::_jumpToNextPosition() {
 	auto min      = impl::nextChr(_activeGLFs, _onlyPositionsWithData);
-	_curChr       = min->curChr();
+	_curChr       = *min->curChr();
 	_curRefId     = min->refId();
-	_position     = _onlyPositionsWithData*min->position(); // 0 if not jump to position
+	_position     = _onlyPositionsWithData * min->position(); // 0 if not jump to position
 	_nextPosition = _position;
 	impl::_checkChromosomeInfo(_curChr, _activeGLFs);
 
 	return !min->eof();
 };
-
 
 void TGlfMultiReader::setActive(const int index) {
 	_setAllInactive();
@@ -386,7 +385,9 @@ bool TGlfMultiReader::_moveToNextChromosome() {
 
 bool TGlfMultiReader::readNext() {
 	// advance to next position
-	if (_nextPosition > _curChr->length() && !_moveToNextChromosome()) return false;
+	if (_nextPosition > _curChr.length()){
+		if(!_moveToNextChromosome()) return false;
+	}
 
 	// advance all files behind next position
 	_numActiveFilesWithData = 0;
@@ -416,7 +417,6 @@ bool TGlfMultiReader::readNext() {
 	// update position
 	_position = _nextPosition;
 	++_nextPosition;
-
 	return true;
 };
 
