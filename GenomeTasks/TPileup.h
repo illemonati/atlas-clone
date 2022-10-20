@@ -12,11 +12,11 @@
 #include <set>
 #include <string>
 
-#include "TBitSet.h"
-#include "TFile.h"
+#include "coretools/Containers/TBitSet.h"
+#include "coretools/Files/TFile.h"
 #include "TGenome.h"
 #include "TGenotypeData.h"
-#include "TTask.h"
+#include "coretools/Main/TTask.h"
 
 namespace GenomeTasks {
 

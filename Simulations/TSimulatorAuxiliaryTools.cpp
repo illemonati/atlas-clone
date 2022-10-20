@@ -14,14 +14,14 @@
 #include <memory>
 #include <numeric>
 
-#include "TChromosomes.h"
-#include "TLog.h"
+#include "genometools/GenomePositions/TChromosomes.h"
+#include "coretools/Main/TLog.h"
 #include "TReadGroups.h"
 #include "TSamHeader.h"
-#include "globalConstants.h"
-#include "probability.h"
-#include "stringFunctions.h"
-#include "weakTypes.h"
+#include "coretools/Main/globalConstants.h"
+#include "coretools/Types/probability.h"
+#include "coretools/Strings/stringFunctions.h"
+#include "coretools/Types/weakTypes.h"
 
 namespace Simulations {
 

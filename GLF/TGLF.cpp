@@ -10,14 +10,14 @@
 #include <cstdint>
 #include <iostream>
 #include <utility>
-#include "GenotypeTypes.h"
-#include "PhredProbabilityTypes.h"
-#include "TChromosomes.h"
+#include "genometools/GenotypeTypes.h"
+#include "genometools/PhredProbabilityTypes.h"
+#include "genometools/GenomePositions/TChromosomes.h"
 #include "TGenotypeData.h"
-#include "probability.h"
-#include "stringFunctions.h"
-#include "strongTypes.h"
-#include "weakTypes.h"
+#include "coretools/Types/probability.h"
+#include "coretools/Strings/stringFunctions.h"
+#include "coretools/Types/strongTypes.h"
+#include "coretools/Types/weakTypes.h"
 
 namespace GLF {
 using namespace GenotypeLikelihoods;
@@ -108,6 +108,7 @@ void TGlfWriter::newChromosome(const genometools::TChromosome &chromosome) {
 void TGlfWriter::writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual,
 			   GenotypeLikelihoods::TGenotypeLikelihoods &genotypeLikelihoods) {
 	using genometools::Genotype;
+	using coretools::Probability;
 	const uint8_t _recordType1 = 1 << 4;
 	// record type
 	// TODO: add reference?
@@ -124,29 +125,24 @@ void TGlfWriter::writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual,
 	// Note: genotype likelihoods are given for the 10 diploid genotypes!!
 	if (_curChr.isHaploid()) {
 		using genometools::Base;
-		coretools::Probability maxLik = genotypeLikelihoods[Genotype::AA];
-		if (genotypeLikelihoods[Genotype::CC] > maxLik) maxLik = genotypeLikelihoods[Genotype::CC];
-		if (genotypeLikelihoods[Genotype::GG] > maxLik) maxLik = genotypeLikelihoods[Genotype::GG];
-		if (genotypeLikelihoods[Genotype::TT] > maxLik) maxLik = genotypeLikelihoods[Genotype::TT];
+		const double maxLik = std::max({genotypeLikelihoods[Genotype::AA], genotypeLikelihoods[Genotype::CC],
+										genotypeLikelihoods[Genotype::GG], genotypeLikelihoods[Genotype::TT]});
 
 		// normalize and scale to uint16
 		glfValues.type = Ploidy::haploid;
-		glfValues[Base::A] = genotypeLikelihoods[Genotype::AA] / maxLik;
-		glfValues[Base::C] = genotypeLikelihoods[Genotype::CC] / maxLik;
-		glfValues[Base::G] = genotypeLikelihoods[Genotype::GG] / maxLik;
-		glfValues[Base::T] = genotypeLikelihoods[Genotype::TT] / maxLik;
+		glfValues[Base::A] = Probability(genotypeLikelihoods[Genotype::AA] / maxLik);
+		glfValues[Base::C] = Probability(genotypeLikelihoods[Genotype::CC] / maxLik);
+		glfValues[Base::G] = Probability(genotypeLikelihoods[Genotype::GG] / maxLik);
+		glfValues[Base::T] = Probability(genotypeLikelihoods[Genotype::TT] / maxLik);
 	} else {
 		// ploidy is 2
 		glfValues.type = Ploidy::diploid;
-		coretools::Probability maxLik = *std::max_element(genotypeLikelihoods.begin(), genotypeLikelihoods.end());
+		const double maxLik = *std::max_element(genotypeLikelihoods.begin(), genotypeLikelihoods.end());
 
 		// normalize and scale to genometools::HighPrecisionPhredIntProbability
 
 		for (auto g = Genotype::min; g < Genotype::max; ++g) {
-			coretools::Probability p = genotypeLikelihoods[g];
-			genometools::HighPrecisionPhredIntProbability hp;
-			hp = (p/maxLik);
-			glfValues[g] = hp;
+			glfValues[g] = Probability(genotypeLikelihoods[g]/maxLik);
 		}
 	}
 
@@ -249,11 +245,12 @@ void TGlfReader::open(const std::string &Filename) {
 };
 
 void TGlfReader::_open() {
-	_gzfp = nullptr;
+	if (_gzfp) UERROR(_filename, " is already open!");
 	_gzfp = gzopen(_filename.c_str(), "rb");
 
 	if (_gzfp == nullptr) throw "Failed to open file '" + _filename + "' for reading!";
 	_curChr.clear();
+	_chromosomesAlreadyParsed.clear();
 	_positionInFile = 0;
 
 	// parse header
@@ -273,11 +270,11 @@ void TGlfReader::_open() {
 	if (headerLen > 0) {
 		char *header = new char[headerLen];
 		_read(&header, headerLen * sizeof(char));
+		delete[] header;
 	}
 	_eof = false;
 
 	// read info of first chromosome
-	_chromosomesAlreadyParsed.clear();
 	_readRecordType();
 	if (_recordType != 0)
 		throw "GLF file does not start with chromosome entry. The GLF format has changed with ATLAS 1.0, are you using "

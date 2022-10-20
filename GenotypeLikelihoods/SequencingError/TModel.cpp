@@ -18,19 +18,19 @@
 #include <utility>
 
 #include "RecalEstimatorTools.h"
-#include "TError.h"
+#include "coretools/Main/TError.h"
 #include "TGenotypeData.h"
-#include "TRandomGenerator.h"
+#include "coretools/Main/TRandomGenerator.h"
 #include "TSequencedBase.h"
 #include "SequencingError/TCovariate.h"
-#include "TStrongArray.h"
-#include "devtools.h"
-#include "mathFunctions.h"
-#include "probability.h"
-#include "stringFunctions.h"
-#include "toString.h"
-#include "weakTypes.h"
-#include "enum.h"
+#include "coretools/Containers/TStrongArray.h"
+#include "coretools/devtools.h"
+#include "coretools/Math/mathFunctions.h"
+#include "coretools/Types/probability.h"
+#include "coretools/Strings/stringFunctions.h"
+#include "coretools/Strings/toString.h"
+#include "coretools/Types/weakTypes.h"
+#include "coretools/enum.h"
 
 namespace GenotypeLikelihoods {
 namespace SequencingError {
@@ -68,8 +68,12 @@ TRho::TRho(const std::string &Def) {
 		if (r.size() != 4)
 			throw "Rho matrix has " + toString(r.size()) + " instead of 4 columns for row " + toString(index(a) + 1) + "!";
 
-		r[index(a)] = 0.;
-		_rho[a]     = r;
+		std::array<double, 4> ar;
+		std::copy(r.begin(), r.end(), ar.begin());
+
+		ar[index(a)] = 0.;
+
+		_rho[a]     = TBaseProbabilities::normalize(ar);
 	}
 }
 
@@ -90,7 +94,7 @@ void TRho::add(genometools::Base l, coretools::Probability P_g_I_d, const TBaseP
 void TRho::estimate() noexcept {
 	for (Base k = Base::min; k < Base::max; ++k) {
 		_rhoSum[k][k] = 0.0;
-		_rho[k] = _rhoSum[k];
+		_rho[k] = TBaseProbabilities::normalize(_rhoSum[k]);
 	}
 	// reset
 	_rhoSum.fill({});
@@ -134,8 +138,7 @@ void TModelNoRecal::simulate(BAM::TSequencedBase &base) const noexcept {
 //*********************************************************
 
 
-TModelRecal::TModelRecal(const std::string& RhoDef, const std::string &EpsilonDef): _rho(RhoDef), _epsilon(EpsilonDef) {}
-
+TModelRecal::TModelRecal(const std::string &EpsilonDef, const std::string& RhoDef): _rho(RhoDef), _epsilon(EpsilonDef) {}
 
 //-------------------------------------------------
 // functions to calculate error rates

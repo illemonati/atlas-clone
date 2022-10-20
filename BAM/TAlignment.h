@@ -12,13 +12,13 @@
 #include <string>
 #include <vector>
 
-#include "GenotypeTypes.h"
+#include "genometools/GenotypeTypes.h"
 #include "TCigar.h"
-#include "TGenomePosition.h"
+#include "genometools/GenomePositions/TGenomePosition.h"
 #include "TSamFlags.h"
 #include "TSequencedBase.h"
-#include "devtools.h"
-#include "probability.h"
+#include "coretools/devtools.h"
+#include "coretools/Types/probability.h"
 
 namespace BAM {
 class TBaseFilter;

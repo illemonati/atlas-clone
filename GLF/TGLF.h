@@ -17,12 +17,12 @@
 #include <map>
 #include <string>
 #include <vector>
-#include "GenotypeTypes.h"
-#include "PhredProbabilityTypes.h"
-#include "TDualStrongArray.h"
+#include "genometools/GenotypeTypes.h"
+#include "genometools/PhredProbabilityTypes.h"
+#include "coretools/Containers/TDualStrongArray.h"
 #include "TGenotypeData.h"
-#include "TParameters.h"
-#include "TTask.h"
+#include "coretools/Main/TParameters.h"
+#include "coretools/Main/TTask.h"
 namespace genometools { class TChromosome; }
 
 namespace GLF {

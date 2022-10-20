@@ -13,12 +13,12 @@
 #include <utility>
 #include <vector>
 
-#include "TLog.h"
-#include "TParameters.h"
-#include "TRandomGenerator.h"
-#include "TTask.h"
-#include "TVcfFile.h"
-#include "TBed.h"
+#include "coretools/Main/TLog.h"
+#include "coretools/Main/TParameters.h"
+#include "coretools/Main/TRandomGenerator.h"
+#include "coretools/Main/TTask.h"
+#include "genometools/VCF/TVcfFile.h"
+#include "genometools/BED/TBed.h"
 
 namespace VCF{
 

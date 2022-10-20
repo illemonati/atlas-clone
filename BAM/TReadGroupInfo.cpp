@@ -6,14 +6,14 @@
  */
 
 
-#include "TFile.h"
-#include "TError.h"
+#include "coretools/Files/TFile.h"
+#include "coretools/Main/TError.h"
 #include <vector>
 #include "TReadGroupInfo.h"
-#include "TLog.h"
-#include "TParameters.h"
-#include "commonWeakTypes.h"
-#include "devtools.h"
+#include "coretools/Main/TLog.h"
+#include "coretools/Main/TParameters.h"
+#include "coretools/Types/commonWeakTypes.h"
+#include "coretools/devtools.h"
 
 using coretools::instances::parameters;
 using coretools::instances::logfile;
@@ -23,116 +23,9 @@ namespace BAM {
 namespace RGInfo{
 
 //------------------------------------------------
-// TFileData
-//------------------------------------------------
-
-TFileData::TFileData(const std::string & Filename){
-	//open RG file
-	_filename = Filename;
-	logfile().listFlush("Reading read group info from file '" + _filename + "'... ");
-	coretools::TInputFile in(Filename, coretools::TFile_Filetype::header, "\t", "//");
-	_header = in.header();
-
-	//extract RG column
-	//check that file has a column named "readGroup"
-	if(!in.hasColname(infos[InfoType::RGName].argument)){
-		UERROR("Column '", infos[InfoType::RGName].argument, "' missing in file '", Filename, "'!");
-	}
-	auto rgCol = in.getIndexOfColname(infos[InfoType::RGName].argument);
-
-	//read file and create read group entries
-	std::vector<std::string> tmp;
-	while (in.read(tmp)) {
-		_fileData.push_back(tmp);
-		_rgNames.push_back(tmp[rgCol]);
-	}
-	logfile().done();
-	logfile().conclude("Found ", _rgNames.size(), " read groups.");
-
-	// ensure names are unique
-	std::vector<std::string> rgNames = _rgNames;
-	sort(rgNames.begin(), rgNames.end());
-	if(std::adjacent_find(rgNames.cbegin(), rgNames.cend()) != rgNames.cend()){
-		DEVERROR("Duplicate read group names in file '", Filename, "'!");
-	}
-}
-
-bool TFileData::hasInfo(InfoType Info) const noexcept {
-	auto it = find(_header.cbegin(), _header.cend(), infos[Info].argument);
-	return it != _header.cend();
-}
-
-size_t TFileData::getInfoCol(InfoType Info) const {
-	auto it = find(_header.cbegin(), _header.cend(), infos[Info].argument);
-	if(it != _header.cend()){
-		return it - _header.cbegin();
-	}
-	DEVERROR("Info '", infos[Info].argument, "' not present in read group info file!");
-}
-
-size_t TFileData::getRow(const std::string & ReadGroupName) const {
-	auto it = std::find(_rgNames.cbegin(), _rgNames.cend(), ReadGroupName);
-	if(it == _rgNames.cend()){
-		UERROR("Read group '", ReadGroupName, "' missing in read group info file '", _filename, "'!");
-	}
-	return it - _rgNames.cbegin();
-}
-
-//------------------------------------------------
 // Functions to initialize: only visible in cpp file
 //------------------------------------------------
-namespace impl{
-
-	using InfoVec = std::vector<TReadGroupInfoEntry>;
-
-	void setAllReadGroups(InfoVec & Vec, InfoType Info, const std::string & Val){
-		for(auto& i : Vec){
-			i.set(Info, Val);
-		}
-	}
-
-	void setDefault(InfoVec & Vec, InfoType Info){
-		//use default values
-		logfile().write("default value '",
-					   infos[Info].defaults,
-					   "' for all read groups. (set with '",
-					   TReadGroupInfo::_RGInfoArgument,
-					   "' or '",
-					   infos[Info].argument,
-					   "')");
-		setAllReadGroups(Vec, Info, infos[Info].defaults);
-	}
-
-	void setFromCommandLine(InfoVec & Vec, InfoType Info){
-		//read from command line
-		const std::string& arg = infos[Info].argument;
-
-		std::vector<std::string> tmp, argVec;
-		parameters().fillParameterIntoContainer(arg, tmp, true);
-		coretools::str::repeatIndexes(tmp, argVec);
-		if (argVec.size() == 1){
-			logfile().write("using '", argVec[0], "' for all read groups. (argument '", arg, "')");
-			setAllReadGroups(Vec, Info, argVec[0]);
-		} else if (argVec.size() == Vec.size()){
-			logfile().write("using read group specific settings provided on the command line. (argument '", arg, "')");
-			for(size_t i = 0; i < Vec.size(); ++i){
-				Vec[i].set(Info, argVec[i]);
-			}
-		} else {
-			UERROR("Number of provided values does not match number of read groups!");
-		}
-	}
-
-	void setFromRGInfoFile(InfoVec & Vec, InfoType Info, const TFileData & FileData){
-	 	 //present in file -> read for each read group
-		logfile().write("reading read group specific settings from read group info file '", FileData.fileName(), "'. (overwrite with '", infos[Info].argument, "')");
-		auto col = FileData.getInfoCol(Info);
-		for(auto& r : Vec){
-			auto row = FileData.getRow(r[InfoType::RGName]);
-			r.set(Info, FileData[row][col]);
-		}
-	}
-
+namespace implJson{
 	InfoType argument2InfoType(const std::string & Argument){
 		for(auto i = InfoType::min; i < InfoType::max; ++i){
 			if(infos[i].argument == Argument)
@@ -143,13 +36,125 @@ namespace impl{
 }
 
 //------------------------------------------------
+// TReadGroupInfoEntry
+//------------------------------------------------
+const TInfo& TReadGroupInfoEntry::get(const InfoType Info) const {
+	auto it = _info.find(Info);
+	if(it == _info.end()){
+		DEVERROR("Info of type '" + infos[Info].argument + "' does not exist!");
+	}
+	return it->second;
+}
+
+std::string TReadGroupInfoEntry::getString(const InfoType Type) const {
+	const TInfo& j = get(Type);
+	if(j.is_string() || j.is_number()){
+		return j.get<std::string>();
+	} else {
+		return j.dump();
+	}
+}
+
+void TReadGroupInfoEntry::write(coretools::TOutputFile & Out, const InfoType Info) const {
+	auto it = _info.find(Info);
+	if(it == _info.end()){
+		Out << "-";
+	} else{
+		Out << it->second;
+	}
+}
+
+//------------------------------------------------
 // TReadGroupInfo
 //------------------------------------------------
-
-void TReadGroupInfo::_readFileIfProvided(){
-	if(parameters().parameterExists(_RGInfoArgument)){
-		_fileData = std::make_unique<TFileData>(parameters().getParameter<std::string>(_RGInfoArgument));
+void TReadGroupInfo::_setAllReadGroups(InfoType Info, const std::string & Val){
+	for(auto& i : _info){
+		i.set(Info, Val);
 	}
+}
+
+void TReadGroupInfo::_setDefault(InfoType Info){
+	//use default values
+	logfile().write("default value '",
+				   infos[Info].defaults,
+				   "' for all read groups. (set with '",
+				   TReadGroupInfo::_RGInfoArgument,
+				   "' or '",
+				   infos[Info].argument,
+				   "')");
+	_setAllReadGroups(Info, infos[Info].defaults);
+}
+
+void TReadGroupInfo::_setFromCommandLine(InfoType Info){
+	//read from command line
+	const std::string& arg = infos[Info].argument;
+
+	std::vector<std::string> tmp, argVec;
+	parameters().fillParameterIntoContainer(arg, tmp, true);
+	coretools::str::repeatIndexes(tmp, argVec);
+	if (argVec.size() == 1){
+		logfile().write("using '", argVec[0], "' for all read groups. (argument '", arg, "')");
+		_setAllReadGroups(Info, argVec[0]);
+	} else if (argVec.size() == _info.size()){
+		logfile().write("using read group specific settings provided on the command line. (argument '", arg, "')");
+		for(size_t i = 0; i < _info.size(); ++i){
+			_info[i].set(Info, argVec[i]);
+		}
+	} else {
+		UERROR("Number of provided values does not match number of read groups!");
+	}
+}
+
+void TReadGroupInfo::_setFromRGInfoFile(InfoType Info){
+ 	 //present in file -> read for each read group
+	logfile().write("reading read group specific settings from read group info file '", _filename, "'. (overwrite with '", infos[Info].argument, "')");
+	for(auto& r : _info){
+		if(_json.contains(r.name()) && _json[r.name()].contains(infos[Info].argument)){
+			r.set(Info, _json[r.name()][infos[Info].argument]);
+		} else {
+			r.set(Info, infos[Info].defaults);
+		}
+	}
+}
+
+bool TReadGroupInfo::_readGroupExists(const std::string & Name){
+	for(auto& r : _info){
+		if(r[InfoType::RGName] == Name){
+			return true;
+		}
+	}
+	return false;
+}
+
+void TReadGroupInfo::_readFile(const std::string & Filename){
+	std::ifstream in(Filename);
+	if(!in){
+		UERROR("Failed to open read group info file '", Filename, "' for reading!");
+	}
+
+	try {
+		_json = nlohmann::ordered_json::parse(in);
+	}
+	catch (nlohmann::json::parse_error& ex)
+	{
+		UERROR("Failed to parse read group info file '", Filename, "': JSON error '", ex.what(), " at byte ", ex.byte, "!");
+	}
+
+	// warn if file contains inexisting read groups
+	if(!_info.empty()){
+		std::vector<std::string> ignoredRGs;
+		for (auto it = _json.begin(); it != _json.end(); ++it){
+			if(!_readGroupExists(it.key())){
+				ignoredRGs.push_back(it.key());
+			}
+		}
+
+		if(ignoredRGs.size() > 0){
+			logfile().warning("The following read groups are given in the read group info file '", Filename, "' but are not present in the BAM file!");
+		}
+	}
+
+	_filename = Filename;
 }
 
 void TReadGroupInfo::_createReadGroupInfoEntries(const BAM::TReadGroups & ReadGroups){
@@ -164,24 +169,23 @@ void TReadGroupInfo::_createReadGroupInfoEntries(const BAM::TReadGroups & ReadGr
 	}
 	std::fill(_parsed.begin(), _parsed.end(), false);
 	_parsed[InfoType::RGName] = true;
-
 }
 
 // either: read info from file and match with TReadGroups (used for analyzes)
-void TReadGroupInfo::readInfoAndMatchReadGroups(const BAM::TReadGroups & ReadGroups){
+void TReadGroupInfo::readInfoAndMatchReadGroups(const BAM::TReadGroups & ReadGroups, const std::string & Filename){
 	if(!_info.empty()){
 		DEVERROR("Read group info already read!");
 	}
 
 	_createReadGroupInfoEntries(ReadGroups);
-	_readFileIfProvided();
+	if(Filename.empty()){
+		_readFile(parameters().getParameter<std::string>(_RGInfoArgument, false));
+	} else {
+		_readFile(Filename);
+	}
 }
 
 // or: read info and fill TReadGroups (used for simulations)
-BAM::TReadGroups TReadGroupInfo::readInfoAndCreateReadGroups(){
-	return readInfoAndCreateReadGroups(parameters().getParameter<std::string>(_RGInfoArgument, false));
-}
-
 BAM::TReadGroups TReadGroupInfo::readInfoAndCreateReadGroups(const std::string & RgInfoFileName){
 	if(!_info.empty()){
 		DEVERROR("Read group info already read!");
@@ -192,13 +196,11 @@ BAM::TReadGroups TReadGroupInfo::readInfoAndCreateReadGroups(const std::string &
 
 	// Info is provided as a) a RG info file OR b) as the number of read groups and default arguments
 	if(!RgInfoFileName.empty()){
-		_fileData = std::make_unique<TFileData>(RgInfoFileName);
+		_readFile(RgInfoFileName);
 
 		// create RGs from RG info file
-		//create read groups
-		auto col = _fileData->getInfoCol(InfoType::RGName);
-		for(size_t i = 0; i < _fileData->size(); i++){
-			readGroups.add((*_fileData)[i][col]);
+		for (auto it = _json.begin(); it != _json.end(); ++it){
+			readGroups.add(it.key());
 		}
 	} else {
 		// create identical read groups from command line
@@ -232,26 +234,41 @@ void TReadGroupInfo::parse(const InfoType Info){
 
 		//check if info is provided on the command line -> overwrites file
 		if(parameters().parameterExists(arg)){
-			impl::setFromCommandLine(_info, Info);
+			_setFromCommandLine(Info);
 		} else {
 			//check if provided in file
-			if(_fileData && _fileData->hasInfo(Info)){
-				impl::setFromRGInfoFile(_info, Info, *_fileData);
+			if(fileHasInfo(Info)){
+				_setFromRGInfoFile(Info);
 			} else {
-				impl::setDefault(_info, Info);
+				_setDefault(Info);
 			}
 		}
 		_parsed[Info] = true;
 	}
 }
 
-std::vector<std::string> TReadGroupInfo::getUnusedColumnsInFile(){
+bool TReadGroupInfo::fileHasInfo(const InfoType Info) const {
+	//return true if at least one RG has thsi info in file
+	if(hasFile()){
+		const std::string& arg = infos[Info].argument;
+		for(auto& j : _json){
+			if(j.contains(arg)){
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
+std::vector<std::string> TReadGroupInfo::getUnusedAttributesInFile(){
 	std::vector<std::string> ret;
-	if(_fileData){
-		for(auto& s : _fileData->header()){
-			InfoType arg = impl::argument2InfoType(s);
-			if(arg == InfoType::max || !_parsed[arg]){
-				 ret.push_back(s);
+	if(hasFile()){
+		for(auto& j : _json){
+			for (auto it = j.begin(); it != j.end(); ++it){
+				const InfoType& arg = implJson::argument2InfoType(it.key());
+				if(arg == InfoType::max || !_parsed[arg]){
+					 ret.push_back(it.key());
+				}
 			}
 		}
 	}
@@ -259,101 +276,73 @@ std::vector<std::string> TReadGroupInfo::getUnusedColumnsInFile(){
 }
 
 void TReadGroupInfo::warnAboutUnusedColumnsInFile(){
-	if(_fileData){
-		auto up = getUnusedColumnsInFile();
-		if(!up.empty()){
-			logfile().warning("The following columns in read group info file '", _fileData->filename(), "' were never used: ", coretools::str::concatenateString(up, ", "), "!");
+	if(hasFile()){
+		auto up = getUnusedAttributesInFile();
+		if(up.size() == 1){
+			logfile().warning("The following attribute in read group info file '", _filename, "' was never used: ", coretools::str::concatenateString(up, ", "), "!");
+		} else if(up.size() > 1){
+			logfile().warning("The following attributes in read group info file '", _filename, "' were never used: ", coretools::str::concatenateString(up, ", "), "!");
 		}
 	}
 };
 
-void TReadGroupInfo::set(const uint16_t RGIndex, const InfoType Info, const std::string & Value){
+
+void TReadGroupInfo::set(const uint16_t RGIndex, const InfoType Type, const TInfo & Value){
 	//check if info was already parsed. Else, add
-	_parsed[Info] = true;
+	_parsed[Type] = true;
 
 	//now add to specific
-	_info[RGIndex].set(Info, Value);
+	_info[RGIndex].set(Type, Value);
 }
 
 void TReadGroupInfo::write(const std::string & Filename){
 	//write RG info file
-	if(_fileData){
-		// keep order of original file and add new columns at end
-
-		// 1) compile header and open file
-		// keep original header without RGName columns (we will put that first)
-		std::vector<std::string> header;
-		std::vector<std::string> fileHeader = _fileData->header();
-		header.push_back(infos[InfoType::RGName].argument);
-		for(auto& s : fileHeader){
-			if(s != infos[InfoType::RGName].argument){
-				 header.push_back(s);
-			 }
+	logfile().listFlush("Writing read group info to file '", Filename, "' ...");
+	for(auto& r : _info){
+		//make sure json has entry for that read group
+		if(!_json.contains(r.name())){
+			_json[r.name()] = ordered_json::object();
 		}
 
-		//add novel columns
-		for(auto i = InfoType::min; i < InfoType::max; ++i){
-			if(_parsed[i] && (!_fileData || !_fileData->hasInfo(i))){
-				header.push_back(infos[i].argument);
-			}
-		}
-
-		//open file
-		coretools::TOutputFile out(Filename, header);
-
-		// 2) figure out what to write from where
-		std::vector<bool> colFromFile(header.size());
-		std::vector<InfoType> colInfoType(header.size());
-		std::vector<size_t> colInFile(header.size());
-
-		for(size_t c = 0; c < header.size(); ++c){
-			auto i = impl::argument2InfoType(header[c]);
-			if(i != InfoType::max && _parsed[i]){
-				colFromFile[c] = false;
-				colInfoType[c] = i;
-			} else {
-				colFromFile[c] = true;
-				colInFile[c] = std::find(fileHeader.begin(), fileHeader.end(), header[c]) - fileHeader.begin();
-			}
-		}
-
-		// 3) write file
-		for(auto rg : _info){
-			//find RG info in file
-			size_t row = _fileData->getRow(rg[InfoType::RGName]);
-			for(size_t c = 0; c < header.size(); ++c){
-				if(colFromFile[c]){
-					out << (*_fileData)[row][colInFile[c]];
-				} else {
-					out << rg[colInfoType[c]];
-				}
-			}
-			out << std::endl;
-		}
-	} else {
-		//no file was written: use order of enum
-		std::vector<std::string> header;
-		std::vector<InfoType> colInfoType;
+		// add (or overwrite) all parsed attributes
+		TInfo& x = _json[r.name()];
 
 		for(auto i = InfoType::min; i < InfoType::max; ++i){
 			if(_parsed[i]){
-				header.push_back(infos[i].argument);
-				colInfoType.push_back(i);
+				x[infos[i].argument] = r[i];
 			}
 		}
 
-		//open file
-		coretools::TOutputFile out(Filename, header);
-
-		//and write
-		for(auto rg : _info){
-			for(size_t c = 0; c < header.size(); ++c){
-				out << rg[colInfoType[c]];
-			}
-			out << std::endl;
-		}
 	}
+
+	//open file
+	std::ofstream out(Filename);
+	if(!out){
+		UERROR("Failed to open file '", Filename, "' for writing!");
+	}
+	out << std::setw(4) << _json << std::endl;
+	out.close();
+	logfile().done();
 }
+
+//-------------------------------------------
+// TTask_testReadGroupInfo
+//-------------------------------------------
+void TTask_testReadGroupInfo::run(){
+
+	std::string filename = parameters().getParameter("json");
+
+	TReadGroupInfo r;
+	r.readInfoAndCreateReadGroups(filename);
+
+	r.parse(InfoType::mappingQuality, InfoType::cycles);
+
+	r.set(0, InfoType::cycles, "200,200");
+
+	r.write("new.json");
+
+}
+
 
 } //end namespace RGInfo
 } //end namespace BAM

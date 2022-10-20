@@ -11,10 +11,10 @@
 #include <algorithm>
 #include <vector>
 
-#include "GenotypeTypes.h"
-#include "PhredProbabilityTypes.h"
+#include "genometools/GenotypeTypes.h"
+#include "genometools/PhredProbabilityTypes.h"
 #include "TAlignment.h"
-#include "TLog.h"
+#include "coretools/Main/TLog.h"
 #include "TSequencedBase.h"
 
 namespace GenomeTasks{

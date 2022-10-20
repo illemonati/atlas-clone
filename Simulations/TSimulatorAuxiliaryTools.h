@@ -15,12 +15,12 @@
 #include <string>
 #include <vector>
 
-#include "GenotypeTypes.h"
+#include "genometools/GenotypeTypes.h"
 #include "TAlignment.h"
 #include "TBamFile.h"
 #include "TGenotypeData.h"
-#include "TStrongArray.h"
-#include "gzstream.h"
+#include "coretools/Containers/TStrongArray.h"
+#include "coretools/Files/gzstream.h"
 #include "TReadSimulators.h"
 
 namespace BAM { class TReadGroups; }
@@ -85,7 +85,8 @@ public:
 		_outBam.setQualityAdjusterForWriting(QualityAdjuster);
 	};
 
-	void saveAlignment(const BAM::TAlignment &Alignment) {_outBam.writeAlignment(Alignment); }
+	void writeAlignment(const BAM::TAlignment &Alignment) {_outBam.writeAlignment(Alignment); }
+	void writeAlignmentLater(const BAM::TAlignment &Alignment) {_outBam.writeAlignmentLater(Alignment); }
 	void close();
 	void indexBamFile();
 };

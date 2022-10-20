@@ -15,21 +15,21 @@
 #include <numeric>
 #include <stdexcept>
 
-#include "GenotypeTypes.h"
+#include "genometools/GenotypeTypes.h"
 #include "RecalEstimatorTools.h"
 #include "TGenotypeData.h"
 #include "TGenotypeDistribution.h"
-#include "TLog.h"
-#include "TParameters.h"
+#include "coretools/Main/TLog.h"
+#include "coretools/Main/TParameters.h"
 #include "TPostMortemDamage.h"
 #include "TSequencedBase.h"
 #include "SequencingError/TModel.h"
 #include "SequencingError/TModels.h"
-#include "algorithms.h"
-#include "probability.h"
-#include "stringFunctions.h"
+#include "coretools/algorithms.h"
+#include "coretools/Types/probability.h"
+#include "coretools/Strings/stringFunctions.h"
 
-#include "devtools.h"
+#include "coretools/devtools.h"
 
 namespace GenotypeLikelihoods {
 
@@ -151,18 +151,16 @@ double TModelVectorForEstimation::maxF() const {
 void TModelVectorForEstimation::writeRecalFile(const BAM::TReadGroups &ReadGroups, const std::string & Filename) const {
 	TModelNoRecal _noRecal;
 	// open file and write header
-	coretools::TOutputFile out(Filename);
-	out.writeHeader({"readGroup", "mate", "covariates", "rho"});
+	coretools::TOutputFile out(Filename, {"readGroup", "mate", "covariates", "rho"});
 
 	// add models
 	for (uint16_t r = 0; r < ReadGroups.size(); ++r) {
 		for (uint8_t mate = 0; mate < 2; ++mate) {
-			out << ReadGroups.getName(r) << std::array{"first", "second"}[mate];
+			out.write(ReadGroups.getName(r), std::array{"first", "second"}[mate]);
 			if (_modelIndex[r][mate])
-				out << _modelIndex[r][mate]->getCovariateDefinition() << _modelIndex[r][mate]->getRhoDefinition();
+				out.writeln(_modelIndex[r][mate]->getEpsilonDefinition(), _modelIndex[r][mate]->getRhoDefinition());
 			else 
-				out << _noRecal.getCovariateDefinition() << _noRecal.getRhoDefinition();
-			out << std::endl;
+				out.writeln(_noRecal.getEpsilonDefinition(), _noRecal.getRhoDefinition());
 		}
 	}
 }
@@ -170,8 +168,8 @@ void TModelVectorForEstimation::writeRecalFile(const BAM::TReadGroups &ReadGroup
 std::string TModelVectorForEstimation::getModelsDefinition() {
 	if (_models.empty()) return std::string{};
 
-	return std::accumulate(_models.begin() + 1, _models.end(), _models.front()->getCovariateDefinition(),
-						   [](auto tot, auto &model) { return tot + '\n' + model->getCovariateDefinition(); });
+	return std::accumulate(_models.begin() + 1, _models.end(), _models.front()->getEpsilonDefinition(),
+						   [](auto tot, auto &model) { return tot + '\n' + model->getEpsilonDefinition(); });
 };
 
 std::string TModelVectorForEstimation::getRhoDefinition() {
@@ -309,7 +307,7 @@ void TRecalibrationEMEstimator::_estimateRho_updatePbbar(const TPostMortemDamage
 				if (!_genoDist->isInvariant()) {
 					for (auto b = coretools::next(a); b < Base::max; ++b) {
 						const auto g_ab = genotype(a, b);
-						const TBaseProbabilities P_ab{P_aa, PmdModels.getMassFunction(b, d_ij, L_eps), std::plus<>()};
+						const auto P_ab = TBaseProbabilities::normalize(P_aa, PmdModels.getMassFunction(b, d_ij, L_eps), std::plus<>());
 						Pij[g_ab] = P_ab[d_ij.base];
 
 						_modelsToEstimate.addToRho(d_ij, _P_g_I_ds[i][g_ab], P_ab);

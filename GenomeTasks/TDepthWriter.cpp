@@ -10,7 +10,7 @@
 #include <ostream>
 #include <vector>
 
-#include "TLog.h"
+#include "coretools/Main/TLog.h"
 #include "TSite.h"
 #include "TWindow.h"
 
@@ -22,7 +22,8 @@ using coretools::instances::logfile;
 //----------------------------------------
 void TDepthWriter::_handleWindow(){
 	logfile().listFlush("Writing sequencing depth estimates to file ...");
-	_out << _window << _window.depth() << std::endl;
+	_out.writeNoDelim(_window.chrName(), ':', _window.from().position() + 1, '-', _window.to().position()).writeDelim();
+	_out.writeln(_window.depth());
 	logfile().done();
 
 	logfile().listFlush("Adding per site depth to distribution ...");
@@ -33,17 +34,15 @@ void TDepthWriter::_handleWindow(){
 };
 
 void TDepthWriter::writeDepth(){
-	std::string filename = _outputName + "_depthPerWindow.txt.gz";
-	logfile().list("Writing per window depth estimates to '" + filename + "'.");
-	const std::vector<std::string> header = {"window", "depth"};
-	_out.open(filename, header);
+	const std::string filename = _outputName + "_depthPerWindow.txt.gz";
+	logfile().list("Writing per window depth estimates to '", filename, "'.");
+	_out.open(filename, {"window", "depth"});
 
 	_traverseBAMWindows();
 
 	//write distribution
-	filename = _outputName + "_depthPerSiteHistogram.txt";
-	logfile().list("Writing depth per site distribution to file '" + filename + "' ...");
-	_distPerSite.write(filename, "depth");
+	logfile().list("Writing depth per site distribution to file '", _outputName, "_depthPerSiteHistogram.txt' ...");
+	_distPerSite.write(_outputName + "_depthPerSiteHistogram.txt", "depth");
 };
 
 

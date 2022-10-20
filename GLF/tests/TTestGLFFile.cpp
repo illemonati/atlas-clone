@@ -9,11 +9,11 @@
 #include <cstdint>
 #include <stdexcept>
 
-#include "GenotypeTypes.h"
+#include "genometools/GenotypeTypes.h"
 #include "TGenotypeData.h"
-#include "probability.h"
-#include "stringFunctions.h"
-#include "weakTypes.h"
+#include "coretools/Types/probability.h"
+#include "coretools/Strings/stringFunctions.h"
+#include "coretools/Types/weakTypes.h"
 
 namespace GLF {
 
@@ -93,13 +93,13 @@ void TTestGLFFile::_iterateGenotypeLikelihoods(uint32_t curDepth) {
 
         // iterate, such that next base gets different values
         indexPossibleBases = (indexPossibleBases + 3) % possibleBases.size();
-        error += 0.02;
+        error = error + 0.02;
         if (error > maxError)
             error = 0.01;
     }
 
     // fill genotype likelihood
-    _dummyGenotypeLikelihoods = GenotypeLikelihoods::fillGLH(bases);
+    _dummyGenotypeLikelihoods = GenotypeLikelihoods::getGLH(bases);
     /*if (_dummyCurChr->ploidy == 1)
         _dummyGenotypeLikelihoodsHaploid.fill(bases, bases.size());
 	else*/

@@ -6,13 +6,23 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <fstream>
+#include <iterator>
+#include <memory>
 #include <ostream>
+#include <string>
+#include <string_view>
 
-#include "GenotypeTypes.h"
-#include "TBed.h"
-#include "TPopulationLikelihoodLocus.h"
-#include "probability.h"
-#include "stringFunctions.h"
+#include <fmt/os.h>
+
+#include "coretools/Files/TOutputFile.h"
+#include "genometools/GenotypeTypes.h"
+#include "genometools/BED/TBed.h"
+#include "genometools/VCF/TPopulationLikelihoodLocus.h"
+#include "coretools/Files/gzstream.h"
+#include "coretools/Types/probability.h"
+#include "coretools/Strings/stringFunctions.h"
+#include "coretools/Strings/fromString.h"
 
 namespace VCF {
 
@@ -136,7 +146,7 @@ void TVcfToBeagle::_write(genometools::TPopulationLikehoodLocus<TSampleLikelihoo
 		}
 	}
 
-	_beagleFile.endLine();
+	_beagleFile.endln();
 }
 
 void TVcfToBeagle::run() {
@@ -152,6 +162,184 @@ void TVcfToBeagle::run() {
 	_beagleFile.close();
 }
 
+class TLineReader {
+	std::istream *_stream; // non-owning
+	std::string _line;     // current line
+public:
+	// see https://www.informit.com/articles/printerfriendly/1407357 for interface discussion
+
+	// Not taking ownership of stream
+	TLineReader(std::istream & Stream): _stream(&Stream) {
+		// Read first line
+		popFront();
+	}
+
+	bool empty() const noexcept {
+		assert(_stream);
+		return _stream->eof();
+	}
+
+	// IMPORTANT: as soon as popFront is called, this string_view will be invalidated
+	std::string_view front() const noexcept {
+		assert(!empty());
+		return std::string_view{_line}; //does not make a copy
+	};
+	void popFront() {
+		assert(_stream);
+		assert(!empty());
+		std::getline(*_stream, _line);
+	};
+};
+
+template<typename Delim = char>
+class TSplitter {
+	static_assert(std::is_same_v<Delim, char> || std::is_same_v<Delim, std::string> || std::is_same_v<Delim, std::string_view>);
+	std::string_view _sv;
+	Delim _delim;
+	size_t _count;
+
+public:
+	TSplitter(std::string_view Sv, Delim delim) : _sv(Sv), _delim(delim), _count(_sv.find(_delim)) {}
+
+	bool empty() const noexcept { return _sv.empty(); }
+
+	std::string_view front() const noexcept {
+		assert(!empty());
+		return _sv.substr(0, _count);
+	}
+
+	void popFront() noexcept {
+		assert(!empty());
+		if (_count == std::string_view::npos) {
+			_sv.remove_prefix(_sv.size());
+		} else {
+			if constexpr (std::is_same_v<Delim, char>) _sv.remove_prefix(_count + 1);
+			else _sv.remove_prefix(_count + _delim.size());
+
+			_count = _sv.find(_delim); // will be npos for last element
+		}
+	}
+};
+
+template<typename Range>
+void skip(Range& range, size_t nGaps = 1) {
+	for (size_t _ = 0; _ < nGaps; ++_) range.popFront();
+}
+
+void TVcfBeagleNew::run() {
+	const auto inName = parameters().getParameterFilename("vcf");
+	const auto outName =
+		parameters().getParameterWithDefault<std::string>("out", coretools::str::readBeforeLast(inName, ".vcf")) +
+		".beagle.gz";
+
+	std::unique_ptr<std::istream> istream;
+	if (coretools::str::readAfterLast(inName, '.') == "gz")
+		istream = std::make_unique<gz::igzstream>(inName.c_str());
+	else
+		istream = std::make_unique<std::ifstream>(inName);
+
+	TLineReader lineReader(*istream);
+
+	// Read info lines
+	bool hasGL = false;
+	bool hasPL = false;
+
+	for (; lineReader.front().substr(0, 2) == "##"; lineReader.popFront()) {
+		const auto line = lineReader.front();
+		constexpr std::string_view glString = "##FORMAT=<ID=GL";
+		constexpr std::string_view plString = "##FORMAT=<ID=PL";
+		if (line.substr(0, glString.size()) == glString) hasGL = true;
+		if (line.substr(0, plString.size()) == plString) hasPL = true;
+	}
+
+	if (!hasGL && !hasPL) UERROR("vcf file needs field GL or PL");
+
+	// Print header
+	if (lineReader.front().substr(0, 6) != "#CHROM") UERROR("vcf file needs header");
+
+	// open gzFile
+	coretools::TOutputFile ofile(outName, "\t");
+
+	ofile.write("marker", "allele1", "allele2");
+
+	TSplitter header{lineReader.front(), '\t'};
+	skip(header, 9);
+
+	for (; !header.empty(); header.popFront()) {
+		const auto s = header.front();
+		for (size_t _ = 0; _ < 3; ++_) {
+			ofile.write(s);
+		}
+	}
+	ofile.numCols(ofile.curCol());
+	ofile.endln();
+
+	// Lines
+	lineReader.popFront();
+	TSplitter line1{lineReader.front(), '\t'};
+	skip(line1, 8);
+
+	// find GL
+	TSplitter format{line1.front(), ':'};
+	int nGL = -1;
+	for(; !format.empty(); format.popFront()) {
+		++nGL;
+		if (format.front() == "GL") break;
+	}
+	if (format.empty()) UERROR("FORMAT string neets GL");
+
+	for(; !lineReader.empty(); lineReader.popFront()) {
+		TSplitter line{lineReader.front(), '\t'};
+		ofile.writeNoDelim(line.front(), '_');
+
+		line.popFront();
+		ofile.write(line.front());
+
+		line.popFront(); // skip ID
+		line.popFront();
+		ofile.write(line.front());
+
+		line.popFront();
+		ofile.write(line.front());
+
+		line.popFront(); // skip QUAL
+		line.popFront(); // skip FILTER
+		line.popFront(); // skip INFO
+		line.popFront(); // skip FORMAT
+
+		line.popFront(); // First sample
+		for(; !line.empty(); line.popFront()) {
+			TSplitter sample{line.front(), ':'};
+			skip(sample, nGL); // go to GL field
+			if (sample.front()[0] == '.') {
+				ofile.write("0.333333", "0.333333", "0.333333"); 
+				continue;
+			}
+			TSplitter gls_sv{sample.front(), ','};
+			std::array<double, 3> gls;
+			double tot = 1.;
+
+			for (size_t i = 0; i < 3; ++i) { // haploid left as an exercice
+				const auto sv = gls_sv.front();
+				if (sv[0] == '0') {
+					// sample.front(): 0,-3.902,-17.902
+					gls[i] = 1.;
+				} else {
+					coretools::str::fromString(sv, gls[i]);
+					gls[i] = exp10(gls[i]);
+					tot += gls[i];
+				}
+				gls_sv.popFront();
+			}
+
+			for (auto &gl : gls) { gl /= tot; }
+
+			ofile.write(gls);
+		}
+		ofile.endln();
+	}
+}
+
 //------------------------------------------
 // TVcfToGeno
 //------------------------------------------
@@ -165,7 +353,7 @@ void TVcfToGeno::_initOutputFiles() {
 
 void TVcfToGeno::_closeOutputFiles() {
 	_genoFile.close();
-	_lociNamesFile.endLine();
+	_lociNamesFile.endln();
 	_lociNamesFile.close();
 }
 
@@ -183,7 +371,7 @@ void TVcfToGeno::_write(genometools::TPopulationLikehoodLocus<TSampleLikelihoods
 			line += coretools::str::toString(2 - altAlleleCounts(_reader.biallelicGenotype(_samples, s)));
 		}
 	}
-	_genoFile << line << std::endl;
+	_genoFile.writeln(line);
 }
 
 void TVcfToGeno::run() {
@@ -235,13 +423,13 @@ void TVcfToLFMMPostGeno::_store(genometools::TPopulationLikehoodLocus<TSampleLik
 
 void TVcfToPosFile::_writeHeader() {
 	// no header
-	_posFile.noHeader(4);
+	_posFile.numCols(4);
 }
 
 void TVcfToPosFile::_initOutputFiles() { _posFile.open(_outName + ".pos"); }
 
 void TVcfToPosFile::_write(genometools::TPopulationLikehoodLocus<TSampleLikelihoods> &) {
-	_posFile << _reader.chr() << _reader.position() << _reader.refAllele() << _reader.altAllele() << std::endl;
+	_posFile.writeln(_reader.chr(), _reader.position(), _reader.refAllele(), _reader.altAllele());
 }
 
 void TVcfToPosFile::run() {
@@ -344,7 +532,7 @@ void TVcfToGenotypeTruthSetFile::_writeToGenFile(const std::vector<size_t> &samp
 			_genFile << "NA";
 		}
 	}
-	_genFile.endLine();
+	_genFile.endln();
 }
 
 void TVcfToGenotypeTruthSetFile::_storeInBedFile(const std::vector<size_t> &samplesToKeep) {

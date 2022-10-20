@@ -5,11 +5,11 @@
 #include "gtest/gtest.h"
 #include <algorithm>
 
-#include "GenotypeTypes.h"
+#include "genometools/GenotypeTypes.h"
 #include "TGLF.h"
 #include "TGenotypeData.h"
 #include "TTestGLFFile.h"
-#include "stringFunctions.h"
+#include "coretools/Strings/stringFunctions.h"
 
 //-------------------------------------------------------------
 // TGLF_Test_ReadWrite
@@ -67,10 +67,10 @@ public:
 		outputGLF.writeDummySite(10, 10);
 		// 3) depth = 0
 		outputGLF.writeDummySite(20, 0);
-		// 4) depth = 10, but all bases are N
+		// 4) depth = 10, but all bases are C
 		std::vector<GenotypeLikelihoods::TBaseLikelihoods> bases;
 		bases.reserve(10);
-		Base base                    = Base::N;
+		Base base                    = Base::C;
 		coretools::Probability error = 0.001;
 		for (uint32_t d = 0; d < 10; d++) {
 			TBaseLikelihoods baseData = GenotypeLikelihoods::fromError(base, error);
@@ -128,10 +128,9 @@ public:
 
 		outputGLF.closeOutput();
 	}
-
-	virtual void read() {
+	virtual void read(bool open=true) {
 		// open GLF for reading
-		inputGLF.open(_filename);
+		if (open) inputGLF.open(_filename);
 
 		// read!
 		while (inputGLF.readNext()) {
@@ -176,9 +175,8 @@ TEST_F(TGLF_Test_WriteRead, chromosomes) {
 	write(300);
 	read();
 	// check if written and read chromosomes are equal
-	TGlfChromosome *chr;
 	for (int i = 0; i < 3; i++) {
-		inputGLF.fillPointerToChr(i, chr);
+		const auto chr = inputGLF.pointerToChr(i);
 
 		EXPECT_EQ(chr->refId(), i);
 		EXPECT_EQ(chr->name(), "Chr" + coretools::str::toString(i + 1));
@@ -200,10 +198,10 @@ void normalizeByMax_Haploid(GenotypeLikelihoods::TGenotypeLikelihoods &genotypeL
 	if (genotypeLikelihoods[Genotype::TT] > maxLL) maxLL = genotypeLikelihoods[Genotype::TT];
 
 	// normalize
-	genotypeLikelihoods[Genotype::AA] /= maxLL;
-	genotypeLikelihoods[Genotype::CC] /= maxLL;
-	genotypeLikelihoods[Genotype::GG] /= maxLL;
-	genotypeLikelihoods[Genotype::TT] /= maxLL;
+	genotypeLikelihoods[Genotype::AA].scale(maxLL);
+	genotypeLikelihoods[Genotype::CC].scale(maxLL);
+	genotypeLikelihoods[Genotype::GG].scale(maxLL);
+	genotypeLikelihoods[Genotype::TT].scale(maxLL);
 }
 
 TEST_F(TGLF_Test_WriteRead, genotypeLikelihoods) {
@@ -228,7 +226,7 @@ TEST_F(TGLF_Test_WriteRead, rewind) {
 	read();
 	positions.clear();
 	inputGLF.rewind();
-	read();
+	read(false);
 
 	// check if written and read positions are equal
 	int c = 0;
@@ -303,9 +301,8 @@ TEST_F(TGLF_Test_WriteRead, chromosomes_missingData) {
 	read();
 	// check if written and read chromosomes are equal
 	// first chromosome
-	TGlfChromosome *chr;
 	for (int i = 0; i < 5; i++) {
-		inputGLF.fillPointerToChr(i, chr);
+		const auto chr = inputGLF.pointerToChr(i);
 
 		EXPECT_EQ(chr->refId(), i);
 		EXPECT_EQ(chr->name(), "Chr" + coretools::str::toString(i + 1));
@@ -373,9 +370,8 @@ TEST_F(TGLF_Test_WriteRead, positions_withDifferentPloidies) {
 	read();
 	// check if written and read positions are equal
 	int c = 0;
-	for (auto writtenPosition = outputGLF.beginPositions(); writtenPosition != outputGLF.endPositions();
-	     writtenPosition++, c++) {
-		EXPECT_EQ(writtenPosition->position(), positions[c]);
+	for (auto p = outputGLF.beginPositions(); p != outputGLF.endPositions(); p++, c++) {
+		EXPECT_EQ(p->position(), positions[c]);
 	}
 }
 
@@ -394,9 +390,8 @@ TEST_F(TGLF_Test_WriteRead, chromosomes_withDifferentPloidies) {
 	read();
 	// check if written and read chromosomes are equal
 	// first chromosome
-	TGlfChromosome *chr;
 	for (int i = 0; i < 3; i++) {
-		inputGLF.fillPointerToChr(i, chr);
+		const auto chr = inputGLF.pointerToChr(i);
 
 		EXPECT_EQ(chr->refId(), i);
 		EXPECT_EQ(chr->name(), "Chr" + coretools::str::toString(i + 1));
@@ -448,9 +443,9 @@ protected:
 	static constexpr uint32_t windowLen = 20;
 	std::vector<std::vector<TGLFLikelihoods>> genotypeLikelihoods_perWindow;
 public:
-	void read() override {
+	void read(bool open=true) override {
 		// open GLF for reading
-		inputGLF.open(_filename);
+		if (open) inputGLF.open(_filename);
 
 		// parse GLFs in windows
 		while (!inputGLF.eof()) {
@@ -509,10 +504,17 @@ TEST_F(TGLF_Test_WriteRead_Windows, genotypeLikelihoods_writeWithMissingSites) {
 		for (auto genotypeLikelihood_read : window) {
 			// need to normalize the written likelihoods by maximal LL in order to compare
 			normalizeByMax_Diploid(*writtenGTL);
-			for (Genotype g = Genotype::min; g < Genotype::max; ++g) { // go over all 10 possible genotypes
-				// compare in GLF format (quite a large imprecision when going from likelihood -> GLF likelihood ->
-				// likelihood)
-				EXPECT_EQ(HighPrecisionPhredIntProbability((*writtenGTL)[g]), genotypeLikelihood_read[g]);
+			if (genotypeLikelihood_read.type == Ploidy::diploid) {
+				for (Genotype g = Genotype::min; g < Genotype::max; ++g) { // go over all 10 possible genotypes
+					// compare in GLF format (quite a large imprecision when going from likelihood -> GLF likelihood ->
+					// likelihood)
+					EXPECT_EQ(HighPrecisionPhredIntProbability((*writtenGTL)[g]), genotypeLikelihood_read[g]);
+				}
+			} else {
+				for (Base b = Base::min; b < Base::max; ++b) { // go over all 4 possible genotypes
+					EXPECT_EQ(HighPrecisionPhredIntProbability((*writtenGTL)[genotype(b, b)]),
+							  genotypeLikelihood_read[b]);
+				}
 			}
 			writtenGTL++;
 		}
@@ -529,8 +531,15 @@ TEST_F(TGLF_Test_WriteRead_Windows, genotypeLikelihoods_writeWithMissingWindows)
 	auto writtenGTL = outputGLF.beginGenotypeLikelihoodsWithMissingSites() + 50;
 	for (int s = 0; s < 20; s++) {
 		normalizeByMax_Diploid(*writtenGTL);
-		for (Genotype g = Genotype::min; g < Genotype::max; ++g) { // go over all 10 possible genotypes
-			EXPECT_EQ(HighPrecisionPhredIntProbability((*writtenGTL)[g]), genotypeLikelihoods_perWindow[0][s][g]);
+		if (genotypeLikelihoods_perWindow[0][s].type == Ploidy::diploid) {
+			for (Genotype g = Genotype::min; g < Genotype::max; ++g) { // go over all 10 possible genotypes
+				EXPECT_EQ(HighPrecisionPhredIntProbability((*writtenGTL)[g]), genotypeLikelihoods_perWindow[0][s][g]);
+			}
+		} else {
+			for (Base b = Base::min; b < Base::max; ++b) { // go over all 10 possible genotypes
+				EXPECT_EQ(HighPrecisionPhredIntProbability((*writtenGTL)[genotype(b, b)]),
+						  genotypeLikelihoods_perWindow[0][s][b]);
+			}
 		}
 		writtenGTL++;
 	}
@@ -539,9 +548,17 @@ TEST_F(TGLF_Test_WriteRead_Windows, genotypeLikelihoods_writeWithMissingWindows)
 	writtenGTL = outputGLF.beginGenotypeLikelihoodsWithMissingSites() + 70;
 	for (int s = 0; s < 20; s++) {
 		normalizeByMax_Diploid(*writtenGTL);
-		for (Genotype g = Genotype::min; g < Genotype::max; ++g) { // go over all 10 possible genotypes
-			EXPECT_EQ(HighPrecisionPhredIntProbability((*writtenGTL)[g]), genotypeLikelihoods_perWindow[1][s][g]);
+		if (genotypeLikelihoods_perWindow[1][s].type == Ploidy::diploid) {
+			for (Genotype g = Genotype::min; g < Genotype::max; ++g) { // go over all 10 possible genotypes
+				EXPECT_EQ(HighPrecisionPhredIntProbability((*writtenGTL)[g]), genotypeLikelihoods_perWindow[1][s][g]);
+			}
+		} else {
+			for (Base b = Base::min; b < Base::max; ++b) { // go over all 10 possible genotypes
+				EXPECT_EQ(HighPrecisionPhredIntProbability((*writtenGTL)[genotype(b, b)]),
+						  genotypeLikelihoods_perWindow[1][s][b]);
+			}
 		}
+
 		writtenGTL++;
 	}
 
@@ -549,8 +566,15 @@ TEST_F(TGLF_Test_WriteRead_Windows, genotypeLikelihoods_writeWithMissingWindows)
 	writtenGTL = outputGLF.beginGenotypeLikelihoodsWithMissingSites() + 90;
 	for (int s = 0; s < 20; s++) {
 		normalizeByMax_Diploid(*writtenGTL);
-		for (Genotype g = Genotype::min; g < Genotype::max; ++g) { // go over all 10 possible genotypes
-			EXPECT_EQ(HighPrecisionPhredIntProbability((*writtenGTL)[g]), genotypeLikelihoods_perWindow[2][s][g]);
+		if (genotypeLikelihoods_perWindow[2][s].type == Ploidy::diploid) {
+			for (Genotype g = Genotype::min; g < Genotype::max; ++g) { // go over all 10 possible genotypes
+				EXPECT_EQ(HighPrecisionPhredIntProbability((*writtenGTL)[g]), genotypeLikelihoods_perWindow[2][s][g]);
+			}
+		} else {
+			for (Base b = Base::min; b < Base::max; ++b) { // go over all 10 possible genotypes
+				EXPECT_EQ(HighPrecisionPhredIntProbability((*writtenGTL)[genotype(b, b)]),
+						  genotypeLikelihoods_perWindow[2][s][b]);
+			}
 		}
 		writtenGTL++;
 	}
@@ -559,8 +583,15 @@ TEST_F(TGLF_Test_WriteRead_Windows, genotypeLikelihoods_writeWithMissingWindows)
 	writtenGTL = outputGLF.beginGenotypeLikelihoodsWithMissingSites() + 480;
 	for (int s = 0; s < 20; s++) {
 		normalizeByMax_Diploid(*writtenGTL);
-		for (Genotype g = Genotype::min; g < Genotype::max; ++g) { // go over all 10 possible genotypes
-			EXPECT_EQ(HighPrecisionPhredIntProbability((*writtenGTL)[g]), genotypeLikelihoods_perWindow[3][s][g]);
+		if (genotypeLikelihoods_perWindow[3][s].type == Ploidy::diploid) {
+			for (Genotype g = Genotype::min; g < Genotype::max; ++g) { // go over all 10 possible genotypes
+				EXPECT_EQ(HighPrecisionPhredIntProbability((*writtenGTL)[g]), genotypeLikelihoods_perWindow[3][s][g]);
+			}
+		} else {
+			for (Base b = Base::min; b < Base::max; ++b) { // go over all 10 possible genotypes
+				EXPECT_EQ(HighPrecisionPhredIntProbability((*writtenGTL)[genotype(b, b)]),
+						  genotypeLikelihoods_perWindow[3][s][b]);
+			}
 		}
 		writtenGTL++;
 	}
@@ -583,10 +614,19 @@ TEST_F(TGLF_Test_WriteRead_Windows, oneWindow_writeAll) {
 		for (auto genotypeLikelihood_read : window) {
 			// need to normalize the written likelihoods by maximal LL in order to compare
 			normalizeByMax_Diploid(*writtenGTL);
-			for (Genotype g = Genotype::min; g < Genotype::max; ++g) { // go over all 10 possible genotypes
-				// compare in GLF format (quite a large imprecision when going from likelihood -> GLF likelihood ->
-				// likelihood)
-				EXPECT_EQ(HighPrecisionPhredIntProbability((*writtenGTL)[g]), genotypeLikelihood_read[g]);
+			if (genotypeLikelihood_read.type == Ploidy::diploid) {
+				for (Genotype g = Genotype::min; g < Genotype::max; ++g) { // go over all 10 possible genotypes
+					// compare in GLF format (quite a large imprecision when going from likelihood -> GLF likelihood ->
+					// likelihood)
+					EXPECT_EQ(HighPrecisionPhredIntProbability((*writtenGTL)[g]), genotypeLikelihood_read[g]);
+				}
+			} else {
+				for (Base b = Base::min; b < Base::max; ++b) { // go over all 10 possible genotypes
+					// compare in GLF format (quite a large imprecision when going from likelihood -> GLF likelihood ->
+					// likelihood)
+					EXPECT_EQ(HighPrecisionPhredIntProbability((*writtenGTL)[genotype(b, b)]),
+							  genotypeLikelihood_read[b]);
+				}
 			}
 			writtenGTL++;
 		}
@@ -609,8 +649,14 @@ TEST_F(TGLF_Test_WriteRead_Windows, oneWindow_writeWithMissingSites) {
 	auto writtenGTL = outputGLF.beginGenotypeLikelihoodsWithMissingSites() + 480;
 	for (int s = 0; s < 20; s++) {
 		normalizeByMax_Diploid(*writtenGTL);
-		for (Genotype g = Genotype::min; g < Genotype::max; ++g) { // go over all 10 possible genotypes
-			EXPECT_EQ(HighPrecisionPhredIntProbability((*writtenGTL)[g]), genotypeLikelihoods_perWindow[0][s][g]);
+		if (genotypeLikelihoods_perWindow[0][s].type == Ploidy::diploid) {
+			for (Genotype g = Genotype::min; g < Genotype::max; ++g) { // go over all 10 possible genotypes
+				EXPECT_EQ(HighPrecisionPhredIntProbability((*writtenGTL)[g]), genotypeLikelihoods_perWindow[0][s][g]);
+			}
+		} else {
+			for (Base b = Base::min; b < Base::max; ++b) { // go over all 10 possible genotypes
+				EXPECT_EQ(HighPrecisionPhredIntProbability((*writtenGTL)[genotype(b, b)]), genotypeLikelihoods_perWindow[0][s][b]);
+			}
 		}
 		writtenGTL++;
 	}

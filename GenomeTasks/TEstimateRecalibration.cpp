@@ -13,10 +13,10 @@
 #include <vector>
 
 #include "TBamFile.h"
-#include "TGenomePosition.h"
+#include "genometools/GenomePositions/TGenomePosition.h"
 #include "TGenotypeLikelihoodCalculator.h"
-#include "TLog.h"
-#include "TParameters.h"
+#include "coretools/Main/TLog.h"
+#include "coretools/Main/TParameters.h"
 #include "TReadGroups.h"
 #include "SequencingError/TRecalEstimator.h"
 #include "TSite.h"

@@ -12,13 +12,13 @@
 #include <set>
 #include <string>
 
-#include "GenotypeTypes.h"
-#include "PhredProbabilityTypes.h"
-#include "TGenotypeFrequencies.h"
+#include "genometools/GenotypeTypes.h"
+#include "genometools/PhredProbabilityTypes.h"
+#include "genometools/TGenotypeFrequencies.h"
 #include "TGlfMultiReader.h"
-#include "TStrongArray.h"
-#include "TTask.h"
-#include "probability.h"
+#include "coretools/Containers/TStrongArray.h"
+#include "coretools/Main/TTask.h"
+#include "coretools/Types/probability.h"
 
 namespace PopulationTools {
 
@@ -48,6 +48,7 @@ public:
 	constexpr genometools::Base minor() const noexcept {return _minor;}
 	constexpr genometools::Base major() const noexcept {return _major;}
 	constexpr genometools::PhredIntProbability variantQuality() const noexcept {return _variantQuality;} ;
+	const genometools::TGenotypeFrequencies& genotypeFrequencies() const noexcept {return _genotypeFrequencies;}
 };
 
 class TMajorMinorEstimatorSkotte : public TMajorMinorEstimatorBase {

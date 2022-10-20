@@ -12,22 +12,22 @@
 #include <string>
 #include <vector>
 
-#include "PhredProbabilityTypes.h"
-#include "TFile.h"
-#include "THardyWeinbergGenotypeProbabilities.h"
-#include "TLog.h"
-#include "TObservationTyped.h"
-#include "TParameterTyped.h"
-#include "TParameters.h"
-#include "TPopulationLikelihoods.h"
-#include "TPriorBase.h"
-#include "TSampleLikelihoods.h"
-#include "TTask.h"
-#include "TValue.h"
-#include "commonWeakTypes.h"
-#include "probability.h"
-#include "strongTypes.h"
-#include "weakTypes.h"
+#include "genometools/PhredProbabilityTypes.h"
+#include "coretools/Files/TFile.h"
+#include "genometools/THardyWeinbergGenotypeProbabilities.h"
+#include "coretools/Main/TLog.h"
+#include "stattools/ParametersObservations/TObservationTyped.h"
+#include "stattools/ParametersObservations/TParameterTyped.h"
+#include "coretools/Main/TParameters.h"
+#include "genometools/VCF/TPopulationLikelihoods.h"
+#include "stattools/Priors/TPriorBase.h"
+#include "genometools/TSampleLikelihoods.h"
+#include "coretools/Main/TTask.h"
+#include "stattools/ParametersObservations/TValue.h"
+#include "coretools/Types/commonWeakTypes.h"
+#include "coretools/Types/probability.h"
+#include "coretools/Types/strongTypes.h"
+#include "coretools/Types/weakTypes.h"
 
 namespace stattools {
 class TDAGBuilder;

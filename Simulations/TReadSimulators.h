@@ -11,7 +11,7 @@
 #include "TReadSimulator.h"
 #include "../GenotypeLikelihoods/SequencingError/TModels.h"
 #include "TPostMortemDamage.h"
-#include "TGenomePosition.h"
+#include "genometools/GenomePositions/TGenomePosition.h"
 
 namespace Simulations {
 

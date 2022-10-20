@@ -10,14 +10,15 @@
 #include <string>
 #include <vector>
 
-#include "GenotypeTypes.h"
-#include "PhredProbabilityTypes.h"
-#include "TFile.h"
-#include "TParameters.h"
-#include "TSampleLikelihoods.h"
-#include "gzstream.h"
-#include "probability.h"
-#include "stringFunctions.h"
+#include "genometools/GenotypeTypes.h"
+#include "genometools/PhredProbabilityTypes.h"
+#include "coretools/Files/TFile.h"
+#include "coretools/Main/TParameters.h"
+#include "genometools/TSampleLikelihoods.h"
+#include "coretools/devtools.h"
+#include "coretools/Files/gzstream.h"
+#include "coretools/Types/probability.h"
+#include "coretools/Strings/stringFunctions.h"
 
 using namespace testing;
 using namespace coretools::instances;
@@ -139,7 +140,7 @@ TEST_F(TVCFConverterTest, beagle) {
 		EXPECT_EQ(line[1], "A");
 		EXPECT_EQ(line[2], "C");
 		for (size_t i = 0; i < numIndiv; ++i, ++linearIndex) {
-			const double sum = (Probability)PhredIntProbability(phred_g1[linearIndex]) +
+			const double sum = static_cast<Probability>(PhredIntProbability(phred_g1[linearIndex])).get() +
 			                   (Probability)PhredIntProbability(phred_g2[linearIndex]) +
 			                   (Probability)PhredIntProbability(phred_g3[linearIndex]);
 			const double gtl1 = convertString<Probability>(line[3 + i * 3]);
@@ -184,7 +185,7 @@ TEST_F(TVCFConverterTest, beagle_withSamples) {
 		for (size_t i = 0; i < samplesToKeep.size(); ++i) {
 			size_t relevantIndex = l * numIndiv + indexInSampleNames[i];
 			// genotype likelihoods (we loose some precision when reading/writing, so only expect near)
-			const double sum     = (Probability)PhredIntProbability(phred_g1[relevantIndex]) +
+			const double sum     = ((Probability)PhredIntProbability(phred_g1[relevantIndex])).get() +
 			                   (Probability)PhredIntProbability(phred_g2[relevantIndex]) +
 			                   (Probability)PhredIntProbability(phred_g3[relevantIndex]);
 			const double gtl1 = convertString<Probability>(line[3 + i * 3]);

@@ -15,12 +15,12 @@
 #include <vector>
 
 #include "TAlignment.h"
-#include "TGenomePosition.h"
+#include "genometools/GenomePositions/TGenomePosition.h"
 #include "TGenotypeData.h"
 #include "TSite.h"
 #include "TSiteSubset.h"
-#include "TSubsamplePicker.h"
-#include "probability.h"
+#include "coretools/Math/TSubsamplePicker.h"
+#include "coretools/Types/probability.h"
 
 namespace BAM { class TFastaBuffer; }
 namespace coretools { class TLog; }
@@ -104,6 +104,8 @@ public:
 	bool filter(const double maxFracMissing, const double maxRefN, coretools::TLog* Logfile);
 	bool passedFilters() const{ return _passedFilters; };
 
+	explicit operator std::string() const { return fmt::format("{}:{}-{}", chrName(), from().position() + 1, to().position()); }
+
 	//loop over sites
 	std::vector<TSite>::iterator begin(){ return _sites.begin(); };
 	std::vector<TSite>::iterator end(){ return _sites.end(); };
@@ -112,7 +114,6 @@ public:
 };
 
 std::ostream& operator<<(std::ostream& os, const TWindow_base & window);
-coretools::TOutputFile& operator<<(coretools::TOutputFile& out, const TWindow_base & window);
 
 //---------------------------------------------------------------
 //TWindow

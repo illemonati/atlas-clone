@@ -11,12 +11,12 @@
 #include <fstream>
 #include <map>
 
-#include "GenotypeTypes.h"
-#include "TChromosomes.h"
+#include "genometools/GenotypeTypes.h"
+#include "genometools/GenomePositions/TChromosomes.h"
 #include "TFastaBuffer.h"
-#include "TFile.h"
-#include "TLog.h"
-#include "stringFunctions.h"
+#include "coretools/Files/TOutputFile.h"
+#include "coretools/Main/TLog.h"
+#include "coretools/Strings/stringFunctions.h"
 
 namespace GenotypeLikelihoods{
 
@@ -48,7 +48,7 @@ void checkAlleles(const std::string &chr, uint32_t pos, const genometools::Base 
 //-------------------------------------------------
 
 void TSiteSubsetSite::write(coretools::TOutputFile & out) const{
-	out << _refID << _position << _ref << _alt << std::endl;
+	out.writeln(_refID, _position, _ref, _alt);
 };
 
 //-------------------------------------------------
@@ -120,7 +120,7 @@ void TSiteSubset::_readFile(const std::string &Filename, const genometools::TChr
 				conflicts.writeHeader({"chr", "position", "reference", "allele1", "allele2"});
 				conflictsFound = true;
 			}
-			conflicts << chr.name << pos+1 << trueRef << ref << alt << std::endl;
+			conflicts.writeln(chr.name, pos+1, trueRef, ref, alt);
 		}
 
 		//add site
@@ -133,7 +133,7 @@ void TSiteSubset::_readFile(const std::string &Filename, const genometools::TChr
 
 	//write conflicts, if any
 	if(conflictsFound){
-		logfile().conclude("Reference conflicted with provided alleles at " + toString(conflicts.lineNumber() - 1) + " positions!");
+		logfile().conclude("Reference conflicted with provided alleles at " + toString(conflicts.curLine() - 1) + " positions!");
 		logfile().conclude("These positions were written to " + conflicts.name());
 	}
 };

@@ -10,11 +10,11 @@
 #include <stdint.h>
 #include <ostream>
 #include "TBamFile.h"
-#include "TChromosomes.h"
+#include "genometools/GenomePositions/TChromosomes.h"
 #include "TCigar.h"
-#include "TFile.h"
-#include "TLog.h"
-#include "TRandomGenerator.h"
+#include "coretools/Files/TFile.h"
+#include "coretools/Main/TLog.h"
+#include "coretools/Main/TRandomGenerator.h"
 #include "TReadGroups.h"
 
 namespace GenomeTasks{
@@ -37,9 +37,14 @@ void TBamDiagnoser::_writeHistogram(const TCountDistributionVector<> & distVec, 
 	logfile().listFlush("Writing " + name + " histogram to '" + filename + "' ...");
 	coretools::TOutputFile out(filename, {"readGroup", header, "count"});
 
-	//First write values for all read groups combined, then write them per read group
-	distVec.writeCombined(out, "allReadGroups");
-	distVec.write(out, _readGroupNames);
+    // Should file contain read groups with 0 counts?
+	if (parameters().parameterExists("writeZeroCounts")) {
+		distVec.template writeCombined<true>(out, "allReadGroups");
+		distVec.template write<true>(out, _readGroupNames);
+	} else {
+		distVec.template writeCombined<false>(out, "allReadGroups");
+		distVec.template write<false>(out, _readGroupNames);
+	}
 
 	out.close();
 	logfile().done();
@@ -105,20 +110,16 @@ void TBamDiagnoser::diagnose(){
 	}
 
 	//write for combined
-	out << "allReadGroups";
-	out << (_bamFile.numAlignmentsReadPerReadGroup()).counts();
-	out << _passedQC.counts();
-	out << _readLength.mean() << _readLength.max();
-	out << _fragmentLength.counts() << _fragmentLength.mean();
-	out << _softClippedLength.countsLargerZero() << _softClippedLength.mean();
-	out << _usableLength.mean() << (double) _usableLength.sum() / (double) totLengthOfGenome;
-	out << _mappingQuality.mean();
-	if (numRG == single_count){
-		out << "single" << std::endl;
+	out.write("allReadGroups", (_bamFile.numAlignmentsReadPerReadGroup()).counts(), _passedQC.counts(),
+			  _readLength.mean(), _readLength.max(), _fragmentLength.counts(), _fragmentLength.mean(),
+			  _softClippedLength.countsLargerZero(), _softClippedLength.mean(), _usableLength.mean(),
+			  (double)_usableLength.sum() / (double)totLengthOfGenome, _mappingQuality.mean());
+	if (numRG == single_count) {
+		out.writeln("single");
 	} else if (numRG == paired_count) {
-		out << "paired" << std::endl;
+		out.writeln("paired");
 	} else {
-		out << "mixed" << std::endl;
+		out.writeln("mixed");
 	}
 
 	//write per read group
@@ -134,28 +135,28 @@ void TBamDiagnoser::diagnose(){
 		if (_fragmentLength[rg].counts() == 0){
 			out << "single" << std::endl;
 		} else {
-			out << "paired" << std::endl;
+			out.writeln("paired");
 		}
 	}
 	out.close();
 	logfile().done();
 
 	if(parameters().parameterExists("splitMergeInput")){
-		//write file used by split merge
-		std::string splitmergename = _outputName + "_splitMergeInput.txt";
-		logfile().listFlush("Outputting input file for splitMerge to '" + splitmergename + "' ...");
-		coretools::TOutputFile splitm (splitmergename, {"readGroup", "seqType", "seqCycles"});
-		for(uint32_t rg = 0; rg < numRG; ++rg){
-			splitm << _bamFile.readGroups().getName(rg);
-			if (_fragmentLength[rg].counts() == 0){
-				splitm << "single";
-			} else {
-				splitm << "paired";
-			}
-			splitm << _readLength.max() << std::endl;
+	//write file used by split merge
+	std::string splitmergename = _outputName + "_splitMergeInput.txt";
+	logfile().listFlush("Outputting input file for splitMerge to '" + splitmergename + "' ...");
+	coretools::TOutputFile splitm (splitmergename, {"readGroup", "seqType", "seqCycles"});
+	for(uint32_t rg = 0; rg < numRG; ++rg){
+		splitm << _bamFile.readGroups().getName(rg);
+		if (_fragmentLength[rg].counts() == 0){
+			splitm << "single";
+		} else {
+			splitm << "paired";
 		}
-		splitm.close();
-		logfile().done();
+		splitm.writeln(_readLength.max());
+	}
+	splitm.close();
+	logfile().done();
 	}
 
 

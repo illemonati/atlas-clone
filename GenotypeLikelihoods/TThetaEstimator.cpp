@@ -11,17 +11,17 @@
 #include <exception>
 #include <stdlib.h>
 
-#include "GenotypeTypes.h"
+#include "genometools/GenotypeTypes.h"
 #include "TGenotypeData.h"
 #include "TGenotypeLikelihoodCalculator.h"
-#include "TLog.h"
-#include "TParameters.h"
-#include "TRandomGenerator.h"
+#include "coretools/Main/TLog.h"
+#include "coretools/Main/TParameters.h"
+#include "coretools/Main/TRandomGenerator.h"
 #include "TSite.h"
-#include "gzstream.h"
-#include "probability.h"
-#include "stringFunctions.h"
-#include "weakTypes.h"
+#include "coretools/Files/gzstream.h"
+#include "coretools/Types/probability.h"
+#include "coretools/Strings/stringFunctions.h"
+#include "coretools/Types/weakTypes.h"
 
 namespace GenotypeLikelihoods {
 using coretools::instances::logfile;
@@ -47,7 +47,7 @@ TGenotypeProbabilities getPGenotype(double expTheta, const TBaseProbabilities &b
 			lGeno[het]   = 2.0 * baseFrequencies[b].get() * baseFrequencies[c].get() * (1.0 - expTheta);
 		}
 	}
-	return TGenotypeProbabilities{lGeno};
+	return TGenotypeProbabilities::normalize(lGeno);
 };
 
 GenotypeLikelihoods::TGenotypeProbabilities getPGenotype(const Theta &thisTheta) {
@@ -567,7 +567,7 @@ void TThetaEstimator::writeResultsToFile(coretools::TOutputFile &out) {
 void TThetaEstimator::calcLikelihoodSurface(coretools::TOutputFile &out, uint32_t steps) {
 	// write header
 	out.writeHeader({"log10(theta)", "theta", "LL"});
-	out.setPrecision(12);
+	out.precision(12);
 
 	// calculate likelihood surface
 	double minLogTheta = -5.0;
@@ -583,7 +583,7 @@ void TThetaEstimator::calcLikelihoodSurface(coretools::TOutputFile &out, uint32_
 		theta.LL   = data->calcLogLikelihood(_pGenotype);
 
 		// write results
-		out << theta.logTheta << theta.theta << theta.LL << std::endl;
+		out.writeln(theta.logTheta, theta.theta, theta.LL);
 	}
 };
 
@@ -803,7 +803,7 @@ bool TThetaEstimatorRatio::updateBaseFrequencies(TThetaEstimatorData *thisData, 
 		if (k != thisBase) { tmpBaseLik[k] = thisTheta.baseFreq[thisBase].get() * scale; }
 	}
 
-	TBaseProbabilities tmpBaseFreq{tmpBaseLik};
+	const auto tmpBaseFreq = TBaseProbabilities::normalize(tmpBaseLik);
 
 	// calc LL & hastings ratio (use uniform prior, i.e. all combinations are equally likely)
 	_pGenotype   = getPGenotype(thisTheta.expMinusTheta, tmpBaseFreq);

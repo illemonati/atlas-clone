@@ -13,14 +13,14 @@
 #include <iterator>
 #include <memory>
 #include <numeric>
-#include "GenotypeTypes.h"
-#include "TLog.h"
-#include "TParameters.h"
-#include "TRandomGenerator.h"
-#include "probability.h"
-#include "stringFunctions.h"
-#include "strongTypes.h"
-#include "weakTypes.h"
+#include "genometools/GenotypeTypes.h"
+#include "coretools/Main/TLog.h"
+#include "coretools/Main/TParameters.h"
+#include "coretools/Main/TRandomGenerator.h"
+#include "coretools/Types/probability.h"
+#include "coretools/Strings/stringFunctions.h"
+#include "coretools/Types/strongTypes.h"
+#include "coretools/Types/weakTypes.h"
 
 namespace GLF {
 using coretools::instances::logfile;
@@ -45,19 +45,19 @@ TGlfReader * nextChr(const std::vector<TGlfReader *>& ps, bool onlyData) {
 	}
 }
 
-void _checkChromosomeInfo(TGlfChromosome* _curChr, const std::vector<TGlfReader *>& ps) {
+void _checkChromosomeInfo(const TGlfChromosome & _curChr, const std::vector<TGlfReader *>& ps) {
 	// check that all files share the same chromosome info
 	for (const auto p: ps) {
-		TGlfChromosome *chr = p->pointerToChr(_curChr->refId());
+		TGlfChromosome *chr = p->pointerToChr(_curChr.refId());
 		if (chr) {
-			if (chr->name() != _curChr->name())
+			if (chr->name() != _curChr.name())
 				throw "Chrosomome names differ between files '" + ps[0]->name() + "' and '" +
-				    p->name() + "': '" + _curChr->name() + "' != '" + chr->name() + "'!";
-			if (chr->length() != _curChr->length())
+				    p->name() + "': '" + _curChr.name() + "' != '" + chr->name() + "'!";
+			if (chr->length() != _curChr.length())
 				throw "Chrosomome lengths differ between files '" + ps[0]->name() + "' and '" +
-				    p->name() + "': '" + toString(_curChr->length()) + "' != '" + toString(chr->length()) + "'!";
+				    p->name() + "': '" + toString(_curChr.length()) + "' != '" + toString(chr->length()) + "'!";
 		} else {
-			logfile().list(p->name(), " does not have contig ", _curChr->name(), ", considering all data empty.");
+			logfile().list(p->name(), " does not have contig ", _curChr.name(), ", considering all data empty.");
 		}
 	}
 };
@@ -69,11 +69,12 @@ void fill(TMultiGLFDataOneAllelicCombination &storage, const TMultiGLFData &samp
 		  genometools::AllelicCombination alleleicCombination) {
 	using namespace genometools;
 	storage.clear();
-	storage.reserve(samples.size());
+	//storage.reserve(samples.size());
 	for (const auto &s : samples) {
-		if (!s.hasData())
-			storage.emplace_back(s.isHaploid<false>());
-		else if (s.isHaploid<true>())
+		if (!s.hasData()) {
+			continue;
+		}
+		if (s.isHaploid<true>())
 			storage.emplace_back(s.get_with_data(first(alleleicCombination)),
 								 s.get_with_data(second(alleleicCombination)));
 		else
@@ -100,28 +101,28 @@ void TGlfMultiReaderVcf::_openVCF(const std::string & Filename, const std::strin
 	_closeVCF();
 
 	// open vcf file
-	_vcf.open(Filename.c_str());
+	_vcf.open(Filename.c_str(), "\t");
 
 	// write info
 	// TODO: create VCF class to harmonize code across different uses. Also include code in Tiger and other
-	_vcf << "##fileformat=VCFv4.2\n";
-	_vcf << "##source=" << Source << "\n";
+	_vcf.writeln("##fileformat=VCFv4.2");
+	_vcf.writeNoDelim("##source=", Source).endln();
 
 	// make sure the header matches the format used in writeSiteToVCF
-	_vcf << "##INFO=<ID=DP,Number=1,Type=Integer,Description=\"Total Depth\">\n";
-	_vcf << "##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n";
-	_vcf << "##FORMAT=<ID=GQ,Number=1,Type=Integer,Description=\"Genotype quality\">\n";
-	_vcf << "##FORMAT=<ID=DP,Number=1,Type=Integer,Description=\"Total Depth\">\n";
+	_vcf.writeln("##INFO=<ID=DP,Number=1,Type=Integer,Description=\"Total Depth\">");
+	_vcf.writeln("##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">");
+	_vcf.writeln("##FORMAT=<ID=GQ,Number=1,Type=Integer,Description=\"Genotype quality\">");
+	_vcf.writeln("##FORMAT=<ID=DP,Number=1,Type=Integer,Description=\"Read Depth\">");
 	if (_usePhredScaledLikelihoods) {
-		_vcf << "##FORMAT=<ID=PL,Number=G,Type=Integer,Description=\"Phred-scaled normalized genotype likelihoods\">\n";
+		_vcf.writeln("##FORMAT=<ID=PL,Number=G,Type=Integer,Description=\"Phred-scaled normalized genotype likelihoods\">");
 	} else {
-		_vcf << "##FORMAT=<ID=GL,Number=G,Type=Float,Description=\"Normalized genotype likelihoods\">\n";
+		_vcf.writeln("##FORMAT=<ID=GL,Number=G,Type=Float,Description=\"Normalized genotype likelihoods\">");
 	}
 
 	// also write header with sample names
-	_vcf << "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT";
-	for (const std::string &name : SampleNames) _vcf << '\t' << name;
-	_vcf << '\n';
+	_vcf.write("#CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT");
+	for (const std::string &name : SampleNames) _vcf.write(name);
+	_vcf.endln();
 };
 
 void TGlfMultiReaderVcf::_closeVCF() {
@@ -138,35 +139,28 @@ void TGlfMultiReaderVcf::_setMajorMinor(genometools::Base refAllele, genometools
 
 void TGlfMultiReaderVcf::_writeLikelihood(HighPrecisionPhredIntProbability likGlf) {
 	if (_usePhredScaledLikelihoods) {
-		_vcf << (genometools::PhredIntProbability)likGlf;
+		_vcf.writeNoDelim(genometools::PhredIntProbability(likGlf));
 	} else {
 		if (likGlf == 0)
-			_vcf << '0';
+			_vcf.writeNoDelim('0');
 		else
-			_vcf << (coretools::Log10Probability)likGlf;
+			_vcf.writeNoDelim(coretools::Log10Probability(likGlf));
 	}
 };
 
 void TGlfMultiReaderVcf::_writeSiteInformation(const std::string & ChrName, uint32_t Position,
                                                genometools::PhredIntProbability VariantQuality,
                                                size_t Depth){
-	// write position
-	_vcf << ChrName << '\t' << Position + 1 << "\t.\t"; // internal position is zero-based!
-
-	// write ref and alt alleles
-	_vcf << _ref << '\t' << _alt;
-
-	// write quality of variant
-	_vcf << '\t' << VariantQuality;
+	_vcf.write(ChrName, Position + 1, '.', _ref, _alt, VariantQuality, '.'); // internal position is zero-based!
 
 	// write info field: total depth
-	_vcf << "\t.\tDP=" << Depth;
+	_vcf.writeNoDelim("DP=", Depth).writeDelim();
 
 	// write filter, info and format
 	if (_usePhredScaledLikelihoods)
-		_vcf << "\tGT:GQ:DP:PL";
+		_vcf.write("GT:GQ:DP:PL");
 	else
-		_vcf << "\tGT:GQ:DP:GL";
+		_vcf.write("GT:GQ:DP:GL");
 }
 
 void TGlfMultiReaderVcf::writeSite(const std::string &ChrName, uint32_t Position,
@@ -188,7 +182,7 @@ void TGlfMultiReaderVcf::writeSite(const std::string &ChrName, uint32_t Position
 	}
 
 	// end of line
-	_vcf << '\n';
+	_vcf.endln();
 };
 
 //----------------------------------------------------
@@ -317,15 +311,14 @@ void TGlfMultiReader::_prepareParsing() {
 
 bool TGlfMultiReader::_jumpToNextPosition() {
 	auto min      = impl::nextChr(_activeGLFs, _onlyPositionsWithData);
-	_curChr       = min->curChr();
+	_curChr       = *min->curChr();
 	_curRefId     = min->refId();
-	_position     = _onlyPositionsWithData*min->position(); // 0 if not jump to position
+	_position     = _onlyPositionsWithData * min->position(); // 0 if not jump to position
 	_nextPosition = _position;
 	impl::_checkChromosomeInfo(_curChr, _activeGLFs);
 
 	return !min->eof();
 };
-
 
 void TGlfMultiReader::setActive(const int index) {
 	_setAllInactive();
@@ -392,7 +385,9 @@ bool TGlfMultiReader::_moveToNextChromosome() {
 
 bool TGlfMultiReader::readNext() {
 	// advance to next position
-	if (_nextPosition > _curChr->length() && !_moveToNextChromosome()) return false;
+	if (_nextPosition > _curChr.length()){
+		if(!_moveToNextChromosome()) return false;
+	}
 
 	// advance all files behind next position
 	_numActiveFilesWithData = 0;
@@ -422,30 +417,7 @@ bool TGlfMultiReader::readNext() {
 	// update position
 	_position = _nextPosition;
 	++_nextPosition;
-
 	return true;
-};
-
-void TGlfMultiReader::print() const {
-	std::cout << "\nMulti Reader at position " << _position << " on chromosome '" << _curChr->name() << std::endl;
-	for (size_t i = 0; i < numActiveSamples(); ++i) {
-		std::cout << "File " << i << ":";
-		if (data[i].isHaploid()) {
-			for (genometools::Base g = genometools::Base::min; g < genometools::Base::max; ++g) {
-				std::cout << "\t" << data[i][g];
-			}
-		} else {
-			for (genometools::Genotype g = genometools::Genotype::min; g < genometools::Genotype::max; ++g) {
-				std::cout << "\t" << data[i][g];
-			}
-		}
-		std::cout << std::endl;
-	}
-};
-
-void TGlfMultiReader::writeSampleNamesOfActiveFiles(gz::ogzstream &out, std::string &sep) const {
-	// sample names are file names without glf ending
-	for (TGlfReader *it : _activeGLFs) { out << sep << coretools::str::readBeforeLast(it->name(), ".glf"); }
 };
 
 std::vector<std::string> TGlfMultiReader::namesOfActiveFiles() const {

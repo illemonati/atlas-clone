@@ -13,12 +13,12 @@
 #include <string>
 
 #include "TGenome.h"
-#include "TLog.h"
+#include "coretools/Main/TLog.h"
 #include "TPMDTables.h"
-#include "TParameters.h"
+#include "coretools/Main/TParameters.h"
 #include "TPostMortemDamage.h"
-#include "TRandomGenerator.h"
-#include "TTask.h"
+#include "coretools/Main/TRandomGenerator.h"
+#include "coretools/Main/TTask.h"
 
 namespace BAM {
 class TReadGroupMap;

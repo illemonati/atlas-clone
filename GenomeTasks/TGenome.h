@@ -14,16 +14,16 @@
 #include <string>
 #include <vector>
 
-#include "BED/TBed.h"
+#include "genometools/BED/TBed.h"
 #include "TAlignment.h"
 #include "TBamFile.h"
-#include "TChromosomes.h"
+#include "genometools/GenomePositions/TChromosomes.h"
 #include "TFastaBuffer.h"
-#include "TGenomePosition.h"
+#include "genometools/GenomePositions/TGenomePosition.h"
 #include "TGenotypeData.h"
 #include "TGenotypeLikelihoodCalculator.h"
-#include "TNumericRange.h"
-#include "TTimer.h"
+#include "coretools/Math/TNumericRange.h"
+#include "coretools/TTimer.h"
 #include "TWindow.h"
 
 namespace GenotypeLikelihoods {

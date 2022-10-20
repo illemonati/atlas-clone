@@ -9,9 +9,9 @@
 #include <string>
 #include <vector>
 
-#include "TChromosomes.h"
+#include "genometools/GenomePositions/TChromosomes.h"
 #include "TGLF.h"
-#include "TGenomePosition.h"
+#include "genometools/GenomePositions/TGenomePosition.h"
 #include "TGenotypeData.h"
 
 namespace GLF {
@@ -36,8 +36,8 @@ protected:
     long _dummyPos; long _dummyDist; long _dummyMaxDist;
     uint32_t _dummyDepth; uint32_t _dummyMaxDepth;
     uint8_t _dummy_RMS_mappingQual; uint32_t _dummyMax_RMS_mappingQual;
-    GenotypeLikelihoods::TGenotypeLikelihoods _dummyGenotypeLikelihoods;
-    GenotypeLikelihoods::TGenotypeLikelihoods _dummyGenotypeLikelihoodsHaploid;
+    GenotypeLikelihoods::TGenotypeLikelihoods _dummyGenotypeLikelihoods{1.};
+    GenotypeLikelihoods::TGenotypeLikelihoods _dummyGenotypeLikelihoodsHaploid{1.};
 
     void _iteratePosition();
     void _iterateDepth();

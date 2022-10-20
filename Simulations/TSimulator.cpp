@@ -18,21 +18,22 @@
 #include <stdexcept>
 #include <type_traits>
 
-#include "GenotypeTypes.h"
-#include "PhredProbabilityTypes.h"
-#include "TChromosomes.h"
-#include "TFile.h"
-#include "TGenotypeFrequencies.h"
+#include "genometools/GenotypeTypes.h"
+#include "genometools/PhredProbabilityTypes.h"
+#include "genometools/GenomePositions/TChromosomes.h"
+#include "coretools/Files/TFile.h"
+#include "genometools/TGenotypeFrequencies.h"
 #include "THaplotypeSimulator.h"
-#include "TLog.h"
-#include "TParameters.h"
-#include "TRandomGenerator.h"
-#include "algorithms.h"
-#include "gzstream.h"
-#include "mathConstants.h"
-#include "progressTools.h"
-#include "stringFunctions.h"
-#include "weakTypes.h"
+#include "coretools/Main/TLog.h"
+#include "coretools/Main/TParameters.h"
+#include "coretools/Main/TRandomGenerator.h"
+#include "coretools/algorithms.h"
+#include "coretools/Files/gzstream.h"
+#include "coretools/Math/mathConstants.h"
+#include "coretools/Types/probability.h"
+#include "coretools/Main/progressTools.h"
+#include "coretools/Strings/stringFunctions.h"
+#include "coretools/Types/weakTypes.h"
 
 namespace Simulations {
 using coretools::Probability;
@@ -386,18 +387,18 @@ void TVCFWriterSimulation::writeSite(const std::string &ChrName, uint32_t Positi
 		const bool isMissing = (Depths[i] == 0);
 		if (IsDiploid) {
 			_writeCell<3>(isMissing, Depths[i],
-			              {GenotypeLikelihoods[i][genometools::BiallelicGenotype::homoFirst],
-			               GenotypeLikelihoods[i][genometools::BiallelicGenotype::het],
-			               GenotypeLikelihoods[i][genometools::BiallelicGenotype::homoSecond]});
+			              {HighPrecisionPhredIntProbability(GenotypeLikelihoods[i][genometools::BiallelicGenotype::homoFirst]),
+			               HighPrecisionPhredIntProbability(GenotypeLikelihoods[i][genometools::BiallelicGenotype::het]),
+			               HighPrecisionPhredIntProbability(GenotypeLikelihoods[i][genometools::BiallelicGenotype::homoSecond])});
 		} else {
 			_writeCell<2>(isMissing, Depths[i],
-			              {GenotypeLikelihoods[i][genometools::BiallelicGenotype::haploidFirst],
-			               GenotypeLikelihoods[i][genometools::BiallelicGenotype::haploidSecond]});
+			              {HighPrecisionPhredIntProbability(GenotypeLikelihoods[i][genometools::BiallelicGenotype::haploidFirst]),
+			               HighPrecisionPhredIntProbability(GenotypeLikelihoods[i][genometools::BiallelicGenotype::haploidSecond])});
 		}
 	}
 
 	// end of line
-	_vcf << '\n';
+	_vcf.endln();
 }
 
 //-------------------------------------------
@@ -409,7 +410,7 @@ namespace /* anonymous */ {
 auto calculateLog10ProbThisAllelicCombination(const GLF::TMultiGLFDataOneAllelicCombination &GenotypeLikelihoods) {
 	// estimate genotype frequencies
 	genometools::TGenotypeFrequencies genotypeFrequencies;
-	genotypeFrequencies.estimate(GenotypeLikelihoods, GenotypeLikelihoods.size(), 0.0000001);
+	genotypeFrequencies.estimate<true>(GenotypeLikelihoods, GenotypeLikelihoods.size(), 0.0000001);
 
 	// calculate log10 likelihood
 	return genotypeFrequencies.calculateLog10Likelihood(GenotypeLikelihoods, GenotypeLikelihoods.size());
@@ -440,12 +441,13 @@ auto calculateLog10ProbFixed(const GLF::TMultiGLFDataOneAllelicCombination &Geno
 
 auto calculateVariantQuality(const GLF::TMultiGLFDataOneAllelicCombination &GenotypeLikelihoods,
                              genometools::Base Major, genometools::Base Ref, bool IsDiploid) {
+	using coretools::Log10Probability;
 	const auto LL_allelicCombination = calculateLog10ProbThisAllelicCombination(GenotypeLikelihoods);
 	const auto LL_fixed              = calculateLog10ProbFixed(GenotypeLikelihoods, Major, Ref, IsDiploid);
 
 	// calculate variant quality
-	return genometools::PhredIntProbability(LL_fixed > LL_allelicCombination ? coretools::Log10Probability(0.0)
-	                                                                         : LL_fixed - LL_allelicCombination);
+	return genometools::PhredIntProbability(
+		LL_fixed > LL_allelicCombination ? Log10Probability(0.0) : Log10Probability(LL_fixed - LL_allelicCombination));
 }
 
 } // end namespace

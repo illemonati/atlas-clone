@@ -14,13 +14,13 @@
 #include <math.h>
 #include <memory>
 
-#include "TBed.h"
-#include "TLog.h"
-#include "TParameters.h"
-#include "TRandomGenerator.h"
+#include "genometools/BED/TBed.h"
+#include "coretools/Main/TLog.h"
+#include "coretools/Main/TParameters.h"
+#include "coretools/Main/TRandomGenerator.h"
 #include "TSiteSubset.h"
-#include "TSubsamplePicker.h"
-#include "stringFunctions.h"
+#include "coretools/Math/TSubsamplePicker.h"
+#include "coretools/Strings/stringFunctions.h"
 
 namespace coretools {
 class TRandomGenerator;

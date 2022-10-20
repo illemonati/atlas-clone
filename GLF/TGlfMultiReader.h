@@ -17,14 +17,21 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
-#include "GenotypeTypes.h"
-#include "PhredProbabilityTypes.h"
-#include "TBitSet.h"
+
+#include "fmt/core.h"
+
+#include "coretools/Containers/TBitSet.h"
+#include "coretools/Files/TOutputFile.h"
+#include "coretools/Files/gzstream.h"
+#include "coretools/Main/TRandomGenerator.h"
+#include "coretools/Types/probability.h"
+
+#include "genometools/GenomePositions/TGenomePosition.h"
+#include "genometools/GenotypeTypes.h"
+#include "genometools/PhredProbabilityTypes.h"
+
 #include "TFastaBuffer.h"
 #include "TGLF.h"
-#include "TGenomePosition.h"
-#include "TRandomGenerator.h"
-#include "gzstream.h"
 
 namespace GLF {
 
@@ -80,7 +87,7 @@ private:
 	enum : uint8_t {NOTMISSING_DIPLOID = 0, MISSING_DIPLOID = 1, NOTMISSING_HAPLOID = 2, MISSING_HAPLOID = 3};
 
 	coretools::TBitSet<2> _flags{MISSING_DIPLOID};
-	std::array<genometools::HighPrecisionPhredIntProbability, 3> _GLs{genometools::HighPrecisionPhredIntProbability::highest(), genometools::HighPrecisionPhredIntProbability::highest(), genometools::HighPrecisionPhredIntProbability::highest()};
+	std::array<coretools::Probability, 3> _GLs{coretools::Probability::highest(), coretools::Probability::highest(), coretools::Probability::highest()};
 
 public:
 	constexpr TMultiGLFDataSampleOneAllelicCombination(bool isHaploid=false) : _flags(MISSING_DIPLOID | isHaploid * MISSING_HAPLOID){}
@@ -88,16 +95,16 @@ public:
 	constexpr TMultiGLFDataSampleOneAllelicCombination(genometools::HighPrecisionPhredIntProbability homoFirst,
 							   genometools::HighPrecisionPhredIntProbability het,
 							   genometools::HighPrecisionPhredIntProbability homoSecond)
-		: _flags(NOTMISSING_DIPLOID), _GLs({homoFirst, het, homoSecond})  {}
+		: _flags(NOTMISSING_DIPLOID), _GLs({coretools::Probability(homoFirst), coretools::Probability(het), coretools::Probability(homoSecond)})  {}
 
 	constexpr TMultiGLFDataSampleOneAllelicCombination(genometools::HighPrecisionPhredIntProbability first,
 							   genometools::HighPrecisionPhredIntProbability second)
-		:  _flags(NOTMISSING_HAPLOID), _GLs({first, second, genometools::HighPrecisionPhredIntProbability::highest()})  {}
+		:  _flags(NOTMISSING_HAPLOID), _GLs({coretools::Probability(first), coretools::Probability(second), coretools::Probability::highest()})  {}
 
 	constexpr bool isMissing() const noexcept { return _flags.get<0>();}
 	constexpr bool isHaploid() const noexcept { return _flags.get<1>();}
 
-	constexpr genometools::HighPrecisionPhredIntProbability
+	constexpr coretools::Probability
 	operator[](genometools::BiallelicGenotype Genotype) const noexcept {
 		assert(isHaploid() == genometools::isHaploid(Genotype));
 		return _GLs[genometools::altAlleleCounts(Genotype)];
@@ -118,7 +125,7 @@ private:
 	bool _usePhredScaledLikelihoods;
 
 protected:
-	mutable gz::ogzstream _vcf;
+	coretools::TOutputFile _vcf;
 
 	genometools::Base _ref{};
 	genometools::Base _alt{};
@@ -163,13 +170,10 @@ protected:
 		// write genotype quality
 		if (mleGenotypes.size() > 1) {
 			const auto mleGeno = mleGenotypes[coretools::instances::randomGenerator().sample(mleGenotypes.size())];
-			_vcf << '\t' << genotypeStrings[mleGeno] << ':';
-			_vcf << "0:"; // difference between best and second best is 0
+			_vcf.writeNoDelim(genotypeStrings[mleGeno], ":0:");
 		} else {
-			_vcf << '\t' << genotypeStrings[mleGenotypes.front()] << ':';
-			// find second highest quality
 			auto slq = _getSecondHighestGTL(in, GTL);
-			_vcf << genometools::PhredIntProbability(slq - minQual) << ":";
+			_vcf.writeNoDelim(genotypeStrings[mleGenotypes.front()], ':', genometools::PhredIntProbability(slq - minQual).get(), ':');
 		}
 
 		return minQual;
@@ -178,8 +182,8 @@ protected:
 	template<size_t NumGeno>
 	void _writeCell(bool IsMissing, size_t Depth, const std::array<genometools::HighPrecisionPhredIntProbability, NumGeno> &GTL){
 		if (IsMissing) {
-			if constexpr (NumGeno == 3) { _vcf << "\t./.:.:.:."; } // diploid
-			else { _vcf << "\t.:.:.:."; } // haploid
+			if constexpr (NumGeno == 3) { _vcf.write("./.:.:.:."); } // diploid
+			else { _vcf.write(".:.:.:."); } // haploid
 			return;
 		}
 
@@ -187,14 +191,15 @@ protected:
 		const auto minQual = _writeGenotypeAndQuality(GTL);
 
 		// write depth
-		_vcf << Depth << ':';
+		_vcf.writeNoDelim(Depth, ':');
 
 		// write likelihoods
 		_writeLikelihood(GTL[0] - minQual);
 		for (size_t g = 1; g < NumGeno; g++){
-			_vcf << ',';
+			_vcf.writeNoDelim(',');
 			_writeLikelihood(GTL[g] - minQual);
 		}
+		_vcf.writeDelim();
 	}
 
 public:
@@ -226,7 +231,7 @@ private:
 	uint32_t _position = 0;
 	uint32_t _nextPosition = 0; // next is anticipated position, used to advance
 	uint32_t _curRefId = 0;
-	TGlfChromosome* _curChr;
+	TGlfChromosome _curChr;
 	uint32_t _numActiveFilesWithData = 0;
 	uint32_t _minDepth = 0;
 
@@ -242,11 +247,6 @@ private:
 	bool _jumpToNextPosition();
 
 	bool _moveToNextChromosome();
-
-	void _writeDiploidIndividualToVCF(int ind, gz::ogzstream &vcf, genometools::Base major, genometools::Base minor,
-					 const std::vector<std::string> &genotypeStrings, bool usePhredLikelihoods);
-	void _writeHaploidIndividualToVCF(int ind, gz::ogzstream &vcf, genometools::Base major, genometools::Base minor,
-					 const std::vector<std::string> &genotypeStrings, bool usePhredLikelihoods);
 
 public:
 	TMultiGLFData data;
@@ -276,8 +276,6 @@ public:
 	bool readNext();
 
 	// output
-	void print() const;
-	void writeSampleNamesOfActiveFiles(gz::ogzstream &out, std::string& sep) const;
 	std::vector<std::string> namesOfActiveFiles() const;
 	std::vector<std::string> sampleNamesOfActiveFiles() const;
 
@@ -285,7 +283,7 @@ public:
 	constexpr uint32_t numSamples() const noexcept { return _numGLFs; };
 	uint32_t numActiveSamples() const noexcept { return _activeGLFs.size(); };
 	constexpr uint32_t numActiveSamplesWithData() const noexcept { return _numActiveFilesWithData; };
-	std::string chr() const { return _curChr->name(); };
+	std::string chr() const { return _curChr.name(); };
 	constexpr uint32_t position() const noexcept { return _position; };
 	constexpr genometools::Base refBase() const noexcept {
 		return hasReference ? fastaBuffer.refAt(genometools::TGenomePosition(_curRefId, _position)) : genometools::Base::N;

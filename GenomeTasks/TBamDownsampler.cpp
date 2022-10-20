@@ -15,10 +15,10 @@
 #include <utility>
 
 #include "TAlignment.h"
-#include "TLog.h"
-#include "TParameters.h"
-#include "TRandomGenerator.h"
-#include "stringFunctions.h"
+#include "coretools/Main/TLog.h"
+#include "coretools/Main/TParameters.h"
+#include "coretools/Main/TRandomGenerator.h"
+#include "coretools/Strings/stringFunctions.h"
 
 namespace GenomeTasks{
 

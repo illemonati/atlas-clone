@@ -7,15 +7,16 @@
 
 #include "TThetaEstimatorData.h"
 
-#include "GenotypeTypes.h"
-#include "TFile.h"
-#include "TRandomGenerator.h"
+#include "genometools/GenotypeTypes.h"
+#include "coretools/Files/TOutputFile.h"
+#include "TGenotypeData.h"
+#include "coretools/Main/TRandomGenerator.h"
 #include "TSite.h"
 #include <algorithm>
 #include <math.h>
 #include <ostream>
 #include <stdio.h>
-#include "devtools.h"
+#include "coretools/devtools.h"
 
 namespace GenotypeLikelihoods {
 
@@ -162,8 +163,7 @@ void TThetaEstimatorData::add(const GenotypeLikelihoods::TSite &site,
 
 TBaseProbabilities TThetaEstimatorData::baseFrequencies() {
 	// estimate base frequencies
-	normalize(tmpBaseFreq);
-	return frequencies(tmpBaseFreq);
+	return TBaseProbabilities::normalize(tmpBaseFreq);
 };
 
 void TThetaEstimatorData::fillP_G(GenotypeLikelihoods::TGenotypeData &P_G,

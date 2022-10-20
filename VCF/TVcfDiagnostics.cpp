@@ -13,9 +13,10 @@
 #include <exception>
 #include <map>
 
-#include "GenotypeTypes.h"
-#include "gzstream.h"
-#include "stringFunctions.h"
+#include "genometools/GenotypeTypes.h"
+#include "coretools/Files/gzstream.h"
+#include "coretools/Strings/stringFunctions.h"
+#include "coretools/Files/TOutputFile.h"
 
 namespace VCF {
 
@@ -90,7 +91,7 @@ void TVcfDiagnostics::vcfToInvariantBed() {
 
 		if (curChr != _vcfFile.chr()) {
 			// is previous site invariant? -> write to file
-			if (!previousStartIsVariant) { bedFile << curChr << curStartRegion - 1 << lastPosition << std::endl; }
+			if (!previousStartIsVariant) { bedFile.writeln(curChr, curStartRegion - 1, lastPosition); }
 			// update start directly, don't just set to true
 			curStartRegion = _vcfFile.position();
 			curChr         = _vcfFile.chr();
@@ -101,7 +102,7 @@ void TVcfDiagnostics::vcfToInvariantBed() {
 			if (_vcfFile.getFirstAlleleOfSample(i) != allele || _vcfFile.getSecondAlleleOfSample(i) != allele) {
 				// there was a variant site, is previous site invariant? -> write to file
 				if (!previousStartIsVariant && counter != 1) {
-					bedFile << _vcfFile.chr() << curStartRegion - 1 << _vcfFile.positionZeroBased() << std::endl;
+					bedFile.writeln(_vcfFile.chr(), curStartRegion - 1, _vcfFile.positionZeroBased());
 				}
 				updateStart            = true;
 				previousStartIsVariant = true;
@@ -117,7 +118,7 @@ void TVcfDiagnostics::vcfToInvariantBed() {
 
 	// write last region to file
 	if (!previousStartIsVariant) {
-		bedFile << _vcfFile.chr() << curStartRegion - 1 << _vcfFile.positionZeroBased() << std::endl;
+		bedFile.writeln(_vcfFile.chr(), curStartRegion - 1, _vcfFile.positionZeroBased());
 	}
 	bedFile.close();
 }

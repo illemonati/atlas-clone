@@ -11,7 +11,7 @@
 
 
 #include "TGenome.h"
-#include "TTask.h"
+#include "coretools/Main/TTask.h"
 #include "TBedReaderWindows.h"
 
 
@@ -22,17 +22,18 @@ namespace GenomeTasks{
 //----------------------------------------
 class TSexEstimator : public TGenome_windows {
 private:
-	coretools::TCountDistribution<> _distPerSite1;
-	coretools::TCountDistribution<> _distPerSite2;
-	std::unique_ptr<BAM::TBedReaderWindows> _region1;
-	std::unique_ptr<BAM::TBedReaderWindows> _region2;
-	void _initializeRegion(std::unique_ptr<BAM::TBedReaderWindows> &region, const int num);
+	std::vector<coretools::TCountDistribution<>> _distPerSites;
+	std::vector<std::unique_ptr<BAM::TBedReaderWindows>> _regions;
+	uint32_t _siteLimit;
+	uint16_t _regionNum;
+
+	void _initializeRegion(std::string regionsFile, const int regionNum);
 	void _handleWindow() override;
 	void _handleAlignment() override {};
-	void _considerRegion(std::unique_ptr<BAM::TBedReaderWindows> &region, coretools::TCountDistribution<> &distPerSite);
+	void _considerRegion(uint16_t regionNum);
 	void _writeDepthPerWindow(coretools::TOutputFile &out, const int num);
-	void _writeHistogram(coretools::TCountDistribution<> &distPerSite, const int num);
-	void _writeDepthPerChromosome(std::unique_ptr<BAM::TBedReaderWindows> &region, coretools::TCountDistribution<> &distPerSite, const int num);
+	void _writeHistogram(uint16_t regionNum);
+	void _writeDepthPerChromosome(uint16_t regionNum);
 
 
 public:

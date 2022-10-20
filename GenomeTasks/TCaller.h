@@ -13,14 +13,14 @@
 #include <string>
 #include <vector>
 
-#include "GenotypeTypes.h"
+#include "genometools/GenotypeTypes.h"
 #include "TGenome.h"
 #include "TGenotypeData.h"
-#include "TTask.h"
-#include "VCF/TVCFFields.h"
-#include "gzstream.h"
-#include "mathFunctions.h"
-#include "stringFunctions.h"
+#include "coretools/Main/TTask.h"
+#include "genometools/VCF/TVCFFields.h"
+#include "coretools/Files/gzstream.h"
+#include "coretools/Math/mathFunctions.h"
+#include "coretools/Strings/stringFunctions.h"
 
 namespace GenotypeLikelihoods { class TGenotypePrior; }
 namespace GenotypeLikelihoods { class TSite; }
@@ -39,9 +39,21 @@ protected:
 	std::string _callerName;
 	std::string _filenameExtention;
 
-	//lookup stuff
-	genometools::TVCFInfoFields _VCFInfoFields;
-	genometools::TVCFGenotypeFields _VCFGenotypeFields;
+	// lookup stuff
+	genometools::TVCFFieldVector _VCFInfoFields{"INFO", {{"DP", "Number=1,Type=Integer,Description=\"Total Depth\""}}};
+	genometools::TVCFFieldVector _VCFGenotypeFields{
+		"FORMAT",
+		{{"GT", "Number=1,Type=String,Description=\"Genotype\""},
+		 {"DP", "Number=1,Type=Integer,Description=\"Total Depth\""},
+		 {"GQ", "Number=1,Type=Integer,Description=\"Genotype quality\""},
+		 {"AD", "Number=.,Type=Integer,Description=\"Allelic depths for the ref and alt alleles in the order listed\""},
+		 {"AP", "Number=4,Type=Integer,Description=\"Phred-scaled allelic posterior probabilities for the four "
+				"alleles A, C, G and T\""},
+		 {"GL", "Number=G,Type=Float,Description=\"Normalized genotype likelihoods\""},
+		 {"PL", "Number=G,Type=Integer,Description=\"Phred-scaled normalized genotype likelihoods\""},
+		 {"GP", "Number=G,Type=Integer,Description=\"Genotype posterior probabilities (phred-scaled)\""},
+		 {"AB", "Number=1,Type=Float,Description=\"Allelic imbalance\""},
+		 {"AI", "Number=1,Type=Float,Description=\"Binomial probability of allelic imbalance if Hz site\""}}};
 
 	//output choices
 	bool _printSitesWithNoData;

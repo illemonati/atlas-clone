@@ -9,13 +9,14 @@
 #include <stdexcept>
 #include <string>
 
-#include "../genometools/core/VCF/TVcfFile.h"
-#include "GenotypeTypes.h"
+#include "genometools/VCF/TVcfFile.h"
+#include "genometools/GenotypeTypes.h"
+#include "genometools/PhredProbabilityTypes.h"
 #include "SFS.h"
 #include "TGlfMultiReader.h"
-#include "TParameters.h"
-#include "TRandomGenerator.h"
-#include "TStrongArray.h"
+#include "coretools/Main/TParameters.h"
+#include "coretools/Main/TRandomGenerator.h"
+#include "coretools/Containers/TStrongArray.h"
 
 using namespace testing;
 using namespace genometools;
@@ -120,9 +121,9 @@ TEST(TVCFSimulator, _calculateGenotypeLikelihoods_diploid) {
 	TVCFSimulatorBridge vcfSimulator;
 
 	auto GTL = vcfSimulator._calculateGenotypeLikelihoods(10, 20, true);
-	EXPECT_EQ(GTL[genometools::BiallelicGenotype::homoFirst], 26243);
-	EXPECT_EQ(GTL[genometools::BiallelicGenotype::het], 9031);
-	EXPECT_EQ(GTL[genometools::BiallelicGenotype::homoSecond], 13456);
+	EXPECT_EQ(HighPrecisionPhredIntProbability(GTL[genometools::BiallelicGenotype::homoFirst]), 26243);
+	EXPECT_EQ(HighPrecisionPhredIntProbability(GTL[genometools::BiallelicGenotype::het]), 9031);
+	EXPECT_EQ(HighPrecisionPhredIntProbability(GTL[genometools::BiallelicGenotype::homoSecond]), 13456);
 }
 
 TEST(TVCFSimulator, _calculateGenotypeLikelihoods_haploid) {
@@ -130,8 +131,8 @@ TEST(TVCFSimulator, _calculateGenotypeLikelihoods_haploid) {
 	TVCFSimulatorBridge vcfSimulator;
 
 	auto GTL = vcfSimulator._calculateGenotypeLikelihoods(10, 20, false);
-	EXPECT_EQ(GTL[genometools::BiallelicGenotype::haploidFirst], 26243);
-	EXPECT_EQ(GTL[genometools::BiallelicGenotype::haploidSecond], 13456);
+	EXPECT_EQ(HighPrecisionPhredIntProbability(GTL[genometools::BiallelicGenotype::haploidFirst]), 26243);
+	EXPECT_EQ(HighPrecisionPhredIntProbability(GTL[genometools::BiallelicGenotype::haploidSecond]), 13456);
 }
 
 void simulate(){

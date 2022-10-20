@@ -12,18 +12,18 @@
 #include <memory>
 #include <stdexcept>
 
-#include "GenotypeTypes.h"
-#include "TBed.h"
+#include "genometools/GenotypeTypes.h"
+#include "genometools/BED/TBed.h"
 #include "TFastaBuffer.h"
-#include "TFile.h"
+#include "coretools/Files/TOutputFile.h"
 #include "TGenotypeData.h"
-#include "TLog.h"
-#include "TNumericRange.h"
-#include "TRandomGenerator.h"
+#include "coretools/Main/TLog.h"
+#include "coretools/Math/TNumericRange.h"
+#include "coretools/Main/TRandomGenerator.h"
 #include "TSequencedBase.h"
 #include "TSiteSubset.h"
-#include "probability.h"
-#include "stringFunctions.h"
+#include "coretools/Types/probability.h"
+#include "coretools/Strings/stringFunctions.h"
 
 namespace GenotypeLikelihoods{
 
@@ -298,8 +298,7 @@ GenotypeLikelihoods::TBaseProbabilities TWindow_base::estimateBaseFrequencies() 
 	for(auto& s : _sites){
 		s.addToBaseFrequencies(tmp);
 	}
-	normalize(tmp);
-	return frequencies(tmp);
+	return TBaseProbabilities::normalize(tmp);
 };
 
 
@@ -316,11 +315,6 @@ void TWindow_base::applyDepthFilter(const coretools::TNumericRange<uint32_t> & D
 std::ostream& operator<<(std::ostream& os, const TWindow_base & window){
 	os << window.chrName() << ":" << window.from().position() << "-" << window.to().position();
 	return os;
-};
-
-coretools::TOutputFile& operator<<(coretools::TOutputFile& out, const TWindow_base & window){
-	out << window.chrName() << window.from().position()+1 << window.to().position();
-	return out;
 };
 
 //-------------------------------------------------------

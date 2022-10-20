@@ -1,7 +1,7 @@
 //
 // Created by caduffm on 8/4/20.
 //
-#include "BED/TBed.h"
+#include "genometools/BED/TBed.h"
 #include "gtest/gtest.h"
 
 #include <stdio.h>
@@ -10,9 +10,9 @@
 #include <stdexcept>
 #include <string>
 
-#include "TChromosomes.h"
-#include "TFile.h"
-#include "TGenomePosition.h"
+#include "genometools/GenomePositions/TChromosomes.h"
+#include "coretools/Files/TOutputFile.h"
+#include "genometools/GenomePositions/TGenomePosition.h"
 
 //-------------------------------------------------------------
 // TBedChromosome
@@ -455,12 +455,12 @@ TEST(TBedTest, add_Chr_pos){
 
 void writeInputBed(){
     coretools::TOutputFile out("bed.bed", 3);
-    out << "chr1" << 10 << 20 << std::endl;
-    out << "chr1" << 30 << 40 << std::endl;
-    out << "chr1" << 50 << 60 << std::endl;
-    out << "chr1" << 15 << 35 << std::endl;
-    out << "chr1" << 1 << 2 << std::endl;
-    out << "chr2" << 55 << 100 << std::endl;
+    out.writeln("chr1", 10, 20);
+    out.writeln("chr1", 30, 40);
+    out.writeln("chr1", 50, 60);
+    out.writeln("chr1", 15, 35);
+    out.writeln("chr1", 1, 2);
+    out.writeln("chr2", 55, 100);
     out.close();
 }
 

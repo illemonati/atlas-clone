@@ -16,10 +16,10 @@
 #include <ostream>
 #include <string>
 
-#include "GenotypeTypes.h"
-#include "TGenotypeFrequencies.h"
-#include "stringFunctions.h"
-#include "weakTypes.h"
+#include "genometools/GenotypeTypes.h"
+#include "genometools/TGenotypeFrequencies.h"
+#include "coretools/Strings/stringFunctions.h"
+#include "coretools/Types/weakTypes.h"
 
 namespace PopulationTools{
 
@@ -486,7 +486,7 @@ void TAlleleFreqMCMCOutput::write(std::vector< std::vector<double> > & mcmc, con
 			for(auto& p : popIndex){
 				outFile << mcmc[p][i];
 			}
-			outFile.endLine();
+			outFile.endln();
 		}
 
 		//close file
@@ -641,13 +641,13 @@ void TAlleleFreqEstimator::estimateAlleleFreq(TParameters & Parameters, TRandomG
  		} else {
  			genometools::TGenotypeFrequencies genoFrequencies;
  	 		for(size_t p=0; p<samples.numPopulations(); p++){
- 	 			genoFrequencies.estimate(&storage[samples.startIndex(p)], samples.numSamplesInPop(p), epsF);
+ 	 			genoFrequencies.estimate<true>(&storage[samples.startIndex(p)], samples.numSamplesInPop(p), epsF);
  	 			_writeEstimatesOnePop(out, genoFrequencies, genoFrequencies.alleleFrequency(), &storage[samples.startIndex(p)], samples.numSamplesInPop(p), MLHWEstimator, BHWEstimator, epsF, writeGenoFreq, doBayesian);
  	 		}
  		}
 
  		//end line
- 		out << std::endl;
+ 		out.endln();
      }
 
     //clean up
@@ -733,7 +733,7 @@ void TAlleleFreqEstimator::compareAlleleFreq(TParameters & Parameters, TRandomGe
  		logfile->listFlush("Running estimates for " + reader.chr() + ":" + toString(reader.position()) + " ...");
  		for(size_t p=0; p<samples.numPopulations(); p++){
 			//write num samples with data
-			genoFrequencies.estimate(&storage[samples.startIndex(p)], samples.numSamplesInPop(p), Parameters.getParameterWithDefault("epsF", 0.0000001));
+			genoFrequencies.estimate<true>(&storage[samples.startIndex(p)], samples.numSamplesInPop(p), Parameters.getParameterWithDefault("epsF", 0.0000001));
 			out << genoFrequencies.numDiploid();
 			out << genoFrequencies.numHaploid();
 
@@ -752,7 +752,7 @@ void TAlleleFreqEstimator::compareAlleleFreq(TParameters & Parameters, TRandomGe
 				out << BHWEstimator.calcPosteriorf1smallerf2(mcmcChains[p1], mcmcChains[p2]);
 			}
 		}
- 		out << std::endl;
+ 		out.endln();
  		logfile->done();
     }
 
@@ -814,7 +814,7 @@ void TAlleleFreqEstimator::writeAlleleFrequencyLikelihoods(TParameters & Paramet
 				}
 				out[p] << LL;
 			}
-			out[p] << std::endl;
+			out[p].endln();
 		}
 	}
 

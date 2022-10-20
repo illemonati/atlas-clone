@@ -13,7 +13,7 @@
 #include <string>
 
 #include "TGenome.h"
-#include "TTask.h"
+#include "coretools/Main/TTask.h"
 #include "SequencingError/TRecalEstimator.h"
 
 namespace BAM {

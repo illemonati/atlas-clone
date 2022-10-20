@@ -14,8 +14,8 @@
 #include "TBamFile.h"
 #include "TBamFilter.h"
 #include "TGenome.h"
-#include "TTask.h"
-#include "probability.h"
+#include "coretools/Main/TTask.h"
+#include "coretools/Types/probability.h"
 
 namespace BAM {
 class TAlignment;

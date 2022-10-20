@@ -10,14 +10,14 @@
 #include <algorithm>
 #include <iterator>
 
-#include "commonWeakTypes.h"
-#include "mathFunctions.h"
-#include "probability.h"
-#include "stringFunctions.h"
-#include "toString.h"
-#include "TProbabilityDistributions.h"
+#include "coretools/Types/commonWeakTypes.h"
+#include "coretools/Math/mathFunctions.h"
+#include "coretools/Types/probability.h"
+#include "coretools/Strings/stringFunctions.h"
+#include "coretools/Strings/toString.h"
+#include "coretools/Math/TProbabilityDistributions.h"
 
-#include "devtools.h"
+#include "coretools/devtools.h"
 
 namespace GenotypeLikelihoods {
 namespace SequencingError {

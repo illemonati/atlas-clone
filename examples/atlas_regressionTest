@@ -25,6 +25,7 @@ cnt=0
 for f in *.sh; do
 	fo=${f%.sh}
 	((cnt++))
+	tstep=$(date +%s)
 	echo "$cnt) Regression Test: $fo"
 	if [[ ! -d ${fo}_ref ]]; then
 		echo "- Creating reference ATLAS-files in folder ${fo}_ref"
@@ -51,6 +52,7 @@ for f in *.sh; do
 		cd ..
 		! compare $fo && err=1
 	fi
+	echo "- Elapsed time: $(($(date +%s) - $tstep)) seconds"
 	echo "------------------------------------------------------------"
 done
 

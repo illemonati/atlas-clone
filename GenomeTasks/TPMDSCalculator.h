@@ -13,8 +13,8 @@
 
 #include "TBamFile.h"
 #include "TGenome.h"
-#include "TTask.h"
-#include "probability.h"
+#include "coretools/Main/TTask.h"
+#include "coretools/Types/probability.h"
 
 namespace GenomeTasks{
 

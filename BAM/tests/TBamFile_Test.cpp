@@ -9,18 +9,18 @@
 #include <string>
 #include <vector>
 
-#include "GenotypeTypes.h"
-#include "PhredProbabilityTypes.h"
+#include "genometools/GenotypeTypes.h"
+#include "genometools/PhredProbabilityTypes.h"
 #include "TAlignment.h"
 #include "TBamFilter.h"
-#include "TChromosomes.h"
+#include "genometools/GenomePositions/TChromosomes.h"
 #include "TCigar.h"
-#include "TFile.h"
+#include "coretools/Files/TFile.h"
 #include "TGenome.h"
-#include "TGenomePosition.h"
-#include "TLog.h"
-#include "TParameters.h"
-#include "TRandomGenerator.h"
+#include "genometools/GenomePositions/TGenomePosition.h"
+#include "coretools/Main/TLog.h"
+#include "coretools/Main/TParameters.h"
+#include "coretools/Main/TRandomGenerator.h"
 #include "TReadGroups.h"
 #include "TSamFlags.h"
 #include "TSamHeader.h"
@@ -28,8 +28,8 @@
 #include "TSite.h"
 #include "TTestBamFile.h"
 #include "TWindow.h"
-#include "counters.h"
-#include "stringFunctions.h"
+#include "coretools/Math/counters.h"
+#include "coretools/Strings/stringFunctions.h"
 
 using coretools::instances::logfile;
 using coretools::instances::parameters;
@@ -1118,7 +1118,7 @@ TEST_F(TBamFilter_Test, keepReadsLongerThanFragment){
     EXPECT_TRUE(bamFilter->longerThanFragmentLength.counts() > 0);
 }
 
-TEST_F(TBamFilter_Test, doNotKeepReadsLongerThanFragmens){
+TEST_F(TBamFilter_Test, filterReadsLongerThanFragment){
     write(true);
 	parameters().clear();
     // 6) filter: do not specify 'keepReadsLongerThanFragment'
@@ -1128,6 +1128,7 @@ TEST_F(TBamFilter_Test, doNotKeepReadsLongerThanFragmens){
     parameters().addParameter("keepFailedQC");
     parameters().addParameter("keepSecondaryReads");
     parameters().addParameter("keepSupplementaryReads");
+    parameters().addParameter("filterReadsLongerThanFragment");
     read();
 
     // count number of reads that are longer than fragments in simulated alignments
@@ -1231,9 +1232,9 @@ TEST_F(TBamFilter_Test, blacklist){
     // 9) filter: 'blacklist'
 
     // generate blacklist
-    coretools::TOutputFile blackList("blacklist.txt", 1);
+    coretools::TOutputFile blackList("blacklist.txt", "");
     for (int i = 0; i < 200; i++){ // add first 200 reads to blacklist
-        blackList << "alignment_" + coretools::str::toString(i) << std::endl;
+        blackList.writeln("alignment_", i);
     }
     blackList.close();
 

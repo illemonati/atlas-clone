@@ -12,11 +12,11 @@
 #include <array>
 #include <string>
 #include <vector>
-#include "GenotypeTypes.h"
-#include "TLog.h"
-#include "TParameters.h"
-#include "TTask.h"
-#include "TVcfFile.h"
+#include "genometools/GenotypeTypes.h"
+#include "coretools/Main/TLog.h"
+#include "coretools/Main/TParameters.h"
+#include "coretools/Main/TTask.h"
+#include "genometools/VCF/TVcfFile.h"
 
 namespace VCF{
 

@@ -1,5 +1,6 @@
 #! /bin/bash
 
 root=`git rev-parse --show-toplevel`
-atlas=`find $root -type f -name atlas | tail -n 1`
+atlas=$root/build/atlas
+[[ -e $atlas ]] || atlas=`find $root -type f -name atlas | tail -n 1`
 echo "Using $atlas"

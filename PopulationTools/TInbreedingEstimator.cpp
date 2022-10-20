@@ -9,15 +9,15 @@
 #include <exception>
 #include <stdexcept>
 
-#include "TDAGBuilder.h"
-#include "TMCMC.h"
-#include "TParameterObservationTypedBase.h"
-#include "TPriorBernouilli.h"
-#include "TPriorBeta.h"
-#include "TPriorUniform.h"
-#include "TRandomGenerator.h"
-#include "mathFunctions.h"
-#include "stringFunctions.h"
+#include "stattools/DAG/TDAGBuilder.h"
+#include "stattools/MCMC/TMCMC.h"
+#include "stattools/ParametersObservations/TParameterObservationTypedBase.h"
+#include "stattools/Priors/TPriorBernouilli.h"
+#include "stattools/Priors/TPriorBeta.h"
+#include "stattools/Priors/TPriorUniform.h"
+#include "coretools/Main/TRandomGenerator.h"
+#include "coretools/Math/mathFunctions.h"
+#include "coretools/Strings/stringFunctions.h"
 
 namespace stattools {
 class TParameterBase;

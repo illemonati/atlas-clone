@@ -13,8 +13,8 @@
 #include <exception>
 #include <memory>
 
-#include "TFile.h"
-#include "stringFunctions.h"
+#include "coretools/Files/TOutputFile.h"
+#include "coretools/Strings/stringFunctions.h"
 
 namespace VCF{
 
@@ -121,7 +121,7 @@ void TGenotypeComparisonTable::write(const std::string filename){
 			out << counts[i][j];
 		}
 
-		out.endLine();
+		out.endln();
 	};
 };
 

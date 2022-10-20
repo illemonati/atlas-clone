@@ -6,13 +6,13 @@
  */
 
 #include "TAlignment.h"
-#include "GenotypeTypes.h"
-#include "PhredProbabilityTypes.h"
+#include "genometools/GenotypeTypes.h"
+#include "genometools/PhredProbabilityTypes.h"
 #include "TBamFilter.h"
 #include "TFastaBuffer.h"
 #include "TGenotypeLikelihoodCalculator.h"
-#include "TRandomGenerator.h"
-#include "strongTypes.h"
+#include "coretools/Main/TRandomGenerator.h"
+#include "coretools/Types/strongTypes.h"
 #include <algorithm>
 #include <iostream>
 #include <math.h>

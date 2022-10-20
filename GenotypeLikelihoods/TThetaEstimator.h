@@ -16,12 +16,12 @@
 #include <string>
 #include <vector>
 
-#include "GenotypeTypes.h"
-#include "TFile.h"
+#include "genometools/GenotypeTypes.h"
+#include "coretools/Files/TOutputFile.h"
 #include "TGenotypeData.h"
 #include "TThetaEstimatorData.h"
 #include "TWindow.h"
-#include "stringFunctions.h"
+#include "coretools/Strings/stringFunctions.h"
 
 namespace GenotypeLikelihoods {
 class TGenotypeLikelihoodCalculator;
@@ -236,7 +236,7 @@ protected:
 
 	void _writeEstimates() {
 		for (TThetaEstimator *est : _thetaEstimators) { est->writeResultsToFile(_out); }
-		_out << std::endl;
+		_out.endln();
 	};
 
 public:
@@ -261,7 +261,7 @@ public:
 		coretools::instances::logfile().list("Will write theta estimates to file '" + Filename + "'.");
 		_out.open(Filename);
 		_writeHeader();
-		_out.setPrecision(9);
+		_out.precision(9);
 	};
 
 	void open(TThetaEstimator *Estimator, const std::string &Filename) {
@@ -272,7 +272,7 @@ public:
 	void close() { _out.close(); };
 
 	void write(const TWindow_base &window) {
-		_out << window;
+		_out.write(window.chrName(), window.from().position() + 1, window.to().position());
 		_writeEstimates();
 	};
 

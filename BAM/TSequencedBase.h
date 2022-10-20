@@ -8,9 +8,9 @@
 #ifndef TSEQUENCEDBASE_H_
 #define TSEQUENCEDBASE_H_
 
-#include "GenotypeTypes.h"
-#include "PhredProbabilityTypes.h"
-#include "TBitSet.h"
+#include "genometools/GenotypeTypes.h"
+#include "genometools/PhredProbabilityTypes.h"
+#include "coretools/Containers/TBitSet.h"
 #include <cstdint>
 #include <iostream>
 

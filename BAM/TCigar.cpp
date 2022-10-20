@@ -7,7 +7,7 @@
 
 #include "TCigar.h"
 #include <algorithm>
-#include "stringFunctions.h"
+#include "coretools/Strings/stringFunctions.h"
 
 namespace BAM {
 

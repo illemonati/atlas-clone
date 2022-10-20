@@ -13,9 +13,9 @@
 #include <cmath>
 #include <iostream>
 
-#include "TRandomGenerator.h"
-#include "stringFunctions.h"
-#include "algorithms.h"
+#include "coretools/Main/TRandomGenerator.h"
+#include "coretools/Strings/stringFunctions.h"
+#include "coretools/algorithms.h"
 
 
 namespace Simulations {

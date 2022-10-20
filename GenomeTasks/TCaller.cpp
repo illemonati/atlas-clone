@@ -15,26 +15,26 @@
 #include <ostream>
 #include <set>
 
-#include "GenotypeTypes.h"
-#include "PhredProbabilityTypes.h"
-#include "TGenomePosition.h"
+#include "genometools/GenotypeTypes.h"
+#include "genometools/PhredProbabilityTypes.h"
+#include "genometools/GenomePositions/TGenomePosition.h"
 #include "TGenotypeData.h"
 #include "TGenotypeLikelihoodCalculator.h"
 #include "TGenotypePrior.h"
-#include "TMassFunction.h"
-#include "TLog.h"
-#include "TParameters.h"
-#include "TRandomGenerator.h"
+#include "coretools/Containers/TMassFunction.h"
+#include "coretools/Main/TLog.h"
+#include "coretools/Main/TParameters.h"
+#include "coretools/Main/TRandomGenerator.h"
 #include "TSequencedBase.h"
 #include "TSite.h"
 #include "TSiteSubset.h"
-#include "TStrongArray.h"
-#include "TMassFunction.h"
-#include "TVCFFields.h"
+#include "coretools/Containers/TStrongArray.h"
+#include "coretools/Containers/TMassFunction.h"
+#include "genometools/VCF/TVCFFields.h"
 #include "TWindow.h"
-#include "mathFunctions.h"
-#include "probability.h"
-#include "weakTypes.h"
+#include "coretools/Math/mathFunctions.h"
+#include "coretools/Types/probability.h"
+#include "coretools/Types/weakTypes.h"
 
 namespace GenomeTasks{
 
@@ -1092,12 +1092,12 @@ TCallerMLE::TCallerMLE():TCallerDiploid(){
 };
 
 bool TCallerMLE::_callGenotype(const TSite &, TGenotypeLikelihoods & genotypeLikelihoods){
-	callGenotypeFromMetric(genotypeLikelihoods);
+	callGenotypeFromMetric(TGenotypeProbabilities::normalize(genotypeLikelihoods));
 	return true;
 };
 
 bool TCallerMLE::_callGenotypeKnownAlleles(const TSite &, TGenotypeLikelihoods & genotypeLikelihoods){
-	return callGenotypeFromMetricKnownAllelesUpdateIndex(genotypeLikelihoods);
+	return callGenotypeFromMetricKnownAllelesUpdateIndex(TGenotypeProbabilities::normalize(genotypeLikelihoods));
 };
 
 std::string TCallerMLE::_getVCFGenotypeString_GQ(const TSite &, TGenotypeLikelihoods & genotypeLikelihoods){

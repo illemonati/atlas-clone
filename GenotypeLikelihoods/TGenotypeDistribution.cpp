@@ -6,14 +6,13 @@
  */
 
 #include "TGenotypeDistribution.h"
-#include "GenotypeTypes.h"
+#include "genometools/GenotypeTypes.h"
 #include "TGenotypeData.h"
 #include "TSequencedBase.h"
-#include "algorithms.h"
-#include "probability.h"
+#include "coretools/algorithms.h"
+#include "coretools/Types/probability.h"
 
 namespace GenotypeLikelihoods {
-using coretools::Probability;
 using genometools::Base;
 using genometools::Genotype;
 
@@ -44,7 +43,7 @@ double THaploidDistribution::normalize(TGenotypeLikelihoods &likelihoods) const 
 	}
 	for(auto b = Base::min; b < Base::max; ++b) {
 		const auto g = genometools::genotype(b, b);
-		likelihoods[g] /= sum;
+		likelihoods[g].scale(sum);
 	}
 	return sum;
 }
@@ -77,7 +76,7 @@ double TDiploidDistribution::normalize(TGenotypeLikelihoods &likelihoods) const 
 		sum += likelihoods[g];
 	}
 	for(auto g = Genotype::min; g < Genotype::max; ++g) {
-		likelihoods[g] /= sum;
+		likelihoods[g].scale(sum);
 	}
 	return sum;
 }

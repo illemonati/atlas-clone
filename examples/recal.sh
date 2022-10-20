@@ -5,7 +5,7 @@
 # see python ../tools/plotRecal.py "0.1 + 0.8*x + 0.2*x**2 + 0.01*x**3"
 model="intercept[0.1];quality:polynomial()[0.8,0.2,0.01]"
 # Simululate polynomial model
-$atlas --task simulate --recal1 $model --recal2 $model --fixedSeed 0 --logFile simulate.out
+$atlas --task simulate --recal $model --fixedSeed 0 --logFile simulate.out
 
 # Calculate log Likelihood of model given simulated data
 $atlas --task recal --bam ATLAS_simulations.bam --recal $model --rerecalibrate --onlyLL --fixedSeed 0 --logFile recal_onlyLL.out

@@ -13,12 +13,12 @@
 
 #include "TGenotypeData.h"
 #include "TGenotypeLikelihoodCalculator.h"
-#include "TLog.h"
-#include "TParameters.h"
+#include "coretools/Main/TLog.h"
+#include "coretools/Main/TParameters.h"
 #include "TSite.h"
 #include "TThetaEstimator.h"
 #include "TWindow.h"
-#include "probability.h"
+#include "coretools/Types/probability.h"
 
 namespace GenomeTasks{
 

@@ -9,7 +9,7 @@
 
 #include <utility>
 
-#include "TChromosomes.h"
+#include "genometools/GenomePositions/TChromosomes.h"
 #include "TReadGroups.h"
 
 namespace BAM{

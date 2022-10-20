@@ -8,10 +8,10 @@
 #ifndef GENOTYPELIKELIHOODS_TGENOTYPEDISTRIBUTION_H_
 #define GENOTYPELIKELIHOODS_TGENOTYPEDISTRIBUTION_H_
 
-#include "GenotypeTypes.h"
+#include "genometools/GenotypeTypes.h"
 #include "TGenotypeData.h"
 #include "TSequencedBase.h"
-#include "probability.h"
+#include "coretools/Types/probability.h"
 
 namespace GenotypeLikelihoods {
 
@@ -34,7 +34,7 @@ public:
 };
 
 class THaploidDistribution final : public TGenotypeDistribution {
-	static constexpr TGenotypeProbabilities _weights{{0.25, 0., 0., 0., 0.25, 0., 0., 0.25, 0., 0.25}};
+	static constexpr auto _weights = TGenotypeProbabilities::normalize({0.25, 0., 0., 0., 0.25, 0., 0., 0.25, 0., 0.25});
 public:
 	static inline const std::string name = "haploid";
 	THaploidDistribution()               = default;

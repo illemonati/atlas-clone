@@ -7,7 +7,7 @@
 
 #include <string>
 
-#include "TMain.h"
+#include "coretools/Main/TMain.h"
 
 //BAM
 #include "TBamDiagnoser.h"
@@ -49,6 +49,8 @@
 
 //simulations
 #include "TSimulator.h"
+
+#include "TReadGroupInfo.h"
 
 /*
 //tests
@@ -125,6 +127,8 @@ void addTaks(coretools::TMain & main) {
 	// Use main.addDebugTask to add a debug task (not shown in list of available tasks)
 	//main.addDebugTask("recalLL", new GenomeTasks::TTask_recalLL());
 	main.addDebugTask("thetaLLSurface", new GenomeTasks::TTask_thetaLLSurface());
+	BAM::RGInfo::TTask_testReadGroupInfo x;
+	main.addDebugTask("json", new BAM::RGInfo::TTask_testReadGroupInfo());
 };
 
 void addTests(coretools::TMain & main){
