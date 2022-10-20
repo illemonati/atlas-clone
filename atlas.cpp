@@ -5,6 +5,7 @@
  *      Author: wegmannd
  */
 
+#include <TContextQuantifier.h>
 #include <string>
 
 #include "coretools/Main/TMain.h"
@@ -12,7 +13,7 @@
 //BAM
 #include "TBamDiagnoser.h"
 #include "GenomeTasks/TBamFilter.h"
-#include "TContextQuantifer.h"
+#include "GenomeTasks/TAlignmentMerger.h"
 #include "TDuplicateQuantifier.h"
 #include "TPMDEstimator.h"
 #include "TPMDSCalculator.h"

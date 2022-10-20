@@ -6,8 +6,7 @@
  */
 
 
-#include "TContextQuantifer.h"
-
+#include <TContextQuantifier.h>
 #include <algorithm>
 #include <vector>
 

@@ -5,8 +5,8 @@
  *      Author: phaentu
  */
 
-#ifndef GENOMETASKS_TCONTEXTQUANTIFER_H_
-#define GENOMETASKS_TCONTEXTQUANTIFER_H_
+#ifndef GENOMETASKS_TCONTEXTQUANTIFIER_H_
+#define GENOMETASKS_TCONTEXTQUANTIFIER_H_
 
 #include <string>
 
@@ -44,4 +44,4 @@ public:
 
 }; //end namespace
 
-#endif /* GENOMETASKS_TCONTEXTQUANTIFER_H_ */
+#endif /* GENOMETASKS_TCONTEXTQUANTIFIER_H_ */

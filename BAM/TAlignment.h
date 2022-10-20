@@ -132,7 +132,7 @@ public:
 	uint32_t mateRefID() const { return _mateGenomicPosition.refID(); };
 	uint16_t fragmentLength() const { return _fragmentLength; };
 
-	std::string name() const { return _name; };
+	const std::string& name() const { return _name; };
 	uint16_t readGroupId() const { return _readGroupID; };
 	uint32_t parsedLength() const { return _alignedPosition.size(); };
 	uint32_t length() const { return _cigar.lengthRead(); };

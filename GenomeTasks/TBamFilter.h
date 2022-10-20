@@ -14,10 +14,10 @@
 #include <stdint.h>
 #include <string>
 
-#include "TAlignmentStorage.h"
 #include "TBamFile.h"
 #include "TGenome.h"
 #include "coretools/Main/TTask.h"
+#include "coretools/Strings/stringFunctions.h"
 
 namespace BAM { class TAlignment; }
 namespace BAM { class TReadGroups; }
@@ -26,54 +26,70 @@ namespace genometools { class TGenomePosition; }
 
 namespace GenomeTasks{
 
+namespace BamFilter{
+
+using coretools::instances::parameters;
+using coretools::instances::logfile;
+using namespace coretools::str;
+
 //-----------------------------------------
-// TAlignmentMergerReadGroupSettings
+// TAlignmentMergerEntry
 //-----------------------------------------
-enum ReadGroupType : uint8_t { unchanged=0, single, mixed, paired};
-
-struct TAlignmentMergerReadGroupSetting{
-	uint16_t readGroupId;
-	uint16_t altReadGroupId;
-	ReadGroupType type;
-	uint16_t maxCycles;
-
-	constexpr TAlignmentMergerReadGroupSetting(const uint16_t ReadGroupId, const ReadGroupType Type, const uint16_t MaxCycles)
-		: readGroupId(ReadGroupId), altReadGroupId(ReadGroupId), type(Type), maxCycles(MaxCycles){};
-
-	constexpr TAlignmentMergerReadGroupSetting(const uint16_t ReadGroupId, uint16_t AltReadGroupId, const ReadGroupType Type, const uint16_t MaxCycles)
-		: readGroupId(ReadGroupId), altReadGroupId(AltReadGroupId), type(Type), maxCycles(MaxCycles){};
-
-	constexpr bool operator<(const TAlignmentMergerReadGroupSetting & right) const noexcept { return readGroupId < right.readGroupId; };
-	constexpr bool operator<(const uint16_t right) const noexcept { return readGroupId < right; };
-};
-
-constexpr bool operator<(const uint16_t left, const TAlignmentMergerReadGroupSetting & right) noexcept {
-	return left < right.readGroupId;
-};
-
-class TAlignmentMergerReadGroupSettings{
+class TAlignmentMergerEntry{
 private:
-	std::set<TAlignmentMergerReadGroupSetting, std::less<> > _settings;
+	mutable BAM::TAlignment* _alignment;
+	mutable bool _ready;
 
-	void _printSummary();
 public:
-	void initialize(BAM::TReadGroups & readGroups);
-	void setAllAsUnchanged(const BAM::TReadGroups & readGroups);
-	bool needTruncation() const;
-	bool needsMerging() const;
-	ReadGroupType getType(const uint16_t readGroupId) const;
-	uint16_t getMaxCycles(const uint16_t readGroupId) const;
-	const TAlignmentMergerReadGroupSetting& getSettings(const uint16_t readGroupId) const;
+
+	TAlignmentMergerEntry(BAM::TAlignment* Alignment, bool readyForWriting);
+	TAlignmentMergerEntry(TAlignmentMergerEntry && other);
+	~TAlignmentMergerEntry();
+	TAlignmentMergerEntry& operator=(TAlignmentMergerEntry && other);
+
+	//getters
+	bool ready() const { return _ready; }
+	const BAM::TAlignment& alignment() const { return *_alignment; }
+	BAM::TAlignment* alignmentPtr() const { return _alignment; }
+	const std::string& name() const;
+
+	//setters
+	void makeReady() const { _ready = true; }
+	void setAsNonProperPair() const;
+	bool operator<(const TAlignmentMergerEntry & other) const;
 };
 
 //-----------------------------------------
-// TBamFilter
+// TAlignmentStorage
 //-----------------------------------------
-class TBamFilter:public TGenome_parsed{
+typedef std::vector< TAlignmentMergerEntry > TAlignmentStorage;
+typedef std::vector< TAlignmentMergerEntry >::iterator TAlignmentStorageIterator;
+
+void addToContainer(TAlignmentStorage & Storage, BAM::TAlignment* Alignment, bool readyForWriting);
+
+typedef std::multiset< TAlignmentMergerEntry, std::less<TAlignmentMergerEntry> > TAlignmentStorageSorted;
+typedef std::multiset< TAlignmentMergerEntry, std::less<TAlignmentMergerEntry> >::iterator TAlignmentStorageSortedIterator;
+
+void addToContainer(TAlignmentStorageSorted & Storage, BAM::TAlignment* Alignment, bool readyForWriting);
+
+template<typename StorageType>
+auto findInStorage(StorageType & Storage, const std::string & name){
+	for(auto it=Storage.begin(); it!=Storage.end(); ++it){
+		if(it->name() == name){
+			return it;
+		}
+	}
+	return Storage.end();
+}
+
+//-----------------------------------------
+// TGenomeParsedWithAlignmentStorage
+//-----------------------------------------
+template<typename StorageType, typename StorageIteratorType>
+class TGenomeParsedWithAlignmentStorage:public TGenome_parsed{
 protected:
-	TAlignmentMergerReadGroupSettings _rgSettings;
 	BAM::TAlignmentList _blacklist; //used to keep track of filtered out mates
-	TAlignmentStorage _alignmentStorage;
+	StorageType _alignmentStorage;
 
 	BAM::TOutputBamFile _outBam;
 
@@ -82,94 +98,207 @@ protected:
 	bool _incorporatePMD;
 	bool _keepOrphans;
 
-	virtual void _openBamFileForWriting();
-	void _writeAlignment(TAlignmentInStorage & it);
-	void _writeOrFilterAsOrphan(TAlignmentInStorage & it);
-	void _writeAll();
-	void _writeUpTo(const genometools::TGenomePosition & position);
+	void _writeAlignment(StorageIteratorType & it){
+		//save the alignment to the bam file
+		_outBam.writeAlignment(it->alignment());
+		//delete it->alignment;
+		it = _alignmentStorage.erase(it);
+	}
 
-	BAM::TAlignment* _parseIntoNewAlignment();
-	virtual void _handleMates(BAM::TAlignment* alignment, TAlignmentInStorage & mate);
-	virtual void _handleSingle(BAM::TAlignment* alignment);
+	void _writeOrFilterAsOrphan(StorageIteratorType & it){
+		if(it->ready()){
+			_writeAlignment(it);
+		} else if(_keepOrphans){
+			//set as improper pair
+			it->setAsNonProperPair();
+			//write to BAM file
+			_writeAlignment(it);
+		} else {
+			//write reason to bam log
+			_bamFile.filterOut(it->alignment().name(), it->alignment().isSecondMate(), it->alignment().readGroupId());
+			it = _alignmentStorage.erase(it);
+		}
+	}
+
+	void _writeAll(){
+		//write everything and mark reads with missing mates as improper.
+		//reads still in storage are no-proper pairs: write or add to black list
+		auto it = _alignmentStorage.begin();
+		while(it != _alignmentStorage.end()){
+			_writeOrFilterAsOrphan(it);
+		}
+		//clear blacklist: future reads will anyways be orphans
+		_blacklist.clear();
+	}
+
+	void _writeUpTo(const genometools::TGenomePosition & position){
+		//writes all that are ready or too far away
+		auto it = _alignmentStorage.begin();
+		while(it != _alignmentStorage.end() &&
+			  it->alignment() < position &&
+			  (it->ready() || static_cast<uint32_t>(abs(position - it->alignment())) > _maxDistanceBetweenMates)
+	    ){
+			_writeOrFilterAsOrphan(it);
+		}
+	}
+
+	BAM::TAlignment* _parseIntoNewAlignment(){
+		BAM::TAlignment* alignment = new BAM::TAlignment;
+		_bamFile.fill(*alignment);
+		if(_recalibrate){
+			if(_incorporatePMD){
+				alignment->recalibrateWithPMD(_genotypeLikelihoodCalculator);
+			} else {
+				alignment->parse(_genotypeLikelihoodCalculator.getSequencingErrorModels());
+			}
+		}
+		return alignment;
+	}
+
+	//overriding _handleAligment from TGenome to do nothing
 	void _handleAlignment() override {}
 
+	//pure virtual functions
+	virtual void _openBamFileForWriting() = 0;
+	virtual void _handleMates(BAM::TAlignment & alignment, StorageIteratorType mate) = 0;
+	virtual void _handleSingle(BAM::TAlignment & alignment) = 0;
+	virtual bool _alignmentCanBeWrittenUnchanged() = 0;
+
+
 public:
-	TBamFilter();
-	virtual void traverseBAM();
+	TGenomeParsedWithAlignmentStorage(){
+		//max distance between mates
+		_maxDistanceBetweenMates = parameters().getParameterWithDefault<int>("acceptedDistance", 2000);
+		logfile().list("Mates that are farther than " + toString(_maxDistanceBetweenMates) + " apart will be considered orphans. (parameter 'acceptedDistance')");
+
+		//keep orphans
+		if(parameters().parameterExists("keepOrphans")){
+			_keepOrphans = true;
+			logfile().list("Will keep orphaned reads. (parameter 'keepOrphans')");
+		} else {
+			_keepOrphans = false;
+			logfile().list("Will filter out orphaned reads. (use 'keepOrphans' to keep them)");
+		}
+
+		//recalibrate BAM?
+		if(_genotypeLikelihoodCalculator.recalibrationChangesQualities() || parameters().parameterExists("incorporatePMD")){
+			_recalibrate = true;
+			logfile().list("Will write recalibrated quality scores.");
+			if(parameters().parameterExists("incorporatePMD")){
+				logfile().list("Probability of PMD will be reflected in new quality scores. (parameter 'incorporatePMD')");
+				_incorporatePMD = true;
+				if(!_genotypeLikelihoodCalculator.hasPMD()){
+					throw "No PMD probabilities provided! Provide PMD probabilities or remove parameter 'incorporatePMD'.";
+				}
+			} else {
+				_incorporatePMD = false;
+				logfile().list("PMD will not be reflected in the quality scores. (recommended option. Use 'incorporatePMD' to overrule)");
+			}
+		} else {
+			logfile().list("Will write original quality scores. (provide recalibration parameters to update quality scores)");
+			_recalibrate = false;
+			_incorporatePMD = false;
+		}
+	}
+
+	virtual void traverseBAM(){
+		//open writer
+		_openBamFileForWriting();
+		_bamFile.setExternalFilterReason("Orphan");
+
+		//now parse BAM file
+		_bamFile.startProgressReporting(1000000);
+		while(_bamFile.readNextAlignment()){
+			//if on new chromosome, empty storage
+			if(_bamFile.chrChanged()){
+				//write all ready currently in storage
+				_writeAll();
+			}
+
+			//check if first alignment in storage is too far away from current alignment
+			//if yes, first alignment in storage is considered an orphan
+			_writeUpTo(_bamFile.curPosition());
+
+			//check if read passed filters
+			if(_bamFile.curPassedQC()){
+				//if single end, unchanged and storage is empty: write directly
+				if(_alignmentCanBeWrittenUnchanged()){
+					_bamFile.writeCurAlignment(_outBam);
+				} else {
+					//parse alignment
+					BAM::TAlignment* alignment = _parseIntoNewAlignment();
+
+					//if read is paired, check for mate
+					if(alignment->isPaired()){
+						//if mate is in blacklist: add as improper pair for writing
+						if(_blacklist.isInBlacklist(alignment->name())){
+							//TODO: should we mark them as improper or not?? Are all in blacklist already improper pair?
+							//alignment->setIsProperPair(false);
+							addToContainer(_alignmentStorage, alignment, false);
+							_blacklist.remove(alignment->name());
+						} else {
+							//check if mate is in storage.
+							StorageIteratorType mate = findInStorage(_alignmentStorage, alignment->name());
+							if(mate == _alignmentStorage.end()){
+								//no mate found
+								if(alignment->isProperPair()){
+									//proper pair: add to storage and wait for mate
+									addToContainer(_alignmentStorage, alignment, false);
+								} else {
+									//improper pair: add to blacklist and ready to write
+									_blacklist.add(alignment->name());
+									addToContainer(_alignmentStorage, alignment, true);
+								}
+							} else {
+								if(alignment->readGroupId() != mate->alignment().readGroupId()){
+									throw "Mates '" + alignment->name() + "' are in different read groups!";
+								}
+								//mate found
+								_handleMates(*alignment, mate);
+							}
+						}
+					} else {
+						//read is single end
+						_handleSingle(*alignment);
+					}
+				}
+			} else {
+				//Did not pass QC: filter out
+				//need to store in blacklist if it was paired
+				if(_bamFile.curIsProperPair()){
+					_blacklist.add(_bamFile.curName());
+				}
+			}
+
+			//report
+			_bamFile.printProgress();
+		}
+
+		//write reads still in storage
+		_writeAll();
+
+		//done parsing bam file: report
+		_bamFile.printSummary(_outputName);
+		_bamFile.close();
+		_outBam.close(&logfile());
+	}
 };
 
 //-----------------------------------------
-// TAlignmentMergerType
-// base class does not merge
+// TBamFilter
 //-----------------------------------------
-class TAlignmentMerger{
-public: 
-	TAlignmentMerger(){};
-	virtual ~TAlignmentMerger(){};
-	virtual uint16_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate);
-	std::pair<genometools::TGenomePosition,genometools::TGenomePosition> findFirstAndLastReadPos(BAM::TAlignment & alignment) const;
-	std::pair<uint32_t,bool> determineOverlapLength(BAM::TAlignment & alignment, BAM::TAlignment & mate);
-	std::pair<uint32_t,uint32_t> determineOverlapAndFragmentLength(BAM::TAlignment & alignment, BAM::TAlignment & mate);
-	std::pair<uint32_t,uint32_t> determineFragmentStartAndEndPos(BAM::TAlignment & alignment, BAM::TAlignment & mate);
-};
-
-class TAlignmentMerger_randomRead:public TAlignmentMerger{
-public:
-	TAlignmentMerger_randomRead();
-	uint16_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate);
-};
-
-class TAlignmentMerger_firstMate:public TAlignmentMerger{
-public:
-	TAlignmentMerger_firstMate();
-	uint16_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate);
-};
-
-class TAlignmentMerger_secondMate:public TAlignmentMerger{
-public:
-	TAlignmentMerger_secondMate();
-	uint16_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate);
-};
-
-class TAlignmentMerger_highestQuality:public TAlignmentMerger{
-public:
-	TAlignmentMerger_highestQuality();
-	uint16_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate);
-	std::pair<genometools::PhredIntProbability,genometools::PhredIntProbability> getMinQuals(BAM::TAlignment & alignment, BAM::TAlignment & mate, std::pair<uint16_t,bool> overlapLength) const;
-	std::pair<genometools::PhredIntProbability,genometools::PhredIntProbability> minQual(BAM::TAlignment & firstRead, BAM::TAlignment & secondRead) const;
-};
-
-//-----------------------------------------
-// TAlignmentSplitMerger
-//-----------------------------------------
-class TAlignmentSplitMerger:public TBamFilter{
-private:
-	std::unique_ptr<TAlignmentMerger> _merger;
-	bool _allowForLarger;
-
-	void _initializeMerger();
-	void _openBamFileForWriting();
-	void _handleMates(BAM::TAlignment* alignment, TAlignmentInStorage & mate);
-	void _handleSingle(BAM::TAlignment* alignment);
+class TBamFilter final:public TGenomeParsedWithAlignmentStorage<TAlignmentStorage, TAlignmentStorageIterator>{
+protected:
+	void _openBamFileForWriting() override;
+	void _handleMates(BAM::TAlignment & alignment, TAlignmentStorageIterator mate) override;
+	void _handleSingle(BAM::TAlignment & alignment) override;
+	bool _alignmentCanBeWrittenUnchanged() override;
 
 public:
-	TAlignmentSplitMerger();
-
+	TBamFilter() : TGenomeParsedWithAlignmentStorage() {}
 };
 
-//-----------------------------------------
-// TOverlapQuantifier
-//-----------------------------------------
-class TOverlapQuantifier:public TGenome_filtered{
-private:
-	TAlignmentMerger _merger;
-	TAlignmentStorage _alignmentStorage;
-	void _handleAlignment() override {};
-
-public:
-	void quantifyOverlap();
-};
-
+}; //end namespace BamFilter
 
 //--------------------------------------
 // Tasks
@@ -180,28 +309,8 @@ public:
 	TTask_filterBAM(){ _explanation = "Writing reads that pass filters to BAM file"; };
 
 	void run(){
-		TBamFilter filter; 
+		BamFilter::TBamFilter filter;
 		filter.traverseBAM();
-	};
-};
-
-class TTask_splitMerge:public coretools::TTask{
-public:
-	TTask_splitMerge(){ _explanation = "Splitting single-end reads and merging paired-end reads in BAM file"; };
-
-	void run(){
-		TAlignmentSplitMerger splitMerger;
-		splitMerger.traverseBAM();
-	};
-};
-
-class TTask_overlapQuantifier:public coretools::TTask{
-public:
-	TTask_overlapQuantifier(){ _explanation = "Estimating distribution of overlap of paired reads in BAM file"; };
-
-	void run(){
-		TOverlapQuantifier overlapQuantifier;
-		overlapQuantifier.quantifyOverlap();
 	};
 };
 
