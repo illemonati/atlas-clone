@@ -50,7 +50,7 @@ public:
 	//getters
 	bool ready() const { return _ready; }
 	const BAM::TAlignment& alignment() const { return *_alignment; }
-	BAM::TAlignment* alignmentPtr() const { return _alignment; }
+	BAM::TAlignment* stealAlignment() const { BAM::TAlignment* tmp = _alignment; _alignment = nullptr; return tmp; }
 	const std::string& name() const;
 
 	//setters
