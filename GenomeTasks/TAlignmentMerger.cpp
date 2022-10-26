@@ -296,21 +296,36 @@ uint16_t TAlignmentMerger_secondMate::merge(BAM::TAlignment & alignment, BAM::TA
 TAlignmentMerger_highestQuality::TAlignmentMerger_highestQuality():TAlignmentMerger(){};
 
 uint16_t TAlignmentMerger_highestQuality::merge(BAM::TAlignment & alignment, BAM::TAlignment & mate){
-
 	std::pair<uint32_t,bool> overlapLength = TAlignmentMerger::determineOverlapLength(alignment, mate);
 	if (overlapLength.first != 0) {
 		std::pair<genometools::PhredIntProbability,genometools::PhredIntProbability> minQuals = getMinQuals(alignment, mate, overlapLength);
 		if (minQuals.first > minQuals.second){
+			if(overlapLength.second){
+				alignment.moveOnRef(alignment.position() + overlapLength.first);
+				mate.setMateGenomicPosition(alignment);
+			}
 			mate.merge(overlapLength.first, overlapLength.second);
 			return overlapLength.first;
 		} else if (minQuals.second > minQuals.first){
+			if(!overlapLength.second){
+				alignment.moveOnRef(alignment.position() + overlapLength.first);
+				mate.setMateGenomicPosition(alignment);
+			}
 			alignment.merge(overlapLength.first, overlapLength.second);
 			return overlapLength.first;
 		} else {
 				if (randomGenerator().pickOneOfTwo()) {
+					if(overlapLength.second){
+						alignment.moveOnRef(alignment.position() + overlapLength.first);
+						mate.setMateGenomicPosition(alignment);
+					}
 					mate.merge(overlapLength.first, overlapLength.second);
 					return overlapLength.first;
 				} else {
+					if(!overlapLength.second){
+						alignment.moveOnRef(alignment.position() + overlapLength.first);
+						mate.setMateGenomicPosition(alignment);
+					}
 					alignment.merge(overlapLength.first, overlapLength.second);
 					return overlapLength.first;
 				}
@@ -331,24 +346,24 @@ std::pair<genometools::PhredIntProbability,genometools::PhredIntProbability> TAl
 std::pair<genometools::PhredIntProbability,genometools::PhredIntProbability> TAlignmentMerger_highestQuality::minQual(BAM::TAlignment & firstRead, BAM::TAlignment & secondRead) const {
 	auto baseIterator = secondRead.begin();
 	uint16_t internalPos = 0;
-	genometools::PhredIntProbability secondReadMinQual {0};
-
-	while(secondRead.positionInRef(internalPos).position() != firstRead.lastAlignedPositionWithRespectToRef().position()){
-		if(secondRead.isAlignedAtInternalPos(internalPos))
-			if (baseIterator->originalQuality_phredInt < secondReadMinQual)
-				secondReadMinQual = baseIterator->originalQuality_phredInt;
+	genometools::PhredIntProbability secondReadMinQual = baseIterator->recalibratedQualityAsPhredInt;
+	while(secondRead.positionInRef(internalPos).position() != firstRead.lastAlignedPositionWithRespectToRef().position() && secondRead.positionInRef(internalPos).position()  != secondRead.lastAlignedPositionWithRespectToRef().position()){
+		if(secondRead.isAlignedAtInternalPos(internalPos)){
+			if (baseIterator->recalibratedQualityAsPhredInt < secondReadMinQual)
+				secondReadMinQual = baseIterator->recalibratedQualityAsPhredInt;
+		}
 		baseIterator++;
 		internalPos++;
 	}
 
 	baseIterator = --firstRead.end();
 	internalPos = firstRead.getLastInternalPos();
-	genometools::PhredIntProbability firstReadMinQual {0};
-
-	while (firstRead.positionInRef(internalPos).position() != secondRead.position()) {
-		if(firstRead.isAlignedAtInternalPos(internalPos))
-			if (baseIterator->originalQuality_phredInt < secondReadMinQual)
-				firstReadMinQual = baseIterator->originalQuality_phredInt;
+	genometools::PhredIntProbability firstReadMinQual = baseIterator->recalibratedQualityAsPhredInt;
+	while (firstRead.positionInRef(internalPos).position() != secondRead.position() && firstRead.positionInRef(internalPos).position()  != firstRead.lastAlignedPositionWithRespectToRef().position()) {
+		if(firstRead.isAlignedAtInternalPos(internalPos)){
+			if (baseIterator->recalibratedQualityAsPhredInt < firstReadMinQual)
+				firstReadMinQual = baseIterator->recalibratedQualityAsPhredInt;
+		}
 		baseIterator--;
 		internalPos++;
 	}
@@ -418,7 +433,7 @@ void TAlignmentSplitMerger::_initializeMerger() {
 		_merger = std::make_unique<TAlignmentMerger_secondMate>();
 		logfile().list("Merging method: will keep second mate at overlapping positions. (parameter 'mergingMethod')");
 	} else {
-		throw "Unknown merging method " + method + "! Use 'none', 'randomRead' or 'highestQuality'.";
+		throw "Unknown merging method " + method + "! Use 'none', 'firstMate', 'secondMate', 'randomRead' or 'highestQuality'.";
 	}
 };
 
