@@ -92,7 +92,7 @@ void TAlignmentMergerEntry::setAsNonProperPair() const{
 };
 
 bool TAlignmentMergerEntry::operator<(const TAlignmentMergerEntry & other) const{
-	return _alignment < other._alignment;
+	return _alignment->position() < other._alignment->position();
 }
 
 //-----------------------------------------

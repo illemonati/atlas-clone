@@ -218,7 +218,7 @@ public:
 			//check if first alignment in storage is too far away from current alignment
 			//if yes, first alignment in storage is considered an orphan
 			_writeUpTo(_bamFile.curPosition());
-
+			
 			//check if read passed filters
 			if(_bamFile.curPassedQC()){
 				//if single end, unchanged and storage is empty: write directly

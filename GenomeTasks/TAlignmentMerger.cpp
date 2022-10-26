@@ -230,7 +230,6 @@ uint16_t TAlignmentMerger::merge(BAM::TAlignment & alignment, BAM::TAlignment & 
 
 	std::pair<uint32_t,bool> overlapLength = determineOverlapLength(alignment, mate);
 	if (overlapLength.first > 0){
-		std::cout << overlapLength.first << std::endl;
 		//if the second read is being merged, it's position in the BAM-file as well as the position of the mate of the first read need to be adjusted to account for the length of the added softclips on left side
 		if(!overlapLength.second){
 			alignment.moveOnRef(alignment.position() + overlapLength.first);
@@ -453,7 +452,7 @@ void TAlignmentSplitMerger::_handleMates(BAM::TAlignment & alignment, TAlignment
 
 		_merger->merge(alignment, *mateAlignment);		
 		addToContainer(_alignmentStorage, mateAlignment, true);
-	}
+		}
 
 	//add alignment to container
 	addToContainer(_alignmentStorage, &alignment, true);
