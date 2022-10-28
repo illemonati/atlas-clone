@@ -92,6 +92,7 @@ void TRho::add(genometools::Base l, coretools::Probability P_g_I_d, const TBaseP
 }
 
 void TRho::estimate() noexcept {
+	OUT(_rhoSum);
 	for (Base k = Base::min; k < Base::max; ++k) {
 		_rhoSum[k][k] = 0.0;
 		_rho[k] = TBaseProbabilities::normalize(_rhoSum[k]);

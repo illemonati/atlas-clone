@@ -2,6 +2,11 @@
 
 . $(dirname $0)/find_atlas
 
+$atlas --task simulate --ploidy 1 --baseFreq "1,0,0,0" --refDiv 0 --baseQuality "fixed(93)" --fixedSeed 0 --out A
+$atlas --task simulate --ploidy 1 --baseFreq "0,1,0,0" --refDiv 0 --baseQuality "fixed(93)" --fixedSeed 0 --out C
+$atlas --task simulate --ploidy 1 --baseFreq "0,0,1,0" --refDiv 0 --baseQuality "fixed(93)" --fixedSeed 0 --out G
+$atlas --task simulate --ploidy 1 --baseFreq "0,0,0,1" --refDiv 0 --baseQuality "fixed(93)" --fixedSeed 0 --out T
+
 # python ../tools/plotRecal.py "x"
 r_none="intercept[0.0];quality:polynomial()[1.0,0.0,0.00]"
 
@@ -17,10 +22,9 @@ vals=("1.0" "0.5" "0.1" "0.0")
 # Simululate polynomial model
 for v in ${vals[@]}; do
 	n=${v/./}
-	p="doubleStrand:Exponential[1,0.0,0.3,${v}]:Exponential[1,0.0,0.3,0.0]"
+	p="doubleStrand:Exponential[1,0.0,0.3,${v}]:Exponential[1,0.0,0.3,${v}]"
 
-	#$atlas --task simulate --ploidy 1 --baseFreq "0,1,0,0" --refDiv 0 --recal $r_none --pmd $p --fixedSeed 0 --logFile simulate${n}.out --out $n
-	$atlas --task simulate --ploidy 1 --refDiv 0 --recal $r_none --pmd $p --fixedSeed 0 --logFile simulate${n}.out --out $n
+	$atlas --task simulate --ploidy 1 --baseFreq "0,1,0,0" --refDiv 0 --baseQuality "fixed(93)" --recal $r_none --pmd $p --fixedSeed 0 --logFile simulate${n}.out --out $n
 	$atlas --task PMD --bam $n.bam --fasta $n.fasta --pmdModels "doubleStrand:Exponential:Exponential" --fixedSeed 0 --logFile ${n}_PMD.out --out ${n} 2> ${n}.err
 	$atlas --task recal --bam $n.bam --iterations 1 --pmd $p0 --recal "intercept;quality:polynomial(1)" --rerecalibrate --minDeltaLL 10 --fixedSeed 0 --logFile ${n}_withNone.out --out ${n}_withNone 2> ${n}_withNone.err
 	$atlas --task recal --bam $n.bam --iterations 1 --pmd $p --recal "intercept;quality:polynomial(1)" --rerecalibrate --minDeltaLL 10 --fixedSeed 0 --logFile ${n}_withPMD.out --out ${n}_withPMD 2> ${n}_withPMD.err
