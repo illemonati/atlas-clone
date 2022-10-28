@@ -9,25 +9,19 @@ r_none="intercept[0.0];quality:polynomial()[1.0,0.0,0.00]"
 r_model="intercept[0.1];quality:polynomial()[0.8,0.2,0.01]"
 r_model=$r_none
 
-# python ../tools/plot.py "0*exp(-x)"
-p_none="doubleStrand:Exponential[50,0.0,1.0,0.0]:Exponential[50,0.0,1.0,0.0]"
+# constant model
+p0="doubleStrand:Exponential[1,0.0,0.3,0.0]:Exponential[1,0.0,0.3,0.0]"
 
-# python ../tools/plot.py "0.2*exp(-0.3*x)+0.4"
-p_model="doubleStrand:Exponential[50,0.2,0.3,0.4]:Exponential[50,0.2,0.3,0.4]"
-p_model="doubleStrand:Exponential[50,0.1,0.3,0.0]:Exponential[50,0.1,0.3,0.0]"
+vals=("1.0" "0.5" "0.1" "0.0")
 
 # Simululate polynomial model
+for v in ${vals[@]}; do
+	n=${v/./}
+	p="doubleStrand:Exponential[1,0.0,0.3,${v}]:Exponential[1,0.0,0.3,0.0]"
 
-$atlas --task simulate --ploidy 1 --recal $r_none --pmd $p_none --fixedSeed 0 --logFile simulate_none.out --out none
-$atlas --task simulate --ploidy 1 --recal $r_model --pmd $p_none --fixedSeed 0 --logFile simulate_onlyRecal.out --out onlyRecal
-$atlas --task simulate --ploidy 1 --recal $r_none --pmd $p_model --fixedSeed 0 --logFile simulate_onlyPMD.out --out onlyPMD
-$atlas --task simulate --ploidy 1 --recal $r_model --pmd $p_model --fixedSeed 0 --logFile simulate_both.out --out both
-
-for b in *.bam; do
-	n=${b%.bam}
-	$atlas --task PMD --bam $b --fasta $n.fasta --pmdModels "doubleStrand:Exponential:Exponential" --fixedSeed 0 --logFile ${n}_PMD.out --out ${n}
-	$atlas --task recal --bam $b --recal "intercept;quality:polynomial(3)" --rerecalibrate --minDeltaLL 10 --fixedSeed 0 --logFile ${n}_recal.out --out ${n}
-	$atlas --task recal --bam $b --pmd $p_none --recal "intercept;quality:polynomial(3)" --rerecalibrate --minDeltaLL 10 --fixedSeed 0 --logFile ${n}_recal_withNone.out --out ${n}_withNone
-	$atlas --task recal --bam $b --pmd $p_model --recal "intercept;quality:polynomial(3)" --rerecalibrate --minDeltaLL 10 --fixedSeed 0 --logFile ${n}_recal_withPMD.out --out ${n}_withPMD
-
+	#$atlas --task simulate --ploidy 1 --baseFreq "0,1,0,0" --refDiv 0 --recal $r_none --pmd $p --fixedSeed 0 --logFile simulate${n}.out --out $n
+	$atlas --task simulate --ploidy 1 --refDiv 0 --recal $r_none --pmd $p --fixedSeed 0 --logFile simulate${n}.out --out $n
+	$atlas --task PMD --bam $n.bam --fasta $n.fasta --pmdModels "doubleStrand:Exponential:Exponential" --fixedSeed 0 --logFile ${n}_PMD.out --out ${n} 2> ${n}.err
+	$atlas --task recal --bam $n.bam --iterations 1 --pmd $p0 --recal "intercept;quality:polynomial(1)" --rerecalibrate --minDeltaLL 10 --fixedSeed 0 --logFile ${n}_withNone.out --out ${n}_withNone 2> ${n}_withNone.err
+	$atlas --task recal --bam $n.bam --iterations 1 --pmd $p --recal "intercept;quality:polynomial(1)" --rerecalibrate --minDeltaLL 10 --fixedSeed 0 --logFile ${n}_withPMD.out --out ${n}_withPMD 2> ${n}_withPMD.err
 done

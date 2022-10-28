@@ -283,6 +283,14 @@ public:
 	TBaseProbabilities getMassFunction(genometools::Base b, const BAM::TSequencedBase &data,
 									   const TBaseLikelihoods &baseLikelihoodsNoPMD) const;
 
+	std::string functionString() const noexcept {
+		std::string r;
+		for (auto &p: _pmdObjects) {
+			r.append(p->functionString()).append(1, ';');
+		}
+		return r;
+	}
+
 };
 
 }; // namespace GenotypeLikelihoods
