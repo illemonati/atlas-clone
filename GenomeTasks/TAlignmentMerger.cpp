@@ -231,11 +231,7 @@ uint16_t TAlignmentMerger::merge(BAM::TAlignment & alignment, BAM::TAlignment & 
 	std::pair<uint32_t,bool> overlapLength = determineOverlapLength(alignment, mate);
 	if (overlapLength.first > 0){
 		//if the second read is being merged, it's position in the BAM-file as well as the position of the mate of the first read need to be adjusted to account for the length of the added softclips on left side
-		if(!overlapLength.second){
-			alignment.moveOnRef(alignment.position() + overlapLength.first);
-			mate.setMateGenomicPosition(alignment);
-		}
-		alignment.merge(overlapLength.first, overlapLength.second);
+		callMergeFunction(alignment, mate, overlapLength.first, overlapLength.second);
 	}
 	return overlapLength.first;
 };
@@ -258,6 +254,50 @@ std::pair<uint32_t,bool> TAlignmentMerger::determineOverlapLength(const BAM::TAl
 	}
 }
 
+void TAlignmentMerger::callMergeFunction(BAM::TAlignment & alignment, BAM::TAlignment & mate, const uint32_t & overlapLength, bool isFirstStrand){
+	if(!isFirstStrand){
+		alignment.moveOnRef(alignment.position() + overlapLength);
+		mate.setMateGenomicPosition(alignment);
+	}
+	alignment.merge(overlapLength, isFirstStrand);
+}
+
+std::pair<genometools::PhredIntProbability,genometools::PhredIntProbability> TAlignmentMerger::getMinQuals(BAM::TAlignment & alignment, BAM::TAlignment & mate, std::pair<uint16_t,bool> overlapLength) const {
+	if (overlapLength.second == true)
+		return minQual(alignment,mate);
+	else {
+		std::pair<genometools::PhredIntProbability,genometools::PhredIntProbability> flippedResult = minQual(mate,alignment);
+		return std::make_pair(flippedResult.second,flippedResult.first);
+	}
+}
+
+std::pair<genometools::PhredIntProbability,genometools::PhredIntProbability> TAlignmentMerger::minQual(BAM::TAlignment & firstRead, BAM::TAlignment & secondRead) const {
+	auto baseIterator = secondRead.begin();
+	uint16_t internalPos = 0;
+	genometools::PhredIntProbability secondReadMinQual = baseIterator->recalibratedQualityAsPhredInt;
+	while(secondRead.positionInRef(internalPos).position() != firstRead.lastAlignedPositionWithRespectToRef().position() && secondRead.positionInRef(internalPos).position()  != secondRead.lastAlignedPositionWithRespectToRef().position()){
+		if(secondRead.isAlignedAtInternalPos(internalPos)){
+			if (baseIterator->recalibratedQualityAsPhredInt < secondReadMinQual)
+				secondReadMinQual = baseIterator->recalibratedQualityAsPhredInt;
+		}
+		baseIterator++;
+		internalPos++;
+	}
+
+	baseIterator = --firstRead.end();
+	internalPos = firstRead.getLastInternalPos();
+	genometools::PhredIntProbability firstReadMinQual = baseIterator->recalibratedQualityAsPhredInt;
+	while (firstRead.positionInRef(internalPos).position() != secondRead.position() && firstRead.positionInRef(internalPos).position()  != firstRead.lastAlignedPositionWithRespectToRef().position()) {
+		if(firstRead.isAlignedAtInternalPos(internalPos)){
+			if (baseIterator->recalibratedQualityAsPhredInt < firstReadMinQual)
+				firstReadMinQual = baseIterator->recalibratedQualityAsPhredInt;
+		}
+		baseIterator--;
+		internalPos++;
+	}
+	return std::make_pair(firstReadMinQual,secondReadMinQual);
+}
+
 // TAlignmentMergerType_randomRead
 //---------------------------------
 TAlignmentMerger_randomRead::TAlignmentMerger_randomRead():TAlignmentMerger(){};
@@ -267,6 +307,31 @@ uint16_t TAlignmentMerger_randomRead::merge(BAM::TAlignment & alignment, BAM::TA
 		return TAlignmentMerger::merge(mate, alignment);
 	else
 		return TAlignmentMerger::merge(alignment, mate);
+};
+
+// TAlignmentMergerType_both
+//---------------------------------
+TAlignmentMerger_both::TAlignmentMerger_both():TAlignmentMerger(){};
+
+uint16_t TAlignmentMerger_both::merge(BAM::TAlignment & alignment, BAM::TAlignment & mate){
+	std::pair<uint32_t,bool> overlapLength = determineOverlapLength(alignment, mate);
+	if (overlapLength.first > 0){
+		uint32_t halfOverlap = overlapLength.first / 2;
+		if (overlapLength.first % 2 == 0){
+			callMergeFunction(alignment, mate, halfOverlap, overlapLength.second);
+			callMergeFunction(mate, alignment, halfOverlap, !overlapLength.second);
+		} else {
+			std::pair<genometools::PhredIntProbability,genometools::PhredIntProbability> minQuals = getMinQuals(alignment, mate, std::make_pair(1, overlapLength.second));
+			if (minQuals.first > minQuals.second) {
+				callMergeFunction(alignment, mate, halfOverlap, overlapLength.second);
+				callMergeFunction(mate, alignment, halfOverlap + 1, !overlapLength.second);
+			} else {
+				callMergeFunction(alignment, mate, halfOverlap + 1, overlapLength.second);
+				callMergeFunction(mate, alignment, halfOverlap, !overlapLength.second);
+			}
+		}
+	} 
+	return overlapLength.first;
 };
 
 // TAlignmentMergerType_firstMate
@@ -297,77 +362,21 @@ TAlignmentMerger_highestQuality::TAlignmentMerger_highestQuality():TAlignmentMer
 
 uint16_t TAlignmentMerger_highestQuality::merge(BAM::TAlignment & alignment, BAM::TAlignment & mate){
 	std::pair<uint32_t,bool> overlapLength = TAlignmentMerger::determineOverlapLength(alignment, mate);
-	if (overlapLength.first != 0) {
-		std::pair<genometools::PhredIntProbability,genometools::PhredIntProbability> minQuals = getMinQuals(alignment, mate, overlapLength);
+	if (overlapLength.first > 0) {
+		std::pair<genometools::PhredIntProbability,genometools::PhredIntProbability> minQuals = TAlignmentMerger::getMinQuals(alignment, mate, overlapLength);
 		if (minQuals.first > minQuals.second){
-			if(overlapLength.second){
-				alignment.moveOnRef(alignment.position() + overlapLength.first);
-				mate.setMateGenomicPosition(alignment);
-			}
-			mate.merge(overlapLength.first, overlapLength.second);
-			return overlapLength.first;
+			callMergeFunction(mate, alignment, overlapLength.first, !overlapLength.second);
 		} else if (minQuals.second > minQuals.first){
-			if(!overlapLength.second){
-				alignment.moveOnRef(alignment.position() + overlapLength.first);
-				mate.setMateGenomicPosition(alignment);
-			}
-			alignment.merge(overlapLength.first, overlapLength.second);
-			return overlapLength.first;
+			callMergeFunction(alignment, mate, overlapLength.first, overlapLength.second);
 		} else {
 				if (randomGenerator().pickOneOfTwo()) {
-					if(overlapLength.second){
-						alignment.moveOnRef(alignment.position() + overlapLength.first);
-						mate.setMateGenomicPosition(alignment);
-					}
-					mate.merge(overlapLength.first, overlapLength.second);
-					return overlapLength.first;
+					callMergeFunction(mate, alignment, overlapLength.first, !overlapLength.second);
 				} else {
-					if(!overlapLength.second){
-						alignment.moveOnRef(alignment.position() + overlapLength.first);
-						mate.setMateGenomicPosition(alignment);
-					}
-					alignment.merge(overlapLength.first, overlapLength.second);
-					return overlapLength.first;
+					callMergeFunction(alignment, mate, overlapLength.first, overlapLength.second);
 				}
 		}
-	} else
-		return 0;
-}
-
-std::pair<genometools::PhredIntProbability,genometools::PhredIntProbability> TAlignmentMerger_highestQuality::getMinQuals(BAM::TAlignment & alignment, BAM::TAlignment & mate, std::pair<uint16_t,bool> overlapLength) const {
-	if (overlapLength.second == true)
-		return minQual(alignment,mate);
-	else {
-		std::pair<genometools::PhredIntProbability,genometools::PhredIntProbability> flippedResult = minQual(mate,alignment);
-		return std::make_pair(flippedResult.second,flippedResult.first);
-	}
-}
-
-std::pair<genometools::PhredIntProbability,genometools::PhredIntProbability> TAlignmentMerger_highestQuality::minQual(BAM::TAlignment & firstRead, BAM::TAlignment & secondRead) const {
-	auto baseIterator = secondRead.begin();
-	uint16_t internalPos = 0;
-	genometools::PhredIntProbability secondReadMinQual = baseIterator->recalibratedQualityAsPhredInt;
-	while(secondRead.positionInRef(internalPos).position() != firstRead.lastAlignedPositionWithRespectToRef().position() && secondRead.positionInRef(internalPos).position()  != secondRead.lastAlignedPositionWithRespectToRef().position()){
-		if(secondRead.isAlignedAtInternalPos(internalPos)){
-			if (baseIterator->recalibratedQualityAsPhredInt < secondReadMinQual)
-				secondReadMinQual = baseIterator->recalibratedQualityAsPhredInt;
-		}
-		baseIterator++;
-		internalPos++;
-	}
-
-	baseIterator = --firstRead.end();
-	internalPos = firstRead.getLastInternalPos();
-	genometools::PhredIntProbability firstReadMinQual = baseIterator->recalibratedQualityAsPhredInt;
-	while (firstRead.positionInRef(internalPos).position() != secondRead.position() && firstRead.positionInRef(internalPos).position()  != firstRead.lastAlignedPositionWithRespectToRef().position()) {
-		if(firstRead.isAlignedAtInternalPos(internalPos)){
-			if (baseIterator->recalibratedQualityAsPhredInt < firstReadMinQual)
-				firstReadMinQual = baseIterator->recalibratedQualityAsPhredInt;
-		}
-		baseIterator--;
-		internalPos++;
-	}
-	return std::make_pair(firstReadMinQual,secondReadMinQual);
+	} 
+	return overlapLength.first;
 }
 
 
@@ -432,8 +441,11 @@ void TAlignmentSplitMerger::_initializeMerger() {
 	} else if(method == "secondMate"){
 		_merger = std::make_unique<TAlignmentMerger_secondMate>();
 		logfile().list("Merging method: will keep second mate at overlapping positions. (parameter 'mergingMethod')");
+	} else if (method == "both"){
+		_merger = std::make_unique<TAlignmentMerger_both>();
+		logfile().list("Merging method: will keep half of the overlapping positions of each mate. (parameter 'mergingMethod')");
 	} else {
-		throw "Unknown merging method " + method + "! Use 'none', 'firstMate', 'secondMate', 'randomRead' or 'highestQuality'.";
+		throw "Unknown merging method " + method + "! Use 'none', 'both', 'firstMate', 'secondMate', 'randomRead' or 'highestQuality'.";
 	}
 };
 
