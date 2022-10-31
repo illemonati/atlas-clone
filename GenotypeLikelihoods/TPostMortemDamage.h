@@ -8,6 +8,7 @@
 #ifndef TPOSTMORTEMDAMAGE_H_
 #define TPOSTMORTEMDAMAGE_H_
 
+#include "TSequencedBase.h"
 #include "coretools/Containers/TMassFunction.h"
 #include "TReadGroupInfo.h"
 #include "coretools/Containers/TStrongArray.h"
@@ -142,13 +143,14 @@ public:
 
 	virtual TBaseLikelihoods getBaseLikelihoods(const BAM::TSequencedBase &data,
 												const TBaseLikelihoods &baseLikelihoodsNoPMD) const = 0;
-	virtual TBaseMassFunctions getMassFunctions(const BAM::TSequencedBase &data) const              = 0;
 	virtual TBaseProbabilities getMassFunction(genometools::Base b, const BAM::TSequencedBase &data, 
 											   const TBaseLikelihoods &baseLikelihoodsNoPMD) const  = 0;
 
-	virtual void simulate(BAM::TSequencedBase &data) const   = 0;
+	void simulate(BAM::TSequencedBase &data) const {
+		simulate(data.base, data.distFrom5Prime, data.distFrom3Prime, data.isReverseStrand());
+	}
 	virtual void simulate(genometools::Base &base, uint16_t DistFrom5Prime, uint16_t DistFrom3Prime,
-						  const bool &IsReverseStrand) const = 0;
+	                      const bool &IsReverseStrand) const = 0;
 };
 
 //------------------------------------------------
@@ -176,12 +178,10 @@ public:
 		return baseLikelihoodsNoPMD;
 	}
 
-	TBaseMassFunctions getMassFunctions(const BAM::TSequencedBase &) const override { return massFunctions; }
 	TBaseProbabilities getMassFunction(genometools::Base b, const BAM::TSequencedBase &, const TBaseLikelihoods &) const override {
 		return massFunctions[b];
 	}
 
-	void simulate(BAM::TSequencedBase &) const override {}
 	void simulate(genometools::Base &, uint16_t, uint16_t, const bool &) const override {}
 };
 
@@ -209,11 +209,9 @@ public:
 	TBaseLikelihoods getBaseLikelihoods(const BAM::TSequencedBase &data,
 										const TBaseLikelihoods &baseLikelihoodsNoPMD) const override;
 
-	TBaseMassFunctions getMassFunctions(const BAM::TSequencedBase &data) const override;
 	TBaseProbabilities getMassFunction(genometools::Base b, const BAM::TSequencedBase &data,
 									   const TBaseLikelihoods &baseLikelihoodsNoPMD) const override;
 
-	void simulate(BAM::TSequencedBase &data) const override;
 	void simulate(genometools::Base &base, uint16_t DistFrom5Prime, uint16_t DistFrom3Prime,
 				  const bool &IsReverseStrand) const override;
 };
@@ -242,11 +240,9 @@ public:
 	TBaseLikelihoods getBaseLikelihoods(const BAM::TSequencedBase &data,
 										const TBaseLikelihoods &baseLikelihoodsNoPMD) const override;
 
-	TBaseMassFunctions getMassFunctions(const BAM::TSequencedBase &data) const override;
 	TBaseProbabilities getMassFunction(genometools::Base b, const BAM::TSequencedBase &data,
 									   const TBaseLikelihoods &baseLikelihoodsNoPMD) const override;
 
-	void simulate(BAM::TSequencedBase &data) const override;
 	void simulate(genometools::Base &base, uint16_t DistFrom5Prime, uint16_t DistFrom3Prime,
 				  const bool &IsReverseStrand) const override;
 };
@@ -282,6 +278,14 @@ public:
 	                                    const TBaseLikelihoods &baseLikelihoodsNoPMD) const;
 	TBaseProbabilities getMassFunction(genometools::Base b, const BAM::TSequencedBase &data,
 									   const TBaseLikelihoods &baseLikelihoodsNoPMD) const;
+
+	std::string functionString() const noexcept {
+		std::string r;
+		for (auto &p: _pmdObjects) {
+			r.append(p->functionString()).append(1, ';');
+		}
+		return r;
+	}
 
 };
 

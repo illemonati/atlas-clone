@@ -460,20 +460,15 @@ TBaseLikelihoods TPMDTypeDoubleStrand::getBaseLikelihoods(const BAM::TSequencedB
 	TBaseLikelihoods baseLikelihoods(baseLikelihoodsNoPMD);
 
 	// get relevant PMD probabilities
-	const auto from3  = data.distFrom3Prime < data.distFrom5Prime;
 	double pmdProb_CT = 0;
 	double pmdProb_GA = 0;
 	if (!data.isReverseStrand()) {
-		if (from3)
-			pmdProb_GA = _pmdGA->prob(data.distFrom3Prime);
-		else
-			pmdProb_CT = _pmdCT->prob(data.distFrom5Prime);
+		pmdProb_GA = _pmdGA->prob(data.distFrom3Prime);
+		pmdProb_CT = _pmdCT->prob(data.distFrom5Prime);
 	} else {
 		// ??? Newest insight
-		if (from3)
-			pmdProb_CT = _pmdGA->prob(data.distFrom3Prime);
-		else
-			pmdProb_GA = _pmdCT->prob(data.distFrom5Prime);
+		pmdProb_CT = _pmdGA->prob(data.distFrom3Prime);
+		pmdProb_GA = _pmdCT->prob(data.distFrom5Prime);
 	}
 
 	// add PMD
@@ -484,48 +479,20 @@ TBaseLikelihoods TPMDTypeDoubleStrand::getBaseLikelihoods(const BAM::TSequencedB
 	return baseLikelihoods;
 }
 
-TBaseMassFunctions TPMDTypeDoubleStrand::getMassFunctions(const BAM::TSequencedBase &data) const {
-	const auto from3  = data.distFrom3Prime < data.distFrom5Prime;
-	double pmdProb_CT = 0;
-	double pmdProb_GA = 0;
-	if (!data.isReverseStrand()) {
-		if (from3)
-			pmdProb_GA = _pmdGA->prob(data.distFrom3Prime);
-		else
-			pmdProb_CT = _pmdCT->prob(data.distFrom5Prime);
-	} else {
-		// ??? Newest insight
-		if (from3)
-			pmdProb_CT = _pmdGA->prob(data.distFrom3Prime);
-		else
-			pmdProb_GA = _pmdCT->prob(data.distFrom5Prime);
-	}
-
-	return TBaseMassFunctions{{TBaseProbabilities::normalize({1., 0., 0., 0.}),
-							  TBaseProbabilities::normalize({0., (1. - pmdProb_CT), 0., pmdProb_CT}),
-							  TBaseProbabilities::normalize({pmdProb_GA, 0., (1. - pmdProb_GA), 0.}),
-							  TBaseProbabilities::normalize({0., 0., 0., 1.})}};
-}
-
 TBaseProbabilities TPMDTypeDoubleStrand::getMassFunction(Base b, const BAM::TSequencedBase &data,
 														 const TBaseLikelihoods &baseLikelihoodsNoPMD) const {
 	if (b == Base::A) return TBaseProbabilities::normalize({1., 0., 0., 0.});
 	if (b == Base::T) return TBaseProbabilities::normalize({0., 0., 0., 1.});
 
-	const auto from3  = data.distFrom3Prime < data.distFrom5Prime;
 	double pmdProb_CT = 0;
 	double pmdProb_GA = 0;
 	if (!data.isReverseStrand()) {
-		if (from3)
-			pmdProb_GA = _pmdGA->prob(data.distFrom3Prime);
-		else
-			pmdProb_CT = _pmdCT->prob(data.distFrom5Prime);
+		pmdProb_GA = _pmdGA->prob(data.distFrom3Prime);
+		pmdProb_CT = _pmdCT->prob(data.distFrom5Prime);
 	} else {
 		// ??? Newest insight
-		if (from3)
-			pmdProb_CT = _pmdGA->prob(data.distFrom3Prime);
-		else
-			pmdProb_GA = _pmdCT->prob(data.distFrom5Prime);
+		pmdProb_CT = _pmdGA->prob(data.distFrom3Prime);
+		pmdProb_GA = _pmdCT->prob(data.distFrom5Prime);
 	}
 
 	// The BaseProbability constructor will normalize
@@ -535,27 +502,25 @@ TBaseProbabilities TPMDTypeDoubleStrand::getMassFunction(Base b, const BAM::TSeq
 	return TBaseProbabilities::normalize({pmdProb_GA*baseLikelihoodsNoPMD[Base::A], 0., (1-pmdProb_GA)*baseLikelihoodsNoPMD[Base::G], 0.});
 }
 
-void TPMDTypeDoubleStrand::simulate(BAM::TSequencedBase &data) const {
-	simulate(data.base, data.distFrom5Prime, data.distFrom3Prime, data.isReverseStrand());
-}
-
 void TPMDTypeDoubleStrand::simulate(Base &base, uint16_t DistFrom5Prime, uint16_t DistFrom3Prime,
 				       const bool &IsReverseStrand) const {
-	// simulate PMD
-	if (!IsReverseStrand) {
-		// forward strand
-		if (base == Base::C && randomGenerator().getRand() < _pmdCT->prob(DistFrom5Prime)) {
-			base = Base::T;
-		} else if (base == Base::G && randomGenerator().getRand() < _pmdGA->prob(DistFrom3Prime)) {
-			base = Base::A;
-		}
-	} else {
-		// reverse strand
-		if (base == Base::C && randomGenerator().getRand() < _pmdGA->prob(DistFrom3Prime)) {
+	if (base == Base::A || base== Base::T) return;
+
+	const auto rand = randomGenerator().getRand();
+
+	if (base == Base::C) {
+		if (!IsReverseStrand) {
+			if (rand < _pmdCT->prob(DistFrom5Prime)) base = Base::T;
+		} else {
 			// ??? Newest insight
-			base = Base::T;
-		} else if (base == Base::G && randomGenerator().getRand() < _pmdCT->prob(DistFrom5Prime)) {
-			base = Base::A;
+			if (rand < _pmdGA->prob(DistFrom3Prime)) base = Base::T;
+		}
+	} else { // base == Base::G
+		if (!IsReverseStrand) {
+			if (rand < _pmdGA->prob(DistFrom3Prime)) base = Base::A;
+		} else {
+			// ??? Newest insight
+			if (rand < _pmdCT->prob(DistFrom5Prime)) base = Base::A;
 		}
 	}
 }
@@ -603,29 +568,15 @@ TBaseLikelihoods TPMDTypeSingleStrand::getBaseLikelihoods(const BAM::TSequencedB
 	// Note: distances are as in original fragment (not BAM file), i.e. in direction of sequencing
 	// no PMD for A, C and G
 	TBaseLikelihoods baseLikelihoods(baseLikelihoodsNoPMD);
-	baseLikelihoods[Base::A] = baseLikelihoodsNoPMD[Base::A];
-	baseLikelihoods[Base::T] = baseLikelihoodsNoPMD[Base::T];
-	baseLikelihoods[Base::G] = baseLikelihoodsNoPMD[Base::G];
 
 	// get relevant PMD probabilities
 	const double pmdProb_CT = data.distFrom3Prime < data.distFrom5Prime ? _pmdCT3->prob(data.distFrom3Prime)
 									    : _pmdCT5->prob(data.distFrom5Prime);
 
 	// add PMD
-	baseLikelihoods[Base::C] = (1.0 - pmdProb_CT) * baseLikelihoodsNoPMD[Base::C].get() +
-					  pmdProb_CT * baseLikelihoodsNoPMD[Base::T].get();
+	baseLikelihoods[Base::C] =
+		(1.0 - pmdProb_CT) * baseLikelihoodsNoPMD[Base::C] + pmdProb_CT * baseLikelihoodsNoPMD[Base::T];
 	return baseLikelihoods;
-}
-
-TBaseMassFunctions TPMDTypeSingleStrand::getMassFunctions(const BAM::TSequencedBase &data) const {
-
-	const double pmdProb_CT = data.distFrom3Prime < data.distFrom5Prime ? _pmdCT3->prob(data.distFrom3Prime)
-									    : _pmdCT5->prob(data.distFrom5Prime);
-
-	return TBaseMassFunctions{{TBaseProbabilities::normalize({1., 0., 0., 0.}),
-							   TBaseProbabilities::normalize({0., (1. - pmdProb_CT), 0., pmdProb_CT}),
-							   TBaseProbabilities::normalize({0., 0., 1., 0.}),
-							   TBaseProbabilities::normalize({0., 0., 0., 1.})}};
 }
 
 TBaseProbabilities TPMDTypeSingleStrand::getMassFunction(Base b, const BAM::TSequencedBase &data,
@@ -642,19 +593,17 @@ TBaseProbabilities TPMDTypeSingleStrand::getMassFunction(Base b, const BAM::TSeq
 
 }
 
-void TPMDTypeSingleStrand::simulate(BAM::TSequencedBase &data) const {
-	simulate(data.base, data.distFrom5Prime, data.distFrom3Prime, data.isReverseStrand());
-}
-
 void TPMDTypeSingleStrand::simulate(Base &base, uint16_t DistFrom5Prime, uint16_t DistFrom3Prime,
 				       const bool &) const {
 	if (!(base == Base::C)) return;
 
+	const auto rand = randomGenerator().getRand();
+
 	// simulate PMD
 	if (DistFrom3Prime < DistFrom5Prime) {
-		if (randomGenerator().getRand() < _pmdCT3->prob(DistFrom3Prime)) { base = Base::T; }
+		if (rand < _pmdCT3->prob(DistFrom3Prime)) { base = Base::T; }
 	} else {
-		if (randomGenerator().getRand() < _pmdCT5->prob(DistFrom5Prime)) { base = Base::T; }
+		if (rand < _pmdCT5->prob(DistFrom5Prime)) { base = Base::T; }
 	}
 }
 

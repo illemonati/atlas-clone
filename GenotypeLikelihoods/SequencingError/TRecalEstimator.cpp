@@ -15,6 +15,7 @@
 #include <numeric>
 #include <stdexcept>
 
+#include "coretools/Containers/TStrongArray.h"
 #include "genometools/GenotypeTypes.h"
 #include "RecalEstimatorTools.h"
 #include "TGenotypeData.h"
@@ -291,9 +292,11 @@ void TRecalibrationEMEstimator::performEstimation(const std::string &outputName,
 
 void TRecalibrationEMEstimator::_estimateRho_updatePbbar(const TPostMortemDamage &PmdModels) {
 	using genometools::genotype;
+	coretools::TStrongArray<size_t, Base> cnt{0};
 	_P_bbar_I_gds.clear();
 	for (size_t i = 0; i < _sites.size(); ++i) {
 		for (const auto &d_ij : _sites[i]) {
+			++cnt[d_ij.base];
 			_P_bbar_I_gds.emplace_back(0.);
 			auto& Pij = _P_bbar_I_gds.back();
 			const auto L_eps = _modelsToEstimate.getBaseLikelihoods(d_ij);
