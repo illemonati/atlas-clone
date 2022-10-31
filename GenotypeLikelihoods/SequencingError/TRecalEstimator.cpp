@@ -319,7 +319,6 @@ void TRecalibrationEMEstimator::_estimateRho_updatePbbar(const TPostMortemDamage
 			}
 		}
 	}
-	OUT(cnt);
 	_modelsToEstimate.estimateRho();
 }
 
