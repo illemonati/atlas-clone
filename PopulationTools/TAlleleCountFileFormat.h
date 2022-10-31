@@ -45,8 +45,8 @@ class TAlleleCountFileWithAlleles:public TAlleleCountFile{
 public:
 	virtual void writeHeader(genometools::TPopulationSamples & samples);
 	virtual void writeHeader(std::vector<std::string> populationNames);
-	virtual void writePosition(std::string chr, long pos){ DEVERROR("Need to provide alleles for this format!"); }
-	virtual void writePosition(std::string chr, std::string pos){ DEVERROR("Need to provide alleles for this format!"); }
+	virtual void writePosition(std::string, long){ DEVERROR("Need to provide alleles for this format!"); }
+	virtual void writePosition(std::string, std::string){ DEVERROR("Need to provide alleles for this format!"); }
 	virtual void writePosition(const genometools::TPopulationLikelihoodReaderLocus & reader);
 
 	TAlleleCountFileWithAlleles(std::string Filename):TAlleleCountFile(Filename){};

@@ -32,13 +32,13 @@ TVcfDiagnostics::TVcfDiagnostics() {
 
 	// open vcf file
 	std::string vcfFileName = parameters().getParameterFilename("vcf");
-	std::string ending      = coretools::str::readAfterLast(vcfFileName, '.');
+	auto ending      = coretools::str::readAfterLast(vcfFileName, '.');
 	bool isZipped           = (ending == "gz");
 	_openVCF(vcfFileName, isZipped);
 
 	// read output name
-	std::string tmp = coretools::str::readBeforeLast(vcfFileName, ".vcf");
-	_outName        = parameters().getParameterWithDefault<std::string>("out", tmp);
+	auto tmp = coretools::str::readBeforeLast(vcfFileName, ".vcf");
+	_outName        = parameters().getParameterWithDefault("out", tmp);
 	logfile().list("Writing output files with prefix '" + _outName + "'. (specify with 'out')");
 }
 

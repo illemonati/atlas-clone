@@ -372,9 +372,8 @@ void TAlleleFreqEstimatorBayes::composeHeader(std::vector<std::string> & header,
 };
 
 void TAlleleFreqEstimatorBayes::estimateAndWrite(const TSampleLikelihoods* storage, uint32_t numSamplesInPop, TOutputFile & out){
-	out << estimate(storage, numSamplesInPop); //MAP
-	out << lowerCredibleInterval();
-	out << upperCredibleInterval();
+	//write out MAP, lower and upper CI
+	out.write(estimate(storage, numSamplesInPop), lowerCredibleInterval(), upperCredibleInterval());
 };
 
 double TAlleleFreqEstimatorBayes::runMCMC(const TSampleLikelihoods* storage, const uint32_t numSamplesInPopulation, const double frac, std::vector<double> & mcmcSamples){
@@ -714,8 +713,7 @@ void TAlleleFreqEstimator::compareAlleleFreq(TParameters & Parameters, TRandomGe
 	std::string tmp = coretools::str::extractBeforeLast(vcfFilename, ".vcf");
 	std::string outputName = Parameters.getParameterWithDefault<std::string>("out", tmp);
 	logfile->list("Will write allele frequencies to file '" + outputName  + "_alleleFreqComparison.txt.gz" + "'.");
-	TOutputFile out(outputName + "_alleleFreqComparison.txt.gz");
-	out.writeHeader(_composeHeaderAlleleFreqComparison(BHWEstimator));
+	TOutputFile out(outputName + "_alleleFreqComparison.txt.gz", _composeHeaderAlleleFreqComparison(BHWEstimator));
 
 	//write MCMC to file?
 	TAlleleFreqMCMCOutput traces;
@@ -777,15 +775,14 @@ void TAlleleFreqEstimator::writeAlleleFrequencyLikelihoods(TParameters & Paramet
 		header.push_back("LL_" + toString(freq[i]));
 	}
 
-	//output file
+	//output files
 	std::string tmp = coretools::str::extractBeforeLast(vcfFilename, ".vcf");
 	std::string outputName = Parameters.getParameterWithDefault<std::string>("out", tmp) + "_alleleFreqLikelihoods";
 	logfile->list("Will write allele frequencies to files '" + outputName + "[POP].txt.gz'.");
 
 	std::vector<TOutputFile> out(samples.numPopulations());
 	if(samples.numPopulations() == 1){
-		out[0].open(outputName + ".txt.gz");
-		out[0].writeHeader(header);
+		out[0].open(outputName + ".txt.gz", header);
 		logfile->list("Will write allele frequency likelihoods to file '" + out[0].name() + "'.");
 	} else {
 		logfile->startIndent("Will write allele frequency likelihoods to files:");
@@ -805,14 +802,15 @@ void TAlleleFreqEstimator::writeAlleleFrequencyLikelihoods(TParameters & Paramet
 	while(reader.readDataFromVCF(storage, samples)){
 		//calculate and write allele frequency likelihoods for every population
 		for(size_t p=0; p<samples.numPopulations(); p++){
-			out[p] << reader.chr() << reader.position();
+
+			out[p].write(reader.chr(), reader.position());
 			for(auto& f : freq){
 				genoProb.set(f);
 				coretools::LogProbability LL = 0.0;
 				for(uint32_t i=0; i<samples.numSamplesInPop(p); i++){
 					LL += storage[samples.startIndex(p) + i].HWESum<coretools::LogProbability>(genoProb);
 				}
-				out[p] << LL;
+				out[p].write(LL);
 			}
 			out[p].endln();
 		}

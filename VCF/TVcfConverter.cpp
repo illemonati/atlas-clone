@@ -37,8 +37,8 @@ TVcfConverter::TVcfConverter() {
 	_readSamples();
 
 	// read output name
-	std::string tmp = coretools::str::readBeforeLast(_vcfName, ".vcf");
-	_outName        = parameters().getParameterWithDefault<std::string>("out", tmp);
+	auto tmp = coretools::str::readBeforeLast(_vcfName, ".vcf");
+	_outName        = parameters().getParameterWithDefault("out", tmp);
 	logfile().list("Writing output files with prefix '" + _outName + "'. (specify with 'out')");
 }
 
@@ -229,7 +229,7 @@ void skip(Range& range, size_t nGaps = 1) {
 void TVcfBeagleNew::run() {
 	const auto inName = parameters().getParameterFilename("vcf");
 	const auto outName =
-		parameters().getParameterWithDefault<std::string>("out", coretools::str::readBeforeLast(inName, ".vcf")) +
+		parameters().getParameterWithDefault("out", coretools::str::readBeforeLast(inName, ".vcf")) +
 		".beagle.gz";
 
 	std::unique_ptr<std::istream> istream;

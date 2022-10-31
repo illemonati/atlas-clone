@@ -16,6 +16,7 @@
 #include "coretools/Main/TRandomGenerator.h"
 #include "coretools/Strings/stringFunctions.h"
 #include "coretools/algorithms.h"
+#include "coretools/Files/TFile.h"
 
 
 namespace Simulations {
@@ -25,11 +26,10 @@ using coretools::instances::randomGenerator;
 //--------------------------------
 
 SFS::SFS(const std::string &filename) {
-	std::ifstream file(filename.c_str());
-	if (!file) throw "Failed to open SFS file '" + filename + "'!";
+	coretools::TInputFile in(filename.c_str(), coretools::TFile_Filetype::variable);
 
 	//read dimensions
-	coretools::str::fillContainerFromLineWhiteSpace(file, _numChrPerPop, true, true);
+	in.read(_numChrPerPop, true);
 	_numChr = std::accumulate(_numChrPerPop.begin(), _numChrPerPop.end(), 0);
 
 	//add one to each dimension as what is given is #haplotypes = #entries - 1
@@ -40,7 +40,7 @@ SFS::SFS(const std::string &filename) {
 
 	//read values
 	std::vector<double> vec;
-	coretools::str::fillContainerFromLineWhiteSpace(file, vec, true, true);
+	in.read(vec, true);
 
 	// now store as fraction
 	coretools::fillFromNormalized(sfs, vec);

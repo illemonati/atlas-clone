@@ -55,8 +55,8 @@ std::vector<double> parseParameters(const std::string &string) {
 	std::vector<double> ps;
 	if (string.find('[') == string.npos) return ps;
 
-	std::string tmp = readAfter(string, '[');
-	fillContainerFromString(extractBefore(tmp, ']'), ps, ',', true, true, true);
+	auto tmp = readAfter(string, '[');
+	fillContainerFromString(readBefore(tmp, ']'), ps, ',', true, true);
 	return ps;
 }
 
@@ -66,14 +66,14 @@ std::unique_ptr<TPMDFunction>initializeFunction(const std::string &pmdString) {
 	//  Empiric[0.5,0.3,...]
 	//  Exponential[a,b,c]
 
-	const std::string name = readBefore(pmdString, '[');
+	const auto name = readBefore(pmdString, '[');
 
 	if (name == TPMDFunctionNoPMD::name) return std::make_unique<TPMDFunctionNoPMD>(pmdString);
 	if (name == TPMDFunctionExponential::name) return std::make_unique<TPMDFunctionExponential>(pmdString);
 	if (name == TPMDFunctionEmpiric::name) return std::make_unique<TPMDFunctionEmpiric>(pmdString);
 
-	throw "Cannot initialize PMD function: unknown function '" + name + "'!. Use either " + TPMDFunctionNoPMD::name +
-		", " + TPMDFunctionExponential::name + " or " + TPMDFunctionEmpiric::name + ".";
+	DEVERROR("Cannot initialize PMD function: unknown function '", name, "'!. Use either ", TPMDFunctionNoPMD::name,
+		", ", TPMDFunctionExponential::name, " or ", TPMDFunctionEmpiric::name, ".");
 }
 
 std::unique_ptr<TPMDType> createPMDType(const std::string &pmdString) {
@@ -86,8 +86,8 @@ std::unique_ptr<TPMDType> createPMDType(const std::string &pmdString) {
 	if (details[0] == TPMDTypeSingleStrand::name) return std::make_unique<TPMDTypeSingleStrand>(details);
 	if (details[0] == TPMDTypeDoubleStrand::name) return std::make_unique<TPMDTypeDoubleStrand>(details);
 
-	throw "Cannot initialize PMD: unknown PMD type '" + details[0] + "'!" + "\nUse " + TPMDTypeNone::name + " or " +
-		TPMDTypeSingleStrand::name + " or " + TPMDTypeDoubleStrand::name + ".";
+	DEVERROR("Cannot initialize PMD: unknown PMD type '", details[0], "'!", "\nUse ", TPMDTypeNone::name, " or ",
+		TPMDTypeSingleStrand::name, " or ", TPMDTypeDoubleStrand::name, ".");
 }
 
 } // namespace

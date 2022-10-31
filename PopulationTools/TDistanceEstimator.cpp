@@ -148,6 +148,7 @@ TEMforDistanceEstimation::TEMforDistanceEstimation(){
 			throw "Unknown distance type '" + distType + "'! Use probMismatch.";
 	}
 	logfile().conclude("Using distance weights " + coretools::str::concatenateString(distanceObject->weights(), ", ") + ".");
+
 };
 
 void TEMforDistanceEstimation::guessPi(GenotypeQualityVector & genoQual1, GenotypeQualityVector & genoQual2){

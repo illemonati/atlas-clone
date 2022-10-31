@@ -24,6 +24,7 @@
 #include "genometools/TSampleLikelihoods.h"
 #include "coretools/Main/TTask.h"
 #include "coretools/Types/probability.h"
+#include "coretools/Files/TOutputFile.h"
 
 namespace genometools { class TGenotypeFrequencies; }
 

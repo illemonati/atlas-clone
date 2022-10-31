@@ -31,8 +31,8 @@ TReadGroupMerger::TReadGroupMerger():TGenome_basic(){
 	//read read groups to be merged
 	std::string filename = parameters().getParameter<std::string>("readGroups");
 	logfile().startIndent("Reading read groups to be merged from file '" + filename + "':");
-	std::ifstream file(filename.c_str());
-	if(!file) throw "Failed to open file '" + filename + "!";
+	coretools::TInputFile file(filename.c_str(), coretools::TFile_Filetype::variable);
+
 
 	//create map oldId -> new Id. Fill with identity.
 	readGroupMap.resize(readGroups.size());
@@ -41,14 +41,11 @@ TReadGroupMerger::TReadGroupMerger():TGenome_basic(){
 	}
 
 	//parse file and construct new read groups in new header object
-	int lineNum = 0;
 	std::vector<std::string> vec;
 	std::set<std::string> readGroupsMerged;
-	while(file.good() && !file.eof()){
-		++lineNum;
-		coretools::str::fillContainerFromLineWhiteSpace(file, vec, true);
+	while(file.read(vec)){
 		if(!vec.empty()){
-			if(vec.size() < 2) throw "Wrong number of entries on line " + coretools::str::toString(lineNum) + " in file '" + filename + "'!";
+			if(vec.size() < 2) throw "Wrong number of entries on line " + coretools::str::toString(file.curLine()) + " in file '" + filename + "'!";
 
 			//create new read group
 			uint16_t newId = readGroups.add(vec[0]).id();

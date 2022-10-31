@@ -145,7 +145,7 @@ void TTreeMixFile::writePosition(std::string, std::string){
 	//do nothing, treemix does not need position
 };
 
-void TTreeMixFile::writePosition(const genometools::TPopulationLikelihoodReaderLocus & reader){
+void TTreeMixFile::writePosition(const genometools::TPopulationLikelihoodReaderLocus &){
 	//do nothing, treemix does not need position
 }
 
