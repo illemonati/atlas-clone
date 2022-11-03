@@ -16,10 +16,11 @@ p_type="doubleStrand"
 # Simululate polynomial model
 for v in ${vals[@]}; do
 	n=${v/./}
-	p="$p_type:Exponential[50,${v},0.3,0]:Exponential[50,${v},0.3,0]"
+	p="$p_type:Exponential[50,${v},0.3,0.001]:Exponential[50,${v},0.3,0.001]"
 
 	$atlas --task simulate --ploidy 1 --recal $r_model --pmd $p --fixedSeed 0 --logFile simulate${n}.out --out $n
-	$atlas --task PMD --bam $n.bam --fasta $n.fasta --pmdModels "$p_type:Exponential:Exponential" --fixedSeed 0 --logFile ${n}_PMD.out --out ${n} 2> ${n}.err
+	$atlas --task PMD --bam $n.bam --fasta $n.fasta --pmdModels "$p_type:Empiric:Empiric" --fixedSeed 0 --logFile ${n}_empiric.out --out ${n}_empiric 2> ${n}_empiric.err
+	$atlas --task PMD --bam $n.bam --fasta $n.fasta --pmdModels "$p_type:Exponential:Exponential" --fixedSeed 0 --logFile ${n}_exp.out --out ${n}_exp 2> ${n}_exp.err
 
 	$atlas --task recal --bam $n.bam --iterations 1 --recal "intercept;quality:polynomial(3)" --rerecalibrate --minDeltaLL 10 --fixedSeed 0 --logFile ${n}_noPMD.out --out ${n}_noPMD 2> ${n}_noPMD.err
 	$atlas --task recal --bam $n.bam --pmd $p --recal "intercept;quality:polynomial(3)" --rerecalibrate --minDeltaLL 10 --fixedSeed 0 --logFile ${n}_withPMD.out --out ${n}_withPMD 2> ${n}_withPMD.err

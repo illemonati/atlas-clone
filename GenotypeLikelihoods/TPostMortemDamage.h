@@ -190,11 +190,21 @@ private:
 	std::unique_ptr<TPMDFunction> _pmdGA;
 
 	coretools::Probability _probCT(const BAM::TSequencedBase &data) const noexcept {
-		return !data.isReverseStrand() ? _pmdCT->prob(data.distFrom5Prime) : _pmdGA->prob(data.distFrom3Prime);
+		using coretools::Probability;
+		if (data.distFrom3Prime < data.distFrom5Prime) { //from 3
+			return !data.isReverseStrand() ? Probability{} : _pmdGA->prob(data.distFrom3Prime);
+		} else { //from 5
+			return !data.isReverseStrand() ? _pmdCT->prob(data.distFrom5Prime) : Probability{};
+		}
 	}
 
 	coretools::Probability _probGA(const BAM::TSequencedBase &data) const noexcept {
-		return !data.isReverseStrand() ? _pmdGA->prob(data.distFrom3Prime) : _pmdCT->prob(data.distFrom5Prime);
+		using coretools::Probability;
+		if (data.distFrom3Prime < data.distFrom5Prime) { //from 3
+			return !data.isReverseStrand() ? _pmdGA->prob(data.distFrom3Prime) : Probability{};
+		} else { //from 5
+			return !data.isReverseStrand() ? Probability{} : _pmdCT->prob(data.distFrom5Prime);
+		}
 	}
 
 public:
