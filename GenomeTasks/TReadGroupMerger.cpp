@@ -46,7 +46,9 @@ TReadGroupMerger::TReadGroupMerger():TGenome_basic(){
 	std::set<std::string> readGroupsMerged;
 	while(file.good() && !file.eof()){
 		++lineNum;
-		coretools::str::fillContainerFromLineWhiteSpace(file, vec, true);
+		std::string line;
+		std::getline(file, line);
+		coretools::str::fillContainerFromStringWhiteSpace(line, vec, true);
 		if(!vec.empty()){
 			if(vec.size() < 2) throw "Wrong number of entries on line " + coretools::str::toString(lineNum) + " in file '" + filename + "'!";
 

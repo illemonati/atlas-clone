@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <cmath>
 #include <iostream>
+#include <string>
 
 #include "coretools/Main/TRandomGenerator.h"
 #include "coretools/Strings/stringFunctions.h"
@@ -29,7 +30,9 @@ SFS::SFS(const std::string &filename) {
 	if (!file) throw "Failed to open SFS file '" + filename + "'!";
 
 	//read dimensions
-	coretools::str::fillContainerFromLineWhiteSpace(file, _numChrPerPop, true, true);
+	std::string s;
+	std::getline(file, s);
+	coretools::str::fillContainerFromStringWhiteSpace(s, _numChrPerPop, true, true);
 	_numChr = std::accumulate(_numChrPerPop.begin(), _numChrPerPop.end(), 0);
 
 	//add one to each dimension as what is given is #haplotypes = #entries - 1
@@ -40,7 +43,8 @@ SFS::SFS(const std::string &filename) {
 
 	//read values
 	std::vector<double> vec;
-	coretools::str::fillContainerFromLineWhiteSpace(file, vec, true, true);
+	std::getline(file, s);
+	coretools::str::fillContainerFromStringWhiteSpace(s, vec, true, true);
 
 	// now store as fraction
 	coretools::fillFromNormalized(sfs, vec);

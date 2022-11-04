@@ -51,14 +51,20 @@ using namespace coretools::str;
 namespace impl {
 
 template<typename T>
-std::vector<T> parseParameters(const std::string &string) {
+std::vector<T> parseParameters(std::string_view string) {
 	// expect string of the form NAME[P1,P2,...]
 	// extract P1, P2, ... as a vector of doubles
 	std::vector<T> ps;
 	if (string.find('[') == string.npos) return ps;
 
-	std::string tmp = readAfter(string, '[');
-	fillContainerFromString(extractBefore(tmp, ']'), ps, ',', true, true, true);
+	auto tmp = readBefore(readAfter(string, '['), ']');
+	if (tmp.empty()) return ps;
+
+	TSplitter spl(readBefore(readAfter(string, '['), ']'), ',');
+
+	for (auto s: spl) {
+		ps.push_back(fromString<T, true>(strip(s)));
+	}
 	return ps;
 }
 
@@ -68,14 +74,14 @@ std::unique_ptr<TPMDFunction>initializeFunction(const std::string &pmdString) {
 	//  Empiric[0.5,0.3,...]
 	//  Exponential[a,b,c]
 
-	const std::string name = readBefore(pmdString, '[');
+	auto name = readBefore(pmdString, '[');
 
 	if (name == TPMDFunctionNoPMD::name) return std::make_unique<TPMDFunctionNoPMD>(pmdString);
 	if (name == TPMDFunctionExponential::name) return std::make_unique<TPMDFunctionExponential>(pmdString);
 	if (name == TPMDFunctionEmpiric::name) return std::make_unique<TPMDFunctionEmpiric>(pmdString);
 
-	throw "Cannot initialize PMD function: unknown function '" + name + "'!. Use either " + TPMDFunctionNoPMD::name +
-		", " + TPMDFunctionExponential::name + " or " + TPMDFunctionEmpiric::name + ".";
+	UERROR("Cannot initialize PMD function: unknown function '", name, "'!. Use either ", TPMDFunctionNoPMD::name, ", ",
+		   TPMDFunctionExponential::name, " or ", TPMDFunctionEmpiric::name + ".");
 }
 
 std::unique_ptr<TPMDType> createPMDType(const std::string &pmdString) {
