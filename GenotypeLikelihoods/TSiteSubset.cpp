@@ -69,7 +69,7 @@ void TSiteSubset::_readFile(const std::string &Filename, const genometools::TChr
 		_refIDUsed.emplace(chr.refID());
 
 		//extract positions
-		uint32_t pos = coretools::str::convertStringCheck<uint32_t>(line[1]) - 1; //make 0-based
+		uint32_t pos = coretools::str::fromString<uint32_t, true>(line[1]) - 1; //make 0-based
 		const genometools::Base ref = genometools::char2base(line[2][0]);
 		const genometools::Base alt = genometools::char2base(line[3][0]);
 
@@ -103,7 +103,7 @@ void TSiteSubset::_readFile(const std::string &Filename, const genometools::TChr
 		_refIDUsed.emplace(chr.refID());
 
 		//extract positions
-		uint32_t pos = coretools::str::convertStringCheck<uint32_t>(line[1]) - 1; //make 0-based
+		uint32_t pos = coretools::str::fromString<uint32_t, true>(line[1]) - 1; //make 0-based
 		const genometools::Base ref = genometools::char2base(line[2][0]);
 		const genometools::Base alt = genometools::char2base(line[3][0]);
 

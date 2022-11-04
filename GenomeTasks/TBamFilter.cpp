@@ -116,7 +116,7 @@ void TAlignmentMergerReadGroupSettings::initialize(BAM::TReadGroups & readGroups
 						if(!stringContainsOnlyNumbers(vec[2])){
 							throw "Error reading file '" + in.name() + "' on line " + toString(in.curLine()) + ": max cycles should be a number!";
 						}
-						maxCycles = convertString<int>(vec[2]);
+						maxCycles = fromString<int>(vec[2]);
 					}
 
 					//check for duplicate entries
