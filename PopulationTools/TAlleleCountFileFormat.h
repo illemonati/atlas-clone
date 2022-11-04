@@ -45,8 +45,8 @@ class TAlleleCountFileWithAlleles:public TAlleleCountFile{
 public:
 	virtual void writeHeader(genometools::TPopulationSamples & samples);
 	virtual void writeHeader(std::vector<std::string> populationNames);
-	virtual void writePosition(std::string chr, long pos){ DEVERROR("Need to provide alleles for this format!"); }
-	virtual void writePosition(std::string chr, std::string pos){ DEVERROR("Need to provide alleles for this format!"); }
+	virtual void writePosition(std::string , long ){ DEVERROR("Need to provide alleles for this format!"); }
+	virtual void writePosition(std::string , std::string ){ DEVERROR("Need to provide alleles for this format!"); }
 	virtual void writePosition(const genometools::TPopulationLikelihoodReaderLocus & reader);
 
 	TAlleleCountFileWithAlleles(std::string Filename):TAlleleCountFile(Filename){};
@@ -57,9 +57,12 @@ class TTreeMixFile:public TAlleleCountFile{
 public:
 	void writeHeader(genometools::TPopulationSamples & samples);
 	void writeHeader(std::vector<std::string> populationNames);
-	void writePosition(std::string chr, long pos);
-	void writePosition(std::string chr, std::string pos);
-	void writePosition(const genometools::TPopulationLikelihoodReaderLocus & reader);
+
+	// do nothing, treemix does not need position
+	void writePosition(std::string, long) {}
+	void writePosition(std::string, std::string) {}
+	void writePosition(const genometools::TPopulationLikelihoodReaderLocus &){};
+
 	void writeCounts(int count, int numAlleles, int populationNum);
 	void writeCounts(std::string count, std::string numAlleles, int populationNum);
 

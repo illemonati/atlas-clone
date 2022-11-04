@@ -1244,7 +1244,7 @@ TEST_F(TBamFilter_Test, blacklist){
     EXPECT_EQ(bamFilter->totalReads.counts(), numReads - 200);
     for (auto & it : bamFilter->names){
         // all alignments 0-199 should have been removed
-       int alignmentNum = coretools::str::convertString<int>(coretools::str::extractAfter(it, "_"));
+       int alignmentNum = coretools::str::fromString<int>(coretools::str::extractAfter(it, "_"));
        EXPECT_TRUE(alignmentNum >= 200);
     }
 

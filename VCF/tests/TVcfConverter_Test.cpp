@@ -107,7 +107,7 @@ public:
 
 	void writeSampleFile() {
 		TOutputFile sampleFile("test.samples");
-		for (auto &it : samplesToKeep) { sampleFile << it << std::endl; }
+		for (auto &it : samplesToKeep) { sampleFile.writeln(it); }
 		// add to parameters
 		parameters().addParameter("samples", "test.samples");
 	}
@@ -143,9 +143,9 @@ TEST_F(TVCFConverterTest, beagle) {
 			const double sum = static_cast<Probability>(PhredIntProbability(phred_g1[linearIndex])).get() +
 			                   (Probability)PhredIntProbability(phred_g2[linearIndex]) +
 			                   (Probability)PhredIntProbability(phred_g3[linearIndex]);
-			const double gtl1 = convertString<Probability>(line[3 + i * 3]);
-			const double gtl2 = convertString<Probability>(line[3 + i * 3 + 1]);
-			const double gtl3 = convertString<Probability>(line[3 + i * 3 + 2]);
+			const double gtl1 = fromString<Probability>(line[3 + i * 3]);
+			const double gtl2 = fromString<Probability>(line[3 + i * 3 + 1]);
+			const double gtl3 = fromString<Probability>(line[3 + i * 3 + 2]);
 
 			// genotype likelihoods (we loose some precision when reading/writing, so only expect near)
 			EXPECT_NEAR(gtl1, (Probability)PhredIntProbability(phred_g1[linearIndex]) / sum, 0.00001);
@@ -188,9 +188,9 @@ TEST_F(TVCFConverterTest, beagle_withSamples) {
 			const double sum     = ((Probability)PhredIntProbability(phred_g1[relevantIndex])).get() +
 			                   (Probability)PhredIntProbability(phred_g2[relevantIndex]) +
 			                   (Probability)PhredIntProbability(phred_g3[relevantIndex]);
-			const double gtl1 = convertString<Probability>(line[3 + i * 3]);
-			const double gtl2 = convertString<Probability>(line[3 + i * 3 + 1]);
-			const double gtl3 = convertString<Probability>(line[3 + i * 3 + 2]);
+			const double gtl1 = fromString<Probability>(line[3 + i * 3]);
+			const double gtl2 = fromString<Probability>(line[3 + i * 3 + 1]);
+			const double gtl3 = fromString<Probability>(line[3 + i * 3 + 2]);
 			EXPECT_NEAR(gtl1, (Probability)PhredIntProbability(phred_g1[relevantIndex]) / sum, 0.00001);
 			EXPECT_NEAR(gtl2, (Probability)PhredIntProbability(phred_g2[relevantIndex]) / sum, 0.00001);
 			EXPECT_NEAR(gtl3, (Probability)PhredIntProbability(phred_g3[relevantIndex]) / sum, 0.00001);
@@ -223,7 +223,7 @@ TEST_F(TVCFConverterTest, geno) {
 			TSampleLikelihoods sampleLikelihoods(GTL0, GTL1, GTL2);
 			BiallelicGenotype observedGenotype = sampleLikelihoods.mostLikelyGenotype();
 
-			EXPECT_EQ(convertString<uint8_t>(std::string(1, genotypes[i])),
+			EXPECT_EQ(fromString<uint8_t>(std::string(1, genotypes[i])),
 			          2 - (uint8_t)observedGenotype); // genotype defined based on reference allele
 		}
 	}
@@ -255,7 +255,7 @@ TEST_F(TVCFConverterTest, geno_withSamples) {
 			BiallelicGenotype observedGenotype = sampleLikelihoods.mostLikelyGenotype();
 
 			// genotype defined based on reference allele
-			EXPECT_EQ(convertString<uint8_t>(std::string(1, genotypes[i])), 2 - (uint8_t)observedGenotype);
+			EXPECT_EQ(fromString<uint8_t>(std::string(1, genotypes[i])), 2 - (uint8_t)observedGenotype);
 		}
 	}
 }
@@ -283,7 +283,7 @@ TEST_F(TVCFConverterTest, lfmmCalledGeno) {
 			TSampleLikelihoods sampleLikelihoods(GTL0, GTL1, GTL2);
 			BiallelicGenotype observedGenotype = sampleLikelihoods.mostLikelyGenotype();
 
-			EXPECT_EQ(convertString<uint8_t>(line[l]), (uint8_t)observedGenotype);
+			EXPECT_EQ(fromString<uint8_t>(line[l]), (uint8_t)observedGenotype);
 		}
 	}
 }
@@ -312,7 +312,7 @@ TEST_F(TVCFConverterTest, lfmmCalledGeno_withSamples) {
 			TSampleLikelihoods sampleLikelihoods(GTL0, GTL1, GTL2);
 			BiallelicGenotype observedGenotype = sampleLikelihoods.mostLikelyGenotype();
 
-			EXPECT_EQ(convertString<uint8_t>(line[l]), (uint8_t)observedGenotype);
+			EXPECT_EQ(fromString<uint8_t>(line[l]), (uint8_t)observedGenotype);
 		}
 	}
 }
@@ -340,7 +340,7 @@ TEST_F(TVCFConverterTest, lfmmMeanPosteriorGeno) {
 			TSampleLikelihoods sampleLikelihoods(GTL0, GTL1, GTL2);
 			double posteriorGenotype = sampleLikelihoods.meanPosteriorGenotype();
 
-			EXPECT_NEAR(convertString<double>(line[l]), posteriorGenotype, 0.00001);
+			EXPECT_NEAR(fromString<double>(line[l]), posteriorGenotype, 0.00001);
 		}
 	}
 }
@@ -369,7 +369,7 @@ TEST_F(TVCFConverterTest, lfmmMeanPosteriorGeno_withSamples) {
 			TSampleLikelihoods sampleLikelihoods(GTL0, GTL1, GTL2);
 			double posteriorGenotype = sampleLikelihoods.meanPosteriorGenotype();
 
-			EXPECT_NEAR(convertString<double>(line[l]), posteriorGenotype, 0.00001);
+			EXPECT_NEAR(fromString<double>(line[l]), posteriorGenotype, 0.00001);
 		}
 	}
 }

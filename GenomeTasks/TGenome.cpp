@@ -182,7 +182,7 @@ void TGenome_windows::_setWindowParameters() {
 
 	// check if it is a number
 	if (stringIsProbablyANumber(tmp)) {
-		_windowSize = convertString<int>(tmp);
+		fromString(tmp, _windowSize);
 		logfile().list("Setting window size to " + toString(_windowSize) + ". (parameter 'window')");
 		if (_windowSize < _bamFile.maxReadLength()) {
 			throw "Window size " + tmp + " out of range! Windows must be at least as large as the max read length (" +

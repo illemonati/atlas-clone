@@ -32,13 +32,13 @@ TVcfDiagnostics::TVcfDiagnostics() {
 
 	// open vcf file
 	std::string vcfFileName = parameters().getParameterFilename("vcf");
-	std::string ending      = coretools::str::readAfterLast(vcfFileName, '.');
+	auto ending             = coretools::str::readAfterLast(vcfFileName, '.');
 	bool isZipped           = (ending == "gz");
 	_openVCF(vcfFileName, isZipped);
 
 	// read output name
-	std::string tmp = coretools::str::readBeforeLast(vcfFileName, ".vcf");
-	_outName        = parameters().getParameterWithDefault<std::string>("out", tmp);
+	auto tmp = coretools::str::readBeforeLast(vcfFileName, ".vcf");
+	_outName = parameters().getParameterWithDefault("out", tmp);
 	logfile().list("Writing output files with prefix '" + _outName + "'. (specify with 'out')");
 }
 
@@ -178,8 +178,8 @@ void TVcfDiagnostics::assessAllelicImbalance() {
 				std::vector<std::string> tmp;
 				std::string tag = "AD";
 				coretools::str::fillContainerFromString(_vcfFile.getSampleContentAt(tag, i), tmp, ',');
-				int numRef = coretools::str::convertString<int>(tmp[0]);
-				int numAlt = coretools::str::convertString<int>(tmp[1]);
+				int numRef = coretools::str::fromString<int>(tmp[0]);
+				int numAlt = coretools::str::fromString<int>(tmp[1]);
 				if (numRef == 0 || numAlt == 0)
 					throw "Call at position " + toString(_vcfFile.position()) +
 					    " is heterozygous but reference or alternative allelic depth is 0!";
@@ -190,7 +190,7 @@ void TVcfDiagnostics::assessAllelicImbalance() {
 				}
 
 				// add count to correct table
-				int quality = coretools::str::convertString<int>(_vcfFile.getSampleContentAt("GQ", i));
+				int quality = coretools::str::fromString<int>(_vcfFile.getSampleContentAt("GQ", i));
 				int index   = findLastPassedFilterIndex(quality, qualities);
 				for (int i = 0; i < (index + 1); ++i) { ++(countTables.at(i))->table[numRef][numAlt]; }
 			}

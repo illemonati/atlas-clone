@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <memory>
 
+#include "coretools/Strings/fromString.h"
 #include "genometools/PhredProbabilityTypes.h"
 #include "TPostMortemDamage.h"
 #include "coretools/Main/TRandomGenerator.h"
@@ -199,9 +200,9 @@ TReadSimulatorSingleEnd::TReadSimulatorSingleEnd(const BAM::TReadGroup & ReadGro
 	if(json.is_number()){
 		_numCycles = json.get<int>();
 	} else if(json.is_string()){
-		coretools::str::convertString< coretools::StrictlyPositive<uint16_t> >(json, error, _numCycles);
+		coretools::str::convertString< coretools::StrictlyPositive<uint16_t> >(json.get<std::string_view>(), error, _numCycles);
 	} else if(json.is_array() && json.size() == 1){
-			coretools::str::convertString< coretools::StrictlyPositive<uint16_t> >(json[0], error, _numCycles);
+		coretools::str::convertString< coretools::StrictlyPositive<uint16_t> >(json[0].get<std::string_view>(), error, _numCycles);
 	} else if(json.is_array() && json.size() == 2){
 		UERROR(error);
 	} else {
@@ -239,11 +240,11 @@ TReadSimulatorPairedEnd::TReadSimulatorPairedEnd(const BAM::TReadGroup & ReadGro
 		//two values: one for first and one for second mate
 		coretools::str::convertString< coretools::StrictlyPositive<uint16_t> >(coretools::str::readBefore(RGInfo.getString(InfoType::cycles), ','),
 				BAM::RGInfo::infos[InfoType::cycles].description + " must be within [1,65535].", _numCycles[0]);
-		coretools::str::convertString< coretools::StrictlyPositive<uint16_t> >(coretools::str::readAfter(RGInfo[InfoType::cycles], ','),
+		coretools::str::convertString< coretools::StrictlyPositive<uint16_t> >(coretools::str::readAfter(RGInfo.getString(InfoType::cycles), ','),
 				BAM::RGInfo::infos[InfoType::cycles].description + " must be within [1,65535].", _numCycles[1]);
 	} else {
 		//one value to be used for both mates
-		coretools::str::convertString< coretools::StrictlyPositive<uint16_t> >(RGInfo[InfoType::cycles],
+		coretools::str::convertString< coretools::StrictlyPositive<uint16_t> >(RGInfo.getString(InfoType::cycles),
 				BAM::RGInfo::infos[InfoType::cycles].description + " must be within [1,65535].", _numCycles[0]);
 		_numCycles[1] = _numCycles[0];
 	}
