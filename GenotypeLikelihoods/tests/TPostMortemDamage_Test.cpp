@@ -83,7 +83,7 @@ TEST(TPostMortemDamage_test, PMDTables) {
 	rg.add("1");
 	BAM::TReadGroupMap rgm(rg);
 	TPMDTables ts(&rg, 10, &rgm);
-	EXPECT_EQ(ts[0][forward3].size(), 10);
+	EXPECT_EQ(ts[0][ReadEnd::forward3].size(), 10);
 
 	BAM::TSequencedBase sqbase;
 	sqbase.base           = Base::A;
@@ -93,42 +93,42 @@ TEST(TPostMortemDamage_test, PMDTables) {
 	sqbase.setReverseStrand(false);
 
 	// forward3
-	EXPECT_EQ(ts[0][forward3].sums(Base::C)[sqbase.distFrom3Prime], 0);
-	EXPECT_EQ(ts[0][forward3][Base::C][sqbase.base][sqbase.distFrom3Prime], 0);
+	EXPECT_EQ(ts[0][ReadEnd::forward3].sums(Base::C)[sqbase.distFrom3Prime], 0);
+	EXPECT_EQ(ts[0][ReadEnd::forward3][Base::C][sqbase.base][sqbase.distFrom3Prime], 0);
 	ts.add(sqbase, Base::C);
-	EXPECT_EQ(ts[0][forward3].sums(Base::C)[sqbase.distFrom3Prime], 1);
-	EXPECT_EQ(ts[0][forward3][Base::C][sqbase.base][sqbase.distFrom3Prime], 1);
+	EXPECT_EQ(ts[0][ReadEnd::forward3].sums(Base::C)[sqbase.distFrom3Prime], 1);
+	EXPECT_EQ(ts[0][ReadEnd::forward3][Base::C][sqbase.base][sqbase.distFrom3Prime], 1);
 
 	sqbase.base = Base::C;
 	ts.add(sqbase, Base::C);
-	EXPECT_EQ(ts[0][forward3].sums(Base::C)[sqbase.distFrom3Prime], 2);
-	EXPECT_EQ(ts[0][forward3][Base::C][sqbase.base][sqbase.distFrom3Prime], 1);
+	EXPECT_EQ(ts[0][ReadEnd::forward3].sums(Base::C)[sqbase.distFrom3Prime], 2);
+	EXPECT_EQ(ts[0][ReadEnd::forward3][Base::C][sqbase.base][sqbase.distFrom3Prime], 1);
 
 	// forward5
-	EXPECT_EQ(ts[0][forward5].sums(Base::A)[sqbase.distFrom3Prime], 0);
-	EXPECT_EQ(ts[0][forward5][Base::A][sqbase.base][sqbase.distFrom3Prime], 0);
+	EXPECT_EQ(ts[0][ReadEnd::forward5].sums(Base::A)[sqbase.distFrom3Prime], 0);
+	EXPECT_EQ(ts[0][ReadEnd::forward5][Base::A][sqbase.base][sqbase.distFrom3Prime], 0);
 	sqbase.distFrom5Prime = sqbase.distFrom3Prime;
 	ts.add(sqbase, Base::A);
-	EXPECT_EQ(ts[0][forward5].sums(Base::A)[sqbase.distFrom3Prime], 1);
-	EXPECT_EQ(ts[0][forward5][Base::A][sqbase.base][sqbase.distFrom3Prime], 1);
+	EXPECT_EQ(ts[0][ReadEnd::forward5].sums(Base::A)[sqbase.distFrom3Prime], 1);
+	EXPECT_EQ(ts[0][ReadEnd::forward5][Base::A][sqbase.base][sqbase.distFrom3Prime], 1);
 
 	// reverse3
-	EXPECT_EQ(ts[0][reverse3].sums(Base::C)[sqbase.distFrom3Prime], 0);
-	EXPECT_EQ(ts[0][reverse3][Base::C][sqbase.base][sqbase.distFrom3Prime], 0);
+	EXPECT_EQ(ts[0][ReadEnd::reverse3].sums(Base::C)[sqbase.distFrom3Prime], 0);
+	EXPECT_EQ(ts[0][ReadEnd::reverse3][Base::C][sqbase.base][sqbase.distFrom3Prime], 0);
 	sqbase.distFrom5Prime++;
 	sqbase.setReverseStrand(true);
 	ts.add(sqbase, Base::G);
-	EXPECT_EQ(ts[0][reverse3].sums(Base::C)[sqbase.distFrom3Prime], 1);
-	EXPECT_EQ(ts[0][reverse3][Base::C][flipped(sqbase.base)][sqbase.distFrom3Prime], 1);
+	EXPECT_EQ(ts[0][ReadEnd::reverse3].sums(Base::C)[sqbase.distFrom3Prime], 1);
+	EXPECT_EQ(ts[0][ReadEnd::reverse3][Base::C][flipped(sqbase.base)][sqbase.distFrom3Prime], 1);
 
 	// reverse5
-	EXPECT_EQ(ts[0][reverse5].sums(Base::A)[sqbase.distFrom3Prime], 0);
-	EXPECT_EQ(ts[0][reverse5][Base::A][sqbase.base][sqbase.distFrom3Prime], 0);
+	EXPECT_EQ(ts[0][ReadEnd::reverse5].sums(Base::A)[sqbase.distFrom3Prime], 0);
+	EXPECT_EQ(ts[0][ReadEnd::reverse5][Base::A][sqbase.base][sqbase.distFrom3Prime], 0);
 	sqbase.distFrom5Prime--;
 	sqbase.setReverseStrand(true);
 	ts.add(sqbase, Base::T);
-	EXPECT_EQ(ts[0][reverse5].sums(Base::A)[sqbase.distFrom3Prime], 1);
-	EXPECT_EQ(ts[0][reverse5][Base::A][flipped(sqbase.base)][sqbase.distFrom3Prime], 1);
+	EXPECT_EQ(ts[0][ReadEnd::reverse5].sums(Base::A)[sqbase.distFrom3Prime], 1);
+	EXPECT_EQ(ts[0][ReadEnd::reverse5][Base::A][flipped(sqbase.base)][sqbase.distFrom3Prime], 1);
 }
 
 TEST(TPostMortemDamage_test, noPMD) {
@@ -152,10 +152,10 @@ TEST(TPostMortemDamage_test, exponential) {
 	EXPECT_FLOAT_EQ(fn0.prob(static_cast<uint16_t>(-1)), 0.);
 
 	constexpr auto N = 8;
-	constexpr auto a = 1.;
-	constexpr auto b = 1.;
-	constexpr auto c = 1.;
-	const TPMDFunctionExponential fn1("[8, 1., 1., 1.]");
+	constexpr auto a = .3;
+	constexpr auto b = .2;
+	constexpr auto c = .1;
+	const TPMDFunctionExponential fn1("[8, .3, .2, .1]");
 	for (size_t p = 0; p < N + 1; ++p) {
 		EXPECT_TRUE(fn1.hasDamage());
 		EXPECT_FLOAT_EQ(fn1.prob(p), a*std::exp(-b * p) + c);

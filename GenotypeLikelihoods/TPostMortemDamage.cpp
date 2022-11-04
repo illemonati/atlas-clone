@@ -43,16 +43,18 @@ namespace GenotypeLikelihoods {
 using coretools::instances::logfile;
 using coretools::instances::parameters;
 using coretools::instances::randomGenerator;
+using coretools::Probability;
 using genometools::Base;
 
 using namespace coretools::str;
 
 namespace impl {
 
-std::vector<double> parseParameters(const std::string &string) {
+template<typename T>
+std::vector<T> parseParameters(const std::string &string) {
 	// expect string of the form NAME[P1,P2,...]
 	// extract P1, P2, ... as a vector of doubles
-	std::vector<double> ps;
+	std::vector<T> ps;
 	if (string.find('[') == string.npos) return ps;
 
 	std::string tmp = readAfter(string, '[');
@@ -96,7 +98,7 @@ std::unique_ptr<TPMDType> createPMDType(const std::string &pmdString) {
 // TPMDFunctionNoPMD
 //---------------------------------------------------------------
 TPMDFunctionNoPMD::TPMDFunctionNoPMD(const std::string &string) {
-	const std::vector<double> params = impl::parseParameters(string);
+	const auto params = impl::parseParameters<double>(string);
 	if (params.size() != 0) {
 		throw "Cannot initialize PMD function '" + name + "': expected 0 but found " +
 			toString(params.size()) + " parameters!";
@@ -108,7 +110,7 @@ TPMDFunctionNoPMD::TPMDFunctionNoPMD(const std::string &string) {
 //--------------------------------------------------------------
 TPMDFunctionExponential::TPMDFunctionExponential(const std::string &string) {
 	constexpr size_t nParams = 4;
-	std::vector<double> params = impl::parseParameters(string);
+	const auto params = impl::parseParameters<double>(string);
 	if (params.empty()) {
 		// parameters missing: set to no PMD
 		_lastPosition = 0;
@@ -132,9 +134,9 @@ TPMDFunctionExponential::TPMDFunctionExponential(const std::string &string) {
 }
 
 void TPMDFunctionExponential::_fillPMDProbabilities() {
-	_probs.resize(_lastPosition + 1);
-	for (size_t p = 0; p < _probs.size(); ++p) {
-		_probs[p] = _a * exp(-_b * p) + _c;
+	_values.resize(_lastPosition + 1);
+	for (size_t p = 0; p < _values.size(); ++p) {
+		_values[p] = _a * exp(-_b * p) + _c;
 	}
 }
 
@@ -304,6 +306,7 @@ void TPMDFunctionExponential::_estimateWithNewtonRaphson(const countVec &pmdCoun
 
 void TPMDFunctionExponential::learn(const TPMDTable &Table, const Base &from, const Base &to,
 				    const TPMDEstimationParameters &EstimationParameters) {
+	logfile().list("Learning exponential pattern");
 	// extract counts in PMD direction and the inverse direction
 	const countVec &pmdCounts = Table[from][to];
 	const countVec &pmdSums   = Table.sums(from);
@@ -334,10 +337,6 @@ void TPMDFunctionExponential::learn(const TPMDTable &Table, const Base &from, co
 				   EstimationParameters.at(numNR),
 				   EstimationParameters.at(epsilon));
 
-	if (Parameters[1] < 0) {
-		throw "Estimation resulted in a < 0!\nThis is likely due to limited data. Consider pooling read groups "
-			  "(parameter poolReadGroups).";
-	}
 
 	// transform parameters
 	// the exponential PMD model is f(C->T) = mu + (1-mu) *[ a*exp(-b * position) + c ]
@@ -355,32 +354,40 @@ void TPMDFunctionExponential::learn(const TPMDTable &Table, const Base &from, co
 	_b = Parameters[2];
 	_c = (Parameters[0] - mu) / (1.0 - mu);
 
+	logfile().conclude(_a, "*exp(-", _b, "*p) + ", _c);
+
+	if (Parameters[1] < 0) {
+		UERROR("Estimation resulted in a = ", _a,
+			   " < 0! This is likely due to limited data. Consider pooling read groups (parameter poolReadGroups).");
+	}
+
 	_fillPMDProbabilities();
 
 
 	// check if pattern is negativ
-	if (_probs[_lastPosition] < 0) {
-		throw "Estimation resulted in negative PMD at high positions!\nThis is likely be due to limited data. Consider "
-			  "pooling read groups (parameter poolReadGroups).";
+	if (_values[_lastPosition] < 0) {
+		UERROR("Estimation resulted in negative PMD = ", _values[_lastPosition],
+			   " at high positions!\nThis is likely be due to limited data. Consider pooling read groups (parameter "
+			   "poolReadGroups).");
 	}
 }
 
-double TPMDFunctionExponential::prob(uint16_t pos) const noexcept {
+Probability TPMDFunctionExponential::prob(uint16_t pos) const noexcept {
 	// Note: distance is zero based!
 	// model is fit up to _lastPosition. We assume constant PMD after that
-	return pos < _lastPosition ? _probs[pos] : _probs[_lastPosition];
+	return pos < _lastPosition ? _values[pos] : _values[_lastPosition];
 }
 
 //---------------------------------------------------------------
 // TPMDFunctionEmpiric
 //---------------------------------------------------------------
-	TPMDFunctionEmpiric::TPMDFunctionEmpiric(const std::string &string) : _parameters(impl::parseParameters(string)) {
-	if (_parameters.empty()) {
+	TPMDFunctionEmpiric::TPMDFunctionEmpiric(const std::string &string) : _values(impl::parseParameters<Probability>(string)) {
+	if (_values.empty()) {
 		// parameters missing: set to no PMD
-		_parameters = {0.0};
+		_values = {0.0};
 	} else {
 		// parameters are provided
-		for (auto &d : _parameters) {
+		for (auto &d : _values) {
 			if (d < 0.0 || d > 1.0) {
 				throw "Cannot initialize post mortem damage function '" + name +
 					"': some probabilities are outside [0,1]!";
@@ -391,8 +398,9 @@ double TPMDFunctionExponential::prob(uint16_t pos) const noexcept {
 
 void TPMDFunctionEmpiric::learn(const TPMDTable &Table, const Base &from, const Base &to,
 				const TPMDEstimationParameters &) {
+	logfile().list("Learning empiric pattern");
 	// resize parameters
-	_parameters.resize(Table.size()); // include extra bin for sites beyond size (available in PMDTables)
+	_values.resize(Table.size()); // include extra bin for sites beyond size (available in PMDTables)
 
 	// extract counts in PMD direction and the inverse direction
 	const countVec &forwardCounts  = Table[from][to]; //e.g. C -> T
@@ -400,21 +408,21 @@ void TPMDFunctionEmpiric::learn(const TPMDTable &Table, const Base &from, const 
 	const countVec &backwardCounts = Table[to][from]; //e.g. T -> C
 	const countVec &backwardSums   = Table.sums(to);
 
-	for (size_t p = 0; p < _parameters.size(); ++p) {
+	for (size_t p = 0; p < _values.size(); ++p) {
 		if (forwardSums[p] == 0 || backwardSums[p] == 0) {
-			_parameters[p] = 0.0;
+			_values[p] = 0.0;
 		} else {
 			double forward  = (double)forwardCounts[p] / forwardSums[p]; //e.g. C -> T
 			double backward = (double)backwardCounts[p] / backwardSums[p]; //e.g. T -> C
 
 			//forward = mu_CT + (1 - mu_CT) * PMD; mu_CT = mu_TC = backward
-			_parameters[p] = std::max(0.0, (forward - backward) / (1.0 - backward));
+			_values[p] = std::max(0.0, (forward - backward) / (1.0 - backward));
 		}
 	}
 }
 
-double TPMDFunctionEmpiric::prob(uint16_t pos) const noexcept {
-	return pos < _parameters.size() ? _parameters[pos] : _parameters.back();
+Probability TPMDFunctionEmpiric::prob(uint16_t pos) const noexcept {
+	return pos < _values.size() ? _values[pos] : _values.back();
 }
 
 //------------------------------------------------------
@@ -443,14 +451,18 @@ void TPMDTypeDoubleStrand::estimate(const PMDTable_RG &PMDTable,
 				    const TPMDEstimationParameters &EstimationParameters) {
 	// Note: TPMDTables stores bases as during sequencing (not as after mapping)
 	// Assumption: C->T pattern is the same for forward and reverse reads from their respective 5-prime ends.
-	TPMDTable from5(PMDTable[forward5]);
-	from5.add(PMDTable[reverse5]);
+	TPMDTable from5(PMDTable[ReadEnd::forward5]);
+	from5.add(PMDTable[ReadEnd::reverse5]);
+	logfile().startIndent("Learning C-T pattern:");
 	_pmdCT->learn(from5, Base::C, Base::T, EstimationParameters);
+	logfile().endIndent();
 
 	// Assumption: G->A pattern is the same for forward and reverse reads from their respective 3-prime ends.
-	TPMDTable from3(PMDTable[forward3]);
-	from3.add(PMDTable[reverse3]);
+	TPMDTable from3(PMDTable[ReadEnd::forward3]);
+	from3.add(PMDTable[ReadEnd::reverse3]);
+	logfile().startIndent("Learning G-A pattern:");
 	_pmdGA->learn(from3, Base::G, Base::A, EstimationParameters);
+	logfile().endIndent();
 }
 
 TBaseLikelihoods TPMDTypeDoubleStrand::getBaseLikelihoods(const BAM::TSequencedBase &data,
@@ -460,16 +472,8 @@ TBaseLikelihoods TPMDTypeDoubleStrand::getBaseLikelihoods(const BAM::TSequencedB
 	TBaseLikelihoods baseLikelihoods(baseLikelihoodsNoPMD);
 
 	// get relevant PMD probabilities
-	double pmdProb_CT = 0;
-	double pmdProb_GA = 0;
-	if (!data.isReverseStrand()) {
-		pmdProb_GA = _pmdGA->prob(data.distFrom3Prime);
-		pmdProb_CT = _pmdCT->prob(data.distFrom5Prime);
-	} else {
-		// ??? Newest insight
-		pmdProb_CT = _pmdGA->prob(data.distFrom3Prime);
-		pmdProb_GA = _pmdCT->prob(data.distFrom5Prime);
-	}
+	const auto pmdProb_CT = _probCT(data);
+	const auto pmdProb_GA = _probGA(data);
 
 	// add PMD
 	baseLikelihoods[Base::C] =
@@ -481,47 +485,27 @@ TBaseLikelihoods TPMDTypeDoubleStrand::getBaseLikelihoods(const BAM::TSequencedB
 
 TBaseProbabilities TPMDTypeDoubleStrand::getMassFunction(Base b, const BAM::TSequencedBase &data,
 														 const TBaseLikelihoods &baseLikelihoodsNoPMD) const {
-	if (b == Base::A) return TBaseProbabilities::normalize({1., 0., 0., 0.});
-	if (b == Base::T) return TBaseProbabilities::normalize({0., 0., 0., 1.});
-
-	double pmdProb_CT = 0;
-	double pmdProb_GA = 0;
-	if (!data.isReverseStrand()) {
-		pmdProb_GA = _pmdGA->prob(data.distFrom3Prime);
-		pmdProb_CT = _pmdCT->prob(data.distFrom5Prime);
-	} else {
-		// ??? Newest insight
-		pmdProb_CT = _pmdGA->prob(data.distFrom3Prime);
-		pmdProb_GA = _pmdCT->prob(data.distFrom5Prime);
+	switch (b) {
+	case Base::A: return TBaseProbabilities::normalize({1., 0., 0., 0.});
+	case Base::C: {
+		const auto pmdProb_CT = _probCT(data);
+		return TBaseProbabilities::normalize(
+			{0., (1. - pmdProb_CT) * baseLikelihoodsNoPMD[Base::C], 0., pmdProb_CT * baseLikelihoodsNoPMD[Base::T]});
 	}
-
-	// The BaseProbability constructor will normalize
-	if (b == Base::C) return TBaseProbabilities::normalize({0., (1. - pmdProb_CT)*baseLikelihoodsNoPMD[Base::C], 0., pmdProb_CT*baseLikelihoodsNoPMD[Base::T]});
-
-	// we expect b not to be N
-	return TBaseProbabilities::normalize({pmdProb_GA*baseLikelihoodsNoPMD[Base::A], 0., (1-pmdProb_GA)*baseLikelihoodsNoPMD[Base::G], 0.});
+	case Base::G: {
+		const auto pmdProb_GA = _probGA(data);
+		return TBaseProbabilities::normalize(
+			{pmdProb_GA * baseLikelihoodsNoPMD[Base::A], 0., (1. - pmdProb_GA) * baseLikelihoodsNoPMD[Base::G], 0.});
+	}
+	default: return TBaseProbabilities::normalize({0., 0., 0., 1.}); // case Base::T
+	}
 }
 
-void TPMDTypeDoubleStrand::simulate(Base &base, uint16_t DistFrom5Prime, uint16_t DistFrom3Prime,
-				       const bool &IsReverseStrand) const {
-	if (base == Base::A || base== Base::T) return;
-
-	const auto rand = randomGenerator().getRand();
-
-	if (base == Base::C) {
-		if (!IsReverseStrand) {
-			if (rand < _pmdCT->prob(DistFrom5Prime)) base = Base::T;
-		} else {
-			// ??? Newest insight
-			if (rand < _pmdGA->prob(DistFrom3Prime)) base = Base::T;
-		}
-	} else { // base == Base::G
-		if (!IsReverseStrand) {
-			if (rand < _pmdGA->prob(DistFrom3Prime)) base = Base::A;
-		} else {
-			// ??? Newest insight
-			if (rand < _pmdCT->prob(DistFrom5Prime)) base = Base::A;
-		}
+void TPMDTypeDoubleStrand::simulate(BAM::TSequencedBase &data) const {
+	if (data.base == Base::C) {
+		if (randomGenerator().getRand() < _probCT(data)) data.base = Base::T;
+	} else if (data.base == Base::G) {
+		if (randomGenerator().getRand() < _probGA(data)) data.base = Base::A;
 	}
 }
 //------------------------------------------------------
@@ -551,16 +535,21 @@ void TPMDTypeSingleStrand::estimate(const PMDTable_RG &PMDTable,
 	// Note: TPMDTables stores bases as during sequencing (not as after mapping)
 	// Assumption: 5-prime C->T pattern is the same for forward and reverse reads from their respective
 	// 5-prime ends.
-	TPMDTable from5(PMDTable[forward5]);
-	from5.add(PMDTable[reverse5]);
+	TPMDTable from5(PMDTable[ReadEnd::forward5]);
+	from5.add(PMDTable[ReadEnd::reverse5]);
+
+	logfile().startIndent("Learning 5' C-T pattern:");
 	_pmdCT5->learn(from5, Base::C, Base::T, EstimationParameters);
+	logfile().endIndent();
 
 	// Assumption: 3-prime C->T pattern is the same for forward and reverse reads from their
 	// respective 3-prime ends.
-	TPMDTable from3(PMDTable[forward3]);
-	from3.add(PMDTable[reverse3]);
-	// ??? G->A  or C->T (reversed gets flipped when read)
+	TPMDTable from3(PMDTable[ReadEnd::forward3]);
+	from3.add(PMDTable[ReadEnd::reverse3]);
+
+	logfile().startIndent("Learning 3' C-T pattern:");
 	_pmdCT3->learn(from3, Base::C, Base::T, EstimationParameters);
+	logfile().endIndent();
 }
 
 TBaseLikelihoods TPMDTypeSingleStrand::getBaseLikelihoods(const BAM::TSequencedBase &data,
@@ -569,41 +558,30 @@ TBaseLikelihoods TPMDTypeSingleStrand::getBaseLikelihoods(const BAM::TSequencedB
 	// no PMD for A, C and G
 	TBaseLikelihoods baseLikelihoods(baseLikelihoodsNoPMD);
 
-	// get relevant PMD probabilities
-	const double pmdProb_CT = data.distFrom3Prime < data.distFrom5Prime ? _pmdCT3->prob(data.distFrom3Prime)
-									    : _pmdCT5->prob(data.distFrom5Prime);
-
-	// add PMD
+	const double pmdProb_CT  = _probCT(data);
 	baseLikelihoods[Base::C] =
 		(1.0 - pmdProb_CT) * baseLikelihoodsNoPMD[Base::C] + pmdProb_CT * baseLikelihoodsNoPMD[Base::T];
+
 	return baseLikelihoods;
 }
 
 TBaseProbabilities TPMDTypeSingleStrand::getMassFunction(Base b, const BAM::TSequencedBase &data,
 														 const TBaseLikelihoods &baseLikelihoodsNoPMD) const {
-	if (b == Base::A) return TBaseProbabilities::normalize({1., 0., 0., 0.});
-	if (b == Base::G) return TBaseProbabilities::normalize({0., 0., 1., 0.});
-	if (b == Base::T) return TBaseProbabilities::normalize({0., 0., 0., 1.});
-
-	// else we expect b not to be N
-
-	const double pmdProb_CT = data.distFrom3Prime < data.distFrom5Prime ? _pmdCT3->prob(data.distFrom3Prime)
-									    : _pmdCT5->prob(data.distFrom5Prime);
-	return TBaseProbabilities::normalize({0., (1. - pmdProb_CT)*baseLikelihoodsNoPMD[Base::C], 0., pmdProb_CT*baseLikelihoodsNoPMD[Base::T]});
-
+	switch (b) {
+	case Base::A: return TBaseProbabilities::normalize({1., 0., 0., 0.});
+	case Base::C: {
+		const double pmdProb_CT = _probCT(data);
+		return TBaseProbabilities::normalize(
+			{0., (1. - pmdProb_CT) * baseLikelihoodsNoPMD[Base::C], 0., pmdProb_CT * baseLikelihoodsNoPMD[Base::T]});
+	}
+	case Base::G: return TBaseProbabilities::normalize({0., 0., 1., 0.});
+	default: return TBaseProbabilities::normalize({0., 0., 0., 1.}); // Base::T
+	}
 }
 
-void TPMDTypeSingleStrand::simulate(Base &base, uint16_t DistFrom5Prime, uint16_t DistFrom3Prime,
-				       const bool &) const {
-	if (!(base == Base::C)) return;
-
-	const auto rand = randomGenerator().getRand();
-
-	// simulate PMD
-	if (DistFrom3Prime < DistFrom5Prime) {
-		if (rand < _pmdCT3->prob(DistFrom3Prime)) { base = Base::T; }
-	} else {
-		if (rand < _pmdCT5->prob(DistFrom5Prime)) { base = Base::T; }
+void TPMDTypeSingleStrand::simulate(BAM::TSequencedBase &data) const {
+	if (data.base == Base::C) {
+		if (randomGenerator().getRand() < _probCT(data)) data.base = Base::T;
 	}
 }
 
