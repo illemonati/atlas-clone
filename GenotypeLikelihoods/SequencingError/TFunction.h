@@ -99,9 +99,8 @@ private:
 public:
 	static constexpr std::string_view name = "intercept";
 
-	TIntercept(size_t FirstParameterIndex, const std::vector<std::string> &Betas)
-		: TFunction(FirstParameterIndex) {
-		_initializeValues(Betas);
+	TIntercept(size_t FirstParameterIndex, double Beta = 0.)
+		: TFunction(FirstParameterIndex), _beta(Beta) {
 	}
 
 	size_t numParameters() const noexcept override { return 1; }

@@ -107,8 +107,8 @@ TFunction *makeFunction(const std::string &Covariate, const std::string &Functio
 	if (Covariate.empty()) {
 		const auto [type, args, betas] = parseFunction(Function);
 		if (type != TIntercept::name) throw "You must specify a covariate";
-		if (!args.empty()) throw "Intercept cannot have arguments";
-		return new TIntercept(FirstParameterIndex, betas);
+		if (betas.empty()) return new TIntercept(FirstParameterIndex);
+		return new TIntercept(FirstParameterIndex, fromString<double, true>(betas.front()));
 	}
 
 	if (Covariate == TCovariate_quality::name)
