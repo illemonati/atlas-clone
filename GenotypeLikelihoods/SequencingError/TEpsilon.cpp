@@ -89,17 +89,30 @@ template<typename Covariate> TFunction *makeCovFunction(std::string_view Functio
 		}
 		return fn;
 	}
-	/*
 	if (type == TProbit<Covariate>::name) {
-		return new TProbit<Covariate>(FirstParameterIndex, Spl);
+		TFunction* fn = new TProbit<Covariate>(FirstParameterIndex);
+		if (Spl.empty()) {
+			return fn;
+		}
+		size_t i = 0;
+		for (auto &beta : *fn) {
+			if (Spl.empty()) UERROR("Not enough parameters given for function ", fn->typeString(), ". Expected ", fn->numParameters(), " got ", i, " !");
+			fromString<true>(Spl.front(), beta);
+			Spl.popFront();
+			++i;
+		}
+		return fn;
 	}
 	if (type == TEmpiric<Covariate>::name) {
-		if (Covariate::isIndexed)
-			return new TIndexedEmpiric<Covariate>(FirstParameterIndex, Spl);
-		else
-			return new TEmpiric<Covariate>(FirstParameterIndex, Spl);
+		/*if (Covariate::isIndexed)
+			fn = new TIndexedEmpiric<Covariate>(FirstParameterIndex);
+			else*/
+			auto fn = new TEmpiric<Covariate>(FirstParameterIndex);
+			for (auto s: Spl) {
+				fn->push_back(fromString<double, true>(s));
+			}
+			return fn;
 	}
-	*/
 
 	UERROR("Function '", type, "' does not exist!");
 }
@@ -244,15 +257,8 @@ void TEpsilon::adjust() {
 }
 
 std::string TEpsilon::getDefinition() const noexcept {
-	/*std::string modelString = _functions.front()->modelString();
-	for (size_t i = 1; i < _functions.size(); ++i) {
-		const auto &fn = _functions[i];
-		modelString.push_back(';');
-		modelString.append(fn->modelString());
-	}
-	return modelString;*/
 	return std::accumulate(_functions.begin() + 1, _functions.end(), _functions.front()->modelString(),
-						   [](auto tot, auto& f) { return tot + ";" + f->modelString(); });
+						   [](auto tot, auto &f) { return tot.append(1, ';').append(f->modelString()); });
 }
 
 } // namespace SequencingError

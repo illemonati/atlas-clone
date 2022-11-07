@@ -11,6 +11,7 @@
 #include <array>
 #include <cstdint>
 #include <iomanip>
+#include <iterator>
 #include <memory>
 #include <stddef.h>
 #include <string>
@@ -72,9 +73,12 @@ public:
 	virtual double adjustParametersPostEstimation() noexcept                = 0;
 	virtual std::string typeString() const noexcept                         = 0;
 	virtual std::string modelString() const {
-		return typeString().append(1, '[').append(
-						std::accumulate(begin() + 1, end(), coretools::str::toString(*begin()),
-										[](auto tot, auto b) { return tot + "," + coretools::str::toString(b); })).append(1, ']');
+		return typeString()
+			.append(1, '[')
+			.append(
+				std::accumulate(begin() + 1, end(), coretools::str::toString(*begin()),
+								[](auto tot, auto b) { return tot.append(1, ',').append(coretools::str::toString(b)); }))
+			.append(1, ']');
 	}
 };
 
@@ -337,7 +341,6 @@ private:
 		for (size_t q = _tmpStorage.size(); q <= MaxValue; ++q) { _tmpStorage.emplace_back(_betas, q); }
 	}
 
-
 public:
 	static constexpr std::string_view name = "probit";
 	TProbit(size_t FirstParameterIndex) : TFunction(FirstParameterIndex) {}
@@ -431,6 +434,8 @@ public:
 	double *end() noexcept override { return _betas.data() + _betas.size(); }
 	const double *begin() const noexcept override { return _betas.data(); }
 	const double *end() const noexcept override { return _betas.data() + _betas.size(); }
+
+	void push_back(double val) noexcept {_betas.push_back(val);}
 
 	bool checkOrInitValueRange(const RecalEstimatorTools::TRecalDataTable &dataTable) override {
 		const auto values = Covariate::range(dataTable);
