@@ -104,14 +104,24 @@ template<typename Covariate> TFunction *makeCovFunction(std::string_view Functio
 		return fn;
 	}
 	if (type == TEmpiric<Covariate>::name) {
-		/*if (Covariate::isIndexed)
-			fn = new TIndexedEmpiric<Covariate>(FirstParameterIndex);
-			else*/
-			auto fn = new TEmpiric<Covariate>(FirstParameterIndex);
-			for (auto s: Spl) {
-				fn->push_back(fromString<double, true>(s));
+		if constexpr (Covariate::isIndexed) {
+			auto fn = new TIndexedEmpiric<Covariate>(FirstParameterIndex);
+			for (auto s : Spl) {
+				TSplitter ss(s, ':');
+				const auto i = fromString<size_t, true>(strip(ss.front()));
+				ss.popFront();
+				const auto v = fromString<double, true>(strip(ss.front()));
+				ss.popFront();
+				if (!ss.empty()) UERROR("Too many arguments in indexed data ", s, "!");
+				fn->push_back(i, v);
 			}
 			return fn;
+		}
+		else {
+			auto fn = new TEmpiric<Covariate>(FirstParameterIndex);
+			for (auto s : Spl) { fn->push_back(fromString<double, true>(s)); }
+			return fn;
+		}
 	}
 
 	UERROR("Function '", type, "' does not exist!");

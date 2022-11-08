@@ -407,22 +407,6 @@ template<typename Covariate> class TEmpiric final : public TFunction {
 private:
 	std::vector<double> _betas;    // betas of the model
 
-	bool _checkValueRange(size_t val) const noexcept { return val < numParameters(); }
-	void _adjustValueRanges(const std::vector<uint16_t> &values) {
-		// initialize with maximum
-		using coretools::str::toString;
-		_betas.resize(*std::max_element(values.begin(), values.end()) + 1);
-
-		// check that each value from 0 to max is actually used!
-		std::vector<bool> found(numParameters(), false);
-		for (auto &i : values) { found[i] = true; }
-		if (const auto f = std::find(found.cbegin(), found.cend(), false); f != found.cend()) {
-			throw "Can not adjust value range for recal function '" + std::string(name) + "': value " +
-				toString(std::distance(f, found.cbegin())) + " is < max value but never used." +
-				"\nConsider using recal function 'SpecificMap'.";
-		}
-	}
-
 public:
 	static constexpr std::string_view name = "empiric";
 
@@ -438,16 +422,10 @@ public:
 	void push_back(double val) noexcept {_betas.push_back(val);}
 
 	bool checkOrInitValueRange(const RecalEstimatorTools::TRecalDataTable &dataTable) override {
-		const auto values = Covariate::range(dataTable);
 		if (numParameters() == 0) {
-			_adjustValueRanges(values);
-			return true;
+			_betas.resize(Covariate::N(dataTable));
 		}
-
-		for (uint16_t val : values) {
-			if (!_checkValueRange(val)) return false;
-		}
-		return true;
+		return Covariate::N(dataTable) <= numParameters();
 	}
 
 	double adjustParametersPostEstimation() noexcept override { return normalizeParameters(_betas); }
@@ -475,54 +453,17 @@ private:
 	std::vector<double> _betas;    // betas of the model
 	std::vector<int> _indexMap;    // maps value to parameter index
 
-	void _resizeBetas(size_t n) {
-		_betas.resize(n);
-	}
-
-	void _initMapFromVector(const std::vector<uint16_t> &values) {
-		_indexMap.clear();
-		if (values.empty()) return;
-
-		// find largest value
-		const auto max = std::max((uint16_t)_indexMap.size(), *std::max_element(values.begin(), values.end()));
-
-		// create map
-		_indexMap.resize(max + 1, -1);
-
-		for (size_t i = 0; i < values.size(); ++i) {
-			_indexMap[values[i]] = i;
-		}
-	}
-
-	bool _checkValueRange(uint16_t val) const noexcept { return val < _indexMap.size() && (_indexMap[val] >= 0); }
-	void _adjustValueRanges(const std::vector<uint16_t> &values) {
-		_resizeBetas(values.size());
-		_initMapFromVector(values);
-	}
-
-protected:
-
 public:
 	static constexpr std::string_view name = "empiric"; // same as TEmpiric, as atlas user does not see a difference
-	TIndexedEmpiric(size_t FirstParameterIndex, const std::vector<std::string> &betas) : TFunction(FirstParameterIndex) {
-		using coretools::str::toString;
-		// parse values as pairs separated by a colon (:)
-		std::vector<uint16_t> values;
-		for (std::string s : betas) {
-			size_t pos = s.find(':');
-			if (pos == std::string::npos) { throw "Can not parse value '" + s + "': missing ':'!"; }
-			uint16_t val = coretools::str::fromString<uint16_t, true>(s.substr(0, pos));
-			if (std::find(values.begin(), values.end(), val) != values.end()) {
-				throw "Duplicate entry for key " + toString(val) + "!";
-			}
-			values.push_back(val);
-			_betas.push_back(coretools::str::fromString<double, true>(s.substr(pos + 1)));
-		}
-		// init map
-		_initMapFromVector(values);
-	}
+	TIndexedEmpiric(size_t FirstParameterIndex) : TFunction(FirstParameterIndex) {}
 
 	size_t numParameters() const noexcept override { return _betas.size(); }
+
+	void push_back(size_t i, double val) noexcept {
+		_betas.push_back(val);
+		if (i >= _indexMap.size()) _indexMap.resize(i, -1);
+		_indexMap[i] = _betas.size() - 1;
+	}
 
 	double *begin() noexcept override { return _betas.data(); }
 	double *end() noexcept override { return _betas.data() + _betas.size(); }
@@ -530,13 +471,12 @@ public:
 	const double *end() const noexcept override { return _betas.data() + _betas.size(); }
 
 	bool checkOrInitValueRange(const RecalEstimatorTools::TRecalDataTable &dataTable) override {
-		const auto values = Covariate::range(dataTable);
 		if (numParameters() == 0) {
-			_adjustValueRanges(values);
+			for (auto v : Covariate::range(dataTable)) { push_back(v, 0.); }
 			return true;
 		}
-		for (uint16_t val : values) {
-			if (!_checkValueRange(val)) return false;
+		for (uint16_t val : Covariate::range(dataTable)) {
+			if ((val > _indexMap.size()) || (_indexMap[val] < 0)) return false;
 		}
 		return true;
 	}
@@ -560,9 +500,9 @@ public:
 
 	std::string modelString() const override {
 		using coretools::str::toString;
-		if (_indexMap.empty()) return typeString() + "[]";
+		if (_indexMap.empty()) return typeString().append("[]");
 
-		std::string s = typeString() + "[";
+		std::string s = typeString().append(1, '[');
 		for (size_t i = 0; i < _indexMap.size(); ++i) {
 			if(_indexMap[i] >= 0) {
 				s.append(toString(i)).append(1, ':').append(toString(_betas[_indexMap[i]])).append(1, ',');
@@ -570,7 +510,7 @@ public:
 		}
 		s.pop_back(); // remove last ','
 		return s.append(1, ']');
-	};
+	}
 };
 
 } // namespace SequencingError
