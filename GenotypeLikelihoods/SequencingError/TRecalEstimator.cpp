@@ -284,9 +284,13 @@ void TRecalibrationEMEstimator::performEstimation(const std::string &outputName,
 	_runEM(outputName, PmdModels);
 
 	// writing final estimates
-	const std::string filename = outputName + "_recalibrationEM.txt";
+	const std::string filename = outputName + "_recal.txt";
 	logfile().listFlush("Writing final estimates to file '", filename, "' ...");
-	_writeCurrentEstimates(filename);
+	_modelsToEstimate.writeRecalFile(*_readGroups, filename);
+	BAM::RGInfo::TReadGroupInfo r;
+	r.readInfoAndCreateReadGroups();
+	SequencingErrorModels.addToRGInfo(r);
+	r.write(outputName + "_recal.json");
 	logfile().done();
 };
 
@@ -454,7 +458,7 @@ void TRecalibrationEMEstimator::_runEM(const std::string &outputName, const TPos
 		if (_writeTmpTables) {
 			std::string filename = outputName + "_recalibrationEM_Loop" + toString(i) + ".txt";
 			logfile().listFlush("Writing current estimates to file '", filename, "' ...");
-			_writeCurrentEstimates(filename);
+			_modelsToEstimate.writeRecalFile(*_readGroups, filename);
 			logfile().done();
 		}
 
@@ -480,14 +484,6 @@ void TRecalibrationEMEstimator::calcLL(TModels &SequencingErrorModels, const TPo
 	logfile().conclude("Log Likelihood = ", LL);
 
 }
-
-//----------------------------
-// Other functions
-//----------------------------
-void TRecalibrationEMEstimator::_writeCurrentEstimates(const std::string & Filename) {
-	// open file and write header
-	_modelsToEstimate.writeRecalFile(*_readGroups, Filename);
-};
 
 }; // namespace SequencingError
 

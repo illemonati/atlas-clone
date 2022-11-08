@@ -40,8 +40,6 @@ public:
 	TReadGroupModels(const std::string &RecalString, const std::string &RhoString);
 	TReadGroupModels(const std::string &RecalString1, const std::string &RhoString1, const std::string &RecalString2, const std::string &RhoString2);
 	TReadGroupModels(const BAM::RGInfo::TReadGroupInfoEntry & Info);
-	TReadGroupModels(TReadGroupModels&&) = default;
-	~TReadGroupModels() = default;
 
 	void initializeNoRecal();
 	void initialize(const std::string &RecalString, const std::string &RhoString);

@@ -149,8 +149,7 @@ public:
 	void readInfoAndMatchReadGroups(const BAM::TReadGroups & ReadGroups, const std::string & Filename = "");
 
 	// or: read info and fill TReadGroups (used for simulations)
-	BAM::TReadGroups readInfoAndCreateReadGroups();
-	BAM::TReadGroups readInfoAndCreateReadGroups(const std::string & RgInfoFileName);
+	BAM::TReadGroups readInfoAndCreateReadGroups(const std::string & RgInfoFileName = "");
 
 	//functions to parse certain info
 	void parse(const InfoType Info);
