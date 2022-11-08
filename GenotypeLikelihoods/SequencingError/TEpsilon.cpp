@@ -275,9 +275,16 @@ void TEpsilon::adjust() {
 	//for (const auto &fn : _functions) _intercept.intercept() += cov.function->adjustParametersPostEstimation();
 }
 
-std::string TEpsilon::getDefinition() const noexcept {
+std::string TEpsilon::definition() const noexcept {
 	return std::accumulate(_functions.begin() + 1, _functions.end(), _functions.front()->modelString(),
 						   [](auto tot, auto &f) { return tot.append(1, ';').append(f->modelString()); });
+}
+
+BAM::RGInfo::TInfo TEpsilon::info() const{
+	OUT(definition());
+	BAM::RGInfo::TInfo in = definition();
+	WINK();
+	return in;
 }
 
 } // namespace SequencingError

@@ -309,7 +309,7 @@ public:
 
 	std::string typeString() const noexcept override {
 		using coretools::str::toString;
-		return std::string(Covariate::name).append(1, ':').append(name).append(1, '(').append(toString(O)).append(1,')');
+		return std::string(Covariate::name).append(1, ':').append(name).append(1, '0' + O);
 	}
 };
 

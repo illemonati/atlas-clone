@@ -142,10 +142,10 @@ void TReadGroupModels::simulate(BAM::TAlignment & Alignment) const {
 	}
 }
 
-BAM::RGInfo::TInfo TReadGroupModels::getInfo() const{
+BAM::RGInfo::TInfo TReadGroupModels::info() const{
 	BAM::RGInfo::TInfo info;
-	info["first"] = _models[0]->getEpsilonDefinition().append(";rho[").append(_models[0]->getRhoDefinition()).append(1, ']');
-	info["second"] = _models[1]->getEpsilonDefinition().append(";rho[").append(_models[1]->getRhoDefinition()).append(1, ']');
+	info["Mate1"]  = _models[0]->info();
+	info["Mate2"] = _models[1]->info();
 	return info;
 }
 
@@ -258,24 +258,24 @@ void TModels::checkReadGroups(const BAM::TReadGroups &ReadGroups, std::vector<ui
 
 // functions to get error rates
 //-------------------------------------------------------
-Probability TModels::getErrorRate(const BAM::TSequencedBase &base) const noexcept {
-	return _models[base.readGroupID][base.isSecondMate()].getErrorRate(base);
+Probability TModels::errorRate(const BAM::TSequencedBase &base) const noexcept {
+	return _models[base.readGroupID][base.isSecondMate()].errorRate(base);
 }
 
-genometools::PhredIntProbability TModels::getPhredInt(const BAM::TSequencedBase &base) const noexcept {
-	return _models[base.readGroupID][base.isSecondMate()].getPhredInt(base);
+genometools::PhredIntProbability TModels::phredInt(const BAM::TSequencedBase &base) const noexcept {
+	return _models[base.readGroupID][base.isSecondMate()].phredInt(base);
 }
 
 void TModels::recalibrate(BAM::TSequencedBase &base) const noexcept {
-	base.recalibratedQualityAsPhredInt = getPhredInt(base);
+	base.recalibratedQualityAsPhredInt = phredInt(base);
 }
 
 void TModels::recalibrate(std::vector<BAM::TSequencedBase> &bases) const noexcept {
 	for (auto &b : bases) recalibrate(b);
 }
 
-TBaseLikelihoods TModels::getBaseLikelihoods(const BAM::TSequencedBase &base) const noexcept {
-	return _models[base.readGroupID][base.isSecondMate()].getBaseLikelihoods(base);
+TBaseLikelihoods TModels::baseLikelihoods(const BAM::TSequencedBase &base) const noexcept {
+	return _models[base.readGroupID][base.isSecondMate()].baseLikelihoods(base);
 }
 
 // functions to write file
@@ -289,8 +289,8 @@ void TModels::writeRecalFile(const BAM::TReadGroups &ReadGroups, const std::stri
 	for (uint16_t r = 0; r < ReadGroups.size(); ++r) {
 		out << ReadGroups.getName(r);
 		for (uint8_t mate = 0; mate < 2; ++mate) {
-			out << _models[r][mate].getEpsilonDefinition()
-				<< _models[r][mate].getRhoDefinition();
+			out << _models[r][mate].epsilonDefinition()
+				<< _models[r][mate].rhoDefinition();
 		}
 		out.endln();
 	}
@@ -298,7 +298,7 @@ void TModels::writeRecalFile(const BAM::TReadGroups &ReadGroups, const std::stri
 
 void TModels::addToRGInfo(BAM::RGInfo::TReadGroupInfo & RgInfo) const {
 	for(size_t r = 0; r < _models.size(); ++r){
-		RgInfo.set(r, BAM::RGInfo::InfoType::recal, _models[r].getInfo());
+		RgInfo.set(r, BAM::RGInfo::InfoType::recal, _models[r].info());
 	}
 }
 

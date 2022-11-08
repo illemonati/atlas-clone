@@ -80,18 +80,18 @@ void TEstimateRecalibration::_handleWindow() {
 
 void TEstimateRecalibration::estimateRecalibration() {
 	// read data
-	auto forgottenModels = _genotypeLikelihoodCalculator.getSequencingErrorModels().forget();
+	auto forgottenModels = _genotypeLikelihoodCalculator.sequencingErrorModels().forget();
 	_traverseBAMWindows();
-	_genotypeLikelihoodCalculator.getSequencingErrorModels().remember(forgottenModels);
+	_genotypeLikelihoodCalculator.sequencingErrorModels().remember(forgottenModels);
 
 	if (_onlyLL) {
-		recalObjectEM->calcLL(_genotypeLikelihoodCalculator.getSequencingErrorModels(),
-							  _genotypeLikelihoodCalculator.getPostMortemDamageModels());
+		recalObjectEM->calcLL(_genotypeLikelihoodCalculator.sequencingErrorModels(),
+							  _genotypeLikelihoodCalculator.postMortemDamageModels());
 
 	} else {
 		// estimate recal parameters
-		recalObjectEM->performEstimation(_outputName, _genotypeLikelihoodCalculator.getSequencingErrorModels(),
-										 _genotypeLikelihoodCalculator.getPostMortemDamageModels());
+		recalObjectEM->performEstimation(_outputName, _genotypeLikelihoodCalculator.sequencingErrorModels(),
+										 _genotypeLikelihoodCalculator.postMortemDamageModels());
 	}
 };
 

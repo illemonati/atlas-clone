@@ -59,7 +59,7 @@ public:
 
 	void simulate(BAM::TAlignment & Alignment) const;
 
-	BAM::RGInfo::TInfo getInfo() const;
+	BAM::RGInfo::TInfo info() const;
 };
 
 //--------------------------------------------------------------------------
@@ -98,11 +98,11 @@ public:
 	}
 
 	// calculate error rates
-	coretools::Probability getErrorRate(const BAM::TSequencedBase &base) const noexcept;
-	genometools::PhredIntProbability getPhredInt(const BAM::TSequencedBase &base) const noexcept;
+	coretools::Probability errorRate(const BAM::TSequencedBase &base) const noexcept;
+	genometools::PhredIntProbability phredInt(const BAM::TSequencedBase &base) const noexcept;
 	void recalibrate(BAM::TSequencedBase &base) const noexcept;
 	void recalibrate(std::vector<BAM::TSequencedBase> &bases) const noexcept;
-	TBaseLikelihoods getBaseLikelihoods(const BAM::TSequencedBase &base) const noexcept;
+	TBaseLikelihoods baseLikelihoods(const BAM::TSequencedBase &base) const noexcept;
 
 	void writeRecalFile(const BAM::TReadGroups &ReadGroups, const std::string & Filename) const;
 
