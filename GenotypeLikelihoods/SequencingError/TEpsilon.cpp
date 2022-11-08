@@ -56,18 +56,26 @@ template<typename Covariate> TFunction *makeCovFunction(std::string_view Functio
 	auto [type, Spl] = parseFunction(Function);
 
 	if (stringStartsWith(type, TPolynomial<1, Covariate>::name)) {
-		if (type.size() > TPolynomial<1, Covariate>::name.size() + 1) UERROR("Unknow function name: ", type, "!");
-		std::array<double, 9> bs{};
+		const bool isDefault = Spl.empty();
 		size_t o = 0;
-		while(!Spl.empty()) {
-			fromString<true>(Spl.front(), bs[o]);
-			Spl.popFront();
-			++o;
+		if (type.size() == TPolynomial<1, Covariate>::name.size()) {
+			if (isDefault) UERROR("You must specify the order of the polynomial function or give initial values!");
+		} else if (type.size() == TPolynomial<1, Covariate>::name.size() + 1) {
+			o = type.back() - '0';
+		} else {
+			UERROR("Unknow function: ", type, "!");
 		}
-		if (type.size() == TPolynomial<1, Covariate>::name.size() + 1) {
-			size_t po = type.back() - '0';
-			if (o == 0) o = po; // no values given
-			else if (o != po) UERROR("Defined polynomial function of order ", po, " but gave ", o, " parameters!");
+
+		std::array<double, 9> bs{};
+		size_t i = 0;
+		while(!Spl.empty()) {
+			fromString<true>(Spl.front(), bs[i]);
+			Spl.popFront();
+			++i;
+		}
+		if (i > 0) {
+			if (o == 0) o = i;
+			else if (o != i) UERROR("You specified a polynomial order of ", o, " but gave ", i, " arguments!");
 		}
 		TFunction* fn;
 		switch (o) {
@@ -82,7 +90,8 @@ template<typename Covariate> TFunction *makeCovFunction(std::string_view Functio
 		case 9: fn = new TPolynomial<9, Covariate>(FirstParameterIndex); break;
 		default: UERROR("Only Polynomials from order 1 to 9 can be used!");
 		}
-		size_t i = 0;
+		if (isDefault) return fn;
+		i = 0;
 		for (auto &beta : *fn) {
 			beta = bs[i];
 			++i;

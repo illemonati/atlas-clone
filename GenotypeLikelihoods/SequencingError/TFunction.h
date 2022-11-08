@@ -22,7 +22,6 @@
 #include "genometools/PhredProbabilityTypes.h"
 #include "coretools/Math/TProbabilityDistributions.h"
 #include "SequencingError/TCovariate.h"
-#include "coretools/devtools.h"
 #include "coretools/Math/mathFunctions.h"
 #include "coretools/Types/probability.h"
 #include "coretools/Strings/stringFunctions.h"
@@ -460,9 +459,13 @@ public:
 	size_t numParameters() const noexcept override { return _betas.size(); }
 
 	void push_back(size_t i, double val) noexcept {
-		_betas.push_back(val);
-		if (i >= _indexMap.size()) _indexMap.resize(i, -1);
-		_indexMap[i] = _betas.size() - 1;
+		if (i >= _indexMap.size()) _indexMap.resize(i+1, -1);
+		if (_indexMap[i] < 0) {
+			_betas.push_back(val);
+			_indexMap[i] = _betas.size() - 1;
+		} else {
+			_betas[_indexMap[i]] = val;
+		}
 	}
 
 	double *begin() noexcept override { return _betas.data(); }

@@ -14,10 +14,10 @@ $atlas --task recal --bam ATLAS_simulations.bam --recal $model --rerecalibrate -
 $atlas --task recal --bam ATLAS_simulations.bam --recal "intercept;quality:polynomial3" --rerecalibrate --minDeltaLL 10 --fixedSeed 0 --out ATLAS_polynomial --logFile recal_polynomial.out
 
 # estimate recal model using empiric
-#$atlas --task recal --bam ATLAS_simulations.bam --recal "intercept;quality:empiric" --rerecalibrate --minDeltaLL 10 --fixedSeed 0 --out ATLAS_empiric --logFile recal_empiric.out
+$atlas --task recal --bam ATLAS_simulations.bam --recal "intercept;quality:empiric" --rerecalibrate --minDeltaLL 10 --fixedSeed 0 --out ATLAS_empiric --logFile recal_empiric.out
 
 # Compare likelihoods
 printf "#%-10s %s\n" "LL" "model" > ATLAS_ll.txt
 printf "%.4e %s\n" $(grep "Log Likelihood" recal_onlyLL.out | tail -n 1 | awk '{print $5}') "simulation" >> ATLAS_ll.txt
 printf "%.4e %s\n" $(grep "Log Likelihood" recal_polynomial.out | tail -n 1 | awk '{print $6}') "polynomial"  >> ATLAS_ll.txt
-#printf "%.4e %s\n" $(grep "Log Likelihood" recal_empiric.out | tail -n 1 | awk '{print $6}') "empiric"  >> ATLAS_ll.txt
+printf "%.4e %s\n" $(grep "Log Likelihood" recal_empiric.out | tail -n 1 | awk '{print $6}') "empiric"  >> ATLAS_ll.txt
