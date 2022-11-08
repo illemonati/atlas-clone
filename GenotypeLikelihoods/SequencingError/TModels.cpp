@@ -144,8 +144,8 @@ void TReadGroupModels::simulate(BAM::TAlignment & Alignment) const {
 
 BAM::RGInfo::TInfo TReadGroupModels::getInfo() const{
 	BAM::RGInfo::TInfo info;
-	//info["first"] = _models[0]->getInfo();
-	//info["second"] = _models[0]->getInfo();
+	info["first"] = _models[0]->getEpsilonDefinition().append(";rho[").append(_models[0]->getRhoDefinition()).append(1, ']');
+	info["second"] = _models[1]->getEpsilonDefinition().append(";rho[").append(_models[1]->getRhoDefinition()).append(1, ']');
 	return info;
 }
 
