@@ -17,7 +17,7 @@ namespace BAM {
 //----------------------------------------------------------
 TCigar::TCigar(TCigar cigar, uint16_t overlapLength, bool isFirst) {
 	uint16_t overlap = 0;
-	if (overlapLength > cigar.lengthAligned()) {
+	if (overlapLength >= cigar.lengthAligned()) {
 		add('S', cigar.lengthRead());
 	} else {
 		uint16_t nonOverlapLength = cigar.lengthAligned() - overlapLength;

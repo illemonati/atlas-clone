@@ -168,7 +168,7 @@ public:
 	void recalibrateWithPMD(const GenotypeLikelihoods::TGenotypeLikelihoodCalculator &GLCalculator);
 	void setIsProperPair(const bool &ok);
 	void downsampleAlignment(const coretools::Probability &fraction, coretools::TRandomGenerator &randomGenerator);
-	void merge(uint16_t overlapLength, bool isFirst);
+	void merge(uint16_t overlapLength);
 
 	// debug functions
 	void print() const;

@@ -227,43 +227,45 @@ const TAlignmentMergerReadGroupSetting& TAlignmentMergerReadGroupSettings::getSe
 //-----------------------------------------
 uint16_t TAlignmentMerger::merge(BAM::TAlignment & alignment, BAM::TAlignment & mate){
 	//check if reads overlap
-
-	std::pair<uint32_t,bool> overlapLength = determineOverlapLength(alignment, mate);
-	if (overlapLength.first > 0){
+	uint32_t overlapLength = determineOverlapLength(alignment, mate);
+	if (overlapLength > 0){
 		//if the second read is being merged, it's position in the BAM-file as well as the position of the mate of the first read need to be adjusted to account for the length of the added softclips on left side
-		callMergeFunction(alignment, mate, overlapLength.first, overlapLength.second);
+		callMergeFunction(alignment, mate, overlapLength);
 	}
-	return overlapLength.first;
+	return overlapLength;
 };
 
-std::pair<uint32_t,bool> TAlignmentMerger::determineOverlapLength(const BAM::TAlignment & alignment, const BAM::TAlignment & mate){
+uint32_t TAlignmentMerger::determineOverlapLength(const BAM::TAlignment & alignment, const BAM::TAlignment & mate){
 	if (alignment.cigar().lengthAligned() == 0 || mate.cigar().lengthAligned() == 0)
-		return std::make_pair(0,true);
-	if (alignment > mate){
-		if (alignment.position()  < mate.position() + mate.cigar().lengthAligned()){
+		return 0;
+	if (alignment.isReverseStrand()){
+		if (alignment.position() < mate.position() + mate.cigar().lengthAligned()){
 			uint32_t overlapLength = mate.position() + mate.cigar().lengthAligned() - alignment.position();
-			bool alignmentFirst = false;
-			return std::make_pair(overlapLength,alignmentFirst);
-		} return std::make_pair(0,false);
+			return overlapLength;
+		} return 0;
 	} else {
-		if (mate.position()  < alignment.position() + alignment.cigar().lengthAligned()){
+		if (mate.position() < alignment.position() + alignment.cigar().lengthAligned()){
 			uint32_t overlapLength = alignment.position() + alignment.cigar().lengthAligned() - mate.position();
-			bool alignmentFirst = true;
-			return std::make_pair(overlapLength,alignmentFirst);
-		} return std::make_pair(0,true);
+			return overlapLength;
+		} return 0;
 	}
 }
 
-void TAlignmentMerger::callMergeFunction(BAM::TAlignment & alignment, BAM::TAlignment & mate, const uint32_t & overlapLength, bool isFirstStrand){
-	if(!isFirstStrand){
-		alignment.moveOnRef(alignment.position() + overlapLength);
-		mate.setMateGenomicPosition(alignment);
+void TAlignmentMerger::callMergeFunction(BAM::TAlignment & alignment, BAM::TAlignment & mate, const uint32_t & overlapLength){
+	if(alignment.isReverseStrand()){
+		if (overlapLength <= alignment.cigar().lengthAligned()) {
+			alignment.moveOnRef(alignment.position() + overlapLength);
+			mate.setMateGenomicPosition(alignment);
+		} else {
+			alignment.moveOnRef(alignment.position() + alignment.cigar().lengthAligned());
+			mate.setMateGenomicPosition(alignment);
+		}
 	}
-	alignment.merge(overlapLength, isFirstStrand);
+	alignment.merge(overlapLength);
 }
 
-std::pair<genometools::PhredIntProbability,genometools::PhredIntProbability> TAlignmentMerger::getMinQuals(BAM::TAlignment & alignment, BAM::TAlignment & mate, std::pair<uint16_t,bool> overlapLength) const {
-	if (overlapLength.second == true)
+std::pair<genometools::PhredIntProbability,genometools::PhredIntProbability> TAlignmentMerger::getMinQuals(BAM::TAlignment & alignment, BAM::TAlignment & mate) const {
+	if (!alignment.isReverseStrand())
 		return minQual(alignment,mate);
 	else {
 		std::pair<genometools::PhredIntProbability,genometools::PhredIntProbability> flippedResult = minQual(mate,alignment);
@@ -314,24 +316,27 @@ uint16_t TAlignmentMerger_randomRead::merge(BAM::TAlignment & alignment, BAM::TA
 TAlignmentMerger_both::TAlignmentMerger_both():TAlignmentMerger(){};
 
 uint16_t TAlignmentMerger_both::merge(BAM::TAlignment & alignment, BAM::TAlignment & mate){
-	std::pair<uint32_t,bool> overlapLength = determineOverlapLength(alignment, mate);
-	if (overlapLength.first > 0){
-		uint32_t halfOverlap = overlapLength.first / 2;
-		if (overlapLength.first % 2 == 0){
-			callMergeFunction(alignment, mate, halfOverlap, overlapLength.second);
-			callMergeFunction(mate, alignment, halfOverlap, !overlapLength.second);
+	uint32_t overlapLength = determineOverlapLength(alignment, mate);
+	if (overlapLength > 0){
+		uint32_t halfOverlap = overlapLength / 2;
+		if (overlapLength % 2 == 0){
+			callMergeFunction(alignment, mate, halfOverlap);
+			callMergeFunction(mate, alignment, halfOverlap);
 		} else {
-			std::pair<genometools::PhredIntProbability,genometools::PhredIntProbability> minQuals = getMinQuals(alignment, mate, std::make_pair(1, overlapLength.second));
+				auto baseIterator = secondRead.begin();
+				uint16_t internalPos = 0;
+			genometools::PhredIntProbability
+			std::pair<genometools::PhredIntProbability,genometools::PhredIntProbability> minQuals = getMinQuals(alignment, mate, 1);
 			if (minQuals.first > minQuals.second) {
-				callMergeFunction(alignment, mate, halfOverlap, overlapLength.second);
-				callMergeFunction(mate, alignment, halfOverlap + 1, !overlapLength.second);
+				callMergeFunction(alignment, mate, halfOverlap);
+				callMergeFunction(mate, alignment, halfOverlap + 1);
 			} else {
-				callMergeFunction(alignment, mate, halfOverlap + 1, overlapLength.second);
-				callMergeFunction(mate, alignment, halfOverlap, !overlapLength.second);
+				callMergeFunction(alignment, mate, halfOverlap + 1);
+				callMergeFunction(mate, alignment, halfOverlap);
 			}
 		}
 	} 
-	return overlapLength.first;
+	return overlapLength;
 };
 
 // TAlignmentMergerType_firstMate
@@ -361,22 +366,22 @@ uint16_t TAlignmentMerger_secondMate::merge(BAM::TAlignment & alignment, BAM::TA
 TAlignmentMerger_highestQuality::TAlignmentMerger_highestQuality():TAlignmentMerger(){};
 
 uint16_t TAlignmentMerger_highestQuality::merge(BAM::TAlignment & alignment, BAM::TAlignment & mate){
-	std::pair<uint32_t,bool> overlapLength = TAlignmentMerger::determineOverlapLength(alignment, mate);
-	if (overlapLength.first > 0) {
+	uint32_t overlapLength = TAlignmentMerger::determineOverlapLength(alignment, mate);
+	if (overlapLength > 0) {
 		std::pair<genometools::PhredIntProbability,genometools::PhredIntProbability> minQuals = TAlignmentMerger::getMinQuals(alignment, mate, overlapLength);
 		if (minQuals.first > minQuals.second){
-			callMergeFunction(mate, alignment, overlapLength.first, !overlapLength.second);
+			callMergeFunction(mate, alignment, overlapLength);
 		} else if (minQuals.second > minQuals.first){
-			callMergeFunction(alignment, mate, overlapLength.first, overlapLength.second);
+			callMergeFunction(alignment, mate, overlapLength);
 		} else {
 				if (randomGenerator().pickOneOfTwo()) {
-					callMergeFunction(mate, alignment, overlapLength.first, !overlapLength.second);
+					callMergeFunction(mate, alignment, overlapLength);
 				} else {
-					callMergeFunction(alignment, mate, overlapLength.first, overlapLength.second);
+					callMergeFunction(alignment, mate, overlapLength);
 				}
 		}
 	} 
-	return overlapLength.first;
+	return overlapLength;
 }
 
 
@@ -563,7 +568,7 @@ void TOverlapQuantifier::quantifyOverlap(){
 				}
 
 				//calculate overlap and fragment length and add to storage
-				uint32_t overlap = _merger.determineOverlapLength(*alignment, mate->alignment()).first;
+				uint32_t overlap = _merger.determineOverlapLength(*alignment, mate->alignment());
 				uint32_t fragmentLength = alignment->fragmentLength();
 
 				overlapDist.add(fragmentLength, overlap);
