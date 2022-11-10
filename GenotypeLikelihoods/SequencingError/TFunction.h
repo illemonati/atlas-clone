@@ -71,6 +71,7 @@ public:
 						  std::vector<T2ndDerivative> &der2) const noexcept = 0;
 	virtual double adjustParametersPostEstimation() noexcept                = 0;
 	virtual std::string typeString() const noexcept                         = 0;
+	virtual void addInfo(BAM::RGInfo::TInfo &info) const                    = 0;
 	virtual std::string modelString() const {
 		return typeString()
 			.append(1, '[')
@@ -117,6 +118,9 @@ public:
 	double adjustParametersPostEstimation() noexcept override { return 0.; }
 
 	std::string typeString() const noexcept override { return std::string(name); }
+	 void addInfo(BAM::RGInfo::TInfo& info) const override {
+		 info[name] = _beta;
+	}
 };
 
 namespace impl {
@@ -311,6 +315,10 @@ public:
 		using coretools::str::toString;
 		return std::string(Covariate::name).append(1, ':').append(name).append(1, '0' + O);
 	}
+
+	void addInfo(BAM::RGInfo::TInfo& info) const override {
+		info[Covariate::name] = {{name, _betas}};
+	}
 };
 
 //--------------------------------------------------------------
@@ -396,6 +404,10 @@ public:
 
 	double adjustParametersPostEstimation() noexcept override { return 0.; }
 	std::string typeString() const noexcept override { return std::string(Covariate::name).append(1, ':').append(name); }
+
+	void addInfo(BAM::RGInfo::TInfo& info) const override {
+		info[Covariate::name] = {{name, _betas}};
+	}
 };
 
 //--------------------------------------------------------------
@@ -441,6 +453,10 @@ public:
 		
 	}
 	std::string typeString() const noexcept override { return std::string(Covariate::name).append(1, ':').append(name); }
+
+	void addInfo(BAM::RGInfo::TInfo& info) const override {
+		info[Covariate::name] = {{name, _betas}};
+	}
 };
 
 //--------------------------------------------------------------
@@ -500,6 +516,10 @@ public:
 	}
 
 	std::string typeString() const noexcept override { return std::string(Covariate::name).append(1, ':').append(name); }
+
+	void addInfo(BAM::RGInfo::TInfo& info) const override {
+		info[Covariate::name] = {{name, _betas}};
+	}
 
 	std::string modelString() const override {
 		using coretools::str::toString;

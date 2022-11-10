@@ -281,9 +281,10 @@ std::string TEpsilon::definition() const noexcept {
 }
 
 BAM::RGInfo::TInfo TEpsilon::info() const{
-	OUT(definition());
-	BAM::RGInfo::TInfo in = definition();
-	WINK();
+	BAM::RGInfo::TInfo in;
+	for (const auto &fn: _functions) {
+		fn->addInfo(in);
+	}
 	return in;
 }
 

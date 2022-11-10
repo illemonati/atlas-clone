@@ -8,10 +8,10 @@ model="intercept[0.1];quality:polynomial[0.8,0.2,0.01]"
 $atlas --task simulate --recal $model --fixedSeed 0 --logFile simulate.out
 
 # Calculate log Likelihood of model given simulated data
-$atlas --task recal --bam ATLAS_simulations.bam --recal $model --rerecalibrate --onlyLL --fixedSeed 0 --logFile recal_onlyLL.out
+#$atlas --task recal --bam ATLAS_simulations.bam --recal $model --rerecalibrate --onlyLL --fixedSeed 0 --logFile recal_onlyLL.out
 
 # estimate recal model using polynomial
-$atlas --task recal --bam ATLAS_simulations.bam --recal "intercept;quality:polynomial3" --rerecalibrate --minDeltaLL 1e6 --fixedSeed 0 --out ATLAS_polynomial --logFile recal_polynomial.out --iterations 1
+$atlas --task recal --bam ATLAS_simulations.bam --recal "intercept;quality:polynomial3" --rerecalibrate --minDeltaLL 1e6 --fixedSeed 0 --out ATLAS_polynomial --logFile recal_polynomial.out --iterations 0
 
 # estimate recal model using empiric
 #$atlas --task recal --bam ATLAS_simulations.bam --recal "intercept;quality:empiric" --rerecalibrate --minDeltaLL 1e6 --fixedSeed 0 --out ATLAS_empiric --logFile recal_empiric.out

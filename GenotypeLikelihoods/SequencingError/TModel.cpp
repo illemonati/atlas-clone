@@ -90,15 +90,12 @@ std::string TRho::definition() const noexcept {
 }
 
 BAM::RGInfo::TInfo TRho::info() const {
-	WINK();
-	BAM::RGInfo::TInfo in = std::array<std::array<double, 4>, 4>{};
-	auto it = in.begin();
-	for (const auto& rs: _rho) {
-		std::copy(rs.begin(), rs.end(), it->begin());
-		++it;
-	}
-	WINK();
-	return in;
+	return {
+		{_rho[Base::A][Base::A], _rho[Base::A][Base::C], _rho[Base::A][Base::G], _rho[Base::A][Base::T]},
+		{_rho[Base::C][Base::A], _rho[Base::C][Base::C], _rho[Base::C][Base::G], _rho[Base::C][Base::T]},
+		{_rho[Base::G][Base::A], _rho[Base::G][Base::C], _rho[Base::G][Base::G], _rho[Base::G][Base::T]},
+		{_rho[Base::T][Base::A], _rho[Base::T][Base::C], _rho[Base::T][Base::G], _rho[Base::T][Base::T]}
+	};
 }
 
 void TRho::add(genometools::Base l, coretools::Probability P_g_I_d, const TBaseProbabilities &P_bbar_I_d) noexcept {
@@ -217,13 +214,9 @@ void TModelRecal::simulate(BAM::TSequencedBase &base) const noexcept {
 }
 
 BAM::RGInfo::TInfo TModelRecal::info() const {
-	WINK();
 	BAM::RGInfo::TInfo info;
-	WINK();
-	info["eps"] = "gaga";
-	WINK();
+	info        = _epsilon.info();
 	info["rho"] = _rho.info();
-	WINK();
 	return info;
 }
 
