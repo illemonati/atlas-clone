@@ -107,41 +107,47 @@ public:
 	// setters
 	void addReference(TFastaBuffer &fasta);
 	void setSequenceAndQualitiesChanged() { _sequenceAndQualitiesChanged = true; };
-	void setName(const std::string Name) { _name = Name; };
-	void setMappingQuality(const uint16_t Mappingquality) { _mappingQuality = Mappingquality; }; //TODO: why is this not a PhredInt probability?
+	void setName(std::string Name) { _name = std::move(Name); };
+	void setMappingQuality(uint16_t Mappingquality) { _mappingQuality = Mappingquality; }; //TODO: why is this not a PhredInt probability?
 	void setMateGenomicPosition(const TGenomePosition & Position) {
 		_mateGenomicPosition.move(Position);
 	};
-	void setInsertSize(const int32_t InsertSize) { _insertSize_TLEN = InsertSize; };
+	void setInsertSize(int32_t InsertSize) { _insertSize_TLEN = InsertSize; };
 	void setSequenceQualities(const TCigar &Cigar, const std::vector<genometools::Base> &Sequence,
 							  const std::vector<genometools::PhredIntProbability> &Quals);
-	void setReadGroup(const uint16_t readGroupId);
-	void setIsReverseStrand(const bool IsReverse) { _flags.setIsReverseStrand(IsReverse); };
-	void setIsRead1(const bool IsRead1) { _flags.setIsRead1(IsRead1); };
-	void setIsRead2(const bool IsRead2) { _flags.setIsRead2(IsRead2); };
-	void setSamFlags(const BAM::TSamFlags Flags) { _flags = Flags; };
+	void setReadGroup(uint16_t readGroupId);
+	void setIsReverseStrand(bool IsReverse) { _flags.setIsReverseStrand(IsReverse); };
+	void setIsRead1(bool IsRead1) { _flags.setIsRead1(IsRead1); };
+	void setIsRead2(bool IsRead2) { _flags.setIsRead2(IsRead2); };
+	void setSamFlags(BAM::TSamFlags Flags) { _flags = std::move(Flags); };
 
 	// getters: position
 	uint32_t lastAlingedInternalPos() const { return _lastAlignedPos; };
 	TGenomePosition lastAlignedPositionWithRespectToRef() const { return _lastAlignedPositionWithRespectToRef; };
-	bool isAlignedAtInternalPos(const uint32_t internalPosition) const;
-	genometools::Base referenceAtInternalPos(uint32_t internalPosition) const;
-	TGenomePosition positionInRef(uint32_t internalPosition) const;
+	bool isAlignedAtInternalPos(size_t internalPosition) const;
+	genometools::Base referenceAtInternalPos(size_t internalPosition) const;
+	TGenomePosition positionInRef(size_t internalPosition) const;
 	const genometools::TGenomePosition &mateGenomicPosition() const { return _mateGenomicPosition; };
 	uint32_t matePosition() const { return _mateGenomicPosition.position(); };
 	uint32_t mateRefID() const { return _mateGenomicPosition.refID(); };
 
 	std::string name() const { return _name; };
 	uint16_t readGroupId() const { return _readGroupID; };
-	uint32_t parsedLength() const { return _alignedPosition.size(); };
+	size_t parsedLength() const { return _alignedPosition.size(); };
 	uint32_t length() const { return _cigar.lengthRead(); };
 	int32_t insertSize() const { return _insertSize_TLEN; };
 	uint16_t mappingQuality() const { return _mappingQuality; };
 	uint16_t flags() const { return _flags.asInt(); };
 	const TCigar &cigar() const { return _cigar; };
 
-	TSequencedBase &operator[](const uint32_t internalPos) { return _bases[internalPos]; };
-	const TSequencedBase &operator[](const uint32_t internalPos) const { return _bases[internalPos]; };
+	TSequencedBase &operator[](size_t internalPos) noexcept {
+		assert(internalPos < _bases.size());
+		return _bases[internalPos];
+	};
+	const TSequencedBase &operator[](size_t internalPos) const noexcept {
+		assert(internalPos < _bases.size());
+		return _bases[internalPos];
+	};
 
 	std::string sequence() const;
 	std::string qualities() const;
@@ -167,9 +173,6 @@ public:
 	void recalibrateWithPMD(const GenotypeLikelihoods::TGenotypeLikelihoodCalculator &GLCalculator);
 	void setIsProperPair(const bool &ok);
 	void downsampleAlignment(const coretools::Probability &fraction, coretools::TRandomGenerator &randomGenerator);
-
-	// debug functions
-	void print() const;
 };
 
 }; // namespace BAM
