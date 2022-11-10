@@ -91,10 +91,10 @@ std::string TRho::definition() const noexcept {
 
 BAM::RGInfo::TInfo TRho::info() const {
 	return {
-		{_rho[Base::A][Base::A], _rho[Base::A][Base::C], _rho[Base::A][Base::G], _rho[Base::A][Base::T]},
-		{_rho[Base::C][Base::A], _rho[Base::C][Base::C], _rho[Base::C][Base::G], _rho[Base::C][Base::T]},
-		{_rho[Base::G][Base::A], _rho[Base::G][Base::C], _rho[Base::G][Base::G], _rho[Base::G][Base::T]},
-		{_rho[Base::T][Base::A], _rho[Base::T][Base::C], _rho[Base::T][Base::G], _rho[Base::T][Base::T]}
+		{_rho[Base::A][Base::A].get(), _rho[Base::A][Base::C].get(), _rho[Base::A][Base::G].get(), _rho[Base::A][Base::T].get()},
+		{_rho[Base::C][Base::A].get(), _rho[Base::C][Base::C].get(), _rho[Base::C][Base::G].get(), _rho[Base::C][Base::T].get()},
+		{_rho[Base::G][Base::A].get(), _rho[Base::G][Base::C].get(), _rho[Base::G][Base::G].get(), _rho[Base::G][Base::T].get()},
+		{_rho[Base::T][Base::A].get(), _rho[Base::T][Base::C].get(), _rho[Base::T][Base::G].get(), _rho[Base::T][Base::T].get()}
 	};
 }
 
