@@ -130,7 +130,7 @@ void TGenome_parsed::_setReadTrimming() {
 
 void TGenome_parsed::_parseAlignment(BAM::TAlignment &alignment) {
 	// parse
-	alignment.parse(_genotypeLikelihoodCalculator.getSequencingErrorModels());
+	alignment.parse(_genotypeLikelihoodCalculator.sequencingErrorModels());
 
 	// apply filters
 	if (_trimReads) { alignment.trimRead(_trimmingLength3Prime, _trimmingLength5Prime); }

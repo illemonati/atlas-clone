@@ -11,10 +11,10 @@ $atlas --task simulate --recal $model --fixedSeed 0 --logFile simulate.out
 $atlas --task recal --bam ATLAS_simulations.bam --recal $model --rerecalibrate --onlyLL --fixedSeed 0 --logFile recal_onlyLL.out
 
 # estimate recal model using polynomial
-$atlas --task recal --bam ATLAS_simulations.bam --recal "intercept;quality:polynomial3" --rerecalibrate --iterations 5 --fixedSeed 0 --out ATLAS_polynomial --logFile recal_polynomial.out
+$atlas --task recal --bam ATLAS_simulations.bam --recal "intercept;quality:polynomial3" --rerecalibrate --minDeltaLL 1e6 --fixedSeed 0 --out ATLAS_polynomial --logFile recal_polynomial.out
 
 # estimate recal model using empiric
-$atlas --task recal --bam ATLAS_simulations.bam --recal "intercept;quality:empiric" --rerecalibrate --iterations 5 --fixedSeed 0 --out ATLAS_empiric --logFile recal_empiric.out
+$atlas --task recal --bam ATLAS_simulations.bam --recal "intercept;quality;position;context;fragmentLength;mappingQuality;" --rerecalibrate --minDeltaLL 1e6 --fixedSeed 0 --out ATLAS_empiric --logFile recal_empiric.out
 
 # Compare likelihoods
 printf "#%-10s %s\n" "LL" "model" > ATLAS_ll.txt

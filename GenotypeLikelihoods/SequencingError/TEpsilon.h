@@ -11,6 +11,7 @@
 #include <armadillo>
 #include <memory>
 
+#include "TReadGroupInfo.h"
 #include "genometools/GenotypeTypes.h"
 #include "RecalEstimatorTools.h"
 #include "TGenotypeData.h"
@@ -149,7 +150,8 @@ public:
 	bool acceptOrReject();
 	void adjust();
 
-	std::string getDefinition() const noexcept;
+	std::string definition() const noexcept;
+	BAM::RGInfo::TInfo info() const;
 };
 } // namespace SequencingError
 } // namespace GenotypeLikelihoods

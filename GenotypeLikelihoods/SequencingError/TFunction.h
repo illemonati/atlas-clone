@@ -71,6 +71,7 @@ public:
 						  std::vector<T2ndDerivative> &der2) const noexcept = 0;
 	virtual double adjustParametersPostEstimation() noexcept                = 0;
 	virtual std::string typeString() const noexcept                         = 0;
+	virtual void addInfo(BAM::RGInfo::TInfo &info) const                    = 0;
 	virtual std::string modelString() const {
 		return typeString()
 			.append(1, '[')
@@ -117,6 +118,9 @@ public:
 	double adjustParametersPostEstimation() noexcept override { return 0.; }
 
 	std::string typeString() const noexcept override { return std::string(name); }
+	 void addInfo(BAM::RGInfo::TInfo& info) const override {
+		 info[name] = _beta;
+	}
 };
 
 namespace impl {
@@ -309,7 +313,11 @@ public:
 
 	std::string typeString() const noexcept override {
 		using coretools::str::toString;
-		return std::string(Covariate::name).append(1, ':').append(name).append(1, '(').append(toString(O)).append(1,')');
+		return std::string(Covariate::name).append(1, ':').append(name).append(1, '0' + O);
+	}
+
+	void addInfo(BAM::RGInfo::TInfo& info) const override {
+		info[Covariate::name] = {{name, _betas}};
 	}
 };
 
@@ -396,6 +404,10 @@ public:
 
 	double adjustParametersPostEstimation() noexcept override { return 0.; }
 	std::string typeString() const noexcept override { return std::string(Covariate::name).append(1, ':').append(name); }
+
+	void addInfo(BAM::RGInfo::TInfo& info) const override {
+		info[Covariate::name] = {{name, _betas}};
+	}
 };
 
 //--------------------------------------------------------------
@@ -441,6 +453,10 @@ public:
 		
 	}
 	std::string typeString() const noexcept override { return std::string(Covariate::name).append(1, ':').append(name); }
+
+	void addInfo(BAM::RGInfo::TInfo& info) const override {
+		info[Covariate::name] = {{name, _betas}};
+	}
 };
 
 //--------------------------------------------------------------
@@ -495,11 +511,20 @@ public:
 	double getEta(const BAM::TSequencedBase &base, std::vector<T1stDerivative> &der1,
 				  std::vector<T2ndDerivative> &) const noexcept override {
 		const auto val = Covariate::extract(base);
-		der1.emplace_back(firstParameterIndex() + _indexMap[Covariate::extract(base)], 1.0);
+		der1.emplace_back(firstParameterIndex() + _indexMap[val], 1.0);
 		return _betas[_indexMap[val]];
 	}
 
 	std::string typeString() const noexcept override { return std::string(Covariate::name).append(1, ':').append(name); }
+
+	void addInfo(BAM::RGInfo::TInfo& info) const override {
+		info[Covariate::name] = {{name, {}}};
+		BAM::RGInfo::TInfo ar = nlohmann::json::array();
+		for (size_t i = 0; i < _indexMap.size(); ++i) {
+			if (_indexMap[i] >= 0) ar += {i, _betas[_indexMap[i]]};
+		}
+		info[Covariate::name] = {{name, ar}};
+	}
 
 	std::string modelString() const override {
 		using coretools::str::toString;

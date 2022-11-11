@@ -33,7 +33,7 @@ auto parseFunctions(std::string_view Defs) {
 
 	for (auto def: TSplitter(Defs, ';')) {
 		const auto pos  = def.find(':');
-		if (pos == std::string_view::npos) functions.emplace_back("", def);
+		if (pos == std::string_view::npos) functions.emplace_back(def, "");
 		else functions.emplace_back(def.substr(0, pos), def.substr(pos + 1));
 	}
 	return functions;
@@ -145,6 +145,18 @@ TFunction *makeFunction(std::string_view Covariate, std::string_view Function, s
 		if (betas.empty()) return in;
 		fromString<true>(betas.front(), *in->begin());
 		return in;
+	}
+
+	if (Function.empty()) {
+		if (stringStartsWith(Covariate, TIntercept::name)) { // intercept can be parsed as either covariate or function
+			const auto [type, betas] = parseFunction(Function);
+			if (!type.empty()) UERROR("Wrong intercept arguments");
+			TFunction *in = new TIntercept(FirstParameterIndex);
+			if (betas.empty()) return in;
+			fromString<true>(betas.front(), *in->begin());
+			return in;
+		}
+		Function = TEmpiric<TCovariate_context>::name;
 	}
 
 	if (Covariate == TCovariate_quality::name)
@@ -275,9 +287,17 @@ void TEpsilon::adjust() {
 	//for (const auto &fn : _functions) _intercept.intercept() += cov.function->adjustParametersPostEstimation();
 }
 
-std::string TEpsilon::getDefinition() const noexcept {
+std::string TEpsilon::definition() const noexcept {
 	return std::accumulate(_functions.begin() + 1, _functions.end(), _functions.front()->modelString(),
 						   [](auto tot, auto &f) { return tot.append(1, ';').append(f->modelString()); });
+}
+
+BAM::RGInfo::TInfo TEpsilon::info() const{
+	BAM::RGInfo::TInfo in;
+	for (const auto &fn: _functions) {
+		fn->addInfo(in);
+	}
+	return in;
 }
 
 } // namespace SequencingError

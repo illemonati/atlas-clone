@@ -471,7 +471,7 @@ void TPMDTypeDoubleStrand::estimate(const PMDTable_RG &PMDTable,
 	logfile().endIndent();
 }
 
-TBaseLikelihoods TPMDTypeDoubleStrand::getBaseLikelihoods(const BAM::TSequencedBase &data,
+TBaseLikelihoods TPMDTypeDoubleStrand::baseLikelihoods(const BAM::TSequencedBase &data,
 					       const TBaseLikelihoods &baseLikelihoodsNoPMD) const {
 	// Note: distances are as in original fragment (not BAM file), i.e. in direction of sequencing
 	// no PMD for A and C
@@ -489,7 +489,7 @@ TBaseLikelihoods TPMDTypeDoubleStrand::getBaseLikelihoods(const BAM::TSequencedB
 	return baseLikelihoods;
 }
 
-TBaseProbabilities TPMDTypeDoubleStrand::getMassFunction(Base b, const BAM::TSequencedBase &data,
+TBaseProbabilities TPMDTypeDoubleStrand::massFunction(Base b, const BAM::TSequencedBase &data,
 														 const TBaseLikelihoods &baseLikelihoodsNoPMD) const {
 	switch (b) {
 	case Base::A: return TBaseProbabilities::normalize({1., 0., 0., 0.});
@@ -558,7 +558,7 @@ void TPMDTypeSingleStrand::estimate(const PMDTable_RG &PMDTable,
 	logfile().endIndent();
 }
 
-TBaseLikelihoods TPMDTypeSingleStrand::getBaseLikelihoods(const BAM::TSequencedBase &data,
+TBaseLikelihoods TPMDTypeSingleStrand::baseLikelihoods(const BAM::TSequencedBase &data,
 					       const TBaseLikelihoods &baseLikelihoodsNoPMD) const {
 	// Note: distances are as in original fragment (not BAM file), i.e. in direction of sequencing
 	// no PMD for A, C and G
@@ -571,7 +571,7 @@ TBaseLikelihoods TPMDTypeSingleStrand::getBaseLikelihoods(const BAM::TSequencedB
 	return baseLikelihoods;
 }
 
-TBaseProbabilities TPMDTypeSingleStrand::getMassFunction(Base b, const BAM::TSequencedBase &data,
+TBaseProbabilities TPMDTypeSingleStrand::massFunction(Base b, const BAM::TSequencedBase &data,
 														 const TBaseLikelihoods &baseLikelihoodsNoPMD) const {
 	switch (b) {
 	case Base::A: return TBaseProbabilities::normalize({1., 0., 0., 0.});
@@ -707,16 +707,16 @@ void TPostMortemDamage::initialize(BAM::RGInfo::TReadGroupInfo &RgInfo) {
 	}
 }
 
-TBaseLikelihoods TPostMortemDamage::getBaseLikelihoods(const BAM::TSequencedBase &data,
+TBaseLikelihoods TPostMortemDamage::baseLikelihoods(const BAM::TSequencedBase &data,
                                             const TBaseLikelihoods &baseLikelihoodsNoPMD) const {
 	return _hasPMD
-		? _pmdObjects[data.readGroupID]->getBaseLikelihoods(data, baseLikelihoodsNoPMD)
+		? _pmdObjects[data.readGroupID]->baseLikelihoods(data, baseLikelihoodsNoPMD)
 		: baseLikelihoodsNoPMD;
 }
 
-TBaseProbabilities TPostMortemDamage::getMassFunction(genometools::Base b, const BAM::TSequencedBase &data,
+TBaseProbabilities TPostMortemDamage::massFunction(genometools::Base b, const BAM::TSequencedBase &data,
 													  const TBaseLikelihoods &baseLikelihoodsNoPMD) const {
-	return _hasPMD ? _pmdObjects[data.readGroupID]->getMassFunction(b, data, baseLikelihoodsNoPMD)
+	return _hasPMD ? _pmdObjects[data.readGroupID]->massFunction(b, data, baseLikelihoodsNoPMD)
 	               : TPMDTypeNone::massFunctions[b];
 }
 
