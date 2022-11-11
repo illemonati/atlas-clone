@@ -92,9 +92,9 @@ public:
 	uint16_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate);
 };
 
-class TAlignmentMerger_both:public TAlignmentMerger{
+class TAlignmentMerger_middle:public TAlignmentMerger{
 public:
-	TAlignmentMerger_both();
+	TAlignmentMerger_middle();
 	uint16_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate);
 	std::pair<uint32_t,bool> determineOverlapLength(const BAM::TAlignment & alignment, const BAM::TAlignment & mate);
 	void mergeOddOverlap(BAM::TAlignment & firstRead, BAM::TAlignment & secondRead, uint16_t halfOverlap);

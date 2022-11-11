@@ -311,18 +311,20 @@ uint16_t TAlignmentMerger_randomRead::merge(BAM::TAlignment & alignment, BAM::TA
 		return TAlignmentMerger::merge(alignment, mate);
 };
 
-// TAlignmentMergerType_both
+// TAlignmentMergerType_middle
 //---------------------------------
-TAlignmentMerger_both::TAlignmentMerger_both():TAlignmentMerger(){};
+TAlignmentMerger_middle::TAlignmentMerger_middle():TAlignmentMerger(){};
 
-uint16_t TAlignmentMerger_both::merge(BAM::TAlignment & alignment, BAM::TAlignment & mate){
+uint16_t TAlignmentMerger_middle::merge(BAM::TAlignment & alignment, BAM::TAlignment & mate){
 	std::pair<uint32_t,bool> overlapLength = determineOverlapLength(alignment, mate);
 	if (overlapLength.first > 0){
 		//in case a read starts before, and ends after, its mate 
 		if (overlapLength.first > alignment.cigar().lengthAligned()) {
 			handleOverlapLargerThanRead(mate, alignment);
+			return overlapLength.first;
 		} else if (overlapLength.first > mate.cigar().lengthAligned()){
 			handleOverlapLargerThanRead(alignment, mate);
+			return overlapLength.first;
 		}
 		uint16_t halfOverlap = overlapLength.first / 2;
 		if (overlapLength.first % 2 == 0){
@@ -344,7 +346,7 @@ uint16_t TAlignmentMerger_both::merge(BAM::TAlignment & alignment, BAM::TAlignme
 	return overlapLength.first;
 };
 
-std::pair<uint32_t,bool> TAlignmentMerger_both::determineOverlapLength(const BAM::TAlignment & alignment, const BAM::TAlignment & mate){
+std::pair<uint32_t,bool> TAlignmentMerger_middle::determineOverlapLength(const BAM::TAlignment & alignment, const BAM::TAlignment & mate){
 	if (alignment.cigar().lengthAligned() == 0 || mate.cigar().lengthAligned() == 0)
 		return std::make_pair(0,true);
 	if (alignment > mate){
@@ -362,9 +364,10 @@ std::pair<uint32_t,bool> TAlignmentMerger_both::determineOverlapLength(const BAM
 	}
 }
 
-void TAlignmentMerger_both::mergeOddOverlap(BAM::TAlignment & firstRead, BAM::TAlignment & secondRead, uint16_t halfOverlap){
+void TAlignmentMerger_middle::mergeOddOverlap(BAM::TAlignment & firstRead, BAM::TAlignment & secondRead, uint16_t halfOverlap){
 	genometools::PhredIntProbability firstReadQual = determineQualAtSingleBase(firstRead, halfOverlap, true);
 	genometools::PhredIntProbability secondReadQual = determineQualAtSingleBase(secondRead, halfOverlap, false);
+	//std::cout << toString(coretools::Probability(firstReadQual)) << "," << toString(coretools::Probability(secondReadQual)) << std::endl;
 	uint16_t firstReadOverlapLength = halfOverlap;
 	uint16_t secondReadOverlapLength = halfOverlap;
 	compareQualities(firstReadQual, secondReadQual, firstReadOverlapLength, secondReadOverlapLength);
@@ -377,7 +380,7 @@ void TAlignmentMerger_both::mergeOddOverlap(BAM::TAlignment & firstRead, BAM::TA
 	callMergeFunction(secondRead, firstRead, secondReadOverlapLength);
 }
 
-void TAlignmentMerger_both::checkIfReverseStrandFirst(const BAM::TAlignment & alignment, const BAM::TAlignment & mate, uint16_t & alignmentOverlapLength, uint16_t & mateOverlapLength, bool alignmentIsFirst){
+void TAlignmentMerger_middle::checkIfReverseStrandFirst(const BAM::TAlignment & alignment, const BAM::TAlignment & mate, uint16_t & alignmentOverlapLength, uint16_t & mateOverlapLength, bool alignmentIsFirst){
 	if (alignmentIsFirst && alignment.isReverseStrand()){
 		alignmentOverlapLength += mate.position() - alignment.position();
 		mateOverlapLength += (mate.position() + mate.cigar().lengthAligned()) - (alignment.position() + alignment.cigar().lengthAligned());
@@ -387,22 +390,20 @@ void TAlignmentMerger_both::checkIfReverseStrandFirst(const BAM::TAlignment & al
 	}
 }
 
-genometools::PhredIntProbability TAlignmentMerger_both::determineQualAtSingleBase(BAM::TAlignment & alignment, uint16_t numBasesFromEnd, bool isFirst){
+genometools::PhredIntProbability TAlignmentMerger_middle::determineQualAtSingleBase(BAM::TAlignment & alignment, uint16_t numBasesFromEnd, bool isFirst){
 	if (isFirst){
-		auto baseIterator = --alignment.end();
-		baseIterator - numBasesFromEnd;
+		auto baseIterator = --alignment.end() - numBasesFromEnd;
 		return baseIterator->recalibratedQualityAsPhredInt;
 	} else {
-		auto baseIterator = alignment.begin();
-		baseIterator + numBasesFromEnd;
+		auto baseIterator = alignment.begin() + numBasesFromEnd;
 		return baseIterator->recalibratedQualityAsPhredInt;
 	}
 }
 
-void TAlignmentMerger_both::compareQualities(const genometools::PhredIntProbability & alignmentQual, const genometools::PhredIntProbability & mateQual, uint16_t & alignmentOverlapLength, uint16_t & mateOverlapLength){
-	if (alignmentQual > mateQual) 
+void TAlignmentMerger_middle::compareQualities(const genometools::PhredIntProbability & alignmentQual, const genometools::PhredIntProbability & mateQual, uint16_t & alignmentOverlapLength, uint16_t & mateOverlapLength){
+	if (alignmentQual < mateQual) 
 		mateOverlapLength++;
-	else if (alignmentQual < mateQual) 
+	else if (alignmentQual > mateQual) 
 		alignmentOverlapLength++;
 	else { 
 		if (randomGenerator().pickOneOfTwo()) 
@@ -412,7 +413,7 @@ void TAlignmentMerger_both::compareQualities(const genometools::PhredIntProbabil
 	}
 }
 
-void TAlignmentMerger_both::handleOverlapLargerThanRead(BAM::TAlignment & largerRead, BAM::TAlignment & smallerRead){
+void TAlignmentMerger_middle::handleOverlapLargerThanRead(BAM::TAlignment & largerRead, BAM::TAlignment & smallerRead){
 	uint16_t halfOverlap = smallerRead.cigar().lengthAligned() / 2;
 	uint16_t smallerReadOverlapLength = halfOverlap;
 	uint16_t largerReadOverlapLength = halfOverlap;
@@ -463,9 +464,9 @@ uint16_t TAlignmentMerger_highestQuality::merge(BAM::TAlignment & alignment, BAM
 	uint32_t overlapLength = TAlignmentMerger::determineOverlapLength(alignment, mate);
 	if (overlapLength > 0) {
 		std::pair<genometools::PhredIntProbability,genometools::PhredIntProbability> minQuals = TAlignmentMerger::getMinQuals(alignment, mate);
-		if (minQuals.first > minQuals.second){
+		if (minQuals.first < minQuals.second){
 			callMergeFunction(mate, alignment, overlapLength);
-		} else if (minQuals.second > minQuals.first){
+		} else if (minQuals.second < minQuals.first){
 			callMergeFunction(alignment, mate, overlapLength);
 		} else {
 				if (randomGenerator().pickOneOfTwo()) {
@@ -540,11 +541,11 @@ void TAlignmentSplitMerger::_initializeMerger() {
 	} else if(method == "secondMate"){
 		_merger = std::make_unique<TAlignmentMerger_secondMate>();
 		logfile().list("Merging method: will keep second mate at overlapping positions. (parameter 'mergingMethod')");
-	} else if (method == "both"){
-		_merger = std::make_unique<TAlignmentMerger_both>();
+	} else if (method == "middle"){
+		_merger = std::make_unique<TAlignmentMerger_middle>();
 		logfile().list("Merging method: will keep half of the overlapping positions of each mate. (parameter 'mergingMethod')");
 	} else {
-		throw "Unknown merging method " + method + "! Use 'none', 'both', 'firstMate', 'secondMate', 'randomRead' or 'highestQuality'.";
+		throw "Unknown merging method " + method + "! Use 'none', 'middle', 'firstMate', 'secondMate', 'randomRead' or 'highestQuality'.";
 	}
 };
 
