@@ -146,8 +146,10 @@ TEST_F(TBamFile_Test_ReadWrite, alignments){
         EXPECT_EQ(alignmentWritten->lastAlignedPositionWithRespectToRef(), alignmentRead.lastAlignedPositionWithRespectToRef());
         for (uint32_t i = 0; i < alignmentWritten->parsedLength(); i++){
             EXPECT_EQ(alignmentWritten->isAlignedAtInternalPos(i), alignmentRead.isAlignedAtInternalPos(i));
-            EXPECT_EQ(alignmentWritten->positionInRef(i), alignmentRead.positionInRef(i));
-        }
+			if (alignmentWritten->isAlignedAtInternalPos(i)) {
+				EXPECT_EQ(alignmentWritten->positionInRef(i), alignmentRead.positionInRef(i));
+			}
+		}
         EXPECT_EQ(alignmentWritten->mateGenomicPosition(), alignmentRead.mateGenomicPosition());
         EXPECT_EQ(alignmentWritten->matePosition(), alignmentRead.matePosition());
         EXPECT_EQ(alignmentWritten->mateRefID(), alignmentRead.mateRefID());

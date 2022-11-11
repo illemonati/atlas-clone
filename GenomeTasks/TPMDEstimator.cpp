@@ -58,11 +58,11 @@ TPMDEstimator::TPMDEstimator(): TGenome_parsed() {
 	_pmdTables.initialize(&_bamFile.readGroups(), _maxLengthForInference, _readGroupMap.get());
 };
 
-void TPMDEstimator::_handleAlignment(){
+void TPMDEstimator::_handleAlignment() {
 	for (size_t d = 0; d < _alignment.size(); ++d) {
-		const auto &b               = _alignment[d];
-		const genometools::Base ref = _alignment.referenceAtInternalPos(d);
-		_pmdTables.add(b, ref);
+		if (_alignment.isAlignedAtInternalPos(d)) {
+			_pmdTables.add(_alignment[d], _alignment.referenceAtInternalPos(d));
+		}
 	}
 };
 

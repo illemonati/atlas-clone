@@ -14,7 +14,6 @@
 #include "coretools/Main/TRandomGenerator.h"
 #include "coretools/Types/strongTypes.h"
 #include <algorithm>
-#include <iostream>
 #include <math.h>
 #include <memory>
 #include <stdexcept>
@@ -330,20 +329,19 @@ void TAlignment::setReadGroup(const uint16_t readGroupId) {
 //--------------------------------------
 // getters
 //--------------------------------------
-bool TAlignment::isAlignedAtInternalPos(const uint32_t internalPosition) const {
+bool TAlignment::isAlignedAtInternalPos(size_t internalPosition) const {
+	assert(internalPosition < _alignedPosition.size());
 	return _alignedPosition[internalPosition] >= 0;
 };
 
-genometools::Base TAlignment::referenceAtInternalPos(uint32_t internalPosition) const {
-	if (!_hasReference) {
-		throw std::runtime_error("genometools::Base TAlignment::referenceAtInternalPos(const uint32_t "
-								 "internalPosition) const: alignment has no reference!");
-	}
+genometools::Base TAlignment::referenceAtInternalPos(size_t internalPosition) const {
+	assert(_hasReference);
+	assert(isAlignedAtInternalPos(internalPosition));
 	return _referenceSequence[_alignedPosition[internalPosition]];
 };
 
-genometools::TGenomePosition TAlignment::positionInRef(uint32_t internalPosition) const {
-	// only makes sense if position is aligned!
+genometools::TGenomePosition TAlignment::positionInRef(size_t internalPosition) const {
+	assert(isAlignedAtInternalPos(internalPosition));
 	return *this + _alignedPosition[internalPosition];
 };
 
@@ -465,61 +463,6 @@ void TAlignment::downsampleAlignment(const coretools::Probability &fractionToKee
 		}
 	}
 	_sequenceAndQualitiesChanged = true;
-};
-
-//--------------------------------------------
-// functions to write / print alignment
-//--------------------------------------------
-void TAlignment::print() const {
-	std::cout << std::endl << "NAME:\t" << _name << std::endl;
-	std::cout << "LEN:\t" << _bases.size() << std::endl;
-
-	// print bases
-	std::cout << "SEQ:\t";
-	for (auto &b : _bases) { std::cout << b.base; }
-	std::cout << std::endl;
-
-	// print qualities
-	std::cout << "QUAL:\t";
-	for (auto &b : _bases) { std::cout << genometools::BaseQuality(b.recalibratedQualityAsPhredInt); }
-	std::cout << std::endl;
-
-	// print aligned pos
-	std::cout << "POS:\t";
-	for (size_t d = 0; d < _bases.size(); ++d) {
-		if (d > 0) std::cout << ",";
-		if (_bases[d].isAligned())
-			std::cout << _alignedPosition[d];
-		else
-			std::cout << "-";
-	}
-	std::cout << std::endl;
-
-	// print dist from 3'
-	std::cout << "dist 3':\t";
-	bool first = true;
-	for (auto &b : _bases) {
-		if (first) {
-			first = false;
-		} else {
-			std::cout << ",";
-		}
-		std::cout << b.distFrom3Prime;
-	}
-	std::cout << std::endl;
-
-	// print dist from 5'
-	std::cout << "dist 5':\t";
-	first = true;
-	for (auto &b : _bases) {
-		if (first) {
-			first = false;
-		} else {
-			std::cout << ",";
-		}
-		std::cout << b.distFrom5Prime;
-	}
-	std::cout << std::endl;
 };
 
 }; // namespace BAM
