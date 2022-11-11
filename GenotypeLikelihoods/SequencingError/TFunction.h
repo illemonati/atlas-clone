@@ -511,14 +511,19 @@ public:
 	double getEta(const BAM::TSequencedBase &base, std::vector<T1stDerivative> &der1,
 				  std::vector<T2ndDerivative> &) const noexcept override {
 		const auto val = Covariate::extract(base);
-		der1.emplace_back(firstParameterIndex() + _indexMap[Covariate::extract(base)], 1.0);
+		der1.emplace_back(firstParameterIndex() + _indexMap[val], 1.0);
 		return _betas[_indexMap[val]];
 	}
 
 	std::string typeString() const noexcept override { return std::string(Covariate::name).append(1, ':').append(name); }
 
 	void addInfo(BAM::RGInfo::TInfo& info) const override {
-		info[Covariate::name] = {{name, _betas}};
+		info[Covariate::name] = {{name, {}}};
+		BAM::RGInfo::TInfo ar = nlohmann::json::array();
+		for (size_t i = 0; i < _indexMap.size(); ++i) {
+			if (_indexMap[i] >= 0) ar += {i, _betas[_indexMap[i]]};
+		}
+		info[Covariate::name] = {{name, ar}};
 	}
 
 	std::string modelString() const override {

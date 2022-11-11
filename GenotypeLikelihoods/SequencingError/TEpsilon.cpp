@@ -33,7 +33,7 @@ auto parseFunctions(std::string_view Defs) {
 
 	for (auto def: TSplitter(Defs, ';')) {
 		const auto pos  = def.find(':');
-		if (pos == std::string_view::npos) functions.emplace_back("", def);
+		if (pos == std::string_view::npos) functions.emplace_back(def, "");
 		else functions.emplace_back(def.substr(0, pos), def.substr(pos + 1));
 	}
 	return functions;
@@ -145,6 +145,18 @@ TFunction *makeFunction(std::string_view Covariate, std::string_view Function, s
 		if (betas.empty()) return in;
 		fromString<true>(betas.front(), *in->begin());
 		return in;
+	}
+
+	if (Function.empty()) {
+		if (stringStartsWith(Covariate, TIntercept::name)) { // intercept can be parsed as either covariate or function
+			const auto [type, betas] = parseFunction(Function);
+			if (!type.empty()) UERROR("Wrong intercept arguments");
+			TFunction *in = new TIntercept(FirstParameterIndex);
+			if (betas.empty()) return in;
+			fromString<true>(betas.front(), *in->begin());
+			return in;
+		}
+		Function = TEmpiric<TCovariate_context>::name;
 	}
 
 	if (Covariate == TCovariate_quality::name)
