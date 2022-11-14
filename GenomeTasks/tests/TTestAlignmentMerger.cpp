@@ -479,3 +479,726 @@ TEST(TAlignmentMergerTest, reverseStrandStartsFirstEndsLast_mergeSecond){
     EXPECT_EQ(firstRead.position(), 10);  
     EXPECT_EQ(secondRead.position(), 20);
 }
+
+TEST(TAlignmentMergerTest, reverseStrandStartsFirstEndsLast_mergeMiddle){
+    TAlignment firstRead(1, 10);
+    TAlignment secondRead(1, 20);
+
+    firstRead.setIsReverseStrand(true);
+    secondRead.setIsReverseStrand(false);
+
+    TCigar cigar;
+    cigar.add('M', 100);
+    TCigar cigar1;
+    cigar1.add('M', 80);
+
+    firstRead.setCigarForUnitTest(cigar);
+    secondRead.setCigarForUnitTest(cigar1);
+
+    TAlignmentMerger_middle mergeMiddle;
+    mergeMiddle.merge(firstRead, secondRead);
+    EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 50);
+    EXPECT_EQ(secondRead.cigar().lengthSoftClippedRight(), 40);
+    EXPECT_EQ(firstRead.position(), 60);  
+    EXPECT_EQ(secondRead.position(), 20);
+}
+
+TEST(TAlignmentMergerTest, reverseStrandStartsFirstEndsLast_mergeMiddleOddOverlapLength){
+    TAlignment firstRead(1, 10);
+    TAlignment secondRead(1, 19);
+
+    firstRead.setIsReverseStrand(true);
+    secondRead.setIsReverseStrand(false);
+
+    TCigar cigar;
+    cigar.add('M', 100);
+    TCigar cigar1;
+    cigar1.add('M', 81);
+
+    std::vector<genometools::Base> vect;
+    vect.push_back(genometools::char2base('G'));
+    vect.resize(100);
+
+    std::vector<genometools::Base> vect2;
+    vect2.push_back(genometools::char2base('G'));
+    vect2.resize(81);
+
+    std::vector<genometools::PhredIntProbability> higherQuality;
+    higherQuality.resize(100);
+    std::fill(higherQuality.begin(),higherQuality.end(),genometools::PhredIntProbability(coretools::Probability (0.5)));
+
+    std::vector<genometools::PhredIntProbability> lowerQuality;
+    lowerQuality.resize(81);
+    std::fill(lowerQuality.begin(),lowerQuality.end(),genometools::PhredIntProbability(coretools::Probability (0.1)));
+
+
+    firstRead.setSequenceQualities(cigar, vect, higherQuality);
+    secondRead.setSequenceQualities(cigar1, vect2, lowerQuality);
+
+    TAlignmentMerger_middle mergeMiddle;
+    mergeMiddle.merge(firstRead, secondRead);
+    EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 49);
+    EXPECT_EQ(secondRead.cigar().lengthSoftClippedRight(), 41);
+    EXPECT_EQ(firstRead.position(), 59);  
+    EXPECT_EQ(secondRead.position(), 19);
+
+
+    TAlignment firstRead2(1, 10);
+    TAlignment secondRead2(1, 19);
+
+    firstRead2.setIsReverseStrand(true);
+    secondRead2.setIsReverseStrand(false);
+
+    lowerQuality[40] = genometools::PhredIntProbability(coretools::Probability (0.9));
+
+    firstRead2.setSequenceQualities(cigar, vect, higherQuality);
+    secondRead2.setSequenceQualities(cigar1, vect2, lowerQuality);
+
+    mergeMiddle.merge(firstRead2, secondRead2);
+    EXPECT_EQ(firstRead2.cigar().lengthSoftClippedLeft(), 50);
+    EXPECT_EQ(secondRead2.cigar().lengthSoftClippedRight(), 40);
+    EXPECT_EQ(firstRead2.position(), 60);  
+    EXPECT_EQ(secondRead2.position(), 19);
+}
+
+
+TEST(TAlignmentMergerTest, sameStartForwardEndsLast_mergeFirst){
+    TAlignment firstRead(1, 10);
+    TAlignment secondRead(1, 10);
+
+    firstRead.setIsReverseStrand(false);
+    secondRead.setIsReverseStrand(true);
+
+    TCigar cigar;
+    cigar.add('M', 100);
+    TCigar cigar1;
+    cigar1.add('M', 80);
+
+    firstRead.setCigarForUnitTest(cigar);
+    secondRead.setCigarForUnitTest(cigar1);
+
+    TAlignmentMerger_firstMate mergeFirstMate;
+    mergeFirstMate.merge(firstRead, secondRead);
+    EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 100);
+    EXPECT_EQ(secondRead.cigar().lengthSoftClippedLeft(), 0);
+    EXPECT_EQ(secondRead.cigar().lengthSoftClippedRight(), 0);
+    EXPECT_EQ(firstRead.position(), 10);  
+    EXPECT_EQ(secondRead.position(), 10);
+}
+
+TEST(TAlignmentMergerTest, sameStartForwardEndsLast_mergeSecond){
+    TAlignment firstRead(1, 10);
+    TAlignment secondRead(1, 10);
+
+    firstRead.setIsReverseStrand(false);
+    secondRead.setIsReverseStrand(true);
+
+    TCigar cigar;
+    cigar.add('M', 100);
+    TCigar cigar1;
+    cigar1.add('M', 80);
+
+    firstRead.setCigarForUnitTest(cigar);
+    secondRead.setCigarForUnitTest(cigar1);
+
+    TAlignmentMerger_secondMate mergeSecondMate;
+    mergeSecondMate.merge(firstRead, secondRead);
+    EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 0);
+    EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 0);
+    EXPECT_EQ(secondRead.cigar().lengthSoftClippedLeft(), 80);
+    EXPECT_EQ(firstRead.position(), 10);  
+    EXPECT_EQ(secondRead.position(), 90);
+}
+
+TEST(TAlignmentMergerTest, sameStartForwardEndsLast_mergeMiddle){
+    TAlignment firstRead(1, 10);
+    TAlignment secondRead(1, 10);
+
+    firstRead.setIsReverseStrand(false);
+    secondRead.setIsReverseStrand(true);
+
+    TCigar cigar;
+    cigar.add('M', 100);
+    TCigar cigar1;
+    cigar1.add('M', 80);
+
+    firstRead.setCigarForUnitTest(cigar);
+    secondRead.setCigarForUnitTest(cigar1);
+
+    TAlignmentMerger_middle mergeMiddle;
+    mergeMiddle.merge(firstRead, secondRead);
+    EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 60);
+    EXPECT_EQ(secondRead.cigar().lengthSoftClippedLeft(), 40);
+    EXPECT_EQ(firstRead.position(), 10);  
+    EXPECT_EQ(secondRead.position(), 50);
+}
+
+TEST(TAlignmentMergerTest, sameStartForwardEndsLast_mergeMiddleOddOverlapLength){
+    TAlignment firstRead(1, 10);
+    TAlignment secondRead(1, 10);
+
+    firstRead.setIsReverseStrand(false);
+    secondRead.setIsReverseStrand(true);
+
+    TCigar cigar;
+    cigar.add('M', 100);
+    TCigar cigar1;
+    cigar1.add('M', 81);
+
+    std::vector<genometools::Base> vect;
+    vect.push_back(genometools::char2base('G'));
+    vect.resize(100);
+
+    std::vector<genometools::Base> vect2;
+    vect2.push_back(genometools::char2base('G'));
+    vect2.resize(81);
+
+    std::vector<genometools::PhredIntProbability> higherQuality;
+    higherQuality.resize(100);
+    std::fill(higherQuality.begin(),higherQuality.end(),genometools::PhredIntProbability(coretools::Probability (0.5)));
+
+    std::vector<genometools::PhredIntProbability> lowerQuality;
+    lowerQuality.resize(81);
+    std::fill(lowerQuality.begin(),lowerQuality.end(),genometools::PhredIntProbability(coretools::Probability (0.1)));
+
+
+    firstRead.setSequenceQualities(cigar, vect, higherQuality);
+    secondRead.setSequenceQualities(cigar1, vect2, lowerQuality);
+
+    TAlignmentMerger_middle mergeMiddle;
+    mergeMiddle.merge(firstRead, secondRead);
+    EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 59);
+    EXPECT_EQ(secondRead.cigar().lengthSoftClippedLeft(), 41);
+    EXPECT_EQ(firstRead.position(), 10);  
+    EXPECT_EQ(secondRead.position(), 51);
+
+
+    TAlignment firstRead2(1, 10);
+    TAlignment secondRead2(1, 10);
+
+    firstRead2.setIsReverseStrand(false);
+    secondRead2.setIsReverseStrand(true);
+
+    lowerQuality[40] = genometools::PhredIntProbability(coretools::Probability (0.9));
+
+    firstRead2.setSequenceQualities(cigar, vect, higherQuality);
+    secondRead2.setSequenceQualities(cigar1, vect2, lowerQuality);
+
+    mergeMiddle.merge(firstRead2, secondRead2);
+    EXPECT_EQ(firstRead2.cigar().lengthSoftClippedRight(), 60);
+    EXPECT_EQ(secondRead2.cigar().lengthSoftClippedLeft(), 40);
+    EXPECT_EQ(firstRead2.position(), 10);  
+    EXPECT_EQ(secondRead2.position(), 50);
+}
+
+
+TEST(TAlignmentMergerTest, sameStartReverseEndsLast_mergeFirst){
+    TAlignment firstRead(1, 10);
+    TAlignment secondRead(1, 10);
+
+    firstRead.setIsReverseStrand(false);
+    secondRead.setIsReverseStrand(true);
+
+    TCigar cigar;
+    cigar.add('M', 80);
+    TCigar cigar1;
+    cigar1.add('M', 100);
+
+    firstRead.setCigarForUnitTest(cigar);
+    secondRead.setCigarForUnitTest(cigar1);
+
+    TAlignmentMerger_firstMate mergeFirstMate;
+    mergeFirstMate.merge(firstRead, secondRead);
+    EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 80);
+    EXPECT_EQ(secondRead.cigar().lengthSoftClippedLeft(), 0);
+    EXPECT_EQ(secondRead.cigar().lengthSoftClippedRight(), 0);
+    EXPECT_EQ(firstRead.position(), 10);  
+    EXPECT_EQ(secondRead.position(), 10);
+}
+
+TEST(TAlignmentMergerTest, sameStartReverseEndsLast_mergeSecond){
+    TAlignment firstRead(1, 10);
+    TAlignment secondRead(1, 10);
+
+    firstRead.setIsReverseStrand(false);
+    secondRead.setIsReverseStrand(true);
+
+    TCigar cigar;
+    cigar.add('M', 80);
+    TCigar cigar1;
+    cigar1.add('M', 100);
+
+    firstRead.setCigarForUnitTest(cigar);
+    secondRead.setCigarForUnitTest(cigar1);
+
+    TAlignmentMerger_secondMate mergeSecondMate;
+    mergeSecondMate.merge(firstRead, secondRead);
+    EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 0);
+    EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 0);
+    EXPECT_EQ(secondRead.cigar().lengthSoftClippedLeft(), 80);
+    EXPECT_EQ(firstRead.position(), 10);  
+    EXPECT_EQ(secondRead.position(), 90);
+}
+
+TEST(TAlignmentMergerTest, sameStartReverseEndsLast_mergeMiddle){
+    TAlignment firstRead(1, 10);
+    TAlignment secondRead(1, 10);
+
+    firstRead.setIsReverseStrand(false);
+    secondRead.setIsReverseStrand(true);
+
+    TCigar cigar;
+    cigar.add('M', 80);
+    TCigar cigar1;
+    cigar1.add('M', 100);
+
+    firstRead.setCigarForUnitTest(cigar);
+    secondRead.setCigarForUnitTest(cigar1);
+
+    TAlignmentMerger_middle mergeMiddle;
+    mergeMiddle.merge(firstRead, secondRead);
+    EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 40);
+    EXPECT_EQ(secondRead.cigar().lengthSoftClippedLeft(), 40);
+    EXPECT_EQ(firstRead.position(), 10);  
+    EXPECT_EQ(secondRead.position(), 50);
+}
+
+TEST(TAlignmentMergerTest, sameStartReverseEndsLast_mergeMiddleOddOverlapLength){
+    TAlignment firstRead(1, 10);
+    TAlignment secondRead(1, 10);
+
+    firstRead.setIsReverseStrand(false);
+    secondRead.setIsReverseStrand(true);
+
+    TCigar cigar;
+    cigar.add('M', 81);
+    TCigar cigar1;
+    cigar1.add('M', 100);
+
+    std::vector<genometools::Base> vect;
+    vect.push_back(genometools::char2base('G'));
+    vect.resize(81);
+
+    std::vector<genometools::Base> vect2;
+    vect2.push_back(genometools::char2base('G'));
+    vect2.resize(100);
+
+    std::vector<genometools::PhredIntProbability> higherQuality;
+    higherQuality.resize(81);
+    std::fill(higherQuality.begin(),higherQuality.end(),genometools::PhredIntProbability(coretools::Probability (0.5)));
+
+    std::vector<genometools::PhredIntProbability> lowerQuality;
+    lowerQuality.resize(100);
+    std::fill(lowerQuality.begin(),lowerQuality.end(),genometools::PhredIntProbability(coretools::Probability (0.1)));
+
+
+    firstRead.setSequenceQualities(cigar, vect, higherQuality);
+    secondRead.setSequenceQualities(cigar1, vect2, lowerQuality);
+
+    TAlignmentMerger_middle mergeMiddle;
+    mergeMiddle.merge(firstRead, secondRead);
+    EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 40);
+    EXPECT_EQ(secondRead.cigar().lengthSoftClippedLeft(), 41);
+    EXPECT_EQ(firstRead.position(), 10);  
+    EXPECT_EQ(secondRead.position(), 51);
+
+
+    TAlignment firstRead2(1, 10);
+    TAlignment secondRead2(1, 10);
+
+    firstRead2.setIsReverseStrand(false);
+    secondRead2.setIsReverseStrand(true);
+
+    lowerQuality[40] = genometools::PhredIntProbability(coretools::Probability (0.9));
+
+    firstRead2.setSequenceQualities(cigar, vect, higherQuality);
+    secondRead2.setSequenceQualities(cigar1, vect2, lowerQuality);
+
+    mergeMiddle.merge(firstRead2, secondRead2);
+    EXPECT_EQ(firstRead2.cigar().lengthSoftClippedRight(), 41);
+    EXPECT_EQ(secondRead2.cigar().lengthSoftClippedLeft(), 40);
+    EXPECT_EQ(firstRead2.position(), 10);  
+    EXPECT_EQ(secondRead2.position(), 50);
+}
+
+
+TEST(TAlignmentMergerTest, forwardStartsFirstSameEnd_mergeFirst){
+    TAlignment firstRead(1, 10);
+    TAlignment secondRead(1, 20);
+
+    firstRead.setIsReverseStrand(false);
+    secondRead.setIsReverseStrand(true);
+
+    TCigar cigar;
+    cigar.add('M', 100);
+    TCigar cigar1;
+    cigar1.add('M', 90);
+
+    firstRead.setCigarForUnitTest(cigar);
+    secondRead.setCigarForUnitTest(cigar1);
+
+    TAlignmentMerger_firstMate mergeFirstMate;
+    mergeFirstMate.merge(firstRead, secondRead);
+    EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 90);
+    EXPECT_EQ(secondRead.cigar().lengthSoftClippedLeft(), 0);
+    EXPECT_EQ(secondRead.cigar().lengthSoftClippedRight(), 0);
+    EXPECT_EQ(firstRead.position(), 10);  
+    EXPECT_EQ(secondRead.position(), 20);
+}
+
+TEST(TAlignmentMergerTest, forwardStartsFirstSameEnd_mergeSecond){
+    TAlignment firstRead(1, 10);
+    TAlignment secondRead(1, 20);
+
+    firstRead.setIsReverseStrand(false);
+    secondRead.setIsReverseStrand(true);
+
+    TCigar cigar;
+    cigar.add('M', 100);
+    TCigar cigar1;
+    cigar1.add('M', 90);
+
+    firstRead.setCigarForUnitTest(cigar);
+    secondRead.setCigarForUnitTest(cigar1);
+
+    TAlignmentMerger_secondMate mergeSecondMate;
+    mergeSecondMate.merge(firstRead, secondRead);
+    EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 0);
+    EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 0);
+    EXPECT_EQ(secondRead.cigar().lengthSoftClippedLeft(), 90);
+    EXPECT_EQ(firstRead.position(), 10);  
+    EXPECT_EQ(secondRead.position(), 110);
+}
+
+TEST(TAlignmentMergerTest, forwardStartsFirstSameEnd_mergeMiddle){
+    TAlignment firstRead(1, 10);
+    TAlignment secondRead(1, 20);
+
+    firstRead.setIsReverseStrand(false);
+    secondRead.setIsReverseStrand(true);
+
+    TCigar cigar;
+    cigar.add('M', 100);
+    TCigar cigar1;
+    cigar1.add('M', 90);
+
+    firstRead.setCigarForUnitTest(cigar);
+    secondRead.setCigarForUnitTest(cigar1);
+
+    TAlignmentMerger_middle mergeMiddle;
+    mergeMiddle.merge(firstRead, secondRead);
+    EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 45);
+    EXPECT_EQ(secondRead.cigar().lengthSoftClippedLeft(), 45);
+    EXPECT_EQ(firstRead.position(), 10);  
+    EXPECT_EQ(secondRead.position(), 65);
+}
+
+TEST(TAlignmentMergerTest, forwardStartsFirstSameEnd_mergeMiddleOddOverlapLength){
+    TAlignment firstRead(1, 10);
+    TAlignment secondRead(1, 21);
+
+    firstRead.setIsReverseStrand(false);
+    secondRead.setIsReverseStrand(true);
+
+    TCigar cigar;
+    cigar.add('M', 100);
+    TCigar cigar1;
+    cigar1.add('M', 89);
+
+    std::vector<genometools::Base> vect;
+    vect.push_back(genometools::char2base('G'));
+    vect.resize(100);
+
+    std::vector<genometools::Base> vect2;
+    vect2.push_back(genometools::char2base('G'));
+    vect2.resize(89);
+
+    std::vector<genometools::PhredIntProbability> higherQuality;
+    higherQuality.resize(100);
+    std::fill(higherQuality.begin(),higherQuality.end(),genometools::PhredIntProbability(coretools::Probability (0.5)));
+
+    std::vector<genometools::PhredIntProbability> lowerQuality;
+    lowerQuality.resize(89);
+    std::fill(lowerQuality.begin(),lowerQuality.end(),genometools::PhredIntProbability(coretools::Probability (0.1)));
+
+
+    firstRead.setSequenceQualities(cigar, vect, higherQuality);
+    secondRead.setSequenceQualities(cigar1, vect2, lowerQuality);
+
+    TAlignmentMerger_middle mergeMiddle;
+    mergeMiddle.merge(firstRead, secondRead);
+    EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 44);
+    EXPECT_EQ(secondRead.cigar().lengthSoftClippedLeft(), 45);
+    EXPECT_EQ(firstRead.position(), 10);  
+    EXPECT_EQ(secondRead.position(), 66);
+
+
+    TAlignment firstRead2(1, 10);
+    TAlignment secondRead2(1, 21);
+
+    firstRead2.setIsReverseStrand(false);
+    secondRead2.setIsReverseStrand(true);
+
+    lowerQuality[44] = genometools::PhredIntProbability(coretools::Probability (0.9));
+
+    firstRead2.setSequenceQualities(cigar, vect, higherQuality);
+    secondRead2.setSequenceQualities(cigar1, vect2, lowerQuality);
+
+    mergeMiddle.merge(firstRead2, secondRead2);
+    EXPECT_EQ(firstRead2.cigar().lengthSoftClippedRight(), 45);
+    EXPECT_EQ(secondRead2.cigar().lengthSoftClippedLeft(), 44);
+    EXPECT_EQ(firstRead2.position(), 10);  
+    EXPECT_EQ(secondRead2.position(), 65);
+}
+
+
+TEST(TAlignmentMergerTest,reverseStartsFirstSameEnd_mergeFirst){
+    TAlignment firstRead(1, 10);
+    TAlignment secondRead(1, 20);
+
+    firstRead.setIsReverseStrand(true);
+    secondRead.setIsReverseStrand(false);
+
+    TCigar cigar;
+    cigar.add('M', 100);
+    TCigar cigar1;
+    cigar1.add('M', 90);
+
+    firstRead.setCigarForUnitTest(cigar);
+    secondRead.setCigarForUnitTest(cigar1);
+
+    TAlignmentMerger_firstMate mergeFirstMate;
+    mergeFirstMate.merge(firstRead, secondRead);
+    EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 100);
+    EXPECT_EQ(secondRead.cigar().lengthSoftClippedLeft(), 0);
+    EXPECT_EQ(secondRead.cigar().lengthSoftClippedRight(), 0);
+    EXPECT_EQ(firstRead.position(), 110);  
+    EXPECT_EQ(secondRead.position(), 20);
+}
+
+TEST(TAlignmentMergerTest, reverseStartsFirstSameEnd_mergeSecond){
+    TAlignment firstRead(1, 10);
+    TAlignment secondRead(1, 20);
+
+    firstRead.setIsReverseStrand(true);
+    secondRead.setIsReverseStrand(false);
+
+    TCigar cigar;
+    cigar.add('M', 100);
+    TCigar cigar1;
+    cigar1.add('M', 90);
+
+    firstRead.setCigarForUnitTest(cigar);
+    secondRead.setCigarForUnitTest(cigar1);
+
+    TAlignmentMerger_secondMate mergeSecondMate;
+    mergeSecondMate.merge(firstRead, secondRead);
+    EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 0);
+    EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 0);
+    EXPECT_EQ(secondRead.cigar().lengthSoftClippedLeft(), 90);
+    EXPECT_EQ(firstRead.position(), 10);  
+    EXPECT_EQ(secondRead.position(), 20);
+}
+
+TEST(TAlignmentMergerTest, reverseStartsFirstSameEnd_mergeMiddle){
+    TAlignment firstRead(1, 10);
+    TAlignment secondRead(1, 20);
+
+    firstRead.setIsReverseStrand(true);
+    secondRead.setIsReverseStrand(false);
+
+    TCigar cigar;
+    cigar.add('M', 100);
+    TCigar cigar1;
+    cigar1.add('M', 90);
+
+    firstRead.setCigarForUnitTest(cigar);
+    secondRead.setCigarForUnitTest(cigar1);
+
+    TAlignmentMerger_middle mergeMiddle;
+    mergeMiddle.merge(firstRead, secondRead);
+    EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 55);
+    EXPECT_EQ(secondRead.cigar().lengthSoftClippedRight(), 45);
+    EXPECT_EQ(firstRead.position(), 65);  
+    EXPECT_EQ(secondRead.position(), 20);
+}
+
+TEST(TAlignmentMergerTest, reverseStartsFirstSameEnd_mergeMiddleOddOverlapLength){
+    TAlignment firstRead(1, 10);
+    TAlignment secondRead(1, 21);
+
+    firstRead.setIsReverseStrand(true);
+    secondRead.setIsReverseStrand(false);
+
+    TCigar cigar;
+    cigar.add('M', 100);
+    TCigar cigar1;
+    cigar1.add('M', 89);
+
+    std::vector<genometools::Base> vect;
+    vect.push_back(genometools::char2base('G'));
+    vect.resize(100);
+
+    std::vector<genometools::Base> vect2;
+    vect2.push_back(genometools::char2base('G'));
+    vect2.resize(89);
+
+    std::vector<genometools::PhredIntProbability> higherQuality;
+    higherQuality.resize(100);
+    std::fill(higherQuality.begin(),higherQuality.end(),genometools::PhredIntProbability(coretools::Probability (0.5)));
+
+    std::vector<genometools::PhredIntProbability> lowerQuality;
+    lowerQuality.resize(89);
+    std::fill(lowerQuality.begin(),lowerQuality.end(),genometools::PhredIntProbability(coretools::Probability (0.1)));
+
+
+    firstRead.setSequenceQualities(cigar, vect, higherQuality);
+    secondRead.setSequenceQualities(cigar1, vect2, lowerQuality);
+
+    TAlignmentMerger_middle mergeMiddle;
+    mergeMiddle.merge(firstRead, secondRead);
+    EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 55);
+    EXPECT_EQ(secondRead.cigar().lengthSoftClippedRight(), 45);
+    EXPECT_EQ(firstRead.position(), 65);  
+    EXPECT_EQ(secondRead.position(), 21);
+
+
+    TAlignment firstRead2(1, 10);
+    TAlignment secondRead2(1, 21);
+
+    firstRead2.setIsReverseStrand(true);
+    secondRead2.setIsReverseStrand(false);
+
+    lowerQuality[44] = genometools::PhredIntProbability(coretools::Probability (0.9));
+
+    firstRead2.setSequenceQualities(cigar, vect, higherQuality);
+    secondRead2.setSequenceQualities(cigar1, vect2, lowerQuality);
+
+    mergeMiddle.merge(firstRead2, secondRead2);
+    EXPECT_EQ(firstRead2.cigar().lengthSoftClippedLeft(), 56);
+    EXPECT_EQ(secondRead2.cigar().lengthSoftClippedRight(), 44);
+    EXPECT_EQ(firstRead2.position(), 66);  
+    EXPECT_EQ(secondRead2.position(), 21);
+}
+
+
+TEST(TAlignmentMergerTest, reverseFirst_forwardSecond_mergeFirst){
+    TAlignment firstRead(1, 10);
+    TAlignment secondRead(1, 20);
+
+    firstRead.setIsReverseStrand(true);
+    secondRead.setIsReverseStrand(false);
+
+    TCigar cigar;
+    cigar.add('M', 100);
+
+    firstRead.setCigarForUnitTest(cigar);
+    secondRead.setCigarForUnitTest(cigar);
+
+    TAlignmentMerger_firstMate mergeFirstMate;
+    mergeFirstMate.merge(firstRead, secondRead);
+    EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 100);
+    EXPECT_EQ(secondRead.cigar().lengthSoftClippedLeft(), 0);
+    EXPECT_EQ(secondRead.cigar().lengthSoftClippedRight(), 0);
+    EXPECT_EQ(firstRead.position(), 110);  
+    EXPECT_EQ(secondRead.position(), 20);
+}
+
+TEST(TAlignmentMergerTest, reverseFirst_forwardSecond_mergeSecond){
+    TAlignment firstRead(1, 10);
+    TAlignment secondRead(1, 20);
+
+    firstRead.setIsReverseStrand(true);
+    secondRead.setIsReverseStrand(false);
+
+    TCigar cigar;
+    cigar.add('M', 100);
+
+    firstRead.setCigarForUnitTest(cigar);
+    secondRead.setCigarForUnitTest(cigar);
+
+    TAlignmentMerger_secondMate mergeSecondMate;
+    mergeSecondMate.merge(firstRead, secondRead);
+    EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 0);
+    EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 0);
+    EXPECT_EQ(secondRead.cigar().lengthSoftClippedLeft(), 100);
+    EXPECT_EQ(firstRead.position(), 10);  
+    EXPECT_EQ(secondRead.position(), 20);
+}
+
+TEST(TAlignmentMergerTest, reverseFirst_forwardSecond_mergeMiddle){
+    TAlignment firstRead(1, 10);
+    TAlignment secondRead(1, 20);
+
+    firstRead.setIsReverseStrand(true);
+    secondRead.setIsReverseStrand(false);
+
+    TCigar cigar;
+    cigar.add('M', 100);
+
+    firstRead.setCigarForUnitTest(cigar);
+    secondRead.setCigarForUnitTest(cigar);
+
+    TAlignmentMerger_middle mergeMiddle;
+    mergeMiddle.merge(firstRead, secondRead);
+    EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 55);
+    EXPECT_EQ(secondRead.cigar().lengthSoftClippedRight(), 55);
+    EXPECT_EQ(firstRead.position(), 65);  
+    EXPECT_EQ(secondRead.position(), 20);
+}
+
+TEST(TAlignmentMergerTest, reverseFirst_forwardSecond_mergeMiddleOddOverlapLength){
+    TAlignment firstRead(1, 10);
+    TAlignment secondRead(1, 21);
+
+    firstRead.setIsReverseStrand(true);
+    secondRead.setIsReverseStrand(false);
+
+    TCigar cigar;
+    cigar.add('M', 100);
+
+    std::vector<genometools::Base> vect;
+    vect.push_back(genometools::char2base('G'));
+    vect.resize(100);
+
+    std::vector<genometools::Base> vect2;
+    vect2.push_back(genometools::char2base('G'));
+    vect2.resize(100);
+
+    std::vector<genometools::PhredIntProbability> higherQuality;
+    higherQuality.resize(100);
+    std::fill(higherQuality.begin(),higherQuality.end(),genometools::PhredIntProbability(coretools::Probability (0.5)));
+
+    std::vector<genometools::PhredIntProbability> lowerQuality;
+    lowerQuality.resize(100);
+    std::fill(lowerQuality.begin(),lowerQuality.end(),genometools::PhredIntProbability(coretools::Probability (0.1)));
+
+
+    firstRead.setSequenceQualities(cigar, vect, higherQuality);
+    secondRead.setSequenceQualities(cigar, vect2, lowerQuality);
+
+    TAlignmentMerger_middle mergeMiddle;
+    mergeMiddle.merge(firstRead, secondRead);
+    EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 55);
+    EXPECT_EQ(secondRead.cigar().lengthSoftClippedRight(), 56);
+    EXPECT_EQ(firstRead.position(), 65);  
+    EXPECT_EQ(secondRead.position(), 21);
+
+
+    TAlignment firstRead2(1, 10);
+    TAlignment secondRead2(1, 21);
+
+    firstRead2.setIsReverseStrand(true);
+    secondRead2.setIsReverseStrand(false);
+
+    lowerQuality[44] = genometools::PhredIntProbability(coretools::Probability (0.9));
+
+    firstRead2.setSequenceQualities(cigar, vect, higherQuality);
+    secondRead2.setSequenceQualities(cigar, vect2, lowerQuality);
+
+    mergeMiddle.merge(firstRead2, secondRead2);
+    EXPECT_EQ(firstRead2.cigar().lengthSoftClippedLeft(), 56);
+    EXPECT_EQ(secondRead2.cigar().lengthSoftClippedRight(), 55);
+    EXPECT_EQ(firstRead2.position(), 66);  
+    EXPECT_EQ(secondRead2.position(), 21);
+}

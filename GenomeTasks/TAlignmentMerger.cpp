@@ -367,15 +367,10 @@ std::pair<uint32_t,bool> TAlignmentMerger_middle::determineOverlapLength(const B
 void TAlignmentMerger_middle::mergeOddOverlap(BAM::TAlignment & firstRead, BAM::TAlignment & secondRead, uint16_t halfOverlap){
 	genometools::PhredIntProbability firstReadQual = determineQualAtSingleBase(firstRead, halfOverlap, true);
 	genometools::PhredIntProbability secondReadQual = determineQualAtSingleBase(secondRead, halfOverlap, false);
-	//std::cout << toString(coretools::Probability(firstReadQual)) << "," << toString(coretools::Probability(secondReadQual)) << std::endl;
 	uint16_t firstReadOverlapLength = halfOverlap;
 	uint16_t secondReadOverlapLength = halfOverlap;
 	compareQualities(firstReadQual, secondReadQual, firstReadOverlapLength, secondReadOverlapLength);
 	checkIfReverseStrandFirst(firstRead, secondRead, firstReadOverlapLength, secondReadOverlapLength, true);
-	if (firstRead.isReverseStrand()){
-		firstReadOverlapLength += secondRead.position() - firstRead.position();
-		secondReadOverlapLength += (secondRead.position() + secondRead.cigar().lengthAligned()) - (firstRead.position() + firstRead.cigar().lengthAligned());
-	}
 	callMergeFunction(firstRead, secondRead, firstReadOverlapLength);
 	callMergeFunction(secondRead, firstRead, secondReadOverlapLength);
 }
