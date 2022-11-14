@@ -25,7 +25,8 @@ if __name__ == "__main__":
     for i, fn in enumerate(fns):
         etas = fn(vs)
         recals = -10*np.log10(expit(etas))
-        plt.plot(qs, recals, label=args.models[i])
+        plt.plot(qs, etas, label="f" + str(i+1) + "=" + args.models[i])
+        plt.plot(qs, recals, label="logit(f" + str(i+1) + ")")
 
     plt.legend()
     plt.xlabel("quality")
