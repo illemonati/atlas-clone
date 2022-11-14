@@ -41,8 +41,7 @@ public:
 	TReadGroupModels(const std::string &RecalString1, const std::string &RhoString1, const std::string &RecalString2, const std::string &RhoString2);
 	TReadGroupModels(const BAM::RGInfo::TReadGroupInfoEntry & Info);
 
-	void initializeNoRecal();
-	void initialize(const std::string &RecalString, const std::string &RhoString);
+	void initialize(size_t mate, const std::string &RecalString, const std::string &RhoString);
 
 	TModel& operator[](bool isSecondMate) noexcept {
 		return *_models[isSecondMate].get();

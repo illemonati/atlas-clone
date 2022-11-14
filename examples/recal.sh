@@ -5,13 +5,17 @@
 # see python ../tools/plotRecal.py "0.1 + 0.8*x + 0.2*x**2 + 0.01*x**3"
 model="intercept[0.1];quality:polynomial[0.8,0.2,0.01]"
 # Simululate polynomial model
-$atlas --task simulate --recal $model --fixedSeed 0 --logFile simulate.out
+#$atlas --task simulate --recal $model --fixedSeed 0 --logFile simulate.out
 
 # Calculate log Likelihood of model given simulated data
-$atlas --task recal --bam ATLAS_simulations.bam --recal $model --rerecalibrate --onlyLL --fixedSeed 0 --logFile recal_onlyLL.out
+#$atlas --task recal --bam ATLAS_simulations.bam --recal $model --rerecalibrate --onlyLL --fixedSeed 0 --logFile recal_onlyLL.out
 
 # estimate recal model using polynomial
-$atlas --task recal --bam ATLAS_simulations.bam --recal "intercept;quality:polynomial3" --rerecalibrate --minDeltaLL 1e6 --fixedSeed 0 --out ATLAS_polynomial --logFile recal_polynomial.out
+#$atlas --task recal --bam ATLAS_simulations.bam --recal "intercept;quality:polynomial3" --rerecalibrate --minDeltaLL 1e6 --fixedSeed 0 --out ATLAS_polynomial --logFile recal_polynomial.out
+
+$atlas --task recal --bam ATLAS_simulations.bam --recal "ATLAS_polynomial_recal.txt" --rerecalibrate --onlyLL --fixedSeed 0 --out ATLAS_file --logFile recal_file.out
+
+exit
 
 # estimate recal model using empiric
 $atlas --task recal --bam ATLAS_simulations.bam --recal "intercept;quality;position;context;fragmentLength;mappingQuality;" --rerecalibrate --minDeltaLL 1e6 --fixedSeed 0 --out ATLAS_empiric --logFile recal_empiric.out

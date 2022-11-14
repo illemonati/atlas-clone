@@ -20,6 +20,8 @@
 #include "TReadGroups.h"
 #include "TSequencedBase.h"
 #include "SequencingError/TModel.h"
+#include "coretools/Strings/fromString.h"
+#include "coretools/Strings/splitters.h"
 #include "coretools/Types/probability.h"
 #include "coretools/Strings/stringFunctions.h"
 
@@ -91,6 +93,14 @@ TReadGroupModels::TReadGroupModels(const std::string &RecalString1, const std::s
 		_models[1] = std::make_unique<TModelNoRecal>();
 	} else {
 		_models[1] = std::make_unique<TModelRecal>(RecalString2, RhoString2);
+	}
+}
+
+void TReadGroupModels::initialize(size_t mate, const std::string &RecalString, const std::string &RhoString) {
+	if(RecalString.empty() || RecalString == "-" || RecalString == "default"){
+		_models[mate] = std::make_unique<TModelNoRecal>();
+	} else {
+		_models[mate] = std::make_unique<TModelRecal>(RecalString, RhoString);
 	}
 }
 
@@ -200,10 +210,9 @@ void TModels::initializeFromFile(const std::string &Filename, const BAM::TReadGr
 
 	// read parameters from file
 	logfile().listFlush("Initializing recalibration models from '" + Filename + "' ...");
-	coretools::TInputFile in(Filename, {"readGroup", "covariates1", "rho1", "covariates2", "rho2"}, "\t", "//");
+	coretools::TInputFile in(Filename, {"readGroup", "mate", "covariates", "rho"}, "\t", "//");
 
 	// prepare objects
-	_models.resize(ReadGroups.size());
 
 	// tmp variables for reading
 	std::vector<std::string> vec;
@@ -211,23 +220,21 @@ void TModels::initializeFromFile(const std::string &Filename, const BAM::TReadGr
 	//store per RG info
 	std::vector< std::vector<std::string> > info(ReadGroups.size());
 
+	_models.reserve(ReadGroups.size());
 	// parse file to read details for each read group
 	while (in.read(vec)) {
-		if (ReadGroups.readGroupExists(vec[0])) { // ignore if it does not exist
-			// store by read group id
-			info[ReadGroups.getId(vec[0])] = vec;
-		}
-	}
-
-	//create models
-	_models.reserve(ReadGroups.size());
-	for(uint16_t r = 0; r < ReadGroups.size(); ++r){
+		OUT(vec);
 		try {
-			_models.emplace_back(info[r][1], info[r][2], info[r][3], info[r][4]);
+			const auto readGroup = ReadGroups.getId(vec[0]);
+			const auto mate      = vec[1] == "first" ? 0 : 1;
+			WINK();
+			_models[readGroup].initialize(mate, vec[2], vec[3]);
+			WINK();
 		} catch (const char *error) {
-			throw std::string(error) + " for read group " + ReadGroups[r].name_ID + " in file '" + Filename + "!";
+			throw std::string(error) + " for read group " + vec[0] + " in file '" + Filename + "!";
 		}
 	}
+	WINK();
 
 	logfile().done();
 }

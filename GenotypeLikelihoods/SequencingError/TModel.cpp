@@ -59,7 +59,7 @@ TRho::TRho(std::string_view Def) {
 		if (i >= 4) UERROR("Too many rows given for rho, needed only 4!");
 
 		std::array<double, 4> ar;
-		TSplitter spl2(s, ',');
+		TSplitter spl2(strip(s, "[]"), ',');
 		size_t j = 0;
 
 		for (auto ss : spl2) {
