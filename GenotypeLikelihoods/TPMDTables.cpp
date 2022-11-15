@@ -15,6 +15,7 @@
 #include "TReadGroups.h"
 #include "TSequencedBase.h"
 #include "coretools/Strings/stringFunctions.h"
+#include "genometools/GenotypeTypes.h"
 
 namespace GenotypeLikelihoods {
 
@@ -35,9 +36,11 @@ void TPMDTable::empty() {
 }
 
 void TPMDTable::add(size_t pos, genometools::Base ref, genometools::Base read) {
-	const auto p = std::min(pos, size());
-	++_counts[ref][read][p];
-	++_sums[ref][p];
+	if (read != genometools::Base::N && ref != genometools::Base::N) {
+		const auto p = std::min(pos, size());
+		++_counts[ref][read][p];
+		++_sums[ref][p];
+	}
 }
 
 void TPMDTable::add(const TPMDTable &other) {
