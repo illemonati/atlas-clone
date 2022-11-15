@@ -338,7 +338,7 @@ bool TAlignment::isAlignedAtInternalPos(const uint32_t internalPosition) const {
 	return _alignedPosition[internalPosition] >= 0;
 };
 
-uint32_t TAlignment::getLastInternalPos() {
+uint32_t TAlignment::getLastInternalPos() const {
 	return (_alignedPosition.size()-1);
 }
 

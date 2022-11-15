@@ -22,7 +22,7 @@ TCigar::TCigar(TCigar cigar, uint16_t overlapLength, bool isFirst) {
 	} else {
 		uint16_t nonOverlapLength = cigar.lengthAligned() - overlapLength;
 		if (isFirst) {
-			auto iterator = cigar.begin();
+			std::vector<CigarOperator>::const_iterator iterator = cigar.begin();
 			while (lengthAligned() < nonOverlapLength && iterator!=cigar.end()) {
 				if (lengthAligned()+iterator->length > nonOverlapLength && (iterator->type =='M' || iterator->type == '=' || iterator->type == 'X')) {
 					if (iterator->type != 'S'){
@@ -46,29 +46,27 @@ TCigar::TCigar(TCigar cigar, uint16_t overlapLength, bool isFirst) {
 			}
 			add('S',overlap);
 		} else {
-			auto iterator = --cigar.end();
-			while (lengthAligned() < nonOverlapLength && iterator != --cigar.begin()) {
+			std::vector<CigarOperator>::const_reverse_iterator iterator = cigar.rbegin();
+			while (lengthAligned() < nonOverlapLength && iterator != cigar.rend()) {
 						if (lengthAligned()+iterator->length > nonOverlapLength && (iterator->type =='M' || iterator->type == '=' || iterator->type == 'X')) {
 							if (iterator->type != 'S'){
 								overlap = (lengthAligned()+iterator->length) - nonOverlapLength;
 								add(iterator->type,iterator->length - overlap);
-								iterator--;
 							} else {
 								overlap += iterator->length;
 								nonOverlapLength = lengthAligned();
-								iterator--;
 							}
 						} else {
 							add(iterator->type,iterator->length);
-							iterator--;
 						}
+						iterator++;
 					}
 
-			while (iterator != --cigar.begin()) {
+			while (iterator != cigar.rend()) {
 				if (iterator->type == 'M' || iterator->type == 'I' || iterator->type == '=' || iterator->type == 'X' || iterator->type == 'S') {
 					overlap+=iterator->length;
 				}
-				iterator--;
+				iterator++;
 			}
 			add('S',overlap);
 			_flipCigar();

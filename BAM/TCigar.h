@@ -42,6 +42,8 @@ public:
 	void clear();
 	std::vector<CigarOperator>::const_iterator begin() const noexcept { return _cigar.begin(); }
 	std::vector<CigarOperator>::const_iterator end() const noexcept { return _cigar.end(); }
+	std::vector<CigarOperator>::const_reverse_iterator rbegin() const noexcept { return _cigar.rbegin(); }
+	std::vector<CigarOperator>::const_reverse_iterator rend() const noexcept { return _cigar.rend(); }
 	void add(char Type, uint32_t Length);
 	void removeSoftClips();
 

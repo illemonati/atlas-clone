@@ -18,7 +18,10 @@ using namespace AlignmentMerger;
 
 using namespace BAM;
 
+//TODO:add unit test for highestQuality, check what happens when quality changes at border of overlap, anywhere in the overlap, first base etc.
+//also check for all cases
 
+//TODO: also test with soft clips and inserts etc. (especially the middle merge)
 
 TEST(TAlignmentMergerTest, forwardFirst_reverseSecond_mergeFirst){
     TAlignment firstRead(1, 10);
@@ -183,6 +186,24 @@ TEST(TAlignmentMergerTest, forwardFirst_reverseSecond_mergeHighestQuality){
     EXPECT_EQ(secondRead2.cigar().lengthSoftClippedLeft(), 0);
     EXPECT_EQ(firstRead2.position(), 10);  
     EXPECT_EQ(secondRead2.position(), 100);
+
+    TAlignment firstRead3(1, 10);
+    TAlignment secondRead3(1, 100);
+
+    firstRead3.setIsReverseStrand(false);
+    secondRead3.setIsReverseStrand(true);
+
+    higherQuality[5] = genometools::PhredIntProbability(coretools::Probability (0.01));
+
+    firstRead3.setSequenceQualities(cigar, vect, lowerQuality);
+    secondRead3.setSequenceQualities(cigar, vect, higherQuality);
+
+    mergeQual.merge(firstRead3, secondRead3);
+    EXPECT_EQ(firstRead3.cigar().lengthSoftClippedRight(), 0);
+    EXPECT_EQ(secondRead3.cigar().lengthSoftClippedLeft(), 10);
+    EXPECT_EQ(firstRead3.position(), 10);  
+    EXPECT_EQ(secondRead3.position(), 110);
+
 }
 
 TEST(TAlignmentMergerTest, sameStartAndEndPos_mergeFirst){

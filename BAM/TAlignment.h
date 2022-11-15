@@ -123,7 +123,7 @@ public:
 
 	// getters: position
 	uint32_t lastAlingedInternalPos() const { return _lastAlignedPos; };
-	uint32_t getLastInternalPos();
+	uint32_t getLastInternalPos() const;
 	TGenomePosition lastAlignedPositionWithRespectToRef() const { return _lastAlignedPositionWithRespectToRef; };
 	bool isAlignedAtInternalPos(const uint32_t internalPosition) const;
 	genometools::Base referenceAtInternalPos(uint32_t internalPosition) const;
@@ -157,8 +157,14 @@ public:
 	// looping
 	std::vector<TSequencedBase>::iterator begin() noexcept { return _bases.begin(); };
 	std::vector<TSequencedBase>::iterator end() noexcept { return _bases.end(); };
+	std::vector<TSequencedBase>::reverse_iterator rbegin() noexcept { return _bases.rbegin(); };
+	std::vector<TSequencedBase>::reverse_iterator rend() noexcept { return _bases.rend(); };
 	std::vector<TSequencedBase>::const_iterator begin() const noexcept { return _bases.begin(); };
 	std::vector<TSequencedBase>::const_iterator end() const noexcept { return _bases.end(); };
+	std::vector<TSequencedBase>::const_reverse_iterator rbegin() const noexcept { return _bases.rbegin(); };
+	std::vector<TSequencedBase>::const_reverse_iterator rend() const noexcept { return _bases.rend(); };
+
+	
 	size_t size() const noexcept { return _bases.size(); }
 
 	// filters and other functions to modify data

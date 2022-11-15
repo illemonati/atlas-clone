@@ -79,47 +79,39 @@ class TAlignmentMerger{
 public:
 	TAlignmentMerger(){};
 	virtual ~TAlignmentMerger(){};
-	virtual uint16_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate);
-	uint16_t determineOverlapLength(const BAM::TAlignment & alignment, const BAM::TAlignment & mate);
-	void callMergeFunction(BAM::TAlignment & alignment, BAM::TAlignment & mate, const uint32_t & overlapLength);
-	std::pair<genometools::PhredIntProbability,genometools::PhredIntProbability> getMinQuals(BAM::TAlignment & alignment, BAM::TAlignment & mate) const;
-	std::pair<genometools::PhredIntProbability,genometools::PhredIntProbability> minQual(BAM::TAlignment & firstRead, BAM::TAlignment & secondRead) const;
+	virtual size_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate);
+	size_t determineOverlapLength(const BAM::TAlignment & alignment, const BAM::TAlignment & mate);
 };
 
 class TAlignmentMerger_randomRead:public TAlignmentMerger{
 public:
 	TAlignmentMerger_randomRead();
-	uint16_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate);
+	size_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate);
 };
 
 class TAlignmentMerger_middle:public TAlignmentMerger{
 public:
 	TAlignmentMerger_middle();
-	uint16_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate);
-	std::pair<uint32_t,bool> determineOverlapLength(const BAM::TAlignment & alignment, const BAM::TAlignment & mate);
-	void mergeOddOverlap(BAM::TAlignment & firstRead, BAM::TAlignment & secondRead, uint16_t halfOverlap);
-	void checkIfReverseStrandFirst(const BAM::TAlignment & alignment, const BAM::TAlignment & mate, uint16_t & alignmentOverlapLength, uint16_t & mateOverlapLength, bool alignmentIsFirst);
-	genometools::PhredIntProbability determineQualAtSingleBase(BAM::TAlignment & alignment, uint16_t numBasesFromEnd, bool isFirst);
-	void compareQualities(const genometools::PhredIntProbability & firstReadQual, const genometools::PhredIntProbability & secondReadQual, uint16_t & firstReadOverlapLength, uint16_t & secondReadOverlapLength);
-	void handleOverlapLargerThanRead(BAM::TAlignment & largerRead, BAM::TAlignment & smallerRead);
+	size_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate);
+	std::pair<size_t,bool> determineOverlapLength(const BAM::TAlignment & alignment, const BAM::TAlignment & mate);
 };
 
 class TAlignmentMerger_firstMate:public TAlignmentMerger{
 public:
 	TAlignmentMerger_firstMate();
-	uint16_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate);
+	size_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate);
 };
 
 class TAlignmentMerger_secondMate:public TAlignmentMerger{
 public:
 	TAlignmentMerger_secondMate();
-	uint16_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate);
+	size_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate);
 };
 
 class TAlignmentMerger_highestQuality:public TAlignmentMerger{
 public:
 	TAlignmentMerger_highestQuality();
-	uint16_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate);
+	size_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate);
 };
 
 
