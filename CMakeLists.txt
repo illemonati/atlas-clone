@@ -28,7 +28,7 @@ file(GLOB CORE_SOURCES CONFIGURE_DEPENDS
 include(FetchContent)
 FetchContent_Declare(coretools
   GIT_REPOSITORY    https://bitbucket.org/wegmannlab/coretools.git
-  GIT_TAG           e88a0ab
+  GIT_TAG           79c3b2e
   SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/coretools"
 )
 
