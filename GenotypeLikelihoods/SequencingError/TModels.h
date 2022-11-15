@@ -37,11 +37,11 @@ private:
 
 public:
 	TReadGroupModels();
-	TReadGroupModels(const std::string &RecalString, const std::string &RhoString);
-	TReadGroupModels(const std::string &RecalString1, const std::string &RhoString1, const std::string &RecalString2, const std::string &RhoString2);
+	TReadGroupModels(std::string_view RecalString, std::string_view RhoString);
+	TReadGroupModels(std::string_view RecalString1, std::string_view RhoString1, std::string_view RecalString2, std::string_view RhoString2);
 	TReadGroupModels(const BAM::RGInfo::TReadGroupInfoEntry & Info);
 
-	void initialize(size_t mate, const std::string &RecalString, const std::string &RhoString);
+	void initialize(size_t mate, std::string_view RecalString, std::string_view RhoString);
 
 	TModel& operator[](bool isSecondMate) noexcept {
 		return *_models[isSecondMate].get();
@@ -70,9 +70,9 @@ private:
 	std::vector<TReadGroupModels> _models;
 public:
 	void initializeNoRecal(const BAM::TReadGroups &ReadGroups);
-	void initialize(const std::string &RecalString, const std::string &RhoString, const BAM::TReadGroups &ReadGroups);
+	void initialize(std::string_view RecalString, std::string_view RhoString, const BAM::TReadGroups &ReadGroups);
 	void initialize(const std::vector<std::string> & RecalStringPerReadGroup, const std::vector<std::string> & RhoStringPerReadGroup, const BAM::TReadGroups &ReadGroups);
-	void initializeFromFile(const std::string &Filename, const BAM::TReadGroups &ReadGroups);
+	void initializeFromFile(std::string_view Filename, const BAM::TReadGroups &ReadGroups);
 	void initialize(BAM::RGInfo::TReadGroupInfo & RgInfo);
 	void checkReadGroups(const BAM::TReadGroups &ReadGroups, std::vector<uint16_t> &ReadGroupsWithoutRecal,
 			     std::vector<uint16_t> &ReadGroupsLikelySingleEnd) const noexcept;
@@ -103,7 +103,7 @@ public:
 	void recalibrate(std::vector<BAM::TSequencedBase> &bases) const noexcept;
 	TBaseLikelihoods baseLikelihoods(const BAM::TSequencedBase &base) const noexcept;
 
-	void writeRecalFile(const BAM::TReadGroups &ReadGroups, const std::string & Filename) const;
+	void writeRecalFile(const BAM::TReadGroups &ReadGroups, std::string_view  Filename) const;
 
 	void addToRGInfo(BAM::RGInfo::TReadGroupInfo & RgInfo) const;
 };

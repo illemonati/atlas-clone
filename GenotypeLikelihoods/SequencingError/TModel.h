@@ -106,8 +106,9 @@ private:
 	TRho _rho;
 	TEpsilon _epsilon;
 public:
-	TModelRecal(const std::string &EpsilonDef, const std::string& RhoDef="default");
-	TModelRecal(const BAM::RGInfo::TInfo &) : _epsilon(""){};
+	TModelRecal(std::string_view EpsilonDef, std::string_view RhoDef = "default")
+		: _rho(RhoDef), _epsilon(EpsilonDef) {}
+	TModelRecal(const BAM::RGInfo::TInfo &) : _epsilon("") {}
 
 	bool estimatable() const noexcept override { return true; };
 	bool recalibrates() const noexcept override { return true; };
