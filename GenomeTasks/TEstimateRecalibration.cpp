@@ -27,10 +27,26 @@ namespace GenomeTasks {
 using coretools::instances::logfile;
 using coretools::instances::parameters;
 
+namespace impl {
+BAM::TReadGroupMap makeReadGroupMap(const BAM::TReadGroups &ReadGroups) {
+	if (parameters().parameterExists("poolReadGroups")) {
+		std::string poolReadGroupsFile = parameters().getParameter<std::string>("poolReadGroups");
+		logfile().startIndent("Will pool read groups (parameter 'poolReadGroups'):");
+		return {ReadGroups, poolReadGroupsFile, &logfile()};
+		logfile().endIndent();
+	} else {
+		logfile().list("Will estimate recalibration parameters for each read group. (use 'poolReadGroups' to pool)");
+		return {ReadGroups};
+	}
+}
+} // namespace impl
+
 //-----------------------------------------------------------
 // TEstimateRecalibration_base
 //-----------------------------------------------------------
-TEstimateRecalibration::TEstimateRecalibration() : TGenome_windows() {
+	TEstimateRecalibration::TEstimateRecalibration() : TGenome_windows(),
+													   _readGroupMap(impl::makeReadGroupMap(_bamFile.readGroups())),
+													   recal(&_bamFile.readGroups(), &_readGroupMap) {
 	if (_genotypeLikelihoodCalculator.recalibrationChangesQualities() && !parameters().parameterExists("rerecalibrate"))
 		throw "Can not estimate recalibration: quality scores are already recalibrated while reading! (Use argument "
 			  "'rerecalibrate' to overwrite this error)";
@@ -45,22 +61,7 @@ TEstimateRecalibration::TEstimateRecalibration() : TGenome_windows() {
 			"Will use all sites without prior knowledge on alleles. (use 'genotypes' to provide known genotypes)");
 	}
 
-	// initialize maps
-	if (parameters().parameterExists("poolReadGroups")) {
-		std::string poolReadGroupsFile = parameters().getParameter<std::string>("poolReadGroups");
-		logfile().startIndent("Will pool read groups (parameter 'poolReadGroups'):");
-		_readGroupMap = std::make_unique<BAM::TReadGroupMap>(_bamFile.readGroups(), poolReadGroupsFile, &logfile());
-		logfile().endIndent();
-	} else {
-		logfile().list("Will estimate recalibration parameters for each read group. (use 'poolReadGroups' to pool)");
-		_readGroupMap = std::make_unique<BAM::TReadGroupMap>(_bamFile.readGroups());
-	}
-
 	_onlyLL = parameters().parameterExists("onlyLL");
-
-	// initialize recal estimator
-	recalObjectEM = std::make_unique<GenotypeLikelihoods::SequencingError::TRecalibrationEMEstimator>(
-		&(_bamFile.readGroups()), _readGroupMap.get());
 };
 
 void TEstimateRecalibration::_handleWindow() {
@@ -69,11 +70,11 @@ void TEstimateRecalibration::_handleWindow() {
 		std::set<GenotypeLikelihoods::TSiteSubsetSite> thesePositions = _subset->getPositionInWindow(_window);
 		for (auto &it : thesePositions) {
 			uint32_t internalPos = it - _window.from();
-			if (!_window[internalPos].empty() && it.ref() == it.alt()) { recalObjectEM->addSite(_window[internalPos]); }
+			if (!_window[internalPos].empty() && it.ref() == it.alt()) { recal.addSite(_window[internalPos]); }
 		}
 	} else {
 		for (auto &s : _window) {
-			if (!s.empty()) { recalObjectEM->addSite(s); }
+			if (!s.empty()) { recal.addSite(s); }
 		}
 	}
 };
@@ -85,12 +86,12 @@ void TEstimateRecalibration::estimateRecalibration() {
 	_genotypeLikelihoodCalculator.sequencingErrorModels().remember(forgottenModels);
 
 	if (_onlyLL) {
-		recalObjectEM->calcLL(_genotypeLikelihoodCalculator.sequencingErrorModels(),
+		recal.calcLL(_genotypeLikelihoodCalculator.sequencingErrorModels(),
 							  _genotypeLikelihoodCalculator.postMortemDamageModels());
 
 	} else {
 		// estimate recal parameters
-		recalObjectEM->performEstimation(_outputName, _genotypeLikelihoodCalculator.sequencingErrorModels(),
+		recal.performEstimation(_outputName, _genotypeLikelihoodCalculator.sequencingErrorModels(),
 										 _genotypeLikelihoodCalculator.postMortemDamageModels());
 	}
 };
