@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <cmath>
 #include <iostream>
+#include <string>
 
 #include "coretools/Main/TRandomGenerator.h"
 #include "coretools/Strings/stringFunctions.h"

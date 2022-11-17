@@ -57,9 +57,12 @@ class TTreeMixFile:public TAlleleCountFile{
 public:
 	void writeHeader(genometools::TPopulationSamples & samples);
 	void writeHeader(std::vector<std::string> populationNames);
-	void writePosition(std::string chr, long pos);
-	void writePosition(std::string chr, std::string pos);
-	void writePosition(const genometools::TPopulationLikelihoodReaderLocus & reader);
+
+	// do nothing, treemix does not need position
+	void writePosition(std::string, long) {}
+	void writePosition(std::string, std::string) {}
+	void writePosition(const genometools::TPopulationLikelihoodReaderLocus &){};
+
 	void writeCounts(int count, int numAlleles, int populationNum);
 	void writeCounts(std::string count, std::string numAlleles, int populationNum);
 

@@ -66,7 +66,7 @@ THaplotypeSimulator::THaplotypeSimulator(){
 	_cumulRef[Base::T] = 1.0;
 
 	// base frequencies
-	if(parameters().parameterExists("baseFreq)")){
+	if(parameters().parameterExists("baseFreq")){
 		std::vector<double> freq;
 		coretools::str::fillContainerFromString(parameters().getParameter<std::string>("baseFreq"), freq, ',');
 		if (freq.size() != 4) throw "baseFreq vector must have size = 4!";

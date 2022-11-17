@@ -195,6 +195,7 @@ TReadSimulatorSingleEnd::TReadSimulatorSingleEnd(const BAM::TReadGroup & ReadGro
 
 	//num cycles
 	logfile().list(BAM::RGInfo::infos[InfoType::cycles].description, ": ", RGInfo.getString(InfoType::cycles));
+	std::string error = "For single-end read groups, " + BAM::RGInfo::infos[InfoType::cycles].description + " must be a single integer within [1,65535].";
 	auto& json = RGInfo[InfoType::cycles];
 
 	std::string err = "Unable to understand " + BAM::RGInfo::infos[InfoType::cycles].description + ": ";
@@ -351,7 +352,7 @@ void TReadSimulatorPairedEnd::simulate(const TGenomePosition & Position, const s
 	}
 }
 
-void TReadSimulatorPairedEnd::writeUnwrittenAlignments(const genometools::TGenomePosition &, TSimulatorBamFile &BamFile) {
+void TReadSimulatorPairedEnd::writeUnwrittenAlignments(const genometools::TGenomePosition & Position, TSimulatorBamFile &BamFile) {
 	//TODO
 	/*
 	if(!_bamAlignmentSecondMates.empty()){

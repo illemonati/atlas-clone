@@ -38,7 +38,7 @@ TVcfConverter::TVcfConverter() {
 
 	// read output name
 	auto tmp = coretools::str::readBeforeLast(_vcfName, ".vcf");
-	_outName        = parameters().getParameterWithDefault("out", tmp);
+	_outName = parameters().getParameterWithDefault("out", tmp);
 	logfile().list("Writing output files with prefix '" + _outName + "'. (specify with 'out')");
 }
 

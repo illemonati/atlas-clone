@@ -34,7 +34,7 @@ void TFunction::_initializeValues(const std::vector<std::string> &betas) {
 			throw toString("Failed to initialize recalibration module: wrong number of values (", betas.size(),
 						   " instead of ", numParameters(), ")!");
 		}
-		std::transform(betas.cbegin(), betas.cend(), _begin(), coretools::str::convertStringCheck<double>);
+		std::transform(betas.cbegin(), betas.cend(), _begin(), coretools::str::fromString<double, true>);
 	}
 }
 

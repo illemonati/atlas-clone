@@ -542,12 +542,12 @@ public:
 		for (std::string s : betas) {
 			size_t pos = s.find(':');
 			if (pos == std::string::npos) { throw "Can not parse value '" + s + "': missing ':'!"; }
-			uint16_t val = coretools::str::convertStringCheck<uint16_t>(s.substr(0, pos));
+			uint16_t val = coretools::str::fromString<uint16_t, true>(s.substr(0, pos));
 			if (std::find(values.begin(), values.end(), val) != values.end()) {
 				throw "Duplicate entry for key " + toString(val) + "!";
 			}
 			values.push_back(val);
-			_betas.push_back(coretools::str::convertStringCheck<double>(s.substr(pos + 1)));
+			_betas.push_back(coretools::str::fromString<double, true>(s.substr(pos + 1)));
 		}
 		// init map
 		_initMapFromVector(values);
