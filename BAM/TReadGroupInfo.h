@@ -39,7 +39,7 @@ inline std::string toString(const TInfo& info){
 //------------------------------------------------
 // TInfoValue
 //------------------------------------------------
-enum class InfoType {min=0, RGName=0, RGFrequency, seqType, cycles, fragmentLength, baseQuality, mappingQuality, softClipping, recal, pmd, max};
+enum class InfoType : size_t {min=0, RGName=0, RGFrequency, seqType, cycles, fragmentLength, baseQuality, mappingQuality, softClipping, recal, pmd, max};
 
 //------------------------------------------------
 // argument string, description and default for each info type

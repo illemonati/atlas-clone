@@ -235,7 +235,7 @@ void TGenome_windows::_setWindowFilters() {
 
 void TGenome_windows::_setSiteFilters() {
 	// depth filter
-	_readUpToDepth = parameters().getParameterWithDefault<uint32_t>("readUpToDepth", 1000);
+	_readUpToDepth = parameters().getParameterWithDefault<size_t>("readUpToDepth", 1000);
 	logfile().list("Will read data up to depth " + toString(_readUpToDepth) +
 				   " and ignore additional bases. (parameter 'readUpToDepth')");
 
@@ -384,7 +384,7 @@ bool TGenome_windows::_moveToNextWindow(GenotypeLikelihoods::TWindow_base &windo
 };
 
 bool TGenome_windows::_incrementPredefinedWindow() {
-	uint32_t oldRefID = _curPredefinedWindow->refID();
+	size_t oldRefID = _curPredefinedWindow->refID();
 
 	++_curPredefinedWindow;
 	if (_curPredefinedWindow == _predefinedWindows.end()) { return false; }

@@ -51,7 +51,7 @@ public:
 	void write(coretools::TOutputFile &out, std::vector<std::string> &prefix, bool normalized);
 };
 
-enum class ReadEnd {min = 0, forward3 = min, forward5, reverse3, reverse5, max };
+enum class ReadEnd : size_t {min = 0, forward3 = min, forward5, reverse3, reverse5, max };
 using PMDTable_RG = coretools::TStrongArray<TPMDTable, ReadEnd>;
 
 //------------------------------------------------
