@@ -37,10 +37,6 @@ namespace GenomeTasks{
 
 namespace AlignmentMerger{
 
-//TODO: const where possible
-//TODO: all objects either const ref or ref
-//TODO: comment cigar constructor
-
 using coretools::instances::parameters;
 using coretools::instances::logfile;
 using coretools::instances::randomGenerator;

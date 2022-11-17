@@ -21,7 +21,8 @@ using namespace BAM;
 //TODO:add unit test for highestQuality, check what happens when quality changes at border of overlap, anywhere in the overlap, first base etc.
 //also check for all cases
 
-//TODO: also test with soft clips and inserts etc. (especially the middle merge)
+//TODO: also test with soft clips and inserts etc. (especially the middle merge) 
+//and put high quality inserts in and merge with highestquality --> should then merge the other read
 
 TEST(TAlignmentMergerTest, forwardFirst_reverseSecond_mergeFirst){
     TAlignment firstRead(1, 10);
@@ -38,8 +39,10 @@ TEST(TAlignmentMergerTest, forwardFirst_reverseSecond_mergeFirst){
 
     TAlignmentMerger_firstMate mergeFirstMate;
     mergeFirstMate.merge(firstRead, secondRead);
+    EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 0);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 10);
     EXPECT_EQ(secondRead.cigar().lengthSoftClippedLeft(), 0);
+    EXPECT_EQ(secondRead.cigar().lengthSoftClippedRight(), 0);
     EXPECT_EQ(firstRead.position(), 10);  
     EXPECT_EQ(secondRead.position(), 100);
 }
@@ -59,8 +62,10 @@ TEST(TAlignmentMergerTest, forwardFirst_reverseSecond_mergeSecond){
 
     TAlignmentMerger_secondMate mergeSecondMate;
     mergeSecondMate.merge(firstRead, secondRead);
+    EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 0);
     EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 0);
     EXPECT_EQ(secondRead.cigar().lengthSoftClippedLeft(), 10);
+    EXPECT_EQ(secondRead.cigar().lengthSoftClippedRight(), 0);
     EXPECT_EQ(firstRead.position(), 10);  
     EXPECT_EQ(secondRead.position(), 110);
 }
@@ -136,6 +141,40 @@ TEST(TAlignmentMergerTest, forwardFirst_reverseSecond_mergeMiddleOddOverlapLengt
     EXPECT_EQ(secondRead2.cigar().lengthSoftClippedLeft(), 5);
     EXPECT_EQ(firstRead2.position(), 10);  
     EXPECT_EQ(secondRead2.position(), 104);
+
+
+    TAlignment firstRead3(1, 10);
+    TAlignment secondRead3(1, 99);
+
+    firstRead3.setIsReverseStrand(false);
+    secondRead3.setIsReverseStrand(true);
+
+
+    TCigar newCigar;
+    newCigar.add('S', 8);
+    newCigar.add('M', 100);
+
+ 
+    std::vector<genometools::PhredIntProbability> newHigherQuality;
+    newHigherQuality.resize(108);
+    std::fill(newHigherQuality.begin(),newHigherQuality.end(),genometools::PhredIntProbability(coretools::Probability (0.5)));
+
+    std::vector<genometools::PhredIntProbability> newLowerQuality;
+    newLowerQuality.resize(108);
+    std::fill(newLowerQuality.begin(),newLowerQuality.end(),genometools::PhredIntProbability(coretools::Probability (0.1)));
+
+    vect.resize(108);
+
+    firstRead3.setSequenceQualities(newCigar, vect, newHigherQuality);
+    secondRead3.setSequenceQualities(newCigar, vect, newLowerQuality);
+
+    mergeMiddle.merge(firstRead3, secondRead3);
+    EXPECT_EQ(firstRead3.cigar().lengthSoftClippedRight(), 5);
+    EXPECT_EQ(firstRead3.cigar().lengthSoftClippedLeft(), 8);
+    EXPECT_EQ(secondRead3.cigar().lengthSoftClippedLeft(), 14);
+    EXPECT_EQ(secondRead3.cigar().lengthSoftClippedRight(), 0);
+    EXPECT_EQ(firstRead3.position(), 10);  
+    EXPECT_EQ(secondRead3.position(), 105);
 }
 
 TEST(TAlignmentMergerTest, forwardFirst_reverseSecond_mergeHighestQuality){

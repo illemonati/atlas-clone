@@ -15,47 +15,47 @@ namespace BAM {
 // TCigar
 // A class to store, access and manipulate CIGAR operators
 //----------------------------------------------------------
-TCigar::TCigar(TCigar cigar, uint16_t overlapLength, bool isFirst) {
+TCigar::TCigar(TCigar cigar, uint16_t overlapLength, bool isForwardStrand) {
 	uint16_t overlap = 0;
+	//if the overlap is larger than the number of aligned bases in the read (i.e. the other read eclipses this alignment), all bases are softclipped
 	if (overlapLength >= cigar.lengthAligned()) {
 		add('S', cigar.lengthRead());
 	} else {
+		//how many aligned bases before the overlap begins
 		uint16_t nonOverlapLength = cigar.lengthAligned() - overlapLength;
-		if (isFirst) {
+		//if the read starts before its mate, go beginning->end, otherwise go end->beginning
+		if (isForwardStrand) {
 			std::vector<CigarOperator>::const_iterator iterator = cigar.begin();
+			//copy cigar string until either the start of the overlap or the end of the read is reached
 			while (lengthAligned() < nonOverlapLength && iterator!=cigar.end()) {
+				//if next segment of cigar string would exceed nonOverlapLength, split it up into M/=/X and S
 				if (lengthAligned()+iterator->length > nonOverlapLength && (iterator->type =='M' || iterator->type == '=' || iterator->type == 'X')) {
-					if (iterator->type != 'S'){
-						overlap = (lengthAligned()+iterator->length) - nonOverlapLength;
-						add(iterator->type,iterator->length - overlap);
-						iterator++;
-					} else {
-						overlap += iterator->length;
-						nonOverlapLength = lengthAligned();
-						iterator++;
-					}
+					overlap = (lengthAligned()+iterator->length) - nonOverlapLength;
+					add(iterator->type,iterator->length - overlap);
+					iterator++;
 				} else {
 					add(iterator->type,iterator->length);
 					iterator++;
 				}
 			}
+			//sum up the length of the remaining overlap
 			while (iterator != cigar.end()) {
 				if (iterator->type == 'M' || iterator->type == 'I' || iterator->type == '=' || iterator->type == 'X' || iterator->type == 'S')
 					overlap+=iterator->length;
 				iterator++;
 			}
+
+			//softclip the overlap, increasing the length of softclips on the left ensures that this overlap is placed on the right side
+			_lengthSoftClippedLeft++;
 			add('S',overlap);
+			_lengthSoftClippedLeft--;
 		} else {
+			//same as the part above, just use rbegin instead of begin to construct the cigar-string from right to left
 			std::vector<CigarOperator>::const_reverse_iterator iterator = cigar.rbegin();
 			while (lengthAligned() < nonOverlapLength && iterator != cigar.rend()) {
 						if (lengthAligned()+iterator->length > nonOverlapLength && (iterator->type =='M' || iterator->type == '=' || iterator->type == 'X')) {
-							if (iterator->type != 'S'){
-								overlap = (lengthAligned()+iterator->length) - nonOverlapLength;
-								add(iterator->type,iterator->length - overlap);
-							} else {
-								overlap += iterator->length;
-								nonOverlapLength = lengthAligned();
-							}
+							overlap = (lengthAligned()+iterator->length) - nonOverlapLength;
+							add(iterator->type,iterator->length - overlap);
 						} else {
 							add(iterator->type,iterator->length);
 						}
@@ -68,7 +68,10 @@ TCigar::TCigar(TCigar cigar, uint16_t overlapLength, bool isFirst) {
 				}
 				iterator++;
 			}
+			_lengthSoftClippedLeft++;
 			add('S',overlap);
+			_lengthSoftClippedLeft--;
+			//cigar string needs to be flipped because it was created in reverse
 			_flipCigar();
 		}
 	}
