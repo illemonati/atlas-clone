@@ -65,7 +65,7 @@ void TBamFile::setLimits(TParameters & params, TLog* logfile){
 	}
 
 	//limit chromosomes?
-	_chromosomes.limitAndSetPloidy(params, logfile);
+	_chromosomes.limitAndSetPloidy();
 
 	//limit read groups
 	if(params.parameterExists("readGroup")){

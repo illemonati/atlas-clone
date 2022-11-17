@@ -180,6 +180,7 @@ void TInbreedingEstimatorPrior::_updateFToHWE(const Storage &Data) {
 		// rejected model switch -> we're still in F-model
 		_FModel->set(true);
 	}
+	_FModel->addToMeanVar();
 }
 
 void TInbreedingEstimatorPrior::_updateRegularF(const Storage &Data) {
@@ -217,6 +218,7 @@ void TInbreedingEstimatorPrior::_updateHWEToF(const Storage &Data) {
 		// rejected model switch -> we're still in null-model
 		_FModel->set(false);
 	}
+	_FModel->addToMeanVar();
 }
 
 void TInbreedingEstimatorPrior::_updateP(const Storage &Data, size_t Locus) {
@@ -260,6 +262,7 @@ void TInbreedingEstimatorPrior::_updatePToNull(const Storage &Data, size_t Locus
 		// rejected model switch -> we're still in P-model
 		_pModel->set(Locus, true);
 	}
+	_pModel->addToMeanVar();
 }
 
 void TInbreedingEstimatorPrior::_updateRegularP(const Storage &Data, size_t Locus) {
@@ -288,6 +291,7 @@ void TInbreedingEstimatorPrior::_updateNullToP(const Storage &Data, size_t Locus
 		// rejected model switch -> we're still in null-model
 		_pModel->set(Locus, false);
 	}
+	_pModel->addToMeanVar();
 }
 
 void TInbreedingEstimatorPrior::_setInitialF() {

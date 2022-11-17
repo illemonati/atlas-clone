@@ -4,6 +4,9 @@ import matplotlib.pyplot as plt
 from scipy.special import logit
 from scipy.special import expit
 
+def T(x):
+    return logit(10**(-x/10))
+
 def modelFn(model):
     model = "lambda x: " + model
     fn = eval(model)
@@ -19,15 +22,25 @@ if __name__ == "__main__":
     for m in args.models:
         fns.append(modelFn(m))
 
-    qs = np.r_[0:93:1]
-    ps = 10**(-qs/10)
-    vs = logit(ps)
+    xs = np.r_[0:150:1]
     for i, fn in enumerate(fns):
-        etas = fn(vs)
-        recals = -10*np.log10(expit(etas))
-        plt.plot(qs, recals, label=args.models[i])
+        eta = fn(xs)
+        ax1 = plt.subplot(311)
+        plt.plot(xs, eta, label="f" + str(i+1) + " = " + args.models[i])
+        plt.tick_params('x', labelbottom=False)
+        plt.ylabel("eta")
+        plt.legend()
 
-    plt.legend()
-    plt.xlabel("quality")
-    plt.ylabel("recal")
+        prob = expit(eta)
+        plt.subplot(312, sharex=ax1)
+        plt.tick_params('x', labelbottom=False)
+        plt.plot(xs, prob)
+        plt.ylabel("prob")
+
+        plt.subplot(313, sharex=ax1)
+        q = -10*np.log10(prob)
+        plt.plot(xs, q)
+        plt.ylabel("new quality")
+
+    plt.xlabel("x")
     plt.show()

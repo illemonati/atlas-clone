@@ -141,9 +141,9 @@ public:
 	virtual void parseEstimationParameters(TPMDEstimationParameters &EstimationParameters)                   = 0;
 	virtual void estimate(const PMDTable_RG &PMDTable, const TPMDEstimationParameters &EstimationParameters) = 0;
 
-	virtual TBaseLikelihoods getBaseLikelihoods(const BAM::TSequencedBase &data,
+	virtual TBaseLikelihoods baseLikelihoods(const BAM::TSequencedBase &data,
 												const TBaseLikelihoods &baseLikelihoodsNoPMD) const = 0;
-	virtual TBaseProbabilities getMassFunction(genometools::Base b, const BAM::TSequencedBase &data, 
+	virtual TBaseProbabilities massFunction(genometools::Base b, const BAM::TSequencedBase &data, 
 											   const TBaseLikelihoods &baseLikelihoodsNoPMD) const  = 0;
 
 	virtual void simulate(BAM::TSequencedBase &data) const = 0;
@@ -168,13 +168,13 @@ public:
 	void parseEstimationParameters(TPMDEstimationParameters &) override {}
 	void estimate(const PMDTable_RG &, const TPMDEstimationParameters &) override {}
 
-	TBaseLikelihoods getBaseLikelihoods(const BAM::TSequencedBase &,
+	TBaseLikelihoods baseLikelihoods(const BAM::TSequencedBase &,
 										const TBaseLikelihoods &baseLikelihoodsNoPMD) const override {
 		// just copy
 		return baseLikelihoodsNoPMD;
 	}
 
-	TBaseProbabilities getMassFunction(genometools::Base b, const BAM::TSequencedBase &, const TBaseLikelihoods &) const override {
+	TBaseProbabilities massFunction(genometools::Base b, const BAM::TSequencedBase &, const TBaseLikelihoods &) const override {
 		return massFunctions[b];
 	}
 
@@ -220,10 +220,10 @@ public:
 	void parseEstimationParameters(TPMDEstimationParameters &EstimationParameters) override;
 	void estimate(const PMDTable_RG &PMDTable, const TPMDEstimationParameters &EstimationParameters) override;
 
-	TBaseLikelihoods getBaseLikelihoods(const BAM::TSequencedBase &data,
+	TBaseLikelihoods baseLikelihoods(const BAM::TSequencedBase &data,
 										const TBaseLikelihoods &baseLikelihoodsNoPMD) const override;
 
-	TBaseProbabilities getMassFunction(genometools::Base b, const BAM::TSequencedBase &data,
+	TBaseProbabilities massFunction(genometools::Base b, const BAM::TSequencedBase &data,
 									   const TBaseLikelihoods &baseLikelihoodsNoPMD) const override;
 
 	virtual void simulate(BAM::TSequencedBase &data) const override;
@@ -255,10 +255,10 @@ public:
 	void parseEstimationParameters(TPMDEstimationParameters &EstimationParameters) override;
 	void estimate(const PMDTable_RG &PMDTable, const TPMDEstimationParameters &EstimationParameters) override;
 
-	TBaseLikelihoods getBaseLikelihoods(const BAM::TSequencedBase &data,
+	TBaseLikelihoods baseLikelihoods(const BAM::TSequencedBase &data,
 										const TBaseLikelihoods &baseLikelihoodsNoPMD) const override;
 
-	TBaseProbabilities getMassFunction(genometools::Base b, const BAM::TSequencedBase &data,
+	TBaseProbabilities massFunction(genometools::Base b, const BAM::TSequencedBase &data,
 									   const TBaseLikelihoods &baseLikelihoodsNoPMD) const override;
 
 	virtual void simulate(BAM::TSequencedBase &data) const override;
@@ -291,9 +291,9 @@ public:
 	void writeToFile(const BAM::TReadGroups &ReadGroups, const std::string filename) const;
 	void writeToFile(const BAM::TReadGroups &ReadGroups, const BAM::TReadGroupMap &ReadGroupMap,
 	                 const std::string filename) const;
-	TBaseLikelihoods getBaseLikelihoods(const BAM::TSequencedBase &data,
+	TBaseLikelihoods baseLikelihoods(const BAM::TSequencedBase &data,
 	                                    const TBaseLikelihoods &baseLikelihoodsNoPMD) const;
-	TBaseProbabilities getMassFunction(genometools::Base b, const BAM::TSequencedBase &data,
+	TBaseProbabilities massFunction(genometools::Base b, const BAM::TSequencedBase &data,
 									   const TBaseLikelihoods &baseLikelihoodsNoPMD) const;
 
 	std::string functionString() const noexcept {

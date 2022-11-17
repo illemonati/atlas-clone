@@ -313,7 +313,7 @@ BAM::TAlignment* TBamFilter::_parseIntoNewAlignment(){
 			alignment->parse();
 			alignment->recalibrateWithPMD(_genotypeLikelihoodCalculator);
 		} else {
-			alignment->parse(_genotypeLikelihoodCalculator.getSequencingErrorModels());
+			alignment->parse(_genotypeLikelihoodCalculator.sequencingErrorModels());
 		}
 	}
 	return alignment;

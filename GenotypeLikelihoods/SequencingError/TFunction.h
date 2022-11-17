@@ -11,6 +11,7 @@
 #include <array>
 #include <cstdint>
 #include <iomanip>
+#include <iterator>
 #include <memory>
 #include <stddef.h>
 #include <string>
@@ -21,7 +22,6 @@
 #include "genometools/PhredProbabilityTypes.h"
 #include "coretools/Math/TProbabilityDistributions.h"
 #include "SequencingError/TCovariate.h"
-#include "coretools/devtools.h"
 #include "coretools/Math/mathFunctions.h"
 #include "coretools/Types/probability.h"
 #include "coretools/Strings/stringFunctions.h"
@@ -42,14 +42,6 @@ private:
 	size_t _firstParameterIndex;
 
 protected:
-	virtual double *_begin() noexcept              = 0;
-	virtual double *_end() noexcept                = 0;
-	virtual const double *_cbegin() const noexcept = 0;
-	virtual const double *_cend() const noexcept   = 0;
-	virtual double *_obegin() noexcept             = 0;
-	virtual double *_oend() noexcept               = 0;
-
-	void _initializeValues(const std::vector<std::string> &betas);
 	static double normalizeParameters(std::vector<double> &betas) noexcept {
 		const double mean = std::accumulate(betas.begin(), betas.end(), 0.) / betas.size();
 		for (auto &bi : betas) { bi -= mean; }
@@ -61,12 +53,14 @@ public:
 	virtual ~TFunction() = default;
 
 	// non-virtuals
-	void proposeNewParameters(const arma::mat &JxF, size_t &index, double lambda) noexcept;
-	void rejectProposedParameters() noexcept;
 	constexpr size_t firstParameterIndex() const noexcept { return _firstParameterIndex; }
 
 	// virtuals
-	virtual size_t numParameters() const noexcept               = 0;
+	virtual double *begin() noexcept              = 0;
+	virtual double *end() noexcept                = 0;
+	virtual const double *begin() const noexcept  = 0;
+	virtual const double *end() const noexcept    = 0;
+	virtual size_t numParameters() const noexcept = 0;
 
 	// check value range: to ensure that data can be recalibrated
 	virtual bool checkOrInitValueRange(const RecalEstimatorTools::TRecalDataTable &dataTable) = 0;
@@ -77,7 +71,15 @@ public:
 						  std::vector<T2ndDerivative> &der2) const noexcept = 0;
 	virtual double adjustParametersPostEstimation() noexcept                = 0;
 	virtual std::string typeString() const noexcept                         = 0;
-	virtual std::string modelString() const;
+	virtual void addInfo(BAM::RGInfo::TInfo &info) const                    = 0;
+	virtual std::string modelString() const {
+		return typeString()
+			.append(1, '[')
+			.append(
+				std::accumulate(begin() + 1, end(), coretools::str::toString(*begin()),
+								[](auto tot, auto b) { return tot.append(1, ',').append(coretools::str::toString(b)); }))
+			.append(1, ']');
+	}
 };
 
 //--------------------------------------------------------------
@@ -87,24 +89,18 @@ public:
 class TIntercept final : public TFunction {
 private:
 	double _beta    = 0.;
-	double _oldBeta = 0.;
-
-	double *_begin() noexcept override { return &_beta; }
-	double *_end() noexcept override { return &_beta + 1; }
-	const double *_cbegin() const noexcept override { return &_beta; }
-	const double *_cend() const noexcept override { return &_beta + 1; }
-	double *_obegin() noexcept override { return &_oldBeta; }
-	double *_oend() noexcept override { return &_oldBeta + 1; }
 
 public:
 	static constexpr std::string_view name = "intercept";
 
-	TIntercept(size_t FirstParameterIndex, const std::vector<std::string> &Betas)
-		: TFunction(FirstParameterIndex) {
-		_initializeValues(Betas);
-	}
+	TIntercept(size_t FirstParameterIndex) : TFunction(FirstParameterIndex) {}
 
 	size_t numParameters() const noexcept override { return 1; }
+
+	double *begin() noexcept override { return &_beta; }
+	double *end() noexcept override { return &_beta + 1; }
+	const double *begin() const noexcept override { return &_beta; }
+	const double *end() const noexcept override { return &_beta + 1; }
 
 	bool checkOrInitValueRange(const RecalEstimatorTools::TRecalDataTable &) noexcept override { return true; }
 
@@ -122,6 +118,9 @@ public:
 	double adjustParametersPostEstimation() noexcept override { return 0.; }
 
 	std::string typeString() const noexcept override { return std::string(name); }
+	 void addInfo(BAM::RGInfo::TInfo& info) const override {
+		 info[name] = _beta;
+	}
 };
 
 namespace impl {
@@ -238,23 +237,19 @@ private:
 	using Transformer =
 		std::conditional_t<std::is_same_v<Covariate, TCovariate_quality>, impl::TLogitTransform, impl::TNoTransform>;
 	std::array<double, O> _betas{1.};  // betas of the model
-	std::array<double, O> _oldBetas{}; // use during estimation
-
-	double *_begin() noexcept override { return _betas.data(); }
-	double *_end() noexcept override { return _betas.data() + O; }
-	const double *_cbegin() const noexcept override { return _betas.data(); }
-	const double *_cend() const noexcept override { return _betas.data() + O; }
-	double *_obegin() noexcept override { return _oldBetas.data(); }
-	double *_oend() noexcept override { return _oldBetas.data() + O; }
 
 public:
 	static constexpr std::string_view name = "polynomial";
 
-	TPolynomial(size_t FirstParameterIndex, const std::vector<std::string> &betas) : TFunction(FirstParameterIndex) {
-		_initializeValues(betas);
-	}
+	TPolynomial(size_t FirstParameterIndex) : TFunction(FirstParameterIndex) {}
 
 	size_t numParameters() const noexcept override { return O; }
+
+	double *begin() noexcept override { return _betas.data(); }
+	double *end() noexcept override { return _betas.data() + O; }
+	const double *begin() const noexcept override { return _betas.data(); }
+	const double *end() const noexcept override { return _betas.data() + O; }
+
 
 	bool checkOrInitValueRange(const RecalEstimatorTools::TRecalDataTable &dataTable) noexcept override {
 		if constexpr (Transformer::hasRange) {
@@ -318,7 +313,11 @@ public:
 
 	std::string typeString() const noexcept override {
 		using coretools::str::toString;
-		return std::string(Covariate::name).append(1, ':').append(name).append(1, '(').append(toString(O)).append(1,')');
+		return std::string(Covariate::name).append(1, ':').append(name).append(1, '0' + O);
+	}
+
+	void addInfo(BAM::RGInfo::TInfo& info) const override {
+		info[Covariate::name] = {{name, _betas}};
 	}
 };
 
@@ -341,7 +340,6 @@ private:
 		}
 	};
 	std::array<double, 3> _betas{1., 0, 1.};    // betas of the model
-	std::array<double, 3> _oldBetas{}; // use during estimation
 
 	// tmp storage
 	mutable std::vector<TProbitTmpStorage> _tmpStorage;
@@ -350,21 +348,16 @@ private:
 		for (size_t q = _tmpStorage.size(); q <= MaxValue; ++q) { _tmpStorage.emplace_back(_betas, q); }
 	}
 
-	double *_begin() noexcept override { return _betas.data(); }
-	double *_end() noexcept override { return _betas.data() + _betas.size(); }
-	const double *_cbegin() const noexcept override { return _betas.data(); }
-	const double *_cend() const noexcept override { return _betas.data() + _betas.size(); }
-	double *_obegin() noexcept override { return _oldBetas.data(); }
-	double *_oend() noexcept override { return _oldBetas.data() + _oldBetas.size(); }
-
 public:
 	static constexpr std::string_view name = "probit";
-	TProbit(size_t FirstParameterIndex, const std::vector<std::string> &betas) : TFunction(FirstParameterIndex) {
-		_initializeValues(betas);
-		_expandTmpStorage(128);
-	}
+	TProbit(size_t FirstParameterIndex) : TFunction(FirstParameterIndex) {}
 
 	size_t numParameters() const noexcept override { return 3; }
+
+	double *begin() noexcept override { return _betas.data(); }
+	double *end() noexcept override { return _betas.data() + _betas.size(); }
+	const double *begin() const noexcept override { return _betas.data(); }
+	const double *end() const noexcept override { return _betas.data() + _betas.size(); }
 
 	bool checkOrInitValueRange(const RecalEstimatorTools::TRecalDataTable &) noexcept override { return true; }
 
@@ -411,6 +404,10 @@ public:
 
 	double adjustParametersPostEstimation() noexcept override { return 0.; }
 	std::string typeString() const noexcept override { return std::string(Covariate::name).append(1, ':').append(name); }
+
+	void addInfo(BAM::RGInfo::TInfo& info) const override {
+		info[Covariate::name] = {{name, _betas}};
+	}
 };
 
 //--------------------------------------------------------------
@@ -420,57 +417,26 @@ public:
 template<typename Covariate> class TEmpiric final : public TFunction {
 private:
 	std::vector<double> _betas;    // betas of the model
-	std::vector<double> _oldBetas; // use during estimation
-
-	void _resize(size_t size) {
-		_betas.resize(size);
-		_oldBetas.resize(size);
-	}
-
-	bool _checkValueRange(size_t val) const noexcept { return val < numParameters(); }
-	void _adjustValueRanges(const std::vector<uint16_t> &values) {
-		// initialize with maximum
-		using coretools::str::toString;
-		_resize(*std::max_element(values.begin(), values.end()) + 1);
-
-		// check that each value from 0 to max is actually used!
-		std::vector<bool> found(numParameters(), false);
-		for (auto &i : values) { found[i] = true; }
-		if (const auto f = std::find(found.cbegin(), found.cend(), false); f != found.cend()) {
-			throw "Can not adjust value range for recal function '" + std::string(name) + "': value " +
-				toString(std::distance(f, found.cbegin())) + " is < max value but never used." +
-				"\nConsider using recal function 'SpecificMap'.";
-		}
-	}
-
-	double *_begin() noexcept override { return _betas.data(); }
-	double *_end() noexcept override { return _betas.data() + _betas.size(); }
-	const double *_cbegin() const noexcept override { return _betas.data(); }
-	const double *_cend() const noexcept override { return _betas.data() + _betas.size(); }
-	double *_obegin() noexcept override { return _oldBetas.data(); }
-	double *_oend() noexcept override { return _oldBetas.data() + _betas.size(); }
 
 public:
 	static constexpr std::string_view name = "empiric";
 
-	TEmpiric(size_t FirstParameterIndex, const std::vector<std::string> &betas) : TFunction(FirstParameterIndex) {
-		_resize(betas.size());
-		_initializeValues(betas);
-	}
+	TEmpiric(size_t FirstParameterIndex) : TFunction(FirstParameterIndex) {}
 
 	size_t numParameters() const noexcept override { return _betas.size(); }
 
-	bool checkOrInitValueRange(const RecalEstimatorTools::TRecalDataTable &dataTable) override {
-		const auto values = Covariate::range(dataTable);
-		if (numParameters() == 0) {
-			_adjustValueRanges(values);
-			return true;
-		}
+	double *begin() noexcept override { return _betas.data(); }
+	double *end() noexcept override { return _betas.data() + _betas.size(); }
+	const double *begin() const noexcept override { return _betas.data(); }
+	const double *end() const noexcept override { return _betas.data() + _betas.size(); }
 
-		for (uint16_t val : values) {
-			if (!_checkValueRange(val)) return false;
+	void push_back(double val) noexcept {_betas.push_back(val);}
+
+	bool checkOrInitValueRange(const RecalEstimatorTools::TRecalDataTable &dataTable) override {
+		if (numParameters() == 0) {
+			_betas.resize(Covariate::N(dataTable));
 		}
-		return true;
+		return Covariate::N(dataTable) <= numParameters();
 	}
 
 	double adjustParametersPostEstimation() noexcept override { return normalizeParameters(_betas); }
@@ -487,6 +453,10 @@ public:
 		
 	}
 	std::string typeString() const noexcept override { return std::string(Covariate::name).append(1, ':').append(name); }
+
+	void addInfo(BAM::RGInfo::TInfo& info) const override {
+		info[Covariate::name] = {{name, _betas}};
+	}
 };
 
 //--------------------------------------------------------------
@@ -496,73 +466,36 @@ public:
 template<typename Covariate> class TIndexedEmpiric final : public TFunction {
 private:
 	std::vector<double> _betas;    // betas of the model
-	std::vector<double> _oldBetas; // use during estimation
 	std::vector<int> _indexMap;    // maps value to parameter index
-
-	void _resizeBetas(size_t n) {
-		_betas.resize(n);
-		_oldBetas.resize(n);
-	}
-
-	void _initMapFromVector(const std::vector<uint16_t> &values) {
-		_indexMap.clear();
-		if (values.empty()) return;
-
-		// find largest value
-		const auto max = std::max((uint16_t)_indexMap.size(), *std::max_element(values.begin(), values.end()));
-
-		// create map
-		_indexMap.resize(max + 1, -1);
-
-		for (size_t i = 0; i < values.size(); ++i) {
-			_indexMap[values[i]] = i;
-		}
-	}
-
-	bool _checkValueRange(uint16_t val) const noexcept { return val < _indexMap.size() && (_indexMap[val] >= 0); }
-	void _adjustValueRanges(const std::vector<uint16_t> &values) {
-		_resizeBetas(values.size());
-		_initMapFromVector(values);
-	}
-
-protected:
-	double *_begin() noexcept override { return _betas.data(); }
-	double *_end() noexcept override { return _betas.data() + _betas.size(); }
-	const double *_cbegin() const noexcept override { return _betas.data(); }
-	const double *_cend() const noexcept override { return _betas.data() + _betas.size(); }
-	double *_obegin() noexcept override { return _oldBetas.data(); }
-	double *_oend() noexcept override { return _oldBetas.data() + _betas.size(); }
 
 public:
 	static constexpr std::string_view name = "empiric"; // same as TEmpiric, as atlas user does not see a difference
-	TIndexedEmpiric(size_t FirstParameterIndex, const std::vector<std::string> &betas) : TFunction(FirstParameterIndex) {
-		using coretools::str::toString;
-		// parse values as pairs separated by a colon (:)
-		std::vector<uint16_t> values;
-		for (std::string s : betas) {
-			size_t pos = s.find(':');
-			if (pos == std::string::npos) { throw "Can not parse value '" + s + "': missing ':'!"; }
-			uint16_t val = coretools::str::fromString<uint16_t, true>(s.substr(0, pos));
-			if (std::find(values.begin(), values.end(), val) != values.end()) {
-				throw "Duplicate entry for key " + toString(val) + "!";
-			}
-			values.push_back(val);
-			_betas.push_back(coretools::str::fromString<double, true>(s.substr(pos + 1)));
-		}
-		// init map
-		_initMapFromVector(values);
-	}
+	TIndexedEmpiric(size_t FirstParameterIndex) : TFunction(FirstParameterIndex) {}
 
 	size_t numParameters() const noexcept override { return _betas.size(); }
 
+	void push_back(size_t i, double val) noexcept {
+		if (i >= _indexMap.size()) _indexMap.resize(i+1, -1);
+		if (_indexMap[i] < 0) {
+			_betas.push_back(val);
+			_indexMap[i] = _betas.size() - 1;
+		} else {
+			_betas[_indexMap[i]] = val;
+		}
+	}
+
+	double *begin() noexcept override { return _betas.data(); }
+	double *end() noexcept override { return _betas.data() + _betas.size(); }
+	const double *begin() const noexcept override { return _betas.data(); }
+	const double *end() const noexcept override { return _betas.data() + _betas.size(); }
+
 	bool checkOrInitValueRange(const RecalEstimatorTools::TRecalDataTable &dataTable) override {
-		const auto values = Covariate::range(dataTable);
 		if (numParameters() == 0) {
-			_adjustValueRanges(values);
+			for (auto v : Covariate::range(dataTable)) { push_back(v, 0.); }
 			return true;
 		}
-		for (uint16_t val : values) {
-			if (!_checkValueRange(val)) return false;
+		for (uint16_t val : Covariate::range(dataTable)) {
+			if ((val > _indexMap.size()) || (_indexMap[val] < 0)) return false;
 		}
 		return true;
 	}
@@ -578,17 +511,26 @@ public:
 	double getEta(const BAM::TSequencedBase &base, std::vector<T1stDerivative> &der1,
 				  std::vector<T2ndDerivative> &) const noexcept override {
 		const auto val = Covariate::extract(base);
-		der1.emplace_back(firstParameterIndex() + _indexMap[Covariate::extract(base)], 1.0);
+		der1.emplace_back(firstParameterIndex() + _indexMap[val], 1.0);
 		return _betas[_indexMap[val]];
 	}
 
 	std::string typeString() const noexcept override { return std::string(Covariate::name).append(1, ':').append(name); }
 
+	void addInfo(BAM::RGInfo::TInfo& info) const override {
+		info[Covariate::name] = {{name, {}}};
+		BAM::RGInfo::TInfo ar = nlohmann::json::array();
+		for (size_t i = 0; i < _indexMap.size(); ++i) {
+			if (_indexMap[i] >= 0) ar += {i, _betas[_indexMap[i]]};
+		}
+		info[Covariate::name] = {{name, ar}};
+	}
+
 	std::string modelString() const override {
 		using coretools::str::toString;
-		if (_indexMap.empty()) return typeString() + "[]";
+		if (_indexMap.empty()) return typeString().append("[]");
 
-		std::string s = typeString() + "[";
+		std::string s = typeString().append(1, '[');
 		for (size_t i = 0; i < _indexMap.size(); ++i) {
 			if(_indexMap[i] >= 0) {
 				s.append(toString(i)).append(1, ':').append(toString(_betas[_indexMap[i]])).append(1, ',');
@@ -596,7 +538,7 @@ public:
 		}
 		s.pop_back(); // remove last ','
 		return s.append(1, ']');
-	};
+	}
 };
 
 } // namespace SequencingError

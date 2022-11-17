@@ -65,18 +65,18 @@ protected:
 public:
 	TGenotypeLikelihoodCalculator(const BAM::TReadGroups* ReadGroups);
 
-	const SequencingError::TModels& getSequencingErrorModels() const { return _sequencingErrorModels; };
-	SequencingError::TModels& getSequencingErrorModels() { return _sequencingErrorModels; };
-	const TPostMortemDamage& getPostMortemDamageModels() const { return _pmdModels; };
-	TPostMortemDamage& getPostMortemDamageModels() { return _pmdModels; };
+	const SequencingError::TModels& sequencingErrorModels() const { return _sequencingErrorModels; };
+	SequencingError::TModels& sequencingErrorModels() { return _sequencingErrorModels; };
+	const TPostMortemDamage& postMortemDamageModels() const { return _pmdModels; };
+	TPostMortemDamage& postMortemDamageModels() { return _pmdModels; };
 
 	bool hasPMD() const;
 	bool recalibrationChangesQualities() const;
 
-	coretools::Probability getErrorRate(const BAM::TSequencedBase & base) const;
-	coretools::Probability getErrorWithPMD(const BAM::TSequencedBase & base) const;
-	genometools::PhredIntProbability getPhredInt(const BAM::TSequencedBase & base) const;
-	genometools::PhredIntProbability getPhredIntWithPMD(const BAM::TSequencedBase & base) const;
+	coretools::Probability errorRate(const BAM::TSequencedBase & base) const;
+	coretools::Probability errorWithPMD(const BAM::TSequencedBase & base) const;
+	genometools::PhredIntProbability phredInt(const BAM::TSequencedBase & base) const;
+	genometools::PhredIntProbability phredIntWithPMD(const BAM::TSequencedBase & base) const;
 	void recalibrate(BAM::TSequencedBase & base) const;
 	void recalibrateWithPMD(BAM::TSequencedBase & base) const;
 

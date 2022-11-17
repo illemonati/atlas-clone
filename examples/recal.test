@@ -4,10 +4,10 @@
 
 
 # python ../tools/plotRecal.py "x"
-r_none="intercept[0.0];quality:polynomial()[1.0,0.0,0.00]"
+r_none="intercept[0.0];quality:polynomial[1.0,0.0,0.00]"
 
 # python ../tools/plotRecal.py "0.1 + 0.8*x + 0.2*x**2 + 0.01*x**3"
-r_model="intercept[0.1];quality:polynomial()[0.8,0.2,0.01]"
+r_model="intercept[0.1];quality:polynomial[0.8,0.2,0.01]"
 
 vals=("0.0" "0.1" "0.2" "0.3")
 
@@ -20,10 +20,10 @@ for v in ${vals[@]}; do
 
 	$atlas --task simulate --ploidy 1 --recal $r_model --pmd $p --fixedSeed 0 --logFile simulate${n}.out --out $n
 	$atlas --task PMD --bam $n.bam --fasta $n.fasta --pmdModels "$p_type:Empiric:Empiric" --fixedSeed 0 --logFile ${n}_empiric.out --out ${n}_empiric 2> ${n}_empiric.err
-	$atlas --task PMD --bam $n.bam --fasta $n.fasta --pmdModels "$p_type:Exponential:Exponential" --fixedSeed 0 --logFile ${n}_exp.out --out ${n}_exp 2> ${n}_exp.err
+	#$atlas --task PMD --bam $n.bam --fasta $n.fasta --pmdModels "$p_type:Exponential:Exponential" --fixedSeed 0 --logFile ${n}_exp.out --out ${n}_exp 2> ${n}_exp.err
 
-	$atlas --task recal --bam $n.bam --iterations 1 --recal "intercept;quality:polynomial(3)" --rerecalibrate --minDeltaLL 10 --fixedSeed 0 --logFile ${n}_noPMD.out --out ${n}_noPMD 2> ${n}_noPMD.err
-	$atlas --task recal --bam $n.bam --pmd $p --recal "intercept;quality:polynomial(3)" --rerecalibrate --minDeltaLL 10 --fixedSeed 0 --logFile ${n}_withPMD.out --out ${n}_withPMD 2> ${n}_withPMD.err
+	$atlas --task recal --bam $n.bam --iterations 1 --recal "intercept;quality:polynomial3" --rerecalibrate --minDeltaLL 10 --fixedSeed 0 --logFile ${n}_noPMD.out --out ${n}_noPMD 2> ${n}_noPMD.err
+	$atlas --task recal --bam $n.bam --pmd $p --recal "intercept;quality:polynomial3" --rerecalibrate --minDeltaLL 10 --fixedSeed 0 --logFile ${n}_withPMD.out --out ${n}_withPMD 2> ${n}_withPMD.err
 done
 
 exit

@@ -39,7 +39,7 @@ inline std::string toString(const TInfo& info){
 //------------------------------------------------
 // TInfoValue
 //------------------------------------------------
-enum class InfoType {min=0, RGName=0, RGFrequency, seqType, cycles, fragmentLength, baseQuality, mappingQuality, softClipping, recal, pmd, max};
+enum class InfoType : size_t {min=0, RGName=0, RGFrequency, seqType, cycles, fragmentLength, baseQuality, mappingQuality, softClipping, recal, pmd, max};
 
 //------------------------------------------------
 // argument string, description and default for each info type
@@ -149,8 +149,7 @@ public:
 	void readInfoAndMatchReadGroups(const BAM::TReadGroups & ReadGroups, const std::string & Filename = "");
 
 	// or: read info and fill TReadGroups (used for simulations)
-	BAM::TReadGroups readInfoAndCreateReadGroups();
-	BAM::TReadGroups readInfoAndCreateReadGroups(const std::string & RgInfoFileName);
+	BAM::TReadGroups readInfoAndCreateReadGroups(const std::string & RgInfoFileName = "");
 
 	//functions to parse certain info
 	void parse(const InfoType Info);
