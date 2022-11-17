@@ -75,7 +75,7 @@ void TRecalDataTables::initialize(const BAM::TReadGroups *ReadGroups, const BAM:
 	clear();
 	_readGroups   = ReadGroups;
 	_readGroupMap = ReadGroupMapObject;
-	_tables.resize(_readGroupMap->numReadGroupsInUse());
+	_tables.resize(_readGroups->size());
 };
 
 void TRecalDataTables::clear() {
