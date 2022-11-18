@@ -47,7 +47,7 @@ FetchContent_Declare(stattools
 
 FetchContent_Declare(bamtools
   GIT_REPOSITORY    https://github.com/glis-glis/bamtools.git
-  GIT_TAG           6bcd40f
+  GIT_TAG           7c3abb4
   SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/bamtools"
 )
 
