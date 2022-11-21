@@ -14,7 +14,6 @@
 
 #include "genometools/GenotypeTypes.h"
 #include "genometools/BED/TBed.h"
-#include "TFastaBuffer.h"
 #include "coretools/Files/TOutputFile.h"
 #include "TGenotypeData.h"
 #include "coretools/Main/TLog.h"
@@ -213,12 +212,11 @@ bool TWindow_base::filter(const double maxFracMissing, const double maxRefN, cor
 	return _passedFilters;
 };
 
-void TWindow_base::addReferenceBaseToSites(BAM::TFastaBuffer & reference){
-	if(!referenceBaseAdded && reference.hasReference()){
-		std::vector<genometools::Base> ref; //fasta object fills string
-		reference.fill(*this, ref);
+void TWindow_base::addReferenceBaseToSites(const genometools::TFastaReader & reference) {
+	if(!referenceBaseAdded && reference.isOpen()){
+		const auto view = reference.view(*this);
 		for(size_t i=0; i<size(); ++i){
-			_sites[i].refBase = ref[i];
+			_sites[i].refBase = view[i];
 		}
 		referenceBaseAdded = true;
 	}
@@ -270,12 +268,10 @@ void TWindow_base::applyMask(genometools::TBed & mask, bool doInverseMasking){
 	}
 };
 
-void TWindow_base::maskCpG(BAM::TFastaBuffer & reference){
+void TWindow_base::maskCpG(const genometools::TFastaReader & reference){
 	using genometools::Base;
 	//get ref sequence with one extra base on either side of window
-	std::vector<Base> ref;
-	genometools::TGenomePosition pos = _from - 1;
-	reference.fill(pos, size()+2, ref); //NOTE: appends N in case start < 0 or start + length > chr
+	const auto ref = reference.view(_from.refID(), _from.position() - 1, size() + 2);
 
 	//now check for each base. Index in ref is shifted by 1!
 	//TODO: check this!!!

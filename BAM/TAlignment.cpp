@@ -6,14 +6,15 @@
  */
 
 #include "TAlignment.h"
+#include "genometools/GenomePositions/TGenomePosition.h"
 #include "genometools/GenotypeTypes.h"
 #include "genometools/PhredProbabilityTypes.h"
 #include "TBamFilter.h"
-#include "TFastaBuffer.h"
 #include "TGenotypeLikelihoodCalculator.h"
 #include "coretools/Main/TRandomGenerator.h"
 #include "coretools/Types/strongTypes.h"
 #include <algorithm>
+#include <iterator>
 #include <math.h>
 #include <memory>
 #include <stdexcept>
@@ -49,7 +50,6 @@ void TAlignment::clear() {
 	_alignedPosition.clear();
 
 	// reference
-	_hasReference = false;
 	_referenceSequence.clear();
 }
 
@@ -69,7 +69,6 @@ void TAlignment::fill(const std::string &Name, const TSamFlags &Flags, uint32_t 
 	_sequenceAndQualitiesChanged = false;
 	_bases.clear();
 	_alignedPosition.clear();
-	_hasReference = false;
 	_referenceSequence.clear();
 
 	// copy data
@@ -302,10 +301,12 @@ void TAlignment::parse(const GenotypeLikelihoods::SequencingError::TModels &seqE
 	_sequenceAndQualitiesChanged = seqErrorModels.recalibrationChangesQualities();
 };
 
-void TAlignment::addReference(TFastaBuffer &fasta) {
-	fasta.fill(*this, _lastAlignedPositionWithRespectToRef, _referenceSequence);
-	_hasReference = true;
-};
+void TAlignment::addReference(const genometools::TFastaReader &fasta) {
+	const auto window = genometools::TGenomeWindow(*this, _lastAlignedPositionWithRespectToRef);
+	const auto view = fasta.view(window);
+	_referenceSequence.clear();
+	std::copy(view.begin(), view.end(), std::back_inserter(_referenceSequence));
+}
 
 void TAlignment::setSequenceQualities(const TCigar &Cigar, const std::vector<genometools::Base> &Sequence,
 									  const std::vector<genometools::PhredIntProbability> &Qualities) {
@@ -335,8 +336,8 @@ bool TAlignment::isAlignedAtInternalPos(size_t internalPosition) const {
 };
 
 genometools::Base TAlignment::referenceAtInternalPos(size_t internalPosition) const {
-	assert(_hasReference);
 	assert(isAlignedAtInternalPos(internalPosition));
+	assert((size_t)_alignedPosition[internalPosition] < _referenceSequence.size());
 	return _referenceSequence[_alignedPosition[internalPosition]];
 };
 

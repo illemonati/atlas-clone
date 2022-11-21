@@ -95,12 +95,11 @@ TGenome_parsed::TGenome_parsed() : _genotypeLikelihoodCalculator(&_bamFile.readG
 };
 
 void TGenome_parsed::_openReference(bool required) {
-	if (!_reference.hasReference()) {
+	if (!_reference.isOpen()) {
 		if (parameters().parameterExists("fasta")) {
 			std::string fastaFile = parameters().getParameter<std::string>("fasta");
-			int bufferSize = parameters().getParameterWithDefault<int>("fastaBuffer", 100'000);
 			logfile().list("Reading reference sequence from '" + fastaFile + "'. (parameter fasta)");
-			_reference.initialize(fastaFile, bufferSize);
+			_reference.open(fastaFile);
 		} else {
 			if (required) { throw "No reference provided! (Use parameter fasta to provide a reference)"; }
 		}
@@ -138,7 +137,7 @@ void TGenome_parsed::_parseAlignment(BAM::TAlignment &alignment) {
 	alignment.filter(_qualityFilter);
 	alignment.filter(_contextFilter);
 
-	if (_reference.hasReference()) { alignment.addReference(_reference); }
+	if (_reference.isOpen()) { alignment.addReference(_reference); }
 };
 
 void TGenome_parsed::_traverseBAMPassedQC() {
@@ -226,7 +225,7 @@ void TGenome_windows::_setWindowFilters() {
 	_maxRefN = parameters().getParameterWithDefault<double>("maxRefN", 1.0);
 	if (_maxRefN < 0.0 || _maxRefN > 1.0) throw "maxRefN must be within interval [0,1]!";
 	_openReference();
-	if (_maxRefN < 1.0 && !_reference.hasReference())
+	if (_maxRefN < 1.0 && !_reference.isOpen())
 		throw "Can only calculate percentage of reference bases that are 'N' in window if reference file is provided! "
 			  "(use 'fasta' to provide a reference)";
 	logfile().list("Will filter out windows with a fraction of 'N' in reference > " + toString(_maxRefN) +

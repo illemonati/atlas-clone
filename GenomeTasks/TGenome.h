@@ -18,13 +18,13 @@
 #include "TAlignment.h"
 #include "TBamFile.h"
 #include "genometools/GenomePositions/TChromosomes.h"
-#include "TFastaBuffer.h"
 #include "genometools/GenomePositions/TGenomePosition.h"
 #include "TGenotypeData.h"
 #include "TGenotypeLikelihoodCalculator.h"
 #include "coretools/Math/TNumericRange.h"
 #include "coretools/TTimer.h"
 #include "TWindow.h"
+#include "genometools/TFastaReader.h"
 
 namespace GenotypeLikelihoods {
 class TSiteSubset;
@@ -84,7 +84,7 @@ protected:
 	GenotypeLikelihoods::TGenotypeLikelihoods _genoLik;
 
 	// reference
-	BAM::TFastaBuffer _reference;
+	genometools::TFastaReader _reference;
 	void _openReference(bool required = false);
 
 	// read trimming
