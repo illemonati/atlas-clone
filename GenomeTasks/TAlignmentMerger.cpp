@@ -48,12 +48,12 @@ namespace impl{
 	void callMergeFunction(BAM::TAlignment & alignment, BAM::TAlignment & mate, size_t overlapLength){
 	if(alignment.isReverseStrand()){
 		//if the reverse strand gets merged, its position in the BAM-file as well as the position of the mate of the first read need to be adjusted to account for the length of the added softclips on left side
-		if (overlapLength <= alignment.cigar().lengthAligned()) {
+		if (overlapLength <= alignment.cigar().lengthMapped()) {
 			alignment.moveOnRef(alignment.position() + overlapLength);
 			mate.setMateGenomicPosition(alignment);
 		} else {
 			//if the overlap is larger than the read being merged, the position can only be moved up by the amount of aligned bases in the read
-			alignment.moveOnRef(alignment.position() + alignment.cigar().lengthAligned());
+			alignment.moveOnRef(alignment.position() + alignment.cigar().lengthMapped());
 			mate.setMateGenomicPosition(alignment);
 		}
 	}
@@ -137,10 +137,10 @@ namespace impl{
 		//and the distance between the end positions to the overlap length of the forward strand
 		if (alignmentIsFirst && alignment.isReverseStrand()){
 			alignmentOverlapLength += mate.position() - alignment.position();
-			mateOverlapLength += (mate.position() + mate.cigar().lengthAligned()) - (alignment.position() + alignment.cigar().lengthAligned());
+			mateOverlapLength += (mate.position() + mate.cigar().lengthMapped()) - (alignment.position() + alignment.cigar().lengthMapped());
 		} else if (!alignmentIsFirst && mate.isReverseStrand()) {
 			mateOverlapLength += alignment.position() - mate.position();
-			alignmentOverlapLength += (alignment.position() + alignment.cigar().lengthAligned()) - (mate.position() + mate.cigar().lengthAligned());
+			alignmentOverlapLength += (alignment.position() + alignment.cigar().lengthMapped()) - (mate.position() + mate.cigar().lengthMapped());
 		}
 	}
 
@@ -165,13 +165,13 @@ namespace impl{
 
 	void handleOverlapLargerThanRead(BAM::TAlignment & largerRead, BAM::TAlignment & smallerRead){
 		//since the larger read fully eclipses the smaller read, the overlap is now as large as the number of aligned positions in the smaller read
-		size_t halfOverlap = smallerRead.cigar().lengthAligned() / 2;
+		size_t halfOverlap = smallerRead.cigar().lengthMapped() / 2;
 		size_t smallerReadOverlapLength = halfOverlap;
 		size_t largerReadOverlapLength = halfOverlap;
 		//if the larger read is the forward strand, add the distance between the ends of both reads to its overlap
 		//if it is the reverse read, add the distance between both starts
 		if (!largerRead.isReverseStrand()){
-			largerReadOverlapLength += (largerRead.position() + largerRead.cigar().lengthAligned()) - (smallerRead.position() + smallerRead.cigar().lengthAligned());
+			largerReadOverlapLength += (largerRead.position() + largerRead.cigar().lengthMapped()) - (smallerRead.position() + smallerRead.cigar().lengthMapped());
 		} else {
 			largerReadOverlapLength += smallerRead.position() - largerRead.position();
 		}
@@ -388,13 +388,13 @@ size_t TAlignmentMerger::determineOverlapLength(const BAM::TAlignment & alignmen
 		return 0;
 	//if-statements check for overlap using the first aligned position in the BAM-file and the aligned length given in the cigar string
 	if (alignment.isReverseStrand()){
-		if (alignment.position() < mate.position() + mate.cigar().lengthAligned()){
-			size_t overlapLength = mate.position() + mate.cigar().lengthAligned() - alignment.position();
+		if (alignment.position() < mate.position() + mate.cigar().lengthMapped()){
+			size_t overlapLength = mate.position() + mate.cigar().lengthMapped() - alignment.position();
 			return overlapLength;
 		} return 0;
 	} else {
-		if (mate.position() < alignment.position() + alignment.cigar().lengthAligned()){
-			size_t overlapLength = alignment.position() + alignment.cigar().lengthAligned() - mate.position();
+		if (mate.position() < alignment.position() + alignment.cigar().lengthMapped()){
+			size_t overlapLength = alignment.position() + alignment.cigar().lengthMapped() - mate.position();
 			return overlapLength;
 		} return 0;
 	}
@@ -420,10 +420,10 @@ size_t TAlignmentMerger_middle::merge(BAM::TAlignment & alignment, BAM::TAlignme
 	const std::pair<size_t,bool> overlapLength = determineOverlapLength(alignment, mate);
 	if (overlapLength.first > 0){
 		//in case one of the reads starts before and ends after its mate 
-		if (overlapLength.first > alignment.cigar().lengthAligned()) {
+		if (overlapLength.first > alignment.cigar().lengthMapped()) {
 			impl::handleOverlapLargerThanRead(mate, alignment);
 			return overlapLength.first;
-		} else if (overlapLength.first > mate.cigar().lengthAligned()){
+		} else if (overlapLength.first > mate.cigar().lengthMapped()){
 			impl::handleOverlapLargerThanRead(alignment, mate);
 			return overlapLength.first;
 		}
@@ -454,16 +454,16 @@ std::pair<size_t,bool> TAlignmentMerger_middle::determineOverlapLength(const BAM
 	if (alignment.cigar().lengthAligned() == 0 || mate.cigar().lengthAligned() == 0)
 		return std::make_pair(0,true);
 	if (alignment > mate){
-		if (alignment.position() < mate.position() + mate.cigar().lengthAligned()){
-			size_t overlapLength = mate.position() + mate.cigar().lengthAligned() - alignment.position();
+		if (alignment.position() < mate.position() + mate.cigar().lengthMapped()){
+			size_t overlapLength = mate.position() + mate.cigar().lengthMapped() - alignment.position();
 			bool alignmentFirst = false;
 			return std::make_pair(overlapLength,alignmentFirst);
 		} 
 		//else
 			return std::make_pair(0,false);
 	} else {
-		if (mate.position() < alignment.position() + alignment.cigar().lengthAligned()){
-			size_t overlapLength = alignment.position() + alignment.cigar().lengthAligned() - mate.position();
+		if (mate.position() < alignment.position() + alignment.cigar().lengthMapped()){
+			size_t overlapLength = alignment.position() + alignment.cigar().lengthMapped() - mate.position();
 			bool alignmentFirst = true;
 			return std::make_pair(overlapLength,alignmentFirst);
 		} 
