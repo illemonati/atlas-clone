@@ -30,8 +30,8 @@
 #include "genometools/GenotypeTypes.h"
 #include "genometools/PhredProbabilityTypes.h"
 
-#include "TFastaBuffer.h"
 #include "TGLF.h"
+#include "genometools/TFastaReader.h"
 
 namespace GLF {
 
@@ -236,8 +236,7 @@ private:
 	uint32_t _minDepth = 0;
 
 	// reference
-	bool hasReference = false;
-	BAM::TFastaBuffer fastaBuffer;
+	genometools::TFastaReader fastaReader;
 
 	void _openGLFs();
 	int _getGLFIndexFromName(const std::string &name) const;
@@ -286,7 +285,7 @@ public:
 	std::string chr() const { return _curChr.name(); };
 	constexpr uint32_t position() const noexcept { return _position; };
 	constexpr genometools::Base refBase() const noexcept {
-		return hasReference ? fastaBuffer.refAt(genometools::TGenomePosition(_curRefId, _position)) : genometools::Base::N;
+		return fastaReader.isOpen() ? fastaReader(_curRefId, _position) : genometools::Base::N;
 	};
 };
 

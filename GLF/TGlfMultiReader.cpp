@@ -268,8 +268,7 @@ void TGlfMultiReader::setDepthFilter(int MinDepth) {
 };
 
 void TGlfMultiReader::addReference(const std::string &FastaFile) {
-	fastaBuffer.initialize(FastaFile, 1000000);
-	hasReference = true;
+	fastaReader.open(FastaFile);
 };
 
 //-------------------------------------

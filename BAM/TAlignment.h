@@ -17,14 +17,13 @@
 #include "genometools/GenomePositions/TGenomePosition.h"
 #include "TSamFlags.h"
 #include "TSequencedBase.h"
+
 #include "coretools/devtools.h"
 #include "coretools/Types/probability.h"
+#include "genometools/TFastaReader.h"
 
 namespace BAM {
 class TBaseFilter;
-}
-namespace BAM {
-class TFastaBuffer;
 }
 namespace GenotypeLikelihoods {
 class TGenotypeLikelihoodCalculator;
@@ -39,6 +38,7 @@ class TRandomGenerator;
 }
 namespace genometools {
 class PhredIntProbability;
+class TFastaReader;
 }
 
 namespace BAM {
@@ -58,7 +58,7 @@ private:
 	uint16_t _readGroupID    = 0;
 	uint16_t _fragmentLength = 0;
 
-	TGenomePosition _lastAlignedPositionWithRespectToRef;
+	size_t _refSize         = 0;
 	int32_t _lastAlignedPos = 0;
 
 	// booleans
@@ -75,7 +75,6 @@ private:
 	std::vector<int> _alignedPosition;
 
 	// reference
-	bool _hasReference = false;
 	std::vector<genometools::Base> _referenceSequence;
 
 	// functions to read and parse
@@ -105,7 +104,7 @@ public:
 	void parse(const GenotypeLikelihoods::SequencingError::TModels &seqErrorModels);
 
 	// setters
-	void addReference(TFastaBuffer &fasta);
+	void addReference(const genometools::TFastaReader &fasta);
 	void setSequenceAndQualitiesChanged() { _sequenceAndQualitiesChanged = true; };
 	void setName(std::string Name) { _name = std::move(Name); };
 	void setMappingQuality(uint16_t Mappingquality) { _mappingQuality = Mappingquality; }; //TODO: why is this not a PhredInt probability?
@@ -123,7 +122,7 @@ public:
 
 	// getters: position
 	uint32_t lastAlingedInternalPos() const { return _lastAlignedPos; };
-	TGenomePosition lastAlignedPositionWithRespectToRef() const { return _lastAlignedPositionWithRespectToRef; };
+	TGenomePosition lastAlignedPositionWithRespectToRef() const { return *this + (_refSize - 1); };
 	bool isAlignedAtInternalPos(size_t internalPosition) const;
 	genometools::Base referenceAtInternalPos(size_t internalPosition) const;
 	TGenomePosition positionInRef(size_t internalPosition) const;

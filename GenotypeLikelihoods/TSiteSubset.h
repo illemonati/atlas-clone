@@ -18,9 +18,9 @@
 #include "genometools/GenotypeTypes.h"
 #include "genometools/GenomePositions/TGenomePosition.h"
 
-namespace BAM { class TFastaBuffer; }
 namespace coretools { class TOutputFile; }
 namespace genometools { class TChromosomes; }
+namespace genometools { class TFastaReader; }
 
 namespace GenotypeLikelihoods{
 
@@ -58,11 +58,11 @@ private:
 	bool _storesInvariantSites;
 
 	void _readFile(const std::string &Filename, const genometools::TChromosomes & Chromosomes);
-	void _readFile(const std::string &Filename, const genometools::TChromosomes & Chromosomes, BAM::TFastaBuffer & Reference);
+	void _readFile(const std::string &Filename, const genometools::TChromosomes & Chromosomes, const genometools::TFastaReader & Reference);
 
 public:
 	TSiteSubset(const std::string &Filename, const genometools::TChromosomes & Chromosomes, bool InvariantSites);
-	TSiteSubset(const std::string &Filename, const genometools::TChromosomes & Chromosomes, bool InvariantSites, BAM::TFastaBuffer & Reference);
+	TSiteSubset(const std::string &Filename, const genometools::TChromosomes & Chromosomes, bool InvariantSites, const genometools::TFastaReader & Reference);
 	void write(const std::string &Filename) const;
 	bool hasPositionsInWindow(const genometools::TGenomeWindow & Window) const;
 	std::set<TSiteSubsetSite> getPositionInWindow(const genometools::TGenomeWindow & Window) const;

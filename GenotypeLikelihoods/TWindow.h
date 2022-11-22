@@ -21,13 +21,14 @@
 #include "TSiteSubset.h"
 #include "coretools/Math/TSubsamplePicker.h"
 #include "coretools/Types/probability.h"
+#include "genometools/TFastaReader.h"
 
-namespace BAM { class TFastaBuffer; }
 namespace coretools { class TLog; }
 namespace coretools { class TOutputFile; }
 namespace coretools { class TRandomGenerator; }
 namespace coretools { template <typename T> class TNumericRange; }
 namespace genometools { class TBed; }
+namespace genometools { class TFastaReader; }
 
 namespace GenotypeLikelihoods{
 
@@ -44,7 +45,6 @@ protected:
 	std::string _chrName;
 
 	bool referenceBaseAdded;
-
 	//depth
 	bool _depthCalculated;
 	double _depth, _fractionSitesNoData, _fractionDepthAtLeastTwo, _fractionRefIsN;
@@ -79,10 +79,10 @@ public:
 	void downsampleFromOther(TWindow & other, TSiteSubset & subset, size_t readUpToDepth, const coretools::Probability & downsamplingProb, coretools::TRandomGenerator* randomGenerator);
 	void clear();
 
-	void addReferenceBaseToSites(BAM::TFastaBuffer & reference);
+	void addReferenceBaseToSites(const genometools::TFastaReader & reference);
 	void addReferenceBaseToSites(TSiteSubset & subset);
 	void applyMask(genometools::TBed & mask, bool doInverseMasking);
-	void maskCpG(BAM::TFastaBuffer & reference);
+	void maskCpG(const genometools::TFastaReader& reference);
 	void downsample(size_t maxDepth, const coretools::TSubsamplePicker & picker);
 	GenotypeLikelihoods::TBaseProbabilities estimateBaseFrequencies() const;
 	void applyDepthFilter(const coretools::TNumericRange<size_t> & DepthRange);

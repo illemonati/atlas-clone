@@ -13,10 +13,10 @@
 
 #include "genometools/GenotypeTypes.h"
 #include "genometools/GenomePositions/TChromosomes.h"
-#include "TFastaBuffer.h"
 #include "coretools/Files/TOutputFile.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Strings/stringFunctions.h"
+#include "genometools/TFastaReader.h"
 
 namespace GenotypeLikelihoods{
 
@@ -85,7 +85,7 @@ void TSiteSubset::_readFile(const std::string &Filename, const genometools::TChr
 	logfile().conclude("Parsed " + toString(_sites.size()) + " sites on " + toString(_refIDUsed.size()) + " chromosomes.");
 };
 
-void TSiteSubset::_readFile(const std::string &Filename, const genometools::TChromosomes & Chromosomes, BAM::TFastaBuffer & Reference){ //version that checks witth fasta reference
+void TSiteSubset::_readFile(const std::string &Filename, const genometools::TChromosomes & Chromosomes, const genometools::TFastaReader & Reference) {
 	logfile().listFlushTime("Reading sites to be used from '" + Filename + "' ...");
 
 	//open file
@@ -111,8 +111,7 @@ void TSiteSubset::_readFile(const std::string &Filename, const genometools::TChr
 		impl::checkAlleles(chr.name, pos, ref, alt, line[2], line[3], _storesInvariantSites);
 
 		//check with reference
-        genometools::TGenomePosition genoPos(chr.refID(), pos);
-		genometools::Base trueRef = Reference.refAt(genoPos);
+		genometools::Base trueRef = Reference(chr.refID(), pos);
 		if(trueRef != ref && trueRef != alt){
 			//conflict with fasta
 			if(!conflictsFound){
@@ -143,7 +142,7 @@ TSiteSubset::TSiteSubset(const std::string &Filename, const genometools::TChromo
 	_readFile(Filename, Chromosomes);
 };
 
-TSiteSubset::TSiteSubset(const std::string &Filename, const genometools::TChromosomes & Chromosomes, bool InvariantSites, BAM::TFastaBuffer & Reference){
+TSiteSubset::TSiteSubset(const std::string &Filename, const genometools::TChromosomes & Chromosomes, bool InvariantSites, const genometools::TFastaReader & Reference) {
 	_storesInvariantSites = InvariantSites;
 	_readFile(Filename, Chromosomes, Reference);
 };
