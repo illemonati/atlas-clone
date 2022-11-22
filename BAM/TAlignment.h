@@ -58,7 +58,7 @@ private:
 	uint16_t _readGroupID    = 0;
 	uint16_t _fragmentLength = 0;
 
-	TGenomePosition _lastAlignedPositionWithRespectToRef;
+	size_t _refSize         = 0;
 	int32_t _lastAlignedPos = 0;
 
 	// booleans
@@ -122,7 +122,7 @@ public:
 
 	// getters: position
 	uint32_t lastAlingedInternalPos() const { return _lastAlignedPos; };
-	TGenomePosition lastAlignedPositionWithRespectToRef() const { return _lastAlignedPositionWithRespectToRef; };
+	TGenomePosition lastAlignedPositionWithRespectToRef() const { return *this + (_refSize - 1); };
 	bool isAlignedAtInternalPos(size_t internalPosition) const;
 	genometools::Base referenceAtInternalPos(size_t internalPosition) const;
 	TGenomePosition positionInRef(size_t internalPosition) const;

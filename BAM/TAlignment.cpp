@@ -33,7 +33,6 @@ void TAlignment::clear() {
 	_readGroupID    = 0;
 	_fragmentLength = 0;
 
-	_lastAlignedPositionWithRespectToRef.clear();
 	_lastAlignedPos = 0;
 
 	// booleans
@@ -63,7 +62,6 @@ void TAlignment::fill(const std::string &Name, const TSamFlags &Flags, uint32_t 
 					  uint16_t ReadGroupId) {
 
 	// empty alignment
-	_lastAlignedPositionWithRespectToRef.clear();
 	_lastAlignedPos = 0;
 	_parsed  = false;
 	_sequenceAndQualitiesChanged = false;
@@ -196,7 +194,7 @@ void TAlignment::_parseBasesQualities(const std::vector<genometools::Base> &Sequ
 	}
 
 	// update length and last aligned position
-	_lastAlignedPositionWithRespectToRef = *this + (p - 1);
+	_refSize = p;
 
 	// then update distances from ends
 	_setDistancesFromEnds();
@@ -302,8 +300,7 @@ void TAlignment::parse(const GenotypeLikelihoods::SequencingError::TModels &seqE
 };
 
 void TAlignment::addReference(const genometools::TFastaReader &fasta) {
-	const auto window = genometools::TGenomeWindow(*this, _lastAlignedPositionWithRespectToRef);
-	const auto view = fasta.view(window);
+	const auto view = fasta.view(refID(), position(), _refSize);
 	_referenceSequence.clear();
 	std::copy(view.begin(), view.end(), std::back_inserter(_referenceSequence));
 }
