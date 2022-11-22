@@ -55,24 +55,32 @@ TEST(TAlignmentMergerTest, forwardFirst_reverseSecond_mergeFirst){
 
     TCigar cigar2;
     cigar2.add('S', 8);
-    cigar2.add('M', 42);
+    cigar2.add('M', 2);
+    cigar2.add('I', 4);
+    cigar2.add('M', 3);
+    cigar2.add('D', 5);
+    cigar2.add('M', 32);
     cigar2.add('I', 5);
     cigar2.add('M', 8);
     cigar2.add('D', 5);
-    cigar2.add('M', 45);
+    cigar2.add('M', 40);
+    cigar2.add('I', 10);
+    cigar2.add('D', 2);
+    cigar2.add('M', 3);
     cigar2.add('S', 6);
 
     firstRead2.setCigarForUnitTest(cigar2);
     secondRead2.setCigarForUnitTest(cigar2);
 
-    TAlignmentMerger_firstMate mergeFirstMate;
     mergeFirstMate.merge(firstRead2, secondRead2);
-    EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 8);
-    EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 16);
-    EXPECT_EQ(secondRead.cigar().lengthSoftClippedLeft(), 8);
-    EXPECT_EQ(secondRead.cigar().lengthSoftClippedRight(), 6);
-    EXPECT_EQ(firstRead.position(), 10);  
-    EXPECT_EQ(secondRead.position(), 100);
+    EXPECT_EQ(firstRead2.cigar().lengthSoftClippedLeft(), 8);
+    EXPECT_EQ(firstRead2.cigar().lengthSoftClippedRight(), 24);
+    EXPECT_EQ(secondRead2.cigar().lengthSoftClippedLeft(), 8);
+    EXPECT_EQ(secondRead2.cigar().lengthSoftClippedRight(), 6);
+    EXPECT_EQ(firstRead2.position(), 10);  
+    EXPECT_EQ(secondRead2.position(), 100);
+    EXPECT_EQ(firstRead2.cigar().lengthMapped(), 90);
+    EXPECT_EQ(secondRead2.cigar().lengthMapped(), 100);
 }
 
 TEST(TAlignmentMergerTest, forwardFirst_reverseSecond_mergeSecond){
@@ -106,24 +114,32 @@ TEST(TAlignmentMergerTest, forwardFirst_reverseSecond_mergeSecond){
 
     TCigar cigar2;
     cigar2.add('S', 8);
-    cigar2.add('M', 42);
+    cigar2.add('M', 2);
+    cigar2.add('I', 4);
+    cigar2.add('M', 3);
+    cigar2.add('D', 5);
+    cigar2.add('M', 32);
     cigar2.add('I', 5);
     cigar2.add('M', 8);
     cigar2.add('D', 5);
-    cigar2.add('M', 45);
+    cigar2.add('M', 40);
+    cigar2.add('I', 10);
+    cigar2.add('D', 2);
+    cigar2.add('M', 3);
     cigar2.add('S', 6);
 
     firstRead2.setCigarForUnitTest(cigar2);
     secondRead2.setCigarForUnitTest(cigar2);
 
-    TAlignmentMerger_secondMate mergeSecondMate;
     mergeSecondMate.merge(firstRead2, secondRead2);
-    EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 8);
-    EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 6);
-    EXPECT_EQ(secondRead.cigar().lengthSoftClippedLeft(), 18);
-    EXPECT_EQ(secondRead.cigar().lengthSoftClippedRight(), 6);
-    EXPECT_EQ(firstRead.position(), 10);  
-    EXPECT_EQ(secondRead.position(), 100);
+    EXPECT_EQ(firstRead2.cigar().lengthSoftClippedLeft(), 8);
+    EXPECT_EQ(firstRead2.cigar().lengthSoftClippedRight(), 6);
+    EXPECT_EQ(secondRead2.cigar().lengthSoftClippedLeft(), 17);
+    EXPECT_EQ(secondRead2.cigar().lengthSoftClippedRight(), 6);
+    EXPECT_EQ(firstRead2.position(), 10);  
+    EXPECT_EQ(secondRead2.position(), 110);
+    EXPECT_EQ(firstRead2.cigar().lengthMapped(), 100);
+    EXPECT_EQ(secondRead2.cigar().lengthMapped(), 90);
 }
 
 TEST(TAlignmentMergerTest, forwardFirst_reverseSecond_mergeMiddle){
@@ -155,24 +171,32 @@ TEST(TAlignmentMergerTest, forwardFirst_reverseSecond_mergeMiddle){
 
     TCigar cigar2;
     cigar2.add('S', 8);
-    cigar2.add('M', 42);
+    cigar2.add('M', 2);
+    cigar2.add('I', 4);
+    cigar2.add('M', 3);
+    cigar2.add('D', 5);
+    cigar2.add('M', 32);
     cigar2.add('I', 5);
     cigar2.add('M', 8);
     cigar2.add('D', 5);
-    cigar2.add('M', 45);
+    cigar2.add('M', 40);
+    cigar2.add('I', 10);
+    cigar2.add('D', 2);
+    cigar2.add('M', 3);
     cigar2.add('S', 6);
 
     firstRead2.setCigarForUnitTest(cigar2);
     secondRead2.setCigarForUnitTest(cigar2);
 
-    TAlignmentMerger_middle mergeMiddle;
     mergeMiddle.merge(firstRead2, secondRead2);
-    EXPECT_EQ(firstRead.cigar().lengthSoftClippedLeft(), 8);
-    EXPECT_EQ(firstRead.cigar().lengthSoftClippedRight(), 11);
-    EXPECT_EQ(secondRead.cigar().lengthSoftClippedLeft(), 13);
-    EXPECT_EQ(secondRead.cigar().lengthSoftClippedRight(), 6);
-    EXPECT_EQ(firstRead.position(), 10);  
-    EXPECT_EQ(secondRead.position(), 100);
+    EXPECT_EQ(firstRead2.cigar().lengthSoftClippedLeft(), 8);
+    EXPECT_EQ(firstRead2.cigar().lengthSoftClippedRight(), 19);
+    EXPECT_EQ(secondRead2.cigar().lengthSoftClippedLeft(), 17);
+    EXPECT_EQ(secondRead2.cigar().lengthSoftClippedRight(), 6);
+    EXPECT_EQ(firstRead2.position(), 10);  
+    EXPECT_EQ(secondRead2.position(), 110);
+    EXPECT_EQ(firstRead2.cigar().lengthMapped(), 95);
+    EXPECT_EQ(secondRead2.cigar().lengthMapped(), 90);
 }
 
 TEST(TAlignmentMergerTest, forwardFirst_reverseSecond_mergeMiddleOddOverlapLength){
@@ -233,34 +257,44 @@ TEST(TAlignmentMergerTest, forwardFirst_reverseSecond_mergeMiddleOddOverlapLengt
     firstRead3.setIsReverseStrand(false);
     secondRead3.setIsReverseStrand(true);
 
-
     TCigar newCigar;
     newCigar.add('S', 8);
-    newCigar.add('M', 8);
+    newCigar.add('M', 2);
     newCigar.add('I', 1);
-    newCigar.add('M', 92);
-    newCigar.add('S', 12);
-
+    newCigar.add('M', 3);
+    newCigar.add('D', 2);
+    newCigar.add('M', 35);
+    newCigar.add('I', 5);
+    newCigar.add('M', 8);
+    newCigar.add('D', 5);
+    newCigar.add('M', 36);
+    newCigar.add('I', 1);
+    newCigar.add('M', 3);
+    newCigar.add('D', 2);
+    newCigar.add('M', 4);
+    newCigar.add('S', 6);
  
     std::vector<genometools::PhredIntProbability> newHigherQuality;
-    newHigherQuality.resize(121);
+    newHigherQuality.resize(112);
     std::fill(newHigherQuality.begin(),newHigherQuality.end(),genometools::PhredIntProbability(coretools::Probability (0.5)));
 
     std::vector<genometools::PhredIntProbability> newLowerQuality;
-    newLowerQuality.resize(121);
+    newLowerQuality.resize(112);
     std::fill(newLowerQuality.begin(),newLowerQuality.end(),genometools::PhredIntProbability(coretools::Probability (0.1)));
-    vect.resize(121);
+    vect.resize(112);
 
     firstRead3.setSequenceQualities(newCigar, vect, newHigherQuality);
     secondRead3.setSequenceQualities(newCigar, vect, newLowerQuality);
 
     mergeMiddle.merge(firstRead3, secondRead3);
-    EXPECT_EQ(firstRead3.cigar().lengthSoftClippedRight(), 17);
+    EXPECT_EQ(firstRead3.cigar().lengthSoftClippedRight(), 10);
     EXPECT_EQ(firstRead3.cigar().lengthSoftClippedLeft(), 8);
     EXPECT_EQ(secondRead3.cigar().lengthSoftClippedLeft(), 14);
-    EXPECT_EQ(secondRead3.cigar().lengthSoftClippedRight(), 12);
+    EXPECT_EQ(secondRead3.cigar().lengthSoftClippedRight(), 6);
     EXPECT_EQ(firstRead3.position(), 10);  
-    EXPECT_EQ(secondRead3.position(), 105);
+    EXPECT_EQ(secondRead3.position(), 106);
+    EXPECT_EQ(firstRead3.cigar().lengthMapped(), 94);
+    EXPECT_EQ(secondRead3.cigar().lengthMapped(), 93);
 }
 
 TEST(TAlignmentMergerTest, forwardFirst_reverseSecond_mergeHighestQuality){
@@ -362,11 +396,10 @@ lowerQuality2[12] = genometools::PhredIntProbability(coretools::Probability (0.9
     firstRead4.setSequenceQualities(cigar2, vect2, higherQuality2);
     secondRead4.setSequenceQualities(cigar2, vect2, lowerQuality2);
 
-    TAlignmentMerger_highestQuality mergeQual;
     mergeQual.merge(firstRead4, secondRead4);
     EXPECT_EQ(firstRead4.cigar().lengthSoftClippedRight(), 6);
     EXPECT_EQ(firstRead4.cigar().lengthSoftClippedLeft(), 8);
-    EXPECT_EQ(secondRead4.cigar().lengthSoftClippedLeft(), 18);
+    EXPECT_EQ(secondRead4.cigar().lengthSoftClippedLeft(), 20);
     EXPECT_EQ(secondRead4.cigar().lengthSoftClippedRight(), 6);
     EXPECT_EQ(firstRead4.position(), 10);  
     EXPECT_EQ(secondRead4.position(), 110);

@@ -327,8 +327,8 @@ void TAlignment::setReadGroup(const uint16_t readGroupId) {
 	_readGroupID = readGroupId;
 };
 //get overlap length from previous function and pass it on to cigar constructor
-void TAlignment::merge(uint16_t overlapLength) {
-	_setCigar(TCigar(cigar(), overlapLength, !isReverseStrand()));
+void TAlignment::merge(uint16_t overlapLength, size_t &mappedBasesClipped) {
+	_setCigar(TCigar(cigar(), overlapLength, !isReverseStrand(), mappedBasesClipped));
 }
 
 //--------------------------------------
