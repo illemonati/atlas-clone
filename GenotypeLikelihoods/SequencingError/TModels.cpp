@@ -270,7 +270,15 @@ void TModels::recalibrate(BAM::TSequencedBase &base) const noexcept {
 }
 
 void TModels::recalibrate(std::vector<BAM::TSequencedBase> &bases) const noexcept {
-	for (auto &b : bases) recalibrate(b);
+	const auto & front = bases.front();
+	const auto & model = _models[front.readGroupID][front.isSecondMate()];
+	for (auto &b : bases) {
+		if (model.recalibrates()) {
+			b.recalibratedQualityAsPhredInt = model.phredInt(b);
+		} else {
+			b.recalibratedQualityAsPhredInt = b.originalQuality_phredInt;
+		}
+	}
 }
 
 TBaseLikelihoods TModels::baseLikelihoods(const BAM::TSequencedBase &base) const noexcept {

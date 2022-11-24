@@ -80,8 +80,6 @@ private:
 	// functions to read and parse
 	void _setCigar(const TCigar &Cigar);
 	void _parseBasesQualities();
-	void _parseBasesQualities(const std::vector<genometools::Base> &Sequence,
-							  const std::vector<genometools::PhredIntProbability> &Qualities);
 	void _setQualitiesNoRecal();
 	void _setDistancesFromEnds();
 	void _fillContext();

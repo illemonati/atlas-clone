@@ -100,33 +100,12 @@ void TAlignment::_setCigar(const TCigar &Cigar){
 	}
 };
 
+
 void TAlignment::_parseBasesQualities() {
+	using genometools::char2base;
 	if (_sequence.size() != _qualities.size()) {
 		throw std::runtime_error(
 			"void TAlignment::_parseBasesQualities(): Sequence and Qualities are of different legth!");
-	}
-	// convert string into Bases and Qualities
-	std::vector<genometools::Base> Sequence;
-	Sequence.reserve(_sequence.length());
-	std::vector<genometools::PhredIntProbability> Qualities;
-	Qualities.reserve(_qualities.length());
-
-	for (size_t i = 0; i < _sequence.length(); ++i) {
-		Sequence.emplace_back(genometools::char2base(_sequence[i]));
-		Qualities.emplace_back(genometools::BaseQuality(_qualities[i]));
-	}
-
-	// then parse
-	_parseBasesQualities(Sequence, Qualities);
-};
-
-void TAlignment::_parseBasesQualities(const std::vector<genometools::Base> &Sequence,
-									  const std::vector<genometools::PhredIntProbability> &Qualities) {
-	// ensure size
-	if (Sequence.size() != Qualities.size()) {
-		throw std::runtime_error("void TAlignment::_parseBasesQualities(const std::vector<genometools::Base> & "
-								 "Sequence, const std::vector<genometools::PhredIntProbability> & Qualities): Sequence "
-								 "and Qualities are of different legth!");
 	}
 
 	// initialize
@@ -147,8 +126,8 @@ void TAlignment::_parseBasesQualities(const std::vector<genometools::Base> &Sequ
 		case ('X'):
 			// soft-clipped bases on 5' are before bamAlignment.Position
 			for (unsigned int i = 0; i < cigarIter.length; ++i, ++d, ++p) {
-				_bases[d].base                     = Sequence[d];
-				_bases[d].originalQuality_phredInt = Qualities[d];
+				_bases[d].base                     = char2base(_sequence[d]);
+				_bases[d].originalQuality_phredInt = genometools::BaseQuality(_qualities[d]);
 				_bases[d].setAligned(true);
 				_alignedPosition.push_back(p);
 			}
@@ -161,8 +140,8 @@ void TAlignment::_parseBasesQualities(const std::vector<genometools::Base> &Sequ
 			for (unsigned int i = 0; i < cigarIter.length; ++i, ++d) {
 				// soft-clipped bases on 5' are before bamAlignment.Position
 				// need to initialize quality for quality filter and bases for context
-				_bases[d].base                     = Sequence[d];
-				_bases[d].originalQuality_phredInt = Qualities[d];
+				_bases[d].base                     = char2base(_sequence[d]);
+				_bases[d].originalQuality_phredInt = genometools::BaseQuality(_qualities[d]);
 				_bases[d].setAligned(false);
 				_alignedPosition.push_back(-1);
 			}
@@ -171,8 +150,8 @@ void TAlignment::_parseBasesQualities(const std::vector<genometools::Base> &Sequ
 		// for 'I' - insertion: copy bases, but put aligned  = false
 		case ('I'):
 			for (unsigned int i = 0; i < cigarIter.length; ++i, ++d) {
-				_bases[d].base                     = Sequence[d];
-				_bases[d].originalQuality_phredInt = Qualities[d];
+				_bases[d].base                     = char2base(_sequence[d]);
+				_bases[d].originalQuality_phredInt = genometools::BaseQuality(_qualities[d]);
 				_bases[d].setAligned(false);
 				_alignedPosition.push_back(-1);
 			}
@@ -222,7 +201,7 @@ void TAlignment::_setQualitiesNoRecal() {
 
 void TAlignment::_setDistancesFromEnds() {
 	// Set distances in ORIGINAL FRAGMENT (i.e. 5' end is where sequencing started, NOT how it aligns to reference)
-	int length = _cigar.lengthSequenced();
+	const int length = _cigar.lengthSequenced();
 
 	// is it paired-end?
 	if (_flags.isProperPair()) {
@@ -230,8 +209,8 @@ void TAlignment::_setDistancesFromEnds() {
 			// reverse (can be either first or second mate, but it's the one that comes second in bam file)
 			// and distance from 5' is given as f(end of fragment) = f(len - pos - 1)
 			// hence distance from 3' is given by f(dist since beginning of fragment) = f(insert - len + pos)
-			int k = _fragmentLength - (_cigar.lengthSequenced() - _cigar.lengthSoftClippedRight());
-			int l = _cigar.lengthSequenced() - 1 - _cigar.lengthSoftClippedRight();
+			const int k = _fragmentLength - (_cigar.lengthSequenced() - _cigar.lengthSoftClippedRight());
+			const int l = _cigar.lengthSequenced() - 1 - _cigar.lengthSoftClippedRight();
 			for (int pos = 0; pos < length; ++pos) {
 				_bases[pos].distFrom5Prime = l - pos; // dist from 5'
 				_bases[pos].distFrom3Prime = k + pos; // dist from 3'
@@ -249,7 +228,7 @@ void TAlignment::_setDistancesFromEnds() {
 		}
 	} else {
 		// treat as single end
-		int l = length - 1;
+		const int l = length - 1;
 		if (_flags.isReverseStrand()) {
 			// not in pair & reverse
 			// Hence distance from 3' is just pos
@@ -315,7 +294,15 @@ void TAlignment::setSequenceQualities(const TCigar &Cigar, const std::vector<gen
 	_setCigar(Cigar);
 
 	// parse bases and qualities
-	_parseBasesQualities(Sequence, Qualities);
+	_sequence.clear();
+	_sequence.reserve(Sequence.size());
+	_qualities.clear();
+	_qualities.reserve(Sequence.size());
+	for (size_t i = 0; i < Sequence.size(); ++i) {
+		_sequence.push_back(genometools::base2char(Sequence[i]));
+		_qualities.push_back(static_cast<char>(genometools::BaseQuality(Qualities[i])));
+	}
+	_parseBasesQualities();
 	_setQualitiesNoRecal();
 	_sequenceAndQualitiesChanged = true; // will trigger that the strings are read form the bases
 };
