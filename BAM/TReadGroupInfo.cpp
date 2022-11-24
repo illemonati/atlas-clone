@@ -292,6 +292,7 @@ void TReadGroupInfo::set(const uint16_t RGIndex, const InfoType Type, const TInf
 	_parsed[Type] = true;
 
 	//now add to specific
+	assert(RGIndex < _info.size());
 	_info[RGIndex].set(Type, Value);
 }
 

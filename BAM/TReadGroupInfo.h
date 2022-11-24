@@ -177,14 +177,17 @@ public:
 	};
 
 	const TReadGroupInfoEntry& operator[](uint16_t RGIndex) const {
+		assert(RGIndex < _info.size());
 		return _info[RGIndex];
 	}
 
 	bool has(size_t RGIndex, InfoType Info) const noexcept {
+		assert(RGIndex < _info.size());
 		return _info[RGIndex].has(Info);
 	};
 
 	const TInfo& get(size_t RGIndex, const InfoType Info) const noexcept {
+		assert(RGIndex < _info.size());
 		return _info[RGIndex][Info];
 	}
 
