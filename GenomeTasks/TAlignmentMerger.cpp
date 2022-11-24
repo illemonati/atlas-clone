@@ -177,15 +177,19 @@ namespace impl{
 		} else {
 			largerReadOverlapLength += smallerRead.position() - largerRead.position();
 		}
+		std::cout << smallerRead.cigar().lengthMapped() % 2 << std::endl;// << " " << smallerReadOverlapLength << std::endl;
+					std::cout << "test1" << std::endl;
 		//if the overlap is divisible by two, you can just merge
-		if (smallerRead.cigar().lengthAligned() % 2 == 0){
+		if (smallerRead.cigar().lengthMapped() % 2 == 0){
 			callMergeFunction(smallerRead, largerRead, smallerReadOverlapLength);
 			callMergeFunction(largerRead, smallerRead, largerReadOverlapLength);
 		} else {
 			//if the overlap is not divisible by two, we first need to determine the quality at the position in the center of the overlap for both reads
 			genometools::PhredIntProbability smallerReadQual = determineQualAtSingleBase(smallerRead, smallerReadOverlapLength, false);
 			genometools::PhredIntProbability largerReadQual = determineQualAtSingleBase(largerRead, largerReadOverlapLength, true);
+						std::cout << smallerReadOverlapLength << "\t" << largerReadOverlapLength << std::endl;
 			compareQualities(smallerReadQual, largerReadQual, smallerReadOverlapLength, largerReadOverlapLength);
+			std::cout << smallerReadOverlapLength << "\t" << largerReadOverlapLength << std::endl;
 			callMergeFunction(smallerRead, largerRead, smallerReadOverlapLength);
 			callMergeFunction(largerRead, smallerRead, largerReadOverlapLength);
 		}
