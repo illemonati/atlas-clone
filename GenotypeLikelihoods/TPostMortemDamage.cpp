@@ -700,7 +700,6 @@ void TPostMortemDamage::initialize(BAM::RGInfo::TReadGroupInfo &RgInfo) {
 	using BAM::RGInfo::InfoType;
 
 	_pmdObjects.resize(RgInfo.size());
-	RgInfo.parse(InfoType::pmd);
 
 	for (size_t rg = 0; rg < RgInfo.size(); ++rg) {
 		_pmdObjects[rg] = impl::createPMDType(RgInfo.get(rg, InfoType::pmd, TPMDFunctionNoPMD::name));

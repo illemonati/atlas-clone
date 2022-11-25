@@ -40,22 +40,15 @@ void TReadSimulators::_initializeReadGroups(const TReadGroupInfo & RGinfo) {
 	}
 }
 
-void TReadSimulators::_initializeReadGroupFrequencies(const TReadGroupInfo & RGinfo) {
+void TReadSimulators::_initializeReadGroupFrequencies(const TReadGroupInfo &RGinfo) {
 	_cumulSimGroupFrequenies.resize(RGinfo.size());
 	_simGroupFrequencies.resize(RGinfo.size());
 
 	using BAM::RGInfo::InfoType;
-	if(RGinfo.hasInfo(InfoType::RGFrequency)){
-		//fill frequencies and cumulative frequencies
-		std::vector<double> tmp;
-		RGinfo.fillContainerPerReadGroup(tmp, InfoType::RGFrequency);
-		coretools::fillFromNormalized(_simGroupFrequencies, tmp);
-	} else {
-		coretools::Probability equal = 1.0 / (double) RGinfo.size();
-		for (size_t i = 0; i < RGinfo.size(); ++i) {
-			_simGroupFrequencies[i] = equal;
-		}
-	}
+	// fill frequencies and cumulative frequencies
+	std::vector<double> tmp;
+	RGinfo.fillContainerPerReadGroup(tmp, InfoType::RGFrequency);
+	coretools::fillFromNormalized(_simGroupFrequencies, tmp);
 	coretools::fillCumulative(_simGroupFrequencies, _cumulSimGroupFrequenies);
 }
 
@@ -79,7 +72,7 @@ void TReadSimulators::_determineMaxFragmentLength(){
 TReadSimulators::TReadSimulators(const std::string & RgInfoFileName){
 	// Read sequencing parameters from RG Info / Command line
 	TReadGroupInfo RGinfo;
-	_readGroups = RGinfo.readInfoAndCreateReadGroups(RgInfoFileName);
+	_readGroups = RGinfo.createReadGroups(RgInfoFileName);
 
 	// complete RG details
 	for (auto &rg : _readGroups) {
@@ -90,7 +83,6 @@ TReadSimulators::TReadSimulators(const std::string & RgInfoFileName){
 	}
 
 	using BAM::RGInfo::InfoType;
-	RGinfo.parse(InfoType::RGFrequency, InfoType::seqType, InfoType::cycles, InfoType::fragmentLength, InfoType::baseQuality, InfoType::mappingQuality, InfoType::softClipping, InfoType::recal);
 	_initializeReadGroupFrequencies(RGinfo);
 
 	//Initialize read groups

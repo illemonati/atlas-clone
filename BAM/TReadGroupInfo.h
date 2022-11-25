@@ -11,15 +11,18 @@
 // TODO: turn into read group info also used by TGenome
 
 #include <vector>
+#include "coretools/Containers/TBitSet.h"
+#include "coretools/Strings/toString.h"
+#include "coretools/devtools.h"
 #include "nlohmann/json.hpp"
 
 #include "coretools/Containers/TStrongArray.h"
-#include "coretools/Strings/stringFunctions.h"
-#include "coretools/Main/TParameters.h"
-#include "coretools/Main/TLog.h"
-#include "coretools/Main/TError.h"
 #include "coretools/Files/TOutputFile.h"
+#include "coretools/Main/TError.h"
+#include "coretools/Main/TLog.h"
+#include "coretools/Main/TParameters.h"
 #include "coretools/Main/TTask.h"
+#include "coretools/Strings/stringFunctions.h"
 
 #include "TReadGroups.h"
 namespace BAM {
@@ -30,10 +33,14 @@ namespace RGInfo{
 // Info and functions to extract data
 //------------------------------------------------
 
-typedef nlohmann::ordered_json TInfo;
+using TInfo = nlohmann::ordered_json;
 
 inline std::string toString(const TInfo& info){
-	return info.get<std::string>();
+	if(info.is_string() || info.is_number()){
+		return info.get<std::string>();
+	} else {
+		return info.dump();
+	}
 }
 
 //------------------------------------------------
@@ -51,21 +58,21 @@ struct TInfoArgument {
 	std::string defaults;
 	TInfoArgument() = default;
 	TInfoArgument(std::string_view Argument, std::string_view Description, std::string_view Defaults)
-		: argument(std::move(Argument)), description(std::move(Description)), defaults(std::move(Defaults)) {}
+		: argument(Argument), description(Description), defaults(Defaults) {}
 };
 
 inline const coretools::TStrongArray<TInfoArgument, InfoType> infos = []() {
 	coretools::TStrongArray<TInfoArgument, InfoType> i;
-	i[InfoType::RGName] = {"readGroup", "read group name", "SimReadGroup"};
-	i[InfoType::RGFrequency] = {"frequency", "read group frequency", "1.0"};
-	i[InfoType::seqType] = {"seqType", "sequencing type", "single"};
-	i[InfoType::cycles] = {"seqCycles", "number of sequencing cycles", "100"};
-	i[InfoType::fragmentLength] = {"fragmentLength", "fragment length distribution", "fixed(300)"};
-	i[InfoType::baseQuality] = {"baseQuality", "base quality distribution", "normal(30,10)[0,93]"};
+	i[InfoType::RGName]         = {"readGroup", "read group name", "SimReadGroup"};
+	i[InfoType::RGFrequency]    = {"frequency", "read group frequency", "1.0"};
+	i[InfoType::seqType]        = {"seqType", "sequencing type", "single"};
+	i[InfoType::cycles]         = {"seqCycles", "number of sequencing cycles", "100"};
+	i[InfoType::fragmentLength] = {"fragmentLength", "fragment length distribution", "gamma(10,0.2)[30,200]"};
+	i[InfoType::baseQuality]    = {"baseQuality", "base quality distribution", "normal(30,10)[0,93]"};
 	i[InfoType::mappingQuality] = {"mappingQuality", "mapping quality distribution", "normal(60,10)[1,255]"};
-	i[InfoType::softClipping] = {"softClipping", "soft clipping distribution", "-"};
-	i[InfoType::recal] = {"recal", "base quality score recalibration model", "-"};
-	i[InfoType::pmd] = {"pmd", "Postmortem damage model", "-"};
+	i[InfoType::softClipping]   = {"softClipping", "soft clipping distribution", "-"};
+	i[InfoType::recal]          = {"recal", "base quality score recalibration model", "-"};
+	i[InfoType::pmd]            = {"pmd", "Postmortem damage model", "-"};
 	return i;
 }();
 
@@ -80,38 +87,40 @@ namespace seqType{
 //------------------------------------------------
 // TReadGroupInfoEntry
 //------------------------------------------------
-using nlohmann::ordered_json;
+
+class TReadGroupInfo;
+void parse(TReadGroupInfo* rgi, TInfo i);
 
 class TReadGroupInfoEntry{
 private:
-	std::map<InfoType, TInfo> _info;
+	TReadGroupInfo* _rgi;
+	coretools::TStrongArray<TInfo, InfoType> _info{};
 
 public:
-	TReadGroupInfoEntry(const std::string & RgName){
-		_info.insert_or_assign(InfoType::RGName, RgName);
+	TReadGroupInfoEntry(TReadGroupInfo* rgi, std::string_view RgName) : _rgi(rgi) {
+		_info[InfoType::RGName] = RgName;
 	}
 
-	void set(const InfoType Info, const ordered_json & Value){
-		if(Value != "" && Value != "-"){
-			_info.insert_or_assign(Info, Value);
-		}
+	bool has(InfoType Info) const {
+		parse(_rgi, Info);
+		return (!_info[Info].is_null() && _info[Info] != "-");
 	}
 
-	bool has(const InfoType Info) const {
-		return _info.find(Info) != _info.end();
-	}
-
-	const TInfo& get(const InfoType Info) const;
-
-	std::string getString(const InfoType Info) const;
+	std::string getString(InfoType Info) const {
+		parse(_rgi, Info);
+		return coretools::str::toString(_info[Info]);
+	};
 
 	std::string name() const { return getString(InfoType::RGName); }
 
-	const TInfo& operator[](const InfoType Info) const {
-		return get(Info);
+	const TInfo& operator[](InfoType Info) const {
+		parse(_rgi, Info);
+		return _info[Info];
 	}
-
-	void write(coretools::TOutputFile & Out, const InfoType Info) const;
+	
+	TInfo& operator[](InfoType Info) noexcept {
+		return _info[Info];
+	}
 };
 
 //------------------------------------------------
@@ -125,79 +134,73 @@ public:
 class TReadGroupInfo{
 private:
 	std::vector<TReadGroupInfoEntry> _info;
-	ordered_json _json;
+	TInfo _json;
 	std::string _filename;
-	coretools::TStrongArray<bool, InfoType> _parsed;
+	coretools::TStrongBitSet<InfoType> _parsed;
 
-	void _setAllReadGroups(InfoType Info, const std::string & Val);
+	void _setAllReadGroups(InfoType Info, std::string_view Val);
 	void _setDefault(InfoType Info);
 	void _setFromCommandLine(InfoType Info);
 	void _setFromRGInfoFile(InfoType Info);
-	bool _readGroupExists(const std::string & Name);
-	void _readFile(const std::string & Filename);
+	bool _readGroupExists(std::string_view Name);
+	void _readFile(std::string_view Filename);
 	void _createReadGroupInfoEntries(const BAM::TReadGroups & ReadGroups);
 	void _readFileIfProvided();
+	void _parse(InfoType Info);
 
 public:
-	static inline const std::string _RGInfoArgument = "RGInfo";
-	static inline const std::string _numRGArgument = "numReadGroups";
+	static constexpr std::string_view _RGInfoArgument = "RGInfo";
+	static constexpr std::string_view _numRGArgument = "numReadGroups";
 
 	TReadGroupInfo() = default;
-	~TReadGroupInfo() = default;
-
-	// either: read info from file and match with TReadGroups (used for analyzes)
-	void readInfoAndMatchReadGroups(const BAM::TReadGroups & ReadGroups, const std::string & Filename = "");
+	TReadGroupInfo(const BAM::TReadGroups & ReadGroups);
+	TReadGroupInfo(const BAM::TReadGroups & ReadGroups, std::string_view Filename);
 
 	// or: read info and fill TReadGroups (used for simulations)
-	BAM::TReadGroups readInfoAndCreateReadGroups(const std::string & RgInfoFileName = "");
-
-	//functions to parse certain info
-	void parse(const InfoType Info);
-
-	template <typename... Ts>
-	void parse(const InfoType Info, Ts... others){
-		parse(Info);
-		parse(others...);
-	}
+	BAM::TReadGroups createReadGroups(std::string_view RgInfoFileName = "");
 
 	// getters
-	std::vector<TReadGroupInfoEntry>::const_iterator cbegin(){
-		return _info.cbegin();
+	auto begin() const noexcept {
+		return _info.begin();
 	}
-	std::vector<TReadGroupInfoEntry>::const_iterator cend(){
-		return _info.cend();
+	auto end() const noexcept {
+		return _info.end();
 	}
 
 	size_t size() const noexcept {
 		return _info.size();
 	}
 
-	bool hasInfo(const InfoType Info) const {
-		return _parsed[Info];
-	};
-
 	const TReadGroupInfoEntry& operator[](uint16_t RGIndex) const {
+		assert(RGIndex < _info.size());
+		return _info[RGIndex];
+	}
+
+	TReadGroupInfoEntry& operator[](uint16_t RGIndex) {
+		assert(RGIndex < _info.size());
 		return _info[RGIndex];
 	}
 
 	bool has(size_t RGIndex, InfoType Info) const noexcept {
+		assert(RGIndex < _info.size());
 		return _info[RGIndex].has(Info);
 	};
 
 	const TInfo& get(size_t RGIndex, const InfoType Info) const noexcept {
+		assert(RGIndex < _info.size());
 		return _info[RGIndex][Info];
 	}
 
-	const TInfo& get(size_t RGIndex, const InfoType Info, const ordered_json& defValue) const noexcept {
+	const TInfo& get(size_t RGIndex, const InfoType Info, const TInfo& defValue) const noexcept {
 		return has(RGIndex, Info) ? get(RGIndex, Info) : defValue;
 	}
 
 	std::string getString(size_t RGIndex, const InfoType Info) const noexcept {
-		return get(RGIndex, Info).dump();
+		return _info[RGIndex].getString(Info);
 	}
 
-	std::string getString(size_t RGIndex, const InfoType Info, const std::string & defValue) const noexcept {
-		return has(RGIndex, Info) ? getString(RGIndex, Info) : defValue;
+	std::string getString(size_t RGIndex, const InfoType Info, std::string_view defValue) const noexcept {
+		return has(RGIndex, Info) ? getString(RGIndex, Info) : std::string{defValue};
 	}
 
 	template <typename Container>
@@ -215,11 +218,14 @@ public:
 	void warnAboutUnusedColumnsInFile();
 
 	// setters
-	void set(const uint16_t RGIndex, const InfoType Info, const ordered_json & Value);
+	void set(const uint16_t RGIndex, const InfoType Info, const TInfo & Value);
 
 	//writing
-	void write(const std::string & Filename);
+	void write(std::string_view Filename);
+
+	friend void parse(TReadGroupInfo *rgi, TInfo i) { rgi->_parse(i); }
 };
+
 
 //-------------------------------------------
 // TTask_testReadGroupInfo

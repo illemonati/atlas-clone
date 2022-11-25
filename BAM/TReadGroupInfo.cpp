@@ -26,7 +26,7 @@ namespace RGInfo{
 // Functions to initialize: only visible in cpp file
 //------------------------------------------------
 namespace implJson{
-	InfoType argument2InfoType(const std::string & Argument){
+	InfoType argument2InfoType(std::string_view Argument){
 		for(auto i = InfoType::min; i < InfoType::max; ++i){
 			if(infos[i].argument == Argument)
 				return i;
@@ -36,40 +36,11 @@ namespace implJson{
 }
 
 //------------------------------------------------
-// TReadGroupInfoEntry
-//------------------------------------------------
-const TInfo& TReadGroupInfoEntry::get(const InfoType Info) const {
-	auto it = _info.find(Info);
-	if(it == _info.end()){
-		DEVERROR("Info of type '" + infos[Info].argument + "' does not exist!");
-	}
-	return it->second;
-}
-
-std::string TReadGroupInfoEntry::getString(const InfoType Type) const {
-	const TInfo& j = get(Type);
-	if(j.is_string() || j.is_number()){
-		return j.get<std::string>();
-	} else {
-		return j.dump();
-	}
-}
-
-void TReadGroupInfoEntry::write(coretools::TOutputFile & Out, const InfoType Info) const {
-	auto it = _info.find(Info);
-	if(it == _info.end()){
-		Out << "-";
-	} else{
-		Out << it->second;
-	}
-}
-
-//------------------------------------------------
 // TReadGroupInfo
 //------------------------------------------------
-void TReadGroupInfo::_setAllReadGroups(InfoType Info, const std::string & Val){
+void TReadGroupInfo::_setAllReadGroups(InfoType Info, std::string_view Val){
 	for(auto& i : _info){
-		i.set(Info, Val);
+		i[Info] = Val;
 	}
 }
 
@@ -98,7 +69,7 @@ void TReadGroupInfo::_setFromCommandLine(InfoType Info){
 	} else if (argVec.size() == _info.size()){
 		logfile().write("using read group specific settings provided on the command line. (argument '", arg, "')");
 		for(size_t i = 0; i < _info.size(); ++i){
-			_info[i].set(Info, argVec[i]);
+			_info[i][Info] = argVec[i];
 		}
 	} else {
 		UERROR("Number of provided values does not match number of read groups!");
@@ -110,14 +81,14 @@ void TReadGroupInfo::_setFromRGInfoFile(InfoType Info){
 	logfile().write("reading read group specific settings from read group info file '", _filename, "'. (overwrite with '", infos[Info].argument, "')");
 	for(auto& r : _info){
 		if(_json.contains(r.name()) && _json[r.name()].contains(infos[Info].argument)){
-			r.set(Info, _json[r.name()][infos[Info].argument]);
+			r[Info] = _json[r.name()][infos[Info].argument];
 		} else {
-			r.set(Info, infos[Info].defaults);
+			r[Info] = infos[Info].defaults;
 		}
 	}
 }
 
-bool TReadGroupInfo::_readGroupExists(const std::string & Name){
+bool TReadGroupInfo::_readGroupExists(std::string_view Name){
 	for(auto& r : _info){
 		if(r[InfoType::RGName] == Name){
 			return true;
@@ -126,18 +97,12 @@ bool TReadGroupInfo::_readGroupExists(const std::string & Name){
 	return false;
 }
 
-void TReadGroupInfo::_readFile(const std::string & Filename){
-	std::ifstream in(Filename);
-	if(!in){
-		UERROR("Failed to open read group info file '", Filename, "' for reading!");
-	}
-
+void TReadGroupInfo::_readFile(std::string_view Filename){
 	try {
-		_json = nlohmann::ordered_json::parse(in);
-	}
-	catch (nlohmann::json::parse_error& ex)
-	{
-		UERROR("Failed to parse read group info file '", Filename, "': JSON error '", ex.what(), " at byte ", ex.byte, "!");
+		_json = nlohmann::ordered_json::parse(Filename);
+	} catch (nlohmann::json::parse_error &ex) {
+		UERROR("Failed to parse read group info file '", Filename, "': JSON error '", ex.what(), " at byte ", ex.byte,
+			   "!");
 	}
 
 	// warn if file contains inexisting read groups
@@ -165,28 +130,27 @@ void TReadGroupInfo::_createReadGroupInfoEntries(const BAM::TReadGroups & ReadGr
 	//create read group info entries
 	_info.reserve(ReadGroups.size());
 	for(auto i = 0; i < ReadGroups.size(); ++i){
-		_info.push_back(ReadGroups[i].name_ID);
+		_info.emplace_back(this, ReadGroups[i].name_ID);
 	}
-	std::fill(_parsed.begin(), _parsed.end(), false);
-	_parsed[InfoType::RGName] = true;
+	_parsed.reset();
+	_parsed.set<InfoType::RGName>();
+}
+
+TReadGroupInfo::TReadGroupInfo(const BAM::TReadGroups & ReadGroups){
+	_createReadGroupInfoEntries(ReadGroups);
+	if (parameters().parameterExists(_RGInfoArgument)) {
+		_readFile(parameters().getParameter<std::string>(_RGInfoArgument, true));
+	}
 }
 
 // either: read info from file and match with TReadGroups (used for analyzes)
-void TReadGroupInfo::readInfoAndMatchReadGroups(const BAM::TReadGroups & ReadGroups, const std::string & Filename){
-	if(!_info.empty()){
-		DEVERROR("Read group info already read!");
-	}
-
+TReadGroupInfo::TReadGroupInfo(const BAM::TReadGroups & ReadGroups, std::string_view Filename){
 	_createReadGroupInfoEntries(ReadGroups);
-	if(Filename.empty()){
-		_readFile(parameters().getParameter<std::string>(_RGInfoArgument, false));
-	} else {
-		_readFile(Filename);
-	}
+	_readFile(Filename);
 }
 
 // or: read info and fill TReadGroups (used for simulations)
-BAM::TReadGroups TReadGroupInfo::readInfoAndCreateReadGroups(const std::string & RgInfoFileName){
+BAM::TReadGroups TReadGroupInfo::createReadGroups(std::string_view RgInfoFileName){
 	if(!_info.empty()){
 		DEVERROR("Read group info already read!");
 	}
@@ -204,20 +168,15 @@ BAM::TReadGroups TReadGroupInfo::readInfoAndCreateReadGroups(const std::string &
 		}
 	} else {
 		// create identical read groups from command line
-		uint16_t numRG;
-		if(parameters().parameterExists(_numRGArgument)){
-			numRG = parameters().getParameter<coretools::StrictlyPositive<int>>(_numRGArgument);
-			if (numRG == 1) {
-				logfile().list("Initializing one read group from arguments. (parameter '", _numRGArgument, "')");
-			} else {
-				logfile().list("Initializing ", numRG, " identical read groups from arguments (parameter '", _numRGArgument, "').");
-			}
+		const auto numRG = parameters().getParameterWithDefault<coretools::StrictlyPositive<int>>(_numRGArgument, 2);
+		if (numRG == 1) {
+			logfile().list("Initializing one read group from arguments. (parameter '", _numRGArgument, "')");
 		} else {
-			numRG = 1;
-			logfile().list("Initializing one read group from arguments. (set with '", _numRGArgument, "')");
+			logfile().list("Initializing ", numRG, " identical read groups from arguments (parameter '", _numRGArgument,
+						   "').");
 		}
 
-		//create read groups
+		// create read groups
 		for (int i = 0; i < numRG; ++i) {
 			readGroups.add("SimReadGroup" + coretools::str::toString(i + 1));
 		}
@@ -227,7 +186,7 @@ BAM::TReadGroups TReadGroupInfo::readInfoAndCreateReadGroups(const std::string &
 	return readGroups;
 }
 
-void TReadGroupInfo::parse(const InfoType Info){
+void TReadGroupInfo::_parse(const InfoType Info){
 	if(!_parsed[Info]){
 		logfile().listFlush(coretools::str::capitalizeFirst(infos[Info].description), ": ");
 		std::string arg = infos[Info].argument;
@@ -292,16 +251,17 @@ void TReadGroupInfo::set(const uint16_t RGIndex, const InfoType Type, const TInf
 	_parsed[Type] = true;
 
 	//now add to specific
-	_info[RGIndex].set(Type, Value);
+	assert(RGIndex < _info.size());
+	_info[RGIndex][Type] = Value;
 }
 
-void TReadGroupInfo::write(const std::string & Filename){
+void TReadGroupInfo::write(std::string_view Filename){
 	//write RG info file
 	logfile().listFlush("Writing read group info to file '", Filename, "' ...");
 	for(auto& r : _info){
 		//make sure json has entry for that read group
 		if(!_json.contains(r.name())){
-			_json[r.name()] = ordered_json::object();
+			_json[r.name()];
 		}
 
 		// add (or overwrite) all parsed attributes
@@ -316,7 +276,7 @@ void TReadGroupInfo::write(const std::string & Filename){
 	}
 
 	//open file
-	std::ofstream out(Filename);
+	std::ofstream out(std::string{Filename});
 	if(!out){
 		UERROR("Failed to open file '", Filename, "' for writing!");
 	}
@@ -333,12 +293,9 @@ void TTask_testReadGroupInfo::run(){
 	std::string filename = parameters().getParameter("json");
 
 	TReadGroupInfo r;
-	r.readInfoAndCreateReadGroups(filename);
+	r.createReadGroups(filename);
 
-	r.parse(InfoType::mappingQuality, InfoType::cycles);
-
-	r.set(0, InfoType::cycles, "200,200");
-
+	r[0][InfoType::cycles] = "200,200";
 	r.write("new.json");
 
 }
