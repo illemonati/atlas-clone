@@ -234,7 +234,6 @@ void TModels::initializeFromFile(std::string_view Filename, const BAM::TReadGrou
 void TModels::initialize(BAM::RGInfo::TReadGroupInfo &RgInfo) {
 	using BAM::RGInfo::InfoType;
 
-	RgInfo.parse(InfoType::recal);
 	_models.reserve(RgInfo.size());
 
 	for (size_t rg = 0; rg < RgInfo.size(); ++rg) {

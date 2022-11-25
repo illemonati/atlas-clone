@@ -6,18 +6,18 @@
 model="intercept[0.1];quality:polynomial[0.8,0.2,0.01]"
 
 # Simululate polynomial model
-#$atlas --task simulate --recal $model --fixedSeed 0 --logFile simulate.out --numReadGroups 2
+$atlas --task simulate --recal $model --fixedSeed 0 --logFile simulate.out --numReadGroups 2
 
 # Calculate log Likelihood of model given simulated data
-#$atlas --task recal --bam ATLAS_simulations.bam --recal $model --rerecalibrate --onlyLL --fixedSeed 0 --logFile onlyLL.out
+$atlas --task recal --bam ATLAS_simulations.bam --recal $model --rerecalibrate --onlyLL --fixedSeed 0 --logFile onlyLL.out
 
 # estimate recal model using polynomial
 $atlas --task recal --bam ATLAS_simulations.bam --recal "intercept;quality:polynomial3" --rerecalibrate --minDeltaLL 1e6 --fixedSeed 0 --out polynomial --logFile polynomial.out
-#$atlas --task recal --bam ATLAS_simulations.bam --recal "polynomial_recal.txt" --rerecalibrate --onlyLL --fixedSeed 0 --out polynomial_read --logFile polynomial_read.out
+$atlas --task recal --bam ATLAS_simulations.bam --recal "polynomial_recal.txt" --rerecalibrate --onlyLL --fixedSeed 0 --out polynomial_read --logFile polynomial_read.out
 
 # estimate recal model using empiric
-#$atlas --task recal --bam ATLAS_simulations.bam --recal "intercept;quality;position;context;fragmentLength;mappingQuality;" --rerecalibrate --minDeltaLL 1e6 --fixedSeed 0 --out empiric --logFile empiric.out
-#$atlas --task recal --bam ATLAS_simulations.bam --recal "empiric_recal.txt" --rerecalibrate --onlyLL --fixedSeed 0 --out empiric_read --logFile empiric_read.out
+$atlas --task recal --bam ATLAS_simulations.bam --recal "intercept;quality;position;context;fragmentLength;mappingQuality;" --rerecalibrate --minDeltaLL 1e6 --fixedSeed 0 --out empiric --logFile empiric.out
+$atlas --task recal --bam ATLAS_simulations.bam --recal "empiric_recal.txt" --rerecalibrate --onlyLL --fixedSeed 0 --out empiric_read --logFile empiric_read.out
 
 # Compare likelihoods
 printf "#%-10s %s\n" "LL" "model" > LL.txt

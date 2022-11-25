@@ -287,8 +287,7 @@ void TRecalibrationEMEstimator::performEstimation(const std::string &outputName,
 	const std::string filename = outputName + "_recal.txt";
 	logfile().listFlush("Writing final estimates to file '", filename, "' ...");
 	_modelsToEstimate.writeRecalFile(*_readGroups, filename);
-	BAM::RGInfo::TReadGroupInfo r;
-	r.readInfoAndCreateReadGroups();
+	BAM::RGInfo::TReadGroupInfo r(*_readGroups);
 	SequencingErrorModels.addToRGInfo(r);
 	r.write(outputName + "_recal.json");
 	logfile().done();
