@@ -284,7 +284,7 @@ public:
 	constexpr uint32_t numActiveSamplesWithData() const noexcept { return _numActiveFilesWithData; };
 	std::string chr() const { return _curChr.name(); };
 	constexpr uint32_t position() const noexcept { return _position; };
-	constexpr genometools::Base refBase() const noexcept {
+	genometools::Base refBase() const noexcept {
 		return fastaReader.isOpen() ? fastaReader(_curRefId, _position) : genometools::Base::N;
 	};
 };
