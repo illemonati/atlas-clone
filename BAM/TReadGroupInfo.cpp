@@ -168,20 +168,15 @@ BAM::TReadGroups TReadGroupInfo::createReadGroups(std::string_view RgInfoFileNam
 		}
 	} else {
 		// create identical read groups from command line
-		uint16_t numRG;
-		if(parameters().parameterExists(_numRGArgument)){
-			numRG = parameters().getParameter<coretools::StrictlyPositive<int>>(_numRGArgument);
-			if (numRG == 1) {
-				logfile().list("Initializing one read group from arguments. (parameter '", _numRGArgument, "')");
-			} else {
-				logfile().list("Initializing ", numRG, " identical read groups from arguments (parameter '", _numRGArgument, "').");
-			}
+		const auto numRG = parameters().getParameterWithDefault<coretools::StrictlyPositive<int>>(_numRGArgument, 2);
+		if (numRG == 1) {
+			logfile().list("Initializing one read group from arguments. (parameter '", _numRGArgument, "')");
 		} else {
-			numRG = 1;
-			logfile().list("Initializing one read group from arguments. (set with '", _numRGArgument, "')");
+			logfile().list("Initializing ", numRG, " identical read groups from arguments (parameter '", _numRGArgument,
+						   "').");
 		}
 
-		//create read groups
+		// create read groups
 		for (int i = 0; i < numRG; ++i) {
 			readGroups.add("SimReadGroup" + coretools::str::toString(i + 1));
 		}

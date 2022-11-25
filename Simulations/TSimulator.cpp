@@ -77,9 +77,9 @@ std::unique_ptr<THaplotypeSimulator> makeHaploSimulator(const std::string &metho
 }
 
 template <typename T>
-std::vector<T> parse(const std::string & Argument, const std::string & Explanation, const T Default){
-	std::vector<T> res;
+std::vector<T> parse(const std::string & Argument, const std::string & Explanation, const std::vector<T>& Defaults){
 	if(parameters().parameterExists(Argument)){
+		std::vector<T> res;
 		std::vector<std::string> string_vec;
 		parameters().fillParameterIntoContainer(Argument, string_vec, ',');
 
@@ -92,12 +92,11 @@ std::vector<T> parse(const std::string & Argument, const std::string & Explanati
 			//logfile().list("Will use ", Explanation, "s ", coretools::str::concatenateString(res, ","), ". (parameter '", Argument, "')");
 			logfile().list("Will use ", Explanation, "s ", res, ". (parameter '", Argument, "')");
 		}
-
+		return res;
 	} else {
-		res.push_back(Default); //default ploidy = 2
-		logfile().list("Will use default chromosome length of ", res[0], ". (set with '", Argument, "')");
+		logfile().list("Will use default chromosome lengths of ", Defaults, ". (set with '", Argument, "')");
+		return Defaults;
 	}
-	return res;
 }
 
 template <typename Vec>
@@ -118,9 +117,9 @@ void makeChromosomes(TChromosomes & chs, std::vector<uint32_t> & depths){
 	depths.clear();
 
 	//parse chr details
-	auto chrLengths = parse<uint32_t>("chrLength", "chromosome length", 1000000);
-	depths = parse<uint32_t>("depth", "sequencing depth", 10);
-	auto ploidies = parse<uint8_t>("ploidy", "ploidy", 2);
+	auto chrLengths = parse<uint32_t>("chrLength", "chromosome length", {50'000, 40'000, 60'000});
+	depths = parse<uint32_t>("depth", "sequencing depth", {10,8,12});
+	auto ploidies = parse<uint8_t>("ploidy", "ploidy", {2,1,2});
 
 	//check if ploidy is supported
 	for (auto &p : ploidies) {

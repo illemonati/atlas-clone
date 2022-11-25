@@ -2,7 +2,7 @@
 
 . $(dirname $0)/find_atlas
 
-$atlas --task simulate --vcf --type HW --sampleSize 10 --chrLength 100000 --fixedSeed 0 --logFile simulate.out
+$atlas --task simulate --vcf --type HW --sampleSize 10 --chrLength 1000 --ploidy 2 --fixedSeed 0 --logFile simulate.out
 
 $atlas --task convertVCF --vcf ATLAS_simulations.vcf.gz --format beagle --out ATLAS_beagle --logFile convertVCF_beagle.out
 $atlas --task convertVCF --vcf ATLAS_simulations.vcf.gz --format geno --out ATLAS_geno --logFile convertVCF_geno.out
