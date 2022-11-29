@@ -150,7 +150,6 @@ namespace impl{
 		//calculate qualities for the position at the center of the overlap for both reads
 		genometools::PhredIntProbability firstReadQual = determineQualAtSingleBase(firstRead, halfOverlap, true);
 		genometools::PhredIntProbability secondReadQual = determineQualAtSingleBase(secondRead, halfOverlap, false);
-
 		size_t firstReadOverlapLength = halfOverlap;
 		size_t secondReadOverlapLength = halfOverlap;
 
@@ -159,7 +158,6 @@ namespace impl{
 
 		//check if the reverse strand comes first and adjust the overlap lengths accordingly if that is the case
 		checkIfReverseStrandFirst(firstRead, secondRead, firstReadOverlapLength, secondReadOverlapLength, true);
-
 		//merge
 		callMergeFunction(firstRead, secondRead, firstReadOverlapLength);
 		callMergeFunction(secondRead, firstRead, secondReadOverlapLength);
@@ -177,8 +175,7 @@ namespace impl{
 		} else {
 			largerReadOverlapLength += smallerRead.position() - largerRead.position();
 		}
-		std::cout << smallerRead.cigar().lengthMapped() % 2 << std::endl;// << " " << smallerReadOverlapLength << std::endl;
-					std::cout << "test1" << std::endl;
+		std::cout << smallerRead.cigar().lengthMapped() % 2 << std::endl;
 		//if the overlap is divisible by two, you can just merge
 		if (smallerRead.cigar().lengthMapped() % 2 == 0){
 			callMergeFunction(smallerRead, largerRead, smallerReadOverlapLength);
@@ -187,9 +184,7 @@ namespace impl{
 			//if the overlap is not divisible by two, we first need to determine the quality at the position in the center of the overlap for both reads
 			genometools::PhredIntProbability smallerReadQual = determineQualAtSingleBase(smallerRead, smallerReadOverlapLength, false);
 			genometools::PhredIntProbability largerReadQual = determineQualAtSingleBase(largerRead, largerReadOverlapLength, true);
-						std::cout << smallerReadOverlapLength << "\t" << largerReadOverlapLength << std::endl;
 			compareQualities(smallerReadQual, largerReadQual, smallerReadOverlapLength, largerReadOverlapLength);
-			std::cout << smallerReadOverlapLength << "\t" << largerReadOverlapLength << std::endl;
 			callMergeFunction(smallerRead, largerRead, smallerReadOverlapLength);
 			callMergeFunction(largerRead, smallerRead, largerReadOverlapLength);
 		}
@@ -435,6 +430,7 @@ size_t TAlignmentMerger_middle::merge(BAM::TAlignment & alignment, BAM::TAlignme
 		}
 		//if the overlap length is divisible by 2, we only need to check if the reverse strand is first before merging
 		size_t halfOverlap = overlapLength.first / 2;
+		std::cout << "overlapLength:" << overlapLength.first << std::endl;
 		if (overlapLength.first % 2 == 0){
 			size_t alignmentOverlapLength = halfOverlap;
 			size_t mateOverlapLength = halfOverlap;
