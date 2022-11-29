@@ -22,6 +22,8 @@ compare() {
 	echo "- All files are identical"
 }
 
+cd $(dirname $0)
+
 err=0
 cnt=0
 for f in *.sh; do
