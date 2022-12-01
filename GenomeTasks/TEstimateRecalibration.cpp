@@ -47,7 +47,9 @@ BAM::TReadGroupMap makeReadGroupMap(const BAM::TReadGroups &ReadGroups) {
 	TEstimateRecalibration::TEstimateRecalibration() : TGenome_windows(),
 													   _readGroupMap(impl::makeReadGroupMap(_bamFile.readGroups())),
 													   recal(&_bamFile.readGroups(), &_readGroupMap) {
-	if (_genotypeLikelihoodCalculator.recalibrationChangesQualities() && !parameters().parameterExists("rerecalibrate"))
+		if (_genotypeLikelihoodCalculator.recalibrationChangesQualities() && !(
+				parameters().parameterExists("rerecalibrate")
+				|| parameters().getParameter("task") == "recal"))
 		throw "Can not estimate recalibration: quality scores are already recalibrated while reading! (Use argument "
 			  "'rerecalibrate' to overwrite this error)";
 

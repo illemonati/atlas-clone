@@ -1,8 +1,10 @@
 import argparse
 from numpy import *
+import matplotlib
 import matplotlib.pyplot as plt
 from scipy.special import logit
 from scipy.special import expit
+matplotlib.rcParams.update({'font.size': 10})
 
 def modelFn(model):
     model = "lambda x: " + model
@@ -24,6 +26,6 @@ if __name__ == "__main__":
         plt.plot(xs, fn(xs), label=args.models[i])
 
     plt.legend()
-    plt.xlabel("x")
-    plt.ylabel("f(x)")
+    plt.xlabel("Distance from 5'-end of Read")
+    plt.ylabel("PMD C-T")
     plt.show()

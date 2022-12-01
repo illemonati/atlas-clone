@@ -149,8 +149,8 @@ TFunction *makeFunction(std::string_view Covariate, std::string_view Function, s
 
 	if (Function.empty()) {
 		if (stringStartsWith(Covariate, TIntercept::name)) { // intercept can be parsed as either covariate or function
-			const auto [type, betas] = parseFunction(Function);
-			if (!type.empty()) UERROR("Wrong intercept arguments");
+			const auto [type, betas] = parseFunction(Covariate);
+			if (type != TIntercept::name) UERROR("You must specify a covariate");
 			TFunction *in = new TIntercept(FirstParameterIndex);
 			if (betas.empty()) return in;
 			fromString<true>(betas.front(), *in->begin());

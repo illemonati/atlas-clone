@@ -22,25 +22,27 @@ if __name__ == "__main__":
     for m in args.models:
         fns.append(modelFn(m))
 
-    xs = np.r_[0:150:1]
+    xs = np.r_[0:80:0.1]
     for i, fn in enumerate(fns):
         eta = fn(xs)
-        ax1 = plt.subplot(311)
-        plt.plot(xs, eta, label="f" + str(i+1) + " = " + args.models[i])
-        plt.tick_params('x', labelbottom=False)
-        plt.ylabel("eta")
-        plt.legend()
+        #ax1 = plt.subplot(311)
+        #plt.plot(xs, eta, label="f" + str(i+1) + " = " + args.models[i])
+        #plt.tick_params('x', labelbottom=False)
+        #plt.ylabel("eta")
+        #plt.legend()
 
         prob = expit(eta)
-        plt.subplot(312, sharex=ax1)
+        #plt.subplot(312, sharex=ax1)
+        ax1 = plt.subplot(211)
         plt.tick_params('x', labelbottom=False)
-        plt.plot(xs, prob)
-        plt.ylabel("prob")
+        plt.plot(xs, prob, label="f" + str(i+1) + " = " + args.models[i])
+        plt.legend()
+        plt.ylabel("Sequencing Error")
 
-        plt.subplot(313, sharex=ax1)
+        plt.subplot(212, sharex=ax1)
         q = -10*np.log10(prob)
         plt.plot(xs, q)
-        plt.ylabel("new quality")
+        plt.ylabel("Recalibrated quality")
 
-    plt.xlabel("x")
+    plt.xlabel("Sequencing quality")
     plt.show()
