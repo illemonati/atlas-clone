@@ -2,7 +2,7 @@
 
 . $(dirname $0)/find_atlas
 
-$atlas --task simulate --sampleSize 20 --chrLength 10000 --type HW --fixedSeed 0 --logFile simulate.out
+$atlas --task simulate --sampleSize 20  --type HW --fixedSeed 0 --logFile simulate.out
 
 for i in {1..20}; do
 samtools view ATLAS_simulations_ind$i.bam | head -250 | tail -10 | tr -d "M" | awk '{print $3,$4-1,$6+($4-1)}' | tr " " "\t" > mask_$i.txt

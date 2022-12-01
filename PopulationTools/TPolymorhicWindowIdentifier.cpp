@@ -15,7 +15,7 @@
 
 #include "genometools/GenotypeTypes.h"
 #include "genometools/PhredProbabilityTypes.h"
-#include "coretools/Files/TOutputFile.h"
+#include "coretools/Files/TFile.h"
 #include "genometools/VCF/TPopulation.h"
 #include "genometools/VCF/TPopulationLikelihoodLocus.h"
 #include "genometools/VCF/TPopulationLikelihoods.h"
@@ -53,8 +53,8 @@ void TPolymorhicWindowIdentifier::identifyPolymorphicWindows(TParameters & Param
 		samples.readSamplesFromVCFNames(reader.getSampleVCFNames());
 
 	//output file
-	auto tmp = coretools::str::readBeforeLast(vcfFilename, ".vcf");
-	std::string outputName = Parameters.getParameterWithDefault("out", tmp) + "_polymorphicWindows.txt.gz";
+	std::string tmp = coretools::str::readBeforeLast(vcfFilename, ".vcf");
+	std::string outputName = Parameters.getParameterWithDefault<std::string>("out", tmp) + "_polymorphicWindows.txt.gz";
 	logfile->list("Will write polymoprhic state of windows to file '" + outputName + "'.");
 	coretools::TOutputFile out(outputName);
 

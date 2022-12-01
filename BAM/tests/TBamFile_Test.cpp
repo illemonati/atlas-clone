@@ -146,10 +146,8 @@ TEST_F(TBamFile_Test_ReadWrite, alignments){
         EXPECT_EQ(alignmentWritten->lastAlignedPositionWithRespectToRef(), alignmentRead.lastAlignedPositionWithRespectToRef());
         for (uint32_t i = 0; i < alignmentWritten->parsedLength(); i++){
             EXPECT_EQ(alignmentWritten->isAlignedAtInternalPos(i), alignmentRead.isAlignedAtInternalPos(i));
-			if (alignmentWritten->isAlignedAtInternalPos(i)) {
-				EXPECT_EQ(alignmentWritten->positionInRef(i), alignmentRead.positionInRef(i));
-			}
-		}
+            EXPECT_EQ(alignmentWritten->positionInRef(i), alignmentRead.positionInRef(i));
+        }
         EXPECT_EQ(alignmentWritten->mateGenomicPosition(), alignmentRead.mateGenomicPosition());
         EXPECT_EQ(alignmentWritten->matePosition(), alignmentRead.matePosition());
         EXPECT_EQ(alignmentWritten->mateRefID(), alignmentRead.mateRefID());
@@ -1246,7 +1244,7 @@ TEST_F(TBamFilter_Test, blacklist){
     EXPECT_EQ(bamFilter->totalReads.counts(), numReads - 200);
     for (auto & it : bamFilter->names){
         // all alignments 0-199 should have been removed
-       int alignmentNum = coretools::str::fromString<int>(coretools::str::extractAfter(it, "_"));
+       int alignmentNum = coretools::str::convertString<int>(coretools::str::extractAfter(it, "_"));
        EXPECT_TRUE(alignmentNum >= 200);
     }
 

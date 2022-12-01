@@ -6,15 +6,15 @@
  */
 
 #include "TAlignment.h"
-#include "genometools/GenomePositions/TGenomePosition.h"
 #include "genometools/GenotypeTypes.h"
 #include "genometools/PhredProbabilityTypes.h"
 #include "TBamFilter.h"
+#include "TFastaBuffer.h"
 #include "TGenotypeLikelihoodCalculator.h"
 #include "coretools/Main/TRandomGenerator.h"
 #include "coretools/Types/strongTypes.h"
 #include <algorithm>
-#include <iterator>
+#include <iostream>
 #include <math.h>
 #include <memory>
 #include <stdexcept>
@@ -33,6 +33,7 @@ void TAlignment::clear() {
 	_readGroupID    = 0;
 	_fragmentLength = 0;
 
+	_lastAlignedPositionWithRespectToRef.clear();
 	_lastAlignedPos = 0;
 
 	// booleans
@@ -49,6 +50,7 @@ void TAlignment::clear() {
 	_alignedPosition.clear();
 
 	// reference
+	_hasReference = false;
 	_referenceSequence.clear();
 }
 
@@ -62,11 +64,13 @@ void TAlignment::fill(const std::string &Name, const TSamFlags &Flags, uint32_t 
 					  uint16_t ReadGroupId) {
 
 	// empty alignment
+	_lastAlignedPositionWithRespectToRef.clear();
 	_lastAlignedPos = 0;
 	_parsed  = false;
 	_sequenceAndQualitiesChanged = false;
 	_bases.clear();
 	_alignedPosition.clear();
+	_hasReference = false;
 	_referenceSequence.clear();
 
 	// copy data
@@ -100,12 +104,33 @@ void TAlignment::_setCigar(const TCigar &Cigar){
 	}
 };
 
-
 void TAlignment::_parseBasesQualities() {
-	using genometools::char2base;
 	if (_sequence.size() != _qualities.size()) {
 		throw std::runtime_error(
 			"void TAlignment::_parseBasesQualities(): Sequence and Qualities are of different legth!");
+	}
+	// convert string into Bases and Qualities
+	std::vector<genometools::Base> Sequence;
+	Sequence.reserve(_sequence.length());
+	std::vector<genometools::PhredIntProbability> Qualities;
+	Qualities.reserve(_qualities.length());
+
+	for (size_t i = 0; i < _sequence.length(); ++i) {
+		Sequence.emplace_back(genometools::char2base(_sequence[i]));
+		Qualities.emplace_back(genometools::BaseQuality(_qualities[i]));
+	}
+
+	// then parse
+	_parseBasesQualities(Sequence, Qualities);
+};
+
+void TAlignment::_parseBasesQualities(const std::vector<genometools::Base> &Sequence,
+									  const std::vector<genometools::PhredIntProbability> &Qualities) {
+	// ensure size
+	if (Sequence.size() != Qualities.size()) {
+		throw std::runtime_error("void TAlignment::_parseBasesQualities(const std::vector<genometools::Base> & "
+								 "Sequence, const std::vector<genometools::PhredIntProbability> & Qualities): Sequence "
+								 "and Qualities are of different legth!");
 	}
 
 	// initialize
@@ -126,8 +151,8 @@ void TAlignment::_parseBasesQualities() {
 		case ('X'):
 			// soft-clipped bases on 5' are before bamAlignment.Position
 			for (unsigned int i = 0; i < cigarIter.length; ++i, ++d, ++p) {
-				_bases[d].base                     = char2base(_sequence[d]);
-				_bases[d].originalQuality_phredInt = genometools::BaseQuality(_qualities[d]);
+				_bases[d].base                     = Sequence[d];
+				_bases[d].originalQuality_phredInt = Qualities[d];
 				_bases[d].setAligned(true);
 				_alignedPosition.push_back(p);
 			}
@@ -140,8 +165,8 @@ void TAlignment::_parseBasesQualities() {
 			for (unsigned int i = 0; i < cigarIter.length; ++i, ++d) {
 				// soft-clipped bases on 5' are before bamAlignment.Position
 				// need to initialize quality for quality filter and bases for context
-				_bases[d].base                     = char2base(_sequence[d]);
-				_bases[d].originalQuality_phredInt = genometools::BaseQuality(_qualities[d]);
+				_bases[d].base                     = Sequence[d];
+				_bases[d].originalQuality_phredInt = Qualities[d];
 				_bases[d].setAligned(false);
 				_alignedPosition.push_back(-1);
 			}
@@ -150,8 +175,8 @@ void TAlignment::_parseBasesQualities() {
 		// for 'I' - insertion: copy bases, but put aligned  = false
 		case ('I'):
 			for (unsigned int i = 0; i < cigarIter.length; ++i, ++d) {
-				_bases[d].base                     = char2base(_sequence[d]);
-				_bases[d].originalQuality_phredInt = genometools::BaseQuality(_qualities[d]);
+				_bases[d].base                     = Sequence[d];
+				_bases[d].originalQuality_phredInt = Qualities[d];
 				_bases[d].setAligned(false);
 				_alignedPosition.push_back(-1);
 			}
@@ -173,7 +198,7 @@ void TAlignment::_parseBasesQualities() {
 	}
 
 	// update length and last aligned position
-	_refSize = p;
+	_lastAlignedPositionWithRespectToRef = *this + (p - 1);
 
 	// then update distances from ends
 	_setDistancesFromEnds();
@@ -201,7 +226,7 @@ void TAlignment::_setQualitiesNoRecal() {
 
 void TAlignment::_setDistancesFromEnds() {
 	// Set distances in ORIGINAL FRAGMENT (i.e. 5' end is where sequencing started, NOT how it aligns to reference)
-	const int length = _cigar.lengthSequenced();
+	int length = _cigar.lengthSequenced();
 
 	// is it paired-end?
 	if (_flags.isProperPair()) {
@@ -209,8 +234,8 @@ void TAlignment::_setDistancesFromEnds() {
 			// reverse (can be either first or second mate, but it's the one that comes second in bam file)
 			// and distance from 5' is given as f(end of fragment) = f(len - pos - 1)
 			// hence distance from 3' is given by f(dist since beginning of fragment) = f(insert - len + pos)
-			const int k = _fragmentLength - (_cigar.lengthSequenced() - _cigar.lengthSoftClippedRight());
-			const int l = _cigar.lengthSequenced() - 1 - _cigar.lengthSoftClippedRight();
+			int k = _fragmentLength - (_cigar.lengthSequenced() - _cigar.lengthSoftClippedRight());
+			int l = _cigar.lengthSequenced() - 1 - _cigar.lengthSoftClippedRight();
 			for (int pos = 0; pos < length; ++pos) {
 				_bases[pos].distFrom5Prime = l - pos; // dist from 5'
 				_bases[pos].distFrom3Prime = k + pos; // dist from 3'
@@ -228,7 +253,7 @@ void TAlignment::_setDistancesFromEnds() {
 		}
 	} else {
 		// treat as single end
-		const int l = length - 1;
+		int l = length - 1;
 		if (_flags.isReverseStrand()) {
 			// not in pair & reverse
 			// Hence distance from 3' is just pos
@@ -278,11 +303,10 @@ void TAlignment::parse(const GenotypeLikelihoods::SequencingError::TModels &seqE
 	_sequenceAndQualitiesChanged = seqErrorModels.recalibrationChangesQualities();
 };
 
-void TAlignment::addReference(const genometools::TFastaReader &fasta) {
-	const auto view = fasta.view(refID(), position(), _refSize);
-	_referenceSequence.clear();
-	std::copy(view.begin(), view.end(), std::back_inserter(_referenceSequence));
-}
+void TAlignment::addReference(TFastaBuffer &fasta) {
+	fasta.fill(*this, _lastAlignedPositionWithRespectToRef, _referenceSequence);
+	_hasReference = true;
+};
 
 void TAlignment::setSequenceQualities(const TCigar &Cigar, const std::vector<genometools::Base> &Sequence,
 									  const std::vector<genometools::PhredIntProbability> &Qualities) {
@@ -294,15 +318,7 @@ void TAlignment::setSequenceQualities(const TCigar &Cigar, const std::vector<gen
 	_setCigar(Cigar);
 
 	// parse bases and qualities
-	_sequence.clear();
-	_sequence.reserve(Sequence.size());
-	_qualities.clear();
-	_qualities.reserve(Sequence.size());
-	for (size_t i = 0; i < Sequence.size(); ++i) {
-		_sequence.push_back(genometools::base2char(Sequence[i]));
-		_qualities.push_back(static_cast<char>(genometools::BaseQuality(Qualities[i])));
-	}
-	_parseBasesQualities();
+	_parseBasesQualities(Sequence, Qualities);
 	_setQualitiesNoRecal();
 	_sequenceAndQualitiesChanged = true; // will trigger that the strings are read form the bases
 };
@@ -318,19 +334,24 @@ void TAlignment::merge(uint16_t overlapLength, size_t &mappedBasesClipped) {
 //--------------------------------------
 // getters
 //--------------------------------------
-bool TAlignment::isAlignedAtInternalPos(size_t internalPosition) const {
-	assert(internalPosition < _alignedPosition.size());
+bool TAlignment::isAlignedAtInternalPos(const uint32_t internalPosition) const {
 	return _alignedPosition[internalPosition] >= 0;
 };
 
-genometools::Base TAlignment::referenceAtInternalPos(size_t internalPosition) const {
-	assert(isAlignedAtInternalPos(internalPosition));
-	assert((size_t)_alignedPosition[internalPosition] < _referenceSequence.size());
+uint32_t TAlignment::getLastInternalPos() const {
+	return (_alignedPosition.size()-1);
+}
+
+genometools::Base TAlignment::referenceAtInternalPos(uint32_t internalPosition) const {
+	if (!_hasReference) {
+		throw std::runtime_error("genometools::Base TAlignment::referenceAtInternalPos(const uint32_t "
+								 "internalPosition) const: alignment has no reference!");
+	}
 	return _referenceSequence[_alignedPosition[internalPosition]];
 };
 
-genometools::TGenomePosition TAlignment::positionInRef(size_t internalPosition) const {
-	assert(isAlignedAtInternalPos(internalPosition));
+genometools::TGenomePosition TAlignment::positionInRef(uint32_t internalPosition) const {
+	// only makes sense if position is aligned!
 	return *this + _alignedPosition[internalPosition];
 };
 
@@ -452,6 +473,61 @@ void TAlignment::downsampleAlignment(const coretools::Probability &fractionToKee
 		}
 	}
 	_sequenceAndQualitiesChanged = true;
+};
+
+//--------------------------------------------
+// functions to write / print alignment
+//--------------------------------------------
+void TAlignment::print() const {
+	std::cout << std::endl << "NAME:\t" << _name << std::endl;
+	std::cout << "LEN:\t" << _bases.size() << std::endl;
+
+	// print bases
+	std::cout << "SEQ:\t";
+	for (auto &b : _bases) { std::cout << b.base; }
+	std::cout << std::endl;
+
+	// print qualities
+	std::cout << "QUAL:\t";
+	for (auto &b : _bases) { std::cout << genometools::BaseQuality(b.recalibratedQualityAsPhredInt); }
+	std::cout << std::endl;
+
+	// print aligned pos
+	std::cout << "POS:\t";
+	for (size_t d = 0; d < _bases.size(); ++d) {
+		if (d > 0) std::cout << ",";
+		if (_bases[d].isAligned())
+			std::cout << _alignedPosition[d];
+		else
+			std::cout << "-";
+	}
+	std::cout << std::endl;
+
+	// print dist from 3'
+	std::cout << "dist 3':\t";
+	bool first = true;
+	for (auto &b : _bases) {
+		if (first) {
+			first = false;
+		} else {
+			std::cout << ",";
+		}
+		std::cout << b.distFrom3Prime;
+	}
+	std::cout << std::endl;
+
+	// print dist from 5'
+	std::cout << "dist 5':\t";
+	first = true;
+	for (auto &b : _bases) {
+		if (first) {
+			first = false;
+		} else {
+			std::cout << ",";
+		}
+		std::cout << b.distFrom5Prime;
+	}
+	std::cout << std::endl;
 };
 
 }; // namespace BAM

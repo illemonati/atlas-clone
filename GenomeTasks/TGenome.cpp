@@ -95,11 +95,12 @@ TGenome_parsed::TGenome_parsed() : _genotypeLikelihoodCalculator(&_bamFile.readG
 };
 
 void TGenome_parsed::_openReference(bool required) {
-	if (!_reference.isOpen()) {
+	if (!_reference.hasReference()) {
 		if (parameters().parameterExists("fasta")) {
 			std::string fastaFile = parameters().getParameter<std::string>("fasta");
+			int bufferSize = parameters().getParameterWithDefault<int>("fastaBuffer", 100'000);
 			logfile().list("Reading reference sequence from '" + fastaFile + "'. (parameter fasta)");
-			_reference.open(fastaFile);
+			_reference.initialize(fastaFile, bufferSize);
 		} else {
 			if (required) { throw "No reference provided! (Use parameter fasta to provide a reference)"; }
 		}
@@ -129,7 +130,7 @@ void TGenome_parsed::_setReadTrimming() {
 
 void TGenome_parsed::_parseAlignment(BAM::TAlignment &alignment) {
 	// parse
-	alignment.parse(_genotypeLikelihoodCalculator.sequencingErrorModels());
+	alignment.parse(_genotypeLikelihoodCalculator.getSequencingErrorModels());
 
 	// apply filters
 	if (_trimReads) { alignment.trimRead(_trimmingLength3Prime, _trimmingLength5Prime); }
@@ -137,7 +138,7 @@ void TGenome_parsed::_parseAlignment(BAM::TAlignment &alignment) {
 	alignment.filter(_qualityFilter);
 	alignment.filter(_contextFilter);
 
-	if (_reference.isOpen()) { alignment.addReference(_reference); }
+	if (_reference.hasReference()) { alignment.addReference(_reference); }
 };
 
 void TGenome_parsed::_traverseBAMPassedQC() {
@@ -181,7 +182,7 @@ void TGenome_windows::_setWindowParameters() {
 
 	// check if it is a number
 	if (stringIsProbablyANumber(tmp)) {
-		fromString(tmp, _windowSize);
+		_windowSize = convertString<int>(tmp);
 		logfile().list("Setting window size to " + toString(_windowSize) + ". (parameter 'window')");
 		if (_windowSize < _bamFile.maxReadLength()) {
 			throw "Window size " + tmp + " out of range! Windows must be at least as large as the max read length (" +
@@ -225,7 +226,7 @@ void TGenome_windows::_setWindowFilters() {
 	_maxRefN = parameters().getParameterWithDefault<double>("maxRefN", 1.0);
 	if (_maxRefN < 0.0 || _maxRefN > 1.0) throw "maxRefN must be within interval [0,1]!";
 	_openReference();
-	if (_maxRefN < 1.0 && !_reference.isOpen())
+	if (_maxRefN < 1.0 && !_reference.hasReference())
 		throw "Can only calculate percentage of reference bases that are 'N' in window if reference file is provided! "
 			  "(use 'fasta' to provide a reference)";
 	logfile().list("Will filter out windows with a fraction of 'N' in reference > " + toString(_maxRefN) +
@@ -234,7 +235,7 @@ void TGenome_windows::_setWindowFilters() {
 
 void TGenome_windows::_setSiteFilters() {
 	// depth filter
-	_readUpToDepth = parameters().getParameterWithDefault<size_t>("readUpToDepth", 1000);
+	_readUpToDepth = parameters().getParameterWithDefault<uint32_t>("readUpToDepth", 1000);
 	logfile().list("Will read data up to depth " + toString(_readUpToDepth) +
 				   " and ignore additional bases. (parameter 'readUpToDepth')");
 
@@ -383,7 +384,7 @@ bool TGenome_windows::_moveToNextWindow(GenotypeLikelihoods::TWindow_base &windo
 };
 
 bool TGenome_windows::_incrementPredefinedWindow() {
-	size_t oldRefID = _curPredefinedWindow->refID();
+	uint32_t oldRefID = _curPredefinedWindow->refID();
 
 	++_curPredefinedWindow;
 	if (_curPredefinedWindow == _predefinedWindows.end()) { return false; }

@@ -47,18 +47,19 @@ private:
 	coretools::TStrongArray<coretools::TStrongArray<double, genometools::Base>, genometools::Base> _rhoSum{};
 public:
 	TRho() = default;
-	TRho(std::string_view Def);
+	TRho(const std::string &Def);
+	TRho(const TRho &other) = default;
+	TRho &operator=(const TRho &other) = default;
+
 
 	const TBaseProbabilities& operator[](genometools::Base from) const noexcept {
 		return _rho[from];
 	}
-	std::string definition() const noexcept;
+	std::string getDefinition() const noexcept;
 
 	// functions used to estimate
 	void add(genometools::Base l, coretools::Probability P_g_I_d, const TBaseProbabilities &P_bbar_I_d) noexcept;
 	void estimate() noexcept;
-
-	BAM::RGInfo::TInfo info() const ;
 };
 
 
@@ -68,16 +69,15 @@ public:
 //--------------------------------------------------------------------
 class TModel {
 public:
-	virtual ~TModel()                                                                                 = default;
-	virtual bool estimatable() const noexcept                                                         = 0;
-	virtual bool recalibrates() const noexcept                                                        = 0;
-	virtual coretools::Probability errorRate(const BAM::TSequencedBase &base) const noexcept          = 0;
-	virtual genometools::PhredIntProbability phredInt(const BAM::TSequencedBase &base) const noexcept = 0;
-	virtual TBaseLikelihoods baseLikelihoods(const BAM::TSequencedBase &base) const noexcept          = 0;
-	virtual void simulate(BAM::TSequencedBase &base) const noexcept                                   = 0;
-	virtual std::string epsilonDefinition() const noexcept                                            = 0;
-	virtual std::string rhoDefinition() const noexcept                                                = 0;
-	virtual BAM::RGInfo::TInfo info() const                                                           = 0;
+	virtual ~TModel()                                                                                    = default;
+	virtual bool estimatable() const noexcept                                                            = 0;
+	virtual bool recalibrates() const noexcept                                                           = 0;
+	virtual coretools::Probability getErrorRate(const BAM::TSequencedBase &base) const noexcept          = 0;
+	virtual genometools::PhredIntProbability getPhredInt(const BAM::TSequencedBase &base) const noexcept = 0;
+	virtual TBaseLikelihoods getBaseLikelihoods(const BAM::TSequencedBase &base) const noexcept          = 0;
+	virtual void simulate(BAM::TSequencedBase &base) const noexcept                                      = 0;
+	virtual std::string getEpsilonDefinition() const noexcept                                          = 0;
+	virtual std::string getRhoDefinition() const noexcept                                                = 0;
 };
 
 //------------------------------------------------
@@ -88,14 +88,13 @@ public:
 	bool estimatable() const noexcept override { return false; };
 	bool recalibrates() const noexcept override { return false; };
 
-	coretools::Probability errorRate(const BAM::TSequencedBase &base) const noexcept override;
-	genometools::PhredIntProbability phredInt(const BAM::TSequencedBase &base) const noexcept override;
-	TBaseLikelihoods baseLikelihoods(const BAM::TSequencedBase &base) const noexcept override;
+	coretools::Probability getErrorRate(const BAM::TSequencedBase &base) const noexcept override;
+	genometools::PhredIntProbability getPhredInt(const BAM::TSequencedBase &base) const noexcept override;
+	TBaseLikelihoods getBaseLikelihoods(const BAM::TSequencedBase &base) const noexcept override;
 	void simulate(BAM::TSequencedBase &base) const noexcept override;
 
-	std::string epsilonDefinition() const noexcept override { return "-"; };
-	std::string rhoDefinition() const noexcept override { return "-"; };
-	BAM::RGInfo::TInfo info() const override { return BAM::RGInfo::TInfo{}; };
+	std::string getEpsilonDefinition() const noexcept override { return "-"; };
+	std::string getRhoDefinition() const noexcept override { return "-"; };
 };
 
 //------------------------------------------------
@@ -106,20 +105,18 @@ private:
 	TRho _rho;
 	TEpsilon _epsilon;
 public:
-	TModelRecal(std::string_view EpsilonDef, std::string_view RhoDef = "default")
-		: _rho(RhoDef), _epsilon(EpsilonDef) {}
-	TModelRecal(const BAM::RGInfo::TInfo &) : _epsilon("") {}
+	TModelRecal(const std::string &EpsilonDef, const std::string& RhoDef="default");
+	TModelRecal(const BAM::RGInfo::TInfo &) : _epsilon(""){};
 
 	bool estimatable() const noexcept override { return true; };
 	bool recalibrates() const noexcept override { return true; };
-	std::string epsilonDefinition() const noexcept override {return _epsilon.definition();};
-	std::string rhoDefinition() const noexcept override { return _rho.definition(); };
-	BAM::RGInfo::TInfo info() const override;
+	std::string getEpsilonDefinition() const noexcept override {return _epsilon.getDefinition();};
+	std::string getRhoDefinition() const noexcept override { return _rho.getDefinition(); };
 
 	// get error rates
-	coretools::Probability errorRate(const BAM::TSequencedBase &base) const noexcept override;
-	genometools::PhredIntProbability phredInt(const BAM::TSequencedBase &base) const noexcept override;
-	TBaseLikelihoods baseLikelihoods(const BAM::TSequencedBase &base) const noexcept override;
+	coretools::Probability getErrorRate(const BAM::TSequencedBase &base) const noexcept override;
+	genometools::PhredIntProbability getPhredInt(const BAM::TSequencedBase &base) const noexcept override;
+	TBaseLikelihoods getBaseLikelihoods(const BAM::TSequencedBase &base) const noexcept override;
 	virtual void simulate(BAM::TSequencedBase &base) const noexcept override;
 
 	// functions to estimate

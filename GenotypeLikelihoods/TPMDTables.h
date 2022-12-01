@@ -26,6 +26,7 @@ namespace coretools { class TOutputFile; }
 
 namespace GenotypeLikelihoods {
 
+enum PMDTableType : uint8_t { forward3 = 0, forward5, reverse3, reverse5 };
 
 using countVec    = std::vector<uint64_t>;
 using PMDCounts   = coretools::TStrongArray<countVec, genometools::Base>;
@@ -51,8 +52,7 @@ public:
 	void write(coretools::TOutputFile &out, std::vector<std::string> &prefix, bool normalized);
 };
 
-enum class ReadEnd : size_t {min = 0, forward3 = min, forward5, reverse3, reverse5, max };
-using PMDTable_RG = coretools::TStrongArray<TPMDTable, ReadEnd>;
+using PMDTable_RG = std::array<TPMDTable, 4>;
 
 //------------------------------------------------
 // TPMDTables

@@ -1,22 +1,23 @@
 #! /bin/bash
 
-. $(dirname $0)/find_atlas
+root=`git rev-parse --show-toplevel`
+atlas=`find $root -type f -name atlas | tail -n 1`
+echo "Using $atlas"
 
-fn="polynomial1 empiric probit"
+fn="empiric probit polynomial(3)"
 cov="position quality context fragmentLength mappingQuality"
+
+# noRecal
+$atlas --task simulate --readLength "single:gamma(75,1)[30,150]" --fixedSeed 0 --out noRecal --logFile simulate_noRecal.out > /dev/null
 
 printf "#%-10s %s\n" "LL" "model" > ATLAS_ll.txt
 
-for c in $cov; do
-	$atlas --task simulate --readLength "single:gamma(75,1)[30,150]" --recal "intercept[-10];$c:polynomial[0.1]" --fixedSeed 0 --out $c --logFile simulate_$c.out
-	for f in $fn; do
-		name="${c}_$f"
-
+for f in $fn; do
+	for c in $cov; do
 		model="intercept;$c:$f"
 		echo "doing model $model"
-
-		$atlas --task recal --bam $c.bam --fasta $c.fasta --recal $model --rerecalibrate --minDeltaLL 1000 --fixedSeed 0 --out $name --logFile $name.out 2> $name.err
-		printf "%.4e %s\n" $(grep "Log Likelihood" $name.out | tail -n 1 | awk '{print $6}') $model >> ATLAS_ll.txt
+		$atlas --task recal --bam noRecal.bam --fasta noRecal.fasta --recal $model --rerecalibrate --minDeltaLL 10 --fixedSeed 0 --out recal_${c}_$f --logFile recal_${c}_$f.out > /dev/null
+		printf "%.4e %s\n" $(grep "Log Likelihood" recal_${c}_$f.out | tail -n 1 | awk '{print $6}') $model >> ATLAS_ll.txt
 	done
 done
 

@@ -10,12 +10,10 @@
 #include <stdint.h>
 #include <ostream>
 
-#include "coretools/Containers/TStrongArray.h"
 #include "coretools/Files/TOutputFile.h"
 #include "TReadGroups.h"
 #include "TSequencedBase.h"
 #include "coretools/Strings/stringFunctions.h"
-#include "genometools/GenotypeTypes.h"
 
 namespace GenotypeLikelihoods {
 
@@ -36,11 +34,9 @@ void TPMDTable::empty() {
 }
 
 void TPMDTable::add(size_t pos, genometools::Base ref, genometools::Base read) {
-	if (read != genometools::Base::N && ref != genometools::Base::N) {
-		const auto p = std::min(pos, size());
-		++_counts[ref][read][p];
-		++_sums[ref][p];
-	}
+	const auto p = std::min(pos, size());
+	++_counts[ref][read][p];
+	++_sums[ref][p];
 }
 
 void TPMDTable::add(const TPMDTable &other) {
@@ -98,14 +94,14 @@ void TPMDTables::add(const BAM::TSequencedBase &base, genometools::Base referenc
 	auto & table = _tables[_readGroupMap->pooledIndex(base.readGroupID)];
 	if (base.isReverseStrand()) {
 		if (from3)
-			table[ReadEnd::reverse3].add(base.distFrom3Prime, flipped(reference), flipped(base.base));
+			table[reverse3].add(base.distFrom3Prime, flipped(reference), flipped(base.base));
 		else
-			table[ReadEnd::reverse5].add(base.distFrom5Prime, flipped(reference), flipped(base.base));
+			table[reverse5].add(base.distFrom5Prime, flipped(reference), flipped(base.base));
 	} else {
 		if (from3)
-			table[ReadEnd::forward3].add(base.distFrom3Prime, reference, base.base);
+			table[forward3].add(base.distFrom3Prime, reference, base.base);
 		else
-			table[ReadEnd::forward5].add(base.distFrom5Prime, reference, base.base);
+			table[forward5].add(base.distFrom5Prime, reference, base.base);
 	}
 }
 
@@ -116,16 +112,16 @@ void TPMDTables::write(std::string filename, bool normalize) {
 	header.push_back("position_>" + coretools::str::toString(_tableLength));
 
 	coretools::TOutputFile out(filename, header);
-	constexpr coretools::TStrongArray<std::string_view, ReadEnd> prefix1{{"forward", "reverse", "forward", "reverse"}};
-	constexpr coretools::TStrongArray<std::string_view, ReadEnd> prefix2{{"5'", "3'", "5'", "3'"}};
+	static const std::array<std::string, 4> prefix1 = {"forward", "reverse", "forward", "reverse"};
+	static const std::array<std::string, 4> prefix2 = {"5'", "3'", "5'", "3'"};
 
 	// loop over all read groups
 	std::vector<std::string> prefix(4);
 	for (int i = 0; i < _readGroups->size(); ++i) {
 		if (_readGroups->readGroupInUse(i)) {
 			auto & table = _tables[_readGroupMap->pooledIndex(i)];
-			prefix[0]    = _readGroups->getName(i);
-			for (auto j = ReadEnd::min; j < ReadEnd::max; ++j) {
+			prefix[0]   = _readGroups->getName(i);
+			for (size_t j = 0; j < 4; ++j) {
 				prefix[1] = prefix1[j];
 				prefix[2] = prefix2[j];
 				table[j].write(out, prefix, normalize);

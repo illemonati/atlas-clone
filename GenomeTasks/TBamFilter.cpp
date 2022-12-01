@@ -113,63 +113,8 @@ void TBamFilter::_openBamFileForWriting(){
 	TGenome_basic::_openBamForWriting(_outputName + "_filtered.bam", _outBam);
 };
 
-void TBamFilter::_writeAlignment(TAlignmentInStorage & it){
-	//save the alignment to the bam file
-	_outBam.writeAlignment(*(it->alignment));
-	//delete it->alignment;
-	it = _alignmentStorage.erase(it);
-};
-
-void TBamFilter::_writeOrFilterAsOrphan(TAlignmentInStorage & it){
-	if(it->ready){
-		_writeAlignment(it);
-	} else if(_keepOrphans){
-		//set as improper pair
-		it->setAsNonProperPair();
-		//write to BAM file
-		_writeAlignment(it);
-	} else {
-		//write reason to bam log
-		_bamFile.filterOut(it->alignment->name(), it->alignment->isSecondMate(), it->alignment->readGroupId());
-		it = _alignmentStorage.erase(it);
-	}
-};
-
-void TBamFilter::_writeAll(){
-	//write everything and mark reads with missing mates as improper.
-	//reads still in storage are no-proper pairs: write or add to black list
-	TAlignmentInStorage it = _alignmentStorage.begin();
-	while(it != _alignmentStorage.end()){
-		_writeOrFilterAsOrphan(it);
-	}
-	//clear blacklist: future reads will anyways be orphans
-	_blacklist.clear();
-};
-
-void TBamFilter::_writeUpTo(const genometools::TGenomePosition & position){
-	//writes all that are ready or too far away
-	TAlignmentInStorage it = _alignmentStorage.begin();
-	while(it != _alignmentStorage.end() && (it->ready || static_cast<uint32_t>(abs(position - *it->alignment)) > _maxDistanceBetweenMates)){
-		_writeOrFilterAsOrphan(it);
-	}
-};
-
-BAM::TAlignment* TBamFilter::_parseIntoNewAlignment(){
-	BAM::TAlignment* alignment = new BAM::TAlignment;
-	_bamFile.fill(*alignment);
-	if(_recalibrate){
-		if(_incorporatePMD){
-			alignment->parse();
-			alignment->recalibrateWithPMD(_genotypeLikelihoodCalculator);
-		} else {
-			alignment->parse(_genotypeLikelihoodCalculator.sequencingErrorModels());
-		}
-	}
-	return alignment;
-};
-
-void TBamFilter::_handleMates(BAM::TAlignment* alignment, TAlignmentInStorage & mate){
-	if(!alignment->isProperPair()){
+void TBamFilter::_handleMates(BAM::TAlignment & alignment, TAlignmentStorageIterator mate){
+	if(!alignment.isProperPair()){
 		//not a proper pair: mark mate as as improper
 		mate->setAsNonProperPair();
 	}

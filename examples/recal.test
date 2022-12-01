@@ -2,28 +2,18 @@
 
 . $(dirname $0)/find_atlas
 
-
-# python ../tools/plotRecal.py "x"
-r_none="intercept[0.0];quality:polynomial[1.0,0.0,0.00]"
-
-# python ../tools/plotRecal.py "0.1 + 0.8*x + 0.2*x**2 + 0.01*x**3"
-r_model="intercept[0.1];quality:polynomial[0.8,0.2,0.01]"
-
-vals=("0.0" "0.1" "0.2" "0.3")
-
-p_type="doubleStrand"
-
+# see python ../tools/plotRecal.py "0.1 + 0.8*x + 0.2*x**2 + 0.01*x**3"
+r_model="intercept[0.0];quality:polynomial()[0.9,0.01];rho[[-,1.,0.,0.];[0.,-,1.,0.];[0.,0.,-,1.];[1.,0.,0.,-]]"
+#r_model="intercept[0.0];quality:polynomial()[0.95,0.01]"
+p_model="doubleStrand:Exponential[30,0.3,0.3,0.5]:Exponential[30,0.3,0.3,0.5]" 
 # Simululate polynomial model
-for v in ${vals[@]}; do
-	n=${v/./}
-	p="$p_type:Exponential[50,${v},0.3,0.001]:Exponential[50,${v},0.3,0.001]"
 
-	$atlas --task simulate --ploidy 1 --recal $r_model --pmd $p --fixedSeed 0 --logFile simulate${n}.out --out $n
-	$atlas --task PMD --bam $n.bam --fasta $n.fasta --pmdModels "$p_type:Empiric:Empiric" --fixedSeed 0 --logFile ${n}_empiric.out --out ${n}_empiric 2> ${n}_empiric.err
-	#$atlas --task PMD --bam $n.bam --fasta $n.fasta --pmdModels "$p_type:Exponential:Exponential" --fixedSeed 0 --logFile ${n}_exp.out --out ${n}_exp 2> ${n}_exp.err
+#$atlas --task simulate --recal1 $r_model --recal2 $r_model --pmd $p_model --fixedSeed 0 --logFile simulate.out
+$atlas --task simulate --recal1 $r_model --recal2 $r_model --fixedSeed 0 --logFile simulate.out
 
-	$atlas --task recal --bam $n.bam --iterations 1 --recal "intercept;quality:polynomial3" --rerecalibrate --minDeltaLL 10 --fixedSeed 0 --logFile ${n}_noPMD.out --out ${n}_noPMD 2> ${n}_noPMD.err
-	$atlas --task recal --bam $n.bam --pmd $p --recal "intercept;quality:polynomial3" --rerecalibrate --minDeltaLL 10 --fixedSeed 0 --logFile ${n}_withPMD.out --out ${n}_withPMD 2> ${n}_withPMD.err
-done
+#$atlas --task PMD --bam ATLAS_simulations.bam --fasta ATLAS_simulations.fasta --pmdModels "doubleStrand:Exponential:Exponential"  --fixedSeed 0 --logFile PMD.out
 
-exit
+# estimate recal model using polynomial
+$atlas --task recal --bam ATLAS_simulations.bam --recal "intercept;quality:polynomial(2)" --rerecalibrate --minDeltaLL 10 --fixedSeed 0 --logFile recal_polynomial.out
+#$atlas --task recal --bam ATLAS_simulations.bam --recal "intercept;quality:polynomial(2)" --rerecalibrate --pmd $p_model --minDeltaLL 10 --fixedSeed 0 --logFile recal_polynomial.out
+

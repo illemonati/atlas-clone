@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "genometools/GenotypeTypes.h"
+#include "TFastaBuffer.h"
 #include "TGenotypeData.h"
 #include "TGenotypeLikelihoodCalculator.h"
 #include "coretools/Main/TLog.h"

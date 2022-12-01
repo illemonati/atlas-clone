@@ -21,14 +21,13 @@
 #include "TSiteSubset.h"
 #include "coretools/Math/TSubsamplePicker.h"
 #include "coretools/Types/probability.h"
-#include "genometools/TFastaReader.h"
 
+namespace BAM { class TFastaBuffer; }
 namespace coretools { class TLog; }
 namespace coretools { class TOutputFile; }
 namespace coretools { class TRandomGenerator; }
 namespace coretools { template <typename T> class TNumericRange; }
 namespace genometools { class TBed; }
-namespace genometools { class TFastaReader; }
 
 namespace GenotypeLikelihoods{
 
@@ -38,25 +37,26 @@ class TWindow;
 //---------------------------------------------------------------
 //TWindow_base
 //---------------------------------------------------------------
-class TWindow_base:public genometools::TGenomeWindow {
+class TWindow_base:public genometools::TGenomeWindow{
 protected:
 	std::vector<TSite> _sites;
-	size_t _numReadsInWindow;
+	uint32_t _numReadsInWindow;
 	std::string _chrName;
 
 	bool referenceBaseAdded;
+
 	//depth
 	bool _depthCalculated;
 	double _depth, _fractionSitesNoData, _fractionDepthAtLeastTwo, _fractionRefIsN;
-	size_t _numSitesWithData;
+	uint32_t _numSitesWithData;
 	void _calcDepth();
 
 	bool _passedFilters;
 
 public:
-	//size_t startPos;
-	//size_t endPos; //end NOT included in window!
-	//size_t length;
+	//unsigned int startPos;
+	//unsigned int endPos; //end NOT included in window!
+	//unsigned int length;
 
 	TWindow_base();
 	TWindow_base(TWindow & other, const int readUpToDepth, const coretools::Probability & downsamplingProb, coretools::TRandomGenerator* randomGenerator);
@@ -64,41 +64,41 @@ public:
 
 	//Allow to set chromosome name when jumping
 	using genometools::TGenomeWindow::move;
-	virtual void move(const genometools::TGenomePosition & From, size_t Length, const std::string ChrName);
+	virtual void move(const genometools::TGenomePosition & From, uint32_t Length, const std::string ChrName);
 	virtual void move(const genometools::TGenomePosition & From, const genometools::TGenomePosition & To, const std::string ChrName);
 	virtual void move(const genometools::TGenomeWindow & Window, const std::string ChrName);
 	void setChrName(const std::string ChrName);
 
 	//move / expand on same chromosome
-	virtual void operator+=(size_t length);
-	virtual void operator-=(size_t length);
-	virtual void resize(size_t newLength);
+	virtual void operator+=(uint32_t length);
+	virtual void operator-=(uint32_t length);
+	virtual void resize(uint32_t newLength);
 
 	//void stealFromOther(TWindow_base & other);
-	void downsampleFromOther(TWindow & other, size_t readUpToDepth, const coretools::Probability & downsamplingProb, coretools::TRandomGenerator* randomGenerator);
-	void downsampleFromOther(TWindow & other, TSiteSubset & subset, size_t readUpToDepth, const coretools::Probability & downsamplingProb, coretools::TRandomGenerator* randomGenerator);
+	void downsampleFromOther(TWindow & other, uint32_t readUpToDepth, const coretools::Probability & downsamplingProb, coretools::TRandomGenerator* randomGenerator);
+	void downsampleFromOther(TWindow & other, TSiteSubset & subset, uint32_t readUpToDepth, const coretools::Probability & downsamplingProb, coretools::TRandomGenerator* randomGenerator);
 	void clear();
 
-	void addReferenceBaseToSites(const genometools::TFastaReader & reference);
+	void addReferenceBaseToSites(BAM::TFastaBuffer & reference);
 	void addReferenceBaseToSites(TSiteSubset & subset);
 	void applyMask(genometools::TBed & mask, bool doInverseMasking);
-	void maskCpG(const genometools::TFastaReader& reference);
-	void downsample(size_t maxDepth, const coretools::TSubsamplePicker & picker);
+	void maskCpG(BAM::TFastaBuffer & reference);
+	void downsample(uint32_t maxDepth, const coretools::TSubsamplePicker & picker);
 	GenotypeLikelihoods::TBaseProbabilities estimateBaseFrequencies() const;
-	void applyDepthFilter(const coretools::TNumericRange<size_t> & DepthRange);
+	void applyDepthFilter(const coretools::TNumericRange<uint32_t> & DepthRange);
 
 	//getters
-	TSite& operator[](size_t internalPos){ return _sites[internalPos]; };
-	const TSite& operator[](size_t internalPos) const { return _sites[internalPos]; };
+	TSite& operator[](uint32_t internalPos){ return _sites[internalPos]; };
+	const TSite& operator[](uint32_t internalPos) const { return _sites[internalPos]; };
 	const std::string& chrName() const{ return _chrName; };
-    genometools::TGenomePosition position(size_t internalPos) const{ return _from + internalPos; };
-	size_t positionOnChr(size_t internalPos) const{ return _from.position() + internalPos; };
+    genometools::TGenomePosition position(uint32_t internalPos) const{ return _from + internalPos; };
+	uint32_t positionOnChr(uint32_t internalPos) const{ return _from.position() + internalPos; };
 
-	size_t numReadsInWindow() const { return _numReadsInWindow; };
+	uint32_t numReadsInWindow() const { return _numReadsInWindow; };
 	double depth();
 	double fractionSitesNoData();
 	double fractionDepthAtLeastTwo();
-	size_t numSitesWithData();
+	uint32_t numSitesWithData();
 	double fractionRefIsN();
 	void dataSummary();
 	bool filter(const double maxFracMissing, const double maxRefN, coretools::TLog* Logfile);
@@ -128,30 +128,30 @@ private:
 	void _clearAllUsedAlignments();
 
 	//functions to fill sites from alignments
-	size_t _findFirstPositionWithinWindow(const BAM::TAlignment & alignment);
+	uint32_t _findFirstPositionWithinWindow(const BAM::TAlignment & alignment);
 
-	void _fillSites(BAM::TAlignment & alignment, std::vector<TSite> & sites, size_t readUpToDepth);
-	void _fillSites(std::vector<TSite> & sites, size_t readUpToDepth);
-	int _fillSitesDownsampling(std::vector<TSite> & sites, size_t readUpToDepth, const coretools::Probability & downsamplingProb, coretools::TRandomGenerator* randomGenerator);
+	void _fillSites(BAM::TAlignment & alignment, std::vector<TSite> & sites, uint32_t readUpToDepth);
+	void _fillSites(std::vector<TSite> & sites, uint32_t readUpToDepth);
+	int _fillSitesDownsampling(std::vector<TSite> & sites, uint32_t readUpToDepth, const coretools::Probability & downsamplingProb, coretools::TRandomGenerator* randomGenerator);
 
-	void _fillSitesSubset(BAM::TAlignment & alignmentIt, std::vector<TSite> & sites, std::set<TSiteSubsetSite> & thesePos, size_t readUpToDepth);
-	void _fillSitesSubset(std::vector<TSite> & sites, TSiteSubset & subset, size_t readUpToDepth);
-	int _fillSitesSubsetDownsampling(std::vector<TSite> & sites, TSiteSubset & subset, size_t readUpToDepth, const coretools::Probability & downsamplingProb, coretools::TRandomGenerator* randomGenerator);
+	void _fillSitesSubset(BAM::TAlignment & alignmentIt, std::vector<TSite> & sites, std::set<TSiteSubsetSite> & thesePos, unsigned int readUpToDepth);
+	void _fillSitesSubset(std::vector<TSite> & sites, TSiteSubset & subset, uint32_t readUpToDepth);
+	int _fillSitesSubsetDownsampling(std::vector<TSite> & sites, TSiteSubset & subset, uint32_t readUpToDepth, const coretools::Probability & downsamplingProb, coretools::TRandomGenerator* randomGenerator);
 
 public:
 	TWindow():TWindow_base(){};
 
 	//Overload moving to take care of alignemnts
-	//void move(const size_t RefID, const size_t Start, const size_t End, const std::string ChrName);
-	void move(const genometools::TGenomePosition & From, size_t Length, const std::string ChrName);
+	//void move(const uint32_t RefID, const uint32_t Start, const uint32_t End, const std::string ChrName);
+	void move(const genometools::TGenomePosition & From, uint32_t Length, const std::string ChrName);
 	void move(const genometools::TGenomePosition & From, const genometools::TGenomePosition & To, const std::string ChrName);
 	void move(const genometools::TGenomeWindow & Window, const std::string ChrName);
-	void operator+=(size_t length);
-	void operator-=(size_t length);
-	void resize(size_t newLength);
+	void operator+=(uint32_t length);
+	void operator-=(uint32_t length);
+	void resize(uint32_t newLength);
 
-	void fillSites(size_t readUpToDepth);
-	void fillSitesSubset(TSiteSubset & subset, size_t readUpToDepth);
+	void fillSites(uint32_t readUpToDepth);
+	void fillSitesSubset(TSiteSubset & subset, uint32_t readUpToDepth);
 
 	void addAlignment(BAM::TAlignment usedAlignment);
 };

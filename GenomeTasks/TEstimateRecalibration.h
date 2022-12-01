@@ -32,8 +32,8 @@ namespace GenomeTasks {
 //-----------------------------------------------------------
 class TEstimateRecalibration final : public TGenome_windows {
 private:
-	BAM::TReadGroupMap _readGroupMap;
-	GenotypeLikelihoods::SequencingError::TRecalibrationEMEstimator recal;
+	std::unique_ptr<GenotypeLikelihoods::SequencingError::TRecalibrationEMEstimator> recalObjectEM;
+	std::unique_ptr<BAM::TReadGroupMap> _readGroupMap;
 	bool _onlyLL = false;
 
 	void _handleWindow() override;

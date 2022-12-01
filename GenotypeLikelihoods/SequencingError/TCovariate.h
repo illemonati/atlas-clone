@@ -42,8 +42,8 @@ public:
 
 	static uint16_t extract(const BAM::TSequencedBase &base) noexcept { return base.distFrom5Prime; }
 
-	static size_t N(const RecalEstimatorTools::TRecalDataTable &dataTable) noexcept {
-		return dataTable.positions().size();
+	static std::vector<uint16_t> range(const RecalEstimatorTools::TRecalDataTable &dataTable) noexcept {
+		return RecalEstimatorTools::fullRange(dataTable.positions());
 	}
 };
 
@@ -59,8 +59,12 @@ public:
 		return coretools::index(base.previousBase);
 	}
 
-	static size_t N(const RecalEstimatorTools::TRecalDataTable &) noexcept {
-		return coretools::index(genometools::Base::N) + 1;
+	static std::vector<uint16_t> range(const RecalEstimatorTools::TRecalDataTable &) noexcept {
+		// There is a context for each position
+		const auto N = coretools::index(genometools::Base::N) + 1; // including N
+		std::vector<uint16_t> v(N);
+		std::iota(v.begin(), v.end(), uint16_t{});
+		return v;
 	}
 };
 

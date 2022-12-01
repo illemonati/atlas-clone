@@ -17,13 +17,14 @@
 #include "genometools/GenomePositions/TGenomePosition.h"
 #include "TSamFlags.h"
 #include "TSequencedBase.h"
-
 #include "coretools/devtools.h"
 #include "coretools/Types/probability.h"
-#include "genometools/TFastaReader.h"
 
 namespace BAM {
 class TBaseFilter;
+}
+namespace BAM {
+class TFastaBuffer;
 }
 namespace GenotypeLikelihoods {
 class TGenotypeLikelihoodCalculator;
@@ -38,7 +39,6 @@ class TRandomGenerator;
 }
 namespace genometools {
 class PhredIntProbability;
-class TFastaReader;
 }
 
 namespace BAM {
@@ -58,7 +58,7 @@ private:
 	uint16_t _readGroupID    = 0;
 	uint16_t _fragmentLength = 0;
 
-	size_t _refSize         = 0;
+	TGenomePosition _lastAlignedPositionWithRespectToRef;
 	int32_t _lastAlignedPos = 0;
 
 	// booleans
@@ -75,11 +75,14 @@ private:
 	std::vector<int> _alignedPosition;
 
 	// reference
+	bool _hasReference = false;
 	std::vector<genometools::Base> _referenceSequence;
 
 	// functions to read and parse
 	void _setCigar(const TCigar &Cigar);
 	void _parseBasesQualities();
+	void _parseBasesQualities(const std::vector<genometools::Base> &Sequence,
+							  const std::vector<genometools::PhredIntProbability> &Qualities);
 	void _setQualitiesNoRecal();
 	void _setDistancesFromEnds();
 	void _fillContext();
@@ -101,14 +104,14 @@ public:
 	void parse();
 	void parse(const GenotypeLikelihoods::SequencingError::TModels &seqErrorModels);
 	// setters
-	void addReference(const genometools::TFastaReader &fasta);
+	void addReference(TFastaBuffer &fasta);
 	void setSequenceAndQualitiesChanged() { _sequenceAndQualitiesChanged = true; };
-	void setName(std::string Name) { _name = std::move(Name); };
-	void setMappingQuality(uint16_t Mappingquality) { _mappingQuality = Mappingquality; }; //TODO: why is this not a PhredInt probability?
+	void setName(const std::string Name) { _name = Name; };
+	void setMappingQuality(const uint16_t Mappingquality) { _mappingQuality = Mappingquality; }; //TODO: why is this not a PhredInt probability?
 	void setMateGenomicPosition(const TGenomePosition & Position) {
 		_mateGenomicPosition.move(Position);
 	};
-	void setInsertSize(int32_t InsertSize) { _insertSize_TLEN = InsertSize; };
+	void setInsertSize(const int32_t InsertSize) { _insertSize_TLEN = InsertSize; };
 	void setSequenceQualities(const TCigar &Cigar, const std::vector<genometools::Base> &Sequence,
 							  const std::vector<genometools::PhredIntProbability> &Quals);
 	void setReadGroup(const uint16_t readGroupId);
@@ -132,21 +135,15 @@ public:
 
 	const std::string& name() const { return _name; };
 	uint16_t readGroupId() const { return _readGroupID; };
-	size_t parsedLength() const { return _alignedPosition.size(); };
+	uint32_t parsedLength() const { return _alignedPosition.size(); };
 	uint32_t length() const { return _cigar.lengthRead(); };
 	int32_t insertSize() const { return _insertSize_TLEN; };
 	uint16_t mappingQuality() const { return _mappingQuality; };
 	uint16_t flags() const { return _flags.asInt(); };
 	const TCigar &cigar() const { return _cigar; };
 
-	TSequencedBase &operator[](size_t internalPos) noexcept {
-		assert(internalPos < _bases.size());
-		return _bases[internalPos];
-	};
-	const TSequencedBase &operator[](size_t internalPos) const noexcept {
-		assert(internalPos < _bases.size());
-		return _bases[internalPos];
-	};
+	TSequencedBase &operator[](const uint32_t internalPos) { return _bases[internalPos]; };
+	const TSequencedBase &operator[](const uint32_t internalPos) const { return _bases[internalPos]; };
 
 	std::string sequence() const;
 	std::string qualities() const;

@@ -21,6 +21,10 @@ namespace BAM {
 //---------------------------------------------------------------
 // data container with minimal footprint, also used in recal
 class TSequencedBase {
+private:
+	using bitset = coretools::TBitSet<3>;
+	// flags: isReverseStrand, isSecondMate, isAligned
+	bitset flags{0}; // initialized as 0,0,0
 public:
 	genometools::Base base         = genometools::Base::N;
 	genometools::Base previousBase = genometools::Base::N;
@@ -30,11 +34,8 @@ public:
 	// Quality after recalibration (used for filtering)
 	genometools::PhredIntProbability recalibratedQualityAsPhredInt{0};
 
-	coretools::TBitSet<3> flags{0}; // initialized as 0,0,0
-
-	uint8_t mappingQuality  = 0;
-
 	// Do we need it if we also store fragment length?
+	uint8_t mappingQuality  = 0;
 	uint16_t fragmentLength = 0;
 	uint16_t distFrom5Prime = -1; // zero based!
 	uint16_t distFrom3Prime = -1; // zero based!

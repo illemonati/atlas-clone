@@ -11,7 +11,6 @@
 #include <armadillo>
 #include <memory>
 
-#include "TReadGroupInfo.h"
 #include "genometools/GenotypeTypes.h"
 #include "RecalEstimatorTools.h"
 #include "TGenotypeData.h"
@@ -38,7 +37,6 @@ struct T2ndDerivative {
 
 class TEpsilon {
 	std::vector<std::unique_ptr<TFunction>> _functions;
-	std::vector<double> _oldBetas;
 
 	double _Q    = 0.;
 	double _oldQ = std::numeric_limits<double>::lowest();
@@ -131,7 +129,7 @@ class TEpsilon {
 	}
 
 public:
-	TEpsilon(std::string_view Def);
+	TEpsilon(const std::string& Def);
 	~TEpsilon();
 
 	void checkOrInit(const RecalEstimatorTools::TRecalDataTable &DataTable);
@@ -150,8 +148,7 @@ public:
 	bool acceptOrReject();
 	void adjust();
 
-	std::string definition() const noexcept;
-	BAM::RGInfo::TInfo info() const;
+	std::string getDefinition() const noexcept;
 };
 } // namespace SequencingError
 } // namespace GenotypeLikelihoods

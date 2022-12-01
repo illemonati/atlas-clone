@@ -136,6 +136,19 @@ void TTreeMixFile::writeHeader(std::vector<std::string> populationNames){
 	outFile << "\n";
 }
 
+
+void TTreeMixFile::writePosition(std::string, long){
+	//do nothing, treemix does not need position
+};
+
+void TTreeMixFile::writePosition(std::string, std::string){
+	//do nothing, treemix does not need position
+};
+
+void TTreeMixFile::writePosition(const genometools::TPopulationLikelihoodReaderLocus & reader){
+	//do nothing, treemix does not need position
+}
+
 void TTreeMixFile::writeCounts(int count, int numAlleles, int populationNum){
 	if(populationNum == 0)
 		outFile << count << "," << numAlleles - count;
@@ -145,9 +158,9 @@ void TTreeMixFile::writeCounts(int count, int numAlleles, int populationNum){
 
 void TTreeMixFile::writeCounts(std::string count, std::string numAlleles, int populationNum){
 	if(populationNum == 0)
-		outFile << count << "," << coretools::str::fromString<int>(numAlleles) - coretools::str::fromString<int>(count);
+		outFile << count << "," << coretools::str::convertString<int>(numAlleles) - coretools::str::convertString<int>(count);
 	else
-		outFile << " " << count << "," << coretools::str::fromString<int>(numAlleles) - coretools::str::fromString<int>(count);
+		outFile << " " << count << "," << coretools::str::convertString<int>(numAlleles) - coretools::str::convertString<int>(count);
 };
 
 //------------------

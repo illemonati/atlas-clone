@@ -3,10 +3,8 @@
 compare() {
 	echo "- Comparing reference ATLAS-files to new ones"
 	local differs=""
-	for a_ref in ${1}_ref/*; do
+	for a_ref in ${1}_ref/ATLAS_*; do
 		[[ $a_ref == *.bai ]] && continue
-		[[ $a_ref == *.out ]] && continue
-		[[ $a_ref == eout ]]  && continue
 		a_new=${1}_new/$(basename $a_ref)
 		if [[ $a_ref == *.bam ]]; then
 			command -v samtools > /dev/null || continue
@@ -21,8 +19,6 @@ compare() {
 	[[ $differs ]] && return 1
 	echo "- All files are identical"
 }
-
-cd $(dirname $0)
 
 err=0
 cnt=0

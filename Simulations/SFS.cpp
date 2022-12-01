@@ -12,12 +12,10 @@
 #include <algorithm>
 #include <cmath>
 #include <iostream>
-#include <string>
 
 #include "coretools/Main/TRandomGenerator.h"
 #include "coretools/Strings/stringFunctions.h"
 #include "coretools/algorithms.h"
-#include "coretools/Files/TFile.h"
 
 
 namespace Simulations {
@@ -27,10 +25,11 @@ using coretools::instances::randomGenerator;
 //--------------------------------
 
 SFS::SFS(const std::string &filename) {
-	coretools::TInputFile in(filename.c_str(), coretools::TFile_Filetype::variable);
+	std::ifstream file(filename.c_str());
+	if (!file) throw "Failed to open SFS file '" + filename + "'!";
 
 	//read dimensions
-	in.read(_numChrPerPop, true);
+	coretools::str::fillContainerFromLineWhiteSpace(file, _numChrPerPop, true, true);
 	_numChr = std::accumulate(_numChrPerPop.begin(), _numChrPerPop.end(), 0);
 
 	//add one to each dimension as what is given is #haplotypes = #entries - 1
@@ -41,7 +40,7 @@ SFS::SFS(const std::string &filename) {
 
 	//read values
 	std::vector<double> vec;
-	in.read(vec, true);
+	coretools::str::fillContainerFromLineWhiteSpace(file, vec, true, true);
 
 	// now store as fraction
 	coretools::fillFromNormalized(sfs, vec);
