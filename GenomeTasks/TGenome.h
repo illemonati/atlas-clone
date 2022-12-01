@@ -18,13 +18,13 @@
 #include "TAlignment.h"
 #include "TBamFile.h"
 #include "genometools/GenomePositions/TChromosomes.h"
-#include "TFastaBuffer.h"
 #include "genometools/GenomePositions/TGenomePosition.h"
 #include "TGenotypeData.h"
 #include "TGenotypeLikelihoodCalculator.h"
 #include "coretools/Math/TNumericRange.h"
 #include "coretools/TTimer.h"
 #include "TWindow.h"
+#include "genometools/TFastaReader.h"
 
 namespace GenotypeLikelihoods {
 class TSiteSubset;
@@ -84,7 +84,7 @@ protected:
 	GenotypeLikelihoods::TGenotypeLikelihoods _genoLik;
 
 	// reference
-	BAM::TFastaBuffer _reference;
+	genometools::TFastaReader _reference;
 	void _openReference(bool required = false);
 
 	// read trimming
@@ -117,9 +117,9 @@ protected:
 	std::vector<genometools::TChromosome>::const_iterator _curChromosome;
 
 	// window params
-	uint32_t _windowSize;
-	uint32_t _numWindowsOnChr;
-	uint32_t _windowNumber;
+	size_t _windowSize;
+	size_t _numWindowsOnChr;
+	size_t _windowNumber;
 	bool _chrChangedWindow;
 
 	// predefined windows
@@ -127,8 +127,8 @@ protected:
 	std::multiset<genometools::TGenomeWindow>::iterator _curPredefinedWindow;
 
 	// window limits
-	long _limitWindows;
-	uint32_t _skipWindows;
+	size_t _limitWindows;
+	size_t _skipWindows;
 
 	// window filters
 	double _maxMissing;
@@ -143,10 +143,10 @@ protected:
 
 	// site filters
 	bool _applyDepthFilter;
-	uint32_t _readUpToDepth;
-	coretools::TNumericRange<uint32_t> _depthFilter;
+	size_t _readUpToDepth;
+	coretools::TNumericRange<size_t> _depthFilter;
 	bool _filterCpG;
-	uint32_t _downsampleDepth;
+	size_t _downsampleDepth;
 	std::unique_ptr<coretools::TSubsamplePicker> subsamplePicker;
 
 	// tmp variables

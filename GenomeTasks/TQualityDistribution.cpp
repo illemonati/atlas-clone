@@ -85,7 +85,7 @@ void TQualityTransformation::_handleAlignment(){
 	if(_compareToOtherSeqErrors){
 		for(auto& b : _alignment){
 			if(b.base != genometools::Base::N){
-				_transformations[_alignment.readGroupId()].add(b.recalibratedQualityAsPhredInt.get(), _otherSeqErrors.getPhredInt(b).get());
+				_transformations[_alignment.readGroupId()].add(b.recalibratedQualityAsPhredInt.get(), _otherSeqErrors.phredInt(b).get());
 			}
 		}
 	} else {

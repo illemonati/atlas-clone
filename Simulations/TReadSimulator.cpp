@@ -16,6 +16,7 @@
 #include "SequencingError/TModel.h"
 #include "TSimulatorAuxiliaryTools.h"
 #include "coretools/Strings/stringFunctions.h"
+#include "coretools/Strings/fromString.h"
 
 namespace Simulations {
 using genometools::Base;
@@ -196,16 +197,23 @@ TReadSimulatorSingleEnd::TReadSimulatorSingleEnd(const BAM::TReadGroup & ReadGro
 	logfile().list(BAM::RGInfo::infos[InfoType::cycles].description, ": ", RGInfo.getString(InfoType::cycles));
 	std::string error = "For single-end read groups, " + BAM::RGInfo::infos[InfoType::cycles].description + " must be a single integer within [1,65535].";
 	auto& json = RGInfo[InfoType::cycles];
+
+	std::string err = "Unable to understand " + BAM::RGInfo::infos[InfoType::cycles].description + ": ";
+	std::string errRange = err + "expect a single integer within [1,65535].";
+
 	if(json.is_number()){
+		if(json.get<int>() < 1 || json.get<int>() > 65535){
+			UERROR(errRange);
+		}
 		_numCycles = json.get<int>();
+	} else if(json.is_array() && json.size() != 1){
+		UERROR(errRange);
 	} else if(json.is_string()){
-		coretools::str::convertString< coretools::StrictlyPositive<uint16_t> >(json, error, _numCycles);
+		coretools::str::fromString(json.get<std::string>(), _numCycles, err);
 	} else if(json.is_array() && json.size() == 1){
-			coretools::str::convertString< coretools::StrictlyPositive<uint16_t> >(json[0], error, _numCycles);
-	} else if(json.is_array() && json.size() == 2){
-		UERROR(error);
+		coretools::str::fromString(json[0].get<std::string>(), _numCycles, err);
 	} else {
-		UERROR("Unable to understand ", BAM::RGInfo::infos[InfoType::cycles].description, ": expect a single integer within [1,65535].");
+		UERROR(errRange);
 	}
 }
 
@@ -235,17 +243,47 @@ TReadSimulatorPairedEnd::TReadSimulatorPairedEnd(const BAM::TReadGroup & ReadGro
 	: TReadSimulator(ReadGroup, RGInfo){
 	//num cycles
 	logfile().list(BAM::RGInfo::infos[InfoType::cycles].description, ": ", RGInfo[InfoType::cycles]);
-	if(coretools::str::stringContains(RGInfo.getString(InfoType::cycles), ',')){
-		//two values: one for first and one for second mate
-		coretools::str::convertString< coretools::StrictlyPositive<uint16_t> >(coretools::str::readBefore(RGInfo.getString(InfoType::cycles), ','),
-				BAM::RGInfo::infos[InfoType::cycles].description + " must be within [1,65535].", _numCycles[0]);
-		coretools::str::convertString< coretools::StrictlyPositive<uint16_t> >(coretools::str::readAfter(RGInfo[InfoType::cycles], ','),
-				BAM::RGInfo::infos[InfoType::cycles].description + " must be within [1,65535].", _numCycles[1]);
-	} else {
-		//one value to be used for both mates
-		coretools::str::convertString< coretools::StrictlyPositive<uint16_t> >(RGInfo[InfoType::cycles],
-				BAM::RGInfo::infos[InfoType::cycles].description + " must be within [1,65535].", _numCycles[0]);
+	auto& json = RGInfo[InfoType::cycles];
+
+	std::string err = "Unable to understand " + BAM::RGInfo::infos[InfoType::cycles].description + ": ";
+	std::string errRange = err + "expect one or two integers within [1,65535].";
+
+	//TODO: probably need some json parsing functions to simplify this!
+	if(json.is_array()){
+		if(json.size() == 1){
+			if(json[0].get<int>() < 1 || json[0].get<int>() > 65535){
+				UERROR(errRange);
+			}
+			_numCycles[0] = json[0].get<int>();
+			_numCycles[1] = _numCycles[0];
+		} else if(json.size() == 2){
+			if(json[0].get<int>() < 1 || json[1].get<int>() > 65535 || json[1].get<int>() < 1 || json[1].get<int>() > 65535){
+				UERROR(errRange);
+			}
+			_numCycles[0] = json[0].get<int>();
+			_numCycles[1] = json[1].get<int>();
+		} else {
+			UERROR(errRange);
+		}
+	} else if(json.is_number()){
+		if(json[0].get<int>() < 1 || json[0].get<int>() > 65535){
+			UERROR(errRange);
+		}
+		_numCycles[0] = json[0].get<int>();
 		_numCycles[1] = _numCycles[0];
+	} else if(json.is_string()){
+		std::string ss = json.get<std::string>();
+		if(coretools::str::stringContains(ss, ',')){
+			//two values: one for first and one for second mate
+			coretools::str::fromString(coretools::str::readBefore(ss, ','), _numCycles[0], err);
+			coretools::str::fromString(coretools::str::readAfter(ss, ','), _numCycles[1], err);
+		} else {
+			//one value to be used for both mates
+			coretools::str::fromString(ss, _numCycles[0], err);
+			_numCycles[1] = _numCycles[0];
+		}
+	} else {
+		UERROR(errRange);
 	}
 
 	// set SAM flags

@@ -24,6 +24,7 @@
 #include "TSequencedBase.h"
 #include "SequencingError/TCovariate.h"
 #include "coretools/Containers/TStrongArray.h"
+#include "coretools/Strings/fromString.h"
 #include "coretools/devtools.h"
 #include "coretools/Math/mathFunctions.h"
 #include "coretools/Types/probability.h"
@@ -35,54 +36,66 @@
 namespace GenotypeLikelihoods {
 namespace SequencingError {
 using coretools::Probability;
-using coretools::index;
 using coretools::instances::randomGenerator;
 using genometools::Base;
 using namespace std::literals;
+using namespace coretools::str;
 
 //*********************************************************
 // TRho
 //*********************************************************
 
-TRho::TRho(const std::string &Def) {
+TRho::TRho(std::string_view Def) {
 	using coretools::str::toString;
-	using coretools::index;
 	//"default" implies default rho
 
 	if (Def == "default" || Def == "-") {
 		return;
 	}
 
-	// otherwise: full matrix is provided
-	std::vector<std::string> vec;
-	std::string s = Def;
-	coretools::str::fillContainerFromString(Def, vec, ';');
-	if (vec.size() != 4) throw "Rho matrix has " + toString(vec.size()) + " instead of 4 rows!";
-
-	// parse rows
-	for (Base a = Base::min; a < Base::max; ++a) {
-		std::string &row = vec[index(a)];
-		coretools::str::trimString(row, "[]");
-		std::vector<double> r;
-		coretools::str::fillContainerFromString(row, r, ',');
-		if (r.size() != 4)
-			throw "Rho matrix has " + toString(r.size()) + " instead of 4 columns for row " + toString(index(a) + 1) + "!";
+	TSplitter spl(Def, ';');
+	size_t i = 0;
+	for (auto s: spl) {
+		if (i >= 4) UERROR("Too many rows given for rho, needed only 4!");
 
 		std::array<double, 4> ar;
-		std::copy(r.begin(), r.end(), ar.begin());
+		TSplitter spl2(strip(s, "[]"), ',');
+		size_t j = 0;
 
-		ar[index(a)] = 0.;
+		for (auto ss : spl2) {
+			if (j >= ar.size()) UERROR("Too many rho values given for row ", i, ", needed ", ar.size(), "!");
 
-		_rho[a]     = TBaseProbabilities::normalize(ar);
+			if (strip(ss) == "-") {
+				ar[j] = 0.;
+			} else {
+				coretools::str::fromString<true>(strip(ss), ar[j]);
+			}
+			++j;
+		}
+		if (j < ar.size()) UERROR("Too few(", j, ") rho values given, needed ", ar.size(), "!");
+
+		ar[i]         = 0.;
+		_rho[Base(i)] = TBaseProbabilities::normalize(ar);
+		++i;
 	}
+	if (i < 4) UERROR("Too few rows given for rho, needed 4, not ", i, "!");
 }
 
-std::string TRho::getDefinition() const noexcept {
+std::string TRho::definition() const noexcept {
 	using coretools::str::toString;
 	return "[[-,"s + toString(_rho[Base::A][Base::C]) + ',' + toString(_rho[Base::A][Base::G]) + ',' + toString(_rho[Base::A][Base::T]) + "];["
 		+ toString(_rho[Base::C][Base::A]) + ",-," + toString(_rho[Base::C][Base::G]) + ',' + toString(_rho[Base::C][Base::T]) + "];["
 		+ toString(_rho[Base::G][Base::A]) + ',' + toString(_rho[Base::G][Base::C]) + ",-," + toString(_rho[Base::G][Base::T]) + "];["
 		+ toString(_rho[Base::T][Base::A]) + ',' + toString(_rho[Base::T][Base::C]) + ',' + toString(_rho[Base::T][Base::G]) + ",-]]";
+}
+
+BAM::RGInfo::TInfo TRho::info() const {
+	return {
+		{_rho[Base::A][Base::A].get(), _rho[Base::A][Base::C].get(), _rho[Base::A][Base::G].get(), _rho[Base::A][Base::T].get()},
+		{_rho[Base::C][Base::A].get(), _rho[Base::C][Base::C].get(), _rho[Base::C][Base::G].get(), _rho[Base::C][Base::T].get()},
+		{_rho[Base::G][Base::A].get(), _rho[Base::G][Base::C].get(), _rho[Base::G][Base::G].get(), _rho[Base::G][Base::T].get()},
+		{_rho[Base::T][Base::A].get(), _rho[Base::T][Base::C].get(), _rho[Base::T][Base::G].get(), _rho[Base::T][Base::T].get()}
+	};
 }
 
 void TRho::add(genometools::Base l, coretools::Probability P_g_I_d, const TBaseProbabilities &P_bbar_I_d) noexcept {
@@ -103,17 +116,17 @@ void TRho::estimate() noexcept {
 //*********************************************************
 // TModelNoRecal
 //*********************************************************
-Probability TModelNoRecal::getErrorRate(const BAM::TSequencedBase &base) const noexcept {
+Probability TModelNoRecal::errorRate(const BAM::TSequencedBase &base) const noexcept {
 	if (base == Base::N) return Probability(1.0);
 	return (Probability)base.originalQuality_phredInt;
 }
 
-genometools::PhredIntProbability TModelNoRecal::getPhredInt(const BAM::TSequencedBase &base) const noexcept {
+genometools::PhredIntProbability TModelNoRecal::phredInt(const BAM::TSequencedBase &base) const noexcept {
 	if (base == Base::N) return genometools::PhredIntProbability::highest();
 	return base.originalQuality_phredInt;
 }
 
-TBaseLikelihoods TModelNoRecal::getBaseLikelihoods(const BAM::TSequencedBase &base) const noexcept {
+TBaseLikelihoods TModelNoRecal::baseLikelihoods(const BAM::TSequencedBase &base) const noexcept {
 	if (base == Base::N) {
 		return TBaseLikelihoods{1.};
 	}
@@ -137,9 +150,6 @@ void TModelNoRecal::simulate(BAM::TSequencedBase &base) const noexcept {
 // TModelRecal
 //*********************************************************
 
-
-TModelRecal::TModelRecal(const std::string &EpsilonDef, const std::string& RhoDef): _rho(RhoDef), _epsilon(EpsilonDef) {}
-
 //-------------------------------------------------
 // functions to calculate error rates
 //-------------------------------------------------
@@ -151,17 +161,17 @@ constexpr Probability calcEpsilon(double eta) noexcept {
 	return coretools::logistic(eta);
 }
 
-Probability TModelRecal::getErrorRate(const BAM::TSequencedBase &base) const noexcept {
+Probability TModelRecal::errorRate(const BAM::TSequencedBase &base) const noexcept {
 	if (base == Base::N) return Probability::highest();
 	return _epsilon.calcErrorRate(base);
 }
 
-genometools::PhredIntProbability TModelRecal::getPhredInt(const BAM::TSequencedBase &base) const noexcept {
+genometools::PhredIntProbability TModelRecal::phredInt(const BAM::TSequencedBase &base) const noexcept {
 	if (base == Base::N) return genometools::PhredIntProbability::highest();
 	return genometools::PhredIntProbability(_epsilon.calcErrorRate(base));
 }
 
-TBaseLikelihoods TModelRecal::getBaseLikelihoods(const BAM::TSequencedBase &base) const noexcept {
+TBaseLikelihoods TModelRecal::baseLikelihoods(const BAM::TSequencedBase &base) const noexcept {
 	if (base == Base::N) {
 		return TBaseLikelihoods{1.};
 	}
@@ -198,6 +208,13 @@ void TModelRecal::simulate(BAM::TSequencedBase &base) const noexcept {
 		// else
 		base.base = ls[2];
 	}
+}
+
+BAM::RGInfo::TInfo TModelRecal::info() const {
+	BAM::RGInfo::TInfo info;
+	info        = _epsilon.info();
+	info["rho"] = _rho.info();
+	return info;
 }
 
 } // namespace SequencingError

@@ -9,7 +9,7 @@
 #include <exception>
 #include <ostream>
 
-#include "coretools/Files/TFile.h"
+#include "coretools/Files/TOutputFile.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TRandomGenerator.h"
 #include "coretools/TTimer.h"
@@ -38,9 +38,9 @@ void TF2Estimator::_openVCF() {
 	_reader.openVCF(vcfFilename);
 
 	// read output name
-	std::string tmp = coretools::str::readBeforeLast(vcfFilename, ".vcf");
-	_outname        = parameters().getParameterWithDefault<std::string>("out", tmp);
-	logfile().list("Writing output files with prefix '" + _outname + "'. (specify with 'out')");
+	auto tmp = coretools::str::readBeforeLast(vcfFilename, ".vcf");
+	_outname = parameters().getParameterWithDefault("out", tmp);
+	logfile().list("Writing output files with prefix '", _outname, "'. (specify with 'out')");
 }
 
 void TF2Estimator::_matchSamples() {

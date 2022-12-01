@@ -146,6 +146,7 @@ TEST(TVCFSimulator, integrationTest) {
 	coretools::instances::parameters().addParameter("sampleSize", numSamples);
 	coretools::instances::parameters().addParameter("chrLength", "1000,1000");
 	coretools::instances::parameters().addParameter("ploidy", "1,2");
+	coretools::instances::parameters().addParameter("depth", "10");
 	coretools::instances::parameters().addParameter("out", "./vcfSimulatorTest");
 
 	// simulate

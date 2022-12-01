@@ -13,7 +13,7 @@
 #include <vector>
 
 #include "genometools/PhredProbabilityTypes.h"
-#include "coretools/Files/TFile.h"
+#include "coretools/Files/TOutputFile.h"
 #include "genometools/THardyWeinbergGenotypeProbabilities.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
@@ -24,6 +24,7 @@
 #include "genometools/TSampleLikelihoods.h"
 #include "coretools/Main/TTask.h"
 #include "coretools/Types/probability.h"
+#include "coretools/Files/TOutputFile.h"
 
 namespace genometools { class TGenotypeFrequencies; }
 

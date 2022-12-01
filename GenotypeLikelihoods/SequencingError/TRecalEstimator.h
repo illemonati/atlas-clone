@@ -145,7 +145,6 @@ private:
 	}
 	void _updateEpsilon(const TPostMortemDamage &PmdModels, double deltaDeltaLL);
 	double _calculateLL_updatePg(const TPostMortemDamage &PmdModels);
-	void _writeCurrentEstimates(const std::string &filename);
 
 public:
 	TRecalibrationEMEstimator(const BAM::TReadGroups *ReadGroups, const BAM::TReadGroupMap *ReadGroupMap);

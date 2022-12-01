@@ -15,6 +15,7 @@
 #include <numeric>
 #include <stdexcept>
 
+#include "coretools/Containers/TStrongArray.h"
 #include "genometools/GenotypeTypes.h"
 #include "RecalEstimatorTools.h"
 #include "TGenotypeData.h"
@@ -99,7 +100,7 @@ void TModelVectorForEstimation::reset(TModels &SequencingErrorModels,
 };
 
 TBaseLikelihoods TModelVectorForEstimation::getBaseLikelihoods(const BAM::TSequencedBase &data) const {
-	return model(data)->getBaseLikelihoods(data);
+	return model(data)->baseLikelihoods(data);
 };
 
 //-------------------------------------------------------------------
@@ -158,9 +159,9 @@ void TModelVectorForEstimation::writeRecalFile(const BAM::TReadGroups &ReadGroup
 		for (uint8_t mate = 0; mate < 2; ++mate) {
 			out.write(ReadGroups.getName(r), std::array{"first", "second"}[mate]);
 			if (_modelIndex[r][mate])
-				out.writeln(_modelIndex[r][mate]->getEpsilonDefinition(), _modelIndex[r][mate]->getRhoDefinition());
+				out.writeln(_modelIndex[r][mate]->epsilonDefinition(), _modelIndex[r][mate]->rhoDefinition());
 			else 
-				out.writeln(_noRecal.getEpsilonDefinition(), _noRecal.getRhoDefinition());
+				out.writeln(_noRecal.epsilonDefinition(), _noRecal.rhoDefinition());
 		}
 	}
 }
@@ -168,15 +169,15 @@ void TModelVectorForEstimation::writeRecalFile(const BAM::TReadGroups &ReadGroup
 std::string TModelVectorForEstimation::getModelsDefinition() {
 	if (_models.empty()) return std::string{};
 
-	return std::accumulate(_models.begin() + 1, _models.end(), _models.front()->getEpsilonDefinition(),
-						   [](auto tot, auto &model) { return tot + '\n' + model->getEpsilonDefinition(); });
+	return std::accumulate(_models.begin() + 1, _models.end(), _models.front()->epsilonDefinition(),
+						   [](auto tot, auto &model) { return tot + '\n' + model->epsilonDefinition(); });
 };
 
 std::string TModelVectorForEstimation::getRhoDefinition() {
 	if (_models.empty()) return std::string{};
 
-	return std::accumulate(_models.begin() + 1, _models.end(), _models.front()->getRhoDefinition(),
-						   [](auto tot, auto &model) { return tot + '\n' + model->getRhoDefinition(); });
+	return std::accumulate(_models.begin() + 1, _models.end(), _models.front()->rhoDefinition(),
+						   [](auto tot, auto &model) { return tot + '\n' + model->rhoDefinition(); });
 };
 
 //---------------------------------------------------------------
@@ -283,23 +284,28 @@ void TRecalibrationEMEstimator::performEstimation(const std::string &outputName,
 	_runEM(outputName, PmdModels);
 
 	// writing final estimates
-	const std::string filename = outputName + "_recalibrationEM.txt";
+	const std::string filename = outputName + "_recal.txt";
 	logfile().listFlush("Writing final estimates to file '", filename, "' ...");
-	_writeCurrentEstimates(filename);
+	_modelsToEstimate.writeRecalFile(*_readGroups, filename);
+	BAM::RGInfo::TReadGroupInfo r(*_readGroups);
+	SequencingErrorModels.addToRGInfo(r);
+	r.write(outputName + "_recal.json");
 	logfile().done();
 };
 
 void TRecalibrationEMEstimator::_estimateRho_updatePbbar(const TPostMortemDamage &PmdModels) {
 	using genometools::genotype;
+	coretools::TStrongArray<size_t, Base> cnt{0};
 	_P_bbar_I_gds.clear();
 	for (size_t i = 0; i < _sites.size(); ++i) {
 		for (const auto &d_ij : _sites[i]) {
+			++cnt[d_ij.base];
 			_P_bbar_I_gds.emplace_back(0.);
 			auto& Pij = _P_bbar_I_gds.back();
 			const auto L_eps = _modelsToEstimate.getBaseLikelihoods(d_ij);
 			for (auto a = Base::min; a < Base::max; ++a) {
 				const auto g_aa = genotype(a, a);
-				const auto P_aa = PmdModels.getMassFunction(a, d_ij, L_eps);
+				const auto P_aa = PmdModels.massFunction(a, d_ij, L_eps);
 
 				Pij[g_aa] = P_aa[d_ij.base];
 
@@ -307,7 +313,7 @@ void TRecalibrationEMEstimator::_estimateRho_updatePbbar(const TPostMortemDamage
 				if (!_genoDist->isInvariant()) {
 					for (auto b = coretools::next(a); b < Base::max; ++b) {
 						const auto g_ab = genotype(a, b);
-						const auto P_ab = TBaseProbabilities::normalize(P_aa, PmdModels.getMassFunction(b, d_ij, L_eps), std::plus<>());
+						const auto P_ab = TBaseProbabilities::normalize(P_aa, PmdModels.massFunction(b, d_ij, L_eps), std::plus<>());
 						Pij[g_ab] = P_ab[d_ij.base];
 
 						_modelsToEstimate.addToRho(d_ij, _P_g_I_ds[i][g_ab], P_ab);
@@ -393,7 +399,7 @@ double TRecalibrationEMEstimator::_calculateLL_updatePg(const TPostMortemDamage 
 			auto &L = _P_g_I_ds.back();
 			for (auto &d_ij : s_i) {
 				const auto L_eps = _modelsToEstimate.getBaseLikelihoods(d_ij);
-				const auto L_D   = PmdModels.getBaseLikelihoods(d_ij, L_eps);
+				const auto L_D   = PmdModels.baseLikelihoods(d_ij, L_eps);
 				L *= _genoDist->getGenotypeLikelihoods(L_D);
 			}
 			LL += log(_genoDist->normalize(L));
@@ -403,7 +409,7 @@ double TRecalibrationEMEstimator::_calculateLL_updatePg(const TPostMortemDamage 
 			double L = 1.;
 			for (auto &d_ij : s_i) {
 				const auto L_eps = _modelsToEstimate.getBaseLikelihoods(d_ij);
-				const auto L_D   = PmdModels.getBaseLikelihoods(d_ij, L_eps);
+				const auto L_D   = PmdModels.baseLikelihoods(d_ij, L_eps);
 				L *= _genoDist->getGenotypeLikelihood(L_D, s_i.genotype);
 			}
 			LL += log(L);
@@ -451,7 +457,7 @@ void TRecalibrationEMEstimator::_runEM(const std::string &outputName, const TPos
 		if (_writeTmpTables) {
 			std::string filename = outputName + "_recalibrationEM_Loop" + toString(i) + ".txt";
 			logfile().listFlush("Writing current estimates to file '", filename, "' ...");
-			_writeCurrentEstimates(filename);
+			_modelsToEstimate.writeRecalFile(*_readGroups, filename);
 			logfile().done();
 		}
 
@@ -477,14 +483,6 @@ void TRecalibrationEMEstimator::calcLL(TModels &SequencingErrorModels, const TPo
 	logfile().conclude("Log Likelihood = ", LL);
 
 }
-
-//----------------------------
-// Other functions
-//----------------------------
-void TRecalibrationEMEstimator::_writeCurrentEstimates(const std::string & Filename) {
-	// open file and write header
-	_modelsToEstimate.writeRecalFile(*_readGroups, Filename);
-};
 
 }; // namespace SequencingError
 
