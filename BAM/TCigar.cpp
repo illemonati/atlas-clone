@@ -87,9 +87,6 @@ TCigar::TCigar(TCigar cigar, uint16_t overlapLength, bool isForwardStrand, size_
 			//cigar string needs to be flipped because it was created in reverse
 			_flipCigar();
 		}
-		std::cout << "new cigar" << std::endl;
-		for (auto &s: _cigar)
-			std::cout << s.type << s.length << std::endl;
 	}
 }
 

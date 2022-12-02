@@ -175,7 +175,6 @@ namespace impl{
 		} else {
 			largerReadOverlapLength += smallerRead.position() - largerRead.position();
 		}
-		std::cout << smallerRead.cigar().lengthMapped() % 2 << std::endl;
 		//if the overlap is divisible by two, you can just merge
 		if (smallerRead.cigar().lengthMapped() % 2 == 0){
 			callMergeFunction(smallerRead, largerRead, smallerReadOverlapLength);
@@ -430,7 +429,6 @@ size_t TAlignmentMerger_middle::merge(BAM::TAlignment & alignment, BAM::TAlignme
 		}
 		//if the overlap length is divisible by 2, we only need to check if the reverse strand is first before merging
 		size_t halfOverlap = overlapLength.first / 2;
-		std::cout << "overlapLength:" << overlapLength.first << std::endl;
 		if (overlapLength.first % 2 == 0){
 			size_t alignmentOverlapLength = halfOverlap;
 			size_t mateOverlapLength = halfOverlap;
