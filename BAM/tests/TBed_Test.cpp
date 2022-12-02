@@ -17,7 +17,7 @@
 //-------------------------------------------------------------
 // TBedChromosome
 //-------------------------------------------------------------
-
+//
 TEST(TBedChromosomeTest, constructor){
     genometools::TBedChromosome chr(1, "1");
 
