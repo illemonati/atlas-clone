@@ -34,11 +34,16 @@ private:
 	uint32_t _lengthSkipped          = 0;
 	uint32_t _lengthSoftClippedLeft  = 0;
 	uint32_t _lengthSoftClippedRight = 0;
+	void _flipCigar();
 
 public:
+	TCigar()=default;
+	TCigar(TCigar cigar, uint16_t overlapLength, bool isFirst, size_t &mappedBasesClipped);
 	void clear();
 	std::vector<CigarOperator>::const_iterator begin() const noexcept { return _cigar.begin(); }
 	std::vector<CigarOperator>::const_iterator end() const noexcept { return _cigar.end(); }
+	std::vector<CigarOperator>::const_reverse_iterator rbegin() const noexcept { return _cigar.rbegin(); }
+	std::vector<CigarOperator>::const_reverse_iterator rend() const noexcept { return _cigar.rend(); }
 	void add(char Type, uint32_t Length);
 	void removeSoftClips();
 

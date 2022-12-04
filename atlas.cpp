@@ -20,6 +20,7 @@
 #include "TQualityDistribution.h"
 #include "TReadGroupMerger.h"
 #include "TSoftClipping.h"
+#include "TAlignmentMerger.h"
 
 //window
 #include "TAlleleCountEstimator.h"

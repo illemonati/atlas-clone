@@ -59,6 +59,7 @@ private:
 	uint16_t _fragmentLength = 0;
 
 	size_t _refSize         = 0;
+	TGenomePosition _lastAlignedPositionWithRespectToRef;
 	int32_t _lastAlignedPos = 0;
 
 	// booleans
@@ -75,11 +76,14 @@ private:
 	std::vector<int> _alignedPosition;
 
 	// reference
+	bool _hasReference = false;
 	std::vector<genometools::Base> _referenceSequence;
 
 	// functions to read and parse
 	void _setCigar(const TCigar &Cigar);
 	void _parseBasesQualities();
+	void _parseBasesQualities(const std::vector<genometools::Base> &Sequence,
+							  const std::vector<genometools::PhredIntProbability> &Qualities);
 	void _setQualitiesNoRecal();
 	void _setDistancesFromEnds();
 	void _fillContext();
@@ -100,51 +104,47 @@ public:
 			  uint16_t ReadGroupId);
 	void parse();
 	void parse(const GenotypeLikelihoods::SequencingError::TModels &seqErrorModels);
-
 	// setters
 	void addReference(const genometools::TFastaReader &fasta);
 	void setSequenceAndQualitiesChanged() { _sequenceAndQualitiesChanged = true; };
-	void setName(std::string Name) { _name = std::move(Name); };
-	void setMappingQuality(uint16_t Mappingquality) { _mappingQuality = Mappingquality; }; //TODO: why is this not a PhredInt probability?
+	void setName(const std::string Name) { _name = Name; };
+	void setMappingQuality(const uint16_t Mappingquality) { _mappingQuality = Mappingquality; }; //TODO: why is this not a PhredInt probability?
 	void setMateGenomicPosition(const TGenomePosition & Position) {
 		_mateGenomicPosition.move(Position);
 	};
-	void setInsertSize(int32_t InsertSize) { _insertSize_TLEN = InsertSize; };
+	void setInsertSize(const int32_t InsertSize) { _insertSize_TLEN = InsertSize; };
 	void setSequenceQualities(const TCigar &Cigar, const std::vector<genometools::Base> &Sequence,
 							  const std::vector<genometools::PhredIntProbability> &Quals);
-	void setReadGroup(uint16_t readGroupId);
-	void setIsReverseStrand(bool IsReverse) { _flags.setIsReverseStrand(IsReverse); };
-	void setIsRead1(bool IsRead1) { _flags.setIsRead1(IsRead1); };
-	void setIsRead2(bool IsRead2) { _flags.setIsRead2(IsRead2); };
-	void setSamFlags(BAM::TSamFlags Flags) { _flags = std::move(Flags); };
+	void setReadGroup(const uint16_t readGroupId);
+	void setIsReverseStrand(const bool IsReverse) { _flags.setIsReverseStrand(IsReverse); };
+	void setIsRead1(const bool IsRead1) { _flags.setIsRead1(IsRead1); };
+	void setIsRead2(const bool IsRead2) { _flags.setIsRead2(IsRead2); };
+	void setSamFlags(const BAM::TSamFlags Flags) { _flags = Flags; };
+	void setCigarForUnitTest(const TCigar &Cigar) {_cigar = Cigar;}
 
 	// getters: position
 	uint32_t lastAlingedInternalPos() const { return _lastAlignedPos; };
+	uint32_t getLastInternalPos() const;
 	TGenomePosition lastAlignedPositionWithRespectToRef() const { return *this + (_refSize - 1); };
-	bool isAlignedAtInternalPos(size_t internalPosition) const;
-	genometools::Base referenceAtInternalPos(size_t internalPosition) const;
-	TGenomePosition positionInRef(size_t internalPosition) const;
+	bool isAlignedAtInternalPos(const uint32_t internalPosition) const;
+	genometools::Base referenceAtInternalPos(uint32_t internalPosition) const;
+	TGenomePosition positionInRef(uint32_t internalPosition) const;
 	const genometools::TGenomePosition &mateGenomicPosition() const { return _mateGenomicPosition; };
 	uint32_t matePosition() const { return _mateGenomicPosition.position(); };
 	uint32_t mateRefID() const { return _mateGenomicPosition.refID(); };
+	uint16_t fragmentLength() const { return _fragmentLength; };
 
-	std::string name() const { return _name; };
+	const std::string& name() const { return _name; };
 	uint16_t readGroupId() const { return _readGroupID; };
-	size_t parsedLength() const { return _alignedPosition.size(); };
+	uint32_t parsedLength() const { return _alignedPosition.size(); };
 	uint32_t length() const { return _cigar.lengthRead(); };
 	int32_t insertSize() const { return _insertSize_TLEN; };
 	uint16_t mappingQuality() const { return _mappingQuality; };
 	uint16_t flags() const { return _flags.asInt(); };
 	const TCigar &cigar() const { return _cigar; };
 
-	TSequencedBase &operator[](size_t internalPos) noexcept {
-		assert(internalPos < _bases.size());
-		return _bases[internalPos];
-	};
-	const TSequencedBase &operator[](size_t internalPos) const noexcept {
-		assert(internalPos < _bases.size());
-		return _bases[internalPos];
-	};
+	TSequencedBase &operator[](const uint32_t internalPos) { return _bases[internalPos]; };
+	const TSequencedBase &operator[](const uint32_t internalPos) const { return _bases[internalPos]; };
 
 	std::string sequence() const;
 	std::string qualities() const;
@@ -158,8 +158,14 @@ public:
 	// looping
 	std::vector<TSequencedBase>::iterator begin() noexcept { return _bases.begin(); };
 	std::vector<TSequencedBase>::iterator end() noexcept { return _bases.end(); };
+	std::vector<TSequencedBase>::reverse_iterator rbegin() noexcept { return _bases.rbegin(); };
+	std::vector<TSequencedBase>::reverse_iterator rend() noexcept { return _bases.rend(); };
 	std::vector<TSequencedBase>::const_iterator begin() const noexcept { return _bases.begin(); };
 	std::vector<TSequencedBase>::const_iterator end() const noexcept { return _bases.end(); };
+	std::vector<TSequencedBase>::const_reverse_iterator rbegin() const noexcept { return _bases.rbegin(); };
+	std::vector<TSequencedBase>::const_reverse_iterator rend() const noexcept { return _bases.rend(); };
+
+	
 	size_t size() const noexcept { return _bases.size(); }
 
 	// filters and other functions to modify data
@@ -170,6 +176,10 @@ public:
 	void recalibrateWithPMD(const GenotypeLikelihoods::TGenotypeLikelihoodCalculator &GLCalculator);
 	void setIsProperPair(const bool &ok);
 	void downsampleAlignment(const coretools::Probability &fraction, coretools::TRandomGenerator &randomGenerator);
+	void merge(uint16_t overlapLength, size_t &mappedBasesClipped);
+
+	// debug functions
+	void print() const;
 };
 
 }; // namespace BAM
