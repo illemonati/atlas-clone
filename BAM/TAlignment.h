@@ -59,7 +59,6 @@ private:
 	uint16_t _fragmentLength = 0;
 
 	size_t _refSize         = 0;
-	TGenomePosition _lastAlignedPositionWithRespectToRef;
 	int32_t _lastAlignedPos = 0;
 
 	// booleans
@@ -76,14 +75,11 @@ private:
 	std::vector<int> _alignedPosition;
 
 	// reference
-	bool _hasReference = false;
 	std::vector<genometools::Base> _referenceSequence;
 
 	// functions to read and parse
 	void _setCigar(const TCigar &Cigar);
 	void _parseBasesQualities();
-	void _parseBasesQualities(const std::vector<genometools::Base> &Sequence,
-							  const std::vector<genometools::PhredIntProbability> &Qualities);
 	void _setQualitiesNoRecal();
 	void _setDistancesFromEnds();
 	void _fillContext();
