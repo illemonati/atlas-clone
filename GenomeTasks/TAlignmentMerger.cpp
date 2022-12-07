@@ -46,21 +46,21 @@ using namespace coretools::str;
 
 namespace impl{
 	void callMergeFunction(BAM::TAlignment & alignment, BAM::TAlignment & mate, size_t overlapLength){
-	size_t lengthMappedBeforeMerge = alignment.cigar().lengthMapped();
-	size_t mappedBasesClipped = 0;
-	//the reads are merged by softclipping bases, for which a new cigar string is constructed
-	alignment.merge(overlapLength, mappedBasesClipped);
-	if(alignment.isReverseStrand()){
-		//if the reverse strand gets merged, its position in the BAM-file as well as the position of the mate of the first read need to be adjusted to account for the length of the added softclips on left side
-		if (overlapLength < lengthMappedBeforeMerge) {
-			alignment.moveOnRef(alignment.position() + mappedBasesClipped);
-			mate.setMateGenomicPosition(alignment);
-		} else {
-			//if the overlap is larger than the read being merged, the position can only be moved up by the amount of aligned bases in the read
-			alignment.moveOnRef(alignment.position() + lengthMappedBeforeMerge);
-			mate.setMateGenomicPosition(alignment);
+		size_t lengthMappedBeforeMerge = alignment.cigar().lengthMapped();
+		size_t mappedBasesClipped = 0;
+		//the reads are merged by softclipping bases, for which a new cigar string is constructed
+		alignment.merge(overlapLength, mappedBasesClipped);
+		if(alignment.isReverseStrand()){
+			//if the reverse strand gets merged, its position in the BAM-file as well as the position of the mate of the first read need to be adjusted to account for the length of the added softclips on left side
+			if (overlapLength < lengthMappedBeforeMerge) {
+				alignment.moveOnRef(alignment.position() + mappedBasesClipped);
+				mate.setMateGenomicPosition(alignment);
+			} else {
+				//if the overlap is larger than the read being merged, the position can only be moved up by the amount of aligned bases in the read
+				alignment.moveOnRef(alignment.position() + lengthMappedBeforeMerge);
+				mate.setMateGenomicPosition(alignment);
+			}
 		}
-	}
 	}
 
 	std::pair<genometools::PhredIntProbability,genometools::PhredIntProbability> minQual(const BAM::TAlignment & firstRead, const BAM::TAlignment & secondRead) {
@@ -152,7 +152,6 @@ namespace impl{
 		genometools::PhredIntProbability secondReadQual = determineQualAtSingleBase(secondRead, halfOverlap, false);
 		size_t firstReadOverlapLength = halfOverlap;
 		size_t secondReadOverlapLength = halfOverlap;
-
 		//compare qualities and add 1 to the overlap length of the read with the lower quality base at the center of the overlap
 		compareQualities(firstReadQual, secondReadQual, firstReadOverlapLength, secondReadOverlapLength);
 
@@ -181,8 +180,9 @@ namespace impl{
 			callMergeFunction(largerRead, smallerRead, largerReadOverlapLength);
 		} else {
 			//if the overlap is not divisible by two, we first need to determine the quality at the position in the center of the overlap for both reads
-			genometools::PhredIntProbability smallerReadQual = determineQualAtSingleBase(smallerRead, smallerReadOverlapLength, false);
-			genometools::PhredIntProbability largerReadQual = determineQualAtSingleBase(largerRead, largerReadOverlapLength, true);
+			genometools::PhredIntProbability smallerReadQual = determineQualAtSingleBase(smallerRead, smallerReadOverlapLength, !smallerRead.isReverseStrand());
+			genometools::PhredIntProbability largerReadQual = determineQualAtSingleBase(largerRead, largerReadOverlapLength, !largerRead.isReverseStrand());
+	
 			compareQualities(smallerReadQual, largerReadQual, smallerReadOverlapLength, largerReadOverlapLength);
 			callMergeFunction(smallerRead, largerRead, smallerReadOverlapLength);
 			callMergeFunction(largerRead, smallerRead, largerReadOverlapLength);
@@ -419,30 +419,41 @@ TAlignmentMerger_middle::TAlignmentMerger_middle():TAlignmentMerger(){};
 size_t TAlignmentMerger_middle::merge(BAM::TAlignment & alignment, BAM::TAlignment & mate){
 	const std::pair<size_t,bool> overlapLength = determineOverlapLength(alignment, mate);
 	if (overlapLength.first > 0){
-		//in case one of the reads starts before and ends after its mate 
-		if (overlapLength.first > alignment.cigar().lengthMapped()) {
+		//in case one of the reads fully covers its mate 
+		if (overlapLength.first >= alignment.cigar().lengthMapped()) {
 			impl::handleOverlapLargerThanRead(mate, alignment);
 			return overlapLength.first;
-		} else if (overlapLength.first > mate.cigar().lengthMapped()){
+		} else if (overlapLength.first >= mate.cigar().lengthMapped()){
 			impl::handleOverlapLargerThanRead(alignment, mate);
 			return overlapLength.first;
 		}
-		//if the overlap length is divisible by 2, we only need to check if the reverse strand is first before merging
-		size_t halfOverlap = overlapLength.first / 2;
-		if (overlapLength.first % 2 == 0){
-			size_t alignmentOverlapLength = halfOverlap;
-			size_t mateOverlapLength = halfOverlap;
-			impl::checkIfReverseStrandFirst(alignment, mate, alignmentOverlapLength, mateOverlapLength, overlapLength.second);
-
-			impl::callMergeFunction(alignment, mate, alignmentOverlapLength);
-			impl::callMergeFunction(mate, alignment, mateOverlapLength);
+		//if both reads are forward/reverse strands, we need to change one of their directions before merging so we don't clip the same side twice
+		if ((alignment.isReverseStrand() && mate.isReverseStrand())){
+			!overlapLength.second ? mate.setIsReverseStrand(false) : alignment.setIsReverseStrand(false);
+			sameDirectionMerge(alignment, mate, overlapLength);
+			!alignment.isReverseStrand() ? alignment.setIsReverseStrand(true) : mate.setIsReverseStrand(true);
+		} else if ((!alignment.isReverseStrand() && !mate.isReverseStrand())) {
+			!overlapLength.second ? alignment.setIsReverseStrand(true) : mate.setIsReverseStrand(true);
+			sameDirectionMerge(alignment, mate, overlapLength);
+			alignment.isReverseStrand() ? alignment.setIsReverseStrand(false) : mate.setIsReverseStrand(false);
 		} else {
-			//this if-statement is necessary because the mergeOddOverlap-function needs the alignments in the order of (firstRead, secondRead) 
-			//to calculate the qualities at the center position
-			if (overlapLength.second == true) 
-				impl::mergeOddOverlap(alignment, mate, halfOverlap);
-			else
-				impl::mergeOddOverlap(mate, alignment, halfOverlap);
+			size_t halfOverlap = overlapLength.first / 2;
+			//if the overlap length is divisible by 2, we only need to check if the reverse strand is first before merging
+			if (overlapLength.first % 2 == 0){
+				size_t alignmentOverlapLength = halfOverlap;
+				size_t mateOverlapLength = halfOverlap;
+				impl::checkIfReverseStrandFirst(alignment, mate, alignmentOverlapLength, mateOverlapLength, overlapLength.second);
+
+				impl::callMergeFunction(alignment, mate, alignmentOverlapLength);
+				impl::callMergeFunction(mate, alignment, mateOverlapLength);
+			} else {
+				//this if-statement is necessary because the mergeOddOverlap-function needs the alignments in the order of (firstRead, secondRead) 
+				//to calculate the qualities at the center position
+				if (overlapLength.second == true) 
+					impl::mergeOddOverlap(alignment, mate, halfOverlap);
+				else
+					impl::mergeOddOverlap(mate, alignment, halfOverlap);
+			}
 		}
 	} 
 	return overlapLength.first;
@@ -461,7 +472,7 @@ std::pair<size_t,bool> TAlignmentMerger_middle::determineOverlapLength(const BAM
 		} 
 		//else
 			return std::make_pair(0,false);
-	} else {
+	} else if (mate > alignment) {
 		if (mate.position() < alignment.position() + alignment.cigar().lengthMapped()){
 			size_t overlapLength = alignment.position() + alignment.cigar().lengthMapped() - mate.position();
 			bool alignmentFirst = true;
@@ -469,6 +480,30 @@ std::pair<size_t,bool> TAlignmentMerger_middle::determineOverlapLength(const BAM
 		} 
 		//else
 			return std::make_pair(0,true);
+	} else {
+		//if both reads have the same start position, the overlap is the lower mapped length of the two
+		size_t overlapLength;
+		(alignment.cigar().lengthMapped() > mate.cigar().lengthMapped()) ? overlapLength = mate.cigar().lengthMapped() : overlapLength = alignment.cigar().lengthMapped();
+		bool alignmentFirst = randomGenerator().pickOneOfTwo();
+		return std::make_pair(overlapLength,alignmentFirst);
+	}
+}
+
+void TAlignmentMerger_middle::sameDirectionMerge(BAM::TAlignment & alignment, BAM::TAlignment & mate, std::pair<size_t,bool> overlapLength){
+size_t halfOverlap = overlapLength.first / 2;
+if (overlapLength.first % 2 == 0){
+	size_t alignmentOverlapLength = halfOverlap;
+	size_t mateOverlapLength = halfOverlap;
+
+	impl::callMergeFunction(alignment, mate, alignmentOverlapLength);
+	impl::callMergeFunction(mate, alignment, mateOverlapLength);
+} else {
+	//this if-statement is necessary because the mergeOddOverlap-function needs the alignments in the order of (firstRead, secondRead) 
+	//to calculate the qualities at the center position
+	if (overlapLength.second == true) 
+		impl::mergeOddOverlap(alignment, mate, halfOverlap);
+	else
+		impl::mergeOddOverlap(mate, alignment, halfOverlap);
 	}
 }
 

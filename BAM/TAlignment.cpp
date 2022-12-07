@@ -278,8 +278,7 @@ void TAlignment::parse(const GenotypeLikelihoods::SequencingError::TModels &seqE
 };
 
 void TAlignment::addReference(const genometools::TFastaReader &fasta) {
-	const auto window = genometools::TGenomeWindow(*this, _lastAlignedPositionWithRespectToRef);
-	const auto view = fasta.view(window);
+	const auto view = fasta.view(refID(), position(), _refSize);
 	_referenceSequence.clear();
 	std::copy(view.begin(), view.end(), std::back_inserter(_referenceSequence));
 };

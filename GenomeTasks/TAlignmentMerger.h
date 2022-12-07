@@ -94,6 +94,7 @@ public:
 	TAlignmentMerger_middle();
 	size_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate);
 	std::pair<size_t,bool> determineOverlapLength(const BAM::TAlignment & alignment, const BAM::TAlignment & mate);
+	void sameDirectionMerge(BAM::TAlignment & alignment, BAM::TAlignment & mate, std::pair<size_t,bool> overlapLength);
 };
 
 class TAlignmentMerger_firstMate:public TAlignmentMerger{
