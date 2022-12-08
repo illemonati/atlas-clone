@@ -232,10 +232,7 @@ void estimateMajorMinor() {
 	if (limitSites > 0) logfile().list("Will stop at input position ", limitSites, ". (parameter 'limitSites')");
 	if (limitSites < 0) throw "maxPos cannot be negative!";
 
-	// filename tag      - Parsing through glf files:
-	//         - Parsed 45000000 positions in 3 minutes 53 seconds min.
-	//         - Parsed 52000000 positions in 4 minutes 29 seconds min.
-	//         - Parsed 234000000 positions in 20 minutes 11 seconds min.
+	// filename tag
 	const std::string outname = parameters().getParameterWithDefault<std::string>("out", "ATLAS_majorMinor");
 	logfile().list("Will write output files with tag '" + outname + "'. (parameter 'out')");
 
