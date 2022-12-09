@@ -139,7 +139,7 @@ void TSimulatorBamFile::open(const std::string &Filename, const std::string &Sam
 TSimulatorBamFile::~TSimulatorBamFile() { _outBam.closeNoIndex(); }
 
 void TSimulatorBamFile::close() {
-	_outBam.close(&logfile());
+	_outBam.close();
 }
 
 TSimulatorBamFiles::TSimulatorBamFiles(uint32_t NumFiles, const std::string & Outname, std::vector<TReadSimulators> & ReadSimulators,
@@ -152,7 +152,7 @@ TSimulatorBamFiles::TSimulatorBamFiles(uint32_t NumFiles, const std::string & Ou
 	}
 
 	//read quality adjustment for wiriting
-	BAM::TQualityAdjusterForWriting qualityAdjuster(coretools::instances::parameters(), &logfile());
+	BAM::TQualityAdjusterForWriting qualityAdjuster;
 
 	// open BAM files
 	if (_files.size() == 1) {
