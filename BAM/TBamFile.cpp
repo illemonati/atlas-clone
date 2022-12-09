@@ -385,7 +385,7 @@ void TBamFile::open(std::string_view Filename){
 	_filename = Filename;
 
 	//open BAM file
-	logfile().listFlushDots("Opening BAM file '" + _filename);
+	logfile().list("Opening BAM file '", _filename, "'.");
 	if (!_bamReader.Open(_filename))
 		UERROR("Failed to open BAM file '", Filename, "'!");
 
@@ -394,12 +394,18 @@ void TBamFile::open(std::string_view Filename){
 	Filename.remove_suffix(4);
 	const std::string fnIndex2 = std::string(Filename).append(".bai");
 	if (std::filesystem::exists(fnIndex1)) {
-		_bamReader.OpenIndex(fnIndex1);
+		logfile().list("Opening BAM index file '", fnIndex1, "'.");
+		if(!_bamReader.OpenIndex(fnIndex1))
+			UERROR("Failed to open BAM index file '", fnIndex1, "'!");
 	}
 	else if (std::filesystem::exists(fnIndex2)) {
-		_bamReader.OpenIndex(fnIndex2);
+		logfile().list("Opening BAM index file '", fnIndex2, "'.");
+		if (!_bamReader.OpenIndex(fnIndex2))
+			UERROR("Failed to open BAM index file '", fnIndex2, "'!");
 	} else {
-		_bamReader.CreateIndex();
+		logfile().list("Creating BAM index file '", fnIndex1, "'.");
+		if (!_bamReader.CreateIndex())
+			UERROR("Failed to create BAM index file '", fnIndex1, "'!");
 	}
 
 	_open = true;
@@ -422,8 +428,6 @@ void TBamFile::open(std::string_view Filename){
 	_bamReader.GetNextAlignment(bamAlignment);
 	_fileSize = _bamReader.Tell();
 	_bamReader.Rewind();
-
-	logfile().done();
 };
 
 void TBamFile::close(){
