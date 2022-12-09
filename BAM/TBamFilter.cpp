@@ -20,7 +20,8 @@
 
 namespace BAM{
 
-using coretools::TLog;
+using coretools::instances::parameters;
+using coretools::instances::logfile;
 
 //-----------------------------------------------------
 //TBamFileLog
@@ -59,9 +60,9 @@ void TBamFileFilter::setLog(std::shared_ptr<TBamFileLog> & Log){
 	_updateLog = true;
 };
 
-void TBamFileFilter::summary(TLog* logfile, uint64_t total, const uint16_t readGroup){
+void TBamFileFilter::summary(uint64_t total, const uint16_t readGroup){
 	if(!_keep && _counter[readGroup]  > 0){
-		logfile->list(_reason + ": ", _counter[readGroup], " (" + coretools::str::toPercentString(_counter[readGroup], total, 3) + "%)");
+		logfile().list(_reason + ": ", _counter[readGroup], " (" + coretools::str::toPercentString(_counter[readGroup], total, 3) + "%)");
 	}
 };
 
@@ -112,14 +113,14 @@ void TQualityFilter::_default(){
 	_range.set(genometools::PhredIntProbability(1), true, genometools::PhredIntProbability(93), true);
 };
 
-void TQualityFilter::set(coretools::TParameters & params, coretools::TLog* logfile){
-	if(params.parameterExists("filterBaseQual")){
-		params.fillParameter("filterBaseQual", _range);
+void TQualityFilter::set(){
+	if(parameters().parameterExists("filterBaseQual")){
+		parameters().fillParameter("filterBaseQual", _range);
 		if (_range.within(genometools::PhredIntProbability(0))){ throw "Base quality filter of 0 is not allowed (parameter 'filterBaseQual')"; }
-		logfile->list("Will filter out bases with quality outside the range " + _range.rangeString() + " (parameter 'filterBaseQual')");
+		logfile().list("Will filter out bases with quality outside the range " + _range.rangeString() + " (parameter 'filterBaseQual')");
 	} else {
 		_default();
-		logfile->list("Will filter out bases with quality outside the range " + _range.rangeString() + ". (use 'filterBaseQual' to change)");
+		logfile().list("Will filter out bases with quality outside the range " + _range.rangeString() + ". (use 'filterBaseQual' to change)");
 	}
 	_filter = true;
 };
@@ -127,12 +128,12 @@ void TQualityFilter::set(coretools::TParameters & params, coretools::TLog* logfi
 //-------------------------------------
 // TContextFilter
 //-------------------------------------
-void TContextFilter::set(coretools::TParameters & params, coretools::TLog* logfile){
+void TContextFilter::set(){
 	using namespace genometools;
 	_filter = false;
-	if(params.parameterExists("ignoreContexts")){
+	if(parameters().parameterExists("ignoreContexts")){
 		std::vector<std::string> contexts;
-		params.fillParameterIntoContainer("ignoreContexts", contexts, ',');
+		parameters().fillParameterIntoContainer("ignoreContexts", contexts, ',');
 
 		if(contexts.size() > 0){
 			for(auto& c : contexts){
@@ -157,13 +158,13 @@ void TContextFilter::set(coretools::TParameters & params, coretools::TLog* logfi
 					rep.push_back(toString(i));
 				}
 			}
-			logfile->list("Will ignore the following contexts: " + coretools::str::concatenateString(rep, ", ")  + ". (parameter 'ignoreContexts')");
+			logfile().list("Will ignore the following contexts: " + coretools::str::concatenateString(rep, ", ")  + ". (parameter 'ignoreContexts')");
 			_filter = true;
 		}
 	}
 
 	if(!_filter){
-		logfile->list("Will keep bases regardless of base context. (use 'ignoreContexts' to filter)");
+		logfile().list("Will keep bases regardless of base context. (use 'ignoreContexts' to filter)");
 	}
 };
 

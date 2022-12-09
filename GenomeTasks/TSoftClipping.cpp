@@ -165,7 +165,7 @@ void TRemoveSoftClippedBases::removeSoftClippedBases() {
 	_traverseBAMPassedQC();
 
 	// report
-	_outBam.close(&logfile());
+	_outBam.close();
 };
 
 }; // namespace GenomeTasks

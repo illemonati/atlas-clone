@@ -41,7 +41,6 @@ TReadGroupMerger::TReadGroupMerger():TGenome_basic(){
 	}
 
 	//parse file and construct new read groups in new header object
-	int lineNum = 0;
 	std::vector<std::string> vec;
 	std::set<std::string> readGroupsMerged;
 	while(file.read(vec)){
@@ -107,7 +106,7 @@ void TReadGroupMerger::mergeReadGroups(){
 	_bamFile.printEndWithSummary(_outputName);
 
 	//close bam writer
-	outBam.close(&logfile());
+	outBam.close();
 };
 
 }; // end namespace
