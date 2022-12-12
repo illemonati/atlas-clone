@@ -162,6 +162,22 @@ namespace impl{
 		callMergeFunction(secondRead, firstRead, secondReadOverlapLength);
 	}
 
+	void mergeOverlapLargerThanRead(BAM::TAlignment & largerRead, BAM::TAlignment & smallerRead, size_t largerReadOverlapLength, size_t smallerReadOverlapLength){
+		//if the overlap is divisible by two, you can just merge
+		if (smallerRead.cigar().lengthMapped() % 2 == 0){
+			callMergeFunction(smallerRead, largerRead, smallerReadOverlapLength);
+			callMergeFunction(largerRead, smallerRead, largerReadOverlapLength);
+		} else {
+			//if the overlap is not divisible by two, we first need to determine the quality at the position in the center of the overlap for both reads
+			genometools::PhredIntProbability smallerReadQual = determineQualAtSingleBase(smallerRead, smallerReadOverlapLength, !smallerRead.isReverseStrand());
+			genometools::PhredIntProbability largerReadQual = determineQualAtSingleBase(largerRead, largerReadOverlapLength, !largerRead.isReverseStrand());
+		
+			compareQualities(smallerReadQual, largerReadQual, smallerReadOverlapLength, largerReadOverlapLength);
+			callMergeFunction(smallerRead, largerRead, smallerReadOverlapLength);
+			callMergeFunction(largerRead, smallerRead, largerReadOverlapLength);
+		}
+	}
+
 	void handleOverlapLargerThanRead(BAM::TAlignment & largerRead, BAM::TAlignment & smallerRead){
 		//since the larger read fully eclipses the smaller read, the overlap is now as large as the number of aligned positions in the smaller read
 		size_t halfOverlap = smallerRead.cigar().lengthMapped() / 2;
@@ -174,18 +190,18 @@ namespace impl{
 		} else {
 			largerReadOverlapLength += smallerRead.position() - largerRead.position();
 		}
-		//if the overlap is divisible by two, you can just merge
-		if (smallerRead.cigar().lengthMapped() % 2 == 0){
-			callMergeFunction(smallerRead, largerRead, smallerReadOverlapLength);
-			callMergeFunction(largerRead, smallerRead, largerReadOverlapLength);
+
+		//if both reads are forward/reverse, the smaller read needs to be set to reverse/forward so different sides of the reads are soft-clipped
+		if ((largerRead.isReverseStrand() && smallerRead.isReverseStrand())){
+			smallerRead.setIsReverseStrand(false);
+			mergeOverlapLargerThanRead(largerRead, smallerRead, largerReadOverlapLength, smallerReadOverlapLength);
+			smallerRead.setIsReverseStrand(true);
+		} else if ((!largerRead.isReverseStrand() && !smallerRead.isReverseStrand())) {
+			smallerRead.setIsReverseStrand(true);
+			mergeOverlapLargerThanRead(largerRead, smallerRead, largerReadOverlapLength, smallerReadOverlapLength);
+			smallerRead.setIsReverseStrand(false);
 		} else {
-			//if the overlap is not divisible by two, we first need to determine the quality at the position in the center of the overlap for both reads
-			genometools::PhredIntProbability smallerReadQual = determineQualAtSingleBase(smallerRead, smallerReadOverlapLength, !smallerRead.isReverseStrand());
-			genometools::PhredIntProbability largerReadQual = determineQualAtSingleBase(largerRead, largerReadOverlapLength, !largerRead.isReverseStrand());
-	
-			compareQualities(smallerReadQual, largerReadQual, smallerReadOverlapLength, largerReadOverlapLength);
-			callMergeFunction(smallerRead, largerRead, smallerReadOverlapLength);
-			callMergeFunction(largerRead, smallerRead, largerReadOverlapLength);
+			mergeOverlapLargerThanRead(largerRead, smallerRead, largerReadOverlapLength, smallerReadOverlapLength);
 		}
 	}
 }
