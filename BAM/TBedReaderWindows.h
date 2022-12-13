@@ -62,11 +62,11 @@ private:
 	std::string curChr;
 	uint32_t numPositionsAdded;
 
-	void readFile(const genometools::TChromosomes & chromosomeList, uint32_t siteLimit, coretools::TLog* logfile);
+	void readFile(const genometools::TChromosomes & chromosomeList, uint32_t siteLimit, coretools::TLog* logfile, bool adaptRegions);
 
 public:
 	std::string filename;
-	TBedReaderWindows(std::string Filename, uint32_t WindowSize, const genometools::TChromosomes & chromosomes, uint32_t siteLimit, coretools::TLog* logfile);
+	TBedReaderWindows(std::string Filename, uint32_t WindowSize, const genometools::TChromosomes & chromosomes, uint32_t siteLimit, coretools::TLog* logfile, bool adaptRegions);
 	TBedReaderWindows();
 	~TBedReaderWindows();
 	void setChr(const std::string & chr);

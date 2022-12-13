@@ -23,7 +23,11 @@ TSexEstimator::TSexEstimator():TGenome_windows() {
 		logfile().list("Will only process up to " + std::to_string(_siteLimit) + " sites. (parameter 'siteLimit')");
 	}
 
-	// read the two regions to be used
+	if(parameters().parameterExists("adaptRegions")){
+		_adaptRegions = true;
+	}
+
+	// read the regions to be used
 	logfile().startIndent("Reading regions: (parameter 'chromRegions')");
 	std::vector<std::string> regions;
 	parameters().fillParameterIntoContainer("chromRegions", regions, ',');
@@ -38,7 +42,7 @@ void TSexEstimator::_initializeRegion(std::string regionsFile, int regionNum) {
 	logfile().startIndent((std::string) "Region " + std::to_string(regionNum+1) + ":");
 	logfile().list((std::string) "Reading region " + std::to_string(regionNum+1) + " from file '" + regionsFile + "'...");
 
-	_regions.push_back(std::make_unique<BAM::TBedReaderWindows>(regionsFile, _windowSize, _chromosomes, _siteLimit, &logfile()));
+	_regions.push_back(std::make_unique<BAM::TBedReaderWindows>(regionsFile, _windowSize, _chromosomes, _siteLimit, &logfile(), _adaptRegions));
 	coretools::TCountDistribution<> distPerSite;
 	_distPerSites.push_back(distPerSite);
 
