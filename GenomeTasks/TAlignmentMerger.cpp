@@ -90,7 +90,7 @@ namespace impl{
 					firstReadMinQual = baseIteratorReverse->recalibratedQualityAsPhredInt;
 			}
 			baseIteratorReverse++;
-			internalPos++;
+			internalPos--;
 		}
 		//returns a pair of the minimum qualities of both reads (in the overlap)
 		return std::make_pair(firstReadMinQual,secondReadMinQual);
@@ -99,9 +99,9 @@ namespace impl{
 	std::pair<genometools::PhredIntProbability,genometools::PhredIntProbability> getMinQuals(const BAM::TAlignment & alignment, const BAM::TAlignment & mate) {
 		//this if-statement ensures that the order of the pair of minimum qualities that is returned matches the order in which the two reads were passed to the function
 		//this is necessary because the minQual function needs the two reads in the order of (forwardStrand, reverseStrand)
-		if (!alignment.isReverseStrand())
+		if (!alignment.isReverseStrand()){
 			return minQual(alignment,mate);
-		else {
+		} else {
 			std::pair<genometools::PhredIntProbability,genometools::PhredIntProbability> flippedResult = minQual(mate,alignment);
 			return std::make_pair(flippedResult.second,flippedResult.first);
 		}
@@ -557,7 +557,7 @@ size_t TAlignmentMerger_highestQuality::merge(BAM::TAlignment & alignment, BAM::
 	size_t overlapLength = TAlignmentMerger::determineOverlapLength(alignment, mate);
 	//if they do -> calculate mininum quality of each read in the overlap
 	if (overlapLength > 0) {
-		std::pair<genometools::PhredIntProbability,genometools::PhredIntProbability> minQuals = impl::getMinQuals(alignment, mate);
+		std::pair<genometools::PhredIntProbability,genometools::PhredIntProbability> minQuals;
 		//merge the read with the lower minimum quality (the read with the higher PhredIntProbability has the higher error-rate and the lower quality)
 		if (minQuals.first < minQuals.second){
 			impl::callMergeFunction(mate, alignment, overlapLength);
@@ -565,11 +565,10 @@ size_t TAlignmentMerger_highestQuality::merge(BAM::TAlignment & alignment, BAM::
 			impl::callMergeFunction(alignment, mate, overlapLength);
 		} else {
 				//if both reads have equal minimum qualities, randomly choose one
-				if (randomGenerator().pickOneOfTwo()) {
+				if (randomGenerator().pickOneOfTwo())
 					impl::callMergeFunction(mate, alignment, overlapLength);
-				} else {
+				//else 
 					impl::callMergeFunction(alignment, mate, overlapLength);
-				}
 		}
 	} 
 	return overlapLength;
