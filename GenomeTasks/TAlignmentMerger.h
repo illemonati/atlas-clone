@@ -81,6 +81,7 @@ public:
 	virtual ~TAlignmentMerger(){};
 	virtual size_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate);
 	size_t determineOverlapLength(const BAM::TAlignment & alignment, const BAM::TAlignment & mate);
+	virtual size_t overlapLengthAndMerge(BAM::TAlignment & alignment, BAM::TAlignment & mate);
 };
 
 class TAlignmentMerger_randomRead:public TAlignmentMerger{
@@ -113,6 +114,7 @@ class TAlignmentMerger_highestQuality:public TAlignmentMerger{
 public:
 	TAlignmentMerger_highestQuality();
 	size_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate);
+	size_t overlapLengthAndMerge(BAM::TAlignment & alignment, BAM::TAlignment & mate) override;
 };
 
 
