@@ -65,7 +65,7 @@ public:
     void read(){
         //open BAM file for reading
         inputBam = std::make_unique<BAM::TBamFile>();
-        inputBam->open(_filename, true, &logfile());
+        inputBam->open(_filename);
     }
 
     void SetUp() override{
@@ -755,7 +755,6 @@ public:
 
     TBamFilter() {
         //settings
-        qualFilter.set(parameters(), &logfile());
         _bamFile.readGroups().fillVectorWithNames(readGroupNames);
     };
 

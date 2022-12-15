@@ -40,9 +40,8 @@ using namespace coretools::str;
 TGenome_basic::TGenome_basic() {
 	// open bam file
 	// TODO: deal with index in better way: let tasks decide if they need an index or not
-	_bamFile.open(parameters().getParameter<std::string>("bam"), parameters().parameterExists("indexNotRequired"),
-				  &logfile());
-	_bamFile.setLimits(parameters(), &logfile());
+	_bamFile.open(parameters().getParameter<std::string>("bam"));
+	_bamFile.setLimits();
 
 	// outputname
 	if (parameters().parameterExists("out")) {
@@ -65,7 +64,7 @@ void TGenome_basic::_openBamForWriting(const std::string &filename, BAM::TOutput
 // A base class without genotype likelihoods but BAM filters enabled
 //---------------------------------------------------------------
 
-TGenome_filtered::TGenome_filtered() { _bamFile.setFilters(parameters(), &logfile()); };
+TGenome_filtered::TGenome_filtered() { _bamFile.setFilters(); };
 
 void TGenome_filtered::_traverseBAMPassedQC() {
 	// parse through bam file
@@ -89,9 +88,9 @@ void TGenome_filtered::_traverseBAMPassedQC() {
 TGenome_parsed::TGenome_parsed() : _genotypeLikelihoodCalculator(&_bamFile.readGroupsMutable()) {
 	// set parsing filters
 	_setReadTrimming();
-	_qualityFilter.set(parameters(), &logfile());
-	_contextFilter.set(parameters(), &logfile());
-	_bamFile.setFilters(parameters(), &logfile());
+	_qualityFilter.set();
+	_contextFilter.set();
+	_bamFile.setFilters();
 };
 
 void TGenome_parsed::_openReference(bool required) {
@@ -104,7 +103,7 @@ void TGenome_parsed::_openReference(bool required) {
 			if (required) { throw "No reference provided! (Use parameter fasta to provide a reference)"; }
 		}
 	}
-	_bamFile.setFilters(parameters(), &logfile());
+	_bamFile.setFilters();
 };
 
 void TGenome_parsed::_setReadTrimming() {

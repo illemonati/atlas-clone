@@ -23,9 +23,6 @@
 #include "coretools/Math/counters.h"
 
 
-namespace coretools { class TLog; }
-namespace coretools { class TParameters; }
-
 namespace BAM{
 
 //-----------------------------------------------------
@@ -58,7 +55,7 @@ public:
 	void setReason(const std::string reason);
 	void setLog(std::shared_ptr<TBamFileLog> & Log);
 	void filterOut(const std::string & alignmentName, const bool & isReverseStrand, const uint16_t readGroup);
-	void summary(coretools::TLog* logfile, uint64_t total, const uint16_t readGroup);
+	void summary(uint64_t total, const uint16_t readGroup);
 	coretools::TCountDistribution<> numFiltered() const { return _counter; }
 	std::string getReason() const { return _reason; }
 	void fillHeader(std::vector<std::string> &header);
@@ -134,17 +131,11 @@ private:
 	void _default();
 
 public:
-	explicit TQualityFilter(){
-		_default();
+	TQualityFilter(){
+		set();
 	};
 
-	TQualityFilter(coretools::TParameters & params, coretools::TLog* logfile){
-		set(params, logfile);
-	};
-
-	~TQualityFilter() = default;
-
-	void set(coretools::TParameters & params, coretools::TLog* logfile);
+	void set();
 
 	bool pass(const TSequencedBase & base) const override{
 		return _range.within(base.recalibratedQualityAsPhredInt);
@@ -166,10 +157,10 @@ private:
 public:
 	explicit TContextFilter(){
 		_keptContexts.fill(true);
+		set();
 	};
-	~TContextFilter() = default;
 
-	void set(coretools::TParameters & params, coretools::TLog* logfile);
+	void set();
 
 	bool pass(const TSequencedBase & base) const override;
 };

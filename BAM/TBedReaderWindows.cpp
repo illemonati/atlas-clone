@@ -127,7 +127,7 @@ uint32_t TBedReaderChromosome::size(){
 //-----------------------
 // TBedReader
 //-----------------------
-void TBedReaderWindows::readFile(const genometools::TChromosomes & chromosomeList, uint32_t siteLimit, TLog* logfile){
+void TBedReaderWindows::readFile(const genometools::TChromosomes & chromosomeList, uint32_t siteLimit, TLog* logfile, bool adaptRegions){
 	//open file
 	std::istream* myStream = NULL;
 	if(filename.find(".gz")) myStream = new gz::igzstream(filename.c_str());
@@ -162,10 +162,24 @@ void TBedReaderWindows::readFile(const genometools::TChromosomes & chromosomeLis
 				}
 				curChr = vec[0];
 			}
-			if(fromString<uint32_t>(vec[1]) > chromosomeList.getChromosome(vec[0]).chrEnd.position()) throw "Start position for chromosome " + vec[0] + " in file '" + filename + "' is after actual end position of this chromosome.";
-			if(fromString<uint32_t>(vec[2]) > chromosomeList.getChromosome(vec[0]).chrEnd.position()) throw "End position for chromosome " + vec[0] + " in file '" + filename + "' is after actual end position of this chromosome.";
-			//add positions
-			chrIt->second->addPosition(vec, numPositionsAdded, siteLimit);
+			if(adaptRegions){
+				if(fromString<uint32_t>(vec[1]) < chromosomeList.getChromosome(vec[0]).chrEnd.position() && fromString<uint32_t>(vec[2]) > chromosomeList.getChromosome(vec[0]).chrStart.position()){
+					if(fromString<uint32_t>(vec[2]) > chromosomeList.getChromosome(vec[0]).chrEnd.position()) 
+						vec[2] = toString(chromosomeList.getChromosome(vec[0]).chrEnd.position());
+					if(fromString<uint32_t>(vec[1]) < chromosomeList.getChromosome(vec[0]).chrStart.position())
+						vec[1] = toString(chromosomeList.getChromosome(vec[0]).chrStart.position());
+					//add positions
+					chrIt->second->addPosition(vec, numPositionsAdded, siteLimit);
+				}
+			} else {
+				if(fromString<uint32_t>(vec[1]) > chromosomeList.getChromosome(vec[0]).chrEnd.position() || fromString<uint32_t>(vec[1]) < chromosomeList.getChromosome(vec[0]).chrStart.position()) 
+					throw "Start position for chromosome " + vec[0] + " in file '" + filename + "' is outside of this chromosome.";
+				if(fromString<uint32_t>(vec[2]) > chromosomeList.getChromosome(vec[0]).chrEnd.position() || fromString<uint32_t>(vec[2]) < chromosomeList.getChromosome(vec[0]).chrStart.position()) 
+					throw "End position for chromosome " + vec[0] + " in file '" + filename + "' is outside of this chromosome.";
+				//add positions
+				chrIt->second->addPosition(vec, numPositionsAdded, siteLimit);
+			}
+
 		}
 	}
 
@@ -173,12 +187,12 @@ void TBedReaderWindows::readFile(const genometools::TChromosomes & chromosomeLis
 	delete myStream;
 };
 
-TBedReaderWindows::TBedReaderWindows(std::string Filename, uint32_t WindowSize, const genometools::TChromosomes & chromosomeList, uint32_t siteLimit, TLog* logfile){
+TBedReaderWindows::TBedReaderWindows(std::string Filename, uint32_t WindowSize, const genometools::TChromosomes & chromosomeList, uint32_t siteLimit, TLog* logfile, bool adaptRegions){
 	filename = Filename;
 	windowSize = WindowSize;
 	numPositionsAdded = 0;
 	curChr = "";
-	readFile(chromosomeList, siteLimit, logfile);
+	readFile(chromosomeList, siteLimit, logfile, adaptRegions);
 };
 
 TBedReaderWindows::~TBedReaderWindows(){

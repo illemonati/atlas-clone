@@ -280,7 +280,7 @@ public:
 		//done parsing bam file: report
 		_bamFile.printSummary(_outputName);
 		_bamFile.close();
-		_outBam.close(&logfile());
+		_outBam.close();
 	}
 };
 

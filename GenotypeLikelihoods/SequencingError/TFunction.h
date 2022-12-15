@@ -442,12 +442,15 @@ public:
 	double adjustParametersPostEstimation() noexcept override { return normalizeParameters(_betas); }
 
 	double getEta(const BAM::TSequencedBase &base) const noexcept override {
+		assert(Covariate::extract(base) < _betas.size());
 		return _betas[Covariate::extract(base)];
 	}
 
 	double getEta(const BAM::TSequencedBase &base, std::vector<T1stDerivative> &der1,
 						  std::vector<T2ndDerivative> &) const noexcept override {
 		const auto val = Covariate::extract(base);
+		assert(val < _betas.size());
+
 		der1.emplace_back(firstParameterIndex() + Covariate::extract(base), 1.0);
 		return _betas[val];
 		
@@ -505,12 +508,19 @@ public:
 	}
 
 	double getEta(const BAM::TSequencedBase &base) const noexcept override {
+		assert(Covariate::extract(base) < _indexMap.size());
+		assert(_indexMap[Covariate::extract(base)] >= 0);
+		assert(_indexMap[Covariate::extract(base)] < _betas.size());
 		return _betas[_indexMap[Covariate::extract(base)]];
 	}
 
 	double getEta(const BAM::TSequencedBase &base, std::vector<T1stDerivative> &der1,
 				  std::vector<T2ndDerivative> &) const noexcept override {
 		const auto val = Covariate::extract(base);
+		assert(val < _indexMap.size());
+		assert(_indexMap[val] >= 0);
+		assert(_indexMap[val] < _betas.size());
+
 		der1.emplace_back(firstParameterIndex() + _indexMap[val], 1.0);
 		return _betas[_indexMap[val]];
 	}

@@ -99,7 +99,7 @@ bool TReadGroupInfo::_readGroupExists(std::string_view Name){
 
 void TReadGroupInfo::_readFile(std::string_view Filename){
 	try {
-		_json = nlohmann::ordered_json::parse(Filename);
+		_json = nlohmann::ordered_json::parse(std::ifstream(std::string(Filename)));
 	} catch (nlohmann::json::parse_error &ex) {
 		UERROR("Failed to parse read group info file '", Filename, "': JSON error '", ex.what(), " at byte ", ex.byte,
 			   "!");

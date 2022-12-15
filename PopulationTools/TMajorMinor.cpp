@@ -284,6 +284,15 @@ void estimateMajorMinor() {
 
 	while (glfReader.readNext()) {
 		++counter;
+
+		// report progress
+		if (counter % 1000000 == 0) {
+		    logfile().list("Parsed ", counter, " positions in ", timer.formattedTime(), ".");
+		}
+
+		// break?
+		if (limitSites > 0 && counter == limitSites) break;
+
 		// filter on missingness
 		if (glfReader.numActiveSamplesWithData() >= minSamplesWithData) {
 			const Base ref = glfReader.refBase(); // can be N
@@ -308,14 +317,6 @@ void estimateMajorMinor() {
 							  MMEstimator->major(), MMEstimator->minor());
 			}
 		} // end filter on missingness
-
-		// report progress
-		if (counter % 1000000 == 0) {
-			logfile().list("Parsed ", counter, " positions in ", timer.formattedTime(), " min.");
-		}
-
-		// break?
-		if (limitSites > 0 && counter == limitSites) break;
 	}
 
 	logfile().list("Reached end of glf files!");

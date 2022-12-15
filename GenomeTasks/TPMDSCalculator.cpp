@@ -83,7 +83,7 @@ void TPMDSCalculator::calculatePMDS(){
 	_traverseBAMPassedQC();
 
 	//report
-	_outBam.close(&logfile());
+	_outBam.close();
 };
 
 }; // end namespace

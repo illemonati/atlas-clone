@@ -41,7 +41,7 @@ void TBamSample::open(BAM::TBamFile & bamFile){
 };
 
 void TBamSample::close(){
-	_out.close(&logfile());
+	_out.close();
 };
 
 void TBamSample::sample(BAM::TBamFile & bamFile){

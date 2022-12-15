@@ -31,8 +31,6 @@
 #include "api/SamHeader.h"
 #include "coretools/Strings/stringFunctions.h"
 #include "coretools/Math/counters.h"
-namespace coretools { class TLog; }
-namespace coretools { class TParameters; }
 
 namespace BAM{
 
@@ -106,7 +104,6 @@ private:
 	std::shared_ptr<TBamFileLog> _bamLog;
 
 	//report progress
-	coretools::TLog* _logfile;
 	coretools::TTimer _timer;
 	uint32_t _progressFrequency;
 	uint64_t _lastProgressPrinted;
@@ -127,13 +124,13 @@ public:
 	TReadGroups& readGroupsMutable(){ return _readGroups; };
 
 	//filters
-	void setFilters(coretools::TParameters & params, coretools::TLog* logfile);
-	void setLimits(coretools::TParameters & params, coretools::TLog* logfile);
+	void setFilters();
+	void setLimits();
 	void setKeepAll();
 	void curFilterOut();
 	void filterOut(const std::string & alignmentName, const bool & isReverseStrand, const uint16_t readGroup);
 	void setExternalFilterReason(const std::string reason);
-	void openBamLog(coretools::TParameters & params, coretools::TLog* logfile);
+	void openBamLog();
 	void writeToBamLog(const std::string & alignmentName, const bool & isReverseStrand, const std::string & reason);
 
 	//get filter status
@@ -156,7 +153,7 @@ public:
  	bool externalFilterEnabled() const{ return _externalFilter.filters(); };
 
 	//reading
-	void open(const std::string Filename, const bool IndexNotRequired, coretools::TLog* Logfile);
+	void open(std::string_view Filename);
 	bool isOpen() const{ return _open; };
 	void close();
 	bool readNextAlignment();
@@ -247,9 +244,8 @@ private:
 
 public:
 	TQualityAdjusterForWriting();
-	TQualityAdjusterForWriting(coretools::TParameters & params, coretools::TLog* logfile);
 
-	void initialize(coretools::TParameters & params, coretools::TLog* logfile);
+	void initialize();
 	bool adjusts() const { return _adjust; };
 	void binQualitiesIllumina();
 	void limitRange(const genometools::BaseQuality & min, const genometools::BaseQuality & max);
@@ -289,11 +285,9 @@ public:
 
  	void open(const std::string Filename, const TSamHeader & Header, const genometools::TChromosomes & Chromosomes, const TReadGroups & ReadGroups);
 	void open(const std::string Filename, const TBamFile & Original);
-	void open(coretools::TParameters & params, coretools::TLog* logfile, const std::string Filename, const TSamHeader & Header, const genometools::TChromosomes & Chromosomes, const TReadGroups & ReadGroups);
-	void setQualityAdjusterForWriting(coretools::TParameters & params, coretools::TLog* logfile);
+	void setQualityAdjusterForWriting();
 	void setQualityAdjusterForWriting(const TQualityAdjusterForWriting & QualityAdjuster);
 	bool isOpen() const{ return _openForWriting; };
-	void close(coretools::TLog* logfile);
 	void close();
 	void closeNoIndex();
 	void writeAlignment(const TAlignment & alignment);

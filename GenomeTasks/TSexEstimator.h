@@ -26,6 +26,7 @@ private:
 	std::vector<std::unique_ptr<BAM::TBedReaderWindows>> _regions;
 	uint32_t _siteLimit;
 	uint16_t _regionNum;
+	bool _adaptRegions = false;
 
 	void _initializeRegion(std::string regionsFile, const int regionNum);
 	void _handleWindow() override;
