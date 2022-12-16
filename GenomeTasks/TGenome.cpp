@@ -88,8 +88,6 @@ void TGenome_filtered::_traverseBAMPassedQC() {
 TGenome_parsed::TGenome_parsed() : _genotypeLikelihoodCalculator(&_bamFile.readGroupsMutable()) {
 	// set parsing filters
 	_setReadTrimming();
-	_qualityFilter.set();
-	_contextFilter.set();
 	_bamFile.setFilters();
 };
 

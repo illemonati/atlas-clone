@@ -126,23 +126,11 @@ class TQualityFilter : public TBaseFilter{
 private:
 	coretools::TNumericRange<genometools::PhredIntProbability> _range;
 
-	genometools::PhredIntProbability _minPhredInt, _maxPhredInt;
-
-	void _default();
-
 public:
-	TQualityFilter(){
-		set();
-	};
-
-	void set();
+	TQualityFilter();
 
 	bool pass(const TSequencedBase & base) const override{
-		return _range.within(base.recalibratedQualityAsPhredInt);
-	};
-
-	bool pass(const genometools::BaseQuality & qual) const{
-		return _range.within(genometools::PhredIntProbability(qual));
+		return _range.within(base.originalQuality_phredInt);
 	};
 };
 
@@ -155,13 +143,7 @@ private:
 	coretools::TStrongArray<bool, genometools::BaseContext, coretools::index(genometools::BaseContext::max) + 1> _keptContexts;
 
 public:
-	explicit TContextFilter(){
-		_keptContexts.fill(true);
-		set();
-	};
-
-	void set();
-
+	explicit TContextFilter();
 	bool pass(const TSequencedBase & base) const override;
 };
 

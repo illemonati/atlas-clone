@@ -108,18 +108,13 @@ bool TBamFileFilterBool::pass(const bool state, const std::string & alignmentNam
 //---------------------------------------------------------------
 //TQualityFilter
 //---------------------------------------------------------------
-void TQualityFilter::_default(){
-	//default values according to SAM specifications
-	_range.set(genometools::PhredIntProbability(1), true, genometools::PhredIntProbability(93), true);
-};
-
-void TQualityFilter::set(){
+TQualityFilter::TQualityFilter() {
 	if(parameters().parameterExists("filterBaseQual")){
 		parameters().fillParameter("filterBaseQual", _range);
 		if (_range.within(genometools::PhredIntProbability(0))){ throw "Base quality filter of 0 is not allowed (parameter 'filterBaseQual')"; }
 		logfile().list("Will filter out bases with quality outside the range " + _range.rangeString() + " (parameter 'filterBaseQual')");
 	} else {
-		_default();
+		_range.set(genometools::PhredIntProbability(1), true, genometools::PhredIntProbability(93), true);
 		logfile().list("Will filter out bases with quality outside the range " + _range.rangeString() + ". (use 'filterBaseQual' to change)");
 	}
 	_filter = true;
@@ -128,8 +123,10 @@ void TQualityFilter::set(){
 //-------------------------------------
 // TContextFilter
 //-------------------------------------
-void TContextFilter::set(){
+TContextFilter::TContextFilter(){
 	using namespace genometools;
+
+	_keptContexts.fill(true);
 	_filter = false;
 	if(parameters().parameterExists("ignoreContexts")){
 		std::vector<std::string> contexts;
