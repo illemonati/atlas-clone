@@ -89,7 +89,7 @@ public:
 	static constexpr std::string_view name = "mappingQuality";
 	static constexpr bool isIndexed        = true;
 
-	static uint16_t extract(const BAM::TSequencedBase &base) noexcept { return base.mappingQuality; }
+	static uint16_t extract(const BAM::TSequencedBase &base) noexcept { return base.mappingQuality.get(); }
 
 	static std::vector<uint16_t> range(const RecalEstimatorTools::TRecalDataTable &dataTable) noexcept {
 		return RecalEstimatorTools::indexedRange(dataTable.mappingQualities());

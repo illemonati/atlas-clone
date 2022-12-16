@@ -56,7 +56,7 @@ void TRecalDataTable::add(const BAM::TSequencedBase & base){
 	impl::addCount(_positions, base.distFrom5Prime);
 	impl::addCount(_fragmentLengths, base.fragmentLength);
 	impl::addCount(_qualities, base.originalQuality_phredInt.get());
-	impl::addCount(_mappingQualities, base.mappingQuality);
+	impl::addCount(_mappingQualities, base.mappingQuality.get());
 };
 
 void TRecalDataTable::clear() noexcept {

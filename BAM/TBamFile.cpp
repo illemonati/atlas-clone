@@ -1072,7 +1072,7 @@ void TOutputBamFile::_writeAlignment(const TAlignment & alignment){
 	_tmpBamAlignment.RefID = alignment.refID();
 	_tmpBamAlignment.Position = alignment.position();
 	_tmpBamAlignment.InsertSize = alignment.insertSize();
-	_tmpBamAlignment.MapQuality = alignment.mappingQuality();
+	_tmpBamAlignment.MapQuality = alignment.mappingQuality().get();
 
 	if(alignment.isPaired()){
 		_tmpBamAlignment.MateRefID = alignment.mateRefID();

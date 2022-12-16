@@ -105,7 +105,7 @@ void TReadSimulator::_simulateAlignmentDetails(const TGenomePosition & Position)
 	_alignment.setName(_getNextReadName());
 
 	//simulate mapping quality
-	_alignment.setMappingQuality(_mappingQualityDist.sample().get());
+	_alignment.setMappingQuality(_mappingQualityDist.sample());
 }
 
 bool TReadSimulator::_simulateContamination(){

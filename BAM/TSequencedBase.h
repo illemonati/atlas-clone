@@ -32,7 +32,7 @@ public:
 
 	coretools::TBitSet<3> flags{0}; // initialized as 0,0,0
 
-	uint8_t mappingQuality  = 0;
+	genometools::PhredIntProbability mappingQuality{0};
 
 	// Do we need it if we also store fragment length?
 	uint16_t fragmentLength = 0;
