@@ -157,7 +157,7 @@ BAM::TAlignment TTestBamFile::_constructAlignment(const std::vector<genometools:
 	BAM::TAlignment alignment(position);
     alignment.setName("alignment_" + coretools::str::toString(_counter));
     alignment.setSequenceQualities(cigar, sequence, qualities);
-    alignment.setMappingQuality(_dummyMapQual);
+    alignment.setMappingQuality(genometools::PhredIntProbability(_dummyMapQual));
     alignment.setReadGroup(readGroup);
     if (complicatedSamFlag) {
         alignment.setSamFlags(BAM::TSamFlags(_dummyFlag));

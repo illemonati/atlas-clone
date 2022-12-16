@@ -1263,7 +1263,7 @@ TEST_F(TBamFilter_Test, MQ){
     // count number of reads with lower and higher MQ in simulated alignments
     uint32_t numReadsWithOutsideMQWritten = 0;
     for (auto a = outputBam->beginWrittenAlignments(); a != outputBam->endWrittenAlignments(); a++){
-        if (a->mappingQuality() < 80 || a->mappingQuality() > 100)
+        if (a->mappingQuality().get() < 80 || a->mappingQuality().get() > 100)
             numReadsWithOutsideMQWritten++;
     }
 
