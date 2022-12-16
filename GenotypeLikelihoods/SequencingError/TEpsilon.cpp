@@ -184,38 +184,37 @@ constexpr coretools::Probability calcEpsilon(double eta) noexcept {
 
 TEpsilon::TEpsilon(std::string_view Def) {
 	// create functions
-	size_t _numParameters = 0;
+	size_t numParameters = 0;
 	const auto modelDef = impl::parseFunctions(Def);
 	for (const auto &cov : modelDef) {
-		_functions.emplace_back(impl::makeFunction(cov.covariate, cov.function, _numParameters));
+		_functions.emplace_back(impl::makeFunction(cov.covariate, cov.function, numParameters));
 
 		// add new parameters
-		_numParameters += _functions.back()->numParameters();
+		numParameters += _functions.back()->numParameters();
 	}
 
 	// prepare Newton-Raphson variables
-	_Jacobian.resize(_numParameters, _numParameters);
-	_F.resize(_numParameters);
-	_JxF.resize(_numParameters, 1);
+	_Jacobian.resize(numParameters, numParameters);
+	_F.resize(numParameters);
 }
 
 TEpsilon::~TEpsilon() = default;
 
 void TEpsilon::checkOrInit(const RecalEstimatorTools::TRecalDataTable &DataTable) {
 	// these may change, recalculate
-	size_t _numParameters     = 0;
+	size_t numParameters     = 0;
 
 	for (auto &fn : _functions) {
-		if (!fn->checkOrInitValueRange(DataTable)) {
+		if (!fn->checkOrInitValueRange(DataTable, numParameters)) {
 			throw "Function " + fn->typeString() + " does not cover full range of data";
 		}
-		_numParameters += fn->numParameters();
+		numParameters += fn->numParameters();
 	}
 
 	// prepare Newton-Raphson variables
-	_Jacobian.resize(_numParameters, _numParameters);
-	_F.resize(_numParameters);
-	_JxF.resize(_numParameters, 1);
+	_Jacobian.resize(numParameters, numParameters);
+	_F.resize(numParameters);
+	_JxF.resize(numParameters, 1);
 }
 
 coretools::Probability TEpsilon::calcErrorRate(const BAM::TSequencedBase &base) const noexcept {
