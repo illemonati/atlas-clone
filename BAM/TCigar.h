@@ -46,6 +46,7 @@ public:
 	std::vector<CigarOperator>::const_reverse_iterator rend() const noexcept { return _cigar.rend(); }
 	void add(char Type, uint32_t Length);
 	void removeSoftClips();
+	void removeSoftClips(size_t maxNumberOfSoftClippedBases);
 
 	constexpr uint32_t lengthAligned() const noexcept { return _lengthAligned; };
 	constexpr uint32_t lengthInserted() const noexcept { return _lengthInserted; };

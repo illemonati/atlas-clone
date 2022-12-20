@@ -176,6 +176,7 @@ public:
 	void filter(const TBaseFilter &Filter);
 	void trimRead(int trimmingLength3Prime, int trimmingLength5Prime);
 	void removeSoftClippedBases();
+	void removeSoftClippedBases(size_t maxNumberOfSoftClippedBases);
 	void binQualityScoresIllumina();
 	void recalibrateWithPMD(const GenotypeLikelihoods::TGenotypeLikelihoodCalculator &GLCalculator);
 	void setIsProperPair(const bool &ok);

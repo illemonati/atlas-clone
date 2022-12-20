@@ -97,6 +97,8 @@ protected:
 	bool _recalibrate;
 	bool _incorporatePMD;
 	bool _keepOrphans;
+	bool _removeSoftClippedBases;
+	size_t _maxNumberOfSoftClippedBases;
 
 	void _writeAlignment(StorageIteratorType & it){
 		//save the alignment to the bam file
@@ -199,6 +201,22 @@ public:
 			_recalibrate = false;
 			_incorporatePMD = false;
 		}
+
+		if (parameters().parameterExists("removeSoftClippedBases")){
+			_removeSoftClippedBases = true;
+			//if parameter is set and a number is given -> use this as max number of softclipped bases, else remove all
+			if(!parameters().getParameter<std::string>("removeSoftClippedBases").empty()){
+				_maxNumberOfSoftClippedBases = parameters().getParameter<size_t>("removeSoftClippedBases");
+				logfile().list("Will leave " + toString(_maxNumberOfSoftClippedBases) + " softclipped bases per end. (parameter 'removeSoftClippedBases')");
+			} else {
+				_maxNumberOfSoftClippedBases = 0;
+				logfile().list("Will remove all softclipped bases. (parameter 'removeSoftClippedBases')");
+			}
+		} else {
+			logfile().list("Will not remove softclipped bases. (Use parameter 'removeSoftClippedBases' to do so)");
+			_removeSoftClippedBases = false;
+		}
+
 	}
 
 	virtual void traverseBAM(){
@@ -227,6 +245,12 @@ public:
 				} else {
 					//parse alignment
 					BAM::TAlignment* alignment = _parseIntoNewAlignment();
+
+					if (_removeSoftClippedBases) {
+						// parse and then remove softclipped reads
+						alignment->parse();
+						alignment->removeSoftClippedBases(_maxNumberOfSoftClippedBases);
+					} 
 
 					//if read is paired, check for mate
 					if(alignment->isPaired()){

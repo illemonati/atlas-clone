@@ -129,7 +129,10 @@ void TBamFilter::_handleSingle(BAM::TAlignment & alignment){
 };
 
 bool TBamFilter::_alignmentCanBeWrittenUnchanged(){
-	return !_recalibrate && !_bamFile.curIsPaired() && _alignmentStorage.empty();
+	return	!_recalibrate && 
+			!_bamFile.curIsPaired() && 
+			_alignmentStorage.empty() &&
+			(_removeSoftClippedBases ? (_bamFile.curCIGAR().lengthSoftClippedRight() < _maxNumberOfSoftClippedBases || _bamFile.curCIGAR().lengthSoftClippedLeft() < _maxNumberOfSoftClippedBases) : true);
 }
 
 }; //end namespace BamFilter

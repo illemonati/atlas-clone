@@ -414,6 +414,38 @@ void TAlignment::removeSoftClippedBases() {
 	}
 };
 
+void TAlignment::removeSoftClippedBases(size_t maxNumberOfSoftClippedBases) {
+	// make sure read is parsed
+	if (!_parsed) throw std::runtime_error("void TAlignment::removeSoftClippedBases(): Read was not parsed!");
+
+	// check if there is softclipping that exceeds the threshold on the left
+	if (_cigar.lengthSoftClippedLeft() > maxNumberOfSoftClippedBases) {
+		auto bIter = _bases.begin();
+		auto cIter = _cigar.begin();
+		while (cIter->type != 'S'){
+			bIter += cIter->length;
+			cIter++;
+		}
+		bIter = _bases.erase(bIter, bIter + (_cigar.lengthSoftClippedLeft() - maxNumberOfSoftClippedBases));
+	}
+	// then do the same on the right side
+	if (_cigar.lengthSoftClippedRight() > maxNumberOfSoftClippedBases) {
+		auto bIter = _bases.end()--;
+		auto cIter = _cigar.end()--;
+		while (cIter->type != 'S'){
+			bIter -= cIter->length;
+			cIter--;
+		}
+		bIter = _bases.erase(bIter - (_cigar.lengthSoftClippedRight() + maxNumberOfSoftClippedBases), bIter);
+	}		
+		// update cigar and length
+		_cigar.removeSoftClips(maxNumberOfSoftClippedBases);
+
+		// set has changed
+		_sequenceAndQualitiesChanged = true;
+}
+
+
 void TAlignment::binQualityScoresIllumina() {
 	// make sure read is parsed
 	if (!_parsed)
