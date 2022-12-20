@@ -19,6 +19,7 @@
 #include <type_traits>
 #include <vector>
 
+#include "TReadGroupInfo.h"
 #include "genometools/PhredProbabilityTypes.h"
 #include "coretools/Math/TProbabilityDistributions.h"
 #include "SequencingError/TCovariate.h"
@@ -26,12 +27,25 @@
 #include "coretools/Types/probability.h"
 #include "coretools/Strings/stringFunctions.h"
 #include "coretools/Strings/toString.h"
-#include "SequencingError/TEpsilon.h"
 
 #include <armadillo>
 
 namespace GenotypeLikelihoods {
 namespace SequencingError {
+
+struct T1stDerivative {
+	size_t index;
+	double derivative;
+	T1stDerivative(size_t Index, double Derivative) : index(Index), derivative(Derivative) {}
+};
+
+struct T2ndDerivative {
+	size_t index1;
+	size_t index2;
+	double derivative;
+	T2ndDerivative(size_t Index1, size_t Index2, double Derivative) : index1(Index1), index2(Index2), derivative(Derivative) {}
+};
+
 
 //--------------------------------------------------------------
 // TCovariateFunction
