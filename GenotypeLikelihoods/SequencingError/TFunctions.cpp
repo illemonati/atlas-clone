@@ -1,7 +1,16 @@
 #include "TFunctions.h"
+#include "TFunction.h"
+
 namespace GenotypeLikelihoods::SequencingError {
 using namespace coretools::str;
 namespace impl {
+
+constexpr coretools::Probability calcEpsilon(double eta) noexcept {
+	if (eta > 23.03) return coretools::Probability(0.9999999999);
+	if (eta < -23.03) return coretools::Probability(0.0000000001);
+
+	return coretools::logistic(eta);
+}
 
 auto parseFunctions(std::string_view Defs) {
 	struct Voldemort {
@@ -152,27 +161,85 @@ TFunction *makeFunction(std::string_view Covariate, std::string_view Function, s
 
 	UERROR("Covariate '", Covariate, "' does not exist!");
 }
-}
 
-TFunctions::TFunctions(std::string_view Def) {
-	// create functions
-	size_t numParameters = 0;
-	const auto modelDef  = impl::parseFunctions(Def);
-	for (const auto &cov : modelDef) {
-		_functions.emplace_back(impl::makeFunction(cov.covariate, cov.function, numParameters));
+class TFunctionsTpl final : public TFunctions {
+	std::vector<std::unique_ptr<TFunction>> _functions;
+	std::vector<double> _oldBetas;
+public:
+	TFunctionsTpl(std::string_view Def) {
+		// create functions
+		size_t numParameters = 0;
+		const auto modelDef  = impl::parseFunctions(Def);
+		for (const auto &cov : modelDef) {
+			_functions.emplace_back(impl::makeFunction(cov.covariate, cov.function, numParameters));
 
-		// add new parameters
-		numParameters += _functions.back()->numParameters();
-	}
-}
-void TFunctions::checkOrInit(const RecalEstimatorTools::TRecalDataTable &DataTable) {
-	size_t numParameters = 0;
-
-	for (auto &fn : _functions) {
-		if (!fn->checkOrInitValueRange(DataTable, numParameters)) {
-			throw "Function " + fn->typeString() + " does not cover full range of data";
+			// add new parameters
+			numParameters += _functions.back()->numParameters();
 		}
-		numParameters += fn->numParameters();
 	}
-}
+
+	void checkOrInit(const RecalEstimatorTools::TRecalDataTable &DataTable) override {
+		size_t numParameters = 0;
+
+		for (auto &fn : _functions) {
+			if (!fn->checkOrInitValueRange(DataTable, numParameters)) {
+				throw "Function " + fn->typeString() + " does not cover full range of data";
+			}
+			numParameters += fn->numParameters();
+		}
+	}
+
+	size_t numParameters() const noexcept override {
+		size_t numParameters = 0;
+		for (const auto& f: _functions) {
+			numParameters += f->numParameters();
+		}
+		return numParameters;
+	}
+
+	coretools::Probability getEpsilon(const BAM::TSequencedBase &base) const override {
+		double eta = 0.;
+		for (const auto &fn : _functions) eta += fn->getEta(base);
+		return impl::calcEpsilon(eta);
+	}
+
+	coretools::Probability getEpsilon(const BAM::TSequencedBase &base, std::vector<T1stDerivative> &der1,
+								  std::vector<T2ndDerivative> &der2) const noexcept override {
+		double eta = 0.;
+		for (const auto &fn : _functions) eta += fn->getEta(base, der1, der2);
+		return impl::calcEpsilon(eta);
+	}
+
+	void reject() noexcept override {
+		auto old = _oldBetas.begin();
+		for (const auto &fn : _functions) {
+			for (auto &beta : *fn) {
+				beta = *old;
+				++old;
+			}
+		}
+	}
+	void propose(double lambda, const arma::mat &_JxF) noexcept override {
+		size_t index = 0;
+		_oldBetas.clear();
+		for (const auto &fn : _functions) {
+			for (auto &beta : *fn) {
+				_oldBetas.push_back(beta);
+				beta -= lambda * _JxF(index++);
+			}
+		}
+	}
+	std::string definition() const noexcept override {
+		return std::accumulate(_functions.begin() + 1, _functions.end(), _functions.front()->modelString(),
+							   [](auto tot, auto &f) { return tot.append(1, ';').append(f->modelString()); });
+	}
+	BAM::RGInfo::TInfo info() const override {
+		BAM::RGInfo::TInfo in;
+		for (const auto &fn : _functions) { fn->addInfo(in); }
+		return in;
+	}
+};
+} // namespace impl
+
+TFunctions *makeFunctions(std::string_view Def) { return new impl::TFunctionsTpl(Def); }
 } // namespace GenotypeLikelihoods::SequencingError

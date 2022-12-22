@@ -16,19 +16,16 @@
 #include "RecalEstimatorTools.h"
 #include "TGenotypeData.h"
 #include "coretools/Types/probability.h"
-#include "TFunctions.h"
+#include "TDerivatives.h"
 
 
 namespace GenotypeLikelihoods {
 namespace SequencingError {
 
-struct T1stDerivative;
-struct T2ndDerivative;
-
+struct TFunctions;
 
 class TEpsilon {
 	std::unique_ptr<TFunctions> _functions;
-	std::vector<double> _oldBetas;
 
 	double _Q    = 0.;
 	double _oldQ = std::numeric_limits<double>::lowest();

@@ -23,7 +23,7 @@ namespace SequencingError {
 
 using namespace coretools::str;
 
-	TEpsilon::TEpsilon(std::string_view Def) : _functions(makeFunctions(Def)) {
+TEpsilon::TEpsilon(std::string_view Def) : _functions(makeFunctions(Def)) {
 	const size_t numParameters = _functions->numParameters();
 
 	// prepare Newton-Raphson variables
@@ -72,15 +72,7 @@ void TEpsilon::solveJxF() {
 	_oldQ          = _Q; // set Q to value before proposal
 }
 void TEpsilon::propose(double lambda) {
-	size_t index = 0;
-	_oldBetas.clear();
-	for (const auto &fn : *_functions) {
-		for (auto& beta: *fn) {
-			_oldBetas.push_back(beta);
-			beta -= lambda * _JxF(index++);
-		}
-	}
-
+	_functions->propose(lambda, _JxF);
 	_Q = 0; // not valid anymore
 }
 
@@ -91,13 +83,7 @@ bool TEpsilon::acceptOrReject() {
 	}
 
 	// else
-	auto old = _oldBetas.begin();
-	for (const auto &fn : *_functions) {
-		for (auto& beta: *fn) {
-			beta = *old;
-			++old;
-		}
-	}
+	_functions->reject();
 	_Q = 0.; // not valid anymore
 
 	return false;
@@ -107,16 +93,11 @@ void TEpsilon::adjust() {
 }
 
 std::string TEpsilon::definition() const noexcept {
-	return std::accumulate(_functions->begin() + 1, _functions->end(), _functions->front()->modelString(),
-						   [](auto tot, auto &f) { return tot.append(1, ';').append(f->modelString()); });
+	return _functions->definition();
 }
 
 BAM::RGInfo::TInfo TEpsilon::info() const{
-	BAM::RGInfo::TInfo in;
-	for (const auto &fn: *_functions) {
-		fn->addInfo(in);
-	}
-	return in;
+	return _functions->info();
 }
 
 } // namespace SequencingError

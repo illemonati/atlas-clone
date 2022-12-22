@@ -8,61 +8,33 @@
 #ifndef GENOTYPELIKELIHOODS_TFUNCTIONS_H_
 #define GENOTYPELIKELIHOODS_TFUNCTIONS_H_
 
-#include "TSequencedBase.h"
-#include "TFunction.h"
-#include "coretools/Math/mathFunctions.h"
-#include "coretools/Types/probability.h"
+#include <armadillo>
 #include <memory>
 #include <vector>
 
+#include "RecalEstimatorTools.h"
+#include "TDerivatives.h"
+#include "TReadGroupInfo.h"
+#include "TSequencedBase.h"
+
+#include "coretools/Math/mathFunctions.h"
+#include "coretools/Types/probability.h"
+
 namespace GenotypeLikelihoods::SequencingError {
-namespace impl {
-constexpr coretools::Probability calcEpsilon(double eta) noexcept {
-	if (eta > 23.03) return coretools::Probability(0.9999999999);
-	if (eta < -23.03) return coretools::Probability(0.0000000001);
 
-	return coretools::logistic(eta);
-}
-}
-
-
-class TFunctions {
-	std::vector<std::unique_ptr<TFunction>> _functions;
-public:
-
-	TFunctions(std::string_view Def);
-	void checkOrInit(const RecalEstimatorTools::TRecalDataTable &DataTable);
-
-	size_t numParameters() const noexcept {
-		size_t numParameters = 0;
-		for (const auto& f: _functions) {
-			numParameters += f->numParameters();
-		}
-		return numParameters;
-	}
-
-	coretools::Probability getEpsilon(const BAM::TSequencedBase &base) const {
-		double eta = 0.;
-		for (const auto &fn : _functions) eta += fn->getEta(base);
-		return impl::calcEpsilon(eta);
-	}
-
-	coretools::Probability getEpsilon(const BAM::TSequencedBase &base, std::vector<T1stDerivative> &der1,
-								  std::vector<T2ndDerivative> &der2) const noexcept {
-		double eta = 0.;
-		for (const auto &fn : _functions) eta += fn->getEta(base, der1, der2);
-		return impl::calcEpsilon(eta);
-	}
-
-	auto &front() noexcept {return _functions.front();}
-	const auto &front() const noexcept {return _functions.front();}
-	auto begin() noexcept { return _functions.begin(); }
-	auto begin() const noexcept { return _functions.begin(); }
-	auto end() noexcept { return _functions.end(); }
-	auto end() const noexcept { return _functions.end(); }
+struct TFunctions {
+	virtual ~TFunctions() = default;
+	virtual void checkOrInit(const RecalEstimatorTools::TRecalDataTable &DataTable)             = 0;
+	virtual size_t numParameters() const noexcept                                               = 0;
+	virtual coretools::Probability getEpsilon(const BAM::TSequencedBase &base) const            = 0;
+	virtual coretools::Probability getEpsilon(const BAM::TSequencedBase &base, std::vector<T1stDerivative> &der1,
+											  std::vector<T2ndDerivative> &der2) const noexcept = 0;
+	virtual void reject() noexcept                                                              = 0;
+	virtual void propose(double lambda, const arma::mat &_JxF) noexcept                         = 0;
+	virtual std::string definition() const noexcept                                             = 0;
+	virtual BAM::RGInfo::TInfo info() const                                                     = 0;
 };
-
-inline TFunctions *makeFunctions(std::string_view Def) { return new TFunctions(Def); }
+TFunctions *makeFunctions(std::string_view Def);
 } // namespace GenotypeLikelihoods::SequencingError
 
 #endif
