@@ -16,13 +16,13 @@
 #include <fmt/os.h>
 
 #include "coretools/Files/TOutputFile.h"
-#include "genometools/GenotypeTypes.h"
-#include "genometools/BED/TBed.h"
-#include "genometools/VCF/TPopulationLikelihoodLocus.h"
 #include "coretools/Files/gzstream.h"
-#include "coretools/Types/probability.h"
-#include "coretools/Strings/stringFunctions.h"
 #include "coretools/Strings/fromString.h"
+#include "coretools/Strings/stringFunctions.h"
+#include "coretools/Types/probability.h"
+#include "genometools/BED/TBed.h"
+#include "genometools/GenotypeTypes.h"
+#include "genometools/VCF/TPopulationLikelihoodLocus.h"
 
 namespace VCF {
 
@@ -169,7 +169,7 @@ public:
 	// see https://www.informit.com/articles/printerfriendly/1407357 for interface discussion
 
 	// Not taking ownership of stream
-	TLineReader(std::istream & Stream): _stream(&Stream) {
+	TLineReader(std::istream &Stream) : _stream(&Stream) {
 		// Read first line
 		popFront();
 	}
@@ -182,7 +182,7 @@ public:
 	// IMPORTANT: as soon as popFront is called, this string_view will be invalidated
 	std::string_view front() const noexcept {
 		assert(!empty());
-		return std::string_view{_line}; //does not make a copy
+		return std::string_view{_line}; // does not make a copy
 	};
 	void popFront() {
 		assert(_stream);
@@ -191,9 +191,9 @@ public:
 	};
 };
 
-template<typename Delim = char>
-class TSplitter {
-	static_assert(std::is_same_v<Delim, char> || std::is_same_v<Delim, std::string> || std::is_same_v<Delim, std::string_view>);
+template<typename Delim = char> class TSplitter {
+	static_assert(std::is_same_v<Delim, char> || std::is_same_v<Delim, std::string> ||
+	              std::is_same_v<Delim, std::string_view>);
 	std::string_view _sv;
 	Delim _delim;
 	size_t _count;
@@ -213,24 +213,24 @@ public:
 		if (_count == std::string_view::npos) {
 			_sv.remove_prefix(_sv.size());
 		} else {
-			if constexpr (std::is_same_v<Delim, char>) _sv.remove_prefix(_count + 1);
-			else _sv.remove_prefix(_count + _delim.size());
+			if constexpr (std::is_same_v<Delim, char>)
+				_sv.remove_prefix(_count + 1);
+			else
+				_sv.remove_prefix(_count + _delim.size());
 
 			_count = _sv.find(_delim); // will be npos for last element
 		}
 	}
 };
 
-template<typename Range>
-void skip(Range& range, size_t nGaps = 1) {
+template<typename Range> void skip(Range &range, size_t nGaps = 1) {
 	for (size_t _ = 0; _ < nGaps; ++_) range.popFront();
 }
 
 void TVcfBeagleNew::run() {
 	const auto inName = parameters().getParameterFilename("vcf");
 	const auto outName =
-		parameters().getParameterWithDefault("out", coretools::str::readBeforeLast(inName, ".vcf")) +
-		".beagle.gz";
+	    parameters().getParameterWithDefault("out", coretools::str::readBeforeLast(inName, ".vcf")) + ".beagle.gz";
 
 	std::unique_ptr<std::istream> istream;
 	if (coretools::str::readAfterLast(inName, '.') == "gz")
@@ -245,7 +245,7 @@ void TVcfBeagleNew::run() {
 	bool hasPL = false;
 
 	for (; lineReader.front().substr(0, 2) == "##"; lineReader.popFront()) {
-		const auto line = lineReader.front();
+		const auto line                     = lineReader.front();
 		constexpr std::string_view glString = "##FORMAT=<ID=GL";
 		constexpr std::string_view plString = "##FORMAT=<ID=PL";
 		if (line.substr(0, glString.size()) == glString) hasGL = true;
@@ -267,9 +267,7 @@ void TVcfBeagleNew::run() {
 
 	for (; !header.empty(); header.popFront()) {
 		const auto s = header.front();
-		for (size_t _ = 0; _ < 3; ++_) {
-			ofile.write(s);
-		}
+		for (size_t _ = 0; _ < 3; ++_) { ofile.write(s); }
 	}
 	ofile.numCols(ofile.curCol());
 	ofile.endln();
@@ -282,13 +280,13 @@ void TVcfBeagleNew::run() {
 	// find GL
 	TSplitter format{line1.front(), ':'};
 	int nGL = -1;
-	for(; !format.empty(); format.popFront()) {
+	for (; !format.empty(); format.popFront()) {
 		++nGL;
 		if (format.front() == "GL") break;
 	}
 	if (format.empty()) UERROR("FORMAT string neets GL");
 
-	for(; !lineReader.empty(); lineReader.popFront()) {
+	for (; !lineReader.empty(); lineReader.popFront()) {
 		TSplitter line{lineReader.front(), '\t'};
 		ofile.writeNoDelim(line.front(), '_');
 
@@ -308,11 +306,11 @@ void TVcfBeagleNew::run() {
 		line.popFront(); // skip FORMAT
 
 		line.popFront(); // First sample
-		for(; !line.empty(); line.popFront()) {
+		for (; !line.empty(); line.popFront()) {
 			TSplitter sample{line.front(), ':'};
 			skip(sample, nGL); // go to GL field
 			if (sample.front()[0] == '.') {
-				ofile.write("0.333333", "0.333333", "0.333333"); 
+				ofile.write("0.333333", "0.333333", "0.333333");
 				continue;
 			}
 			TSplitter gls_sv{sample.front(), ','};
@@ -380,41 +378,49 @@ void TVcfToGeno::run() {
 }
 
 //------------------------------------------
-// TVcfToLFMMCalledGeno
+// TVcfToSambada
 //------------------------------------------
 
-TVcfToLFMMCalledGeno::TVcfToLFMMCalledGeno() : TVcfToLFMM<uint8_t>() {
-	logfile().list("Will store the called genotype for each locus.");
-}
+TVcfToSambada::TVcfToSambada() : TVcfTranspose<true>() {}
 
-void TVcfToLFMMCalledGeno::_store(genometools::TPopulationLikehoodLocus<TSampleLikelihoods> &) {
-	// store allele counts
-	std::vector<genometools::BiallelicGenotype> geno = _reader.biallelicGenotypes(_samples);
-	for (size_t i = 0; i < _samples.numSamples(); i++) {
-		if (isMissing(geno[i])) {
-			_genotypes.emplace_back(9); // re-code missing genotypes to LFMM format
-		} else {
-			_genotypes.emplace_back(altAlleleCounts(geno[i]));
-		}
+void TVcfToSambada::_initOutputFiles() { _sambadaFile.open(_outName + ".sambada"); }
+
+void TVcfToSambada::_writeSambadaHeader() {
+	// write header: genotype names ( = locus name + name of genotype)
+	const size_t numLoci      = _loci_names.size();
+	const size_t numGenotypes = 3 * numLoci;
+
+	std::vector<std::string> header = {"NAME"};
+	header.reserve(numGenotypes + 1);
+	for (size_t l = 0; l < numLoci; ++l) {
+		for (size_t g = 0; g < 3; ++g) { header.emplace_back(_loci_names[l] + "_g" + coretools::str::toString(g)); }
 	}
+	_sambadaFile.writeHeader(header);
 }
 
-//------------------------------------------
-// TVcfToLFMMPostGeno
-//------------------------------------------
+void TVcfToSambada::_writeTransposedFiles() {
+	_writeSambadaHeader();
 
-TVcfToLFMMPostGeno::TVcfToLFMMPostGeno() : TVcfToLFMM<double>() {
-	logfile().list("Will store the mean posterior genotype for each locus.");
-}
-
-void TVcfToLFMMPostGeno::_store(genometools::TPopulationLikehoodLocus<TSampleLikelihoods> &data) {
+	const size_t numLoci = _loci_names.size();
 	for (size_t i = 0; i < _samples.numSamples(); i++) {
-		if (data[i].isMissing()) {
-			UERROR("Missing data at sample ", _samples.sampleName(i), " and locus ", _reader.chr(), ":",
-			       _reader.position(), "! LFMM2 does not accept missing genotypes, impute your VCF file first.");
+		// write sample name
+		_sambadaFile << _samples.sampleName(i);
+		for (size_t l = 0; l < numLoci; l++) {
+			// make genotypes binary
+			for (size_t g = 0; g < 3; ++g) {
+				if (_genotypes(l, i) == g) { // present
+					_sambadaFile << 1;
+				} else if (_genotypes(l, i) == 9) { // missing
+					_sambadaFile << "NaN";
+				} else { // absent
+					_sambadaFile << 0;
+				}
+			}
 		}
-		_genotypes.emplace_back(data[i].meanPosteriorGenotype());
+		_sambadaFile.endln();
 	}
+
+	_sambadaFile.close();
 }
 
 //------------------------------------------

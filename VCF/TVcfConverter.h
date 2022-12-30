@@ -13,15 +13,15 @@
 #include <string>
 #include <vector>
 
-#include "genometools/PhredProbabilityTypes.h"
 #include "coretools/Files/TOutputFile.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
+#include "coretools/Main/TTask.h"
+#include "coretools/Storage/TStorage.h"
+#include "genometools/PhredProbabilityTypes.h"
+#include "genometools/TSampleLikelihoods.h"
 #include "genometools/VCF/TPopulation.h"
 #include "genometools/VCF/TPopulationLikelihoods.h"
-#include "genometools/TSampleLikelihoods.h"
-#include "coretools/Storage/TStorage.h"
-#include "coretools/Main/TTask.h"
 
 namespace genometools {
 class TBed;
@@ -114,18 +114,88 @@ public:
 };
 
 //------------------------------------------
+// TVcfTranspose
+//------------------------------------------
+
+template<bool StoreCalledGenotypes> class TVcfTranspose : protected TVcfConverter {
+	/*
+	 * Base class for all file formats that require transposing
+	 * i.e. rows are individuals and columns are loci (-> transposed compared to VCF format)
+	 * this requires all genetic data to be stored in memory
+	 * template parameter StoreCalledGenotypes:
+	 * whether to store called genotypes or store mean posterior genotype
+	 */
+	using Type = std::conditional_t<StoreCalledGenotypes, uint8_t, double>;
+
+protected:
+	// store genetic data (called genotypes or mean posterior genotype)
+	coretools::TMultiDimensionalStorage<Type, 2> _genotypes;
+
+	// store chr:pos names
+	std::vector<std::string> _loci_names;
+
+	void _storeAlleleCounts() {
+		std::vector<genometools::BiallelicGenotype> geno = _reader.biallelicGenotypes(_samples);
+		for (size_t i = 0; i < _samples.numSamples(); i++) {
+			isMissing(geno[i]) ? _genotypes.emplace_back(9) : _genotypes.emplace_back(altAlleleCounts(geno[i]));
+		}
+	}
+
+	void _storeMeanPosteriorGenotype(genometools::TPopulationLikehoodLocus<TSampleLikelihoods> &Data) {
+		// store mean posterior genotype
+		for (size_t i = 0; i < _samples.numSamples(); i++) {
+			if (Data[i].isMissing()) {
+				UERROR("Missing data at sample ", _samples.sampleName(i), " and locus ", _reader.chr(), ":",
+				       _reader.position(), "!");
+			}
+			_genotypes.emplace_back(Data[i].meanPosteriorGenotype());
+		}
+	}
+
+	void _write(genometools::TPopulationLikehoodLocus<TSampleLikelihoods> &Data) override {
+		// store locus name
+		_loci_names.emplace_back(_reader.chrPos());
+
+		// store genetic data
+		if constexpr (StoreCalledGenotypes) {
+			_storeAlleleCounts();
+		} else {
+			_storeMeanPosteriorGenotype(Data);
+		}
+	}
+
+	virtual void _writeTransposedFiles() = 0;
+
+public:
+	TVcfTranspose() : TVcfConverter(){};
+
+	~TVcfTranspose() override = default;
+
+	void run() {
+		_genotypes.prepareFillData(10000, {_samples.numSamples()});
+		_parseVCF();
+		_genotypes.finalizeFillData();
+
+		// write actual file
+		_writeTransposedFiles();
+	}
+};
+
+//------------------------------------------
 // TVcfToLFMM
 //------------------------------------------
 
-template<typename T> class TVcfToLFMM : protected TVcfConverter {
+template<bool StoreCalledGenotypes> class TVcfToLFMM : public TVcfTranspose<StoreCalledGenotypes> {
 protected:
-	// genotypes
-	coretools::TMultiDimensionalStorage<T, 2> _genotypes;
+	using TVcfTranspose<StoreCalledGenotypes>::_loci_names;
+	using TVcfTranspose<StoreCalledGenotypes>::_genotypes;
+	using TVcfTranspose<StoreCalledGenotypes>::_outName;
+	using TVcfTranspose<StoreCalledGenotypes>::_samples;
+	using TVcfTranspose<StoreCalledGenotypes>::_reader;
 
 	// files
 	coretools::TOutputFile _lfmmFile;
 	coretools::TOutputFile _lociNamesFile;
-	std::vector<std::string> _loci_names;
 
 	void _writeLociNames() {
 		_lociNamesFile.numCols(_loci_names.size());
@@ -151,24 +221,7 @@ protected:
 		}
 	}
 
-	void _write(genometools::TPopulationLikehoodLocus<TSampleLikelihoods> &data) override {
-		// LFMM has individuals as rows and loci as columns (transposed)
-		// -> we need to store these values first and then write
-		_store(data);
-		_loci_names.emplace_back(_reader.chrPos());
-	}
-
-	virtual void _store(genometools::TPopulationLikehoodLocus<TSampleLikelihoods> &data) = 0;
-
-public:
-	TVcfToLFMM() : TVcfConverter(){};
-	~TVcfToLFMM() override = default;
-
-	void run() {
-		_genotypes.prepareFillData(10000, {_samples.numSamples()});
-		_parseVCF();
-		_genotypes.finalizeFillData();
-
+	void _writeTransposedFiles() override {
 		// write actual lfmm
 		_lfmmFile.numCols(_genotypes.dimensions()[0]); // we only know now how many loci there are
 		_writeLFMM();
@@ -178,30 +231,32 @@ public:
 
 		_closeOutputFiles();
 	}
+
+public:
+	TVcfToLFMM() : TVcfTranspose<StoreCalledGenotypes>() {
+		if constexpr (StoreCalledGenotypes) {
+			coretools::instances::logfile().list("Will store the called genotype for each locus.");
+		} else {
+			coretools::instances::logfile().list("Will store the mean posterior genotype for each locus.");
+		}
+	};
+	~TVcfToLFMM() override = default;
 };
 
 //------------------------------------------
-// TVcfToLFMMCalledGeno
+// TVcfToSambada
 //------------------------------------------
-class TVcfToLFMMCalledGeno : public TVcfToLFMM<uint8_t> {
+class TVcfToSambada : public TVcfTranspose<true> {
 private:
-	void _store(genometools::TPopulationLikehoodLocus<TSampleLikelihoods> &data) override;
+	coretools::TOutputFile _sambadaFile;
+
+	void _writeSambadaHeader();
+	void _initOutputFiles() override;
+	void _writeTransposedFiles() override;
 
 public:
-	TVcfToLFMMCalledGeno();
-	~TVcfToLFMMCalledGeno() override = default;
-};
-
-//------------------------------------------
-// TVcfToLFMMPostGeno
-//------------------------------------------
-class TVcfToLFMMPostGeno : public TVcfToLFMM<double> {
-private:
-	void _store(genometools::TPopulationLikehoodLocus<TSampleLikelihoods> &data) override;
-
-public:
-	TVcfToLFMMPostGeno();
-	~TVcfToLFMMPostGeno() override = default;
+	TVcfToSambada();
+	~TVcfToSambada() override = default;
 };
 
 //------------------------------------------
@@ -221,11 +276,14 @@ private:
 	coretools::TOutputFile _posFile;
 
 	void _initOutputFiles() override;
+
 	void _writeHeader() override;
+
 	void _write(genometools::TPopulationLikehoodLocus<TSampleLikelihoods> &data) override;
 
 public:
 	~TVcfToPosFile() override = default;
+
 	void run();
 };
 
@@ -263,20 +321,30 @@ private:
 	std::string _curChr;
 
 	void _writeHeader() override;
+
 	void _write(genometools::TPopulationLikehoodLocus<TSampleLikelihoods> &data) override;
+
 	void _filterIndividuals(genometools::TPopulationLikehoodLocus<TSampleLikelihoods> &data);
+
 	void _mapIndividualsToDepth(std::vector<size_t> &samplesToKeep);
+
 	void _filterIndividualsWithHighestDepth(
 	    std::vector<size_t> &samplesToKeep,
 	    const std::map<double, std::vector<size_t>, std::greater<>> &depthVsSampleIndexMap) const;
+
 	void _writeToGenFile(const std::vector<size_t> &samplesToKeep);
+
 	void _storeInBedFile(const std::vector<size_t> &samplesToKeep);
+
 	void _initOutputFiles() override;
+
 	void _resetDistance();
 
 public:
 	TVcfToGenotypeTruthSetFile();
+
 	~TVcfToGenotypeTruthSetFile() override = default;
+
 	void run();
 };
 
@@ -309,14 +377,18 @@ public:
 			// posterior or call?
 			std::string genoType = parameters().getParameterWithDefault<std::string>("genotypes", "call");
 			if (genoType == "posterior") {
-				TVcfToLFMMPostGeno vcfToLFMMPostGeno;
+				TVcfToLFMM<false> vcfToLFMMPostGeno;
 				vcfToLFMMPostGeno.run();
 			} else if (genoType == "call") {
-				TVcfToLFMMCalledGeno vcfToLFMMCalledGeno;
+				TVcfToLFMM<true> vcfToLFMMCalledGeno;
 				vcfToLFMMCalledGeno.run();
 			} else {
 				UERROR("Unknown genotype method '", genoType, "'! Use either 'call' or 'posterior'");
 			}
+		} else if (format == "Sambada") {
+			logfile().startIndent("Converting a VCF to Sambada format (parameter 'format'):");
+			TVcfToSambada vcfToSambada;
+			vcfToSambada.run();
 		} else if (format == "posfile") {
 			logfile().startIndent("Converting a VCF file to posfile format used by STITCH (parameter 'format'):");
 			TVcfToPosFile VcfToPosFile;
@@ -327,8 +399,7 @@ public:
 			TVcfToGenotypeTruthSetFile VcfToGenotypeTruthSetFile;
 			VcfToGenotypeTruthSetFile.run();
 		} else {
-			UERROR("Unknown format '", format,
-				   "'! Use either 'beagle', 'geno', 'LFMM', 'posfile' or 'genfile'.");
+			UERROR("Unknown format '", format, "'! Use either 'beagle', 'geno', 'LFMM', 'posfile' or 'genfile'.");
 		}
 		logfile().endIndent();
 	};
