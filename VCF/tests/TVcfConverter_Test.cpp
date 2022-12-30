@@ -10,15 +10,15 @@
 #include <string>
 #include <vector>
 
+#include "coretools/Files/TFile.h"
+#include "coretools/Files/gzstream.h"
+#include "coretools/Main/TParameters.h"
+#include "coretools/Strings/stringFunctions.h"
+#include "coretools/Types/probability.h"
+#include "coretools/devtools.h"
 #include "genometools/GenotypeTypes.h"
 #include "genometools/PhredProbabilityTypes.h"
-#include "coretools/Files/TFile.h"
-#include "coretools/Main/TParameters.h"
 #include "genometools/TSampleLikelihoods.h"
-#include "coretools/devtools.h"
-#include "coretools/Files/gzstream.h"
-#include "coretools/Types/probability.h"
-#include "coretools/Strings/stringFunctions.h"
 
 using namespace testing;
 using namespace coretools::instances;
@@ -264,7 +264,7 @@ TEST_F(TVCFConverterTest, lfmmCalledGeno) {
 	writeVcfFile();
 
 	// convert to lfmm
-	VCF::TVcfToLFMMCalledGeno converter;
+	VCF::TVcfToLFMM<true> converter;
 	converter.run();
 
 	// read lfmm
@@ -293,7 +293,7 @@ TEST_F(TVCFConverterTest, lfmmCalledGeno_withSamples) {
 	writeSampleFile();
 
 	// convert to lfmm
-	VCF::TVcfToLFMMCalledGeno converter;
+	VCF::TVcfToLFMM<true> converter;
 	converter.run();
 
 	// read lfmm
@@ -321,7 +321,7 @@ TEST_F(TVCFConverterTest, lfmmMeanPosteriorGeno) {
 	writeVcfFile();
 
 	// convert to lfmm
-	VCF::TVcfToLFMMPostGeno converter;
+	VCF::TVcfToLFMM<false> converter;
 	converter.run();
 
 	// read lfmm
@@ -350,7 +350,7 @@ TEST_F(TVCFConverterTest, lfmmMeanPosteriorGeno_withSamples) {
 	writeSampleFile();
 
 	// convert to lfmm
-	VCF::TVcfToLFMMPostGeno converter;
+	VCF::TVcfToLFMM<false> converter;
 	converter.run();
 
 	// read lfmm
@@ -370,6 +370,77 @@ TEST_F(TVCFConverterTest, lfmmMeanPosteriorGeno_withSamples) {
 			double posteriorGenotype = sampleLikelihoods.meanPosteriorGenotype();
 
 			EXPECT_NEAR(fromString<double>(line[l]), posteriorGenotype, 0.00001);
+		}
+	}
+}
+
+TEST_F(TVCFConverterTest, sambada) {
+	writeVcfFile();
+
+	// convert to lfmm
+	VCF::TVcfToSambada converter;
+	converter.run();
+
+	// read lfmm
+	TInputFile sambada("test.sambada", TFile_Filetype::header);
+
+	// check if genotypes are as expected
+	std::vector<std::string> line;
+	for (size_t i = 0; i < numIndiv; ++i) {
+		sambada.read(line);
+		EXPECT_EQ(line[0], sampleNames[i]);
+		for (size_t l = 0; l < numLoci; ++l) {
+			// genotypes
+			size_t relevantIndex = l * numIndiv + i;
+			auto GTL0            = PhredIntProbability(phred_g1[relevantIndex]);
+			auto GTL1            = PhredIntProbability(phred_g2[relevantIndex]);
+			auto GTL2            = PhredIntProbability(phred_g3[relevantIndex]);
+			TSampleLikelihoods sampleLikelihoods(GTL0, GTL1, GTL2);
+			BiallelicGenotype observedGenotype = sampleLikelihoods.mostLikelyGenotype();
+
+			for (size_t g = 0; g < 3; ++g) {
+				if (g == (uint8_t)observedGenotype) {
+					EXPECT_EQ(fromString<size_t>(line[3 * l + g + 1]), 1);
+				} else {
+					EXPECT_EQ(fromString<size_t>(line[3 * l + g + 1]), 0);
+				}
+			}
+		}
+	}
+}
+
+TEST_F(TVCFConverterTest, sambada_withSamples) {
+	writeVcfFile();
+	writeSampleFile();
+
+	// convert to lfmm
+	VCF::TVcfToSambada converter;
+	converter.run();
+
+	// read sambada
+	TInputFile sambada("test.sambada", TFile_Filetype::header);
+
+	// check if genotypes are as expected
+	std::vector<std::string> line;
+	for (size_t i = 0; i < samplesToKeep.size(); ++i) {
+		sambada.read(line);
+		EXPECT_EQ(line[0], samplesToKeep[i]);
+		for (size_t l = 0; l < numLoci; ++l) {
+			// genotypes
+			size_t relevantIndex = l * numIndiv + indexInSampleNames[i];
+			auto GTL0            = PhredIntProbability(phred_g1[relevantIndex]);
+			auto GTL1            = PhredIntProbability(phred_g2[relevantIndex]);
+			auto GTL2            = PhredIntProbability(phred_g3[relevantIndex]);
+			TSampleLikelihoods sampleLikelihoods(GTL0, GTL1, GTL2);
+			BiallelicGenotype observedGenotype = sampleLikelihoods.mostLikelyGenotype();
+
+			for (size_t g = 0; g < 3; ++g) {
+				if (g == (uint8_t)observedGenotype) {
+					EXPECT_EQ(fromString<uint8_t>(line[3 * l + g + 1]), 1);
+				} else {
+					EXPECT_EQ(fromString<uint8_t>(line[3 * l + g + 1]), 0);
+				}
+			}
 		}
 	}
 }
