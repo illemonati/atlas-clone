@@ -9,6 +9,7 @@
 #define GENOTYPELIKELIHOODS_TSEQUENCINGERRORCOVARIATEFUNCTION_H_
 
 #include <array>
+#include <cmath>
 #include <cstdint>
 #include <iomanip>
 #include <iterator>
@@ -448,8 +449,10 @@ public:
 	double adjustParametersPostEstimation() noexcept override { return normalizeParameters(_betas); }
 
 	double getEta(const BAM::TSequencedBase &base) const noexcept override {
-		assert(Covariate::extract(base) < _betas.size());
-		return _betas[Covariate::extract(base)];
+		//assert(Covariate::extract(base) < _betas.size());
+		const auto val = Covariate::extract(base);
+		if (val < _betas.size()) return _betas[Covariate::extract(base)];
+		return _betas.back();
 	}
 
 	double getEta(const BAM::TSequencedBase &base, std::vector<T1stDerivative> &der1,
@@ -463,8 +466,25 @@ public:
 	}
 	std::string typeString() const noexcept override { return std::string(Covariate::name).append(1, ':').append(name); }
 
-	void addInfo(BAM::RGInfo::TInfo& info) const override {
-		info[Covariate::name] = {{name, _betas}};
+	void addInfo(BAM::RGInfo::TInfo &info) const override {
+		BAM::RGInfo::TInfo ar = nlohmann::json::array();
+		for (size_t i = 0; i < _betas.size(); ++i) {
+			if (!std::isnan(_betas[i])) ar += {i, _betas[i]};
+		}
+		info[Covariate::name] = {{name, ar}};
+	}
+
+	std::string modelString() const override {
+		std::string ret = typeString().append(1, '[');
+		for (size_t i = 0; i < _betas.size(); ++i) {
+			if (!std::isnan(_betas[i]))
+				ret.append(coretools::str::toString(i))
+					.append(1, ':')
+					.append(coretools::str::toString(_betas[i]))
+					.append(1, ',');
+		}
+		ret.back() = ']'; // replace last ',' with ']'
+		return ret;
 	}
 };
 

@@ -102,25 +102,31 @@ template<typename Covariate> TFunction *makeCovFunction(std::string_view Functio
 		return fn;
 	}
 	if (type == TEmpiric<Covariate>::name) {
-		/*
-		if constexpr (Covariate::isIndexed) {
-			auto fn = new TIndexedEmpiric<Covariate>(FirstParameterIndex);
+			auto fn = new TEmpiric<Covariate>(FirstParameterIndex);
+			size_t size = 0;
+			double back = 0.;
 			for (auto s : Spl) {
 				TSplitter ss(s, ':');
 				const auto i = fromString<size_t, true>(strip(ss.front()));
 				ss.popFront();
 				const auto v = fromString<double, true>(strip(ss.front()));
-				ss.popFront();
-				if (!ss.empty()) UERROR("Too many arguments in indexed data ", s, "!");
-				fn->push_back(i, v);
-			}
-			return fn;
-			}*/
-		auto fn = new TEmpiric<Covariate>(FirstParameterIndex);
-		for (auto s : Spl) { fn->push_back(fromString<double, true>(s)); }
-		return fn;
-	}
 
+				if (size == 0) { // fill first i positions with v
+					for (size_t j = 0; j <= i; ++j) {
+						fn->push_back(v);
+					}
+				}
+				else { // interpolate
+					const auto di   = i - (size - 1); // 1
+					const auto dv   = v - back;       // v
+					const auto dvdi = dv / di;
+				    for (size_t j = 1; j <= di; ++j) fn->push_back(back + j * dvdi);
+			    }
+				back = v;
+				size = i + 1;
+		    }
+		    return fn;
+	}
 	UERROR("Function '", type, "' does not exist!");
 }
 
