@@ -285,12 +285,11 @@ void TRecalibrationEMEstimator::performEstimation(const std::string &outputName,
 
 	// writing final estimates
 	const std::string filename = outputName + "_recal.txt";
-	logfile().listFlush("Writing final estimates to file '", filename, "' ...");
+	logfile().list("Writing final estimates to file '", filename, "'.");
 	_modelsToEstimate.writeRecalFile(*_readGroups, filename);
 	BAM::RGInfo::TReadGroupInfo r(*_readGroups);
 	SequencingErrorModels.addToRGInfo(r);
 	r.write(outputName + "_recal.json");
-	logfile().done();
 };
 
 void TRecalibrationEMEstimator::_estimateRho_updatePbbar(const TPostMortemDamage &PmdModels) {
@@ -329,9 +328,8 @@ void TRecalibrationEMEstimator::_updateEpsilon(const TPostMortemDamage &PmdModel
 	using coretools::str::toString;
 	logfile().startIndent("Updating sequencing error models (theta_epsilon):");
 
-	logfile().listFlushDots("Updating rho");
+	logfile().list("Updating rho");
 	_estimateRho_updatePbbar(PmdModels);
-	logfile().write(_modelsToEstimate.getRhoDefinition());
 
 	logfile().startIndent("Updating epsilon by optimizing Q_beta using a Newton-Raphson algorithm:");
 
@@ -348,10 +346,10 @@ void TRecalibrationEMEstimator::_updateEpsilon(const TPostMortemDamage &PmdModel
 		double deltaQ   = 0;
 
 		while (nUpdated < nTot && lambda > 1.0E-20) {
+			logfile().listFlushDots("Backtracing with lambda = ", lambda);
 			_modelsToEstimate.propose(lambda);
-			logfile().listFlushDots("Proposing model ", _modelsToEstimate.getModelsDefinition());
-
 			_calculateQ();
+
 			deltaQ   = _modelsToEstimate.Q() - curQ;
 			nUpdated = _modelsToEstimate.acceptOrReject();
 
@@ -438,7 +436,8 @@ void TRecalibrationEMEstimator::_runEM(const std::string &outputName, const TPos
 		// update theta_epsilon (sequencing errors)
 		_updateEpsilon(PmdModels, std::abs(deltaLL/oldLL));
 
-		logfile().conclude("Current model: ", _modelsToEstimate.getModelsDefinition());
+		logfile().conclude("Current rho: ", _modelsToEstimate.getRhoDefinition());
+		logfile().conclude("Current epsilon: ", _modelsToEstimate.getModelsDefinition());
 
 		// calculate LL
 		const double LL = _calculateLL_updatePg(PmdModels);

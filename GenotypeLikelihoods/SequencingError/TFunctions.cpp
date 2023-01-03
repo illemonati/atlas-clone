@@ -102,6 +102,7 @@ template<typename Covariate> TFunction *makeCovFunction(std::string_view Functio
 		return fn;
 	}
 	if (type == TEmpiric<Covariate>::name) {
+		/*
 		if constexpr (Covariate::isIndexed) {
 			auto fn = new TIndexedEmpiric<Covariate>(FirstParameterIndex);
 			for (auto s : Spl) {
@@ -114,12 +115,10 @@ template<typename Covariate> TFunction *makeCovFunction(std::string_view Functio
 				fn->push_back(i, v);
 			}
 			return fn;
-		}
-		else {
-			auto fn = new TEmpiric<Covariate>(FirstParameterIndex);
-			for (auto s : Spl) { fn->push_back(fromString<double, true>(s)); }
-			return fn;
-		}
+			}*/
+		auto fn = new TEmpiric<Covariate>(FirstParameterIndex);
+		for (auto s : Spl) { fn->push_back(fromString<double, true>(s)); }
+		return fn;
 	}
 
 	UERROR("Function '", type, "' does not exist!");

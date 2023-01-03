@@ -128,12 +128,12 @@ public:
 
 namespace impl {
 struct TNoTransform {
-	static constexpr bool hasRange = false;
+	static constexpr size_t N = uint16_t(-1);
 	static double transform(uint16_t val) noexcept { return static_cast<double>(val); }
 };
 
 struct TLogitTransform {
-	static constexpr bool hasRange = true;
+	static constexpr size_t N = genometools::PhredIntProbability::max().get();
 	static double transform(uint16_t val) noexcept {
 		// logit(coretools::Probability(genometools::PhredIntProbability(v)));
 		constexpr std::array<double, 256> map = {
@@ -256,12 +256,7 @@ public:
 
 	bool checkOrInitValueRange(const RecalEstimatorTools::TRecalDataTable &dataTable, size_t FirstParameterIndex) noexcept override {
 		_firstParameterIndex = FirstParameterIndex;
-		if constexpr (Transformer::hasRange) {
-			const auto values = Covariate::range(dataTable);
-			return std::all_of(values.begin(), values.end(),
-							   [](auto v) { return v <= genometools::PhredIntProbability::max().get(); });
-		} else
-			return true;
+		return Covariate::N(dataTable) <= Transformer::N;
 	}
 
 	double adjustParametersPostEstimation() noexcept override { return 0.; }
@@ -442,7 +437,10 @@ public:
 	bool checkOrInitValueRange(const RecalEstimatorTools::TRecalDataTable &dataTable, size_t FirstParameterIndex) override {
 		_firstParameterIndex = FirstParameterIndex;
 		if (numParameters() == 0) {
-			_betas.resize(Covariate::N(dataTable));
+			_betas.resize(Covariate::N(dataTable), 0.);
+			for (size_t i = 0; i < Covariate::N(dataTable); ++i) {
+				if (!Covariate::isUsed(dataTable, i)) _betas[i] = NAN;
+			}
 		}
 		return Covariate::N(dataTable) <= numParameters();
 	}
@@ -470,95 +468,6 @@ public:
 	}
 };
 
-//--------------------------------------------------------------
-// A term per discrete values as indicated with a map
-//--------------------------------------------------------------
-
-template<typename Covariate> class TIndexedEmpiric final : public TFunction {
-private:
-	std::vector<double> _betas;    // betas of the model
-	std::vector<int> _indexMap;    // maps value to parameter index
-
-public:
-	static constexpr std::string_view name = "empiric"; // same as TEmpiric, as atlas user does not see a difference
-	TIndexedEmpiric(size_t FirstParameterIndex) : TFunction(FirstParameterIndex) {}
-
-	size_t numParameters() const noexcept override { return _betas.size(); }
-
-	void push_back(size_t i, double val) noexcept {
-		if (i >= _indexMap.size()) _indexMap.resize(i+1, -1);
-		if (_indexMap[i] < 0) {
-			_betas.push_back(val);
-			_indexMap[i] = _betas.size() - 1;
-		} else {
-			_betas[_indexMap[i]] = val;
-		}
-	}
-
-	double *begin() noexcept override { return _betas.data(); }
-	double *end() noexcept override { return _betas.data() + _betas.size(); }
-	const double *begin() const noexcept override { return _betas.data(); }
-	const double *end() const noexcept override { return _betas.data() + _betas.size(); }
-
-	bool checkOrInitValueRange(const RecalEstimatorTools::TRecalDataTable &dataTable, size_t FirstParameterIndex) override {
-		_firstParameterIndex = FirstParameterIndex;
-		if (numParameters() == 0) {
-			for (auto v : Covariate::range(dataTable)) { push_back(v, 0.); }
-			return true;
-		}
-		for (uint16_t val : Covariate::range(dataTable)) {
-			if ((val > _indexMap.size()) || (_indexMap[val] < 0)) return false;
-		}
-		return true;
-	}
-
-	double adjustParametersPostEstimation() noexcept override {
-		return normalizeParameters(_betas);
-	}
-
-	double getEta(const BAM::TSequencedBase &base) const noexcept override {
-		assert(Covariate::extract(base) < _indexMap.size());
-		assert(_indexMap[Covariate::extract(base)] >= 0);
-		assert(_indexMap[Covariate::extract(base)] < _betas.size());
-		return _betas[_indexMap[Covariate::extract(base)]];
-	}
-
-	double getEta(const BAM::TSequencedBase &base, std::vector<T1stDerivative> &der1,
-				  std::vector<T2ndDerivative> &) const noexcept override {
-		const auto val = Covariate::extract(base);
-		assert(val < _indexMap.size());
-		assert(_indexMap[val] >= 0);
-		assert(_indexMap[val] < _betas.size());
-
-		der1.emplace_back(firstParameterIndex() + _indexMap[val], 1.0);
-		return _betas[_indexMap[val]];
-	}
-
-	std::string typeString() const noexcept override { return std::string(Covariate::name).append(1, ':').append(name); }
-
-	void addInfo(BAM::RGInfo::TInfo& info) const override {
-		info[Covariate::name] = {{name, {}}};
-		BAM::RGInfo::TInfo ar = nlohmann::json::array();
-		for (size_t i = 0; i < _indexMap.size(); ++i) {
-			if (_indexMap[i] >= 0) ar += {i, _betas[_indexMap[i]]};
-		}
-		info[Covariate::name] = {{name, ar}};
-	}
-
-	std::string modelString() const override {
-		using coretools::str::toString;
-		if (_indexMap.empty()) return typeString().append("[]");
-
-		std::string s = typeString().append(1, '[');
-		for (size_t i = 0; i < _indexMap.size(); ++i) {
-			if(_indexMap[i] >= 0) {
-				s.append(toString(i)).append(1, ':').append(toString(_betas[_indexMap[i]])).append(1, ',');
-			}
-		}
-		s.pop_back(); // remove last ','
-		return s.append(1, ']');
-	}
-};
 
 } // namespace SequencingError
 } // namespace GenotypeLikelihoods

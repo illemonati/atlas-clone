@@ -20,24 +20,6 @@ namespace GenotypeLikelihoods::RecalEstimatorTools {
 
 using coretools::instances::logfile;
 
-std::vector<uint16_t> indexedRange(const std::vector<uint32_t> & counts) {
-	//insert all with counts
-	std::vector<uint16_t> vec;
-	for(size_t i = 0; i < counts.size(); ++i){
-		if(counts[i] > 0){
-			vec.push_back(i);
-		}
-	}
-	return vec;
-};
-
-std::vector<uint16_t> fullRange(const std::vector<uint32_t>& counts) {
-		const auto N = counts.size();
-		std::vector<uint16_t> v(N);
-		std::iota(v.begin(), v.end(), uint16_t{});
-		return v;
-}
-
 namespace impl {
 void addCount(std::vector<uint32_t> &counts, uint16_t value) {
 	if (counts.size() <= value) counts.resize(value + 1, 0);

@@ -24,9 +24,6 @@ namespace GenotypeLikelihoods { class TSite; }
 
 namespace GenotypeLikelihoods::RecalEstimatorTools {
 
-std::vector<uint16_t> indexedRange(const std::vector<uint32_t>& counts);
-std::vector<uint16_t> fullRange(const std::vector<uint32_t>& counts);
-
 class TRecalDataTable {
 private:
 	uint64_t _counts = 0;

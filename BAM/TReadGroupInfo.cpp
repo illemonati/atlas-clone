@@ -257,7 +257,7 @@ void TReadGroupInfo::set(const uint16_t RGIndex, const InfoType Type, const TInf
 
 void TReadGroupInfo::write(std::string_view Filename){
 	//write RG info file
-	logfile().listFlush("Writing read group info to file '", Filename, "' ...");
+	logfile().list("Writing read group info to file '", Filename, "'.");
 	for(auto& r : _info){
 		//make sure json has entry for that read group
 		if(!_json.contains(r.name())){
@@ -282,7 +282,6 @@ void TReadGroupInfo::write(std::string_view Filename){
 	}
 	out << std::setw(4) << _json << std::endl;
 	out.close();
-	logfile().done();
 }
 
 //-------------------------------------------
