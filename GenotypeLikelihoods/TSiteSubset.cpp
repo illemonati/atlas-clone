@@ -7,10 +7,13 @@
 
 #include "TSiteSubset.h"
 
+#include <algorithm>
 #include <cstdint>
 #include <fstream>
+#include <iterator>
 #include <map>
 
+#include "coretools/Containers/TView.h"
 #include "genometools/GenotypeTypes.h"
 #include "genometools/GenomePositions/TChromosomes.h"
 #include "coretools/Files/TOutputFile.h"
@@ -63,10 +66,12 @@ void TSiteSubset::_readFile(const std::string &Filename, const genometools::TChr
 
 	//read file and add sites
 	std::vector<std::string> line;
+	std::set<uint32_t> refIDUsed;
+	std::set<TSiteSubsetSite, std::less<>> setSites;
 	while(in.read(line)){
 		//get chromosome: throws error if chromosome does not exist
 		const genometools::TChromosome& chr = Chromosomes.getChromosome(line[0]);
-		_refIDUsed.emplace(chr.refID());
+		refIDUsed.emplace(chr.refID());
 
 		//extract positions
 		uint32_t pos = coretools::str::fromString<uint32_t, true>(line[1]) - 1; //make 0-based
@@ -77,12 +82,15 @@ void TSiteSubset::_readFile(const std::string &Filename, const genometools::TChr
 		impl::checkAlleles(chr.name, pos, ref, alt, line[2], line[3], _storesInvariantSites);
 
 		//add site
-		_sites.emplace(chr.refID(), pos, ref, alt);
+		setSites.emplace(chr.refID(), pos, ref, alt);
 	}
+
+	_sites.clear();
+	std::copy(setSites.begin(), setSites.end(), std::back_inserter(_sites));
 
 	//report
 	logfile().doneTime();
-	logfile().conclude("Parsed " + toString(_sites.size()) + " sites on " + toString(_refIDUsed.size()) + " chromosomes.");
+	logfile().conclude("Parsed " + toString(size()) + " sites on " + toString(refIDUsed.size()) + " chromosomes.");
 };
 
 void TSiteSubset::_readFile(const std::string &Filename, const genometools::TChromosomes & Chromosomes, const genometools::TFastaReader & Reference) {
@@ -97,10 +105,12 @@ void TSiteSubset::_readFile(const std::string &Filename, const genometools::TChr
 
 	//read file and add sites
 	std::vector<std::string> line;
+	std::set<uint32_t> refIDUsed;
+	std::set<TSiteSubsetSite, std::less<>> setSites;
 	while(in.read(line)){
 		//get chromosome: throws error if chromosome does not exist
 		const genometools::TChromosome& chr = Chromosomes.getChromosome(line[0]);
-		_refIDUsed.emplace(chr.refID());
+		refIDUsed.emplace(chr.refID());
 
 		//extract positions
 		uint32_t pos = coretools::str::fromString<uint32_t, true>(line[1]) - 1; //make 0-based
@@ -123,12 +133,15 @@ void TSiteSubset::_readFile(const std::string &Filename, const genometools::TChr
 		}
 
 		//add site
-		_sites.emplace(chr.refID(), pos, ref, alt);
+		setSites.emplace(chr.refID(), pos, ref, alt);
 	}
+
+	_sites.clear();
+	std::copy(setSites.begin(), setSites.end(), std::back_inserter(_sites));
 
 	//report
 	logfile().doneTime();
-	logfile().conclude("Parsed " + toString(_sites.size()) + " sites on " + toString(_refIDUsed.size()) + " chromosomes.");
+	logfile().conclude("Parsed " + toString(size()) + " sites on " + toString(refIDUsed.size()) + " chromosomes.");
 
 	//write conflicts, if any
 	if(conflictsFound){
@@ -155,19 +168,19 @@ void TSiteSubset::write(const std::string &Filename) const{
 };
 
 bool TSiteSubset::hasPositionsInWindow(const genometools::TGenomeWindow & Window) const{
-	auto it = _sites.lower_bound(Window);
+	auto it = std::lower_bound(_sites.begin(), _sites.end(), Window);
 	return !(it == _sites.end() || *it < Window);
 };
 
-std::set<TSiteSubsetSite> TSiteSubset::getPositionInWindow(const genometools::TGenomeWindow & Window) const{
-	std::set<TSiteSubsetSite> set;
-	auto it = _sites.lower_bound(Window);
-	while(it != _sites.end() && *it < Window){
-		set.emplace(*it);
-		++it;
+coretools::TConstView<TSiteSubsetSite> TSiteSubset::getPositionInWindow(const genometools::TGenomeWindow & Window) const {
+	coretools::TConstView<TSiteSubsetSite> view(_sites);
+	const auto start = std::lower_bound(_sites.begin(), _sites.end(), Window);
+	auto end = start;
+	while(end != _sites.end() && *end < Window){
+		++end;
 	}
 
-	return set;
+	return view.subview(std::distance(_sites.begin(), start), end-start);
 };
 
 }; //end namespace

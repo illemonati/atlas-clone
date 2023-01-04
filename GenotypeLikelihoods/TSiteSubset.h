@@ -15,6 +15,7 @@
 #include <string>
 #include <vector>
 
+#include "coretools/Containers/TView.h"
 #include "genometools/GenotypeTypes.h"
 #include "genometools/GenomePositions/TGenomePosition.h"
 
@@ -52,8 +53,7 @@ public:
 //-----------------------------------------------
 class TSiteSubset{
 private:
-	std::set<uint32_t> _refIDUsed;
-	std::set<TSiteSubsetSite, std::less<>> _sites;
+	std::vector<TSiteSubsetSite> _sites;
 
 	bool _storesInvariantSites;
 
@@ -65,7 +65,7 @@ public:
 	TSiteSubset(const std::string &Filename, const genometools::TChromosomes & Chromosomes, bool InvariantSites, const genometools::TFastaReader & Reference);
 	void write(const std::string &Filename) const;
 	bool hasPositionsInWindow(const genometools::TGenomeWindow & Window) const;
-	std::set<TSiteSubsetSite> getPositionInWindow(const genometools::TGenomeWindow & Window) const;
+	coretools::TConstView<TSiteSubsetSite> getPositionInWindow(const genometools::TGenomeWindow & Window) const;
 	size_t size() const noexcept { return _sites.size(); }
 };
 

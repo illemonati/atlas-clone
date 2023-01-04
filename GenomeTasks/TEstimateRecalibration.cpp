@@ -69,14 +69,16 @@ BAM::TReadGroupMap makeReadGroupMap(const BAM::TReadGroups &ReadGroups) {
 void TEstimateRecalibration::_handleWindow() {
 	// add sites to recal estimator
 	if (_subset) {
-		std::set<GenotypeLikelihoods::TSiteSubsetSite> thesePositions = _subset->getPositionInWindow(_window);
+		auto thesePositions = _subset->getPositionInWindow(_window);
 		for (auto &it : thesePositions) {
-			uint32_t internalPos = it - _window.from();
-			if (!_window[internalPos].empty() && it.ref() == it.alt()) { recal.addSite(_window[internalPos]); }
+			if (it.ref() == it.alt()) {
+				const uint32_t internalPos = it - _window.from();
+				recal.addSite(_window[internalPos]);
+			}
 		}
 	} else {
 		for (auto &s : _window) {
-			if (!s.empty()) { recal.addSite(s); }
+			recal.addSite(s);
 		}
 	}
 };

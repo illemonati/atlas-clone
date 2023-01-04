@@ -1290,7 +1290,7 @@ void TCall::_callKnwonAlleles(){
 		_window.addReferenceBaseToSites(*_subset);
 
 		//only run over sites listed in that window
-		std::set<TSiteSubsetSite> thesePositions = _subset->getPositionInWindow(_window);
+		auto thesePositions = _subset->getPositionInWindow(_window);
 		for(auto& it : thesePositions){
 			//calculate genotype likelihoods
 			uint32_t internalPos = it - _window.from();

@@ -226,7 +226,7 @@ void TWindow_base::addReferenceBaseToSites(TSiteSubset & subset){
 	if(!referenceBaseAdded){
 		if(subset.hasPositionsInWindow(*this)){
 			//now only run over sites listed in that window
-			std::set<TSiteSubsetSite> thesePositions = subset.getPositionInWindow(*this);
+			const auto thesePositions = subset.getPositionInWindow(*this);
 			for(auto& it : thesePositions){
 				size_t pos = it - _from;
 				_sites[pos].refBase = it.ref();
@@ -435,7 +435,7 @@ void TWindow::fillSites(size_t readUpToDepth){
 //------------------------------------------------------
 //fill sites according to subset
 //------------------------------------------------------
-void TWindow::_fillSitesSubset(BAM::TAlignment & alignment, std::vector<TSite> & sites, std::set<TSiteSubsetSite> & thesePos, size_t readUpToDepth){
+void TWindow::_fillSitesSubset(BAM::TAlignment & alignment, std::vector<TSite> & sites, coretools::TConstView<TSiteSubsetSite> thesePos, size_t readUpToDepth){
 	//genomic position of alignment as seen from window perspective
 	size_t p = _findFirstPositionWithinWindow(alignment);
 
@@ -469,7 +469,7 @@ void TWindow::_fillSitesSubset(std::vector<TSite> & sites, TSiteSubset & subset,
 	sites.resize(size());
 
 	//get positions that are used
-	std::set<TSiteSubsetSite> thesePositions = subset.getPositionInWindow(*this);
+	auto thesePositions = subset.getPositionInWindow(*this);
 
 	//add reads in usedAlignments to sites in window
 	for(auto & a : usedAlignments){
@@ -482,7 +482,7 @@ int TWindow::_fillSitesSubsetDownsampling(std::vector<TSite> & sites, TSiteSubse
 	sites.resize(size());
 
 	//get positions that are used
-	std::set<TSiteSubsetSite> thesePositions = subset.getPositionInWindow(*this);
+	auto thesePositions = subset.getPositionInWindow(*this);
 
 	//add reads in usedAlignments to sites in window
 	int counter = 0;

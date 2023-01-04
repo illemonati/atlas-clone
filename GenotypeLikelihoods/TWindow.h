@@ -15,12 +15,13 @@
 #include <vector>
 
 #include "TAlignment.h"
-#include "genometools/GenomePositions/TGenomePosition.h"
 #include "TGenotypeData.h"
 #include "TSite.h"
 #include "TSiteSubset.h"
 #include "coretools/Math/TSubsamplePicker.h"
 #include "coretools/Types/probability.h"
+#include "coretools/Containers/TView.h"
+#include "genometools/GenomePositions/TGenomePosition.h"
 #include "genometools/TFastaReader.h"
 
 namespace coretools { class TLog; }
@@ -134,7 +135,7 @@ private:
 	void _fillSites(std::vector<TSite> & sites, size_t readUpToDepth);
 	int _fillSitesDownsampling(std::vector<TSite> & sites, size_t readUpToDepth, const coretools::Probability & downsamplingProb, coretools::TRandomGenerator* randomGenerator);
 
-	void _fillSitesSubset(BAM::TAlignment & alignmentIt, std::vector<TSite> & sites, std::set<TSiteSubsetSite> & thesePos, size_t readUpToDepth);
+	void _fillSitesSubset(BAM::TAlignment & alignmentIt, std::vector<TSite> & sites, coretools::TConstView<TSiteSubsetSite> thesePos, size_t readUpToDepth);
 	void _fillSitesSubset(std::vector<TSite> & sites, TSiteSubset & subset, size_t readUpToDepth);
 	int _fillSitesSubsetDownsampling(std::vector<TSite> & sites, TSiteSubset & subset, size_t readUpToDepth, const coretools::Probability & downsamplingProb, coretools::TRandomGenerator* randomGenerator);
 
