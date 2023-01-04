@@ -44,6 +44,8 @@ public:
 
 	void sample(BAM::TBamFile & bamfile);
 	void downsampleRead(BAM::TAlignment & alignment);
+	
+friend class TBamDownsampler;
 };
 
 //-----------------------------------------
@@ -62,11 +64,19 @@ protected:
 // TBamDownsampler
 //-----------------------------------------
 class TBamDownsampler:public TBamDownsampler_base{
+private:
+	bool separateReads = false;
+	std::vector<double> _cumulProbs;
+	//lists to keep track of mates
+	std::map<std::string, uint16_t> _mateWasWritten;
+	BAM::TAlignmentList _discard;
+
 protected:
 	std::vector<TBamSample> _bamSamples;
 public:
 	TBamDownsampler();
 	virtual void downsample();
+	void sample();
 };
 
 //-----------------------------------------

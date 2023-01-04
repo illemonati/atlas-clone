@@ -79,7 +79,7 @@ void addTaks(coretools::TMain & main) {
 	main.addRegularTask("qualityTransformation", new GenomeTasks::TTask_qualityTransformation());
 	main.addRegularTask("contextStats", new GenomeTasks::TTask_quantifyContext());
 	main.addRegularTask("downsample", new GenomeTasks::TTask_downsample());
-	main.addRegularTask("separateReads", new GenomeTasks::TTask_separateReads());
+	//main.addRegularTask("separateReads", new GenomeTasks::TTask_separateReads());
 	main.addRegularTask("downsampleReads", new GenomeTasks::TTask_downSampleReads());
 	main.addRegularTask("PMD", new GenomeTasks::TTask_estimatePMD());
 	main.addRegularTask("PMDS", new GenomeTasks::TTask_PMDS());

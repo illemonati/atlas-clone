@@ -117,14 +117,38 @@ TBamDownsampler::TBamDownsampler() : TBamDownsampler_base(){
 	//read downsampling rates
 	_readVectorOfDownsamplingProbabilities();
 
-	//report
-	logfile().list("Will accept reads with probabilities (parameter 'prob'): " + coretools::str::concatenateString(_probs, ", "));
+	
+	std::string filePrefix;
+	if(parameters().parameterExists("separateReads")) {
+		filePrefix = _outputName + "_separated_";
+		//report
+		logfile().list("Will separate reads with probabilities (parameter 'prob'): " + coretools::str::concatenateString(_probs, ", "));
+	} else {
+		filePrefix = _outputName + "_downsampled_";
+		//report
+		logfile().list("Will accept reads with probabilities (parameter 'prob'): " + coretools::str::concatenateString(_probs, ", "));
+	}
 	if(*_probs.begin() == 1.0) logfile().warning("Probability of 1 will result in identical file!");
 
 	//create downsampling objects
 	for(size_t i=0; i<_probs.size(); ++i){
-		std::string filename = _outputName + "_downsampled_" + _names[i] + ".bam";
+		std::string filename = filePrefix + _names[i] + ".bam";
 		_bamSamples.emplace_back(_probs[i], filename);
+	}
+
+	if(parameters().parameterExists("separateReads")) {
+		separateReads = true;
+		//check that sum <= 1.0
+		double sum = 0.0;
+		for(auto& d : _probs){
+			sum += d.get();
+			_cumulProbs.push_back(sum);
+		}
+		_cumulProbs.push_back(1.0); //always add an extra at end to ease search
+
+		if(sum > 1.0){
+			throw "Separation probabilities must sum to <= 1.0, not " + toString(sum) + "!";
+		}
 	}
 
 	//open bam files for writing
@@ -137,8 +161,12 @@ void TBamDownsampler::downsample(){
 	//traverse BAM and downsample
 	_bamFile.startProgressReporting();
 	while(_bamFile.readNextAlignment()){
-		for(auto& s : _bamSamples){
-			s.sample(_bamFile);
+		if (separateReads){
+			sample();
+		} else {
+			for(auto& s : _bamSamples){
+				s.sample(_bamFile);
+			}
 		}
 		_bamFile.printProgress();
 	}
@@ -149,6 +177,38 @@ void TBamDownsampler::downsample(){
 		s.close();
 	}
 };
+
+void TBamDownsampler::sample(){
+	if(_discard.isInBlacklist(_bamFile.curName())){
+		_discard.remove(_bamFile.curName());
+	} else {
+		auto mate = _mateWasWritten.find(_bamFile.curName());
+		if(mate != _mateWasWritten.end()){
+			_bamFile.writeCurAlignment(_bamSamples[mate->second]._out);
+			_mateWasWritten.erase(mate);
+		} else {
+			//assing to a bam file
+			double r = randomGenerator().getRand();
+
+			size_t index = 0;
+			while(r > _cumulProbs[index]){
+				++index;
+			}
+			if(index < _bamSamples.size()){
+				//write
+				_bamFile.writeCurAlignment(_bamSamples[index]._out);
+				if(_bamFile.curIsProperPair()){
+					_mateWasWritten.emplace(_bamFile.curName(), index);
+				}
+			} else {
+				//discard read
+				if(_bamFile.curIsProperPair()){
+					_discard.add(_bamFile.curName());
+				}
+			}
+		}
+	}
+}
 
 //-----------------------------------------
 // TBamReadDownsampler
