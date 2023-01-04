@@ -35,14 +35,6 @@ namespace RGInfo{
 
 using TInfo = nlohmann::ordered_json;
 
-inline std::string toString(const TInfo& info){
-	if(info.is_string() || info.is_number()){
-		return info.get<std::string>();
-	} else {
-		return info.dump();
-	}
-}
-
 //------------------------------------------------
 // TInfoValue
 //------------------------------------------------
