@@ -176,7 +176,7 @@ void TInbreedingEstimatorPrior::_updateFToHWE(const Storage &Data) {
 		}
 	}
 
-	if (!_F->acceptOrReject_DontCountRejection(logH)) {
+	if (!_F->acceptOrReject<false>(logH, 0)) {
 		// rejected model switch -> we're still in F-model
 		_FModel->set(true);
 	}
@@ -193,7 +193,7 @@ void TInbreedingEstimatorPrior::_updateRegularF(const Storage &Data) {
 				        _calculateLLSumOverIndividuals(Data, l, _p->value(l), _F->oldValue());
 			}
 		}
-		_F->acceptOrReject(logH);
+		_F->acceptOrReject(logH, 0);
 	}
 }
 
@@ -214,7 +214,7 @@ void TInbreedingEstimatorPrior::_updateHWEToF(const Storage &Data) {
 		}
 	}
 
-	if (!_F->acceptOrReject_DontCountRejection(logH)) {
+	if (!_F->acceptOrReject<false>(logH, 0)) {
 		// rejected model switch -> we're still in null-model
 		_FModel->set(false);
 	}
@@ -258,7 +258,7 @@ void TInbreedingEstimatorPrior::_updatePToNull(const Storage &Data, size_t Locus
 	logH += _pModel->getLogPriorRatio(Locus);
 	logH += _calculateLLRatio_UpdateP(Data, Locus);
 
-	if (!_p->acceptOrReject_DontCountRejection(Locus, logH)) {
+	if (!_p->acceptOrReject<false>(logH, Locus)) {
 		// rejected model switch -> we're still in P-model
 		_pModel->set(Locus, true);
 	}
@@ -272,7 +272,7 @@ void TInbreedingEstimatorPrior::_updateRegularP(const Storage &Data, size_t Locu
 			// prevent jumping to zero-model in here: always reject if p==0 or p==1 (invalid for Beta-distribution)
 			logH = _calculateLLRatio_UpdateP(Data, Locus) + _p->getLogPriorRatio(Locus);
 		}
-		_p->acceptOrReject(Locus, logH);
+		_p->acceptOrReject(logH, Locus);
 	}
 }
 
@@ -287,7 +287,7 @@ void TInbreedingEstimatorPrior::_updateNullToP(const Storage &Data, size_t Locus
 	logH += _pModel->getLogPriorRatio(Locus);
 	logH += _calculateLLRatio_UpdateP(Data, Locus);
 
-	if (!_p->acceptOrReject_DontCountRejection(Locus, logH)) {
+	if (!_p->acceptOrReject<false>(logH, Locus)) {
 		// rejected model switch -> we're still in null-model
 		_pModel->set(Locus, false);
 	}
