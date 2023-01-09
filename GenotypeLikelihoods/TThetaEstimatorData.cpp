@@ -39,7 +39,7 @@ void TThetaEstimatorTemporaryFile::init(std::string Filename) {
 };
 
 void TThetaEstimatorTemporaryFile::openForWriting() {
-	if (sizeOfData == 0) throw "Can not open temporary data file for theta: file was not initialized!";
+	if (sizeOfData == 0) UERROR("Can not open temporary data file for theta: file was not initialized!");
 
 	// if file was written, remove it
 	clean();
@@ -54,7 +54,7 @@ void TThetaEstimatorTemporaryFile::openForWriting() {
 };
 
 void TThetaEstimatorTemporaryFile::openForReading() {
-	if (!wasWritten) throw "Can not parse temporary file: file was never written!";
+	if (!wasWritten) UERROR("Can not parse temporary file: file was never written!");
 
 	// make sure file is closed
 	close();
@@ -90,19 +90,19 @@ bool TThetaEstimatorTemporaryFile::isEOF() {
 }
 
 void TThetaEstimatorTemporaryFile::save(const GenotypeLikelihoods::TGenotypeLikelihoods &genoLik) {
-	if (!isOpenForWriting) throw "Can not add data to '" + filename + "': file is closed!";
+	if (!isOpenForWriting) UERROR("Can not add data to '", filename, "': file is closed!");
 
 	gzwrite(fp, genoLik.data(), sizeOfData);
 };
 
 bool TThetaEstimatorTemporaryFile::read(GenotypeLikelihoods::TGenotypeLikelihoods &genoLik) {
-	if (!isOpenForReading) throw "Can not read data from '" + filename + "': file is closed!";
+	if (!isOpenForReading) UERROR("Can not read data from '", filename, "': file is closed!");
 	if (gzread(fp, genoLik.data(), sizeOfData) != sizeOfData) {
 		// is end-of-file?
 		if (gzeof(fp)) return false;
 
 		// is error
-		throw "Failed to read data from temporary file!";
+		UERROR("Failed to read data from temporary file!");
 	}
 	return true;
 };
@@ -218,11 +218,11 @@ void TThetaEstimatorData::fillPoissonForBootstrap(const double lambda) {
 
 	// make sure last of cumulative is 1.0
 	if (poissonProb[maxKforPoissonPlusOne - 1] < 0.99999)
-		throw "Cumulative Poisson needs more steps: cumulative < 0.99999 at last entry!";
+		UERROR("Cumulative Poisson needs more steps: cumulative < 0.99999 at last entry!");
 	poissonProb[maxKforPoissonPlusOne - 1] = 1.0;
 }
 
-void TThetaEstimatorData::bootstrap(coretools::TRandomGenerator &randomGenerator) {
+void TThetaEstimatorData::bootstrap() {
 	// make sure we start empty
 	clearBootstrap();
 
@@ -237,7 +237,7 @@ void TThetaEstimatorData::bootstrap(coretools::TRandomGenerator &randomGenerator
 	numBootstrappedSites = 0.0;
 	for (long l = 0; l < numSitesWithData; ++l) {
 		// do we use this site in the bootstrap?
-		numBootstrapRepsPerEntry[l] = randomGenerator.pickOne(maxKforPoissonPlusOne, poissonProb);
+		numBootstrapRepsPerEntry[l] = coretools::instances::randomGenerator().pickOne(maxKforPoissonPlusOne, poissonProb);
 		numBootstrappedSites += numBootstrapRepsPerEntry[l];
 	}
 

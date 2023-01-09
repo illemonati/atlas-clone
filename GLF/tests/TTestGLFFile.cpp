@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <stdexcept>
 
+#include "coretools/Main/TError.h"
 #include "genometools/GenotypeTypes.h"
 #include "TGenotypeData.h"
 #include "coretools/Types/probability.h"
@@ -19,7 +20,7 @@ namespace GLF {
 
 void TTestGLFFile::_initialize(const std::vector<uint32_t>& ChrLength, const std::vector<uint8_t>& ChrPloidy) {
     if (ChrLength.size() != ChrPloidy.size())
-        throw std::runtime_error("In function '': Size of ChrLength should match size of ChrPloidy!");
+        DEVERROR("Size of ChrLength should match size of ChrPloidy!");
 
     _chromosomes.clear();
     uint32_t refID = 1;
@@ -109,7 +110,7 @@ void TTestGLFFile::writeDummySites(uint32_t numSites) {
     // compute maximal distance between sites (such that positions never exceed the last position of the last chromosome)
     uint32_t usableLength = _chromosomes.referenceLength();
     if (numSites > usableLength)
-        throw std::runtime_error("Too many sizes (" + coretools::str::toString(numSites) + ") for chromosomes of total length " + coretools::str::toString(usableLength) + "!");
+        DEVERROR("Too many sizes (", numSites, ") for chromosomes of total length ", usableLength, "!");
     _dummyMaxDist = usableLength / numSites;
     if(_dummyMaxDist > _chromosomes.minLength() - 1){
         _dummyMaxDist = _chromosomes.minLength() - 1;
@@ -149,7 +150,7 @@ void TTestGLFFile::writeDummySite(long pos, uint32_t depth, GenotypeLikelihoods:
 
 void TTestGLFFile::writeSite(long pos, uint32_t depth, GenotypeLikelihoods::TGenotypeLikelihoods &genotypeLikelihoods, uint8_t RMS_mappingQual) {
     if (pos < 0 || pos >= _dummyCurChr->length)
-        throw std::runtime_error("Position " + coretools::str::toString(pos) + " is outside interval [0, lengthChr)!");
+        DEVERROR("Position ", pos, " is outside interval [0, lengthChr)!");
     // write to glf
     _glfFile.writeSite(pos, depth, RMS_mappingQual, genotypeLikelihoods);
 
@@ -170,7 +171,7 @@ void TTestGLFFile::writeSite(long pos, uint32_t depth, GenotypeLikelihoods::TGen
 void TTestGLFFile::writeNewChromosome() {
     ++_dummyCurChr;
     if(_dummyCurChr == _chromosomes.end()){
-        throw std::runtime_error("void TTestBamFile::writeDummyAlignments(uint32_t numAlignments): chromosome reached end!");
+        DEVERROR("void TTestBamFile::writeDummyAlignments(uint32_t numAlignments): chromosome reached end!");
     }
 
     _dummyPos = _dummyCurChr->chrStart.position();

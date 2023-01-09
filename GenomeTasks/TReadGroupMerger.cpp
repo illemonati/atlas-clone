@@ -45,7 +45,7 @@ TReadGroupMerger::TReadGroupMerger():TGenome_basic(){
 	std::set<std::string> readGroupsMerged;
 	while(file.read(vec)){
 		if(!vec.empty()){
-			if(vec.size() < 2) throw "Wrong number of entries on line " + coretools::str::toString(file.curLine()) + " in file '" + filename + "'!";
+			if(vec.size() < 2) UERROR("Wrong number of entries on line ",  file.curLine(), " in file '", filename, "'!");
 
 			//create new read group
 			uint16_t newId = readGroups.add(vec[0]).id();
@@ -54,7 +54,7 @@ TReadGroupMerger::TReadGroupMerger():TGenome_basic(){
 			for(size_t i=1; i<vec.size(); ++i){
 				//check for duplicates
 				if(!readGroupsMerged.emplace(vec[i]).second){
-					throw "Read group '" + vec[i] + "' is listed multiple times in file '" + filename + "'!";
+					UERROR("Read group '", vec[i], "' is listed multiple times in file '", filename, "'!");
 				}
 
 				uint16_t oldId = readGroups.getId(vec[i]);

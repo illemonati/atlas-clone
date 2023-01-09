@@ -80,7 +80,7 @@ TEST(TVCFSimulator, findMajorMinorAllele_3) {
 	//    -> this should never happen for bi-allelic simulators!
 	coretools::TStrongArray<size_t, genometools::Base, 4> alleleCounts({10, 0, 10, 0});
 	auto ref = genometools::Base::C;
-	EXPECT_THROW(vcfSimulator._findMajorMinorAllele(alleleCounts, ref), std::runtime_error);
+	EXPECT_ANY_THROW(vcfSimulator._findMajorMinorAllele(alleleCounts, ref));
 }
 
 TEST(TVCFSimulator, findMajorMinorAllele_4) {

@@ -110,7 +110,7 @@ public:
 		} else if(mask == "variant"){
 
 		} else {
-			throw "Unknown mask '" + mask + "'! Valid types are 'depth', 'invariant', 'nonRef' and 'polymorphic'";
+			UERROR("Unknown mask '", mask, "'! Valid types are 'depth', 'invariant', 'nonRef' and 'polymorphic'");
 		}
 	};
 };

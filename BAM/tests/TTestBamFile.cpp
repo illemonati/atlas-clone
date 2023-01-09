@@ -229,7 +229,7 @@ void TTestBamFile::writeDummyAlignments(uint32_t numAlignments, const bool & com
 			++chr;
 			if(chr == _chromosomes.end()){
 				std::cout << "ERROR A" << std::endl;
-				throw std::runtime_error("void TTestBamFile::writeDummyAlignments(uint32_t numAlignments): chromosome reached end!");
+				DEVERROR("chromosome reached end!");
 			}
 
 			position = chr->chrStart;
@@ -366,7 +366,7 @@ BAM::TAlignment & TTestBamFilePairedEnd::_pickSecondMate(uint32_t refIDMate1, st
 
 void TTestBamFilePairedEnd::writeDummyAlignments(uint32_t numAlignments, const bool & complicatedSamFlag){
     if (numAlignments % 2 != 0)
-        throw std::runtime_error("In function 'void TTestBamFilePairedEnd::writeDummyAlignments(uint32_t numAlignments, const bool & complicatedSamFlag)': For simplicity, numAlignments should be an even number!");
+        DEVERROR("For simplicity, numAlignments should be an even number!");
 
     // create alignments and store
     BAM::TTestBamFile::writeDummyAlignments(numAlignments, complicatedSamFlag);

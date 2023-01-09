@@ -12,19 +12,15 @@
 #include <string>
 #include <vector>
 
-#include "genometools/PhredProbabilityTypes.h"
 #include "coretools/Files/TOutputFile.h"
+#include "coretools/Main/TTask.h"
+#include "coretools/Types/probability.h"
+#include "genometools/PhredProbabilityTypes.h"
 #include "genometools/THardyWeinbergGenotypeProbabilities.h"
-#include "coretools/Main/TLog.h"
-#include "coretools/Main/TParameters.h"
+#include "genometools/TSampleLikelihoods.h"
 #include "genometools/VCF/TPopulation.h"
 #include "genometools/VCF/TPopulationLikelihoodLocus.h"
 #include "genometools/VCF/TPopulationLikelihoods.h"
-#include "coretools/Main/TRandomGenerator.h"
-#include "genometools/TSampleLikelihoods.h"
-#include "coretools/Main/TTask.h"
-#include "coretools/Types/probability.h"
-#include "coretools/Files/TOutputFile.h"
 
 namespace genometools { class TGenotypeFrequencies; }
 
@@ -56,7 +52,6 @@ struct FrequencyGridPoint{
 
 class TAlleleFreqEstimatorBayes{
 private:
-	coretools::TRandomGenerator* randomGenerator;
 
 	double alpha, beta;
 	double alphaMinusOne, betaMinusOne;
@@ -87,7 +82,7 @@ private:
 	void _estimateCredibleIntervals(const TSampleLikelihoods* storage, uint32_t numSamplesInPopulation);
 
 public:
-	TAlleleFreqEstimatorBayes(coretools::TParameters & Parameters, coretools::TLog* logfile, coretools::TRandomGenerator* RandomGenerator);
+	TAlleleFreqEstimatorBayes();
 	~TAlleleFreqEstimatorBayes() = default;
 	coretools::Probability estimate(const TSampleLikelihoods* storage, uint32_t numSamplesInPopulation);
 	void composeHeader(std::vector<std::string> & header, const std::string & popName);
@@ -113,10 +108,10 @@ private:
 
 public:
 	TAlleleFreqMCMCOutput(){}
-	TAlleleFreqMCMCOutput(std::string popString, genometools::TPopulationSamples & samples, std::string OutputName, coretools::TLog* logfile){
-		initialize(popString, samples, OutputName, logfile);
+	TAlleleFreqMCMCOutput(std::string popString, genometools::TPopulationSamples & samples, std::string OutputName){
+		initialize(popString, samples, OutputName);
 	};
-	void initialize(std::string popString, genometools::TPopulationSamples & samples, std::string OutputName, coretools::TLog* logfile);
+	void initialize(std::string popString, genometools::TPopulationSamples & samples, std::string OutputName);
 	void write(std::vector< std::vector<double> > & mcmc, const std::string chr, const uint64_t pos);
 };
 
@@ -128,14 +123,13 @@ private:
 	// about vcf-file
 	std::string vcfFilename;
 	bool vcfRead;
-	coretools::TLog* logfile;
 
 	// data on individuals
     genometools::TPopulationLikelihoodReaderLocus reader;
     genometools::TPopulationSamples samples;
     genometools::TPopulationLikehoodLocus<TSampleLikelihoods> storage;
 
-	void _openVCF(coretools::TParameters & Parameters);
+	void _openVCF();
 	void _closeVCF();
 	std::vector<std::string> _composeHeaderAlleleFreq(bool writeGenoFreq, bool doBayesian, TAlleleFreqEstimatorBayes* BHWEstimator);
 	void _writeBayesianEstimatesOnePop(coretools::TOutputFile & out, TSampleLikelihoods* theseSamples, uint32_t numSamples, TAlleleFreqEstimatorBayes* BHWEstimator);
@@ -143,10 +137,10 @@ private:
 	std::vector<std::string> _composeHeaderAlleleFreqComparison(TAlleleFreqEstimatorBayes & BHWEstimator);
 
 public:
-	TAlleleFreqEstimator(coretools::TParameters & Parameters, coretools::TLog* Logfile);
-	void estimateAlleleFreq(coretools::TParameters & Parameters, coretools::TRandomGenerator* randomGenerator);
-	void compareAlleleFreq(coretools::TParameters & Parameters, coretools::TRandomGenerator* randomGenerator);
-	void writeAlleleFrequencyLikelihoods(coretools::TParameters & Parameters, coretools::TRandomGenerator* randomGenerator);
+	TAlleleFreqEstimator();
+	void estimateAlleleFreq();
+	void compareAlleleFreq();
+	void writeAlleleFrequencyLikelihoods();
 };
 
 //--------------------------------------
@@ -159,8 +153,8 @@ public:
 
 	void run(){
 		using namespace coretools::instances;
-		TAlleleFreqEstimator alleleFreqEstimator(parameters(), &logfile());
-		alleleFreqEstimator.estimateAlleleFreq(parameters(), &randomGenerator());
+		TAlleleFreqEstimator alleleFreqEstimator;
+		alleleFreqEstimator.estimateAlleleFreq();
 	};
 };
 
@@ -171,8 +165,8 @@ public:
 	void run(){
 		using namespace coretools::instances;
 		using namespace coretools::instances;
-		TAlleleFreqEstimator alleleFreqEstimator(parameters(), &logfile());
-		alleleFreqEstimator.compareAlleleFreq(parameters(), &randomGenerator());
+		TAlleleFreqEstimator alleleFreqEstimator;
+		alleleFreqEstimator.compareAlleleFreq();
 	};
 };
 
@@ -182,8 +176,8 @@ public:
 
 	void run(){
 		using namespace coretools::instances;
-		TAlleleFreqEstimator alleleFreqEstimator(parameters(), &logfile());
-		alleleFreqEstimator.writeAlleleFrequencyLikelihoods(parameters(), &randomGenerator());
+		TAlleleFreqEstimator alleleFreqEstimator;
+		alleleFreqEstimator.writeAlleleFrequencyLikelihoods();
 	};
 };
 

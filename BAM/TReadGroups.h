@@ -14,8 +14,6 @@
 #include <string>
 #include <vector>
 
-namespace coretools { class TLog; }
-
 namespace BAM{
 
 //---------------------------------------------------------------
@@ -29,7 +27,7 @@ public:
 	std::string truncatedOrMergedReadGroup;
 	int sequencingType; //0 = single, 1 = mixed, 2 = paired
 
-	TReadGroupMaxLength(int MaxLen, int TruncatedOrMergedReadGroupID, std::string & TruncatedOrMergedReadGroup, int Type){
+	TReadGroupMaxLength(int MaxLen, int TruncatedOrMergedReadGroupID, std::string_view TruncatedOrMergedReadGroup, int Type){
 		maxLen = MaxLen;
 		truncatedOrMergedReadGroupID = TruncatedOrMergedReadGroupID;
 		truncatedOrMergedReadGroup = TruncatedOrMergedReadGroup;
@@ -64,7 +62,7 @@ public:
     mutable bool inUse; 						//read groups not in use are ignored when reading
     mutable bool writeToHeader;                 //is false if read group is not in use or replaced by new one
 
-    TReadGroup(const uint16_t ID, const std::string Name);
+    TReadGroup(const uint16_t ID, std::string_view Name);
     TReadGroup(const TReadGroup & other) = default;
     TReadGroup* getPointer(){ return this; };
     std::string compileSamHeader() const;
@@ -74,10 +72,10 @@ public:
     void setId(const uint16_t id){ _id = id; };
 
     bool operator<(const TReadGroup & right) const;
-    bool operator<(const std::string & right) const;
+    bool operator<(std::string_view right) const;
 };
 
-bool operator<(const std::string & left, const TReadGroup & right);
+bool operator<(std::string_view left, const TReadGroup & right);
 
 //---------------------------------------------------------------
 //TReadGroups
@@ -100,19 +98,19 @@ public:
 	TReadGroups& operator=(const TReadGroups && other);
 
 	void clear();
-	const TReadGroup& add(const std::string name);
-	const TReadGroup& addAlternativeRG(const std::string Name, const std::string original);
+	const TReadGroup& add(std::string_view name);
+	const TReadGroup& addAlternativeRG(std::string_view Name, std::string_view original);
 	uint16_t size() const;
 	bool empty() const;
 
-	uint16_t getId(const std::string & name) const;
+	uint16_t getId(std::string_view name) const;
 	const std::string& getName (uint16_t readGroupId) const;
 	std::vector<std::string> getNames(std::vector<uint16_t> & readGroupIds) const;
-	const TReadGroup& getReadGroup(const std::string & name);
+	const TReadGroup& getReadGroup(std::string_view name);
 	const TReadGroup& operator[](uint16_t readGroupId) const;
-	bool readGroupExists(const std::string & name) const;
+	bool readGroupExists(std::string_view name) const;
 	bool readGroupInUse(uint16_t readGroupId) const;
-	bool readGroupInUse(const std::string name) const;
+	bool readGroupInUse(std::string_view name) const;
 
 	//looping over
 	std::set<TReadGroup, std::less<>>::iterator begin(){ return _readGroups.begin(); };
@@ -120,10 +118,10 @@ public:
 	std::set<TReadGroup, std::less<>>::iterator cbegin() const{ return _readGroups.cbegin(); };
 	std::set<TReadGroup, std::less<>>::iterator cend() const{ return _readGroups.cend(); };
 
-	void filterReadGroups(std::string readGroupList);
-	void removeFromHeader(const std::string name);
+	void filterReadGroups(std::string_view readGroupList);
+	void removeFromHeader(std::string_view name);
 	void removeFromHeader(const uint16_t readGroupId);
-	void printReadgroupsInUse(coretools::TLog* logfile) const;
+	void printReadgroupsInUse() const;
 	void fillVectorWithNames(std::vector<std::string> & vec) const;
 	std::string compileSamHeader() const;
 };
@@ -142,11 +140,11 @@ private:
 	void _resize(const TReadGroups & ReadGroups);
 	void _markAsInUse(uint16_t index);
 	void _fillWithoutPooling(const TReadGroups & ReadGroups);
-	void _fillFromFile(const TReadGroups & ReadGroups, const std::string & filename, coretools::TLog* logfile);
+	void _fillFromFile(const TReadGroups & ReadGroups, std::string_view filename);
 
 public:
 	TReadGroupMap(const TReadGroups & ReadGroups);
-	TReadGroupMap(const TReadGroups & ReadGroups, const std::string filename, coretools::TLog* logfile);
+	TReadGroupMap(const TReadGroups & ReadGroups, std::string_view filename);
 
 	~TReadGroupMap() = default;
 

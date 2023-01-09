@@ -72,7 +72,7 @@ void TBamFile::setLimits(){
 	if(parameters().parameterExists("readGroup")){
 		_readGroups.filterReadGroups(parameters().getParameter<std::string>("readGroup"));
 		logfile().startIndent("Will limit analysis to the following read groups:");
-		_readGroups.printReadgroupsInUse(&logfile());
+		_readGroups.printReadgroupsInUse();
 		logfile().endIndent();
 		_readGroupFilter.filter("Read group not in use");
 	} else {
@@ -342,7 +342,7 @@ void TBamFile::_fillSamHeader(TSamHeader & SamHeader){
 
 void TBamFile::_fillChromosomes(genometools::TChromosomes & Chromosomes){
 	if(_bamHeader.Sequences.Size() < 1){
-		throw "No chromosomes present in BAM header!";
+		UERROR("No chromosomes present in BAM header!");
 	}
 
 	//make sure object is empty
@@ -442,8 +442,8 @@ void TBamFile::_applyFilters(){
 	//read length is special as it affects our storage
 	if(!_mappedLengthFilter.pass(_curCigar.lengthMapped(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID)){
 		if(!_allowTooLongReads){
-			throw "The mapping length of alignment '" +  _curBamAlignment.Name + "' is beyond the range " + _mappedLengthFilter.rangeString() + "!\n"
-			     + "You see this error because " + coretools::__GLOBAL_APPLICATION_NAME__ + " was run with default mapping length filters. Either set your filters using 'filterMappingLength' or add 'allowTooLongReads' to ignore this error.";
+			UERROR("The mapping length of alignment '",  _curBamAlignment.Name, "' is beyond the range ", _mappedLengthFilter.rangeString(), "!\n",
+				   "You see this error because ", coretools::__GLOBAL_APPLICATION_NAME__, " was run with default mapping length filters. Either set your filters using 'filterMappingLength' or add 'allowTooLongReads' to ignore this error.");
 		} else {
 			_QCFiltersPassed = false;
 		}
@@ -508,9 +508,9 @@ bool TBamFile::readNextAlignment(){
 			if(_curChromosome == _chromosomes.end()){
 				//is chromosome not in header?
 				if(!_chromosomes.exists(_curBamAlignment.RefID)){
-					throw "Chromosome with refID " + coretools::str::toString(_curBamAlignment.RefID) + " is missing from BAM header!";
+					UERROR("Chromosome with refID ", _curBamAlignment.RefID, " is missing from BAM header!");
 				} else {
-					throw "BAM file not sorted!";
+					UERROR("BAM file not sorted!");
 				}
 			}
 		}
@@ -543,7 +543,7 @@ bool TBamFile::readNextAlignment(){
 
 	//check if BAM file is sorted
 	if(_curAlignmentPosition < _previousAlignmentPosition){
-		throw "BAM file must be sorted by position! Alignment '" + _curBamAlignment.Name + "' is at position " + std::to_string(_curBamAlignment.Position) + ", which is before the position of the previous alignment (" + std::to_string(_previousAlignmentPosition.position()) + ")";
+		UERROR("BAM file must be sorted by position! Alignment '", _curBamAlignment.Name, "' is at position ", _curBamAlignment.Position, ", which is before the position of the previous alignment (", _previousAlignmentPosition.position(), ")");
 	}
 
 	//store current read group ID
@@ -656,7 +656,7 @@ void TBamFile::_openForWriting(BamTools::BamWriter & bamWriter, const std::strin
 
 	//open file for writing
 	if(!bamWriter.Open(filename, _bamHeader, references))
-		throw "Failed to open BAM file '" + filename + "'!";
+		UERROR("Failed to open BAM file '", filename, "'!");
 };
 
 void TBamFile::writeCurAlignment(TOutputBamFile & out){
@@ -843,7 +843,7 @@ void TBamFile::printSummary(std::string &outputName){
 
 void TBamFile::startProgressReporting(uint32_t Frequency){
 	if(!_open){
-		throw "Can not start progress reporting of BAM file: BAM file not open!";
+		UERROR("Can not start progress reporting of BAM file: BAM file not open!");
 	}
 
 	_progressFrequency = Frequency;
@@ -996,7 +996,7 @@ void TOutputBamFile::open(const std::string Filename, const TSamHeader & Header,
 
 	//open file for writing
 	if(!_bamWriter.Open(_outputFilename, header, ref)){
-		throw "Failed to open BAM file '" + _outputFilename + "'!";
+		UERROR("Failed to open BAM file '", _outputFilename, "'!");
 	}
 
 	_openForWriting = true;
@@ -1030,7 +1030,7 @@ void TOutputBamFile::close(){
 		// create index of BAM file
 		BamTools::BamReader reader;
 		if(!reader.Open(_outputFilename))
-            throw "Failed to open BAM file '" + _outputFilename + "' for indexing!";
+            UERROR("Failed to open BAM file '", _outputFilename, "' for indexing!");
 		reader.CreateIndex(BamTools::BamIndex::STANDARD);
 
         //close BAM file
@@ -1049,7 +1049,7 @@ void TOutputBamFile::closeNoIndex(){
 
 void TOutputBamFile::_writeAlignment(BamTools::BamAlignment & alignment){
 	if(!_openForWriting){
-		throw "BAM writer is not open!";
+		UERROR("BAM writer is not open!");
 	}
 
 	//adjust qualities for printing
@@ -1057,12 +1057,12 @@ void TOutputBamFile::_writeAlignment(BamTools::BamAlignment & alignment){
 
 	// write alignment
 	if(!_bamWriter.SaveAlignment(alignment))
-		throw "Read '" + alignment.Name + "' could not be written!";
+		UERROR("Read '", alignment.Name, "' could not be written!");
 };
 
 void TOutputBamFile::_writeAlignment(const TAlignment & alignment){
 	if(!_openForWriting){
-		throw "BAM writer is not open!";
+		UERROR("BAM writer is not open!");
 	}
 	//create bamAlignment and then write
 	BamTools::BamAlignment _tmpBamAlignment;
@@ -1093,7 +1093,7 @@ void TOutputBamFile::_writeAlignment(const TAlignment & alignment){
 
 	//and now write
 	if(!_bamWriter.SaveAlignment(_tmpBamAlignment)){
-		throw "Read '" + _tmpBamAlignment.Name + "' could not be written!";
+		UERROR("Read '", _tmpBamAlignment.Name, "' could not be written!");
 	}
 };
 

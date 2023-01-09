@@ -190,7 +190,7 @@ public:
 				logfile().list("Probability of PMD will be reflected in new quality scores. (parameter 'incorporatePMD')");
 				_incorporatePMD = true;
 				if(!_genotypeLikelihoodCalculator.hasPMD()){
-					throw "No PMD probabilities provided! Provide PMD probabilities or remove parameter 'incorporatePMD'.";
+					UERROR("No PMD probabilities provided! Provide PMD probabilities or remove parameter 'incorporatePMD'.");
 				}
 			} else {
 				_incorporatePMD = false;
@@ -275,7 +275,7 @@ public:
 								}
 							} else {
 								if(alignment->readGroupId() != mate->alignment().readGroupId()){
-									throw "Mates '" + alignment->name() + "' are in different read groups!";
+									UERROR("Mates '", alignment->name(), "' are in different read groups!");
 								}
 								//mate found
 								_handleMates(*alignment, mate);

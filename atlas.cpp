@@ -188,9 +188,9 @@ class TTask_splitRGbyLength:public TTask_atlas{ -> splitmerger
 public:
 	TTask_splitRGbyLength(){ _explanation = "Splitting single end read groups in a BAM file"; };
 
-	void run(TParameters & parameters, TLog* logfile){
-		TGenomeWindows genome(logfile, parameters, _randomGenerator);
-		genome.splitSingleEndReadGroups(parameters);
+	void run(){
+		TGenomeWindows genome;
+		genome.splitSingleEndReadGroups();
 	};
 };
 
@@ -198,9 +198,9 @@ class TTask_mateInfo:public TTask_atlas{ -> pileup
 public:
 	TTask_mateInfo(){ _explanation = "Writing read information per site"; };
 
-	void run(TParameters & parameters, TLog* logfile){
-		TGenomeWindows genome(logfile, parameters, _randomGenerator);
-		genome.printMateInformationPerSite(parameters);
+	void run(){
+		TGenomeWindows genome;
+		genome.printMateInformationPerSite();
 	};
 };
 
@@ -208,9 +208,9 @@ class TTask_writeDepthPerSite:public TTask_atlas{ -> pileup
 public:
 	TTask_writeDepthPerSite(){ _explanation = "Writing sequencing depth for each site"; };
 
-	void run(TParameters & parameters, TLog* logfile){
-		TGenomeWindows genome(logfile, parameters, _randomGenerator);
-		genome.writeDepthPerSite(parameters);
+	void run(){
+		TGenomeWindows genome;
+		genome.writeDepthPerSite();
 	};
 };
 
@@ -222,9 +222,9 @@ public:
 		_citations.push_back("Hofmanova et al. (2016) PNAS");
 	};
 
-	void run(TParameters & parameters, TLog* logfile){
-		TGenomeWindows genome(logfile, parameters, _randomGenerator);
-		genome.BQSR(parameters);
+	void run(){
+		TGenomeWindows genome;
+		genome.BQSR();
 	};
 };
 
@@ -232,9 +232,9 @@ class TTask_binQualityScores:public TTask_atlas{ -> a feature of all BAM writing
 public:
 	TTask_binQualityScores(){ _explanation = "Binning quality scores"; };
 
-	void run(TParameters & parameters, TLog* logfile){
-		TGenomeWindows genome(logfile, parameters, _randomGenerator);
-		genome.binQualityScores(parameters);
+	void run(){
+		TGenomeWindows genome;
+		genome.binQualityScores();
 	};
 };
 
@@ -243,9 +243,9 @@ class TTask_recalBAM:public TTask_atlas{ -> feature of all BAM writing functions
 public:
 	TTask_recalBAM(){ _explanation = "Recalibrating quality scores in a BAM file"; };
 
-	void run(TParameters & parameters, TLog* logfile){
-		TGenomeWindows genome(logfile, parameters, _randomGenerator);
-		genome.recalibrateBamFile(parameters);
+	void run(){
+		TGenomeWindows genome;
+		genome.recalibrateBamFile();
 	};
 };
 
@@ -253,7 +253,7 @@ class TTask_testBED:public TTask_atlas{ ->should be a proper integration test
 public:
 	TTask_testBED(){ _explanation = "Testing BED files"; };
 
-	void run(TParameters & parameters, TLog* logfile){
+	void run(){
 		TBed bed;
 		bed.test();
 	};

@@ -131,7 +131,7 @@ TEMforDistanceEstimation::TEMforDistanceEstimation(){
 		parameters().fillParameterIntoContainer("distWeights", tmp, ',');
 		coretools::str::repeatIndexes(tmp, vec);
 		if(vec.size() != 9)
-			throw "Wrong number of distance weights! Required are nine values for 00/00, 00/01, 01/00, 00/11, 01/01, 01/02, 00/12, 01/22, 01/23";
+			UERROR("Wrong number of distance weights! Required are nine values for 00/00, 00/01, 01/00, 00/11, 01/01, 01/02, 00/12, 01/22, 01/23");
 
 		distanceObject = new TDistanceUser(vec);
 
@@ -145,7 +145,7 @@ TEMforDistanceEstimation::TEMforDistanceEstimation(){
 		} else if(distType == "euclidian"){
 			distanceObject = new TDistanceEuclidian();
 		} else
-			throw "Unknown distance type '" + distType + "'! Use probMismatch.";
+			UERROR("Unknown distance type '", distType, "'! Use probMismatch.");
 	}
 	logfile().conclude("Using distance weights " + coretools::str::concatenateString(distanceObject->weights(), ", ") + ".");
 
@@ -155,7 +155,7 @@ void TEMforDistanceEstimation::guessPi(GenotypeQualityVector & genoQual1, Genoty
 	//check sizes are equal
 	using coretools::index;
 	if(genoQual1.size() != genoQual2.size())
-		throw "Provided genotype quality vectors are of different size in TEMforDistanceEstimation::guessPi!";
+		UERROR("Provided genotype quality vectors are of different size in TEMforDistanceEstimation::guessPi!");
 
 	//just estimate pi as average posterior probability
 	pi.fill(0.0);
@@ -188,7 +188,7 @@ void TEMforDistanceEstimation::guessPhi(GenotypeQualityVector & genoQual1, Genot
 	using coretools::index;
 	//check sizes are equal
 	if(genoQual1.size() != genoQual2.size())
-		throw "Provided genotype quality vectors are of different size in TEMforDistanceEstimation::guessPhi!";
+		UERROR("Provided genotype quality vectors are of different size in TEMforDistanceEstimation::guessPhi!");
 
 	//set to zero
 	phi.fill(0.0);
@@ -500,7 +500,7 @@ bool TEMforDistanceEstimation::estimatePhiWithEM(GenotypeQualityVector & genoQua
 
 		//check if EM converged
 		logfile().done();
-		//throw "done!";
+		//UERROR("done!";
 		if(iter > 0 ){
 			LL_diff = LL - old_LL;
 			logfile().conclude("LL = ", LL, " (deltaLL = ", LL_diff, ").");
@@ -550,7 +550,7 @@ void TDistanceEstimator::openGLF(){
 	parameters().fillParameterIntoContainer("glf", GLFNames, ',');
 	numGLFs = GLFNames.size();
 	if(numGLFs < 2)
-		throw "At least two GLF files have to be provided to estimate distances!";
+		UERROR("At least two GLF files have to be provided to estimate distances!");
 
 	//open files
 	glfs = new GLF::TGlfReader[numGLFs];
@@ -608,7 +608,7 @@ void TDistanceEstimator::estimateDistanceGenomeWide(TEMforDistanceEstimation & E
 	std::string filename = outputName + "_distanceEstimates.txt.gz";
 	gz::ogzstream out(filename.c_str());
 	if(!out)
-		throw "Failed to open output file '" + filename + "'!";
+		UERROR("Failed to open output file '", filename, "'!");
 
 	//write header to output file
 	out << "individual1\tindividual2\tnumSitesWithData\tfreqA\tfreqC\tfreqG\tfreqT\tfreq00_00\tfreq00_01\tfreq01_00\tfreq00_11\tfreq01_01\tfreq01_02\tfreq00_12\tfreq01_22\tfreq01_23\tgeneticDist\n";
@@ -644,7 +644,7 @@ void TDistanceEstimator::estimateDistanceGenomeWide(TEMforDistanceEstimation & E
 	filename = outputName + "_distanceMatrix.txt";
 	std::ofstream distMatrixFile(filename.c_str());
 	if(!distMatrixFile)
-		throw "Failed to open output file '" + filename + "'!";
+		UERROR("Failed to open output file '", filename, "'!");
 
 	//write header to matrix file
 	distMatrixFile << "/";
@@ -676,10 +676,10 @@ bool TDistanceEstimator::moveToNextCommonChr(GLF::TGlfReader & g1, GLF::TGlfRead
 
 	//check names
 	if(g1.chr() != g2.chr()){
-		throw "Chromosome names differ in files " + g1.name() + "' and '" + g2.name() + "': '" + g1.chr() + "' != '" + g2.chr() + "'!";
+		UERROR("Chromosome names differ in files ", g1.name(), "' and '", g2.name(), "': '", g1.chr(), "' != '", g2.chr() + "'!");
 	}
 	if(g1.chrLength() != g2.chrLength()){
-		throw coretools::str::toString("Chromosome lengths differ in files " + g1.name() + "' and '" + g2.name() + "': '",  g1.chrLength(), "' != '", g2.chrLength(), "'!");
+		UERROR("Chromosome lengths differ in files ", g1.name(), "' and '", g2.name(), "': '", g1.chrLength(), "' != '", g2.chrLength(), "'!");
 	}
 
 	return true;
@@ -752,7 +752,7 @@ void TDistanceEstimator::estimateDistanceInWindows(TEMforDistanceEstimation & EM
 	using namespace coretools::instances;
 	logfile().list("Will estimate genetic distance in windows of length ", windowLen, ".");
 	if(windowLen < 100)
-		throw "Window size must be at least 100bp!";
+		UERROR("Window size must be at least 100bp!");
 
 	//loop over all pairs
 	for(int g1=0; g1<(numGLFs-1); ++g1){
@@ -789,7 +789,7 @@ void TDistanceEstimator::estimateDistanceInWindows(TEMforDistanceEstimation & EM
 
 	//open output file
 	gz::ogzstream out(filename.c_str());
-	if(!out) throw "Failed to open file '" + filename + "' for writing!";
+	if(!out) UERROR("Failed to open file '", filename, "' for writing!");
 
 	//write header to output file
 	out << "chr\twindowStart\twindowEnd\tnumSitesWithData\tfreqA\tfreqC\tfreqG\tfreqT\tfreq00_00\tfreq00_01\tfreq01_00\tfreq00_11\tfreq01_01\tfreq01_02\tfreq00_12\tfreq01_22\tfreq01_23\tgeneticDist\n";

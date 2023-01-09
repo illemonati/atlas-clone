@@ -95,7 +95,7 @@ void TModelVectorForEstimation::reset(TModels &SequencingErrorModels,
 	modelStati.report(MS::copied, "Read groups for which models will be estimated:", ReadGroups);
 	modelStati.report(MS::noData, "Read groups excluded because they have no data:", ReadGroups);
 	modelStati.report(MS::dataButNoRecal, "Read groups with data but no recal model:", ReadGroups);
-	if (modelStati.num(MS::copied) == 0) { throw "No recal models need estimation!"; }
+	if (modelStati.num(MS::copied) == 0) { UERROR("No recal models need estimation!"); }
 	modelStati.report(MS::littleData, "Read groups with very little data (consider pooling):", ReadGroups);
 };
 
@@ -213,7 +213,7 @@ TRecalibrationEMEstimator::TRecalibrationEMEstimator(const BAM::TReadGroups *Rea
 		logfile().list("Will estimate the base frequencies. (parameter ''estimateBaseFrequencies)");
 
 		// TODO: implement estimation of genotype distribution!
-		throw std::runtime_error("Estimation of genotype distribution not yet implemented!");
+		DEVERROR("Estimation of genotype distribution not yet implemented!");
 	} else if (equalBaseFrequencies) {
 		logfile().list("Will assume equal base frequencies {0.25, 0.25, 0.25, 0.25}. (use 'estimateBaseFrequencies' to "
 					   "estimate them)");
@@ -256,7 +256,7 @@ void TRecalibrationEMEstimator::_initializeModels(SequencingError::TModels &Sequ
 	size_t numSitesDepthTwoOrMore = _numSitesDepthTwoOrMore();
 	logfile().conclude("Number of sites with depth > 1: ", numSitesDepthTwoOrMore);
 	logfile().conclude("Number of bases: ", _dataTables.size());
-	if (numSitesDepthTwoOrMore < 100) throw "Less than 100 sites with depth >= 2 available - aborting estimation!";
+	if (numSitesDepthTwoOrMore < 100) UERROR("Less than 100 sites with depth >= 2 available - aborting estimation!");
 
 	// identify models with data that can be estimated
 	logfile().startIndent("Identifying models to estimate:");

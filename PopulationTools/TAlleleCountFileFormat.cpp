@@ -31,7 +31,7 @@ TAlleleCountFile::TAlleleCountFile(std::string Filename){
 void TAlleleCountFile::openFileToWrite(std::string filename){
 	outFile.open(filename.c_str());;
 	if(!outFile)
-		throw "Failed to open file '" + filename + "' for writing!";
+		UERROR("Failed to open file '", filename, "' for writing!");
 };
 
 void TAlleleCountFile::writeHeader(genometools::TPopulationSamples & samples){

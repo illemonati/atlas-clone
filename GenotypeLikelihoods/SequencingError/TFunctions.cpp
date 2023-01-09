@@ -188,7 +188,7 @@ public:
 
 		for (auto &fn : _functions) {
 			if (!fn->checkOrInitValueRange(DataTable, numParameters)) {
-				throw "Function " + fn->typeString() + " does not cover full range of data";
+				UERROR("Function ", fn->typeString(), " does not cover full range of data");
 			}
 			numParameters += fn->numParameters();
 		}

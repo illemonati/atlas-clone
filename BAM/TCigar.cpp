@@ -108,7 +108,7 @@ void TCigar::clear() {
 };
 
 void TCigar::add(char Type, uint32_t Length) {
-	if (_lengthSoftClippedRight) { throw "Cigar string contains entries past soft clipping on right!"; }
+	if (_lengthSoftClippedRight) { UERROR("Cigar string contains entries past soft clipping on right!"); }
 	if (Type == 'M' || Type == '=' || Type == 'X') {
 		_lengthAligned += Length;
 	} else if (Type == 'I') {
@@ -124,7 +124,7 @@ void TCigar::add(char Type, uint32_t Length) {
 	} else if (Type == 'N') {
 		_lengthSkipped += Length;
 	} else if (Type != 'H' && Type != 'P') {
-		throw std::string("Unknown CIGAR operation '") + Type + "'!";
+		UERROR("Unknown CIGAR operation '", Type, "'!");
 	}
 
 	// add to vector

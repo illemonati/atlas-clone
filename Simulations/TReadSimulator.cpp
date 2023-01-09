@@ -181,8 +181,8 @@ void TReadSimulator::setContamination(double rate, TSimulatorReference *source) 
 	_contaminationSource = source;
 
 	// check
-	if (_contaminationRate < 0.0) throw "Contamination rate must be >= 0.0!";
-	if (_contaminationRate > 1.0) throw "Contamination rate must be <= 0.0!";
+	if (_contaminationRate < 0.0) UERROR("Contamination rate must be >= 0.0!");
+	if (_contaminationRate > 1.0) UERROR("Contamination rate must be <= 0.0!");
 }
 
 //----------------------------------

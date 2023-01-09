@@ -18,6 +18,7 @@
 #include <stdexcept>
 #include <type_traits>
 
+#include "coretools/Main/TError.h"
 #include "genometools/GenotypeTypes.h"
 #include "genometools/PhredProbabilityTypes.h"
 #include "genometools/GenomePositions/TChromosomes.h"
@@ -72,7 +73,7 @@ std::unique_ptr<THaplotypeSimulator> makeHaploSimulator(const std::string &metho
 		logfile().startIndent("Simulating individuals under Hardy-Weinberg (parameter 'type' = '", method, "')");
 		return std::make_unique<TSimulatorHW>();
 	}
-	throw "Unknown simulation method '" + method + "'! Use '" + TSimulatorOne::name + "', '" + TSimulatorPair::name + "', '" + TSimulatorSFS::name + "' or '" + TSimulatorHW::name + "'";
+	UERROR("Unknown simulation method '", method, "'! Use '", TSimulatorOne::name, "', '", TSimulatorPair::name, "', '", TSimulatorSFS::name, "' or '", TSimulatorHW::name, "'");
 	logfile().endIndent();
 }
 
@@ -84,7 +85,7 @@ std::vector<T> parse(const std::string & Argument, const std::string & Explanati
 		parameters().fillParameterIntoContainer(Argument, string_vec, ',');
 
 		coretools::str::repeatIndexes(string_vec, res);
-		if(res.empty()) throw "Issue understanding " + Explanation + " '" + coretools::str::concatenateString(string_vec, ",") + "' (parameter '" + Argument + "')!";
+		if(res.empty()) UERROR("Issue understanding ", Explanation, " '", coretools::str::concatenateString(string_vec, ","), "' (parameter '" + Argument + "')!");
 
 		if(res.size() == 1){
 			logfile().list("Will use ", Explanation, " of ", res[0], ". (parameter '", Argument, "')");
@@ -105,7 +106,7 @@ void checkLength(Vec & vec, size_t numChr){
 		if(vec.size() == 1){
 			vec.resize(numChr, vec.front());
 		} else {
-			throw "Number of chromosomes implied by chrLength, ploidy and depth does not match!";
+			UERROR("Number of chromosomes implied by chrLength, ploidy and depth does not match!");
 		}
 	}
 }
@@ -123,7 +124,7 @@ void makeChromosomes(TChromosomes & chs, std::vector<uint32_t> & depths){
 
 	//check if ploidy is supported
 	for (auto &p : ploidies) {
-		if (p != 1 && p != 2) { throw "Currently only ploidy 1 (haploid) or 2 (diploid) is supported!"; }
+		if (p != 1 && p != 2) { UERROR("Currently only ploidy 1 (haploid) or 2 (diploid) is supported!"); }
 	}
 
 	//check length
@@ -296,7 +297,7 @@ void TBAMSimulator::_initializeReadSimulator(){
 	for(auto& chr : _chromosomes){
 		for(auto& rs : _readSimulators){
 			if(rs.maxFragmentLength() > chr.length){
-				throw "Length of chromosome '" + chr.name + "' is less than the max fragment length of some read groups!";
+				UERROR("Length of chromosome '", chr.name, "' is less than the max fragment length of some read groups!");
 			}
 		}
 	}
@@ -458,9 +459,10 @@ auto calculateVariantQuality(const GLF::TMultiGLFDataOneAllelicCombination &Geno
 TVCFSimulator::TVCFSimulator(const std::string &method) : TSimulator(method) {
 	// check if method is compatible with VCF: only allow bi-allelic haplotype simulators
 	if (!_haploSimulator->simulatesBiallelic()) {
-		throw "Can not simulate VCF files with method '" + method +
-		    "': only bi-allelic haplotype simulators are allowed (parameter 'type'). Choose other method or simulate "
-		    "BAM files instead.";
+		UERROR(
+			"Can not simulate VCF files with method '", method,
+			"': only bi-allelic haplotype simulators are allowed (parameter 'type'). Choose other method or simulate "
+			"BAM files instead.");
 	}
 
 	// read simulation parameters
@@ -559,9 +561,8 @@ TVCFSimulator::_findMajorMinorAllele(coretools::TStrongArray<size_t, genometools
 		// quick check if this is valid (should always be true for bi-allelic simulators)
 		for (auto b = genometools::Base::min; b < genometools::Base::max; ++b) {
 			if (b != majorAllele && b != RefAllele && AlleleCounts[b] > AlleleCounts[RefAllele]) {
-				throw std::runtime_error((std::string) __PRETTY_FUNCTION__ + ": reference allele (" +
-				                         toString(RefAllele) + ") is not major (" + toString(majorAllele) +
-				                         ") nor minor (" + toString(AlleleCounts[b]) + ") allele!");
+				DEVERROR(": reference allele (", RefAllele, ") is not major (", majorAllele, ") nor minor (",
+						 AlleleCounts[b], ") allele!");
 			}
 		}
 		return std::make_pair(majorAllele, RefAllele);
@@ -600,9 +601,8 @@ void TVCFSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome
 		// quick check if ref allele is either major or minor allele. Should always be true if _findMajorMinorAllele is
 		// working
 		if (refAllele != majorAllele && refAllele != minorAllele) {
-			throw std::runtime_error((std::string) __PRETTY_FUNCTION__ + ": Locus " + toString(l) +
-			                         ": reference allele (" + toString(refAllele) + ") is not major (" +
-			                         toString(majorAllele) + ") nor minor (" + toString(minorAllele) + ") allele!");
+			DEVERROR("Locus ", l, ": reference allele (", refAllele, ") is not major (", majorAllele, ") nor minor (",
+					 minorAllele, ") allele!");
 		}
 
 		// calculate variant quality

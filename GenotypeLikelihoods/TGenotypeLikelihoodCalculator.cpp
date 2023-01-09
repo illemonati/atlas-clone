@@ -44,7 +44,7 @@ TGenotypeLikelihoodCalculator::TGenotypeLikelihoodCalculator(const BAM::TReadGro
 					         + coretools::str::concatenateString(ReadGroups->getNames(readGroupsWithoutDef), ", ")
 							 + "!");
 			if(!parameters().parameterExists("allowReadGroupsWithoutPMD")){
-				throw "PMD is only defined for a subset of read groups. Did you use the wrong PMD file? (use allowReadGroupsWithoutPMD to ignore)";
+				UERROR("PMD is only defined for a subset of read groups. Did you use the wrong PMD file? (use allowReadGroupsWithoutPMD to ignore)");
 			}
 		}
 	} else {
@@ -84,7 +84,7 @@ TGenotypeLikelihoodCalculator::TGenotypeLikelihoodCalculator(const BAM::TReadGro
 								 + coretools::str::concatenateString(ReadGroups->getNames(readGroupsWithoutRecal), ", ")
 								 + "!");
 				if(!parameters().parameterExists("allowReadGroupsWithoutRecal")){
-					throw "Recal models are only defined for a subset of read groups. Did you use the wrong recal file? (use allowReadGroupsWithoutRecal to ignore)";
+					UERROR("Recal models are only defined for a subset of read groups. Did you use the wrong recal file? (use allowReadGroupsWithoutRecal to ignore)");
 				}
 			}
 

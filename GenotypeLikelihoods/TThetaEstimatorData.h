@@ -14,6 +14,7 @@
 #include <zlib.h>
 
 #include "TGenotypeData.h"
+#include "coretools/Files/gzstream.h"
 
 namespace GenotypeLikelihoods {
 class TSite;
@@ -21,10 +22,6 @@ class TSite;
 namespace coretools {
 class TOutputFile;
 }
-namespace coretools {
-class TRandomGenerator;
-}
-#include "coretools/Files/gzstream.h"
 
 namespace GenotypeLikelihoods {
 
@@ -86,12 +83,12 @@ protected:
 	double sum;
 
 	virtual void saveSite(const GenotypeLikelihoods::TGenotypeLikelihoods &) {
-		throw "Not available in TThetaEstimatorData base class!";
+		DEVERROR("Not available in TThetaEstimatorData base class!");
 	};
 	virtual void emptyStorage(){};
 	void fillPoissonForBootstrap(const double lambda);
-	virtual void _begin() { throw "Not available in TThetaEstimatorData base class!"; };
-	virtual void readNext() { throw "Not available in TThetaEstimatorData base class!"; };
+	virtual void _begin() { DEVERROR("Not available in TThetaEstimatorData base class!"); };
+	virtual void readNext() { DEVERROR("Not available in TThetaEstimatorData base class!"); };
 
 public:
 	TThetaEstimatorData();
@@ -105,14 +102,14 @@ public:
 	void add(const GenotypeLikelihoods::TSite &site, const GenotypeLikelihoods::TGenotypeLikelihoods &genoLik);
 	void clear();
 
-	void bootstrap(coretools::TRandomGenerator &randomGenerator);
+	void bootstrap();
 	void clearBootstrap();
 
 	virtual bool begin();
 	virtual bool next();
-	virtual bool isEnd() { throw "Not available in TThetaEstimatorData base class!"; };
+	virtual bool isEnd() { DEVERROR("Not available in TThetaEstimatorData base class!"); };
 	virtual GenotypeLikelihoods::TGenotypeLikelihoods &curGenotypeLikelihoods() {
-		throw "Not available in TThetaEstimatorData base class!";
+		DEVERROR("Not available in TThetaEstimatorData base class!");
 	};
 
 	long size() { return totNumSitesAdded; };

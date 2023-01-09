@@ -423,7 +423,7 @@ void TAlleleCountEstimator::writeAlleleFrequencyLikelihoods() {
 	std::string filename = outname + "_alleleFrequencyLikelihoods.txt.gz";
 	logfile().list("Will write estimated allele counts to file '" + outname + "'.");
 	gz::ogzstream alleleFrequencyLikelihoodFile(filename.c_str());
-	if (!alleleFrequencyLikelihoodFile) throw "Failed to open file '" + filename + "' for writing!";
+	if (!alleleFrequencyLikelihoodFile) UERROR("Failed to open file '", filename, "' for writing!");
 
 	// write header
 	bool useLocusName = parameters().parameterExists("useLocusName");
@@ -489,7 +489,7 @@ TAlleleCountFile *TAlleleCountEstimator::prepareOutputFile(const std::string & t
 		filePrefix      = filePrefix + "_flink_alleleCounts.txt.gz";
 		alleleCountFile = new TFlinkFile(filePrefix);
 	} else
-		throw "Unknown output file type '" + type + "'!";
+		UERROR("Unknown output file type '", type, "'!");
 
 	logfile().list("Will write estimated allele counts to file '" + filePrefix + "'.");
 	alleleCountFile->openFileToWrite(filePrefix);
@@ -507,13 +507,13 @@ void TAlleleCountEstimator::transformFormat() {
 	std::string tmp            = coretools::str::extractBeforeLast(countsFileName, "_alleleCounts.txt.gz");
 	std::string outname        = parameters().getParameterWithDefault<std::string>("out", tmp);
 	std::string type           = parameters().getParameterWithDefault<std::string>("outFormat", "default");
-	if (type == "default") { throw "Cannot transform alleleCounts file to original format!"; }
-	if (type == "withAlleles") { throw "Cannot transform to 'withAlleles' format from original format!"; }
+	if (type == "default") { UERROR("Cannot transform alleleCounts file to original format!"); }
+	if (type == "withAlleles") { UERROR("Cannot transform to 'withAlleles' format from original format!"); }
 
 	// open input file
 	std::string origFileName = tmp + "_alleleCounts.txt.gz";
 	gz::igzstream file(origFileName.c_str());
-	if (!file) throw "Failed to open file '" + origFileName + " for reading!";
+	if (!file) UERROR("Failed to open file '", origFileName, " for reading!");
 
 	// read header
 	std::string line;

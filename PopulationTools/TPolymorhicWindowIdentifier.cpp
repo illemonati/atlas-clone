@@ -13,38 +13,35 @@
 #include <ostream>
 #include <vector>
 
+#include "coretools/Files/TOutputFile.h"
+#include "coretools/Main/TLog.h"
+#include "coretools/Main/TParameters.h"
+#include "coretools/Strings/stringFunctions.h"
+#include "coretools/Types/strongTypes.h"
 #include "genometools/GenotypeTypes.h"
 #include "genometools/PhredProbabilityTypes.h"
-#include "coretools/Files/TOutputFile.h"
+#include "genometools/TSampleLikelihoods.h"
 #include "genometools/VCF/TPopulation.h"
 #include "genometools/VCF/TPopulationLikelihoodLocus.h"
 #include "genometools/VCF/TPopulationLikelihoods.h"
-#include "genometools/TSampleLikelihoods.h"
-#include "coretools/Strings/stringFunctions.h"
-#include "coretools/Types/strongTypes.h"
 
 namespace PopulationTools{
-using coretools::TParameters;
-using coretools::TLog;
-using coretools::TRandomGenerator;
+using coretools::instances::parameters;
+using coretools::instances::logfile;
 
-TPolymorhicWindowIdentifier::TPolymorhicWindowIdentifier(TParameters &, TLog* Logfile){
-	logfile = Logfile;
-};
-
-void TPolymorhicWindowIdentifier::identifyPolymorphicWindows(TParameters & Parameters, TRandomGenerator*){
+void TPolymorhicWindowIdentifier::identifyPolymorphicWindows() {
 	using BG = genometools::BiallelicGenotype;
 	//read samples
 	genometools::TPopulationSamples samples;
-	if(Parameters.parameterExists("samples"))
-		samples.readSamples(Parameters.getParameter<std::string>("samples"));
+	if(parameters().parameterExists("samples"))
+		samples.readSamples(parameters().getParameter<std::string>("samples"));
 
 	//open VCF reader
-	std::string vcfFilename = Parameters.getParameter<std::string>("vcf");
-	logfile->startIndent("Reading genotype likelihoods from VCF file '" + vcfFilename + "':");
+	std::string vcfFilename = parameters().getParameter<std::string>("vcf");
+	logfile().startIndent("Reading genotype likelihoods from VCF file '" + vcfFilename + "':");
     genometools::TPopulationLikelihoodReaderWindow reader(false);
 	reader.openVCF(vcfFilename);
-	logfile->endIndent();
+	logfile().endIndent();
 
 	//Match samples
 	if (samples.hasSamples())
@@ -54,8 +51,8 @@ void TPolymorhicWindowIdentifier::identifyPolymorphicWindows(TParameters & Param
 
 	//output file
 	auto tmp = coretools::str::readBeforeLast(vcfFilename, ".vcf");
-	std::string outputName = Parameters.getParameterWithDefault("out", tmp) + "_polymorphicWindows.txt.gz";
-	logfile->list("Will write polymoprhic state of windows to file '" + outputName + "'.");
+	std::string outputName = parameters().getParameterWithDefault("out", tmp) + "_polymorphicWindows.txt.gz";
+	logfile().list("Will write polymoprhic state of windows to file '" + outputName + "'.");
 	coretools::TOutputFile out(outputName);
 
 	//write header
@@ -68,7 +65,7 @@ void TPolymorhicWindowIdentifier::identifyPolymorphicWindows(TParameters & Param
     genometools::TPopulationLikehoodWindow<TSampleLikelihoods> window(0, samples.numSamples());
 
     //run through VCF file
-    logfile->startIndent("Parsing VCF file:");
+    logfile().startIndent("Parsing VCF file:");
     uint64_t totalWindowsChecked = 0;
     uint64_t totalPolymorphicWindows = 0;
     while(reader.readDataFromVCF(window, samples)){
@@ -108,15 +105,15 @@ void TPolymorhicWindowIdentifier::identifyPolymorphicWindows(TParameters & Param
     }
 
     //report final status
-	logfile->endIndent();
+	logfile().endIndent();
 	reader.concludeFilters();
 	if(reader.numAcceptedLoci() < 1)
-		throw "No usable loci in VCF file '" + vcfFilename + "'!";
+		UERROR("No usable loci in VCF file '", vcfFilename, "'!");
 
 	//print global stats
-	logfile->conclude(totalPolymorphicWindows, " of ", totalWindowsChecked, " windows were found polymoprhic (", 100.0 * (double) totalPolymorphicWindows / (double) totalWindowsChecked, "%).");
+	logfile().conclude(totalPolymorphicWindows, " of ", totalWindowsChecked, " windows were found polymoprhic (", 100.0 * (double) totalPolymorphicWindows / (double) totalWindowsChecked, "%).");
 
-	logfile->endIndent();
+	logfile().endIndent();
 };
 
 }; //end namespace
