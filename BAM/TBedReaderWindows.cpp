@@ -113,7 +113,7 @@ bool TBedReaderChromosome::hasPositionsInWindow(uint32_t windowStart){
 
 std::vector<uint32_t>& TBedReaderChromosome::getPositionInWindow(const uint32_t windowStart){
 	findWindow(windowStart);
-	if(windowIt == windows.end()) throw "TBedReader Error: window '" + toString(windowStart) + "' does not exist!";
+	if(windowIt == windows.end()) UERROR("TBedReader Error: window '", windowStart, "' does not exist!");
 	return windowIt->second->positions;
 };
 
@@ -132,7 +132,7 @@ void TBedReaderWindows::readFile(const genometools::TChromosomes & chromosomeLis
 	std::istream* myStream = NULL;
 	if(filename.find(".gz")) myStream = new gz::igzstream(filename.c_str());
 	else myStream = new std::ifstream(filename.c_str());
-	if(!*myStream) throw "Failed to open BED file '" + filename + "'!";
+	if(!*myStream) UERROR("Failed to open BED file '", filename, "'!");
 
 	//tmp variables
 	long lineNum = 0;
@@ -149,9 +149,9 @@ void TBedReaderWindows::readFile(const genometools::TChromosomes & chromosomeLis
 
 		//skip empty lines
 		if(vec.size() > 0){
-			if(vec.size() < 3) throw "Less than three columns in bed file '" + filename + "' on line " + toString(lineNum) + "!";
-			if(fromString<int>(vec[1]) < 0 || fromString<int>(vec[2]) < 0) throw "Negative value in file '" + filename + "' on line " + toString(lineNum) + "!";
-			if(fromString<int>(vec[2]) <= fromString<int>(vec[1])) throw "Error: End position <= start position ('" + filename + "', line " + toString(lineNum) + ")";
+			if(vec.size() < 3) UERROR("Less than three columns in bed file '", filename, "' on line ", lineNum, + "!");
+			if(fromString<int>(vec[1]) < 0 || fromString<int>(vec[2]) < 0) UERROR("Negative value in file '", filename, "' on line ", lineNum, "!");
+			if(fromString<int>(vec[2]) <= fromString<int>(vec[1])) UERROR("Error: End position <= start position ('", filename, "', line ", lineNum, ")");
 			//get chromosome
 			if(!chromosomeList.exists(vec[0])) logfile().warning("Chromosome '" + vec[0] + "' from BED file is not present in the BAM header!");
 			if(vec[0] != curChr){
@@ -173,9 +173,9 @@ void TBedReaderWindows::readFile(const genometools::TChromosomes & chromosomeLis
 				}
 			} else {
 				if(fromString<uint32_t>(vec[1]) > chromosomeList.getChromosome(vec[0]).chrEnd.position() || fromString<uint32_t>(vec[1]) < chromosomeList.getChromosome(vec[0]).chrStart.position()) 
-					throw "Start position for chromosome " + vec[0] + " in file '" + filename + "' is outside of this chromosome.";
+					UERROR("Start position for chromosome ", vec[0], " in file '", filename, "' is outside of this chromosome.");
 				if(fromString<uint32_t>(vec[2]) > chromosomeList.getChromosome(vec[0]).chrEnd.position() || fromString<uint32_t>(vec[2]) < chromosomeList.getChromosome(vec[0]).chrStart.position()) 
-					throw "End position for chromosome " + vec[0] + " in file '" + filename + "' is outside of this chromosome.";
+					UERROR("End position for chromosome ", vec[0], " in file '", filename, "' is outside of this chromosome.");
 				//add positions
 				chrIt->second->addPosition(vec, numPositionsAdded, siteLimit);
 			}
@@ -220,7 +220,7 @@ bool TBedReaderWindows::hasPositionsInWindow(uint32_t windowStart){
 std::vector<uint32_t>& TBedReaderWindows::getPositionInWindow(uint32_t & windowStart){
 	//find chromosome
 	chrIt = chromosomes.find(curChr);
-	if(chrIt == chromosomes.end()) throw "TBedReader Error: chromosome '" + curChr + "' does not exist!";
+	if(chrIt == chromosomes.end()) UERROR("TBedReader Error: chromosome '", curChr, "' does not exist!");
 	return chrIt->second->getPositionInWindow(windowStart);
 };
 

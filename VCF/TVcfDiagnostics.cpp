@@ -181,8 +181,8 @@ void TVcfDiagnostics::assessAllelicImbalance() {
 				int numRef = coretools::str::fromString<int>(tmp[0]);
 				int numAlt = coretools::str::fromString<int>(tmp[1]);
 				if (numRef == 0 || numAlt == 0)
-					throw "Call at position " + toString(_vcfFile.position()) +
-					    " is heterozygous but reference or alternative allelic depth is 0!";
+					UERROR("Call at position ", _vcfFile.position(),
+						   " is heterozygous but reference or alternative allelic depth is 0!");
 				if (_vcfFile.depthAsIntNoCheckForMissingSample("DP", i) > maxDP) {
 					logfile().warning("DP is " + toString(_vcfFile.depthAsIntNoCheckForMissingSample("DP", i)) +
 					                  " at pos " + toString(_vcfFile.position()) + ". This site will be ignored.");
@@ -229,7 +229,7 @@ void TVcfDiagnostics::fixIntAsFloat() {
 	// open output file
 	std::string filename = _outName + (std::string) "_fixed.vcf.gz";
 	gz::ogzstream out(filename.c_str());
-	if (!out) throw "Failed to open outputfile '" + filename + "'!";
+	if (!out) UERROR("Failed to open outputfile '", filename, "'!");
 	_vcfFile.setOutStream(out);
 	_vcfFile.writeHeaderVCF_4_0();
 

@@ -50,8 +50,8 @@ BAM::TReadGroupMap makeReadGroupMap(const BAM::TReadGroups &ReadGroups) {
 		if (_genotypeLikelihoodCalculator.recalibrationChangesQualities() && !(
 				parameters().parameterExists("rerecalibrate")
 				|| parameters().getParameter("task") == "recal"))
-		throw "Can not estimate recalibration: quality scores are already recalibrated while reading! (Use argument "
-			  "'rerecalibrate' to overwrite this error)";
+			UERROR("Can not estimate recalibration: quality scores are already recalibrated while reading! (Use argument "
+				   "'rerecalibrate' to overwrite this error)");
 
 	// limit to sites with known alleles?
 	if (parameters().parameterExists("alleles")) {

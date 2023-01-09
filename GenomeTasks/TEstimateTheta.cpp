@@ -118,9 +118,9 @@ void TEstimateThetaGenomeWide::_handleWindow() {
 	try {
 		_addSites();
 	} catch (...) {
-		throw "Failed to allocate sufficient memory to store the data for so many sites. Consider limiting the "
+		UERROR("Failed to allocate sufficient memory to store the data for so many sites. Consider limiting the "
 			  "analysis (e.g. parameters 'regions'or 'chr') or limiting to sites with depth >=2 (parameter 'minDepth', "
-			  "recommended).";
+			   "recommended).");
 	}
 };
 
@@ -174,7 +174,7 @@ void TEstimateThetaGenomeWide::estimateThetaGenomeWide() {
 TEstimateThetaLLSurface::TEstimateThetaLLSurface() : TEstimateTheta_base() {
 	_steps = parameters().getParameterWithDefault<int>("steps", 100);
 	logfile().list("Will calculate the LL-surface at ", _steps, " steps. (parameter 'steps')");
-	if (_steps < 2) { throw "Th enumber of steps must be >= 2!"; }
+	if (_steps < 2) { UERROR("Th enumber of steps must be >= 2!"); }
 };
 
 void TEstimateThetaLLSurface::_handleWindow() {
@@ -216,7 +216,7 @@ TEstimateThetaDownsamplingQC::TEstimateThetaDownsamplingQC() : TEstimateTheta_ba
 			if (averageDepth >= it) {
 				downSampleProbVector.push_back(it / averageDepth);
 			} else {
-				throw "Average Depth must be equal or bigger than provided lists of depths";
+				UERROR("Average Depth must be equal or bigger than provided lists of depths");
 			}
 		}
 	} else {
@@ -339,8 +339,8 @@ void TEstimateThetaRatio::_handleWindow() {
 		_addSites(*_thetaEstimatorRatio.pointerToDataContainer(), _region1);
 		_addSites(*_thetaEstimatorRatio.pointerToDataContainer2(), _region2);
 	} catch (...) {
-		throw "Failed to allocate sufficient memory to store the data for so many sites. Consider selecting fewer "
-			  "regions or limiting to sites with a minimal depth (>=2 recommended).";
+		UERROR("Failed to allocate sufficient memory to store the data for so many sites. Consider selecting fewer "
+			   "regions or limiting to sites with a minimal depth (>=2 recommended).");
 	}
 	logfile().doneTime();
 };

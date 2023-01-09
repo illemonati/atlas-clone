@@ -386,7 +386,7 @@ void TThetaEstimator::_runEMForTheta() {
 		// solve did not work -> start with higher theta!
 		startingTheta *= 2.0;
 		theta.setTheta(startingTheta);
-		if (startingTheta > 1.0) throw "Failed to estimate Theta, issues calculating inverse of Jacobian!";
+		if (startingTheta > 1.0) UERROR("Failed to estimate Theta, issues calculating inverse of Jacobian!");
 	}
 
 	// start EM loop
@@ -620,7 +620,7 @@ TThetaEstimatorRatio::TThetaEstimatorRatio() : TThetaEstimator_base() {
 	numIterations = parameters().getParameterWithDefault<int>("iterations", 10000);
 	logfile().list("Will run MCMC for " + toString(numIterations) + " iterations.");
 	thinning = parameters().getParameterWithDefault<int>("thinning", 1);
-	if (thinning < 1 || thinning > numIterations) throw "Thinning must be > 1 and < number iterations!";
+	if (thinning < 1 || thinning > numIterations) UERROR("Thinning must be > 1 and < number iterations!");
 	if (thinning > 1) {
 		if (thinning == 2)
 			logfile().list("Will print every second iterations to the output file (thinning = 2)");
@@ -690,9 +690,9 @@ void TThetaEstimatorRatio::estimateRatio(std::string ouputName) {
 
 	// check if there is sufficient data
 	logfile().list(toString(data->sizeWithData()) + " sites with data available for region 1.");
-	if (data->numSitesWithData < minSitesWithData) throw "Not enough sites for region 1!";
+	if (data->numSitesWithData < minSitesWithData) UERROR("Not enough sites for region 1!");
 	logfile().list(toString(data2->sizeWithData()) + " sites with data available for region 2.");
-	if (data2->numSitesWithData < minSitesWithData) throw "Not enough sites for region 2!";
+	if (data2->numSitesWithData < minSitesWithData) UERROR("Not enough sites for region 2!");
 
 	// get good starting values
 	findGoodStartingTheta(data, theta, " region 1");
@@ -722,7 +722,7 @@ void TThetaEstimatorRatio::estimateRatio(std::string ouputName) {
 	ouputName += "_thetaRatioMCMC.txt.gz";
 	logfile().list("Will write MCMC chain to file '" + ouputName + "'.");
 	gz::ogzstream out(ouputName.c_str());
-	if (!out) throw "Failed to open file '" + ouputName + "' for writing!";
+	if (!out) UERROR("Failed to open file '", ouputName, "' for writing!");
 
 	// write header
 	out << "log_theta_1\tlog_theta_2\tlog_phi\n";

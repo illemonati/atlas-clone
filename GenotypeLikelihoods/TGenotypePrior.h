@@ -91,7 +91,7 @@ public:
 	TGenotypePriorTheta(std::string thetaOutputName, double DefaultTheta) {
 		hasDefaultTheta = true;
 		defaultTheta    = DefaultTheta;
-		if (defaultTheta < 0.0) throw "Theta must be >= 0.0!";
+		if (defaultTheta < 0.0) UERROR("Theta must be >= 0.0!");
 		init(thetaOutputName);
 	};
 
@@ -117,7 +117,7 @@ public:
 				GenotypeLikelihoods::TBaseProbabilities freq{};
 				thetaEstimator->setBaseFreq(freq);
 			} else
-				throw "Please increase window size or provide a default theta!";
+				UERROR("Please increase window size or provide a default theta!");
 		}
 
 		// update prior

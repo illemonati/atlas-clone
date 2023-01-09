@@ -125,7 +125,7 @@ TAlleleFreqEstimatorBayes::TAlleleFreqEstimatorBayes(){
 	initialGridSize = parameters().getParameterWithDefault<int>("initialGridSize", 101);
 	logfile().list("Will use an initial grid of size ", initialGridSize, " to identify relevant frequency range (initialGridSize).");
 	if(initialGridSize < 3){
-		throw "Initial grid size must be >= 3!";
+		UERROR("Initial grid size must be >= 3!");
 	}
 	initialGridLast = initialGridSize - 1;
 	_initialGrid.resize(initialGridSize);
@@ -140,13 +140,13 @@ TAlleleFreqEstimatorBayes::TAlleleFreqEstimatorBayes(){
 	gridSize = parameters().getParameterWithDefault<int>("gridSize", 1001);
 	logfile().list("Will use a grid of size ", gridSize, " to calculate credible interval (gridSize).");
 	if(gridSize < 10){
-		throw "Initial grid size must be >= 10!";
+		UERROR("Initial grid size must be >= 10!");
 	}
 	gridLast = gridSize - 1;
 	logGridThreshold = parameters().getParameterWithDefault("logGridThreshold", 14.0);
 	logfile().list("Will use a threshold ", logGridThreshold, " to span the grid (logGridThreshold).");
 	if(logGridThreshold < 1.0){
-		throw "grid threshold must be >= 1.0!";
+		UERROR("grid threshold must be >= 1.0!");
 	}
 	_grid.resize(gridSize);
 };
@@ -452,7 +452,7 @@ void TAlleleFreqMCMCOutput::initialize(std::string popString, genometools::TPopu
 					popIndex.push_back(samples.populationIndex(name));
 					header.push_back(name);
 				} else {
-					throw "Can not write MCMC: population '" + name + "' does not exist!";
+					UERROR("Can not write MCMC: population '", name, "' does not exist!");
 				}
 			}
 		}
@@ -560,7 +560,7 @@ void TAlleleFreqEstimator::_writeEstimatesOnePop(TOutputFile & out, genometools:
 
 void TAlleleFreqEstimator::_openVCF() {
 	if(vcfRead)
-		throw "VCF already read!";
+		UERROR("VCF already read!");
 
 	//read samples
 	if(parameters().parameterExists("samples"))
@@ -593,7 +593,7 @@ void TAlleleFreqEstimator::_closeVCF(){
 	logfile().endIndent();
 	reader.concludeFilters();
 	if(reader.numAcceptedLoci() < 1)
-		throw "No usable loci in VCF file '" + vcfFilename + "'!";
+		UERROR("No usable loci in VCF file '", vcfFilename, "'!");
 	logfile().endIndent();
 };
 
@@ -685,7 +685,7 @@ void TAlleleFreqEstimator::compareAlleleFreq(){
 	//open VCF for reading
 	_openVCF();
 	if(samples.numPopulations() < 2){
-		throw "Need to define at least 2 populations in samples file! Use 'task=alleleFreq' to estimate allele frequencies for a single population.";
+		UERROR("Need to define at least 2 populations in samples file! Use 'task=alleleFreq' to estimate allele frequencies for a single population.");
 	}
 
 	//create Bayesian allele frequency estimator
@@ -698,9 +698,9 @@ void TAlleleFreqEstimator::compareAlleleFreq(){
 	int numIterations = parameters().getParameterWithDefault<int>("iterations", 100000);
 	double frac = parameters().getParameterWithDefault("proposalFrac", 3.0);
 	if(numIterations < 1)
-		throw "Cannot run MCMC for less than 1 iteration!";
+		UERROR("Cannot run MCMC for less than 1 iteration!");
 	if(frac <= 0.0)
-		throw "proposalFrac must be larger than 0!";
+		UERROR("proposalFrac must be larger than 0!");
 	logfile().list("Running MCMC for " + toString(numIterations) + " iterations with a propsal width of " + toString(frac) + " times the 90% confidence interval.");
 
 	//prepare MCMC storage

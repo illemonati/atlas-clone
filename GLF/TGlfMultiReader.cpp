@@ -51,11 +51,11 @@ void _checkChromosomeInfo(const TGlfChromosome & _curChr, const std::vector<TGlf
 		TGlfChromosome *chr = p->pointerToChr(_curChr.refId());
 		if (chr) {
 			if (chr->name() != _curChr.name())
-				throw "Chrosomome names differ between files '" + ps[0]->name() + "' and '" +
-				    p->name() + "': '" + _curChr.name() + "' != '" + chr->name() + "'!";
+				UERROR("Chrosomome names differ between files '", ps[0]->name(), "' and '",
+					   p->name(), "': '", _curChr.name(), "' != '", chr->name(), + "'!");
 			if (chr->length() != _curChr.length())
-				throw "Chrosomome lengths differ between files '" + ps[0]->name() + "' and '" +
-				    p->name() + "': '" + toString(_curChr.length()) + "' != '" + toString(chr->length()) + "'!";
+				UERROR("Chrosomome lengths differ between files '", ps[0]->name(), "' and '",
+					   p->name(), "': '", _curChr.length(), "' != '", chr->length(), "'!");
 		} else {
 			logfile().list(p->name(), " does not have contig ", _curChr.name(), ", considering all data empty.");
 		}
@@ -232,7 +232,7 @@ void TGlfMultiReader::openGLFs() {
 	if (!stringContains(parameter, ".gz")) {
 		logfile().list("Reading glf input names from file '" + parameter + "'");
 		std::ifstream in(parameter.c_str());
-		if (!in) throw "Failed to open file '" + parameter + "'!";
+		if (!in) UERROR("Failed to open file '", parameter, "'!");
 
 		// read file
 		while (in.good() && !in.eof()) {
@@ -276,12 +276,12 @@ void TGlfMultiReader::addReference(const std::string &FastaFile) {
 //-------------------------------------
 int TGlfMultiReader::_getGLFIndexFromName(const std::string &name) const {
 	const auto res = std::find(_GLFNames.cbegin(), _GLFNames.cend(), name);
-	if (res == _GLFNames.cend()) throw "GLF with name '" + name + "' not in TGlfMultiReader!";
+	if (res == _GLFNames.cend()) UERROR("GLF with name '", name, "' not in TGlfMultiReader!");
 	return std::distance(_GLFNames.begin(), res);
 };
 
 void TGlfMultiReader::_setActive(size_t index) {
-	if (index >= _numGLFs) throw "Index out of range in TGlfMultiReader::setActive(const int index)!";
+	if (index >= _numGLFs) UERROR("Index out of range in TGlfMultiReader::setActive(const int index)!");
 	if (!_GLFIsActive[index]) {
 		_GLFIsActive[index] = true;
 		_activeGLFs.push_back(&_GLFs[index]);

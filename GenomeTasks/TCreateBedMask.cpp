@@ -48,11 +48,11 @@ TCreateDepthBedMask::TCreateDepthBedMask():TCreateBedMask(){
 	logfile().list("Will create a mask for all sites with depth outside the range [" + toString(_minDepthForMask) + ", " + toString(_maxDepthForMask) + "].");
 
 	if(_maxDepthForMask < _minDepthForMask){
-		throw "maxDepthForMask must be > minDepthForMask!";
+		UERROR("maxDepthForMask must be > minDepthForMask!");
 	}
 
 	if(parameters().parameterExists("maxDepth") || parameters().parameterExists("minDepth"))
-		throw "Cannot mask sites for sequencing depth (parameters 'minDepth' and 'maxDepth') while creating the mask!";
+		UERROR("Cannot mask sites for sequencing depth (parameters 'minDepth' and 'maxDepth') while creating the mask!");
 };
 
 void TCreateDepthBedMask::_handleWindow(){
@@ -76,7 +76,7 @@ TCreateInvariantBedMask::TCreateInvariantBedMask():TCreateBedMask(){
 	logfile().list("Will create a mask of all sites with depth >= " + toString(_minDepthForMask) + " (parameter 'minDepthForMask') for which a single allele was observed (invariant).");
 
 	if(_minDepthForMask < 2){
-		throw "minDepthForMask must be >= 2 to assess variant / invariant status!";
+		UERROR("minDepthForMask must be >= 2 to assess variant / invariant status!");
 	}
 };
 
@@ -104,7 +104,7 @@ TCreateVariantBedMask::TCreateVariantBedMask():TCreateBedMask(){
 	logfile().list("Will create a mask of all sites with depth >= " + toString(_minDepthForMask) + " (parameter 'minDepthForMask') for which multiple alleles were observed (variant).");
 
 	if(_minDepthForMask < 2){
-		throw "minDepthForMask must be >= 2 to assess variant / invariant status!";
+		UERROR("minDepthForMask must be >= 2 to assess variant / invariant status!");
 	}
 };
 
@@ -132,7 +132,7 @@ TCreateNonRefBedMask::TCreateNonRefBedMask():TCreateBedMask(){
 	logfile().list("Will create a mask of all sites with depth >= " + toString(_minDepthForMask) + " (parameter 'minDepthForMask') for which at least one non-ref allele was observed.");
 
 	if(_minDepthForMask < 1){
-		throw "maxDepthForMask must be > 1 to check for ref / non-ref status!";
+		UERROR("maxDepthForMask must be > 1 to check for ref / non-ref status!");
 	}
 
 	_openReference(true);

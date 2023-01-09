@@ -43,14 +43,14 @@ TPSMCInput::TPSMCInput():TGenome_windows(){
 
 	_blockSize = parameters().getParameterWithDefault<int>("block", 100);
 	//make sure window size is a multiple of block length!
-	if(_windowSize % _blockSize != 0) throw "Window size is not a multiple of block size!";
+	if(_windowSize % _blockSize != 0) UERROR("Window size is not a multiple of block size!");
 	_nBlocks = _window.size() / _blockSize;
 
 	//open output file
 	std::string outputFileName = _outputName + ".psmcfa";
 	logfile().list("Writing PSMC input file to '" + outputFileName + "'.");
 	_out.open(outputFileName.c_str());
-	if(!_out) throw "Failed to open output file '" + outputFileName + "'!";
+	if(!_out) UERROR("Failed to open output file '", outputFileName, "'!");
 	_nCharOnLine = 0;
 };
 

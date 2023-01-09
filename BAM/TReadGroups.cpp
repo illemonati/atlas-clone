@@ -18,7 +18,6 @@
 
 namespace BAM{
 
-using coretools::str::toString;
 using coretools::instances::logfile;
 
 //---------------------------------------------------------------
@@ -210,7 +209,7 @@ bool TReadGroups::empty() const{
 };
 
 const std::string& TReadGroups::getName(uint16_t readGroupId) const{
-	if(readGroupId >= _readGroups.size()) throw "No read group with number " + toString(readGroupId) + "!";
+	if(readGroupId >= _readGroups.size()) UERROR("No read group with number ", readGroupId, "!");
 
 	return _readGroupsById[readGroupId]->name_ID;
 };
@@ -239,7 +238,7 @@ const TReadGroup& TReadGroups::getReadGroup(std::string_view name){
 };
 
 const TReadGroup& TReadGroups::operator[](uint16_t readGroupId) const{
-	if(readGroupId >= _readGroups.size()) throw "No read group with number " + toString(readGroupId) + "!";
+	if(readGroupId >= _readGroups.size()) UERROR("No read group with number ", readGroupId, "!");
 	return *_readGroupsById[readGroupId];
 };
 
@@ -276,7 +275,7 @@ void TReadGroups::filterReadGroups(std::string_view readGroupList){
 	for(auto& r : readGroupsInUse){
 		const auto& rg = _readGroups.find(r);
 		if(rg == _readGroups.end())
-			throw "Read Group '" + r + "' is not present in header of bam file!";
+			UERROR("Read Group '", r, "' is not present in header of bam file!");
 		rg->inUse = true;
 		rg->writeToHeader = true;
 	}
@@ -290,7 +289,7 @@ void TReadGroups::removeFromHeader(std::string_view name){
 };
 
 void TReadGroups::removeFromHeader(const uint16_t readGroupId){
-	if(readGroupId >= _readGroups.size()) throw "No read group with number " + toString(readGroupId) + "!";
+	if(readGroupId >= _readGroups.size()) UERROR("No read group with number ", readGroupId, "!");
 	_readGroupsById[readGroupId]->writeToHeader = false;
 };
 
@@ -377,7 +376,7 @@ void TReadGroupMap::_fillFromFile(const TReadGroups & ReadGroups, std::string_vi
 			if(_readGroupMap[pool] == ReadGroupMapNotInitializedIndex){
 				_markAsInUse(pool);
 			} else if(_readGroupMap[pool] != pool){
-				throw "Read group '" + vec[1] + "' can not be pooled and pooled with at the same time!";
+				UERROR("Read group '", vec[1], "' can not be pooled and pooled with at the same time!");
 			}
 
 			//check if rg can be pooled: allow self-pooling

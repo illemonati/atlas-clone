@@ -31,17 +31,17 @@ namespace impl {
 void checkAlleles(const std::string &chr, uint32_t pos, const genometools::Base &ref, const genometools::Base &alt,
 				  const std::string &refAllele, const std::string &altAllele, bool storesInvariantSites) {
 	if (ref == genometools::Base::N) {
-		throw "Unknown reference allele '" + refAllele + "' on chr " + chr + " at " + toString(pos + 1) + "!";
+		UERROR("Unknown reference allele '", refAllele, "' on chr ", chr, " at ", pos + 1, "!");
 	}
 	if (alt == genometools::Base::N) {
-		throw "Unknown alternative allele '" + altAllele + "' on chr " + chr + " at " + toString(pos + 1) + "!";
+		UERROR("Unknown alternative allele '", altAllele, "' on chr ", chr, " at ", pos + 1, "!");
 	}
 
 	if (ref == alt && !storesInvariantSites) {
-		throw "Site on chr " + chr + " at " + toString(pos + 1) + " is invariant!";
+		UERROR("Site on chr ", chr, " at ", pos + 1, " is invariant!");
 	}
 	if (ref != alt && storesInvariantSites) {
-		throw "Site on chr " + chr + " at " + toString(pos + 1) + " is polymorphic!";
+		UERROR("Site on chr ", chr, " at ", pos + 1, " is polymorphic!");
 	}
 };
 } // namespace impl

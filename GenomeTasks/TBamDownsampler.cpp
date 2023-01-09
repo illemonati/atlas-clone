@@ -90,11 +90,11 @@ void TBamDownsampler_base::_readVectorOfDownsamplingProbabilities(){
             if(averageDepth >= it){
                 _probs.push_back(it / averageDepth);
             } else{
-                throw "Average Depth must be equal or bigger than provided lists of depths";
+                UERROR("Average Depth must be equal or bigger than provided lists of depths");
             }
         }
     } else {
-        throw "Either argument 'prob' or 'depth' must be provided!";
+        UERROR("Either argument 'prob' or 'depth' must be provided!");
     }
 	//get unique names
 	std::map <Probability, int> fracNames;
@@ -147,7 +147,7 @@ TBamDownsampler::TBamDownsampler() : TBamDownsampler_base(){
 		_cumulProbs.push_back(1.0); //always add an extra at end to ease search
 
 		if(sum > 1.0){
-			throw "Separation probabilities must sum to <= 1.0, not " + toString(sum) + "!";
+			UERROR("Separation probabilities must sum to <= 1.0, not ", sum, "!");
 		}
 	}
 
@@ -250,7 +250,7 @@ TBamSeparator::TBamSeparator() : TBamDownsampler_base(){
 	_cumulProbs.push_back(1.0); //always add an extra at end to ease search
 
 	if(sum > 1.0){
-		throw "Separation probabilities must sum to <= 1.0, not " + toString(sum) + "!";
+		UERROR("Separation probabilities must sum to <= 1.0, not ", sum, "!");
 	}
 
 	//report

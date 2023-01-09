@@ -154,7 +154,7 @@ TVcfComapreVCF::TVcfComapreVCF(std::string & filename, std::string & sampleName)
 	vcfFile->next();
 
 	if(vcfFile->eof)
-		throw "Vcf file '" + filename + "' is empty!";
+		UERROR("Vcf file '", filename, "' is empty!");
 
 	//store first chr
 	parsedChromosomes.push_back(vcfFile->chr());
@@ -270,11 +270,11 @@ void TVcfCompare::compareVCFFiles(){
 
 	//currently only implemented for comparing two VCFs
 	if(fileNames.size() != 2)
-		throw "VCF comparison requires two VCF file names (not " + toString(fileNames.size()) + ")!";
+		UERROR("VCF comparison requires two VCF file names (not ", fileNames.size(), ")!");
 	if(fileNames.size() != 2)
-		throw "VCF comparison requires two sample names (not " + toString(sampleNames.size()) + ")!";
+		UERROR("VCF comparison requires two sample names (not ", sampleNames.size(), ")!");
 	if(fileNames.size() != sampleNames.size())
-		throw "The number of vcf file names " + toString(fileNames.size()) + " does not the match the number of provided sample names " + toString(sampleNames.size()) + "!";
+		UERROR("The number of vcf file names ", fileNames.size(), " does not the match the number of provided sample names ", sampleNames.size(), "!");
 
 	//open VCF files
 	for(size_t i=0; i<fileNames.size(); i++){
@@ -380,7 +380,7 @@ void TVcfCompare::compareVCFFiles(){
 				addToOtherMissing(counts, 1);
 				vcfFiles[1].next();
 			} else {
-				throw "Chromosomes differ between the two VCF files!";
+				UERROR("Chromosomes differ between the two VCF files!");
 			}
 		}
 

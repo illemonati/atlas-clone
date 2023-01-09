@@ -34,7 +34,7 @@ constexpr bool isHaploid(uint8_t Ploidy) {
 	} else if (Ploidy == 2) {
 		return false;
 	}
-	throw "Currently GLFs only support ploidies 1 and 2 (not " + coretools::str::toString((int)Ploidy) + ")!";
+	UERROR("Currently GLFs only support ploidies 1 and 2 (not ", Ploidy, ")!");
 };
 } // namespace impl
 
@@ -78,7 +78,7 @@ void TGlfWriter::open(const std::string &Filename, const std::string &Header) {
 	_gzfp     = nullptr;
 	_gzfp     = gzopen(_filename.c_str(), "wb");
 
-	if (_gzfp == nullptr) throw "Failed to open file '" + _filename + "' for writing!";
+	if (_gzfp == nullptr) UERROR("Failed to open file '", _filename, "' for writing!");
 	_curChr.clear();
 
 	// write header
@@ -212,7 +212,7 @@ bool TGlfReader::_readRecordType() {
 		return false;
 	}
 	_recordType = tmpInt8 >> 4;
-	if (_recordType > 1) throw "Unknown record type in file '" + _filename + "'!";
+	if (_recordType > 1) UERROR("Unknown record type in file '", _filename, "'!");
 	return true;
 };
 
@@ -248,7 +248,7 @@ void TGlfReader::_open() {
 	if (_gzfp) UERROR(_filename, " is already open!");
 	_gzfp = gzopen(_filename.c_str(), "rb");
 
-	if (_gzfp == nullptr) throw "Failed to open file '" + _filename + "' for reading!";
+	if (_gzfp == nullptr) UERROR("Failed to open file '", _filename, "' for reading!");
 	_curChr.clear();
 	_chromosomesAlreadyParsed.clear();
 	_positionInFile = 0;
@@ -261,7 +261,7 @@ void TGlfReader::_open() {
 	fileVersion.assign(buffer, 4);
 
 	if (fileVersion != _version)
-		throw "Non-supported GLF version '" + fileVersion + "! Currently only version '" + _version + "' is supported.";
+		UERROR("Non-supported GLF version '", fileVersion, "! Currently only version '", _version, "' is supported.");
 	_version = fileVersion;
 
 	uint32_t headerLen;
@@ -277,8 +277,8 @@ void TGlfReader::_open() {
 	// read info of first chromosome
 	_readRecordType();
 	if (_recordType != 0)
-		throw "GLF file does not start with chromosome entry. The GLF format has changed with ATLAS 1.0, are you using "
-		      "GLF files produced with an earlier version?";
+		UERROR("GLF file does not start with chromosome entry. The GLF format has changed with ATLAS 1.0, are you using "
+			   "GLF files produced with an earlier version?");
 	_readChr();
 };
 
@@ -298,7 +298,7 @@ bool TGlfReader::readNext() {
 		_readSNPRecord();
 		return true;
 	} else
-		throw "Unknown record type in file '" + _filename + "'!";
+		UERROR("Unknown record type in file '", _filename, "'!");
 };
 
 bool TGlfReader::_jumpToEndOfChr() {

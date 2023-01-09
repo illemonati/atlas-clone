@@ -42,10 +42,10 @@ void TSimulatorReference::open(std::string Filename){
 	// open FASTA file for reference sequences
 	logfile().list("Will write reference sequence to '" + _filename + "'.");
 	_fasta.open(_filename.c_str());
-	if (!_fasta) throw "Failed to open file '" + _filename + "' for writing!";
+	if (!_fasta) UERROR("Failed to open file '", _filename, "' for writing!");
 	_filename += ".fai";
 	_fastaIndex.open(_filename.c_str());
-	if (!_fastaIndex) throw "Failed to open file '" + _filename + "' for writing!";
+	if (!_fastaIndex) UERROR("Failed to open file '", _filename, "' for writing!");
 	_oldOffset = 0;
 }
 
@@ -98,7 +98,7 @@ void TSimulatorReference::setChr(std::string ChrName, long ChrLength) {
 // cumulBaseFreq){ 	logfile->listFlush("Simulating reference alleles ...");
 //
 //	if(!storageInitialized)
-//		throw "Can not simulate reference sequence, no chromosome set!";
+//		UERROR("Can not simulate reference sequence, no chromosome set!";
 //
 //	//simulate reference sequence
 //	for(int l=0; l<chrLength; ++l){
@@ -117,9 +117,9 @@ void TSimulatorBamFile::open(const std::string &Filename, const std::string &Sam
 			     const genometools::TChromosomes &Chromosomes) {
 	logfile().listFlush("Opening BAM file '" + Filename + "' ...");
 
-	if (_outBam.isOpen()) throw "A BAM file is already open for writing!";
+	if (_outBam.isOpen()) UERROR("A BAM file is already open for writing!");
 
-	if (Chromosomes.size() < 1) throw "Can not open a BAM file without specified chromosomes!";
+	if (Chromosomes.size() < 1) UERROR("Can not open a BAM file without specified chromosomes!");
 
 	// create header, read group and chromosome objects
 	for (auto &rg : ReadGroups) {
@@ -188,7 +188,7 @@ TSimulatorBamFiles::~TSimulatorBamFiles() {
 }
 
 TSimulatorBamFile &TSimulatorBamFiles::operator[](size_t i) {
-	if (i >= _files.size()) throw "BAM file " + toString(i) + " does not exist!";
+	if (i >= _files.size()) UERROR("BAM file ", i, " does not exist!");
 	return _files[i];
 }
 
@@ -214,7 +214,7 @@ void TSimulatorHaplotypes::setLength(uint32_t length) noexcept {
 void TSimulatorHaplotypes::openTrueGenotypeVCF(std::string filename) {
 	// open file
 	trueGenoVCF.open(filename.c_str());
-	if (!trueGenoVCF) throw "Failed to open VCF file '" + filename + "' for writing!";
+	if (!trueGenoVCF) UERROR("Failed to open VCF file '", filename, "' for writing!");
 
 	// write header
 	trueGenoVCF << "##fileformat=VCFv4.3\n";
@@ -227,8 +227,7 @@ void TSimulatorHaplotypes::openTrueGenotypeVCF(std::string filename) {
 
 std::array<std::vector<Base>,2> TSimulatorHaplotypes::getHaplotypesOfIndividual(size_t i) {
 	if (i >= numInd)
-		throw "Haplotypes of individual " + toString(i + 1) + " requested, but defined for only " + toString(numInd) +
-			" individuals!";
+		UERROR("Haplotypes of individual ", i + 1, " requested, but defined for only ", numInd, " individuals!");
 	return haplotypes[i];
 }
 
@@ -333,7 +332,7 @@ void TSimulatorMutationtable::_normalizeAndMakeCumulative() {
 //---------------------------------------------------------
 void TSimulatorVariantInvariantBedFiles::openFile(gz::ogzstream &file, const std::string filename) {
 	file.open(filename.c_str());
-	if (!file) throw "Failed to open file '" + filename + "' for writing!";
+	if (!file) UERROR("Failed to open file '", filename, "' for writing!");
 }
 
 void TSimulatorVariantInvariantBedFiles::open(std::string outname) {

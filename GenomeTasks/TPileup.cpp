@@ -74,13 +74,13 @@ TPileup::TPileup():TGenome_windows(){
 	//check if unknown fields were given
 	if(!fields.empty()){
 		if(fields.size() == 1){
-			throw "Unknown field '" + *fields.begin() + "'! Valid fields are 'depth', 'bases', 'qualities', 'alleles', 'mates' and 'strands'.";
+			UERROR("Unknown field '", *fields.begin(), "'! Valid fields are 'depth', 'bases', 'qualities', 'alleles', 'mates' and 'strands'.");
 		} else {
 			std::string f;
 			for(auto i : fields){
 				f += '\'' + i + "', ";
 			}
-			throw "Unknown fields: " + f.substr(0, f.size() - 2) + "! Valid fields are 'depth', 'bases', 'qualities', 'alleles', 'mates',  'strands' and 'likelihoods'.";
+			UERROR("Unknown fields: ", f.substr(0, f.size() - 2), "! Valid fields are 'depth', 'bases', 'qualities', 'alleles', 'mates',  'strands' and 'likelihoods'.");
 		}
 	}
 

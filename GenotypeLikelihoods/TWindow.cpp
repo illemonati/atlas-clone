@@ -370,8 +370,9 @@ size_t TWindow::_findFirstPositionWithinWindow(const BAM::TAlignment & alignment
 			if (alignment.isAlignedAtInternalPos(p) && alignment.positionInRef(p) >= _from) break;
 			++p;
 		}
-		if(p == alignment.parsedLength()){
-			throw std::runtime_error("Alignment '" + alignment.name() + "' at " +  toString(alignment.position()) + " should be assigned to previous window, not to [" + toString(_from.position()) + ", " + toString(_to.position()) + ")!");
+		if (p == alignment.parsedLength()) {
+			DEVERROR("Alignment '", alignment.name(), "' at ", alignment.position(),
+					 " should be assigned to previous window, not to [", _from.position(), ", ", _to.position(), ")!");
 		}
 		return p;
 	}

@@ -94,8 +94,8 @@ std::unique_ptr<TPMDType> createPMDType(const std::string &pmdString) {
 	if (details[0] == TPMDTypeSingleStrand::name) return std::make_unique<TPMDTypeSingleStrand>(details);
 	if (details[0] == TPMDTypeDoubleStrand::name) return std::make_unique<TPMDTypeDoubleStrand>(details);
 
-	throw "Cannot initialize PMD: unknown PMD type '" + details[0] + "'!" + "\nUse " + TPMDTypeNone::name + " or " +
-		TPMDTypeSingleStrand::name + " or " + TPMDTypeDoubleStrand::name + ".";
+	UERROR("Cannot initialize PMD: unknown PMD type '", details[0], "'!\nUse ", TPMDTypeNone::name, " or ",
+		   TPMDTypeSingleStrand::name, " or ", TPMDTypeDoubleStrand::name, ".");
 }
 
 } // namespace
@@ -106,8 +106,7 @@ std::unique_ptr<TPMDType> createPMDType(const std::string &pmdString) {
 TPMDFunctionNoPMD::TPMDFunctionNoPMD(const std::string &string) {
 	const auto params = impl::parseParameters<double>(string);
 	if (params.size() != 0) {
-		throw "Cannot initialize PMD function '" + name + "': expected 0 but found " +
-			toString(params.size()) + " parameters!";
+		UERROR("Cannot initialize PMD function '", name, "': expected 0 but found ", params.size(), " parameters!");
 	}
 }
 
@@ -124,17 +123,17 @@ TPMDFunctionExponential::TPMDFunctionExponential(const std::string &string) {
 	} else {
 		// parameters are provided
 		if (params.size() != nParams) {
-			throw "Cannot initialize PMD function '" + name + "': expected" +
-				toString(nParams) + "(" + example + ") but found " + toString(params.size()) + " parameters!";
+			UERROR("Cannot initialize PMD function '", name, "': expected", nParams, "(", example, ") but found ",
+				   params.size(), " parameters!");
 		}
 		_lastPosition = std::lround(params[0]);
 		_a = params[1];
 		_b = params[2];
 		_c = params[3];
 
-		if (_lastPosition == 0)  throw "Cannot initialize PMD function '" + name + "': last position must be > 0!"; 
-		if (_b < 0.0) throw "Cannot initialize PMD function '" + name + "': b must be > 0!";
-		if (_c < 0.0) throw "Cannot initialize PMD function '" + name + "': c must be > 0!";
+		if (_lastPosition == 0)  UERROR("Cannot initialize PMD function '", name, "': last position must be > 0!"); 
+		if (_b < 0.0) UERROR("Cannot initialize PMD function '", name, "': b must be > 0!");
+		if (_c < 0.0) UERROR("Cannot initialize PMD function '", name, "': c must be > 0!");
 	}
 	_fillPMDProbabilities();
 }
@@ -325,13 +324,13 @@ void TPMDFunctionExponential::learn(const TPMDTable &Table, const Base &from, co
 
 	// Check if we have sufficient data
 	if (_lastPosition <= 9)
-		throw "Not sufficient data to fit exponential PMD model: less than the ten first positions have > 100 data "
-			  "points!\nConsider pooling read groups (parameter poolReadGroups).";
+		UERROR("Not sufficient data to fit exponential PMD model: less than the ten first positions have > 100 data "
+			   "points!\nConsider pooling read groups (parameter poolReadGroups).");
 
 	const auto last = pmdSums.cbegin() + _lastPosition;
 	if (std::find(pmdSums.cbegin(), last, 0) != last)
-			throw "Not sufficient data to fit exponential PMD model: no observations for some reference "
-				  "alleles!<nConsider reducing the relevant length (parameter length).";
+		UERROR("Not sufficient data to fit exponential PMD model: no observations for some reference "
+			   "alleles!<nConsider reducing the relevant length (parameter length).");
 
 	// get initial estimates via OLS
 	std::array<double, 3> Parameters;
@@ -395,8 +394,8 @@ Probability TPMDFunctionExponential::prob(uint16_t pos) const noexcept {
 		// parameters are provided
 		for (auto &d : _values) {
 			if (d < 0.0 || d > 1.0) {
-				throw "Cannot initialize post mortem damage function '" + name +
-					"': some probabilities are outside [0,1]!";
+				UERROR("Cannot initialize post mortem damage function '", name,
+					   "': some probabilities are outside [0,1]!");
 			}
 		}
 	}
@@ -439,10 +438,9 @@ TPMDTypeDoubleStrand::TPMDTypeDoubleStrand(const std::vector<std::string> &Detai
 	// expect three elements: type, pmdCT, pmdGA
 	constexpr size_t nDetails = 3;
 	if (Details.size() != nDetails) {
-		throw "Cannot initialize PMD type " + name + ": expect " +
-			std::to_string(nDetails) + " entries but found " + toString(Details.size()) + "!" + "\nProvided string: '" +
-			concatenateString(Details, ':') + "'." + "\nExpect string of the form '" + name +
-			"':functionCT:functionGA'.";
+		UERROR("Cannot initialize PMD type ", name, ": expect ", nDetails, " entries but found ", Details.size(), "!",
+			   "\nProvided string: '", concatenateString(Details, ':'), "'.", "\nExpect string of the form '", name,
+			   "':functionCT:functionGA'.");
 	}
 	_pmdCT = impl::initializeFunction(Details[1]);
 	_pmdGA = impl::initializeFunction(Details[2]);
@@ -522,10 +520,9 @@ TPMDTypeSingleStrand::TPMDTypeSingleStrand(const std::vector<std::string> &Detai
 	// expect 2 elements: type, pmdCT
 	constexpr size_t nDetails = 3;
 	if (Details.size() != nDetails) {
-		throw "Cannot initialize PMD type " + name + ": expect " +
-			std::to_string(nDetails) + " entries but found " + toString(Details.size()) + "!" + "\nProvided string: '" +
-			concatenateString(Details, ':') + "'." + "\nExpect string of the form '" + name +
-			"':functionCT:functionGA'.";
+		UERROR("Cannot initialize PMD type ", name, ": expect ", nDetails, " entries but found ", Details.size(), "!",
+			   "\nProvided string: '", concatenateString(Details, ':'), "'.", "\nExpect string of the form '", name,
+			   "':functionCT:functionGA'.");
 	}
 	_pmdCT3 = impl::initializeFunction(Details[1]);
 	_pmdCT5 = impl::initializeFunction(Details[2]);
