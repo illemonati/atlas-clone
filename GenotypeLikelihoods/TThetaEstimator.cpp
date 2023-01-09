@@ -590,7 +590,7 @@ void TThetaEstimator::calcLikelihoodSurface(coretools::TOutputFile &out, uint32_
 void TThetaEstimator::bootstrapTheta() {
 	logfile().listFlush("Bootstrapping sites ...");
 
-	data->bootstrap(randomGenerator());
+	data->bootstrap();
 	logfile().done();
 
 	// estimate theta

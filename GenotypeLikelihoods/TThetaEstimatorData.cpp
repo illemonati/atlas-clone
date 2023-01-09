@@ -222,7 +222,7 @@ void TThetaEstimatorData::fillPoissonForBootstrap(const double lambda) {
 	poissonProb[maxKforPoissonPlusOne - 1] = 1.0;
 }
 
-void TThetaEstimatorData::bootstrap(coretools::TRandomGenerator &randomGenerator) {
+void TThetaEstimatorData::bootstrap() {
 	// make sure we start empty
 	clearBootstrap();
 
@@ -237,7 +237,7 @@ void TThetaEstimatorData::bootstrap(coretools::TRandomGenerator &randomGenerator
 	numBootstrappedSites = 0.0;
 	for (long l = 0; l < numSitesWithData; ++l) {
 		// do we use this site in the bootstrap?
-		numBootstrapRepsPerEntry[l] = randomGenerator.pickOne(maxKforPoissonPlusOne, poissonProb);
+		numBootstrapRepsPerEntry[l] = coretools::instances::randomGenerator().pickOne(maxKforPoissonPlusOne, poissonProb);
 		numBootstrappedSites += numBootstrapRepsPerEntry[l];
 	}
 

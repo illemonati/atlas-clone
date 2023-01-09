@@ -24,9 +24,7 @@
 #include "genometools/GenomePositions/TGenomePosition.h"
 #include "genometools/TFastaReader.h"
 
-namespace coretools { class TLog; }
 namespace coretools { class TOutputFile; }
-namespace coretools { class TRandomGenerator; }
 namespace coretools { template <typename T> class TNumericRange; }
 namespace genometools { class TBed; }
 namespace genometools { class TFastaReader; }
@@ -60,8 +58,7 @@ public:
 	//size_t length;
 
 	TWindow_base();
-	TWindow_base(TWindow & other, const int readUpToDepth, const coretools::Probability & downsamplingProb, coretools::TRandomGenerator* randomGenerator);
-	virtual ~TWindow_base();
+	TWindow_base(TWindow & other, const int readUpToDepth, const coretools::Probability & downsamplingProb);
 
 	//Allow to set chromosome name when jumping
 	using genometools::TGenomeWindow::move;
@@ -76,8 +73,8 @@ public:
 	virtual void resize(size_t newLength);
 
 	//void stealFromOther(TWindow_base & other);
-	void downsampleFromOther(TWindow & other, size_t readUpToDepth, const coretools::Probability & downsamplingProb, coretools::TRandomGenerator* randomGenerator);
-	void downsampleFromOther(TWindow & other, TSiteSubset & subset, size_t readUpToDepth, const coretools::Probability & downsamplingProb, coretools::TRandomGenerator* randomGenerator);
+	void downsampleFromOther(TWindow & other, size_t readUpToDepth, const coretools::Probability & downsamplingProb);
+	void downsampleFromOther(TWindow & other, TSiteSubset & subset, size_t readUpToDepth, const coretools::Probability & downsamplingProb);
 	void clear();
 
 	void addReferenceBaseToSites(const genometools::TFastaReader & reference);
@@ -102,7 +99,7 @@ public:
 	size_t numSitesWithData();
 	double fractionRefIsN();
 	void dataSummary();
-	bool filter(const double maxFracMissing, const double maxRefN, coretools::TLog* Logfile);
+	bool filter(const double maxFracMissing, const double maxRefN);
 	bool passedFilters() const{ return _passedFilters; };
 
 	explicit operator std::string() const { return fmt::format("{}:{}-{}", chrName(), from().position() + 1, to().position()); }
@@ -133,11 +130,11 @@ private:
 
 	void _fillSites(BAM::TAlignment & alignment, std::vector<TSite> & sites, size_t readUpToDepth);
 	void _fillSites(std::vector<TSite> & sites, size_t readUpToDepth);
-	int _fillSitesDownsampling(std::vector<TSite> & sites, size_t readUpToDepth, const coretools::Probability & downsamplingProb, coretools::TRandomGenerator* randomGenerator);
+	int _fillSitesDownsampling(std::vector<TSite> & sites, size_t readUpToDepth, const coretools::Probability & downsamplingProb);
 
 	void _fillSitesSubset(BAM::TAlignment & alignmentIt, std::vector<TSite> & sites, coretools::TConstView<TSiteSubsetSite> thesePos, size_t readUpToDepth);
 	void _fillSitesSubset(std::vector<TSite> & sites, TSiteSubset & subset, size_t readUpToDepth);
-	int _fillSitesSubsetDownsampling(std::vector<TSite> & sites, TSiteSubset & subset, size_t readUpToDepth, const coretools::Probability & downsamplingProb, coretools::TRandomGenerator* randomGenerator);
+	int _fillSitesSubsetDownsampling(std::vector<TSite> & sites, TSiteSubset & subset, size_t readUpToDepth, const coretools::Probability & downsamplingProb);
 
 public:
 	TWindow():TWindow_base(){};

@@ -14,14 +14,16 @@
 #include <memory>
 
 #include "coretools/Files/TOutputFile.h"
+#include "coretools/Main/TLog.h"
+#include "coretools/Main/TParameters.h"
 #include "coretools/Strings/stringFunctions.h"
 
 namespace VCF{
 
 using genometools::Base;
 using genometools::Genotype;
-using coretools::TLog;
-using coretools::TParameters;
+using coretools::instances::logfile;
+using coretools::instances::parameters;
 using coretools::str::toString;
 
 //--------------------------------------------------------------
@@ -128,21 +130,14 @@ void TGenotypeComparisonTable::write(const std::string filename){
 //--------------------------------------------------------------
 // TVCFComapreVCF
 //--------------------------------------------------------------
-TVcfComapreVCF::TVcfComapreVCF(){
-	sampleIndex = 0;
-	vcfFile = nullptr;
-	vcfFileOpen = false;
-	minDepth = 0;
-	minQual = 0.0;
-};
 
-TVcfComapreVCF::TVcfComapreVCF(std::string & filename, std::string & sampleName, TLog* logfile){
+TVcfComapreVCF::TVcfComapreVCF(std::string & filename, std::string & sampleName){
 	//open vcf file
 	if(filename.find(".gz") == std::string::npos){
-		logfile->list("Reading sample '" + sampleName + "' from VCF file '" + filename + "'.");
+		logfile().list("Reading sample '" + sampleName + "' from VCF file '" + filename + "'.");
 		vcfFile = new genometools::TVcfFileSingleLine(filename, false);
 	} else {
-		logfile->list("Reading sample '" + sampleName + "' from gzipped VCF file '" + filename + "'.");
+		logfile().list("Reading sample '" + sampleName + "' from gzipped VCF file '" + filename + "'.");
 		vcfFile = new genometools::TVcfFileSingleLine(filename, true);
 	}
 	vcfFileOpen = true;
@@ -253,9 +248,6 @@ bool TVcfComapreVCF::chrParsed(const std::string chr){
 //--------------------------------------------------------------
 // TVCFCompare
 //--------------------------------------------------------------
-TVcfCompare::TVcfCompare(TLog* Logfile){
-	logfile = Logfile;
-};
 
 void TVcfCompare::addToOtherMissing(TGenotypeComparisonTable & counts, const int sample){
 	if(!vcfFiles[sample].isMissing()){
@@ -267,14 +259,14 @@ void TVcfCompare::addToOtherMissing(TGenotypeComparisonTable & counts, const int
 	}
 };
 
-void TVcfCompare::compareVCFFiles(TParameters & parameters){
+void TVcfCompare::compareVCFFiles(){
 	//open vcf files
-	logfile->startIndent("Open VCF files to compare:");
+	logfile().startIndent("Open VCF files to compare:");
 	std::vector<std::string> fileNames;
-	parameters.fillParameterIntoContainer("vcf", fileNames, ',');
+	parameters().fillParameterIntoContainer("vcf", fileNames, ',');
 
 	std::vector<std::string> sampleNames;
-	parameters.fillParameterIntoContainer("samples", sampleNames, ',');
+	parameters().fillParameterIntoContainer("samples", sampleNames, ',');
 
 	//currently only implemented for comparing two VCFs
 	if(fileNames.size() != 2)
@@ -286,27 +278,27 @@ void TVcfCompare::compareVCFFiles(TParameters & parameters){
 
 	//open VCF files
 	for(size_t i=0; i<fileNames.size(); i++){
-		vcfFiles.emplace_back(fileNames[i], sampleNames[i], logfile);
+		vcfFiles.emplace_back(fileNames[i], sampleNames[i]);
 	}
-	logfile->endIndent();
+	logfile().endIndent();
 
 	//are filters in place?
-	int minDepth = parameters.getParameterWithDefault<int>("minDepth", 0);
+	int minDepth = parameters().getParameterWithDefault<int>("minDepth", 0);
 	if(minDepth > 0){
-		logfile->list("Will consider genotypes with depth < " + toString(minDepth) + " as missing.");
+		logfile().list("Will consider genotypes with depth < " + toString(minDepth) + " as missing.");
 	}
-	double minQual = parameters.getParameterWithDefault("minQual", 0.0);
+	double minQual = parameters().getParameterWithDefault("minQual", 0.0);
 	if(minQual > 0){
-		logfile->list("Will consider genotypes with quality < " + toString(minQual) + " as missing.");
+		logfile().list("Will consider genotypes with quality < " + toString(minQual) + " as missing.");
 	}
 
 	//limitLines
 	bool limitLines = false;
 	long lineLimit = -1;
-	if(parameters.parameterExists("limitLines")){
+	if(parameters().parameterExists("limitLines")){
 		limitLines = true;
-		logfile->list("Will stop reading after ", limitLines, " lines.");
-		lineLimit = parameters.getParameter<int>("limitLines");
+		logfile().list("Will stop reading after ", limitLines, " lines.");
+		lineLimit = parameters().getParameter<int>("limitLines");
 	}
 
 	//set filters in VCF files
@@ -318,7 +310,7 @@ void TVcfCompare::compareVCFFiles(TParameters & parameters){
 	TGenotypeComparisonTable counts;
 
 	//now parse VCf files and compare calls
-	logfile->startIndent("Parsing vcf file:");
+	logfile().startIndent("Parsing vcf file:");
 	uint32_t numLines = 0;
 	struct timeval start;
 	gettimeofday(&start, NULL);
@@ -398,18 +390,18 @@ void TVcfCompare::compareVCFFiles(TParameters & parameters){
 			struct timeval end;
 			gettimeofday(&end, NULL);
 			float runtime = (end.tv_sec  - start.tv_sec)/60.0;
-			logfile->list("Parsed " + toString(numLines) + " lines in " + toString(runtime) + " min.");
+			logfile().list("Parsed " + toString(numLines) + " lines in " + toString(runtime) + " min.");
 		}
 	}
 	struct timeval end;
 	gettimeofday(&end, NULL);
 	float runtime = (end.tv_sec  - start.tv_sec)/60.0;
-	logfile->list("Parsed " + toString(numLines) + " lines in " + toString(runtime) + " min.");
-	logfile->list("Reached end of files.");
-	logfile->endIndent();
+	logfile().list("Parsed " + toString(numLines) + " lines in " + toString(runtime) + " min.");
+	logfile().list("Reached end of files.");
+	logfile().endIndent();
 
 	//write output file
-	std::string out = parameters.getParameter<std::string>("out", false);
+	std::string out = parameters().getParameter<std::string>("out", false);
 	if(out.empty()){
 		//guess from filename
 		//get base name of first VCF file
@@ -434,9 +426,9 @@ void TVcfCompare::compareVCFFiles(TParameters & parameters){
 	out += "_CallComparison.txt";
 
 	//writing output file
-	logfile->listFlush("Writing counts to file '" + out + "' ...");
+	logfile().listFlush("Writing counts to file '" + out + "' ...");
 	counts.write(out);
-	logfile->done();
+	logfile().done();
 };
 
 }; //end namespace

@@ -29,7 +29,6 @@ namespace GenomeTasks {
 
 using coretools::instances::logfile;
 using coretools::instances::parameters;
-using coretools::instances::randomGenerator;
 using coretools::str::toString;
 
 //-----------------------------------
@@ -274,9 +273,9 @@ void TEstimateThetaDownsamplingQC::_handleWindow() {
 		// downsample
 		logfile().listFlush("Downsampling reads with p = " + toString(p) + " ...");
 		if (_subset)
-			destination.downsampleFromOther(_window, *_subset, _readUpToDepth, p, &randomGenerator());
+			destination.downsampleFromOther(_window, *_subset, _readUpToDepth, p);
 		else
-			destination.downsampleFromOther(_window, _readUpToDepth, p, &randomGenerator());
+			destination.downsampleFromOther(_window, _readUpToDepth, p);
 		logfile().done();
 
 		// apply filters

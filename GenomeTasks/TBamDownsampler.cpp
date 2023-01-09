@@ -68,7 +68,7 @@ void TBamSample::downsampleRead(BAM::TAlignment & alignment){
 	alignment.parse();
 
 	//downsample
-	alignment.downsampleAlignment(_prob, randomGenerator());
+	alignment.downsampleAlignment(_prob);
 
 	//write
 	_out.writeAlignment(alignment);

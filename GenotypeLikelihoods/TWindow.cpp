@@ -27,8 +27,9 @@
 namespace GenotypeLikelihoods{
 
 using coretools::str::toString;
-using coretools::TRandomGenerator;
 using coretools::Probability;
+using coretools::instances::logfile;
+using coretools::instances::randomGenerator;
 
 //-------------------------------------------------------
 //TWindow_base
@@ -45,13 +46,9 @@ TWindow_base::TWindow_base(){
 	_depthCalculated = false;
 };
 
-TWindow_base::TWindow_base(TWindow & other, const int readUpToDepth, const Probability & downsamplingProb, TRandomGenerator* randomGenerator){
+TWindow_base::TWindow_base(TWindow & other, const int readUpToDepth, const Probability & downsamplingProb){
 	//initialize coordinates and sites
-	downsampleFromOther(other, readUpToDepth, downsamplingProb, randomGenerator);
-};
-
-TWindow_base::~TWindow_base(){
-	clear();
+	downsampleFromOther(other, readUpToDepth, downsamplingProb);
 };
 
 void TWindow_base::clear(){
@@ -103,27 +100,27 @@ void TWindow_base::resize(size_t newLength){
 	clear();
 };
 
-void TWindow_base::downsampleFromOther(TWindow & other, size_t readUpToDepth, const Probability & downsamplingProb, TRandomGenerator* randomGenerator){
+void TWindow_base::downsampleFromOther(TWindow & other, size_t readUpToDepth, const Probability & downsamplingProb){
 	clear();
 
 	//set coordinates
 	move(other, other.chrName());
 
 	//fill sites by downsampling
-	_numReadsInWindow = other._fillSitesDownsampling(_sites, readUpToDepth, downsamplingProb, randomGenerator);
+	_numReadsInWindow = other._fillSitesDownsampling(_sites, readUpToDepth, downsamplingProb);
 
 	//calc depth
 	_calcDepth();
 };
 
-void TWindow_base::downsampleFromOther(TWindow & other, TSiteSubset & subset, size_t readUpToDepth, const Probability & downsamplingProb, TRandomGenerator* randomGenerator){
+void TWindow_base::downsampleFromOther(TWindow & other, TSiteSubset & subset, size_t readUpToDepth, const Probability & downsamplingProb){
 	clear();
 
 	//set coordinates
 	move(other, other.chrName());
 
 	//fill sites by downsampling
-	_numReadsInWindow = other._fillSitesSubsetDownsampling(_sites, subset, readUpToDepth, downsamplingProb, randomGenerator);
+	_numReadsInWindow = other._fillSitesSubsetDownsampling(_sites, subset, readUpToDepth, downsamplingProb);
 
 	//calc depth
 	_calcDepth();
@@ -192,17 +189,17 @@ void TWindow_base::dataSummary(){
 	logfile().conclude(toString(_fractionSitesNoData * 100) + "% of all sites have no data.");
 };
 
-bool TWindow_base::filter(const double maxFracMissing, const double maxRefN, coretools::TLog* Logfile){
+bool TWindow_base::filter(const double maxFracMissing, const double maxRefN){
 	_calcDepth();
 
 	//filter window
 	if(_fractionSitesNoData > maxFracMissing){
-		Logfile->conclude("Level of missing data > threshold of " + toString(maxFracMissing) + " -> skipping this window.");
+		logfile().conclude("Level of missing data > threshold of " + toString(maxFracMissing) + " -> skipping this window.");
 		_passedFilters = false;
 	} else if(maxRefN < 1.0 && referenceBaseAdded == true){
-		Logfile->conclude(toString(_fractionRefIsN * 100) + "% of all reference bases are 'N'.");
+		logfile().conclude(toString(_fractionRefIsN * 100) + "% of all reference bases are 'N'.");
 		if(_fractionRefIsN > maxRefN){
-			Logfile->conclude("Fraction of 'N' in reference > threshold of " + toString(maxRefN) + " -> skipping this window.");
+			logfile().conclude("Fraction of 'N' in reference > threshold of " + toString(maxRefN) + " -> skipping this window.");
 			_passedFilters = false;
 		}
 	} else {
@@ -412,14 +409,14 @@ void TWindow::_fillSites(std::vector<TSite> & sites, size_t readUpToDepth){
 	}
 };
 
-int TWindow::_fillSitesDownsampling(std::vector<TSite> & sites, size_t readUpToDepth, const Probability & downsamplingProb, TRandomGenerator* randomGenerator){
+int TWindow::_fillSitesDownsampling(std::vector<TSite> & sites, size_t readUpToDepth, const Probability & downsamplingProb){
 	sites.resize(size());
 
 	//add reads in usedAlignments to sites in window
 	int counter = 0;
 	for(auto& a : usedAlignments){
 		//fill if alignment is to be used
-		if(randomGenerator->getRand() < downsamplingProb){
+		if(randomGenerator().getRand() < downsamplingProb){
 			_fillSites(a, sites, readUpToDepth);
 			++counter;
 		}
@@ -478,7 +475,7 @@ void TWindow::_fillSitesSubset(std::vector<TSite> & sites, TSiteSubset & subset,
 	}
 };
 
-int TWindow::_fillSitesSubsetDownsampling(std::vector<TSite> & sites, TSiteSubset & subset, size_t readUpToDepth, const Probability& downsamplingProb, TRandomGenerator* randomGenerator){
+int TWindow::_fillSitesSubsetDownsampling(std::vector<TSite> & sites, TSiteSubset & subset, size_t readUpToDepth, const Probability& downsamplingProb){
 	sites.resize(size());
 
 	//get positions that are used
@@ -488,7 +485,7 @@ int TWindow::_fillSitesSubsetDownsampling(std::vector<TSite> & sites, TSiteSubse
 	int counter = 0;
 	for(auto & a : usedAlignments){
 		//check if alignment is to be used
-		if(randomGenerator->getRand() < downsamplingProb){
+		if(randomGenerator().getRand() < downsamplingProb){
 			//now fill
 			_fillSitesSubset(a, sites, thesePositions, readUpToDepth);
 			++counter;

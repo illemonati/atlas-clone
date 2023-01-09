@@ -42,7 +42,7 @@ void TSexEstimator::_initializeRegion(std::string regionsFile, int regionNum) {
 	logfile().startIndent((std::string) "Region " + std::to_string(regionNum+1) + ":");
 	logfile().list((std::string) "Reading region " + std::to_string(regionNum+1) + " from file '" + regionsFile + "'...");
 
-	_regions.push_back(std::make_unique<BAM::TBedReaderWindows>(regionsFile, _windowSize, _chromosomes, _siteLimit, &logfile(), _adaptRegions));
+	_regions.push_back(std::make_unique<BAM::TBedReaderWindows>(regionsFile, _windowSize, _chromosomes, _siteLimit, _adaptRegions));
 	coretools::TCountDistribution<> distPerSite;
 	_distPerSites.push_back(distPerSite);
 

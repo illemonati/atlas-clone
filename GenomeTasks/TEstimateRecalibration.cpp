@@ -32,7 +32,7 @@ BAM::TReadGroupMap makeReadGroupMap(const BAM::TReadGroups &ReadGroups) {
 	if (parameters().parameterExists("poolReadGroups")) {
 		std::string poolReadGroupsFile = parameters().getParameter<std::string>("poolReadGroups");
 		logfile().startIndent("Will pool read groups (parameter 'poolReadGroups'):");
-		return {ReadGroups, poolReadGroupsFile, &logfile()};
+		return {ReadGroups, poolReadGroupsFile};
 		logfile().endIndent();
 	} else {
 		logfile().list("Will estimate recalibration parameters for each read group. (use 'poolReadGroups' to pool)");

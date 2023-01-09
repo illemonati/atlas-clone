@@ -42,7 +42,7 @@ TPMDEstimator::TPMDEstimator(): TGenome_parsed() {
 	_openReference(true);
 
 	//prepare maps
-	_readGroupMap = std::make_unique<BAM::TReadGroupMap>(_bamFile.readGroups(), parameters().getParameter<std::string>("poolReadGroups", false), &logfile());
+	_readGroupMap = std::make_unique<BAM::TReadGroupMap>(_bamFile.readGroups(), parameters().getParameter<std::string>("poolReadGroups", false));
 
 	//parse estimation parameters
 	logfile().startIndent("Parameters for PMD Estimation:");

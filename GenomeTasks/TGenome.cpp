@@ -548,7 +548,7 @@ void TGenome_windows::_applyWindowFilters(GenotypeLikelihoods::TWindow_base &win
 	}
 
 	// apply filters on window
-	window.filter(_maxMissing, _maxRefN, &logfile());
+	window.filter(_maxMissing, _maxRefN);
 
 	// report
 	if (window.numReadsInWindow() > 0) {

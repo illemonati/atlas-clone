@@ -673,9 +673,7 @@ void TPostMortemDamage::_setHasDamage() {
 
 std::vector<uint16_t> TPostMortemDamage::initialize(const std::string &pmdString, const BAM::TReadGroups &ReadGroups) {
 	if (_hasPMD) {
-		throw std::runtime_error(
-			"void TPostMortemDamage::initialize(const std::string & pmdString, const BAM::TReadGroups & ReadGroups, "
-			"TLog* Logfile, std::vector<uint16_t> & ReadGroupsWithoutPMD): Models already initialized!");
+		DEVERROR("Models already initialized!");
 	}
 
 	// prepare objects

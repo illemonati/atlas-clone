@@ -19,11 +19,12 @@
 namespace BAM{
 
 using coretools::str::toString;
+using coretools::instances::logfile;
 
 //---------------------------------------------------------------
 //TReadGroup
 //---------------------------------------------------------------
-TReadGroup::TReadGroup(const uint16_t ID, const std::string Name){
+TReadGroup::TReadGroup(const uint16_t ID, std::string_view Name){
 	_id = ID;
 	name_ID = Name;
 	inUse = true;
@@ -113,11 +114,11 @@ bool TReadGroup::operator<(const TReadGroup & right) const{
 	return name_ID < right.name_ID;
 };
 
-bool TReadGroup::operator<(const std::string & right) const{
+bool TReadGroup::operator<(std::string_view right) const{
 	return name_ID < right;
 };
 
-bool operator<(const std::string & left, const TReadGroup & right){
+bool operator<(std::string_view left, const TReadGroup & right){
 	return left < right.name_ID;
 };
 
@@ -167,7 +168,7 @@ void TReadGroups::_fillLookupFromId(){
 	}
 };
 
-const TReadGroup& TReadGroups::add(const std::string name){
+const TReadGroup& TReadGroups::add(std::string_view name){
 	const auto rg = _readGroups.emplace(_readGroups.size(), name);
 	if(rg.second){
 		_fillLookupFromId();
@@ -175,13 +176,13 @@ const TReadGroup& TReadGroups::add(const std::string name){
 	return *rg.first;
 };
 
-const TReadGroup& TReadGroups::addAlternativeRG(const std::string Name, const std::string original){
+const TReadGroup& TReadGroups::addAlternativeRG(std::string_view Name, std::string_view original){
 	//getId original
 	const TReadGroup& rg = getReadGroup(original);
 
 	//make sure new name does not yet exist
 	if(readGroupExists(Name)){
-		throw "Can not add truncated or merged read group '" + Name + "': read group already exists!";
+		UERROR("Can not add truncated or merged read group '", Name, "': read group already exists!");
 	}
 
 	//make copy
@@ -223,18 +224,18 @@ std::vector<std::string> TReadGroups::getNames(std::vector<uint16_t> & readGroup
 };
 
 
-uint16_t TReadGroups::getId(const std::string & name) const{
+uint16_t TReadGroups::getId(std::string_view name) const{
 	auto rg = _readGroups.find(name);
 	if(rg != _readGroups.end())
 		return rg->id();
-	throw "Read Group '" + name + "' is not present in header of bam file!";
+	UERROR("Read Group '", name, "' is not present in header of bam file!");
 };
 
-const TReadGroup& TReadGroups::getReadGroup(const std::string & name){
+const TReadGroup& TReadGroups::getReadGroup(std::string_view name){
 	auto rg = _readGroups.find(name);
 	if(rg != _readGroups.end())
 		return *rg;
-	throw "Read Group '" + name + "' is not present in header of bam file!";
+	UERROR("Read Group '", name, "' is not present in header of bam file!");
 };
 
 const TReadGroup& TReadGroups::operator[](uint16_t readGroupId) const{
@@ -242,7 +243,7 @@ const TReadGroup& TReadGroups::operator[](uint16_t readGroupId) const{
 	return *_readGroupsById[readGroupId];
 };
 
-bool TReadGroups::readGroupExists(const std::string & name) const{
+bool TReadGroups::readGroupExists(std::string_view name) const{
 	auto rg = _readGroups.find(name);
 	if(rg != _readGroups.end())
 			return true;
@@ -253,14 +254,14 @@ bool TReadGroups::readGroupInUse(uint16_t readGroupId) const{
 	return _readGroupsById[readGroupId]->inUse;
 };
 
-bool TReadGroups::readGroupInUse(const std::string name) const{
+bool TReadGroups::readGroupInUse(std::string_view name) const{
 	auto rg = _readGroups.find(name);
 	if(rg != _readGroups.end())
 		return rg->inUse;
-	throw "Read Group '" + name + "' is not present in header of bam file!";
+	UERROR("Read Group '", name, "' is not present in header of bam file!");
 };
 
-void TReadGroups::filterReadGroups(std::string readGroupList){
+void TReadGroups::filterReadGroups(std::string_view readGroupList){
 	_limitReadGroups = true;
 	std::vector<std::string> readGroupsInUse;
 	coretools::str::fillContainerFromString(readGroupList, readGroupsInUse, ",");
@@ -281,10 +282,10 @@ void TReadGroups::filterReadGroups(std::string readGroupList){
 	}
 };
 
-void TReadGroups::removeFromHeader(const std::string name){
+void TReadGroups::removeFromHeader(std::string_view name){
 	auto rg = _readGroups.find(name);
 	if(rg == _readGroups.end())
-		throw "Read Group '" + name + "' is not present in header of bam file!";
+		UERROR("Read Group '", name, "' is not present in header of bam file!");
 	rg->writeToHeader = false;
 };
 
@@ -293,10 +294,10 @@ void TReadGroups::removeFromHeader(const uint16_t readGroupId){
 	_readGroupsById[readGroupId]->writeToHeader = false;
 };
 
-void TReadGroups::printReadgroupsInUse(coretools::TLog* logfile) const{
+void TReadGroups::printReadgroupsInUse() const{
 	for(auto& rg : _readGroups){
 		if(rg.inUse)
-			logfile->list(rg.name_ID);
+			logfile().list(rg.name_ID);
 	}
 };
 
@@ -324,11 +325,11 @@ TReadGroupMap::TReadGroupMap(const TReadGroups & ReadGroups){
 	_fillWithoutPooling(ReadGroups);
 };
 
-TReadGroupMap::TReadGroupMap(const TReadGroups & ReadGroups, const std::string filename, coretools::TLog* logfile){
+TReadGroupMap::TReadGroupMap(const TReadGroups & ReadGroups, std::string_view filename){
 	if(filename.empty()){
 		_fillWithoutPooling(ReadGroups);
 	} else {
-		_fillFromFile(ReadGroups, filename, logfile);
+		_fillFromFile(ReadGroups, filename);
 	}
 };
 
@@ -350,12 +351,12 @@ void TReadGroupMap::_fillWithoutPooling(const TReadGroups & ReadGroups){
 	}
 };
 
-void TReadGroupMap::_fillFromFile(const TReadGroups & ReadGroups, const std::string & filename, coretools::TLog* logfile){
+void TReadGroupMap::_fillFromFile(const TReadGroups & ReadGroups, std::string_view filename){
 	//set all values to no-initialized
 	_resize(ReadGroups);
 
 	//read read groups and their expected lengths
-	logfile->listFlush("Reading read groups to be pooled from file '" + filename + "' ...");
+	logfile().listFlush("Reading read groups to be pooled from file '", filename, "' ...");
 	coretools::TInputFile in(filename, {"readGroup", "poolWith"}, "\t", "//");
 
 	std::vector< std::vector<std::string> > readGroupsToMerge;
@@ -382,9 +383,9 @@ void TReadGroupMap::_fillFromFile(const TReadGroups & ReadGroups, const std::str
 			//check if rg can be pooled: allow self-pooling
 			if(rg != pool){
 				if(_readGroupMap[rg] == rg){
-					throw "Read group '" + vec[0] + "' can not be pooled and pool with at the same time!";
+					UERROR("Read group '", vec[0], "' can not be pooled and pool with at the same time!");
 				} else if(_readGroupMap[rg] != ReadGroupMapNotInitializedIndex){
-					throw "Read group '" + vec[0] + "' is pooled multiple times in file '" + filename + "'!";
+					UERROR("Read group '", vec[0], "' is pooled multiple times in file '", filename, "'!");
 				}
 
 				//pool!
@@ -401,22 +402,22 @@ void TReadGroupMap::_fillFromFile(const TReadGroups & ReadGroups, const std::str
 			_markAsInUse(r);
 		}
 	}
-	logfile->done();
+	logfile().done();
 
 	//report
 	if(pooledAtLeastOneRG){
-		logfile->startIndent("The read groups will be pooled for parameter estimation as follows:");
+		logfile().startIndent("The read groups will be pooled for parameter estimation as follows:");
 		for(uint16_t r = 0; r < _readGroupMap.size(); ++r){
 			if(_reverseReadGroupMap[r].size() > 0){
-				logfile->startIndent(ReadGroups.getName(r) + ":");
+				logfile().startIndent(ReadGroups.getName(r) + ":");
 				for(auto& s: _reverseReadGroupMap[r]){
-					logfile->list(ReadGroups.getName(s));
+					logfile().list(ReadGroups.getName(s));
 				}
-				logfile->endIndent();
+				logfile().endIndent();
 			}
 		}
 	} else {
-		logfile->warning("No read groups are pooled! Are you using the correct pooling file?");
+		logfile().warning("No read groups are pooled! Are you using the correct pooling file?");
 	}
 };
 

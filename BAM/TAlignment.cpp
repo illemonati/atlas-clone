@@ -477,10 +477,9 @@ void TAlignment::updateOptionalSamField(std::string tag, std::string value){
 };
 */
 
-void TAlignment::downsampleAlignment(const coretools::Probability &fractionToKeep,
-									 coretools::TRandomGenerator &randomGenerator) {
+void TAlignment::downsampleAlignment(const coretools::Probability &fractionToKeep) {
 	for (auto &b : _bases) {
-		double r = randomGenerator.getRand();
+		double r = coretools::instances::randomGenerator().getRand();
 		if (r > fractionToKeep) {
 			b.base                          = genometools::Base::N;
 			b.recalibratedQualityAsPhredInt = 0;

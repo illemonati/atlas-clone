@@ -15,10 +15,7 @@
 #include <vector>
 
 #include "genometools/GenotypeTypes.h"
-#include "coretools/Main/TLog.h"
-#include "coretools/Main/TParameters.h"
 #include "genometools/VCF/TPopulation.h"
-#include "coretools/Main/TRandomGenerator.h"
 #include "coretools/Main/TTask.h"
 #include "genometools/VCF/TVcfFile.h"
 namespace coretools { class TOutputFile; }
@@ -113,8 +110,6 @@ public:
 //------------------------------------------------
 class THardyWeinbergTest{
 private:
-	coretools::TLog* _logfile;
-	coretools::TRandomGenerator* _randonGenerator;
 	std::string _outname;
 
 	//vcf-file
@@ -129,11 +124,11 @@ private:
 	//genotype data
 	THWPopulations _populations;
 
-	void _openVCF(coretools::TParameters & Parameters);
+	void _openVCF();
 	void _closeVCF();
 
 public:
-	THardyWeinbergTest(coretools::TParameters & Parameters, coretools::TLog* logfile, coretools::TRandomGenerator* RandonGenerator);
+	THardyWeinbergTest();
 	void testForHardyWeinberg();
 };
 
@@ -146,7 +141,7 @@ public:
 
 	void run(){
 		using namespace coretools::instances;
-		THardyWeinbergTest HW_test(parameters(), &logfile(), &randomGenerator());
+		THardyWeinbergTest HW_test;
 		HW_test.testForHardyWeinberg();
 	};
 };

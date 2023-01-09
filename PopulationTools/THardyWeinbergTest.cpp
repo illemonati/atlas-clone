@@ -17,17 +17,18 @@
 #include <utility>
 
 #include "coretools/Files/TOutputFile.h"
-#include "coretools/TTimer.h"
-#include "genometools/VCF/TVcfParser.h"
+#include "coretools/Main/TLog.h"
+#include "coretools/Main/TParameters.h"
 #include "coretools/Math/mathFunctions.h"
 #include "coretools/Strings/stringFunctions.h"
+#include "coretools/TTimer.h"
+#include "genometools/VCF/TVcfParser.h"
 
 namespace PopulationTools{
 
-using coretools::TParameters;
-using coretools::TLog;
-using coretools::TRandomGenerator;
 using coretools::TOutputFile;
+using coretools::instances::logfile;
+using coretools::instances::parameters;
 
 //------------------------------------------------
 //THWHetProb
@@ -316,18 +317,16 @@ void THWPopulations::runTest(TOutputFile & out){
 //------------------------------------------------
 //THardyWeinbergTest
 //------------------------------------------------
-THardyWeinbergTest::THardyWeinbergTest(TParameters & Parameters, TLog* logfile, TRandomGenerator* RandonGenerator){
-	_logfile = logfile;
-	_randonGenerator = RandonGenerator;
+THardyWeinbergTest::THardyWeinbergTest(){
 
 	//read samples
-	if(Parameters.parameterExists("samples")){
-		_samples.readSamples(Parameters.getParameter<std::string>("samples"));
+	if(parameters().parameterExists("samples")){
+		_samples.readSamples(parameters().getParameter<std::string>("samples"));
 	}
 
 	//open VCF
-	_vcfFilename = Parameters.getParameter<std::string>("vcf");
-	_logfile->list("Reading vcf from file '" + _vcfFilename + "'.");
+	_vcfFilename = parameters().getParameter<std::string>("vcf");
+	logfile().list("Reading vcf from file '" + _vcfFilename + "'.");
 	_vcfFile.openStream(_vcfFilename);
 
 	//enable parsers
@@ -349,12 +348,12 @@ THardyWeinbergTest::THardyWeinbergTest(TParameters & Parameters, TLog* logfile, 
 
 	//get output name
 	std::string tmp = coretools::str::extractBeforeLast(_vcfFilename, ".vcf");
-	_outname = Parameters.getParameterWithDefault<std::string>("out", tmp);
+	_outname = parameters().getParameterWithDefault<std::string>("out", tmp);
 
 	//limit lines?
-	_limitLines = Parameters.parameterExists("limitLines");
+	_limitLines = parameters().parameterExists("limitLines");
 	if(_limitLines){
-		_maxNumLines = Parameters.getParameter<long>("limitLines");
+		_maxNumLines = parameters().getParameter<long>("limitLines");
 	} else {
 		_maxNumLines = 0;
 	}
@@ -363,7 +362,7 @@ THardyWeinbergTest::THardyWeinbergTest(TParameters & Parameters, TLog* logfile, 
 void THardyWeinbergTest::testForHardyWeinberg(){
 	//open output file
 	std::string filename = _outname + "_HWTest.txt.gz";
-	_logfile->list("Writing HW test results to file '" + filename + "'.");
+	logfile().list("Writing HW test results to file '" + filename + "'.");
 	std::vector<std::string> header = {"chr", "position"};
 	_populations.addToHeader(header);
 	TOutputFile out(filename, header);
@@ -374,7 +373,7 @@ void THardyWeinbergTest::testForHardyWeinberg(){
 	uint64_t numFiltered = 0;
 
 	//traverse VCF
-	_logfile->startIndent("Traversing VCF file:");
+	logfile().startIndent("Traversing VCF file:");
 	while(_vcfFile.next()){
 		++lineCounter;
 
@@ -399,7 +398,7 @@ void THardyWeinbergTest::testForHardyWeinberg(){
 
 			//progress / limit lines
 			if(lineCounter % 10000 == 0){
-				_logfile->list("Parsed ", lineCounter, " lines in " + timer.formattedTime());
+				logfile().list("Parsed ", lineCounter, " lines in " + timer.formattedTime());
 			}
 			if(_limitLines && lineCounter == _maxNumLines){
 				break;
@@ -408,10 +407,10 @@ void THardyWeinbergTest::testForHardyWeinberg(){
 			++numFiltered;
 		}
 	}
-	_logfile->list("Reached end of VCf file.");
-	_logfile->conclude("Parsed ", lineCounter, " lines in ", timer.formattedTime());
-	_logfile->conclude("Ignored ", numFiltered, " sites that were not bi-allelic SNPs.");
-	_logfile->endIndent();
+	logfile().list("Reached end of VCf file.");
+	logfile().conclude("Parsed ", lineCounter, " lines in ", timer.formattedTime());
+	logfile().conclude("Ignored ", numFiltered, " sites that were not bi-allelic SNPs.");
+	logfile().endIndent();
 
 	//close file
 	out.close();

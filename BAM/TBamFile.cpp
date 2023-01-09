@@ -72,7 +72,7 @@ void TBamFile::setLimits(){
 	if(parameters().parameterExists("readGroup")){
 		_readGroups.filterReadGroups(parameters().getParameter<std::string>("readGroup"));
 		logfile().startIndent("Will limit analysis to the following read groups:");
-		_readGroups.printReadgroupsInUse(&logfile());
+		_readGroups.printReadgroupsInUse();
 		logfile().endIndent();
 		_readGroupFilter.filter("Read group not in use");
 	} else {

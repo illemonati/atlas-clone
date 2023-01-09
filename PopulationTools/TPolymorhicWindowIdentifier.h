@@ -9,9 +9,6 @@
 #define POPULATIONTOOLS_TPOLYMORHICWINDOWIDENTIFIER_H_
 
 #include <string>
-#include "coretools/Main/TLog.h"
-#include "coretools/Main/TParameters.h"
-#include "coretools/Main/TRandomGenerator.h"
 #include "coretools/Main/TTask.h"
 
 
@@ -19,12 +16,8 @@ namespace PopulationTools{
 
 
 class TPolymorhicWindowIdentifier{
-private:
-	coretools::TLog* logfile;
-
 public:
-	TPolymorhicWindowIdentifier(coretools::TParameters & Parameters, coretools::TLog* logfile);
-	void identifyPolymorphicWindows(coretools::TParameters & Parameters, coretools::TRandomGenerator* randomGenerator);
+	void identifyPolymorphicWindows();
 };
 
 //--------------------------------------
@@ -35,9 +28,8 @@ public:
 	TTask_identifyPolymorphicWindows(){ _explanation = "Identifying windows for which samples are polymorphic"; };
 
 	void run(){
-		using namespace coretools::instances;
-		TPolymorhicWindowIdentifier identifier(parameters(), &logfile());
-		identifier.identifyPolymorphicWindows(parameters(), &randomGenerator());
+		TPolymorhicWindowIdentifier identifier;
+		identifier.identifyPolymorphicWindows();
 	}
 };
 

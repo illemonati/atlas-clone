@@ -21,7 +21,7 @@ namespace BAM{
 
 using coretools::str::toString;
 using coretools::str::fromString;
-using coretools::TLog;
+using coretools::instances::logfile;
 
 //-----------------------
 // TBedReaderWindow
@@ -127,7 +127,7 @@ uint32_t TBedReaderChromosome::size(){
 //-----------------------
 // TBedReader
 //-----------------------
-void TBedReaderWindows::readFile(const genometools::TChromosomes & chromosomeList, uint32_t siteLimit, TLog* logfile, bool adaptRegions){
+void TBedReaderWindows::readFile(const genometools::TChromosomes & chromosomeList, uint32_t siteLimit, bool adaptRegions){
 	//open file
 	std::istream* myStream = NULL;
 	if(filename.find(".gz")) myStream = new gz::igzstream(filename.c_str());
@@ -153,7 +153,7 @@ void TBedReaderWindows::readFile(const genometools::TChromosomes & chromosomeLis
 			if(fromString<int>(vec[1]) < 0 || fromString<int>(vec[2]) < 0) throw "Negative value in file '" + filename + "' on line " + toString(lineNum) + "!";
 			if(fromString<int>(vec[2]) <= fromString<int>(vec[1])) throw "Error: End position <= start position ('" + filename + "', line " + toString(lineNum) + ")";
 			//get chromosome
-			if(!chromosomeList.exists(vec[0])) logfile->warning("Chromosome '" + vec[0] + "' from BED file is not present in the BAM header!");
+			if(!chromosomeList.exists(vec[0])) logfile().warning("Chromosome '" + vec[0] + "' from BED file is not present in the BAM header!");
 			if(vec[0] != curChr){
 				chrIt = chromosomes.find(vec[0]);
 				if(chrIt == chromosomes.end()){
@@ -187,12 +187,12 @@ void TBedReaderWindows::readFile(const genometools::TChromosomes & chromosomeLis
 	delete myStream;
 };
 
-TBedReaderWindows::TBedReaderWindows(std::string Filename, uint32_t WindowSize, const genometools::TChromosomes & chromosomeList, uint32_t siteLimit, TLog* logfile, bool adaptRegions){
+TBedReaderWindows::TBedReaderWindows(std::string Filename, uint32_t WindowSize, const genometools::TChromosomes & chromosomeList, uint32_t siteLimit, bool adaptRegions){
 	filename = Filename;
 	windowSize = WindowSize;
 	numPositionsAdded = 0;
 	curChr = "";
-	readFile(chromosomeList, siteLimit, logfile, adaptRegions);
+	readFile(chromosomeList, siteLimit, adaptRegions);
 };
 
 TBedReaderWindows::~TBedReaderWindows(){
