@@ -108,7 +108,7 @@ TPileup::TPileup():TGenome_windows(){
 	}
 	if(_printSettings.get<Mates>()){
 		header.push_back("numFirstMate");
-		header.push_back("numSeondMate");
+		header.push_back("numSecondMate");
 	}
 	if(_printSettings.get<Strand>()){
 		header.push_back("numForwardStrand");
@@ -128,6 +128,9 @@ TPileup::TPileup():TGenome_windows(){
 		_printSettings.set<OnlySitesWithData>(true);
 		logfile().list("Will print only sites with data. (use 'printAll' to print all)");
 	}
+
+	//optional histograms
+	//maybe do it like above for all histograms?if (parameters().parameterExists("histogram"))
 };
 
 
@@ -179,7 +182,33 @@ void TPileup::_handleWindow(){
 			_genoLik = _genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(site);
 			impl::write(_genoLik, _out);
 		}
+
+		//write histograms
+		if(parameters().parameterExists("depthHistogram"))
+			_depthPerSite.add(site.depth());
+
+		if(parameters().parameterExists("qualHistogram")){
+			for (auto &b: site){
+				if(b.base != genometools::Base::N){
+					_qualDist.add(b.readGroupID, b.recalibratedQualityAsPhredInt.get());
+				}
+			}
+		}
+
+		if(parameters().parameterExists("contextHistogram")){
+			for(auto& b : site){
+				_contextDist.add(b.recalibratedQualityAsPhredInt.get(), coretools::index(b.context()));
+			}
+		}
 		_out.endln();
+	}
+
+	//write depth per window
+	if(parameters().parameterExists("depthHistogram")){
+		logfile().listFlush("Writing sequencing depth estimates to file ...");
+		_outDepthHistogram.writeNoDelim(_window.chrName(), ':', _window.from().position() + 1, '-', _window.to().position()).writeDelim();
+		_outDepthHistogram.writeln(_window.depth());
+		logfile().done();
 	}
 
 	logfile().doneTime();
@@ -187,6 +216,40 @@ void TPileup::_handleWindow(){
 
 void TPileup::printPileup(){
 	_traverseBAMWindows();
+
+	if (parameters().parameterExists("depthHistogram")){
+		//write distribution
+		logfile().list("Writing depth per site distribution to file '", _outputName, "_depthPerSiteHistogram.txt' ...");
+		_depthPerSite.write(_outputName + "_depthPerSiteHistogram.txt", "depth");
+	}
+
+	if (parameters().parameterExists("qualHistogram")){
+		//print distribution
+		std::string filename = _outputName + "_qualHistogram.txt";
+		logfile().listFlush("Writing quality distribution to '" + filename + "' ...");
+		coretools::TOutputFile out(filename, {"readGroup", "quality", "counts"});
+
+		//get read group names
+		std::vector<std::string> readGroupNames;
+		_bamFile.readGroups().fillVectorWithNames(readGroupNames);
+		//write combined
+		_qualDist.writeCombined(out, "allReadGroups");
+		_qualDist.write(out, readGroupNames);	
+	}
+
+	if (parameters().parameterExists("contextHistogram")){
+		//write counts
+		std::string outputFileName = _outputName + "_contextInformation.txt.gz";
+		logfile().list("Writing context information to file '" + outputFileName + "'.");
+
+		std::vector<std::string> contextLabels;
+
+		for(genometools::BaseContext c = genometools::BaseContext::min; c < genometools::BaseContext::max; ++c){
+			contextLabels.push_back(genometools::toString(c));
+		}
+
+		_contextDist.writeAsMatrix(outputFileName, "quality", contextLabels);
+	}
 };
 
 }; // end namespace

@@ -75,9 +75,9 @@ void addTaks(coretools::TMain & main) {
 	main.addRegularTask("duplication", new GenomeTasks::TTask_duplicationQuantifier());
 	main.addRegularTask("assessSoftClipping", new GenomeTasks::TTask_assessSoftClipping());
 	main.addRegularTask("removeSoftClippedBases", new GenomeTasks::TTask_removeSoftClippedBasesFromReads());
-	main.addRegularTask("qualityDist", new GenomeTasks::TTask_qualityDist());
+	//main.addRegularTask("qualityDist", new GenomeTasks::TTask_qualityDist());
 	main.addRegularTask("qualityTransformation", new GenomeTasks::TTask_qualityTransformation());
-	main.addRegularTask("contextStats", new GenomeTasks::TTask_quantifyContext());
+	//main.addRegularTask("contextStats", new GenomeTasks::TTask_quantifyContext());
 	main.addRegularTask("downsample", new GenomeTasks::TTask_downsample());
 	//main.addRegularTask("separateReads", new GenomeTasks::TTask_separateReads());
 	main.addRegularTask("downsampleReads", new GenomeTasks::TTask_downSampleReads());
@@ -87,7 +87,7 @@ void addTaks(coretools::TMain & main) {
 	//window tasks
 	main.addRegularTask("recal", new GenomeTasks::TTask_recal());
 	//TODO: add task to calculate LL of full model
-	main.addRegularTask("writeDepth", new GenomeTasks::TTask_depthWriter());
+	//main.addRegularTask("writeDepth", new GenomeTasks::TTask_depthWriter());
 	main.addRegularTask("createMask", new GenomeTasks::TTask_createMask());
 	main.addRegularTask("allelicDepth", new GenomeTasks::TTask_allelicDepth());
 	main.addRegularTask("PSMC", new GenomeTasks::TTask_PSMC());

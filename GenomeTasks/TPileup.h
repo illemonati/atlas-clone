@@ -26,6 +26,11 @@ namespace GenomeTasks {
 class TPileup : public TGenome_windows {
 private:
 	coretools::TOutputFile _out;
+	coretools::TOutputFile _outDepthHistogram;
+
+	coretools::TCountDistribution<> _depthPerSite;
+	coretools::TCountDistributionVector<> _qualDist;
+	coretools::TCountDistributionVector<> _contextDist;
 
 	// what to print?
 	coretools::TBitSet<8> _printSettings;
