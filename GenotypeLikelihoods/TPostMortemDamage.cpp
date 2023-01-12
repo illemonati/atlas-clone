@@ -14,6 +14,7 @@
 
 #include "TPostMortemDamage.h"
 
+#include <filesystem>
 #include <math.h>
 #include <stddef.h>
 #include <algorithm>
@@ -677,12 +678,9 @@ std::vector<uint16_t> TPostMortemDamage::initialize(const std::string &pmdString
 	std::vector<uint16_t> readGroupsWithoutPMD;
 	_pmdObjects.resize(ReadGroups.size());
 
-	// expect either a file name or a type of the form "type:functions"
-	// check if it is a file
-	if (stringContains(pmdString, ":")) {
+	if (!std::filesystem::exists(pmdString)) {
 		_initializeFromString(pmdString);
 	} else {
-		// probably a file
 		readGroupsWithoutPMD = _initializeFromFile(ReadGroups, pmdString);
 	}
 

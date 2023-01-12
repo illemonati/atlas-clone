@@ -24,14 +24,6 @@ namespace GenotypeLikelihoods{
 using coretools::instances::parameters;
 using coretools::instances::logfile;
 
-namespace impl {
-
-bool isLikelyAModel(const std::string &RecalString) noexcept {
-	// check if it contains a ';', ':', '[' or ']'
-	return coretools::str::stringContainsAny(RecalString, ";:[]");
-}
-} // namespace impl
-
 TGenotypeLikelihoodCalculator::TGenotypeLikelihoodCalculator(const BAM::TReadGroups* ReadGroups){
 	//initialize PMD
 	//--------------
@@ -57,7 +49,8 @@ TGenotypeLikelihoodCalculator::TGenotypeLikelihoodCalculator(const BAM::TReadGro
 		std::string recalString = parameters().getParameter<std::string>("recal");
 
 		//check if it is recal string
-		if(impl::isLikelyAModel(recalString)){
+
+		if (!std::filesystem::exists(recalString)) {
 			//assume it is a model string
 			logfile().startIndent("Parsing common recal model for all read groups:");
 			logfile().list("Provided model (parameter 'recal'): " + recalString);
@@ -70,7 +63,6 @@ TGenotypeLikelihoodCalculator::TGenotypeLikelihoodCalculator(const BAM::TReadGro
 			}
 			_sequencingErrorModels.initialize(recalString, rhoString, *ReadGroups);
 		} else {
-			//assume it it a recal file
 			logfile().startIndent("Initializing recal models from file '" + recalString + "' (parameter 'recal'):");
 			_sequencingErrorModels.initializeFromFile(recalString, *ReadGroups);
 			//warn if some read groups have no recal definition
