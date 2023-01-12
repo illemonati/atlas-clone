@@ -154,11 +154,16 @@ void TModelNoRecal::simulate(BAM::TSequencedBase &base) const noexcept {
 // functions to calculate error rates
 //-------------------------------------------------
 
+
 constexpr Probability calcEpsilon(double eta) noexcept {
 	if (eta > 23.03) return Probability(0.9999999999);
 	if (eta < -23.03) return Probability(0.0000000001);
 
 	return coretools::logistic(eta);
+}
+
+TModelRecal::TModelRecal(const BAM::RGInfo::TInfo &) : _epsilon("") {
+	WINK();
 }
 
 Probability TModelRecal::errorRate(const BAM::TSequencedBase &base) const noexcept {
