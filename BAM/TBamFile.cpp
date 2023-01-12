@@ -540,7 +540,6 @@ bool TBamFile::readNextAlignment(){
 	_curAlignmentPosition.move(_curBamAlignment.RefID, _curBamAlignment.Position);
 	++_numAlignmentRead;
 
-
 	//check if BAM file is sorted
 	if(_curAlignmentPosition < _previousAlignmentPosition){
 		UERROR("BAM file must be sorted by position! Alignment '", _curBamAlignment.Name, "' is at position ", _curBamAlignment.Position, ", which is before the position of the previous alignment (", _previousAlignmentPosition.position(), ")");
@@ -610,6 +609,7 @@ bool TBamFile::readNextAlignmentThatPassesFilters(TAlignment & alignment){
 
 bool TBamFile::jump(const genometools::TGenomePosition Position){
 	_previousAlignmentPosition.clear();
+	_curAlignmentPosition.clear();
 	return _bamReader.Jump(Position.refID(), Position.position());
 };
 
