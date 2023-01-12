@@ -49,7 +49,7 @@ void TReadGroupInfo::_setDefault(InfoType Info){
 	logfile().write("default value '",
 				   infos[Info].defaults,
 				   "' for all read groups. (set with '",
-				   TReadGroupInfo::_RGInfoArgument,
+				   TReadGroupInfo::RGInfoArgument,
 				   "' or '",
 				   infos[Info].argument,
 				   "')");
@@ -138,8 +138,8 @@ void TReadGroupInfo::_createReadGroupInfoEntries(const BAM::TReadGroups & ReadGr
 
 TReadGroupInfo::TReadGroupInfo(const BAM::TReadGroups & ReadGroups){
 	_createReadGroupInfoEntries(ReadGroups);
-	if (parameters().parameterExists(_RGInfoArgument)) {
-		_readFile(parameters().getParameter<std::string>(_RGInfoArgument, true));
+	if (parameters().parameterExists(RGInfoArgument)) {
+		_readFile(parameters().getParameter<std::string>(RGInfoArgument, true));
 	}
 }
 
@@ -168,11 +168,11 @@ BAM::TReadGroups TReadGroupInfo::createReadGroups(std::string_view RgInfoFileNam
 		}
 	} else {
 		// create identical read groups from command line
-		const auto numRG = parameters().getParameterWithDefault<coretools::StrictlyPositive<int>>(_numRGArgument, 2);
+		const auto numRG = parameters().getParameterWithDefault<coretools::StrictlyPositive<int>>(numRGArgument, 2);
 		if (numRG == 1) {
-			logfile().list("Initializing one read group from arguments. (parameter '", _numRGArgument, "')");
+			logfile().list("Initializing one read group from arguments. (parameter '", numRGArgument, "')");
 		} else {
-			logfile().list("Initializing ", numRG, " identical read groups from arguments (parameter '", _numRGArgument,
+			logfile().list("Initializing ", numRG, " identical read groups from arguments (parameter '", numRGArgument,
 						   "').");
 		}
 

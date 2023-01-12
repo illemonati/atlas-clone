@@ -141,8 +141,8 @@ private:
 	void _parse(InfoType Info);
 
 public:
-	static constexpr std::string_view _RGInfoArgument = "RGInfo";
-	static constexpr std::string_view _numRGArgument = "numReadGroups";
+	static constexpr std::string_view RGInfoArgument = "RGInfo";
+	static constexpr std::string_view numRGArgument = "numReadGroups";
 
 	TReadGroupInfo() = default;
 	TReadGroupInfo(const BAM::TReadGroups & ReadGroups);

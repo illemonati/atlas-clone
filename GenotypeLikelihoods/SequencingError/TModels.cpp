@@ -105,10 +105,12 @@ void TReadGroupModels::initialize(size_t mate, std::string_view RecalString, std
 
 TReadGroupModels::TReadGroupModels(const BAM::RGInfo::TReadGroupInfoEntry & Info){
 	using BAM::RGInfo::InfoType;
+	WINK();
 
 	//check if recal is provided
 	if(Info.has(InfoType::recal)){
 		auto& json = Info[InfoType::recal];
+		ECHO(json.dump());
 
 		//is this a single-end read group?
 		bool single = false;
@@ -237,6 +239,7 @@ void TModels::initialize(BAM::RGInfo::TReadGroupInfo &RgInfo) {
 	_models.reserve(RgInfo.size());
 
 	for (size_t rg = 0; rg < RgInfo.size(); ++rg) {
+		OUT(rg);
 		_models.emplace_back(RgInfo[rg]);
 	}
 }
