@@ -48,11 +48,14 @@ std::pair<std::string_view, std::string_view> epsRho(std::string_view s) {
 }
 
 void initModel(std::unique_ptr<TModel> & model, const BAM::RGInfo::TInfo & info){
+	ECHO(info.dump());
 	if(info.empty() || (info.is_string() && info.get<std::string_view>() == "default")){
 		model = std::make_unique<TModelNoRecal>();
-	} else {
-		// TODO
-		ECHO(info.dump());
+	} else if (info.is_string()) {
+		auto [recal, rho] = epsRho(info.get<std::string_view>());
+		model = std::make_unique<TModelRecal>(recal, rho);
+	}
+	else {
 		model = std::make_unique<TModelRecal>(info);
 	}
 }
@@ -97,7 +100,6 @@ void TReadGroupModels::initialize(size_t mate, std::string_view RecalString, std
 
 TReadGroupModels::TReadGroupModels(const BAM::RGInfo::TReadGroupInfoEntry & Info){
 	using BAM::RGInfo::InfoType;
-	WINK();
 
 	//check if recal is provided
 	if(Info.has(InfoType::recal)){
@@ -107,20 +109,16 @@ TReadGroupModels::TReadGroupModels(const BAM::RGInfo::TReadGroupInfoEntry & Info
 		bool single = false;
 		if(Info.has(InfoType::seqType) && Info[InfoType::seqType] == BAM::RGInfo::seqType::single){
 			single = true;
-			_models[0] = std::make_unique<TModelNoRecal>();
 		}
 
 		//check if two mates are provided
 		if(json.contains("Mate1")){
-			WINK();
 			impl::initModel(_models[0], json["Mate1"]);
-			WINK();
 			if(json.contains("Mate2")){
 				if(single){
-					UERROR("Recal provided for second mate of single-end read group '", Info.name(), "'!");
-				} else {
-					impl::initModel(_models[0], json["Mate2"]);
+					logfile().warning("Recal provided for second mate of single-end read group '", Info.name(), "'!");
 				}
+				impl::initModel(_models[1], json["Mate2"]);
 			} else {
 				_models[1] = std::make_unique<TModelNoRecal>();
 			}

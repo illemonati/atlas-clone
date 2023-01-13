@@ -9,7 +9,6 @@
 #define SIMULATIONS_TREADSIMULATORS_H_
 
 #include "TReadSimulator.h"
-#include "../GenotypeLikelihoods/SequencingError/TModels.h"
 #include "TPostMortemDamage.h"
 #include "genometools/GenomePositions/TGenomePosition.h"
 
@@ -24,7 +23,6 @@ private:
 	// simulation tools
 	BAM::TReadGroups _readGroups;
 	GenotypeLikelihoods::TPostMortemDamage _PMD;
-	GenotypeLikelihoods::SequencingError::TModels _recal;
 
 	// read simulator
 	std::vector<std::unique_ptr<TReadSimulator>> _readSimulators;

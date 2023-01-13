@@ -31,6 +31,8 @@ TEpsilon::TEpsilon(std::string_view Def) : _functions(makeFunctions(Def)) {
 	_F.resize(numParameters);
 }
 
+TEpsilon::TEpsilon(const BAM::RGInfo::TInfo &info) { ECHO(info.dump()); }
+
 TEpsilon::~TEpsilon() = default;
 
 void TEpsilon::checkOrInit(const RecalEstimatorTools::TRecalDataTable &DataTable) {
