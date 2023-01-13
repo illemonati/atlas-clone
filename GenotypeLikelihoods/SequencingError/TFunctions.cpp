@@ -1,5 +1,8 @@
 #include "TFunctions.h"
+#include "SequencingError/TCovariate.h"
 #include "TFunction.h"
+#include "coretools/Main/TError.h"
+#include <memory>
 
 namespace GenotypeLikelihoods::SequencingError {
 using namespace coretools::str;
@@ -244,7 +247,122 @@ public:
 		return in;
 	}
 };
+
+class TNewFunctionsTpl final : public TFunctions {
+	TIntercept _intercept;
+	enum class Covariates : size_t { min = 0, Quality = min, Position, Context, FragmentLength, MappingQuality, max };
+	static constexpr coretools::TStrongArray<std::string_view, Covariates> _covNames{
+		{TCovariate_quality::name, TCovariate_quality::name, TCovariate_quality::name, TCovariate_quality::name,
+		 TCovariate_quality::name}};
+
+	coretools::TStrongArray<std::unique_ptr<TFunction>, Covariates> _covariates{{nullptr, nullptr, nullptr, nullptr, nullptr}};
+	std::vector<double> _oldBetas;
+
+public:
+	TNewFunctionsTpl(std::string_view Def) : _intercept(0) {
+		OUT(Def);
+		auto modelDef  = impl::parseFunctions(Def);
+
+		// intercept
+		for (const auto &md : modelDef) {
+			if (md.covariate == TIntercept::name) {
+				const auto [type, betas] = parseFunction(md.function);
+				if (!betas.empty()) fromString<true>(betas.front(), *_intercept.begin());
+			} else if (md.function == TIntercept::name) {
+				// intercept can be parsed the wrong way around :-(
+				const auto [type, betas] = parseFunction(md.covariate);
+				if (!betas.empty()) fromString<true>(betas.front(), *_intercept.begin());
+			}
+		}
+
+		size_t index = _intercept.numParameters();
+
+		for (auto cov = Covariates::min; cov < Covariates::max; ++cov) {
+			OUT(_covNames[cov]);
+			for (const auto &md : modelDef) {
+				OUT(md.covariate);
+				OUT(md.function);
+				if (md.covariate == _covNames[cov]) {
+					if (_covariates[cov]) UERROR("Covariate ", _covNames[cov], " has two functions, only one is allowed!");
+					_covariates[cov].reset(impl::makeCovFunction<TCovariate_quality>(md.function, index));
+					index += _covariates[cov]->numParameters();
+				}
+			}
+			if (!_covariates[cov]) _covariates[cov] = std::make_unique<TNoFunction>();
+		}
+	}
+
+	void checkOrInit(const RecalEstimatorTools::TRecalDataTable &DataTable) override {
+		size_t index = _intercept.numParameters();
+
+		for (auto &cov : _covariates) {
+			if (!cov->checkOrInitValueRange(DataTable, index)) {
+				UERROR("Function ", cov->typeString(), " does not cover full range of data");
+			}
+			index += cov->numParameters();
+		}
+	}
+
+	size_t numParameters() const noexcept override {
+		size_t numParameters = _intercept.numParameters();
+		for (const auto& cov: _covariates) {
+			numParameters += cov->numParameters();
+		}
+		return numParameters;
+	}
+
+	coretools::Probability getEpsilon(const BAM::TSequencedBase &base) const override {
+		double eta = _intercept.getEta();
+		for (const auto &cov : _covariates) eta += cov->getEta(base);
+		return impl::calcEpsilon(eta);
+	}
+
+	coretools::Probability getEpsilon(const BAM::TSequencedBase &base, std::vector<T1stDerivative> &der1,
+									  std::vector<T2ndDerivative> &der2) const noexcept override {
+		double eta = _intercept.getEta(der1);
+		for (const auto &cov : _covariates) eta += cov->getEta(base, der1, der2);
+		return impl::calcEpsilon(eta);
+	}
+
+	void reject() noexcept override {
+		auto old = _oldBetas.begin();
+		*_intercept.begin() = *old;
+		++old;
+		for (const auto &cov : _covariates) {
+			for (auto &beta : *cov) {
+				beta = *old;
+				++old;
+			}
+		}
+	}
+	void propose(double lambda, const arma::mat &_JxF) noexcept override {
+		size_t index = 0;
+		_oldBetas.clear();
+		_oldBetas.push_back(*_intercept.begin());
+		*_intercept.begin() -= lambda * _JxF(index++);
+		for (const auto &fn : _covariates) {
+			for (auto &beta : *fn) {
+				_oldBetas.push_back(beta);
+				beta -= lambda * _JxF(index++);
+			}
+		}
+	}
+	std::string definition() const noexcept override {
+		return std::accumulate(_covariates.begin(), _covariates.end(), _intercept.modelString(),
+							   [](auto tot, auto &cov) { return tot.append(1, ';').append(cov->modelString()); });
+	}
+	BAM::RGInfo::TInfo info() const override {
+		BAM::RGInfo::TInfo in;
+		_intercept.addInfo(in);
+		for (const auto &cov : _covariates) { cov->addInfo(in); }
+		return in;
+	}
+};
+
 } // namespace impl
 
-TFunctions *makeFunctions(std::string_view Def) { return new impl::TFunctionsTpl(Def); }
+TFunctions *makeFunctions(std::string_view Def) {
+	//return new impl::TFunctionsTpl(Def);
+	return new impl::TNewFunctionsTpl(Def);
+}
 } // namespace GenotypeLikelihoods::SequencingError
