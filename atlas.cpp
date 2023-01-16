@@ -72,7 +72,7 @@ void addTaks(coretools::TMain & main) {
 	main.addRegularTask("pileup", new GenomeTasks::TTask_pileup());
 	main.addRegularTask("BAMDiagnostics", new GenomeTasks::TTask_BAMDiagnostics());
 	main.addRegularTask("readOverlap", new GenomeTasks::TTask_overlapQuantifier());
-	main.addRegularTask("duplication", new GenomeTasks::TTask_duplicationQuantifier());
+	//main.addRegularTask("duplication", new GenomeTasks::TTask_duplicationQuantifier());
 	main.addRegularTask("assessSoftClipping", new GenomeTasks::TTask_assessSoftClipping());
 	main.addRegularTask("removeSoftClippedBases", new GenomeTasks::TTask_removeSoftClippedBasesFromReads());
 	//main.addRegularTask("qualityDist", new GenomeTasks::TTask_qualityDist());

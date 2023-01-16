@@ -79,7 +79,7 @@ void TAllelicDepthCounts::write(const std::string &filename, bool printEmpty){
 		for(uint32_t c=0; c<_size; ++c){
 			for(uint32_t g=0; g<_size; ++g){
 				for(uint32_t t=0; t<_size; ++t){
-					if((printEmpty || _counts[impl::index(a,c,g,t, _size)] > 0) && (a > 0 || c > 0 || g > 0 || t > 0)){
+					if((printEmpty || _counts[impl::index(a,c,g,t, _size)] > 0)){
 						//write numA, C, G and T and depth
 						out << a << c << g << t << a+c+g+t;
 						//find max
@@ -105,10 +105,14 @@ void TAllelicDepthCounts::write(const std::string &filename, bool printEmpty){
 						} else {
 							//find second
 							uint32_t second = 0;
-							if((a < max && a > second)) second = a;
-							if((c < max && c > second))// || (c > 0 && c == second && randomGenerator().getRand())) second = c;
-							if((g < max && g > second))// || (c > 0 && c == second && randomGenerator().getRand())) second = g;
-							if((t < max && t > second))// || (c > 0 && c == second && randomGenerator().getRand())) second = t;
+							if(a < max && a > second)
+								second = a;
+							if(c < max && c > second)
+								second = c;
+							if(g < max && g > second)
+								second = g;
+							if(t < max && t > second)
+								second = t;
 
 							//print minor
 							if(a == second) out << 'A' << a;
