@@ -31,7 +31,13 @@ TEpsilon::TEpsilon(std::string_view Def) : _functions(makeFunctions(Def)) {
 	_F.resize(numParameters);
 }
 
-TEpsilon::TEpsilon(const BAM::RGInfo::TInfo &info) { ECHO(info.dump()); }
+TEpsilon::TEpsilon(const BAM::RGInfo::TInfo &info) : _functions(makeFunctions(info)) {
+	const size_t numParameters = _functions->numParameters();
+
+	// prepare Newton-Raphson variables
+	_Jacobian.resize(numParameters, numParameters);
+	_F.resize(numParameters);
+}
 
 TEpsilon::~TEpsilon() = default;
 

@@ -7,30 +7,30 @@
 
 #include "SequencingError/TModel.h"
 
+#include <algorithm>
 #include <array>
 #include <math.h>
-#include <stdlib.h>
-#include <algorithm>
 #include <memory>
 #include <ostream>
+#include <stdlib.h>
 #include <tuple>
 #include <type_traits>
 #include <utility>
 
 #include "RecalEstimatorTools.h"
-#include "coretools/Main/TError.h"
-#include "TGenotypeData.h"
-#include "coretools/Main/TRandomGenerator.h"
-#include "TSequencedBase.h"
 #include "SequencingError/TCovariate.h"
+#include "TGenotypeData.h"
+#include "TSequencedBase.h"
 #include "coretools/Containers/TStrongArray.h"
-#include "coretools/Strings/fromString.h"
-#include "coretools/devtools.h"
+#include "coretools/Main/TError.h"
+#include "coretools/Main/TRandomGenerator.h"
 #include "coretools/Math/mathFunctions.h"
-#include "coretools/Types/probability.h"
+#include "coretools/Strings/fromString.h"
 #include "coretools/Strings/stringFunctions.h"
 #include "coretools/Strings/toString.h"
+#include "coretools/Types/probability.h"
 #include "coretools/Types/weakTypes.h"
+#include "coretools/devtools.h"
 #include "coretools/enum.h"
 
 namespace GenotypeLikelihoods {
@@ -55,11 +55,9 @@ genometools::PhredIntProbability TModelNoRecal::phredInt(const BAM::TSequencedBa
 }
 
 TBaseLikelihoods TModelNoRecal::baseLikelihoods(const BAM::TSequencedBase &base) const noexcept {
-	if (base == Base::N) {
-		return TBaseLikelihoods{1.};
-	}
+	if (base == Base::N) { return TBaseLikelihoods{1.}; }
 	const auto eps = static_cast<Probability>(base.originalQuality_phredInt);
-	TBaseLikelihoods baseLikelihoods{(1./3)*eps};
+	TBaseLikelihoods baseLikelihoods{(1. / 3) * eps};
 	baseLikelihoods[base.base] = eps.complement();
 	return baseLikelihoods;
 }
@@ -78,18 +76,6 @@ void TModelNoRecal::simulate(BAM::TSequencedBase &base) const noexcept {
 // TModelRecal
 //*********************************************************
 
-//-------------------------------------------------
-// functions to calculate error rates
-//-------------------------------------------------
-
-
-constexpr Probability calcEpsilon(double eta) noexcept {
-	if (eta > 23.03) return Probability(0.9999999999);
-	if (eta < -23.03) return Probability(0.0000000001);
-
-	return coretools::logistic(eta);
-}
-
 Probability TModelRecal::errorRate(const BAM::TSequencedBase &base) const noexcept {
 	if (base == Base::N) return Probability::highest();
 	return _epsilon.calcErrorRate(base);
@@ -101,9 +87,7 @@ genometools::PhredIntProbability TModelRecal::phredInt(const BAM::TSequencedBase
 }
 
 TBaseLikelihoods TModelRecal::baseLikelihoods(const BAM::TSequencedBase &base) const noexcept {
-	if (base == Base::N) {
-		return TBaseLikelihoods{1.};
-	}
+	if (base == Base::N) { return TBaseLikelihoods{1.}; }
 	const auto e = _epsilon.calcErrorRate(base);
 	const auto l = base.base;
 	TBaseLikelihoods baseLikelihoods;
@@ -118,10 +102,11 @@ void TModelRecal::simulate(BAM::TSequencedBase &base) const noexcept {
 	const auto e = _epsilon.calcErrorRate(base);
 	if (randomGenerator().getRand() < e) {
 		const auto k = base.base;
-		constexpr coretools::TStrongArray<std::array<Base, 3>, Base> lss({std::array<Base, 3>{Base::C, Base::G, Base::T},
-																		 {Base::A, Base::G, Base::T},
-																		 {Base::A, Base::C, Base::T},
-																		 {Base::A, Base::C, Base::G}});
+		constexpr coretools::TStrongArray<std::array<Base, 3>, Base> lss(
+			{std::array<Base, 3>{Base::C, Base::G, Base::T},
+			 {Base::A, Base::G, Base::T},
+			 {Base::A, Base::C, Base::T},
+			 {Base::A, Base::C, Base::G}});
 		const auto ls = lss[k];
 
 		double r = randomGenerator().getRand();

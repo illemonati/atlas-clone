@@ -35,6 +35,7 @@ struct TFunctions {
 	virtual BAM::RGInfo::TInfo info() const                                                     = 0;
 };
 TFunctions *makeFunctions(std::string_view Def);
+TFunctions *makeFunctions(const BAM::RGInfo::TInfo& info);
 } // namespace GenotypeLikelihoods::SequencingError
 
 #endif

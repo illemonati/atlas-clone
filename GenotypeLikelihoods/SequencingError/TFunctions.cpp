@@ -1,6 +1,7 @@
 #include "TFunctions.h"
 #include "SequencingError/TCovariate.h"
 #include "TFunction.h"
+#include "TReadGroupInfo.h"
 #include "coretools/Main/TError.h"
 #include "coretools/enum.h"
 #include <bits/utility.h>
@@ -40,7 +41,7 @@ auto parseFunction(std::string_view str) {
 	return std::make_pair(str.substr(0, beg), TSplitter<>(str.substr(beg + 1, end - beg - 1), ','));
 }
 
-template<typename Covariate> TFunction *makeCovFunction(std::string_view Function, size_t FirstParameterIndex) {
+template<typename Covariate> TFunction *makeCovFunction(std::string_view Function, size_t index) {
 	auto [type, Spl] = parseFunction(Function);
 
 	if (stringStartsWith(type, TPolynomial<1, Covariate>::name)) {
@@ -67,15 +68,15 @@ template<typename Covariate> TFunction *makeCovFunction(std::string_view Functio
 		}
 		TFunction* fn;
 		switch (o) {
-		case 1: fn = new TPolynomial<1, Covariate>(FirstParameterIndex); break;
-		case 2: fn = new TPolynomial<2, Covariate>(FirstParameterIndex); break;
-		case 3: fn = new TPolynomial<3, Covariate>(FirstParameterIndex); break;
-		case 4: fn = new TPolynomial<4, Covariate>(FirstParameterIndex); break;
-		case 5: fn = new TPolynomial<5, Covariate>(FirstParameterIndex); break;
-		case 6: fn = new TPolynomial<6, Covariate>(FirstParameterIndex); break;
-		case 7: fn = new TPolynomial<7, Covariate>(FirstParameterIndex); break;
-		case 8: fn = new TPolynomial<8, Covariate>(FirstParameterIndex); break;
-		case 9: fn = new TPolynomial<9, Covariate>(FirstParameterIndex); break;
+		case 1: fn = new TPolynomial<1, Covariate>(index); break;
+		case 2: fn = new TPolynomial<2, Covariate>(index); break;
+		case 3: fn = new TPolynomial<3, Covariate>(index); break;
+		case 4: fn = new TPolynomial<4, Covariate>(index); break;
+		case 5: fn = new TPolynomial<5, Covariate>(index); break;
+		case 6: fn = new TPolynomial<6, Covariate>(index); break;
+		case 7: fn = new TPolynomial<7, Covariate>(index); break;
+		case 8: fn = new TPolynomial<8, Covariate>(index); break;
+		case 9: fn = new TPolynomial<9, Covariate>(index); break;
 		default: UERROR("Only Polynomials from order 1 to 9 can be used!");
 		}
 		if (isDefault) return fn;
@@ -87,7 +88,7 @@ template<typename Covariate> TFunction *makeCovFunction(std::string_view Functio
 		return fn;
 	}
 	if (type == TProbit<Covariate>::name) {
-		TFunction* fn = new TProbit<Covariate>(FirstParameterIndex);
+		TFunction* fn = new TProbit<Covariate>(index);
 		if (Spl.empty()) {
 			return fn;
 		}
@@ -101,7 +102,7 @@ template<typename Covariate> TFunction *makeCovFunction(std::string_view Functio
 		return fn;
 	}
 	if (type == TEmpiric<Covariate>::name || type=="") {
-			auto fn = new TEmpiric<Covariate>(FirstParameterIndex);
+			auto fn = new TEmpiric<Covariate>(index);
 			size_t size = 0;
 			double back = 0.;
 			for (auto s : Spl) {
@@ -129,6 +130,34 @@ template<typename Covariate> TFunction *makeCovFunction(std::string_view Functio
 	UERROR("Function '", type, "' does not exist!");
 }
 
+template<typename Covariate> TFunction *makeCovFunction(const BAM::RGInfo::TInfo& info, size_t index) {
+	OUT(info.dump());
+	if (info.contains(TPolynomial<1, Covariate>::name)) {
+		TFunction* fn;
+		const std::vector<double>& betas = info[TPolynomial<1, Covariate>::name];
+		const size_t o = betas.size();
+		switch (o) {
+		case 1: fn = new TPolynomial<1, Covariate>(index); break;
+		case 2: fn = new TPolynomial<2, Covariate>(index); break;
+		case 3: fn = new TPolynomial<3, Covariate>(index); break;
+		case 4: fn = new TPolynomial<4, Covariate>(index); break;
+		case 5: fn = new TPolynomial<5, Covariate>(index); break;
+		case 6: fn = new TPolynomial<6, Covariate>(index); break;
+		case 7: fn = new TPolynomial<7, Covariate>(index); break;
+		case 8: fn = new TPolynomial<8, Covariate>(index); break;
+		case 9: fn = new TPolynomial<9, Covariate>(index); break;
+		default: UERROR("Only Polynomials from order 1 to 9 can be used!");
+		}
+		size_t i = 0;
+		for (auto &beta : *fn) {
+			beta = betas[i];
+			++i;
+		}
+		return fn;
+	}
+	return new TNoFunction;
+}
+
 constexpr coretools::Probability calcEpsilon(double eta) noexcept {
 	if (eta > 23.03) return coretools::Probability(0.9999999999);
 	if (eta < -23.03) return coretools::Probability(0.0000000001);
@@ -137,7 +166,7 @@ constexpr coretools::Probability calcEpsilon(double eta) noexcept {
 }
 
 
-class TNewFunctionsTpl final : public TFunctions {
+class TFunctionsTpl final : public TFunctions {
 	TIntercept _intercept;
 	enum class Covariates : size_t { min = 0, Quality = min, Position, Context, FragmentLength, MappingQuality, max };
 
@@ -163,8 +192,33 @@ class TNewFunctionsTpl final : public TFunctions {
 		return index;
 	}
 
+	template<typename Cov> size_t _makeFn(size_t index, const BAM::RGInfo::TInfo& info) {
+		OUT(info.dump());
+		constexpr auto c = _covIndex<Cov>();
+		if (info.contains(Cov::name)) {
+			_covariates[c].reset(impl::makeCovFunction<Cov>(info[Cov::name], index));
+		} else {
+			_covariates[c].reset(new TNoFunction);
+		}
+		return index;
+	}
+
 public:
-	TNewFunctionsTpl(std::string_view Def) : _intercept(0) {
+	TFunctionsTpl(const BAM::RGInfo::TInfo& info) : _intercept(0) {
+		OUT(info.dump());
+		*_intercept.begin() = info[TIntercept::name];
+		size_t index        = _intercept.numParameters();
+		index += _makeFn<TCovariate_quality>(index, info);
+		index += _makeFn<TCovariate_context>(index, info);
+		index += _makeFn<TCovariate_position>(index, info);
+		index += _makeFn<TCovariate_fragmentLength>(index, info);
+		index += _makeFn<TCovariate_mappingQuality>(index, info);
+
+		for (auto &cov: _covariates) {
+			if (!cov) cov.reset(new TNoFunction);
+		}
+	}
+	TFunctionsTpl(std::string_view Def) : _intercept(0) {
 		auto modelDef  = impl::parseFunctions(Def);
 
 		// intercept
@@ -268,6 +322,9 @@ public:
 
 TFunctions *makeFunctions(std::string_view Def) {
 	//return new impl::TFunctionsTpl(Def);
-	return new impl::TNewFunctionsTpl(Def);
+	return new impl::TFunctionsTpl(Def);
+}
+TFunctions *makeFunctions(const BAM::RGInfo::TInfo& info) {
+	return new impl::TFunctionsTpl(info);
 }
 } // namespace GenotypeLikelihoods::SequencingError
