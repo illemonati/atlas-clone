@@ -5,17 +5,11 @@
 #include "coretools/enum.h"
 #include <bits/utility.h>
 #include <memory>
+#include <type_traits>
 
 namespace GenotypeLikelihoods::SequencingError {
 using namespace coretools::str;
 namespace impl {
-
-constexpr coretools::Probability calcEpsilon(double eta) noexcept {
-	if (eta > 23.03) return coretools::Probability(0.9999999999);
-	if (eta < -23.03) return coretools::Probability(0.0000000001);
-
-	return coretools::logistic(eta);
-}
 
 auto parseFunctions(std::string_view Defs) {
 	struct Voldemort {
@@ -135,120 +129,13 @@ template<typename Covariate> TFunction *makeCovFunction(std::string_view Functio
 	UERROR("Function '", type, "' does not exist!");
 }
 
-TFunction *makeFunction(std::string_view Covariate, std::string_view Function, size_t FirstParameterIndex) {
-	// No covariate
-	if (Covariate.empty()) {
-		const auto [type, betas] = parseFunction(Function);
-		if (type != TIntercept::name) UERROR("You must specify a covariate");
-		TFunction *in = new TIntercept(FirstParameterIndex);
-		if (betas.empty()) return in;
-		fromString<true>(betas.front(), *in->begin());
-		return in;
-	}
+constexpr coretools::Probability calcEpsilon(double eta) noexcept {
+	if (eta > 23.03) return coretools::Probability(0.9999999999);
+	if (eta < -23.03) return coretools::Probability(0.0000000001);
 
-	if (Function.empty()) {
-		if (stringStartsWith(Covariate, TIntercept::name)) { // intercept can be parsed as either covariate or function
-			const auto [type, betas] = parseFunction(Covariate);
-			if (type != TIntercept::name) UERROR("You must specify a covariate");
-			TFunction *in = new TIntercept(FirstParameterIndex);
-			if (betas.empty()) return in;
-			fromString<true>(betas.front(), *in->begin());
-			return in;
-		}
-		Function = TEmpiric<TCovariate_context>::name;
-	}
-
-	if (Covariate == TCovariate_quality::name)
-		return makeCovFunction<TCovariate_quality>(Function, FirstParameterIndex);
-	if (Covariate == TCovariate_position::name)
-		return makeCovFunction<TCovariate_position>(Function, FirstParameterIndex);
-	if (Covariate == TCovariate_context::name)
-		return makeCovFunction<TCovariate_context>(Function, FirstParameterIndex);
-	if (Covariate == TCovariate_fragmentLength::name)
-		return makeCovFunction<TCovariate_fragmentLength>(Function, FirstParameterIndex);
-	if (Covariate == TCovariate_mappingQuality::name)
-		return makeCovFunction<TCovariate_mappingQuality>(Function, FirstParameterIndex);
-
-	UERROR("Covariate '", Covariate, "' does not exist!");
+	return coretools::logistic(eta);
 }
 
-class TFunctionsTpl final : public TFunctions {
-	std::vector<std::unique_ptr<TFunction>> _functions;
-	std::vector<double> _oldBetas;
-public:
-	TFunctionsTpl(std::string_view Def) {
-		// create functions
-		size_t numParameters = 0;
-		const auto modelDef  = impl::parseFunctions(Def);
-		for (const auto &cov : modelDef) {
-			_functions.emplace_back(impl::makeFunction(cov.covariate, cov.function, numParameters));
-
-			// add new parameters
-			numParameters += _functions.back()->numParameters();
-		}
-	}
-
-	void checkOrInit(const RecalEstimatorTools::TRecalDataTable &DataTable) override {
-		size_t numParameters = 0;
-
-		for (auto &fn : _functions) {
-			if (!fn->checkOrInitValueRange(DataTable, numParameters)) {
-				UERROR("Function ", fn->typeString(), " does not cover full range of data");
-			}
-			numParameters += fn->numParameters();
-		}
-	}
-
-	size_t numParameters() const noexcept override {
-		size_t numParameters = 0;
-		for (const auto& f: _functions) {
-			numParameters += f->numParameters();
-		}
-		return numParameters;
-	}
-
-	coretools::Probability getEpsilon(const BAM::TSequencedBase &base) const override {
-		double eta = 0.;
-		for (const auto &fn : _functions) eta += fn->getEta(base);
-		return impl::calcEpsilon(eta);
-	}
-
-	coretools::Probability getEpsilon(const BAM::TSequencedBase &base, std::vector<T1stDerivative> &der1,
-								  std::vector<T2ndDerivative> &der2) const noexcept override {
-		double eta = 0.;
-		for (const auto &fn : _functions) eta += fn->getEta(base, der1, der2);
-		return impl::calcEpsilon(eta);
-	}
-
-	void reject() noexcept override {
-		auto old = _oldBetas.begin();
-		for (const auto &fn : _functions) {
-			for (auto &beta : *fn) {
-				beta = *old;
-				++old;
-			}
-		}
-	}
-	void propose(double lambda, const arma::mat &_JxF) noexcept override {
-		size_t index = 0;
-		_oldBetas.clear();
-		for (const auto &fn : _functions) {
-			for (auto &beta : *fn) {
-				_oldBetas.push_back(beta);
-				beta -= lambda * _JxF(index++);
-			}
-		}
-	}
-	std::string definition() const noexcept override {
-		return std::accumulate(_functions.begin() + 1, _functions.end(), _functions.front()->modelString(),
-							   [](auto tot, auto &f) { return tot.append(1, ';').append(f->modelString()); });
-	}
-	BAM::RGInfo::TInfo info() const override {
-		BAM::RGInfo::TInfo in;
-		for (const auto &fn : _functions) { fn->addInfo(in); }
-		return in;
-	}
-};
 
 class TNewFunctionsTpl final : public TFunctions {
 	TIntercept _intercept;
@@ -256,6 +143,25 @@ class TNewFunctionsTpl final : public TFunctions {
 
 	coretools::TStrongArray<std::unique_ptr<TFunction>, Covariates> _covariates{{nullptr, nullptr, nullptr, nullptr, nullptr}};
 	std::vector<double> _oldBetas;
+
+	template<typename Cov, size_t I = 0> constexpr static Covariates _covIndex() noexcept {
+		using Covs = std::tuple<TCovariate_quality, TCovariate_position, TCovariate_context, TCovariate_fragmentLength,
+								TCovariate_mappingQuality>;
+		if constexpr (std::is_same_v<Cov, std::tuple_element_t<I, Covs>>)
+			return Covariates(I);
+		else
+			return _covIndex<Cov, I + 1>();
+	}
+
+	template<typename Cov, typename MD> size_t _makeFn(size_t index, const MD &md) {
+		if (md.covariate == Cov::name) {
+			constexpr auto c = _covIndex<Cov>();
+			if (_covariates[c]) UERROR("Covariate ", Cov::name, " has two functions, only one is allowed!");
+			_covariates[c].reset(impl::makeCovFunction<Cov>(md.function, index));
+			index += _covariates[c]->numParameters();
+		}
+		return index;
+	}
 
 public:
 	TNewFunctionsTpl(std::string_view Def) : _intercept(0) {
@@ -273,47 +179,14 @@ public:
 				if (type == TIntercept::name && !betas.empty()) fromString<true>(betas.front(), *_intercept.begin());
 			}
 		}
-
 		size_t index = _intercept.numParameters();
 
-		using Covs = std::tuple<TCovariate_quality, TCovariate_position, TCovariate_context, TCovariate_fragmentLength, TCovariate_mappingQuality>;
-
 		for (const auto &md : modelDef) {
-			if (md.covariate == TCovariate_quality::name) {
-				constexpr auto c = Covariates::Quality;
-				using Cov = std::tuple_element_t<coretools::index(c), Covs>;
-				if (_covariates[c]) UERROR("Covariate ", Cov::name, " has two functions, only one is allowed!");
-				_covariates[c].reset(impl::makeCovFunction<Cov>(md.function, index));
-				index += _covariates[c]->numParameters();
-			}
-			if (md.covariate == TCovariate_context::name) {
-				const auto c = Covariates::Context;
-				using Cov = std::tuple_element_t<coretools::index(c), Covs>;
-				if (_covariates[c]) UERROR("Covariate ", Cov::name, " has two functions, only one is allowed!");
-				_covariates[c].reset(impl::makeCovFunction<Cov>(md.function, index));
-				index += _covariates[c]->numParameters();
-			}
-			if (md.covariate == TCovariate_position::name) {
-				const auto c = Covariates::Position;
-				using Cov = std::tuple_element_t<coretools::index(c), Covs>;
-				if (_covariates[c]) UERROR("Covariate ", Cov::name, " has two functions, only one is allowed!");
-				_covariates[c].reset(impl::makeCovFunction<Cov>(md.function, index));
-				index += _covariates[c]->numParameters();
-			}
-			if (md.covariate == TCovariate_fragmentLength::name) {
-				const auto c = Covariates::FragmentLength;
-				using Cov = std::tuple_element_t<coretools::index(c), Covs>;
-				if (_covariates[c]) UERROR("Covariate ", Cov::name, " has two functions, only one is allowed!");
-				_covariates[c].reset(impl::makeCovFunction<Cov>(md.function, index));
-				index += _covariates[c]->numParameters();
-			}
-			if (md.covariate == TCovariate_mappingQuality::name) {
-				const auto c = Covariates::MappingQuality;
-				using Cov = std::tuple_element_t<coretools::index(c), Covs>;
-				if (_covariates[c]) UERROR("Covariate ", Cov::name, " has two functions, only one is allowed!");
-				_covariates[c].reset(impl::makeCovFunction<Cov>(md.function, index));
-				index += _covariates[c]->numParameters();
-			}
+			index += _makeFn<TCovariate_quality>(index, md);
+			index += _makeFn<TCovariate_context>(index, md);
+			index += _makeFn<TCovariate_position>(index, md);
+			index += _makeFn<TCovariate_fragmentLength>(index, md);
+			index += _makeFn<TCovariate_mappingQuality>(index, md);
 		}
 		for (auto &cov: _covariates) {
 			if (!cov) cov.reset(new TNoFunction);

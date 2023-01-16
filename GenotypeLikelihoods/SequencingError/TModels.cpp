@@ -48,7 +48,6 @@ std::pair<std::string_view, std::string_view> epsRho(std::string_view s) {
 }
 
 void initModel(std::unique_ptr<TModel> & model, const BAM::RGInfo::TInfo & info){
-	ECHO(info.dump());
 	if(info.empty() || (info.is_string() && info.get<std::string_view>() == "default")){
 		model = std::make_unique<TModelNoRecal>();
 	} else if (info.is_string()) {
@@ -230,7 +229,6 @@ void TModels::initialize(BAM::RGInfo::TReadGroupInfo &RgInfo) {
 	_models.reserve(RgInfo.size());
 
 	for (size_t rg = 0; rg < RgInfo.size(); ++rg) {
-		OUT(rg);
 		_models.emplace_back(RgInfo[rg]);
 	}
 }
