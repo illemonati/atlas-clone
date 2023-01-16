@@ -107,6 +107,7 @@ public:
 						  std::vector<T2ndDerivative> &) const noexcept override {return 0.;}
 	double adjustParametersPostEstimation() noexcept override {return 0.;}
 	std::string typeString() const noexcept override {return "";}
+	std::string modelString() const noexcept override {return "";}
 	void addInfo(BAM::RGInfo::TInfo &) const override {};
 };
 
