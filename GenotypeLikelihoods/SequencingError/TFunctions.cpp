@@ -131,7 +131,6 @@ template<typename Covariate> TFunction *makeCovFunction(std::string_view Functio
 }
 
 template<typename Covariate> TFunction *makeCovFunction(const BAM::RGInfo::TInfo& info, size_t index) {
-	OUT(info.dump());
 	if (info.contains(TPolynomial<1, Covariate>::name)) {
 		TFunction* fn;
 		const std::vector<double>& betas = info[TPolynomial<1, Covariate>::name];
@@ -152,6 +151,42 @@ template<typename Covariate> TFunction *makeCovFunction(const BAM::RGInfo::TInfo
 		for (auto &beta : *fn) {
 			beta = betas[i];
 			++i;
+		}
+		return fn;
+	}
+	if (info.contains(TProbit<Covariate>::name)) {
+		auto *fn                         = new TProbit<Covariate>(index);
+		const std::vector<double> &betas = info[TProbit<Covariate>::name];
+		if (betas.empty()) { return fn; }
+		if (betas.size() != fn->numParameters()) {
+			UERROR("Not enough parameters given for function ", fn->typeString(), ". Expected ", fn->numParameters(),
+				   " got ", betas.size(), " !");
+		}
+		size_t i = 0;
+		for (auto &beta : *fn) {
+			beta = betas[i];
+			++i;
+		}
+		return fn;
+	}
+	if (info.contains(TEmpiric<Covariate>::name)) {
+		auto fn           = new TEmpiric<Covariate>(index);
+		const auto &betas = info[TEmpiric<Covariate>::name];
+		size_t size       = 0;
+		double back       = 0.;
+		for (const std::vector<double> &b : betas) {
+			const size_t i = b.front();
+			const auto v   = b.back();
+			if (size == 0) { // fill first i positions with v
+				for (size_t j = 0; j <= i; ++j) { fn->push_back(v); }
+			} else {                              // interpolate
+				const auto di   = i - (size - 1); // 1
+				const auto dv   = v - back;       // v
+				const auto dvdi = dv / di;
+				for (size_t j = 1; j <= di; ++j) fn->push_back(back + j * dvdi);
+			}
+			back = v;
+			size = i + 1;
 		}
 		return fn;
 	}
@@ -193,7 +228,6 @@ class TFunctionsTpl final : public TFunctions {
 	}
 
 	template<typename Cov> size_t _makeFn(size_t index, const BAM::RGInfo::TInfo& info) {
-		OUT(info.dump());
 		constexpr auto c = _covIndex<Cov>();
 		if (info.contains(Cov::name)) {
 			_covariates[c].reset(impl::makeCovFunction<Cov>(info[Cov::name], index));
@@ -204,9 +238,8 @@ class TFunctionsTpl final : public TFunctions {
 	}
 
 public:
-	TFunctionsTpl(const BAM::RGInfo::TInfo& info) : _intercept(0) {
-		OUT(info.dump());
-		*_intercept.begin() = info[TIntercept::name];
+	TFunctionsTpl(const BAM::RGInfo::TInfo& info) {
+		_intercept.beta() = info[TIntercept::name];
 		size_t index        = _intercept.numParameters();
 		index += _makeFn<TCovariate_quality>(index, info);
 		index += _makeFn<TCovariate_context>(index, info);
@@ -218,7 +251,7 @@ public:
 			if (!cov) cov.reset(new TNoFunction);
 		}
 	}
-	TFunctionsTpl(std::string_view Def) : _intercept(0) {
+	TFunctionsTpl(std::string_view Def) {
 		auto modelDef  = impl::parseFunctions(Def);
 
 		// intercept
@@ -226,11 +259,11 @@ public:
 			if (md.covariate.empty()) {
 				const auto [type, betas] = parseFunction(md.function);
 				if (type != TIntercept::name) UERROR("You must specify a covariate for function ", type);
-				if (!betas.empty()) fromString<true>(betas.front(), *_intercept.begin());
+				if (!betas.empty()) fromString<true>(betas.front(), _intercept.beta());
 			} else if (md.function.empty()) {
 				// intercept can be parsed the wrong way around :-(
 				const auto [type, betas] = parseFunction(md.covariate);
-				if (type == TIntercept::name && !betas.empty()) fromString<true>(betas.front(), *_intercept.begin());
+				if (type == TIntercept::name && !betas.empty()) fromString<true>(betas.front(), _intercept.beta());
 			}
 		}
 		size_t index = _intercept.numParameters();
@@ -281,7 +314,7 @@ public:
 
 	void reject() noexcept override {
 		auto old = _oldBetas.begin();
-		*_intercept.begin() = *old;
+		_intercept.beta() = *old;
 		++old;
 		for (const auto &cov : _covariates) {
 			for (auto &beta : *cov) {
@@ -293,8 +326,10 @@ public:
 	void propose(double lambda, const arma::mat &_JxF) noexcept override {
 		size_t index = 0;
 		_oldBetas.clear();
-		_oldBetas.push_back(*_intercept.begin());
-		*_intercept.begin() -= lambda * _JxF(index++);
+
+		_oldBetas.push_back(_intercept.beta());
+		_intercept.beta() -= lambda * _JxF(index++);
+
 		for (const auto &fn : _covariates) {
 			for (auto &beta : *fn) {
 				_oldBetas.push_back(beta);
