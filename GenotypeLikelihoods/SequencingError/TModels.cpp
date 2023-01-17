@@ -115,7 +115,7 @@ TReadGroupModels::TReadGroupModels(const BAM::RGInfo::TReadGroupInfoEntry & Info
 			impl::initModel(_models[0], json["Mate1"]);
 			if(json.contains("Mate2")){
 				if(single){
-					logfile().warning("Recal provided for second mate of single-end read group '", Info.name(), "'!");
+					// what should we do?
 				}
 				impl::initModel(_models[1], json["Mate2"]);
 			} else {

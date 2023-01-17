@@ -1,4 +1,5 @@
 #include "TRho.h"
+#include "TGenotypeData.h"
 
 namespace GenotypeLikelihoods::SequencingError {
 using namespace coretools::str;
@@ -41,7 +42,13 @@ TRho::TRho(std::string_view Def) {
 	if (i < 4) UERROR("Too few rows given for rho, needed 4, not ", i, "!");
 }
 
-TRho::TRho(const BAM::RGInfo::TInfo &info) { ECHO(info.dump()); }
+TRho::TRho(const BAM::RGInfo::TInfo &info) {
+	auto b = Base::min;
+	for (const std::array<double, 4> line: info) {
+		_rho[b] = TBaseProbabilities::normalize(line);
+		++b;
+	}
+}
 
 std::string TRho::definition() const noexcept {
 	using coretools::str::toString;
