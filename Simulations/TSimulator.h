@@ -27,7 +27,6 @@
 #include "coretools/Main/TParameters.h"
 #include "TPostMortemDamage.h"
 #include "TReadGroups.h"
-#include "SequencingError/TModels.h"
 #include "TSimulatorAuxiliaryTools.h"
 #include "coretools/Containers/TStrongArray.h"
 #include "coretools/Main/TTask.h"

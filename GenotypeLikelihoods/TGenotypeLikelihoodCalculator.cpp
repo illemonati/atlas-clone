@@ -13,6 +13,7 @@
 #include <string>
 
 #include "TGenotypeData.h"
+#include "TReadGroupInfo.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "TReadGroups.h"
@@ -45,7 +46,10 @@ TGenotypeLikelihoodCalculator::TGenotypeLikelihoodCalculator(const BAM::TReadGro
 
 	//initialize sequencing errors
 	//----------------------------
-	if(parameters().parameterExists("recal")){
+	if (parameters().parameterExists(BAM::RGInfo::TReadGroupInfo::RGInfoArgument)) {
+		BAM::RGInfo::TReadGroupInfo RGinfo(*ReadGroups, parameters().getParameter(BAM::RGInfo::TReadGroupInfo::RGInfoArgument));
+		_sequencingErrorModels.initialize(RGinfo);
+	} else if(parameters().parameterExists("recal")){
 		std::string recalString = parameters().getParameter<std::string>("recal");
 
 		//check if it is recal string

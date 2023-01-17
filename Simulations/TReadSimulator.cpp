@@ -32,7 +32,7 @@ using BAM::RGInfo::InfoType;
 //------------------------------------------------
 
 TReadSimulator::TReadSimulator(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo)
-	: _readGroup(ReadGroup), _recalModels(RGInfo){
+	: _readGroup(ReadGroup), _recalModels(RGInfo) {
 
 	// initialize bamAlignment
 	_alignment.setReadGroup(_readGroup.id());

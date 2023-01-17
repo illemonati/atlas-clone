@@ -12,55 +12,22 @@
 #include <stdint.h>
 #include <string>
 
-#include "TReadGroupInfo.h"
-#include "genometools/GenotypeTypes.h"
-#include "genometools/PhredProbabilityTypes.h"
+#include "TEpsilon.h"
 #include "TGenotypeData.h"
+#include "TReadGroupInfo.h"
+#include "TRho.h"
 #include "TSequencedBase.h"
 #include "coretools/Containers/TStrongArray.h"
-#include "TEpsilon.h"
 #include "coretools/Types/probability.h"
+#include "genometools/GenotypeTypes.h"
+#include "genometools/PhredProbabilityTypes.h"
 
 namespace BAM {
 class TSequencedBase;
 }
-namespace GenotypeLikelihoods {
-namespace RecalEstimatorTools {
-class TRecalDataTable;
-}
-} // namespace GenotypeLikelihoods
 
 namespace GenotypeLikelihoods {
 namespace SequencingError {
-
-//--------------------------------------------------------------------
-// TRho
-//--------------------------------------------------------------------
-class TRho {
-private:
-	coretools::TStrongArray<TBaseProbabilities, genometools::Base> _rho{
-		{TBaseProbabilities::normalize({0., 1. / 3, 1. / 3, 1. / 3}),
-		 TBaseProbabilities::normalize({1. / 3, 0., 1. / 3, 1. / 3}),
-		 TBaseProbabilities::normalize({1. / 3, 1. / 3, 0., 1. / 3}),
-		 TBaseProbabilities::normalize({1. / 3, 1. / 3, 1. / 3, 0.})}}; //[from k][to l]
-
-	coretools::TStrongArray<coretools::TStrongArray<double, genometools::Base>, genometools::Base> _rhoSum{};
-public:
-	TRho() = default;
-	TRho(std::string_view Def);
-
-	const TBaseProbabilities& operator[](genometools::Base from) const noexcept {
-		return _rho[from];
-	}
-	std::string definition() const noexcept;
-
-	// functions used to estimate
-	void add(genometools::Base l, coretools::Probability P_g_I_d, const TBaseProbabilities &P_bbar_I_d) noexcept;
-	void estimate() noexcept;
-
-	BAM::RGInfo::TInfo info() const ;
-};
-
 
 //--------------------------------------------------------------------
 // TModel
@@ -108,7 +75,7 @@ private:
 public:
 	TModelRecal(std::string_view EpsilonDef, std::string_view RhoDef = "default")
 		: _rho(RhoDef), _epsilon(EpsilonDef) {}
-	TModelRecal(const BAM::RGInfo::TInfo &) : _epsilon("") {}
+	TModelRecal(const BAM::RGInfo::TInfo &info) : _rho(info["rho"]), _epsilon(info) {}
 
 	bool estimatable() const noexcept override { return true; };
 	bool recalibrates() const noexcept override { return true; };

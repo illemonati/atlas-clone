@@ -119,6 +119,7 @@ class TEpsilon {
 
 public:
 	TEpsilon(std::string_view Def);
+	TEpsilon(const BAM::RGInfo::TInfo & info);
 	~TEpsilon();
 
 	void checkOrInit(const RecalEstimatorTools::TRecalDataTable &DataTable);

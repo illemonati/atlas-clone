@@ -259,9 +259,9 @@ void TBAMSimulator::_initializeReadSimulator(){
 	logfile().startIndent("Parameters regarding sequencing:");
 	//read RGInfo files from command line
 	std::vector<std::string> filenames;
-	if(parameters().parameterExists(BAM::RGInfo::TReadGroupInfo::_RGInfoArgument)){
+	if(parameters().parameterExists(BAM::RGInfo::TReadGroupInfo::RGInfoArgument)){
 		std::vector<std::string> tmp;
-		parameters().fillParameterIntoContainer(BAM::RGInfo::TReadGroupInfo::_RGInfoArgument, tmp, ',');
+		parameters().fillParameterIntoContainer(BAM::RGInfo::TReadGroupInfo::RGInfoArgument, tmp, ',');
 		coretools::str::repeatIndexes(tmp, filenames);
 	} else {
 		filenames.push_back("");
