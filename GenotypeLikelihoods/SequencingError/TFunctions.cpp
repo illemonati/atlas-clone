@@ -4,7 +4,6 @@
 #include "TReadGroupInfo.h"
 #include "coretools/Main/TError.h"
 #include "coretools/enum.h"
-#include <bits/utility.h>
 #include <memory>
 #include <type_traits>
 
