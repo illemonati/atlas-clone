@@ -88,6 +88,22 @@ void TBamFileFilter::printCombinedCounts(coretools::TOutputFile &out) {
 	}
 };
 
+size_t TBamFileFilter::getCounts(uint16_t rg_ID) {
+	//Reason is only set if filter is applied (see TBamFile::setFilters), in which case reason and number of removed reads per read group are printed here
+	if (!getReason().empty()){
+		coretools::TCountDistribution FilterCount = numFiltered();
+		return(FilterCount[rg_ID]);
+	} return 0;
+};
+
+size_t TBamFileFilter::getCombinedCounts() {
+	//Reason is only set if filter is applied (see TBamFile::setFilters), in which case reason and number of removed reads per read group are printed here
+	if (!getReason().empty()){
+		coretools::TCountDistribution FilterCount = numFiltered();
+		return(FilterCount.counts());
+	} return 0;
+};
+
 //-----------------------------------------------------
 //TBamFileFilterBool
 //-----------------------------------------------------

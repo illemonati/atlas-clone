@@ -96,7 +96,7 @@ void TBamDiagnoser::diagnose(){
 	//writing read group summary
 	std::string filename = _outputName + "_diagnostics.txt";
 	logfile().listFlush("Writing general diagnostics to '" + filename + "' ...");
-	coretools::TOutputFile out(filename, {"readGroup", "totalReads", "passedQC", "avgReadLength", "seqCycles", "properPairs", "avgFragmentLength", "softClipped", "avgSoftClippedLength", "avgUsableAlignedLength", "approximateDepth", "avgMappingQuality", "seqType"});
+	coretools::TOutputFile out(filename, {"readGroup", "totalReads", "passedQC", "duplicates", "avgReadLength", "seqCycles", "properPairs", "avgFragmentLength", "softClipped", "avgSoftClippedLength", "avgUsableAlignedLength", "approximateDepth", "avgMappingQuality", "seqType"});
 
 	//determine sequencing type of BAM file
 	uint32_t paired_count = 0;
@@ -110,7 +110,7 @@ void TBamDiagnoser::diagnose(){
 	}
 
 	//write for combined
-	out.write("allReadGroups", (_bamFile.numAlignmentsReadPerReadGroup()).counts(), _passedQC.counts(),
+	out.write("allReadGroups", (_bamFile.numAlignmentsReadPerReadGroup()).counts(), _passedQC.counts(), _bamFile.getDuplicateFilter().getCombinedCounts(),
 			  _readLength.mean(), _readLength.max(), _fragmentLength.counts(), _fragmentLength.mean(),
 			  _softClippedLength.countsLargerZero(), _softClippedLength.mean(), _usableLength.mean(),
 			  (double)_usableLength.sum() / (double)totLengthOfGenome, _mappingQuality.mean());
@@ -124,7 +124,7 @@ void TBamDiagnoser::diagnose(){
 
 	//write per read group
 	for(uint32_t rg = 0; rg < numRG; ++rg){
-		out.write(_bamFile.readGroups().getName(rg), (_bamFile.numAlignmentsReadPerReadGroup())[rg], _passedQC[rg],
+		out.write(_bamFile.readGroups().getName(rg), (_bamFile.numAlignmentsReadPerReadGroup())[rg], _passedQC[rg], _bamFile.getDuplicateFilter().getCounts(rg),
 				  _readLength[rg].mean(), _readLength[rg].max(), _fragmentLength[rg].counts(), _fragmentLength.mean(),
 				  _softClippedLength[rg].countsLargerZero(), _softClippedLength[rg].mean(), _usableLength[rg].mean(),
 				  (double)_usableLength[rg].sum() / (double)totLengthOfGenome, _mappingQuality[rg].mean());

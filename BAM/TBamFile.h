@@ -209,6 +209,7 @@ public:
 	coretools::TCountDistribution<> numAlignmentsReadPerReadGroup() { return _numAlignmentReadPerReadGroup; };
 	double positionInFile(){ return (double) _bamReader.Tell() / (double) _fileSize; };
 	uint16_t numReadGroups() const{ return _readGroups.size(); };
+	TBamFileFilterBool getDuplicateFilter(){return _duplicateFilter; };
 
 	//progress reporting
 	void printSummaryNoEndIndent(std::string &outputName);

@@ -61,6 +61,8 @@ public:
 	void fillHeader(std::vector<std::string> &header);
 	void printCounts(coretools::TOutputFile &out, uint16_t rg_ID);
 	void printCombinedCounts(coretools::TOutputFile &out);
+	size_t getCounts(uint16_t rg_ID);
+	size_t getCombinedCounts();
 };
 
 //Filters out if pass(false), keeps if pass(true)
