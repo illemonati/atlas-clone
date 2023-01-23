@@ -41,7 +41,6 @@ public:
 	TReadSimulators(TReadSimulators && other) = default;
 
 	//interact
-	void writeUnwrittenAlignments(const genometools::TGenomePosition & Position, TSimulatorBamFile &BamFile);
 	void simulate(const genometools::TGenomePosition & Position, const std::vector<Base>& Haplotype, TSimulatorBamFile &BamFile);
 
 	//getters

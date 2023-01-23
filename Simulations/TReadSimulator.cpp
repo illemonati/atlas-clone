@@ -352,17 +352,4 @@ void TReadSimulatorPairedEnd::simulate(const TGenomePosition & Position, const s
 	}
 }
 
-void TReadSimulatorPairedEnd::writeUnwrittenAlignments(const genometools::TGenomePosition & Position, TSimulatorBamFile &BamFile) {
-	//TODO
-	/*
-	if(!_bamAlignmentSecondMates.empty()){
-		auto it = _bamAlignmentSecondMates.begin();
-		while(it != _bamAlignmentSecondMates.end() && *it <= Position){
-			BamFile.saveAlignment(*it);
-			it = _bamAlignmentSecondMates.erase(it);
-		}
-	}
-	*/
-}
-
 } // namespace Simulations
