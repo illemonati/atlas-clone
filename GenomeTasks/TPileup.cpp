@@ -184,10 +184,10 @@ TPileup::TPileup():TGenome_windows(){
 
 void TPileup::_handleWindow(){
 	using genometools::Base;
-	logfile().listFlushTime("Writing pileup ...");
+	logfile().list("Writing pileup ...");
 
 	if(_histSettings.get<AllelicDepth>()){
-		logfile().listFlushTime("Adding sites to allelic depth table ...");
+		logfile().list("Adding sites to allelic depth table ...");
 	}
 	GenotypeLikelihoods::TBaseCounts alleleCounts;
 
@@ -269,7 +269,7 @@ void TPileup::_handleWindow(){
 	//write depth per window
 	//also write depth per chromosome if this window is the last window of a chromosome
 	if(_histSettings.get<Depths>()){
-		logfile().listFlush("Writing sequencing depth estimates to file ...");
+		logfile().list("Writing sequencing depth estimates to file ...");
 		_outDepthHistogram.writeNoDelim(_window.chrName(), ':', _window.from().position() + 1, '-', _window.to().position()).writeDelim();
 		_outDepthHistogram.writeln(_window.depth());
 		logfile().done();
@@ -296,7 +296,7 @@ void TPileup::printPileup(){
 	if (_histSettings.get<Quality>()){
 		//print distribution
 		std::string outputFileName = _outputName + "_qualHistogram.txt.gz";
-		logfile().listFlush("Writing quality distribution to '" + outputFileName + "'.");
+		logfile().list("Writing quality distribution to '" + outputFileName + "'.");
 		coretools::TOutputFile out(outputFileName, {"readGroup", "quality", "counts"});
 
 		//get read group names
@@ -324,7 +324,7 @@ void TPileup::printPileup(){
 	if (_histSettings.get<AllelicDepth>()){
 		//write to file
 		std::string outputFileName = _outputName + "_allelicDepth.txt.gz";
-		logfile().listFlush("Writing allelic depth table to '" + outputFileName + "' ...");
+		logfile().list("Writing allelic depth table to '" + outputFileName + "' ...");
 		_counts.write(outputFileName, _writeEmpty);
 		logfile().done();
 	}
