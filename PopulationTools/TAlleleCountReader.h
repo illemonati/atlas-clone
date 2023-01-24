@@ -13,33 +13,71 @@
 #include <vector>
 #include "coretools/Files/TFile.h"
 #include "coretools/Files/TReader.h"
+#include "genometools/GenotypeTypes.h"
 
 namespace PopulationTools{
-    //-------------------------------------------------
+
+struct alleleCounts{ 
+    uint32_t minor;
+    uint32_t total;
+};
+
+struct alleleCountVector{
+    std::string chr;
+    uint64_t pos;
+    genometools::Base majorAllele{genometools::Base::N};
+    genometools::Base minorAllele{genometools::Base::N};    
+    std::vector<alleleCounts> _alleleCounts;
+
+    alleleCounts& operator[](size_t index){ return _alleleCounts[index]; }
+    const alleleCounts& operator[](size_t index) const { return _alleleCounts[index]; }
+
+    size_t numPopulations() const { return _alleleCounts.size(); }
+};
+
+//-------------------------------------------------
+//
+//-------------------------------------------------
 class TAlleleCountReader{
 private:
-    mutable std::unique_ptr<coretools::TReader> _reader = std::make_unique<coretools::TNoReader>();
-    std::string _chrName;
-    size_t _pos;
-    std::vector<std::string> _minorAlleleCounts;
-    std::vector<std::string> _totalAlleleCounts;
+    coretools::TInputFile _file;
+        
     std::vector<std::string> _populationNames;
-    //put pointer to TInputFile
+    alleleCountVector _alleleCountVec;
+    bool _hasAlleles;
+    int _firstPopulationColumn;
+    
 public:
+    using value_type      = alleleCountVector;
+	using const_reference = const alleleCountVector&;
+
     TAlleleCountReader() = default;
     TAlleleCountReader(std::string_view filename);
-    void open(std::string_view filename);
-    bool readNextLine();
-    
-    void close() { _reader = std::make_unique<coretools::TNoReader>(); }
+    void open(std::string_view filename);       
+    void close();
 
-    // getters
-    std::string chrName(){return _chrName;};
-    size_t pos(){return _pos;};
-    std::vector<std::string> minorAlleleCounts(){return _minorAlleleCounts;};
-    std::vector<std::string> totalAlleleCounts(){return _totalAlleleCounts;};
-    std::vector<std::string> populationNames(){return _populationNames;};
+    // getters    
+    bool empty(){ return !_file.isOpen(); }
+    bool hasAlleles(){ return _hasAlleles; }
+    size_t numPopulations(){ return _populationNames.size(); }
+    const std::vector<std::string>& populationNames(){
+        return _populationNames;
+    };
+    const_reference front(){
+        return _alleleCountVec;    
+    }
+
+    //read next
+    void popFront();
+
+    //iterators
+    using iterator = coretools::TLazyIterator<TAlleleCountReader>;
+    iterator begin(){ return iterator{this}; }
+    iterator end(){ return iterator{}; }
 };
+
+
+
 }; //end namespace
 
 #endif /* TALLELECOUNTREADER_H_ */
