@@ -71,10 +71,10 @@ public:
 class TBAMSimulator : public TSimulator {
 protected:
 	// bam files
+	std::vector<TReadSimulators> _readSimulators; // one per sample
 	std::unique_ptr<TSimulatorBamFiles> _bamFiles;
 
 	// read simulator
-	std::vector<TReadSimulators> _readSimulators; // one per sample
 	void _initializeReadSimulator();
 
 	// functions to simulate
@@ -89,6 +89,7 @@ protected:
 
 public:
 	TBAMSimulator(const std::string &method);
+	~TBAMSimulator() { _bamFiles->close(); }
 };
 
 //---------------------------------------------------------

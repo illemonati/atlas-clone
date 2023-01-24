@@ -181,7 +181,7 @@ TSimulatorBamFiles::TSimulatorBamFiles(uint32_t NumFiles, const std::string & Ou
 	}
 }
 
-TSimulatorBamFiles::~TSimulatorBamFiles() {
+void TSimulatorBamFiles::close() {
 	logfile().startIndent("Indexing BAM files:");
 	for (auto &f : _files) { f.close(); }
 	logfile().endIndent();
