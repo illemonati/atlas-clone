@@ -38,7 +38,7 @@ void TAlleleCountReader::close(){
     _file.close();
 }
 
-// implement function that reads next line, saves different values in its properties, skips empty lines and returns false when eof
+// read next line, if there is no next line -> close file
 void TAlleleCountReader::popFront(){
     static std::vector<std::string> lineVec;
 	if(!_file.read(lineVec)){

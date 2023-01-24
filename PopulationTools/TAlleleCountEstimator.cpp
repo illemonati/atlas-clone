@@ -490,7 +490,7 @@ TAlleleCountFile *TAlleleCountEstimator::prepareOutputFile(const std::string & t
 		filePrefix      = filePrefix + "_flink_alleleCounts.txt.gz";
 		alleleCountFile = new TFlinkFile(filePrefix);
 	} else
-		UERROR("Unknown output file type '", type, "'!");
+		UERROR("Unknown output file type '", type, "'! Use 'default', 'withAlleles', 'treemix' or 'flink'.");
 
 	logfile().list("Will write estimated allele counts to file '" + filePrefix + "'.");
 	alleleCountFile->openFileToWrite(filePrefix);
