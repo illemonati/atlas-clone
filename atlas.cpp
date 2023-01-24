@@ -93,9 +93,7 @@ void addTaks(coretools::TMain & main) {
 	main.addRegularTask("PSMC", new GenomeTasks::TTask_PSMC());
 	main.addRegularTask("call", new GenomeTasks::TTask_call());
 	main.addRegularTask("theta", new GenomeTasks::TTask_estimateTheta());
-	main.addRegularTask("thetaGenomeWide", new GenomeTasks::TTask_estimateThetaGenomeWide());
 	main.addRegularTask("thetaRatio", new GenomeTasks::TTask_estimateThetaRatio());
-	main.addRegularTask("thetaQC", new GenomeTasks::TTask_downsamplingThetaQC());
 	main.addRegularTask("GLF", new GenomeTasks::TTask_writeGLF());
 	main.addRegularTask("sexEstimation", new GenomeTasks::TTask_estimateSex());
 

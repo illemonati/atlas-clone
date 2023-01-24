@@ -52,41 +52,6 @@ void TEstimateTheta_base::_addSites(GenotypeLikelihoods::TWindow_base &window,
 void TEstimateTheta_base::_addSites() { _addSites(_window, _thetaEstimator); };
 
 //-----------------------------------
-// TEstimateTheta
-//-----------------------------------
-TEstimateTheta::TEstimateTheta() : TEstimateTheta_base() {
-	// open output file
-	std::string filename = _outputName + "_thetaPerWindow.txt.gz";
-	_thetaOut.open(&_thetaEstimator, filename);
-
-	// print all windows?
-	if (parameters().parameterExists("printAll")) {
-		_printAll = true;
-		logfile().list(
-			"Will print all windows, also those for which no estimation was possible. (parameter 'printAll')");
-	} else {
-		_printAll = false;
-		logfile().list("Will only print windows for which estimation was possible. (use 'printAll' to print all)");
-	}
-};
-
-bool TEstimateTheta::_estimateTheta() {
-	_addSites();
-
-	// estimate Theta
-	return _thetaEstimator.estimateTheta();
-};
-
-void TEstimateTheta::_handleWindow() {
-	logfile().startIndent("Estimating Theta:");
-	if (_estimateTheta() || _printAll) { _thetaOut.write(_window); }
-	_thetaEstimator.clear();
-	logfile().endIndent();
-};
-
-void TEstimateTheta::estimateTheta() { _traverseBAMWindows(); };
-
-//-----------------------------------
 // TEstimateThetaGenomeWide
 //-----------------------------------
 TEstimateThetaGenomeWide::TEstimateThetaGenomeWide() : TEstimateTheta_base() {
@@ -203,7 +168,7 @@ void TEstimateThetaLLSurface::estimateThetaLLSurface() { _traverseBAMWindows(); 
 //-----------------------------------
 // TEstimateThetaDownsamplingQC
 //-----------------------------------
-TEstimateThetaDownsamplingQC::TEstimateThetaDownsamplingQC() : TEstimateTheta_base() {
+TEstimateTheta::TEstimateTheta() : TEstimateTheta_base() {
 
 	// read downsampling rates
 	if (parameters().parameterExists("prob")) {
@@ -220,16 +185,18 @@ TEstimateThetaDownsamplingQC::TEstimateThetaDownsamplingQC() : TEstimateTheta_ba
 			}
 		}
 	} else {
-		// parse downsampling parameters
-		parameters().fillParameterIntoContainer("prob", downSampleProbVector, ',', "1.0,0.5,0.2,0.1,0.05,0.02,0.01");
+		downSampleProbVector.emplace_back(1.);
 	}
+
+	if (downSampleProbVector.empty()) UERROR("You need to specify at least one probability!");
+
 	// report probabilities
 	logfile().list("Will estimate theta after downsampling reads with probabilities " +
 				   coretools::str::concatenateString(downSampleProbVector, ", ") + ". (parameter 'prob')");
 
 	// check if full data is to be used (i.e. if prob = 1.0 is specified)
 	_printFullData = false;
-	if (*downSampleProbVector.begin() == 1.0) {
+	if (downSampleProbVector.front() == 1.0) {
 		_printFullData = true;
 		downSampleProbVector.erase(downSampleProbVector.begin());
 	}
@@ -240,9 +207,13 @@ TEstimateThetaDownsamplingQC::TEstimateThetaDownsamplingQC() : TEstimateTheta_ba
 	}
 
 	// open output
-	std::string filename = _outputName + "_thetaQC.txt.gz";
+	const std::string suffix = downSampleProbVector.empty() ? "_thetaPerWindow.txt.gz" : "_thetaQC.txt.gz";
+	std::string filename     = _outputName + suffix;
 	logfile().list("Will write theta estimates to file '" + filename + "'.");
-	if (_printFullData) { _thetaOut.addEstimator(&_thetaEstimator, "p1.0_"); }
+	if (_printFullData) {
+		const std::string prefix = downSampleProbVector.empty()? "" : "p1.0_";
+		_thetaOut.addEstimator(&_thetaEstimator, prefix);
+	}
 	for (size_t i = 0; i < downSampleProbVector.size(); ++i) {
 		// assemble prefix without lagging zeros
 		std::string prefix = toString(downSampleProbVector[i]);
@@ -255,14 +226,26 @@ TEstimateThetaDownsamplingQC::TEstimateThetaDownsamplingQC() : TEstimateTheta_ba
 		_thetaOut.addEstimator(&estimators[i], prefix);
 	}
 	_thetaOut.open(filename);
+
+	// print all windows?
+	if (parameters().parameterExists("printAll")) {
+		_printAll = true;
+		logfile().list(
+			"Will print all windows, also those for which no estimation was possible. (parameter 'printAll')");
+	} else {
+		_printAll = false;
+		logfile().list("Will only print windows for which estimation was possible. (use 'printAll' to print all)");
+	}
+
 };
 
-void TEstimateThetaDownsamplingQC::_handleWindow() {
+void TEstimateTheta::_handleWindow() {
 	// estimate on full data
+	bool pass = false;
 	if (_printFullData) {
 		logfile().startIndent("Estimating Theta on full data:");
 		_addSites();
-		_thetaEstimator.estimateTheta();
+		pass |= _thetaEstimator.estimateTheta();
 		logfile().endIndent();
 	}
 
@@ -283,19 +266,21 @@ void TEstimateThetaDownsamplingQC::_handleWindow() {
 
 		// and estimate
 		_addSites(destination, estimators[i]);
-		estimators[i].estimateTheta();
+		pass |=estimators[i].estimateTheta();
 		logfile().endIndent();
 	}
 
 	// write output
-	_thetaOut.write(_window);
+	if (pass || _printAll) _thetaOut.write(_window);
 
 	// clear
 	_thetaEstimator.clear();
 	for (auto &e : estimators) { e.clear(); }
 };
 
-void TEstimateThetaDownsamplingQC::runQC() { _traverseBAMWindows(); };
+void TEstimateTheta::runQC() {
+	_traverseBAMWindows();
+};
 
 //-----------------------------------
 // TEstimateThetaRatio
