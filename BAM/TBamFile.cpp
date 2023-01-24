@@ -977,7 +977,7 @@ TOutputBamFile::~TOutputBamFile(){
 };
 
 void TOutputBamFile::open(const std::string Filename, const TSamHeader & Header, const genometools::TChromosomes & Chromosomes, const TReadGroups & ReadGroups){
-	logfile().startIndent("Writing alignments to new BAM to file '" + Filename + "':");
+	logfile().list("Writing alignments to new BAM to file '" + Filename + "'.");
 	closeNoIndex();
 
 	_outputFilename = Filename;
