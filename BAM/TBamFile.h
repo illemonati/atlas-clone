@@ -59,6 +59,7 @@ private:
  	//counters
  	uint64_t _numAlignmentRead;
  	coretools::TCountDistribution<> _numAlignmentReadPerReadGroup;
+ 	uint64_t _numAligmentsWithoutReadGroup; //usually implies that the read was not aligned (i.e. readGroupID = -1 in BAM file)
  	uint64_t _numAlignmentsPassedQC;
  	bool _limitNumReads;
  	uint64_t _maxNumReadsToRead;

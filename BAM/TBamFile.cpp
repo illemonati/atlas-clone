@@ -359,9 +359,10 @@ void TBamFile::_fillReadGroups(TReadGroups & ReadGroups){
 	ReadGroups.clear();
 
 	//now add one by one
+	//TODO : not nice how it works, but implemented this way to ensure TReadGroups does not depend on bamtools
 	for(auto it = _bamHeader.ReadGroups.Begin(); it != _bamHeader.ReadGroups.End(); ++it){
 		//add read group
-		const TReadGroup& rg = ReadGroups.add(it->ID);
+		TReadGroup& rg = ReadGroups.add(it->ID);
 
 		//now copy rest
 		rg.description_DS = it->Description;
@@ -536,8 +537,9 @@ bool TBamFile::readNextAlignment(){
 		_chrChanged = false;
 	}
 
-	//get current position and update counter
+	//get current position, clear CIGAR and update counter
 	_curAlignmentPosition.move(_curBamAlignment.RefID, _curBamAlignment.Position);
+	_curCigar.clear(); //needs to be cleared here to be empty in case of alignments that are unaligned
 	++_numAlignmentRead;
 
 	//check if BAM file is sorted
@@ -550,17 +552,21 @@ bool TBamFile::readNextAlignment(){
 	_curBamAlignment.GetTag("RG", readGroup);
 	_curReadGroupID = _readGroups.getId(readGroup);
 
-	//also update counter per readgroup
-	_numAlignmentReadPerReadGroup.add(_curReadGroupID);
+	//is it an "unaligned" read? -> indentified as those without any known read group
+	if(_curReadGroupID == TReadGroups::noReadGroupId){
+		++_numAligmentsWithoutReadGroup;
+		_QCFiltersPassed =  false;
+	} else {
+		//update per read group counter
+		_numAlignmentReadPerReadGroup.add(_curReadGroupID);
 
-	//parse CIGAR
-	_curCigar.clear();
-	for(auto& it : _curBamAlignment.CigarData){
-		_curCigar.add(it.Type, it.Length);
+		//parse CIGAR
+		for(auto& it : _curBamAlignment.CigarData){
+			_curCigar.add(it.Type, it.Length);
+		}
+		//apply filters
+		_applyFilters();
 	}
-
-	//apply filters
-	_applyFilters();
 
 	return true;
 };
@@ -718,10 +724,10 @@ void TBamFile::curAddSamField(const std::string tag, const float value){
 void TBamFile::printSummaryNoEndIndent(std::string &outputName){
 	logfile().startIndent("Summary of parsed reads from BAM file '" + _filename + "':");
 	logfile().list("Total number of reads read: " + coretools::str::toString(_numAlignmentRead));
+	logfile().list("Reads without read group: " + coretools::str::toString(_numAligmentsWithoutReadGroup) + " (" + coretools::str::toPercentString(_numAligmentsWithoutReadGroup, _numAlignmentRead, 3) + "%)");
 	logfile().list("Reads that passed filters: " + coretools::str::toString(_numAlignmentsPassedQC) + " (" + coretools::str::toPercentString(_numAlignmentsPassedQC, _numAlignmentRead, 3) + "%)");
 	uint64_t numFiltered = _numAlignmentRead - _numAlignmentsPassedQC;
 	logfile().list("Reads that were filtered out: " + coretools::str::toString(numFiltered) + " (" + coretools::str::toPercentString(numFiltered, _numAlignmentRead, 3) + "%)");
-
 	logfile().addIndent();
 
 		//write counts of filtered reads for each read group to _filterSummary.txt file
