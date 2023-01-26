@@ -44,22 +44,6 @@ public:
 };
 
 //-----------------------------------
-// TEstimateThetaGenomeWide
-//-----------------------------------
-class TEstimateThetaGenomeWide : public TEstimateTheta_base {
-private:
-	uint32_t _numBootstraps;
-	bool _onlyBootstraps;
-
-	void _bootstrapThetaEstimation();
-	void _handleWindow() override;
-
-public:
-	TEstimateThetaGenomeWide();
-	void estimateThetaGenomeWide();
-};
-
-//-----------------------------------
 // TEstimateThetaLLSurface
 //-----------------------------------
 class TEstimateThetaLLSurface : public TEstimateTheta_base {
@@ -81,12 +65,17 @@ class TEstimateTheta : public TEstimateTheta_base {
 private:
 	std::vector<coretools::Probability> downSampleProbVector;
 	std::vector<GenotypeLikelihoods::TThetaEstimator> estimators;
-	bool _printFullData;
-	bool _printAll;
+	bool _printFullData     = false;
+	bool _printAll          = false;
+	bool _genomeWide        = false;
+
+	bool _onlyBootstraps    = false;
+	uint32_t _numBootstraps = 0;
 
 	// tmp
 	GenotypeLikelihoods::TWindow_base destination;
 
+	void _bootstrapThetaEstimation();
 	void _handleWindow() override;
 
 public:
@@ -125,17 +114,11 @@ class TTask_estimateTheta : public TThetaTask {
 public:
 	TTask_estimateTheta() { _explanation = "Estimating heterozygosity (theta)"; }
 	void run() {
-		using coretools::instances::parameters;
 		using coretools::instances::logfile;
+		using coretools::instances::parameters;
 
-		if (parameters().parameterExists("genomeWide")) {
-			logfile().list("Estimating heterozygosity (theta) genome-wide.");
-			TEstimateThetaGenomeWide estimator;
-			estimator.estimateThetaGenomeWide();
-		} else  {
-			TEstimateTheta estimator;
-			estimator.runQC();
-		}
+		TEstimateTheta estimator;
+		estimator.runQC();
 	}
 };
 

@@ -52,88 +52,6 @@ void TEstimateTheta_base::_addSites(GenotypeLikelihoods::TWindow_base &window,
 void TEstimateTheta_base::_addSites() { _addSites(_window, _thetaEstimator); };
 
 //-----------------------------------
-// TEstimateThetaGenomeWide
-//-----------------------------------
-TEstimateThetaGenomeWide::TEstimateThetaGenomeWide() : TEstimateTheta_base() {
-	if (_considerRegions) {
-		logfile().list("Estimating theta at specific sites. (parameter 'regions')");
-	} else {
-		logfile().list("Estimating theta genome-wide. (use 'regions' to limit)");
-	}
-
-	// bootstraps
-	_numBootstraps = parameters().getParameterWithDefault<int>("bootstraps", 0);
-	if (_numBootstraps > 0) {
-		logfile().list("Will estimate theta fpr ", _numBootstraps, " bootstrap replicates. (parameter 'bootstraps')");
-	} else {
-		logfile().list("Will not conduct any bootstrap replicates. (use 'bootstraps' to request)");
-	}
-
-	if (parameters().parameterExists("onlyBootstrap")) {
-		_onlyBootstraps = true;
-		logfile().list("Will only ...");
-	} else {
-		_onlyBootstraps = false;
-		logfile().list("Will only ...");
-	}
-};
-
-void TEstimateThetaGenomeWide::_handleWindow() {
-	// add sites to data structure
-	try {
-		_addSites();
-	} catch (...) {
-		UERROR("Failed to allocate sufficient memory to store the data for so many sites. Consider limiting the "
-			  "analysis (e.g. parameters 'regions'or 'chr') or limiting to sites with depth >=2 (parameter 'minDepth', "
-			   "recommended).");
-	}
-};
-
-void TEstimateThetaGenomeWide::_bootstrapThetaEstimation() {
-	logfile().startIndent("Generating " + toString(_numBootstraps) + " bootstrap estimates of theta:");
-
-	// measure runtime
-	coretools::TTimer timer;
-
-	// loop over bootstraps
-	for (uint32_t s = 0; s < _numBootstraps; ++s) {
-		logfile().startIndent("Bootstrap " + toString(s + 1) + " of " + toString(_numBootstraps) + ":");
-
-		// run bootstrap
-		_thetaEstimator.bootstrapTheta();
-		_thetaOut.write("Bootstrap_" + toString(s + 1), "-", "-");
-
-		logfile().endIndent();
-	}
-
-	// finish
-	logfile().list("Total computation time for theta bootstrapping was ", timer.minutes());
-	logfile().endIndent();
-};
-
-void TEstimateThetaGenomeWide::estimateThetaGenomeWide() {
-	// read data
-	_traverseBAMWindows();
-	if (!_onlyBootstraps) {
-		logfile().startIndent("Estimate theta based on a total of " + toString(_thetaEstimator.sizeWithData()) +
-							  " sites:");
-		_thetaEstimator.estimateTheta();
-		// write estimates
-		std::string filename = _outputName + "_thetaGenomeWide.txt.gz";
-		_thetaOut.open(&_thetaEstimator, filename);
-		if (_considerRegions) {
-			_thetaOut.write("regions", "-", "-");
-		} else {
-			_thetaOut.write("genome-wide", "-", "-");
-		}
-		logfile().endIndent();
-	}
-
-	// bootstrap
-	if (_numBootstraps > 0) { _bootstrapThetaEstimation(); }
-};
-
-//-----------------------------------
 // TEstimateThetaLLSurface
 //-----------------------------------
 TEstimateThetaLLSurface::TEstimateThetaLLSurface() : TEstimateTheta_base() {
@@ -169,8 +87,39 @@ void TEstimateThetaLLSurface::estimateThetaLLSurface() { _traverseBAMWindows(); 
 // TEstimateThetaDownsamplingQC
 //-----------------------------------
 TEstimateTheta::TEstimateTheta() : TEstimateTheta_base() {
+	if (parameters().parameterExists("genomeWide")) {
+		_genomeWide = true;
+		logfile().list("Will estimating heterozygosity (theta) genome-wide.");
+
+		if (_considerRegions) {
+			logfile().list("Estimating theta at specific sites. (parameter 'regions')");
+		} else {
+			logfile().list("Estimating theta genome-wide. (use 'regions' to limit)");
+		}
+
+		// bootstraps
+		_numBootstraps = parameters().getParameterWithDefault<int>("bootstraps", 0);
+		if (_numBootstraps > 0) {
+			logfile().list("Will estimate theta fpr ", _numBootstraps,
+						   " bootstrap replicates. (parameter 'bootstraps')");
+		} else {
+			logfile().list("Will not conduct any bootstrap replicates. (use 'bootstraps' to request)");
+		}
+
+		if (parameters().parameterExists("onlyBootstrap")) {
+			_onlyBootstraps = true;
+			logfile().list("Will only bootstrap");
+		} else {
+			_onlyBootstraps = false;
+		}
+
+	} else {
+		_genomeWide = false;
+		logfile().list("Will estimating heterozygosity (theta) genome-wide.");
+	}
 
 	// read downsampling rates
+
 	if (parameters().parameterExists("prob")) {
 		parameters().fillParameterIntoContainer("prob", downSampleProbVector, ',');
 	} else if (parameters().parameterExists("depth")) {
@@ -190,26 +139,23 @@ TEstimateTheta::TEstimateTheta() : TEstimateTheta_base() {
 
 	if (downSampleProbVector.empty()) UERROR("You need to specify at least one probability!");
 
-	// report probabilities
-	logfile().list("Will estimate theta after downsampling reads with probabilities " +
-				   coretools::str::concatenateString(downSampleProbVector, ", ") + ". (parameter 'prob')");
-
 	// check if full data is to be used (i.e. if prob = 1.0 is specified)
 	_printFullData = false;
 	if (downSampleProbVector.front() == 1.0) {
 		_printFullData = true;
 		downSampleProbVector.erase(downSampleProbVector.begin());
+		logfile().list("Will estimate theta on full data.");
 	}
 
 	// create windows and estimators for downsamples
 	if (downSampleProbVector.size() > 0) {
+		logfile().list("Will estimate theta after downsampling reads with probabilities " +
+					   coretools::str::concatenateString(downSampleProbVector, ", ") + ". (parameter 'prob')");
 		for (size_t i = 0; i < downSampleProbVector.size(); ++i) { estimators.emplace_back(_thetaEstimator); }
 	}
 
 	// open output
-	const std::string suffix = downSampleProbVector.empty() ? "_thetaPerWindow.txt.gz" : "_thetaQC.txt.gz";
-	std::string filename     = _outputName + suffix;
-	logfile().list("Will write theta estimates to file '" + filename + "'.");
+	std::string filename = _outputName + "_theta.txt.gz";
 	if (_printFullData) {
 		const std::string prefix = downSampleProbVector.empty()? "" : "p1.0_";
 		_thetaOut.addEstimator(&_thetaEstimator, prefix);
@@ -236,50 +182,100 @@ TEstimateTheta::TEstimateTheta() : TEstimateTheta_base() {
 		_printAll = false;
 		logfile().list("Will only print windows for which estimation was possible. (use 'printAll' to print all)");
 	}
-
 };
 
 void TEstimateTheta::_handleWindow() {
 	// estimate on full data
 	bool pass = false;
 	if (_printFullData) {
-		logfile().startIndent("Estimating Theta on full data:");
+		logfile().startIndent("Using full data:");
+
 		_addSites();
-		pass |= _thetaEstimator.estimateTheta();
+		if (!_genomeWide) {
+			logfile().startIndent("Estimating Theta:");
+
+			pass |= _thetaEstimator.estimateTheta();
+			logfile().endIndent();
+		}
 		logfile().endIndent();
 	}
 
 	for (size_t i = 0; i < downSampleProbVector.size(); ++i) {
 		coretools::Probability &p = downSampleProbVector[i];
-		logfile().startIndent("Estimating Theta on downsampled data (p = " + toString(p) + "):");
+		logfile().startIndent("Using downsampled data (p = ", p, "):");
 
-		// downsample
-		logfile().listFlush("Downsampling reads with p = " + toString(p) + " ...");
+		logfile().listFlush("Downsampling reads ...");
 		if (_subset)
 			destination.downsampleFromOther(_window, *_subset, _readUpToDepth, p);
 		else
 			destination.downsampleFromOther(_window, _readUpToDepth, p);
 		logfile().done();
 
-		// apply filters
 		_applyWindowFilters(destination);
-
-		// and estimate
 		_addSites(destination, estimators[i]);
-		pass |=estimators[i].estimateTheta();
+
+		if (!_genomeWide) {
+			logfile().startIndent("Estimating Theta:");
+			pass |= estimators[i].estimateTheta();
+			logfile().endIndent();
+		}
 		logfile().endIndent();
 	}
 
-	// write output
-	if (pass || _printAll) _thetaOut.write(_window);
+	// write output & clear
+	if (!_genomeWide) {
+		if (pass || _printAll) _thetaOut.write(_window);
 
-	// clear
-	_thetaEstimator.clear();
-	for (auto &e : estimators) { e.clear(); }
+		_thetaEstimator.clear();
+		for (auto &e : estimators) { e.clear(); }
+	}
+};
+
+void TEstimateTheta::_bootstrapThetaEstimation() {
+	logfile().startIndent("Generating " + toString(_numBootstraps) + " bootstrap estimates of theta:");
+
+	// measure runtime
+	coretools::TTimer timer;
+
+	// loop over bootstraps
+	for (uint32_t s = 0; s < _numBootstraps; ++s) {
+		logfile().startIndent("Bootstrap " + toString(s + 1) + " of " + toString(_numBootstraps) + ":");
+
+		// run bootstrap
+		_thetaEstimator.bootstrapTheta();
+			for (auto& e: estimators) e.bootstrapTheta();
+		_thetaOut.write("Bootstrap_" + toString(s + 1), "-", "-");
+
+		logfile().endIndent();
+	}
+
+	// finish
+	logfile().list("Total computation time for theta bootstrapping was ", timer.minutes());
+	logfile().endIndent();
 };
 
 void TEstimateTheta::runQC() {
 	_traverseBAMWindows();
+	if (_genomeWide) {
+		if (!_onlyBootstraps) {
+			logfile().startIndent("Estimate theta based on a total of " + toString(_thetaEstimator.sizeWithData()) +
+								  " sites:");
+			_thetaEstimator.estimateTheta();
+			for (auto& e: estimators) e.estimateTheta();
+			// write estimates
+			//std::string filename = _outputName + "_thetaGenomeWide.txt.gz";
+			//_thetaOut.open(&_thetaEstimator, filename);
+			if (_considerRegions) {
+				_thetaOut.write("regions", "-", "-");
+			} else {
+				_thetaOut.write("genome-wide", "-", "-");
+			}
+			logfile().endIndent();
+		}
+
+		// bootstrap
+		if (_numBootstraps > 0) { _bootstrapThetaEstimation(); }
+	}
 };
 
 //-----------------------------------
