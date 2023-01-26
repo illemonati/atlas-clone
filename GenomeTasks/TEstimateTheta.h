@@ -13,6 +13,8 @@
 #include <string>
 #include <vector>
 
+#include "coretools/Main/TLog.h"
+#include "coretools/Main/TParameters.h"
 #include "genometools/BED/TBed.h"
 #include "TGenome.h"
 #include "coretools/Main/TTask.h"
@@ -35,42 +37,10 @@ protected:
 
 	void _addSites(GenotypeLikelihoods::TWindow_base &window, GenotypeLikelihoods::TThetaEstimator &thetaEstimator);
 	void _addSites();
+	void _handleAlignment() override {}
 
 public:
 	TEstimateTheta_base();
-};
-
-//-----------------------------------
-// TEstimateTheta
-//-----------------------------------
-class TEstimateTheta : public TEstimateTheta_base {
-private:
-	bool _printAll;
-
-	bool _estimateTheta();
-	void _handleWindow() override;
-	void _handleAlignment() override {}
-
-public:
-	TEstimateTheta();
-	void estimateTheta();
-};
-
-//-----------------------------------
-// TEstimateThetaGenomeWide
-//-----------------------------------
-class TEstimateThetaGenomeWide : public TEstimateTheta_base {
-private:
-	uint32_t _numBootstraps;
-	bool _onlyBootstraps;
-
-	void _bootstrapThetaEstimation();
-	void _handleWindow() override;
-	void _handleAlignment() override {}
-
-public:
-	TEstimateThetaGenomeWide();
-	void estimateThetaGenomeWide();
 };
 
 //-----------------------------------
@@ -82,7 +52,6 @@ private:
 
 	void _bootstrapThetaEstimation();
 	void _handleWindow() override;
-	void _handleAlignment() override {}
 
 public:
 	TEstimateThetaLLSurface();
@@ -92,20 +61,25 @@ public:
 //-----------------------------------
 // TEstimateThetaDownsamplingQC
 //-----------------------------------
-class TEstimateThetaDownsamplingQC : public TEstimateTheta_base {
+class TEstimateTheta : public TEstimateTheta_base {
 private:
 	std::vector<coretools::Probability> downSampleProbVector;
 	std::vector<GenotypeLikelihoods::TThetaEstimator> estimators;
-	bool _printFullData;
+	bool _printFullData     = false;
+	bool _printAll          = false;
+	bool _genomeWide        = false;
+
+	bool _onlyBootstraps    = false;
+	uint32_t _numBootstraps = 0;
 
 	// tmp
 	GenotypeLikelihoods::TWindow_base destination;
 
+	void _bootstrapThetaEstimation();
 	void _handleWindow() override;
-	void _handleAlignment() override {}
 
 public:
-	TEstimateThetaDownsamplingQC();
+	TEstimateTheta();
 	void runQC();
 };
 
@@ -138,22 +112,14 @@ public:
 
 class TTask_estimateTheta : public TThetaTask {
 public:
-	TTask_estimateTheta() { _explanation = "Estimating heterozygosity (theta) per window"; };
-
+	TTask_estimateTheta() { _explanation = "Estimating heterozygosity (theta)"; }
 	void run() {
+		using coretools::instances::logfile;
+		using coretools::instances::parameters;
+
 		TEstimateTheta estimator;
-		estimator.estimateTheta();
-	};
-};
-
-class TTask_estimateThetaGenomeWide : public TThetaTask {
-public:
-	TTask_estimateThetaGenomeWide() { _explanation = "Estimating heterozygosity (theta) genome-wide"; };
-
-	void run() {
-		TEstimateThetaGenomeWide estimator;
-		estimator.estimateThetaGenomeWide();
-	};
+		estimator.runQC();
+	}
 };
 
 class TTask_thetaLLSurface : public TThetaTask {
@@ -163,18 +129,6 @@ public:
 	void run() {
 		TEstimateThetaLLSurface estimator;
 		estimator.estimateThetaLLSurface();
-	};
-};
-
-class TTask_downsamplingThetaQC : public TThetaTask {
-public:
-	TTask_downsamplingThetaQC() {
-		_explanation = "QC recalibration by estimating theta on downsampled data for each window";
-	};
-
-	void run() {
-		TEstimateThetaDownsamplingQC estimator;
-		estimator.runQC();
 	};
 };
 
