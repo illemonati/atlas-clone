@@ -98,7 +98,7 @@ void TGenome_parsed::_openReference(bool required) {
 			logfile().list("Reading reference sequence from '" + fastaFile + "'. (parameter fasta)");
 			_reference.open(fastaFile);
 		} else {
-			if (required) { throw "No reference provided! (Use parameter fasta to provide a reference)"; }
+			if (required) { UERROR("No reference provided! (Use parameter fasta to provide a reference)"); }
 		}
 	}
 	_bamFile.setFilters();
@@ -108,9 +108,9 @@ void TGenome_parsed::_setReadTrimming() {
 	// trimming ends
 	if (parameters().parameterExists("trim3") || parameters().parameterExists("trim5")) {
 		_trimmingLength3Prime = parameters().getParameterWithDefault<int>("trim3", 0);
-		if (_trimmingLength3Prime < 0) throw "trimming distance trim3 must be >= 0!";
+		if (_trimmingLength3Prime < 0) UERROR("trimming distance trim3 must be >= 0!");
 		_trimmingLength5Prime = parameters().getParameterWithDefault<int>("trim5", 0);
-		if (_trimmingLength5Prime < 0) throw "trimming distance trim5 must be >= 0!";
+		if (_trimmingLength5Prime < 0) UERROR("trimming distance trim5 must be >= 0!");
 		if (_trimmingLength3Prime > 0 || _trimmingLength5Prime > 0) {
 			logfile().list("Will trim first " + toString(_trimmingLength3Prime) + " and " +
 						   toString(_trimmingLength5Prime) +
@@ -181,8 +181,8 @@ void TGenome_windows::_setWindowParameters() {
 		fromString(tmp, _windowSize);
 		logfile().list("Setting window size to " + toString(_windowSize) + ". (parameter 'window')");
 		if (_windowSize < _bamFile.maxReadLength()) {
-			throw "Window size " + tmp + " out of range! Windows must be at least as large as the max read length (" +
-				toString(_bamFile.maxReadLength()) + " bp). (use parameter 'filterReadLength' to change)!";
+			UERROR("Window size ", tmp, " out of range! Windows must be at least as large as the max read length (",
+				   _bamFile.maxReadLength(), " bp). (use parameter 'filterReadLength' to change)!");
 		}
 	} else {
 		logfile().listFlush("Limiting analysis to windows defined in BED file '" + tmp + "' (parameter window) ...");
@@ -205,13 +205,13 @@ void TGenome_windows::_setParsingLimits() {
 	if (parameters().parameterExists("limitWindows"))
 		logfile().list("Will limit analysis to the first " + toString(_limitWindows) +
 					   " windows per chromosome. (parameter 'limitWindows')");
-	if (_limitWindows <= _skipWindows) throw "limitWindows has to be larger than skipWindows!";
+	if (_limitWindows <= _skipWindows) UERROR("limitWindows has to be larger than skipWindows!");
 };
 
 void TGenome_windows::_setWindowFilters() {
 	// filter for missing reference
 	_maxMissing = parameters().getParameterWithDefault<double>("maxMissing", 1.0);
-	if (_maxMissing < 0.0 || _maxMissing > 1.0) throw "maxMissing must be within [0, 1]!";
+	if (_maxMissing < 0.0 || _maxMissing > 1.0) UERROR("maxMissing must be within [0, 1]!");
 	if (_maxMissing < 1.0) {
 		logfile().list("Will filter out windows with a missing data fraction > " + toString(_maxMissing) +
 					   ". (parameter 'maxMissing')");
@@ -220,11 +220,11 @@ void TGenome_windows::_setWindowFilters() {
 	}
 
 	_maxRefN = parameters().getParameterWithDefault<double>("maxRefN", 1.0);
-	if (_maxRefN < 0.0 || _maxRefN > 1.0) throw "maxRefN must be within interval [0,1]!";
+	if (_maxRefN < 0.0 || _maxRefN > 1.0) UERROR("maxRefN must be within interval [0,1]!");
 	_openReference();
 	if (_maxRefN < 1.0 && !_reference.isOpen())
-		throw "Can only calculate percentage of reference bases that are 'N' in window if reference file is provided! "
-			  "(use 'fasta' to provide a reference)";
+		UERROR("Can only calculate percentage of reference bases that are 'N' in window if reference file is provided! "
+			   "(use 'fasta' to provide a reference)");
 	logfile().list("Will filter out windows with a fraction of 'N' in reference > " + toString(_maxRefN) +
 				   ". (parameter 'maxRefN')");
 };
@@ -273,7 +273,7 @@ void TGenome_windows::_setMasks() {
 		std::string filename;
 		if (parameters().parameterExists("mask")) {
 			// mask
-			if (parameters().parameterExists("regions")) throw "Cannot use mask and regions at the same time.";
+			if (parameters().parameterExists("regions")) UERROR("Cannot use mask and regions at the same time.");
 			filename = parameters().getParameter<std::string>("mask");
 			logfile().startIndent("Will mask all sites listed in BED file '" + filename + "':");
 			_doMasking       = true;
@@ -301,16 +301,16 @@ void TGenome_windows::_setMasks() {
 };
 
 void TGenome_windows::_openSiteSubset(const std::string &paramName) {
-	if (_subset) { throw "Site subset already initialized!"; }
+	if (_subset) { UERROR("Site subset already initialized!"); }
 
 	std::string filename = parameters().getParameter<std::string>(paramName, true);
 
 	if (_considerRegions)
-		throw "Site subsets (parameter '" + paramName +
-			"') and regions (parameter 'regions') can not be used at the same time!";
+		UERROR("Site subsets (parameter '", paramName,
+			   "') and regions (parameter 'regions') can not be used at the same time!");
 	if (_doMasking)
-		throw "Site subsets (parameter '" + paramName +
-			"') and masks (parameter 'mask') can not be used at the same time!";
+		UERROR("Site subsets (parameter '", paramName,
+			   "') and masks (parameter 'mask') can not be used at the same time!");
 
 	_subset = std::make_unique<GenotypeLikelihoods::TSiteSubset>(filename, _bamFile.chromosomes(), false, _reference);
 };
@@ -548,7 +548,7 @@ void TGenome_windows::_applyWindowFilters(GenotypeLikelihoods::TWindow_base &win
 	}
 
 	// apply filters on window
-	window.filter(_maxMissing, _maxRefN, &logfile());
+	window.filter(_maxMissing, _maxRefN);
 
 	// report
 	if (window.numReadsInWindow() > 0) {

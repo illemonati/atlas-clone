@@ -34,9 +34,6 @@ namespace SequencingError {
 class TModels;
 }
 } // namespace GenotypeLikelihoods
-namespace coretools {
-class TRandomGenerator;
-}
 namespace genometools {
 class PhredIntProbability;
 class TFastaReader;
@@ -180,7 +177,7 @@ public:
 	void binQualityScoresIllumina();
 	void recalibrateWithPMD(const GenotypeLikelihoods::TGenotypeLikelihoodCalculator &GLCalculator);
 	void setIsProperPair(const bool &ok);
-	void downsampleAlignment(const coretools::Probability &fraction, coretools::TRandomGenerator &randomGenerator);
+	void downsampleAlignment(const coretools::Probability &fraction);
 	void merge(uint16_t overlapLength, size_t &mappedBasesClipped);
 };
 

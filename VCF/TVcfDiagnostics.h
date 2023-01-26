@@ -13,9 +13,6 @@
 #include <utility>
 #include <vector>
 
-#include "coretools/Main/TLog.h"
-#include "coretools/Main/TParameters.h"
-#include "coretools/Main/TRandomGenerator.h"
 #include "coretools/Main/TTask.h"
 #include "genometools/VCF/TVcfFile.h"
 #include "genometools/BED/TBed.h"
@@ -33,13 +30,13 @@ private:
 public:
 	int** table;
 
-	TCountTable(int Nrows, int Ncols, std::string Outname, coretools::TLog* Logfile){
+	TCountTable(int Nrows, int Ncols, std::string_view Outname){
 		nrows = Nrows;
 		ncols = Ncols;
 		initializationValue = 0;
 		outname = Outname;
 		initialize();
-		openOut(Outname, Logfile);
+		openOut(Outname);
 	}
 
 	void initialize(){
@@ -54,11 +51,11 @@ public:
 		}
 	}
 
-	void openOut(std::string & outname, coretools::TLog* logfile){
-		logfile->list("Writing count table to '" + outname + "'.");
-		out.open(outname.c_str());
+	void openOut(std::string_view outname){
+		coretools::instances::logfile().list("Writing count table to '", outname, "'.");
+		out.open(std::string(outname).c_str());
 		if(!out)
-			throw "Failed to open file '" + outname + " for writing!";
+			UERROR("Failed to open file '", outname, " for writing!");
 	}
 
 	void writeTable(std::string & description, std::string & rowPrefix, std::string & colPrefix){

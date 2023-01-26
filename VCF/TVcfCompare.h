@@ -13,8 +13,6 @@
 #include <string>
 #include <vector>
 #include "genometools/GenotypeTypes.h"
-#include "coretools/Main/TLog.h"
-#include "coretools/Main/TParameters.h"
 #include "coretools/Main/TTask.h"
 #include "genometools/VCF/TVcfFile.h"
 
@@ -60,17 +58,16 @@ public:
 //--------------------------------------------------------------
 class TVcfComapreVCF{
 private:
-	int sampleIndex;
+	int sampleIndex = 0;
 	std::vector<std::string> parsedChromosomes;
-	genometools::TVcfFileSingleLine* vcfFile;
-	bool vcfFileOpen;
+	genometools::TVcfFileSingleLine* vcfFile = nullptr;
+	bool vcfFileOpen = false;
 
-	int minDepth;
-	double minQual;
+	int minDepth = 0;
+	double minQual = 0.;
 
 public:
-	TVcfComapreVCF();
-	TVcfComapreVCF(std::string & filename, std::string & sampleName, coretools::TLog* logfile);
+	TVcfComapreVCF(std::string & filename, std::string & sampleName);
 	TVcfComapreVCF(TVcfComapreVCF&& other);
 	TVcfComapreVCF& operator=(TVcfComapreVCF&& other);
 	~TVcfComapreVCF();
@@ -94,16 +91,12 @@ public:
 //--------------------------------------------------------------
 class TVcfCompare{
 private:
-	coretools::TLog* logfile;
 	std::vector<TVcfComapreVCF> vcfFiles;
 
 	void addToOtherMissing(TGenotypeComparisonTable & counts, const int sample);
 
 public:
-	TVcfCompare(coretools::TLog* Logfile);
-	~TVcfCompare(){};
-
-	void compareVCFFiles(coretools::TParameters & parameters);
+	void compareVCFFiles();
 };
 
 //--------------------------------------
@@ -115,8 +108,8 @@ public:
 
 	void run() {
 		using namespace coretools::instances;
-		TVcfCompare compare(&logfile());
-		compare.compareVCFFiles(parameters());
+		TVcfCompare compare;
+		compare.compareVCFFiles();
 	};
 };
 

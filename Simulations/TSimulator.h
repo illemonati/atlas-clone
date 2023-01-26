@@ -27,7 +27,6 @@
 #include "coretools/Main/TParameters.h"
 #include "TPostMortemDamage.h"
 #include "TReadGroups.h"
-#include "SequencingError/TModels.h"
 #include "TSimulatorAuxiliaryTools.h"
 #include "coretools/Containers/TStrongArray.h"
 #include "coretools/Main/TTask.h"
@@ -72,10 +71,10 @@ public:
 class TBAMSimulator : public TSimulator {
 protected:
 	// bam files
+	std::vector<TReadSimulators> _readSimulators; // one per sample
 	std::unique_ptr<TSimulatorBamFiles> _bamFiles;
 
 	// read simulator
-	std::vector<TReadSimulators> _readSimulators; // one per sample
 	void _initializeReadSimulator();
 
 	// functions to simulate
@@ -90,6 +89,7 @@ protected:
 
 public:
 	TBAMSimulator(const std::string &method);
+	~TBAMSimulator() { _bamFiles->close(); }
 };
 
 //---------------------------------------------------------

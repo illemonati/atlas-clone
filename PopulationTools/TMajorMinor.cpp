@@ -186,7 +186,7 @@ void estimateMajorMinor() {
 			      ". (parameters method and maxF)");
 		MMEstimator = std::make_unique<TMajorMinorEstimatorMLE>(maxF);
 	} else
-		throw "Unknown MajorMinor method '" + method + "'!";
+		UERROR("Unknown MajorMinor method '", method, "'!");
 
 	const bool usePhredLikelihoods = parameters().parameterExists("phredLik");
 	if (usePhredLikelihoods) {
@@ -230,7 +230,7 @@ void estimateMajorMinor() {
 	// limit input
 	const long limitSites = parameters().getParameterWithDefault("limitSites", 0);
 	if (limitSites > 0) logfile().list("Will stop at input position ", limitSites, ". (parameter 'limitSites')");
-	if (limitSites < 0) throw "maxPos cannot be negative!";
+	if (limitSites < 0) UERROR("maxPos cannot be negative!");
 
 	// filename tag
 	const std::string outname = parameters().getParameterWithDefault<std::string>("out", "ATLAS_majorMinor");
@@ -243,7 +243,7 @@ void estimateMajorMinor() {
 		parameters().fillParameterIntoContainer("sampleNames", sampleNames, ',');
 
 		if (sampleNames.size() != glfReader.numActiveSamples()) {
-			throw "Number of provided same names does not match number of GLF files!";
+			UERROR("Number of provided same names does not match number of GLF files!");
 		}
 
 		// report

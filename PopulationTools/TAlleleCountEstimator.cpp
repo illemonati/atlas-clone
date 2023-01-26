@@ -29,6 +29,7 @@
 #include "coretools/Types/probability.h"
 #include "coretools/Strings/stringFunctions.h"
 #include "coretools/Types/weakTypes.h"
+#include "TAlleleCountReader.h"
 
 namespace PopulationTools {
 
@@ -423,7 +424,7 @@ void TAlleleCountEstimator::writeAlleleFrequencyLikelihoods() {
 	std::string filename = outname + "_alleleFrequencyLikelihoods.txt.gz";
 	logfile().list("Will write estimated allele counts to file '" + outname + "'.");
 	gz::ogzstream alleleFrequencyLikelihoodFile(filename.c_str());
-	if (!alleleFrequencyLikelihoodFile) throw "Failed to open file '" + filename + "' for writing!";
+	if (!alleleFrequencyLikelihoodFile) UERROR("Failed to open file '", filename, "' for writing!");
 
 	// write header
 	bool useLocusName = parameters().parameterExists("useLocusName");
@@ -489,7 +490,7 @@ TAlleleCountFile *TAlleleCountEstimator::prepareOutputFile(const std::string & t
 		filePrefix      = filePrefix + "_flink_alleleCounts.txt.gz";
 		alleleCountFile = new TFlinkFile(filePrefix);
 	} else
-		throw "Unknown output file type '" + type + "'!";
+		UERROR("Unknown output file type '", type, "'! Use 'default', 'withAlleles', 'treemix' or 'flink'.");
 
 	logfile().list("Will write estimated allele counts to file '" + filePrefix + "'.");
 	alleleCountFile->openFileToWrite(filePrefix);
@@ -504,56 +505,39 @@ void TAlleleCountEstimator::transformFormat() {
 
 	// get parameters for in and output
 	std::string countsFileName = parameters().getParameter<std::string>("alleleCounts");
-	std::string tmp            = coretools::str::extractBeforeLast(countsFileName, "_alleleCounts.txt.gz");
+	std::string tmp(coretools::str::readBeforeLast(countsFileName, "_alleleCounts.txt.gz"));
 	std::string outname        = parameters().getParameterWithDefault<std::string>("out", tmp);
 	std::string type           = parameters().getParameterWithDefault<std::string>("outFormat", "default");
-	if (type == "default") { throw "Cannot transform alleleCounts file to original format!"; }
-	if (type == "withAlleles") { throw "Cannot transform to 'withAlleles' format from original format!"; }
 
-	// open input file
-	std::string origFileName = tmp + "_alleleCounts.txt.gz";
-	gz::igzstream file(origFileName.c_str());
-	if (!file) throw "Failed to open file '" + origFileName + " for reading!";
+	logfile().list("Use option 'outFormat' to produce alleleCounts file in different formats.");
 
-	// read header
-	std::string line;
-	std::getline(file, line);
-	std::vector<std::string> tmp_vec;
-	std::vector<std::string> populationNames;
-	coretools::str::fillContainerFromStringWhiteSpace(line, tmp_vec, true);
-	for (unsigned int i = 2; i < tmp_vec.size(); ++i) { populationNames.push_back(tmp_vec[i]); }
+	if (type == "default") { UERROR("Cannot transform alleleCounts file to original format!"); }
+	if (type == "withAlleles") { UERROR("Cannot transform to 'withAlleles' format from original format!"); }
+
+	// open input file	
+	TAlleleCountReader file(countsFileName);	
 
 	// create output file
 	TAlleleCountFile *alleleCountFile = prepareOutputFile(type, outname);
 
 	// write header
-	alleleCountFile->writeHeader(populationNames);
+	alleleCountFile->writeHeader(file.populationNames());
 
-	// run through VCF file
+	// run through allele count file
 	logfile().startIndent("Converting allele counts file:");
-	while (file.good() && !file.eof()) {
-		std::vector<std::string> vec;
-		std::getline(file, line);
-		coretools::str::fillContainerFromStringWhiteSpace(line, vec, true);
+	for(const auto& ac : file){		
 		// write chromosome and position
-		if (vec.size() > 0) {
-			alleleCountFile->writePosition(vec[0], vec[1]);
+		alleleCountFile->writePosition(ac.chr, ac.pos);
 
-			// print MLE count for each population
-			for (unsigned int p = 2; p < vec.size(); p++) {
-				// print MLE counts
-				std::vector<std::string> counts;
-				coretools::str::fillContainerFromStringAny(vec[p], counts, "/");
-				alleleCountFile->writeCounts(counts[0], counts[1], p - 2);
-			}
-			alleleCountFile->endl();
+		// write counts
+		for (unsigned int p = 0; p < ac.numPopulations(); p++) {				
+			alleleCountFile->writeCounts(ac[p].minor, ac[p].total, p);
 		}
+		alleleCountFile->endl();		
 	}
 
 	// close file
 	file.close();
-
-	// clean up
 	delete alleleCountFile;
 
 	// report final status

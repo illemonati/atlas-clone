@@ -88,6 +88,22 @@ void TBamFileFilter::printCombinedCounts(coretools::TOutputFile &out) {
 	}
 };
 
+size_t TBamFileFilter::getCounts(uint16_t rg_ID) {
+	//Reason is only set if filter is applied (see TBamFile::setFilters), in which case reason and number of removed reads per read group are printed here
+	if (!getReason().empty()){
+		coretools::TCountDistribution FilterCount = numFiltered();
+		return(FilterCount[rg_ID]);
+	} return 0;
+};
+
+size_t TBamFileFilter::getCombinedCounts() {
+	//Reason is only set if filter is applied (see TBamFile::setFilters), in which case reason and number of removed reads per read group are printed here
+	if (!getReason().empty()){
+		coretools::TCountDistribution FilterCount = numFiltered();
+		return(FilterCount.counts());
+	} return 0;
+};
+
 //-----------------------------------------------------
 //TBamFileFilterBool
 //-----------------------------------------------------
@@ -111,7 +127,7 @@ bool TBamFileFilterBool::pass(const bool state, const std::string & alignmentNam
 TQualityFilter::TQualityFilter() {
 	if(parameters().parameterExists("filterBaseQual")){
 		parameters().fillParameter("filterBaseQual", _range);
-		if (_range.within(genometools::PhredIntProbability(0))){ throw "Base quality filter of 0 is not allowed (parameter 'filterBaseQual')"; }
+		if (_range.within(genometools::PhredIntProbability(0))){ UERROR("Base quality filter of 0 is not allowed (parameter 'filterBaseQual')"); }
 		logfile().list("Will filter out bases with quality outside the range " + _range.rangeString() + " (parameter 'filterBaseQual')");
 	} else {
 		_range.set(genometools::PhredIntProbability(1), true, genometools::PhredIntProbability(93), true);
@@ -135,14 +151,14 @@ TContextFilter::TContextFilter(){
 		if(contexts.size() > 0){
 			for(auto& c : contexts){
 				if(c.size() != 2){
-					throw "Context " + c + " does not consist of two bases! (parameter 'ignoreContexts')";
+					UERROR("Context ", c, " does not consist of two bases! (parameter 'ignoreContexts')");
 				}
 
 				const Base first  = char2base(c[0]);
 				const Base second = char2base(c[1]);
 
 				if(base2char(first) != c[0] || base2char(second) != c[1]){
-					throw "Unable to understand context '" + c + "'!  (parameter 'ignoreContexts')";
+					UERROR("Unable to understand context '", c, "'!  (parameter 'ignoreContexts')");
 				}
 
 				//save context

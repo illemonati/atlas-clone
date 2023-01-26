@@ -76,13 +76,13 @@ TPileup::TPileup():TGenome_windows(){
 		//check if unknown fields were given
 		if(!fields.empty()){
 			if(fields.size() == 1){
-				throw "Unknown field '" + *fields.begin() + "'! Valid fields are 'depth', 'bases', 'qualities', 'alleles', 'mates' and 'strands'.";
+				UERROR("Unknown field '", *fields.begin(), "'! Valid fields are 'depth', 'bases', 'qualities', 'alleles', 'mates' and 'strands'.");
 			} else {
 				std::string f;
 				for(auto i : fields){
 					f += '\'' + i + "', ";
 				}
-				throw "Unknown fields: " + f.substr(0, f.size() - 2) + "! Valid fields are 'depth', 'bases', 'qualities', 'alleles', 'mates',  'strands' and 'likelihoods'.";
+				UERROR("Unknown fields: ", f.substr(0, f.size() - 2), "! Valid fields are 'depth', 'bases', 'qualities', 'alleles', 'mates',  'strands' and 'likelihoods'.");
 			}
 		}
 
@@ -146,13 +146,13 @@ TPileup::TPileup():TGenome_windows(){
 		//check if unknown fields were given
 		if(!histograms.empty()){
 			if(histograms.size() == 1){
-				throw "Unknown histogram '" + *histograms.begin() + "'! Valid histograms are 'depth', 'qualities', 'allelicDepth' and 'contexts'.";
+				UERROR("Unknown histogram '", *histograms.begin(), "'! Valid histograms are 'depth', 'qualities', 'allelicDepth' and 'contexts'.");
 			} else {
 				std::string f;
 				for(auto i : histograms){
 					f += '\'' + i + "', ";
 				}
-				throw "Unknown histograms: " + f.substr(0, f.size() - 2) + "! Valid histograms are 'depth', 'qualities', 'allelicDepth' and 'contexts'.";
+				UERROR("Unknown histograms: ", f.substr(0, f.size() - 2), "! Valid histograms are 'depth', 'qualities', 'allelicDepth' and 'contexts'.");
 			}
 		}
 		if(_histSettings.get<Depths>()){

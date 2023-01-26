@@ -76,7 +76,7 @@ SFS::SFS(uint32_t numChr, float theta) {
 		sfs.push_back(theta / i);
 		sum += sfs.back();
 	}
-	if (sum > 1.0) throw "The choice of theta and sample size results in too many mutations in the SFS!";
+	if (sum > 1.0) UERROR("The choice of theta and sample size results in too many mutations in the SFS!");
 	sfs.front() = 1.0 - sum;
 	coretools::fillCumulative(sfs, sfsCumulative);
 }
@@ -93,7 +93,7 @@ SFS::SFS(uint32_t numChr, uint32_t onlyThisBin) {
 
 void SFS::writeToFile(const std::string &filename, const bool &writeLog) {
 	std::ofstream out(filename.c_str());
-	if (!out) throw "Failed to open file '" + filename + "' for writing!";
+	if (!out) UERROR("Failed to open file '", filename, "' for writing!");
 
 	//write dimensions
 	auto it = _dimensions.begin();
@@ -258,7 +258,7 @@ SFSfolded::SFSfolded(uint32_t sampleSize, float theta) {
 		sfs.push_back((theta / i)+(theta/(2*sampleSize-i)));
 		sum += sfs.back();
 	}
-	if (sum > 1.0) throw "The choice of theta and sample size results in too many mutations in the SFS!";
+	if (sum > 1.0) UERROR("The choice of theta and sample size results in too many mutations in the SFS!");
 	sfs.front() = 1.0 - sum;
 	_fillFrequencies();
 	_fillCumulative();

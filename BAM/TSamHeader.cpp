@@ -32,7 +32,7 @@ void TSamHeader_HD::setSortOrder(const std::string SortOrder){
 	} else if(SortOrder == "unknown" || SortOrder == "unsorted" || SortOrder == "queryname" || SortOrder == "coordinate"){
 		_sortOrder_SO = SortOrder;
 	} else {
-		throw "Unknow BAM sort order '" + SortOrder + "'! Must be either 'unknown', 'unsorted', 'queryname' or 'coordinate'.";
+		UERROR("Unknow BAM sort order '", SortOrder, "'! Must be either 'unknown', 'unsorted', 'queryname' or 'coordinate'.");
 	}
 };
 
@@ -43,7 +43,7 @@ void TSamHeader_HD::setGrouping(const std::string Grouping){
 	} else if(Grouping == "none" || Grouping == "query" || Grouping == "reference"){
 		_grouping_GO = Grouping;
 	} else {
-		throw "Unknow BAM grouping '" + Grouping + "'! Must be either 'none', 'query', or 'reference'.";
+		UERROR("Unknow BAM grouping '", Grouping, "'! Must be either 'none', 'query', or 'reference'.");
 	}
 };
 
@@ -143,14 +143,14 @@ void TSamHeader::set(const std::string Version,
 void TSamHeader::addProgram(const std::string ID, const std::string Name){
 	auto it = _programs_PG.emplace(ID, Name);
 	if(!it.second){
-		throw "Failed to add program to BAM header: duplicate ID '" + ID + "'!";
+		UERROR("Failed to add program to BAM header: duplicate ID '", ID, "'!");
 	}
 };
 
 void TSamHeader::addProgram(const std::string ID, const std::string Name, const std::string CommandLine, const std::string Description, const std::string Version){
 	auto it = _programs_PG.emplace(ID, Name, CommandLine, Description, Version);
 	if(!it.second){
-		throw "Failed to add program to BAM header: duplicate ID '" + ID + "'!";
+		UERROR("Failed to add program to BAM header: duplicate ID '", ID, "'!");
 	}
 };
 
@@ -158,7 +158,7 @@ void TSamHeader::addPreviousProgramInChain(const std::string ID, const std::stri
 	//search if previousID exists
 	auto prev = _programs_PG.find(previousID);
 	if(prev == _programs_PG.end()){
-		throw "Failed ot add PP tag to BAM header: previous ID '" + previousID + "' does not exists!";
+		UERROR("Failed ot add PP tag to BAM header: previous ID '", previousID, "' does not exists!");
 	}
 
 	//add

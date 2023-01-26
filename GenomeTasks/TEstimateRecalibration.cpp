@@ -32,7 +32,7 @@ BAM::TReadGroupMap makeReadGroupMap(const BAM::TReadGroups &ReadGroups) {
 	if (parameters().parameterExists("poolReadGroups")) {
 		std::string poolReadGroupsFile = parameters().getParameter<std::string>("poolReadGroups");
 		logfile().startIndent("Will pool read groups (parameter 'poolReadGroups'):");
-		return {ReadGroups, poolReadGroupsFile, &logfile()};
+		return {ReadGroups, poolReadGroupsFile};
 		logfile().endIndent();
 	} else {
 		logfile().list("Will estimate recalibration parameters for each read group. (use 'poolReadGroups' to pool)");
@@ -50,8 +50,8 @@ BAM::TReadGroupMap makeReadGroupMap(const BAM::TReadGroups &ReadGroups) {
 		if (_genotypeLikelihoodCalculator.recalibrationChangesQualities() && !(
 				parameters().parameterExists("rerecalibrate")
 				|| parameters().getParameter("task") == "recal"))
-		throw "Can not estimate recalibration: quality scores are already recalibrated while reading! (Use argument "
-			  "'rerecalibrate' to overwrite this error)";
+			UERROR("Can not estimate recalibration: quality scores are already recalibrated while reading! (Use argument "
+				   "'rerecalibrate' to overwrite this error)");
 
 	// limit to sites with known alleles?
 	if (parameters().parameterExists("alleles")) {

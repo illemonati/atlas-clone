@@ -97,8 +97,9 @@ private:
 
 public:
 	TSimulatorBamFiles(uint32_t NumFiles, const std::string & Outname, std::vector<TReadSimulators> & ReadSimulators, const genometools::TChromosomes &Chromosomes);
-	~TSimulatorBamFiles();
+
 	TSimulatorBamFile &operator[](size_t i);
+	void close();
 };
 
 //---------------------------------------------------------

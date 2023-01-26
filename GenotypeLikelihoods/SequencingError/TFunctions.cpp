@@ -1,16 +1,15 @@
 #include "TFunctions.h"
+#include "SequencingError/TCovariate.h"
 #include "TFunction.h"
+#include "TReadGroupInfo.h"
+#include "coretools/Main/TError.h"
+#include "coretools/enum.h"
+#include <memory>
+#include <type_traits>
 
 namespace GenotypeLikelihoods::SequencingError {
 using namespace coretools::str;
 namespace impl {
-
-constexpr coretools::Probability calcEpsilon(double eta) noexcept {
-	if (eta > 23.03) return coretools::Probability(0.9999999999);
-	if (eta < -23.03) return coretools::Probability(0.0000000001);
-
-	return coretools::logistic(eta);
-}
 
 auto parseFunctions(std::string_view Defs) {
 	struct Voldemort {
@@ -41,7 +40,7 @@ auto parseFunction(std::string_view str) {
 	return std::make_pair(str.substr(0, beg), TSplitter<>(str.substr(beg + 1, end - beg - 1), ','));
 }
 
-template<typename Covariate> TFunction *makeCovFunction(std::string_view Function, size_t FirstParameterIndex) {
+template<typename Covariate> TFunction *makeCovFunction(std::string_view Function, size_t index) {
 	auto [type, Spl] = parseFunction(Function);
 
 	if (stringStartsWith(type, TPolynomial<1, Covariate>::name)) {
@@ -68,15 +67,15 @@ template<typename Covariate> TFunction *makeCovFunction(std::string_view Functio
 		}
 		TFunction* fn;
 		switch (o) {
-		case 1: fn = new TPolynomial<1, Covariate>(FirstParameterIndex); break;
-		case 2: fn = new TPolynomial<2, Covariate>(FirstParameterIndex); break;
-		case 3: fn = new TPolynomial<3, Covariate>(FirstParameterIndex); break;
-		case 4: fn = new TPolynomial<4, Covariate>(FirstParameterIndex); break;
-		case 5: fn = new TPolynomial<5, Covariate>(FirstParameterIndex); break;
-		case 6: fn = new TPolynomial<6, Covariate>(FirstParameterIndex); break;
-		case 7: fn = new TPolynomial<7, Covariate>(FirstParameterIndex); break;
-		case 8: fn = new TPolynomial<8, Covariate>(FirstParameterIndex); break;
-		case 9: fn = new TPolynomial<9, Covariate>(FirstParameterIndex); break;
+		case 1: fn = new TPolynomial<1, Covariate>(index); break;
+		case 2: fn = new TPolynomial<2, Covariate>(index); break;
+		case 3: fn = new TPolynomial<3, Covariate>(index); break;
+		case 4: fn = new TPolynomial<4, Covariate>(index); break;
+		case 5: fn = new TPolynomial<5, Covariate>(index); break;
+		case 6: fn = new TPolynomial<6, Covariate>(index); break;
+		case 7: fn = new TPolynomial<7, Covariate>(index); break;
+		case 8: fn = new TPolynomial<8, Covariate>(index); break;
+		case 9: fn = new TPolynomial<9, Covariate>(index); break;
 		default: UERROR("Only Polynomials from order 1 to 9 can be used!");
 		}
 		if (isDefault) return fn;
@@ -88,7 +87,7 @@ template<typename Covariate> TFunction *makeCovFunction(std::string_view Functio
 		return fn;
 	}
 	if (type == TProbit<Covariate>::name) {
-		TFunction* fn = new TProbit<Covariate>(FirstParameterIndex);
+		TFunction* fn = new TProbit<Covariate>(index);
 		if (Spl.empty()) {
 			return fn;
 		}
@@ -101,8 +100,8 @@ template<typename Covariate> TFunction *makeCovFunction(std::string_view Functio
 		}
 		return fn;
 	}
-	if (type == TEmpiric<Covariate>::name) {
-			auto fn = new TEmpiric<Covariate>(FirstParameterIndex);
+	if (type == TEmpiric<Covariate>::name || type=="") {
+			auto fn = new TEmpiric<Covariate>(index);
 			size_t size = 0;
 			double back = 0.;
 			for (auto s : Spl) {
@@ -130,95 +129,194 @@ template<typename Covariate> TFunction *makeCovFunction(std::string_view Functio
 	UERROR("Function '", type, "' does not exist!");
 }
 
-TFunction *makeFunction(std::string_view Covariate, std::string_view Function, size_t FirstParameterIndex) {
-	// No covariate
-	if (Covariate.empty()) {
-		const auto [type, betas] = parseFunction(Function);
-		if (type != TIntercept::name) UERROR("You must specify a covariate");
-		TFunction *in = new TIntercept(FirstParameterIndex);
-		if (betas.empty()) return in;
-		fromString<true>(betas.front(), *in->begin());
-		return in;
-	}
-
-	if (Function.empty()) {
-		if (stringStartsWith(Covariate, TIntercept::name)) { // intercept can be parsed as either covariate or function
-			const auto [type, betas] = parseFunction(Covariate);
-			if (type != TIntercept::name) UERROR("You must specify a covariate");
-			TFunction *in = new TIntercept(FirstParameterIndex);
-			if (betas.empty()) return in;
-			fromString<true>(betas.front(), *in->begin());
-			return in;
+template<typename Covariate> TFunction *makeCovFunction(const BAM::RGInfo::TInfo& info, size_t index) {
+	if (info.contains(TPolynomial<1, Covariate>::name)) {
+		TFunction* fn;
+		const std::vector<double>& betas = info[TPolynomial<1, Covariate>::name];
+		const size_t o = betas.size();
+		switch (o) {
+		case 1: fn = new TPolynomial<1, Covariate>(index); break;
+		case 2: fn = new TPolynomial<2, Covariate>(index); break;
+		case 3: fn = new TPolynomial<3, Covariate>(index); break;
+		case 4: fn = new TPolynomial<4, Covariate>(index); break;
+		case 5: fn = new TPolynomial<5, Covariate>(index); break;
+		case 6: fn = new TPolynomial<6, Covariate>(index); break;
+		case 7: fn = new TPolynomial<7, Covariate>(index); break;
+		case 8: fn = new TPolynomial<8, Covariate>(index); break;
+		case 9: fn = new TPolynomial<9, Covariate>(index); break;
+		default: UERROR("Only Polynomials from order 1 to 9 can be used!");
 		}
-		Function = TEmpiric<TCovariate_context>::name;
+		size_t i = 0;
+		for (auto &beta : *fn) {
+			beta = betas[i];
+			++i;
+		}
+		return fn;
 	}
-
-	if (Covariate == TCovariate_quality::name)
-		return makeCovFunction<TCovariate_quality>(Function, FirstParameterIndex);
-	if (Covariate == TCovariate_position::name)
-		return makeCovFunction<TCovariate_position>(Function, FirstParameterIndex);
-	if (Covariate == TCovariate_context::name)
-		return makeCovFunction<TCovariate_context>(Function, FirstParameterIndex);
-	if (Covariate == TCovariate_fragmentLength::name)
-		return makeCovFunction<TCovariate_fragmentLength>(Function, FirstParameterIndex);
-	if (Covariate == TCovariate_mappingQuality::name)
-		return makeCovFunction<TCovariate_mappingQuality>(Function, FirstParameterIndex);
-
-	UERROR("Covariate '", Covariate, "' does not exist!");
+	if (info.contains(TProbit<Covariate>::name)) {
+		auto *fn                         = new TProbit<Covariate>(index);
+		const std::vector<double> &betas = info[TProbit<Covariate>::name];
+		if (betas.empty()) { return fn; }
+		if (betas.size() != fn->numParameters()) {
+			UERROR("Not enough parameters given for function ", fn->typeString(), ". Expected ", fn->numParameters(),
+				   " got ", betas.size(), " !");
+		}
+		size_t i = 0;
+		for (auto &beta : *fn) {
+			beta = betas[i];
+			++i;
+		}
+		return fn;
+	}
+	if (info.contains(TEmpiric<Covariate>::name)) {
+		auto fn           = new TEmpiric<Covariate>(index);
+		const auto &betas = info[TEmpiric<Covariate>::name];
+		size_t size       = 0;
+		double back       = 0.;
+		for (const std::vector<double> &b : betas) {
+			const size_t i = b.front();
+			const auto v   = b.back();
+			if (size == 0) { // fill first i positions with v
+				for (size_t j = 0; j <= i; ++j) { fn->push_back(v); }
+			} else {                              // interpolate
+				const auto di   = i - (size - 1); // 1
+				const auto dv   = v - back;       // v
+				const auto dvdi = dv / di;
+				for (size_t j = 1; j <= di; ++j) fn->push_back(back + j * dvdi);
+			}
+			back = v;
+			size = i + 1;
+		}
+		return fn;
+	}
+	return new TNoFunction;
 }
 
-class TFunctionsTpl final : public TFunctions {
-	std::vector<std::unique_ptr<TFunction>> _functions;
-	std::vector<double> _oldBetas;
-public:
-	TFunctionsTpl(std::string_view Def) {
-		// create functions
-		size_t numParameters = 0;
-		const auto modelDef  = impl::parseFunctions(Def);
-		for (const auto &cov : modelDef) {
-			_functions.emplace_back(impl::makeFunction(cov.covariate, cov.function, numParameters));
+constexpr coretools::Probability calcEpsilon(double eta) noexcept {
+	if (eta > 23.03) return coretools::Probability(0.9999999999);
+	if (eta < -23.03) return coretools::Probability(0.0000000001);
 
-			// add new parameters
-			numParameters += _functions.back()->numParameters();
+	return coretools::logistic(eta);
+}
+
+
+class TFunctionsTpl final : public TFunctions {
+	TIntercept _intercept;
+	enum class Covariates : size_t { min = 0, Quality = min, Position, Context, FragmentLength, MappingQuality, max };
+
+	coretools::TStrongArray<std::unique_ptr<TFunction>, Covariates> _covariates{{nullptr, nullptr, nullptr, nullptr, nullptr}};
+	std::vector<double> _oldBetas;
+
+	template<typename Cov, size_t I = 0> constexpr static Covariates _covIndex() noexcept {
+		using Covs = std::tuple<TCovariate_quality, TCovariate_position, TCovariate_context, TCovariate_fragmentLength,
+								TCovariate_mappingQuality>;
+		if constexpr (std::is_same_v<Cov, std::tuple_element_t<I, Covs>>)
+			return Covariates(I);
+		else
+			return _covIndex<Cov, I + 1>();
+	}
+
+	template<typename Cov, typename MD> size_t _makeFn(size_t index, const MD &md) {
+		if (md.covariate == Cov::name) {
+			constexpr auto c = _covIndex<Cov>();
+			if (_covariates[c]) UERROR("Covariate ", Cov::name, " has two functions, only one is allowed!");
+			_covariates[c].reset(impl::makeCovFunction<Cov>(md.function, index));
+			index += _covariates[c]->numParameters();
+		}
+		return index;
+	}
+
+	template<typename Cov> size_t _makeFn(size_t index, const BAM::RGInfo::TInfo& info) {
+		constexpr auto c = _covIndex<Cov>();
+		if (info.contains(Cov::name)) {
+			_covariates[c].reset(impl::makeCovFunction<Cov>(info[Cov::name], index));
+		} else {
+			_covariates[c].reset(new TNoFunction);
+		}
+		return index;
+	}
+
+public:
+	TFunctionsTpl(const BAM::RGInfo::TInfo& info) {
+		_intercept.beta() = info[TIntercept::name];
+		size_t index        = _intercept.numParameters();
+		index += _makeFn<TCovariate_quality>(index, info);
+		index += _makeFn<TCovariate_context>(index, info);
+		index += _makeFn<TCovariate_position>(index, info);
+		index += _makeFn<TCovariate_fragmentLength>(index, info);
+		index += _makeFn<TCovariate_mappingQuality>(index, info);
+
+		for (auto &cov: _covariates) {
+			if (!cov) cov.reset(new TNoFunction);
+		}
+	}
+	TFunctionsTpl(std::string_view Def) {
+		auto modelDef  = impl::parseFunctions(Def);
+
+		// intercept
+		for (const auto &md : modelDef) {
+			if (md.covariate.empty()) {
+				const auto [type, betas] = parseFunction(md.function);
+				if (type != TIntercept::name) UERROR("You must specify a covariate for function ", type);
+				if (!betas.empty()) fromString<true>(betas.front(), _intercept.beta());
+			} else if (md.function.empty()) {
+				// intercept can be parsed the wrong way around :-(
+				const auto [type, betas] = parseFunction(md.covariate);
+				if (type == TIntercept::name && !betas.empty()) fromString<true>(betas.front(), _intercept.beta());
+			}
+		}
+		size_t index = _intercept.numParameters();
+
+		for (const auto &md : modelDef) {
+			index += _makeFn<TCovariate_quality>(index, md);
+			index += _makeFn<TCovariate_context>(index, md);
+			index += _makeFn<TCovariate_position>(index, md);
+			index += _makeFn<TCovariate_fragmentLength>(index, md);
+			index += _makeFn<TCovariate_mappingQuality>(index, md);
+		}
+		for (auto &cov: _covariates) {
+			if (!cov) cov.reset(new TNoFunction);
 		}
 	}
 
 	void checkOrInit(const RecalEstimatorTools::TRecalDataTable &DataTable) override {
-		size_t numParameters = 0;
+		size_t index = _intercept.numParameters();
 
-		for (auto &fn : _functions) {
-			if (!fn->checkOrInitValueRange(DataTable, numParameters)) {
-				throw "Function " + fn->typeString() + " does not cover full range of data";
+		for (auto &cov : _covariates) {
+			if (!cov->checkOrInitValueRange(DataTable, index)) {
+				UERROR("Function ", cov->typeString(), " does not cover full range of data");
 			}
-			numParameters += fn->numParameters();
+			index += cov->numParameters();
 		}
 	}
 
 	size_t numParameters() const noexcept override {
-		size_t numParameters = 0;
-		for (const auto& f: _functions) {
-			numParameters += f->numParameters();
+		size_t numParameters = _intercept.numParameters();
+		for (const auto& cov: _covariates) {
+			numParameters += cov->numParameters();
 		}
 		return numParameters;
 	}
 
 	coretools::Probability getEpsilon(const BAM::TSequencedBase &base) const override {
-		double eta = 0.;
-		for (const auto &fn : _functions) eta += fn->getEta(base);
+		double eta = _intercept.getEta();
+		for (const auto &cov : _covariates) eta += cov->getEta(base);
 		return impl::calcEpsilon(eta);
 	}
 
 	coretools::Probability getEpsilon(const BAM::TSequencedBase &base, std::vector<T1stDerivative> &der1,
-								  std::vector<T2ndDerivative> &der2) const noexcept override {
-		double eta = 0.;
-		for (const auto &fn : _functions) eta += fn->getEta(base, der1, der2);
+									  std::vector<T2ndDerivative> &der2) const noexcept override {
+		double eta = _intercept.getEta(der1);
+		for (const auto &cov : _covariates) eta += cov->getEta(base, der1, der2);
 		return impl::calcEpsilon(eta);
 	}
 
 	void reject() noexcept override {
 		auto old = _oldBetas.begin();
-		for (const auto &fn : _functions) {
-			for (auto &beta : *fn) {
+		_intercept.beta() = *old;
+		++old;
+		for (const auto &cov : _covariates) {
+			for (auto &beta : *cov) {
 				beta = *old;
 				++old;
 			}
@@ -227,7 +325,11 @@ public:
 	void propose(double lambda, const arma::mat &_JxF) noexcept override {
 		size_t index = 0;
 		_oldBetas.clear();
-		for (const auto &fn : _functions) {
+
+		_oldBetas.push_back(_intercept.beta());
+		_intercept.beta() -= lambda * _JxF(index++);
+
+		for (const auto &fn : _covariates) {
 			for (auto &beta : *fn) {
 				_oldBetas.push_back(beta);
 				beta -= lambda * _JxF(index++);
@@ -235,16 +337,28 @@ public:
 		}
 	}
 	std::string definition() const noexcept override {
-		return std::accumulate(_functions.begin() + 1, _functions.end(), _functions.front()->modelString(),
-							   [](auto tot, auto &f) { return tot.append(1, ';').append(f->modelString()); });
+		std::string ret = _intercept.modelString();
+		for (const auto& cov: _covariates) {
+			const auto ms = cov->modelString();
+			if (!ms.empty()) ret.append(1, ';').append(ms);
+		}
+		return ret;
 	}
 	BAM::RGInfo::TInfo info() const override {
 		BAM::RGInfo::TInfo in;
-		for (const auto &fn : _functions) { fn->addInfo(in); }
+		_intercept.addInfo(in);
+		for (const auto &cov : _covariates) { cov->addInfo(in); }
 		return in;
 	}
 };
+
 } // namespace impl
 
-TFunctions *makeFunctions(std::string_view Def) { return new impl::TFunctionsTpl(Def); }
+TFunctions *makeFunctions(std::string_view Def) {
+	//return new impl::TFunctionsTpl(Def);
+	return new impl::TFunctionsTpl(Def);
+}
+TFunctions *makeFunctions(const BAM::RGInfo::TInfo& info) {
+	return new impl::TFunctionsTpl(info);
+}
 } // namespace GenotypeLikelihoods::SequencingError

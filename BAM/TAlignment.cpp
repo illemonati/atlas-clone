@@ -6,6 +6,7 @@
  */
 
 #include "TAlignment.h"
+#include "coretools/Main/TError.h"
 #include "genometools/GenomePositions/TGenomePosition.h"
 #include "genometools/GenotypeTypes.h"
 #include "genometools/PhredProbabilityTypes.h"
@@ -104,8 +105,7 @@ void TAlignment::_setCigar(const TCigar &Cigar){
 void TAlignment::_parseBasesQualities() {
 	using genometools::char2base;
 	if (_sequence.size() != _qualities.size()) {
-		throw std::runtime_error(
-			"void TAlignment::_parseBasesQualities(): Sequence and Qualities are of different legth!");
+		DEVERROR("Sequence and Qualities are of different legth!");
 	}
 	// initialize
 	_bases.resize(_cigar.lengthRead());
@@ -167,7 +167,7 @@ void TAlignment::_parseBasesQualities() {
 		case ('P'): break;
 
 		// invalid CIGAR op-code
-		default: throw(std::string) "CIGAR operation '" + cigarIter.type + "' not supported!";
+		default: UERROR("CIGAR operation '", cigarIter.type, "' not supported!");
 		}
 	}
 
@@ -286,9 +286,7 @@ void TAlignment::addReference(const genometools::TFastaReader &fasta) {
 void TAlignment::setSequenceQualities(const TCigar &Cigar, const std::vector<genometools::Base> &Sequence,
 									  const std::vector<genometools::PhredIntProbability> &Qualities) {
 	if (Cigar.lengthRead() != Sequence.size() || Cigar.lengthRead() != Qualities.size()) {
-		throw std::runtime_error(
-			"void TAlignment::setSequenceQualities(const TCigar & Cigar, const std::vector<Base> & Sequence, const "
-			"std::vector<PhredIntProbability> & Qualities): length of CIGAR, Sequences and Qualities do not match!");
+		DEVERROR("length of CIGAR, Sequences and Qualities do not match!");
 	}
 	_setCigar(Cigar);
 
@@ -390,7 +388,7 @@ void TAlignment::trimRead(int trimmingLength3Prime, int trimmingLength5Prime) {
 
 void TAlignment::removeSoftClippedBases() {
 	// make sure read is parsed
-	if (!_parsed) throw std::runtime_error("void TAlignment::removeSoftClippedBases(): Read was not parsed!");
+	if (!_parsed) DEVERROR("Read was not parsed!");
 
 	// check if there is softclipping
 	if (_cigar.lengthSoftClipped() > 0) {
@@ -416,7 +414,7 @@ void TAlignment::removeSoftClippedBases() {
 
 void TAlignment::removeSoftClippedBases(size_t maxNumberOfSoftClippedBases) {
 	// make sure read is parsed
-	if (!_parsed) throw std::runtime_error("void TAlignment::removeSoftClippedBases(): Read was not parsed!");
+	if (!_parsed) DEVERROR("Read was not parsed!");
 
 	// check if there is softclipping that exceeds the threshold on the left
 	if (_cigar.lengthSoftClippedLeft() > maxNumberOfSoftClippedBases) {
@@ -449,7 +447,7 @@ void TAlignment::removeSoftClippedBases(size_t maxNumberOfSoftClippedBases) {
 void TAlignment::binQualityScoresIllumina() {
 	// make sure read is parsed
 	if (!_parsed)
-		throw std::runtime_error("void TAlignment::binQualityScores(TQualityMap & qualityMap): Read was not parsed!");
+		DEVERROR("Read was not parsed!");
 
 	// bin quality scores as done by Illumina
 	for (auto &b : _bases) { b.recalibratedQualityAsPhredInt.makeIllumina(); }
@@ -477,10 +475,9 @@ void TAlignment::updateOptionalSamField(std::string tag, std::string value){
 };
 */
 
-void TAlignment::downsampleAlignment(const coretools::Probability &fractionToKeep,
-									 coretools::TRandomGenerator &randomGenerator) {
+void TAlignment::downsampleAlignment(const coretools::Probability &fractionToKeep) {
 	for (auto &b : _bases) {
-		double r = randomGenerator.getRand();
+		double r = coretools::instances::randomGenerator().getRand();
 		if (r > fractionToKeep) {
 			b.base                          = genometools::Base::N;
 			b.recalibratedQualityAsPhredInt = 0;

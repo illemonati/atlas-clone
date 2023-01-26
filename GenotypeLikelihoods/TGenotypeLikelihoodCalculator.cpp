@@ -13,6 +13,7 @@
 #include <string>
 
 #include "TGenotypeData.h"
+#include "TReadGroupInfo.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "TReadGroups.h"
@@ -23,14 +24,6 @@ namespace GenotypeLikelihoods{
 
 using coretools::instances::parameters;
 using coretools::instances::logfile;
-
-namespace impl {
-
-bool isLikelyAModel(const std::string &RecalString) noexcept {
-	// check if it contains a ';', ':', '[' or ']'
-	return coretools::str::stringContainsAny(RecalString, ";:[]");
-}
-} // namespace impl
 
 TGenotypeLikelihoodCalculator::TGenotypeLikelihoodCalculator(const BAM::TReadGroups* ReadGroups){
 	//initialize PMD
@@ -44,7 +37,7 @@ TGenotypeLikelihoodCalculator::TGenotypeLikelihoodCalculator(const BAM::TReadGro
 					         + coretools::str::concatenateString(ReadGroups->getNames(readGroupsWithoutDef), ", ")
 							 + "!");
 			if(!parameters().parameterExists("allowReadGroupsWithoutPMD")){
-				throw "PMD is only defined for a subset of read groups. Did you use the wrong PMD file? (use allowReadGroupsWithoutPMD to ignore)";
+				UERROR("PMD is only defined for a subset of read groups. Did you use the wrong PMD file? (use allowReadGroupsWithoutPMD to ignore)");
 			}
 		}
 	} else {
@@ -53,11 +46,15 @@ TGenotypeLikelihoodCalculator::TGenotypeLikelihoodCalculator(const BAM::TReadGro
 
 	//initialize sequencing errors
 	//----------------------------
-	if(parameters().parameterExists("recal")){
+	if (parameters().parameterExists(BAM::RGInfo::TReadGroupInfo::RGInfoArgument)) {
+		BAM::RGInfo::TReadGroupInfo RGinfo(*ReadGroups, parameters().getParameter(BAM::RGInfo::TReadGroupInfo::RGInfoArgument));
+		_sequencingErrorModels.initialize(RGinfo);
+	} else if(parameters().parameterExists("recal")){
 		std::string recalString = parameters().getParameter<std::string>("recal");
 
 		//check if it is recal string
-		if(impl::isLikelyAModel(recalString)){
+
+		if (!std::filesystem::exists(recalString)) {
 			//assume it is a model string
 			logfile().startIndent("Parsing common recal model for all read groups:");
 			logfile().list("Provided model (parameter 'recal'): " + recalString);
@@ -70,7 +67,6 @@ TGenotypeLikelihoodCalculator::TGenotypeLikelihoodCalculator(const BAM::TReadGro
 			}
 			_sequencingErrorModels.initialize(recalString, rhoString, *ReadGroups);
 		} else {
-			//assume it it a recal file
 			logfile().startIndent("Initializing recal models from file '" + recalString + "' (parameter 'recal'):");
 			_sequencingErrorModels.initializeFromFile(recalString, *ReadGroups);
 			//warn if some read groups have no recal definition
@@ -84,7 +80,7 @@ TGenotypeLikelihoodCalculator::TGenotypeLikelihoodCalculator(const BAM::TReadGro
 								 + coretools::str::concatenateString(ReadGroups->getNames(readGroupsWithoutRecal), ", ")
 								 + "!");
 				if(!parameters().parameterExists("allowReadGroupsWithoutRecal")){
-					throw "Recal models are only defined for a subset of read groups. Did you use the wrong recal file? (use allowReadGroupsWithoutRecal to ignore)";
+					UERROR("Recal models are only defined for a subset of read groups. Did you use the wrong recal file? (use allowReadGroupsWithoutRecal to ignore)");
 				}
 			}
 

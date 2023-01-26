@@ -252,7 +252,7 @@ public:
 	coretools::TOutputFile &file() { return _out; };
 
 	void addEstimator(TThetaEstimator *Estimator, const std::string &Prefix) {
-		if (_out.isOpen()) { throw "Can not add estimators to an open TThetaOutputFile!"; }
+		if (_out.isOpen()) { UERROR("Can not add estimators to an open TThetaOutputFile!"); }
 		_thetaEstimators.push_back(Estimator);
 		_prefixes.push_back(Prefix);
 	};

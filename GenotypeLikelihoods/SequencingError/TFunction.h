@@ -83,47 +83,69 @@ public:
 	}
 };
 
+class TNoFunction final : public TFunction{
+	double _nothing = 0;
+public:
+	TNoFunction() : TFunction(0) {}
+
+	// non-virtuals
+	constexpr size_t firstParameterIndex() const noexcept { return _firstParameterIndex; }
+
+	// virtuals
+	double *begin() noexcept override {return &_nothing;}
+	double *end() noexcept override {return &_nothing;}
+	const double *begin() const noexcept override {return &_nothing;}
+	const double *end() const noexcept override {return &_nothing;}
+	virtual size_t numParameters() const noexcept override {return 0;}
+
+	// check value range: to ensure that data can be recalibrated
+	bool checkOrInitValueRange(const RecalEstimatorTools::TRecalDataTable &, size_t) override {return true;}
+
+	// estimation
+	double getEta(const BAM::TSequencedBase &) const noexcept override {return 0.;}
+	double getEta(const BAM::TSequencedBase &, std::vector<T1stDerivative> &,
+						  std::vector<T2ndDerivative> &) const noexcept override {return 0.;}
+	double adjustParametersPostEstimation() noexcept override {return 0.;}
+	std::string typeString() const noexcept override {return "";}
+	std::string modelString() const noexcept override {return "";}
+	void addInfo(BAM::RGInfo::TInfo &) const override {};
+};
+
+
 //--------------------------------------------------------------
 // TCovariateFunction_intercept
 // An intercept term
 //--------------------------------------------------------------
-class TIntercept final : public TFunction {
+class TIntercept final  {
 private:
 	double _beta    = 0.;
 
 public:
 	static constexpr std::string_view name = "intercept";
 
-	TIntercept(size_t FirstParameterIndex) : TFunction(FirstParameterIndex) {}
+	constexpr size_t numParameters() const noexcept { return 1; }
 
-	size_t numParameters() const noexcept override { return 1; }
+	constexpr double &beta() noexcept {return _beta;}
+	constexpr double beta() const noexcept {return _beta;}
 
-	double *begin() noexcept override { return &_beta; }
-	double *end() noexcept override { return &_beta + 1; }
-	const double *begin() const noexcept override { return &_beta; }
-	const double *end() const noexcept override { return &_beta + 1; }
+	constexpr double getEta() const noexcept { return _beta; }
 
-	bool checkOrInitValueRange(const RecalEstimatorTools::TRecalDataTable &, size_t FirstParameterIndex) noexcept override {
-		_firstParameterIndex = FirstParameterIndex;
-		return true;
-	}
-
-	constexpr double intercept() const noexcept { return _beta; }
-	constexpr double &intercept() noexcept { return _beta; }
-
-	double getEta(const BAM::TSequencedBase &) const noexcept override { return _beta; }
-
-	double getEta(const BAM::TSequencedBase &, std::vector<T1stDerivative> &der1,
-						  std::vector<T2ndDerivative> &) const noexcept override {
-		der1.emplace_back(firstParameterIndex(), 1.);
+	double getEta(std::vector<T1stDerivative> &der1) const noexcept {
+		der1.emplace_back(0, 1.);
 		return _beta;
 	}
 
-	double adjustParametersPostEstimation() noexcept override { return 0.; }
+	std::string typeString() const noexcept { return std::string(name); }
 
-	std::string typeString() const noexcept override { return std::string(name); }
-	 void addInfo(BAM::RGInfo::TInfo& info) const override {
+	void addInfo(BAM::RGInfo::TInfo& info) const {
 		 info[name] = _beta;
+	}
+
+	std::string modelString() const {
+		return typeString()
+			.append(1, '[')
+			.append(coretools::str::toString(_beta))
+			.append(1, ']');
 	}
 };
 

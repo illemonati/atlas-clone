@@ -281,14 +281,14 @@ void TAlignmentMergerReadGroupSettings::initialize(BAM::TReadGroups & readGroups
 					uint16_t maxCycles = 0;
 					if(vec[2] != "NA" && vec[2] != "-"){
 						if(!stringContainsOnlyNumbers(vec[2])){
-							throw "Error reading file '" + in.name() + "' on line " + toString(in.curLine()) + ": max cycles should be a number!";
+							UERROR("Error reading file '", in.name(), "' on line ", in.curLine(), ": max cycles should be a number!");
 						}
-						maxCycles = convertString<int>(vec[2]);
+						maxCycles = fromString<int>(vec[2]);
 					}
 
 					//check for duplicate entries
 					if(_settings.find(rgId) != _settings.end()){
-						throw "Duplicate entry in file '" + in.name() + "' for read group '" + vec[0] + "'!";
+						UERROR("Duplicate entry in file '", in.name(), "' for read group '", vec[0], "'!");
 					}
 
 					//act based on seqeuncing type (second column). Ignored read groups will be marked as "unchanged"
@@ -296,7 +296,7 @@ void TAlignmentMergerReadGroupSettings::initialize(BAM::TReadGroups & readGroups
 						_settings.emplace(rgId, unchanged, 0);
 					} else if(vec[1] == "single"){
 						if(maxCycles < 1){
-							throw "Error reading file '" + in.name() + "' on line " + toString(in.curLine()) + ": max cycles must be > 0 for read groups of type 'single'!";
+							UERROR("Error reading file '", in.name(), "' on line ", in.curLine(), ": max cycles must be > 0 for read groups of type 'single'!");
 						}
 
 						//add to settings and create truncated read group
@@ -304,7 +304,7 @@ void TAlignmentMergerReadGroupSettings::initialize(BAM::TReadGroups & readGroups
 
 					} else if(vec[1] == "mixed"){
 						if(maxCycles < 1){
-							throw "Error reading file '" + in.name() + "' on line " + toString(in.curLine()) + ": max cycles must be > 0 for read groups of type 'mixed'!";
+							UERROR("Error reading file '", in.name(), "' on line ", in.curLine(), ": max cycles must be > 0 for read groups of type 'mixed'!");
 						}
 
 						//add to settings and create truncated read group
@@ -313,7 +313,7 @@ void TAlignmentMergerReadGroupSettings::initialize(BAM::TReadGroups & readGroups
 					} else if(vec[1] == "paired"){
 						_settings.emplace(rgId, paired, 0);
 					} else {
-						throw "Error reading file '" + in.name() + "' on line " + toString(in.curLine()) + ": Unknown read group type '" + vec[1] + "'! Expected 'unchanged', 'single', 'mixed' or 'paired'.";
+						UERROR("Error reading file '", in.name(), "' on line ", in.curLine(), ": Unknown read group type '", vec[1], "'! Expected 'unchanged', 'single', 'mixed' or 'paired'.");
 					}
 				}
 			}
@@ -660,7 +660,7 @@ void TAlignmentSplitMerger::_initializeMerger() {
 		_merger = std::make_unique<TAlignmentMerger_middle>();
 		logfile().list("Merging method: will keep half of the overlapping positions of each mate. (parameter 'mergingMethod')");
 	} else {
-		throw "Unknown merging method " + method + "! Use 'none', 'middle', 'firstMate', 'secondMate', 'randomRead' or 'highestQuality'.";
+		UERROR("Unknown merging method ", method, "! Use 'none', 'middle', 'firstMate', 'secondMate', 'randomRead' or 'highestQuality'.");
 	}
 };
 
@@ -672,7 +672,7 @@ void TAlignmentSplitMerger::_handleMates(BAM::TAlignment & alignment, TAlignment
 	ReadGroupType type = _rgSettings.getType(alignment.readGroupId());
 
 	if(type == single){
-		throw "Paired reads found in single-end read group '" + _bamFile.readGroups().getName(alignment.readGroupId()) + "'! Is this a 'mixed' read group?";
+		UERROR("Paired reads found in single-end read group '", _bamFile.readGroups().getName(alignment.readGroupId()), "'! Is this a 'mixed' read group?");
 	} else if(!alignment.isProperPair()){
 		//not a proper pair: mark mate as as improper too
 		mate->setAsNonProperPair();
@@ -709,7 +709,7 @@ void TAlignmentSplitMerger::_handleSingle(BAM::TAlignment & alignment){
 	} else if(settings.type == single || settings.type == mixed){
 		//truncate
 		if(!_allowForLarger && alignment.length() > settings.maxCycles){
-			throw("Length of read " + alignment.name() + " is > max cycles for its read group (" + toString(settings.maxCycles) + ")! Use parameter 'allowForLarger' to ignore and put read in truncated read group.");
+			UERROR("Length of read ", alignment.name(), " is > max cycles for its read group (",settings.maxCycles, ")! Use parameter 'allowForLarger' to ignore and put read in truncated read group.");
 		} else if(alignment.length() >= settings.maxCycles){
 			//add to truncated read group
 			alignment.setReadGroup(settings.altReadGroupId);
@@ -774,7 +774,7 @@ void TOverlapQuantifier::quantifyOverlap(){
 			} else {
 				//mate found
 				if(alignment->readGroupId() != mate->alignment().readGroupId()){
-					throw "Mates '" + alignment->name() + "' are in different read groups!";
+					UERROR("Mates '", alignment->name(), "' are in different read groups!");
 				}
 
 				//calculate overlap and fragment length and add to storage
