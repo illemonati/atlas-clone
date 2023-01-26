@@ -52,6 +52,7 @@
 #include "TSimulator.h"
 
 #include "TReadGroupInfo.h"
+#include "TAncestralAlleleEstimator.h"
 
 /*
 //tests
@@ -112,6 +113,7 @@ void addTaks(coretools::TMain & main) {
 	main.addRegularTask("inbreeding", new PopulationTools::TTask_estimateInbreeding());
 	main.addRegularTask("polymorphicWindows", new PopulationTools::TTask_identifyPolymorphicWindows());
     main.addRegularTask("calculateF2", new PopulationTools::TTask_calculateF2());
+	main.addRegularTask("ancestralAlleles", new PopulationTools::TTask_estimateAncestralAlleles());
 
 
     //VCF

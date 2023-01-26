@@ -16,20 +16,22 @@
 #include "coretools/Main/TTask.h"
 #include "TAlleleCountReader.h"
 #include "genometools/TFastaIndex.h"
-#include "genometools/TFastaWriter.h"
 
 namespace PopulationTools{
 
 //-------------------------------------------------
-// TAncestralAllelEstimator
+// TAncestralAllelEestimator
 //-------------------------------------------------    
-class TAncestralAllelEstimator{
+class TAncestralAlleleEstimator{
 private:
-    TAlleleCountReader alleleCounts;
-    TFastaIndex fastaIndex;
+    TAlleleCountReader _alleleCounts;
+    genometools::TFastaIndex _fastaIndex;	
+	std::string filename;
+
+	uint32_t _minorCountMin;
+	uint32_t _totalCountMin;
 public:
-	void readAlleleCounts();
-    void readFastaIndex();
+	TAncestralAlleleEstimator();
     void printFasta();
 };
 
@@ -40,7 +42,7 @@ public:
 
 	void run(){
 		TAncestralAlleleEstimator ancestralAlleleEst;
-		//ancestralAlleleEst.function();
+		ancestralAlleleEst.printFasta();
 	};
 };
 

@@ -508,6 +508,9 @@ void TAlleleCountEstimator::transformFormat() {
 	std::string tmp(coretools::str::readBeforeLast(countsFileName, "_alleleCounts.txt.gz"));
 	std::string outname        = parameters().getParameterWithDefault<std::string>("out", tmp);
 	std::string type           = parameters().getParameterWithDefault<std::string>("outFormat", "default");
+
+	logfile().list("Use option 'outFormat' to produce alleleCounts file in different formats.");
+
 	if (type == "default") { UERROR("Cannot transform alleleCounts file to original format!"); }
 	if (type == "withAlleles") { UERROR("Cannot transform to 'withAlleles' format from original format!"); }
 

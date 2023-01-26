@@ -10,15 +10,14 @@ void TAlleleCountReader::open(std::string_view filename){
     if(_file.isOpen()){
         DEVERROR("Allele count file is already open!");
     }
-
     //open file
     _file.open(filename, coretools::TFile_Filetype::header);
-    
+
     // parse header	
     const std::vector<std::string>& header = _file.header();    
-    
+
     if(header[0] != "chr" || header[1] != "pos"){
-        UERROR("Alelel count file '", filename, "' lacks columns 'Chr' and 'Pos' at beginning! Are you providing the correct file?");
+        UERROR("Allele count file '", filename, "' lacks columns 'chr' and 'pos' at beginning! Are you providing the correct file?");
     }
 
     if(header[2] == "ref" && header[3] == "alt"){
