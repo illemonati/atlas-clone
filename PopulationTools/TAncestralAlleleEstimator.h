@@ -28,7 +28,7 @@ private:
     genometools::TFastaIndex _fastaIndex;	
 	std::string filename;
 
-	uint32_t _minorCountMin;
+	uint32_t _minorCountMax;
 	uint32_t _totalCountMin;
 public:
 	TAncestralAlleleEstimator();

@@ -20,10 +20,10 @@ using coretools::instances::logfile;
 // TAncestralAlleleEstimator
 //--------------------------
 TAncestralAlleleEstimator::TAncestralAlleleEstimator(){
-    _minorCountMin = parameters().getParameterWithDefault<uint32_t>("minorCountMinimum", 0);
-    logfile().list("Setting minimum count of minor allele to ", _minorCountMin, ". (parameter 'minorCountMinimum')");
+    _minorCountMax = parameters().getParameterWithDefault<uint32_t>("minorCountMaximum", 0);
+    logfile().list("Setting maximum count of minor allele to ", _minorCountMax, ". (parameter 'minorCountMaximum')");
     _totalCountMin = parameters().getParameterWithDefault<uint32_t>("totalCountMinimum", 0);
-    logfile().list("Setting minimum total allele count to ", _minorCountMin, ". (parameter 'totalCountMinimum')");
+    logfile().list("Setting minimum total allele count to ", _totalCountMin, ". (parameter 'totalCountMinimum')");
 
     const auto alleleCountsFileName = parameters().getParameter<std::string>("alleleCounts");
 
@@ -61,7 +61,7 @@ void TAncestralAlleleEstimator::printFasta(){
         writer.newContig(fI.contig);
         for (uint64_t pos = 1; pos <= fI.length; pos++){
             if(pos == _alleleCounts.front().pos && fI.contig == _alleleCounts.front().chr){
-                if(_minorCountMin <= _alleleCounts.front()[index].minor && _totalCountMin <= _alleleCounts.front()[index].total){
+                if(_alleleCounts.front()[index].minor <= _minorCountMax && _totalCountMin <= _alleleCounts.front()[index].total){
                     writer.write(_alleleCounts.front().majorAllele);
                 } else {
                     writer.write(genometools::Base::N);
