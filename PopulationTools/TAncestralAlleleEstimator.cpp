@@ -20,6 +20,7 @@ using coretools::instances::logfile;
 // TAncestralAlleleEstimator
 //--------------------------
 TAncestralAlleleEstimator::TAncestralAlleleEstimator(){
+    
     _minorCountMax = parameters().getParameterWithDefault<uint32_t>("minorCountMaximum", 0);
     logfile().list("Setting maximum count of minor allele to ", _minorCountMax, ". (parameter 'minorCountMaximum')");
     _totalCountMin = parameters().getParameterWithDefault<uint32_t>("totalCountMinimum", 0);
@@ -38,7 +39,6 @@ TAncestralAlleleEstimator::TAncestralAlleleEstimator(){
 }
 
 void TAncestralAlleleEstimator::printFasta(){
-    filename += "_ancestralAlleles.fasta";
 
     const auto outputFileName = parameters().getParameterWithDefault<std::string>("out", filename + "_ancestralAlleles.fasta");
     logfile().list("Writing ancestral alleles to file '", outputFileName, "'. (parameter 'out')");
