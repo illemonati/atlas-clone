@@ -222,12 +222,12 @@ double TReadSimulatorSingleEnd::meanReadLength() const {
 }
 
 void TReadSimulatorSingleEnd::simulate(const TGenomePosition & Position, const std::vector<Base>& Haplotype, TSimulatorBamFile &BamFile) {
+	// pick a fragment
+	const auto fragmentLength = _fragmentLengthDistr.sample();
+
 	// prepare alignment
 	_simulateAlignmentDetails(Position);
 	_alignment.setIsReverseStrand(randomGenerator().getRand() < 0.5);
-
-	// simulate read length
-	uint16_t fragmentLength = _fragmentLengthDistr.sample();
 
 	// simulated bases and qualities
 	_simulateBasesQualities(_alignment, Haplotype, fragmentLength, _numCycles, _simulateContamination());
@@ -307,22 +307,19 @@ double TReadSimulatorPairedEnd::meanReadLength() const {
 
 void TReadSimulatorPairedEnd::simulate(const TGenomePosition & Position, const std::vector<Base>& Haplotype, TSimulatorBamFile &BamFile) {
 	// pick a fragment
-	uint16_t fragmentLength = _fragmentLengthDistr.sample();
-	bool readIsContaminated = _simulateContamination();
+	const auto fragmentLength     = _fragmentLengthDistr.sample();
+	const auto readIsContaminated = _simulateContamination();
 
 	// Fill FIRST mate
-	//------------------
+
 	// prepare alignment
 	_simulateAlignmentDetails(Position);
-
-	// simulated bases and qualities
 	_simulateBasesQualities(_alignment, Haplotype, fragmentLength, _numCycles[0], readIsContaminated);
 
-
 	// Fill SECOND mate
-	//------------------
+
 	// identify position
-	_secondMate = _alignment;
+	_secondMate.move(_alignment);
 	if(fragmentLength > _numCycles[1]){
 		_secondMate += (uint32_t) fragmentLength - (uint32_t) _numCycles[1];
 	}
@@ -341,7 +338,6 @@ void TReadSimulatorPairedEnd::simulate(const TGenomePosition & Position, const s
 	_alignment.setMateGenomicPosition(_secondMate);
 	_secondMate.setMateGenomicPosition(_alignment);
 
-	// write bam alignment
 	BamFile.writeAlignment(_alignment);
 
 	// write mate if it starts at same position as first, and keep for writing later otherwise
