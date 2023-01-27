@@ -59,8 +59,8 @@ public:
 	std::string sample_SM;
 
     //flags
-    mutable bool inUse; 						//read groups not in use are ignored when reading
-    mutable bool writeToHeader;                 //is false if read group is not in use or replaced by new one
+    bool inUse; 						//read groups not in use are ignored when reading
+    bool writeToHeader;                 //is false if read group is not in use or replaced by new one
 
     TReadGroup();
     TReadGroup(const uint16_t ID, std::string_view Name);
@@ -89,7 +89,8 @@ private:
 	std::vector<size_t> _readGroupsById;
 	bool _limitReadGroups;
 
-	std::vector<TReadGroup>::iterator _getReadGroup(std::string_view Name) const;
+	std::vector<TReadGroup>::iterator _getReadGroup(std::string_view Name);
+	std::vector<TReadGroup>::const_iterator _getReadGroup(std::string_view Name) const;
 	void _fillLookupFromId();
 
 public:
@@ -109,11 +110,16 @@ public:
 	uint16_t size() const;
 	bool empty() const;
 
+	const TReadGroup& getReadGroup(std::string_view name) const;
+	TReadGroup& getReadGroup(std::string_view name);
+	const TReadGroup& TReadGroups::getReadGroup(uint16_t ReadGroupId) const;
+	TReadGroup& TReadGroups::getReadGroup(uint16_t ReadGroupId);
+	const TReadGroup& operator[](uint16_t readGroupId) const; //no checking
+
 	uint16_t getId(std::string_view name) const;
 	const std::string& getName (uint16_t readGroupId) const;
 	std::vector<std::string> getNames(std::vector<uint16_t> & readGroupIds) const;
-	const TReadGroup& getReadGroup(std::string_view name);
-	const TReadGroup& operator[](uint16_t readGroupId) const;
+
 	bool readGroupExists(std::string_view name) const;
 	bool readGroupInUse(uint16_t readGroupId) const;
 	bool readGroupInUse(std::string_view name) const;
@@ -126,7 +132,7 @@ public:
 
 	void filterReadGroups(std::string_view readGroupList);
 	void removeFromHeader(std::string_view name);
-	void removeFromHeader(const uint16_t readGroupId);
+	void removeFromHeader(uint16_t readGroupId);
 	void printReadgroupsInUse() const;
 	void fillVectorWithNames(std::vector<std::string> & vec) const;
 	std::string compileSamHeader() const;
