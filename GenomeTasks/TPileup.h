@@ -28,7 +28,6 @@ class TPileup : public TGenome_windows {
 private:
 	coretools::TOutputFile _out;
 	coretools::TOutputFile _outDepthHistogram;
-	coretools::TOutputFile _test;
 	coretools::TOutputFile _outDepthPerChromosome;
 
 	coretools::TCountDistribution<> _depthPerSite;

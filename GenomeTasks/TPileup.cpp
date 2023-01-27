@@ -52,7 +52,6 @@ bool parseField(std::set<std::string> &fields, const std::string &tag, const std
 // TPileup
 //---------------------------------
 TPileup::TPileup():TGenome_windows(){
-	_test.open("test.txt");
 	if(!parameters().parameterExists("onlySummaries")){
 		//open output file
 		const std::string filename = _outputName + "_pileup.txt.gz";
@@ -242,8 +241,6 @@ void TPileup::_handleWindow(){
 		if(_histSettings.get<Depths>()){
 			_depthPerSite.add(site.depth());
 			_depthPerSitePerChromosome.add(site.depth());
-			if(site.depth()==1000)
-				_test << _window.chrName() << " " << pos << coretools::endl;
 		}
 
 		if(_histSettings.get<Quality>()){
@@ -278,7 +275,6 @@ void TPileup::_handleWindow(){
                         _depthPerSitePerChromosome.clear();
                 }
 	}
-	logfile().doneTime();
 };
 
 void TPileup::printPileup(){
