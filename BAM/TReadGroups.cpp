@@ -144,11 +144,6 @@ TReadGroups& TReadGroups::operator=(const TReadGroups && other){
 	return *this;
 }
 
-void TReadGroups::clear(){
-	_readGroups.clear();
-	_readGroupsById.clear();
-}
-
 std::vector<TReadGroup>::iterator TReadGroups::_getReadGroup(std::string_view Name){
 	auto rg = std::lower_bound(_readGroups.begin(),_readGroups.end(), Name);
 	if(rg == _readGroups.end() && rg->name_ID == Name){
@@ -165,8 +160,6 @@ std::vector<TReadGroup>::const_iterator TReadGroups::_getReadGroup(std::string_v
 	return _readGroups.cend();
 }
 
-
-
 void TReadGroups::_fillLookupFromId(){
 	//sort by name
 	std::sort(_readGroups.begin(), _readGroups.end());
@@ -177,6 +170,12 @@ void TReadGroups::_fillLookupFromId(){
 		_readGroupsById[_readGroups[i].id()] = i;
 	}
 };
+
+// add and remove read groups
+void TReadGroups::clear(){
+	_readGroups.clear();
+	_readGroupsById.clear();
+}
 
 TReadGroup& TReadGroups::add(std::string_view Name){
 	//only add if name does not yet exist
@@ -220,6 +219,16 @@ bool TReadGroups::empty() const{
 	return _readGroups.empty();
 };
 
+// access read groups
+uint16_t TReadGroups::getId(std::string_view Name) const {
+	auto rg = _getReadGroup(Name);
+	if(rg == _readGroups.end()){
+		return noReadGroupId;
+	} else {
+		return rg->id();
+	}
+}
+
 const TReadGroup& TReadGroups::getReadGroup(std::string_view Name) const {
 	auto rg = _getReadGroup(Name);
 	if(rg != _readGroups.end())
@@ -251,15 +260,15 @@ const TReadGroup& TReadGroups::operator[](uint16_t ReadGroupId) const{
 	return _readGroups[_readGroupsById[ReadGroupId]];
 }
 
-uint16_t TReadGroups::getId(std::string_view Name) const {
-	auto rg = _getReadGroup(Name);
-	if(rg == _readGroups.end()){
-		return noReadGroupId;
-	} else {
-		return rg->id();
-	}
+bool TReadGroups::readGroupExists(std::string_view Name) const {
+	return _getReadGroup(Name) != _readGroups.cend();
 }
 
+bool TReadGroups::readGroupExists(uint16_t readGroupId) const {
+	return readGroupId < _readGroups.size();
+}
+
+//getters of specific entries
 const std::string& TReadGroups::getName(uint16_t ReadGroupId) const{
 	if(ReadGroupId >= _readGroups.size()) DEVERROR("No read group with number ", ReadGroupId, "!");
 	return _readGroups[_readGroupsById[ReadGroupId]].name_ID;
@@ -273,18 +282,7 @@ std::vector<std::string> TReadGroups::getNames(std::vector<uint16_t> & ReadGroup
 	return names;
 }
 
-bool TReadGroups::readGroupExists(std::string_view Name) const {
-	return _getReadGroup(Name) != _readGroups.cend();
-}
-
-bool TReadGroups::readGroupInUse(uint16_t ReadGroupId) const{
-	return getReadGroup(ReadGroupId).inUse;
-}
-
-bool TReadGroups::readGroupInUse(std::string_view Name) const{
-	return getReadGroup(Name).inUse;
-}
-
+//some additional tasks
 void TReadGroups::filterReadGroups(std::string_view ReadGroupList){
 	_limitReadGroups = true;
 	std::vector<std::string> readGroupsInUse;
@@ -302,17 +300,6 @@ void TReadGroups::filterReadGroups(std::string_view ReadGroupList){
 		rg.inUse = true;
 		rg.writeToHeader = true;
 	}
-}
-
-void TReadGroups::removeFromHeader(std::string_view Name){
-	auto rg = getReadGroup(Name);
-	rg.writeToHeader = false;
-}
-
-void TReadGroups::removeFromHeader(uint16_t ReadGroupId){
-	if(ReadGroupId >= _readGroups.size())
-		UERROR("No read group with number ", ReadGroupId, "!");
-	_readGroups[ _readGroupsById[ReadGroupId].writeToHeader = false;
 }
 
 void TReadGroups::printReadgroupsInUse() const{

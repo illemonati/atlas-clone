@@ -65,7 +65,6 @@ public:
     TReadGroup();
     TReadGroup(const uint16_t ID, std::string_view Name);
 
-    TReadGroup* getPointer(){ return this; };
     std::string compileSamHeader() const;
 
     //getters
@@ -104,25 +103,23 @@ public:
 
 	static constexpr uint16_t noReadGroupId = -1;
 
+	// add and remove read groups
 	void clear();
 	TReadGroup& add(std::string_view name);
 	TReadGroup& addAlternativeRG(std::string_view Name, std::string_view original);
 	uint16_t size() const;
 	bool empty() const;
 
+	// access read groups
+	uint16_t getId(std::string_view name) const; // returns noReadGroupId if read group does not exist.
 	const TReadGroup& getReadGroup(std::string_view name) const;
 	TReadGroup& getReadGroup(std::string_view name);
-	const TReadGroup& TReadGroups::getReadGroup(uint16_t ReadGroupId) const;
-	TReadGroup& TReadGroups::getReadGroup(uint16_t ReadGroupId);
+	const TReadGroup& getReadGroup(uint16_t ReadGroupId) const;
+	TReadGroup& getReadGroup(uint16_t ReadGroupId);
 	const TReadGroup& operator[](uint16_t readGroupId) const; //no checking
 
-	uint16_t getId(std::string_view name) const;
-	const std::string& getName (uint16_t readGroupId) const;
-	std::vector<std::string> getNames(std::vector<uint16_t> & readGroupIds) const;
-
 	bool readGroupExists(std::string_view name) const;
-	bool readGroupInUse(uint16_t readGroupId) const;
-	bool readGroupInUse(std::string_view name) const;
+	bool readGroupExists(uint16_t readGroupId) const;
 
 	//looping over
 	std::vector<TReadGroup>::iterator begin(){ return _readGroups.begin(); };
@@ -130,9 +127,20 @@ public:
 	std::vector<TReadGroup>::const_iterator cbegin() const{ return _readGroups.cbegin(); };
 	std::vector<TReadGroup>::const_iterator cend() const{ return _readGroups.cend(); };
 
+	//getters of specific entries
+	template <typename T> bool readGroupInUse(T Identifier) const {
+		return getReadGroup(Identifier).inUse;
+	}
+	const std::string& getName (uint16_t readGroupId) const;
+	std::vector<std::string> getNames(std::vector<uint16_t> & readGroupIds) const;
+
+	//some additional tasks
 	void filterReadGroups(std::string_view readGroupList);
-	void removeFromHeader(std::string_view name);
-	void removeFromHeader(uint16_t readGroupId);
+	template <typename T> void removeFromHeader(T Identifier){
+		auto rg = getReadGroup(Identifier);
+		rg.writeToHeader = false;
+	}
+
 	void printReadgroupsInUse() const;
 	void fillVectorWithNames(std::vector<std::string> & vec) const;
 	std::string compileSamHeader() const;
