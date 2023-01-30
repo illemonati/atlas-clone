@@ -17,6 +17,7 @@
 #include "TGenome.h"
 #include "TGenotypeData.h"
 #include "coretools/Main/TTask.h"
+#include "TAllelicDepthCounts.h"
 
 namespace GenomeTasks {
 
@@ -26,10 +27,23 @@ namespace GenomeTasks {
 class TPileup : public TGenome_windows {
 private:
 	coretools::TOutputFile _out;
+	coretools::TOutputFile _outDepthHistogram;
+	coretools::TOutputFile _outDepthPerChromosome;
+
+	coretools::TCountDistribution<> _depthPerSite;
+	coretools::TCountDistribution<> _depthPerSitePerChromosome;
+	coretools::TCountDistributionVector<> _qualDist;
+	coretools::TCountDistributionVector<> _contextDist;
 
 	// what to print?
 	coretools::TBitSet<8> _printSettings;
 	enum {OnlySitesWithData, Depth, Bases, Qualities, Alleles, Mates, Strand, Likelihoods};
+
+	coretools::TBitSet<8> _histSettings;
+	enum {Depths, Quality, Contexts, AllelicDepth};
+
+	TAllelicDepthCounts _counts;
+	bool _writeEmpty;
 
 	void _handleWindow() override;
 	void _handleAlignment() override {}

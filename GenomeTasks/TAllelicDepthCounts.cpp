@@ -24,6 +24,7 @@
 namespace GenomeTasks{
 using coretools::instances::parameters;
 using coretools::instances::logfile;
+using coretools::instances::randomGenerator;
 
 namespace impl {
 constexpr size_t index(size_t i1, size_t i2, size_t i3, size_t i4, size_t N) noexcept {
@@ -78,10 +79,9 @@ void TAllelicDepthCounts::write(const std::string &filename, bool printEmpty){
 		for(uint32_t c=0; c<_size; ++c){
 			for(uint32_t g=0; g<_size; ++g){
 				for(uint32_t t=0; t<_size; ++t){
-					if(printEmpty || _counts[impl::index(a,c,g,t, _size)] > 0){
+					if((printEmpty || _counts[impl::index(a,c,g,t, _size)] > 0)){
 						//write numA, C, G and T and depth
 						out << a << c << g << t << a+c+g+t;
-
 						//find max
 						uint32_t max = a;
 						if(c > max) max = c;
@@ -105,10 +105,14 @@ void TAllelicDepthCounts::write(const std::string &filename, bool printEmpty){
 						} else {
 							//find second
 							uint32_t second = 0;
-							if(a < max && a > second) second = a;
-							if(c < max && c > second) second = c;
-							if(g < max && g > second) second = g;
-							if(t < max && t > second) second = t;
+							if(a < max && a > second)
+								second = a;
+							if(c < max && c > second)
+								second = c;
+							if(g < max && g > second)
+								second = g;
+							if(t < max && t > second)
+								second = t;
 
 							//print minor
 							if(a == second) out << 'A' << a;
@@ -130,10 +134,11 @@ void TAllelicDepthCounts::write(const std::string &filename, bool printEmpty){
 // TAllelicDepth
 //------------------------------------------
 TAllelicDepth::TAllelicDepth() : TGenome_windows(){
-	logfile().list("Will assemble allelic depth up to a max depth of " + coretools::str::toString(_readUpToDepth) + ". (parameter 'maxDepth')");
+	logfile().list("Will assemble allelic depth up to a max depth of " + coretools::str::toString(_readUpToDepth) + ". (parameter 'readUpToDepth')");
 	if(_readUpToDepth > 100){
-		logfile().warning("Allocating count table for a max depth of " + coretools::str::toString(_readUpToDepth) + " uses a lot of memory! Use argument maxDepth to limit.");
+		logfile().warning("Allocating count table for a max depth of " + coretools::str::toString(_readUpToDepth) + " uses a lot of memory! Use argument readUpToDepth to limit.");
 	}
+
 	_counts.resize(_readUpToDepth);
 
 	if(parameters().parameterExists("printAll")){
