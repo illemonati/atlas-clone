@@ -115,7 +115,7 @@ TEstimateTheta::TEstimateTheta() : TEstimateTheta_base() {
 
 	} else {
 		_genomeWide = false;
-		logfile().list("Will estimating heterozygosity (theta) genome-wide.");
+		logfile().list("Will estimating heterozygosity (theta) per Window.");
 	}
 
 	// read downsampling rates
