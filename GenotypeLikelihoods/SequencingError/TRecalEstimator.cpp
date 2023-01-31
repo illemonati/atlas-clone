@@ -190,7 +190,14 @@ TRecalibrationEMEstimator::TRecalibrationEMEstimator(const BAM::TReadGroups *Rea
 	_readGroupMap = ReadGroupMap;
 
 	// genotype distribution: currently only allow for haploid
-	_genoDist = std::make_unique<THaploidDistribution>();
+	const auto dist = parameters().getParameterWithDefault("genoDist", "haploid");
+	if (dist == "haploid") {
+		_genoDist = std::make_unique<THaploidDistribution>();
+	} else if (dist == "diploid") {
+		_genoDist = std::make_unique<TDiploidDistribution>();
+	} else {
+		UERROR("Genotype distribution ", dist, " does not exist. Use 'haploid' or 'diploid'!");
+	}
 	logfile().list("Will use a ", _genoDist->typeString(), " genotype distribution.");
 
 	// estimation parameters
