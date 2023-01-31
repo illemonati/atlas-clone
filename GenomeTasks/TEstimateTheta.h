@@ -21,6 +21,7 @@
 #include "TThetaEstimator.h"
 #include "TWindow.h"
 #include "coretools/Types/probability.h"
+
 namespace GenotypeLikelihoods {
 class TThetaEstimatorData;
 }
@@ -28,30 +29,16 @@ class TThetaEstimatorData;
 namespace GenomeTasks {
 
 //-----------------------------------
-// TEstimateTheta_base
-//-----------------------------------
-class TEstimateTheta_base : public TGenome_windows {
-protected:
-	GenotypeLikelihoods::TThetaEstimator _thetaEstimator;
-	GenotypeLikelihoods::TThetaOutputFile _thetaOut;
-
-	void _addSites(GenotypeLikelihoods::TWindow_base &window, GenotypeLikelihoods::TThetaEstimator &thetaEstimator);
-	void _addSites();
-	void _handleAlignment() override {}
-
-public:
-	TEstimateTheta_base();
-};
-
-//-----------------------------------
 // TEstimateThetaLLSurface
 //-----------------------------------
-class TEstimateThetaLLSurface : public TEstimateTheta_base {
+class TEstimateThetaLLSurface : public TGenome_windows {
 private:
+	GenotypeLikelihoods::TThetaEstimator _thetaEstimator;
 	uint32_t _steps;
 
 	void _bootstrapThetaEstimation();
 	void _handleWindow() override;
+	void _handleAlignment() override {}
 
 public:
 	TEstimateThetaLLSurface();
@@ -61,10 +48,13 @@ public:
 //-----------------------------------
 // TEstimateThetaDownsamplingQC
 //-----------------------------------
-class TEstimateTheta : public TEstimateTheta_base {
+class TEstimateTheta : public TGenome_windows {
 private:
+	GenotypeLikelihoods::TThetaEstimator _thetaEstimator;
+	GenotypeLikelihoods::TThetaOutputFile _thetaOut;
 	std::vector<coretools::Probability> downSampleProbVector;
 	std::vector<GenotypeLikelihoods::TThetaEstimator> estimators;
+
 	bool _printFullData     = false;
 	bool _printAll          = false;
 	bool _genomeWide        = false;
@@ -72,15 +62,16 @@ private:
 	bool _onlyBootstraps    = false;
 	uint32_t _numBootstraps = 0;
 
-	// tmp
-	GenotypeLikelihoods::TWindow_base destination;
+	void _handleWindow() override;
+	void _handleAlignment() override {}
+
+	void _addSites(GenotypeLikelihoods::TWindow_base &window, GenotypeLikelihoods::TThetaEstimator &thetaEstimator);
+	void _addSites();
 
 	void _bootstrapThetaEstimation();
-	void _handleWindow() override;
-
 public:
 	TEstimateTheta();
-	void runQC();
+	void run();
 };
 
 //-----------------------------------
@@ -114,11 +105,8 @@ class TTask_estimateTheta : public TThetaTask {
 public:
 	TTask_estimateTheta() { _explanation = "Estimating heterozygosity (theta)"; }
 	void run() {
-		using coretools::instances::logfile;
-		using coretools::instances::parameters;
-
 		TEstimateTheta estimator;
-		estimator.runQC();
+		estimator.run();
 	}
 };
 

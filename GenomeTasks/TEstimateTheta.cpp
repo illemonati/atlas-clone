@@ -31,30 +31,11 @@ using coretools::instances::logfile;
 using coretools::instances::parameters;
 using coretools::str::toString;
 
-//-----------------------------------
-// TEstimateTheta_base
-//-----------------------------------
-TEstimateTheta_base::TEstimateTheta_base()
-	: TGenome_windows(), _thetaEstimator(){
-
-						 };
-
-void TEstimateTheta_base::_addSites(GenotypeLikelihoods::TWindow_base &window,
-									GenotypeLikelihoods::TThetaEstimator &thetaEstimator) {
-	logfile().listFlushTime("Calculating genotype likelihoods ...");
-	for (auto &s : window) {
-		_genoLik = _genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(s);
-		thetaEstimator.add(s, _genoLik);
-	}
-	logfile().doneTime();
-};
-
-void TEstimateTheta_base::_addSites() { _addSites(_window, _thetaEstimator); };
 
 //-----------------------------------
 // TEstimateThetaLLSurface
 //-----------------------------------
-TEstimateThetaLLSurface::TEstimateThetaLLSurface() : TEstimateTheta_base() {
+TEstimateThetaLLSurface::TEstimateThetaLLSurface() : TGenome_windows() {
 	_steps = parameters().getParameterWithDefault<int>("steps", 100);
 	logfile().list("Will calculate the LL-surface at ", _steps, " steps. (parameter 'steps')");
 	if (_steps < 2) { UERROR("Th enumber of steps must be >= 2!"); }
@@ -64,7 +45,10 @@ void TEstimateThetaLLSurface::_handleWindow() {
 	logfile().startIndent("Calculating likelihood surface for Theta:");
 
 	// adding sites to estimator
-	_addSites();
+	for (auto &s : _window) {
+		_genoLik = _genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(s);
+		_thetaEstimator.add(s, _genoLik);
+	}
 
 	// open file
 	std::string filename =
@@ -86,7 +70,21 @@ void TEstimateThetaLLSurface::estimateThetaLLSurface() { _traverseBAMWindows(); 
 //-----------------------------------
 // TEstimateThetaDownsamplingQC
 //-----------------------------------
-TEstimateTheta::TEstimateTheta() : TEstimateTheta_base() {
+
+
+void TEstimateTheta::_addSites(GenotypeLikelihoods::TWindow_base &window,
+									GenotypeLikelihoods::TThetaEstimator &thetaEstimator) {
+	logfile().listFlushTime("Calculating genotype likelihoods ...");
+	for (auto &s : window) {
+		_genoLik = _genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(s);
+		thetaEstimator.add(s, _genoLik);
+	}
+	logfile().doneTime();
+};
+
+void TEstimateTheta::_addSites() { _addSites(_window, _thetaEstimator); };
+
+TEstimateTheta::TEstimateTheta() : TGenome_windows() {
 	if (parameters().parameterExists("genomeWide")) {
 		_genomeWide = true;
 		logfile().list("Will estimating heterozygosity (theta) genome-wide.");
@@ -200,6 +198,8 @@ void TEstimateTheta::_handleWindow() {
 		logfile().endIndent();
 	}
 
+	static GenotypeLikelihoods::TWindow_base destination;
+
 	for (size_t i = 0; i < downSampleProbVector.size(); ++i) {
 		coretools::Probability &p = downSampleProbVector[i];
 		logfile().startIndent("Using downsampled data (p = ", p, "):");
@@ -254,7 +254,7 @@ void TEstimateTheta::_bootstrapThetaEstimation() {
 	logfile().endIndent();
 };
 
-void TEstimateTheta::runQC() {
+void TEstimateTheta::run() {
 	_traverseBAMWindows();
 	if (_genomeWide) {
 		if (!_onlyBootstraps) {

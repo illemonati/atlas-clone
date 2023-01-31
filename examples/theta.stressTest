@@ -4,17 +4,19 @@
 
 # No Recal
 $atlas --task simulate --ploidy 2,1 --chrLength 10000000 --depth 30,10 --fixedSeed 0 --out simNo --logFile simNo.out
-$atlas --task theta --bam simNo.bam --chr chr1 --averageDepth 30 --depth 30,10,5,2,1,0.5,0.1,0.05 --fixedSeed 0 --out simNo_thetaNo --logFile simNo_thetaNo.out --extraVerbose 
-$atlas --task theta --genomeWide --bootstraps 10 --bam simNo.bam --chr chr1 --averageDepth 30 --depth 30,10,5,2,1,0.5,0.1,0.05 --fixedSeed 0 --out simNo_thetaNo_GW --logFile simNo_thetaNo_GW.out --extraVerbose 
+$atlas --task theta --bam simNo.bam --chr chr1 --averageDepth 30 --depth 30,10,5,2,1,0.5,0.1,0.05 --fixedSeed 0 --out simNo_thetaNo --logFile simNo_thetaNo.out --extraVerbose
+#$atlas --task theta --genomeWide --bootstraps 10 --bam simNo.bam --chr chr1 --averageDepth 30 --depth 30,10,5,2,1,0.5,0.1,0.05 --fixedSeed 0 --out simNo_thetaNo_GW --logFile simNo_thetaNo_GW.out --extraVerbose
 
 # Recal
-$atlas --task simulate --ploidy 2,1 --chrLength 10000000 --depth 30,10 --recal "intercept[0.1];quality:polynomial[0.8,-0.05]" --fixedSeed 0 --out simRecal --logFile simRecal.out
-$atlas --task theta --bam simRecal.bam --chr chr1 --averageDepth 30 --depth 30,10,5,2,1,0.5,0.1,0.05 --fixedSeed 0 --out simRecal_thetaNo --logFile simRecal_thetaNo.out --extraVerbose 
-$atlas --task theta --genomeWide --bootstraps 10 --bam simRecal.bam --chr chr1 --averageDepth 30 --depth 30,10,5,2,1,0.5,0.1,0.05 --fixedSeed 0 --out simRecal_thetaNo_GW --logFile simRecal_thetaNo_GW.out --extraVerbose
+recal="intercept[0.1];quality:polynomial[1,0.02]"
+#recal="intercept[0];quality:polynomial[1]"
+$atlas --task simulate --ploidy 2,1 --chrLength 10000000 --depth 30,10 --recal $recal --fixedSeed 0 --out simRecal --logFile simRecal.out
+$atlas --task theta --bam simRecal.bam --chr chr1 --averageDepth 30 --depth 30,10,5,2,1,0.5,0.1,0.05 --fixedSeed 0 --out simRecal_thetaNo --logFile simRecal_thetaNo.out --extraVerbose
+#$atlas --task theta --genomeWide --bootstraps 10 --bam simRecal.bam --chr chr1 --averageDepth 30 --depth 30,10,5,2,1,0.5,0.1,0.05 --fixedSeed 0 --out simRecal_thetaNo_GW --logFile simRecal_thetaNo_GW.out --extraVerbose
 
-$atlas --task theta --bam simRecal.bam --chr chr1 --averageDepth 30 --depth 30,10,5,2,1,0.5,0.1,0.05 --recal "intercept[0.1];quality:polynomial[0.8,-0.05]" --fixedSeed 0 --out simRecal_thetaRecal --logFile simRecal_thetaRecal.out --extraVerbose 
-$atlas --task theta --genomeWide --bootstraps 10 --bam simRecal.bam --chr chr1 --averageDepth 30 --depth 30,10,5,2,1,0.5,0.1,0.05 --recal "intercept[0.1];quality:polynomial[0.8,-0.05]" --fixedSeed 0 --out simRecal_thetaRecal_GW --logFile simRecal_thetaRecal_GW.out --extraVerbose 
-
+$atlas --task theta --bam simRecal.bam --chr chr1 --averageDepth 30 --depth 30,10,5,2,1,0.5,0.1,0.05 --recal $recal --fixedSeed 0 --out simRecal_thetaRecal --logFile simRecal_thetaRecal.out --extraVerbose
+#$atlas --task theta --genomeWide --bootstraps 10 --bam simRecal.bam --chr chr1 --averageDepth 30 --depth 30,10,5,2,1,0.5,0.1,0.05 --recal $recal --fixedSeed 0 --out simRecal_thetaRecal_GW --logFile simRecal_thetaRecal_GW.out --extraVerbose
+exit
 
 # Estimated Recal
 $atlas --task recal --bam simRecal.bam --recal "intercept;quality;position;context;fragmentLength;mappingQuality;" --chr chr2 --fixedSeed 0 --out recal --logFile recal.out

@@ -121,8 +121,7 @@ public:
 	void addToHeader(std::vector<std::string> &header, const std::string prefix);
 	void writeSite(coretools::TOutputFile &out);
 	TBaseProbabilities baseFrequencies();
-	virtual void fillP_G(GenotypeLikelihoods::TGenotypeData &P_G,
-						 const GenotypeLikelihoods::TGenotypeProbabilities &pGenotype);
+	virtual GenotypeLikelihoods::TGenotypeData P_G(const GenotypeLikelihoods::TGenotypeProbabilities &pGenotype);
 	virtual double calcLogLikelihood(const GenotypeLikelihoods::TGenotypeProbabilities &pGenotype);
 };
 
@@ -145,8 +144,7 @@ public:
 	void _begin() override;
 	bool isEnd() override;
 	GenotypeLikelihoods::TGenotypeLikelihoods &curGenotypeLikelihoods() override;
-	void fillP_G(GenotypeLikelihoods::TGenotypeData &P_G,
-				 const GenotypeLikelihoods::TGenotypeProbabilities &pGenotype) override;
+	GenotypeLikelihoods::TGenotypeData P_G(const GenotypeLikelihoods::TGenotypeProbabilities &pGenotype) override;
 	double calcLogLikelihood(const GenotypeLikelihoods::TGenotypeProbabilities &pGenotype) override;
 };
 
