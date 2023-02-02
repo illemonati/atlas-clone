@@ -141,7 +141,6 @@ private:
 	double _expectedHet;
 
 	// tmp vectors
-	GenotypeLikelihoods::TGenotypeData P_G; // see paper
 
 	double _calcFisherInfo(const TGenotypeProbabilities &pGenotype, const TGenotypeData deriv_pGenotype);
 	bool _NRAllParams();
@@ -152,9 +151,6 @@ private:
 
 public:
 	TThetaEstimator();
-	TThetaEstimator(const TThetaEstimator &other);
-
-	virtual ~TThetaEstimator(){};
 
 	void clear();
 	void add(const TSite &site, const GenotypeLikelihoods::TGenotypeLikelihoods &genotypeLikelihoods);
