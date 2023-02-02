@@ -236,6 +236,7 @@ public:
 //------------------------------------------------
 class TQualityAdjusterForWriting{
 private:
+	bool _initialized;
 	bool _adjust;
 	bool _binIllumina;
 	bool _limitRange;
@@ -278,8 +279,13 @@ private:
 
 public:
  	TOutputBamFile();
- 	TOutputBamFile(const std::string filename, const TBamFile & original);
+ 	TOutputBamFile(const TQualityAdjusterForWriting & QualityAdjuster);
+ 	TOutputBamFile(const std::string Filename, const TBamFile & Original);
+ 	TOutputBamFile(const std::string Filename, const TSamHeader & Header, const genometools::TChromosomes & Chromosomes, const TReadGroups & ReadGroups);
+ 	TOutputBamFile(const std::string Filename, const TSamHeader & Header, const genometools::TChromosomes & Chromosomes, const TReadGroups & ReadGroups, const TQualityAdjusterForWriting & QualityAdjuster);
+
  	~TOutputBamFile();
+
  	TOutputBamFile(const TOutputBamFile&) = default;
  	TOutputBamFile(TOutputBamFile&&) noexcept = default;
  	TOutputBamFile& operator=(const TOutputBamFile&) = default;

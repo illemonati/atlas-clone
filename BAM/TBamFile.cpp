@@ -879,39 +879,43 @@ void TBamFile::printEndNoEndIndent(){
 // TQualityAdjusterForWriting
 //------------------------------------------------
 TQualityAdjusterForWriting::TQualityAdjusterForWriting(){
+	_initialized = false;
 	_adjust = false;
 	_binIllumina = false;
 	_limitRange = false;
 	initialize();
-};
+}
 
 void TQualityAdjusterForWriting::initialize(){
-	if(parameters().parameterExists("outQual")){
-		TNumericRange<uint8_t> qualRange;
-		parameters().fillParameter("outQual",  qualRange);
-		limitRange(qualRange);
+	if(!_initialized){
+		if(parameters().parameterExists("outQual")){
+			TNumericRange<uint8_t> qualRange;
+			parameters().fillParameter("outQual",  qualRange);
+			limitRange(qualRange);
 
-		logfile().list("Will print qualities truncated to ", rangeString(), " (parameter 'outQual')");
+			logfile().list("Will print qualities truncated to ", rangeString(), " (parameter 'outQual')");
 
 
-		if(qualRange.max() > BaseQuality::max().get()){
-			logfile().warning("Truncated quality range to BAM limits!");
+			if(qualRange.max() > BaseQuality::max().get()){
+				logfile().warning("Truncated quality range to BAM limits!");
+			}
+
+		} else {
+			logfile().list("Will use the full range of quality scores when writing alignments. (use 'outQual' to constrain).");
 		}
 
-	} else {
-		logfile().list("Will use the full range of quality scores when writing alignments. (use 'outQual' to constrain).");
-	}
+		//quality binning
+		if(parameters().parameterExists("writeBinnedQualities")){
+			logfile().list("Will write Illumina-binned quality scores. (parameter 'writeBinnedQualities')");
 
-	//quality binning
-	if(parameters().parameterExists("writeBinnedQualities")){
-		logfile().list("Will write Illumina-binned quality scores. (parameter 'writeBinnedQualities')");
-
-		if(adjusts()){
-			logfile().warning("If both 'outQual' and 'writeBinnedQualities' are given, qualities will be truncated first, then binned, and may thus fall outside the requested range.");
+			if(adjusts()){
+				logfile().warning("If both 'outQual' and 'writeBinnedQualities' are given, qualities will be truncated first, then binned, and may thus fall outside the requested range.");
+			}
+			binQualitiesIllumina();
+		} else {
+			logfile().list("Will write raw quality scores. (use 'writeBinnedQualities' to bin)");
 		}
-		binQualitiesIllumina();
-	} else {
-		logfile().list("Will write raw quality scores. (use 'writeBinnedQualities' to bin)");
+		_initialized = true;
 	}
 };
 
@@ -971,19 +975,33 @@ void TQualityAdjusterForWriting::adjustQualities(std::string & qualities) const 
 TOutputBamFile::TOutputBamFile(){
 	_openForWriting = false;
 	_readGroups = nullptr;
-};
+}
+
+TOutputBamFile::TOutputBamFile(const TQualityAdjusterForWriting & QualityAdjuster) : _qualityAdjuster(QualityAdjuster){
+	_openForWriting = false;
+	_readGroups = nullptr;
+}
 
 TOutputBamFile::TOutputBamFile(const std::string Filename, const TBamFile & Original){
 	_openForWriting = false;
 	open(Filename, Original.samHeader(), Original.chromosomes(), Original.readGroups());
-};
+}
+
+TOutputBamFile::TOutputBamFile(const std::string Filename, const TSamHeader & Header, const genometools::TChromosomes & Chromosomes, const TReadGroups & ReadGroups){
+	_openForWriting = false;
+	open(Filename, Header, Chromosomes, ReadGroups);
+}
+
+TOutputBamFile::TOutputBamFile(const std::string Filename, const TSamHeader & Header, const genometools::TChromosomes & Chromosomes, const TReadGroups & ReadGroups, const TQualityAdjusterForWriting & QualityAdjuster) : _qualityAdjuster(QualityAdjuster){
+	_openForWriting = false;
+	open(Filename, Header, Chromosomes, ReadGroups);
+}
 
 TOutputBamFile::~TOutputBamFile(){
 	closeNoIndex();
-};
+}
 
 void TOutputBamFile::open(const std::string Filename, const TSamHeader & Header, const genometools::TChromosomes & Chromosomes, const TReadGroups & ReadGroups){
-	logfile().list("Writing alignments to new BAM to file '" + Filename + "'.");
 	closeNoIndex();
 
 	_outputFilename = Filename;
@@ -1012,6 +1030,7 @@ void TOutputBamFile::open(const std::string Filename, const TBamFile & Original)
 };
 
 void TOutputBamFile::setQualityAdjusterForWriting(){
+
 	_qualityAdjuster.initialize();
 };
 

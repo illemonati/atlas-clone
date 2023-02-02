@@ -330,7 +330,7 @@ void TBAMSimulator::_simulateReadsFromHaplotypes(const genometools::TChromosome 
                                                  std::array<std::vector<Base>, 2> haplotypes,
 												 TReadSimulators & readSimulators,
 												 uint32_t avgDepth,
-                                                 TSimulatorBamFile &bamFile,
+                                                 BAM::TOutputBamFile &bamFile,
 												 const std::string &extraProgressText) {
 	// Initialize probabilities to simulate reads
 	const uint64_t numReads = thisChr.length * avgDepth / readSimulators.averageFragmentLength();

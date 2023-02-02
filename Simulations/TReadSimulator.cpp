@@ -221,7 +221,7 @@ double TReadSimulatorSingleEnd::meanReadLength() const {
 	return _calcMeanReadLength(_numCycles);
 }
 
-void TReadSimulatorSingleEnd::simulate(const TGenomePosition & Position, const std::vector<Base>& Haplotype, TSimulatorBamFile &BamFile) {
+void TReadSimulatorSingleEnd::simulate(const TGenomePosition & Position, const std::vector<Base> & Haplotype, BAM::TOutputBamFile & BamFile) {
 	// pick a fragment
 	const auto fragmentLength = _fragmentLengthDistr.sample();
 
@@ -305,7 +305,7 @@ double TReadSimulatorPairedEnd::meanReadLength() const {
 	return _calcMeanReadLength(_numCycles[0] + _numCycles[1]);
 }
 
-void TReadSimulatorPairedEnd::simulate(const TGenomePosition & Position, const std::vector<Base>& Haplotype, TSimulatorBamFile &BamFile) {
+void TReadSimulatorPairedEnd::simulate(const TGenomePosition & Position, const std::vector<Base> & Haplotype, BAM::TOutputBamFile & BamFile) {
 	// pick a fragment
 	const auto fragmentLength     = _fragmentLengthDistr.sample();
 	const auto readIsContaminated = _simulateContamination();

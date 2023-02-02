@@ -73,6 +73,10 @@ TReadSimulators::TReadSimulators(const std::string & RgInfoFileName){
 	// Read sequencing parameters from RG Info / Command line
 	TReadGroupInfo RGinfo;
 	_readGroups = RGinfo.createReadGroups(RgInfoFileName);
+	using BAM::RGInfo::InfoType;
+	logfile().addIndent();
+	RGinfo.parse(InfoType::seqType, InfoType::cycles, InfoType::fragmentLength, InfoType::baseQuality, InfoType::mappingQuality, InfoType::softClipping, InfoType::pmd, InfoType::recal, InfoType::RGFrequency);
+	logfile().endIndent();
 
 	// complete RG details
 	for (auto &rg : _readGroups) {
@@ -82,11 +86,10 @@ TReadSimulators::TReadSimulators(const std::string & RgInfoFileName){
 		rg.sequencingTechnology_PL = "ILLUMINA";
 	}
 
-	using BAM::RGInfo::InfoType;
 	_initializeReadGroupFrequencies(RGinfo);
 
 	//Initialize read groups
-	logfile().startIndent("Initializing ", _readGroups.size(), " read groups:");
+	logfile().startIndent("Will use the following ", _readGroups.size(), " read groups:");
 	_initializeReadGroups(RGinfo);
 
 	// B) initialize PMD
@@ -94,6 +97,7 @@ TReadSimulators::TReadSimulators(const std::string & RgInfoFileName){
 	_PMD.initialize(RGinfo);
 
 	// add PMD to simulators
+	// TODO: also initialize PMD from RGInfo
 	for (size_t r = 0; r < _readSimulators.size(); ++r) {
 		_readSimulators[r]->setPMD(&_PMD[r]);
 	}
@@ -115,7 +119,7 @@ TReadSimulators::TReadSimulators(const std::string & RgInfoFileName){
 	_determineMaxFragmentLength();
 }
 
-void TReadSimulators::simulate(const genometools::TGenomePosition & Position, const std::vector<Base>& Haplotype, TSimulatorBamFile &BamFile){
+void TReadSimulators::simulate(const genometools::TGenomePosition & Position, const std::vector<Base>& Haplotype, BAM::TOutputBamFile &BamFile){
 	//sample which simulator to use
 	size_t thisSimulator = randomGenerator().pickOne(_cumulSimGroupFrequenies);
 	_readSimulators[thisSimulator]->simulate(Position, Haplotype, BamFile);

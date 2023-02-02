@@ -146,7 +146,7 @@ TReadGroups& TReadGroups::operator=(const TReadGroups && other){
 
 std::vector<TReadGroup>::iterator TReadGroups::_getReadGroup(std::string_view Name){
 	auto rg = std::lower_bound(_readGroups.begin(),_readGroups.end(), Name);
-	if(rg == _readGroups.end() && rg->name_ID == Name){
+	if(rg != _readGroups.end() && rg->name_ID == Name){
 		return rg;
 	}
 	return _readGroups.end();
@@ -154,7 +154,7 @@ std::vector<TReadGroup>::iterator TReadGroups::_getReadGroup(std::string_view Na
 
 std::vector<TReadGroup>::const_iterator TReadGroups::_getReadGroup(std::string_view Name) const{
 	auto rg = std::lower_bound(_readGroups.cbegin(),_readGroups.cend(), Name);
-	if(rg == _readGroups.cend() && rg->name_ID == Name){
+	if(rg != _readGroups.cend() && rg->name_ID == Name){
 		return rg;
 	}
 	return _readGroups.cend();
