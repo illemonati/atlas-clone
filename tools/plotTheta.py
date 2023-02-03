@@ -17,15 +17,15 @@ if __name__ == "__main__":
     sc   = 5
 
     # get header and cols
-    for file in args.files:
+    for i, file in enumerate(args.files):
         f     = gzip.open(file)
         cols  = []
         heads = []
         probs =  []
-        for i, key in enumerate(f.readline().split()):
+        for j, key in enumerate(f.readline().split()):
             key = key.decode()
             if "theta_MLE" in key:
-                cols.append(i)
+                cols.append(j)
                 heads.append(key)
                 probs.append(float(key[1:].split("_")[0]))
         f.close()
@@ -34,7 +34,7 @@ if __name__ == "__main__":
         data = genfromtxt(file, skip_header=1)
         means = []
         stds = []
-        for i,c in enumerate(cols):
+        for c in cols:
             means.append(mean(data[:, c]))
             stds.append(std(data[:, c]))
 
@@ -44,7 +44,9 @@ if __name__ == "__main__":
         means = r_[means]
         stds  = r_[stds]
 
-        plt.errorbar(probs, means, yerr=stds, fmt='o-', linewidth=2, capsize=6, label=file)
+        fmts= ["o-", "s-", "x-", "d-", "<-"]
+        mks = [10, 8, 6, 4, 2]
+        plt.errorbar(probs, means, yerr=stds, fmt=fmts[i], markersize=8,linewidth=2, capsize=6, label=file)
 
         plt.xscale("log")
         plt.yscale("log")
