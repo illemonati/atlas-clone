@@ -115,12 +115,6 @@ TReadSimulators::TReadSimulators(const std::string & RgInfoFileName){
 	_determineMaxFragmentLength();
 }
 
-void TReadSimulators::writeUnwrittenAlignments(const genometools::TGenomePosition & Position, TSimulatorBamFile &BamFile){
-	for(auto& ptr : _readSimulators){
-		ptr->writeUnwrittenAlignments(Position, BamFile);
-	}
-}
-
 void TReadSimulators::simulate(const genometools::TGenomePosition & Position, const std::vector<Base>& Haplotype, TSimulatorBamFile &BamFile){
 	//sample which simulator to use
 	size_t thisSimulator = randomGenerator().pickOne(_cumulSimGroupFrequenies);

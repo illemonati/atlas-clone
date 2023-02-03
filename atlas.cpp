@@ -52,6 +52,7 @@
 #include "TSimulator.h"
 
 #include "TReadGroupInfo.h"
+#include "TAncestralAlleleEstimator.h"
 
 /*
 //tests
@@ -72,12 +73,12 @@ void addTaks(coretools::TMain & main) {
 	main.addRegularTask("pileup", new GenomeTasks::TTask_pileup());
 	main.addRegularTask("BAMDiagnostics", new GenomeTasks::TTask_BAMDiagnostics());
 	main.addRegularTask("readOverlap", new GenomeTasks::TTask_overlapQuantifier());
-	main.addRegularTask("duplication", new GenomeTasks::TTask_duplicationQuantifier());
+	//main.addRegularTask("duplication", new GenomeTasks::TTask_duplicationQuantifier());
 	main.addRegularTask("assessSoftClipping", new GenomeTasks::TTask_assessSoftClipping());
 	main.addRegularTask("removeSoftClippedBases", new GenomeTasks::TTask_removeSoftClippedBasesFromReads());
-	main.addRegularTask("qualityDist", new GenomeTasks::TTask_qualityDist());
+	//main.addRegularTask("qualityDist", new GenomeTasks::TTask_qualityDist());
 	main.addRegularTask("qualityTransformation", new GenomeTasks::TTask_qualityTransformation());
-	main.addRegularTask("contextStats", new GenomeTasks::TTask_quantifyContext());
+	//main.addRegularTask("contextStats", new GenomeTasks::TTask_quantifyContext());
 	main.addRegularTask("downsample", new GenomeTasks::TTask_downsample());
 	//main.addRegularTask("separateReads", new GenomeTasks::TTask_separateReads());
 	main.addRegularTask("downsampleReads", new GenomeTasks::TTask_downSampleReads());
@@ -87,15 +88,13 @@ void addTaks(coretools::TMain & main) {
 	//window tasks
 	main.addRegularTask("recal", new GenomeTasks::TTask_recal());
 	//TODO: add task to calculate LL of full model
-	main.addRegularTask("writeDepth", new GenomeTasks::TTask_depthWriter());
+	//main.addRegularTask("writeDepth", new GenomeTasks::TTask_depthWriter());
 	main.addRegularTask("createMask", new GenomeTasks::TTask_createMask());
 	main.addRegularTask("allelicDepth", new GenomeTasks::TTask_allelicDepth());
 	main.addRegularTask("PSMC", new GenomeTasks::TTask_PSMC());
 	main.addRegularTask("call", new GenomeTasks::TTask_call());
 	main.addRegularTask("theta", new GenomeTasks::TTask_estimateTheta());
-	main.addRegularTask("thetaGenomeWide", new GenomeTasks::TTask_estimateThetaGenomeWide());
 	main.addRegularTask("thetaRatio", new GenomeTasks::TTask_estimateThetaRatio());
-	main.addRegularTask("thetaQC", new GenomeTasks::TTask_downsamplingThetaQC());
 	main.addRegularTask("GLF", new GenomeTasks::TTask_writeGLF());
 	main.addRegularTask("sexEstimation", new GenomeTasks::TTask_estimateSex());
 
@@ -112,6 +111,7 @@ void addTaks(coretools::TMain & main) {
 	main.addRegularTask("inbreeding", new PopulationTools::TTask_estimateInbreeding());
 	main.addRegularTask("polymorphicWindows", new PopulationTools::TTask_identifyPolymorphicWindows());
     main.addRegularTask("calculateF2", new PopulationTools::TTask_calculateF2());
+	main.addRegularTask("ancestralAlleles", new PopulationTools::TTask_estimateAncestralAlleles());
 
 
     //VCF

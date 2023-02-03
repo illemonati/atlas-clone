@@ -101,7 +101,6 @@ public:
 
 	//simulate
 	virtual void simulate(const TGenomePosition & Position, const std::vector<Base>& Haplotype, TSimulatorBamFile &BamFile) = 0;
-	virtual void writeUnwrittenAlignments(const genometools::TGenomePosition &, TSimulatorBamFile &){};
 
 	//getters
 	std::string name() const { return _readGroup.name_ID; };
@@ -140,7 +139,6 @@ public:
 	~TReadSimulatorPairedEnd() = default;
 
 	void simulate(const TGenomePosition & Position, const std::vector<genometools::Base>& Haplotype, TSimulatorBamFile &BamFile) override;
-	void writeUnwrittenAlignments(const genometools::TGenomePosition & Position, TSimulatorBamFile &BamFile) override;
 	[[nodiscard]] double meanReadLength() const override;
 };
 

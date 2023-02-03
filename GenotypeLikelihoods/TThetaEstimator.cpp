@@ -204,20 +204,6 @@ TThetaEstimator::TThetaEstimator() : TThetaEstimator_base() {
 	readParametersRegardingInitialSearch();
 }
 
-TThetaEstimator::TThetaEstimator(const TThetaEstimator &other) : TThetaEstimator_base(other) {
-	// set EM parameters to default
-	numIterations                = other.numIterations;
-	numThetaOnlyUpdates          = -other.numThetaOnlyUpdates;
-	maxEpsilon                   = other.maxEpsilon;
-	NewtonRaphsonNumIterations   = other.NewtonRaphsonNumIterations;
-	NewtonRaphsonMaxF            = other.NewtonRaphsonMaxF;
-	initialTheta                 = other.initialTheta;
-	initThetaSearchFactor        = other.initThetaSearchFactor;
-	initThetaNumSearchIterations = other.initThetaNumSearchIterations;
-	estimationSuccessful         = other.estimationSuccessful;
-	_expectedHet				 = other._expectedHet;
-};
-
 void TThetaEstimator::clear() {
 	data->clear();
 	estimationSuccessful = false;
@@ -259,7 +245,7 @@ bool TThetaEstimator::_NRAllParams() {
 	_pGenotype = getPGenotype(theta);
 
 	// Calculate all genotype probabilities for all sites
-	data->fillP_G(P_G, _pGenotype);
+	const GenotypeLikelihoods::TGenotypeData P_G = data->P_G(_pGenotype); // see paper
 
 	// prepare storage
 	arma::mat Jacobian(6, 6);
@@ -344,7 +330,7 @@ void TThetaEstimator::_NROnlyTheta() {
 	_pGenotype = getPGenotype(theta);
 
 	// Calculate all genotype probabilities for all sites
-	data->fillP_G(P_G, _pGenotype);
+	const GenotypeLikelihoods::TGenotypeData P_G = data->P_G(_pGenotype); // see paper
 
 	double rho = theta.expMinusTheta / (1.0 - theta.expMinusTheta);
 

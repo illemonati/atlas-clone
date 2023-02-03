@@ -166,11 +166,10 @@ TBaseProbabilities TThetaEstimatorData::baseFrequencies() {
 	return TBaseProbabilities::normalize(tmpBaseFreq);
 };
 
-void TThetaEstimatorData::fillP_G(GenotypeLikelihoods::TGenotypeData &P_G,
-								  const GenotypeLikelihoods::TGenotypeProbabilities &pGenotype) {
+GenotypeLikelihoods::TGenotypeData TThetaEstimatorData::P_G(const GenotypeLikelihoods::TGenotypeProbabilities &pGenotype) {
 	using genometools::Genotype;
 	// assumes that pGenotype is set!
-	P_G.fill(0.0);
+	GenotypeLikelihoods::TGenotypeData P_G(0.);
 
 	// calculate P_g for each site
 	begin();
@@ -179,6 +178,7 @@ void TThetaEstimatorData::fillP_G(GenotypeLikelihoods::TGenotypeData &P_G,
 		std::transform(P_G.begin(), P_G.end(), P_g_oneSite.begin(), P_G.begin(), std::plus<>());
 
 	} while (next());
+	return P_G;
 };
 
 double TThetaEstimatorData::calcLogLikelihood(const GenotypeLikelihoods::TGenotypeProbabilities &pGenotype) {
@@ -310,16 +310,16 @@ bool TThetaEstimatorDataVector::isEnd() { return siteIt == sites.end(); };
 
 GenotypeLikelihoods::TGenotypeLikelihoods &TThetaEstimatorDataVector::curGenotypeLikelihoods() { return *siteIt; }
 
-void TThetaEstimatorDataVector::fillP_G(GenotypeLikelihoods::TGenotypeData &P_G,
-										const GenotypeLikelihoods::TGenotypeProbabilities &pGenotype) {
+GenotypeLikelihoods::TGenotypeData TThetaEstimatorDataVector::P_G(const GenotypeLikelihoods::TGenotypeProbabilities &pGenotype) {
 	// assumes that pGenotype is set!
-	P_G.fill(0.0);
+	GenotypeLikelihoods::TGenotypeData P_G(0.);
 
 	// calculate P_g for each site
 	for (const auto &s : sites) {
 		const auto P_g_oneSite = posterior(s, pGenotype);
 		std::transform(P_G.begin(), P_G.end(), P_g_oneSite.begin(), P_G.begin(), std::plus<>());
 	}
+	return P_G;
 };
 
 double TThetaEstimatorDataVector::calcLogLikelihood(const GenotypeLikelihoods::TGenotypeProbabilities &pGenotype) {
