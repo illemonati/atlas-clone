@@ -1222,7 +1222,7 @@ TCall::TCall():TGenome_windows(){
 	_caller->initializeOutput();
 
 	//open output file
-	std::string sampleName = parameters().getParameterWithDefault<std::string>("indName", _outputName);
+	std::string sampleName = parameters().getParameterWithDefault<std::string>("sampleName", _outputName);
 	logfile().list("Will use sample name '" + sampleName + "'. (parameter 'sampleName')");
 	_caller->openVCF(_outputName + "_calls", sampleName);
 
