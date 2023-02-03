@@ -26,8 +26,8 @@ using coretools::instances::logfile;
 //-----------------------------------------------------
 //TBamFileLog
 //-----------------------------------------------------
-void TBamFileLog::write(const std::string & alignmentName, const bool & isReverseStrand, const std::string & reason){
-	_log.writeln(alignmentName, isReverseStrand, reason);
+void TBamFileLog::write(const std::string & alignmentName, const bool & isSecondMate, const std::string & reason){
+	_log.writeln(alignmentName, isSecondMate, reason);
 };
 
 //-----------------------------------------------------
@@ -39,11 +39,11 @@ TBamFileFilter::TBamFileFilter(){
 	_log = nullptr;
 };
 
-void TBamFileFilter::filterOut(const std::string & alignmentName, const bool & isReverseStrand, const uint16_t readGroup){
+void TBamFileFilter::filterOut(const std::string & alignmentName, const bool & isSecondMate, const uint16_t readGroup){
 	//counts filtered reads per read group and filter
 	_counter.add(readGroup);
 	if(_updateLog){
-		_log->write(alignmentName, isReverseStrand, _reason);
+		_log->write(alignmentName, isSecondMate, _reason);
 	}
 };
 
@@ -112,9 +112,9 @@ void TBamFileFilterBool::filter(const std::string Reason){
 	_reason = Reason;
 };
 
-bool TBamFileFilterBool::pass(const bool state, const std::string & alignmentName, const bool & isReverseStrand, const uint16_t readGroup){
+bool TBamFileFilterBool::pass(const bool state, const std::string & alignmentName, const bool & isSecondMate, const uint16_t readGroup){
 	if(!state && !_keep){
-		filterOut(alignmentName, isReverseStrand, readGroup);
+		filterOut(alignmentName, isSecondMate, readGroup);
 		return false;
 	}
 	return true;

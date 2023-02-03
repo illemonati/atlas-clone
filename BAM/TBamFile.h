@@ -59,7 +59,6 @@ private:
  	//counters
  	uint64_t _numAlignmentRead;
  	coretools::TCountDistribution<> _numAlignmentReadPerReadGroup;
- 	uint64_t _numAligmentsWithoutReadGroup; //usually implies that the read was not aligned (i.e. readGroupID = -1 in BAM file)
  	uint64_t _numAlignmentsPassedQC;
  	bool _limitNumReads;
  	uint64_t _maxNumReadsToRead;
@@ -78,6 +77,8 @@ private:
  	TBamFileFilterRange<uint32_t> _mappedLengthFilter;
  	bool _allowTooLongReads;
  	bool _keepAll;
+ 	TBamFileFilterBool _unalignedFilter; //i.e. have refID < 0
+ 	TBamFileFilterBool _noReadGroupFilter;
  	TBamFileFilterBool _duplicateFilter;
  	TBamFileFilterBool _softClippedFilter;
  	TBamFileFilterBool _improperPairsFilter;
@@ -99,6 +100,7 @@ private:
 	void _fillSamHeader(TSamHeader & SamHeader);
 	void _fillChromosomes(genometools::TChromosomes & chromosomes);
 	void _fillReadGroups(TReadGroups & readGroups);
+	bool _readNextAlignmentFromFile();
  	void _applyFilters();
 
 	//output filtered reads

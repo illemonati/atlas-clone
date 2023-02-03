@@ -34,7 +34,7 @@ private:
 
 public:
 	TBamFileLog(const std::string &filename): _log(filename, 3){};
-	void write(const std::string & alignmentName, const bool & isReverseStrand, const std::string & reason);
+	void write(const std::string & alignmentName, const bool & isSecondMate, const std::string & reason);
 };
 
 //-----------------------------------------------------
@@ -54,7 +54,7 @@ public:
 	bool filters() const{ return !_keep; };
 	void setReason(const std::string reason);
 	void setLog(std::shared_ptr<TBamFileLog> & Log);
-	void filterOut(const std::string & alignmentName, const bool & isReverseStrand, const uint16_t readGroup);
+	void filterOut(const std::string & alignmentName, const bool & isSecondMate, const uint16_t readGroup);
 	void summary(uint64_t total, const uint16_t readGroup);
 	coretools::TCountDistribution<> numFiltered() const { return _counter; }
 	std::string getReason() const { return _reason; }
@@ -70,7 +70,7 @@ class TBamFileFilterBool:public TBamFileFilter{
 public:
 	TBamFileFilterBool(){};
 	void filter(const std::string Reason);
-	bool pass(const bool state, const std::string & alignmentName, const bool & isReverseStrand, const uint16_t readGroup);
+	bool pass(const bool state, const std::string & alignmentName, const bool & isSecondMate, const uint16_t readGroup);
 };
 
 template <typename T>
@@ -94,9 +94,9 @@ public:
 		return _range.rangeString();
 	};
 
-	bool pass(const T & value, const std::string & alignmentName, const bool & isReverseStrand, const uint16_t readGroup){
+	bool pass(const T & value, const std::string & alignmentName, const bool & isSecondMate, const uint16_t readGroup){
 		if(!_keep && !_range.within(value)){
-			filterOut(alignmentName, isReverseStrand, readGroup);
+			filterOut(alignmentName, isSecondMate, readGroup);
 			return false;
 		}
 		return true;
