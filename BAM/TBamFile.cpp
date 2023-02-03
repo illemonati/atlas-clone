@@ -518,7 +518,7 @@ bool TBamFile::readNextAlignment(){
 	}
 
 	//check if it is unaligned (refID < 0), in which case we read until the first aligned read
-	while(!_unalignedFilter.pass(_curChromosome->refID() < 0, _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID)){
+	while(!_unalignedFilter.pass(_curBamAlignment.RefID >= 0, _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID)){
 		if(!_readNextAlignmentFromFile()){
 			return false;
 		}
@@ -575,7 +575,7 @@ bool TBamFile::readNextAlignment(){
 	}
 
 	//is it a read without read group?
-	if(!_noReadGroupFilter.pass(_curReadGroupID == TReadGroups::noReadGroupId, _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID)){
+	if(!_noReadGroupFilter.pass(_curReadGroupID != TReadGroups::noReadGroupId, _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID)){
 		_QCFiltersPassed =  false;
 	} else {
 		//update per read group counter
@@ -742,6 +742,92 @@ void TBamFile::curAddSamField(const std::string tag, const float value){
 //-----------------------------------------------------
 // Reporting
 //-----------------------------------------------------
+void TBamFile::_writeFilteringStats(std::string &outputName){
+	std::string filename = outputName + "_filterSummary.txt";
+	coretools::instances::logfile().listFlush("Writing general filter counts to '" + filename + "' ...");
+
+	//creating header
+	std::vector<std::string> header;
+	header.push_back("readGroup");
+	_unalignedFilter.fillHeader(header);
+	_noReadGroupFilter.fillHeader(header);
+	_duplicateFilter.fillHeader(header);
+	_softClippedFilter.fillHeader(header);
+	_improperPairsFilter.fillHeader(header);
+	_unmappedFilter.fillHeader(header);
+	_failedQCFilter.fillHeader(header);
+	_secondaryFilter.fillHeader(header);
+	_supplementaryFilter.fillHeader(header);
+	_longerThanFragmentFilter.fillHeader(header);
+	_readGroupFilter.fillHeader(header);
+	_fwdStrandFilter.fillHeader(header);
+	_revStrandFilter.fillHeader(header);
+	_firstMateFilter.fillHeader(header);
+	_secondMateFilter.fillHeader(header);
+	_blacklistFilter.fillHeader(header);
+	_mappingQualityFilter.fillHeader(header);
+	_fragmentLengthFilter.fillHeader(header);
+	_externalFilter.fillHeader(header);
+	_readLengthFilter.fillHeader(header);
+	_mappedLengthFilter.fillHeader(header);
+	coretools::TOutputFile out(filename, header, "\t");
+
+	out << "allReadGroups";
+	_unalignedFilter.printCombinedCounts(out);
+	_noReadGroupFilter.printCombinedCounts(out);
+	_duplicateFilter.printCombinedCounts(out);
+	_softClippedFilter.printCombinedCounts(out);
+	_improperPairsFilter.printCombinedCounts(out);
+	_unmappedFilter.printCombinedCounts(out);
+	_failedQCFilter.printCombinedCounts(out);
+	_secondaryFilter.printCombinedCounts(out);
+	_supplementaryFilter.printCombinedCounts(out);
+	_longerThanFragmentFilter.printCombinedCounts(out);
+	_readGroupFilter.printCombinedCounts(out);
+	_fwdStrandFilter.printCombinedCounts(out);
+	_revStrandFilter.printCombinedCounts(out);
+	_firstMateFilter.printCombinedCounts(out);
+	_secondMateFilter.printCombinedCounts(out);
+	_blacklistFilter.printCombinedCounts(out);
+	_mappingQualityFilter.printCombinedCounts(out);
+	_fragmentLengthFilter.printCombinedCounts(out);
+	_externalFilter.printCombinedCounts(out);
+	_readLengthFilter.printCombinedCounts(out);
+	_mappedLengthFilter.printCombinedCounts(out);
+	out.endln();
+
+
+	//writes numbers of removed reads for each applied filter per read group, also lists filters if no reads were removed
+	for (uint16_t it = 0; it < _readGroups.size(); it++){
+		out << _readGroups.getName(it);
+		_unalignedFilter.printCounts(out, it);
+		_noReadGroupFilter.printCounts(out, it);
+		_duplicateFilter.printCounts(out, it);
+		_softClippedFilter.printCounts(out, it);
+		_improperPairsFilter.printCounts(out, it);
+		_unmappedFilter.printCounts(out, it);
+		_failedQCFilter.printCounts(out, it);
+		_secondaryFilter.printCounts(out, it);
+		_supplementaryFilter.printCounts(out, it);
+		_longerThanFragmentFilter.printCounts(out, it);
+		_readGroupFilter.printCounts(out, it);
+		_fwdStrandFilter.printCounts(out, it);
+		_revStrandFilter.printCounts(out, it);
+		_firstMateFilter.printCounts(out, it);
+		_secondMateFilter.printCounts(out, it);
+		_blacklistFilter.printCounts(out, it);
+		_mappingQualityFilter.printCounts(out, it);
+		_fragmentLengthFilter.printCounts(out, it);
+		_externalFilter.printCounts(out, it);
+		_readLengthFilter.printCounts(out, it);
+		_mappedLengthFilter.printCounts(out, it);
+		out.endln();
+	}
+
+	out.close();
+	coretools::instances::logfile().done();
+}
+
 void TBamFile::printSummaryNoEndIndent(std::string &outputName){
 	logfile().startIndent("Summary of parsed reads from BAM file '" + _filename + "':");
 	logfile().list("Total number of reads read: " + coretools::str::toString(_numAlignmentRead));
@@ -749,122 +835,39 @@ void TBamFile::printSummaryNoEndIndent(std::string &outputName){
 	uint64_t numFiltered = _numAlignmentRead - _numAlignmentsPassedQC;
 	logfile().list("Reads that were filtered out: " + coretools::str::toString(numFiltered) + " (" + coretools::str::toPercentString(numFiltered, _numAlignmentRead, 3) + "%)");
 
-		//write counts of filtered reads for each read group to _filterSummary.txt file
-		std::string filename = outputName + "_filterSummary.txt";
-		coretools::instances::logfile().listFlush("Writing general filter counts to '" + filename + "' ...");
+	//write counts of filtered reads for each read group to _filterSummary.txt file
+	_writeFilteringStats(outputName);
 
-		//creating header
-		std::vector<std::string> header;
-		header.push_back("readGroup");
-		_unalignedFilter.fillHeader(header);
-		_noReadGroupFilter.fillHeader(header);
-		_duplicateFilter.fillHeader(header);
-		_softClippedFilter.fillHeader(header);
-		_improperPairsFilter.fillHeader(header);
-		_unmappedFilter.fillHeader(header);
-		_failedQCFilter.fillHeader(header);
-		_secondaryFilter.fillHeader(header);
-		_supplementaryFilter.fillHeader(header);
-		_longerThanFragmentFilter.fillHeader(header);
-		_readGroupFilter.fillHeader(header);
-		_fwdStrandFilter.fillHeader(header);
-		_revStrandFilter.fillHeader(header);
-		_firstMateFilter.fillHeader(header);
-		_secondMateFilter.fillHeader(header);
-		_blacklistFilter.fillHeader(header);
-		_mappingQualityFilter.fillHeader(header);
-		_fragmentLengthFilter.fillHeader(header);
-		_externalFilter.fillHeader(header);
-		_readLengthFilter.fillHeader(header);
-		_mappedLengthFilter.fillHeader(header);
-		coretools::TOutputFile out(filename, header, "\t");
-
-		out << "allReadGroups";
-		_unalignedFilter.printCombinedCounts(out);
-		_noReadGroupFilter.printCombinedCounts(out);
-		_duplicateFilter.printCombinedCounts(out);
-		_softClippedFilter.printCombinedCounts(out);
-		_improperPairsFilter.printCombinedCounts(out);
-		_unmappedFilter.printCombinedCounts(out);
-		_failedQCFilter.printCombinedCounts(out);
-		_secondaryFilter.printCombinedCounts(out);
-		_supplementaryFilter.printCombinedCounts(out);
-		_longerThanFragmentFilter.printCombinedCounts(out);
-		_readGroupFilter.printCombinedCounts(out);
-		_fwdStrandFilter.printCombinedCounts(out);
-		_revStrandFilter.printCombinedCounts(out);
-		_firstMateFilter.printCombinedCounts(out);
-		_secondMateFilter.printCombinedCounts(out);
-		_blacklistFilter.printCombinedCounts(out);
-		_mappingQualityFilter.printCombinedCounts(out);
-		_fragmentLengthFilter.printCombinedCounts(out);
-		_externalFilter.printCombinedCounts(out);
-		_readLengthFilter.printCombinedCounts(out);
-		_mappedLengthFilter.printCombinedCounts(out);
-		out.endln();
-
-
-		//writes numbers of removed reads for each applied filter per read group, also lists filters if no reads were removed
-		for (uint16_t it = 0; it < _readGroups.size(); it++){
-			out << _readGroups.getName(it);
-			_unalignedFilter.printCounts(out, it);
-			_noReadGroupFilter.printCounts(out, it);
-			_duplicateFilter.printCounts(out, it);
-			_softClippedFilter.printCounts(out, it);
-			_improperPairsFilter.printCounts(out, it);
-			_unmappedFilter.printCounts(out, it);
-			_failedQCFilter.printCounts(out, it);
-			_secondaryFilter.printCounts(out, it);
-			_supplementaryFilter.printCounts(out, it);
-			_longerThanFragmentFilter.printCounts(out, it);
-			_readGroupFilter.printCounts(out, it);
-			_fwdStrandFilter.printCounts(out, it);
-			_revStrandFilter.printCounts(out, it);
-			_firstMateFilter.printCounts(out, it);
-			_secondMateFilter.printCounts(out, it);
-			_blacklistFilter.printCounts(out, it);
-			_mappingQualityFilter.printCounts(out, it);
-			_fragmentLengthFilter.printCounts(out, it);
-			_externalFilter.printCounts(out, it);
-			_readLengthFilter.printCounts(out, it);
-			_mappedLengthFilter.printCounts(out, it);
-			out.endln();
-		}
-
-		out.close();
-		coretools::instances::logfile().done();
-
-
-		//print counts of filtered reads for each read group to terminal, doesn't list filters if no reads were removed
-		for (uint16_t it = 0; it < _readGroups.size(); it++){
-			logfile().newLine();
-			logfile().list("Number of reads filtered from read group: '" + coretools::str::toString(_readGroups.getName(it)) + "'");
-			logfile().addIndent();
-			_unalignedFilter.summary(numFiltered, it);
-			_noReadGroupFilter.summary(numFiltered, it);
-			_duplicateFilter.summary(numFiltered, it);
-			_softClippedFilter.summary(numFiltered, it);
-			_improperPairsFilter.summary(numFiltered, it);
-			_unmappedFilter.summary(numFiltered, it);
-			_failedQCFilter.summary(numFiltered, it);
-			_secondaryFilter.summary(numFiltered, it);
-			_supplementaryFilter.summary(numFiltered, it);
-			_longerThanFragmentFilter.summary(numFiltered, it);
-			_readGroupFilter.summary(numFiltered, it);
-			_fwdStrandFilter.summary(numFiltered, it);
-			_revStrandFilter.summary(numFiltered, it);
-			_firstMateFilter.summary(numFiltered, it);
-			_secondMateFilter.summary(numFiltered, it);
-			_blacklistFilter.summary(numFiltered, it);
-			_mappingQualityFilter.summary(numFiltered, it);
-			_fragmentLengthFilter.summary(numFiltered, it);
-			_externalFilter.summary(numFiltered, it);
-			_readLengthFilter.summary(numFiltered, it);
-			_mappedLengthFilter.summary(numFiltered, it);
-			logfile().endIndent();
-		}
-
+	//print counts of filtered reads for each read group to terminal, doesn't list filters if no reads were removed
+	for (uint16_t it = 0; it < _readGroups.size(); it++){
+		//logfile().newLine();
+		logfile().list("Number of reads filtered from read group: '" + coretools::str::toString(_readGroups.getName(it)) + "'");
+		logfile().addIndent();
+		_unalignedFilter.summary(numFiltered, it);
+		_noReadGroupFilter.summary(numFiltered, it);
+		_duplicateFilter.summary(numFiltered, it);
+		_softClippedFilter.summary(numFiltered, it);
+		_improperPairsFilter.summary(numFiltered, it);
+		_unmappedFilter.summary(numFiltered, it);
+		_failedQCFilter.summary(numFiltered, it);
+		_secondaryFilter.summary(numFiltered, it);
+		_supplementaryFilter.summary(numFiltered, it);
+		_longerThanFragmentFilter.summary(numFiltered, it);
+		_readGroupFilter.summary(numFiltered, it);
+		_fwdStrandFilter.summary(numFiltered, it);
+		_revStrandFilter.summary(numFiltered, it);
+		_firstMateFilter.summary(numFiltered, it);
+		_secondMateFilter.summary(numFiltered, it);
+		_blacklistFilter.summary(numFiltered, it);
+		_mappingQualityFilter.summary(numFiltered, it);
+		_fragmentLengthFilter.summary(numFiltered, it);
+		_externalFilter.summary(numFiltered, it);
+		_readLengthFilter.summary(numFiltered, it);
+		_mappedLengthFilter.summary(numFiltered, it);
 		logfile().endIndent();
+	}
+
+	logfile().endIndent();
 };
 
 void TBamFile::printSummary(std::string &outputName){

@@ -71,14 +71,14 @@ private:
  	bool _chrChanged;
 
 	//alignment filters
- 	bool _QCFiltersPassed;
+	bool _QCFiltersPassed;
  	TAlignmentList _blacklist;
- 	TBamFileFilterRange<uint32_t> _readLengthFilter;
- 	TBamFileFilterRange<uint32_t> _mappedLengthFilter;
  	bool _allowTooLongReads;
- 	bool _keepAll;
+ 	bool _keepAll; 	
  	TBamFileFilterBool _unalignedFilter; //i.e. have refID < 0
  	TBamFileFilterBool _noReadGroupFilter;
+	TBamFileFilterRange<uint32_t> _readLengthFilter;
+ 	TBamFileFilterRange<uint32_t> _mappedLengthFilter;
  	TBamFileFilterBool _duplicateFilter;
  	TBamFileFilterBool _softClippedFilter;
  	TBamFileFilterBool _improperPairsFilter;
@@ -102,6 +102,7 @@ private:
 	void _fillReadGroups(TReadGroups & readGroups);
 	bool _readNextAlignmentFromFile();
  	void _applyFilters();
+	void _writeFilteringStats(std::string &outputName);
 
 	//output filtered reads
 	std::shared_ptr<TBamFileLog> _bamLog;
