@@ -101,7 +101,7 @@ void TBamFile::setFilters(){
 		mappingLengthRange.set(0, true, 200, true);
 		_allowTooLongReads = parameters().parameterExists("allowTooLongReads");
 	}
-	_mappedLengthFilter.filter(mappingLengthRange, "Mapped length outside " + mappingLengthRange.rangeString());
+	_mappedLengthFilter.filter(mappingLengthRange, "MappedLengthOutside" + mappingLengthRange.rangeString());
 	logfile().list("Mapped length: restrict to range " + _mappedLengthFilter.rangeString() + ". (parameter 'filterMappingLength')");
 	if(mappingLengthRange.max() > 100000){
 		logfile().warning("The chosen mapping length filter allows for reads to span >100kb of the reference genome. This may affect performance in case of paired-end reads.");
@@ -137,7 +137,7 @@ void TBamFile::setFilters(){
 			_improperPairsFilter.keep();
 			logfile().list("Improper pairs: keep. (parameter 'keepImproperPairs')");
 		} else {
-			_improperPairsFilter.filter("Improper pair");
+			_improperPairsFilter.filter("ImproperPair");
 			logfile().list("Improper pairs: filter out. (use 'keepImproperPairs' to keep)");
 		}
 
@@ -155,7 +155,7 @@ void TBamFile::setFilters(){
 			_failedQCFilter.keep();
 			logfile().list("Failed QC: keep. (parameter 'keepFailedQC')");
 		} else {
-			_failedQCFilter.filter("Failed QC");
+			_failedQCFilter.filter("FailedQC");
 			logfile().list("Failed QC: filter out. (use 'keepFailedQC' to keep)");
 		}
 
@@ -164,7 +164,7 @@ void TBamFile::setFilters(){
 			_secondaryFilter.keep();
 			logfile().list("Secondary reads: keep. (parameter 'keepSecondaryReads')");
 		} else {
-			_secondaryFilter.filter("Secondary alignment");
+			_secondaryFilter.filter("SecondaryAlignment");
 			logfile().list("Secondary reads: filter out. (use 'keepSecondaryReads' to keep)");
 		}
 
@@ -173,7 +173,7 @@ void TBamFile::setFilters(){
 			_supplementaryFilter.keep();
 			logfile().list("Supplementary reads: keep. (parameter 'keepSupplementaryReads')");
 		} else {
-			_supplementaryFilter.filter("Supplementary alignment");
+			_supplementaryFilter.filter("SupplementaryAlignment");
 			logfile().list("Supplementary reads: filter out. (use 'keepSupplementaryReads' to keep)");
 		}
 
@@ -234,7 +234,7 @@ void TBamFile::setFilters(){
 			TNumericRange<uint8_t> Range;
 			parameters().fillParameter("filterMQ", Range);
 
-			_mappingQualityFilter.filter(Range, "Mapping quality outside " + Range.rangeString());
+			_mappingQualityFilter.filter(Range, "MappingQualityOutside" + Range.rangeString());
 			logfile().list("Mapping quality: restrict to range " + _mappingQualityFilter.rangeString() + ". (parameter 'filterMQ')");
 		} else {
 			_mappingQualityFilter.keep();
