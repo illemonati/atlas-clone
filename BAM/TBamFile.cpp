@@ -85,8 +85,8 @@ void TBamFile::setFilters(){
 	logfile().startIndent("Will use the following filters on reads:");
 
 	//hard filters
-	_unalignedFilter.filter("Not aligned (refID < 0)");
-	_noReadGroupFilter.filter("No read group");
+	_unalignedFilter.filter("NotAligned");
+	_noReadGroupFilter.filter("NoReadGroup");
 
 	//mapping length
 	//--------------
