@@ -58,7 +58,7 @@ private:
 
  	//counters
  	uint64_t _numAlignmentRead;
- 	coretools::TCountDistribution<> _numAlignmentReadPerReadGroup;
+ 	coretools::TCountDistributionVector<> _numAlignmentReadPerReadGroupPerChromosome;
  	uint64_t _numAlignmentsPassedQC;
  	bool _limitNumReads;
  	uint64_t _maxNumReadsToRead;
@@ -206,7 +206,7 @@ public:
 	std::string filename() const{ return _filename; };
 	uint16_t maxReadLength(){ return _readLengthFilter.range().max(); };
 	uint64_t numAlignmentsRead(){ return _numAlignmentRead; };
-	coretools::TCountDistribution<> numAlignmentsReadPerReadGroup() { return _numAlignmentReadPerReadGroup; };
+	coretools::TCountDistributionVector<> _numAlignmentReadPerReadGroupPerChromosome() { return _numAlignmentReadPerReadGroupPerChromosome; };
 	double positionInFile(){ return (double) _bamReader.Tell() / (double) _fileSize; };
 	uint16_t numReadGroups() const{ return _readGroups.size(); };
 	TBamFileFilterBool getDuplicateFilter(){return _duplicateFilter; };

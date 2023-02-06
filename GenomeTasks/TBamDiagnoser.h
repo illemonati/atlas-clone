@@ -27,16 +27,18 @@ class TBamDiagnoser:public TGenome_filtered{
 private:
 	BAM::TQualityFilter _qualFilter;
 	std::vector<std::string> _readGroupNames;
+	bool _chromStats = false;
 
     // distributions
-    coretools::TCountDistribution<> _passedQC;
-    coretools::TCountDistributionVector<> _readLength;
-    coretools::TCountDistributionVector<> _usableLength;
-    coretools::TCountDistributionVector<> _softClippedLength;
-    coretools::TCountDistributionVector<> _mappingQuality;
-    coretools::TCountDistributionVector<> _fragmentLength;
+    coretools::TCountDistributionVector<> _passedQC;
+    coretools::TCountDistributionMultiDimensional<> _readLength;
+    coretools::TCountDistributionMultiDimensional<> _usableLength;
+    coretools::TCountDistributionMultiDimensional<> _softClippedLength;
+    coretools::TCountDistributionMultiDimensional<> _mappingQuality;
+    coretools::TCountDistributionMultiDimensional<> _fragmentLength;
 
 	void _writeHistogram(const coretools::TCountDistributionVector<> & distVec, const std::string& header, const std::string& name);
+	void _writeTable(const coretools::TCountDistributionVector<> & distVec, const std::string& header, const std::string &name);
     void _handleAlignment() override;
 
 public:

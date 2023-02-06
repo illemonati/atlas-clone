@@ -39,9 +39,9 @@ TBamFileFilter::TBamFileFilter(){
 	_log = nullptr;
 };
 
-void TBamFileFilter::filterOut(const std::string & alignmentName, const bool & isReverseStrand, const uint16_t readGroup){
+void TBamFileFilter::filterOut(const std::string & alignmentName, const bool & isReverseStrand, const uint16_t readGroup, const uint32_t chromosomeID){
 	//counts filtered reads per read group and filter
-	_counter.add(readGroup);
+	_counter.add(readGroup, chromosomeID);
 	if(_updateLog){
 		_log->write(alignmentName, isReverseStrand, _reason);
 	}
@@ -61,8 +61,8 @@ void TBamFileFilter::setLog(std::shared_ptr<TBamFileLog> & Log){
 };
 
 void TBamFileFilter::summary(uint64_t total, const uint16_t readGroup){
-	if(!_keep && _counter[readGroup]  > 0){
-		logfile().list(_reason + ": ", _counter[readGroup], " (" + coretools::str::toPercentString(_counter[readGroup], total, 3) + "%)");
+	if(!_keep && _counter[readGroup].counts()  > 0){
+		logfile().list(_reason + ": ", _counter[readGroup], " (" + coretools::str::toPercentString(_counter[readGroup].counts(), total, 3) + "%)");
 	}
 };
 
@@ -75,15 +75,23 @@ void TBamFileFilter::fillHeader(std::vector<std::string> &header){
 void TBamFileFilter::printCounts(coretools::TOutputFile &out, uint16_t rg_ID) {
 	//Reason is only set if filter is applied (see TBamFile::setFilters), in which case reason and number of removed reads per read group are printed here
 	if (!getReason().empty()){
-		coretools::TCountDistribution FilterCount = numFiltered();
-		out << FilterCount[rg_ID];
+		coretools::TCountDistributionVector FilterCount = numFiltered();
+		out << FilterCount[rg_ID].counts();
+	}
+};
+
+void TBamFileFilter::printCountsPerChromosome(coretools::TOutputFile &out, uint32_t ref_ID) {
+	//Reason is only set if filter is applied (see TBamFile::setFilters), in which case reason and number of removed reads per read group are printed here
+	if (!getReason().empty()){
+		coretools::TCountDistributionVector FilterCount = numFiltered();
+		out << FilterCount.horizontalCounts(ref_ID);
 	}
 };
 
 void TBamFileFilter::printCombinedCounts(coretools::TOutputFile &out) {
 	//Reason is only set if filter is applied (see TBamFile::setFilters), in which case reason and number of removed reads per read group are printed here
 	if (!getReason().empty()){
-		coretools::TCountDistribution FilterCount = numFiltered();
+		coretools::TCountDistributionVector FilterCount = numFiltered();
 		out << FilterCount.counts();
 	}
 };
@@ -91,15 +99,23 @@ void TBamFileFilter::printCombinedCounts(coretools::TOutputFile &out) {
 size_t TBamFileFilter::getCounts(uint16_t rg_ID) {
 	//Reason is only set if filter is applied (see TBamFile::setFilters), in which case reason and number of removed reads per read group are printed here
 	if (!getReason().empty()){
-		coretools::TCountDistribution FilterCount = numFiltered();
-		return(FilterCount[rg_ID]);
+		coretools::TCountDistributionVector FilterCount = numFiltered();
+		return(FilterCount[rg_ID].counts());
+	} return 0;
+};
+
+size_t TBamFileFilter::getCountsPerChromosome(uint32_t ref_ID) {
+	//Reason is only set if filter is applied (see TBamFile::setFilters), in which case reason and number of removed reads per read group are printed here
+	if (!getReason().empty()){
+		coretools::TCountDistributionVector FilterCount = numFiltered();
+		return(FilterCount.horizontalCounts(ref_ID));
 	} return 0;
 };
 
 size_t TBamFileFilter::getCombinedCounts() {
 	//Reason is only set if filter is applied (see TBamFile::setFilters), in which case reason and number of removed reads per read group are printed here
 	if (!getReason().empty()){
-		coretools::TCountDistribution FilterCount = numFiltered();
+		coretools::TCountDistributionVector FilterCount = numFiltered();
 		return(FilterCount.counts());
 	} return 0;
 };
@@ -112,9 +128,9 @@ void TBamFileFilterBool::filter(const std::string Reason){
 	_reason = Reason;
 };
 
-bool TBamFileFilterBool::pass(const bool state, const std::string & alignmentName, const bool & isReverseStrand, const uint16_t readGroup){
+bool TBamFileFilterBool::pass(const bool state, const std::string & alignmentName, const bool & isReverseStrand, const uint16_t readGroup, const uint16_t chromosomeID){
 	if(!state && !_keep){
-		filterOut(alignmentName, isReverseStrand, readGroup);
+		filterOut(alignmentName, isReverseStrand, readGroup, chromosomeID);
 		return false;
 	}
 	return true;

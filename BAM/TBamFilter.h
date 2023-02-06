@@ -43,7 +43,7 @@ public:
 class TBamFileFilter{
 protected:
 	bool _keep;
-	coretools::TCountDistribution<> _counter;
+	coretools::TCountDistributionVector<> _counter;
 	std::string _reason; //used for reporting
 	bool _updateLog;
 	std::shared_ptr<TBamFileLog> _log;
@@ -54,14 +54,16 @@ public:
 	bool filters() const{ return !_keep; };
 	void setReason(const std::string reason);
 	void setLog(std::shared_ptr<TBamFileLog> & Log);
-	void filterOut(const std::string & alignmentName, const bool & isReverseStrand, const uint16_t readGroup);
+	void filterOut(const std::string & alignmentName, const bool & isReverseStrand, const uint16_t readGroup, const uint32_t chromosomeID);
 	void summary(uint64_t total, const uint16_t readGroup);
-	coretools::TCountDistribution<> numFiltered() const { return _counter; }
+	coretools::TCountDistributionVector<> numFiltered() const { return _counter; }
 	std::string getReason() const { return _reason; }
 	void fillHeader(std::vector<std::string> &header);
 	void printCounts(coretools::TOutputFile &out, uint16_t rg_ID);
+	void printCountsPerChromosome(coretools::TOutputFile &out, uint32_t ref_ID);
 	void printCombinedCounts(coretools::TOutputFile &out);
 	size_t getCounts(uint16_t rg_ID);
+	size_t getCountsPerChromosome(uint32_t ref_ID);
 	size_t getCombinedCounts();
 };
 
@@ -94,7 +96,7 @@ public:
 		return _range.rangeString();
 	};
 
-	bool pass(const T & value, const std::string & alignmentName, const bool & isReverseStrand, const uint16_t readGroup){
+	bool pass(const T & value, const std::string & alignmentName, const bool & isReverseStrand, const uint16_t readGroup, const uint32_t chromosomeID){
 		if(!_keep && !_range.within(value)){
 			filterOut(alignmentName, isReverseStrand, readGroup);
 			return false;
