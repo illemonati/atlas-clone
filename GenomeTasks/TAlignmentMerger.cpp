@@ -725,7 +725,7 @@ void TAlignmentSplitMerger::_handleSingle(BAM::TAlignment & alignment){
 			addToContainer(_alignmentStorage, &alignment, true);
 		} else {
 			//filter out (ignore) but write reason to bam log
-			_bamFile.filterOut(alignment.name(), alignment.isReverseStrand(), alignment.readGroupId());
+			_bamFile.filterOut(alignment.name(), alignment.isReverseStrand(), alignment.readGroupId(), alignment.refID());
 		}
 	}
 };

@@ -76,7 +76,6 @@ void TGenome_filtered::_traverseBAMPassedQC() {
 		// report
 		_bamFile.printProgress();
 	}
-
 	// report
 	_bamFile.printEndWithSummary(_outputName);
 };

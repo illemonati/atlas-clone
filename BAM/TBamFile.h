@@ -128,7 +128,7 @@ public:
 	void setLimits();
 	void setKeepAll();
 	void curFilterOut();
-	void filterOut(const std::string & alignmentName, const bool & isReverseStrand, const uint16_t readGroup);
+	void filterOut(const std::string & alignmentName, const bool & isReverseStrand, const uint16_t readGroup, const uint32_t chromosomeID);
 	void setExternalFilterReason(const std::string reason);
 	void openBamLog();
 	void writeToBamLog(const std::string & alignmentName, const bool & isReverseStrand, const std::string & reason);
@@ -206,7 +206,7 @@ public:
 	std::string filename() const{ return _filename; };
 	uint16_t maxReadLength(){ return _readLengthFilter.range().max(); };
 	uint64_t numAlignmentsRead(){ return _numAlignmentRead; };
-	coretools::TCountDistributionVector<> _numAlignmentReadPerReadGroupPerChromosome() { return _numAlignmentReadPerReadGroupPerChromosome; };
+	coretools::TCountDistributionVector<> numAlignmentReadPerReadGroupPerChromosome() { return _numAlignmentReadPerReadGroupPerChromosome; };
 	double positionInFile(){ return (double) _bamReader.Tell() / (double) _fileSize; };
 	uint16_t numReadGroups() const{ return _readGroups.size(); };
 	TBamFileFilterBool getDuplicateFilter(){return _duplicateFilter; };

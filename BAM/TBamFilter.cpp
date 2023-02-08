@@ -62,7 +62,7 @@ void TBamFileFilter::setLog(std::shared_ptr<TBamFileLog> & Log){
 
 void TBamFileFilter::summary(uint64_t total, const uint16_t readGroup){
 	if(!_keep && _counter[readGroup].counts()  > 0){
-		logfile().list(_reason + ": ", _counter[readGroup], " (" + coretools::str::toPercentString(_counter[readGroup].counts(), total, 3) + "%)");
+		logfile().list(_reason + ": ", _counter[readGroup].counts(), " (" + coretools::str::toPercentString(_counter[readGroup].counts(), total, 3) + "%)");
 	}
 };
 
@@ -112,6 +112,14 @@ size_t TBamFileFilter::getCountsPerChromosome(uint32_t ref_ID) {
 	} return 0;
 };
 
+size_t TBamFileFilter::getCountsAtReadGroupAndChromosome(uint16_t rg_ID, uint32_t ref_ID) {
+	//Reason is only set if filter is applied (see TBamFile::setFilters), in which case reason and number of removed reads per read group are printed here
+	if (!getReason().empty()){
+		coretools::TCountDistributionVector FilterCount = numFiltered();
+		return(FilterCount[rg_ID][ref_ID]);
+	} return 0;
+};
+
 size_t TBamFileFilter::getCombinedCounts() {
 	//Reason is only set if filter is applied (see TBamFile::setFilters), in which case reason and number of removed reads per read group are printed here
 	if (!getReason().empty()){
@@ -123,12 +131,14 @@ size_t TBamFileFilter::getCombinedCounts() {
 //-----------------------------------------------------
 //TBamFileFilterBool
 //-----------------------------------------------------
-void TBamFileFilterBool::filter(const std::string Reason){
+void TBamFileFilterBool::filter(const std::string Reason, uint16_t numRG, uint32_t numChrom){
 	_keep = false;
 	_reason = Reason;
+	_counter.resize(numRG);
+	_counter.resizeDistributions(numChrom);
 };
 
-bool TBamFileFilterBool::pass(const bool state, const std::string & alignmentName, const bool & isReverseStrand, const uint16_t readGroup, const uint16_t chromosomeID){
+bool TBamFileFilterBool::pass(const bool state, const std::string & alignmentName, const bool & isReverseStrand, const uint16_t readGroup, const uint32_t chromosomeID){
 	if(!state && !_keep){
 		filterOut(alignmentName, isReverseStrand, readGroup, chromosomeID);
 		return false;

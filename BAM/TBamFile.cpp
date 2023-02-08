@@ -74,7 +74,7 @@ void TBamFile::setLimits(){
 		logfile().startIndent("Will limit analysis to the following read groups:");
 		_readGroups.printReadgroupsInUse();
 		logfile().endIndent();
-		_readGroupFilter.filter("Read group not in use");
+		_readGroupFilter.filter("Read group not in use", readGroups().size(), chromosomes().size());
 	} else {
 		_readGroupFilter.keep();
 	}
@@ -83,6 +83,9 @@ void TBamFile::setLimits(){
 void TBamFile::setFilters(){
 	//alignment filters
 	logfile().startIndent("Will use the following filters on reads:");
+
+	uint32_t numRG = readGroups().size();
+	uint32_t numChrom = chromosomes().size();
 
 	//mapping length
 	//--------------
@@ -97,7 +100,7 @@ void TBamFile::setFilters(){
 		mappingLengthRange.set(0, true, 200, true);
 		_allowTooLongReads = parameters().parameterExists("allowTooLongReads");
 	}
-	_mappedLengthFilter.filter(mappingLengthRange, "Mapped length outside " + mappingLengthRange.rangeString());
+	_mappedLengthFilter.filter(mappingLengthRange, "Mapped length outside " + mappingLengthRange.rangeString(), numRG, numChrom);
 	logfile().list("Mapped length: restrict to range " + _mappedLengthFilter.rangeString() + ". (parameter 'filterMappingLength')");
 	if(mappingLengthRange.max() > 100000){
 		logfile().warning("The chosen mapping length filter allows for reads to span >100kb of the reference genome. This may affect performance in case of paired-end reads.");
@@ -115,13 +118,13 @@ void TBamFile::setFilters(){
 			_duplicateFilter.keep();
 			logfile().list("Duplicate reads: keep. (parameter 'keepDuplicates')");
 		} else {
-			_duplicateFilter.filter("Duplicate");
+			_duplicateFilter.filter("Duplicate", numRG, numChrom);
 			logfile().list("Duplicate reads: filter out. (use 'keepDuplicates' to keep)");
 		}
 
 		//soft clips
 		if(parameters().parameterExists("filterSoftClips")){
-			_softClippedFilter.filter("Soft clipped");
+			_softClippedFilter.filter("Soft clipped", numRG, numChrom);
 			logfile().list("Soft clipped reads: filter out. (parameter 'filterSoftClips')");
 		} else {
 			_softClippedFilter.keep();
@@ -133,7 +136,7 @@ void TBamFile::setFilters(){
 			_improperPairsFilter.keep();
 			logfile().list("Improper pairs: keep. (parameter 'keepImproperPairs')");
 		} else {
-			_improperPairsFilter.filter("Improper pair");
+			_improperPairsFilter.filter("Improper pair", numRG, numChrom);
 			logfile().list("Improper pairs: filter out. (use 'keepImproperPairs' to keep)");
 		}
 
@@ -142,7 +145,7 @@ void TBamFile::setFilters(){
 			_unmappedFilter.keep();
 			logfile().list("Unmapped reads: keep. (parameter 'keepUnmappedReads')");
 		} else {
-			_unmappedFilter.filter("Unmapped");
+			_unmappedFilter.filter("Unmapped", numRG, numChrom);
 			logfile().list("Unmapped reads: filter out. (use 'keepUnmappedReads' to keep)");
 		}
 
@@ -151,7 +154,7 @@ void TBamFile::setFilters(){
 			_failedQCFilter.keep();
 			logfile().list("Failed QC: keep. (parameter 'keepFailedQC')");
 		} else {
-			_failedQCFilter.filter("Failed QC");
+			_failedQCFilter.filter("Failed QC", numRG, numChrom);
 			logfile().list("Failed QC: filter out. (use 'keepFailedQC' to keep)");
 		}
 
@@ -160,7 +163,7 @@ void TBamFile::setFilters(){
 			_secondaryFilter.keep();
 			logfile().list("Secondary reads: keep. (parameter 'keepSecondaryReads')");
 		} else {
-			_secondaryFilter.filter("Secondary alignment");
+			_secondaryFilter.filter("Secondary alignment", numRG, numChrom);
 			logfile().list("Secondary reads: filter out. (use 'keepSecondaryReads' to keep)");
 		}
 
@@ -169,13 +172,13 @@ void TBamFile::setFilters(){
 			_supplementaryFilter.keep();
 			logfile().list("Supplementary reads: keep. (parameter 'keepSupplementaryReads')");
 		} else {
-			_supplementaryFilter.filter("Supplementary alignment");
+			_supplementaryFilter.filter("Supplementary alignment", numRG, numChrom);
 			logfile().list("Supplementary reads: filter out. (use 'keepSupplementaryReads' to keep)");
 		}
 
 		//fragment length
 		if(parameters().parameterExists("filterReadsLongerThanFragment")){
-			_longerThanFragmentFilter.filter("Longer than fragment");
+			_longerThanFragmentFilter.filter("Longer than fragment", numRG, numChrom);
 			logfile().list("Reads longer than fragment size: filter out. (parameter 'filterReadsLongerThanFragment')");
 		} else {
 			_longerThanFragmentFilter.keep();
@@ -185,11 +188,11 @@ void TBamFile::setFilters(){
 		//strand
 		if(parameters().parameterExists("keepOnlyFwd")){
 			_fwdStrandFilter.keep();
-			_revStrandFilter.filter("Reverse strand");
+			_revStrandFilter.filter("Reverse strand", numRG, numChrom);
 			logfile().list("Strand: keep only forward. (parameter 'keepOnlyFwd')");
 		}
 		else if(parameters().parameterExists("keepOnlyRev")){
-			_fwdStrandFilter.filter("Forward strand");
+			_fwdStrandFilter.filter("Forward strand", numRG, numChrom);
 			_revStrandFilter.keep();
 			logfile().list("Strand: keep only reverse. (parameter 'keepOnlyRev')");
 		} else {
@@ -200,13 +203,13 @@ void TBamFile::setFilters(){
 
 		//mate
 		if(parameters().parameterExists("keepOnlyFirst")){
-			_firstMateFilter.filter("Second mate");
+			_firstMateFilter.filter("Second mate", numRG, numChrom);
 			_secondMateFilter.keep();
 			logfile().list("Mate: keep only first. (parameter 'keepOnlyFirst')");
 		}
 		else if(parameters().parameterExists("keepOnlySecond")){
 			_firstMateFilter.keep();
-			_secondMateFilter.filter("First mate");
+			_secondMateFilter.filter("First mate", numRG, numChrom);
 			logfile().list("Mate: keep only second. (parameter 'keepOnlySecond')");
 		} else {
 			_firstMateFilter.keep();
@@ -219,7 +222,7 @@ void TBamFile::setFilters(){
 			std::string blacklistFilename = parameters().getParameterFilename("blacklist");
 			logfile().list("Will filter out reads present in the file '" + blacklistFilename + "'. (parameter 'blacklist')");
 			_blacklist.addFromFile(blacklistFilename);
-			_blacklistFilter.filter("Was in provided blacklist");
+			_blacklistFilter.filter("Was in provided blacklist", numRG, numChrom);
 		} else {
 			_blacklistFilter.keep();
 			logfile().list("Blacklist: keep all. (use 'blacklist' to provide a list and filter specific reads)");
@@ -230,7 +233,7 @@ void TBamFile::setFilters(){
 			TNumericRange<uint8_t> Range;
 			parameters().fillParameter("filterMQ", Range);
 
-			_mappingQualityFilter.filter(Range, "Mapping quality outside " + Range.rangeString());
+			_mappingQualityFilter.filter(Range, "Mapping quality outside " + Range.rangeString(), numRG, numChrom);
 			logfile().list("Mapping quality: restrict to range " + _mappingQualityFilter.rangeString() + ". (parameter 'filterMQ')");
 		} else {
 			_mappingQualityFilter.keep();
@@ -242,7 +245,7 @@ void TBamFile::setFilters(){
 			TNumericRange<uint32_t> Range;
 			parameters().fillParameter("filterReadLength", Range);
 
-			_readLengthFilter.filter(Range, "Read length outside " + Range.rangeString());
+			_readLengthFilter.filter(Range, "Read length outside " + Range.rangeString(), numRG, numChrom);
 			logfile().list("Read length: restrict to range " + _readLengthFilter.rangeString() + ". (parameter 'filterReadLength')");
 		} else {
 			_readLengthFilter.keep();
@@ -255,7 +258,7 @@ void TBamFile::setFilters(){
 			TNumericRange<uint32_t> Range;
 			parameters().fillParameter("filterFragmentLength", Range);
 
-			_fragmentLengthFilter.filter(Range, "Fragment length outside " + Range.rangeString());
+			_fragmentLengthFilter.filter(Range, "Fragment length outside " + Range.rangeString(), numRG, numChrom);
 			logfile().list("Fragment length: restrict to range " + _fragmentLengthFilter.rangeString() + ". (parameter 'filterFragmentLength')");
 		} else {
 			_fragmentLengthFilter.keep();
@@ -269,11 +272,11 @@ void TBamFile::setFilters(){
 };
 
 void TBamFile::curFilterOut(){
-	_externalFilter.filterOut(_curBamAlignment.Name, _curBamAlignment.IsReverseStrand(), _curReadGroupID);
+	_externalFilter.filterOut(_curBamAlignment.Name, _curBamAlignment.IsReverseStrand(), _curReadGroupID, refID());
 };
 
-void TBamFile::filterOut(const std::string & alignmentName, const bool & isReverseStrand, const uint16_t readGroup){
-	_externalFilter.filterOut(alignmentName, isReverseStrand, readGroup);
+void TBamFile::filterOut(const std::string & alignmentName, const bool & isReverseStrand, const uint16_t readGroup, const uint32_t chromosomeID){
+	_externalFilter.filterOut(alignmentName, isReverseStrand, readGroup, chromosomeID);
 };
 
 void TBamFile::setExternalFilterReason(const std::string reason){
@@ -422,6 +425,10 @@ void TBamFile::open(std::string_view Filename){
 	_fillChromosomes(_chromosomes);
 	_curChromosome = _chromosomes.end();
 
+	//resize alignmentCounter
+	_numAlignmentReadPerReadGroupPerChromosome.resize(_readGroups.size());
+	_numAlignmentReadPerReadGroupPerChromosome.resizeDistributions(_chromosomes.size());
+
 	//get file size
 	_bamReader.Jump(_chromosomes.size() - 1, 0);
 	BamTools::BamAlignment bamAlignment;
@@ -440,7 +447,7 @@ void TBamFile::close(){
 void TBamFile::_applyFilters(){
 	//check read length
 	//read length is special as it affects our storage
-	if(!_mappedLengthFilter.pass(_curCigar.lengthMapped(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID)){
+	if(!_mappedLengthFilter.pass(_curCigar.lengthMapped(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())){
 		if(!_allowTooLongReads){
 			UERROR("The mapping length of alignment '",  _curBamAlignment.Name, "' is beyond the range ", _mappedLengthFilter.rangeString(), "!\n",
 				   "You see this error because ", coretools::__GLOBAL_APPLICATION_NAME__, " was run with default mapping length filters. Either set your filters using 'filterMappingLength' or add 'allowTooLongReads' to ignore this error.");
@@ -452,26 +459,26 @@ void TBamFile::_applyFilters(){
 		_QCFiltersPassed = true;
 	} else {
 		//apply regular filters
-		_QCFiltersPassed =  _duplicateFilter.pass(!_curBamAlignment.IsDuplicate(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, _curChromosome->refID)
-						 && _softClippedFilter.pass(_curCigar.lengthSoftClipped() == 0, _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, _curChromosome->refID)
-						 && _improperPairsFilter.pass(!_curBamAlignment.IsPaired() || _curBamAlignment.IsProperPair(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, _curChromosome->refID)
-						 && _unmappedFilter.pass(_curBamAlignment.IsMapped(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, _curChromosome->refID)
-						 && _failedQCFilter.pass(!_curBamAlignment.IsFailedQC(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, _curChromosome->refID)
-						 && _secondaryFilter.pass(_curBamAlignment.IsPrimaryAlignment(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, _curChromosome->refID)
-						 && _supplementaryFilter.pass(!_curBamAlignment.IsSupplementary(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, _curChromosome->refID)
-						 && _readGroupFilter.pass(_readGroups.readGroupInUse(_curReadGroupID), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, _curChromosome->refID)
-						 && _fwdStrandFilter.pass(_curBamAlignment.IsReverseStrand(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, _curChromosome->refID)
-						 && _revStrandFilter.pass(!_curBamAlignment.IsReverseStrand(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, _curChromosome->refID)
-						 && _firstMateFilter.pass(_curBamAlignment.IsFirstMate(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, _curChromosome->refID)
-						 && _secondMateFilter.pass(_curBamAlignment.IsSecondMate(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, _curChromosome->refID)
-						 && _mappingQualityFilter.pass(_curBamAlignment.MapQuality, _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, _curChromosome->refID)
-						 && _blacklistFilter.pass(!_blacklist.isInBlacklist(_curBamAlignment.Name), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, _curChromosome->refID)
-						 && _readLengthFilter.pass(_curCigar.lengthRead(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, _curChromosome->refID);
+		_QCFiltersPassed =  _duplicateFilter.pass(!_curBamAlignment.IsDuplicate(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
+						 && _softClippedFilter.pass(_curCigar.lengthSoftClipped() == 0, _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
+						 && _improperPairsFilter.pass(!_curBamAlignment.IsPaired() || _curBamAlignment.IsProperPair(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
+						 && _unmappedFilter.pass(_curBamAlignment.IsMapped(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
+						 && _failedQCFilter.pass(!_curBamAlignment.IsFailedQC(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
+						 && _secondaryFilter.pass(_curBamAlignment.IsPrimaryAlignment(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
+						 && _supplementaryFilter.pass(!_curBamAlignment.IsSupplementary(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
+						 && _readGroupFilter.pass(_readGroups.readGroupInUse(_curReadGroupID), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
+						 && _fwdStrandFilter.pass(_curBamAlignment.IsReverseStrand(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
+						 && _revStrandFilter.pass(!_curBamAlignment.IsReverseStrand(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
+						 && _firstMateFilter.pass(_curBamAlignment.IsFirstMate(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
+						 && _secondMateFilter.pass(_curBamAlignment.IsSecondMate(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
+						 && _mappingQualityFilter.pass(_curBamAlignment.MapQuality, _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
+						 && _blacklistFilter.pass(!_blacklist.isInBlacklist(_curBamAlignment.Name), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
+						 && _readLengthFilter.pass(_curCigar.lengthRead(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID());
 
 		//fragment length
 		if(_QCFiltersPassed){
-			_QCFiltersPassed = _fragmentLengthFilter.pass(curFragmentLength(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, _curChromosome->refID)
-				&& _longerThanFragmentFilter.pass(!_curBamAlignment.IsProperPair() || abs(_curBamAlignment.InsertSize) >= static_cast<int32_t>(_curCigar.lengthAligned()), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, _curChromosome->refID);
+			_QCFiltersPassed = _fragmentLengthFilter.pass(curFragmentLength(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
+				&& _longerThanFragmentFilter.pass(!_curBamAlignment.IsProperPair() || abs(_curBamAlignment.InsertSize) >= static_cast<int32_t>(_curCigar.lengthAligned()), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID());
 		}
 	}
 
@@ -774,7 +781,6 @@ void TBamFile::printSummaryNoEndIndent(std::string &outputName){
 		_mappedLengthFilter.printCombinedCounts(out);
 		out.endln();
 
-
 		//writes numbers of removed reads for each applied filter per read group, also lists filters if no reads were removed
 		for (uint16_t it = 0; it < _readGroups.size(); it++){
 			out << _readGroups.getName(it);
@@ -799,7 +805,6 @@ void TBamFile::printSummaryNoEndIndent(std::string &outputName){
 			_mappedLengthFilter.printCounts(out, it);
 			out.endln();
 		}
-
 		out.close();
 		coretools::instances::logfile().done();
 

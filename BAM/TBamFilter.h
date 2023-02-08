@@ -64,6 +64,7 @@ public:
 	void printCombinedCounts(coretools::TOutputFile &out);
 	size_t getCounts(uint16_t rg_ID);
 	size_t getCountsPerChromosome(uint32_t ref_ID);
+	size_t getCountsAtReadGroupAndChromosome(uint16_t rg_ID, uint32_t ref_ID);
 	size_t getCombinedCounts();
 };
 
@@ -71,8 +72,8 @@ public:
 class TBamFileFilterBool:public TBamFileFilter{
 public:
 	TBamFileFilterBool(){};
-	void filter(const std::string Reason);
-	bool pass(const bool state, const std::string & alignmentName, const bool & isReverseStrand, const uint16_t readGroup);
+	void filter(const std::string Reason, uint16_t numRG, uint32_t numChrom);
+	bool pass(const bool state, const std::string & alignmentName, const bool & isReverseStrand, const uint16_t readGroup, const uint32_t chromosomeID);
 };
 
 template <typename T>
@@ -82,10 +83,12 @@ private:
 public:
 	TBamFileFilterRange(){};
 
-	void filter(const coretools::TNumericRange<T> & Range, const std::string Reason){
+	void filter(const coretools::TNumericRange<T> & Range, const std::string Reason, uint16_t numRG, uint32_t numChrom){
 		_keep = false;
 		_range = Range;
 		_reason = Reason;
+		_counter.resize(numRG);
+		_counter.resizeDistributions(numChrom);
 	};
 
 	const coretools::TNumericRange<T> range() const {
@@ -98,7 +101,7 @@ public:
 
 	bool pass(const T & value, const std::string & alignmentName, const bool & isReverseStrand, const uint16_t readGroup, const uint32_t chromosomeID){
 		if(!_keep && !_range.within(value)){
-			filterOut(alignmentName, isReverseStrand, readGroup);
+			filterOut(alignmentName, isReverseStrand, readGroup, chromosomeID);
 			return false;
 		}
 		return true;

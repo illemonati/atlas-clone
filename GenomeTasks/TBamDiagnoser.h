@@ -31,18 +31,28 @@ private:
 
     // distributions
     coretools::TCountDistributionVector<> _passedQC;
-    coretools::TCountDistributionMultiDimensional<> _readLength;
-    coretools::TCountDistributionMultiDimensional<> _usableLength;
-    coretools::TCountDistributionMultiDimensional<> _softClippedLength;
-    coretools::TCountDistributionMultiDimensional<> _mappingQuality;
-    coretools::TCountDistributionMultiDimensional<> _fragmentLength;
+    std::vector<coretools::TCountDistributionVector<>> _readLength;
+    std::vector<coretools::TCountDistributionVector<>> _usableLength;
+    std::vector<coretools::TCountDistributionVector<>> _softClippedLength;
+   	std::vector<coretools::TCountDistributionVector<>> _mappingQuality;
+    std::vector<coretools::TCountDistributionVector<>> _fragmentLength;
 
-	void _writeHistogram(const coretools::TCountDistributionVector<> & distVec, const std::string& header, const std::string& name);
+	void _writeHistogram(const std::vector<coretools::TCountDistributionVector<>> & distVec, const std::string& header, const std::string& name);
 	void _writeTable(const coretools::TCountDistributionVector<> & distVec, const std::string& header, const std::string &name);
     void _handleAlignment() override;
 
 public:
 	TBamDiagnoser();
+	double meanOverAllReadGroups(const std::vector<coretools::TCountDistributionVector<>> &vec);
+	double meanForChromosome(const std::vector<coretools::TCountDistributionVector<>> &vec, uint32_t chromRefID);
+	uint32_t maxOverAllReadGroups(const std::vector<coretools::TCountDistributionVector<>> &vec);
+	uint32_t maxForChromosome(const std::vector<coretools::TCountDistributionVector<>> &vec, uint32_t chromRefID);
+	size_t countsOverAllReadGroups(const std::vector<coretools::TCountDistributionVector<>> &vec);
+	size_t countsForChromosome(const std::vector<coretools::TCountDistributionVector<>> &vec, uint32_t chromRefID);
+	size_t countsLargerZeroOverAllReadGroups(const std::vector<coretools::TCountDistributionVector<>> &vec);
+	size_t countsLargerZeroForChromosome(const std::vector<coretools::TCountDistributionVector<>> &vec, uint32_t chromRefID);
+	size_t sumOverAllReadGroups(const std::vector<coretools::TCountDistributionVector<>> &vec);
+	size_t sumForChromosome(const std::vector<coretools::TCountDistributionVector<>> &vec, uint32_t chromRefID);
 
 	void diagnose();
 };
