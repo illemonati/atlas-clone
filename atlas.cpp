@@ -84,6 +84,7 @@ void addTaks(coretools::TMain & main) {
 	main.addRegularTask("downsampleReads", new GenomeTasks::TTask_downSampleReads());
 	main.addRegularTask("PMD", new GenomeTasks::TTask_estimatePMD());
 	main.addRegularTask("PMDS", new GenomeTasks::TTask_PMDS());
+	main.addRegularTask("identifyIlluminaReadGroups", new GenomeTasks::TTask_identifyIllumina());
 
 	//window tasks
 	main.addRegularTask("recal", new GenomeTasks::TTask_recal());
