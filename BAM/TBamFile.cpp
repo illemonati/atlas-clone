@@ -86,6 +86,11 @@ void TBamFile::setFilters(){
 
 	uint32_t numRG = readGroups().size();
 	uint32_t numChrom = chromosomes().size();
+	_externalFilter.resizeCounter(numRG, numChrom);
+	
+	//hard filters
+	_unalignedFilter.filter("NotAligned", numRG, numChrom);
+	_noReadGroupFilter.filter("NoReadGroup", numRG, numChrom);
 
 	//mapping length
 	//--------------
@@ -100,7 +105,8 @@ void TBamFile::setFilters(){
 		mappingLengthRange.set(0, true, 200, true);
 		_allowTooLongReads = parameters().parameterExists("allowTooLongReads");
 	}
-	_mappedLengthFilter.filter(mappingLengthRange, "Mapped length outside " + mappingLengthRange.rangeString(), numRG, numChrom);
+	_mappedLengthFilter.filter(mappingLengthRange, "MappedLengthOutside" + mappingLengthRange.rangeString(), numRG, numChrom);
+	
 	logfile().list("Mapped length: restrict to range " + _mappedLengthFilter.rangeString() + ". (parameter 'filterMappingLength')");
 	if(mappingLengthRange.max() > 100000){
 		logfile().warning("The chosen mapping length filter allows for reads to span >100kb of the reference genome. This may affect performance in case of paired-end reads.");
@@ -136,7 +142,7 @@ void TBamFile::setFilters(){
 			_improperPairsFilter.keep();
 			logfile().list("Improper pairs: keep. (parameter 'keepImproperPairs')");
 		} else {
-			_improperPairsFilter.filter("Improper pair", numRG, numChrom);
+			_improperPairsFilter.filter("ImproperPair", numRG, numChrom);
 			logfile().list("Improper pairs: filter out. (use 'keepImproperPairs' to keep)");
 		}
 
@@ -154,7 +160,7 @@ void TBamFile::setFilters(){
 			_failedQCFilter.keep();
 			logfile().list("Failed QC: keep. (parameter 'keepFailedQC')");
 		} else {
-			_failedQCFilter.filter("Failed QC", numRG, numChrom);
+			_failedQCFilter.filter("FailedQC", numRG, numChrom);
 			logfile().list("Failed QC: filter out. (use 'keepFailedQC' to keep)");
 		}
 
@@ -163,7 +169,7 @@ void TBamFile::setFilters(){
 			_secondaryFilter.keep();
 			logfile().list("Secondary reads: keep. (parameter 'keepSecondaryReads')");
 		} else {
-			_secondaryFilter.filter("Secondary alignment", numRG, numChrom);
+			_secondaryFilter.filter("SecondaryAlignment", numRG, numChrom);
 			logfile().list("Secondary reads: filter out. (use 'keepSecondaryReads' to keep)");
 		}
 
@@ -172,7 +178,7 @@ void TBamFile::setFilters(){
 			_supplementaryFilter.keep();
 			logfile().list("Supplementary reads: keep. (parameter 'keepSupplementaryReads')");
 		} else {
-			_supplementaryFilter.filter("Supplementary alignment", numRG, numChrom);
+			_supplementaryFilter.filter("SupplementaryAlignment", numRG, numChrom);
 			logfile().list("Supplementary reads: filter out. (use 'keepSupplementaryReads' to keep)");
 		}
 
@@ -233,7 +239,7 @@ void TBamFile::setFilters(){
 			TNumericRange<uint8_t> Range;
 			parameters().fillParameter("filterMQ", Range);
 
-			_mappingQualityFilter.filter(Range, "Mapping quality outside " + Range.rangeString(), numRG, numChrom);
+			_mappingQualityFilter.filter(Range, "MappingQualityOutside" + Range.rangeString(), numRG, numChrom);
 			logfile().list("Mapping quality: restrict to range " + _mappingQualityFilter.rangeString() + ". (parameter 'filterMQ')");
 		} else {
 			_mappingQualityFilter.keep();
@@ -295,6 +301,8 @@ void TBamFile::openBamLog(){
 		_bamLog = std::make_shared<TBamFileLog>(logFilename);
 
 		//_log to filters
+		_unalignedFilter.setLog(_bamLog);
+		_noReadGroupFilter.setLog(_bamLog);
 		_duplicateFilter.setLog(_bamLog);
 		_softClippedFilter.setLog(_bamLog);
 		_improperPairsFilter.setLog(_bamLog);
@@ -362,9 +370,10 @@ void TBamFile::_fillReadGroups(TReadGroups & ReadGroups){
 	ReadGroups.clear();
 
 	//now add one by one
+	//TODO : not nice how it works, but implemented this way to ensure TReadGroups does not depend on bamtools
 	for(auto it = _bamHeader.ReadGroups.Begin(); it != _bamHeader.ReadGroups.End(); ++it){
 		//add read group
-		const TReadGroup& rg = ReadGroups.add(it->ID);
+		TReadGroup& rg = ReadGroups.add(it->ID);
 
 		//now copy rest
 		rg.description_DS = it->Description;
@@ -444,6 +453,20 @@ void TBamFile::close(){
 	}
 };
 
+bool TBamFile::_readNextAlignmentFromFile(){
+	if(!_bamReader.GetNextAlignment(_curBamAlignment)){
+		return false;
+	}
+	++_numAlignmentRead;
+
+	//store current read group ID
+	std::string readGroup;
+	_curBamAlignment.GetTag("RG", readGroup);
+	_curReadGroupID = _readGroups.getId(readGroup);
+
+	return true;
+}
+
 void TBamFile::_applyFilters(){
 	//check read length
 	//read length is special as it affects our storage
@@ -488,6 +511,7 @@ void TBamFile::_applyFilters(){
 	}
 };
 
+
 bool TBamFile::readNextAlignment(){
 	//check if we limit reads
 	if(_limitNumReads && _numAlignmentRead >=_maxNumReadsToRead){
@@ -498,8 +522,15 @@ bool TBamFile::readNextAlignment(){
 	_previousAlignmentPosition = _curAlignmentPosition;
 
 	//get next alignment
-	if(!_bamReader.GetNextAlignment(_curBamAlignment)){
+	if(!_readNextAlignmentFromFile()){
 		return false;
+	}
+
+	//check if it is unaligned (refID < 0), in which case we read until the first aligned read
+	while(!_unalignedFilter.pass(_curBamAlignment.RefID >= 0, _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())){
+		if(!_readNextAlignmentFromFile()){
+			return false;
+		}
 	}
 
 	//check if chromosome changed
@@ -543,31 +574,29 @@ bool TBamFile::readNextAlignment(){
 		_chrChanged = false;
 	}
 
-	//get current position and update counter
+	//get current position, clear CIGAR and update counter
 	_curAlignmentPosition.move(_curBamAlignment.RefID, _curBamAlignment.Position);
-	++_numAlignmentRead;
+	_curCigar.clear(); //needs to be cleared here to be empty in case of alignments that are unaligned
 
 	//check if BAM file is sorted
 	if(_curAlignmentPosition < _previousAlignmentPosition){
 		UERROR("BAM file must be sorted by position! Alignment '", _curBamAlignment.Name, "' is at position ", _curBamAlignment.Position, ", which is before the position of the previous alignment (", _previousAlignmentPosition.position(), ")");
 	}
 
-	//store current read group ID
-	std::string readGroup;
-	_curBamAlignment.GetTag("RG", readGroup);
-	_curReadGroupID = _readGroups.getId(readGroup);
+	//is it a read without read group?
+	if(!_noReadGroupFilter.pass(_curReadGroupID != TReadGroups::noReadGroupId, _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())){
+		_QCFiltersPassed =  false;
+	} else {
+		//update per read group counter
+		_numAlignmentReadPerReadGroupPerChromosome.add(_curReadGroupID, _curChromosome->refID());
 
-	//also update counter per readgroup
-	_numAlignmentReadPerReadGroupPerChromosome.add(_curReadGroupID, _curChromosome->refID());
-
-	//parse CIGAR
-	_curCigar.clear();
-	for(auto& it : _curBamAlignment.CigarData){
-		_curCigar.add(it.Type, it.Length);
+		//parse CIGAR
+		for(auto& it : _curBamAlignment.CigarData){
+			_curCigar.add(it.Type, it.Length);
+		}
+		//apply filters
+		_applyFilters();
 	}
-
-	//apply filters
-	_applyFilters();
 
 	return true;
 };
@@ -722,6 +751,90 @@ void TBamFile::curAddSamField(const std::string tag, const float value){
 //-----------------------------------------------------
 // Reporting
 //-----------------------------------------------------
+void TBamFile::_writeFilteringStats(std::string &outputName){
+	std::string filename = outputName + "_filterSummary.txt";
+	coretools::instances::logfile().listFlush("Writing general filter counts to '" + filename + "' ...");
+
+	//creating header
+	std::vector<std::string> header;
+	header.push_back("readGroup");
+	_unalignedFilter.fillHeader(header);
+	_noReadGroupFilter.fillHeader(header);
+	_duplicateFilter.fillHeader(header);
+	_softClippedFilter.fillHeader(header);
+	_improperPairsFilter.fillHeader(header);
+	_unmappedFilter.fillHeader(header);
+	_failedQCFilter.fillHeader(header);
+	_secondaryFilter.fillHeader(header);
+	_supplementaryFilter.fillHeader(header);
+	_longerThanFragmentFilter.fillHeader(header);
+	_readGroupFilter.fillHeader(header);
+	_fwdStrandFilter.fillHeader(header);
+	_revStrandFilter.fillHeader(header);
+	_firstMateFilter.fillHeader(header);
+	_secondMateFilter.fillHeader(header);
+	_blacklistFilter.fillHeader(header);
+	_mappingQualityFilter.fillHeader(header);
+	_fragmentLengthFilter.fillHeader(header);
+	_externalFilter.fillHeader(header);
+	_readLengthFilter.fillHeader(header);
+	_mappedLengthFilter.fillHeader(header);
+	coretools::TOutputFile out(filename, header, "\t");
+
+	out << "allReadGroups";
+	_unalignedFilter.printCombinedCounts(out);
+	_noReadGroupFilter.printCombinedCounts(out);
+	_duplicateFilter.printCombinedCounts(out);
+	_softClippedFilter.printCombinedCounts(out);
+	_improperPairsFilter.printCombinedCounts(out);
+	_unmappedFilter.printCombinedCounts(out);
+	_failedQCFilter.printCombinedCounts(out);
+	_secondaryFilter.printCombinedCounts(out);
+	_supplementaryFilter.printCombinedCounts(out);
+	_longerThanFragmentFilter.printCombinedCounts(out);
+	_readGroupFilter.printCombinedCounts(out);
+	_fwdStrandFilter.printCombinedCounts(out);
+	_revStrandFilter.printCombinedCounts(out);
+	_firstMateFilter.printCombinedCounts(out);
+	_secondMateFilter.printCombinedCounts(out);
+	_blacklistFilter.printCombinedCounts(out);
+	_mappingQualityFilter.printCombinedCounts(out);
+	_fragmentLengthFilter.printCombinedCounts(out);
+	_externalFilter.printCombinedCounts(out);
+	_readLengthFilter.printCombinedCounts(out);
+	_mappedLengthFilter.printCombinedCounts(out);
+	out.endln();
+
+	//writes numbers of removed reads for each applied filter per read group, also lists filters if no reads were removed
+	for (uint16_t it = 0; it < _readGroups.size(); it++){
+		out << _readGroups.getName(it);
+		_unalignedFilter.printCounts(out, it);
+		_noReadGroupFilter.printCounts(out, it);
+		_duplicateFilter.printCounts(out, it);
+		_softClippedFilter.printCounts(out, it);
+		_improperPairsFilter.printCounts(out, it);
+		_unmappedFilter.printCounts(out, it);
+		_failedQCFilter.printCounts(out, it);
+		_secondaryFilter.printCounts(out, it);
+		_supplementaryFilter.printCounts(out, it);
+		_longerThanFragmentFilter.printCounts(out, it);
+		_readGroupFilter.printCounts(out, it);
+		_fwdStrandFilter.printCounts(out, it);
+		_revStrandFilter.printCounts(out, it);
+		_firstMateFilter.printCounts(out, it);
+		_secondMateFilter.printCounts(out, it);
+		_blacklistFilter.printCounts(out, it);
+		_mappingQualityFilter.printCounts(out, it);
+		_fragmentLengthFilter.printCounts(out, it);
+		_externalFilter.printCounts(out, it);
+		_readLengthFilter.printCounts(out, it);
+		_mappedLengthFilter.printCounts(out, it);
+		out.endln();
+	}
+	out.close();
+	coretools::instances::logfile().done();
+}
+
 void TBamFile::printSummaryNoEndIndent(std::string &outputName){
 	logfile().startIndent("Summary of parsed reads from BAM file '" + _filename + "':");
 	logfile().list("Total number of reads read: " + coretools::str::toString(_numAlignmentRead));
@@ -729,114 +842,39 @@ void TBamFile::printSummaryNoEndIndent(std::string &outputName){
 	uint64_t numFiltered = _numAlignmentRead - _numAlignmentsPassedQC;
 	logfile().list("Reads that were filtered out: " + coretools::str::toString(numFiltered) + " (" + coretools::str::toPercentString(numFiltered, _numAlignmentRead, 3) + "%)");
 
-	logfile().addIndent();
+	//write counts of filtered reads for each read group to _filterSummary.txt file
+	_writeFilteringStats(outputName);
 
-		//write counts of filtered reads for each read group to _filterSummary.txt file
-		std::string filename = outputName + "_filterSummary.txt";
-		coretools::instances::logfile().listFlush("Writing general filter counts to '" + filename + "' ...");
-
-		//creating header
-		std::vector<std::string> header;
-		header.push_back("readGroup");
-		_duplicateFilter.fillHeader(header);
-		_softClippedFilter.fillHeader(header);
-		_improperPairsFilter.fillHeader(header);
-		_unmappedFilter.fillHeader(header);
-		_failedQCFilter.fillHeader(header);
-		_secondaryFilter.fillHeader(header);
-		_supplementaryFilter.fillHeader(header);
-		_longerThanFragmentFilter.fillHeader(header);
-		_readGroupFilter.fillHeader(header);
-		_fwdStrandFilter.fillHeader(header);
-		_revStrandFilter.fillHeader(header);
-		_firstMateFilter.fillHeader(header);
-		_secondMateFilter.fillHeader(header);
-		_blacklistFilter.fillHeader(header);
-		_mappingQualityFilter.fillHeader(header);
-		_fragmentLengthFilter.fillHeader(header);
-		_externalFilter.fillHeader(header);
-		_readLengthFilter.fillHeader(header);
-		_mappedLengthFilter.fillHeader(header);
-		coretools::TOutputFile out(filename, header, "\t");
-
-		out << "allReadGroups";
-		_duplicateFilter.printCombinedCounts(out);
-		_softClippedFilter.printCombinedCounts(out);
-		_improperPairsFilter.printCombinedCounts(out);
-		_unmappedFilter.printCombinedCounts(out);
-		_failedQCFilter.printCombinedCounts(out);
-		_secondaryFilter.printCombinedCounts(out);
-		_supplementaryFilter.printCombinedCounts(out);
-		_longerThanFragmentFilter.printCombinedCounts(out);
-		_readGroupFilter.printCombinedCounts(out);
-		_fwdStrandFilter.printCombinedCounts(out);
-		_revStrandFilter.printCombinedCounts(out);
-		_firstMateFilter.printCombinedCounts(out);
-		_secondMateFilter.printCombinedCounts(out);
-		_blacklistFilter.printCombinedCounts(out);
-		_mappingQualityFilter.printCombinedCounts(out);
-		_fragmentLengthFilter.printCombinedCounts(out);
-		_externalFilter.printCombinedCounts(out);
-		_readLengthFilter.printCombinedCounts(out);
-		_mappedLengthFilter.printCombinedCounts(out);
-		out.endln();
-
-		//writes numbers of removed reads for each applied filter per read group, also lists filters if no reads were removed
-		for (uint16_t it = 0; it < _readGroups.size(); it++){
-			out << _readGroups.getName(it);
-			_duplicateFilter.printCounts(out, it);
-			_softClippedFilter.printCounts(out, it);
-			_improperPairsFilter.printCounts(out, it);
-			_unmappedFilter.printCounts(out, it);
-			_failedQCFilter.printCounts(out, it);
-			_secondaryFilter.printCounts(out, it);
-			_supplementaryFilter.printCounts(out, it);
-			_longerThanFragmentFilter.printCounts(out, it);
-			_readGroupFilter.printCounts(out, it);
-			_fwdStrandFilter.printCounts(out, it);
-			_revStrandFilter.printCounts(out, it);
-			_firstMateFilter.printCounts(out, it);
-			_secondMateFilter.printCounts(out, it);
-			_blacklistFilter.printCounts(out, it);
-			_mappingQualityFilter.printCounts(out, it);
-			_fragmentLengthFilter.printCounts(out, it);
-			_externalFilter.printCounts(out, it);
-			_readLengthFilter.printCounts(out, it);
-			_mappedLengthFilter.printCounts(out, it);
-			out.endln();
-		}
-		out.close();
-		coretools::instances::logfile().done();
-
-
-		//print counts of filtered reads for each read group to terminal, doesn't list filters if no reads were removed
-		for (uint16_t it = 0; it < _readGroups.size(); it++){
-			logfile().newLine();
-			logfile().list("Number of reads filtered from read group: '" + coretools::str::toString(_readGroups.getName(it)) + "'");
-			logfile().addIndent();
-			_duplicateFilter.summary(numFiltered, it);
-			_softClippedFilter.summary(numFiltered, it);
-			_improperPairsFilter.summary(numFiltered, it);
-			_unmappedFilter.summary(numFiltered, it);
-			_failedQCFilter.summary(numFiltered, it);
-			_secondaryFilter.summary(numFiltered, it);
-			_supplementaryFilter.summary(numFiltered, it);
-			_longerThanFragmentFilter.summary(numFiltered, it);
-			_readGroupFilter.summary(numFiltered, it);
-			_fwdStrandFilter.summary(numFiltered, it);
-			_revStrandFilter.summary(numFiltered, it);
-			_firstMateFilter.summary(numFiltered, it);
-			_secondMateFilter.summary(numFiltered, it);
-			_blacklistFilter.summary(numFiltered, it);
-			_mappingQualityFilter.summary(numFiltered, it);
-			_fragmentLengthFilter.summary(numFiltered, it);
-			_externalFilter.summary(numFiltered, it);
-			_readLengthFilter.summary(numFiltered, it);
-			_mappedLengthFilter.summary(numFiltered, it);
-			logfile().endIndent();
-		}
-
+	//print counts of filtered reads for each read group to terminal, doesn't list filters if no reads were removed
+	for (uint16_t it = 0; it < _readGroups.size(); it++){
+		//logfile().newLine();
+		logfile().list("Number of reads filtered from read group: '" + coretools::str::toString(_readGroups.getName(it)) + "'");
+		logfile().addIndent();
+		_unalignedFilter.summary(numFiltered, it);
+		_noReadGroupFilter.summary(numFiltered, it);
+		_duplicateFilter.summary(numFiltered, it);
+		_softClippedFilter.summary(numFiltered, it);
+		_improperPairsFilter.summary(numFiltered, it);
+		_unmappedFilter.summary(numFiltered, it);
+		_failedQCFilter.summary(numFiltered, it);
+		_secondaryFilter.summary(numFiltered, it);
+		_supplementaryFilter.summary(numFiltered, it);
+		_longerThanFragmentFilter.summary(numFiltered, it);
+		_readGroupFilter.summary(numFiltered, it);
+		_fwdStrandFilter.summary(numFiltered, it);
+		_revStrandFilter.summary(numFiltered, it);
+		_firstMateFilter.summary(numFiltered, it);
+		_secondMateFilter.summary(numFiltered, it);
+		_blacklistFilter.summary(numFiltered, it);
+		_mappingQualityFilter.summary(numFiltered, it);
+		_fragmentLengthFilter.summary(numFiltered, it);
+		_externalFilter.summary(numFiltered, it);
+		_readLengthFilter.summary(numFiltered, it);
+		_mappedLengthFilter.summary(numFiltered, it);
 		logfile().endIndent();
+	}
+
+	logfile().endIndent();
 };
 
 void TBamFile::printSummary(std::string &outputName){
@@ -878,39 +916,43 @@ void TBamFile::printEndNoEndIndent(){
 // TQualityAdjusterForWriting
 //------------------------------------------------
 TQualityAdjusterForWriting::TQualityAdjusterForWriting(){
+	_initialized = false;
 	_adjust = false;
 	_binIllumina = false;
 	_limitRange = false;
 	initialize();
-};
+}
 
 void TQualityAdjusterForWriting::initialize(){
-	if(parameters().parameterExists("outQual")){
-		TNumericRange<uint8_t> qualRange;
-		parameters().fillParameter("outQual",  qualRange);
-		limitRange(qualRange);
+	if(!_initialized){
+		if(parameters().parameterExists("outQual")){
+			TNumericRange<uint8_t> qualRange;
+			parameters().fillParameter("outQual",  qualRange);
+			limitRange(qualRange);
 
-		logfile().list("Will print qualities truncated to ", rangeString(), " (parameter 'outQual')");
+			logfile().list("Will print qualities truncated to ", rangeString(), " (parameter 'outQual')");
 
 
-		if(qualRange.max() > BaseQuality::max().get()){
-			logfile().warning("Truncated quality range to BAM limits!");
+			if(qualRange.max() > BaseQuality::max().get()){
+				logfile().warning("Truncated quality range to BAM limits!");
+			}
+
+		} else {
+			logfile().list("Will use the full range of quality scores when writing alignments. (use 'outQual' to constrain).");
 		}
 
-	} else {
-		logfile().list("Will use the full range of quality scores when writing alignments. (use 'outQual' to constrain).");
-	}
+		//quality binning
+		if(parameters().parameterExists("writeBinnedQualities")){
+			logfile().list("Will write Illumina-binned quality scores. (parameter 'writeBinnedQualities')");
 
-	//quality binning
-	if(parameters().parameterExists("writeBinnedQualities")){
-		logfile().list("Will write Illumina-binned quality scores. (parameter 'writeBinnedQualities')");
-
-		if(adjusts()){
-			logfile().warning("If both 'outQual' and 'writeBinnedQualities' are given, qualities will be truncated first, then binned, and may thus fall outside the requested range.");
+			if(adjusts()){
+				logfile().warning("If both 'outQual' and 'writeBinnedQualities' are given, qualities will be truncated first, then binned, and may thus fall outside the requested range.");
+			}
+			binQualitiesIllumina();
+		} else {
+			logfile().list("Will write raw quality scores. (use 'writeBinnedQualities' to bin)");
 		}
-		binQualitiesIllumina();
-	} else {
-		logfile().list("Will write raw quality scores. (use 'writeBinnedQualities' to bin)");
+		_initialized = true;
 	}
 };
 
@@ -970,19 +1012,33 @@ void TQualityAdjusterForWriting::adjustQualities(std::string & qualities) const 
 TOutputBamFile::TOutputBamFile(){
 	_openForWriting = false;
 	_readGroups = nullptr;
-};
+}
+
+TOutputBamFile::TOutputBamFile(const TQualityAdjusterForWriting & QualityAdjuster) : _qualityAdjuster(QualityAdjuster){
+	_openForWriting = false;
+	_readGroups = nullptr;
+}
 
 TOutputBamFile::TOutputBamFile(const std::string Filename, const TBamFile & Original){
 	_openForWriting = false;
 	open(Filename, Original.samHeader(), Original.chromosomes(), Original.readGroups());
-};
+}
+
+TOutputBamFile::TOutputBamFile(const std::string Filename, const TSamHeader & Header, const genometools::TChromosomes & Chromosomes, const TReadGroups & ReadGroups){
+	_openForWriting = false;
+	open(Filename, Header, Chromosomes, ReadGroups);
+}
+
+TOutputBamFile::TOutputBamFile(const std::string Filename, const TSamHeader & Header, const genometools::TChromosomes & Chromosomes, const TReadGroups & ReadGroups, const TQualityAdjusterForWriting & QualityAdjuster) : _qualityAdjuster(QualityAdjuster){
+	_openForWriting = false;
+	open(Filename, Header, Chromosomes, ReadGroups);
+}
 
 TOutputBamFile::~TOutputBamFile(){
 	closeNoIndex();
-};
+}
 
 void TOutputBamFile::open(const std::string Filename, const TSamHeader & Header, const genometools::TChromosomes & Chromosomes, const TReadGroups & ReadGroups){
-	logfile().list("Writing alignments to new BAM to file '" + Filename + "'.");
 	closeNoIndex();
 
 	_outputFilename = Filename;
@@ -1011,6 +1067,7 @@ void TOutputBamFile::open(const std::string Filename, const TBamFile & Original)
 };
 
 void TOutputBamFile::setQualityAdjusterForWriting(){
+
 	_qualityAdjuster.initialize();
 };
 

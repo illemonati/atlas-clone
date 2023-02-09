@@ -11,6 +11,7 @@
 #include "TReadSimulator.h"
 #include "TPostMortemDamage.h"
 #include "genometools/GenomePositions/TGenomePosition.h"
+#include "../BAM/TBamFile.h"
 
 namespace Simulations {
 
@@ -41,7 +42,7 @@ public:
 	TReadSimulators(TReadSimulators && other) = default;
 
 	//interact
-	void simulate(const genometools::TGenomePosition & Position, const std::vector<Base>& Haplotype, TSimulatorBamFile &BamFile);
+	void simulate(const genometools::TGenomePosition & Position, const std::vector<Base>& Haplotype, BAM::TOutputBamFile &BamFile);
 
 	//getters
 	[[nodiscard]] std::unique_ptr<TReadSimulator>& sample();

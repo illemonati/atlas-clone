@@ -82,7 +82,7 @@ protected:
 	                                  std::array<std::vector<genometools::Base>, 2> haplotypes,
 									  TReadSimulators & readSimulator,
 									  uint32_t avgDepth,
-	                                  TSimulatorBamFile &bamFile, const std::string &extraProgressText);
+	                                  BAM::TOutputBamFile &bamFile, const std::string &extraProgressText);
 
 	// simulate reads and write bam files
 	void _simulateAndWrite(const genometools::TChromosome &Chromosome, TSimulatorHaplotypes &Haplotypes, uint32_t avgDepth) override;

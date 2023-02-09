@@ -272,19 +272,18 @@ void TBamDiagnoser::diagnose(){
 };
 
 double TBamDiagnoser::meanOverAllReadGroups(const std::vector<coretools::TCountDistributionVector<>> &vec){
-	double meanSum = 0;
-	for (const auto &s: vec){
-		meanSum += s.mean();
-	}
-	return (meanSum / vec.size());
+	size_t counts = countsOverAllReadGroups(vec);
+	if (counts == 0) { return 0.0; }
+	size_t sum = sumOverAllReadGroups(vec);
+	return ((double) sum / (double) counts);
 }
 
 double TBamDiagnoser::meanForChromosome(const std::vector<coretools::TCountDistributionVector<>> &vec, uint32_t chromRefID){
-	double meanSum = 0;
-	for (const auto &s: vec){
-		meanSum += s[chromRefID].mean();
-	}
-	return (meanSum / vec.size());
+	size_t counts = countsForChromosome(vec, chromRefID);
+	if (counts == 0) { return 0.0; }
+	size_t sum = sumForChromosome(vec, chromRefID);
+
+	return ((double) sum / (double) counts);
 }
 
 uint32_t TBamDiagnoser::maxOverAllReadGroups(const std::vector<coretools::TCountDistributionVector<>> &vec){

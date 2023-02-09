@@ -71,12 +71,14 @@ private:
  	bool _chrChanged;
 
 	//alignment filters
- 	bool _QCFiltersPassed;
+	bool _QCFiltersPassed;
  	TAlignmentList _blacklist;
- 	TBamFileFilterRange<uint32_t> _readLengthFilter;
- 	TBamFileFilterRange<uint32_t> _mappedLengthFilter;
  	bool _allowTooLongReads;
- 	bool _keepAll;
+ 	bool _keepAll; 	
+ 	TBamFileFilterBool _unalignedFilter; //i.e. have refID < 0
+ 	TBamFileFilterBool _noReadGroupFilter;
+	TBamFileFilterRange<uint32_t> _readLengthFilter;
+ 	TBamFileFilterRange<uint32_t> _mappedLengthFilter;
  	TBamFileFilterBool _duplicateFilter;
  	TBamFileFilterBool _softClippedFilter;
  	TBamFileFilterBool _improperPairsFilter;
@@ -98,7 +100,9 @@ private:
 	void _fillSamHeader(TSamHeader & SamHeader);
 	void _fillChromosomes(genometools::TChromosomes & chromosomes);
 	void _fillReadGroups(TReadGroups & readGroups);
+	bool _readNextAlignmentFromFile();
  	void _applyFilters();
+	void _writeFilteringStats(std::string &outputName);
 
 	//output filtered reads
 	std::shared_ptr<TBamFileLog> _bamLog;
@@ -235,6 +239,7 @@ public:
 //------------------------------------------------
 class TQualityAdjusterForWriting{
 private:
+	bool _initialized;
 	bool _adjust;
 	bool _binIllumina;
 	bool _limitRange;
@@ -277,8 +282,13 @@ private:
 
 public:
  	TOutputBamFile();
- 	TOutputBamFile(const std::string filename, const TBamFile & original);
+ 	TOutputBamFile(const TQualityAdjusterForWriting & QualityAdjuster);
+ 	TOutputBamFile(const std::string Filename, const TBamFile & Original);
+ 	TOutputBamFile(const std::string Filename, const TSamHeader & Header, const genometools::TChromosomes & Chromosomes, const TReadGroups & ReadGroups);
+ 	TOutputBamFile(const std::string Filename, const TSamHeader & Header, const genometools::TChromosomes & Chromosomes, const TReadGroups & ReadGroups, const TQualityAdjusterForWriting & QualityAdjuster);
+
  	~TOutputBamFile();
+
  	TOutputBamFile(const TOutputBamFile&) = default;
  	TOutputBamFile(TOutputBamFile&&) noexcept = default;
  	TOutputBamFile& operator=(const TOutputBamFile&) = default;

@@ -116,8 +116,15 @@ void TPMDTables::write(std::string filename, bool normalize) {
 	header.push_back("position_>" + coretools::str::toString(_tableLength));
 
 	coretools::TOutputFile out(filename, header);
-	constexpr coretools::TStrongArray<std::string_view, ReadEnd> prefix1{{"forward", "reverse", "forward", "reverse"}};
-	constexpr coretools::TStrongArray<std::string_view, ReadEnd> prefix2{{"5'", "3'", "5'", "3'"}};
+
+	constexpr auto directions = [](){
+		coretools::TStrongArray<std::array<std::string_view, 2>, ReadEnd> ar{};
+		ar[ReadEnd::forward3] = {"forward", "3'"};
+		ar[ReadEnd::forward5] = {"forward", "5'"};
+		ar[ReadEnd::reverse3] = {"reverse", "3'"};
+		ar[ReadEnd::reverse5] = {"reverse", "5'"};
+		return ar;
+	}();
 
 	// loop over all read groups
 	std::vector<std::string> prefix(4);
@@ -126,8 +133,8 @@ void TPMDTables::write(std::string filename, bool normalize) {
 			auto & table = _tables[_readGroupMap->pooledIndex(i)];
 			prefix[0]    = _readGroups->getName(i);
 			for (auto j = ReadEnd::min; j < ReadEnd::max; ++j) {
-				prefix[1] = prefix1[j];
-				prefix[2] = prefix2[j];
+				prefix[1] = directions[j].front();
+				prefix[2] = directions[j].back();
 				table[j].write(out, prefix, normalize);
 			}
 		}

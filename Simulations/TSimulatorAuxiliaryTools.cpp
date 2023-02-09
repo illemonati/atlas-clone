@@ -113,70 +113,63 @@ void TSimulatorReference::setChr(std::string ChrName, long ChrLength) {
 //---------------------------------------------------
 // TSimulatorBamFile
 //---------------------------------------------------
-void TSimulatorBamFile::open(const std::string &Filename, const std::string &SampleName, BAM::TReadGroups & ReadGroups,
-			     const genometools::TChromosomes &Chromosomes) {
-	logfile().startIndent("Opening BAM file '" + Filename + "'.");
+TSimulatorBamFiles::TSimulatorBamFiles(uint32_t NumFiles, const std::string & Outname, std::vector<TReadSimulators> & ReadSimulators,
+				       const genometools::TChromosomes &Chromosomes) {
+	logfile().startIndent("Preparing BAM files for output:");
 
-	if (_outBam.isOpen()) UERROR("A BAM file is already open for writing!");
-
+	if (NumFiles < 1) DEVERROR("Can not open less than one BAM file!");
+	if(ReadSimulators.size() > 1 && ReadSimulators.size() != NumFiles){
+		DEVERROR("Number of read simulators does not match number of files!");
+	}
 	if (Chromosomes.size() < 1) UERROR("Can not open a BAM file without specified chromosomes!");
 
-	// create header, read group and chromosome objects
-	for (auto &rg : ReadGroups) {
+	//create header
+	const BAM::TSamHeader header("1.6", "coordinate", "none");
+
+	//read quality adjustment for wiriting
+	logfile().startIndent("Output options:");
+	BAM::TQualityAdjusterForWriting qualityAdjuster;
+	logfile().endIndent();
+
+	// open BAM files
+	logfile().startIndent("Opening ", NumFiles, " BAM files:");
+	_files.reserve(NumFiles);
+	if (NumFiles == 1) {
+		_createBamFile(Outname + ".bam", "Ind1", header, ReadSimulators.front().readGroups(), Chromosomes, qualityAdjuster);
+	} else {
+		//check if ReadSimulators are shared
+		for (size_t i = 0; i < NumFiles; ++i) {
+			std::string sampleName = toString(i + 1);
+			std::string filename = Outname + "_ind" + sampleName + ".bam";
+			if(ReadSimulators.size() == 1){
+				_createBamFile(filename, sampleName, header, ReadSimulators.front().readGroups(), Chromosomes, qualityAdjuster);
+			} else {
+				_createBamFile(filename, sampleName, header, ReadSimulators[i].readGroups(), Chromosomes, qualityAdjuster);
+			}
+		}
+		logfile().endIndent();
+	}
+	logfile().endIndent();
+}
+
+void TSimulatorBamFiles::_createBamFile(const std::string & Filename,
+										const std::string & SampleName,
+										const BAM::TSamHeader & Header,
+										BAM::TReadGroups & ReadGroups,
+										const genometools::TChromosomes & Chromosomes,
+										const BAM::TQualityAdjusterForWriting & QualityAdjuster){
+	logfile().list(Filename);
+	// create read group object
+	for (auto &rg : ReadGroups){
 		rg.sample_SM = SampleName;
 	}
-	const BAM::TSamHeader header("1.6", "coordinate", "none");
-	_outBam.open(Filename, header, Chromosomes, ReadGroups);
+
+	_files.emplace_back(Filename, Header, Chromosomes, ReadGroups, QualityAdjuster);
 
 	//unset sample name
 	//TODO: ugly hack, find way to copy TReadGroups
 	for (auto &rg : ReadGroups) {
 		rg.sample_SM = "";
-	}
-	logfile().endIndent();
-}
-TSimulatorBamFile::~TSimulatorBamFile() { _outBam.closeNoIndex(); }
-
-void TSimulatorBamFile::close() {
-	_outBam.close();
-}
-
-TSimulatorBamFiles::TSimulatorBamFiles(uint32_t NumFiles, const std::string & Outname, std::vector<TReadSimulators> & ReadSimulators,
-				       const genometools::TChromosomes &Chromosomes) {
-	if (NumFiles < 1) DEVERROR("Can not open less than one BAM file!");
-	_files.resize(NumFiles);
-
-	if(ReadSimulators.size() > 1 && ReadSimulators.size() != NumFiles){
-		DEVERROR("Numbe rof read simulators does not match number of files!");
-	}
-
-	//read quality adjustment for wiriting
-	BAM::TQualityAdjusterForWriting qualityAdjuster;
-
-	// open BAM files
-	if (_files.size() == 1) {
-		_files[0].open(Outname + ".bam", "Ind1", ReadSimulators.front().readGroups(), Chromosomes);
-	} else {
-		logfile().startIndent("Opening ", _files.size(), " BAM files:");
-
-		//check if ReadSimulators are shared
-		if(ReadSimulators.size() == 1){
-			for (size_t i = 0; i < _files.size(); ++i) {
-				std::string filename = Outname + "_ind" + toString(i + 1) + ".bam";
-				_files[i].open(filename, "Ind" + toString(i + 1), ReadSimulators.front().readGroups(), Chromosomes);
-			}
-		} else {
-			for (size_t i = 0; i < _files.size(); ++i) {
-				std::string filename = Outname + "_ind" + toString(i + 1) + ".bam";
-				_files[i].open(filename, "Ind" + toString(i + 1), ReadSimulators[i].readGroups(), Chromosomes);
-			}
-		}
-		logfile().endIndent();
-	}
-
-	//set quality adjuster
-	for(auto& f : _files){
-		f.setQualityAdjusterForWriting(qualityAdjuster);
 	}
 }
 
@@ -186,7 +179,7 @@ void TSimulatorBamFiles::close() {
 	logfile().endIndent();
 }
 
-TSimulatorBamFile &TSimulatorBamFiles::operator[](size_t i) {
+BAM::TOutputBamFile &TSimulatorBamFiles::operator[](size_t i) {
 	if (i >= _files.size()) UERROR("BAM file ", i, " does not exist!");
 	return _files[i];
 }

@@ -79,7 +79,7 @@ void TTestBamFile::_initializeChromosomes(const std::vector<uint32_t> ChrLength)
 
 void TTestBamFile::_initializeReadGroups(uint32_t NumReadGroups){
 	for(uint32_t i=0; i<NumReadGroups; ++i){
-		const BAM::TReadGroup& rg = _readGroups.add("ReadGroup" + coretools::str::toString(i));
+		BAM::TReadGroup& rg = _readGroups.add("ReadGroup" + coretools::str::toString(i));
 		rg.sequencingCenter_CN = coretools::__GLOBAL_APPLICATION_NAME__ + " " + coretools::__GLOBAL_APPLICATION_VERSION__;
 		rg.description_DS = "Simulated with commit " + coretools::__GLOBAL_APPLICATION_COMMIT__;
 		rg.sample_SM = "TestSample";

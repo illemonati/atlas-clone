@@ -55,8 +55,9 @@ TGenome_basic::TGenome_basic() {
 	}
 };
 
-void TGenome_basic::_openBamForWriting(const std::string &filename, BAM::TOutputBamFile &outBam) {
-	outBam.open(filename, _bamFile);
+void TGenome_basic::_openBamForWriting(const std::string &Filename, BAM::TOutputBamFile &OutBam) {
+	logfile().list("Writing alignments to the new BAM file '" + Filename + "'.");
+	OutBam.open(Filename, _bamFile);
 };
 
 //---------------------------------------------------------------

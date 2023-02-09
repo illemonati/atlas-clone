@@ -26,8 +26,8 @@ using coretools::instances::logfile;
 //-----------------------------------------------------
 //TBamFileLog
 //-----------------------------------------------------
-void TBamFileLog::write(const std::string & alignmentName, const bool & isReverseStrand, const std::string & reason){
-	_log.writeln(alignmentName, isReverseStrand, reason);
+void TBamFileLog::write(const std::string & alignmentName, const bool & isSecondMate, const std::string & reason){
+	_log.writeln(alignmentName, isSecondMate, reason);
 };
 
 //-----------------------------------------------------
@@ -39,17 +39,22 @@ TBamFileFilter::TBamFileFilter(){
 	_log = nullptr;
 };
 
-void TBamFileFilter::filterOut(const std::string & alignmentName, const bool & isReverseStrand, const uint16_t readGroup, const uint32_t chromosomeID){
+void TBamFileFilter::filterOut(const std::string & alignmentName, const bool & isSecondMate, const uint16_t readGroup, const uint32_t chromosomeID){
 	//counts filtered reads per read group and filter
 	_counter.add(readGroup, chromosomeID);
 	if(_updateLog){
-		_log->write(alignmentName, isReverseStrand, _reason);
+		_log->write(alignmentName, isSecondMate, _reason);
 	}
 };
 
 void TBamFileFilter::keep(){
 	_keep = true;
 };
+
+void TBamFileFilter::resizeCounter(uint16_t numRG, uint32_t numChrom){
+	_counter.resize(numRG);
+	_counter.resizeDistributions(numChrom);
+}
 
 void TBamFileFilter::setReason(const std::string reason){
 	_reason = reason;
@@ -134,13 +139,12 @@ size_t TBamFileFilter::getCombinedCounts() {
 void TBamFileFilterBool::filter(const std::string Reason, uint16_t numRG, uint32_t numChrom){
 	_keep = false;
 	_reason = Reason;
-	_counter.resize(numRG);
-	_counter.resizeDistributions(numChrom);
+	resizeCounter(numRG, numChrom);
 };
 
-bool TBamFileFilterBool::pass(const bool state, const std::string & alignmentName, const bool & isReverseStrand, const uint16_t readGroup, const uint32_t chromosomeID){
+bool TBamFileFilterBool::pass(const bool state, const std::string & alignmentName, const bool & isSecondMate, const uint16_t readGroup, const uint32_t chromosomeID){
 	if(!state && !_keep){
-		filterOut(alignmentName, isReverseStrand, readGroup, chromosomeID);
+		filterOut(alignmentName, isSecondMate, readGroup, chromosomeID);
 		return false;
 	}
 	return true;

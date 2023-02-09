@@ -81,7 +81,7 @@ namespace seqType{
 //------------------------------------------------
 
 class TReadGroupInfo;
-void parse(TReadGroupInfo* rgi, TInfo i);
+void parse(TReadGroupInfo* rgi, InfoType i);
 
 class TReadGroupInfoEntry{
 private:
@@ -137,7 +137,6 @@ private:
 	bool _readGroupExists(std::string_view Name);
 	void _readFile(std::string_view Filename);
 	void _createReadGroupInfoEntries(const BAM::TReadGroups & ReadGroups);
-	void _readFileIfProvided();
 	void _parse(InfoType Info);
 
 public:
@@ -215,7 +214,15 @@ public:
 	//writing
 	void write(std::string_view Filename);
 
-	friend void parse(TReadGroupInfo *rgi, TInfo i) { rgi->_parse(i); }
+	// preparse arguments
+	void parse(InfoType Info){ _parse(Info); }
+	template <typename... InfoTypes>
+	void parse(InfoType Info, InfoTypes... FurtherInfos){
+		_parse(Info);
+		parse(FurtherInfos...);
+	}
+
+	friend void parse(TReadGroupInfo *ReadGroupInfo, InfoType Info) { ReadGroupInfo->_parse(Info); }
 };
 
 

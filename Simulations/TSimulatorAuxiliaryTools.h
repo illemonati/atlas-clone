@@ -67,38 +67,21 @@ public:
 //---------------------------------------------------------
 // TSimulatorBamFile
 //---------------------------------------------------------
-class TSimulatorBamFile {
-private:
-	BAM::TOutputBamFile _outBam;
-
-public:
-	TSimulatorBamFile(){}
-	TSimulatorBamFile(const std::string &Filename, const std::string &SampleName, BAM::TReadGroups &ReadGroups,
-			  const genometools::TChromosomes &Chromosomes) {
-		open(Filename, SampleName, ReadGroups, Chromosomes);
-	}
-	~TSimulatorBamFile();
-
-	void open(const std::string &Filename, const std::string &SampleName, BAM::TReadGroups & ReadGroups,
-		  const genometools::TChromosomes &Chromosomes);
-	void setQualityAdjusterForWriting(const BAM::TQualityAdjusterForWriting & QualityAdjuster){
-		_outBam.setQualityAdjusterForWriting(QualityAdjuster);
-	};
-
-	void writeAlignment(const BAM::TAlignment &Alignment) {_outBam.writeAlignment(Alignment); }
-	void writeAlignmentLater(const BAM::TAlignment &Alignment) {_outBam.writeAlignmentLater(Alignment); }
-	void close();
-	void indexBamFile();
-};
-
 class TSimulatorBamFiles {
 private:
-	std::vector<TSimulatorBamFile> _files;
+	std::vector<BAM::TOutputBamFile> _files;
+
+	void _createBamFile(const std::string & Filename,
+											const std::string & SampleName,
+											const BAM::TSamHeader & Header,
+											BAM::TReadGroups & ReadGroups,
+											const genometools::TChromosomes & Chromosomes,
+											const BAM::TQualityAdjusterForWriting & QualityAdjuster);
 
 public:
 	TSimulatorBamFiles(uint32_t NumFiles, const std::string & Outname, std::vector<TReadSimulators> & ReadSimulators, const genometools::TChromosomes &Chromosomes);
 
-	TSimulatorBamFile &operator[](size_t i);
+	BAM::TOutputBamFile &operator[](size_t i);
 	void close();
 };
 

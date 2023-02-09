@@ -136,6 +136,26 @@ void TReadGroupInfo::_createReadGroupInfoEntries(const BAM::TReadGroups & ReadGr
 	_parsed.set<InfoType::RGName>();
 }
 
+void TReadGroupInfo::_parse(const InfoType Info){
+	if(!_parsed[Info]){
+		logfile().listFlush(coretools::str::capitalizeFirst(infos[Info].description), ": ");
+		std::string arg = infos[Info].argument;
+
+		//check if info is provided on the command line -> overwrites file
+		if(parameters().parameterExists(arg)){
+			_setFromCommandLine(Info);
+		} else {
+			//check if provided in file
+			if(fileHasInfo(Info)){
+				_setFromRGInfoFile(Info);
+			} else {
+				_setDefault(Info);
+			}
+		}
+		_parsed[Info] = true;
+	}
+}
+
 TReadGroupInfo::TReadGroupInfo(const BAM::TReadGroups & ReadGroups){
 	_createReadGroupInfoEntries(ReadGroups);
 	if (parameters().parameterExists(RGInfoArgument)) {
@@ -186,28 +206,8 @@ BAM::TReadGroups TReadGroupInfo::createReadGroups(std::string_view RgInfoFileNam
 	return readGroups;
 }
 
-void TReadGroupInfo::_parse(const InfoType Info){
-	if(!_parsed[Info]){
-		logfile().listFlush(coretools::str::capitalizeFirst(infos[Info].description), ": ");
-		std::string arg = infos[Info].argument;
-
-		//check if info is provided on the command line -> overwrites file
-		if(parameters().parameterExists(arg)){
-			_setFromCommandLine(Info);
-		} else {
-			//check if provided in file
-			if(fileHasInfo(Info)){
-				_setFromRGInfoFile(Info);
-			} else {
-				_setDefault(Info);
-			}
-		}
-		_parsed[Info] = true;
-	}
-}
-
 bool TReadGroupInfo::fileHasInfo(const InfoType Info) const {
-	//return true if at least one RG has thsi info in file
+	//return true if at least one RG has this info in file
 	if(hasFile()){
 		const std::string& arg = infos[Info].argument;
 		for(auto& j : _json){

@@ -53,7 +53,7 @@ protected:
 	BAM::TBamFile _bamFile;
 	std::string _outputName;
 
-	void _openBamForWriting(const std::string &filename, BAM::TOutputBamFile &outBam);
+	void _openBamForWriting(const std::string &Filename, BAM::TOutputBamFile &OutBam);
 
 public:
 	TGenome_basic();

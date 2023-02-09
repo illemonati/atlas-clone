@@ -44,27 +44,27 @@ private:
 
 public:
 	std::string name_ID;
-	mutable std::string barcodeSequence_BC;
-	mutable std::string sequencingCenter_CN;
-	mutable std::string description_DS;
-	mutable std::string productionDate_DT;
-	mutable std::string flowOrder_FO;
-	mutable std::string keySequence_KS;
-	mutable std::string library_LB;
-	mutable std::string program_PG;
-	mutable std::string predictedInsertSize_PI;
-	mutable std::string sequencingTechnology_PL;
-	mutable std::string platformModel_PM;
-	mutable std::string platformUnit_PU;
-	mutable std::string sample_SM;
+	std::string barcodeSequence_BC;
+	std::string sequencingCenter_CN;
+	std::string description_DS;
+	std::string productionDate_DT;
+	std::string flowOrder_FO;
+	std::string keySequence_KS;
+	std::string library_LB;
+	std::string program_PG;
+	std::string predictedInsertSize_PI;
+	std::string sequencingTechnology_PL;
+	std::string platformModel_PM;
+	std::string platformUnit_PU;
+	std::string sample_SM;
 
     //flags
-    mutable bool inUse; 						//read groups not in use are ignored when reading
-    mutable bool writeToHeader;                 //is false if read group is not in use or replaced by new one
+    bool inUse; 						//read groups not in use are ignored when reading
+    bool writeToHeader;                 //is false if read group is not in use or replaced by new one
 
+    TReadGroup();
     TReadGroup(const uint16_t ID, std::string_view Name);
-    TReadGroup(const TReadGroup & other) = default;
-    TReadGroup* getPointer(){ return this; };
+
     std::string compileSamHeader() const;
 
     //getters
@@ -73,6 +73,7 @@ public:
 
     bool operator<(const TReadGroup & right) const;
     bool operator<(std::string_view right) const;
+    bool operator==(std::string_view name) const;
 };
 
 bool operator<(std::string_view left, const TReadGroup & right);
@@ -82,10 +83,13 @@ bool operator<(std::string_view left, const TReadGroup & right);
 //---------------------------------------------------------------
 class TReadGroups{
 private:
-	std::set<TReadGroup, std::less<>> _readGroups;
-	std::vector<const TReadGroup*> _readGroupsById;
+	static const TReadGroup _noReadGroup;
+	std::vector<TReadGroup> _readGroups;
+	std::vector<size_t> _readGroupsById;
 	bool _limitReadGroups;
 
+	std::vector<TReadGroup>::iterator _getReadGroup(std::string_view Name);
+	std::vector<TReadGroup>::const_iterator _getReadGroup(std::string_view Name) const;
 	void _fillLookupFromId();
 
 public:
@@ -97,30 +101,46 @@ public:
 	TReadGroups& operator=(const TReadGroups & other);
 	TReadGroups& operator=(const TReadGroups && other);
 
+	static constexpr uint16_t noReadGroupId = -1;
+
+	// add and remove read groups
 	void clear();
-	const TReadGroup& add(std::string_view name);
-	const TReadGroup& addAlternativeRG(std::string_view Name, std::string_view original);
+	TReadGroup& add(std::string_view name);
+	TReadGroup& addAlternativeRG(std::string_view Name, std::string_view original);
 	uint16_t size() const;
 	bool empty() const;
 
-	uint16_t getId(std::string_view name) const;
-	const std::string& getName (uint16_t readGroupId) const;
-	std::vector<std::string> getNames(std::vector<uint16_t> & readGroupIds) const;
-	const TReadGroup& getReadGroup(std::string_view name);
-	const TReadGroup& operator[](uint16_t readGroupId) const;
+	// access read groups
+	uint16_t getId(std::string_view name) const; // returns noReadGroupId if read group does not exist.
+	const TReadGroup& getReadGroup(std::string_view name) const;
+	TReadGroup& getReadGroup(std::string_view name);
+	const TReadGroup& getReadGroup(uint16_t ReadGroupId) const;
+	TReadGroup& getReadGroup(uint16_t ReadGroupId);
+	const TReadGroup& operator[](uint16_t readGroupId) const; //no checking
+
 	bool readGroupExists(std::string_view name) const;
-	bool readGroupInUse(uint16_t readGroupId) const;
-	bool readGroupInUse(std::string_view name) const;
+	bool readGroupExists(uint16_t readGroupId) const;
 
 	//looping over
-	std::set<TReadGroup, std::less<>>::iterator begin(){ return _readGroups.begin(); };
-	std::set<TReadGroup, std::less<>>::iterator end(){ return _readGroups.end(); };
-	std::set<TReadGroup, std::less<>>::iterator cbegin() const{ return _readGroups.cbegin(); };
-	std::set<TReadGroup, std::less<>>::iterator cend() const{ return _readGroups.cend(); };
+	std::vector<TReadGroup>::iterator begin(){ return _readGroups.begin(); };
+	std::vector<TReadGroup>::iterator end(){ return _readGroups.end(); };
+	std::vector<TReadGroup>::const_iterator cbegin() const{ return _readGroups.cbegin(); };
+	std::vector<TReadGroup>::const_iterator cend() const{ return _readGroups.cend(); };
 
+	//getters of specific entries
+	template <typename T> bool readGroupInUse(T Identifier) const {
+		return getReadGroup(Identifier).inUse;
+	}
+	const std::string& getName (uint16_t readGroupId) const;
+	std::vector<std::string> getNames(std::vector<uint16_t> & readGroupIds) const;
+
+	//some additional tasks
 	void filterReadGroups(std::string_view readGroupList);
-	void removeFromHeader(std::string_view name);
-	void removeFromHeader(const uint16_t readGroupId);
+	template <typename T> void removeFromHeader(T Identifier){
+		auto rg = getReadGroup(Identifier);
+		rg.writeToHeader = false;
+	}
+
 	void printReadgroupsInUse() const;
 	void fillVectorWithNames(std::vector<std::string> & vec) const;
 	std::string compileSamHeader() const;
