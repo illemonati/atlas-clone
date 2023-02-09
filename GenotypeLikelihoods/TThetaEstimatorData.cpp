@@ -7,6 +7,10 @@
 
 #include "TThetaEstimatorData.h"
 
+#include "TBamFilter.h"
+#include "coretools/Containers/TView.h"
+#include "coretools/Main/TLog.h"
+#include "coretools/Main/TParameters.h"
 #include "genometools/GenotypeTypes.h"
 #include "coretools/Files/TOutputFile.h"
 #include "TGenotypeData.h"
@@ -123,6 +127,7 @@ TThetaEstimatorData::TThetaEstimatorData() {
 	numBootstrappedSites  = false;
 	maxKforPoissonPlusOne = 16; // maximum number of bootstrapping copies to consider.
 	poissonProb           = new double[maxKforPoissonPlusOne];
+	fillPoissonForBootstrap(1.0);
 
 	readState                           = false;
 	curSite                             = 0;
@@ -230,16 +235,39 @@ void TThetaEstimatorData::bootstrap() {
 		numBootstrapRepsPerEntry            = new uint8_t[numSitesWithData];
 		numBootstrapRepsPerEntryInitialized = true;
 	}
+	std::fill(numBootstrapRepsPerEntry, numBootstrapRepsPerEntry + numSitesWithData, 0);
 
-	fillPoissonForBootstrap(1.0);
+	if (coretools::instances::parameters().parameterExists("bootstrap_new")) {
+		coretools::instances::logfile().list("Using new boostrapping method.");
+		for (int _ = 0; _ < numSitesWithData; ++_) {
+			++numBootstrapRepsPerEntry[coretools::instances::randomGenerator().sample(numSitesWithData)];
+		}
+		numBootstrappedSites = numSitesWithData;
+	} else {
+		coretools::instances::logfile().list("Using old boostrapping method.");
 
-	// now pick among sites with data with replacement and store for each entry how many times it was chosen
-	numBootstrappedSites = 0.0;
-	for (long l = 0; l < numSitesWithData; ++l) {
-		// do we use this site in the bootstrap?
-		numBootstrapRepsPerEntry[l] = coretools::instances::randomGenerator().pickOne(maxKforPoissonPlusOne, poissonProb);
-		numBootstrappedSites += numBootstrapRepsPerEntry[l];
+		// now pick among sites with data with replacement and store for each entry how many times it was chosen
+		numBootstrappedSites = 0.0;
+		for (long l = 0; l < numSitesWithData; ++l) {
+			// do we use this site in the bootstrap?
+			numBootstrapRepsPerEntry[l] =
+				coretools::instances::randomGenerator().pickOne(maxKforPoissonPlusOne, poissonProb);
+			numBootstrappedSites += numBootstrapRepsPerEntry[l];
+		}
+		if (coretools::instances::parameters().parameterExists("fakeNumSites")) {
+			numBootstrappedSites = numSitesWithData;
+		}
 	}
+
+	std::vector<size_t> counts;
+	for (int i = 0; i < numSitesWithData; ++i) {
+		const auto N = numBootstrapRepsPerEntry[i];
+		if(counts.size() <= N) {
+			counts.resize(N + 1);
+		}
+		++counts[N];
+	}
+
 
 	// set pointer
 	isBootstrapped = true;
@@ -269,7 +297,7 @@ bool TThetaEstimatorData::next() {
 	else {
 		if (curRep < numBootstrapRepsPerEntry[curSite]) {
 			++curRep;
-			return true;
+			//return true;
 		} else {
 			curRep = 1;
 			readNext();
