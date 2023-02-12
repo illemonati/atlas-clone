@@ -21,6 +21,7 @@
 #include "TReadGroupMerger.h"
 #include "TSoftClipping.h"
 #include "TAlignmentMerger.h"
+#include "TIlluminaIdentifier.h"
 
 //window
 #include "TAlleleCountEstimator.h"

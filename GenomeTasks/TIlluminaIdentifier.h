@@ -17,10 +17,11 @@
 
 namespace GenomeTasks{
 
-class TIlluminaIdentifier:public TGenome_filtered{
+class TIlluminaIdentifier:public TGenome_basic{
 private:
+	size_t _counter = 0;
     std::map<std::string, std::string> rgPU_rgID;
-	TOutputBamFile _out;
+	BAM::TOutputBamFile _out;
 	void _handleAlignment();
 
 public:
