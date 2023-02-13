@@ -48,6 +48,7 @@ private:
 	BamTools::BamRegion _bamRegion;
  	BamTools::SamHeader _bamHeader;
  	bool _open;
+	size_t _stepSizeFindLastAlignment = 100;
  	int64_t _fileSize;
 
  	//header
