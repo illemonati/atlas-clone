@@ -27,7 +27,10 @@ if __name__ == "__main__":
             if "theta_MLE" in key:
                 cols.append(j)
                 heads.append(key)
-                probs.append(float(key[1:].split("_")[0]))
+                if key[0] == "p":
+                    probs.append(float(key[1:].split("_")[0]))
+                else:
+                    probs.append(1.)
         f.close()
 
         # get average and std
@@ -43,6 +46,8 @@ if __name__ == "__main__":
         probs = r_[probs]
         means = r_[means]
         stds  = r_[stds]
+
+        print(file, probs, means, stds)
 
         fmts= ["o-", "s-", "x-", "d-", "<-"]
         mks = [10, 8, 6, 4, 2]

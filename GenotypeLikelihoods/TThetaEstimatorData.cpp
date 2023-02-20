@@ -119,21 +119,10 @@ TThetaEstimatorData::TThetaEstimatorData() {
 	totNumSitesAdded           = 0;
 	numSitesWithData           = 0;
 	cumulativeDepth            = 0.0;
-	sum                        = 0.0;
-	g                          = 0;
 	tmpBaseFreq.fill(0.0);
-
-	isBootstrapped        = false;
-	numBootstrappedSites  = false;
-	maxKforPoissonPlusOne = 16; // maximum number of bootstrapping copies to consider.
-	poissonProb           = new double[maxKforPoissonPlusOne];
-	fillPoissonForBootstrap(1.0);
-
-	readState                           = false;
-	curSite                             = 0;
-	curRep                              = 0;
-	numBootstrapRepsPerEntry            = NULL;
-	numBootstrapRepsPerEntryInitialized = false;
+	readState      = false;
+	curSite        = 0;
+	curRep         = 0;
 };
 
 void TThetaEstimatorData::clear() {
@@ -189,7 +178,9 @@ GenotypeLikelihoods::TGenotypeData TThetaEstimatorData::P_G(const GenotypeLikeli
 double TThetaEstimatorData::calcLogLikelihood(const GenotypeLikelihoods::TGenotypeProbabilities &pGenotype) {
 	double LL = 0.0;
 	begin();
-	do { LL += log(weightedSum(curGenotypeLikelihoods(), pGenotype)); } while (next());
+	do {
+		LL += log(weightedSum(curGenotypeLikelihoods(), pGenotype));
+	} while (next());
 
 	return LL;
 };
@@ -201,9 +192,9 @@ void TThetaEstimatorData::addToHeader(std::vector<std::string> &header, const st
 };
 
 void TThetaEstimatorData::writeSite(coretools::TOutputFile &out) {
-	if (isBootstrapped) {
+	if (_isBootstrapped()) {
 		out << "NA";
-		out << (double)(totNumSitesAdded - numBootstrappedSites) / (double)totNumSitesAdded;
+		out << (double)(totNumSitesAdded - numSitesWithData) / (double)totNumSitesAdded;
 		out << "NA";
 		// out << "NA"; //TODO: check if this NA is needed.
 	} else {
@@ -213,69 +204,17 @@ void TThetaEstimatorData::writeSite(coretools::TOutputFile &out) {
 	}
 };
 
-void TThetaEstimatorData::fillPoissonForBootstrap(const double lambda) {
-	double tmp     = exp(-lambda);
-	poissonProb[0] = tmp;
-	for (int k = 1; k < maxKforPoissonPlusOne; ++k) {
-		tmp            = tmp * lambda / (double)k;
-		poissonProb[k] = poissonProb[k - 1] + tmp;
-	}
-
-	// make sure last of cumulative is 1.0
-	if (poissonProb[maxKforPoissonPlusOne - 1] < 0.99999)
-		UERROR("Cumulative Poisson needs more steps: cumulative < 0.99999 at last entry!");
-	poissonProb[maxKforPoissonPlusOne - 1] = 1.0;
-}
-
 void TThetaEstimatorData::bootstrap() {
 	// make sure we start empty
-	clearBootstrap();
+	numBootstrapRepsPerEntry.assign(numSitesWithData, 0);
 
-	if (!numBootstrapRepsPerEntryInitialized) {
-		numBootstrapRepsPerEntry            = new uint8_t[numSitesWithData];
-		numBootstrapRepsPerEntryInitialized = true;
+	for (size_t _ = 0; _ < numSitesWithData; ++_) {
+		++numBootstrapRepsPerEntry[coretools::instances::randomGenerator().sample(numSitesWithData)];
 	}
-	std::fill(numBootstrapRepsPerEntry, numBootstrapRepsPerEntry + numSitesWithData, 0);
-
-	if (coretools::instances::parameters().parameterExists("bootstrap_new")) {
-		coretools::instances::logfile().list("Using new boostrapping method.");
-		for (int _ = 0; _ < numSitesWithData; ++_) {
-			++numBootstrapRepsPerEntry[coretools::instances::randomGenerator().sample(numSitesWithData)];
-		}
-		numBootstrappedSites = numSitesWithData;
-	} else {
-		coretools::instances::logfile().list("Using old boostrapping method.");
-
-		// now pick among sites with data with replacement and store for each entry how many times it was chosen
-		numBootstrappedSites = 0.0;
-		for (long l = 0; l < numSitesWithData; ++l) {
-			// do we use this site in the bootstrap?
-			numBootstrapRepsPerEntry[l] =
-				coretools::instances::randomGenerator().pickOne(maxKforPoissonPlusOne, poissonProb);
-			numBootstrappedSites += numBootstrapRepsPerEntry[l];
-		}
-		if (coretools::instances::parameters().parameterExists("fakeNumSites")) {
-			numBootstrappedSites = numSitesWithData;
-		}
-	}
-
-	std::vector<size_t> counts;
-	for (int i = 0; i < numSitesWithData; ++i) {
-		const auto N = numBootstrapRepsPerEntry[i];
-		if(counts.size() <= N) {
-			counts.resize(N + 1);
-		}
-		++counts[N];
-	}
-
-
-	// set pointer
-	isBootstrapped = true;
 };
 
 void TThetaEstimatorData::clearBootstrap() {
-	numBootstrappedSites = 0;
-	isBootstrapped       = false;
+	numBootstrapRepsPerEntry.clear();
 };
 
 bool TThetaEstimatorData::begin() {
@@ -284,7 +223,7 @@ bool TThetaEstimatorData::begin() {
 
 	_begin();
 
-	if (isBootstrapped) {
+	if (_isBootstrapped()) {
 		while (readState && numBootstrapRepsPerEntry[curSite] == 0) { readNext(); }
 	}
 
@@ -292,12 +231,12 @@ bool TThetaEstimatorData::begin() {
 };
 
 bool TThetaEstimatorData::next() {
-	if (!isBootstrapped)
+	if (!_isBootstrapped())
 		readNext();
 	else {
 		if (curRep < numBootstrapRepsPerEntry[curSite]) {
 			++curRep;
-			//return true;
+			return true;
 		} else {
 			curRep = 1;
 			readNext();
@@ -334,28 +273,7 @@ void TThetaEstimatorDataVector::_begin() {
 	readState = true;
 };
 
-bool TThetaEstimatorDataVector::isEnd() { return siteIt == sites.end(); };
-
 GenotypeLikelihoods::TGenotypeLikelihoods &TThetaEstimatorDataVector::curGenotypeLikelihoods() { return *siteIt; }
-
-GenotypeLikelihoods::TGenotypeData TThetaEstimatorDataVector::P_G(const GenotypeLikelihoods::TGenotypeProbabilities &pGenotype) {
-	// assumes that pGenotype is set!
-	GenotypeLikelihoods::TGenotypeData P_G(0.);
-
-	// calculate P_g for each site
-	for (const auto &s : sites) {
-		const auto P_g_oneSite = posterior(s, pGenotype);
-		std::transform(P_G.begin(), P_G.end(), P_g_oneSite.begin(), P_G.begin(), std::plus<>());
-	}
-	return P_G;
-};
-
-double TThetaEstimatorDataVector::calcLogLikelihood(const GenotypeLikelihoods::TGenotypeProbabilities &pGenotype) {
-	double LL = 0.0;
-	for (const auto &s : sites) { LL += log(weightedSum(s, pGenotype)); }
-
-	return LL;
-};
 
 //-------------------------------------------------------
 // TThetaEstimatorDataFile
@@ -385,8 +303,6 @@ void TThetaEstimatorDataFile::_begin() {
 	--curSite;
 	readNext(); // read first! This is required to match begin() of a vector
 }
-
-bool TThetaEstimatorDataFile::isEnd() { return sites.isEOF(); };
 
 GenotypeLikelihoods::TGenotypeLikelihoods &TThetaEstimatorDataFile::curGenotypeLikelihoods() {
 	return genotypeLikelihoods;

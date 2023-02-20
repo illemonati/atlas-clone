@@ -121,8 +121,8 @@ void TThetaEstimator_base::findGoodStartingTheta(TThetaEstimatorData *thisData, 
 	double expTheta  = exp(-initTheta);
 
 	// calc initial LL
-	_pGenotype   = getPGenotype(expTheta, thisTheta.baseFreq);
-	thisTheta.LL = thisData->calcLogLikelihood(_pGenotype);
+	const auto pGenotype   = getPGenotype(expTheta, thisTheta.baseFreq);
+	thisTheta.LL = thisData->calcLogLikelihood(pGenotype);
 
 	// run iterations
 	double oldLL  = thisTheta.LL;
@@ -137,8 +137,7 @@ void TThetaEstimator_base::findGoodStartingTheta(TThetaEstimatorData *thisData, 
 			oldTheta = initTheta;
 			initTheta *= factor;
 			expTheta     = exp(-initTheta);
-			_pGenotype   = getPGenotype(expTheta, thisTheta.baseFreq);
-			thisTheta.LL = thisData->calcLogLikelihood(_pGenotype);
+			thisTheta.LL = thisData->calcLogLikelihood(getPGenotype(expTheta, thisTheta.baseFreq));
 		} while (oldLL < thisTheta.LL);
 		if (numUpdates == 0) {
 			// then test decrease in theta
@@ -150,8 +149,7 @@ void TThetaEstimator_base::findGoodStartingTheta(TThetaEstimatorData *thisData, 
 				oldTheta = initTheta;
 				initTheta /= factor;
 				expTheta     = exp(-initTheta);
-				_pGenotype   = getPGenotype(expTheta, thisTheta.baseFreq);
-				thisTheta.LL = thisData->calcLogLikelihood(_pGenotype);
+				thisTheta.LL = thisData->calcLogLikelihood(getPGenotype(expTheta, thisTheta.baseFreq));
 			} while (oldLL < thisTheta.LL);
 		}
 		factor       = sqrt(factor);
@@ -237,12 +235,11 @@ double TThetaEstimator::_calcFisherInfo(const TGenotypeProbabilities &pGenotype,
 	return (FisherInfo);
 };
 
-bool TThetaEstimator::_NRAllParams() {
+bool TThetaEstimator::_NRAllParams(const GenotypeLikelihoods::TGenotypeProbabilities &_pGenotype) {
 	using namespace genometools;
 	using coretools::Probability;
 	using coretools::index;
 	// calculate substitution probabilities
-	_pGenotype = getPGenotype(theta);
 
 	// Calculate all genotype probabilities for all sites
 	const GenotypeLikelihoods::TGenotypeData P_G = data->P_G(_pGenotype); // see paper
@@ -326,11 +323,9 @@ bool TThetaEstimator::_NRAllParams() {
 
 void TThetaEstimator::_NROnlyTheta() {
 	using namespace genometools;
-	// calculate	substitution probabilities
-	_pGenotype = getPGenotype(theta);
 
 	// Calculate all genotype probabilities for all sites
-	const GenotypeLikelihoods::TGenotypeData P_G = data->P_G(_pGenotype); // see paper
+	const GenotypeLikelihoods::TGenotypeData P_G = data->P_G(getPGenotype(theta)); // see paper
 
 	double rho = theta.expMinusTheta / (1.0 - theta.expMinusTheta);
 
@@ -367,7 +362,7 @@ void TThetaEstimator::_runEMForTheta() {
 	int failedAttempts   = 0;
 	double startingTheta = initialTheta;
 	theta.LL             = -9e100;
-	while (!_NRAllParams()) {
+	while (!_NRAllParams(getPGenotype(theta))) {
 		++failedAttempts;
 		// solve did not work -> start with higher theta!
 		startingTheta *= 2.0;
@@ -388,10 +383,11 @@ void TThetaEstimator::_runEMForTheta() {
 		} while (i < numThetaOnlyUpdates && theta.theta != oldTheta);
 
 		// update all params
-		_NRAllParams();
+		const auto pGenotype = getPGenotype(theta);
+		_NRAllParams(pGenotype);
 
 		// e) do we break EM? Check LL
-		theta.LL = data->calcLogLikelihood(_pGenotype);
+		theta.LL = data->calcLogLikelihood(pGenotype);
 		if ((theta.LL - oldLL) < maxEpsilon) break;
 
 		// maybe theta = 0?
@@ -401,8 +397,7 @@ void TThetaEstimator::_runEMForTheta() {
 
 			// test with theta = 0.0
 			theta.setTheta(0.0);
-			_pGenotype = getPGenotype(theta);
-			theta.LL   = data->calcLogLikelihood(_pGenotype);
+			theta.LL   = data->calcLogLikelihood(getPGenotype(theta));
 
 			// theta is between zero and a very small number -> don't care about exact value
 			if (theta.LL < oldLL) {
@@ -423,7 +418,7 @@ void TThetaEstimator::_estimateConfidenceInterval() {
 	// This function assumes that EM has already been run!
 
 	// calculate P(g|theta, pi)
-	_pGenotype = getPGenotype(theta);
+	const auto pGenotype = getPGenotype(theta);
 
 	// calclate d/dtheta P(g|theta, pi)
 	TGenotypeData deriv_pGenotype;
@@ -440,7 +435,7 @@ void TThetaEstimator::_estimateConfidenceInterval() {
 		}
 	}
 
-	double FisherInfo = _calcFisherInfo(_pGenotype, deriv_pGenotype);
+	double FisherInfo = _calcFisherInfo(pGenotype, deriv_pGenotype);
 
 	// estimate confidence interval
 	// TODO: Fisher Info can be negative -> SQRT will be nan!
@@ -565,8 +560,7 @@ void TThetaEstimator::calcLikelihoodSurface(coretools::TOutputFile &out, uint32_
 		theta.setLogTheta(minLogTheta + stepSize * i);
 
 		// calculate	substitution probabilities and Likelihood
-		_pGenotype = getPGenotype(theta);
-		theta.LL   = data->calcLogLikelihood(_pGenotype);
+		theta.LL   = data->calcLogLikelihood(getPGenotype(theta));
 
 		// write results
 		out.writeln(theta.logTheta, theta.theta, theta.LL);
@@ -676,9 +670,9 @@ void TThetaEstimatorRatio::estimateRatio(std::string ouputName) {
 
 	// check if there is sufficient data
 	logfile().list(toString(data->sizeWithData()) + " sites with data available for region 1.");
-	if (data->numSitesWithData < minSitesWithData) UERROR("Not enough sites for region 1!");
+	if (data->sizeWithData() < minSitesWithData) UERROR("Not enough sites for region 1!");
 	logfile().list(toString(data2->sizeWithData()) + " sites with data available for region 2.");
-	if (data2->numSitesWithData < minSitesWithData) UERROR("Not enough sites for region 2!");
+	if (data2->sizeWithData() < minSitesWithData) UERROR("Not enough sites for region 2!");
 
 	// get good starting values
 	findGoodStartingTheta(data, theta, " region 1");
@@ -748,7 +742,7 @@ bool TThetaEstimatorRatio::updateTheta(TThetaEstimatorData *thisData, Theta &thi
 	double newExpTheta = exp(-exp(newLogTheta)); // we update log(theta) but need exp(-theta)
 
 	// calc LL
-	_pGenotype   = getPGenotype(newExpTheta, thisTheta.baseFreq);
+	const auto _pGenotype   = getPGenotype(newExpTheta, thisTheta.baseFreq);
 	double newLL = thisData->calcLogLikelihood(_pGenotype);
 
 	// calc hastings ratio with prior
@@ -792,7 +786,7 @@ bool TThetaEstimatorRatio::updateBaseFrequencies(TThetaEstimatorData *thisData, 
 	const auto tmpBaseFreq = TBaseProbabilities::normalize(tmpBaseLik);
 
 	// calc LL & hastings ratio (use uniform prior, i.e. all combinations are equally likely)
-	_pGenotype   = getPGenotype(thisTheta.expMinusTheta, tmpBaseFreq);
+	const auto _pGenotype   = getPGenotype(thisTheta.expMinusTheta, tmpBaseFreq);
 	double newLL = thisData->calcLogLikelihood(_pGenotype);
 	double logH  = newLL - thisTheta.LL;
 

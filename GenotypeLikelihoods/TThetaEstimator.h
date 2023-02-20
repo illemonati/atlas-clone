@@ -103,8 +103,7 @@ protected:
 	int initThetaNumSearchIterations = 100;
 
 	// estimation
-	int minSitesWithData;
-	GenotypeLikelihoods::TGenotypeProbabilities _pGenotype; // P(g|pi, theta)
+	size_t minSitesWithData;
 	Theta theta;
 	bool extraVerbose;
 
@@ -143,7 +142,7 @@ private:
 	// tmp vectors
 
 	double _calcFisherInfo(const TGenotypeProbabilities &pGenotype, const TGenotypeData deriv_pGenotype);
-	bool _NRAllParams();
+	bool _NRAllParams(const GenotypeLikelihoods::TGenotypeProbabilities &_pGenotype);
 	void _NROnlyTheta();
 	void _runEMForTheta();
 	void _estimateConfidenceInterval();
