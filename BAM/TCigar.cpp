@@ -6,6 +6,7 @@
  */
 
 #include "TCigar.h"
+#include "coretools/devtools.h"
 #include <algorithm>
 #include "coretools/Strings/stringFunctions.h"
 
@@ -48,10 +49,7 @@ TCigar::TCigar(TCigar cigar, uint16_t overlapLength, bool isForwardStrand, size_
 				iterator++;
 			}
 
-			//softclip the overlap, increasing the length of softclips on the left ensures that this overlap is placed on the right side
-			_lengthSoftClippedLeft++;
 			add('S',overlap);
-			_lengthSoftClippedLeft--;
 		} else {
 			//same as the part above, just use rbegin instead of begin to construct the cigar-string from right to left
 			std::vector<CigarOperator>::const_reverse_iterator iterator = cigar.rbegin();
@@ -116,7 +114,7 @@ void TCigar::add(char Type, uint32_t Length) {
 	} else if (Type == 'D') {
 		_lengthDeleted += Length;
 	} else if (Type == 'S') {
-		if (!_lengthSoftClippedLeft) {
+		if (_cigar.empty()) {
 			_lengthSoftClippedLeft = Length;
 		} else {
 			_lengthSoftClippedRight = Length;
