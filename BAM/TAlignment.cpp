@@ -123,7 +123,7 @@ void TAlignment::_parseBasesQualities() {
 		case ('M'):
 		case ('='):
 		case ('X'):
-			// soft-clipped bases on 5' are before bamAlignment.Position
+			// soft-clipped bases on left are before bamAlignment.Position
 			for (unsigned int i = 0; i < cigarIter.length; ++i, ++d, ++p) {
 				_bases[d].base                     = char2base(_sequence[d]);
 				_bases[d].originalQuality_phredInt = genometools::BaseQuality(_qualities[d]);
@@ -208,8 +208,9 @@ void TAlignment::_setDistancesFromEnds() {
 			// reverse (can be either first or second mate, but it's the one that comes second in bam file)
 			// and distance from 5' is given as f(end of fragment) = f(len - pos - 1)
 			// hence distance from 3' is given by f(dist since beginning of fragment) = f(insert - len + pos)
-			const int k = _fragmentLength - (_cigar.lengthSequenced() - _cigar.lengthSoftClippedRight());
-			const int l = _cigar.lengthSequenced() - 1 - _cigar.lengthSoftClippedRight();
+			const int l = _cigar.lengthSequenced() - 1 + _cigar.lengthSoftClippedLeft();
+			const int k = _fragmentLength - _cigar.lengthSequenced() - _cigar.lengthSoftClippedLeft();
+			//const int k = _fragmentLength - (_cigar.lengthSequenced() - _cigar.lengthSoftClippedRight());
 			for (int pos = 0; pos < length; ++pos) {
 				_bases[pos].distFrom5Prime = l - pos; // dist from 5'
 				_bases[pos].distFrom3Prime = k + pos; // dist from 3'
@@ -220,6 +221,13 @@ void TAlignment::_setDistancesFromEnds() {
 			// And distance from 3' is given by (length of fragment) - pos -1
 			// NOTE! we ignore indels when calculating distance from 5' since we can not know this info.
 			// Luckily, this has only minimal effect since these distances are far from fragment ends
+
+			// paired strand Forward
+			//        |-------------------|      : fragmentlength = 20
+			//   5' SSS---x---SSS 3' : _bases.length = softclippedLeft + length + softClippedRight = 3 + 7 + 3
+			// pos: 0123456789
+			// d5':    0123456       : d5 = pos - softClippedLeft = 6-3 = 3
+			// d3':    TODO
 			for (int pos = 0; pos < length; ++pos) {
 				_bases[pos].distFrom5Prime = pos - _cigar.lengthSoftClippedLeft();                       // dist from 5'
 				_bases[pos].distFrom3Prime = _fragmentLength - 1 - pos + _cigar.lengthSoftClippedLeft(); // dist from 3'
@@ -227,22 +235,28 @@ void TAlignment::_setDistancesFromEnds() {
 		}
 	} else {
 		// treat as single end
-		const int l = length - 1;
+		const int len_1 = length - 1;
 		if (_flags.isReverseStrand()) {
-			// not in pair & reverse
-			// Hence distance from 3' is just pos
-			// And distance from 5' is just len - pos - 1
+			// Singlestrand Reverse
+			//        |-------|      : length = 7
+			//   3' SSS---x---SSS 5' : _bases.length = softclippedLeft + length + softClippedRight = 3 + 7 + 3
+			// pos: 0123456789
+			// d5':    6543210       : d5 = length - 1 + softClippedLeft = 7 - 1 - 6 + 3 = 3
+			// d3':    0123456       : d3 = pos - softClippedLeft = 6-3 = 3
 			for (int pos = 0; pos < length; ++pos) {
-				_bases[pos].distFrom5Prime = l - pos - _cigar.lengthSoftClippedRight(); // dist from 5'
+				_bases[pos].distFrom5Prime = len_1 - pos + _cigar.lengthSoftClippedLeft(); // dist from 5'
 				_bases[pos].distFrom3Prime = pos - _cigar.lengthSoftClippedLeft();      // dist from 3'
 			}
 		} else {
-			// not in pair & forward
-			// Hence distance from 5' is just pos
-			// And distance from 3' is given by len - pos - 1
+			// Singlestrand Forward
+			//        |-------|      : length = 7
+			//   5' SSS---x---SSS 3' : _bases.length = softclippedLeft + length + softClippedRight = 3 + 7 + 3
+			// pos: 0123456789
+			// d5':    0123456       : d5 = pos - softClippedLeft = 6-3 = 3
+			// d3':    6543210       : d3 = length - 1 + softClippedLeft = 7 - 1 - 6 + 3 = 3
 			for (int pos = 0; pos < length; ++pos) {
 				_bases[pos].distFrom5Prime = pos - _cigar.lengthSoftClippedLeft();      // dist from 5'
-				_bases[pos].distFrom3Prime = l - pos - _cigar.lengthSoftClippedRight(); // dist from 3'
+				_bases[pos].distFrom3Prime = len_1 - pos + _cigar.lengthSoftClippedLeft(); // dist from 3'
 			}
 		}
 	}
