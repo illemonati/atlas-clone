@@ -9,6 +9,7 @@
 
 #include <armadillo>
 #include <exception>
+#include <memory>
 #include <stdlib.h>
 
 #include "genometools/GenotypeTypes.h"
@@ -55,60 +56,58 @@ GenotypeLikelihoods::TGenotypeProbabilities getPGenotype(const Theta &thisTheta)
 };
 
 TThetaEstimator_base::TThetaEstimator_base()
-	: useTmpFile(coretools::instances::parameters().parameterExists("useTmpFile")),
-	  minSitesWithData(coretools::instances::parameters().getParameterWithDefault<int>("minSitesWithData", 1000)),
-	  extraVerbose(coretools::instances::parameters().parameterExists("extraVerbose")) {
-	initDataStorage();
+	: _useTmpFile(coretools::instances::parameters().parameterExists("useTmpFile")),
+	  _minSitesWithData(coretools::instances::parameters().getParameterWithDefault<int>("minSitesWithData", 1000)),
+	  _extraVerbose(coretools::instances::parameters().parameterExists("extraVerbose")) {
+	_initDataStorage();
 };
 
 TThetaEstimator_base::TThetaEstimator_base(const TThetaEstimator_base &other) {
-	data            = nullptr;
-	dataInitialized = false;
+	_data            = nullptr;
 
 	// data
-	useTmpFile = other.useTmpFile;
-	initDataStorage();
+	_useTmpFile = other._useTmpFile;
+	_initDataStorage();
 
 	// minimum window size
-	minSitesWithData = other.minSitesWithData;
+	_minSitesWithData = other._minSitesWithData;
 
 	// extra verbosity
-	extraVerbose = other.extraVerbose;
+	_extraVerbose = other._extraVerbose;
 };
 
-void TThetaEstimator_base::initDataStorage() {
-	if (dataInitialized) { delete data; }
+void TThetaEstimator_base::_initDataStorage() {
+	_data.reset();
 
 	// file or vector?
-	if (useTmpFile) {
-		tmpFileName =
+	if (_useTmpFile) {
+		_tmpFileName =
 			"temporaryDataForThetaEstimation_" + randomGenerator().getRandomAlphaNumericString(10) + ".tmp.gz";
-		logfile().list("Will write temporary data to file '" + tmpFileName + "'.");
-		data = new TThetaEstimatorDataFile(tmpFileName);
+		logfile().list("Will write temporary data to file '" + _tmpFileName + "'.");
+		_data = std::make_unique<TThetaEstimatorDataFile>(_tmpFileName);
 	} else {
-		data = new TThetaEstimatorDataVector();
+		_data = std::make_unique<TThetaEstimatorDataVector>();
 	}
-	dataInitialized = true;
 };
 
-void TThetaEstimator_base::readParametersRegardingInitialSearch() {
+void TThetaEstimator_base::_readParametersRegardingInitialSearch() {
 	using coretools::str::toString;
 	logfile().startIndent("Parameters of the initial theta search:");
-	initialTheta = parameters().getParameterWithDefault("initTheta", 0.01);
-	logfile().list("Will start with an initial theta of " + toString(initialTheta) + ".");
-	initThetaNumSearchIterations = parameters().getParameterWithDefault("initThetaNumSearchIterations", 10);
-	if (initThetaNumSearchIterations > 0) {
-		logfile().list("Will run " + toString(initThetaNumSearchIterations) +
+	_initialTheta = parameters().getParameterWithDefault("initTheta", 0.01);
+	logfile().list("Will start with an initial theta of " + toString(_initialTheta) + ".");
+	_initThetaNumSearchIterations = parameters().getParameterWithDefault("initThetaNumSearchIterations", 10);
+	if (_initThetaNumSearchIterations > 0) {
+		logfile().list("Will run " + toString(_initThetaNumSearchIterations) +
 					   " iterations of a crude search for an initial theta.");
-		initThetaSearchFactor = parameters().getParameterWithDefault("initThetaSearchFactor", 100);
-		logfile().list("The initial search factor will be " + toString(initThetaSearchFactor) + ".");
+		_initThetaSearchFactor = parameters().getParameterWithDefault("initThetaSearchFactor", 100);
+		logfile().list("The initial search factor will be " + toString(_initThetaSearchFactor) + ".");
 	} else {
-		initThetaSearchFactor = 0;
+		_initThetaSearchFactor = 0;
 	}
 	logfile().endIndent();
 };
 
-void TThetaEstimator_base::findGoodStartingTheta(TThetaEstimatorData *thisData, Theta &thisTheta,
+void TThetaEstimator_base::_findGoodStartingTheta(TThetaEstimatorData *thisData, Theta &thisTheta,
 												 const std::string &tag) {
 	logfile().listFlush("Estimating initial parameters" + tag + " ...");
 
@@ -116,7 +115,7 @@ void TThetaEstimator_base::findGoodStartingTheta(TThetaEstimatorData *thisData, 
 	thisTheta.baseFreq = thisData->baseFrequencies();
 
 	// variables
-	double initTheta = initialTheta;
+	double initTheta = _initialTheta;
 	double oldTheta  = initTheta;
 	double expTheta  = exp(-initTheta);
 
@@ -126,9 +125,9 @@ void TThetaEstimator_base::findGoodStartingTheta(TThetaEstimatorData *thisData, 
 
 	// run iterations
 	double oldLL  = thisTheta.LL;
-	double factor = initThetaSearchFactor;
+	double factor = _initThetaSearchFactor;
 	int numUpdates;
-	for (int i = 0; i < initThetaNumSearchIterations; ++i) {
+	for (int i = 0; i < _initThetaNumSearchIterations; ++i) {
 		// first test increase in theta
 		numUpdates = -1;
 		do {
@@ -157,19 +156,19 @@ void TThetaEstimator_base::findGoodStartingTheta(TThetaEstimatorData *thisData, 
 		thisTheta.LL = oldLL;
 	}
 	// return previous
-	thisTheta.setTheta(oldTheta);
+	thisTheta.set(oldTheta);
 	thisTheta.LL = oldLL;
 
 	// check if values make sense. If theta < 1/(10*windowsize), set it to 1/(10*windowsize)
 	if (thisTheta.theta < 0.1 / (double)thisData->size()) {
-		thisTheta.setTheta(0.1 / (double)thisData->size());
+		thisTheta.set(0.1 / (double)thisData->size());
 	} else if (thisTheta.theta > 1.0) {
-		thisTheta.setTheta(1.0);
+		thisTheta.set(1.0);
 	}
 
 	// conclude
 	logfile().done();
-	logfile().conclude("Initial base frequencies: " + thisTheta.getBaseFrequencyString());
+	logfile().conclude("Initial base frequencies: " + thisTheta.string());
 	logfile().conclude("Initial theta = ", thisTheta.theta);
 }
 
@@ -177,62 +176,43 @@ void TThetaEstimator_base::findGoodStartingTheta(TThetaEstimatorData *thisData, 
 // TThetaEstimator
 //-------------------------------------------------------
 TThetaEstimator::TThetaEstimator() : TThetaEstimator_base() {
-	estimationSuccessful         = false;
-	initialTheta                 = 0.0;
-	initThetaSearchFactor        = -1;
-	initThetaNumSearchIterations = -1;
-	_expectedHet 				 = 0.0;
+	_initialTheta                 = 0.0;
+	_initThetaSearchFactor        = -1;
+	_initThetaNumSearchIterations = -1;
 
 	// parse
 	logfile().startIndent("Parameters of EM algorithm to infer theta:");
-	numIterations = parameters().getParameterWithDefault<int>("iterations", 100);
-	logfile().list("Will run up to " + toString(numIterations) + " iterations.");
-	numThetaOnlyUpdates = parameters().getParameterWithDefault<int>("iterationsThetaOnly", 10);
-	logfile().list("In each iteration, theta will be updated " + toString(numThetaOnlyUpdates) + " times.");
+	_numIterations = parameters().getParameterWithDefault<int>("iterations", 100);
+	logfile().list("Will run up to " + toString(_numIterations) + " iterations.");
+	_numThetaOnlyUpdates = parameters().getParameterWithDefault<int>("iterationsThetaOnly", 10);
+	logfile().list("In each iteration, theta will be updated " + toString(_numThetaOnlyUpdates) + " times.");
 
-	maxEpsilon = parameters().getParameterWithDefault("maxEps", 0.000001);
-	logfile().list("Will run EM until deltaLL < " + toString(maxEpsilon) + ".");
-	NewtonRaphsonNumIterations = parameters().getParameterWithDefault<int>("NRiterations", 10);
-	logfile().list("Will run Newton-Raphson algorithm up to " + toString(NewtonRaphsonNumIterations) + " times.");
-	NewtonRaphsonMaxF = parameters().getParameterWithDefault("maxF", 0.00001);
-	logfile().list("Will run Newton-Raphson algorithm until max(F) < " + toString(NewtonRaphsonMaxF) + ".");
+	_maxEpsilon = parameters().getParameterWithDefault("maxEps", 0.000001);
+	logfile().list("Will run EM until deltaLL < " + toString(_maxEpsilon) + ".");
+	_NewtonRaphsonNumIterations = parameters().getParameterWithDefault<int>("NRiterations", 10);
+	logfile().list("Will run Newton-Raphson algorithm up to " + toString(_NewtonRaphsonNumIterations) + " times.");
+	_NewtonRaphsonMaxF = parameters().getParameterWithDefault("maxF", 0.00001);
+	logfile().list("Will run Newton-Raphson algorithm until max(F) < " + toString(_NewtonRaphsonMaxF) + ".");
 	logfile().endIndent();
 
 	// params regarding initial search
-	readParametersRegardingInitialSearch();
+	_readParametersRegardingInitialSearch();
 }
 
 void TThetaEstimator::clear() {
-	data->clear();
-	estimationSuccessful = false;
+	_data->clear();
+	_estimationSuccessful = false;
 };
 
 void TThetaEstimator::add(const GenotypeLikelihoods::TSite &site,
 						  const GenotypeLikelihoods::TGenotypeLikelihoods &genotypeLikelihoods) {
-	data->add(site, genotypeLikelihoods);
+	_data->add(site, genotypeLikelihoods);
 };
 
 void TThetaEstimator::add(const TWindow &window, const TGenotypeLikelihoodCalculator &glCalculator) {
 	for (std::vector<TSite>::const_iterator it = window.cbegin(); it != window.cend(); ++it) {
 		add(*it, glCalculator.calculateGenotypeLikelihoods(*it));
 	}
-};
-
-double TThetaEstimator::_calcFisherInfo(const TGenotypeProbabilities &pGenotype, const TGenotypeData deriv_pGenotype) {
-	// sum Ri over all sites
-	double FisherInfo = 0.0;
-	data->begin();
-	do {
-		// calc Ri
-		const double Ri_a = weightedSum(data->curGenotypeLikelihoods(), deriv_pGenotype);
-		const double Ri_b = weightedSum(data->curGenotypeLikelihoods(), pGenotype);
-		const double Ri   = Ri_a / Ri_b;
-
-		// add to Fisher Info
-		FisherInfo += Ri * (Ri + 1.0);
-	} while (data->next());
-
-	return (FisherInfo);
 };
 
 bool TThetaEstimator::_NRAllParams(const GenotypeLikelihoods::TGenotypeProbabilities &_pGenotype) {
@@ -242,20 +222,20 @@ bool TThetaEstimator::_NRAllParams(const GenotypeLikelihoods::TGenotypeProbabili
 	// calculate substitution probabilities
 
 	// Calculate all genotype probabilities for all sites
-	const GenotypeLikelihoods::TGenotypeData P_G = data->P_G(_pGenotype); // see paper
+	const GenotypeLikelihoods::TGenotypeData P_G = _data->P_G(_pGenotype); // see paper
 
 	// prepare storage
 	arma::mat Jacobian(6, 6);
 	arma::vec F(6);
 	arma::mat JxF(6, 6);
 
-	double rho = theta.expMinusTheta / (1.0 - theta.expMinusTheta);
-	double mu  = data->sizeWithData();
+	double rho = _theta.expMinusTheta / (1.0 - _theta.expMinusTheta);
+	double mu  = _data->sizeWithData();
 
-	TBaseProbabilities &baseFreq = theta.baseFreq; // for cleaner code
-	for (int n = 0; n < NewtonRaphsonNumIterations; ++n) {
+	TBaseProbabilities &baseFreq = _theta.baseFreq; // for cleaner code
+	for (int n = 0; n < _NewtonRaphsonNumIterations; ++n) {
 		// i) calculate F (Note: index is zero based!)
-		F(4) = data->sizeWithData();
+		F(4) = _data->sizeWithData();
 		F(5) = 0.0;
 		for (Base k = Base::min; k < Base::max; ++k) {
 			const auto hom = genotype(k, k);
@@ -292,7 +272,7 @@ bool TThetaEstimator::_NRAllParams(const GenotypeLikelihoods::TGenotypeProbabili
 		}
 
 		// iii) now estimate new parameters
-		mu = data->sizeWithData();
+		mu = _data->sizeWithData();
 
 		if (solve(JxF, Jacobian, F)) {
 			// baseFreq = TBaseProbabilities(baseFreq, JxF, std::minus<>());
@@ -310,8 +290,8 @@ bool TThetaEstimator::_NRAllParams(const GenotypeLikelihoods::TGenotypeProbabili
 				if (F(i) > maxF) maxF = F(i);
 			}
 
-			if (maxF < NewtonRaphsonMaxF) {
-				theta.setTheta(-log(rho / (1.0 + rho)));
+			if (maxF < _NewtonRaphsonMaxF) {
+				_theta.set(-log(rho / (1.0 + rho)));
 				return true;
 			}
 		} else {
@@ -325,32 +305,32 @@ void TThetaEstimator::_NROnlyTheta() {
 	using namespace genometools;
 
 	// Calculate all genotype probabilities for all sites
-	const GenotypeLikelihoods::TGenotypeData P_G = data->P_G(getPGenotype(theta)); // see paper
+	const GenotypeLikelihoods::TGenotypeData P_G = _data->P_G(getPGenotype(_theta)); // see paper
 
-	double rho = theta.expMinusTheta / (1.0 - theta.expMinusTheta);
+	double rho = _theta.expMinusTheta / (1.0 - _theta.expMinusTheta);
 
-	for (int n = 0; n < NewtonRaphsonNumIterations; ++n) {
+	for (int n = 0; n < _NewtonRaphsonNumIterations; ++n) {
 
 		// i) calculate F() (Note: index is zero based!)
 		// ii) fill Jacobian (Note: index is zero based!)
-		double F        = data->sizeWithData();
+		double F        = _data->sizeWithData();
 		double Jacobian = 0.0;
 		for (Base k = Base::min; k < Base::max; ++k) {
 			const auto hom = genotype(k, k);
 
-			const double tmp = (theta.baseFreq[k].get() + rho);
+			const double tmp = (_theta.baseFreq[k].get() + rho);
 			F -= P_G[hom] * (rho + 1.0) / tmp;
 
 			const double tmpSum = P_G[hom] / (tmp * tmp);
-			Jacobian += tmpSum * (1.0 - theta.baseFreq[k].get());
+			Jacobian += tmpSum * (1.0 - _theta.baseFreq[k].get());
 		}
 
 		// iii) now estimate new parameters
 		rho = rho - F / Jacobian;
 
 		// check if we break
-		if (F < NewtonRaphsonMaxF) {
-			theta.setTheta(-log(rho / (1.0 + rho)));
+		if (F < _NewtonRaphsonMaxF) {
+			_theta.set(-log(rho / (1.0 + rho)));
 			break;
 		}
 	}
@@ -360,56 +340,56 @@ void TThetaEstimator::_runEMForTheta() {
 	// increase initialTheta if we fail to calculate inverse of Jacobian.
 	//  this may be the case if initialTheta is smaller than true theta and likelihood is very flat
 	int failedAttempts   = 0;
-	double startingTheta = initialTheta;
-	theta.LL             = -9e100;
-	while (!_NRAllParams(getPGenotype(theta))) {
+	double startingTheta = _initialTheta;
+	_theta.LL             = -9e100;
+	while (!_NRAllParams(getPGenotype(_theta))) {
 		++failedAttempts;
 		// solve did not work -> start with higher theta!
 		startingTheta *= 2.0;
-		theta.setTheta(startingTheta);
+		_theta.set(startingTheta);
 		if (startingTheta > 1.0) UERROR("Failed to estimate Theta, issues calculating inverse of Jacobian!");
 	}
 
 	// start EM loop
-	for (int iter = 0; iter < numIterations; ++iter) {
+	for (int iter = 0; iter < _numIterations; ++iter) {
 		// update only theta: most difficult parameter and it is much faster to update only this one alone.
 		int i           = 0;
 		double oldTheta = 0.0;
-		double oldLL    = theta.LL;
+		double oldLL    = _theta.LL;
 		do {
-			oldTheta = theta.theta;
+			oldTheta = _theta.theta;
 			_NROnlyTheta();
 			++i;
-		} while (i < numThetaOnlyUpdates && theta.theta != oldTheta);
+		} while (i < _numThetaOnlyUpdates && _theta.theta != oldTheta);
 
 		// update all params
-		const auto pGenotype = getPGenotype(theta);
+		const auto pGenotype = getPGenotype(_theta);
 		_NRAllParams(pGenotype);
 
 		// e) do we break EM? Check LL
-		theta.LL = data->calcLogLikelihood(pGenotype);
-		if ((theta.LL - oldLL) < maxEpsilon) break;
+		_theta.LL = _data->calcLogLikelihood(pGenotype);
+		if ((_theta.LL - oldLL) < _maxEpsilon) break;
 
 		// maybe theta = 0?
-		if (theta.theta < 0.1 / (double)data->size()) {
+		if (_theta.theta < 0.1 / (double)_data->size()) {
 			//(theta is somewhere between 1/numLoci and 0,
-			oldTheta = theta.theta;
+			oldTheta = _theta.theta;
 
 			// test with theta = 0.0
-			theta.setTheta(0.0);
-			theta.LL   = data->calcLogLikelihood(getPGenotype(theta));
+			_theta.set(0.0);
+			_theta.LL   = _data->calcLogLikelihood(getPGenotype(_theta));
 
 			// theta is between zero and a very small number -> don't care about exact value
-			if (theta.LL < oldLL) {
-				theta.setTheta(oldTheta);
-				theta.LL = oldLL;
+			if (_theta.LL < oldLL) {
+				_theta.set(oldTheta);
+				_theta.LL = oldLL;
 			}
 			break;
 		}
 
-		if (extraVerbose) logfile().list(toString(iter) + ") current theta = " + toString(theta.theta));
+		if (_extraVerbose) logfile().list(toString(iter) + ") current theta = " + toString(_theta.theta));
 	}
-	if (extraVerbose) logfile().list("EM converged, current theta = " + toString(theta.theta));
+	if (_extraVerbose) logfile().list("EM converged, current theta = " + toString(_theta.theta));
 }
 
 void TThetaEstimator::_estimateConfidenceInterval() {
@@ -418,7 +398,7 @@ void TThetaEstimator::_estimateConfidenceInterval() {
 	// This function assumes that EM has already been run!
 
 	// calculate P(g|theta, pi)
-	const auto pGenotype = getPGenotype(theta);
+	const auto pGenotype = getPGenotype(_theta);
 
 	// calclate d/dtheta P(g|theta, pi)
 	TGenotypeData deriv_pGenotype;
@@ -427,19 +407,19 @@ void TThetaEstimator::_estimateConfidenceInterval() {
 		// homozygous genotype
 		const auto hom = genotype(k, k);
 		deriv_pGenotype[hom] =
-			(theta.baseFreq[k].get() * theta.baseFreq[k].get() - theta.baseFreq[k].get()) * theta.expMinusTheta;
+			(_theta.baseFreq[k].get() * _theta.baseFreq[k].get() - _theta.baseFreq[k].get()) * _theta.expMinusTheta;
 		// heterozygous genotypes
 		for (Base l = coretools::next(k); l < Base::max; ++l) {
 			const auto het       = genotype(k, l);
-			deriv_pGenotype[het] = 2.0 * theta.baseFreq[k].get() * theta.baseFreq[l].get() * theta.expMinusTheta;
+			deriv_pGenotype[het] = 2.0 * _theta.baseFreq[k].get() * _theta.baseFreq[l].get() * _theta.expMinusTheta;
 		}
 	}
 
-	double FisherInfo = _calcFisherInfo(pGenotype, deriv_pGenotype);
+	double FisherInfo = _data->fisherInfo(pGenotype, deriv_pGenotype);
 
 	// estimate confidence interval
 	// TODO: Fisher Info can be negative -> SQRT will be nan!
-	theta.thetaConfidence = 1.96 / sqrt(FisherInfo);
+	_theta.thetaConfidence = 1.96 / sqrt(FisherInfo);
 }
 
 void TThetaEstimator::_calcExpectedHet(){
@@ -447,7 +427,7 @@ void TThetaEstimator::_calcExpectedHet(){
 	//calculating epxected heterozygosity under the Felsenstein model
 	double hom = 0.0;
 	for (Base k = Base::min; k < Base::max; ++k) {
-		hom += theta.baseFreq[k] * (theta.expMinusTheta + theta.baseFreq[k] * (1.0 - theta.expMinusTheta));
+		hom += _theta.baseFreq[k] * (_theta.expMinusTheta + _theta.baseFreq[k] * (1.0 - _theta.expMinusTheta));
 	}
 	_expectedHet = 1.0 - hom;
 }
@@ -456,18 +436,18 @@ void TThetaEstimator::_calcExpectedHet(){
 // Functions to run estimation-
 //------------------------------------------------------------
 bool TThetaEstimator::estimateTheta() {
-	estimationSuccessful = false;
-	if (data->sizeWithData() < minSitesWithData) {
-		logfile().warning("Can not estimate theta: only " + toString(data->sizeWithData()) +
-						  " sites with data in this region (minSitesWithData = " + toString(minSitesWithData) + ")!");
+	_estimationSuccessful = false;
+	if (_data->sizeWithData() < _minSitesWithData) {
+		logfile().warning("Can not estimate theta: only " + toString(_data->sizeWithData()) +
+						  " sites with data in this region (minSitesWithData = " + toString(_minSitesWithData) + ")!");
 		return false;
 	}
 
 	// estimate starting parameters
-	findGoodStartingTheta(data, theta, "");
+	_findGoodStartingTheta(_data.get(), _theta, "");
 
 	// Run EM
-	if (extraVerbose) {
+	if (_extraVerbose) {
 		logfile().startIndent("Running EM to find ML estimate:");
 		_runEMForTheta();
 		logfile().endIndent();
@@ -476,7 +456,7 @@ bool TThetaEstimator::estimateTheta() {
 		_runEMForTheta();
 		logfile().done();
 	}
-	logfile().conclude("theta was estimated at ", theta.theta);
+	logfile().conclude("theta was estimated at ", _theta.theta);
 	_calcExpectedHet();
 	logfile().conclude("implies expected heterozygosity of ", _expectedHet);
 
@@ -484,19 +464,19 @@ bool TThetaEstimator::estimateTheta() {
 	logfile().listFlush("Estimating approximate confidence intervals from Fisher-Information ...");
 	_estimateConfidenceInterval();
 	logfile().done();
-	logfile().conclude("95% confidence intervals are theta +- " + toString(theta.thetaConfidence));
-	estimationSuccessful = true;
+	logfile().conclude("95% confidence intervals are theta +- " + toString(_theta.thetaConfidence));
+	_estimationSuccessful = true;
 	return true;
 }
 
-void TThetaEstimator::setTheta(const double Theta) { theta.setTheta(Theta); };
+void TThetaEstimator::setTheta(const double Theta) { _theta.set(Theta); };
 
 void TThetaEstimator::setBaseFreq(const GenotypeLikelihoods::TBaseProbabilities &BaseFreq) {
-	theta.baseFreq = BaseFreq;
+	_theta.baseFreq = BaseFreq;
 };
 
 void TThetaEstimator::addToHeader(std::vector<std::string> &header, const std::string &prefix) {
-	data->addToHeader(header, prefix);
+	_data->addToHeader(header, prefix);
 	header.push_back(prefix + "pi(A)");
 	header.push_back(prefix + "pi(C)");
 	header.push_back(prefix + "pi(G)");
@@ -509,17 +489,17 @@ void TThetaEstimator::addToHeader(std::vector<std::string> &header, const std::s
 }
 
 void TThetaEstimator::writeEstimateFrequenciesAndTheta(coretools::TOutputFile &out) {
-	if (estimationSuccessful) {
+	if (_estimationSuccessful) {
 		// base frequencies
 		for (genometools::Base k = genometools::Base::min; k < genometools::Base::max; ++k) {
-			out << theta.baseFreq[k];
+			out << _theta.baseFreq[k];
 		}
 
 		// theta estimates
-		out << theta.theta;
-		out << theta.theta - theta.thetaConfidence;
-		out << theta.theta + theta.thetaConfidence;
-		out << theta.LL;
+		out << _theta.theta;
+		out << _theta.theta - _theta.thetaConfidence;
+		out << _theta.theta + _theta.thetaConfidence;
+		out << _theta.LL;
 		out << _expectedHet;
 	} else {
 		// frequencies
@@ -539,7 +519,7 @@ void TThetaEstimator::writeEstimateFrequenciesAndTheta(coretools::TOutputFile &o
 
 void TThetaEstimator::writeResultsToFile(coretools::TOutputFile &out) {
 	// number of sites
-	data->writeSite(out);
+	_data->writeSite(out);
 
 	// estimated params
 	writeEstimateFrequenciesAndTheta(out);
@@ -557,93 +537,92 @@ void TThetaEstimator::calcLikelihoodSurface(coretools::TOutputFile &out, uint32_
 
 	for (uint32_t i = 0; i < steps; ++i) {
 		// calc theta and expMinusTheta
-		theta.setLogTheta(minLogTheta + stepSize * i);
+		_theta.setLog(minLogTheta + stepSize * i);
 
 		// calculate	substitution probabilities and Likelihood
-		theta.LL   = data->calcLogLikelihood(getPGenotype(theta));
+		_theta.LL   = _data->calcLogLikelihood(getPGenotype(_theta));
 
 		// write results
-		out.writeln(theta.logTheta, theta.theta, theta.LL);
+		out.writeln(_theta.logTheta, _theta.theta, _theta.LL);
 	}
 };
 
 void TThetaEstimator::bootstrapTheta() {
 	logfile().listFlush("Bootstrapping sites ...");
 
-	data->bootstrap();
+	_data->bootstrap();
 	logfile().done();
 
 	// estimate theta
 	estimateTheta();
 
 	// clean up
-	data->clearBootstrap();
+	_data->clearBootstrap();
 };
 
 //---------------------------------------------------------------
 // TThetaEstimatorRatio
 //---------------------------------------------------------------
 TThetaEstimatorRatio::TThetaEstimatorRatio() : TThetaEstimator_base() {
-	clearCounters();
+	_clearCounters();
 
 	// data2
-	if (useTmpFile) {
-		data2 = new TThetaEstimatorDataFile(tmpFileName + "2.tmp.gz");
+	if (_useTmpFile) {
+		_data2 = std::make_unique<TThetaEstimatorDataFile>(_tmpFileName + "2.tmp.gz");
 	} else
-		data2 = new TThetaEstimatorDataVector();
-	data2Initialized = true;
+		_data2 = std::make_unique<TThetaEstimatorDataVector>();
 
 	// MCMC params
 	logfile().startIndent("Parameters of MCMC algorithm:");
-	burnin = parameters().getParameterWithDefault<int>("burnin", 1000);
-	logfile().list("Will run a burnin of " + toString(burnin) + " iterations.");
-	numIterations = parameters().getParameterWithDefault<int>("iterations", 10000);
-	logfile().list("Will run MCMC for " + toString(numIterations) + " iterations.");
-	thinning = parameters().getParameterWithDefault<int>("thinning", 1);
-	if (thinning < 1 || thinning > numIterations) UERROR("Thinning must be > 1 and < number iterations!");
-	if (thinning > 1) {
-		if (thinning == 2)
+	_burnin = parameters().getParameterWithDefault<int>("burnin", 1000);
+	logfile().list("Will run a burnin of " + toString(_burnin) + " iterations.");
+	_numIterations = parameters().getParameterWithDefault<int>("iterations", 10000);
+	logfile().list("Will run MCMC for " + toString(_numIterations) + " iterations.");
+	_thinning = parameters().getParameterWithDefault<int>("thinning", 1);
+	if (_thinning < 1 || _thinning > _numIterations) UERROR("Thinning must be > 1 and < number iterations!");
+	if (_thinning > 1) {
+		if (_thinning == 2)
 			logfile().list("Will print every second iterations to the output file (thinning = 2)");
-		else if (thinning == 3)
+		else if (_thinning == 3)
 			logfile().list("Will print every third iterations to the output file (thinning = 3)");
 		else
-			logfile().list("Will print every " + toString(thinning) +
-						   "th iterations to the output file (thinning = " + toString(thinning) + ")");
+			logfile().list("Will print every " + toString(_thinning) +
+						   "th iterations to the output file (thinning = " + toString(_thinning) + ")");
 	}
 
 	// normal prior on ratio phi = log(theta_1 / theta_2)
-	phiPriorMean          = parameters().getParameterWithDefault("phiPriorMean", 0.0);
-	phiPriorVar           = parameters().getParameterWithDefault("phiPriorVar", 1.0);
-	phiPriorOneOverTwoVar = 1.0 / 2.0 / phiPriorVar;
-	logfile().list("Will assume a normal prior on phi ~ N(" + toString(phiPriorMean) + ", " + toString(phiPriorVar) +
+	_phiPriorMean          = parameters().getParameterWithDefault("phiPriorMean", 0.0);
+	_phiPriorVar           = parameters().getParameterWithDefault("phiPriorVar", 1.0);
+	_phiPriorOneOverTwoVar = 1.0 / 2.0 / _phiPriorVar;
+	logfile().list("Will assume a normal prior on phi ~ N(" + toString(_phiPriorMean) + ", " + toString(_phiPriorVar) +
 				   ").");
 
 	// proposal kernel
-	sdProposalKernelTheta1    = parameters().getParameterWithDefault("sdProposalTheta", 0.1);
-	sdProposalKernelTheta2    = sdProposalKernelTheta1;
-	sdProposalKernelBaseFreq1 = parameters().getParameterWithDefault("sdProposalFreq", 0.01);
-	sdProposalKernelBaseFreq2 = sdProposalKernelBaseFreq1;
-	logfile().list("Will use initial proposal kernel standard deviations of " + toString(sdProposalKernelTheta1) +
-				   " and " + toString(sdProposalKernelBaseFreq1) + " for thetas and base frequencies, respectively.");
+	_sdProposalKernelTheta1    = parameters().getParameterWithDefault("sdProposalTheta", 0.1);
+	_sdProposalKernelTheta2    = _sdProposalKernelTheta1;
+	_sdProposalKernelBaseFreq1 = parameters().getParameterWithDefault("sdProposalFreq", 0.01);
+	_sdProposalKernelBaseFreq2 = _sdProposalKernelBaseFreq1;
+	logfile().list("Will use initial proposal kernel standard deviations of " + toString(_sdProposalKernelTheta1) +
+				   " and " + toString(_sdProposalKernelBaseFreq1) + " for thetas and base frequencies, respectively.");
 	logfile().endIndent();
 
 	// params regarding initial search
-	readParametersRegardingInitialSearch();
+	_readParametersRegardingInitialSearch();
 };
 
-void TThetaEstimatorRatio::clearCounters() {
-	numAcceptedTheta1    = 0;
-	numAcceptedTheta2    = 0;
-	numAcceptedBaseFreq1 = 0;
-	numAcceptedBaseFreq2 = 0;
+void TThetaEstimatorRatio::_clearCounters() {
+	_numAcceptedTheta1    = 0;
+	_numAcceptedTheta2    = 0;
+	_numAcceptedBaseFreq1 = 0;
+	_numAcceptedBaseFreq2 = 0;
 };
 
-void TThetaEstimatorRatio::concludeAcceptanceRate(int numAccepted, int length, const std::string &name) {
+void TThetaEstimatorRatio::_concludeAcceptanceRate(int numAccepted, int length, const std::string &name) {
 	double acceptanceRate = (double)numAccepted / (double)length;
 	logfile().conclude("Acceptance rate " + name + " = " + toString(acceptanceRate));
 };
 
-void TThetaEstimatorRatio::concludeAcceptanceRateUpdateProposal(int numAccepted, int length, double &sd,
+void TThetaEstimatorRatio::_concludeAcceptanceRateUpdateProposal(int numAccepted, int length, double &sd,
 																const std::string &name) {
 	double acceptanceRate = (double)numAccepted / (double)length;
 	sd *= acceptanceRate * 3.0;
@@ -651,51 +630,51 @@ void TThetaEstimatorRatio::concludeAcceptanceRateUpdateProposal(int numAccepted,
 					   toString(sd) + ")");
 };
 
-void TThetaEstimatorRatio::concludeAcceptanceRates(int length) {
-	concludeAcceptanceRate(numAcceptedTheta1, length, "theta 1");
-	concludeAcceptanceRate(numAcceptedTheta2, length, "theta 2");
-	concludeAcceptanceRate(numAcceptedBaseFreq1, length, "base frequencies 1");
-	concludeAcceptanceRate(numAcceptedBaseFreq2, length, "base frequencies 1");
+void TThetaEstimatorRatio::_concludeAcceptanceRates(int length) {
+	_concludeAcceptanceRate(_numAcceptedTheta1, length, "theta 1");
+	_concludeAcceptanceRate(_numAcceptedTheta2, length, "theta 2");
+	_concludeAcceptanceRate(_numAcceptedBaseFreq1, length, "base frequencies 1");
+	_concludeAcceptanceRate(_numAcceptedBaseFreq2, length, "base frequencies 1");
 };
 
-void TThetaEstimatorRatio::concludeAcceptanceRatesUpdateProposal(int length) {
-	concludeAcceptanceRateUpdateProposal(numAcceptedTheta1, length, sdProposalKernelTheta1, "theta 1");
-	concludeAcceptanceRateUpdateProposal(numAcceptedTheta2, length, sdProposalKernelTheta2, "theta 2");
-	concludeAcceptanceRateUpdateProposal(numAcceptedBaseFreq1, length, sdProposalKernelBaseFreq1, "base frequencies 1");
-	concludeAcceptanceRateUpdateProposal(numAcceptedBaseFreq2, length, sdProposalKernelBaseFreq2, "base frequencies 1");
+void TThetaEstimatorRatio::_concludeAcceptanceRatesUpdateProposal(int length) {
+	_concludeAcceptanceRateUpdateProposal(_numAcceptedTheta1, length, _sdProposalKernelTheta1, "theta 1");
+	_concludeAcceptanceRateUpdateProposal(_numAcceptedTheta2, length, _sdProposalKernelTheta2, "theta 2");
+	_concludeAcceptanceRateUpdateProposal(_numAcceptedBaseFreq1, length, _sdProposalKernelBaseFreq1, "base frequencies 1");
+	_concludeAcceptanceRateUpdateProposal(_numAcceptedBaseFreq2, length, _sdProposalKernelBaseFreq2, "base frequencies 1");
 };
 
 void TThetaEstimatorRatio::estimateRatio(std::string ouputName) {
 	logfile().startIndent("Running MCMC to estimate phi = log(theta1 / theta2):");
 
 	// check if there is sufficient data
-	logfile().list(toString(data->sizeWithData()) + " sites with data available for region 1.");
-	if (data->sizeWithData() < minSitesWithData) UERROR("Not enough sites for region 1!");
-	logfile().list(toString(data2->sizeWithData()) + " sites with data available for region 2.");
-	if (data2->sizeWithData() < minSitesWithData) UERROR("Not enough sites for region 2!");
+	logfile().list(toString(_data->sizeWithData()) + " sites with data available for region 1.");
+	if (_data->sizeWithData() < _minSitesWithData) UERROR("Not enough sites for region 1!");
+	logfile().list(toString(_data2->sizeWithData()) + " sites with data available for region 2.");
+	if (_data2->sizeWithData() < _minSitesWithData) UERROR("Not enough sites for region 2!");
 
 	// get good starting values
-	findGoodStartingTheta(data, theta, " region 1");
-	findGoodStartingTheta(data2, theta2, " region 2");
+	_findGoodStartingTheta(_data.get(), _theta, " region 1");
+	_findGoodStartingTheta(_data2.get(), _theta2, " region 2");
 
 	// first run burnin
-	clearCounters();
-	if (burnin > 0) {
+	_clearCounters();
+	if (_burnin > 0) {
 		int oldProg                = 0;
-		std::string progressString = "Running burnin of length " + toString(burnin) + " ...";
+		std::string progressString = "Running burnin of length " + toString(_burnin) + " ...";
 		logfile().listFlush(progressString + "(0%)");
-		for (int i = 0; i < burnin; ++i) {
-			oneMCMCIteration();
+		for (int i = 0; i < _burnin; ++i) {
+			_oneMCMCIteration();
 
 			// print progress
-			int prog = (double)i / (double)burnin * 100.0;
+			int prog = (double)i / (double)_burnin * 100.0;
 			if (prog > oldProg) {
 				oldProg = prog;
 				logfile().overListFlush(progressString, "(", oldProg, "%)");
 			}
 		}
 		logfile().overList(progressString + "done!   ");
-		concludeAcceptanceRatesUpdateProposal(burnin);
+		_concludeAcceptanceRatesUpdateProposal(_burnin);
 	}
 
 	// open MCMC output file
@@ -708,34 +687,34 @@ void TThetaEstimatorRatio::estimateRatio(std::string ouputName) {
 	out << "log_theta_1\tlog_theta_2\tlog_phi\n";
 
 	// now run chain with sampling
-	clearCounters();
+	_clearCounters();
 	int oldProg                = 0;
-	std::string progressString = "Running MCMC chain of length " + toString(numIterations) + " ...";
+	std::string progressString = "Running MCMC chain of length " + toString(_numIterations) + " ...";
 	logfile().listFlush(progressString + "(0%)");
-	for (int i = 0; i < numIterations; ++i) {
-		oneMCMCIteration();
+	for (int i = 0; i < _numIterations; ++i) {
+		_oneMCMCIteration();
 
 		// print to file
-		if (i % thinning == 0) {
-			out << theta.logTheta << "\t" << theta2.logTheta << "\t" << theta.logTheta - theta2.logTheta << "\n";
+		if (i % _thinning == 0) {
+			out << _theta.logTheta << "\t" << _theta2.logTheta << "\t" << _theta.logTheta - _theta2.logTheta << "\n";
 		}
 
 		// print progress
-		int prog = (double)i / (double)numIterations * 100.0;
+		int prog = (double)i / (double)_numIterations * 100.0;
 		if (prog > oldProg) {
 			oldProg = prog;
 			logfile().overListFlush(progressString, "(", oldProg, "%)");
 		}
 	}
 	logfile().overList(progressString + " done!   ");
-	concludeAcceptanceRates(numIterations);
+	_concludeAcceptanceRates(_numIterations);
 
 	// clean up
 	logfile().endIndent();
 	out.close();
 };
 
-bool TThetaEstimatorRatio::updateTheta(TThetaEstimatorData *thisData, Theta &thisTheta, double otherLogThetaMean,
+bool TThetaEstimatorRatio::_updateTheta(TThetaEstimatorData *thisData, Theta &thisTheta, double otherLogThetaMean,
 									   double thisSdProposalKernel) {
 	// propose
 	double newLogTheta = randomGenerator().getNormalRandom(thisTheta.logTheta, thisSdProposalKernel);
@@ -751,17 +730,17 @@ bool TThetaEstimatorRatio::updateTheta(TThetaEstimatorData *thisData, Theta &thi
 	double logH               = newLL - thisTheta.LL;
 	double newLogPhiMinusMean = newLogTheta - otherLogThetaMean;
 	double oldLogPhiMinusMean = thisTheta.logTheta - otherLogThetaMean;
-	logH += phiPriorOneOverTwoVar * (newLogPhiMinusMean * newLogPhiMinusMean - oldLogPhiMinusMean * oldLogPhiMinusMean);
+	logH += _phiPriorOneOverTwoVar * (newLogPhiMinusMean * newLogPhiMinusMean - oldLogPhiMinusMean * oldLogPhiMinusMean);
 
 	// accept or reject
 	if (log(randomGenerator().getRand()) < logH) {
-		thisTheta.setLogTheta(newLogTheta, newLL);
+		thisTheta.setLog(newLogTheta, newLL);
 		return true;
 	} else
 		return false;
 };
 
-bool TThetaEstimatorRatio::updateBaseFrequencies(TThetaEstimatorData *thisData, Theta &thisTheta,
+bool TThetaEstimatorRatio::_updateBaseFrequencies(TThetaEstimatorData *thisData, Theta &thisTheta,
 												 double thisSdProposalKernel) {
 	using namespace genometools;
 	// propose: select one frequency at random and shift this one
@@ -799,14 +778,14 @@ bool TThetaEstimatorRatio::updateBaseFrequencies(TThetaEstimatorData *thisData, 
 		return false;
 };
 
-void TThetaEstimatorRatio::oneMCMCIteration() {
+void TThetaEstimatorRatio::_oneMCMCIteration() {
 	// update theta
-	numAcceptedTheta1 += updateTheta(data, theta, theta2.logTheta + phiPriorMean, sdProposalKernelTheta1);
-	numAcceptedTheta2 += updateTheta(data2, theta2, theta.logTheta - phiPriorMean, sdProposalKernelTheta2);
+	_numAcceptedTheta1 += _updateTheta(_data.get(), _theta, _theta2.logTheta + _phiPriorMean, _sdProposalKernelTheta1);
+	_numAcceptedTheta2 += _updateTheta(_data2.get(), _theta2, _theta.logTheta - _phiPriorMean, _sdProposalKernelTheta2);
 
 	// update base frequencies
-	numAcceptedBaseFreq1 += updateBaseFrequencies(data, theta, sdProposalKernelBaseFreq1);
-	numAcceptedBaseFreq2 += updateBaseFrequencies(data2, theta2, sdProposalKernelBaseFreq2);
+	_numAcceptedBaseFreq1 += _updateBaseFrequencies(_data.get(), _theta, _sdProposalKernelBaseFreq1);
+	_numAcceptedBaseFreq2 += _updateBaseFrequencies(_data2.get(), _theta2, _sdProposalKernelBaseFreq2);
 };
 
 }; // namespace GenotypeLikelihoods

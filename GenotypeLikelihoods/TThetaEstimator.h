@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <math.h>
+#include <memory>
 #include <ostream>
 #include <stdint.h>
 #include <stdio.h>
@@ -36,46 +37,42 @@ namespace GenotypeLikelihoods {
 // Theta
 //---------------------------------------------------------------
 struct Theta {
-	double theta, expMinusTheta, logTheta, thetaConfidence, LL;
+	double theta           = 0.0;
+	double expMinusTheta   = 0.0;
+	double logTheta        = -9e100;
+	double thetaConfidence = 0.0;
+	double LL              = -9e100;
 	TBaseProbabilities baseFreq;
 
-	Theta() {
-		theta           = 0.0;
-		thetaConfidence = 0.0;
-		expMinusTheta        = 0.0;
-		logTheta        = -9e100;
-		LL              = -9e100;
-	};
-
-	void setTheta(const double val) {
+	void set(const double val) {
 		theta    = val;
 		expMinusTheta = exp(-theta);
 		logTheta = log(theta);
 		LL       = -9e100;
 	};
 
-	void setExpTheta(const double val) {
+	void setExp(const double val) {
 		expMinusTheta = val;
 		theta    = -log(val);
 		logTheta = log(theta);
 		LL       = -9e100;
 	};
 
-	void setLogTheta(const double val) {
+	void setLog(const double val) {
 		logTheta = val;
 		theta    = exp(val);
 		expMinusTheta = exp(-theta);
 		LL       = -9e100;
 	};
 
-	void setLogTheta(double val, double newLL) {
+	void setLog(double val, double newLL) {
 		logTheta = val;
 		theta    = exp(val);
 		expMinusTheta = exp(-theta);
 		LL       = newLL;
 	};
 
-	std::string getBaseFrequencyString() {
+	std::string string() {
 		using genometools::Base;
 		return coretools::str::toString("Pi(A) = ", baseFreq[Base::A], ", Pi(C) = ", baseFreq[Base::C],
 										", Pi(G) = ", baseFreq[Base::G], ", Pi(T) = ", baseFreq[Base::T]);
@@ -92,37 +89,31 @@ GenotypeLikelihoods::TGenotypeProbabilities getPGenotype(const Theta &thisTheta)
 class TThetaEstimator_base {
 protected:
 	// data
-	TThetaEstimatorData *data = nullptr;
-	bool dataInitialized      = false;
-	bool useTmpFile;
-	std::string tmpFileName;
+	std::unique_ptr<TThetaEstimatorData> _data;
+	bool _useTmpFile;
+	std::string _tmpFileName;
 
 	// initial theta
-	double initialTheta              = 0.01;
-	double initThetaSearchFactor     = 10;
-	int initThetaNumSearchIterations = 100;
+	double _initialTheta              = 0.01;
+	double _initThetaSearchFactor     = 10;
+	int _initThetaNumSearchIterations = 100;
 
 	// estimation
-	size_t minSitesWithData;
-	Theta theta;
-	bool extraVerbose;
+	size_t _minSitesWithData;
+	Theta _theta;
+	bool _extraVerbose;
 
-	void initDataStorage();
-	void readParametersRegardingInitialSearch();
-
-	void findGoodStartingTheta(TThetaEstimatorData *thisData, Theta &thisTheta, const std::string &tag);
+	void _initDataStorage();
+	void _readParametersRegardingInitialSearch();
+	void _findGoodStartingTheta(TThetaEstimatorData *thisData, Theta &thisTheta, const std::string &tag);
 
 public:
 	TThetaEstimator_base();
 	TThetaEstimator_base(const TThetaEstimator_base &other);
+	virtual ~TThetaEstimator_base() = default;
 
-	virtual ~TThetaEstimator_base() {
-		if (dataInitialized) delete data;
-	};
-
-	TThetaEstimatorData *pointerToDataContainer() { return data; };
-
-	GenotypeLikelihoods::TGenotypeProbabilities pGenotype() { return ::GenotypeLikelihoods::getPGenotype(theta); };
+	TThetaEstimatorData *pointerToDataContainer() { return _data.get(); };
+	GenotypeLikelihoods::TGenotypeProbabilities pGenotype() { return ::GenotypeLikelihoods::getPGenotype(_theta); };
 };
 
 //---------------------------------------------------------------
@@ -131,17 +122,14 @@ public:
 class TThetaEstimator : public TThetaEstimator_base {
 private:
 	// EM parameters
-	int numIterations;
-	int numThetaOnlyUpdates;
-	double maxEpsilon;
-	int NewtonRaphsonNumIterations;
-	double NewtonRaphsonMaxF;
-	bool estimationSuccessful;
-	double _expectedHet;
+	int _numIterations;
+	int _numThetaOnlyUpdates;
+	double _maxEpsilon;
+	int _NewtonRaphsonNumIterations;
+	double _NewtonRaphsonMaxF;
+	bool _estimationSuccessful = false;
+	double _expectedHet        = 0.0;
 
-	// tmp vectors
-
-	double _calcFisherInfo(const TGenotypeProbabilities &pGenotype, const TGenotypeData deriv_pGenotype);
 	bool _NRAllParams(const GenotypeLikelihoods::TGenotypeProbabilities &_pGenotype);
 	void _NROnlyTheta();
 	void _runEMForTheta();
@@ -154,7 +142,7 @@ public:
 	void clear();
 	void add(const TSite &site, const GenotypeLikelihoods::TGenotypeLikelihoods &genotypeLikelihoods);
 	void add(const TWindow &window, const TGenotypeLikelihoodCalculator &glCalculator);
-	long sizeWithData() { return data->sizeWithData(); };
+	long sizeWithData() { return _data->sizeWithData(); };
 	bool estimateTheta();
 	void setTheta(const double Theta);
 	void setBaseFreq(const GenotypeLikelihoods::TBaseProbabilities &BaseFreq);
@@ -171,44 +159,39 @@ public:
 class TThetaEstimatorRatio : public TThetaEstimator_base {
 private:
 	// second data
-	TThetaEstimatorData *data2;
-	bool data2Initialized;
-	Theta theta2;
+	std::unique_ptr<TThetaEstimatorData> _data2;
+	Theta _theta2;
 
 	// MCMC parameters
-	double phiPriorMean;
-	double phiPriorVar;
-	double phiPriorOneOverTwoVar;
-	double sdProposalKernelTheta1;
-	double sdProposalKernelTheta2;
-	double sdProposalKernelBaseFreq1;
-	double sdProposalKernelBaseFreq2;
-	int numIterations;
-	int burnin;
-	int thinning;
-	int numAcceptedTheta1;
-	int numAcceptedTheta2;
-	int numAcceptedBaseFreq1;
-	int numAcceptedBaseFreq2;
+	double _phiPriorMean;
+	double _phiPriorVar;
+	double _phiPriorOneOverTwoVar;
+	double _sdProposalKernelTheta1;
+	double _sdProposalKernelTheta2;
+	double _sdProposalKernelBaseFreq1;
+	double _sdProposalKernelBaseFreq2;
+	int _numIterations;
+	int _burnin;
+	int _thinning;
+	int _numAcceptedTheta1;
+	int _numAcceptedTheta2;
+	int _numAcceptedBaseFreq1;
+	int _numAcceptedBaseFreq2;
 
-	void clearCounters();
-	void concludeAcceptanceRate(int numAccepted, int length, const std::string &name);
-	void concludeAcceptanceRateUpdateProposal(int numAccepted, int length, double &sd, const std::string &name);
-	void concludeAcceptanceRates(int length);
-	void concludeAcceptanceRatesUpdateProposal(int length);
-	bool updateTheta(TThetaEstimatorData *thisData, Theta &thisTheta, double otherLogThetaMean,
+	void _clearCounters();
+	void _concludeAcceptanceRate(int numAccepted, int length, const std::string &name);
+	void _concludeAcceptanceRateUpdateProposal(int numAccepted, int length, double &sd, const std::string &name);
+	void _concludeAcceptanceRates(int length);
+	void _concludeAcceptanceRatesUpdateProposal(int length);
+	bool _updateTheta(TThetaEstimatorData *thisData, Theta &thisTheta, double otherLogThetaMean,
 					 double thisSdProposalKernel);
-	bool updateBaseFrequencies(TThetaEstimatorData *thisData, Theta &thisTheta, double thisSdProposalKernel);
-	void oneMCMCIteration();
+	bool _updateBaseFrequencies(TThetaEstimatorData *thisData, Theta &thisTheta, double thisSdProposalKernel);
+	void _oneMCMCIteration();
 
 public:
 	TThetaEstimatorRatio();
-	~TThetaEstimatorRatio() {
-		if (data2Initialized) delete data2;
-	};
 
-	TThetaEstimatorData *pointerToDataContainer2() { return data2; };
-
+	TThetaEstimatorData *pointerToDataContainer2() { return _data2.get(); };
 	void estimateRatio(std::string ouputName);
 };
 

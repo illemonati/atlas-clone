@@ -30,16 +30,16 @@ namespace GenotypeLikelihoods {
 //---------------------------------------------------------------
 class TThetaEstimatorTemporaryFile {
 private:
-	std::string filename;
-	gzFile fp = nullptr;
-	static constexpr size_t sizeOfData = sizeof(double) * 10;
+	static constexpr size_t _sizeOfData = sizeof(double) * 10;
 
-	bool isOpenForWriting = false;
-	bool isOpenForReading = false;
-	bool wasWritten = false;
+	std::string _filename;
+	gzFile _fp             = nullptr;
+	bool _isOpenForWriting = false;
+	bool _isOpenForReading = false;
+	bool _wasWritten       = false;
 
 public:
-	TThetaEstimatorTemporaryFile(std::string Filename): filename(Filename) {}
+	TThetaEstimatorTemporaryFile(std::string Filename) : _filename(Filename) {}
 	~TThetaEstimatorTemporaryFile() { clean(); };
 
 	void openForWriting();
@@ -58,25 +58,28 @@ public:
 class TThetaEstimatorData {
 private:
 	// counters
-	size_t numSitesCoveredTwiceOrMore;
-	size_t totNumSitesAdded;
-	double cumulativeDepth;
-	size_t numSitesWithData;
+	size_t _numSitesCoveredTwiceOrMore;
+	size_t _totNumSitesAdded;
+	double _cumulativeDepth;
+	size_t _numSitesWithData;
 
-	std::vector<GenotypeLikelihoods::TBaseData> baseFreqs;
-	std::vector<size_t> numBootstrapRepsPerEntry;
-	size_t curRep;
+	std::vector<GenotypeLikelihoods::TBaseData> _baseFreqs;
+	std::vector<size_t> _numBootstrapRepsPerEntry;
+	size_t _curRep;
 
 protected:
-	bool readState;
-	size_t curSite;
+	bool _readState;
+	size_t _curSite;
 
-	bool _isBootstrapped() const noexcept {return !numBootstrapRepsPerEntry.empty();}
+	bool _isBootstrapped() const noexcept { return !_numBootstrapRepsPerEntry.empty(); }
+	bool _begin();
+	bool _next();
 
-	virtual void saveSite(const GenotypeLikelihoods::TGenotypeLikelihoods &) = 0;
-	virtual void _begin()                                                    = 0;
-	virtual void readNext()                                                  = 0;
-	virtual void emptyStorage()                                              = 0;
+	virtual void _saveSite(const GenotypeLikelihoods::TGenotypeLikelihoods &) = 0;
+	virtual void _start()                                                     = 0;
+	virtual void _readNext()                                                  = 0;
+	virtual void _emptyStorage()                                              = 0;
+	virtual GenotypeLikelihoods::TGenotypeLikelihoods &_GL()                  = 0;
 
 public:
 	TThetaEstimatorData();
@@ -86,18 +89,17 @@ public:
 	void clear();
 
 	void bootstrap();
-	void clearBootstrap() noexcept {numBootstrapRepsPerEntry.clear();}
+	void clearBootstrap() noexcept { _numBootstrapRepsPerEntry.clear(); }
 
-	bool begin();
-	bool next();
-	size_t size() { return totNumSitesAdded; };
-	size_t sizeWithData() { return numSitesWithData; };
+	size_t size() { return _totNumSitesAdded; };
+	size_t sizeWithData() { return _numSitesWithData; };
 
-	void addToHeader(std::vector<std::string> &header, const std::string prefix);
+	void addToHeader(std::vector<std::string> &header, const std::string &prefix);
 	void writeSite(coretools::TOutputFile &out);
 	TBaseProbabilities baseFrequencies();
 
-	virtual GenotypeLikelihoods::TGenotypeLikelihoods &curGenotypeLikelihoods() = 0;
+	double fisherInfo(const TGenotypeProbabilities &pGenotype, const TGenotypeData deriv_pGenotype);
+
 
 	GenotypeLikelihoods::TGenotypeData P_G(const GenotypeLikelihoods::TGenotypeProbabilities &pGenotype);
 	double calcLogLikelihood(const GenotypeLikelihoods::TGenotypeProbabilities &pGenotype);
@@ -108,17 +110,17 @@ public:
 //---------------------------------------------------------------
 class TThetaEstimatorDataVector final : public TThetaEstimatorData {
 private:
-	std::vector<GenotypeLikelihoods::TGenotypeLikelihoods> sites;
+	std::vector<GenotypeLikelihoods::TGenotypeLikelihoods> _sites;
 
-	void saveSite(const GenotypeLikelihoods::TGenotypeLikelihoods &genoLik) override;
-	void readNext() override;
-	void emptyStorage() override;
-	void _begin() override;
+	void _saveSite(const GenotypeLikelihoods::TGenotypeLikelihoods &genoLik) override;
+	void _readNext() override;
+	void _emptyStorage() override;
+	void _start() override;
+	GenotypeLikelihoods::TGenotypeLikelihoods &_GL() override;
 
 public:
 	TThetaEstimatorDataVector();
 
-	GenotypeLikelihoods::TGenotypeLikelihoods &curGenotypeLikelihoods() override;
 };
 
 //---------------------------------------------------------------
@@ -126,21 +128,21 @@ public:
 //---------------------------------------------------------------
 class TThetaEstimatorDataFile final : public TThetaEstimatorData {
 protected:
-	std::string dataFileName;
+	std::string _dataFileName;
 
-	TThetaEstimatorTemporaryFile sites;
-	GenotypeLikelihoods::TGenotypeLikelihoods genotypeLikelihoods;
+	TThetaEstimatorTemporaryFile _sites;
+	GenotypeLikelihoods::TGenotypeLikelihoods _genotypeLikelihoods;
 
-	void saveSite(const GenotypeLikelihoods::TGenotypeLikelihoods &genoLik) override;
-	void readNext() override;
-	void emptyStorage() override;
-	void _begin() override;
+	void _saveSite(const GenotypeLikelihoods::TGenotypeLikelihoods &genoLik) override;
+	void _readNext() override;
+	void _emptyStorage() override;
+	void _start() override;
+	GenotypeLikelihoods::TGenotypeLikelihoods &_GL() override;
 
 public:
 	TThetaEstimatorDataFile(std::string TmpFileName);
 	~TThetaEstimatorDataFile() { clear(); };
 
-	GenotypeLikelihoods::TGenotypeLikelihoods &curGenotypeLikelihoods() override;
 };
 
 }; // namespace GenotypeLikelihoods
