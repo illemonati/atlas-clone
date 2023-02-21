@@ -56,7 +56,7 @@ public:
 	void setReason(const std::string reason);
 	void setLog(std::shared_ptr<TBamFileLog> & Log);
 	void filterOut(const std::string & alignmentName, const bool & isSecondMate, const uint16_t readGroup, const uint32_t chromosomeID);
-	void summary(uint64_t total, const uint16_t readGroup);
+	void summary(size_t total, const uint16_t readGroup);
 	coretools::TCountDistributionVector<> numFiltered() const { return _counter; }
 	std::string getReason() const { return _reason; }
 	void fillHeader(std::vector<std::string> &header);

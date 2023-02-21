@@ -12,6 +12,7 @@
 #include <ostream>
 #include <string>
 #include <string_view>
+#include <cmath>
 
 #include <fmt/os.h>
 
@@ -324,7 +325,7 @@ void TVcfBeagleNew::run() {
 					gls[i] = 1.;
 				} else {
 					coretools::str::fromString(sv, gls[i]);
-					gls[i] = exp10(gls[i]);
+					gls[i] = std::pow(10, gls[i]);
 					tot += gls[i];
 				}
 				gls_sv.popFront();

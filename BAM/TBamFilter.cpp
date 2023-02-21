@@ -65,7 +65,7 @@ void TBamFileFilter::setLog(std::shared_ptr<TBamFileLog> & Log){
 	_updateLog = true;
 };
 
-void TBamFileFilter::summary(uint64_t total, const uint16_t readGroup){
+void TBamFileFilter::summary(size_t total, const uint16_t readGroup){
 	if(!_keep && _counter[readGroup].counts()  > 0){
 		logfile().list(_reason + ": ", _counter[readGroup].counts(), " (" + coretools::str::toPercentString(_counter[readGroup].counts(), total, 3) + "%)");
 	}
