@@ -27,21 +27,6 @@ namespace GenotypeLikelihoods {
 //-------------------------------------------------------
 // TThetaEstimatorTemporaryFile
 //-------------------------------------------------------
-TThetaEstimatorTemporaryFile::TThetaEstimatorTemporaryFile() { init(""); };
-
-TThetaEstimatorTemporaryFile::TThetaEstimatorTemporaryFile(std::string Filename) { init(Filename); };
-
-void TThetaEstimatorTemporaryFile::init(std::string Filename) {
-	filename   = Filename;
-	fp         = NULL;
-	sizeOfData = sizeof(double) * 10;
-
-	isOpen           = false;
-	isOpenForReading = false;
-	isOpenForWriting = false;
-	wasWritten       = false;
-};
-
 void TThetaEstimatorTemporaryFile::openForWriting() {
 	if (sizeOfData == 0) UERROR("Can not open temporary data file for theta: file was not initialized!");
 
@@ -53,8 +38,6 @@ void TThetaEstimatorTemporaryFile::openForWriting() {
 	isOpenForWriting = true;
 	isOpenForReading = false;
 	wasWritten       = true;
-
-	isOpen = true;
 };
 
 void TThetaEstimatorTemporaryFile::openForReading() {
@@ -67,14 +50,11 @@ void TThetaEstimatorTemporaryFile::openForReading() {
 	fp               = gzopen(filename.c_str(), "rb");
 	isOpenForWriting = false;
 	isOpenForReading = true;
-
-	isOpen = true;
 };
 
 void TThetaEstimatorTemporaryFile::close() {
-	if (isOpen) {
+	if (fp) {
 		gzclose(fp);
-		isOpen           = false;
 		isOpenForWriting = false;
 		isOpenForReading = false;
 	}
@@ -119,20 +99,19 @@ TThetaEstimatorData::TThetaEstimatorData() {
 	totNumSitesAdded           = 0;
 	numSitesWithData           = 0;
 	cumulativeDepth            = 0.0;
-	tmpBaseFreq.fill(0.0);
 	readState      = false;
 	curSite        = 0;
 	curRep         = 0;
 };
 
 void TThetaEstimatorData::clear() {
-	tmpBaseFreq.fill(0.0);
 	numSitesCoveredTwiceOrMore = 0;
 	totNumSitesAdded           = 0;
 	numSitesWithData           = 0;
 	cumulativeDepth            = 0.0;
 	emptyStorage();
-	clearBootstrap();
+	numBootstrapRepsPerEntry.clear();
+	baseFreqs.clear();
 };
 
 void TThetaEstimatorData::add(const GenotypeLikelihoods::TSite &site,
@@ -148,7 +127,7 @@ void TThetaEstimatorData::add(const GenotypeLikelihoods::TSite &site,
 		saveSite(genoLik);
 
 		// add site to base frequency estimation
-		site.addToBaseFrequencies(tmpBaseFreq);
+		baseFreqs.push_back(site.baseFrequencies());
 
 		// count sites covered >=2
 		if (site.depth() > 1) ++numSitesCoveredTwiceOrMore;
@@ -157,7 +136,13 @@ void TThetaEstimatorData::add(const GenotypeLikelihoods::TSite &site,
 
 TBaseProbabilities TThetaEstimatorData::baseFrequencies() {
 	// estimate base frequencies
-	return TBaseProbabilities::normalize(tmpBaseFreq);
+	TBaseData bd{};
+	begin();
+	do {
+		bd += baseFreqs[curSite];
+		} while (next());
+
+	return TBaseProbabilities::normalize(bd);
 };
 
 GenotypeLikelihoods::TGenotypeData TThetaEstimatorData::P_G(const GenotypeLikelihoods::TGenotypeProbabilities &pGenotype) {
@@ -213,10 +198,6 @@ void TThetaEstimatorData::bootstrap() {
 	}
 };
 
-void TThetaEstimatorData::clearBootstrap() {
-	numBootstrapRepsPerEntry.clear();
-};
-
 bool TThetaEstimatorData::begin() {
 	curSite = 0; // first site is at index zero
 	curRep  = 1; // index starts at one
@@ -260,27 +241,24 @@ void TThetaEstimatorDataVector::saveSite(const GenotypeLikelihoods::TGenotypeLik
 void TThetaEstimatorDataVector::emptyStorage() { sites.clear(); };
 
 void TThetaEstimatorDataVector::readNext() {
-	++siteIt;
 	++curSite;
 
 	// readState = (siteIt == sites.end())
 
-	if (siteIt == sites.end()) readState = false;
+	if (curSite >= sites.size()) readState = false;
 }
 
 void TThetaEstimatorDataVector::_begin() {
-	siteIt    = sites.begin();
 	readState = true;
 };
 
-GenotypeLikelihoods::TGenotypeLikelihoods &TThetaEstimatorDataVector::curGenotypeLikelihoods() { return *siteIt; }
+GenotypeLikelihoods::TGenotypeLikelihoods &TThetaEstimatorDataVector::curGenotypeLikelihoods() { return sites[curSite]; }
 
 //-------------------------------------------------------
 // TThetaEstimatorDataFile
 //-------------------------------------------------------
-TThetaEstimatorDataFile::TThetaEstimatorDataFile(std::string TmpFileName) : TThetaEstimatorData() {
+	TThetaEstimatorDataFile::TThetaEstimatorDataFile(std::string TmpFileName) : TThetaEstimatorData(), sites(TmpFileName) {
 	dataFileName = TmpFileName;
-	sites.init(dataFileName);
 	sites.openForWriting();
 };
 
@@ -292,7 +270,7 @@ void TThetaEstimatorDataFile::saveSite(const GenotypeLikelihoods::TGenotypeLikel
 
 void TThetaEstimatorDataFile::readNext() {
 	++curSite;
-	if (curSite >= numSitesWithData)
+	if (curSite >= sizeWithData())
 		readState = false;
 	else
 		readState = sites.read(genotypeLikelihoods);
