@@ -29,11 +29,13 @@ void TSite::clear() noexcept {
 void TSite::add(const BAM::TSequencedBase &base) { _bases.push_back(base); };
 void TSite::add(BAM::TSequencedBase &&base) { _bases.push_back(base); };
 
-void TSite::addToBaseFrequencies(TBaseData &frequencies) const noexcept {
+TBaseData TSite::baseFrequencies() const noexcept {
+	TBaseData bd{};
 	if (!empty()) {
 		const double weight = 1.0 / _bases.size();
-		for (auto &b : _bases) { frequencies[b.base] += weight; }
+		for (auto &b : _bases) { bd[b.base] += weight; }
 	}
+	return bd;
 };
 
 void TSite::downsample(uint32_t maxDepth, const coretools::TSubsamplePicker &picker) {

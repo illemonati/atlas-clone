@@ -287,11 +287,11 @@ void TWindow_base::downsample(size_t maxDepth, const coretools::TSubsamplePicker
 
 GenotypeLikelihoods::TBaseProbabilities TWindow_base::estimateBaseFrequencies() const{
 	//estimate initial base frequencies
-	TBaseData tmp{};
+	TBaseData bd{};
 	for(auto& s : _sites){
-		s.addToBaseFrequencies(tmp);
+		bd += s.baseFrequencies();
 	}
-	return TBaseProbabilities::normalize(tmp);
+	return TBaseProbabilities::normalize(bd);
 };
 
 
