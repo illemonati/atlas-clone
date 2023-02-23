@@ -200,63 +200,69 @@ void TAlignment::_setQualitiesNoRecal() {
 
 void TAlignment::_setDistancesFromEnds() {
 	// Set distances in ORIGINAL FRAGMENT (i.e. 5' end is where sequencing started, NOT how it aligns to reference)
-	const int length = _cigar.lengthSequenced();
+	const int length  = _cigar.lengthSequenced();
+	const int l_m1_ps = length - 1 + _cigar.lengthSoftClippedLeft();
 
 	// is it paired-end?
 	if (_flags.isProperPair()) {
 		if (_flags.isReverseStrand()) {
-			// reverse (can be either first or second mate, but it's the one that comes second in bam file)
-			// and distance from 5' is given as f(end of fragment) = f(len - pos - 1)
-			// hence distance from 3' is given by f(dist since beginning of fragment) = f(insert - len + pos)
-			const int l = _cigar.lengthSequenced() - 1 + _cigar.lengthSoftClippedLeft();
-			const int k = _fragmentLength - _cigar.lengthSequenced() - _cigar.lengthSoftClippedLeft();
-			//const int k = _fragmentLength - (_cigar.lengthSequenced() - _cigar.lengthSoftClippedRight());
+			// Paired-end reverse
+			//    FFFFFFFFFF       : fragmentLenght   = 10
+			//  3'  LL---x--RR  5' : readLength       = softclippedLeft + lengthSequenced + softClippedRight
+			//  3'  ..---x--..  5' : lengthSequenced  = 6
+			//  3'  LL...x....  5' : softClippledLeft = 2
+			//  3'  .....x..RR  5' : softClippledRight= 2
+			// pos: 0123456789
+			// d5':   543210       : d5 = lengthSequenced - 1 - pos + softClippedLeft               = 6 - 1 - 5 + 2   = 2
+			// d3':   456789       : d3 = pos + fragmentLenght - lengthSequenced  - softClippedLeft = 5 + 10 - 6 - 2  = 7
+			const int f_ml_ms = _fragmentLength - _cigar.lengthSequenced() - _cigar.lengthSoftClippedLeft();
 			for (int pos = 0; pos < length; ++pos) {
-				_bases[pos].distFrom5Prime = l - pos; // dist from 5'
-				_bases[pos].distFrom3Prime = k + pos; // dist from 3'
+				_bases[pos].distFrom5Prime = l_m1_ps - pos;
+				_bases[pos].distFrom3Prime = pos + f_ml_ms;
 			}
 		} else {
-			// forward (can be either first or second mate, but it's the one that comes first in bam file)
-			// Hence distance from 5' is given as a function of pos
-			// And distance from 3' is given by (length of fragment) - pos -1
-			// NOTE! we ignore indels when calculating distance from 5' since we can not know this info.
-			// Luckily, this has only minimal effect since these distances are far from fragment ends
-
-			// paired strand Forward
-			//        |-------------------|      : fragmentlength = 20
-			//   5' SSS---x---SSS 3' : _bases.length = softclippedLeft + length + softClippedRight = 3 + 7 + 3
+			// Paired-end forward
+			//        FFFFFFFFFF   : fragmentLenght   = 10
+			//  5'  LL---x--RR  3' : readLength       = softclippedLeft + lengthSequenced + softClippedRight
+			//  5'  ..---x--..  3' : lengthSequenced  = 6
+			//  5'  LL...x....  3' : softClippledLeft = 2
+			//  5'  .....x..RR  3' : softClippledRight= 2
 			// pos: 0123456789
-			// d5':    0123456       : d5 = pos - softClippedLeft = 6-3 = 3
-			// d3':    TODO
+			// d5':   012345       : d5 = pos - softClippedLeft                       = 5 - 2          = 3
+			// d3':   987654       : d3 = fragmentLength - 1 - pos + softClippedLeft  = 10 - 1 - 5 + 2 = 6
+			const int f_m1_ps = _fragmentLength - 1 + _cigar.lengthSoftClippedLeft();
 			for (int pos = 0; pos < length; ++pos) {
-				_bases[pos].distFrom5Prime = pos - _cigar.lengthSoftClippedLeft();                       // dist from 5'
-				_bases[pos].distFrom3Prime = _fragmentLength - 1 - pos + _cigar.lengthSoftClippedLeft(); // dist from 3'
+				_bases[pos].distFrom5Prime = pos - _cigar.lengthSoftClippedLeft();
+				_bases[pos].distFrom3Prime = f_m1_ps - pos;
 			}
 		}
 	} else {
 		// treat as single end
-		const int len_1 = length - 1;
 		if (_flags.isReverseStrand()) {
-			// Singlestrand Reverse
-			//        |-------|      : length = 7
-			//   3' SSS---x---SSS 5' : _bases.length = softclippedLeft + length + softClippedRight = 3 + 7 + 3
+			// Single-end reverse
+			//  3'  LL---x--RR  5' : readLength       = softclippedLeft + lengthSequenced + softClippedRight
+			//  3'  ..---x--..  5' : lengthSequenced  = 6
+			//  3'  LL...x....  5' : softClippledLeft = 2
+			//  3'  .....x..RR  5' : softClippledRight= 2
 			// pos: 0123456789
-			// d5':    6543210       : d5 = length - 1 + softClippedLeft = 7 - 1 - 6 + 3 = 3
-			// d3':    0123456       : d3 = pos - softClippedLeft = 6-3 = 3
+			// d5':   543210       : d5 = lengthSequenced - 1 - pos + softClippedLeft = 6 - 1 - 5 + 2 = 2
+			// d3':   012345       : d3 = pos - softClippedLeft                       = 5 - 2         = 3
 			for (int pos = 0; pos < length; ++pos) {
-				_bases[pos].distFrom5Prime = len_1 - pos + _cigar.lengthSoftClippedLeft(); // dist from 5'
-				_bases[pos].distFrom3Prime = pos - _cigar.lengthSoftClippedLeft();      // dist from 3'
+				_bases[pos].distFrom5Prime = l_m1_ps - pos;
+				_bases[pos].distFrom3Prime = pos - _cigar.lengthSoftClippedLeft();
 			}
 		} else {
-			// Singlestrand Forward
-			//        |-------|      : length = 7
-			//   5' SSS---x---SSS 3' : _bases.length = softclippedLeft + length + softClippedRight = 3 + 7 + 3
+			// Single-end forward
+			//  5'  LL---x--RR  3' : readLength       = softclippedLeft + lengthSequenced + softClippedRight
+			//  5'  ..---x--..  3' : lengthSequenced  = 6
+			//  5'  LL...x....  3' : softClippledLeft = 2
+			//  5'  .....x..RR  3' : softClippledRight= 2
 			// pos: 0123456789
-			// d5':    0123456       : d5 = pos - softClippedLeft = 6-3 = 3
-			// d3':    6543210       : d3 = length - 1 + softClippedLeft = 7 - 1 - 6 + 3 = 3
+			// d5':   012345       : d5 = pos - softClippedLeft                       = 5 - 2         = 3
+			// d3':   543210       : d3 = lengthSequenced - 1 - pos + softClippedLeft = 6 - 1 - 5 + 2 = 2
 			for (int pos = 0; pos < length; ++pos) {
-				_bases[pos].distFrom5Prime = pos - _cigar.lengthSoftClippedLeft();      // dist from 5'
-				_bases[pos].distFrom3Prime = len_1 - pos + _cigar.lengthSoftClippedLeft(); // dist from 3'
+				_bases[pos].distFrom5Prime = pos - _cigar.lengthSoftClippedLeft();
+				_bases[pos].distFrom3Prime = l_m1_ps - pos;
 			}
 		}
 	}
