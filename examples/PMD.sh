@@ -2,11 +2,13 @@
 
 . $(dirname $0)/find_atlas
 
-$atlas --task simulate --pmd "doubleStrand:Exponential[30,0.1,0.1,0.05]:Exponential[40,0.2,0.3,0.07]"  --fixedSeed 0 --logFile simulate.out
+for strand in single double; do
+	$atlas --task simulate --pmd "${strand}Strand:Exponential[30,0.1,0.1,0.05]:Exponential[40,0.2,0.3,0.07]"  --fixedSeed 0 --logFile simulate.out --out $strand
 
-$atlas --task PMD --bam ATLAS_simulations.bam --fasta ATLAS_simulations.fasta --pmdModels "doubleStrand:Exponential:Exponential"  --fixedSeed 0 --out exponential --logFile exponential.out
-$atlas --task PMD --bam ATLAS_simulations.bam --fasta ATLAS_simulations.fasta --pmdModels "doubleStrand:Empiric:Empiric"  --fixedSeed 0 --out empiric --logFile empiric.out
+	$atlas --task PMD --bam $strand.bam --fasta $strand.fasta --pmdModels "${strand}Strand:Exponential:Exponential"  --fixedSeed 0 --out ${strand}_exponential --logFile ${strand}_exponential.out
+	$atlas --task PMD --bam $strand.bam --fasta $strand.fasta --pmdModels "${strand}Strand:Empiric:Empiric"  --fixedSeed 0 --out ${strand}_empiric --logFile ${strand}_empiric.out
 
 # Parsing output file
-$atlas --task PMD --bam ATLAS_simulations.bam --fasta ATLAS_simulations.fasta --pmd "exponential_PMD.txt" --reestimate --fixedSeed 0 --out exponential_reestimate --logFile exponential_reestimate.out
-$atlas --task PMD --bam ATLAS_simulations.bam --fasta ATLAS_simulations.fasta --pmd "empiric_PMD.txt" --reestimate --fixedSeed 0 --out empiric_reestimte --logFile empiric_reestimte.out
+	$atlas --task PMD --bam $strand.bam --fasta $strand.fasta --pmd "${strand}_exponential_PMD.txt" --reestimate --fixedSeed 0 --out ${strand}_exponential_reestimate --logFile ${strand}_exponential_reestimate.out
+	$atlas --task PMD --bam $strand.bam --fasta $strand.fasta --pmd "${strand}_empiric_PMD.txt" --reestimate --fixedSeed 0 --out ${strand}_empiric_reestimte --logFile ${strand}_empiric_reestimte.out
+done
