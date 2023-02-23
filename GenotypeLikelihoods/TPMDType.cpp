@@ -46,8 +46,6 @@ void TPMDTypeDoubleStrand::estimate(const PMDTable_RG &PMDTable,
 
 TBaseLikelihoods TPMDTypeDoubleStrand::baseLikelihoods(const BAM::TSequencedBase &data,
 					       const TBaseLikelihoods &baseLikelihoodsNoPMD) const {
-	// Note: distances are as in original fragment (not BAM file), i.e. in direction of sequencing
-	// no PMD for A and C
 	TBaseLikelihoods baseLikelihoods(baseLikelihoodsNoPMD);
 
 	// get relevant PMD probabilities
@@ -132,14 +130,17 @@ void TPMDTypeSingleStrand::estimate(const PMDTable_RG &PMDTable,
 
 TBaseLikelihoods TPMDTypeSingleStrand::baseLikelihoods(const BAM::TSequencedBase &data,
 					       const TBaseLikelihoods &baseLikelihoodsNoPMD) const {
-	// Note: distances are as in original fragment (not BAM file), i.e. in direction of sequencing
-	// no PMD for A, C and G
 	TBaseLikelihoods baseLikelihoods(baseLikelihoodsNoPMD);
 
-	const double pmdProb_CT  = _probCT(data);
+	// get relevant PMD probabilities
+	const auto pmdProb_CT = _probCT(data);
+	const auto pmdProb_GA = _probGA(data);
+
+	// add PMD
 	baseLikelihoods[Base::C] =
 		(1.0 - pmdProb_CT) * baseLikelihoodsNoPMD[Base::C] + pmdProb_CT * baseLikelihoodsNoPMD[Base::T];
-
+	baseLikelihoods[Base::G] =
+		(1.0 - pmdProb_GA) * baseLikelihoodsNoPMD[Base::G] + pmdProb_GA * baseLikelihoodsNoPMD[Base::A];
 	return baseLikelihoods;
 }
 
@@ -148,18 +149,24 @@ TBaseProbabilities TPMDTypeSingleStrand::massFunction(Base b, const BAM::TSequen
 	switch (b) {
 	case Base::A: return TBaseProbabilities::normalize({1., 0., 0., 0.});
 	case Base::C: {
-		const double pmdProb_CT = _probCT(data);
+		const auto pmdProb_CT = _probCT(data);
 		return TBaseProbabilities::normalize(
 			{0., (1. - pmdProb_CT) * baseLikelihoodsNoPMD[Base::C], 0., pmdProb_CT * baseLikelihoodsNoPMD[Base::T]});
 	}
-	case Base::G: return TBaseProbabilities::normalize({0., 0., 1., 0.});
-	default: return TBaseProbabilities::normalize({0., 0., 0., 1.}); // Base::T
+	case Base::G: {
+		const auto pmdProb_GA = _probGA(data);
+		return TBaseProbabilities::normalize(
+			{pmdProb_GA * baseLikelihoodsNoPMD[Base::A], 0., (1. - pmdProb_GA) * baseLikelihoodsNoPMD[Base::G], 0.});
+	}
+	default: return TBaseProbabilities::normalize({0., 0., 0., 1.}); // case Base::T
 	}
 }
 
 void TPMDTypeSingleStrand::simulate(BAM::TSequencedBase &data) const {
 	if (data.base == Base::C) {
 		if (randomGenerator().getRand() < _probCT(data)) data.base = Base::T;
+	} else if (data.base == Base::G) {
+		if (randomGenerator().getRand() < _probGA(data)) data.base = Base::A;
 	}
 }
 

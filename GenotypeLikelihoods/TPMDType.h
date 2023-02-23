@@ -12,6 +12,7 @@
 #include "TGenotypeData.h"
 #include "TPMDFunction.h"
 #include "TSequencedBase.h"
+#include "coretools/Types/probability.h"
 
 namespace GenotypeLikelihoods {
 
@@ -124,6 +125,13 @@ private:
 	std::unique_ptr<TPMDFunction> _pmdCT5;
 
 	coretools::Probability _probCT(const BAM::TSequencedBase &data) const noexcept {
+		if (data.isReverseStrand()) return coretools::Probability{};
+		return data.distFrom3Prime < data.distFrom5Prime ? _pmdCT3->prob(data.distFrom3Prime)
+														 : _pmdCT5->prob(data.distFrom5Prime);
+	}
+
+	coretools::Probability _probGA(const BAM::TSequencedBase &data) const noexcept {
+		if (!data.isReverseStrand()) return coretools::Probability{};
 		return data.distFrom3Prime < data.distFrom5Prime ? _pmdCT3->prob(data.distFrom3Prime)
 														 : _pmdCT5->prob(data.distFrom5Prime);
 	}
