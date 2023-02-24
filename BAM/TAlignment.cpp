@@ -222,7 +222,7 @@ void TAlignment::_setDistancesFromEnds() {
 			// d5':   543210       : d5 = lengthSequenced - 1 - pos + softClippedLeft               = 6 - 1 - 5 + 2   = 2
 			// d3':   456789       : d3 = pos + fragmentLenght - lengthSequenced  - softClippedLeft = 5 + 10 - 6 - 2  = 7
 			const int f_ml_ms = _fragmentLength - _cigar.lengthSequenced() - _cigar.lengthSoftClippedLeft();
-			for (int pos = 0; pos < length; ++pos) {
+			for (size_t pos = _cigar.lengthSoftClippedLeft(); pos < length + _cigar.lengthSoftClippedLeft(); ++pos) {
 				_bases[pos].distFrom5Prime = l_m1_ps - pos;
 				_bases[pos].distFrom3Prime = pos + f_ml_ms;
 			}
@@ -237,7 +237,7 @@ void TAlignment::_setDistancesFromEnds() {
 			// d5':   012345       : d5 = pos - softClippedLeft                       = 5 - 2          = 3
 			// d3':   987654       : d3 = fragmentLength - 1 - pos + softClippedLeft  = 10 - 1 - 5 + 2 = 6
 			const int f_m1_ps = _fragmentLength - 1 + _cigar.lengthSoftClippedLeft();
-			for (int pos = 0; pos < length; ++pos) {
+			for (size_t pos = _cigar.lengthSoftClippedLeft(); pos < length + _cigar.lengthSoftClippedLeft(); ++pos) {
 				_bases[pos].distFrom5Prime = pos - _cigar.lengthSoftClippedLeft();
 				_bases[pos].distFrom3Prime = f_m1_ps - pos;
 			}
@@ -253,7 +253,7 @@ void TAlignment::_setDistancesFromEnds() {
 			// pos: 0123456789
 			// d5':   543210       : d5 = lengthSequenced - 1 - pos + softClippedLeft = 6 - 1 - 5 + 2 = 2
 			// d3':   012345       : d3 = pos - softClippedLeft                       = 5 - 2         = 3
-			for (int pos = 0; pos < length; ++pos) {
+			for (size_t pos = _cigar.lengthSoftClippedLeft(); pos < length + _cigar.lengthSoftClippedLeft(); ++pos) {
 				_bases[pos].distFrom5Prime = l_m1_ps - pos;
 				_bases[pos].distFrom3Prime = pos - _cigar.lengthSoftClippedLeft();
 			}
@@ -266,7 +266,7 @@ void TAlignment::_setDistancesFromEnds() {
 			// pos: 0123456789
 			// d5':   012345       : d5 = pos - softClippedLeft                       = 5 - 2         = 3
 			// d3':   543210       : d3 = lengthSequenced - 1 - pos + softClippedLeft = 6 - 1 - 5 + 2 = 2
-			for (int pos = 0; pos < length; ++pos) {
+			for (size_t pos = _cigar.lengthSoftClippedLeft(); pos < length + _cigar.lengthSoftClippedLeft(); ++pos) {
 				_bases[pos].distFrom5Prime = pos - _cigar.lengthSoftClippedLeft();
 				_bases[pos].distFrom3Prime = l_m1_ps - pos;
 			}
