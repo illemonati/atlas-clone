@@ -34,7 +34,7 @@ private:
 
 public:
 	TBamFileLog(const std::string &filename): _log(filename, 3){};
-	void write(const std::string & alignmentName, const bool & isSecondMate, const std::string & reason);
+	void write(const std::string & alignmentName, bool isSecondMate, const std::string & reason);
 };
 
 //-----------------------------------------------------
@@ -55,9 +55,9 @@ public:
 	bool filters() const{ return !_keep; };
 	void setReason(const std::string reason);
 	void setLog(std::shared_ptr<TBamFileLog> & Log);
-	void filterOut(const std::string & alignmentName, const bool & isSecondMate, const uint16_t readGroup, const uint32_t chromosomeID);
-	void summary(size_t total, const uint16_t readGroup);
-	coretools::TCountDistributionVector<> numFiltered() const { return _counter; }
+	void filterOut(const std::string & alignmentName, bool isSecondMate, uint16_t readGroup, uint32_t chromosomeID);
+	void summary(size_t total, uint16_t readGroup);
+	const coretools::TCountDistributionVector<>& numFiltered() const { return _counter; }
 	std::string getReason() const { return _reason; }
 	void fillHeader(std::vector<std::string> &header);
 	void printCounts(coretools::TOutputFile &out, uint16_t rg_ID);

@@ -12,6 +12,7 @@
 #include <ostream>
 #include <vector>
 
+#include "coretools/devtools.h"
 #include "genometools/GenotypeTypes.h"
 #include "coretools/Files/TFile.h"
 #include "coretools/Main/TLog.h"
@@ -26,7 +27,7 @@ using coretools::instances::logfile;
 //-----------------------------------------------------
 //TBamFileLog
 //-----------------------------------------------------
-void TBamFileLog::write(const std::string & alignmentName, const bool & isSecondMate, const std::string & reason){
+void TBamFileLog::write(const std::string & alignmentName, bool isSecondMate, const std::string & reason){
 	_log.writeln(alignmentName, isSecondMate, reason);
 };
 
@@ -39,7 +40,7 @@ TBamFileFilter::TBamFileFilter(){
 	_log = nullptr;
 };
 
-void TBamFileFilter::filterOut(const std::string & alignmentName, const bool & isSecondMate, const uint16_t readGroup, const uint32_t chromosomeID){
+void TBamFileFilter::filterOut(const std::string & alignmentName, bool isSecondMate, uint16_t readGroup, uint32_t chromosomeID){
 	//counts filtered reads per read group and filter
 	_counter.add(readGroup, chromosomeID);
 	if(_updateLog){
@@ -65,8 +66,8 @@ void TBamFileFilter::setLog(std::shared_ptr<TBamFileLog> & Log){
 	_updateLog = true;
 };
 
-void TBamFileFilter::summary(size_t total, const uint16_t readGroup){
-	if(!_keep && _counter[readGroup].counts()  > 0){
+void TBamFileFilter::summary(size_t total, uint16_t readGroup){
+	if(!_keep && readGroup < _counter.size() && _counter[readGroup].counts()  > 0){
 		logfile().list(_reason + ": ", _counter[readGroup].counts(), " (" + coretools::str::toPercentString(_counter[readGroup].counts(), total, 3) + "%)");
 	}
 };
@@ -80,56 +81,50 @@ void TBamFileFilter::fillHeader(std::vector<std::string> &header){
 void TBamFileFilter::printCounts(coretools::TOutputFile &out, uint16_t rg_ID) {
 	//Reason is only set if filter is applied (see TBamFile::setFilters), in which case reason and number of removed reads per read group are printed here
 	if (!getReason().empty()){
-		coretools::TCountDistributionVector FilterCount = numFiltered();
-		out << FilterCount[rg_ID].counts();
+		out << getCounts(rg_ID);
 	}
 };
 
 void TBamFileFilter::printCountsPerChromosome(coretools::TOutputFile &out, uint32_t ref_ID) {
 	//Reason is only set if filter is applied (see TBamFile::setFilters), in which case reason and number of removed reads per read group are printed here
 	if (!getReason().empty()){
-		coretools::TCountDistributionVector FilterCount = numFiltered();
-		out << FilterCount.horizontalCounts(ref_ID);
+		out << numFiltered().horizontalCounts(ref_ID);
 	}
 };
 
 void TBamFileFilter::printCombinedCounts(coretools::TOutputFile &out) {
 	//Reason is only set if filter is applied (see TBamFile::setFilters), in which case reason and number of removed reads per read group are printed here
 	if (!getReason().empty()){
-		coretools::TCountDistributionVector FilterCount = numFiltered();
-		out << FilterCount.counts();
+		out << numFiltered().counts();
 	}
 };
 
 size_t TBamFileFilter::getCounts(uint16_t rg_ID) {
 	//Reason is only set if filter is applied (see TBamFile::setFilters), in which case reason and number of removed reads per read group are printed here
-	if (!getReason().empty()){
-		coretools::TCountDistributionVector FilterCount = numFiltered();
-		return(FilterCount[rg_ID].counts());
-	} return 0;
+	if (!getReason().empty() && rg_ID < numFiltered().size()){
+		return numFiltered()[rg_ID].counts();
+	}
+	return 0;
 };
 
 size_t TBamFileFilter::getCountsPerChromosome(uint32_t ref_ID) {
 	//Reason is only set if filter is applied (see TBamFile::setFilters), in which case reason and number of removed reads per read group are printed here
 	if (!getReason().empty()){
-		coretools::TCountDistributionVector FilterCount = numFiltered();
-		return(FilterCount.horizontalCounts(ref_ID));
+		return numFiltered().horizontalCounts(ref_ID);
 	} return 0;
 };
 
 size_t TBamFileFilter::getCountsAtReadGroupAndChromosome(uint16_t rg_ID, uint32_t ref_ID) {
 	//Reason is only set if filter is applied (see TBamFile::setFilters), in which case reason and number of removed reads per read group are printed here
-	if (!getReason().empty()){
-		coretools::TCountDistributionVector FilterCount = numFiltered();
-		return(FilterCount[rg_ID][ref_ID]);
+	if (!getReason().empty() && rg_ID < numFiltered().size()){
+		return numFiltered()[rg_ID][ref_ID];
 	} return 0;
 };
 
 size_t TBamFileFilter::getCombinedCounts() {
 	//Reason is only set if filter is applied (see TBamFile::setFilters), in which case reason and number of removed reads per read group are printed here
 	if (!getReason().empty()){
-		coretools::TCountDistributionVector FilterCount = numFiltered();
-		return(FilterCount.counts());
+		return numFiltered().counts();
 	} return 0;
 };
 
