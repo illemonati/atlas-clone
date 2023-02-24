@@ -6,6 +6,7 @@
  */
 
 #include "TAlignment.h"
+#include "TSequencedBase.h"
 #include "coretools/Main/TError.h"
 #include "genometools/GenomePositions/TGenomePosition.h"
 #include "genometools/GenotypeTypes.h"
@@ -108,7 +109,18 @@ void TAlignment::_parseBasesQualities() {
 		DEVERROR("Sequence and Qualities are of different legth!");
 	}
 	// initialize
-	_bases.resize(_cigar.lengthRead());
+	const auto common = [&](){
+		// set mapping quality and whether read is first or second
+		TSequencedBase b{};
+		b.readGroupID    = _readGroupID;
+		b.mappingQuality = _mappingQuality;
+		b.fragmentLength = _fragmentLength;
+		b.setSecondMate(_flags.isSecondMate());
+		b.setReverseStrand(_flags.isReverseStrand());
+		return b;
+	}();
+	assert(common.isReverseStrand() == _flags.isReverseStrand());
+	_bases.assign(_cigar.lengthRead(), common);
 	//_alignedPosition.resize(_cigar.lengthRead());
 	_alignedPosition.clear();
 	_alignedPosition.reserve(_cigar.lengthRead());
@@ -171,6 +183,8 @@ void TAlignment::_parseBasesQualities() {
 		}
 	}
 
+	// set mapping quality and whether read is first or second
+
 	// update length and last aligned position
 	_refSize = p;
 
@@ -180,14 +194,6 @@ void TAlignment::_parseBasesQualities() {
 	// fill context for each base
 	_fillContext();
 
-	// set mapping quality and whether read is first or second
-	for (auto &b : _bases) {
-		b.readGroupID    = _readGroupID;
-		b.mappingQuality = _mappingQuality;
-		b.fragmentLength = _fragmentLength;
-		b.setSecondMate(_flags.isSecondMate());
-		b.setReverseStrand(_flags.isReverseStrand());
-	}
 
 	_parsed                      = true;
 	_sequenceAndQualitiesChanged = false;
