@@ -439,13 +439,13 @@ void TBamFile::open(std::string_view Filename){
 	_numAlignmentReadPerReadGroupPerChromosome.resizeDistributions(_chromosomes.size());
 
 	//get file size
-	size_t lastChromRefID = _chromosomes.size() - 1;
-	size_t pos =  _chromosomes[lastChromRefID].length - 1;
+	const size_t lastChromRefID = _chromosomes.size() - 1;
+	int pos               = _chromosomes[lastChromRefID].length - 1;
 	BamTools::BamAlignment bamAlignment;
 	do {
 	_bamReader.Jump(lastChromRefID, pos);
 	pos -= _stepSizeFindLastAlignment;
-	} while (!_bamReader.GetNextAlignmentCore(bamAlignment));
+	} while (!_bamReader.GetNextAlignmentCore(bamAlignment) && pos > 0);
 	_fileSize = _bamReader.Tell();
 	_bamReader.Rewind();
 };
