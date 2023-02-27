@@ -23,18 +23,32 @@ TSexEstimator::TSexEstimator():TGenome_windows() {
 		logfile().list("Will only process up to " + std::to_string(_siteLimit) + " sites. (parameter 'siteLimit')");
 	}
 
-	if(parameters().parameterExists("adaptRegions")){
-		_adaptRegions = true;
+	if(parameters().parameterExists("wholeGenome")){
+		logfile().list("Will estimate depth of the entire genome. (parameter 'wholeGenome')");
+		_wholeGenome = true;
+	} else {
+		logfile().list("Will estimate depth of the regions given. (use 'wholeGenome' to estimate depth of entire genome)");
+		if(parameters().parameterExists("adaptRegions")){
+			logfile().list("Will adapt regions from BED-file to the reference sequence in BAM-file if required. (parameter 'adaptRegions')");
+			_adaptRegions = true;
+		} else {
+			logfile().list("Will not adapt regions from BED-file to the reference sequence in BAM-file, this will result in errors if the given region exceeds the BAM-file. (use 'adaptRegions' to do so)");
+		}
 	}
 
 	// read the regions to be used
-	logfile().startIndent("Reading regions: (parameter 'chromRegions')");
-	std::vector<std::string> regions;
-	parameters().fillParameterIntoContainer("chromRegions", regions, ',');
-	_regionNum = 0;
-	for (auto &s: regions){
-		_initializeRegion(s, _regionNum);
-		_regionNum++;
+	if(_wholeGenome == false) {
+		logfile().startIndent("Reading regions: (parameter 'chromRegions')");
+		std::vector<std::string> regions;
+		parameters().fillParameterIntoContainer("chromRegions", regions, ',');
+		_regionNum = 0;
+		for (auto &s: regions){
+			_initializeRegion(s, _regionNum);
+			_regionNum++;
+		}
+	} else {
+		coretools::TCountDistribution<> distPerSite;
+		_distPerSites.push_back(distPerSite);
 	}
 }
 
@@ -61,35 +75,55 @@ void TSexEstimator::_handleWindow(){
 }
 
 void TSexEstimator::_considerRegion(uint16_t regionNum){
-	if(_regions[regionNum]->containsChromosome(_window.chrName())) {
-		//find chromosome of current genome window in TBedReaderWindows
-		auto chromosome = _regions[regionNum]->findChromosome(_window.chrName());
-		uint32_t windowNum = _window.from().position()/_windowSize;
-		if (chromosome->windows.count(windowNum)){
-			//find Bed window with sites to keep in current genome window
-			auto window = chromosome->windows.find(windowNum)->second;
-			//this iterator travels along the genome window, while pointing to the positions of sites
-			genometools::TGenomePosition pos = _window.from() + (window->positions.front() - _window.from().position());
-			//this iterator also travels along the genome window, but points to TSite objects instead, which can print out the depth at each site
-			std::vector<GenotypeLikelihoods::TSite>::iterator siteIterator = _window.begin() + (window->positions.front() - _window.from().position());
+	if(_wholeGenome == false ){
+		if(_regions[regionNum]->containsChromosome(_window.chrName())) {
+			//find chromosome of current genome window in TBedReaderWindows
+			auto chromosome = _regions[regionNum]->findChromosome(_window.chrName());
+			uint32_t windowNum = _window.from().position()/_windowSize;
+			if (chromosome->windows.count(windowNum)){
+				//find Bed window with sites to keep in current genome window
+				auto window = chromosome->windows.find(windowNum)->second;
+				//this iterator travels along the genome window, while pointing to the positions of sites
+				genometools::TGenomePosition pos = _window.from() + (window->positions.front() - _window.from().position());
+				//this iterator also travels along the genome window, but points to TSite objects instead, which can print out the depth at each site
+				std::vector<GenotypeLikelihoods::TSite>::iterator siteIterator = _window.begin() + (window->positions.front() - _window.from().position());
 
-			//this iterator that travels along the bed window, which contains the sites that are supposed to be analyzed
-			std::vector<uint32_t>::iterator it = window->positions.begin();
+				//this iterator that travels along the bed window, which contains the sites that are supposed to be analyzed
+				std::vector<uint32_t>::iterator it = window->positions.begin();
 
-			for (; pos.position() <=  window->positions.back(); ++pos){
-				//if the position in the genome and bed window are equal, add the depth at this site to the histogram and increment the bed iterator
-				if (pos.position() == *it){
-					_distPerSites[regionNum].add(siteIterator->depth());
-					chromosome->distPerSites.add(siteIterator->depth());
-					++it;
-					++siteIterator;
-				//if the position in the genome and bed window are unequal, don't add the depth
-				//and only increase the iterators that travel along the genome window
+				for (; pos.position() <=  window->positions.back(); ++pos){
+					//if the position in the genome and bed window are equal, add the depth at this site to the histogram and increment the bed iterator
+					if (pos.position() == *it){
+						_distPerSites[regionNum].add(siteIterator->depth());
+						chromosome->distPerSites.add(siteIterator->depth());
+						++it;
+						++siteIterator;
+					//if the position in the genome and bed window are unequal, don't add the depth
+					//and only increase the iterators that travel along the genome window
+					} else {
+						++siteIterator;
+					}
+				}
+			logfile().done();
+			}
+		}
+	} else {
+		if (_siteLimit > 0) {
+			if (_distPerSites[0].counts() < _siteLimit){
+				if (_distPerSites[0].counts() + _window.size() < _siteLimit){
+					for (auto &s: _window)
+						_distPerSites[0].add(s.depth());
 				} else {
-					++siteIterator;
+					auto it = _window.cbegin();
+					while (_distPerSites[0].counts() < _siteLimit){
+						_distPerSites[0].add(it->depth());
+						it++;
+					}
 				}
 			}
-		logfile().done();
+		} else {
+		for (auto &s: _window)
+			_distPerSites[0].add(s.depth());
 		}
 	}
 }
@@ -126,14 +160,23 @@ void TSexEstimator::_writeHistogram(uint16_t regionNum){
 void TSexEstimator::writeDepth(){
 	_traverseBAMWindows();
 
-	//write distribution per site and per chromosome
-	for (uint16_t i=0; i<_regionNum; i++){
-		_writeHistogram(i);
-		_writeDepthPerChromosome(i);
+	if(_wholeGenome == false ){
+		//write distribution per site and per chromosome
+		for (uint16_t i=0; i<_regionNum; i++){
+			_writeHistogram(i);
+			_writeDepthPerChromosome(i);
+		}
+		//write ratios
+		for (uint16_t i=1; i<_regionNum; i++)
+			logfile().list("Ratio of region1_meanDepth/region" + std::to_string(i+1) + "_meanDepth: " + std::to_string(_distPerSites[0].mean()/_distPerSites[i].mean()));
+	} else {
+		_writeHistogram(0);
+		std::string filename = _outputName + "_meanDepth.txt";
+		coretools::TOutputFile out;
+		out.open(filename, "mean depth");
+		out.writeln(_distPerSites[0].mean());
+		logfile().list("Writing mean depth to file " + filename + ".");
 	}
-	//write ratios
-	for (uint16_t i=1; i<_regionNum; i++)
-		logfile().list("Ratio of region1_meanDepth/region" + std::to_string(i+1) + "_meanDepth: " + std::to_string(_distPerSites[0].mean()/_distPerSites[i].mean()));
 };
 
 

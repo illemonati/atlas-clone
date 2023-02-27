@@ -27,6 +27,7 @@ private:
 	uint32_t _siteLimit;
 	uint16_t _regionNum;
 	bool _adaptRegions = false;
+	bool _wholeGenome = false;
 
 	void _initializeRegion(std::string regionsFile, const int regionNum);
 	void _handleWindow() override;
