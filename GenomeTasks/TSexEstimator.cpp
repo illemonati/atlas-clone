@@ -108,12 +108,16 @@ void TSexEstimator::_considerRegion(uint16_t regionNum){
 			}
 		}
 	} else {
+		//in case whole genome AND site limit are turned on
 		if (_siteLimit > 0) {
+			//check if site limit is already exceeded
 			if (_distPerSites[0].counts() < _siteLimit){
+				//check if current window is going to exceed site limit
 				if (_distPerSites[0].counts() + _window.size() < _siteLimit){
 					for (auto &s: _window)
 						_distPerSites[0].add(s.depth());
 				} else {
+					
 					auto it = _window.cbegin();
 					while (_distPerSites[0].counts() < _siteLimit){
 						_distPerSites[0].add(it->depth());
