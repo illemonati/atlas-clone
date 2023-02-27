@@ -6,6 +6,7 @@
  */
 
 #include "TAlignment.h"
+#include "TSequencedBase.h"
 #include "coretools/Main/TError.h"
 #include "genometools/GenomePositions/TGenomePosition.h"
 #include "genometools/GenotypeTypes.h"
@@ -108,7 +109,18 @@ void TAlignment::_parseBasesQualities() {
 		DEVERROR("Sequence and Qualities are of different legth!");
 	}
 	// initialize
-	_bases.resize(_cigar.lengthRead());
+	const auto common = [&](){
+		// set mapping quality and whether read is first or second
+		TSequencedBase b{};
+		b.readGroupID    = _readGroupID;
+		b.mappingQuality = _mappingQuality;
+		b.fragmentLength = _fragmentLength;
+		b.setSecondMate(_flags.isSecondMate());
+		b.setReverseStrand(_flags.isReverseStrand());
+		return b;
+	}();
+	assert(common.isReverseStrand() == _flags.isReverseStrand());
+	_bases.assign(_cigar.lengthRead(), common);
 	//_alignedPosition.resize(_cigar.lengthRead());
 	_alignedPosition.clear();
 	_alignedPosition.reserve(_cigar.lengthRead());
@@ -171,6 +183,8 @@ void TAlignment::_parseBasesQualities() {
 		}
 	}
 
+	// set mapping quality and whether read is first or second
+
 	// update length and last aligned position
 	_refSize = p;
 
@@ -180,14 +194,6 @@ void TAlignment::_parseBasesQualities() {
 	// fill context for each base
 	_fillContext();
 
-	// set mapping quality and whether read is first or second
-	for (auto &b : _bases) {
-		b.readGroupID    = _readGroupID;
-		b.mappingQuality = _mappingQuality;
-		b.fragmentLength = _fragmentLength;
-		b.setSecondMate(_flags.isSecondMate());
-		b.setReverseStrand(_flags.isReverseStrand());
-	}
 
 	_parsed                      = true;
 	_sequenceAndQualitiesChanged = false;
@@ -216,7 +222,7 @@ void TAlignment::_setDistancesFromEnds() {
 			// d5':   543210       : d5 = lengthSequenced - 1 - pos + softClippedLeft               = 6 - 1 - 5 + 2   = 2
 			// d3':   456789       : d3 = pos + fragmentLenght - lengthSequenced  - softClippedLeft = 5 + 10 - 6 - 2  = 7
 			const int f_ml_ms = _fragmentLength - _cigar.lengthSequenced() - _cigar.lengthSoftClippedLeft();
-			for (int pos = 0; pos < length; ++pos) {
+			for (size_t pos = _cigar.lengthSoftClippedLeft(); pos < length + _cigar.lengthSoftClippedLeft(); ++pos) {
 				_bases[pos].distFrom5Prime = l_m1_ps - pos;
 				_bases[pos].distFrom3Prime = pos + f_ml_ms;
 			}
@@ -231,7 +237,7 @@ void TAlignment::_setDistancesFromEnds() {
 			// d5':   012345       : d5 = pos - softClippedLeft                       = 5 - 2          = 3
 			// d3':   987654       : d3 = fragmentLength - 1 - pos + softClippedLeft  = 10 - 1 - 5 + 2 = 6
 			const int f_m1_ps = _fragmentLength - 1 + _cigar.lengthSoftClippedLeft();
-			for (int pos = 0; pos < length; ++pos) {
+			for (size_t pos = _cigar.lengthSoftClippedLeft(); pos < length + _cigar.lengthSoftClippedLeft(); ++pos) {
 				_bases[pos].distFrom5Prime = pos - _cigar.lengthSoftClippedLeft();
 				_bases[pos].distFrom3Prime = f_m1_ps - pos;
 			}
@@ -247,7 +253,7 @@ void TAlignment::_setDistancesFromEnds() {
 			// pos: 0123456789
 			// d5':   543210       : d5 = lengthSequenced - 1 - pos + softClippedLeft = 6 - 1 - 5 + 2 = 2
 			// d3':   012345       : d3 = pos - softClippedLeft                       = 5 - 2         = 3
-			for (int pos = 0; pos < length; ++pos) {
+			for (size_t pos = _cigar.lengthSoftClippedLeft(); pos < length + _cigar.lengthSoftClippedLeft(); ++pos) {
 				_bases[pos].distFrom5Prime = l_m1_ps - pos;
 				_bases[pos].distFrom3Prime = pos - _cigar.lengthSoftClippedLeft();
 			}
@@ -260,7 +266,7 @@ void TAlignment::_setDistancesFromEnds() {
 			// pos: 0123456789
 			// d5':   012345       : d5 = pos - softClippedLeft                       = 5 - 2         = 3
 			// d3':   543210       : d3 = lengthSequenced - 1 - pos + softClippedLeft = 6 - 1 - 5 + 2 = 2
-			for (int pos = 0; pos < length; ++pos) {
+			for (size_t pos = _cigar.lengthSoftClippedLeft(); pos < length + _cigar.lengthSoftClippedLeft(); ++pos) {
 				_bases[pos].distFrom5Prime = pos - _cigar.lengthSoftClippedLeft();
 				_bases[pos].distFrom3Prime = l_m1_ps - pos;
 			}
@@ -272,14 +278,14 @@ void TAlignment::_fillContext() {
 	using namespace genometools;
 	if (_flags.isReverseStrand()) {
 		// reverse
-		for (size_t d = 0; d < (_cigar.lengthSequenced() - 1); ++d) {
+		for (size_t d = 0; d < _bases.size() - 1; ++d) {
 			_bases[d].previousBase = _bases[d + 1].base;
 		}
 		_bases[_cigar.lengthSequenced() - 1].previousBase = Base::N;
 	} else {
 		// forward
 		_bases[0].previousBase = Base::N;
-		for (size_t d = 1; d < _cigar.lengthSequenced(); ++d)
+		for (size_t d = 1; d < _bases.size(); ++d)
 			_bases[d].previousBase = _bases[d - 1].base;
 	}
 };

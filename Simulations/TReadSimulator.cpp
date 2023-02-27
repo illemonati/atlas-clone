@@ -51,19 +51,17 @@ TReadSimulator::TReadSimulator(const BAM::TReadGroup & ReadGroup, const TReadGro
 		std::string sc = RGInfo.getString(InfoType::softClipping);
 		logfile().write(sc);
 
-		if(!sc.empty()){
-			//check if one or two values are given
-			if(sc.find(':') == std::string::npos){
-				//one distribution for both
-				if(sc != "-" && sc != "fixed(0)"){
-					_softClipDist3 = std::make_unique<TCategoricalDistribution<uint16_t>>(sc);
-					_softClipDist5 = std::make_unique<TCategoricalDistribution<uint16_t>>(sc);
-				} else {
-					std::string sc3 = coretools::str::extractBefore(sc, ":");
-					sc.erase(0,1);
-					_softClipDist3 = std::make_unique<TCategoricalDistribution<uint16_t>>(sc3);
-					_softClipDist5 = std::make_unique<TCategoricalDistribution<uint16_t>>(sc);
-				}
+		if (!sc.empty() && sc != "-") {
+			// check if one or two values are given
+			if (sc.find(':') == std::string::npos) {
+				// one distribution for both
+				_softClipDist3 = std::make_unique<TCategoricalDistribution<uint16_t>>(sc);
+				_softClipDist5 = std::make_unique<TCategoricalDistribution<uint16_t>>(sc);
+			} else {
+				std::string sc3 = coretools::str::extractBefore(sc, ":");
+				sc.erase(0, 1);
+				_softClipDist3 = std::make_unique<TCategoricalDistribution<uint16_t>>(sc3);
+				_softClipDist5 = std::make_unique<TCategoricalDistribution<uint16_t>>(sc);
 			}
 		}
 	} else {
