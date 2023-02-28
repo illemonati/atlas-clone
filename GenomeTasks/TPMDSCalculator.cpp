@@ -37,27 +37,24 @@ TPMDSCalculator::TPMDSCalculator():TGenome_parsed(){
 	_minPMDS = parameters().getParameterWithDefault<double>("minPMDS", -10000);
 	_maxPMDS = parameters().getParameterWithDefault<double>("maxPMDS", 10000);
 	logfile().list("Filtering out reads with PMDS outside the range [" + toString(_minPMDS) + ", " + toString(_maxPMDS) + "].");
+	_openReference(true);
 };
 
 double TPMDSCalculator::_calculatePMDS(){
 	//calculate PMDS (is in log)
 	double PMDS = 0.0;
-	uint16_t d = 0;
-	for(auto& b : _alignment){
-		//limit to aligned positions
-		genometools::Base ref = _alignment.referenceAtInternalPos(d);
-		if(b.isAligned() && b.base != genometools::Base::N && ref != genometools::Base::N){
-			PMDS +=  _genotypeLikelihoodCalculator.calculateLogPMDS(b, ref, _pi);
+	for (size_t d = 0; d < _alignment.size(); ++d) {
+		if (_alignment.isAlignedAtInternalPos(d)) {
+			PMDS += _genotypeLikelihoodCalculator.calculateLogPMDS(_alignment[d], _alignment.referenceAtInternalPos(d),
+																   _pi);
 		}
-		++d;
 	}
-
 	return PMDS;
 };
 
 void TPMDSCalculator::_handleAlignment(){
 	//calc PMD
-	double PMDS = _calculatePMDS();
+	const auto PMDS = _calculatePMDS();
 
 	//filter
 	if(PMDS < _minPMDS || PMDS < _maxPMDS){
