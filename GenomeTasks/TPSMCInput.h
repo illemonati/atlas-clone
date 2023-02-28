@@ -29,14 +29,9 @@ private:
 	double _confidence, _logConfidence, _logConfidenceHet;
 
 	uint32_t _blockSize;
-	uint32_t _nBlocks;
 	std::ofstream _out;
 	uint32_t _nCharOnLine;
 	std::unique_ptr<GenotypeLikelihoods::TThetaEstimator> _thetaEstimator;
-
-	//tmp variables
-	GenotypeLikelihoods::TGenotypeProbabilities _prior;
-	GenotypeLikelihoods::TGenotypeProbabilities _posterior;
 
 	void _handleWindow() override;
 	void _handleAlignment() override {}

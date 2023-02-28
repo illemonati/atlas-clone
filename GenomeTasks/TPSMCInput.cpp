@@ -37,14 +37,10 @@ TPSMCInput::TPSMCInput():TGenome_windows(){
 
 	_confidence = parameters().getParameterWithDefault<double>("confidence", 0.99);
 	logfile().list("Calling heterozygosity state with confidence > ", _confidence, ". (parameter 'confidence')");
-	_logConfidence = log(_confidence);
+
+	_logConfidence    = log(_confidence);
 	_logConfidenceHet = log(1.0 - _confidence);
-
-
-	_blockSize = parameters().getParameterWithDefault<int>("block", 100);
-	//make sure window size is a multiple of block length!
-	if(_windowSize % _blockSize != 0) UERROR("Window size is not a multiple of block size!");
-	_nBlocks = _window.size() / _blockSize;
+	_blockSize        = parameters().getParameterWithDefault<int>("block", 100);
 
 	//open output file
 	std::string outputFileName = _outputName + ".psmcfa";
@@ -58,21 +54,23 @@ void TPSMCInput::_handleWindow(){
 	logfile().listFlushTime("Estimating heterozygosity status ...");
 
 	//calc prior probabilities on Genotypes
-	_prior = _thetaEstimator->pGenotype();
+	const auto prior = _thetaEstimator->pGenotype();
 
 	//estimating base frequencies
 	_thetaEstimator->setBaseFreq( _window.estimateBaseFrequencies() );
 
 	//call heterozygosity in blocks
-	for(uint32_t b=0; b<_nBlocks; ++b){
+	const auto nBlocks = _window.size() / _blockSize;
+	for(uint32_t b=0; b<nBlocks; ++b){
 		uint32_t blockStart = b * _blockSize;
-		coretools::LogProbability logPHomo;
+		coretools::LogProbability logPHomo{0};
 
 		for(uint32_t i=0; i<_blockSize; ++i){
-			if(!_window[blockStart + i].empty()){
+			const auto wIndex = blockStart + i;
+			if(wIndex < _window.size() && !_window[wIndex].empty()){
 				_genoLik = _genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(_window[blockStart + 1]);
-				_posterior = GenotypeLikelihoods::posterior(_genoLik, _prior);
-				logPHomo += coretools::LogProbability(GenotypeLikelihoods::homozygous(_posterior));
+				const auto posterior = GenotypeLikelihoods::posterior(_genoLik, prior);
+				logPHomo += coretools::LogProbability(GenotypeLikelihoods::homozygous(posterior));
 			}
 		}
 
