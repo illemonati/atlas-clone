@@ -29,66 +29,57 @@ using coretools::str::toString;
 //--------------------------------------------------------------
 // TGenotypeComparisonTable
 //--------------------------------------------------------------
-TGenotypeComparisonTable::TGenotypeComparisonTable(){
-	//set to zero
-	for(int i=0; i<size; i++){
-		for(int j=0; j<size; ++j){
-			counts[i][j] = 0;
-		}
-	}
-};
-
 //add haploid genotypes
 void TGenotypeComparisonTable::add(const Base b1, const Base b2){
-	++counts[coretools::index(b1)][coretools::index(b2)];
+	++_counts[coretools::index(b1)][coretools::index(b2)];
 };
 
 void TGenotypeComparisonTable::addOtherMissing(const int sample, const Base b){
 	if(sample == 0){
-		++counts[coretools::index(b)][missingIndex];
+		++_counts[coretools::index(b)].back();
 	} else {
-		++counts[missingIndex][coretools::index(b)];
+		++_counts.back()[coretools::index(b)];
 	}
 };
 
 
 void TGenotypeComparisonTable::addFirstMissing(const Base b2){
-	++counts[missingIndex][coretools::index(b2)];
+	++_counts.back()[coretools::index(b2)];
 };
 
 void TGenotypeComparisonTable::addSecondMissing(const Base b1){
-	++counts[coretools::index(b1)][missingIndex];
+	++_counts[coretools::index(b1)].back();
 };
 
 //add diploid genotypes
 void TGenotypeComparisonTable::add(Genotype g1, Genotype g2){
-	++counts[firstDiploidIndex + coretools::index(g1)][firstDiploidIndex + coretools::index(g2)];
+	++_counts[_firstDiploidIndex + coretools::index(g1)][_firstDiploidIndex + coretools::index(g2)];
 };
 
 void TGenotypeComparisonTable::addOtherMissing(const int sample, const Genotype g){
 	if(sample == 0){
-		++counts[firstDiploidIndex + coretools::index(g)][missingIndex];
+		++_counts[_firstDiploidIndex + coretools::index(g)].back();
 	} else {
-		++counts[missingIndex][firstDiploidIndex + coretools::index(g)];
+		++_counts.back()[_firstDiploidIndex + coretools::index(g)];
 	}
 };
 
 void TGenotypeComparisonTable::addFirstMissing(Genotype g2){
-	++counts[missingIndex][firstDiploidIndex + coretools::index(g2)];
+	++_counts.back()[_firstDiploidIndex + coretools::index(g2)];
 };
 
 void TGenotypeComparisonTable::addSecondMissing(Genotype g1){
-	++counts[firstDiploidIndex + coretools::index(g1)][missingIndex];
+	++_counts[_firstDiploidIndex + coretools::index(g1)].back();
 };
 
 
 //add haploid / diploid combination of genotypes
 void TGenotypeComparisonTable::add(const Genotype g1, const Base b2){
-	++counts[firstDiploidIndex + coretools::index(g1)][coretools::index(b2)];
+	++_counts[_firstDiploidIndex + coretools::index(g1)][coretools::index(b2)];
 };
 
 void TGenotypeComparisonTable::add(const Base b1, const Genotype g2){
-	++counts[coretools::index(b1)][firstDiploidIndex + coretools::index(g2)];
+	++_counts[coretools::index(b1)][_firstDiploidIndex + coretools::index(g2)];
 };
 
 //write
@@ -115,12 +106,12 @@ void TGenotypeComparisonTable::write(const std::string filename){
 	out.writeHeader(header);
 
 	//write counts
-	for(int i=0; i<size; i++){
+	for(int i=0; i<_size; i++){
 		//write row name
 		out << header[i+1];
 
-		for(int j=0; j<size; j++){
-			out << counts[i][j];
+		for(int j=0; j<_size; j++){
+			out << _counts[i][j];
 		}
 
 		out.endln();
@@ -135,114 +126,64 @@ TVcfComapreVCF::TVcfComapreVCF(std::string & filename, std::string & sampleName)
 	//open vcf file
 	if(filename.find(".gz") == std::string::npos){
 		logfile().list("Reading sample '" + sampleName + "' from VCF file '" + filename + "'.");
-		vcfFile = new genometools::TVcfFileSingleLine(filename, false);
+		_vcfFile = std::make_unique<genometools::TVcfFileSingleLine>(filename, false);
 	} else {
 		logfile().list("Reading sample '" + sampleName + "' from gzipped VCF file '" + filename + "'.");
-		vcfFile = new genometools::TVcfFileSingleLine(filename, true);
+		_vcfFile = std::make_unique<genometools::TVcfFileSingleLine>(filename, true);
 	}
-	vcfFileOpen = true;
 
-	vcfFile->enablePositionParsing();
-	vcfFile->enableFormatParsing();
-	vcfFile->enableSampleParsing();
-	vcfFile->enableVariantParsing();
+	_vcfFile->enablePositionParsing();
+	_vcfFile->enableFormatParsing();
+	_vcfFile->enableSampleParsing();
+	_vcfFile->enableVariantParsing();
 
 	//add sample index
-	sampleIndex = vcfFile->sampleNumber(sampleName);
+	_sampleIndex = _vcfFile->sampleNumber(sampleName);
 
 	//move to first position
-	vcfFile->next();
+	_vcfFile->next();
 
-	if(vcfFile->eof)
+	if(_vcfFile->eof)
 		UERROR("Vcf file '", filename, "' is empty!");
 
 	//store first chr
-	parsedChromosomes.push_back(vcfFile->chr());
+	_parsedChromosomes.push_back(_vcfFile->chr());
 
 	//set filters to zero
-	minDepth = 0;
-	minQual = 0.0;
+	_minDepth = 0;
+	_minQual = 0.0;
 };
 
-TVcfComapreVCF::TVcfComapreVCF(TVcfComapreVCF&& other){
-	sampleIndex = other.sampleIndex;
-	other.sampleIndex = 0;
-
-	vcfFile = other.vcfFile;
-	other.vcfFile = nullptr;
-
-	vcfFileOpen = other.vcfFileOpen;
-	other.vcfFileOpen = false;
-
-	minDepth = other.minDepth;
-	other.minDepth = 0;
-
-	minQual = other.minQual;
-	other.minQual = 0.0;
-
-	parsedChromosomes = other.parsedChromosomes;
-	other.parsedChromosomes.clear();
-};
-
-TVcfComapreVCF& TVcfComapreVCF::operator=(TVcfComapreVCF&& other){
-	 if(this != &other){
-		delete vcfFile;
-		sampleIndex = other.sampleIndex;
-		other.sampleIndex = 0;
-
-		vcfFile = other.vcfFile;
-		other.vcfFile = nullptr;
-
-		vcfFileOpen = other.vcfFileOpen;
-		other.vcfFileOpen = false;
-
-		minDepth = other.minDepth;
-		other.minDepth = 0;
-
-		minQual = other.minQual;
-		other.minQual = 0.0;
-
-		parsedChromosomes = other.parsedChromosomes;
-		other.parsedChromosomes.clear();
-	 }
-
-	 return *this;
-};
-
-TVcfComapreVCF::~TVcfComapreVCF(){
-	if(vcfFileOpen)
-		delete vcfFile;
-};
 
 void TVcfComapreVCF::next(){
-	vcfFile->next();
-	if(!vcfFile->eof){
+	_vcfFile->next();
+	if(!_vcfFile->eof){
 		//store chr if new
-		if(vcfFile->chr() != parsedChromosomes.back())
-			parsedChromosomes.push_back(vcfFile->chr());
+		if(_vcfFile->chr() != _parsedChromosomes.back())
+			_parsedChromosomes.push_back(_vcfFile->chr());
 
 		//filter
-		if(!vcfFile->sampleIsMissing(sampleIndex) && minDepth > 0){
-			if(vcfFile->sampleDepth(sampleIndex) < minDepth){
-				vcfFile->setSampleMissing(sampleIndex);
+		if(!_vcfFile->sampleIsMissing(_sampleIndex) && _minDepth > 0){
+			if(_vcfFile->sampleDepth(_sampleIndex) < _minDepth){
+				_vcfFile->setSampleMissing(_sampleIndex);
 			}
 		}
 
-		if(!vcfFile->sampleIsMissing(sampleIndex) && minQual > 0){
-			if(vcfFile->sampleGenotypeQuality(sampleIndex) < minQual){
-				vcfFile->setSampleMissing(sampleIndex);
+		if(!_vcfFile->sampleIsMissing(_sampleIndex) && _minQual > 0){
+			if(_vcfFile->sampleGenotypeQuality(_sampleIndex) < _minQual){
+				_vcfFile->setSampleMissing(_sampleIndex);
 			}
 		}
 	}
 };
 
 void TVcfComapreVCF::setFilters(const int MinDepth, const double MinQual){
-	minDepth = MinDepth;
-	minQual = MinQual;
+	_minDepth = MinDepth;
+	_minQual = MinQual;
 };
 
 bool TVcfComapreVCF::chrParsed(const std::string chr){
-	return std::find(parsedChromosomes.begin(), parsedChromosomes.end(), chr) != parsedChromosomes.end();
+	return std::find(_parsedChromosomes.begin(), _parsedChromosomes.end(), chr) != _parsedChromosomes.end();
 };
 
 //--------------------------------------------------------------
@@ -250,16 +191,16 @@ bool TVcfComapreVCF::chrParsed(const std::string chr){
 //--------------------------------------------------------------
 
 void TVcfCompare::addToOtherMissing(TGenotypeComparisonTable & counts, const int sample){
-	if(!vcfFiles[sample].isMissing()){
-		if(vcfFiles[sample].isDiploid()){
-			counts.addOtherMissing(sample, vcfFiles[sample].genotype());
+	if(!_vcfFiles[sample].isMissing()){
+		if(_vcfFiles[sample].isDiploid()){
+			counts.addOtherMissing(sample, _vcfFiles[sample].genotype());
 		} else {
-			counts.addOtherMissing(sample, vcfFiles[sample].base());
+			counts.addOtherMissing(sample, _vcfFiles[sample].base());
 		}
 	}
 };
 
-void TVcfCompare::compareVCFFiles(){
+TVcfCompare::TVcfCompare() {
 	//open vcf files
 	logfile().startIndent("Open VCF files to compare:");
 	std::vector<std::string> fileNames;
@@ -269,17 +210,20 @@ void TVcfCompare::compareVCFFiles(){
 	parameters().fillParameterIntoContainer("samples", sampleNames, ',');
 
 	//currently only implemented for comparing two VCFs
-	if(fileNames.size() != 2)
-		UERROR("VCF comparison requires two VCF file names (not ", fileNames.size(), ")!");
-	if(fileNames.size() != 2)
-		UERROR("VCF comparison requires two sample names (not ", sampleNames.size(), ")!");
-	if(fileNames.size() != sampleNames.size())
-		UERROR("The number of vcf file names ", fileNames.size(), " does not the match the number of provided sample names ", sampleNames.size(), "!");
-
-	//open VCF files
-	for(size_t i=0; i<fileNames.size(); i++){
-		vcfFiles.emplace_back(fileNames[i], sampleNames[i]);
+	if (fileNames.size() == 1) {
+		if (sampleNames.size() != 2) {
+			UERROR("VCF comparison requires either one file and two sample names (not ", sampleNames.size(), "), or two files and one sample name!");
+		}
+	} else if (fileNames.size() == 2) {
+		const auto sampleSize = sampleNames.size();
+		if (sampleSize < 1 || sampleSize > 2) {
+			UERROR("VCF comparison requires either one file and two sample names (not ", sampleNames.size(), "), or two files and one sample name!");
+		}
 	}
+	// back is either same as front or the 2nd one, depending whether size = 1 or 2
+	_vcfFiles.emplace_back(fileNames.front(), sampleNames.front());
+	_vcfFiles.emplace_back(fileNames.back(), sampleNames.back());
+
 	logfile().endIndent();
 
 	//are filters in place?
@@ -293,18 +237,43 @@ void TVcfCompare::compareVCFFiles(){
 	}
 
 	//limitLines
-	bool limitLines = false;
-	long lineLimit = -1;
 	if(parameters().parameterExists("limitLines")){
-		limitLines = true;
-		logfile().list("Will stop reading after ", limitLines, " lines.");
-		lineLimit = parameters().getParameter<int>("limitLines");
+		_limitLines = true;
+		logfile().list("Will stop reading after ", _limitLines, " lines.");
+		_lineLimit = parameters().getParameter<int>("limitLines");
 	}
 
 	//set filters in VCF files
-	for(TVcfComapreVCF& it : vcfFiles){
+	for(TVcfComapreVCF& it : _vcfFiles){
 		it.setFilters(minDepth, minQual);
 	}
+
+	_outName = parameters().getParameter<std::string>("out", false);
+	if(_outName.empty()){
+		//guess from filename
+		//get base name of first VCF file
+		_outName = fileNames[0];
+		_outName = coretools::str::extractBeforeLast(_outName, '.');
+		if(fileNames[0].find(".gz") != std::string::npos){
+			//if zipped there is extra .gz
+			_outName = coretools::str::extractBeforeLast(_outName, ".");
+		}
+
+		//get base name of first VCF file
+		std::string tmp = fileNames[1];
+		tmp = coretools::str::extractBeforeLast(tmp, '.');
+		if(fileNames[1].find(".gz") != std::string::npos){
+			//if zipped there is extra .gz
+			tmp = coretools::str::extractBeforeLast(tmp, ".");
+		}
+
+		_outName += "_" + tmp;
+	}
+
+	_outName += "_CallComparison.txt";
+}
+
+void TVcfCompare::compareVCFFiles(){
 
 	//prepare count table
 	TGenotypeComparisonTable counts;
@@ -314,71 +283,71 @@ void TVcfCompare::compareVCFFiles(){
 	uint32_t numLines = 0;
 	struct timeval start;
 	gettimeofday(&start, NULL);
-	while((!vcfFiles[0].eof() || !vcfFiles[1].eof()) && (!limitLines  || numLines < lineLimit)){
+	while((!_vcfFiles[0].eof() || !_vcfFiles[1].eof()) && (!_limitLines  || numLines < _lineLimit)){
 		//is one end of file?
-		if(vcfFiles[0].eof()){
+		if(_vcfFiles[0].eof()){
 			addToOtherMissing(counts, 1);
-			vcfFiles[1].next();
-		} else if(vcfFiles[1].eof()){
+			_vcfFiles[1].next();
+		} else if(_vcfFiles[1].eof()){
 			addToOtherMissing(counts, 0);
-			vcfFiles[0].next();
+			_vcfFiles[0].next();
 		}
 
 		//are we on the same chromosome?
-		else if(vcfFiles[0].chr() == vcfFiles[1].chr()){
+		else if(_vcfFiles[0].chr() == _vcfFiles[1].chr()){
 			//same chromosome
-			if(vcfFiles[0].position() == vcfFiles[1].position()){
-				if(vcfFiles[0].isMissing()){
+			if(_vcfFiles[0].position() == _vcfFiles[1].position()){
+				if(_vcfFiles[0].isMissing()){
 					//do not add comparisons where both are missing
-					if(!vcfFiles[1].isMissing()){
+					if(!_vcfFiles[1].isMissing()){
 						addToOtherMissing(counts, 1);
 					}
 				} else {
-					if(vcfFiles[1].isMissing()){
+					if(_vcfFiles[1].isMissing()){
 						addToOtherMissing(counts, 0);
 					} else {
 						//both have calls
-						if(vcfFiles[0].isDiploid()){
-							if(vcfFiles[1].isDiploid()){
-								counts.add(vcfFiles[0].genotype(), vcfFiles[1].genotype());
+						if(_vcfFiles[0].isDiploid()){
+							if(_vcfFiles[1].isDiploid()){
+								counts.add(_vcfFiles[0].genotype(), _vcfFiles[1].genotype());
 							} else {
-								counts.add(vcfFiles[0].genotype(), vcfFiles[1].base());
+								counts.add(_vcfFiles[0].genotype(), _vcfFiles[1].base());
 							}
 						} else {
-							if(vcfFiles[1].isDiploid()){
-								counts.add(vcfFiles[0].base(), vcfFiles[1].genotype());
+							if(_vcfFiles[1].isDiploid()){
+								counts.add(_vcfFiles[0].base(), _vcfFiles[1].genotype());
 							} else {
-								counts.add(vcfFiles[0].base(), vcfFiles[1].base());
+								counts.add(_vcfFiles[0].base(), _vcfFiles[1].base());
 							}
 						}
 					}
 				}
 
 				//advance both
-				vcfFiles[0].next();
-				vcfFiles[1].next();
+				_vcfFiles[0].next();
+				_vcfFiles[1].next();
 			} else {
-				if(vcfFiles[0].position() < vcfFiles[1].position()){
+				if(_vcfFiles[0].position() < _vcfFiles[1].position()){
 					//position is missing in vcfFile1
 					addToOtherMissing(counts, 0);
-					vcfFiles[0].next();
+					_vcfFiles[0].next();
 				} else {
 					//position is missing in vcfFile0
 					addToOtherMissing(counts, 1);
-					vcfFiles[1].next();
+					_vcfFiles[1].next();
 				}
 			}
 		} else {
 			//we are on different chromosomes
 			//has VCFFile1 already parsed chromosome of vcfFile0?
-			if(vcfFiles[1].chrParsed(vcfFiles[0].chr())){
+			if(_vcfFiles[1].chrParsed(_vcfFiles[0].chr())){
 				//vcfFile1 is on next chromosome, hence, position is missing in vcfFile1
 				addToOtherMissing(counts, 0);
-				vcfFiles[0].next();
-			} else if(vcfFiles[0].chrParsed(vcfFiles[1].chr())){
+				_vcfFiles[0].next();
+			} else if(_vcfFiles[0].chrParsed(_vcfFiles[1].chr())){
 				//vcfFile0 is on next chromosome, hence, position is missing in vcfFile0
 				addToOtherMissing(counts, 1);
-				vcfFiles[1].next();
+				_vcfFiles[1].next();
 			} else {
 				UERROR("Chromosomes differ between the two VCF files!");
 			}
@@ -401,33 +370,10 @@ void TVcfCompare::compareVCFFiles(){
 	logfile().endIndent();
 
 	//write output file
-	std::string out = parameters().getParameter<std::string>("out", false);
-	if(out.empty()){
-		//guess from filename
-		//get base name of first VCF file
-		out = fileNames[0];
-		out = coretools::str::extractBeforeLast(out, '.');
-		if(fileNames[0].find(".gz") != std::string::npos){
-			//if zipped there is extra .gz
-			out = coretools::str::extractBeforeLast(out, ".");
-		}
-
-		//get base name of first VCF file
-		std::string tmp = fileNames[1];
-		tmp = coretools::str::extractBeforeLast(tmp, '.');
-		if(fileNames[1].find(".gz") != std::string::npos){
-			//if zipped there is extra .gz
-			tmp = coretools::str::extractBeforeLast(tmp, ".");
-		}
-
-		out += "_" + tmp;
-	}
-
-	out += "_CallComparison.txt";
 
 	//writing output file
-	logfile().listFlush("Writing counts to file '" + out + "' ...");
-	counts.write(out);
+	logfile().listFlush("Writing counts to file '" + _outName + "' ...");
+	counts.write(_outName);
 	logfile().done();
 };
 

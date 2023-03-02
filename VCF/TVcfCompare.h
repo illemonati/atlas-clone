@@ -8,6 +8,7 @@
 #ifndef VCF_TVCFCOMPARE_H_
 #define VCF_TVCFCOMPARE_H_
 
+#include <memory>
 #include <stdint.h>
 #include <array>
 #include <string>
@@ -23,16 +24,12 @@ namespace VCF{
 //--------------------------------------------------------------
 class TGenotypeComparisonTable{
 private:
-	static constexpr uint8_t size = 15;
-	static constexpr uint8_t  missingIndex = 14;
-	static constexpr uint8_t firstDiploidIndex = 4;
+	static constexpr uint8_t _size = 15;
+	static constexpr uint8_t _firstDiploidIndex = 4;
 
-	std::array<std::array<uint32_t, size>, size> counts;
+	std::array<std::array<uint32_t, _size>, _size> _counts{};
 
 public:
-	TGenotypeComparisonTable();
-	~TGenotypeComparisonTable() = default;
-
 	//add haploid genotypes
 	void add(const genometools::Base b1, const genometools::Base b2);
 	void addOtherMissing(const int sample, const genometools::Base b);
@@ -58,31 +55,26 @@ public:
 //--------------------------------------------------------------
 class TVcfComapreVCF{
 private:
-	int sampleIndex = 0;
-	std::vector<std::string> parsedChromosomes;
-	genometools::TVcfFileSingleLine* vcfFile = nullptr;
-	bool vcfFileOpen = false;
+	int _sampleIndex = 0;
+	std::vector<std::string> _parsedChromosomes;
+	std::unique_ptr<genometools::TVcfFileSingleLine> _vcfFile;
 
-	int minDepth = 0;
-	double minQual = 0.;
+	int _minDepth = 0;
+	double _minQual = 0.;
 
 public:
 	TVcfComapreVCF(std::string & filename, std::string & sampleName);
-	TVcfComapreVCF(TVcfComapreVCF&& other);
-	TVcfComapreVCF& operator=(TVcfComapreVCF&& other);
-	~TVcfComapreVCF();
-
 
 	void next();
 	void setFilters(const int mindepth, const double minQual);
 
-	bool eof(){ return vcfFile->eof; };
-	bool isMissing(){ return vcfFile->sampleIsMissing(sampleIndex); };
-	bool isDiploid(){ return vcfFile->sampleIsDiploid(sampleIndex); };
-	genometools::Genotype genotype(){ return vcfFile->sampleGenotype(sampleIndex); };
-	genometools::Base base(){ return vcfFile->getFirstAlleleOfSample(sampleIndex); };
-	std::string chr(){ return vcfFile->chr(); };
-	long position(){ return vcfFile->position(); };
+	bool eof(){ return _vcfFile->eof; };
+	bool isMissing(){ return _vcfFile->sampleIsMissing(_sampleIndex); };
+	bool isDiploid(){ return _vcfFile->sampleIsDiploid(_sampleIndex); };
+	genometools::Genotype genotype(){ return _vcfFile->sampleGenotype(_sampleIndex); };
+	genometools::Base base(){ return _vcfFile->getFirstAlleleOfSample(_sampleIndex); };
+	std::string chr(){ return _vcfFile->chr(); };
+	long position(){ return _vcfFile->position(); };
 	bool chrParsed(const std::string chr);
 };
 
@@ -91,11 +83,15 @@ public:
 //--------------------------------------------------------------
 class TVcfCompare{
 private:
-	std::vector<TVcfComapreVCF> vcfFiles;
+	std::vector<TVcfComapreVCF> _vcfFiles;
+	bool _limitLines = false;
+	long _lineLimit  = -1;
+	std::string _outName;
 
 	void addToOtherMissing(TGenotypeComparisonTable & counts, const int sample);
 
 public:
+	TVcfCompare();
 	void compareVCFFiles();
 };
 
@@ -107,7 +103,6 @@ public:
 	TTask_VcfCompare() { _explanation = "Comparing genotype calls in two VCF files"; };
 
 	void run() {
-		using namespace coretools::instances;
 		TVcfCompare compare;
 		compare.compareVCFFiles();
 	};
