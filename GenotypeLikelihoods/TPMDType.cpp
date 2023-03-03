@@ -109,8 +109,8 @@ TPMDTypeSingleStrand::TPMDTypeSingleStrand(const std::vector<std::string> &Detai
 			   "\nProvided string: '", concatenateString(Details, ':'), "'.", "\nExpect string of the form '", name,
 			   "':functionCT:functionGA'.");
 	}
-	_pmdCT3.reset(makeFunction(Details[1]));
-	_pmdCT5.reset(makeFunction(Details[2]));
+	_pmdCT5.reset(makeFunction(Details[1]));
+	_pmdCT3.reset(makeFunction(Details[2]));
 }
 
 void TPMDTypeSingleStrand::parseEstimationParameters(TPMDEstimationParameters &EstimationParameters) {

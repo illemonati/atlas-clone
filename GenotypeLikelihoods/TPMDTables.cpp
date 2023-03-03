@@ -36,11 +36,9 @@ void TPMDTable::empty() {
 }
 
 void TPMDTable::add(size_t pos, genometools::Base ref, genometools::Base read) {
-	if (read != genometools::Base::N && ref != genometools::Base::N) {
-		const auto p = std::min(pos, size());
-		++_counts[ref][read][p];
-		++_sums[ref][p];
-	}
+	const auto p = std::min(pos, size());
+	++_counts[ref][read][p];
+	if (read != genometools::Base::N && ref != genometools::Base::N) { ++_sums[ref][p]; }
 }
 
 void TPMDTable::add(const TPMDTable &other) {
@@ -48,20 +46,21 @@ void TPMDTable::add(const TPMDTable &other) {
 	if (size() != other.size()) return;
 
 	//for (size_t f = 0; f < _counts.size(); ++f)
-	for (Base f = Base::min; f < Base::max; ++f)
-		for (Base t = Base::min; t < Base::max; ++t)
-			for (size_t i = 0; i < size(); ++i) _counts[f][t][i] += other._counts[f][t][i];
+	for (Base f = Base::min; f <= Base::max; ++f)
+		for (Base t = Base::min; t <= Base::max; ++t)
+			for (size_t i = 0; i < size(); ++i)
+				_counts[f][t][i] += other._counts[f][t][i];
 
-	for (Base f = Base::min; f < Base::max; ++f)
+	for (Base f = Base::min; f <= Base::max; ++f)
 		for (size_t i = 0; i < _sums[f].size(); ++i) 
 			_sums[f][i] += other._sums[f][i];
 }
 
 void TPMDTable::write(coretools::TOutputFile &out, std::vector<std::string> &prefix, bool normalized) {
 	using namespace genometools;
-	for (Base f = Base::min; f < Base::max; ++f) {
+	for (Base f = Base::min; f <= Base::max; ++f) {
 		prefix[3] = toString(f);
-		for (Base t = Base::min; t < Base::max; ++t) {
+		for (Base t = Base::min; t <= Base::max; ++t) {
 			out.write(prefix, toString(t));
 			if (normalized) {
 				for (uint16_t i = 0; i < _sums[f].size(); ++i)
@@ -69,6 +68,11 @@ void TPMDTable::write(coretools::TOutputFile &out, std::vector<std::string> &pre
 			} else {
 				out.write(_counts[f][t]);
 			}
+			out.endln();
+		}
+		if (!normalized) {
+			out.write(prefix, "sum");
+			out.write(_sums[f]);
 			out.endln();
 		}
 	}
@@ -85,7 +89,6 @@ void TPMDTables::initialize(const BAM::TReadGroups *ReadGroups, size_t TableLeng
 	_readGroups   = ReadGroups;
 	_readGroupMap = ReadGroupMap;
 	_tableLength  = TableLength;
-	//_tables.resize(_readGroupMap->numReadGroupsInUse()); // ReadgroupMap not continuous
 	_tables.resize(_readGroups->size());
 	for (auto i = _readGroups->cbegin(); i != _readGroups->cend(); ++i) {
 		auto & table = _tables[_readGroupMap->pooledIndex(i->id())];
@@ -111,9 +114,9 @@ void TPMDTables::add(const BAM::TSequencedBase &base, genometools::Base referenc
 
 void TPMDTables::write(std::string filename, bool normalize) {
 	// compile header
-	std::vector<std::string> header = {"readGroup", "direction", "fromEnd", "referenceBase", "sequencedBase"};
-	for (size_t p = 1; p <= _tableLength; ++p) header.push_back("position_" + coretools::str::toString(p));
-	header.push_back("position_>" + coretools::str::toString(_tableLength));
+	std::vector<std::string> header = {"readGroup", "strand", "fromEnd", "ref", "data"};
+	for (size_t p = 1; p <= _tableLength; ++p) header.push_back("pos_" + coretools::str::toString(p));
+	header.push_back("pos>" + coretools::str::toString(_tableLength));
 
 	coretools::TOutputFile out(filename, header);
 

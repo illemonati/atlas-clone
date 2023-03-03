@@ -12,6 +12,7 @@
 #include <armadillo>
 #include <map>
 #include <string>
+#include <vector>
 
 #include "TPMDTables.h"
 #include "coretools/Types/probability.h"
@@ -55,12 +56,12 @@ private:
 	double _a, _b, _c;
 	std::vector<coretools::Probability> _values;
 
-	void _initialEstimatesOLS(const countVec &pmdCounts, const countVec &pmdSums, std::array<double, 3> &Parameters);
-	void _fillFAndJacobian(arma::vec &F, arma::mat &J, const countVec &pmdCounts, const countVec &pmdSums,
+	void _initialEstimatesOLS(const std::vector<size_t> &pmdCounts, const std::vector<size_t> &pmdSums, std::array<double, 3> &Parameters);
+	void _fillFAndJacobian(arma::vec &F, arma::mat &J, const std::vector<size_t> &pmdCounts, const std::vector<size_t> &pmdSums,
 						   const std::array<double, 3> &Parameters);
-	void _estimateWithNewtonRaphson(const countVec &pmdCounts, const countVec &pmdSums,
+	void _estimateWithNewtonRaphson(const std::vector<size_t> &pmdCounts, const std::vector<size_t> &pmdSums,
 									std::array<double, 3> &Parameters, uint32_t numNRIterations, double epsilon);
-	double _calcLL(const countVec &pmdCounts, const countVec &pmdSums, const std::array<double, 3> &Parameters);
+	double _calcLL(const std::vector<size_t> &pmdCounts, const std::vector<size_t> &pmdSums, const std::array<double, 3> &Parameters);
 	void _fillPMDProbabilities();
 
 public:

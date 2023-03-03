@@ -93,7 +93,7 @@ void TPMDFunctionExponential::_fillPMDProbabilities() {
 	}
 }
 
-void TPMDFunctionExponential::_initialEstimatesOLS(const countVec &pmdCounts, const countVec &pmdSums,
+void TPMDFunctionExponential::_initialEstimatesOLS(const std::vector<size_t> &pmdCounts, const std::vector<size_t> &pmdSums,
 						   std::array<double, 3> &Parameters) {
 	// fill vector y to fit using OLS
 	const size_t N = _lastPosition + 1;
@@ -139,8 +139,8 @@ void TPMDFunctionExponential::_initialEstimatesOLS(const countVec &pmdCounts, co
 	Parameters = {betaHat(0), betaHat(1), gammaTmp};
 }
 
-void TPMDFunctionExponential::_fillFAndJacobian(arma::vec &F, arma::mat &J, const countVec &pmdCounts,
-						const countVec &pmdSums, const std::array<double, 3> &Parameters) {
+void TPMDFunctionExponential::_fillFAndJacobian(arma::vec &F, arma::mat &J, const std::vector<size_t> &pmdCounts,
+						const std::vector<size_t> &pmdSums, const std::array<double, 3> &Parameters) {
 	F.zeros();
 	J.zeros();
 
@@ -194,7 +194,7 @@ void TPMDFunctionExponential::_fillFAndJacobian(arma::vec &F, arma::mat &J, cons
 	J(2, 1) = J(1, 2);
 }
 
-double TPMDFunctionExponential::_calcLL(const countVec &pmdCounts, const countVec &pmdSums,
+double TPMDFunctionExponential::_calcLL(const std::vector<size_t> &pmdCounts, const std::vector<size_t> &pmdSums,
 					const std::array<double, 3> &Parameters) {
 	double LL = 0.0;
 	for (int p = 0; p <= _lastPosition; ++p) {
@@ -205,7 +205,7 @@ double TPMDFunctionExponential::_calcLL(const countVec &pmdCounts, const countVe
 	return LL;
 }
 
-void TPMDFunctionExponential::_estimateWithNewtonRaphson(const countVec &pmdCounts, const countVec &pmdSums,
+void TPMDFunctionExponential::_estimateWithNewtonRaphson(const std::vector<size_t> &pmdCounts, const std::vector<size_t> &pmdSums,
 							 std::array<double, 3> &Parameters, uint32_t numNRIterations,
 							 double epsilon) {
 	// Conduct Newton-Raphson to refine
@@ -245,10 +245,10 @@ void TPMDFunctionExponential::learn(const TPMDTable &Table, const Base &from, co
 				    const TPMDEstimationParameters &EstimationParameters) {
 	logfile().list("Learning exponential pattern");
 	// extract counts in PMD direction and the inverse direction
-	const countVec &pmdCounts = Table[from][to];
-	const countVec &pmdSums   = Table.sums(from);
-	const countVec &invCounts = Table[to][from];
-	const countVec &invSums   = Table.sums(from);
+	const std::vector<size_t> &pmdCounts = Table[from][to];
+	const std::vector<size_t> &pmdSums   = Table.sums(from);
+	const std::vector<size_t> &invCounts = Table[to][from];
+	const std::vector<size_t> &invSums   = Table.sums(from);
 
 	// find last entry with counts
 	_lastPosition = pmdCounts.size() - 1;
@@ -340,10 +340,10 @@ void TPMDFunctionEmpiric::learn(const TPMDTable &Table, const Base &from, const 
 	_values.resize(Table.size()); // include extra bin for sites beyond size (available in PMDTables)
 
 	// extract counts in PMD direction and the inverse direction
-	const countVec &forwardCounts  = Table[from][to]; //e.g. C -> T
-	const countVec &forwardSums    = Table.sums(from);
-	const countVec &backwardCounts = Table[to][from]; //e.g. T -> C
-	const countVec &backwardSums   = Table.sums(to);
+	const std::vector<size_t> &forwardCounts  = Table[from][to]; //e.g. C -> T
+	const std::vector<size_t> &forwardSums    = Table.sums(from);
+	const std::vector<size_t> &backwardCounts = Table[to][from]; //e.g. T -> C
+	const std::vector<size_t> &backwardSums   = Table.sums(to);
 
 	for (size_t p = 0; p < _values.size(); ++p) {
 		if (forwardSums[p] == 0 || backwardSums[p] == 0) {

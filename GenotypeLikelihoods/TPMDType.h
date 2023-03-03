@@ -121,8 +121,8 @@ public:
 //------------------------------------------------------
 class TPMDTypeSingleStrand final : public TPMDType {
 private:
-	std::unique_ptr<TPMDFunction> _pmdCT3;
 	std::unique_ptr<TPMDFunction> _pmdCT5;
+	std::unique_ptr<TPMDFunction> _pmdCT3;
 
 	coretools::Probability _probCT(const BAM::TSequencedBase &data) const noexcept {
 		if (data.isReverseStrand()) return coretools::Probability{};
@@ -142,7 +142,7 @@ public:
 
 	bool hasDamage() const noexcept override { return _pmdCT3->hasDamage() || _pmdCT5->hasDamage(); };
 	std::string functionString() const noexcept override {
-		return name + ":" + _pmdCT3->string() + ":" + _pmdCT5->string();
+		return name + ":" + _pmdCT5->string() + ":" + _pmdCT3->string();
 	}
 	std::string typeString() const noexcept override { return name; }
 
