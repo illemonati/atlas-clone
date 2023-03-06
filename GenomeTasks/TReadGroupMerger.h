@@ -23,25 +23,11 @@ namespace GenomeTasks{
 class TReadGroupMerger:public TGenome_basic{
 private:
 	std::vector<uint16_t> readGroupMap;
-
 public:
 	TReadGroupMerger();
-	void mergeReadGroups();
+	void run();
 };
 
-//--------------------------------------
-// Tasks
-//--------------------------------------
-class TTask_mergeReadGroups:public coretools::TTask{
-public:
-	TTask_mergeReadGroups(){ _explanation = "Merging read groups in a BAM file"; };
-
-	void run(){
-		TReadGroupMerger readGroupMerger;
-		readGroupMerger.mergeReadGroups();
-	};
-};
-
-}; // end namespace
+} // end namespace
 
 #endif /* GENOMETASKS_TREADGROUPMERGER_H_ */

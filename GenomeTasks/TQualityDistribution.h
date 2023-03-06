@@ -45,7 +45,7 @@ private:
 
 public:
 	TQualityTransformation();
-	void compileQualityTransformation();
+	void run();
 };
 
 //--------------------------------------
@@ -60,17 +60,6 @@ public:
 		qualDist.compileQualityDistribution();
 	};
 };
-
-class TTask_qualityTransformation:public coretools::TTask{
-public:
-	TTask_qualityTransformation(){ _explanation = "Printing Quality Transformation"; };
-
-	void run(){
-		TQualityTransformation transformer;
-		transformer.compileQualityTransformation();
-	};
-};
-
 
 }; // end namespace
 

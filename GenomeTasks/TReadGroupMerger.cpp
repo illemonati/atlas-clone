@@ -89,7 +89,7 @@ TReadGroupMerger::TReadGroupMerger():TGenome_basic(){
 	}
 };
 
-void TReadGroupMerger::mergeReadGroups(){
+void TReadGroupMerger::run(){
 	//open a bam file for writing
 	BAM::TOutputBamFile outBam;
 	_openBamForWriting(_outputName + "_mergedRG.bam", outBam);

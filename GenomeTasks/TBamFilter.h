@@ -320,24 +320,11 @@ protected:
 
 public:
 	TBamFilter() : TGenomeParsedWithAlignmentStorage() {}
+	void run() {
+		traverseBAM();
+	}
 };
-
-}; //end namespace BamFilter
-
-//--------------------------------------
-// Tasks
-//--------------------------------------
-
-	class TTask_filterBAM:public coretools::TTask{
-public:
-	TTask_filterBAM(){ _explanation = "Writing reads that pass filters to BAM file"; };
-
-	void run(){
-		BamFilter::TBamFilter filter;
-		filter.traverseBAM();
-	};
-};
-
-}; //end namespace
+} // namespace BamFilter
+} // namespace GenomeTasks
 
 #endif /* TBAMFILTER_H_ */

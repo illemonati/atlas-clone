@@ -49,20 +49,7 @@ private:
 	void _handleAlignment() override {}
 public:
 	TPileup();
-	void printPileup();
-};
-
-//--------------------------------------
-// Tasks
-//--------------------------------------
-class TTask_pileup : public coretools::TTask {
-public:
-	TTask_pileup() { _explanation = "Printing pileup from BAM file"; };
-
-	void run() {
-		TPileup pileup;
-		pileup.printPileup();
-	};
+	void run();
 };
 
 }; // namespace GenomeTasks

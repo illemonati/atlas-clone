@@ -68,24 +68,24 @@ void addTaks(coretools::TMain & main) {
     // Use main.addRegularTask to add a regular task (shown in list of available tasks)
 
 	//BAM
-	main.addRegularTask("filterBAM", new GenomeTasks::TTask_filterBAM());
-	main.addRegularTask("splitMerge", new GenomeTasks::TTask_splitMerge());
-	main.addRegularTask("mergeRG", new GenomeTasks::TTask_mergeReadGroups());
-	main.addRegularTask("pileup", new GenomeTasks::TTask_pileup());
-	main.addRegularTask("BAMDiagnostics", new GenomeTasks::TTask_BAMDiagnostics());
-	main.addRegularTask("readOverlap", new GenomeTasks::TTask_overlapQuantifier());
-	//main.addRegularTask("duplication", new GenomeTasks::TTask_duplicationQuantifier());
-	main.addRegularTask("assessSoftClipping", new GenomeTasks::TTask_assessSoftClipping());
-	main.addRegularTask("removeSoftClippedBases", new GenomeTasks::TTask_removeSoftClippedBasesFromReads());
-	//main.addRegularTask("qualityDist", new GenomeTasks::TTask_qualityDist());
-	main.addRegularTask("qualityTransformation", new GenomeTasks::TTask_qualityTransformation());
-	//main.addRegularTask("contextStats", new GenomeTasks::TTask_quantifyContext());
+	main.createRegularTask<GenomeTasks::BamFilter::TBamFilter>("filterBAM", "Writing reads that pass filters to BAM file");
+	main.createRegularTask<GenomeTasks::AlignmentMerger::TAlignmentSplitMerger>("splitMerge", "Splitting single-end reads and merging paired-end reads in BAM file");
+	main.createRegularTask<GenomeTasks::TReadGroupMerger>("mergeRG", "Merging read groups in a BAM file");
+	main.createRegularTask<GenomeTasks::TPileup>("pileup", "Printing pileup from BAM file");
+	main.createRegularTask<GenomeTasks::TBamDiagnoser>("BAMDiagnostics", "Estimating approximate depth, read length frequencies and mapping quality frequencies");
+	main.createRegularTask<GenomeTasks::AlignmentMerger::TOverlapQuantifier>("readOverlap", "Estimating distribution of overlap of paired reads in BAM file");
+	main.createRegularTask<GenomeTasks::TAssessSoftClipping>("assessSoftClipping", "Assessing level of soft clipping in BAM file");
+	main.createRegularTask<GenomeTasks::TRemoveSoftClippedBases>("removeSoftClippedBases", "Removing soft clipped bases from reads");
+	main.createRegularTask<GenomeTasks::TQualityTransformation>("qualityTransformation", "Printing Quality Transformation");
 	main.addRegularTask("downsample", new GenomeTasks::TTask_downsample());
-	//main.addRegularTask("separateReads", new GenomeTasks::TTask_separateReads());
 	main.addRegularTask("downsampleReads", new GenomeTasks::TTask_downSampleReads());
 	main.addRegularTask("PMD", new GenomeTasks::TTask_estimatePMD());
 	main.addRegularTask("PMDS", new GenomeTasks::TTask_PMDS());
 	main.addRegularTask("identifyIlluminaReadGroups", new GenomeTasks::TTask_identifyIllumina());
+	//main.addRegularTask("duplication", new GenomeTasks::TTask_duplicationQuantifier());
+	//main.addRegularTask("qualityDist", new GenomeTasks::TTask_qualityDist());
+	//main.addRegularTask("contextStats", new GenomeTasks::TTask_quantifyContext());
+	//main.addRegularTask("separateReads", new GenomeTasks::TTask_separateReads());
 
 	//window tasks
 	main.addRegularTask("recal", new GenomeTasks::TTask_recal());
@@ -129,7 +129,7 @@ void addTaks(coretools::TMain & main) {
 
 	// Use main.addDebugTask to add a debug task (not shown in list of available tasks)
 	//main.addDebugTask("recalLL", new GenomeTasks::TTask_recalLL());
-	main.addDebugTask("thetaLLSurface", new GenomeTasks::TTask_thetaLLSurface());
+	main.createDebugTask<GenomeTasks::TEstimateThetaLLSurface>("thetaLLSurface", "Calculating the theta LL surface for each window");
 	BAM::RGInfo::TTask_testReadGroupInfo x;
 	main.addDebugTask("json", new BAM::RGInfo::TTask_testReadGroupInfo());
 };

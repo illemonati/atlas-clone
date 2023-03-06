@@ -116,7 +116,7 @@ void TAssessSoftClipping::_handleAlignment() {
 	if (_writeAlignments && (cigar.lengthSoftClipped() > 0 || _printAll)) { statFile.write(_bamFile); }
 };
 
-void TAssessSoftClipping::assess() {
+void TAssessSoftClipping::run() {
 	// now parse through bam file and write alignments
 	_traverseBAMPassedQC();
 
@@ -149,7 +149,7 @@ void TRemoveSoftClippedBases::_handleAlignment() {
 	_outBam.writeAlignment(_alignment);
 };
 
-void TRemoveSoftClippedBases::removeSoftClippedBases() {
+void TRemoveSoftClippedBases::run() {
 	std::string filename = _outputName + "_softClippedBasesRemoved.bam";
 	logfile().list("Writing reads after soft-clip trimming to file '" + filename + "'.");
 	_openBamForWriting(filename, _outBam);

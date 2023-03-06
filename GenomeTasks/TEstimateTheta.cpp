@@ -65,7 +65,7 @@ void TEstimateThetaLLSurface::_handleWindow() {
 	logfile().endIndent();
 };
 
-void TEstimateThetaLLSurface::estimateThetaLLSurface() { _traverseBAMWindows(); };
+void TEstimateThetaLLSurface::run() { _traverseBAMWindows(); };
 
 //-----------------------------------
 // TEstimateThetaDownsamplingQC

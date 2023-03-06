@@ -54,23 +54,8 @@ public:
 	size_t sumOverAllReadGroups(const std::vector<coretools::TCountDistributionVector<>> &vec);
 	size_t sumForChromosome(const std::vector<coretools::TCountDistributionVector<>> &vec, uint32_t chromRefID);
 
-	void diagnose();
+	void run();
 };
-
-//--------------------------------------
-// Tasks
-//--------------------------------------
-class TTask_BAMDiagnostics:public coretools::TTask{
-public:
-	TTask_BAMDiagnostics(){ _explanation = "Estimating approximate depth, read length frequencies and mapping quality frequencies"; };
-
-	void run(){
-		using namespace coretools::instances;
-		TBamDiagnoser diagnoser;
-		diagnoser.diagnose();
-	};
-};
-
 
 }; // end namespace
 

@@ -741,7 +741,7 @@ bool TAlignmentSplitMerger::_alignmentCanBeWrittenUnchanged(){
 // TOverlapQuantifier
 //-----------------------------------------
 
-void TOverlapQuantifier::quantifyOverlap(){
+void TOverlapQuantifier::run(){
 	//prepare counter
 	coretools::TCountDistributionVector overlapDist;
 	//parse BAM file

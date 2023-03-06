@@ -97,7 +97,7 @@ void TQualityTransformation::_handleAlignment(){
 	}
 };
 
-void TQualityTransformation::compileQualityTransformation(){
+void TQualityTransformation::run(){
 	//initialize transformations
 	_transformations.resize(_bamFile.numReadGroups());
 

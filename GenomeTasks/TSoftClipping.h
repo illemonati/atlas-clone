@@ -51,7 +51,7 @@ private:
 
 public:
 	TAssessSoftClipping();
-	void assess();
+	void run();
 };
 
 //--------------------------------------------------------
@@ -64,30 +64,7 @@ private:
 
 public:
 	TRemoveSoftClippedBases();
-	void removeSoftClippedBases();
-};
-
-//--------------------------------------
-// Tasks
-//--------------------------------------
-class TTask_assessSoftClipping : public coretools::TTask {
-public:
-	TTask_assessSoftClipping() { _explanation = "Assessing level of soft clipping in BAM file"; };
-
-	void run() override {
-		TAssessSoftClipping assessor;
-		assessor.assess();
-	};
-};
-
-class TTask_removeSoftClippedBasesFromReads : public coretools::TTask {
-public:
-	TTask_removeSoftClippedBasesFromReads() { _explanation = "Removing soft clipped bases from reads"; };
-
-	void run() override {
-		TRemoveSoftClippedBases remover;
-		remover.removeSoftClippedBases();
-	};
+	void run();
 };
 
 }; // namespace GenomeTasks

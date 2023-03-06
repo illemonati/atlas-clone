@@ -90,7 +90,7 @@ void TBamDiagnoser::_handleAlignment() {
 		_fragmentLength[readGroup].add(chromosome, _bamFile.curFragmentLength());
 }
 
-void TBamDiagnoser::diagnose(){
+void TBamDiagnoser::run(){
     //calculate length of genome
     double totLengthOfGenome = _bamFile.chromosomes().referenceLength();
 

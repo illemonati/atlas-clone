@@ -284,7 +284,7 @@ void TPileup::_handleWindow(){
 	}
 };
 
-void TPileup::printPileup(){
+void TPileup::run(){
 	_traverseBAMWindows();
 
 	if (_histSettings.get<Depths>()){

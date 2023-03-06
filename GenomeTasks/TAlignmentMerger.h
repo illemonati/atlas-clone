@@ -84,13 +84,13 @@ public:
 	virtual size_t overlapLengthAndMerge(BAM::TAlignment & alignment, BAM::TAlignment & mate);
 };
 
-class TAlignmentMerger_randomRead:public TAlignmentMerger{
+class TAlignmentMerger_randomRead final : public TAlignmentMerger {
 public:
 	TAlignmentMerger_randomRead();
 	size_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate);
 };
 
-class TAlignmentMerger_middle:public TAlignmentMerger{
+class TAlignmentMerger_middle final :public TAlignmentMerger{
 public:
 	TAlignmentMerger_middle();
 	size_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate);
@@ -98,30 +98,30 @@ public:
 	void sameDirectionMerge(BAM::TAlignment & alignment, BAM::TAlignment & mate, std::pair<size_t,bool> overlapLength);
 };
 
-class TAlignmentMerger_firstMate:public TAlignmentMerger{
+class TAlignmentMerger_firstMate final : public TAlignmentMerger {
 public:
 	TAlignmentMerger_firstMate();
-	size_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate);
+	size_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate) override;
 };
 
-class TAlignmentMerger_secondMate:public TAlignmentMerger{
+class TAlignmentMerger_secondMate final : public TAlignmentMerger {
 public:
 	TAlignmentMerger_secondMate();
-	size_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate);
+	size_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate) override;
 };
 
-class TAlignmentMerger_highestQuality:public TAlignmentMerger{
+class TAlignmentMerger_highestQuality final : public TAlignmentMerger {
 public:
 	TAlignmentMerger_highestQuality();
-	size_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate);
+	size_t merge(BAM::TAlignment & alignment, BAM::TAlignment & mate) override;
 	size_t overlapLengthAndMerge(BAM::TAlignment & alignment, BAM::TAlignment & mate) override;
 };
-
 
 //-----------------------------------------
 // TAlignmentSplitMerger
 //-----------------------------------------
-class TAlignmentSplitMerger final:public TGenomeParsedWithAlignmentStorage<TAlignmentStorageSorted, TAlignmentStorageSortedIterator>{
+class TAlignmentSplitMerger final
+	: public TGenomeParsedWithAlignmentStorage<TAlignmentStorageSorted, TAlignmentStorageSortedIterator> {
 private:
 	std::unique_ptr<TAlignmentMerger> _merger;
 	TAlignmentMergerReadGroupSettings _rgSettings;
@@ -135,6 +135,9 @@ private:
 
 public:
 	TAlignmentSplitMerger();
+	void run() {
+		traverseBAM();
+	}
 };
 
 //-----------------------------------------
@@ -147,38 +150,11 @@ private:
 	void _handleAlignment() override {};
 
 public:
-	void quantifyOverlap();
+	void run();
 };
 
-}; //end namespace AlignmentMerger
-
-
-//-----------------------------------------
-// Tasks
-//-----------------------------------------
-
-class TTask_splitMerge:public coretools::TTask{
-public:
-	TTask_splitMerge(){ _explanation = "Splitting single-end reads and merging paired-end reads in BAM file"; };
-
-	void run(){
-		AlignmentMerger::TAlignmentSplitMerger splitMerger;
-		splitMerger.traverseBAM();
-	};
-};
-
-class TTask_overlapQuantifier:public coretools::TTask{
-public:
-	TTask_overlapQuantifier(){ _explanation = "Estimating distribution of overlap of paired reads in BAM file"; };
-
-	void run(){
-		AlignmentMerger::TOverlapQuantifier overlapQuantifier;
-		overlapQuantifier.quantifyOverlap();
-	};
-};
-
-
-}; //end namespace GenomeTasks
+} //end namespace AlignmentMerger
+} //end namespace GenomeTasks
 
 
 #endif /* GENOMETASKS_TALIGNMENTMERGER_H_ */

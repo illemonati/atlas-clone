@@ -42,7 +42,7 @@ private:
 
 public:
 	TEstimateThetaLLSurface();
-	void estimateThetaLLSurface();
+	void run();
 };
 
 //-----------------------------------
@@ -108,16 +108,6 @@ public:
 		TEstimateTheta estimator;
 		estimator.run();
 	}
-};
-
-class TTask_thetaLLSurface : public TThetaTask {
-public:
-	TTask_thetaLLSurface() { _explanation = "Calculating the theta LL surface for each window"; };
-
-	void run() {
-		TEstimateThetaLLSurface estimator;
-		estimator.estimateThetaLLSurface();
-	};
 };
 
 class TTask_estimateThetaRatio : public TThetaTask {
