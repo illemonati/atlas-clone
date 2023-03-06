@@ -130,10 +130,17 @@ void TBamFile::setFilters(){
 
 		//soft clips
 		if(parameters().parameterExists("filterSoftClips")){
-			_softClippedFilter.filter("Soft clipped", numRG, numChrom);
-			logfile().list("Soft clipped reads: filter out. (parameter 'filterSoftClips')");
+			_softClippedRatioFilter.filter("Soft clipped", numRG, numChrom);
+			if (parameters().getParameter("filterSoftClips").empty()) {
+				_softClipFilterRatio = 0.;
+				logfile().list("Soft clipped reads: filter out. (parameter 'filterSoftClips')");
+			}
+			else {
+				_softClipFilterRatio = parameters().getParameter<double>("filterSoftClips");
+				logfile().list("Soft clipped reads: filter out if softClipLength/readLength > ", _softClipFilterRatio, ". (parameter 'filterSoftClips')");
+			}
 		} else {
-			_softClippedFilter.keep();
+			_softClippedRatioFilter.keep();
 			logfile().list("Soft clipped reads: keep. (use 'filterSoftClips' to filter out)");
 		}
 
@@ -304,7 +311,7 @@ void TBamFile::openBamLog(){
 		_unalignedFilter.setLog(_bamLog);
 		_noReadGroupFilter.setLog(_bamLog);
 		_duplicateFilter.setLog(_bamLog);
-		_softClippedFilter.setLog(_bamLog);
+		_softClippedRatioFilter.setLog(_bamLog);
 		_improperPairsFilter.setLog(_bamLog);
 		_unmappedFilter.setLog(_bamLog);
 		_failedQCFilter.setLog(_bamLog);
@@ -487,7 +494,7 @@ void TBamFile::_applyFilters(){
 	} else {
 		//apply regular filters
 		_QCFiltersPassed =  _duplicateFilter.pass(!_curBamAlignment.IsDuplicate(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
-						 && _softClippedFilter.pass(_curCigar.lengthSoftClipped() == 0, _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
+			&& _softClippedRatioFilter.pass(static_cast<double>(_curCigar.lengthSoftClipped())/_curCigar.lengthRead() <= _softClipFilterRatio, _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
 						 && _improperPairsFilter.pass(!_curBamAlignment.IsPaired() || _curBamAlignment.IsProperPair(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
 						 && _unmappedFilter.pass(_curBamAlignment.IsMapped(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
 						 && _failedQCFilter.pass(!_curBamAlignment.IsFailedQC(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
@@ -765,7 +772,7 @@ void TBamFile::_writeFilteringStats(std::string &outputName){
 	_unalignedFilter.fillHeader(header);
 	_noReadGroupFilter.fillHeader(header);
 	_duplicateFilter.fillHeader(header);
-	_softClippedFilter.fillHeader(header);
+	_softClippedRatioFilter.fillHeader(header);
 	_improperPairsFilter.fillHeader(header);
 	_unmappedFilter.fillHeader(header);
 	_failedQCFilter.fillHeader(header);
@@ -789,7 +796,7 @@ void TBamFile::_writeFilteringStats(std::string &outputName){
 	_unalignedFilter.printCombinedCounts(out);
 	_noReadGroupFilter.printCombinedCounts(out);
 	_duplicateFilter.printCombinedCounts(out);
-	_softClippedFilter.printCombinedCounts(out);
+	_softClippedRatioFilter.printCombinedCounts(out);
 	_improperPairsFilter.printCombinedCounts(out);
 	_unmappedFilter.printCombinedCounts(out);
 	_failedQCFilter.printCombinedCounts(out);
@@ -815,7 +822,7 @@ void TBamFile::_writeFilteringStats(std::string &outputName){
 		_unalignedFilter.printCounts(out, it);
 		_noReadGroupFilter.printCounts(out, it);
 		_duplicateFilter.printCounts(out, it);
-		_softClippedFilter.printCounts(out, it);
+		_softClippedRatioFilter.printCounts(out, it);
 		_improperPairsFilter.printCounts(out, it);
 		_unmappedFilter.printCounts(out, it);
 		_failedQCFilter.printCounts(out, it);
@@ -857,7 +864,7 @@ void TBamFile::printSummaryNoEndIndent(std::string &outputName){
 		_unalignedFilter.summary(numFiltered, it);
 		_noReadGroupFilter.summary(numFiltered, it);
 		_duplicateFilter.summary(numFiltered, it);
-		_softClippedFilter.summary(numFiltered, it);
+		_softClippedRatioFilter.summary(numFiltered, it);
 		_improperPairsFilter.summary(numFiltered, it);
 		_unmappedFilter.summary(numFiltered, it);
 		_failedQCFilter.summary(numFiltered, it);

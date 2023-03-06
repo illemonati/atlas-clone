@@ -130,7 +130,8 @@ void TCigar::add(char Type, uint32_t Length) {
 };
 
 void TCigar::removeSoftClips() {
-	_cigar.erase(std::remove_if(_cigar.begin(), _cigar.end(), [](const auto &c) { return c.type == 'S'; }));
+	if (_cigar.front().type == 'S') _cigar.erase(_cigar.begin());
+	if (_cigar.back().type == 'S') _cigar.pop_back();
 
 	// update length
 	_lengthSoftClippedLeft  = 0;
@@ -138,21 +139,15 @@ void TCigar::removeSoftClips() {
 };
 
 void TCigar::removeSoftClips(size_t maxNumberOfSoftClippedBases) {
-	if(maxNumberOfSoftClippedBases == 0)
-		_cigar.erase(std::remove_if(_cigar.begin(), _cigar.end(), [](const auto &c) { return c.type == 'S'; }));
+	if(maxNumberOfSoftClippedBases == 0) removeSoftClips();
 	else {
-		auto cIter = _cigar.begin(); 
-		bool pastLeft = false;
-		while (cIter != _cigar.end()) {
-			if (cIter->type == 'S' && cIter->length > maxNumberOfSoftClippedBases){
-				cIter->length = maxNumberOfSoftClippedBases;
-				// if softclips are removed from the cigar string -> adjust internal softclip counts on the appropriate side
-				pastLeft ? _lengthSoftClippedRight = maxNumberOfSoftClippedBases : _lengthSoftClippedLeft = maxNumberOfSoftClippedBases;
-			}
-			// as soon as mapped bases are reached, the iterator is past the softclips on the left
-			if (cIter->type == 'M' || cIter->type == '=' || cIter->type == 'X')
-				pastLeft = true;
-			cIter++;
+		if (_cigar.front().type == 'S' && _cigar.front().length > maxNumberOfSoftClippedBases) {
+			_cigar.front().length = maxNumberOfSoftClippedBases;
+			_lengthSoftClippedLeft = maxNumberOfSoftClippedBases;
+		}
+		if (_cigar.back().type == 'S' && _cigar.back().length > maxNumberOfSoftClippedBases) {
+			_cigar.back().length = maxNumberOfSoftClippedBases;
+			_lengthSoftClippedRight = maxNumberOfSoftClippedBases;
 		}
 	}
 };

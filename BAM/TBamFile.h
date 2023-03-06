@@ -69,7 +69,8 @@ private:
  	uint16_t _curReadGroupID;
  	TCigar _curCigar;
  	genometools::TGenomePosition _curAlignmentPosition, _previousAlignmentPosition;
- 	bool _chrChanged;
+	bool _chrChanged;
+	double _softClipFilterRatio = 1;
 
 	//alignment filters
 	bool _QCFiltersPassed;
@@ -81,7 +82,7 @@ private:
 	TBamFileFilterRange<uint32_t> _readLengthFilter;
  	TBamFileFilterRange<uint32_t> _mappedLengthFilter;
  	TBamFileFilterBool _duplicateFilter;
- 	TBamFileFilterBool _softClippedFilter;
+ 	TBamFileFilterBool _softClippedRatioFilter;
  	TBamFileFilterBool _improperPairsFilter;
  	TBamFileFilterBool _unmappedFilter;
  	TBamFileFilterBool _failedQCFilter;
@@ -140,7 +141,7 @@ public:
 
 	//get filter status
  	bool duplicateFilterEnabled() const{ return _duplicateFilter.filters(); };
- 	bool softClippedFilterEnabled() const{ return _softClippedFilter.filters(); };
+ 	bool softClippedFilterEnabled() const{ return _softClippedRatioFilter.filters(); };
  	bool improperPairsFilterEnabled() const{ return _improperPairsFilter.filters(); };
  	bool unmappedFilterEnabled() const{ return _unmappedFilter.filters(); };
  	bool failedQCFilterEnabled() const{ return _failedQCFilter.filters(); };

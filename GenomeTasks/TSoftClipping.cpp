@@ -145,15 +145,8 @@ void TAssessSoftClipping::assess() {
 TRemoveSoftClippedBases::TRemoveSoftClippedBases() : TGenome_parsed(){};
 
 void TRemoveSoftClippedBases::_handleAlignment() {
-	if (_bamFile.curCIGAR().lengthSoftClipped() > 0) {
-		// remove softclipped reads
-		_alignment.removeSoftClippedBases();
-		// write
-		_outBam.writeAlignment(_alignment);
-	} else {
-		// just write current alignment
-		_bamFile.writeCurAlignment(_outBam);
-	}
+	_alignment.removeSoftClippedBases();
+	_outBam.writeAlignment(_alignment);
 };
 
 void TRemoveSoftClippedBases::removeSoftClippedBases() {

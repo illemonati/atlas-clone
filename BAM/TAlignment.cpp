@@ -416,26 +416,15 @@ void TAlignment::removeSoftClippedBases() {
 	// make sure read is parsed
 	if (!_parsed) DEVERROR("Read was not parsed!");
 
-	// check if there is softclipping
-	if (_cigar.lengthSoftClipped() > 0) {
-		auto bIter = _bases.begin();
-		for (auto &cigarIter : _cigar) {
-			if (cigarIter.type == 'S') {
-				// remove bases
-				bIter = _bases.erase(bIter, bIter + cigarIter.length);
-			} else if (cigarIter.type == 'M' || cigarIter.type == '=' || cigarIter.type == 'X' ||
-					   cigarIter.type == 'I') {
-				// just advance position
-				bIter += cigarIter.length;
-			}
-		}
-
-		// update cigar and length
-		_cigar.removeSoftClips();
-
-		// set has changed
+	if (_cigar.lengthSoftClippedLeft()) {
+		_bases.erase(_bases.begin(), _bases.begin() + _cigar.lengthSoftClippedLeft());
 		_sequenceAndQualitiesChanged = true;
 	}
+	if (_cigar.lengthSoftClippedRight()) {
+		_bases.resize(_bases.size() - _cigar.lengthSoftClippedRight());
+		_sequenceAndQualitiesChanged = true;
+	}
+	_cigar.removeSoftClips();
 };
 
 void TAlignment::removeSoftClippedBases(size_t maxNumberOfSoftClippedBases) {
@@ -444,29 +433,16 @@ void TAlignment::removeSoftClippedBases(size_t maxNumberOfSoftClippedBases) {
 
 	// check if there is softclipping that exceeds the threshold on the left
 	if (_cigar.lengthSoftClippedLeft() > maxNumberOfSoftClippedBases) {
-		auto bIter = _bases.begin();
-		auto cIter = _cigar.begin();
-		while (cIter->type != 'S'){
-			bIter += cIter->length;
-			cIter++;
-		}
-		bIter = _bases.erase(bIter, bIter + (_cigar.lengthSoftClippedLeft() - maxNumberOfSoftClippedBases));
+		_bases.erase(_bases.begin(), _bases.begin() + (_cigar.lengthSoftClippedLeft() - maxNumberOfSoftClippedBases));
+		_sequenceAndQualitiesChanged = true;
 	}
 	// then do the same on the right side
 	if (_cigar.lengthSoftClippedRight() > maxNumberOfSoftClippedBases) {
-		auto bIter = _bases.end()--;
-		auto cIter = _cigar.end()--;
-		while (cIter->type != 'S'){
-			bIter -= cIter->length;
-			cIter--;
-		}
-		bIter = _bases.erase(bIter - (_cigar.lengthSoftClippedRight() + maxNumberOfSoftClippedBases), bIter);
+		_bases.resize(_bases.size() - (_cigar.lengthSoftClippedRight() + maxNumberOfSoftClippedBases));
+		_sequenceAndQualitiesChanged = true;
 	}		
 		// update cigar and length
-		_cigar.removeSoftClips(maxNumberOfSoftClippedBases);
-
-		// set has changed
-		_sequenceAndQualitiesChanged = true;
+	_cigar.removeSoftClips(maxNumberOfSoftClippedBases);
 }
 
 
