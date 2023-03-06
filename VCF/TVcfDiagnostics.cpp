@@ -12,7 +12,9 @@
 #include <cstdlib>
 #include <exception>
 #include <map>
+#include <math.h>
 
+#include "coretools/Main/TLog.h"
 #include "genometools/GenotypeTypes.h"
 #include "coretools/Files/gzstream.h"
 #include "coretools/Strings/stringFunctions.h"
@@ -136,6 +138,10 @@ int TVcfDiagnostics::findLastPassedFilterIndex(int obsValue, std::vector<int> &f
 
 void TVcfDiagnostics::assessAllelicImbalance() {
 	// output
+	if (!_vcfFile.formatColExists("AD")) {
+		logfile().list("VCF File ", _vcfFile.filename, " does not have allelic depth field!");
+		return;
+	}
 	logfile().list("Writing files to '" + _outName + "_allelicDepth.txt'");
 
 	// limit input?
