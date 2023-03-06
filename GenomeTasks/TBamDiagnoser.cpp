@@ -51,7 +51,7 @@ void TBamDiagnoser::_writeHistogram(const std::vector<TCountDistributionVector<>
 		distributionPerReadGroup.template writeCombined<false>(out, "allReadGroups");
 		distributionPerReadGroup.template write<false>(out, _readGroupNames);
 	}
-	
+
 	out.close();
 	logfile().done();
 };
@@ -135,7 +135,7 @@ void TBamDiagnoser::run(){
     	logfile().list("Will not create input file for splitMerge. (use 'splitMergeInput' to do so).");
     }
 	if(!parameters().parameterExists("printReferenceLength")){
-		logfile().list("Will not print reference lengths of chromosomes to file. (use 'printReferenceLength to do so).");
+		logfile().list("Will not print reference lengths of chromosomes to file. (use 'printReferenceLength' to do so).");
 	}
 	logfile().list("Approximate sequencing depth was estimated at ", (double) sumOverAllReadGroups(_usableLength) / (double) totLengthOfGenome, ".");
 
@@ -267,10 +267,10 @@ void TBamDiagnoser::run(){
 		//write file with length of all contigs
 		std::string referenceLengthName = _outputName + "_referenceLengths.txt";
 		logfile().listFlush("Outputting reference lengths of all contigs to '" + referenceLengthName + "' ...");
-		coretools::TOutputFile refLen (referenceLengthName, {"Contig", "Reference length"});
+		coretools::TOutputFile refLen (referenceLengthName, {"chromosome", "length"});
 		auto it = _bamFile.chromosomes().cbegin();
 		while(it != _bamFile.chromosomes().cend()){
-			refLen << it->name << it->length << std::endl;
+			refLen << it->name << it->length << coretools::endl;
 			++it;
 		}
 		refLen.close();
