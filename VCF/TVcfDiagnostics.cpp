@@ -11,6 +11,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <exception>
+#include <filesystem>
 #include <map>
 #include <math.h>
 
@@ -232,8 +233,18 @@ void TVcfDiagnostics::fixIntAsFloat() {
 	// open vcf file
 	logfile().list("Fixing integers that are printed as floats:");
 
+
 	// open output file
 	std::string filename = _outName + (std::string) "_fixed.vcf.gz";
+
+	if (!_vcfFile.formatColExists("GP")) {
+		logfile().list("VCF File ", _vcfFile.filename, " does not have a GP field!");
+		logfile().list("Will just copy the file");
+		if (!std::filesystem::copy_file(_vcfFile.filename, filename))
+			UERROR("Failed to copy '", _vcfFile.filename, "' to '", filename, "'!");
+		return;
+	}
+
 	gz::ogzstream out(filename.c_str());
 	if (!out) UERROR("Failed to open outputfile '", filename, "'!");
 	_vcfFile.setOutStream(out);
