@@ -83,7 +83,7 @@ void TEstimateRecalibration::_handleWindow() {
 	}
 };
 
-void TEstimateRecalibration::estimateRecalibration() {
+void TEstimateRecalibration::run() {
 	// read data
 	auto forgottenModels = _genotypeLikelihoodCalculator.sequencingErrorModels().forget();
 	_traverseBAMWindows();

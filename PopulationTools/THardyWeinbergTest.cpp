@@ -359,7 +359,7 @@ THardyWeinbergTest::THardyWeinbergTest(){
 	}
 };
 
-void THardyWeinbergTest::testForHardyWeinberg(){
+void THardyWeinbergTest::run(){
 	//open output file
 	std::string filename = _outname + "_HWTest.txt.gz";
 	logfile().list("Writing HW test results to file '" + filename + "'.");

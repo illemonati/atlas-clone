@@ -19,8 +19,7 @@ using coretools::instances::parameters;
 using coretools::instances::logfile;
 
 
-namespace BAM {
-namespace RGInfo{
+namespace BAM::RGInfo {
 
 //------------------------------------------------
 // Functions to initialize: only visible in cpp file
@@ -299,10 +298,4 @@ void TTask_testReadGroupInfo::run(){
 
 }
 
-
-} //end namespace RGInfo
-} //end namespace BAM
-
-
-
-
+} // namespace BAM::RGInfo

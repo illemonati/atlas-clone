@@ -67,7 +67,7 @@ void TPMDSCalculator::_handleAlignment(){
 	}
 };
 
-void TPMDSCalculator::calculatePMDS(){
+void TPMDSCalculator::run(){
 	//parse bam file and calculate PMDS for each read (seeSkoglund et al. 2014)
 	//write new bam file with PMDS score added
 	//parser.add_option("--writesamfield", action="store_true", dest="writesamfield",help="add 'DS:Z:<PMDS>' field to SAM output, will overwrite if already present",default=False)

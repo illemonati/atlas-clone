@@ -93,7 +93,7 @@ void TPSMCInput::_handleWindow(){
 	logfile().doneTime();
 };
 
-void TPSMCInput::createPSMCInput(){
+void TPSMCInput::run(){
 	_traverseBAMWindows();
 
 	//close output file

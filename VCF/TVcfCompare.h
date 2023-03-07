@@ -92,22 +92,9 @@ private:
 
 public:
 	TVcfCompare();
-	void compareVCFFiles();
+	void run();
 };
 
-//--------------------------------------
-// Tasks
-//--------------------------------------
-class TTask_VcfCompare : public coretools::TTask {
-public:
-	TTask_VcfCompare() { _explanation = "Comparing genotype calls in two VCF files"; };
-
-	void run() {
-		TVcfCompare compare;
-		compare.compareVCFFiles();
-	};
-};
-
-}; //end namespace
+} // namespace VCF
 
 #endif /* VCF_TVCFCOMPARE_H_ */

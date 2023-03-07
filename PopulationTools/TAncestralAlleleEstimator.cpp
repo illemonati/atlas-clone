@@ -38,7 +38,7 @@ TAncestralAlleleEstimator::TAncestralAlleleEstimator(){
     _fastaIndex.open(fastaIndexFileName);
 }
 
-void TAncestralAlleleEstimator::printFasta(){
+void TAncestralAlleleEstimator::run(){
 
     const auto outputFileName = parameters().getParameterWithDefault<std::string>("out", filename + "_ancestralAlleles.fasta");
     logfile().list("Writing ancestral alleles to file '", outputFileName, "'. (parameter 'out')");

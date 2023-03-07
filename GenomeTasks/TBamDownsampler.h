@@ -75,7 +75,7 @@ protected:
 	std::vector<TBamSample> _bamSamples;
 public:
 	TBamDownsampler();
-	virtual void downsample();
+	virtual void run();
 	void sample();
 };
 
@@ -84,7 +84,7 @@ public:
 //-----------------------------------------
 class TBamReadDownsampler:public TBamDownsampler{
 public:
-	void downsample();
+	void run();
 };
 
 //-----------------------------------------
@@ -95,44 +95,8 @@ private:
 	std::vector<double> _cumulProbs;
 public:
 	TBamSeparator();
-	void separate();
+	void run();
 };
-
-//--------------------------------------
-// Tasks
-//--------------------------------------
-class TTask_downsample:public coretools::TTask{
-public:
-	TTask_downsample(){ _explanation = "Downsampling a BAM file by removing reads"; };
-
-	void run(){
-		TBamDownsampler downsampler;
-		downsampler.downsample();
-	};
-};
-
-class TTask_downSampleReads:public coretools::TTask{
-public:
-	TTask_downSampleReads(){ _explanation = "Downsampling a BAM file by setting bases to N"; };
-
-	void run(){
-		TBamReadDownsampler downsampler;
-		downsampler.downsample();
-	};
-};
-
-class TTask_separateReads:public coretools::TTask{
-public:
-	TTask_separateReads(){ _explanation = "Separating reads into different BAM files"; };
-
-	void run(){
-		TBamSeparator separator;
-		separator.separate();
-	};
-};
-
-
-
 
 }; // end namespace
 

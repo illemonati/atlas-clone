@@ -579,7 +579,7 @@ void TDistanceEstimator::closeGLF(){
 }
 
 //------------------------------------------------------------------
-void TDistanceEstimator::estimateDistances(){
+void TDistanceEstimator::run(){
 	//open all GLF files specified
 	openGLF();
 

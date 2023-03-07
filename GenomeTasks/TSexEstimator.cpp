@@ -161,7 +161,7 @@ void TSexEstimator::_writeHistogram(uint16_t regionNum){
 }
 
 
-void TSexEstimator::writeDepth(){
+void TSexEstimator::run(){
 	_traverseBAMWindows();
 
 	if(_wholeGenome == false ){

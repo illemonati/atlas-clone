@@ -157,7 +157,7 @@ TBamDownsampler::TBamDownsampler() : TBamDownsampler_base(){
 	}
 };
 
-void TBamDownsampler::downsample(){
+void TBamDownsampler::run(){
 	//traverse BAM and downsample
 	_bamFile.startProgressReporting();
 	while(_bamFile.readNextAlignment()){
@@ -214,7 +214,7 @@ void TBamDownsampler::sample(){
 // TBamReadDownsampler
 //-----------------------------------------
 
-void TBamReadDownsampler::downsample(){
+void TBamReadDownsampler::run(){
 	BAM::TAlignment alignment;
 
 	//traverse BAM and downsample
@@ -258,7 +258,7 @@ TBamSeparator::TBamSeparator() : TBamDownsampler_base(){
 	if(*_probs.begin() == 1.0) logfile().warning("Probability of 1 will result in identical file!");
 };
 
-void TBamSeparator::separate(){
+void TBamSeparator::run(){
 	//open bam files for writing
 	std::vector<BAM::TOutputBamFile> out;
 	for(auto& n : _names){

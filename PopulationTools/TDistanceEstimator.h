@@ -216,21 +216,7 @@ public:
 	};
 
 	void printGLF();
-	void estimateDistances();
-};
-
-//--------------------------------------
-// Tasks
-//--------------------------------------
-class TTask_estimateDist:public coretools::TTask{
-public:
-	TTask_estimateDist(){ _explanation = "Estimating the genetic distance between individuals"; };
-
-	void run(){
-		using namespace coretools::instances;
-		TDistanceEstimator distEst;
-		distEst.estimateDistances();
-	};
+	void run();
 };
 
 }; //end namespace

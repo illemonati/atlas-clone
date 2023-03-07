@@ -11,28 +11,13 @@
 #include <string>
 #include "coretools/Main/TTask.h"
 
-
 namespace PopulationTools{
-
 
 class TPolymorhicWindowIdentifier{
 public:
-	void identifyPolymorphicWindows();
+	void run();
 };
 
-//--------------------------------------
-// Tasks
-//--------------------------------------
-class TTask_identifyPolymorphicWindows:public coretools::TTask{
-public:
-	TTask_identifyPolymorphicWindows(){ _explanation = "Identifying windows for which samples are polymorphic"; };
-
-	void run(){
-		TPolymorhicWindowIdentifier identifier;
-		identifier.identifyPolymorphicWindows();
-	}
-};
-
-}; //end namespace
+} // namespace PopulationTools
 
 #endif /* POPULATIONTOOLS_TPOLYMORHICWINDOWIDENTIFIER_H_ */

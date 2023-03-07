@@ -25,9 +25,8 @@
 #include "coretools/Strings/stringFunctions.h"
 
 #include "TReadGroups.h"
-namespace BAM {
 
-namespace RGInfo{
+namespace BAM::RGInfo {
 
 //------------------------------------------------
 // Info and functions to extract data
@@ -232,14 +231,9 @@ public:
 class TTask_testReadGroupInfo : public coretools::TTask{
 public:
 	TTask_testReadGroupInfo(){ _explanation = "Testing JSON stuff"; };
-
 	void run();
 };
 
-
-} //end namespace RGInfo
-
-} //end namespace BAM
-
+} // namespace BAM::RGInfo
 
 #endif /* BAM_TREADGROUPINFO_H_ */

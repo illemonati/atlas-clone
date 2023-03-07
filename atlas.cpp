@@ -55,18 +55,7 @@
 #include "TReadGroupInfo.h"
 #include "TAncestralAlleleEstimator.h"
 
-/*
-//tests
-#include "TAtlasTest.h"
-#include "TAtlasTestFilter.h"
-#include "TAtlasTestMergePairs.h"
-#include "TAtlasTestPMD.h"
-#include "TAtlasTestRecalibration.h"
-#include "TVcfTest.h"*/
-
 void addTaks(coretools::TMain & main) {
-    // Use main.addRegularTask to add a regular task (shown in list of available tasks)
-
 	//BAM
 	main.createRegularTask<GenomeTasks::BamFilter::TBamFilter>("filterBAM", "Writing reads that pass filters to BAM file");
 	main.createRegularTask<GenomeTasks::AlignmentMerger::TAlignmentSplitMerger>("splitMerge", "Splitting single-end reads and merging paired-end reads in BAM file");
@@ -77,61 +66,58 @@ void addTaks(coretools::TMain & main) {
 	main.createRegularTask<GenomeTasks::TAssessSoftClipping>("assessSoftClipping", "Assessing level of soft clipping in BAM file");
 	main.createRegularTask<GenomeTasks::TRemoveSoftClippedBases>("removeSoftClippedBases", "Removing soft clipped bases from reads");
 	main.createRegularTask<GenomeTasks::TQualityTransformation>("qualityTransformation", "Printing Quality Transformation");
-	main.addRegularTask("downsample", new GenomeTasks::TTask_downsample());
-	main.addRegularTask("downsampleReads", new GenomeTasks::TTask_downSampleReads());
-	main.addRegularTask("PMD", new GenomeTasks::TTask_estimatePMD());
-	main.addRegularTask("PMDS", new GenomeTasks::TTask_PMDS());
-	main.addRegularTask("identifyIlluminaReadGroups", new GenomeTasks::TTask_identifyIllumina());
+	main.createRegularTask<GenomeTasks::TBamDownsampler>("downsample", "Downsampling a BAM file by removing reads");
+	main.createRegularTask<GenomeTasks::TBamReadDownsampler>("downsampleReads", "Downsampling a BAM file by setting bases to N");
+	main.createRegularTask<GenomeTasks::TPMDEstimator>("PMD", "Estimating Post-Mortem Damage (PMD) patterns");
+	main.createRegularTask<GenomeTasks::TPMDSCalculator>("PMDS", "Filtering for ancient reads using PMDS", "Skoglund et al. (2014) PNAS");
+	main.createRegularTask<GenomeTasks::TIlluminaIdentifier>("identifyIlluminaReadGroups", "Reassigning read groups based on the platform unit in their name");
 	//main.addRegularTask("duplication", new GenomeTasks::TTask_duplicationQuantifier());
 	//main.addRegularTask("qualityDist", new GenomeTasks::TTask_qualityDist());
 	//main.addRegularTask("contextStats", new GenomeTasks::TTask_quantifyContext());
 	//main.addRegularTask("separateReads", new GenomeTasks::TTask_separateReads());
 
 	//window tasks
-	main.addRegularTask("recal", new GenomeTasks::TTask_recal());
-	//TODO: add task to calculate LL of full model
+	main.createRegularTask<GenomeTasks::TEstimateRecalibration>("recal", "Estimating error re-calibration parameters", "Kousathanas et al. (2017) Genetics");
+	main.addRegularTask<GenomeTasks::TTask_createMask>("createMask");
+	main.createRegularTask<GenomeTasks::TAllelicDepth>("allelicDepth", "Writing genotype likelihoods to a GLF file");
+	main.createRegularTask<GenomeTasks::TPSMCInput>("PSMC", "Generating a PSMC Input file probabilistically");
+	main.createRegularTask<GenomeTasks::TCall>("call", "Calling genotypes");
+	main.createRegularTask<GenomeTasks::TEstimateTheta>("theta", "Estimating heterozygosity (theta)", "Kousathanas et al. (2017) Genetics");
+	main.createRegularTask<GenomeTasks::TEstimateThetaRatio>("thetaRatio", "Estimate the ratio in heterozygosity (theta) between genomic regions", "Kousathanas et al. (2017) Genetics");
+	main.createRegularTask<GenomeTasks::TWriteGLF>("GLF", "Writing genotype likelihoods to a GLF file");
+	main.createRegularTask<GenomeTasks::TSexEstimator>("sexEstimation", "Estimating the distribution of depth among sites and writing depth per window");
 	//main.addRegularTask("writeDepth", new GenomeTasks::TTask_depthWriter());
-	main.addRegularTask("createMask", new GenomeTasks::TTask_createMask());
-	main.addRegularTask("allelicDepth", new GenomeTasks::TTask_allelicDepth());
-	main.addRegularTask("PSMC", new GenomeTasks::TTask_PSMC());
-	main.addRegularTask("call", new GenomeTasks::TTask_call());
-	main.addRegularTask("theta", new GenomeTasks::TTask_estimateTheta());
-	main.addRegularTask("thetaRatio", new GenomeTasks::TTask_estimateThetaRatio());
-	main.addRegularTask("GLF", new GenomeTasks::TTask_writeGLF());
-	main.addRegularTask("sexEstimation", new GenomeTasks::TTask_estimateSex());
 
 	//Population tools
-	main.addRegularTask("printGLF", new GLF::TTask_printGLF());
-	main.addRegularTask("majorMinor", new PopulationTools::TTask_majorMinor());
-	main.addRegularTask("geneticDist", new PopulationTools::TTask_estimateDist());
-	main.addRegularTask("alleleCounts", new PopulationTools::TTask_estimateAlleleCounts());
-	main.addRegularTask("alleleCountLikelihoods", new PopulationTools::TTask_writeAlleleCountLikelihoods);
-	main.addRegularTask("transformAlleleCountFormat", new PopulationTools::TTask_transformAlleleCountFormat());
-	main.addRegularTask("alleleFreq", new PopulationTools::TTask_estimateAlleleFreq());
-	main.addRegularTask("compareAlleleFreq", new PopulationTools::TTask_compareAlleleFreq());
-	main.addRegularTask("alleleFreqLikelihoods", new PopulationTools::TTask_alleleFreqLikelihoods());
-	main.addRegularTask("inbreeding", new PopulationTools::TTask_estimateInbreeding());
-	main.addRegularTask("polymorphicWindows", new PopulationTools::TTask_identifyPolymorphicWindows());
-    main.addRegularTask("calculateF2", new PopulationTools::TTask_calculateF2());
-	main.addRegularTask("ancestralAlleles", new PopulationTools::TTask_estimateAncestralAlleles());
+	main.addRegularTask<GLF::TTask_printGLF>("printGLF");
+	main.addRegularTask<PopulationTools::TTask_majorMinor>("majorMinor");
+	main.createRegularTask<PopulationTools::TDistanceEstimator>("geneticDist", "Estimating the genetic distance between individuals");
+	main.addRegularTask<PopulationTools::TTask_estimateAlleleCounts>("alleleCounts");
+	main.addRegularTask<PopulationTools::TTask_writeAlleleCountLikelihoods>("alleleCountLikelihoods");
+	main.addRegularTask<PopulationTools::TTask_transformAlleleCountFormat>("transformAlleleCountFormat");
+	main.addRegularTask<PopulationTools::TTask_estimateAlleleFreq>("alleleFreq");
+	main.addRegularTask<PopulationTools::TTask_compareAlleleFreq>("compareAlleleFreq");
+	main.addRegularTask<PopulationTools::TTask_alleleFreqLikelihoods>("alleleFreqLikelihoods");
+	main.createRegularTask<PopulationTools::TInbreedingEstimator>("inbreeding", "Estimating the inbreeding coefficient", "Burger et al. (2020) Current Biology");
+	main.createRegularTask<PopulationTools::TPolymorhicWindowIdentifier>("polymorphicWindows", "Identifying windows for which samples are polymorphic");
+    main.createRegularTask<PopulationTools::TF2Estimator>("calculateF2", "Calculate F2 between different samples, and within and between populations");
+	main.createRegularTask<PopulationTools::TAncestralAlleleEstimator>("ancestralAlleles", "Writing FASTA-file with ancestral alleles");
 
 
     //VCF
-	main.addRegularTask("VCFDiagnostics", new VCF::TTask_VCFDiagnostics());
-	main.addRegularTask("VCFToInvariantBed", new VCF::TTask_VCFToInvariantBed());
-	main.addRegularTask("convertVCF", new VCF::TTask_VcfConverter());
-    main.addRegularTask("VCFFixInt", new VCF::TTask_VCFFixInt());
-	main.addRegularTask("VCFCompare", new VCF::TTask_VcfCompare());
-	main.addRegularTask("testHardyWeinberg", new PopulationTools::TTask_testHardyWeinberg);
+	main.addRegularTask<VCF::TTask_VCFDiagnostics>("VCFDiagnostics");
+	main.addRegularTask<VCF::TTask_VCFToInvariantBed>("VCFToInvariantBed");
+	main.addRegularTask<VCF::TTask_VcfConverter>("convertVCF");
+    main.addRegularTask<VCF::TTask_VCFFixInt>("VCFFixInt");
+	main.createRegularTask<VCF::TVcfCompare>("VCFCompare", "Comparing genotype calls in two VCF files");
+	main.createRegularTask<PopulationTools::THardyWeinbergTest>("testHardyWeinberg", "Testing for Hardy-Weinberg equilibrium across multiple populations");
 
 	//simulations
-	main.addRegularTask("simulate", new Simulations::TTask_simulate());
+	main.addRegularTask<Simulations::TTask_simulate>("simulate");
 
-	// Use main.addDebugTask to add a debug task (not shown in list of available tasks)
-	//main.addDebugTask("recalLL", new GenomeTasks::TTask_recalLL());
+	// Debug tasks
 	main.createDebugTask<GenomeTasks::TEstimateThetaLLSurface>("thetaLLSurface", "Calculating the theta LL surface for each window");
-	BAM::RGInfo::TTask_testReadGroupInfo x;
-	main.addDebugTask("json", new BAM::RGInfo::TTask_testReadGroupInfo());
+	main.addDebugTask<BAM::RGInfo::TTask_testReadGroupInfo>("json");
 };
 
 void addTests(coretools::TMain & main){
@@ -169,7 +155,6 @@ void addTests(coretools::TMain & main){
 //---------------------------------------------------------------------------
 int main(int argc, char* argv[]){
 	coretools::TMain main("ATLAS", "0.9", "https://bitbucket.org/wegmannlab/atlas", "daniel.wegmann@unifr.ch");
-
 
 	//add existing tasks
 	addTaks(main);

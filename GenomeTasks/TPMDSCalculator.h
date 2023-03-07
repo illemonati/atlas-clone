@@ -32,23 +32,7 @@ private:
 
 public:
 	TPMDSCalculator();
-	void calculatePMDS();
-};
-
-//--------------------------------------
-// Tasks
-//--------------------------------------
-class TTask_PMDS:public coretools::TTask{
-public:
-	TTask_PMDS(){
-		_explanation = "Filtering for ancient reads using PMDS";
-		_citations.insert("Skoglund et al. (2014) PNAS");
-	};
-
-	void run(){
-		TPMDSCalculator calculator;
-		calculator.calculatePMDS();
-	};
+	void run();
 };
 
 }; // end namespace

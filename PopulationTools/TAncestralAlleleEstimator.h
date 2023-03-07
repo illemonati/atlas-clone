@@ -32,20 +32,9 @@ private:
 	uint32_t _totalCountMin;
 public:
 	TAncestralAlleleEstimator();
-    void printFasta();
+    void run();
 };
 
-
-class TTask_estimateAncestralAlleles:public coretools::TTask{
-public:
-	TTask_estimateAncestralAlleles(){ _explanation = "Writing FASTA-file with ancestral alleles"; };
-
-	void run(){
-		TAncestralAlleleEstimator ancestralAlleleEst;
-		ancestralAlleleEst.printFasta();
-	};
-};
-
-}; //end namespace
+} // namespace PopulationTools
 
 #endif /* TANCESTRALALLELETESTIMATOR_H_ */

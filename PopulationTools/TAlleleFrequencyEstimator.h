@@ -152,7 +152,6 @@ public:
 	TTask_estimateAlleleFreq(){ _explanation = "Estimating population allele frequencies"; };
 
 	void run(){
-		using namespace coretools::instances;
 		TAlleleFreqEstimator alleleFreqEstimator;
 		alleleFreqEstimator.estimateAlleleFreq();
 	};
@@ -163,8 +162,6 @@ public:
 	TTask_compareAlleleFreq(){_explanation = "Pairwise comparison of population allele frequencies"; };
 
 	void run(){
-		using namespace coretools::instances;
-		using namespace coretools::instances;
 		TAlleleFreqEstimator alleleFreqEstimator;
 		alleleFreqEstimator.compareAlleleFreq();
 	};
@@ -175,7 +172,6 @@ public:
 	TTask_alleleFreqLikelihoods(){ _explanation = "Calculating population allele frequency likelihoods under Hardy-Weinberg"; };
 
 	void run(){
-		using namespace coretools::instances;
 		TAlleleFreqEstimator alleleFreqEstimator;
 		alleleFreqEstimator.writeAlleleFrequencyLikelihoods();
 	};

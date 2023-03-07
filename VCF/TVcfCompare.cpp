@@ -273,7 +273,7 @@ TVcfCompare::TVcfCompare() {
 	_outName += "_CallComparison.txt";
 }
 
-void TVcfCompare::compareVCFFiles(){
+void TVcfCompare::run(){
 
 	//prepare count table
 	TGenotypeComparisonTable counts;

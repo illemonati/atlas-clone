@@ -42,26 +42,9 @@ private:
 public:
 	TEstimateRecalibration();
 
-	void estimateRecalibration();
+	void run();
 };
 
-//--------------------------------------
-// Tasks
-//--------------------------------------
-class TTask_recal : public coretools::TTask {
-public:
-	TTask_recal() {
-		_explanation = "Estimating error re-calibration parameters";
-		_citations.insert("Kousathanas et al. (2017) Genetics");
-	};
-
-	void run() {
-		using namespace coretools::instances;
-		TEstimateRecalibration estimator;
-		estimator.estimateRecalibration();
-	};
-};
-
-}; // namespace GenomeTasks
+} // namespace GenomeTasks
 
 #endif /* GENOMETASKS_TESTIMATERECALIBRATION_H_ */

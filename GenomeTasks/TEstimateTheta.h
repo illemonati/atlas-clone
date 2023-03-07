@@ -90,36 +90,7 @@ private:
 
 public:
 	TEstimateThetaRatio();
-	void estimateThetaRation();
-};
-
-//--------------------------------------
-// Tasks
-//--------------------------------------
-class TThetaTask : public coretools::TTask {
-public:
-	TThetaTask() { _citations.insert("Kousathanas et al. (2017) Genetics"); };
-};
-
-class TTask_estimateTheta : public TThetaTask {
-public:
-	TTask_estimateTheta() { _explanation = "Estimating heterozygosity (theta)"; }
-	void run() {
-		TEstimateTheta estimator;
-		estimator.run();
-	}
-};
-
-class TTask_estimateThetaRatio : public TThetaTask {
-public:
-	TTask_estimateThetaRatio() {
-		_explanation = "Estimate the ratio in heterozygosity (theta) between genomic regions";
-	};
-
-	void run() {
-		TEstimateThetaRatio estimator;
-		estimator.estimateThetaRation();
-	};
+	void run();
 };
 
 }; // namespace GenomeTasks

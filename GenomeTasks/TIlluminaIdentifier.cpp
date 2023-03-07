@@ -15,7 +15,6 @@
 
 namespace GenomeTasks{
 
-using coretools::instances::parameters;
 using coretools::instances::logfile;
 
 TIlluminaIdentifier::TIlluminaIdentifier():TGenome_basic(){
@@ -46,7 +45,7 @@ void TIlluminaIdentifier::_handleAlignment(){
     _bamFile.writeCurAlignment(_out);
 }
 
-void TIlluminaIdentifier::identify(){
+void TIlluminaIdentifier::run(){
     while(_bamFile.readNextAlignment()){
         _handleAlignment();
     }

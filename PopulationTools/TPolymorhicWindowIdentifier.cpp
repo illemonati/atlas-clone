@@ -29,7 +29,7 @@ namespace PopulationTools{
 using coretools::instances::parameters;
 using coretools::instances::logfile;
 
-void TPolymorhicWindowIdentifier::identifyPolymorphicWindows() {
+void TPolymorhicWindowIdentifier::run() {
 	using BG = genometools::BiallelicGenotype;
 	//read samples
 	genometools::TPopulationSamples samples;

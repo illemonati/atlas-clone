@@ -41,21 +41,7 @@ private:
 
 public:
 	TPMDEstimator();
-	void estimatePMD();
-};
-
-//--------------------------------------
-// Tasks
-//--------------------------------------
-class TTask_estimatePMD : public coretools::TTask {
-public:
-	TTask_estimatePMD() { _explanation = "Estimating Post-Mortem Damage (PMD) patterns"; };
-
-	void run() {
-		using namespace coretools::instances;
-		TPMDEstimator estimator;
-		estimator.estimatePMD();
-	};
+	void run();
 };
 
 }; // namespace GenomeTasks

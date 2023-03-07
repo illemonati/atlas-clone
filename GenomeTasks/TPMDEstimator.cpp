@@ -66,7 +66,7 @@ void TPMDEstimator::_handleAlignment() {
 	}
 };
 
-void TPMDEstimator::estimatePMD(){
+void TPMDEstimator::run(){
 	// 1) traverse BAM to assemble PMD Tables
 	_traverseBAMPassedQC();
 

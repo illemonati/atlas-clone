@@ -68,6 +68,31 @@ std::vector<double> chooseLogs(int k) {
 	for (int j = 0; j <= k; j++) { ret.push_back(coretools::chooseLog(k, j)); }
 	return ret;
 };
+
+TAlleleCountFile *prepareOutputFile(const std::string & type, std::string filePrefix) {
+	// create output file
+	TAlleleCountFile *alleleCountFile;
+	if (type == "default") {
+		filePrefix      = filePrefix + "_alleleCounts.txt.gz";
+		alleleCountFile = new TAlleleCountFile(filePrefix);
+	} else if (type == "withAlleles") {
+		filePrefix      = filePrefix + "_alleleCounts.txt.gz";
+		alleleCountFile = new TAlleleCountFileWithAlleles(filePrefix);
+	} else if (type == "treemix") {
+		filePrefix      = filePrefix + "_treemix_alleleCounts.txt.gz";
+		alleleCountFile = new TTreeMixFile(filePrefix);
+	} else if (type == "flink") {
+		filePrefix      = filePrefix + "_flink_alleleCounts.txt.gz";
+		alleleCountFile = new TFlinkFile(filePrefix);
+	} else
+		UERROR("Unknown output file type '", type, "'! Use 'default', 'withAlleles', 'treemix' or 'flink'.");
+
+	logfile().list("Will write estimated allele counts to file '" + filePrefix + "'.");
+	alleleCountFile->openFileToWrite(filePrefix);
+
+	return (alleleCountFile);
+}
+
 } // namespace impl
 
 //-------------------------------------------------
@@ -327,7 +352,7 @@ TSiteAlleleFrequencyLikelihoods::getLogAlleleFrequencyLikelihoods() const {
 //-------------------------------------------------
 // TAlleleCountEstimator
 //-------------------------------------------------
-void TAlleleCountEstimator::estimateAlleleCounts() {
+void estimateAlleleCounts() {
 	// read samples
 	genometools::TPopulationSamples samples;
 	if (parameters().parameterExists("samples")) samples.readSamples(parameters().getParameter<std::string>("samples"));
@@ -355,7 +380,7 @@ void TAlleleCountEstimator::estimateAlleleCounts() {
 	std::string tmp                   = coretools::str::extractBeforeLast(vcfFilename, ".vcf");
 	std::string outname               = parameters().getParameterWithDefault<std::string>("out", tmp);
 	std::string type                  = parameters().getParameterWithDefault<std::string>("outFormat", "default");
-	TAlleleCountFile *alleleCountFile = prepareOutputFile(type, outname);
+	TAlleleCountFile *alleleCountFile = impl::prepareOutputFile(type, outname);
 
 	// write header
 	alleleCountFile->writeHeader(samples);
@@ -393,7 +418,7 @@ void TAlleleCountEstimator::estimateAlleleCounts() {
 	logfile().endIndent();
 };
 
-void TAlleleCountEstimator::writeAlleleFrequencyLikelihoods() {
+void writeAlleleFrequencyLikelihoods() {
 	// TODO: write proper saf
 	// read samples
 	genometools::TPopulationSamples samples;
@@ -474,31 +499,8 @@ void TAlleleCountEstimator::writeAlleleFrequencyLikelihoods() {
 	logfile().endIndent();
 };
 
-TAlleleCountFile *TAlleleCountEstimator::prepareOutputFile(const std::string & type, std::string filePrefix) {
-	// create output file
-	TAlleleCountFile *alleleCountFile;
-	if (type == "default") {
-		filePrefix      = filePrefix + "_alleleCounts.txt.gz";
-		alleleCountFile = new TAlleleCountFile(filePrefix);
-	} else if (type == "withAlleles") {
-		filePrefix      = filePrefix + "_alleleCounts.txt.gz";
-		alleleCountFile = new TAlleleCountFileWithAlleles(filePrefix);
-	} else if (type == "treemix") {
-		filePrefix      = filePrefix + "_treemix_alleleCounts.txt.gz";
-		alleleCountFile = new TTreeMixFile(filePrefix);
-	} else if (type == "flink") {
-		filePrefix      = filePrefix + "_flink_alleleCounts.txt.gz";
-		alleleCountFile = new TFlinkFile(filePrefix);
-	} else
-		UERROR("Unknown output file type '", type, "'! Use 'default', 'withAlleles', 'treemix' or 'flink'.");
 
-	logfile().list("Will write estimated allele counts to file '" + filePrefix + "'.");
-	alleleCountFile->openFileToWrite(filePrefix);
-
-	return (alleleCountFile);
-}
-
-void TAlleleCountEstimator::transformFormat() {
+void transformFormat() {
 	// initialize variables for vcf-file
 	struct timeval start;
 	gettimeofday(&start, NULL);
@@ -518,7 +520,7 @@ void TAlleleCountEstimator::transformFormat() {
 	TAlleleCountReader file(countsFileName);	
 
 	// create output file
-	TAlleleCountFile *alleleCountFile = prepareOutputFile(type, outname);
+	TAlleleCountFile *alleleCountFile = impl::prepareOutputFile(type, outname);
 
 	// write header
 	alleleCountFile->writeHeader(file.populationNames());

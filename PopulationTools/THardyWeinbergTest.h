@@ -129,24 +129,9 @@ private:
 
 public:
 	THardyWeinbergTest();
-	void testForHardyWeinberg();
+	void run();
 };
 
-//--------------------------------------
-// Tasks
-//--------------------------------------
-class TTask_testHardyWeinberg:public coretools::TTask{
-public:
-	TTask_testHardyWeinberg(){ _explanation = "Testing for Hardy-Weinberg equilibrium across multiple populations"; };
-
-	void run(){
-		using namespace coretools::instances;
-		THardyWeinbergTest HW_test;
-		HW_test.testForHardyWeinberg();
-	};
-};
-
-}; //end namespace
-
+} // namespace PopulationTools
 
 #endif /* POPULATIONTOOLS_THARDYWEINBERGTEST_H_ */

@@ -1320,7 +1320,7 @@ void TCall::_handleWindow(){
 	}
 };
 
-void TCall::call(){
+void TCall::run(){
 	_traverseBAMWindows();
 };
 

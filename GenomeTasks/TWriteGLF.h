@@ -28,20 +28,7 @@ private:
 
 public:
 	TWriteGLF();
-	void writeGLF();
-};
-
-//-------------------------------------------
-// Tasks
-//-------------------------------------------
-class TTask_writeGLF:public coretools::TTask{
-public:
-	TTask_writeGLF(){ _explanation = "Writing genotype likelihoods to a GLF file"; };
-
-	void run(){
-		TWriteGLF writer;
-		writer.writeGLF();
-	}
+	void run();
 };
 
 }; //end namespace

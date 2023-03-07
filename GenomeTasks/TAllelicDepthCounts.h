@@ -49,22 +49,8 @@ private:
 
 public:
 	TAllelicDepth();
-	void quantifyAlleleicDepth();
+	void run();
 };
-
-//-------------------------------------------
-// TTask_allelicDepth
-//-------------------------------------------
-class TTask_allelicDepth:public coretools::TTask{
-public:
-	TTask_allelicDepth(){ _explanation = "Writing genotype likelihoods to a GLF file"; };
-
-	void run(){
-		TAllelicDepth allelicDepth;
-		allelicDepth.quantifyAlleleicDepth();
-	}
-};
-
 
 }; // end namespace
 

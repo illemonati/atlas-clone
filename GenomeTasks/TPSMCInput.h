@@ -37,23 +37,9 @@ private:
 	void _handleAlignment() override {}
 public:
 	TPSMCInput();
-	void createPSMCInput();
+	void run();
 };
 
-//--------------------------------------
-// Tasks
-//--------------------------------------
-class TTask_PSMC:public coretools::TTask{
-public:
-	TTask_PSMC(){ _explanation = "Generating a PSMC Input file probabilistically"; };
-
-	void run(){
-		TPSMCInput psmc;
-		psmc.createPSMCInput();
-	};
-};
-
-
-}; // end namespace
+} // end namespace
 
 #endif /* GENOMETASKS_TPSMCINPUT_H_ */

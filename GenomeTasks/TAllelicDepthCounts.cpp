@@ -24,7 +24,6 @@
 namespace GenomeTasks{
 using coretools::instances::parameters;
 using coretools::instances::logfile;
-using coretools::instances::randomGenerator;
 
 namespace impl {
 constexpr size_t index(size_t i1, size_t i2, size_t i3, size_t i4, size_t N) noexcept {
@@ -160,7 +159,7 @@ void TAllelicDepth::_handleWindow(){
 	logfile().doneTime();
 };
 
-void TAllelicDepth::quantifyAlleleicDepth(){
+void TAllelicDepth::run(){
 	_traverseBAMWindows();
 
 	//write to file

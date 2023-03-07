@@ -173,22 +173,6 @@ public:
 	void run();
 };
 
-//--------------------------------------
-// Tasks
-//--------------------------------------
-class TTask_estimateInbreeding : public coretools::TTask {
-public:
-	TTask_estimateInbreeding() {
-		_explanation = "Estimating the inbreeding coefficient";
-		_citations.emplace("Burger et al. (2020) Current Biology");
-	};
-
-	void run() override {
-		TInbreedingEstimator inbreedingEstimator;
-		inbreedingEstimator.run();
-	};
-};
-
 } // end namespace PopulationTools
 
 #endif // ATLAS_TINBREEDINGESTIMATOR_H

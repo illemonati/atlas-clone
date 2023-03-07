@@ -52,7 +52,7 @@ void TWriteGLF::_handleWindow(){
 	logfile().doneTime();
 };
 
-void TWriteGLF::writeGLF(){
+void TWriteGLF::run(){
 	//open GLF file
 	std::string outputFileName = _outputName + ".glf.gz";
 	logfile().list("Will write genotype likelihoods to GLF file '" + outputFileName + "'.");

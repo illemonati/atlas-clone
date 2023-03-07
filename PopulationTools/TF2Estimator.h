@@ -40,21 +40,6 @@ public:
 	             const std::vector<double> &popF2);
 };
 
-//--------------------------------------
-// Tasks
-//--------------------------------------
-
-class TTask_calculateF2 : public coretools::TTask {
-public:
-	TTask_calculateF2() {
-		_explanation = "Calculate F2 between different samples, and within and between populations";
-	};
-
-	void run() override {
-		TF2Estimator F2;
-		F2.run();
-	};
-};
 } // namespace PopulationTools
 
 #endif // ATLAS_TF2ESTIMATOR_H

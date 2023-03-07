@@ -17,34 +17,18 @@
 
 namespace GenomeTasks{
 
-class TIlluminaIdentifier:public TGenome_basic{
+class TIlluminaIdentifier : public TGenome_basic {
 private:
 	size_t _counter = 0;
-    std::map<std::string, std::string> rgPU_rgID;
+	std::map<std::string, std::string> rgPU_rgID;
 	BAM::TOutputBamFile _out;
 	void _handleAlignment();
 
 public:
     TIlluminaIdentifier();
-	void identify();
+	void run();
 };
 
-
-
-//-----------------------------------------
-// Tasks
-//-----------------------------------------
-
-class TTask_identifyIllumina:public coretools::TTask{
-public:
-	TTask_identifyIllumina(){ _explanation = "Reassigning read groups based on the platform unit in their name"; };
-
-	void run(){
-		TIlluminaIdentifier identifyIllumina;
-		identifyIllumina.identify();
-	};
-};
-
-}; //end namespace GenomeTasks
+} //end namespace GenomeTasks
 
 #endif /* GENOMETASKS_TILLUMINAIDENTIFIER_H_ */

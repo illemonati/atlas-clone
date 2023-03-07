@@ -40,23 +40,10 @@ private:
 
 public:
 	TSexEstimator();
-	void writeDepth();
+	void run();
 };
 
-//--------------------------------------
-// Tasks
-//--------------------------------------
-class TTask_estimateSex:public coretools::TTask{
-public:
-	TTask_estimateSex(){ _explanation = "Estimating the distribution of depth among sites and writing depth per window"; };
-
-	void run(){
-		TSexEstimator sexEstimator;
-		sexEstimator.writeDepth();
-	};
-};
-
-}; // end namespace
+} // end namespace
 
 
 #endif /* GENOMETASKS_TSEXESTIMATOR_H_ */

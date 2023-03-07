@@ -318,23 +318,8 @@ private:
 public:
 	TCall();
 	~TCall();
-	void call();
+	void run();
 };
-
-//--------------------------------------
-// Tasks
-//--------------------------------------
-class TTask_call:public coretools::TTask{
-public:
-	TTask_call(){ _explanation = "Calling genotypes"; };
-
-	void run(){
-		using namespace coretools::instances;
-		TCall caller;
-		caller.call();
-	};
-};
-
 
 }; // end namespace
 

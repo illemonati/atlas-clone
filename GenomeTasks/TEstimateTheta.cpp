@@ -326,7 +326,7 @@ void TEstimateThetaRatio::_handleWindow() {
 	logfile().doneTime();
 };
 
-void TEstimateThetaRatio::estimateThetaRation() {
+void TEstimateThetaRatio::run() {
 	_traverseBAMWindows();
 	_thetaEstimatorRatio.estimateRatio(_outputName);
 };
