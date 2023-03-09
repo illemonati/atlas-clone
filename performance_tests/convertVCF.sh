@@ -9,6 +9,7 @@ if [ ! -f "$file" ]; then
 fi
 
 timeFor10Runs=0
+
 for i in {1..5}; do
 start=`date +%s.%N`
 
