@@ -132,13 +132,7 @@ public:
 	TVCFSimulator(const std::string &method);
 };
 
-//--------------------------------------
-// Tasks
-//--------------------------------------
-class TTask_simulate : public coretools::TTask {
-public:
-	TTask_simulate() { _explanation = "Generating simulations"; };
-
+struct TSimulationRunner {
 	void run() {
 		using namespace coretools::instances;
 		// initialize simulator

@@ -228,9 +228,7 @@ public:
 //-------------------------------------------
 // TTask_testReadGroupInfo
 //-------------------------------------------
-class TTask_testReadGroupInfo : public coretools::TTask{
-public:
-	TTask_testReadGroupInfo(){ _explanation = "Testing JSON stuff"; };
+struct TReadGroupInfoTest {
 	void run();
 };
 

@@ -54,38 +54,14 @@ public:
 	const std::vector<coretools::LogProbability> & getLogAlleleFrequencyLikelihoods() const;
 };
 
-void estimateAlleleCounts();
-void writeAlleleFrequencyLikelihoods();
-void transformFormat();
-
-//--------------------------------------
-// Tasks
-//--------------------------------------
-class TTask_estimateAlleleCounts:public coretools::TTask{
-public:
-	TTask_estimateAlleleCounts(){ _explanation = "Estimating population allele counts"; };
-
-	void run(){
-		estimateAlleleCounts();
-	};
+struct TAlleleCountEstimator {
+	void run();
 };
-
-class TTask_writeAlleleCountLikelihoods:public coretools::TTask{
-public:
-	TTask_writeAlleleCountLikelihoods(){ _explanation = "Writing sample allele count likelihoods"; };
-
-	void run(){
-		writeAlleleFrequencyLikelihoods();
-	};
+struct TAlleleFrequencyWriter {
+	void run();
 };
-
-class TTask_transformAlleleCountFormat:public coretools::TTask{
-public:
-	TTask_transformAlleleCountFormat(){ _explanation = "Transforming allele counts file format"; };
-
-	void run(){
-		transformFormat();
-	};
+struct TAlleleCountTransformer {
+	void run();
 };
 
 }; //end namespace

@@ -37,7 +37,7 @@ using TSampleLikelihoods = genometools::TSampleLikelihoods<genometools::HighPrec
 //------------------------------------------
 // TVcfConverter
 //------------------------------------------
-class TVcfConverter {
+class TVcfFileConverter {
 protected:
 	// filenames
 	std::string _vcfName;
@@ -58,14 +58,14 @@ protected:
 	virtual void _write(genometools::TPopulationLikehoodLocus<TSampleLikelihoods> &data) = 0;
 
 public:
-	TVcfConverter();
-	virtual ~TVcfConverter() = default;
+	TVcfFileConverter();
+	virtual ~TVcfFileConverter() = default;
 };
 
 //------------------------------------------
 // TVcfToBeagle
 //------------------------------------------
-class TVcfToBeagle : protected TVcfConverter {
+class TVcfToBeagle : protected TVcfFileConverter {
 private:
 	coretools::TOutputFile _beagleFile;
 	bool _foundHaploid = false;
@@ -92,7 +92,7 @@ public:
 //------------------------------------------
 // TVcfToGeno
 //------------------------------------------
-class TVcfToGeno : protected TVcfConverter {
+class TVcfToGeno : protected TVcfFileConverter {
 	// geno format: used in LEA package (https://www.rdocumentation.org/packages/LEA/versions/1.4.0/topics/geno)
 	// rows = SNPs, cols = individuals (without delim, just pasted together)
 	// Each data point represents the number of copies of reference allele. Missing data encoded by 9.
@@ -117,7 +117,7 @@ public:
 // TVcfTranspose
 //------------------------------------------
 
-template<bool StoreCalledGenotypes> class TVcfTranspose : protected TVcfConverter {
+template<bool StoreCalledGenotypes> class TVcfTranspose : protected TVcfFileConverter {
 	/*
 	 * Base class for all file formats that require transposing
 	 * i.e. rows are individuals and columns are loci (-> transposed compared to VCF format)
@@ -167,7 +167,7 @@ protected:
 	virtual void _writeTransposedFiles() = 0;
 
 public:
-	TVcfTranspose() : TVcfConverter(){};
+	TVcfTranspose() : TVcfFileConverter(){};
 
 	~TVcfTranspose() override = default;
 
@@ -262,7 +262,7 @@ public:
 //------------------------------------------
 // TVcfToPosFile
 //------------------------------------------
-class TVcfToPosFile : public TVcfConverter {
+class TVcfToPosFile : public TVcfFileConverter {
 	// posFile is needed as input for STITCH
 	// format:
 	//   - tab-separated
@@ -290,7 +290,7 @@ public:
 //------------------------------------------
 // TVcfToGenotypeTruthSetFile
 //------------------------------------------
-class TVcfToGenotypeTruthSetFile : public TVcfConverter {
+class TVcfToGenotypeTruthSetFile : public TVcfFileConverter {
 	// produces genotype truth set (genfile) for STITCH and bed files for samples
 	// idea: first locus -> find 0-n samples that have depth higher than minDepth
 	//                   -> write position of this locus into bed-files for these individuals
@@ -348,14 +348,8 @@ public:
 	void run();
 };
 
-//--------------------------------------
-// Tasks
-//--------------------------------------
-class TTask_VcfConverter : public coretools::TTask {
-public:
-	TTask_VcfConverter() { _explanation = "Converting a VCF file to other formats"; };
-
-	void run() override {
+struct TVCFConverter {
+	void run() {
 		using namespace coretools::instances;
 		std::string format = parameters().getParameter<std::string>("format");
 

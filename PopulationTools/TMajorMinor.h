@@ -73,23 +73,10 @@ public:
 	TMajorMinorEstimatorMLE(double EpsilonF) : _epsilonF(EpsilonF) {};
 };
 
-void estimateMajorMinor();
-
-//--------------------------------------
-// Tasks
-//--------------------------------------
-class TTask_majorMinor : public coretools::TTask {
-public:
-	TTask_majorMinor() {
-		_citations.insert("Skotte et al. (2012) Genetic Epidemiology");
-		_explanation = "Estimating major and minor alles";
-	};
-
-	void run() {
-		estimateMajorMinor();
-	};
+struct TMajorMinor {
+	void run();
 };
 
-}; // namespace PopulationTools
+} // namespace PopulationTools
 
 #endif /* TMAJORMINOR_H_ */

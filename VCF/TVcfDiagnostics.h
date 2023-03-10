@@ -13,6 +13,7 @@
 #include <utility>
 #include <vector>
 
+#include "coretools/Main/TParameters.h"
 #include "coretools/Main/TTask.h"
 #include "genometools/VCF/TVcfFile.h"
 #include "genometools/BED/TBed.h"
@@ -103,42 +104,17 @@ public:
 	void assessAllelicImbalance();
 	void vcfToInvariantBed();
 	void fixIntAsFloat();
+	void run() {
+		using coretools::instances::parameters; 
+		if (parameters().parameterExists("fixInt")) {
+			fixIntAsFloat();
+		} else if (parameters().parameterExists("writeBED")) {
+			vcfToInvariantBed();
+		} else {
+			assessAllelicImbalance();
+		}
+	}
 };
-
-//--------------------------------------
-// Tasks
-//--------------------------------------
-using coretools::TTask;
-class TTask_VCFDiagnostics:public TTask{
-public:
-	TTask_VCFDiagnostics(){ _explanation = "Diagnosing a VCF file"; };
-
-	void run() override{
-		TVcfDiagnostics VcfDiagnoser;
-		VcfDiagnoser.assessAllelicImbalance();
-	};
-};
-
-class TTask_VCFToInvariantBed:public TTask{
-public:
-	TTask_VCFToInvariantBed(){ _explanation = "Writing a BED file from invariant sites in a VCF file"; };
-
-	void run() override{
-		TVcfDiagnostics VcfDiagnoser;
-		VcfDiagnoser.vcfToInvariantBed();
-	};
-};
-
-class TTask_VCFFixInt:public TTask{
-public:
-	TTask_VCFFixInt(){ _explanation = "Fixing integers printed as floats in VCF file"; };
-
-	void run() override{
-		TVcfDiagnostics VcfDiagnoser;
-		VcfDiagnoser.fixIntAsFloat();
-	};
-};
-
 
 }; //end namespace
 

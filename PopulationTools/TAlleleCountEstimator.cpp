@@ -352,7 +352,7 @@ TSiteAlleleFrequencyLikelihoods::getLogAlleleFrequencyLikelihoods() const {
 //-------------------------------------------------
 // TAlleleCountEstimator
 //-------------------------------------------------
-void estimateAlleleCounts() {
+void TAlleleCountEstimator::run() {
 	// read samples
 	genometools::TPopulationSamples samples;
 	if (parameters().parameterExists("samples")) samples.readSamples(parameters().getParameter<std::string>("samples"));
@@ -418,7 +418,7 @@ void estimateAlleleCounts() {
 	logfile().endIndent();
 };
 
-void writeAlleleFrequencyLikelihoods() {
+void TAlleleFrequencyWriter::run() {
 	// TODO: write proper saf
 	// read samples
 	genometools::TPopulationSamples samples;
@@ -500,7 +500,7 @@ void writeAlleleFrequencyLikelihoods() {
 };
 
 
-void transformFormat() {
+void TAlleleCountTransformer::run() {
 	// initialize variables for vcf-file
 	struct timeval start;
 	gettimeofday(&start, NULL);

@@ -286,7 +286,7 @@ void TReadGroupInfo::write(std::string_view Filename){
 //-------------------------------------------
 // TTask_testReadGroupInfo
 //-------------------------------------------
-void TTask_testReadGroupInfo::run(){
+void TReadGroupInfoTest::run(){
 
 	std::string filename = parameters().getParameter("json");
 

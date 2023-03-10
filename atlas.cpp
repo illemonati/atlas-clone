@@ -78,7 +78,7 @@ void addTaks(coretools::TMain & main) {
 
 	//window tasks
 	main.createRegularTask<GenomeTasks::TEstimateRecalibration>("recal", "Estimating error re-calibration parameters", "Kousathanas et al. (2017) Genetics");
-	main.addRegularTask<GenomeTasks::TTask_createMask>("createMask");
+	main.createRegularTask<GenomeTasks::TMaskCreator>("createMask", "Creating a mask BED file");
 	main.createRegularTask<GenomeTasks::TAllelicDepth>("allelicDepth", "Writing genotype likelihoods to a GLF file");
 	main.createRegularTask<GenomeTasks::TPSMCInput>("PSMC", "Generating a PSMC Input file probabilistically");
 	main.createRegularTask<GenomeTasks::TCall>("call", "Calling genotypes");
@@ -89,15 +89,13 @@ void addTaks(coretools::TMain & main) {
 	//main.addRegularTask("writeDepth", new GenomeTasks::TTask_depthWriter());
 
 	//Population tools
-	main.addRegularTask<GLF::TTask_printGLF>("printGLF");
-	main.addRegularTask<PopulationTools::TTask_majorMinor>("majorMinor");
+	main.createRegularTask<GLF::TGLFPrinter>("printGLF", "Printing a GLF file to screen");
+	main.createRegularTask<PopulationTools::TMajorMinor>("majorMinor", "Estimating major and minor alles", "Skotte et al. (2012) Genetic Epidemiology");
 	main.createRegularTask<PopulationTools::TDistanceEstimator>("geneticDist", "Estimating the genetic distance between individuals");
-	main.addRegularTask<PopulationTools::TTask_estimateAlleleCounts>("alleleCounts");
-	main.addRegularTask<PopulationTools::TTask_writeAlleleCountLikelihoods>("alleleCountLikelihoods");
-	main.addRegularTask<PopulationTools::TTask_transformAlleleCountFormat>("transformAlleleCountFormat");
-	main.addRegularTask<PopulationTools::TTask_estimateAlleleFreq>("alleleFreq");
-	main.addRegularTask<PopulationTools::TTask_compareAlleleFreq>("compareAlleleFreq");
-	main.addRegularTask<PopulationTools::TTask_alleleFreqLikelihoods>("alleleFreqLikelihoods");
+	main.createRegularTask<PopulationTools::TAlleleCountEstimator>("alleleCounts", "Estimating population allele counts");
+	main.createRegularTask<PopulationTools::TAlleleFrequencyWriter>("alleleCountLikelihoods", "Writing sample allele count likelihoods");
+	main.createRegularTask<PopulationTools::TAlleleCountTransformer>("transformAlleleCountFormat", "Transforming allele counts file format");
+	main.createRegularTask<PopulationTools::TAlleleFreqEstimator>("alleleFreq", "Estimating population allele frequencies");
 	main.createRegularTask<PopulationTools::TInbreedingEstimator>("inbreeding", "Estimating the inbreeding coefficient", "Burger et al. (2020) Current Biology");
 	main.createRegularTask<PopulationTools::TPolymorhicWindowIdentifier>("polymorphicWindows", "Identifying windows for which samples are polymorphic");
     main.createRegularTask<PopulationTools::TF2Estimator>("calculateF2", "Calculate F2 between different samples, and within and between populations");
@@ -105,19 +103,17 @@ void addTaks(coretools::TMain & main) {
 
 
     //VCF
-	main.addRegularTask<VCF::TTask_VCFDiagnostics>("VCFDiagnostics");
-	main.addRegularTask<VCF::TTask_VCFToInvariantBed>("VCFToInvariantBed");
-	main.addRegularTask<VCF::TTask_VcfConverter>("convertVCF");
-    main.addRegularTask<VCF::TTask_VCFFixInt>("VCFFixInt");
+	main.createRegularTask<VCF::TVcfDiagnostics>("VCFDiagnostics", "Diagnosing a VCF file");
+	main.createRegularTask<VCF::TVCFConverter>("convertVCF", "Converting a VCF file to other formats");
 	main.createRegularTask<VCF::TVcfCompare>("VCFCompare", "Comparing genotype calls in two VCF files");
 	main.createRegularTask<PopulationTools::THardyWeinbergTest>("testHardyWeinberg", "Testing for Hardy-Weinberg equilibrium across multiple populations");
 
 	//simulations
-	main.addRegularTask<Simulations::TTask_simulate>("simulate");
+	main.createRegularTask<Simulations::TSimulationRunner>("simulate", "Generating simulations");
 
 	// Debug tasks
 	main.createDebugTask<GenomeTasks::TEstimateThetaLLSurface>("thetaLLSurface", "Calculating the theta LL surface for each window");
-	main.addDebugTask<BAM::RGInfo::TTask_testReadGroupInfo>("json");
+	main.createDebugTask<BAM::RGInfo::TReadGroupInfoTest>("json", "Testing JSON stuff");
 };
 
 void addTests(coretools::TMain & main){

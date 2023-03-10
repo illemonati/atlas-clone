@@ -86,28 +86,19 @@ public:
 	void createVariantMask();
 };
 
-
-//--------------------------------------
-// Tasks
-//--------------------------------------
-class TTask_createMask:public coretools::TTask{
-public:
-	TTask_createMask(){ _explanation = "Creating a mask BED file"; };
-
-	void run(){
-		using namespace coretools::instances;
-
-		//which mask?
-		std::string mask = parameters().getParameter<std::string>("mask");
-		if(mask == "depth"){
+struct TMaskCreator {
+	void run() {
+		// which mask?
+		std::string mask = coretools::instances::parameters().getParameter<std::string>("mask");
+		if (mask == "depth") {
 			TCreateDepthBedMask depthMask;
 			depthMask.createDepthMask();
-		} else if(mask == "nonRef"){
+		} else if (mask == "nonRef") {
 
-		} else if(mask == "invariant"){
+		} else if (mask == "invariant") {
 			TCreateInvariantBedMask conservedMask;
 			conservedMask.createInvariantMask();
-		} else if(mask == "variant"){
+		} else if (mask == "variant") {
 
 		} else {
 			UERROR("Unknown mask '", mask, "'! Valid types are 'depth', 'invariant', 'nonRef' and 'polymorphic'");

@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "coretools/Files/TOutputFile.h"
+#include "coretools/Main/TParameters.h"
 #include "coretools/Main/TTask.h"
 #include "coretools/Types/probability.h"
 #include "genometools/PhredProbabilityTypes.h"
@@ -141,40 +142,15 @@ public:
 	void estimateAlleleFreq();
 	void compareAlleleFreq();
 	void writeAlleleFrequencyLikelihoods();
-};
-
-//--------------------------------------
-// Tasks
-//--------------------------------------
-
-class TTask_estimateAlleleFreq:public coretools::TTask{
-public:
-	TTask_estimateAlleleFreq(){ _explanation = "Estimating population allele frequencies"; };
-
-	void run(){
-		TAlleleFreqEstimator alleleFreqEstimator;
-		alleleFreqEstimator.estimateAlleleFreq();
-	};
-};
-
-class TTask_compareAlleleFreq:public coretools::TTask{
-public:
-	TTask_compareAlleleFreq(){_explanation = "Pairwise comparison of population allele frequencies"; };
-
-	void run(){
-		TAlleleFreqEstimator alleleFreqEstimator;
-		alleleFreqEstimator.compareAlleleFreq();
-	};
-};
-
-class TTask_alleleFreqLikelihoods:public coretools::TTask{
-public:
-	TTask_alleleFreqLikelihoods(){ _explanation = "Calculating population allele frequency likelihoods under Hardy-Weinberg"; };
-
-	void run(){
-		TAlleleFreqEstimator alleleFreqEstimator;
-		alleleFreqEstimator.writeAlleleFrequencyLikelihoods();
-	};
+	void run() {
+		 if (coretools::instances::parameters().parameterExists("compare")) {
+			compareAlleleFreq();
+		} else if  (coretools::instances::parameters().parameterExists("likelihoods")) {
+			writeAlleleFrequencyLikelihoods();
+		} else {
+			estimateAlleleFreq();
+		}
+	}
 };
 
 }; //end namespace

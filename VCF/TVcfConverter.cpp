@@ -33,7 +33,7 @@ using namespace coretools::instances;
 // TVcfConverter
 //------------------------------------------
 
-TVcfConverter::TVcfConverter() {
+TVcfFileConverter::TVcfFileConverter() {
 	_openVCF();
 	_readSamples();
 
@@ -43,13 +43,13 @@ TVcfConverter::TVcfConverter() {
 	logfile().list("Writing output files with prefix '" + _outName + "'. (specify with 'out')");
 }
 
-void TVcfConverter::_openVCF() {
+void TVcfFileConverter::_openVCF() {
 	_vcfName = parameters().getParameterFilename("vcf");
 	_reader.initialize(false);
 	_reader.openVCF(_vcfName);
 }
 
-void TVcfConverter::_readSamples() {
+void TVcfFileConverter::_readSamples() {
 	if (parameters().parameterExists("samples")) {
 		_samples.readSamples(parameters().getParameter<std::string>("samples"));
 	}
@@ -62,7 +62,7 @@ void TVcfConverter::_readSamples() {
 	}
 }
 
-void TVcfConverter::_parseVCF() {
+void TVcfFileConverter::_parseVCF() {
 	// write header
 	_initOutputFiles();
 	_writeHeader();
@@ -79,7 +79,7 @@ void TVcfConverter::_parseVCF() {
 	_reader.concludeFilters();
 }
 
-void TVcfConverter::_writeHeader() {
+void TVcfFileConverter::_writeHeader() {
 	// can stay empty if there is no header
 }
 
@@ -87,7 +87,7 @@ void TVcfConverter::_writeHeader() {
 // TVcfToBeagle
 //------------------------------------------
 
-TVcfToBeagle::TVcfToBeagle() : TVcfConverter() {}
+TVcfToBeagle::TVcfToBeagle() : TVcfFileConverter() {}
 
 void TVcfToBeagle::_initOutputFiles() { _beagleFile.open(_outName + ".beagle.gz"); }
 
@@ -343,7 +343,7 @@ void TVcfBeagleNew::run() {
 // TVcfToGeno
 //------------------------------------------
 
-TVcfToGeno::TVcfToGeno() : TVcfConverter() {}
+TVcfToGeno::TVcfToGeno() : TVcfFileConverter() {}
 
 void TVcfToGeno::_initOutputFiles() {
 	_genoFile.open(_outName + ".geno");

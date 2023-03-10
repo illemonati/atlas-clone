@@ -156,7 +156,7 @@ void TMajorMinorEstimatorMLE::_findMLAllelicCombination(const TMultiGLFData &dat
 //---------------------------------------------------
 // TMajorMinor
 //---------------------------------------------------
-void estimateMajorMinor() {
+void TMajorMinor::run() {
 	// open GLF files
 	GLF::TGlfMultiReader glfReader;
 	glfReader.openGLFs();
