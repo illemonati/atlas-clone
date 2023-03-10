@@ -322,7 +322,7 @@ void TRecalibrationEMEstimator::_estimateRho_updatePbbar(const TPostMortemDamage
 
 						const auto P_bb = PmdModels.massFunction(b, d_ij, L_eps);
 						const auto P_ab = TBaseProbabilities::normalize(P_aa, P_bb, std::plus<>());
-						Pij[g_ab] = P_ab[d_ij.base];
+						Pij[g_ab]       = P_ab[d_ij.base];
 
 						_modelsToEstimate.addToRho(d_ij, _P_g_I_ds[i][g_ab], P_ab);
 					}
@@ -409,7 +409,9 @@ double TRecalibrationEMEstimator::_calculateLL_updatePg(const TPostMortemDamage 
 				const auto L_D   = PmdModels.baseLikelihoods(d_ij, L_eps);
 				L *= _genoDist->getGenotypeLikelihoods(L_D);
 			}
+			OUT(L);
 			LL += log(_genoDist->normalize(L));
+			OUT(LL);
 		} else { // known genotype.
 			_P_g_I_ds.emplace_back(0.); 
 			_P_g_I_ds.back()[s_i.genotype] = 1; // Probability of correct genotype is 1
