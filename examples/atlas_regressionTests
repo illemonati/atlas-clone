@@ -26,6 +26,7 @@ cd $(dirname $0)
 
 err=0
 cnt=0
+fail=0
 for f in *.sh; do
 	fo=${f%.sh}
 	((cnt++))
@@ -54,10 +55,17 @@ for f in *.sh; do
 		fi
 
 		cd ..
-		! compare $fo && err=1
+		! compare $fo && fails="$fails, $fo" && ((fail++)) 
 	fi
 	echo "- Elapsed time: $(($(date +%s) - $tstep)) seconds"
 	echo "------------------------------------------------------------"
 done
 
-exit $err
+if [[ $fail > 0 ]]; then
+	echo "$fail of $cnt tests failed:"
+	echo ${fails#", "}
+	exit 1
+else
+	echo "All $cnt tests passed"
+	exit 0
+fi
