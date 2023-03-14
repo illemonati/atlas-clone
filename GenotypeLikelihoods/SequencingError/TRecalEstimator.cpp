@@ -355,15 +355,16 @@ void TRecalibrationEMEstimator::_updateEpsilon(const TPostMortemDamage &PmdModel
 		double deltaQ   = 0;
 
 		while (nUpdated < nTot && lambda > 1.0E-20) {
-			logfile().listFlushDots("Backtracing with lambda = ", lambda);
+			logfile().startIndent("Backtracing with lambda = ", lambda, ":");
 			_modelsToEstimate.propose(lambda);
 			_calculateQ();
 
 			deltaQ   = _modelsToEstimate.Q() - curQ;
 			nUpdated = _modelsToEstimate.acceptOrReject();
 
-			logfile().write(toString(nUpdated), "/", nTot, " models converged.");
-			logfile().conclude("Delta Q = ", deltaQ);
+			logfile().list("Delta Q = ", deltaQ);
+			logfile().list(toString(nUpdated), "/", nTot, " models converged.");
+			logfile().endIndent();
 
 			// backtrack
 			lambda = lambda / 2.0; // backtrack;

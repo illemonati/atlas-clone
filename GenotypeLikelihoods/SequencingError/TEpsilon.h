@@ -82,10 +82,11 @@ class TEpsilon {
 		der1st.clear();
 		der2nd.clear();
 		// get error rate
-		const double eps    = _calcErrorRate(base, der1st, der2nd);
-		const double eps_c  = 1. - eps;
-		const double leps   = std::log(eps);
-		const double leps_c = std::log(eps_c);
+		const double eps      = _calcErrorRate(base, der1st, der2nd);
+		const double eps_c    = 1. - eps;
+		const double epsEps_c = eps * eps_c;
+		const double leps     = std::log(eps);
+		const double leps_c   = std::log(eps_c);
 
 		for (auto g : _makeGenotype<isInvariant>()) {
 			const double P_bbar_I_gd = P_bbar_I_gds[g];
@@ -106,9 +107,9 @@ class TEpsilon {
 
 		// add first derivative products to Jacobian
 		for (auto dm = der1st.begin(); dm != der1st.end(); ++dm) {
-			_Jacobian(dm->index, dm->index) -= eps_c * eps * dm->derivative * dm->derivative;
+			_Jacobian(dm->index, dm->index) -= epsEps_c * dm->derivative * dm->derivative;
 			for (auto dn = dm + 1; dn != der1st.end(); ++dn) {
-				_Jacobian(dm->index, dn->index) -= eps_c * eps * dm->derivative * dn->derivative;
+				_Jacobian(dm->index, dn->index) -= epsEps_c * dm->derivative * dn->derivative;
 			}
 		}
 		++_numSitesAdded;
