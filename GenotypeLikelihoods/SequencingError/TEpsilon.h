@@ -60,16 +60,14 @@ class TEpsilon {
 	}
 
 	template<bool isInvariant>
-	void addToQ(const BAM::TSequencedBase &base, const TGenotypeLikelihoods &P_g_I_ds,
+	void _addToQ(const BAM::TSequencedBase &base, const TGenotypeLikelihoods &P_g_I_ds,
 				const TGenotypeLikelihoods &P_bbar_I_gds) {
 		using genometools::Genotype;
 		const double eps    = calcErrorRate(base);
 		const double eps_c  = 1. - eps;
 		const double leps   = std::log(eps);
 		const double leps_c = std::log(eps_c);
-
-		constexpr std::array<Genotype, 4 + (!isInvariant) * 6> gs = _makeGenotype<isInvariant>();
-		for (auto g : gs) {
+		for (auto g : _makeGenotype<isInvariant>()) {
 			const double P_bbar_I_gd = P_bbar_I_gds[g];
 			const double P_g_I_d     = P_g_I_ds[g];
 			_Q += P_g_I_d * (P_bbar_I_gd * leps_c + (1. - P_bbar_I_gd) * leps);
@@ -99,22 +97,21 @@ class TEpsilon {
 			const double w_ij = P_g_I_d * (eps_c - P_bbar_I_gd);
 
 			// add first derivatives
-			for (auto dm = der1st.begin(); dm != der1st.end(); ++dm) {
-				// add to F
-				_F(dm->index) += w_ij * dm->derivative;
+			for (auto dm = der1st.begin(); dm != der1st.end(); ++dm)  _F(dm->index) += w_ij * dm->derivative;
 
-				// add to upper half of J
-				_Jacobian(dm->index, dm->index) -= eps_c * eps * dm->derivative * dm->derivative;
-				for (auto dn = dm + 1; dn != der1st.end(); ++dn) {
-					_Jacobian(dm->index, dn->index) -= eps_c * eps * dm->derivative * dn->derivative;
-				}
-			}
-
-			// add second derivatives to Jacobian (happens to have the same weigth as F!)
+			// add second derivatives to Jacobian
 			for (auto &dmn : der2nd) _Jacobian(dmn.index1, dmn.index2) += w_ij * dmn.derivative;
 
-			++_numSitesAdded;
 		}
+
+		// add first derivative products to Jacobian
+		for (auto dm = der1st.begin(); dm != der1st.end(); ++dm) {
+			_Jacobian(dm->index, dm->index) -= eps_c * eps * dm->derivative * dm->derivative;
+			for (auto dn = dm + 1; dn != der1st.end(); ++dn) {
+				_Jacobian(dm->index, dn->index) -= eps_c * eps * dm->derivative * dn->derivative;
+			}
+		}
+		++_numSitesAdded;
 	}
 
 public:
@@ -131,7 +128,7 @@ public:
 	template<bool updateJF, bool isInvariant>
 	void addToEpsilon(const BAM::TSequencedBase &base, const TGenotypeLikelihoods &P_g_I_ds, const TGenotypeLikelihoods & P_bbar_I_gds) {
 		if constexpr (updateJF) _addToQJF<isInvariant>(base, P_g_I_ds, P_bbar_I_gds);
-		else addToQ<isInvariant>(base, P_g_I_ds, P_bbar_I_gds);
+		else _addToQ<isInvariant>(base, P_g_I_ds, P_bbar_I_gds);
 	}
 	void solveJxF();
 	void propose(double lambda);

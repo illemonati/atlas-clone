@@ -8,9 +8,9 @@ model="intercept[0.1];quality:polynomial[0.8,0.2,0.01]"
 # Simululate polynomial model
 $atlas --task simulate --recal $model --fixedSeed 0 --logFile simulate.out --depth 10 --ploidy 2
 
-# estimate recal model using polynomial
-$atlas --task recal --bam ATLAS_simulations.bam --recal "intercept;quality:polynomial3" --minDeltaLL 1e-1 --fixedSeed 0 --out polynomial --logFile polynomial.out --genoDist diploid
+for dh in haploid diploid; do
+	$atlas --task recal --bam ATLAS_simulations.bam --recal $model --onlyLL --fixedSeed 0 --out onlyLL_$dh --logFile onlyLL_$dh.out --genoDist $dh
 
-#$atlas --task recal --bam ATLAS_simulations.bam --recal "intercept;quality:polynomial3" --minDeltaLL 1e-1 --fixedSeed 0 --out polynomial --logFile polynomial.out --genoDist haploid
-
-exit
+	# estimate recal model using polynomial
+	$atlas --task recal --bam ATLAS_simulations.bam --recal "intercept;quality:polynomial3" --minDeltaLL 1e-4 --fixedSeed 0 --out polynomial_$dh --logFile polynomial_$dh.out --genoDist $dh
+done

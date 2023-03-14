@@ -409,9 +409,7 @@ double TRecalibrationEMEstimator::_calculateLL_updatePg(const TPostMortemDamage 
 				const auto L_D   = PmdModels.baseLikelihoods(d_ij, L_eps);
 				L *= _genoDist->getGenotypeLikelihoods(L_D);
 			}
-			OUT(L);
 			LL += log(_genoDist->normalize(L));
-			OUT(LL);
 		} else { // known genotype.
 			_P_g_I_ds.emplace_back(0.); 
 			_P_g_I_ds.back()[s_i.genotype] = 1; // Probability of correct genotype is 1
