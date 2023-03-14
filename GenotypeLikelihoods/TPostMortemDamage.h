@@ -60,6 +60,8 @@ public:
 	                                    const TBaseLikelihoods &baseLikelihoodsNoPMD) const;
 	TBaseProbabilities massFunction(genometools::Base b, const BAM::TSequencedBase &data,
 									   const TBaseLikelihoods &baseLikelihoodsNoPMD) const;
+	TBaseProbabilities massFunction(genometools::Genotype g, const BAM::TSequencedBase &data,
+									   const TBaseLikelihoods &baseLikelihoodsNoPMD) const;
 
 	std::string functionString() const noexcept {
 		std::string r;

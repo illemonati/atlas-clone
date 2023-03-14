@@ -32,6 +32,8 @@ public:
 												const TBaseLikelihoods &baseLikelihoodsNoPMD) const = 0;
 	virtual TBaseProbabilities massFunction(genometools::Base b, const BAM::TSequencedBase &data, 
 											   const TBaseLikelihoods &baseLikelihoodsNoPMD) const  = 0;
+	virtual TBaseProbabilities massFunction(genometools::Genotype g, const BAM::TSequencedBase &data, 
+											   const TBaseLikelihoods &baseLikelihoodsNoPMD) const  = 0;
 
 	virtual void simulate(BAM::TSequencedBase &data) const = 0;
 };
@@ -64,7 +66,12 @@ public:
 	TBaseProbabilities massFunction(genometools::Base b, const BAM::TSequencedBase &, const TBaseLikelihoods &) const override {
 		return massFunctions[b];
 	}
+	TBaseProbabilities massFunction(genometools::Genotype g, const BAM::TSequencedBase &, 
+											const TBaseLikelihoods &baseLikelihoodsNoPMD) const  override {
+		return massFunction(g, baseLikelihoodsNoPMD);
+	}
 
+	static TBaseProbabilities massFunction(genometools::Genotype g, const TBaseLikelihoods &baseLikelihoodsNoPMD);
 	virtual void simulate(BAM::TSequencedBase &) const override {}
 };
 
@@ -113,6 +120,9 @@ public:
 	TBaseProbabilities massFunction(genometools::Base b, const BAM::TSequencedBase &data,
 									   const TBaseLikelihoods &baseLikelihoodsNoPMD) const override;
 
+	TBaseProbabilities massFunction(genometools::Genotype g, const BAM::TSequencedBase &data, 
+									const TBaseLikelihoods &baseLikelihoodsNoPMD) const  override;
+
 	virtual void simulate(BAM::TSequencedBase &data) const override;
 };
 
@@ -154,6 +164,9 @@ public:
 
 	TBaseProbabilities massFunction(genometools::Base b, const BAM::TSequencedBase &data,
 									   const TBaseLikelihoods &baseLikelihoodsNoPMD) const override;
+
+	TBaseProbabilities massFunction(genometools::Genotype g, const BAM::TSequencedBase &data, 
+									const TBaseLikelihoods &baseLikelihoodsNoPMD) const  override;
 
 	virtual void simulate(BAM::TSequencedBase &data) const override;
 };
