@@ -307,19 +307,19 @@ void TRecalibrationEMEstimator::_estimateRho_updatePbbar(const TPostMortemDamage
 		for (const auto &d_ij : _sites[i]) {
 			++cnt[d_ij.base];
 			_P_bbar_I_gds.emplace_back(0.);
-			auto& Pij = _P_bbar_I_gds.back();
+			auto &P_bbar     = _P_bbar_I_gds.back();
 			const auto L_eps = _modelsToEstimate.getBaseLikelihoods(d_ij);
 			for (auto a = Base::min; a < Base::max; ++a) {
 				const auto g_aa = genotype(a, a);
 				const auto P_aa = PmdModels.massFunction(a, d_ij, L_eps);
-				Pij[g_aa]       = P_aa[d_ij.base];
+				P_bbar[g_aa]    = P_aa[d_ij.base];
 
 				_modelsToEstimate.addToRho(d_ij, _P_g_I_ds[i][g_aa], P_aa);
 				if (!_genoDist->isInvariant()) {
 					for (auto b = coretools::next(a); b < Base::max; ++b) {
 						const auto g_ab = genotype(a, b);
 						const auto P_ab = PmdModels.massFunction(g_ab, d_ij, L_eps);
-						Pij[g_ab]       = P_ab[d_ij.base];
+						P_bbar[g_ab]    = P_ab[d_ij.base];
 
 						_modelsToEstimate.addToRho(d_ij, _P_g_I_ds[i][g_ab], P_ab);
 					}
@@ -394,32 +394,33 @@ void TRecalibrationEMEstimator::_updateEpsilon(const TPostMortemDamage &PmdModel
 	logfile().endIndent();
 };
 
-double TRecalibrationEMEstimator::_calculateLL_updatePg(const TPostMortemDamage &PmdModels) {
+double TRecalibrationEMEstimator::_estimatePI_calculateLL_updatePg(const TPostMortemDamage &PmdModels) {
 	_P_g_I_ds.clear();
 
 	double LL = 0.0;
 	for (auto &s_i : _sites) {
 		if (s_i.genotype == Genotype::NN) { // unknown genotype
 			_P_g_I_ds.emplace_back(1.); // Start at 1,1,1,1,1,1,1,1
-			auto &L = _P_g_I_ds.back();
+			auto &P_g = _P_g_I_ds.back();
 			for (auto &d_ij : s_i) {
-				const auto L_eps = _modelsToEstimate.getBaseLikelihoods(d_ij);
-				const auto L_D   = PmdModels.baseLikelihoods(d_ij, L_eps);
-				L *= _genoDist->getGenotypeLikelihoods(L_D);
+				const auto P_eps = _modelsToEstimate.getBaseLikelihoods(d_ij);
+				const auto P_D   = PmdModels.baseLikelihoods(d_ij, P_eps);
+				P_g *= _genoDist->getGenotypeLikelihoods(P_D);
 			}
-			LL += log(_genoDist->normalize(L));
+			LL += log(_genoDist->normalize_add(P_g));
 		} else { // known genotype.
 			_P_g_I_ds.emplace_back(0.); 
 			_P_g_I_ds.back()[s_i.genotype] = 1; // Probability of correct genotype is 1
-			double L = 1.;
+			double P_g = 1.;
 			for (auto &d_ij : s_i) {
 				const auto L_eps = _modelsToEstimate.getBaseLikelihoods(d_ij);
 				const auto L_D   = PmdModels.baseLikelihoods(d_ij, L_eps);
-				L *= _genoDist->getGenotypeLikelihood(L_D, s_i.genotype);
+				P_g *= _genoDist->getGenotypeLikelihood(L_D, s_i.genotype);
 			}
-			LL += log(L);
+			LL += log(P_g);
 		}
 	}
+	_genoDist->estimate();
 	return LL;
 };
 
@@ -427,11 +428,12 @@ void TRecalibrationEMEstimator::_runEM(const std::string &outputName, const TPos
 	using coretools::str::toString;
 	// run EM
 	logfile().startNumbering("Running EM algorithm:");
+	logfile().conclude("Initial pi: ", _genoDist->definition());
 	logfile().conclude("Initial rho: ", _modelsToEstimate.getRhoDefinition());
 	logfile().conclude("Initial model: ", _modelsToEstimate.getModelsDefinition());
 
 	// calculate initial LL
-	double oldLL   = _calculateLL_updatePg(PmdModels);
+	double oldLL   = _estimatePI_calculateLL_updatePg(PmdModels);
 	double deltaLL = abs(oldLL);
 	logfile().conclude("Initial log Likelihood = ", oldLL);
 
@@ -441,13 +443,14 @@ void TRecalibrationEMEstimator::_runEM(const std::string &outputName, const TPos
 		logfile().addIndent();
 
 		// update theta_epsilon (sequencing errors)
+		logfile().conclude("Current pi: ", _genoDist->definition());
 		_updateEpsilon(PmdModels, std::abs(deltaLL/oldLL));
 
 		logfile().conclude("Current rho: ", _modelsToEstimate.getRhoDefinition());
 		logfile().conclude("Current epsilon: ", _modelsToEstimate.getModelsDefinition());
 
 		// calculate LL
-		const double LL = _calculateLL_updatePg(PmdModels);
+		const double LL = _estimatePI_calculateLL_updatePg(PmdModels);
 		logfile().conclude("Current Log Likelihood = ", LL);
 
 		// check if we break based on LL
@@ -485,7 +488,7 @@ void TRecalibrationEMEstimator::calcLL(TModels &SequencingErrorModels, const TPo
 	logfile().endIndent();
 
 	logfile().startIndent("Calculating log likelihood:");
-	const double LL = _calculateLL_updatePg(PmdModels);
+	const double LL = _estimatePI_calculateLL_updatePg(PmdModels);
 	logfile().conclude("Log Likelihood = ", LL);
 
 }

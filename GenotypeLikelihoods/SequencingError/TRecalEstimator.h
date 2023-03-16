@@ -144,7 +144,7 @@ private:
 		else _calculateQ<false, false>(); 
 	}
 	void _updateEpsilon(const TPostMortemDamage &PmdModels, double deltaDeltaLL);
-	double _calculateLL_updatePg(const TPostMortemDamage &PmdModels);
+	double _estimatePI_calculateLL_updatePg(const TPostMortemDamage &PmdModels);
 
 public:
 	TRecalibrationEMEstimator(const BAM::TReadGroups *ReadGroups, const BAM::TReadGroupMap *ReadGroupMap);
