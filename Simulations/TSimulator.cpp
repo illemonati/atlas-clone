@@ -612,4 +612,10 @@ void TVCFSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome
 	logfile().endIndent();
 }
 
+//-------------------------------------------
+// FASTQ Simulator
+//-------------------------------------------
+
+
+
 } // namespace Simulations
