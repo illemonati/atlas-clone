@@ -66,8 +66,7 @@ void addTaks(coretools::TMain & main) {
 	main.createRegularTask<GenomeTasks::TAssessSoftClipping>("assessSoftClipping", "Assessing level of soft clipping in BAM file");
 	main.createRegularTask<GenomeTasks::TRemoveSoftClippedBases>("removeSoftClippedBases", "Removing soft clipped bases from reads");
 	main.createRegularTask<GenomeTasks::TQualityTransformation>("qualityTransformation", "Printing Quality Transformation");
-	main.createRegularTask<GenomeTasks::TBamDownsampler>("downsample", "Downsampling a BAM file by removing reads");
-	main.createRegularTask<GenomeTasks::TBamReadDownsampler>("downsampleReads", "Downsampling a BAM file by setting bases to N");
+	main.createRegularTask<GenomeTasks::TBamDownsampler>("downsample", "Downsampling a BAM file");
 	main.createRegularTask<GenomeTasks::TPMDEstimator>("PMD", "Estimating Post-Mortem Damage (PMD) patterns");
 	main.createRegularTask<GenomeTasks::TPMDSCalculator>("PMDS", "Filtering for ancient reads using PMDS", "Skoglund et al. (2014) PNAS");
 	main.createRegularTask<GenomeTasks::TIlluminaIdentifier>("identifyIlluminaReadGroups", "Reassigning read groups based on the platform unit in their name");

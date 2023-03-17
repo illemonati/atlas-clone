@@ -66,6 +66,7 @@ protected:
 class TBamDownsampler:public TBamDownsampler_base{
 private:
 	bool separateReads = false;
+	bool _writeN        = false;
 	std::vector<double> _cumulProbs;
 	//lists to keep track of mates
 	std::map<std::string, uint16_t> _mateWasWritten;
@@ -77,14 +78,6 @@ public:
 	TBamDownsampler();
 	virtual void run();
 	void sample();
-};
-
-//-----------------------------------------
-// TBamReadDownsampler
-//-----------------------------------------
-class TBamReadDownsampler:public TBamDownsampler{
-public:
-	void run();
 };
 
 //-----------------------------------------

@@ -117,65 +117,69 @@ TBamDownsampler::TBamDownsampler() : TBamDownsampler_base(){
 	//read downsampling rates
 	_readVectorOfDownsamplingProbabilities();
 
-	
+	if (*_probs.begin() == 1.0) logfile().warning("Probability of 1 will result in identical file!");
 	std::string filePrefix;
-	if(parameters().parameterExists("separateReads")) {
-		filePrefix = _outputName + "_separated_";
-		//report
-		logfile().list("Will separate reads with probabilities (parameter 'prob'): " + coretools::str::concatenateString(_probs, ", "));
+	if (parameters().parameterExists("writeN")) {
+		logfile().list("Will downsampling by setting bases to N");
+		_writeN = true;
 	} else {
-		filePrefix = _outputName + "_downsampled_";
-		//report
-		logfile().list("Will accept reads with probabilities (parameter 'prob'): " + coretools::str::concatenateString(_probs, ", "));
+		logfile().list("Will downsampling by removing reads");
+		_writeN = false;
 	}
-	if(*_probs.begin() == 1.0) logfile().warning("Probability of 1 will result in identical file!");
 
-	//create downsampling objects
-	for(size_t i=0; i<_probs.size(); ++i){
+	if (!_writeN && parameters().parameterExists("separateReads")) {
+		filePrefix = _outputName + "_separated_";
+		// report
+		logfile().list("Will separate reads with probabilities (parameter 'prob'): " +
+					   coretools::str::concatenateString(_probs, ", "));
+
+		separateReads = true;
+		// check that sum <= 1.0
+		double sum    = 0.0;
+		for (auto &d : _probs) {
+			sum += d.get();
+			_cumulProbs.push_back(sum);
+		}
+		_cumulProbs.push_back(1.0); // always add an extra at end to ease search
+
+		if (sum > 1.0) { UERROR("Separation probabilities must sum to <= 1.0, not ", sum, "!"); }
+	}
+	else {
+		filePrefix = _outputName + "_downsampled_";
+		// report
+		logfile().list("Will accept reads with probabilities (parameter 'prob'): " +
+					   coretools::str::concatenateString(_probs, ", "));
+	}
+
+	// create downsampling objects
+	for (size_t i = 0; i < _probs.size(); ++i) {
 		std::string filename = filePrefix + _names[i] + ".bam";
 		_bamSamples.emplace_back(_probs[i], filename);
 	}
 
-	if(parameters().parameterExists("separateReads")) {
-		separateReads = true;
-		//check that sum <= 1.0
-		double sum = 0.0;
-		for(auto& d : _probs){
-			sum += d.get();
-			_cumulProbs.push_back(sum);
-		}
-		_cumulProbs.push_back(1.0); //always add an extra at end to ease search
-
-		if(sum > 1.0){
-			UERROR("Separation probabilities must sum to <= 1.0, not ", sum, "!");
-		}
-	}
-
-	//open bam files for writing
-	for(auto& s : _bamSamples){
-		s.open(_bamFile);
-	}
+	// open bam files for writing
+	for (auto &s : _bamSamples) { s.open(_bamFile); }
 };
 
-void TBamDownsampler::run(){
-	//traverse BAM and downsample
+void TBamDownsampler::run() {
+	// traverse BAM and downsample
 	_bamFile.startProgressReporting();
-	while(_bamFile.readNextAlignment()){
-		if (separateReads){
+	while (_bamFile.readNextAlignment()) {
+		if (separateReads) {
 			sample();
+		} else if (_writeN) {
+			BAM::TAlignment alignment;
+			_bamFile.fill(alignment);
+			for (auto &s : _bamSamples) { s.downsampleRead(alignment); }
 		} else {
-			for(auto& s : _bamSamples){
-				s.sample(_bamFile);
-			}
+			for (auto &s : _bamSamples) { s.sample(_bamFile); }
 		}
 		_bamFile.printProgress();
 	}
 	_bamFile.printEndWithSummary(_outputName);
 
-	//close
-	for(auto& s : _bamSamples){
-		s.close();
-	}
+	// close
+	for (auto &s : _bamSamples) { s.close(); }
 };
 
 void TBamDownsampler::sample(){
@@ -209,30 +213,6 @@ void TBamDownsampler::sample(){
 		}
 	}
 }
-
-//-----------------------------------------
-// TBamReadDownsampler
-//-----------------------------------------
-
-void TBamReadDownsampler::run(){
-	BAM::TAlignment alignment;
-
-	//traverse BAM and downsample
-	_bamFile.startProgressReporting();
-	while(_bamFile.readNextAlignment()){
-		_bamFile.fill(alignment);
-		for(auto& s : _bamSamples){
-			s.downsampleRead(alignment);
-		}
-		_bamFile.printProgress();
-	}
-	_bamFile.printEndWithSummary(_outputName);
-
-	//close
-	for(auto& s : _bamSamples){
-		s.close();
-	}
-};
 
 //-----------------------------------------
 // TBamSeparator
