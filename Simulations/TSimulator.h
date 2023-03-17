@@ -34,6 +34,10 @@
 #include "TReadSimulator.h"
 #include "TReadSimulators.h"
 
+
+#include "coretools/core/coretools/Files/TOutputFile.h"
+#include "genometools/core/genometools/TFastaWriter.h"
+
 namespace genometools { class PhredIntProbability; }
 
 namespace Simulations {
@@ -134,17 +138,26 @@ public:
 
 
 //-------------------------------------------
-// FASTQWriterSimulator
+// FASTQ Writer Simulator
 //-------------------------------------------
 
-class FASTQWriterSimulator : public TSimulator{
+class TFASTQWriter{
+private:
+	bool _open{false};
+	char _cPassFilter;
+	static constexpr std::string_view genericIdentifiers = "@FS001:001:0000000:1:1:0:0 1:Y:1:AAACCC";		//generic identifiers if not specified
+	static constexpr std::string_view fileName = "FASTQ_simulation_File.fastq";
 
-	
-	};
+public:
+	static coretools::TOutputFile fastqSimulationFile;
+	void _fastqSimulate();
+	std::string _generateHeader(std::string machineID, short runID, short FlowCellID, short lane, short tile, unsigned short xCoordinate, unsigned short yCoordinate,
+								bool readDirection, bool passFilter, short controlBits, std::string barCodeSequence);
+	std::string_view _generateHeader();
+	std::string _getSimulatedSequences();
+	std::string _generateSimulatedQScore();
+};
 
-//-------------------------------------------
-// FASTQSimulator
-//-------------------------------------------
 
 //--------------------------------------
 // Tasks

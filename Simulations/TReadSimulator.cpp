@@ -224,7 +224,7 @@ void TReadSimulatorSingleEnd::simulate(const TGenomePosition & Position, const s
 	const auto fragmentLength = _fragmentLengthDistr.sample();
 
 	// prepare alignment
-	_simulateAlignmentDetails(Position);
+	_simulateAlignmentDetails(Position );
 	_alignment.setIsReverseStrand(randomGenerator().getRand() < 0.5);
 
 	// simulated bases and qualities
@@ -233,6 +233,24 @@ void TReadSimulatorSingleEnd::simulate(const TGenomePosition & Position, const s
 	// write bam alignment
 	BamFile.writeAlignment(_alignment);
 }
+
+/**
+void TReadSimulatorSingleEnd::simulate(const TGenomePosition & Position, const std::vector<Base> & Haplotype, Simulations::TFASTQWriter &FASTQFile ) {
+	// pick a fragment
+	const auto fragmentLength = _fragmentLengthDistr.sample();
+
+	// prepare alignment
+	_simulateAlignmentDetails(Position);
+	_alignment.setIsReverseStrand(randomGenerator().getRand() < 0.5);
+
+	// simulated bases and qualities
+	_simulateBasesQualities(_alignment, Haplotype, fragmentLength, _numCycles, _simulateContamination());
+
+	// write bam alignment
+	FASTQFile.writeAlignment(_alignment);
+}
+*/
+
 
 //----------------------------------
 // TSimulatorPairedEndReads

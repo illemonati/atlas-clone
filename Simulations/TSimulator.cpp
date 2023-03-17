@@ -36,6 +36,9 @@
 #include "coretools/Strings/stringFunctions.h"
 #include "coretools/Types/weakTypes.h"
 
+#include "coretools/core/coretools/Files/TOutputFile.h"
+#include "genometools/core/genometools/TFastaWriter.h"
+
 namespace Simulations {
 using coretools::Probability;
 using coretools::LogProbability;
@@ -613,8 +616,42 @@ void TVCFSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome
 }
 
 //-------------------------------------------
-// FASTQ Simulator
+// FASTQ Simulator and Writer
 //-------------------------------------------
+
+void TFASTQWriter::_fastqSimulate(){
+	
+	//create open and write new generated fastq through help of following functions
+	coretools::TOutputFile fastqSimulationFile(fileName);
+	fastqSimulationFile.writeln(_generateHeader());
+
+	
+}
+
+std::string TFASTQWriter::_generateHeader(std::string machineID, short runID, short FlowCellID, short lane, short tile, unsigned short xCoordinate, unsigned short yCoordinate,
+							bool readDirection, bool passFilter, short controlBits, std::string barCodeSequence){
+	//readDirection: true = forward read, false reverse read
+	_cPassFilter = (passFilter) ? _cPassFilter = 'Y': _cPassFilter = 'N'; 
+
+	return "@" + machineID + ":" + toString(runID) + ":" + toString(FlowCellID) + ":" + toString(lane) + ":" + toString(tile) + ":" + toString(xCoordinate) + ":" + toString(yCoordinate) + " " +
+			_cPassFilter + ":" + toString(controlBits) + ":" + toString(barCodeSequence);
+
+}
+
+std::string_view TFASTQWriter::_generateHeader(){		//no IDs specified
+	return genericIdentifiers;
+}
+
+std::string TFASTQWriter::_getSimulatedSequences(){
+// 	genometools::TFastaWriter _fastaFile("fastaForFASTQ");
+
+}
+
+std::string TFASTQWriter::_generateSimulatedQScore(){
+
+}
+
+
 
 
 
