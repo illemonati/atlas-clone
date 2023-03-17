@@ -143,8 +143,8 @@ private:
 		if (_genoDist->isInvariant()) _calculateQ<false, true>();
 		else _calculateQ<false, false>(); 
 	}
-	void _updateEpsilon(const TPostMortemDamage &PmdModels, double deltaDeltaLL);
-	double _estimatePI_calculateLL_updatePg(const TPostMortemDamage &PmdModels);
+	void _updateEpsilon(double deltaDeltaLL);
+	double _calculateLL_updatePg(const TPostMortemDamage &PmdModels);
 
 public:
 	TRecalibrationEMEstimator(const BAM::TReadGroups *ReadGroups, const BAM::TReadGroupMap *ReadGroupMap);

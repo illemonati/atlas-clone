@@ -87,7 +87,19 @@ double TDiploidDistribution::normalize_add(TGenotypeLikelihoods &likelihoods) {
 }
 
 void TDiploidDistribution::estimate() {
-	_pi = TGenotypeProbabilities::normalize(_piSum);
+	// Only update if values make sense, else set to initial value
+	const auto sumHomo = _piSum[Genotype::AA] + _piSum[Genotype::CC] + _piSum[Genotype::GG] + _piSum[Genotype::TT];
+	const auto sumHet  = _piSum[Genotype::AC] + _piSum[Genotype::AG] + _piSum[Genotype::AT] + _piSum[Genotype::CG] +
+						 _piSum[Genotype::CT] + _piSum[Genotype::GT];
+
+	if (sumHomo > sumHet) {
+		// estimate looks good enough
+		_pi = TGenotypeProbabilities::normalize(_piSum);
+	} else {
+		// the estimate is definitely wrong. Let's use the default
+		_pi = _pi_init;
+	}
+
 	_piSum.fill(0.);
 }
 

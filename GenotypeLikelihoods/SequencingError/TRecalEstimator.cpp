@@ -330,15 +330,9 @@ void TRecalibrationEMEstimator::_estimateRho_updatePbbar(const TPostMortemDamage
 	_modelsToEstimate.estimateRho();
 }
 
-void TRecalibrationEMEstimator::_updateEpsilon(const TPostMortemDamage &PmdModels, double deltaLL_LL) {
+void TRecalibrationEMEstimator::_updateEpsilon(double deltaLL_LL) {
 	using coretools::str::toString;
-	logfile().startIndent("Updating sequencing error models (theta_epsilon):");
-
-	logfile().list("Updating rho");
-	_estimateRho_updatePbbar(PmdModels);
-
-	logfile().startIndent("Updating epsilon by optimizing Q_beta using a Newton-Raphson algorithm:");
-
+	logfile().list("optimizing Q_beta using a Newton-Raphson algorithm.");
 	const auto nTot = _modelsToEstimate.size();
 
 	for (int i = 0; i < _NewtonRaphsonNumIterations; ++i) {
@@ -391,10 +385,9 @@ void TRecalibrationEMEstimator::_updateEpsilon(const TPostMortemDamage &PmdModel
 		logfile().endIndent();
 	}
 	logfile().endIndent();
-	logfile().endIndent();
 };
 
-double TRecalibrationEMEstimator::_estimatePI_calculateLL_updatePg(const TPostMortemDamage &PmdModels) {
+double TRecalibrationEMEstimator::_calculateLL_updatePg(const TPostMortemDamage &PmdModels) {
 	_P_g_I_ds.clear();
 
 	double LL = 0.0;
@@ -420,7 +413,6 @@ double TRecalibrationEMEstimator::_estimatePI_calculateLL_updatePg(const TPostMo
 			LL += log(P_g);
 		}
 	}
-	_genoDist->estimate();
 	return LL;
 };
 
@@ -433,7 +425,7 @@ void TRecalibrationEMEstimator::_runEM(const std::string &outputName, const TPos
 	logfile().conclude("Initial model: ", _modelsToEstimate.getModelsDefinition());
 
 	// calculate initial LL
-	double oldLL   = _estimatePI_calculateLL_updatePg(PmdModels);
+	double oldLL   = _calculateLL_updatePg(PmdModels);
 	double deltaLL = abs(oldLL);
 	logfile().conclude("Initial log Likelihood = ", oldLL);
 
@@ -442,15 +434,21 @@ void TRecalibrationEMEstimator::_runEM(const std::string &outputName, const TPos
 		logfile().number("EM Iteration:");
 		logfile().addIndent();
 
-		// update theta_epsilon (sequencing errors)
-		logfile().conclude("Current pi: ", _genoDist->definition());
-		_updateEpsilon(PmdModels, std::abs(deltaLL/oldLL));
+		logfile().list("Updating pi");
+		_genoDist->estimate();
 
+		logfile().list("Updating rho");
+		_estimateRho_updatePbbar(PmdModels);
+
+		logfile().startIndent("Updating epsilon");
+		_updateEpsilon(std::abs(deltaLL / oldLL));
+
+		logfile().conclude("Current pi: ", _genoDist->definition());
 		logfile().conclude("Current rho: ", _modelsToEstimate.getRhoDefinition());
 		logfile().conclude("Current epsilon: ", _modelsToEstimate.getModelsDefinition());
 
 		// calculate LL
-		const double LL = _estimatePI_calculateLL_updatePg(PmdModels);
+		const double LL = _calculateLL_updatePg(PmdModels);
 		logfile().conclude("Current Log Likelihood = ", LL);
 
 		// check if we break based on LL
@@ -488,7 +486,7 @@ void TRecalibrationEMEstimator::calcLL(TModels &SequencingErrorModels, const TPo
 	logfile().endIndent();
 
 	logfile().startIndent("Calculating log likelihood:");
-	const double LL = _estimatePI_calculateLL_updatePg(PmdModels);
+	const double LL = _calculateLL_updatePg(PmdModels);
 	logfile().conclude("Log Likelihood = ", LL);
 
 }
