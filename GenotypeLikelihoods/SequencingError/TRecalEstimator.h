@@ -143,7 +143,7 @@ private:
 		if (_genoDist->isInvariant()) _calculateQ<false, true>();
 		else _calculateQ<false, false>(); 
 	}
-	void _updateEpsilon(const TPostMortemDamage &PmdModels, double deltaDeltaLL);
+	void _updateEpsilon(double deltaDeltaLL);
 	double _calculateLL_updatePg(const TPostMortemDamage &PmdModels);
 
 public:

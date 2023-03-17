@@ -4,27 +4,14 @@
 
 # see python ../tools/plotRecal.py "0.1 + 0.8*x + 0.2*x**2 + 0.01*x**3"
 model="intercept[0.1];quality:polynomial[0.8,0.2,0.01]"
+pmd="singleStrand:Exponential[30,0.1,0.1,0.05]:Exponential[40,0.2,0.3,0.07]"
 
 # Simululate polynomial model
-$atlas --task simulate --recal $model --fixedSeed 0 --logFile simulate.out --depth 30
+$atlas --task simulate --recal $model --pmd $pmd --fixedSeed 0 --logFile simulate.out --depth 10 --ploidy 2 --numReadGroups 1 --baseFreq 1,2,3,4
 
-# Calculate log Likelihood of model given simulated data
-$atlas --task recal --bam ATLAS_simulations.bam --recal $model --onlyLL --fixedSeed 0 --logFile onlyLL.out
+for dh in haploid diploid; do
+	$atlas --task recal --bam ATLAS_simulations.bam --pmd $pmd --recal $model --onlyLL --fixedSeed 0 --out onlyLL_$dh --logFile onlyLL_$dh.out --genoDist $dh
 
-# estimate recal model using polynomial
-$atlas --task recal --bam ATLAS_simulations.bam --recal "intercept;quality:polynomial3" --minDeltaLL 1e-1 --fixedSeed 0 --out polynomial --logFile polynomial.out --genoDist diploid
-$atlas --task recal --bam ATLAS_simulations.bam --recal "polynomial_recal.txt" --onlyLL --fixedSeed 0 --out polynomial_read --logFile polynomial_read.out
-
-exit
-
-# estimate recal model using empiric
-$atlas --task recal --bam ATLAS_simulations.bam --recal "intercept;quality;position;context;fragmentLength;mappingQuality;" --minDeltaLL 1e-1 --fixedSeed 0 --out empiric --logFile empiric.out
-$atlas --task recal --bam ATLAS_simulations.bam --recal "empiric_recal.txt" --onlyLL --fixedSeed 0 --out empiric_read --logFile empiric_read.out
-
-# Compare likelihoods
-printf "#%-10s %s\n" "LL" "model" > LL.txt
-printf "%.4e %s\n" $(grep "Log Likelihood" onlyLL.out | tail -n 1 | awk '{print $5}') "simulation" >> LL.txt
-printf "%.4e %s\n" $(grep "Log Likelihood" polynomial.out | tail -n 1 | awk '{print $6}') "polynomial"  >> LL.txt
-printf "%.4e %s\n" $(grep "Log Likelihood" polynomial_read.out | tail -n 1 | awk '{print $5}') "polynomial_read"  >> LL.txt
-printf "%.4e %s\n" $(grep "Log Likelihood" empiric.out | tail -n 1 | awk '{print $6}') "empiric"  >> LL.txt
-printf "%.4e %s\n" $(grep "Log Likelihood" empiric_read.out | tail -n 1 | awk '{print $5}') "empiric_read"  >> LL.txt
+	# estimate recal model using polynomial
+	$atlas --task recal --bam ATLAS_simulations.bam --pmd $pmd --recal "intercept;quality:polynomial3" --minDeltaLL 1e-2 --fixedSeed 0 --out polynomial_$dh --logFile polynomial_$dh.out --genoDist $dh
+done

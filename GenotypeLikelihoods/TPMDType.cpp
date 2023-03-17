@@ -2,12 +2,14 @@
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TRandomGenerator.h"
 #include "coretools/Types/probability.h"
+#include "genometools/GenotypeTypes.h"
 
 namespace GenotypeLikelihoods {
 
 using coretools::instances::logfile;
 using coretools::instances::randomGenerator;
 using genometools::Base;
+using genometools::Genotype;
 using namespace coretools::str;
 
 namespace impl {
@@ -36,6 +38,29 @@ TBaseProbabilities massFunction(Base b, coretools::Probability pCT, coretools::P
 	default: return TBaseProbabilities::normalize({0., 0., 0., 1.}); // case Base::T
 	}
 }
+
+TBaseProbabilities massFunction(Genotype g, coretools::Probability pCT, coretools::Probability pGA,
+								const TBaseLikelihoods &baseLikelihoodsNoPMD) {
+	using namespace genometools;
+	std::array<Base, 2> bases{first(g), second(g)};
+	TBaseData mf{0};
+	for (const auto a : bases) {
+		switch (a) {
+		case Base::A: mf[Base::A] += baseLikelihoodsNoPMD[Base::A]; break;
+		case Base::C: {
+			mf[Base::C] += (1. - pCT) * baseLikelihoodsNoPMD[Base::C];
+			mf[Base::T] += pCT * baseLikelihoodsNoPMD[Base::T];
+		} break;
+		case Base::G: {
+			mf[Base::A] += pGA * baseLikelihoodsNoPMD[Base::A];
+			mf[Base::G] += (1. - pGA) * baseLikelihoodsNoPMD[Base::G];
+		} break;
+		default: mf[Base::T] += baseLikelihoodsNoPMD[Base::T];
+		}
+	}
+	return TBaseProbabilities::normalize(mf);
+}
+
 Base simulate(Base base, coretools::Probability pCT, coretools::Probability pGA) {
 	if (base == Base::C) {
 		if (randomGenerator().getRand() < pCT) return Base::T;
@@ -47,6 +72,16 @@ Base simulate(Base base, coretools::Probability pCT, coretools::Probability pGA)
 	return base;
 }
 }
+
+TBaseProbabilities TPMDTypeNone::massFunction(genometools::Genotype g, const TBaseLikelihoods &baseLikelihoodsNoPMD) {
+		using namespace genometools;
+		const Base a = first(g);
+		const Base b = second(g);
+		TBaseLikelihoods mf{0};
+		mf[a] = baseLikelihoodsNoPMD[a];
+		mf[b] = baseLikelihoodsNoPMD[b];
+		return TBaseProbabilities::normalize(mf);
+	}
 
 TPMDTypeDoubleStrand::TPMDTypeDoubleStrand(const std::vector<std::string> &Details) {
 	// expect three elements: type, pmdCT, pmdGA
@@ -92,6 +127,11 @@ TBaseLikelihoods TPMDTypeDoubleStrand::baseLikelihoods(const BAM::TSequencedBase
 TBaseProbabilities TPMDTypeDoubleStrand::massFunction(Base b, const BAM::TSequencedBase &data,
 														 const TBaseLikelihoods &baseLikelihoodsNoPMD) const {
 	return impl::massFunction(b, _probCT(data), _probGA(data), baseLikelihoodsNoPMD);
+}
+
+TBaseProbabilities TPMDTypeDoubleStrand::massFunction(genometools::Genotype g, const BAM::TSequencedBase &data,
+														 const TBaseLikelihoods &baseLikelihoodsNoPMD) const {
+	return impl::massFunction(g, _probCT(data), _probGA(data), baseLikelihoodsNoPMD);
 }
 
 void TPMDTypeDoubleStrand::simulate(BAM::TSequencedBase &data) const {
@@ -148,6 +188,11 @@ TBaseLikelihoods TPMDTypeSingleStrand::baseLikelihoods(const BAM::TSequencedBase
 TBaseProbabilities TPMDTypeSingleStrand::massFunction(Base b, const BAM::TSequencedBase &data,
 														 const TBaseLikelihoods &baseLikelihoodsNoPMD) const {
 	return impl::massFunction(b, _probCT(data), _probGA(data), baseLikelihoodsNoPMD);
+}
+
+TBaseProbabilities TPMDTypeSingleStrand::massFunction(genometools::Genotype g, const BAM::TSequencedBase &data,
+														 const TBaseLikelihoods &baseLikelihoodsNoPMD) const {
+	return impl::massFunction(g, _probCT(data), _probGA(data), baseLikelihoodsNoPMD);
 }
 
 void TPMDTypeSingleStrand::simulate(BAM::TSequencedBase &data) const {
