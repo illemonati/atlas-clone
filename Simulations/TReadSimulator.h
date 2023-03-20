@@ -102,6 +102,7 @@ public:
 
 	//simulate
 	virtual void simulate(const TGenomePosition & Position, const std::vector<Base> & Haplotype, BAM::TOutputBamFile &BamFile) = 0;
+	//virtual void simulate(const TGenomePosition & Position, const std::vector<Base> & Haplotype, Simulations::TFASTQWriter &FASTQFile) = 0;
 
 	//getters
 	std::string name() const { return _readGroup.name_ID; };
@@ -122,7 +123,10 @@ public:
 	TReadSimulatorSingleEnd(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo);
 	~TReadSimulatorSingleEnd() = default;
 
+	void SequenceSimulator();
+
 	void simulate(const TGenomePosition & Position, const std::vector<Base> & Haplotype, BAM::TOutputBamFile &BamFile) override;
+	// void simulate(const TGenomePosition & Position, const std::vector<Base> & Haplotype, Simulations::TFASTQWriter &FASTQFile);
 	[[nodiscard]] double meanReadLength() const override;
 };
 

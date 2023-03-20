@@ -235,21 +235,40 @@ void TReadSimulatorSingleEnd::simulate(const TGenomePosition & Position, const s
 }
 
 /**
-void TReadSimulatorSingleEnd::simulate(const TGenomePosition & Position, const std::vector<Base> & Haplotype, Simulations::TFASTQWriter &FASTQFile ) {
-	// pick a fragment
-	const auto fragmentLength = _fragmentLengthDistr.sample();
-
-	// prepare alignment
-	_simulateAlignmentDetails(Position);
-	_alignment.setIsReverseStrand(randomGenerator().getRand() < 0.5);
-
-	// simulated bases and qualities
-	_simulateBasesQualities(_alignment, Haplotype, fragmentLength, _numCycles, _simulateContamination());
-
-	// write bam alignment
-	FASTQFile.writeAlignment(_alignment);
-}
+ * 
+ * Should I really use this method? I do not need simulated alignments, I need only sequences!
+ * 
 */
+
+//has just to generate brief sequence
+
+void TReadSimulatorSingleEnd::SequenceSimulator(int sequenceLength){
+	std::vector<char> _sequence;
+	coretools::TRandomGenerator rand4Base;
+	
+	for (size_t i = 0; i < sequenceLength; i++)
+	{
+		_sequence[i] = base2char(genometools::Base(rand4Base.getRand<int>(0, 4)));
+	}
+	
+}
+
+
+// void TReadSimulatorSingleEnd::simulate(const TGenomePosition & Position, const std::vector<Base> & Haplotype, Simulations::TFASTQFile &FASTQFile) {
+// 	// pick a fragment
+// 	const auto fragmentLength = _fragmentLengthDistr.sample();
+
+// 	// prepare alignment
+// 	_simulateAlignmentDetails(Position);
+// 	_alignment.setIsReverseStrand(randomGenerator().getRand() < 0.5);
+
+// 	// simulated bases and qualities
+// 	_simulateBasesQualities(_alignment, Haplotype, fragmentLength, _numCycles, _simulateContamination());
+
+// 	// write fastq sequence
+// 	//FASTQFile.writeSequence(_alignment);
+// }
+
 
 
 //----------------------------------

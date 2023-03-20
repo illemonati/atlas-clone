@@ -619,12 +619,21 @@ void TVCFSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome
 // FASTQ Simulator and Writer
 //-------------------------------------------
 
-void TFASTQWriter::_fastqSimulate(){
+void TFASTQWriter::_fastqSimulate(int numberOfSimulations){
 	
 	//create open and write new generated fastq through help of following functions
 	coretools::TOutputFile fastqSimulationFile(fileName);
 	fastqSimulationFile.writeln(_generateHeader());
 
+	int k = 0;
+	while (k < numberOfSimulations)
+	{
+		fastqSimulationFile.writeln(_simulateSequence(sequenceLength));
+		fastqSimulationFile.writeln("+");
+		fastqSimulationFile.writeln(_generateSimulatedQScore());
+		k++;
+	}
+	
 	
 }
 
@@ -642,17 +651,26 @@ std::string_view TFASTQWriter::_generateHeader(){		//no IDs specified
 	return genericIdentifiers;
 }
 
-std::string TFASTQWriter::_getSimulatedSequences(){
+std::string TFASTQWriter::_simulateSequence(int sequenceLenght){
 // 	genometools::TFastaWriter _fastaFile("fastaForFASTQ");
 
+//linea 198 -> da modificare per gestire i diversi reads
+
+	//std::vector<char> _sequence;
+	std::string _sequence;
+	coretools::TRandomGenerator rand4Base;
+	
+	for (size_t i = 0; i < sequenceLength; i++)
+	{
+		_sequence += base2char(genometools::Base(rand4Base.getRand<int>(0, 4)) );		//+= copies char and then adds it, maybe not so fast?
+	}
+	return _sequence;
 }
 
-std::string TFASTQWriter::_generateSimulatedQScore(){
 
+std::string TFASTQWriter::_generateSimulatedQScore(){		//need to generate those Phred ScoreValues!!!
+	return relativeQScoreValues;
 }
-
-
-
 
 
 } // namespace Simulations
