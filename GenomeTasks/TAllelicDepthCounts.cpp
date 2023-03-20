@@ -39,7 +39,6 @@ TAllelicDepthCounts::TAllelicDepthCounts(const uint32_t MaxAllelicDepth){
 void TAllelicDepthCounts::resize(const uint32_t MaxAllelicDepth){
 	if(_size != MaxAllelicDepth + 1){
 		_size = MaxAllelicDepth + 1;
-		_counts.resize(_size*_size*_size*_size);
 	}
 
 	//set all counts to zero
@@ -57,6 +56,8 @@ void TAllelicDepthCounts::addSite(const GenotypeLikelihoods::TBaseCounts & allel
 	const auto aG = alleleCounts[Base::G];
 	const auto aT = alleleCounts[Base::T];
 	if (aA < _size && aC < _size && aG < _size && aT < _size) {
+		const auto i = impl::index(aA, aC, aG, aT, _size);
+		if (_counts.size() <= i) _counts.resize(i + 1);
 		++_counts[impl::index(aA, aC, aG, aT, _size)];
 	}
 };
@@ -78,7 +79,8 @@ void TAllelicDepthCounts::write(const std::string &filename, bool printEmpty){
 		for(uint32_t c=0; c<_size; ++c){
 			for(uint32_t g=0; g<_size; ++g){
 				for(uint32_t t=0; t<_size; ++t){
-					if((printEmpty || _counts[impl::index(a,c,g,t, _size)] > 0)){
+					const auto i = impl::index(a,c,g,t, _size);
+					if((printEmpty || (_counts.size() > i && _counts[i] > 0))){
 						//write numA, C, G and T and depth
 						out << a << c << g << t << a+c+g+t;
 						//find max
