@@ -8,6 +8,7 @@
 #ifndef TCALLER_H_
 #define TCALLER_H_
 
+#include <memory>
 #include <stdexcept>
 #include <stdint.h>
 #include <string>
@@ -21,8 +22,8 @@
 #include "coretools/Files/gzstream.h"
 #include "coretools/Math/mathFunctions.h"
 #include "coretools/Strings/stringFunctions.h"
+#include "TGenotypePrior.h"
 
-namespace GenotypeLikelihoods { class TGenotypePrior; }
 namespace GenotypeLikelihoods { class TSite; }
 
 namespace GenomeTasks{
@@ -306,8 +307,8 @@ public:
 //------------------------------------------------------
 class TCall:public TGenome_windows{
 private:
-	TCaller* _caller;
-	GenotypeLikelihoods::TGenotypePrior* _prior;
+	std::unique_ptr<TCaller> _caller;
+	std::unique_ptr<GenotypeLikelihoods::TGenotypePrior> _prior;
 
 	void _initializeGenotypePrior();
 	void _call();
@@ -317,7 +318,6 @@ private:
 
 public:
 	TCall();
-	~TCall();
 	void run();
 };
 

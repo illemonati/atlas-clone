@@ -1193,17 +1193,17 @@ TCall::TCall():TGenome_windows(){
 	logfile().startIndent("Initializing caller:");
 	std::string method = parameters().getParameterWithDefault<std::string>("method", "MLE");
 	if(method == "randomBase"){
-		_caller = new TCallerRandomBase;
+		_caller = std::make_unique<TCallerRandomBase>();
 	} else if(method == "majorityBase"){
-		_caller = new TCallerMajorityBase;
+		_caller = std::make_unique<TCallerMajorityBase>();
 	} else if(method == "consensify"){
-		_caller = new TCallerConsensify(_downsampleDepth);
+		_caller = std::make_unique<TCallerConsensify>(_downsampleDepth);
 	} else if(method == "allelePresence"){
-		_caller = new TCallerAllelePresence;
+		_caller = std::make_unique<TCallerAllelePresence>();
 	} else if(method == "MLE"){
-		_caller = new TCallerMLE;
+		_caller = std::make_unique<TCallerMLE>();
 	} else if(method == "Bayesian"){
-		_caller = new TCallerBayes;
+		_caller = std::make_unique<TCallerBayes>();
 	} else if(method == "gVCF"){
 		UERROR("GVCF NOT YET IMPLEMENTED!");
 		_caller->printSitesWithNoData();
@@ -1214,7 +1214,7 @@ TCall::TCall():TGenome_windows(){
 	if(_caller->usesPrior()){
 		_initializeGenotypePrior();
 	} else {
-		_prior = new TGenotypePriorUniform;
+		_prior = std::make_unique<TGenotypePriorUniform>();
 	}
 	_caller->setPrior(_prior->getPointerToPrior());
 
@@ -1239,17 +1239,12 @@ TCall::TCall():TGenome_windows(){
 	logfile().endIndent();
 };
 
-TCall::~TCall(){
-	delete _caller;
-	delete _prior;
-};
-
 void TCall::_initializeGenotypePrior(){
 	logfile().startIndent("Initializing genotype prior:");
 	//read prior from parameters
 	std::string priorMethod = parameters().getParameterWithDefault<std::string>("prior", "theta");
 	if(priorMethod == "unif"){
-		_prior = new TGenotypePriorUniform();
+		_prior = std::make_unique<TGenotypePriorUniform>();
 		logfile().list("Will use a uniform prior with equal weights for all genotypes.");
 	} else if(priorMethod == "theta"){
 		if(parameters().parameterExists("fixedTheta")){
@@ -1260,16 +1255,16 @@ void TCall::_initializeGenotypePrior(){
 				logfile().list("Will use equal base frequencies.");
 			else
 				logfile().list("Will estimate base frequencies individually for each window.");
-			_prior = new TGenotypePriorFixedTheta(theta, equalBaseFreq);
+			_prior = std::make_unique<TGenotypePriorFixedTheta>(theta, equalBaseFreq);
 		} else {
 			logfile().list("Will use a prior based on theta and base frequencies estimated individually for each window.");
 			std::string thetaOuputName = _outputName + "_theta_estimates.txt.gz";
 			if(parameters().parameterExists("defaultTheta")){
 				double defaultTheta = parameters().getParameter<double>("defaultTheta");
 				logfile().list("Will use a default theta of ", defaultTheta, " for windows with limited data.");
-				_prior = new TGenotypePriorTheta(thetaOuputName, defaultTheta);
+				_prior = std::make_unique<TGenotypePriorTheta>(thetaOuputName, defaultTheta);
 			} else
-				_prior = new TGenotypePriorTheta(thetaOuputName);
+				_prior = std::make_unique<TGenotypePriorTheta>(thetaOuputName);
 		}
 	} else UERROR("Unknown prior type '", priorMethod, "'!");
 	logfile().endIndent();
