@@ -24,8 +24,9 @@ namespace GenomeTasks{
 //--------------------------------------
 class TCreateBedMask:public TGenome_windows{
 protected:
+	void _handleAlignment() override {}
 	genometools::TBed _bed;
-	uint32_t _minDepthForMask;
+	uint32_t _minDepth;
 
 	void _createMask(const std::string fileTag);
 public:
@@ -37,10 +38,9 @@ public:
 //--------------------------------------
 class TCreateDepthBedMask:public TCreateBedMask{
 private:
-	uint32_t _maxDepthForMask;
+	uint32_t _maxDepth;
 
 	void _handleWindow() override;
-	void _handleAlignment() override {}
 public:
 	TCreateDepthBedMask();
 	void createDepthMask();
@@ -52,7 +52,6 @@ public:
 class TCreateInvariantBedMask:public TCreateBedMask{
 private:
 	void _handleWindow() override;
-	void _handleAlignment() override {}
 
 	//tmp variables
 	GenotypeLikelihoods::TBaseCounts _baseCounts;
@@ -89,19 +88,21 @@ public:
 struct TMaskCreator {
 	void run() {
 		// which mask?
-		std::string mask = coretools::instances::parameters().getParameter<std::string>("mask");
+		const std::string mask = coretools::instances::parameters().getParameter<std::string>("type");
 		if (mask == "depth") {
 			TCreateDepthBedMask depthMask;
 			depthMask.createDepthMask();
 		} else if (mask == "nonRef") {
-
+			TCreateNonRefBedMask mask;
+			mask.createVariantMask();
 		} else if (mask == "invariant") {
 			TCreateInvariantBedMask conservedMask;
 			conservedMask.createInvariantMask();
 		} else if (mask == "variant") {
-
+			TCreateVariantBedMask mask;
+			mask.createVariantMask();
 		} else {
-			UERROR("Unknown mask '", mask, "'! Valid types are 'depth', 'invariant', 'nonRef' and 'polymorphic'");
+			UERROR("Unknown mask '", mask, "'! Valid types are 'depth', 'invariant', 'variant' and 'nonRef'.");
 		}
 	};
 };
