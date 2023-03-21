@@ -24,18 +24,17 @@ class TSexEstimator : public TGenome_windows {
 private:
 	std::vector<coretools::TCountDistribution<>> _distPerSites;
 	std::vector<std::unique_ptr<BAM::TBedReaderWindows>> _regions;
-	uint32_t _siteLimit;
-	uint16_t _regionNum;
+	size_t _siteLimit  = 0;
+	size_t _regionNum  = 0;
 	bool _adaptRegions = false;
-	bool _wholeGenome = false;
+	bool _wholeGenome  = false;
 
-	void _initializeRegion(std::string regionsFile, const int regionNum);
+	void _initializeRegion(std::string_view regionsFile, int regionNum);
 	void _handleWindow() override;
 	void _handleAlignment() override {};
-	void _considerRegion(uint16_t regionNum);
-	void _writeDepthPerWindow(coretools::TOutputFile &out, const int num);
-	void _writeHistogram(uint16_t regionNum);
-	void _writeDepthPerChromosome(uint16_t regionNum);
+	void _writeDepthPerWindow(coretools::TOutputFile &out, int num);
+	void _writeHistogram(size_t regionNum);
+	void _writeDepthPerChromosome(size_t regionNum);
 
 
 public:

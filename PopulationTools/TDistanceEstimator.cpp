@@ -8,6 +8,7 @@
 #include "TDistanceEstimator.h"
 
 #include <math.h>
+#include <memory>
 #include <stddef.h>
 #include <exception>
 #include <ostream>
@@ -133,17 +134,17 @@ TEMforDistanceEstimation::TEMforDistanceEstimation(){
 		if(vec.size() != 9)
 			UERROR("Wrong number of distance weights! Required are nine values for 00/00, 00/01, 01/00, 00/11, 01/01, 01/02, 00/12, 01/22, 01/23");
 
-		distanceObject = new TDistanceUser(vec);
+		distanceObject = std::make_unique<TDistanceUser>(vec);
 
 	} else {
 		std::string distType = parameters().getParameterWithDefault<std::string>("distType", "squaredDiff");
 		logfile().list("Using distance type '" + distType + "'.");
 		if(distType == "probMismatch"){
-			distanceObject = new TDistanceProbMismatch();
+			distanceObject = std::make_unique<TDistanceProbMismatch>();
 		} else if(distType == "squaredDiff"){
-			distanceObject = new TDistance();
+			distanceObject = std::make_unique<TDistance>();
 		} else if(distType == "euclidian"){
-			distanceObject = new TDistanceEuclidian();
+			distanceObject = std::make_unique<TDistanceEuclidian>();
 		} else
 			UERROR("Unknown distance type '", distType, "'! Use probMismatch.");
 	}
@@ -528,21 +529,10 @@ TDistanceEstimator::TDistanceEstimator(){
 	maxNumEMIterations = 0;
 	epsilonForEM = 0.0;
 	numGLFs = 0;
-	glfs = NULL;
-	readersOpened = false;
 
 	//outputname
 	outputName = coretools::instances::parameters().getParameterWithDefault<std::string>("out", "ATLAS");
 	coretools::instances::logfile().list("Writing output files with prefix '" + outputName + "'. (parameter 'out')");
-}
-
-void TDistanceEstimator::printGLF(){
-	//test first to parse GLF files
-	std::string glf = coretools::instances::parameters().getParameter<std::string>("glf");
-	GLF::TGlfReader reader(glf);
-
-	//print file
-	reader.printToEnd();
 }
 
 void TDistanceEstimator::openGLF(){
@@ -553,29 +543,14 @@ void TDistanceEstimator::openGLF(){
 		UERROR("At least two GLF files have to be provided to estimate distances!");
 
 	//open files
-	glfs = new GLF::TGlfReader[numGLFs];
-	readersOpened = true;
 	logfile().startIndent("Opening GLF files:");
-	int g = 0;
-	for(std::vector<std::string>::iterator it=GLFNames.begin(); it != GLFNames.end(); ++it, ++g){
-		logfile().listFlush("Opening GLF '" + *it + "' ...");
-		glfs[g].open(*it);
+	glfs.reserve(numGLFs);
+	for (const auto& name: GLFNames) {
+		logfile().listFlush("Opening GLF '", name, "' ...");
+		glfs.emplace_back(name);
 		logfile().done();
 	}
 	logfile().endIndent();
-}
-
-void TDistanceEstimator::closeGLF(){
-	if(readersOpened){
-		//close all glf handlers
-		for(int g=0; g<numGLFs; ++g)
-			glfs[g].close();
-
-		delete[] glfs;
-		GLFNames.clear();
-		numGLFs = 0;
-		readersOpened = false;
-	}
 }
 
 //------------------------------------------------------------------
@@ -592,9 +567,6 @@ void TDistanceEstimator::run(){
 		estimateDistanceGenomeWide(EM_object);
 	else
 		estimateDistanceInWindows(EM_object, windowLen);
-
-	//close files
-	closeGLF();
 }
 
 //--------------------------------------------
@@ -614,11 +586,8 @@ void TDistanceEstimator::estimateDistanceGenomeWide(TEMforDistanceEstimation & E
 	out << "individual1\tindividual2\tnumSitesWithData\tfreqA\tfreqC\tfreqG\tfreqT\tfreq00_00\tfreq00_01\tfreq01_00\tfreq00_11\tfreq01_01\tfreq01_02\tfreq00_12\tfreq01_22\tfreq01_23\tgeneticDist\n";
 
 	//prepare storage for distance matrix
-	double** distMatrix = new double*[numGLFs];
-	for(int g=0; g<numGLFs; ++g){
-		distMatrix[g] = new double[numGLFs];
-		distMatrix[g][g] = 0.0;
-	}
+	std::vector<double> distMatrix;
+	distMatrix.resize(numGLFs*numGLFs, 0.);
 
 	//loop over all pairs
 	for(int g1=0; g1<(numGLFs-1); ++g1){
@@ -632,8 +601,8 @@ void TDistanceEstimator::estimateDistanceGenomeWide(TEMforDistanceEstimation & E
 			estimateDistanceGenomeWide(EM_object, glfs[g1], glfs[g2], out);
 
 			//write to matrix
-			distMatrix[g1][g2] = EM_object.distance;
-			distMatrix[g2][g1] = EM_object.distance;
+			distMatrix[g1*numGLFs + g2] = EM_object.distance;
+			distMatrix[g1*numGLFs + g2] = EM_object.distance;
 			logfile().endIndent();
 		}
 	}
@@ -656,7 +625,7 @@ void TDistanceEstimator::estimateDistanceGenomeWide(TEMforDistanceEstimation & E
 	for(int g1 = 0; g1 < numGLFs; ++g1){
 		distMatrixFile << GLFNames[g1];
 		for(int g2 = 0; g2 < numGLFs; ++g2)
-			distMatrixFile << "\t" << distMatrix[g1][g2];
+			distMatrixFile << "\t" << distMatrix[g1*numGLFs + g2];
 		distMatrixFile << "\n";
 	}
 

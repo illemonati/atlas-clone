@@ -24,7 +24,6 @@ private:
 	uint32_t _size            = 0;
 	std::vector<uint32_t> _counts;
 
-	void _allocateStorage(uint32_t MaxAllelicDepth);
 public:
 	TAllelicDepthCounts() = default;
 	TAllelicDepthCounts(uint32_t MaxAllelicDepth);

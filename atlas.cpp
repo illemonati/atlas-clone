@@ -91,9 +91,7 @@ void addTaks(coretools::TMain & main) {
 	main.createRegularTask<GLF::TGLFPrinter>("printGLF", "Printing a GLF file to screen");
 	main.createRegularTask<PopulationTools::TMajorMinor>("majorMinor", "Estimating major and minor alles", "Skotte et al. (2012) Genetic Epidemiology");
 	main.createRegularTask<PopulationTools::TDistanceEstimator>("geneticDist", "Estimating the genetic distance between individuals");
-	main.createRegularTask<PopulationTools::TAlleleCountEstimator>("alleleCounts", "Estimating population allele counts");
-	main.createRegularTask<PopulationTools::TAlleleFrequencyWriter>("alleleCountLikelihoods", "Writing sample allele count likelihoods");
-	main.createRegularTask<PopulationTools::TAlleleCountTransformer>("transformAlleleCountFormat", "Transforming allele counts file format");
+	main.createRegularTask<PopulationTools::TAlleleCounter>("alleleCounts", "Estimating population allele counts");
 	main.createRegularTask<PopulationTools::TAlleleFreqEstimator>("alleleFreq", "Estimating population allele frequencies");
 	main.createRegularTask<PopulationTools::TInbreedingEstimator>("inbreeding", "Estimating the inbreeding coefficient", "Burger et al. (2020) Current Biology");
 	main.createRegularTask<PopulationTools::TPolymorhicWindowIdentifier>("polymorphicWindows", "Identifying windows for which samples are polymorphic");
