@@ -35,6 +35,8 @@ if __name__ == "__main__":
 
         # get average and std
         data = genfromtxt(file, skip_header=1)
+        if len(data.shape) == 1:
+            data = array([data])
         means = []
         stds = []
         for c in cols:
