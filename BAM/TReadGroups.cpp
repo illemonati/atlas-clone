@@ -30,7 +30,7 @@ TReadGroup::TReadGroup(){
 	writeToHeader = false;
 };
 
-TReadGroup::TReadGroup(const uint16_t ID, std::string_view Name){
+TReadGroup::TReadGroup(const size_t ID, std::string_view Name){
 	_id = ID;
 	name_ID = Name;
 	inUse = true;
@@ -211,7 +211,7 @@ TReadGroup& TReadGroups::addAlternativeRG(std::string_view Name, std::string_vie
 	return *_getReadGroup(Name);
 };
 
-uint16_t TReadGroups::size() const{
+size_t TReadGroups::size() const{
 	return _readGroups.size();
 };
 
@@ -220,7 +220,7 @@ bool TReadGroups::empty() const{
 };
 
 // access read groups
-uint16_t TReadGroups::getId(std::string_view Name) const {
+size_t TReadGroups::getId(std::string_view Name) const {
 	auto rg = _getReadGroup(Name);
 	if(rg == _readGroups.end()){
 		return noReadGroupId;
@@ -243,20 +243,20 @@ TReadGroup& TReadGroups::getReadGroup(std::string_view Name){
 	UERROR("Read Group '", Name, "' is not present in header of bam file!");
 }
 
-const TReadGroup& TReadGroups::getReadGroup(uint16_t ReadGroupId) const {
+const TReadGroup& TReadGroups::getReadGroup(size_t ReadGroupId) const {
 	if(ReadGroupId >= _readGroups.size())
 		UERROR("No read group with number ", ReadGroupId, "!");
 	return _readGroups[ _readGroupsById[ReadGroupId] ];
 }
 
-TReadGroup& TReadGroups::getReadGroup(uint16_t ReadGroupId){
+TReadGroup& TReadGroups::getReadGroup(size_t ReadGroupId){
 	if(ReadGroupId >= _readGroups.size())
 		UERROR("No read group with number ", ReadGroupId, "!");
 	return _readGroups[ _readGroupsById[ReadGroupId] ];
 }
 
 
-const TReadGroup& TReadGroups::operator[](uint16_t ReadGroupId) const{
+const TReadGroup& TReadGroups::operator[](size_t ReadGroupId) const{
 	return _readGroups[_readGroupsById[ReadGroupId]];
 }
 
@@ -264,17 +264,17 @@ bool TReadGroups::readGroupExists(std::string_view Name) const {
 	return _getReadGroup(Name) != _readGroups.cend();
 }
 
-bool TReadGroups::readGroupExists(uint16_t readGroupId) const {
+bool TReadGroups::readGroupExists(size_t readGroupId) const {
 	return readGroupId < _readGroups.size();
 }
 
 //getters of specific entries
-const std::string& TReadGroups::getName(uint16_t ReadGroupId) const{
+const std::string& TReadGroups::getName(size_t ReadGroupId) const{
 	if(ReadGroupId >= _readGroups.size()) DEVERROR("No read group with number ", ReadGroupId, "!");
 	return _readGroups[_readGroupsById[ReadGroupId]].name_ID;
 }
 
-std::vector<std::string> TReadGroups::getNames(std::vector<uint16_t> & ReadGroupIds) const{
+std::vector<std::string> TReadGroups::getNames(std::vector<size_t> & ReadGroupIds) const{
 	std::vector<std::string> names;
 	for(auto& r : ReadGroupIds){
 		names.push_back(getName(r));
@@ -327,7 +327,7 @@ std::string TReadGroups::compileSamHeader() const{
 //---------------------------------------------------------------
 //TReadGroupMap
 //---------------------------------------------------------------
-const uint16_t TReadGroupMap::ReadGroupMapNotInitializedIndex = 65535; //largest possible values
+const size_t TReadGroupMap::ReadGroupMapNotInitializedIndex = -1; //largest possible values
 
 TReadGroupMap::TReadGroupMap(const TReadGroups & ReadGroups){
 	_fillWithoutPooling(ReadGroups);
@@ -346,7 +346,7 @@ void TReadGroupMap::_resize(const TReadGroups & ReadGroups){
 	_reverseReadGroupMap.resize(ReadGroups.size());
 };
 
-void TReadGroupMap::_markAsInUse(uint16_t index){
+void TReadGroupMap::_markAsInUse(size_t index){
 	_readGroupMap[index] = index;
 	_reverseReadGroupMap[index].push_back(index);
 	_readGroupsInUse.push_back(index);
@@ -354,7 +354,7 @@ void TReadGroupMap::_markAsInUse(uint16_t index){
 
 void TReadGroupMap::_fillWithoutPooling(const TReadGroups & ReadGroups){
 	_resize(ReadGroups)	;
-	for(int r = 0; r < ReadGroups.size(); ++r){
+	for(size_t r = 0; r < ReadGroups.size(); ++r){
 		_markAsInUse(r);
 	}
 };
@@ -378,8 +378,8 @@ void TReadGroupMap::_fillFromFile(const TReadGroups & ReadGroups, std::string_vi
 		//ignore if read group does not exist
 		if(ReadGroups.readGroupExists(vec[0])){
 			//get read group index
-			uint16_t rg = ReadGroups.getId(vec[0]);
-			uint16_t pool = ReadGroups.getId(vec[1]);
+			size_t rg = ReadGroups.getId(vec[0]);
+			size_t pool = ReadGroups.getId(vec[1]);
 
 			//check if rg to pool with is pooled itself
 			if(_readGroupMap[pool] == ReadGroupMapNotInitializedIndex){
@@ -405,7 +405,7 @@ void TReadGroupMap::_fillFromFile(const TReadGroups & ReadGroups, std::string_vi
 	}
 
 	//mark all read groups not in file as pooled with itself
-	for(uint16_t r = 0; r < _readGroupMap.size(); ++r){
+	for(size_t r = 0; r < _readGroupMap.size(); ++r){
 		if(_readGroupMap[r] == ReadGroupMapNotInitializedIndex){
 			_markAsInUse(r);
 		}
@@ -415,7 +415,7 @@ void TReadGroupMap::_fillFromFile(const TReadGroups & ReadGroups, std::string_vi
 	//report
 	if(pooledAtLeastOneRG){
 		logfile().startIndent("The read groups will be pooled for parameter estimation as follows:");
-		for(uint16_t r = 0; r < _readGroupMap.size(); ++r){
+		for(size_t r = 0; r < _readGroupMap.size(); ++r){
 			if(_reverseReadGroupMap[r].size() > 0){
 				logfile().startIndent(ReadGroups.getName(r) + ":");
 				for(auto& s: _reverseReadGroupMap[r]){

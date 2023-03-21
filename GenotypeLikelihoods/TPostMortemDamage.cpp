@@ -79,7 +79,7 @@ void TPostMortemDamage::_initializeFromString(const std::string &pmdString) {
 	logfile().endIndent();
 }
 
-std::vector<uint16_t> TPostMortemDamage::_initializeFromFile(const BAM::TReadGroups &ReadGroups, const std::string &filename) {
+std::vector<size_t> TPostMortemDamage::_initializeFromFile(const BAM::TReadGroups &ReadGroups, const std::string &filename) {
 	// create an array of TPMD objects for each read group
 	// also works if no parameters are provided (e.g. for estimation)
 	// read from file for each read group
@@ -102,8 +102,8 @@ std::vector<uint16_t> TPostMortemDamage::_initializeFromFile(const BAM::TReadGro
 
 	// check if we have a function for all read groups
 	// create no-PMD types for all remaining ones and return their indexes
-	std::vector<uint16_t> readGroupsWithoutPMD;
-	for (uint16_t i = 0; i < ReadGroups.size(); ++i) {
+	std::vector<size_t> readGroupsWithoutPMD;
+	for (size_t i = 0; i < ReadGroups.size(); ++i) {
 		if (!_pmdObjects[i]) {
 			_pmdObjects[i].reset(makeType("non"));
 			readGroupsWithoutPMD.push_back(i);
@@ -124,13 +124,13 @@ void TPostMortemDamage::_setHasDamage() {
 	}
 }
 
-std::vector<uint16_t> TPostMortemDamage::initialize(const std::string &pmdString, const BAM::TReadGroups &ReadGroups) {
+std::vector<size_t> TPostMortemDamage::initialize(const std::string &pmdString, const BAM::TReadGroups &ReadGroups) {
 	if (_hasPMD) {
 		DEVERROR("Models already initialized!");
 	}
 
 	// prepare objects
-	std::vector<uint16_t> readGroupsWithoutPMD;
+	std::vector<size_t> readGroupsWithoutPMD;
 	_pmdObjects.resize(ReadGroups.size());
 
 	if (!std::filesystem::exists(pmdString)) {

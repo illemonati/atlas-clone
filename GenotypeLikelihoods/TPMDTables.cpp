@@ -131,7 +131,7 @@ void TPMDTables::write(std::string filename, bool normalize) {
 
 	// loop over all read groups
 	std::vector<std::string> prefix(4);
-	for (int i = 0; i < _readGroups->size(); ++i) {
+	for (size_t i = 0; i < _readGroups->size(); ++i) {
 		if (_readGroups->readGroupInUse(i)) {
 			auto & table = _tables[_readGroupMap->pooledIndex(i)];
 			prefix[0]    = _readGroups->getName(i);

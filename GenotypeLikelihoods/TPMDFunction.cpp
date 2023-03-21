@@ -72,25 +72,7 @@ TPMDFunctionExponential::TPMDFunctionExponential(std::string_view string) {
 
 void TPMDFunctionExponential::_fillPMDProbabilities() {
 	_values.resize(_lastPosition + 1);
-	for (size_t p = 0; p < _values.size(); ++p) {
-		_values[p] = _a * exp(-_b * p) + _c;
-	}
-}
-
-	void TPMDFunctionExponential::parseEstimationParameters(TPMDEstimationParameters &EstimationParameters) {
-	if (EstimationParameters.find(epsilon) == EstimationParameters.end()) {
-		double eps = parameters().getParameterWithDefault<double>(epsilon, 0.001);
-		EstimationParameters.emplace(epsilon, eps);
-		logfile().list("Will consider the Newton-Raphson algorithm to have converged if the likelihood difference < " +
-			      toString(eps) + ". (parameter '" + epsilon + "')");
-	}
-
-	if (EstimationParameters.find(numNR) == EstimationParameters.end()) {
-		double numNRIterations = parameters().getParameterWithDefault<int>(numNR, 100);
-		EstimationParameters.emplace(numNR, numNRIterations);
-		logfile().list("Will run up to " + toString(numNRIterations) + " Newton-Raphson iterations. (parameter '" +
-			      numNR + "')");
-	}
+	for (size_t p = 0; p < _values.size(); ++p) { _values[p] = _a * exp(-_b * p) + _c; }
 }
 
 void TPMDFunctionExponential::_initialEstimatesOLS(const std::vector<size_t> &pmdCounts, const std::vector<size_t> &pmdSums,
@@ -205,9 +187,14 @@ double TPMDFunctionExponential::_calcLL(const std::vector<size_t> &pmdCounts, co
 	return LL;
 }
 
-void TPMDFunctionExponential::_estimateWithNewtonRaphson(const std::vector<size_t> &pmdCounts, const std::vector<size_t> &pmdSums,
-							 std::array<double, 3> &Parameters, uint32_t numNRIterations,
-							 double epsilon) {
+void TPMDFunctionExponential::_estimateWithNewtonRaphson(const std::vector<size_t> &pmdCounts,
+														 const std::vector<size_t> &pmdSums,
+														 std::array<double, 3> &Parameters) {
+	const double epsilon = parameters().getParameterWithDefault<double>("epsilon", 0.001);
+	logfile().list("Will consider the Newton-Raphson algorithm to have converged if the likelihood difference < " +
+	               toString(epsilon) + ". (parameter 'epsilon')");
+	const double numNRIterations = parameters().getParameterWithDefault<int>("numNR", 100);
+	logfile().list("Will run up to " + toString(numNRIterations) + " Newton-Raphson iterations. (parameter 'numNR ')");
 	// Conduct Newton-Raphson to refine
 	//----------------------------------
 	double oldLL = _calcLL(pmdCounts, pmdSums, Parameters);
@@ -241,8 +228,7 @@ void TPMDFunctionExponential::_estimateWithNewtonRaphson(const std::vector<size_
 	}
 }
 
-void TPMDFunctionExponential::learn(const TPMDTable &Table, const Base &from, const Base &to,
-				    const TPMDEstimationParameters &EstimationParameters) {
+void TPMDFunctionExponential::learn(const TPMDTable &Table, const Base &from, const Base &to) {
 	logfile().list("Learning exponential pattern");
 	// extract counts in PMD direction and the inverse direction
 	const std::vector<size_t> &pmdCounts = Table[from][to];
@@ -270,9 +256,7 @@ void TPMDFunctionExponential::learn(const TPMDTable &Table, const Base &from, co
 
 
 	// run Newton-Raphson
-	_estimateWithNewtonRaphson(pmdCounts, pmdSums, Parameters,
-				   EstimationParameters.at(numNR),
-				   EstimationParameters.at(epsilon));
+	_estimateWithNewtonRaphson(pmdCounts, pmdSums, Parameters);
 
 
 	// transform parameters
@@ -333,8 +317,7 @@ Probability TPMDFunctionExponential::prob(uint16_t pos) const noexcept {
 	}
 }
 
-void TPMDFunctionEmpiric::learn(const TPMDTable &Table, const Base &from, const Base &to,
-				const TPMDEstimationParameters &) {
+void TPMDFunctionEmpiric::learn(const TPMDTable &Table, const Base &from, const Base &to) {
 	logfile().list("Learning empiric pattern");
 	// resize parameters
 	_values.resize(Table.size()); // include extra bin for sites beyond size (available in PMDTables)

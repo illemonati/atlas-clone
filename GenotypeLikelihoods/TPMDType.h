@@ -25,8 +25,7 @@ public:
 	virtual std::string functionString() const noexcept = 0;
 	virtual std::string typeString() const noexcept     = 0;
 
-	virtual void parseEstimationParameters(TPMDEstimationParameters &EstimationParameters)                   = 0;
-	virtual void estimate(const PMDTable_RG &PMDTable, const TPMDEstimationParameters &EstimationParameters) = 0;
+	virtual void estimate(const PMDTable_RG &PMDTable) = 0;
 
 	virtual TBaseLikelihoods baseLikelihoods(const BAM::TSequencedBase &data,
 												const TBaseLikelihoods &baseLikelihoodsNoPMD) const = 0;
@@ -54,8 +53,7 @@ public:
 	std::string functionString() const noexcept override { return "none"; }
 	std::string typeString() const noexcept override { return name; }
 
-	void parseEstimationParameters(TPMDEstimationParameters &) override {}
-	void estimate(const PMDTable_RG &, const TPMDEstimationParameters &) override {}
+	void estimate(const PMDTable_RG &) override {}
 
 	TBaseLikelihoods baseLikelihoods(const BAM::TSequencedBase &,
 										const TBaseLikelihoods &baseLikelihoodsNoPMD) const override {
@@ -111,8 +109,7 @@ public:
 	}
 	std::string typeString() const noexcept override { return name; }
 
-	void parseEstimationParameters(TPMDEstimationParameters &EstimationParameters) override;
-	void estimate(const PMDTable_RG &PMDTable, const TPMDEstimationParameters &EstimationParameters) override;
+	void estimate(const PMDTable_RG &PMDTable) override;
 
 	TBaseLikelihoods baseLikelihoods(const BAM::TSequencedBase &data,
 										const TBaseLikelihoods &baseLikelihoodsNoPMD) const override;
@@ -156,8 +153,7 @@ public:
 	}
 	std::string typeString() const noexcept override { return name; }
 
-	void parseEstimationParameters(TPMDEstimationParameters &EstimationParameters) override;
-	void estimate(const PMDTable_RG &PMDTable, const TPMDEstimationParameters &EstimationParameters) override;
+	void estimate(const PMDTable_RG &PMDTable) override;
 
 	TBaseLikelihoods baseLikelihoods(const BAM::TSequencedBase &data,
 										const TBaseLikelihoods &baseLikelihoodsNoPMD) const override;

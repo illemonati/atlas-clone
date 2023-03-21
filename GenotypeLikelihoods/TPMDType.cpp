@@ -95,26 +95,20 @@ TPMDTypeDoubleStrand::TPMDTypeDoubleStrand(const std::vector<std::string> &Detai
 	_pmdGA.reset(makeFunction(Details[2]));
 }
 
-void TPMDTypeDoubleStrand::parseEstimationParameters(TPMDEstimationParameters &EstimationParameters){
-	_pmdCT->parseEstimationParameters(EstimationParameters);
-	_pmdGA->parseEstimationParameters(EstimationParameters);
-}
-
-void TPMDTypeDoubleStrand::estimate(const PMDTable_RG &PMDTable,
-				    const TPMDEstimationParameters &EstimationParameters) {
+void TPMDTypeDoubleStrand::estimate(const PMDTable_RG &PMDTable) {
 	// Note: TPMDTables stores bases as during sequencing (not as after mapping)
 	// Assumption: C->T pattern is the same for forward and reverse reads from their respective 5-prime ends.
 	TPMDTable from5(PMDTable[ReadEnd::forward5]);
 	from5.add(PMDTable[ReadEnd::reverse5]);
 	logfile().startIndent("Learning C-T pattern:");
-	_pmdCT->learn(from5, Base::C, Base::T, EstimationParameters);
+	_pmdCT->learn(from5, Base::C, Base::T);
 	logfile().endIndent();
 
 	// Assumption: G->A pattern is the same for forward and reverse reads from their respective 3-prime ends.
 	TPMDTable from3(PMDTable[ReadEnd::forward3]);
 	from3.add(PMDTable[ReadEnd::reverse3]);
 	logfile().startIndent("Learning G-A pattern:");
-	_pmdGA->learn(from3, Base::G, Base::A, EstimationParameters);
+	_pmdGA->learn(from3, Base::G, Base::A);
 	logfile().endIndent();
 }
 
@@ -153,13 +147,7 @@ TPMDTypeSingleStrand::TPMDTypeSingleStrand(const std::vector<std::string> &Detai
 	_pmdCT3.reset(makeFunction(Details[2]));
 }
 
-void TPMDTypeSingleStrand::parseEstimationParameters(TPMDEstimationParameters &EstimationParameters) {
-	_pmdCT3->parseEstimationParameters(EstimationParameters);
-	_pmdCT5->parseEstimationParameters(EstimationParameters);
-}
-
-void TPMDTypeSingleStrand::estimate(const PMDTable_RG &PMDTable,
-				    const TPMDEstimationParameters &EstimationParameters) {
+void TPMDTypeSingleStrand::estimate(const PMDTable_RG &PMDTable) {
 	// Note: TPMDTables stores bases as during sequencing (not as after mapping)
 	// Assumption: 5-prime C->T pattern is the same for forward and reverse reads from their respective
 	// 5-prime ends.
@@ -167,7 +155,7 @@ void TPMDTypeSingleStrand::estimate(const PMDTable_RG &PMDTable,
 	from5.add(PMDTable[ReadEnd::reverse5]);
 
 	logfile().startIndent("Learning 5' C-T pattern:");
-	_pmdCT5->learn(from5, Base::C, Base::T, EstimationParameters);
+	_pmdCT5->learn(from5, Base::C, Base::T);
 	logfile().endIndent();
 
 	// Assumption: 3-prime C->T pattern is the same for forward and reverse reads from their
@@ -176,7 +164,7 @@ void TPMDTypeSingleStrand::estimate(const PMDTable_RG &PMDTable,
 	from3.add(PMDTable[ReadEnd::reverse3]);
 
 	logfile().startIndent("Learning 3' C-T pattern:");
-	_pmdCT3->learn(from3, Base::C, Base::T, EstimationParameters);
+	_pmdCT3->learn(from3, Base::C, Base::T);
 	logfile().endIndent();
 }
 

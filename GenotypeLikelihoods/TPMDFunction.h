@@ -18,20 +18,16 @@
 #include "coretools/Types/probability.h"
 
 namespace GenotypeLikelihoods {
-using TPMDEstimationParameters = std::map<std::string, double>;
 
 class TPMDFunction {
 public:
 	TPMDFunction()          = default;
 	virtual ~TPMDFunction() = default;
 
-	virtual bool hasDamage() const noexcept = 0;
-
-	virtual void parseEstimationParameters(TPMDEstimationParameters &EstimationParameters) = 0;
-	virtual void learn(const TPMDTable &Table, const genometools::Base &from, const genometools::Base &to,
-					   const TPMDEstimationParameters &EstimationParameters)               = 0;
-	virtual std::string string() const noexcept                                            = 0;
-	virtual coretools::Probability prob(uint16_t pos) const noexcept                       = 0;
+	virtual bool hasDamage() const noexcept                                                                = 0;
+	virtual void learn(const TPMDTable &Table, const genometools::Base &from, const genometools::Base &to) = 0;
+	virtual std::string string() const noexcept                                                            = 0;
+	virtual coretools::Probability prob(uint16_t pos) const noexcept                                       = 0;
 };
 
 class TPMDFunctionNoPMD final : public TPMDFunction {
@@ -43,9 +39,7 @@ public:
 	bool hasDamage() const noexcept override { return false; }
 	std::string string() const noexcept override { return name + "[]"; }
 
-	void parseEstimationParameters(TPMDEstimationParameters &) override{};
-	void learn(const TPMDTable &, const genometools::Base &, const genometools::Base &,
-			   const TPMDEstimationParameters &) override{};
+	void learn(const TPMDTable &, const genometools::Base &, const genometools::Base &) override{};
 
 	coretools::Probability prob(uint16_t) const noexcept override { return 0.0; }
 };
@@ -60,15 +54,14 @@ private:
 	void _fillFAndJacobian(arma::vec &F, arma::mat &J, const std::vector<size_t> &pmdCounts, const std::vector<size_t> &pmdSums,
 						   const std::array<double, 3> &Parameters);
 	void _estimateWithNewtonRaphson(const std::vector<size_t> &pmdCounts, const std::vector<size_t> &pmdSums,
-									std::array<double, 3> &Parameters, uint32_t numNRIterations, double epsilon);
-	double _calcLL(const std::vector<size_t> &pmdCounts, const std::vector<size_t> &pmdSums, const std::array<double, 3> &Parameters);
+									std::array<double, 3> &Parameters);
+	double _calcLL(const std::vector<size_t> &pmdCounts, const std::vector<size_t> &pmdSums,
+	               const std::array<double, 3> &Parameters);
 	void _fillPMDProbabilities();
 
 public:
 	static inline const std::string name    = "Exponential";
 	static inline const std::string example = name + "[lastPosition,a,b,c]";
-	static inline const std::string epsilon = "PMDExponentialEpsilon";
-	static inline const std::string numNR   = "PMDExponentialNumNR";
 	TPMDFunctionExponential(std::string_view string);
 
 	bool hasDamage() const noexcept override { return _lastPosition > 0; }
@@ -77,9 +70,7 @@ public:
 			   coretools::str::concatenateString(std::vector{_a, _b, _c}, ",") + "]";
 	}
 
-	void parseEstimationParameters(TPMDEstimationParameters &EstimationParameters) override;
-	void learn(const TPMDTable &Table, const genometools::Base &from, const genometools::Base &to,
-			   const TPMDEstimationParameters &EstimationParameters) override;
+	void learn(const TPMDTable &Table, const genometools::Base &from, const genometools::Base &to) override;
 
 	coretools::Probability prob(uint16_t pos) const noexcept override;
 };
@@ -98,9 +89,7 @@ public:
 		return name + "[" + coretools::str::concatenateString(_values, ",") + "]";
 	}
 
-	void parseEstimationParameters(TPMDEstimationParameters &) override{};
-	void learn(const TPMDTable &Table, const genometools::Base &from, const genometools::Base &to,
-			   const TPMDEstimationParameters &EstimationParameters) override;
+	void learn(const TPMDTable &Table, const genometools::Base &from, const genometools::Base &to) override;
 
 	coretools::Probability prob(uint16_t pos) const noexcept override;
 };

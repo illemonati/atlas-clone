@@ -38,20 +38,20 @@ private:
 	bool _hasPMD = false;
 
 	void _initializeFromString(const std::string &pmdString);
-	std::vector<uint16_t> _initializeFromFile(const BAM::TReadGroups &ReadGroups, const std::string &filename);
+	std::vector<size_t> _initializeFromFile(const BAM::TReadGroups &ReadGroups, const std::string &filename);
 	void _setHasDamage();
 
 public:
 	TPostMortemDamage() = default;
 	TPostMortemDamage(const std::string &pmdString, const BAM::TReadGroups &ReadGroups,
-					  std::vector<uint16_t> &ReadGroupsWithoutPMD) {
+					  std::vector<size_t> &ReadGroupsWithoutPMD) {
 		ReadGroupsWithoutPMD = initialize(pmdString, ReadGroups);
 	}
 	constexpr bool hasPMD() const noexcept { return _hasPMD; };
-	const TPMDType &operator[](uint16_t ReadGroupIndex) const noexcept { return *_pmdObjects[ReadGroupIndex]; }
-	TPMDType &operator[](uint16_t ReadGroupIndex) noexcept { return *_pmdObjects[ReadGroupIndex]; }
+	const TPMDType &operator[](size_t ReadGroupIndex) const noexcept { return *_pmdObjects[ReadGroupIndex]; }
+	TPMDType &operator[](size_t ReadGroupIndex) noexcept { return *_pmdObjects[ReadGroupIndex]; }
 
-	std::vector<uint16_t> initialize(const std::string &pmdString, const BAM::TReadGroups &ReadGroups);
+	std::vector<size_t> initialize(const std::string &pmdString, const BAM::TReadGroups &ReadGroups);
 	void initialize(BAM::RGInfo::TReadGroupInfo & RgInfo);
 	void writeToFile(const BAM::TReadGroups &ReadGroups, const std::string filename) const;
 	void writeToFile(const BAM::TReadGroups &ReadGroups, const BAM::TReadGroupMap &ReadGroupMap,
@@ -62,6 +62,10 @@ public:
 									   const TBaseLikelihoods &baseLikelihoodsNoPMD) const;
 	TBaseProbabilities massFunction(genometools::Genotype g, const BAM::TSequencedBase &data,
 									   const TBaseLikelihoods &baseLikelihoodsNoPMD) const;
+
+	void estimate(const BAM::TReadGroupMap& ReadGroupMap, const TPMDTables &Tables) {
+		for (auto &r : ReadGroupMap.readGroupsInUse()) { _pmdObjects[r]->estimate(Tables[r]); }
+	}
 
 	std::string functionString() const noexcept {
 		std::string r;

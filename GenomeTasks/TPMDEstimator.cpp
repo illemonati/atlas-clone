@@ -28,34 +28,26 @@ using coretools::instances::parameters;
 //----------------------------------------
 // TPMDEstimator.h
 //----------------------------------------
-TPMDEstimator::TPMDEstimator(): TGenome_parsed() {
+TPMDEstimator::TPMDEstimator(): TGenome_parsed(), _readGroupMap(_bamFile.readGroups(), parameters().getParameter<std::string>("poolReadGroups", false)) {
 	//make sure there is pmd
 	GenotypeLikelihoods::TPostMortemDamage& pmd = _genotypeLikelihoodCalculator.postMortemDamageModels();
 	if (_genotypeLikelihoodCalculator.hasPMD() && !parameters().parameterExists("reestimate")) {
-		UERROR("PMD model already estimated! (Use argument 'reestimate' to overwrite this error)");
+		logfile().list("PMD model already exists, will reestimate it.");
 	}
 	if (!_genotypeLikelihoodCalculator.hasPMD()) {
-		pmd.initialize(parameters().getParameterWithDefault("pmdModels", "doubleStrand:Empiric:Empiric"s), _bamFile.readGroups());
+		pmd.initialize(parameters().getParameterWithDefault("pmd", "doubleStrand:Empiric:Empiric"s), _bamFile.readGroups());
 	}
 
 	//make sure it has a reference
 	_openReference(true);
-
-	//prepare maps
-	_readGroupMap = std::make_unique<BAM::TReadGroupMap>(_bamFile.readGroups(), parameters().getParameter<std::string>("poolReadGroups", false));
 
 	//parse estimation parameters
 	logfile().startIndent("Parameters for PMD Estimation:");
 	_maxLengthForInference = parameters().getParameterWithDefault<int>("length", 50);
 	logfile().list("Estimating PMD from the first ", _maxLengthForInference, " positions.");
 
-	for(auto& r : _readGroupMap->readGroupsInUse()){
-		pmd[r].parseEstimationParameters(_estimationParameters);
-	}
-	logfile().endIndent();
-
 	//create PMD tables
-	_pmdTables.initialize(&_bamFile.readGroups(), _maxLengthForInference, _readGroupMap.get());
+	_pmdTables.initialize(&_bamFile.readGroups(), _maxLengthForInference, &_readGroupMap);
 };
 
 void TPMDEstimator::_handleAlignment() {
@@ -91,13 +83,11 @@ void TPMDEstimator::run(){
 	GenotypeLikelihoods::TPostMortemDamage& pmd = _genotypeLikelihoodCalculator.postMortemDamageModels();
 
 	//estimate all models with data, i.e. only one model per pool
-	for(auto& r : _readGroupMap->readGroupsInUse()){
-		pmd[r].estimate(_pmdTables[r], _estimationParameters);
-	}
+	pmd.estimate(_readGroupMap, _pmdTables);
 
 	//writing PMD file
 	filename = _outputName + "_PMD.txt";
-	pmd.writeToFile(_bamFile.readGroups(), *_readGroupMap, filename);
+	pmd.writeToFile(_bamFile.readGroups(), _readGroupMap, filename);
 };
 
 }; // end namespace

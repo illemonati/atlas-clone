@@ -158,7 +158,7 @@ namespace impl {
 
 void fillNoRecal(std::vector<TReadGroupModels> & vec, const size_t size){
 	vec.reserve(size);
-	for(uint16_t i = 0; i < size; ++i){
+	for(size_t i = 0; i < size; ++i){
 		vec.emplace_back(); //constructor without arguments
 	}
 }
@@ -190,7 +190,7 @@ void TModels::initialize(std::string_view RecalString, std::string_view RhoStrin
 	_models.reserve(ReadGroups.size());
 
 	// initialize models
-	for(uint16_t i = 0; i < ReadGroups.size(); ++i){
+	for(size_t i = 0; i < ReadGroups.size(); ++i){
 		_models.emplace_back(RecalString, RhoString);
 	}
 }
@@ -233,11 +233,11 @@ void TModels::initialize(BAM::RGInfo::TReadGroupInfo &RgInfo) {
 	}
 }
 
-void TModels::checkReadGroups(const BAM::TReadGroups &ReadGroups, std::vector<uint16_t> &ReadGroupsWithoutRecal,
-			      std::vector<uint16_t> &ReadGroupsLikelySingleEnd) const noexcept {
+void TModels::checkReadGroups(const BAM::TReadGroups &ReadGroups, std::vector<size_t> &ReadGroupsWithoutRecal,
+			      std::vector<size_t> &ReadGroupsLikelySingleEnd) const noexcept {
 	ReadGroupsWithoutRecal.clear();
 	ReadGroupsLikelySingleEnd.clear();
-	for (uint16_t r = 0; r < ReadGroups.size(); ++r) {
+	for (size_t r = 0; r < ReadGroups.size(); ++r) {
 		if (!_models[r][0].recalibrates()) {
 			ReadGroupsWithoutRecal.push_back(r);
 		} else if (!_models[r][1].recalibrates()) {
@@ -284,7 +284,7 @@ void TModels::writeRecalFile(const BAM::TReadGroups &ReadGroups, std::string_vie
 	out.writeHeader({"readGroup", "covariates1", "rho1", "covariates2", "rho2"});
 
 	// add models
-	for (uint16_t r = 0; r < ReadGroups.size(); ++r) {
+	for (size_t r = 0; r < ReadGroups.size(); ++r) {
 		out << ReadGroups.getName(r);
 		for (uint8_t mate = 0; mate < 2; ++mate) {
 			out << _models[r][mate].epsilonDefinition()

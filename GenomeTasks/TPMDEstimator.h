@@ -33,9 +33,8 @@ namespace GenomeTasks {
 class TPMDEstimator : public TGenome_parsed {
 private:
 	uint16_t _maxLengthForInference;
-	std::unique_ptr<BAM::TReadGroupMap> _readGroupMap;
+	BAM::TReadGroupMap _readGroupMap;
 	GenotypeLikelihoods::TPMDTables _pmdTables;
-	GenotypeLikelihoods::TPMDEstimationParameters _estimationParameters;
 
 	void _handleAlignment();
 
