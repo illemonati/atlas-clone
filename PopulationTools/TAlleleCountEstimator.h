@@ -13,6 +13,7 @@
 #include <string>
 #include <vector>
 
+#include "coretools/Main/TParameters.h"
 #include "genometools/PhredProbabilityTypes.h"
 #include "genometools/TSampleLikelihoods.h"
 #include "coretools/Main/TTask.h"
@@ -54,13 +55,7 @@ public:
 	const std::vector<coretools::LogProbability> & getLogAlleleFrequencyLikelihoods() const;
 };
 
-struct TAlleleCountEstimator {
-	void run();
-};
-struct TAlleleFrequencyWriter {
-	void run();
-};
-struct TAlleleCountTransformer {
+struct TAlleleCounter {
 	void run();
 };
 

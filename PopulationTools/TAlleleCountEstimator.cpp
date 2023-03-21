@@ -90,7 +90,7 @@ TAlleleCountFile *prepareOutputFile(const std::string & type, std::string filePr
 	logfile().list("Will write estimated allele counts to file '" + filePrefix + "'.");
 	alleleCountFile->openFileToWrite(filePrefix);
 
-	return (alleleCountFile);
+	return alleleCountFile;
 }
 
 } // namespace impl
@@ -352,7 +352,7 @@ TSiteAlleleFrequencyLikelihoods::getLogAlleleFrequencyLikelihoods() const {
 //-------------------------------------------------
 // TAlleleCountEstimator
 //-------------------------------------------------
-void TAlleleCountEstimator::run() {
+void runCounts() {
 	// read samples
 	genometools::TPopulationSamples samples;
 	if (parameters().parameterExists("samples")) samples.readSamples(parameters().getParameter<std::string>("samples"));
@@ -418,7 +418,8 @@ void TAlleleCountEstimator::run() {
 	logfile().endIndent();
 };
 
-void TAlleleFrequencyWriter::run() {
+
+void runLikelihoods() {
 	// TODO: write proper saf
 	// read samples
 	genometools::TPopulationSamples samples;
@@ -500,27 +501,24 @@ void TAlleleFrequencyWriter::run() {
 };
 
 
-void TAlleleCountTransformer::run() {
+void runTransform() {
 	// initialize variables for vcf-file
 	struct timeval start;
 	gettimeofday(&start, NULL);
 
 	// get parameters for in and output
-	std::string countsFileName = parameters().getParameter<std::string>("alleleCounts");
+	std::string countsFileName = parameters().getParameter<std::string>("countsFile");
 	std::string tmp(coretools::str::readBeforeLast(countsFileName, "_alleleCounts.txt.gz"));
 	std::string outname        = parameters().getParameterWithDefault<std::string>("out", tmp);
 	std::string type           = parameters().getParameterWithDefault<std::string>("outFormat", "default");
 
 	logfile().list("Use option 'outFormat' to produce alleleCounts file in different formats.");
 
-	if (type == "default") { UERROR("Cannot transform alleleCounts file to original format!"); }
-	if (type == "withAlleles") { UERROR("Cannot transform to 'withAlleles' format from original format!"); }
-
 	// open input file	
 	TAlleleCountReader file(countsFileName);	
 
 	// create output file
-	TAlleleCountFile *alleleCountFile = impl::prepareOutputFile(type, outname);
+	std::unique_ptr<TAlleleCountFile> alleleCountFile(impl::prepareOutputFile(type, outname));
 
 	// write header
 	alleleCountFile->writeHeader(file.populationNames());
@@ -540,10 +538,19 @@ void TAlleleCountTransformer::run() {
 
 	// close file
 	file.close();
-	delete alleleCountFile;
 
 	// report final status
 	logfile().endIndent();
 };
+
+void TAlleleCounter::run() {
+	if (parameters().parameterExists("likelihoods")) {
+		runLikelihoods();
+	} else if (parameters().parameterExists("transform")) {
+		runTransform();
+	} else {
+		runCounts();
+	}
+}
 
 }; // namespace PopulationTools

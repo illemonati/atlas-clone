@@ -73,7 +73,11 @@ protected:
 	TGlfChromosome _curChr;
 
 public:
-	TGlfHandle() = default;
+	TGlfHandle()                              = default;
+	TGlfHandle(const TGlfHandle &)            = delete;
+	TGlfHandle &operator=(const TGlfHandle &) = delete;
+	TGlfHandle(TGlfHandle &&)                 = default;
+	TGlfHandle &operator=(TGlfHandle &&)      = default;
 
 	virtual ~TGlfHandle() {close();}
 

@@ -8,6 +8,7 @@
 #ifndef TDISTANCEESTIMATOR_H_
 #define TDISTANCEESTIMATOR_H_
 
+#include <memory>
 #include <stdint.h>
 #include <algorithm>
 #include <array>
@@ -155,7 +156,7 @@ private:
 	std::array< std::array<double, 10>, 10 > P_G;
 	std::array< std::array<double, 10>, 10 > P_G_one_site;
 
-	TDistance* distanceObject;
+	std::unique_ptr<TDistance> distanceObject;
 
 	void guessPi(GenotypeQualityVector & genoQual1, GenotypeQualityVector & genoQual2);
 	void guessPhi(GenotypeQualityVector & genoQual1, GenotypeQualityVector & genoQual2);
@@ -169,10 +170,6 @@ public:
 	double distance;
 
 	TEMforDistanceEstimation();
-	~TEMforDistanceEstimation(){
-		delete distanceObject;
-	};
-
 	bool estimatePhiWithEM(GenotypeQualityVector & genoQual1, GenotypeQualityVector & genoQual2);
 };
 
@@ -188,11 +185,9 @@ private:
 	//GLF files
 	int numGLFs;
 	std::vector<std::string> GLFNames;
-	GLF::TGlfReader* glfs;
-	bool readersOpened;
+	std::vector<GLF::TGlfReader> glfs;
 
 	void openGLF();
-	void closeGLF();
 
 
 	void estimateDistanceGenomeWide(TEMforDistanceEstimation & EM_object);
@@ -211,11 +206,6 @@ private:
 
 public:
 	TDistanceEstimator();
-	~TDistanceEstimator(){
-		closeGLF();
-	};
-
-	void printGLF();
 	void run();
 };
 
