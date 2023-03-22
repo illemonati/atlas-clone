@@ -151,12 +151,13 @@ private:
 
 public:
 	int numberOfSimulations = 10;		//default minimum of simulatedSequences
+	bool _randomSequence = false;
 	static coretools::TOutputFile fastqSimulationFile;
-	void _fastqSimulate(int numberOfSimulations);
+	void _fastqSimulate(int numberOfSimulations, bool _randomSequence);
 	std::string _generateHeader(std::string machineID, short runID, short FlowCellID, short lane, short tile, unsigned short xCoordinate, unsigned short yCoordinate,
 								bool readDirection, bool passFilter, short controlBits, std::string barCodeSequence);
 	std::string_view _generateHeader();
-	std::string _simulateSequence(int sequenceLength);
+	std::string _simulateRandomSequence(int sequenceLength);
 	std::string _generateSimulatedQScore();
 };
 

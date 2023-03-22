@@ -123,11 +123,19 @@ public:
 	TReadSimulatorSingleEnd(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo);
 	~TReadSimulatorSingleEnd() = default;
 
-	void SequenceSimulator();
+	void SequenceSimulator(int sequenceLength);
+
+	/***
+	 * 
+	 * Change BAM::TOutputBamFile to new TSimulatedOutputFile
+	 * 
+	*/
 
 	void simulate(const TGenomePosition & Position, const std::vector<Base> & Haplotype, BAM::TOutputBamFile &BamFile) override;
-	// void simulate(const TGenomePosition & Position, const std::vector<Base> & Haplotype, Simulations::TFASTQWriter &FASTQFile);
+
 	[[nodiscard]] double meanReadLength() const override;
+
+	void TReadSimulatorSingleEndFASTQ();
 };
 
 //-------------------------------

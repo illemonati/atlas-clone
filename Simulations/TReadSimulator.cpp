@@ -238,20 +238,11 @@ void TReadSimulatorSingleEnd::simulate(const TGenomePosition & Position, const s
  * 
  * Should I really use this method? I do not need simulated alignments, I need only sequences!
  * 
+ * 			YES! We need the step before the alignments because we need the starting sequences
+ * 
 */
 
 //has just to generate brief sequence
-
-void TReadSimulatorSingleEnd::SequenceSimulator(int sequenceLength){
-	std::vector<char> _sequence;
-	coretools::TRandomGenerator rand4Base;
-	
-	for (size_t i = 0; i < sequenceLength; i++)
-	{
-		_sequence[i] = base2char(genometools::Base(rand4Base.getRand<int>(0, 4)));
-	}
-	
-}
 
 
 // void TReadSimulatorSingleEnd::simulate(const TGenomePosition & Position, const std::vector<Base> & Haplotype, Simulations::TFASTQFile &FASTQFile) {
@@ -268,6 +259,10 @@ void TReadSimulatorSingleEnd::SequenceSimulator(int sequenceLength){
 // 	// write fastq sequence
 // 	//FASTQFile.writeSequence(_alignment);
 // }
+
+void TReadSimulatorSingleEnd::TReadSimulatorSingleEndFASTQ(){
+	return;
+}
 
 
 
