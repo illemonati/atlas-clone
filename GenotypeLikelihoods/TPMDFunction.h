@@ -24,10 +24,10 @@ public:
 	TPMDFunction()          = default;
 	virtual ~TPMDFunction() = default;
 
-	virtual bool hasDamage() const noexcept                                                                = 0;
-	virtual void learn(const TPMDTable &Table, const genometools::Base &from, const genometools::Base &to) = 0;
-	virtual std::string string() const noexcept                                                            = 0;
-	virtual coretools::Probability prob(uint16_t pos) const noexcept                                       = 0;
+	virtual bool hasDamage() const noexcept                                                      = 0;
+	virtual void learn(const std::vector<double> &ref_base, const std::vector<double> &base_ref) = 0;
+	virtual std::string string() const noexcept                                                  = 0;
+	virtual coretools::Probability prob(uint16_t pos) const noexcept                             = 0;
 };
 
 class TPMDFunctionNoPMD final : public TPMDFunction {
@@ -38,32 +38,28 @@ public:
 
 	bool hasDamage() const noexcept override { return false; }
 	std::string string() const noexcept override { return name + "[]"; }
-
-	void learn(const TPMDTable &, const genometools::Base &, const genometools::Base &) override{};
-
+	void learn(const std::vector<double> &, const std::vector<double> &) override {}
 	coretools::Probability prob(uint16_t) const noexcept override { return 0.0; }
 };
 
 class TPMDFunctionExponential final : public TPMDFunction {
 private:
-	uint16_t _lastPosition;
 	double _a, _b, _c;
 	std::vector<coretools::Probability> _values;
-	void _fillPMDProbabilities();
+	void _fillPMDProbabilities(size_t N);
 
 public:
 	static inline const std::string name    = "Exponential";
 	static inline const std::string example = name + "[lastPosition,a,b,c]";
 	TPMDFunctionExponential(std::string_view string);
 
-	bool hasDamage() const noexcept override { return _lastPosition > 0; }
+	bool hasDamage() const noexcept override { return _values.size() > 0; }
 	std::string string() const noexcept override {
-		return name + "[" + coretools::str::toString(_lastPosition) + ',' +
+		return name + "[" + coretools::str::toString(_values.size()) + ',' +
 			   coretools::str::concatenateString(std::vector{_a, _b, _c}, ",") + "]";
 	}
 
-	void learn(const TPMDTable &Table, const genometools::Base &from, const genometools::Base &to) override;
-
+	void learn(const std::vector<double> &ref_base, const std::vector<double> &base_ref) override;
 	coretools::Probability prob(uint16_t pos) const noexcept override;
 };
 
@@ -81,8 +77,7 @@ public:
 		return name + "[" + coretools::str::concatenateString(_values, ",") + "]";
 	}
 
-	void learn(const TPMDTable &Table, const genometools::Base &from, const genometools::Base &to) override;
-
+	void learn(const std::vector<double> &ref_base, const std::vector<double> &base_ref) override;
 	coretools::Probability prob(uint16_t pos) const noexcept override;
 };
 

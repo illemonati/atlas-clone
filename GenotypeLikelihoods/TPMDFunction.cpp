@@ -2,6 +2,7 @@
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/Main/TRandomGenerator.h"
+#include "coretools/Types/probability.h"
 
 namespace GenotypeLikelihoods {
 
@@ -9,7 +10,6 @@ using namespace coretools::str;
 using coretools::Probability;
 using coretools::instances::logfile;
 using coretools::instances::parameters;
-using genometools::Base;
 
 namespace impl {
 
@@ -31,7 +31,7 @@ std::vector<T> parseParameters(std::string_view string) {
 	return ps;
 }
 
-std::array<double, 3> initialEstimatesOLS(const std::vector<double> &pmdRel) {
+std::array<double, 3> initialEstimatesOLS(const std::vector<Probability> &pmdRel) {
 	// fill vector y to fit using OLS
 	const auto N = pmdRel.size();
 	arma::vec y(pmdRel.size());
@@ -74,18 +74,18 @@ std::array<double, 3> initialEstimatesOLS(const std::vector<double> &pmdRel) {
 	return {betaHat(0), betaHat(1), gammaTmp};
 }
 
-double calcLL(const std::vector<double> &pmdRel, const std::array<double, 3> &Parameters) {
+double calcLL(const std::vector<Probability> &pmdRel, const std::array<double, 3> &Parameters) {
 	double LL = 0.0;
 	for (size_t p = 0; p < pmdRel.size(); ++p) {
 		const auto dExpMinusAlphaP = Parameters[1] * exp(-Parameters[2] * p);
-		LL += pmdRel[p] * log(Parameters[0] + dExpMinusAlphaP) +
-		      (1 - pmdRel[p]) * log(1.0 - Parameters[0] - dExpMinusAlphaP);
+		LL += pmdRel[p].get() * log(Parameters[0] + dExpMinusAlphaP) +
+			  (1. - pmdRel[p].get()) * log(1.0 - Parameters[0] - dExpMinusAlphaP);
 	}
 	return LL;
 }
 
 
-void fillFAndJacobian(arma::vec &F, arma::mat &J, const std::vector<double> &pmdRel,
+void fillFAndJacobian(arma::vec &F, arma::mat &J, const std::vector<Probability> &pmdRel,
 												const std::array<double, 3> &Parameters) {
 	F.zeros();
 	J.zeros();
@@ -98,7 +98,7 @@ void fillFAndJacobian(arma::vec &F, arma::mat &J, const std::vector<double> &pmd
 		// first term
 		//----------
 		const auto tmp1     = Parameters[0] + dExpMinusAlphaP;
-		const auto weight1  = pmdRel[p] / tmp1;
+		const auto weight1  = pmdRel[p].get() / tmp1;
 		const auto weightJ1 = weight1 / tmp1;
 
 		// add to F
@@ -117,7 +117,7 @@ void fillFAndJacobian(arma::vec &F, arma::mat &J, const std::vector<double> &pmd
 		// second term
 		//-----------
 		const auto tmp2     = (1.0 - Parameters[0] - dExpMinusAlphaP);
-		const auto weight2  = (1. - pmdRel[p]) / tmp2;
+		const auto weight2  = (1. - pmdRel[p].get()) / tmp2;
 		const auto weightJ2 = weight2 / tmp2;
 
 		// add to F
@@ -142,7 +142,7 @@ void fillFAndJacobian(arma::vec &F, arma::mat &J, const std::vector<double> &pmd
 
 
 
-void estimateWithNewtonRaphson(const std::vector<double> &pmdRel,
+void estimateWithNewtonRaphson(const std::vector<Probability> &pmdRel,
 														 std::array<double, 3> &Parameters) {
 	const double epsilon = parameters().getParameterWithDefault<double>("epsilon", 0.001);
 	logfile().list("Will consider the Newton-Raphson algorithm to have converged if the likelihood difference < " +
@@ -181,6 +181,24 @@ void estimateWithNewtonRaphson(const std::vector<double> &pmdRel,
 		}
 	}
 }
+
+std::vector<Probability> makeEmpiric(const std::vector<double> &ref_base, const std::vector<double> &base_ref) {
+	std::vector<Probability> values;
+	values.reserve(ref_base.size()); // include extra bin for sites beyond size (available in PMDTables)
+
+	for (size_t p = 0; p < ref_base.size(); ++p) {
+		const double forward  = ref_base[p]; // e.g. C -> T
+		const double backward = base_ref[p]; // e.g. T -> C
+
+		if (forward == 0. || backward == 0.) {
+			values.push_back(0.);
+		} else {
+			values.push_back(std::max(0.0, (forward - backward) / (1.0 - backward)));
+		}
+	}
+	return values;
+}
+
 } // namespace impl
 
 //---------------------------------------------------------------
@@ -201,83 +219,44 @@ TPMDFunctionExponential::TPMDFunctionExponential(std::string_view string) {
 	const auto params = impl::parseParameters<double>(string);
 	if (params.empty()) {
 		// parameters missing: set to no PMD
-		_lastPosition = 0;
 		_a = _b = _c = 0.;
+		_fillPMDProbabilities(1);
 	} else {
 		// parameters are provided
 		if (params.size() != nParams) {
 			UERROR("Cannot initialize PMD function '", name, "': expected", nParams, "(", example, ") but found ",
 				   params.size(), " parameters!");
 		}
-		_lastPosition = std::lround(params[0]);
-		_a = params[1];
-		_b = params[2];
-		_c = params[3];
+		const auto N = std::lround(params[0]);
+		_a           = params[1];
+		_b           = params[2];
+		_c           = params[3];
 
-		if (_lastPosition == 0)  UERROR("Cannot initialize PMD function '", name, "': last position must be > 0!"); 
+		if (N == 0)  UERROR("Cannot initialize PMD function '", name, "': last position must be > 0!"); 
 		if (_b < 0.0) UERROR("Cannot initialize PMD function '", name, "': b must be > 0!");
 		if (_c < 0.0) UERROR("Cannot initialize PMD function '", name, "': c must be > 0!");
+		_fillPMDProbabilities(N + 1);
 	}
-	_fillPMDProbabilities();
 }
 
-void TPMDFunctionExponential::_fillPMDProbabilities() {
-	_values.resize(_lastPosition + 1);
-	for (size_t p = 0; p < _values.size(); ++p) { _values[p] = _a * exp(-_b * p) + _c; }
+void TPMDFunctionExponential::_fillPMDProbabilities(size_t N) {
+	_values.resize(N);
+	for (size_t p = 0; p < N; ++p) { _values[p] = _a * exp(-_b * p) + _c; }
 }
 
 
-void TPMDFunctionExponential::learn(const TPMDTable &Table, const Base &from, const Base &to) {
+void TPMDFunctionExponential::learn(const std::vector<double> &ref_base, const std::vector<double> &base_ref) {
 	logfile().list("Learning exponential pattern");
-	// extract counts in PMD direction and the inverse direction
-	const std::vector<size_t> &pmdCounts = Table[from][to];
-	const std::vector<size_t> &pmdSums   = Table.sums(from);
-	const std::vector<size_t> &invCounts = Table[to][from];
-	const std::vector<size_t> &invSums   = Table.sums(from);
-
-
-	// find last entry with counts
-	_lastPosition = pmdCounts.size() - 1;
-	while (_lastPosition >= 9 && pmdCounts[_lastPosition] < 100) _lastPosition --;
-
-	// Check if we have sufficient data
-	if (_lastPosition <= 9)
-		UERROR("Not sufficient data to fit exponential PMD model: less than the ten first positions have > 100 data "
-			   "points!\nConsider pooling read groups (parameter poolReadGroups).");
-
-	const auto last = pmdSums.cbegin() + _lastPosition;
-	if (std::find(pmdSums.cbegin(), last, 0) != last)
-		UERROR("Not sufficient data to fit exponential PMD model: no observations for some reference "
-			   "alleles!<nConsider reducing the relevant length (parameter length).");
-
-	std::vector<double> pmdRel;
-	for (size_t i = 0; i < _lastPosition + 1; ++i) {
-		pmdRel.push_back(static_cast<double>(pmdCounts[i])/pmdSums[i]);
-	}
 
 	// get initial estimates via OLS
-	std::array<double, 3> Parameters = impl::initialEstimatesOLS(pmdRel);
-
-
-	// run Newton-Raphson
-	impl::estimateWithNewtonRaphson(pmdRel, Parameters);
-
-
-	// transform parameters
-	// the exponential PMD model is f(C->T) = mu + (1-mu) *[ a*exp(-b * position) + c ]
-	// but we fitted f(C->T) = alpha + beta * exp(-gamma * position).
-	// Hence we have:
-	//  mu is estimated from T->C transitions
-	//  a =  beta / (1 - mu)
-	//  b = gamma
-	//  c = (alpha - mu) / (1 - mu)
-	const double mu = std::accumulate(invCounts.cbegin(), invCounts.cbegin() + _lastPosition + 1, 0.) /
-			  std::accumulate(invSums.cbegin(), invSums.cbegin() + _lastPosition + 1, 0);
+	const auto values                = impl::makeEmpiric(ref_base, base_ref);
+	std::array<double, 3> Parameters = impl::initialEstimatesOLS(values);
+	impl::estimateWithNewtonRaphson(values, Parameters);
 
 	// store parameters, including lastPosition
-	_a = Parameters[1] / (1.0 - mu);
+	_a = Parameters[1];
 	_b = Parameters[2];
-	_c = (Parameters[0] - mu) / (1.0 - mu);
+	_c = Parameters[0];
 
 	logfile().conclude(_a, "*exp(-", _b, "*p) + ", _c);
 
@@ -286,12 +265,11 @@ void TPMDFunctionExponential::learn(const TPMDTable &Table, const Base &from, co
 			   " < 0! This is likely due to limited data. Consider pooling read groups (parameter poolReadGroups).");
 	}
 
-	_fillPMDProbabilities();
-
+	_fillPMDProbabilities(values.size());
 
 	// check if pattern is negativ
-	if (_values[_lastPosition] < 0) {
-		UERROR("Estimation resulted in negative PMD = ", _values[_lastPosition],
+	if (_values.back() < 0) {
+		UERROR("Estimation resulted in negative PMD = ", _values.back(),
 			   " at high positions!\nThis is likely be due to limited data. Consider pooling read groups (parameter "
 			   "poolReadGroups).");
 	}
@@ -300,7 +278,7 @@ void TPMDFunctionExponential::learn(const TPMDTable &Table, const Base &from, co
 Probability TPMDFunctionExponential::prob(uint16_t pos) const noexcept {
 	// Note: distance is zero based!
 	// model is fit up to _lastPosition. We assume constant PMD after that
-	return pos < _lastPosition ? _values[pos] : _values[_lastPosition];
+	return pos < _values.size() ? _values[pos] : _values.back();
 }
 
 //---------------------------------------------------------------
@@ -321,28 +299,10 @@ Probability TPMDFunctionExponential::prob(uint16_t pos) const noexcept {
 	}
 }
 
-void TPMDFunctionEmpiric::learn(const TPMDTable &Table, const Base &from, const Base &to) {
+void TPMDFunctionEmpiric::learn(const std::vector<double> &ref_base, const std::vector<double> &base_ref) {
 	logfile().list("Learning empiric pattern");
 	// resize parameters
-	_values.resize(Table.size()); // include extra bin for sites beyond size (available in PMDTables)
-
-	// extract counts in PMD direction and the inverse direction
-	const std::vector<size_t> &forwardCounts  = Table[from][to]; //e.g. C -> T
-	const std::vector<size_t> &forwardSums    = Table.sums(from);
-	const std::vector<size_t> &backwardCounts = Table[to][from]; //e.g. T -> C
-	const std::vector<size_t> &backwardSums   = Table.sums(to);
-
-	for (size_t p = 0; p < _values.size(); ++p) {
-		if (forwardSums[p] == 0 || backwardSums[p] == 0) {
-			_values[p] = 0.0;
-		} else {
-			double forward  = (double)forwardCounts[p] / forwardSums[p]; //e.g. C -> T
-			double backward = (double)backwardCounts[p] / backwardSums[p]; //e.g. T -> C
-
-			//forward = mu_CT + (1 - mu_CT) * PMD; mu_CT = mu_TC = backward
-			_values[p] = std::max(0.0, (forward - backward) / (1.0 - backward));
-		}
-	}
+	_values = impl::makeEmpiric(ref_base, base_ref);
 }
 
 Probability TPMDFunctionEmpiric::prob(uint16_t pos) const noexcept {

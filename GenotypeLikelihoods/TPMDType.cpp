@@ -98,17 +98,60 @@ TPMDTypeDoubleStrand::TPMDTypeDoubleStrand(const std::vector<std::string> &Detai
 void TPMDTypeDoubleStrand::estimate(const PMDTable_RG &PMDTable) {
 	// Note: TPMDTables stores bases as during sequencing (not as after mapping)
 	// Assumption: C->T pattern is the same for forward and reverse reads from their respective 5-prime ends.
-	TPMDTable from5(PMDTable[ReadEnd::forward5]);
-	from5.add(PMDTable[ReadEnd::reverse5]);
-	logfile().startIndent("Learning C-T pattern:");
-	_pmdCT->learn(from5, Base::C, Base::T);
-	logfile().endIndent();
+	const auto N = PMDTable.front().size();
+	std::vector<double> C_T;
+	C_T.reserve(N);
+	std::vector<double> T_C;
+	C_T.reserve(N);
+	std::vector<double> G_A;
+	G_A.reserve(N);
+	std::vector<double> A_G;
+	A_G.reserve(N);
+	
+	for (size_t i = 0; i < N; ++i) {
+		// CT
+		C_T.push_back(PMDTable[ReadEnd::forward5][Base::C][Base::T][i]);
+		C_T.back() += PMDTable[ReadEnd::reverse5][Base::C][Base::T][i];
+		if (C_T.back() < 100) {
+			if (i < 10) {
+				UERROR("Not sufficient C_T data to estimate PMD model at position ", i, ": ", C_T.back(),
+					   ", the first 10 positions must have > 100 data points!\nConsider pooling read groups (parameter "
+					   "poolReadGroups).");
+			}
+			C_T.pop_back();
+			break;
+		}
+		C_T.back() /= (PMDTable[ReadEnd::forward5].sums(Base::C)[i] + PMDTable[ReadEnd::reverse5].sums(Base::C)[i]);
 
-	// Assumption: G->A pattern is the same for forward and reverse reads from their respective 3-prime ends.
-	TPMDTable from3(PMDTable[ReadEnd::forward3]);
-	from3.add(PMDTable[ReadEnd::reverse3]);
+		T_C.push_back(PMDTable[ReadEnd::forward5][Base::T][Base::C][i]);
+		T_C.back() += PMDTable[ReadEnd::reverse5][Base::T][Base::C][i];
+		T_C.back() /= (PMDTable[ReadEnd::forward5].sums(Base::T)[i]
+					   + PMDTable[ReadEnd::reverse5].sums(Base::T)[i]);
+
+		// GA 
+		G_A.push_back(PMDTable[ReadEnd::forward3][Base::G][Base::A][i]);
+		G_A.back() += PMDTable[ReadEnd::reverse3][Base::G][Base::A][i];
+		if (G_A.back() < 100) {
+			if (i < 10) {
+				UERROR("Not sufficient G_A data to estimate PMD model at position ", i, ": ", G_A.back(),
+					   ", the first 10 positions must have > 100 data points!\nConsider pooling read groups (parameter "
+					   "poolReadGroups).");
+			}
+			G_A.pop_back();
+			break;
+		}
+		G_A.back() /= (PMDTable[ReadEnd::forward3].sums(Base::G)[i] + PMDTable[ReadEnd::reverse3].sums(Base::G)[i]);
+
+		A_G.push_back(PMDTable[ReadEnd::forward3][Base::A][Base::G][i]);
+		A_G.back() += PMDTable[ReadEnd::reverse3][Base::A][Base::G][i];
+		A_G.back() /= (PMDTable[ReadEnd::forward3].sums(Base::A)[i]
+					   + PMDTable[ReadEnd::reverse3].sums(Base::A)[i]);
+	}
+	logfile().startIndent("Learning C-T pattern:");
+	_pmdCT->learn(C_T, T_C);
+	logfile().endIndent();
 	logfile().startIndent("Learning G-A pattern:");
-	_pmdGA->learn(from3, Base::G, Base::A);
+	_pmdGA->learn(G_A, A_G);
 	logfile().endIndent();
 }
 
@@ -151,6 +194,7 @@ void TPMDTypeSingleStrand::estimate(const PMDTable_RG &PMDTable) {
 	// Note: TPMDTables stores bases as during sequencing (not as after mapping)
 	// Assumption: 5-prime C->T pattern is the same for forward and reverse reads from their respective
 	// 5-prime ends.
+	/*
 	TPMDTable from5(PMDTable[ReadEnd::forward5]);
 	from5.add(PMDTable[ReadEnd::reverse5]);
 
@@ -166,6 +210,9 @@ void TPMDTypeSingleStrand::estimate(const PMDTable_RG &PMDTable) {
 	logfile().startIndent("Learning 3' C-T pattern:");
 	_pmdCT3->learn(from3, Base::C, Base::T);
 	logfile().endIndent();
+	*/
+
+
 }
 
 TBaseLikelihoods TPMDTypeSingleStrand::baseLikelihoods(const BAM::TSequencedBase &data,
