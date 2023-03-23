@@ -49,14 +49,6 @@ private:
 	uint16_t _lastPosition;
 	double _a, _b, _c;
 	std::vector<coretools::Probability> _values;
-
-	void _initialEstimatesOLS(const std::vector<size_t> &pmdCounts, const std::vector<size_t> &pmdSums, std::array<double, 3> &Parameters);
-	void _fillFAndJacobian(arma::vec &F, arma::mat &J, const std::vector<size_t> &pmdCounts, const std::vector<size_t> &pmdSums,
-						   const std::array<double, 3> &Parameters);
-	void _estimateWithNewtonRaphson(const std::vector<size_t> &pmdCounts, const std::vector<size_t> &pmdSums,
-									std::array<double, 3> &Parameters);
-	double _calcLL(const std::vector<size_t> &pmdCounts, const std::vector<size_t> &pmdSums,
-	               const std::array<double, 3> &Parameters);
 	void _fillPMDProbabilities();
 
 public:

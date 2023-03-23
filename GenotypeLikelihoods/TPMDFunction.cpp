@@ -30,7 +30,158 @@ std::vector<T> parseParameters(std::string_view string) {
 	}
 	return ps;
 }
+
+std::array<double, 3> initialEstimatesOLS(const std::vector<double> &pmdRel) {
+	// fill vector y to fit using OLS
+	const auto N = pmdRel.size();
+	arma::vec y(pmdRel.size());
+	double sumYSquared = 0.0;
+	for (size_t p = 0; p < N; ++p) {
+		y(p) = pmdRel[p];
+		sumYSquared += y(p) * y(p);
+	}
+
+	// some variables
+	double gammaStep = 0.01;
+	double gammaTmp  = -gammaStep + 0.00000001;
+	double SSRold    = N;
+	double SSRdiff   = -1.0;
+	arma::mat betaHat;
+	arma::mat X(N, 2);
+	X.ones();
+
+	// do until we get a small alpha
+	while (fabs(gammaStep) > 0.00000001) {
+		while (SSRdiff < 0.0) {
+			// update gamma
+			gammaTmp += gammaStep;
+
+			// fill x
+			for (size_t p = 0; p < N; ++p) { X(p, 1) = exp(-gammaTmp * p); }
+			betaHat = inv(X.t() * X) * X.t() * y;
+
+			// calc sum of squares
+			const arma::mat tmp = betaHat.t() * X.t() * y;
+			const double SSRnew = sumYSquared - tmp(0, 0);
+			SSRdiff             = SSRnew - SSRold;
+			SSRold              = SSRnew;
+		}
+		// update alpha step
+		gammaStep = -0.1 * gammaStep;
+		SSRdiff   = -1.0;
+	}
+	// set parameters
+	return {betaHat(0), betaHat(1), gammaTmp};
 }
+
+double calcLL(const std::vector<double> &pmdRel, const std::array<double, 3> &Parameters) {
+	double LL = 0.0;
+	for (size_t p = 0; p < pmdRel.size(); ++p) {
+		const auto dExpMinusAlphaP = Parameters[1] * exp(-Parameters[2] * p);
+		LL += pmdRel[p] * log(Parameters[0] + dExpMinusAlphaP) +
+		      (1 - pmdRel[p]) * log(1.0 - Parameters[0] - dExpMinusAlphaP);
+	}
+	return LL;
+}
+
+
+void fillFAndJacobian(arma::vec &F, arma::mat &J, const std::vector<double> &pmdRel,
+												const std::array<double, 3> &Parameters) {
+	F.zeros();
+	J.zeros();
+
+	for (size_t p = 0; p < pmdRel.size(); ++p) {
+		// exp
+		const auto expMinusAlphaP  = exp(-Parameters[2] * p);
+		const auto dExpMinusAlphaP = Parameters[1] * expMinusAlphaP;
+
+		// first term
+		//----------
+		const auto tmp1     = Parameters[0] + dExpMinusAlphaP;
+		const auto weight1  = pmdRel[p] / tmp1;
+		const auto weightJ1 = weight1 / tmp1;
+
+		// add to F
+		F(0) += weight1;
+		F(1) += weight1 * expMinusAlphaP;
+		F(2) -= weight1 * p * dExpMinusAlphaP;
+
+		// add to J -> only upper triangle, as it is symmetric
+		J(0, 0) -= weightJ1;
+		J(0, 1) -= weightJ1 * expMinusAlphaP;
+		J(0, 2) += weightJ1 * p * dExpMinusAlphaP;
+		J(1, 1) -= weightJ1 * expMinusAlphaP * expMinusAlphaP;
+		J(1, 2) -= weightJ1 * p * Parameters[0] * expMinusAlphaP;
+		J(2, 2) += weightJ1 * p * p * Parameters[0] * dExpMinusAlphaP;
+
+		// second term
+		//-----------
+		const auto tmp2     = (1.0 - Parameters[0] - dExpMinusAlphaP);
+		const auto weight2  = (1. - pmdRel[p]) / tmp2;
+		const auto weightJ2 = weight2 / tmp2;
+
+		// add to F
+		F(0) -= weight2;
+		F(1) -= weight2 * expMinusAlphaP;
+		F(2) += weight2 * p * dExpMinusAlphaP;
+
+		// add to J -> only upper triangle, as it is symmetric
+		J(0, 0) -= weightJ2;
+		J(0, 1) -= weightJ2 * expMinusAlphaP;
+		J(0, 2) += weightJ2 * p * dExpMinusAlphaP;
+		J(1, 1) -= weightJ2 * expMinusAlphaP * expMinusAlphaP;
+		J(1, 2) += weightJ2 * p * (1.0 - Parameters[0]) * expMinusAlphaP;
+		J(2, 2) -= weightJ2 * p * p * (1.0 - Parameters[0]) * dExpMinusAlphaP;
+	}
+
+	// now fill in lower triangle of J
+	J(1, 0) = J(0, 1);
+	J(2, 0) = J(0, 2);
+	J(2, 1) = J(1, 2);
+}
+
+
+
+void estimateWithNewtonRaphson(const std::vector<double> &pmdRel,
+														 std::array<double, 3> &Parameters) {
+	const double epsilon = parameters().getParameterWithDefault<double>("epsilon", 0.001);
+	logfile().list("Will consider the Newton-Raphson algorithm to have converged if the likelihood difference < " +
+	               toString(epsilon) + ". (parameter 'epsilon')");
+	const double numNRIterations = parameters().getParameterWithDefault<int>("numNR", 100);
+	logfile().list("Will run up to " + toString(numNRIterations) + " Newton-Raphson iterations. (parameter 'numNR ')");
+	// Conduct Newton-Raphson to refine
+	//----------------------------------
+	double oldLL = impl::calcLL(pmdRel, Parameters);
+
+	for (size_t _ = 0; _ < numNRIterations; ++_) {
+		arma::mat J(3, 3);
+		arma::vec F(3);
+		arma::mat JxF;
+		impl::fillFAndJacobian(F, J, pmdRel, Parameters);
+
+		if (!solve(JxF, J, F)) {
+			DEVERROR("Issue solving JxF in TPMDTable::fitExponentialModel!");
+		}
+
+		// estimate new params
+		std::array<double, 3> newParams;
+		for (size_t i = 0; i < newParams.size(); ++i) newParams[i] = Parameters[i] - JxF(i);
+
+		// calculate LL at new location
+		const auto LL = impl::calcLL(pmdRel, newParams);
+
+		// check if we accept or backtrack
+		if (LL > oldLL) {
+			oldLL = LL;
+			// store new params
+			for (size_t i = 0; i < Parameters.size(); ++i) Parameters[i] = newParams[i];
+
+			// check if we stop NR
+			if (LL - oldLL < epsilon) break;
+		}
+	}
+}
+} // namespace impl
 
 //---------------------------------------------------------------
 // TPMDFunctionNoPMD
@@ -75,158 +226,6 @@ void TPMDFunctionExponential::_fillPMDProbabilities() {
 	for (size_t p = 0; p < _values.size(); ++p) { _values[p] = _a * exp(-_b * p) + _c; }
 }
 
-void TPMDFunctionExponential::_initialEstimatesOLS(const std::vector<size_t> &pmdCounts, const std::vector<size_t> &pmdSums,
-						   std::array<double, 3> &Parameters) {
-	// fill vector y to fit using OLS
-	const size_t N = _lastPosition + 1;
-	arma::vec y(N);
-	double sumYSquared = 0.0;
-	for (int p = 0; p <= _lastPosition; ++p) {
-		y(p) = (double)pmdCounts[p]/pmdSums[p];
-		sumYSquared += y(p) * y(p);
-	}
-
-	// some variables
-	double gammaStep = 0.01;
-	double gammaTmp  = -gammaStep + 0.00000001;
-	double SSRold    = N;
-	double SSRdiff   = -1.0;
-	arma::mat betaHat;
-	arma::mat X(N, 2);
-	X.ones();
-
-	// do until we get a small alpha
-	while (fabs(gammaStep) > 0.00000001) {
-		while (SSRdiff < 0.0) {
-			// update gamma
-			gammaTmp += gammaStep;
-
-			// fill x
-			for (size_t p = 0; p < N; ++p) {
-				X(p, 1) = exp(-gammaTmp*p);
-			}
-			betaHat = inv(X.t() * X) * X.t() * y;
-
-			// calc sum of squares
-			const arma::mat tmp = betaHat.t() * X.t() * y;
-			const double SSRnew = sumYSquared - tmp(0, 0);
-			SSRdiff             = SSRnew - SSRold;
-			SSRold              = SSRnew;
-		}
-		// update alpha step
-		gammaStep = -0.1 * gammaStep;
-		SSRdiff   = -1.0;
-	}
-	// set parameters
-	Parameters = {betaHat(0), betaHat(1), gammaTmp};
-}
-
-void TPMDFunctionExponential::_fillFAndJacobian(arma::vec &F, arma::mat &J, const std::vector<size_t> &pmdCounts,
-						const std::vector<size_t> &pmdSums, const std::array<double, 3> &Parameters) {
-	F.zeros();
-	J.zeros();
-
-	for (int p = 0; p <= _lastPosition; ++p) {
-		// exp
-		const auto expMinusAlphaP  = exp(-Parameters[2] * p);
-		const auto dExpMinusAlphaP = Parameters[1] * expMinusAlphaP;
-
-		// first term
-		//----------
-		const auto tmp1     = Parameters[0] + dExpMinusAlphaP;
-		const auto weight1  = pmdCounts[p] / tmp1;
-		const auto weightJ1 = weight1 / tmp1;
-
-		// add to F
-		F(0) += weight1;
-		F(1) += weight1 * expMinusAlphaP;
-		F(2) -= weight1 * p * dExpMinusAlphaP;
-
-		// add to J -> only upper triangle, as it is symmetric
-		J(0, 0) -= weightJ1;
-		J(0, 1) -= weightJ1 * expMinusAlphaP;
-		J(0, 2) += weightJ1 * p * dExpMinusAlphaP;
-		J(1, 1) -= weightJ1 * expMinusAlphaP * expMinusAlphaP;
-		J(1, 2) -= weightJ1 * p * Parameters[0] * expMinusAlphaP;
-		J(2, 2) += weightJ1 * p * p * Parameters[0] * dExpMinusAlphaP;
-
-		// second term
-		//-----------
-		const auto tmp2     = (1.0 - Parameters[0] - dExpMinusAlphaP);
-		const auto weight2  = (pmdSums[p] - pmdCounts[p]) / tmp2;
-		const auto weightJ2 = weight2 / tmp2;
-
-		// add to F
-		F(0) -= weight2;
-		F(1) -= weight2 * expMinusAlphaP;
-		F(2) += weight2 * p * dExpMinusAlphaP;
-
-		// add to J -> only upper triangle, as it is symmetric
-		J(0, 0) -= weightJ2;
-		J(0, 1) -= weightJ2 * expMinusAlphaP;
-		J(0, 2) += weightJ2 * p * dExpMinusAlphaP;
-		J(1, 1) -= weightJ2 * expMinusAlphaP * expMinusAlphaP;
-		J(1, 2) += weightJ2 * p * (1.0 - Parameters[0]) * expMinusAlphaP;
-		J(2, 2) -= weightJ2 * p * p * (1.0 - Parameters[0]) * dExpMinusAlphaP;
-	}
-
-	// now fill in lower triangle of J
-	J(1, 0) = J(0, 1);
-	J(2, 0) = J(0, 2);
-	J(2, 1) = J(1, 2);
-}
-
-double TPMDFunctionExponential::_calcLL(const std::vector<size_t> &pmdCounts, const std::vector<size_t> &pmdSums,
-					const std::array<double, 3> &Parameters) {
-	double LL = 0.0;
-	for (int p = 0; p <= _lastPosition; ++p) {
-		const auto dExpMinusAlphaP = Parameters[1] * exp(-Parameters[2] * p);
-		LL += pmdCounts[p] * log(Parameters[0] + dExpMinusAlphaP) +
-		      (pmdSums[p] - pmdCounts[p]) * log(1.0 - Parameters[0] - dExpMinusAlphaP);
-	}
-	return LL;
-}
-
-void TPMDFunctionExponential::_estimateWithNewtonRaphson(const std::vector<size_t> &pmdCounts,
-														 const std::vector<size_t> &pmdSums,
-														 std::array<double, 3> &Parameters) {
-	const double epsilon = parameters().getParameterWithDefault<double>("epsilon", 0.001);
-	logfile().list("Will consider the Newton-Raphson algorithm to have converged if the likelihood difference < " +
-	               toString(epsilon) + ". (parameter 'epsilon')");
-	const double numNRIterations = parameters().getParameterWithDefault<int>("numNR", 100);
-	logfile().list("Will run up to " + toString(numNRIterations) + " Newton-Raphson iterations. (parameter 'numNR ')");
-	// Conduct Newton-Raphson to refine
-	//----------------------------------
-	double oldLL = _calcLL(pmdCounts, pmdSums, Parameters);
-
-	for (size_t _ = 0; _ < numNRIterations; ++_) {
-		arma::mat J(3, 3);
-		arma::vec F(3);
-		arma::mat JxF;
-		_fillFAndJacobian(F, J, pmdCounts, pmdSums, Parameters);
-
-		if (!solve(JxF, J, F)) {
-			DEVERROR("Issue solving JxF in TPMDTable::fitExponentialModel!");
-		}
-
-		// estimate new params
-		std::array<double, 3> newParams;
-		for (size_t i = 0; i < newParams.size(); ++i) newParams[i] = Parameters[i] - JxF(i);
-
-		// calculate LL at new location
-		const auto LL = _calcLL(pmdCounts, pmdSums, newParams);
-
-		// check if we accept or backtrack
-		if (LL > oldLL) {
-			oldLL = LL;
-			// store new params
-			for (size_t i = 0; i < Parameters.size(); ++i) Parameters[i] = newParams[i];
-
-			// check if we stop NR
-			if (LL - oldLL < epsilon) break;
-		}
-	}
-}
 
 void TPMDFunctionExponential::learn(const TPMDTable &Table, const Base &from, const Base &to) {
 	logfile().list("Learning exponential pattern");
@@ -235,6 +234,7 @@ void TPMDFunctionExponential::learn(const TPMDTable &Table, const Base &from, co
 	const std::vector<size_t> &pmdSums   = Table.sums(from);
 	const std::vector<size_t> &invCounts = Table[to][from];
 	const std::vector<size_t> &invSums   = Table.sums(from);
+
 
 	// find last entry with counts
 	_lastPosition = pmdCounts.size() - 1;
@@ -250,13 +250,17 @@ void TPMDFunctionExponential::learn(const TPMDTable &Table, const Base &from, co
 		UERROR("Not sufficient data to fit exponential PMD model: no observations for some reference "
 			   "alleles!<nConsider reducing the relevant length (parameter length).");
 
+	std::vector<double> pmdRel;
+	for (size_t i = 0; i < _lastPosition + 1; ++i) {
+		pmdRel.push_back(static_cast<double>(pmdCounts[i])/pmdSums[i]);
+	}
+
 	// get initial estimates via OLS
-	std::array<double, 3> Parameters;
-	_initialEstimatesOLS(pmdCounts, pmdSums, Parameters);
+	std::array<double, 3> Parameters = impl::initialEstimatesOLS(pmdRel);
 
 
 	// run Newton-Raphson
-	_estimateWithNewtonRaphson(pmdCounts, pmdSums, Parameters);
+	impl::estimateWithNewtonRaphson(pmdRel, Parameters);
 
 
 	// transform parameters
