@@ -3,6 +3,7 @@
 #include "coretools/Main/TParameters.h"
 #include "coretools/Main/TRandomGenerator.h"
 #include "coretools/Types/probability.h"
+#include <tuple>
 
 namespace GenotypeLikelihoods {
 
@@ -31,13 +32,13 @@ std::vector<T> parseParameters(std::string_view string) {
 	return ps;
 }
 
-std::array<double, 3> initialEstimatesOLS(const std::vector<Probability> &pmdRel) {
+std::array<double, 3> initialEstimatesOLS(const std::vector<Probability> &Empiric) {
 	// fill vector y to fit using OLS
-	const auto N = pmdRel.size();
-	arma::vec y(pmdRel.size());
+	const auto N = Empiric.size();
+	arma::vec y(Empiric.size());
 	double sumYSquared = 0.0;
 	for (size_t p = 0; p < N; ++p) {
-		y(p) = pmdRel[p];
+		y(p) = Empiric[p];
 		sumYSquared += y(p) * y(p);
 	}
 
@@ -74,23 +75,21 @@ std::array<double, 3> initialEstimatesOLS(const std::vector<Probability> &pmdRel
 	return {betaHat(0), betaHat(1), gammaTmp};
 }
 
-double calcLL(const std::vector<Probability> &pmdRel, const std::array<double, 3> &Parameters) {
+double calcLL(const std::vector<Probability> &Empiric, const std::array<double, 3> &Parameters) {
 	double LL = 0.0;
-	for (size_t p = 0; p < pmdRel.size(); ++p) {
+	for (size_t p = 0; p < Empiric.size(); ++p) {
 		const auto dExpMinusAlphaP = Parameters[1] * exp(-Parameters[2] * p);
-		LL += pmdRel[p].get() * log(Parameters[0] + dExpMinusAlphaP) +
-			  (1. - pmdRel[p].get()) * log(1.0 - Parameters[0] - dExpMinusAlphaP);
+		LL += Empiric[p].get() * log(Parameters[0] + dExpMinusAlphaP) +
+			  (1. - Empiric[p].get()) * log(1.0 - Parameters[0] - dExpMinusAlphaP);
 	}
 	return LL;
 }
 
+auto fillFAndJacobian(const std::vector<Probability> &Empiric, const std::array<double, 3> &Parameters) {
+	arma::vec F(3);
+	arma::mat J(3, 3);
 
-void fillFAndJacobian(arma::vec &F, arma::mat &J, const std::vector<Probability> &pmdRel,
-												const std::array<double, 3> &Parameters) {
-	F.zeros();
-	J.zeros();
-
-	for (size_t p = 0; p < pmdRel.size(); ++p) {
+	for (size_t p = 0; p < Empiric.size(); ++p) {
 		// exp
 		const auto expMinusAlphaP  = exp(-Parameters[2] * p);
 		const auto dExpMinusAlphaP = Parameters[1] * expMinusAlphaP;
@@ -98,7 +97,7 @@ void fillFAndJacobian(arma::vec &F, arma::mat &J, const std::vector<Probability>
 		// first term
 		//----------
 		const auto tmp1     = Parameters[0] + dExpMinusAlphaP;
-		const auto weight1  = pmdRel[p].get() / tmp1;
+		const auto weight1  = Empiric[p].get() / tmp1;
 		const auto weightJ1 = weight1 / tmp1;
 
 		// add to F
@@ -117,7 +116,7 @@ void fillFAndJacobian(arma::vec &F, arma::mat &J, const std::vector<Probability>
 		// second term
 		//-----------
 		const auto tmp2     = (1.0 - Parameters[0] - dExpMinusAlphaP);
-		const auto weight2  = (1. - pmdRel[p].get()) / tmp2;
+		const auto weight2  = (1. - Empiric[p].get()) / tmp2;
 		const auto weightJ2 = weight2 / tmp2;
 
 		// add to F
@@ -138,12 +137,10 @@ void fillFAndJacobian(arma::vec &F, arma::mat &J, const std::vector<Probability>
 	J(1, 0) = J(0, 1);
 	J(2, 0) = J(0, 2);
 	J(2, 1) = J(1, 2);
+	return std::make_tuple(F, J);
 }
 
-
-
-void estimateWithNewtonRaphson(const std::vector<Probability> &pmdRel,
-														 std::array<double, 3> &Parameters) {
+auto estimateWithNewtonRaphson(const std::vector<Probability> &Empiric, std::array<double, 3> Parameters) {
 	const double epsilon = parameters().getParameterWithDefault<double>("epsilon", 0.001);
 	logfile().list("Will consider the Newton-Raphson algorithm to have converged if the likelihood difference < " +
 	               toString(epsilon) + ". (parameter 'epsilon')");
@@ -151,44 +148,46 @@ void estimateWithNewtonRaphson(const std::vector<Probability> &pmdRel,
 	logfile().list("Will run up to " + toString(numNRIterations) + " Newton-Raphson iterations. (parameter 'numNR ')");
 	// Conduct Newton-Raphson to refine
 	//----------------------------------
-	double oldLL = impl::calcLL(pmdRel, Parameters);
-
+	double oldLL = impl::calcLL(Empiric, Parameters);
 	for (size_t _ = 0; _ < numNRIterations; ++_) {
-		arma::mat J(3, 3);
-		arma::vec F(3);
-		arma::mat JxF;
-		impl::fillFAndJacobian(F, J, pmdRel, Parameters);
+		auto [F, J] = impl::fillFAndJacobian(Empiric, Parameters);
 
+		arma::mat JxF;
 		if (!solve(JxF, J, F)) {
 			DEVERROR("Issue solving JxF in TPMDTable::fitExponentialModel!");
 		}
 
 		// estimate new params
-		std::array<double, 3> newParams;
-		for (size_t i = 0; i < newParams.size(); ++i) newParams[i] = Parameters[i] - JxF(i);
+		double lambda   = 1;
+		double deltaLL  = 0;
+		while (lambda > 1e-20) {
+			std::array<double, 3> newParams;
+			for (size_t i = 0; i < newParams.size(); ++i) newParams[i] = Parameters[i] - lambda * JxF(i);
 
-		// calculate LL at new location
-		const auto LL = impl::calcLL(pmdRel, newParams);
+			// calculate LL at new location
+			const auto LL = impl::calcLL(Empiric, newParams);
+			deltaLL = LL - oldLL;
+			if (deltaLL > 0) {
+				oldLL = LL;
+				std::copy(newParams.begin(), newParams.end(), Parameters.begin());
+				break;
+			}
 
-		// check if we accept or backtrack
-		if (LL > oldLL) {
-			oldLL = LL;
-			// store new params
-			for (size_t i = 0; i < Parameters.size(); ++i) Parameters[i] = newParams[i];
-
-			// check if we stop NR
-			if (LL - oldLL < epsilon) break;
+			// else backtrace
+			lambda /= 2;
 		}
+		if (deltaLL < epsilon || lambda <= 1e20) break;
 	}
+	return std::make_tuple(Parameters[1], Parameters[2], Parameters[0]);
 }
 
-std::vector<Probability> makeEmpiric(const std::vector<double> &ref_base, const std::vector<double> &base_ref) {
+std::vector<Probability> makeEmpiric(const std::vector<double> &From_to, const std::vector<double> &To_from) {
 	std::vector<Probability> values;
-	values.reserve(ref_base.size()); // include extra bin for sites beyond size (available in PMDTables)
+	values.reserve(From_to.size()); // include extra bin for sites beyond size (available in PMDTables)
 
-	for (size_t p = 0; p < ref_base.size(); ++p) {
-		const double forward  = ref_base[p]; // e.g. C -> T
-		const double backward = base_ref[p]; // e.g. T -> C
+	for (size_t p = 0; p < From_to.size(); ++p) {
+		const double forward  = From_to[p]; // e.g. C -> T
+		const double backward = To_from[p]; // e.g. T -> C
 
 		if (forward == 0. || backward == 0.) {
 			values.push_back(0.);
@@ -245,18 +244,13 @@ void TPMDFunctionExponential::_fillPMDProbabilities(size_t N) {
 }
 
 
-void TPMDFunctionExponential::learn(const std::vector<double> &ref_base, const std::vector<double> &base_ref) {
+void TPMDFunctionExponential::learn(const std::vector<double> &From_to, const std::vector<double> &To_from) {
 	logfile().list("Learning exponential pattern");
 
 	// get initial estimates via OLS
-	const auto values                = impl::makeEmpiric(ref_base, base_ref);
-	std::array<double, 3> Parameters = impl::initialEstimatesOLS(values);
-	impl::estimateWithNewtonRaphson(values, Parameters);
-
-	// store parameters, including lastPosition
-	_a = Parameters[1];
-	_b = Parameters[2];
-	_c = Parameters[0];
+	const auto empiric    = impl::makeEmpiric(From_to, To_from);
+	const auto Parameters = impl::initialEstimatesOLS(empiric);
+	std::tie(_a, _b, _c)  = impl::estimateWithNewtonRaphson(empiric, Parameters);
 
 	logfile().conclude(_a, "*exp(-", _b, "*p) + ", _c);
 
@@ -265,7 +259,7 @@ void TPMDFunctionExponential::learn(const std::vector<double> &ref_base, const s
 			   " < 0! This is likely due to limited data. Consider pooling read groups (parameter poolReadGroups).");
 	}
 
-	_fillPMDProbabilities(values.size());
+	_fillPMDProbabilities(empiric.size());
 
 	// check if pattern is negativ
 	if (_values.back() < 0) {
@@ -299,10 +293,10 @@ Probability TPMDFunctionExponential::prob(uint16_t pos) const noexcept {
 	}
 }
 
-void TPMDFunctionEmpiric::learn(const std::vector<double> &ref_base, const std::vector<double> &base_ref) {
+void TPMDFunctionEmpiric::learn(const std::vector<double> &From_to, const std::vector<double> &To_from) {
 	logfile().list("Learning empiric pattern");
 	// resize parameters
-	_values = impl::makeEmpiric(ref_base, base_ref);
+	_values = impl::makeEmpiric(From_to, To_from);
 }
 
 Probability TPMDFunctionEmpiric::prob(uint16_t pos) const noexcept {

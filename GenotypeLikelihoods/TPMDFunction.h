@@ -24,10 +24,10 @@ public:
 	TPMDFunction()          = default;
 	virtual ~TPMDFunction() = default;
 
-	virtual bool hasDamage() const noexcept                                                      = 0;
-	virtual void learn(const std::vector<double> &ref_base, const std::vector<double> &base_ref) = 0;
-	virtual std::string string() const noexcept                                                  = 0;
-	virtual coretools::Probability prob(uint16_t pos) const noexcept                             = 0;
+	virtual bool hasDamage() const noexcept                                                    = 0;
+	virtual void learn(const std::vector<double> &from_to, const std::vector<double> &to_from) = 0;
+	virtual std::string string() const noexcept                                                = 0;
+	virtual coretools::Probability prob(uint16_t pos) const noexcept                           = 0;
 };
 
 class TPMDFunctionNoPMD final : public TPMDFunction {
@@ -59,7 +59,7 @@ public:
 			   coretools::str::concatenateString(std::vector{_a, _b, _c}, ",") + "]";
 	}
 
-	void learn(const std::vector<double> &ref_base, const std::vector<double> &base_ref) override;
+	void learn(const std::vector<double> &from_to, const std::vector<double> &to_from) override;
 	coretools::Probability prob(uint16_t pos) const noexcept override;
 };
 
@@ -77,7 +77,7 @@ public:
 		return name + "[" + coretools::str::concatenateString(_values, ",") + "]";
 	}
 
-	void learn(const std::vector<double> &ref_base, const std::vector<double> &base_ref) override;
+	void learn(const std::vector<double> &from_to, const std::vector<double> &to_from) override;
 	coretools::Probability prob(uint16_t pos) const noexcept override;
 };
 

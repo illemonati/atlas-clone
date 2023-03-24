@@ -3,6 +3,7 @@
 #include "coretools/Main/TRandomGenerator.h"
 #include "coretools/Types/probability.h"
 #include "genometools/GenotypeTypes.h"
+#include <utility>
 
 namespace GenotypeLikelihoods {
 
@@ -71,6 +72,56 @@ Base simulate(Base base, coretools::Probability pCT, coretools::Probability pGA)
 	// else
 	return base;
 }
+
+template<size_t End>
+constexpr ReadEnd makeForward() {
+	if constexpr (End == 3) return ReadEnd::forward3;
+	if constexpr (End == 5) return ReadEnd::forward5;
+	else static_assert(End == 3);
+}
+
+template<size_t End>
+constexpr ReadEnd makeReverse() {
+	if constexpr (End == 3) return ReadEnd::reverse3;
+	if constexpr (End == 5) return ReadEnd::reverse5;
+	else static_assert(End == 3);
+}
+
+template<size_t End, Base From, Base To>
+auto makeFromTo(const PMDTable_RG &PMDTable) {
+	// Assumption: From->To pattern is the same for forward and reverse reads from their respective Ends
+	const auto N = PMDTable.front().size();
+	std::vector<double> from_to;
+	from_to.reserve(N);
+	std::vector<double> to_from;
+	to_from.reserve(N);
+
+	constexpr auto forward = makeForward<End>();
+	constexpr auto reverse = makeReverse<End>();
+
+	for (size_t i = 0; i < N; ++i) {
+		// CT
+		from_to.push_back(PMDTable[forward][From][To][i]);
+		from_to.back() += PMDTable[reverse][From][To][i];
+		if (from_to.back() < 100) {
+			if (i < 10) {
+				UERROR("Not sufficient ", From, "-", To, " data to estimate PMD model at position ", i, ": ", from_to.back(),
+					   ", the first 10 positions must have > 100 data points!\nConsider pooling read groups (parameter "
+					   "poolReadGroups).");
+			}
+			from_to.pop_back();
+			break;
+		}
+		from_to.back() /= (PMDTable[forward].sums(From)[i] + PMDTable[reverse].sums(From)[i]);
+
+		to_from.push_back(PMDTable[forward][To][From][i]);
+		to_from.back() += PMDTable[reverse][To][From][i];
+		to_from.back() /= (PMDTable[forward].sums(To)[i]
+					   + PMDTable[reverse].sums(To)[i]);
+	}
+	return std::make_pair(from_to, to_from);
+}
+
 }
 
 TBaseProbabilities TPMDTypeNone::massFunction(genometools::Genotype g, const TBaseLikelihoods &baseLikelihoodsNoPMD) {
@@ -95,62 +146,16 @@ TPMDTypeDoubleStrand::TPMDTypeDoubleStrand(const std::vector<std::string> &Detai
 	_pmdGA.reset(makeFunction(Details[2]));
 }
 
+
+
 void TPMDTypeDoubleStrand::estimate(const PMDTable_RG &PMDTable) {
-	// Note: TPMDTables stores bases as during sequencing (not as after mapping)
-	// Assumption: C->T pattern is the same for forward and reverse reads from their respective 5-prime ends.
-	const auto N = PMDTable.front().size();
-	std::vector<double> C_T;
-	C_T.reserve(N);
-	std::vector<double> T_C;
-	C_T.reserve(N);
-	std::vector<double> G_A;
-	G_A.reserve(N);
-	std::vector<double> A_G;
-	A_G.reserve(N);
-	
-	for (size_t i = 0; i < N; ++i) {
-		// CT
-		C_T.push_back(PMDTable[ReadEnd::forward5][Base::C][Base::T][i]);
-		C_T.back() += PMDTable[ReadEnd::reverse5][Base::C][Base::T][i];
-		if (C_T.back() < 100) {
-			if (i < 10) {
-				UERROR("Not sufficient C_T data to estimate PMD model at position ", i, ": ", C_T.back(),
-					   ", the first 10 positions must have > 100 data points!\nConsider pooling read groups (parameter "
-					   "poolReadGroups).");
-			}
-			C_T.pop_back();
-			break;
-		}
-		C_T.back() /= (PMDTable[ReadEnd::forward5].sums(Base::C)[i] + PMDTable[ReadEnd::reverse5].sums(Base::C)[i]);
-
-		T_C.push_back(PMDTable[ReadEnd::forward5][Base::T][Base::C][i]);
-		T_C.back() += PMDTable[ReadEnd::reverse5][Base::T][Base::C][i];
-		T_C.back() /= (PMDTable[ReadEnd::forward5].sums(Base::T)[i]
-					   + PMDTable[ReadEnd::reverse5].sums(Base::T)[i]);
-
-		// GA 
-		G_A.push_back(PMDTable[ReadEnd::forward3][Base::G][Base::A][i]);
-		G_A.back() += PMDTable[ReadEnd::reverse3][Base::G][Base::A][i];
-		if (G_A.back() < 100) {
-			if (i < 10) {
-				UERROR("Not sufficient G_A data to estimate PMD model at position ", i, ": ", G_A.back(),
-					   ", the first 10 positions must have > 100 data points!\nConsider pooling read groups (parameter "
-					   "poolReadGroups).");
-			}
-			G_A.pop_back();
-			break;
-		}
-		G_A.back() /= (PMDTable[ReadEnd::forward3].sums(Base::G)[i] + PMDTable[ReadEnd::reverse3].sums(Base::G)[i]);
-
-		A_G.push_back(PMDTable[ReadEnd::forward3][Base::A][Base::G][i]);
-		A_G.back() += PMDTable[ReadEnd::reverse3][Base::A][Base::G][i];
-		A_G.back() /= (PMDTable[ReadEnd::forward3].sums(Base::A)[i]
-					   + PMDTable[ReadEnd::reverse3].sums(Base::A)[i]);
-	}
 	logfile().startIndent("Learning C-T pattern:");
+	const auto [C_T, T_C] = impl::makeFromTo<5, Base::C, Base::T>(PMDTable);
 	_pmdCT->learn(C_T, T_C);
 	logfile().endIndent();
+
 	logfile().startIndent("Learning G-A pattern:");
+	const auto [G_A, A_G] = impl::makeFromTo<3, Base::G, Base::A>(PMDTable);
 	_pmdGA->learn(G_A, A_G);
 	logfile().endIndent();
 }
@@ -191,28 +196,15 @@ TPMDTypeSingleStrand::TPMDTypeSingleStrand(const std::vector<std::string> &Detai
 }
 
 void TPMDTypeSingleStrand::estimate(const PMDTable_RG &PMDTable) {
-	// Note: TPMDTables stores bases as during sequencing (not as after mapping)
-	// Assumption: 5-prime C->T pattern is the same for forward and reverse reads from their respective
-	// 5-prime ends.
-	/*
-	TPMDTable from5(PMDTable[ReadEnd::forward5]);
-	from5.add(PMDTable[ReadEnd::reverse5]);
-
 	logfile().startIndent("Learning 5' C-T pattern:");
-	_pmdCT5->learn(from5, Base::C, Base::T);
+	const auto [C_T5, T_C5] = impl::makeFromTo<5, Base::C, Base::T>(PMDTable);
+	_pmdCT5->learn(C_T5, T_C5);
 	logfile().endIndent();
-
-	// Assumption: 3-prime C->T pattern is the same for forward and reverse reads from their
-	// respective 3-prime ends.
-	TPMDTable from3(PMDTable[ReadEnd::forward3]);
-	from3.add(PMDTable[ReadEnd::reverse3]);
 
 	logfile().startIndent("Learning 3' C-T pattern:");
-	_pmdCT3->learn(from3, Base::C, Base::T);
+	const auto [C_T3, T_C3] = impl::makeFromTo<3, Base::C, Base::T>(PMDTable);
+	_pmdCT3->learn(C_T3, T_C3);
 	logfile().endIndent();
-	*/
-
-
 }
 
 TBaseLikelihoods TPMDTypeSingleStrand::baseLikelihoods(const BAM::TSequencedBase &data,
