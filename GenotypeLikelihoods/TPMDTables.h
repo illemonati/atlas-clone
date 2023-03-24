@@ -34,23 +34,18 @@ namespace GenotypeLikelihoods {
 class TPMDTable {
 private:
 	static constexpr size_t _N = coretools::index(genometools::Base::max) + 1;
-	using countVec  = std::vector<size_t>;
-	using PMDCounts = coretools::TStrongArray<countVec, genometools::Base, _N>;
-	coretools::TStrongArray<PMDCounts, genometools::Base, _N> _counts;
-	coretools::TStrongArray<countVec, genometools::Base, _N> _sums;
+	std::vector<coretools::TStrongArray<coretools::TStrongArray<size_t, genometools::Base, _N>, genometools::Base, _N>> _counts;
 
 public:
 	TPMDTable() = default;
 
 	TPMDTable(size_t Size) { resize(Size); };
-	size_t size() const { return _sums.front().size() - 1; };
+	size_t size() const { return _counts.size(); };
 	void resize(size_t Size);
-	void empty();
+	const auto &operator[](size_t i) const noexcept {return _counts[i];}
+	auto &operator[](size_t i) noexcept {return _counts[i];}
 	void add(size_t pos, genometools::Base ref, genometools::Base read);
-	void add(const TPMDTable &other);
-	const PMDCounts &operator[](genometools::Base b) const { return _counts[b]; }
-	const countVec &sums(genometools::Base b) const { return _sums[b]; }
-	void write(coretools::TOutputFile &out, std::vector<std::string> &prefix, bool normalized);
+	void write(coretools::TOutputFile &out, std::array<std::string, 4> &prefix, bool normalized);
 };
 
 enum class ReadEnd : size_t { min = 0, forward5 = min, reverse5, forward3, reverse3, max };

@@ -101,8 +101,8 @@ auto makeFromTo(const PMDTable_RG &PMDTable) {
 
 	for (size_t i = 0; i < N; ++i) {
 		// CT
-		from_to.push_back(PMDTable[forward][From][To][i]);
-		from_to.back() += PMDTable[reverse][From][To][i];
+		from_to.push_back(PMDTable[forward][i][From][To]);
+		from_to.back() += PMDTable[reverse][i][From][To];
 		if (from_to.back() < 100) {
 			if (i < 10) {
 				UERROR("Not sufficient ", From, "-", To, " data to estimate PMD model at position ", i, ": ", from_to.back(),
@@ -112,12 +112,19 @@ auto makeFromTo(const PMDTable_RG &PMDTable) {
 			from_to.pop_back();
 			break;
 		}
-		from_to.back() /= (PMDTable[forward].sums(From)[i] + PMDTable[reverse].sums(From)[i]);
+		double s_from = 0;
+		double s_to   = 0;
+		for (auto b = Base::min; b < Base::max; ++b) {
+			s_from += PMDTable[forward][i][From][b];
+			s_from += PMDTable[reverse][i][From][b];
+			s_to += PMDTable[forward][i][To][b];
+			s_to += PMDTable[reverse][i][To][b];
+		}
+		from_to.back() /= s_from;
 
-		to_from.push_back(PMDTable[forward][To][From][i]);
-		to_from.back() += PMDTable[reverse][To][From][i];
-		to_from.back() /= (PMDTable[forward].sums(To)[i]
-					   + PMDTable[reverse].sums(To)[i]);
+		to_from.push_back(PMDTable[forward][i][To][From]);
+		to_from.back() += PMDTable[reverse][i][To][From];
+		to_from.back() /= s_to;
 	}
 	return std::make_pair(from_to, to_from);
 }

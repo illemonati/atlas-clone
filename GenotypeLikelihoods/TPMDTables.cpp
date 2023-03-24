@@ -23,58 +23,34 @@ namespace GenotypeLikelihoods {
 // TPMDTable
 //---------------------------------------------------------------
 void TPMDTable::resize(size_t Size) {
-	for (auto &from : _counts)
-		for (auto &to : from) to.resize(Size + 1); // Size + 1 for all larger than Size
-	for (auto &s : _sums) s.resize(Size + 1);          // Size + 1 for all larger than Size
-}
-
-void TPMDTable::empty() {
-	for (auto &from : _counts)
-		for (auto & to: from)
-			std::fill(to.begin(), to.end(), 0);
-	for (auto &s: _sums) std::fill(s.begin(), s.end(), 0);
+	_counts.resize(Size + 1);
 }
 
 void TPMDTable::add(size_t pos, genometools::Base ref, genometools::Base read) {
-	const auto p = std::min(pos, size());
-	++_counts[ref][read][p];
-	if (read != genometools::Base::N && ref != genometools::Base::N) { ++_sums[ref][p]; }
+	const auto p = std::min(pos, size() - 1);
+	++_counts[p][ref][read];
 }
 
-void TPMDTable::add(const TPMDTable &other) {
-	using genometools::Base;
-	if (size() != other.size()) return;
-
-	//for (size_t f = 0; f < _counts.size(); ++f)
-	for (Base f = Base::min; f <= Base::max; ++f)
-		for (Base t = Base::min; t <= Base::max; ++t)
-			for (size_t i = 0; i < size(); ++i)
-				_counts[f][t][i] += other._counts[f][t][i];
-
-	for (Base f = Base::min; f <= Base::max; ++f)
-		for (size_t i = 0; i < _sums[f].size(); ++i) 
-			_sums[f][i] += other._sums[f][i];
-}
-
-void TPMDTable::write(coretools::TOutputFile &out, std::vector<std::string> &prefix, bool normalized) {
+void TPMDTable::write(coretools::TOutputFile &out, std::array<std::string, 4> &prefix, bool normalized) {
 	using namespace genometools;
 	for (Base f = Base::min; f <= Base::max; ++f) {
 		prefix[3] = toString(f);
+		std::vector<size_t> sums(size(), 0.);
+		for (size_t i = 0; i < size(); ++i) {
+			for (Base t = Base::min; t < Base::max; ++t) { sums[i] += _counts[i][f][t]; }
+		}
+
 		for (Base t = Base::min; t <= Base::max; ++t) {
 			out.write(prefix, toString(t));
-			if (normalized) {
-				for (uint16_t i = 0; i < _sums[f].size(); ++i)
-					out.write(static_cast<double>(_counts[f][t][i])/_sums[f][i]);
-			} else {
-				out.write(_counts[f][t]);
+			for (size_t i = 0; i < size(); ++i) {
+				if (normalized)
+					out.write(static_cast<double>(_counts[i][f][t]) / sums[i]);
+				else
+					out.write(_counts[i][f][t]);
 			}
 			out.endln();
 		}
-		if (!normalized) {
-			out.write(prefix, "sum");
-			out.write(_sums[f]);
-			out.endln();
-		}
+		if (!normalized) { out.writeln(prefix, "sum", sums); }
 	}
 }
 
@@ -130,7 +106,7 @@ void TPMDTables::write(std::string filename, bool normalize) {
 	}();
 
 	// loop over all read groups
-	std::vector<std::string> prefix(4);
+	std::array<std::string, 4> prefix;
 	for (size_t i = 0; i < _readGroups->size(); ++i) {
 		if (_readGroups->readGroupInUse(i)) {
 			auto & table = _tables[_readGroupMap->pooledIndex(i)];

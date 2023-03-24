@@ -145,7 +145,7 @@ auto estimateWithNewtonRaphson(const std::vector<Probability> &Empiric, std::arr
 	logfile().list("Will consider the Newton-Raphson algorithm to have converged if the likelihood difference < " +
 	               toString(epsilon) + ". (parameter 'epsilon')");
 	const double numNRIterations = parameters().getParameterWithDefault<int>("numNR", 100);
-	logfile().list("Will run up to " + toString(numNRIterations) + " Newton-Raphson iterations. (parameter 'numNR ')");
+	logfile().list("Will run up to " + toString(numNRIterations) + " Newton-Raphson iterations. (parameter 'numNR')");
 	// Conduct Newton-Raphson to refine
 	//----------------------------------
 	double oldLL = impl::calcLL(Empiric, Parameters);
