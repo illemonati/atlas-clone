@@ -20,7 +20,6 @@
 #include "TReadGroupInfo.h"
 #include "genometools/GenotypeTypes.h"
 #include "TGenotypeData.h"
-#include "TPMDTables.h"
 #include "TPMDFunction.h"
 #include "TPMDType.h"
 #include "TReadGroups.h"
@@ -42,6 +41,7 @@ private:
 	void _setHasDamage();
 
 public:
+	using PMDTables = std::vector<TPMDType::PMDTable>;
 	TPostMortemDamage() = default;
 	TPostMortemDamage(const std::string &pmdString, const BAM::TReadGroups &ReadGroups,
 					  std::vector<size_t> &ReadGroupsWithoutPMD) {
@@ -63,7 +63,7 @@ public:
 	TBaseProbabilities massFunction(genometools::Genotype g, const BAM::TSequencedBase &data,
 									   const TBaseLikelihoods &baseLikelihoodsNoPMD) const;
 
-	void estimate(const BAM::TReadGroupMap& ReadGroupMap, const TPMDTables &Tables) {
+	void estimate(const BAM::TReadGroupMap& ReadGroupMap, const PMDTables &Tables) {
 		for (auto &r : ReadGroupMap.readGroupsInUse()) { _pmdObjects[r]->estimate(Tables[r]); }
 	}
 

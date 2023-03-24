@@ -16,8 +16,13 @@
 
 namespace GenotypeLikelihoods {
 
+enum class ReadEnd : size_t { min = 0, forward5 = min, reverse5, forward3, reverse3, max };
 class TPMDType {
+	static constexpr size_t _N = coretools::index(genometools::Base::max) + 1;
 public:
+using PMDTable = std::vector<coretools::TStrongArray<
+		coretools::TStrongArray<coretools::TStrongArray<size_t, genometools::Base, _N>, genometools::Base, _N>,
+		GenotypeLikelihoods::ReadEnd>>;
 	TPMDType()          = default;
 	virtual ~TPMDType() = default;
 
@@ -25,7 +30,7 @@ public:
 	virtual std::string functionString() const noexcept = 0;
 	virtual std::string typeString() const noexcept     = 0;
 
-	virtual void estimate(const PMDTable_RG &PMDTable) = 0;
+	virtual void estimate(const PMDTable &PMDTable) = 0;
 
 	virtual TBaseLikelihoods baseLikelihoods(const BAM::TSequencedBase &data,
 												const TBaseLikelihoods &baseLikelihoodsNoPMD) const = 0;
@@ -53,7 +58,7 @@ public:
 	std::string functionString() const noexcept override { return "none"; }
 	std::string typeString() const noexcept override { return name; }
 
-	void estimate(const PMDTable_RG &) override {}
+	void estimate(const PMDTable &) override {}
 
 	TBaseLikelihoods baseLikelihoods(const BAM::TSequencedBase &,
 										const TBaseLikelihoods &baseLikelihoodsNoPMD) const override {
@@ -109,7 +114,7 @@ public:
 	}
 	std::string typeString() const noexcept override { return name; }
 
-	void estimate(const PMDTable_RG &PMDTable) override;
+	void estimate(const PMDTable &PMDTable) override;
 
 	TBaseLikelihoods baseLikelihoods(const BAM::TSequencedBase &data,
 										const TBaseLikelihoods &baseLikelihoodsNoPMD) const override;
@@ -153,7 +158,7 @@ public:
 	}
 	std::string typeString() const noexcept override { return name; }
 
-	void estimate(const PMDTable_RG &PMDTable) override;
+	void estimate(const PMDTable &PMDTable) override;
 
 	TBaseLikelihoods baseLikelihoods(const BAM::TSequencedBase &data,
 										const TBaseLikelihoods &baseLikelihoodsNoPMD) const override;

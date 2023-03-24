@@ -13,8 +13,8 @@
 #include <string>
 
 #include "TGenome.h"
+#include "coretools/Containers/TStrongArray.h"
 #include "coretools/Main/TLog.h"
-#include "TPMDTables.h"
 #include "coretools/Main/TParameters.h"
 #include "TPostMortemDamage.h"
 #include "coretools/Main/TRandomGenerator.h"
@@ -32,11 +32,11 @@ namespace GenomeTasks {
 
 class TPMDEstimator : public TGenome_parsed {
 private:
-	uint16_t _maxLengthForInference;
+	size_t _tableSize;
 	BAM::TReadGroupMap _readGroupMap;
-	GenotypeLikelihoods::TPMDTables _pmdTables;
-
+	GenotypeLikelihoods::TPostMortemDamage::PMDTables _pmdTables;
 	void _handleAlignment();
+	void _write(bool normalized);
 
 public:
 	TPMDEstimator();

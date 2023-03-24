@@ -14,7 +14,6 @@
 #include <string>
 #include <vector>
 
-#include "TPMDTables.h"
 #include "coretools/Types/probability.h"
 
 namespace GenotypeLikelihoods {

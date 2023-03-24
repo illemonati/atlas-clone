@@ -88,9 +88,9 @@ constexpr ReadEnd makeReverse() {
 }
 
 template<size_t End, Base From, Base To>
-auto makeFromTo(const PMDTable_RG &PMDTable) {
+auto makeFromTo(const TPMDType::PMDTable &table) {
 	// Assumption: From->To pattern is the same for forward and reverse reads from their respective Ends
-	const auto N = PMDTable.front().size();
+	const auto N = table.size();
 	std::vector<double> from_to;
 	from_to.reserve(N);
 	std::vector<double> to_from;
@@ -101,8 +101,8 @@ auto makeFromTo(const PMDTable_RG &PMDTable) {
 
 	for (size_t i = 0; i < N; ++i) {
 		// CT
-		from_to.push_back(PMDTable[forward][i][From][To]);
-		from_to.back() += PMDTable[reverse][i][From][To];
+		from_to.push_back(table[i][forward][From][To]);
+		from_to.back() += table[i][reverse][From][To];
 		if (from_to.back() < 100) {
 			if (i < 10) {
 				UERROR("Not sufficient ", From, "-", To, " data to estimate PMD model at position ", i, ": ", from_to.back(),
@@ -115,15 +115,15 @@ auto makeFromTo(const PMDTable_RG &PMDTable) {
 		double s_from = 0;
 		double s_to   = 0;
 		for (auto b = Base::min; b < Base::max; ++b) {
-			s_from += PMDTable[forward][i][From][b];
-			s_from += PMDTable[reverse][i][From][b];
-			s_to += PMDTable[forward][i][To][b];
-			s_to += PMDTable[reverse][i][To][b];
+			s_from += table[i][forward][From][b];
+			s_from += table[i][reverse][From][b];
+			s_to += table[i][forward][To][b];
+			s_to += table[i][reverse][To][b];
 		}
 		from_to.back() /= s_from;
 
-		to_from.push_back(PMDTable[forward][i][To][From]);
-		to_from.back() += PMDTable[reverse][i][To][From];
+		to_from.push_back(table[i][forward][To][From]);
+		to_from.back() += table[i][reverse][To][From];
 		to_from.back() /= s_to;
 	}
 	return std::make_pair(from_to, to_from);
@@ -155,14 +155,14 @@ TPMDTypeDoubleStrand::TPMDTypeDoubleStrand(const std::vector<std::string> &Detai
 
 
 
-void TPMDTypeDoubleStrand::estimate(const PMDTable_RG &PMDTable) {
+void TPMDTypeDoubleStrand::estimate(const PMDTable &table) {
 	logfile().startIndent("Learning C-T pattern:");
-	const auto [C_T, T_C] = impl::makeFromTo<5, Base::C, Base::T>(PMDTable);
+	const auto [C_T, T_C] = impl::makeFromTo<5, Base::C, Base::T>(table);
 	_pmdCT->learn(C_T, T_C);
 	logfile().endIndent();
 
 	logfile().startIndent("Learning G-A pattern:");
-	const auto [G_A, A_G] = impl::makeFromTo<3, Base::G, Base::A>(PMDTable);
+	const auto [G_A, A_G] = impl::makeFromTo<3, Base::G, Base::A>(table);
 	_pmdGA->learn(G_A, A_G);
 	logfile().endIndent();
 }
@@ -202,7 +202,7 @@ TPMDTypeSingleStrand::TPMDTypeSingleStrand(const std::vector<std::string> &Detai
 	_pmdCT3.reset(makeFunction(Details[2]));
 }
 
-void TPMDTypeSingleStrand::estimate(const PMDTable_RG &PMDTable) {
+void TPMDTypeSingleStrand::estimate(const PMDTable &PMDTable) {
 	logfile().startIndent("Learning 5' C-T pattern:");
 	const auto [C_T5, T_C5] = impl::makeFromTo<5, Base::C, Base::T>(PMDTable);
 	_pmdCT5->learn(C_T5, T_C5);
