@@ -142,25 +142,19 @@ public:
 	std::string_view typeString() const noexcept override { return name; }
 
 	void estimate(const PMDTable &table) override {
+		logfile().startIndent("Learning 5' C-T pattern:");
+		const auto [C_T5, T_C5] = impl::makeFromTo<5, Base::C, Base::T>(table);
+		_pmd5->learn(C_T5, T_C5);
+		logfile().endIndent();
 		if constexpr (strand == Strand::Single) {
-			logfile().startIndent("Learning 5' C-T pattern:");
-			const auto [C_T5, T_C5] = impl::makeFromTo<5, Base::C, Base::T>(table);
-			_pmd5->learn(C_T5, T_C5);
-			logfile().endIndent();
-
 			logfile().startIndent("Learning 3' C-T pattern:");
 			const auto [C_T3, T_C3] = impl::makeFromTo<3, Base::C, Base::T>(table);
 			_pmd3->learn(C_T3, T_C3);
 			logfile().endIndent();
 		} else {
-			logfile().startIndent("Learning C-T pattern:");
-			const auto [C_T, T_C] = impl::makeFromTo<5, Base::C, Base::T>(table);
-			_pmd5->learn(C_T, T_C);
-			logfile().endIndent();
-
-			logfile().startIndent("Learning G-A pattern:");
-			const auto [G_A, A_G] = impl::makeFromTo<3, Base::G, Base::A>(table);
-			_pmd3->learn(G_A, A_G);
+			logfile().startIndent("Learning 3' G-A pattern:");
+			const auto [G_A3, A_G3] = impl::makeFromTo<3, Base::G, Base::A>(table);
+			_pmd3->learn(G_A3, A_G3);
 			logfile().endIndent();
 		}
 	}
