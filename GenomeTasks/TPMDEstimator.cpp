@@ -53,7 +53,7 @@ TPMDEstimator::TPMDEstimator(): TGenome_parsed(), _readGroupMap(_bamFile.readGro
 	_pmdTables.resize(readGroups.size());
 	for (auto rg = readGroups.cbegin(); rg != readGroups.cend(); ++rg) {
 		const auto rg_i = _readGroupMap.pooledIndex(rg->id());
-		_pmdTables[rg_i].resize(_tableSize);
+		_pmdTables[rg_i].resize(_tableSize,{});
 	}
 };
 

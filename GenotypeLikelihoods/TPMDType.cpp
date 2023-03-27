@@ -1,4 +1,5 @@
 #include "TPMDType.h"
+#include "coretools/Containers/TStrongArray.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TRandomGenerator.h"
 #include "coretools/Types/probability.h"
@@ -10,69 +11,9 @@ namespace GenotypeLikelihoods {
 using coretools::instances::logfile;
 using coretools::instances::randomGenerator;
 using genometools::Base;
-using genometools::Genotype;
 using namespace coretools::str;
 
 namespace impl {
-TBaseLikelihoods baseLikelihoods(coretools::Probability pCT, coretools::Probability pGA,
-								 const TBaseLikelihoods &baseLikelihoodsNoPMD) {
-	TBaseLikelihoods baseLikelihoods(baseLikelihoodsNoPMD);
-	baseLikelihoods[Base::C] =
-		(1.0 - pCT) * baseLikelihoodsNoPMD[Base::C] + pCT * baseLikelihoodsNoPMD[Base::T];
-	baseLikelihoods[Base::G] =
-		(1.0 - pGA) * baseLikelihoodsNoPMD[Base::G] + pGA * baseLikelihoodsNoPMD[Base::A];
-	return baseLikelihoods;
-}
-
-TBaseProbabilities massFunction(Base b, coretools::Probability pCT, coretools::Probability pGA,
-								const TBaseLikelihoods &baseLikelihoodsNoPMD) {
-	switch (b) {
-	case Base::A: return TBaseProbabilities::normalize({1., 0., 0., 0.});
-	case Base::C: {
-		return TBaseProbabilities::normalize(
-			{0., (1. - pCT) * baseLikelihoodsNoPMD[Base::C], 0., pCT * baseLikelihoodsNoPMD[Base::T]});
-	}
-	case Base::G: {
-		return TBaseProbabilities::normalize(
-			{pGA * baseLikelihoodsNoPMD[Base::A], 0., (1. - pGA) * baseLikelihoodsNoPMD[Base::G], 0.});
-	}
-	default: return TBaseProbabilities::normalize({0., 0., 0., 1.}); // case Base::T
-	}
-}
-
-TBaseProbabilities massFunction(Genotype g, coretools::Probability pCT, coretools::Probability pGA,
-								const TBaseLikelihoods &baseLikelihoodsNoPMD) {
-	using namespace genometools;
-	std::array<Base, 2> bases{first(g), second(g)};
-	TBaseData mf{0};
-	for (const auto a : bases) {
-		switch (a) {
-		case Base::A: mf[Base::A] += baseLikelihoodsNoPMD[Base::A]; break;
-		case Base::C: {
-			mf[Base::C] += (1. - pCT) * baseLikelihoodsNoPMD[Base::C];
-			mf[Base::T] += pCT * baseLikelihoodsNoPMD[Base::T];
-		} break;
-		case Base::G: {
-			mf[Base::A] += pGA * baseLikelihoodsNoPMD[Base::A];
-			mf[Base::G] += (1. - pGA) * baseLikelihoodsNoPMD[Base::G];
-		} break;
-		default: mf[Base::T] += baseLikelihoodsNoPMD[Base::T];
-		}
-	}
-	return TBaseProbabilities::normalize(mf);
-}
-
-Base simulate(Base base, coretools::Probability pCT, coretools::Probability pGA) {
-	if (base == Base::C) {
-		if (randomGenerator().getRand() < pCT) return Base::T;
-	}
-	else if (base == Base::G) {
-		if (randomGenerator().getRand() < pGA) return Base::A;
-	}
-	// else
-	return base;
-}
-
 template<size_t End>
 constexpr ReadEnd makeForward() {
 	if constexpr (End == 3) return ReadEnd::forward3;
@@ -129,7 +70,7 @@ auto makeFromTo(const TPMDType::PMDTable &table) {
 	return std::make_pair(from_to, to_from);
 }
 
-}
+} // namespace impl
 
 TBaseProbabilities TPMDTypeNone::massFunction(genometools::Genotype g, const TBaseLikelihoods &baseLikelihoodsNoPMD) {
 		using namespace genometools;
@@ -141,97 +82,156 @@ TBaseProbabilities TPMDTypeNone::massFunction(genometools::Genotype g, const TBa
 		return TBaseProbabilities::normalize(mf);
 	}
 
-TPMDTypeDoubleStrand::TPMDTypeDoubleStrand(const std::vector<std::string> &Details) {
-	// expect three elements: type, pmdCT, pmdGA
-	constexpr size_t nDetails = 3;
-	if (Details.size() != nDetails) {
-		UERROR("Cannot initialize PMD type ", name, ": expect ", nDetails, " entries but found ", Details.size(), "!",
-			   "\nProvided string: '", concatenateString(Details, ':'), "'.", "\nExpect string of the form '", name,
-			   "':functionCT:functionGA'.");
+enum class Strand : size_t {min, Single=min, Double, max};
+
+template<Strand strand> class TPMDTypeStrand final : public TPMDType {
+private:
+	std::unique_ptr<TPMDFunction> _pmd5;
+	std::unique_ptr<TPMDFunction> _pmd3;
+
+	coretools::Probability _probCT(const BAM::TSequencedBase &data) const noexcept {
+		using coretools::Probability;
+		if constexpr (strand == Strand::Single) {
+			if (data.isReverseStrand()) return coretools::Probability{};
+			return data.distFrom3Prime < data.distFrom5Prime ? _pmd3->prob(data.distFrom3Prime)
+															 : _pmd5->prob(data.distFrom5Prime);
+
+		} else {
+			if (data.distFrom3Prime < data.distFrom5Prime) { // from 3
+				return !data.isReverseStrand() ? Probability{} : _pmd3->prob(data.distFrom3Prime);
+			} else { // from 5
+				return !data.isReverseStrand() ? _pmd5->prob(data.distFrom5Prime) : Probability{};
+			}
+		}
 	}
-	_pmdCT.reset(makeFunction(Details[1]));
-	_pmdGA.reset(makeFunction(Details[2]));
-}
 
+	coretools::Probability _probGA(const BAM::TSequencedBase &data) const noexcept {
+		using coretools::Probability;
+		if constexpr (strand == Strand::Single) {
+			if (!data.isReverseStrand()) return coretools::Probability{};
+			return data.distFrom3Prime < data.distFrom5Prime ? _pmd3->prob(data.distFrom3Prime)
+															 : _pmd5->prob(data.distFrom5Prime);
 
-
-void TPMDTypeDoubleStrand::estimate(const PMDTable &table) {
-	logfile().startIndent("Learning C-T pattern:");
-	const auto [C_T, T_C] = impl::makeFromTo<5, Base::C, Base::T>(table);
-	_pmdCT->learn(C_T, T_C);
-	logfile().endIndent();
-
-	logfile().startIndent("Learning G-A pattern:");
-	const auto [G_A, A_G] = impl::makeFromTo<3, Base::G, Base::A>(table);
-	_pmdGA->learn(G_A, A_G);
-	logfile().endIndent();
-}
-
-
-TBaseLikelihoods TPMDTypeDoubleStrand::baseLikelihoods(const BAM::TSequencedBase &data,
-					       const TBaseLikelihoods &baseLikelihoodsNoPMD) const {
-	return impl::baseLikelihoods(_probCT(data), _probGA(data), baseLikelihoodsNoPMD);
-}
-
-TBaseProbabilities TPMDTypeDoubleStrand::massFunction(Base b, const BAM::TSequencedBase &data,
-														 const TBaseLikelihoods &baseLikelihoodsNoPMD) const {
-	return impl::massFunction(b, _probCT(data), _probGA(data), baseLikelihoodsNoPMD);
-}
-
-TBaseProbabilities TPMDTypeDoubleStrand::massFunction(genometools::Genotype g, const BAM::TSequencedBase &data,
-														 const TBaseLikelihoods &baseLikelihoodsNoPMD) const {
-	return impl::massFunction(g, _probCT(data), _probGA(data), baseLikelihoodsNoPMD);
-}
-
-void TPMDTypeDoubleStrand::simulate(BAM::TSequencedBase &data) const {
-	data.base = impl::simulate(data.base, _probCT(data), _probGA(data));
-}
-//------------------------------------------------------
-// TPMDSingleStrand
-//------------------------------------------------------
-
-TPMDTypeSingleStrand::TPMDTypeSingleStrand(const std::vector<std::string> &Details) {
-	// expect 2 elements: type, pmdCT
-	constexpr size_t nDetails = 3;
-	if (Details.size() != nDetails) {
-		UERROR("Cannot initialize PMD type ", name, ": expect ", nDetails, " entries but found ", Details.size(), "!",
-			   "\nProvided string: '", concatenateString(Details, ':'), "'.", "\nExpect string of the form '", name,
-			   "':functionCT:functionGA'.");
+		} else {
+			if (data.distFrom3Prime < data.distFrom5Prime) { // from 3
+				return !data.isReverseStrand() ? _pmd3->prob(data.distFrom3Prime) : Probability{};
+			} else { // from 5
+				return !data.isReverseStrand() ? Probability{} : _pmd5->prob(data.distFrom5Prime);
+			}
+		}
 	}
-	_pmdCT5.reset(makeFunction(Details[1]));
-	_pmdCT3.reset(makeFunction(Details[2]));
-}
 
-void TPMDTypeSingleStrand::estimate(const PMDTable &PMDTable) {
-	logfile().startIndent("Learning 5' C-T pattern:");
-	const auto [C_T5, T_C5] = impl::makeFromTo<5, Base::C, Base::T>(PMDTable);
-	_pmdCT5->learn(C_T5, T_C5);
-	logfile().endIndent();
+	static constexpr coretools::TStrongArray<std::string_view, Strand> _names{{"singleStrand", "doubleStrand"}};
+public:
+	static constexpr std::string_view name = _names[strand];
+	TPMDTypeStrand(const std::vector<std::string> &Details) {
+		constexpr size_t nDetails = 3;
+		if (Details.size() != nDetails) {
+			UERROR("Cannot initialize PMD type ", name, ": expect ", nDetails, " entries but found ", Details.size(),
+				   "!", "\nProvided string: '", concatenateString(Details, ':'), "'.", "\nExpect string of the form '",
+				   name, "':functionCT:functionGA'.");
+		}
+		_pmd5.reset(makeFunction(Details[1]));
+		_pmd3.reset(makeFunction(Details[2]));
+	}
 
-	logfile().startIndent("Learning 3' C-T pattern:");
-	const auto [C_T3, T_C3] = impl::makeFromTo<3, Base::C, Base::T>(PMDTable);
-	_pmdCT3->learn(C_T3, T_C3);
-	logfile().endIndent();
-}
+	bool hasDamage() const noexcept override { return _pmd5->hasDamage() || _pmd3->hasDamage(); };
+	std::string functionString() const noexcept override {
+		return std::string(name).append(1, ':').append(_pmd5->string()).append(1, ':').append(_pmd3->string());
+	}
+	std::string_view typeString() const noexcept override { return name; }
 
-TBaseLikelihoods TPMDTypeSingleStrand::baseLikelihoods(const BAM::TSequencedBase &data,
-					       const TBaseLikelihoods &baseLikelihoodsNoPMD) const {
-	return impl::baseLikelihoods(_probCT(data), _probGA(data), baseLikelihoodsNoPMD);
-}
+	void estimate(const PMDTable &table) override {
+		if constexpr (strand == Strand::Single) {
+			logfile().startIndent("Learning 5' C-T pattern:");
+			const auto [C_T5, T_C5] = impl::makeFromTo<5, Base::C, Base::T>(table);
+			_pmd5->learn(C_T5, T_C5);
+			logfile().endIndent();
 
-TBaseProbabilities TPMDTypeSingleStrand::massFunction(Base b, const BAM::TSequencedBase &data,
-														 const TBaseLikelihoods &baseLikelihoodsNoPMD) const {
-	return impl::massFunction(b, _probCT(data), _probGA(data), baseLikelihoodsNoPMD);
-}
+			logfile().startIndent("Learning 3' C-T pattern:");
+			const auto [C_T3, T_C3] = impl::makeFromTo<3, Base::C, Base::T>(table);
+			_pmd3->learn(C_T3, T_C3);
+			logfile().endIndent();
+		} else {
+			logfile().startIndent("Learning C-T pattern:");
+			const auto [C_T, T_C] = impl::makeFromTo<5, Base::C, Base::T>(table);
+			_pmd5->learn(C_T, T_C);
+			logfile().endIndent();
 
-TBaseProbabilities TPMDTypeSingleStrand::massFunction(genometools::Genotype g, const BAM::TSequencedBase &data,
-														 const TBaseLikelihoods &baseLikelihoodsNoPMD) const {
-	return impl::massFunction(g, _probCT(data), _probGA(data), baseLikelihoodsNoPMD);
-}
+			logfile().startIndent("Learning G-A pattern:");
+			const auto [G_A, A_G] = impl::makeFromTo<3, Base::G, Base::A>(table);
+			_pmd3->learn(G_A, A_G);
+			logfile().endIndent();
+		}
+	}
 
-void TPMDTypeSingleStrand::simulate(BAM::TSequencedBase &data) const {
-	data.base = impl::simulate(data.base, _probCT(data), _probGA(data));
-}
+	TBaseLikelihoods baseLikelihoods(const BAM::TSequencedBase &data,
+									 const TBaseLikelihoods &baseLikelihoodsNoPMD) const override {
+		const auto pCT = _probCT(data);
+		const auto pGA = _probGA(data);
+		TBaseLikelihoods baseLikelihoods(baseLikelihoodsNoPMD);
+
+		baseLikelihoods[Base::C] = (1.0 - pCT) * baseLikelihoodsNoPMD[Base::C] + pCT * baseLikelihoodsNoPMD[Base::T];
+		baseLikelihoods[Base::G] = (1.0 - pGA) * baseLikelihoodsNoPMD[Base::G] + pGA * baseLikelihoodsNoPMD[Base::A];
+		return baseLikelihoods;
+	}
+
+	TBaseProbabilities massFunction(genometools::Base b, const BAM::TSequencedBase &data,
+									const TBaseLikelihoods &baseLikelihoodsNoPMD) const override {
+		const auto pCT = _probCT(data);
+		const auto pGA = _probGA(data);
+
+		switch (b) {
+		case Base::A: return TBaseProbabilities::normalize({1., 0., 0., 0.});
+		case Base::C: {
+			return TBaseProbabilities::normalize(
+				{0., (1. - pCT) * baseLikelihoodsNoPMD[Base::C], 0., pCT * baseLikelihoodsNoPMD[Base::T]});
+		}
+		case Base::G: {
+			return TBaseProbabilities::normalize(
+				{pGA * baseLikelihoodsNoPMD[Base::A], 0., (1. - pGA) * baseLikelihoodsNoPMD[Base::G], 0.});
+		}
+		default: return TBaseProbabilities::normalize({0., 0., 0., 1.}); // case Base::T
+		}
+	}
+
+	TBaseProbabilities massFunction(genometools::Genotype g, const BAM::TSequencedBase &data,
+									const TBaseLikelihoods &baseLikelihoodsNoPMD) const override {
+		const auto pCT = _probCT(data);
+		const auto pGA = _probGA(data);
+
+		using namespace genometools;
+		std::array<Base, 2> bases{first(g), second(g)};
+		TBaseData mf{0};
+		for (const auto a : bases) {
+			switch (a) {
+			case Base::A: mf[Base::A] += baseLikelihoodsNoPMD[Base::A]; break;
+			case Base::C: {
+				mf[Base::C] += (1. - pCT) * baseLikelihoodsNoPMD[Base::C];
+				mf[Base::T] += pCT * baseLikelihoodsNoPMD[Base::T];
+			} break;
+			case Base::G: {
+				mf[Base::A] += pGA * baseLikelihoodsNoPMD[Base::A];
+				mf[Base::G] += (1. - pGA) * baseLikelihoodsNoPMD[Base::G];
+			} break;
+			default: mf[Base::T] += baseLikelihoodsNoPMD[Base::T];
+			}
+		}
+		return TBaseProbabilities::normalize(mf);
+	}
+
+	virtual void simulate(BAM::TSequencedBase &data) const override {
+		const auto pCT = _probCT(data);
+		const auto pGA = _probGA(data);
+		auto &base     = data.base;
+
+		if (base == Base::C) {
+			if (randomGenerator().getRand() < pCT) base = Base::T;
+		} else if (base == Base::G) {
+			if (randomGenerator().getRand() < pGA) base = Base::A;
+		}
+	}
+};
 
 TPMDType *makeType(std::string_view pmdString) {
 	// split by ':'
@@ -240,10 +240,10 @@ TPMDType *makeType(std::string_view pmdString) {
 
 	// switch type
 	if (details[0] == TPMDTypeNone::name) return new TPMDTypeNone;
-	if (details[0] == TPMDTypeSingleStrand::name) return new TPMDTypeSingleStrand(details);
-	if (details[0] == TPMDTypeDoubleStrand::name) return new TPMDTypeDoubleStrand(details);
+	if (details[0] == TPMDTypeStrand<Strand::Single>::name) return new TPMDTypeStrand<Strand::Single>(details);
+	if (details[0] == TPMDTypeStrand<Strand::Double>::name) return new TPMDTypeStrand<Strand::Double>(details);
 
 	UERROR("Cannot initialize PMD: unknown PMD type '", details[0], "'!\nUse ", TPMDTypeNone::name, " or ",
-		   TPMDTypeSingleStrand::name, " or ", TPMDTypeDoubleStrand::name, ".");
+		   TPMDTypeStrand<Strand::Single>::name, " or ", TPMDTypeStrand<Strand::Double>::name, ".");
 }
 }
