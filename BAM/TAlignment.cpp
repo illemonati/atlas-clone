@@ -438,7 +438,7 @@ void TAlignment::removeSoftClippedBases(size_t maxNumberOfSoftClippedBases) {
 	}
 	// then do the same on the right side
 	if (_cigar.lengthSoftClippedRight() > maxNumberOfSoftClippedBases) {
-		_bases.resize(_bases.size() - (_cigar.lengthSoftClippedRight() + maxNumberOfSoftClippedBases));
+		_bases.resize(_bases.size() - (_cigar.lengthSoftClippedRight() - maxNumberOfSoftClippedBases));
 		_sequenceAndQualitiesChanged = true;
 	}		
 		// update cigar and length
