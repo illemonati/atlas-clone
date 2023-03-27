@@ -142,23 +142,23 @@ public:
 
 class TFASTQWriter : public TSimulator{
 private:
-	bool _open{false};
-	char _cPassFilter;
-	int sequenceLength = 80;
-	std::string relativeQScoreValues;
-	static constexpr std::string_view genericIdentifiers = "@FS001:001:0000000:1:1:0:0 1:Y:1:AAACCC";		//generic identifiers if not specified
-	static constexpr std::string_view fileName = "FASTQ_Simulation_File.fastq";
+	// bool _open{false};
+	// char _cPassFilter;
+	// int sequenceLength = 80;
+	// std::string relativeQScoreValues;
+	// static constexpr std::string_view genericIdentifiers = "@FS001:001:0000000:1:1:0:0 1:Y:1:AAACCC";		//generic identifiers if not specified
+	// static constexpr std::string_view fileName = "FASTQ_Simulation_File.fastq";
 
 public:
-	int numberOfSimulations = 10;		//default minimum of simulatedSequences
-	bool _randomSequence = false;
-	static coretools::TOutputFile fastqSimulationFile;
-	void _fastqSimulate(int numberOfSimulations, bool _randomSequence);
-	std::string _generateHeader(std::string machineID, short runID, short FlowCellID, short lane, short tile, unsigned short xCoordinate, unsigned short yCoordinate,
-								bool readDirection, bool passFilter, short controlBits, std::string barCodeSequence);
-	std::string_view _generateHeader();
-	std::string _simulateRandomSequence(int sequenceLength);
-	std::string _generateSimulatedQScore();
+	// int numberOfSimulations = 10;		//default minimum of simulatedSequences
+	// bool _randomSequence = false;
+	// static coretools::TOutputFile fastqSimulationFile;
+	// void _fastqSimulate(int numberOfSimulations, bool _randomSequence);
+	// std::string _generateHeader(std::string machineID, short runID, short FlowCellID, short lane, short tile, unsigned short xCoordinate, unsigned short yCoordinate,
+	// 							bool readDirection, bool passFilter, short controlBits, std::string barCodeSequence);
+	// std::string_view _generateHeader();
+	// std::string _simulateRandomSequence(int sequenceLength);
+	// std::string _generateSimulatedQScore();
 };
 
 

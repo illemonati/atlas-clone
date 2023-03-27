@@ -1,5 +1,9 @@
+#ifndef TFASTQFILE_CPP
+#define TFASTQFILE_CPP
+
 #include <string>
 #include <vector>
+#include <stdlib.h>
 #include "TFastqFile.h"
 #include "genometools/PhredProbabilityTypes.h"
 #include "TAlignment.h"
@@ -7,21 +11,61 @@
 #include "coretools/Math/counters.h"
 #include "TAlignment.h"
 #include "TReadSimulator.h"
+#include "coretools/Main/TLog.h"
 
 
 namespace FASTQ{
 
-std::string TFastqFile::_generateIlluminaHeader(std::string machineID, short runID, short FlowCellID, short lane, short tile, unsigned short xCoordinate, unsigned short yCoordinate,
-								bool readDirection, bool passFilter, short controlBits, std::string barCodeSequence){
-    _cPassFilter = (passFilter) ? _cPassFilter = 'Y': _cPassFilter = 'N'; 
+    using coretools::instances::logfile; //used to write log file
 
-	return "@" + machineID + ":" + toString(runID) + ":" + toString(FlowCellID) + ":" + toString(lane) + ":" + toString(tile) + ":" + toString(xCoordinate) + ":" + toString(yCoordinate) + " " +
-			_cPassFilter + ":" + toString(controlBits) + ":" + toString(barCodeSequence);
+//------------------------------------------------
+// Methods to operate on Fastq files
+//------------------------------------------------
+
+TFastqFile::TFastqFile(){
+    _open = false;
 }
 
-void TOutputFASTQFile::_writeSequence(){
+//------------------------------------------------
+// Private methods
+//------------------------------------------------
+
+
+void TFastqFile::_writeAlignment(BAM::TAlignment &alignment){
+
 }
 
+//------------------------------------------------
+// Public methods
+//------------------------------------------------
 
+
+void TFastqFile::open(std::string fileName){
+    _fileName = fileName;
+    _open = true;
+    //open();
+}
+
+/**
+ * 
+ * TBAMFile open method
+ * 
+ * void TOutputBamFile::open(const std::string Filename, const TBamFile & Original){
+ *	open(Filename, Original.samHeader(), Original.chromosomes(), Original.readGroups());    
+ *   };
+*/
+
+void TFastqFile::close(){
+
+    _open = false;
+}
+
+void TFastqFile::writeAlignment(BAM::TAlignment &alignment){
 
 }
+
+void TFastqFile::setHeader(std::string header){ _header = header; }
+
+}
+
+#endif

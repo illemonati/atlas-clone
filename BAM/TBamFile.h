@@ -278,7 +278,7 @@ private:
  	//quality output transformations
  	TQualityAdjusterForWriting _qualityAdjuster;
 
- 	void _writeAlignment(const TAlignment & alignment);
+ 	void _writeAlignment(const TAlignment & alignment);					//can be written eighter with TAlignment AND BAMAlignment? would it be usefull?
  	void _writeAlignment(BamTools::BamAlignment & alignment);
 
 public:
