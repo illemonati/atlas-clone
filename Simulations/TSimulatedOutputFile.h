@@ -9,9 +9,28 @@
 #define TSIMULATEDOUTPUTFILE_H
 
 #include <string>
-#include "../BAM/TBamFile.h"
 #include "TFastqFile.h"
 #include "../coretools/core/coretools/Files/TOutputFile.h"
+
+#include "TBamFile.h"
+#include <math.h>
+#include <stdlib.h>
+#include <algorithm>
+#include <exception>
+#include <filesystem>
+#include "coretools/Main/TLog.h"
+#include "coretools/Math/TNumericRange.h"
+#include "coretools/Main/TParameters.h"
+#include "TSamFlags.h"
+#include "api/BamIndex.h"
+#include "api/SamProgram.h"
+#include "api/SamProgramChain.h"
+#include "api/SamReadGroup.h"
+#include "api/SamReadGroupDictionary.h"
+#include "api/SamSequence.h"
+#include "api/SamSequenceDictionary.h"
+#include "coretools/Main/globalConstants.h"
+#include "coretools/Types/strongTypes.h"
 
 namespace Simulations{
 
@@ -20,39 +39,11 @@ class TSimulatedOutputFile{
         coretools::TOutputFile simulatedOutputFile;
 
     public:
-        virtual void open(std::string fileName) = 0;
+        virtual void open(std::string_view filename) = 0;       //has to be string_view because of TBamFile request
         virtual void close() = 0;
-        virtual void _writeAlignment(BAM::TAlignment &alignment) = 0;
+        virtual void writeAlignment(BAM::TAlignment &alignment) = 0;
 
 };
-
-/**
- * Useless this part because I just need to extend TSimulatedOutputFIle class in Bam and in FASTQ
-*/
-
-/*
-class TSimulatedBamOutputFile : public TSimulatedOutputfile{
-    // friend BAM::TOutputBamFile;      useless to call it friend because it has to be a wrapper not using eachothers functions
-
-    public:
-        TSimulatedBamOutputFile();  //still need to insert constructor istances
-        void open() override;
-        void close() override;
-        void _writeAlignment() override;
-};
-
-class TSimulatedFastqOutputFile : public TSimulatedOutputfile{
-    //friend FASTQ::TOutputFASTQFile;       useless in the same way for the TOutputBamFile
-
-    public:
-        TSimulatedFastqOutputFile();      //still need to insert constructor istances     
-        void open();
-        void close() override;
-        void _writeAlignment() override;
-};
-
-*/
-
 }
 
 #endif

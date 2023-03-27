@@ -32,6 +32,8 @@
 #include "coretools/Strings/stringFunctions.h"
 #include "coretools/Math/counters.h"
 
+#include "TSimulatedOutputFile.h"
+
 namespace BAM{
 
 //-----------------------------------------------------
@@ -39,7 +41,7 @@ namespace BAM{
 //-----------------------------------------------------
 class TOutputBamFile; //forward declaration
 
-class TBamFile{
+class TBamFile : public Simulations::TSimulatedOutputFile{					//added the parent class to make simulate work
 	friend class TOutputBamFile;
 private:
 	//BAM file
@@ -158,9 +160,9 @@ public:
  	bool externalFilterEnabled() const{ return _externalFilter.filters(); };
 
 	//reading
-	void open(std::string_view Filename);
+	void open(std::string_view Filename) override;			//override because of parent class
 	bool isOpen() const{ return _open; };
-	void close();
+	void close() override;
 	bool readNextAlignment();
 	bool readNextAlignmentThatPassesFilters();
 	bool readNextAlignment(TAlignment & alignment);
@@ -278,7 +280,7 @@ private:
  	//quality output transformations
  	TQualityAdjusterForWriting _qualityAdjuster;
 
- 	void _writeAlignment(const TAlignment & alignment);					//can be written eighter with TAlignment AND BAMAlignment? would it be usefull?
+ 	void _writeAlignment(const TAlignment & alignment);
  	void _writeAlignment(BamTools::BamAlignment & alignment);
 
 public:
