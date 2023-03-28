@@ -1,5 +1,7 @@
 #!/bin/bash
 
+cd $(dirname $0)
+
 file=performanceTable
 
 if [ ! -f $file ]; then
