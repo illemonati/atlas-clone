@@ -207,7 +207,7 @@ public:
 			//if parameter is set and a number is given -> use this as max number of softclipped bases, else remove all
 			if(!parameters().getParameter<std::string>("removeSoftClippedBases").empty()){
 				_maxNumberOfSoftClippedBases = parameters().getParameter<size_t>("removeSoftClippedBases");
-				logfile().list("Will leave " + toString(_maxNumberOfSoftClippedBases) + " softclipped bases per end. (parameter 'removeSoftClippedBases')");
+				logfile().list("Will leave up to " + toString(_maxNumberOfSoftClippedBases) + " softclipped bases per end. (parameter 'removeSoftClippedBases')");
 			} else {
 				_maxNumberOfSoftClippedBases = 0;
 				logfile().list("Will remove all softclipped bases. (parameter 'removeSoftClippedBases')");
