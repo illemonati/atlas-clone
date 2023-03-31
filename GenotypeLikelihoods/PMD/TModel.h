@@ -10,18 +10,19 @@
 #define TPMDTYPE_H_
 
 #include "TGenotypeData.h"
-#include "TPMDFunction.h"
+#include "TFunction.h"
 #include "TSequencedBase.h"
 #include "coretools/Files/TOutputFile.h"
 #include "coretools/Types/probability.h"
 #include "genometools/GenotypeTypes.h"
 
-namespace GenotypeLikelihoods {
+namespace GenotypeLikelihoods::PMD {
 
 enum class ReadEnd : size_t { min = 0, forward5 = min, reverse5, forward3, reverse3, max };
-struct TPMDType {
-	TPMDType()          = default;
-	virtual ~TPMDType() = default;
+enum class Strand : size_t {min, Single=min, Double, max};
+struct TModel {
+	TModel()          = default;
+	virtual ~TModel() = default;
 
 	virtual bool hasDamage() const noexcept              = 0;
 	virtual std::string functionString() const noexcept  = 0;
@@ -45,14 +46,14 @@ struct TPMDType {
 //------------------------------------------------
 // TPMDTypeNone
 //------------------------------------------------
-class TPMDTypeNone final : public TPMDType {
+class TNoPMD final : public TModel {
 public:
 	static constexpr TBaseMassFunctions massFunctions{
 		{TBaseProbabilities::normalize({1., 0., 0., 0.}), TBaseProbabilities::normalize({0., 1., 0., 0.}),
 		 TBaseProbabilities::normalize({0., 0., 1., 0.}), TBaseProbabilities::normalize({0., 0., 0., 1.})}};
 
 	static constexpr std::string_view name = "none";
-	TPMDTypeNone()                         = default;
+	TNoPMD()                         = default;
 
 	bool hasDamage() const noexcept override { return false; }
 	std::string functionString() const noexcept override { return "none"; }
@@ -82,6 +83,6 @@ public:
 };
 
 
-TPMDType *makeType(std::string_view pmdString);
+TModel *makeType(std::string_view pmdString);
 }
 #endif

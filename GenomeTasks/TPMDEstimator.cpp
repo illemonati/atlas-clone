@@ -56,11 +56,8 @@ void TPMDEstimator::_handleAlignment() {
 
 void TPMDEstimator::run(){
 	_traverseBAMPassedQC();
-
-	GenotypeLikelihoods::TPostMortemDamage& pmd = _genotypeLikelihoodCalculator.postMortemDamageModels();
-	pmd.estimate(_readGroupMap);
-
-	pmd.writeToFile(_bamFile.readGroups(), _readGroupMap, _outputName);
+	_pmd->estimate(_readGroupMap);
+	_pmd->writeToFile(_bamFile.readGroups(), _readGroupMap, _outputName);
 };
 
 }; // end namespace

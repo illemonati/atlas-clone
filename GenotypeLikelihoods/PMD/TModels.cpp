@@ -12,7 +12,7 @@
  *      Author: wegmannd
  */
 
-#include "TPostMortemDamage.h"
+#include "TModels.h"
 
 #include <filesystem>
 #include <math.h>
@@ -28,8 +28,8 @@
 #include <stdexcept>
 #include <utility>
 
-#include "TPMDFunction.h"
-#include "TPMDType.h"
+#include "TFunction.h"
+#include "TModel.h"
 #include "genometools/GenotypeTypes.h"
 #include "coretools/Main/TError.h"
 #include "coretools/Files/TOutputFile.h"
@@ -42,12 +42,12 @@
 #include "coretools/Types/probability.h"
 
 
-namespace GenotypeLikelihoods {
+namespace GenotypeLikelihoods::PMD {
 
 using coretools::instances::logfile;
 using namespace coretools::str;
 
-void TPostMortemDamage::writeToFile(const BAM::TReadGroups &ReadGroups, const BAM::TReadGroupMap &ReadGroupMap,
+void TModels::writeToFile(const BAM::TReadGroups &ReadGroups, const BAM::TReadGroupMap &ReadGroupMap,
 				    std::string_view outputName) const {
 	using coretools::TOutputFile;
 	TOutputFile out_PMD(std::string(outputName) + "_PMD.txt", {"readGroup", "type", "pmd"});
@@ -66,24 +66,24 @@ void TPostMortemDamage::writeToFile(const BAM::TReadGroups &ReadGroups, const BA
 	}
 	// write for each read group
 	for (auto r = ReadGroups.cbegin(); r != ReadGroups.cend(); ++r) {
-		out_PMD.writeln(r->name_ID, _pmdObjects[r->id()]->typeString(),
-					_pmdObjects[ReadGroupMap.pooledIndex(r->id())]->functionString());
+		out_PMD.writeln(r->name_ID, _models[r->id()]->typeString(),
+					_models[ReadGroupMap.pooledIndex(r->id())]->functionString());
 		if (ReadGroupMap.inUse(r->id())) {
-			_pmdObjects[ReadGroupMap.pooledIndex(r->id())]->writeTable(ReadGroups.getName(r->id()),out_counts);
+			_models[ReadGroupMap.pooledIndex(r->id())]->writeTable(ReadGroups.getName(r->id()),out_counts);
 		}
 	}
 }
 
-void TPostMortemDamage::_initializeFromString(const std::string &pmdString) {
+void TModels::_initializeFromString(const std::string &pmdString) {
 	// not a file: initialize all read groups have the same pmd
 	logfile().startIndent("PMD function used for all read groups:");
-	for (auto &p : _pmdObjects) { p.reset(makeType(pmdString)); }
+	for (auto &p : _models) { p.reset(makeType(pmdString)); }
 
-	logfile().list(_pmdObjects[0]->functionString());
+	logfile().list(_models[0]->functionString());
 	logfile().endIndent();
 }
 
-std::vector<size_t> TPostMortemDamage::_initializeFromFile(const BAM::TReadGroups &ReadGroups, const std::string &filename) {
+std::vector<size_t> TModels::_initializeFromFile(const BAM::TReadGroups &ReadGroups, const std::string &filename) {
 	// create an array of TPMD objects for each read group
 	// also works if no parameters are provided (e.g. for estimation)
 	// read from file for each read group
@@ -98,7 +98,7 @@ std::vector<size_t> TPostMortemDamage::_initializeFromFile(const BAM::TReadGroup
 			const size_t readGroupId = ReadGroups.getId(vec[0]);
 
 			// create type
-			_pmdObjects[readGroupId].reset(makeType(vec[1]));
+			_models[readGroupId].reset(makeType(vec[1]));
 		}
 	}
 	logfile().done();
@@ -107,18 +107,18 @@ std::vector<size_t> TPostMortemDamage::_initializeFromFile(const BAM::TReadGroup
 	// create no-PMD types for all remaining ones and return their indexes
 	std::vector<size_t> readGroupsWithoutPMD;
 	for (size_t i = 0; i < ReadGroups.size(); ++i) {
-		if (!_pmdObjects[i]) {
-			_pmdObjects[i].reset(makeType("non"));
+		if (!_models[i]) {
+			_models[i].reset(makeType("non"));
 			readGroupsWithoutPMD.push_back(i);
 		}
 	}
 	return readGroupsWithoutPMD;
 }
 
-void TPostMortemDamage::_setHasDamage() {
+void TModels::_setHasDamage() {
 	// check if there is PMD for at least one read group
 	_hasPMD = false;
-	for (auto &p : _pmdObjects) {
+	for (auto &p : _models) {
 		if (p->hasDamage()) {
 			_hasPMD = true;
 			break;
@@ -126,14 +126,14 @@ void TPostMortemDamage::_setHasDamage() {
 	}
 }
 
-std::vector<size_t> TPostMortemDamage::initialize(const std::string &pmdString, const BAM::TReadGroups &ReadGroups) {
+std::vector<size_t> TModels::initialize(const std::string &pmdString, const BAM::TReadGroups &ReadGroups) {
 	if (_hasPMD) {
 		DEVERROR("Models already initialized!");
 	}
 
 	// prepare objects
 	std::vector<size_t> readGroupsWithoutPMD;
-	_pmdObjects.resize(ReadGroups.size());
+	_models.resize(ReadGroups.size());
 
 	if (!std::filesystem::exists(pmdString)) {
 		_initializeFromString(pmdString);
@@ -146,38 +146,38 @@ std::vector<size_t> TPostMortemDamage::initialize(const std::string &pmdString, 
 	return readGroupsWithoutPMD;
 }
 
-void TPostMortemDamage::initialize(BAM::RGInfo::TReadGroupInfo &RgInfo) {
+void TModels::initialize(BAM::RGInfo::TReadGroupInfo &RgInfo) {
 	using BAM::RGInfo::InfoType;
-	_pmdObjects.resize(RgInfo.size());
+	_models.resize(RgInfo.size());
 
 	for (size_t rg = 0; rg < RgInfo.size(); ++rg) {
-		_pmdObjects[rg].reset(makeType(RgInfo.getString(rg, InfoType::pmd, TPMDFunctionNoPMD::name)));
+		_models[rg].reset(makeType(RgInfo.getString(rg, InfoType::pmd, TNo::name)));
 	}
 }
 
-void TPostMortemDamage::resize(const BAM::TReadGroupMap& ReadGroupMap) {
+void TModels::resize(const BAM::TReadGroupMap& ReadGroupMap) {
 	_tableSize = coretools::instances::parameters().getParameterWithDefault<int>("length", 50) + 1;
 	logfile().list("Estimating PMD from the first ", _tableSize - 1, " positions.");
-		for (auto &r : ReadGroupMap.readGroupsInUse()) { _pmdObjects[r]->resize(_tableSize); }
+		for (auto &r : ReadGroupMap.readGroupsInUse()) { _models[r]->resize(_tableSize); }
 	}
 
-TBaseLikelihoods TPostMortemDamage::baseLikelihoods(const BAM::TSequencedBase &data,
+TBaseLikelihoods TModels::baseLikelihoods(const BAM::TSequencedBase &data,
                                             const TBaseLikelihoods &baseLikelihoodsNoPMD) const {
 	return _hasPMD
-		? _pmdObjects[data.readGroupID]->baseLikelihoods(data, baseLikelihoodsNoPMD)
+		? _models[data.readGroupID]->baseLikelihoods(data, baseLikelihoodsNoPMD)
 		: baseLikelihoodsNoPMD;
 }
 
-TBaseProbabilities TPostMortemDamage::massFunction(genometools::Base b, const BAM::TSequencedBase &data,
+TBaseProbabilities TModels::massFunction(genometools::Base b, const BAM::TSequencedBase &data,
 													  const TBaseLikelihoods &baseLikelihoodsNoPMD) const {
-	return _hasPMD ? _pmdObjects[data.readGroupID]->massFunction(b, data, baseLikelihoodsNoPMD)
-	               : TPMDTypeNone::massFunctions[b];
+	return _hasPMD ? _models[data.readGroupID]->massFunction(b, data, baseLikelihoodsNoPMD)
+	               : TNoPMD::massFunctions[b];
 }
 
-TBaseProbabilities TPostMortemDamage::massFunction(genometools::Genotype g, const BAM::TSequencedBase &data,
+TBaseProbabilities TModels::massFunction(genometools::Genotype g, const BAM::TSequencedBase &data,
 													  const TBaseLikelihoods &baseLikelihoodsNoPMD) const {
-	return _hasPMD ? _pmdObjects[data.readGroupID]->massFunction(g, data, baseLikelihoodsNoPMD)
-		: TPMDTypeNone::massFunction(g, baseLikelihoodsNoPMD);
+	return _hasPMD ? _models[data.readGroupID]->massFunction(g, data, baseLikelihoodsNoPMD)
+		: TNoPMD::massFunction(g, baseLikelihoodsNoPMD);
 }
 
 }; // namespace GenotypeLikelihoods

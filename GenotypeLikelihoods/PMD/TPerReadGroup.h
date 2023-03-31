@@ -1,24 +1,25 @@
-#include "TPMDType.h"
-#include "coretools/Containers/TStrongArray.h"
+/*
+ * TReadGroupPMD.h
+ *
+ *  Created on: Mars 31, 2023
+ *      Author: andreas
+ */
+
+#ifndef PMD_TPERREADGROUP_H_
+#define PMD_TPERREADGROUP_H_
+
+#include "TModel.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TRandomGenerator.h"
-#include "coretools/Types/probability.h"
 #include "genometools/GenotypeTypes.h"
-#include <utility>
-
-namespace GenotypeLikelihoods {
-
-using coretools::instances::logfile;
-using coretools::instances::randomGenerator;
-using genometools::Base;
-using namespace coretools::str;
+#include <cstddef>
+namespace GenotypeLikelihoods::PMD {
+namespace impl {
 
 static constexpr size_t _N = coretools::index(genometools::Base::max) + 1;
 using PMDTable             = std::vector<coretools::TStrongArray<
-	coretools::TStrongArray<coretools::TStrongArray<size_t, genometools::Base, _N>, genometools::Base, _N>,
-	GenotypeLikelihoods::ReadEnd>>;
+	coretools::TStrongArray<coretools::TStrongArray<size_t, genometools::Base, _N>, genometools::Base, _N>, ReadEnd>>;
 
-namespace impl {
 template<size_t End>
 constexpr ReadEnd makeForward() {
 	if constexpr (End == 3) return ReadEnd::forward3;
@@ -33,8 +34,9 @@ constexpr ReadEnd makeReverse() {
 	else static_assert(End == 3);
 }
 
-template<size_t End, Base From, Base To>
+template<size_t End, genometools::Base From, genometools::Base To>
 auto makeFromTo(const PMDTable &table) {
+	using genometools::Base;
 	// Assumption: From->To pattern is the same for forward and reverse reads from their respective Ends
 	const auto N = table.size();
 	std::vector<double> from_to;
@@ -77,24 +79,13 @@ auto makeFromTo(const PMDTable &table) {
 
 } // namespace impl
 
-TBaseProbabilities TPMDTypeNone::massFunction(genometools::Genotype g, const TBaseLikelihoods &baseLikelihoodsNoPMD) {
-		using namespace genometools;
-		const Base a = first(g);
-		const Base b = second(g);
-		TBaseLikelihoods mf{0};
-		mf[a] = baseLikelihoodsNoPMD[a];
-		mf[b] = baseLikelihoodsNoPMD[b];
-		return TBaseProbabilities::normalize(mf);
-	}
 
-enum class Strand : size_t {min, Single=min, Double, max};
-
-template<Strand strand> class TPMDTypeStrand final : public TPMDType {
+template<Strand strand> class TPerReadGroup final : public TModel {
 private:
 	static constexpr coretools::TStrongArray<std::string_view, Strand> _names{{"singleStrand", "doubleStrand"}};
-	std::unique_ptr<TPMDFunction> _pmd5;
-	std::unique_ptr<TPMDFunction> _pmd3;
-	PMDTable _table;
+	std::unique_ptr<TFunction> _pmd5;
+	std::unique_ptr<TFunction> _pmd3;
+	impl::PMDTable _table;
 
 	coretools::Probability _probCT(const BAM::TSequencedBase &data) const noexcept {
 		using coretools::Probability;
@@ -130,11 +121,11 @@ private:
 
 public:
 	static constexpr std::string_view name = _names[strand];
-	TPMDTypeStrand(const std::vector<std::string> &Details) {
+	TPerReadGroup(const std::vector<std::string> &Details) {
 		constexpr size_t nDetails = 3;
 		if (Details.size() != nDetails) {
 			UERROR("Cannot initialize PMD type ", name, ": expect ", nDetails, " entries but found ", Details.size(),
-				   "!", "\nProvided string: '", concatenateString(Details, ':'), "'.", "\nExpect string of the form '",
+				   "!", "\nProvided string: '", coretools::str::concatenateString(Details, ':'), "'.", "\nExpect string of the form '",
 				   name, "':functionCT:functionGA'.");
 		}
 		_pmd5.reset(makeFunction(Details[1]));
@@ -152,6 +143,7 @@ public:
 	}
 
 	void writeTable(std::string_view name, std::array<coretools::TOutputFile, 2>& files) const noexcept override {
+		using genometools::Base;
 		constexpr auto directions = []() {
 			coretools::TStrongArray<std::array<std::string_view, 2>, ReadEnd> ar{};
 			ar[ReadEnd::forward3] = {"forward", "3'"};
@@ -197,6 +189,8 @@ public:
 	}
 
 	void estimate() override {
+		using coretools::instances::logfile;
+		using genometools::Base;
 		logfile().startIndent("Learning 5' C-T pattern:");
 		const auto [C_T5, T_C5] = impl::makeFromTo<5, Base::C, Base::T>(_table);
 		_pmd5->learn(C_T5, T_C5);
@@ -216,6 +210,7 @@ public:
 
 	TBaseLikelihoods baseLikelihoods(const BAM::TSequencedBase &data,
 									 const TBaseLikelihoods &baseLikelihoodsNoPMD) const override {
+		using genometools::Base;
 		const auto pCT = _probCT(data);
 		const auto pGA = _probGA(data);
 		TBaseLikelihoods baseLikelihoods(baseLikelihoodsNoPMD);
@@ -227,6 +222,7 @@ public:
 
 	TBaseProbabilities massFunction(genometools::Base b, const BAM::TSequencedBase &data,
 									const TBaseLikelihoods &baseLikelihoodsNoPMD) const override {
+		using genometools::Base;
 		const auto pCT = _probCT(data);
 		const auto pGA = _probGA(data);
 
@@ -270,6 +266,8 @@ public:
 	}
 
 	virtual void simulate(BAM::TSequencedBase &data) const override {
+		using genometools::Base;
+		using coretools::instances::randomGenerator;
 		const auto pCT = _probCT(data);
 		const auto pGA = _probGA(data);
 		auto &base     = data.base;
@@ -282,17 +280,6 @@ public:
 	}
 };
 
-TPMDType *makeType(std::string_view pmdString) {
-	// split by ':'
-	std::vector<std::string> details;
-	fillContainerFromString(pmdString, details, ":");
-
-	// switch type
-	if (details[0] == TPMDTypeNone::name) return new TPMDTypeNone;
-	if (details[0] == TPMDTypeStrand<Strand::Single>::name) return new TPMDTypeStrand<Strand::Single>(details);
-	if (details[0] == TPMDTypeStrand<Strand::Double>::name) return new TPMDTypeStrand<Strand::Double>(details);
-
-	UERROR("Cannot initialize PMD: unknown PMD type '", details[0], "'!\nUse ", TPMDTypeNone::name, " or ",
-		   TPMDTypeStrand<Strand::Single>::name, " or ", TPMDTypeStrand<Strand::Double>::name, ".");
-}
 } // namespace GenotypeLikelihoods
+
+#endif

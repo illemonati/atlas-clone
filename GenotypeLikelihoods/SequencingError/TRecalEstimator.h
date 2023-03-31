@@ -27,8 +27,8 @@
 namespace BAM {
 class TSequencedBase;
 }
-namespace GenotypeLikelihoods {
-class TPostMortemDamage;
+namespace GenotypeLikelihoods::PMD {
+class TModels;
 }
 namespace GenotypeLikelihoods {
 namespace SequencingError {
@@ -116,10 +116,10 @@ private:
 
 	size_t _numSitesDepthTwoOrMore();
 	void _initializeModels(TModels &SequencingErrorModels);
-	void _runEM(const std::string &outputName, const TPostMortemDamage &PmdModels);
+	void _runEM(const std::string &outputName, const PMD::TModels &PmdModels);
 
 	// functions to estimate theta_epsilon (sequencing error rates)
-	void _estimateRho_updatePbbar(const TPostMortemDamage &PmdModels);
+	void _estimateRho_updatePbbar(const PMD::TModels &PmdModels);
 	template<bool updateJF, bool isInvariant>
 	void _calculateQ() {
 		size_t ij = 0;
@@ -144,7 +144,7 @@ private:
 		else _calculateQ<false, false>(); 
 	}
 	void _updateEpsilon(double deltaDeltaLL);
-	double _calculateLL_updatePg(const TPostMortemDamage &PmdModels);
+	double _calculateLL_updatePg(const PMD::TModels &PmdModels);
 
 public:
 	TRecalibrationEMEstimator(const BAM::TReadGroups *ReadGroups, const BAM::TReadGroupMap *ReadGroupMap);
@@ -154,9 +154,9 @@ public:
 
 	// function to estimate
 	void performEstimation(const std::string &outputName, TModels &SequencingErrorModels,
-						   const TPostMortemDamage &PmdModels);
+						   const PMD::TModels &PmdModels);
 
-	void calcLL(TModels &SequencingErrorModels, const TPostMortemDamage &PmdModels);
+	void calcLL(TModels &SequencingErrorModels, const PMD::TModels &PmdModels);
 };
 
 }; // namespace SequencingError

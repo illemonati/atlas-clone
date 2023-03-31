@@ -16,12 +16,12 @@
 
 #include "coretools/Types/probability.h"
 
-namespace GenotypeLikelihoods {
+namespace GenotypeLikelihoods::PMD {
 
-class TPMDFunction {
+class TFunction {
 public:
-	TPMDFunction()          = default;
-	virtual ~TPMDFunction() = default;
+	TFunction()          = default;
+	virtual ~TFunction() = default;
 
 	virtual bool hasDamage() const noexcept                                                    = 0;
 	virtual void learn(const std::vector<double> &from_to, const std::vector<double> &to_from) = 0;
@@ -29,11 +29,11 @@ public:
 	virtual coretools::Probability prob(uint16_t pos) const noexcept                           = 0;
 };
 
-class TPMDFunctionNoPMD final : public TPMDFunction {
+class TNo final : public TFunction {
 public:
 	static inline const std::string name    = "none";
 	static inline const std::string example = name;
-	TPMDFunctionNoPMD(std::string_view string);
+	TNo(std::string_view string);
 
 	bool hasDamage() const noexcept override { return false; }
 	std::string string() const noexcept override { return name + "[]"; }
@@ -41,7 +41,7 @@ public:
 	coretools::Probability prob(uint16_t) const noexcept override { return 0.0; }
 };
 
-class TPMDFunctionExponential final : public TPMDFunction {
+class TExponential final : public TFunction {
 private:
 	double _a, _b, _c;
 	std::vector<coretools::Probability> _values;
@@ -50,7 +50,7 @@ private:
 public:
 	static inline const std::string name    = "Exponential";
 	static inline const std::string example = name + "[lastPosition,a,b,c]";
-	TPMDFunctionExponential(std::string_view string);
+	TExponential(std::string_view string);
 
 	bool hasDamage() const noexcept override { return _values.size() > 0; }
 	std::string string() const noexcept override {
@@ -62,14 +62,14 @@ public:
 	coretools::Probability prob(uint16_t pos) const noexcept override;
 };
 
-class TPMDFunctionEmpiric final : public TPMDFunction {
+class TEmpiric final : public TFunction {
 private:
 	std::vector<coretools::Probability> _values;
 
 public:
 	static inline const std::string name    = "Empiric";
 	static inline const std::string example = name + "[p1,p2,...]";
-	TPMDFunctionEmpiric(std::string_view string);
+	TEmpiric(std::string_view string);
 
 	bool hasDamage() const noexcept override { return _values.size() + _values.back().get() != 1.0; }
 	std::string string() const noexcept override {
@@ -80,7 +80,7 @@ public:
 	coretools::Probability prob(uint16_t pos) const noexcept override;
 };
 
-TPMDFunction *makeFunction(std::string_view pmdString);
+TFunction *makeFunction(std::string_view pmdString);
 } // namespace GenotypeLikelihoods
 
 #endif

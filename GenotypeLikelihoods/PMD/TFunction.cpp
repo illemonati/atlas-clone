@@ -1,11 +1,11 @@
-#include "TPMDFunction.h"
+#include "TFunction.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/Main/TRandomGenerator.h"
 #include "coretools/Types/probability.h"
 #include <tuple>
 
-namespace GenotypeLikelihoods {
+namespace GenotypeLikelihoods::PMD {
 
 using namespace coretools::str;
 using coretools::Probability;
@@ -203,7 +203,7 @@ std::vector<Probability> makeEmpiric(const std::vector<double> &From_to, const s
 //---------------------------------------------------------------
 // TPMDFunctionNoPMD
 //---------------------------------------------------------------
-TPMDFunctionNoPMD::TPMDFunctionNoPMD(std::string_view string) {
+TNo::TNo(std::string_view string) {
 	const auto params = impl::parseParameters<double>(string);
 	if (params.size() != 0) {
 		UERROR("Cannot initialize PMD function '", name, "': expected 0 but found ", params.size(), " parameters!");
@@ -213,7 +213,7 @@ TPMDFunctionNoPMD::TPMDFunctionNoPMD(std::string_view string) {
 //---------------------------------------------------------------
 // TPMDFunctionExponential
 //--------------------------------------------------------------
-TPMDFunctionExponential::TPMDFunctionExponential(std::string_view string) {
+TExponential::TExponential(std::string_view string) {
 	constexpr size_t nParams = 4;
 	const auto params = impl::parseParameters<double>(string);
 	if (params.empty()) {
@@ -238,13 +238,13 @@ TPMDFunctionExponential::TPMDFunctionExponential(std::string_view string) {
 	}
 }
 
-void TPMDFunctionExponential::_fillPMDProbabilities(size_t N) {
+void TExponential::_fillPMDProbabilities(size_t N) {
 	_values.resize(N);
 	for (size_t p = 0; p < N; ++p) { _values[p] = _a * exp(-_b * p) + _c; }
 }
 
 
-void TPMDFunctionExponential::learn(const std::vector<double> &From_to, const std::vector<double> &To_from) {
+void TExponential::learn(const std::vector<double> &From_to, const std::vector<double> &To_from) {
 	logfile().list("Learning exponential pattern");
 
 	// get initial estimates via OLS
@@ -269,7 +269,7 @@ void TPMDFunctionExponential::learn(const std::vector<double> &From_to, const st
 	}
 }
 
-Probability TPMDFunctionExponential::prob(uint16_t pos) const noexcept {
+Probability TExponential::prob(uint16_t pos) const noexcept {
 	// Note: distance is zero based!
 	// model is fit up to _lastPosition. We assume constant PMD after that
 	return pos < _values.size() ? _values[pos] : _values.back();
@@ -278,7 +278,7 @@ Probability TPMDFunctionExponential::prob(uint16_t pos) const noexcept {
 //---------------------------------------------------------------
 // TPMDFunctionEmpiric
 //---------------------------------------------------------------
-	TPMDFunctionEmpiric::TPMDFunctionEmpiric(std::string_view string) : _values(impl::parseParameters<Probability>(string)) {
+	TEmpiric::TEmpiric(std::string_view string) : _values(impl::parseParameters<Probability>(string)) {
 	if (_values.empty()) {
 		// parameters missing: set to no PMD
 		_values = {0.0};
@@ -293,18 +293,18 @@ Probability TPMDFunctionExponential::prob(uint16_t pos) const noexcept {
 	}
 }
 
-void TPMDFunctionEmpiric::learn(const std::vector<double> &From_to, const std::vector<double> &To_from) {
+void TEmpiric::learn(const std::vector<double> &From_to, const std::vector<double> &To_from) {
 	logfile().list("Learning empiric pattern");
 	// resize parameters
 	_values = impl::makeEmpiric(From_to, To_from);
 }
 
-Probability TPMDFunctionEmpiric::prob(uint16_t pos) const noexcept {
+Probability TEmpiric::prob(uint16_t pos) const noexcept {
 	return pos < _values.size() ? _values[pos] : _values.back();
 }
 
 
-TPMDFunction* makeFunction(std::string_view pmdString) {
+TFunction* makeFunction(std::string_view pmdString) {
 	// Options are
 	//  none
 	//  Empiric[0.5,0.3,...]
@@ -312,12 +312,12 @@ TPMDFunction* makeFunction(std::string_view pmdString) {
 
 	const auto name = coretools::str::readBefore(pmdString, '[');
 
-	if (name == TPMDFunctionNoPMD::name) return new TPMDFunctionNoPMD(pmdString);
-	if (name == TPMDFunctionExponential::name) return new TPMDFunctionExponential(pmdString);
-	if (name == TPMDFunctionEmpiric::name) return new TPMDFunctionEmpiric(pmdString);
+	if (name == TNo::name) return new TNo(pmdString);
+	if (name == TExponential::name) return new TExponential(pmdString);
+	if (name == TEmpiric::name) return new TEmpiric(pmdString);
 
-	UERROR("Cannot initialize PMD function: unknown function '", name, "'!. Use either ", TPMDFunctionNoPMD::name, ", ",
-		   TPMDFunctionExponential::name, " or ", TPMDFunctionEmpiric::name + ".");
+	UERROR("Cannot initialize PMD function: unknown function '", name, "'!. Use either ", TNo::name, ", ",
+		   TExponential::name, " or ", TEmpiric::name + ".");
 }
 
 } // namespace GenotypeLikelihoods
