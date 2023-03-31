@@ -13,6 +13,11 @@ using coretools::instances::randomGenerator;
 using genometools::Base;
 using namespace coretools::str;
 
+static constexpr size_t _N = coretools::index(genometools::Base::max) + 1;
+using PMDTable             = std::vector<coretools::TStrongArray<
+	coretools::TStrongArray<coretools::TStrongArray<size_t, genometools::Base, _N>, genometools::Base, _N>,
+	GenotypeLikelihoods::ReadEnd>>;
+
 namespace impl {
 template<size_t End>
 constexpr ReadEnd makeForward() {
@@ -29,7 +34,7 @@ constexpr ReadEnd makeReverse() {
 }
 
 template<size_t End, Base From, Base To>
-auto makeFromTo(const TPMDType::PMDTable &table) {
+auto makeFromTo(const PMDTable &table) {
 	// Assumption: From->To pattern is the same for forward and reverse reads from their respective Ends
 	const auto N = table.size();
 	std::vector<double> from_to;
@@ -86,8 +91,10 @@ enum class Strand : size_t {min, Single=min, Double, max};
 
 template<Strand strand> class TPMDTypeStrand final : public TPMDType {
 private:
+	static constexpr coretools::TStrongArray<std::string_view, Strand> _names{{"singleStrand", "doubleStrand"}};
 	std::unique_ptr<TPMDFunction> _pmd5;
 	std::unique_ptr<TPMDFunction> _pmd3;
+	PMDTable _table;
 
 	coretools::Probability _probCT(const BAM::TSequencedBase &data) const noexcept {
 		using coretools::Probability;
@@ -121,7 +128,6 @@ private:
 		}
 	}
 
-	static constexpr coretools::TStrongArray<std::string_view, Strand> _names{{"singleStrand", "doubleStrand"}};
 public:
 	static constexpr std::string_view name = _names[strand];
 	TPMDTypeStrand(const std::vector<std::string> &Details) {
@@ -141,19 +147,68 @@ public:
 	}
 	std::string_view typeString() const noexcept override { return name; }
 
-	void estimate(const PMDTable &table) override {
+	void resize(size_t N) override {
+		_table.resize(N, {});
+	}
+
+	void writeTable(std::string_view name, std::array<coretools::TOutputFile, 2>& files) const noexcept override {
+		constexpr auto directions = []() {
+			coretools::TStrongArray<std::array<std::string_view, 2>, ReadEnd> ar{};
+			ar[ReadEnd::forward3] = {"forward", "3'"};
+			ar[ReadEnd::forward5] = {"forward", "5'"};
+			ar[ReadEnd::reverse3] = {"reverse", "3'"};
+			ar[ReadEnd::reverse5] = {"reverse", "5'"};
+			return ar;
+		}();
+
+		for (auto j = ReadEnd::min; j < ReadEnd::max; ++j) {
+			for (Base f = Base::min; f <= Base::max; ++f) {
+				std::vector<size_t> sums(_table.size(), 0.);
+				for (size_t i = 0; i < _table.size(); ++i) {
+					for (Base t = Base::min; t < Base::max; ++t) { sums[i] += _table[i][j][f][t]; }
+				}
+
+				for (Base t = Base::min; t <= Base::max; ++t) {
+					files.front().write(name, directions[j], f, t);
+					files.back().write(name, directions[j], f, t);
+					for (size_t i = 0; i < _table.size(); ++i) {
+						files.front().write(_table[i][j][f][t]);
+						files.back().write(static_cast<double>(_table[i][j][f][t]) / sums[i]);
+					}
+					files.front().endln();
+					files.back().endln();
+				}
+				files.front().writeln(name, directions[j], f, "sum", sums);
+			}
+		}
+	}
+
+	void add(genometools::Base from, BAM::TSequencedBase data) override {
+		const auto to    = data.base;
+		const auto from3 = data.distFrom3Prime < data.distFrom5Prime;
+		const auto pos   = std::min<size_t>(_table.size() - 1, from3 ? data.distFrom3Prime : data.distFrom5Prime);
+		if (data.isReverseStrand()) {
+			const auto readEnd = from3 ? ReadEnd::reverse3 : ReadEnd::reverse5;
+			_table[pos][readEnd][flipped(from)][flipped(to)]++;
+		} else {
+			const auto readEnd = from3 ? ReadEnd::forward3 : ReadEnd::forward5;
+			_table[pos][readEnd][from][to]++;
+		}
+	}
+
+	void estimate() override {
 		logfile().startIndent("Learning 5' C-T pattern:");
-		const auto [C_T5, T_C5] = impl::makeFromTo<5, Base::C, Base::T>(table);
+		const auto [C_T5, T_C5] = impl::makeFromTo<5, Base::C, Base::T>(_table);
 		_pmd5->learn(C_T5, T_C5);
 		logfile().endIndent();
 		if constexpr (strand == Strand::Single) {
 			logfile().startIndent("Learning 3' C-T pattern:");
-			const auto [C_T3, T_C3] = impl::makeFromTo<3, Base::C, Base::T>(table);
+			const auto [C_T3, T_C3] = impl::makeFromTo<3, Base::C, Base::T>(_table);
 			_pmd3->learn(C_T3, T_C3);
 			logfile().endIndent();
 		} else {
 			logfile().startIndent("Learning 3' G-A pattern:");
-			const auto [G_A3, A_G3] = impl::makeFromTo<3, Base::G, Base::A>(table);
+			const auto [G_A3, A_G3] = impl::makeFromTo<3, Base::G, Base::A>(_table);
 			_pmd3->learn(G_A3, A_G3);
 			logfile().endIndent();
 		}
@@ -240,4 +295,4 @@ TPMDType *makeType(std::string_view pmdString) {
 	UERROR("Cannot initialize PMD: unknown PMD type '", details[0], "'!\nUse ", TPMDTypeNone::name, " or ",
 		   TPMDTypeStrand<Strand::Single>::name, " or ", TPMDTypeStrand<Strand::Double>::name, ".");
 }
-}
+} // namespace GenotypeLikelihoods

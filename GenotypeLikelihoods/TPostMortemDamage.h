@@ -34,14 +34,14 @@ namespace GenotypeLikelihoods {
 class TPostMortemDamage {
 private:
 	std::vector<std::unique_ptr<TPMDType>> _pmdObjects;
-	bool _hasPMD = false;
+	bool _hasPMD      = false;
+	size_t _tableSize = 0;
 
 	void _initializeFromString(const std::string &pmdString);
 	std::vector<size_t> _initializeFromFile(const BAM::TReadGroups &ReadGroups, const std::string &filename);
 	void _setHasDamage();
 
 public:
-	using PMDTables = std::vector<TPMDType::PMDTable>;
 	TPostMortemDamage() = default;
 	TPostMortemDamage(const std::string &pmdString, const BAM::TReadGroups &ReadGroups,
 					  std::vector<size_t> &ReadGroupsWithoutPMD) {
@@ -53,9 +53,8 @@ public:
 
 	std::vector<size_t> initialize(const std::string &pmdString, const BAM::TReadGroups &ReadGroups);
 	void initialize(BAM::RGInfo::TReadGroupInfo & RgInfo);
-	void writeToFile(const BAM::TReadGroups &ReadGroups, const std::string filename) const;
 	void writeToFile(const BAM::TReadGroups &ReadGroups, const BAM::TReadGroupMap &ReadGroupMap,
-	                 const std::string filename) const;
+	                 std::string_view outputName) const;
 	TBaseLikelihoods baseLikelihoods(const BAM::TSequencedBase &data,
 	                                    const TBaseLikelihoods &baseLikelihoodsNoPMD) const;
 	TBaseProbabilities massFunction(genometools::Base b, const BAM::TSequencedBase &data,
@@ -63,8 +62,13 @@ public:
 	TBaseProbabilities massFunction(genometools::Genotype g, const BAM::TSequencedBase &data,
 									   const TBaseLikelihoods &baseLikelihoodsNoPMD) const;
 
-	void estimate(const BAM::TReadGroupMap& ReadGroupMap, const PMDTables &Tables) {
-		for (auto &r : ReadGroupMap.readGroupsInUse()) { _pmdObjects[r]->estimate(Tables[r]); }
+	void resize(const BAM::TReadGroupMap& ReadGroupMap);
+	void add(const BAM::TReadGroupMap& ReadGroupMap, genometools::Base from, BAM::TSequencedBase data) {
+		_pmdObjects[ReadGroupMap.pooledIndex(data.readGroupID)]->add(from, data);
+	}
+
+	void estimate(const BAM::TReadGroupMap& ReadGroupMap) {
+		for (auto &r : ReadGroupMap.readGroupsInUse()) { _pmdObjects[r]->estimate(); }
 	}
 
 	std::string functionString() const noexcept {
@@ -74,7 +78,6 @@ public:
 		}
 		return r;
 	}
-
 };
 
 }; // namespace GenotypeLikelihoods

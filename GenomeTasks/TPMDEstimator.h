@@ -32,11 +32,9 @@ namespace GenomeTasks {
 
 class TPMDEstimator : public TGenome_parsed {
 private:
-	size_t _tableSize;
 	BAM::TReadGroupMap _readGroupMap;
-	GenotypeLikelihoods::TPostMortemDamage::PMDTables _pmdTables;
+	GenotypeLikelihoods::TPostMortemDamage* _pmd;
 	void _handleAlignment();
-	void _write(bool normalized);
 
 public:
 	TPMDEstimator();

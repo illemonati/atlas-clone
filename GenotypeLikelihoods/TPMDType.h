@@ -12,18 +12,14 @@
 #include "TGenotypeData.h"
 #include "TPMDFunction.h"
 #include "TSequencedBase.h"
+#include "coretools/Files/TOutputFile.h"
 #include "coretools/Types/probability.h"
+#include "genometools/GenotypeTypes.h"
 
 namespace GenotypeLikelihoods {
 
 enum class ReadEnd : size_t { min = 0, forward5 = min, reverse5, forward3, reverse3, max };
-class TPMDType {
-	static constexpr size_t _N = coretools::index(genometools::Base::max) + 1;
-
-public:
-	using PMDTable      = std::vector<coretools::TStrongArray<
-		coretools::TStrongArray<coretools::TStrongArray<size_t, genometools::Base, _N>, genometools::Base, _N>,
-		GenotypeLikelihoods::ReadEnd>>;
+struct TPMDType {
 	TPMDType()          = default;
 	virtual ~TPMDType() = default;
 
@@ -31,10 +27,13 @@ public:
 	virtual std::string functionString() const noexcept  = 0;
 	virtual std::string_view typeString() const noexcept = 0;
 
-	virtual void estimate(const PMDTable &PMDTable) = 0;
+	virtual void resize(size_t N)                                                                               = 0;
+	virtual void estimate()                                                                                     = 0;
+	virtual void add(genometools::Base from, BAM::TSequencedBase data)                                          = 0;
+	virtual void writeTable(std::string_view name, std::array<coretools::TOutputFile, 2> &files) const noexcept = 0;
 
 	virtual TBaseLikelihoods baseLikelihoods(const BAM::TSequencedBase &data,
-											 const TBaseLikelihoods &baseLikelihoodsNoPMD) const = 0;
+	                                         const TBaseLikelihoods &baseLikelihoodsNoPMD) const = 0;
 	virtual TBaseProbabilities massFunction(genometools::Base b, const BAM::TSequencedBase &data,
 											const TBaseLikelihoods &baseLikelihoodsNoPMD) const  = 0;
 	virtual TBaseProbabilities massFunction(genometools::Genotype g, const BAM::TSequencedBase &data,
@@ -59,7 +58,10 @@ public:
 	std::string functionString() const noexcept override { return "none"; }
 	std::string_view typeString() const noexcept override { return name; }
 
-	void estimate(const PMDTable &) override {}
+	virtual void resize(size_t) override {}
+	void estimate() override {}
+	void add(genometools::Base, BAM::TSequencedBase) override {}
+	void writeTable(std::string_view, std::array<coretools::TOutputFile, 2>&) const noexcept override {}
 
 	TBaseLikelihoods baseLikelihoods(const BAM::TSequencedBase &,
 										const TBaseLikelihoods &baseLikelihoodsNoPMD) const override {

@@ -47,34 +47,38 @@ namespace GenotypeLikelihoods {
 using coretools::instances::logfile;
 using namespace coretools::str;
 
-
-void TPostMortemDamage::writeToFile(const BAM::TReadGroups &ReadGroups, const std::string filename) const {
-	std::vector<std::string> header = {"readGroup", "type", "pmd"};
-	coretools::TOutputFile out(filename, header);
-
-	// write for each read group
-	for (auto r = ReadGroups.cbegin(); r != ReadGroups.cend(); ++r)
-		out.writeln(r->name_ID, _pmdObjects[r->id()]->typeString(), _pmdObjects[r->id()]->functionString());
-}
-
 void TPostMortemDamage::writeToFile(const BAM::TReadGroups &ReadGroups, const BAM::TReadGroupMap &ReadGroupMap,
-				    const std::string filename) const {
-	std::vector<std::string> header = {"readGroup", "type", "pmd"};
-	coretools::TOutputFile out(filename, header);
+				    std::string_view outputName) const {
+	using coretools::TOutputFile;
+	TOutputFile out_PMD(std::string(outputName) + "_PMD.txt", {"readGroup", "type", "pmd"});
+	std::array<TOutputFile,2> out_counts; 
+	out_counts.front().open(std::string(outputName) + "_PMD_counts.txt", _tableSize + 5);
+	out_counts.back().open(std::string(outputName) + "_PMD_countsNormalized.txt", _tableSize + 5);
 
+	for (auto& out_count : out_counts) {
+		out_count.write("readGroup", "strand", "fromEnd", "ref", "data");
+		for (size_t i = 1; i < _tableSize; ++i) {
+			out_count.writeNoDelim("pos_");
+			out_count.write(i);
+		}
+		out_count.writeNoDelim("pos>");
+		out_count.writeln(_tableSize - 1);
+	}
 	// write for each read group
-	for (auto r = ReadGroups.cbegin(); r != ReadGroups.cend(); ++r)
-		out.writeln(r->name_ID, _pmdObjects[r->id()]->typeString(),
+	for (auto r = ReadGroups.cbegin(); r != ReadGroups.cend(); ++r) {
+		out_PMD.writeln(r->name_ID, _pmdObjects[r->id()]->typeString(),
 					_pmdObjects[ReadGroupMap.pooledIndex(r->id())]->functionString());
+		if (ReadGroupMap.inUse(r->id())) {
+			_pmdObjects[ReadGroupMap.pooledIndex(r->id())]->writeTable(ReadGroups.getName(r->id()),out_counts);
+		}
+	}
 }
 
 void TPostMortemDamage::_initializeFromString(const std::string &pmdString) {
 	// not a file: initialize all read groups have the same pmd
 	logfile().startIndent("PMD function used for all read groups:");
-
 	for (auto &p : _pmdObjects) { p.reset(makeType(pmdString)); }
 
-	// report
 	logfile().list(_pmdObjects[0]->functionString());
 	logfile().endIndent();
 }
@@ -83,7 +87,6 @@ std::vector<size_t> TPostMortemDamage::_initializeFromFile(const BAM::TReadGroup
 	// create an array of TPMD objects for each read group
 	// also works if no parameters are provided (e.g. for estimation)
 	// read from file for each read group
-
 	logfile().listFlush("Initializing PMD from file '" + filename + "' ...");
 	coretools::TInputFile in(filename, {"readGroup", "pmd"}, "\t", "//");
 
@@ -92,7 +95,7 @@ std::vector<size_t> TPostMortemDamage::_initializeFromFile(const BAM::TReadGroup
 	while (in.read(vec)) {
 		if (ReadGroups.readGroupExists(vec[0])) { // ignore if it does not exist
 			// get read group
-			uint16_t readGroupId = ReadGroups.getId(vec[0]);
+			const size_t readGroupId = ReadGroups.getId(vec[0]);
 
 			// create type
 			_pmdObjects[readGroupId].reset(makeType(vec[1]));
@@ -111,7 +114,6 @@ std::vector<size_t> TPostMortemDamage::_initializeFromFile(const BAM::TReadGroup
 	}
 	return readGroupsWithoutPMD;
 }
-
 
 void TPostMortemDamage::_setHasDamage() {
 	// check if there is PMD for at least one read group
@@ -146,13 +148,18 @@ std::vector<size_t> TPostMortemDamage::initialize(const std::string &pmdString, 
 
 void TPostMortemDamage::initialize(BAM::RGInfo::TReadGroupInfo &RgInfo) {
 	using BAM::RGInfo::InfoType;
-
 	_pmdObjects.resize(RgInfo.size());
 
 	for (size_t rg = 0; rg < RgInfo.size(); ++rg) {
 		_pmdObjects[rg].reset(makeType(RgInfo.getString(rg, InfoType::pmd, TPMDFunctionNoPMD::name)));
 	}
 }
+
+void TPostMortemDamage::resize(const BAM::TReadGroupMap& ReadGroupMap) {
+	_tableSize = coretools::instances::parameters().getParameterWithDefault<int>("length", 50) + 1;
+	logfile().list("Estimating PMD from the first ", _tableSize - 1, " positions.");
+		for (auto &r : ReadGroupMap.readGroupsInUse()) { _pmdObjects[r]->resize(_tableSize); }
+	}
 
 TBaseLikelihoods TPostMortemDamage::baseLikelihoods(const BAM::TSequencedBase &data,
                                             const TBaseLikelihoods &baseLikelihoodsNoPMD) const {
