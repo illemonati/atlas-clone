@@ -247,6 +247,12 @@ void TExponential::_fillPMDProbabilities(size_t N) {
 void TExponential::learn(const std::vector<double> &From_to, const std::vector<double> &To_from) {
 	logfile().list("Learning exponential pattern");
 
+	if (From_to.size() < 10) {
+		UERROR("Not sufficient data to estimate PMD model , the first 10 positions must have > 100 data "
+			   "points!\nConsider pooling read groups (parameter "
+			   "poolReadGroups).");
+	}
+
 	// get initial estimates via OLS
 	const auto empiric    = impl::makeEmpiric(From_to, To_from);
 	const auto Parameters = impl::initialEstimatesOLS(empiric);

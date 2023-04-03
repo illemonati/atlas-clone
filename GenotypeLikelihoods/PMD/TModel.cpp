@@ -1,4 +1,5 @@
 #include "TModel.h"
+#include "PMD/TPerFragmentLength.h"
 #include "TPerReadGroup.h"
 #include "coretools/Containers/TStrongArray.h"
 #include "coretools/Main/TLog.h"
@@ -45,18 +46,28 @@ TModel *makeType(std::string_view pmdString) {
 	if (spl.front().front() == '[') {
 		// per fragment length
 		// example: doubleStrand:[30,120]:Exponential
-		TSplitter from_to(spl.front().substr(1, spl.front().size() - 1), ',');
-		const auto from = fromStringCheck<double>(from_to.front());
-		from_to.popFront();
-		const auto to   = fromStringCheck<double>(from_to.front());
+
+		// default values
+		size_t from = 30;
+		size_t to   = 120;
+
+		std::string_view interval = spl.front();
+		interval.remove_prefix(1);
+		interval.remove_suffix(1);
+		TSplitter from_to(interval, ',');
+		if (!from_to.empty()) {
+			from = fromStringCheck<size_t>(from_to.front());
+			from_to.popFront();
+			if (!from_to.empty()) to = fromStringCheck<size_t>(from_to.front());
+		}
 
 		spl.popFront();
 		const auto function5 = spl.front();
 		spl.popFront();
 		const auto function3 = spl.empty() ? function5 : spl.front();
-		if (strand == Strand::Single) return new TPerReadGroup<Strand::Single>(function5, function3);
+		if (strand == Strand::Single) return new TPerFragmentLength<Strand::Single>(from, to, function5, function3);
 		/*else*/
-		return new TPerReadGroup<Strand::Double>(function5, function3);
+		return new TPerFragmentLength<Strand::Double>(from, to, function5, function3);
 	} else {
 		const auto function5 = spl.front();
 		spl.popFront();

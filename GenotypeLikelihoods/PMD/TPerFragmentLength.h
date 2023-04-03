@@ -12,6 +12,7 @@
 #include "PMD/TModel.h"
 #include "coretools/Containers/TStrongArray.h"
 #include "coretools/Main/TLog.h"
+#include "coretools/Main/TRandomGenerator.h"
 #include "coretools/enum.h"
 #include "genometools/GenotypeTypes.h"
 #include <cstddef>
@@ -19,11 +20,12 @@
 
 namespace GenotypeLikelihoods::PMD {
 
-namespace impl {
+namespace implF {
 
 static constexpr size_t _N = coretools::index(genometools::Base::max) + 1;
-using PMDTable             = std::vector<std::vector<coretools::TStrongArray<
-	coretools::TStrongArray<coretools::TStrongArray<size_t, genometools::Base, _N>, genometools::Base, _N>, ReadEnd>>>;
+using PMDTable             = std::vector<coretools::TStrongArray<
+	coretools::TStrongArray<coretools::TStrongArray<size_t, genometools::Base, _N>, genometools::Base, _N>, ReadEnd>>;
+using PMDTables = std::vector<PMDTable>;
 
 template<size_t End>
 constexpr ReadEnd makeForward() {
@@ -57,11 +59,6 @@ auto makeFromTo(const PMDTable &table) {
 		from_to.push_back(table[i][forward][From][To]);
 		from_to.back() += table[i][reverse][From][To];
 		if (from_to.back() < 100) {
-			if (i < 10) {
-				UERROR("Not sufficient ", From, "-", To, " data to estimate PMD model at position ", i, ": ", from_to.back(),
-					   ", the first 10 positions must have > 100 data points!\nConsider pooling read groups (parameter "
-					   "poolReadGroups).");
-			}
 			from_to.pop_back();
 			break;
 		}
@@ -70,8 +67,8 @@ auto makeFromTo(const PMDTable &table) {
 		for (auto b = Base::min; b < Base::max; ++b) {
 			s_from += table[i][forward][From][b];
 			s_from += table[i][reverse][From][b];
-			s_to += table[i][forward][To][b];
-			s_to += table[i][reverse][To][b];
+			s_to   += table[i][forward][To][b];
+			s_to   += table[i][reverse][To][b];
 		}
 		from_to.back() /= s_from;
 
@@ -87,9 +84,10 @@ auto makeFromTo(const PMDTable &table) {
 template<Strand strand> class TPerFragmentLength final : public TModel {
 private:
 	static constexpr coretools::TStrongArray<std::string_view, Strand> _names{{"singleStrand", "doubleStrand"}};
+	size_t _from = 0;
 	std::vector<std::unique_ptr<TFunction>> _pmd5s;
 	std::vector<std::unique_ptr<TFunction>> _pmd3s;
-	impl::PMDTable _table;
+	implF::PMDTables _tables;
 
 	coretools::Probability _probCT(const BAM::TSequencedBase &data) const noexcept {
 		using coretools::Probability;
@@ -125,16 +123,12 @@ private:
 
 public:
 	static constexpr std::string_view name = _names[strand];
-	TPerFragmentLength(const std::vector<std::string> &Details) {
-		/*
-		constexpr size_t nDetails = 3;
-		if (Details.size() != nDetails) {
-			UERROR("Cannot initialize PMD type ", name, ": expect ", nDetails, " entries but found ", Details.size(),
-				   "!", "\nProvided string: '", concatenateString(Details, ':'), "'.", "\nExpect string of the form '",
-				   name, "':functionCT:functionGA'.");
+	TPerFragmentLength(size_t from, size_t to, std::string_view function5, std::string_view function3) {
+		_from = from;
+		for (size_t i = from; i <= to; ++i) {
+			_pmd5s.emplace_back(makeFunction(function5));
+			_pmd3s.emplace_back(makeFunction(function3));
 		}
-		_pmd5.reset(makeFunction(Details[1]));
-		_md3.reset(makeFunction(Details[2]));*/
 	}
 
 	bool hasDamage() const noexcept override { return _pmd5s.front()->hasDamage() || _pmd3s.front()->hasDamage(); };
@@ -154,7 +148,8 @@ public:
 	std::string_view typeString() const noexcept override { return name; }
 
 	void resize(size_t N) override {
-		_table.resize(N, {});
+		_tables.resize(_pmd5s.size());
+		for (auto& table : _tables) table.resize(N, {});
 	}
 
 	void writeTable(std::string_view name, std::array<coretools::TOutputFile, 2>& files) const noexcept override {
@@ -168,24 +163,30 @@ public:
 			return ar;
 		}();
 
-		for (auto j = ReadEnd::min; j < ReadEnd::max; ++j) {
-			for (Base f = Base::min; f <= Base::max; ++f) {
-				std::vector<size_t> sums(_table.size(), 0.);
-				for (size_t i = 0; i < _table.size(); ++i) {
-					for (Base t = Base::min; t < Base::max; ++t) { sums[i] += _table[i][j][f][t]; }
-				}
-
-				for (Base t = Base::min; t <= Base::max; ++t) {
-					files.front().write(name, directions[j], f, t);
-					files.back().write(name, directions[j], f, t);
-					for (size_t i = 0; i < _table.size(); ++i) {
-						files.front().write(_table[i][j][f][t]);
-						files.back().write(static_cast<double>(_table[i][j][f][t]) / sums[i]);
+		for (size_t l = 0; l < _tables.size(); ++l) {
+			const auto& table = _tables[l];
+			for (auto j = ReadEnd::min; j < ReadEnd::max; ++j) {
+				for (Base f = Base::min; f <= Base::max; ++f) {
+					std::vector<size_t> sums(table.size(), 0.);
+					for (size_t pos = 0; pos < table.size(); ++pos) {
+						for (Base t = Base::min; t < Base::max; ++t) { sums[pos] += table[pos][j][f][t]; }
 					}
-					files.front().endln();
-					files.back().endln();
+
+					for (Base t = Base::min; t <= Base::max; ++t) {
+						files.front().writeNoDelim(name, "_");
+						files.back().writeNoDelim(name, "_");
+						files.front().write(_from + l, directions[j], f, t);
+						files.back().write(_from + l, directions[j], f, t);
+						for (size_t pos = 0; pos < table.size(); ++pos) {
+							files.front().write(table[pos][j][f][t]);
+							files.back().write(static_cast<double>(table[pos][j][f][t]) / sums[l]);
+						}
+						files.front().endln();
+						files.back().endln();
+					}
+						files.front().writeNoDelim(name, "_");
+					files.front().writeln(_from + l, directions[j], f, "sum", sums);
 				}
-				files.front().writeln(name, directions[j], f, "sum", sums);
 			}
 		}
 	}
@@ -194,38 +195,47 @@ public:
 		using genometools::Base;
 		const auto to    = data.base;
 		const auto from3 = data.distFrom3Prime < data.distFrom5Prime;
-		const auto pos   = std::min<size_t>(_table.size() - 1, from3 ? data.distFrom3Prime : data.distFrom5Prime);
+		const auto len   = std::clamp<size_t>(data.fragmentLength, _from, _from + _tables.size() - 1) - _from;
+		const auto pos   = std::min<size_t>(_tables[len].size() - 1, from3 ? data.distFrom3Prime : data.distFrom5Prime);
+
 		if (data.isReverseStrand()) {
 			const auto readEnd = from3 ? ReadEnd::reverse3 : ReadEnd::reverse5;
-			_table[data.fragmentLength][pos][readEnd][flipped(from)][flipped(to)]++;
+			_tables[len][pos][readEnd][flipped(from)][flipped(to)]++;
 		} else {
 			const auto readEnd = from3 ? ReadEnd::forward3 : ReadEnd::forward5;
-			_table[data.fragmentLength][pos][readEnd][from][to]++;
+			_tables[len][pos][readEnd][from][to]++;
 		}
 	}
 
 	void estimate() override {
 		using genometools::Base;
 		using coretools::instances::logfile;
-		logfile().startIndent("Learning 5' C-T pattern:");
-		const auto [C_T5, T_C5] = impl::makeFromTo<5, Base::C, Base::T>(_table);
-		_pmd5s[data.fragmentLength]->learn(C_T5, T_C5);
-		logfile().endIndent();
+		logfile().startIndent("Learning 5' C-T patterns:");
+		for (size_t i = 0; i < _pmd5s.size(); ++i) {
+			const auto [C_T5, T_C5] = implF::makeFromTo<5, Base::C, Base::T>(_tables[i]);
+			_pmd5s[i]->learn(C_T5, T_C5);
+			logfile().endIndent();
+		}
 		if constexpr (strand == Strand::Single) {
 			logfile().startIndent("Learning 3' C-T pattern:");
-			const auto [C_T3, T_C3] = impl::makeFromTo<3, Base::C, Base::T>(_table);
-			_pmd3s[data.fragmentLength]->learn(C_T3, T_C3);
+			for (size_t i = 0; i < _pmd3s.size(); ++i) {
+				const auto [C_T3, T_C3] = implF::makeFromTo<3, Base::C, Base::T>(_tables[i]);
+				_pmd3s[i]->learn(C_T3, T_C3);
+			}
 			logfile().endIndent();
 		} else {
 			logfile().startIndent("Learning 3' G-A pattern:");
-			const auto [G_A3, A_G3] = impl::makeFromTo<3, Base::G, Base::A>(_table);
-			_pmd3s[data.fragmentLength]->learn(G_A3, A_G3);
+			for (size_t i = 0; i < _pmd3s.size(); ++i) {
+				const auto [G_A3, A_G3] = implF::makeFromTo<3, Base::G, Base::A>(_tables[i]);
+				_pmd3s[i]->learn(G_A3, A_G3);
+			}
 			logfile().endIndent();
 		}
 	}
 
 	TBaseLikelihoods baseLikelihoods(const BAM::TSequencedBase &data,
 									 const TBaseLikelihoods &baseLikelihoodsNoPMD) const override {
+		using genometools::Base;
 		const auto pCT = _probCT(data);
 		const auto pGA = _probGA(data);
 		TBaseLikelihoods baseLikelihoods(baseLikelihoodsNoPMD);
@@ -237,6 +247,7 @@ public:
 
 	TBaseProbabilities massFunction(genometools::Base b, const BAM::TSequencedBase &data,
 									const TBaseLikelihoods &baseLikelihoodsNoPMD) const override {
+		using genometools::Base;
 		const auto pCT = _probCT(data);
 		const auto pGA = _probGA(data);
 
@@ -280,6 +291,8 @@ public:
 	}
 
 	virtual void simulate(BAM::TSequencedBase &data) const override {
+		using genometools::Base;
+		using coretools::instances::randomGenerator;
 		const auto pCT = _probCT(data);
 		const auto pGA = _probGA(data);
 		auto &base     = data.base;
