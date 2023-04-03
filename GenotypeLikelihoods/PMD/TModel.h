@@ -20,6 +20,7 @@ namespace GenotypeLikelihoods::PMD {
 
 enum class ReadEnd : size_t { min = 0, forward5 = min, reverse5, forward3, reverse3, max };
 enum class Strand : size_t {min, Single=min, Double, max};
+
 struct TModel {
 	TModel()          = default;
 	virtual ~TModel() = default;

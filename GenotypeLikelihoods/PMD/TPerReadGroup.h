@@ -121,15 +121,9 @@ private:
 
 public:
 	static constexpr std::string_view name = _names[strand];
-	TPerReadGroup(const std::vector<std::string> &Details) {
-		constexpr size_t nDetails = 3;
-		if (Details.size() != nDetails) {
-			UERROR("Cannot initialize PMD type ", name, ": expect ", nDetails, " entries but found ", Details.size(),
-				   "!", "\nProvided string: '", coretools::str::concatenateString(Details, ':'), "'.", "\nExpect string of the form '",
-				   name, "':functionCT:functionGA'.");
-		}
-		_pmd5.reset(makeFunction(Details[1]));
-		_pmd3.reset(makeFunction(Details[2]));
+	TPerReadGroup(std::string_view function5, std::string_view function3) {
+		_pmd5.reset(makeFunction(function5));
+		_pmd3.reset(makeFunction(function3));
 	}
 
 	bool hasDamage() const noexcept override { return _pmd5->hasDamage() || _pmd3->hasDamage(); };
