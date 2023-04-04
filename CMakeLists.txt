@@ -19,6 +19,7 @@ file(GLOB CORE_SOURCES CONFIGURE_DEPENDS
   GenomeTasks/*.h GenomeTasks/*.cpp
   GenotypeLikelihoods/*.h GenotypeLikelihoods/*.cpp
   GenotypeLikelihoods/SequencingError/*.h GenotypeLikelihoods/SequencingError/*.cpp
+  GenotypeLikelihoods/PMD/*.h GenotypeLikelihoods/PMD/*.cpp
   GLF/*.h GLF/*.cpp
   PopulationTools/*.h PopulationTools/*.cpp
   Simulations/*.h Simulations/*.cpp

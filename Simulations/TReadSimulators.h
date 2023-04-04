@@ -9,7 +9,7 @@
 #define SIMULATIONS_TREADSIMULATORS_H_
 
 #include "TReadSimulator.h"
-#include "TPostMortemDamage.h"
+#include "PMD/TModels.h"
 #include "genometools/GenomePositions/TGenomePosition.h"
 #include "../BAM/TBamFile.h"
 
@@ -23,7 +23,7 @@ private:
 
 	// simulation tools
 	BAM::TReadGroups _readGroups;
-	GenotypeLikelihoods::TPostMortemDamage _PMD;
+	GenotypeLikelihoods::PMD::TModels _PMD;
 
 	// read simulator
 	std::vector<std::unique_ptr<TReadSimulator>> _readSimulators;

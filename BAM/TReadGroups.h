@@ -23,7 +23,7 @@ namespace BAM{
 struct TReadGroupMaxLength{
 public:
 	int maxLen;
-	uint16_t truncatedOrMergedReadGroupID;
+	size_t truncatedOrMergedReadGroupID;
 	std::string truncatedOrMergedReadGroup;
 	int sequencingType; //0 = single, 1 = mixed, 2 = paired
 
@@ -40,7 +40,7 @@ public:
 //---------------------------------------------------------------
 class TReadGroup{
 private:
-	uint16_t _id; //internal ID
+	size_t _id; //internal ID
 
 public:
 	std::string name_ID;
@@ -63,13 +63,13 @@ public:
     bool writeToHeader;                 //is false if read group is not in use or replaced by new one
 
     TReadGroup();
-    TReadGroup(const uint16_t ID, std::string_view Name);
+    TReadGroup(const size_t ID, std::string_view Name);
 
     std::string compileSamHeader() const;
 
     //getters
-    uint16_t id() const { return _id; };
-    void setId(const uint16_t id){ _id = id; };
+    size_t id() const { return _id; };
+    void setId(const size_t id){ _id = id; };
 
     bool operator<(const TReadGroup & right) const;
     bool operator<(std::string_view right) const;
@@ -101,25 +101,25 @@ public:
 	TReadGroups& operator=(const TReadGroups & other);
 	TReadGroups& operator=(const TReadGroups && other);
 
-	static constexpr uint16_t noReadGroupId = -1;
+	static constexpr size_t noReadGroupId = -1;
 
 	// add and remove read groups
 	void clear();
 	TReadGroup& add(std::string_view name);
 	TReadGroup& addAlternativeRG(std::string_view Name, std::string_view original);
-	uint16_t size() const;
+	size_t size() const;
 	bool empty() const;
 
 	// access read groups
-	uint16_t getId(std::string_view name) const; // returns noReadGroupId if read group does not exist.
+	size_t getId(std::string_view name) const; // returns noReadGroupId if read group does not exist.
 	const TReadGroup& getReadGroup(std::string_view name) const;
 	TReadGroup& getReadGroup(std::string_view name);
-	const TReadGroup& getReadGroup(uint16_t ReadGroupId) const;
-	TReadGroup& getReadGroup(uint16_t ReadGroupId);
-	const TReadGroup& operator[](uint16_t readGroupId) const; //no checking
+	const TReadGroup& getReadGroup(size_t ReadGroupId) const;
+	TReadGroup& getReadGroup(size_t ReadGroupId);
+	const TReadGroup& operator[](size_t readGroupId) const; //no checking
 
 	bool readGroupExists(std::string_view name) const;
-	bool readGroupExists(uint16_t readGroupId) const;
+	bool readGroupExists(size_t readGroupId) const;
 
 	//looping over
 	std::vector<TReadGroup>::iterator begin(){ return _readGroups.begin(); };
@@ -131,8 +131,8 @@ public:
 	template <typename T> bool readGroupInUse(T Identifier) const {
 		return getReadGroup(Identifier).inUse;
 	}
-	const std::string& getName (uint16_t readGroupId) const;
-	std::vector<std::string> getNames(std::vector<uint16_t> & readGroupIds) const;
+	const std::string& getName (size_t readGroupId) const;
+	std::vector<std::string> getNames(std::vector<size_t> & readGroupIds) const;
 
 	//some additional tasks
 	void filterReadGroups(std::string_view readGroupList);
@@ -152,13 +152,13 @@ public:
 //--------------------------------------------------------------------------------------
 class TReadGroupMap{
 private:
-	static const uint16_t ReadGroupMapNotInitializedIndex; //largest possible values
-	std::vector<uint16_t> _readGroupMap; //maps read group index to pooled index
-	std::vector< std::vector<uint16_t> > _reverseReadGroupMap; //IDs of all Rgs pooled with that index. Includes itself.
-	std::vector<uint16_t> _readGroupsInUse;
+	static const size_t ReadGroupMapNotInitializedIndex; //largest possible values
+	std::vector<size_t> _readGroupMap; //maps read group index to pooled index
+	std::vector< std::vector<size_t> > _reverseReadGroupMap; //IDs of all Rgs pooled with that index. Includes itself.
+	std::vector<size_t> _readGroupsInUse;
 
 	void _resize(const TReadGroups & ReadGroups);
-	void _markAsInUse(uint16_t index);
+	void _markAsInUse(size_t index);
 	void _fillWithoutPooling(const TReadGroups & ReadGroups);
 	void _fillFromFile(const TReadGroups & ReadGroups, std::string_view filename);
 
@@ -168,15 +168,15 @@ public:
 
 	~TReadGroupMap() = default;
 
-	uint16_t size() const { return _readGroupMap.size(); };
-	uint16_t numReadGroupsInUse() const { return _readGroupsInUse.size(); };
+	size_t size() const { return _readGroupMap.size(); };
+	size_t numReadGroupsInUse() const { return _readGroupsInUse.size(); };
 
-	uint16_t operator[](uint16_t rg) const { return _readGroupMap[rg]; };
-	uint16_t pooledIndex(uint16_t rg) const { return _readGroupMap[rg]; };
-	bool inUse(uint16_t rg) const { return _readGroupMap[rg] == rg; };
+	size_t operator[](size_t rg) const { return _readGroupMap[rg]; };
+	size_t pooledIndex(size_t rg) const { return _readGroupMap[rg]; };
+	bool inUse(size_t rg) const { return _readGroupMap[rg] == rg; };
 
-	const std::vector<uint16_t>& readGroupsInUse() const { return _readGroupsInUse; };
-	const std::vector<uint16_t>& readGroupsPooledWith(uint16_t rg) const { return _reverseReadGroupMap[rg]; };
+	const std::vector<size_t>& readGroupsInUse() const { return _readGroupsInUse; };
+	const std::vector<size_t>& readGroupsPooledWith(size_t rg) const { return _reverseReadGroupMap[rg]; };
 };
 
 }; //end namespace

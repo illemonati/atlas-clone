@@ -22,7 +22,7 @@
 #include "TGenotypeDistribution.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
-#include "TPostMortemDamage.h"
+#include "PMD/TModels.h"
 #include "TSequencedBase.h"
 #include "SequencingError/TModel.h"
 #include "SequencingError/TModels.h"
@@ -283,7 +283,7 @@ void TRecalibrationEMEstimator::addSite(const TSite &site) {
 //----------------------------
 void TRecalibrationEMEstimator::performEstimation(const std::string &outputName,
 												  SequencingError::TModels &SequencingErrorModels,
-												  const TPostMortemDamage &PmdModels) {
+												  const PMD::TModels &PmdModels) {
 	// initialize models
 	_initializeModels(SequencingErrorModels);
 
@@ -299,7 +299,7 @@ void TRecalibrationEMEstimator::performEstimation(const std::string &outputName,
 	r.write(outputName + "_recal.json");
 };
 
-void TRecalibrationEMEstimator::_estimateRho_updatePbbar(const TPostMortemDamage &PmdModels) {
+void TRecalibrationEMEstimator::_estimateRho_updatePbbar(const PMD::TModels &PmdModels) {
 	using genometools::genotype;
 	coretools::TStrongArray<size_t, Base> cnt{0};
 	_P_bbar_I_gds.clear();
@@ -387,7 +387,7 @@ void TRecalibrationEMEstimator::_updateEpsilon(double deltaLL_LL) {
 	logfile().endIndent();
 };
 
-double TRecalibrationEMEstimator::_calculateLL_updatePg(const TPostMortemDamage &PmdModels) {
+double TRecalibrationEMEstimator::_calculateLL_updatePg(const PMD::TModels &PmdModels) {
 	_P_g_I_ds.clear();
 
 	double LL = 0.0;
@@ -416,7 +416,7 @@ double TRecalibrationEMEstimator::_calculateLL_updatePg(const TPostMortemDamage 
 	return LL;
 };
 
-void TRecalibrationEMEstimator::_runEM(const std::string &outputName, const TPostMortemDamage &PmdModels) {
+void TRecalibrationEMEstimator::_runEM(const std::string &outputName, const PMD::TModels &PmdModels) {
 	using coretools::str::toString;
 	// run EM
 	logfile().startNumbering("Running EM algorithm:");
@@ -477,7 +477,7 @@ void TRecalibrationEMEstimator::_runEM(const std::string &outputName, const TPos
 	logfile().endNumbering();
 };
 
-void TRecalibrationEMEstimator::calcLL(TModels &SequencingErrorModels, const TPostMortemDamage &PmdModels) {
+void TRecalibrationEMEstimator::calcLL(TModels &SequencingErrorModels, const PMD::TModels &PmdModels) {
 	_initializeModels(SequencingErrorModels);
 
 	logfile().startIndent("Recal Model:");

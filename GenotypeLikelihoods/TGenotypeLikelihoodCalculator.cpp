@@ -29,12 +29,12 @@ TGenotypeLikelihoodCalculator::TGenotypeLikelihoodCalculator(const BAM::TReadGro
 	//initialize PMD
 	//--------------
 	if(parameters().parameterExists("pmd")){
-		std::vector<uint16_t> readGroupsWithoutDef = _pmdModels.initialize(parameters().getParameter<std::string>("pmd"), *ReadGroups);
+		std::vector<size_t> readGroupsWithoutDef = _pmdModels.initialize(parameters().getParameter<std::string>("pmd"), *ReadGroups);
 
 		//Warn if some read groups have no PMD definition
 		if(readGroupsWithoutDef.size() > 0){
-			logfile().warning("The following read groups do not have PMD definitions: "
-					         + coretools::str::concatenateString(ReadGroups->getNames(readGroupsWithoutDef), ", ")
+			logfile().warning("The following read groups do not have PMD definitions: ",
+					         coretools::str::concatenateString(ReadGroups->getNames(readGroupsWithoutDef), ", ")
 							 + "!");
 			if(!parameters().parameterExists("allowReadGroupsWithoutPMD")){
 				UERROR("PMD is only defined for a subset of read groups. Did you use the wrong PMD file? (use allowReadGroupsWithoutPMD to ignore)");
@@ -70,8 +70,8 @@ TGenotypeLikelihoodCalculator::TGenotypeLikelihoodCalculator(const BAM::TReadGro
 			logfile().startIndent("Initializing recal models from file '" + recalString + "' (parameter 'recal'):");
 			_sequencingErrorModels.initializeFromFile(recalString, *ReadGroups);
 			//warn if some read groups have no recal definition
-			std::vector<uint16_t> readGroupsWithoutRecal;
-			std::vector<uint16_t> readGroupsLikelySingelEnd;
+			std::vector<size_t> readGroupsWithoutRecal;
+			std::vector<size_t> readGroupsLikelySingelEnd;
 
 			_sequencingErrorModels.checkReadGroups(*ReadGroups, readGroupsWithoutRecal, readGroupsLikelySingelEnd);
 
