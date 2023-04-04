@@ -1,6 +1,5 @@
 #include "TModel.h"
-#include "PMD/TPerFragmentLength.h"
-#include "TPerReadGroup.h"
+#include "TWithPMD.h"
 #include "coretools/Containers/TStrongArray.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TRandomGenerator.h"
@@ -65,16 +64,16 @@ TModel *makeType(std::string_view pmdString) {
 		const auto function5 = spl.front();
 		spl.popFront();
 		const auto function3 = spl.empty() ? function5 : spl.front();
-		if (strand == Strand::Single) return new TPerFragmentLength<Strand::Single>(from, to, function5, function3);
+		if (strand == Strand::Single) return new TWithPMD<Strand::Single, true>(function5, function3, from, to);
 		/*else*/
-		return new TPerFragmentLength<Strand::Double>(from, to, function5, function3);
+		return new TWithPMD<Strand::Single, true>(function5, function3, from, to);
 	} else {
 		const auto function5 = spl.front();
 		spl.popFront();
 		const auto function3 = spl.empty() ? function5 : spl.front();
-		if (strand == Strand::Single) return new TPerReadGroup<Strand::Single>(function5, function3);
+		if (strand == Strand::Single) return new TWithPMD<Strand::Single, false>(function5, function3);
 		/*else*/
-		return new TPerReadGroup<Strand::Double>(function5, function3);
+		return new TWithPMD<Strand::Double, false>(function5, function3);
 	}
 }
 } // namespace GenotypeLikelihoods::PMD
