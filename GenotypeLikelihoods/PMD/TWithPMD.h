@@ -24,6 +24,11 @@ static constexpr size_t _N = coretools::index(genometools::Base::max) + 1;
 using PMDTable             = std::vector<coretools::TStrongArray<
 	coretools::TStrongArray<coretools::TStrongArray<size_t, genometools::Base, _N>, genometools::Base, _N>, ReadEnd>>;
 
+struct PMDTables {
+	std::vector<PMDTable> tables;
+	size_t minLength;
+};
+
 template<size_t End>
 constexpr ReadEnd makeForward() {
 	if constexpr (End == 3) return ReadEnd::forward3;
@@ -56,11 +61,6 @@ auto makeFromTo(const PMDTable &table) {
 		from_to.push_back(table[i][forward][From][To]);
 		from_to.back() += table[i][reverse][From][To];
 		if (from_to.back() < 100) {
-			if (i < 10) {
-				UERROR("Not sufficient ", From, "-", To, " data to estimate PMD model at position ", i, ": ", from_to.back(),
-					   ", the first 10 positions must have > 100 data points!\nConsider pooling read groups (parameter "
-					   "poolReadGroups).");
-			}
 			from_to.pop_back();
 			break;
 		}
@@ -88,7 +88,7 @@ template<Strand strand, bool perLength> class TWithPMD final : public TModel {
 private:
 	static constexpr coretools::TStrongArray<std::string_view, Strand> _names{{"singleStrand", "doubleStrand"}};
 	using Function = std::conditional_t<perLength, std::vector<std::unique_ptr<TFunction>>, std::unique_ptr<TFunction>>;
-	using Table    = std::conditional_t<perLength, std::pair<std::vector<impl::PMDTable>, size_t>, impl::PMDTable>;
+	using Table    = std::conditional_t<perLength, impl::PMDTables, impl::PMDTable>;
 	Function _pmd5;
 	Function _pmd3;
 	Table _table;
@@ -164,12 +164,11 @@ public:
 		static_assert((perLength && (N == 2)) || (!perLength && !N));
 		if constexpr (perLength) {
 			auto&& tpl = std::forward_as_tuple(ts...);
-			_table.second = std::get<0>(tpl);
-			for (size_t i = std::get<0>(tpl); i <= std::get<1>(tpl); ++i) {
+			_table.minLength = std::get<0>(tpl);
+			for (size_t i = _table.minLength; i <= std::get<1>(tpl); ++i) {
 				_pmd5.emplace_back(makeFunction(function5));
 				_pmd3.emplace_back(makeFunction(function3));
 			}
-
 		} else {
 		_pmd5.reset(makeFunction(function5));
 		_pmd3.reset(makeFunction(function3));
@@ -203,8 +202,8 @@ public:
 
 	void resize(size_t N) override {
 		if constexpr (perLength) {
-			_table.first.resize(_pmd5.size());
-			for (auto &table : _table.first) table.resize(N, {});
+			_table.tables.resize(_pmd5.size());
+			for (auto &table : _table.tables) table.resize(N, {});
 		} else {
 			_table.resize(N, {});
 		}
@@ -222,8 +221,8 @@ public:
 		}();
 
 		if constexpr (perLength) {
-			for (size_t l = 0; l < _table.first.size(); ++l) {
-				const auto &table = _table.first[l];
+			for (size_t l = 0; l < _table.tables.size(); ++l) {
+				const auto &table = _table.tables[l];
 				for (auto j = ReadEnd::min; j < ReadEnd::max; ++j) {
 					for (Base f = Base::min; f <= Base::max; ++f) {
 						std::vector<size_t> sums(table.size(), 0.);
@@ -234,8 +233,8 @@ public:
 						for (Base t = Base::min; t <= Base::max; ++t) {
 							files.front().writeNoDelim(name, "_");
 							files.back().writeNoDelim(name, "_");
-							files.front().write(_table.second + l, directions[j], f, t);
-							files.back().write(_table.second + l, directions[j], f, t);
+							files.front().write(_table.minLength + l, directions[j], f, t);
+							files.back().write(_table.minLength + l, directions[j], f, t);
 							for (size_t pos = 0; pos < table.size(); ++pos) {
 								files.front().write(table[pos][j][f][t]);
 								files.back().write(static_cast<double>(table[pos][j][f][t]) / sums[l]);
@@ -244,7 +243,7 @@ public:
 							files.back().endln();
 						}
 						files.front().writeNoDelim(name, "_");
-						files.front().writeln(_table.second + l, directions[j], f, "sum", sums);
+						files.front().writeln(_table.minLength + l, directions[j], f, "sum", sums);
 					}
 				}
 			}
@@ -276,15 +275,15 @@ public:
 		const auto from3 = data.distFrom3Prime < data.distFrom5Prime;
 		if constexpr (perLength) {
 			const auto len =
-				std::clamp<size_t>(data.fragmentLength, _table.second, _table.second + _table.first.size() - 1) -
-				_table.second;
-			const auto pos   = std::min<size_t>(_table.first.size() - 1, from3 ? data.distFrom3Prime : data.distFrom5Prime);
+				std::clamp<size_t>(data.fragmentLength, _table.minLength, _table.minLength + _table.tables.size() - 1) -
+				_table.minLength;
+			const auto pos   = std::min<size_t>(_table.tables.size() - 1, from3 ? data.distFrom3Prime : data.distFrom5Prime);
 			if (data.isReverseStrand()) {
 				const auto readEnd = from3 ? ReadEnd::reverse3 : ReadEnd::reverse5;
-				_table.first[len][pos][readEnd][flipped(from)][flipped(to)]++;
+				_table.tables[len][pos][readEnd][flipped(from)][flipped(to)]++;
 			} else {
 				const auto readEnd = from3 ? ReadEnd::forward3 : ReadEnd::forward5;
-				_table.first[len][pos][readEnd][from][to]++;
+				_table.tables[len][pos][readEnd][from][to]++;
 			}
 		} else {
 			const auto pos   = std::min<size_t>(_table.size() - 1, from3 ? data.distFrom3Prime : data.distFrom5Prime);
@@ -304,7 +303,7 @@ public:
 		logfile().startIndent("Learning 5' C-T pattern:");
 		if constexpr (perLength) {
 			for (size_t i = 0; i < _pmd5.size(); ++i) {
-				const auto [C_T5, T_C5] = impl::makeFromTo<5, Base::C, Base::T>(_table.first[i]);
+				const auto [C_T5, T_C5] = impl::makeFromTo<5, Base::C, Base::T>(_table.tables[i]);
 				_pmd5[i]->learn(C_T5, T_C5);
 			}
 		} else {
@@ -316,7 +315,7 @@ public:
 			logfile().startIndent("Learning 3' C-T pattern:");
 			if constexpr (perLength) {
 				for (size_t i = 0; i < _pmd3.size(); ++i) {
-					const auto [C_T3, T_C3] = impl::makeFromTo<3, Base::C, Base::T>(_table.first[i]);
+					const auto [C_T3, T_C3] = impl::makeFromTo<3, Base::C, Base::T>(_table.tables[i]);
 					_pmd3[i]->learn(C_T3, T_C3);
 				}
 			} else {
@@ -328,7 +327,7 @@ public:
 			logfile().startIndent("Learning 3' G-A pattern:");
 			if constexpr (perLength) {
 				for (size_t i = 0; i < _pmd3.size(); ++i) {
-					const auto [G_A3, A_G3] = impl::makeFromTo<3, Base::G, Base::A>(_table.first[i]);
+					const auto [G_A3, A_G3] = impl::makeFromTo<3, Base::G, Base::A>(_table.tables[i]);
 					_pmd3[i]->learn(G_A3, A_G3);
 				}
 			} else {
