@@ -43,7 +43,7 @@ if __name__ == "__main__":
             means.append(mean(data[:, c]))
             stds.append(std(data[:, c]))
 
-        if real < 0: real = means[0]
+        real = means[0]
 
         probs = r_[probs]
         means = r_[means]
@@ -59,9 +59,9 @@ if __name__ == "__main__":
         plt.yscale("log")
         sc = max(sc, max(means/real))
         sc = max(sc, max(real/means))
+        plt.hlines(real, 0, 10, "k", "dashed")
 
     sc = min(50, sc*2)
-    plt.hlines(real, 0, 10, "k", "dashed")
     plt.ylim(real/sc, real*sc)
     plt.legend()
     plt.xlabel(r"Downsampling probability")
