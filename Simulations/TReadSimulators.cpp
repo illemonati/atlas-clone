@@ -16,7 +16,6 @@ namespace Simulations {
 
 using BAM::RGInfo::TReadGroupInfo;
 using coretools::instances::logfile;
-using coretools::instances::parameters;
 using coretools::instances::randomGenerator;
 
 void TReadSimulators::_initializeReadGroups(const TReadGroupInfo & RGinfo) {

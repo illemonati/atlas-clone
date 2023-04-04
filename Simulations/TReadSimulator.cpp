@@ -9,14 +9,15 @@
 #include <algorithm>
 #include <memory>
 
-#include "genometools/PhredProbabilityTypes.h"
-#include "TPostMortemDamage.h"
-#include "coretools/Main/TRandomGenerator.h"
-#include "TSequencedBase.h"
+#include "PMD/TModels.h"
+#include "PMD/TModel.h"
 #include "SequencingError/TModel.h"
+#include "TSequencedBase.h"
 #include "TSimulatorAuxiliaryTools.h"
-#include "coretools/Strings/stringFunctions.h"
+#include "coretools/Main/TRandomGenerator.h"
 #include "coretools/Strings/fromString.h"
+#include "coretools/Strings/stringFunctions.h"
+#include "genometools/PhredProbabilityTypes.h"
 
 namespace Simulations {
 using genometools::Base;
@@ -170,7 +171,7 @@ void TReadSimulator::_simulateBasesQualities(BAM::TAlignment & alignment,
 	_recalModels.simulate(alignment);
 }
 
-void TReadSimulator::setPMD(GenotypeLikelihoods::TPMDType const *Pmd) {
+void TReadSimulator::setPMD(GenotypeLikelihoods::PMD::TModel const *Pmd) {
 	_pmd = Pmd;
 }
 

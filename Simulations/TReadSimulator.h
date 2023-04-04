@@ -8,26 +8,27 @@
 #ifndef TSIMULATORREAD_H_
 #define TSIMULATORREAD_H_
 
-#include <stdint.h>
 #include <array>
 #include <memory>
+#include <set>
+#include <stdint.h>
 #include <string>
 #include <vector>
-#include <set>
+
+#include "../BAM/TBamFile.h"
 #include "../BAM/TReadGroupInfo.h"
+#include "PMD/TModel.h"
 #include "SequencingError/TModels.h"
-#include "genometools/GenotypeTypes.h"
 #include "TAlignment.h"
 #include "TCigar.h"
+#include "TReadGroupInfo.h"
 #include "TReadGroups.h"
 #include "TSamFlags.h"
-#include "genometools/PhredProbabilityTypes.h"
-#include "coretools/Math/TCategoricalDistribution.h"
-#include "TReadGroupInfo.h"
 #include "coretools/Main/TLog.h"
-#include "../BAM/TBamFile.h"
+#include "coretools/Math/TCategoricalDistribution.h"
+#include "genometools/GenotypeTypes.h"
+#include "genometools/PhredProbabilityTypes.h"
 
-namespace GenotypeLikelihoods { class TPMDType; }
 namespace GenotypeLikelihoods { namespace SequencingError { class TReadGroupModels; } }
 namespace GenotypeLikelihoods { namespace SequencingError { class TModel; } }
 namespace Simulations { class TSimulatorBamFile; }
@@ -61,7 +62,7 @@ protected:
 	int _readYPos = 1;
 	std::unique_ptr<TCategoricalDistribution<uint16_t>> _softClipDist5;
 	std::unique_ptr<TCategoricalDistribution<uint16_t>> _softClipDist3;
-	GenotypeLikelihoods::TPMDType const *_pmd = nullptr;
+	GenotypeLikelihoods::PMD::TModel const *_pmd = nullptr;
 
 	// contamination
 	double _contaminationRate = 0.;
@@ -97,7 +98,7 @@ public:
 	virtual ~TReadSimulator() = default;
 
 	//setters
-	void setPMD(GenotypeLikelihoods::TPMDType const *Pmd);
+	void setPMD(GenotypeLikelihoods::PMD::TModel const *Pmd);
 	void setContamination(double rate, TSimulatorReference *source);
 
 	//simulate

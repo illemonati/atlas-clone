@@ -16,7 +16,7 @@
 #include "genometools/PhredProbabilityTypes.h"
 #include "TGenotypeData.h"
 #include "TGenotypeDistribution.h"
-#include "TPostMortemDamage.h"
+#include "PMD/TModels.h"
 #include "SequencingError/TModels.h"
 #include "TSite.h"
 #include "coretools/Types/probability.h"
@@ -26,40 +26,9 @@ namespace BAM { class TSequencedBase; }
 
 namespace GenotypeLikelihoods{
 
-	/*
-class TGenotypeLikelihoodCalculator_simple{
-private:
-public:
-
-	template <typename PMD, typename SEQERR>
-	TBaseLikelihoods getBaseLikelihoods(const BAM::TSequencedBase & base, const PMD & PmdModels, const SEQERR & SequencingErrorModels) const{
-		TBaseLikelihoods baseLikelihoodsNoPMD = SequencingErrorModels.getBaseLikelihoods(base);
-		return PmdModels.getBaseLikelihoods(base, baseLikelihoodsNoPMD);
-	};
-
-	template<typename PMD, typename SEQERR>
-	TGenotypeLikelihoods getGenotypeLikelihoods(const TSite &site, const PMD &PmdModels,
-												 const SEQERR &SequencingErrorModels) const {
-		if (site.empty()) { return TGenotypeLikelihoods{1.}; }
-		std::vector<TBaseLikelihoods> baseLikelihoods;
-		baseLikelihoods.reserve(site.depth());
-		// calculate base likelihoods P(d|b, D, epsilon) = \sum_{\bar{b}} P(\bar{b}|b, D)P(d|\bar{b}, \epsilon)
-		for (const auto &d : site) {
-			baseLikelihoods.push_back(getBaseLikelihoods(d, PmdModels, SequencingErrorModels));
-		}
-
-		// calculate genotype likelihoods
-		return getGLH(baseLikelihoods, site.depth());
-	};
-};
-	*/
-
 class TGenotypeLikelihoodCalculator{
 protected:
-	//TGenotypeLikelihoodCalculator_simple _calculator;
-
-	//TGenotypeDistribution _genotypeDistribution;
-	TPostMortemDamage _pmdModels;
+	PMD::TModels _pmdModels;
 	SequencingError::TModels _sequencingErrorModels;
 
 public:
@@ -67,8 +36,8 @@ public:
 
 	const SequencingError::TModels& sequencingErrorModels() const { return _sequencingErrorModels; };
 	SequencingError::TModels& sequencingErrorModels() { return _sequencingErrorModels; };
-	const TPostMortemDamage& postMortemDamageModels() const { return _pmdModels; };
-	TPostMortemDamage& postMortemDamageModels() { return _pmdModels; };
+	const PMD::TModels& postMortemDamageModels() const { return _pmdModels; };
+	PMD::TModels& postMortemDamageModels() { return _pmdModels; };
 
 	bool hasPMD() const;
 	bool recalibrationChangesQualities() const;

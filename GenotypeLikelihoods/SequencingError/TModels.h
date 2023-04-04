@@ -74,18 +74,18 @@ public:
 	void initialize(const std::vector<std::string> & RecalStringPerReadGroup, const std::vector<std::string> & RhoStringPerReadGroup, const BAM::TReadGroups &ReadGroups);
 	void initializeFromFile(std::string_view Filename, const BAM::TReadGroups &ReadGroups);
 	void initialize(BAM::RGInfo::TReadGroupInfo & RgInfo);
-	void checkReadGroups(const BAM::TReadGroups &ReadGroups, std::vector<uint16_t> &ReadGroupsWithoutRecal,
-			     std::vector<uint16_t> &ReadGroupsLikelySingleEnd) const noexcept;
+	void checkReadGroups(const BAM::TReadGroups &ReadGroups, std::vector<size_t> &ReadGroupsWithoutRecal,
+			     std::vector<size_t> &ReadGroupsLikelySingleEnd) const noexcept;
 
 	std::vector<TReadGroupModels> forget();
 	void remember(std::vector<TReadGroupModels>& forgottenModels);
 
 	// access models
-	TModel& operator()(uint16_t ReadGroupIndex, bool IsSecondMate) noexcept {
+	TModel& operator()(size_t ReadGroupIndex, bool IsSecondMate) noexcept {
 		return _models[ReadGroupIndex][IsSecondMate];
 	}
 
-	const TModel& operator()(uint16_t ReadGroupIndex, bool IsSecondMate) const noexcept {
+	const TModel& operator()(size_t ReadGroupIndex, bool IsSecondMate) const noexcept {
 		return _models[ReadGroupIndex][IsSecondMate];
 	}
 
