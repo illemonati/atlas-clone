@@ -12,6 +12,7 @@
 #include "TModel.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TRandomGenerator.h"
+#include "coretools/Strings/splitters.h"
 #include "coretools/Strings/toString.h"
 #include "genometools/GenotypeTypes.h"
 #include <cstddef>
@@ -28,6 +29,7 @@ using PMDTable             = std::vector<coretools::TStrongArray<
 struct PMDTables {
 	std::vector<PMDTable> tables;
 	size_t minLength;
+	size_t index(size_t length) const noexcept { return std::min(std::max<size_t>(minLength, length) - minLength, tables.size() - 1); }
 };
 
 template<size_t End>
@@ -100,8 +102,8 @@ private:
 			if (data.isReverseStrand()) return coretools::Probability{};
 			if constexpr (perLength) {
 				return data.distFrom3Prime < data.distFrom5Prime
-						   ? _pmd3[data.fragmentLength]->prob(data.distFrom3Prime)
-						   : _pmd5[data.fragmentLength]->prob(data.distFrom5Prime);
+						   ? _pmd3[_table.index(data.fragmentLength)]->prob(data.distFrom3Prime)
+						   : _pmd5[_table.index(data.fragmentLength)]->prob(data.distFrom5Prime);
 
 			} else {
 				return data.distFrom3Prime < data.distFrom5Prime ? _pmd3->prob(data.distFrom3Prime)
@@ -110,14 +112,15 @@ private:
 		} else {
 			if (data.distFrom3Prime < data.distFrom5Prime) { // from 3
 				if constexpr (perLength) {
-					return !data.isReverseStrand() ? Probability{}
-												   : _pmd3[data.fragmentLength]->prob(data.distFrom3Prime);
+					return !data.isReverseStrand()
+							   ? Probability{}
+							   : _pmd3[_table.index(data.fragmentLength)]->prob(data.distFrom3Prime);
 				} else {
 					return !data.isReverseStrand() ? Probability{} : _pmd3->prob(data.distFrom3Prime);
 				}
 			} else { // from 5
 				if constexpr (perLength) {
-					return !data.isReverseStrand() ? _pmd5[data.fragmentLength]->prob(data.distFrom5Prime)
+					return !data.isReverseStrand() ? _pmd5[_table.index(data.fragmentLength)]->prob(data.distFrom5Prime)
 												   : Probability{};
 				} else {
 					return !data.isReverseStrand() ? _pmd5->prob(data.distFrom5Prime) : Probability{};
@@ -132,8 +135,8 @@ private:
 			if (!data.isReverseStrand()) return coretools::Probability{};
 			if constexpr (perLength) {
 				return data.distFrom3Prime < data.distFrom5Prime
-						   ? _pmd3[data.fragmentLength]->prob(data.distFrom3Prime)
-						   : _pmd5[data.fragmentLength]->prob(data.distFrom5Prime);
+						   ? _pmd3[_table.index(data.fragmentLength)]->prob(data.distFrom3Prime)
+						   : _pmd5[_table.index(data.fragmentLength)]->prob(data.distFrom5Prime);
 			} else {
 				return data.distFrom3Prime < data.distFrom5Prime ? _pmd3->prob(data.distFrom3Prime)
 																 : _pmd5->prob(data.distFrom5Prime);
@@ -141,15 +144,16 @@ private:
 		} else {
 			if (data.distFrom3Prime < data.distFrom5Prime) { // from 3
 				if constexpr (perLength) {
-					return !data.isReverseStrand() ? _pmd3[data.fragmentLength]->prob(data.distFrom3Prime)
+					return !data.isReverseStrand() ? _pmd3[_table.index(data.fragmentLength)]->prob(data.distFrom3Prime)
 												   : Probability{};
 				} else {
 					return !data.isReverseStrand() ? _pmd3->prob(data.distFrom3Prime) : Probability{};
 				}
 			} else { // from 5
 				if constexpr (perLength) {
-					return !data.isReverseStrand() ? Probability{}
-												   : _pmd5[data.fragmentLength]->prob(data.distFrom5Prime);
+					return !data.isReverseStrand()
+							   ? Probability{}
+							   : _pmd5[_table.index(data.fragmentLength)]->prob(data.distFrom5Prime);
 				} else {
 					return !data.isReverseStrand() ? Probability{} : _pmd5->prob(data.distFrom5Prime);
 				}
@@ -165,8 +169,26 @@ public:
 		static_assert((perLength && (N == 1)) || (!perLength && !N));
 		if constexpr (perLength) {
 			_table.minLength = {ts...};
-			_pmd5.emplace_back(makeFunction(function5));
-			_pmd3.emplace_back(makeFunction(function3));
+			if (function5.front() != '(') {
+				_pmd5.emplace_back(makeFunction(function5));
+			} else {
+				function5.remove_prefix(1);
+				function5.remove_suffix(1);
+				coretools::str::TSplitter spl(function5, ';');
+				for (auto f5: spl) {
+					_pmd5.emplace_back(makeFunction(f5));
+				}
+			}
+			if (function3.front() != '(') {
+				_pmd3.emplace_back(makeFunction(function3));
+			} else {
+				function3.remove_prefix(1);
+				function3.remove_suffix(1);
+				coretools::str::TSplitter spl(function3, ';');
+				for (auto f3: spl) {
+					_pmd3.emplace_back(makeFunction(f3));
+				}
+			}
 		} else {
 		_pmd5.reset(makeFunction(function5));
 		_pmd3.reset(makeFunction(function3));
@@ -184,15 +206,15 @@ public:
 	std::string functionString() const noexcept override {
 		if constexpr (perLength) {
 			std::string s{name};
-			s.append(1, '[');
+			s.append(":[");
 			s.append(coretools::str::toString(_table.minLength));
-			s.append("]:[");
-			for (const auto &pmd5 : _pmd5) { s.append(pmd5->string()).append(1, ','); }
+			s.append("]:(");
+			for (const auto &pmd5 : _pmd5) { s.append(pmd5->string()).append(1, ';'); }
 			s.pop_back();
-			s.append("]:[");
-			for (const auto &pmd3 : _pmd3) { s.append(pmd3->string()).append(1, ','); }
+			s.append("):(");
+			for (const auto &pmd3 : _pmd3) { s.append(pmd3->string()).append(1, ';'); }
 			s.pop_back();
-			s.append("]]");
+			s.append(")");
 			return s;
 
 		} else {
@@ -277,19 +299,19 @@ public:
 		const auto to    = data.base;
 		const auto from3 = data.distFrom3Prime < data.distFrom5Prime;
 		if constexpr (perLength) {
-			const auto len     = std::max<size_t>(_table.minLength, data.fragmentLength) - _table.minLength;
+			const auto index   = std::max<size_t>(_table.minLength, data.fragmentLength) - _table.minLength;
 			const auto oldSize = _table.tables.size();
-			if (oldSize <= len) {
-				_table.tables.resize(len + 1);
-				for (size_t i = oldSize; i < len + 1; ++i) _table.tables[i].resize(_table.tables.front().size(), {});
+			if (oldSize <= index) {
+				_table.tables.resize(index + 1);
+				for (size_t i = oldSize; i < index + 1; ++i) _table.tables[i].resize(_table.tables.front().size(), {});
 			}
 			const auto pos = std::min<size_t>(_table.tables.size() - 1, from3 ? data.distFrom3Prime : data.distFrom5Prime);
 			if (data.isReverseStrand()) {
 				const auto readEnd = from3 ? ReadEnd::reverse3 : ReadEnd::reverse5;
-				_table.tables[len][pos][readEnd][flipped(from)][flipped(to)]++;
+				_table.tables[index][pos][readEnd][flipped(from)][flipped(to)]++;
 			} else {
 				const auto readEnd = from3 ? ReadEnd::forward3 : ReadEnd::forward5;
-				_table.tables[len][pos][readEnd][from][to]++;
+				_table.tables[index][pos][readEnd][from][to]++;
 			}
 		} else {
 			const auto pos   = std::min<size_t>(_table.size() - 1, from3 ? data.distFrom3Prime : data.distFrom5Prime);
@@ -320,37 +342,32 @@ public:
 			_pmd5->learn(C_T5, T_C5);
 		}
 		logfile().endIndent();
-		if constexpr (strand == Strand::Single) {
-			logfile().startIndent("Learning 3' C-T pattern:");
-			if constexpr (perLength) {
-				const std::string fun = _pmd3.front()->string();
-				_pmd3.clear();
-				for (size_t i = 0; i < _table.tables.size(); ++i) {
-					const auto [C_T3, T_C3] = impl::makeFromTo<3, Base::C, Base::T>(_table.tables[i]);
-					_pmd3.emplace_back(makeFunction(fun));
-					_pmd3[i]->learn(C_T3, T_C3);
-				}
-			} else {
-				const auto [C_T3, T_C3] = impl::makeFromTo<3, Base::C, Base::T>(_table);
-				_pmd3->learn(C_T3, T_C3);
+
+		constexpr auto from = [](){
+			if constexpr (strand == Strand::Single) return Base::C;
+			else return Base::G;
+		}();
+		constexpr auto to = []() {
+			if constexpr (strand == Strand::Single)
+				return Base::T;
+			else
+				return Base::A;
+		}();
+
+		logfile().startIndent("Learning 3' ", from, "-", to, " pattern:");
+		if constexpr (perLength) {
+			const std::string fun = _pmd3.front()->string();
+			_pmd3.clear();
+			for (size_t i = 0; i < _table.tables.size(); ++i) {
+				const auto [from_to, to_from] = impl::makeFromTo<3, from, to>(_table.tables[i]);
+				_pmd3.emplace_back(makeFunction(fun));
+				_pmd3[i]->learn(from_to, to_from);
 			}
-			logfile().endIndent();
 		} else {
-			logfile().startIndent("Learning 3' G-A pattern:");
-			if constexpr (perLength) {
-				const std::string fun = _pmd3.front()->string();
-				_pmd3.clear();
-				for (size_t i = 0; i < _pmd3.size(); ++i) {
-					const auto [G_A3, A_G3] = impl::makeFromTo<3, Base::G, Base::A>(_table.tables[i]);
-					_pmd3.emplace_back(makeFunction(fun));
-					_pmd3[i]->learn(G_A3, A_G3);
-				}
-			} else {
-				const auto [G_A3, A_G3] = impl::makeFromTo<3, Base::G, Base::A>(_table);
-				_pmd3->learn(G_A3, A_G3);
-			}
-			logfile().endIndent();
+			const auto [from_to, to_from] = impl::makeFromTo<3, from, to>(_table);
+			_pmd3->learn(from_to, to_from);
 		}
+		logfile().endIndent();
 	}
 
 	TBaseLikelihoods baseLikelihoods(const BAM::TSequencedBase &data,
