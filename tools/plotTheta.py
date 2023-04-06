@@ -13,9 +13,8 @@ if __name__ == "__main__":
     parser.add_argument("--title", default="theta")
 
     args = parser.parse_args()
-    real = -1
-    sc   = 5
-
+    totalMax = 0   
+    totalMin = 0
     # get header and cols
     for i, file in enumerate(args.files):
         f     = gzip.open(file)
@@ -39,9 +38,15 @@ if __name__ == "__main__":
             data = array([data])
         means = []
         stds = []
+        fileMax = 0
+        fileMin = 0
         for c in cols:
             means.append(mean(data[:, c]))
             stds.append(std(data[:, c]))
+            colMax = max(data[:, c])
+            fileMax = max(fileMax, colMax)
+            colMin = min(data[:, c])
+            fileMin = min(fileMin, colMin)
 
         real = means[0]
 
@@ -57,12 +62,12 @@ if __name__ == "__main__":
 
         plt.xscale("log")
         plt.yscale("log")
-        sc = max(sc, max(means/real))
-        sc = max(sc, max(real/means))
+
+        totalMax = max(totalMax, fileMax)
+        totalMin = min(totalMin, fileMin)
         plt.hlines(real, 0, 10, "k", "dashed")
 
-    sc = min(50, sc*2)
-    plt.ylim(real/sc, real*sc)
+    plt.ylim(totalMin, totalMax+(totalMax*0.3))
     plt.legend()
     plt.xlabel(r"Downsampling probability")
     plt.ylabel(r"$\theta$")
