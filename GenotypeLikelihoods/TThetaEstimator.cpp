@@ -339,11 +339,9 @@ void TThetaEstimator::_NROnlyTheta() {
 void TThetaEstimator::_runEMForTheta() {
 	// increase initialTheta if we fail to calculate inverse of Jacobian.
 	//  this may be the case if initialTheta is smaller than true theta and likelihood is very flat
-	int failedAttempts   = 0;
 	double startingTheta = _initialTheta;
 	_theta.LL             = -9e100;
 	while (!_NRAllParams(getPGenotype(_theta))) {
-		++failedAttempts;
 		// solve did not work -> start with higher theta!
 		startingTheta *= 2.0;
 		_theta.set(startingTheta);

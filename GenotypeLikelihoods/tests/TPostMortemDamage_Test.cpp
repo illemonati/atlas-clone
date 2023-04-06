@@ -2,7 +2,9 @@
 // Created by vivian on 18.08.20.
 //
 
-#include "TPostMortemDamage.h"
+#include "PMD/TFunction.h"
+#include "PMD/TModel.h"
+#include "PMD/TModels.h"
 #include <gtest/gtest.h>
 
 #include <stddef.h>
@@ -18,7 +20,6 @@
 #include "genometools/PhredProbabilityTypes.h"
 #include "TGenotypeData.h"
 #include "coretools/Main/TLog.h"
-#include "TPMDTables.h"
 #include "TReadGroups.h"
 #include "TSequencedBase.h"
 #include "SequencingError/TModels.h"
@@ -29,111 +30,10 @@
 using namespace GenotypeLikelihoods;
 using genometools::Base;
 
-TEST(TPostMortemDamage_test, PMDTable) {
-	using namespace genometools;
-	TPMDTable t1(10);
-	EXPECT_EQ(t1.size(), 10);
-	t1.resize(100);
-	EXPECT_EQ(t1.size(), 100);
-
-	EXPECT_EQ(t1[Base::G][Base::C][99], 0);
-	for (size_t _ = 0; _ < 3; ++_) t1.add(99, Base::G, Base::C);
-
-	t1.add(99, Base::G, Base::A);
-	t1.add(99, Base::G, Base::G);
-	t1.add(99, Base::G, Base::T);
-	EXPECT_EQ(t1[Base::G][Base::C][99], 3);
-	EXPECT_EQ(t1[Base::G][Base::A][99], 1);
-	EXPECT_EQ(t1[Base::G][Base::G][99], 1);
-	EXPECT_EQ(t1[Base::G][Base::T][99], 1);
-	EXPECT_EQ(t1.sums(Base::G)[99], 6);
-	t1.add(101, Base::A, Base::A);
-	t1.add(102, Base::A, Base::A);
-	t1.add(103, Base::A, Base::A);
-	t1.add(104, Base::A, Base::A);
-	t1.add(105, Base::A, Base::A);
-	EXPECT_EQ(t1[Base::A][Base::A][t1.size()], 5);
-
-	TPMDTable t2(100);
-	EXPECT_EQ(t2.size(), 100);
-	t2.add(99, Base::G, Base::C);
-	t2.add(0,Base::C, Base::T);
-	EXPECT_EQ(t2[Base::G][Base::C][99], 1);
-	EXPECT_EQ(t2[Base::C][Base::T][0], 1);
-	EXPECT_EQ(t2.sums(Base::G)[99], 1);
-	EXPECT_EQ(t2.sums(Base::C)[0], 1);
-
-	t1.add(t2);
-	EXPECT_EQ(t1[Base::G][Base::C][99], 4);
-	EXPECT_EQ(t1[Base::G][Base::A][99], 1);
-	EXPECT_EQ(t1[Base::G][Base::G][99], 1);
-	EXPECT_EQ(t1[Base::G][Base::T][99], 1);
-	EXPECT_EQ(t1[Base::C][Base::T][0], 1);
-	EXPECT_EQ(t1.sums(Base::G)[99], 7);
-	EXPECT_EQ(t1.sums(Base::C)[0], 1);
-
-	t1.empty();
-	EXPECT_EQ(t1[Base::G][Base::C][99], 0);
-	EXPECT_EQ(t1.sums(Base::G)[99], 0);
-}
-
-TEST(TPostMortemDamage_test, PMDTables) {
-	using namespace genometools;
-	BAM::TReadGroups rg;
-	rg.add("1");
-	BAM::TReadGroupMap rgm(rg);
-	TPMDTables ts(&rg, 10, &rgm);
-	EXPECT_EQ(ts[0][ReadEnd::forward3].size(), 10);
-
-	BAM::TSequencedBase sqbase;
-	sqbase.base           = Base::A;
-	sqbase.distFrom3Prime = 1;
-	sqbase.distFrom5Prime = 33;
-	sqbase.readGroupID    = 0;
-	sqbase.setReverseStrand(false);
-
-	// forward3
-	EXPECT_EQ(ts[0][ReadEnd::forward3].sums(Base::C)[sqbase.distFrom3Prime], 0);
-	EXPECT_EQ(ts[0][ReadEnd::forward3][Base::C][sqbase.base][sqbase.distFrom3Prime], 0);
-	ts.add(sqbase, Base::C);
-	EXPECT_EQ(ts[0][ReadEnd::forward3].sums(Base::C)[sqbase.distFrom3Prime], 1);
-	EXPECT_EQ(ts[0][ReadEnd::forward3][Base::C][sqbase.base][sqbase.distFrom3Prime], 1);
-
-	sqbase.base = Base::C;
-	ts.add(sqbase, Base::C);
-	EXPECT_EQ(ts[0][ReadEnd::forward3].sums(Base::C)[sqbase.distFrom3Prime], 2);
-	EXPECT_EQ(ts[0][ReadEnd::forward3][Base::C][sqbase.base][sqbase.distFrom3Prime], 1);
-
-	// forward5
-	EXPECT_EQ(ts[0][ReadEnd::forward5].sums(Base::A)[sqbase.distFrom3Prime], 0);
-	EXPECT_EQ(ts[0][ReadEnd::forward5][Base::A][sqbase.base][sqbase.distFrom3Prime], 0);
-	sqbase.distFrom5Prime = sqbase.distFrom3Prime;
-	ts.add(sqbase, Base::A);
-	EXPECT_EQ(ts[0][ReadEnd::forward5].sums(Base::A)[sqbase.distFrom3Prime], 1);
-	EXPECT_EQ(ts[0][ReadEnd::forward5][Base::A][sqbase.base][sqbase.distFrom3Prime], 1);
-
-	// reverse3
-	EXPECT_EQ(ts[0][ReadEnd::reverse3].sums(Base::C)[sqbase.distFrom3Prime], 0);
-	EXPECT_EQ(ts[0][ReadEnd::reverse3][Base::C][sqbase.base][sqbase.distFrom3Prime], 0);
-	sqbase.distFrom5Prime++;
-	sqbase.setReverseStrand(true);
-	ts.add(sqbase, Base::G);
-	EXPECT_EQ(ts[0][ReadEnd::reverse3].sums(Base::C)[sqbase.distFrom3Prime], 1);
-	EXPECT_EQ(ts[0][ReadEnd::reverse3][Base::C][flipped(sqbase.base)][sqbase.distFrom3Prime], 1);
-
-	// reverse5
-	EXPECT_EQ(ts[0][ReadEnd::reverse5].sums(Base::A)[sqbase.distFrom3Prime], 0);
-	EXPECT_EQ(ts[0][ReadEnd::reverse5][Base::A][sqbase.base][sqbase.distFrom3Prime], 0);
-	sqbase.distFrom5Prime--;
-	sqbase.setReverseStrand(true);
-	ts.add(sqbase, Base::T);
-	EXPECT_EQ(ts[0][ReadEnd::reverse5].sums(Base::A)[sqbase.distFrom3Prime], 1);
-	EXPECT_EQ(ts[0][ReadEnd::reverse5][Base::A][flipped(sqbase.base)][sqbase.distFrom3Prime], 1);
-}
 
 TEST(TPostMortemDamage_test, noPMD) {
-	EXPECT_ANY_THROW(TPMDFunctionNoPMD("[3, 4]"));
-	const TPMDFunctionNoPMD fn("[]");
+	EXPECT_ANY_THROW(PMD::TNo("[3, 4]"));
+	const PMD::TNo fn("[]");
 	EXPECT_FALSE(fn.hasDamage());
 	EXPECT_FLOAT_EQ(fn.prob(0), 0.);
 	EXPECT_FLOAT_EQ(fn.prob(122), 0.);
@@ -141,11 +41,11 @@ TEST(TPostMortemDamage_test, noPMD) {
 }
 
 TEST(TPostMortemDamage_test, exponential) {
-	EXPECT_ANY_THROW(TPMDFunctionExponential("[1]"));
-	EXPECT_ANY_THROW(TPMDFunctionExponential("[3, 4]"));
-	EXPECT_ANY_THROW(TPMDFunctionExponential("[3, 4, 5]"));
+	EXPECT_ANY_THROW(PMD::TExponential("[1]"));
+	EXPECT_ANY_THROW(PMD::TExponential("[3, 4]"));
+	EXPECT_ANY_THROW(PMD::TExponential("[3, 4, 5]"));
 
-	const TPMDFunctionExponential fn0("[]");
+	const PMD::TExponential fn0("[]");
 	EXPECT_FALSE(fn0.hasDamage());
 	EXPECT_FLOAT_EQ(fn0.prob(0), 0.);
 	EXPECT_FLOAT_EQ(fn0.prob(33), 0.);
@@ -155,7 +55,7 @@ TEST(TPostMortemDamage_test, exponential) {
 	constexpr auto a = .3;
 	constexpr auto b = .2;
 	constexpr auto c = .1;
-	const TPMDFunctionExponential fn1("[8, .3, .2, .1]");
+	const PMD::TExponential fn1("[8, .3, .2, .1]");
 	for (size_t p = 0; p < N + 1; ++p) {
 		EXPECT_TRUE(fn1.hasDamage());
 		EXPECT_FLOAT_EQ(fn1.prob(p), a*std::exp(-b * p) + c);
@@ -165,11 +65,11 @@ TEST(TPostMortemDamage_test, exponential) {
 }
 
 TEST(TPostMortemDamage_test, empiric) {
-	EXPECT_ANY_THROW(TPMDFunctionEmpiric("[1.3]"));
-	EXPECT_ANY_THROW(TPMDFunctionEmpiric("[0.5, 0.3, 3, 0.4]"));
-	EXPECT_ANY_THROW(TPMDFunctionEmpiric("[-0.3]"));
+	EXPECT_ANY_THROW(PMD::TEmpiric("[1.3]"));
+	EXPECT_ANY_THROW(PMD::TEmpiric("[0.5, 0.3, 3, 0.4]"));
+	EXPECT_ANY_THROW(PMD::TEmpiric("[-0.3]"));
 
-	const TPMDFunctionEmpiric fn0("[]");
+	const PMD::TEmpiric fn0("[]");
 	EXPECT_FALSE(fn0.hasDamage());
 	EXPECT_FLOAT_EQ(fn0.prob(0), 0.);
 	EXPECT_FLOAT_EQ(fn0.prob(33), 0.);
@@ -185,7 +85,7 @@ TEST(TPostMortemDamage_test, empiric) {
 		s += std::to_string(p) + ",";
 	}
 	s += "]";
-	const TPMDFunctionEmpiric fn1(s);
+	const PMD::TEmpiric fn1(s);
 	EXPECT_TRUE(fn1.hasDamage());
 	for (size_t p = 0; p < params.size(); ++p) {
 		EXPECT_NEAR(fn1.prob(p), params[p], 1e-5);
@@ -193,50 +93,6 @@ TEST(TPostMortemDamage_test, empiric) {
 	EXPECT_NEAR(fn1.prob(113), params.back(), 1e-5);
 }
 
-TEST(TPostMortemDamage_test, empiric_learn) {
-	using namespace genometools;
-	constexpr size_t N = 10;
-	TPMDTable t1(N);
-
-	for (size_t i = 0; i < N; ++i) {
-		for (size_t _ = 0; _ < N - i; ++_) t1.add(i, Base::G, Base::A);
-		for (size_t _ = 0; _ < i; ++_) t1.add(i, Base::G, Base::G);
-		t1.add(i, Base::A, Base::G);
-		for (size_t _= 0; _ < N*N; ++_) t1.add(i, Base::A, Base::A);
-
-		EXPECT_EQ(t1[Base::G][Base::A][i], N - i);
-		EXPECT_EQ(t1.sums(Base::G)[i], 10);
-	}
-
-	TPMDFunctionEmpiric fne("[]");
-	fne.learn(t1, Base::G, Base::A, TPMDEstimationParameters{});
-	EXPECT_EQ(fne.string(), "Empiric[1,0.899,0.798,0.697,0.596,0.495,0.394,0.293,0.192,0.091]");
-}
-
-TEST(TPostMortemDamage_test, exp_learn) {
-	using namespace genometools;
-
-	constexpr auto a    = 0.5;
-	constexpr auto b    = 0.7;
-	constexpr auto c    = 0.3;
-	constexpr size_t N  = 20;
-	constexpr size_t Nb = 1000;
-
-	TPMDTable t1(N);
-
-	for (size_t i = 0; i < N; ++i) {
-		const size_t nPMD = Nb*(a*std::exp(-b*i) + c);
-		for (size_t _ = 0; _ < nPMD; ++_) t1.add(i, Base::G, Base::A);
-		for (size_t _ = 0; _ < Nb - nPMD; ++_) t1.add(i, Base::G, Base::G);
-	}
-
-	TPMDEstimationParameters eparams;
-	eparams.emplace(TPMDFunctionExponential::epsilon, 0.001);
-	eparams.emplace(TPMDFunctionExponential::numNR, 1000);
-	TPMDFunctionExponential fne("[]");
-	fne.learn(t1, Base::G, Base::A, eparams);
-	EXPECT_EQ(fne.string(), "Exponential[19,0.500266,0.700669,0.299745]");
-}
 
 TEST(TPostMortemDamage_test, baseANoPMD) {
 	constexpr auto err = 0.01;
@@ -246,7 +102,7 @@ TEST(TPostMortemDamage_test, baseANoPMD) {
 	rgs.add("testRG");
 
 	SequencingError::TModels sem;
-	TPostMortemDamage pmd;
+	PMD::TModels pmd;
 
 	sem.initializeNoRecal(rgs);
 
@@ -292,8 +148,8 @@ TEST(TPostMortemDamage_test, baseAWithPMD) {
 
 	// initialize PMD
 	coretools::TLog logfile;
-	std::vector<uint16_t> ReadGroupsWithoutPMD;
-	TPostMortemDamage pmd("doubleStrand:Empiric[0.3]:Empiric[0.1]", rgs, ReadGroupsWithoutPMD);
+	std::vector<size_t> ReadGroupsWithoutPMD;
+	PMD::TModels pmd("doubleStrand:Empiric[0.3]:Empiric[0.1]", rgs, ReadGroupsWithoutPMD);
 
 	for (uint16_t dfrom3 = 0; dfrom3 < 3; dfrom3 += 2) {
 		base.distFrom3Prime = dfrom3;

@@ -128,7 +128,7 @@ void TReadGroupInfo::_createReadGroupInfoEntries(const BAM::TReadGroups & ReadGr
 
 	//create read group info entries
 	_info.reserve(ReadGroups.size());
-	for(auto i = 0; i < ReadGroups.size(); ++i){
+	for(size_t i = 0; i < ReadGroups.size(); ++i){
 		_info.emplace_back(this, ReadGroups[i].name_ID);
 	}
 	_parsed.reset();

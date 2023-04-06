@@ -52,7 +52,7 @@ public:
 	static inline const std::string example = name + "[lastPosition,a,b,c]";
 	TExponential(std::string_view string);
 
-	bool hasDamage() const noexcept override { return _values.size() > 0; }
+	bool hasDamage() const noexcept override { return _values.size() > 1; }
 	std::string string() const noexcept override {
 		return name + "[" + coretools::str::toString(_values.size()) + ',' +
 			   coretools::str::concatenateString(std::vector{_a, _b, _c}, ",") + "]";
