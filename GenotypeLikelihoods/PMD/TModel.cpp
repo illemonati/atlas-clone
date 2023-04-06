@@ -33,10 +33,7 @@ Strand getStrand(std::string_view s) {
 
 
 TModel *makeType(std::string_view pmdString) {
-	// split by ':'
-
 	TSplitter spl(pmdString, ':');
-
 	if (spl.front() == TNoPMD::name) return new TNoPMD;
 
 	const auto strand = getStrand(spl.front());
@@ -44,36 +41,33 @@ TModel *makeType(std::string_view pmdString) {
 
 	if (spl.front().front() == '[') {
 		// per fragment length
-		// example: doubleStrand:[30,120]:Exponential
+		// example: doubleStrand:[30]:Exponential
 
-		// default values
-		size_t from = 30;
-		size_t to   = 120;
-
-		std::string_view interval = spl.front();
-		interval.remove_prefix(1);
-		interval.remove_suffix(1);
-		TSplitter from_to(interval, ',');
-		if (!from_to.empty()) {
-			from = fromStringCheck<size_t>(from_to.front());
-			from_to.popFront();
-			if (!from_to.empty()) to = fromStringCheck<size_t>(from_to.front());
+		size_t from = 30; // default values
+		std::string_view sFrom = spl.front();
+		sFrom.remove_prefix(1);
+		sFrom.remove_suffix(1);
+		if (!sFrom.empty()) {
+			from = fromStringCheck<size_t>(sFrom);
 		}
 
 		spl.popFront();
 		const auto function5 = spl.front();
+
 		spl.popFront();
 		const auto function3 = spl.empty() ? function5 : spl.front();
-		if (strand == Strand::Single) return new TWithPMD<Strand::Single, true>(function5, function3, from, to);
-		/*else*/
-		return new TWithPMD<Strand::Single, true>(function5, function3, from, to);
+
+		if (strand == Strand::Single) return new TWithPMD<Strand::Single, true>(function5, function3, from);
+		/*else*/ return new TWithPMD<Strand::Single, true>(function5, function3, from);
 	} else {
+		// per read group
 		const auto function5 = spl.front();
 		spl.popFront();
+
 		const auto function3 = spl.empty() ? function5 : spl.front();
+
 		if (strand == Strand::Single) return new TWithPMD<Strand::Single, false>(function5, function3);
-		/*else*/
-		return new TWithPMD<Strand::Double, false>(function5, function3);
+		/*else*/ return new TWithPMD<Strand::Double, false>(function5, function3);
 	}
 }
 } // namespace GenotypeLikelihoods::PMD

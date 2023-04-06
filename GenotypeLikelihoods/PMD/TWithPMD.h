@@ -12,6 +12,7 @@
 #include "TModel.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TRandomGenerator.h"
+#include "coretools/Strings/toString.h"
 #include "genometools/GenotypeTypes.h"
 #include <cstddef>
 #include <memory>
@@ -161,14 +162,11 @@ public:
 	template<typename... Ts>
 	TWithPMD(std::string_view function5, std::string_view function3, Ts... ts) {
 		constexpr auto N = sizeof...(ts);
-		static_assert((perLength && (N == 2)) || (!perLength && !N));
+		static_assert((perLength && (N == 1)) || (!perLength && !N));
 		if constexpr (perLength) {
-			auto&& tpl = std::forward_as_tuple(ts...);
-			_table.minLength = std::get<0>(tpl);
-			for (size_t i = _table.minLength; i <= std::get<1>(tpl); ++i) {
-				_pmd5.emplace_back(makeFunction(function5));
-				_pmd3.emplace_back(makeFunction(function3));
-			}
+			_table.minLength = {ts...};
+			_pmd5.emplace_back(makeFunction(function5));
+			_pmd3.emplace_back(makeFunction(function3));
 		} else {
 		_pmd5.reset(makeFunction(function5));
 		_pmd3.reset(makeFunction(function3));
@@ -186,11 +184,15 @@ public:
 	std::string functionString() const noexcept override {
 		if constexpr (perLength) {
 			std::string s{name};
-			s.append(":[");
+			s.append(1, '[');
+			s.append(coretools::str::toString(_table.minLength));
+			s.append("]:[");
 			for (const auto &pmd5 : _pmd5) { s.append(pmd5->string()).append(1, ','); }
-			s.back() = ':';
+			s.pop_back();
+			s.append("]:[");
 			for (const auto &pmd3 : _pmd3) { s.append(pmd3->string()).append(1, ','); }
-			s.back() = ']';
+			s.pop_back();
+			s.append("]]");
 			return s;
 
 		} else {
@@ -202,8 +204,9 @@ public:
 
 	void resize(size_t N) override {
 		if constexpr (perLength) {
-			_table.tables.resize(_pmd5.size());
-			for (auto &table : _table.tables) table.resize(N, {});
+			_table.tables.clear();
+			_table.tables.emplace_back();
+			_table.tables.front().resize(N, {});
 		} else {
 			_table.resize(N, {});
 		}
@@ -274,10 +277,13 @@ public:
 		const auto to    = data.base;
 		const auto from3 = data.distFrom3Prime < data.distFrom5Prime;
 		if constexpr (perLength) {
-			const auto len =
-				std::clamp<size_t>(data.fragmentLength, _table.minLength, _table.minLength + _table.tables.size() - 1) -
-				_table.minLength;
-			const auto pos   = std::min<size_t>(_table.tables.size() - 1, from3 ? data.distFrom3Prime : data.distFrom5Prime);
+			const auto len     = std::max<size_t>(_table.minLength, data.fragmentLength) - _table.minLength;
+			const auto oldSize = _table.tables.size();
+			if (oldSize <= len) {
+				_table.tables.resize(len + 1);
+				for (size_t i = oldSize; i < len + 1; ++i) _table.tables[i].resize(_table.tables.front().size(), {});
+			}
+			const auto pos = std::min<size_t>(_table.tables.size() - 1, from3 ? data.distFrom3Prime : data.distFrom5Prime);
 			if (data.isReverseStrand()) {
 				const auto readEnd = from3 ? ReadEnd::reverse3 : ReadEnd::reverse5;
 				_table.tables[len][pos][readEnd][flipped(from)][flipped(to)]++;
@@ -302,9 +308,12 @@ public:
 		using genometools::Base;
 		logfile().startIndent("Learning 5' C-T pattern:");
 		if constexpr (perLength) {
-			for (size_t i = 0; i < _pmd5.size(); ++i) {
+			const std::string fun = _pmd5.front()->string();
+			_pmd5.clear();
+			for (size_t i = 0; i < _table.tables.size(); ++i) {
 				const auto [C_T5, T_C5] = impl::makeFromTo<5, Base::C, Base::T>(_table.tables[i]);
-				_pmd5[i]->learn(C_T5, T_C5);
+				_pmd5.emplace_back(makeFunction(fun));
+				_pmd5.back()->learn(C_T5, T_C5);
 			}
 		} else {
 			const auto [C_T5, T_C5] = impl::makeFromTo<5, Base::C, Base::T>(_table);
@@ -314,8 +323,11 @@ public:
 		if constexpr (strand == Strand::Single) {
 			logfile().startIndent("Learning 3' C-T pattern:");
 			if constexpr (perLength) {
-				for (size_t i = 0; i < _pmd3.size(); ++i) {
+				const std::string fun = _pmd3.front()->string();
+				_pmd3.clear();
+				for (size_t i = 0; i < _table.tables.size(); ++i) {
 					const auto [C_T3, T_C3] = impl::makeFromTo<3, Base::C, Base::T>(_table.tables[i]);
+					_pmd3.emplace_back(makeFunction(fun));
 					_pmd3[i]->learn(C_T3, T_C3);
 				}
 			} else {
@@ -326,8 +338,11 @@ public:
 		} else {
 			logfile().startIndent("Learning 3' G-A pattern:");
 			if constexpr (perLength) {
+				const std::string fun = _pmd3.front()->string();
+				_pmd3.clear();
 				for (size_t i = 0; i < _pmd3.size(); ++i) {
 					const auto [G_A3, A_G3] = impl::makeFromTo<3, Base::G, Base::A>(_table.tables[i]);
+					_pmd3.emplace_back(makeFunction(fun));
 					_pmd3[i]->learn(G_A3, A_G3);
 				}
 			} else {
