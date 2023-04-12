@@ -37,7 +37,7 @@
 #include "coretools/Types/weakTypes.h"
 
 #include "coretools/core/coretools/Files/TOutputFile.h"
-#include "genometools/core/genometools/TFastaWriter.h"
+#include "TFastqFile.h"
 
 namespace Simulations {
 using coretools::Probability;
@@ -236,8 +236,8 @@ void TSimulator::runSimulations() {
 		// write BED files
 		if (_writeVariantInvariantBedFiles) bedFiles.write(haplotypes, chr.name);
 
-		// write bam / vcf files!
-		_simulateAndWrite(chr, haplotypes, _seqDepth[i]);
+		// write bam / vcf files!			NOW SHOULD ALSO BE FASTQ
+		_simulateAndWrite(chr, haplotypes, _seqDepth[i]);										// DA DECOMMMENNNNNTAAAAREEEEEE
 
 		// end of chromosome
 		logfile().endIndent();
@@ -365,6 +365,21 @@ void TBAMSimulator::_simulateReadsFromHaplotypes(const genometools::TChromosome 
 	reporter.done();
 	logfile().conclude("Simulated a total of ", numReadsSimulated, " reads.");
 }
+
+//---------------------------------------------------
+// TFASTQWriter Simulator
+//---------------------------------------------------
+
+TFASTQSimulator::TFASTQSimulator(const std::string &method) : TSimulator(method){
+}
+
+void _simulateAndWrite(const genometools::TChromosome &Chromosome, TSimulatorHaplotypes &Haplotypes, uint32_t avgDepth){
+	logfile().startIndent("Simulating reads:");
+
+}
+
+//copied from TBAMSimulator but tweaked to use only SingleEndSimulator
+
 
 //-------------------------------------------
 // TVCFSimulationWriter
@@ -614,67 +629,5 @@ void TVCFSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome
 	}
 	logfile().endIndent();
 }
-
-//-------------------------------------------
-// FASTQ Simulator and Writer	-> writing content as scheme from Prof. Wegmann
-//-------------------------------------------
-
-
-/*
-void TFASTQWriter::_fastqSimulate(int numberOfSimulations, bool _randomSequence){
-	
-	//create open and write new generated fastq through help of following functions
-	coretools::TOutputFile fastqSimulationFile(fileName);
-	fastqSimulationFile.writeln(_generateHeader());
-
-	int k = 0;
-	while (k < numberOfSimulations)
-	{
-		//change to check _randomSequence
-		fastqSimulationFile.writeln(_simulateRandomSequence(sequenceLength));
-		fastqSimulationFile.writeln("+");
-		fastqSimulationFile.writeln(_generateSimulatedQScore());
-		k++;
-	}
-	
-	
-}
-
-std::string TFASTQWriter::_generateHeader(std::string machineID, short runID, short FlowCellID, short lane, short tile, unsigned short xCoordinate, unsigned short yCoordinate,
-							bool readDirection, bool passFilter, short controlBits, std::string barCodeSequence){
-	//readDirection: true = forward read, false reverse read
-	_cPassFilter = (passFilter) ? _cPassFilter = 'Y': _cPassFilter = 'N'; 
-
-	return "@" + machineID + ":" + toString(runID) + ":" + toString(FlowCellID) + ":" + toString(lane) + ":" + toString(tile) + ":" + toString(xCoordinate) + ":" + toString(yCoordinate) + " " +
-			_cPassFilter + ":" + toString(controlBits) + ":" + toString(barCodeSequence);
-
-}
-
-std::string_view TFASTQWriter::_generateHeader(){		//no IDs specified
-	return genericIdentifiers;
-}
-
-std::string TFASTQWriter::_simulateRandomSequence(int sequenceLenght){		//Creates a TOTALLY random sequence
-// 	genometools::TFastaWriter _fastaFile("fastaForFASTQ");
-
-//linea 198 -> da modificare per gestire i diversi reads
-
-//need to add random read lenght
-
-	//std::vector<char> _sequence;
-	std::string _sequence;
-	coretools::TRandomGenerator rand4Base;
-	for (size_t i = 0; i < sequenceLength; i++)
-	{
-		_sequence += base2char(genometools::Base(rand4Base.getRand<int>(0, 4)) );		//+= copies char and then adds it, maybe not so fast?
-	}
-	return _sequence;
-}
-
-
-std::string TFASTQWriter::_generateSimulatedQScore(){		//need to generate those Phred ScoreValues!!!
-	return relativeQScoreValues;
-}
-*/
 
 } // namespace Simulations

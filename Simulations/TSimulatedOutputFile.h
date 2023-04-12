@@ -32,6 +32,8 @@
 #include "coretools/Main/globalConstants.h"
 #include "coretools/Types/strongTypes.h"
 
+#include "TAlignment.h"
+
 namespace Simulations{
 
 class TSimulatedOutputFile{
@@ -39,9 +41,10 @@ class TSimulatedOutputFile{
         coretools::TOutputFile simulatedOutputFile;
 
     public:
-        virtual void open(std::string_view filename) = 0;       //has to be string_view because of TBamFile request
+        virtual void open(std::string_view filename) = 0;       //following TFile instructions
         virtual void close() = 0;
         virtual void writeAlignment(BAM::TAlignment &alignment) = 0;
+        virtual void writeAlignmentLater(const TAlignment & alignment) = 0;
 
 };
 }

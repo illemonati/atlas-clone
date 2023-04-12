@@ -95,6 +95,30 @@ public:
 	~TBAMSimulator() { _bamFiles->close(); }
 };
 
+
+//-------------------------------------------
+// FASTQ Simulator
+//-------------------------------------------
+
+//do I really have to inherite from TSimulator??????? yes, otherwise how could we simulate reads and use TTask?
+
+class TFASTQSimulator : public TSimulator{
+private: 
+	std::vector<TReadSimulators> _readSimulators; // one per sample
+	
+	void _simulateAndWrite(const genometools::TChromosome &Chromosome, TSimulatorHaplotypes &Haplotypes, uint32_t avgDepth);
+	void _simulateReadsFromHaplotypes(const genometools::TChromosome &thisChr,
+									std::array<std::vector<genometools::Base>, 2> haplotypes,
+									TReadSimulators & readSimulator,
+									uint32_t avgDepth,
+									BAM::TOutputBamFile &bamFile, const std::string &extraProgressText);
+
+public:
+	//FastqFile
+	TFASTQSimulator(const std::string &method);
+
+};
+
 //---------------------------------------------------------
 // TVCFWriterSimulation
 //---------------------------------------------------------
@@ -136,32 +160,6 @@ public:
 };
 
 
-//-------------------------------------------
-// FASTQ Writer Simulator
-//-------------------------------------------
-
-class TFASTQWriter : public TSimulator{
-private:
-	// bool _open{false};
-	// char _cPassFilter;
-	// int sequenceLength = 80;
-	// std::string relativeQScoreValues;
-	// static constexpr std::string_view genericIdentifiers = "@FS001:001:0000000:1:1:0:0 1:Y:1:AAACCC";		//generic identifiers if not specified
-	// static constexpr std::string_view fileName = "FASTQ_Simulation_File.fastq";
-
-public:
-	// int numberOfSimulations = 10;		//default minimum of simulatedSequences
-	// bool _randomSequence = false;
-	// static coretools::TOutputFile fastqSimulationFile;
-	// void _fastqSimulate(int numberOfSimulations, bool _randomSequence);
-	// std::string _generateHeader(std::string machineID, short runID, short FlowCellID, short lane, short tile, unsigned short xCoordinate, unsigned short yCoordinate,
-	// 							bool readDirection, bool passFilter, short controlBits, std::string barCodeSequence);
-	// std::string_view _generateHeader();
-	// std::string _simulateRandomSequence(int sequenceLength);
-	// std::string _generateSimulatedQScore();
-};
-
-
 //--------------------------------------
 // Tasks
 //--------------------------------------
@@ -177,6 +175,10 @@ public:
 		if (parameters().parameterExists("vcf")) {
 			logfile().startIndent("Simulating VCF Files:");
 			auto simulator = TVCFSimulator{method};
+			simulator.runSimulations();
+		} else if(parameters().parameterExists("fastq")){
+			logfile().startIndent("Simulating FASTQ Files:");
+			auto simulator = TFASTQSimulator{method};
 			simulator.runSimulations();
 		} else { // default: BAM simulator
 			logfile().startIndent("Simulating BAM Files:");

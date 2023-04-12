@@ -20,9 +20,12 @@
 #include "TAlignment.h"
 #include "TReadSimulator.h"
 #include "coretools/Main/TLog.h"
+#include "coretools/Files/TWriter.h"
+#include "coretools/Files/TReader.h"
+#include "coretools/Files/TFile.h"
+#include "coretools/Strings/stringFunctions.h" // for toString, readAfterLast, stringStartsWith
 
-
-using coretools::instances::logfile; //used to write log file
+using coretools::instances::logfile; 	//used to write log file
 
 namespace FASTQ{
 
@@ -30,8 +33,13 @@ namespace FASTQ{
 // Methods to operate on Fastq files
 //------------------------------------------------
 
-TFastqFile::TFastqFile(){
-    _open = false;
+TFastqFile::TFastqFile(std::string_view fileName){
+	_fileName = fileName;
+
+	const auto ending = coretools::str::readAfterLast(_fileName, '.');										//get file suffix
+	if(ending != NULL){UERROR("Impossible to create file from: ", _fileName, ", due to wrong filetype");}		//if suffix exists, print error
+	else{ _fileName += ".fastq" ; }																			//if nothing, add .fastq
+								//you sure it returns NULL in case nothing is found???
 }
 
 //------------------------------------------------
@@ -40,12 +48,35 @@ TFastqFile::TFastqFile(){
 
 
 void TFastqFile::_writeAlignment(BAM::TAlignment &alignment){
+	//alignment.flags
+	//alignment.isEmpty
+	//alignment.readGroupId
+		//uint16_t readGroupId() const { return _readGroupID; };
+	//alignment.refID
+		//constexpr size_t refID() const noexcept { return _refID; };
+	//alignment.qualities
+		//std::vector<uint32_t> _qualities;
+	//alignment.binQualityScoresIllumina
+	//alignment.length
+	//alignment.isPaired
+	//alignment.mateRefID
+	//alignment.clear
+	//alignment.end
+
+
+//takes alignment sequence and qualities and writes it in the file
 
 }
 
-void TFastqFile::groupReads(){
+void TFastqFile::sortRead(BAM::TAlignment &alignment){
+	uint16_t tmpReadGroupID = alignment.readGroupId();
 
+	if(alignmentQueues.empty()) {
+		alignmentQueue newQueue;
+		alignmentQueues.push(newQueue);
+	}
 }
+
 
 //------------------------------------------------
 // Public methods
@@ -53,55 +84,22 @@ void TFastqFile::groupReads(){
 
 
 void TFastqFile::open(std::string_view fileName){
-    _fileName = fileName;
-
-    logfile().list("Opening Fastq file '", _fileName, "'.");
-	if (!_bamReader.Open(_fileName))                                    //is _bamReader unique per fastq file?
-		UERROR("Failed to open BAM file '", _fileName, "'!");
-
-	//load or create index file
-	const std::string fnIndex1 = std::string(fileName).append(".fastqi");
-	fileName.remove_suffix(4);
-	const std::string fnIndex2 = std::string(fileName).append(".fastqi");
-	if (std::filesystem::exists(fnIndex1)) {
-		logfile().list("Opening Fastq index file '", fnIndex1, "'.");
-		if(!_bamReader.OpenIndex(fnIndex1))
-			UERROR("Failed to open Fastq index file '", fnIndex1, "'!");
-	}
-	else if (std::filesystem::exists(fnIndex2)) {
-		logfile().list("Opening Fastq index file '", fnIndex2, "'.");
-		if (!_bamReader.OpenIndex(fnIndex2))
-			UERROR("Failed to open Fastq index file '", fnIndex2, "'!");
-	} else {
-		logfile().list("Creating Fastq index file '", fnIndex1, "'.");
-		if (!_bamReader.CreateIndex())
-			UERROR("Failed to create Fastq index file '", fnIndex1, "'!");
-	}
-
-    /**
-     * write all the starting informations before writing reads and respective qualities
-    */
-
-    _open = true;
-    //open();
+	tmpFastqFile.open(_fileName);		//open from Tfile
 }
 
-void TFastqFile::close(){
-
-    _open = false;
-}
+void TFastqFile::close(){ 
+	tmpFastqFile.close();				//Close from TFile
+ }
 
 void TFastqFile::writeAlignment(BAM::TAlignment &alignment){
+	sortRead(alignment);
 
+	_writeAlignment(alignment);
 }
 
-void TFastqFile::setHeader(std::string header){ 
-    _header = header;
-}
+void TFastqFile::setHeader(std::string header){  _header = header; }
 
-void TFastqFile::setHeader(){
-    _header = genericIdentifiers;
-}
+void TFastqFile::setHeader(){ _header = genericIdentifiers; }
 
 }
 

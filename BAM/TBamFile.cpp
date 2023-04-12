@@ -26,6 +26,8 @@
 #include "coretools/Main/globalConstants.h"
 #include "coretools/Types/strongTypes.h"
 
+#include "TSimulatedOutputFile.h"
+
 namespace BAM{
 using coretools::TNumericRange;
 using coretools::instances::parameters;
