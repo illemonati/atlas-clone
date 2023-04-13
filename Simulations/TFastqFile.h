@@ -16,6 +16,7 @@
 
 #include <string>
 #include <vector>
+#include <queue>
 #include "genometools/PhredProbabilityTypes.h"
 #include "TAlignment.h"
 #include "coretools/Strings/stringFunctions.h"
@@ -46,36 +47,25 @@ class TFastqFile : public Simulations::TSimulatedOutputFile{
         static constexpr std::string_view genericIdentifiers = "@FS001:001:0000000:1:1:0:0 1:Y:1:AAACCC";		
         static constexpr std::string_view genericFileName = "FASTQ_Simulation.fastq";
 
-    //istances regarding single alignment 
-
     //istances regarding file content (mainly for indexed file)
         bool _open = false;
         std::string _header;
-        std::string _tmpSequence;
-        std::string _tmpQScoreValues;
         std::string _tmpRefID;
+        uint16_t _readGroupID;
         
     //istances regarding writing Fastq informations such as sequence, Phred quality score and queues for sorting alignments per group read
         BAM::TAlignment *alignment;
         std::string _sequence;
         std::string _qualities;
 
-    //template of pointers queues for next and sorted alignments and related methods
+    //queue of pointers to queues of next-sorted alignments and related methods
+    static std::queue<std::queue<BAM::TAlignment>*> alignmentQueues;            
 
-    struct alignmentQueue{
-        BAM::TAlignment &alignment;
-        BAM::TAlignment* next;
+    bool exists(uint16_t readGroupID);
 
-        //methods
-        bool hasNext();
-    };
-
-    void insertAlignment();
-    alignmentQueue popNextAlignment(); 
-
-    //methods operating on file content
+    //methods operating on alignment content
         void _writeAlignment(BAM::TAlignment &alignment);
-        void sortReads();
+        void sortRead(BAM::TAlignment &alignment);
 
     public:
     //constructor
@@ -85,9 +75,9 @@ class TFastqFile : public Simulations::TSimulatedOutputFile{
         coretools::TInputFile tmpFastqFile;
     
     //methods
-        void open(std::string_view fileName) override;
-        void close() override;
-        void writeAlignment(BAM::TAlignment &alignment) override;
+        void open(std::string_view fileName);
+        void close();
+        void writeAlignment(BAM::TAlignment &alignment);
 
     //getters and setters
         void setHeader(std::string header);     //important to set Header because it is not inherited from TFile since it is not a table
@@ -98,6 +88,6 @@ class TFastqFile : public Simulations::TSimulatedOutputFile{
 
 };
 
-}
+};      //namespace FASTQ
 
 #endif

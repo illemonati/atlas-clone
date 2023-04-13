@@ -162,7 +162,7 @@ public:
 	//reading
 	void open(std::string_view Filename) override;			//override because of parent class
 	bool isOpen() const{ return _open; };
-	void close() override;
+	void close() override;									//override because of parent class
 	bool readNextAlignment();
 	bool readNextAlignmentThatPassesFilters();
 	bool readNextAlignment(TAlignment & alignment);
@@ -266,7 +266,7 @@ public:
 //----------------------------------------------------
 //TOutputBamFile
 //----------------------------------------------------
-class TOutputBamFile{
+class TOutputBamFile : public Simulations::TSimulatedOutputFile{
 	friend TBamFile;
 
 private:
@@ -305,7 +305,7 @@ public:
 	void close();
 	void closeNoIndex();
 	void writeAlignment(const TAlignment & alignment);
-	void writeAlignmentLater(const TAlignment & alignment);
+	void writeAlignmentLater(const BAM::TAlignment & alignment);
 };
 
 }; //end namespace

@@ -215,6 +215,10 @@ TReadSimulatorSingleEnd::TReadSimulatorSingleEnd(const BAM::TReadGroup & ReadGro
 	}
 }
 
+void TReadSimulatorSingleEnd::TReadSimulatorSingleEndFASTQ(){
+	return;
+}
+
 double TReadSimulatorSingleEnd::meanReadLength() const {
 	return _calcMeanReadLength(_numCycles);
 }
@@ -236,14 +240,6 @@ void TReadSimulatorSingleEnd::simulate(const TGenomePosition & Position, const s
 	simulatedFile.writeAlignment(_alignment);
 }
 
-/**
- * 
- * Should I really use this method? I do not need simulated alignments, I need only sequences!
- * 
- * 			YES! We need the step before the alignments because we need the starting sequences
- * 
-*/
-
 //has just to generate brief sequence
 
 
@@ -261,10 +257,6 @@ void TReadSimulatorSingleEnd::simulate(const TGenomePosition & Position, const s
 // 	// write fastq sequence
 // 	//FASTQFile.writeSequence(_alignment);
 // }
-
-void TReadSimulatorSingleEnd::TReadSimulatorSingleEndFASTQ(){
-	return;
-}
 
 
 
@@ -337,7 +329,9 @@ double TReadSimulatorPairedEnd::meanReadLength() const {
 	return _calcMeanReadLength(_numCycles[0] + _numCycles[1]);
 }
 
-void TReadSimulatorPairedEnd::simulate(const TGenomePosition & Position, const std::vector<Base> & Haplotype, Simulations::TSimulatedOutputFile & BamFile) {
+			//changed & BamFile to simulatedFile
+
+void TReadSimulatorPairedEnd::simulate(const TGenomePosition & Position, const std::vector<Base> & Haplotype, Simulations::TSimulatedOutputFile & simulatedFile) {
 	// pick a fragment
 	const auto fragmentLength     = _fragmentLengthDistr.sample();
 	const auto readIsContaminated = _simulateContamination();
@@ -370,13 +364,13 @@ void TReadSimulatorPairedEnd::simulate(const TGenomePosition & Position, const s
 	_alignment.setMateGenomicPosition(_secondMate);
 	_secondMate.setMateGenomicPosition(_alignment);
 
-	BamFile.writeAlignment(_alignment);
+	simulatedFile.writeAlignment(_alignment);
 
 	// write mate if it starts at same position as first, and keep for writing later otherwise
 	if (_secondMate == _alignment) {
-		BamFile.writeAlignment(_secondMate);
+		simulatedFile.writeAlignment(_secondMate);
 	} else {
-		BamFile.writeAlignmentLater(_secondMate);
+		simulatedFile.writeAlignmentLater(_secondMate);
 	}
 }
 

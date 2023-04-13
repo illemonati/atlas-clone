@@ -105,7 +105,7 @@ public:
 class TFASTQSimulator : public TSimulator{
 private: 
 	std::vector<TReadSimulators> _readSimulators; // one per sample
-	
+
 	void _simulateAndWrite(const genometools::TChromosome &Chromosome, TSimulatorHaplotypes &Haplotypes, uint32_t avgDepth);
 	void _simulateReadsFromHaplotypes(const genometools::TChromosome &thisChr,
 									std::array<std::vector<genometools::Base>, 2> haplotypes,

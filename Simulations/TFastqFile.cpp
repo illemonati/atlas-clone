@@ -72,11 +72,16 @@ void TFastqFile::sortRead(BAM::TAlignment &alignment){
 	uint16_t tmpReadGroupID = alignment.readGroupId();
 
 	if(alignmentQueues.empty()) {
-		alignmentQueue newQueue;
-		alignmentQueues.push(newQueue);
+		static std::queue<BAM::TAlignment> newReadGroupIDAlignmentQueue;     //needs to be static in order to be reachable from other functions
+		alignmentQueues.push(&newReadGroupIDAlignmentQueue);			
 	}
+
+	
 }
 
+bool TFastqFile::exists(uint16_t readGroupID){
+	return false;
+}
 
 //------------------------------------------------
 // Public methods
@@ -101,6 +106,6 @@ void TFastqFile::setHeader(std::string header){  _header = header; }
 
 void TFastqFile::setHeader(){ _header = genericIdentifiers; }
 
-}
+};
 
 #endif
