@@ -281,7 +281,7 @@ void TAlignment::_fillContext() {
 		for (size_t d = 0; d < _bases.size() - 1; ++d) {
 			_bases[d].previousBase = _bases[d + 1].base;
 		}
-		_bases[_cigar.lengthSequenced() - 1].previousBase = Base::N;
+		_bases[_cigar.lengthRead() - 1].previousBase = Base::N;
 	} else {
 		// forward
 		_bases[0].previousBase = Base::N;
