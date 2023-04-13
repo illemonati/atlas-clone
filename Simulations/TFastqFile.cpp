@@ -24,6 +24,7 @@
 #include "coretools/Files/TReader.h"
 #include "coretools/Files/TFile.h"
 #include "coretools/Strings/stringFunctions.h" // for toString, readAfterLast, stringStartsWith
+#include "TSimulatedOutputFile.h"
 
 using coretools::instances::logfile; 	//used to write log file
 
@@ -47,7 +48,7 @@ TFastqFile::TFastqFile(std::string_view fileName){
 //------------------------------------------------
 
 
-void TFastqFile::_writeAlignment(BAM::TAlignment &alignment){
+void TFastqFile::_writeAlignment(const BAM::TAlignment &alignment){
 	//alignment.flags
 	//alignment.isEmpty
 	//alignment.readGroupId
@@ -106,6 +107,6 @@ void TFastqFile::setHeader(std::string header){  _header = header; }
 
 void TFastqFile::setHeader(){ _header = genericIdentifiers; }
 
-};
+};		//namespace FASTQ
 
 #endif

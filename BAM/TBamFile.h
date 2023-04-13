@@ -34,6 +34,8 @@
 
 #include "TSimulatedOutputFile.h"
 
+namespace Simulations { class TSimulatedOutputFile; }
+
 namespace BAM{
 
 //-----------------------------------------------------
@@ -175,6 +177,9 @@ public:
 	//writing
 	void writeCurAlignment(TOutputBamFile & out);
 
+	void writeAlignment(const BAM::TAlignment & alignment);			//is it correct to add it? normally only present in TOutputBamFile
+	//had to add it to make it compile, even though it does nothing
+
 	//getters for cur alignment
 	const std::string curName() const{ return _curBamAlignment.Name; };
 	genometools::TGenomePosition curPosition() const { return _curAlignmentPosition; };
@@ -297,12 +302,13 @@ public:
  	TOutputBamFile& operator=(const TOutputBamFile&) = default;
  	TOutputBamFile& operator=(TOutputBamFile&&) noexcept = default;
 
+	void open(std::string_view filename) override;		//insuring no abstraction for TBamFile
  	void open(const std::string Filename, const TSamHeader & Header, const genometools::TChromosomes & Chromosomes, const TReadGroups & ReadGroups);
 	void open(const std::string Filename, const TBamFile & Original);
 	void setQualityAdjusterForWriting();
 	void setQualityAdjusterForWriting(const TQualityAdjusterForWriting & QualityAdjuster);
 	bool isOpen() const{ return _openForWriting; };
-	void close();
+	void close() override;
 	void closeNoIndex();
 	void writeAlignment(const TAlignment & alignment);
 	void writeAlignmentLater(const BAM::TAlignment & alignment);

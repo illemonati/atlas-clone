@@ -9,21 +9,20 @@
 #define TSIMULATEDOUTPUTFILE_H
 
 #include <string>
-#include "TFastqFile.h"
 #include "../coretools/core/coretools/Files/TOutputFile.h"
 #include "TAlignment.h"
 
 namespace Simulations {
 
 class TSimulatedOutputFile{
-    protected:
+    public:
+        TSimulatedOutputFile();
+
         coretools::TOutputFile simulatedOutputFile;
 
-    public:
         virtual void open(std::string_view filename) = 0;       //following TFile instructions
         virtual void close() = 0;
-        virtual void writeAlignment(BAM::TAlignment &alignment) = 0;
-        virtual void writeAlignmentLater(const BAM::TAlignment & alignment) = 0;
+        virtual void writeAlignment(const BAM::TAlignment &alignment) = 0;
 };
 
 };      //namespace Simulations

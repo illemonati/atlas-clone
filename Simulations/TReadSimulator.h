@@ -33,7 +33,7 @@ namespace GenotypeLikelihoods { namespace SequencingError { class TReadGroupMode
 namespace GenotypeLikelihoods { namespace SequencingError { class TModel; } }
 namespace Simulations { class TSimulatorBamFile; }
 namespace Simulations { class TSimulatorReference; }
-
+namespace Simulations { class TSimulatedOutputFile; }
 
 namespace Simulations {
 
@@ -103,7 +103,7 @@ public:
 	void setContamination(double rate, TSimulatorReference *source);
 
 	//simulate
-	virtual void simulate(const TGenomePosition & Position, const std::vector<Base> & Haplotype, Simulations::TSimulatedOutputFile & simulatedFile) = 0;
+	virtual void simulate(const TGenomePosition & Position, const std::vector<Base> & Haplotype, TSimulatedOutputFile & simulatedFile) = 0;
 	//virtual void simulate(const TGenomePosition & Position, const std::vector<Base> & Haplotype, Simulations::TFASTQWriter &FASTQFile) = 0;
 
 	//getters
@@ -133,7 +133,7 @@ public:
 	 * 
 	*/
 
-	void simulate(const TGenomePosition & Position, const std::vector<Base> & Haplotype, Simulations::TSimulatedOutputFile & simulatedFile) override;
+	void simulate(const TGenomePosition & Position, const std::vector<Base> & Haplotype, TSimulatedOutputFile & simulatedFile) override;
 
 	[[nodiscard]] double meanReadLength() const override;
 
@@ -153,7 +153,7 @@ public:
 	TReadSimulatorPairedEnd(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo);
 	~TReadSimulatorPairedEnd() = default;
 
-	void simulate(const TGenomePosition & Position, const std::vector<genometools::Base> & Haplotype, Simulations::TSimulatedOutputFile & simulatedFile) override;
+	void simulate(const TGenomePosition & Position, const std::vector<genometools::Base> & Haplotype, TSimulatedOutputFile & simulatedFile) override;
 	[[nodiscard]] double meanReadLength() const override;
 };
 

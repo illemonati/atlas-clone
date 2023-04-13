@@ -34,9 +34,6 @@
 #include "TReadSimulator.h"
 #include "TReadSimulators.h"
 
-
-#include "coretools/core/coretools/Files/TOutputFile.h"
-
 namespace genometools { class PhredIntProbability; }
 
 namespace Simulations {

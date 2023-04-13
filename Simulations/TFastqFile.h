@@ -27,12 +27,11 @@
 #include "coretools/Main/TLog.h"
 #include "coretools/Files/TFile.h"
 
-// #include "coretools/Files/TWriter.h"
-// #include "coretools/Files/TReader.h"
+namespace Simulations { class TSimulatedOutputFile; }
 
 namespace FASTQ{
 
-class TFastqFile : public Simulations::TSimulatedOutputFile{        
+class TFastqFile : public Simulations::TSimulatedOutputFile {        
                     //create temporary file from public coretools::TFile, not good practice to do multiple inheritance
 
     private:

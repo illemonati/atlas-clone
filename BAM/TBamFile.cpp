@@ -59,6 +59,10 @@ TBamFile::TBamFile(){
 	_lastProgressPrinted = 0;
 };
 
+void TBamFile::writeAlignment(const BAM::TAlignment & alignment){
+	
+}
+
 void TBamFile::setLimits(){
 	//number of reads
 	if(parameters().parameterExists("limitReads")){
