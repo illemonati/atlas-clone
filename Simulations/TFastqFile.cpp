@@ -69,7 +69,7 @@ void TFastqFile::_writeAlignment(const BAM::TAlignment &alignment){
 
 }
 
-void TFastqFile::sortRead(BAM::TAlignment &alignment){
+void TFastqFile::sortRead(const BAM::TAlignment &alignment){
 	uint16_t tmpReadGroupID = alignment.readGroupId();
 
 	if(alignmentQueues.empty()) {
@@ -97,7 +97,7 @@ void TFastqFile::close(){
 	tmpFastqFile.close();				//Close from TFile
  }
 
-void TFastqFile::writeAlignment(BAM::TAlignment &alignment){
+void TFastqFile::writeAlignment(const BAM::TAlignment &alignment){
 	sortRead(alignment);
 
 	_writeAlignment(alignment);

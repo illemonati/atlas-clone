@@ -63,8 +63,8 @@ class TFastqFile : public Simulations::TSimulatedOutputFile {
     bool exists(uint16_t readGroupID);
 
     //methods operating on alignment content
-        void _writeAlignment(BAM::TAlignment &alignment);
-        void sortRead(BAM::TAlignment &alignment);
+        void _writeAlignment(const BAM::TAlignment &alignment);
+        void sortRead(const BAM::TAlignment &alignment);
 
     public:
     //constructor
@@ -76,7 +76,7 @@ class TFastqFile : public Simulations::TSimulatedOutputFile {
     //methods
         void open(std::string_view fileName);
         void close();
-        void writeAlignment(BAM::TAlignment &alignment);
+        void writeAlignment(const BAM::TAlignment &alignment);
 
     //getters and setters
         void setHeader(std::string header);     //important to set Header because it is not inherited from TFile since it is not a table

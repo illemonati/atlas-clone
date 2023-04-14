@@ -103,8 +103,18 @@ public:
 	void setContamination(double rate, TSimulatorReference *source);
 
 	//simulate
-	virtual void simulate(const TGenomePosition & Position, const std::vector<Base> & Haplotype, TSimulatedOutputFile & simulatedFile) = 0;
-	//virtual void simulate(const TGenomePosition & Position, const std::vector<Base> & Haplotype, Simulations::TFASTQWriter &FASTQFile) = 0;
+	virtual void simulate(const TGenomePosition & Position, const std::vector<Base> & Haplotype, TSimulatedOutputFile & simulatedFile);
+	virtual void simulate(const TGenomePosition & Position, const std::vector<genometools::Base> & Haplotype, BAM::TOutputBamFile & simulatedFile);
+
+		/**
+		 * 
+		 * Used polymorphism to circumnavigate the problem with writeAlignmentLater in PairedEnd::simulate method implementation
+		 * in this way, it is mandatory to use a BAM file in simulate in paired end but in the case of singleEnd it just needs TSimulatedOutputFile
+		 * as it is the parent class of FASTQ and BAM.
+		 * Override in child classes ensures the existance of said simulate methods
+		 * 
+		*/
+
 
 	//getters
 	std::string name() const { return _readGroup.name_ID; };
@@ -153,7 +163,7 @@ public:
 	TReadSimulatorPairedEnd(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo);
 	~TReadSimulatorPairedEnd() = default;
 
-	void simulate(const TGenomePosition & Position, const std::vector<genometools::Base> & Haplotype, TSimulatedOutputFile & simulatedFile) override;
+	void simulate(const TGenomePosition & Position, const std::vector<genometools::Base> & Haplotype, BAM::TOutputBamFile & simulatedFile) override;
 	[[nodiscard]] double meanReadLength() const override;
 };
 
