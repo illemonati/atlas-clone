@@ -72,4 +72,4 @@ if __name__ == "__main__":
     plt.xlabel(r"Downsampling probability")
     plt.ylabel(r"$\theta$")
     plt.title(args.title)
-    plt.show()
+    plt.savefig(args.files[0].split('_')[0] + ".png")
