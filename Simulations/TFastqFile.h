@@ -38,7 +38,7 @@ class TFastqFile : public Simulations::TSimulatedOutputFile {
     //istances regarding file handling
         std::string _fileName;
         std::string_view outputName;
-        BamTools::BamReader _bamReader;     
+        //BamTools::BamReader _bamReader;     
                 //Bam reader object needs to exist because we use it to read the reads and because I need to check if the file 
                 //has been opened simultaneously by more than one program
 
@@ -77,6 +77,7 @@ class TFastqFile : public Simulations::TSimulatedOutputFile {
         void open(std::string_view fileName);
         void close();
         void writeAlignment(const BAM::TAlignment &alignment);
+        void writeAlignmentLater(const BAM::TAlignment &alignment);
 
     //getters and setters
         void setHeader(std::string header);     //important to set Header because it is not inherited from TFile since it is not a table

@@ -34,6 +34,9 @@
 #include "TReadSimulator.h"
 #include "TReadSimulators.h"
 
+#include "TSimulatedOutputFile.h"
+#include "../BAM/TBamFile.h"
+
 namespace genometools { class PhredIntProbability; }
 
 namespace Simulations {

@@ -36,8 +36,9 @@
 #include "coretools/Strings/stringFunctions.h"
 #include "coretools/Types/weakTypes.h"
 
-#include "coretools/core/coretools/Files/TOutputFile.h"
+#include "coretools/Files/TOutputFile.h"
 #include "TFastqFile.h"
+#include "TSimulatedOutputFile.h"
 
 namespace Simulations {
 using coretools::Probability;

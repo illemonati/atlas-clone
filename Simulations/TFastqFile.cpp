@@ -37,10 +37,10 @@ namespace FASTQ{
 TFastqFile::TFastqFile(std::string_view fileName){
 	_fileName = fileName;
 
-	const auto ending = coretools::str::readAfterLast(_fileName, '.');										//get file suffix
-	if(ending != NULL){UERROR("Impossible to create file from: ", _fileName, ", due to wrong filetype");}		//if suffix exists, print error
-	else{ _fileName += ".fastq" ; }																			//if nothing, add .fastq
-								//you sure it returns NULL in case nothing is found???
+// 	const auto ending = coretools::str::readAfterLast(_fileName, '.');										//get file suffix
+// 	if(ending != NULL){UERROR("Impossible to create file from: ", _fileName, ", due to wrong filetype");}		//if suffix exists, print error
+// 	else{ _fileName += ".fastq" ; }																			//if nothing, add .fastq
+// 								//you sure it returns NULL in case nothing is found???
 }
 
 //------------------------------------------------
@@ -70,12 +70,12 @@ void TFastqFile::_writeAlignment(const BAM::TAlignment &alignment){
 }
 
 void TFastqFile::sortRead(const BAM::TAlignment &alignment){
-	uint16_t tmpReadGroupID = alignment.readGroupId();
+	// uint16_t tmpReadGroupID = alignment.readGroupId();
 
-	if(alignmentQueues.empty()) {
-		static std::queue<BAM::TAlignment> newReadGroupIDAlignmentQueue;     //needs to be static in order to be reachable from other functions
-		alignmentQueues.push(&newReadGroupIDAlignmentQueue);			
-	}
+	// if(alignmentQueues.empty()) {
+	// 	static std::queue<BAM::TAlignment> newReadGroupIDAlignmentQueue;     //needs to be static in order to be reachable from other functions
+	// 	alignmentQueues.push(&newReadGroupIDAlignmentQueue);			
+	// }
 
 	
 }
@@ -101,6 +101,10 @@ void TFastqFile::writeAlignment(const BAM::TAlignment &alignment){
 	sortRead(alignment);
 
 	_writeAlignment(alignment);
+}
+
+void writeAlignmentLater(const BAM::TAlignment &alignment){
+	//just to test if this method is the problem to lack of vtable
 }
 
 void TFastqFile::setHeader(std::string header){  _header = header; }

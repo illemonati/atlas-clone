@@ -24,6 +24,7 @@
 #include "TReadGroups.h"
 #include "TSamHeader.h"
 #include "coretools/TTimer.h"
+// #include "api/BamAlignment.h"
 #include "api/BamAlignment.h"
 #include "api/BamAux.h"
 #include "api/BamReader.h"
@@ -34,7 +35,7 @@
 
 #include "TSimulatedOutputFile.h"
 
-namespace Simulations { class TSimulatedOutputFile; }
+//namespace Simulations { class TSimulatedOutputFile; }
 
 namespace BAM{
 
@@ -177,7 +178,8 @@ public:
 	//writing
 	void writeCurAlignment(TOutputBamFile & out);
 
-	void writeAlignment(const BAM::TAlignment & alignment);			//is it correct to add it? normally only present in TOutputBamFile
+	void writeAlignmentLater(const BAM::TAlignment &alignment);
+	void writeAlignment(const BAM::TAlignment & alignment) override;			//is it correct to add it? normally only present in TOutputBamFile
 	//had to add it to make it compile, even though it does nothing
 
 	//getters for cur alignment
@@ -310,7 +312,7 @@ public:
 	bool isOpen() const{ return _openForWriting; };
 	void close() override;
 	void closeNoIndex();
-	void writeAlignment(const TAlignment & alignment);
+	void writeAlignment(const TAlignment & alignment) override;
 	void writeAlignmentLater(const BAM::TAlignment & alignment);
 };
 

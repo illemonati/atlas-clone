@@ -103,18 +103,7 @@ public:
 	void setContamination(double rate, TSimulatorReference *source);
 
 	//simulate
-	virtual void simulate(const TGenomePosition & Position, const std::vector<Base> & Haplotype, TSimulatedOutputFile & simulatedFile);
-	virtual void simulate(const TGenomePosition & Position, const std::vector<genometools::Base> & Haplotype, BAM::TOutputBamFile & simulatedFile);
-
-		/**
-		 * 
-		 * Used polymorphism to circumnavigate the problem with writeAlignmentLater in PairedEnd::simulate method implementation
-		 * in this way, it is mandatory to use a BAM file in simulate in paired end but in the case of singleEnd it just needs TSimulatedOutputFile
-		 * as it is the parent class of FASTQ and BAM.
-		 * Override in child classes ensures the existance of said simulate methods
-		 * 
-		*/
-
+	virtual void simulate(const TGenomePosition & Position, const std::vector<Base> & Haplotype, Simulations::TSimulatedOutputFile & simulatedFile)=0;
 
 	//getters
 	std::string name() const { return _readGroup.name_ID; };
@@ -139,15 +128,15 @@ public:
 
 	/***
 	 * 
-	 * Change BAM::TOutputBamFile to new TSimulatedOutputFile
+	 * Changed BAM::TOutputBamFile to new TSimulatedOutputFile
 	 * 
 	*/
 
-	void simulate(const TGenomePosition & Position, const std::vector<Base> & Haplotype, TSimulatedOutputFile & simulatedFile) override;
+	void simulate(const TGenomePosition & Position, const std::vector<Base> & Haplotype, Simulations::TSimulatedOutputFile & simulatedFile) override;
 
 	[[nodiscard]] double meanReadLength() const override;
 
-	void TReadSimulatorSingleEndFASTQ();
+	//void TReadSimulatorSingleEndFASTQ();
 };
 
 //-------------------------------
@@ -155,6 +144,8 @@ public:
 //-------------------------------
 class TReadSimulatorPairedEnd final : public TReadSimulator {
 private:
+	TSimulatedOutputFile* ptrSimulatedFile;
+	BAM::TOutputBamFile* _simulatedFile;
 	BAM::TAlignment _secondMate;
 	BAM::TSamFlags _mateFlags;
 	std::array<coretools::StrictlyPositive<uint16_t>, 2> _numCycles;
@@ -163,7 +154,7 @@ public:
 	TReadSimulatorPairedEnd(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo);
 	~TReadSimulatorPairedEnd() = default;
 
-	void simulate(const TGenomePosition & Position, const std::vector<genometools::Base> & Haplotype, BAM::TOutputBamFile & simulatedFile) override;
+	void simulate(const TGenomePosition & Position, const std::vector<Base> & Haplotype, Simulations::TSimulatedOutputFile & simulatedFile) override;
 	[[nodiscard]] double meanReadLength() const override;
 };
 

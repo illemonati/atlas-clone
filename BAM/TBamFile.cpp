@@ -5,6 +5,7 @@
  *      Author: wegmannd
  */
 
+// #include "TBamFile.h"
 #include "TBamFile.h"
 #include <math.h>
 #include <stdlib.h>
@@ -37,7 +38,7 @@ using genometools::BaseQuality;
 //-----------------------------------------------------
 //TBamFile
 //-----------------------------------------------------
-TBamFile::TBamFile(){
+TBamFile::TBamFile() : TSimulatedOutputFile(){
 	_open = false;
 	_fileSize = 0;
 	_numAlignmentRead = 0;
@@ -60,6 +61,10 @@ TBamFile::TBamFile(){
 };
 
 void TBamFile::writeAlignment(const BAM::TAlignment & alignment){
+	
+}
+
+void TBamFile::writeAlignmentLater(const BAM::TAlignment &alignment){
 	
 }
 
@@ -1019,27 +1024,29 @@ void TQualityAdjusterForWriting::adjustQualities(std::string & qualities) const 
 //-----------------------------------------------------
 //TOutputBamFile
 //----------------------------------------------------
-TOutputBamFile::TOutputBamFile(){
+TOutputBamFile::TOutputBamFile() : TSimulatedOutputFile(){
 	_openForWriting = false;
 	_readGroups = nullptr;
 }
 
-TOutputBamFile::TOutputBamFile(const TQualityAdjusterForWriting & QualityAdjuster) : _qualityAdjuster(QualityAdjuster){
+TOutputBamFile::TOutputBamFile(const TQualityAdjusterForWriting & QualityAdjuster) : _qualityAdjuster(QualityAdjuster), TSimulatedOutputFile(){
 	_openForWriting = false;
 	_readGroups = nullptr;
 }
 
-TOutputBamFile::TOutputBamFile(const std::string Filename, const TBamFile & Original){
+TOutputBamFile::TOutputBamFile(const std::string Filename, const TBamFile & Original) : TSimulatedOutputFile(){
 	_openForWriting = false;
 	open(Filename, Original.samHeader(), Original.chromosomes(), Original.readGroups());
 }
 
-TOutputBamFile::TOutputBamFile(const std::string Filename, const TSamHeader & Header, const genometools::TChromosomes & Chromosomes, const TReadGroups & ReadGroups){
+TOutputBamFile::TOutputBamFile(const std::string Filename, const TSamHeader & Header, const genometools::TChromosomes & Chromosomes, const TReadGroups & ReadGroups)
+	: TSimulatedOutputFile(){
 	_openForWriting = false;
 	open(Filename, Header, Chromosomes, ReadGroups);
 }
 
-TOutputBamFile::TOutputBamFile(const std::string Filename, const TSamHeader & Header, const genometools::TChromosomes & Chromosomes, const TReadGroups & ReadGroups, const TQualityAdjusterForWriting & QualityAdjuster) : _qualityAdjuster(QualityAdjuster){
+TOutputBamFile::TOutputBamFile(const std::string Filename, const TSamHeader & Header, const genometools::TChromosomes & Chromosomes, const TReadGroups & ReadGroups, const TQualityAdjusterForWriting & QualityAdjuster) 
+	: _qualityAdjuster(QualityAdjuster) , TSimulatedOutputFile(){
 	_openForWriting = false;
 	open(Filename, Header, Chromosomes, ReadGroups);
 }

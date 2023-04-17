@@ -6,6 +6,7 @@
  */
 
 #include <TReadSimulator.h>
+
 #include <algorithm>
 #include <memory>
 
@@ -26,6 +27,7 @@ using coretools::instances::logfile;
 using coretools::instances::randomGenerator;
 using BAM::RGInfo::TReadGroupInfoEntry;
 using BAM::RGInfo::InfoType;
+using BAM::TOutputBamFile;
 
 //------------------------------------------------
 // TSimulatorRead
@@ -215,9 +217,9 @@ TReadSimulatorSingleEnd::TReadSimulatorSingleEnd(const BAM::TReadGroup & ReadGro
 	}
 }
 
-void TReadSimulatorSingleEnd::TReadSimulatorSingleEndFASTQ(){
-	return;
-}
+// void TReadSimulatorSingleEnd::TReadSimulatorSingleEndFASTQ(){
+// 	return;
+// }
 
 double TReadSimulatorSingleEnd::meanReadLength() const {
 	return _calcMeanReadLength(_numCycles);
@@ -331,7 +333,16 @@ double TReadSimulatorPairedEnd::meanReadLength() const {
 
 			//changed & BamFile to simulatedFile
 
-void TReadSimulatorPairedEnd::simulate(const TGenomePosition & Position, const std::vector<Base> & Haplotype, BAM::TOutputBamFile & simulatedFile) {
+void TReadSimulatorPairedEnd::simulate(const TGenomePosition & Position, const std::vector<Base> & Haplotype, Simulations::TSimulatedOutputFile &simulatedFile) {
+	
+	/**
+	 * 
+	 * casting to be solve the problem of writeAlignmentLater not present in TSimOutFile
+	 * 
+	*/
+	ptrSimulatedFile = &simulatedFile;
+	_simulatedFile = dynamic_cast<TOutputBamFile*>(ptrSimulatedFile);
+	
 	// pick a fragment
 	const auto fragmentLength     = _fragmentLengthDistr.sample();
 	const auto readIsContaminated = _simulateContamination();
@@ -364,13 +375,13 @@ void TReadSimulatorPairedEnd::simulate(const TGenomePosition & Position, const s
 	_alignment.setMateGenomicPosition(_secondMate);
 	_secondMate.setMateGenomicPosition(_alignment);
 
-	simulatedFile.writeAlignment(_alignment);
+	_simulatedFile->writeAlignment(_alignment);
 
 	// write mate if it starts at same position as first, and keep for writing later otherwise
 	if (_secondMate == _alignment) {
-		simulatedFile.writeAlignment(_secondMate);
+		_simulatedFile->writeAlignment(_secondMate);
 	} else {
-		simulatedFile.writeAlignmentLater(_secondMate);
+		_simulatedFile->writeAlignmentLater(_secondMate);
 	}
 }
 
