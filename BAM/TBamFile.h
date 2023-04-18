@@ -66,7 +66,7 @@ private:
 
  	//current alignment
  	BamTools::BamAlignment _curBamAlignment;
- 	uint16_t _curReadGroupID;
+ 	size_t _curReadGroupID;
  	TCigar _curCigar;
  	genometools::TGenomePosition _curAlignmentPosition, _previousAlignmentPosition;
 	bool _chrChanged;

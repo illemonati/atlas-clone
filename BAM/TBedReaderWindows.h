@@ -23,59 +23,52 @@ namespace BAM{
 
 class TBedReaderWindow{
 public:
-	bool hasData;
-	uint32_t start, end;
-	std::vector<uint32_t> positions;
+	bool hasData = false;
+	size_t start, end;
+	std::vector<size_t> positions;
 
-	TBedReaderWindow(uint32_t Start, uint32_t End);
-	~TBedReaderWindow();
-	void addPosition(uint32_t & pos);
-	void print();
-	uint32_t size();
+	TBedReaderWindow(size_t Start, size_t End) : start(Start), end(End) {};
+	void addPosition(size_t pos) {positions.push_back(pos);};
+	uint32_t size() const noexcept {return positions.size();};
 };
 
 class TBedReaderChromosome{
 public:
 	std::string name;
-	std::map<uint32_t, TBedReaderWindow*> windows;
-	std::map<uint32_t, TBedReaderWindow*>::iterator windowIt;
-	int windowSize;
+	std::map<size_t, TBedReaderWindow> windows;
+	size_t windowSize;
 	coretools::TCountDistribution<> distPerSites;
 
-	TBedReaderChromosome(std::string & Name, uint32_t & WindowSize);
-	~TBedReaderChromosome();
-	void findWindow(uint32_t pos);
-	void findOrCreateWindow(uint32_t pos);
-	void addPosition(std::vector<std::string> & tmp, uint32_t & numPositionsAdded, uint32_t siteLimit);
-	void print();
-	bool hasPositionsInWindow(uint32_t windowStart);
-	std::vector<uint32_t>& getPositionInWindow(uint32_t windowStart);
-	uint32_t size();
+	TBedReaderChromosome(std::string_view Name, size_t WindowSize): name(Name), windowSize(WindowSize) {};
+	auto findWindow(size_t pos) const;
+	auto findWindow(size_t pos);
+	auto findOrCreateWindow(size_t pos);
+	void addPosition(std::vector<std::string> & tmp, size_t & numPositionsAdded, size_t siteLimit);
+	bool hasPositionsInWindow(size_t windowStart) const;
+	std::vector<size_t>& getPositionInWindow(size_t windowStart);
+	size_t size() const;
 };
 
 class TBedReaderWindows{
 private:
-	std::map<std::string, TBedReaderChromosome*> chromosomes;
-	std::map<std::string, TBedReaderChromosome*>::iterator chrIt;
-	uint32_t windowSize;
-	std::string curChr;
-	uint32_t numPositionsAdded;
+	std::string filename;
+	std::map<std::string, TBedReaderChromosome> chromosomes;
+	std::map<std::string, TBedReaderChromosome>::iterator chrIt;
+	size_t windowSize;
+	std::string curChr = "";
+	size_t numPositionsAdded = 0;
 
-	void readFile(const genometools::TChromosomes & chromosomeList, uint32_t siteLimit, bool adaptRegions);
+	void readFile(const genometools::TChromosomes & chromosomeList, size_t siteLimit, bool adaptRegions);
 
 public:
-	std::string filename;
-	TBedReaderWindows(std::string Filename, uint32_t WindowSize, const genometools::TChromosomes & chromosomes, uint32_t siteLimit, bool adaptRegions);
-	TBedReaderWindows();
-	~TBedReaderWindows();
-	void setChr(const std::string & chr);
-	void print();
-	bool hasPositionsInWindow(uint32_t windowStart);
-	std::vector<uint32_t>& getPositionInWindow(uint32_t & windowStart);
-	uint32_t size();
-	uint32_t getNumChromosomes();
+	TBedReaderWindows(std::string_view Filename, size_t WindowSize, const genometools::TChromosomes & chromosomes, size_t siteLimit, bool adaptRegions) : filename(Filename), windowSize(WindowSize) {readFile(chromosomes, siteLimit, adaptRegions);};
+	void setChr(std::string_view chr);
+	bool hasPositionsInWindow(size_t windowStart) const;
+	std::vector<size_t>& getPositionInWindow(uint32_t & windowStart);
+	size_t size() const;
+	size_t getNumChromosomes() const;
 	bool containsChromosome(std::string chrName) const;
-	TBedReaderChromosome* findChromosome(std::string chrName) const;
+	TBedReaderChromosome* findChromosome(std::string chrName);
 	void listInitializedChromosomes(std::vector<std::string> &initializedChromosomes);
 };
 

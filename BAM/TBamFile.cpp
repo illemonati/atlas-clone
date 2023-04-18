@@ -817,29 +817,29 @@ void TBamFile::_writeFilteringStats(std::string &outputName){
 	out.endln();
 
 	//writes numbers of removed reads for each applied filter per read group, also lists filters if no reads were removed
-	for (uint16_t it = 0; it < _readGroups.size(); it++){
-		out << _readGroups.getName(it);
-		_unalignedFilter.printCounts(out, it);
-		_noReadGroupFilter.printCounts(out, it);
-		_duplicateFilter.printCounts(out, it);
-		_softClippedRatioFilter.printCounts(out, it);
-		_improperPairsFilter.printCounts(out, it);
-		_unmappedFilter.printCounts(out, it);
-		_failedQCFilter.printCounts(out, it);
-		_secondaryFilter.printCounts(out, it);
-		_supplementaryFilter.printCounts(out, it);
-		_longerThanFragmentFilter.printCounts(out, it);
-		_readGroupFilter.printCounts(out, it);
-		_fwdStrandFilter.printCounts(out, it);
-		_revStrandFilter.printCounts(out, it);
-		_firstMateFilter.printCounts(out, it);
-		_secondMateFilter.printCounts(out, it);
-		_blacklistFilter.printCounts(out, it);
-		_mappingQualityFilter.printCounts(out, it);
-		_fragmentLengthFilter.printCounts(out, it);
-		_externalFilter.printCounts(out, it);
-		_readLengthFilter.printCounts(out, it);
-		_mappedLengthFilter.printCounts(out, it);
+	for (size_t rg = 0; rg < _readGroups.size(); rg++){
+		out << _readGroups.getName(rg);
+		_unalignedFilter.printCounts(out, rg);
+		_noReadGroupFilter.printCounts(out, rg);
+		_duplicateFilter.printCounts(out, rg);
+		_softClippedRatioFilter.printCounts(out, rg);
+		_improperPairsFilter.printCounts(out, rg);
+		_unmappedFilter.printCounts(out, rg);
+		_failedQCFilter.printCounts(out, rg);
+		_secondaryFilter.printCounts(out, rg);
+		_supplementaryFilter.printCounts(out, rg);
+		_longerThanFragmentFilter.printCounts(out, rg);
+		_readGroupFilter.printCounts(out, rg);
+		_fwdStrandFilter.printCounts(out, rg);
+		_revStrandFilter.printCounts(out, rg);
+		_firstMateFilter.printCounts(out, rg);
+		_secondMateFilter.printCounts(out, rg);
+		_blacklistFilter.printCounts(out, rg);
+		_mappingQualityFilter.printCounts(out, rg);
+		_fragmentLengthFilter.printCounts(out, rg);
+		_externalFilter.printCounts(out, rg);
+		_readLengthFilter.printCounts(out, rg);
+		_mappedLengthFilter.printCounts(out, rg);
 		out.endln();
 	}
 	out.close();
@@ -857,31 +857,31 @@ void TBamFile::printSummaryNoEndIndent(std::string &outputName){
 	_writeFilteringStats(outputName);
 
 	//print counts of filtered reads for each read group to terminal, doesn't list filters if no reads were removed
-	for (uint16_t it = 0; it < _readGroups.size(); it++){
+	for (size_t rg = 0; rg < _readGroups.size(); rg++){
 		//logfile().newLine();
-		logfile().list("Number of reads filtered from read group: '" + coretools::str::toString(_readGroups.getName(it)) + "'");
+		logfile().list("Number of reads filtered from read group: '" + coretools::str::toString(_readGroups.getName(rg)) + "'");
 		logfile().addIndent();
-		_unalignedFilter.summary(numFiltered, it);
-		_noReadGroupFilter.summary(numFiltered, it);
-		_duplicateFilter.summary(numFiltered, it);
-		_softClippedRatioFilter.summary(numFiltered, it);
-		_improperPairsFilter.summary(numFiltered, it);
-		_unmappedFilter.summary(numFiltered, it);
-		_failedQCFilter.summary(numFiltered, it);
-		_secondaryFilter.summary(numFiltered, it);
-		_supplementaryFilter.summary(numFiltered, it);
-		_longerThanFragmentFilter.summary(numFiltered, it);
-		_readGroupFilter.summary(numFiltered, it);
-		_fwdStrandFilter.summary(numFiltered, it);
-		_revStrandFilter.summary(numFiltered, it);
-		_firstMateFilter.summary(numFiltered, it);
-		_secondMateFilter.summary(numFiltered, it);
-		_blacklistFilter.summary(numFiltered, it);
-		_mappingQualityFilter.summary(numFiltered, it);
-		_fragmentLengthFilter.summary(numFiltered, it);
-		_externalFilter.summary(numFiltered, it);
-		_readLengthFilter.summary(numFiltered, it);
-		_mappedLengthFilter.summary(numFiltered, it);
+		_unalignedFilter.summary(numFiltered, rg);
+		_noReadGroupFilter.summary(numFiltered, rg);
+		_duplicateFilter.summary(numFiltered, rg);
+		_softClippedRatioFilter.summary(numFiltered, rg);
+		_improperPairsFilter.summary(numFiltered, rg);
+		_unmappedFilter.summary(numFiltered, rg);
+		_failedQCFilter.summary(numFiltered, rg);
+		_secondaryFilter.summary(numFiltered, rg);
+		_supplementaryFilter.summary(numFiltered, rg);
+		_longerThanFragmentFilter.summary(numFiltered, rg);
+		_readGroupFilter.summary(numFiltered, rg);
+		_fwdStrandFilter.summary(numFiltered, rg);
+		_revStrandFilter.summary(numFiltered, rg);
+		_firstMateFilter.summary(numFiltered, rg);
+		_secondMateFilter.summary(numFiltered, rg);
+		_blacklistFilter.summary(numFiltered, rg);
+		_mappingQualityFilter.summary(numFiltered, rg);
+		_fragmentLengthFilter.summary(numFiltered, rg);
+		_externalFilter.summary(numFiltered, rg);
+		_readLengthFilter.summary(numFiltered, rg);
+		_mappedLengthFilter.summary(numFiltered, rg);
 		logfile().endIndent();
 	}
 

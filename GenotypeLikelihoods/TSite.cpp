@@ -38,7 +38,7 @@ TBaseData TSite::baseFrequencies() const noexcept {
 	return bd;
 };
 
-void TSite::downsample(uint32_t maxDepth, const coretools::TSubsamplePicker &picker) {
+void TSite::downsample(size_t maxDepth, const coretools::TSubsamplePicker &picker) {
 	// only subsample if depth > maxDepth
 	if (_bases.size() > maxDepth) {
 		// select subsample
@@ -66,7 +66,7 @@ std::string TSite::getQualities() const {
 		return tot + static_cast<char>(genometools::BaseQuality(b.recalibratedQualityAsPhredInt)); });
 }
 
-uint32_t TSite::refDepth() const {
+size_t TSite::refDepth() const {
 	if (refBase == genometools::Base::N) return 0;
 
 	return std::count_if(_bases.cbegin(), _bases.cend(), [this](auto b) {return b.base == refBase;});
