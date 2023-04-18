@@ -93,7 +93,11 @@ TReadSimulators::TReadSimulators(const std::string & RgInfoFileName){
 
 	// B) initialize PMD
 	//------------------
-	_PMD.initialize(RGinfo);
+	if (coretools::instances::parameters().parameterExists("pmd")) {
+		_PMD.initialize(coretools::instances::parameters().getParameter("pmd"), _readGroups);
+	} else {
+		_PMD.initialize(RGinfo);
+	}
 
 	// add PMD to simulators
 	// TODO: also initialize PMD from RGInfo
