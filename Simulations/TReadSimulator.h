@@ -26,6 +26,7 @@
 #include "TReadGroupInfo.h"
 #include "coretools/Main/TLog.h"
 #include "../BAM/TBamFile.h"
+
 #include "TSimulatedOutputFile.h"
 
 namespace GenotypeLikelihoods { class TPMDType; }
@@ -34,6 +35,7 @@ namespace GenotypeLikelihoods { namespace SequencingError { class TModel; } }
 namespace Simulations { class TSimulatorBamFile; }
 namespace Simulations { class TSimulatorReference; }
 namespace Simulations { class TSimulatedOutputFile; }
+namespace BAM { class TOutputBamFile; }
 
 namespace Simulations {
 
@@ -144,7 +146,7 @@ public:
 //-------------------------------
 class TReadSimulatorPairedEnd final : public TReadSimulator {
 private:
-	TSimulatedOutputFile* ptrSimulatedFile;
+	Simulations::TSimulatedOutputFile* ptrSimulatedFile;
 	BAM::TOutputBamFile* _simulatedFile;
 	BAM::TAlignment _secondMate;
 	BAM::TSamFlags _mateFlags;

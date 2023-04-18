@@ -307,29 +307,6 @@ void TBAMSimulator::_initializeReadSimulator(){
 	}
 };
 
-void TBAMSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome, TSimulatorHaplotypes &Haplotypes, uint32_t avgDepth) {
-	// now simulate and write reads
-	logfile().startIndent("Simulating reads:");
-	for (size_t i = 0; i < _haploSimulator->sampleSize(); ++i){
-		if(_readSimulators.size() == 1){
-			_simulateReadsFromHaplotypes(Chromosome,
-										 Haplotypes.getHaplotypesOfIndividual(i),
-										 _readSimulators.front(),
-										 avgDepth,
-										 (*_bamFiles)[i],
-										 " for individual " + coretools::str::toString(i + 1));
-		} else {
-			_simulateReadsFromHaplotypes(Chromosome,
-										 Haplotypes.getHaplotypesOfIndividual(i),
-										 _readSimulators[i],
-										 avgDepth,
-										 (*_bamFiles)[i],
-										 " for individual " + coretools::str::toString(i + 1));
-		}
-	}
-	logfile().endIndent();
-}
-
 void TBAMSimulator::_simulateReadsFromHaplotypes(const genometools::TChromosome &thisChr,
                                                  std::array<std::vector<Base>, 2> haplotypes,
 												 TReadSimulators & readSimulators,
@@ -367,17 +344,41 @@ void TBAMSimulator::_simulateReadsFromHaplotypes(const genometools::TChromosome 
 	logfile().conclude("Simulated a total of ", numReadsSimulated, " reads.");
 }
 
+void TBAMSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome, TSimulatorHaplotypes &Haplotypes, uint32_t avgDepth) {
+	// now simulate and write reads
+	logfile().startIndent("Simulating reads:");
+	for (size_t i = 0; i < _haploSimulator->sampleSize(); ++i){
+		if(_readSimulators.size() == 1){
+			_simulateReadsFromHaplotypes(Chromosome,
+										 Haplotypes.getHaplotypesOfIndividual(i),
+										 _readSimulators.front(),
+										 avgDepth,
+										 (*_bamFiles)[i],
+										 " for individual " + coretools::str::toString(i + 1));
+		} else {
+			_simulateReadsFromHaplotypes(Chromosome,
+										 Haplotypes.getHaplotypesOfIndividual(i),
+										 _readSimulators[i],
+										 avgDepth,
+										 (*_bamFiles)[i],
+										 " for individual " + coretools::str::toString(i + 1));
+		}
+	}
+	logfile().endIndent();
+}
+
 //---------------------------------------------------
 // TFASTQWriter Simulator
 //---------------------------------------------------
 
-TFASTQSimulator::TFASTQSimulator(const std::string &method) : TSimulator(method){
-}
+// TFASTQSimulator::TFASTQSimulator(const std::string &method) : TSimulator(method){
+// 	int y = 0;
+// }
 
-void _simulateAndWrite(const genometools::TChromosome &Chromosome, TSimulatorHaplotypes &Haplotypes, uint32_t avgDepth){
-	logfile().startIndent("Simulating reads:");
-
-}
+// void _simulateAndWrite(const genometools::TChromosome &Chromosome, TSimulatorHaplotypes &Haplotypes, uint32_t avgDepth){
+// 	// logfile().startIndent("Simulating reads:");
+// 	int x = 0;
+// }
 
 //copied from TBAMSimulator but tweaked to use only SingleEndSimulator
 

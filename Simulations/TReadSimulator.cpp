@@ -19,6 +19,8 @@
 #include "coretools/Strings/stringFunctions.h"
 #include "coretools/Strings/fromString.h"
 
+#include "TSimulatedOutputFile.h"
+
 namespace Simulations {
 using genometools::Base;
 using genometools::PhredIntProbability;
@@ -335,14 +337,6 @@ double TReadSimulatorPairedEnd::meanReadLength() const {
 
 void TReadSimulatorPairedEnd::simulate(const TGenomePosition & Position, const std::vector<Base> & Haplotype, Simulations::TSimulatedOutputFile &simulatedFile) {
 	
-	/**
-	 * 
-	 * casting to be solve the problem of writeAlignmentLater not present in TSimOutFile
-	 * 
-	*/
-	ptrSimulatedFile = &simulatedFile;
-	_simulatedFile = dynamic_cast<TOutputBamFile*>(ptrSimulatedFile);
-	
 	// pick a fragment
 	const auto fragmentLength     = _fragmentLengthDistr.sample();
 	const auto readIsContaminated = _simulateContamination();
@@ -375,12 +369,17 @@ void TReadSimulatorPairedEnd::simulate(const TGenomePosition & Position, const s
 	_alignment.setMateGenomicPosition(_secondMate);
 	_secondMate.setMateGenomicPosition(_alignment);
 
-	_simulatedFile->writeAlignment(_alignment);
+	simulatedFile.writeAlignment(_alignment);
 
 	// write mate if it starts at same position as first, and keep for writing later otherwise
 	if (_secondMate == _alignment) {
-		_simulatedFile->writeAlignment(_secondMate);
+		simulatedFile.writeAlignment(_secondMate);
 	} else {
+	//in order to preserve writeAlignmentLater only in TBamFile (and not having to transport it into TSimulatedOutputFile), casting is only done
+	//in this portion, otherwise every TBamFile would have to be casted even if not necessary as it wouldn't take this else path
+		ptrSimulatedFile = &simulatedFile;
+		_simulatedFile = dynamic_cast<TOutputBamFile*>(ptrSimulatedFile);
+
 		_simulatedFile->writeAlignmentLater(_secondMate);
 	}
 }

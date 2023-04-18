@@ -1024,35 +1024,38 @@ void TQualityAdjusterForWriting::adjustQualities(std::string & qualities) const 
 //-----------------------------------------------------
 //TOutputBamFile
 //----------------------------------------------------
-TOutputBamFile::TOutputBamFile() : TSimulatedOutputFile(){
+TOutputBamFile::TOutputBamFile(){
 	_openForWriting = false;
 	_readGroups = nullptr;
 }
 
-TOutputBamFile::TOutputBamFile(const TQualityAdjusterForWriting & QualityAdjuster) : _qualityAdjuster(QualityAdjuster), TSimulatedOutputFile(){
+TOutputBamFile::TOutputBamFile(const TQualityAdjusterForWriting & QualityAdjuster) : _qualityAdjuster(QualityAdjuster){
 	_openForWriting = false;
 	_readGroups = nullptr;
 }
 
-TOutputBamFile::TOutputBamFile(const std::string Filename, const TBamFile & Original) : TSimulatedOutputFile(){
+TOutputBamFile::TOutputBamFile(const std::string Filename, const TBamFile & Original){
 	_openForWriting = false;
 	open(Filename, Original.samHeader(), Original.chromosomes(), Original.readGroups());
 }
 
-TOutputBamFile::TOutputBamFile(const std::string Filename, const TSamHeader & Header, const genometools::TChromosomes & Chromosomes, const TReadGroups & ReadGroups)
-	: TSimulatedOutputFile(){
+TOutputBamFile::TOutputBamFile(const std::string Filename, const TSamHeader & Header, const genometools::TChromosomes & Chromosomes, const TReadGroups & ReadGroups){
 	_openForWriting = false;
 	open(Filename, Header, Chromosomes, ReadGroups);
 }
 
 TOutputBamFile::TOutputBamFile(const std::string Filename, const TSamHeader & Header, const genometools::TChromosomes & Chromosomes, const TReadGroups & ReadGroups, const TQualityAdjusterForWriting & QualityAdjuster) 
-	: _qualityAdjuster(QualityAdjuster) , TSimulatedOutputFile(){
+	: _qualityAdjuster(QualityAdjuster){
 	_openForWriting = false;
 	open(Filename, Header, Chromosomes, ReadGroups);
 }
 
 TOutputBamFile::~TOutputBamFile(){
 	closeNoIndex();
+}
+
+void TOutputBamFile::open(std::string_view filename){
+	//could be the problem realted to vtable call in compile error
 }
 
 void TOutputBamFile::open(const std::string Filename, const TSamHeader & Header, const genometools::TChromosomes & Chromosomes, const TReadGroups & ReadGroups){

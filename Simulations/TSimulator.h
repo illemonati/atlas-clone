@@ -38,6 +38,7 @@
 #include "../BAM/TBamFile.h"
 
 namespace genometools { class PhredIntProbability; }
+// namespace Simulations { class TFASTQSimulator; }
 
 namespace Simulations {
 
@@ -81,18 +82,23 @@ protected:
 	void _initializeReadSimulator();
 
 	// functions to simulate
-	void _simulateReadsFromHaplotypes(const genometools::TChromosome &thisChr,
-	                                  std::array<std::vector<genometools::Base>, 2> haplotypes,
-									  TReadSimulators & readSimulator,
-									  uint32_t avgDepth,
-	                                  BAM::TOutputBamFile &bamFile, const std::string &extraProgressText);
+	// void _simulateReadsFromHaplotypes(const genometools::TChromosome &thisChr,
+	//                                   std::array<std::vector<genometools::Base>, 2> haplotypes,
+	// 								  TReadSimulators & readSimulator,
+	// 								  uint32_t avgDepth,
+	//                                   BAM::TOutputBamFile &bamFile, const std::string &extraProgressText);
 
 	// simulate reads and write bam files
 	void _simulateAndWrite(const genometools::TChromosome &Chromosome, TSimulatorHaplotypes &Haplotypes, uint32_t avgDepth) override;
+	void _simulateReadsFromHaplotypes(const genometools::TChromosome &thisChr,
+								std::array<std::vector<genometools::Base>, 2> haplotypes,
+								TReadSimulators & readSimulator,
+								uint32_t avgDepth,
+								BAM::TOutputBamFile &bamFile, const std::string &extraProgressText);
 
 public:
 	TBAMSimulator(const std::string &method);
-	~TBAMSimulator() { _bamFiles->close(); }
+	~TBAMSimulator() = default;
 };
 
 
@@ -102,22 +108,22 @@ public:
 
 //do I really have to inherite from TSimulator??????? yes, otherwise how could we simulate reads and use TTask?
 
-class TFASTQSimulator : public TSimulator{
-private: 
-	std::vector<TReadSimulators> _readSimulators; // one per sample
+// class TFASTQSimulator : public TSimulator{
+// private: 
+// 	std::vector<TReadSimulators> _readSimulators; // one per sample
 
-	void _simulateAndWrite(const genometools::TChromosome &Chromosome, TSimulatorHaplotypes &Haplotypes, uint32_t avgDepth);
-	void _simulateReadsFromHaplotypes(const genometools::TChromosome &thisChr,
-									std::array<std::vector<genometools::Base>, 2> haplotypes,
-									TReadSimulators & readSimulator,
-									uint32_t avgDepth,
-									BAM::TOutputBamFile &bamFile, const std::string &extraProgressText);
+// 	void _simulateAndWrite(const genometools::TChromosome &Chromosome, TSimulatorHaplotypes &Haplotypes, uint32_t avgDepth);
+// 	void _simulateReadsFromHaplotypes(const genometools::TChromosome &thisChr,
+// 									std::array<std::vector<genometools::Base>, 2> haplotypes,
+// 									TReadSimulators & readSimulator,
+// 									uint32_t avgDepth,
+// 									BAM::TOutputBamFile &bamFile, const std::string &extraProgressText);
 
-public:
-	//FastqFile
-	TFASTQSimulator(const std::string &method);
+// public:
+// 	//FastqFile
+// 	TFASTQSimulator(const std::string &method);
 
-};
+// };
 
 //---------------------------------------------------------
 // TVCFWriterSimulation
@@ -176,10 +182,11 @@ public:
 			logfile().startIndent("Simulating VCF Files:");
 			auto simulator = TVCFSimulator{method};
 			simulator.runSimulations();
-		} else if(parameters().parameterExists("fastq")){
-			logfile().startIndent("Simulating FASTQ Files:");
-			auto simulator = TFASTQSimulator{method};
-			simulator.runSimulations();
+
+		// } else if(parameters().parameterExists("fastq")){
+		// 	logfile().startIndent("Simulating FASTQ Files:");
+		// 	auto simulator = TFASTQSimulator{method};
+		// 	simulator.runSimulations();
 		} else { // default: BAM simulator
 			logfile().startIndent("Simulating BAM Files:");
 			auto simulator = TBAMSimulator{method};

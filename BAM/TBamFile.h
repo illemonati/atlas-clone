@@ -312,7 +312,7 @@ public:
 	bool isOpen() const{ return _openForWriting; };
 	void close() override;
 	void closeNoIndex();
-	void writeAlignment(const TAlignment & alignment) override;
+	void writeAlignment(const BAM::TAlignment & alignment) override;
 	void writeAlignmentLater(const BAM::TAlignment & alignment);
 };
 
