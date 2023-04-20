@@ -73,10 +73,10 @@ void TBamDiagnoser::_writeTable(const TCountDistributionVector<> & distVec, cons
 
 void TBamDiagnoser::_handleAlignment() {
     //get read group
-    uint16_t readGroup = _bamFile.curReadGroupID();
-	uint16_t chromosome = _bamFile.refID();
+	const size_t readGroup  = _bamFile.curReadGroupID();
+	const size_t chromosome = _bamFile.refID();
 
-    //increments for each read that passed filters
+	//increments for each read that passed filters
     _passedQC.add(readGroup, _bamFile.curChromosome().refID());
 
     //add to counters
@@ -95,10 +95,10 @@ void TBamDiagnoser::run(){
     double totLengthOfGenome = _bamFile.chromosomes().referenceLength();
 
     //initialize counters
-    uint32_t numRG = _bamFile.readGroups().size();
-	uint32_t numChrom = _bamFile.chromosomes().size();
+	const size_t numRG    = _bamFile.readGroups().size();
+	const size_t numChrom = _bamFile.chromosomes().size();
 
-    // resize distributions
+	// resize distributions
     _passedQC.resize(numRG);
 	_passedQC.resizeDistributions(numChrom);
 
@@ -153,9 +153,9 @@ void TBamDiagnoser::run(){
 		out.writeHeader({"readGroup", "chromosome", "totalReads", "passedQC", "duplicates", "avgReadLength", "seqCycles", "properPairs", "avgFragmentLength", "softClipped", "avgSoftClippedLength", "avgUsableAlignedLength", "approximateDepth", "avgMappingQuality", "seqType"});
 
 	//determine sequencing type of BAM file
-	uint32_t paired_count = 0;
-	uint32_t single_count = 0;
-	for(uint32_t rg = 0; rg < numRG; ++rg){
+	size_t paired_count = 0;
+	size_t single_count = 0;
+	for(size_t rg = 0; rg < numRG; ++rg){
 		if (_fragmentLength[rg].counts() == 0){
 			++single_count;
 		} else {
@@ -186,7 +186,7 @@ void TBamDiagnoser::run(){
 	if(_chromStats){
 		auto chromIt = _bamFile.chromosomes().cbegin();
 		while(chromIt != _bamFile.chromosomes().cend()){
-			uint32_t refID = chromIt->refID();
+			size_t refID = chromIt->refID();
 			out.write("allReadGroups", chromIt->name,  (_bamFile.numAlignmentReadPerReadGroupPerChromosome()).horizontalCounts(refID), _passedQC.horizontalCounts(refID), _bamFile.getDuplicateFilter().getCountsPerChromosome(refID),
 			meanForChromosome(_readLength, refID), maxForChromosome(_readLength, refID), countsForChromosome(_fragmentLength, refID), meanForChromosome(_fragmentLength, refID),
 			countsLargerZeroForChromosome(_softClippedLength,refID), meanForChromosome(_softClippedLength, refID), meanForChromosome(_usableLength, refID),
@@ -203,7 +203,7 @@ void TBamDiagnoser::run(){
 	}
 
 	//write per read group for all chromosomes
-	for(uint32_t rg = 0; rg < numRG; ++rg){
+	for(size_t rg = 0; rg < numRG; ++rg){
 		if(!_chromStats){
 			out.write(_bamFile.readGroups().getName(rg), (_bamFile.numAlignmentReadPerReadGroupPerChromosome())[rg].counts(), _passedQC[rg].counts(), _bamFile.getDuplicateFilter().getCounts(rg),
 					_readLength[rg].mean(), _readLength[rg].max(), _fragmentLength[rg].counts(), _fragmentLength[rg].mean(),
@@ -228,7 +228,7 @@ void TBamDiagnoser::run(){
 			//write per read group per chromosome
 			auto chromIt = _bamFile.chromosomes().cbegin();
 			while(chromIt != _bamFile.chromosomes().cend()){
-				uint32_t refID = chromIt->refID();
+				size_t refID = chromIt->refID();
 				out.write(_bamFile.readGroups().getName(rg), chromIt->name, (_bamFile.numAlignmentReadPerReadGroupPerChromosome())[rg][refID], _passedQC[rg][refID], _bamFile.getDuplicateFilter().getCountsAtReadGroupAndChromosome(rg, refID),
 					_readLength[rg][refID].mean(), _readLength[rg][refID].max(), _fragmentLength[rg][refID].counts(), _fragmentLength[rg][refID].mean(),
 					_softClippedLength[rg][refID].countsLargerZero(), _softClippedLength[rg][refID].mean(), _usableLength[rg][refID].mean(),
@@ -250,7 +250,7 @@ void TBamDiagnoser::run(){
 		std::string splitmergename = _outputName + "_splitMergeInput.txt";
 		logfile().listFlush("Outputting input file for splitMerge to '" + splitmergename + "' ...");
 		coretools::TOutputFile splitm (splitmergename, {"readGroup", "seqType", "seqCycles"});
-		for(uint32_t rg = 0; rg < numRG; ++rg){
+		for(size_t rg = 0; rg < numRG; ++rg){
 			splitm << _bamFile.readGroups().getName(rg);
 			if (_fragmentLength[rg].counts() == 0){
 				splitm << "single";
@@ -294,7 +294,7 @@ double TBamDiagnoser::meanOverAllReadGroups(const std::vector<coretools::TCountD
 	return ((double) sum / (double) counts);
 }
 
-double TBamDiagnoser::meanForChromosome(const std::vector<coretools::TCountDistributionVector<>> &vec, uint32_t chromRefID){
+double TBamDiagnoser::meanForChromosome(const std::vector<coretools::TCountDistributionVector<>> &vec, size_t chromRefID){
 	size_t counts = countsForChromosome(vec, chromRefID);
 	if (counts == 0) { return 0.0; }
 	size_t sum = sumForChromosome(vec, chromRefID);
@@ -302,20 +302,20 @@ double TBamDiagnoser::meanForChromosome(const std::vector<coretools::TCountDistr
 	return ((double) sum / (double) counts);
 }
 
-uint32_t TBamDiagnoser::maxOverAllReadGroups(const std::vector<coretools::TCountDistributionVector<>> &vec){
-	uint32_t max = 0;
+size_t TBamDiagnoser::maxOverAllReadGroups(const std::vector<coretools::TCountDistributionVector<>> &vec){
+	size_t max = 0;
 	for (const auto &s: vec){
-		uint32_t curMax = s.max();
+		size_t curMax = s.max();
 		if (curMax > max)
 			max = curMax;
 	}
 	return max;
 }
 
-uint32_t TBamDiagnoser::maxForChromosome(const std::vector<coretools::TCountDistributionVector<>> &vec, uint32_t chromRefID){
-	uint32_t max = 0;
+size_t TBamDiagnoser::maxForChromosome(const std::vector<coretools::TCountDistributionVector<>> &vec, size_t chromRefID){
+	size_t max = 0;
 	for (const auto &s: vec){
-		uint32_t curMax = s[chromRefID].max();
+		size_t curMax = s[chromRefID].max();
 		if (curMax > max)
 			max = curMax;
 	}
@@ -330,7 +330,7 @@ size_t TBamDiagnoser::countsOverAllReadGroups(const std::vector<coretools::TCoun
 	return counts;
 }
 
-size_t TBamDiagnoser::countsForChromosome(const std::vector<coretools::TCountDistributionVector<>> &vec, uint32_t chromRefID){
+size_t TBamDiagnoser::countsForChromosome(const std::vector<coretools::TCountDistributionVector<>> &vec, size_t chromRefID){
 	size_t counts = 0;
 	for (const auto &s: vec){
 		counts += s[chromRefID].counts();
@@ -347,7 +347,7 @@ size_t TBamDiagnoser::countsLargerZeroOverAllReadGroups(const std::vector<coreto
 	return counts;
 }
 
-size_t TBamDiagnoser::countsLargerZeroForChromosome(const std::vector<coretools::TCountDistributionVector<>> &vec, uint32_t chromRefID){
+size_t TBamDiagnoser::countsLargerZeroForChromosome(const std::vector<coretools::TCountDistributionVector<>> &vec, size_t chromRefID){
 	size_t counts = 0;
 	for (const auto &s: vec){
 		counts += s[chromRefID].countsLargerZero();
@@ -363,7 +363,7 @@ size_t TBamDiagnoser::sumOverAllReadGroups(const std::vector<coretools::TCountDi
 	return sum;
 }
 
-size_t TBamDiagnoser::sumForChromosome(const std::vector<coretools::TCountDistributionVector<>> &vec, uint32_t chromRefID){
+size_t TBamDiagnoser::sumForChromosome(const std::vector<coretools::TCountDistributionVector<>> &vec, size_t chromRefID){
 	size_t sum = 0;
 	for (const auto &s: vec){
 		sum += s[chromRefID].sum();

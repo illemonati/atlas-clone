@@ -111,7 +111,7 @@ void TSimulatorOne::simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulator
 	// fill mutation table
 	TSimulatorMutationtable mutTable(_baseFreq, _thetas[chromosome.refID()]);
 
-	for (uint64_t l = 0; l < chromosome.length; ++l) {
+	for (size_t l = 0; l < chromosome.length; ++l) {
 		haplotypes(0, 0, l) = sampleBase(_cumulBaseFreq);
 		haplotypes(0, 1, l) = sampleBase(mutTable[haplotypes(0, 0, l)]);
 
@@ -130,7 +130,7 @@ void TSimulatorOne::simulateHaploid(TSimulatorHaplotypes &haplotypes, TSimulator
 	TSimulatorMutationtable mutTable(_baseFreq, _thetas[chromosome.refID()]);
 
 	// now simulate genotypes
-	for (uint64_t l = 0; l < chromosome.length; ++l) {
+	for (size_t l = 0; l < chromosome.length; ++l) {
 		haplotypes(0, 0, l) = sampleBase(_cumulBaseFreq);
 		haplotypes(0, 1, l) = haplotypes(0, 0, l);
 
@@ -285,7 +285,7 @@ void TSimulatorPair::simulateHaploid(TSimulatorHaplotypes &haplotypes, TSimulato
 	simulateDiploid(haplotypes, reference, chromosome);
 
 	// now set homozygous
-	for (uint64_t l = 0; l < chromosome.length; ++l) {
+	for (size_t l = 0; l < chromosome.length; ++l) {
 		// assign to haplotypes
 		haplotypes(0, 1, l) = haplotypes(0, 0, l);
 		haplotypes(1, 1, l) = haplotypes(1, 0, l);
@@ -295,7 +295,7 @@ void TSimulatorPair::simulateHaploid(TSimulatorHaplotypes &haplotypes, TSimulato
 void TSimulatorPair::simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference,
 						const genometools::TChromosome &chromosome) {
 	// run across loci
-	for (uint64_t l = 0; l < chromosome.length; ++l) {
+	for (size_t l = 0; l < chromosome.length; ++l) {
 		// pick a case
 		const int c = randomGenerator().pickOne(_cumulGenoCaseFrequencies);
 
@@ -415,7 +415,7 @@ void TSimulatorSFS::_initializeSFS(const genometools::TChromosomes& chromosomes,
 		}
 		logfile().done();
 
-		const uint32_t nChr = chromosomes[i].ploidy * _sampleSize;
+		const size_t nChr = chromosomes[i].ploidy * _sampleSize;
 		if (_sfs.back()->numChromosomes() != nChr) {
 			UERROR("SFS does not match sample size! It contains data for ",
 						       (*_sfs.rbegin())->numChromosomes(), " instead of ", nChr, " chromosomes.");
@@ -426,7 +426,7 @@ void TSimulatorSFS::_initializeSFS(const genometools::TChromosomes& chromosomes,
 void TSimulatorSFS::simulateHaploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference,
 					       const genometools::TChromosome &chromosome) {
 	// now simulate haplotypes
-	for (uint32_t l = 0; l < chromosome.length; ++l) {
+	for (size_t l = 0; l < chromosome.length; ++l) {
 		// pick alleles
 		const Base ancestral = sampleBase(_cumulBaseFreq);
 		const Base derived   = sampleBase(_mutTable[ancestral]);
@@ -450,7 +450,7 @@ void TSimulatorSFS::simulateHaploid(TSimulatorHaplotypes &haplotypes, TSimulator
 
 void TSimulatorSFS::simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulatorReference &reference,
 					       const genometools::TChromosome &chromosome) {
-	for (uint64_t l = 0; l < chromosome.length; ++l) {
+	for (size_t l = 0; l < chromosome.length; ++l) {
 		// pick alleles
 		const Base ancestral = sampleBase(_cumulBaseFreq);
 		const Base derived   = sampleBase(_mutTable[ancestral]);
@@ -519,7 +519,7 @@ void TSimulatorHW::_fillCumulGenoProb(double f) {
 	_cumulGenoProb[2]       = 1.0;
 }
 
-void TSimulatorHW::_simulateSite(TSimulatorHWSite &site, TSimulatorReference &reference, const std::string &chr, uint64_t pos) {
+void TSimulatorHW::_simulateSite(TSimulatorHWSite &site, TSimulatorReference &reference, const std::string &chr, size_t pos) {
 	// simulate bases
 	site.reference   = genometools::Base(randomGenerator().pickOne(_cumulBaseFreq));
 	site.alternative = genometools::Base(randomGenerator().pickOne(_mutTable[site.reference]));
@@ -549,7 +549,7 @@ void TSimulatorHW::_simulateSite(TSimulatorHWSite &site, TSimulatorReference &re
 	}
 }
 
-void TSimulatorHW::_fillhaplotypesMonomoprhic(TSimulatorHaplotypes &haplotypes, uint64_t locus,
+void TSimulatorHW::_fillhaplotypesMonomoprhic(TSimulatorHaplotypes &haplotypes, size_t locus,
 					      const TSimulatorHWSite &site) {
 	if (site.f == 0.0) {
 		for (int i = 0; i < _sampleSize; ++i) {
@@ -569,7 +569,7 @@ void TSimulatorHW::simulateHaploid(TSimulatorHaplotypes &haplotypes, TSimulatorR
 	// storage
 
 	// now simulate haplotypes
-	for (uint64_t l = 0; l < chromosome.length; ++l) {
+	for (size_t l = 0; l < chromosome.length; ++l) {
 		TSimulatorHWSite site;
 		// simulate site
 		_simulateSite(site, reference, chromosome.name, l);
@@ -597,7 +597,7 @@ void TSimulatorHW::simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulatorR
 	// storage
 
 	// now simulate haplotypes
-	for (uint64_t l = 0; l < chromosome.length; ++l) {
+	for (size_t l = 0; l < chromosome.length; ++l) {
 		TSimulatorHWSite site;
 		// simulate site
 		_simulateSite(site, reference, chromosome.name, l);

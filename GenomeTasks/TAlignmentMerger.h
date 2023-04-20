@@ -34,25 +34,25 @@ using namespace GenomeTasks::BamFilter;
 //-----------------------------------------
 // TAlignmentMergerReadGroupSettings
 //-----------------------------------------
-enum ReadGroupType : uint8_t { unchanged=0, single, mixed, paired};
+	enum class ReadGroupType : uint8_t { min=0, unchanged=min, single, mixed, paired, max};
 
 struct TAlignmentMergerReadGroupSetting{
-	uint16_t readGroupId;
-	uint16_t altReadGroupId;
+	size_t readGroupId;
+	size_t altReadGroupId;
 	ReadGroupType type;
-	uint16_t maxCycles;
+	size_t maxCycles;
 
-	constexpr TAlignmentMergerReadGroupSetting(const uint16_t ReadGroupId, const ReadGroupType Type, const uint16_t MaxCycles)
+	constexpr TAlignmentMergerReadGroupSetting(size_t ReadGroupId, const ReadGroupType Type, size_t MaxCycles)
 		: readGroupId(ReadGroupId), altReadGroupId(ReadGroupId), type(Type), maxCycles(MaxCycles){};
 
-	constexpr TAlignmentMergerReadGroupSetting(const uint16_t ReadGroupId, uint16_t AltReadGroupId, const ReadGroupType Type, const uint16_t MaxCycles)
+	constexpr TAlignmentMergerReadGroupSetting(size_t ReadGroupId, size_t AltReadGroupId, const ReadGroupType Type, size_t MaxCycles)
 		: readGroupId(ReadGroupId), altReadGroupId(AltReadGroupId), type(Type), maxCycles(MaxCycles){};
 
 	constexpr bool operator<(const TAlignmentMergerReadGroupSetting & right) const noexcept { return readGroupId < right.readGroupId; };
-	constexpr bool operator<(const uint16_t right) const noexcept { return readGroupId < right; };
+	constexpr bool operator<(size_t right) const noexcept { return readGroupId < right; };
 };
 
-constexpr bool operator<(const uint16_t left, const TAlignmentMergerReadGroupSetting & right) noexcept {
+constexpr bool operator<(size_t left, const TAlignmentMergerReadGroupSetting & right) noexcept {
 	return left < right.readGroupId;
 };
 
@@ -66,9 +66,9 @@ public:
 	void setAllAsUnchanged(const BAM::TReadGroups & readGroups);
 	bool needTruncation() const;
 	bool needsMerging() const;
-	ReadGroupType getType(const uint16_t readGroupId) const;
-	uint16_t getMaxCycles(const uint16_t readGroupId) const;
-	const TAlignmentMergerReadGroupSetting& getSettings(const uint16_t readGroupId) const;
+	ReadGroupType getType(size_t readGroupId) const;
+	size_t getMaxCycles(size_t readGroupId) const;
+	const TAlignmentMergerReadGroupSetting& getSettings(size_t readGroupId) const;
 };
 
 //-----------------------------------------

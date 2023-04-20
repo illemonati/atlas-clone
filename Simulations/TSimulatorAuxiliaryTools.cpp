@@ -113,7 +113,7 @@ void TSimulatorReference::setChr(std::string ChrName, long ChrLength) {
 //---------------------------------------------------
 // TSimulatorBamFile
 //---------------------------------------------------
-TSimulatorBamFiles::TSimulatorBamFiles(uint32_t NumFiles, const std::string & Outname, std::vector<TReadSimulators> & ReadSimulators,
+TSimulatorBamFiles::TSimulatorBamFiles(size_t NumFiles, const std::string & Outname, std::vector<TReadSimulators> & ReadSimulators,
 				       const genometools::TChromosomes &Chromosomes) {
 	logfile().startIndent("Preparing BAM files for output:");
 
@@ -196,7 +196,7 @@ void TSimulatorHaplotypes::allocateStorage() {
 	}
 }
 
-void TSimulatorHaplotypes::setLength(uint32_t length) noexcept {
+void TSimulatorHaplotypes::setLength(size_t length) noexcept {
 	if (length > _length) {
 		_length = length;
 		allocateStorage();
@@ -228,7 +228,7 @@ void TSimulatorHaplotypes::writeTrueGenotypes(const std::string &chrName, const 
 	TSimulatorAlleleIndex index;
 	std::string genoString;
 
-	for (uint64_t l = 0; l < _length; ++l) {
+	for (size_t l = 0; l < _length; ++l) {
 		// chromosome name, position and ID
 		trueGenoVCF << chrName << '\t' << l + 1 << "\t.\t";
 
@@ -271,7 +271,7 @@ void TSimulatorHaplotypes::writeTrueGenotypes(const std::string &chrName, const 
 	}
 }
 
-bool TSimulatorHaplotypes::isPolymoprhic(uint64_t pos) const noexcept {
+bool TSimulatorHaplotypes::isPolymoprhic(size_t pos) const noexcept {
 	// count how many allele match that of first individual
 	const Base testBase = haplotypes[0][0][pos];
 	size_t counts    = 0;
@@ -342,8 +342,8 @@ void TSimulatorVariantInvariantBedFiles::close() {
 
 void TSimulatorVariantInvariantBedFiles::write(TSimulatorHaplotypes &haplotypes, const std::string &chrName) {
 	// 0-based
-	uint64_t invariantStart = 0;
-	for (uint64_t l = 0; l < haplotypes.length(); ++l) {
+	size_t invariantStart = 0;
+	for (size_t l = 0; l < haplotypes.length(); ++l) {
 		if (haplotypes.isPolymoprhic(l)) {
 			// write invariant
 			if (invariantStart < l) invariantSitesFile << chrName << "\t" << invariantStart << "\t" << l << "\n";

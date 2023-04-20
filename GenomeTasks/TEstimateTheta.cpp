@@ -242,7 +242,7 @@ void TEstimateTheta::_bootstrapThetaEstimation() {
 	coretools::TTimer timer;
 
 	// loop over bootstraps
-	for (uint32_t s = 0; s < _numBootstraps; ++s) {
+	for (size_t s = 0; s < _numBootstraps; ++s) {
 		logfile().startIndent("Bootstrap " + toString(s + 1) + " of " + toString(_numBootstraps) + ":");
 
 		// run bootstrap

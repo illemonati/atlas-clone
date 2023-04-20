@@ -25,15 +25,15 @@ using GenotypeLikelihoods::TBaseLikelihoods;
 class TGLF_Test_WriteRead : public ::testing::Test {
 protected:
 	std::string _filename = "testGLF.glf.gz";
-	std::vector<uint32_t> chrLength;
+	std::vector<size_t> chrLength;
 
 public:
 	GLF::TTestGLFFile outputGLF;
 	GLF::TGlfReader inputGLF;
 
 	// store stuff from input GLF to later compare with output
-	std::vector<uint32_t> positions;
-	std::vector<uint8_t> depths;
+	std::vector<size_t> positions;
+	std::vector<size_t> depths;
 	std::vector<TGLFLikelihoods> genotypeLikelihoods;
 
 	void write(int numDummySites) {
@@ -72,7 +72,7 @@ public:
 		bases.reserve(10);
 		Base base                    = Base::C;
 		coretools::Probability error = 0.001;
-		for (uint32_t d = 0; d < 10; d++) {
+		for (size_t d = 0; d < 10; d++) {
 			TBaseLikelihoods baseData = GenotypeLikelihoods::fromError(base, error);
 			bases.emplace_back(baseData);
 		}
@@ -81,7 +81,7 @@ public:
 		// 5) depth = 10, all bases are A, but mapping quality is zero
 		bases.clear();
 		base = Base::A;
-		for (uint32_t d = 0; d < 10; d++) {
+		for (size_t d = 0; d < 10; d++) {
 			TBaseLikelihoods baseData = GenotypeLikelihoods::fromError(base, error);
 			bases.emplace_back(baseData);
 		}
@@ -249,7 +249,7 @@ TEST_F(TGLF_Test_WriteRead, jumpToNextChr) {
 	EXPECT_TRUE(inputGLF.jumpToNextChr());
 	EXPECT_EQ(1, inputGLF.refId());
 	EXPECT_EQ(200, inputGLF.chrLength());
-	uint32_t whichSite = 0;
+	size_t whichSite = 0;
 	for (auto pos = outputGLF.beginPositions(); pos != outputGLF.endPositions(); pos++, whichSite++) {
 		if (pos->refID() == 1) break;
 	}
@@ -440,7 +440,7 @@ TEST_F(TGLF_Test_WriteRead, genotypeLikelihoods_withDifferentPloidies) {
 
 class TGLF_Test_WriteRead_Windows : public TGLF_Test_WriteRead {
 protected:
-	static constexpr uint32_t windowLen = 20;
+	static constexpr size_t windowLen = 20;
 	std::vector<std::vector<TGLFLikelihoods>> genotypeLikelihoods_perWindow;
 public:
 	void read(bool open=true) override {
@@ -452,8 +452,8 @@ public:
 			// move to new chromosome
 			const auto curRefId    = inputGLF.refId();
 			const auto curChrLen   = inputGLF.chrLength();
-			uint32_t windowStart = 0;
-			uint32_t windowEnd   = windowLen;
+			size_t windowStart = 0;
+			size_t windowEnd   = windowLen;
 
 			// parse all windows of chromosome (unless file ends before chromosome ends)
 			while (windowStart < curChrLen && !inputGLF.eof()) {

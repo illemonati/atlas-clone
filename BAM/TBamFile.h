@@ -49,7 +49,7 @@ private:
  	BamTools::SamHeader _bamHeader;
  	bool _open;
 	size_t _stepSizeFindLastAlignment = 100;
- 	int64_t _fileSize;
+ 	size_t _fileSize;
 
  	//header
  	genometools::TChromosomes _chromosomes;
@@ -58,11 +58,11 @@ private:
  	TSamHeader _samHeader;
 
  	//counters
- 	uint64_t _numAlignmentRead;
+ 	size_t _numAlignmentRead;
  	coretools::TCountDistributionVector<> _numAlignmentReadPerReadGroupPerChromosome;
- 	uint64_t _numAlignmentsPassedQC;
+ 	size_t _numAlignmentsPassedQC;
  	bool _limitNumReads;
- 	uint64_t _maxNumReadsToRead;
+ 	size_t _maxNumReadsToRead;
 
  	//current alignment
  	BamTools::BamAlignment _curBamAlignment;
@@ -79,8 +79,8 @@ private:
  	bool _keepAll; 	
  	TBamFileFilterBool _unalignedFilter; //i.e. have refID < 0
  	TBamFileFilterBool _noReadGroupFilter;
-	TBamFileFilterRange<uint32_t> _readLengthFilter;
- 	TBamFileFilterRange<uint32_t> _mappedLengthFilter;
+	TBamFileFilterRange<> _readLengthFilter{500};
+ 	TBamFileFilterRange<> _mappedLengthFilter{500};
  	TBamFileFilterBool _duplicateFilter;
  	TBamFileFilterBool _softClippedRatioFilter;
  	TBamFileFilterBool _improperPairsFilter;
@@ -95,8 +95,8 @@ private:
  	TBamFileFilterBool _firstMateFilter;
  	TBamFileFilterBool _secondMateFilter;
  	TBamFileFilterBool _blacklistFilter;
- 	TBamFileFilterRange<uint8_t> _mappingQualityFilter;
- 	TBamFileFilterRange<uint32_t> _fragmentLengthFilter;
+ 	TBamFileFilterRange<uint16_t> _mappingQualityFilter;
+ 	TBamFileFilterRange<> _fragmentLengthFilter;
  	TBamFileFilter _externalFilter;
 
 	void _fillSamHeader(TSamHeader & SamHeader);
@@ -104,22 +104,21 @@ private:
 	void _fillReadGroups(TReadGroups & readGroups);
 	bool _readNextAlignmentFromFile();
  	void _applyFilters();
-	void _writeFilteringStats(std::string &outputName);
+	void _writeFilteringStats(std::string_view outputName) const;
 
 	//output filtered reads
 	std::shared_ptr<TBamFileLog> _bamLog;
 
 	//report progress
-	coretools::TTimer _timer;
-	uint32_t _progressFrequency;
-	uint64_t _lastProgressPrinted;
+	mutable coretools::TTimer _timer;
+	mutable size_t _progressFrequency;
+	mutable size_t _lastProgressPrinted;
 
-	std::string _millionReadsRead(){ return coretools::str::toStringWithPrecision((double) _numAlignmentRead / 1000000.0, 1); };
+	std::string _millionReadsRead() const { return coretools::str::toStringWithPrecision((double) _numAlignmentRead / 1000000.0, 1); };
 	void _openForWriting(BamTools::BamWriter & bamWriter, const std::string filename);
 
 public:
 	TBamFile();
-	~TBamFile() = default;
 
 	//access header info READ ONLY
 	const genometools::TChromosomes& chromosomes() const{ return _chromosomes; };
@@ -134,10 +133,10 @@ public:
 	void setLimits();
 	void setKeepAll();
 	void curFilterOut();
-	void filterOut(const std::string & alignmentName, const bool & isReverseStrand, const uint16_t readGroup, const uint32_t chromosomeID);
-	void setExternalFilterReason(const std::string reason);
+	void filterOut(std::string_view alignmentName, bool isReverseStrand, size_t readGroup, size_t chromosomeID);
+	void setExternalFilterReason(std::string_view reason);
 	void openBamLog();
-	void writeToBamLog(const std::string & alignmentName, const bool & isReverseStrand, const std::string & reason);
+	void writeToBamLog(std::string_view alignmentName, bool isReverseStrand, std::string_view reason);
 
 	//get filter status
  	bool duplicateFilterEnabled() const{ return _duplicateFilter.filters(); };
@@ -177,15 +176,15 @@ public:
 	//getters for cur alignment
 	const std::string curName() const{ return _curBamAlignment.Name; };
 	genometools::TGenomePosition curPosition() const { return _curAlignmentPosition; };
-	uint32_t refID() const{ return _curChromosome->refID(); };
+	size_t refID() const{ return _curChromosome->refID(); };
 	const genometools::TChromosome& curChromosome() const{ return *_curChromosome; };
 	const TCigar& curCIGAR() const{ return _curCigar; };
-	uint16_t curReadGroupID() const{ return _curReadGroupID; };
+	size_t curReadGroupID() const{ return _curReadGroupID; };
 	bool chrChanged() const{ return _chrChanged; };
 	bool curPassedQC() const{ return _QCFiltersPassed; };
-	uint16_t curReadLength() const{ return _curCigar.lengthRead(); };
-	uint16_t curUsableSequence() const{ return _curCigar.lengthSequenced(); };
-	uint16_t curFragmentLength() const;
+	size_t curReadLength() const{ return _curCigar.lengthRead(); };
+	size_t curUsableSequence() const{ return _curCigar.lengthSequenced(); };
+	size_t curFragmentLength() const;
 	[[deprecated]] uint16_t curUsableAlignedLength(TQualityFilter & ) const {return 0.;};
 	uint16_t curMappingQuality() const{ return _curBamAlignment.MapQuality; };
 	bool curIsPaired() const{ return _curBamAlignment.IsPaired(); };
@@ -199,31 +198,31 @@ public:
 	bool curIsLongerThanFragment() const {return _curBamAlignment.IsProperPair() && _curBamAlignment.InsertSize < static_cast<int>(_curCigar.lengthAligned()); };
 	bool curIsFirstMate() const{ return _curBamAlignment.IsFirstMate(); };
 	bool curIsSecondMate() const{ return _curBamAlignment.IsSecondMate(); };
-	std::string curQuerySequence(const uint16_t start, const uint16_t length) const;
+	std::string curQuerySequence(const size_t start, const size_t length) const;
 
 	//modify cur alignment
-	void curSetNewReadGroup(const uint16_t id);
+	void curSetNewReadGroup(const size_t id);
 	void curAddSamField();
-	void curAddSamField(const std::string tag, const std::string value);
-	void curAddSamField(const std::string tag, const float value);
+	void curAddSamField(const std::string& tag, const std::string& value);
+	void curAddSamField(const std::string& tag, float value);
 
 	//other getters
 	bool isOpen(){ return _open; };
 	std::string filename() const{ return _filename; };
-	uint16_t maxReadLength(){ return _readLengthFilter.range().max(); };
-	uint64_t numAlignmentsRead(){ return _numAlignmentRead; };
+	size_t maxReadLength(){ return _readLengthFilter.range().max(); };
+	size_t numAlignmentsRead(){ return _numAlignmentRead; };
 	coretools::TCountDistributionVector<> numAlignmentReadPerReadGroupPerChromosome() { return _numAlignmentReadPerReadGroupPerChromosome; };
-	double positionInFile(){ return (double) _bamReader.Tell() / (double) _fileSize; };
-	uint16_t numReadGroups() const{ return _readGroups.size(); };
+	double positionInFile() const { return (double) _bamReader.Tell() / (double) _fileSize; };
+	size_t numReadGroups() const{ return _readGroups.size(); };
 	TBamFileFilterBool getDuplicateFilter(){return _duplicateFilter; };
 
 	//progress reporting
-	void printSummaryNoEndIndent(std::string &outputName);
-	void printSummary(std::string &outputName);
-	void startProgressReporting(uint32_t Frequency=1000000);
-	void printProgress();
-	void printEndWithSummary(std::string &outputName);
-	void printEndNoEndIndent();
+	void printSummaryNoEndIndent(std::string_view outputName) const;
+	void printSummary(std::string_view outputName) const;
+	void startProgressReporting(size_t Frequency=1000000) const;
+	void printProgress() const;
+	void printEndWithSummary(std::string_view outputName) const;
+	void printEndNoEndIndent() const;
 
 	//comparisons
 	bool operator==(const genometools::TGenomePosition & Position) const{ return _curAlignmentPosition == Position; };

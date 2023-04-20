@@ -151,7 +151,7 @@ TEST(TPostMortemDamage_test, baseAWithPMD) {
 	std::vector<size_t> ReadGroupsWithoutPMD;
 	PMD::TModels pmd("doubleStrand:Empiric[0.3]:Empiric[0.1]", rgs, ReadGroupsWithoutPMD);
 
-	for (uint16_t dfrom3 = 0; dfrom3 < 3; dfrom3 += 2) {
+	for (size_t dfrom3 = 0; dfrom3 < 3; dfrom3 += 2) {
 		base.distFrom3Prime = dfrom3;
 		const auto from3    = base.distFrom3Prime < base.distFrom5Prime;
 		for (Base b = Base::min; b < Base::max; ++b) {

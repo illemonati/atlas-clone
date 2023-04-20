@@ -34,7 +34,7 @@ private:
 
 public:
 	TBamFileLog(const std::string &filename): _log(filename, 3){};
-	void write(const std::string & alignmentName, bool isSecondMate, const std::string & reason);
+	void write(std::string_view alignmentName, bool isSecondMate, std::string_view reason);
 };
 
 //-----------------------------------------------------
@@ -51,40 +51,41 @@ protected:
 public:
 	TBamFileFilter();
 	void keep();
-	void resizeCounter(uint16_t numRG, uint32_t numChrom);
+	void resizeCounter(size_t numRG, size_t numChrom);
 	bool filters() const{ return !_keep; };
-	void setReason(const std::string reason);
+	void setReason(std::string_view reason);
 	void setLog(std::shared_ptr<TBamFileLog> & Log);
-	void filterOut(const std::string & alignmentName, bool isSecondMate, uint16_t readGroup, uint32_t chromosomeID);
-	void summary(size_t total, uint16_t readGroup);
+	void filterOut(std::string_view alignmentName, bool isSecondMate, size_t readGroup, size_t chromosomeID);
+	void summary(size_t total, size_t readGroup) const;
 	const coretools::TCountDistributionVector<>& numFiltered() const { return _counter; }
-	std::string getReason() const { return _reason; }
-	void fillHeader(std::vector<std::string> &header);
-	void printCounts(coretools::TOutputFile &out, uint16_t rg_ID);
-	void printCountsPerChromosome(coretools::TOutputFile &out, uint32_t ref_ID);
-	void printCombinedCounts(coretools::TOutputFile &out);
-	size_t getCounts(uint16_t rg_ID);
-	size_t getCountsPerChromosome(uint32_t ref_ID);
-	size_t getCountsAtReadGroupAndChromosome(uint16_t rg_ID, uint32_t ref_ID);
-	size_t getCombinedCounts();
+	const std::string& getReason() const { return _reason; }
+	void fillHeader(std::vector<std::string> &header) const; 
+	void printCounts(coretools::TOutputFile &out, size_t rg_ID) const;
+	void printCountsPerChromosome(coretools::TOutputFile &out, size_t ref_ID) const;
+	void printCombinedCounts(coretools::TOutputFile &out) const;
+	size_t getCounts(size_t rg_ID) const;
+	size_t getCountsPerChromosome(size_t ref_ID) const;
+	size_t getCountsAtReadGroupAndChromosome(size_t rg_ID, size_t ref_ID) const;
+	size_t getCombinedCounts() const;
 };
 
 //Filters out if pass(false), keeps if pass(true)
 class TBamFileFilterBool:public TBamFileFilter{
 public:
 	TBamFileFilterBool(){};
-	void filter(const std::string Reason, uint16_t numRG, uint32_t numChrom);
-	bool pass(const bool state, const std::string & alignmentName, const bool & isSecondMate, const uint16_t readGroup, const uint32_t chromosomeID);
+	void filter(std::string_view Reason, size_t numRG, size_t numChrom);
+	bool pass(bool state, std::string_view alignmentName, bool isSecondMate, size_t readGroup, size_t chromosomeID);
 };
 
-template <typename T>
-class TBamFileFilterRange:public TBamFileFilterBool{
+template <typename T = size_t>
+class TBamFileFilterRange:public TBamFileFilter {
 private:
 	coretools::TNumericRange<T> _range;
 public:
-	TBamFileFilterRange(){};
+	TBamFileFilterRange() = default;
+	TBamFileFilterRange(T max): _range(0, true, max, true) {}
 
-	void filter(const coretools::TNumericRange<T> & Range, const std::string Reason, uint16_t numRG, uint32_t numChrom){
+	void filter(const coretools::TNumericRange<T> & Range, std::string_view Reason, size_t numRG, size_t numChrom){
 		_keep = false;
 		_range = Range;
 		_reason = Reason;
@@ -99,7 +100,7 @@ public:
 		return _range.rangeString();
 	};
 
-	bool pass(const T & value, const std::string & alignmentName, const bool & isSecondMate, const uint16_t readGroup, const uint32_t chromosomeID){
+	bool pass(const T & value, std::string_view alignmentName, bool isSecondMate, size_t readGroup, size_t chromosomeID) {
 		if(!_keep && !_range.within(value)){
 			filterOut(alignmentName, isSecondMate, readGroup, chromosomeID);
 			return false;
@@ -163,13 +164,13 @@ private:
 	std::set<std::string> _list;
 
 public:
-	TAlignmentList(){};
-	TAlignmentList(const std::string filename);
-	void addFromFile(const std::string filename);
-	void add(const std::string & alignment);
-	void remove(const std::string & alignment);
+	TAlignmentList() = default;
+	TAlignmentList(std::string_view filename);
+	void addFromFile(std::string_view filename);
+	void add(std::string_view alignment);
+	void remove(const std::string& alignment);
 	void clear();
-	bool isInBlacklist(const std::string & alignment) const;
+	bool isInBlacklist(const std::string& alignment) const;
 };
 
 }; //end namespace

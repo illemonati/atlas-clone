@@ -48,7 +48,7 @@ SFS::SFS(const std::string &filename) {
 	coretools::fillCumulative(sfs, sfsCumulative);
 }
 
-SFS::SFS(const SFS &other, float MonoFrac) {
+SFS::SFS(const SFS &other, double MonoFrac) {
 	// construct from other SFS, but rescale SFS to have a specific fraction of monomorphic sites
 	// now copy and rescale
 	_dimensions = other._dimensions;
@@ -56,7 +56,7 @@ SFS::SFS(const SFS &other, float MonoFrac) {
 	_numChr = other._numChr;
 	double sum = 0.0;
 	sfs.push_back(MonoFrac);
-	for (uint32_t i = 1; i < other.sfs.size(); ++i) {
+	for (size_t i = 1; i < other.sfs.size(); ++i) {
 		sfs.push_back(other.sfs[i]);
 		sum += other.sfs[i];
 	}
@@ -65,14 +65,14 @@ SFS::SFS(const SFS &other, float MonoFrac) {
 	coretools::fillCumulative(sfs, sfsCumulative);
 }
 
-SFS::SFS(uint32_t numChr, float theta) {
+SFS::SFS(size_t numChr, double theta) {
 	// generate sfs from theta
 	_numChrPerPop = { numChr };
 	_dimensions = { numChr + 1 };
 	_numChr = numChr;
 	float sum = 0;
 	sfs.push_back(0);
-	for (uint32_t i = 1; i < _dimensions[0] + 1; ++i) {
+	for (size_t i = 1; i < _dimensions[0] + 1; ++i) {
 		sfs.push_back(theta / i);
 		sum += sfs.back();
 	}
@@ -81,7 +81,7 @@ SFS::SFS(uint32_t numChr, float theta) {
 	coretools::fillCumulative(sfs, sfsCumulative);
 }
 
-SFS::SFS(uint32_t numChr, uint32_t onlyThisBin) {
+SFS::SFS(size_t numChr, size_t onlyThisBin) {
 	// set all to zero except this one bin
 	_numChrPerPop = { numChr };
 	_dimensions = { numChr + 1 };
@@ -91,7 +91,7 @@ SFS::SFS(uint32_t numChr, uint32_t onlyThisBin) {
 	coretools::fillCumulative(sfs, sfsCumulative);
 }
 
-void SFS::writeToFile(const std::string &filename, const bool &writeLog) {
+void SFS::writeToFile(const std::string& filename, bool writeLog) const {
 	std::ofstream out(filename.c_str());
 	if (!out) UERROR("Failed to open file '", filename, "' for writing!");
 
@@ -105,10 +105,10 @@ void SFS::writeToFile(const std::string &filename, const bool &writeLog) {
 
 	if (writeLog) {
 		out << log(sfs[0]);
-		for (uint32_t i = 1; i < sfs.size(); ++i) { out << " " << log(sfs[i]); }
+		for (size_t i = 1; i < sfs.size(); ++i) { out << " " << log(sfs[i]); }
 	} else {
 		out << sfs[0];
-		for (uint32_t i = 1; i < sfs.size(); ++i) { out << " " << sfs[i]; }
+		for (size_t i = 1; i < sfs.size(); ++i) { out << " " << sfs[i]; }
 	}
 	out << "\n";
 	out.close();
@@ -120,7 +120,7 @@ constexpr size_t is_odd(size_t x) noexcept { return x & 1; }
 
 }
 
-void SFS::_setDerivedDiploid(const uint32_t l, TSimulatorHaplotypes & haplotypes, const size_t N, const size_t k, const size_t shift, const Base derived){
+void SFS::_setDerivedDiploid(size_t l, TSimulatorHaplotypes & haplotypes, size_t N, size_t k, size_t shift, Base derived){
 	auto these = _picker.pick(N, k);
 	for(auto& i : these){
 		size_t index = i + shift;
@@ -130,7 +130,7 @@ void SFS::_setDerivedDiploid(const uint32_t l, TSimulatorHaplotypes & haplotypes
 	}
 }
 
-void SFS::_setDerivedHaploid(const uint32_t l, TSimulatorHaplotypes & haplotypes, const size_t N, const size_t k, const size_t shift, const Base derived){
+void SFS::_setDerivedHaploid(size_t l, TSimulatorHaplotypes & haplotypes, size_t N, size_t k, size_t shift, Base derived){
 	//Note: SFS site matches # ind, not # haplotypes. Both haplotypes of an individual are always identical
 	auto these = _picker.pick(N, k);
 	for(auto& i : these){
@@ -140,9 +140,9 @@ void SFS::_setDerivedHaploid(const uint32_t l, TSimulatorHaplotypes & haplotypes
 	}
 }
 
-size_t SFS::_simulateSite(const uint32_t l, TSimulatorHaplotypes & haplotypes, const Base ancestral, const Base derived,
-		std::function<void(const uint32_t, TSimulatorHaplotypes &, const size_t, const size_t, const size_t, const Base)> func){
-		//void (&func)(const uint32_t, TSimulatorHaplotypes &, const size_t, const size_t, const size_t, const Base)){
+size_t SFS::_simulateSite(size_t l, TSimulatorHaplotypes & haplotypes, Base ancestral, Base derived,
+		std::function<void(size_t, TSimulatorHaplotypes &, size_t, size_t, size_t, Base)> func){
+		//void (&func)(const size_t, TSimulatorHaplotypes &, const size_t, const size_t, const size_t, const Base)){
 	//returns allele count
 	//set all as ancestral
 	for (size_t i = 0; i < haplotypes.size(); ++i) {
@@ -172,9 +172,9 @@ size_t SFS::_simulateSite(const uint32_t l, TSimulatorHaplotypes & haplotypes, c
 }
 
 
-size_t SFS::simulateSiteHaploid(const uint32_t l, TSimulatorHaplotypes & haplotypes, const Base ancestral, const Base derived){
+size_t SFS::simulateSiteHaploid(size_t l, TSimulatorHaplotypes & haplotypes, Base ancestral, Base derived){
 	return _simulateSite(l, haplotypes, ancestral, derived,
-			[this](const uint32_t l, TSimulatorHaplotypes & haplotypes, const size_t N, const size_t k, const size_t shift, const Base derived){
+			[this](const size_t l, TSimulatorHaplotypes & haplotypes, const size_t N, const size_t k, const size_t shift, const Base derived){
 				return _setDerivedHaploid(l, haplotypes, N, k, shift, derived);
 			});
 
@@ -206,9 +206,9 @@ size_t SFS::simulateSiteHaploid(const uint32_t l, TSimulatorHaplotypes & haploty
 	*/
 }
 
-size_t SFS::simulateSiteDiploid(const uint32_t l, TSimulatorHaplotypes & haplotypes, const Base ancestral, const Base derived){
+size_t SFS::simulateSiteDiploid(size_t l, TSimulatorHaplotypes & haplotypes, Base ancestral, Base derived){
 	return _simulateSite(l, haplotypes, ancestral, derived,
-				[this](const uint32_t l, TSimulatorHaplotypes & haplotypes, const size_t N, const size_t k, const size_t shift, const Base derived){
+				[this](size_t l, TSimulatorHaplotypes & haplotypes, size_t N, size_t k, size_t shift, Base derived){
 					return _setDerivedDiploid(l, haplotypes, N, k, shift, derived);
 				});
 	/*
@@ -240,9 +240,9 @@ size_t SFS::simulateSiteDiploid(const uint32_t l, TSimulatorHaplotypes & haploty
 	*/
 }
 
-double SFS::calcLLOneSite(const std::vector<float> &gl) {
+double SFS::calcLLOneSite(const std::vector<double> &gl) {
 	double LL = 0.0;
-	for (uint32_t i = 0; i < sfs.size(); ++i) LL += exp(gl[i]) * sfs[i];
+	for (size_t i = 0; i < sfs.size(); ++i) LL += exp(gl[i]) * sfs[i];
 	return log(LL);
 }
 
@@ -250,11 +250,11 @@ double SFS::calcLLOneSite(const std::vector<float> &gl) {
 //--------------------------------------
 // SFSfolded
 //--------------------------------------
-SFSfolded::SFSfolded(uint32_t sampleSize, float theta) {
+SFSfolded::SFSfolded(size_t sampleSize, float theta) {
 	// generate sfs from theta
 	float sum = 0;
 	sfs.push_back(0);
-	for (uint32_t i = 1; i < sampleSize + 1; ++i) {
+	for (size_t i = 1; i < sampleSize + 1; ++i) {
 		sfs.push_back((theta / i)+(theta/(2*sampleSize-i)));
 		sum += sfs.back();
 	}
@@ -267,10 +267,10 @@ SFSfolded::SFSfolded(uint32_t sampleSize, float theta) {
 double SFSfolded::calcLLOneSite(const std::vector<float> &gl) {
 	const auto dimension = sfs.size();
 	double LL            = 0.0;
-	for (uint32_t i = 0; i < dimension; ++i) LL += exp(gl[i]) * sfs[i];
+	for (size_t i = 0; i < dimension; ++i) LL += exp(gl[i]) * sfs[i];
 
 	int j = dimension - 1;
-	for (uint32_t i = dimension; i < 2 * dimension - 1; ++i, --j) LL += exp(gl[i]) * sfs[j];
+	for (size_t i = dimension; i < 2 * dimension - 1; ++i, --j) LL += exp(gl[i]) * sfs[j];
 
 	return log(LL);
 }

@@ -42,14 +42,11 @@ using coretools::LogProbability;
 using coretools::instances::logfile;
 using coretools::instances::parameters;
 using coretools::instances::randomGenerator;
-using coretools::str::toString;
 using genometools::Base;
 using genometools::HighPrecisionPhredIntProbability;
 using genometools::TChromosomes;
 using genometools::TChromosome;
 using genometools::TGenomePosition;
-using BAM::RGInfo::TReadGroupInfo;
-using BAM::RGInfo::TReadGroupInfoEntry;
 
 //---------------------------------------------------------
 // Helper functions
@@ -77,10 +74,9 @@ std::unique_ptr<THaplotypeSimulator> makeHaploSimulator(const std::string &metho
 	logfile().endIndent();
 }
 
-template <typename T>
-std::vector<T> parse(const std::string & Argument, const std::string & Explanation, const std::vector<T>& Defaults){
+std::vector<size_t> parse(const std::string & Argument, const std::string & Explanation, const std::vector<size_t>& Defaults){
 	if(parameters().parameterExists(Argument)){
-		std::vector<T> res;
+		std::vector<size_t> res;
 		std::vector<std::string> string_vec;
 		parameters().fillParameterIntoContainer(Argument, string_vec, ',');
 
@@ -111,16 +107,16 @@ void checkLength(Vec & vec, size_t numChr){
 	}
 }
 
-void makeChromosomes(TChromosomes & chs, std::vector<uint32_t> & depths){
+void makeChromosomes(TChromosomes & chs, std::vector<size_t> & depths){
 	//TODO: make it possible to initialize chromosomes from a file with length, ploidy and depth
 	logfile().startIndent("Parameters regarding chromosomes:");
 	chs.clear();
 	depths.clear();
 
 	//parse chr details
-	auto chrLengths = parse<uint32_t>("chrLength", "chromosome length", {50'000, 40'000, 60'000});
-	depths = parse<uint32_t>("depth", "sequencing depth", {10,8,12});
-	auto ploidies = parse<uint8_t>("ploidy", "ploidy", {2,1,2});
+	auto chrLengths = parse("chrLength", "chromosome length", {50'000, 40'000, 60'000});
+	depths          = parse("depth", "sequencing depth", {10, 8, 12});
+	auto ploidies   = parse("ploidy", "ploidy", {2, 1, 2});
 
 	//check if ploidy is supported
 	for (auto &p : ploidies) {
@@ -303,7 +299,7 @@ void TBAMSimulator::_initializeReadSimulator(){
 	}
 };
 
-void TBAMSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome, TSimulatorHaplotypes &Haplotypes, uint32_t avgDepth) {
+void TBAMSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome, TSimulatorHaplotypes &Haplotypes, size_t avgDepth) {
 	// now simulate and write reads
 	logfile().startIndent("Simulating reads:");
 	for (size_t i = 0; i < _haploSimulator->sampleSize(); ++i){
@@ -327,19 +323,17 @@ void TBAMSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome
 }
 
 void TBAMSimulator::_simulateReadsFromHaplotypes(const genometools::TChromosome &thisChr,
-                                                 std::array<std::vector<Base>, 2> haplotypes,
-												 TReadSimulators & readSimulators,
-												 uint32_t avgDepth,
-                                                 BAM::TOutputBamFile &bamFile,
-												 const std::string &extraProgressText) {
+												 std::array<std::vector<Base>, 2> haplotypes,
+												 TReadSimulators &readSimulators, size_t avgDepth,
+												 BAM::TOutputBamFile &bamFile, const std::string &extraProgressText) {
 	// Initialize probabilities to simulate reads
-	const uint64_t numReads = thisChr.length * avgDepth / readSimulators.averageFragmentLength();
-	const uint64_t chrLengthForStart = thisChr.length - readSimulators.maxFragmentLength() + 1;
+	const size_t numReads = thisChr.length * avgDepth / readSimulators.averageFragmentLength();
+	const size_t chrLengthForStart = thisChr.length - readSimulators.maxFragmentLength() + 1;
 	const double probReadPerSite     = 1.0 / chrLengthForStart;
-	uint64_t numReadsSimulated       = 0;
+	size_t numReadsSimulated       = 0;
 
 	// initialize progress reporting
-	coretools::TProgressReporter<uint64_t> reporter(numReads, "Simulating about " + coretools::str::toString(numReads) +
+	coretools::TProgressReporter<size_t> reporter(numReads, "Simulating about " + coretools::str::toString(numReads) +
 	                                                              " reads" + extraProgressText);
 
 	// now simulate
@@ -351,7 +345,7 @@ void TBAMSimulator::_simulateReadsFromHaplotypes(const genometools::TChromosome 
 		// now simulate
 		if (numReadsHere > 0) {
 			numReadsSimulated += numReadsHere;
-			for (uint32_t r = 0; r < numReadsHere; ++r) {
+			for (size_t r = 0; r < numReadsHere; ++r) {
 				readSimulators.simulate(pos, haplotypes[randomGenerator().sample(2)], bamFile);
 			}
 			// report progress
@@ -371,11 +365,11 @@ TVCFWriterSimulation::TVCFWriterSimulation(const std::string &Filename, const st
                                            const std::vector<std::string> &SampleNames, bool UsePhredScaledLikelihoods)
     : GLF::TGlfMultiReaderVcf(Filename, Source, SampleNames, UsePhredScaledLikelihoods) {}
 
-void TVCFWriterSimulation::writeSite(const std::string &ChrName, uint32_t Position,
-                                     genometools::PhredIntProbability VariantQuality, genometools::Base RefAllele,
-                                     genometools::Base AltAllele, size_t TotalDepth, bool IsDiploid,
-                                     const GLF::TMultiGLFDataOneAllelicCombination &GenotypeLikelihoods,
-                                     const std::vector<size_t> &Depths) {
+void TVCFWriterSimulation::writeSite(const std::string &ChrName, size_t Position,
+									 genometools::PhredIntProbability VariantQuality, genometools::Base RefAllele,
+									 genometools::Base AltAllele, size_t TotalDepth, bool IsDiploid,
+									 const GLF::TMultiGLFDataOneAllelicCombination &GenotypeLikelihoods,
+									 const std::vector<size_t> &Depths) {
 	_setMajorMinor(RefAllele, AltAllele);
 	_writeSiteInformation(ChrName, Position, VariantQuality, TotalDepth);
 
@@ -512,7 +506,7 @@ size_t TVCFSimulator::_simulateNumReadsWithReferenceAllele(genometools::Base a, 
 }
 
 std::pair<size_t, GLF::TMultiGLFDataSampleOneAllelicCombination>
-TVCFSimulator::_simulateDepthAndGTL(genometools::Base a, genometools::Base b, genometools::Base Ref, bool IsDiploid, uint32_t avgDepth) {
+TVCFSimulator::_simulateDepthAndGTL(genometools::Base a, genometools::Base b, genometools::Base Ref, bool IsDiploid, size_t avgDepth) {
 	// simulate depth
 	auto depth = randomGenerator().getPoissonRandom(avgDepth);
 
@@ -565,7 +559,7 @@ TVCFSimulator::_findMajorMinorAllele(coretools::TStrongArray<size_t, genometools
 	}
 }
 
-void TVCFSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome, TSimulatorHaplotypes &Haplotypes, uint32_t avgDepth) {
+void TVCFSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome, TSimulatorHaplotypes &Haplotypes, size_t avgDepth) {
 	logfile().startIndent("Simulating genotype likelihoods:");
 
 	for (size_t l = 0; l < Chromosome.length; ++l) {

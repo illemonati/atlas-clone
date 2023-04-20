@@ -35,8 +35,8 @@ private:
 
 public:
 	void run();
-	void calculateF2(const std::vector<uint64_t> &countsDiff);
-	void writeF2(const std::vector<uint64_t> &countsDiff, const std::vector<double> &sampleF2,
+	void calculateF2(const std::vector<size_t> &countsDiff);
+	void writeF2(const std::vector<size_t> &countsDiff, const std::vector<double> &sampleF2,
 	             const std::vector<double> &popF2);
 };
 

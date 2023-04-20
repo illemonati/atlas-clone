@@ -44,15 +44,15 @@ private:
 public:
 	TBamDiagnoser();
 	double meanOverAllReadGroups(const std::vector<coretools::TCountDistributionVector<>> &vec);
-	double meanForChromosome(const std::vector<coretools::TCountDistributionVector<>> &vec, uint32_t chromRefID);
-	uint32_t maxOverAllReadGroups(const std::vector<coretools::TCountDistributionVector<>> &vec);
-	uint32_t maxForChromosome(const std::vector<coretools::TCountDistributionVector<>> &vec, uint32_t chromRefID);
+	double meanForChromosome(const std::vector<coretools::TCountDistributionVector<>> &vec, size_t chromRefID);
+	size_t maxOverAllReadGroups(const std::vector<coretools::TCountDistributionVector<>> &vec);
+	size_t maxForChromosome(const std::vector<coretools::TCountDistributionVector<>> &vec, size_t chromRefID);
 	size_t countsOverAllReadGroups(const std::vector<coretools::TCountDistributionVector<>> &vec);
-	size_t countsForChromosome(const std::vector<coretools::TCountDistributionVector<>> &vec, uint32_t chromRefID);
+	size_t countsForChromosome(const std::vector<coretools::TCountDistributionVector<>> &vec, size_t chromRefID);
 	size_t countsLargerZeroOverAllReadGroups(const std::vector<coretools::TCountDistributionVector<>> &vec);
-	size_t countsLargerZeroForChromosome(const std::vector<coretools::TCountDistributionVector<>> &vec, uint32_t chromRefID);
+	size_t countsLargerZeroForChromosome(const std::vector<coretools::TCountDistributionVector<>> &vec, size_t chromRefID);
 	size_t sumOverAllReadGroups(const std::vector<coretools::TCountDistributionVector<>> &vec);
-	size_t sumForChromosome(const std::vector<coretools::TCountDistributionVector<>> &vec, uint32_t chromRefID);
+	size_t sumForChromosome(const std::vector<coretools::TCountDistributionVector<>> &vec, size_t chromRefID);
 
 	void run();
 };

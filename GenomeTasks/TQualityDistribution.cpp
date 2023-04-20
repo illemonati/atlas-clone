@@ -106,7 +106,7 @@ void TQualityTransformation::run(){
 
 	//write read group specific files
 	logfile().startIndent("Writing quality transformation for each read group:");
-	for(uint16_t rg=0; rg<_bamFile.numReadGroups(); ++rg){
+	for (size_t rg=0; rg<_bamFile.numReadGroups(); ++rg){
 		std::string filename = _outputName + _bamFile.readGroups().getName(rg) + "_qualityTransformation.txt";
 		logfile().listFlush("Writing '" + filename + "' ...");
 		_transformations[rg].writeAsMatrix(filename, _label1, _label2);
