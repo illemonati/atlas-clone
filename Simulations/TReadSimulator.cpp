@@ -56,13 +56,13 @@ TReadSimulator::TReadSimulator(const BAM::TReadGroup & ReadGroup, const TReadGro
 			// check if one or two values are given
 			if (sc.find(':') == std::string::npos) {
 				// one distribution for both
-				_softClipDist3 = std::make_unique<TCategoricalDistribution<uint16_t>>(sc);
-				_softClipDist5 = std::make_unique<TCategoricalDistribution<uint16_t>>(sc);
+				_softClipDist3 = std::make_unique<TCategoricalDistribution<size_t>>(sc);
+				_softClipDist5 = std::make_unique<TCategoricalDistribution<size_t>>(sc);
 			} else {
 				std::string sc3 = coretools::str::extractBefore(sc, ":");
 				sc.erase(0, 1);
-				_softClipDist3 = std::make_unique<TCategoricalDistribution<uint16_t>>(sc3);
-				_softClipDist5 = std::make_unique<TCategoricalDistribution<uint16_t>>(sc);
+				_softClipDist3 = std::make_unique<TCategoricalDistribution<size_t>>(sc3);
+				_softClipDist5 = std::make_unique<TCategoricalDistribution<size_t>>(sc);
 			}
 		}
 	} else {
@@ -70,7 +70,7 @@ TReadSimulator::TReadSimulator(const BAM::TReadGroup & ReadGroup, const TReadGro
 	}
 }
 
-double TReadSimulator::_calcMeanReadLength(const uint16_t maxLen) const {
+double TReadSimulator::_calcMeanReadLength(size_t maxLen) const {
 	// if fragments are always shorter than _numcycles, return mean fragment length
 	if(_fragmentLengthDistr.max() < maxLen){
 		return _fragmentLengthDistr.mean();
@@ -79,8 +79,8 @@ double TReadSimulator::_calcMeanReadLength(const uint16_t maxLen) const {
 	// else: take into account that read length is always <= _numCycles
 	double m = 0.0;
 	double cumul = 0.0;
-	for(uint16_t i = 1; i <= maxLen; ++i){
-		double f = _fragmentLengthDistr.density(i);
+	for (size_t i = 1; i <= maxLen; ++i){
+		const double f = _fragmentLengthDistr.density(i);
 		m += f * (double) i;
 		cumul += f;
 	}
@@ -111,7 +111,7 @@ bool TReadSimulator::_simulateContamination(){
 	return _contaminationRate > 0. && randomGenerator().getRand() < _contaminationRate;
 }
 
-void TReadSimulator::_addSoftclippedBases(std::vector<Base> & Bases, const std::unique_ptr<TCategoricalDistribution<uint16_t>> & SoftClippedDist, BAM::TCigar & Cigar){
+void TReadSimulator::_addSoftclippedBases(std::vector<Base> & Bases, const std::unique_ptr<TCategoricalDistribution<size_t>> & SoftClippedDist, BAM::TCigar & Cigar){
 	if(SoftClippedDist){
 		auto len = SoftClippedDist->sample();
 		if(len > 0){
@@ -123,11 +123,8 @@ void TReadSimulator::_addSoftclippedBases(std::vector<Base> & Bases, const std::
 	}
 }
 
-void TReadSimulator::_simulateBasesQualities(BAM::TAlignment & alignment,
-						      const std::vector<Base>& haplotype,
-							  const uint16_t fragmentLength,
-						      const uint16_t readLength,
-						      bool readIsContaminated){
+void TReadSimulator::_simulateBasesQualities(BAM::TAlignment &alignment, const std::vector<Base> &haplotype,
+											 size_t fragmentLength, size_t readLength, bool readIsContaminated) {
 
 	//prepare vector of bases
 	std::vector<Base> bases;
@@ -320,7 +317,7 @@ void TReadSimulatorPairedEnd::simulate(const TGenomePosition & Position, const s
 	// identify position
 	_secondMate.move(_alignment);
 	if(fragmentLength > _numCycles[1]){
-		_secondMate += (uint32_t) fragmentLength - (uint32_t) _numCycles[1];
+		_secondMate += (size_t) fragmentLength - (size_t) _numCycles[1];
 	}
 
 	// create new alignment

@@ -30,21 +30,21 @@ namespace PopulationTools{
 class THWHetProb{
 private:
 	std::vector<double> _probs;
-	uint32_t _maxNumHetPlusOne;
+	size_t _maxNumHetPlusOne;
 	bool _onlyOdd, _onlyEven;
 
 public:
 	THWHetProb();
-	THWHetProb(uint32_t N, uint32_t n_A);
+	THWHetProb(size_t N, size_t n_A);
 
 	void clear();
 	THWHetProb& operator=(const THWHetProb & other);
 	void extend(const THWHetProb & other);
 	bool onlyOdd() const { return _onlyOdd; };
 	bool onlyEven() const { return _onlyEven; };
-	uint32_t maxNumHet() const { return _maxNumHetPlusOne - 1; };
-	double operator[](uint32_t i) const { return _probs[i]; };
-	double sum(uint32_t upTo);
+	size_t maxNumHet() const { return _maxNumHetPlusOne - 1; };
+	double operator[](size_t i) const { return _probs[i]; };
+	double sum(size_t upTo);
 	void print();
 };
 
@@ -53,20 +53,20 @@ public:
 //------------------------------------------------
 class THWHetProbVector{
 private:
-	uint32_t _N;
-	std::map<uint32_t, THWHetProb> _probs;
+	size_t _N;
+	std::map<size_t, THWHetProb> _probs;
 
 public:
-	THWHetProbVector(uint32_t N);
-	const THWHetProb& getProbs(uint32_t n_A);
+	THWHetProbVector(size_t N);
+	const THWHetProb& getProbs(size_t n_A);
 };
 
 class THWProbDB{
 private:
-	std::map<uint32_t, THWHetProbVector> _probs;
+	std::map<size_t, THWHetProbVector> _probs;
 
 public:
-	const THWHetProb& getProbs(uint32_t N, uint32_t n_A);
+	const THWHetProb& getProbs(size_t N, size_t n_A);
 };
 
 //------------------------------------------------
@@ -74,17 +74,17 @@ public:
 //------------------------------------------------
 class THWGenotypes{
 private:
-	std::array<uint32_t,3> _genoCounts;
+	std::array<size_t,3> _genoCounts;
 
 public:
 	THWGenotypes(){ clear(); };
 
 	void clear();
 	void add(const genometools::BiallelicGenotype & genotype);
-	uint32_t N() const;
-	uint32_t MAF() const;
-	uint32_t n_A() const;
-	uint32_t n_AB() const;
+	size_t N() const;
+	size_t MAF() const;
+	size_t n_A() const;
+	size_t n_AB() const;
 };
 
 //------------------------------------------------
@@ -97,10 +97,10 @@ private:
 
 public:
 	THWPopulations(){};
-	THWPopulations(uint16_t numPops);
+	THWPopulations(size_t numPops);
 	void clear();
-	void resize(uint16_t numPops);
-	void add(uint16_t pop, const genometools::BiallelicGenotype & genotyp);
+	void resize(size_t numPops);
+	void add(size_t pop, const genometools::BiallelicGenotype & genotyp);
 	void addToHeader(std::vector<std::string> & header);
 	void runTest(coretools::TOutputFile & out);
 };
@@ -116,7 +116,7 @@ private:
 	std::string _vcfFilename;
     genometools::TVcfFileSingleLine _vcfFile;
 	bool _limitLines;
-	uint64_t _maxNumLines;
+	size_t _maxNumLines;
 
 	//samples
     genometools::TPopulationSamples _samples;

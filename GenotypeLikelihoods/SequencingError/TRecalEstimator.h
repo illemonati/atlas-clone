@@ -58,7 +58,7 @@ public:
 	TModelVectorForEstimation() = default;
 	void reset(TModels &SequencingErrorModels, const RecalEstimatorTools::TRecalDataTables &DataTables,
 			   const BAM::TReadGroups &ReadGroups, const BAM::TReadGroupMap &ReadGroupMap,
-			   uint32_t MinRequiredObservations);
+			   size_t MinRequiredObservations);
 
 	size_t size() const { return _models.size(); };
 	TBaseLikelihoods getBaseLikelihoods(const BAM::TSequencedBase &data) const;

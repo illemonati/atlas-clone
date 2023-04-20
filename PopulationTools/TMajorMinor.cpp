@@ -79,7 +79,7 @@ void TMajorMinorEstimatorBase::estimateMajorMinor(const TMultiGLFData &data, Bas
 	// calculate variant quality
 	const auto refHom                  = genometools::genotype(_major, _major);
 	Log10Probability LL_fixed_glfPhred = 0.0;
-	for (uint32_t i = 0; i < data.size(); ++i) {
+	for (size_t i = 0; i < data.size(); ++i) {
 		if (data[i].hasData()) {
 			if (data[i].isHaploid())
 				LL_fixed_glfPhred += (Log10Probability)data[i][_major];
@@ -196,7 +196,7 @@ void TMajorMinor::run() {
 	}
 
 	// read filters
-	uint32_t minSamplesWithData = 1;
+	size_t minSamplesWithData = 1;
 	genometools::PhredIntProbability minVariantQuality{0};
 	size_t nVariantQuality = 0;
 	if (parameters().parameterExists("printAll")) {
@@ -204,7 +204,7 @@ void TMajorMinor::run() {
 		minSamplesWithData = 0;
 		minVariantQuality  = 0;
 	} else {
-		minSamplesWithData = parameters().getParameterWithDefault<uint32_t>("minSamplesWithData", 1);
+		minSamplesWithData = parameters().getParameterWithDefault<size_t>("minSamplesWithData", 1);
 		if (minSamplesWithData > 0) {
 			logfile().list("Will only print sites for which at least ", minSamplesWithData,
 				      " samples have data. (parameter minSamplesWithData)");
@@ -248,7 +248,7 @@ void TMajorMinor::run() {
 
 		// report
 		auto glfNames = glfReader.namesOfActiveFiles();
-		for (uint32_t i = 0; i < glfReader.numActiveSamples(); ++i) {
+		for (size_t i = 0; i < glfReader.numActiveSamples(); ++i) {
 			logfile().list(glfNames[i], " -> ", sampleNames[i]);
 		}
 		logfile().endIndent();

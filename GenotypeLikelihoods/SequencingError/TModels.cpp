@@ -286,7 +286,7 @@ void TModels::writeRecalFile(const BAM::TReadGroups &ReadGroups, std::string_vie
 	// add models
 	for (size_t r = 0; r < ReadGroups.size(); ++r) {
 		out << ReadGroups.getName(r);
-		for (uint8_t mate = 0; mate < 2; ++mate) {
+		for (size_t mate = 0; mate < 2; ++mate) {
 			out << _models[r][mate].epsilonDefinition()
 				<< _models[r][mate].rhoDefinition();
 		}

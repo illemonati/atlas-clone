@@ -61,11 +61,11 @@ void TPSMCInput::_handleWindow(){
 
 	//call heterozygosity in blocks
 	const auto nBlocks = _window.size() / _blockSize;
-	for(uint32_t b=0; b<nBlocks; ++b){
-		uint32_t blockStart = b * _blockSize;
+	for(size_t b=0; b<nBlocks; ++b){
+		size_t blockStart = b * _blockSize;
 		coretools::LogProbability logPHomo{0};
 
-		for(uint32_t i=0; i<_blockSize; ++i){
+		for(size_t i=0; i<_blockSize; ++i){
 			const auto wIndex = blockStart + i;
 			if(wIndex < _window.size() && !_window[wIndex].empty()){
 				_genoLik = _genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(_window[blockStart + 1]);

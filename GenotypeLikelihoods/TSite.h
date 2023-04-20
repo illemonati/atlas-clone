@@ -44,12 +44,12 @@ public:
 	void add(const BAM::TSequencedBase &base);
 	void add(BAM::TSequencedBase &&base);
 	TBaseData baseFrequencies() const noexcept;
-	void downsample(uint32_t maxDepth, const coretools::TSubsamplePicker &picker);
+	void downsample(size_t maxDepth, const coretools::TSubsamplePicker &picker);
 
 	// getters
 	bool empty() const noexcept { return _bases.empty(); };
-	uint32_t depth() const noexcept { return _bases.size(); };
-	uint32_t refDepth() const;
+	size_t depth() const noexcept { return _bases.size(); };
+	size_t refDepth() const;
 	std::string getBases() const;
 	std::string getQualities() const;
 

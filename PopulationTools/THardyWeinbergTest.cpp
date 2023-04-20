@@ -37,7 +37,7 @@ THWHetProb::THWHetProb(){
 	clear();
 };
 
-THWHetProb::THWHetProb(uint32_t numInd_N, uint32_t alleleFreq_n_A){
+THWHetProb::THWHetProb(size_t numInd_N, size_t alleleFreq_n_A){
 	using namespace coretools::TFactorial;
 	if(alleleFreq_n_A > 0 && alleleFreq_n_A < 2*numInd_N){
 		//max num het
@@ -46,7 +46,7 @@ THWHetProb::THWHetProb(uint32_t numInd_N, uint32_t alleleFreq_n_A){
 		_onlyEven = !_onlyOdd;
 
 		//tmp variables
-		uint32_t n_B = 2*numInd_N - alleleFreq_n_A;
+		size_t n_B = 2*numInd_N - alleleFreq_n_A;
 		double logNFactorial = factorialLog(numInd_N);
 		double logTwoNFactorial = factorialLog(2*numInd_N);
 
@@ -57,10 +57,10 @@ THWHetProb::THWHetProb(uint32_t numInd_N, uint32_t alleleFreq_n_A){
 			_probs[0] = 1.0;
 		} else {
 			bool calcProb = _onlyEven;
-			for(uint32_t n_AB = 0; n_AB<_maxNumHetPlusOne; ++n_AB){
+			for(size_t n_AB = 0; n_AB<_maxNumHetPlusOne; ++n_AB){
 				if(calcProb){
-					uint32_t n_AA = (alleleFreq_n_A - n_AB) / 2;
-					uint32_t n_BB = numInd_N - n_AB - n_AA;
+					size_t n_AA = (alleleFreq_n_A - n_AB) / 2;
+					size_t n_BB = numInd_N - n_AB - n_AA;
 
 					_probs[n_AB] = exp(n_AB * 0.6931472
 								 + logNFactorial - factorialLog(n_AA) - factorialLog(n_AB) - factorialLog(n_BB)
@@ -85,70 +85,70 @@ void THWHetProb::clear(){
 };
 
 void THWHetProb::extend(const THWHetProb & other){
-	uint32_t otherMaxNumHetPlusOne = other.maxNumHet() + 1;
+	size_t otherMaxNumHetPlusOne = other.maxNumHet() + 1;
 
 	//create new storage
-	uint32_t newMaxHetPlusOne = _maxNumHetPlusOne + other.maxNumHet();
+	size_t newMaxHetPlusOne = _maxNumHetPlusOne + other.maxNumHet();
 	std::vector<double> newProbs(newMaxHetPlusOne);
 	std::fill(newProbs.begin(), newProbs.end(), 0.0);
 
 	//combine: depends on odd even in both
 	if(_onlyOdd){
 		if(other.onlyOdd()){
-			for(uint32_t i = 1; i<otherMaxNumHetPlusOne; i+=2){
-				for(uint32_t j = 1; j<_maxNumHetPlusOne; j+=2){
+			for(size_t i = 1; i<otherMaxNumHetPlusOne; i+=2){
+				for(size_t j = 1; j<_maxNumHetPlusOne; j+=2){
 					newProbs[j+i] += _probs[j] * other[i];
 				}
 			}
 		} else if(other.onlyEven()){
-			for(uint32_t i = 0; i<otherMaxNumHetPlusOne; i+=2){
-				for(uint32_t j = 1; j<_maxNumHetPlusOne; j+=2){
+			for(size_t i = 0; i<otherMaxNumHetPlusOne; i+=2){
+				for(size_t j = 1; j<_maxNumHetPlusOne; j+=2){
 					newProbs[j+i] += _probs[j] * other[i];
 				}
 			}
 		} else {
-			for(uint32_t i = 0; i<otherMaxNumHetPlusOne; ++i){
-				for(uint32_t j = 1; j<_maxNumHetPlusOne; j+=2){
+			for(size_t i = 0; i<otherMaxNumHetPlusOne; ++i){
+				for(size_t j = 1; j<_maxNumHetPlusOne; j+=2){
 					newProbs[j+i] += _probs[j] * other[i];
 				}
 			}
 		}
 	} else if(_onlyEven){
 		if(other.onlyOdd()){
-			for(uint32_t i = 1; i<otherMaxNumHetPlusOne; i+=2){
-				for(uint32_t j = 0; j<_maxNumHetPlusOne; j+=2){
+			for(size_t i = 1; i<otherMaxNumHetPlusOne; i+=2){
+				for(size_t j = 0; j<_maxNumHetPlusOne; j+=2){
 					newProbs[j+i] += _probs[j] * other[i];
 				}
 			}
 		} else if(other.onlyEven()){
-			for(uint32_t i = 0; i<otherMaxNumHetPlusOne; i+=2){
-				for(uint32_t j = 0; j<_maxNumHetPlusOne; j+=2){
+			for(size_t i = 0; i<otherMaxNumHetPlusOne; i+=2){
+				for(size_t j = 0; j<_maxNumHetPlusOne; j+=2){
 					newProbs[j+i] += _probs[j] * other[i];
 				}
 			}
 		} else {
-			for(uint32_t i = 0; i<otherMaxNumHetPlusOne; ++i){
-				for(uint32_t j = 0; j<_maxNumHetPlusOne; j+=2){
+			for(size_t i = 0; i<otherMaxNumHetPlusOne; ++i){
+				for(size_t j = 0; j<_maxNumHetPlusOne; j+=2){
 					newProbs[j+i] += _probs[j] * other[i];
 				}
 			}
 		}
 	} else {
 		if(other.onlyOdd()){
-			for(uint32_t i = 1; i<otherMaxNumHetPlusOne; i+=2){
-				for(uint32_t j = 0; j<_maxNumHetPlusOne; ++j){
+			for(size_t i = 1; i<otherMaxNumHetPlusOne; i+=2){
+				for(size_t j = 0; j<_maxNumHetPlusOne; ++j){
 					newProbs[j+i] += _probs[j] * other[i];
 				}
 			}
 		} else if(other.onlyEven()){
-			for(uint32_t i = 0; i<otherMaxNumHetPlusOne; i+=2){
-				for(uint32_t j = 0; j<_maxNumHetPlusOne; ++j){
+			for(size_t i = 0; i<otherMaxNumHetPlusOne; i+=2){
+				for(size_t j = 0; j<_maxNumHetPlusOne; ++j){
 					newProbs[j+i] += _probs[j] * other[i];
 				}
 			}
 		} else {
-			for(uint32_t i = 0; i<otherMaxNumHetPlusOne; ++i){
-				for(uint32_t j = 0; j<_maxNumHetPlusOne; ++j){
+			for(size_t i = 0; i<otherMaxNumHetPlusOne; ++i){
+				for(size_t j = 0; j<_maxNumHetPlusOne; ++j){
 					newProbs[j+i] += _probs[j] * other[i];
 				}
 			}
@@ -172,16 +172,16 @@ void THWHetProb::extend(const THWHetProb & other){
 	}
 };
 
-double THWHetProb::sum(uint32_t upTo){
+double THWHetProb::sum(size_t upTo){
 	double sum = 0.0;
-	for(uint32_t i = 0; i<=upTo; ++i){
+	for(size_t i = 0; i<=upTo; ++i){
 		sum += _probs[i];
 	}
 	return sum;
 };
 
 void THWHetProb::print(){
-	for(uint32_t i=0; i<_maxNumHetPlusOne; ++i){
+	for(size_t i=0; i<_maxNumHetPlusOne; ++i){
 		std::cout << "P(n_AB = " << i << ") = " << _probs[i] << std::endl;
 	}
 };
@@ -189,11 +189,11 @@ void THWHetProb::print(){
 //------------------------------------------------
 //THWHetProbDB
 //------------------------------------------------
-THWHetProbVector::THWHetProbVector(uint32_t N){
+THWHetProbVector::THWHetProbVector(size_t N){
 	_N = N;
 };
 
-const THWHetProb& THWHetProbVector::getProbs(uint32_t n_A){
+const THWHetProb& THWHetProbVector::getProbs(size_t n_A){
 	//check if these probs already exist
 	auto it = _probs.find(n_A);
 	if(it == _probs.end()){
@@ -204,7 +204,7 @@ const THWHetProb& THWHetProbVector::getProbs(uint32_t n_A){
 	return it->second;
 };
 
-const THWHetProb& THWProbDB::getProbs(uint32_t N, uint32_t n_A){
+const THWHetProb& THWProbDB::getProbs(size_t N, size_t n_A){
 	//check if prob vector already exists
 	auto it = _probs.find(N);
 	if(it == _probs.end()){
@@ -232,11 +232,11 @@ void THWGenotypes::add(const genometools::BiallelicGenotype & genotype){
 	}
 };
 
-uint32_t THWGenotypes::N() const{
+size_t THWGenotypes::N() const{
 	return _genoCounts[0] + _genoCounts[1] + _genoCounts[2];
 };
 
-uint32_t THWGenotypes::MAF() const{
+size_t THWGenotypes::MAF() const{
 	if(_genoCounts[0] < _genoCounts[2]){
 		return 2*_genoCounts[0] + _genoCounts[1];
 	} else {
@@ -244,22 +244,22 @@ uint32_t THWGenotypes::MAF() const{
 	}
 };
 
-uint32_t THWGenotypes::n_A() const{
+size_t THWGenotypes::n_A() const{
 	return 2*_genoCounts[0] + _genoCounts[1];
 };
 
-uint32_t THWGenotypes::n_AB() const{
+size_t THWGenotypes::n_AB() const{
 	return _genoCounts[1];
 };
 
 //------------------------------------------------
 //THWPopulations
 //------------------------------------------------
-THWPopulations::THWPopulations(uint16_t numPops){
+THWPopulations::THWPopulations(size_t numPops){
 	resize(numPops);
 };
 
-void THWPopulations::resize(uint16_t numPops){
+void THWPopulations::resize(size_t numPops){
 	_populations.resize(numPops);
 };
 
@@ -269,7 +269,7 @@ void THWPopulations::clear(){
 	}
 };
 
-void THWPopulations::add(uint16_t pop, const genometools::BiallelicGenotype & genotyp){
+void THWPopulations::add(size_t pop, const genometools::BiallelicGenotype & genotyp){
 	_populations[pop].add(genotyp);
 };
 
@@ -288,9 +288,9 @@ void THWPopulations::runTest(TOutputFile & out){
 	//loop over populations to calculate P(N_AB = n | N_1, N_2, ..., n_A1.n_A2, ...) using dynamic programming
 	//first do those with even and odd num hets separately
 	THWHetProb probs, probsEven;
-	uint32_t obsNumHet = 0;
-	uint32_t obsNumA = 0;
-	uint32_t obsN = 0;
+	size_t obsNumHet = 0;
+	size_t obsNumA = 0;
+	size_t obsN = 0;
 
 	//loop over populations
 	for(auto& p : _populations){
@@ -369,8 +369,8 @@ void THardyWeinbergTest::run(){
 
 	//progress
 	coretools::TTimer timer;
-	uint64_t lineCounter = 0;
-	uint64_t numFiltered = 0;
+	size_t lineCounter = 0;
+	size_t numFiltered = 0;
 
 	//traverse VCF
 	logfile().startIndent("Traversing VCF file:");
@@ -386,8 +386,8 @@ void THardyWeinbergTest::run(){
 			out << _vcfFile.chr() << _vcfFile.position();
 
 			//add data at current line
-			for(uint32_t s = 0; s<_samples.numSamples(); ++s){
-				uint32_t vcfIndex = _samples.sampleIndexInVCF(s);
+			for(size_t s = 0; s<_samples.numSamples(); ++s){
+				size_t vcfIndex = _samples.sampleIndexInVCF(s);
 				if(!_vcfFile.sampleIsMissing(vcfIndex)){
 					_populations.add(_samples.populationIndex(s), _vcfFile.sampleBiallelicGenotype(vcfIndex));
 				}

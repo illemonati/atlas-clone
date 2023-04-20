@@ -48,7 +48,7 @@ namespace Simulations {
 class TSimulator {
 protected:
 	std::string _outname;
-	std::vector<uint32_t> _seqDepth; //depth per chromosome
+	std::vector<size_t> _seqDepth; //depth per chromosome
 	bool _writeTrueGenotypes;
 	bool _writeVariantInvariantBedFiles;
 	TSimulatorReference _reference;
@@ -56,7 +56,7 @@ protected:
 
 	std::unique_ptr<THaplotypeSimulator> _haploSimulator;
 
-	virtual void _simulateAndWrite(const genometools::TChromosome &Chromosome, TSimulatorHaplotypes &Haplotypes, uint32_t avgDepth) = 0;
+	virtual void _simulateAndWrite(const genometools::TChromosome &Chromosome, TSimulatorHaplotypes &Haplotypes, size_t avgDepth) = 0;
 
 public:
 	TSimulator(const std::string &method);
@@ -79,13 +79,12 @@ protected:
 
 	// functions to simulate
 	void _simulateReadsFromHaplotypes(const genometools::TChromosome &thisChr,
-	                                  std::array<std::vector<genometools::Base>, 2> haplotypes,
-									  TReadSimulators & readSimulator,
-									  uint32_t avgDepth,
-	                                  BAM::TOutputBamFile &bamFile, const std::string &extraProgressText);
+									  std::array<std::vector<genometools::Base>, 2> haplotypes,
+									  TReadSimulators &readSimulator, size_t avgDepth, BAM::TOutputBamFile &bamFile,
+									  const std::string &extraProgressText);
 
 	// simulate reads and write bam files
-	void _simulateAndWrite(const genometools::TChromosome &Chromosome, TSimulatorHaplotypes &Haplotypes, uint32_t avgDepth) override;
+	void _simulateAndWrite(const genometools::TChromosome &Chromosome, TSimulatorHaplotypes &Haplotypes, size_t avgDepth) override;
 
 public:
 	TBAMSimulator(const std::string &method);
@@ -101,7 +100,7 @@ public:
 	TVCFWriterSimulation(const std::string &Filename, const std::string &Source,
 	                     const std::vector<std::string> &SampleNames, bool UsePhredScaledLikelihoods);
 
-	void writeSite(const std::string &ChrName, uint32_t Position, genometools::PhredIntProbability VariantQuality,
+	void writeSite(const std::string &ChrName, size_t Position, genometools::PhredIntProbability VariantQuality,
 	               genometools::Base RefAllele, genometools::Base AltAllele, size_t TotalDepth, bool IsDiploid,
 	               const GLF::TMultiGLFDataOneAllelicCombination &GenotypeLikelihoods,
 	               const std::vector<size_t> &Depths);
@@ -122,8 +121,8 @@ protected:
 	size_t _simulateNumReadsWithReferenceAllele(genometools::Base a, genometools::Base b, genometools::Base Ref,
 	                                            size_t Depth, bool IsDiploid);
 	std::pair<size_t, GLF::TMultiGLFDataSampleOneAllelicCombination>
-	_simulateDepthAndGTL(genometools::Base a, genometools::Base b, genometools::Base Ref, bool IsDiploid, uint32_t avgDepth);
-	void _simulateAndWrite(const genometools::TChromosome &Chromosome, TSimulatorHaplotypes &Haplotypes, uint32_t avgDepth) override;
+	_simulateDepthAndGTL(genometools::Base a, genometools::Base b, genometools::Base Ref, bool IsDiploid, size_t avgDepth);
+	void _simulateAndWrite(const genometools::TChromosome &Chromosome, TSimulatorHaplotypes &Haplotypes, size_t avgDepth) override;
 	std::pair<genometools::Base, genometools::Base>
 	_findMajorMinorAllele(coretools::TStrongArray<size_t, genometools::Base, 4> AlleleCounts,
 	                      genometools::Base RefAllele);

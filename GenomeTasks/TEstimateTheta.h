@@ -34,7 +34,7 @@ namespace GenomeTasks {
 class TEstimateThetaLLSurface : public TGenome_windows {
 private:
 	GenotypeLikelihoods::TThetaEstimator _thetaEstimator;
-	uint32_t _steps;
+	size_t _steps;
 
 	void _bootstrapThetaEstimation();
 	void _handleWindow() override;
@@ -60,7 +60,7 @@ private:
 	bool _genomeWide        = false;
 
 	bool _onlyBootstraps    = false;
-	uint32_t _numBootstraps = 0;
+	size_t _numBootstraps = 0;
 
 	void _handleWindow() override;
 	void _handleAlignment() override {}

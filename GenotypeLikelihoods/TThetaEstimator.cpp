@@ -523,7 +523,7 @@ void TThetaEstimator::writeResultsToFile(coretools::TOutputFile &out) {
 	writeEstimateFrequenciesAndTheta(out);
 };
 
-void TThetaEstimator::calcLikelihoodSurface(coretools::TOutputFile &out, uint32_t steps) {
+void TThetaEstimator::calcLikelihoodSurface(coretools::TOutputFile &out, size_t steps) {
 	// write header
 	out.writeHeader({"log10(theta)", "theta", "LL"});
 	out.precision(12);
@@ -533,7 +533,7 @@ void TThetaEstimator::calcLikelihoodSurface(coretools::TOutputFile &out, uint32_
 	double maxLogTheta = -1.0;
 	double stepSize    = (maxLogTheta - minLogTheta) / ((double)steps - 1.0);
 
-	for (uint32_t i = 0; i < steps; ++i) {
+	for (size_t i = 0; i < steps; ++i) {
 		// calc theta and expMinusTheta
 		_theta.setLog(minLogTheta + stepSize * i);
 

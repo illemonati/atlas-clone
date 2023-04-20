@@ -48,7 +48,7 @@ using genometools::Base;
 void TModelVectorForEstimation::reset(TModels &SequencingErrorModels,
 									  const RecalEstimatorTools::TRecalDataTables &DataTables,
 									  const BAM::TReadGroups &ReadGroups, const BAM::TReadGroupMap &ReadGroupMap,
-									  uint32_t MinRequiredObservations) {
+									  size_t MinRequiredObservations) {
 	using MS = RecalEstimatorTools::ModelStatusTypes;
 	// Copy models that are 1) in use after pooling and 2) have data.
 	// Note: data table is already pooled!
@@ -65,7 +65,7 @@ void TModelVectorForEstimation::reset(TModels &SequencingErrorModels,
 		modelStati.add(r);
 
 		// loop over mates
-		for (uint8_t mate = 0; mate < 2; ++mate) {
+		for (size_t mate = 0; mate < 2; ++mate) {
 			const RecalEstimatorTools::TRecalDataTable &table = DataTables[r][mate];
 
 			// check if there is sufficient data for _first mate
@@ -155,8 +155,8 @@ void TModelVectorForEstimation::writeRecalFile(const BAM::TReadGroups &ReadGroup
 	coretools::TOutputFile out(Filename, {"readGroup", "mate", "covariates", "rho"});
 
 	// add models
-	for (uint16_t r = 0; r < ReadGroups.size(); ++r) {
-		for (uint8_t mate = 0; mate < 2; ++mate) {
+	for (size_t r = 0; r < ReadGroups.size(); ++r) {
+		for (size_t mate = 0; mate < 2; ++mate) {
 			out.write(ReadGroups.getName(r), std::array{"first", "second"}[mate]);
 			if (_modelIndex[r][mate])
 				out.writeln(_modelIndex[r][mate]->epsilonDefinition(), _modelIndex[r][mate]->rhoDefinition());

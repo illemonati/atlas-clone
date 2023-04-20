@@ -132,8 +132,8 @@ private:
 	coretools::TOutputFile _trueFreqFile;
 
 	void _fillCumulGenoProb(double f);
-	void _simulateSite(TSimulatorHWSite &site, TSimulatorReference &reference, const std::string &chr, uint64_t pos);
-	void _fillhaplotypesMonomoprhic(TSimulatorHaplotypes &haplotypes, uint64_t locus, const TSimulatorHWSite &site);
+	void _simulateSite(TSimulatorHWSite &site, TSimulatorReference &reference, const std::string &chr, size_t pos);
+	void _fillhaplotypesMonomoprhic(TSimulatorHaplotypes &haplotypes, size_t locus, const TSimulatorHWSite &site);
 
 public:
 	TSimulatorHW();

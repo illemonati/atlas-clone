@@ -572,7 +572,7 @@ void TVcfToGenotypeTruthSetFile::run() {
 	_parseVCF();
 
 	// write bed files (one per sample)
-	for (uint32_t s = 0; s < _samples.numSamples(); s++) {
+	for (size_t s = 0; s < _samples.numSamples(); s++) {
 		// check if sample name contains / (would be interpreted as path)
 		std::string sample_name = _samples.sampleName(s);
 		if (coretools::str::stringContains(sample_name, '/'))

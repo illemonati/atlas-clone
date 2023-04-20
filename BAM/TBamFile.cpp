@@ -96,7 +96,7 @@ void TBamFile::setFilters(){
 	//--------------
 	//is relevant for storage
 	//print error if reads are longer and filter is default
-	TNumericRange<uint32_t> mappingLengthRange;
+	TNumericRange<size_t> mappingLengthRange;
 	if(parameters().parameterExists("filterMappingLength")){
 		parameters().fillParameter("filterMappingLength", mappingLengthRange);
 		_allowTooLongReads = true;
@@ -243,7 +243,7 @@ void TBamFile::setFilters(){
 
 		//Mapping quality filter
 		if(parameters().parameterExists("filterMQ")){
-			TNumericRange<uint8_t> Range;
+			TNumericRange<uint16_t> Range;
 			parameters().fillParameter("filterMQ", Range);
 
 			_mappingQualityFilter.filter(Range, "MappingQualityOutside" + Range.rangeString(), numRG, numChrom);
@@ -255,7 +255,7 @@ void TBamFile::setFilters(){
 
 		//Read length filter
 		if(parameters().parameterExists("filterReadLength")){
-			TNumericRange<uint32_t> Range;
+			TNumericRange<size_t> Range;
 			parameters().fillParameter("filterReadLength", Range);
 
 			_readLengthFilter.filter(Range, "Read length outside " + Range.rangeString(), numRG, numChrom);
@@ -268,7 +268,7 @@ void TBamFile::setFilters(){
 
 		//Fragment length filter
 		if(parameters().parameterExists("filterFragmentLength")){
-			TNumericRange<uint32_t> Range;
+			TNumericRange<size_t> Range;
 			parameters().fillParameter("filterFragmentLength", Range);
 
 			_fragmentLengthFilter.filter(Range, "Fragment length outside " + Range.rangeString(), numRG, numChrom);
@@ -288,11 +288,11 @@ void TBamFile::curFilterOut(){
 	_externalFilter.filterOut(_curBamAlignment.Name, _curBamAlignment.IsReverseStrand(), _curReadGroupID, refID());
 };
 
-void TBamFile::filterOut(const std::string & alignmentName, const bool & isReverseStrand, const uint16_t readGroup, const uint32_t chromosomeID){
+void TBamFile::filterOut(std::string_view alignmentName, bool isReverseStrand, size_t readGroup, size_t chromosomeID){
 	_externalFilter.filterOut(alignmentName, isReverseStrand, readGroup, chromosomeID);
 };
 
-void TBamFile::setExternalFilterReason(const std::string reason){
+void TBamFile::setExternalFilterReason(std::string_view reason){
 	_externalFilter.setReason(reason);
 };
 
@@ -330,7 +330,7 @@ void TBamFile::openBamLog(){
 	}
 };
 
-void TBamFile::writeToBamLog(const std::string & alignmentName, const bool & isReverseStrand, const std::string & reason){
+void TBamFile::writeToBamLog(std::string_view alignmentName, bool isReverseStrand, std::string_view reason){
 	if(_bamLog){
 		_bamLog->write(alignmentName, isReverseStrand, reason);
 	}
@@ -713,7 +713,7 @@ void TBamFile::writeCurAlignment(TOutputBamFile & out){
 //--------------------------------------------------------
 // Getters and setters of cur alignment
 //--------------------------------------------------------
-uint16_t TBamFile::curFragmentLength() const{
+size_t TBamFile::curFragmentLength() const{
 	if(_curBamAlignment.IsProperPair()){
 		return abs(_curBamAlignment.InsertSize) + _curCigar.lengthInserted() - _curCigar.lengthDeleted();
 	} else {
@@ -733,17 +733,17 @@ uint16_t TBamFile::curUsableAlignedLength(TQualityFilter & qualFilter) const{
 	return counter;
 	};*/
 
-std::string TBamFile::curQuerySequence(const uint16_t start, const uint16_t length) const{
+std::string TBamFile::curQuerySequence(size_t start, size_t length) const{
 	return _curBamAlignment.QueryBases.substr(start, length);
 };
 
-void TBamFile::curSetNewReadGroup(const uint16_t id){
+void TBamFile::curSetNewReadGroup(size_t id){
 	if(id != _curReadGroupID){
 		_curBamAlignment.EditTag("RG", "Z", _readGroups.getName(id));
 	}
 };
 
-void TBamFile::curAddSamField(const std::string tag, const std::string value){
+void TBamFile::curAddSamField(const std::string& tag, const std::string& value){
 	if(_curBamAlignment.HasTag(tag)){
 		_curBamAlignment.EditTag(tag, "Z", value);
 	} else {
@@ -751,7 +751,7 @@ void TBamFile::curAddSamField(const std::string tag, const std::string value){
 	}
 };
 
-void TBamFile::curAddSamField(const std::string tag, const float value){
+void TBamFile::curAddSamField(const std::string& tag, float value){
 	if(_curBamAlignment.HasTag(tag)){
 		_curBamAlignment.EditTag(tag, "f", value);
 	} else {
@@ -762,8 +762,8 @@ void TBamFile::curAddSamField(const std::string tag, const float value){
 //-----------------------------------------------------
 // Reporting
 //-----------------------------------------------------
-void TBamFile::_writeFilteringStats(std::string &outputName){
-	std::string filename = outputName + "_filterSummary.txt";
+void TBamFile::_writeFilteringStats(std::string_view outputName) const {
+	std::string filename = std::string(outputName).append("_filterSummary.txt");
 	coretools::instances::logfile().listFlush("Writing general filter counts to '" + filename + "' ...");
 
 	//creating header
@@ -817,36 +817,36 @@ void TBamFile::_writeFilteringStats(std::string &outputName){
 	out.endln();
 
 	//writes numbers of removed reads for each applied filter per read group, also lists filters if no reads were removed
-	for (uint16_t it = 0; it < _readGroups.size(); it++){
-		out << _readGroups.getName(it);
-		_unalignedFilter.printCounts(out, it);
-		_noReadGroupFilter.printCounts(out, it);
-		_duplicateFilter.printCounts(out, it);
-		_softClippedRatioFilter.printCounts(out, it);
-		_improperPairsFilter.printCounts(out, it);
-		_unmappedFilter.printCounts(out, it);
-		_failedQCFilter.printCounts(out, it);
-		_secondaryFilter.printCounts(out, it);
-		_supplementaryFilter.printCounts(out, it);
-		_longerThanFragmentFilter.printCounts(out, it);
-		_readGroupFilter.printCounts(out, it);
-		_fwdStrandFilter.printCounts(out, it);
-		_revStrandFilter.printCounts(out, it);
-		_firstMateFilter.printCounts(out, it);
-		_secondMateFilter.printCounts(out, it);
-		_blacklistFilter.printCounts(out, it);
-		_mappingQualityFilter.printCounts(out, it);
-		_fragmentLengthFilter.printCounts(out, it);
-		_externalFilter.printCounts(out, it);
-		_readLengthFilter.printCounts(out, it);
-		_mappedLengthFilter.printCounts(out, it);
+	for (size_t rg = 0; rg < _readGroups.size(); rg++){
+		out << _readGroups.getName(rg);
+		_unalignedFilter.printCounts(out, rg);
+		_noReadGroupFilter.printCounts(out, rg);
+		_duplicateFilter.printCounts(out, rg);
+		_softClippedRatioFilter.printCounts(out, rg);
+		_improperPairsFilter.printCounts(out, rg);
+		_unmappedFilter.printCounts(out, rg);
+		_failedQCFilter.printCounts(out, rg);
+		_secondaryFilter.printCounts(out, rg);
+		_supplementaryFilter.printCounts(out, rg);
+		_longerThanFragmentFilter.printCounts(out, rg);
+		_readGroupFilter.printCounts(out, rg);
+		_fwdStrandFilter.printCounts(out, rg);
+		_revStrandFilter.printCounts(out, rg);
+		_firstMateFilter.printCounts(out, rg);
+		_secondMateFilter.printCounts(out, rg);
+		_blacklistFilter.printCounts(out, rg);
+		_mappingQualityFilter.printCounts(out, rg);
+		_fragmentLengthFilter.printCounts(out, rg);
+		_externalFilter.printCounts(out, rg);
+		_readLengthFilter.printCounts(out, rg);
+		_mappedLengthFilter.printCounts(out, rg);
 		out.endln();
 	}
 	out.close();
 	coretools::instances::logfile().done();
 }
 
-void TBamFile::printSummaryNoEndIndent(std::string &outputName){
+void TBamFile::printSummaryNoEndIndent(std::string_view outputName) const {
 	logfile().startIndent("Summary of parsed reads from BAM file '" + _filename + "':");
 	logfile().list("Total number of reads read: " + coretools::str::toString(_numAlignmentRead));
 	logfile().list("Reads that passed filters: " + coretools::str::toString(_numAlignmentsPassedQC) + " (" + coretools::str::toPercentString(_numAlignmentsPassedQC, _numAlignmentRead, 3) + "%)");
@@ -857,43 +857,43 @@ void TBamFile::printSummaryNoEndIndent(std::string &outputName){
 	_writeFilteringStats(outputName);
 
 	//print counts of filtered reads for each read group to terminal, doesn't list filters if no reads were removed
-	for (uint16_t it = 0; it < _readGroups.size(); it++){
+	for (size_t rg = 0; rg < _readGroups.size(); rg++){
 		//logfile().newLine();
-		logfile().list("Number of reads filtered from read group: '" + coretools::str::toString(_readGroups.getName(it)) + "'");
+		logfile().list("Number of reads filtered from read group: '" + coretools::str::toString(_readGroups.getName(rg)) + "'");
 		logfile().addIndent();
-		_unalignedFilter.summary(numFiltered, it);
-		_noReadGroupFilter.summary(numFiltered, it);
-		_duplicateFilter.summary(numFiltered, it);
-		_softClippedRatioFilter.summary(numFiltered, it);
-		_improperPairsFilter.summary(numFiltered, it);
-		_unmappedFilter.summary(numFiltered, it);
-		_failedQCFilter.summary(numFiltered, it);
-		_secondaryFilter.summary(numFiltered, it);
-		_supplementaryFilter.summary(numFiltered, it);
-		_longerThanFragmentFilter.summary(numFiltered, it);
-		_readGroupFilter.summary(numFiltered, it);
-		_fwdStrandFilter.summary(numFiltered, it);
-		_revStrandFilter.summary(numFiltered, it);
-		_firstMateFilter.summary(numFiltered, it);
-		_secondMateFilter.summary(numFiltered, it);
-		_blacklistFilter.summary(numFiltered, it);
-		_mappingQualityFilter.summary(numFiltered, it);
-		_fragmentLengthFilter.summary(numFiltered, it);
-		_externalFilter.summary(numFiltered, it);
-		_readLengthFilter.summary(numFiltered, it);
-		_mappedLengthFilter.summary(numFiltered, it);
+		_unalignedFilter.summary(numFiltered, rg);
+		_noReadGroupFilter.summary(numFiltered, rg);
+		_duplicateFilter.summary(numFiltered, rg);
+		_softClippedRatioFilter.summary(numFiltered, rg);
+		_improperPairsFilter.summary(numFiltered, rg);
+		_unmappedFilter.summary(numFiltered, rg);
+		_failedQCFilter.summary(numFiltered, rg);
+		_secondaryFilter.summary(numFiltered, rg);
+		_supplementaryFilter.summary(numFiltered, rg);
+		_longerThanFragmentFilter.summary(numFiltered, rg);
+		_readGroupFilter.summary(numFiltered, rg);
+		_fwdStrandFilter.summary(numFiltered, rg);
+		_revStrandFilter.summary(numFiltered, rg);
+		_firstMateFilter.summary(numFiltered, rg);
+		_secondMateFilter.summary(numFiltered, rg);
+		_blacklistFilter.summary(numFiltered, rg);
+		_mappingQualityFilter.summary(numFiltered, rg);
+		_fragmentLengthFilter.summary(numFiltered, rg);
+		_externalFilter.summary(numFiltered, rg);
+		_readLengthFilter.summary(numFiltered, rg);
+		_mappedLengthFilter.summary(numFiltered, rg);
 		logfile().endIndent();
 	}
 
 	logfile().endIndent();
 };
 
-void TBamFile::printSummary(std::string &outputName){
+void TBamFile::printSummary(std::string_view outputName) const {
 	printSummaryNoEndIndent(outputName);
 	logfile().endIndent();
 };
 
-void TBamFile::startProgressReporting(uint32_t Frequency){
+void TBamFile::startProgressReporting(size_t Frequency) const {
 	if(!_open){
 		UERROR("Can not start progress reporting of BAM file: BAM file not open!");
 	}
@@ -905,20 +905,20 @@ void TBamFile::startProgressReporting(uint32_t Frequency){
 	logfile().startIndent("Parsing through BAM file:");
 };
 
-void TBamFile::printProgress(){
+void TBamFile::printProgress() const {
 	if(_numAlignmentRead - _lastProgressPrinted >= _progressFrequency){
 		logfile().list("Parsed " + _millionReadsRead() + " million reads (est. " + coretools::str::toStringWithPrecision(positionInFile() * 100, 2) + "%) in " + _timer.formattedTime());
 		_lastProgressPrinted = _numAlignmentRead;
 	}
 };
 
-void TBamFile::printEndWithSummary(std::string &outputName){
+void TBamFile::printEndWithSummary(std::string_view outputName) const {
 	printEndNoEndIndent();
 	logfile().endIndent();
 	printSummary(outputName);
 };
 
-void TBamFile::printEndNoEndIndent(){
+void TBamFile::printEndNoEndIndent() const {
 	logfile().list("Reached end of BAM file in " + _timer.formattedTime() + ':');
 	logfile().conclude("Parsed a total of " + _millionReadsRead() + " million reads in " + _timer.formattedTime() + '.');
 };

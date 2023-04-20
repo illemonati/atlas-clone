@@ -44,21 +44,21 @@ struct Theta {
 	double LL              = -9e100;
 	TBaseProbabilities baseFreq;
 
-	void set(const double val) {
+	void set(double val) {
 		theta    = val;
 		expMinusTheta = exp(-theta);
 		logTheta = log(theta);
 		LL       = -9e100;
 	};
 
-	void setExp(const double val) {
+	void setExp(double val) {
 		expMinusTheta = val;
 		theta    = -log(val);
 		logTheta = log(theta);
 		LL       = -9e100;
 	};
 
-	void setLog(const double val) {
+	void setLog(double val) {
 		logTheta = val;
 		theta    = exp(val);
 		expMinusTheta = exp(-theta);
@@ -149,7 +149,7 @@ public:
 	void addToHeader(std::vector<std::string> &header, const std::string &prefix = "");
 	void writeEstimateFrequenciesAndTheta(coretools::TOutputFile &out);
 	void writeResultsToFile(coretools::TOutputFile &out);
-	void calcLikelihoodSurface(coretools::TOutputFile &out, uint32_t steps);
+	void calcLikelihoodSurface(coretools::TOutputFile &out, size_t steps);
 	void bootstrapTheta();
 };
 
