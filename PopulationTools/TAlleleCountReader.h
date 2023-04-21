@@ -43,7 +43,7 @@ private:
         
     std::vector<std::string> _populationNames;
     alleleCountVector _alleleCountVec;
-    bool _hasAlleles;
+    bool _hasAlleles = false;
     int _firstPopulationColumn;
     
 public:

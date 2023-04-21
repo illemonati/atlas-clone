@@ -1,4 +1,5 @@
 #include "TAlleleCountReader.h"
+#include "coretools/devtools.h"
 
 namespace PopulationTools{
 
@@ -24,6 +25,7 @@ void TAlleleCountReader::open(std::string_view filename){
         _hasAlleles = true;
         _firstPopulationColumn = 4;
     } else {
+        _hasAlleles = false;
         _firstPopulationColumn = 2;
     }
 
