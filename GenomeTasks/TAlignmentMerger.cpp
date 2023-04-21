@@ -8,6 +8,7 @@
 #include "TAlignmentMerger.h"
 
 #include <math.h>
+#include <memory>
 #include <stdlib.h>
 
 #include <cstdint>
@@ -760,14 +761,14 @@ void TOverlapQuantifier::run(){
 		//check if read passed filters and is proper pair
 		if(_bamFile.curPassedQC() && _bamFile.curIsProperPair()){
 			//parse alignment
-			BAM::TAlignment* alignment = new BAM::TAlignment;
-			_bamFile.fill(*alignment);
+			std::unique_ptr<BAM::TAlignment> alignment = std::make_unique<BAM::TAlignment>();
+			_bamFile.fill(*alignment.get());
 
 			//check if mate is in storage.
 			auto mate = findInStorage(_alignmentStorage, alignment->name());
 			if(mate == _alignmentStorage.end()){
 				//add alignment to storage and wait for mate
-				_alignmentStorage.emplace_back(alignment, false);
+				_alignmentStorage.emplace_back(alignment.release(), false);
 			} else {
 				//mate found
 				if(alignment->readGroupId() != mate->alignment().readGroupId()){
