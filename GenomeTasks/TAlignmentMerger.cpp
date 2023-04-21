@@ -70,7 +70,8 @@ namespace impl{
 		size_t internalPos = 0;
 		//use the recalibrated quality
 		genometools::PhredIntProbability secondReadMinQual = baseIterator->recalibratedQualityAsPhredInt;
-		while(secondRead.positionInRef(internalPos).position() != firstRead.lastAlignedPositionWithRespectToRef().position() && secondRead.positionInRef(internalPos).position() != secondRead.lastAlignedPositionWithRespectToRef().position()){
+
+		while(!secondRead.isAlignedAtInternalPos(internalPos) || (secondRead.positionInRef(internalPos).position() != firstRead.lastAlignedPositionWithRespectToRef().position() && secondRead.positionInRef(internalPos).position() != secondRead.lastAlignedPositionWithRespectToRef().position())){
 			//if the base at the current position of the iterator is aligned and its PhredIntProbability is higher (therefore the error-probability is higher and the quality is lower)
 			//save this number as the new minimum quality
 			if(secondRead.isAlignedAtInternalPos(internalPos)){
@@ -80,12 +81,11 @@ namespace impl{
 			baseIterator++;
 			internalPos++;
 		}
-
 		//base iterator starts at last position of the forward strand, then decrements until it reaches either the first aligned position of itself or the forward read
 		std::vector<BAM::TSequencedBase>::const_reverse_iterator baseIteratorReverse = firstRead.rbegin();
 		internalPos = firstRead.getLastInternalPos();
 		genometools::PhredIntProbability firstReadMinQual = baseIteratorReverse->recalibratedQualityAsPhredInt;
-		while (firstRead.positionInRef(internalPos).position() != secondRead.position() && firstRead.positionInRef(internalPos).position() != firstRead.position()) {
+		while (!firstRead.isAlignedAtInternalPos(internalPos) || (firstRead.positionInRef(internalPos).position() != secondRead.position() && firstRead.positionInRef(internalPos).position() != firstRead.position())) {
 			if(firstRead.isAlignedAtInternalPos(internalPos)){
 				if (baseIteratorReverse->recalibratedQualityAsPhredInt > firstReadMinQual)
 					firstReadMinQual = baseIteratorReverse->recalibratedQualityAsPhredInt;
@@ -362,6 +362,7 @@ bool TAlignmentMergerReadGroupSettings::needTruncation() const{
 	}
 	return false;
 };
+
 
 bool TAlignmentMergerReadGroupSettings::needsMerging() const{
 	for(const auto& s : _settings){
