@@ -93,7 +93,7 @@ protected:
 
 	BAM::TOutputBamFile _outBam;
 
-	uint32_t _maxDistanceBetweenMates;
+	size_t _maxDistanceBetweenMates;
 	bool _recalibrate;
 	bool _incorporatePMD;
 	bool _keepOrphans;
