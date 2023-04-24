@@ -2,11 +2,17 @@
 
 . $(dirname $0)/find_atlas
 
-#$atlas --task simulate --chrLength "20000000,10000000" --ploidy "2,1" --depth "10" --pmd "doubleStrand:Exponential[30,0.1,0.1,0.05]" --fixedSeed 0 --logFile simulate.out
-$atlas --task simulate --chrLength "2000000,1000000" --ploidy "2,1" --depth "10" --fixedSeed 0 --logFile simulate.out
+model="intercept[0.1];quality:polynomial[0.8,0.2,0.01]"
+
+$atlas --task simulate --chrLength "10000000,10000000" --ploidy "2,1" --depth "10" --pmd "doubleStrand:Exponential[30,0.1,0.1,0.05]" --recal $model --fixedSeed 0 --logFile simulate.out --out simulate
 
 # theta with downsample
-$atlas --task theta --bam ATLAS_simulations.bam --chr "chr1" --averageDepth 10 --depth "10,5,2,1,0.5,0.2,0.1,0.05"  --fixedSeed 0 --extraVerbose --out downsample --logFile downsample.out 
+$atlas --task theta --bam simulate.bam --chr "chr1" --averageDepth 10 --depth "10,5,2,1,0.5,0.2"  --fixedSeed 0 --extraVerbose --out downsample --logFile downsample.out 
 
-# theta genomewide with downsample
-$atlas --task theta --bam ATLAS_simulations.bam  --chr "chr1" --genomeWide --averageDepth 10 --depth "10{5},5{5},2{5},1{5},0.5{5},0.2{5},0.1{5},0.05{5}" --fixedSeed 0 --extraVerbose --out genomewide_downsample --logFile genomewide_downsample.out
+$atlas --task PMD --bam simulate.bam --fasta simulate.fasta --pmd "doubleStrand:Empiric"  --fixedSeed 0 --out pmd --logFile pmd.out
+
+$atlas --task theta --bam simulate.bam --chr "chr1" --pmd pmd_PMD.txt --averageDepth 10 --depth "10,5,2,1,0.5,0.2"  --fixedSeed 0 --extraVerbose --out downsample_pmd --logFile downsample_pmd.out 
+
+$atlas --task recal --bam simulate.bam --chr "chr2" --recal "intercept;quality;position;context;fragmentLength;mappingQuality;" --fixedSeed 0 --out recal --logFile recal.out
+
+$atlas --task theta --bam simulate.bam --chr "chr1" --pmd pmd_PMD.txt --recal recal_recal.txt --averageDepth 10 --depth "10,5,2,1,0.5,0.2"  --fixedSeed 0 --extraVerbose --out downsample_pmd_recal --logFile downsample_pmd_recal.out 
