@@ -30,86 +30,68 @@ using coretools::instances::logfile; 	//used to write log file
 
 namespace FASTQ{
 
+
 //------------------------------------------------
 // Methods to operate on Fastq files
 //------------------------------------------------
 
-TFastqFile::TFastqFile(std::string_view fileName){
-	_fileName = fileName;
+    TFastqFile::TFastqFile(std::string_view fileName){
+        _fileName = fileName;
+        static coretools::TOutputFile txtFile(fileName);
+    }
 
-// 	const auto ending = coretools::str::readAfterLast(_fileName, '.');										//get file suffix
-// 	if(ending != NULL){UERROR("Impossible to create file from: ", _fileName, ", due to wrong filetype");}		//if suffix exists, print error
-// 	else{ _fileName += ".fastq" ; }																			//if nothing, add .fastq
-// 								//you sure it returns NULL in case nothing is found???
-}
 
 //------------------------------------------------
 // Private methods
 //------------------------------------------------
 
-
-void TFastqFile::_writeAlignment(const BAM::TAlignment &alignment){
-	//alignment.flags
-	//alignment.isEmpty
-	//alignment.readGroupId
-		//uint16_t readGroupId() const { return _readGroupID; };
-	//alignment.refID
-		//constexpr size_t refID() const noexcept { return _refID; };
-	//alignment.qualities
-		//std::vector<uint32_t> _qualities;
-	//alignment.binQualityScoresIllumina
-	//alignment.length
-	//alignment.isPaired
-	//alignment.mateRefID
-	//alignment.clear
-	//alignment.end
+    void TFastqFile::_writeAlignment(const BAM::TAlignment &alignment){
+        //alignment.flags
+        //alignment.isEmpty
+        //alignment.readGroupId
+        //uint16_t readGroupId() const { return _readGroupID; };
+        //alignment.refID
+        //constexpr size_t refID() const noexcept { return _refID; };
+        //alignment.qualities
+        //std::vector<uint32_t> _qualities;
+        //alignment.binQualityScoresIllumina
+        //alignment.length
+        //alignment.isPaired
+        //alignment.mateRefID
+        //alignment.clear
+        //alignment.end
 
 
 //takes alignment sequence and qualities and writes it in the file
 
-}
-
-void TFastqFile::sortRead(const BAM::TAlignment &alignment){
-	// uint16_t tmpReadGroupID = alignment.readGroupId();
-
-	// if(alignmentQueues.empty()) {
-	// 	static std::queue<BAM::TAlignment> newReadGroupIDAlignmentQueue;     //needs to be static in order to be reachable from other functions
-	// 	alignmentQueues.push(&newReadGroupIDAlignmentQueue);			
-	// }
-
-	
-}
-
-bool TFastqFile::exists(uint16_t readGroupID){
-	return false;
-}
+    }
 
 //------------------------------------------------
 // Public methods
 //------------------------------------------------
 
 
-void TFastqFile::open(std::string_view fileName){
-	tmpFastqFile.open(_fileName);		//open from Tfile
-}
+    void TFastqFile::open(std::string_view filename){
+        //implement txtFile open()
 
-void TFastqFile::close(){ 
-	tmpFastqFile.close();				//Close from TFile
- }
+    }
 
-void TFastqFile::writeAlignment(const BAM::TAlignment &alignment){
-	sortRead(alignment);
+    void TFastqFile::close(){
+        //implement txtFile close()
+    }
 
-	_writeAlignment(alignment);
-}
+    void TFastqFile::writeAlignment(const BAM::TAlignment &alignment){
 
-void writeAlignmentLater(const BAM::TAlignment &alignment){
-	//just to test if this method is the problem to lack of vtable
-}
+        _writeAlignment(alignment);
+    }
 
-void TFastqFile::setHeader(std::string header){  _header = header; }
+    void writeAlignmentLater(const BAM::TAlignment &alignment){
+        //just to test if this method is the problem to lack of vtable
+    }
 
-void TFastqFile::setHeader(){ _header = genericIdentifiers; }
+    void TFastqFile::setHeader(std::string header){  _header = header; }
+
+    void TFastqFile::setHeader(){  }
 
 };		//namespace FASTQ
 

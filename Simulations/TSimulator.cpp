@@ -371,17 +371,43 @@ void TBAMSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome
 // TFASTQWriter Simulator
 //---------------------------------------------------
 
-// TFASTQSimulator::TFASTQSimulator(const std::string &method) : TSimulator(method){
-// 	int y = 0;
-// }
+    TFastqSimulator::TFastqSimulator(const std::string &method) : TSimulator(method){   //checked and constructor called right
+        logfile().startIndent("Start of Fastq Simulation");
+        Simulations::TSimulatedOutputFiles FastqFiles();
+    }
 
-// void _simulateAndWrite(const genometools::TChromosome &Chromosome, TSimulatorHaplotypes &Haplotypes, uint32_t avgDepth){
-// 	// logfile().startIndent("Simulating reads:");
-// 	int x = 0;
-// }
+    void TFastqSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome, TSimulatorHaplotypes &Haplotypes, uint32_t avgDepth){
+        // now simulate and write reads
+        logfile().startIndent("Simulating reads:");
+        for (size_t i = 0; i < _haploSimulator->sampleSize(); ++i){
+            if(_readSimulators.size() == 1){
+                _simulateReadsFromHaplotypes(Chromosome,
+                                             Haplotypes.getHaplotypesOfIndividual(i),
+                                             _readSimulators.front(),
+                                             avgDepth,
+                                             (*_fastqFiles)[i],
+                                             " for individual " + coretools::str::toString(i + 1));
+            } else {
+                _simulateReadsFromHaplotypes(Chromosome,
+                                             Haplotypes.getHaplotypesOfIndividual(i),
+                                             _readSimulators[i],
+                                             avgDepth,
+                                             (*_fastqFiles)[i],
+                                             " for individual " + coretools::str::toString(i + 1));
+            }
+        }
+        logfile().endIndent();
+    }
 
-//copied from TBAMSimulator but tweaked to use only SingleEndSimulator
+//(*_fastqFiles)[i]
 
+    void TFastqSimulator::_simulateReadsFromHaplotypes(const genometools::TChromosome &thisChr,
+                                                       std::array<std::vector<genometools::Base>, 2> haplotypes,
+                                                       Simulations::TReadSimulators &readSimulator, uint32_t avgDepth,
+                                                       FASTQ::TFastqFile &fastqFile, const std::string &extraProgressText) {
+        //code
+
+    }
 
 //-------------------------------------------
 // TVCFSimulationWriter

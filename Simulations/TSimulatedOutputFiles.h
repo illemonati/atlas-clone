@@ -6,13 +6,13 @@
  */
 
 /**
- * 
+ *
  * Create structure for working with BAM or FASTQ files:
  *  - create vector populated from one of those two file types
  *  - create empty constructor
  *  - create two different open() methods (openFASTQ() and openBAM())
  *  - still have operators for the twos
- * 
+ *
 */
 
 #ifndef TSimulatedOutputFiles_H_
@@ -20,26 +20,33 @@
 
 #include <vector>
 #include "TSimulatedOutputFile.h"
+#include "TFastqFile.h"
+#include "TSimulatedOutputFile.h"
 //#include "TAlignment.h"
 
 
 namespace Simulations{
 
-class TSimulatedOutputFiles{
+    class TSimulatedOutputFiles{
 
     private:
-        //std::vector<TSimulatedBamOutputFile> _BamFileVector;          //Don't need it since BAM is a single file of multiple alignment  + already used
-                                                                        //in TBAMSimulator!!          
-        std::vector<FASTQ::TFastqFile> _FastqFileVector;        //need to be a pointer to single files
-    
+        std::vector<FASTQ::TFastqFile> _fastqFiles;        //need to be a pointer to single files //Simulations::TSimulatedOutputFile
+        //std::vector<BAM::TOutputBamFile> _bamFiles;
+        std::vector<std::string> filesIndex;                           //keep track of readGroups FASTQfiles
+
     public:
         TSimulatedOutputFiles();
-        void openBAMFile();
-        void openFASTQFile();
 
-        //void operator();
+        //explicit TSimulatedOutputFiles(std::vector<TSimulatedOutputFile *> *files);
 
-};
+        //initialization of vector of files
+
+        //methods to operate on files
+        void openFile(Simulations::TSimulatedOutputFile file);
+        void addFile(std::string fileName);
+
+        FASTQ::TFastqFile &operator[](size_t i);
+    };
 
 };      //namespace Simulations
 

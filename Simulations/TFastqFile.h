@@ -26,67 +26,61 @@
 #include "TSimulatedOutputFile.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Files/TFile.h"
+#include "coretools/Files/TOutputFile.h"
 
 namespace Simulations { class TSimulatedOutputFile; }
 
 namespace FASTQ{
 
-class TFastqFile : public Simulations::TSimulatedOutputFile {        
-                    //create temporary file from public coretools::TFile, not good practice to do multiple inheritance
+    class TFastqFile : public Simulations::TSimulatedOutputFile {
+        //create temporary file from public coretools::TFile, not good practice to do multiple inheritance
 
     private:
-    //istances regarding file handling
+        //istances regarding file handling
         std::string _fileName;
         std::string_view outputName;
-        //BamTools::BamReader _bamReader;     
-                //Bam reader object needs to exist because we use it to read the reads and because I need to check if the file 
-                //has been opened simultaneously by more than one program
+        //coretools::TOutputFile txtFile;
 
-    //generic inputs in case nothing is specified
-        static constexpr std::string_view genericIdentifiers = "@FS001:001:0000000:1:1:0:0 1:Y:1:AAACCC";		
-        static constexpr std::string_view genericFileName = "FASTQ_Simulation.fastq";
-
-    //istances regarding file content (mainly for indexed file)
+        //istances regarding file content (mainly for indexed file)
         bool _open = false;
         std::string _header;
         std::string _tmpRefID;
         uint16_t _readGroupID;
-        
-    //istances regarding writing Fastq informations such as sequence, Phred quality score and queues for sorting alignments per group read
+
+        //istances regarding writing Fastq information such as sequence, Phred quality score and queues for sorting alignments per group read
         BAM::TAlignment *alignment;
         std::string _sequence;
         std::string _qualities;
 
-    //queue of pointers to queues of next-sorted alignments and related methods
-    static std::queue<std::queue<BAM::TAlignment>*> alignmentQueues;            
+        //queue of pointers to queues of next-sorted alignments and related methods
+        //static std::queue<std::queue<BAM::TAlignment>*> alignmentQueues;
 
-    bool exists(uint16_t readGroupID);
+        //we get alignment per alignment, no need for a queue?
 
-    //methods operating on alignment content
+        //methods operating on alignment content
         void _writeAlignment(const BAM::TAlignment &alignment);
-        void sortRead(const BAM::TAlignment &alignment);
 
     public:
-    //constructor
+        //constructor
         TFastqFile(std::string_view fileName);
 
-    // File object  
-        coretools::TInputFile tmpFastqFile;
-    
-    //methods
-        void open(std::string_view fileName);
+        // File object
+        //coretools::TOutputFile _file(fileName);
+
+        //methods
+        void open(std::string_view filename);
         void close();
         void writeAlignment(const BAM::TAlignment &alignment);
         void writeAlignmentLater(const BAM::TAlignment &alignment);
 
-    //getters and setters
+        //getters and setters
         void setHeader(std::string header);     //important to set Header because it is not inherited from TFile since it is not a table
         void setHeader();            //set with generic identifiers
         void setOutputName(std::string outputName);
 
         bool isOpen() const { return _open; };
 
-};
+    };
 
 };      //namespace FASTQ
 

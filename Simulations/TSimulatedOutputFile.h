@@ -14,9 +14,9 @@
 
 namespace Simulations {
 
-class TSimulatedOutputFile{
-    protected:
-        coretools::TOutputFile simulatedOutputFile;
+    class TSimulatedOutputFile{
+//    protected:
+//        coretools::TOutputFile simulatedOutputFile;
 
     public:
         //TSimulatedOutputFile();   //since it is pure abstract a constructor does not need to exist
@@ -24,10 +24,10 @@ class TSimulatedOutputFile{
         virtual void open(std::string_view filename) = 0;       //following TFile instructions
         virtual void close() = 0;
         virtual void writeAlignment(const BAM::TAlignment &alignment) = 0;
-        
+
         //virtual void writeAlignmentLater(const BAM::TAlignment & alignment) = 0; 
-            //not pure virtual because of some random compile time error
-};
+        //not pure virtual because of some random compile time error
+    };
 
 };      //namespace Simulations
 
