@@ -1,0 +1,12 @@
+#! /bin/bash
+
+. $(dirname $0)/find_atlas
+
+#$atlas --task simulate --chrLength "20000000,10000000" --ploidy "2,1" --depth "10" --pmd "doubleStrand:Exponential[30,0.1,0.1,0.05]" --fixedSeed 0 --logFile simulate.out
+$atlas --task simulate --chrLength "2000000,1000000" --ploidy "2,1" --depth "10" --fixedSeed 0 --logFile simulate.out
+
+# theta with downsample
+$atlas --task theta --bam ATLAS_simulations.bam --chr "chr1" --averageDepth 10 --depth "10,5,2,1,0.5,0.2,0.1,0.05"  --fixedSeed 0 --extraVerbose --out downsample --logFile downsample.out 
+
+# theta genomewide with downsample
+$atlas --task theta --bam ATLAS_simulations.bam  --chr "chr1" --genomeWide --averageDepth 10 --depth "10{5},5{5},2{5},1{5},0.5{5},0.2{5},0.1{5},0.05{5}" --fixedSeed 0 --extraVerbose --out genomewide_downsample --logFile genomewide_downsample.out
