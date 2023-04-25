@@ -2,9 +2,30 @@
 
 . $(dirname $0)/find_atlas
 
-model="intercept[0.1];quality:polynomial[0.8,0.2,0.01]"
+recal="intercept[0.1];quality:polynomial[0.8,-0.1]"
+pmd="doubleStrand:Exponential[30,0.5,0.1,0.01]"
+depth="10,5,2,1,0.5"
+chrLength="5000000,5000000"
 
-$atlas --task simulate --chrLength "10000000,10000000" --ploidy "2,1" --depth "10" --pmd "doubleStrand:Exponential[30,0.1,0.1,0.05]" --recal $model --fixedSeed 0 --logFile simulate.out --out simulate
+$atlas --task simulate --chrLength $chrLength --ploidy "2,1" --depth "10" --fixedSeed 0 --logFile sim.out --out sim
+$atlas --task simulate --chrLength $chrLength --ploidy "2,1" --depth "10" --recal $recal --fixedSeed 0 --logFile simR.out --out simR
+$atlas --task simulate --chrLength $chrLength --ploidy "2,1" --depth "10" --pmd $pmd --fixedSeed 0 --logFile simP.out --out simP
+$atlas --task simulate --chrLength $chrLength --ploidy "2,1" --depth "10" --recal $recal --pmd $pmd --fixedSeed 0 --logFile simRP.out --out simRP
+
+$atlas --task theta --bam sim.bam --chr "chr1" --averageDepth 10 --depth $depth --fixedSeed 0 --out sim --logFile sim_downsample.out #--genomeWide 
+$atlas --task theta --bam simR.bam --chr "chr1" --averageDepth 10 --depth $depth --fixedSeed 0 --out simR --logFile simR_downsample.out #--genomeWide 
+$atlas --task theta --bam simP.bam --chr "chr1" --averageDepth 10 --depth $depth --fixedSeed 0 --out simP --logFile simP_downsample.out #--genomeWide 
+$atlas --task theta --bam simRP.bam --chr "chr1" --averageDepth 10 --depth $depth --fixedSeed 0 --out simRP --logFile simRP_downsample.out #--genomeWide 
+
+$atlas --task theta --bam simR.bam --recal $recal --chr "chr1" --averageDepth 10 --depth $depth --fixedSeed 0 --out simR_R --logFile simR_downsample_R.out #--genomeWide 
+$atlas --task theta --bam simP.bam --pmd $pmd --chr "chr1" --averageDepth 10 --depth $depth  --fixedSeed 0 --out simP_P --logFile simP_downsample_P.out  #--genomeWide 
+
+$atlas --task theta --bam simRP.bam --recal $recal --chr "chr1" --averageDepth 10 --depth $depth  --fixedSeed 0 --out simRP_R --logFile simRP_downsample_R.out #--genomeWide 
+$atlas --task theta --bam simRP.bam --pmd $pmd --chr "chr1" --averageDepth 10 --depth $depth  --fixedSeed 0 --out simRP_P --logFile simRP_downsample_P.out #--genomeWide 
+$atlas --task theta --bam simRP.bam --recal $recal --pmd $pmd --chr "chr1" --averageDepth 10 --depth $depth  --fixedSeed 0 --out simRP_RP --logFile simRP_downsample_RP.out #--genomeWide 
+
+exit
+
 
 # theta with downsample
 $atlas --task theta --bam simulate.bam --chr "chr1" --averageDepth 10 --depth "10,5,2,1,0.5,0.2"  --fixedSeed 0 --extraVerbose --out downsample --logFile downsample.out 

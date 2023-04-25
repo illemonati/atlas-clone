@@ -11,10 +11,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Plot theta data(s)")
     parser.add_argument("files", nargs='*', help="Data")
     parser.add_argument("--title", default="theta")
+    parser.add_argument("--depth0", type=float, default=10.)
 
     args = parser.parse_args()
-    totalMax = 0   
-    totalMin = 0
     # get header and cols
     for i, file in enumerate(args.files):
         f     = gzip.open(file)
@@ -48,28 +47,32 @@ if __name__ == "__main__":
             colMin = min(data[:, c])
             fileMin = min(fileMin, colMin)
 
-        real = means[0]
-
-        probs = r_[probs]
+        depths = r_[probs]*args.depth0
         means = r_[means]
         stds  = r_[stds]
 
-        print(file, probs, means, stds)
+        print(file, depths, means, stds)
 
         fmts= ["o-", "s-", "x-", "d-", "<-"]
         mks = [10, 8, 6, 4, 2]
-        plt.errorbar(probs, means, yerr=stds, fmt=fmts[i], markersize=8,linewidth=2, capsize=6, label=file)
 
+        ax1 = plt.subplot(211)
+        plt.errorbar(depths, means, yerr=stds, fmt=fmts[i], markersize=8,linewidth=2, capsize=6, label=file)
         plt.xscale("log")
         plt.yscale("log")
+        plt.hlines(means[0], 0, 10, "k", "dashed")
+        plt.subplot(212, sharex=ax1)
+        plt.errorbar(depths, means/means[0], yerr=stds, fmt=fmts[i], markersize=8,linewidth=2, capsize=6, label=file)
+        plt.xscale("log")
+        plt.ylabel(r"$\theta/\theta_0$")
+        plt.hlines(1, 0, 10, "k", "dashed")
+        plt.xlabel(r"Depth")
 
-        totalMax = max(totalMax, fileMax)
-        totalMin = min(totalMin, fileMin)
-        plt.hlines(real, 0, 10, "k", "dashed")
-
-    plt.ylim(totalMin, totalMax+(totalMax*0.3))
+    plt.subplot(211)
+    plt.ylim(5e-4, 2e-3)
+    plt.xlim(min(depths)/1.1, max(depths)*1.1)
     plt.legend()
-    plt.xlabel(r"Downsampling probability")
-    plt.ylabel(r"$\theta$")
     plt.title(args.title)
-    plt.savefig(args.files[0].split('_')[0] + ".png")
+    plt.ylabel(r"$\theta$")
+    plt.show()
+    #plt.savefig(args.files[0].split('_')[0] + ".png")
