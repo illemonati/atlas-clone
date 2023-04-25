@@ -17,18 +17,17 @@ if __name__ == "__main__":
     # get header and cols
     for i, file in enumerate(args.files):
         f     = gzip.open(file)
-        cols  = []
-        heads = []
-        probs =  []
+        probs = {}
         for j, key in enumerate(f.readline().split()):
             key = key.decode()
             if "theta_MLE" in key:
-                cols.append(j)
-                heads.append(key)
                 if key[0] == "p":
-                    probs.append(float(key[1:].split("_")[0]))
+                    p = float(key[1:].split("_")[0])
                 else:
-                    probs.append(1.)
+                    p = 1.
+                if not p in probs:
+                    probs[p] = []
+                probs[p].append(j)
         f.close()
 
         # get average and std
@@ -37,24 +36,22 @@ if __name__ == "__main__":
             data = array([data])
         means = []
         stds = []
-        fileMax = 0
-        fileMin = 0
-        for c in cols:
-            means.append(mean(data[:, c]))
-            stds.append(std(data[:, c]))
-            colMax = max(data[:, c])
-            fileMax = max(fileMax, colMax)
-            colMin = min(data[:, c])
-            fileMin = min(fileMin, colMin)
+        for p in probs.keys():
+            d = []
+            for c in probs[p]:
+                d = r_[d, data[:, c]]
+            print(d)
+            means.append(mean(d))
+            stds.append(std(d))
 
-        depths = r_[probs]*args.depth0
+        depths = r_[list(probs.keys())]*args.depth0
         means = r_[means]
         stds  = r_[stds]
 
         print(file, depths, means, stds)
 
-        fmts= ["o-", "s-", "x-", "d-", "<-"]
-        mks = [10, 8, 6, 4, 2]
+        fmts= ["o-", "s-", "X-", "d-", "p-", "<-", "^-", ">-"]
+        mks = [10, 9, 8, 7, 6, 5, 4, 3, 2]
 
         ax1 = plt.subplot(211)
         plt.errorbar(depths, means, yerr=stds, fmt=fmts[i], markersize=8,linewidth=2, capsize=6, label=file)
