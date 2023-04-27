@@ -28,7 +28,7 @@ private:
 	// read simulator
 	std::vector<std::unique_ptr<TReadSimulator>> _readSimulators;
 	std::vector<coretools::Probability> _simGroupFrequencies;
-	std::vector<coretools::Probability> _cumulSimGroupFrequenies;
+	std::vector<coretools::Probability> _cumulSimGroupFrequencies;
 
 	// function to initialize read groups
 	void _initializeReadGroups(const BAM::RGInfo::TReadGroupInfo & RGinfo);
@@ -42,7 +42,7 @@ public:
 	TReadSimulators(TReadSimulators && other) = default;
 
 	//interact
-	void simulate(const genometools::TGenomePosition & Position, const std::vector<Base>& Haplotype, BAM::TOutputBamFile &BamFile);
+	void simulate(const genometools::TGenomePosition & Position, const std::vector<Base>& Haplotype, Simulations::TSimulatedOutputFile &SimFile);
 
 	//getters
 	[[nodiscard]] std::unique_ptr<TReadSimulator>& sample();

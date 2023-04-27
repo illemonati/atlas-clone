@@ -41,7 +41,7 @@ void TReadSimulators::_initializeReadGroups(const TReadGroupInfo & RGinfo) {
 }
 
 void TReadSimulators::_initializeReadGroupFrequencies(const TReadGroupInfo &RGinfo) {
-	_cumulSimGroupFrequenies.resize(RGinfo.size());
+	_cumulSimGroupFrequencies.resize(RGinfo.size());
 	_simGroupFrequencies.resize(RGinfo.size());
 
 	using BAM::RGInfo::InfoType;
@@ -49,7 +49,7 @@ void TReadSimulators::_initializeReadGroupFrequencies(const TReadGroupInfo &RGin
 	std::vector<double> tmp;
 	RGinfo.fillContainerPerReadGroup(tmp, InfoType::RGFrequency);
 	coretools::fillFromNormalized(_simGroupFrequencies, tmp);
-	coretools::fillCumulative(_simGroupFrequencies, _cumulSimGroupFrequenies);
+	coretools::fillCumulative(_simGroupFrequencies, _cumulSimGroupFrequencies);
 }
 
 void TReadSimulators::_determineMaxFragmentLength(){
@@ -108,7 +108,7 @@ TReadSimulators::TReadSimulators(const std::string & RgInfoFileName){
 
 	// D) other things
 	//----------------
-	// initialize read group frequencies frequencies
+	// initialize read group frequencies
 
 	//warn if read group info columns were not used
 	logfile().endIndent();
@@ -119,14 +119,16 @@ TReadSimulators::TReadSimulators(const std::string & RgInfoFileName){
 	_determineMaxFragmentLength();
 }
 
-void TReadSimulators::simulate(const genometools::TGenomePosition & Position, const std::vector<Base>& Haplotype, BAM::TOutputBamFile &BamFile){
+void TReadSimulators::simulate(const genometools::TGenomePosition & Position, const std::vector<Base>& Haplotype, Simulations::TSimulatedOutputFile &SimFile){
 	//sample which simulator to use
-	size_t thisSimulator = randomGenerator().pickOne(_cumulSimGroupFrequenies);
-	_readSimulators[thisSimulator]->simulate(Position, Haplotype, BamFile);
+	size_t thisSimulator = randomGenerator().pickOne(_cumulSimGroupFrequencies);
+	_readSimulators[thisSimulator]->simulate(Position, Haplotype, SimFile);
 }
 
+//couldn't I just recreate a similar simulate method without the shuffling? wouldn't it be easier to sort into fastq files?
+
 std::unique_ptr<TReadSimulator>& TReadSimulators::sample(){
-	return _readSimulators[randomGenerator().pickOne(_cumulSimGroupFrequenies)];
+	return _readSimulators[randomGenerator().pickOne(_cumulSimGroupFrequencies)];
 }
 
 

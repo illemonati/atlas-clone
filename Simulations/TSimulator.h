@@ -81,7 +81,7 @@ namespace Simulations {
         std::unique_ptr<TSimulatorBamFiles> _bamFiles;
 
         // read simulator
-        void _initializeReadSimulator();
+        void _initializeBamReadSimulator();
 
         // functions to simulate
         // void _simulateReadsFromHaplotypes(const genometools::TChromosome &thisChr,
@@ -111,14 +111,16 @@ namespace Simulations {
     class TFastqSimulator : public TSimulator{
     private:
         //store of fastqFiles created
-        // Simulations::TSimulatedOutputFiles _fastqFiles;          //before removing comment -> check constructor of TSimulatedOutputFiles
-        std::vector<TReadSimulators> _readSimulators; // one per sample
         std::unique_ptr<Simulations::TSimulatedOutputFiles> _fastqFiles;
+        std::vector<TReadSimulators> _FastqReadSimulators; // one per sample
+
+        void _initializeFastqReadSimulator();
 
     public:
         //constructor/deconstructor
         TFastqSimulator(const std::string &method);
         ~TFastqSimulator() = default;
+
         //overridden method from TSimulator (mandatory + called by runSimulations() )
         void _simulateAndWrite(const genometools::TChromosome &Chromosome, TSimulatorHaplotypes &Haplotypes, uint32_t avgDepth) override;
         // simulate reads and write bam files

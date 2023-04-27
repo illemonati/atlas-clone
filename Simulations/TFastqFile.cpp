@@ -91,7 +91,11 @@ namespace FASTQ{
 
     void TFastqFile::setHeader(std::string header){  _header = header; }
 
-    void TFastqFile::setHeader(){  }
+    void TFastqFile::setHeader(){}
+
+    std::string_view TFastqFile::getName() {
+        return _fileName;
+    }
 
 };		//namespace FASTQ
 

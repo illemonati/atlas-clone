@@ -80,6 +80,8 @@ namespace FASTQ{
 
         bool isOpen() const { return _open; };
 
+        std::string_view getName();
+
     };
 
 };      //namespace FASTQ

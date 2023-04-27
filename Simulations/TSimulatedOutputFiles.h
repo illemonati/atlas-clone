@@ -22,6 +22,9 @@
 #include "TSimulatedOutputFile.h"
 #include "TFastqFile.h"
 #include "TSimulatedOutputFile.h"
+#include "../coretools/core/coretools/Main/TLog.h"
+#include "TReadSimulators.h"
+
 //#include "TAlignment.h"
 
 
@@ -30,12 +33,17 @@ namespace Simulations{
     class TSimulatedOutputFiles{
 
     private:
-        std::vector<FASTQ::TFastqFile> _fastqFiles;        //need to be a pointer to single files //Simulations::TSimulatedOutputFile
-        //std::vector<BAM::TOutputBamFile> _bamFiles;
-        std::vector<std::string> filesIndex;                           //keep track of readGroups FASTQfiles
+        std::vector<FASTQ::TFastqFile> _fastqFiles;
+        std::vector<std::string_view> filesIndex;                           //keep track of readGroups FASTQfiles
+        std::string _outputFileName;
+
+        //std::vector<BAM::TOutputBamFile> _bamFiles;               WHAT TO DO WITH BAM?
+
+        std::string newName();
 
     public:
-        TSimulatedOutputFiles();
+        TSimulatedOutputFiles(uint32_t NumFiles, const std::string & Outname, std::vector<TReadSimulators> & ReadSimulators,
+                              const genometools::TChromosomes &Chromosomes);
 
         //explicit TSimulatedOutputFiles(std::vector<TSimulatedOutputFile *> *files);
 
@@ -43,7 +51,7 @@ namespace Simulations{
 
         //methods to operate on files
         void openFile(Simulations::TSimulatedOutputFile file);
-        void addFile(std::string fileName);
+        void addFile();
 
         FASTQ::TFastqFile &operator[](size_t i);
     };

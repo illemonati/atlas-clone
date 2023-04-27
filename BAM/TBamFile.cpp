@@ -60,13 +60,8 @@ TBamFile::TBamFile() : TSimulatedOutputFile(){
 	_lastProgressPrinted = 0;
 };
 
-void TBamFile::writeAlignment(const BAM::TAlignment & alignment){
-	
-}
-
-void TBamFile::writeAlignmentLater(const BAM::TAlignment &alignment){
-	
-}
+void TBamFile::writeAlignment(const BAM::TAlignment &alignment) {}
+void TBamFile::writeAlignmentLater(const BAM::TAlignment &alignment) {}
 
 void TBamFile::setLimits(){
 	//number of reads
