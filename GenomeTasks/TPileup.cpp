@@ -134,13 +134,12 @@ TPileup::TPileup():TGenome_windows(){
 	if (parameters().parameterExists("histograms") || parameters().parameterExists("onlySummaries")){
 		logfile().startIndent("Will print the following histograms (parameter 'histograms'):");
 		std::set<std::string> histograms;
-		parameters().fillParameterIntoContainerWithDefault("histograms", histograms, ',', {"depth", "qualities", "contexts", "allelicDepth"});
+		parameters().fillParameterIntoContainerWithDefault("histograms", histograms, ',', {"depth", "qualities", "contexts"});
 
 		if (histograms.empty()){
 			histograms.emplace("depth");
 			histograms.emplace("qualities");
 			histograms.emplace("contexts");
-			histograms.emplace("allelicDepth");
 		}
 
 		_histSettings.set<Depths>(impl::parseField(histograms, "depth", "Sequencing depth"));
