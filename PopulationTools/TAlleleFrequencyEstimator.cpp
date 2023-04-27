@@ -40,7 +40,7 @@ TAlleleFreqEstimatorHardyWeinberg::TAlleleFreqEstimatorHardyWeinberg(){
 	maxIter = 1000;
 };
 
-Probability TAlleleFreqEstimatorHardyWeinberg::estimate(const TSampleLikelihoods* storage, uint32_t numSamplesInPop, double epsilonF){
+Probability TAlleleFreqEstimatorHardyWeinberg::estimate(const TSampleLikelihoods* storage, size_t numSamplesInPop, double epsilonF){
 	using BG = genometools::BiallelicGenotype;
 	genometools::THardyWeinbergGenotypeProbabilities pGenotype;
 	Probability weights[3];
@@ -54,7 +54,7 @@ Probability TAlleleFreqEstimatorHardyWeinberg::estimate(const TSampleLikelihoods
 		//calculate sums
 		double sum_1 = 0.0; double sum_2 = 0.0;
 		int n = 0;
-		for(uint32_t i=0; i<numSamplesInPop; i++){
+		for (size_t i=0; i<numSamplesInPop; i++){
 			if(!storage[i].isMissing()){
 				if(storage[i].isHaploid()){
 					weights[0] = (Probability) storage[i][BG::haploidFirst]  * pGenotype[BG::haploidFirst];
@@ -151,14 +151,14 @@ TAlleleFreqEstimatorBayes::TAlleleFreqEstimatorBayes(){
 	_grid.resize(gridSize);
 };
 
-Probability TAlleleFreqEstimatorBayes::_guessInitialAlleleFrequency(const TSampleLikelihoods* storage, uint32_t numSamplesInPopulation){
+Probability TAlleleFreqEstimatorBayes::_guessInitialAlleleFrequency(const TSampleLikelihoods* storage, size_t numSamplesInPopulation){
 	using BG = genometools::BiallelicGenotype;
 	//calculate average posterior probs using a non-informative prior.
 	double sum_1 = 0.0;
 	double sum_2 = 0.0;
 	int n = 0;
 
-	for(uint32_t i=0; i<numSamplesInPopulation; i++){
+	for (size_t i=0; i<numSamplesInPopulation; i++){
 		if(!storage[i].isMissing()){
 			if(storage[i].isHaploid()){
 				double sum = (Probability) storage[i][BG::homoFirst] + (Probability) storage[i][BG::homoSecond];
@@ -195,19 +195,19 @@ double TAlleleFreqEstimatorBayes::_prior(const genometools::THardyWeinbergGenoty
 	}
 };
 
-coretools::LogProbability TAlleleFreqEstimatorBayes::_calcLogLikelihood(const TSampleLikelihoods* storage, uint32_t numSamplesInPopulation, const genometools::THardyWeinbergGenotypeProbabilities & pGenotype){
+coretools::LogProbability TAlleleFreqEstimatorBayes::_calcLogLikelihood(const TSampleLikelihoods* storage, size_t numSamplesInPopulation, const genometools::THardyWeinbergGenotypeProbabilities & pGenotype){
 	coretools::LogProbability LL = 0.0;
-	for(uint32_t i=0; i<numSamplesInPopulation; i++){
+	for (size_t i=0; i<numSamplesInPopulation; i++){
 		LL += storage[i].HWESum<coretools::LogProbability>(pGenotype);
 	}
 	return(LL);
 };
 
-double TAlleleFreqEstimatorBayes::_calcPosterior(const TSampleLikelihoods* storage, uint32_t numSamplesInPopulation, const genometools::THardyWeinbergGenotypeProbabilities & pGenotype){
+double TAlleleFreqEstimatorBayes::_calcPosterior(const TSampleLikelihoods* storage, size_t numSamplesInPopulation, const genometools::THardyWeinbergGenotypeProbabilities & pGenotype){
 	return _calcLogLikelihood(storage, numSamplesInPopulation, pGenotype) + _prior(pGenotype);
 };
 
-void TAlleleFreqEstimatorBayes::_fillInitialGrid(const TSampleLikelihoods* storage, uint32_t numSamplesInPopulation){
+void TAlleleFreqEstimatorBayes::_fillInitialGrid(const TSampleLikelihoods* storage, size_t numSamplesInPopulation){
 	genometools::THardyWeinbergGenotypeProbabilities pGenotype;
 	for(int i=0; i<initialGridSize; ++i){
 		pGenotype.set(_initialGrid[i].f);
@@ -215,7 +215,7 @@ void TAlleleFreqEstimatorBayes::_fillInitialGrid(const TSampleLikelihoods* stora
 	}
 };
 
-void TAlleleFreqEstimatorBayes::_estimateMAP(const TSampleLikelihoods* storage, uint32_t numSamplesInPopulation){
+void TAlleleFreqEstimatorBayes::_estimateMAP(const TSampleLikelihoods* storage, size_t numSamplesInPopulation){
 	//use simple line-search to find MAP
 	//initialize
 	genometools::THardyWeinbergGenotypeProbabilities pGenotype;
@@ -259,7 +259,7 @@ void TAlleleFreqEstimatorBayes::_estimateMAP(const TSampleLikelihoods* storage, 
 	}
 };
 
-void TAlleleFreqEstimatorBayes::_estimateCredibleIntervals(const TSampleLikelihoods* storage, uint32_t numSamplesInPopulation){
+void TAlleleFreqEstimatorBayes::_estimateCredibleIntervals(const TSampleLikelihoods* storage, size_t numSamplesInPopulation){
 	//use initial grid to define final grid
 	//search first that is larger than LL_atMAP - logGridThreshold
 	int first = 0;
@@ -355,7 +355,7 @@ void TAlleleFreqEstimatorBayes::_estimateCredibleIntervals(const TSampleLikeliho
 		f_CI_upper = 1.0;
 };
 
-Probability TAlleleFreqEstimatorBayes::estimate(const TSampleLikelihoods* storage, uint32_t numSamplesInPop){
+Probability TAlleleFreqEstimatorBayes::estimate(const TSampleLikelihoods* storage, size_t numSamplesInPop){
 	//get MAP estimate
 	_estimateMAP(storage, numSamplesInPop);
 
@@ -372,12 +372,12 @@ void TAlleleFreqEstimatorBayes::composeHeader(std::vector<std::string> & header,
 	header.push_back("freqAltHW_CI" + toString(credibleInterval) + "_upper_" + popName);
 };
 
-void TAlleleFreqEstimatorBayes::estimateAndWrite(const TSampleLikelihoods* storage, uint32_t numSamplesInPop, TOutputFile & out){
+void TAlleleFreqEstimatorBayes::estimateAndWrite(const TSampleLikelihoods* storage, size_t numSamplesInPop, TOutputFile & out){
 	//write out MAP, lower and upper CI
 	out.write(estimate(storage, numSamplesInPop), lowerCredibleInterval(), upperCredibleInterval());
 };
 
-double TAlleleFreqEstimatorBayes::runMCMC(const TSampleLikelihoods* storage, const uint32_t numSamplesInPopulation, const double frac, std::vector<double> & mcmcSamples){
+double TAlleleFreqEstimatorBayes::runMCMC(const TSampleLikelihoods* storage, size_t numSamplesInPopulation, double frac, std::vector<double> & mcmcSamples){
 	//prepare MCMC
 	size_t numAccepted = 1;
 	double proposalWidth = frac * (f_CI_upper - f_CI_lower);
@@ -467,23 +467,23 @@ void TAlleleFreqMCMCOutput::initialize(std::string popString, genometools::TPopu
 	}
 };
 
-void TAlleleFreqMCMCOutput::write(std::vector< std::vector<double> > & mcmc, const std::string chr, const uint64_t pos){
+void TAlleleFreqMCMCOutput::write(std::vector< std::vector<double> > & mcmc, std::string_view chr, size_t pos){
 	if(popIndex.size() > 0){
 		//open output file
-		std::string filename = outputName + chr + "_" + toString(pos) + ".txt.gz";
+		const std::string filename = outputName.append(chr) + "_" + toString(pos) + ".txt.gz";
 		outFile.open(filename);
 		outFile.writeHeader(header);
 
 		//get min length of chains
 		size_t len = mcmc[0].size();
-		for(auto& it : mcmc){
+		for (auto& it : mcmc){
 			if(it.size() < len)
 				len = it.size();
 		}
 
 		//write MCMC to file
-		for(size_t i=0; i<len; ++i){
-			for(auto& p : popIndex){
+		for (size_t i=0; i<len; ++i){
+			for (auto& p : popIndex){
 				outFile << mcmc[p][i];
 			}
 			outFile.endln();
@@ -527,13 +527,13 @@ std::vector<std::string> TAlleleFreqEstimator::_composeHeaderAlleleFreq(bool wri
 	return(header);
 };
 
-void TAlleleFreqEstimator::_writeBayesianEstimatesOnePop(TOutputFile & out, TSampleLikelihoods* theseSamples, uint32_t numSamples, TAlleleFreqEstimatorBayes* BHWEstimator){
+void TAlleleFreqEstimator::_writeBayesianEstimatesOnePop(TOutputFile & out, TSampleLikelihoods* theseSamples, size_t numSamples, TAlleleFreqEstimatorBayes* BHWEstimator){
 	out << BHWEstimator->estimate(theseSamples, numSamples); //MAP
 	out << BHWEstimator->lowerCredibleInterval();
 	out << BHWEstimator->upperCredibleInterval();
 };
 
-void TAlleleFreqEstimator::_writeEstimatesOnePop(TOutputFile & out, genometools::TGenotypeFrequencies & genoFrequencies, double alleleFrequency, TSampleLikelihoods* theseSamples, uint32_t numSamples, TAlleleFreqEstimatorHardyWeinberg & MLHWEstimator, TAlleleFreqEstimatorBayes* BHWEstimator, double epsF, bool writeGenoFreq, bool doBayesian){
+void TAlleleFreqEstimator::_writeEstimatesOnePop(TOutputFile & out, genometools::TGenotypeFrequencies & genoFrequencies, double alleleFrequency, TSampleLikelihoods* theseSamples, size_t numSamples, TAlleleFreqEstimatorHardyWeinberg & MLHWEstimator, TAlleleFreqEstimatorBayes* BHWEstimator, double epsF, bool writeGenoFreq, bool doBayesian){
 	//write num samples with data
 	out << genoFrequencies.numDiploid();
 	out << genoFrequencies.numHaploid();
@@ -807,7 +807,7 @@ void TAlleleFreqEstimator::writeAlleleFrequencyLikelihoods() {
 			for(auto& f : freq){
 				genoProb.set(f);
 				coretools::LogProbability LL = 0.0;
-				for(uint32_t i=0; i<samples.numSamplesInPop(p); i++){
+				for (size_t i=0; i<samples.numSamplesInPop(p); i++){
 					LL += storage[samples.startIndex(p) + i].HWESum<coretools::LogProbability>(genoProb);
 				}
 				out[p].write(LL);

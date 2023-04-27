@@ -21,9 +21,9 @@ using coretools::instances::logfile;
 //--------------------------
 TAncestralAlleleEstimator::TAncestralAlleleEstimator(){
     
-    _minorCountMax = parameters().getParameterWithDefault<uint32_t>("minorCountMaximum", 0);
+    _minorCountMax = parameters().getParameterWithDefault<size_t>("minorCountMaximum", 0);
     logfile().list("Setting maximum count of minor allele to ", _minorCountMax, ". (parameter 'minorCountMaximum')");
-    _totalCountMin = parameters().getParameterWithDefault<uint32_t>("totalCountMinimum", 0);
+    _totalCountMin = parameters().getParameterWithDefault<size_t>("totalCountMinimum", 0);
     logfile().list("Setting minimum total allele count to ", _totalCountMin, ". (parameter 'totalCountMinimum')");
 
     const auto alleleCountsFileName = parameters().getParameter<std::string>("alleleCounts");
@@ -49,7 +49,7 @@ void TAncestralAlleleEstimator::run(){
     const auto population = parameters().getParameterWithDefault<std::string>("population", populationNames[0]);
     //calculating index of population in vector
     auto it = std::find(populationNames.begin(), populationNames.end(), population);
-    uint16_t index;
+    size_t index;
     if (it != populationNames.end()){
         index = it - populationNames.begin();
     } else {
@@ -59,7 +59,7 @@ void TAncestralAlleleEstimator::run(){
 
     for (auto &fI: _fastaIndex){
         writer.newContig(fI.contig);
-        for (uint64_t pos = 1; pos <= fI.length; pos++){
+        for (size_t pos = 1; pos <= fI.length; pos++){
             if(pos == _alleleCounts.front().pos && fI.contig == _alleleCounts.front().chr){
                 if(_alleleCounts.front()[index].minor <= _minorCountMax && _totalCountMin <= _alleleCounts.front()[index].total){
                     writer.write(_alleleCounts.front().majorAllele);

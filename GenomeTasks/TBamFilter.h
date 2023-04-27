@@ -93,7 +93,7 @@ protected:
 
 	BAM::TOutputBamFile _outBam;
 
-	uint32_t _maxDistanceBetweenMates;
+	size_t _maxDistanceBetweenMates;
 	bool _recalibrate;
 	bool _incorporatePMD;
 	bool _keepOrphans;
@@ -138,7 +138,7 @@ protected:
 		auto it = _alignmentStorage.begin();
 		while(it != _alignmentStorage.end() &&
 			  it->alignment() < position &&
-			  (it->ready() || static_cast<uint32_t>(abs(position - it->alignment())) > _maxDistanceBetweenMates)
+			  (it->ready() || (position - it->alignment()) > _maxDistanceBetweenMates)
 	    ){
 			_writeOrFilterAsOrphan(it);
 		}

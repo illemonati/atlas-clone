@@ -79,17 +79,17 @@ void TSexEstimator::_handleWindow() {
 					// find Bed window with sites to keep in current genome window
 					const auto window = chromosome->windows.find(windowNum)->second;
 					// this iterator travels along the genome window, while pointing to the positions of sites
-					auto pos          = _window.from() + (window->positions.front() - _window.from().position());
+					auto pos          = _window.from() + (window.positions.front() - _window.from().position());
 					// this iterator also travels along the genome window, but points to TSite objects instead, which
 					// can print out the depth at each site
 					auto siteIterator =
-						_window.begin() + (window->positions.front() - _window.from().position());
+						_window.begin() + (window.positions.front() - _window.from().position());
 
 					// this iterator that travels along the bed window, which contains the sites that are supposed to be
 					// analyzed
-					auto it = window->positions.begin();
+					auto it = window.positions.begin();
 
-					for (; pos.position() <= window->positions.back(); ++pos) {
+					for (; pos.position() <= window.positions.back(); ++pos) {
 						// if the position in the genome and bed window are equal, add the depth at this site to the
 						// histogram and increment the bed iterator
 						if (pos.position() == *it) {

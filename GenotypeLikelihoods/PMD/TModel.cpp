@@ -24,13 +24,12 @@ TBaseProbabilities TNoPMD::massFunction(genometools::Genotype g, const TBaseLike
 }
 
 Strand getStrand(std::string_view s) {
-		constexpr coretools::TStrongArray<std::string_view, Strand> strands{{"singleStrand", "doubleStrand"}};
-		for (auto strand = Strand::min; strand < Strand::max; ++strand) {
-			if (s == strands[strand]) return strand;
-		}
-		UERROR("Wrong strand defined. Use either ", strands.front(), " or ", strands.back(), "!");
+	constexpr coretools::TStrongArray<std::string_view, Strand> strands{{"singleStrand", "doubleStrand"}};
+	for (auto strand = Strand::min; strand < Strand::max; ++strand) {
+		if (s == strands[strand]) return strand;
+	}
+	UERROR("Wrong strand defined. Use either ", strands.front(), " or ", strands.back(), "!");
 }
-
 
 TModel *makeType(std::string_view pmdString) {
 	TSplitter spl(pmdString, ':');

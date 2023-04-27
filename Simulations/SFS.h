@@ -21,9 +21,7 @@ namespace Simulations {
 //--------------------------------
 
 class SFS {
-protected:
-	SFS() = default;
-
+private:
 	std::vector<size_t> _numChrPerPop;
 	std::vector<size_t> _dimensions;
 	size_t _numChr{};
@@ -32,28 +30,25 @@ protected:
 
 	coretools::TSubsamplePicker _picker;
 
-	void _setDerivedDiploid(const uint32_t l, TSimulatorHaplotypes & haplotypes, const size_t N, const size_t k, const size_t shift, const Base derived);
-	void _setDerivedHaploid(const uint32_t l, TSimulatorHaplotypes & haplotypes, const size_t N, const size_t k, const size_t shift, const Base derived);
+	void _setDerivedDiploid(size_t l, TSimulatorHaplotypes & haplotypes, size_t N, size_t k, size_t shift, Base derived);
+	void _setDerivedHaploid(size_t l, TSimulatorHaplotypes & haplotypes, size_t N, size_t k, size_t shift, Base derived);
 
-	size_t _simulateSite(const uint32_t l, TSimulatorHaplotypes & haplotypes, const Base ancestral, const Base derived, std::function<void(const uint32_t, TSimulatorHaplotypes &, const size_t, const size_t, const size_t, const Base)> func);
+	size_t _simulateSite(size_t l, TSimulatorHaplotypes & haplotypes, Base ancestral, Base derived, std::function<void(size_t, TSimulatorHaplotypes &, size_t, size_t, size_t, Base)> func);
 
 public:
-
-
 	SFS(const std::string &filename);
-	SFS(const SFS &other, float MonoFrac);
-	SFS(uint32_t numChr, float theta);
-	SFS(uint32_t numChr, uint32_t onlyThisBin);
-	virtual ~SFS() = default;
+	SFS(const SFS &other, double MonoFrac);
+	SFS(size_t numChr, double theta);
+	SFS(size_t numChr, size_t onlyThisBin);
 
-	virtual uint32_t numChromosomes() const noexcept { return _numChr; };
+	size_t numChromosomes() const noexcept { return _numChr; };
 	double monoFrac() const noexcept { return sfs.front(); };
-	void writeToFile(const std::string &filename, const bool &writeLog = false);
+	void writeToFile(const std::string& filename, bool writeLog = false) const;
 
-	size_t simulateSiteDiploid(const uint32_t l, TSimulatorHaplotypes & haplotypes, const Base ancestral, const Base derived); //return true if site was polymorphic
-	size_t simulateSiteHaploid(const uint32_t l, TSimulatorHaplotypes & haplotypes, const Base ancestral, const Base derived); //return true if site was polymorphic
+	size_t simulateSiteDiploid(size_t l, TSimulatorHaplotypes & haplotypes, Base ancestral, Base derived); //return true if site was polymorphic
+	size_t simulateSiteHaploid(size_t l, TSimulatorHaplotypes & haplotypes, Base ancestral, Base derived); //return true if site was polymorphic
 
-	virtual double calcLLOneSite(const std::vector<float> &gl);
+	double calcLLOneSite(const std::vector<double> &gl);
 };
 
 /*

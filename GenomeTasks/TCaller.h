@@ -209,9 +209,10 @@ public:
 class TCallerDiploid:public TCaller{
 protected:
 	//uint8_t indexOfMax, indexOfSecond;
-	genometools::Genotype genotypeAtMax, genotypeAtSecond;
+	genometools::Genotype _genotypeAtMax{};
+	genometools::Genotype _genotypeAtSecond{};
 	std::string AB, AI;
-	bool imbalanceCalculated;
+	bool imbalanceCalculated = false;
 	//TGenotypeData tmpGenoData;
 
 	void _clearAfterCall() override;

@@ -347,8 +347,9 @@ std::string TCaller::_composeVCFString(std::vector<std::string (TCaller::*)(cons
 	++it;
 
 	//loop over rest
-	for(; it != vec.end(); ++it)
+	for(; it != vec.end(); ++it) {
 		info += ':' + (this->*(*it))(site, genotypeLikelihoods);
+	}
 
 	return info;
 };
@@ -426,9 +427,9 @@ void TCaller::call(const std::string & chr, long pos, const TSite & site, TGenot
 	referenceBase = site.refBase;
 
 	//check if there is data
-	if(site.empty() || (referenceBase == genometools::Base::N && !_allowTriallelicSites) || !_callGenotype(site, genotypeLikelihoods))
+	if(site.empty() || (referenceBase == genometools::Base::N && !_allowTriallelicSites) || !_callGenotype(site, genotypeLikelihoods))  {
 		_writeMissingDataToVCF(site);
-	else {
+	} else {
 		_writeCallToVCF(chr, pos, site, genotypeLikelihoods);
 	}
 };
@@ -784,33 +785,33 @@ void TCallerDiploid::_clearAfterCall(){
 
 void TCallerDiploid::callGenotypeFromMetric(const TGenotypeProbabilities & metric){
 	using namespace genometools;
-	const auto [genotypeAtMax, genotypeAtSecond] = sampleFirstSecond(metric);
+	std::tie(_genotypeAtMax, _genotypeAtSecond) = sampleFirstSecond(metric);
 
 	//decide on alternative alleles
-	if(first(genotypeAtMax) == referenceBase){
-		if(second(genotypeAtMax) == referenceBase){
+	if(first(_genotypeAtMax) == referenceBase){
+		if(second(_genotypeAtMax) == referenceBase){
 			_calledGenotype = "0/0";
 			//MLE is homozygous reference -> find second best allele
-			if(first(genotypeAtSecond) == referenceBase)
-				_altAlleles.push_back(second(genotypeAtSecond));
-			else if(second(genotypeAtSecond) == referenceBase)
-				_altAlleles.push_back(first(genotypeAtSecond));
+			if(first(_genotypeAtSecond) == referenceBase)
+				_altAlleles.push_back(second(_genotypeAtSecond));
+			else if(second(_genotypeAtSecond) == referenceBase)
+				_altAlleles.push_back(first(_genotypeAtSecond));
 			else {
 				//none is ref, pick at random
-				const auto b = randomGenerator().getRand() < 0.5 ? first(genotypeAtSecond) : second(genotypeAtSecond);
+				const auto b = randomGenerator().getRand() < 0.5 ? first(_genotypeAtSecond) : second(_genotypeAtSecond);
 				_altAlleles.push_back( b );
 			}
 		} else {
-			_altAlleles.push_back(second(genotypeAtMax));
+			_altAlleles.push_back(second(_genotypeAtMax));
 			_calledGenotype = "0/1A";
 		}
 	} else {
-		if(second(genotypeAtMax) == referenceBase){
-			_altAlleles.push_back(first(genotypeAtMax));
+		if(second(_genotypeAtMax) == referenceBase){
+			_altAlleles.push_back(first(_genotypeAtMax));
 			_calledGenotype = "0/1B";
 		} else {
-			if(isHomozygous(genotypeAtMax)){
-				_altAlleles.push_back(first(genotypeAtMax));
+			if(isHomozygous(_genotypeAtMax)){
+				_altAlleles.push_back(first(_genotypeAtMax));
 				_calledGenotype = "1/1";
 
 				//find second best allele, but give preference to reference in case likelihoods are equal
@@ -820,15 +821,15 @@ void TCallerDiploid::callGenotypeFromMetric(const TGenotypeProbabilities & metri
 
 					//only use second alternative allele in case het genotype with reference is less likely
 					if(referenceBase == Base::N ||
-					   (metric[genotype(referenceBase, first(genotypeAtMax))] < metric[ genotypeAtSecond]
-						&& metric[genotype(referenceBase, referenceBase) ] < metric[ genotypeAtSecond ])){
-						if(first(genotypeAtSecond) == referenceBase || first(genotypeAtSecond) == _altAlleles[0])
-							_altAlleles.push_back(second(genotypeAtSecond));
-						else if(second(genotypeAtSecond) == referenceBase || second(genotypeAtSecond) == _altAlleles[0])
-							_altAlleles.push_back(first(genotypeAtSecond));
+					   (metric[genotype(referenceBase, first(_genotypeAtMax))] < metric[ _genotypeAtSecond]
+						&& metric[genotype(referenceBase, referenceBase) ] < metric[ _genotypeAtSecond ])){
+						if(first(_genotypeAtSecond) == referenceBase || first(_genotypeAtSecond) == _altAlleles[0])
+							_altAlleles.push_back(second(_genotypeAtSecond));
+						else if(second(_genotypeAtSecond) == referenceBase || second(_genotypeAtSecond) == _altAlleles[0])
+							_altAlleles.push_back(first(_genotypeAtSecond));
 						else {
 							//none is ref, pick at random
-							const auto b = randomGenerator().getRand() < 0.5 ? first(genotypeAtSecond) : second(genotypeAtSecond);
+							const auto b = randomGenerator().getRand() < 0.5 ? first(_genotypeAtSecond) : second(_genotypeAtSecond);
 							_altAlleles.push_back(b);
 						}
 					}
@@ -836,29 +837,29 @@ void TCallerDiploid::callGenotypeFromMetric(const TGenotypeProbabilities & metri
 			} else {
 				if(_allowTriallelicSites){
 					//allow triallelic sites
-					_altAlleles.push_back(first(genotypeAtMax));
-					_altAlleles.push_back(second(genotypeAtMax));
+					_altAlleles.push_back(first(_genotypeAtMax));
+					_altAlleles.push_back(second(_genotypeAtMax));
 					_calledGenotype = "1/2";
 				} else {
 					//decide on which of the two alternative alleles to pick -> check second highest
-					if(isHomozygous(genotypeAtSecond)){
-						if(first(genotypeAtSecond) == first(genotypeAtMax))
-							_altAlleles.push_back(first(genotypeAtMax));
-						else if(first(genotypeAtSecond) == second(genotypeAtMax))
-							_altAlleles.push_back(second(genotypeAtMax));
+					if(isHomozygous(_genotypeAtSecond)){
+						if(first(_genotypeAtSecond) == first(_genotypeAtMax))
+							_altAlleles.push_back(first(_genotypeAtMax));
+						else if(first(_genotypeAtSecond) == second(_genotypeAtMax))
+							_altAlleles.push_back(second(_genotypeAtMax));
 						else {
 							//neither alt 0 nor 1, pick at random
-							const auto b = randomGenerator().getRand() < 0.5 ? first(genotypeAtMax) : second(genotypeAtMax);
+							const auto b = randomGenerator().getRand() < 0.5 ? first(_genotypeAtMax) : second(_genotypeAtMax);
 							_altAlleles.push_back(b);
 						}
 					} else {
-						if(first(genotypeAtSecond) == referenceBase && (second(genotypeAtSecond) == first(genotypeAtMax) || second(genotypeAtSecond) == first(genotypeAtMax))){
-							_altAlleles.push_back(second(genotypeAtSecond));
-						} else if(second(genotypeAtSecond) == referenceBase && (first(genotypeAtSecond) == first(genotypeAtMax) || first(genotypeAtSecond) == second(genotypeAtMax))){
-							_altAlleles.push_back(first(genotypeAtSecond));
+						if(first(_genotypeAtSecond) == referenceBase && (second(_genotypeAtSecond) == first(_genotypeAtMax) || second(_genotypeAtSecond) == first(_genotypeAtMax))){
+							_altAlleles.push_back(second(_genotypeAtSecond));
+						} else if(second(_genotypeAtSecond) == referenceBase && (first(_genotypeAtSecond) == first(_genotypeAtMax) || first(_genotypeAtSecond) == second(_genotypeAtMax))){
+							_altAlleles.push_back(first(_genotypeAtSecond));
 						} else {
 							//neither alt 0 nor 1, pick at random
-							const auto b = randomGenerator().getRand() < 0.5 ? first(genotypeAtMax) : second(genotypeAtMax);
+							const auto b = randomGenerator().getRand() < 0.5 ? first(_genotypeAtMax) : second(_genotypeAtMax);
 							_altAlleles.push_back(b);
 						}
 					}
@@ -903,66 +904,66 @@ bool TCallerDiploid::callGenotypeFromMetricKnownAllelesUpdateIndex(const TGenoty
 	//TODO: is there a better way than an endless if / else?
 	if(metric[geno.homoFirst()] > metric[geno.het()]){
 		if(metric[geno.homoFirst()] > metric[geno.homoSecond()]){
-			genotypeAtMax = geno.homoFirst();
+			_genotypeAtMax = geno.homoFirst();
 			_calledGenotype = "0/0";
 			if(metric[geno.het()] > metric[geno.homoSecond()]){
-				genotypeAtSecond = geno.het();
+				_genotypeAtSecond = geno.het();
 			} else if(metric[geno.het()] < metric[geno.homoSecond()]){
-				genotypeAtSecond = geno.homoSecond();
+				_genotypeAtSecond = geno.homoSecond();
 			} else {
 				//het and homoSecond are equal: pick at random
 				if(randomGenerator().getRand() < 0.5){
-					genotypeAtSecond = geno.het();
+					_genotypeAtSecond = geno.het();
 				} else {
-					genotypeAtSecond = geno.homoSecond();
+					_genotypeAtSecond = geno.homoSecond();
 				}
 			}
 		} else if(metric[geno.homoFirst()] < metric[geno.homoSecond()]){
-			genotypeAtMax = geno.homoSecond();
+			_genotypeAtMax = geno.homoSecond();
 			_calledGenotype = "1/1";
-			genotypeAtSecond = geno.homoFirst();
+			_genotypeAtSecond = geno.homoFirst();
 		} else {
 			//homoFirst and homoSecond are equal: pick at random
 			if(randomGenerator().getRand() < 0.5){
-				genotypeAtMax = geno.homoFirst();
+				_genotypeAtMax = geno.homoFirst();
 				_calledGenotype = "0/0";
-				genotypeAtSecond = geno.homoSecond();
+				_genotypeAtSecond = geno.homoSecond();
 			} else {
-				genotypeAtMax = geno.homoSecond();
+				_genotypeAtMax = geno.homoSecond();
 				_calledGenotype = "1/1";
-				genotypeAtSecond = geno.homoFirst();
+				_genotypeAtSecond = geno.homoFirst();
 			}
 		}
 	} else if(metric[geno.homoFirst()] < metric[geno.het()]){
 		if(metric[geno.het()] > metric[geno.homoSecond()]){
-			genotypeAtMax = geno.het();
+			_genotypeAtMax = geno.het();
 			_calledGenotype = "0/1";
 			if(metric[geno.homoFirst()] > metric[geno.homoSecond()]){
-				genotypeAtSecond = geno.homoFirst();
+				_genotypeAtSecond = geno.homoFirst();
 			} else if(metric[geno.homoFirst()] < metric[geno.homoSecond()]){
-				genotypeAtSecond = geno.homoSecond();
+				_genotypeAtSecond = geno.homoSecond();
 			} else {
 				//homoFirst and homoSecond are equal: pick at random
 				if(randomGenerator().getRand() < 0.5){
-					genotypeAtSecond = geno.homoFirst();
+					_genotypeAtSecond = geno.homoFirst();
 				} else {
-					genotypeAtSecond = geno.homoSecond();
+					_genotypeAtSecond = geno.homoSecond();
 				}
 			}
 		} else if(metric[geno.het()] < metric[geno.homoSecond()]){
-			genotypeAtMax = geno.homoSecond();
+			_genotypeAtMax = geno.homoSecond();
 			_calledGenotype = "1/1";
-			genotypeAtSecond = geno.het();
+			_genotypeAtSecond = geno.het();
 		} else {
 			//het and homoSecond are equal: pick at random
 			if(randomGenerator().getRand() < 0.5){
-				genotypeAtMax = geno.het();
+				_genotypeAtMax = geno.het();
 				_calledGenotype = "0/1";
-				genotypeAtSecond = geno.homoSecond();
+				_genotypeAtSecond = geno.homoSecond();
 			} else {
-				genotypeAtMax = geno.homoSecond();
+				_genotypeAtMax = geno.homoSecond();
 				_calledGenotype = "1/1";
-				genotypeAtSecond = geno.het();
+				_genotypeAtSecond = geno.het();
 			}
 		}
 	} else {
@@ -970,47 +971,47 @@ bool TCallerDiploid::callGenotypeFromMetricKnownAllelesUpdateIndex(const TGenoty
 		if(metric[geno.homoFirst()] > metric[geno.homoSecond()]){
 			//pick at random between homoFirst and het
 			if(randomGenerator().getRand() < 0.5){
-				genotypeAtMax = geno.homoFirst();
+				_genotypeAtMax = geno.homoFirst();
 				_calledGenotype = "0/0";
-				genotypeAtSecond = geno.het();
+				_genotypeAtSecond = geno.het();
 			} else {
-				genotypeAtMax = geno.het();
+				_genotypeAtMax = geno.het();
 				_calledGenotype = "0/1";
-				genotypeAtSecond = geno.homoFirst();
+				_genotypeAtSecond = geno.homoFirst();
 			}
 		} else if(metric[geno.homoFirst()] < metric[geno.homoSecond()]){
-			genotypeAtMax = geno.homoSecond();
+			_genotypeAtMax = geno.homoSecond();
 			//homoFirst and het are equal: pick at random
 			if(randomGenerator().getRand() < 0.5){
-				genotypeAtSecond = geno.homoFirst();
+				_genotypeAtSecond = geno.homoFirst();
 			} else {
-				genotypeAtSecond = geno.het();
+				_genotypeAtSecond = geno.het();
 			}
 		} else {
 			//all are equal: pick at random
 			if(randomGenerator().getRand() < 0.333333333333333){
-				genotypeAtMax = geno.homoFirst();
+				_genotypeAtMax = geno.homoFirst();
 				_calledGenotype = "0/0";
 				if(randomGenerator().getRand() < 0.5){
-					genotypeAtSecond = geno.het();
+					_genotypeAtSecond = geno.het();
 				} else {
-					genotypeAtSecond = geno.homoSecond();
+					_genotypeAtSecond = geno.homoSecond();
 				}
 			} else if(randomGenerator().getRand() < 0.66666666666666){
-				genotypeAtMax = geno.het();
+				_genotypeAtMax = geno.het();
 				_calledGenotype = "0/1";
 				if(randomGenerator().getRand() < 0.5){
-					genotypeAtSecond = geno.homoFirst();
+					_genotypeAtSecond = geno.homoFirst();
 				} else {
-					genotypeAtSecond = geno.homoSecond();
+					_genotypeAtSecond = geno.homoSecond();
 				}
 			} else {
-				genotypeAtMax = geno.homoSecond();
+				_genotypeAtMax = geno.homoSecond();
 				_calledGenotype = "1/1";
 				if(randomGenerator().getRand() < 0.5){
-					genotypeAtSecond = geno.het();
+					_genotypeAtSecond = geno.het();
 				} else {
-					genotypeAtSecond = geno.homoFirst();
+					_genotypeAtSecond = geno.homoFirst();
 				}
 			}
 		}
@@ -1018,7 +1019,7 @@ bool TCallerDiploid::callGenotypeFromMetricKnownAllelesUpdateIndex(const TGenoty
 
 	if(!_allowKnownAllelesCallsDifferentFromBestCall){
 		//check if call matches metric of best call
-		if(metric[genotypeAtMax] < *std::max_element(metric.begin(), metric.end())){
+		if(metric[_genotypeAtMax] < *std::max_element(metric.begin(), metric.end())){
 			return false;
 		}
 	}
@@ -1040,13 +1041,13 @@ void TCallerDiploid::calculateImbalance(const TSite & site){
 					AI = toString(binomPValue(_alleleCounts[referenceBase], _alleleCounts[_altAlleles[0]]));
 				}
 			} else {
-				if(isHeterozygous(genotypeAtMax)){
-					double sum = (double) _alleleCounts[first(genotypeAtMax)] + _alleleCounts[second(genotypeAtMax)];
+				if(isHeterozygous(_genotypeAtMax)){
+					double sum = (double) _alleleCounts[first(_genotypeAtMax)] + _alleleCounts[second(_genotypeAtMax)];
 					if(sum == 0){
 						AB = '.'; AI = '.';
 					} else {
-						AB = toString(_alleleCounts[first(genotypeAtMax)] / sum);
-						AI = toString(binomPValue(_alleleCounts[first(genotypeAtMax)], _alleleCounts[second(genotypeAtMax)]));
+						AB = toString(_alleleCounts[first(_genotypeAtMax)] / sum);
+						AI = toString(binomPValue(_alleleCounts[first(_genotypeAtMax)], _alleleCounts[second(_genotypeAtMax)]));
 					}
 				} else { // is homo -> do it against the second alternative allele
 					double sum = (double) _alleleCounts[_altAlleles[0]] + _alleleCounts[_altAlleles[1]];
@@ -1102,7 +1103,7 @@ bool TCallerMLE::_callGenotypeKnownAlleles(const TSite &, TGenotypeLikelihoods &
 };
 
 std::string TCallerMLE::_getVCFGenotypeString_GQ(const TSite &, TGenotypeLikelihoods & genotypeLikelihoods){
-	Probability error(genotypeLikelihoods[genotypeAtSecond].get() / genotypeLikelihoods[genotypeAtMax].get());
+	Probability error(genotypeLikelihoods[_genotypeAtSecond].get() / genotypeLikelihoods[_genotypeAtMax].get());
 	genometools::PhredIntProbability phred(error);
 	return toString(phred);
 };
@@ -1111,7 +1112,7 @@ std::string TCallerMLE::_getVCFGenotypeString_GL(const TSite &, TGenotypeLikelih
 	//normalize
 	TGenotypeData tmp;
 	for(genometools::Genotype g = genometools::Genotype::min; g < genometools::Genotype::max; ++g){
-		tmp[g] = log10(genotypeLikelihoods[g].get() / genotypeLikelihoods[genotypeAtMax].get());
+		tmp[g] = log10(genotypeLikelihoods[g].get() / genotypeLikelihoods[_genotypeAtMax].get());
 	}
 
 	//get string
@@ -1122,9 +1123,9 @@ std::string TCallerMLE::_getVCFGenotypeString_PL(const TSite &, TGenotypeLikelih
 	//normalize
 	using genometools::Genotype;
 	coretools::TStrongArray<genometools::PhredIntProbability, Genotype, 10> PL;
-	genometools::PhredProbability phredMax(genotypeLikelihoods[genotypeAtMax]);
+	genometools::PhredProbability phredMax(genotypeLikelihoods[_genotypeAtMax]);
 	for(genometools::Genotype g = genometools::Genotype::min; g < genometools::Genotype::max; ++g){
-		PL[g] = genometools::PhredProbability(genotypeLikelihoods[g] / genotypeLikelihoods[genotypeAtMax]);
+		PL[g] = genometools::PhredProbability(genotypeLikelihoods[g] / genotypeLikelihoods[_genotypeAtMax]);
 	}
 
 	//get string
@@ -1170,7 +1171,7 @@ bool TCallerBayes::_callGenotypeKnownAlleles(const TSite &, TGenotypeLikelihoods
 };
 
 std::string TCallerBayes::_getVCFGenotypeString_GQ(const TSite &, TGenotypeLikelihoods &){
-	return (std::string) genometools::PhredIntProbability(_posterior[genotypeAtMax].complement());
+	return (std::string) genometools::PhredIntProbability(_posterior[_genotypeAtMax].complement());
 };
 
 std::string TCallerBayes::_getVCFGenotypeString_GP(const TSite &, TGenotypeLikelihoods &){

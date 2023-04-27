@@ -27,7 +27,7 @@ using coretools::instances::logfile;
 //-----------------------------------------------------
 //TBamFileLog
 //-----------------------------------------------------
-void TBamFileLog::write(const std::string & alignmentName, bool isSecondMate, const std::string & reason){
+void TBamFileLog::write(std::string_view alignmentName, bool isSecondMate, std::string_view reason){
 	_log.writeln(alignmentName, isSecondMate, reason);
 };
 
@@ -40,7 +40,7 @@ TBamFileFilter::TBamFileFilter(){
 	_log = nullptr;
 };
 
-void TBamFileFilter::filterOut(const std::string & alignmentName, bool isSecondMate, uint16_t readGroup, uint32_t chromosomeID){
+void TBamFileFilter::filterOut(std::string_view alignmentName, bool isSecondMate, size_t readGroup, size_t chromosomeID){
 	//counts filtered reads per read group and filter
 	_counter.add(readGroup, chromosomeID);
 	if(_updateLog){
@@ -52,12 +52,12 @@ void TBamFileFilter::keep(){
 	_keep = true;
 };
 
-void TBamFileFilter::resizeCounter(uint16_t numRG, uint32_t numChrom){
+void TBamFileFilter::resizeCounter(size_t numRG, size_t numChrom){
 	_counter.resize(numRG);
 	_counter.resizeDistributions(numChrom);
 }
 
-void TBamFileFilter::setReason(const std::string reason){
+void TBamFileFilter::setReason(std::string_view reason){
 	_reason = reason;
 };
 
@@ -66,40 +66,40 @@ void TBamFileFilter::setLog(std::shared_ptr<TBamFileLog> & Log){
 	_updateLog = true;
 };
 
-void TBamFileFilter::summary(size_t total, uint16_t readGroup){
+void TBamFileFilter::summary(size_t total, size_t readGroup) const {
 	if(!_keep && readGroup < _counter.size() && _counter[readGroup].counts()  > 0){
 		logfile().list(_reason + ": ", _counter[readGroup].counts(), " (" + coretools::str::toPercentString(_counter[readGroup].counts(), total, 3) + "%)");
 	}
 };
 
-void TBamFileFilter::fillHeader(std::vector<std::string> &header){
+void TBamFileFilter::fillHeader(std::vector<std::string> &header) const {
 	if (!getReason().empty()){
 			header.push_back(getReason());
 		}
 };
 
-void TBamFileFilter::printCounts(coretools::TOutputFile &out, uint16_t rg_ID) {
+void TBamFileFilter::printCounts(coretools::TOutputFile &out, size_t rg_ID) const {
 	//Reason is only set if filter is applied (see TBamFile::setFilters), in which case reason and number of removed reads per read group are printed here
 	if (!getReason().empty()){
 		out << getCounts(rg_ID);
 	}
 };
 
-void TBamFileFilter::printCountsPerChromosome(coretools::TOutputFile &out, uint32_t ref_ID) {
+void TBamFileFilter::printCountsPerChromosome(coretools::TOutputFile &out, size_t ref_ID) const {
 	//Reason is only set if filter is applied (see TBamFile::setFilters), in which case reason and number of removed reads per read group are printed here
 	if (!getReason().empty()){
 		out << numFiltered().horizontalCounts(ref_ID);
 	}
 };
 
-void TBamFileFilter::printCombinedCounts(coretools::TOutputFile &out) {
+void TBamFileFilter::printCombinedCounts(coretools::TOutputFile &out) const {
 	//Reason is only set if filter is applied (see TBamFile::setFilters), in which case reason and number of removed reads per read group are printed here
 	if (!getReason().empty()){
 		out << numFiltered().counts();
 	}
 };
 
-size_t TBamFileFilter::getCounts(uint16_t rg_ID) {
+size_t TBamFileFilter::getCounts(size_t rg_ID) const {
 	//Reason is only set if filter is applied (see TBamFile::setFilters), in which case reason and number of removed reads per read group are printed here
 	if (!getReason().empty() && rg_ID < numFiltered().size()){
 		return numFiltered()[rg_ID].counts();
@@ -107,21 +107,21 @@ size_t TBamFileFilter::getCounts(uint16_t rg_ID) {
 	return 0;
 };
 
-size_t TBamFileFilter::getCountsPerChromosome(uint32_t ref_ID) {
+size_t TBamFileFilter::getCountsPerChromosome(size_t ref_ID) const {
 	//Reason is only set if filter is applied (see TBamFile::setFilters), in which case reason and number of removed reads per read group are printed here
 	if (!getReason().empty()){
 		return numFiltered().horizontalCounts(ref_ID);
 	} return 0;
 };
 
-size_t TBamFileFilter::getCountsAtReadGroupAndChromosome(uint16_t rg_ID, uint32_t ref_ID) {
+size_t TBamFileFilter::getCountsAtReadGroupAndChromosome(size_t rg_ID, size_t ref_ID) const {
 	//Reason is only set if filter is applied (see TBamFile::setFilters), in which case reason and number of removed reads per read group are printed here
 	if (!getReason().empty() && rg_ID < numFiltered().size()){
 		return numFiltered()[rg_ID][ref_ID];
 	} return 0;
 };
 
-size_t TBamFileFilter::getCombinedCounts() {
+size_t TBamFileFilter::getCombinedCounts() const {
 	//Reason is only set if filter is applied (see TBamFile::setFilters), in which case reason and number of removed reads per read group are printed here
 	if (!getReason().empty()){
 		return numFiltered().counts();
@@ -131,13 +131,13 @@ size_t TBamFileFilter::getCombinedCounts() {
 //-----------------------------------------------------
 //TBamFileFilterBool
 //-----------------------------------------------------
-void TBamFileFilterBool::filter(const std::string Reason, uint16_t numRG, uint32_t numChrom){
+void TBamFileFilterBool::filter(std::string_view Reason, size_t numRG, size_t numChrom){
 	_keep = false;
 	_reason = Reason;
 	resizeCounter(numRG, numChrom);
 };
 
-bool TBamFileFilterBool::pass(const bool state, const std::string & alignmentName, const bool & isSecondMate, const uint16_t readGroup, const uint32_t chromosomeID){
+bool TBamFileFilterBool::pass(bool state, std::string_view alignmentName, bool isSecondMate, size_t readGroup, size_t chromosomeID){
 	if(!state && !_keep){
 		filterOut(alignmentName, isSecondMate, readGroup, chromosomeID);
 		return false;
@@ -213,11 +213,11 @@ bool TContextFilter::pass(const TSequencedBase & base) const{
 //-----------------------------------------------------
 //TAlignmentBlacklist
 //-----------------------------------------------------
-TAlignmentList::TAlignmentList(const std::string filename){
+TAlignmentList::TAlignmentList(std::string_view filename){
 	addFromFile(filename);
 };
 
-void TAlignmentList::addFromFile(const std::string filename){
+void TAlignmentList::addFromFile(std::string_view filename){
 	coretools::TInputFile in(filename, 1);
 	std::vector<std::string> vec;
 	while(in.read(vec)){
@@ -225,11 +225,11 @@ void TAlignmentList::addFromFile(const std::string filename){
 	}
 };
 
-void TAlignmentList::add(const std::string & alignment){
-	_list.insert(alignment);
+void TAlignmentList::add(std::string_view alignment){
+	_list.emplace(alignment);
 };
 
-void TAlignmentList::remove(const std::string & alignment){
+void TAlignmentList::remove(const std::string& alignment){
 	_list.erase(alignment);
 };
 

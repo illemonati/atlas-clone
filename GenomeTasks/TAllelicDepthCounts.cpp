@@ -32,11 +32,11 @@ constexpr size_t index(size_t i1, size_t i2, size_t i3, size_t i4, size_t N) noe
 }
 } // namespace impl
 
-TAllelicDepthCounts::TAllelicDepthCounts(const uint32_t MaxAllelicDepth){
+TAllelicDepthCounts::TAllelicDepthCounts(size_t MaxAllelicDepth){
 	resize(MaxAllelicDepth);
 };
 
-void TAllelicDepthCounts::resize(const uint32_t MaxAllelicDepth){
+void TAllelicDepthCounts::resize(size_t MaxAllelicDepth){
 	if(_size != MaxAllelicDepth + 1){
 		_size = MaxAllelicDepth + 1;
 	}
@@ -74,17 +74,16 @@ void TAllelicDepthCounts::write(const std::string &filename, bool printEmpty){
 	out.writeHeader({"A", "C", "G", "T", "Depth", "majorAllele", "majorDepth","minorAllele", "minorDepth","Counts"});
 
 	//write counts
-	//uint32_t max = 0;
-	for(uint32_t a=0; a<_size; ++a){
-		for(uint32_t c=0; c<_size; ++c){
-			for(uint32_t g=0; g<_size; ++g){
-				for(uint32_t t=0; t<_size; ++t){
-					const auto i = impl::index(a,c,g,t, _size);
+	for (size_t a = 0; a < _size; ++a) {
+		for (size_t c = 0; c < _size; ++c) {
+			for (size_t g = 0; g < _size; ++g) {
+				for (size_t t = 0; t < _size; ++t) {
+					const auto i = impl::index(a, c, g, t, _size);
 					if((printEmpty || (_counts.size() > i && _counts[i] > 0))){
 						//write numA, C, G and T and depth
 						out << a << c << g << t << a+c+g+t;
 						//find max
-						uint32_t max = a;
+						size_t max = a;
 						if(c > max) max = c;
 						if(g > max) max = g;
 						if(t > max) max = t;
@@ -105,7 +104,7 @@ void TAllelicDepthCounts::write(const std::string &filename, bool printEmpty){
 							out << tmp[1] << 0;
 						} else {
 							//find second
-							uint32_t second = 0;
+							size_t second = 0;
 							if(a < max && a > second)
 								second = a;
 							if(c < max && c > second)

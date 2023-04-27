@@ -21,14 +21,14 @@ namespace GenomeTasks{
 //------------------------------------------
 class TAllelicDepthCounts{
 private:
-	uint32_t _size            = 0;
-	std::vector<uint32_t> _counts;
+	size_t _size            = 0;
+	std::vector<size_t> _counts;
 
 public:
 	TAllelicDepthCounts() = default;
-	TAllelicDepthCounts(uint32_t MaxAllelicDepth);
+	TAllelicDepthCounts(size_t MaxAllelicDepth);
 
-	void resize(uint32_t MaxAllelicDepth);
+	void resize(size_t MaxAllelicDepth);
 	void clear();
 	void addSite(const GenotypeLikelihoods::TBaseCounts & alleleCounts);
 	void addSiteZeroDepth();

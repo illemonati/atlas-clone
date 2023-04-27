@@ -51,8 +51,8 @@ public:
 
     void write(){
         //settings
-        std::vector<uint32_t> chrLength = {1000, 2000, 3000};
-        uint32_t numReadGroups = 2;
+        std::vector<size_t> chrLength = {1000, 2000, 3000};
+        size_t numReadGroups = 2;
 
         //open BAM file for writing
         outputBam = std::make_unique<BAM::TTestBamFile>(_filename, chrLength, numReadGroups);
@@ -144,7 +144,7 @@ TEST_F(TBamFile_Test_ReadWrite, alignments){
         // position attributes of TAlignment
         EXPECT_EQ(alignmentWritten->lastAlingedInternalPos(), alignmentRead.lastAlingedInternalPos());
         EXPECT_EQ(alignmentWritten->lastAlignedPositionWithRespectToRef(), alignmentRead.lastAlignedPositionWithRespectToRef());
-        for (uint32_t i = 0; i < alignmentWritten->parsedLength(); i++){
+        for (size_t i = 0; i < alignmentWritten->parsedLength(); i++){
             EXPECT_EQ(alignmentWritten->isAlignedAtInternalPos(i), alignmentRead.isAlignedAtInternalPos(i));
 			if (alignmentWritten->isAlignedAtInternalPos(i)) {
 				EXPECT_EQ(alignmentWritten->positionInRef(i), alignmentRead.positionInRef(i));
@@ -230,8 +230,8 @@ public:
     std::vector<double> depth;
     std::vector<double> fractionSitesNoData;
     std::vector<double> fractionDepthAtLeastTwo;
-    std::vector<uint32_t> numSitesWithData;
-    std::vector<uint32_t> numReadsInWindow;
+    std::vector<size_t> numSitesWithData;
+    std::vector<size_t> numReadsInWindow;
     std::vector<std::vector<GenotypeLikelihoods::TSite>> sites;
 
     TGenomeWindow_Test() : GenomeTasks::TGenome_windows() {};
@@ -241,12 +241,12 @@ public:
     }
 
     // size
-    uint32_t numWindows(){ return _windows_visited.size(); };
+    size_t numWindows(){ return _windows_visited.size(); };
     // loop
     std::vector<genometools::TGenomeWindow >::iterator begin(){ return _windows_visited.begin(); };
     std::vector<genometools::TGenomeWindow >::iterator end(){ return _windows_visited.end(); };
     // access
-    genometools::TGenomeWindow& operator[](uint32_t pos){ return _windows_visited[pos]; };
+    genometools::TGenomeWindow& operator[](size_t pos){ return _windows_visited[pos]; };
 };
 
 class TBamFile_Test_Windows : public ::testing::Test {
@@ -257,8 +257,8 @@ public:
 
     void write(){
         //settings
-        std::vector<uint32_t> chrLength = {250, 50, 199, 80, 177};
-        uint32_t numReadGroups = 2;
+        std::vector<size_t> chrLength = {250, 50, 199, 80, 177};
+        size_t numReadGroups = 2;
 
         //open BAM file for writing
         outputBam = std::make_unique<BAM::TTestBamFile>(filename, chrLength, numReadGroups);
@@ -760,7 +760,7 @@ public:
 
     void filter(){
         //initialize counters
-        uint32_t numRG = _bamFile.readGroups().size();
+        size_t numRG = _bamFile.readGroups().size();
 
         // resize distributions
         totalReads.resize(numRG);
@@ -813,8 +813,8 @@ public:
 
     void write(bool paired){
         //settings
-        std::vector<uint32_t> chrLength = {1000, 2000, 3000};
-        uint32_t numReadGroups = 5;
+        std::vector<size_t> chrLength = {1000, 2000, 3000};
+        size_t numReadGroups = 5;
 
         //open BAM file for writing
         if (paired)
@@ -848,7 +848,7 @@ TEST_F(TBamFilter_Test, maxReadLength){
     read();
 
     //count number of simulated alignments outside this range
-	uint32_t numAligmentsOutsideRange = 0;
+	size_t numAligmentsOutsideRange = 0;
 	for (auto a = outputBam->beginWrittenAlignments(); a != outputBam->endWrittenAlignments(); a++){
 		if(a->cigar().lengthRead() < 20 || a->cigar().lengthRead() > 30){
 			++numAligmentsOutsideRange;
@@ -888,7 +888,7 @@ TEST_F(TBamFilter_Test, doNotKeepDuplicates){
     read();
 
     // count number of duplicates in simulated alignments
-    uint32_t numDupWritten = 0;
+    size_t numDupWritten = 0;
     for (auto a = outputBam->beginWrittenAlignments(); a != outputBam->endWrittenAlignments(); a++){
         // get sam flag of alignment as int and convert
         BAM::TSamFlags samFlags(a->flags());
@@ -908,7 +908,7 @@ TEST_F(TBamFilter_Test, filterSoftClips){
     read();
 
     // count number of soft clips in simulated alignments
-    uint32_t numSoftClipsWritten = 0;
+    size_t numSoftClipsWritten = 0;
     for (auto a = outputBam->beginWrittenAlignments(); a != outputBam->endWrittenAlignments(); a++){
         if (a->cigar().lengthSoftClipped() > 0)
             numSoftClipsWritten++;
@@ -952,7 +952,7 @@ TEST_F(TBamFilter_Test, doNotKeepImproperPairs){
     read();
 
     // count number of improper pairs in simulated alignments
-    uint32_t numImproperWritten = 0;
+    size_t numImproperWritten = 0;
     for (auto a = outputBam->beginWrittenAlignments(); a != outputBam->endWrittenAlignments(); a++){
         // get sam flag of alignment as int and convert
         BAM::TSamFlags samFlags(a->flags());
@@ -988,7 +988,7 @@ TEST_F(TBamFilter_Test, doNotKeepUnmappedReads){
     read();
 
     // count number of unmapped reads in simulated alignments
-    uint32_t numUnmappedWritten = 0;
+    size_t numUnmappedWritten = 0;
     for (auto a = outputBam->beginWrittenAlignments(); a != outputBam->endWrittenAlignments(); a++){
         // get sam flag of alignment as int and convert
         BAM::TSamFlags samFlags(a->flags());
@@ -1024,7 +1024,7 @@ TEST_F(TBamFilter_Test, doNotKeepFailedQC){
     read();
 
     // count number of failed QC reads in simulated alignments
-    uint32_t numFailedQCWritten = 0;
+    size_t numFailedQCWritten = 0;
     for (auto a = outputBam->beginWrittenAlignments(); a != outputBam->endWrittenAlignments(); a++){
         // get sam flag of alignment as int and convert
         BAM::TSamFlags samFlags(a->flags());
@@ -1060,7 +1060,7 @@ TEST_F(TBamFilter_Test, doNotKeepSecondaryReads){
     read();
 
     // count number of secondary reads in simulated alignments
-    uint32_t numSecReadsWritten = 0;
+    size_t numSecReadsWritten = 0;
     for (auto a = outputBam->beginWrittenAlignments(); a != outputBam->endWrittenAlignments(); a++){
         // get sam flag of alignment as int and convert
         BAM::TSamFlags samFlags(a->flags());
@@ -1096,7 +1096,7 @@ TEST_F(TBamFilter_Test, doNotKeepSupplementaryReads){
     read();
 
     // count number of supplementary reads in simulated alignments
-    uint32_t numSupplementaryWritten = 0;
+    size_t numSupplementaryWritten = 0;
     for (auto a = outputBam->beginWrittenAlignments(); a != outputBam->endWrittenAlignments(); a++){
         // get sam flag of alignment as int and convert
         BAM::TSamFlags samFlags(a->flags());
@@ -1133,9 +1133,9 @@ TEST_F(TBamFilter_Test, filterReadsLongerThanFragment){
     read();
 
     // count number of reads that are longer than fragments in simulated alignments
-    uint32_t numLongerWritten = 0;
+    size_t numLongerWritten = 0;
     for (auto a = outputBam->beginWrittenAlignments(); a != outputBam->endWrittenAlignments(); a++){
-        uint32_t insertSize;
+        size_t insertSize;
         if (a->matePosition() > a->position())
             insertSize = a->matePosition() - a->position();
         else insertSize = a->position() - a->matePosition();
@@ -1155,7 +1155,7 @@ TEST_F(TBamFilter_Test, keepOnlyFwd){
     read();
 
     // count number of reverse reads in simulated alignments
-    uint32_t numRevWritten = 0;
+    size_t numRevWritten = 0;
     for (auto a = outputBam->beginWrittenAlignments(); a != outputBam->endWrittenAlignments(); a++){
         if (a->isReverseStrand())
             numRevWritten++;
@@ -1174,7 +1174,7 @@ TEST_F(TBamFilter_Test, keepOnlyRev){
     read();
 
     // count number of forward reads in simulated alignments
-    uint32_t numFwdWritten = 0;
+    size_t numFwdWritten = 0;
     for (auto a = outputBam->beginWrittenAlignments(); a != outputBam->endWrittenAlignments(); a++){
         if (!a->isReverseStrand())
             numFwdWritten++;
@@ -1193,7 +1193,7 @@ TEST_F(TBamFilter_Test, keepOnlyFirst){
     read();
 
     // count number of second mates in simulated alignments
-    uint32_t numSecondWritten = 0;
+    size_t numSecondWritten = 0;
     for (auto a = outputBam->beginWrittenAlignments(); a != outputBam->endWrittenAlignments(); a++){
         // get sam flag of alignment as int and convert
         BAM::TSamFlags samFlags(a->flags());
@@ -1214,7 +1214,7 @@ TEST_F(TBamFilter_Test, keepOnlySecond){
     read();
 
     // count number of first mates in simulated alignments
-    uint32_t numFirstWritten = 0;
+    size_t numFirstWritten = 0;
     for (auto a = outputBam->beginWrittenAlignments(); a != outputBam->endWrittenAlignments(); a++){
         // get sam flag of alignment as int and convert
         BAM::TSamFlags samFlags(a->flags());
@@ -1261,7 +1261,7 @@ TEST_F(TBamFilter_Test, MQ){
     read();
 
     // count number of reads with lower and higher MQ in simulated alignments
-    uint32_t numReadsWithOutsideMQWritten = 0;
+    size_t numReadsWithOutsideMQWritten = 0;
     for (auto a = outputBam->beginWrittenAlignments(); a != outputBam->endWrittenAlignments(); a++){
         if (a->mappingQuality().get() < 80 || a->mappingQuality().get() > 100)
             numReadsWithOutsideMQWritten++;
@@ -1284,10 +1284,10 @@ TEST_F(TBamFilter_Test, fragmentLength){
 
 
     // count number of reads with lower fragment length in simulated alignments
-    uint32_t numReadsWithOutsideFragLengthWritten = 0;
+    size_t numReadsWithOutsideFragLengthWritten = 0;
     for (auto a = outputBam->beginWrittenAlignments(); a != outputBam->endWrittenAlignments(); a++){
         // calculate insert size
-        uint32_t insertSize;
+        size_t insertSize;
         if (a->matePosition() > a->position())
             insertSize = a->matePosition() - a->position();
         else insertSize = a->position() - a->matePosition();
@@ -1316,7 +1316,7 @@ TEST_F(TBamFilter_Test, readGroups){
     read();
 
     // count number of reads with read group ID 3 or 4 in simulated alignments
-    uint32_t numReadGroups34 = 0;
+    size_t numReadGroups34 = 0;
     for (auto a = outputBam->beginWrittenAlignments(); a != outputBam->endWrittenAlignments(); a++){
         if (a->readGroupId() == 3 || a->readGroupId() == 4)
             numReadGroups34++;
@@ -1354,7 +1354,7 @@ TEST_F(TBamFilter_Test, chr){
     }
 
     // count number of reads with chromosome 3 in simulated alignments
-    uint32_t numReadsChr3Written = 0;
+    size_t numReadsChr3Written = 0;
     for (auto a = outputBam->beginWrittenAlignments(); a != outputBam->endWrittenAlignments(); a++){
         if (a->refID() == 2)
             numReadsChr3Written++;
@@ -1380,7 +1380,7 @@ TEST_F(TBamFilter_Test, limitChr){
     }
 
     // count number of reads with chromosome 3 in simulated alignments
-    uint32_t numReadsChr3Written = 0;
+    size_t numReadsChr3Written = 0;
     for (auto a = outputBam->beginWrittenAlignments(); a != outputBam->endWrittenAlignments(); a++){
         if (a->refID() == 2)
             numReadsChr3Written++;

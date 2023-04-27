@@ -53,15 +53,15 @@ protected:
 	std::string _readNamePrefix;
 
 	// required distributions
-	TCategoricalDistribution<uint16_t> _fragmentLengthDistr;
+	TCategoricalDistribution<size_t> _fragmentLengthDistr;
 	TCategoricalDistribution<PhredIntProbability> _qualityDist;
 	TCategoricalDistribution<PhredIntProbability> _mappingQualityDist;
 
 	// Additional info
 	int _readXPos = 1;
 	int _readYPos = 1;
-	std::unique_ptr<TCategoricalDistribution<uint16_t>> _softClipDist5;
-	std::unique_ptr<TCategoricalDistribution<uint16_t>> _softClipDist3;
+	std::unique_ptr<TCategoricalDistribution<size_t>> _softClipDist5;
+	std::unique_ptr<TCategoricalDistribution<size_t>> _softClipDist3;
 	GenotypeLikelihoods::PMD::TModel const *_pmd = nullptr;
 
 	// contamination
@@ -82,16 +82,13 @@ protected:
 	};
 
 	// general functions
-	double _calcMeanReadLength(const uint16_t maxLen) const;
+	double _calcMeanReadLength(size_t maxLen) const;
 	std::string _getNextReadName();
 	void _simulateAlignmentDetails(const TGenomePosition & Position);
 	bool _simulateContamination();
-	void _addSoftclippedBases(std::vector<Base> & bases, const std::unique_ptr<TCategoricalDistribution<uint16_t>> & softClippedDist, BAM::TCigar & Cigar);
-	void _simulateBasesQualities(BAM::TAlignment &alignment,
-								 const std::vector<Base>& haplotype,
-								 const uint16_t fragmentLength,
-								 const uint16_t readLength,
-								 bool readIsContaminated);
+	void _addSoftclippedBases(std::vector<Base> & bases, const std::unique_ptr<TCategoricalDistribution<size_t>> & softClippedDist, BAM::TCigar & Cigar);
+	void _simulateBasesQualities(BAM::TAlignment &alignment, const std::vector<Base> &haplotype, size_t fragmentLength,
+								 size_t readLength, bool readIsContaminated);
 
 public:
 	TReadSimulator(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo);
@@ -117,7 +114,7 @@ public:
 //-------------------------------
 class TReadSimulatorSingleEnd final : public TReadSimulator {
 private:
-	coretools::StrictlyPositive<uint16_t> _numCycles;
+	coretools::StrictlyPositive<size_t> _numCycles;
 
 public:
 	TReadSimulatorSingleEnd(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo);
@@ -134,7 +131,7 @@ class TReadSimulatorPairedEnd final : public TReadSimulator {
 private:
 	BAM::TAlignment _secondMate;
 	BAM::TSamFlags _mateFlags;
-	std::array<coretools::StrictlyPositive<uint16_t>, 2> _numCycles;
+	std::array<coretools::StrictlyPositive<size_t>, 2> _numCycles;
 
 public:
 	TReadSimulatorPairedEnd(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo);

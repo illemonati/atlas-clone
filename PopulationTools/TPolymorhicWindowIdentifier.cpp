@@ -66,8 +66,8 @@ void TPolymorhicWindowIdentifier::run() {
 
     //run through VCF file
     logfile().startIndent("Parsing VCF file:");
-    uint64_t totalWindowsChecked = 0;
-    uint64_t totalPolymorphicWindows = 0;
+    size_t totalWindowsChecked = 0;
+    size_t totalPolymorphicWindows = 0;
     while(reader.readDataFromVCF(window, samples)){
         int numWindowsWithData = 0;
         int numWindowsPoly = 0;
@@ -77,13 +77,13 @@ void TPolymorhicWindowIdentifier::run() {
  		reader.writeWindow(out);
 
  		//write polymoprhic state for each sample
- 		for(uint32_t i = 0; i<samples.numSamples(); ++i){
+ 		for (size_t i = 0; i<samples.numSamples(); ++i){
  			if(window.individualHasMissingData(i)){
  				ind.push_back("NA");
  			} else {
  				++numWindowsWithData;
- 				uint32_t numPoly = 0;
- 				for(uint32_t l = 0; l<window.numLoci(); ++l){
+ 				size_t numPoly = 0;
+ 				for(size_t l = 0; l<window.numLoci(); ++l){
  					if(window[l][i][BG::het] < window[l][i][BG::homoFirst] && window[l][i][BG::het] < window[l][i][BG::homoSecond])
  						++numPoly;
  				}
