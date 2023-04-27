@@ -34,9 +34,14 @@ TPMDSCalculator::TPMDSCalculator():TGenome_parsed(){
 	//get parameters
 	_pi = parameters().getParameterWithDefault<coretools::Probability>("pi", coretools::Probability(0.001));
 	logfile().list("Running PMDS with rate of polymorphism (pi) = " + toString(_pi));
-	_minPMDS = parameters().getParameterWithDefault<double>("minPMDS", -10000);
-	_maxPMDS = parameters().getParameterWithDefault<double>("maxPMDS", 10000);
-	logfile().list("Filtering out reads with PMDS outside the range [" + toString(_minPMDS) + ", " + toString(_maxPMDS) + "].");
+	if(parameters().parameterExists("filterPMDS")){
+		_filerRange.set(parameters().getParameter("filterPMDS"));
+		_doFilter = true;
+		logfile().list("Filtering out reads with PMDS outside the range " + _filterRange.rangeString() + ".");
+	} else {
+		_doFilter = true;
+		logfile().list("Not applying any filter on PMDs when writing BAM file. (use 'filterPMDS' to filter)");
+	}
 	_openReference(true);
 };
 
@@ -57,7 +62,7 @@ void TPMDSCalculator::_handleAlignment(){
 	const auto PMDS = _calculatePMDS();
 
 	//filter
-	if(PMDS < _minPMDS || PMDS < _maxPMDS){
+	if(_doFilter && !_filterRange.within(PMDS)){
 		_bamFile.curFilterOut();
 	} else {
 		//update and write

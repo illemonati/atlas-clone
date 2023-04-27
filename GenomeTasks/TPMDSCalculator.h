@@ -15,6 +15,7 @@
 #include "TGenome.h"
 #include "coretools/Main/TTask.h"
 #include "coretools/Types/probability.h"
+#include "coretools/Math/TNumericRange.h"
 
 namespace GenomeTasks{
 
@@ -24,7 +25,8 @@ namespace GenomeTasks{
 class TPMDSCalculator:public TGenome_parsed{
 private:
 	coretools::Probability _pi;
-	double _minPMDS, _maxPMDS;
+	bool _doFilter = false;
+	coretools::TNumericRange<double> _filterRange;
 	BAM::TOutputBamFile _outBam;
 
 	double _calculatePMDS();
