@@ -77,27 +77,26 @@ void TEpsilon::solveJxF() {
 	_Jacobian.zeros();
 	_F.zeros();
 	_numSitesAdded = 0;
-	_oldQ          = _Q; // set Q to value before proposal
+	_oldQ          = _Q;
 }
+
 void TEpsilon::propose(double lambda) {
-	_functions->propose(lambda, _JxF);
-	_Q = 0; // not valid anymore
+	if (!_converged) {
+		_functions->propose(lambda, _JxF);
+		_Q = 0; // reset to recalculate
+	}
 }
 
 bool TEpsilon::acceptOrReject() {
-	if (_Q > _oldQ) {
-		_Q = 0; // reset for next iteration
-		return true;
-	}
-
-	// else
-	_functions->reject();
-	_Q = 0.; // not valid anymore
-
-	return false;
+	_converged = _Q > _oldQ;
+	if (!_converged) _functions->reject();
+	return _converged;
 }
+
 void TEpsilon::adjust() {
-	//for (const auto &fn : _functions) _intercept.intercept() += cov.function->adjustParametersPostEstimation();
+	_Q         = 0.;
+	_converged = false;
+	_functions->adjust();
 }
 
 std::string TEpsilon::definition() const noexcept {

@@ -76,9 +76,9 @@ public:
 		model(data)->addToEpsilon<updateJF>(data, P_g_I_d, P_bbar_I_gd);
 	}
 	void solveJxF();
-	void propose(double lambda);
+	void propose(double lambda=1.);
 	void scaleParameters();
-	unsigned int acceptOrReject();
+	size_t acceptOrReject();
 	void adjust();
 
 	double Q() const;

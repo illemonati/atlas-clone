@@ -336,6 +336,14 @@ public:
 			}
 		}
 	}
+
+	void adjust() noexcept override {
+		for (auto& fn: _covariates) {
+			const auto b = fn->adjustParametersPostEstimation();
+			_intercept.beta() += b;
+		}
+	}
+
 	std::string definition() const noexcept override {
 		std::string ret = _intercept.modelString();
 		for (const auto& cov: _covariates) {
