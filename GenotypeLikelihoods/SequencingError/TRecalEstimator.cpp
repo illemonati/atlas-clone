@@ -131,9 +131,11 @@ void TModelVectorForEstimation::propose(double lambda) {
 	for (auto &model : _models) { model->propose(lambda); }
 };
 
-unsigned int TModelVectorForEstimation::acceptOrReject() {
-	unsigned int numAccepted = 0;
-	for (auto &model : _models) { numAccepted += (unsigned int)model->acceptOrReject(); }
+size_t TModelVectorForEstimation::acceptOrReject() {
+	size_t numAccepted = 0;
+	for (auto &model : _models) {
+		numAccepted += model->acceptOrReject();
+	}
 	return numAccepted;
 };
 
@@ -338,33 +340,33 @@ void TRecalibrationEMEstimator::_updateEpsilon(double deltaLL_LL) {
 	for (int i = 0; i < _NewtonRaphsonNumIterations; ++i) {
 		logfile().startIndent("Running Newton-Raphson iteration ", i + 1, ":");
 		_solveDerivative();
-		const double curQ = _modelsToEstimate.Q();
-		logfile().list("Current Q_beta = ", curQ);
+		const double oldQ = _modelsToEstimate.Q();
+		logfile().list("Current Q_beta = ", oldQ);
 
-		double lambda   = 1.0;
-		size_t nUpdated = 0;
-		double deltaQ   = 0;
 
-		while (nUpdated < nTot && lambda > 1.0E-20) {
+		logfile().startIndent("Setting new epsilon.");
+		_modelsToEstimate.propose();
+		_calculateQ();
+		size_t nUpdated = _modelsToEstimate.acceptOrReject();
+		logfile().list(toString(nUpdated), "/", nTot, " models converged.");
+		logfile().endIndent();
+
+		double lambda   = 0.5;
+		while(nUpdated < nTot) {
 			logfile().startIndent("Backtracing with lambda = ", lambda, ":");
 			_modelsToEstimate.propose(lambda);
 			_calculateQ();
-
-			deltaQ   = _modelsToEstimate.Q() - curQ;
 			nUpdated = _modelsToEstimate.acceptOrReject();
-
-			logfile().list("Delta Q = ", deltaQ);
 			logfile().list(toString(nUpdated), "/", nTot, " models converged.");
 			logfile().endIndent();
 
-			// backtrack
-			lambda = lambda / 2.0; // backtrack;
+			lambda /= 2;
+			if (lambda < 1e-20) break;
 		}
-
 		_modelsToEstimate.adjust();
 
 		if (nUpdated < nTot) {
-			logfile().conclude("Some models did not improve even with log2(lambda) = ", std::log2(lambda),
+			logfile().conclude(nTot - nUpdated, " models did not improve even with log2(lambda) = ", std::log2(lambda),
 							   ", aborting Newton-Raphson.");
 			break;
 		}
@@ -377,7 +379,7 @@ void TRecalibrationEMEstimator::_updateEpsilon(double deltaLL_LL) {
 		} 
 		logfile().conclude("max(F) = ", maxF);
 
-		if (const auto pdQ = std::abs(deltaQ/curQ); pdQ < deltaLL_LL) {
+		if (const auto pdQ = std::abs(_modelsToEstimate.Q()/oldQ); pdQ < deltaLL_LL) {
 			logfile().conclude("deltaQ/Q = ", pdQ, " < deltaLL/LL = ", deltaLL_LL, ", ending Newton-Raphson.");
 			logfile().endIndent();
 			break;

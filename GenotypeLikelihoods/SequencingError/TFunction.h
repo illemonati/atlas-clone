@@ -43,12 +43,6 @@ class TFunction {
 protected:
 	size_t _firstParameterIndex;
 
-	static double normalizeParameters(std::vector<double> &betas) noexcept {
-		const double mean = std::accumulate(betas.begin(), betas.end(), 0.) / betas.size();
-		for (auto &bi : betas) { bi -= mean; }
-		return mean;
-	}
-
 public:
 	TFunction(size_t FirstParameterIndex) : _firstParameterIndex(FirstParameterIndex) {}
 	virtual ~TFunction() = default;
@@ -468,7 +462,19 @@ public:
 		return Covariate::N(dataTable) <= numParameters();
 	}
 
-	double adjustParametersPostEstimation() noexcept override { return normalizeParameters(_betas); }
+	double adjustParametersPostEstimation() noexcept override {
+		double mean = 0.;
+		size_t N    = 0;
+		for (size_t i = 0; i < _betas.size(); ++i) {
+			if (!std::isnan(_betas[i])) {
+				++N;
+				mean += _betas[i];
+			}
+		}
+		if (N > 0) mean /= N;
+		for (auto &bi: _betas) bi -= mean; // NaN - number = NaN
+		return mean;
+	}
 
 	double getEta(const BAM::TSequencedBase &base) const noexcept override {
 		//assert(Covariate::extract(base) < _betas.size());
