@@ -5,12 +5,12 @@
 recal="intercept[0.1];quality:polynomial[0.8,-0.1]"
 pmd="doubleStrand:Exponential[30,0.5,0.1,0.01]"
 depth="10,5{5},2{5},1{5},0.5{5},0.2{5},0.1{5}"
-chrLength="5000000,5000000"
+chrLength="2000000,2000000,10000000"
 
-$atlas --task simulate --chrLength $chrLength --ploidy "2,1" --depth "10" --fixedSeed 0 --logFile sim.out --out sim
-$atlas --task simulate --chrLength $chrLength --ploidy "2,1" --depth "10" --recal $recal --fixedSeed 0 --logFile simR.out --out simR
-$atlas --task simulate --chrLength $chrLength --ploidy "2,1" --depth "10" --pmd $pmd --fixedSeed 0 --logFile simP.out --out simP
-$atlas --task simulate --chrLength $chrLength --ploidy "2,1" --depth "10" --recal $recal --pmd $pmd --fixedSeed 0 --logFile simRP.out --out simRP
+$atlas --task simulate --seqType paired --baseFreq 0.31,0.19,0.19,0.31 --chrLength $chrLength --ploidy "2,1,2" --depth "10" --fixedSeed 0 --logFile sim.out --out sim
+$atlas --task simulate --seqType paired --baseFreq 0.31,0.19,0.19,0.31 --chrLength $chrLength --ploidy "2,1,2" --depth "10" --recal $recal --fixedSeed 0 --logFile simR.out --out simR
+$atlas --task simulate --seqType paired --baseFreq 0.31,0.19,0.19,0.31 --chrLength $chrLength --ploidy "2,1,2" --depth "10" --pmd $pmd --fixedSeed 0 --logFile simP.out --out simP
+$atlas --task simulate --seqType paired --baseFreq 0.31,0.19,0.19,0.31 --chrLength $chrLength --ploidy "2,1,2" --depth "10" --recal $recal --pmd $pmd --fixedSeed 0 --logFile simRP.out --out simRP
 
 $atlas --task theta --bam sim.bam --chr "chr1" --averageDepth 10 --depth $depth --fixedSeed 0 --out sim --logFile sim_downsample.out --genomeWide 
 $atlas --task theta --bam simR.bam --chr "chr1" --averageDepth 10 --depth $depth --fixedSeed 0 --out simR --logFile simR_downsample.out --genomeWide 
@@ -24,8 +24,8 @@ $atlas --task theta --bam simRP.bam --recal $recal --chr "chr1" --averageDepth 1
 $atlas --task theta --bam simRP.bam --pmd $pmd --chr "chr1" --averageDepth 10 --depth $depth  --fixedSeed 0 --out simRP_P --logFile simRP_downsample_P.out --genomeWide 
 $atlas --task theta --bam simRP.bam --recal $recal --pmd $pmd --chr "chr1" --averageDepth 10 --depth $depth  --fixedSeed 0 --out simRP_RP --logFile simRP_downsample_RP.out --genomeWide 
 
-$atlas --task PMD --bam simP.bam --fasta simP.fasta --pmd "doubleStrand:Empiric" --fixedSeed 0 --out simP --logFile simP_pmd.out
-$atlas --task PMD --bam simRP.bam --fasta simRP.fasta --pmd "doubleStrand:Empiric" --fixedSeed 0 --out simRP --logFile simRP_pmd.out
+$atlas --task PMD --bam simP.bam --fasta simP.fasta --pmd "doubleStrand:[60]:Empiric" --fixedSeed 0 --out simP --logFile simP_pmd.out
+$atlas --task PMD --bam simRP.bam --fasta simRP.fasta --pmd "doubleStrand:[60]:Empiric" --fixedSeed 0 --out simRP --logFile simRP_pmd.out
 
 $atlas --task recal --bam simR.bam --chr "chr2" --recal "intercept;quality;position;context;fragmentLength;mappingQuality;" --fixedSeed 0 --out simR --logFile simR_recal.out
 $atlas --task recal --bam simRP.bam --chr "chr2" --pmd simRP_PMD.txt --recal "intercept;quality;position;context;fragmentLength;mappingQuality;" --fixedSeed 0 --out simRP --logFile simRP_recal.out
