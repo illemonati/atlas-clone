@@ -296,7 +296,7 @@ void TMajorMinor::run() {
 		// filter on missingness
 		if (glfReader.numActiveSamplesWithData() >= minSamplesWithData) {
 			const Base ref = glfReader.refBase(); // can be N
-			MMEstimator->estimateMajorMinor(glfReader.data, ref);
+			MMEstimator->estimateMajorMinor(glfReader.data(), ref);
 
 			// pass filter?
 			if (MMEstimator->genotypeFrequencies().MAF() < minMAF) {
@@ -310,10 +310,10 @@ void TMajorMinor::run() {
 
 			// write to VCF
 			if (hasReference && MMEstimator->minor() == ref) {
-				vcf.writeSite(glfReader.chr(), glfReader.position(), MMEstimator->variantQuality(), glfReader.data, ref,
+				vcf.writeSite(glfReader.chr(), glfReader.position(), MMEstimator->variantQuality(), glfReader.data(), ref,
 							  MMEstimator->major());
 			} else {
-				vcf.writeSite(glfReader.chr(), glfReader.position(), MMEstimator->variantQuality(), glfReader.data,
+				vcf.writeSite(glfReader.chr(), glfReader.position(), MMEstimator->variantQuality(), glfReader.data(),
 							  MMEstimator->major(), MMEstimator->minor());
 			}
 		} // end filter on missingness

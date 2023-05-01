@@ -229,7 +229,6 @@ private:
 
 	// Moving along active files
 	uint32_t _position = 0;
-	uint32_t _nextPosition = 0; // next is anticipated position, used to advance
 	uint32_t _curRefId = 0;
 	TGlfChromosome _curChr;
 	uint32_t _numActiveFilesWithData = 0;
@@ -246,9 +245,15 @@ private:
 	bool _jumpToNextPosition();
 
 	bool _moveToNextChromosome();
+	TMultiGLFData _data;
+
+	static constexpr size_t _windowSize = 1000;
+	size_t _iWindow = 0;
+	std::vector<TMultiGLFData> _dataWindow;
 
 public:
-	TMultiGLFData data;
+	const TMultiGLFData& data() const noexcept {return _data;};
+	TMultiGLFData& data() noexcept {return _data;};
 
 	TGlfMultiReader();
 	TGlfMultiReader(const std::vector<std::string>& FileNames);
@@ -272,6 +277,7 @@ public:
 	void setAllActive();
 
 	// parse
+	bool readWindow();
 	bool readNext();
 
 	// output
