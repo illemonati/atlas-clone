@@ -88,7 +88,7 @@ private:
 			uint32_t pos = coretools::str::fromString<uint32_t, true>(line[1]) - 1; //make 0-based
 
 			// add site
-			_sites.emplace_back(chr.refID(), pos, line, Chromosomes); // make 0-based
+			_sites.emplace_back(chr.refID(), pos, line, Chromosomes);
 		}
 
 		//sort sites

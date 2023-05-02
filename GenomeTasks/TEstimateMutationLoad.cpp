@@ -142,7 +142,7 @@ void TEstimateMutationLoad::_handleWindow() {
 };
 
 TEstimateMutationLoad::TEstimateMutationLoad() : TGenome_windows() {
-	_openSiteSubset("alleles");
+	_openSiteSubset("alleles", false);
 };
 
 void TEstimateMutationLoad::run()
@@ -155,6 +155,8 @@ void TEstimateMutationLoad::run()
 	MutationLoad::TMutationLoadLatentVariable latentVar(_sites);
 
 	stattools::TEM<MutationLoad::PrecisionType, MutationLoad::NumStatesType, MutationLoad::LengthType> EM(prior, latentVar);
+
+	EM.runEM(std::vector<LengthType>(_sites.size()));
 }
 
 } // end namespace GenomeTasks
