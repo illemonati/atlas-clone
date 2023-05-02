@@ -156,7 +156,7 @@ void TEstimateMutationLoad::run()
 
 	stattools::TEM<MutationLoad::PrecisionType, MutationLoad::NumStatesType, MutationLoad::LengthType> EM(prior, latentVar);
 
-	EM.runEM(std::vector<LengthType>(_sites.size()));
+	EM.runEM(std::vector<MutationLoad::LengthType>(_sites.size()));
 }
 
 } // end namespace GenomeTasks
