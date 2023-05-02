@@ -231,10 +231,13 @@ private:
 	static constexpr size_t _windowSize = 1000;
 	size_t _iWindow = 0;
 	std::vector<TMultiGLFData> _dataWindow;
+	std::vector<size_t> _numActive;
 
 public:
-	const TMultiGLFData& data() const noexcept {return _data;};
-	TMultiGLFData& data() noexcept {return _data;};
+	//const TMultiGLFData& data() const noexcept {return _data;};
+	//TMultiGLFData& data() noexcept {return _data;};
+	const TMultiGLFData& data() const noexcept {return _dataWindow[_iWindow];};
+	TMultiGLFData& data() noexcept {return _dataWindow[_iWindow];};
 
 	TGlfMultiReader();
 	TGlfMultiReader(const std::vector<std::string>& FileNames);
@@ -259,8 +262,8 @@ public:
 
 	// parse
 	bool readWindow();
+	bool readNextOld();
 	bool readNext();
-	bool readNextNew();
 
 	// output
 	std::vector<std::string> namesOfActiveFiles() const;
@@ -269,7 +272,8 @@ public:
 	// access data
 	constexpr uint32_t numSamples() const noexcept { return _numGLFs; };
 	uint32_t numActiveSamples() const noexcept { return _activeGLFs.size(); };
-	constexpr uint32_t numActiveSamplesWithData() const noexcept { return _numActiveFilesWithData; };
+	//constexpr uint32_t numActiveSamplesWithData() const noexcept { return _numActiveFilesWithData; };
+	constexpr uint32_t numActiveSamplesWithData() const noexcept { return _numActive[_iWindow]; };
 	std::string chr() const { return _curChr.name(); };
 	constexpr uint32_t position() const noexcept { return _position; };
 	genometools::Base refBase() const noexcept {

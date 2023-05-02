@@ -387,47 +387,45 @@ bool TGlfMultiReader::readWindow() {
 	}
 	const size_t from = _position + 1;
 	const size_t N    = std::min(_windowSize, _curChr.length() - from);
-	_dataWindow.resize(N);
+	_dataWindow.assign(N, {});
+	_numActive.assign(N, 0);
 
-	for (size_t iR = 0; iR < _activeGLFs.size(); ++iR) {
-		auto reader = _activeGLFs[iR];
+	bool allEOF=true;
+	for (auto reader : _activeGLFs) {
 		// find first data in window
 		while (!reader->eof() && (reader->refId() == _curRefId) && (reader->position() < from)) {
 			reader->readNext();
 		}
+		if (!reader->eof()) allEOF = false;
 
 		// fill everything as noData
-		const auto noData = TMultiGLFDataSample{reader->pointerToChr(_curRefId)->isHaploid()};
 		for (size_t iW = 0; iW < N; ++iW) {
-			_dataWindow[iW][iR] = noData;
-		}
-
-		// fill data
-		if (!reader->eof() && (reader->refId() == _curRefId)) {
-			auto iW = reader->position() - from;
-			while (iW < N) {
-				_dataWindow[iW][iR] = TMultiGLFDataSample{reader->genotypeLikelihoodsGLF(), reader->depth()};
-				if (!reader->readNext()) break;
-				iW = reader->position() - from;
+			if (!reader->eof() && (reader->refId() == _curRefId) && reader->position() - from == iW) {
+				_dataWindow[iW].emplace_back(reader->genotypeLikelihoodsGLF(), reader->depth());
+				++_numActive[iW];
+				reader->readNext();
+			} else {
+				_dataWindow[iW].emplace_back(reader->pointerToChr(_curRefId)->isHaploid());
 			}
 		}
 	}
-	_position = from;
 
-	return true;
-}
-
-bool TGlfMultiReader::readNextNew() {
-	if (_iWindow + 1 > _dataWindow.size()) {
-		_iWindow = 0;
-		return readWindow();
-	}
-	++_iWindow;
-	++_position;
-	return true;
+	return !allEOF;
 }
 
 bool TGlfMultiReader::readNext() {
+	if (_iWindow + 1 >= _dataWindow.size()) {
+		if (!readWindow()) return false;
+		_iWindow = 0;
+	} else {
+		++_iWindow;
+	}
+	++_position;
+	if (_onlyPositionsWithData && _numActive[_iWindow] == 0) { return readNext(); }
+	return true;
+}
+
+bool TGlfMultiReader::readNextOld() {
 	// advance to next position
 	const auto _nextPosition = _position + 1;
 	if (_nextPosition > _curChr.length()){
