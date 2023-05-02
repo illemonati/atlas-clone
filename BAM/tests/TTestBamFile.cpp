@@ -225,14 +225,14 @@ void TTestBamFile::writeDummyAlignments(size_t numAlignments, const bool & compl
 	for(size_t i=0; i<numAlignments; ++i){
 		//iterate position
 		position += dist;
-		if(position + _dummyLength > chr->_end){
+		if(position + _dummyLength > chr->end()){
 			++chr;
 			if(chr == _chromosomes.end()){
 				std::cout << "ERROR A" << std::endl;
 				DEVERROR("chromosome reached end!");
 			}
 
-			position = chr->_start;
+			position = chr->start();
 		}
 		writeDummyAlignment(position, complicatedSamFlag);
 	}

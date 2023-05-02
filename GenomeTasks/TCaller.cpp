@@ -1282,12 +1282,12 @@ void TCall::_call(){
 
 void TCall::_callKnwonAlleles(){
 	//check if we need to process this window
-	if(_subset->hasPositionsInWindow(_window)){
+	if(_subsetPolymoprhic->hasPositionsInWindow(_window)){
 		//add reference to sites
-		_window.addReferenceBaseToSites(*_subset);
+		_window.addReferenceBaseToSites(*_subsetPolymoprhic);
 
 		//only run over sites listed in that window
-		auto thesePositions = _subset->getPositionInWindow(_window);
+		auto thesePositions = _subsetPolymoprhic->getPositionInWindow(_window);
 		for(auto& it : thesePositions){
 			//calculate genotype likelihoods
 			uint32_t internalPos = it - _window.from();
@@ -1299,7 +1299,6 @@ void TCall::_callKnwonAlleles(){
 	}
 };
 
-
 void TCall::_handleWindow(){
 	if(_window.passedFilters() || _caller->printSitesWithNoData()){
 		//update genotype prior
@@ -1307,7 +1306,7 @@ void TCall::_handleWindow(){
 
 		//call
 		logfile().listFlushTime("Calling genotypes ...");
-		if(_subset){
+		if(_subsetPolymoprhic){
 			_callKnwonAlleles();
 		} else {
 			_call();

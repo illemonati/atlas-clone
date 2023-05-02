@@ -68,13 +68,11 @@ BAM::TReadGroupMap makeReadGroupMap(const BAM::TReadGroups &ReadGroups) {
 
 void TEstimateRecalibration::_handleWindow() {
 	// add sites to recal estimator
-	if (_subset) {
-		auto thesePositions = _subset->getPositionInWindow(_window);
-		for (auto &it : thesePositions) {
-			if (it.ref() == it.alt()) {
-				const uint32_t internalPos = it - _window.from();
-				recal.addSite(_window[internalPos]);
-			}
+	if (_subsetMonomorphic) {
+		auto thesePositions = _subsetMonomorphic->getPositionInWindow(_window);
+		for (auto &it : thesePositions) {			
+			const uint32_t internalPos = it - _window.from();
+			recal.addSite(_window[internalPos]);			
 		}
 	} else {
 		for (auto &s : _window) {

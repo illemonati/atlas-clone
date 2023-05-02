@@ -128,7 +128,7 @@ void TEstimateMutationLoad::_handleWindow() {
 	// adding sites to estimator
 	logfile().listFlushTime("Calculating genotype likelihoods and storing data ...");
 	try {
-		auto thesePositions = _subset->getPositionInWindow(_window);
+		auto thesePositions = _subsetMonomorphic->getPositionInWindow(_window);
 		for(auto& it : thesePositions){
 			uint32_t internalPos = it - _window.from();
 			GenotypeLikelihoods::TSite& site = _window[internalPos];

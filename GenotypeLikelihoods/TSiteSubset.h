@@ -20,10 +20,9 @@
 #include "genometools/GenotypeTypes.h"
 #include "genometools/GenomePositions/TGenomePosition.h"
 #include "coretools/algorithms.h"
-
-namespace coretools { class TOutputFile; }
-namespace genometools { class TChromosomes; }
-namespace genometools { class TFastaReader; }
+#include "coretools/Main/TLog.h"
+#include "genometools/GenomePositions/TChromosomes.h"
+#include "coretools/Files/TOutputFile.h"
 
 namespace GenotypeLikelihoods{
 
@@ -35,7 +34,7 @@ namespace GenotypeLikelihoods{
 //-----------------------------------------------
 // TSitePolymorphic / TSiteMonomorphic
 //-----------------------------------------------
-namespace sitesubset {
+namespace SiteSubset {
 	class TSitePolymorphic:public genometools::TGenomePosition{
 	private:
 		genometools::Base _ref, _alt;
@@ -89,7 +88,7 @@ private:
 			uint32_t pos = coretools::str::fromString<uint32_t, true>(line[1]) - 1; //make 0-based
 
 			// add site
-			_sites.emplace(chr.refID(), pos, line, Chromosomes); // make 0-based
+			_sites.emplace_back(chr.refID(), pos, line, Chromosomes); // make 0-based
 		}
 
 		//sort sites
@@ -133,6 +132,9 @@ public:
 };
 
 } //end namespace sitesubset
+
+using TSiteSubsetPolymorphic = SiteSubset::TSiteSubset<SiteSubset::TSitePolymorphic>;
+using TSiteSubsetMonomorphic = SiteSubset::TSiteSubset<SiteSubset::TSiteMonomorphic>;
 
 }; //end namespace
 

@@ -300,10 +300,9 @@ void TGenome_windows::_setMasks() {
 	}
 };
 
-void TGenome_windows::_openSiteSubset(const std::string &paramName, bool storesInvariantSites) {
-	if (_subset) { UERROR("Site subset already initialized!"); }
-
-	std::string filename = parameters().getParameter<std::string>(paramName, true);
+void TGenome_windows::_openSiteSubset(const std::string &paramName, bool polymorphic) {
+	// only allow for one subset to be active
+	if (_subsetPolymoprhic || _subsetMonomorphic) { DEVERROR("Site subset already initialized!"); }
 
 	if (_considerRegions)
 		UERROR("Site subsets (parameter '", paramName,
@@ -312,7 +311,13 @@ void TGenome_windows::_openSiteSubset(const std::string &paramName, bool storesI
 		UERROR("Site subsets (parameter '", paramName,
 			   "') and masks (parameter 'mask') can not be used at the same time!");
 
-	_subset = std::make_unique<GenotypeLikelihoods::TSiteSubset>(filename, _bamFile.chromosomes(), storesInvariantSites, _reference);
+	std::string filename = parameters().getParameter<std::string>(paramName, true);
+
+	if(polymorphic){
+		_subsetPolymoprhic = std::make_unique<GenotypeLikelihoods::TSiteSubsetPolymorphic>(filename, _bamFile.chromosomes());
+	} else {
+		_subsetMonomorphic = std::make_unique<GenotypeLikelihoods::TSiteSubsetMonomorphic>(filename, _bamFile.chromosomes());
+	}	
 };
 
 void TGenome_windows::_setCountersBeginningOfChromosome() {
@@ -320,14 +325,14 @@ void TGenome_windows::_setCountersBeginningOfChromosome() {
 	_windowNumber     = 1;
 };
 
-bool TGenome_windows::_incrementWindow(GenotypeLikelihoods::TWindow_base &window) {
+bool TGenome_windows::_incrementWindow(GenotypeLikelihoods::TWindow &window) {
 	// move to next
 	window += _windowSize;
 	++_windowNumber;
 
 	// Move to next chromosome if 1) we are at begininning of BAM (_curchromosome at end), 2) we are beyond
 	// _curChromosome or 3) reached window limit
-	if (_curChromosome == _chromosomes.cend() || window.from() >= _curChromosome->_end ||
+	if (_curChromosome == _chromosomes.cend() || window.from() >= _curChromosome->end() ||
 		_windowNumber > _limitWindows) {
 		// move to next chromosome
 		if (_curChromosome == _chromosomes.cend()) { // beginning of chromosome
@@ -348,20 +353,24 @@ bool TGenome_windows::_incrementWindow(GenotypeLikelihoods::TWindow_base &window
 		_numWindowsOnChr = ceil(_curChromosome->length() / (double)_windowSize);
 
 		// move window to beginning of chromosome
-		genometools::TGenomePosition newFrom = _curChromosome->_start + _skipWindows * _windowSize;
+		genometools::TGenomePosition newFrom = _curChromosome->start() + _skipWindows * _windowSize;
 		window.move(newFrom, _windowSize, _curChromosome->name());
 	}
 
 	return true;
 };
 
-bool TGenome_windows::_moveToNextWindow(GenotypeLikelihoods::TWindow_base &window) {
+bool TGenome_windows::_moveToNextWindow(GenotypeLikelihoods::TWindow &window) {
 	// move to next
 	if (!_incrementWindow(window)) { return false; }
 
 	// if sites defined, check if there are sites
-	if (_subset) {
-		while (!_subset->hasPositionsInWindow(window)) {
+	if (_subsetPolymoprhic) {
+		while (!_subsetPolymoprhic->hasPositionsInWindow(window)) {
+			if (!_incrementWindow(window)) { return false; }
+		}
+	} else if(_subsetMonomorphic){
+		while (!_subsetMonomorphic->hasPositionsInWindow(window)) {
 			if (!_incrementWindow(window)) { return false; }
 		}
 	}
@@ -374,7 +383,7 @@ bool TGenome_windows::_moveToNextWindow(GenotypeLikelihoods::TWindow_base &windo
 	}
 
 	// make sure window does not go beyond chromosome end
-	if (window.to() > _curChromosome->_end) { window.resize(_curChromosome->_end - window.from()); }
+	if (window.to() > _curChromosome->end()) { window.resize(_curChromosome->end() - window.from()); }
 
 	return true;
 };
@@ -395,7 +404,7 @@ bool TGenome_windows::_incrementPredefinedWindow() {
 	return true;
 };
 
-bool TGenome_windows::_moveToNextPredefinedWindow(GenotypeLikelihoods::TWindow_base &window) {
+bool TGenome_windows::_moveToNextPredefinedWindow(GenotypeLikelihoods::TWindow &window) {
 	// if at beginning of BAM file: restart
 	if (_curChromosome == _chromosomes.cend()) {
 		_curPredefinedWindow = _predefinedWindows.begin();
@@ -442,7 +451,7 @@ bool TGenome_windows::_moveToNextPredefinedWindow(GenotypeLikelihoods::TWindow_b
 	return true;
 };
 
-bool TGenome_windows::_moveWindow(GenotypeLikelihoods::TWindow_base &window) {
+bool TGenome_windows::_moveWindow(GenotypeLikelihoods::TWindow &window) {
 	// returns false when end of genome is reached
 	if (_predefinedWindows.empty()) {
 		// no predefined windows: regular traversing
@@ -512,9 +521,12 @@ void TGenome_windows::_readAlignmentsIntoWindow(GenotypeLikelihoods::TWindow &wi
 	// _curAlignment now holds first alignment of next window, don't discard!
 
 	// fill sites
-	if (_subset) {
-		window.fillSitesSubset(*_subset, _readUpToDepth);
-		window.addReferenceBaseToSites(*_subset);
+	if (_subsetPolymoprhic) {
+		window.fillSitesSubset(*_subsetPolymoprhic, _readUpToDepth);
+		window.addReferenceBaseToSites(*_subsetPolymoprhic);
+	} else if (_subsetMonomorphic) {
+		window.fillSitesSubset(*_subsetMonomorphic, _readUpToDepth);
+		window.addReferenceBaseToSites(*_subsetMonomorphic);
 	} else {
 		window.fillSites(_readUpToDepth);
 		window.addReferenceBaseToSites(_reference);
@@ -527,7 +539,7 @@ void TGenome_windows::_readAlignmentsIntoWindow(GenotypeLikelihoods::TWindow &wi
 	_applyWindowFilters(window);
 };
 
-void TGenome_windows::_applyWindowFilters(GenotypeLikelihoods::TWindow_base &window) {
+void TGenome_windows::_applyWindowFilters(GenotypeLikelihoods::TWindow &window) {
 	// apply site-specific filters
 	if (window.numReadsInWindow() > 0) {
 		// apply masks and filters

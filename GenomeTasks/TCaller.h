@@ -28,8 +28,6 @@ namespace GenotypeLikelihoods { class TSite; }
 
 namespace GenomeTasks{
 
-
-
 //------------------------------------------------------
 // TCaller
 // Note: this is base class, not meant to be used but to derive from

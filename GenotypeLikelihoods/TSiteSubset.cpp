@@ -26,7 +26,7 @@ namespace GenotypeLikelihoods {
 using coretools::instances::logfile;
 using coretools::str::toString;
 
-namespace sitesubset {
+namespace SiteSubset {
 
 //-----------------------------------------------
 // TSitePolymorphic / TSiteMonomorphic
@@ -37,14 +37,14 @@ TSitePolymorphic::TSitePolymorphic(uint32_t refID, uint32_t position, const std:
 	// parse first allele (reference)
 	_ref = genometools::char2base(Line[2][0]);
 	if (_ref == genometools::Base::N) {
-		UERROR("Unknown allele1 '", Line[2], "' on ", asFormatedString(Chromosomes), "!");
+		UERROR("Unknown allele1 '", Line[2], "' on ", asFormattedString(Chromosomes), "!");
 
 		// parse second allele
 		_alt = genometools::char2base(Line[3][0]);
 		if (_alt == genometools::Base::N) {
-			UERROR("Unknown allele2 '", Line[3], "' on ", asFormatedString(Chromosomes), "!");
+			UERROR("Unknown allele2 '", Line[3], "' on ", asFormattedString(Chromosomes), "!");
 		}
-		if (_ref == _alt) { UERROR("Site on ", asFormatedString(Chromosomes), " is invariant!"); }
+		if (_ref == _alt) { UERROR("Site on ", asFormattedString(Chromosomes), " is invariant!"); }
 	}
 }
 
@@ -58,7 +58,7 @@ TSiteMonomorphic::TSiteMonomorphic(uint32_t refID, uint32_t position, const std:
 	// parse first allele (reference)
 	_ref = genometools::char2base(Line[2][0]);
 	if (_ref == genometools::Base::N) {
-		UERROR("Unknown allele1 '", Line[2], "' on ", asFormatedString(Chromosomes), "!");
+		UERROR("Unknown allele1 '", Line[2], "' on ", asFormattedString(Chromosomes), "!");
 	}
 }
 
@@ -66,4 +66,5 @@ void TSiteMonomorphic::write(coretools::TOutputFile &out, const genometools::TCh
 	out.writeln(asFormattedString(Chromosomes, "\t"), _ref);
 }
 
+}; // namespace SiteSubset
 }; // namespace GenotypeLikelihoods

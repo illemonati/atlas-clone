@@ -249,7 +249,7 @@ public:
 
 	void close() { _out.close(); };
 
-	void write(const TWindow_base &window) {
+	void write(const TWindow &window) {
 		_out.write(window.chrName(), window.from().position() + 1, window.to().position());
 		_writeEstimates();
 	};

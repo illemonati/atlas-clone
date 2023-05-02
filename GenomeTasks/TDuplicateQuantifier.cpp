@@ -44,7 +44,7 @@ void TDuplicateQuantifier::_handleAlignments(){
 		if(_curChrEnd.position() > 0){
 			_addCurCounts(_curChrEnd);
 		}
-		_curPos = _bamFile.curChromosome()._start;
+		_curPos = _bamFile.curChromosome().start();
 		_curChrEnd = _bamFile.curChromosome().end();
 		std::fill(_countsAtPos.begin(), _countsAtPos.end(), 0);
 	}

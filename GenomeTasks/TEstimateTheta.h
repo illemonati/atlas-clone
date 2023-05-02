@@ -65,7 +65,7 @@ private:
 	void _handleWindow() override;
 	void _handleAlignment() override {}
 
-	void _addSites(GenotypeLikelihoods::TWindow_base &window, GenotypeLikelihoods::TThetaEstimator &thetaEstimator);
+	void _addSites(GenotypeLikelihoods::TWindow &window, GenotypeLikelihoods::TThetaEstimator &thetaEstimator);
 	void _addSites();
 
 	void _bootstrapThetaEstimation();

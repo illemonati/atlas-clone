@@ -139,7 +139,8 @@ protected:
 	genometools::TBed _mask;
 
 	// sites
-	std::unique_ptr<GenotypeLikelihoods::TSiteSubset> _subset;
+	std::unique_ptr<GenotypeLikelihoods::TSiteSubsetPolymorphic> _subsetPolymoprhic;
+	std::unique_ptr<GenotypeLikelihoods::TSiteSubsetMonomorphic> _subsetMonomorphic;
 
 	// site filters
 	bool _applyDepthFilter;
@@ -160,20 +161,20 @@ protected:
 	void _setWindowFilters();
 	void _setSiteFilters();
 	void _setMasks();
-	void _openSiteSubset(const std::string &filename, bool storesInvariantSites = false);
+	void _openSiteSubset(const std::string &filename, bool polymoprhic = true);
 
 	// functions to traverse BAM in windows
 	GenotypeLikelihoods::TWindow _window;
 	void _jumpToEnd();
 	void _setCountersBeginningOfChromosome();
-	bool _incrementWindow(GenotypeLikelihoods::TWindow_base &window);
-	bool _moveToNextWindow(GenotypeLikelihoods::TWindow_base &window);
+	bool _incrementWindow(GenotypeLikelihoods::TWindow &window);
+	bool _moveToNextWindow(GenotypeLikelihoods::TWindow &window);
 	bool _incrementPredefinedWindow();
-	bool _moveToNextPredefinedWindow(GenotypeLikelihoods::TWindow_base &window);
+	bool _moveToNextPredefinedWindow(GenotypeLikelihoods::TWindow &window);
 
-	bool _moveWindow(GenotypeLikelihoods::TWindow_base &window);
+	bool _moveWindow(GenotypeLikelihoods::TWindow &window);
 	void _readAlignmentsIntoWindow(GenotypeLikelihoods::TWindow &window);
-	void _applyWindowFilters(GenotypeLikelihoods::TWindow_base &window);
+	void _applyWindowFilters(GenotypeLikelihoods::TWindow &window);
 	bool _readAndParseAlignment();
 	bool _readDataInNextWindow(GenotypeLikelihoods::TWindow &window);
 

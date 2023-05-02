@@ -90,8 +90,8 @@ TEST_F(TBamFile_Test_ReadWrite, chromosomes){
         EXPECT_EQ(itWritten->name(), itRead->name());
         EXPECT_EQ(itWritten->length(), itRead->length());
         EXPECT_EQ(itWritten->refID(), itRead->refID());
-        EXPECT_EQ(itWritten->_start.position(), itRead->_start.position());
-        EXPECT_EQ(itWritten->_end.position(), itRead->_end.position());
+        EXPECT_EQ(itWritten->start().position(), itRead->start().position());
+        EXPECT_EQ(itWritten->end().position(), itRead->end().position());
     }
 }
 
