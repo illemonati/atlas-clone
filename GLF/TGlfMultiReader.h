@@ -40,42 +40,23 @@ namespace GLF {
 //----------------------------------------------------
 class TMultiGLFDataSample {
 private:
-	const TGLFLikelihoods *_glf;
-	union {
-		uint16_t _depth;
-		bool _isHaploid;
-	};
+	TGLFLikelihoods _glf;//{{genometools::HighPrecisionPhredIntProbability::highest()}};
+	size_t _depth = 0;
 public:
-	TMultiGLFDataSample() = default;
-	constexpr TMultiGLFDataSample(bool isHaploid) : _glf(nullptr), _isHaploid{isHaploid} {}
-	constexpr TMultiGLFDataSample(const TGLFLikelihoods *GLs, uint16_t Depth) : _glf(GLs), _depth{Depth}{};
+	TMultiGLFDataSample(bool isHaploid = true)
+		: _glf(genometools::HighPrecisionPhredIntProbability::highest(), Ploidy((!isHaploid))) {}
+	constexpr TMultiGLFDataSample(const TGLFLikelihoods &GLs, uint16_t Depth) : _glf(GLs), _depth{Depth} {};
 
-	constexpr bool hasData() const noexcept { return _glf; };
-	constexpr uint16_t depth() const noexcept { return hasData() * _depth; };
-	constexpr bool isHaploid() const noexcept { return hasData() ? _glf->type == Ploidy::haploid : _isHaploid; };
+	constexpr bool hasData() const noexcept { return _depth > 0; };
+	constexpr size_t depth() const noexcept { return _depth; };
+	constexpr bool isHaploid() const noexcept { return _glf.isType(Ploidy::haploid); };
 
-	template<bool HasData>
-	constexpr bool isHaploid() const noexcept {
-		if constexpr (HasData) return _glf->type == Ploidy::haploid;
-		else return _isHaploid;
-	}
-
-	constexpr const genometools::HighPrecisionPhredIntProbability get_with_data(const genometools::Genotype &G) const noexcept {
-		return (*_glf)[G]; // asserts if haploid
+	constexpr genometools::HighPrecisionPhredIntProbability operator[](genometools::Genotype G) const noexcept {
+		return _glf[G]; // asserts if diploid
 	};
 
-	constexpr const genometools::HighPrecisionPhredIntProbability get_with_data(const genometools::Base &B) const noexcept {
-		return (*_glf)[B];// asserts if diploid
-	};
-
-	constexpr const genometools::HighPrecisionPhredIntProbability operator[](const genometools::Genotype &G) const noexcept {
-		if (!_glf) { return genometools::HighPrecisionPhredIntProbability::highest(); }
-		return get_with_data(G);
-	};
-
-	constexpr const genometools::HighPrecisionPhredIntProbability operator[](const genometools::Base &B) const noexcept {
-		if (!_glf) { return genometools::HighPrecisionPhredIntProbability::highest(); }
-		return get_with_data(B);
+	constexpr genometools::HighPrecisionPhredIntProbability operator[](genometools::Base B) const noexcept {
+		return _glf[B]; // asserts if diploid
 	};
 };
 
@@ -279,6 +260,7 @@ public:
 	// parse
 	bool readWindow();
 	bool readNext();
+	bool readNextNew();
 
 	// output
 	std::vector<std::string> namesOfActiveFiles() const;

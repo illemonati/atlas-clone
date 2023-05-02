@@ -74,13 +74,13 @@ void fill(TMultiGLFDataOneAllelicCombination &storage, const TMultiGLFData &samp
 		if (!s.hasData()) {
 			continue;
 		}
-		if (s.isHaploid<true>())
-			storage.emplace_back(s.get_with_data(first(alleleicCombination)),
-								 s.get_with_data(second(alleleicCombination)));
+		if (s.isHaploid())
+			storage.emplace_back(s[first(alleleicCombination)],
+								 s[second(alleleicCombination)]);
 		else
-			storage.emplace_back(s.get_with_data(homoFirst(alleleicCombination)),
-								 s.get_with_data(het(alleleicCombination)),
-								 s.get_with_data(homoSecond(alleleicCombination)));
+			storage.emplace_back(s[homoFirst(alleleicCombination)],
+								 s[het(alleleicCombination)],
+								 s[homoSecond(alleleicCombination)]);
 	}
 };
 
@@ -396,26 +396,34 @@ bool TGlfMultiReader::readWindow() {
 			reader->readNext();
 		}
 
-		// no data in window?
-		if (reader->eof() || (reader->refId() != _curRefId) || reader->position() > from + N) {
-			const auto noData = TMultiGLFDataSample{reader->pointerToChr(_curRefId)->isHaploid()};
-			for (size_t iW = 0; iW < N; ++iW) {
-				_dataWindow[iW][iR] = noData;
+		// fill everything as noData
+		const auto noData = TMultiGLFDataSample{reader->pointerToChr(_curRefId)->isHaploid()};
+		for (size_t iW = 0; iW < N; ++iW) {
+			_dataWindow[iW][iR] = noData;
+		}
+
+		// fill data
+		if (!reader->eof() && (reader->refId() == _curRefId)) {
+			auto iW = reader->position() - from;
+			while (iW < N) {
+				_dataWindow[iW][iR] = TMultiGLFDataSample{reader->genotypeLikelihoodsGLF(), reader->depth()};
+				if (!reader->readNext()) break;
+				iW = reader->position() - from;
 			}
-		} else {
-			// line by line
-			const auto noData   = TMultiGLFDataSample{reader->pointerToChr(_curRefId)->isHaploid()};
-			const auto firstPos = reader->position() - from;
-			size_t iW = 0;
-			// fill empty before
-			for (; iW < firstPos; ++iW) {
-				_dataWindow[iW][iR] = noData;
-			}
-			_dataWindow[iW][iR] = TMultiGLFDataSample{&reader->genotypeLikelihoodsGLF(), reader->depth()};
-			++iW;
 		}
 	}
+	_position = from;
 
+	return true;
+}
+
+bool TGlfMultiReader::readNextNew() {
+	if (_iWindow + 1 > _dataWindow.size()) {
+		_iWindow = 0;
+		return readWindow();
+	}
+	++_iWindow;
+	++_position;
 	return true;
 }
 
@@ -434,7 +442,7 @@ bool TGlfMultiReader::readNext() {
 		while (!reader->eof() && reader->refId() == _curRefId && reader->position() < _nextPosition) { reader->readNext(); }
 
 		if (!reader->eof() && reader->position() == _nextPosition && reader->refId() == _curRefId) {
-			_data.emplace_back(&reader->genotypeLikelihoodsGLF(), reader->depth());
+			_data.emplace_back(reader->genotypeLikelihoodsGLF(), reader->depth());
 			++_numActiveFilesWithData;
 		} else {
 			_data.emplace_back(reader->pointerToChr(_curRefId)->isHaploid()); // data is missing
