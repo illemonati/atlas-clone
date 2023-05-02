@@ -27,9 +27,10 @@ struct TFunctions;
 class TEpsilon {
 	std::unique_ptr<TFunctions> _functions;
 
-	double _Q    = 0.;
-	double _oldQ = std::numeric_limits<double>::lowest();
-	double _maxF = 0.;
+	double _Q       = 0.;
+	double _oldQ    = 0.;
+	double _maxF    = 0.;
+	bool _converged = false;
 	arma::mat _Jacobian;
 	arma::vec _F;
 	arma::mat _JxF;
@@ -62,6 +63,7 @@ class TEpsilon {
 	template<bool isInvariant>
 	void _addToQ(const BAM::TSequencedBase &base, const TGenotypeLikelihoods &P_g_I_ds,
 				const TGenotypeLikelihoods &P_bbar_I_gds) {
+		if (_converged) return;
 		using genometools::Genotype;
 		const double eps    = calcErrorRate(base);
 		const double eps_c  = 1. - eps;
