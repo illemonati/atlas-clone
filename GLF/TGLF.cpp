@@ -91,7 +91,7 @@ void TGlfWriter::newChromosome(const genometools::TChromosome &chromosome) {
 	_write(&zero8, sizeof(uint8_t));
 
 	// save cur info
-	_curChr.update(chromosome.name, chromosome.refID(), chromosome.length, chromosome.ploidy);
+	_curChr.update(chromosome.name(), chromosome.refID(), chromosome.length(), chromosome.ploidy());
 
 	// write new chromosome: length of label, label, refId, length of ref sequence, ploidy
 	const uint32_t labelLength = _curChr.name().size();

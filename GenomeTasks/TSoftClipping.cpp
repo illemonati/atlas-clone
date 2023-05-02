@@ -46,7 +46,7 @@ void TSoftClippingStatsFile::open(const std::string &Filename, bool PrintSequenc
 };
 
 void TSoftClippingStatsFile::write(const BAM::TBamFile &bamFile) {
-	_out << bamFile.curName() << bamFile.curChromosome().name << bamFile.curPosition().position();
+	_out << bamFile.curName() << bamFile.curChromosome().name() << bamFile.curPosition().position();
 	const BAM::TCigar &cigar = bamFile.curCIGAR();
 
 	_out << cigar.lengthSoftClippedLeft() << cigar.lengthSequenced() << cigar.lengthSoftClippedRight();

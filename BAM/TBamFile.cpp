@@ -447,7 +447,7 @@ void TBamFile::open(std::string_view Filename){
 
 	//get file size
 	const size_t lastChromRefID = _chromosomes.size() - 1;
-	int pos               = _chromosomes[lastChromRefID].length - 1;
+	int pos               = _chromosomes[lastChromRefID].length() - 1;
 	BamTools::BamAlignment bamAlignment;
 	do {
 	_bamReader.Jump(lastChromRefID, pos);
@@ -565,8 +565,8 @@ bool TBamFile::readNextAlignment(){
 		}
 
 		//if not in use: jump to next in use
-		if(!_curChromosome->inUse){
-			while(!_curChromosome->inUse){
+		if(!_curChromosome->inUse()){
+			while(!_curChromosome->inUse()){
 				++_curChromosome;
 
 				if(_curChromosome == _chromosomes.end()){
@@ -575,7 +575,7 @@ bool TBamFile::readNextAlignment(){
 			}
 
 			//jump reader and read first alignment
-			jump(_curChromosome->chrStart);
+			jump(_curChromosome->start());
 			if(!_bamReader.GetNextAlignment(_curBamAlignment)){
 				return false;
 			}
@@ -1061,7 +1061,7 @@ void TOutputBamFile::open(const std::string Filename, const TSamHeader & Header,
 	//fill bamtools chromosomes
 	BamTools::RefVector ref;
 	for(auto it = Chromosomes.cbegin(); it != Chromosomes.cend(); ++it){
-		ref.emplace_back(it->name, it->length);
+		ref.emplace_back(it->name(), it->length());
 	}
 
 	//open file for writing

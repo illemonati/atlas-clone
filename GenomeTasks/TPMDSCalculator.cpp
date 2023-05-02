@@ -35,7 +35,7 @@ TPMDSCalculator::TPMDSCalculator():TGenome_parsed(){
 	_pi = parameters().getParameterWithDefault<coretools::Probability>("pi", coretools::Probability(0.001));
 	logfile().list("Running PMDS with rate of polymorphism (pi) = " + toString(_pi));
 	if(parameters().parameterExists("filterPMDS")){
-		_filerRange.set(parameters().getParameter("filterPMDS"));
+		_filterRange.set(parameters().getParameter("filterPMDS"));
 		_doFilter = true;
 		logfile().list("Filtering out reads with PMDS outside the range " + _filterRange.rangeString() + ".");
 	} else {
@@ -79,7 +79,7 @@ void TPMDSCalculator::run(){
 
 	//open a bam file for writing
 	_openBamForWriting(_outputName + "_PMDS.bam", _outBam);
-	_bamFile.setExternalFilterReason("PMDS outside range [" + toString(_minPMDS) + ", " + toString(_maxPMDS) + "]");
+	_bamFile.setExternalFilterReason("PMDS outside range " + _filterRange.rangeString());
 
 	//traverse BAM
 	_traverseBAMPassedQC();

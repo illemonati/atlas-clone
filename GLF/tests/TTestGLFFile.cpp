@@ -71,7 +71,7 @@ void TTestGLFFile::_iteratePosition() {
     _dummyPos += _dummyDist + 1; // + 1 because % can return 0, but then we would like distance of 1
 
     // next chromosome?
-    if (genometools::TGenomePosition(_dummyCurChr->refID(), _dummyPos) >= _dummyCurChr->chrEnd){
+    if (genometools::TGenomePosition(_dummyCurChr->refID(), _dummyPos) >= _dummyCurChr->_end){
         writeNewChromosome();
     }
 }
@@ -136,7 +136,7 @@ void TTestGLFFile::writeDummySite(long pos) {
 void TTestGLFFile::writeDummySite(long pos, size_t depth) {
     _iterateGenotypeLikelihoods(depth);
 
-    if (_dummyCurChr->ploidy == 1)
+    if (_dummyCurChr->ploidy() == 1)
         writeDummySite(pos, depth, _dummyGenotypeLikelihoodsHaploid);
     else
         writeDummySite(pos, depth, _dummyGenotypeLikelihoods);
@@ -149,7 +149,7 @@ void TTestGLFFile::writeDummySite(long pos, size_t depth, GenotypeLikelihoods::T
 }
 
 void TTestGLFFile::writeSite(long pos, size_t depth, GenotypeLikelihoods::TGenotypeLikelihoods &genotypeLikelihoods, uint8_t RMS_mappingQual) {
-    if (pos < 0 || pos >= _dummyCurChr->length)
+    if (pos < 0 || pos >= _dummyCurChr->length())
         DEVERROR("Position ", pos, " is outside interval [0, lengthChr)!");
     // write to glf
     _glfFile.writeSite(pos, depth, RMS_mappingQual, genotypeLikelihoods);
@@ -157,7 +157,7 @@ void TTestGLFFile::writeSite(long pos, size_t depth, GenotypeLikelihoods::TGenot
     long positionInGenome = pos;
     for (auto & chr : _chromosomes){
         if (chr.refID() == _dummyCurChr->refID()) break;
-        positionInGenome += chr.length;
+        positionInGenome += chr.length();
     }
 
     // ... and store, for later comparisons
@@ -174,7 +174,7 @@ void TTestGLFFile::writeNewChromosome() {
         DEVERROR("void TTestBamFile::writeDummyAlignments(size_t numAlignments): chromosome reached end!");
     }
 
-    _dummyPos = _dummyCurChr->chrStart.position();
+    _dummyPos = _dummyCurChr->_start.position();
 
     _glfFile.newChromosome(*_dummyCurChr);
 }

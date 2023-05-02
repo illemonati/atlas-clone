@@ -78,7 +78,18 @@ public:
 	void clear();
 
 	void addReferenceBaseToSites(const genometools::TFastaReader & reference);
-	void addReferenceBaseToSites(TSiteSubset & subset);
+	template <typename SiteSubsetType> void addReferenceBaseToSites(SiteSubsetType & subset){
+		if(!referenceBaseAdded && subset.hasPositionsInWindow(*this)){
+			//now only run over sites listed in that window
+			const auto thesePositions = subset.getPositionInWindow(*this);
+			for(auto& it : thesePositions){
+				size_t pos = it - _from;
+				_sites[pos].refBase = it.ref();
+			}
+			referenceBaseAdded = true;
+		}
+	};
+	
 	void applyMask(genometools::TBed & mask, bool doInverseMasking);
 	void maskCpG(const genometools::TFastaReader& reference);
 	void downsample(size_t maxDepth, const coretools::TSubsamplePicker & picker);

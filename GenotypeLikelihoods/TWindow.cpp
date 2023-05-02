@@ -219,20 +219,6 @@ void TWindow_base::addReferenceBaseToSites(const genometools::TFastaReader & ref
 	}
 };
 
-void TWindow_base::addReferenceBaseToSites(TSiteSubset & subset){
-	if(!referenceBaseAdded){
-		if(subset.hasPositionsInWindow(*this)){
-			//now only run over sites listed in that window
-			const auto thesePositions = subset.getPositionInWindow(*this);
-			for(auto& it : thesePositions){
-				size_t pos = it - _from;
-				_sites[pos].refBase = it.ref();
-			}
-		}
-		referenceBaseAdded = true;
-	}
-};
-
 void TWindow_base::applyMask(genometools::TBed & mask, bool doInverseMasking){
 	if(doInverseMasking){
 		//only keep sites in BED

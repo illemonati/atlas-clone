@@ -230,8 +230,8 @@ public:
 	bool operator>(const genometools::TGenomePosition & Position) const{ return _curAlignmentPosition > Position; };
 	bool operator<(const genometools::TGenomeWindow & Window) const{ return _curAlignmentPosition < Window; };
 	bool operator>(const genometools::TGenomeWindow & Window) const{ return _curAlignmentPosition > Window; };
-	bool operator<(const genometools::TChromosome & Chromosome) const{ return _curAlignmentPosition < Chromosome.chrStart; };
-	bool operator>(const genometools::TChromosome & Chromosome) const{ return _curAlignmentPosition > Chromosome.chrEnd; };
+	bool operator<(const genometools::TChromosome & Chromosome) const{ return _curAlignmentPosition < Chromosome.start(); };
+	bool operator>(const genometools::TChromosome & Chromosome) const{ return _curAlignmentPosition > Chromosome.end(); };
 };
 
 //------------------------------------------------

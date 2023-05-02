@@ -205,7 +205,7 @@ protected:
 	std::vector<std::string> _prefixes;
 
 	void _writeHeader() {
-		std::vector<std::string> header = {"Chr", "start", "end"};
+		std::vector<std::string> header = {"Chr", "Start", "End"};
 
 		// add headers of all estimators
 		for (size_t i = 0; i < _thetaEstimators.size(); ++i) { _thetaEstimators[i]->addToHeader(header, _prefixes[i]); }

@@ -87,11 +87,11 @@ TEST_F(TBamFile_Test_ReadWrite, chromosomes){
     // compare values of iterators
     auto itRead = chromosomesRead.begin();
     for (auto itWritten = chromosomesWritten.begin(); itWritten != chromosomesWritten.end(); itWritten++, itRead++){
-        EXPECT_EQ(itWritten->name, itRead->name);
-        EXPECT_EQ(itWritten->length, itRead->length);
+        EXPECT_EQ(itWritten->name(), itRead->name());
+        EXPECT_EQ(itWritten->length(), itRead->length());
         EXPECT_EQ(itWritten->refID(), itRead->refID());
-        EXPECT_EQ(itWritten->chrStart.position(), itRead->chrStart.position());
-        EXPECT_EQ(itWritten->chrEnd.position(), itRead->chrEnd.position());
+        EXPECT_EQ(itWritten->_start.position(), itRead->_start.position());
+        EXPECT_EQ(itWritten->_end.position(), itRead->_end.position());
     }
 }
 

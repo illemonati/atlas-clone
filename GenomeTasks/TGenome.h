@@ -160,7 +160,7 @@ protected:
 	void _setWindowFilters();
 	void _setSiteFilters();
 	void _setMasks();
-	void _openSiteSubset(const std::string &filename);
+	void _openSiteSubset(const std::string &filename, bool storesInvariantSites = false);
 
 	// functions to traverse BAM in windows
 	GenotypeLikelihoods::TWindow _window;

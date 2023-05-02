@@ -135,7 +135,7 @@ void makeChromosomes(TChromosomes & chs, std::vector<size_t> & depths){
 		//create chromosome
 		const TChromosome& chr = chs.appendChromosome("chr" + coretools::str::toString(i + 1), chrLengths[i], ploidies[i]);
 
-		std::string text = chr.name + " (";
+		std::string text = chr.name() + " (";
 		if (ploidies[i] == 1){
 			text += "haploid) ";
 		} else {
@@ -205,15 +205,15 @@ void TSimulator::runSimulations() {
 	// simulate sequences
 	for(size_t i = 0; i < _chromosomes.size(); ++i){
 		auto &chr = _chromosomes[i];
-		logfile().startIndent("Simulating chromosome " + chr.name + ":");
+		logfile().startIndent("Simulating chromosome " + chr.name() + ":");
 
 		// update reference storage and update haplotype lengths
-		_reference.setChr(chr.name, chr.length);
-		haplotypes.setLength(chr.length);
+		_reference.setChr(chr.name(), chr.length());
+		haplotypes.setLength(chr.length());
 
 		// simulate genotypes
 		logfile().listFlush("Simulating genotypes ...");
-		if (chr.ploidy == 1)
+		if (chr.ploidy() == 1)
 			_haploSimulator->simulateHaploid(haplotypes, _reference, chr);
 		else
 			_haploSimulator->simulateDiploid(haplotypes, _reference, chr);
@@ -222,12 +222,12 @@ void TSimulator::runSimulations() {
 		// write true genotypes
 		if (_writeTrueGenotypes) {
 			logfile().listFlush("Writing true genotypes ...");
-			haplotypes.writeTrueGenotypes(chr.name, _reference);
+			haplotypes.writeTrueGenotypes(chr.name(), _reference);
 			logfile().done();
 		}
 
 		// write BED files
-		if (_writeVariantInvariantBedFiles) bedFiles.write(haplotypes, chr.name);
+		if (_writeVariantInvariantBedFiles) bedFiles.write(haplotypes, chr.name());
 
 		// write bam / vcf files!
 		_simulateAndWrite(chr, haplotypes, _seqDepth[i]);
@@ -292,8 +292,8 @@ void TBAMSimulator::_initializeReadSimulator(){
 	//check if read length match chr length
 	for(auto& chr : _chromosomes){
 		for(auto& rs : _readSimulators){
-			if(rs.maxFragmentLength() > chr.length){
-				UERROR("Length of chromosome '", chr.name, "' is less than the max fragment length of some read groups!");
+			if(rs.maxFragmentLength() > chr.length()){
+				UERROR("Length of chromosome '", chr.name(), "' is less than the max fragment length of some read groups!");
 			}
 		}
 	}
@@ -327,8 +327,8 @@ void TBAMSimulator::_simulateReadsFromHaplotypes(const genometools::TChromosome 
 												 TReadSimulators &readSimulators, size_t avgDepth,
 												 BAM::TOutputBamFile &bamFile, const std::string &extraProgressText) {
 	// Initialize probabilities to simulate reads
-	const size_t numReads = thisChr.length * avgDepth / readSimulators.averageFragmentLength();
-	const size_t chrLengthForStart = thisChr.length - readSimulators.maxFragmentLength() + 1;
+	const size_t numReads = thisChr.length() * avgDepth / readSimulators.averageFragmentLength();
+	const size_t chrLengthForStart = thisChr.length() - readSimulators.maxFragmentLength() + 1;
 	const double probReadPerSite     = 1.0 / chrLengthForStart;
 	size_t numReadsSimulated       = 0;
 
@@ -562,13 +562,13 @@ TVCFSimulator::_findMajorMinorAllele(coretools::TStrongArray<size_t, genometools
 void TVCFSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome, TSimulatorHaplotypes &Haplotypes, size_t avgDepth) {
 	logfile().startIndent("Simulating genotype likelihoods:");
 
-	for (size_t l = 0; l < Chromosome.length; ++l) {
+	for (size_t l = 0; l < Chromosome.length(); ++l) {
 
 		// prepare storage
 		GLF::TMultiGLFDataOneAllelicCombination genotypeLikelihoods(_haploSimulator->sampleSize());
 		std::vector<size_t> depths(_haploSimulator->sampleSize(), 0);
 		coretools::TStrongArray<size_t, genometools::Base, 4> alleleCounts({0, 0, 0, 0});
-		const bool isDiploid = Chromosome.ploidy == 2;
+		const bool isDiploid = Chromosome.ploidy() == 2;
 
 		for (size_t i = 0; i < _haploSimulator->sampleSize(); ++i) {
 			// get haplotypes
@@ -600,7 +600,7 @@ void TVCFSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome
 
 		// finally write site!
 		const auto altAllele = (refAllele == majorAllele) ? minorAllele : majorAllele;
-		_vcf->writeSite(Chromosome.name, l, variantQuality, refAllele, altAllele, coretools::containerSum(depths),
+		_vcf->writeSite(Chromosome.name(), l, variantQuality, refAllele, altAllele, coretools::containerSum(depths),
 		                isDiploid, genotypeLikelihoods, depths);
 	}
 	logfile().endIndent();

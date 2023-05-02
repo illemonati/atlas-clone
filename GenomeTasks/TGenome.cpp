@@ -300,7 +300,7 @@ void TGenome_windows::_setMasks() {
 	}
 };
 
-void TGenome_windows::_openSiteSubset(const std::string &paramName) {
+void TGenome_windows::_openSiteSubset(const std::string &paramName, bool storesInvariantSites) {
 	if (_subset) { UERROR("Site subset already initialized!"); }
 
 	std::string filename = parameters().getParameter<std::string>(paramName, true);
@@ -312,7 +312,7 @@ void TGenome_windows::_openSiteSubset(const std::string &paramName) {
 		UERROR("Site subsets (parameter '", paramName,
 			   "') and masks (parameter 'mask') can not be used at the same time!");
 
-	_subset = std::make_unique<GenotypeLikelihoods::TSiteSubset>(filename, _bamFile.chromosomes(), false, _reference);
+	_subset = std::make_unique<GenotypeLikelihoods::TSiteSubset>(filename, _bamFile.chromosomes(), storesInvariantSites, _reference);
 };
 
 void TGenome_windows::_setCountersBeginningOfChromosome() {
@@ -327,7 +327,7 @@ bool TGenome_windows::_incrementWindow(GenotypeLikelihoods::TWindow_base &window
 
 	// Move to next chromosome if 1) we are at begininning of BAM (_curchromosome at end), 2) we are beyond
 	// _curChromosome or 3) reached window limit
-	if (_curChromosome == _chromosomes.cend() || window.from() >= _curChromosome->chrEnd ||
+	if (_curChromosome == _chromosomes.cend() || window.from() >= _curChromosome->_end ||
 		_windowNumber > _limitWindows) {
 		// move to next chromosome
 		if (_curChromosome == _chromosomes.cend()) { // beginning of chromosome
@@ -338,18 +338,18 @@ bool TGenome_windows::_incrementWindow(GenotypeLikelihoods::TWindow_base &window
 
 		// advance if this chromosome is not used
 		while (_curChromosome != _chromosomes.cend() &&
-			   (!_curChromosome->inUse || _skipWindows * _windowSize > _curChromosome->length)) {
+			   (!_curChromosome->inUse() || _skipWindows * _windowSize > _curChromosome->length())) {
 			++_curChromosome;
 		}
 
 		if (_curChromosome == _chromosomes.cend()) { return false; }
 
 		_setCountersBeginningOfChromosome();
-		_numWindowsOnChr = ceil(_curChromosome->length / (double)_windowSize);
+		_numWindowsOnChr = ceil(_curChromosome->length() / (double)_windowSize);
 
 		// move window to beginning of chromosome
-		genometools::TGenomePosition newFrom = _curChromosome->chrStart + _skipWindows * _windowSize;
-		window.move(newFrom, _windowSize, _curChromosome->name);
+		genometools::TGenomePosition newFrom = _curChromosome->_start + _skipWindows * _windowSize;
+		window.move(newFrom, _windowSize, _curChromosome->name());
 	}
 
 	return true;
@@ -374,7 +374,7 @@ bool TGenome_windows::_moveToNextWindow(GenotypeLikelihoods::TWindow_base &windo
 	}
 
 	// make sure window does not go beyond chromosome end
-	if (window.to() > _curChromosome->chrEnd) { window.resize(_curChromosome->chrEnd - window.from()); }
+	if (window.to() > _curChromosome->_end) { window.resize(_curChromosome->_end - window.from()); }
 
 	return true;
 };
@@ -424,7 +424,7 @@ bool TGenome_windows::_moveToNextPredefinedWindow(GenotypeLikelihoods::TWindow_b
 	}
 
 	// move coordinates of window
-	window.move(*_curPredefinedWindow, _curChromosome->name);
+	window.move(*_curPredefinedWindow, _curChromosome->name());
 
 	// move in BAM: should we jump or are we already close enough to next window
 	if (_bamFile.refID() == window.refID()) {
@@ -456,12 +456,12 @@ bool TGenome_windows::_moveWindow(GenotypeLikelihoods::TWindow_base &window) {
 	if (_hasWindowIndent) logfile().removeIndent();
 	if (_chrChangedWindow) {
 		if (_curChromosome->refID() > 0) { logfile().endIndent(); }
-		logfile().startNumbering("Parsing chromosome '" + _curChromosome->name + "':");
+		logfile().startNumbering("Parsing chromosome '" + _curChromosome->name() + "':");
 	}
 
 	// report window
 	logfile().number("Window [", window.from().position() + 1, ", ", window.to().position(), "] of ", _numWindowsOnChr,
-					 " on '", _curChromosome->name, "':");
+					 " on '", _curChromosome->name(), "':");
 	logfile().addIndent();
 	_hasWindowIndent = true;
 

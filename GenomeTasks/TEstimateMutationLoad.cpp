@@ -141,9 +141,13 @@ void TEstimateMutationLoad::_handleWindow() {
 	logfile().doneTime();
 };
 
+TEstimateMutationLoad::TEstimateMutationLoad() : TGenome_windows() {
+	_openSiteSubset("alleles");
+};
 
-void TEstimateMutationLoad::run(){
-	// traverse BAM file and store data
+void TEstimateMutationLoad::run()
+{
+    // traverse BAM file and store data
 	_traverseBAMWindows();
 
 	// now run estimation
@@ -151,7 +155,6 @@ void TEstimateMutationLoad::run(){
 	MutationLoad::TMutationLoadLatentVariable latentVar(_sites);
 
 	stattools::TEM<MutationLoad::PrecisionType, MutationLoad::NumStatesType, MutationLoad::LengthType> EM(prior, latentVar);
-
 }
 
 } // end namespace GenomeTasks

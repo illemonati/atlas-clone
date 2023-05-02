@@ -803,12 +803,12 @@ void TCallerDiploid::callGenotypeFromMetric(const TGenotypeProbabilities & metri
 			}
 		} else {
 			_altAlleles.push_back(second(_genotypeAtMax));
-			_calledGenotype = "0/1A";
+			_calledGenotype = "0/1";
 		}
 	} else {
 		if(second(_genotypeAtMax) == referenceBase){
 			_altAlleles.push_back(first(_genotypeAtMax));
-			_calledGenotype = "0/1B";
+			_calledGenotype = "0/1";
 		} else {
 			if(isHomozygous(_genotypeAtMax)){
 				_altAlleles.push_back(first(_genotypeAtMax));

@@ -63,7 +63,7 @@ void TBamDiagnoser::_writeTable(const TCountDistributionVector<> & distVec, cons
 	std::vector<std::string> chromNames;
 	auto chromIt = _bamFile.chromosomes().cbegin();
 	while(chromIt != _bamFile.chromosomes().cend()){
-		chromNames.push_back(chromIt->name);
+		chromNames.push_back(chromIt->name());
 		chromIt++;
 	}
 	std::vector<std::string> readGroupNames = _readGroupNames;
@@ -187,10 +187,10 @@ void TBamDiagnoser::run(){
 		auto chromIt = _bamFile.chromosomes().cbegin();
 		while(chromIt != _bamFile.chromosomes().cend()){
 			size_t refID = chromIt->refID();
-			out.write("allReadGroups", chromIt->name,  (_bamFile.numAlignmentReadPerReadGroupPerChromosome()).horizontalCounts(refID), _passedQC.horizontalCounts(refID), _bamFile.getDuplicateFilter().getCountsPerChromosome(refID),
+			out.write("allReadGroups", chromIt->name(),  (_bamFile.numAlignmentReadPerReadGroupPerChromosome()).horizontalCounts(refID), _passedQC.horizontalCounts(refID), _bamFile.getDuplicateFilter().getCountsPerChromosome(refID),
 			meanForChromosome(_readLength, refID), maxForChromosome(_readLength, refID), countsForChromosome(_fragmentLength, refID), meanForChromosome(_fragmentLength, refID),
 			countsLargerZeroForChromosome(_softClippedLength,refID), meanForChromosome(_softClippedLength, refID), meanForChromosome(_usableLength, refID),
-			(double)sumForChromosome(_usableLength, refID) / (double)chromIt->length, meanForChromosome(_mappingQuality, refID));
+			(double)sumForChromosome(_usableLength, refID) / (double)chromIt->length(), meanForChromosome(_mappingQuality, refID));
 			if (numRG == single_count) {
 				out.writeln("single");
 			} else if (numRG == paired_count) {
@@ -229,10 +229,10 @@ void TBamDiagnoser::run(){
 			auto chromIt = _bamFile.chromosomes().cbegin();
 			while(chromIt != _bamFile.chromosomes().cend()){
 				size_t refID = chromIt->refID();
-				out.write(_bamFile.readGroups().getName(rg), chromIt->name, (_bamFile.numAlignmentReadPerReadGroupPerChromosome())[rg][refID], _passedQC[rg][refID], _bamFile.getDuplicateFilter().getCountsAtReadGroupAndChromosome(rg, refID),
+				out.write(_bamFile.readGroups().getName(rg), chromIt->name(), (_bamFile.numAlignmentReadPerReadGroupPerChromosome())[rg][refID], _passedQC[rg][refID], _bamFile.getDuplicateFilter().getCountsAtReadGroupAndChromosome(rg, refID),
 					_readLength[rg][refID].mean(), _readLength[rg][refID].max(), _fragmentLength[rg][refID].counts(), _fragmentLength[rg][refID].mean(),
 					_softClippedLength[rg][refID].countsLargerZero(), _softClippedLength[rg][refID].mean(), _usableLength[rg][refID].mean(),
-					(double)_usableLength[rg][refID].sum() / (double)chromIt->length, _mappingQuality[rg][refID].mean());
+					(double)_usableLength[rg][refID].sum() / (double)chromIt->length(), _mappingQuality[rg][refID].mean());
 				if (_fragmentLength[rg][refID].counts() == 0) {
 					out.writeln("single");
 				} else {
@@ -270,7 +270,7 @@ void TBamDiagnoser::run(){
 		coretools::TOutputFile refLen (referenceLengthName, {"chromosome", "length"});
 		auto it = _bamFile.chromosomes().cbegin();
 		while(it != _bamFile.chromosomes().cend()){
-			refLen << it->name << it->length << coretools::endl;
+			refLen << it->name() << it->length() << coretools::endl;
 			++it;
 		}
 		refLen.close();

@@ -2,8 +2,8 @@
  * TEstimateMutationLoad.h
  */
 
-#ifndef GENOMETASKS_TESTIMATETHETA_H_
-#define GENOMETASKS_TESTIMATETHETA_H_
+#ifndef GENOMETASKS_TESTIMATEMUTATIONLOAD_H_
+#define GENOMETASKS_TESTIMATEMUTATIONLOAD_H_
 
 #include <stdint.h>
 #include <vector>
@@ -79,7 +79,6 @@ public:
 	}
 };
 
-
 //------------------------------------------------
 // TMutationLoadEMPrior
 //------------------------------------------------
@@ -133,4 +132,4 @@ public:
 
 }; // namespace GenomeTasks
 
-#endif /* GENOMETASKS_TESTIMATETHETA_H_ */
+#endif /* GENOMETASKS_TESTIMATEMUTATIONLOAD_H_ */
