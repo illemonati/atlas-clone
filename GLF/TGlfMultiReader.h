@@ -212,7 +212,6 @@ private:
 	uint32_t _position = 0;
 	uint32_t _curRefId = 0;
 	TGlfChromosome _curChr;
-	uint32_t _numActiveFilesWithData = 0;
 	uint32_t _minDepth = 0;
 
 	// reference
@@ -226,28 +225,22 @@ private:
 	bool _jumpToNextPosition();
 
 	bool _moveToNextChromosome();
-	TMultiGLFData _data;
 
-	static constexpr size_t _windowSize = 1000;
+	size_t _windowSize = 1000;
 	size_t _iWindow = 0;
 	std::vector<TMultiGLFData> _dataWindow;
 	std::vector<size_t> _numActive;
 
 public:
-	//const TMultiGLFData& data() const noexcept {return _data;};
-	//TMultiGLFData& data() noexcept {return _data;};
 	const TMultiGLFData& data() const noexcept {return _dataWindow[_iWindow];};
 	TMultiGLFData& data() noexcept {return _dataWindow[_iWindow];};
 
 	TGlfMultiReader();
-	TGlfMultiReader(const std::vector<std::string>& FileNames);
-
 	~TGlfMultiReader();
 
 	void openGLFs(const std::vector<std::string> &Filenames);
 	void openGLFs();
 	void closeGLF();
-	void setDepthFilter(int MinDepth);
 	void addReference(const std::string& FastaFile);
 	void onlyPositionsWithData(bool set = true) { _onlyPositionsWithData = set; };
 
@@ -256,13 +249,12 @@ public:
 	void setActive(const std::string &name);
 	void setActive(int index1, int index2);
 	void setActive(const std::string &name1, const std::string &name2);
-	void setActive(std::vector<int> &indexes);
-	void setActive(std::vector<std::string> &names);
+	void setActive(const std::vector<int> &indexes);
+	void setActive(const std::vector<std::string> &names);
 	void setAllActive();
 
 	// parse
 	bool readWindow();
-	bool readNextOld();
 	bool readNext();
 
 	// output
@@ -272,7 +264,6 @@ public:
 	// access data
 	constexpr uint32_t numSamples() const noexcept { return _numGLFs; };
 	uint32_t numActiveSamples() const noexcept { return _activeGLFs.size(); };
-	//constexpr uint32_t numActiveSamplesWithData() const noexcept { return _numActiveFilesWithData; };
 	constexpr uint32_t numActiveSamplesWithData() const noexcept { return _numActive[_iWindow]; };
 	std::string chr() const { return _curChr.name(); };
 	constexpr uint32_t position() const noexcept { return _position; };
