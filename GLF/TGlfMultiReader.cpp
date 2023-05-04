@@ -164,7 +164,7 @@ void TGlfMultiReaderVcf::_writeSiteInformation(const std::string & ChrName, uint
 }
 
 void TGlfMultiReaderVcf::writeSite(const std::string &ChrName, uint32_t Position,
-                                   const genometools::PhredIntProbability VariantQuality, TMultiGLFData &data,
+                                   const genometools::PhredIntProbability VariantQuality, const TMultiGLFData &data,
 								   genometools::Base RefAllele, genometools::Base AltAllele){
 	// Note: we pass hom/het indexes to maintain the major / minor order! Passing the alleleic combination is not enough
 	// TODO: find way to harmonize code with TCaller
