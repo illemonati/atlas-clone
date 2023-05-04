@@ -40,42 +40,23 @@ namespace GLF {
 //----------------------------------------------------
 class TMultiGLFDataSample {
 private:
-	const TGLFLikelihoods *_glf;
-	union {
-		uint16_t _depth;
-		bool _isHaploid;
-	};
+	TGLFLikelihoods _glf;//{{genometools::HighPrecisionPhredIntProbability::highest()}};
+	size_t _depth = 0;
 public:
-	TMultiGLFDataSample() = default;
-	constexpr TMultiGLFDataSample(bool isHaploid) : _glf(nullptr), _isHaploid{isHaploid} {}
-	constexpr TMultiGLFDataSample(const TGLFLikelihoods *GLs, uint16_t Depth) : _glf(GLs), _depth{Depth}{};
+	TMultiGLFDataSample(bool isHaploid = true)
+		: _glf(genometools::HighPrecisionPhredIntProbability::highest(), Ploidy((!isHaploid))) {}
+	constexpr TMultiGLFDataSample(const TGLFLikelihoods &GLs, uint16_t Depth) : _glf(GLs), _depth{Depth} {};
 
-	constexpr bool hasData() const noexcept { return _glf; };
-	constexpr uint16_t depth() const noexcept { return hasData() * _depth; };
-	constexpr bool isHaploid() const noexcept { return hasData() ? _glf->type == Ploidy::haploid : _isHaploid; };
+	constexpr bool hasData() const noexcept { return _depth > 0; };
+	constexpr size_t depth() const noexcept { return _depth; };
+	constexpr bool isHaploid() const noexcept { return _glf.isType(Ploidy::haploid); };
 
-	template<bool HasData>
-	constexpr bool isHaploid() const noexcept {
-		if constexpr (HasData) return _glf->type == Ploidy::haploid;
-		else return _isHaploid;
-	}
-
-	constexpr const genometools::HighPrecisionPhredIntProbability get_with_data(const genometools::Genotype &G) const noexcept {
-		return (*_glf)[G]; // asserts if haploid
+	constexpr genometools::HighPrecisionPhredIntProbability operator[](genometools::Genotype G) const noexcept {
+		return _glf[G]; // asserts if diploid
 	};
 
-	constexpr const genometools::HighPrecisionPhredIntProbability get_with_data(const genometools::Base &B) const noexcept {
-		return (*_glf)[B];// asserts if diploid
-	};
-
-	constexpr const genometools::HighPrecisionPhredIntProbability operator[](const genometools::Genotype &G) const noexcept {
-		if (!_glf) { return genometools::HighPrecisionPhredIntProbability::highest(); }
-		return get_with_data(G);
-	};
-
-	constexpr const genometools::HighPrecisionPhredIntProbability operator[](const genometools::Base &B) const noexcept {
-		if (!_glf) { return genometools::HighPrecisionPhredIntProbability::highest(); }
-		return get_with_data(B);
+	constexpr genometools::HighPrecisionPhredIntProbability operator[](genometools::Base B) const noexcept {
+		return _glf[B]; // asserts if diploid
 	};
 };
 
@@ -223,16 +204,14 @@ private:
 
 	// active files
 	// Object will loop only over active files
-	bool _onlyPositionsWithData = false;
+	size_t _minSamplesWithData  = 0;
 	std::vector<bool> _GLFIsActive;
 	std::vector<TGlfReader *> _activeGLFs;
 
 	// Moving along active files
 	uint32_t _position = 0;
-	uint32_t _nextPosition = 0; // next is anticipated position, used to advance
 	uint32_t _curRefId = 0;
 	TGlfChromosome _curChr;
-	uint32_t _numActiveFilesWithData = 0;
 	uint32_t _minDepth = 0;
 
 	// reference
@@ -247,31 +226,35 @@ private:
 
 	bool _moveToNextChromosome();
 
+	size_t _windowSize = 1000;
+	size_t _iWindow = 0;
+	std::vector<TMultiGLFData> _dataWindow;
+	std::vector<size_t> _numActive;
+
 public:
-	TMultiGLFData data;
+	const TMultiGLFData& data() const noexcept {return _dataWindow[_iWindow];};
+	TMultiGLFData& data() noexcept {return _dataWindow[_iWindow];};
 
 	TGlfMultiReader();
-	TGlfMultiReader(const std::vector<std::string>& FileNames);
-
 	~TGlfMultiReader();
 
 	void openGLFs(const std::vector<std::string> &Filenames);
 	void openGLFs();
 	void closeGLF();
-	void setDepthFilter(int MinDepth);
 	void addReference(const std::string& FastaFile);
-	void onlyPositionsWithData(bool set = true) { _onlyPositionsWithData = set; };
+	void minSamplesWithData(size_t MinSamplesWithData) { _minSamplesWithData = MinSamplesWithData; };
 
 	// set active / inactive
 	void setActive(int index);
 	void setActive(const std::string &name);
 	void setActive(int index1, int index2);
 	void setActive(const std::string &name1, const std::string &name2);
-	void setActive(std::vector<int> &indexes);
-	void setActive(std::vector<std::string> &names);
+	void setActive(const std::vector<int> &indexes);
+	void setActive(const std::vector<std::string> &names);
 	void setAllActive();
 
 	// parse
+	bool readWindow();
 	bool readNext();
 
 	// output
@@ -281,7 +264,7 @@ public:
 	// access data
 	constexpr uint32_t numSamples() const noexcept { return _numGLFs; };
 	uint32_t numActiveSamples() const noexcept { return _activeGLFs.size(); };
-	constexpr uint32_t numActiveSamplesWithData() const noexcept { return _numActiveFilesWithData; };
+	constexpr uint32_t numActiveSamplesWithData() const noexcept { return _numActive[_iWindow]; };
 	std::string chr() const { return _curChr.name(); };
 	constexpr uint32_t position() const noexcept { return _position; };
 	genometools::Base refBase() const noexcept {

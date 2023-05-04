@@ -13,6 +13,7 @@
 #include <iterator>
 #include <memory>
 #include <numeric>
+#include "coretools/Main/TError.h"
 #include "genometools/GenotypeTypes.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
@@ -62,7 +63,6 @@ void _checkChromosomeInfo(const TGlfChromosome & _curChr, const std::vector<TGlf
 	}
 };
 
-
 } // namespace impl
 
 void fill(TMultiGLFDataOneAllelicCombination &storage, const TMultiGLFData &samples,
@@ -74,13 +74,13 @@ void fill(TMultiGLFDataOneAllelicCombination &storage, const TMultiGLFData &samp
 		if (!s.hasData()) {
 			continue;
 		}
-		if (s.isHaploid<true>())
-			storage.emplace_back(s.get_with_data(first(alleleicCombination)),
-								 s.get_with_data(second(alleleicCombination)));
+		if (s.isHaploid())
+			storage.emplace_back(s[first(alleleicCombination)],
+								 s[second(alleleicCombination)]);
 		else
-			storage.emplace_back(s.get_with_data(homoFirst(alleleicCombination)),
-								 s.get_with_data(het(alleleicCombination)),
-								 s.get_with_data(homoSecond(alleleicCombination)));
+			storage.emplace_back(s[homoFirst(alleleicCombination)],
+								 s[het(alleleicCombination)],
+								 s[homoSecond(alleleicCombination)]);
 	}
 };
 
@@ -189,11 +189,11 @@ void TGlfMultiReaderVcf::writeSite(const std::string &ChrName, uint32_t Position
 // TGlfMultiReader
 //----------------------------------------------------
 TGlfMultiReader::TGlfMultiReader() {
-	setDepthFilter(parameters().getParameterWithDefault<int>("minDepth", 0));
-};
+	_minDepth = parameters().getParameterWithDefault<size_t>("minDepth", 0);
+	if (_minDepth > 0) logfile().list("Will only keep sites with depth >= " + toString(_minDepth) + ".");
 
-	TGlfMultiReader::TGlfMultiReader(const std::vector<std::string>& FileNames) : _GLFNames(FileNames){
-	_openGLFs();
+	_windowSize = parameters().getParameterWithDefault<size_t>("window", 64);
+	if (_windowSize == 0) UERROR("Window size must be at least 1!");
 };
 
 TGlfMultiReader::~TGlfMultiReader() {
@@ -262,11 +262,6 @@ void TGlfMultiReader::closeGLF() {
 	}
 };
 
-void TGlfMultiReader::setDepthFilter(int MinDepth) {
-	_minDepth = MinDepth;
-	if (_minDepth > 0) logfile().list("Will only keep sites with depth >= " + toString(_minDepth) + ".");
-};
-
 void TGlfMultiReader::addReference(const std::string &FastaFile) {
 	fastaReader.open(FastaFile);
 };
@@ -294,32 +289,25 @@ void TGlfMultiReader::_setAllInactive() {
 };
 
 void TGlfMultiReader::_prepareParsing() {
-	// prepare data
-	data.clear();
-	data.reserve(numActiveSamples());
-
-	for (TGlfReader *it : _activeGLFs) it->rewind();
-
-	// read first SNP record in all active files
-	for (TGlfReader *it : _activeGLFs) { it->readNext(); }
-
+	for (TGlfReader *it : _activeGLFs) {
+		it->rewind();
+		it->readNext();
+	}
 	// where to start?
-
 	_jumpToNextPosition();
 };
 
 bool TGlfMultiReader::_jumpToNextPosition() {
-	auto min      = impl::nextChr(_activeGLFs, _onlyPositionsWithData);
+	auto min      = impl::nextChr(_activeGLFs, _minSamplesWithData);
 	_curChr       = *min->curChr();
 	_curRefId     = min->refId();
-	_position     = _onlyPositionsWithData * min->position(); // 0 if not jump to position
-	_nextPosition = _position;
+	_position     = _minSamplesWithData > 0 ? min->position() - 1 : -1; // 0 if not jump to position
 	impl::_checkChromosomeInfo(_curChr, _activeGLFs);
 
 	return !min->eof();
 };
 
-void TGlfMultiReader::setActive(const int index) {
+void TGlfMultiReader::setActive(int index) {
 	_setAllInactive();
 	_setActive(index);
 	_prepareParsing();
@@ -329,7 +317,7 @@ void TGlfMultiReader::setActive(const std::string &name) {
 	setActive(_getGLFIndexFromName(name));
 };
 
-void TGlfMultiReader::setActive(const int index1, const int index2) {
+void TGlfMultiReader::setActive(int index1, int index2) {
 	_setAllInactive();
 	_setActive(index1);
 	_setActive(index2);
@@ -340,13 +328,13 @@ void TGlfMultiReader::setActive(const std::string &name1, const std::string &nam
 	setActive(_getGLFIndexFromName(name1), _getGLFIndexFromName(name2));
 };
 
-void TGlfMultiReader::setActive(std::vector<int> &indexes) {
+void TGlfMultiReader::setActive(const std::vector<int> &indexes) {
 	_setAllInactive();
 	for (const auto i : indexes) _setActive(i);
 	_prepareParsing();
 };
 
-void TGlfMultiReader::setActive(std::vector<std::string> &names) {
+void TGlfMultiReader::setActive(const std::vector<std::string> &names) {
 	_setAllInactive();
 	for (const auto &name : names) {
 		_setActive(_getGLFIndexFromName(name));
@@ -382,42 +370,48 @@ bool TGlfMultiReader::_moveToNextChromosome() {
 	return true;
 };
 
-bool TGlfMultiReader::readNext() {
-	// advance to next position
-	if (_nextPosition > _curChr.length()){
+bool TGlfMultiReader::readWindow() {
+	if (_position + 1 >= _curChr.length()) {
 		if(!_moveToNextChromosome()) return false;
 	}
+	const size_t from = _position + 1;
+	const size_t N    = std::min(_windowSize, _curChr.length() - from);
+	_dataWindow.assign(N, {});
+	_numActive.assign(N, 0);
 
-	// advance all files behind next position
-	_numActiveFilesWithData = 0;
-	bool allFilesReachedEnd = true;
-	data.clear();
-	for (TGlfReader *reader : _activeGLFs) {
-		while (!reader->eof() && reader->refId() == _curRefId && reader->position() < _nextPosition) { reader->readNext(); }
-
-		if (!reader->eof() && reader->position() == _nextPosition && reader->refId() == _curRefId) {
-			data.emplace_back(&reader->genotypeLikelihoodsGLF(), reader->depth());
-			++_numActiveFilesWithData;
-		} else {
-			data.emplace_back(reader->pointerToChr(_curRefId)->isHaploid()); // data is missing
+	bool allEOF=true;
+	for (auto reader : _activeGLFs) {
+		// find first data in window
+		while (!reader->eof() && (reader->refId() == _curRefId) && (reader->position() < from)) {
+			reader->readNext();
 		}
-		if (!reader->eof()) allFilesReachedEnd = false;
+		if (!reader->eof()) allEOF = false;
+
+		// fill everything as noData
+		for (size_t iW = 0; iW < N; ++iW) {
+			if (!reader->eof() && (reader->refId() == _curRefId) && reader->position() - from == iW) {
+				_dataWindow[iW].emplace_back(reader->genotypeLikelihoodsGLF(), reader->depth());
+				++_numActive[iW];
+				reader->readNext();
+			} else {
+				_dataWindow[iW].emplace_back(reader->pointerToChr(_curRefId)->isHaploid());
+			}
+		}
 	}
+	return !allEOF;
+}
 
-	// check if we reached end of all files
-	if (allFilesReachedEnd) return false;
-
-	// jump?
-	if (_onlyPositionsWithData && _numActiveFilesWithData == 0) {
-		if (_jumpToNextPosition()) return readNext();
-		return false;
+bool TGlfMultiReader::readNext() {
+	if (_iWindow + 1 >= _dataWindow.size()) {
+		if (!readWindow()) return false;
+		_iWindow = 0;
+	} else {
+		++_iWindow;
 	}
-
-	// update position
-	_position = _nextPosition;
-	++_nextPosition;
+	++_position;
+	if (_numActive[_iWindow] < _minSamplesWithData) { return readNext(); }
 	return true;
-};
+}
 
 std::vector<std::string> TGlfMultiReader::namesOfActiveFiles() const {
 	std::vector<std::string> vec;
