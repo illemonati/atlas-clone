@@ -301,7 +301,7 @@ bool TGlfMultiReader::_jumpToNextPosition() {
 	auto min      = impl::nextChr(_activeGLFs, _minSamplesWithData);
 	_curChr       = *min->curChr();
 	_curRefId     = min->refId();
-	_position     = _minSamplesWithData > 0 ? min->position() - 1 : -1; // 0 if not jump to position
+	_windowStart  = _minSamplesWithData > 0 ? min->position() : 0; // 0 if not jump to position
 	impl::_checkChromosomeInfo(_curChr, _activeGLFs);
 
 	return !min->eof();
@@ -370,26 +370,26 @@ bool TGlfMultiReader::_moveToNextChromosome() {
 	return true;
 };
 
-bool TGlfMultiReader::readWindow() {
-	if (_position + 1 >= _curChr.length()) {
-		if(!_moveToNextChromosome()) return false;
+size_t TGlfMultiReader::readWindow() {
+	_windowStart += _dataWindow.size();
+	if (_windowStart >= _curChr.length()) {
+		if(!_moveToNextChromosome()) return 0;
 	}
-	const size_t from = _position + 1;
-	const size_t N    = std::min(_windowSize, _curChr.length() - from);
+	const size_t N    = std::min(_windowSize, _curChr.length() - _windowStart);
 	_dataWindow.assign(N, {});
 	_numActive.assign(N, 0);
 
 	bool allEOF=true;
 	for (auto reader : _activeGLFs) {
 		// find first data in window
-		while (!reader->eof() && (reader->refId() == _curRefId) && (reader->position() < from)) {
+		while (!reader->eof() && (reader->refId() == _curRefId) && (reader->position() < _windowStart)) {
 			reader->readNext();
 		}
 		if (!reader->eof()) allEOF = false;
 
 		// fill everything as noData
 		for (size_t iW = 0; iW < N; ++iW) {
-			if (!reader->eof() && (reader->refId() == _curRefId) && reader->position() - from == iW) {
+			if (!reader->eof() && (reader->refId() == _curRefId) && reader->position() - _windowStart == iW) {
 				_dataWindow[iW].emplace_back(reader->genotypeLikelihoodsGLF(), reader->depth());
 				++_numActive[iW];
 				reader->readNext();
@@ -398,7 +398,8 @@ bool TGlfMultiReader::readWindow() {
 			}
 		}
 	}
-	return !allEOF;
+	if (allEOF) return 0;
+	return _dataWindow.size();
 }
 
 bool TGlfMultiReader::readNext() {
@@ -408,7 +409,6 @@ bool TGlfMultiReader::readNext() {
 	} else {
 		++_iWindow;
 	}
-	++_position;
 	if (_numActive[_iWindow] < _minSamplesWithData) { return readNext(); }
 	return true;
 }

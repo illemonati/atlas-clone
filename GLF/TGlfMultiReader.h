@@ -209,10 +209,14 @@ private:
 	std::vector<TGlfReader *> _activeGLFs;
 
 	// Moving along active files
-	uint32_t _position = 0;
-	uint32_t _curRefId = 0;
 	TGlfChromosome _curChr;
+	uint32_t _curRefId = 0;
 	uint32_t _minDepth = 0;
+	size_t _windowStart = 0;
+	size_t _windowSize  = 64;
+	size_t _iWindow     = 0;
+	std::vector<TMultiGLFData> _dataWindow;
+	std::vector<size_t> _numActive;
 
 	// reference
 	genometools::TFastaReader fastaReader;
@@ -225,11 +229,6 @@ private:
 	bool _jumpToNextPosition();
 
 	bool _moveToNextChromosome();
-
-	size_t _windowSize = 1000;
-	size_t _iWindow = 0;
-	std::vector<TMultiGLFData> _dataWindow;
-	std::vector<size_t> _numActive;
 
 public:
 	const TMultiGLFData& data() const noexcept {return _dataWindow[_iWindow];};
@@ -254,7 +253,7 @@ public:
 	void setAllActive();
 
 	// parse
-	bool readWindow();
+	size_t readWindow();
 	bool readNext();
 
 	// output
@@ -266,9 +265,9 @@ public:
 	uint32_t numActiveSamples() const noexcept { return _activeGLFs.size(); };
 	constexpr uint32_t numActiveSamplesWithData() const noexcept { return _numActive[_iWindow]; };
 	std::string chr() const { return _curChr.name(); };
-	constexpr uint32_t position() const noexcept { return _position; };
+	constexpr uint32_t position() const noexcept { return _windowStart + _iWindow; };
 	genometools::Base refBase() const noexcept {
-		return fastaReader.isOpen() ? fastaReader(_curRefId, _position) : genometools::Base::N;
+		return fastaReader.isOpen() ? fastaReader(_curRefId, position()) : genometools::Base::N;
 	};
 };
 
