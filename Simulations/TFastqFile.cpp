@@ -49,10 +49,6 @@ namespace FASTQ{
 
     }
 
-    void TFastqFile::close(){
-        //implement txtFile close()
-    }
-
     void TFastqFile::writeAlignment(const BAM::TAlignment &alignment){
     //takes alignment sequence and qualities and writes it in the file
         _ptrFile->writeln("@" + std::to_string(alignment.readGroupId())

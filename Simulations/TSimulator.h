@@ -40,7 +40,6 @@
 
 
 namespace genometools { class PhredIntProbability; }
-// namespace Simulations { class TFASTQSimulator; }
 
 namespace Simulations {
 
@@ -82,13 +81,6 @@ namespace Simulations {
 
         // read simulator
         void _initializeBamReadSimulator();
-
-        // functions to simulate
-        // void _simulateReadsFromHaplotypes(const genometools::TChromosome &thisChr,
-        //                                   std::array<std::vector<genometools::Base>, 2> haplotypes,
-        // 								  TReadSimulators & readSimulator,
-        // 								  uint32_t avgDepth,
-        //                                   BAM::TOutputBamFile &bamFile, const std::string &extraProgressText);
 
         // simulate reads and write bam files
         void _simulateAndWrite(const genometools::TChromosome &Chromosome, TSimulatorHaplotypes &Haplotypes, uint32_t avgDepth) override;

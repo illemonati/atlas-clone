@@ -125,8 +125,6 @@ void TReadSimulators::simulate(const genometools::TGenomePosition & Position, co
 	_readSimulators[thisSimulator]->simulate(Position, Haplotype, SimFile);
 }
 
-//couldn't I just recreate a similar simulate method without the shuffling? wouldn't it be easier to sort into fastq files?
-
 std::unique_ptr<TReadSimulator>& TReadSimulators::sample(){
 	return _readSimulators[randomGenerator().pickOne(_cumulSimGroupFrequencies)];
 }

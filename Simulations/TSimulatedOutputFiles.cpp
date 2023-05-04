@@ -14,22 +14,27 @@
 #include "../coretools/core/coretools/Main/TLog.h"
 #include "TReadSimulators.h"
 
+#include <iostream>
+
 namespace Simulations{
 
     TSimulatedOutputFiles::TSimulatedOutputFiles(uint32_t NumFiles, const std::string & Outname,
                                                  std::vector<TReadSimulators> & ReadSimulators,
-                                                 const genometools::TChromosomes &Chromosomes){
+                                                 const genometools::TChromosomes &Chromosomes) {
 
         coretools::instances::logfile().startIndent("Preparing FASTQ files for output:");
 
         _fastqFiles.reserve(NumFiles);
         if (NumFiles < 1) DEVERROR("Can not open less than one FASTQ file!");
-        if(ReadSimulators.size() > 1 && ReadSimulators.size() != NumFiles){
+        if (ReadSimulators.size() > 1 && ReadSimulators.size() != NumFiles) {
             DEVERROR("Number of read simulators does not match number of files!");
         }
         if (Chromosomes.size() < 1) UERROR("Can not open a FASTQ file without specified chromosomes!");
 
-        addFile();          //create first fastqFile
+        //addFile();          //create n fastqFiles
+        for (int i = 0; i < NumFiles; i++) {
+            addFile(NumFiles, Outname);
+        }
 
     }
 
@@ -37,16 +42,14 @@ namespace Simulations{
 
     }
 
-    void TSimulatedOutputFiles::addFile() {         //da migliorare il search
 
-        //creation of new Fastq File
-        FASTQ::TFastqFile newFile(newName());
-
-        //indexing new file with its file name
-        filesIndex.push_back(newFile.getName());
-
-        //adding file to the store vector
-        _fastqFiles.push_back(newFile);
+    void TSimulatedOutputFiles::addFile(int NumFiles, const std::string & Outname) {     //creates 10 files
+        if (NumFiles == 1) {
+            _fastqFiles.push_back(*new FASTQ::TFastqFile(Outname + ".fastq"));
+        } else{
+            _fastqFiles.push_back(*new FASTQ::TFastqFile(newName(Outname)));
+        }
+        //std::cout << "New Fastq File created: " << _fastqFiles[_fastqFiles.size()-1]->getName() << std::endl;
     }
 
     FASTQ::TFastqFile &TSimulatedOutputFiles::operator[](size_t i) {
@@ -54,8 +57,8 @@ namespace Simulations{
         return _fastqFiles[i];
     }
 
-    std::string TSimulatedOutputFiles::newName() {
-        _outputFileName = "FASTQ_Simulations_" + std::to_string(_fastqFiles.size()) + ".fastq";
+    std::string TSimulatedOutputFiles::newName(const std::string & Outname) {
+        _outputFileName = Outname + "_ind_" + std::to_string(_fastqFiles.size() + 1) + ".fastq";
         return _outputFileName;
     }
 

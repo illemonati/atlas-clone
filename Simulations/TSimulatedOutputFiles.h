@@ -34,12 +34,12 @@ namespace Simulations{
 
     private:
         std::vector<FASTQ::TFastqFile> _fastqFiles;
-        std::vector<std::string_view> filesIndex;                           //keep track of readGroups FASTQfiles
+        FASTQ::TFastqFile* _ptrNewFile;
         std::string _outputFileName;
 
         //std::vector<BAM::TOutputBamFile> _bamFiles;               WHAT TO DO WITH BAM?
 
-        std::string newName();
+        std::string newName(const std::string & Outname);
 
     public:
         TSimulatedOutputFiles(uint32_t NumFiles, const std::string & Outname, std::vector<TReadSimulators> & ReadSimulators,
@@ -51,7 +51,7 @@ namespace Simulations{
 
         //methods to operate on files
         void openFile(Simulations::TSimulatedOutputFile file);
-        void addFile();
+        void addFile(int NumFile, const std::string & Outname);
 
         FASTQ::TFastqFile &operator[](size_t i);
     };

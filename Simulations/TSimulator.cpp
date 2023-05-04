@@ -368,7 +368,7 @@ namespace Simulations {
     }
 
 //---------------------------------------------------
-// TFASTQWriter Simulator
+// TFASTQ Simulator
 //---------------------------------------------------
 
     TFastqSimulator::TFastqSimulator(const std::string &method) : TSimulator(method){
@@ -457,10 +457,6 @@ namespace Simulations {
                                                        std::array<std::vector<genometools::Base>, 2> haplotypes,
                                                        Simulations::TReadSimulators &readSimulators, uint32_t avgDepth,
                                                        FASTQ::TFastqFile &fastqFile, const std::string &extraProgressText) {
-        //code
-        logfile().startIndent("_simulateReadsFromHaplotypes");
-
-        //copied from TBAM
 
         // Initialize probabilities to simulate reads
         const uint64_t numReads = thisChr.length * avgDepth / readSimulators.averageFragmentLength();
