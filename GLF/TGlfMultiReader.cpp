@@ -298,16 +298,16 @@ void TGlfMultiReader::_prepareParsing() {
 };
 
 bool TGlfMultiReader::_jumpToNextPosition() {
-	auto min      = impl::nextChr(_activeGLFs, _onlyPositionsWithData);
+	auto min      = impl::nextChr(_activeGLFs, _minSamplesWithData);
 	_curChr       = *min->curChr();
 	_curRefId     = min->refId();
-	_position     = _onlyPositionsWithData * min->position() - 1; // 0 if not jump to position
+	_position     = _minSamplesWithData > 0 ? min->position() - 1 : -1; // 0 if not jump to position
 	impl::_checkChromosomeInfo(_curChr, _activeGLFs);
 
 	return !min->eof();
 };
 
-void TGlfMultiReader::setActive(const int index) {
+void TGlfMultiReader::setActive(int index) {
 	_setAllInactive();
 	_setActive(index);
 	_prepareParsing();
@@ -317,7 +317,7 @@ void TGlfMultiReader::setActive(const std::string &name) {
 	setActive(_getGLFIndexFromName(name));
 };
 
-void TGlfMultiReader::setActive(const int index1, const int index2) {
+void TGlfMultiReader::setActive(int index1, int index2) {
 	_setAllInactive();
 	_setActive(index1);
 	_setActive(index2);
@@ -409,7 +409,7 @@ bool TGlfMultiReader::readNext() {
 		++_iWindow;
 	}
 	++_position;
-	if (_onlyPositionsWithData && _numActive[_iWindow] == 0) { return readNext(); }
+	if (_numActive[_iWindow] < _minSamplesWithData) { return readNext(); }
 	return true;
 }
 

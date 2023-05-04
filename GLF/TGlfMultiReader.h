@@ -204,7 +204,7 @@ private:
 
 	// active files
 	// Object will loop only over active files
-	bool _onlyPositionsWithData = false;
+	size_t _minSamplesWithData  = 0;
 	std::vector<bool> _GLFIsActive;
 	std::vector<TGlfReader *> _activeGLFs;
 
@@ -242,7 +242,7 @@ public:
 	void openGLFs();
 	void closeGLF();
 	void addReference(const std::string& FastaFile);
-	void onlyPositionsWithData(bool set = true) { _onlyPositionsWithData = set; };
+	void minSamplesWithData(size_t MinSamplesWithData) { _minSamplesWithData = MinSamplesWithData; };
 
 	// set active / inactive
 	void setActive(int index);

@@ -217,7 +217,7 @@ void TMajorMinor::run() {
 				      " samples have data. (parameter minVariantQual)");
 		}
 	}
-	glfReader.onlyPositionsWithData(minSamplesWithData > 0);
+	glfReader.minSamplesWithData(minSamplesWithData);
 
 	coretools::Probability minMAF = parameters().getParameterWithDefault("minMAF", 0.0);
 	size_t nMAFMAF = 0;
@@ -287,36 +287,34 @@ void TMajorMinor::run() {
 
 		// report progress
 		if (counter % 1000000 == 0) {
-		    logfile().list("Parsed ", counter, " positions in ", timer.formattedTime(), ".");
+			logfile().list("Parsed ", counter, " positions in ", timer.formattedTime(), ".");
 		}
 
 		// break?
 		if (limitSites > 0 && counter == limitSites) break;
 
 		// filter on missingness
-		if (glfReader.numActiveSamplesWithData() >= minSamplesWithData) {
-			const Base ref = glfReader.refBase(); // can be N
-			MMEstimator->estimateMajorMinor(glfReader.data(), ref);
+		const Base ref = glfReader.refBase(); // can be N
+		MMEstimator->estimateMajorMinor(glfReader.data(), ref);
 
-			// pass filter?
-			if (MMEstimator->genotypeFrequencies().MAF() < minMAF) {
-				++nMAFMAF;
-				continue;
-			}
-			if (MMEstimator->variantQuality() < minVariantQuality) {
-				++nVariantQuality;
-				continue;
-			}
+		// pass filter?
+		if (MMEstimator->genotypeFrequencies().MAF() < minMAF) {
+			++nMAFMAF;
+			continue;
+		}
+		if (MMEstimator->variantQuality() < minVariantQuality) {
+			++nVariantQuality;
+			continue;
+		}
 
-			// write to VCF
-			if (hasReference && MMEstimator->minor() == ref) {
-				vcf.writeSite(glfReader.chr(), glfReader.position(), MMEstimator->variantQuality(), glfReader.data(), ref,
-							  MMEstimator->major());
-			} else {
-				vcf.writeSite(glfReader.chr(), glfReader.position(), MMEstimator->variantQuality(), glfReader.data(),
-							  MMEstimator->major(), MMEstimator->minor());
-			}
-		} // end filter on missingness
+		// write to VCF
+		if (hasReference && MMEstimator->minor() == ref) {
+			vcf.writeSite(glfReader.chr(), glfReader.position(), MMEstimator->variantQuality(), glfReader.data(), ref,
+						  MMEstimator->major());
+		} else {
+			vcf.writeSite(glfReader.chr(), glfReader.position(), MMEstimator->variantQuality(), glfReader.data(),
+						  MMEstimator->major(), MMEstimator->minor());
+		}
 	}
 
 	logfile().list("Reached end of glf files!");
