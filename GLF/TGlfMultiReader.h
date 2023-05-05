@@ -262,11 +262,11 @@ public:
 	std::vector<std::string> sampleNamesOfActiveFiles() const;
 
 	// access data
-	constexpr uint32_t numSamples() const noexcept { return _numGLFs; };
+	uint32_t numSamples() const noexcept { return _numGLFs; };
 	uint32_t numActiveSamples() const noexcept { return _activeGLFs.size(); };
-	constexpr uint32_t numActiveSamplesWithData() const noexcept { return _numActive[_iWindow]; };
+	uint32_t numActiveSamplesWithData() const noexcept { return _numActive[_iWindow]; };
 	std::string chr() const { return _curChr.name(); };
-	constexpr uint32_t position() const noexcept { return _position; };
+	uint32_t position() const noexcept { return _position; };
 	genometools::Base refBase() const noexcept {
 		return fastaReader.isOpen() ? fastaReader(_curRefId, _position) : genometools::Base::N;
 	};
