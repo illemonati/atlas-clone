@@ -14,6 +14,7 @@
 #include <set>
 #include <string>
 #include <vector>
+#include <algorithm>
 
 #include "coretools/Main/TError.h"
 #include "coretools/Containers/TView.h"
@@ -87,7 +88,7 @@ private:
 			refIDUsed.emplace(chr.refID());
 			uint32_t pos = coretools::str::fromString<uint32_t, true>(line[1]) - 1; //make 0-based
 
-			// add site
+			// add site			
 			_sites.emplace_back(chr.refID(), pos, line, Chromosomes);
 		}
 
@@ -123,8 +124,9 @@ public:
 		coretools::TConstView<SiteType> view(_sites);
 		const auto start = std::lower_bound(_sites.begin(), _sites.end(), Window);
 		auto end         = start;
-		while (end != _sites.end() && *end < Window) { ++end; }
-
+		while (end != _sites.end() && Window.within(*end)){
+ 			++end;
+		}
 		return view.subview(std::distance(_sites.begin(), start), end - start);
 	}
 	

@@ -55,7 +55,7 @@ public:
 	bool filters() const{ return !_keep; };
 	void setReason(std::string_view reason);
 	void setLog(std::shared_ptr<TBamFileLog> & Log);
-	void filterOut(std::string_view alignmentName, bool isSecondMate, size_t readGroup, size_t chromosomeID);
+	void filterOut(std::string_view alignmentName, bool isSecondMate, size_t readGroup, int64_t chromosomeID);
 	void summary(size_t total, size_t readGroup) const;
 	const coretools::TCountDistributionVector<>& numFiltered() const { return _counter; }
 	const std::string& getReason() const { return _reason; }
@@ -74,7 +74,7 @@ class TBamFileFilterBool:public TBamFileFilter{
 public:
 	TBamFileFilterBool(){};
 	void filter(std::string_view Reason, size_t numRG, size_t numChrom);
-	bool pass(bool state, std::string_view alignmentName, bool isSecondMate, size_t readGroup, size_t chromosomeID);
+	bool pass(bool state, std::string_view alignmentName, bool isSecondMate, size_t readGroup, int64_t chromosomeID);
 };
 
 template <typename T = size_t>
@@ -100,7 +100,7 @@ public:
 		return _range.rangeString();
 	};
 
-	bool pass(const T & value, std::string_view alignmentName, bool isSecondMate, size_t readGroup, size_t chromosomeID) {
+	bool pass(const T & value, std::string_view alignmentName, bool isSecondMate, size_t readGroup, int64_t chromosomeID) {
 		if(!_keep && !_range.within(value)){
 			filterOut(alignmentName, isSecondMate, readGroup, chromosomeID);
 			return false;

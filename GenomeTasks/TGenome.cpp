@@ -101,7 +101,6 @@ void TGenome_parsed::_openReference(bool required) {
 			if (required) { UERROR("No reference provided! (Use parameter fasta to provide a reference)"); }
 		}
 	}
-	_bamFile.setFilters();
 };
 
 void TGenome_parsed::_setReadTrimming() {

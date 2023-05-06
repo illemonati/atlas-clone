@@ -24,6 +24,10 @@ namespace GenomeTasks {
 
 namespace MutationLoad {
 
+using genometools::Genotype;
+using genometools::Base;
+using GenotypeLikelihoods::TGenotypeLikelihoods;
+
 using PrecisionType = double;
 using NumStatesType = int;
 using LengthType = size_t;
@@ -34,13 +38,17 @@ using LengthType = size_t;
 //------------------------------------------------
 class TSiteData {
 public:
-	stattools::TDataVector<PrecisionType, NumStatesType> likelihoods;
-	genometools::Base preferredBase;
+	TGenotypeLikelihoods likelihoods;
+	Base preferredBase;
 
-	TSiteData(const GenotypeLikelihoods::TGenotypeLikelihoods & Likelihoods, const genometools::Base PreferredBase): preferredBase(PreferredBase){
-		for(genometools::Genotype g = genometools::Genotype::min; g < genometools::Genotype::max; ++g){
-			likelihoods[coretools::underlying(g)] = Likelihoods[g];
-		}
+	TSiteData(const TGenotypeLikelihoods & Likelihoods, const Base PreferredBase):
+	preferredBase(PreferredBase),
+	likelihoods(Likelihoods) {};
+
+	TSiteData(const TSiteData & other) = delete;
+	TSiteData(TSiteData && other){
+		likelihoods = std::move(other.likelihoods);
+		preferredBase = std::move(other.preferredBase);
 	};
 };
 
@@ -50,7 +58,7 @@ public:
 class TGenotypeProbabilities{
 private:
 	std::array<PrecisionType, 4> _pi;
-	coretools::TStrongArray<coretools::TStrongArray<PrecisionType, genometools::Genotype>, genometools::Base> _genotypeProbs;
+	coretools::TStrongArray<coretools::TStrongArray<PrecisionType, Genotype>, Base> _genotypeProbs;
 
 	void _calculateGenotypeProbs();
 public:
@@ -58,7 +66,7 @@ public:
 	~TGenotypeProbabilities() = default;
 	void setPi(std::array<double, 4> Pi);
 	const std::array<double, 4>& getPi() const { return _pi; };
-	double operator()(genometools::Base PreferredBase, genometools::Genotype Geno) const {
+	double operator()(Base PreferredBase, Genotype Geno) const {
 		return _genotypeProbs[PreferredBase][Geno];
 	}
 };
@@ -68,13 +76,13 @@ public:
 //-------------------------------------
 class TPiIndex{
 private:
-	coretools::TStrongArray<coretools::TStrongArray<NumStatesType, genometools::Genotype>, genometools::Base> _index;
+	coretools::TStrongArray<coretools::TStrongArray<NumStatesType, Genotype>, Base> _index;
 
 public:
 	TPiIndex();
 	~TPiIndex() = default;
 
-	int operator()(genometools::Base PreferredBase, genometools::Genotype Geno){
+	int operator()(Base PreferredBase, Genotype Geno){
 		return _index[PreferredBase][Geno];
 	}
 };
@@ -90,7 +98,9 @@ private:
 	std::array<double, 4> _tmpPiForEstimation;
 
 public:
-	TMutationLoadEMPrior(std::vector<MutationLoad::TSiteData>& Sites) : _sites(Sites) {};
+	TMutationLoadEMPrior(std::vector<MutationLoad::TSiteData>& Sites) : 
+		TEMPriorIndependent_base(TGenotypeLikelihoods::capacity),
+		_sites(Sites) {};
 
 	PrecisionType operator()(LengthType Index, NumStatesType State) const override;
 

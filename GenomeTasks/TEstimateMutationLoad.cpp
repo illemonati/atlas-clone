@@ -7,11 +7,12 @@
 #include "stattools/EM/TEM.h"
 
 using coretools::instances::logfile;
+using genometools::Genotype;
+using GenotypeLikelihoods::TGenotypeLikelihoods;
 
 namespace GenomeTasks {
 
 namespace MutationLoad {
-
 
 //------------------------------------------------
 // TGenotypeProbabilities
@@ -89,7 +90,7 @@ TPiIndex::TPiIndex(){
 //------------------------------------------------
 
 PrecisionType TMutationLoadEMPrior::operator()(size_t Index, NumStatesType State) const{
-	return _genoProbs(_sites[Index].preferredBase, genometools::Genotype(State));
+	return _genoProbs(_sites[Index].preferredBase, Genotype(State));
 }
 
 void TMutationLoadEMPrior::prepareEMParameterEstimationOneIteration(){
@@ -97,8 +98,8 @@ void TMutationLoadEMPrior::prepareEMParameterEstimationOneIteration(){
 }
 
 void TMutationLoadEMPrior::handleEMParameterEstimationOneIteration(size_t Index, const stattools::TDataVector<PrecisionType, NumStatesType> &Weights){
-	for(genometools::Genotype g = genometools::Genotype::min; g < genometools::Genotype::max; ++g){
-		_tmpPiForEstimation[ _piIndex(_sites[Index].preferredBase, g) ] += Weights[coretools::underlying(g)];
+	for(Genotype g = Genotype::min; g < Genotype::max; ++g){
+		_tmpPiForEstimation[ _piIndex(_sites[Index].preferredBase, g) ] += Weights[coretools::index(g)];
 	}
 }
 
@@ -111,12 +112,11 @@ void TMutationLoadEMPrior::reportEMParameters(){
 	logfile().list("Pi = ", _genoProbs.getPi());
 }
 
-
 //------------------------------------------------
 // TMutationLoadLatentVariable
 //------------------------------------------------
 void TMutationLoadLatentVariable::calculateEmissionProbabilities(size_t Index, stattools::TDataVector<PrecisionType, NumStatesType> &Emission) const {
-	Emission = _sites[Index].likelihoods;
+	Emission.copyToCurrent(_sites[Index].likelihoods.data());
 }
 
 } // end namespace MutationLoad
@@ -132,8 +132,8 @@ void TEstimateMutationLoad::_handleWindow() {
 		for(auto& it : thesePositions){
 			uint32_t internalPos = it - _window.from();
 			GenotypeLikelihoods::TSite& site = _window[internalPos];
-			GenotypeLikelihoods::TGenotypeLikelihoods genoLik = _genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(site);
-			_sites.emplace_back(genoLik, it.ref());
+			GenotypeLikelihoods::TGenotypeLikelihoods genoLik = _genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(site);	
+			_sites.emplace_back(genoLik, it.ref());	
 		}
 	} catch (...) {
 		UERROR("Failed to allocate sufficient memory to store the data for so many sites. Consider using fewer sites.");
@@ -156,7 +156,8 @@ void TEstimateMutationLoad::run()
 
 	stattools::TEM<MutationLoad::PrecisionType, MutationLoad::NumStatesType, MutationLoad::LengthType> EM(prior, latentVar);
 
-	EM.runEM(std::vector<MutationLoad::LengthType>(_sites.size()));
+	std::vector<MutationLoad::LengthType> chunkEnds = {_sites.size()};
+	EM.runEM(chunkEnds);
 }
 
 } // end namespace GenomeTasks

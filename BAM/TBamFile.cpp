@@ -51,6 +51,7 @@ TBamFile::TBamFile(){
 	_QCFiltersPassed = false;
 	_keepAll = true; //by default, keep all reads
 	_allowTooLongReads = false;
+	_numNoReadGroup = 0;
 
 	//progress reporting
 	_progressFrequency = 100000;
@@ -87,11 +88,8 @@ void TBamFile::setFilters(){
 	uint32_t numRG = readGroups().size();
 	uint32_t numChrom = chromosomes().size();
 	_externalFilter.resizeCounter(numRG, numChrom);
+	_numNotAligned.resize(numRG);
 	
-	//hard filters
-	_unalignedFilter.filter("NotAligned", numRG, numChrom);
-	_noReadGroupFilter.filter("NoReadGroup", numRG, numChrom);
-
 	//mapping length
 	//--------------
 	//is relevant for storage
@@ -292,6 +290,11 @@ void TBamFile::filterOut(std::string_view alignmentName, bool isReverseStrand, s
 	_externalFilter.filterOut(alignmentName, isReverseStrand, readGroup, chromosomeID);
 };
 
+void TBamFile::filterOut(const TAlignment & Alignment){
+	_externalFilter.filterOut(Alignment.name(), Alignment.isReverseStrand(), Alignment.readGroupId(), Alignment.refID());
+
+};
+
 void TBamFile::setExternalFilterReason(std::string_view reason){
 	_externalFilter.setReason(reason);
 };
@@ -308,8 +311,6 @@ void TBamFile::openBamLog(){
 		_bamLog = std::make_shared<TBamFileLog>(logFilename);
 
 		//_log to filters
-		_unalignedFilter.setLog(_bamLog);
-		_noReadGroupFilter.setLog(_bamLog);
 		_duplicateFilter.setLog(_bamLog);
 		_softClippedRatioFilter.setLog(_bamLog);
 		_improperPairsFilter.setLog(_bamLog);
@@ -522,7 +523,6 @@ void TBamFile::_applyFilters(){
 	}
 };
 
-
 bool TBamFile::readNextAlignment(){
 	//check if we limit reads
 	if(_limitNumReads && _numAlignmentRead >=_maxNumReadsToRead){
@@ -537,11 +537,20 @@ bool TBamFile::readNextAlignment(){
 		return false;
 	}
 
+	//check if it has no read group
+	if(_curReadGroupID == TReadGroups::noReadGroupId){
+		++_numNoReadGroup;
+		_bamLog->write(_curBamAlignment.Name, _curBamAlignment.IsSecondMate(), "No read group");
+		_QCFiltersPassed =  false;
+	}
+
 	//check if it is unaligned (refID < 0), in which case we read until the first aligned read
-	while(!_unalignedFilter.pass(_curBamAlignment.RefID >= 0, _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())){
-		if(!_readNextAlignmentFromFile()){
-			return false;
+	if(_curBamAlignment.RefID < 0){
+		++_numNotAligned[_curReadGroupID];
+		if(_bamLog){
+			_bamLog->write(_curBamAlignment.Name, _curBamAlignment.IsSecondMate(), "Not aligned");
 		}
+		return false;	
 	}
 
 	//check if chromosome changed
@@ -594,20 +603,15 @@ bool TBamFile::readNextAlignment(){
 		UERROR("BAM file must be sorted by position! Alignment '", _curBamAlignment.Name, "' is at position ", _curBamAlignment.Position, ", which is before the position of the previous alignment (", _previousAlignmentPosition.position(), ")");
 	}
 
-	//is it a read without read group?
-	if(!_noReadGroupFilter.pass(_curReadGroupID != TReadGroups::noReadGroupId, _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())){
-		_QCFiltersPassed =  false;
-	} else {
-		//update per read group counter
-		_numAlignmentReadPerReadGroupPerChromosome.add(_curReadGroupID, _curChromosome->refID());
+	//update per read group counter
+	_numAlignmentReadPerReadGroupPerChromosome.add(_curReadGroupID, _curChromosome->refID());
 
-		//parse CIGAR
-		for(auto& it : _curBamAlignment.CigarData){
-			_curCigar.add(it.Type, it.Length);
-		}
-		//apply filters
-		_applyFilters();
+	//parse CIGAR
+	for(auto& it : _curBamAlignment.CigarData){
+		_curCigar.add(it.Type, it.Length);
 	}
+	//apply filters
+	_applyFilters();
 
 	return true;
 };
@@ -721,18 +725,6 @@ size_t TBamFile::curFragmentLength() const{
 	}
 };
 
-/*
-uint16_t TBamFile::curUsableAlignedLength(TQualityFilter & qualFilter) const{
-	constexpr char N = genometools::base2char(genometools::Base::N);
-	uint16_t counter = 0;
-	for(size_t d=0; d<_curBamAlignment.AlignedBases.length(); ++d){
-		if(_curBamAlignment.AlignedBases.at(d) != N && qualFilter.pass( BaseQuality(_curBamAlignment.AlignedQualities.at(d)))){
-			++counter;
-		}
-	}
-	return counter;
-	};*/
-
 std::string TBamFile::curQuerySequence(size_t start, size_t length) const{
 	return _curBamAlignment.QueryBases.substr(start, length);
 };
@@ -769,8 +761,8 @@ void TBamFile::_writeFilteringStats(std::string_view outputName) const {
 	//creating header
 	std::vector<std::string> header;
 	header.push_back("readGroup");
-	_unalignedFilter.fillHeader(header);
-	_noReadGroupFilter.fillHeader(header);
+	header.push_back("No_read_group");
+	header.push_back("Not_aligned");
 	_duplicateFilter.fillHeader(header);
 	_softClippedRatioFilter.fillHeader(header);
 	_improperPairsFilter.fillHeader(header);
@@ -793,8 +785,8 @@ void TBamFile::_writeFilteringStats(std::string_view outputName) const {
 	coretools::TOutputFile out(filename, header, "\t");
 
 	out << "allReadGroups";
-	_unalignedFilter.printCombinedCounts(out);
-	_noReadGroupFilter.printCombinedCounts(out);
+	out << _numNoReadGroup;
+	out << coretools::containerSum(_numNotAligned);
 	_duplicateFilter.printCombinedCounts(out);
 	_softClippedRatioFilter.printCombinedCounts(out);
 	_improperPairsFilter.printCombinedCounts(out);
@@ -819,8 +811,7 @@ void TBamFile::_writeFilteringStats(std::string_view outputName) const {
 	//writes numbers of removed reads for each applied filter per read group, also lists filters if no reads were removed
 	for (size_t rg = 0; rg < _readGroups.size(); rg++){
 		out << _readGroups.getName(rg);
-		_unalignedFilter.printCounts(out, rg);
-		_noReadGroupFilter.printCounts(out, rg);
+		out << 0 << _numNotAligned[rg];		
 		_duplicateFilter.printCounts(out, rg);
 		_softClippedRatioFilter.printCounts(out, rg);
 		_improperPairsFilter.printCounts(out, rg);
@@ -848,10 +839,11 @@ void TBamFile::_writeFilteringStats(std::string_view outputName) const {
 
 void TBamFile::printSummaryNoEndIndent(std::string_view outputName) const {
 	logfile().startIndent("Summary of parsed reads from BAM file '" + _filename + "':");
-	logfile().list("Total number of reads read: " + coretools::str::toString(_numAlignmentRead));
-	logfile().list("Reads that passed filters: " + coretools::str::toString(_numAlignmentsPassedQC) + " (" + coretools::str::toPercentString(_numAlignmentsPassedQC, _numAlignmentRead, 3) + "%)");
+	logfile().list("Total number of reads read: ", _numAlignmentRead);
+	logfile().list("Reads without read group: ", _numNoReadGroup, " (", coretools::str::toPercentString(_numNoReadGroup, _numAlignmentRead, 3), "%)");
+	logfile().list("Reads that passed filters: ", _numAlignmentsPassedQC, " (", coretools::str::toPercentString(_numAlignmentsPassedQC, _numAlignmentRead, 3), "%)");
 	uint64_t numFiltered = _numAlignmentRead - _numAlignmentsPassedQC;
-	logfile().list("Reads that were filtered out: " + coretools::str::toString(numFiltered) + " (" + coretools::str::toPercentString(numFiltered, _numAlignmentRead, 3) + "%)");
+	logfile().list("Reads that were filtered out: ", numFiltered, " (" + coretools::str::toPercentString(numFiltered, _numAlignmentRead, 3), "%)");
 
 	//write counts of filtered reads for each read group to _filterSummary.txt file
 	_writeFilteringStats(outputName);
@@ -861,8 +853,7 @@ void TBamFile::printSummaryNoEndIndent(std::string_view outputName) const {
 		//logfile().newLine();
 		logfile().list("Number of reads filtered from read group: '" + coretools::str::toString(_readGroups.getName(rg)) + "'");
 		logfile().addIndent();
-		_unalignedFilter.summary(numFiltered, rg);
-		_noReadGroupFilter.summary(numFiltered, rg);
+		logfile().list("Not aligned: ", _numNotAligned[rg]);
 		_duplicateFilter.summary(numFiltered, rg);
 		_softClippedRatioFilter.summary(numFiltered, rg);
 		_improperPairsFilter.summary(numFiltered, rg);

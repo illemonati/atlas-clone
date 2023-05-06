@@ -77,8 +77,8 @@ private:
  	TAlignmentList _blacklist;
  	bool _allowTooLongReads;
  	bool _keepAll; 	
- 	TBamFileFilterBool _unalignedFilter; //i.e. have refID < 0
- 	TBamFileFilterBool _noReadGroupFilter;
+	size_t _numNoReadGroup;
+	std::vector<size_t> _numNotAligned;
 	TBamFileFilterRange<> _readLengthFilter{500};
  	TBamFileFilterRange<> _mappedLengthFilter{500};
  	TBamFileFilterBool _duplicateFilter;
@@ -131,9 +131,9 @@ public:
 	//filters
 	void setFilters();
 	void setLimits();
-	void setKeepAll();
 	void curFilterOut();
 	void filterOut(std::string_view alignmentName, bool isReverseStrand, size_t readGroup, size_t chromosomeID);
+	void filterOut(const TAlignment & Alignment);
 	void setExternalFilterReason(std::string_view reason);
 	void openBamLog();
 	void writeToBamLog(std::string_view alignmentName, bool isReverseStrand, std::string_view reason);

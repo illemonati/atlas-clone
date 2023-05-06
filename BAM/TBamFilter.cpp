@@ -40,7 +40,7 @@ TBamFileFilter::TBamFileFilter(){
 	_log = nullptr;
 };
 
-void TBamFileFilter::filterOut(std::string_view alignmentName, bool isSecondMate, size_t readGroup, size_t chromosomeID){
+void TBamFileFilter::filterOut(std::string_view alignmentName, bool isSecondMate, size_t readGroup, int64_t chromosomeID){
 	//counts filtered reads per read group and filter
 	_counter.add(readGroup, chromosomeID);
 	if(_updateLog){
@@ -73,9 +73,11 @@ void TBamFileFilter::summary(size_t total, size_t readGroup) const {
 };
 
 void TBamFileFilter::fillHeader(std::vector<std::string> &header) const {
-	if (!getReason().empty()){
-			header.push_back(getReason());
-		}
+	std::string tmp = getReason();
+	if (!tmp.empty()){
+		std::replace(tmp.begin(), tmp.end(), ' ', '_');
+		header.push_back(tmp);
+	}
 };
 
 void TBamFileFilter::printCounts(coretools::TOutputFile &out, size_t rg_ID) const {
@@ -137,7 +139,7 @@ void TBamFileFilterBool::filter(std::string_view Reason, size_t numRG, size_t nu
 	resizeCounter(numRG, numChrom);
 };
 
-bool TBamFileFilterBool::pass(bool state, std::string_view alignmentName, bool isSecondMate, size_t readGroup, size_t chromosomeID){
+bool TBamFileFilterBool::pass(bool state, std::string_view alignmentName, bool isSecondMate, size_t readGroup, int64_t chromosomeID){
 	if(!state && !_keep){
 		filterOut(alignmentName, isSecondMate, readGroup, chromosomeID);
 		return false;

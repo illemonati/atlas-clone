@@ -26,9 +26,6 @@
 #include "TWindow.h"
 #include "genometools/TFastaReader.h"
 
-namespace GenotypeLikelihoods {
-class TSiteSubset;
-}
 namespace coretools {
 class TLog;
 }
