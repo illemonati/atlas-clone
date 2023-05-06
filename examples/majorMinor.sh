@@ -17,4 +17,4 @@ done
 
 allSamples=`find . -path '*_ind*.glf.gz' | paste -s -d ',' -`
 
-$atlas --task majorMinor --glf $allSamples --fixedSeed 0 --logFile majorMinor.out --minMAF 0.05
+$atlas --task majorMinor --window 3 --glf $allSamples --fixedSeed 0 --logFile majorMinor.out --minMAF 0.05
