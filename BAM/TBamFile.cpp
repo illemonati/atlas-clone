@@ -811,7 +811,7 @@ void TBamFile::_writeFilteringStats(std::string_view outputName) const {
 	//writes numbers of removed reads for each applied filter per read group, also lists filters if no reads were removed
 	for (size_t rg = 0; rg < _readGroups.size(); rg++){
 		out << _readGroups.getName(rg);
-		out << 0 << _numNotAligned[rg];		
+		out << 0 << (rg < _numNotAligned.size() ? _numNotAligned[rg]: 0);
 		_duplicateFilter.printCounts(out, rg);
 		_softClippedRatioFilter.printCounts(out, rg);
 		_improperPairsFilter.printCounts(out, rg);
@@ -853,7 +853,7 @@ void TBamFile::printSummaryNoEndIndent(std::string_view outputName) const {
 		//logfile().newLine();
 		logfile().list("Number of reads filtered from read group: '" + coretools::str::toString(_readGroups.getName(rg)) + "'");
 		logfile().addIndent();
-		logfile().list("Not aligned: ", _numNotAligned[rg]);
+		if (rg < _numNotAligned.size()) logfile().list("Not aligned: ", _numNotAligned[rg]);
 		_duplicateFilter.summary(numFiltered, rg);
 		_softClippedRatioFilter.summary(numFiltered, rg);
 		_improperPairsFilter.summary(numFiltered, rg);
