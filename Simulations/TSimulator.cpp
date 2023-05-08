@@ -237,8 +237,8 @@ namespace Simulations {
             // write BED files
             if (_writeVariantInvariantBedFiles) bedFiles.write(haplotypes, chr.name);
 
-            // write bam / vcf files!			NOW SHOULD ALSO BE FASTQ
-            _simulateAndWrite(chr, haplotypes, _seqDepth[i]);										// DA DECOMMMENNNNNTAAAAREEEEEE
+            // write bam / fastq / vcf files!
+            _simulateAndWrite(chr, haplotypes, _seqDepth[i]);
 
             // end of chromosome
             logfile().endIndent();
@@ -368,7 +368,7 @@ namespace Simulations {
     }
 
 //---------------------------------------------------
-// TFASTQ Simulator
+// TFastq Simulator
 //---------------------------------------------------
 
     TFastqSimulator::TFastqSimulator(const std::string &method) : TSimulator(method){
@@ -458,6 +458,8 @@ namespace Simulations {
                                                        Simulations::TReadSimulators &readSimulators, uint32_t avgDepth,
                                                        FASTQ::TFastqFile &fastqFile, const std::string &extraProgressText) {
 
+        std::cout << "called simulate reads from haplotypes for FastqFile: " << fastqFile.getName() << std::endl;
+
         // Initialize probabilities to simulate reads
         const uint64_t numReads = thisChr.length * avgDepth / readSimulators.averageFragmentLength();
         const uint64_t chrLengthForStart = thisChr.length - readSimulators.maxFragmentLength() + 1;
@@ -470,7 +472,6 @@ namespace Simulations {
 
         // now simulate
         for(TGenomePosition pos(thisChr.refID(), 0); pos.position() < chrLengthForStart; ++pos){
-
             // draw random number to get number of reads starting at this position
             const auto numReadsHere = randomGenerator().getBinomialRand(probReadPerSite, numReads);
 
@@ -488,7 +489,7 @@ namespace Simulations {
         reporter.done();
         logfile().conclude("Simulated a total of ", numReadsSimulated, " reads.");
 
-        //end copy from TBAM
+        //end copy from TFastq
 
     }
 

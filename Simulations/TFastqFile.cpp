@@ -33,10 +33,11 @@ using coretools::instances::logfile; 	//used to write log file
 
 namespace FASTQ{
 
-    TFastqFile::TFastqFile(std::string_view fileName){
+    TFastqFile::TFastqFile(std::string_view fileName){      //: _file(fileName)
         _fileName = fileName;
-        static coretools::TOutputFile txtFile(fileName);
-        _ptrFile = &txtFile;
+        /*static coretools::TOutputFile txtFile(fileName);
+        _ptrFile = &txtFile;*/
+        _file.open(fileName);
     }
 
 
@@ -51,11 +52,11 @@ namespace FASTQ{
 
     void TFastqFile::writeAlignment(const BAM::TAlignment &alignment){
     //takes alignment sequence and qualities and writes it in the file
-        _ptrFile->writeln("@" + std::to_string(alignment.readGroupId())
+        _file.writeln("@" + std::to_string(alignment.readGroupId())
                             + ":" + std::to_string(alignment.refID()));
-        _ptrFile->writeln(alignment.sequence());
-        _ptrFile->writeln(alignment.qualities());
-        _ptrFile->writeln("+");
+        _file.writeln(alignment.sequence());
+        _file.writeln(alignment.qualities());
+        _file.writeln("+");
     }
 
     std::string_view TFastqFile::getName() {

@@ -36,7 +36,8 @@ namespace FASTQ{
 
     private:
         std::string _fileName;
-        coretools::TOutputFile* _ptrFile;
+        coretools::TOutputFile _file;
+        //coretools::TOutputFile* _ptrFile;
 
         bool _open = false;
 

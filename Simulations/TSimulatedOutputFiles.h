@@ -25,19 +25,15 @@
 #include "../coretools/core/coretools/Main/TLog.h"
 #include "TReadSimulators.h"
 
-//#include "TAlignment.h"
-
-
 namespace Simulations{
 
     class TSimulatedOutputFiles{
 
     private:
         std::vector<FASTQ::TFastqFile> _fastqFiles;
-        FASTQ::TFastqFile* _ptrNewFile;
         std::string _outputFileName;
 
-        //std::vector<BAM::TOutputBamFile> _bamFiles;               WHAT TO DO WITH BAM?
+        //std::vector<BAM::TOutputBamFile> _bamFiles;               WHAT TO DO WITH BAM?    vector per avere uno store di questi files
 
         std::string newName(const std::string & Outname);
 

@@ -45,11 +45,11 @@ namespace Simulations{
 
     void TSimulatedOutputFiles::addFile(int NumFiles, const std::string & Outname) {     //creates 10 files
         if (NumFiles == 1) {
-            _fastqFiles.push_back(*new FASTQ::TFastqFile(Outname + ".fastq"));
+            _fastqFiles.push_back(FASTQ::TFastqFile(Outname + ".fastq"));
         } else{
-            _fastqFiles.push_back(*new FASTQ::TFastqFile(newName(Outname)));
+            _fastqFiles.push_back(FASTQ::TFastqFile(newName(Outname)));
         }
-        //std::cout << "New Fastq File created: " << _fastqFiles[_fastqFiles.size()-1]->getName() << std::endl;
+        std::cout << "New Fastq File created: " << _fastqFiles[_fastqFiles.size()-1].getName() << std::endl;
     }
 
     FASTQ::TFastqFile &TSimulatedOutputFiles::operator[](size_t i) {
@@ -58,7 +58,7 @@ namespace Simulations{
     }
 
     std::string TSimulatedOutputFiles::newName(const std::string & Outname) {
-        _outputFileName = Outname + "_ind_" + std::to_string(_fastqFiles.size() + 1) + ".fastq";
+        _outputFileName = Outname + "_ind" + std::to_string(_fastqFiles.size() + 1) + ".fastq";
         return _outputFileName;
     }
 
