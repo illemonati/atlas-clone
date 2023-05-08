@@ -49,7 +49,6 @@ namespace Simulations{
         } else{
             _fastqFiles.push_back(FASTQ::TFastqFile(newName(Outname)));
         }
-        std::cout << "New Fastq File created: " << _fastqFiles[_fastqFiles.size()-1].getName() << std::endl;
     }
 
     FASTQ::TFastqFile &TSimulatedOutputFiles::operator[](size_t i) {

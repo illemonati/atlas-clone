@@ -457,9 +457,7 @@ namespace Simulations {
                                                        std::array<std::vector<genometools::Base>, 2> haplotypes,
                                                        Simulations::TReadSimulators &readSimulators, uint32_t avgDepth,
                                                        FASTQ::TFastqFile &fastqFile, const std::string &extraProgressText) {
-
-        std::cout << "called simulate reads from haplotypes for FastqFile: " << fastqFile.getName() << std::endl;
-
+        
         // Initialize probabilities to simulate reads
         const uint64_t numReads = thisChr.length * avgDepth / readSimulators.averageFragmentLength();
         const uint64_t chrLengthForStart = thisChr.length - readSimulators.maxFragmentLength() + 1;
