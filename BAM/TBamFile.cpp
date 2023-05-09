@@ -300,7 +300,7 @@ void TBamFile::setExternalFilterReason(std::string_view reason){
 };
 
 void TBamFile::openBamLog(){
-	if(parameters().parameterExists("bamLog") && !_bamLog){
+	if(parameters().parameterExists("bamLog") && !_bamLog.isOpen()){
 		std::string logFilename = parameters().getParameter<std::string>("bamLog");
 		if(logFilename.empty()){
 			logFilename = _filename;
@@ -308,7 +308,7 @@ void TBamFile::openBamLog(){
 			logFilename += ".bamlog.txt.gz";
 		}
 		logfile().list("Will write all filtered out reads to '" + logFilename + "'.");
-		_bamLog = std::make_shared<TBamFileLog>(logFilename);
+		_bamLog.open(logFilename, 3);
 
 		//_log to filters
 		_duplicateFilter.setLog(_bamLog);
@@ -332,8 +332,8 @@ void TBamFile::openBamLog(){
 };
 
 void TBamFile::writeToBamLog(std::string_view alignmentName, bool isReverseStrand, std::string_view reason){
-	if(_bamLog){
-		_bamLog->write(alignmentName, isReverseStrand, reason);
+	if(_bamLog.isOpen()){
+		_bamLog.writeln(alignmentName, isReverseStrand, reason);
 	}
 };
 
@@ -540,15 +540,17 @@ bool TBamFile::readNextAlignment(){
 	//check if it has no read group
 	if(_curReadGroupID == TReadGroups::noReadGroupId){
 		++_numNoReadGroup;
-		_bamLog->write(_curBamAlignment.Name, _curBamAlignment.IsSecondMate(), "No read group");
-		_QCFiltersPassed =  false;
+		if (_bamLog.isOpen()) {
+			_bamLog.writeln(_curBamAlignment.Name, _curBamAlignment.IsSecondMate(), "No read group");
+		}
+		_QCFiltersPassed = false;
 	}
 
 	//check if it is unaligned (refID < 0), in which case we read until the first aligned read
 	if(_curBamAlignment.RefID < 0){
 		++_numNotAligned[_curReadGroupID];
-		if(_bamLog){
-			_bamLog->write(_curBamAlignment.Name, _curBamAlignment.IsSecondMate(), "Not aligned");
+		if(_bamLog.isOpen()){
+			_bamLog.writeln(_curBamAlignment.Name, _curBamAlignment.IsSecondMate(), "Not aligned");
 		}
 		return false;	
 	}

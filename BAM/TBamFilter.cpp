@@ -12,6 +12,7 @@
 #include <ostream>
 #include <vector>
 
+#include "coretools/Files/TOutputFile.h"
 #include "coretools/devtools.h"
 #include "genometools/GenotypeTypes.h"
 #include "coretools/Files/TFile.h"
@@ -25,26 +26,14 @@ using coretools::instances::parameters;
 using coretools::instances::logfile;
 
 //-----------------------------------------------------
-//TBamFileLog
-//-----------------------------------------------------
-void TBamFileLog::write(std::string_view alignmentName, bool isSecondMate, std::string_view reason){
-	_log.writeln(alignmentName, isSecondMate, reason);
-};
-
-//-----------------------------------------------------
 //TBamFileFilter_base
 //-----------------------------------------------------
-TBamFileFilter::TBamFileFilter(){
-	_keep = true;
-	_updateLog = false;
-	_log = nullptr;
-};
 
 void TBamFileFilter::filterOut(std::string_view alignmentName, bool isSecondMate, size_t readGroup, int64_t chromosomeID){
 	//counts filtered reads per read group and filter
 	_counter.add(readGroup, chromosomeID);
-	if(_updateLog){
-		_log->write(alignmentName, isSecondMate, _reason);
+	if(_log){
+		_log->writeln(alignmentName, isSecondMate, _reason);
 	}
 };
 
@@ -61,9 +50,8 @@ void TBamFileFilter::setReason(std::string_view reason){
 	_reason = reason;
 };
 
-void TBamFileFilter::setLog(std::shared_ptr<TBamFileLog> & Log){
-	_log = Log;
-	_updateLog = true;
+void TBamFileFilter::setLog(coretools::TOutputFile& Log){
+	_log = &Log;
 };
 
 void TBamFileFilter::summary(size_t total, size_t readGroup) const {

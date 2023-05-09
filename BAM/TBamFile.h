@@ -107,7 +107,7 @@ private:
 	void _writeFilteringStats(std::string_view outputName) const;
 
 	//output filtered reads
-	std::shared_ptr<TBamFileLog> _bamLog;
+	coretools::TOutputFile _bamLog;
 
 	//report progress
 	mutable coretools::TTimer _timer;

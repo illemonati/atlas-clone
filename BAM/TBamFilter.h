@@ -26,35 +26,23 @@
 namespace BAM{
 
 //-----------------------------------------------------
-//TBamFileLog
-//-----------------------------------------------------
-class TBamFileLog{
-private:
-	coretools::TOutputFile _log;
-
-public:
-	TBamFileLog(const std::string &filename): _log(filename, 3){};
-	void write(std::string_view alignmentName, bool isSecondMate, std::string_view reason);
-};
-
-//-----------------------------------------------------
 //TBamFileFilter
 //-----------------------------------------------------
 class TBamFileFilter{
 protected:
-	bool _keep;
+	bool _keep = true;
 	coretools::TCountDistributionVector<> _counter;
 	std::string _reason; //used for reporting
-	bool _updateLog;
-	std::shared_ptr<TBamFileLog> _log;
+	coretools::TOutputFile* _log = nullptr;
 
 public:
-	TBamFileFilter();
+	TBamFileFilter() = default;
+	virtual ~TBamFileFilter() = default;
 	void keep();
 	void resizeCounter(size_t numRG, size_t numChrom);
 	bool filters() const{ return !_keep; };
 	void setReason(std::string_view reason);
-	void setLog(std::shared_ptr<TBamFileLog> & Log);
+	void setLog(coretools::TOutputFile& Log);
 	void filterOut(std::string_view alignmentName, bool isSecondMate, size_t readGroup, int64_t chromosomeID);
 	void summary(size_t total, size_t readGroup) const;
 	const coretools::TCountDistributionVector<>& numFiltered() const { return _counter; }
