@@ -102,7 +102,7 @@ namespace Simulations {
 
     class TFastqSimulator : public TSimulator{
     private:
-        //store of fastqFiles created
+        //store created FastqFiles
         std::unique_ptr<Simulations::TSimulatedOutputFiles> _fastqFiles;
         std::vector<TReadSimulators> _FastqReadSimulators; // one per sample
 
@@ -113,7 +113,7 @@ namespace Simulations {
         TFastqSimulator(const std::string &method);
         ~TFastqSimulator() = default;
 
-        //overridden method from TSimulator (mandatory + called by runSimulations() )
+        //overridden method from TSimulator (called by runSimulations() )
         void _simulateAndWrite(const genometools::TChromosome &Chromosome, TSimulatorHaplotypes &Haplotypes, uint32_t avgDepth) override;
         // simulate reads and write bam files
         void _simulateReadsFromHaplotypes(const genometools::TChromosome &thisChr,
@@ -122,6 +122,31 @@ namespace Simulations {
                                           uint32_t avgDepth,
                                           Simulations::TSimulatedOutputFile &file, const std::string &extraProgressText);
     };
+
+//-------------------------------------------
+// FASTQ and BAM Simulator
+//-------------------------------------------
+/*class TFastqBamSimulator : public TSimulator{
+
+    private:
+
+        //store created FastqFiles
+        std::vector<TReadSimulators> _fastqReadSimulators; // one per sample
+        std::unique_ptr<Simulations::TSimulatedOutputFiles> _fastqFiles;
+
+        //store created BAM files
+        std::vector<TReadSimulators> _bamReadSimulators; // one per sample
+        std::unique_ptr<TSimulatorBamFiles> _bamFiles;
+
+        void _initializeBothReadSimulators();
+
+    public:
+        TFastqBamSimulator(const std::string &method);
+        ~TFastqBamSimulator() = default;
+
+        //overridden method from TSimulator (called by runSimulations() )
+        void _simulateAndWrite(const genometools::TChromosome &Chromosome, TSimulatorHaplotypes &Haplotypes, uint32_t avgDepth) override;
+};*/
 
 //---------------------------------------------------------
 // TVCFWriterSimulation
@@ -184,6 +209,10 @@ namespace Simulations {
                 logfile().startIndent("Simulating FASTQ Files:");
                 auto simulator = TFastqSimulator{method};
                 simulator.runSimulations();
+            } else if(parameters().parameterExists("fastq,bam") || parameters().parameterExists("bam,fastq")){
+                logfile().startIndent("Simulating both FASTQ and BAM files:");
+                /*auto simulator = TFastqBamSimulator{method};
+                simulator.runSimulations();*/
             } else { // default: BAM simulator
                 logfile().startIndent("Simulating BAM Files:");
                 auto simulator = TBAMSimulator{method};

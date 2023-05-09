@@ -45,7 +45,7 @@ namespace Simulations{
 
     //what is the purpose?
     void TSimulatedOutputFiles::openFastqFile(FASTQ::TFastqFile fastqFile) {
-        fastqFile.open(fastqFile.getName());
+        //fastqFile.open(fastqFile.getName());
     }
 
     void TSimulatedOutputFiles::openBamFile(BAM::TOutputBamFile bamFile) {
@@ -54,14 +54,14 @@ namespace Simulations{
 
     void TSimulatedOutputFiles::addFile(int NumFiles, const std::string & Outname) {     //creates 10 files
         if (NumFiles == 1) {
-            _files.emplace_back(new FASTQ::TFastqFile(Outname + ".fastq"));
+            _files.emplace_back(new FASTQ::TFastqFile(Outname));
         } else{
             _files.emplace_back(new FASTQ::TFastqFile(newName(Outname)));
         }
     }
 
     std::string TSimulatedOutputFiles::newName(const std::string & Outname) {
-        _outputFileName = Outname + "_ind" + std::to_string(_files.size() + 1) + ".fastq";
+        _outputFileName = Outname + "_ind" + std::to_string(_files.size() + 1) ;
         return _outputFileName;
     }
 

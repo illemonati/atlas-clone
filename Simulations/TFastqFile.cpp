@@ -32,10 +32,39 @@
 using coretools::instances::logfile; 	//used to write log file
 
 namespace FASTQ{
-
     TFastqFile::TFastqFile(std::string_view fileName){      //: _file(fileName)
         _fileName = fileName;
-        _file.open(fileName);
+        //_file.open(fileName);
+    }
+
+//------------------------------------------------
+// Private methods
+//------------------------------------------------
+
+
+    std::string TFastqFile::_newName(int readGroupId) {
+        _outputName = _fileName + "_" + std::to_string(readGroupId) + ".fastq";
+        return _outputName;
+    }
+
+    void TFastqFile::_writeAlignment(coretools::TOutputFile& file, const BAM::TAlignment &alignment){
+        //@readGroupID:refID:flags
+        file.writeln("@" + std::to_string(alignment.readGroupId())
+                      + ":" + std::to_string(alignment.refID())
+                      + ":" + std::to_string(alignment.flags()));
+        file.writeln(alignment.sequence());
+        file.writeln("+");
+        file.writeln(alignment.qualities());
+    }
+
+    bool TFastqFile::_idExists(uint16_t id){
+        for (int i = 0; i < _readGroups.size(); ++i) {
+            if (id == _readGroups[i]) {
+                _exists = i;
+                return true;
+            }
+        }
+        return false;
     }
 
 //------------------------------------------------
@@ -44,25 +73,27 @@ namespace FASTQ{
 
     void TFastqFile::open(std::string_view filename){
         _open = true;
-        _file.open(filename);
+        //_file.open(filename);
     }
 
     void TFastqFile::close() {
         _open = false;
-        _file.close();
+        //_file.close();
     }
 
     void TFastqFile::writeAlignment(const BAM::TAlignment &alignment){
-    //takes alignment sequence and qualities and writes it in the file
 
-    //which characteristics do I want to write as metadata? This is the order sequence:
-    //@readGroupID:refID:flags
-        _file.writeln("@" + std::to_string(alignment.readGroupId())
-                            + ":" + std::to_string(alignment.refID())
-                            + ":" + std::to_string(alignment.flags()));
-        _file.writeln(alignment.sequence());
-        _file.writeln("+");
-        _file.writeln(alignment.qualities());
+        if (_files.size() == 0){
+            _readGroups.push_back(alignment.readGroupId());
+            _files.emplace_back(new coretools::TOutputFile(_newName(alignment.readGroupId())));
+            _writeAlignment(*_files[0], alignment);
+        }else if (_idExists(alignment.readGroupId())){
+            _writeAlignment(*_files[_exists], alignment);
+        } else{
+            _readGroups.push_back(alignment.readGroupId());
+            _files.emplace_back(new coretools::TOutputFile(_newName(alignment.readGroupId())));
+            _writeAlignment(*_files[_files.size() - 1], alignment);
+        }
 
     }
 

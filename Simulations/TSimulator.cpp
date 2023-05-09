@@ -427,7 +427,7 @@ namespace Simulations {
                 }
             }
         }
-    };
+    }
 
     void TFastqSimulator::_simulateReadsFromHaplotypes(const genometools::TChromosome &thisChr,
                                                        std::array<std::vector<genometools::Base>, 2> haplotypes,
@@ -490,6 +490,31 @@ namespace Simulations {
         }
         logfile().endIndent();
     }
+
+//---------------------------------------------------
+// TFastqBam Simulator
+//---------------------------------------------------
+    /*TFastqBamSimulator::TFastqBamSimulator(const std::string &method) : TSimulator(method){
+        logfile().startIndent("Start of Fastq Simulation");
+
+        _initializeBothReadSimulators();
+
+        //open FASTQ and BAM files
+        _fastqFiles =
+                std::make_unique<Simulations::TSimulatedOutputFiles>(_haploSimulator->sampleSize(), _outname, _fastqReadSimulators, _chromosomes);
+
+        _bamFiles =
+                std::make_unique<Simulations::TSimulatedOutputFiles>(_haploSimulator->sampleSize(), _outname, _bamReadSimulators, _chromosomes);
+
+
+    }
+
+    void TFastqBamSimulator::_initializeBothReadSimulators() {
+
+    }
+
+*/
+
 
 //-------------------------------------------
 // TVCFSimulationWriter

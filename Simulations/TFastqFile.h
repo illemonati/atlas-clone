@@ -36,9 +36,19 @@ namespace FASTQ{
 
     private:
         std::string _fileName;
-        coretools::TOutputFile _file;
+        std::string _outputName;
+        std::vector<coretools::TOutputFile*> _files;
+        //coretools::TOutputFile _file;
+
+        uint16_t _readGroupId;
+        int _exists;
+        std::vector<uint16_t> _readGroups;
 
         bool _open = false;
+
+        void _writeAlignment(coretools::TOutputFile& file, const BAM::TAlignment &alignment);
+        std::string _newName(int readGroupId);
+        bool _idExists(uint16_t iD);
 
     public:
         //constructor

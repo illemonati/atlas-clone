@@ -61,7 +61,7 @@ TBamFile::TBamFile() : TSimulatedOutputFile(){
 };
 
 void TBamFile::writeAlignment(const BAM::TAlignment &alignment) {}
-void TBamFile::writeAlignmentLater(const BAM::TAlignment &alignment) {}
+//void TBamFile::writeAlignmentLater(const BAM::TAlignment &alignment) {}
 
 void TBamFile::setLimits(){
 	//number of reads
@@ -1049,9 +1049,9 @@ TOutputBamFile::~TOutputBamFile(){
 	closeNoIndex();
 }
 
-void TOutputBamFile::open(std::string_view filename){
+/*void TOutputBamFile::open(std::string_view filename){
 	//could be the problem realted to vtable call in compile error
-}
+}*/
 
 void TOutputBamFile::open(const std::string Filename, const TSamHeader & Header, const genometools::TChromosomes & Chromosomes, const TReadGroups & ReadGroups){
 	closeNoIndex();

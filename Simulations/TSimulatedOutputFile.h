@@ -21,7 +21,7 @@ namespace Simulations {
     public:
         //TSimulatedOutputFile();   //since it is pure abstract a constructor does not need to exist
 
-        virtual void open(std::string_view filename) = 0;       //following TFile instructions
+        //virtual void open(std::string_view filename) = 0;       //following TFile instructions
         virtual void close() = 0;
         virtual void writeAlignment(const BAM::TAlignment &alignment) = 0;
 

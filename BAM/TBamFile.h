@@ -163,7 +163,7 @@ public:
  	bool externalFilterEnabled() const{ return _externalFilter.filters(); };
 
 	//reading
-	void open(std::string_view Filename) override;			//override because of parent class
+	void open(std::string_view Filename);			//override because of parent class
 	bool isOpen() const{ return _open; };
 	void close() override;									//override because of parent class
 	bool readNextAlignment();
@@ -178,8 +178,8 @@ public:
 	//writing
 	void writeCurAlignment(TOutputBamFile & out);
 
-	void writeAlignmentLater(const BAM::TAlignment &alignment);
-	void writeAlignment(const BAM::TAlignment & alignment) override;			//is it correct to add it? normally only present in TOutputBamFile
+	//void writeAlignmentLater(const BAM::TAlignment &alignment);
+	void writeAlignment(const BAM::TAlignment & alignment) override;
 	//had to add it to make it compile, even though it does nothing
 
 	//getters for cur alignment
@@ -304,7 +304,7 @@ public:
  	TOutputBamFile& operator=(const TOutputBamFile&) = default;
  	TOutputBamFile& operator=(TOutputBamFile&&) noexcept = default;
 
-	void open(std::string_view filename) override;		//insuring no abstraction for TBamFile
+	//void open(std::string_view filename) override;		//insuring no abstraction for TBamFile
  	void open(const std::string Filename, const TSamHeader & Header, const genometools::TChromosomes & Chromosomes, const TReadGroups & ReadGroups);
 	void open(const std::string Filename, const TBamFile & Original);
 	void setQualityAdjusterForWriting();

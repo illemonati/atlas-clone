@@ -219,10 +219,6 @@ TReadSimulatorSingleEnd::TReadSimulatorSingleEnd(const BAM::TReadGroup & ReadGro
 	}
 }
 
-// void TReadSimulatorSingleEnd::TReadSimulatorSingleEndFASTQ(){
-// 	return;
-// }
-
 double TReadSimulatorSingleEnd::meanReadLength() const {
 	return _calcMeanReadLength(_numCycles);
 }
