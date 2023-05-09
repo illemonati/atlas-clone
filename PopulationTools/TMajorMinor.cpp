@@ -27,6 +27,11 @@
 #include "coretools/Types/weakTypes.h"
 
 
+#ifdef _OPENMP
+#include "omp.h"
+#endif
+
+
 namespace PopulationTools {
 
 
@@ -280,6 +285,15 @@ void TMajorMinor::run() {
 		if (foundDuplicates) { logfile().endIndent(); }
 	}
 
+#ifdef _OPENMP
+	size_t maxNumThreads =
+		coretools::instances::parameters().getParameterWithDefault("maxNumThreads", omp_get_max_threads());
+	coretools::instances::logfile().list("Running in parallel with a maximum of ", maxNumThreads,
+										 " threads (argument 'maxNumThreads')");
+#else
+	coretools::instances::logfile().list("Not running in parallel");
+#endif
+
 	// open vcf file
 	GLF::TGlfMultiReaderVcf vcf(outname + ".vcf.gz", "ATLAS_GLF_Caller", sampleNames, usePhredLikelihoods);
 
@@ -288,9 +302,9 @@ void TMajorMinor::run() {
 	coretools::TTimer timer;
 	long counter = 0;
 
-	for (size_t N = glfReader.readWindow(); N > 0; N = glfReader.readWindow()) {
 
-		// parallize this!
+	for (size_t N = glfReader.readWindow(); N > 0; N = glfReader.readWindow()) {
+#pragma omp parallel for num_threads(maxNumThreads)
 		for (size_t i = 0; i < N; ++i) {
 			if (glfReader.numActiveSamplesWithData(i) < minSamplesWithData) continue;
 			const Base ref = glfReader.refBase(i); // can be N
