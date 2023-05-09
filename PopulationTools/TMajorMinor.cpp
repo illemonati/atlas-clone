@@ -14,6 +14,7 @@
 #include <memory>
 #include <vector>
 
+#include "coretools/devtools.h"
 #include "genometools/GenotypeTypes.h"
 #include "coretools/Containers/TDualArray.h"
 #include "coretools/Main/TLog.h"
@@ -24,6 +25,11 @@
 #include "coretools/Strings/stringFunctions.h"
 #include "coretools/Types/strongTypes.h"
 #include "coretools/Types/weakTypes.h"
+
+
+#ifdef _OPENMP
+#include "omp.h"
+#endif
 
 
 namespace PopulationTools {
@@ -175,16 +181,21 @@ void TMajorMinor::run() {
 
 	// estimation method
 	const std::string method = parameters().getParameterWithDefault<std::string>("method", "MLE");
-	std::unique_ptr<TMajorMinorEstimatorBase> MMEstimator;
+	const size_t windowSize  = parameters().getParameterWithDefault<size_t>("window", 64);
+	std::vector<std::unique_ptr<TMajorMinorEstimatorBase>> MMEstimator;
 	const double maxF = parameters().getParameterWithDefault("maxF", 0.0000001);
 	if (method == "Skotte") {
 		logfile().list("Will estimate major / minor alleles using the Skotte method with maxF ", maxF,
 			      ". (parameters method and maxF)");
-		MMEstimator = std::make_unique<TMajorMinorEstimatorSkotte>(maxF);
+		for (size_t i = 0; i < windowSize; ++i) {
+			MMEstimator.push_back(std::make_unique<TMajorMinorEstimatorSkotte>(maxF));
+		}
 	} else if (method == "MLE") {
 		logfile().list("Will estimate major / minor alleles using the MLE method with maxF ", maxF,
 			      ". (parameters method and maxF)");
-		MMEstimator = std::make_unique<TMajorMinorEstimatorMLE>(maxF);
+		for (size_t i = 0; i < windowSize; ++i) {
+			MMEstimator.push_back(std::make_unique<TMajorMinorEstimatorMLE>(maxF));
+		}
 	} else
 		UERROR("Unknown MajorMinor method '", method, "'!");
 
@@ -274,6 +285,15 @@ void TMajorMinor::run() {
 		if (foundDuplicates) { logfile().endIndent(); }
 	}
 
+#ifdef _OPENMP
+	size_t maxNumThreads =
+		coretools::instances::parameters().getParameterWithDefault("maxNumThreads", omp_get_max_threads());
+	coretools::instances::logfile().list("Running in parallel with a maximum of ", maxNumThreads,
+										 " threads (argument 'maxNumThreads')");
+#else
+	coretools::instances::logfile().list("Not running in parallel");
+#endif
+
 	// open vcf file
 	GLF::TGlfMultiReaderVcf vcf(outname + ".vcf.gz", "ATLAS_GLF_Caller", sampleNames, usePhredLikelihoods);
 
@@ -282,39 +302,46 @@ void TMajorMinor::run() {
 	coretools::TTimer timer;
 	long counter = 0;
 
-	while (glfReader.readNext()) {
-		++counter;
+
+	for (size_t N = glfReader.readWindow(); N > 0; N = glfReader.readWindow()) {
+#pragma omp parallel for num_threads(maxNumThreads)
+		for (size_t i = 0; i < N; ++i) {
+			if (glfReader.numActiveSamplesWithData(i) < minSamplesWithData) continue;
+			const Base ref = glfReader.refBase(i); // can be N
+			MMEstimator[i]->estimateMajorMinor(glfReader.data(i), ref);
+		}
+
+		// pass filter?
+		for (size_t i = 0; i < N; ++i) {
+			if (glfReader.numActiveSamplesWithData(i) < minSamplesWithData) continue;
+			const Base ref = glfReader.refBase(i); // can be N
+			if (MMEstimator[i]->genotypeFrequencies().MAF() < minMAF) {
+				++nMAFMAF;
+				continue;
+			}
+			if (MMEstimator[i]->variantQuality() < minVariantQuality) {
+				++nVariantQuality;
+				continue;
+			}
+
+			// write to VCF
+			if (hasReference && MMEstimator[i]->minor() == ref) {
+				vcf.writeSite(glfReader.chr(), glfReader.position(i), MMEstimator[i]->variantQuality(), glfReader.data(i),
+							  ref, MMEstimator[i]->major());
+			} else {
+				vcf.writeSite(glfReader.chr(), glfReader.position(i), MMEstimator[i]->variantQuality(), glfReader.data(i),
+							  MMEstimator[i]->major(), MMEstimator[i]->minor());
+			}
+		}
+
+		counter += N;
 
 		// report progress
-		if (counter % 1000000 == 0) {
+		if (counter % 100000 == 0) {
 			logfile().list("Parsed ", counter, " positions in ", timer.formattedTime(), ".");
 		}
 
-		// break?
 		if (limitSites > 0 && counter == limitSites) break;
-
-		// filter on missingness
-		const Base ref = glfReader.refBase(); // can be N
-		MMEstimator->estimateMajorMinor(glfReader.data(), ref);
-
-		// pass filter?
-		if (MMEstimator->genotypeFrequencies().MAF() < minMAF) {
-			++nMAFMAF;
-			continue;
-		}
-		if (MMEstimator->variantQuality() < minVariantQuality) {
-			++nVariantQuality;
-			continue;
-		}
-
-		// write to VCF
-		if (hasReference && MMEstimator->minor() == ref) {
-			vcf.writeSite(glfReader.chr(), glfReader.position(), MMEstimator->variantQuality(), glfReader.data(), ref,
-						  MMEstimator->major());
-		} else {
-			vcf.writeSite(glfReader.chr(), glfReader.position(), MMEstimator->variantQuality(), glfReader.data(),
-						  MMEstimator->major(), MMEstimator->minor());
-		}
 	}
 
 	logfile().list("Reached end of glf files!");
