@@ -237,7 +237,7 @@ namespace Simulations {
             // write BED files
             if (_writeVariantInvariantBedFiles) bedFiles.write(haplotypes, chr.name);
 
-            // write bam / fastq / vcf files!
+            // write fastq / bam / vcf files!
             _simulateAndWrite(chr, haplotypes, _seqDepth[i]);
 
             // end of chromosome
@@ -429,6 +429,44 @@ namespace Simulations {
         }
     };
 
+    void TFastqSimulator::_simulateReadsFromHaplotypes(const genometools::TChromosome &thisChr,
+                                                       std::array<std::vector<genometools::Base>, 2> haplotypes,
+                                                       Simulations::TReadSimulators &readSimulators, uint32_t avgDepth,
+                                                       Simulations::TSimulatedOutputFile &file, const std::string &extraProgressText) {
+
+        // Initialize probabilities to simulate reads
+        const uint64_t numReads = thisChr.length * avgDepth / readSimulators.averageFragmentLength();
+        const uint64_t chrLengthForStart = thisChr.length - readSimulators.maxFragmentLength() + 1;
+        const double probReadPerSite     = 1.0 / chrLengthForStart;
+        uint64_t numReadsSimulated       = 0;
+
+        // initialize progress reporting
+        coretools::TProgressReporter<uint64_t> reporter(numReads, "Simulating about " + coretools::str::toString(numReads) +
+                                                                  " reads" + extraProgressText);
+
+        // now simulate
+        for(TGenomePosition pos(thisChr.refID(), 0); pos.position() < chrLengthForStart; ++pos){
+            // draw random number to get number of reads starting at this position
+            const auto numReadsHere = randomGenerator().getBinomialRand(probReadPerSite, numReads);
+
+            // now simulate
+            if (numReadsHere > 0) {
+                numReadsSimulated += numReadsHere;
+                for (uint32_t r = 0; r < numReadsHere; ++r) {
+                    readSimulators.simulate(pos, haplotypes[randomGenerator().sample(2)], file);
+                }
+                // report progress
+                reporter.next();
+            }
+        }
+
+        reporter.done();
+        logfile().conclude("Simulated a total of ", numReadsSimulated, " reads.");
+
+        //end copy from TFastq
+
+    }
+
     void TFastqSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome, TSimulatorHaplotypes &Haplotypes, uint32_t avgDepth){
         // now simulate and write reads
         logfile().startIndent("Simulating reads:");
@@ -451,44 +489,6 @@ namespace Simulations {
             }
         }
         logfile().endIndent();
-    }
-
-    void TFastqSimulator::_simulateReadsFromHaplotypes(const genometools::TChromosome &thisChr,
-                                                       std::array<std::vector<genometools::Base>, 2> haplotypes,
-                                                       Simulations::TReadSimulators &readSimulators, uint32_t avgDepth,
-                                                       FASTQ::TFastqFile &fastqFile, const std::string &extraProgressText) {
-        
-        // Initialize probabilities to simulate reads
-        const uint64_t numReads = thisChr.length * avgDepth / readSimulators.averageFragmentLength();
-        const uint64_t chrLengthForStart = thisChr.length - readSimulators.maxFragmentLength() + 1;
-        const double probReadPerSite     = 1.0 / chrLengthForStart;
-        uint64_t numReadsSimulated       = 0;
-
-        // initialize progress reporting
-        coretools::TProgressReporter<uint64_t> reporter(numReads, "Simulating about " + coretools::str::toString(numReads) +
-                                                                  " reads" + extraProgressText);
-
-        // now simulate
-        for(TGenomePosition pos(thisChr.refID(), 0); pos.position() < chrLengthForStart; ++pos){
-            // draw random number to get number of reads starting at this position
-            const auto numReadsHere = randomGenerator().getBinomialRand(probReadPerSite, numReads);
-
-            // now simulate
-            if (numReadsHere > 0) {
-                numReadsSimulated += numReadsHere;
-                for (uint32_t r = 0; r < numReadsHere; ++r) {
-                    readSimulators.simulate(pos, haplotypes[randomGenerator().sample(2)], fastqFile);
-                }
-                // report progress
-                reporter.next();
-            }
-        }
-
-        reporter.done();
-        logfile().conclude("Simulated a total of ", numReadsSimulated, " reads.");
-
-        //end copy from TFastq
-
     }
 
 //-------------------------------------------

@@ -37,7 +37,6 @@ namespace FASTQ{
     private:
         std::string _fileName;
         coretools::TOutputFile _file;
-        //coretools::TOutputFile* _ptrFile;
 
         bool _open = false;
 
@@ -47,7 +46,7 @@ namespace FASTQ{
 
         //methods
         void open(std::string_view filename);
-        void close() {if (_open) _open != _open; };
+        void close();
         void writeAlignment(const BAM::TAlignment &alignment);
 
         std::string_view getName();

@@ -30,26 +30,22 @@ namespace Simulations{
     class TSimulatedOutputFiles{
 
     private:
-        std::vector<FASTQ::TFastqFile> _fastqFiles;
+        std::vector<Simulations::TSimulatedOutputFile*> _files;
         std::string _outputFileName;
 
-        //std::vector<BAM::TOutputBamFile> _bamFiles;               WHAT TO DO WITH BAM?    vector per avere uno store di questi files
-
+        //generate new Name for the n individuals
         std::string newName(const std::string & Outname);
 
     public:
         TSimulatedOutputFiles(uint32_t NumFiles, const std::string & Outname, std::vector<TReadSimulators> & ReadSimulators,
                               const genometools::TChromosomes &Chromosomes);
 
-        //explicit TSimulatedOutputFiles(std::vector<TSimulatedOutputFile *> *files);
-
-        //initialization of vector of files
-
         //methods to operate on files
-        void openFile(Simulations::TSimulatedOutputFile file);
+        void openFastqFile(FASTQ::TFastqFile fastqFile);
+        void openBamFile(BAM::TOutputBamFile bamFile);
         void addFile(int NumFile, const std::string & Outname);
 
-        FASTQ::TFastqFile &operator[](size_t i);
+        Simulations::TSimulatedOutputFile &operator[](size_t i);
     };
 
 };      //namespace Simulations

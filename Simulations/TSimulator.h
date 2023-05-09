@@ -109,7 +109,7 @@ namespace Simulations {
         void _initializeFastqReadSimulator();
 
     public:
-        //constructor/deconstructor
+        //constructor / de constructor
         TFastqSimulator(const std::string &method);
         ~TFastqSimulator() = default;
 
@@ -120,7 +120,7 @@ namespace Simulations {
                                           std::array<std::vector<genometools::Base>, 2> haplotypes,
                                           TReadSimulators & readSimulator,
                                           uint32_t avgDepth,
-                                          FASTQ::TFastqFile &fastqFile, const std::string &extraProgressText);
+                                          Simulations::TSimulatedOutputFile &file, const std::string &extraProgressText);
     };
 
 //---------------------------------------------------------

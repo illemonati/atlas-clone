@@ -35,28 +35,35 @@ namespace FASTQ{
 
     TFastqFile::TFastqFile(std::string_view fileName){      //: _file(fileName)
         _fileName = fileName;
-        /*static coretools::TOutputFile txtFile(fileName);
-        _ptrFile = &txtFile;*/
         _file.open(fileName);
     }
-
 
 //------------------------------------------------
 // Public methods
 //------------------------------------------------
 
     void TFastqFile::open(std::string_view filename){
-        //implement txtFile open()
+        _open = true;
+        _file.open(filename);
+    }
 
+    void TFastqFile::close() {
+        _open = false;
+        _file.close();
     }
 
     void TFastqFile::writeAlignment(const BAM::TAlignment &alignment){
     //takes alignment sequence and qualities and writes it in the file
+
+    //which characteristics do I want to write as metadata? This is the order sequence:
+    //@readGroupID:refID:flags
         _file.writeln("@" + std::to_string(alignment.readGroupId())
-                            + ":" + std::to_string(alignment.refID()));
+                            + ":" + std::to_string(alignment.refID())
+                            + ":" + std::to_string(alignment.flags()));
         _file.writeln(alignment.sequence());
-        _file.writeln(alignment.qualities());
         _file.writeln("+");
+        _file.writeln(alignment.qualities());
+
     }
 
     std::string_view TFastqFile::getName() {
