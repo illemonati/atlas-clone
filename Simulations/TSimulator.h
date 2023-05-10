@@ -40,6 +40,7 @@
 
 
 namespace genometools { class PhredIntProbability; }
+namespace Simulations { class TFastqBamSimulator; }
 
 namespace Simulations {
 
@@ -60,8 +61,19 @@ namespace Simulations {
         genometools::TChromosomes _chromosomes;
 
         std::unique_ptr<THaplotypeSimulator> _haploSimulator;
+        std::vector<TReadSimulators> _readSimulators; // one per sample
 
-        virtual void _simulateAndWrite(const genometools::TChromosome &Chromosome, TSimulatorHaplotypes &Haplotypes, uint32_t avgDepth) = 0;
+
+        virtual void _simulateAndWrite(const genometools::TChromosome &Chromosome,
+                                       TSimulatorHaplotypes &Haplotypes, uint32_t avgDepth) = 0;
+
+        //simulate reads to Fastq/bam file
+        void _simulateReadsFromHaplotypes(const genometools::TChromosome &thisChr,
+                                          std::array<std::vector<genometools::Base>, 2> haplotypes,
+                                          Simulations::TReadSimulators &readSimulators, uint32_t avgDepth,
+                                          Simulations::TSimulatedOutputFile &file, const std::string &extraProgressText);
+        // read simulator
+        void _initializeReadSimulator();
 
     public:
         TSimulator(const std::string &method);
@@ -74,9 +86,11 @@ namespace Simulations {
 //---------------------------------------------------------
 
     class TBAMSimulator : public TSimulator {
+
+    friend class TFastqBamSimulator;
+
     protected:
         // bam files
-        std::vector<TReadSimulators> _readSimulators; // one per sample
         std::unique_ptr<TSimulatorBamFiles> _bamFiles;
 
         // read simulator
@@ -84,11 +98,6 @@ namespace Simulations {
 
         // simulate reads and write bam files
         void _simulateAndWrite(const genometools::TChromosome &Chromosome, TSimulatorHaplotypes &Haplotypes, uint32_t avgDepth) override;
-        void _simulateReadsFromHaplotypes(const genometools::TChromosome &thisChr,
-                                          std::array<std::vector<genometools::Base>, 2> haplotypes,
-                                          TReadSimulators & readSimulator,
-                                          uint32_t avgDepth,
-                                          BAM::TOutputBamFile &bamFile, const std::string &extraProgressText);
 
     public:
         TBAMSimulator(const std::string &method);
@@ -101,12 +110,11 @@ namespace Simulations {
 //-------------------------------------------
 
     class TFastqSimulator : public TSimulator{
+        friend class TFastqBamSimulator;
+
     private:
         //store created FastqFiles
         std::unique_ptr<Simulations::TSimulatedOutputFiles> _fastqFiles;
-        std::vector<TReadSimulators> _FastqReadSimulators; // one per sample
-
-        void _initializeFastqReadSimulator();
 
     public:
         //constructor / de constructor
@@ -115,30 +123,25 @@ namespace Simulations {
 
         //overridden method from TSimulator (called by runSimulations() )
         void _simulateAndWrite(const genometools::TChromosome &Chromosome, TSimulatorHaplotypes &Haplotypes, uint32_t avgDepth) override;
-        // simulate reads and write bam files
-        void _simulateReadsFromHaplotypes(const genometools::TChromosome &thisChr,
-                                          std::array<std::vector<genometools::Base>, 2> haplotypes,
-                                          TReadSimulators & readSimulator,
-                                          uint32_t avgDepth,
-                                          Simulations::TSimulatedOutputFile &file, const std::string &extraProgressText);
     };
 
 //-------------------------------------------
 // FASTQ and BAM Simulator
 //-------------------------------------------
-/*class TFastqBamSimulator : public TSimulator{
+class TFastqBamSimulator : public TSimulator{
+
+    /**
+     * create the fastq and bam simualators, but using the same seed.
+     * they have to have the same simulated reads otherwise we have two different simulations
+     * which are clearly not compatible and useful together
+     * */
+
+    friend class TFastqSimulator;
+    friend class TBAMSimulator;
 
     private:
-
-        //store created FastqFiles
-        std::vector<TReadSimulators> _fastqReadSimulators; // one per sample
-        std::unique_ptr<Simulations::TSimulatedOutputFiles> _fastqFiles;
-
-        //store created BAM files
-        std::vector<TReadSimulators> _bamReadSimulators; // one per sample
-        std::unique_ptr<TSimulatorBamFiles> _bamFiles;
-
-        void _initializeBothReadSimulators();
+        //TFastqSimulator _fastqSimulator;
+        //TBAMSimulator _bamSimulator;
 
     public:
         TFastqBamSimulator(const std::string &method);
@@ -146,7 +149,7 @@ namespace Simulations {
 
         //overridden method from TSimulator (called by runSimulations() )
         void _simulateAndWrite(const genometools::TChromosome &Chromosome, TSimulatorHaplotypes &Haplotypes, uint32_t avgDepth) override;
-};*/
+};
 
 //---------------------------------------------------------
 // TVCFWriterSimulation

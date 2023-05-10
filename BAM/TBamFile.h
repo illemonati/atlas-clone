@@ -314,6 +314,8 @@ public:
 	void closeNoIndex();
 	void writeAlignment(const BAM::TAlignment & alignment) override;
 	void writeAlignmentLater(const BAM::TAlignment & alignment);
+
+    std::string getOutputName(){ return _outputFilename; };
 };
 
 }; //end namespace

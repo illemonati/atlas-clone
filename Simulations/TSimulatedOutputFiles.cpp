@@ -45,11 +45,13 @@ namespace Simulations{
 
     //what is the purpose?
     void TSimulatedOutputFiles::openFastqFile(FASTQ::TFastqFile fastqFile) {
-        //fastqFile.open(fastqFile.getName());
+        fastqFile.close();      //ensure the file is closed
+        fastqFile.open(fastqFile.getName());
+        _files.push_back(&fastqFile);
     }
 
     void TSimulatedOutputFiles::openBamFile(BAM::TOutputBamFile bamFile) {
-        //bamFile.open(bamFile._outputFilename);
+        //BAM::open(bamFile.getOutputName(), &bamFile);
     }
 
     void TSimulatedOutputFiles::addFile(int NumFiles, const std::string & Outname) {     //creates 10 files

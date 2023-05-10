@@ -223,8 +223,6 @@ double TReadSimulatorSingleEnd::meanReadLength() const {
 	return _calcMeanReadLength(_numCycles);
 }
 
-// void TReadSimulatorSingleEnd::simulate(const TGenomePosition & Position, const std::vector<Base> & Haplotype, BAM::TOutputBamFile & BamFile){ 
-
 void TReadSimulatorSingleEnd::simulate(const TGenomePosition & Position, const std::vector<Base> & Haplotype, Simulations::TSimulatedOutputFile & simulatedFile) {
 	// pick a fragment
 	const auto fragmentLength = _fragmentLengthDistr.sample();
@@ -236,7 +234,7 @@ void TReadSimulatorSingleEnd::simulate(const TGenomePosition & Position, const s
 	// simulated bases and qualities
 	_simulateBasesQualities(_alignment, Haplotype, fragmentLength, _numCycles, _simulateContamination());
 
-	// write bam alignment
+	// write fastq / bam alignment
 	simulatedFile.writeAlignment(_alignment);
 }
 
@@ -351,9 +349,10 @@ void TReadSimulatorPairedEnd::simulate(const TGenomePosition & Position, const s
 	if (_secondMate == _alignment) {
 		simulatedFile.writeAlignment(_secondMate);
 	} else {
+
 	//in order to preserve writeAlignmentLater only in TBamFile (and not having to transport it into TSimulatedOutputFile), casting is only done
 	//in this portion, otherwise every TBamFile would have to be casted even if not necessary as it wouldn't take this else path
-		ptrSimulatedFile = &simulatedFile;
+		//ptrSimulatedFile = &simulatedFile;
 		_simulatedFile = dynamic_cast<TOutputBamFile*>(ptrSimulatedFile);
 
 		_simulatedFile->writeAlignmentLater(_secondMate);

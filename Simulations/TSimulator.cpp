@@ -246,20 +246,8 @@ namespace Simulations {
         logfile().endIndent();
     }
 
-//---------------------------------------------------
-// TBamSimulator
-//---------------------------------------------------
-
-    TBAMSimulator::TBAMSimulator(const std::string &method) : TSimulator(method) {
-        using genometools::Base;
-        _initializeBamReadSimulator();
-
-        // open bam files
-        _bamFiles =
-                std::make_unique<TSimulatorBamFiles>(_haploSimulator->sampleSize(), _outname, _readSimulators, _chromosomes);
-    }
-
-    void TBAMSimulator::_initializeBamReadSimulator(){
+    // read simulator
+    void TSimulator::_initializeReadSimulator(){
         logfile().startIndent("Parameters regarding sequencing:");
         //read RGInfo files from command line
         std::vector<std::string> filenames;
@@ -305,14 +293,13 @@ namespace Simulations {
                 }
             }
         }
-    };
+    }
 
-    void TBAMSimulator::_simulateReadsFromHaplotypes(const genometools::TChromosome &thisChr,
-                                                     std::array<std::vector<Base>, 2> haplotypes,
-                                                     TReadSimulators & readSimulators,
-                                                     uint32_t avgDepth,
-                                                     BAM::TOutputBamFile &bamFile,
-                                                     const std::string &extraProgressText) {
+    void TSimulator::_simulateReadsFromHaplotypes(const genometools::TChromosome &thisChr,
+                                                  std::array<std::vector<genometools::Base>, 2> haplotypes,
+                                                  Simulations::TReadSimulators &readSimulators, uint32_t avgDepth,
+                                                  Simulations::TSimulatedOutputFile &file,
+                                                  const std::string &extraProgressText) {
         // Initialize probabilities to simulate reads
         const uint64_t numReads = thisChr.length * avgDepth / readSimulators.averageFragmentLength();
         const uint64_t chrLengthForStart = thisChr.length - readSimulators.maxFragmentLength() + 1;
@@ -325,7 +312,6 @@ namespace Simulations {
 
         // now simulate
         for(TGenomePosition pos(thisChr.refID(), 0); pos.position() < chrLengthForStart; ++pos){
-
             // draw random number to get number of reads starting at this position
             const auto numReadsHere = randomGenerator().getBinomialRand(probReadPerSite, numReads);
 
@@ -333,7 +319,7 @@ namespace Simulations {
             if (numReadsHere > 0) {
                 numReadsSimulated += numReadsHere;
                 for (uint32_t r = 0; r < numReadsHere; ++r) {
-                    readSimulators.simulate(pos, haplotypes[randomGenerator().sample(2)], bamFile);
+                    readSimulators.simulate(pos, haplotypes[randomGenerator().sample(2)], file);
                 }
                 // report progress
                 reporter.next();
@@ -342,6 +328,22 @@ namespace Simulations {
 
         reporter.done();
         logfile().conclude("Simulated a total of ", numReadsSimulated, " reads.");
+
+    }
+
+//---------------------------------------------------
+// TBamSimulator
+//---------------------------------------------------
+
+    TBAMSimulator::TBAMSimulator(const std::string &method) : TSimulator(method) {
+        using genometools::Base;
+        //_initializeBamReadSimulator();
+
+        _initializeReadSimulator();
+
+        // open bam files
+        _bamFiles =
+                std::make_unique<TSimulatorBamFiles>(_haploSimulator->sampleSize(), _outname, _readSimulators, _chromosomes);
     }
 
     void TBAMSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome, TSimulatorHaplotypes &Haplotypes, uint32_t avgDepth) {
@@ -374,97 +376,12 @@ namespace Simulations {
     TFastqSimulator::TFastqSimulator(const std::string &method) : TSimulator(method){
         logfile().startIndent("Start of Fastq Simulation");
 
-        _initializeFastqReadSimulator();
+        //_initializeFastqReadSimulator();
+        _initializeReadSimulator();
 
         //open FASTQ files
         _fastqFiles =
-                std::make_unique<Simulations::TSimulatedOutputFiles>(_haploSimulator->sampleSize(), _outname, _FastqReadSimulators, _chromosomes);
-    }
-
-    void TFastqSimulator::_initializeFastqReadSimulator(){
-        logfile().startIndent("Parameters regarding sequencing:");
-        //read RGInfo files from command line
-        std::vector<std::string> filenames;
-        if(parameters().parameterExists(BAM::RGInfo::TReadGroupInfo::RGInfoArgument)){
-            std::vector<std::string> tmp;
-            parameters().fillParameterIntoContainer(BAM::RGInfo::TReadGroupInfo::RGInfoArgument, tmp, ',');
-            coretools::str::repeatIndexes(tmp, filenames);
-        } else {
-            filenames.push_back("");
-        }
-
-        //create read simulators
-        _FastqReadSimulators.reserve(filenames.size());
-        if(filenames.size() == 1){
-
-            if(_haploSimulator->sampleSize() > 1){
-                logfile().startIndent("Using one set of sequencing parameters for all ", _haploSimulator->sampleSize(), " individuals:");
-            }
-            _FastqReadSimulators.emplace_back(filenames.front());
-            if(_haploSimulator->sampleSize() > 1){
-                logfile().endIndent();
-            }
-        } else {
-            logfile().startNumbering("Using individual-specific sequencing parameters:");
-            //check sizes matches sample size
-            if(_haploSimulator->sampleSize() != filenames.size()){
-                UERROR("Number of read group info files does not match sample size!");
-            }
-
-            for(auto& s : filenames){
-                logfile().numberWithIndent("Sequencing parameters for individual 1");
-                _FastqReadSimulators.emplace_back(s);
-            }
-            logfile().endNumbering();
-            logfile().endIndent();
-        }
-
-        //check if read length match chr length
-        for(auto& chr : _chromosomes){
-            for(auto& rs : _FastqReadSimulators){
-                if(rs.maxFragmentLength() > chr.length){
-                    UERROR("Length of chromosome '", chr.name, "' is less than the max fragment length of some read groups!");
-                }
-            }
-        }
-    }
-
-    void TFastqSimulator::_simulateReadsFromHaplotypes(const genometools::TChromosome &thisChr,
-                                                       std::array<std::vector<genometools::Base>, 2> haplotypes,
-                                                       Simulations::TReadSimulators &readSimulators, uint32_t avgDepth,
-                                                       Simulations::TSimulatedOutputFile &file, const std::string &extraProgressText) {
-
-        // Initialize probabilities to simulate reads
-        const uint64_t numReads = thisChr.length * avgDepth / readSimulators.averageFragmentLength();
-        const uint64_t chrLengthForStart = thisChr.length - readSimulators.maxFragmentLength() + 1;
-        const double probReadPerSite     = 1.0 / chrLengthForStart;
-        uint64_t numReadsSimulated       = 0;
-
-        // initialize progress reporting
-        coretools::TProgressReporter<uint64_t> reporter(numReads, "Simulating about " + coretools::str::toString(numReads) +
-                                                                  " reads" + extraProgressText);
-
-        // now simulate
-        for(TGenomePosition pos(thisChr.refID(), 0); pos.position() < chrLengthForStart; ++pos){
-            // draw random number to get number of reads starting at this position
-            const auto numReadsHere = randomGenerator().getBinomialRand(probReadPerSite, numReads);
-
-            // now simulate
-            if (numReadsHere > 0) {
-                numReadsSimulated += numReadsHere;
-                for (uint32_t r = 0; r < numReadsHere; ++r) {
-                    readSimulators.simulate(pos, haplotypes[randomGenerator().sample(2)], file);
-                }
-                // report progress
-                reporter.next();
-            }
-        }
-
-        reporter.done();
-        logfile().conclude("Simulated a total of ", numReadsSimulated, " reads.");
-
-        //end copy from TFastq
-
+                std::make_unique<Simulations::TSimulatedOutputFiles>(_haploSimulator->sampleSize(), _outname, _readSimulators, _chromosomes);
     }
 
     void TFastqSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome, TSimulatorHaplotypes &Haplotypes, uint32_t avgDepth){
@@ -472,17 +389,17 @@ namespace Simulations {
         logfile().startIndent("Simulating reads:");
 
         for (size_t i = 0; i < _haploSimulator->sampleSize(); ++i){
-            if(_FastqReadSimulators.size() == 1){
+            if(_readSimulators.size() == 1){
                 _simulateReadsFromHaplotypes(Chromosome,
                                              Haplotypes.getHaplotypesOfIndividual(i),
-                                             _FastqReadSimulators.front(),
+                                             _readSimulators.front(),
                                              avgDepth,
                                              (*_fastqFiles)[i],
                                              " for individual " + coretools::str::toString(i + 1));
             } else {
                 _simulateReadsFromHaplotypes(Chromosome,
                                              Haplotypes.getHaplotypesOfIndividual(i),
-                                             _FastqReadSimulators[i],
+                                             _readSimulators[i],
                                              avgDepth,
                                              (*_fastqFiles)[i],
                                              " for individual " + coretools::str::toString(i + 1));
@@ -494,27 +411,16 @@ namespace Simulations {
 //---------------------------------------------------
 // TFastqBam Simulator
 //---------------------------------------------------
-    /*TFastqBamSimulator::TFastqBamSimulator(const std::string &method) : TSimulator(method){
+    TFastqBamSimulator::TFastqBamSimulator(const std::string &method) : TSimulator(method){
         logfile().startIndent("Start of Fastq Simulation");
 
-        _initializeBothReadSimulators();
-
-        //open FASTQ and BAM files
-        _fastqFiles =
-                std::make_unique<Simulations::TSimulatedOutputFiles>(_haploSimulator->sampleSize(), _outname, _fastqReadSimulators, _chromosomes);
-
-        _bamFiles =
-                std::make_unique<Simulations::TSimulatedOutputFiles>(_haploSimulator->sampleSize(), _outname, _bamReadSimulators, _chromosomes);
-
+        _initializeReadSimulator();
 
     }
 
-    void TFastqBamSimulator::_initializeBothReadSimulators() {
+    void TFastqBamSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome, TSimulatorHaplotypes &Haplotypes, uint32_t avgDepth){
 
     }
-
-*/
-
 
 //-------------------------------------------
 // TVCFSimulationWriter
