@@ -413,13 +413,74 @@ namespace Simulations {
 //---------------------------------------------------
     TFastqBamSimulator::TFastqBamSimulator(const std::string &method) : TSimulator(method){
         logfile().startIndent("Start of Fastq Simulation");
-
         _initializeReadSimulator();
 
+        _fastqFiles =
+                std::make_unique<Simulations::TSimulatedOutputFiles>(_haploSimulator->sampleSize(), _outname, _readSimulators, _chromosomes);
+        _bamFiles =
+                std::make_unique<TSimulatorBamFiles>(_haploSimulator->sampleSize(), _outname, _readSimulators, _chromosomes);
     }
 
     void TFastqBamSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome, TSimulatorHaplotypes &Haplotypes, uint32_t avgDepth){
 
+        logfile().startIndent("Simulating reads:");
+
+        for (size_t i = 0; i < _haploSimulator->sampleSize(); ++i){
+            if(_readSimulators.size() == 1){
+                _doubleSimulatedReadsFromHaplotypes(Chromosome,
+                                             Haplotypes.getHaplotypesOfIndividual(i),
+                                             _readSimulators.front(),
+                                             avgDepth,
+                                             (*_fastqFiles)[i],
+                                             (*_bamFiles)[i],
+                                             " for individual " + coretools::str::toString(i + 1));
+            } else {
+                _doubleSimulatedReadsFromHaplotypes(Chromosome,
+                                             Haplotypes.getHaplotypesOfIndividual(i),
+                                             _readSimulators[i],
+                                             avgDepth,
+                                             (*_fastqFiles)[i],
+                                             (*_bamFiles)[i],
+                                             " for individual " + coretools::str::toString(i + 1));
+            }
+        }
+        logfile().endIndent();
+    }
+
+    void TFastqBamSimulator::_doubleSimulatedReadsFromHaplotypes(const genometools::TChromosome &thisChr,
+                                            std::array<std::vector<genometools::Base>, 2> haplotypes,
+                                            Simulations::TReadSimulators &readSimulators, uint32_t avgDepth,
+                                            Simulations::TSimulatedOutputFile &fastqFile,
+                                            BAM::TOutputBamFile &bamFile,
+                                            const std::string &extraProgressText){
+        // Initialize probabilities to simulate reads
+        const uint64_t numReads = thisChr.length * avgDepth / readSimulators.averageFragmentLength();
+        const uint64_t chrLengthForStart = thisChr.length - readSimulators.maxFragmentLength() + 1;
+        const double probReadPerSite     = 1.0 / chrLengthForStart;
+        uint64_t numReadsSimulated       = 0;
+
+        // initialize progress reporting
+        coretools::TProgressReporter<uint64_t> reporter(numReads, "Simulating about " + coretools::str::toString(numReads) +
+                                                                  " reads" + extraProgressText);
+
+        // now simulate
+        for(TGenomePosition pos(thisChr.refID(), 0); pos.position() < chrLengthForStart; ++pos){
+            // draw random number to get number of reads starting at this position
+            const auto numReadsHere = randomGenerator().getBinomialRand(probReadPerSite, numReads);
+
+            // now simulate
+            if (numReadsHere > 0) {
+                numReadsSimulated += numReadsHere;
+                for (uint32_t r = 0; r < numReadsHere; ++r) {
+                    readSimulators.doubleSimulate(pos, haplotypes[randomGenerator().sample(2)], fastqFile, bamFile);
+                }
+                // report progress
+                reporter.next();
+            }
+        }
+
+        reporter.done();
+        logfile().conclude("Simulated a total of ", numReadsSimulated, " reads.");
     }
 
 //-------------------------------------------

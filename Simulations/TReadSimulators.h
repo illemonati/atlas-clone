@@ -42,8 +42,12 @@ public:
 	TReadSimulators(TReadSimulators && other) = default;
 
 	//interact
-	void simulate(const genometools::TGenomePosition & Position, const std::vector<Base>& Haplotype, Simulations::TSimulatedOutputFile &SimFile);
-
+	void simulate(const genometools::TGenomePosition & Position, const std::vector<Base>& Haplotype,
+                  Simulations::TSimulatedOutputFile &SimFile);
+    //for forwarding fastq and bam files for fastqBamSimulator in order to have same alignments
+    void doubleSimulate(const genometools::TGenomePosition & Position, const std::vector<Base>& Haplotype,
+                                         Simulations::TSimulatedOutputFile &fastqFile,
+                                         BAM::TOutputBamFile &bamFile);
 	//getters
 	[[nodiscard]] std::unique_ptr<TReadSimulator>& sample();
 	[[nodiscard]] double maxFragmentLength() const { return _maxFragmentLength; };

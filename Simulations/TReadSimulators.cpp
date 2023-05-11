@@ -125,6 +125,13 @@ void TReadSimulators::simulate(const genometools::TGenomePosition & Position, co
 	_readSimulators[thisSimulator]->simulate(Position, Haplotype, SimFile);
 }
 
+void TReadSimulators::doubleSimulate(const genometools::TGenomePosition & Position, const std::vector<Base>& Haplotype,
+                                     Simulations::TSimulatedOutputFile &fastqFile,
+                                     BAM::TOutputBamFile &bamFile){
+    size_t thisSimulator = randomGenerator().pickOne(_cumulSimGroupFrequencies);
+    _readSimulators[thisSimulator]->doubleSimulate(Position, Haplotype, fastqFile, bamFile);
+}
+
 std::unique_ptr<TReadSimulator>& TReadSimulators::sample(){
 	return _readSimulators[randomGenerator().pickOne(_cumulSimGroupFrequencies)];
 }

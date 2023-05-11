@@ -105,7 +105,11 @@ public:
 	void setContamination(double rate, TSimulatorReference *source);
 
 	//simulate
-	virtual void simulate(const TGenomePosition & Position, const std::vector<Base> & Haplotype, Simulations::TSimulatedOutputFile & simulatedFile)=0;
+	virtual void simulate(const TGenomePosition & Position, const std::vector<Base> & Haplotype,
+                          Simulations::TSimulatedOutputFile & simulatedFile)=0;
+    virtual void doubleSimulate(const TGenomePosition & Position, const std::vector<Base> & Haplotype,
+                                Simulations::TSimulatedOutputFile &fastqfile,
+                                BAM::TOutputBamFile &bamfile)=0;
 
 	//getters
 	std::string name() const { return _readGroup.name_ID; };
@@ -128,13 +132,11 @@ public:
 
 	void SequenceSimulator(int sequenceLength);
 
-	/***
-	 * 
-	 * Changed BAM::TOutputBamFile to new TSimulatedOutputFile
-	 * 
-	*/
-
-	void simulate(const TGenomePosition & Position, const std::vector<Base> & Haplotype, Simulations::TSimulatedOutputFile & simulatedFile) override;
+	void simulate(const TGenomePosition & Position, const std::vector<Base> & Haplotype,
+                  Simulations::TSimulatedOutputFile & simulatedFile) override;
+    void doubleSimulate(const TGenomePosition & Position, const std::vector<Base> & Haplotype,
+                                Simulations::TSimulatedOutputFile &fastqFile,
+                                BAM::TOutputBamFile &bamFile) override;
 
 	[[nodiscard]] double meanReadLength() const override;
 
@@ -156,7 +158,12 @@ public:
 	TReadSimulatorPairedEnd(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo);
 	~TReadSimulatorPairedEnd() = default;
 
-	void simulate(const TGenomePosition & Position, const std::vector<Base> & Haplotype, Simulations::TSimulatedOutputFile & simulatedFile) override;
+	void simulate(const TGenomePosition & Position, const std::vector<Base> & Haplotype,
+                  Simulations::TSimulatedOutputFile & simulatedFile) override;
+    void doubleSimulate(const TGenomePosition & Position, const std::vector<Base> & Haplotype,
+                        Simulations::TSimulatedOutputFile &fastqFile,
+                        BAM::TOutputBamFile &bamFile) override;
+
 	[[nodiscard]] double meanReadLength() const override;
 };
 

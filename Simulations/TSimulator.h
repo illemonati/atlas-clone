@@ -87,14 +87,11 @@ namespace Simulations {
 
     class TBAMSimulator : public TSimulator {
 
-    friend class TFastqBamSimulator;
+        friend class TFastqBamSimulator;
 
     protected:
         // bam files
         std::unique_ptr<TSimulatorBamFiles> _bamFiles;
-
-        // read simulator
-        void _initializeBamReadSimulator();
 
         // simulate reads and write bam files
         void _simulateAndWrite(const genometools::TChromosome &Chromosome, TSimulatorHaplotypes &Haplotypes, uint32_t avgDepth) override;
@@ -110,6 +107,7 @@ namespace Simulations {
 //-------------------------------------------
 
     class TFastqSimulator : public TSimulator{
+
         friend class TFastqBamSimulator;
 
     private:
@@ -131,17 +129,27 @@ namespace Simulations {
 class TFastqBamSimulator : public TSimulator{
 
     /**
-     * create the fastq and bam simualators, but using the same seed.
+     * create the fastq and bam simulators, but using the same seed.
      * they have to have the same simulated reads otherwise we have two different simulations
      * which are clearly not compatible and useful together
      * */
 
-    friend class TFastqSimulator;
-    friend class TBAMSimulator;
-
     private:
         //TFastqSimulator _fastqSimulator;
         //TBAMSimulator _bamSimulator;
+
+        //store created FastqFiles
+        std::unique_ptr<Simulations::TSimulatedOutputFiles> _fastqFiles;
+        // bam files
+        std::unique_ptr<TSimulatorBamFiles> _bamFiles;
+
+        void _doubleSimulatedReadsFromHaplotypes(const genometools::TChromosome &thisChr,
+                                                  std::array<std::vector<genometools::Base>, 2> haplotypes,
+                                                  Simulations::TReadSimulators &readSimulators, uint32_t avgDepth,
+                                                  Simulations::TSimulatedOutputFile &fastqFile,
+                                                  BAM::TOutputBamFile &bamFile,
+                                                  const std::string &extraProgressText);
+
 
     public:
         TFastqBamSimulator(const std::string &method);
@@ -213,9 +221,9 @@ class TFastqBamSimulator : public TSimulator{
                 auto simulator = TFastqSimulator{method};
                 simulator.runSimulations();
             } else if(parameters().parameterExists("fastq,bam") || parameters().parameterExists("bam,fastq")){
-                logfile().startIndent("Simulating both FASTQ and BAM files:");
-                /*auto simulator = TFastqBamSimulator{method};
-                simulator.runSimulations();*/
+                logfile().startIndent("Simulating FASTQ and BAM files:");
+                auto simulator = TFastqBamSimulator{method};
+                simulator.runSimulations();
             } else { // default: BAM simulator
                 logfile().startIndent("Simulating BAM Files:");
                 auto simulator = TBAMSimulator{method};

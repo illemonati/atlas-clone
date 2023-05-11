@@ -238,6 +238,24 @@ void TReadSimulatorSingleEnd::simulate(const TGenomePosition & Position, const s
 	simulatedFile.writeAlignment(_alignment);
 }
 
+void TReadSimulatorSingleEnd::doubleSimulate(const TGenomePosition & Position, const std::vector<Base> & Haplotype,
+                                             Simulations::TSimulatedOutputFile &fastqFile,
+                                             BAM::TOutputBamFile &bamFile){
+    // pick a fragment
+    const auto fragmentLength = _fragmentLengthDistr.sample();
+
+    // prepare alignment
+    _simulateAlignmentDetails(Position );
+    _alignment.setIsReverseStrand(randomGenerator().getRand() < 0.5);
+
+    // simulated bases and qualities
+    _simulateBasesQualities(_alignment, Haplotype, fragmentLength, _numCycles, _simulateContamination());
+
+    // write fastq / bam alignment
+    fastqFile.writeAlignment(_alignment);
+    bamFile.writeAlignment(_alignment);
+};
+
 //----------------------------------
 // TSimulatorPairedEndReads
 //----------------------------------
@@ -309,7 +327,8 @@ double TReadSimulatorPairedEnd::meanReadLength() const {
 
 			//changed & BamFile to simulatedFile
 
-void TReadSimulatorPairedEnd::simulate(const TGenomePosition & Position, const std::vector<Base> & Haplotype, Simulations::TSimulatedOutputFile &simulatedFile) {
+void TReadSimulatorPairedEnd::simulate(const TGenomePosition & Position, const std::vector<Base> & Haplotype,
+                                       Simulations::TSimulatedOutputFile &simulatedFile) {
 	
 	// pick a fragment
 	const auto fragmentLength     = _fragmentLengthDistr.sample();
@@ -357,6 +376,61 @@ void TReadSimulatorPairedEnd::simulate(const TGenomePosition & Position, const s
 
 		_simulatedFile->writeAlignmentLater(_secondMate);
 	}
+}
+
+void TReadSimulatorPairedEnd::doubleSimulate(const TGenomePosition & Position, const std::vector<Base> & Haplotype,
+                                             Simulations::TSimulatedOutputFile &fastqFile,
+                                             BAM::TOutputBamFile &bamFile){
+
+    // pick a fragment
+    const auto fragmentLength     = _fragmentLengthDistr.sample();
+    const auto readIsContaminated = _simulateContamination();
+
+    // Fill FIRST mate
+
+    // prepare alignment
+    _simulateAlignmentDetails(Position);
+    _simulateBasesQualities(_alignment, Haplotype, fragmentLength, _numCycles[0], readIsContaminated);
+
+    // Fill SECOND mate
+
+    // identify position
+    _secondMate.move(_alignment);
+    if(fragmentLength > _numCycles[1]){
+        _secondMate += (uint32_t) fragmentLength - (uint32_t) _numCycles[1];
+    }
+
+    // create new alignment
+    _secondMate.setReadGroup(_readGroup.id());
+    _secondMate.setName(_alignment.name());
+    _secondMate.setMappingQuality(_alignment.mappingQuality());
+
+    // simulated bases and qualities
+    _simulateBasesQualities(_secondMate, Haplotype, fragmentLength, _numCycles[1], readIsContaminated);
+
+    // WRITE ALIGNMENTS
+    //-----------------
+    //set mate positions
+    _alignment.setMateGenomicPosition(_secondMate);
+    _secondMate.setMateGenomicPosition(_alignment);
+
+    fastqFile.writeAlignment(_alignment);
+    bamFile.writeAlignment(_alignment);
+
+    // write mate if it starts at same position as first, and keep for writing later otherwise
+    if (_secondMate == _alignment) {
+        fastqFile.writeAlignment(_secondMate);
+        bamFile.writeAlignment(_secondMate);
+    } else {
+
+        //in order to preserve writeAlignmentLater only in TBamFile (and not having to transport it into TSimulatedOutputFile), casting is only done
+        //in this portion, otherwise every TBamFile would have to be casted even if not necessary as it wouldn't take this else path
+        //ptrSimulatedFile = &simulatedFile;
+        //fastqFile = dynamic_cast<TOutputBamFile*>(fastqFile);
+
+        //fastqfile.writeAlignmentLater(_secondMate);
+        bamFile.writeAlignmentLater(_secondMate);
+    }
 }
 
 } // namespace Simulations
