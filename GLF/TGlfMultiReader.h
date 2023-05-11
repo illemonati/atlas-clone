@@ -263,8 +263,8 @@ public:
 	// access data
 	constexpr uint32_t numSamples() const noexcept { return _numGLFs; }
 	uint32_t numActiveSamples() const noexcept { return _activeGLFs.size(); }
-	constexpr uint32_t numActiveSamplesWithData(size_t iWindow) const noexcept { return _numActive[iWindow]; }
-	constexpr uint32_t numActiveSamplesWithData() const noexcept { return numActiveSamplesWithData(_iWindow); }
+	uint32_t numActiveSamplesWithData(size_t iWindow) const noexcept { return _numActive[iWindow]; }
+	uint32_t numActiveSamplesWithData() const noexcept { return numActiveSamplesWithData(_iWindow); }
 	std::string chr() const { return _curChr.name(); }
 	constexpr uint32_t position(size_t iWindow) const noexcept { return _windowStart + iWindow; }
 	constexpr uint32_t position() const noexcept { return position(_iWindow); }
