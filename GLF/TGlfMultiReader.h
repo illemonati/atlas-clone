@@ -261,6 +261,7 @@ public:
 	std::vector<std::string> sampleNamesOfActiveFiles() const;
 
 	// access data
+	constexpr size_t windowSize() const noexcept {return _windowSize;}
 	constexpr uint32_t numSamples() const noexcept { return _numGLFs; }
 	uint32_t numActiveSamples() const noexcept { return _activeGLFs.size(); }
 	uint32_t numActiveSamplesWithData(size_t iWindow) const noexcept { return _numActive[iWindow]; }

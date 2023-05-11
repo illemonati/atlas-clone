@@ -181,7 +181,7 @@ void TMajorMinor::run() {
 
 	// estimation method
 	const std::string method = parameters().getParameterWithDefault<std::string>("method", "MLE");
-	const size_t windowSize  = parameters().getParameterWithDefault<size_t>("window", 64);
+	const size_t windowSize  = glfReader.windowSize();
 	std::vector<std::unique_ptr<TMajorMinorEstimatorBase>> MMEstimator;
 	const double maxF = parameters().getParameterWithDefault("maxF", 0.0000001);
 	if (method == "Skotte") {
@@ -286,10 +286,10 @@ void TMajorMinor::run() {
 	}
 
 #ifdef _OPENMP
-	size_t maxNumThreads =
-		coretools::instances::parameters().getParameterWithDefault("maxNumThreads", omp_get_max_threads());
-	coretools::instances::logfile().list("Running in parallel with a maximum of ", maxNumThreads,
-										 " threads (argument 'maxNumThreads')");
+	size_t maxThreads =
+		coretools::instances::parameters().getParameterWithDefault("maxThreads", omp_get_max_threads());
+	coretools::instances::logfile().list("Running in parallel with a maximum of ", maxThreads,
+										 " threads (argument 'maxThreads')");
 #else
 	coretools::instances::logfile().list("Not running in parallel");
 #endif
@@ -304,7 +304,7 @@ void TMajorMinor::run() {
 
 
 	for (size_t N = glfReader.readWindow(); N > 0; N = glfReader.readWindow()) {
-#pragma omp parallel for num_threads(maxNumThreads)
+#pragma omp parallel for num_threads(maxThreads)
 		for (size_t i = 0; i < N; ++i) {
 			if (glfReader.numActiveSamplesWithData(i) < minSamplesWithData) continue;
 			const Base ref = glfReader.refBase(i); // can be N
@@ -337,7 +337,7 @@ void TMajorMinor::run() {
 		counter += N;
 
 		// report progress
-		if (counter % 100000 == 0) {
+		if (counter % 1000000 == 0) {
 			logfile().list("Parsed ", counter, " positions in ", timer.formattedTime(), ".");
 		}
 
