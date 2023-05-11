@@ -30,7 +30,7 @@ TReadGroup::TReadGroup(){
 	writeToHeader = false;
 };
 
-TReadGroup::TReadGroup(const size_t ID, std::string_view Name){
+TReadGroup::TReadGroup(size_t ID, std::string_view Name){
 	_id = ID;
 	name_ID = Name;
 	inUse = true;
@@ -244,6 +244,7 @@ TReadGroup& TReadGroups::getReadGroup(std::string_view Name){
 }
 
 const TReadGroup& TReadGroups::getReadGroup(size_t ReadGroupId) const {
+	if (ReadGroupId == noReadGroupId) return _noReadGroup;
 	if(ReadGroupId >= _readGroups.size())
 		UERROR("No read group with number ", ReadGroupId, "!");
 	return _readGroups[ _readGroupsById[ReadGroupId] ];

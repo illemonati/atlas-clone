@@ -74,6 +74,8 @@ void TBamDiagnoser::_writeTable(const TCountDistributionVector<> & distVec, cons
 void TBamDiagnoser::_handleAlignment() {
     //get read group
 	const size_t readGroup  = _bamFile.curReadGroupID();
+	if (readGroup == BAM::TReadGroups::noReadGroupId) return;
+
 	const size_t chromosome = _bamFile.refID();
 
 	//increments for each read that passed filters

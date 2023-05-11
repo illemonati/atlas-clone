@@ -25,6 +25,7 @@
 #include "api/SamSequenceDictionary.h"
 #include "coretools/Main/globalConstants.h"
 #include "coretools/Types/strongTypes.h"
+#include "coretools/devtools.h"
 
 namespace BAM{
 using coretools::TNumericRange;
@@ -606,7 +607,9 @@ bool TBamFile::readNextAlignment(){
 	}
 
 	//update per read group counter
-	_numAlignmentReadPerReadGroupPerChromosome.add(_curReadGroupID, _curChromosome->refID());
+	if(_curReadGroupID != TReadGroups::noReadGroupId){
+		_numAlignmentReadPerReadGroupPerChromosome.add(_curReadGroupID, _curChromosome->refID());
+	}
 
 	//parse CIGAR
 	for(auto& it : _curBamAlignment.CigarData){

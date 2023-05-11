@@ -63,7 +63,7 @@ public:
     bool writeToHeader;                 //is false if read group is not in use or replaced by new one
 
     TReadGroup();
-    TReadGroup(const size_t ID, std::string_view Name);
+    TReadGroup(size_t ID, std::string_view Name);
 
     std::string compileSamHeader() const;
 
@@ -83,7 +83,7 @@ bool operator<(std::string_view left, const TReadGroup & right);
 //---------------------------------------------------------------
 class TReadGroups{
 private:
-	static const TReadGroup _noReadGroup;
+	const TReadGroup _noReadGroup;
 	std::vector<TReadGroup> _readGroups;
 	std::vector<size_t> _readGroupsById;
 	bool _limitReadGroups;
