@@ -41,9 +41,8 @@ public:
 	TGenotypeLikelihoods likelihoods;
 	Base preferredBase;
 
-	TSiteData(const TGenotypeLikelihoods & Likelihoods, const Base PreferredBase):
-	preferredBase(PreferredBase),
-	likelihoods(Likelihoods) {};
+	TSiteData(const TGenotypeLikelihoods &Likelihoods, const Base PreferredBase)
+		: likelihoods(Likelihoods), preferredBase(PreferredBase){};
 
 	TSiteData(const TSiteData & other) = delete;
 	TSiteData(TSiteData && other){
