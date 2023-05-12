@@ -159,10 +159,11 @@ void TMajorMinorEstimatorMLE::_findMLAllelicCombination(const TMultiGLFData &dat
 	_genotypeFrequencies.set(_tmpGenotypeFrequencies[index(_bestAllelicCombination)]);
 };
 
-//---------------------------------------------------
-// TMajorMinor
-//---------------------------------------------------
-void TMajorMinor::run() {
+		
+
+
+template<typename Estimator>
+void iterate(double maxF) {
 	// open GLF files
 	GLF::TGlfMultiReader glfReader;
 	glfReader.openGLFs();
@@ -182,22 +183,10 @@ void TMajorMinor::run() {
 	// estimation method
 	const std::string method = parameters().getParameterWithDefault<std::string>("method", "MLE");
 	const size_t windowSize  = glfReader.windowSize();
-	std::vector<std::unique_ptr<TMajorMinorEstimatorBase>> MMEstimator;
-	const double maxF = parameters().getParameterWithDefault("maxF", 0.0000001);
-	if (method == "Skotte") {
-		logfile().list("Will estimate major / minor alleles using the Skotte method with maxF ", maxF,
-			      ". (parameters method and maxF)");
-		for (size_t i = 0; i < windowSize; ++i) {
-			MMEstimator.push_back(std::make_unique<TMajorMinorEstimatorSkotte>(maxF));
-		}
-	} else if (method == "MLE") {
-		logfile().list("Will estimate major / minor alleles using the MLE method with maxF ", maxF,
-			      ". (parameters method and maxF)");
-		for (size_t i = 0; i < windowSize; ++i) {
-			MMEstimator.push_back(std::make_unique<TMajorMinorEstimatorMLE>(maxF));
-		}
-	} else
-		UERROR("Unknown MajorMinor method '", method, "'!");
+	std::vector<Estimator> MMEstimator;
+	for (size_t i = 0; i < windowSize; ++i) {
+		MMEstimator.emplace_back(maxF);
+	}
 
 	const bool usePhredLikelihoods = parameters().parameterExists("phredLik");
 	if (usePhredLikelihoods) {
@@ -239,7 +228,7 @@ void TMajorMinor::run() {
 	}
 
 	// limit input
-	const long limitSites = parameters().getParameterWithDefault("limitSites", 0);
+	const size_t limitSites = parameters().getParameterWithDefault("limitSites", 0);
 	if (limitSites > 0) logfile().list("Will stop at input position ", limitSites, ". (parameter 'limitSites')");
 	if (limitSites < 0) UERROR("maxPos cannot be negative!");
 
@@ -300,45 +289,47 @@ void TMajorMinor::run() {
 	// vars
 	logfile().startIndent("Parsing through glf files:");
 	coretools::TTimer timer;
-	long counter = 0;
+	constexpr size_t dCounter = 1000000;
+	size_t counter = 0;
+	size_t nextPrint = dCounter;
 
 
-	for (size_t N = glfReader.readWindow(); N > 0; N = glfReader.readWindow()) {
+
+	for (auto ids = glfReader.readWindow(); !ids.empty(); ids = glfReader.readWindow()) {
 #pragma omp parallel for num_threads(maxThreads)
-		for (size_t i = 0; i < N; ++i) {
-			if (glfReader.numActiveSamplesWithData(i) < minSamplesWithData) continue;
+		for (auto i : ids) {
 			const Base ref = glfReader.refBase(i); // can be N
-			MMEstimator[i]->estimateMajorMinor(glfReader.data(i), ref);
+			MMEstimator[i].estimateMajorMinor(glfReader.data(i), ref);
 		}
 
 		// pass filter?
-		for (size_t i = 0; i < N; ++i) {
-			if (glfReader.numActiveSamplesWithData(i) < minSamplesWithData) continue;
+		for (auto i : ids) {
 			const Base ref = glfReader.refBase(i); // can be N
-			if (MMEstimator[i]->genotypeFrequencies().MAF() < minMAF) {
+			if (MMEstimator[i].genotypeFrequencies().MAF() < minMAF) {
 				++nMAFMAF;
 				continue;
 			}
-			if (MMEstimator[i]->variantQuality() < minVariantQuality) {
+			if (MMEstimator[i].variantQuality() < minVariantQuality) {
 				++nVariantQuality;
 				continue;
 			}
 
 			// write to VCF
-			if (hasReference && MMEstimator[i]->minor() == ref) {
-				vcf.writeSite(glfReader.chr(), glfReader.position(i), MMEstimator[i]->variantQuality(), glfReader.data(i),
-							  ref, MMEstimator[i]->major());
+			if (hasReference && MMEstimator[i].minor() == ref) {
+				vcf.writeSite(glfReader.chr(), glfReader.position(i), MMEstimator[i].variantQuality(), glfReader.data(i),
+							  ref, MMEstimator[i].major());
 			} else {
-				vcf.writeSite(glfReader.chr(), glfReader.position(i), MMEstimator[i]->variantQuality(), glfReader.data(i),
-							  MMEstimator[i]->major(), MMEstimator[i]->minor());
+				vcf.writeSite(glfReader.chr(), glfReader.position(i), MMEstimator[i].variantQuality(), glfReader.data(i),
+							  MMEstimator[i].major(), MMEstimator[i].minor());
 			}
 		}
 
-		counter += N;
+		counter += ids.back() + 1;
 
 		// report progress
-		if (counter % 1000000 == 0) {
-			logfile().list("Parsed ", counter, " positions in ", timer.formattedTime(), ".");
+		if (counter >= nextPrint) {
+			logfile().list("Parsed ", nextPrint, " positions in ", timer.formattedTime(), ".");
+			while (nextPrint <= counter) nextPrint += dCounter;
 		}
 
 		if (limitSites > 0 && counter == limitSites) break;
@@ -354,5 +345,25 @@ void TMajorMinor::run() {
 	}
 	logfile().removeIndent();
 };
+
+//---------------------------------------------------
+// TMajorMinor
+//---------------------------------------------------
+void TMajorMinor::run() {
+	const std::string method = parameters().getParameterWithDefault<std::string>("method", "MLE");
+
+	const double maxF = parameters().getParameterWithDefault("maxF", 0.0000001);
+	if (method == "Skotte") {
+		logfile().list("Will estimate major / minor alleles using the Skotte method with maxF ", maxF,
+			      ". (parameters method and maxF)");
+		iterate<TMajorMinorEstimatorSkotte>(maxF);
+	} else if (method == "MLE") {
+		logfile().list("Will estimate major / minor alleles using the MLE method with maxF ", maxF,
+			      ". (parameters method and maxF)");
+		iterate<TMajorMinorEstimatorMLE>(maxF);
+	} else {
+		UERROR("Unknown MajorMinor method '", method, "'!");
+	}
+}
 
 }; // namespace PopulationTools

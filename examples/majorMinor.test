@@ -2,11 +2,11 @@
 
 . $(dirname $0)/find_atlas
 
-N=10
+N=100
 
 echo "doing $N samples"
 
-#$atlas --task simulate --type HW --F 0.1 --ploidy 2 --depth 10 --chrLength 10000000 --sampleSize $N --fracPoly 0.1 --alpha 2.0 --beta 2.0 --fixedSeed 0 --logFile simulate.out
+#$atlas --task simulate --type HW --F 0.1 --ploidy 2 --depth 2.5 --chrLength 2000333 --sampleSize $N --fracPoly 0.1 --alpha 2.0 --beta 2.0 --fixedSeed 0 --logFile simulate.out
 
 #for f in *.bam; do
 #    $atlas --task GLF --bam $f --fasta ATLAS_simulations.fasta --fixedSeed 0 --logFile GLF_${f%.bam}.out
@@ -14,4 +14,4 @@ echo "doing $N samples"
 
 allSamples=`find . -path '*_ind*.glf.gz' | paste -s -d ',' -`
 
-$atlas --task majorMinor --window 1000000 --glf $allSamples --fixedSeed 0 --logFile majorMinor.out --minMAF 0.05 --maxThreads $1
+$atlas --task majorMinor --window 100000 --glf $allSamples --fixedSeed 0 --logFile majorMinor.out --minMAF 0.05 --maxThreads $1 --minSamplesWithData 75

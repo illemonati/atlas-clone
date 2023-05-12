@@ -370,10 +370,10 @@ bool TGlfMultiReader::_moveToNextChromosome() {
 	return true;
 };
 
-size_t TGlfMultiReader::readWindow() {
+std::vector<size_t> TGlfMultiReader::readWindow() {
 	_windowStart += _dataWindow.size();
 	if (_windowStart >= _curChr.length()) {
-		if(!_moveToNextChromosome()) return 0;
+		if(!_moveToNextChromosome()) return {};
 	}
 	const size_t N    = std::min(_windowSize, _curChr.length() - _windowStart);
 	_dataWindow.assign(N, {});
@@ -398,13 +398,21 @@ size_t TGlfMultiReader::readWindow() {
 			}
 		}
 	}
-	if (allEOF) return 0;
-	return _dataWindow.size();
+	if (allEOF) return {};
+	std::vector<size_t> ids;
+	ids.reserve(_dataWindow.size());
+	for (size_t i = 0; i < _dataWindow.size(); ++i) {
+		if (_numActive[i] >= _minSamplesWithData) {
+			ids.push_back(i);
+		}
+	}
+	if (ids.empty()) return readWindow();
+	return ids;
 }
 
 bool TGlfMultiReader::readNext() {
 	if (_iWindow + 1 >= _dataWindow.size()) {
-		if (!readWindow()) return false;
+		if (readWindow().empty()) return false;
 		_iWindow = 0;
 	} else {
 		++_iWindow;

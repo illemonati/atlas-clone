@@ -253,7 +253,7 @@ public:
 	void setAllActive();
 
 	// parse
-	size_t readWindow();
+	std::vector<size_t> readWindow();
 	bool readNext();
 
 	// output

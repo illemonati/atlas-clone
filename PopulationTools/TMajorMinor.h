@@ -51,7 +51,7 @@ public:
 	const genometools::TGenotypeFrequencies& genotypeFrequencies() const noexcept {return _genotypeFrequencies;}
 };
 
-class TMajorMinorEstimatorSkotte : public TMajorMinorEstimatorBase {
+class TMajorMinorEstimatorSkotte final : public TMajorMinorEstimatorBase {
 private:
 	double _epsilonF;
 	genometools::TGenotypeFrequencies _priorGenotypeFrequencies;
@@ -61,7 +61,7 @@ public:
 	TMajorMinorEstimatorSkotte(double EpsilonF);
 };
 
-class TMajorMinorEstimatorMLE : public TMajorMinorEstimatorBase {
+class TMajorMinorEstimatorMLE final : public TMajorMinorEstimatorBase {
 private:
 	double _epsilonF;
 	std::array<genometools::TGenotypeFrequencies, 6> _tmpGenotypeFrequencies;
