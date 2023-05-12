@@ -419,7 +419,7 @@ void TReadSimulatorPairedEnd::doubleSimulate(const TGenomePosition & Position, c
 
     // write mate if it starts at same position as first, and keep for writing later otherwise
     if (_secondMate == _alignment) {
-        fastqFile.writeAlignment(_secondMate);
+        //fastqFile.writeAlignment(_secondMate);
         bamFile.writeAlignment(_secondMate);
     } else {
 

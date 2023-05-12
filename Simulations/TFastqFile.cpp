@@ -43,7 +43,10 @@ namespace FASTQ{
 
 
     std::string TFastqFile::_newName(int readGroupId) {
-        _outputName = _fileName + "_" + std::to_string(readGroupId) + ".fastq";
+        if(readGroupId == BAM::TReadGroups::noReadGroupId){
+            _outputName = _fileName + "_noReadGroup.fastq";
+        } else _outputName = _fileName + "_" + std::to_string(readGroupId) + ".fastq";
+
         return _outputName;
     }
 
