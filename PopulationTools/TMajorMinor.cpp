@@ -25,6 +25,7 @@
 #include "coretools/Strings/stringFunctions.h"
 #include "coretools/Types/strongTypes.h"
 #include "coretools/Types/weakTypes.h"
+#include "genometools/PhredProbabilityTypes.h"
 
 
 #ifdef _OPENMP
@@ -182,11 +183,7 @@ void iterate(double maxF) {
 
 	// estimation method
 	const std::string method = parameters().getParameterWithDefault<std::string>("method", "MLE");
-	const size_t windowSize  = glfReader.windowSize();
-	std::vector<Estimator> MMEstimator;
-	for (size_t i = 0; i < windowSize; ++i) {
-		MMEstimator.emplace_back(maxF);
-	}
+	Estimator MMEstimator(maxF);
 
 	const bool usePhredLikelihoods = parameters().parameterExists("phredLik");
 	if (usePhredLikelihoods) {
@@ -294,33 +291,43 @@ void iterate(double maxF) {
 	size_t nextPrint = dCounter;
 
 
+	struct Data {
+		coretools::Probability MAF;
+		genometools::PhredIntProbability variantQuality;
+		Base major;
+		Base minor;
+	};
 
 	for (auto ids = glfReader.readWindow(); !ids.empty(); ids = glfReader.readWindow()) {
+		std::vector<Data> data(ids.back() + 1);
 #pragma omp parallel for num_threads(maxThreads)
 		for (auto i : ids) {
 			const Base ref = glfReader.refBase(i); // can be N
-			MMEstimator[i].estimateMajorMinor(glfReader.data(i), ref);
+			Estimator MMEstimator(maxF);
+			MMEstimator.estimateMajorMinor(glfReader.data(i), ref);
+			data[i] = {MMEstimator.genotypeFrequencies().MAF(), MMEstimator.variantQuality(), MMEstimator.major(), MMEstimator.minor()};
 		}
 
 		// pass filter?
 		for (auto i : ids) {
 			const Base ref = glfReader.refBase(i); // can be N
-			if (MMEstimator[i].genotypeFrequencies().MAF() < minMAF) {
+			const auto& di = data[i];
+			if (di.MAF < minMAF) {
 				++nMAFMAF;
 				continue;
 			}
-			if (MMEstimator[i].variantQuality() < minVariantQuality) {
+			if (di.variantQuality < minVariantQuality) {
 				++nVariantQuality;
 				continue;
 			}
 
 			// write to VCF
-			if (hasReference && MMEstimator[i].minor() == ref) {
-				vcf.writeSite(glfReader.chr(), glfReader.position(i), MMEstimator[i].variantQuality(), glfReader.data(i),
-							  ref, MMEstimator[i].major());
+			if (hasReference && di.minor == ref) {
+				vcf.writeSite(glfReader.chr(), glfReader.position(i), di.variantQuality, glfReader.data(i),
+							  ref, di.major);
 			} else {
-				vcf.writeSite(glfReader.chr(), glfReader.position(i), MMEstimator[i].variantQuality(), glfReader.data(i),
-							  MMEstimator[i].major(), MMEstimator[i].minor());
+				vcf.writeSite(glfReader.chr(), glfReader.position(i), di.variantQuality, glfReader.data(i),
+							  di.major, di.minor);
 			}
 		}
 
