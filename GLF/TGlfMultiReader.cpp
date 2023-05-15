@@ -192,7 +192,7 @@ TGlfMultiReader::TGlfMultiReader() {
 	_minDepth = parameters().getParameterWithDefault<size_t>("minDepth", 0);
 	if (_minDepth > 0) logfile().list("Will only keep sites with depth >= " + toString(_minDepth) + ".");
 
-	_windowSize = parameters().getParameterWithDefault<size_t>("window", 64);
+	_windowSize = parameters().getParameterWithDefault<size_t>("window", 10000);
 	if (_windowSize == 0) UERROR("Window size must be at least 1!");
 };
 

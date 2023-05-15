@@ -66,13 +66,13 @@ AllelicCombination chooseBestAllelicCombination(const TAlleleicCombinationData& 
 } // namespace
 
 
-void TMajorMinorEstimatorBase::estimateMajorMinor(const TMultiGLFData &data, Base base) {
+coretools::Probability TMajorMinorEstimatorBase::estimateMajorMinor(const TMultiGLFData &data, Base base) {
 	using coretools::Log10Probability;
 
-	_findMLAllelicCombination(data, base);
+	auto genotypeFrequencies = _findMLAllelicCombination(data, base);
 
 	// which one is major?
-	if (_genotypeFrequencies.alleleFrequency() < 0.5) {
+	if (genotypeFrequencies.alleleFrequency() < 0.5) {
 		_major = first(_bestAllelicCombination);
 		_minor = second(_bestAllelicCombination);
 	} else {
@@ -80,7 +80,7 @@ void TMajorMinorEstimatorBase::estimateMajorMinor(const TMultiGLFData &data, Bas
 		_minor = first(_bestAllelicCombination);
 
 		// also flip frequencies
-		_genotypeFrequencies.flip();
+		genotypeFrequencies.flip();
 	}
 
 	// calculate variant quality
@@ -95,6 +95,7 @@ void TMajorMinorEstimatorBase::estimateMajorMinor(const TMultiGLFData &data, Bas
 		}
 	}
 	_variantQuality = LL_fixed_glfPhred > _L10L_perCombination[_bestAllelicCombination] ? Log10Probability(0.0) : Log10Probability(LL_fixed_glfPhred - _L10L_perCombination[_bestAllelicCombination]);
+	return genotypeFrequencies.MAF();
 };
 
 //---------------------------------------------------
@@ -115,7 +116,8 @@ TMajorMinorEstimatorSkotte::TMajorMinorEstimatorSkotte(double EpsilonF) : _epsil
 	_priorGenotypeFrequencies[BG::haploidSecond] = 0.50;
 };
 
-void TMajorMinorEstimatorSkotte::_findMLAllelicCombination(const TMultiGLFData &data, Base base) {
+genometools::TGenotypeFrequencies TMajorMinorEstimatorSkotte::_findMLAllelicCombination(const TMultiGLFData &data, Base base) {
+	genometools::TGenotypeFrequencies _genotypeFrequencies;
 	// calculate L10L for each allelic combination used
 	const auto used = useAllelicCombinationsThatContain(base);
 	for (const auto ac: used) {
@@ -134,6 +136,8 @@ void TMajorMinorEstimatorSkotte::_findMLAllelicCombination(const TMultiGLFData &
 	// calculate likelihood again with better genotype frequencies
 	_L10L_perCombination[_bestAllelicCombination] =
 	    _genotypeFrequencies.calculateLog10Likelihood(_genotypeLikelihoods, _genotypeLikelihoods.size());
+
+	return _genotypeFrequencies;
 };
 
 //---------------------------------------------------
@@ -148,7 +152,7 @@ coretools::Log10Probability TMajorMinorEstimatorMLE::_estimateGenotypeFrequencie
 	return _tmpGenotypeFrequencies[index(ac)].calculateLog10Likelihood(_genotypeLikelihoods, sz);
 };
 
-void TMajorMinorEstimatorMLE::_findMLAllelicCombination(const TMultiGLFData &data, Base base) {
+genometools::TGenotypeFrequencies TMajorMinorEstimatorMLE::_findMLAllelicCombination(const TMultiGLFData &data, Base base) {
 	// calculate L10L for each allelic combination
 	const auto used = useAllelicCombinationsThatContain(base);
 	for (const auto ac: used) {
@@ -157,33 +161,29 @@ void TMajorMinorEstimatorMLE::_findMLAllelicCombination(const TMultiGLFData &dat
 
 	// pick combination
 	_bestAllelicCombination = chooseBestAllelicCombination(_L10L_perCombination);
-	_genotypeFrequencies.set(_tmpGenotypeFrequencies[index(_bestAllelicCombination)]);
+	return _tmpGenotypeFrequencies[index(_bestAllelicCombination)];
 };
 
 		
 
 
-template<typename Estimator>
+template<typename Estimator, bool hasReference>
 void iterate(double maxF) {
 	// open GLF files
 	GLF::TGlfMultiReader glfReader;
 	glfReader.openGLFs();
 	glfReader.setAllActive();
 
-	bool hasReference = false;
-
 	// add reference, if provided
-	if (parameters().parameterExists("fasta")) {
+	if constexpr (hasReference) {
 		logfile().list("Will only identify the most likely alternative allele (argument: fasta)");
 		const std::string fastaFile = parameters().getParameter<std::string>("fasta");
 		logfile().list("Reading reference sequence from '" + fastaFile + "'");
 		glfReader.addReference(fastaFile);
-		hasReference = true;
 	}
 
 	// estimation method
 	const std::string method = parameters().getParameterWithDefault<std::string>("method", "MLE");
-	Estimator MMEstimator(maxF);
 
 	const bool usePhredLikelihoods = parameters().parameterExists("phredLik");
 	if (usePhredLikelihoods) {
@@ -304,13 +304,12 @@ void iterate(double maxF) {
 		for (auto i : ids) {
 			const Base ref = glfReader.refBase(i); // can be N
 			Estimator MMEstimator(maxF);
-			MMEstimator.estimateMajorMinor(glfReader.data(i), ref);
-			data[i] = {MMEstimator.genotypeFrequencies().MAF(), MMEstimator.variantQuality(), MMEstimator.major(), MMEstimator.minor()};
+			const auto MAF = MMEstimator.estimateMajorMinor(glfReader.data(i), ref);
+			data[i]        = {MAF, MMEstimator.variantQuality(), MMEstimator.major(), MMEstimator.minor()};
 		}
 
 		// pass filter?
 		for (auto i : ids) {
-			const Base ref = glfReader.refBase(i); // can be N
 			const auto& di = data[i];
 			if (di.MAF < minMAF) {
 				++nMAFMAF;
@@ -322,12 +321,18 @@ void iterate(double maxF) {
 			}
 
 			// write to VCF
-			if (hasReference && di.minor == ref) {
-				vcf.writeSite(glfReader.chr(), glfReader.position(i), di.variantQuality, glfReader.data(i),
-							  ref, di.major);
+			if constexpr (hasReference) {
+				const Base ref = glfReader.refBase(i); // can be N
+				if (di.minor == ref) {
+					vcf.writeSite(glfReader.chr(), glfReader.position(i), di.variantQuality, glfReader.data(i), ref,
+								  di.major);
+				} else {
+					vcf.writeSite(glfReader.chr(), glfReader.position(i), di.variantQuality, glfReader.data(i),
+								  di.major, di.minor);
+				}
 			} else {
-				vcf.writeSite(glfReader.chr(), glfReader.position(i), di.variantQuality, glfReader.data(i),
-							  di.major, di.minor);
+				vcf.writeSite(glfReader.chr(), glfReader.position(i), di.variantQuality, glfReader.data(i), di.major,
+							  di.minor);
 			}
 		}
 
@@ -358,16 +363,19 @@ void iterate(double maxF) {
 //---------------------------------------------------
 void TMajorMinor::run() {
 	const std::string method = parameters().getParameterWithDefault<std::string>("method", "MLE");
+	const bool hasReference = parameters().parameterExists("fasta");
 
 	const double maxF = parameters().getParameterWithDefault("maxF", 0.0000001);
 	if (method == "Skotte") {
 		logfile().list("Will estimate major / minor alleles using the Skotte method with maxF ", maxF,
 			      ". (parameters method and maxF)");
-		iterate<TMajorMinorEstimatorSkotte>(maxF);
+		if (hasReference) iterate<TMajorMinorEstimatorSkotte, true>(maxF);
+		else iterate<TMajorMinorEstimatorSkotte, false>(maxF);
 	} else if (method == "MLE") {
 		logfile().list("Will estimate major / minor alleles using the MLE method with maxF ", maxF,
 			      ". (parameters method and maxF)");
-		iterate<TMajorMinorEstimatorMLE>(maxF);
+		if (hasReference) iterate<TMajorMinorEstimatorMLE, true>(maxF);
+		else iterate<TMajorMinorEstimatorMLE, false>(maxF);
 	} else {
 		UERROR("Unknown MajorMinor method '", method, "'!");
 	}

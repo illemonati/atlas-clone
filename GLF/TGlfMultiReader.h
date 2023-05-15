@@ -269,8 +269,9 @@ public:
 	std::string chr() const { return _curChr.name(); }
 	constexpr uint32_t position(size_t iWindow) const noexcept { return _windowStart + iWindow; }
 	constexpr uint32_t position() const noexcept { return position(_iWindow); }
+	bool hasRef() const noexcept {return fastaReader.isOpen();}
 	genometools::Base refBase(size_t iWindow) const noexcept {
-		return fastaReader.isOpen() ? fastaReader(_curRefId, position(iWindow)) : genometools::Base::N;
+		return hasRef() ? fastaReader(_curRefId, position(iWindow)) : genometools::Base::N;
 	}
 	genometools::Base refBase() const noexcept {
 		return refBase(_iWindow);
