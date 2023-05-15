@@ -101,7 +101,7 @@ void TBamFile::setFilters(){
 		_allowTooLongReads = true;
 	} else {
 		//set default
-		mappingLengthRange.set(0, true, 200, true);
+		mappingLengthRange.set(0, true, 500, true);
 		_allowTooLongReads = parameters().parameterExists("allowTooLongReads");
 	}
 	_mappedLengthFilter.filter(mappingLengthRange, "MappedLengthOutside" + mappingLengthRange.rangeString(), numRG, numChrom);
@@ -533,28 +533,30 @@ bool TBamFile::readNextAlignment(){
 	//store previous position
 	_previousAlignmentPosition = _curAlignmentPosition;
 
-	//get next alignment
-	if(!_readNextAlignmentFromFile()){
-		return false;
-	}
 
 	//check if it has no read group
-	if(_curReadGroupID == TReadGroups::noReadGroupId){
-		++_numNoReadGroup;
-		if (_bamLog.isOpen()) {
-			_bamLog.writeln(_curBamAlignment.Name, _curBamAlignment.IsSecondMate(), "No read group");
-		}
-		_QCFiltersPassed = false;
-	}
+	bool pass = true;
+	do {
+		// get next alignment
+		if (!_readNextAlignmentFromFile()) { return false; }
 
-	//check if it is unaligned (refID < 0), in which case we read until the first aligned read
-	if(_curBamAlignment.RefID < 0){
-		++_numNotAligned[_curReadGroupID];
-		if(_bamLog.isOpen()){
-			_bamLog.writeln(_curBamAlignment.Name, _curBamAlignment.IsSecondMate(), "Not aligned");
+		if (_curReadGroupID == TReadGroups::noReadGroupId) {
+			++_numNoReadGroup;
+			if (_bamLog.isOpen()) {
+				_bamLog.writeln(_curBamAlignment.Name, _curBamAlignment.IsSecondMate(), "No read group");
+			}
+			pass = false;
 		}
-		return false;	
-	}
+
+		// check if it is unaligned (refID < 0), in which case we read until the first aligned read
+		if (_curBamAlignment.RefID < 0) {
+			++_numNotAligned[_curReadGroupID];
+			if (_bamLog.isOpen()) {
+				_bamLog.writeln(_curBamAlignment.Name, _curBamAlignment.IsSecondMate(), "Not aligned");
+			}
+			pass = false;
+		}
+	} while (!pass);
 
 	//check if chromosome changed
 	if(_curChromosome == _chromosomes.end() || _curBamAlignment.RefID != static_cast<int>(_curChromosome->refID())){
@@ -724,7 +726,10 @@ void TBamFile::writeCurAlignment(TOutputBamFile & out){
 //--------------------------------------------------------
 size_t TBamFile::curFragmentLength() const{
 	if(_curBamAlignment.IsProperPair()){
-		return abs(_curBamAlignment.InsertSize) + _curCigar.lengthInserted() - _curCigar.lengthDeleted();
+		const size_t inserted = abs(_curBamAlignment.InsertSize) + _curCigar.lengthInserted();
+		const size_t deleted  = _curCigar.lengthDeleted();
+		if (inserted < deleted) return 0;
+		return inserted - deleted;
 	} else {
 		return _curCigar.lengthSequenced();
 	}
