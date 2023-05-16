@@ -65,11 +65,10 @@ void _checkChromosomeInfo(const TGlfChromosome & _curChr, const std::vector<TGlf
 
 } // namespace impl
 
-void fill(TMultiGLFDataOneAllelicCombination &storage, const TMultiGLFData &samples,
+TMultiGLFDataOneAllelicCombination fill(const TMultiGLFData &samples,
 		  genometools::AllelicCombination alleleicCombination) {
-	using namespace genometools;
-	storage.clear();
-	//storage.reserve(samples.size());
+	TMultiGLFDataOneAllelicCombination storage;
+	storage.reserve(samples.size());
 	for (const auto &s : samples) {
 		if (!s.hasData()) {
 			continue;
@@ -82,6 +81,7 @@ void fill(TMultiGLFDataOneAllelicCombination &storage, const TMultiGLFData &samp
 								 s[het(alleleicCombination)],
 								 s[homoSecond(alleleicCombination)]);
 	}
+	return storage;
 };
 
 uint32_t totalDepth(const TMultiGLFData &samples) noexcept {
@@ -192,7 +192,7 @@ TGlfMultiReader::TGlfMultiReader() {
 	_minDepth = parameters().getParameterWithDefault<size_t>("minDepth", 0);
 	if (_minDepth > 0) logfile().list("Will only keep sites with depth >= " + toString(_minDepth) + ".");
 
-	_windowSize = parameters().getParameterWithDefault<size_t>("window", 10000);
+	_windowSize = parameters().getParameterWithDefault<size_t>("window", 100000);
 	if (_windowSize == 0) UERROR("Window size must be at least 1!");
 };
 

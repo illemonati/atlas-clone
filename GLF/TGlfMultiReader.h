@@ -95,8 +95,8 @@ public:
 using TMultiGLFDataOneAllelicCombination = std::vector<TMultiGLFDataSampleOneAllelicCombination>;
 using TMultiGLFData                      = std::vector<TMultiGLFDataSample>;
 
-void fill(TMultiGLFDataOneAllelicCombination &storage, const TMultiGLFData &samples,
-	  genometools::AllelicCombination alleleicCombination);
+TMultiGLFDataOneAllelicCombination fill(const TMultiGLFData &samples,
+										genometools::AllelicCombination alleleicCombination);
 
 //----------------------------------------------------
 // TGlfMultiReaderVcfLocusDefinition
