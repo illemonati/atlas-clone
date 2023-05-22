@@ -1,8 +1,7 @@
 #! /bin/bash
 
 . $(dirname $0)/find_atlas
-# TODO: use default out
-. $(dirname $0)/simulate --type HW --F 0.1 --sampleSize 20 --chrLength 1000 --fracPoly 1.0 --alpha 2.0 --beta 2.0 --seqType single --seqCycles 100 --out ATLAS_simulations
+. $(dirname $0)/simulate --type HW --F 0.1 --sampleSize 20 --chrLength 1000 --fracPoly 1.0 --alpha 2.0 --beta 2.0 --seqType single --seqCycles 100
 
 for i in {1..20}; do
 samtools view ATLAS_simulations_ind"$i".bam | head -250 | tail -10 | cut -f1 > blacklist_"$i".txt

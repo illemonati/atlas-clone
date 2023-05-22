@@ -7,10 +7,10 @@ pmd="doubleStrand:Exponential[30,0.5,0.1,0.01]"
 depth="10,5{5},2{5},1{5},0.5{5},0.2{5},0.1{5}"
 chrLength="2000000,2000000,10000000"
 
-$atlas --task simulate --seqType paired --baseFreq 0.31,0.19,0.19,0.31 --chrLength $chrLength --ploidy "2,1,2" --depth "10" --fixedSeed 0 --logFile sim.out --out sim
-$atlas --task simulate --seqType paired --baseFreq 0.31,0.19,0.19,0.31 --chrLength $chrLength --ploidy "2,1,2" --depth "10" --recal $recal --fixedSeed 0 --logFile simR.out --out simR
-$atlas --task simulate --seqType paired --baseFreq 0.31,0.19,0.19,0.31 --chrLength $chrLength --ploidy "2,1,2" --depth "10" --pmd $pmd --fixedSeed 0 --logFile simP.out --out simP
-$atlas --task simulate --seqType paired --baseFreq 0.31,0.19,0.19,0.31 --chrLength $chrLength --ploidy "2,1,2" --depth "10" --recal $recal --pmd $pmd --fixedSeed 0 --logFile simRP.out --out simRP
+. $(dirname $0)/simulate --seqType paired --baseFreq 0.31,0.19,0.19,0.31 --chrLength $chrLength --ploidy "2,1,2" --depth "10" --logFile sim.out --out sim
+. $(dirname $0)/simulate --seqType paired --baseFreq 0.31,0.19,0.19,0.31 --chrLength $chrLength --ploidy "2,1,2" --depth "10" --recal $recal --logFile simR.out --out simR
+. $(dirname $0)/simulate --seqType paired --baseFreq 0.31,0.19,0.19,0.31 --chrLength $chrLength --ploidy "2,1,2" --depth "10" --pmd $pmd --logFile simP.out --out simP
+. $(dirname $0)/simulate --seqType paired --baseFreq 0.31,0.19,0.19,0.31 --chrLength $chrLength --ploidy "2,1,2" --depth "10" --recal $recal --pmd $pmd --logFile simRP.out --out simRP
 
 $atlas --task theta --bam sim.bam --chr "chr1" --averageDepth 10 --depth $depth --fixedSeed 0 --out sim --logFile sim_downsample.out --genomeWide 
 $atlas --task theta --bam simR.bam --chr "chr1" --averageDepth 10 --depth $depth --fixedSeed 0 --out simR --logFile simR_downsample.out --genomeWide 

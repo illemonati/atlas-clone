@@ -6,8 +6,8 @@
 model="intercept[0.1];quality:polynomial[0.8,0.2,0.01]"
 pmd="singleStrand:Exponential[30,0.1,0.1,0.05]:Exponential[40,0.2,0.3,0.07]"
 
-# Simululate polynomial model
-$atlas --task simulate --recal $model --pmd $pmd --fixedSeed 0 --logFile simulate.out --depth 10 --ploidy 2 --numReadGroups 1 --baseFreq 1,2,3,4
+# Simulate polynomial model
+. $(dirname $0)/simulate --recal $model --pmd $pmd --depth 10 --ploidy 2 --numReadGroups 1 --baseFreq 1,2,3,4
 
 for dh in haploid diploid; do
 	$atlas --task recal --bam ATLAS_simulations.bam --pmd $pmd --recal $model --onlyLL --fixedSeed 0 --out onlyLL_$dh --logFile onlyLL_$dh.out --genoDist $dh
