@@ -2,4 +2,4 @@
 # runs simulator with some default arguments for all examples. Additional arguments can be passed
 
 . $(dirname $0)/find_atlas
-. $(dirname $0)/simulate --chrLength 50000,40000,60000 --depth 10,8,12 --ploidy 2,1,2 "$@"
+$atlas --task simulate --fixedSeed 0 --logFile simulate.log --chrLength 50000,40000,60000 --depth 10,8,12 --ploidy 2,1,2 "$@"
