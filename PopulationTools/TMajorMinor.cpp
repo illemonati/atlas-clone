@@ -120,40 +120,33 @@ static TMMData estimate(const GLF::TMultiGLFData &data, double maxF, genometools
 
 struct TSkotte {
 	static auto find(const GLF::TMultiGLFData &data, double maxF, genometools::Base base) {
-		static const genometools::TGenotypeFrequencies prior = []() {
-			genometools::TGenotypeFrequencies tmp;
-			using BG            = genometools::BiallelicGenotype;
-			tmp[BG::homoFirst]  = 0.25;
-			tmp[BG::het]        = 0.50;
-			tmp[BG::homoSecond] = 0.25;
-
-			// haploid
-			tmp[BG::haploidFirst]  = 0.50;
-			tmp[BG::haploidSecond] = 0.50;
-			return tmp;
-		}();
-		// diploid
-
-		genometools::TGenotypeFrequencies GFs;
 		// calculate L10L for each allelic combination used
 		const auto used = impl::useAllelicCombinationsThatContain(base);
-		impl::TAlleleicCombinationData Ls;
-		for (const auto ac : used) {
-			auto GLs = fill(data, ac);
-			Ls[ac] = prior.calculateLog10Likelihood(GLs, GLs.size());
+		impl::TAlleleicCombinationData Ls{};
+		for (auto ac : used) Ls[ac] = 0.;
+		for (const auto &d : data) {
+			if (!d.hasData()) continue;
+			if (d.isHaploid()) {
+				for (auto ac : used) {
+					Ls[ac] += log10(0.5 * (coretools::Probability)d[genometools::first(ac)] +
+									0.5 * (coretools::Probability)d[genometools::second(ac)]);
+				}
+			} else {
+				for (auto ac : used) {
+					Ls[ac] += log10(0.25 * (coretools::Probability)d[genometools::homoFirst(ac)] +
+									0.5 * (coretools::Probability)d[genometools::het(ac)] +
+									0.25 * (coretools::Probability)d[genometools::homoSecond(ac)]);
+				}
+			}
 		}
-
-		// pick combination with highest likelihood
-		const auto ac = impl::chooseBestAllelicCombination(Ls);
+		AllelicCombination bestAC = impl::chooseBestAllelicCombination(Ls);
 
 		// now estimate genotype frequencies at MLE allelic combination
-		auto GLs = fill(data, ac);
+		auto GLs = fill(data, bestAC);
+		genometools::TGenotypeFrequencies GFs;
 		GFs.estimate<false>(GLs, GLs.size(), maxF);
 
-		// calculate likelihood again with better genotype frequencies
-		Ls[ac] = GFs.calculateLog10Likelihood(GLs, GLs.size());
-
-		return std::make_tuple(ac, GFs.calculateLog10Likelihood(GLs, GLs.size()), GFs);
+		return std::make_tuple(bestAC, GFs.calculateLog10Likelihood(GLs, GLs.size()), GFs);
 	}
 };
 
@@ -178,6 +171,37 @@ struct TMLE {
 			}
 		}
 		return std::make_tuple(bestAC, bestL, bestFreqs);
+	}
+};
+
+struct TApproxL {
+	static auto find(const GLF::TMultiGLFData &data, double maxF, genometools::Base base) {
+		// calculate L10L for each allelic combination
+		const auto used = impl::useAllelicCombinationsThatContain(base);
+
+		coretools::Log10Probability bestL = coretools::Log10Probability::lowest();
+		AllelicCombination bestAC         = AllelicCombination::min;
+		for (const auto ac : used) {
+			double L = 0.;
+			for (const auto &d: data) {
+				if (!d.hasData()) continue;
+				if (d.isHaploid()) {
+					L+= d[genometools::first(ac)].get() + d[genometools::second(ac)].get();
+				} else {
+					L+= d[genometools::homoFirst(ac)].get() + d[genometools::het(ac)].get() + d[genometools::homoSecond(ac)].get();
+				}
+			}
+			if ((L > bestL) || (L == bestL && randomGenerator().getRand() > 0.5)) {
+				bestL     = L;
+				bestAC    = ac;
+			}
+		}
+
+		auto GLs = fill(data, bestAC);
+		genometools::TGenotypeFrequencies GFs;
+		GFs.estimate<false>(GLs, GLs.size(), maxF);
+
+		return std::make_tuple(bestAC, GFs.calculateLog10Likelihood(GLs, GLs.size()), GFs);
 	}
 };
 
@@ -363,6 +387,10 @@ void TMajorMinor::run() {
 		logfile().list("Will estimate major / minor alleles using the MLE method with maxF ", maxF,
 					   ". (parameters method and maxF)");
 		iterate<TMLE>(maxF);
+	} else if (method == "ApproxL") {
+		logfile().list("Will estimate major / minor alleles using the MLE method with maxF ", maxF,
+					   ". (parameters method and maxF)");
+		iterate<TApproxL>(maxF);
 	} else {
 		UERROR("Unknown MajorMinor method '", method, "'!");
 	}
