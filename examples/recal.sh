@@ -5,8 +5,8 @@
 # see python ../tools/plotRecal.py "0.1 + 0.8*x + 0.2*x**2 + 0.01*x**3"
 model="intercept[0.1];quality:polynomial[0.8,0.2,0.01]"
 
-# Simululate polynomial model
-$atlas --task simulate --recal $model --fixedSeed 0 --logFile simulate.out
+# Simulate polynomial model
+. $(dirname $0)/simulate --recal $model
 
 printf "#%-10s %s\n" "LL" "model" > LL.txt
 

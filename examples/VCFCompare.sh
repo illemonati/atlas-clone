@@ -2,6 +2,7 @@
 
 . $(dirname $0)/find_atlas
 
+
 $atlas --task simulate --vcf --type HW --sampleSize 2 --chrLength 2000 --ploidy 2 --fixedSeed 1 --out simulate1 --logFile simulate1.out
 $atlas --task simulate --vcf --type HW --sampleSize 2 --chrLength 2000 --ploidy 2 --fixedSeed 2 --out simulate2 --logFile simulate2.out
 

@@ -1,8 +1,7 @@
 #! /bin/bash
 
 . $(dirname $0)/find_atlas
-
-$atlas --task simulate --fixedSeed 0 --out simulate --logFile simulate.out 
+. $(dirname $0)/simulate --out simulate 
 $atlas --task removeSoftClippedBases --bam simulate.bam --fixedSeed 0 --out removeSoftClippedBases --logFile removeSoftClippedBases.out 
 
 for f in *.bam; do

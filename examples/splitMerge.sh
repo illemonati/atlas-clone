@@ -3,7 +3,7 @@
 . $(dirname $0)/find_atlas
 
 # paired end
-$atlas --task simulate --numReadGroups 10 --fixedSeed 0 --seqType paired --out paired --logFile paired.out
+. $(dirname $0)/simulate --numReadGroups 10 --seqType paired --out paired --logFile paired.out
 echo "readGroup seqType seqCycles" > rgs_paired.txt
 echo "SimReadGroup1 paired 100" >> rgs_paired.txt
 echo "SimReadGroup3 paired 100" >> rgs_paired.txt
@@ -18,7 +18,7 @@ $atlas --task splitMerge --bam paired.bam --readGroupSettings rgs_paired.txt --l
 $atlas --task splitMerge --bam paired.bam --readGroupSettings rgs_paired.txt --logFile randomMerge.out --mergingMethod randomRead --fixedSeed 0 --out randomMerge
 
 # single end
-$atlas --task simulate --numReadGroups 10 --fixedSeed 0 --seqType single --logFile single.out --out single
+. $(dirname $0)/simulate --numReadGroups 10 --seqType single --logFile single.out --out single
 echo "readGroup seqType seqCycles" > rgs_single.txt
 echo "SimReadGroup1 single 100" >> rgs_single.txt
 echo "SimReadGroup3 single 100" >> rgs_single.txt

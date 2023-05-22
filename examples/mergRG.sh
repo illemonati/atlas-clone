@@ -3,7 +3,7 @@
 . $(dirname $0)/find_atlas
 
 # paired end
-$atlas --task simulate --numReadGroups 10 --fixedSeed 0 --out simulate --logFile simulate.out
+. $(dirname $0)/simulate --numReadGroups 10 --out simulate
 echo "SimReadGroup1 SimReadGroup2" > rgs.txt
 echo "SimReadGroup3 SimReadGroup4 SimReadGroup5 SimReadGroup6 SimReadGroup7 SimReadGroup8 SimReadGroup9 SimReadGroup10" >> rgs.txt
 

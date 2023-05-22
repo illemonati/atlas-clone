@@ -1,8 +1,7 @@
 #! /bin/bash
 
 . $(dirname $0)/find_atlas
-
-$atlas --task simulate --type HW --F 0.1 --sampleSize 20 --chrLength 1000 --fracPoly 1.0 --alpha 2.0 --beta 2.0 --seqType single --seqCycles 100 --fixedSeed 0 --logFile simulate.out
+. $(dirname $0)/simulate --type HW --F 0.1 --sampleSize 20 --chrLength 1000 --fracPoly 1.0 --alpha 2.0 --beta 2.0 --seqType single --seqCycles 100
 
 $atlas --task filterBAM --bam ATLAS_simulations_ind1.bam --fixedSeed 0 --filterSoftClips --logFile filterBAM_1.out
 for i in {2..20}; do

@@ -362,6 +362,19 @@ bool TGlfReader::readNextWindow(std::vector<TGLFLikelihoods> &genoLikelihoods, u
 void TGlfReader::printChr() {
 	std::cout << "CHROMOSOME: '" << _curChr.name() << "' of length " << _curChr.length() << " and ploidy "
 		  << (int)_curChr.ploidy() << "\n";
+	
+	// print header
+	std::cout << "chr\tpos\tdepth\tRMS(MQ)";
+	if(_curChr.isHaploid()){
+		for(auto g = genometools::Base::min; g < genometools::Base::max; ++g){
+			std::cout << "\tLL(" << genometools::toString(g) << ")";
+		}		
+	} else {
+		for(auto g = genometools::Genotype::min; g < genometools::Genotype::max; ++g){
+			std::cout << "\tLL(" << genometools::toString(g) << ")";
+		}		
+	}
+	std::cout << "\n";
 };
 
 void TGlfReader::printSite() {
@@ -373,9 +386,9 @@ void TGlfReader::printSite() {
 };
 
 void TGlfReader::printToEnd() { // For debugging
-	// first print header
-	std::cout << _version << "\n";
-	//std::cout << _header << "\n";
+	std::cout << "GLF version is " << _version << "\n";	
+
+	// first chromosome	
 	printChr();
 
 	// now parse file

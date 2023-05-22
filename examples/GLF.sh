@@ -1,6 +1,6 @@
 #! /bin/bash
 
 . $(dirname $0)/find_atlas
+. $(dirname $0)/simulate
 
-$atlas --task simulate --fixedSeed 0 --logFile simulate.out
 $atlas --task GLF --bam ATLAS_simulations.bam --printAll --logFile GLF.out

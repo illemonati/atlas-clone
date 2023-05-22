@@ -1,8 +1,7 @@
 #! /bin/bash
 
 . $(dirname $0)/find_atlas
-
-$atlas --task simulate --fixedSeed 0 --logFile simulate.out
+. $(dirname $0)/simulate
 
 # test bam-index with .bai instead of .bam.bai suffix
 mv ATLAS_simulations.bam.bai ATLAS_simulations.bai
