@@ -114,9 +114,9 @@ void makeChromosomes(TChromosomes & chs, std::vector<size_t> & depths){
 	depths.clear();
 
 	//parse chr details
-	auto chrLengths = parse("chrLength", "chromosome length", {50'000, 40'000, 60'000});
-	depths          = parse("depth", "sequencing depth", {10, 8, 12});
-	auto ploidies   = parse("ploidy", "ploidy", {2, 1, 2});
+	auto chrLengths = parse("chrLength", "chromosome length", {10000});
+	depths          = parse("depth", "sequencing depth", {5});
+	auto ploidies   = parse("ploidy", "ploidy", {2});
 
 	//check if ploidy is supported
 	for (auto &p : ploidies) {
@@ -474,7 +474,7 @@ TVCFSimulator::TVCFSimulator(const std::string &method) : TSimulator(method) {
 
 	// open VCF file and write header
 	std::string filename = _outname + ".vcf.gz";
-	logfile().list("Writing vcf to file " + filename + "...");
+	logfile().list("Writing VCF to file '" + filename + "'.");
 	_vcf = std::make_unique<TVCFWriterSimulation>(filename, "ATLAS_simulations", sampleNames, usePhredLikelihoods);
 }
 

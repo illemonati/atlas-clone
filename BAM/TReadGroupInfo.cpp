@@ -187,7 +187,7 @@ BAM::TReadGroups TReadGroupInfo::createReadGroups(std::string_view RgInfoFileNam
 		}
 	} else {
 		// create identical read groups from command line
-		const auto numRG = parameters().getParameterWithDefault<coretools::StrictlyPositive<int>>(numRGArgument, 2);
+		const auto numRG = parameters().getParameterWithDefault<coretools::StrictlyPositive<int>>(numRGArgument, 1);
 		if (numRG == 1) {
 			logfile().list("Initializing one read group from arguments. (parameter '", numRGArgument, "')");
 		} else {
