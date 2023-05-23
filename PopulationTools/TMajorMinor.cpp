@@ -26,6 +26,7 @@
 #include "coretools/Main/TParameters.h"
 #include "coretools/Main/TRandomGenerator.h"
 #include "coretools/Main/TTask.h"
+#include "coretools/Math/TSumLog.h"
 #include "coretools/Strings/stringFunctions.h"
 #include "coretools/TTimer.h"
 #include "coretools/Types/probability.h"
@@ -57,8 +58,6 @@ using GLF::TMultiGLFData;
 
 namespace impl {
 
-using TAlleleicCombinationData = coretools::TStrongArray<coretools::Log10Probability, genometools::AllelicCombination>;
-
 constexpr coretools::TDualArray<AllelicCombination, 3, index(AllelicCombination::max)>
 useAllelicCombinationsThatContain(Base base) {
 	using AC = AllelicCombination;
@@ -71,9 +70,10 @@ useAllelicCombinationsThatContain(Base base) {
 	}
 };
 
-AllelicCombination chooseBestAllelicCombination(const TAlleleicCombinationData &acd) {
+template <typename Container>
+AllelicCombination chooseBestAllelicCombination(const Container &acd) {
 	return randomGenerator()
-		.sampleIndexOfMaxima<TAlleleicCombinationData, AllelicCombination, index(AllelicCombination::max)>(acd);
+		.sampleIndexOfMaxima<Container, AllelicCombination, index(AllelicCombination::max)>(acd);
 };
 
 } // namespace impl
@@ -129,24 +129,29 @@ struct TSkotte {
 	static auto find(coretools::TConstView<GLF::TMultiGLFDataSample> data, double maxF, genometools::Base base) {
 		// calculate L10L for each allelic combination used
 		const auto used = impl::useAllelicCombinationsThatContain(base);
-		impl::TAlleleicCombinationData Ls{};
-		for (auto ac : used) Ls[ac] = 0.;
+		coretools::TStrongArray<coretools::TSumLogProbability, AllelicCombination> Ls{};
 		for (const auto &d : data) {
 			if (!d.hasData()) continue;
 			if (d.isHaploid()) {
 				for (auto ac : used) {
-					Ls[ac] += log10(0.5 * (coretools::Probability)d[genometools::first(ac)] +
-									0.5 * (coretools::Probability)d[genometools::second(ac)]);
+					Ls[ac].add(0.5 * ((coretools::Probability)d[genometools::first(ac)] +
+									  (coretools::Probability)d[genometools::second(ac)]));
 				}
 			} else {
 				for (auto ac : used) {
-					Ls[ac] += log10(0.25 * (coretools::Probability)d[genometools::homoFirst(ac)] +
-									0.5 * (coretools::Probability)d[genometools::het(ac)] +
-									0.25 * (coretools::Probability)d[genometools::homoSecond(ac)]);
+					Ls[ac].add(0.25 * ((coretools::Probability)d[genometools::homoFirst(ac)] +
+									   (coretools::Probability)d[genometools::homoSecond(ac)]) +
+							   0.5 * (coretools::Probability)d[genometools::het(ac)]);
 				}
 			}
 		}
-		AllelicCombination bestAC = impl::chooseBestAllelicCombination(Ls);
+
+		coretools::TStrongArray<double, AllelicCombination> LLs{std::numeric_limits<double>::lowest()};
+		for (auto ac : used) {
+			LLs[ac] = Ls[ac].getSum();
+		}
+
+		AllelicCombination bestAC = impl::chooseBestAllelicCombination(LLs);
 
 		// now estimate genotype frequencies at MLE allelic combination
 		auto GLs = fill(data, bestAC);
@@ -336,6 +341,7 @@ template<typename Estimator> void iterate(double maxF) {
 
 	for (auto ids = glfReader.readWindow(); !ids.empty(); ids = glfReader.readWindow()) {
 		std::vector<TMMData> data(ids.back() + 1);
+
 #pragma omp parallel for num_threads(maxThreads)
 		for (auto i : ids) {
 			const Base ref = glfReader.refBase(i); // can be N
