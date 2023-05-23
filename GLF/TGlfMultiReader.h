@@ -95,7 +95,7 @@ public:
 using TMultiGLFDataOneAllelicCombination = std::vector<TMultiGLFDataSampleOneAllelicCombination>;
 using TMultiGLFData                      = std::vector<TMultiGLFDataSample>;
 
-TMultiGLFDataOneAllelicCombination fill(const TMultiGLFData &samples,
+TMultiGLFDataOneAllelicCombination fill(coretools::TConstView<GLF::TMultiGLFDataSample> samples,
 										genometools::AllelicCombination alleleicCombination);
 
 //----------------------------------------------------

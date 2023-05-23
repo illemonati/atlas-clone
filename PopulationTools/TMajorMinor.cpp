@@ -7,27 +7,34 @@
 
 #include "TMajorMinor.h"
 
-#include <stddef.h>
-#include <stdint.h>
 #include <algorithm>
+#include <array>
 #include <exception>
 #include <memory>
+#include <set>
+#include <stddef.h>
+#include <stdint.h>
+#include <string>
 #include <tuple>
 #include <vector>
 
-#include "coretools/devtools.h"
-#include "genometools/GenotypeTypes.h"
+#include "TGlfMultiReader.h"
 #include "coretools/Containers/TDualArray.h"
+#include "coretools/Containers/TStrongArray.h"
+#include "coretools/Containers/TView.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/Main/TRandomGenerator.h"
+#include "coretools/Main/TTask.h"
+#include "coretools/Strings/stringFunctions.h"
 #include "coretools/TTimer.h"
 #include "coretools/Types/probability.h"
-#include "coretools/Strings/stringFunctions.h"
 #include "coretools/Types/strongTypes.h"
 #include "coretools/Types/weakTypes.h"
+#include "coretools/devtools.h"
+#include "genometools/GenotypeTypes.h"
 #include "genometools/PhredProbabilityTypes.h"
-
+#include "genometools/TGenotypeFrequencies.h"
 
 #ifdef _OPENMP
 #include "omp.h"
@@ -79,7 +86,7 @@ struct TMMData {
 };
 
 template<typename AllelicFinder>
-static TMMData estimate(const GLF::TMultiGLFData &data, double maxF, genometools::Base base = genometools::Base::N) {
+static TMMData estimate(coretools::TConstView<GLF::TMultiGLFDataSample> data, double maxF, genometools::Base base = genometools::Base::N) {
 	using coretools::Log10Probability;
 
 	auto [_bestAllelicCombination, L, genotypeFrequencies] = AllelicFinder::find(data, maxF, base);
@@ -119,7 +126,7 @@ static TMMData estimate(const GLF::TMultiGLFData &data, double maxF, genometools
 }
 
 struct TSkotte {
-	static auto find(const GLF::TMultiGLFData &data, double maxF, genometools::Base base) {
+	static auto find(coretools::TConstView<GLF::TMultiGLFDataSample> data, double maxF, genometools::Base base) {
 		// calculate L10L for each allelic combination used
 		const auto used = impl::useAllelicCombinationsThatContain(base);
 		impl::TAlleleicCombinationData Ls{};
@@ -151,7 +158,7 @@ struct TSkotte {
 };
 
 struct TMLE {
-	static auto find(const GLF::TMultiGLFData &data, double maxF, genometools::Base base) {
+	static auto find(coretools::TConstView<GLF::TMultiGLFDataSample> data, double maxF, genometools::Base base) {
 		// calculate L10L for each allelic combination
 		const auto used = impl::useAllelicCombinationsThatContain(base);
 
@@ -175,7 +182,7 @@ struct TMLE {
 };
 
 struct TApproxL {
-	static auto find(const GLF::TMultiGLFData &data, double maxF, genometools::Base base) {
+	static auto find(coretools::TConstView<GLF::TMultiGLFDataSample> data, double maxF, genometools::Base base) {
 		// calculate L10L for each allelic combination
 		const auto used = impl::useAllelicCombinationsThatContain(base);
 

@@ -65,7 +65,7 @@ void _checkChromosomeInfo(const TGlfChromosome & _curChr, const std::vector<TGlf
 
 } // namespace impl
 
-TMultiGLFDataOneAllelicCombination fill(const TMultiGLFData &samples,
+TMultiGLFDataOneAllelicCombination fill(coretools::TConstView<GLF::TMultiGLFDataSample> samples,
 		  genometools::AllelicCombination alleleicCombination) {
 	TMultiGLFDataOneAllelicCombination storage;
 	storage.reserve(samples.size());
