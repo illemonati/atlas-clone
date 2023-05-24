@@ -61,7 +61,7 @@ inline const coretools::TStrongArray<TInfoArgument, InfoType> infos = []() {
 	i[InfoType::fragmentLength] = {"fragmentLength", "fragment length distribution", "gamma(10,0.2)[30,200]"};
 	i[InfoType::baseQuality]    = {"baseQuality", "base quality distribution", "normal(30,10)[0,93]"};
 	i[InfoType::mappingQuality] = {"mappingQuality", "mapping quality distribution", "normal(60,10)[1,255]"};
-	i[InfoType::softClipping]   = {"softClipping", "soft clipping distribution", "exponential(0.5)[0,20]"};
+	i[InfoType::softClipping]   = {"softClipping", "soft clipping distribution", "poisson(0.5)[0,20]"};
 	i[InfoType::recal]          = {"recal", "base quality score recalibration model", "-"};
 	i[InfoType::pmd]            = {"pmd", "Postmortem damage model", "-"};
 	return i;
