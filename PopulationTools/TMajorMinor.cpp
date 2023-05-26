@@ -25,6 +25,7 @@
 #include "coretools/Containers/TDualStrongArray.h"
 #include "coretools/Containers/TStrongArray.h"
 #include "coretools/Containers/TView.h"
+#include "coretools/Main/TError.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/Main/TRandomGenerator.h"
@@ -56,6 +57,7 @@ using genometools::Base;
 using genometools::Genotype;
 using coretools::index;
 using coretools::Probability;
+using coretools::TConstView;
 using coretools::Log10Probability;
 using coretools::TStrongArray;
 using coretools::TDualStrongArray;
@@ -93,117 +95,78 @@ struct TMMData {
 	genometools::Base minor;
 };
 
-template<typename AllelicFinder>
-static TMMData estimate(coretools::TConstView<GLF::TMultiGLFDataSample> data, double maxF, genometools::Base base = genometools::Base::N) {
-	using coretools::Log10Probability;
+class TSkotte {
+	enum class HaploDiplo : size_t { min, first = min, second, homoFirst, het, homoSecond, max };
 
-	auto [_bestAllelicCombination, L, genotypeFrequencies] = AllelicFinder::find(data, maxF, base);
-	Base _major, _minor;
-
-	// which one is major?
-	if (genotypeFrequencies.alleleFrequency() < 0.5) {
-		_major = first(_bestAllelicCombination);
-		_minor = second(_bestAllelicCombination);
-	} else {
-		_major = second(_bestAllelicCombination);
-		_minor = first(_bestAllelicCombination);
+	static HaploDiplo _haploIndex(Probability pFirst, Probability pSecond) {
+		return HaploDiplo(pSecond.isHigher(pFirst));
 	}
 
-	if (_minor == base) { // cannot happen if base == ref
-		_minor = _major;
-		_major = base;
+	static HaploDiplo _diploIndex(Probability pHomoFirst, Probability pHet, Probability pHomoSecond) {
+		std::array<Probability, 3> es = {pHomoFirst, pHet, pHomoSecond};
+		return HaploDiplo(2 + std::distance(es.begin(), std::max_element(es.begin(), es.end())));
 	}
 
-	// calculate variant quality
-	const auto refHom                  = genometools::genotype(_major, _major);
-	Log10Probability LL_fixed_glfPhred = 0.0;
-	for (size_t i = 0; i < data.size(); ++i) {
-		if (data[i].hasData()) {
-			if (data[i].isHaploid())
-				LL_fixed_glfPhred += (Log10Probability)data[i][_major];
-			else
-				LL_fixed_glfPhred += (Log10Probability)data[i][refHom];
-		}
+	static double _haploWeights(Probability pFirst, Probability pSecond,
+							  const TStrongArray<Probability, HaploDiplo> freqs) {
+		const double weights0 = pFirst * freqs[HaploDiplo::first];
+		const double weights1 = pSecond * freqs[HaploDiplo::second];
+		const double sum      = weights0 + weights1;
+		return weights0 / sum;
 	}
-	genometools::PhredIntProbability _variantQuality{LL_fixed_glfPhred > L ? Log10Probability(0.0)
-																		   : Log10Probability(LL_fixed_glfPhred - L)};
-	return {genotypeFrequencies.MAF(), _variantQuality, _major, _minor};
-}
 
-struct TSkotte {
-	static TMMData estimate(coretools::TConstView<GLF::TMultiGLFDataSample> data, double maxF, genometools::Base base) {
-		std::vector<coretools::TDualStrongArray<Probability, Base, Genotype>> glfs;
-		glfs.reserve(data.size());
+	static std::pair<double, double> _diploWeights(Probability pHomoFirst, Probability pHet, Probability pHomoSecond,
+												   const TStrongArray<Probability, HaploDiplo> freqs) {
+		const double weights0 = pHomoFirst * freqs[HaploDiplo::homoFirst];
+		const double weights1 = pHet * freqs[HaploDiplo::het];
+		const double weights2 = pHomoSecond * freqs[HaploDiplo::homoSecond];
+		const double sum      = weights0 + weights1 + weights2;
+		return {weights0 / sum, weights2 / sum};
+	}
 
-		const auto used = impl::useAllelicCombinationsThatContain(base);
-		coretools::TStrongArray<coretools::TSumLogProbability, AllelicCombination> Ls{};
+	template<bool hasHaploid, bool hasDiploid>
+	static auto _iterate(TConstView<coretools::TDualStrongArray<Probability, Base, Genotype>> glfs, AllelicCombination ac, double maxF) {
+		constexpr bool hasBoth = hasHaploid && hasDiploid;
 
-		for (const auto &d : data) {
-			if (!d.hasData()) continue;
-			if (d.isHaploid()) {
-				glfs.emplace_back(TStrongArray<Probability, Base>{{(Probability)d[Base::A], (Probability)d[Base::G],
-																   (Probability)d[Base::C], (Probability)d[Base::T]}});
-				for (auto ac : used) {
-					Ls[ac].add(0.5 * (glfs.back()[genometools::first(ac)] + glfs.back()[genometools::second(ac)]));
+		const auto first      = genometools::first(ac);
+		const auto second     = genometools::second(ac);
+		const auto homoFirst  = genometools::homoFirst(ac);
+		const auto het        = genometools::het(ac);
+		const auto homoSecond = genometools::homoSecond(ac);
+
+		// Initial guess
+		TStrongArray<size_t, HaploDiplo> counts{0};
+		for (const auto &g : glfs) {
+			if constexpr (hasBoth) {
+				if (g.isType<coretools::ABType::A>()) { // Haploid
+					++counts[_haploIndex(g[first], g[second])];
+				} else { // Diploid
+					++counts[_diploIndex(g[homoFirst], g[het], g[homoSecond])];
 				}
-			} else {
-				glfs.emplace_back(TStrongArray<Probability, Genotype>{
-				    {(Probability)d[Genotype::AA], (Probability)d[Genotype::AC],
-				     (Probability)d[Genotype::AG], (Probability)d[Genotype::AT],
-				     (Probability)d[Genotype::CC], (Probability)d[Genotype::CG],
-				     (Probability)d[Genotype::CT], (Probability)d[Genotype::GG],
-				     (Probability)d[Genotype::GT], (Probability)d[Genotype::TT]}});
-				for (auto ac : used) {
-					Ls[ac].add(0.25 * (glfs.back()[genometools::homoFirst(ac)] + glfs.back()[genometools::homoSecond(ac)]) +
-							   0.5 * glfs.back()[genometools::het(ac)]);
-				}
+			} else if (hasHaploid) {
+				++counts[_haploIndex(g[first], g[second])];
+			} else if (hasDiploid) {
+				++counts[_diploIndex(g[homoFirst], g[het], g[homoSecond])];
 			}
 		}
 
-		TStrongArray<double, AllelicCombination> LLs{std::numeric_limits<double>::lowest()};
-		for (auto ac : used) {
-			LLs[ac] = Ls[ac].getSum();
-		}
-
-		const auto bestAC     = impl::chooseBestAllelicCombination(LLs);
-		const auto first      = genometools::first(bestAC);
-		const auto second     = genometools::second(bestAC);
-		const auto homoFirst  = genometools::homoFirst(bestAC);
-		const auto het        = genometools::het(bestAC);
-		const auto homoSecond = genometools::homoSecond(bestAC);
-
-		enum class HaploDiplo: size_t {min, first=min, second, homoFirst, het, homoSecond, max};
 		constexpr Probability fMin = 0.000001;
 		TStrongArray<Probability, HaploDiplo> freqs{0};
-		std::array<size_t, 2> haploCounts{0};
-		std::array<size_t, 3> diploCounts{0};
-
-		// guess
-		for (const auto &g : glfs) {
-			if (g.isType<coretools::ABType::A>()) { // haploid
-				const size_t i = g[second].isHigher(g[first]);
-				++haploCounts[i];
-			} else {
-				std::array<Probability, 3> es = {g[homoFirst], g[het], g[homoSecond]};
-				const size_t i                = std::distance(es.begin(), std::max_element(es.begin(), es.end()));
-				++diploCounts[i];
-			}
-		}
-		const auto nHaplo = haploCounts.front() + haploCounts.back();
-		const double nHaplo_1 = 1./nHaplo;
-		if (nHaplo) {
-			freqs[HaploDiplo::first]  = std::max<Probability>(double(haploCounts.front())*nHaplo_1, fMin);
-			freqs[HaploDiplo::second] = std::max<Probability>(double(haploCounts.front())*nHaplo_1, fMin);
-			const auto sum = freqs[HaploDiplo::first] + freqs[HaploDiplo::second];
+		const auto nHaplo     = counts[HaploDiplo::first] + counts[HaploDiplo::second];
+		const double nHaplo_1 = 1. / nHaplo;
+		if constexpr (hasHaploid) {
+			freqs[HaploDiplo::first]  = std::max<Probability>(double(counts[HaploDiplo::first]) * nHaplo_1, fMin);
+			freqs[HaploDiplo::second] = std::max<Probability>(double(counts[HaploDiplo::second]) * nHaplo_1, fMin);
+			const auto sum            = freqs[HaploDiplo::first] + freqs[HaploDiplo::second];
 			freqs[HaploDiplo::first].scale(sum);
 			freqs[HaploDiplo::second].scale(sum);
 		}
-		const auto nDiplo = diploCounts[0] + diploCounts[1] + diploCounts[2];
-		const double nDiplo_1 = 1./nDiplo;
-		if (nDiplo) {
-			freqs[HaploDiplo::homoFirst]  = std::max<Probability>(double(diploCounts[0]) * nDiplo_1, fMin);
-			freqs[HaploDiplo::het]        = std::max<Probability>(double(diploCounts[1]) * nDiplo_1, fMin);
-			freqs[HaploDiplo::homoSecond] = std::max<Probability>(double(diploCounts[2]) * nDiplo_1, fMin);
+		const auto nDiplo     = counts[HaploDiplo::homoFirst] + counts[HaploDiplo::het] + counts[HaploDiplo::homoSecond];
+		const double nDiplo_1 = 1. / nDiplo;
+		if constexpr (hasDiploid) {
+			freqs[HaploDiplo::homoFirst]  = std::max<Probability>(double(counts[HaploDiplo::homoFirst]) * nDiplo_1, fMin);
+			freqs[HaploDiplo::het]        = std::max<Probability>(double(counts[HaploDiplo::het]) * nDiplo_1, fMin);
+			freqs[HaploDiplo::homoSecond] = std::max<Probability>(double(counts[HaploDiplo::homoSecond]) * nDiplo_1, fMin);
 			const auto sum = freqs[HaploDiplo::homoFirst] + freqs[HaploDiplo::het] + freqs[HaploDiplo::homoSecond];
 			freqs[HaploDiplo::homoFirst].scale(sum);
 			freqs[HaploDiplo::het].scale(sum);
@@ -219,22 +182,24 @@ struct TSkotte {
 			double dplF2 = 0;
 
 			for (const auto &g : glfs) {
-				if (g.isType<coretools::ABType::A>()) { // haploid
-					const double weights0 = g[first] * freqs[HaploDiplo::first];
-					const double weights1 = g[second] * freqs[HaploDiplo::second];
-					const double sum      = weights0 + weights1;
-					hplF0 += weights0 / sum;
-				} else {
-					const double weights0 = g[homoFirst] * freqs[HaploDiplo::homoFirst];
-					const double weights1 = g[het] * freqs[HaploDiplo::het];
-					const double weights2 = g[homoSecond] * freqs[HaploDiplo::homoSecond];
-					const double sum      = weights0 + weights1 + weights2;
-					dplF0 += weights0 / sum;
-					dplF2 += weights2 / sum;
+				if constexpr (hasBoth) {
+					if (g.isType<coretools::ABType::A>()) { // haploid
+						hplF0 += _haploWeights(g[first], g[second], freqs);
+					} else {
+						const auto [w0, w2] = _diploWeights(g[homoFirst], g[het], g[homoSecond], freqs);
+						dplF0 += w0;
+						dplF2 += w2;
+					}
+				} else if (hasHaploid) {
+					hplF0 += _haploWeights(g[first], g[second], freqs);
+				} else if (hasDiploid) {
+					const auto [w0, w2] = _diploWeights(g[homoFirst], g[het], g[homoSecond], freqs);
+					dplF0 += w0;
+					dplF2 += w2;
 				}
 			}
-			double maxF_i;
-			if (nHaplo) {
+			double maxF_i{};
+			if constexpr (hasHaploid) {
 				hplF0 *= nHaplo_1;
 				const auto hplF1 = 1.0 - std::min(1.0, hplF0);
 
@@ -244,14 +209,14 @@ struct TSkotte {
 				freqs[HaploDiplo::first] = hplF0;
 				freqs[HaploDiplo::second]= hplF1;
 			}
-			if (nDiplo) {
+			if constexpr (hasDiploid) {
 				dplF0 *= nDiplo_1;
 				dplF2 *= nDiplo_1;
 				const auto dplF1 = 1.0 - std::min(1.0, (dplF0 + dplF2));
 				// 1 - sum ensures range despite numeric inaccuracies
 
 				// check if we stop
-				if (nHaplo) {
+				if constexpr (hasHaploid) {
 					maxF_i =
 						std::max({maxF_i, fabs(dplF0 - freqs[HaploDiplo::homoFirst]),
 								  fabs(dplF1 - freqs[HaploDiplo::het]), fabs(dplF2 - freqs[HaploDiplo::homoSecond])});
@@ -281,14 +246,80 @@ struct TSkotte {
 
 		coretools::TSumLogProbability L{};
 		for (const auto &g : glfs) {
-			if (g.isType<coretools::ABType::A>()) { // haploid
-				L.add(g[first]*freqs[HaploDiplo::first] + g[second]*freqs[HaploDiplo::second]);
-			} else {
-				L.add(g[homoFirst]*freqs[HaploDiplo::homoFirst] + g[het]*freqs[HaploDiplo::het] + g[homoSecond]*freqs[HaploDiplo::homoSecond]);
+			if constexpr (hasBoth) {
+				if (g.isType<coretools::ABType::A>()) { // haploid
+					L.add(g[first] * freqs[HaploDiplo::first] + g[second] * freqs[HaploDiplo::second]);
+				} else {
+					L.add(g[homoFirst] * freqs[HaploDiplo::homoFirst] + g[het] * freqs[HaploDiplo::het] +
+						  g[homoSecond] * freqs[HaploDiplo::homoSecond]);
+				}
+			} else if (hasHaploid) {
+				L.add(g[first] * freqs[HaploDiplo::first] + g[second] * freqs[HaploDiplo::second]);
+			} else if (hasDiploid) {
+				L.add(g[homoFirst] * freqs[HaploDiplo::homoFirst] + g[het] * freqs[HaploDiplo::het] +
+					  g[homoSecond] * freqs[HaploDiplo::homoSecond]);
 			}
 		}
-		constexpr double l10_1 = 0.43429448190325176;
+		constexpr double l10_1       = 0.43429448190325176;
 		const Log10Probability bestL = L.getSum()*l10_1;
+
+		return std::make_tuple(MAF, bestL, major, minor);
+	}
+
+public:
+	static TMMData estimate(coretools::TConstView<GLF::TMultiGLFDataSample> data, double maxF, genometools::Base base) {
+		std::vector<coretools::TDualStrongArray<Probability, Base, Genotype>> glfs;
+		glfs.reserve(data.size());
+
+		const auto used = impl::useAllelicCombinationsThatContain(base);
+		coretools::TStrongArray<coretools::TSumLogProbability, AllelicCombination> Ls{};
+
+		bool hasHaploid = false;
+		bool hasDiploid = false;
+		for (const auto &d : data) {
+			if (!d.hasData()) continue;
+			if (d.isHaploid()) {
+				hasHaploid = true;
+				glfs.emplace_back(TStrongArray<Probability, Base>{{(Probability)d[Base::A], (Probability)d[Base::G],
+																   (Probability)d[Base::C], (Probability)d[Base::T]}});
+				for (auto ac : used) {
+					Ls[ac].add(0.5 * (glfs.back()[genometools::first(ac)] + glfs.back()[genometools::second(ac)]));
+				}
+			} else {
+				hasDiploid = true;
+				glfs.emplace_back(TStrongArray<Probability, Genotype>{
+				    {(Probability)d[Genotype::AA], (Probability)d[Genotype::AC],
+				     (Probability)d[Genotype::AG], (Probability)d[Genotype::AT],
+				     (Probability)d[Genotype::CC], (Probability)d[Genotype::CG],
+				     (Probability)d[Genotype::CT], (Probability)d[Genotype::GG],
+				     (Probability)d[Genotype::GT], (Probability)d[Genotype::TT]}});
+				for (auto ac : used) {
+					Ls[ac].add(0.25 * (glfs.back()[genometools::homoFirst(ac)] + glfs.back()[genometools::homoSecond(ac)]) +
+							   0.5 * glfs.back()[genometools::het(ac)]);
+				}
+			}
+		}
+
+		TStrongArray<double, AllelicCombination> LLs{std::numeric_limits<double>::lowest()};
+		for (auto ac : used) {
+			LLs[ac] = Ls[ac].getSum();
+		}
+		const auto bestAC     = impl::chooseBestAllelicCombination(LLs);
+
+		const auto [MAF, bestL, major, minor] = [&glfs, bestAC, maxF,hasHaploid, hasDiploid]() {
+		if (hasHaploid) {
+			if (hasDiploid) {
+				return _iterate<true, true>(glfs, bestAC, maxF);
+			} else {
+				return _iterate<true, false>(glfs, bestAC, maxF);
+			}
+		} else {
+			if (hasDiploid) {
+				return _iterate<false, true>(glfs, bestAC, maxF);
+			} else {
+				DEVERROR("No Data!");
+			}
+		}}();
 
 		const auto refHom         = genometools::genotype(major, major);
 		Log10Probability LL_fixed = 0.0;
