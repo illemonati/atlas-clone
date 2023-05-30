@@ -83,12 +83,13 @@ useAllelicCombinationsThatContain(Base base) {
 template <typename Container>
 AllelicCombination chooseBestAllelicCombination(const Container &acd) {
 	return randomGenerator()
-		.sampleIndexOfMaxima<Container, AllelicCombination, index(AllelicCombination::max)>(acd);
+		.sampleIndexOfMaxima<Container, AllelicCombination>(acd);
 };
 
 } // namespace impl
 
 struct TMMData {
+	bool pass;
 	Probability MAF;
 	genometools::PhredIntProbability variantQuality;
 	genometools::Base major;
@@ -120,12 +121,12 @@ class TSkotte {
 		const double weights0 = pHomoFirst * freqs[HaploDiplo::homoFirst];
 		const double weights1 = pHet * freqs[HaploDiplo::het];
 		const double weights2 = pHomoSecond * freqs[HaploDiplo::homoSecond];
-		const double sum      = weights0 + weights1 + weights2;
-		return {weights0 / sum, weights2 / sum};
+		const double sum_i    = 1./(weights0 + weights1 + weights2);
+		return {weights0 * sum_i, weights2 * sum_i};
 	}
 
 	template<bool hasHaploid, bool hasDiploid>
-	static auto _iterate(TConstView<coretools::TDualStrongArray<Probability, Base, Genotype>> glfs, AllelicCombination ac, double maxF) {
+	static auto _iterate(TConstView<coretools::TDualStrongArray<Probability, Base, Genotype>> glfs, AllelicCombination ac, double maxF, Probability minMAF) {
 		constexpr bool hasBoth = hasHaploid && hasDiploid;
 
 		const auto first      = genometools::first(ac);
@@ -173,8 +174,21 @@ class TSkotte {
 			freqs[HaploDiplo::homoSecond].scale(sum);
 		}
 
+		const double nHaplo2nDiplo_1 = 1. / (nHaplo + 2*nDiplo);
+
 		// iterate
 		constexpr size_t maxIter = 1000;
+
+		Probability aF = (nDiplo * (freqs[HaploDiplo::het] + 2.0 * freqs[HaploDiplo::homoSecond]) +
+						  nHaplo * (double)freqs[HaploDiplo::second]) *
+						 nHaplo2nDiplo_1;
+		Probability MAF = (aF < 0.5 ? aF : aF.complement());
+
+		if (MAF < minMAF/2) {
+			// will be automaticall filtered out
+			return std::make_tuple(Probability::lowest(), Log10Probability::lowest(), first, second);
+		}
+
 		for (size_t _ = 0; _ < maxIter; ++_) {
 			// set genofreq
 			double hplF0 = 0;
@@ -229,18 +243,28 @@ class TSkotte {
 				freqs[HaploDiplo::het]        = dplF1;
 				freqs[HaploDiplo::homoSecond] = dplF2;
 			}
-			if (maxF_i < maxF) break;
+
+			aF = (nDiplo * (freqs[HaploDiplo::het] + 2.0 * freqs[HaploDiplo::homoSecond]) +
+				  nHaplo * (double)freqs[HaploDiplo::second]) *
+				 nHaplo2nDiplo_1;
+
+			MAF = aF < 0.5 ? aF : aF.complement();
+
+			if (MAF < minMAF - maxF_i) {
+				// will be automaticall filtered out
+				return std::make_tuple(Probability::lowest(), Log10Probability::lowest(), first, second);
+			}
+
+			if (maxF_i < maxF)  {
+				break;
+			}
 		}
 
-		const Probability aF = (nDiplo * (freqs[HaploDiplo::het] + 2.0 * freqs[HaploDiplo::homoSecond]) +
-						 nHaplo * (double)freqs[HaploDiplo::second]) /
-						(2.0 * nDiplo + nHaplo);
-
-		const auto [MAF, major, minor] = [aF, first ,second]() {
+		const auto [major, minor] = [aF, first ,second]() {
 			if (aF < 0.5) {
-				return std::make_tuple(aF, first, second);
+				return std::make_tuple(first, second);
 			} else {
-				return std::make_tuple(aF.complement(), second, first);
+				return std::make_tuple(second, first);
 			}
 		}();
 
@@ -267,7 +291,7 @@ class TSkotte {
 	}
 
 public:
-	static TMMData estimate(coretools::TConstView<GLF::TMultiGLFDataSample> data, double maxF, genometools::Base base) {
+	static TMMData estimate(coretools::TConstView<GLF::TMultiGLFDataSample> data, double maxF, genometools::Base base, Probability minMAF, genometools::PhredIntProbability minVariantQuality) {
 		std::vector<coretools::TDualStrongArray<Probability, Base, Genotype>> glfs;
 		glfs.reserve(data.size());
 
@@ -276,6 +300,7 @@ public:
 
 		bool hasHaploid = false;
 		bool hasDiploid = false;
+
 		for (const auto &d : data) {
 			if (!d.hasData()) continue;
 			if (d.isHaploid()) {
@@ -306,20 +331,22 @@ public:
 		}
 		const auto bestAC     = impl::chooseBestAllelicCombination(LLs);
 
-		const auto [MAF, bestL, major, minor] = [&glfs, bestAC, maxF,hasHaploid, hasDiploid]() {
+		const auto [MAF, bestL, major, minor] = [&glfs, bestAC, maxF,hasHaploid, hasDiploid, minMAF]() {
 		if (hasHaploid) {
 			if (hasDiploid) {
-				return _iterate<true, true>(glfs, bestAC, maxF);
+				return _iterate<true, true>(glfs, bestAC, maxF, minMAF);
 			} else {
-				return _iterate<true, false>(glfs, bestAC, maxF);
+				return _iterate<true, false>(glfs, bestAC, maxF, minMAF);
 			}
 		} else {
 			if (hasDiploid) {
-				return _iterate<false, true>(glfs, bestAC, maxF);
+				return _iterate<false, true>(glfs, bestAC, maxF, minMAF);
 			} else {
 				DEVERROR("No Data!");
 			}
 		}}();
+
+		if (MAF < minMAF) return {false, Probability::lowest(), genometools::PhredIntProbability::lowest(), major, minor};
 
 		const auto refHom         = genometools::genotype(major, major);
 		Log10Probability LL_fixed = 0.0;
@@ -334,12 +361,16 @@ public:
 		const genometools::PhredIntProbability variantQuality{
 			LL_fixed > bestL ? Log10Probability(0.0) : Log10Probability(LL_fixed - bestL)};
 
-		return {MAF, variantQuality, major, minor};
+		if (variantQuality < minVariantQuality) {
+			return {false, Probability::lowest(), genometools::PhredIntProbability::lowest(), major, minor};
+		}
+
+		return {true, MAF, variantQuality, major, minor};
 	}
 };
 
 struct TMLE {
-	static TMMData estimate(coretools::TConstView<GLF::TMultiGLFDataSample> data, double maxF, genometools::Base base) {
+	static TMMData estimate(coretools::TConstView<GLF::TMultiGLFDataSample> data, double maxF, genometools::Base base, Probability minMAF, genometools::PhredIntProbability minVariantQuality) {
 		// calculate L10L for each allelic combination
 		const auto used = impl::useAllelicCombinationsThatContain(base);
 
@@ -387,7 +418,11 @@ struct TMLE {
 		}
 		genometools::PhredIntProbability _variantQuality{
 			LL_fixed_glfPhred > bestL ? Log10Probability(0.0) : Log10Probability(LL_fixed_glfPhred - bestL)};
-		return {bestFreqs.MAF(), _variantQuality, _major, _minor};
+
+		if (bestFreqs.MAF() < minMAF || _variantQuality < minVariantQuality) {
+			return {false, Probability::lowest(), genometools::PhredIntProbability::lowest(), _major, _minor};
+		}
+		return {true, bestFreqs.MAF(), _variantQuality, _major, _minor};
 	}
 };
 
@@ -418,7 +453,6 @@ template<typename Estimator> void iterate(double maxF) {
 	// read filters
 	size_t minSamplesWithData = 1;
 	genometools::PhredIntProbability minVariantQuality{0};
-	size_t nVariantQuality = 0;
 	if (parameters().parameterExists("printAll")) {
 		logfile().list("Will all sites and samples. (parameter printAll)");
 		minSamplesWithData = 0;
@@ -440,7 +474,6 @@ template<typename Estimator> void iterate(double maxF) {
 	glfReader.minSamplesWithData(minSamplesWithData);
 
 	coretools::Probability minMAF = parameters().getParameterWithDefault("minMAF", 0.0);
-	size_t nMAFMAF                = 0;
 	if (minMAF > 0.0) {
 		logfile().list("Will filter on a minor allele frequency of ", minMAF, ". (parameter 'minMAF')");
 	} else {
@@ -514,28 +547,23 @@ template<typename Estimator> void iterate(double maxF) {
 	size_t nextPrint          = dCounter;
 
 	for (auto ids = glfReader.readWindow(); !ids.empty(); ids = glfReader.readWindow()) {
-		std::vector<TMMData> data(ids.back() + 1);
+		std::vector<TMMData> data(ids.size());
 
 #pragma omp parallel for num_threads(maxThreads)
-		for (auto i : ids) {
-			const Base ref = glfReader.refBase(i); // can be N
-			data[i]        = Estimator::estimate(glfReader.data(i), maxF, ref);
+		for (size_t i = 0; i < ids.size(); ++i) {
+			const auto iW  = ids[i];
+			const Base ref = glfReader.refBase(iW); // can be N
+			data[i]        = Estimator::estimate(glfReader.data(iW), maxF, ref, minMAF, minVariantQuality);
 		}
 
 		// pass filter?
-		for (auto i : ids) {
+		for (size_t i = 0; i < ids.size(); ++i) {
+			const auto iW = ids[i];
 			const auto &di = data[i];
-			if (di.MAF < minMAF) {
-				++nMAFMAF;
-				continue;
-			}
-			if (di.variantQuality < minVariantQuality) {
-				++nVariantQuality;
-				continue;
-			}
+			if (!di.pass) continue;
 
 			// write to VCF
-			vcf.writeSite(glfReader.chr(), glfReader.position(i), di.variantQuality, glfReader.data(i), di.major,
+			vcf.writeSite(glfReader.chr(), glfReader.position(iW), di.variantQuality, glfReader.data(iW), di.major,
 						  di.minor);
 		}
 
@@ -551,11 +579,6 @@ template<typename Estimator> void iterate(double maxF) {
 	}
 
 	logfile().list("Reached end of glf files!");
-
-	if (minVariantQuality > genometools::PhredIntProbability::highest()) {
-		logfile().conclude("Filtered ", nVariantQuality, " sites with variant quality < ", minVariantQuality, ".");
-	}
-	if (minMAF > 0) { logfile().conclude("Filtered ", nMAFMAF, " sites with MAF < ", minMAF, "."); }
 	logfile().removeIndent();
 };
 
