@@ -18,6 +18,7 @@
 #include <string>
 #include <vector>
 
+#include "coretools/Containers/TStrongArray.h"
 #include "fmt/core.h"
 
 #include "coretools/Containers/TBitSet.h"
@@ -95,7 +96,7 @@ public:
 using TMultiGLFDataOneAllelicCombination = std::vector<TMultiGLFDataSampleOneAllelicCombination>;
 using TMultiGLFData                      = std::vector<TMultiGLFDataSample>;
 
-TMultiGLFDataOneAllelicCombination fill(const TMultiGLFData &samples,
+TMultiGLFDataOneAllelicCombination fill(coretools::TConstView<GLF::TMultiGLFDataSample> samples,
 										genometools::AllelicCombination alleleicCombination);
 
 //----------------------------------------------------
@@ -214,7 +215,6 @@ private:
 	uint32_t _minDepth = 0;
 	size_t _windowStart = 0;
 	size_t _windowSize  = 64;
-	size_t _iWindow     = 0;
 	std::vector<TMultiGLFData> _dataWindow;
 	std::vector<size_t> _numActive;
 
@@ -232,14 +232,11 @@ private:
 
 public:
 	const TMultiGLFData& data(size_t iWindow) const noexcept {return _dataWindow[iWindow];};
-	const TMultiGLFData& data() const noexcept {return data(_iWindow);};
 
 	TGlfMultiReader();
-	~TGlfMultiReader();
 
 	void openGLFs(const std::vector<std::string> &Filenames);
 	void openGLFs();
-	void closeGLF();
 	void addReference(const std::string& FastaFile);
 	void minSamplesWithData(size_t MinSamplesWithData) { _minSamplesWithData = MinSamplesWithData; };
 
@@ -254,27 +251,18 @@ public:
 
 	// parse
 	std::vector<size_t> readWindow();
-	bool readNext();
 
 	// output
 	std::vector<std::string> namesOfActiveFiles() const;
 	std::vector<std::string> sampleNamesOfActiveFiles() const;
 
 	// access data
-	constexpr size_t windowSize() const noexcept {return _windowSize;}
-	constexpr uint32_t numSamples() const noexcept { return _numGLFs; }
 	uint32_t numActiveSamples() const noexcept { return _activeGLFs.size(); }
-	uint32_t numActiveSamplesWithData(size_t iWindow) const noexcept { return _numActive[iWindow]; }
-	uint32_t numActiveSamplesWithData() const noexcept { return numActiveSamplesWithData(_iWindow); }
 	std::string chr() const { return _curChr.name(); }
 	constexpr uint32_t position(size_t iWindow) const noexcept { return _windowStart + iWindow; }
-	constexpr uint32_t position() const noexcept { return position(_iWindow); }
 	bool hasRef() const noexcept {return fastaReader.isOpen();}
 	genometools::Base refBase(size_t iWindow) const noexcept {
 		return hasRef() ? fastaReader(_curRefId, position(iWindow)) : genometools::Base::N;
-	}
-	genometools::Base refBase() const noexcept {
-		return refBase(_iWindow);
 	}
 };
 

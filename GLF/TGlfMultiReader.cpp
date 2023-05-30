@@ -65,7 +65,7 @@ void _checkChromosomeInfo(const TGlfChromosome & _curChr, const std::vector<TGlf
 
 } // namespace impl
 
-TMultiGLFDataOneAllelicCombination fill(const TMultiGLFData &samples,
+TMultiGLFDataOneAllelicCombination fill(coretools::TConstView<GLF::TMultiGLFDataSample> samples,
 		  genometools::AllelicCombination alleleicCombination) {
 	TMultiGLFDataOneAllelicCombination storage;
 	storage.reserve(samples.size());
@@ -196,12 +196,6 @@ TGlfMultiReader::TGlfMultiReader() {
 	if (_windowSize == 0) UERROR("Window size must be at least 1!");
 };
 
-TGlfMultiReader::~TGlfMultiReader() {
-	if (_readersOpened) {
-		closeGLF();
-	}
-};
-
 void TGlfMultiReader::_openGLFs() {
 	_numGLFs     = _GLFNames.size();
 	_GLFIsActive.resize(_numGLFs, false);
@@ -248,18 +242,6 @@ void TGlfMultiReader::openGLFs() {
 		parameters().fillParameterIntoContainer("glf", _GLFNames, ',');
 	}
 	_openGLFs();
-};
-
-void TGlfMultiReader::closeGLF() {
-	if (_readersOpened) {
-		for (auto& g: _GLFs) g.close();
-
-		_GLFNames.clear();
-		_GLFs.clear();
-		_activeGLFs.clear();
-		_numGLFs       = 0;
-		_readersOpened = false;
-	}
 };
 
 void TGlfMultiReader::addReference(const std::string &FastaFile) {
@@ -408,17 +390,6 @@ std::vector<size_t> TGlfMultiReader::readWindow() {
 	}
 	if (ids.empty()) return readWindow();
 	return ids;
-}
-
-bool TGlfMultiReader::readNext() {
-	if (_iWindow + 1 >= _dataWindow.size()) {
-		if (readWindow().empty()) return false;
-		_iWindow = 0;
-	} else {
-		++_iWindow;
-	}
-	if (_numActive[_iWindow] < _minSamplesWithData) { return readNext(); }
-	return true;
 }
 
 std::vector<std::string> TGlfMultiReader::namesOfActiveFiles() const {
