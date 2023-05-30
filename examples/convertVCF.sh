@@ -1,7 +1,7 @@
 #! /bin/bash
 
 . $(dirname $0)/find_atlas
-. $(dirname $0)/simulate --vcf --type HW --sampleSize 10 --chrLength 1000 --ploidy 2
+. $(dirname $0)/simulate_vcf --sampleSize 10 --chrLength 1000 --ploidy 2
 
 $atlas --task convertVCF --vcf ATLAS_simulations.vcf.gz --format beagle --out ATLAS_beagle --logFile convertVCF_beagle.out
 $atlas --task convertVCF --vcf ATLAS_simulations.vcf.gz --format geno --out ATLAS_geno --logFile convertVCF_geno.out
