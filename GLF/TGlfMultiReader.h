@@ -74,12 +74,12 @@ private:
 public:
 	constexpr TMultiGLFDataSampleOneAllelicCombination(bool isHaploid=false) : _flags(MISSING_DIPLOID | isHaploid * MISSING_HAPLOID){}
 
-	constexpr TMultiGLFDataSampleOneAllelicCombination(genometools::HighPrecisionPhredIntProbability homoFirst,
+	TMultiGLFDataSampleOneAllelicCombination(genometools::HighPrecisionPhredIntProbability homoFirst,
 							   genometools::HighPrecisionPhredIntProbability het,
 							   genometools::HighPrecisionPhredIntProbability homoSecond)
 		: _flags(NOTMISSING_DIPLOID), _GLs({coretools::Probability(homoFirst), coretools::Probability(het), coretools::Probability(homoSecond)})  {}
 
-	constexpr TMultiGLFDataSampleOneAllelicCombination(genometools::HighPrecisionPhredIntProbability first,
+	TMultiGLFDataSampleOneAllelicCombination(genometools::HighPrecisionPhredIntProbability first,
 							   genometools::HighPrecisionPhredIntProbability second)
 		:  _flags(NOTMISSING_HAPLOID), _GLs({coretools::Probability(first), coretools::Probability(second), coretools::Probability::highest()})  {}
 
