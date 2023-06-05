@@ -1,7 +1,7 @@
 #! /bin/bash
 
 . $(dirname $0)/find_atlas
-. $(dirname $0)/simulate --vcf --type HW --sampleSize 2
+. $(dirname $0)/simulate_vcf --sampleSize 2
 
 $atlas --task alleleCounts --vcf ATLAS_simulations.vcf.gz --out alleleCounts --logFile alleleCounts.out
 $atlas --task alleleCounts --likelihoods --vcf ATLAS_simulations.vcf.gz --out alleleCountsLKs --logFile alleleCountsLKs.out

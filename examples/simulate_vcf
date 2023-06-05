@@ -1,0 +1,5 @@
+#!/bin/bash
+# runs simulator with some default arguments for all examples. Additional arguments can be passed
+
+. $(dirname $0)/find_atlas
+$atlas --task simulate --fixedSeed 0 --logFile simulate.out --chrLength 10000,5000,12000 --depth 2,5,8 --ploidy 2,1,2 --vcf --type HW "$@"

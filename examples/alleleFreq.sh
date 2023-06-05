@@ -1,7 +1,7 @@
 #! /bin/bash
 
 . $(dirname $0)/find_atlas
-. $(dirname $0)/simulate --vcf --type HW --sampleSize 2 --chrLength 1000
+. $(dirname $0)/simulate_vcf --sampleSize 2 --chrLength 1000
 
 $atlas --task alleleFreq --vcf ATLAS_simulations.vcf.gz --out alleleFreq --logFile alleleFreq.out
 $atlas --task alleleFreq --likelihoods --vcf ATLAS_simulations.vcf.gz --out alleleFreqLKs --logFile alleleFreqLKs.out
