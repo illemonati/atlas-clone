@@ -15,7 +15,7 @@ void TAlleleCountReader::open(std::string_view filename){
     _file.open(filename, coretools::TFile_Filetype::header);
 
     // parse header	
-    const std::vector<std::string>& header = _file.header();    
+    const auto header = _file.header();    
 
     if(header[0] != "chr" || header[1] != "pos"){
         UERROR("Allele count file '", filename, "' lacks columns 'chr' and 'pos' at beginning! Are you providing the correct file?");

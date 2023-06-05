@@ -28,7 +28,7 @@ file(GLOB CORE_SOURCES CONFIGURE_DEPENDS
 include(FetchContent)
 FetchContent_Declare(coretools
   GIT_REPOSITORY    https://bitbucket.org/wegmannlab/coretools.git
-  GIT_TAG           392f933
+  GIT_TAG           andreas/switch_TView
   SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/coretools"
 )
 
@@ -42,7 +42,7 @@ FetchContent_Declare(genometools
 include(FetchContent)
 FetchContent_Declare(stattools
   GIT_REPOSITORY    https://bitbucket.org/wegmannlab/stattools.git
-  GIT_TAG           48f8199
+  GIT_TAG           andreas/switch_TView
   SOURCE_DIR        "${CMAKE_CURRENT_SOURCE_DIR}/stattools"
 )
 
