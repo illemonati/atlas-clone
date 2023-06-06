@@ -39,7 +39,6 @@ using namespace coretools::str;
 
 TGenome_basic::TGenome_basic() {
 	// open bam file
-	// TODO: deal with index in better way: let tasks decide if they need an index or not
 	_bamFile.open(parameters().getParameter<std::string>("bam"));
 	_bamFile.setLimits();
 
