@@ -57,7 +57,7 @@ public:
 		return N[_isHaploid];
 	};
 
-	void update(const std::string &Name, uint16_t RefId, uint32_t Length, uint8_t Ploidy);
+	void update(std::string_view Name, uint16_t RefId, uint32_t Length, uint8_t Ploidy);
 	void clear();
 };
 
@@ -149,12 +149,19 @@ private:
 	void _open();
 
 	// read
-	template<typename T> inline bool _read(T *buf, size_t len) {
+	template<typename T> int _read(T *buf, size_t len) {
 		const int _lenRead = gzread(_gzfp, buf, len);
-		if (!_lenRead) return false;
-		_positionInFile += _lenRead;
-		return true;
+		return _lenRead;
 	};
+
+	template<typename T> T _read() {
+		T t;
+		const int _lenRead = gzread(_gzfp, &t, sizeof(T));
+		if (!_lenRead) UERROR("could not read file ", name(), "!");
+		_positionInFile += _lenRead;
+		return t;
+	};
+
 	bool _readChr();
 	bool _readRecordType();
 	void _readSNPRecord();

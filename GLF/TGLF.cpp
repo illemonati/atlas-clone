@@ -42,7 +42,7 @@ TGlfChromosome::TGlfChromosome(const std::string &Name, uint32_t Length, uint8_t
     : _name(Name), _length(Length), _isHaploid(impl::isHaploid(Ploidy)) {};
 
 
-void TGlfChromosome::update(const std::string &Name, uint16_t RefId, uint32_t Length, uint8_t Ploidy) {
+void TGlfChromosome::update(std::string_view Name, uint16_t RefId, uint32_t Length, uint8_t Ploidy) {
 	_name   = Name;
 	_refId  = RefId;
 	_length = Length;
@@ -183,21 +183,15 @@ bool TGlfReader::_readChr() {
 		_eof = true;
 		return false;
 	}
-	char *tmp = new char[len];
-	_read(tmp, len * sizeof(char));
-	std::string name(tmp, len);
-	delete[] tmp;
+	constexpr size_t Nmax = 1024;
+	char name[Nmax];
+	_read(name, len);
 
-	uint32_t refId;
-	_read(&refId, sizeof(uint32_t));
+	const auto refId  = _read<uint32_t>();
+	const auto length = _read<uint32_t>();
+	const auto ploidy = _read<uint8_t>();
 
-	uint32_t length;
-	_read(&length, sizeof(uint32_t));
-
-	uint8_t ploidy;
-	_read(&ploidy, sizeof(uint8_t));
-
-	_curChr.update(name, refId, length, ploidy);
+	_curChr.update(std::string_view(name, len), refId, length, ploidy);
 
 	// set first position = 0
 	_position = 0;
@@ -206,7 +200,7 @@ bool TGlfReader::_readChr() {
 };
 
 bool TGlfReader::_readRecordType() {
-	uint8_t tmpInt8 = 0;
+	uint8_t tmpInt8;
 	if (!_read(&tmpInt8, sizeof(uint8_t))) {
 		_eof = true;
 		return false;
@@ -219,17 +213,14 @@ bool TGlfReader::_readRecordType() {
 void TGlfReader::_readSNPRecord() {
 	// read data of a single position
 	// offset
-	uint32_t offset = 0;
-	_read(&offset, sizeof(uint32_t));
+	const auto offset = _read<uint32_t>();
 	_position += offset;
 
 	// maxLL and depth (both uint16)
 	// read(&maxLL, sizeof(uint16_t));
-	_read(&_depth, sizeof(uint16_t));
+	_depth           = _read<uint16_t>();
+	_RMS_mappingQual = _read<uint8_t>();
 
-	// root mean square of mapping qualities
-	_read(&_RMS_mappingQual, sizeof(uint8_t));
-	// RMS_mappingQual = (int) tmpInt8; DO WE NEED THIS??
 
 	// genotype likelihoods
 	_read(_genotypeLikelihoodsGLF.data(),
@@ -264,13 +255,11 @@ void TGlfReader::_open() {
 		UERROR("Non-supported GLF version '", fileVersion, "! Currently only version '", _version, "' is supported.");
 	_version = fileVersion;
 
-	uint32_t headerLen;
-	_read(&headerLen, sizeof(uint32_t));
+	const auto headerLen = _read<uint32_t>();
 
 	if (headerLen > 0) {
-		char *header = new char[headerLen];
-		_read(&header, headerLen * sizeof(char));
-		delete[] header;
+		char header[1024];
+		if (_read(&header, headerLen) != (int) headerLen) UERROR("Cannot read file ", name(), "!");
 	}
 	_eof = false;
 
