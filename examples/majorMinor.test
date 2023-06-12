@@ -14,4 +14,4 @@ echo "doing $N samples"
 
 allSamples=`find . -path '*_ind*.glf.gz' | paste -s -d ',' -`
 
-$atlas --task majorMinor --glf $allSamples --fixedSeed 0 --logFile majorMinor.out --minMAF 0.05 --minSamplesWithData 75 --method Skotte --maxThreads $1
+perf record -g --call-graph dwarf $atlas --task majorMinor --glf $allSamples --fixedSeed 0 --logFile majorMinor.out --minMAF 0.05 --minSamplesWithData 75 --method Skotte --maxThreads 1
