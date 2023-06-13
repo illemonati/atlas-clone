@@ -247,25 +247,27 @@ void TExponential::_fillPMDProbabilities(size_t N) {
 void TExponential::learn(const std::vector<double> &From_to, const std::vector<double> &To_from) {
 	logfile().list("Learning exponential pattern");
 
-	if (From_to.size() < 10) {
-		UERROR("Not sufficient data to estimate PMD model , the first 10 positions must have > 100 data "
-			   "points!\nConsider pooling read groups (parameter "
-			   "poolReadGroups).");
+	if (From_to.size() < 3) {
+		_a = 0.;
+		_b = 1.;
+		_c = 0.;
+	} else {
+
+		// get initial estimates via OLS
+		const auto empiric    = impl::makeEmpiric(From_to, To_from);
+		const auto Parameters = impl::initialEstimatesOLS(empiric);
+		std::tie(_a, _b, _c)  = impl::estimateWithNewtonRaphson(empiric, Parameters);
+
+		logfile().conclude(_a, "*exp(-", _b, "*p) + ", _c);
+
+		if (Parameters[1] < 0) {
+			UERROR(
+				"Estimation resulted in a = ", _a,
+				" < 0! This is likely due to limited data. Consider pooling read groups (parameter poolReadGroups).");
+		}
 	}
 
-	// get initial estimates via OLS
-	const auto empiric    = impl::makeEmpiric(From_to, To_from);
-	const auto Parameters = impl::initialEstimatesOLS(empiric);
-	std::tie(_a, _b, _c)  = impl::estimateWithNewtonRaphson(empiric, Parameters);
-
-	logfile().conclude(_a, "*exp(-", _b, "*p) + ", _c);
-
-	if (Parameters[1] < 0) {
-		UERROR("Estimation resulted in a = ", _a,
-			   " < 0! This is likely due to limited data. Consider pooling read groups (parameter poolReadGroups).");
-	}
-
-	_fillPMDProbabilities(empiric.size());
+	_fillPMDProbabilities(From_to.size());
 
 	// check if pattern is negativ
 	if (_values.back() < 0) {

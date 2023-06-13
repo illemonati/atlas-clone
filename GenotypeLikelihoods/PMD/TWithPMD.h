@@ -10,10 +10,13 @@
 
 #include "PMD/TFunction.h"
 #include "TModel.h"
+#include "coretools/Containers/TStrongArray.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TRandomGenerator.h"
 #include "coretools/Strings/splitters.h"
 #include "coretools/Strings/toString.h"
+#include "coretools/Types/probability.h"
+#include "coretools/devtools.h"
 #include "genometools/GenotypeTypes.h"
 #include <cstddef>
 #include <memory>
@@ -25,6 +28,8 @@ namespace impl {
 static constexpr size_t _N = coretools::index(genometools::Base::max) + 1;
 using PMDTable             = std::vector<coretools::TStrongArray<
 	coretools::TStrongArray<coretools::TStrongArray<size_t, genometools::Base, _N>, genometools::Base, _N>, ReadEnd>>;
+using TMu =
+	coretools::TStrongArray<coretools::TStrongArray<coretools::Probability, genometools::Base>, genometools::Base>;
 
 struct PMDTables {
 	std::vector<PMDTable> tables;
@@ -82,6 +87,80 @@ auto makeFromTo(const PMDTable &table) {
 		to_from.back() /= s_to;
 	}
 	return std::make_pair(from_to, to_from);
+}
+template<size_t End>
+TMu makeMu(const PMDTable &table) {
+	using genometools::Base;
+	constexpr auto forward = makeForward<End>();
+	constexpr auto reverse = makeReverse<End>();
+
+	coretools::TStrongArray<coretools::TStrongArray<size_t, genometools::Base>, genometools::Base> from_to{};
+	coretools::TStrongArray<size_t, genometools::Base, _N> sums{};
+	for (size_t p = 0; p < table.size(); ++p) {
+		for (auto from = Base::min; from < Base::max; ++from) {
+			for (auto to = Base::min; to < Base::max; ++to) {
+				from_to[from][to] += table[p][forward][from][to];
+				from_to[from][to] += table[p][reverse][from][to];
+				sums[from] += from_to[from][to];
+			}
+		}
+	}
+
+	TMu mu;
+	for (auto from = Base::min; from < Base::max; ++from) {
+		for (auto to = Base::min; to < Base::max; ++to) {
+			mu[from][to] = static_cast<double>(from_to[from][to])/sums[from];
+		}
+	}
+	return mu;
+}
+
+template<size_t End, genometools::Base From>
+double ll_noPMD(const PMDTable &table, const TMu& mu) {
+	using genometools::Base;
+	constexpr auto forward = makeForward<End>();
+	constexpr auto reverse = makeReverse<End>();
+
+	double ll = 0.;
+	for (size_t p = 0; p < table.size(); ++p) {
+		double mu_FF = 1.;
+		for (auto to = Base::min; to < Base::max; ++to) {
+			// take "reverse" mu value, i.e. instead of CT, take TC
+			// assuming these values are the same
+			if (to == From) continue;
+			ll += (table[p][forward][From][to] + table[p][reverse][From][to])*log(mu[to][From]);
+			mu_FF -= mu[to][From];
+		}
+			ll += (table[p][forward][From][From] + table[p][reverse][From][From])*log(mu_FF);
+	}
+	return ll;
+}
+
+template<size_t End, genometools::Base From, genometools::Base To>
+double ll_withPMD(const PMDTable &table, const TMu &mu, const TFunction *fun) {
+	using genometools::Base;
+	constexpr auto forward = makeForward<End>();
+	constexpr auto reverse = makeReverse<End>();
+
+	double ll = 0.;
+	for (size_t p = 0; p < table.size(); ++p) {
+			double mu_FF = 1.;
+
+			for (auto to = Base::min; to < Base::max; ++to) {
+			// take "reverse" mu value, i.e. instead of CT, take TC
+			// assuming these values are the same
+			if (to == From || to == To) continue;
+			ll += (table[p][forward][From][to] + table[p][reverse][From][to]) * log(mu[to][From]);
+			mu_FF -= mu[to][From];
+			}
+
+			const auto mu_FT = mu[To][From] + (1. - mu[To][From]) * fun->prob(p);
+			ll += (table[p][forward][From][To] + table[p][reverse][From][To]) * log(mu_FT);
+			mu_FF -= mu_FT;
+
+			ll += (table[p][forward][From][From] + table[p][reverse][From][From]) * log(mu_FF);
+	}
+	return ll;
 }
 
 } // namespace impl
@@ -340,6 +419,11 @@ public:
 		} else {
 			const auto [C_T5, T_C5] = impl::makeFromTo<5, Base::C, Base::T>(_table);
 			_pmd5->learn(C_T5, T_C5);
+			const auto mu_5        = impl::makeMu<5>(_table);
+			const double ll_no_5   = impl::ll_noPMD<5, Base::C>(_table, mu_5);
+			const double ll_with_5 = impl::ll_withPMD<5, Base::C, Base::T>(_table, mu_5, _pmd5.get());
+			OUT(ll_no_5);
+			OUT(ll_with_5);
 		}
 		logfile().endIndent();
 
@@ -366,6 +450,29 @@ public:
 		} else {
 			const auto [from_to, to_from] = impl::makeFromTo<3, from, to>(_table);
 			_pmd3->learn(from_to, to_from);
+
+			const auto mu_3        = impl::makeMu<3>(_table);
+			const double ll_no_3   = impl::ll_noPMD<3, from>(_table, mu_3);
+			const double ll_with_3 = impl::ll_withPMD<3, from, to>(_table, mu_3, _pmd3.get());
+			OUT(ll_no_3);
+			OUT(ll_with_3);
+
+			{
+				constexpr auto from = Base::G;
+				constexpr auto to = Base::A;
+			std::unique_ptr<TFunction> pmd3Alt(_pmd3->clone());
+			const auto [from_to, to_from] = impl::makeFromTo<3, from, to>(_table);
+			_pmd3->learn(from_to, to_from);
+
+			const auto mu_3        = impl::makeMu<3>(_table);
+			const double ll_no_3   = impl::ll_noPMD<3, from>(_table, mu_3);
+			const double ll_with_3 = impl::ll_withPMD<3, from, to>(_table, mu_3, _pmd3.get());
+			OUT(ll_no_3);
+			OUT(ll_with_3);
+			// LL_single = LL_C,with + LL_G,no
+			// LL_double = LL_G,with + LL_C,no
+			// LL_single > LL_double -> single strand
+			}
 		}
 		logfile().endIndent();
 	}
