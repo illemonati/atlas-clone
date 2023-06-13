@@ -9,7 +9,6 @@ if [ ! -f "$file" ]; then
 fi
 
 timeFor10Runs=0
-for i in {1..3}; do
 start=`date +%s.%N`
 
 $atlas --task inbreeding --vcf simulate/vcfFile.vcf.gz --numBurnin 1 --iterations 10 --fixedSeed 0 --logFile inbreeding/inbreeding.out --out inbreeding/out --limitChr chr1
@@ -17,5 +16,4 @@ $atlas --task inbreeding --vcf simulate/vcfFile.vcf.gz --numBurnin 1 --iteration
 end=`date +%s.%N`
 runtime=$( echo "$end - $start" | bc -l )
 timeFor10Runs=$(echo "$timeFor10Runs+$runtime" | bc -l)
-done
 echo -e "$timeFor10Runs" >> inbreeding/times

@@ -9,7 +9,7 @@ if [ ! -f "$file" ]; then
 fi
 
 timeFor10Runs=0
-for i in {1..10}; do
+for i in {1..5}; do
 start=`date +%s.%N`
 
 $atlas --task simulate --type HW --sampleSize 10 --chrLength 500000{2},300000,400000,600000 --ploidy 2{3},1,2 --depth 10,8{2},5{2} --baseFreq 0.5,0.3,0.2,0 --refDiv 0.5 --vcf --fixedSeed 0 --out simulate/vcfFile

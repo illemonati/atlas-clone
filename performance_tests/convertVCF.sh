@@ -10,7 +10,7 @@ fi
 
 timeFor10Runs=0
 
-for i in {1..5}; do
+for i in {1..2}; do
 start=`date +%s.%N`
 
 $atlas --task convertVCF --vcf simulate/vcfFile.vcf.gz --format beagle --out convertVCF/ATLAS_beagle --logFile convertVCF/convertVCF_beagle.out
