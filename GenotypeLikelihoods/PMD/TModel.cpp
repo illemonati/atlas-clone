@@ -57,7 +57,7 @@ TModel *makeType(std::string_view pmdString) {
 		const auto function3 = spl.empty() ? function5 : spl.front();
 
 		if (strand == Strand::Single) return new TWithPMD<Strand::Single, true>(function5, function3, from);
-		/*else*/ return new TWithPMD<Strand::Single, true>(function5, function3, from);
+		/*else*/ return new TWithPMD<Strand::Double, true>(function5, function3, from);
 	} else {
 		// per read group
 		const auto function5 = spl.front();

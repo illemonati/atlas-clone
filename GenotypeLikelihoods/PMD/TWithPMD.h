@@ -34,7 +34,9 @@ using TMu =
 struct PMDTables {
 	std::vector<PMDTable> tables;
 	size_t minLength;
-	size_t index(size_t length) const noexcept { return std::min(std::max<size_t>(minLength, length) - minLength, tables.size() - 1); }
+	size_t index(size_t length) const noexcept {
+		return std::min(std::max<size_t>(minLength, length) - minLength, tables.size() - 1);
+	}
 };
 
 template<size_t End>
@@ -49,6 +51,22 @@ constexpr ReadEnd makeReverse() {
 	if constexpr (End == 3) return ReadEnd::reverse3;
 	if constexpr (End == 5) return ReadEnd::reverse5;
 	else static_assert(End == 3);
+}
+
+constexpr ReadEnd readEnd(bool is3, bool isReversed) {
+	if (is3) {
+		if (isReversed) {
+			return ReadEnd::reverse3;
+		} else {
+			return ReadEnd::forward3;
+		}
+	} else {
+		if (isReversed) {
+			return ReadEnd::reverse5;
+		} else {
+			return ReadEnd::forward5;
+		}
+	}
 }
 
 template<size_t End, genometools::Base From, genometools::Base To>
@@ -95,21 +113,26 @@ TMu makeMu(const PMDTable &table) {
 	constexpr auto reverse = makeReverse<End>();
 
 	coretools::TStrongArray<coretools::TStrongArray<size_t, genometools::Base>, genometools::Base> from_to{};
-	coretools::TStrongArray<size_t, genometools::Base, _N> sums{};
 	for (size_t p = 0; p < table.size(); ++p) {
 		for (auto from = Base::min; from < Base::max; ++from) {
 			for (auto to = Base::min; to < Base::max; ++to) {
 				from_to[from][to] += table[p][forward][from][to];
 				from_to[from][to] += table[p][reverse][from][to];
-				sums[from] += from_to[from][to];
 			}
 		}
 	}
 
 	TMu mu;
 	for (auto from = Base::min; from < Base::max; ++from) {
+		OUT(from);
+		size_t s = 0;
 		for (auto to = Base::min; to < Base::max; ++to) {
-			mu[from][to] = static_cast<double>(from_to[from][to])/sums[from];
+			s += from_to[from][to];
+		}
+		for (auto to = Base::min; to < Base::max; ++to) {
+			OUT(to);
+			mu[from][to] = static_cast<double>(from_to[from][to])/s;
+			OUT(mu[from][to]);
 		}
 	}
 	return mu;
@@ -171,73 +194,95 @@ private:
 	static constexpr coretools::TStrongArray<std::string_view, Strand> _names{{"singleStrand", "doubleStrand"}};
 	using Function = std::conditional_t<perLength, std::vector<std::unique_ptr<TFunction>>, std::unique_ptr<TFunction>>;
 	using Table    = std::conditional_t<perLength, impl::PMDTables, impl::PMDTable>;
+
 	Function _pmd5;
 	Function _pmd3;
 	Table _table;
 
-	coretools::Probability _probCT(const BAM::TSequencedBase &data) const noexcept {
-		using coretools::Probability;
-		if constexpr (strand == Strand::Single) {
-			if (data.isReverseStrand()) return coretools::Probability{};
-			if constexpr (perLength) {
-				return data.distFrom3Prime < data.distFrom5Prime
-						   ? _pmd3[_table.index(data.fragmentLength)]->prob(data.distFrom3Prime)
-						   : _pmd5[_table.index(data.fragmentLength)]->prob(data.distFrom5Prime);
-
+	enum class From : bool {from5, from3};
+	template<From from>
+	coretools::Probability _pmd(const BAM::TSequencedBase &data) const noexcept {
+		if constexpr (perLength) {
+			if constexpr (from == From::from5) {
+				return _pmd5[_table.index(data.fragmentLength)]->prob(data.distFrom5Prime);
 			} else {
-				return data.distFrom3Prime < data.distFrom5Prime ? _pmd3->prob(data.distFrom3Prime)
-																 : _pmd5->prob(data.distFrom5Prime);
+				return _pmd3[_table.index(data.fragmentLength)]->prob(data.distFrom3Prime);
 			}
 		} else {
-			if (data.distFrom3Prime < data.distFrom5Prime) { // from 3
-				if constexpr (perLength) {
-					return !data.isReverseStrand()
-							   ? Probability{}
-							   : _pmd3[_table.index(data.fragmentLength)]->prob(data.distFrom3Prime);
-				} else {
-					return !data.isReverseStrand() ? Probability{} : _pmd3->prob(data.distFrom3Prime);
-				}
-			} else { // from 5
-				if constexpr (perLength) {
-					return !data.isReverseStrand() ? _pmd5[_table.index(data.fragmentLength)]->prob(data.distFrom5Prime)
-												   : Probability{};
-				} else {
-					return !data.isReverseStrand() ? _pmd5->prob(data.distFrom5Prime) : Probability{};
-				}
+			if constexpr (from == From::from5) {
+				return _pmd5->prob(data.distFrom5Prime);
+			} else {
+				return _pmd3->prob(data.distFrom3Prime);
 			}
 		}
 	}
 
-	coretools::Probability _probGA(const BAM::TSequencedBase &data) const noexcept {
-		using coretools::Probability;
-		if constexpr (strand == Strand::Single) {
-			if (!data.isReverseStrand()) return coretools::Probability{};
-			if constexpr (perLength) {
-				return data.distFrom3Prime < data.distFrom5Prime
-						   ? _pmd3[_table.index(data.fragmentLength)]->prob(data.distFrom3Prime)
-						   : _pmd5[_table.index(data.fragmentLength)]->prob(data.distFrom5Prime);
-			} else {
-				return data.distFrom3Prime < data.distFrom5Prime ? _pmd3->prob(data.distFrom3Prime)
-																 : _pmd5->prob(data.distFrom5Prime);
-			}
-		} else {
-			if (data.distFrom3Prime < data.distFrom5Prime) { // from 3
-				if constexpr (perLength) {
-					return !data.isReverseStrand() ? _pmd3[_table.index(data.fragmentLength)]->prob(data.distFrom3Prime)
-												   : Probability{};
-				} else {
-					return !data.isReverseStrand() ? _pmd3->prob(data.distFrom3Prime) : Probability{};
-				}
-			} else { // from 5
-				if constexpr (perLength) {
-					return !data.isReverseStrand()
-							   ? Probability{}
-							   : _pmd5[_table.index(data.fragmentLength)]->prob(data.distFrom5Prime);
-				} else {
-					return !data.isReverseStrand() ? Probability{} : _pmd5->prob(data.distFrom5Prime);
-				}
-			}
+	coretools::Probability _CT_single(const BAM::TSequencedBase &data) const noexcept {
+		const bool isForward = !data.isReverseStrand();
+		const bool from5     = data.distFrom5Prime < data.distFrom3Prime;
+
+		if (!isForward) return coretools::Probability{}; 
+
+		// forward:
+		if (from5) {
+			return _pmd<From::from5>(data);
+		} else { // from3
+			return _pmd<From::from3>(data);
 		}
+	}
+
+	coretools::Probability _GA_single(const BAM::TSequencedBase &data) const noexcept {
+		const bool isForward = !data.isReverseStrand();
+		const bool from5     = data.distFrom5Prime < data.distFrom3Prime;
+
+		if (isForward) return coretools::Probability{}; 
+
+		// reversed:
+		if (from5) {
+			return _pmd<From::from5>(data);
+		} else { // from3
+			return _pmd<From::from3>(data);
+		}
+	}
+
+	coretools::Probability _CT_double(const BAM::TSequencedBase &data) const noexcept {
+		const bool isForward = !data.isReverseStrand();
+		const bool from5     = data.distFrom5Prime < data.distFrom3Prime;
+
+		if (isForward) {
+			if (from5) return _pmd<From::from5>(data);
+			return coretools::Probability{}; // from3
+		} else { // reversed
+			if (from5) return coretools::Probability{};
+			return _pmd<From::from3>(data);
+		}
+	}
+
+	coretools::Probability _GA_double(const BAM::TSequencedBase &data) const noexcept {
+		const bool isForward = !data.isReverseStrand();
+		const bool from5     = data.distFrom5Prime < data.distFrom3Prime;
+
+		if (isForward) {
+			if (from5) return coretools::Probability{};
+			return _pmd<From::from3>(data);
+		} else { // reversed
+			if (from5) return _pmd<From::from5>(data);
+			return coretools::Probability{}; // from3
+		}
+	}
+
+	coretools::Probability _probCT(const BAM::TSequencedBase &data) const noexcept {
+		if constexpr (strand == Strand::Single)
+			return _CT_single(data);
+		else
+			return _CT_double(data);
+	}
+
+	coretools::Probability _probGA(const BAM::TSequencedBase &data) const noexcept {
+		if constexpr (strand == Strand::Single)
+			return _GA_single(data);
+		else
+			return _GA_double(data);
 	}
 
 public:
@@ -456,23 +501,6 @@ public:
 			const double ll_with_3 = impl::ll_withPMD<3, from, to>(_table, mu_3, _pmd3.get());
 			OUT(ll_no_3);
 			OUT(ll_with_3);
-
-			{
-				constexpr auto from = Base::G;
-				constexpr auto to = Base::A;
-			std::unique_ptr<TFunction> pmd3Alt(_pmd3->clone());
-			const auto [from_to, to_from] = impl::makeFromTo<3, from, to>(_table);
-			_pmd3->learn(from_to, to_from);
-
-			const auto mu_3        = impl::makeMu<3>(_table);
-			const double ll_no_3   = impl::ll_noPMD<3, from>(_table, mu_3);
-			const double ll_with_3 = impl::ll_withPMD<3, from, to>(_table, mu_3, _pmd3.get());
-			OUT(ll_no_3);
-			OUT(ll_with_3);
-			// LL_single = LL_C,with + LL_G,no
-			// LL_double = LL_G,with + LL_C,no
-			// LL_single > LL_double -> single strand
-			}
 		}
 		logfile().endIndent();
 	}
