@@ -47,8 +47,8 @@ using coretools::instances::parameters;
 void TPMDEstimator::_handleAlignment() {
 	for (size_t d = 0; d < _alignment.size(); ++d) {
 		if (_alignment.isAlignedAtInternalPos(d)) {
-			const auto data     = _alignment[d];
-			const auto from     = _alignment.referenceAtInternalPos(d);
+			const auto data = _alignment[d];
+			const auto from = _alignment.referenceAtInternalPos(d);
 			_pmd->add(_readGroupMap, from, data);
 		}
 	}

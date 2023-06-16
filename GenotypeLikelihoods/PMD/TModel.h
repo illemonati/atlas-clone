@@ -19,7 +19,7 @@
 namespace GenotypeLikelihoods::PMD {
 
 enum class ReadEnd : size_t { min = 0, forward5 = min, reverse5, forward3, reverse3, max };
-enum class Strand : size_t {min, Single=min, Double, max};
+enum class Strand : size_t {min, Single=min, Double, Unknown, max=Unknown};
 
 struct TModel {
 	TModel()          = default;
@@ -54,7 +54,7 @@ public:
 		 TBaseProbabilities::normalize({0., 0., 1., 0.}), TBaseProbabilities::normalize({0., 0., 0., 1.})}};
 
 	static constexpr std::string_view name = "none";
-	TNoPMD()                         = default;
+	TNoPMD()                               = default;
 
 	bool hasDamage() const noexcept override { return false; }
 	std::string functionString() const noexcept override { return "none"; }
@@ -63,19 +63,20 @@ public:
 	virtual void resize(size_t) override {}
 	void estimate() override {}
 	void add(genometools::Base, BAM::TSequencedBase) override {}
-	void writeTable(std::string_view, std::array<coretools::TOutputFile, 2>&) const noexcept override {}
+	void writeTable(std::string_view, std::array<coretools::TOutputFile, 2> &) const noexcept override {}
 
 	TBaseLikelihoods baseLikelihoods(const BAM::TSequencedBase &,
-										const TBaseLikelihoods &baseLikelihoodsNoPMD) const override {
+									 const TBaseLikelihoods &baseLikelihoodsNoPMD) const override {
 		// just copy
 		return baseLikelihoodsNoPMD;
 	}
 
-	TBaseProbabilities massFunction(genometools::Base b, const BAM::TSequencedBase &, const TBaseLikelihoods &) const override {
+	TBaseProbabilities massFunction(genometools::Base b, const BAM::TSequencedBase &,
+									const TBaseLikelihoods &) const override {
 		return massFunctions[b];
 	}
-	TBaseProbabilities massFunction(genometools::Genotype g, const BAM::TSequencedBase &, 
-											const TBaseLikelihoods &baseLikelihoodsNoPMD) const  override {
+	TBaseProbabilities massFunction(genometools::Genotype g, const BAM::TSequencedBase &,
+									const TBaseLikelihoods &baseLikelihoodsNoPMD) const override {
 		return massFunction(g, baseLikelihoodsNoPMD);
 	}
 
@@ -83,7 +84,6 @@ public:
 	virtual void simulate(BAM::TSequencedBase &) const override {}
 };
 
-
 TModel *makeType(std::string_view pmdString);
-}
+} // namespace GenotypeLikelihoods::PMD
 #endif

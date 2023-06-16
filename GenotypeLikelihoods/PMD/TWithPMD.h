@@ -10,10 +10,13 @@
 
 #include "PMD/TFunction.h"
 #include "TModel.h"
+#include "coretools/Containers/TStrongArray.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TRandomGenerator.h"
 #include "coretools/Strings/splitters.h"
 #include "coretools/Strings/toString.h"
+#include "coretools/Types/probability.h"
+#include "coretools/devtools.h"
 #include "genometools/GenotypeTypes.h"
 #include <cstddef>
 #include <memory>
@@ -25,29 +28,33 @@ namespace impl {
 static constexpr size_t _N = coretools::index(genometools::Base::max) + 1;
 using PMDTable             = std::vector<coretools::TStrongArray<
 	coretools::TStrongArray<coretools::TStrongArray<size_t, genometools::Base, _N>, genometools::Base, _N>, ReadEnd>>;
+using TMu =
+	coretools::TStrongArray<coretools::TStrongArray<coretools::Probability, genometools::Base>, genometools::Base>;
 
 struct PMDTables {
 	std::vector<PMDTable> tables;
 	size_t minLength;
-	size_t index(size_t length) const noexcept { return std::min(std::max<size_t>(minLength, length) - minLength, tables.size() - 1); }
+	size_t index(size_t length) const noexcept {
+		return std::min(std::max<size_t>(minLength, length) - minLength, tables.size() - 1);
+	}
 };
 
 template<size_t End>
 constexpr ReadEnd makeForward() {
 	if constexpr (End == 3) return ReadEnd::forward3;
 	if constexpr (End == 5) return ReadEnd::forward5;
-	else static_assert(End == 3);
+	else static_assert(End == 3, "compile-time error");
 }
 
 template<size_t End>
 constexpr ReadEnd makeReverse() {
 	if constexpr (End == 3) return ReadEnd::reverse3;
 	if constexpr (End == 5) return ReadEnd::reverse5;
-	else static_assert(End == 3);
+	else static_assert(End == 3, "compile-time error");
 }
 
-template<size_t End, genometools::Base From, genometools::Base To>
-auto makeFromTo(const PMDTable &table) {
+template<size_t End>
+auto makeFromTo(const PMDTable &table, genometools::Base _from, genometools::Base _to) {
 	using genometools::Base;
 	// Assumption: From->To pattern is the same for forward and reverse reads from their respective Ends
 	const auto N = table.size();
@@ -61,8 +68,8 @@ auto makeFromTo(const PMDTable &table) {
 
 	for (size_t i = 0; i < N; ++i) {
 		// CT
-		from_to.push_back(table[i][forward][From][To]);
-		from_to.back() += table[i][reverse][From][To];
+		from_to.push_back(table[i][forward][_from][_to]);
+		from_to.back() += table[i][reverse][_from][_to];
 		if (from_to.back() < 100) {
 			from_to.pop_back();
 			break;
@@ -70,101 +77,209 @@ auto makeFromTo(const PMDTable &table) {
 		double s_from = 0;
 		double s_to   = 0;
 		for (auto b = Base::min; b < Base::max; ++b) {
-			s_from += table[i][forward][From][b];
-			s_from += table[i][reverse][From][b];
-			s_to += table[i][forward][To][b];
-			s_to += table[i][reverse][To][b];
+			s_from += table[i][forward][_from][b];
+			s_from += table[i][reverse][_from][b];
+			s_to += table[i][forward][_to][b];
+			s_to += table[i][reverse][_to][b];
 		}
 		from_to.back() /= s_from;
 
-		to_from.push_back(table[i][forward][To][From]);
-		to_from.back() += table[i][reverse][To][From];
+		to_from.push_back(table[i][forward][_to][_from]);
+		to_from.back() += table[i][reverse][_to][_from];
 		to_from.back() /= s_to;
 	}
 	return std::make_pair(from_to, to_from);
 }
 
+template<size_t End>
+TMu makeMu(const PMDTable &table) {
+	using genometools::Base;
+	constexpr auto forward = makeForward<End>();
+	constexpr auto reverse = makeReverse<End>();
+
+	coretools::TStrongArray<coretools::TStrongArray<size_t, genometools::Base>, genometools::Base> from_to{};
+	for (size_t p = 0; p < table.size(); ++p) {
+		for (auto from = Base::min; from < Base::max; ++from) {
+			for (auto to = Base::min; to < Base::max; ++to) {
+				from_to[from][to] += table[p][forward][from][to];
+				from_to[from][to] += table[p][reverse][from][to];
+			}
+		}
+	}
+
+	TMu mu;
+	for (auto from = Base::min; from < Base::max; ++from) {
+		size_t s = 0;
+		for (auto to = Base::min; to < Base::max; ++to) {
+			s += from_to[from][to];
+		}
+		for (auto to = Base::min; to < Base::max; ++to) {
+			mu[from][to] = static_cast<double>(from_to[from][to])/s;
+		}
+	}
+	return mu;
+}
+
+template<size_t End>
+double ll_noPMD(const PMDTable &table, const TMu& mu, genometools::Base From) {
+	using genometools::Base;
+	constexpr auto forward = makeForward<End>();
+	constexpr auto reverse = makeReverse<End>();
+
+	double ll = 0.;
+	for (size_t p = 0; p < table.size(); ++p) {
+		double mu_FF = 1.;
+		for (auto to = Base::min; to < Base::max; ++to) {
+			// take "reverse" mu value, i.e. instead of CT, take TC
+			// assuming these values are the same
+			if (to == From) continue;
+			ll += (table[p][forward][From][to] + table[p][reverse][From][to])*log(mu[to][From]);
+			mu_FF -= mu[to][From];
+		}
+			ll += (table[p][forward][From][From] + table[p][reverse][From][From])*log(mu_FF);
+	}
+	return ll;
+}
+
+template<size_t End>
+double ll_withPMD(const PMDTable &table, const TMu &mu, const TFunction *fun, genometools::Base From, genometools::Base To) {
+	using genometools::Base;
+	constexpr auto forward = makeForward<End>();
+	constexpr auto reverse = makeReverse<End>();
+
+	double ll = 0.;
+	for (size_t p = 0; p < table.size(); ++p) {
+			double mu_FF = 1.;
+
+			for (auto to = Base::min; to < Base::max; ++to) {
+			// take "reverse" mu value, i.e. instead of CT, take TC
+			// assuming these values are the same
+			if (to == From || to == To) continue;
+			ll += (table[p][forward][From][to] + table[p][reverse][From][to]) * log(mu[to][From]);
+			mu_FF -= mu[to][From];
+			}
+
+			const auto mu_FT = mu[To][From] + (1. - mu[To][From]) * fun->prob(p);
+			ll += (table[p][forward][From][To] + table[p][reverse][From][To]) * log(mu_FT);
+			mu_FF -= mu_FT;
+
+			ll += (table[p][forward][From][From] + table[p][reverse][From][From]) * log(mu_FF);
+	}
+	return ll;
+}
+
 } // namespace impl
 
 
-template<Strand strand, bool perLength> class TWithPMD final : public TModel {
+template<bool perLength> class TWithPMD final : public TModel {
 private:
-	static constexpr coretools::TStrongArray<std::string_view, Strand> _names{{"singleStrand", "doubleStrand"}};
+	static constexpr coretools::TStrongArray<std::string_view, Strand, coretools::index(Strand::Unknown) + 1> _names{{"singleStrand", "doubleStrand", "unknownStrand"}};
 	using Function = std::conditional_t<perLength, std::vector<std::unique_ptr<TFunction>>, std::unique_ptr<TFunction>>;
 	using Table    = std::conditional_t<perLength, impl::PMDTables, impl::PMDTable>;
+
+	Strand _strand;
 	Function _pmd5;
 	Function _pmd3;
 	Table _table;
 
-	coretools::Probability _probCT(const BAM::TSequencedBase &data) const noexcept {
-		using coretools::Probability;
-		if constexpr (strand == Strand::Single) {
-			if (data.isReverseStrand()) return coretools::Probability{};
-			if constexpr (perLength) {
-				return data.distFrom3Prime < data.distFrom5Prime
-						   ? _pmd3[_table.index(data.fragmentLength)]->prob(data.distFrom3Prime)
-						   : _pmd5[_table.index(data.fragmentLength)]->prob(data.distFrom5Prime);
-
+	template<size_t End>
+	coretools::Probability _pmd(const BAM::TSequencedBase &data) const noexcept {
+		if constexpr (perLength) {
+			if constexpr (End == 5) {
+				return _pmd5[_table.index(data.fragmentLength)]->prob(data.distFrom5Prime);
+			} else if constexpr (End == 3){
+				return _pmd3[_table.index(data.fragmentLength)]->prob(data.distFrom3Prime);
 			} else {
-				return data.distFrom3Prime < data.distFrom5Prime ? _pmd3->prob(data.distFrom3Prime)
-																 : _pmd5->prob(data.distFrom5Prime);
+				static_assert(End == 3, "compile-time error");
 			}
 		} else {
-			if (data.distFrom3Prime < data.distFrom5Prime) { // from 3
-				if constexpr (perLength) {
-					return !data.isReverseStrand()
-							   ? Probability{}
-							   : _pmd3[_table.index(data.fragmentLength)]->prob(data.distFrom3Prime);
-				} else {
-					return !data.isReverseStrand() ? Probability{} : _pmd3->prob(data.distFrom3Prime);
-				}
-			} else { // from 5
-				if constexpr (perLength) {
-					return !data.isReverseStrand() ? _pmd5[_table.index(data.fragmentLength)]->prob(data.distFrom5Prime)
-												   : Probability{};
-				} else {
-					return !data.isReverseStrand() ? _pmd5->prob(data.distFrom5Prime) : Probability{};
-				}
+			if constexpr (End == 5) {
+				return _pmd5->prob(data.distFrom5Prime);
+			} else if constexpr (End == 3){
+				return _pmd3->prob(data.distFrom3Prime);
+			} else {
+				static_assert(End == 3, "compile-time error");
 			}
+		}
+	}
+
+	template<Strand strand>
+	coretools::Probability _CT(const BAM::TSequencedBase &) const noexcept {
+		return coretools::Probability{}; 
+	}
+
+	template<>
+	coretools::Probability _CT<Strand::Single>(const BAM::TSequencedBase &data) const noexcept {
+		const bool isForward = !data.isReverseStrand();
+		if (!isForward) return coretools::Probability{}; 
+
+		// forward:
+		const bool from5 = data.distFrom5Prime < data.distFrom3Prime;
+		return from5 ? _pmd<5>(data) : _pmd<3>(data);
+	}
+
+	template<>
+	coretools::Probability _CT<Strand::Double>(const BAM::TSequencedBase &data) const noexcept {
+		const bool isForward = !data.isReverseStrand();
+		const bool from5     = data.distFrom5Prime < data.distFrom3Prime;
+
+		if (isForward) {
+			if (from5) return _pmd<5>(data);
+			return coretools::Probability{}; // from3
+		} else { // reversed
+			if (from5) return coretools::Probability{};
+			return _pmd<3>(data);
+		}
+	}
+
+	template<Strand strand>
+	coretools::Probability _GA(const BAM::TSequencedBase &) const noexcept {
+		return coretools::Probability{}; 
+	}
+
+	template<>
+	coretools::Probability _GA<Strand::Single>(const BAM::TSequencedBase &data) const noexcept {
+		const bool isForward = !data.isReverseStrand();
+		if (isForward) return coretools::Probability{}; 
+
+		// reversed:
+		const bool from5 = data.distFrom5Prime < data.distFrom3Prime;
+		return from5 ? _pmd<5>(data) : _pmd<3>(data);
+	}
+
+	template<>
+	coretools::Probability _GA<Strand::Double>(const BAM::TSequencedBase &data) const noexcept {
+		const bool isForward = !data.isReverseStrand();
+		const bool from5     = data.distFrom5Prime < data.distFrom3Prime;
+
+		if (isForward) {
+			if (from5) return coretools::Probability{};
+			return _pmd<3>(data);
+		} else { // reversed
+			if (from5) return _pmd<5>(data);
+			return coretools::Probability{}; // from3
+		}
+	}
+
+	coretools::Probability _probCT(const BAM::TSequencedBase &data) const noexcept {
+		switch (_strand) {
+		case Strand::Single: return _CT<Strand::Single>(data);
+		case Strand::Double: return _CT<Strand::Double>(data);
+		default: return _CT<Strand::Unknown>(data);
 		}
 	}
 
 	coretools::Probability _probGA(const BAM::TSequencedBase &data) const noexcept {
-		using coretools::Probability;
-		if constexpr (strand == Strand::Single) {
-			if (!data.isReverseStrand()) return coretools::Probability{};
-			if constexpr (perLength) {
-				return data.distFrom3Prime < data.distFrom5Prime
-						   ? _pmd3[_table.index(data.fragmentLength)]->prob(data.distFrom3Prime)
-						   : _pmd5[_table.index(data.fragmentLength)]->prob(data.distFrom5Prime);
-			} else {
-				return data.distFrom3Prime < data.distFrom5Prime ? _pmd3->prob(data.distFrom3Prime)
-																 : _pmd5->prob(data.distFrom5Prime);
-			}
-		} else {
-			if (data.distFrom3Prime < data.distFrom5Prime) { // from 3
-				if constexpr (perLength) {
-					return !data.isReverseStrand() ? _pmd3[_table.index(data.fragmentLength)]->prob(data.distFrom3Prime)
-												   : Probability{};
-				} else {
-					return !data.isReverseStrand() ? _pmd3->prob(data.distFrom3Prime) : Probability{};
-				}
-			} else { // from 5
-				if constexpr (perLength) {
-					return !data.isReverseStrand()
-							   ? Probability{}
-							   : _pmd5[_table.index(data.fragmentLength)]->prob(data.distFrom5Prime);
-				} else {
-					return !data.isReverseStrand() ? Probability{} : _pmd5->prob(data.distFrom5Prime);
-				}
-			}
+		switch (_strand) {
+		case Strand::Single: return _GA<Strand::Single>(data);
+		case Strand::Double: return _GA<Strand::Double>(data);
+		default: return _GA<Strand::Unknown>(data);
 		}
 	}
 
 public:
-	static constexpr std::string_view name = _names[strand];
 	template<typename... Ts>
-	TWithPMD(std::string_view function5, std::string_view function3, Ts... ts) {
+	TWithPMD(std::string_view function5, std::string_view function3, Strand strand, Ts... ts): _strand(strand) {
 		constexpr auto N = sizeof...(ts);
 		static_assert((perLength && (N == 1)) || (!perLength && !N));
 		if constexpr (perLength) {
@@ -195,6 +310,10 @@ public:
 		}
 	}
 
+	template<typename... Ts>
+	TWithPMD(std::string_view function5, Ts... ts): TWithPMD(function5, function5, Strand::Unknown, ts...) {}
+
+
 	bool hasDamage() const noexcept override {
 		if constexpr (perLength) {
 			return _pmd5.front()->hasDamage() || _pmd3.front()->hasDamage();
@@ -205,7 +324,7 @@ public:
 
 	std::string functionString() const noexcept override {
 		if constexpr (perLength) {
-			std::string s{name};
+			std::string s{_names[_strand]};
 			s.append(":[");
 			s.append(coretools::str::toString(_table.minLength));
 			s.append("]:(");
@@ -218,11 +337,11 @@ public:
 			return s;
 
 		} else {
-			return std::string(name).append(1, ':').append(_pmd5->string()).append(1, ':').append(_pmd3->string());
+			return std::string(_names[_strand]).append(1, ':').append(_pmd5->string()).append(1, ':').append(_pmd3->string());
 		}
 	}
 
-	std::string_view typeString() const noexcept override { return name; }
+	std::string_view typeString() const noexcept override { return _names[_strand]; }
 
 	void resize(size_t N) override {
 		if constexpr (perLength) {
@@ -297,7 +416,7 @@ public:
 
 	void add(genometools::Base from, BAM::TSequencedBase data) override {
 		const auto to    = data.base;
-		const auto from3 = data.distFrom3Prime < data.distFrom5Prime;
+		const bool from5 = data.distFrom5Prime < data.distFrom3Prime;
 		if constexpr (perLength) {
 			const auto index   = std::max<size_t>(_table.minLength, data.fragmentLength) - _table.minLength;
 			const auto oldSize = _table.tables.size();
@@ -305,21 +424,21 @@ public:
 				_table.tables.resize(index + 1);
 				for (size_t i = oldSize; i < index + 1; ++i) _table.tables[i].resize(_table.tables.front().size(), {});
 			}
-			const auto pos = std::min<size_t>(_table.tables.size() - 1, from3 ? data.distFrom3Prime : data.distFrom5Prime);
+			const auto pos = std::min<size_t>(_table.tables.size() - 1, from5 ? data.distFrom5Prime : data.distFrom3Prime);
 			if (data.isReverseStrand()) {
-				const auto readEnd = from3 ? ReadEnd::reverse3 : ReadEnd::reverse5;
+				const auto readEnd = from5 ? ReadEnd::reverse5 : ReadEnd::reverse3;
 				_table.tables[index][pos][readEnd][flipped(from)][flipped(to)]++;
 			} else {
-				const auto readEnd = from3 ? ReadEnd::forward3 : ReadEnd::forward5;
+				const auto readEnd = from5 ? ReadEnd::forward5 : ReadEnd::forward3;
 				_table.tables[index][pos][readEnd][from][to]++;
 			}
 		} else {
-			const auto pos   = std::min<size_t>(_table.size() - 1, from3 ? data.distFrom3Prime : data.distFrom5Prime);
+			const auto pos   = std::min<size_t>(_table.size() - 1, from5 ? data.distFrom5Prime : data.distFrom3Prime);
 			if (data.isReverseStrand()) {
-				const auto readEnd = from3 ? ReadEnd::reverse3 : ReadEnd::reverse5;
+				const auto readEnd = from5 ? ReadEnd::reverse5 : ReadEnd::reverse3;
 				_table[pos][readEnd][flipped(from)][flipped(to)]++;
 			} else {
-				const auto readEnd = from3 ? ReadEnd::forward3 : ReadEnd::forward5;
+				const auto readEnd = from5 ? ReadEnd::forward5 : ReadEnd::forward3;
 				_table[pos][readEnd][from][to]++;
 			}
 		}
@@ -330,44 +449,67 @@ public:
 		using genometools::Base;
 		logfile().startIndent("Learning 5' C-T pattern:");
 		if constexpr (perLength) {
-			const std::string fun = _pmd5.front()->string();
+			const auto front = _pmd5.front();
+			const std::string fun = front()->string();
 			_pmd5.clear();
 			for (size_t i = 0; i < _table.tables.size(); ++i) {
-				const auto [C_T5, T_C5] = impl::makeFromTo<5, Base::C, Base::T>(_table.tables[i]);
+				const auto [C_T5, T_C5] = impl::makeFromTo<5>(_table.tables[i], Base::C, Base::T);
 				_pmd5.emplace_back(makeFunction(fun));
 				_pmd5.back()->learn(C_T5, T_C5);
 			}
 		} else {
-			const auto [C_T5, T_C5] = impl::makeFromTo<5, Base::C, Base::T>(_table);
+			const auto [C_T5, T_C5] = impl::makeFromTo<5>(_table, Base::C, Base::T);
 			_pmd5->learn(C_T5, T_C5);
 		}
 		logfile().endIndent();
 
-		constexpr auto from = [](){
-			if constexpr (strand == Strand::Single) return Base::C;
-			else return Base::G;
+		constexpr auto from_tos = []() {
+			coretools::TStrongArray<std::array<Base, 2>, Strand> as{};
+			as[Strand::Single] = {Base::C, Base::T};
+			as[Strand::Double] = {Base::G, Base::A};
+			return as;
 		}();
-		constexpr auto to = []() {
-			if constexpr (strand == Strand::Single)
-				return Base::T;
-			else
-				return Base::A;
-		}();
+		coretools::TStrongArray<Function, Strand> funs;
+		coretools::TStrongArray<double, Strand> ll_no;
+		coretools::TStrongArray<double, Strand> ll_with;
+		for (auto s = Strand::min; s < Strand::max; ++s) {
+			const auto from = from_tos[s].front();
+			const auto to   = from_tos[s].back();
 
-		logfile().startIndent("Learning 3' ", from, "-", to, " pattern:");
-		if constexpr (perLength) {
-			const std::string fun = _pmd3.front()->string();
-			_pmd3.clear();
-			for (size_t i = 0; i < _table.tables.size(); ++i) {
-				const auto [from_to, to_from] = impl::makeFromTo<3, from, to>(_table.tables[i]);
-				_pmd3.emplace_back(makeFunction(fun));
-				_pmd3[i]->learn(from_to, to_from);
+			logfile().startIndent("Learning 3' ", from, "-", to, " pattern:");
+			if constexpr (perLength) {
+				const std::string fun = _pmd3.front()->string();
+				_pmd3.clear();
+				for (size_t i = 0; i < _table.tables.size(); ++i) {
+					const auto [from_to, to_from] = impl::makeFromTo<3>(_table.tables[i], from, to);
+					_pmd3.emplace_back(makeFunction(fun));
+					_pmd3[i]->learn(from_to, to_from);
+				}
+			} else {
+				const auto mu_3 = impl::makeMu<3>(_table);
+				funs[s].reset(_pmd3->clone());
+				const auto [from_to, to_from] = impl::makeFromTo<3>(_table, from, to);
+				funs[s]->learn(from_to, to_from);
+
+				ll_no[s]   = impl::ll_noPMD<3>(_table, mu_3, from);
+				ll_with[s] = impl::ll_withPMD<3>(_table, mu_3, funs[s].get(), from, to);
 			}
-		} else {
-			const auto [from_to, to_from] = impl::makeFromTo<3, from, to>(_table);
-			_pmd3->learn(from_to, to_from);
+			logfile().endIndent();
 		}
-		logfile().endIndent();
+		coretools::TStrongArray<double, Strand> ll_tot;
+		ll_tot[Strand::Single] = ll_with[Strand::Single] + ll_no[Strand::Double];
+		ll_tot[Strand::Double] = ll_with[Strand::Double] + ll_no[Strand::Single];
+		logfile().list("Log-Likelihood of single-strand library: ", ll_tot[Strand::Single]);
+		logfile().list("Log-Likelihood of double-strand library: ", ll_tot[Strand::Double]);
+		const auto delta = ll_tot[Strand::Single] - ll_tot[Strand::Double];
+		if (delta > 0) {
+			_strand = Strand::Single;
+			logfile().list("Assuming single-strand library with delta-log-likelihood: ", delta);
+		} else {
+			_strand = Strand::Double;
+			logfile().list("Assuming double-strand library with delta-log-likelihood: ", -delta);
+		}
+		std::swap(_pmd3, funs[_strand]);
 	}
 
 	TBaseLikelihoods baseLikelihoods(const BAM::TSequencedBase &data,

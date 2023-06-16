@@ -20,8 +20,9 @@ namespace GenotypeLikelihoods::PMD {
 
 class TFunction {
 public:
-	TFunction()          = default;
-	virtual ~TFunction() = default;
+	TFunction()                      = default;
+	virtual ~TFunction()             = default;
+	virtual TFunction *clone() const = 0;
 
 	virtual bool hasDamage() const noexcept                                                    = 0;
 	virtual void learn(const std::vector<double> &from_to, const std::vector<double> &to_from) = 0;
@@ -34,6 +35,8 @@ public:
 	static inline const std::string name    = "none";
 	static inline const std::string example = name;
 	TNo(std::string_view string);
+
+	TFunction* clone() const override {return new TNo{*this};}
 
 	bool hasDamage() const noexcept override { return false; }
 	std::string string() const noexcept override { return name + "[]"; }
@@ -51,6 +54,8 @@ public:
 	static inline const std::string name    = "Exponential";
 	static inline const std::string example = name + "[lastPosition,a,b,c]";
 	TExponential(std::string_view string);
+
+	TFunction* clone() const override {return new TExponential{*this};}
 
 	bool hasDamage() const noexcept override { return _values.size() > 1; }
 	std::string string() const noexcept override {
@@ -70,6 +75,8 @@ public:
 	static inline const std::string name    = "Empiric";
 	static inline const std::string example = name + "[p1,p2,...]";
 	TEmpiric(std::string_view string);
+
+	TFunction* clone() const override {return new TEmpiric{*this};}
 
 	bool hasDamage() const noexcept override { return _values.size() + _values.back().get() != 1.0; }
 	std::string string() const noexcept override {
