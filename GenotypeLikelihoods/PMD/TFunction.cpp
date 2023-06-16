@@ -267,7 +267,8 @@ void TExponential::learn(const std::vector<double> &From_to, const std::vector<d
 		}
 	}
 
-	_fillPMDProbabilities(From_to.size());
+	_values.clear();
+	_fillPMDProbabilities(From_to.size() + 1);
 
 	// check if pattern is negativ
 	if (_values.back() < 0) {
@@ -286,10 +287,10 @@ Probability TExponential::prob(uint16_t pos) const noexcept {
 //---------------------------------------------------------------
 // TPMDFunctionEmpiric
 //---------------------------------------------------------------
-	TEmpiric::TEmpiric(std::string_view string) : _values(impl::parseParameters<Probability>(string)) {
+TEmpiric::TEmpiric(std::string_view string) : _values(impl::parseParameters<Probability>(string)) {
 	if (_values.empty()) {
 		// parameters missing: set to no PMD
-		_values = {0.0};
+		_values.emplace_back(0.);
 	} else {
 		// parameters are provided
 		for (auto &d : _values) {
@@ -305,6 +306,9 @@ void TEmpiric::learn(const std::vector<double> &From_to, const std::vector<doubl
 	logfile().list("Learning empiric pattern");
 	// resize parameters
 	_values = impl::makeEmpiric(From_to, To_from);
+	if (_values.empty()) {
+		_values.emplace_back(0.);
+	}
 }
 
 Probability TEmpiric::prob(uint16_t pos) const noexcept {

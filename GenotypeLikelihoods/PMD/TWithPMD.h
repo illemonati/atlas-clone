@@ -173,7 +173,7 @@ double ll_withPMD(const PMDTable &table, const TMu &mu, const TFunction *fun, ge
 
 template<bool perLength> class TWithPMD final : public TModel {
 private:
-	static constexpr coretools::TStrongArray<std::string_view, Strand> _names{{"singleStrand", "doubleStrand"}};
+	static constexpr coretools::TStrongArray<std::string_view, Strand, coretools::index(Strand::Unknown) + 1> _names{{"singleStrand", "doubleStrand", "unknownStrand"}};
 	using Function = std::conditional_t<perLength, std::vector<std::unique_ptr<TFunction>>, std::unique_ptr<TFunction>>;
 	using Table    = std::conditional_t<perLength, impl::PMDTables, impl::PMDTable>;
 
