@@ -70,17 +70,17 @@ auto makeFromTo(const PMDTable &table, genometools::Base _from, genometools::Bas
 		// CT
 		from_to.push_back(table[i][forward][_from][_to]);
 		from_to.back() += table[i][reverse][_from][_to];
-		if (from_to.back() < 100) {
-			from_to.pop_back();
-			break;
-		}
-		double s_from = 0;
-		double s_to   = 0;
+		size_t s_from = 0;
+		size_t s_to   = 0;
 		for (auto b = Base::min; b < Base::max; ++b) {
 			s_from += table[i][forward][_from][b];
 			s_from += table[i][reverse][_from][b];
 			s_to += table[i][forward][_to][b];
 			s_to += table[i][reverse][_to][b];
+		}
+		if (s_from < 100) {
+			from_to.pop_back();
+			break;
 		}
 		from_to.back() /= s_from;
 
@@ -281,8 +281,10 @@ public:
 	template<typename... Ts>
 	TWithPMD(std::string_view function5, std::string_view function3, Strand strand, Ts... ts): _strand(strand) {
 		constexpr auto N = sizeof...(ts);
-		static_assert((perLength && (N == 1)) || (!perLength && !N));
 		if constexpr (perLength) {
+			static_assert(N == 1);
+			static_assert(std::is_same_v<Ts..., size_t>);
+
 			_table.minLength = {ts...};
 			if (function5.front() != '(') {
 				_pmd5.emplace_back(makeFunction(function5));
@@ -305,6 +307,7 @@ public:
 				}
 			}
 		} else {
+			static_assert(N == 0);
 		_pmd5.reset(makeFunction(function5));
 		_pmd3.reset(makeFunction(function3));
 		}
@@ -449,13 +452,15 @@ public:
 		using genometools::Base;
 		logfile().startIndent("Learning 5' C-T pattern:");
 		if constexpr (perLength) {
-			const auto front = _pmd5.front();
-			const std::string fun = front()->string();
+			std::unique_ptr<TFunction> fun{_pmd5.front()->clone()};
 			_pmd5.clear();
 			for (size_t i = 0; i < _table.tables.size(); ++i) {
 				const auto [C_T5, T_C5] = impl::makeFromTo<5>(_table.tables[i], Base::C, Base::T);
-				_pmd5.emplace_back(makeFunction(fun));
+				OUT(C_T5);
+				OUT(T_C5);
+				_pmd5.emplace_back(fun->clone());
 				_pmd5.back()->learn(C_T5, T_C5);
+				OUT(_pmd5.back()->string());
 			}
 		} else {
 			const auto [C_T5, T_C5] = impl::makeFromTo<5>(_table, Base::C, Base::T);
@@ -478,12 +483,10 @@ public:
 
 			logfile().startIndent("Learning 3' ", from, "-", to, " pattern:");
 			if constexpr (perLength) {
-				const std::string fun = _pmd3.front()->string();
-				_pmd3.clear();
 				for (size_t i = 0; i < _table.tables.size(); ++i) {
 					const auto [from_to, to_from] = impl::makeFromTo<3>(_table.tables[i], from, to);
-					_pmd3.emplace_back(makeFunction(fun));
-					_pmd3[i]->learn(from_to, to_from);
+					funs[s].emplace_back(_pmd3.front()->clone());
+					funs[s][i]->learn(from_to, to_from);
 				}
 			} else {
 				const auto mu_3 = impl::makeMu<3>(_table);

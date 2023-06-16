@@ -189,7 +189,7 @@ std::vector<Probability> makeEmpiric(const std::vector<double> &From_to, const s
 		const double forward  = From_to[p]; // e.g. C -> T
 		const double backward = To_from[p]; // e.g. T -> C
 
-		if (forward == 0. || backward == 0.) {
+		if (forward == 0.) {
 			values.push_back(0.);
 		} else {
 			values.push_back(std::max(0.0, (forward - backward) / (1.0 - backward)));
