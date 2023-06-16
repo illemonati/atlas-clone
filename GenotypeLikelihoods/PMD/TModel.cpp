@@ -1,6 +1,7 @@
 #include "TModel.h"
 #include "TWithPMD.h"
 #include "coretools/Containers/TStrongArray.h"
+#include "coretools/Main/TError.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TRandomGenerator.h"
 #include "coretools/Strings/fromString.h"
@@ -32,41 +33,43 @@ Strand getStrand(std::string_view s) {
 }
 
 TModel *makeType(std::string_view pmdString) {
-	TSplitter spl(pmdString, ':');
-	if (spl.front() == TNoPMD::name) return new TNoPMD;
+	if (pmdString == TNoPMD::name) return new TNoPMD;
 
-	const auto strand = getStrand(spl.front());
+	// Possibilities:
+	// only Function: Exponential | Empiric
+	// only Function perLength: Exponential[30] | Empiric[30]
+	// Everything: 
+	// singleStrand:Empiric[...]:Empiric[...]
+	// doubleStrand:Exponential[30,0.1,0.1,0.05]:Exponential[40,0.2,0.3,0.07]
+	// doubleStrand[30]:Exponential[30,0.1,0.1,0.05]:Exponential[40,0.2,0.3,0.07]
+
+	TSplitter spl(pmdString, ':');
+	const auto front = spl.front();
 	spl.popFront();
 
-	if (spl.front().front() == '[') {
-		// per fragment length
-		// example: doubleStrand:[30]:Exponential
-
-		size_t from = 30; // default values
-		std::string_view sFrom = spl.front();
-		sFrom.remove_prefix(1);
-		sFrom.remove_suffix(1);
-		if (!sFrom.empty()) {
-			from = fromStringCheck<size_t>(sFrom);
+	if (spl.empty()) {  // only function
+		if (front.back() == ']') {
+			DEVERROR("Not Implemented yet");
+			// TODO
+		} else {
+			return new TWithPMD<false>(front);
 		}
-
-		spl.popFront();
-		const auto function5 = spl.front();
-
-		spl.popFront();
-		const auto function3 = spl.empty() ? function5 : spl.front();
-
-		if (strand == Strand::Single) return new TWithPMD<Strand::Single, true>(function5, function3, from);
-		/*else*/ return new TWithPMD<Strand::Double, true>(function5, function3, from);
 	} else {
-		// per read group
-		const auto function5 = spl.front();
-		spl.popFront();
+		if (front.back() == ']') {
+			DEVERROR("Not Implemented yet");
+			// TODO
+		} else {
+			const auto strand    = getStrand(front);
+			const auto function5 = spl.front();
+			spl.popFront();
 
-		const auto function3 = spl.empty() ? function5 : spl.front();
+			if (spl.empty()) {
+				UERROR("You need to specify two function, 5' and 3'!");
+			}
 
-		if (strand == Strand::Single) return new TWithPMD<Strand::Single, false>(function5, function3);
-		/*else*/ return new TWithPMD<Strand::Double, false>(function5, function3);
+			const auto function3 = spl.front();
+			return new TWithPMD<false>(function5, function3, strand);
+		}
 	}
 }
 } // namespace GenotypeLikelihoods::PMD
