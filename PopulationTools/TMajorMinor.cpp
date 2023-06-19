@@ -482,8 +482,7 @@ template<typename Estimator> void iterate(double maxF) {
 
 	// limit input
 	const size_t limitSites = parameters().getParameterWithDefault("limitSites", 0);
-	if (limitSites > 0) logfile().list("Will stop at input position ", limitSites, ". (parameter 'limitSites')");
-	if (limitSites < 0) UERROR("maxPos cannot be negative!");
+	logfile().list("Will stop at input position ", limitSites, ". (parameter 'limitSites')");
 
 	// filename tag
 	const std::string outname = parameters().getParameterWithDefault<std::string>("out", "ATLAS_majorMinor");
