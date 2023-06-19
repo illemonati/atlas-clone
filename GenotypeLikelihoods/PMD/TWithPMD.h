@@ -203,61 +203,54 @@ private:
 		}
 	}
 
-	template<Strand strand>
-	coretools::Probability _CT(const BAM::TSequencedBase &) const noexcept {
-		return coretools::Probability{}; 
-	}
+	template<Strand strand> coretools::Probability _CT(const BAM::TSequencedBase &data) const noexcept {
+		if constexpr (strand == Strand::Single) {
+			const bool isForward = !data.isReverseStrand();
+			if (!isForward) return coretools::Probability{};
 
-	template<>
-	coretools::Probability _CT<Strand::Single>(const BAM::TSequencedBase &data) const noexcept {
-		const bool isForward = !data.isReverseStrand();
-		if (!isForward) return coretools::Probability{}; 
+			// forward:
+			const bool from5 = data.distFrom5Prime < data.distFrom3Prime;
+			return from5 ? _pmd<5>(data) : _pmd<3>(data);
 
-		// forward:
-		const bool from5 = data.distFrom5Prime < data.distFrom3Prime;
-		return from5 ? _pmd<5>(data) : _pmd<3>(data);
-	}
+		} else if constexpr (strand == Strand::Double) {
+			const bool isForward = !data.isReverseStrand();
+			const bool from5     = data.distFrom5Prime < data.distFrom3Prime;
 
-	template<>
-	coretools::Probability _CT<Strand::Double>(const BAM::TSequencedBase &data) const noexcept {
-		const bool isForward = !data.isReverseStrand();
-		const bool from5     = data.distFrom5Prime < data.distFrom3Prime;
-
-		if (isForward) {
-			if (from5) return _pmd<5>(data);
-			return coretools::Probability{}; // from3
-		} else { // reversed
-			if (from5) return coretools::Probability{};
-			return _pmd<3>(data);
+			if (isForward) {
+				if (from5) return _pmd<5>(data);
+				return coretools::Probability{}; // from3
+			} else {                             // reversed
+				if (from5) return coretools::Probability{};
+				return _pmd<3>(data);
+			}
+		} else {
+			return coretools::Probability{};
 		}
 	}
 
-	template<Strand strand>
-	coretools::Probability _GA(const BAM::TSequencedBase &) const noexcept {
-		return coretools::Probability{}; 
-	}
+	template<Strand strand> coretools::Probability _GA(const BAM::TSequencedBase &data) const noexcept {
+		if constexpr (strand == Strand::Single) {
+			const bool isForward = !data.isReverseStrand();
+			if (isForward) return coretools::Probability{};
 
-	template<>
-	coretools::Probability _GA<Strand::Single>(const BAM::TSequencedBase &data) const noexcept {
-		const bool isForward = !data.isReverseStrand();
-		if (isForward) return coretools::Probability{}; 
+			// reversed:
+			const bool from5 = data.distFrom5Prime < data.distFrom3Prime;
+			return from5 ? _pmd<5>(data) : _pmd<3>(data);
 
-		// reversed:
-		const bool from5 = data.distFrom5Prime < data.distFrom3Prime;
-		return from5 ? _pmd<5>(data) : _pmd<3>(data);
-	}
+		} else if constexpr (strand == Strand::Double) {
+			const bool isForward = !data.isReverseStrand();
+			const bool from5     = data.distFrom5Prime < data.distFrom3Prime;
 
-	template<>
-	coretools::Probability _GA<Strand::Double>(const BAM::TSequencedBase &data) const noexcept {
-		const bool isForward = !data.isReverseStrand();
-		const bool from5     = data.distFrom5Prime < data.distFrom3Prime;
+			if (isForward) {
+				if (from5) return coretools::Probability{};
+				return _pmd<3>(data);
+			} else { // reversed
+				if (from5) return _pmd<5>(data);
+				return coretools::Probability{}; // from3
+			}
 
-		if (isForward) {
-			if (from5) return coretools::Probability{};
-			return _pmd<3>(data);
-		} else { // reversed
-			if (from5) return _pmd<5>(data);
-			return coretools::Probability{}; // from3
+		} else {
+			return coretools::Probability{};
 		}
 	}
 
