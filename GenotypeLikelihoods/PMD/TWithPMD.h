@@ -34,6 +34,7 @@ using TMu =
 struct PMDTables {
 	std::vector<PMDTable> tables;
 	size_t minLength;
+	size_t maxSize;
 	size_t index(size_t length) const noexcept {
 		return std::min(std::max<size_t>(minLength, length) - minLength, tables.size() - 1);
 	}
@@ -70,6 +71,8 @@ auto makeFromTo(const PMDTable &table, genometools::Base _from, genometools::Bas
 		// CT
 		from_to.push_back(table[i][forward][_from][_to]);
 		from_to.back() += table[i][reverse][_from][_to];
+		to_from.push_back(table[i][forward][_to][_from]);
+		to_from.back() += table[i][reverse][_to][_from];
 		size_t s_from = 0;
 		size_t s_to   = 0;
 		for (auto b = Base::min; b < Base::max; ++b) {
@@ -78,15 +81,15 @@ auto makeFromTo(const PMDTable &table, genometools::Base _from, genometools::Bas
 			s_to += table[i][forward][_to][b];
 			s_to += table[i][reverse][_to][b];
 		}
-		if (s_from < 100) {
+		from_to.back() /= s_from;
+		to_from.back() /= s_to;
+
+		if (s_from < 100 || (from_to.back() - to_from.back()) < 0.01) {
 			from_to.pop_back();
+			to_from.pop_back();
 			break;
 		}
-		from_to.back() /= s_from;
 
-		to_from.push_back(table[i][forward][_to][_from]);
-		to_from.back() += table[i][reverse][_to][_from];
-		to_from.back() /= s_to;
 	}
 	return std::make_pair(from_to, to_from);
 }
@@ -272,7 +275,7 @@ private:
 
 public:
 	template<typename... Ts>
-	TWithPMD(std::string_view function5, std::string_view function3, Strand strand, Ts... ts): _strand(strand) {
+	TWithPMD(std::string_view function5, std::string_view function3, Strand strand, Ts... ts) : _strand(strand) {
 		constexpr auto N = sizeof...(ts);
 		if constexpr (perLength) {
 			static_assert(N == 1);
@@ -285,9 +288,7 @@ public:
 				function5.remove_prefix(1);
 				function5.remove_suffix(1);
 				coretools::str::TSplitter spl(function5, ';');
-				for (auto f5: spl) {
-					_pmd5.emplace_back(makeFunction(f5));
-				}
+				for (auto f5 : spl) { _pmd5.emplace_back(makeFunction(f5)); }
 			}
 			if (function3.front() != '(') {
 				_pmd3.emplace_back(makeFunction(function3));
@@ -295,14 +296,12 @@ public:
 				function3.remove_prefix(1);
 				function3.remove_suffix(1);
 				coretools::str::TSplitter spl(function3, ';');
-				for (auto f3: spl) {
-					_pmd3.emplace_back(makeFunction(f3));
-				}
+				for (auto f3 : spl) { _pmd3.emplace_back(makeFunction(f3)); }
 			}
 		} else {
 			static_assert(N == 0);
-		_pmd5.reset(makeFunction(function5));
-		_pmd3.reset(makeFunction(function3));
+			_pmd5.reset(makeFunction(function5));
+			_pmd3.reset(makeFunction(function3));
 		}
 	}
 
@@ -341,9 +340,11 @@ public:
 
 	void resize(size_t N) override {
 		if constexpr (perLength) {
-			_table.tables.clear();
-			_table.tables.emplace_back();
-			_table.tables.front().resize(N, {});
+			_table.maxSize = N;
+			for (size_t i = 0; i < _table.tables.size(); ++i) {
+				const auto sz = (_table.minLength + i - 1)/2 + 1; // this always ceils
+				_table.tables[i].resize(sz, {});
+			}
 		} else {
 			_table.resize(N, {});
 		}
@@ -365,7 +366,7 @@ public:
 				const auto &table = _table.tables[l];
 				for (auto j = ReadEnd::min; j < ReadEnd::max; ++j) {
 					for (Base f = Base::min; f <= Base::max; ++f) {
-						std::vector<size_t> sums(table.size(), 0.);
+						std::vector<size_t> sums(_table.maxSize, 0.);
 						for (size_t pos = 0; pos < table.size(); ++pos) {
 							for (Base t = Base::min; t < Base::max; ++t) { sums[pos] += table[pos][j][f][t]; }
 						}
@@ -378,6 +379,10 @@ public:
 							for (size_t pos = 0; pos < table.size(); ++pos) {
 								files.front().write(table[pos][j][f][t]);
 								files.back().write(static_cast<double>(table[pos][j][f][t]) / sums[l]);
+							}
+							for (size_t pos = table.size(); pos < _table.maxSize; ++ pos) {
+								files.front().write(0.);
+								files.back().write(0.);
 							}
 							files.front().endln();
 							files.back().endln();
@@ -418,7 +423,10 @@ public:
 			const auto oldSize = _table.tables.size();
 			if (oldSize <= index) {
 				_table.tables.resize(index + 1);
-				for (size_t i = oldSize; i < index + 1; ++i) _table.tables[i].resize(_table.tables.front().size(), {});
+				for (size_t i = oldSize; i < index + 1; ++i) {
+					const auto sz = (_table.minLength + i - 1) / 2 + 1; // this always ceils
+					_table.tables[i].resize(sz, {});
+				}
 			}
 			const auto pos = std::min<size_t>(_table.tables.size() - 1, from5 ? data.distFrom5Prime : data.distFrom3Prime);
 			if (data.isReverseStrand()) {
@@ -449,11 +457,8 @@ public:
 			_pmd5.clear();
 			for (size_t i = 0; i < _table.tables.size(); ++i) {
 				const auto [C_T5, T_C5] = impl::makeFromTo<5>(_table.tables[i], Base::C, Base::T);
-				OUT(C_T5);
-				OUT(T_C5);
 				_pmd5.emplace_back(fun->clone());
 				_pmd5.back()->learn(C_T5, T_C5);
-				OUT(_pmd5.back()->string());
 			}
 		} else {
 			const auto [C_T5, T_C5] = impl::makeFromTo<5>(_table, Base::C, Base::T);

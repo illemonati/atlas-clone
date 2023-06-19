@@ -3,6 +3,7 @@
 #include "coretools/Main/TParameters.h"
 #include "coretools/Main/TRandomGenerator.h"
 #include "coretools/Types/probability.h"
+#include "coretools/devtools.h"
 #include <tuple>
 
 namespace GenotypeLikelihoods::PMD {
@@ -53,7 +54,7 @@ std::array<double, 3> initialEstimatesOLS(const std::vector<Probability> &Empiri
 
 	// do until we get a small alpha
 	while (fabs(gammaStep) > 0.00000001) {
-		while (SSRdiff < 0.0) {
+		while (SSRdiff < 0.0 && (gammaTmp + gammaStep > 0)) {
 			// update gamma
 			gammaTmp += gammaStep;
 
@@ -232,8 +233,8 @@ TExponential::TExponential(std::string_view string) {
 		_c           = params[3];
 
 		if (N == 0)  UERROR("Cannot initialize PMD function '", name, "': last position must be > 0!"); 
+		if (_a < 0.0) UERROR("Cannot initialize PMD function '", name, "': a must be > 0!");
 		if (_b < 0.0) UERROR("Cannot initialize PMD function '", name, "': b must be > 0!");
-		if (_c < 0.0) UERROR("Cannot initialize PMD function '", name, "': c must be > 0!");
 		_fillPMDProbabilities(N + 1);
 	}
 }
@@ -252,7 +253,6 @@ void TExponential::learn(const std::vector<double> &From_to, const std::vector<d
 		_b = 1.;
 		_c = 0.;
 	} else {
-
 		// get initial estimates via OLS
 		const auto empiric    = impl::makeEmpiric(From_to, To_from);
 		const auto Parameters = impl::initialEstimatesOLS(empiric);
@@ -260,9 +260,14 @@ void TExponential::learn(const std::vector<double> &From_to, const std::vector<d
 
 		logfile().conclude(_a, "*exp(-", _b, "*p) + ", _c);
 
-		if (Parameters[1] < 0) {
+		if (_a < 0) {
 			UERROR(
 				"Estimation resulted in a = ", _a,
+				" < 0! This is likely due to limited data. Consider pooling read groups (parameter poolReadGroups).");
+		}
+		if (_b < 0) {
+			UERROR(
+				"Estimation resulted in a = ", _b,
 				" < 0! This is likely due to limited data. Consider pooling read groups (parameter poolReadGroups).");
 		}
 	}
