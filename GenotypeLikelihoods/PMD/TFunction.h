@@ -25,7 +25,7 @@ public:
 	virtual TFunction *clone() const = 0;
 
 	virtual bool hasDamage() const noexcept                                                    = 0;
-	virtual void learn(const std::vector<double> &from_to, const std::vector<double> &to_from) = 0;
+	virtual bool learn(const std::vector<double> &from_to, const std::vector<double> &to_from) = 0;
 	virtual std::string string() const noexcept                                                = 0;
 	virtual coretools::Probability prob(uint16_t pos) const noexcept                           = 0;
 };
@@ -40,7 +40,7 @@ public:
 
 	bool hasDamage() const noexcept override { return false; }
 	std::string string() const noexcept override { return name + "[]"; }
-	void learn(const std::vector<double> &, const std::vector<double> &) override {}
+	bool learn(const std::vector<double> &, const std::vector<double> &) override {return false;}
 	coretools::Probability prob(uint16_t) const noexcept override { return 0.0; }
 };
 
@@ -63,7 +63,7 @@ public:
 			   coretools::str::concatenateString(std::vector{_a, _b, _c}, ",") + "]";
 	}
 
-	void learn(const std::vector<double> &from_to, const std::vector<double> &to_from) override;
+	bool learn(const std::vector<double> &from_to, const std::vector<double> &to_from) override;
 	coretools::Probability prob(uint16_t pos) const noexcept override;
 };
 
@@ -83,7 +83,7 @@ public:
 		return name + "[" + coretools::str::concatenateString(_values, ",") + "]";
 	}
 
-	void learn(const std::vector<double> &from_to, const std::vector<double> &to_from) override;
+	bool learn(const std::vector<double> &from_to, const std::vector<double> &to_from) override;
 	coretools::Probability prob(uint16_t pos) const noexcept override;
 };
 

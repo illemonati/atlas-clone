@@ -84,7 +84,7 @@ auto makeFromTo(const PMDTable &table, genometools::Base _from, genometools::Bas
 		from_to.back() /= s_from;
 		to_from.back() /= s_to;
 
-		if (s_from < 100 || (from_to.back() - to_from.back()) < 0.01) {
+		if (s_from < 1000 || (from_to.back() - to_from.back()) < 0.01) {
 			from_to.pop_back();
 			to_from.pop_back();
 			break;
@@ -320,7 +320,7 @@ public:
 	std::string functionString() const noexcept override {
 		if constexpr (perLength) {
 			std::string s{_names[_strand]};
-			s.append(":[");
+			s.append("[");
 			s.append(coretools::str::toString(_table.minLength));
 			s.append("]:(");
 			for (const auto &pmd5 : _pmd5) { s.append(pmd5->string()).append(1, ';'); }
@@ -342,7 +342,7 @@ public:
 		if constexpr (perLength) {
 			_table.maxSize = N;
 			for (size_t i = 0; i < _table.tables.size(); ++i) {
-				const auto sz = (_table.minLength + i - 1)/2 + 1; // this always ceils
+				const auto sz = std::min(N, (_table.minLength + i - 1)/2 + 1); // this always ceils
 				_table.tables[i].resize(sz, {});
 			}
 		} else {
@@ -378,7 +378,7 @@ public:
 							files.back().write(_table.minLength + l, directions[j], f, t);
 							for (size_t pos = 0; pos < table.size(); ++pos) {
 								files.front().write(table[pos][j][f][t]);
-								files.back().write(static_cast<double>(table[pos][j][f][t]) / sums[l]);
+								files.back().write(static_cast<double>(table[pos][j][f][t]) / sums[pos]);
 							}
 							for (size_t pos = table.size(); pos < _table.maxSize; ++ pos) {
 								files.front().write(0.);
@@ -457,8 +457,8 @@ public:
 			_pmd5.clear();
 			for (size_t i = 0; i < _table.tables.size(); ++i) {
 				const auto [C_T5, T_C5] = impl::makeFromTo<5>(_table.tables[i], Base::C, Base::T);
+				fun->learn(C_T5, T_C5);
 				_pmd5.emplace_back(fun->clone());
-				_pmd5.back()->learn(C_T5, T_C5);
 			}
 		} else {
 			const auto [C_T5, T_C5] = impl::makeFromTo<5>(_table, Base::C, Base::T);

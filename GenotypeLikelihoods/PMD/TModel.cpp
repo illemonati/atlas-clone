@@ -61,17 +61,20 @@ TModel *makeType(std::string_view pmdString) {
 		}
 	}
 	// else
+
+	const auto function5 = spl.front();
+	spl.popFront();
+	if (spl.empty()) { UERROR("You need to specify two function, 5' and 3'!"); }
+	const auto function3 = spl.front();
+
 	if (front.back() == ']') {
-		DEVERROR("Not Implemented yet");
-		// TODO
+		const auto strand = getStrand(coretools::str::readBefore(front, '['));
+		auto from         = coretools::str::readAfter(front, '[');
+		from.remove_suffix(1);
+		if (from.empty()) return new TWithPMD<true>(function5, function3, strand, size_t{30});
+		/*else*/ return new TWithPMD<true>(function5, function3, strand, fromString<size_t, true>(from));
 	} else {
 		const auto strand    = getStrand(front);
-		const auto function5 = spl.front();
-		spl.popFront();
-
-		if (spl.empty()) { UERROR("You need to specify two function, 5' and 3'!"); }
-
-		const auto function3 = spl.front();
 		return new TWithPMD<false>(function5, function3, strand);
 	}
 }

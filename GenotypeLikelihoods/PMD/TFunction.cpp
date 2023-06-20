@@ -220,7 +220,7 @@ TExponential::TExponential(std::string_view string) {
 	if (params.empty()) {
 		// parameters missing: set to no PMD
 		_a = _b = _c = 0.;
-		_fillPMDProbabilities(1);
+		_values.push_back(0.);
 	} else {
 		// parameters are provided
 		if (params.size() != nParams) {
@@ -245,42 +245,54 @@ void TExponential::_fillPMDProbabilities(size_t N) {
 }
 
 
-void TExponential::learn(const std::vector<double> &From_to, const std::vector<double> &To_from) {
+bool TExponential::learn(const std::vector<double> &From_to, const std::vector<double> &To_from) {
 	logfile().list("Learning exponential pattern");
+
+	_values.clear();
 
 	if (From_to.size() < 3) {
 		_a = 0.;
-		_b = 1.;
+		_b = 0.;
 		_c = 0.;
-	} else {
+		_values.push_back(0.);
+		return false;
+	}
+
+	try {
 		// get initial estimates via OLS
 		const auto empiric    = impl::makeEmpiric(From_to, To_from);
 		const auto Parameters = impl::initialEstimatesOLS(empiric);
 		std::tie(_a, _b, _c)  = impl::estimateWithNewtonRaphson(empiric, Parameters);
-
-		logfile().conclude(_a, "*exp(-", _b, "*p) + ", _c);
-
-		if (_a < 0) {
-			UERROR(
-				"Estimation resulted in a = ", _a,
-				" < 0! This is likely due to limited data. Consider pooling read groups (parameter poolReadGroups).");
-		}
-		if (_b < 0) {
-			UERROR(
-				"Estimation resulted in a = ", _b,
-				" < 0! This is likely due to limited data. Consider pooling read groups (parameter poolReadGroups).");
-		}
+	} catch (...) {
+		_a = 0.;
+		_b = 0.;
+		_c = 0.;
+		_values.push_back(0.);
+		return false;
 	}
+
+	if (_a < 0 || _b < 0) {
+		_a = 0.;
+		_b = 0.;
+		_c = 0.;
+		_values.push_back(0.);
+		return false;
+	}
+
+	logfile().conclude(_a, "*exp(-", _b, "*p) + ", _c);
 
 	_values.clear();
 	_fillPMDProbabilities(From_to.size() + 1);
 
 	// check if pattern is negativ
 	if (_values.back() < 0) {
-		UERROR("Estimation resulted in negative PMD = ", _values.back(),
-			   " at high positions!\nThis is likely be due to limited data. Consider pooling read groups (parameter "
-			   "poolReadGroups).");
+		_a = 0.;
+		_b = 0.;
+		_c = 0.;
+		_values.push_back(0.);
+		return false;
 	}
+	return true;
 }
 
 Probability TExponential::prob(uint16_t pos) const noexcept {
@@ -307,13 +319,15 @@ TEmpiric::TEmpiric(std::string_view string) : _values(impl::parseParameters<Prob
 	}
 }
 
-void TEmpiric::learn(const std::vector<double> &From_to, const std::vector<double> &To_from) {
+bool TEmpiric::learn(const std::vector<double> &From_to, const std::vector<double> &To_from) {
 	logfile().list("Learning empiric pattern");
 	// resize parameters
 	_values = impl::makeEmpiric(From_to, To_from);
 	if (_values.empty()) {
 		_values.emplace_back(0.);
+		return false;
 	}
+	return true;
 }
 
 Probability TEmpiric::prob(uint16_t pos) const noexcept {
