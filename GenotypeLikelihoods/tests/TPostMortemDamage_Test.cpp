@@ -153,7 +153,7 @@ TEST(TPostMortemDamage_test, baseAWithPMD) {
 
 	for (size_t dfrom3 = 0; dfrom3 < 3; dfrom3 += 2) {
 		base.distFrom3Prime = dfrom3;
-		const auto from3    = base.distFrom3Prime < base.distFrom5Prime;
+		const auto from3    = base.distFrom3Prime <= base.distFrom5Prime;
 		for (Base b = Base::min; b < Base::max; ++b) {
 			base.base = b;
 
