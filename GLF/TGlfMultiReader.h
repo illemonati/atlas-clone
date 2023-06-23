@@ -116,8 +116,6 @@ protected:
 	genometools::Genotype _het{};
 	genometools::Genotype _altHom{};
 
-	void _openVCF(const std::string & Filename, const std::string & Source, const std::vector<std::string> & SampleNames);
-	void _closeVCF();
 	void _setMajorMinor(genometools::Base refAllele, genometools::Base altAllele);
 	void _writeLikelihood(genometools::HighPrecisionPhredIntProbability likGlf);
 	void _writeSiteInformation(const std::string & ChrName, uint32_t Position, genometools::PhredIntProbability VariantQuality, size_t Depth);
@@ -187,7 +185,6 @@ protected:
 public:
 	TGlfMultiReaderVcf(const std::string & Filename, const std::string & Source, const std::vector<std::string> &sampleNames,
 			   bool UsePhredScaledLikelihoods);
-	~TGlfMultiReaderVcf() { _closeVCF(); }
 
 	void writeSite(const std::string &chrName, uint32_t position, genometools::PhredIntProbability varianTQuality,
 		       const TMultiGLFData &data, genometools::Base Ref, genometools::Base Alt);

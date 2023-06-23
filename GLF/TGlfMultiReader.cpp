@@ -13,6 +13,7 @@
 #include <iterator>
 #include <memory>
 #include <numeric>
+#include "coretools/Files/TWriter.h"
 #include "coretools/Main/TError.h"
 #include "genometools/GenotypeTypes.h"
 #include "coretools/Main/TLog.h"
@@ -94,14 +95,11 @@ uint32_t totalDepth(const TMultiGLFData &samples) noexcept {
 TGlfMultiReaderVcf::TGlfMultiReaderVcf(const std::string & Filename, const std::string & Source,
 				       const std::vector<std::string> & SampleNames, bool UsePhredScaledLikelihoods)
     : _usePhredScaledLikelihoods(UsePhredScaledLikelihoods) {
-	_openVCF(Filename, Source, SampleNames);
-};
-
-void TGlfMultiReaderVcf::_openVCF(const std::string & Filename, const std::string & Source, const std::vector<std::string> & SampleNames) {
-	_closeVCF();
-
-	// open vcf file
-	_vcf.open(Filename.c_str(), "\t");
+	if (parameters().parameterExists("bgz")) {
+		_vcf.open(Filename.c_str(), "\t", coretools::FileFormat::BGz);
+	} else {
+		_vcf.open(Filename.c_str(), "\t", coretools::FileFormat::Gz);
+	}
 
 	// write info
 	// TODO: create VCF class to harmonize code across different uses. Also include code in Tiger and other
@@ -123,10 +121,6 @@ void TGlfMultiReaderVcf::_openVCF(const std::string & Filename, const std::strin
 	_vcf.write("#CHROM", "POS", "ID", "REF", "ALT", "QUAL", "FILTER", "INFO", "FORMAT");
 	for (const std::string &name : SampleNames) _vcf.write(name);
 	_vcf.endln();
-};
-
-void TGlfMultiReaderVcf::_closeVCF() {
-	_vcf.close();
 };
 
 void TGlfMultiReaderVcf::_setMajorMinor(genometools::Base refAllele, genometools::Base altAllele) {
