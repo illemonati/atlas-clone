@@ -100,8 +100,12 @@ TAlleleCountFile *prepareOutputFile(const std::string & type, std::string filePr
 //-------------------------------------------------
 // TSiteAlleleFrequencyLikelihoods
 //-------------------------------------------------
-const std::vector<double> &TSiteAlleleFrequencyLikelihoods::_getLogChoose(int counts) {
-	return log_choose.try_emplace(counts, impl::chooseLogs(counts)).first->second;
+const std::vector<double> &TSiteAlleleFrequencyLikelihoods::_getLogChoose(size_t counts) {
+	if (counts >= log_choose.size()) {
+		log_choose.resize(counts + 1);
+	}
+	if (log_choose[counts].empty()) log_choose[counts] = impl::chooseLogs(counts);
+	return log_choose[counts];
 };
 
 

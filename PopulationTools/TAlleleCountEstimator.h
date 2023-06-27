@@ -34,11 +34,11 @@ class TSiteAlleleFrequencyLikelihoods{
 private:
 	static constexpr double logOf2 = 0.6931471805599453;
 	std::vector<coretools::LogProbability> log_alleleFrequencyLikelihoods_h;
-	std::map<int, std::vector<double>> log_choose;
+	std::vector<std::vector<double>> log_choose;
 
 	void normalize();
 
-	const std::vector<double>& _getLogChoose(int counts);
+	const std::vector<double>& _getLogChoose(size_t counts);
 
 protected:
     void _fillLog(TSampleLikelihoods* data, uint32_t numSamples);
