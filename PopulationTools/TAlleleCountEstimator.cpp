@@ -409,7 +409,7 @@ void runLikelihoods() {
 	if (parameters().parameterExists("samples")) samples.readSamples(parameters().getParameter<std::string>("samples"));
 
 	// open VCF reader
-	std::string vcfFilename = parameters().getParameter<std::string>("vcf");
+	const auto vcfFilename = parameters().getParameter<std::string>("vcf");
 	logfile().startIndent("Reading genotype likelihoods from VCF file '" + vcfFilename + "':");
 	genometools::TPopulationLikelihoodReaderLocus reader(false);
 	reader.openVCF(vcfFilename);
@@ -422,58 +422,28 @@ void runLikelihoods() {
 		samples.readSamplesFromVCFNames(reader.getSampleVCFNames());
 
 	// prepare site allele frequency likelihood calculators
+	const auto tmp     = coretools::str::readBeforeLast(vcfFilename, ".vcf");
+	const auto outname = parameters().getParameterWithDefault("out", tmp);
+	logfile().list("Will write estimated allele counts to file '", outname, "'.");
+
 	std::vector<TSiteAlleleFrequencyLikelihoods> saf;
 	std::vector<TSafFile> safFiles;
 	for (size_t p = 0; p < samples.numPopulations(); p++) {
 		saf.emplace_back();
-		safFiles.emplace_back(coretools::str::toString("saf_", p), samples.numSamplesInPop(p));
+		safFiles.emplace_back(coretools::str::toString(outname, "_", p), samples.numSamplesInPop(p));
 	}
 
-	// open output file
-	std::string tmp      = coretools::str::extractBeforeLast(vcfFilename, ".vcf");
-	std::string outname  = parameters().getParameterWithDefault<std::string>("out", tmp);
-	std::string filename = outname + "_alleleFrequencyLikelihoods.txt.gz";
-	logfile().list("Will write estimated allele counts to file '" + outname + "'.");
-	gz::ogzstream alleleFrequencyLikelihoodFile(filename.c_str());
-	if (!alleleFrequencyLikelihoodFile) UERROR("Failed to open file '", filename, "' for writing!");
-
-	// write header
-	bool useLocusName = parameters().parameterExists("useLocusName");
-	char sep          = '\t';
-	if (useLocusName) {
-		logfile().list("Will print locus names (rather than chromosome and position).");
-		alleleFrequencyLikelihoodFile << "Locus";
-		sep = '_';
-	}
-	alleleFrequencyLikelihoodFile << "chr" << sep << "pos\tnumAlleles";
-	for (size_t p = 0; p < samples.numPopulations(); p++)
-		alleleFrequencyLikelihoodFile << "\t" << samples.getPopulationName(p);
-	alleleFrequencyLikelihoodFile << "\n";
-
-	// initialize variables for vcf-file
-	struct timeval start;
-	gettimeofday(&start, NULL);
 	genometools::TPopulationLikehoodLocus<TSampleLikelihoods> data(samples.numSamples());
 
 	// run through VCF file
 	logfile().startIndent("Parsing VCF file and estimating allele counts:");
 	while (reader.readDataFromVCF(data, samples)) {
-		// write chromosome and position
-		alleleFrequencyLikelihoodFile << reader.chr() << sep << reader.position();
-
 		// print MLE count for each population
 		for (size_t p = 0; p < samples.numPopulations(); p++) {
 			// calculate allele frequency likelihoods
 			saf[p].fill(&data[samples.startIndex(p)], samples.numSamplesInPop(p));
-
-			// print num alleles
-			alleleFrequencyLikelihoodFile << "\t" << saf[p].Nalleles();
-
-			// print AFL
-			saf[p].write(alleleFrequencyLikelihoodFile);
 			safFiles[p].write(reader.chr(), reader.position(), saf[p].getLogAlleleFrequencyLikelihoods());
 		}
-		alleleFrequencyLikelihoodFile << std::endl;
 	}
 
 	// report final status
@@ -526,7 +496,7 @@ void runTransform() {
 };
 
 void TAlleleCounter::run() {
-	if (parameters().parameterExists("likelihoods")) {
+	if (parameters().parameterExists("dosaf")) {
 		runLikelihoods();
 	} else if (parameters().parameterExists("transform")) {
 		runTransform();
