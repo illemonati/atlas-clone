@@ -39,12 +39,14 @@ class TSafFile {
 	}
 
 public:
-	TSafFile(std::string_view Prefix, size_t nCategories) :_prefix(Prefix), _freqWriter(_prefix + ".saf.gz"), _posWriter(_prefix + ".saf.pos.gz"), _idxWriter(_prefix + ".saf.idx") {
+	TSafFile(std::string_view Prefix, size_t nSamples) :_prefix(Prefix), _freqWriter(_prefix + ".saf.gz"), _posWriter(_prefix + ".saf.pos.gz"), _idxWriter(_prefix + ".saf.idx") {
 		constexpr char magic[8] = "safv4";
 		_freqWriter.write(magic);
 		_posWriter.write(magic);
+
 		_idxWriter.write(magic);
-		_idxWriter.write(nCategories);
+		_idxWriter.write(static_cast<size_t>(2*nSamples)); // assume diploid
+
 		_offsetFreq = _freqWriter.tell();
 		_offsetPos = _posWriter.tell();
 	}
@@ -83,7 +85,7 @@ public:
 			_freqWriter.write(floats);
 		}
 
-		_posWriter.write(static_cast<int>(Pos));
+		_posWriter.write(static_cast<int>(Pos - 1)); // 0-indexed in saf-file
 
 		++_nSites;
 		_sumBand += AlleleFreqs.size();

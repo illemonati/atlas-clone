@@ -107,9 +107,9 @@ TEST_F(TSiteAlleleFrequencyLikelihoods_Test, onlyDiploid){
         }
 
         // 2) ML allele count
-        int MLE_AlleleCount = estimator.getMLAlleleCount();
+        int MLE_AlleleCount = estimator.MLAlleleCount();
         EXPECT_EQ(MLE_AlleleCount, 4);
-        EXPECT_EQ(estimator.getNumAlleles(), 10);
+        EXPECT_EQ(estimator.Nalleles(), 10);
     }
 }
 
@@ -142,9 +142,9 @@ TEST_F(TSiteAlleleFrequencyLikelihoods_Test, onlyDiploid_fixedRef){
         }
 
         // 2) ML allele count
-        int MLE_AlleleCount = estimator.getMLAlleleCount();
+        int MLE_AlleleCount = estimator.MLAlleleCount();
         EXPECT_EQ(MLE_AlleleCount, 0);
-        EXPECT_EQ(estimator.getNumAlleles(), 10);
+        EXPECT_EQ(estimator.Nalleles(), 10);
     }
 }
 
@@ -177,9 +177,9 @@ TEST_F(TSiteAlleleFrequencyLikelihoods_Test, onlyDiploid_fixedAlt){
         }
 
         // 2) ML allele count
-        int MLE_AlleleCount = estimator.getMLAlleleCount();
+        int MLE_AlleleCount = estimator.MLAlleleCount();
         EXPECT_EQ(MLE_AlleleCount, 10);
-        EXPECT_EQ(estimator.getNumAlleles(), 10);
+        EXPECT_EQ(estimator.Nalleles(), 10);
     }
 }
 
@@ -215,9 +215,9 @@ TEST_F(TSiteAlleleFrequencyLikelihoods_Test, onlyHaploid){
         }
 
         // 2) ML allele count
-        int MLE_AlleleCount = estimator.getMLAlleleCount();
+        int MLE_AlleleCount = estimator.MLAlleleCount();
         EXPECT_EQ(MLE_AlleleCount, 2);
-        EXPECT_EQ(estimator.getNumAlleles(), 5);
+        EXPECT_EQ(estimator.Nalleles(), 5);
     }
 }
 
@@ -249,9 +249,9 @@ TEST_F(TSiteAlleleFrequencyLikelihoods_Test, onlyHaploid_refFixed){
         }
 
         // 2) ML allele count
-        int MLE_AlleleCount = estimator.getMLAlleleCount();
+        int MLE_AlleleCount = estimator.MLAlleleCount();
         EXPECT_EQ(MLE_AlleleCount, 0);
-        EXPECT_EQ(estimator.getNumAlleles(), 5);
+        EXPECT_EQ(estimator.Nalleles(), 5);
     }
 }
 
@@ -283,9 +283,9 @@ TEST_F(TSiteAlleleFrequencyLikelihoods_Test, onlyHaploid_altFixed){
         }
 
         // 2) ML allele count
-        int MLE_AlleleCount = estimator.getMLAlleleCount();
+        int MLE_AlleleCount = estimator.MLAlleleCount();
         EXPECT_EQ(MLE_AlleleCount, 5);
-        EXPECT_EQ(estimator.getNumAlleles(), 5);
+        EXPECT_EQ(estimator.Nalleles(), 5);
     }
 }
 
@@ -322,9 +322,9 @@ TEST_F(TSiteAlleleFrequencyLikelihoods_Test, haploidDiploid){
         }
 
         // 2) ML allele count
-        int MLE_AlleleCount = estimator.getMLAlleleCount();
+        int MLE_AlleleCount = estimator.MLAlleleCount();
         EXPECT_EQ(MLE_AlleleCount, 4);
-        EXPECT_EQ(estimator.getNumAlleles(), 8);
+        EXPECT_EQ(estimator.Nalleles(), 8);
     }
 }
 
@@ -357,9 +357,9 @@ TEST_F(TSiteAlleleFrequencyLikelihoods_Test, haploidDiploid_RefFixed){
         }
 
         // 2) ML allele count
-        int MLE_AlleleCount = estimator.getMLAlleleCount();
+        int MLE_AlleleCount = estimator.MLAlleleCount();
         EXPECT_EQ(MLE_AlleleCount, 0);
-        EXPECT_EQ(estimator.getNumAlleles(), 8);
+        EXPECT_EQ(estimator.Nalleles(), 8);
     }
 }
 
@@ -392,8 +392,8 @@ TEST_F(TSiteAlleleFrequencyLikelihoods_Test, haploidDiploid_AltFixed){
         }
 
         // 2) ML allele count
-        int MLE_AlleleCount = estimator.getMLAlleleCount();
+        int MLE_AlleleCount = estimator.MLAlleleCount();
         EXPECT_EQ(MLE_AlleleCount, 8);
-        EXPECT_EQ(estimator.getNumAlleles(), 8);
+        EXPECT_EQ(estimator.Nalleles(), 8);
     }
 }

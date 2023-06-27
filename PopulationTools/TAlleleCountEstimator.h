@@ -33,7 +33,6 @@ using TSampleLikelihoods = genometools::TSampleLikelihoods<genometools::HighPrec
 class TSiteAlleleFrequencyLikelihoods{
 private:
 	static constexpr double logOf2 = 0.6931471805599453;
-	uint32_t numAlleleCounts; //from 0 to 2k
 	std::vector<coretools::LogProbability> log_alleleFrequencyLikelihoods_h;
 	std::map<int, std::vector<double>> log_choose;
 
@@ -46,12 +45,10 @@ protected:
     void _fillNatural(TSampleLikelihoods* data, uint32_t numSamples);
 
 public:
-	TSiteAlleleFrequencyLikelihoods(int numIndividuals);
 	void fill(TSampleLikelihoods* data, uint32_t numSamples);
-	void print();
 	void write(gz::ogzstream & file);
-	int getMLAlleleCount();
-	int getNumAlleles(){ return numAlleleCounts; };
+	size_t MLAlleleCount();
+	size_t Nalleles(){ return log_alleleFrequencyLikelihoods_h.size() - 1; };
 	const std::vector<coretools::LogProbability> & getLogAlleleFrequencyLikelihoods() const;
 };
 
