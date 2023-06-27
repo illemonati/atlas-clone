@@ -16,6 +16,8 @@
 #include <sys/time.h>
 #include <utility>
 
+#include "TSafFile.h"
+#include "coretools/Strings/toString.h"
 #include "genometools/GenotypeTypes.h"
 #include "TAlleleCountFileFormat.h"
 #include "coretools/Main/TLog.h"
@@ -440,8 +442,10 @@ void runLikelihoods() {
 
 	// prepare site allele frequency likelihood calculators
 	std::vector<TSiteAlleleFrequencyLikelihoods> saf;
+	std::vector<TSafFile> safFiles;
 	for (size_t p = 0; p < samples.numPopulations(); p++) {
 		saf.emplace_back(samples.numSamplesInPop(p));
+		safFiles.emplace_back(coretools::str::toString("saf_", p), 2*samples.numSamplesInPop(p) + 1); // max categories = assume diploid
 	}
 
 	// open output file
@@ -486,6 +490,7 @@ void runLikelihoods() {
 
 			// print AFL
 			saf[p].write(alleleFrequencyLikelihoodFile);
+			safFiles[p].write(reader.chr(), reader.position(), saf[p].getLogAlleleFrequencyLikelihoods());
 		}
 		alleleFrequencyLikelihoodFile << std::endl;
 	}
