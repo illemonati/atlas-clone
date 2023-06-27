@@ -439,9 +439,9 @@ void runLikelihoods() {
 		samples.readSamplesFromVCFNames(reader.getSampleVCFNames());
 
 	// prepare site allele frequency likelihood calculators
-	TSiteAlleleFrequencyLikelihoods **saf = new TSiteAlleleFrequencyLikelihoods *[samples.numPopulations()];
+	std::vector<TSiteAlleleFrequencyLikelihoods> saf;
 	for (size_t p = 0; p < samples.numPopulations(); p++) {
-		saf[p] = new TSiteAlleleFrequencyLikelihoods(samples.numSamplesInPop(p));
+		saf.emplace_back(samples.numSamplesInPop(p));
 	}
 
 	// open output file
@@ -479,20 +479,16 @@ void runLikelihoods() {
 		// print MLE count for each population
 		for (size_t p = 0; p < samples.numPopulations(); p++) {
 			// calculate allele frequency likelihoods
-			saf[p]->fill(&data[samples.startIndex(p)], samples.numSamplesInPop(p));
+			saf[p].fill(&data[samples.startIndex(p)], samples.numSamplesInPop(p));
 
 			// print num alleles
-			alleleFrequencyLikelihoodFile << "\t" << saf[p]->getNumAlleles();
+			alleleFrequencyLikelihoodFile << "\t" << saf[p].getNumAlleles();
 
 			// print AFL
-			saf[p]->write(alleleFrequencyLikelihoodFile);
+			saf[p].write(alleleFrequencyLikelihoodFile);
 		}
 		alleleFrequencyLikelihoodFile << std::endl;
 	}
-
-	// clean up
-	for (size_t p = 0; p < samples.numPopulations(); p++) delete saf[p];
-	delete[] saf;
 
 	// report final status
 	logfile().endIndent();
