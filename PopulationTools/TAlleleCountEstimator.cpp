@@ -16,6 +16,8 @@
 #include <sys/time.h>
 #include <utility>
 
+#include "TSafFile.h"
+#include "coretools/Strings/toString.h"
 #include "genometools/GenotypeTypes.h"
 #include "TAlleleCountFileFormat.h"
 #include "coretools/Main/TLog.h"
@@ -98,13 +100,12 @@ TAlleleCountFile *prepareOutputFile(const std::string & type, std::string filePr
 //-------------------------------------------------
 // TSiteAlleleFrequencyLikelihoods
 //-------------------------------------------------
-TSiteAlleleFrequencyLikelihoods::TSiteAlleleFrequencyLikelihoods(int numIndividuals) {
-	numAlleleCounts = 2 * numIndividuals + 1;
-	log_alleleFrequencyLikelihoods_h.resize(numAlleleCounts);
-};
-
-const std::vector<double> &TSiteAlleleFrequencyLikelihoods::_getLogChoose(int counts) {
-	return log_choose.try_emplace(counts, impl::chooseLogs(counts)).first->second;
+const std::vector<double> &TSiteAlleleFrequencyLikelihoods::_getLogChoose(size_t counts) {
+	if (counts >= log_choose.size()) {
+		log_choose.resize(counts + 1);
+	}
+	if (log_choose[counts].empty()) log_choose[counts] = impl::chooseLogs(counts);
+	return log_choose[counts];
 };
 
 
@@ -122,8 +123,8 @@ void TSiteAlleleFrequencyLikelihoods::_fillLog(TSampleLikelihoods *data, uint32_
 	// all calculations done in log
 
 	// set all h_j = 0
-	std::vector<double> alleleFrequencyLikelihoods_h(log_alleleFrequencyLikelihoods_h.size(), 0.0);
-	numAlleleCounts = 0;
+	std::vector<double> alleleFrequencyLikelihoods_h(numSamples*2 + 1, 0.0);
+	size_t numAlleleCounts = 0;
 
 	// find first individual  with data
 	size_t s = 0;
@@ -201,12 +202,8 @@ void TSiteAlleleFrequencyLikelihoods::_fillLog(TSampleLikelihoods *data, uint32_
 		for (size_t j = 0; j < numAlleleCounts + 1; j++) {
 			// numerical accuracy may raely lead to a value very slightly above 0.0. std::min is used to avoid an error
 			// when storing as LogProbability.
-			log_alleleFrequencyLikelihoods_h[j] =
-				std::min(alleleFrequencyLikelihoods_h[j] - logChoose.at(j), 0.0);
+			log_alleleFrequencyLikelihoods_h.push_back(std::min(alleleFrequencyLikelihoods_h[j] - logChoose.at(j), 0.0));
 		}
-
-		// Normalization
-		normalize();
 	}
 };
 
@@ -214,9 +211,9 @@ void TSiteAlleleFrequencyLikelihoods::_fillNatural(TSampleLikelihoods *data, uin
 	using BG = genometools::BiallelicGenotype;
 	// Calculating allele frequency likelihoods according to Nielsen et al. (2012) PLoS One, page 3
 	// adapted to also work for haploid individuals (which only have likelihoods for genotypes 0 and 1)
-	std::vector<double> alleleFrequencyLikelihoods_h(log_alleleFrequencyLikelihoods_h.size(), 0.0);
+	std::vector<double> alleleFrequencyLikelihoods_h(numSamples*2 + 1, 0.0);
 
-	numAlleleCounts = 0;
+	size_t numAlleleCounts = 0;
 
 	// find first individual  with data
 	size_t s = 0;
@@ -296,12 +293,8 @@ void TSiteAlleleFrequencyLikelihoods::_fillNatural(TSampleLikelihoods *data, uin
 		for (size_t j = 0; j < numAlleleCounts + 1; j++) {
 			// numerical accuracy may raely lead to a value very slightly above 0.0. std::min is used to avoid an error
 			// when storing as LogProbability.
-			log_alleleFrequencyLikelihoods_h[j] =
-				std::min(log(alleleFrequencyLikelihoods_h[j]) - logChoose.at(j), 0.0);
+			log_alleleFrequencyLikelihoods_h.push_back(std::min(log(alleleFrequencyLikelihoods_h[j]) - logChoose.at(j), 0.0));
 		}
-
-		// Normalization
-		normalize();
 	}
 };
 
@@ -309,35 +302,30 @@ void TSiteAlleleFrequencyLikelihoods::fill(TSampleLikelihoods *data, uint32_t nu
 	// smallest likelihood is 10^-25.5 (phred 255).
 	// A double can store up to 10^-308.
 	// Hence we can store up to (10^25.5)^12 without underflow
+	log_alleleFrequencyLikelihoods_h.clear();
 	if (numSamples > 12) {
 		_fillLog(data, numSamples);
 	} else {
 		_fillNatural(data, numSamples);
 	}
-};
-
-void TSiteAlleleFrequencyLikelihoods::print() {
-	for (size_t j = 0; j < numAlleleCounts + 1; j++) { std::cout << "\t" << log_alleleFrequencyLikelihoods_h[j]; }
+	normalize();
 };
 
 void TSiteAlleleFrequencyLikelihoods::write(gz::ogzstream &file) {
-	for (size_t j = 0; j < numAlleleCounts + 1; j++) { file << "\t" << log_alleleFrequencyLikelihoods_h[j]; }
+	for (const auto& afl: log_alleleFrequencyLikelihoods_h) file << "\t" << afl;
 };
 
-int TSiteAlleleFrequencyLikelihoods::getMLAlleleCount() {
+size_t TSiteAlleleFrequencyLikelihoods::MLAlleleCount() {
 	// return 0 in case of no data
-	if (numAlleleCounts == 0) return 0;
+	if (Nalleles() == 0) return 0;
 
 	// first find ML and store all indexes that are at ML
-	double ML = log_alleleFrequencyLikelihoods_h[0];
-	for (size_t j = 1; j < numAlleleCounts + 1; j++) {
-		if (log_alleleFrequencyLikelihoods_h[j] > ML) ML = log_alleleFrequencyLikelihoods_h[j];
-	}
+	const auto ML = *std::max_element(log_alleleFrequencyLikelihoods_h.begin(), log_alleleFrequencyLikelihoods_h.end());
 
 	// now store all index at ML
-	std::vector<int> MLEs;
-	for (size_t j = 0; j < numAlleleCounts + 1; j++) {
-		if (log_alleleFrequencyLikelihoods_h[j] == ML) { MLEs.emplace_back(j); }
+	std::vector<size_t> MLEs;
+	for (size_t j = 0; j < log_alleleFrequencyLikelihoods_h.size(); j++) {
+		if (log_alleleFrequencyLikelihoods_h[j] == ML) { MLEs.push_back(j); }
 	}
 
 	// now choose randomly among those ate MLE
@@ -371,16 +359,16 @@ void runCounts() {
 		samples.readSamplesFromVCFNames(reader.getSampleVCFNames());
 
 	// prepare site allele frequency likelihood calculators
-	TSiteAlleleFrequencyLikelihoods **saf = new TSiteAlleleFrequencyLikelihoods *[samples.numPopulations()];
+	std::vector<TSiteAlleleFrequencyLikelihoods> saf;
 	for (size_t p = 0; p < samples.numPopulations(); p++) {
-		saf[p] = new TSiteAlleleFrequencyLikelihoods(samples.numSamplesInPop(p));
+		saf.emplace_back();
 	}
 
 	// create out file
 	std::string tmp                   = coretools::str::extractBeforeLast(vcfFilename, ".vcf");
 	std::string outname               = parameters().getParameterWithDefault<std::string>("out", tmp);
 	std::string type                  = parameters().getParameterWithDefault<std::string>("outFormat", "default");
-	TAlleleCountFile *alleleCountFile = impl::prepareOutputFile(type, outname);
+	std::unique_ptr<TAlleleCountFile> alleleCountFile{impl::prepareOutputFile(type, outname)};
 
 	// write header
 	alleleCountFile->writeHeader(samples);
@@ -399,18 +387,13 @@ void runCounts() {
 		// print MLE count for each population
 		for (size_t p = 0; p < samples.numPopulations(); p++) {
 			// calculate allele frequency likelihoods
-			saf[p]->fill(&data[samples.startIndex(p)], samples.numSamplesInPop(p));
+			saf[p].fill(&data[samples.startIndex(p)], samples.numSamplesInPop(p));
 
 			// and print MLE counts
-			alleleCountFile->writeCounts(saf[p]->getMLAlleleCount(), saf[p]->getNumAlleles(), p);
+			alleleCountFile->writeCounts(saf[p].MLAlleleCount(), saf[p].Nalleles(), p);
 		}
 		alleleCountFile->endl();
 	}
-
-	// clean up
-	for (size_t p = 0; p < samples.numPopulations(); p++) delete saf[p];
-	delete[] saf;
-	delete alleleCountFile;
 
 	// report final status
 	logfile().endIndent();
@@ -426,7 +409,7 @@ void runLikelihoods() {
 	if (parameters().parameterExists("samples")) samples.readSamples(parameters().getParameter<std::string>("samples"));
 
 	// open VCF reader
-	std::string vcfFilename = parameters().getParameter<std::string>("vcf");
+	const auto vcfFilename = parameters().getParameter<std::string>("vcf");
 	logfile().startIndent("Reading genotype likelihoods from VCF file '" + vcfFilename + "':");
 	genometools::TPopulationLikelihoodReaderLocus reader(false);
 	reader.openVCF(vcfFilename);
@@ -439,60 +422,29 @@ void runLikelihoods() {
 		samples.readSamplesFromVCFNames(reader.getSampleVCFNames());
 
 	// prepare site allele frequency likelihood calculators
-	TSiteAlleleFrequencyLikelihoods **saf = new TSiteAlleleFrequencyLikelihoods *[samples.numPopulations()];
+	const auto tmp     = coretools::str::readBeforeLast(vcfFilename, ".vcf");
+	const auto outname = parameters().getParameterWithDefault("out", tmp);
+	logfile().list("Will write estimated allele counts to file '", outname, "'.");
+
+	std::vector<TSiteAlleleFrequencyLikelihoods> saf;
+	std::vector<TSafFile> safFiles;
 	for (size_t p = 0; p < samples.numPopulations(); p++) {
-		saf[p] = new TSiteAlleleFrequencyLikelihoods(samples.numSamplesInPop(p));
+		saf.emplace_back();
+		safFiles.emplace_back(coretools::str::toString(outname, "_", p), samples.numSamplesInPop(p));
 	}
 
-	// open output file
-	std::string tmp      = coretools::str::extractBeforeLast(vcfFilename, ".vcf");
-	std::string outname  = parameters().getParameterWithDefault<std::string>("out", tmp);
-	std::string filename = outname + "_alleleFrequencyLikelihoods.txt.gz";
-	logfile().list("Will write estimated allele counts to file '" + outname + "'.");
-	gz::ogzstream alleleFrequencyLikelihoodFile(filename.c_str());
-	if (!alleleFrequencyLikelihoodFile) UERROR("Failed to open file '", filename, "' for writing!");
-
-	// write header
-	bool useLocusName = parameters().parameterExists("useLocusName");
-	char sep          = '\t';
-	if (useLocusName) {
-		logfile().list("Will print locus names (rather than chromosome and position).");
-		alleleFrequencyLikelihoodFile << "Locus";
-		sep = '_';
-	}
-	alleleFrequencyLikelihoodFile << "chr" << sep << "pos\tnumAlleles";
-	for (size_t p = 0; p < samples.numPopulations(); p++)
-		alleleFrequencyLikelihoodFile << "\t" << samples.getPopulationName(p);
-	alleleFrequencyLikelihoodFile << "\n";
-
-	// initialize variables for vcf-file
-	struct timeval start;
-	gettimeofday(&start, NULL);
 	genometools::TPopulationLikehoodLocus<TSampleLikelihoods> data(samples.numSamples());
 
 	// run through VCF file
 	logfile().startIndent("Parsing VCF file and estimating allele counts:");
 	while (reader.readDataFromVCF(data, samples)) {
-		// write chromosome and position
-		alleleFrequencyLikelihoodFile << reader.chr() << sep << reader.position();
-
 		// print MLE count for each population
 		for (size_t p = 0; p < samples.numPopulations(); p++) {
 			// calculate allele frequency likelihoods
-			saf[p]->fill(&data[samples.startIndex(p)], samples.numSamplesInPop(p));
-
-			// print num alleles
-			alleleFrequencyLikelihoodFile << "\t" << saf[p]->getNumAlleles();
-
-			// print AFL
-			saf[p]->write(alleleFrequencyLikelihoodFile);
+			saf[p].fill(&data[samples.startIndex(p)], samples.numSamplesInPop(p));
+			safFiles[p].write(reader.chr(), reader.position(), saf[p].getLogAlleleFrequencyLikelihoods());
 		}
-		alleleFrequencyLikelihoodFile << std::endl;
 	}
-
-	// clean up
-	for (size_t p = 0; p < samples.numPopulations(); p++) delete saf[p];
-	delete[] saf;
 
 	// report final status
 	logfile().endIndent();
@@ -544,7 +496,7 @@ void runTransform() {
 };
 
 void TAlleleCounter::run() {
-	if (parameters().parameterExists("likelihoods")) {
+	if (parameters().parameterExists("dosaf")) {
 		runLikelihoods();
 	} else if (parameters().parameterExists("transform")) {
 		runTransform();
