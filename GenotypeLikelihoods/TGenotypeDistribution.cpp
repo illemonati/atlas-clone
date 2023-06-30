@@ -6,12 +6,17 @@
  */
 
 #include "TGenotypeDistribution.h"
+#include "coretools/Containers/TStrongArray.h"
 #include "coretools/Strings/toString.h"
 #include "genometools/GenotypeTypes.h"
 #include "TGenotypeData.h"
 #include "TSequencedBase.h"
 #include "coretools/algorithms.h"
 #include "coretools/Types/probability.h"
+
+#include <numeric>
+#include <random>
+#include <armadillo>
 
 namespace GenotypeLikelihoods {
 using genometools::Base;
@@ -29,7 +34,7 @@ coretools::Probability THaploidDistribution::getGenotypeLikelihood(const TBaseLi
 	return baseLikelihoods[genometools::first(genotype)];
 }
 
-double THaploidDistribution::normalize_add(TGenotypeLikelihoods &likelihoods) {
+double THaploidDistribution::normalize_add(TGenotypeLikelihoods &likelihoods, genometools::Base) {
 	double sum = 0.;
 	// only four
 	for(auto b = Base::min; b < Base::max; ++b) {
@@ -73,7 +78,7 @@ coretools::Probability TDiploidDistribution::getGenotypeLikelihood(const TBaseLi
 	return 0.5 * (baseLikelihoods[genometools::first(genotype)] + baseLikelihoods[genometools::second(genotype)]);
 }
 
-double TDiploidDistribution::normalize_add(TGenotypeLikelihoods &likelihoods) {
+double TDiploidDistribution::normalize_add(TGenotypeLikelihoods &likelihoods, genometools::Base) {
 	double sum = 0;
 	// all 10
 	for(auto g = Genotype::min; g < Genotype::max; ++g) {
@@ -112,5 +117,83 @@ std::string TDiploidDistribution::definition() const noexcept {
 	ret.resize(ret.size() - 2);
 	return ret;
 }
+
+TGenotypeLikelihoods THKY85::getGenotypeLikelihoods(const TBaseLikelihoods &baseLikelihoods) const {
+	return TGenotypeLikelihoods({baseLikelihoods[Base::A], 0.5 * (baseLikelihoods[Base::A] + baseLikelihoods[Base::C]),
+								 0.5 * (baseLikelihoods[Base::A] + baseLikelihoods[Base::G]),
+								 0.5 * (baseLikelihoods[Base::A] + baseLikelihoods[Base::T]), baseLikelihoods[Base::C],
+								 0.5 * (baseLikelihoods[Base::C] + baseLikelihoods[Base::G]),
+								 0.5 * (baseLikelihoods[Base::C] + baseLikelihoods[Base::T]), baseLikelihoods[Base::G],
+								 0.5 * (baseLikelihoods[Base::G] + baseLikelihoods[Base::T]),
+								 baseLikelihoods[Base::T]});
+}
+
+coretools::Probability THKY85::getGenotypeLikelihood(const TBaseLikelihoods &baseLikelihoods,
+																   Genotype genotype) const {
+	// if first == second, then 0.5*first + 0.5*first = first
+	return 0.5 * (baseLikelihoods[genometools::first(genotype)] + baseLikelihoods[genometools::second(genotype)]);
+}
+
+double THKY85::normalize_add(TGenotypeLikelihoods &likelihoods, genometools::Base ref) {
+	double sum = 0;
+	// all 10
+	for(auto g = Genotype::min; g < Genotype::max; ++g) {
+		likelihoods[g] *= _pi[ref][g];
+		sum += likelihoods[g];
+	}
+	for(auto g = Genotype::min; g < Genotype::max; ++g) {
+		_likelihoodSum[g] += likelihoods[g].scale(sum);
+	}
+	return sum;
+}
+
+namespace impl {
+using coretools::TStrongArray;
+
+TStrongArray<TGenotypeProbabilities, genometools::Base>	piTable(double mu, double theta_r, double theta_g) {
+	using coretools::index;
+	OUT(mu);
+	OUT(theta_r);
+	OUT(theta_g);
+
+	const arma::mat::fixed<4,4> l   = {{-2 - mu, 1, mu, 1}, {1, -2 - mu, 1, mu}, {mu, 1, -2 - mu, 1}, {1, mu, 1, -2 - mu}};
+	const arma::mat::fixed<4,4> P_r = arma::expmat(theta_r*l);
+	const arma::mat::fixed<4,4> P_g = arma::expmat(theta_g*l);
+
+	OUT(l);
+	OUT(P_r);
+	OUT(P_g);
+
+	coretools::TStrongArray<TGenotypeProbabilities, genometools::Base> pi;
+	for (auto r = Base::min; r < Base::max; ++r) {
+		TGenotypeData pi_r{};
+		OUT(pi_r);
+		for (auto g = Genotype::min; g < Genotype::max; ++g) {
+			const auto k = genometools::first(g);
+			const auto l = genometools::second(g);
+			const auto f = genometools::isHeterozygous(g) + 1; // homo = 1, het = 2
+			for (auto R = Base::min; R < Base::max; ++R) {
+				pi_r[g] += f*P_r(index(R),index(r))*P_g(index(k),index(R))*P_g(index(l),index(R));
+			}
+		}
+		OUT(pi_r);
+		OUT(std::accumulate(pi_r.begin(), pi_r.end(), 0.));
+		pi[r] = TGenotypeProbabilities::normalize(pi_r);
+	}
+	return pi;
+}
+} // namespace impl
+
+void THKY85::estimate() {
+	impl::piTable(0.1, 0.1, 0.9);
+	impl::piTable(0.1, 0.1, 0.1);
+	impl::piTable(0.1, 0.5, 0.5);
+}
+
+std::string THKY85::definition() const noexcept {
+	return coretools::str::toString(name, ": mu=", _mu, ", theta_r=", _theta_r, ", theta_g=", _theta_g);
+}
+
+
 
 }; // namespace GenotypeLikelihoods

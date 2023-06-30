@@ -395,6 +395,7 @@ double TRecalibrationEMEstimator::_calculateLL_updatePg(const PMD::TModels &PmdM
 	double LL = 0.0;
 	for (auto &s_i : _sites) {
 		if (s_i.genotype == Genotype::NN) { // unknown genotype
+			const auto ref = s_i.refBase;
 			_P_g_I_ds.emplace_back(1.); // Start at 1,1,1,1,1,1,1,1
 			auto &P_g = _P_g_I_ds.back();
 			for (auto &d_ij : s_i) {
@@ -402,7 +403,7 @@ double TRecalibrationEMEstimator::_calculateLL_updatePg(const PMD::TModels &PmdM
 				const auto P_D   = PmdModels.baseLikelihoods(d_ij, P_eps);
 				P_g *= _genoDist->getGenotypeLikelihoods(P_D);
 			}
-			LL += log(_genoDist->normalize_add(P_g));
+			LL += log(_genoDist->normalize_add(P_g, ref));
 		} else { // known genotype.
 			_P_g_I_ds.emplace_back(0.); 
 			_P_g_I_ds.back()[s_i.genotype] = 1; // Probability of correct genotype is 1
