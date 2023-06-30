@@ -142,7 +142,7 @@ double THKY85::normalize_add(TGenotypeLikelihoods &likelihoods, genometools::Bas
 		sum += likelihoods[g];
 	}
 	for(auto g = Genotype::min; g < Genotype::max; ++g) {
-		_likelihoodSum[g] += likelihoods[g].scale(sum);
+		_likelihoodSum[ref][g] += likelihoods[g].scale(sum);
 	}
 	return sum;
 }
@@ -152,22 +152,14 @@ using coretools::TStrongArray;
 
 TStrongArray<TGenotypeProbabilities, genometools::Base>	piTable(double mu, double theta_r, double theta_g) {
 	using coretools::index;
-	OUT(mu);
-	OUT(theta_r);
-	OUT(theta_g);
 
 	const arma::mat::fixed<4,4> l   = {{-2 - mu, 1, mu, 1}, {1, -2 - mu, 1, mu}, {mu, 1, -2 - mu, 1}, {1, mu, 1, -2 - mu}};
 	const arma::mat::fixed<4,4> P_r = arma::expmat(theta_r*l);
 	const arma::mat::fixed<4,4> P_g = arma::expmat(theta_g*l);
 
-	OUT(l);
-	OUT(P_r);
-	OUT(P_g);
-
 	coretools::TStrongArray<TGenotypeProbabilities, genometools::Base> pi;
 	for (auto r = Base::min; r < Base::max; ++r) {
 		TGenotypeData pi_r{};
-		OUT(pi_r);
 		for (auto g = Genotype::min; g < Genotype::max; ++g) {
 			const auto k = genometools::first(g);
 			const auto l = genometools::second(g);
@@ -185,9 +177,15 @@ TStrongArray<TGenotypeProbabilities, genometools::Base>	piTable(double mu, doubl
 } // namespace impl
 
 void THKY85::estimate() {
-	impl::piTable(0.1, 0.1, 0.9);
-	impl::piTable(0.1, 0.1, 0.1);
-	impl::piTable(0.1, 0.5, 0.5);
+	_pi = impl::piTable(_mu, _theta_r, _theta_g);
+	double Q = 0;
+	for (auto r = Base::min; r < Base::max; ++r) {
+		for (auto g = Genotype::min; g < Genotype::max; ++g) {
+			Q += std::log(_pi[r][g])*_likelihoodSum[r][g];
+		}
+	}
+	OUT(Q);
+	// Todo optimize mu, theta_r, theta_g
 }
 
 std::string THKY85::definition() const noexcept {
