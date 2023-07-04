@@ -115,7 +115,7 @@ namespace Simulations {
         std::unique_ptr<Simulations::TSimulatedOutputFiles> _fastqFiles;
 
     public:
-        //constructor / de constructor
+        //constructor / destructor
         TFastqSimulator(const std::string &method);
         ~TFastqSimulator() = default;
 
@@ -128,16 +128,7 @@ namespace Simulations {
 //-------------------------------------------
 class TFastqBamSimulator : public TSimulator{
 
-    /**
-     * create the fastq and bam simulators, but using the same seed.
-     * they have to have the same simulated reads otherwise we have two different simulations
-     * which are clearly not compatible and useful together
-     * */
-
     private:
-        //TFastqSimulator _fastqSimulator;
-        //TBAMSimulator _bamSimulator;
-
         //store created FastqFiles
         std::unique_ptr<Simulations::TSimulatedOutputFiles> _fastqFiles;
         // bam files
@@ -220,7 +211,8 @@ class TFastqBamSimulator : public TSimulator{
                 logfile().startIndent("Simulating FASTQ Files:");
                 auto simulator = TFastqSimulator{method};
                 simulator.runSimulations();
-            } else if(parameters().parameterExists("fastq,bam") || parameters().parameterExists("bam,fastq")){
+            } else if(parameters().parameterExists("fastq,bam") ||
+                    parameters().parameterExists("bam,fastq")){
                 logfile().startIndent("Simulating FASTQ and BAM files:");
                 auto simulator = TFastqBamSimulator{method};
                 simulator.runSimulations();

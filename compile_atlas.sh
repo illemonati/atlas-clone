@@ -1,4 +1,3 @@
-
 #!/bin/bash
 
 echo -e "checking for GCC version..."

@@ -64,7 +64,7 @@
 #include "TAtlasTestRecalibration.h"
 #include "TVcfTest.h"*/
 
-void addTaks(coretools::TMain & main) {
+void addTasks(coretools::TMain & main) {
     // Use main.addRegularTask to add a regular task (shown in list of available tasks)
 
 	//BAM
@@ -172,7 +172,7 @@ int main(int argc, char* argv[]){
 
 
 	//add existing tasks
-	addTaks(main);
+	addTasks(main);
     addTests(main);
 
 	//now run program

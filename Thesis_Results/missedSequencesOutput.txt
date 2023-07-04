@@ -1,0 +1,21 @@
+For ATLAS_simulations_ind1:
+            	 the sequence(s) not found from fastq to bam are: 0 (0%);
+            	 the qualities not found are: 0 (0%);
+            	 over a total of 5700
+            	 this means a quality of transcription of: (100)% 
+
+
+For ATLAS_simulations_ind2:
+            	 the sequence(s) not found from fastq to bam are: 0 (0%);
+            	 the qualities not found are: 0 (0%);
+            	 over a total of 5756
+            	 this means a quality of transcription of: (100)% 
+
+
+For ATLAS_simulations_ind3:
+            	 the sequence(s) not found from fastq to bam are: 0 (0%);
+            	 the qualities not found are: 0 (0%);
+            	 over a total of 5708
+            	 this means a quality of transcription of: (100)% 
+
+

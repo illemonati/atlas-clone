@@ -51,10 +51,12 @@ namespace FASTQ{
     }
 
     void TFastqFile::_writeAlignment(coretools::TOutputFile& file, const BAM::TAlignment &alignment){
-        //@readGroupID:refID:flags
-        file.writeln("@" + std::to_string(alignment.readGroupId())
+        file.writeln("@" + alignment.name()
+                      + ":" + std::to_string(alignment.flags())
                       + ":" + std::to_string(alignment.refID())
-                      + ":" + std::to_string(alignment.flags()));
+                      + ":" + std::to_string(alignment.position())
+                      + ":" + std::to_string(alignment.insertSize())
+                      + ":" + std::to_string(alignment.mappingQuality().get()));
         file.writeln(alignment.sequence());
         file.writeln("+");
         file.writeln(alignment.qualities());

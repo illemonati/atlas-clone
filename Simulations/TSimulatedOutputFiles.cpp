@@ -1,9 +1,6 @@
 //
 // Created by Michael Jopiti on 19.04.23.
 //
-//
-// Created by Michael Jopiti on 19.04.23.
-//
 
 #ifndef SIMULATEDOUTPUTFILES_CPP
 #define SIMULATEDOUTPUTFILES_CPP
