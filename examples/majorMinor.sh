@@ -12,9 +12,10 @@ echo "doing $N samples"
 . $(dirname $0)/simulate --type HW --F 0.1 --chrLength 1000 --sampleSize $N --fracPoly 0.1 --alpha 2.0 --beta 2.0
 
 for f in *.bam; do
-    $atlas --task GLF --bam $f --fasta ATLAS_simulations.fasta --fixedSeed 0 --logFile GLF_${f%.bam}.out
+	name=${f%.bam}
+    $atlas --task GLF --bam $f --fasta ATLAS_simulations.fasta --fixedSeed 0 --out GLF_$name --logFile GLF_$name.out
 done
 
 allSamples=`find . -path '*_ind*.glf.gz' | paste -s -d ',' -`
 
-$atlas --task majorMinor --glf $allSamples --fixedSeed 0 --logFile majorMinor.out --minMAF 0.05 --maxThreads 1 --method Skotte --bgz
+$atlas --task majorMinor --glf $allSamples --fixedSeed 0 --minMAF 0.05 --maxThreads 1 --method Skotte --bgz --out majorMinor --logFile majorMinor.out 
