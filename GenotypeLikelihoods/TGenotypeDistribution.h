@@ -14,6 +14,7 @@
 #include "TGenotypeData.h"
 #include "TSequencedBase.h"
 #include "coretools/Types/probability.h"
+#include "stattools/MLEInference/TNelderMead.h"
 
 namespace GenotypeLikelihoods {
 
@@ -72,14 +73,17 @@ public:
 };
 
 class THKY85 final : public TGenotypeDistribution {
-	coretools::TStrongArray<TGenotypeData, genometools::Base> _likelihoodSum{};
-	double _mu      = 0.001;
-	double _theta_r = 0.01;
-	double _theta_g = 0.03;
+	double _mu      = 1.;
+	double _theta_r = 1.;
+	double _theta_g = 1.;
+
 	coretools::TStrongArray<TGenotypeProbabilities, genometools::Base> _pi;
+	coretools::TStrongArray<TGenotypeData, genometools::Base> _likelihoodSum{};
+	stattools::TNelderMead<3> _nelderMead;
 
 public:
 	static constexpr std::string_view name = "HKY85";
+	THKY85();
 
 	TGenotypeLikelihoods getGenotypeLikelihoods(const TBaseLikelihoods &baseLikelihoods) const override;
 	coretools::Probability getGenotypeLikelihood(const TBaseLikelihoods &baseLikelihoods,

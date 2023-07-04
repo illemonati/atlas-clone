@@ -15,7 +15,6 @@
 #include "coretools/Main/TParameters.h"
 #include "coretools/Strings/stringFunctions.h"
 #include "coretools/Types/probability.h"
-#include "coretools/devtools.h"
 #include "genometools/GenotypeTypes.h"
 #include "genometools/PhredProbabilityTypes.h"
 #include "genometools/TSampleLikelihoods.h"

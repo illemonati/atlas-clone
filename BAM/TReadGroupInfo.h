@@ -13,7 +13,6 @@
 #include <vector>
 #include "coretools/Containers/TBitSet.h"
 #include "coretools/Strings/toString.h"
-#include "coretools/devtools.h"
 #include "nlohmann/json.hpp"
 
 #include "coretools/Containers/TStrongArray.h"

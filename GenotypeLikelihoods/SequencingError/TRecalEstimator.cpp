@@ -192,13 +192,15 @@ TRecalibrationEMEstimator::TRecalibrationEMEstimator(const BAM::TReadGroups *Rea
 	_readGroupMap = ReadGroupMap;
 
 	// genotype distribution: currently only allow for haploid
-	const auto dist = parameters().getParameterWithDefault("genoDist", "haploid");
-	if (dist == "haploid") {
+	const auto dist = parameters().getParameterWithDefault("genoDist", THKY85::name);
+	if (dist == THaploidDistribution::name) {
 		_genoDist = std::make_unique<THaploidDistribution>();
-	} else if (dist == "diploid") {
+	} else if (dist == TDiploidDistribution::name) {
 		_genoDist = std::make_unique<TDiploidDistribution>();
+	} else if (dist == THKY85::name) {
+		_genoDist = std::make_unique<THKY85>();
 	} else {
-		UERROR("Genotype distribution ", dist, " does not exist. Use 'haploid' or 'diploid'!");
+		UERROR("Genotype distribution ", dist, " does not exist. Use '", THaploidDistribution::name, "', '", TDiploidDistribution::name, "' or '", THKY85::name, "'!");
 	}
 	logfile().list("Will use a ", _genoDist->typeString(), " genotype distribution.");
 

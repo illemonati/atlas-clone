@@ -18,7 +18,6 @@
 #include "TSamFlags.h"
 #include "TSequencedBase.h"
 
-#include "coretools/devtools.h"
 #include "coretools/Types/probability.h"
 #include "genometools/PhredProbabilityTypes.h"
 #include "genometools/TFastaReader.h"

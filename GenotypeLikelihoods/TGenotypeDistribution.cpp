@@ -7,6 +7,8 @@
 
 #include "TGenotypeDistribution.h"
 #include "coretools/Containers/TStrongArray.h"
+#include "coretools/Main/TError.h"
+#include "coretools/Main/TLog.h"
 #include "coretools/Strings/toString.h"
 #include "genometools/GenotypeTypes.h"
 #include "TGenotypeData.h"
@@ -21,6 +23,48 @@
 namespace GenotypeLikelihoods {
 using genometools::Base;
 using genometools::Genotype;
+
+namespace impl {
+using coretools::TStrongArray;
+
+TStrongArray<TGenotypeProbabilities, genometools::Base>	piTable(double mu, double theta_r, double theta_g) {
+	using coretools::index;
+
+	WINK();
+	ECHO("test");
+	OUT(mu, theta_r, theta_g);
+	const arma::mat::fixed<4,4> l   = {{-2 - mu, 1, mu, 1}, {1, -2 - mu, 1, mu}, {mu, 1, -2 - mu, 1}, {1, mu, 1, -2 - mu}};
+	OUT(l);
+	const arma::mat::fixed<4,4> P_r = arma::expmat(theta_r*l);
+	const arma::mat::fixed<4,4> P_g = arma::expmat(theta_g*l);
+
+	coretools::TStrongArray<TGenotypeProbabilities, genometools::Base> pi;
+	for (auto r = Base::min; r < Base::max; ++r) {
+		TGenotypeData pi_r{};
+		for (auto g = Genotype::min; g < Genotype::max; ++g) {
+			const auto k = genometools::first(g);
+			const auto l = genometools::second(g);
+			const auto f = genometools::isHeterozygous(g) + 1; // homo = 1, het = 2
+			for (auto R = Base::min; R < Base::max; ++R) {
+				pi_r[g] += f*P_r(index(R),index(r))*P_g(index(k),index(R))*P_g(index(l),index(R));
+			}
+		}
+		pi[r] = TGenotypeProbabilities::normalize(pi_r);
+	}
+	return pi;
+}
+
+double Q(double mu, double theta_r, double theta_g, const coretools::TStrongArray<TGenotypeData, genometools::Base>& lkhSum) {
+	const auto pi = impl::piTable(mu, theta_r, theta_g);
+	double Q = 0;
+	for (auto r = Base::min; r < Base::max; ++r) {
+		for (auto g = Genotype::min; g < Genotype::max; ++g) {
+			Q += std::log(pi[r][g])*lkhSum[r][g];
+		}
+	}
+	return Q;	
+}
+} // namespace impl
 
 TGenotypeLikelihoods THaploidDistribution::getGenotypeLikelihoods(const TBaseLikelihoods &baseLikelihoods) const {
 	return TGenotypeLikelihoods({baseLikelihoods[Base::A], 0., 0., 0.,
@@ -147,45 +191,25 @@ double THKY85::normalize_add(TGenotypeLikelihoods &likelihoods, genometools::Bas
 	return sum;
 }
 
-namespace impl {
-using coretools::TStrongArray;
 
-TStrongArray<TGenotypeProbabilities, genometools::Base>	piTable(double mu, double theta_r, double theta_g) {
-	using coretools::index;
-
-	const arma::mat::fixed<4,4> l   = {{-2 - mu, 1, mu, 1}, {1, -2 - mu, 1, mu}, {mu, 1, -2 - mu, 1}, {1, mu, 1, -2 - mu}};
-	const arma::mat::fixed<4,4> P_r = arma::expmat(theta_r*l);
-	const arma::mat::fixed<4,4> P_g = arma::expmat(theta_g*l);
-
-	coretools::TStrongArray<TGenotypeProbabilities, genometools::Base> pi;
-	for (auto r = Base::min; r < Base::max; ++r) {
-		TGenotypeData pi_r{};
-		for (auto g = Genotype::min; g < Genotype::max; ++g) {
-			const auto k = genometools::first(g);
-			const auto l = genometools::second(g);
-			const auto f = genometools::isHeterozygous(g) + 1; // homo = 1, het = 2
-			for (auto R = Base::min; R < Base::max; ++R) {
-				pi_r[g] += f*P_r(index(R),index(r))*P_g(index(k),index(R))*P_g(index(l),index(R));
-			}
-		}
-		OUT(pi_r);
-		OUT(std::accumulate(pi_r.begin(), pi_r.end(), 0.));
-		pi[r] = TGenotypeProbabilities::normalize(pi_r);
-	}
-	return pi;
-}
-} // namespace impl
+THKY85::THKY85()
+	: _pi(impl::piTable(_mu, _theta_r, _theta_g)),
+	  _nelderMead([this](auto Vals) { return -impl::Q(std::exp(Vals[0]), std::exp(Vals[1]), std::exp(Vals[2]), _likelihoodSum); },
+				  {std::log(_mu), std::log(_theta_r), std::log(_theta_g)}, std::log(10.)) {}
 
 void THKY85::estimate() {
-	_pi = impl::piTable(_mu, _theta_r, _theta_g);
-	double Q = 0;
-	for (auto r = Base::min; r < Base::max; ++r) {
-		for (auto g = Genotype::min; g < Genotype::max; ++g) {
-			Q += std::log(_pi[r][g])*_likelihoodSum[r][g];
-		}
+	OUT(impl::Q(_mu, _theta_r, _theta_g, _likelihoodSum));
+	if (_nelderMead.minimize()) {
+		const auto& crds = _nelderMead.coordinates();
+		_mu      = std::exp(crds[0]);
+		_theta_r = std::exp(crds[1]);
+		_theta_g = std::exp(crds[2]);
+		OUT(impl::Q(_mu, _theta_r, _theta_g, _likelihoodSum));
+	} else {
+		coretools::instances::logfile().warning("Was not able to converge new HKY85-values, keeping old values");
 	}
-	OUT(Q);
-	// Todo optimize mu, theta_r, theta_g
+	_pi = impl::piTable(_mu, _theta_r, _theta_g);
+	_likelihoodSum.fill({});
 }
 
 std::string THKY85::definition() const noexcept {

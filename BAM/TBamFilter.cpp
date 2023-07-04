@@ -13,7 +13,6 @@
 #include <vector>
 
 #include "coretools/Files/TOutputFile.h"
-#include "coretools/devtools.h"
 #include "genometools/GenotypeTypes.h"
 #include "coretools/Files/TFile.h"
 #include "coretools/Main/TLog.h"

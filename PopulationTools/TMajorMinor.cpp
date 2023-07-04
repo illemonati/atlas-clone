@@ -36,7 +36,6 @@
 #include "coretools/Types/probability.h"
 #include "coretools/Types/strongTypes.h"
 #include "coretools/Types/weakTypes.h"
-#include "coretools/devtools.h"
 #include "genometools/GenotypeTypes.h"
 #include "genometools/PhredProbabilityTypes.h"
 #include "genometools/TGenotypeFrequencies.h"

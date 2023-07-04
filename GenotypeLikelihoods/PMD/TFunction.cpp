@@ -3,7 +3,6 @@
 #include "coretools/Main/TParameters.h"
 #include "coretools/Main/TRandomGenerator.h"
 #include "coretools/Types/probability.h"
-#include "coretools/devtools.h"
 #include <tuple>
 
 namespace GenotypeLikelihoods::PMD {

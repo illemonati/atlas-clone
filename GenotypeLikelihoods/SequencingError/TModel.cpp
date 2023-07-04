@@ -30,7 +30,6 @@
 #include "coretools/Strings/toString.h"
 #include "coretools/Types/probability.h"
 #include "coretools/Types/weakTypes.h"
-#include "coretools/devtools.h"
 #include "coretools/enum.h"
 
 namespace GenotypeLikelihoods {
