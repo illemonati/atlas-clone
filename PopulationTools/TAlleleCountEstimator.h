@@ -36,8 +36,6 @@ private:
 	std::vector<coretools::LogProbability> log_alleleFrequencyLikelihoods_h;
 	std::vector<std::vector<double>> log_choose;
 
-	void normalize();
-
 	const std::vector<double>& _getLogChoose(size_t counts);
 
 protected:

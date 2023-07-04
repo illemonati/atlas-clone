@@ -10,8 +10,11 @@
 
 #include "coretools/Containers/TView.h"
 #include "coretools/Files/TWriterImpl.h"
+#include "coretools/Types/probability.h"
 #include "coretools/devtools.h"
 #include "coretools/traits.h"
+#include <algorithm>
+#include <iterator>
 #include <type_traits>
 namespace PopulationTools {
 
@@ -19,6 +22,7 @@ class TSafFile {
 	std::string _prefix;
 	std::string _chr;
 
+	size_t _nCat     = 0;
 	uint64_t _offsetFreq = 0;
 	uint64_t _offsetPos  = 0;
 	size_t _nSites       = 0;
@@ -39,7 +43,7 @@ class TSafFile {
 	}
 
 public:
-	TSafFile(std::string_view Prefix, size_t nSamples) :_prefix(Prefix), _freqWriter(_prefix + ".saf.gz"), _posWriter(_prefix + ".saf.pos.gz"), _idxWriter(_prefix + ".saf.idx") {
+ TSafFile(std::string_view Prefix, size_t nSamples) :_prefix(Prefix), _nCat(2*nSamples+1), _freqWriter(_prefix + ".saf.gz"), _posWriter(_prefix + ".saf.pos.gz"), _idxWriter(_prefix + ".saf.idx") {
 		constexpr char magic[8] = "safv4";
 		_freqWriter.write(magic);
 		_posWriter.write(magic);
@@ -59,8 +63,7 @@ public:
 	TSafFile(TSafFile &&)                 = default;
 	TSafFile &operator=(TSafFile &&)      = default;
 
-	template<typename T>
-	void write(std::string_view Chr, size_t Pos, const std::vector<T> &AlleleFreqs) {
+	void write(std::string_view Chr, size_t Pos, coretools::TConstView<coretools::LogProbability> AlleleFreqs) {
 		if (_chr.empty()) { // first chromosome
 			_chr = Chr;
 		} else if (_chr != Chr) { // change of chromosome
@@ -74,16 +77,18 @@ public:
 			_offsetPos  = _posWriter.tell();
 		}
 
-		_freqWriter.write(static_cast<int>(0)); // We're not doing this
+		static std::vector<float> floats;
+		floats.clear();
+
+		const auto iMax   = std::max_element(AlleleFreqs.begin(), AlleleFreqs.end());
+		const size_t pMax = std::distance(AlleleFreqs.begin(), iMax);
+		const auto first  = pMax < (AlleleFreqs.size() + 1) / 2 ? 0 : _nCat - AlleleFreqs.size();
+		const auto max    = *iMax;
+		for (auto af : AlleleFreqs) { floats.push_back(static_cast<float>(coretools::underlying(af.scale(max)))); }
+
+		_freqWriter.write(static_cast<int>(first));
 		_freqWriter.write(static_cast<int>(AlleleFreqs.size()));
-		if constexpr (std::is_same_v<T, float>) {
-			_freqWriter.write(AlleleFreqs);
-		} else {
-			std::vector<float> floats;
-			floats.reserve(AlleleFreqs.size());
-			for (auto af : AlleleFreqs) { floats.push_back(static_cast<float>(coretools::underlying(af))); }
-			_freqWriter.write(floats);
-		}
+		_freqWriter.write(floats);
 
 		_posWriter.write(static_cast<int>(Pos - 1)); // 0-indexed in saf-file
 

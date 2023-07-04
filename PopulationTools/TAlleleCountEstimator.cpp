@@ -108,14 +108,6 @@ const std::vector<double> &TSiteAlleleFrequencyLikelihoods::_getLogChoose(size_t
 	return log_choose[counts];
 };
 
-
-void TSiteAlleleFrequencyLikelihoods::normalize() {
-	const LogProbability max = *std::max_element(log_alleleFrequencyLikelihoods_h.begin(), log_alleleFrequencyLikelihoods_h.end());
-	for (auto & lf: log_alleleFrequencyLikelihoods_h) {
-		lf.scale(max);
-	}
-};
-
 void TSiteAlleleFrequencyLikelihoods::_fillLog(TSampleLikelihoods *data, uint32_t numSamples) {
 	using BG = genometools::BiallelicGenotype;
 	// Calculating allele frequency likelihoods according to Nielsen et al. (2012) PLoS One, page 3
@@ -308,7 +300,6 @@ void TSiteAlleleFrequencyLikelihoods::fill(TSampleLikelihoods *data, uint32_t nu
 	} else {
 		_fillNatural(data, numSamples);
 	}
-	normalize();
 };
 
 void TSiteAlleleFrequencyLikelihoods::write(gz::ogzstream &file) {
