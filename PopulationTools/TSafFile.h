@@ -8,8 +8,9 @@
 #ifndef TSAFFILE_H_
 #define TSAFFILE_H_
 
+#include "TBgzWriter.h"
 #include "coretools/Containers/TView.h"
-#include "coretools/Files/TWriterImpl.h"
+#include "coretools/Files/TStdWriter.h"
 #include "coretools/Types/probability.h"
 #include "coretools/devtools.h"
 #include "coretools/traits.h"
@@ -22,14 +23,14 @@ class TSafFile {
 	std::string _prefix;
 	std::string _chr;
 
-	size_t _nCat     = 0;
+	size_t _nCat         = 0;
 	uint64_t _offsetFreq = 0;
 	uint64_t _offsetPos  = 0;
 	size_t _nSites       = 0;
 	size_t _sumBand      = 0;
 
-	coretools::TBGzWriter _freqWriter;
-	coretools::TBGzWriter _posWriter;
+	GLF::TBGzWriter _freqWriter;
+	GLF::TBGzWriter _posWriter;
 	coretools::TStdWriter _idxWriter;
 
 	void _writeIdx() {
@@ -43,16 +44,18 @@ class TSafFile {
 	}
 
 public:
- TSafFile(std::string_view Prefix, size_t nSamples) :_prefix(Prefix), _nCat(2*nSamples+1), _freqWriter(_prefix + ".saf.gz"), _posWriter(_prefix + ".saf.pos.gz"), _idxWriter(_prefix + ".saf.idx") {
+	TSafFile(std::string_view Prefix, size_t nSamples)
+		: _prefix(Prefix), _nCat(2 * nSamples + 1), _freqWriter(_prefix + ".saf.gz"),
+		  _posWriter(_prefix + ".saf.pos.gz"), _idxWriter(_prefix + ".saf.idx") {
 		constexpr char magic[8] = "safv4";
 		_freqWriter.write(magic);
 		_posWriter.write(magic);
 
 		_idxWriter.write(magic);
-		_idxWriter.write(static_cast<size_t>(2*nSamples)); // assume diploid
+		_idxWriter.write(static_cast<size_t>(2 * nSamples)); // assume diploid
 
 		_offsetFreq = _freqWriter.tell();
-		_offsetPos = _posWriter.tell();
+		_offsetPos  = _posWriter.tell();
 	}
 
 	~TSafFile() {

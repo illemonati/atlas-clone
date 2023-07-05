@@ -272,7 +272,7 @@ TEST_F(TSiteAlleleFrequencyLikelihoods_Test, haploidDiploid) {
 		-3.48187285612952,  -2.08624716758074, -1.17671963502976, -0.826181680011293, 0,
 		-0.826181680011293, -1.17671963502976, -2.08624716758074, -3.48187285612952};
 	for (size_t i = 0; i < lkh.size(); i++) {
-		EXPECT_FLOAT_EQ(lkh[i].scale(max), lkh[i]);
+		EXPECT_FLOAT_EQ(lkh[i].scale(max), estimatedLogAlleleFrequencyLikelihoods_fromR[i]);
 	}
 
 	// 2) ML allele count

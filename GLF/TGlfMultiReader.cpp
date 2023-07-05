@@ -13,6 +13,8 @@
 #include <iterator>
 #include <memory>
 #include <numeric>
+#include "TBgzWriter.h"
+#include "coretools/Files/TGzWriter.h"
 #include "coretools/Files/TWriter.h"
 #include "coretools/Main/TError.h"
 #include "genometools/GenotypeTypes.h"
@@ -96,9 +98,9 @@ TGlfMultiReaderVcf::TGlfMultiReaderVcf(const std::string & Filename, const std::
 				       const std::vector<std::string> & SampleNames, bool UsePhredScaledLikelihoods)
     : _usePhredScaledLikelihoods(UsePhredScaledLikelihoods) {
 	if (parameters().parameterExists("bgz")) {
-		_vcf.open(Filename.c_str(), "\t", coretools::FileFormat::BGz);
+		_vcf.open(new TBGzWriter(Filename), "\t");
 	} else {
-		_vcf.open(Filename.c_str(), "\t", coretools::FileFormat::Gz);
+		_vcf.open(new coretools::TGzWriter(Filename), "\t");
 	}
 
 	// write info
