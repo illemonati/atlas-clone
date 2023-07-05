@@ -9,6 +9,7 @@
 #include "coretools/Containers/TStrongArray.h"
 #include "coretools/Main/TError.h"
 #include "coretools/Main/TLog.h"
+#include "coretools/Math/mathFunctions.h"
 #include "coretools/Strings/toString.h"
 #include "genometools/GenotypeTypes.h"
 #include "TGenotypeData.h"
@@ -30,11 +31,7 @@ using coretools::TStrongArray;
 TStrongArray<TGenotypeProbabilities, genometools::Base>	piTable(double mu, double theta_r, double theta_g) {
 	using coretools::index;
 
-	WINK();
-	ECHO("test");
-	OUT(mu, theta_r, theta_g);
 	const arma::mat::fixed<4,4> l   = {{-2 - mu, 1, mu, 1}, {1, -2 - mu, 1, mu}, {mu, 1, -2 - mu, 1}, {1, mu, 1, -2 - mu}};
-	OUT(l);
 	const arma::mat::fixed<4,4> P_r = arma::expmat(theta_r*l);
 	const arma::mat::fixed<4,4> P_g = arma::expmat(theta_g*l);
 
@@ -194,22 +191,29 @@ double THKY85::normalize_add(TGenotypeLikelihoods &likelihoods, genometools::Bas
 
 THKY85::THKY85()
 	: _pi(impl::piTable(_mu, _theta_r, _theta_g)),
-	  _nelderMead([this](auto Vals) { return -impl::Q(std::exp(Vals[0]), std::exp(Vals[1]), std::exp(Vals[2]), _likelihoodSum); },
-				  {std::log(_mu), std::log(_theta_r), std::log(_theta_g)}, std::log(10.)) {}
+	  _nelderMead([this](auto Vals) { return -impl::Q(std::exp(Vals[0]), coretools::logistic(Vals[1]), coretools::logistic(Vals[2]), _likelihoodSum); },
+				  {std::log(_mu), coretools::logit(_theta_r), coretools::logit(_theta_g)}, 5*coretools::logit(_theta_r)) {
+	OUT(std::log(_mu), coretools::logit(_theta_r), coretools::logit(_theta_g));
+	OUT(coretools::logit(_theta_r));
+	OUT(_mu, _theta_r, _theta_g);
+	OUT(_pi);
+}
 
 void THKY85::estimate() {
-	OUT(impl::Q(_mu, _theta_r, _theta_g, _likelihoodSum));
+	OUT(_likelihoodSum);
+	OUT(_mu, _theta_r, _theta_g, impl::Q(_mu, _theta_r, _theta_g, _likelihoodSum));
 	if (_nelderMead.minimize()) {
 		const auto& crds = _nelderMead.coordinates();
 		_mu      = std::exp(crds[0]);
-		_theta_r = std::exp(crds[1]);
-		_theta_g = std::exp(crds[2]);
-		OUT(impl::Q(_mu, _theta_r, _theta_g, _likelihoodSum));
+		_theta_r = coretools::logistic(crds[1]);
+		_theta_g = coretools::logistic(crds[2]);
+		OUT(_mu, _theta_r, _theta_g, impl::Q(_mu, _theta_r, _theta_g, _likelihoodSum));
 	} else {
 		coretools::instances::logfile().warning("Was not able to converge new HKY85-values, keeping old values");
 	}
 	_pi = impl::piTable(_mu, _theta_r, _theta_g);
 	_likelihoodSum.fill({});
+	OUT(_pi);
 }
 
 std::string THKY85::definition() const noexcept {
