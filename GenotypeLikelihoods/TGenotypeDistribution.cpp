@@ -16,7 +16,9 @@
 #include "TSequencedBase.h"
 #include "coretools/algorithms.h"
 #include "coretools/Types/probability.h"
+#include "stattools/MLEInference/TNelderMead.h"
 
+#include <limits>
 #include <numeric>
 #include <random>
 #include <armadillo>
@@ -52,14 +54,16 @@ TStrongArray<TGenotypeProbabilities, genometools::Base>	piTable(double mu, doubl
 }
 
 double Q(double mu, double theta_r, double theta_g, const coretools::TStrongArray<TGenotypeData, genometools::Base>& lkhSum) {
-	const auto pi = impl::piTable(mu, theta_r, theta_g);
-	double Q = 0;
-	for (auto r = Base::min; r < Base::max; ++r) {
-		for (auto g = Genotype::min; g < Genotype::max; ++g) {
-			Q += std::log(pi[r][g])*lkhSum[r][g];
+	try {
+		const auto pi = impl::piTable(mu, theta_r, theta_g);
+		double Q      = 0;
+		for (auto r = Base::min; r < Base::max; ++r) {
+			for (auto g = Genotype::min; g < Genotype::max; ++g) { Q += std::log(pi[r][g]) * lkhSum[r][g]; }
 		}
+		return Q;
+	} catch (...) {
+		return std::numeric_limits<double>::lowest();
 	}
-	return Q;	
 }
 } // namespace impl
 
@@ -191,22 +195,23 @@ double THKY85::normalize_add(TGenotypeLikelihoods &likelihoods, genometools::Bas
 
 THKY85::THKY85()
 	: _pi(impl::piTable(_mu, _theta_r, _theta_g)),
-	  _nelderMead([this](auto Vals) { return -impl::Q(std::exp(Vals[0]), coretools::logistic(Vals[1]), coretools::logistic(Vals[2]), _likelihoodSum); },
-				  {std::log(_mu), coretools::logit(_theta_r), coretools::logit(_theta_g)}, 5*coretools::logit(_theta_r)) {
-	OUT(std::log(_mu), coretools::logit(_theta_r), coretools::logit(_theta_g));
-	OUT(coretools::logit(_theta_r));
-	OUT(_mu, _theta_r, _theta_g);
-	OUT(_pi);
+	  _nelderMead([this](auto Vals) { return -impl::Q(std::exp(Vals[0]), std::exp(Vals[1]), std::exp(Vals[2]), _likelihoodSum); }) {
 }
 
 void THKY85::estimate() {
 	OUT(_likelihoodSum);
+	OUT(_pi);
 	OUT(_mu, _theta_r, _theta_g, impl::Q(_mu, _theta_r, _theta_g, _likelihoodSum));
+	constexpr double min = 1e-10;
+	const std::array<double, 3> init{std::log(std::max(min, _mu)), std::log(std::max(min, _theta_r)), std::log(std::max(min, _theta_g))};
+	const std::array<double, 3> step{1., 1., 1.};
+
+	_nelderMead.setSimplex({init, step});
 	if (_nelderMead.minimize()) {
 		const auto& crds = _nelderMead.coordinates();
 		_mu      = std::exp(crds[0]);
-		_theta_r = coretools::logistic(crds[1]);
-		_theta_g = coretools::logistic(crds[2]);
+		_theta_r = std::exp(crds[1]);
+		_theta_g = std::exp(crds[2]);
 		OUT(_mu, _theta_r, _theta_g, impl::Q(_mu, _theta_r, _theta_g, _likelihoodSum));
 	} else {
 		coretools::instances::logfile().warning("Was not able to converge new HKY85-values, keeping old values");

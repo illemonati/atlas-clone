@@ -13,6 +13,7 @@
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/Types/commonWeakTypes.h"
+#include "coretools/devtools.h"
 
 using coretools::instances::parameters;
 using coretools::instances::logfile;
@@ -61,7 +62,12 @@ void TReadGroupInfo::_setFromCommandLine(InfoType Info){
 	std::vector<std::string> tmp, argVec;
 	parameters().fillParameterIntoContainer(arg, tmp, true);
 	coretools::str::repeatIndexes(tmp, argVec);
-	if (argVec.size() == 1){
+
+	if (argVec.empty()) {
+		logfile().write("using default for all read groups. (argument '", arg, "')");
+		_setAllReadGroups(Info, "");
+	}
+	else if (argVec.size() == 1){
 		logfile().write("using '", argVec[0], "' for all read groups. (argument '", arg, "')");
 		_setAllReadGroups(Info, argVec[0]);
 	} else if (argVec.size() == _info.size()){
