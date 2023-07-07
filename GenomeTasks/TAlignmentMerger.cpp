@@ -336,6 +336,8 @@ void TAlignmentMergerReadGroupSettings::initialize(BAM::TReadGroups & readGroups
 void TAlignmentMergerReadGroupSettings::_printSummary(){
 	//count
 	coretools::TStrongArray<size_t, ReadGroupType> counts;
+	counts.fill(0);
+
 	for(auto& s : _settings){
 		++counts[s.type];
 	}
