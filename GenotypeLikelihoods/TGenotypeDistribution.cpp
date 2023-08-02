@@ -53,7 +53,8 @@ TStrongArray<TGenotypeProbabilities, genometools::Base>	piTable(double mu, doubl
 	return pi;
 }
 
-double Q(double mu, double theta_r, double theta_g, const coretools::TStrongArray<TGenotypeData, genometools::Base>& lkhSum) {
+double Q(double mu, double theta_r, double theta_g,
+		 const coretools::TStrongArray<TGenotypeData, genometools::Base> &lkhSum) {
 	try {
 		const auto pi = impl::piTable(mu, theta_r, theta_g);
 		double Q      = 0;
@@ -61,9 +62,7 @@ double Q(double mu, double theta_r, double theta_g, const coretools::TStrongArra
 			for (auto g = Genotype::min; g < Genotype::max; ++g) { Q += std::log(pi[r][g]) * lkhSum[r][g]; }
 		}
 		return Q;
-	} catch (...) {
-		return std::numeric_limits<double>::lowest();
-	}
+	} catch (...) { return std::numeric_limits<double>::lowest(); }
 }
 } // namespace impl
 
@@ -199,32 +198,23 @@ THKY85::THKY85()
 }
 
 void THKY85::estimate() {
-	OUT(_likelihoodSum);
-	OUT(_pi);
-	OUT(_mu, _theta_r, _theta_g, impl::Q(_mu, _theta_r, _theta_g, _likelihoodSum));
-	constexpr double min = 1e-10;
-	const std::array<double, 3> init{std::log(std::max(min, _mu)), std::log(std::max(min, _theta_r)), std::log(std::max(min, _theta_g))};
-	const std::array<double, 3> step{1., 1., 1.};
+	// If likelihoodSum is totally off, it is not worth it
+	constexpr size_t AA_CC = 100;
+	const bool isWorthIt = _likelihoodSum[Base::A][Genotype::AA] > AA_CC*_likelihoodSum[Base::A][Genotype::CC];
 
-	_nelderMead.setSimplex({init, step});
-	if (_nelderMead.minimize()) {
-		const auto& crds = _nelderMead.coordinates();
-		_mu      = std::exp(crds[0]);
-		_theta_r = std::exp(crds[1]);
-		_theta_g = std::exp(crds[2]);
-		OUT(_mu, _theta_r, _theta_g, impl::Q(_mu, _theta_r, _theta_g, _likelihoodSum));
-	} else {
-		coretools::instances::logfile().warning("Was not able to converge new HKY85-values, keeping old values");
+	if (isWorthIt && _nelderMead.minimize({std::log(_mu), std::log(_theta_r), std::log(_theta_g)},
+							 10.)) {
+		const auto &crds = _nelderMead.coordinates();
+		_mu              = std::exp(crds[0]);
+		_theta_r         = std::exp(crds[1]);
+		_theta_g         = std::exp(crds[2]);
+		_pi              = impl::piTable(_mu, _theta_r, _theta_g);
 	}
-	_pi = impl::piTable(_mu, _theta_r, _theta_g);
 	_likelihoodSum.fill({});
-	OUT(_pi);
 }
 
 std::string THKY85::definition() const noexcept {
 	return coretools::str::toString(name, ": mu=", _mu, ", theta_r=", _theta_r, ", theta_g=", _theta_g);
 }
-
-
 
 }; // namespace GenotypeLikelihoods
