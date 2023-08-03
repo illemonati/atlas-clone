@@ -25,7 +25,6 @@
 #include "api/SamSequenceDictionary.h"
 #include "coretools/Main/globalConstants.h"
 #include "coretools/Types/strongTypes.h"
-#include "coretools/devtools.h"
 
 namespace BAM{
 using coretools::TNumericRange;

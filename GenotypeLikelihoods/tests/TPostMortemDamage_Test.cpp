@@ -16,6 +16,7 @@
 #include <string>
 #include <vector>
 
+#include "TGenotypeDistribution.h"
 #include "genometools/GenotypeTypes.h"
 #include "genometools/PhredProbabilityTypes.h"
 #include "TGenotypeData.h"
@@ -125,6 +126,8 @@ TEST(TPostMortemDamage_test, baseANoPMD) {
 			}
 		}
 	}
+	THKY85 hky;
+	hky.estimate();
 }
 
 TEST(TPostMortemDamage_test, baseAWithPMD) {

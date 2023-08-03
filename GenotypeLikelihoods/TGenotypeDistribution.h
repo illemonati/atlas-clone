@@ -8,10 +8,13 @@
 #ifndef GENOTYPELIKELIHOODS_TGENOTYPEDISTRIBUTION_H_
 #define GENOTYPELIKELIHOODS_TGENOTYPEDISTRIBUTION_H_
 
+#include "coretools/Containers/TMassFunction.h"
+#include "coretools/Containers/TStrongArray.h"
 #include "genometools/GenotypeTypes.h"
 #include "TGenotypeData.h"
 #include "TSequencedBase.h"
 #include "coretools/Types/probability.h"
+#include "stattools/MLEInference/TNelderMead.h"
 
 namespace GenotypeLikelihoods {
 
@@ -27,7 +30,7 @@ public:
 	virtual TGenotypeLikelihoods getGenotypeLikelihoods(const TBaseLikelihoods &baseLikelihoods) const = 0;
 	virtual coretools::Probability getGenotypeLikelihood(const TBaseLikelihoods &baseLikelihoods,
 														 genometools::Genotype genotype) const         = 0;
-	virtual double normalize_add(TGenotypeLikelihoods &likelihoods)                                    = 0;
+	virtual double normalize_add(TGenotypeLikelihoods &likelihoods, genometools::Base ref)             = 0;
 	virtual void estimate()                                                                            = 0;
 	virtual std::string_view typeString() const noexcept                                               = 0;
 	virtual std::string definition() const noexcept                                                    = 0;
@@ -43,7 +46,7 @@ public:
 	TGenotypeLikelihoods getGenotypeLikelihoods(const TBaseLikelihoods &baseLikelihoods) const override;
 	coretools::Probability getGenotypeLikelihood(const TBaseLikelihoods &baseLikelihoods,
 												 genometools::Genotype genotype) const override;
-	double normalize_add(TGenotypeLikelihoods &likelihoods) override;
+	double normalize_add(TGenotypeLikelihoods &likelihoods, genometools::Base) override;
 	void estimate() override;
 	std::string_view typeString() const noexcept override { return name; }
 	std::string definition() const noexcept override;
@@ -62,7 +65,30 @@ public:
 	TGenotypeLikelihoods getGenotypeLikelihoods(const TBaseLikelihoods &baseLikelihoods) const override;
 	coretools::Probability getGenotypeLikelihood(const TBaseLikelihoods &baseLikelihoods,
 												 genometools::Genotype genotype) const override;
-	double normalize_add(TGenotypeLikelihoods &likelihoods) override;
+	double normalize_add(TGenotypeLikelihoods &likelihoods, genometools::Base) override;
+	void estimate() override;
+	std::string_view typeString() const noexcept override { return name; }
+	std::string definition() const noexcept override;
+	bool isInvariant() const noexcept override {return false;}
+};
+
+class THKY85 final : public TGenotypeDistribution {
+	double _mu      = 1;
+	double _theta_r = 0.0001;
+	double _theta_g = 0.0001;
+
+	coretools::TStrongArray<TGenotypeProbabilities, genometools::Base> _pi;
+	coretools::TStrongArray<TGenotypeData, genometools::Base> _likelihoodSum{};
+	stattools::TNelderMead<3> _nelderMead;
+
+public:
+	static constexpr std::string_view name = "HKY85";
+	THKY85();
+
+	TGenotypeLikelihoods getGenotypeLikelihoods(const TBaseLikelihoods &baseLikelihoods) const override;
+	coretools::Probability getGenotypeLikelihood(const TBaseLikelihoods &baseLikelihoods,
+												 genometools::Genotype genotype) const override;
+	double normalize_add(TGenotypeLikelihoods &likelihoods, genometools::Base) override;
 	void estimate() override;
 	std::string_view typeString() const noexcept override { return name; }
 	std::string definition() const noexcept override;

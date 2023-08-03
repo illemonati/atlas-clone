@@ -6,7 +6,6 @@
  */
 
 #include "TCigar.h"
-#include "coretools/devtools.h"
 #include <algorithm>
 #include "coretools/Strings/stringFunctions.h"
 

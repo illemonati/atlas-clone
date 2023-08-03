@@ -20,7 +20,6 @@
 #include <math.h>
 #include <ostream>
 #include <stdio.h>
-#include "coretools/devtools.h"
 
 namespace GenotypeLikelihoods {
 

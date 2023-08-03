@@ -34,7 +34,7 @@ Strand getStrand(std::string_view s) {
 }
 
 TModel *makeType(std::string_view pmdString) {
-	if (pmdString == TNoPMD::name) return new TNoPMD;
+	if (pmdString.empty() || pmdString == TNoPMD::name) return new TNoPMD;
 
 	// Possibilities:
 	// only Function: Exponential | Empiric
