@@ -41,8 +41,8 @@ if __name__ == "__main__":
             for c in probs[p]:
                 d = r_[d, data[:, c]]
             print(d)
-            means.append(mean(d))
-            stds.append(std(d))
+            means.append(nanmean(d))
+            stds.append(nanstd(d))
 
         depths = r_[list(probs.keys())]*args.depth0
         means = r_[means]
@@ -55,19 +55,19 @@ if __name__ == "__main__":
 
         ax1 = plt.subplot(211)
         plt.errorbar(depths, means, yerr=stds, fmt=fmts[i], markersize=8,linewidth=2, capsize=6, label=file)
-        plt.xscale("log")
+        #plt.xscale("log")
         plt.yscale("log")
-        plt.hlines(means[0], 0, 10, "k", "dashed")
+        plt.hlines(means[0], 0, 1.1*args.depth0, "k", "dashed")
         plt.subplot(212, sharex=ax1)
         plt.errorbar(depths, means/means[0], yerr=stds, fmt=fmts[i], markersize=8,linewidth=2, capsize=6, label=file)
-        plt.xscale("log")
+        #plt.xscale("log")
         plt.ylabel(r"$\theta/\theta_0$")
-        plt.hlines(1, 0, 10, "k", "dashed")
+        plt.hlines(1, 0, 1.1*args.depth0, "k", "dashed")
         plt.xlabel(r"Depth")
 
     plt.subplot(211)
-    plt.ylim(5e-4, 2e-3)
-    plt.xlim(min(depths)/1.1, max(depths)*1.1)
+    #plt.ylim(5e-4, 2e-3)
+    #plt.xlim(min(depths)/1.1, max(depths)*1.1)
     plt.legend()
     plt.title(args.title)
     plt.ylabel(r"$\theta$")
