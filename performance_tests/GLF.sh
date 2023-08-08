@@ -2,20 +2,8 @@
 
 . $(dirname $0)/find_atlas
 
-mkdir GLF
-file=GLF/times
-if [ ! -f "$file" ]; then
-	echo -e "GLF" > GLF/times
-fi
+bname=$(basename $0)
+name=${bname%.sh}
+out=$name/$name
 
-timeFor10Runs=0
-for i in {1..10}; do
-start=`date +%s.%N`
-
-$atlas --task GLF --bam simulate/bamFile.bam --printAll --logFile GLF/GLF.out --out GLF/GLF
-
-end=`date +%s.%N`
-runtime=$( echo "$end - $start" | bc -l )
-timeFor10Runs=$(echo "$timeFor10Runs+$runtime" | bc -l)
-done
-echo -e "$timeFor10Runs" >> GLF/times
+$atlas --task GLF --bam BAM/BAM.bam --printAll --out $out --logFile $out.out 2> $out.err > /dev/null

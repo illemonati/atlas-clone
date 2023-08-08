@@ -2,27 +2,23 @@
 
 . $(dirname $0)/find_atlas
 
-mkdir convertVCF
-file=convertVCF/times
-if [ ! -f "$file" ]; then
-	echo -e "convertVCF" > convertVCF/times
-fi
+bname=$(basename $0)
+name=${bname%.sh}
 
-timeFor10Runs=0
+out=$name/${name}_beagle
+$atlas --task convertVCF --vcf VCF/VCF.vcf.gz --chr chr1 --format beagle --out $out --logFile $out.out 2> $out.err > /dev/null
 
-for i in {1..2}; do
-start=`date +%s.%N`
+out=$name/${name}_geno
+$atlas --task convertVCF --vcf VCF/VCF.vcf.gz --format geno --out $out --logFile $out.out 2> $out.err > /dev/null
 
-$atlas --task convertVCF --vcf simulate/vcfFile.vcf.gz --format beagle --out convertVCF/ATLAS_beagle --logFile convertVCF/convertVCF_beagle.out
-$atlas --task convertVCF --vcf simulate/vcfFile.vcf.gz --format geno --out convertVCF/ATLAS_geno --logFile convertVCF/convertVCF_geno.out
-$atlas --task convertVCF --vcf simulate/vcfFile.vcf.gz --format LFMM --genotypes call --out convertVCF/ATLAS_LFMM_call --logFile convertVCF/convertVCF_LFMM_call.out
-$atlas --task convertVCF --vcf simulate/vcfFile.vcf.gz --format LFMM --genotypes posterior --maxMissing 0.01 --out convertVCF/ATLAS_LFMM_posterior --logFile convertVCF/convertVCF_LFMM_posterior.out
-$atlas --task convertVCF --vcf simulate/vcfFile.vcf.gz --format posfile --out convertVCF/ATLAS_posfile --logFile convertVCF/convertVCF_posfile.out
-$atlas --task convertVCF --vcf simulate/vcfFile.vcf.gz --format genfile --out convertVCF/ATLAS_genfile --logFile convertVCF/convertVCF_genfile.out
+out=$name/${name}_call
+$atlas --task convertVCF --vcf VCF/VCF.vcf.gz --format LFMM --genotypes call --out $out --logFile $out.out 2> $out.err > /dev/null
 
+out=$name/${name}_post
+$atlas --task convertVCF --vcf VCF/VCF.vcf.gz --format LFMM --genotypes posterior --maxMissing 0.01 --out $out --logFile $out.out 2> $out.err > /dev/null
 
-end=`date +%s.%N`
-runtime=$( echo "$end - $start" | bc -l )
-timeFor10Runs=$(echo "$timeFor10Runs+$runtime" | bc -l)
-done
-echo -e "$timeFor10Runs" >> convertVCF/times
+out=$name/${name}_posfile
+$atlas --task convertVCF --vcf VCF/VCF.vcf.gz --format posfile --out $out --logFile $out.out 2> $out.err > /dev/null
+
+out=$name/${name}_genfile
+$atlas --task convertVCF --vcf VCF/VCF.vcf.gz --format genfile --out $out --logFile $out.out 2> $out.err > /dev/null

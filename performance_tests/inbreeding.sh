@@ -2,18 +2,8 @@
 
 . $(dirname $0)/find_atlas
 
-mkdir inbreeding
-file=inbreeding/times
-if [ ! -f "$file" ]; then
-	echo -e "inbreeding" > inbreeding/times
-fi
+bname=$(basename $0)
+name=${bname%.sh}
+out=$name/$name
 
-timeFor10Runs=0
-start=`date +%s.%N`
-
-$atlas --task inbreeding --vcf simulate/vcfFile.vcf.gz --numBurnin 1 --iterations 10 --fixedSeed 0 --logFile inbreeding/inbreeding.out --out inbreeding/out --limitChr chr1
-
-end=`date +%s.%N`
-runtime=$( echo "$end - $start" | bc -l )
-timeFor10Runs=$(echo "$timeFor10Runs+$runtime" | bc -l)
-echo -e "$timeFor10Runs" >> inbreeding/times
+$atlas --task inbreeding --vcf VCF/VCF.vcf.gz --chr chr3 --numBurnin 1 --iterations 1 --fixedSeed 0 --out $out --logFile $out.out 2> $out.err > /dev/null

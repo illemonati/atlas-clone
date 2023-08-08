@@ -1,0 +1,49 @@
+#!/bin/bash
+
+cd $(dirname $0)
+
+file=performanceTable
+
+# First time
+for f in *.simulate *.sh; do
+	folder=${f%.*}
+	if [ ! -d $folder ]; then
+		mkdir $folder
+		echo $folder > $folder/times
+	fi
+done
+
+for f in *.simulate *.sh; do
+	folder=${f%.*}
+	ext=${f#*.}
+	N=2
+
+	printf "%20s " $folder
+	tRuns=0
+	for i in $(seq 1 $N); do
+		start=`date +%s.%N`
+		./$f > /dev/null
+		end=`date +%s.%N`
+		tRuns=$(echo "$tRuns + $end - $start" | bc -l)
+		printf "."
+	done
+	printf " %4.2fs\n" $tRuns
+	echo "$tRuns" >> $folder/times
+done
+
+paste */times | awk '{if (NR == 1) {printf "%s\tTotal\n", $0;} else {t = 0; for(i = 1; i <= NF; i++) {t += $i; printf "%4.2f\t", $i} printf "%4.2f\n", t}}' > performanceTable
+
+lineNum=$(wc -l $file | cut -d" " -f1)
+if [ $lineNum -gt 11 ]; then
+	tail -11 $file | head -10 |
+		awk '{for (o = 1;o <= NF; o++) {sum[o] += $o; a[o,NR] = $o}}
+			END {for (o=1; o <= NF ;o++) {
+					y = 0;
+					for(i=1;i<=NR;i++) {y+=(a[o,i] - (sum[o]/NR))^2;}
+					av = sum[o]/NR
+					sd = sqrt(y/(NR-1))
+					val= a[o, NR]
+					if (val - av > sd) {printf "task %d got worse!\n", o}
+				}}' 
+fi
+
