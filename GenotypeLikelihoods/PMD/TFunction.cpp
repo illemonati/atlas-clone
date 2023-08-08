@@ -86,8 +86,8 @@ double calcLL(const std::vector<Probability> &Empiric, const std::array<double, 
 }
 
 auto fillFAndJacobian(const std::vector<Probability> &Empiric, const std::array<double, 3> &Parameters) {
-	arma::vec F(3);
-	arma::mat J(3, 3);
+	arma::vec::fixed<3> F;
+	arma::mat::fixed<3,3> J;
 
 	for (size_t p = 0; p < Empiric.size(); ++p) {
 		// exp
@@ -152,7 +152,7 @@ auto estimateWithNewtonRaphson(const std::vector<Probability> &Empiric, std::arr
 	for (size_t _ = 0; _ < numNRIterations; ++_) {
 		auto [F, J] = impl::fillFAndJacobian(Empiric, Parameters);
 
-		arma::mat JxF;
+		arma::vec::fixed<3> JxF;
 		if (!solve(JxF, J, F)) {
 			DEVERROR("Issue solving JxF in TPMDTable::fitExponentialModel!");
 		}

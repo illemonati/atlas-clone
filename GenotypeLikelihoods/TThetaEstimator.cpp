@@ -225,9 +225,8 @@ bool TThetaEstimator::_NRAllParams(const GenotypeLikelihoods::TGenotypeProbabili
 	const GenotypeLikelihoods::TGenotypeData P_G = _data->P_G(_pGenotype); // see paper
 
 	// prepare storage
-	arma::mat Jacobian(6, 6);
-	arma::vec F(6);
-	arma::mat JxF(6, 6);
+	arma::mat::fixed<6,6> Jacobian;
+	arma::vec::fixed<6> F;
 
 	double rho = _theta.expMinusTheta / (1.0 - _theta.expMinusTheta);
 	double mu  = _data->sizeWithData();
@@ -274,6 +273,7 @@ bool TThetaEstimator::_NRAllParams(const GenotypeLikelihoods::TGenotypeProbabili
 		// iii) now estimate new parameters
 		mu = _data->sizeWithData();
 
+		arma::vec::fixed<6> JxF;
 		if (solve(JxF, Jacobian, F)) {
 			// baseFreq = TBaseProbabilities(baseFreq, JxF, std::minus<>());
 			/*for(Base k = Base::min; k < Base::max; ++k){
