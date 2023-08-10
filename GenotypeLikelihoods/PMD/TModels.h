@@ -54,11 +54,11 @@ public:
 	void initialize(BAM::RGInfo::TReadGroupInfo & RgInfo);
 	void writeToFile(const BAM::TReadGroups &ReadGroups, const BAM::TReadGroupMap &ReadGroupMap,
 	                 std::string_view outputName) const;
-	TBaseLikelihoods baseLikelihoods(const BAM::TSequencedBase &data,
+	TBaseLikelihoods P_dij(const BAM::TSequencedBase &data,
 	                                    const TBaseLikelihoods &baseLikelihoodsNoPMD) const;
-	TBaseProbabilities massFunction(genometools::Base b, const BAM::TSequencedBase &data,
+	TBaseProbabilities P_bbar(genometools::Base b, const BAM::TSequencedBase &data,
 									   const TBaseLikelihoods &baseLikelihoodsNoPMD) const;
-	TBaseProbabilities massFunction(genometools::Genotype g, const BAM::TSequencedBase &data,
+	TBaseProbabilities P_bbar(genometools::Genotype g, const BAM::TSequencedBase &data,
 									   const TBaseLikelihoods &baseLikelihoodsNoPMD) const;
 
 	void resize(const BAM::TReadGroupMap& ReadGroupMap);

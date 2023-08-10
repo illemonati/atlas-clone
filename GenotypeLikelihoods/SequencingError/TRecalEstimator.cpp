@@ -99,7 +99,7 @@ void TModelVectorForEstimation::reset(TModels &SequencingErrorModels,
 	modelStati.report(MS::littleData, "Read groups with very little data (consider pooling):", ReadGroups);
 };
 
-TBaseLikelihoods TModelVectorForEstimation::getBaseLikelihoods(const BAM::TSequencedBase &data) const {
+TBaseLikelihoods TModelVectorForEstimation::P_dij(const BAM::TSequencedBase &data) const {
 	return model(data)->baseLikelihoods(data);
 };
 
@@ -305,27 +305,25 @@ void TRecalibrationEMEstimator::performEstimation(const std::string &outputName,
 
 void TRecalibrationEMEstimator::_estimateRho_updatePbbar(const PMD::TModels &PmdModels) {
 	using genometools::genotype;
-	coretools::TStrongArray<size_t, Base> cnt{0};
-	_P_bbar_I_gds.clear();
+	_P_bbarEdij_I_gdijs.clear();
 	for (size_t i = 0; i < _sites.size(); ++i) {
 		for (const auto &d_ij : _sites[i]) {
-			++cnt[d_ij.base];
-			_P_bbar_I_gds.emplace_back(0.);
-			auto &P_bbar     = _P_bbar_I_gds.back();
-			const auto L_eps = _modelsToEstimate.getBaseLikelihoods(d_ij);
+			_P_bbarEdij_I_gdijs.emplace_back(0.);
+			auto &P_bbarEdij_I_gdij = _P_bbarEdij_I_gdijs.back();
+			const auto P_dij_I_bbar = _modelsToEstimate.P_dij(d_ij);
 			for (auto a = Base::min; a < Base::max; ++a) {
-				const auto g_aa = genotype(a, a);
-				const auto P_aa = PmdModels.massFunction(a, d_ij, L_eps);
-				P_bbar[g_aa]    = P_aa[d_ij.base];
+				const auto aa              = genotype(a, a);
+				const auto P_bbar_I_aa_dij = PmdModels.P_bbar(a, d_ij, P_dij_I_bbar);
+				P_bbarEdij_I_gdij[aa]      = P_bbar_I_aa_dij[d_ij.base];
 
-				_modelsToEstimate.addToRho(d_ij, _P_g_I_ds[i][g_aa], P_aa);
+				_modelsToEstimate.addToRho(d_ij, _P_g_I_dis[i][aa], P_bbar_I_aa_dij);
 				if (!_genoDist->isInvariant()) {
 					for (auto b = coretools::next(a); b < Base::max; ++b) {
-						const auto g_ab = genotype(a, b);
-						const auto P_ab = PmdModels.massFunction(g_ab, d_ij, L_eps);
-						P_bbar[g_ab]    = P_ab[d_ij.base];
+						const auto ab              = genotype(a, b);
+						const auto P_bbar_I_ab_dij = PmdModels.P_bbar(ab, d_ij, P_dij_I_bbar);
+						P_bbarEdij_I_gdij[ab]      = P_bbar_I_ab_dij[d_ij.base];
 
-						_modelsToEstimate.addToRho(d_ij, _P_g_I_ds[i][g_ab], P_ab);
+						_modelsToEstimate.addToRho(d_ij, _P_g_I_dis[i][ab], P_bbar_I_ab_dij);
 					}
 				}
 			}
@@ -392,27 +390,28 @@ void TRecalibrationEMEstimator::_updateEpsilon(double deltaLL_LL) {
 };
 
 double TRecalibrationEMEstimator::_calculateLL_updatePg(const PMD::TModels &PmdModels) {
-	_P_g_I_ds.clear();
+	_P_g_I_dis.clear();
 
 	double LL = 0.0;
 	for (auto &s_i : _sites) {
 		if (s_i.genotype == Genotype::NN) { // unknown genotype
 			const auto ref = s_i.refBase;
-			_P_g_I_ds.emplace_back(1.); // Start at 1,1,1,1,1,1,1,1
-			auto &P_g = _P_g_I_ds.back();
+			_P_g_I_dis.emplace_back(1.); // Start at 1,1,1,1,1,1,1,1
+			auto &P_g_I_di = _P_g_I_dis.back();
 			for (auto &d_ij : s_i) {
-				const auto P_eps = _modelsToEstimate.getBaseLikelihoods(d_ij);
-				const auto P_D   = PmdModels.baseLikelihoods(d_ij, P_eps);
-				P_g *= _genoDist->getGenotypeLikelihoods(P_D);
+				const auto P_dij_I_bbar = _modelsToEstimate.P_dij(d_ij);
+				const auto P_dij_I_b    = PmdModels.P_dij(d_ij, P_dij_I_bbar);
+				const auto P_dij_I_g    = _genoDist->P_dij(P_dij_I_b);
+				P_g_I_di *= P_dij_I_g;
 			}
-			LL += log(_genoDist->normalize_add(P_g, ref));
+			LL += log(_genoDist->normalize_add(P_g_I_di, ref));
 		} else { // known genotype.
-			_P_g_I_ds.emplace_back(0.); 
-			_P_g_I_ds.back()[s_i.genotype] = 1; // Probability of correct genotype is 1
+			_P_g_I_dis.emplace_back(0.); 
+			_P_g_I_dis.back()[s_i.genotype] = 1; // Probability of correct genotype is 1
 			double P_g = 1.;
 			for (auto &d_ij : s_i) {
-				const auto L_eps = _modelsToEstimate.getBaseLikelihoods(d_ij);
-				const auto L_D   = PmdModels.baseLikelihoods(d_ij, L_eps);
+				const auto L_eps = _modelsToEstimate.P_dij(d_ij);
+				const auto L_D   = PmdModels.P_dij(d_ij, L_eps);
 				P_g *= _genoDist->getGenotypeLikelihood(L_D, s_i.genotype);
 			}
 			LL += log(P_g);

@@ -66,7 +66,7 @@ double Q(double mu, double theta_r, double theta_g,
 }
 } // namespace impl
 
-TGenotypeLikelihoods THaploidDistribution::getGenotypeLikelihoods(const TBaseLikelihoods &baseLikelihoods) const {
+TGenotypeLikelihoods THaploidDistribution::P_dij(const TBaseLikelihoods &baseLikelihoods) const {
 	return TGenotypeLikelihoods({baseLikelihoods[Base::A], 0., 0., 0.,
 			                     baseLikelihoods[Base::C], 0., 0.,
 								 baseLikelihoods[Base::G], 0.,
@@ -106,7 +106,7 @@ std::string THaploidDistribution::definition() const noexcept {
 		.append(", TT: ").append(toString(_pi[Base::T]));
 }
 
-TGenotypeLikelihoods TDiploidDistribution::getGenotypeLikelihoods(const TBaseLikelihoods &baseLikelihoods) const {
+TGenotypeLikelihoods TDiploidDistribution::P_dij(const TBaseLikelihoods &baseLikelihoods) const {
 	return TGenotypeLikelihoods({baseLikelihoods[Base::A], 0.5 * (baseLikelihoods[Base::A] + baseLikelihoods[Base::C]),
 								 0.5 * (baseLikelihoods[Base::A] + baseLikelihoods[Base::G]),
 								 0.5 * (baseLikelihoods[Base::A] + baseLikelihoods[Base::T]), baseLikelihoods[Base::C],
@@ -162,7 +162,7 @@ std::string TDiploidDistribution::definition() const noexcept {
 	return ret;
 }
 
-TGenotypeLikelihoods THKY85::getGenotypeLikelihoods(const TBaseLikelihoods &baseLikelihoods) const {
+TGenotypeLikelihoods THKY85::P_dij(const TBaseLikelihoods &baseLikelihoods) const {
 	return TGenotypeLikelihoods({baseLikelihoods[Base::A], 0.5 * (baseLikelihoods[Base::A] + baseLikelihoods[Base::C]),
 								 0.5 * (baseLikelihoods[Base::A] + baseLikelihoods[Base::G]),
 								 0.5 * (baseLikelihoods[Base::A] + baseLikelihoods[Base::T]), baseLikelihoods[Base::C],

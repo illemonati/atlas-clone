@@ -27,7 +27,7 @@ class TGenotypeDistribution {
 public:
 	TGenotypeDistribution()                                                                            = default;
 	virtual ~TGenotypeDistribution()                                                                   = default;
-	virtual TGenotypeLikelihoods getGenotypeLikelihoods(const TBaseLikelihoods &baseLikelihoods) const = 0;
+	virtual TGenotypeLikelihoods P_dij(const TBaseLikelihoods &baseLikelihoods) const = 0;
 	virtual coretools::Probability getGenotypeLikelihood(const TBaseLikelihoods &baseLikelihoods,
 														 genometools::Genotype genotype) const         = 0;
 	virtual double normalize_add(TGenotypeLikelihoods &likelihoods, genometools::Base ref)             = 0;
@@ -43,7 +43,7 @@ class THaploidDistribution final : public TGenotypeDistribution {
 public:
 	static constexpr std::string_view name = "haploid";
 
-	TGenotypeLikelihoods getGenotypeLikelihoods(const TBaseLikelihoods &baseLikelihoods) const override;
+	TGenotypeLikelihoods P_dij(const TBaseLikelihoods &baseLikelihoods) const override;
 	coretools::Probability getGenotypeLikelihood(const TBaseLikelihoods &baseLikelihoods,
 												 genometools::Genotype genotype) const override;
 	double normalize_add(TGenotypeLikelihoods &likelihoods, genometools::Base) override;
@@ -62,7 +62,7 @@ class TDiploidDistribution final : public TGenotypeDistribution {
 public:
 	static constexpr std::string_view name = "diploid";
 
-	TGenotypeLikelihoods getGenotypeLikelihoods(const TBaseLikelihoods &baseLikelihoods) const override;
+	TGenotypeLikelihoods P_dij(const TBaseLikelihoods &baseLikelihoods) const override;
 	coretools::Probability getGenotypeLikelihood(const TBaseLikelihoods &baseLikelihoods,
 												 genometools::Genotype genotype) const override;
 	double normalize_add(TGenotypeLikelihoods &likelihoods, genometools::Base) override;
@@ -85,7 +85,7 @@ public:
 	static constexpr std::string_view name = "HKY85";
 	THKY85();
 
-	TGenotypeLikelihoods getGenotypeLikelihoods(const TBaseLikelihoods &baseLikelihoods) const override;
+	TGenotypeLikelihoods P_dij(const TBaseLikelihoods &baseLikelihoods) const override;
 	coretools::Probability getGenotypeLikelihood(const TBaseLikelihoods &baseLikelihoods,
 												 genometools::Genotype genotype) const override;
 	double normalize_add(TGenotypeLikelihoods &likelihoods, genometools::Base) override;

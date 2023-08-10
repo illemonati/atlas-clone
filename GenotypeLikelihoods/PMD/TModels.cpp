@@ -161,20 +161,20 @@ void TModels::resize(const BAM::TReadGroupMap& ReadGroupMap) {
 		for (auto &r : ReadGroupMap.readGroupsInUse()) { _models[r]->resize(_tableSize); }
 	}
 
-TBaseLikelihoods TModels::baseLikelihoods(const BAM::TSequencedBase &data,
+TBaseLikelihoods TModels::P_dij(const BAM::TSequencedBase &data,
                                             const TBaseLikelihoods &baseLikelihoodsNoPMD) const {
 	return _hasPMD
 		? _models[data.readGroupID]->baseLikelihoods(data, baseLikelihoodsNoPMD)
 		: baseLikelihoodsNoPMD;
 }
 
-TBaseProbabilities TModels::massFunction(genometools::Base b, const BAM::TSequencedBase &data,
+TBaseProbabilities TModels::P_bbar(genometools::Base b, const BAM::TSequencedBase &data,
 													  const TBaseLikelihoods &baseLikelihoodsNoPMD) const {
 	return _hasPMD ? _models[data.readGroupID]->massFunction(b, data, baseLikelihoodsNoPMD)
 	               : TNoPMD::massFunctions[b];
 }
 
-TBaseProbabilities TModels::massFunction(genometools::Genotype g, const BAM::TSequencedBase &data,
+TBaseProbabilities TModels::P_bbar(genometools::Genotype g, const BAM::TSequencedBase &data,
 													  const TBaseLikelihoods &baseLikelihoodsNoPMD) const {
 	return _hasPMD ? _models[data.readGroupID]->massFunction(g, data, baseLikelihoodsNoPMD)
 		: TNoPMD::massFunction(g, baseLikelihoodsNoPMD);

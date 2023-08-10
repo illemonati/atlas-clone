@@ -61,7 +61,7 @@ public:
 			   size_t MinRequiredObservations);
 
 	size_t size() const { return _models.size(); };
-	TBaseLikelihoods getBaseLikelihoods(const BAM::TSequencedBase &data) const;
+	TBaseLikelihoods P_dij(const BAM::TSequencedBase &data) const;
 	TModelRecal* model(const BAM::TSequencedBase &data) noexcept {return _modelIndex[data.readGroupID][data.isSecondMate()];}
 	TModelRecal* model(const BAM::TSequencedBase &data) const noexcept {return _modelIndex[data.readGroupID][data.isSecondMate()];}
 
@@ -96,8 +96,8 @@ class TRecalibrationEMEstimator {
 private:
 	std::vector<TSite> _sites;
 	std::unique_ptr<TGenotypeDistribution> _genoDist;
-	std::vector<TGenotypeLikelihoods> _P_g_I_ds;
-	std::vector<TGenotypeLikelihoods> _P_bbar_I_gds;
+	std::vector<TGenotypeLikelihoods> _P_g_I_dis;
+	std::vector<TGenotypeLikelihoods> _P_bbarEdij_I_gdijs;
 	const BAM::TReadGroupMap *_readGroupMap;
 	const BAM::TReadGroups *_readGroups;
 
@@ -124,13 +124,13 @@ private:
 	void _calculateQ() {
 		size_t ij = 0;
 		for (size_t i = 0; i < _sites.size(); ++i) {
-			const auto &Pi = _P_g_I_ds[i];
+			const auto &P_g_I_di = _P_g_I_dis[i];
 			for (auto &d_ij : _sites[i]) {
 				if (!d_ij) continue;
 				auto m = _modelsToEstimate.model(d_ij);
 
-				const auto &Pij = _P_bbar_I_gds[ij++];
-				m->addToEpsilon<updateJF, isInvariant>(d_ij, Pi, Pij);
+				const auto &P_bbar_I_gdij = _P_bbarEdij_I_gdijs[ij++];
+				m->addToEpsilon<updateJF, isInvariant>(d_ij, P_g_I_di, P_bbar_I_gdij);
 			}
 		}
 	}
