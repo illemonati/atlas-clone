@@ -58,12 +58,6 @@ void initModel(std::unique_ptr<TModel> & model, const BAM::RGInfo::TInfo & info)
 	}
 }
 
-std::vector<TReadGroupModels *> fillPointers(std::vector<TReadGroupModels> &Models) {
-	std::vector<TReadGroupModels *> pModels;
-	for (auto &m : Models) pModels.push_back(&m);
-	return pModels;
-}
-
 } // namespace impl
 
 TReadGroupModels::TReadGroupModels(){
@@ -159,6 +153,23 @@ BAM::RGInfo::TInfo TReadGroupModels::info() const{
 // TModels
 //--------------------------------------------------------------------
 
+void TModels::pool(const BAM::TReadGroupMap& rgMap) {
+	if (!recalibrates()) DEVERROR("Cannot pool models that do not recalibrate!");
+	_pModels.resize(_models.size());
+	for (size_t i = 0; i < _models.size(); ++i) {
+		_pModels[i] = &_models[rgMap.pooledIndex(i)];
+	}
+}
+
+void TModels::unPool() {
+	_pModels.clear();
+	_recalibrates = false;
+	for (auto &m : _models) {
+		_pModels.push_back(&m);
+		if (m.recalibrates()) _recalibrates = true;
+	}
+}
+
 void TModels::initializeNoRecal(const BAM::TReadGroups &ReadGroups) {
 	_models.clear();
 	_models.emplace_back(); // default-constructor -> NoRecal
@@ -171,18 +182,26 @@ void TModels::initializeNoRecal(const BAM::TReadGroups &ReadGroups) {
 }
 
 std::vector<TReadGroupModels> TModels::forget() {
-	std::vector<TReadGroupModels> forgottenModels(_models.size());
+	std::vector<TReadGroupModels> forgottenModels;
 	//impl::fillNoRecal(forgottenModels, _models.size());
+	const auto N = _pModels.size();
 	std::swap(_models, forgottenModels);
-	_pModels = impl::fillPointers(_models);
+
+	_models.clear();
+	_models.emplace_back(); // default-constructor -> NoRecal
+	_pModels.clear();
+
+	for(size_t i = 0; i < N; ++i){
+		_pModels.push_back(&_models.front());
+	}
 	_recalibrates=false;
 	return forgottenModels;
 }
 
 void TModels::remember(std::vector<TReadGroupModels>& forgottenModels) {
-	if (forgottenModels.size() != _models.size()) DEVERROR("Forgotten models are not correct size!");
+	if (forgottenModels.size() != _pModels.size()) DEVERROR("Forgotten models are not correct size!");
 	std::swap(_models, forgottenModels);
-	_pModels = impl::fillPointers(_models);
+	unPool();
 }
 
 void TModels::initialize(std::string_view RecalString, std::string_view RhoString,
@@ -197,9 +216,8 @@ void TModels::initialize(std::string_view RecalString, std::string_view RhoStrin
 	// initialize models
 	for(size_t i = 0; i < ReadGroups.size(); ++i){
 		_models.emplace_back(RecalString, RhoString);
-		if (_models.back().recalibrates()) _recalibrates = true;
 	}
-	_pModels = impl::fillPointers(_models);
+	unPool();
 }
 
 void TModels::initializeFromFile(std::string_view Filename, const BAM::TReadGroups &ReadGroups) {
@@ -223,13 +241,11 @@ void TModels::initializeFromFile(std::string_view Filename, const BAM::TReadGrou
 			const auto readGroup = ReadGroups.getId(vec[0]);
 			const auto mate      = vec[1] == "first" ? 0 : 1;
 			_models[readGroup].initialize(mate, vec[2], vec[3]);
-			if (_models[readGroup][mate].recalibrates()) _recalibrates = true;
 		} catch (const char *error) {
 			UERROR(error, " for read group ", vec[0], " in file '", Filename, "!");
 		}
 	}
-	_pModels = impl::fillPointers(_models);
-
+	unPool();
 	logfile().done();
 }
 
@@ -241,9 +257,8 @@ void TModels::initialize(BAM::RGInfo::TReadGroupInfo &RgInfo) {
 
 	for (size_t rg = 0; rg < RgInfo.size(); ++rg) {
 		_models.emplace_back(RgInfo[rg]);
-		if (_models.back().recalibrates()) _recalibrates = true;
 	}
-	_pModels = impl::fillPointers(_models);
+	unPool();
 }
 
 void TModels::checkReadGroups(const BAM::TReadGroups &ReadGroups, std::vector<size_t> &ReadGroupsWithoutRecal,
@@ -264,10 +279,10 @@ void TModels::checkReadGroups(const BAM::TReadGroups &ReadGroups, std::vector<si
 
 void TModels::recalibrate(std::vector<BAM::TSequencedBase> &datas) const noexcept {
 	const auto & front = datas.front();
-	const auto & model = _model(front); // assuming all datas are in same readgroup and same mate
+	const auto & m = model(front); // assuming all datas are in same readgroup and same mate
 	for (auto &b : datas) {
-		if (model.recalibrates()) {
-			b.recalibratedQualityAsPhredInt = model.phredInt(b);
+		if (m.recalibrates()) {
+			b.recalibratedQualityAsPhredInt = m.phredInt(b);
 		} else {
 			b.recalibratedQualityAsPhredInt = b.originalQuality_phredInt;
 		}
@@ -285,8 +300,8 @@ void TModels::writeRecalFile(const BAM::TReadGroups &ReadGroups, std::string_vie
 	for (size_t r = 0; r < ReadGroups.size(); ++r) {
 		out << ReadGroups.getName(r);
 		for (size_t mate = 0; mate < 2; ++mate) {
-			out << _models[r][mate].epsilonDefinition()
-				<< _models[r][mate].rhoDefinition();
+			out << _model(r)[mate].epsilonDefinition()
+				<< _model(r)[mate].rhoDefinition();
 		}
 		out.endln();
 	}

@@ -15,6 +15,7 @@
 #include <string>
 #include <vector>
 
+#include "SequencingError/TEpsilon.h"
 #include "genometools/GenotypeTypes.h"
 #include "RecalEstimatorTools.h"
 #include "TGenotypeData.h"
@@ -44,64 +45,25 @@ class TModels;
 namespace GenotypeLikelihoods {
 namespace SequencingError {
 
-//--------------------------------------------------------------------------
-// TSequencingErrorModelVectorForEstimation
-// store pointers to models so that they can be estimated
-//--------------------------------------------------------------------------
-
-class TModelVectorForEstimation {
-private:
-	// vector of pointers to models that require estimation
-	std::vector<TModelRecal *> _models;                    // non-owning
-	std::vector<std::array<TModelRecal *, 2>> _modelIndex; // non-owning
-public:
-	TModelVectorForEstimation() = default;
-	void reset(TModels &SequencingErrorModels, const RecalEstimatorTools::TRecalDataTables &DataTables,
-			   const BAM::TReadGroups &ReadGroups, const BAM::TReadGroupMap &ReadGroupMap,
-			   size_t MinRequiredObservations);
-
-	size_t size() const { return _models.size(); };
-	TBaseLikelihoods P_dij(const BAM::TSequencedBase &data) const;
-	TModelRecal* model(const BAM::TSequencedBase &data) noexcept {return _modelIndex[data.readGroupID][data.isSecondMate()];}
-	TModelRecal* model(const BAM::TSequencedBase &data) const noexcept {return _modelIndex[data.readGroupID][data.isSecondMate()];}
-
-	// functions to estimate rho
-	void addToRho(const BAM::TSequencedBase &data, coretools::Probability P_g_I_d, const TBaseProbabilities &P_bbar_I_d);
-	void estimateRho();
-
-	// functions to estimate beta
-	template<bool updateJF>
-	void addToEpsilon(const BAM::TSequencedBase &data, coretools::Probability P_g_I_d,
-					  coretools::Probability P_bbar_I_gd) {
-		model(data)->epsilon().add<updateJF>(data, P_g_I_d, P_bbar_I_gd);
-	}
-	void solveJxF();
-	void propose(double lambda=1.);
-	void scaleParameters();
-	size_t acceptOrReject();
-	void adjust();
-
-	double Q() const;
-	double maxF() const;
-	void writeRecalFile(const BAM::TReadGroups &ReadGroups, const std::string & Filename) const;
-
-	std::string getModelsDefinition();
-	std::string getRhoDefinition();
-};
-
 //--------------------------------------------------------------------
 // TRecalibrationEMEstimator
 //--------------------------------------------------------------------
 class TRecalibrationEMEstimator {
 private:
 	std::vector<TSite> _sites;
-	std::unique_ptr<TGenotypeDistribution> _genoDist;
 	std::vector<TGenotypeLikelihoods> _P_g_I_dis;
 	std::vector<TGenotypeLikelihoods> _P_bbarEdij_I_gdijs;
+
 	const BAM::TReadGroupMap *_readGroupMap;
 	const BAM::TReadGroups *_readGroups;
 
-	TModelVectorForEstimation _modelsToEstimate;
+	TModels* _recal;
+	PMD::TModels* _pmd;
+	std::unique_ptr<TGenotypeDistribution> _genoDist;
+
+	std::vector<TEpsilon*> _epsilons;
+	std::vector<TRho*> _rhos;
+
 	RecalEstimatorTools::TRecalDataTables _dataTables;
 
 	// variables for estimation
@@ -114,11 +76,11 @@ private:
 	std::string _recalFile; // file name in case a file with model is provided
 
 	size_t _numSitesDepthTwoOrMore();
-	void _initializeModels(TModels &SequencingErrorModels);
-	void _runEM(const PMD::TModels &PmdModels);
+	void _initializeModels();
+	void _runEM();
 
 	// functions to estimate theta_epsilon (sequencing error rates)
-	void _estimateRho_updatePbbar(const PMD::TModels &PmdModels);
+	void _estimateRho_updatePbbar();
 	template<bool updateJF, bool isInvariant>
 	void _calculateQ() {
 		size_t ij = 0;
@@ -126,24 +88,23 @@ private:
 			const auto &P_g_I_di = _P_g_I_dis[i];
 			for (auto &d_ij : _sites[i]) {
 				if (!d_ij) continue;
-				auto m = _modelsToEstimate.model(d_ij);
 
 				const auto &P_bbar_I_gdij = _P_bbarEdij_I_gdijs[ij++];
-				m->epsilon().add<updateJF, isInvariant>(d_ij, P_g_I_di, P_bbar_I_gdij);
+				_recal->model(d_ij).epsilon()->add<updateJF, isInvariant>(d_ij, P_g_I_di, P_bbar_I_gdij);
 			}
 		}
 	}
 	void _solveDerivative() {
 		if (_genoDist->isInvariant()) _calculateQ<true, true>();
 		else _calculateQ<true, false>(); 
-		_modelsToEstimate.solveJxF();
+		for (auto& e: _epsilons) e->solveJxF();
 	}
 	void _calculateQ() {
 		if (_genoDist->isInvariant()) _calculateQ<false, true>();
 		else _calculateQ<false, false>(); 
 	}
 	void _updateEpsilon(double deltaDeltaLL);
-	double _calculateLL_updatePg(const PMD::TModels &PmdModels);
+	double _calculateLL_updatePg();
 
 public:
 	TRecalibrationEMEstimator(const BAM::TReadGroups *ReadGroups, const BAM::TReadGroupMap *ReadGroupMap);
@@ -152,10 +113,9 @@ public:
 	void addSite(const TSite &site);
 
 	// function to estimate
-	void performEstimation(const std::string &outputName, TModels &SequencingErrorModels,
-						   const PMD::TModels &PmdModels);
+	void performEstimation(std::string_view outputName, TModels &SequencingErrorModels, PMD::TModels &PmdModels);
 
-	void calcLL(TModels &SequencingErrorModels, const PMD::TModels &PmdModels);
+	void calcLL(TModels &SequencingErrorModels, PMD::TModels &PmdModels);
 };
 
 }; // namespace SequencingError

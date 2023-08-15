@@ -16,6 +16,8 @@
 #include <stdexcept>
 
 #include "coretools/Containers/TStrongArray.h"
+#include "coretools/Main/TError.h"
+#include "coretools/Strings/toString.h"
 #include "genometools/GenotypeTypes.h"
 #include "RecalEstimatorTools.h"
 #include "TGenotypeData.h"
@@ -41,145 +43,6 @@ using coretools::instances::parameters;
 using genometools::Genotype;
 using genometools::Base;
 
-//--------------------------------------------------------------------------
-// TSequencingErrorModelVectorForEstimation
-//--------------------------------------------------------------------------
-
-void TModelVectorForEstimation::reset(TModels &SequencingErrorModels,
-									  const RecalEstimatorTools::TRecalDataTables &DataTables,
-									  const BAM::TReadGroups &ReadGroups, const BAM::TReadGroupMap &ReadGroupMap,
-									  size_t MinRequiredObservations) {
-	using MS = RecalEstimatorTools::ModelStatusTypes;
-	// Copy models that are 1) in use after pooling and 2) have data.
-	// Note: data table is already pooled!
-
-	// prepare storage for reporting
-	_modelIndex.clear();
-	_models.clear();
-	_modelIndex.resize(ReadGroups.size());
-	RecalEstimatorTools::TModelStati modelStati;
-
-	// copy models
-	for (auto &r : ReadGroupMap.readGroupsInUse()) {
-		// add to model stati
-		modelStati.add(r);
-
-		// loop over mates
-		for (size_t mate = 0; mate < 2; ++mate) {
-			const RecalEstimatorTools::TRecalDataTable &table = DataTables[r][mate];
-
-			if (table.size() > 0) {
-				// check if model is estimatable
-				if (SequencingErrorModels[r][ mate].recalibrates()) {
-					// copy model and update index
-					TModelRecal *model = reinterpret_cast<TModelRecal*>(&SequencingErrorModels[r][mate]);
-					//auto model = SequencingErrorModels.getRecal(r, mate);
-					model->epsilon().checkOrInit(table);
-					_models.push_back(model);
-					modelStati[r][MS::copied].set(mate);
-					for (auto &rr : ReadGroupMap.readGroupsPooledWith(r)) { _modelIndex[rr][mate] = model; }
-
-					// check if there is limited data
-					if (table.size() < MinRequiredObservations) { modelStati[r][MS::littleData].set(mate); }
-				} else {
-					modelStati[r][MS::dataButNoRecal].set(mate);
-				}
-			} else if (SequencingErrorModels[r][mate].recalibrates()) {
-				modelStati[r][MS::noData].set(mate);
-			}
-		}
-	}
-
-	// report models that will be estimated
-	modelStati.report(MS::copied, "Read groups for which models will be estimated:", ReadGroups);
-	modelStati.report(MS::noData, "Read groups excluded because they have no data:", ReadGroups);
-	modelStati.report(MS::dataButNoRecal, "Read groups with data but no recal model:", ReadGroups);
-	if (modelStati.num(MS::copied) == 0) { UERROR("No recal models need estimation!"); }
-	modelStati.report(MS::littleData, "Read groups with very little data (consider pooling):", ReadGroups);
-};
-
-TBaseLikelihoods TModelVectorForEstimation::P_dij(const BAM::TSequencedBase &data) const {
-	return model(data)->baseLikelihoods(data);
-};
-
-//-------------------------------------------------------------------
-// functions to estimate rho
-
-void TModelVectorForEstimation::addToRho(const BAM::TSequencedBase &data, coretools::Probability P_g_I_d, const TBaseProbabilities &P_bbar_I_d) {
-	model(data)->rho().add(data.base, P_g_I_d, P_bbar_I_d);
-};
-
-void TModelVectorForEstimation::estimateRho() {
-	for (auto &model : _models) { model->rho().estimate(); }
-};
-
-// functions to estimate beta
-//-------------------------------------------------------------------
-
-double TModelVectorForEstimation::Q() const {
-	return std::accumulate(_models.begin(), _models.end(), 0.0, [](auto tot, const auto &val) { return tot + val->epsilon().Q(); });
-};
-
-void TModelVectorForEstimation::solveJxF() {
-	for (auto &model : _models) {
-		model->epsilon().solveJxF();
-	}
-};
-
-void TModelVectorForEstimation::propose(double lambda) {
-	for (auto &model : _models) { model->epsilon().propose(lambda); }
-};
-
-size_t TModelVectorForEstimation::acceptOrReject() {
-	size_t numAccepted = 0;
-	for (auto &model : _models) {
-		numAccepted += model->epsilon().acceptOrReject();
-	}
-	return numAccepted;
-};
-
-void TModelVectorForEstimation::adjust() {
-	for (auto &model : _models) { model->epsilon().adjust(); }
-};
-
-double TModelVectorForEstimation::maxF() const {
-	double maxF = 0.0;
-	for (auto &model : _models) {
-		maxF = std::max(maxF, model->epsilon().maxF());
-	}
-	return maxF;
-};
-
-void TModelVectorForEstimation::writeRecalFile(const BAM::TReadGroups &ReadGroups, const std::string & Filename) const {
-	TModelNoRecal _noRecal;
-	// open file and write header
-	coretools::TOutputFile out(Filename, {"readGroup", "mate", "covariates", "rho"});
-
-	// add models
-	for (size_t r = 0; r < ReadGroups.size(); ++r) {
-		for (size_t mate = 0; mate < 2; ++mate) {
-			out.write(ReadGroups.getName(r), std::array{"first", "second"}[mate]);
-			if (_modelIndex[r][mate])
-				out.writeln(_modelIndex[r][mate]->epsilonDefinition(), _modelIndex[r][mate]->rhoDefinition());
-			else 
-				out.writeln(_noRecal.epsilonDefinition(), _noRecal.rhoDefinition());
-		}
-	}
-}
-
-std::string TModelVectorForEstimation::getModelsDefinition() {
-	if (_models.empty()) return std::string{};
-
-	return std::accumulate(_models.begin() + 1, _models.end(), _models.front()->epsilonDefinition(),
-						   [](auto tot, auto &model) { return tot + '\n' + model->epsilonDefinition(); });
-};
-
-std::string TModelVectorForEstimation::getRhoDefinition() {
-	if (_models.empty()) return std::string{};
-
-	return std::accumulate(_models.begin() + 1, _models.end(), _models.front()->rhoDefinition(),
-						   [](auto tot, auto &model) { return tot + '\n' + model->rhoDefinition(); });
-};
 
 //---------------------------------------------------------------
 // TRecalibrationEMEstimator
@@ -243,7 +106,7 @@ size_t TRecalibrationEMEstimator::_numSitesDepthTwoOrMore() {
 	return _numSites;
 };
 
-void TRecalibrationEMEstimator::_initializeModels(SequencingError::TModels &SequencingErrorModels) {
+void TRecalibrationEMEstimator::_initializeModels() {
 	using coretools::str::toString;
 	// count data available for recal
 	logfile().listFlush("Counting data available for recal ...");
@@ -260,7 +123,19 @@ void TRecalibrationEMEstimator::_initializeModels(SequencingError::TModels &Sequ
 
 	// identify models with data that can be estimated
 	logfile().startIndent("Identifying models to estimate:");
-	_modelsToEstimate.reset(SequencingErrorModels, _dataTables, *_readGroups, *_readGroupMap, _minRequiredObservations);
+	_recal->pool(*_readGroupMap);
+	for (auto rg : _readGroupMap->readGroupsInUse()) {
+		for (size_t mate = 0; mate < 2; ++mate) {
+			const auto& table = _dataTables[rg][mate];
+			auto& recal = (*_recal)[rg][mate];
+			if (table.size() > 0) {
+				if (!recal.recalibrates()) UERROR("Cannot estimate readgroup ", rg, ", mate ", mate, "!");
+				recal.epsilon()->checkOrInit(table);
+				_epsilons.push_back(recal.epsilon());
+				_rhos.push_back(recal.rho());
+			}
+		}
+	}
 	logfile().endIndent();
 };
 
@@ -274,85 +149,89 @@ void TRecalibrationEMEstimator::addSite(const TSite &site) {
 //----------------------------
 // Functions for estimation
 //----------------------------
-void TRecalibrationEMEstimator::performEstimation(const std::string &outputName,
-												  SequencingError::TModels &SequencingErrorModels,
-												  const PMD::TModels &PmdModels) {
+void TRecalibrationEMEstimator::performEstimation(std::string_view outputName, SequencingError::TModels &Recal,
+												  PMD::TModels &Pmd) {
+	_recal = &Recal;
+	_pmd   = &Pmd;
 	// initialize models
-	_initializeModels(SequencingErrorModels);
+	_initializeModels();
 
 	// run EM
-	_runEM(PmdModels);
+	_runEM();
 
 	// writing final estimates
-	const std::string filename = outputName + "_recal.txt";
+	const auto filename = std::string(outputName) + "_recal.txt";
 	logfile().list("Writing final estimates to file '", filename, "'.");
-	_modelsToEstimate.writeRecalFile(*_readGroups, filename);
+	_recal->writeRecalFile(*_readGroups, filename);
 	BAM::RGInfo::TReadGroupInfo r(*_readGroups);
-	SequencingErrorModels.addToRGInfo(r);
-	r.write(outputName + "_recal.json");
+	Recal.addToRGInfo(r);
+	r.write(std::string(outputName) + "_recal.json");
 };
 
-void TRecalibrationEMEstimator::_estimateRho_updatePbbar(const PMD::TModels &PmdModels) {
+void TRecalibrationEMEstimator::_estimateRho_updatePbbar() {
 	using genometools::genotype;
 	_P_bbarEdij_I_gdijs.clear();
 	for (size_t i = 0; i < _sites.size(); ++i) {
 		for (const auto &d_ij : _sites[i]) {
 			_P_bbarEdij_I_gdijs.emplace_back(0.);
 			auto &P_bbarEdij_I_gdij = _P_bbarEdij_I_gdijs.back();
-			const auto P_dij_I_bbar = _modelsToEstimate.P_dij(d_ij);
+			const auto P_dij_I_bbar = _recal->baseLikelihoods(d_ij);
 			for (auto a = Base::min; a < Base::max; ++a) {
 				const auto aa              = genotype(a, a);
-				const auto P_bbar_I_aa_dij = PmdModels.P_bbar(a, d_ij, P_dij_I_bbar);
+				const auto P_bbar_I_aa_dij = _pmd->P_bbar(a, d_ij, P_dij_I_bbar);
 				P_bbarEdij_I_gdij[aa]      = P_bbar_I_aa_dij[d_ij.base];
 
-				_modelsToEstimate.addToRho(d_ij, _P_g_I_dis[i][aa], P_bbar_I_aa_dij);
+				_recal->model(d_ij).rho()->add(d_ij.base, _P_g_I_dis[i][aa], P_bbar_I_aa_dij);
 				if (!_genoDist->isInvariant()) {
 					for (auto b = coretools::next(a); b < Base::max; ++b) {
 						const auto ab              = genotype(a, b);
-						const auto P_bbar_I_ab_dij = PmdModels.P_bbar(ab, d_ij, P_dij_I_bbar);
+						const auto P_bbar_I_ab_dij = _pmd->P_bbar(ab, d_ij, P_dij_I_bbar);
 						P_bbarEdij_I_gdij[ab]      = P_bbar_I_ab_dij[d_ij.base];
 
-						_modelsToEstimate.addToRho(d_ij, _P_g_I_dis[i][ab], P_bbar_I_ab_dij);
+						_recal->model(d_ij).rho()->add(d_ij.base, _P_g_I_dis[i][ab], P_bbar_I_ab_dij);
 					}
 				}
 			}
 		}
 	}
-	_modelsToEstimate.estimateRho();
+	for (auto& rho: _rhos) rho->estimate();
 }
 
 void TRecalibrationEMEstimator::_updateEpsilon(double deltaLL_LL) {
 	using coretools::str::toString;
 	logfile().list("optimizing Q_beta using a Newton-Raphson algorithm.");
-	const auto nTot = _modelsToEstimate.size();
+	const auto nTot = _epsilons.size();
 
 	for (int i = 0; i < _NewtonRaphsonNumIterations; ++i) {
 		logfile().startIndent("Running Newton-Raphson iteration ", i + 1, ":");
 		_solveDerivative();
-		const double oldQ = _modelsToEstimate.Q();
+		double oldQ = 0.;
+		for (const auto& e: _epsilons) oldQ += e->Q();
 		logfile().list("Current Q_beta = ", oldQ);
 
 
 		logfile().startIndent("Setting new epsilon.");
-		_modelsToEstimate.propose();
+		for (auto& e: _epsilons) e->propose(1.);
 		_calculateQ();
-		size_t nUpdated = _modelsToEstimate.acceptOrReject();
+		size_t nUpdated = 0;
+		for (auto& e: _epsilons) nUpdated += e->acceptOrReject();
 		logfile().list(toString(nUpdated), "/", nTot, " models converged.");
 		logfile().endIndent();
 
 		double lambda   = 0.5;
 		while(nUpdated < nTot) {
 			logfile().startIndent("Backtracing with lambda = ", lambda, ":");
-			_modelsToEstimate.propose(lambda);
+			for (auto &e : _epsilons) e->propose(lambda);
 			_calculateQ();
-			nUpdated = _modelsToEstimate.acceptOrReject();
+			nUpdated = 0;
+			for (auto &e : _epsilons) nUpdated += e->acceptOrReject();
 			logfile().list(toString(nUpdated), "/", nTot, " models converged.");
 			logfile().endIndent();
 
 			lambda /= 2;
 			if (lambda < 1e-20) break;
 		}
-		_modelsToEstimate.adjust();
+		for (auto &e : _epsilons) e->adjust();
 
 		if (nUpdated < nTot) {
 			logfile().conclude(nTot - nUpdated, " models did not improve even with log2(lambda) = ", std::log2(lambda),
@@ -360,7 +239,9 @@ void TRecalibrationEMEstimator::_updateEpsilon(double deltaLL_LL) {
 			break;
 		}
 
-		const double maxF  = _modelsToEstimate.maxF();
+		double maxF  = 0.;
+		for (auto &e : _epsilons) maxF = std::max(e->maxF(), maxF);
+
 		if (maxF < _NewtonRaphsonMaxF) {
 			logfile().conclude("max(F) = ", maxF, " < ", _NewtonRaphsonMaxF, ", ending Newton-Raphson.");
 			logfile().endIndent();
@@ -368,7 +249,9 @@ void TRecalibrationEMEstimator::_updateEpsilon(double deltaLL_LL) {
 		} 
 		logfile().conclude("max(F) = ", maxF);
 
-		if (const auto pdQ = std::abs(_modelsToEstimate.Q()/oldQ); pdQ < deltaLL_LL) {
+		double newQ = 0.;
+		for (const auto& e: _epsilons) newQ += e->Q();
+		if (const auto pdQ = std::abs(newQ/oldQ); pdQ < deltaLL_LL) {
 			logfile().conclude("deltaQ/Q = ", pdQ, " < deltaLL/LL = ", deltaLL_LL, ", ending Newton-Raphson.");
 			logfile().endIndent();
 			break;
@@ -378,7 +261,7 @@ void TRecalibrationEMEstimator::_updateEpsilon(double deltaLL_LL) {
 	logfile().endIndent();
 };
 
-double TRecalibrationEMEstimator::_calculateLL_updatePg(const PMD::TModels &PmdModels) {
+double TRecalibrationEMEstimator::_calculateLL_updatePg() {
 	_P_g_I_dis.clear();
 
 	double LL = 0.0;
@@ -388,8 +271,8 @@ double TRecalibrationEMEstimator::_calculateLL_updatePg(const PMD::TModels &PmdM
 			_P_g_I_dis.emplace_back(1.); // Start at 1,1,1,1,1,1,1,1
 			auto &P_g_I_di = _P_g_I_dis.back();
 			for (auto &d_ij : s_i) {
-				const auto P_dij_I_bbar = _modelsToEstimate.P_dij(d_ij);
-				const auto P_dij_I_b    = PmdModels.P_dij(d_ij, P_dij_I_bbar);
+				const auto P_dij_I_bbar = _recal->baseLikelihoods(d_ij);
+				const auto P_dij_I_b    = _pmd->P_dij(d_ij, P_dij_I_bbar);
 				const auto P_dij_I_g    = _genoDist->P_dij(P_dij_I_b);
 				P_g_I_di *= P_dij_I_g;
 			}
@@ -399,8 +282,8 @@ double TRecalibrationEMEstimator::_calculateLL_updatePg(const PMD::TModels &PmdM
 			_P_g_I_dis.back()[s_i.genotype] = 1; // Probability of correct genotype is 1
 			double P_g = 1.;
 			for (auto &d_ij : s_i) {
-				const auto L_eps = _modelsToEstimate.P_dij(d_ij);
-				const auto L_D   = PmdModels.P_dij(d_ij, L_eps);
+				const auto L_eps = _recal->baseLikelihoods(d_ij);
+				const auto L_D   = _pmd->P_dij(d_ij, L_eps);
 				P_g *= _genoDist->getGenotypeLikelihood(L_D, s_i.genotype);
 			}
 			LL += log(P_g);
@@ -409,16 +292,16 @@ double TRecalibrationEMEstimator::_calculateLL_updatePg(const PMD::TModels &PmdM
 	return LL;
 };
 
-void TRecalibrationEMEstimator::_runEM(const PMD::TModels &PmdModels) {
+void TRecalibrationEMEstimator::_runEM() {
 	using coretools::str::toString;
 	// run EM
 	logfile().startNumbering("Running EM algorithm:");
 	logfile().conclude("Initial pi: ", _genoDist->definition());
-	logfile().conclude("Initial rho: ", _modelsToEstimate.getRhoDefinition());
-	logfile().conclude("Initial model: ", _modelsToEstimate.getModelsDefinition());
+	logfile().conclude("Initial rho: ", _recal->getRhoDefinition());
+	logfile().conclude("Initial model: ", _recal->getModelsDefinition());
 
 	// calculate initial LL
-	double oldLL   = _calculateLL_updatePg(PmdModels);
+	double oldLL   = _calculateLL_updatePg();
 	double deltaLL = abs(oldLL);
 	logfile().conclude("Initial log Likelihood = ", oldLL);
 
@@ -431,17 +314,17 @@ void TRecalibrationEMEstimator::_runEM(const PMD::TModels &PmdModels) {
 		_genoDist->estimate();
 
 		logfile().list("Updating rho");
-		_estimateRho_updatePbbar(PmdModels);
+		_estimateRho_updatePbbar();
 
 		logfile().startIndent("Updating epsilon");
 		_updateEpsilon(std::abs(deltaLL / oldLL));
 
 		logfile().conclude("Current pi: ", _genoDist->definition());
-		logfile().conclude("Current rho: ", _modelsToEstimate.getRhoDefinition());
-		logfile().conclude("Current epsilon: ", _modelsToEstimate.getModelsDefinition());
+		logfile().conclude("Current rho: ", _recal->getRhoDefinition());
+		logfile().conclude("Current epsilon: ", _recal->getModelsDefinition());
 
 		// calculate LL
-		const double LL = _calculateLL_updatePg(PmdModels);
+		const double LL = _calculateLL_updatePg();
 		logfile().conclude("Current Log Likelihood = ", LL);
 
 		// check if we break based on LL
@@ -462,16 +345,18 @@ void TRecalibrationEMEstimator::_runEM(const PMD::TModels &PmdModels) {
 	logfile().endNumbering();
 };
 
-void TRecalibrationEMEstimator::calcLL(TModels &SequencingErrorModels, const PMD::TModels &PmdModels) {
-	_initializeModels(SequencingErrorModels);
+void TRecalibrationEMEstimator::calcLL(TModels &Recal, PMD::TModels &Pmd) {
+	_recal = &Recal;
+	_pmd   = &Pmd;
+	_initializeModels();
 
 	logfile().startIndent("Recal Model:");
-	logfile().conclude("Rho: ",_modelsToEstimate.getRhoDefinition());
-	logfile().conclude("Epsilon: ",_modelsToEstimate.getModelsDefinition());
+	logfile().conclude("Rho: ",_recal->getRhoDefinition());
+	logfile().conclude("Epsilon: ",_recal->getModelsDefinition());
 	logfile().endIndent();
 
 	logfile().startIndent("Calculating log likelihood:");
-	const double LL = _calculateLL_updatePg(PmdModels);
+	const double LL = _calculateLL_updatePg();
 	logfile().conclude("Log Likelihood = ", LL);
 
 }

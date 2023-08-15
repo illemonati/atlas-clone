@@ -43,6 +43,8 @@ struct TModel {
 	virtual std::string epsilonDefinition() const noexcept                                            = 0;
 	virtual std::string rhoDefinition() const noexcept                                                = 0;
 	virtual BAM::RGInfo::TInfo info() const                                                           = 0;
+	virtual TRho *rho() noexcept                                                                      = 0;
+	virtual TEpsilon *epsilon() noexcept                                                              = 0;
 };
 
 //------------------------------------------------
@@ -60,6 +62,9 @@ public:
 	std::string epsilonDefinition() const noexcept override { return "-"; };
 	std::string rhoDefinition() const noexcept override { return "-"; };
 	BAM::RGInfo::TInfo info() const override { return BAM::RGInfo::TInfo{}; };
+
+	TRho *rho() noexcept override {return nullptr;}
+	TEpsilon *epsilon() noexcept override {return nullptr;}
 };
 
 //------------------------------------------------
@@ -88,8 +93,8 @@ public:
 	BAM::RGInfo::TInfo info() const override;
 
 	// Model-Access
-	TRho& rho() noexcept {return _rho;}
-	TEpsilon& epsilon() noexcept {return _epsilon;}
+	TRho* rho() noexcept override {return &_rho;}
+	TEpsilon* epsilon() noexcept override {return &_epsilon;}
 };
 
 } // namespace SequencingError
