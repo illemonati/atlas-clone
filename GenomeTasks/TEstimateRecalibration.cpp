@@ -46,7 +46,7 @@ BAM::TReadGroupMap makeReadGroupMap(const BAM::TReadGroups &ReadGroups) {
 //-----------------------------------------------------------
 TEstimateRecalibration::TEstimateRecalibration()
     : TGenome_windows(), _readGroupMap(impl::makeReadGroupMap(_bamFile.readGroups())),
-	  recal(&_bamFile.readGroups(), &_readGroupMap) {
+	  _recal(&_bamFile.readGroups(), &_readGroupMap) {
 	_openReference(true);
 	if (_genotypeLikelihoodCalculator.recalibrationChangesQualities() &&
 		!(parameters().parameterExists("rerecalibrate") || parameters().getParameter("task") == "recal"))
@@ -72,11 +72,11 @@ void TEstimateRecalibration::_handleWindow() {
 		auto thesePositions = _subsetMonomorphic->getPositionInWindow(_window);
 		for (auto &it : thesePositions) {			
 			const uint32_t internalPos = it - _window.from();
-			recal.addSite(_window[internalPos]);			
+			_recal.addSite(_window[internalPos]);
 		}
 	} else {
 		for (auto &s : _window) {
-			recal.addSite(s);
+			_recal.addSite(s);
 		}
 	}
 };
@@ -88,12 +88,12 @@ void TEstimateRecalibration::run() {
 	_genotypeLikelihoodCalculator.sequencingErrorModels().remember(forgottenModels);
 
 	if (_onlyLL) {
-		recal.calcLL(_genotypeLikelihoodCalculator.sequencingErrorModels(),
+		_recal.calcLL(_genotypeLikelihoodCalculator.sequencingErrorModels(),
 							  _genotypeLikelihoodCalculator.postMortemDamageModels());
 
 	} else {
 		// estimate recal parameters
-		recal.performEstimation(_outputName, _genotypeLikelihoodCalculator.sequencingErrorModels(),
+		_recal.performEstimation(_outputName, _genotypeLikelihoodCalculator.sequencingErrorModels(),
 										 _genotypeLikelihoodCalculator.postMortemDamageModels());
 	}
 };

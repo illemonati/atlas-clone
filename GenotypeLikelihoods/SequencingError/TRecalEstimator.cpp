@@ -68,14 +68,13 @@ void TModelVectorForEstimation::reset(TModels &SequencingErrorModels,
 		for (size_t mate = 0; mate < 2; ++mate) {
 			const RecalEstimatorTools::TRecalDataTable &table = DataTables[r][mate];
 
-			// check if there is sufficient data for _first mate
 			if (table.size() > 0) {
 				// check if model is estimatable
-				if (SequencingErrorModels(r, mate).estimatable()) {
+				if (SequencingErrorModels[r][ mate].recalibrates()) {
 					// copy model and update index
-					TModelRecal *model = reinterpret_cast<TModelRecal*>(&SequencingErrorModels(r, mate));
+					TModelRecal *model = reinterpret_cast<TModelRecal*>(&SequencingErrorModels[r][mate]);
 					//auto model = SequencingErrorModels.getRecal(r, mate);
-					model->checkOrInit(table);
+					model->epsilon().checkOrInit(table);
 					_models.push_back(model);
 					modelStati[r][MS::copied].set(mate);
 					for (auto &rr : ReadGroupMap.readGroupsPooledWith(r)) { _modelIndex[rr][mate] = model; }
@@ -85,7 +84,7 @@ void TModelVectorForEstimation::reset(TModels &SequencingErrorModels,
 				} else {
 					modelStati[r][MS::dataButNoRecal].set(mate);
 				}
-			} else if (SequencingErrorModels(r, mate).estimatable()) {
+			} else if (SequencingErrorModels[r][mate].recalibrates()) {
 				modelStati[r][MS::noData].set(mate);
 			}
 		}
@@ -107,46 +106,46 @@ TBaseLikelihoods TModelVectorForEstimation::P_dij(const BAM::TSequencedBase &dat
 // functions to estimate rho
 
 void TModelVectorForEstimation::addToRho(const BAM::TSequencedBase &data, coretools::Probability P_g_I_d, const TBaseProbabilities &P_bbar_I_d) {
-	model(data)->addToRho(data, P_g_I_d, P_bbar_I_d);
+	model(data)->rho().add(data.base, P_g_I_d, P_bbar_I_d);
 };
 
 void TModelVectorForEstimation::estimateRho() {
-	for (auto &model : _models) { model->estimateRho(); }
+	for (auto &model : _models) { model->rho().estimate(); }
 };
 
 // functions to estimate beta
 //-------------------------------------------------------------------
 
 double TModelVectorForEstimation::Q() const {
-	return std::accumulate(_models.begin(), _models.end(), 0.0, [](auto tot, const auto &val) { return tot + val->Q(); });
+	return std::accumulate(_models.begin(), _models.end(), 0.0, [](auto tot, const auto &val) { return tot + val->epsilon().Q(); });
 };
 
 void TModelVectorForEstimation::solveJxF() {
 	for (auto &model : _models) {
-		model->solveJxF();
+		model->epsilon().solveJxF();
 	}
 };
 
 void TModelVectorForEstimation::propose(double lambda) {
-	for (auto &model : _models) { model->propose(lambda); }
+	for (auto &model : _models) { model->epsilon().propose(lambda); }
 };
 
 size_t TModelVectorForEstimation::acceptOrReject() {
 	size_t numAccepted = 0;
 	for (auto &model : _models) {
-		numAccepted += model->acceptOrReject();
+		numAccepted += model->epsilon().acceptOrReject();
 	}
 	return numAccepted;
 };
 
 void TModelVectorForEstimation::adjust() {
-	for (auto &model : _models) { model->adjust(); }
+	for (auto &model : _models) { model->epsilon().adjust(); }
 };
 
 double TModelVectorForEstimation::maxF() const {
 	double maxF = 0.0;
 	for (auto &model : _models) {
-		maxF = std::max(maxF, model->maxF());
+		maxF = std::max(maxF, model->epsilon().maxF());
 	}
 	return maxF;
 };
@@ -230,16 +229,6 @@ TRecalibrationEMEstimator::TRecalibrationEMEstimator(const BAM::TReadGroups *Rea
 					   "estimate them)");
 	}
 
-	// write tmp tables?
-	if (parameters().parameterExists("writeTmpTables")) {
-		_writeTmpTables = true;
-		logfile().list(
-			"Will write intermediate estimates of EM and Newton-Raphson to file. (parameter 'writeTmpTables')");
-	} else {
-		_writeTmpTables = false;
-		logfile().list("Will not write intermediate estimates. (use 'writeTmpTables' to get this debug information)");
-	}
-
 	logfile().endIndent();
 };
 
@@ -292,7 +281,7 @@ void TRecalibrationEMEstimator::performEstimation(const std::string &outputName,
 	_initializeModels(SequencingErrorModels);
 
 	// run EM
-	_runEM(outputName, PmdModels);
+	_runEM(PmdModels);
 
 	// writing final estimates
 	const std::string filename = outputName + "_recal.txt";
@@ -420,7 +409,7 @@ double TRecalibrationEMEstimator::_calculateLL_updatePg(const PMD::TModels &PmdM
 	return LL;
 };
 
-void TRecalibrationEMEstimator::_runEM(const std::string &outputName, const PMD::TModels &PmdModels) {
+void TRecalibrationEMEstimator::_runEM(const PMD::TModels &PmdModels) {
 	using coretools::str::toString;
 	// run EM
 	logfile().startNumbering("Running EM algorithm:");
@@ -463,14 +452,6 @@ void TRecalibrationEMEstimator::_runEM(const std::string &outputName, const PMD:
 			break;
 		}
 		oldLL = LL;
-
-		// write current estimates to file
-		if (_writeTmpTables) {
-			std::string filename = outputName + "_recalibrationEM_Loop" + toString(i) + ".txt";
-			logfile().listFlush("Writing current estimates to file '", filename, "' ...");
-			_modelsToEstimate.writeRecalFile(*_readGroups, filename);
-			logfile().done();
-		}
 
 		// end loop
 		logfile().endIndent();

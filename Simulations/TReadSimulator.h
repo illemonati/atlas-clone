@@ -30,7 +30,7 @@
 #include "genometools/PhredProbabilityTypes.h"
 
 namespace GenotypeLikelihoods { namespace SequencingError { class TReadGroupModels; } }
-namespace GenotypeLikelihoods { namespace SequencingError { class TModel; } }
+namespace GenotypeLikelihoods { namespace SequencingError { struct TModel; } }
 namespace Simulations { class TSimulatorBamFile; }
 namespace Simulations { class TSimulatorReference; }
 

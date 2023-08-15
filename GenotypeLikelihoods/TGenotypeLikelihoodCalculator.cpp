@@ -103,7 +103,7 @@ bool TGenotypeLikelihoodCalculator::hasPMD() const{
 };
 
 bool TGenotypeLikelihoodCalculator::recalibrationChangesQualities() const{
-	return _sequencingErrorModels.recalibrationChangesQualities();
+	return _sequencingErrorModels.recalibrates();
 };
 
 coretools::Probability TGenotypeLikelihoodCalculator::errorRate(const BAM::TSequencedBase & base) const{

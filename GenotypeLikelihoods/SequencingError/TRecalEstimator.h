@@ -73,7 +73,7 @@ public:
 	template<bool updateJF>
 	void addToEpsilon(const BAM::TSequencedBase &data, coretools::Probability P_g_I_d,
 					  coretools::Probability P_bbar_I_gd) {
-		model(data)->addToEpsilon<updateJF>(data, P_g_I_d, P_bbar_I_gd);
+		model(data)->epsilon().add<updateJF>(data, P_g_I_d, P_bbar_I_gd);
 	}
 	void solveJxF();
 	void propose(double lambda=1.);
@@ -111,12 +111,11 @@ private:
 	int _NewtonRaphsonNumIterations;
 	double _NewtonRaphsonMaxF;
 	unsigned int _minRequiredObservations;
-	bool _writeTmpTables;
 	std::string _recalFile; // file name in case a file with model is provided
 
 	size_t _numSitesDepthTwoOrMore();
 	void _initializeModels(TModels &SequencingErrorModels);
-	void _runEM(const std::string &outputName, const PMD::TModels &PmdModels);
+	void _runEM(const PMD::TModels &PmdModels);
 
 	// functions to estimate theta_epsilon (sequencing error rates)
 	void _estimateRho_updatePbbar(const PMD::TModels &PmdModels);
@@ -130,7 +129,7 @@ private:
 				auto m = _modelsToEstimate.model(d_ij);
 
 				const auto &P_bbar_I_gdij = _P_bbarEdij_I_gdijs[ij++];
-				m->addToEpsilon<updateJF, isInvariant>(d_ij, P_g_I_di, P_bbar_I_gdij);
+				m->epsilon().add<updateJF, isInvariant>(d_ij, P_g_I_di, P_bbar_I_gdij);
 			}
 		}
 	}

@@ -51,7 +51,7 @@ public:
 		return *_models[isSecondMate].get();
 	}
 
-	bool recalibrationChangesQualities() const  noexcept {
+	bool recalibrates() const  noexcept {
 		if (_models[0]->recalibrates() || _models[1]->recalibrates()) return true;
 		return false;
 	}
@@ -68,6 +68,19 @@ public:
 class TModels {
 private:
 	std::vector<TReadGroupModels> _models;
+	std::vector<TReadGroupModels*> _pModels;
+	bool _recalibrates = false;
+
+	TReadGroupModels &_model(size_t rgID) noexcept { return *_pModels[rgID]; }
+	const TReadGroupModels &_model(size_t rgID) const noexcept { return *_pModels[rgID]; }
+
+	TModel& _model(const BAM::TSequencedBase &data) noexcept {
+		return _model(data.readGroupID)[data.isSecondMate()];
+	}
+	const TModel& _model(const BAM::TSequencedBase &data) const noexcept {
+		return _model(data.readGroupID)[data.isSecondMate()];
+	}
+
 public:
 	void initializeNoRecal(const BAM::TReadGroups &ReadGroups);
 	void initialize(std::string_view RecalString, std::string_view RhoString, const BAM::TReadGroups &ReadGroups);
@@ -81,27 +94,25 @@ public:
 	void remember(std::vector<TReadGroupModels>& forgottenModels);
 
 	// access models
-	TModel& operator()(size_t ReadGroupIndex, bool IsSecondMate) noexcept {
-		return _models[ReadGroupIndex][IsSecondMate];
-	}
+	const TReadGroupModels &operator[](size_t rgID) const noexcept { return _model(rgID); }
+	TReadGroupModels &operator[](size_t rgID) noexcept { return _model(rgID); }
+	const TModel &operator[](const BAM::TSequencedBase &data) const noexcept { return _model(data); }
+	TModel &operator[](const BAM::TSequencedBase &data) noexcept { return _model(data); }
 
-	const TModel& operator()(size_t ReadGroupIndex, bool IsSecondMate) const noexcept {
-		return _models[ReadGroupIndex][IsSecondMate];
-	}
-
-	bool recalibrationChangesQualities() const noexcept {
-		for (const auto& m: _models) {
-			if(m.recalibrationChangesQualities()) return true;
-		}
-		return false;
-	}
+	bool recalibrates() const noexcept { return _recalibrates; }
 
 	// calculate error rates
-	coretools::Probability errorRate(const BAM::TSequencedBase &base) const noexcept;
-	genometools::PhredIntProbability phredInt(const BAM::TSequencedBase &base) const noexcept;
-	void recalibrate(BAM::TSequencedBase &base) const noexcept;
-	void recalibrate(std::vector<BAM::TSequencedBase> &bases) const noexcept;
-	TBaseLikelihoods baseLikelihoods(const BAM::TSequencedBase &base) const noexcept;
+	coretools::Probability errorRate(const BAM::TSequencedBase &data) const noexcept {
+		return _model(data).errorRate(data);
+	}
+	genometools::PhredIntProbability phredInt(const BAM::TSequencedBase &data) const noexcept {
+		return _model(data).phredInt(data);
+	}
+	void recalibrate(BAM::TSequencedBase &data) const noexcept { data.recalibratedQualityAsPhredInt = phredInt(data); }
+	void recalibrate(std::vector<BAM::TSequencedBase> &datas) const noexcept;
+	TBaseLikelihoods baseLikelihoods(const BAM::TSequencedBase &data) const noexcept {
+		return _model(data).baseLikelihoods(data);
+	}
 
 	void writeRecalFile(const BAM::TReadGroups &ReadGroups, std::string_view  Filename) const;
 

@@ -300,7 +300,7 @@ void TAlignment::parse(const GenotypeLikelihoods::SequencingError::TModels &seqE
 
 	// recalibrate
 	seqErrorModels.recalibrate(_bases);
-	_sequenceAndQualitiesChanged = seqErrorModels.recalibrationChangesQualities();
+	_sequenceAndQualitiesChanged = seqErrorModels.recalibrates();
 };
 
 void TAlignment::addReference(const genometools::TFastaReader &fasta) {

@@ -28,7 +28,6 @@
 namespace GenotypeLikelihoods {
 namespace SequencingError {
 
-using coretools::Probability;
 using coretools::instances::logfile;
 
 //--------------------------------------------------------------------
@@ -57,6 +56,12 @@ void initModel(std::unique_ptr<TModel> & model, const BAM::RGInfo::TInfo & info)
 	else {
 		model = std::make_unique<TModelRecal>(info);
 	}
+}
+
+std::vector<TReadGroupModels *> fillPointers(std::vector<TReadGroupModels> &Models) {
+	std::vector<TReadGroupModels *> pModels;
+	for (auto &m : Models) pModels.push_back(&m);
+	return pModels;
 }
 
 } // namespace impl
@@ -154,31 +159,30 @@ BAM::RGInfo::TInfo TReadGroupModels::info() const{
 // TModels
 //--------------------------------------------------------------------
 
-namespace impl {
-
-void fillNoRecal(std::vector<TReadGroupModels> & vec, const size_t size){
-	vec.reserve(size);
-	for(size_t i = 0; i < size; ++i){
-		vec.emplace_back(); //constructor without arguments
-	}
-}
-
-} // namespace impl
-
 void TModels::initializeNoRecal(const BAM::TReadGroups &ReadGroups) {
-	impl::fillNoRecal(_models, ReadGroups.size());
+	_models.clear();
+	_models.emplace_back(); // default-constructor -> NoRecal
+	_pModels.clear();
+
+	for(size_t i = 0; i < ReadGroups.size(); ++i){
+		_pModels.push_back(&_models.front());
+	}
+	_recalibrates=false;
 }
 
 std::vector<TReadGroupModels> TModels::forget() {
-	std::vector<TReadGroupModels> forgottenModels;
-	impl::fillNoRecal(forgottenModels, _models.size());
+	std::vector<TReadGroupModels> forgottenModels(_models.size());
+	//impl::fillNoRecal(forgottenModels, _models.size());
 	std::swap(_models, forgottenModels);
+	_pModels = impl::fillPointers(_models);
+	_recalibrates=false;
 	return forgottenModels;
 }
 
 void TModels::remember(std::vector<TReadGroupModels>& forgottenModels) {
 	if (forgottenModels.size() != _models.size()) DEVERROR("Forgotten models are not correct size!");
 	std::swap(_models, forgottenModels);
+	_pModels = impl::fillPointers(_models);
 }
 
 void TModels::initialize(std::string_view RecalString, std::string_view RhoString,
@@ -188,11 +192,14 @@ void TModels::initialize(std::string_view RecalString, std::string_view RhoStrin
 
 	// prepare objects
 	_models.reserve(ReadGroups.size());
+	_recalibrates=false;
 
 	// initialize models
 	for(size_t i = 0; i < ReadGroups.size(); ++i){
 		_models.emplace_back(RecalString, RhoString);
+		if (_models.back().recalibrates()) _recalibrates = true;
 	}
+	_pModels = impl::fillPointers(_models);
 }
 
 void TModels::initializeFromFile(std::string_view Filename, const BAM::TReadGroups &ReadGroups) {
@@ -209,16 +216,19 @@ void TModels::initializeFromFile(std::string_view Filename, const BAM::TReadGrou
 	std::vector<std::string> vec;
 
 	_models.resize(ReadGroups.size());
+	_recalibrates=false;
 	// parse file to read details for each read group
 	while (in.read(vec)) {
 		try {
 			const auto readGroup = ReadGroups.getId(vec[0]);
 			const auto mate      = vec[1] == "first" ? 0 : 1;
 			_models[readGroup].initialize(mate, vec[2], vec[3]);
+			if (_models[readGroup][mate].recalibrates()) _recalibrates = true;
 		} catch (const char *error) {
 			UERROR(error, " for read group ", vec[0], " in file '", Filename, "!");
 		}
 	}
+	_pModels = impl::fillPointers(_models);
 
 	logfile().done();
 }
@@ -227,10 +237,13 @@ void TModels::initialize(BAM::RGInfo::TReadGroupInfo &RgInfo) {
 	using BAM::RGInfo::InfoType;
 
 	_models.reserve(RgInfo.size());
+	_recalibrates=false;
 
 	for (size_t rg = 0; rg < RgInfo.size(); ++rg) {
 		_models.emplace_back(RgInfo[rg]);
+		if (_models.back().recalibrates()) _recalibrates = true;
 	}
+	_pModels = impl::fillPointers(_models);
 }
 
 void TModels::checkReadGroups(const BAM::TReadGroups &ReadGroups, std::vector<size_t> &ReadGroupsWithoutRecal,
@@ -238,9 +251,9 @@ void TModels::checkReadGroups(const BAM::TReadGroups &ReadGroups, std::vector<si
 	ReadGroupsWithoutRecal.clear();
 	ReadGroupsLikelySingleEnd.clear();
 	for (size_t r = 0; r < ReadGroups.size(); ++r) {
-		if (!_models[r][0].recalibrates()) {
+		if (!_model(r)[0].recalibrates()) {
 			ReadGroupsWithoutRecal.push_back(r);
-		} else if (!_models[r][1].recalibrates()) {
+		} else if (!_model(r)[1].recalibrates()) {
 			ReadGroupsLikelySingleEnd.push_back(r);
 		}
 	}
@@ -248,32 +261,17 @@ void TModels::checkReadGroups(const BAM::TReadGroups &ReadGroups, std::vector<si
 
 // functions to get error rates
 //-------------------------------------------------------
-Probability TModels::errorRate(const BAM::TSequencedBase &base) const noexcept {
-	return _models[base.readGroupID][base.isSecondMate()].errorRate(base);
-}
 
-genometools::PhredIntProbability TModels::phredInt(const BAM::TSequencedBase &base) const noexcept {
-	return _models[base.readGroupID][base.isSecondMate()].phredInt(base);
-}
-
-void TModels::recalibrate(BAM::TSequencedBase &base) const noexcept {
-	base.recalibratedQualityAsPhredInt = phredInt(base);
-}
-
-void TModels::recalibrate(std::vector<BAM::TSequencedBase> &bases) const noexcept {
-	const auto & front = bases.front();
-	const auto & model = _models[front.readGroupID][front.isSecondMate()];
-	for (auto &b : bases) {
+void TModels::recalibrate(std::vector<BAM::TSequencedBase> &datas) const noexcept {
+	const auto & front = datas.front();
+	const auto & model = _model(front); // assuming all datas are in same readgroup and same mate
+	for (auto &b : datas) {
 		if (model.recalibrates()) {
 			b.recalibratedQualityAsPhredInt = model.phredInt(b);
 		} else {
 			b.recalibratedQualityAsPhredInt = b.originalQuality_phredInt;
 		}
 	}
-}
-
-TBaseLikelihoods TModels::baseLikelihoods(const BAM::TSequencedBase &base) const noexcept {
-	return _models[base.readGroupID][base.isSecondMate()].baseLikelihoods(base);
 }
 
 // functions to write file

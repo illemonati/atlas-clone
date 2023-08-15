@@ -129,7 +129,7 @@ public:
 	double maxF() const noexcept {return _maxF;};
 
 	template<bool updateJF, bool isInvariant>
-	void addToEpsilon(const BAM::TSequencedBase &base, const TGenotypeLikelihoods &P_g_I_ds, const TGenotypeLikelihoods & P_bbar_I_gds) {
+	void add(const BAM::TSequencedBase &base, const TGenotypeLikelihoods &P_g_I_ds, const TGenotypeLikelihoods & P_bbar_I_gds) {
 		if constexpr (updateJF) _addToQJF<isInvariant>(base, P_g_I_ds, P_bbar_I_gds);
 		else _addToQ<isInvariant>(base, P_g_I_ds, P_bbar_I_gds);
 	}
