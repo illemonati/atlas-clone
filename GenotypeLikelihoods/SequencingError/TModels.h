@@ -41,15 +41,10 @@ public:
 	TReadGroupModels(std::string_view RecalString1, std::string_view RhoString1, std::string_view RecalString2, std::string_view RhoString2);
 	TReadGroupModels(const BAM::RGInfo::TReadGroupInfoEntry & Info);
 
-	void initialize(size_t mate, std::string_view RecalString, std::string_view RhoString);
-
-	TModel& operator[](bool isSecondMate) noexcept {
-		return *_models[isSecondMate].get();
-	}
-
-	const TModel& operator[](bool isSecondMate) const noexcept {
-		return *_models[isSecondMate].get();
-	}
+	void initialize(bool isSecondMate, std::string_view RecalString, std::string_view RhoString);
+	void reset(bool isSecondMate) noexcept {_models[isSecondMate] = std::make_unique<TModelNoRecal>();}
+	TModel &operator[](bool isSecondMate) noexcept { return *_models[isSecondMate].get(); }
+	const TModel &operator[](bool isSecondMate) const noexcept { return *_models[isSecondMate].get(); }
 
 	bool recalibrates() const  noexcept {
 		if (_models[0]->recalibrates() || _models[1]->recalibrates()) return true;
@@ -118,18 +113,7 @@ public:
 	}
 
 	void writeRecalFile(const BAM::TReadGroups &ReadGroups, std::string_view Filename) const;
-
 	void addToRGInfo(BAM::RGInfo::TReadGroupInfo & RgInfo) const;
-
-	std::string getRhoDefinition() {
-		if (_models.empty()) return std::string{};
-		return "TODO";
-	}
-
-	std::string getModelsDefinition() {
-		if (_models.empty()) return std::string{};
-		return "TODO";
-	}
 };
 } // namespace SequencingError
 }; // namespace GenotypeLikelihoods

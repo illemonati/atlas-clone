@@ -81,8 +81,8 @@ private:
 
 	// functions to estimate theta_epsilon (sequencing error rates)
 	void _estimateRho_updatePbbar();
-	template<bool updateJF, bool isInvariant>
-	void _calculateQ() {
+
+	template<bool updateJF, bool isInvariant> void _calculateQ() {
 		size_t ij = 0;
 		for (size_t i = 0; i < _sites.size(); ++i) {
 			const auto &P_g_I_di = _P_g_I_dis[i];
@@ -94,23 +94,25 @@ private:
 			}
 		}
 	}
+
 	void _solveDerivative() {
 		if (_genoDist->isInvariant()) _calculateQ<true, true>();
 		else _calculateQ<true, false>(); 
 		for (auto& e: _epsilons) e->solveJxF();
 	}
+
 	void _calculateQ() {
 		if (_genoDist->isInvariant()) _calculateQ<false, true>();
 		else _calculateQ<false, false>(); 
 	}
+
 	void _updateEpsilon(double deltaDeltaLL);
 	double _calculateLL_updatePg();
 
 public:
 	TRecalibrationEMEstimator(const BAM::TReadGroups *ReadGroups, const BAM::TReadGroupMap *ReadGroupMap);
 
-	// functions to add data
-	void addSite(const TSite &site);
+	void addSite(const TSite &site) {if (!site.empty()) _sites.emplace_back(site);}
 
 	// function to estimate
 	void performEstimation(std::string_view outputName, TModels &SequencingErrorModels, PMD::TModels &PmdModels);

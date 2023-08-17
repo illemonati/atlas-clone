@@ -127,46 +127,20 @@ void TRecalibrationEMEstimator::_initializeModels() {
 	for (auto rg : _readGroupMap->readGroupsInUse()) {
 		for (size_t mate = 0; mate < 2; ++mate) {
 			const auto& table = _dataTables[rg][mate];
-			auto& recal = (*_recal)[rg][mate];
 			if (table.size() > 0) {
+				auto& recal = (*_recal)[rg][mate];
 				if (!recal.recalibrates()) UERROR("Cannot estimate readgroup ", rg, ", mate ", mate, "!");
 				recal.epsilon()->checkOrInit(table);
 				_epsilons.push_back(recal.epsilon());
 				_rhos.push_back(recal.rho());
+			} else {
+				(*_recal)[rg].reset(mate);
 			}
 		}
 	}
 	logfile().endIndent();
 };
 
-//----------------------------
-// Functions to add data
-//----------------------------
-void TRecalibrationEMEstimator::addSite(const TSite &site) {
-	if (!site.empty()) { _sites.emplace_back(site); }
-};
-
-//----------------------------
-// Functions for estimation
-//----------------------------
-void TRecalibrationEMEstimator::performEstimation(std::string_view outputName, SequencingError::TModels &Recal,
-												  PMD::TModels &Pmd) {
-	_recal = &Recal;
-	_pmd   = &Pmd;
-	// initialize models
-	_initializeModels();
-
-	// run EM
-	_runEM();
-
-	// writing final estimates
-	const auto filename = std::string(outputName) + "_recal.txt";
-	logfile().list("Writing final estimates to file '", filename, "'.");
-	_recal->writeRecalFile(*_readGroups, filename);
-	BAM::RGInfo::TReadGroupInfo r(*_readGroups);
-	Recal.addToRGInfo(r);
-	r.write(std::string(outputName) + "_recal.json");
-};
 
 void TRecalibrationEMEstimator::_estimateRho_updatePbbar() {
 	using genometools::genotype;
@@ -297,8 +271,12 @@ void TRecalibrationEMEstimator::_runEM() {
 	// run EM
 	logfile().startNumbering("Running EM algorithm:");
 	logfile().conclude("Initial pi: ", _genoDist->definition());
-	logfile().conclude("Initial rho: ", _recal->getRhoDefinition());
-	logfile().conclude("Initial model: ", _recal->getModelsDefinition());
+	logfile().startIndent("Initial rho");
+	for (const auto& r: _rhos) logfile().list(r->definition());
+	logfile().endIndent();
+	logfile().startIndent("Initial epsilon");
+	for (const auto& e: _epsilons) logfile().list(e->definition());
+	logfile().endIndent();
 
 	// calculate initial LL
 	double oldLL   = _calculateLL_updatePg();
@@ -320,8 +298,12 @@ void TRecalibrationEMEstimator::_runEM() {
 		_updateEpsilon(std::abs(deltaLL / oldLL));
 
 		logfile().conclude("Current pi: ", _genoDist->definition());
-		logfile().conclude("Current rho: ", _recal->getRhoDefinition());
-		logfile().conclude("Current epsilon: ", _recal->getModelsDefinition());
+		logfile().startIndent("Current rho");
+		for (const auto &r : _rhos) logfile().list(r->definition());
+		logfile().endIndent();
+		logfile().startIndent("Current epsilon");
+		for (const auto &e : _epsilons) logfile().list(e->definition());
+		logfile().endIndent();
 
 		// calculate LL
 		const double LL = _calculateLL_updatePg();
@@ -345,14 +327,36 @@ void TRecalibrationEMEstimator::_runEM() {
 	logfile().endNumbering();
 };
 
+void TRecalibrationEMEstimator::performEstimation(std::string_view outputName, SequencingError::TModels &Recal,
+												  PMD::TModels &Pmd) {
+	_recal = &Recal;
+	_pmd   = &Pmd;
+	// initialize models
+	_initializeModels();
+
+	// run EM
+	_runEM();
+
+	// writing final estimates
+	const auto filename = std::string(outputName) + "_recal.txt";
+	logfile().list("Writing final estimates to file '", filename, "'.");
+	_recal->writeRecalFile(*_readGroups, filename);
+	BAM::RGInfo::TReadGroupInfo r(*_readGroups);
+	Recal.addToRGInfo(r);
+	r.write(std::string(outputName) + "_recal.json");
+};
+
 void TRecalibrationEMEstimator::calcLL(TModels &Recal, PMD::TModels &Pmd) {
 	_recal = &Recal;
 	_pmd   = &Pmd;
 	_initializeModels();
 
-	logfile().startIndent("Recal Model:");
-	logfile().conclude("Rho: ",_recal->getRhoDefinition());
-	logfile().conclude("Epsilon: ",_recal->getModelsDefinition());
+	logfile().conclude("pi: ", _genoDist->definition());
+	logfile().startIndent("rho");
+	for (const auto &r : _rhos) logfile().list(r->definition());
+	logfile().endIndent();
+	logfile().startIndent("epsilon");
+	for (const auto &e : _epsilons) logfile().list(e->definition());
 	logfile().endIndent();
 
 	logfile().startIndent("Calculating log likelihood:");

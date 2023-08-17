@@ -88,11 +88,11 @@ TReadGroupModels::TReadGroupModels(std::string_view RecalString1, std::string_vi
 	}
 }
 
-void TReadGroupModels::initialize(size_t mate, std::string_view RecalString, std::string_view RhoString) {
+void TReadGroupModels::initialize(bool isSecondMate, std::string_view RecalString, std::string_view RhoString) {
 	if(RecalString.empty() || RecalString == "-" || RecalString == "default"){
-		_models[mate] = std::make_unique<TModelNoRecal>();
+		_models[isSecondMate] = std::make_unique<TModelNoRecal>();
 	} else {
-		_models[mate] = std::make_unique<TModelRecal>(RecalString, RhoString);
+		_models[isSecondMate] = std::make_unique<TModelRecal>(RecalString, RhoString);
 	}
 }
 
@@ -288,28 +288,22 @@ void TModels::recalibrate(std::vector<BAM::TSequencedBase> &datas) const noexcep
 		}
 	}
 }
-
-// functions to write file
-//-------------------------------------------------------------------
-void TModels::writeRecalFile(const BAM::TReadGroups &ReadGroups, std::string_view  Filename) const {
+void TModels::writeRecalFile(const BAM::TReadGroups &ReadGroups, std::string_view Filename) const {
 	// open file and write header
-	coretools::TOutputFile out(Filename);
-	out.writeHeader({"readGroup", "covariates1", "rho1", "covariates2", "rho2"});
+	coretools::TOutputFile out(Filename, {"readGroup", "mate", "covariates", "rho"});
 
 	// add models
 	for (size_t r = 0; r < ReadGroups.size(); ++r) {
-		out << ReadGroups.getName(r);
 		for (size_t mate = 0; mate < 2; ++mate) {
-			out << _model(r)[mate].epsilonDefinition()
-				<< _model(r)[mate].rhoDefinition();
+			out.write(ReadGroups.getName(r), std::array{"first", "second"}[mate]);
+			out.writeln(_model(r)[mate].epsilonDefinition(), _model(r)[mate].rhoDefinition());
 		}
-		out.endln();
 	}
 }
 
 void TModels::addToRGInfo(BAM::RGInfo::TReadGroupInfo & RgInfo) const {
-	for(size_t r = 0; r < _models.size(); ++r){
-		RgInfo.set(r, BAM::RGInfo::InfoType::recal, _models[r].info());
+	for(size_t r = 0; r < _pModels.size(); ++r){
+		RgInfo.set(r, BAM::RGInfo::InfoType::recal, _model(r).info());
 	}
 }
 

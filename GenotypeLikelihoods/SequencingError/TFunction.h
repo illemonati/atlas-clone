@@ -504,18 +504,21 @@ public:
 
 	std::string modelString() const override {
 		std::string ret = typeString().append(1, '[');
+		bool hasData    = false;
 		for (size_t i = 0; i < _betas.size(); ++i) {
-			if (!std::isnan(_betas[i]))
+			if (!std::isnan(_betas[i])) {
+				hasData = true;
 				ret.append(coretools::str::toString(i))
 					.append(1, ':')
 					.append(coretools::str::toString(_betas[i]))
 					.append(1, ',');
+			}
 		}
-		ret.back() = ']'; // replace last ',' with ']'
+		if (hasData) ret.back() = ']'; // replace last ',' with ']'
+		else ret.append(1, ']');
 		return ret;
 	}
 };
-
 
 } // namespace SequencingError
 } // namespace GenotypeLikelihoods
