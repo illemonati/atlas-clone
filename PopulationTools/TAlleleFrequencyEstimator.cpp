@@ -40,15 +40,15 @@ TAlleleFreqEstimatorHardyWeinberg::TAlleleFreqEstimatorHardyWeinberg(){
 	maxIter = 1000;
 };
 
-Probability TAlleleFreqEstimatorHardyWeinberg::estimate(const TSampleLikelihoods* storage, size_t numSamplesInPop, double epsilonF){
+Probability TAlleleFreqEstimatorHardyWeinberg::estimate(const TSampleLikelihoods* storage, size_t numSamplesInPop, double minDeltaF){
 	using BG = genometools::BiallelicGenotype;
 	genometools::THardyWeinbergGenotypeProbabilities pGenotype;
 	Probability weights[3];
 
 	//run EM
 	size_t iter = 0;
-	double epsilon = epsilonF + 1.0;
-	while(iter < maxIter && epsilon > epsilonF){
+	double epsilon = minDeltaF + 1.0;
+	while(iter < maxIter && epsilon > minDeltaF){
 		Probability old_f = pGenotype.f();
 
 		//calculate sums
@@ -604,7 +604,7 @@ void TAlleleFreqEstimator::estimateAlleleFreq(){
 	//create allele frequency estimators
 	//1) Maximum likelihood HW estimator
 	TAlleleFreqEstimatorHardyWeinberg MLHWEstimator;
-	double epsF = parameters().getParameterWithDefault("epsF", 0.0000001);
+	double minDeltaF = parameters().getParameterWithDefault("minDeltaF", 0.0000001);
 
 	//2) Maximum Likelihood genotype count estimator (use estimates from reader)
 	reader.doEstimateGenotypeFrequencies();
@@ -636,12 +636,12 @@ void TAlleleFreqEstimator::estimateAlleleFreq(){
 
  		//write estimates based on genoFrequencies (if only 1 pop, use the one of reader)
  		if(samples.numPopulations() == 1){
- 			_writeEstimatesOnePop(out, *(reader.genotypeFrequencies()), reader.alleleFrequency(), storage.samples(), samples.numSamples(), MLHWEstimator, BHWEstimator, epsF, writeGenoFreq, doBayesian);
+ 			_writeEstimatesOnePop(out, *(reader.genotypeFrequencies()), reader.alleleFrequency(), storage.samples(), samples.numSamples(), MLHWEstimator, BHWEstimator, minDeltaF, writeGenoFreq, doBayesian);
  		} else {
  			genometools::TGenotypeFrequencies genoFrequencies;
  	 		for(size_t p=0; p<samples.numPopulations(); p++){
- 	 			genoFrequencies.estimate<true>(&storage[samples.startIndex(p)], samples.numSamplesInPop(p), epsF);
- 	 			_writeEstimatesOnePop(out, genoFrequencies, genoFrequencies.alleleFrequency(), &storage[samples.startIndex(p)], samples.numSamplesInPop(p), MLHWEstimator, BHWEstimator, epsF, writeGenoFreq, doBayesian);
+ 	 			genoFrequencies.estimate<true>(&storage[samples.startIndex(p)], samples.numSamplesInPop(p), minDeltaF);
+ 	 			_writeEstimatesOnePop(out, genoFrequencies, genoFrequencies.alleleFrequency(), &storage[samples.startIndex(p)], samples.numSamplesInPop(p), MLHWEstimator, BHWEstimator, minDeltaF, writeGenoFreq, doBayesian);
  	 		}
  		}
 

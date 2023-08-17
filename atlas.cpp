@@ -40,7 +40,7 @@
 #include "TInbreedingEstimator.h"
 #include "TMajorMinor.h"
 #include "TPSMCInput.h"
-#include "TPolymorhicWindowIdentifier.h"
+#include "TPolymorphicWindowIdentifier.h"
 #include "TWriteGLF.h"
 #include "TSexEstimator.h"
 #include "TEstimateMutationLoad.h"
@@ -96,7 +96,7 @@ void addTaks(coretools::TMain & main) {
 	main.createRegularTask<PopulationTools::TAlleleCounter>("alleleCounts", "Estimating population allele counts");
 	main.createRegularTask<PopulationTools::TAlleleFreqEstimator>("alleleFreq", "Estimating population allele frequencies");
 	main.createRegularTask<PopulationTools::TInbreedingEstimator>("inbreeding", "Estimating the inbreeding coefficient", "Burger et al. (2020) Current Biology");
-	main.createRegularTask<PopulationTools::TPolymorhicWindowIdentifier>("polymorphicWindows", "Identifying windows for which samples are polymorphic");
+	main.createRegularTask<PopulationTools::TPolymorphicWindowIdentifier>("polymorphicWindows", "Identifying windows for which samples are polymorphic");
     main.createRegularTask<PopulationTools::TF2Estimator>("calculateF2", "Calculate F2 between different samples, and within and between populations");
 	main.createRegularTask<PopulationTools::TAncestralAlleleEstimator>("ancestralAlleles", "Writing FASTA-file with ancestral alleles");
 
@@ -148,7 +148,7 @@ void addTests(coretools::TMain & main){
 //Main function
 //---------------------------------------------------------------------------
 int main(int argc, char* argv[]){
-	coretools::TMain main("ATLAS", "0.9", "https://bitbucket.org/wegmannlab/atlas", "daniel.wegmann@unifr.ch");
+	coretools::TMain main("ATLAS", "0.91", "https://bitbucket.org/wegmannlab/atlas", "andreas.fueglistaler@unifr.ch");
 
 	//add existing tasks
 	addTaks(main);

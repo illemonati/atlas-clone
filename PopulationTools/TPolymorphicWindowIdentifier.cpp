@@ -5,7 +5,7 @@
  *      Author: wegmannd
  */
 
-#include "TPolymorhicWindowIdentifier.h"
+#include "TPolymorphicWindowIdentifier.h"
 
 #include <stdint.h>
 #include <algorithm>
@@ -29,7 +29,7 @@ namespace PopulationTools{
 using coretools::instances::parameters;
 using coretools::instances::logfile;
 
-void TPolymorhicWindowIdentifier::run() {
+void TPolymorphicWindowIdentifier::run() {
 	using BG = genometools::BiallelicGenotype;
 	//read samples
 	genometools::TPopulationSamples samples;
@@ -52,7 +52,7 @@ void TPolymorhicWindowIdentifier::run() {
 	//output file
 	auto tmp = coretools::str::readBeforeLast(vcfFilename, ".vcf");
 	std::string outputName = parameters().getParameterWithDefault("out", tmp) + "_polymorphicWindows.txt.gz";
-	logfile().list("Will write polymoprhic state of windows to file '" + outputName + "'.");
+	logfile().list("Will write polymorphic state of windows to file '" + outputName + "'.");
 	coretools::TOutputFile out(outputName);
 
 	//write header

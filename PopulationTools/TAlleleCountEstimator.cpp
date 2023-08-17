@@ -450,7 +450,7 @@ void runTransform() {
 	gettimeofday(&start, NULL);
 
 	// get parameters for in and output
-	std::string countsFileName = parameters().getParameter<std::string>("countsFile");
+	std::string countsFileName = parameters().getParameter<std::string>("transform");
 	std::string tmp(coretools::str::readBeforeLast(countsFileName, "_alleleCounts.txt.gz"));
 	std::string outname        = parameters().getParameterWithDefault<std::string>("out", tmp);
 	std::string type           = parameters().getParameterWithDefault<std::string>("outFormat", "default");

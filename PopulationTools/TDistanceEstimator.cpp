@@ -132,7 +132,7 @@ TEMforDistanceEstimation::TEMforDistanceEstimation(){
 		parameters().fillParameterIntoContainer("distWeights", tmp, ',');
 		coretools::str::repeatIndexes(tmp, vec);
 		if(vec.size() != 9)
-			UERROR("Wrong number of distance weights! Required are nine values for 00/00, 00/01, 01/00, 00/11, 01/01, 01/02, 00/12, 01/22, 01/23");
+			UERROR("Wrong number of distance weights! Required are nine values for aa/aa, aa/ab, ab/aa, aa/bb, ab/ab, ab/ac, aa/bc, ab/cc, ab/cd");
 
 		distanceObject = std::make_unique<TDistanceUser>(vec);
 
@@ -146,7 +146,7 @@ TEMforDistanceEstimation::TEMforDistanceEstimation(){
 		} else if(distType == "euclidian"){
 			distanceObject = std::make_unique<TDistanceEuclidian>();
 		} else
-			UERROR("Unknown distance type '", distType, "'! Use probMismatch.");
+			UERROR("Unknown distance type '", distType, "'! Use either squaredDiff, euclidian, or probMismatch.");
 	}
 	logfile().conclude("Using distance weights " + coretools::str::concatenateString(distanceObject->weights(), ", ") + ".");
 
@@ -583,7 +583,7 @@ void TDistanceEstimator::estimateDistanceGenomeWide(TEMforDistanceEstimation & E
 		UERROR("Failed to open output file '", filename, "'!");
 
 	//write header to output file
-	out << "individual1\tindividual2\tnumSitesWithData\tfreqA\tfreqC\tfreqG\tfreqT\tfreq00_00\tfreq00_01\tfreq01_00\tfreq00_11\tfreq01_01\tfreq01_02\tfreq00_12\tfreq01_22\tfreq01_23\tgeneticDist\n";
+	out << "individual1\tindividual2\tnumSitesWithData\tfreqA\tfreqC\tfreqG\tfreqT\tfreqaa/aa\tfreqaa/ab\tfreqab/aa\tfreqaa/bb\tfreqab/ab\tfreqab/ac\tfreqaa/bc\tfreqab/cc\tfreqab/cd\tgeneticDist\n";
 
 	//prepare storage for distance matrix
 	std::vector<double> distMatrix;

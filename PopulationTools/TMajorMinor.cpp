@@ -494,7 +494,7 @@ template<typename Estimator> void iterate(double maxF) {
 		parameters().fillParameterIntoContainer("sampleNames", sampleNames, ',');
 
 		if (sampleNames.size() != glfReader.numActiveSamples()) {
-			UERROR("Number of provided same names does not match number of GLF files!");
+			UERROR("Number of provided sample names does not match number of GLF files!");
 		}
 
 		// report

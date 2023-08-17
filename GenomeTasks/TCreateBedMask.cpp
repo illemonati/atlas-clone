@@ -95,7 +95,7 @@ void TCreateInvariantBedMask::_handleWindow(){
 };
 
 void TCreateInvariantBedMask::createInvariantMask(){
-	_createMask("_invariantMask.bed");
+	_createMask("invariantMask.bed");
 };
 
 //--------------------------------------

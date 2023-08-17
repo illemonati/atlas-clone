@@ -68,7 +68,7 @@ void TInbreedingEstimatorPrior::initializeInferred() {
 
 void TInbreedingEstimatorPrior::_readCommandLineArguments() {
 	// parameters for model switch of F
-	_q_FModel_To_HWE     = parameters().getParameterWithDefault("probMovingToModelNoF", 0.1);
+	_q_FModel_To_HWE     = parameters().getParameterWithDefault("probMovingToModelNoF", coretools::Probability(0.1));
 	_log_q_FModel_To_HWE = log(_q_FModel_To_HWE);
 	logfile().list("Will propose move to model without F with probability ", _q_FModel_To_HWE,
 	               ". (use 'probMovingToModelNoF' to change)");

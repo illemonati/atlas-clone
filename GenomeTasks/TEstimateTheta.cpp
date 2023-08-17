@@ -119,14 +119,10 @@ TEstimateTheta::TEstimateTheta() : TGenome_windows() {
 	// read downsampling rates
 
 	if (parameters().parameterExists("prob")) {
-		std::vector<std::string> string_vec;
-		parameters().fillParameterIntoContainer("prob", string_vec, ',');
-		coretools::str::repeatIndexes(string_vec, downSampleProbVector);
+		parameters().fillParameterIntoContainerRepeatIndexes("prob", downSampleProbVector, ',');
 	} else if (parameters().parameterExists("depth")) {
 		std::vector<double> depths;
-		std::vector<std::string> string_vec;
-		parameters().fillParameterIntoContainer("depth", string_vec, ',');
-		coretools::str::repeatIndexes(string_vec, depths);
+		parameters().fillParameterIntoContainerRepeatIndexes("depth", depths, ',');
 		double averageDepth = parameters().getParameter<double>("averageDepth");
 		for (auto &it : depths) {
 			if (averageDepth >= it) {

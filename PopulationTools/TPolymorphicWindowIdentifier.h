@@ -5,19 +5,19 @@
  *      Author: wegmannd
  */
 
-#ifndef POPULATIONTOOLS_TPOLYMORHICWINDOWIDENTIFIER_H_
-#define POPULATIONTOOLS_TPOLYMORHICWINDOWIDENTIFIER_H_
+#ifndef POPULATIONTOOLS_TPolymorphicWindowIdentifier_H_
+#define POPULATIONTOOLS_TPolymorphicWindowIdentifier_H_
 
 #include <string>
 #include "coretools/Main/TTask.h"
 
 namespace PopulationTools{
 
-class TPolymorhicWindowIdentifier{
+class TPolymorphicWindowIdentifier{
 public:
 	void run();
 };
 
 } // namespace PopulationTools
 
-#endif /* POPULATIONTOOLS_TPOLYMORHICWINDOWIDENTIFIER_H_ */
+#endif /* POPULATIONTOOLS_TPolymorphicWindowIdentifier_H_ */
