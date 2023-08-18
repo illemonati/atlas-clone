@@ -280,13 +280,10 @@ public:
 		}
 	}
 
-	void checkOrInit(const RecalEstimatorTools::TRecalDataTable &DataTable) override {
+	void init(const RecalEstimatorTools::TRecalDataTable &DataTable) override {
 		size_t index = _intercept.numParameters();
-
 		for (auto &cov : _covariates) {
-			if (!cov->checkOrInitValueRange(DataTable, index)) {
-				UERROR("Function ", cov->typeString(), " does not cover full range of data");
-			}
+			cov->init(DataTable, index);
 			index += cov->numParameters();
 		}
 	}

@@ -23,8 +23,8 @@
 namespace GenotypeLikelihoods::SequencingError {
 
 struct TFunctions {
-	virtual ~TFunctions() = default;
-	virtual void checkOrInit(const RecalEstimatorTools::TRecalDataTable &DataTable)             = 0;
+	virtual ~TFunctions()                                                                       = default;
+	virtual void init(const RecalEstimatorTools::TRecalDataTable &DataTable)                    = 0;
 	virtual size_t numParameters() const noexcept                                               = 0;
 	virtual coretools::Probability getEpsilon(const BAM::TSequencedBase &base) const            = 0;
 	virtual coretools::Probability getEpsilon(const BAM::TSequencedBase &base, std::vector<T1stDerivative> &der1,

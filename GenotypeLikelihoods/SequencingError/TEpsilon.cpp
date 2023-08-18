@@ -39,8 +39,8 @@ TEpsilon::TEpsilon(const BAM::RGInfo::TInfo &info) : _functions(makeFunctions(in
 	_F.resize(numParameters);
 }
 
-void TEpsilon::checkOrInit(const RecalEstimatorTools::TRecalDataTable &DataTable) {
-	_functions->checkOrInit(DataTable);
+void TEpsilon::init(const RecalEstimatorTools::TRecalDataTable &DataTable) {
+	_functions->init(DataTable);
 	const size_t numParameters = _functions->numParameters();
 
 	// prepare Newton-Raphson variables

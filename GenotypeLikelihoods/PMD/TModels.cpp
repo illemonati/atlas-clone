@@ -66,10 +66,10 @@ void TModels::writeToFile(const BAM::TReadGroups &ReadGroups, const BAM::TReadGr
 	}
 	// write for each read group
 	for (auto r = ReadGroups.cbegin(); r != ReadGroups.cend(); ++r) {
-		out_PMD.writeln(r->name_ID, _models[r->id()]->typeString(),
-					_models[ReadGroupMap.pooledIndex(r->id())]->functionString());
-		if (ReadGroupMap.inUse(r->id())) {
-			_models[ReadGroupMap.pooledIndex(r->id())]->writeTable(ReadGroups.getName(r->id()),out_counts);
+		out_PMD.writeln(r->name_ID, _models[r->id]->typeString(),
+					_models[ReadGroupMap.pooledIndex(r->id)]->functionString());
+		if (ReadGroupMap.inUse(r->id)) {
+			_models[ReadGroupMap.pooledIndex(r->id)]->writeTable(ReadGroups.getName(r->id),out_counts);
 		}
 	}
 }

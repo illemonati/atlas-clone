@@ -131,7 +131,7 @@ void TRecalibrationEMEstimator::_initializeModels() {
 			if (table.size() > 0) {
 				auto& recal = (*_recal)[rg][mate];
 				if (!recal->recalibrates()) UERROR("Cannot estimate readgroup ", rg, ", mate ", mate, "!");
-				recal->epsilon()->checkOrInit(table);
+				recal->epsilon()->init(table);
 				_epsilons.push_back(recal->epsilon());
 				_rhos.push_back(recal->rho());
 			} else {

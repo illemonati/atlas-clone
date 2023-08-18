@@ -120,7 +120,7 @@ public:
 	TEpsilon(std::string_view Def);
 	TEpsilon(const BAM::RGInfo::TInfo & info);
 
-	void checkOrInit(const RecalEstimatorTools::TRecalDataTable &DataTable);
+	void init(const RecalEstimatorTools::TRecalDataTable &DataTable);
 
 	coretools::Probability calcErrorRate(const BAM::TSequencedBase &base) const noexcept; 
 	double Q() const noexcept {return _Q;};

@@ -36,10 +36,10 @@ using BAM::RGInfo::InfoType;
 		: _readGroup(&ReadGroup), _pmd(&Pmd), _recal(Recal) {
 
 	// initialize bamAlignment
-	_alignment.setReadGroup(_readGroup->id());
+	_alignment.setReadGroup(_readGroup->id);
 
 	//readNamePrefix: "<instrument>:<run number>:<flowcell ID>:<lane>:<tile>:"  Still need to add "<x-pos>:<y-pos>"
-	_readNamePrefix = "ATL:0:A:1:" + coretools::str::toString(_readGroup->id()) + ":";
+	_readNamePrefix = "ATL:0:A:1:" + coretools::str::toString(_readGroup->id) + ":";
 
 	//initialize distributions
 	_initDistribution(_fragmentLengthDistr, RGInfo, InfoType::fragmentLength);
@@ -314,7 +314,7 @@ void TReadSimulatorPairedEnd::simulate(const TGenomePosition & Position, const s
 	}
 
 	// create new alignment
-	_secondMate.setReadGroup(_readGroup->id());
+	_secondMate.setReadGroup(_readGroup->id);
 	_secondMate.setName(_alignment.name());
 	_secondMate.setMappingQuality(_alignment.mappingQuality());
 
