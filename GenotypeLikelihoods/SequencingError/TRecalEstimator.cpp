@@ -108,6 +108,7 @@ size_t TRecalibrationEMEstimator::_numSitesDepthTwoOrMore() {
 
 void TRecalibrationEMEstimator::_initializeModels() {
 	using coretools::str::toString;
+	using BAM::Mate;
 	// count data available for recal
 	logfile().listFlush("Counting data available for recal ...");
 	// Note: data tables pool read groups!
@@ -125,16 +126,16 @@ void TRecalibrationEMEstimator::_initializeModels() {
 	logfile().startIndent("Identifying models to estimate:");
 	_recal->pool(*_readGroupMap);
 	for (auto rg : _readGroupMap->readGroupsInUse()) {
-		for (size_t mate = 0; mate < 2; ++mate) {
+			for (Mate mate = Mate::min; mate < Mate::max; ++mate) {
 			const auto& table = _dataTables[rg][mate];
 			if (table.size() > 0) {
 				auto& recal = (*_recal)[rg][mate];
-				if (!recal.recalibrates()) UERROR("Cannot estimate readgroup ", rg, ", mate ", mate, "!");
-				recal.epsilon()->checkOrInit(table);
-				_epsilons.push_back(recal.epsilon());
-				_rhos.push_back(recal.rho());
+				if (!recal->recalibrates()) UERROR("Cannot estimate readgroup ", rg, ", mate ", mate, "!");
+				recal->epsilon()->checkOrInit(table);
+				_epsilons.push_back(recal->epsilon());
+				_rhos.push_back(recal->rho());
 			} else {
-				(*_recal)[rg].reset(mate);
+				_recal->reset(rg, mate);
 			}
 		}
 	}
@@ -340,7 +341,6 @@ void TRecalibrationEMEstimator::performEstimation(std::string_view outputName, S
 	// writing final estimates
 	const auto filename = std::string(outputName) + "_recal.txt";
 	logfile().list("Writing final estimates to file '", filename, "'.");
-	_recal->writeRecalFile(*_readGroups, filename);
 	BAM::RGInfo::TReadGroupInfo r(*_readGroups);
 	Recal.addToRGInfo(r);
 	r.write(std::string(outputName) + "_recal.json");

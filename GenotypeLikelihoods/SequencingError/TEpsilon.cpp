@@ -39,8 +39,6 @@ TEpsilon::TEpsilon(const BAM::RGInfo::TInfo &info) : _functions(makeFunctions(in
 	_F.resize(numParameters);
 }
 
-TEpsilon::~TEpsilon() = default;
-
 void TEpsilon::checkOrInit(const RecalEstimatorTools::TRecalDataTable &DataTable) {
 	_functions->checkOrInit(DataTable);
 	const size_t numParameters = _functions->numParameters();

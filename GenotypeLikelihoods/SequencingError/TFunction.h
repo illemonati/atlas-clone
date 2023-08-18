@@ -453,7 +453,7 @@ public:
 
 	bool checkOrInitValueRange(const RecalEstimatorTools::TRecalDataTable &dataTable, size_t FirstParameterIndex) override {
 		_firstParameterIndex = FirstParameterIndex;
-		if (numParameters() == 0) {
+		if (numParameters() == 1 && _betas.front() == 0.) {
 			_betas.resize(Covariate::N(dataTable), 0.);
 			for (size_t i = 0; i < Covariate::N(dataTable); ++i) {
 				if (!Covariate::isUsed(dataTable, i)) _betas[i] = NAN;

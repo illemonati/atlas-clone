@@ -12,6 +12,7 @@
 #include <stdint.h>
 #include <string>
 
+#include "TAlignment.h"
 #include "TEpsilon.h"
 #include "TGenotypeData.h"
 #include "TReadGroupInfo.h"
@@ -39,7 +40,7 @@ struct TModel {
 	virtual coretools::Probability errorRate(const BAM::TSequencedBase &base) const noexcept          = 0;
 	virtual genometools::PhredIntProbability phredInt(const BAM::TSequencedBase &base) const noexcept = 0;
 	virtual TBaseLikelihoods baseLikelihoods(const BAM::TSequencedBase &base) const noexcept          = 0;
-	virtual void simulate(BAM::TSequencedBase &base) const noexcept                                   = 0;
+	virtual void simulate(BAM::TAlignment &aln) const noexcept                                        = 0;
 	virtual std::string epsilonDefinition() const noexcept                                            = 0;
 	virtual std::string rhoDefinition() const noexcept                                                = 0;
 	virtual BAM::RGInfo::TInfo info() const                                                           = 0;
@@ -50,14 +51,14 @@ struct TModel {
 //------------------------------------------------
 // TModelNoRecal
 //------------------------------------------------
-class TModelNoRecal final : public TModel {
+class TNoRecal final : public TModel {
 public:
 	bool recalibrates() const noexcept override { return false; };
 
 	coretools::Probability errorRate(const BAM::TSequencedBase &base) const noexcept override;
 	genometools::PhredIntProbability phredInt(const BAM::TSequencedBase &base) const noexcept override;
 	TBaseLikelihoods baseLikelihoods(const BAM::TSequencedBase &base) const noexcept override;
-	void simulate(BAM::TSequencedBase &base) const noexcept override;
+	void simulate(BAM::TAlignment &aln) const noexcept override;
 
 	std::string epsilonDefinition() const noexcept override { return "-"; };
 	std::string rhoDefinition() const noexcept override { return "-"; };
@@ -70,14 +71,14 @@ public:
 //------------------------------------------------
 // TModelRecal
 //------------------------------------------------
-class TModelRecal final : public TModel {
+class TWithRecal final : public TModel {
 private:
 	TRho _rho;
 	TEpsilon _epsilon;
 public:
-	TModelRecal(std::string_view EpsilonDef, std::string_view RhoDef = "default")
+	TWithRecal(std::string_view EpsilonDef, std::string_view RhoDef = "default")
 		: _rho(RhoDef), _epsilon(EpsilonDef) {}
-	TModelRecal(const BAM::RGInfo::TInfo &info) : _rho(info["rho"]), _epsilon(info) {}
+	TWithRecal(const BAM::RGInfo::TInfo &info) : _rho(info["rho"]), _epsilon(info) {}
 
 	// Virtual
 	bool recalibrates() const noexcept override { return true; };
@@ -86,7 +87,7 @@ public:
 	coretools::Probability errorRate(const BAM::TSequencedBase &base) const noexcept override;
 	genometools::PhredIntProbability phredInt(const BAM::TSequencedBase &base) const noexcept override;
 	TBaseLikelihoods baseLikelihoods(const BAM::TSequencedBase &base) const noexcept override;
-	virtual void simulate(BAM::TSequencedBase &base) const noexcept override;
+	virtual void simulate(BAM::TAlignment &aln) const noexcept override;
 
 	std::string epsilonDefinition() const noexcept override {return _epsilon.definition();};
 	std::string rhoDefinition() const noexcept override { return _rho.definition(); };

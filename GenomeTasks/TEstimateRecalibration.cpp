@@ -83,9 +83,7 @@ void TEstimateRecalibration::_handleWindow() {
 
 void TEstimateRecalibration::run() {
 	// read data
-	auto forgottenModels = _genotypeLikelihoodCalculator.sequencingErrorModels().forget();
 	_traverseBAMWindows();
-	_genotypeLikelihoodCalculator.sequencingErrorModels().remember(forgottenModels);
 
 	if (_onlyLL) {
 		_recal.calcLL(_genotypeLikelihoodCalculator.sequencingErrorModels(),

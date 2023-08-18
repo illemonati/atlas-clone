@@ -9,6 +9,7 @@
 #ifndef TPMDTYPE_H_
 #define TPMDTYPE_H_
 
+#include "TAlignment.h"
 #include "TGenotypeData.h"
 #include "TFunction.h"
 #include "TSequencedBase.h"
@@ -41,7 +42,7 @@ struct TModel {
 	virtual TBaseProbabilities massFunction(genometools::Genotype g, const BAM::TSequencedBase &data,
 											const TBaseLikelihoods &baseLikelihoodsNoPMD) const  = 0;
 
-	virtual void simulate(BAM::TSequencedBase &data) const = 0;
+	virtual void simulate(BAM::TAlignment &aln) const = 0;
 };
 
 //------------------------------------------------
@@ -81,7 +82,7 @@ public:
 	}
 
 	static TBaseProbabilities massFunction(genometools::Genotype g, const TBaseLikelihoods &baseLikelihoodsNoPMD);
-	virtual void simulate(BAM::TSequencedBase &) const override {}
+	virtual void simulate(BAM::TAlignment &) const override {}
 };
 
 TModel *makeType(std::string_view pmdString);

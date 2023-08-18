@@ -15,6 +15,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "TSequencedBase.h"
 #include "coretools/Containers/TBitSet.h"
 #include "TReadGroups.h"
 #include "coretools/Containers/TStrongArray.h"
@@ -45,7 +46,7 @@ public:
 	const std::vector<uint32_t> &mappingQualities() const noexcept { return _mappingQualities; };
 };
 
-using TRecalDataTableOneReadGroup = std::array<TRecalDataTable, 2>;
+using TRecalDataTableOneReadGroup = coretools::TStrongArray<TRecalDataTable, BAM::Mate>;
 
 class TRecalDataTables{
 private:

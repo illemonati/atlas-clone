@@ -33,7 +33,7 @@ class TModels;
 }
 namespace GenotypeLikelihoods {
 namespace SequencingError {
-class TModelRecal;
+class TWithRecal;
 }
 } // namespace GenotypeLikelihoods
 namespace GenotypeLikelihoods {

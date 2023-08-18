@@ -11,6 +11,7 @@
 #include <armadillo>
 #include <memory>
 
+#include "SequencingError/TFunctions.h"
 #include "TReadGroupInfo.h"
 #include "genometools/GenotypeTypes.h"
 #include "RecalEstimatorTools.h"
@@ -21,8 +22,6 @@
 
 namespace GenotypeLikelihoods {
 namespace SequencingError {
-
-struct TFunctions;
 
 class TEpsilon {
 	std::unique_ptr<TFunctions> _functions;
@@ -120,7 +119,6 @@ class TEpsilon {
 public:
 	TEpsilon(std::string_view Def);
 	TEpsilon(const BAM::RGInfo::TInfo & info);
-	~TEpsilon();
 
 	void checkOrInit(const RecalEstimatorTools::TRecalDataTable &DataTable);
 

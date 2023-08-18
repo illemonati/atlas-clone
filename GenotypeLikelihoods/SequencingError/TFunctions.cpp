@@ -104,6 +104,7 @@ template<typename Covariate> TFunction *makeCovFunction(std::string_view Functio
 			auto fn = new TEmpiric<Covariate>(index);
 			size_t size = 0;
 			double back = 0.;
+			if (Spl.empty()) fn->push_back(0.); // Initialize with at least 1 value
 			for (auto s : Spl) {
 				TSplitter ss(s, ':');
 				const auto i = fromString<size_t, true>(strip(ss.front()));

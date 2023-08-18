@@ -62,15 +62,15 @@ void TRecalDataTables::initialize(const BAM::TReadGroups *ReadGroups, const BAM:
 
 void TRecalDataTables::clear() {
 	for(auto& t : _tables){
-		t[0].clear();
-		t[1].clear();
+		t.front().clear();
+		t.back().clear();
 	}
 	_totalCounts = 0;
 };
 
 void TRecalDataTables::add(const BAM::TSequencedBase & base){
 	++_totalCounts;
-	_tables[_readGroupMap->pooledIndex(base.readGroupID)][base.isSecondMate()].add(base);
+	_tables[_readGroupMap->pooledIndex(base.readGroupID)][base.mate()].add(base);
 };
 
 void TRecalDataTables::add(const TSite &Site) {

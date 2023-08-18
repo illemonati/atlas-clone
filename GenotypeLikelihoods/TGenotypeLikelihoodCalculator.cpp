@@ -54,7 +54,10 @@ TGenotypeLikelihoodCalculator::TGenotypeLikelihoodCalculator(const BAM::TReadGro
 
 		//check if it is recal string
 
-		if (!std::filesystem::exists(recalString)) {
+		if (std::filesystem::exists(recalString)) {
+			UERROR("Initializing recal with recal-file is not supported anymore. Use Readgroup Info File in json-format instead!");
+		}
+		else {
 			//assume it is a model string
 			logfile().startIndent("Parsing common recal model for all read groups:");
 			logfile().list("Provided model (parameter 'recal'): " + recalString);
@@ -65,35 +68,10 @@ TGenotypeLikelihoodCalculator::TGenotypeLikelihoodCalculator(const BAM::TReadGro
 			} else {
 				logfile().list("Will use default rho. (use 'rho' to change)");
 			}
-			_sequencingErrorModels.initialize(recalString, rhoString, *ReadGroups);
-		} else {
-			logfile().startIndent("Initializing recal models from file '" + recalString + "' (parameter 'recal'):");
-			_sequencingErrorModels.initializeFromFile(recalString, *ReadGroups);
-			//warn if some read groups have no recal definition
-			std::vector<size_t> readGroupsWithoutRecal;
-			std::vector<size_t> readGroupsLikelySingelEnd;
-
-			_sequencingErrorModels.checkReadGroups(*ReadGroups, readGroupsWithoutRecal, readGroupsLikelySingelEnd);
-
-			if(readGroupsWithoutRecal.size() > 0){
-				logfile().warning("The following read groups do not have recal definitions: "
-								 + coretools::str::concatenateString(ReadGroups->getNames(readGroupsWithoutRecal), ", ")
-								 + "!");
-				if(!parameters().parameterExists("allowReadGroupsWithoutRecal")){
-					UERROR("Recal models are only defined for a subset of read groups. Did you use the wrong recal file? (use allowReadGroupsWithoutRecal to ignore)");
-				}
-			}
-
-			//Report if some read groups have only single-end definitions
-			if(readGroupsLikelySingelEnd.size() > 0){
-				logfile().list("Read groups assumed single-end (no recal for second mate): "
-							  + coretools::str::concatenateString(ReadGroups->getNames(readGroupsLikelySingelEnd), ", ")
-							  + ".");
-			}
-			logfile().endIndent();
+			_sequencingErrorModels.initialize(recalString, rhoString, ReadGroups->size());
 		}
 	} else {
-		_sequencingErrorModels.initializeNoRecal(*ReadGroups);
+		_sequencingErrorModels.initializeNoRecal(ReadGroups->size());
 		logfile().list("Assuming that error rates in BAM files are correct. (use 'recal' to add recalibration)");
 	}
 };

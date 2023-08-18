@@ -21,17 +21,17 @@ using coretools::instances::randomGenerator;
 void TReadSimulators::_initializeReadGroups(const TReadGroupInfo & RGinfo) {
 	// create simulation read groups
 	using BAM::RGInfo::InfoType;
-	for(size_t i = 0; i < RGinfo.size(); ++i){
-		logfile().startIndent("Read group '", RGinfo[i].name(), "':");
-		std::string type = RGinfo[i].getString(InfoType::seqType);
+	for(size_t rg = 0; rg < RGinfo.size(); ++rg){
+		logfile().startIndent("Read group '", RGinfo[rg].name(), "':");
+		std::string type = RGinfo[rg].getString(InfoType::seqType);
 		logfile().list("Sequencing type: ", type);
-		logfile().list("Frequency: ", _simGroupFrequencies[i]);
+		logfile().list("Frequency: ", _simGroupFrequencies[rg]);
 
 		//initialize by type
 		if(type == "single"){
-			_readSimulators.push_back(std::make_unique<TReadSimulatorSingleEnd>(_readGroups[i], RGinfo[i]));
+			_readSimulators.push_back(std::make_unique<TReadSimulatorSingleEnd>(_readGroups[rg], RGinfo[rg], _pmd[rg], _recal[rg]));
 		} else if(type == "paired"){
-			_readSimulators.push_back(std::make_unique<TReadSimulatorPairedEnd>(_readGroups[i], RGinfo[i]));
+			_readSimulators.push_back(std::make_unique<TReadSimulatorPairedEnd>(_readGroups[rg], RGinfo[rg], _pmd[rg], _recal[rg]));
 		} else {
 			UERROR("Unable to understand read group type '" + type + "'! Use either 'single' or 'paired'.");
 		}
@@ -87,23 +87,16 @@ TReadSimulators::TReadSimulators(const std::string & RgInfoFileName){
 
 	_initializeReadGroupFrequencies(RGinfo);
 
+	if (coretools::instances::parameters().parameterExists("pmd")) {
+		_pmd.initialize(coretools::instances::parameters().getParameter("pmd"), _readGroups);
+	} else {
+		_pmd.initialize(RGinfo);
+	}
+	_recal.initialize(RGinfo);
+
 	//Initialize read groups
 	logfile().startIndent("Will use the following ", _readGroups.size(), " read groups:");
 	_initializeReadGroups(RGinfo);
-
-	// B) initialize PMD
-	//------------------
-	if (coretools::instances::parameters().parameterExists("pmd")) {
-		_PMD.initialize(coretools::instances::parameters().getParameter("pmd"), _readGroups);
-	} else {
-		_PMD.initialize(RGinfo);
-	}
-
-	// add PMD to simulators
-	// TODO: also initialize PMD from RGInfo
-	for (size_t r = 0; r < _readSimulators.size(); ++r) {
-		_readSimulators[r]->setPMD(&_PMD[r]);
-	}
 
 	// C) initialize contamination
 	//----------------------------
