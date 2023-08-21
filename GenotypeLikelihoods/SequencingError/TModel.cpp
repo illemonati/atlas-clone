@@ -64,7 +64,7 @@ TBaseLikelihoods TNoRecal::baseLikelihoods(const BAM::TSequencedBase &base) cons
 
 void TNoRecal::simulate(BAM::TAlignment &aln) const noexcept {
 	for (auto &data : aln) {
-		if (data.base == Base::N) return;
+		if (data.base == Base::N) continue;
 
 		const auto e = static_cast<Probability>(data.originalQuality_phredInt);
 		if (randomGenerator().getRand() < e) {
@@ -100,30 +100,24 @@ TBaseLikelihoods TWithRecal::baseLikelihoods(const BAM::TSequencedBase &base) co
 
 void TWithRecal::simulate(BAM::TAlignment &aln) const noexcept {
 	for (auto &data : aln) {
-		if (data.base == Base::N) return;
-
-		const auto e = _epsilon.calcErrorRate(data);
-		if (randomGenerator().getRand() < e) {
-			const auto k = data.base;
+		if (data.base != Base::N && randomGenerator().getRand() < _epsilon.calcErrorRate(data)) {
 			constexpr coretools::TStrongArray<std::array<Base, 3>, Base> lss(
 				{std::array<Base, 3>{Base::C, Base::G, Base::T},
 				 {Base::A, Base::G, Base::T},
 				 {Base::A, Base::C, Base::T},
 				 {Base::A, Base::C, Base::G}});
+
+			const auto k = data.base;
 			const auto ls = lss[k];
 
-			double r = randomGenerator().getRand();
+			const double r = randomGenerator().getRand();
 			if (r < _rho[k][ls[0]]) {
 				data.base = ls[0];
-				return;
-			}
-			r -= _rho[k][ls[0]];
-			if ((r < _rho[k][ls[1]])) {
+			} else if (r < _rho[k][ls[0]] + _rho[k][ls[1]]) {
 				data.base = ls[1];
-				return;
+			} else {
+				data.base = ls[2];
 			}
-			// else
-			data.base = ls[2];
 		}
 	}
 }

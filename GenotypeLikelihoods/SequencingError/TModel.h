@@ -87,7 +87,7 @@ public:
 	coretools::Probability errorRate(const BAM::TSequencedBase &base) const noexcept override;
 	genometools::PhredIntProbability phredInt(const BAM::TSequencedBase &base) const noexcept override;
 	TBaseLikelihoods baseLikelihoods(const BAM::TSequencedBase &base) const noexcept override;
-	virtual void simulate(BAM::TAlignment &aln) const noexcept override;
+	void simulate(BAM::TAlignment &aln) const noexcept override;
 
 	std::string epsilonDefinition() const noexcept override {return _epsilon.definition();};
 	std::string rhoDefinition() const noexcept override { return _rho.definition(); };
