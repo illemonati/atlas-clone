@@ -17,7 +17,7 @@
 
 #include "../BAM/TBamFile.h"
 #include "../BAM/TReadGroupInfo.h"
-#include "PMD/TModel.h"
+#include "oldPMD/TModel.h"
 #include "SequencingError/TModels.h"
 #include "TAlignment.h"
 #include "TCigar.h"
@@ -62,7 +62,7 @@ protected:
 	int _readYPos = 1;
 	std::unique_ptr<TCategoricalDistribution<size_t>> _softClipDist5;
 	std::unique_ptr<TCategoricalDistribution<size_t>> _softClipDist3;
-	const GenotypeLikelihoods::PMD::TModel *_pmd;
+	const GenotypeLikelihoods::oldPMD::TModel *_pmd;
 	const GenotypeLikelihoods::SequencingError::RGModels _recal;
 
 	// contamination
@@ -91,11 +91,11 @@ protected:
 								 size_t readLength, bool readIsContaminated);
 
 public:
-	TReadSimulator(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo, const GenotypeLikelihoods::PMD::TModel & Pmd, const GenotypeLikelihoods::SequencingError::RGModels& Recal);
+	TReadSimulator(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo, const GenotypeLikelihoods::oldPMD::TModel & Pmd, const GenotypeLikelihoods::SequencingError::RGModels& Recal);
 	virtual ~TReadSimulator() = default;
 
 	//setters
-	void setPMD(GenotypeLikelihoods::PMD::TModel const *Pmd);
+	void setPMD(GenotypeLikelihoods::oldPMD::TModel const *Pmd);
 	void setContamination(double rate, TSimulatorReference *source);
 
 	//simulate
@@ -117,7 +117,7 @@ private:
 	coretools::StrictlyPositive<size_t> _numCycles;
 
 public:
-	TReadSimulatorSingleEnd(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo, const GenotypeLikelihoods::PMD::TModel & Pmd, const GenotypeLikelihoods::SequencingError::RGModels& Recal);
+	TReadSimulatorSingleEnd(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo, const GenotypeLikelihoods::oldPMD::TModel & Pmd, const GenotypeLikelihoods::SequencingError::RGModels& Recal);
 	~TReadSimulatorSingleEnd() = default;
 
 	void simulate(const TGenomePosition & Position, const std::vector<Base> & Haplotype, BAM::TOutputBamFile &BamFile) override;
@@ -134,7 +134,7 @@ private:
 	std::array<coretools::StrictlyPositive<size_t>, 2> _numCycles;
 
 public:
-	TReadSimulatorPairedEnd(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo, const GenotypeLikelihoods::PMD::TModel & Pmd, const GenotypeLikelihoods::SequencingError::RGModels& Recal);
+	TReadSimulatorPairedEnd(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo, const GenotypeLikelihoods::oldPMD::TModel & Pmd, const GenotypeLikelihoods::SequencingError::RGModels& Recal);
 	~TReadSimulatorPairedEnd() = default;
 
 	void simulate(const TGenomePosition & Position, const std::vector<genometools::Base> & Haplotype, BAM::TOutputBamFile &BamFile) override;

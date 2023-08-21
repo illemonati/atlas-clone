@@ -25,7 +25,7 @@
 #include "THaplotypeSimulator.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
-#include "PMD/TModels.h"
+#include "oldPMD/TModels.h"
 #include "TReadGroups.h"
 #include "TSimulatorAuxiliaryTools.h"
 #include "coretools/Containers/TStrongArray.h"

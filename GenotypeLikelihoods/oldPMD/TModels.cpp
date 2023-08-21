@@ -42,7 +42,7 @@
 #include "coretools/Types/probability.h"
 
 
-namespace GenotypeLikelihoods::PMD {
+namespace GenotypeLikelihoods::oldPMD {
 
 using coretools::instances::logfile;
 using namespace coretools::str;

@@ -17,7 +17,7 @@
 #include "coretools/Types/probability.h"
 #include "genometools/GenotypeTypes.h"
 
-namespace GenotypeLikelihoods::PMD {
+namespace GenotypeLikelihoods::oldPMD {
 
 enum class ReadEnd : size_t { min = 0, forward5 = min, reverse5, forward3, reverse3, max };
 enum class Strand : size_t {min, Single=min, Double, Unknown, max=Unknown};

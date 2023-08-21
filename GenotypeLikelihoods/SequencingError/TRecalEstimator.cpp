@@ -24,7 +24,7 @@
 #include "TGenotypeDistribution.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
-#include "PMD/TModels.h"
+#include "oldPMD/TModels.h"
 #include "TSequencedBase.h"
 #include "SequencingError/TModel.h"
 #include "SequencingError/TModels.h"
@@ -329,7 +329,7 @@ void TRecalibrationEMEstimator::_runEM() {
 };
 
 void TRecalibrationEMEstimator::performEstimation(std::string_view outputName, SequencingError::TModels &Recal,
-												  PMD::TModels &Pmd) {
+												  oldPMD::TModels &Pmd) {
 	_recal = &Recal;
 	_pmd   = &Pmd;
 	// initialize models
@@ -346,7 +346,7 @@ void TRecalibrationEMEstimator::performEstimation(std::string_view outputName, S
 	r.write(std::string(outputName) + "_recal.json");
 };
 
-void TRecalibrationEMEstimator::calcLL(TModels &Recal, PMD::TModels &Pmd) {
+void TRecalibrationEMEstimator::calcLL(TModels &Recal, oldPMD::TModels &Pmd) {
 	_recal = &Recal;
 	_pmd   = &Pmd;
 	_initializeModels();

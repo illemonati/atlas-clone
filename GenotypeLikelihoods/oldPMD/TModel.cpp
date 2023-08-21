@@ -11,7 +11,7 @@
 #include "genometools/GenotypeTypes.h"
 #include <utility>
 
-namespace GenotypeLikelihoods::PMD {
+namespace GenotypeLikelihoods::oldPMD {
 using genometools::Base;
 using namespace coretools::str;
 

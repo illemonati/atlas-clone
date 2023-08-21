@@ -13,7 +13,7 @@
 #include <string>
 
 #include "TGenome.h"
-#include "PMD/TModels.h"
+#include "oldPMD/TModels.h"
 #include "coretools/Containers/TStrongArray.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
@@ -33,7 +33,7 @@ namespace GenomeTasks {
 class TPMDEstimator : public TGenome_parsed {
 private:
 	BAM::TReadGroupMap _readGroupMap;
-	GenotypeLikelihoods::PMD::TModels* _pmd;
+	GenotypeLikelihoods::oldPMD::TModels* _pmd;
 	void _handleAlignment();
 
 public:

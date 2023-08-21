@@ -28,7 +28,7 @@
 namespace BAM {
 class TSequencedBase;
 }
-namespace GenotypeLikelihoods::PMD {
+namespace GenotypeLikelihoods::oldPMD {
 class TModels;
 }
 namespace GenotypeLikelihoods {
@@ -58,7 +58,7 @@ private:
 	const BAM::TReadGroups *_readGroups;
 
 	TModels* _recal;
-	PMD::TModels* _pmd;
+	oldPMD::TModels* _pmd;
 	std::unique_ptr<TGenotypeDistribution> _genoDist;
 
 	std::vector<TEpsilon*> _epsilons;
@@ -115,9 +115,9 @@ public:
 	void addSite(const TSite &site) {if (!site.empty()) _sites.emplace_back(site);}
 
 	// function to estimate
-	void performEstimation(std::string_view outputName, TModels &SequencingErrorModels, PMD::TModels &PmdModels);
+	void performEstimation(std::string_view outputName, TModels &SequencingErrorModels, oldPMD::TModels &PmdModels);
 
-	void calcLL(TModels &SequencingErrorModels, PMD::TModels &PmdModels);
+	void calcLL(TModels &SequencingErrorModels, oldPMD::TModels &PmdModels);
 };
 
 }; // namespace SequencingError

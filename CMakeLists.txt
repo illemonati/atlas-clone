@@ -20,6 +20,7 @@ file(GLOB CORE_SOURCES CONFIGURE_DEPENDS
   GenotypeLikelihoods/*.h GenotypeLikelihoods/*.cpp
   GenotypeLikelihoods/SequencingError/*.h GenotypeLikelihoods/SequencingError/*.cpp
   GenotypeLikelihoods/PMD/*.h GenotypeLikelihoods/PMD/*.cpp
+  GenotypeLikelihoods/oldPMD/*.h GenotypeLikelihoods/oldPMD/*.cpp
   GLF/*.h GLF/*.cpp
   PopulationTools/*.h PopulationTools/*.cpp
   Simulations/*.h Simulations/*.cpp

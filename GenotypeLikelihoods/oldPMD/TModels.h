@@ -29,7 +29,7 @@ namespace BAM {
 class TSequencedBase;
 }
 
-namespace GenotypeLikelihoods::PMD {
+namespace GenotypeLikelihoods::oldPMD {
 class TModels {
 private:
 	std::vector<std::unique_ptr<TModel>> _models;
@@ -41,11 +41,6 @@ private:
 	void _setHasDamage();
 
 public:
-	TModels() = default;
-	TModels(const std::string &pmdString, const BAM::TReadGroups &ReadGroups,
-					  std::vector<size_t> &ReadGroupsWithoutPMD) {
-		ReadGroupsWithoutPMD = initialize(pmdString, ReadGroups);
-	}
 	constexpr bool hasPMD() const noexcept { return _hasPMD; };
 	const TModel &operator[](size_t ReadGroupIndex) const noexcept { return *_models[ReadGroupIndex]; }
 	TModel &operator[](size_t ReadGroupIndex) noexcept { return *_models[ReadGroupIndex]; }
@@ -68,14 +63,6 @@ public:
 
 	void estimate(const BAM::TReadGroupMap& ReadGroupMap) {
 		for (auto &r : ReadGroupMap.readGroupsInUse()) { _models[r]->estimate(); }
-	}
-
-	std::string functionString() const noexcept {
-		std::string r;
-		for (auto &p: _models) {
-			r.append(p->functionString()).append(1, ';');
-		}
-		return r;
 	}
 };
 

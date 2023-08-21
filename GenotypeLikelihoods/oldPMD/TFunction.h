@@ -16,7 +16,7 @@
 
 #include "coretools/Types/probability.h"
 
-namespace GenotypeLikelihoods::PMD {
+namespace GenotypeLikelihoods::oldPMD {
 
 class TFunction {
 public:

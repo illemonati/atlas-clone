@@ -8,7 +8,7 @@
 #ifndef PMD_TPERREADGROUP_H_
 #define PMD_TPERREADGROUP_H_
 
-#include "PMD/TFunction.h"
+#include "TFunction.h"
 #include "TAlignment.h"
 #include "TModel.h"
 #include "coretools/Containers/TStrongArray.h"
@@ -22,7 +22,7 @@
 #include <memory>
 #include <type_traits>
 #include <vector>
-namespace GenotypeLikelihoods::PMD {
+namespace GenotypeLikelihoods::oldPMD {
 namespace impl {
 
 static constexpr size_t _N = coretools::index(genometools::Base::max) + 1;
