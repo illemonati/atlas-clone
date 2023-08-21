@@ -61,7 +61,7 @@ void TModels::pool(const BAM::TReadGroupMap& rgMap) {
 	}
 }
 
-void TModels::initializeNoRecal(size_t NReadGroups) {
+void TModels::_initializeNoRecal(size_t NReadGroups) {
 	_pModels.clear();
 	_withRecal.clear();
 
@@ -70,9 +70,9 @@ void TModels::initializeNoRecal(size_t NReadGroups) {
 	}
 }
 
-void TModels::initialize(std::string_view RecalString, std::string_view RhoString, size_t NReadGroups) {
+void TModels::initialize(size_t NReadGroups, std::string_view RecalString, std::string_view RhoString) {
 	if (RecalString.empty() || RecalString == "-" || RecalString == "default") {
-		initializeNoRecal(NReadGroups);
+		_initializeNoRecal(NReadGroups);
 	} else {
 		_withRecal.reserve(NReadGroups * 2); // 2 mates per readgroup
 		_pModels.reserve(NReadGroups);

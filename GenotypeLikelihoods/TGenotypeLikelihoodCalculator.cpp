@@ -68,10 +68,10 @@ TGenotypeLikelihoodCalculator::TGenotypeLikelihoodCalculator(const BAM::TReadGro
 			} else {
 				logfile().list("Will use default rho. (use 'rho' to change)");
 			}
-			_sequencingErrorModels.initialize(recalString, rhoString, ReadGroups->size());
+			_sequencingErrorModels.initialize(ReadGroups->size(), recalString, rhoString);
 		}
 	} else {
-		_sequencingErrorModels.initializeNoRecal(ReadGroups->size());
+		_sequencingErrorModels.initialize(ReadGroups->size());
 		logfile().list("Assuming that error rates in BAM files are correct. (use 'recal' to add recalibration)");
 	}
 };
