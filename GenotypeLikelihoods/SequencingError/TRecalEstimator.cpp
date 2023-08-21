@@ -129,7 +129,7 @@ void TRecalibrationEMEstimator::_initializeModels() {
 			for (Mate mate = Mate::min; mate < Mate::max; ++mate) {
 			const auto& table = _dataTables[rg][mate];
 			if (table.size() > 0) {
-				auto& recal = (*_recal)[rg][mate];
+				auto& recal = _recal->RGModel(rg)[mate];
 				if (!recal->recalibrates()) UERROR("Cannot estimate readgroup ", rg, ", mate ", mate, "!");
 				recal->epsilon()->init(table);
 				_epsilons.push_back(recal->epsilon());

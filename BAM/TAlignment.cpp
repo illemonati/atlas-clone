@@ -299,7 +299,7 @@ void TAlignment::parse(const GenotypeLikelihoods::SequencingError::TModels &seqE
 	_parseBasesQualities();
 
 	// recalibrate
-	seqErrorModels.recalibrate(_bases);
+	seqErrorModels.recalibrate(*this);
 	_sequenceAndQualitiesChanged = seqErrorModels.recalibrates();
 };
 
@@ -458,7 +458,7 @@ void TAlignment::binQualityScoresIllumina() {
 };
 
 void TAlignment::recalibrateWithPMD(const GenotypeLikelihoods::TGenotypeLikelihoodCalculator &GLCalculator) {
-	GLCalculator.recalibrateWithPMD(_bases);
+	GLCalculator.recalibrateWithPMD(*this);
 	_sequenceAndQualitiesChanged = true;
 };
 

@@ -29,9 +29,9 @@ void TReadSimulators::_initializeReadGroups(const TReadGroupInfo & RGinfo) {
 
 		//initialize by type
 		if(type == "single"){
-			_readSimulators.push_back(std::make_unique<TReadSimulatorSingleEnd>(_readGroups[rg], RGinfo[rg], _pmd[rg], _recal[rg]));
+			_readSimulators.push_back(std::make_unique<TReadSimulatorSingleEnd>(_readGroups[rg], RGinfo[rg], _pmd[rg], _recal.RGModel(rg)));
 		} else if(type == "paired"){
-			_readSimulators.push_back(std::make_unique<TReadSimulatorPairedEnd>(_readGroups[rg], RGinfo[rg], _pmd[rg], _recal[rg]));
+			_readSimulators.push_back(std::make_unique<TReadSimulatorPairedEnd>(_readGroups[rg], RGinfo[rg], _pmd[rg], _recal.RGModel(rg)));
 		} else {
 			UERROR("Unable to understand read group type '" + type + "'! Use either 'single' or 'paired'.");
 		}

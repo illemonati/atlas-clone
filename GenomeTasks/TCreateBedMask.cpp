@@ -85,8 +85,8 @@ void TCreateInvariantBedMask::_handleWindow(){
 	uint32_t p = 0;
 	for(auto& s : _window){
 		if(s.depth() >= _minDepth){
-			s.countAlleles(_baseCounts);
-			if(coretools::numNonZero(_baseCounts) == 1){
+			const auto bCounts = s.countAlleles();
+			if(coretools::numNonZero(bCounts) == 1){
 				_bed.add(_window.from() + p);
 			}
 		}
@@ -113,8 +113,8 @@ void TCreateVariantBedMask::_handleWindow(){
 	uint32_t p = 0;
 	for(auto& s : _window){
 		if(s.depth() >= _minDepth){
-			s.countAlleles(_baseCounts);
-			if(coretools::numNonZero(_baseCounts) > 1){
+			const auto bCounts = s.countAlleles();
+			if(coretools::numNonZero(bCounts) > 1){
 				_bed.add(_window.from() + p);
 			}
 		}

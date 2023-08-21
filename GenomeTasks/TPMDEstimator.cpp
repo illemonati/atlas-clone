@@ -28,13 +28,17 @@ using coretools::instances::parameters;
 //----------------------------------------
 // TPMDEstimator.h
 //----------------------------------------
-	TPMDEstimator::TPMDEstimator(): TGenome_parsed(), _readGroupMap(_bamFile.readGroups(), parameters().getParameter<std::string>("poolReadGroups", false)), _pmd(&_genotypeLikelihoodCalculator.postMortemDamageModels()) {
-	//make sure there is pmd
-	if (_genotypeLikelihoodCalculator.hasPMD()) {
+TPMDEstimator::TPMDEstimator()
+	: TGenome_parsed(),
+	  _readGroupMap(_bamFile.readGroups(), parameters().getParameter<std::string>("poolReadGroups", false)),
+	  _pmd(&_genotypeLikelihoodCalculator.postMortemDamageModels()) {
+	// make sure there is pmd
+	if (_genotypeLikelihoodCalculator.postMortemDamageModels().hasPMD()) {
 		logfile().list("PMD model already exists, will reestimate it.");
 	}
-	if (!_genotypeLikelihoodCalculator.hasPMD()) {
-		_pmd->initialize(parameters().getParameterWithDefault("pmd", "doubleStrand:Empiric:Empiric"), _bamFile.readGroups());
+	if (!_genotypeLikelihoodCalculator.postMortemDamageModels().hasPMD()) {
+		_pmd->initialize(parameters().getParameterWithDefault("pmd", "doubleStrand:Empiric:Empiric"),
+						 _bamFile.readGroups());
 	}
 
 	//make sure it has a reference

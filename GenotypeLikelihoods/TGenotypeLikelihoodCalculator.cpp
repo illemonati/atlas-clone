@@ -76,27 +76,11 @@ TGenotypeLikelihoodCalculator::TGenotypeLikelihoodCalculator(const BAM::TReadGro
 	}
 };
 
-bool TGenotypeLikelihoodCalculator::hasPMD() const{
-	return _pmdModels.hasPMD();
-};
-
-bool TGenotypeLikelihoodCalculator::recalibrationChangesQualities() const{
-	return _sequencingErrorModels.recalibrates();
-};
-
-coretools::Probability TGenotypeLikelihoodCalculator::errorRate(const BAM::TSequencedBase & base) const{
-	return _sequencingErrorModels.errorRate(base);
-};
-
 coretools::Probability TGenotypeLikelihoodCalculator::errorWithPMD(const BAM::TSequencedBase &base) const {
 	if (base.base == genometools::Base::N) { return coretools::Probability::highest(); }
 	// calculate base likelihoods with PMD
 
 	return _pmdModels.P_dij(base, _sequencingErrorModels.baseLikelihoods(base))[base.base].complement();
-};
-
-genometools::PhredIntProbability TGenotypeLikelihoodCalculator::phredInt(const BAM::TSequencedBase & base) const{
-	return _sequencingErrorModels.phredInt(base);
 };
 
 genometools::PhredIntProbability TGenotypeLikelihoodCalculator::phredIntWithPMD(const BAM::TSequencedBase & base) const{
@@ -107,20 +91,12 @@ genometools::PhredIntProbability TGenotypeLikelihoodCalculator::phredIntWithPMD(
 	}
 };
 
-void TGenotypeLikelihoodCalculator::recalibrate(BAM::TSequencedBase & base) const{
-	_sequencingErrorModels.recalibrate(base);
-};
-
 void TGenotypeLikelihoodCalculator::recalibrateWithPMD(BAM::TSequencedBase & base) const{
 	base.recalibratedQualityAsPhredInt = phredIntWithPMD(base);
 };
 
-void TGenotypeLikelihoodCalculator::recalibrate(std::vector<BAM::TSequencedBase> & bases) const{
-	_sequencingErrorModels.recalibrate(bases);
-};
-
-void TGenotypeLikelihoodCalculator::recalibrateWithPMD(std::vector<BAM::TSequencedBase> & bases) const{
-	for(auto& b : bases){
+void TGenotypeLikelihoodCalculator::recalibrateWithPMD(BAM::TAlignment& aln) const{
+	for(auto& b : aln){
 		recalibrateWithPMD(b);
 	}
 };

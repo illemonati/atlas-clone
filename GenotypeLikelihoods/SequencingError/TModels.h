@@ -8,19 +8,14 @@
 #ifndef GENOTYPELIKELIHOODS_TSEQUENCINGERRORMODELS_H_
 #define GENOTYPELIKELIHOODS_TSEQUENCINGERRORMODELS_H_
 
-#include <stddef.h>
-#include <stdint.h>
-#include <array>
-#include <memory>
 #include <string>
 #include <vector>
 
+#include "SequencingError/TModel.h"
 #include "TAlignment.h"
+#include "TReadGroupInfo.h"
 #include "coretools/Containers/TStrongArray.h"
 #include "genometools/PhredProbabilityTypes.h"
-#include "SequencingError/TModel.h"
-#include "coretools/Types/probability.h"
-#include "TReadGroupInfo.h"
 
 namespace BAM { class TReadGroups; }
 namespace BAM { class TSequencedBase; }
@@ -60,26 +55,13 @@ public:
 		return *RGModel(data.readGroupID)[data.mate()];
 	}
 
-	coretools::TView<TWithRecal> unique() noexcept { return _withRecal; }
-	coretools::TConstView<TWithRecal> unique() const noexcept { return _withRecal; }
-
-	// operator[]
-	const RGModels &operator[](size_t rgID) const noexcept { return RGModel(rgID); }
-	RGModels &operator[](size_t rgID) noexcept { return RGModel(rgID); }
-	const TModel &operator[](const BAM::TSequencedBase &data) const noexcept { return model(data); }
-	TModel &operator[](const BAM::TSequencedBase &data) noexcept { return model(data); }
-
 	bool recalibrates() const noexcept { return !_withRecal.empty(); }
 
 	// calculate error rates
-	coretools::Probability errorRate(const BAM::TSequencedBase &data) const noexcept {
-		return model(data).errorRate(data);
-	}
 	genometools::PhredIntProbability phredInt(const BAM::TSequencedBase &data) const noexcept {
 		return model(data).phredInt(data);
 	}
-	void recalibrate(BAM::TSequencedBase &data) const noexcept { data.recalibratedQualityAsPhredInt = phredInt(data); }
-	void recalibrate(std::vector<BAM::TSequencedBase> &datas) const noexcept;
+	void recalibrate(BAM::TAlignment &aln) const noexcept { RGModel(aln.readGroupId())[aln.mate()]->recalibrate(aln); };
 	TBaseLikelihoods baseLikelihoods(const BAM::TSequencedBase &data) const noexcept {
 		return model(data).baseLikelihoods(data);
 	}

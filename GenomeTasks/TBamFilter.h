@@ -183,13 +183,13 @@ public:
 		}
 
 		//recalibrate BAM?
-		if(_genotypeLikelihoodCalculator.recalibrationChangesQualities() || parameters().parameterExists("incorporatePMD")){
+		if(_genotypeLikelihoodCalculator.sequencingErrorModels().recalibrates() || parameters().parameterExists("incorporatePMD")){
 			_recalibrate = true;
 			logfile().list("Will write recalibrated quality scores.");
 			if(parameters().parameterExists("incorporatePMD")){
 				logfile().list("Probability of PMD will be reflected in new quality scores. (parameter 'incorporatePMD')");
 				_incorporatePMD = true;
-				if(!_genotypeLikelihoodCalculator.hasPMD()){
+				if(!_genotypeLikelihoodCalculator.postMortemDamageModels().hasPMD()){
 					UERROR("No PMD probabilities provided! Provide PMD probabilities or remove parameter 'incorporatePMD'.");
 				}
 			} else {

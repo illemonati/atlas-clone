@@ -44,11 +44,6 @@ using namespace coretools::str;
 //*********************************************************
 // TModelNoRecal
 //*********************************************************
-Probability TNoRecal::errorRate(const BAM::TSequencedBase &base) const noexcept {
-	if (base == Base::N) return Probability(1.0);
-	return (Probability)base.originalQuality_phredInt;
-}
-
 genometools::PhredIntProbability TNoRecal::phredInt(const BAM::TSequencedBase &base) const noexcept {
 	if (base == Base::N) return genometools::PhredIntProbability::highest();
 	return base.originalQuality_phredInt;
@@ -74,14 +69,13 @@ void TNoRecal::simulate(BAM::TAlignment &aln) const noexcept {
 	}
 }
 
+void TNoRecal::recalibrate(BAM::TAlignment &aln) const noexcept {
+	for (auto &b : aln) b.recalibratedQualityAsPhredInt = b.originalQuality_phredInt;
+}
+
 //*********************************************************
 // TModelRecal
 //*********************************************************
-
-Probability TWithRecal::errorRate(const BAM::TSequencedBase &base) const noexcept {
-	if (base == Base::N) return Probability::highest();
-	return _epsilon.calcErrorRate(base);
-}
 
 genometools::PhredIntProbability TWithRecal::phredInt(const BAM::TSequencedBase &base) const noexcept {
 	if (base == Base::N) return genometools::PhredIntProbability::highest();
@@ -120,6 +114,10 @@ void TWithRecal::simulate(BAM::TAlignment &aln) const noexcept {
 			}
 		}
 	}
+}
+
+void TWithRecal::recalibrate(BAM::TAlignment &aln) const noexcept {
+	for (auto &b : aln) b.recalibratedQualityAsPhredInt = phredInt(b);
 }
 
 BAM::RGInfo::TInfo TWithRecal::info() const {

@@ -53,9 +53,9 @@ public:
 	std::string getBases() const;
 	std::string getQualities() const;
 
-	void countAlleles(TBaseCounts &alleleCounts) const;
-	void countMates(std::array<int, 2>& mateCounts) const;
-	void countFwdRev(std::array<int, 2> &) const;
+	TBaseCounts countAlleles() const;
+	coretools::TStrongArray<size_t, BAM::Mate> countMates() const;
+	std::array<int, 2> countFwdRev() const;
 
 	// loop
 	using iterator       = std::vector<BAM::TSequencedBase>::iterator;

@@ -48,7 +48,7 @@ TEstimateRecalibration::TEstimateRecalibration()
     : TGenome_windows(), _readGroupMap(impl::makeReadGroupMap(_bamFile.readGroups())),
 	  _recal(&_bamFile.readGroups(), &_readGroupMap) {
 	_openReference(true);
-	if (_genotypeLikelihoodCalculator.recalibrationChangesQualities() &&
+	if (_genotypeLikelihoodCalculator.sequencingErrorModels().recalibrates() &&
 		!(parameters().parameterExists("rerecalibrate") || parameters().getParameter("task") == "recal"))
 		UERROR("Can not estimate recalibration: quality scores are already recalibrated while reading! (Use argument "
 			   "'rerecalibrate' to overwrite this error)");

@@ -13,6 +13,7 @@
 #include <ostream>
 #include <stdexcept>
 
+#include "TAlignment.h"
 #include "coretools/Containers/TStrongArray.h"
 #include "coretools/Main/TError.h"
 #include "coretools/Files/TFile.h"
@@ -48,20 +49,6 @@ std::pair<std::string_view, std::string_view> epsRho(std::string_view s) {
 }
 
 } // namespace impl
-
-
-/*
-void TReadGroupModels::simulate(BAM::TAlignment & Alignment) const {
-	const TModel& mod = *_models[Alignment.isSecondMate()];
-	for (auto & b : Alignment) {
-		mod.simulate(b);
-	}
-}
-*/
-
-//--------------------------------------------------------------------
-// TModels
-//--------------------------------------------------------------------
 
 void TModels::pool(const BAM::TReadGroupMap& rgMap) {
 	if (!recalibrates()) UERROR("No point pooling models that do not recalibrate!");
@@ -171,21 +158,6 @@ void TModels::initialize(BAM::RGInfo::TReadGroupInfo &RgInfo) {
 		for (Mate m = Mate::min; m < Mate::max; ++m) {
 			if (iis[rg][m] == -1) _pModels[rg][m] = &_noRecal;
 			else _pModels[rg][m] = &_withRecal[iis[rg][m]];
-		}
-	}
-}
-
-// functions to get error rates
-//-------------------------------------------------------
-
-void TModels::recalibrate(std::vector<BAM::TSequencedBase> &datas) const noexcept {
-	const auto & front = datas.front();
-	const auto & m = model(front); // assuming all datas are in same readgroup and same mate
-	for (auto &b : datas) {
-		if (m.recalibrates()) {
-			b.recalibratedQualityAsPhredInt = m.phredInt(b);
-		} else {
-			b.recalibratedQualityAsPhredInt = b.originalQuality_phredInt;
 		}
 	}
 }

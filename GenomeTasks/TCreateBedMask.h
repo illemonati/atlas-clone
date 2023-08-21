@@ -52,9 +52,6 @@ public:
 class TCreateInvariantBedMask:public TCreateBedMask{
 private:
 	void _handleWindow() override;
-
-	//tmp variables
-	GenotypeLikelihoods::TBaseCounts _baseCounts;
 public:
 	TCreateInvariantBedMask();
 	void createInvariantMask();
@@ -66,9 +63,6 @@ public:
 class TCreateVariantBedMask:public TCreateBedMask{
 private:
 	void _handleWindow() override;
-
-	//tmp variables
-	GenotypeLikelihoods::TBaseCounts _baseCounts;
 public:
 	TCreateVariantBedMask();
 	void createVariantMask();
