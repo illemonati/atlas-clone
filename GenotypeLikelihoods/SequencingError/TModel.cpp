@@ -44,16 +44,16 @@ using namespace coretools::str;
 //*********************************************************
 // TModelNoRecal
 //*********************************************************
-genometools::PhredIntProbability TNoRecal::phredInt(const BAM::TSequencedBase &base) const noexcept {
-	if (base == Base::N) return genometools::PhredIntProbability::highest();
-	return base.originalQuality_phredInt;
+genometools::PhredIntProbability TNoRecal::phredInt(const BAM::TSequencedBase &data) const noexcept {
+	if (data == Base::N) return genometools::PhredIntProbability::highest();
+	return data.originalQuality_phredInt;
 }
 
-TBaseLikelihoods TNoRecal::baseLikelihoods(const BAM::TSequencedBase &base) const noexcept {
-	if (base == Base::N) { return TBaseLikelihoods{1.}; }
-	const auto eps = static_cast<Probability>(base.originalQuality_phredInt);
+TBaseLikelihoods TNoRecal::P_dij(const BAM::TSequencedBase &data) const noexcept {
+	if (data == Base::N) { return TBaseLikelihoods{1.}; }
+	const auto eps = static_cast<Probability>(data.originalQuality_phredInt);
 	TBaseLikelihoods baseLikelihoods{(1. / 3) * eps};
-	baseLikelihoods[base.base] = eps.complement();
+	baseLikelihoods[data.base] = eps.complement();
 	return baseLikelihoods;
 }
 
@@ -77,15 +77,15 @@ void TNoRecal::recalibrate(BAM::TAlignment &aln) const noexcept {
 // TModelRecal
 //*********************************************************
 
-genometools::PhredIntProbability TWithRecal::phredInt(const BAM::TSequencedBase &base) const noexcept {
-	if (base == Base::N) return genometools::PhredIntProbability::highest();
-	return genometools::PhredIntProbability(_epsilon.calcErrorRate(base));
+genometools::PhredIntProbability TWithRecal::phredInt(const BAM::TSequencedBase &data) const noexcept {
+	if (data == Base::N) return genometools::PhredIntProbability::highest();
+	return genometools::PhredIntProbability(_epsilon.calcErrorRate(data));
 }
 
-TBaseLikelihoods TWithRecal::baseLikelihoods(const BAM::TSequencedBase &base) const noexcept {
-	if (base == Base::N) { return TBaseLikelihoods{1.}; }
-	const auto e = _epsilon.calcErrorRate(base);
-	const auto l = base.base;
+TBaseLikelihoods TWithRecal::P_dij(const BAM::TSequencedBase &data) const noexcept {
+	if (data == Base::N) { return TBaseLikelihoods{1.}; }
+	const auto e = _epsilon.calcErrorRate(data);
+	const auto l = data.base;
 	TBaseLikelihoods baseLikelihoods;
 	for (auto k = Base::min; k < Base::max; ++k) baseLikelihoods[k] = e * _rho[k][l];
 	baseLikelihoods[l] = e.complement();

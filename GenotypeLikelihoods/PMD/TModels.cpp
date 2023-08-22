@@ -4,6 +4,12 @@ namespace GenotypeLikelihoods::PMD {
 void TModels::initialize(size_t NReadGroups, std::string_view PMDString) {
 	if (PMDString.empty() || PMDString == "-" || PMDString == "defaul") {
 		for (size_t i = 0; i < NReadGroups; ++i) { _pModels.push_back(&_noPMD); }
+	} else {
+		_withPMD.reserve(NReadGroups);
+		for (size_t i = 0; i < NReadGroups; ++i) {
+			_withPMD.emplace_back(PMDString);
+			_pModels.push_back(&_withPMD.back());
+		}
 	}
 }
 

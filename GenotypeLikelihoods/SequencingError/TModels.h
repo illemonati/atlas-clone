@@ -60,8 +60,8 @@ public:
 		return model(data).phredInt(data);
 	}
 	void recalibrate(BAM::TAlignment &aln) const noexcept { RGModel(aln.readGroupId())[aln.mate()]->recalibrate(aln); };
-	TBaseLikelihoods baseLikelihoods(const BAM::TSequencedBase &data) const noexcept {
-		return model(data).baseLikelihoods(data);
+	TBaseLikelihoods P_dij(const BAM::TSequencedBase &data) const noexcept {
+		return model(data).P_dij(data);
 	}
 
 	void addToRGInfo(BAM::RGInfo::TReadGroupInfo & RgInfo) const;

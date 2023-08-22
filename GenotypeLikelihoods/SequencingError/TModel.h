@@ -37,8 +37,8 @@ namespace SequencingError {
 struct TModel {
 	virtual ~TModel()                                                                                 = default;
 	// Per Base
-	virtual genometools::PhredIntProbability phredInt(const BAM::TSequencedBase &base) const noexcept = 0;
-	virtual TBaseLikelihoods baseLikelihoods(const BAM::TSequencedBase &base) const noexcept          = 0;
+	virtual genometools::PhredIntProbability phredInt(const BAM::TSequencedBase &data) const noexcept = 0;
+	virtual TBaseLikelihoods P_dij(const BAM::TSequencedBase &data) const noexcept                    = 0;
 	// Per Alignment
 	virtual void simulate(BAM::TAlignment &aln) const noexcept                                        = 0;
 	virtual void recalibrate(BAM::TAlignment &aln) const noexcept                                     = 0;
@@ -54,8 +54,8 @@ struct TModel {
 //------------------------------------------------
 struct TNoRecal final : public TModel {
 	// Per Base
-	genometools::PhredIntProbability phredInt(const BAM::TSequencedBase &base) const noexcept override;
-	TBaseLikelihoods baseLikelihoods(const BAM::TSequencedBase &base) const noexcept override;
+	genometools::PhredIntProbability phredInt(const BAM::TSequencedBase &data) const noexcept override;
+	TBaseLikelihoods P_dij(const BAM::TSequencedBase &data) const noexcept override;
 
 	// Per Alignment
 	void simulate(BAM::TAlignment &aln) const noexcept override;
@@ -81,8 +81,8 @@ public:
 	TWithRecal(const BAM::RGInfo::TInfo &info) : _rho(info["rho"]), _epsilon(info) {}
 
 	// Per Base
-	genometools::PhredIntProbability phredInt(const BAM::TSequencedBase &base) const noexcept override;
-	TBaseLikelihoods baseLikelihoods(const BAM::TSequencedBase &base) const noexcept override;
+	genometools::PhredIntProbability phredInt(const BAM::TSequencedBase &data) const noexcept override;
+	TBaseLikelihoods P_dij(const BAM::TSequencedBase &data) const noexcept override;
 
 	void simulate(BAM::TAlignment &aln) const noexcept override;
 	void recalibrate(BAM::TAlignment &aln) const noexcept override;

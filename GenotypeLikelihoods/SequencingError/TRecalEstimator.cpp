@@ -137,7 +137,7 @@ void TRecalibrationEMEstimator::_estimateRho_updatePbbar() {
 		for (const auto &d_ij : _sites[i]) {
 			_P_bbarEdij_I_gdijs.emplace_back(0.);
 			auto &P_bbarEdij_I_gdij = _P_bbarEdij_I_gdijs.back();
-			const auto P_dij_I_bbar = _recal->baseLikelihoods(d_ij);
+			const auto P_dij_I_bbar = _recal->P_dij(d_ij);
 			for (auto a = Base::min; a < Base::max; ++a) {
 				const auto aa              = genotype(a, a);
 				const auto P_bbar_I_aa_dij = _pmd->P_bbar(a, d_ij, P_dij_I_bbar);
@@ -233,7 +233,7 @@ double TRecalibrationEMEstimator::_calculateLL_updatePg() {
 			_P_g_I_dis.emplace_back(1.); // Start at 1,1,1,1,1,1,1,1
 			auto &P_g_I_di = _P_g_I_dis.back();
 			for (auto &d_ij : s_i) {
-				const auto P_dij_I_bbar = _recal->baseLikelihoods(d_ij);
+				const auto P_dij_I_bbar = _recal->P_dij(d_ij);
 				const auto P_dij_I_b    = _pmd->P_dij(d_ij, P_dij_I_bbar);
 				const auto P_dij_I_g    = _genoDist->P_dij(P_dij_I_b);
 				P_g_I_di *= P_dij_I_g;
@@ -244,7 +244,7 @@ double TRecalibrationEMEstimator::_calculateLL_updatePg() {
 			_P_g_I_dis.back()[s_i.genotype] = 1; // Probability of correct genotype is 1
 			double P_g = 1.;
 			for (auto &d_ij : s_i) {
-				const auto L_eps = _recal->baseLikelihoods(d_ij);
+				const auto L_eps = _recal->P_dij(d_ij);
 				const auto L_D   = _pmd->P_dij(d_ij, L_eps);
 				P_g *= _genoDist->getGenotypeLikelihood(L_D, s_i.genotype);
 			}
