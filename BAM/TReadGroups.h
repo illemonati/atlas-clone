@@ -138,10 +138,7 @@ private:
 	void _fillFromFile(const TReadGroups & ReadGroups, std::string_view filename);
 
 public:
-	TReadGroupMap(const TReadGroups & ReadGroups);
-	TReadGroupMap(const TReadGroups & ReadGroups, std::string_view filename);
-
-	~TReadGroupMap() = default;
+	TReadGroupMap(const TReadGroups & ReadGroups, std::string_view filename = "");
 
 	size_t size() const { return _readGroupMap.size(); };
 	size_t numReadGroupsInUse() const { return _readGroupsInUse.size(); };

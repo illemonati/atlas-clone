@@ -5,30 +5,16 @@
  *      Author: phaentu
  */
 
-#include "TEstimateRecalibration.h"
+#include "TEstimateErrors.h"
+#include "PMD/TModels.h"
 
-#include <exception>
-#include <memory>
-#include <stdint.h>
-#include <vector>
-
-#include "TBamFile.h"
-#include "genometools/GenomePositions/TGenomePosition.h"
-#include "TGenotypeLikelihoodCalculator.h"
-#include "coretools/Main/TLog.h"
-#include "coretools/Main/TParameters.h"
-#include "TReadGroups.h"
-#include "SequencingError/TRecalEstimator.h"
-#include "TSite.h"
-#include "TSiteSubset.h"
-#include "TWindow.h"
 
 namespace GenomeTasks {
 using coretools::instances::logfile;
 using coretools::instances::parameters;
 
 namespace impl {
-BAM::TReadGroupMap makeReadGroupMap(const BAM::TReadGroups &ReadGroups) {
+BAM::TReadGroupMap makeRGMap(const BAM::TReadGroups &ReadGroups) {
 	if (parameters().parameterExists("poolReadGroups")) {
 		std::string poolReadGroupsFile = parameters().getParameter<std::string>("poolReadGroups");
 		logfile().startIndent("Will pool read groups (parameter 'poolReadGroups'):");
@@ -42,11 +28,10 @@ BAM::TReadGroupMap makeReadGroupMap(const BAM::TReadGroups &ReadGroups) {
 } // namespace impl
 
 //-----------------------------------------------------------
-// TEstimateRecalibration_base
+// TEstimateErrors_base
 //-----------------------------------------------------------
-TEstimateRecalibration::TEstimateRecalibration()
-    : TGenome_windows(), _readGroupMap(impl::makeReadGroupMap(_bamFile.readGroups())),
-	  _recal(&_bamFile.readGroups(), &_readGroupMap) {
+TEstimateErrors::TEstimateErrors()
+    : TGenome_windows(), _errors(_bamFile.readGroups()) {
 	_openReference(true);
 
 	// limit to sites with known alleles?
@@ -62,34 +47,29 @@ TEstimateRecalibration::TEstimateRecalibration()
 	_onlyLL = parameters().parameterExists("onlyLL");
 };
 
-void TEstimateRecalibration::_handleWindow() {
+void TEstimateErrors::_handleWindow() {
 	// add sites to recal estimator
 	if (_subsetMonomorphic) {
 		auto thesePositions = _subsetMonomorphic->getPositionInWindow(_window);
 		for (auto &it : thesePositions) {			
 			const uint32_t internalPos = it - _window.from();
-			_recal.addSite(_window[internalPos]);
+			_errors.addSite(_window[internalPos]);
 		}
 	} else {
 		for (auto &s : _window) {
-			_recal.addSite(s);
+			_errors.addSite(s);
 		}
 	}
 };
 
-void TEstimateRecalibration::run() {
+void TEstimateErrors::run() {
 	// read data
 	_traverseBAMWindows();
 
-	if (_onlyLL) {
-		_recal.calcLL(_genotypeLikelihoodCalculator.sequencingErrorModels(),
-							  _genotypeLikelihoodCalculator.postMortemDamageModels());
-
-	} else {
-		// estimate recal parameters
-		_recal.performEstimation(_outputName, _genotypeLikelihoodCalculator.sequencingErrorModels(),
-										 _genotypeLikelihoodCalculator.postMortemDamageModels());
-	}
+	if (_onlyLL)
+		_errors.calcLL();
+	else
+		_errors.estimate(_outputName);
 };
 
 }; // namespace GenomeTasks

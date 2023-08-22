@@ -7,6 +7,7 @@
 
 #include <string>
 
+#include "TEstimateErrors.h"
 #include "coretools/Main/TMain.h"
 
 //BAM
@@ -32,6 +33,8 @@
 #include "TCreateBedMask.h"
 #include "TDepthWriter.h"
 #include "TDistanceEstimator.h"
+#include "TEstimateErrors.h"
+#include "TEstimateMutationLoad.h"
 #include "TEstimateRecalibration.h"
 #include "TEstimateTheta.h"
 #include "TF2Estimator.h"
@@ -41,9 +44,8 @@
 #include "TMajorMinor.h"
 #include "TPSMCInput.h"
 #include "TPolymorhicWindowIdentifier.h"
-#include "TWriteGLF.h"
 #include "TSexEstimator.h"
-#include "TEstimateMutationLoad.h"
+#include "TWriteGLF.h"
 
 //VCF
 #include "TVcfCompare.h"
@@ -77,6 +79,7 @@ void addTaks(coretools::TMain & main) {
 	//main.addRegularTask("separateReads", new GenomeTasks::TTask_separateReads());
 
 	//window tasks
+	main.createRegularTask<GenomeTasks::TEstimateErrors>("estimateErrors", "Estimating PMD pattern and Sequencing Errors", "Kousathanas et al. (2017) Genetics");
 	main.createRegularTask<GenomeTasks::TEstimateRecalibration>("recal", "Estimating error re-calibration parameters", "Kousathanas et al. (2017) Genetics");
 	main.createRegularTask<GenomeTasks::TMaskCreator>("createMask", "Creating a mask BED file");
 	main.createRegularTask<GenomeTasks::TAllelicDepth>("allelicDepth", "Writing genotype likelihoods to a GLF file");

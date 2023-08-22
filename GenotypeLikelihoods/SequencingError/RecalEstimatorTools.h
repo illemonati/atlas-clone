@@ -56,8 +56,8 @@ private:
 	uint64_t _totalCounts = 0;
 public:
 	TRecalDataTables() = default;
-	TRecalDataTables(const BAM::TReadGroups *ReadGroups, const BAM::TReadGroupMap *ReadGroupMapObject)
-	    : _readGroups(ReadGroups), _readGroupMap(ReadGroupMapObject), _tables(_readGroupMap->numReadGroupsInUse()){};
+	TRecalDataTables(const BAM::TReadGroups &ReadGroups, const BAM::TReadGroupMap &ReadGroupMapObject)
+	    : _readGroups(&ReadGroups), _readGroupMap(&ReadGroupMapObject), _tables(_readGroupMap->numReadGroupsInUse()){};
 
 	void clear();
 	void initialize(const BAM::TReadGroups* ReadGroups, const BAM::TReadGroupMap* ReadGroupMapObject);
@@ -68,33 +68,6 @@ public:
 
 	constexpr uint64_t size() const noexcept {return _totalCounts;};
 	const TRecalDataTableOneReadGroup& operator[](uint16_t readGroupId) const;
-};
-
-//------------------------------------------------
-// Classes to keep track of models to estimate
-//------------------------------------------------
-class TModelStatusEntry{
-private:
-	coretools::TBitSet<2> _bs{};
-public:
-	constexpr uint16_t size() const noexcept { return _bs.get<0>() + _bs.get<1>(); };
-	constexpr void set(const bool &IsSecondMate) noexcept {
-		_bs[IsSecondMate] = true;
-	};
-	std::string getString() const;
-};
-
-enum class ModelStatusTypes : uint8_t {copied=0, noData, littleData, dataButNoRecal};
-using TModelStatus = coretools::TStrongArray<TModelStatusEntry, ModelStatusTypes, 4>;
-
-class TModelStati{
-private:
-	std::unordered_map<uint16_t, TModelStatus> modelStatus;
-public:
-	void add(uint16_t ReadGroupId);
-	TModelStatus& operator[](uint16_t ReadGroupId);
-	uint16_t num(ModelStatusTypes Type) const;
-	void report(ModelStatusTypes Type, const std::string & Title, const BAM::TReadGroups & ReadGroups) const;
 };
 
 }; // namespace GenotypeLikelihoods::RecalEstimatorTools

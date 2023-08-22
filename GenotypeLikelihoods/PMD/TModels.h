@@ -9,6 +9,7 @@
 #include "TGenotypeData.h"
 #include "TReadGroupInfo.h"
 #include "TSequencedBase.h"
+#include "genometools/GenotypeTypes.h"
 #include <string>
 #include <vector>
 
@@ -18,8 +19,16 @@ namespace BAM { class TSequencedBase; }
 namespace GenotypeLikelihoods::PMD {
 
 struct TModel {
-	TBaseLikelihoods baseLikelihoods(const BAM::TSequencedBase &) const noexcept {
-		return TBaseLikelihoods{};
+	TBaseLikelihoods P_dij(const BAM::TSequencedBase &, const TBaseLikelihoods &P_dij_bbar) const noexcept {
+		return P_dij_bbar;
+	}
+	TBaseProbabilities P_bbar(genometools::Base b, const BAM::TSequencedBase &data,
+							  const TBaseLikelihoods &P_dij_bbar) const noexcept {
+		return TBaseProbabilities{};
+	}
+	TBaseProbabilities P_bbar(genometools::Genotype g, const BAM::TSequencedBase &data,
+							  const TBaseLikelihoods &P_dij_bbar) const noexcept {
+		return TBaseProbabilities{};
 	}
 };
 struct TWithPMD final: public TModel {};
@@ -51,10 +60,19 @@ public:
 		return model(data.readGroupID);
 	}
 
-	bool recalibrates() const noexcept { return !_withPMD.empty(); }
+	bool hasPMD() const noexcept { return !_withPMD.empty(); }
 
-	TBaseLikelihoods baseLikelihoods(const BAM::TSequencedBase &data) const noexcept {
-		return model(data).baseLikelihoods(data);
+	TBaseLikelihoods P_dij(const BAM::TSequencedBase &data, const TBaseLikelihoods &P_dij_bbar) const noexcept {
+		return model(data).P_dij(data, P_dij_bbar);
+	}
+
+	TBaseProbabilities P_bbar(genometools::Base b, const BAM::TSequencedBase &data,
+							  const TBaseLikelihoods &P_dij_bbar) const noexcept {
+		return model(data).P_bbar(b, data, P_dij_bbar);
+	}
+	TBaseProbabilities P_bbar(genometools::Genotype g, const BAM::TSequencedBase &data,
+							  const TBaseLikelihoods &P_dij_bbar) const noexcept {
+		return model(data).P_bbar(g, data, P_dij_bbar);
 	}
 
 	void addToRGInfo(BAM::RGInfo::TReadGroupInfo & RgInfo) const;

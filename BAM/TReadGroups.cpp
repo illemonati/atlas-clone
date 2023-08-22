@@ -330,10 +330,6 @@ std::string TReadGroups::compileSamHeader() const{
 //---------------------------------------------------------------
 const size_t TReadGroupMap::ReadGroupMapNotInitializedIndex = -1; //largest possible values
 
-TReadGroupMap::TReadGroupMap(const TReadGroups & ReadGroups){
-	_fillWithoutPooling(ReadGroups);
-};
-
 TReadGroupMap::TReadGroupMap(const TReadGroups & ReadGroups, std::string_view filename){
 	if(filename.empty()){
 		_fillWithoutPooling(ReadGroups);

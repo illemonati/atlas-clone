@@ -16,15 +16,6 @@
 #include "coretools/Main/TTask.h"
 #include "SequencingError/TRecalEstimator.h"
 
-namespace BAM {
-class TReadGroupMap;
-}
-namespace GenotypeLikelihoods {
-namespace SequencingError {
-class TRecalibrationEMEstimator;
-}
-} // namespace GenotypeLikelihoods
-
 namespace GenomeTasks {
 
 //-----------------------------------------------------------
