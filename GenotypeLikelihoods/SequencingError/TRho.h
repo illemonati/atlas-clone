@@ -27,7 +27,6 @@ private:
 
 	coretools::TStrongArray<coretools::TStrongArray<double, genometools::Base>, genometools::Base> _rhoSum{};
 public:
-	TRho() = default;
 	TRho(std::string_view Def);
 	TRho(const BAM::RGInfo::TInfo & info);
 

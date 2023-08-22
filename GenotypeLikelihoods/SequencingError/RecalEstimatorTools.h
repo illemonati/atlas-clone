@@ -36,7 +36,6 @@ private:
 	std::vector<uint32_t> _mappingQualities;
 
 public:
-	void clear() noexcept;
 	void add(const BAM::TSequencedBase & base);
 
 	constexpr size_t size() const noexcept { return _counts; };
@@ -53,20 +52,20 @@ private:
 	const BAM::TReadGroups* _readGroups = nullptr;
 	const BAM::TReadGroupMap* _readGroupMap = nullptr;
 	std::vector<TRecalDataTableOneReadGroup> _tables; //tables[readGroup][first/second mate]
-	uint64_t _totalCounts = 0;
+	size_t _size = 0;
+	size_t _N_g1 = 0;
+
 public:
 	TRecalDataTables() = default;
 	TRecalDataTables(const BAM::TReadGroups &ReadGroups, const BAM::TReadGroupMap &ReadGroupMapObject)
 	    : _readGroups(&ReadGroups), _readGroupMap(&ReadGroupMapObject), _tables(_readGroupMap->numReadGroupsInUse()){};
 
-	void clear();
 	void initialize(const BAM::TReadGroups* ReadGroups, const BAM::TReadGroupMap* ReadGroupMapObject);
 	void reset();
-	void add(const BAM::TSequencedBase & base);
-	void add(const TSite & site);
 	void add(const std::vector<TSite> & sites);
 
-	constexpr uint64_t size() const noexcept {return _totalCounts;};
+	constexpr size_t size() const noexcept {return _size;};
+	constexpr size_t nSites_g1() const noexcept {return _N_g1;};
 	const TRecalDataTableOneReadGroup& operator[](uint16_t readGroupId) const;
 };
 

@@ -79,19 +79,6 @@ TRecalibrationEMEstimator::TRecalibrationEMEstimator(const BAM::TReadGroups *Rea
 	_NewtonRaphsonMaxF = parameters().getParameterWithDefault<double>("maxF", 0.0001);
 	logfile().list("Will stop Newton-Raphson when F < ", _NewtonRaphsonMaxF, ".");
 
-	// base frequency model
-	equalBaseFrequencies = true;
-	if (parameters().parameterExists("estimateBaseFrequencies")) {
-		equalBaseFrequencies = false;
-		logfile().list("Will estimate the base frequencies. (parameter ''estimateBaseFrequencies)");
-
-		// TODO: implement estimation of genotype distribution!
-		DEVERROR("Estimation of genotype distribution not yet implemented!");
-	} else if (equalBaseFrequencies) {
-		logfile().list("Will assume equal base frequencies {0.25, 0.25, 0.25, 0.25}. (use 'estimateBaseFrequencies' to "
-					   "estimate them)");
-	}
-
 	logfile().endIndent();
 };
 

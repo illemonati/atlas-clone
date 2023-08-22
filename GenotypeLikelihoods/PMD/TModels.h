@@ -9,6 +9,7 @@
 #include "TGenotypeData.h"
 #include "TReadGroupInfo.h"
 #include "TSequencedBase.h"
+#include "TModel.h"
 #include "genometools/GenotypeTypes.h"
 #include <string>
 #include <vector>
@@ -17,22 +18,6 @@ namespace BAM { class TReadGroups; }
 namespace BAM { class TSequencedBase; }
 
 namespace GenotypeLikelihoods::PMD {
-
-struct TModel {
-	TBaseLikelihoods P_dij(const BAM::TSequencedBase &, const TBaseLikelihoods &P_dij_bbar) const noexcept {
-		return P_dij_bbar;
-	}
-	TBaseProbabilities P_bbar(genometools::Base b, const BAM::TSequencedBase &data,
-							  const TBaseLikelihoods &P_dij_bbar) const noexcept {
-		return TBaseProbabilities{};
-	}
-	TBaseProbabilities P_bbar(genometools::Genotype g, const BAM::TSequencedBase &data,
-							  const TBaseLikelihoods &P_dij_bbar) const noexcept {
-		return TBaseProbabilities{};
-	}
-};
-struct TWithPMD final: public TModel {};
-struct TNoPMD final: public TModel {};
 
 class TModels {
 private:

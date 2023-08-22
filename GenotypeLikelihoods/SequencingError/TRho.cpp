@@ -10,7 +10,7 @@ TRho::TRho(std::string_view Def) {
 	using coretools::str::toString;
 	//"default" implies default rho
 
-	if (Def == "default" || Def == "-") {
+	if (Def.empty() || Def == "default" || Def == "-") {
 		return;
 	}
 

@@ -72,6 +72,9 @@ BAM::TReadGroupMap makeRGMap(const BAM::TReadGroups &ReadGroups) {
 	}
 	logfile().list("Will use a ", _genoDist->typeString(), " genotype distribution.");
 
+	_recal.initialize(_readGroupMap.size(), parameters().getParameterWithDefault("recalModel", "intercept;quality;position;context;fragmentLength;mappingQuality;"));
+	_pmd.initialize(_readGroupMap.size());
+
 	// estimation parameters
 	logfile().startIndent("Settings regarding the EM algorithm:");
 
@@ -84,19 +87,6 @@ BAM::TReadGroupMap makeRGMap(const BAM::TReadGroups &ReadGroups) {
 	logfile().list("Will conduct at max ", _NewtonRaphsonNumIterations, " Newton-Raphson iterations");
 	_NewtonRaphsonMaxF = parameters().getParameterWithDefault<double>("maxF", 0.0001);
 	logfile().list("Will stop Newton-Raphson when F < ", _NewtonRaphsonMaxF, ".");
-
-	// base frequency model
-	equalBaseFrequencies = true;
-	if (parameters().parameterExists("estimateBaseFrequencies")) {
-		equalBaseFrequencies = false;
-		logfile().list("Will estimate the base frequencies. (parameter ''estimateBaseFrequencies)");
-
-		// TODO: implement estimation of genotype distribution!
-		DEVERROR("Estimation of genotype distribution not yet implemented!");
-	} else if (equalBaseFrequencies) {
-		logfile().list("Will assume equal base frequencies {0.25, 0.25, 0.25, 0.25}. (use 'estimateBaseFrequencies' to "
-					   "estimate them)");
-	}
 
 	logfile().endIndent();
 };
@@ -124,10 +114,9 @@ void TErrorEstimator::_initializeModels() {
 	logfile().done();
 
 	logfile().conclude("Number of sites with data: ", _sites.size());
-	size_t numSitesDepthTwoOrMore = _numSitesDepthTwoOrMore();
-	logfile().conclude("Number of sites with depth > 1: ", numSitesDepthTwoOrMore);
+	logfile().conclude("Number of sites with depth > 1: ", dataTables.nSites_g1());
 	logfile().conclude("Number of bases: ", dataTables.size());
-	if (numSitesDepthTwoOrMore < 100) UERROR("Less than 100 sites with depth >= 2 available - aborting estimation!");
+	if (dataTables.nSites_g1() < 100) UERROR("Less than 100 sites with depth >= 2 available - aborting estimation!");
 
 	// identify models with data that can be estimated
 	logfile().startIndent("Identifying models to estimate:");
