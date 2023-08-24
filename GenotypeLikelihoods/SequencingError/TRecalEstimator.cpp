@@ -32,8 +32,6 @@
 #include "coretools/Types/probability.h"
 #include "coretools/Strings/stringFunctions.h"
 
-#include "coretools/devtools.h"
-
 namespace GenotypeLikelihoods {
 
 namespace SequencingError {

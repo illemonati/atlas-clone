@@ -14,7 +14,6 @@
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/Types/commonWeakTypes.h"
-#include "coretools/devtools.h"
 
 using coretools::instances::parameters;
 using coretools::instances::logfile;

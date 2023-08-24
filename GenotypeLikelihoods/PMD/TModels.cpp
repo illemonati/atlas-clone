@@ -1,4 +1,5 @@
 #include "TModels.h"
+#include "TReadGroupInfo.h"
 
 namespace GenotypeLikelihoods::PMD {
 void TModels::initialize(size_t NReadGroups, std::string_view PMDString) {
@@ -14,12 +15,36 @@ void TModels::initialize(size_t NReadGroups, std::string_view PMDString) {
 }
 
 
-void TModels::initialize(BAM::RGInfo::TReadGroupInfo & RGInfo) {
-		
+void TModels::initialize(BAM::RGInfo::TReadGroupInfo & RgInfo) {
+	using BAM::RGInfo::InfoType;
+	std::vector<int> iis(RgInfo.size(), -1);
+	for (size_t rg = 0; rg < RgInfo.size(); ++rg) {
+		const auto &Info = RgInfo[rg];
+		if (Info.has(InfoType::pmd)) {
+			const auto &json = Info[InfoType::pmd];
+			if (json.empty()) continue;
+			if (json.is_string()) {
+				const auto sinfo = json.get<std::string_view>();
+				if (sinfo.empty() || sinfo == "-" || sinfo == "default") continue;
+				_withPMD.emplace_back(sinfo);
+				iis[rg] = _withPMD.size();
+			} else {
+				_withPMD.emplace_back(json);
+				iis[rg] = _withPMD.size();
+			}
+		}
+	}
+	_pModels.resize(RgInfo.size());
+	for (size_t rg = 0; rg < RgInfo.size(); ++rg) {
+		if (iis[rg] == -1) _pModels[rg] = &_noPMD;
+		else _pModels[rg] = &_withPMD[iis[rg]];
+	}
 }
 
 void TModels::addToRGInfo(BAM::RGInfo::TReadGroupInfo & RgInfo) const {
-		
+	for(size_t r = 0; r < _pModels.size(); ++r){
+		RgInfo.set(r, BAM::RGInfo::InfoType::pmd, model(r).info());
+	}
 }
 
 void TModels::pool(const BAM::TReadGroupMap& rgMap) {

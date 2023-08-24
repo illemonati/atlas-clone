@@ -1,46 +1,93 @@
 #include "TModel.h"
 #include "TSequencedBase.h"
-#include "coretools/devtools.h"
 
 namespace GenotypeLikelihoods::PMD {
-TBaseProbabilities TNoPMD::P_bbar(genometools::Base b, const BAM::TSequencedBase &,
+
+using genometools::Base;
+using genometools::Genotype;
+using BAM::TSequencedBase;
+
+TBaseProbabilities TNoPMD::P_bbar(Base b, const TSequencedBase &,
 								  const TBaseLikelihoods &) const noexcept {
 	static constexpr TBaseMassFunctions P_bbars{
 	    {TBaseProbabilities::normalize({1., 0., 0., 0.}), TBaseProbabilities::normalize({0., 1., 0., 0.}),
 	     TBaseProbabilities::normalize({0., 0., 1., 0.}), TBaseProbabilities::normalize({0., 0., 0., 1.})}};
 	return P_bbars[b];
 }
-TBaseProbabilities TNoPMD::P_bbar(genometools::Genotype g, const BAM::TSequencedBase &,
+TBaseProbabilities TNoPMD::P_bbar(Genotype g, const TSequencedBase &,
 								  const TBaseLikelihoods &P_dij_bbar) const noexcept {
-	using namespace genometools;
 	const Base a = first(g);
 	const Base b = second(g);
-	TBaseLikelihoods mf{0};
-	mf[a] = P_dij_bbar[a];
-	mf[b] = P_dij_bbar[b];
-	return TBaseProbabilities::normalize(mf);
+	TBaseLikelihoods Psum{0};
+	Psum[a] = P_dij_bbar[a];
+	Psum[b] = P_dij_bbar[b];
+	return TBaseProbabilities::normalize(Psum);
 }
 
-TBaseProbabilities TWithPMD::P_bbar(genometools::Base b, const BAM::TSequencedBase &data,
-							  const TBaseLikelihoods &P_dij_bbar) const noexcept {
-	OUT(b, data.base, P_dij_bbar);
-	return TBaseProbabilities::normalize({1., 0., 0., 0.});
-}
-TBaseProbabilities TWithPMD::P_bbar(genometools::Genotype g, const BAM::TSequencedBase &data,
-							  const TBaseLikelihoods &P_dij_bbar) const noexcept {
-	OUT(g, data.base, P_dij_bbar);
-	return TBaseProbabilities::normalize({1., 0., 0., 0.});
+TBaseProbabilities TWithPMD::P_bbar(Base b, const TSequencedBase &data,
+									const TBaseLikelihoods &P_dij_bbar) const noexcept {
+	switch (b) {
+	case Base::A: return TBaseProbabilities::normalize({1., 0., 0., 0.});
+	case Base::C: {
+		const auto pCT = _psi.prob<Type::CT>(data);
+		return TBaseProbabilities::normalize({0., (1. - pCT) * P_dij_bbar[Base::C], 0., pCT * P_dij_bbar[Base::T]});
+	}
+	case Base::G: {
+		const auto pGA = _psi.prob<Type::GA>(data);
+		return TBaseProbabilities::normalize({pGA * P_dij_bbar[Base::A], 0., (1. - pGA) * P_dij_bbar[Base::G], 0.});
+	}
+	default: return TBaseProbabilities::normalize({0., 0., 0., 1.}); // case Base::T
+	}
 }
 
-TBaseLikelihoods TWithPMD::P_dij(const BAM::TSequencedBase &data, const TBaseLikelihoods &P_dij_bbar) const noexcept {
-	using genometools::Base;
+TBaseProbabilities TWithPMD::P_bbar(Genotype g, const TSequencedBase &data,
+							  const TBaseLikelihoods &P_dij_bbar) const noexcept {
 	const auto pCT = _psi.prob<Type::CT>(data);
 	const auto pGA = _psi.prob<Type::GA>(data);
-	TBaseLikelihoods ret(P_dij_bbar);
 
-	ret[Base::C] = (1.0 - pCT) * P_dij_bbar[Base::C] + pCT * P_dij_bbar[Base::T];
-	ret[Base::G] = (1.0 - pGA) * P_dij_bbar[Base::G] + pGA * P_dij_bbar[Base::A];
-	return ret;
+		TBaseData Psum{0};
+		for (const auto a : {first(g), second(g)}) {
+			switch (a) {
+			case Base::A: Psum[Base::A] += P_dij_bbar[Base::A]; break;
+			case Base::C: {
+				Psum[Base::C] += (1. - pCT) * P_dij_bbar[Base::C];
+				Psum[Base::T] += pCT * P_dij_bbar[Base::T];
+			} break;
+			case Base::G: {
+				Psum[Base::A] += pGA * P_dij_bbar[Base::A];
+				Psum[Base::G] += (1. - pGA) * P_dij_bbar[Base::G];
+			} break;
+			default: Psum[Base::T] += P_dij_bbar[Base::T];
+			}
+		}
+		return TBaseProbabilities::normalize(Psum);
+	return TBaseProbabilities::normalize({1., 0., 0., 0.});
+}
+
+TBaseLikelihoods TWithPMD::P_dij(const TSequencedBase &data, const TBaseLikelihoods &P_dij_bbar) const noexcept {
+	const auto pCT = _psi.prob<Type::CT>(data);
+	const auto pGA = _psi.prob<Type::GA>(data);
+
+	TBaseLikelihoods P(P_dij_bbar);
+	P[Base::C] = (1.0 - pCT) * P_dij_bbar[Base::C] + pCT * P_dij_bbar[Base::T];
+	P[Base::G] = (1.0 - pGA) * P_dij_bbar[Base::G] + pGA * P_dij_bbar[Base::A];
+	return P;
+}
+
+void TWithPMD::simulate(BAM::TAlignment &aln) const {
+	using coretools::instances::randomGenerator;
+	using genometools::Base;
+	for (auto &d : aln) {
+			auto &base = d.base;
+
+			if (base == Base::C) {
+				const auto pCT = _psi.prob<Type::CT>(d);
+				if (randomGenerator().getRand() < pCT) base = Base::T;
+			} else if (base == Base::G) {
+				const auto pGA = _psi.prob<Type::GA>(d);
+				if (randomGenerator().getRand() < pGA) base = Base::A;
+			}
+	}
 }
 
 } // namespace GenotypeLikelihoods::PMD

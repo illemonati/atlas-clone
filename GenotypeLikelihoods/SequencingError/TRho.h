@@ -39,7 +39,7 @@ public:
 	void add(genometools::Base l, coretools::Probability P_g_I_d, const TBaseProbabilities &P_bbar_I_d) noexcept;
 	void estimate() noexcept;
 
-	BAM::RGInfo::TInfo info() const ;
+	BAM::RGInfo::TInfo info() const;
 };
 
 	

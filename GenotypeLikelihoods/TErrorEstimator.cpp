@@ -30,8 +30,6 @@
 #include "coretools/Types/probability.h"
 #include "coretools/Strings/stringFunctions.h"
 
-#include "coretools/devtools.h"
-
 namespace GenotypeLikelihoods {
 
 using coretools::instances::logfile;
@@ -73,7 +71,7 @@ BAM::TReadGroupMap makeRGMap(const BAM::TReadGroups &ReadGroups) {
 	logfile().list("Will use a ", _genoDist->typeString(), " genotype distribution.");
 
 	_recal.initialize(_readGroupMap.size(), parameters().getParameterWithDefault("recalModel", "intercept;quality;position;context;fragmentLength;mappingQuality;"));
-	_pmd.initialize(_readGroupMap.size(), parameters().getParameterWithDefault("pmdModel", "0.1*exp(-0.3*p)+0.001"));
+	_pmd.initialize(_readGroupMap.size(), parameters().getParameterWithDefault("pmdModel", "CT5;CT3"));
 
 	// estimation parameters
 	logfile().startIndent("Settings regarding the EM algorithm:");

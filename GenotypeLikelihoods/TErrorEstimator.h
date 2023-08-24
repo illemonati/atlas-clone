@@ -52,7 +52,6 @@ private:
 
 
 	// variables for estimation
-	bool equalBaseFrequencies;
 	int _numEMIterations;
 	double _minDeltaLL;
 	int _NewtonRaphsonNumIterations;

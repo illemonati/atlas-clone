@@ -7,6 +7,7 @@
 
 
 #include "PMD/TPsi.h"
+#include "TAlignment.h"
 #include "TGenotypeData.h"
 #include "coretools/Types/probability.h"
 namespace BAM { class TReadGroups; }
@@ -21,6 +22,8 @@ struct TModel {
 									  const TBaseLikelihoods &P_dij_bbar) const noexcept = 0;
 	virtual TBaseProbabilities P_bbar(genometools::Genotype g, const BAM::TSequencedBase &data,
 									  const TBaseLikelihoods &P_dij_bbar) const noexcept = 0;
+	virtual void simulate(BAM::TAlignment &aln) const                                    = 0;
+	virtual BAM::RGInfo::TInfo info() const                                              = 0;
 };
 
 struct TNoPMD final : public TModel {
@@ -31,17 +34,23 @@ struct TNoPMD final : public TModel {
 							  const TBaseLikelihoods &P_dij_bbar) const noexcept override;
 	TBaseProbabilities P_bbar(genometools::Genotype g, const BAM::TSequencedBase &data,
 							  const TBaseLikelihoods &P_dij_bbar) const noexcept override;
+	void simulate(BAM::TAlignment &) const override {};
+	BAM::RGInfo::TInfo info() const override {return {};}
 };
 
 class TWithPMD final: public TModel {
 	TPsi _psi;
 public:
 	TWithPMD(std::string_view Psi) : _psi(Psi) {}
+	TWithPMD(const BAM::RGInfo::TInfo & info) : _psi(info) {}
+
 	TBaseLikelihoods P_dij(const BAM::TSequencedBase &data, const TBaseLikelihoods &P_dij_bbar) const noexcept override;
 	TBaseProbabilities P_bbar(genometools::Base b, const BAM::TSequencedBase &data,
 							  const TBaseLikelihoods &P_dij_bbar) const noexcept override;
 	TBaseProbabilities P_bbar(genometools::Genotype g, const BAM::TSequencedBase &data,
 							  const TBaseLikelihoods &P_dij_bbar) const noexcept override;
+	void simulate(BAM::TAlignment &aln) const override;
+	BAM::RGInfo::TInfo info() const override {return _psi.info();}
 };
 } // namespace GenotypeLikelihoods::PMD
 
