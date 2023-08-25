@@ -43,7 +43,6 @@ TEstimateErrors::TEstimateErrors()
 		logfile().list(
 			"Will use all sites without prior knowledge on alleles. (use 'genotypes' to provide known genotypes)");
 	}
-
 	_onlyLL = parameters().parameterExists("onlyLL");
 };
 

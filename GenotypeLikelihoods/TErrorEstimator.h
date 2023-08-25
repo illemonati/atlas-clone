@@ -49,6 +49,7 @@ private:
 
 	std::vector<SequencingError::TEpsilon*> _epsilons;
 	std::vector<SequencingError::TRho*> _rhos;
+	std::vector<PMD::TPsi*> _psis;
 
 
 	// variables for estimation
@@ -64,7 +65,7 @@ private:
 	void _runEM();
 
 	// functions to estimate theta_epsilon (sequencing error rates)
-	void _estimateRho_updatePbbar();
+	void _estimatePMD_Rho_updatePbbar();
 
 	template<bool updateJF, bool isInvariant> void _calculateQ() {
 		size_t ij = 0;

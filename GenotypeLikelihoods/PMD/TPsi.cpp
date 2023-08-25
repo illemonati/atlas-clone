@@ -3,6 +3,8 @@
 #include "coretools/Strings/splitters.h"
 #include "coretools/Strings/stringFunctions.h"
 #include "coretools/Types/probability.h"
+#include "coretools/devtools.h"
+#include "genometools/GenotypeTypes.h"
 
 namespace GenotypeLikelihoods::PMD {
 using coretools::Probability;
@@ -79,11 +81,32 @@ TPsi::TPsi(std::string_view Psi) {
 	_fromString(Psi);
 }
 
-TPsi::TPsi(const BAM::RGInfo::TInfo & info) {
+TPsi::TPsi(const BAM::RGInfo::TInfo &info) {
 	if (info.is_string()) {
 		_fromString(info.get<std::string_view>());
 	} else {
-	}	
+		for (auto t = Type::min; t < Type::max; ++t) {
+			for (auto e = End::min; e < End::max; ++e) {
+				auto &v        = _tables[t][e];
+				const auto key = impl::toString(t) + impl::toString(e);
+				if (info[key].empty()) {
+					v = {0.};
+				} else {
+					if (info[key].is_string()) {
+						const auto sFunction = info[key].get<std::string_view>();
+						if (sFunction.find('*') != sFunction.npos)
+							v = impl::exp(sFunction);
+						else
+							v = impl::empiric(sFunction);
+					} else if (info[key].is_array()) {
+						for (auto d : info[key]) { v.emplace_back(d); }
+					} else {
+						UERROR("Cannot parse json-token ", info, "!");
+					}
+				}
+			}
+		}
+	}
 }
 
 BAM::RGInfo::TInfo TPsi::info() const {
@@ -92,11 +115,28 @@ BAM::RGInfo::TInfo TPsi::info() const {
 		for (auto e = End::min; e < End::max; ++e) {
 			const auto & v = _tables[t][e];
 			if (v.size() > 1 || v.front() > 0.) {
-				const auto k = impl::toString(t) + impl::toString(e);
-				for (auto p : v) info[k].push_back(p.get()); // explicit conversion from probability to double
+				const auto key = impl::toString(t) + impl::toString(e);
+				for (auto p : v) info[key].push_back(p.get()); // explicit conversion from probability to double
 			}
 		}
 	}
 	return info;
 }
+
+void TPsi::estimate() noexcept {
+	for (auto t = Type::min; t < Type::max; ++t) {
+		for (auto e = End::min; e < End::max; ++e) {
+			auto &table = _tables[t][e];
+			auto &tSum  = _tableSums[t][e];
+
+			table.clear();
+			for (const auto& ts: tSum) {
+				table.push_back(ts.num/ts.denom);
+			}
+			tSum.clear();
+		}
+	}
+	OUT(_tables);
 }
+
+} // namespace GenotypeLikelihoods::PMD

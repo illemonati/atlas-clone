@@ -70,8 +70,14 @@ BAM::TReadGroupMap makeRGMap(const BAM::TReadGroups &ReadGroups) {
 	}
 	logfile().list("Will use a ", _genoDist->typeString(), " genotype distribution.");
 
-	_recal.initialize(_readGroupMap.size(), parameters().getParameterWithDefault("recalModel", "intercept;quality;position;context;fragmentLength;mappingQuality;"));
-	_pmd.initialize(_readGroupMap.size(), parameters().getParameterWithDefault("pmdModel", "CT5;CT3"));
+	const auto recalModel = parameters().getParameterWithDefault("recalModel", "intercept;quality;position;context;fragmentLength;mappingQuality;");
+	const auto pmdModel   =parameters().getParameterWithDefault("pmdModel", "CT5;CT3");
+
+	logfile().list("Initial recal model: ", recalModel, ".");
+	logfile().list("Initial pmd model: ", pmdModel, ".");
+	_recal.initialize(_readGroupMap.size(), recalModel);
+	_pmd.initialize(_readGroupMap.size(), pmdModel);
+
 
 	// estimation parameters
 	logfile().startIndent("Settings regarding the EM algorithm:");
@@ -121,11 +127,11 @@ void TErrorEstimator::_initializeModels() {
 	_recal.pool(_readGroupMap);
 	_pmd.pool(_readGroupMap);
 	for (auto rg : _readGroupMap.readGroupsInUse()) {
-			for (Mate mate = Mate::min; mate < Mate::max; ++mate) {
-			const auto& table = dataTables[rg][mate];
+		for (Mate mate = Mate::min; mate < Mate::max; ++mate) {
+			const auto &table = dataTables[rg][mate];
 			if (table.size() > 0) {
-				auto& recal = _recal.RGModel(rg)[mate];
-				if (!recal->recalibrates()) UERROR("Cannot estimate readgroup ", rg, ", mate ", mate, "!");
+				auto &recal = _recal.RGModel(rg)[mate];
+				if (!recal->recalibrates()) UERROR("Cannot estimate recal for readgroup ", rg, ", mate ", mate, "!");
 				recal->epsilon()->init(table);
 				_epsilons.push_back(recal->epsilon());
 				_rhos.push_back(recal->rho());
@@ -133,12 +139,14 @@ void TErrorEstimator::_initializeModels() {
 				_recal.reset(rg, mate);
 			}
 		}
+		auto &pmd = _pmd.model(rg);
+		if (!pmd.hasPMD()) UERROR("Cannot estimate PMD for readgroup ", rg, "!");
+		_psis.push_back(pmd.psi());
 	}
 	logfile().endIndent();
 };
 
-
-void TErrorEstimator::_estimateRho_updatePbbar() {
+void TErrorEstimator::_estimatePMD_Rho_updatePbbar() {
 	using genometools::genotype;
 	_P_bbarEdij_I_gdijs.clear();
 	for (size_t i = 0; i < _sites.size(); ++i) {
@@ -146,12 +154,20 @@ void TErrorEstimator::_estimateRho_updatePbbar() {
 			_P_bbarEdij_I_gdijs.emplace_back(0.);
 			auto &P_bbarEdij_I_gdij = _P_bbarEdij_I_gdijs.back();
 			const auto P_dij_I_bbar = _recal.P_dij(d_ij);
+
+			// PMD
+			const auto P_bbar_I_C   = _pmd.P_bbar(Base::C, d_ij, P_dij_I_bbar);
+			const auto P_bbar_I_G   = _pmd.P_bbar(Base::G, d_ij, P_dij_I_bbar);
+			_pmd.model(d_ij).psi()->add(d_ij, _P_g_I_dis[i], P_bbar_I_C, P_bbar_I_G);
+
+			// Rho
 			for (auto a = Base::min; a < Base::max; ++a) {
 				const auto aa              = genotype(a, a);
 				const auto P_bbar_I_aa_dij = _pmd.P_bbar(a, d_ij, P_dij_I_bbar);
 				P_bbarEdij_I_gdij[aa]      = P_bbar_I_aa_dij[d_ij.base];
 
 				_recal.model(d_ij).rho()->add(d_ij.base, _P_g_I_dis[i][aa], P_bbar_I_aa_dij);
+
 				if (!_genoDist->isInvariant()) {
 					for (auto b = coretools::next(a); b < Base::max; ++b) {
 						const auto ab              = genotype(a, b);
@@ -165,6 +181,7 @@ void TErrorEstimator::_estimateRho_updatePbbar() {
 		}
 	}
 	for (auto& rho: _rhos) rho->estimate();
+	for (auto& psi: _psis) psi->estimate();
 }
 
 void TErrorEstimator::_updateEpsilon(double deltaLL_LL) {
@@ -288,7 +305,7 @@ void TErrorEstimator::_runEM() {
 		_genoDist->estimate();
 
 		logfile().list("Updating rho");
-		_estimateRho_updatePbbar();
+		_estimatePMD_Rho_updatePbbar();
 
 		logfile().startIndent("Updating epsilon");
 		_updateEpsilon(std::abs(deltaLL / oldLL));

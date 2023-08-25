@@ -23,6 +23,8 @@ struct TModel {
 	virtual TBaseProbabilities P_bbar(genometools::Genotype g, const BAM::TSequencedBase &data,
 									  const TBaseLikelihoods &P_dij_bbar) const noexcept = 0;
 	virtual void simulate(BAM::TAlignment &aln) const                                    = 0;
+	virtual TPsi *psi() noexcept                                                         = 0;
+	virtual bool hasPMD() const noexcept                                                 = 0;
 	virtual BAM::RGInfo::TInfo info() const                                              = 0;
 };
 
@@ -35,6 +37,8 @@ struct TNoPMD final : public TModel {
 	TBaseProbabilities P_bbar(genometools::Genotype g, const BAM::TSequencedBase &data,
 							  const TBaseLikelihoods &P_dij_bbar) const noexcept override;
 	void simulate(BAM::TAlignment &) const override {};
+	TPsi *psi() noexcept override {return nullptr;}
+	bool hasPMD() const noexcept override {return false;}
 	BAM::RGInfo::TInfo info() const override {return {};}
 };
 
@@ -50,6 +54,8 @@ public:
 	TBaseProbabilities P_bbar(genometools::Genotype g, const BAM::TSequencedBase &data,
 							  const TBaseLikelihoods &P_dij_bbar) const noexcept override;
 	void simulate(BAM::TAlignment &aln) const override;
+	TPsi *psi() noexcept override {return &_psi;}
+	bool hasPMD() const noexcept override {return true;}
 	BAM::RGInfo::TInfo info() const override {return _psi.info();}
 };
 } // namespace GenotypeLikelihoods::PMD

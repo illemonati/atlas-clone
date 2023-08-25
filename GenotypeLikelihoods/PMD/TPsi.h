@@ -5,6 +5,7 @@
 #ifndef GENOTYPELIKELIHOODS_PMD_TPSI_H_
 #define GENOTYPELIKELIHOODS_PMD_TPSI_H_
 
+#include "TGenotypeData.h"
 #include "TReadGroupInfo.h"
 #include "TSequencedBase.h"
 #include "coretools/Containers/TStrongArray.h"
@@ -18,9 +19,35 @@ namespace GenotypeLikelihoods::PMD {
 enum class Type : size_t {min, CT=min, GA, max};
 enum class End : size_t {min, from5=min, from3, max};
 class TPsi {
+	struct NumDenom {
+		double num   = 0.;
+		double denom = 0.;
+	};
 	coretools::TStrongArray<coretools::TStrongArray<std::vector<coretools::Probability>, End>, Type> _tables;
+	coretools::TStrongArray<coretools::TStrongArray<std::vector<NumDenom>, End>, Type> _tableSums;
 
 	void _fromString(std::string_view Psi);
+
+	template<Type From_To>
+	void _add(const BAM::TSequencedBase &data, const TGenotypeLikelihoods &P_g_I_dij,
+			  const TBaseProbabilities &P_bbar_I_C) {
+		constexpr coretools::TStrongArray<Type, Type> flip{{Type::GA, Type::CT}};
+
+		const auto realType = data.isReverseStrand() ? flip[From_To] : From_To;
+		const auto end      = data.distFrom5Prime < data.distFrom3Prime ? End::from5 : End::from3;
+		const auto pos      = end == End::from5 ? data.distFrom5Prime : data.distFrom3Prime;
+
+		auto &tSum          = _tableSums[realType][end];
+		if (tSum.size() <= pos) tSum.resize(pos + 1);
+
+		using genometools::Base;
+		for (auto a = Base::min; a < Base::max; ++a) {
+			const auto g = genometools::genotype(Base::C, a);
+			tSum[pos].num += P_bbar_I_C[Base::T] * P_g_I_dij[g];
+			tSum[pos].denom += (P_bbar_I_C[Base::T] + P_bbar_I_C[Base::C]) * P_g_I_dij[g];
+		}
+	}
+
 public:
 	TPsi(std::string_view Psi); 
 	TPsi(const BAM::RGInfo::TInfo & info);
@@ -39,6 +66,14 @@ public:
 		if (pos >= table.size()) return table.back();
 		return table[pos];
 	}
+
+	void add(const BAM::TSequencedBase &data, const TGenotypeLikelihoods &P_g_I_dij,
+			 const TBaseProbabilities &P_bbar_I_C, const TBaseProbabilities &P_bbar_I_G) noexcept {
+		_add<Type::CT>(data, P_g_I_dij, P_bbar_I_C);
+		_add<Type::GA>(data, P_g_I_dij, P_bbar_I_G);
+	}
+
+	void estimate() noexcept;
 };
 } // namespace GenotypeLikelihoods::PMD
 
