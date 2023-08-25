@@ -23,28 +23,33 @@ class TPsi {
 		double num   = 0.;
 		double denom = 0.;
 	};
-	coretools::TStrongArray<coretools::TStrongArray<std::vector<coretools::Probability>, End>, Type> _tables;
-	coretools::TStrongArray<coretools::TStrongArray<std::vector<NumDenom>, End>, Type> _tableSums;
+	coretools::TStrongArray<coretools::TStrongArray<std::vector<coretools::Probability>, Type>, End> _tables;
+	coretools::TStrongArray<coretools::TStrongArray<std::vector<NumDenom>, Type>, End> _tableSums;
 
 	void _fromString(std::string_view Psi);
 
 	template<Type From_To>
 	void _add(const BAM::TSequencedBase &data, const TGenotypeLikelihoods &P_g_I_dij,
-			  const TBaseProbabilities &P_bbar_I_C) {
-		constexpr coretools::TStrongArray<Type, Type> flip{{Type::GA, Type::CT}};
+			  const TBaseProbabilities &P_bbar_I_From) {
+		using genometools::Base;
+		constexpr coretools::TStrongArray<Type, Type> Flip{{Type::GA, Type::CT}};
+		constexpr coretools::TStrongArray<Base, Type> From{{Base::C, Base::G}};
+		constexpr coretools::TStrongArray<Base, Type> To{{Base::T, Base::A}};
 
-		const auto realType = data.isReverseStrand() ? flip[From_To] : From_To;
+
+		const auto realType = data.isReverseStrand() ? Flip[From_To] : From_To;
 		const auto end      = data.distFrom5Prime < data.distFrom3Prime ? End::from5 : End::from3;
 		const auto pos      = end == End::from5 ? data.distFrom5Prime : data.distFrom3Prime;
+		const auto from     = From[realType];
+		const auto to       = To[realType];
 
-		auto &tSum          = _tableSums[realType][end];
+		auto &tSum          = _tableSums[end][realType];
 		if (tSum.size() <= pos) tSum.resize(pos + 1);
 
-		using genometools::Base;
 		for (auto a = Base::min; a < Base::max; ++a) {
-			const auto g = genometools::genotype(Base::C, a);
-			tSum[pos].num += P_bbar_I_C[Base::T] * P_g_I_dij[g];
-			tSum[pos].denom += (P_bbar_I_C[Base::T] + P_bbar_I_C[Base::C]) * P_g_I_dij[g];
+			const auto g = genometools::genotype(from, a);
+			tSum[pos].num   += P_bbar_I_From[to] * P_g_I_dij[g];
+			tSum[pos].denom += (P_bbar_I_From[to] + P_bbar_I_From[from]) * P_g_I_dij[g];
 		}
 	}
 
@@ -62,7 +67,7 @@ public:
 		const auto end      = data.distFrom5Prime < data.distFrom3Prime ? End::from5 : End::from3;
 		const auto pos      = end == End::from5 ? data.distFrom5Prime : data.distFrom3Prime;
 
-		const auto &table = _tables[realType][end];
+		const auto &table = _tables[end][realType];
 		if (pos >= table.size()) return table.back();
 		return table[pos];
 	}
@@ -74,6 +79,8 @@ public:
 	}
 
 	void estimate() noexcept;
+
+	std::string definition() const noexcept;
 };
 } // namespace GenotypeLikelihoods::PMD
 

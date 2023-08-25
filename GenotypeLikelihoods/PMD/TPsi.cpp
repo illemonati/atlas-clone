@@ -3,7 +3,6 @@
 #include "coretools/Strings/splitters.h"
 #include "coretools/Strings/stringFunctions.h"
 #include "coretools/Types/probability.h"
-#include "coretools/devtools.h"
 #include "genometools/GenotypeTypes.h"
 
 namespace GenotypeLikelihoods::PMD {
@@ -69,8 +68,8 @@ void TPsi::_fromString(std::string_view Psi) {
 		const auto type      = impl::type(sType.substr(0, 2));
 		const auto end       = impl::end(sType.substr(2, 1));
 		const auto sFunction = readAfter(s, ':');
-		if (sFunction.find('*') != sFunction.npos) _tables[type][end] = impl::exp(sFunction);
-		else _tables[type][end] = impl::empiric(sFunction);
+		if (sFunction.find('*') != sFunction.npos) _tables[end][type] = impl::exp(sFunction);
+		else _tables[end][type] = impl::empiric(sFunction);
 	}
 	for (auto& t: _tables)
 		for (auto &v: t)
@@ -85,9 +84,9 @@ TPsi::TPsi(const BAM::RGInfo::TInfo &info) {
 	if (info.is_string()) {
 		_fromString(info.get<std::string_view>());
 	} else {
-		for (auto t = Type::min; t < Type::max; ++t) {
-			for (auto e = End::min; e < End::max; ++e) {
-				auto &v        = _tables[t][e];
+		for (auto e = End::min; e < End::max; ++e) {
+			for (auto t = Type::min; t < Type::max; ++t) {
+				auto &v        = _tables[e][t];
 				const auto key = impl::toString(t) + impl::toString(e);
 				if (info[key].empty()) {
 					v = {0.};
@@ -111,9 +110,9 @@ TPsi::TPsi(const BAM::RGInfo::TInfo &info) {
 
 BAM::RGInfo::TInfo TPsi::info() const {
 	BAM::RGInfo::TInfo info;
-	for (auto t = Type::min; t < Type::max; ++t) {
-		for (auto e = End::min; e < End::max; ++e) {
-			const auto & v = _tables[t][e];
+	for (auto e = End::min; e < End::max; ++e) {
+		for (auto t = Type::min; t < Type::max; ++t) {
+			const auto &v = _tables[e][t];
 			if (v.size() > 1 || v.front() > 0.) {
 				const auto key = impl::toString(t) + impl::toString(e);
 				for (auto p : v) info[key].push_back(p.get()); // explicit conversion from probability to double
@@ -124,10 +123,10 @@ BAM::RGInfo::TInfo TPsi::info() const {
 }
 
 void TPsi::estimate() noexcept {
-	for (auto t = Type::min; t < Type::max; ++t) {
-		for (auto e = End::min; e < End::max; ++e) {
-			auto &table = _tables[t][e];
-			auto &tSum  = _tableSums[t][e];
+	for (auto e = End::min; e < End::max; ++e) {
+		for (auto t = Type::min; t < Type::max; ++t) {
+			auto &table = _tables[e][t];
+			auto &tSum  = _tableSums[e][t];
 
 			table.clear();
 			for (const auto& ts: tSum) {
@@ -136,7 +135,24 @@ void TPsi::estimate() noexcept {
 			tSum.clear();
 		}
 	}
-	OUT(_tables);
+}
+
+std::string TPsi::definition() const noexcept {
+	std::string ret;
+	for (auto e = End::min; e < End::max; ++e) {
+		for (auto t = Type::min; t < Type::max; ++t) {
+			const auto &v = _tables[e][t];
+			if (v.size() > 1 || v.front() > 0.) {
+				const auto key = impl::toString(t) + impl::toString(e);
+				ret.append(key).append(":[");
+				for (auto p : v) ret.append(toString(p)).append(1, ',');
+				ret.back() = ']';
+				ret.append(1, ';');
+			}
+		}
+	}
+	ret.resize(ret.size() - 1);
+	return ret;
 }
 
 } // namespace GenotypeLikelihoods::PMD

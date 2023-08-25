@@ -71,7 +71,7 @@ BAM::TReadGroupMap makeRGMap(const BAM::TReadGroups &ReadGroups) {
 	logfile().list("Will use a ", _genoDist->typeString(), " genotype distribution.");
 
 	const auto recalModel = parameters().getParameterWithDefault("recalModel", "intercept;quality;position;context;fragmentLength;mappingQuality;");
-	const auto pmdModel   =parameters().getParameterWithDefault("pmdModel", "CT5;CT3");
+	const auto pmdModel   =parameters().getParameterWithDefault("pmdModel", "CT5:0.1*exp(-0.1*p)+0.;GA5:0.1*exp(-0.1*p)+0.;CT3:0.1*exp(-0.1*p)+0.;GA3:0.1*exp(-0.1*p)+0.");
 
 	logfile().list("Initial recal model: ", recalModel, ".");
 	logfile().list("Initial pmd model: ", pmdModel, ".");
@@ -290,6 +290,9 @@ void TErrorEstimator::_runEM() {
 	logfile().startIndent("Initial epsilon");
 	for (const auto& e: _epsilons) logfile().list(e->definition());
 	logfile().endIndent();
+	logfile().startIndent("Initial psi");
+	for (const auto& p: _psis) logfile().list(p->definition());
+	logfile().endIndent();
 
 	// calculate initial LL
 	double oldLL   = _calculateLL_updatePg();
@@ -316,6 +319,9 @@ void TErrorEstimator::_runEM() {
 		logfile().endIndent();
 		logfile().startIndent("Current epsilon");
 		for (const auto &e : _epsilons) logfile().list(e->definition());
+		logfile().endIndent();
+		logfile().startIndent("Current psi");
+		for (const auto &p : _psis) logfile().list(p->definition());
 		logfile().endIndent();
 
 		// calculate LL
