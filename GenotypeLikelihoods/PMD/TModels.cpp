@@ -27,10 +27,10 @@ void TModels::initialize(BAM::RGInfo::TReadGroupInfo & RgInfo) {
 				const auto sinfo = json.get<std::string_view>();
 				if (sinfo.empty() || sinfo == "-" || sinfo == "default") continue;
 				_withPMD.emplace_back(sinfo);
-				iis[rg] = _withPMD.size();
+				iis[rg] = _withPMD.size() - 1;
 			} else {
 				_withPMD.emplace_back(json);
-				iis[rg] = _withPMD.size();
+				iis[rg] = _withPMD.size() - 1;
 			}
 		}
 	}

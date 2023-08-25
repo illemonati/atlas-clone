@@ -9,7 +9,7 @@
 #define SIMULATIONS_TREADSIMULATORS_H_
 
 #include "TReadSimulator.h"
-#include "oldPMD/TModels.h"
+#include "PMD/TModels.h"
 #include "genometools/GenomePositions/TGenomePosition.h"
 #include "../BAM/TBamFile.h"
 
@@ -23,7 +23,7 @@ private:
 
 	// simulation tools
 	BAM::TReadGroups _readGroups;
-	GenotypeLikelihoods::oldPMD::TModels _pmd;
+	GenotypeLikelihoods::PMD::TModels _pmd;
 	GenotypeLikelihoods::SequencingError::TModels _recal;
 
 	// read simulator

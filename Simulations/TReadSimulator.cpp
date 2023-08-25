@@ -9,8 +9,7 @@
 #include <algorithm>
 #include <memory>
 
-#include "oldPMD/TModels.h"
-#include "oldPMD/TModel.h"
+#include "PMD/TModel.h"
 #include "SequencingError/TModel.h"
 #include "TSequencedBase.h"
 #include "TSimulatorAuxiliaryTools.h"
@@ -32,7 +31,7 @@ using BAM::RGInfo::InfoType;
 // TSimulatorRead
 //------------------------------------------------
 
-	TReadSimulator::TReadSimulator(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo, const GenotypeLikelihoods::oldPMD::TModel & Pmd, const GenotypeLikelihoods::SequencingError::RGModels& Recal)
+	TReadSimulator::TReadSimulator(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo, const GenotypeLikelihoods::PMD::TModel & Pmd, const GenotypeLikelihoods::SequencingError::RGModels& Recal)
 		: _readGroup(&ReadGroup), _pmd(&Pmd), _recal(Recal) {
 
 	// initialize bamAlignment
@@ -161,7 +160,7 @@ void TReadSimulator::_simulateBasesQualities(BAM::TAlignment &alignment, const s
 	_recal[alignment.mate()]->simulate(alignment);
 }
 
-void TReadSimulator::setPMD(GenotypeLikelihoods::oldPMD::TModel const *Pmd) {
+void TReadSimulator::setPMD(GenotypeLikelihoods::PMD::TModel const *Pmd) {
 	_pmd = Pmd;
 }
 
@@ -177,7 +176,7 @@ void TReadSimulator::setContamination(double rate, TSimulatorReference *source) 
 //----------------------------------
 // TSimulatorSingleEndRead
 //----------------------------------
-	TReadSimulatorSingleEnd::TReadSimulatorSingleEnd(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo, const GenotypeLikelihoods::oldPMD::TModel & Pmd, const GenotypeLikelihoods::SequencingError::RGModels& Recal)
+	TReadSimulatorSingleEnd::TReadSimulatorSingleEnd(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo, const GenotypeLikelihoods::PMD::TModel & Pmd, const GenotypeLikelihoods::SequencingError::RGModels& Recal)
 		: TReadSimulator(ReadGroup, RGInfo, Pmd, Recal) {
 
 	_alignment.setSamFlags(_flags);
@@ -228,7 +227,7 @@ void TReadSimulatorSingleEnd::simulate(const TGenomePosition & Position, const s
 //----------------------------------
 // TSimulatorPairedEndReads
 //----------------------------------
-	TReadSimulatorPairedEnd::TReadSimulatorPairedEnd(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo, const GenotypeLikelihoods::oldPMD::TModel & Pmd, const GenotypeLikelihoods::SequencingError::RGModels& Recal)
+	TReadSimulatorPairedEnd::TReadSimulatorPairedEnd(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo, const GenotypeLikelihoods::PMD::TModel & Pmd, const GenotypeLikelihoods::SequencingError::RGModels& Recal)
 		: TReadSimulator(ReadGroup, RGInfo, Pmd, Recal){
 	//num cycles
 	logfile().list(BAM::RGInfo::infos[InfoType::cycles].description, ": ", RGInfo[InfoType::cycles]);

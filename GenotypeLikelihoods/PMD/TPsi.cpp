@@ -83,7 +83,6 @@ TPsi::TPsi(const BAM::RGInfo::TInfo & info) {
 	if (info.is_string()) {
 		_fromString(info.get<std::string_view>());
 	} else {
-		
 	}	
 }
 

@@ -25,13 +25,11 @@
 #include "THaplotypeSimulator.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
-#include "oldPMD/TModels.h"
 #include "TReadGroups.h"
 #include "TSimulatorAuxiliaryTools.h"
 #include "coretools/Containers/TStrongArray.h"
 #include "coretools/Main/TTask.h"
 #include "coretools/Types/probability.h"
-#include "TReadSimulator.h"
 #include "TReadSimulators.h"
 
 namespace genometools { class PhredIntProbability; }

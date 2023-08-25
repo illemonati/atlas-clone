@@ -29,9 +29,9 @@ void TReadSimulators::_initializeReadGroups(const TReadGroupInfo & RGinfo) {
 
 		//initialize by type
 		if(type == "single"){
-			_readSimulators.push_back(std::make_unique<TReadSimulatorSingleEnd>(_readGroups[rg], RGinfo[rg], _pmd[rg], _recal.RGModel(rg)));
+			_readSimulators.push_back(std::make_unique<TReadSimulatorSingleEnd>(_readGroups[rg], RGinfo[rg], _pmd.model(rg), _recal.RGModel(rg)));
 		} else if(type == "paired"){
-			_readSimulators.push_back(std::make_unique<TReadSimulatorPairedEnd>(_readGroups[rg], RGinfo[rg], _pmd[rg], _recal.RGModel(rg)));
+			_readSimulators.push_back(std::make_unique<TReadSimulatorPairedEnd>(_readGroups[rg], RGinfo[rg], _pmd.model(rg), _recal.RGModel(rg)));
 		} else {
 			UERROR("Unable to understand read group type '" + type + "'! Use either 'single' or 'paired'.");
 		}
@@ -87,11 +87,7 @@ TReadSimulators::TReadSimulators(const std::string & RgInfoFileName){
 
 	_initializeReadGroupFrequencies(RGinfo);
 
-	if (coretools::instances::parameters().parameterExists("pmd")) {
-		_pmd.initialize(coretools::instances::parameters().getParameter("pmd"), _readGroups);
-	} else {
-		_pmd.initialize(RGinfo);
-	}
+	_pmd.initialize(RGinfo);
 	_recal.initialize(RGinfo);
 
 	//Initialize read groups
