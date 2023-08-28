@@ -36,13 +36,12 @@ class TPsi {
 		constexpr coretools::TStrongArray<Base, Type> From{{Base::C, Base::G}};
 		constexpr coretools::TStrongArray<Base, Type> To{{Base::T, Base::A}};
 
+		const auto end  = data.distFrom5Prime < data.distFrom3Prime ? End::from5 : End::from3;
+		const auto pos  = end == End::from5 ? data.distFrom5Prime : data.distFrom3Prime;
+		const auto from = From[From_To];
+		const auto to   = To[From_To];
 
 		const auto realType = data.isReverseStrand() ? Flip[From_To] : From_To;
-		const auto end      = data.distFrom5Prime < data.distFrom3Prime ? End::from5 : End::from3;
-		const auto pos      = end == End::from5 ? data.distFrom5Prime : data.distFrom3Prime;
-		const auto from     = From[realType];
-		const auto to       = To[realType];
-
 		auto &tSum          = _tableSums[end][realType];
 		if (tSum.size() <= pos) tSum.resize(pos + 1);
 
