@@ -1,8 +1,10 @@
 #include "TPsi.h"
+#include "coretools/Containers/TStrongArray.h"
 #include "coretools/Strings/fromString.h"
 #include "coretools/Strings/splitters.h"
 #include "coretools/Strings/stringFunctions.h"
 #include "coretools/Types/probability.h"
+#include "coretools/devtools.h"
 #include "genometools/GenotypeTypes.h"
 
 namespace GenotypeLikelihoods::PMD {
@@ -124,16 +126,43 @@ BAM::RGInfo::TInfo TPsi::info() const {
 
 void TPsi::estimate() noexcept {
 	for (auto e = End::min; e < End::max; ++e) {
+		coretools::TStrongArray<double, Type> sums{};
 		for (auto t = Type::min; t < Type::max; ++t) {
 			auto &table = _tables[e][t];
 			auto &tSum  = _tableSums[e][t];
 
 			table.clear();
-			for (const auto& ts: tSum) {
-				table.push_back(ts.num/ts.denom);
+			for (auto& ts: tSum) {
+				table.push_back(ts.numDenom.num/ts.numDenom.denom);
+				sums[t] += ts.numDenom.num;
+				ts.numDenom.num = 0.;
+				ts.numDenom.denom = 0.;
 			}
-			tSum.clear();
 		}
+		if (sums[Type::CT] >= sums[Type::GA]) _tables[e][Type::GA] = {0.};
+		else _tables[e][Type::CT] = {0.};
+	}
+}
+
+void TPsi::estimateInit() noexcept {
+	for (auto e = End::min; e < End::max; ++e) {
+		coretools::TStrongArray<double, Type> sums{};
+		for (auto t = Type::min; t < Type::max; ++t) {
+			auto &table = _tables[e][t];
+			auto &tSum  = _tableSums[e][t];
+
+			table.clear();
+			for (auto& ts: tSum) {
+				const auto fromTo = double(ts.fromTo.fromTo) / ts.fromTo.fromSum;
+				const auto toFrom = double(ts.fromTo.toFrom) / ts.fromTo.toSum;
+				table.push_back(std::max(0.0, (fromTo - toFrom) / (1.0 - toFrom)));
+				sums[t] += table.back();
+				ts.numDenom.num   = 0.;
+				ts.numDenom.denom = 0.;
+			}
+		}
+		if (sums[Type::CT] >= sums[Type::GA]) _tables[e][Type::GA] = {0.};
+		else _tables[e][Type::CT] = {0.};
 	}
 }
 

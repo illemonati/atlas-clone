@@ -31,7 +31,7 @@ struct TCovariate_quality {
 	}
 
 	static bool isUsed(const RecalEstimatorTools::TRecalDataTable &dataTable, size_t i) noexcept {
-		return dataTable.qualities()[i] > 0;
+		return dataTable.qualities()[i];
 	}
 };
 
@@ -49,7 +49,7 @@ public:
 	}
 
 	static bool isUsed(const RecalEstimatorTools::TRecalDataTable &dataTable, size_t i) noexcept {
-		return dataTable.positions()[i] > 0;
+		return dataTable.positions()[i];
 	}
 };
 
@@ -87,7 +87,7 @@ public:
 	}
 
 	static bool isUsed(const RecalEstimatorTools::TRecalDataTable &dataTable, size_t i) noexcept {
-		return dataTable.fragmentLengths()[i] > 0;
+		return dataTable.fragmentLengths()[i];
 	}
 };
 
@@ -106,7 +106,7 @@ public:
 	}
 
 	static bool isUsed(const RecalEstimatorTools::TRecalDataTable &dataTable, size_t i) noexcept {
-		return dataTable.mappingQualities()[i] > 0;
+		return dataTable.mappingQualities()[i];
 	}
 };
 

@@ -67,7 +67,6 @@ private:
 	RecalEstimatorTools::TRecalDataTables _dataTables;
 
 	// variables for estimation
-	bool equalBaseFrequencies;
 	int _numEMIterations;
 	double _minDeltaLL;
 	int _NewtonRaphsonNumIterations;

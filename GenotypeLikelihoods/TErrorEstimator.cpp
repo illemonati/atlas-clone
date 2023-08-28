@@ -14,6 +14,7 @@
 #include <stdexcept>
 
 #include "PMD/TModels.h"
+#include "TReadGroups.h"
 #include "coretools/Containers/TStrongArray.h"
 #include "coretools/Main/TError.h"
 #include "coretools/Strings/toString.h"
@@ -55,7 +56,7 @@ BAM::TReadGroupMap makeRGMap(const BAM::TReadGroups &ReadGroups) {
 //---------------------------------------------------------------
 // TErrorEstimator
 //---------------------------------------------------------------
-	TErrorEstimator::TErrorEstimator(const BAM::TReadGroups &ReadGroups) : _readGroups(&ReadGroups), _readGroupMap(impl::makeRGMap(ReadGroups)) {
+	TErrorEstimator::TErrorEstimator(const BAM::TReadGroups &ReadGroups) : _rgMap(impl::makeRGMap(ReadGroups)), _rgInfo(ReadGroups) {
 
 	// genotype distribution: currently only allow for haploid
 	const auto dist = parameters().getParameterWithDefault("genoDist", THKY85::name);
@@ -73,27 +74,28 @@ BAM::TReadGroupMap makeRGMap(const BAM::TReadGroups &ReadGroups) {
 	const auto recalModel = parameters().getParameterWithDefault("recalModel", "intercept;quality;position;context;fragmentLength;mappingQuality;");
 	const auto pmdModel   =parameters().getParameterWithDefault("pmdModel", "CT5:0.1*exp(-0.1*p)+0.;GA5:0.1*exp(-0.1*p)+0.;CT3:0.1*exp(-0.1*p)+0.;GA3:0.1*exp(-0.1*p)+0.");
 
-	logfile().list("Initial recal model: ", recalModel, ".");
-	logfile().list("Initial pmd model: ", pmdModel, ".");
-	_recal.initialize(_readGroupMap.size(), recalModel);
-	_pmd.initialize(_readGroupMap.size(), pmdModel);
+	logfile().list("Initial recal model: ", recalModel);
+	logfile().list("Initial pmd model: ", pmdModel);
+	_recal.initialize(_rgMap.size(), recalModel);
+	_recal.pool(_rgMap);
+	_pmd.initialize(_rgMap.size(), pmdModel);
+	_pmd.pool(_rgMap);
 
 
 	// estimation parameters
 	logfile().startIndent("Settings regarding the EM algorithm:");
 
-	_minRequiredObservations = 10000; // constant for reporting
-	_numEMIterations         = parameters().getParameterWithDefault<int>("iterations", 200);
-	logfile().list("Will perform at max ", _numEMIterations, " EM iterations.");
-	_minDeltaLL = parameters().getParameterWithDefault<double>("minDeltaLL", 0.000001);
-	logfile().list("Will stop EM when deltaLL < ", _minDeltaLL, ".");
+	_numEMIterations            = parameters().getParameterWithDefault<int>("iterations", 200);
+	_minDeltaLL                 = parameters().getParameterWithDefault<double>("minDeltaLL", 0.000001);
 	_NewtonRaphsonNumIterations = parameters().getParameterWithDefault<int>("NRiterations", 20);
+	_NewtonRaphsonMaxF          = parameters().getParameterWithDefault<double>("maxF", 0.0001);
+	logfile().list("Will perform at max ", _numEMIterations, " EM iterations.");
+	logfile().list("Will stop EM when deltaLL < ", _minDeltaLL, ".");
 	logfile().list("Will conduct at max ", _NewtonRaphsonNumIterations, " Newton-Raphson iterations");
-	_NewtonRaphsonMaxF = parameters().getParameterWithDefault<double>("maxF", 0.0001);
 	logfile().list("Will stop Newton-Raphson when F < ", _NewtonRaphsonMaxF, ".");
 
 	logfile().endIndent();
-};
+}
 
 //-----------------------------------------------
 // Function to initialize models used for estimation
@@ -104,34 +106,41 @@ size_t TErrorEstimator::_numSitesDepthTwoOrMore() {
 		if (s.depth() > 1) ++_numSites;
 	}
 	return _numSites;
-};
+}
 
 void TErrorEstimator::_initializeModels() {
 	using coretools::str::toString;
 	using BAM::Mate;
 	// count data available for recal
-	logfile().listFlush("Counting data available for recal ...");
-	// Note: data tables pool read groups!
 
-	RecalEstimatorTools::TRecalDataTables dataTables(*_readGroups, _readGroupMap);
-	dataTables.add(_sites);
+	logfile().listFlush("Counting data available for recal ...");
+	const RecalEstimatorTools::TRecalDataTables dataTables(_rgMap, _sites);
 	logfile().done();
 
 	logfile().conclude("Number of sites with data: ", _sites.size());
 	logfile().conclude("Number of sites with depth > 1: ", dataTables.nSites_g1());
 	logfile().conclude("Number of bases: ", dataTables.size());
 	if (dataTables.nSites_g1() < 100) UERROR("Less than 100 sites with depth >= 2 available - aborting estimation!");
+	_P_g_I_dis.reserve(_sites.size());
+	_P_bbarEdij_I_gdijs.reserve(dataTables.size());
 
 	// identify models with data that can be estimated
 	logfile().startIndent("Identifying models to estimate:");
-	_recal.pool(_readGroupMap);
-	_pmd.pool(_readGroupMap);
-	for (auto rg : _readGroupMap.readGroupsInUse()) {
+	for (auto rg : _rgMap.readGroupsInUse()) {
+		if (dataTables[rg][Mate::first].size() == 0 && dataTables[rg][Mate::second].size() > 0) UERROR("Second mate data but no first mate data!");
+
+		const auto& pooledWith = _rgMap.readGroupsPooledWith(rg);
+		logfile().startIndent("Readgroup ", rg, ":");
+		if (pooledWith.size() > 1) logfile().list("Pooled with: ", _rgMap.readGroupsPooledWith(rg), ".");
+
 		for (Mate mate = Mate::min; mate < Mate::max; ++mate) {
+			constexpr coretools::TStrongArray<std::string_view, Mate> sMates{{"First", "Second"}};
 			const auto &table = dataTables[rg][mate];
+			logfile().list(sMates[mate], " mate: ", table.size(), " bases.");
 			if (table.size() > 0) {
 				auto &recal = _recal.RGModel(rg)[mate];
 				if (!recal->recalibrates()) UERROR("Cannot estimate recal for readgroup ", rg, ", mate ", mate, "!");
+
 				recal->epsilon()->init(table);
 				_epsilons.push_back(recal->epsilon());
 				_rhos.push_back(recal->rho());
@@ -139,12 +148,17 @@ void TErrorEstimator::_initializeModels() {
 				_recal.reset(rg, mate);
 			}
 		}
+		if (dataTables[rg][Mate::second].size() == 0) logfile().list("Assuming single-ended read.");
+
 		auto &pmd = _pmd.model(rg);
 		if (!pmd.hasPMD()) UERROR("Cannot estimate PMD for readgroup ", rg, "!");
+
 		_psis.push_back(pmd.psi());
+		_psis.back()->estimateInit();
+		logfile().endIndent();
 	}
 	logfile().endIndent();
-};
+}
 
 void TErrorEstimator::_estimatePMD_Rho_updatePbbar() {
 	using genometools::genotype;
@@ -246,7 +260,7 @@ void TErrorEstimator::_updateEpsilon(double deltaLL_LL) {
 		logfile().endIndent();
 	}
 	logfile().endIndent();
-};
+}
 
 double TErrorEstimator::_calculateLL_updatePg() {
 	_P_g_I_dis.clear();
@@ -277,7 +291,7 @@ double TErrorEstimator::_calculateLL_updatePg() {
 		}
 	}
 	return LL;
-};
+}
 
 void TErrorEstimator::_runEM() {
 	using coretools::str::toString;
@@ -344,7 +358,7 @@ void TErrorEstimator::_runEM() {
 
 	// finalize
 	logfile().endNumbering();
-};
+}
 
 void TErrorEstimator::estimate(std::string_view outputName) {
 	// initialize models
@@ -354,11 +368,10 @@ void TErrorEstimator::estimate(std::string_view outputName) {
 	_runEM();
 
 	// writing final estimates
-	BAM::RGInfo::TReadGroupInfo r(*_readGroups);
-	_recal.addToRGInfo(r);
-	_pmd.addToRGInfo(r);
-	r.write(std::string(outputName) + ".json");
-};
+	_recal.addToRGInfo(_rgInfo);
+	_pmd.addToRGInfo(_rgInfo);
+	_rgInfo.write(std::string(outputName) + ".json");
+}
 
 void TErrorEstimator::calcLL() {
 	_initializeModels();
@@ -374,7 +387,6 @@ void TErrorEstimator::calcLL() {
 	logfile().startIndent("Calculating log likelihood:");
 	const double LL = _calculateLL_updatePg();
 	logfile().conclude("Log Likelihood = ", LL);
-
 }
 
-}; // end namespace GenotypeLikelihoods
+} // end namespace GenotypeLikelihoods

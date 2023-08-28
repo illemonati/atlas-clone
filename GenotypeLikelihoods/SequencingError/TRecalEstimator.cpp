@@ -97,7 +97,7 @@ void TRecalibrationEMEstimator::_initializeModels() {
 	// count data available for recal
 	logfile().listFlush("Counting data available for recal ...");
 	// Note: data tables pool read groups!
-	_dataTables.initialize(_readGroups, _readGroupMap);
+	_dataTables.initialize(_readGroupMap);
 	_dataTables.add(_sites);
 	logfile().done();
 

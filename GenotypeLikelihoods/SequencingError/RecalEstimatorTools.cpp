@@ -19,9 +19,9 @@
 namespace GenotypeLikelihoods::RecalEstimatorTools {
 
 namespace impl {
-void addCount(std::vector<uint32_t> &counts, uint16_t value) {
-	if (counts.size() <= value) counts.resize(value + 1, 0);
-	++counts[value];
+void addUsed(std::vector<bool> &counts, size_t value) {
+	if (counts.size() <= value) counts.resize(value + 1, false);
+	counts[value] = true;
 };
 
 } // namespace
@@ -33,20 +33,19 @@ void TRecalDataTable::add(const BAM::TSequencedBase & base){
 	++_counts;
 
 	//add quality
-	impl::addCount(_positions, base.distFrom5Prime);
-	impl::addCount(_fragmentLengths, base.fragmentLength);
-	impl::addCount(_qualities, base.originalQuality_phredInt.get());
-	impl::addCount(_mappingQualities, base.mappingQuality.get());
+	impl::addUsed(_positions, base.distFrom5Prime);
+	impl::addUsed(_fragmentLengths, base.fragmentLength);
+	impl::addUsed(_qualities, base.originalQuality_phredInt.get());
+	impl::addUsed(_mappingQualities, base.mappingQuality.get());
 };
 
 //--------------------------------------------------------------------
 // TRecalDataTables
 //--------------------------------------------------------------------
 
-void TRecalDataTables::initialize(const BAM::TReadGroups *ReadGroups, const BAM::TReadGroupMap *ReadGroupMapObject) {
-	_readGroups   = ReadGroups;
+void TRecalDataTables::initialize(const BAM::TReadGroupMap *ReadGroupMapObject) {
 	_readGroupMap = ReadGroupMapObject;
-	_tables.resize(_readGroups->size());
+	_tables.resize(_readGroupMap->size());
 };
 
 void TRecalDataTables::add(const std::vector<TSite> &sites) {
@@ -54,7 +53,9 @@ void TRecalDataTables::add(const std::vector<TSite> &sites) {
 		_size += s.depth();
 		if (s.depth() > 1) ++_N_g1;
 
-		for (const auto &b : s) { _tables[_readGroupMap->pooledIndex(b.readGroupID)][b.mate()].add(b); }
+		for (const auto &b : s) {
+			_tables[_readGroupMap->pooledIndex(b.readGroupID)][b.mate()].add(b);
+		}
 	}
 }
 

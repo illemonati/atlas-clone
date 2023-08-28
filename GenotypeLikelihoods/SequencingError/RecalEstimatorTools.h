@@ -30,26 +30,25 @@ private:
 	uint64_t _counts = 0;
 	//all vectors are uint16_t, which is used by seq error models for all covariates
 // Object to store for which qualities and positions data is available.
-	std::vector<uint32_t> _positions;
-	std::vector<uint32_t> _fragmentLengths;
-	std::vector<uint32_t> _qualities;
-	std::vector<uint32_t> _mappingQualities;
+	std::vector<bool> _positions;
+	std::vector<bool> _fragmentLengths;
+	std::vector<bool> _qualities;
+	std::vector<bool> _mappingQualities;
 
 public:
 	void add(const BAM::TSequencedBase & base);
 
 	constexpr size_t size() const noexcept { return _counts; };
-	const std::vector<uint32_t> &positions() const noexcept { return _positions; };
-	const std::vector<uint32_t> &fragmentLengths() const noexcept { return _fragmentLengths; };
-	const std::vector<uint32_t> &qualities() const noexcept { return _qualities; };
-	const std::vector<uint32_t> &mappingQualities() const noexcept { return _mappingQualities; };
+	const std::vector<bool> &positions() const noexcept { return _positions; };
+	const std::vector<bool> &fragmentLengths() const noexcept { return _fragmentLengths; };
+	const std::vector<bool> &qualities() const noexcept { return _qualities; };
+	const std::vector<bool> &mappingQualities() const noexcept { return _mappingQualities; };
 };
 
 using TRecalDataTableOneReadGroup = coretools::TStrongArray<TRecalDataTable, BAM::Mate>;
 
 class TRecalDataTables{
 private:
-	const BAM::TReadGroups* _readGroups = nullptr;
 	const BAM::TReadGroupMap* _readGroupMap = nullptr;
 	std::vector<TRecalDataTableOneReadGroup> _tables; //tables[readGroup][first/second mate]
 	size_t _size = 0;
@@ -57,11 +56,14 @@ private:
 
 public:
 	TRecalDataTables() = default;
-	TRecalDataTables(const BAM::TReadGroups &ReadGroups, const BAM::TReadGroupMap &ReadGroupMapObject)
-	    : _readGroups(&ReadGroups), _readGroupMap(&ReadGroupMapObject), _tables(_readGroupMap->numReadGroupsInUse()){};
+	TRecalDataTables(const BAM::TReadGroupMap &ReadGroupMapObject)
+	    : _readGroupMap(&ReadGroupMapObject), _tables(_readGroupMap->numReadGroupsInUse()){};
+	TRecalDataTables(const BAM::TReadGroupMap &ReadGroupMapObject, const std::vector<TSite> & sites)
+	    : _readGroupMap(&ReadGroupMapObject), _tables(_readGroupMap->numReadGroupsInUse()){
+		add(sites);
+	};
 
-	void initialize(const BAM::TReadGroups* ReadGroups, const BAM::TReadGroupMap* ReadGroupMapObject);
-	void reset();
+	void initialize(const BAM::TReadGroupMap* ReadGroupMapObject);
 	void add(const std::vector<TSite> & sites);
 
 	constexpr size_t size() const noexcept {return _size;};
