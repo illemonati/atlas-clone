@@ -53,12 +53,11 @@ private:
 	std::vector<PMD::TPsi*> _psis;
 
 	// variables for estimation
-	int _numEMIterations;
+	size_t _numEMIterations;
 	double _minDeltaLL;
-	int _NewtonRaphsonNumIterations;
+	size_t _NewtonRaphsonNumIterations;
 	double _NewtonRaphsonMaxF;
 
-	size_t _numSitesDepthTwoOrMore();
 	void _initializeModels();
 	void _runEM();
 
@@ -84,9 +83,12 @@ private:
 		for (auto& e: _epsilons) e->solveJxF();
 	}
 
-	void _calculateQ() {
+	size_t _calculateQ() {
 		if (_genoDist->isInvariant()) _calculateQ<false, true>();
 		else _calculateQ<false, false>(); 
+		size_t nUpdated = 0;
+		for (auto& e: _epsilons) nUpdated += e->acceptOrReject();
+		return nUpdated;
 	}
 
 	void _updateEpsilon(double deltaDeltaLL);

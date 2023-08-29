@@ -82,9 +82,6 @@ class TNoFunction final : public TFunction{
 public:
 	TNoFunction() : TFunction(0) {}
 
-	// non-virtuals
-	constexpr size_t firstParameterIndex() const noexcept { return _firstParameterIndex; }
-
 	// virtuals
 	double *begin() noexcept override {return &_nothing;}
 	double *end() noexcept override {return &_nothing;}

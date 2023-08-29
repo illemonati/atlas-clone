@@ -57,8 +57,6 @@ BAM::TReadGroupMap makeRGMap(const BAM::TReadGroups &ReadGroups) {
 // TErrorEstimator
 //---------------------------------------------------------------
 	TErrorEstimator::TErrorEstimator(const BAM::TReadGroups &ReadGroups) : _rgMap(impl::makeRGMap(ReadGroups)), _rgInfo(ReadGroups) {
-
-	// genotype distribution: currently only allow for haploid
 	const auto dist = parameters().getParameterWithDefault("genoDist", THKY85::name);
 	if (dist == THaploidDistribution::name) {
 		_genoDist = std::make_unique<THaploidDistribution>();
@@ -72,7 +70,7 @@ BAM::TReadGroupMap makeRGMap(const BAM::TReadGroups &ReadGroups) {
 	logfile().list("Will use a ", _genoDist->typeString(), " genotype distribution.");
 
 	const auto recalModel = parameters().getParameterWithDefault("recalModel", "intercept;quality;position;context;fragmentLength;mappingQuality;");
-	const auto pmdModel   =parameters().getParameterWithDefault("pmdModel", "CT5:0.1*exp(-0.1*p)+0.;GA5:0.1*exp(-0.1*p)+0.;CT3:0.1*exp(-0.1*p)+0.;GA3:0.1*exp(-0.1*p)+0.");
+	const auto pmdModel   = parameters().getParameterWithDefault("pmdModel", "CT5;GA5;CT3;GA3");
 
 	logfile().list("Initial recal model: ", recalModel);
 	logfile().list("Initial pmd model: ", pmdModel);
@@ -95,17 +93,6 @@ BAM::TReadGroupMap makeRGMap(const BAM::TReadGroups &ReadGroups) {
 	logfile().list("Will stop Newton-Raphson when F < ", _NewtonRaphsonMaxF, ".");
 
 	logfile().endIndent();
-}
-
-//-----------------------------------------------
-// Function to initialize models used for estimation
-//-----------------------------------------------
-size_t TErrorEstimator::_numSitesDepthTwoOrMore() {
-	size_t _numSites = 0;
-	for (auto &s : _sites) {
-		if (s.depth() > 1) ++_numSites;
-	}
-	return _numSites;
 }
 
 void TErrorEstimator::_initializeModels() {
@@ -170,8 +157,8 @@ void TErrorEstimator::_estimatePMD_Rho_updatePbbar() {
 			const auto P_dij_I_bbar = _recal.P_dij(d_ij);
 
 			// PMD
-			const auto P_bbar_I_C   = _pmd.P_bbar(Base::C, d_ij, P_dij_I_bbar);
-			const auto P_bbar_I_G   = _pmd.P_bbar(Base::G, d_ij, P_dij_I_bbar);
+			const auto P_bbar_I_C = _pmd.P_bbar(Base::C, d_ij, P_dij_I_bbar);
+			const auto P_bbar_I_G = _pmd.P_bbar(Base::G, d_ij, P_dij_I_bbar);
 			_pmd.model(d_ij).psi()->add(d_ij, _P_g_I_dis[i], P_bbar_I_C, P_bbar_I_G);
 
 			// Rho
@@ -203,19 +190,16 @@ void TErrorEstimator::_updateEpsilon(double deltaLL_LL) {
 	logfile().list("optimizing Q_beta using a Newton-Raphson algorithm.");
 	const auto nTot = _epsilons.size();
 
-	for (int i = 0; i < _NewtonRaphsonNumIterations; ++i) {
+	for (size_t i = 0; i < _NewtonRaphsonNumIterations; ++i) {
 		logfile().startIndent("Running Newton-Raphson iteration ", i + 1, ":");
 		_solveDerivative();
 		double oldQ = 0.;
 		for (const auto& e: _epsilons) oldQ += e->Q();
 		logfile().list("Current Q_beta = ", oldQ);
 
-
 		logfile().startIndent("Setting new epsilon.");
 		for (auto& e: _epsilons) e->propose(1.);
-		_calculateQ();
-		size_t nUpdated = 0;
-		for (auto& e: _epsilons) nUpdated += e->acceptOrReject();
+		auto nUpdated = _calculateQ();
 		logfile().list(toString(nUpdated), "/", nTot, " models converged.");
 		logfile().endIndent();
 
@@ -223,16 +207,23 @@ void TErrorEstimator::_updateEpsilon(double deltaLL_LL) {
 		while(nUpdated < nTot) {
 			logfile().startIndent("Backtracing with lambda = ", lambda, ":");
 			for (auto &e : _epsilons) e->propose(lambda);
-			_calculateQ();
-			nUpdated = 0;
-			for (auto &e : _epsilons) nUpdated += e->acceptOrReject();
+			
+			nUpdated = _calculateQ();
 			logfile().list(toString(nUpdated), "/", nTot, " models converged.");
 			logfile().endIndent();
 
 			lambda /= 2;
 			if (lambda < 1e-20) break;
 		}
-		for (auto &e : _epsilons) e->adjust();
+
+		double newQ = 0.;
+		double maxF  = 0.;
+		for (const auto& e: _epsilons) {
+			newQ += e->Q();
+			maxF = std::max(e->maxF(), maxF);
+			e->adjust();
+		}
+		const auto deltaQ = std::abs((newQ-oldQ)/newQ);
 
 		if (nUpdated < nTot) {
 			logfile().conclude(nTot - nUpdated, " models did not improve even with log2(lambda) = ", std::log2(lambda),
@@ -240,23 +231,21 @@ void TErrorEstimator::_updateEpsilon(double deltaLL_LL) {
 			break;
 		}
 
-		double maxF  = 0.;
-		for (auto &e : _epsilons) maxF = std::max(e->maxF(), maxF);
-
 		if (maxF < _NewtonRaphsonMaxF) {
 			logfile().conclude("max(F) = ", maxF, " < ", _NewtonRaphsonMaxF, ", ending Newton-Raphson.");
 			logfile().endIndent();
 			break;
-		} 
-		logfile().conclude("max(F) = ", maxF);
+		} else {
+			logfile().conclude("max(F) = ", maxF);
+		}
 
-		double newQ = 0.;
-		for (const auto& e: _epsilons) newQ += e->Q();
-		if (const auto pdQ = std::abs(newQ/oldQ); pdQ < deltaLL_LL) {
-			logfile().conclude("deltaQ/Q = ", pdQ, " < deltaLL/LL = ", deltaLL_LL, ", ending Newton-Raphson.");
+		if (deltaQ < deltaLL_LL) {
+			logfile().conclude("deltaQ/Q = ", deltaQ, ", < deltaLL/LL = ", deltaLL_LL, ", ending Newton-Raphson.");
 			logfile().endIndent();
 			break;
-		} 
+		} else {
+			logfile().conclude("delta Q/Q = ", deltaQ);
+		}
 		logfile().endIndent();
 	}
 	logfile().endIndent();
@@ -314,7 +303,7 @@ void TErrorEstimator::_runEM() {
 	logfile().conclude("Initial log Likelihood = ", oldLL);
 
 	// running iterations
-	for (int i = 0; i < _numEMIterations; ++i) {
+	for (size_t i = 0; i < _numEMIterations; ++i) {
 		logfile().number("EM Iteration:");
 		logfile().addIndent();
 
@@ -374,14 +363,15 @@ void TErrorEstimator::estimate(std::string_view outputName) {
 }
 
 void TErrorEstimator::calcLL() {
-	_initializeModels();
-
 	logfile().conclude("pi: ", _genoDist->definition());
 	logfile().startIndent("rho");
-	for (const auto &r : _rhos) logfile().list(r->definition());
+	logfile().list(_recal.RGModel(0)[BAM::Mate::first]->rho()->definition());
 	logfile().endIndent();
 	logfile().startIndent("epsilon");
-	for (const auto &e : _epsilons) logfile().list(e->definition());
+	logfile().list(_recal.RGModel(0)[BAM::Mate::first]->epsilon()->definition());
+	logfile().endIndent();
+	logfile().startIndent("psi");
+	logfile().list(_pmd.model(0).psi()->definition());
 	logfile().endIndent();
 
 	logfile().startIndent("Calculating log likelihood:");

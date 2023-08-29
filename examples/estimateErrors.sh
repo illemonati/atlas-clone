@@ -17,12 +17,8 @@ $atlas --task estimateErrors --bam ATLAS_simulations.bam --fasta ATLAS_simulatio
 
 #calculate onlyLL
 $atlas --task estimateErrors --onlyLL --bam ATLAS_simulations.bam --fasta ATLAS_simulations.fasta --recalModel $recal --pmdModel $pmd --fixedSeed 0 --out onlyLL --logFile onlyLL.out
-$atlas --task estimateErrors --onlyLL --bam ATLAS_simulations.bam --fasta ATLAS_simulations.fasta --RGInfo poly.json --out poly_read --logFile poly_read.out
-$atlas --task estimateErrors --onlyLL --bam ATLAS_simulations.bam --fasta ATLAS_simulations.fasta --RGInfo default.json --out default_read --logFile default_read.out
 
 printf "#%-10s %s\n" "LL" "model" > LL.txt
 printf "%.4e %s\n" $(grep "Log Likelihood" default.out | tail -n 1 | awk '{print $6}') "default" >> LL.txt
 printf "%.4e %s\n" $(grep "Log Likelihood" poly.out | tail -n 1 | awk '{print $6}') "poly" >> LL.txt
 printf "%.4e %s\n" $(grep "Log Likelihood" onlyLL.out | tail -n 1 | awk '{print $5}') "onlyLL" >> LL.txt
-printf "%.4e %s\n" $(grep "Log Likelihood" default_read.out | tail -n 1 | awk '{print $5}') "default_read" >> LL.txt
-printf "%.4e %s\n" $(grep "Log Likelihood" poly_read.out | tail -n 1 | awk '{print $5}') "poly_read" >> LL.txt
