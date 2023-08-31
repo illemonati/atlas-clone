@@ -48,7 +48,7 @@ TReadGroupMerger::TReadGroupMerger():TGenome_basic(){
 			if(vec.size() < 2) UERROR("Wrong number of entries on line ",  file.curLine(), " in file '", filename, "'!");
 
 			//create new read group
-			uint16_t newId = readGroups.add(vec[0]).id();
+			uint16_t newId = readGroups.add(vec[0]).id;
 			logfile().startIndent("The following read groups will be merged into '" + vec[0] + "':");
 
 			for(size_t i=1; i<vec.size(); ++i){

@@ -29,9 +29,6 @@
 #include "genometools/GenotypeTypes.h"
 #include "genometools/PhredProbabilityTypes.h"
 
-namespace GenotypeLikelihoods { namespace SequencingError { class TReadGroupModels; } }
-namespace GenotypeLikelihoods { namespace SequencingError { class TModel; } }
-namespace Simulations { class TSimulatorBamFile; }
 namespace Simulations { class TSimulatorReference; }
 
 namespace Simulations {
@@ -48,7 +45,7 @@ using BAM::RGInfo::TReadGroupInfoEntry;
 //-------------------------------------
 class TReadSimulator{
 protected:
-	const BAM::TReadGroup &_readGroup;
+	const BAM::TReadGroup *_readGroup;
 	//const TReadGroupInfoEntry & _readGroupInfo;
 	std::string _readNamePrefix;
 
@@ -62,13 +59,13 @@ protected:
 	int _readYPos = 1;
 	std::unique_ptr<TCategoricalDistribution<size_t>> _softClipDist5;
 	std::unique_ptr<TCategoricalDistribution<size_t>> _softClipDist3;
-	GenotypeLikelihoods::PMD::TModel const *_pmd = nullptr;
+	const GenotypeLikelihoods::PMD::TModel *_pmd;
+	const GenotypeLikelihoods::SequencingError::RGModels _recal;
 
 	// contamination
 	double _contaminationRate = 0.;
 	TSimulatorReference *_contaminationSource = nullptr;
 
-	GenotypeLikelihoods::SequencingError::TReadGroupModels _recalModels;
 
 	// alignment
 	BAM::TSamFlags _flags;
@@ -91,7 +88,7 @@ protected:
 								 size_t readLength, bool readIsContaminated);
 
 public:
-	TReadSimulator(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo);
+	TReadSimulator(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo, const GenotypeLikelihoods::PMD::TModel & Pmd, const GenotypeLikelihoods::SequencingError::RGModels& Recal);
 	virtual ~TReadSimulator() = default;
 
 	//setters
@@ -102,7 +99,7 @@ public:
 	virtual void simulate(const TGenomePosition & Position, const std::vector<Base> & Haplotype, BAM::TOutputBamFile &BamFile) = 0;
 
 	//getters
-	std::string name() const { return _readGroup.name_ID; };
+	std::string name() const { return _readGroup->name_ID; };
 	[[nodiscard]] virtual double meanReadLength() const = 0;
 	double maxFragmentLength() {
 		return _fragmentLengthDistr.max();
@@ -117,7 +114,7 @@ private:
 	coretools::StrictlyPositive<size_t> _numCycles;
 
 public:
-	TReadSimulatorSingleEnd(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo);
+	TReadSimulatorSingleEnd(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo, const GenotypeLikelihoods::PMD::TModel & Pmd, const GenotypeLikelihoods::SequencingError::RGModels& Recal);
 	~TReadSimulatorSingleEnd() = default;
 
 	void simulate(const TGenomePosition & Position, const std::vector<Base> & Haplotype, BAM::TOutputBamFile &BamFile) override;
@@ -134,7 +131,7 @@ private:
 	std::array<coretools::StrictlyPositive<size_t>, 2> _numCycles;
 
 public:
-	TReadSimulatorPairedEnd(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo);
+	TReadSimulatorPairedEnd(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo, const GenotypeLikelihoods::PMD::TModel & Pmd, const GenotypeLikelihoods::SequencingError::RGModels& Recal);
 	~TReadSimulatorPairedEnd() = default;
 
 	void simulate(const TGenomePosition & Position, const std::vector<genometools::Base> & Haplotype, BAM::TOutputBamFile &BamFile) override;

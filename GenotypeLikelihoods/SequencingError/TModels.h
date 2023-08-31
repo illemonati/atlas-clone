@@ -8,18 +8,14 @@
 #ifndef GENOTYPELIKELIHOODS_TSEQUENCINGERRORMODELS_H_
 #define GENOTYPELIKELIHOODS_TSEQUENCINGERRORMODELS_H_
 
-#include <stddef.h>
-#include <stdint.h>
-#include <array>
-#include <memory>
 #include <string>
 #include <vector>
 
-#include "TAlignment.h"
-#include "genometools/PhredProbabilityTypes.h"
 #include "SequencingError/TModel.h"
-#include "coretools/Types/probability.h"
+#include "TAlignment.h"
 #include "TReadGroupInfo.h"
+#include "coretools/Containers/TStrongArray.h"
+#include "genometools/PhredProbabilityTypes.h"
 
 namespace BAM { class TReadGroups; }
 namespace BAM { class TSequencedBase; }
@@ -27,83 +23,46 @@ namespace BAM { class TSequencedBase; }
 namespace GenotypeLikelihoods {
 namespace SequencingError {
 
-//-------------------------------------
-// TReadGroupModels
-// Object containing a TModel for the first and second mate
-//-------------------------------------
-class TReadGroupModels{
-private:
-	std::array<std::unique_ptr<TModel>, 2> _models;
-
-public:
-	TReadGroupModels();
-	TReadGroupModels(std::string_view RecalString, std::string_view RhoString);
-	TReadGroupModels(std::string_view RecalString1, std::string_view RhoString1, std::string_view RecalString2, std::string_view RhoString2);
-	TReadGroupModels(const BAM::RGInfo::TReadGroupInfoEntry & Info);
-
-	void initialize(size_t mate, std::string_view RecalString, std::string_view RhoString);
-
-	TModel& operator[](bool isSecondMate) noexcept {
-		return *_models[isSecondMate].get();
-	}
-
-	const TModel& operator[](bool isSecondMate) const noexcept {
-		return *_models[isSecondMate].get();
-	}
-
-	bool recalibrationChangesQualities() const  noexcept {
-		if (_models[0]->recalibrates() || _models[1]->recalibrates()) return true;
-		return false;
-	}
-
-	void simulate(BAM::TAlignment & Alignment) const;
-
-	BAM::RGInfo::TInfo info() const;
-};
-
 //--------------------------------------------------------------------------
 // TModels
 // Object containing a vector of TReadGroupModels
 //--------------------------------------------------------------------------
+using RGModels = coretools::TStrongArray<TModel*, BAM::Mate>;
 class TModels {
 private:
-	std::vector<TReadGroupModels> _models;
-public:
-	void initializeNoRecal(const BAM::TReadGroups &ReadGroups);
-	void initialize(std::string_view RecalString, std::string_view RhoString, const BAM::TReadGroups &ReadGroups);
-	void initialize(const std::vector<std::string> & RecalStringPerReadGroup, const std::vector<std::string> & RhoStringPerReadGroup, const BAM::TReadGroups &ReadGroups);
-	void initializeFromFile(std::string_view Filename, const BAM::TReadGroups &ReadGroups);
-	void initialize(BAM::RGInfo::TReadGroupInfo & RgInfo);
-	void checkReadGroups(const BAM::TReadGroups &ReadGroups, std::vector<size_t> &ReadGroupsWithoutRecal,
-			     std::vector<size_t> &ReadGroupsLikelySingleEnd) const noexcept;
+	std::vector<TWithRecal> _withRecal;
+	TNoRecal _noRecal;
+	std::vector<RGModels> _pModels;
+	void _initializeNoRecal(size_t NReadGroups);
 
-	std::vector<TReadGroupModels> forget();
-	void remember(std::vector<TReadGroupModels>& forgottenModels);
+public:
+	void initialize(size_t NReadGroups, std::string_view RecalString = "", std::string_view RhoString = "");
+	void initialize(BAM::RGInfo::TReadGroupInfo & RgInfo);
+
+	void pool(const BAM::TReadGroupMap& rgMap);
+	void reset(size_t rgID, BAM::Mate mate) noexcept { _pModels[rgID][mate] = &_noRecal; }
 
 	// access models
-	TModel& operator()(size_t ReadGroupIndex, bool IsSecondMate) noexcept {
-		return _models[ReadGroupIndex][IsSecondMate];
+	RGModels &RGModel(size_t rgID) noexcept { return _pModels[rgID]; }
+	const RGModels &RGModel(size_t rgID) const noexcept { return _pModels[rgID]; }
+
+	TModel& model(const BAM::TSequencedBase &data) noexcept {
+		return *RGModel(data.readGroupID)[data.mate()];
+	}
+	const TModel& model(const BAM::TSequencedBase &data) const noexcept {
+		return *RGModel(data.readGroupID)[data.mate()];
 	}
 
-	const TModel& operator()(size_t ReadGroupIndex, bool IsSecondMate) const noexcept {
-		return _models[ReadGroupIndex][IsSecondMate];
-	}
-
-	bool recalibrationChangesQualities() const noexcept {
-		for (const auto& m: _models) {
-			if(m.recalibrationChangesQualities()) return true;
-		}
-		return false;
-	}
+	bool recalibrates() const noexcept { return !_withRecal.empty(); }
 
 	// calculate error rates
-	coretools::Probability errorRate(const BAM::TSequencedBase &base) const noexcept;
-	genometools::PhredIntProbability phredInt(const BAM::TSequencedBase &base) const noexcept;
-	void recalibrate(BAM::TSequencedBase &base) const noexcept;
-	void recalibrate(std::vector<BAM::TSequencedBase> &bases) const noexcept;
-	TBaseLikelihoods baseLikelihoods(const BAM::TSequencedBase &base) const noexcept;
-
-	void writeRecalFile(const BAM::TReadGroups &ReadGroups, std::string_view  Filename) const;
+	genometools::PhredIntProbability phredInt(const BAM::TSequencedBase &data) const noexcept {
+		return model(data).phredInt(data);
+	}
+	void recalibrate(BAM::TAlignment &aln) const noexcept { RGModel(aln.readGroupId())[aln.mate()]->recalibrate(aln); };
+	TBaseLikelihoods P_dij(const BAM::TSequencedBase &data) const noexcept {
+		return model(data).P_dij(data);
+	}
 
 	void addToRGInfo(BAM::RGInfo::TReadGroupInfo & RgInfo) const;
 };

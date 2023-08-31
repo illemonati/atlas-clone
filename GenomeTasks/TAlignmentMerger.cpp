@@ -298,7 +298,7 @@ void TAlignmentMergerReadGroupSettings::initialize(BAM::TReadGroups & readGroups
 						}
 
 						//add to settings and create truncated read group
-						_settings.emplace(rgId, readGroups.addAlternativeRG(vec[0] + "_truncated", vec[0]).id(), ReadGroupType::single, maxCycles);
+						_settings.emplace(rgId, readGroups.addAlternativeRG(vec[0] + "_truncated", vec[0]).id, ReadGroupType::single, maxCycles);
 
 					} else if(vec[1] == "mixed"){
 						if(maxCycles < 1){
@@ -306,7 +306,7 @@ void TAlignmentMergerReadGroupSettings::initialize(BAM::TReadGroups & readGroups
 						}
 
 						//add to settings and create truncated read group
-						_settings.emplace(rgId, readGroups.addAlternativeRG(vec[0] + "_truncated", vec[0]).id(), ReadGroupType::mixed, maxCycles);
+						_settings.emplace(rgId, readGroups.addAlternativeRG(vec[0] + "_truncated", vec[0]).id, ReadGroupType::mixed, maxCycles);
 
 					} else if(vec[1] == "paired"){
 						_settings.emplace(rgId, ReadGroupType::paired, 0);
@@ -549,7 +549,7 @@ TAlignmentMerger_firstMate::TAlignmentMerger_firstMate():TAlignmentMerger(){};
 
 size_t TAlignmentMerger_firstMate::merge(BAM::TAlignment & alignment, BAM::TAlignment & mate){
 	//always merge first mate, keep second mate
-	if (alignment.isSecondMate())
+	if (alignment.mate() == BAM::Mate::second)
 		return TAlignmentMerger::merge(mate, alignment);
 	else
 		return TAlignmentMerger::merge(alignment, mate);
@@ -561,7 +561,7 @@ TAlignmentMerger_secondMate::TAlignmentMerger_secondMate():TAlignmentMerger(){};
 
 size_t TAlignmentMerger_secondMate::merge(BAM::TAlignment & alignment, BAM::TAlignment & mate){
 	//always merge second mate, keep first mate
-	if (alignment.isSecondMate())
+	if (alignment.mate() == BAM::Mate::second)
 		return TAlignmentMerger::merge(alignment, mate);
 	else
 		return TAlignmentMerger::merge(mate, alignment);

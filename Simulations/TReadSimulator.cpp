@@ -9,7 +9,6 @@
 #include <algorithm>
 #include <memory>
 
-#include "PMD/TModels.h"
 #include "PMD/TModel.h"
 #include "SequencingError/TModel.h"
 #include "TSequencedBase.h"
@@ -32,14 +31,14 @@ using BAM::RGInfo::InfoType;
 // TSimulatorRead
 //------------------------------------------------
 
-TReadSimulator::TReadSimulator(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo)
-	: _readGroup(ReadGroup), _recalModels(RGInfo) {
+	TReadSimulator::TReadSimulator(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo, const GenotypeLikelihoods::PMD::TModel & Pmd, const GenotypeLikelihoods::SequencingError::RGModels& Recal)
+		: _readGroup(&ReadGroup), _pmd(&Pmd), _recal(Recal) {
 
 	// initialize bamAlignment
-	_alignment.setReadGroup(_readGroup.id());
+	_alignment.setReadGroup(_readGroup->id);
 
 	//readNamePrefix: "<instrument>:<run number>:<flowcell ID>:<lane>:<tile>:"  Still need to add "<x-pos>:<y-pos>"
-	_readNamePrefix = "ATL:0:A:1:" + coretools::str::toString(_readGroup.id()) + ":";
+	_readNamePrefix = "ATL:0:A:1:" + coretools::str::toString(_readGroup->id) + ":";
 
 	//initialize distributions
 	_initDistribution(_fragmentLengthDistr, RGInfo, InfoType::fragmentLength);
@@ -157,15 +156,8 @@ void TReadSimulator::_simulateBasesQualities(BAM::TAlignment &alignment, const s
 
 	alignment.setSequenceQualities(cigar, bases, phredIntQualities);
 
-	//add PMD
-	if (_pmd && _pmd->hasDamage()){
-		for (auto & b : alignment) {
-			_pmd->simulate(b);
-		}
-	}
-
-	//add recal
-	_recalModels.simulate(alignment);
+	_pmd->simulate(alignment);
+	_recal[alignment.mate()]->simulate(alignment);
 }
 
 void TReadSimulator::setPMD(GenotypeLikelihoods::PMD::TModel const *Pmd) {
@@ -184,8 +176,8 @@ void TReadSimulator::setContamination(double rate, TSimulatorReference *source) 
 //----------------------------------
 // TSimulatorSingleEndRead
 //----------------------------------
-TReadSimulatorSingleEnd::TReadSimulatorSingleEnd(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo)
-	: TReadSimulator(ReadGroup, RGInfo) {
+	TReadSimulatorSingleEnd::TReadSimulatorSingleEnd(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo, const GenotypeLikelihoods::PMD::TModel & Pmd, const GenotypeLikelihoods::SequencingError::RGModels& Recal)
+		: TReadSimulator(ReadGroup, RGInfo, Pmd, Recal) {
 
 	_alignment.setSamFlags(_flags);
 
@@ -235,8 +227,8 @@ void TReadSimulatorSingleEnd::simulate(const TGenomePosition & Position, const s
 //----------------------------------
 // TSimulatorPairedEndReads
 //----------------------------------
-TReadSimulatorPairedEnd::TReadSimulatorPairedEnd(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo)
-	: TReadSimulator(ReadGroup, RGInfo){
+	TReadSimulatorPairedEnd::TReadSimulatorPairedEnd(const BAM::TReadGroup & ReadGroup, const TReadGroupInfoEntry & RGInfo, const GenotypeLikelihoods::PMD::TModel & Pmd, const GenotypeLikelihoods::SequencingError::RGModels& Recal)
+		: TReadSimulator(ReadGroup, RGInfo, Pmd, Recal){
 	//num cycles
 	logfile().list(BAM::RGInfo::infos[InfoType::cycles].description, ": ", RGInfo[InfoType::cycles]);
 	auto& json = RGInfo[InfoType::cycles];
@@ -321,7 +313,7 @@ void TReadSimulatorPairedEnd::simulate(const TGenomePosition & Position, const s
 	}
 
 	// create new alignment
-	_secondMate.setReadGroup(_readGroup.id());
+	_secondMate.setReadGroup(_readGroup->id);
 	_secondMate.setName(_alignment.name());
 	_secondMate.setMappingQuality(_alignment.mappingQuality());
 

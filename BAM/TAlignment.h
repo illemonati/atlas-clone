@@ -154,6 +154,7 @@ public:
 	bool isPaired() const noexcept { return _flags.isPaired(); };
 	bool isProperPair() const noexcept { return _flags.isProperPair(); };
 	bool isSecondMate() const noexcept { return _flags.isSecondMate(); };
+	Mate mate() const noexcept {return static_cast<Mate>(_flags.isSecondMate());}
 
 	// looping
 	std::vector<TSequencedBase>::iterator begin() noexcept { return _bases.begin(); };

@@ -1,84 +1,67 @@
 /*
- * TPostMortemDamage.h
+ * PMD/TModels.h
  *
- *  Created on: Oct 17, 2015
- *      Author: wegmannd
  */
 
-#ifndef PMD_TMODELS_H_
-#define PMD_TMODELS_H_
+#ifndef GENOTYPELIKELIHOODS_PMD_MODELS_H_
+#define GENOTYPELIKELIHOODS_PMD_MODELS_H_
 
-#include <array>
-#include <map>
-#include <memory>
-#include <stdint.h>
+#include "TGenotypeData.h"
+#include "TReadGroupInfo.h"
+#include "TSequencedBase.h"
+#include "TModel.h"
+#include "genometools/GenotypeTypes.h"
 #include <string>
 #include <vector>
 
-#include <armadillo>
-
-#include "TReadGroupInfo.h"
-#include "genometools/GenotypeTypes.h"
-#include "TGenotypeData.h"
-#include "TFunction.h"
-#include "TModel.h"
-#include "TReadGroups.h"
-#include "coretools/Strings/stringFunctions.h"
-
-namespace BAM {
-class TSequencedBase;
-}
+namespace BAM { class TReadGroups; }
+namespace BAM { class TSequencedBase; }
 
 namespace GenotypeLikelihoods::PMD {
+
 class TModels {
 private:
-	std::vector<std::unique_ptr<TModel>> _models;
-	bool _hasPMD      = false;
-	size_t _tableSize = 0;
-
-	void _initializeFromString(const std::string &pmdString);
-	std::vector<size_t> _initializeFromFile(const BAM::TReadGroups &ReadGroups, const std::string &filename);
-	void _setHasDamage();
+	std::vector<TWithPMD> _withPMD;
+	TNoPMD _noPMD;
+	std::vector<TModel*> _pModels;
 
 public:
-	TModels() = default;
-	TModels(const std::string &pmdString, const BAM::TReadGroups &ReadGroups,
-					  std::vector<size_t> &ReadGroupsWithoutPMD) {
-		ReadGroupsWithoutPMD = initialize(pmdString, ReadGroups);
-	}
-	constexpr bool hasPMD() const noexcept { return _hasPMD; };
-	const TModel &operator[](size_t ReadGroupIndex) const noexcept { return *_models[ReadGroupIndex]; }
-	TModel &operator[](size_t ReadGroupIndex) noexcept { return *_models[ReadGroupIndex]; }
-
-	std::vector<size_t> initialize(const std::string &pmdString, const BAM::TReadGroups &ReadGroups);
+	void initialize(size_t NReadGroups, std::string_view PMDString = "");
 	void initialize(BAM::RGInfo::TReadGroupInfo & RgInfo);
-	void writeToFile(const BAM::TReadGroups &ReadGroups, const BAM::TReadGroupMap &ReadGroupMap,
-	                 std::string_view outputName) const;
-	TBaseLikelihoods baseLikelihoods(const BAM::TSequencedBase &data,
-	                                    const TBaseLikelihoods &baseLikelihoodsNoPMD) const;
-	TBaseProbabilities massFunction(genometools::Base b, const BAM::TSequencedBase &data,
-									   const TBaseLikelihoods &baseLikelihoodsNoPMD) const;
-	TBaseProbabilities massFunction(genometools::Genotype g, const BAM::TSequencedBase &data,
-									   const TBaseLikelihoods &baseLikelihoodsNoPMD) const;
 
-	void resize(const BAM::TReadGroupMap& ReadGroupMap);
-	void add(const BAM::TReadGroupMap& ReadGroupMap, genometools::Base from, BAM::TSequencedBase data) {
-		_models[ReadGroupMap.pooledIndex(data.readGroupID)]->add(from, data);
+	void pool(const BAM::TReadGroupMap& rgMap);
+	void reset(size_t rgID) noexcept {
+		_pModels[rgID] = &_noPMD;
 	}
 
-	void estimate(const BAM::TReadGroupMap& ReadGroupMap) {
-		for (auto &r : ReadGroupMap.readGroupsInUse()) { _models[r]->estimate(); }
+	// access models
+	TModel &model(size_t rgID) noexcept { return *_pModels[rgID]; }
+	const TModel &model(size_t rgID) const noexcept { return *_pModels[rgID]; }
+
+	TModel& model(const BAM::TSequencedBase &data) noexcept {
+		return model(data.readGroupID);
+	}
+	const TModel& model(const BAM::TSequencedBase &data) const noexcept {
+		return model(data.readGroupID);
 	}
 
-	std::string functionString() const noexcept {
-		std::string r;
-		for (auto &p: _models) {
-			r.append(p->functionString()).append(1, ';');
-		}
-		return r;
+	bool hasPMD() const noexcept { return !_withPMD.empty(); }
+
+	TBaseLikelihoods P_dij(const BAM::TSequencedBase &data, const TBaseLikelihoods &P_dij_bbar) const noexcept {
+		return model(data).P_dij(data, P_dij_bbar);
 	}
+
+	TBaseProbabilities P_bbar(genometools::Base b, const BAM::TSequencedBase &data,
+							  const TBaseLikelihoods &P_dij_bbar) const noexcept {
+		return model(data).P_bbar(b, data, P_dij_bbar);
+	}
+	TBaseProbabilities P_bbar(genometools::Genotype g, const BAM::TSequencedBase &data,
+							  const TBaseLikelihoods &P_dij_bbar) const noexcept {
+		return model(data).P_bbar(g, data, P_dij_bbar);
+	}
+
+	void addToRGInfo(BAM::RGInfo::TReadGroupInfo & RgInfo) const;
 };
+} // namespace GenotypeLikelihoods::PMD
 
-}; // namespace GenotypeLikelihoods
-
-#endif /* TPOSTMORTEMDAMAGE_H_ */
+#endif /* GENOTYPELIKELIHOODS_TSEQUENCINGERRORMODELS_H_ */

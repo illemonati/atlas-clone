@@ -11,6 +11,7 @@
 #include <armadillo>
 #include <memory>
 
+#include "SequencingError/TFunctions.h"
 #include "TReadGroupInfo.h"
 #include "genometools/GenotypeTypes.h"
 #include "RecalEstimatorTools.h"
@@ -21,8 +22,6 @@
 
 namespace GenotypeLikelihoods {
 namespace SequencingError {
-
-struct TFunctions;
 
 class TEpsilon {
 	std::unique_ptr<TFunctions> _functions;
@@ -120,16 +119,15 @@ class TEpsilon {
 public:
 	TEpsilon(std::string_view Def);
 	TEpsilon(const BAM::RGInfo::TInfo & info);
-	~TEpsilon();
 
-	void checkOrInit(const RecalEstimatorTools::TRecalDataTable &DataTable);
+	void init(const RecalEstimatorTools::TRecalDataTable &DataTable);
 
 	coretools::Probability calcErrorRate(const BAM::TSequencedBase &base) const noexcept; 
 	double Q() const noexcept {return _Q;};
 	double maxF() const noexcept {return _maxF;};
 
 	template<bool updateJF, bool isInvariant>
-	void addToEpsilon(const BAM::TSequencedBase &base, const TGenotypeLikelihoods &P_g_I_ds, const TGenotypeLikelihoods & P_bbar_I_gds) {
+	void add(const BAM::TSequencedBase &base, const TGenotypeLikelihoods &P_g_I_ds, const TGenotypeLikelihoods & P_bbar_I_gds) {
 		if constexpr (updateJF) _addToQJF<isInvariant>(base, P_g_I_ds, P_bbar_I_gds);
 		else _addToQ<isInvariant>(base, P_g_I_ds, P_bbar_I_gds);
 	}

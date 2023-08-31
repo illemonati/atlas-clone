@@ -8,7 +8,8 @@
 #ifndef PMD_TPERREADGROUP_H_
 #define PMD_TPERREADGROUP_H_
 
-#include "PMD/TFunction.h"
+#include "TFunction.h"
+#include "TAlignment.h"
 #include "TModel.h"
 #include "coretools/Containers/TStrongArray.h"
 #include "coretools/Main/TLog.h"
@@ -21,7 +22,7 @@
 #include <memory>
 #include <type_traits>
 #include <vector>
-namespace GenotypeLikelihoods::PMD {
+namespace GenotypeLikelihoods::oldPMD {
 namespace impl {
 
 static constexpr size_t _N = coretools::index(genometools::Base::max) + 1;
@@ -569,17 +570,19 @@ public:
 		return TBaseProbabilities::normalize(mf);
 	}
 
-	virtual void simulate(BAM::TSequencedBase &data) const override {
-		using genometools::Base;
+	void simulate(BAM::TAlignment &aln) const override {
 		using coretools::instances::randomGenerator;
-		const auto pCT = _probCT(data);
-		const auto pGA = _probGA(data);
-		auto &base     = data.base;
+		using genometools::Base;
+		for (auto &d : aln) {
+			const auto pCT = _probCT(d);
+			const auto pGA = _probGA(d);
+			auto &base     = d.base;
 
-		if (base == Base::C) {
-			if (randomGenerator().getRand() < pCT) base = Base::T;
-		} else if (base == Base::G) {
-			if (randomGenerator().getRand() < pGA) base = Base::A;
+			if (base == Base::C) {
+				if (randomGenerator().getRand() < pCT) base = Base::T;
+			} else if (base == Base::G) {
+				if (randomGenerator().getRand() < pGA) base = Base::A;
+			}
 		}
 	}
 };

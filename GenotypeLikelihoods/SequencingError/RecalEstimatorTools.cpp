@@ -18,12 +18,10 @@
 
 namespace GenotypeLikelihoods::RecalEstimatorTools {
 
-using coretools::instances::logfile;
-
 namespace impl {
-void addCount(std::vector<uint32_t> &counts, uint16_t value) {
-	if (counts.size() <= value) counts.resize(value + 1, 0);
-	++counts[value];
+void addUsed(std::vector<bool> &counts, size_t value) {
+	if (counts.size() <= value) counts.resize(value + 1, false);
+	counts[value] = true;
 };
 
 } // namespace
@@ -35,96 +33,34 @@ void TRecalDataTable::add(const BAM::TSequencedBase & base){
 	++_counts;
 
 	//add quality
-	impl::addCount(_positions, base.distFrom5Prime);
-	impl::addCount(_fragmentLengths, base.fragmentLength);
-	impl::addCount(_qualities, base.originalQuality_phredInt.get());
-	impl::addCount(_mappingQualities, base.mappingQuality.get());
-};
-
-void TRecalDataTable::clear() noexcept {
-	_counts = 0;
-	_positions.clear();
-	_fragmentLengths.clear();
-	_qualities.clear();
-	_mappingQualities.clear();
+	impl::addUsed(_positions, base.distFrom5Prime);
+	impl::addUsed(_fragmentLengths, base.fragmentLength);
+	impl::addUsed(_qualities, base.originalQuality_phredInt.get());
+	impl::addUsed(_mappingQualities, base.mappingQuality.get());
 };
 
 //--------------------------------------------------------------------
 // TRecalDataTables
 //--------------------------------------------------------------------
 
-void TRecalDataTables::initialize(const BAM::TReadGroups *ReadGroups, const BAM::TReadGroupMap *ReadGroupMapObject) {
-	clear();
-	_readGroups   = ReadGroups;
+void TRecalDataTables::initialize(const BAM::TReadGroupMap *ReadGroupMapObject) {
 	_readGroupMap = ReadGroupMapObject;
-	_tables.resize(_readGroups->size());
-};
-
-void TRecalDataTables::clear() {
-	for(auto& t : _tables){
-		t[0].clear();
-		t[1].clear();
-	}
-	_totalCounts = 0;
-};
-
-void TRecalDataTables::add(const BAM::TSequencedBase & base){
-	++_totalCounts;
-	_tables[_readGroupMap->pooledIndex(base.readGroupID)][base.isSecondMate()].add(base);
-};
-
-void TRecalDataTables::add(const TSite &Site) {
-	for (const auto &b : Site) add(b);
+	_tables.resize(_readGroupMap->size());
 };
 
 void TRecalDataTables::add(const std::vector<TSite> &sites) {
-	for (const auto &s : sites) add(s);
-};
+	for (const auto &s : sites) {
+		_size += s.depth();
+		if (s.depth() > 1) ++_N_g1;
+
+		for (const auto &b : s) {
+			_tables[_readGroupMap->pooledIndex(b.readGroupID)][b.mate()].add(b);
+		}
+	}
+}
 
 const TRecalDataTableOneReadGroup& TRecalDataTables::operator[](uint16_t readGroupId) const{
 	return _tables[ _readGroupMap->pooledIndex(readGroupId) ];
-};
-
-//------------------------------------------------
-// Classes to keep track of models to estimate
-//------------------------------------------------
-
-std::string TModelStatusEntry::getString() const {
-	if (!_bs.to_ulong()) return "none";
-
-	if (_bs.get<0>()) {
-		if (_bs.get<1>())
-			return "(first and second mates)";
-		else
-			return "(first mate)";
-	} else {
-		return "(second mate)";
-	}
-};
-
-void TModelStati::add(uint16_t ReadGroupId){
-	modelStatus.emplace(ReadGroupId, TModelStatus());
-};
-
-TModelStatus& TModelStati::operator[](uint16_t ReadGroupId){
-	return modelStatus[ReadGroupId];
-};
-
-uint16_t TModelStati::num(ModelStatusTypes Type) const {
-	return std::accumulate(modelStatus.cbegin(), modelStatus.cend(), 0,
-			       [Type](auto tot, auto p) { return tot + p.second[Type].size(); });
-};
-
-void TModelStati::report(ModelStatusTypes Type, const std::string & Title, const BAM::TReadGroups & ReadGroups) const {
-	if(num(Type) > 0){
-		logfile().startIndent(Title);
-		for(auto& m : modelStatus){
-			if(m.second[Type].size() > 0){
-				logfile().list(ReadGroups.getName(m.first), " ", m.second[Type].getString());
-			}
-		}
-		logfile().endIndent();
-	}
 };
 
 } //end namespaceRecal GenotypeLikelihoods

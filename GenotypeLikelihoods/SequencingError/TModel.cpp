@@ -19,6 +19,7 @@
 
 #include "RecalEstimatorTools.h"
 #include "SequencingError/TCovariate.h"
+#include "TAlignment.h"
 #include "TGenotypeData.h"
 #include "TSequencedBase.h"
 #include "coretools/Containers/TStrongArray.h"
@@ -43,87 +44,83 @@ using namespace coretools::str;
 //*********************************************************
 // TModelNoRecal
 //*********************************************************
-Probability TModelNoRecal::errorRate(const BAM::TSequencedBase &base) const noexcept {
-	if (base == Base::N) return Probability(1.0);
-	return (Probability)base.originalQuality_phredInt;
+genometools::PhredIntProbability TNoRecal::phredInt(const BAM::TSequencedBase &data) const noexcept {
+	if (data == Base::N) return genometools::PhredIntProbability::highest();
+	return data.originalQuality_phredInt;
 }
 
-genometools::PhredIntProbability TModelNoRecal::phredInt(const BAM::TSequencedBase &base) const noexcept {
-	if (base == Base::N) return genometools::PhredIntProbability::highest();
-	return base.originalQuality_phredInt;
-}
-
-TBaseLikelihoods TModelNoRecal::baseLikelihoods(const BAM::TSequencedBase &base) const noexcept {
-	if (base == Base::N) { return TBaseLikelihoods{1.}; }
-	const auto eps = static_cast<Probability>(base.originalQuality_phredInt);
+TBaseLikelihoods TNoRecal::P_dij(const BAM::TSequencedBase &data) const noexcept {
+	if (data == Base::N) { return TBaseLikelihoods{1.}; }
+	const auto eps = static_cast<Probability>(data.originalQuality_phredInt);
 	TBaseLikelihoods baseLikelihoods{(1. / 3) * eps};
-	baseLikelihoods[base.base] = eps.complement();
+	baseLikelihoods[data.base] = eps.complement();
 	return baseLikelihoods;
 }
 
-void TModelNoRecal::simulate(BAM::TSequencedBase &base) const noexcept {
-	if (base.base == Base::N) return;
+void TNoRecal::simulate(BAM::TAlignment &aln) const noexcept {
+	for (auto &data : aln) {
+		if (data.base == Base::N) continue;
 
-	const auto e = static_cast<Probability>(base.originalQuality_phredInt);
-	if (randomGenerator().getRand() < e) {
-		const int i = randomGenerator().getRand(1, 4); // 3 bases to choose from
-		base.base   = Base((coretools::index(base.base) + i) % 4);
+		const auto e = static_cast<Probability>(data.originalQuality_phredInt);
+		if (randomGenerator().getRand() < e) {
+			const int i = randomGenerator().getRand(1, 4); // 3 bases to choose from
+			data.base   = Base((coretools::index(data.base) + i) % 4);
+		}
 	}
+}
+
+void TNoRecal::recalibrate(BAM::TAlignment &aln) const noexcept {
+	for (auto &b : aln) b.recalibratedQualityAsPhredInt = b.originalQuality_phredInt;
 }
 
 //*********************************************************
 // TModelRecal
 //*********************************************************
 
-Probability TModelRecal::errorRate(const BAM::TSequencedBase &base) const noexcept {
-	if (base == Base::N) return Probability::highest();
-	return _epsilon.calcErrorRate(base);
+genometools::PhredIntProbability TWithRecal::phredInt(const BAM::TSequencedBase &data) const noexcept {
+	if (data == Base::N) return genometools::PhredIntProbability::highest();
+	return genometools::PhredIntProbability(_epsilon.calcErrorRate(data));
 }
 
-genometools::PhredIntProbability TModelRecal::phredInt(const BAM::TSequencedBase &base) const noexcept {
-	if (base == Base::N) return genometools::PhredIntProbability::highest();
-	return genometools::PhredIntProbability(_epsilon.calcErrorRate(base));
-}
-
-TBaseLikelihoods TModelRecal::baseLikelihoods(const BAM::TSequencedBase &base) const noexcept {
-	if (base == Base::N) { return TBaseLikelihoods{1.}; }
-	const auto e = _epsilon.calcErrorRate(base);
-	const auto l = base.base;
+TBaseLikelihoods TWithRecal::P_dij(const BAM::TSequencedBase &data) const noexcept {
+	if (data == Base::N) { return TBaseLikelihoods{1.}; }
+	const auto e = _epsilon.calcErrorRate(data);
+	const auto l = data.base;
 	TBaseLikelihoods baseLikelihoods;
 	for (auto k = Base::min; k < Base::max; ++k) baseLikelihoods[k] = e * _rho[k][l];
 	baseLikelihoods[l] = e.complement();
 	return baseLikelihoods;
 }
 
-void TModelRecal::simulate(BAM::TSequencedBase &base) const noexcept {
-	if (base.base == Base::N) return;
+void TWithRecal::simulate(BAM::TAlignment &aln) const noexcept {
+	for (auto &data : aln) {
+		if (data.base != Base::N && randomGenerator().getRand() < _epsilon.calcErrorRate(data)) {
+			constexpr coretools::TStrongArray<std::array<Base, 3>, Base> lss(
+				{std::array<Base, 3>{Base::C, Base::G, Base::T},
+				 {Base::A, Base::G, Base::T},
+				 {Base::A, Base::C, Base::T},
+				 {Base::A, Base::C, Base::G}});
 
-	const auto e = _epsilon.calcErrorRate(base);
-	if (randomGenerator().getRand() < e) {
-		const auto k = base.base;
-		constexpr coretools::TStrongArray<std::array<Base, 3>, Base> lss(
-			{std::array<Base, 3>{Base::C, Base::G, Base::T},
-			 {Base::A, Base::G, Base::T},
-			 {Base::A, Base::C, Base::T},
-			 {Base::A, Base::C, Base::G}});
-		const auto ls = lss[k];
+			const auto k = data.base;
+			const auto ls = lss[k];
 
-		double r = randomGenerator().getRand();
-		if (r < _rho[k][ls[0]]) {
-			base.base = ls[0];
-			return;
+			const double r = randomGenerator().getRand();
+			if (r < _rho[k][ls[0]]) {
+				data.base = ls[0];
+			} else if (r < _rho[k][ls[0]] + _rho[k][ls[1]]) {
+				data.base = ls[1];
+			} else {
+				data.base = ls[2];
+			}
 		}
-		r -= _rho[k][ls[0]];
-		if ((r < _rho[k][ls[1]])) {
-			base.base = ls[1];
-			return;
-		}
-		// else
-		base.base = ls[2];
 	}
 }
 
-BAM::RGInfo::TInfo TModelRecal::info() const {
+void TWithRecal::recalibrate(BAM::TAlignment &aln) const noexcept {
+	for (auto &b : aln) b.recalibratedQualityAsPhredInt = phredInt(b);
+}
+
+BAM::RGInfo::TInfo TWithRecal::info() const {
 	BAM::RGInfo::TInfo info;
 	info        = _epsilon.info();
 	info["rho"] = _rho.info();

@@ -27,7 +27,6 @@ private:
 
 	coretools::TStrongArray<coretools::TStrongArray<double, genometools::Base>, genometools::Base> _rhoSum{};
 public:
-	TRho() = default;
 	TRho(std::string_view Def);
 	TRho(const BAM::RGInfo::TInfo & info);
 
@@ -40,7 +39,7 @@ public:
 	void add(genometools::Base l, coretools::Probability P_g_I_d, const TBaseProbabilities &P_bbar_I_d) noexcept;
 	void estimate() noexcept;
 
-	BAM::RGInfo::TInfo info() const ;
+	BAM::RGInfo::TInfo info() const;
 };
 
 	

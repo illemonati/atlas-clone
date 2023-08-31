@@ -1,89 +1,63 @@
-
 /*
- * TPostMortemDamage.h
- *
- *  Created on: Oct 17, 2015
- *      Author: wegmannd
+ * PMD/TModels.h
  */
 
-#ifndef TPMDTYPE_H_
-#define TPMDTYPE_H_
+#ifndef GENOTYPELIKELIHOODS_PMD_MODEL_H_
+#define GENOTYPELIKELIHOODS_PMD_MODEL_H_
 
+
+#include "PMD/TPsi.h"
+#include "TAlignment.h"
 #include "TGenotypeData.h"
-#include "TFunction.h"
-#include "TSequencedBase.h"
-#include "coretools/Files/TOutputFile.h"
 #include "coretools/Types/probability.h"
-#include "genometools/GenotypeTypes.h"
+namespace BAM { class TReadGroups; }
+namespace BAM { class TSequencedBase; }
 
 namespace GenotypeLikelihoods::PMD {
 
-enum class ReadEnd : size_t { min = 0, forward5 = min, reverse5, forward3, reverse3, max };
-enum class Strand : size_t {min, Single=min, Double, Unknown, max=Unknown};
-
 struct TModel {
-	TModel()          = default;
-	virtual ~TModel() = default;
-
-	virtual bool hasDamage() const noexcept              = 0;
-	virtual std::string functionString() const noexcept  = 0;
-	virtual std::string_view typeString() const noexcept = 0;
-
-	virtual void resize(size_t N)                                                                               = 0;
-	virtual void estimate()                                                                                     = 0;
-	virtual void add(genometools::Base from, BAM::TSequencedBase data)                                          = 0;
-	virtual void writeTable(std::string_view name, std::array<coretools::TOutputFile, 2> &files) const noexcept = 0;
-
-	virtual TBaseLikelihoods baseLikelihoods(const BAM::TSequencedBase &data,
-	                                         const TBaseLikelihoods &baseLikelihoodsNoPMD) const = 0;
-	virtual TBaseProbabilities massFunction(genometools::Base b, const BAM::TSequencedBase &data,
-											const TBaseLikelihoods &baseLikelihoodsNoPMD) const  = 0;
-	virtual TBaseProbabilities massFunction(genometools::Genotype g, const BAM::TSequencedBase &data,
-											const TBaseLikelihoods &baseLikelihoodsNoPMD) const  = 0;
-
-	virtual void simulate(BAM::TSequencedBase &data) const = 0;
+	virtual TBaseLikelihoods P_dij(const BAM::TSequencedBase &data,
+								   const TBaseLikelihoods &P_dij_bbar) const noexcept    = 0;
+	virtual TBaseProbabilities P_bbar(genometools::Base b, const BAM::TSequencedBase &data,
+									  const TBaseLikelihoods &P_dij_bbar) const noexcept = 0;
+	virtual TBaseProbabilities P_bbar(genometools::Genotype g, const BAM::TSequencedBase &data,
+									  const TBaseLikelihoods &P_dij_bbar) const noexcept = 0;
+	virtual void simulate(BAM::TAlignment &aln) const                                    = 0;
+	virtual TPsi *psi() noexcept                                                         = 0;
+	virtual bool hasPMD() const noexcept                                                 = 0;
+	virtual BAM::RGInfo::TInfo info() const                                              = 0;
 };
 
-//------------------------------------------------
-// TPMDTypeNone
-//------------------------------------------------
-class TNoPMD final : public TModel {
+struct TNoPMD final : public TModel {
+	TBaseLikelihoods P_dij(const BAM::TSequencedBase &, const TBaseLikelihoods &P_dij_bbar) const noexcept override {
+		return P_dij_bbar;
+	}
+	TBaseProbabilities P_bbar(genometools::Base b, const BAM::TSequencedBase &data,
+							  const TBaseLikelihoods &P_dij_bbar) const noexcept override;
+	TBaseProbabilities P_bbar(genometools::Genotype g, const BAM::TSequencedBase &data,
+							  const TBaseLikelihoods &P_dij_bbar) const noexcept override;
+	void simulate(BAM::TAlignment &) const override {};
+	TPsi *psi() noexcept override {return nullptr;}
+	bool hasPMD() const noexcept override {return false;}
+	BAM::RGInfo::TInfo info() const override {return {};}
+};
+
+class TWithPMD final: public TModel {
+	TPsi _psi;
 public:
-	static constexpr TBaseMassFunctions massFunctions{
-		{TBaseProbabilities::normalize({1., 0., 0., 0.}), TBaseProbabilities::normalize({0., 1., 0., 0.}),
-		 TBaseProbabilities::normalize({0., 0., 1., 0.}), TBaseProbabilities::normalize({0., 0., 0., 1.})}};
+	TWithPMD(std::string_view Psi) : _psi(Psi) {}
+	TWithPMD(const BAM::RGInfo::TInfo & info) : _psi(info) {}
 
-	static constexpr std::string_view name = "none";
-	TNoPMD()                               = default;
-
-	bool hasDamage() const noexcept override { return false; }
-	std::string functionString() const noexcept override { return "none"; }
-	std::string_view typeString() const noexcept override { return name; }
-
-	virtual void resize(size_t) override {}
-	void estimate() override {}
-	void add(genometools::Base, BAM::TSequencedBase) override {}
-	void writeTable(std::string_view, std::array<coretools::TOutputFile, 2> &) const noexcept override {}
-
-	TBaseLikelihoods baseLikelihoods(const BAM::TSequencedBase &,
-									 const TBaseLikelihoods &baseLikelihoodsNoPMD) const override {
-		// just copy
-		return baseLikelihoodsNoPMD;
-	}
-
-	TBaseProbabilities massFunction(genometools::Base b, const BAM::TSequencedBase &,
-									const TBaseLikelihoods &) const override {
-		return massFunctions[b];
-	}
-	TBaseProbabilities massFunction(genometools::Genotype g, const BAM::TSequencedBase &,
-									const TBaseLikelihoods &baseLikelihoodsNoPMD) const override {
-		return massFunction(g, baseLikelihoodsNoPMD);
-	}
-
-	static TBaseProbabilities massFunction(genometools::Genotype g, const TBaseLikelihoods &baseLikelihoodsNoPMD);
-	virtual void simulate(BAM::TSequencedBase &) const override {}
+	TBaseLikelihoods P_dij(const BAM::TSequencedBase &data, const TBaseLikelihoods &P_dij_bbar) const noexcept override;
+	TBaseProbabilities P_bbar(genometools::Base b, const BAM::TSequencedBase &data,
+							  const TBaseLikelihoods &P_dij_bbar) const noexcept override;
+	TBaseProbabilities P_bbar(genometools::Genotype g, const BAM::TSequencedBase &data,
+							  const TBaseLikelihoods &P_dij_bbar) const noexcept override;
+	void simulate(BAM::TAlignment &aln) const override;
+	TPsi *psi() noexcept override {return &_psi;}
+	bool hasPMD() const noexcept override {return true;}
+	BAM::RGInfo::TInfo info() const override {return _psi.info();}
 };
-
-TModel *makeType(std::string_view pmdString);
 } // namespace GenotypeLikelihoods::PMD
-#endif
+
+#endif /* GENOTYPELIKELIHOODS_TSEQUENCINGERRORMODELS_H_ */

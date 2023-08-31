@@ -11,6 +11,7 @@
 #include <numeric>
 #include <utility>
 
+#include "coretools/Containers/TStrongArray.h"
 #include "genometools/GenotypeTypes.h"
 #include "genometools/PhredProbabilityTypes.h"
 
@@ -72,19 +73,22 @@ size_t TSite::refDepth() const {
 	return std::count_if(_bases.cbegin(), _bases.cend(), [this](auto b) {return b.base == refBase;});
 };
 
-void TSite::countAlleles(TBaseCounts &alleleCounts) const {
-	alleleCounts.fill(0.);
+TBaseCounts TSite::countAlleles() const {
+	TBaseCounts alleleCounts{};
 	for (const auto &b : _bases) { ++alleleCounts[b.base]; }
+	return alleleCounts;
 };
 
-void TSite::countMates(std::array<int, 2> &mateCounts) const {
-	mateCounts.fill(0);
-	for (const auto &b : _bases) { ++mateCounts[b.isSecondMate()]; }
+coretools::TStrongArray<size_t, BAM::Mate> TSite::countMates() const {
+	coretools::TStrongArray<size_t, BAM::Mate> mateCounts{};
+	for (const auto &b : _bases) { ++mateCounts[b.mate()]; }
+	return mateCounts;
 };
 
-void TSite::countFwdRev(std::array<int, 2> &frCounts) const {
-	frCounts.fill(0);
+std::array<int, 2> TSite::countFwdRev() const {
+	std::array<int, 2> frCounts{};
 	for (const auto &b : _bases) { ++frCounts[b.isReverseStrand()]; }
+	return frCounts;
 };
 
 }; // namespace GenotypeLikelihoods

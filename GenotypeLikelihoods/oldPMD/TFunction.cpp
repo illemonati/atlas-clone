@@ -5,7 +5,7 @@
 #include "coretools/Types/probability.h"
 #include <tuple>
 
-namespace GenotypeLikelihoods::PMD {
+namespace GenotypeLikelihoods::oldPMD {
 
 using namespace coretools::str;
 using coretools::Probability;

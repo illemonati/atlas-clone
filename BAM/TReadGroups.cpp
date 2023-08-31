@@ -24,14 +24,14 @@ using coretools::instances::logfile;
 //TReadGroup
 //---------------------------------------------------------------
 TReadGroup::TReadGroup(){
-	_id = TReadGroups::noReadGroupId;
+	id = TReadGroups::noReadGroupId;
 	name_ID = "No Read Group";
 	inUse = false;
 	writeToHeader = false;
 };
 
 TReadGroup::TReadGroup(size_t ID, std::string_view Name){
-	_id = ID;
+	id = ID;
 	name_ID = Name;
 	inUse = true;
 	writeToHeader = true;
@@ -167,7 +167,7 @@ void TReadGroups::_fillLookupFromId(){
 	//fill in by ID look-up
 	_readGroupsById.resize(_readGroups.size());
 	for(size_t i = 0; i < _readGroups.size(); ++i){
-		_readGroupsById[_readGroups[i].id()] = i;
+		_readGroupsById[_readGroups[i].id] = i;
 	}
 };
 
@@ -203,7 +203,7 @@ TReadGroup& TReadGroups::addAlternativeRG(std::string_view Name, std::string_vie
 
 	//set name and give new id
 	newRg.name_ID = Name;
-	newRg.setId(_readGroups.size());
+	newRg.id      = _readGroups.size();
 
 	_readGroups.push_back(newRg);
 	_fillLookupFromId();
@@ -225,7 +225,7 @@ size_t TReadGroups::getId(std::string_view Name) const {
 	if(rg == _readGroups.end()){
 		return noReadGroupId;
 	} else {
-		return rg->id();
+		return rg->id;
 	}
 }
 
@@ -313,7 +313,7 @@ void TReadGroups::printReadgroupsInUse() const{
 void TReadGroups::fillVectorWithNames(std::vector<std::string> & Vec) const{
 	Vec.resize(_readGroups.size());
 	for(auto& rg : _readGroups){
-		Vec[rg.id()] = rg.name_ID;
+		Vec[rg.id] = rg.name_ID;
 	}
 };
 
@@ -329,10 +329,6 @@ std::string TReadGroups::compileSamHeader() const{
 //TReadGroupMap
 //---------------------------------------------------------------
 const size_t TReadGroupMap::ReadGroupMapNotInitializedIndex = -1; //largest possible values
-
-TReadGroupMap::TReadGroupMap(const TReadGroups & ReadGroups){
-	_fillWithoutPooling(ReadGroups);
-};
 
 TReadGroupMap::TReadGroupMap(const TReadGroups & ReadGroups, std::string_view filename){
 	if(filename.empty()){

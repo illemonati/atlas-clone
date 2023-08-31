@@ -17,32 +17,11 @@
 namespace BAM{
 
 //---------------------------------------------------------------
-//TReadGroupMaxLength
-// ToDo: remove?
-//---------------------------------------------------------------
-struct TReadGroupMaxLength{
-public:
-	int maxLen;
-	size_t truncatedOrMergedReadGroupID;
-	std::string truncatedOrMergedReadGroup;
-	int sequencingType; //0 = single, 1 = mixed, 2 = paired
-
-	TReadGroupMaxLength(int MaxLen, int TruncatedOrMergedReadGroupID, std::string_view TruncatedOrMergedReadGroup, int Type){
-		maxLen = MaxLen;
-		truncatedOrMergedReadGroupID = TruncatedOrMergedReadGroupID;
-		truncatedOrMergedReadGroup = TruncatedOrMergedReadGroup;
-		sequencingType = Type;
-	};
-};
-
-//---------------------------------------------------------------
 //TReadGroup
 //---------------------------------------------------------------
-class TReadGroup{
-private:
-	size_t _id; //internal ID
-
+struct TReadGroup {
 public:
+	size_t id; //internal ID
 	std::string name_ID;
 	std::string barcodeSequence_BC;
 	std::string sequencingCenter_CN;
@@ -66,10 +45,6 @@ public:
     TReadGroup(size_t ID, std::string_view Name);
 
     std::string compileSamHeader() const;
-
-    //getters
-    size_t id() const { return _id; };
-    void setId(const size_t id){ _id = id; };
 
     bool operator<(const TReadGroup & right) const;
     bool operator<(std::string_view right) const;
@@ -163,10 +138,7 @@ private:
 	void _fillFromFile(const TReadGroups & ReadGroups, std::string_view filename);
 
 public:
-	TReadGroupMap(const TReadGroups & ReadGroups);
-	TReadGroupMap(const TReadGroups & ReadGroups, std::string_view filename);
-
-	~TReadGroupMap() = default;
+	TReadGroupMap(const TReadGroups & ReadGroups, std::string_view filename = "");
 
 	size_t size() const { return _readGroupMap.size(); };
 	size_t numReadGroupsInUse() const { return _readGroupsInUse.size(); };

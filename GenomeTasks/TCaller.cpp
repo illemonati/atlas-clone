@@ -407,7 +407,7 @@ void TCaller::_clearAfterCall(){
 //-------------------------------------------------------------------------------------------
 void TCaller::_countAlleles(const TSite & site){
 	if(!_allelesCounted){
-		site.countAlleles(_alleleCounts);
+		_alleleCounts   = site.countAlleles();
 		_allelesCounted = true;
 	}
 };

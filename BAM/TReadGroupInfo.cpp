@@ -7,13 +7,13 @@
 
 
 #include "coretools/Files/TFile.h"
+#include "coretools/Files/TStdWriter.h"
 #include "coretools/Main/TError.h"
 #include <vector>
 #include "TReadGroupInfo.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/Types/commonWeakTypes.h"
-#include "coretools/devtools.h"
 
 using coretools::instances::parameters;
 using coretools::instances::logfile;
@@ -276,16 +276,11 @@ void TReadGroupInfo::write(std::string_view Filename){
 				x[infos[i].argument] = r[i];
 			}
 		}
-
 	}
 
 	//open file
-	std::ofstream out(std::string{Filename});
-	if(!out){
-		UERROR("Failed to open file '", Filename, "' for writing!");
-	}
-	out << std::setw(4) << _json << std::endl;
-	out.close();
+	coretools::TStdWriter writer(Filename);
+	writer.write(_json.dump(2));
 }
 
 //-------------------------------------------

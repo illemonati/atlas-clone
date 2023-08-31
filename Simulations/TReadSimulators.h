@@ -23,7 +23,8 @@ private:
 
 	// simulation tools
 	BAM::TReadGroups _readGroups;
-	GenotypeLikelihoods::PMD::TModels _PMD;
+	GenotypeLikelihoods::PMD::TModels _pmd;
+	GenotypeLikelihoods::SequencingError::TModels _recal;
 
 	// read simulator
 	std::vector<std::unique_ptr<TReadSimulator>> _readSimulators;

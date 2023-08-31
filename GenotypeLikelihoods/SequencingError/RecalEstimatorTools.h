@@ -15,6 +15,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "TSequencedBase.h"
 #include "coretools/Containers/TBitSet.h"
 #include "TReadGroups.h"
 #include "coretools/Containers/TStrongArray.h"
@@ -29,71 +30,45 @@ private:
 	uint64_t _counts = 0;
 	//all vectors are uint16_t, which is used by seq error models for all covariates
 // Object to store for which qualities and positions data is available.
-	std::vector<uint32_t> _positions;
-	std::vector<uint32_t> _fragmentLengths;
-	std::vector<uint32_t> _qualities;
-	std::vector<uint32_t> _mappingQualities;
+	std::vector<bool> _positions;
+	std::vector<bool> _fragmentLengths;
+	std::vector<bool> _qualities;
+	std::vector<bool> _mappingQualities;
 
 public:
-	void clear() noexcept;
 	void add(const BAM::TSequencedBase & base);
 
 	constexpr size_t size() const noexcept { return _counts; };
-	const std::vector<uint32_t> &positions() const noexcept { return _positions; };
-	const std::vector<uint32_t> &fragmentLengths() const noexcept { return _fragmentLengths; };
-	const std::vector<uint32_t> &qualities() const noexcept { return _qualities; };
-	const std::vector<uint32_t> &mappingQualities() const noexcept { return _mappingQualities; };
+	const std::vector<bool> &positions() const noexcept { return _positions; };
+	const std::vector<bool> &fragmentLengths() const noexcept { return _fragmentLengths; };
+	const std::vector<bool> &qualities() const noexcept { return _qualities; };
+	const std::vector<bool> &mappingQualities() const noexcept { return _mappingQualities; };
 };
 
-using TRecalDataTableOneReadGroup = std::array<TRecalDataTable, 2>;
+using TRecalDataTableOneReadGroup = coretools::TStrongArray<TRecalDataTable, BAM::Mate>;
 
 class TRecalDataTables{
 private:
-	const BAM::TReadGroups* _readGroups = nullptr;
 	const BAM::TReadGroupMap* _readGroupMap = nullptr;
 	std::vector<TRecalDataTableOneReadGroup> _tables; //tables[readGroup][first/second mate]
-	uint64_t _totalCounts = 0;
+	size_t _size = 0;
+	size_t _N_g1 = 0;
+
 public:
 	TRecalDataTables() = default;
-	TRecalDataTables(const BAM::TReadGroups *ReadGroups, const BAM::TReadGroupMap *ReadGroupMapObject)
-	    : _readGroups(ReadGroups), _readGroupMap(ReadGroupMapObject), _tables(_readGroupMap->numReadGroupsInUse()){};
+	TRecalDataTables(const BAM::TReadGroupMap &ReadGroupMapObject)
+	    : _readGroupMap(&ReadGroupMapObject), _tables(_readGroupMap->numReadGroupsInUse()){};
+	TRecalDataTables(const BAM::TReadGroupMap &ReadGroupMapObject, const std::vector<TSite> & sites)
+	    : _readGroupMap(&ReadGroupMapObject), _tables(_readGroupMap->numReadGroupsInUse()){
+		add(sites);
+	};
 
-	void clear();
-	void initialize(const BAM::TReadGroups* ReadGroups, const BAM::TReadGroupMap* ReadGroupMapObject);
-	void reset();
-	void add(const BAM::TSequencedBase & base);
-	void add(const TSite & site);
+	void initialize(const BAM::TReadGroupMap* ReadGroupMapObject);
 	void add(const std::vector<TSite> & sites);
 
-	constexpr uint64_t size() const noexcept {return _totalCounts;};
+	constexpr size_t size() const noexcept {return _size;};
+	constexpr size_t nSites_g1() const noexcept {return _N_g1;};
 	const TRecalDataTableOneReadGroup& operator[](uint16_t readGroupId) const;
-};
-
-//------------------------------------------------
-// Classes to keep track of models to estimate
-//------------------------------------------------
-class TModelStatusEntry{
-private:
-	coretools::TBitSet<2> _bs{};
-public:
-	constexpr uint16_t size() const noexcept { return _bs.get<0>() + _bs.get<1>(); };
-	constexpr void set(const bool &IsSecondMate) noexcept {
-		_bs[IsSecondMate] = true;
-	};
-	std::string getString() const;
-};
-
-enum class ModelStatusTypes : uint8_t {copied=0, noData, littleData, dataButNoRecal};
-using TModelStatus = coretools::TStrongArray<TModelStatusEntry, ModelStatusTypes, 4>;
-
-class TModelStati{
-private:
-	std::unordered_map<uint16_t, TModelStatus> modelStatus;
-public:
-	void add(uint16_t ReadGroupId);
-	TModelStatus& operator[](uint16_t ReadGroupId);
-	uint16_t num(ModelStatusTypes Type) const;
-	void report(ModelStatusTypes Type, const std::string & Title, const BAM::TReadGroups & ReadGroups) const;
 };
 
 }; // namespace GenotypeLikelihoods::RecalEstimatorTools

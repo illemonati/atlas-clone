@@ -1,37 +1,36 @@
 /*
- * estimHet.cpp
- *
- *  Created on: Feb 19, 2015
- *      Author: wegmannd
+ * atlas.cpp
  */
-
-#include <string>
 
 #include "coretools/Main/TMain.h"
 
 //BAM
-#include "TBamDiagnoser.h"
 #include "GenomeTasks/TBamFilter.h"
+#include "TAlignmentMerger.h"
+#include "TBamDiagnoser.h"
 #include "TContextQuantifer.h"
 #include "TDuplicateQuantifier.h"
+#include "TIlluminaIdentifier.h"
 #include "TPMDEstimator.h"
 #include "TPMDSCalculator.h"
 #include "TPileup.h"
 #include "TQualityDistribution.h"
+#include "TReadGroupInfo.h"
 #include "TReadGroupMerger.h"
 #include "TSoftClipping.h"
-#include "TAlignmentMerger.h"
-#include "TIlluminaIdentifier.h"
 
 //window
 #include "TAlleleCountEstimator.h"
 #include "TAlleleFrequencyEstimator.h"
 #include "TAllelicDepthCounts.h"
+#include "TAncestralAlleleEstimator.h"
 #include "TBamDownsampler.h"
 #include "TCaller.h"
 #include "TCreateBedMask.h"
 #include "TDepthWriter.h"
 #include "TDistanceEstimator.h"
+#include "TEstimateErrors.h"
+#include "TEstimateMutationLoad.h"
 #include "TEstimateRecalibration.h"
 #include "TEstimateTheta.h"
 #include "TF2Estimator.h"
@@ -41,9 +40,8 @@
 #include "TMajorMinor.h"
 #include "TPSMCInput.h"
 #include "TPolymorphicWindowIdentifier.h"
-#include "TWriteGLF.h"
 #include "TSexEstimator.h"
-#include "TEstimateMutationLoad.h"
+#include "TWriteGLF.h"
 
 //VCF
 #include "TVcfCompare.h"
@@ -52,9 +50,6 @@
 
 //simulations
 #include "TSimulator.h"
-
-#include "TReadGroupInfo.h"
-#include "TAncestralAlleleEstimator.h"
 
 void addTaks(coretools::TMain & main) {
 	//BAM
@@ -71,12 +66,9 @@ void addTaks(coretools::TMain & main) {
 	main.createRegularTask<GenomeTasks::TPMDEstimator>("PMD", "Estimating Post-Mortem Damage (PMD) patterns");
 	main.createRegularTask<GenomeTasks::TPMDSCalculator>("PMDS", "Filtering for ancient reads using PMDS", "Skoglund et al. (2014) PNAS");
 	main.createRegularTask<GenomeTasks::TIlluminaIdentifier>("identifyIlluminaReadGroups", "Reassigning read groups based on the platform unit in their name");
-	//main.addRegularTask("duplication", new GenomeTasks::TTask_duplicationQuantifier());
-	//main.addRegularTask("qualityDist", new GenomeTasks::TTask_qualityDist());
-	//main.addRegularTask("contextStats", new GenomeTasks::TTask_quantifyContext());
-	//main.addRegularTask("separateReads", new GenomeTasks::TTask_separateReads());
 
 	//window tasks
+	main.createRegularTask<GenomeTasks::TEstimateErrors>("estimateErrors", "Estimating PMD pattern and Sequencing Errors", "Kousathanas et al. (2017) Genetics");
 	main.createRegularTask<GenomeTasks::TEstimateRecalibration>("recal", "Estimating error re-calibration parameters", "Kousathanas et al. (2017) Genetics");
 	main.createRegularTask<GenomeTasks::TMaskCreator>("createMask", "Creating a mask BED file");
 	main.createRegularTask<GenomeTasks::TAllelicDepth>("allelicDepth", "Writing genotype likelihoods to a GLF file");
@@ -87,7 +79,6 @@ void addTaks(coretools::TMain & main) {
 	main.createRegularTask<GenomeTasks::TWriteGLF>("GLF", "Writing genotype likelihoods to a GLF file");
 	main.createRegularTask<GenomeTasks::TSexEstimator>("sexEstimation", "Estimating the distribution of depth among sites and writing depth per window");
 	main.createRegularTask<GenomeTasks::TEstimateMutationLoad>("mutationLoad", "Estimating mutation load across the genome");
-	//main.addRegularTask("writeDepth", new GenomeTasks::TTask_depthWriter());
 
 	//Population tools
 	main.createRegularTask<GLF::TGLFPrinter>("printGLF", "Printing a GLF file to screen");
@@ -148,7 +139,7 @@ void addTests(coretools::TMain & main){
 //Main function
 //---------------------------------------------------------------------------
 int main(int argc, char* argv[]){
-	coretools::TMain main("ATLAS", "0.91", "https://bitbucket.org/wegmannlab/atlas", "andreas.fueglistaler@unifr.ch");
+	coretools::TMain main("ATLAS", "0.92", "https://bitbucket.org/wegmannlab/atlas", "andreas.fueglistaler@unifr.ch");
 
 	//add existing tasks
 	addTaks(main);

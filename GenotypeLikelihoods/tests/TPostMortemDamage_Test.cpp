@@ -113,8 +113,8 @@ TEST(TPostMortemDamage_test, baseANoPMD) {
 
 	for (Base b = Base::min; b < Base::max; ++b) {
 		base.base                  = b;
-		const auto sem_likelihoods = sem.baseLikelihoods(base);
-		const auto pmd_likelihoods = pmd.baseLikelihoods(base, sem_likelihoods);
+		const auto sem_likelihoods = sem.P_dij(base);
+		const auto pmd_likelihoods = pmd.P_dij(base, sem_likelihoods);
 
 		for (Base trueBase = Base::min; trueBase < Base::max; ++trueBase) {
 			if (trueBase == b) {
@@ -160,8 +160,8 @@ TEST(TPostMortemDamage_test, baseAWithPMD) {
 		for (Base b = Base::min; b < Base::max; ++b) {
 			base.base = b;
 
-			const auto sem_likelihoods = sem.baseLikelihoods(base);
-			const auto pmd_likelihoods = pmd.baseLikelihoods(base, sem_likelihoods);
+			const auto sem_likelihoods = sem.P_dij(base);
+			const auto pmd_likelihoods = pmd.P_dij(base, sem_likelihoods);
 
 			for (Base trueBase = Base::min; trueBase < Base::max; ++trueBase) {
 

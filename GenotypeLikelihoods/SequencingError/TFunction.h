@@ -58,7 +58,7 @@ public:
 	virtual size_t numParameters() const noexcept = 0;
 
 	// check value range: to ensure that data can be recalibrated
-	virtual bool checkOrInitValueRange(const RecalEstimatorTools::TRecalDataTable &dataTable, size_t FirstParameterIndex) = 0;
+	virtual void init(const RecalEstimatorTools::TRecalDataTable &dataTable, size_t FirstParameterIndex) = 0;
 
 	// estimation
 	virtual double getEta(const BAM::TSequencedBase &base) const noexcept   = 0;
@@ -82,9 +82,6 @@ class TNoFunction final : public TFunction{
 public:
 	TNoFunction() : TFunction(0) {}
 
-	// non-virtuals
-	constexpr size_t firstParameterIndex() const noexcept { return _firstParameterIndex; }
-
 	// virtuals
 	double *begin() noexcept override {return &_nothing;}
 	double *end() noexcept override {return &_nothing;}
@@ -93,7 +90,7 @@ public:
 	virtual size_t numParameters() const noexcept override {return 0;}
 
 	// check value range: to ensure that data can be recalibrated
-	bool checkOrInitValueRange(const RecalEstimatorTools::TRecalDataTable &, size_t) override {return true;}
+	void init(const RecalEstimatorTools::TRecalDataTable &, size_t) override {}
 
 	// estimation
 	double getEta(const BAM::TSequencedBase &) const noexcept override {return 0.;}
@@ -271,9 +268,8 @@ public:
 	const double *end() const noexcept override { return _betas.data() + O; }
 
 
-	bool checkOrInitValueRange(const RecalEstimatorTools::TRecalDataTable &dataTable, size_t FirstParameterIndex) noexcept override {
+	void init(const RecalEstimatorTools::TRecalDataTable &, size_t FirstParameterIndex) noexcept override {
 		_firstParameterIndex = FirstParameterIndex;
-		return Covariate::N(dataTable) <= Transformer::N;
 	}
 
 	double adjustParametersPostEstimation() noexcept override { return 0.; }
@@ -375,9 +371,8 @@ public:
 	const double *begin() const noexcept override { return _betas.data(); }
 	const double *end() const noexcept override { return _betas.data() + _betas.size(); }
 
-	bool checkOrInitValueRange(const RecalEstimatorTools::TRecalDataTable &, size_t FirstParameterIndex) noexcept override {
+	void init(const RecalEstimatorTools::TRecalDataTable &, size_t FirstParameterIndex) noexcept override {
 		_firstParameterIndex = FirstParameterIndex;
-		return true;
 	}
 
 	double getEta(const BAM::TSequencedBase &base) const noexcept override {
@@ -451,15 +446,12 @@ public:
 
 	void push_back(double val) noexcept {_betas.push_back(val);}
 
-	bool checkOrInitValueRange(const RecalEstimatorTools::TRecalDataTable &dataTable, size_t FirstParameterIndex) override {
+	void init(const RecalEstimatorTools::TRecalDataTable &dataTable, size_t FirstParameterIndex) override {
 		_firstParameterIndex = FirstParameterIndex;
-		if (numParameters() == 0) {
-			_betas.resize(Covariate::N(dataTable), 0.);
-			for (size_t i = 0; i < Covariate::N(dataTable); ++i) {
-				if (!Covariate::isUsed(dataTable, i)) _betas[i] = NAN;
-			}
+		_betas.resize(Covariate::N(dataTable), 0.);
+		for (size_t i = 0; i < Covariate::N(dataTable); ++i) {
+			if (!Covariate::isUsed(dataTable, i)) _betas[i] = NAN;
 		}
-		return Covariate::N(dataTable) <= numParameters();
 	}
 
 	double adjustParametersPostEstimation() noexcept override {
@@ -504,18 +496,21 @@ public:
 
 	std::string modelString() const override {
 		std::string ret = typeString().append(1, '[');
+		bool hasData    = false;
 		for (size_t i = 0; i < _betas.size(); ++i) {
-			if (!std::isnan(_betas[i]))
+			if (!std::isnan(_betas[i])) {
+				hasData = true;
 				ret.append(coretools::str::toString(i))
 					.append(1, ':')
 					.append(coretools::str::toString(_betas[i]))
 					.append(1, ',');
+			}
 		}
-		ret.back() = ']'; // replace last ',' with ']'
+		if (hasData) ret.back() = ']'; // replace last ',' with ']'
+		else ret.append(1, ']');
 		return ret;
 	}
 };
-
 
 } // namespace SequencingError
 } // namespace GenotypeLikelihoods

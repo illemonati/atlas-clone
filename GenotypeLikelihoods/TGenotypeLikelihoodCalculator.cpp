@@ -54,7 +54,10 @@ TGenotypeLikelihoodCalculator::TGenotypeLikelihoodCalculator(const BAM::TReadGro
 
 		//check if it is recal string
 
-		if (!std::filesystem::exists(recalString)) {
+		if (std::filesystem::exists(recalString)) {
+			UERROR("Initializing recal with recal-file is not supported anymore. Use Readgroup Info File in json-format instead!");
+		}
+		else {
 			//assume it is a model string
 			logfile().startIndent("Parsing common recal model for all read groups:");
 			logfile().list("Provided model (parameter 'recal'): " + recalString);
@@ -65,60 +68,19 @@ TGenotypeLikelihoodCalculator::TGenotypeLikelihoodCalculator(const BAM::TReadGro
 			} else {
 				logfile().list("Will use default rho. (use 'rho' to change)");
 			}
-			_sequencingErrorModels.initialize(recalString, rhoString, *ReadGroups);
-		} else {
-			logfile().startIndent("Initializing recal models from file '" + recalString + "' (parameter 'recal'):");
-			_sequencingErrorModels.initializeFromFile(recalString, *ReadGroups);
-			//warn if some read groups have no recal definition
-			std::vector<size_t> readGroupsWithoutRecal;
-			std::vector<size_t> readGroupsLikelySingelEnd;
-
-			_sequencingErrorModels.checkReadGroups(*ReadGroups, readGroupsWithoutRecal, readGroupsLikelySingelEnd);
-
-			if(readGroupsWithoutRecal.size() > 0){
-				logfile().warning("The following read groups do not have recal definitions: "
-								 + coretools::str::concatenateString(ReadGroups->getNames(readGroupsWithoutRecal), ", ")
-								 + "!");
-				if(!parameters().parameterExists("allowReadGroupsWithoutRecal")){
-					UERROR("Recal models are only defined for a subset of read groups. Did you use the wrong recal file? (use allowReadGroupsWithoutRecal to ignore)");
-				}
-			}
-
-			//Report if some read groups have only single-end definitions
-			if(readGroupsLikelySingelEnd.size() > 0){
-				logfile().list("Read groups assumed single-end (no recal for second mate): "
-							  + coretools::str::concatenateString(ReadGroups->getNames(readGroupsLikelySingelEnd), ", ")
-							  + ".");
-			}
-			logfile().endIndent();
+			_sequencingErrorModels.initialize(ReadGroups->size(), recalString, rhoString);
 		}
 	} else {
-		_sequencingErrorModels.initializeNoRecal(*ReadGroups);
+		_sequencingErrorModels.initialize(ReadGroups->size());
 		logfile().list("Assuming that error rates in BAM files are correct. (use 'recal' to add recalibration)");
 	}
-};
-
-bool TGenotypeLikelihoodCalculator::hasPMD() const{
-	return _pmdModels.hasPMD();
-};
-
-bool TGenotypeLikelihoodCalculator::recalibrationChangesQualities() const{
-	return _sequencingErrorModels.recalibrationChangesQualities();
-};
-
-coretools::Probability TGenotypeLikelihoodCalculator::errorRate(const BAM::TSequencedBase & base) const{
-	return _sequencingErrorModels.errorRate(base);
 };
 
 coretools::Probability TGenotypeLikelihoodCalculator::errorWithPMD(const BAM::TSequencedBase &base) const {
 	if (base.base == genometools::Base::N) { return coretools::Probability::highest(); }
 	// calculate base likelihoods with PMD
 
-	return _pmdModels.baseLikelihoods(base, _sequencingErrorModels.baseLikelihoods(base))[base.base].complement();
-};
-
-genometools::PhredIntProbability TGenotypeLikelihoodCalculator::phredInt(const BAM::TSequencedBase & base) const{
-	return _sequencingErrorModels.phredInt(base);
+	return _pmdModels.P_dij(base, _sequencingErrorModels.P_dij(base))[base.base].complement();
 };
 
 genometools::PhredIntProbability TGenotypeLikelihoodCalculator::phredIntWithPMD(const BAM::TSequencedBase & base) const{
@@ -129,29 +91,21 @@ genometools::PhredIntProbability TGenotypeLikelihoodCalculator::phredIntWithPMD(
 	}
 };
 
-void TGenotypeLikelihoodCalculator::recalibrate(BAM::TSequencedBase & base) const{
-	_sequencingErrorModels.recalibrate(base);
-};
-
 void TGenotypeLikelihoodCalculator::recalibrateWithPMD(BAM::TSequencedBase & base) const{
 	base.recalibratedQualityAsPhredInt = phredIntWithPMD(base);
 };
 
-void TGenotypeLikelihoodCalculator::recalibrate(std::vector<BAM::TSequencedBase> & bases) const{
-	_sequencingErrorModels.recalibrate(bases);
-};
-
-void TGenotypeLikelihoodCalculator::recalibrateWithPMD(std::vector<BAM::TSequencedBase> & bases) const{
-	for(auto& b : bases){
+void TGenotypeLikelihoodCalculator::recalibrateWithPMD(BAM::TAlignment& aln) const{
+	for(auto& b : aln){
 		recalibrateWithPMD(b);
 	}
 };
 
 double TGenotypeLikelihoodCalculator::calculateLogPMDS(const BAM::TSequencedBase & base, const genometools::Base & ref, const coretools::Probability & pi) const{
 	//get base likelihoods
-	const TBaseLikelihoods baseLikelihoodsNoPMD = _sequencingErrorModels.baseLikelihoods(base);
+	const TBaseLikelihoods baseLikelihoodsNoPMD = _sequencingErrorModels.P_dij(base);
 
-	const TBaseLikelihoods baseLikelihoods = _pmdModels.baseLikelihoods(base, baseLikelihoodsNoPMD);
+	const TBaseLikelihoods baseLikelihoods = _pmdModels.P_dij(base, baseLikelihoodsNoPMD);
 
 	//calculate PMDS: true base in read == ref with prob. (1-pi) and different with prob. pi/3
 	const TBaseLikelihoods tmpBaseData = fromError(ref, pi);
@@ -165,7 +119,7 @@ TGenotypeLikelihoods TGenotypeLikelihoodCalculator::calculateGenotypeLikelihoods
 		baseLikelihoods.reserve(site.depth());
 		// calculate base likelihoods P(d|b, D, epsilon) = \sum_{\bar{b}} P(\bar{b}|b, D)P(d|\bar{b}, \epsilon)
 		for (const auto &d : site) {
-			baseLikelihoods.push_back(_pmdModels.baseLikelihoods(d, _sequencingErrorModels.baseLikelihoods(d)));
+			baseLikelihoods.push_back(_pmdModels.P_dij(d, _sequencingErrorModels.P_dij(d)));
 		}
 
 		// calculate genotype likelihoods

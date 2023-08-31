@@ -12,6 +12,7 @@
 #include <stdint.h>
 #include <string>
 
+#include "TAlignment.h"
 #include "TEpsilon.h"
 #include "TGenotypeData.h"
 #include "TReadGroupInfo.h"
@@ -33,80 +34,64 @@ namespace SequencingError {
 // TModel
 // pure abstract base class
 //--------------------------------------------------------------------
-class TModel {
-public:
+struct TModel {
 	virtual ~TModel()                                                                                 = default;
-	virtual bool estimatable() const noexcept                                                         = 0;
+	// Per Base
+	virtual genometools::PhredIntProbability phredInt(const BAM::TSequencedBase &data) const noexcept = 0;
+	virtual TBaseLikelihoods P_dij(const BAM::TSequencedBase &data) const noexcept                    = 0;
+	// Per Alignment
+	virtual void simulate(BAM::TAlignment &aln) const noexcept                                        = 0;
+	virtual void recalibrate(BAM::TAlignment &aln) const noexcept                                     = 0;
+	// Model Info
 	virtual bool recalibrates() const noexcept                                                        = 0;
-	virtual coretools::Probability errorRate(const BAM::TSequencedBase &base) const noexcept          = 0;
-	virtual genometools::PhredIntProbability phredInt(const BAM::TSequencedBase &base) const noexcept = 0;
-	virtual TBaseLikelihoods baseLikelihoods(const BAM::TSequencedBase &base) const noexcept          = 0;
-	virtual void simulate(BAM::TSequencedBase &base) const noexcept                                   = 0;
-	virtual std::string epsilonDefinition() const noexcept                                            = 0;
-	virtual std::string rhoDefinition() const noexcept                                                = 0;
 	virtual BAM::RGInfo::TInfo info() const                                                           = 0;
+	virtual TRho *rho() noexcept                                                                      = 0;
+	virtual TEpsilon *epsilon() noexcept                                                              = 0;
 };
 
 //------------------------------------------------
 // TModelNoRecal
 //------------------------------------------------
-class TModelNoRecal final : public TModel {
-public:
-	bool estimatable() const noexcept override { return false; };
+struct TNoRecal final : public TModel {
+	// Per Base
+	genometools::PhredIntProbability phredInt(const BAM::TSequencedBase &data) const noexcept override;
+	TBaseLikelihoods P_dij(const BAM::TSequencedBase &data) const noexcept override;
+
+	// Per Alignment
+	void simulate(BAM::TAlignment &aln) const noexcept override;
+	void recalibrate(BAM::TAlignment &aln) const noexcept override;
+
+	// Model Info
 	bool recalibrates() const noexcept override { return false; };
-
-	coretools::Probability errorRate(const BAM::TSequencedBase &base) const noexcept override;
-	genometools::PhredIntProbability phredInt(const BAM::TSequencedBase &base) const noexcept override;
-	TBaseLikelihoods baseLikelihoods(const BAM::TSequencedBase &base) const noexcept override;
-	void simulate(BAM::TSequencedBase &base) const noexcept override;
-
-	std::string epsilonDefinition() const noexcept override { return "-"; };
-	std::string rhoDefinition() const noexcept override { return "-"; };
 	BAM::RGInfo::TInfo info() const override { return BAM::RGInfo::TInfo{}; };
+	TRho *rho() noexcept override {return nullptr;}
+	TEpsilon *epsilon() noexcept override {return nullptr;}
 };
 
 //------------------------------------------------
 // TModelRecal
 //------------------------------------------------
-class TModelRecal final : public TModel {
+class TWithRecal final : public TModel {
 private:
 	TRho _rho;
 	TEpsilon _epsilon;
 public:
-	TModelRecal(std::string_view EpsilonDef, std::string_view RhoDef = "default")
+	TWithRecal(std::string_view EpsilonDef, std::string_view RhoDef = "default")
 		: _rho(RhoDef), _epsilon(EpsilonDef) {}
-	TModelRecal(const BAM::RGInfo::TInfo &info) : _rho(info["rho"]), _epsilon(info) {}
+	TWithRecal(const BAM::RGInfo::TInfo &info) : _rho(info["rho"]), _epsilon(info) {}
 
-	bool estimatable() const noexcept override { return true; };
+	// Per Base
+	genometools::PhredIntProbability phredInt(const BAM::TSequencedBase &data) const noexcept override;
+	TBaseLikelihoods P_dij(const BAM::TSequencedBase &data) const noexcept override;
+
+	void simulate(BAM::TAlignment &aln) const noexcept override;
+	void recalibrate(BAM::TAlignment &aln) const noexcept override;
+
+	// Model Info
 	bool recalibrates() const noexcept override { return true; };
-	std::string epsilonDefinition() const noexcept override {return _epsilon.definition();};
-	std::string rhoDefinition() const noexcept override { return _rho.definition(); };
 	BAM::RGInfo::TInfo info() const override;
-
-	// get error rates
-	coretools::Probability errorRate(const BAM::TSequencedBase &base) const noexcept override;
-	genometools::PhredIntProbability phredInt(const BAM::TSequencedBase &base) const noexcept override;
-	TBaseLikelihoods baseLikelihoods(const BAM::TSequencedBase &base) const noexcept override;
-	virtual void simulate(BAM::TSequencedBase &base) const noexcept override;
-
-	// functions to estimate
-	void checkOrInit(const RecalEstimatorTools::TRecalDataTable &DataTable) { _epsilon.checkOrInit(DataTable); };
-
-	// functions to estimate rho
-	void addToRho(const BAM::TSequencedBase &data, coretools::Probability P_g_I_d, const TBaseProbabilities &P_bbar_I_d) noexcept {_rho.add(data.base, P_g_I_d, P_bbar_I_d);}; 
-	void estimateRho() noexcept {_rho.estimate();};
-
-	// functions to estimate betas
-	double Q() const noexcept {return _epsilon.Q();}
-	template<bool updateJF, bool isInvariant>
-	void addToEpsilon(const BAM::TSequencedBase &base, const TGenotypeLikelihoods &P_g_I_ds, const TGenotypeLikelihoods &P_bbar_I_gds) {
-		_epsilon.addToEpsilon<updateJF, isInvariant>(base, P_g_I_ds, P_bbar_I_gds);
-	}
-	void solveJxF() {_epsilon.solveJxF();}
-	void propose(double lambda) {_epsilon.propose(lambda);}
-	bool acceptOrReject() {return _epsilon.acceptOrReject();}
-	void adjust() {_epsilon.adjust();}
-	double maxF() const noexcept {return _epsilon.maxF();}
+	TRho* rho() noexcept override {return &_rho;}
+	TEpsilon* epsilon() noexcept override {return &_epsilon;}
 };
 
 } // namespace SequencingError

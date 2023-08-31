@@ -194,8 +194,6 @@ void TPileup::_handleWindow(){
 	if(_histSettings.get<AllelicDepth>()){
 		logfile().list("Adding sites to allelic depth table ...");
 	}
-	GenotypeLikelihoods::TBaseCounts alleleCounts;
-
 	for (size_t pos = 0; pos < _window.size(); ++pos) {
 		const auto &site = _window[pos];
 		if(!parameters().parameterExists("onlySummaries")){
@@ -219,8 +217,7 @@ void TPileup::_handleWindow(){
 				_out << site.getQualities();
 			}
 			if(_printSettings.get<Alleles>()){
-				GenotypeLikelihoods::TBaseCounts alleleCounts;
-				site.countAlleles(alleleCounts);
+				const auto alleleCounts = site.countAlleles();
 				_out << alleleCounts[Base::A] << alleleCounts[Base::C] << alleleCounts[Base::G] << alleleCounts[Base::T];
 				if(_reference){
 					_out << alleleCounts[site.refBase] << alleleCounts.size() - alleleCounts[site.refBase];
@@ -228,13 +225,11 @@ void TPileup::_handleWindow(){
 				_out << (int) coretools::numNonZero(alleleCounts);
 			}
 			if(_printSettings.get<Mates>()){
-				std::array<int, 2> mateCounts;
-				site.countMates(mateCounts);
-				_out << mateCounts[0] << mateCounts[1];
+				const auto  mateCounts = site.countMates();
+				_out << mateCounts[BAM::Mate::first] << mateCounts[BAM::Mate::second];
 			}
 			if(_printSettings.get<Strand>()){
-				std::array<int, 2> strandCounts;
-				site.countFwdRev(strandCounts);
+				const auto  strandCounts = site.countFwdRev();
 				_out << strandCounts[0] << strandCounts[1];
 			}
 			if(_printSettings.get<Likelihoods>()){
@@ -264,7 +259,7 @@ void TPileup::_handleWindow(){
 		}
 
 		if(_histSettings.get<AllelicDepth>()){
-			site.countAlleles(alleleCounts);
+			const auto alleleCounts = site.countAlleles();
 			_counts.addSite(alleleCounts);
 		}
 	}

@@ -1,81 +1,93 @@
 #include "TModel.h"
-#include "TWithPMD.h"
-#include "coretools/Containers/TStrongArray.h"
-#include "coretools/Main/TError.h"
-#include "coretools/Main/TLog.h"
-#include "coretools/Main/TRandomGenerator.h"
-#include "coretools/Strings/fromString.h"
-#include "coretools/Strings/splitters.h"
-#include "coretools/Strings/stringFunctions.h"
-#include "coretools/Types/probability.h"
-#include "genometools/GenotypeTypes.h"
-#include <utility>
+#include "TSequencedBase.h"
 
 namespace GenotypeLikelihoods::PMD {
-using genometools::Base;
-using namespace coretools::str;
 
-TBaseProbabilities TNoPMD::massFunction(genometools::Genotype g, const TBaseLikelihoods &baseLikelihoodsNoPMD) {
-	using namespace genometools;
+using genometools::Base;
+using genometools::Genotype;
+using BAM::TSequencedBase;
+
+TBaseProbabilities TNoPMD::P_bbar(Base b, const TSequencedBase &,
+								  const TBaseLikelihoods &) const noexcept {
+	static constexpr TBaseMassFunctions P_bbars{
+	    {TBaseProbabilities::normalize({1., 0., 0., 0.}), TBaseProbabilities::normalize({0., 1., 0., 0.}),
+	     TBaseProbabilities::normalize({0., 0., 1., 0.}), TBaseProbabilities::normalize({0., 0., 0., 1.})}};
+	return P_bbars[b];
+}
+TBaseProbabilities TNoPMD::P_bbar(Genotype g, const TSequencedBase &,
+								  const TBaseLikelihoods &P_dij_bbar) const noexcept {
 	const Base a = first(g);
 	const Base b = second(g);
-	TBaseLikelihoods mf{0};
-	mf[a] = baseLikelihoodsNoPMD[a];
-	mf[b] = baseLikelihoodsNoPMD[b];
-	return TBaseProbabilities::normalize(mf);
+	TBaseLikelihoods Psum{0};
+	Psum[a] = P_dij_bbar[a];
+	Psum[b] = P_dij_bbar[b];
+	return TBaseProbabilities::normalize(Psum);
 }
 
-Strand getStrand(std::string_view s) {
-	constexpr coretools::TStrongArray<std::string_view, Strand> strands{{"singleStrand", "doubleStrand"}};
-	for (auto strand = Strand::min; strand < Strand::max; ++strand) {
-		if (s == strands[strand]) return strand;
+TBaseProbabilities TWithPMD::P_bbar(Base b, const TSequencedBase &data,
+									const TBaseLikelihoods &P_dij_bbar) const noexcept {
+	switch (b) {
+	case Base::A: return TBaseProbabilities::normalize({1., 0., 0., 0.});
+	case Base::C: {
+		const auto pCT = _psi.prob<Type::CT>(data);
+		return TBaseProbabilities::normalize({0., (1. - pCT) * P_dij_bbar[Base::C], 0., pCT * P_dij_bbar[Base::T]});
 	}
-	UERROR("Wrong strand defined. Use either ", strands.front(), " or ", strands.back(), "!");
+	case Base::G: {
+		const auto pGA = _psi.prob<Type::GA>(data);
+		return TBaseProbabilities::normalize({pGA * P_dij_bbar[Base::A], 0., (1. - pGA) * P_dij_bbar[Base::G], 0.});
+	}
+	default: return TBaseProbabilities::normalize({0., 0., 0., 1.}); // case Base::T
+	}
 }
 
-TModel *makeType(std::string_view pmdString) {
-	if (pmdString.empty() || pmdString == TNoPMD::name) return new TNoPMD;
+TBaseProbabilities TWithPMD::P_bbar(Genotype g, const TSequencedBase &data,
+							  const TBaseLikelihoods &P_dij_bbar) const noexcept {
+	const auto pCT = _psi.prob<Type::CT>(data);
+	const auto pGA = _psi.prob<Type::GA>(data);
 
-	// Possibilities:
-	// only Function: Exponential | Empiric
-	// only Function perLength: Exponential[30] | Empiric[30]
-	// Everything: 
-	// singleStrand:Empiric[...]:Empiric[...]
-	// doubleStrand:Exponential[30,0.1,0.1,0.05]:Exponential[40,0.2,0.3,0.07]
-	// doubleStrand[30]:Exponential[30,0.1,0.1,0.05]:Exponential[40,0.2,0.3,0.07]
-
-	TSplitter spl(pmdString, ':');
-	const auto front = spl.front(); // either function-name or strand-name
-	spl.popFront();
-
-	if (spl.empty()) {  // only function
-		if (front.back() == ']') {
-			const auto function = coretools::str::readBefore(front, '[');
-			auto from           = coretools::str::readAfter(front, '[');
-			from.remove_suffix(1);
-
-			if (from.empty()) return new TWithPMD<true>(function, size_t{30});
-			/*else*/ return new TWithPMD<true>(function, fromString<size_t, true>(from));
-		} else {
-			return new TWithPMD<false>(front);
+		TBaseData Psum{0};
+		for (const auto a : {first(g), second(g)}) {
+			switch (a) {
+			case Base::A: Psum[Base::A] += P_dij_bbar[Base::A]; break;
+			case Base::C: {
+				Psum[Base::C] += (1. - pCT) * P_dij_bbar[Base::C];
+				Psum[Base::T] += pCT * P_dij_bbar[Base::T];
+			} break;
+			case Base::G: {
+				Psum[Base::A] += pGA * P_dij_bbar[Base::A];
+				Psum[Base::G] += (1. - pGA) * P_dij_bbar[Base::G];
+			} break;
+			default: Psum[Base::T] += P_dij_bbar[Base::T];
+			}
 		}
-	}
-	// else
+		return TBaseProbabilities::normalize(Psum);
+	return TBaseProbabilities::normalize({1., 0., 0., 0.});
+}
 
-	const auto function5 = spl.front();
-	spl.popFront();
-	if (spl.empty()) { UERROR("You need to specify two function, 5' and 3'!"); }
-	const auto function3 = spl.front();
+TBaseLikelihoods TWithPMD::P_dij(const TSequencedBase &data, const TBaseLikelihoods &P_dij_bbar) const noexcept {
+	const auto pCT = _psi.prob<Type::CT>(data);
+	const auto pGA = _psi.prob<Type::GA>(data);
 
-	if (front.back() == ']') {
-		const auto strand = getStrand(coretools::str::readBefore(front, '['));
-		auto from         = coretools::str::readAfter(front, '[');
-		from.remove_suffix(1);
-		if (from.empty()) return new TWithPMD<true>(function5, function3, strand, size_t{30});
-		/*else*/ return new TWithPMD<true>(function5, function3, strand, fromString<size_t, true>(from));
-	} else {
-		const auto strand    = getStrand(front);
-		return new TWithPMD<false>(function5, function3, strand);
+	TBaseLikelihoods P(P_dij_bbar);
+	P[Base::C] = (1.0 - pCT) * P_dij_bbar[Base::C] + pCT * P_dij_bbar[Base::T];
+	P[Base::G] = (1.0 - pGA) * P_dij_bbar[Base::G] + pGA * P_dij_bbar[Base::A];
+	return P;
+}
+
+void TWithPMD::simulate(BAM::TAlignment &aln) const {
+	using coretools::instances::randomGenerator;
+	using genometools::Base;
+	for (auto &d : aln) {
+			auto &base = d.base;
+
+			if (base == Base::C) {
+				const auto pCT = _psi.prob<Type::CT>(d);
+				if (randomGenerator().getRand() < pCT) base = Base::T;
+			} else if (base == Base::G) {
+				const auto pGA = _psi.prob<Type::GA>(d);
+				if (randomGenerator().getRand() < pGA) base = Base::A;
+			}
 	}
 }
+
 } // namespace GenotypeLikelihoods::PMD

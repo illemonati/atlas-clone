@@ -16,15 +16,6 @@
 #include "coretools/Main/TTask.h"
 #include "SequencingError/TRecalEstimator.h"
 
-namespace BAM {
-class TReadGroupMap;
-}
-namespace GenotypeLikelihoods {
-namespace SequencingError {
-class TRecalibrationEMEstimator;
-}
-} // namespace GenotypeLikelihoods
-
 namespace GenomeTasks {
 
 //-----------------------------------------------------------
@@ -33,7 +24,7 @@ namespace GenomeTasks {
 class TEstimateRecalibration final : public TGenome_windows {
 private:
 	BAM::TReadGroupMap _readGroupMap;
-	GenotypeLikelihoods::SequencingError::TRecalibrationEMEstimator recal;
+	GenotypeLikelihoods::SequencingError::TRecalibrationEMEstimator _recal;
 	bool _onlyLL = false;
 
 	void _handleWindow() override;
