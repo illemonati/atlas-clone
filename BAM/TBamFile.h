@@ -47,7 +47,6 @@ private:
 	BamTools::BamReader _bamReader;
 	BamTools::BamRegion _bamRegion;
  	BamTools::SamHeader _bamHeader;
- 	bool _open;
 	size_t _stepSizeFindLastAlignment = 100;
  	size_t _fileSize;
 
@@ -119,6 +118,7 @@ private:
 
 public:
 	TBamFile();
+	TBamFile(std::string_view Filename) : TBamFile() {open(Filename); setLimits();}
 
 	//access header info READ ONLY
 	const genometools::TChromosomes& chromosomes() const{ return _chromosomes; };
@@ -159,7 +159,7 @@ public:
 
 	//reading
 	void open(std::string_view Filename);
-	bool isOpen() const{ return _open; };
+	bool isOpen() const{ return _bamReader.IsOpen(); };
 	void close();
 	bool readNextAlignment();
 	bool readNextAlignmentThatPassesFilters();
@@ -207,7 +207,6 @@ public:
 	void curAddSamField(const std::string& tag, float value);
 
 	//other getters
-	bool isOpen(){ return _open; };
 	std::string filename() const{ return _filename; };
 	size_t maxReadLength(){ return _readLengthFilter.range().max(); };
 	size_t numAlignmentsRead(){ return _numAlignmentRead; };

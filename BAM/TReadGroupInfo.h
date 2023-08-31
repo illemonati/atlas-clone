@@ -212,6 +212,8 @@ public:
 	//writing
 	void write(std::string_view Filename);
 
+	bool isParsed() const;
+
 	// preparse arguments
 	void parse(InfoType Info){ _parse(Info); }
 	template <typename... InfoTypes>

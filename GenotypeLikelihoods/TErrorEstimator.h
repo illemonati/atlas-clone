@@ -15,6 +15,7 @@
 
 #include "PMD/TModels.h"
 #include "SequencingError/TEpsilon.h"
+#include "TReadGroupInfo.h"
 #include "genometools/GenotypeTypes.h"
 #include "TGenotypeData.h"
 #include "TGenotypeDistribution.h"
@@ -42,7 +43,6 @@ private:
 	std::vector<TGenotypeLikelihoods> _P_bbarEdij_I_gdijs;
 
 	BAM::TReadGroupMap _rgMap;
-	BAM::RGInfo::TReadGroupInfo _rgInfo;
 
 	SequencingError::TModels _recal;
 	PMD::TModels _pmd;
@@ -104,7 +104,7 @@ public:
 	}
 
 	// function to estimate
-	void estimate(std::string_view outputName);
+	void estimate(BAM::RGInfo::TReadGroupInfo& RGInfo);
 	void calcLL();
 };
 

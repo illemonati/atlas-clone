@@ -14,6 +14,7 @@
 #include <stdexcept>
 
 #include "PMD/TModels.h"
+#include "TReadGroupInfo.h"
 #include "TReadGroups.h"
 #include "coretools/Containers/TStrongArray.h"
 #include "coretools/Main/TError.h"
@@ -56,7 +57,7 @@ BAM::TReadGroupMap makeRGMap(const BAM::TReadGroups &ReadGroups) {
 //---------------------------------------------------------------
 // TErrorEstimator
 //---------------------------------------------------------------
-	TErrorEstimator::TErrorEstimator(const BAM::TReadGroups &ReadGroups) : _rgMap(impl::makeRGMap(ReadGroups)), _rgInfo(ReadGroups) {
+	TErrorEstimator::TErrorEstimator(const BAM::TReadGroups &ReadGroups) : _rgMap(impl::makeRGMap(ReadGroups)) {
 	const auto dist = parameters().getParameterWithDefault("genoDist", THKY85::name);
 	if (dist == THaploidDistribution::name) {
 		_genoDist = std::make_unique<THaploidDistribution>();
@@ -349,7 +350,7 @@ void TErrorEstimator::_runEM() {
 	logfile().endNumbering();
 }
 
-void TErrorEstimator::estimate(std::string_view outputName) {
+void TErrorEstimator::estimate(BAM::RGInfo::TReadGroupInfo& RGInfo) {
 	// initialize models
 	_initializeModels();
 
@@ -357,9 +358,8 @@ void TErrorEstimator::estimate(std::string_view outputName) {
 	_runEM();
 
 	// writing final estimates
-	_recal.addToRGInfo(_rgInfo);
-	_pmd.addToRGInfo(_rgInfo);
-	_rgInfo.write(std::string(outputName) + ".json");
+	_recal.addToRGInfo(RGInfo);
+	_pmd.addToRGInfo(RGInfo);
 }
 
 void TErrorEstimator::calcLL() {

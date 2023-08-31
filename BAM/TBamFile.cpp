@@ -36,7 +36,6 @@ using genometools::BaseQuality;
 //TBamFile
 //-----------------------------------------------------
 TBamFile::TBamFile(){
-	_open = false;
 	_fileSize = 0;
 	_numAlignmentRead = 0;
 	_numAlignmentsPassedQC = 0;
@@ -428,8 +427,6 @@ void TBamFile::open(std::string_view Filename){
 			UERROR("Failed to create BAM index file '", fnIndex1, "'!");
 	}
 
-	_open = true;
-
 	//initialize bam stuff
 	_bamHeader = _bamReader.GetHeader();
 
@@ -459,10 +456,7 @@ void TBamFile::open(std::string_view Filename){
 };
 
 void TBamFile::close(){
-	if(_open){
-		_bamReader.Close();
-		_open = false;
-	}
+	if (isOpen()) _bamReader.Close();
 };
 
 bool TBamFile::_readNextAlignmentFromFile(){
@@ -894,7 +888,7 @@ void TBamFile::printSummary(std::string_view outputName) const {
 };
 
 void TBamFile::startProgressReporting(size_t Frequency) const {
-	if(!_open){
+	if(!isOpen()){
 		UERROR("Can not start progress reporting of BAM file: BAM file not open!");
 	}
 
