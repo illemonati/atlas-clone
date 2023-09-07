@@ -36,10 +36,13 @@ namespace PopulationTools{
 class TAlleleFreqEstimatorHardyWeinberg{
 private:
 	size_t maxIter;
+	coretools::Probability _alleleFrequency;
 
 public:
 	TAlleleFreqEstimatorHardyWeinberg();
 	coretools::Probability estimate(const TSampleLikelihoods* storage, size_t numSamplesInPop, double epsilonF);
+	coretools::Probability alleleFrequency(){ return _alleleFrequency; }
+	coretools::Log10Probability calculateLog10Likelihood(const TSampleLikelihoods* storage, size_t numSamplesInPop) const noexcept;
 };
 
 //------------------------------------------------
@@ -132,9 +135,9 @@ private:
 
 	void _openVCF();
 	void _closeVCF();
-	std::vector<std::string> _composeHeaderAlleleFreq(bool writeGenoFreq, bool doBayesian, TAlleleFreqEstimatorBayes* BHWEstimator);
+	std::vector<std::string> _composeHeaderAlleleFreq(bool writeGenoFreq, bool doBayesian, TAlleleFreqEstimatorBayes* BHWEstimator, bool writeLikelihoods);
 	void _writeBayesianEstimatesOnePop(coretools::TOutputFile & out, TSampleLikelihoods* theseSamples, size_t numSamples, TAlleleFreqEstimatorBayes* BHWEstimator);
-	void _writeEstimatesOnePop(coretools::TOutputFile & out, genometools::TGenotypeFrequencies & genoFrequencies, double alleleFrequency, TSampleLikelihoods* theseSamples, size_t numSamples, TAlleleFreqEstimatorHardyWeinberg & MLHWEstimator, TAlleleFreqEstimatorBayes* BHWEstimator, double epsF, bool writeGenoFreq, bool doBayesian);
+	void _writeEstimatesOnePop(coretools::TOutputFile & out, genometools::TGenotypeFrequencies & genoFrequencies, TSampleLikelihoods* theseSamples, size_t numSamples, TAlleleFreqEstimatorHardyWeinberg & MLHWEstimator, TAlleleFreqEstimatorBayes* BHWEstimator, double epsF, bool writeGenoFreq, bool doBayesian, bool writeLikelihoods);
 	std::vector<std::string> _composeHeaderAlleleFreqComparison(TAlleleFreqEstimatorBayes & BHWEstimator);
 
 public:

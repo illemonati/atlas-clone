@@ -87,8 +87,33 @@ Probability TAlleleFreqEstimatorHardyWeinberg::estimate(const TSampleLikelihoods
 	}
 
 	//return estimate
-	return pGenotype.f();
+	_alleleFrequency = pGenotype.f();
+	return _alleleFrequency;
 };
+
+coretools::Log10Probability TAlleleFreqEstimatorHardyWeinberg::calculateLog10Likelihood(const TSampleLikelihoods* storage, size_t numSamplesInPop) const noexcept {
+	using BG = genometools::BiallelicGenotype;
+	genometools::THardyWeinbergGenotypeProbabilities pGenotype(_alleleFrequency);
+
+	coretools::TSumLogProbability LL;	
+	double prob;
+	
+	for (size_t i=0; i<numSamplesInPop; i++){
+			if(!storage[i].isMissing()){
+				if(storage[i].isHaploid()){
+					prob = (Probability) storage[i][BG::haploidFirst] * pGenotype[BG::haploidFirst]												
+					  	 + (Probability) storage[i][BG::haploidSecond] * pGenotype[BG::haploidSecond];
+				} else {
+					prob = (Probability) storage[i][BG::homoFirst] * pGenotype[BG::homoFirst]
+						 + (Probability) storage[i][BG::het] * pGenotype[BG::het]
+						 + (Probability) storage[i][BG::homoSecond] * pGenotype[BG::homoSecond];
+				}
+				LL.add(prob);				
+			}
+	}
+	return coretools::logToLog10(LL.getSum());
+}
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
 // TAlleleHardyWeinbergFreqEstimator                                                          //
@@ -501,7 +526,7 @@ TAlleleFreqEstimator::TAlleleFreqEstimator(){
 	vcfRead = false;
 };
 
-std::vector<std::string> TAlleleFreqEstimator::_composeHeaderAlleleFreq(bool writeGenoFreq, bool doBayesian, TAlleleFreqEstimatorBayes* BHWEstimator){
+std::vector<std::string> TAlleleFreqEstimator::_composeHeaderAlleleFreq(bool writeGenoFreq, bool doBayesian, TAlleleFreqEstimatorBayes* BHWEstimator, bool writeLikelihoods){
 	std::vector<std::string> header = {"chr", "pos", "ref", "alt"};
 
 	for(size_t p=0; p<samples.numPopulations(); p++){
@@ -518,7 +543,13 @@ std::vector<std::string> TAlleleFreqEstimator::_composeHeaderAlleleFreq(bool wri
 		}
 
 		header.push_back("freqAltGF_" + popName);
+		if(writeLikelihoods){
+			header.push_back("L10LGF_" + popName);
+		}
 		header.push_back("freqAltHW_" + popName);
+		if(writeLikelihoods){
+			header.push_back("L10LHW_" + popName);
+		}
 
 		if(doBayesian){
 			BHWEstimator->composeHeader(header, popName);
@@ -533,7 +564,7 @@ void TAlleleFreqEstimator::_writeBayesianEstimatesOnePop(TOutputFile & out, TSam
 	out << BHWEstimator->upperCredibleInterval();
 };
 
-void TAlleleFreqEstimator::_writeEstimatesOnePop(TOutputFile & out, genometools::TGenotypeFrequencies & genoFrequencies, double alleleFrequency, TSampleLikelihoods* theseSamples, size_t numSamples, TAlleleFreqEstimatorHardyWeinberg & MLHWEstimator, TAlleleFreqEstimatorBayes* BHWEstimator, double epsF, bool writeGenoFreq, bool doBayesian){
+void TAlleleFreqEstimator::_writeEstimatesOnePop(TOutputFile & out, genometools::TGenotypeFrequencies & genoFrequencies, TSampleLikelihoods* theseSamples, size_t numSamples, TAlleleFreqEstimatorHardyWeinberg & MLHWEstimator, TAlleleFreqEstimatorBayes* BHWEstimator, double epsF, bool writeGenoFreq, bool doBayesian, bool writeLikelihoods){
 	//write num samples with data
 	out << genoFrequencies.numDiploid();
 	out << genoFrequencies.numHaploid();
@@ -546,10 +577,16 @@ void TAlleleFreqEstimator::_writeEstimatesOnePop(TOutputFile & out, genometools:
 	}
 
 	//write frequency estimate based on genotype estimates
-	out << alleleFrequency;
+	out << genoFrequencies.alleleFrequency();
+	if(writeLikelihoods){
+		out << genoFrequencies.calculateLog10Likelihood(theseSamples, numSamples);
+	}
 
 	//write HW estimates
 	out << MLHWEstimator.estimate(theseSamples, numSamples, epsF);
+	if(writeLikelihoods){
+		out << MLHWEstimator.calculateLog10Likelihood(theseSamples, numSamples);
+	}
 
 	//Bayesian estimation
 	if(doBayesian){
@@ -603,8 +640,9 @@ void TAlleleFreqEstimator::estimateAlleleFreq(){
 
 	//create allele frequency estimators
 	//1) Maximum likelihood HW estimator
-	TAlleleFreqEstimatorHardyWeinberg MLHWEstimator;
+	TAlleleFreqEstimatorHardyWeinberg MLHWEstimator;	
 	double minDeltaF = parameters().getParameterWithDefault("minDeltaF", 0.0000001);
+	logfile().list("Will EM algorithms until deltaF < ", minDeltaF, ". (parameter 'minDeltaF')");	
 
 	//2) Maximum Likelihood genotype count estimator (use estimates from reader)
 	reader.doEstimateGenotypeFrequencies();
@@ -615,9 +653,24 @@ void TAlleleFreqEstimator::estimateAlleleFreq(){
 	if(parameters().parameterExists("doBayesian")){
 		doBayesian = true;
 		BHWEstimator = new TAlleleFreqEstimatorBayes;
+		logfile().list("Will also run a Bayesian estimation of allele frequencies. (parameter 'doBayesian')");
+	} else {
+		logfile().list("Will only run MLE estimations of allele frequencies. (request a Bayesian estimation with 'doBayesian')");
 	}
 
 	bool writeGenoFreq = parameters().parameterExists("writeGenoFreq");
+	if(writeGenoFreq){
+		logfile().list("Will write genotype frequencies. (parameter 'writeGenoFreq')");
+	} else {
+		logfile().list("Will not write genotype frequencies. (request with 'writeGenoFreq')");
+	}
+
+	bool writeLikelihoods = parameters().parameterExists("writeLikelihoods");
+	if(writeLikelihoods){
+		logfile().list("Will write likelihoods. (parameter 'writeLikelihoods')");
+	} else {
+		logfile().list("Will not write likelihoods. (request with 'writeLikelihoods')");
+	}
 
 	//output file
 	std::string tmp = coretools::str::extractBeforeLast(vcfFilename, ".vcf");
@@ -626,7 +679,7 @@ void TAlleleFreqEstimator::estimateAlleleFreq(){
 	TOutputFile out(outputName);
 
 	//write header
-	out.writeHeader(_composeHeaderAlleleFreq(writeGenoFreq, doBayesian, BHWEstimator));
+	out.writeHeader(_composeHeaderAlleleFreq(writeGenoFreq, doBayesian, BHWEstimator, writeLikelihoods));
 
     //run through VCF file
     logfile().startIndent("Parsing VCF file:");
@@ -636,12 +689,12 @@ void TAlleleFreqEstimator::estimateAlleleFreq(){
 
  		//write estimates based on genoFrequencies (if only 1 pop, use the one of reader)
  		if(samples.numPopulations() == 1){
- 			_writeEstimatesOnePop(out, *(reader.genotypeFrequencies()), reader.alleleFrequency(), storage.samples(), samples.numSamples(), MLHWEstimator, BHWEstimator, minDeltaF, writeGenoFreq, doBayesian);
+ 			_writeEstimatesOnePop(out, *(reader.genotypeFrequencies()), storage.samples(), samples.numSamples(), MLHWEstimator, BHWEstimator, minDeltaF, writeGenoFreq, doBayesian, writeLikelihoods);
  		} else {
  			genometools::TGenotypeFrequencies genoFrequencies;
  	 		for(size_t p=0; p<samples.numPopulations(); p++){
  	 			genoFrequencies.estimate<true>(&storage[samples.startIndex(p)], samples.numSamplesInPop(p), minDeltaF);
- 	 			_writeEstimatesOnePop(out, genoFrequencies, genoFrequencies.alleleFrequency(), &storage[samples.startIndex(p)], samples.numSamplesInPop(p), MLHWEstimator, BHWEstimator, minDeltaF, writeGenoFreq, doBayesian);
+ 	 			_writeEstimatesOnePop(out, genoFrequencies, &storage[samples.startIndex(p)], samples.numSamplesInPop(p), MLHWEstimator, BHWEstimator, minDeltaF, writeGenoFreq, doBayesian, writeLikelihoods);
  	 		}
  		}
 
