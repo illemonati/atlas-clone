@@ -845,7 +845,7 @@ void TBamFile::printSummaryNoEndIndent(std::string_view outputName) const {
 	logfile().list("Total number of reads read: ", _numAlignmentRead);
 	logfile().list("Reads without read group: ", _numNoReadGroup, " (", coretools::str::toPercentString(_numNoReadGroup, _numAlignmentRead, 3), "%)");
 	logfile().list("Reads that passed filters: ", _numAlignmentsPassedQC, " (", coretools::str::toPercentString(_numAlignmentsPassedQC, _numAlignmentRead, 3), "%)");
-	uint64_t numFiltered = _numAlignmentRead - _numAlignmentsPassedQC;
+	const auto numFiltered = _numAlignmentRead - _numAlignmentsPassedQC;
 	logfile().list("Reads that were filtered out: ", numFiltered, " (" + coretools::str::toPercentString(numFiltered, _numAlignmentRead, 3), "%)");
 
 	//write counts of filtered reads for each read group to _filterSummary.txt file
