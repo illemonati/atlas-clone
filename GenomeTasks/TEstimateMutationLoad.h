@@ -107,6 +107,7 @@ public:
 	void prepareEMParameterEstimationOneIteration() override;
 	void handleEMParameterEstimationOneIteration(size_t Index, const stattools::TDataVector<PrecisionType, NumStatesType> &Weights) override;
 	void finalizeEMParameterEstimationOneIteration() override;
+	const std::array<double, 4>& getPi() const { return _genoProbs.getPi(); }
 	void reportEMParameters() override;
 };
 

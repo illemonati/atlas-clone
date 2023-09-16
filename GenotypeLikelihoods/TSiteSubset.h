@@ -72,11 +72,13 @@ template <typename SiteType>
 class TSiteSubset{
 private:
 	std::vector<SiteType> _sites;
+	std::string _filename;
 
 	void _readFile(const std::string &Filename, const genometools::TChromosomes & Chromosomes){
 		coretools::instances::logfile().listFlushTime("Reading sites to be used from '" + Filename + "' ...");
 
 		// open file
+		_filename = Filename;
 		coretools::TInputFile in(Filename, SiteType::getHeader());
 
 		// read file and add sites
@@ -130,8 +132,9 @@ public:
 		return view.subview(std::distance(_sites.begin(), start), end - start);
 	}
 	
-	size_t size() const noexcept { return _sites.size(); }
-};
+	[[nodiscard]] size_t size() const noexcept { return _sites.size(); }
+	[[nodiscard]] std::string filename() const { return _filename; }
+}; 
 
 } //end namespace sitesubset
 
