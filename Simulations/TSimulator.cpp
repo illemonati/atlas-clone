@@ -361,7 +361,7 @@ void TBAMSimulator::_simulateReadsFromHaplotypes(const genometools::TChromosome 
 // TVCFSimulationWriter
 //-------------------------------------------
 
-TVCFWriterSimulation::TVCFWriterSimulation(const std::string &Filename, const std::string &Source,
+/*TVCFWriterSimulation::TVCFWriterSimulation(const std::string &Filename, const std::string &Source,
                                            const std::vector<std::string> &SampleNames, bool UsePhredScaledLikelihoods)
     : GLF::TGlfMultiReaderVcf(Filename, Source, SampleNames, UsePhredScaledLikelihoods) {}
 
@@ -389,7 +389,7 @@ void TVCFWriterSimulation::writeSite(const std::string &ChrName, size_t Position
 
 	// end of line
 	_vcf.endln();
-}
+}*/
 
 //-------------------------------------------
 // Helper functions
@@ -397,7 +397,7 @@ void TVCFWriterSimulation::writeSite(const std::string &ChrName, size_t Position
 
 namespace /* anonymous */ {
 
-auto calculateLog10ProbThisAllelicCombination(const GLF::TMultiGLFDataOneAllelicCombination &GenotypeLikelihoods) {
+auto calculateLog10ProbThisAllelicCombination(const genometools::TMultiGLFDataOneAllelicCombination &GenotypeLikelihoods) {
 	// estimate genotype frequencies
 	genometools::TGenotypeFrequencies genotypeFrequencies;
 	genotypeFrequencies.estimate<true>(GenotypeLikelihoods, GenotypeLikelihoods.size(), 0.0000001);
@@ -416,7 +416,7 @@ auto getRelevantBiallelicGenotype(genometools::Base Major, genometools::Base Ref
 	}
 }
 
-auto calculateLog10ProbFixed(const GLF::TMultiGLFDataOneAllelicCombination &GenotypeLikelihoods,
+auto calculateLog10ProbFixed(const genometools::TMultiGLFDataOneAllelicCombination &GenotypeLikelihoods,
                              genometools::Base Major, genometools::Base Ref, bool IsDiploid) {
 	using coretools::Log10Probability;
 
@@ -429,7 +429,7 @@ auto calculateLog10ProbFixed(const GLF::TMultiGLFDataOneAllelicCombination &Geno
 	return LL_fixed_glfPhred;
 }
 
-auto calculateVariantQuality(const GLF::TMultiGLFDataOneAllelicCombination &GenotypeLikelihoods,
+auto calculateVariantQuality(const genometools::TMultiGLFDataOneAllelicCombination &GenotypeLikelihoods,
                              genometools::Base Major, genometools::Base Ref, bool IsDiploid) {
 	using coretools::Log10Probability;
 	const auto LL_allelicCombination = calculateLog10ProbThisAllelicCombination(GenotypeLikelihoods);
@@ -475,88 +475,7 @@ TVCFSimulator::TVCFSimulator(const std::string &method) : TSimulator(method) {
 	// open VCF file and write header
 	std::string filename = _outname + ".vcf.gz";
 	logfile().list("Writing VCF to file '" + filename + "'.");
-	_vcf = std::make_unique<TVCFWriterSimulation>(filename, "ATLAS_simulations", sampleNames, usePhredLikelihoods);
-}
-
-GLF::TMultiGLFDataSampleOneAllelicCombination TVCFSimulator::_calculateGenotypeLikelihoods(size_t NumRef, size_t NumAlt,
-                                                                                           bool IsDiploid) {
-	const auto P0 =
-	    HighPrecisionPhredIntProbability(LogProbability(NumRef * log(_error.complement()) + NumAlt * log(_error)));
-	const auto P2 =
-	    HighPrecisionPhredIntProbability(LogProbability(NumRef * log(_error) + NumAlt * log(_error.complement())));
-	if (IsDiploid) {
-		const auto P1 = HighPrecisionPhredIntProbability(LogProbability((NumRef + NumAlt) * lnOneHalf));
-		return {P0, P1, P2};
-	} else {
-		return {P0, P2};
-	}
-}
-
-size_t TVCFSimulator::_simulateNumReadsWithReferenceAllele(genometools::Base a, genometools::Base b,
-                                                           genometools::Base Ref, size_t Depth, bool IsDiploid) {
-	if ((IsDiploid && a == b && a == Ref) || (!IsDiploid && a == Ref)) {
-		// homozygous reference (haploid and diploid)
-		return randomGenerator().getBinomialRand(1. - _error, Depth);
-	} else if ((IsDiploid && a == b && a != Ref) || (!IsDiploid && a != Ref)) {
-		// homozygous alternative (haploid and diploid)
-		return randomGenerator().getBinomialRand(_error, Depth);
-	}
-	// heterozygous
-	return randomGenerator().getBinomialRand(0.5, Depth);
-}
-
-std::pair<size_t, GLF::TMultiGLFDataSampleOneAllelicCombination>
-TVCFSimulator::_simulateDepthAndGTL(genometools::Base a, genometools::Base b, genometools::Base Ref, bool IsDiploid, size_t avgDepth) {
-	// simulate depth
-	auto depth = randomGenerator().getPoissonRandom(avgDepth);
-
-	// simulate number of reference and alternative alleles
-	auto numRef = _simulateNumReadsWithReferenceAllele(a, b, Ref, depth, IsDiploid);
-	auto numAlt = (int)depth - numRef;
-
-	// get genotype likelihoods
-	auto genotypeLikelihoods = _calculateGenotypeLikelihoods(numRef, numAlt, IsDiploid);
-
-	return std::make_pair(depth, genotypeLikelihoods);
-}
-
-std::pair<genometools::Base, genometools::Base>
-TVCFSimulator::_findMajorMinorAllele(coretools::TStrongArray<size_t, genometools::Base, 4> AlleleCounts,
-                                     genometools::Base RefAllele) {
-	// major allele = allele with the highest counts
-	const auto majorAllele = randomGenerator()
-	                             .sampleIndexOfMaxima<coretools::TStrongArray<size_t, genometools::Base, 4>, Base,
-	                                                  coretools::index(genometools::Base::max)>(AlleleCounts);
-
-	if (majorAllele == RefAllele) {
-		// choose minor allele: can be any allele (except major)
-		// note: multiple alleles might have same counts
-		std::vector<genometools::Base> minorAlleles;
-		size_t secondMax = 0;
-		for (auto b = genometools::Base::min; b < genometools::Base::max; ++b) {
-			if (b == majorAllele) { continue; } // exclude major allele
-			if (AlleleCounts[b] > secondMax) {  // found new max
-				secondMax = AlleleCounts[b];
-				minorAlleles.clear();
-				minorAlleles.push_back(b);
-			} else if (AlleleCounts[b] == secondMax) { // found allele that is equally good
-				minorAlleles.push_back(b);
-			}
-		}
-		// randomly sample minor allele, if there are multiple
-		auto minorAllele = minorAlleles[randomGenerator().sample(minorAlleles.size())];
-		return std::make_pair(majorAllele, minorAllele);
-	} else {
-		// major allele is not refAllele -> minor allele must be ref-allele!
-		// quick check if this is valid (should always be true for bi-allelic simulators)
-		for (auto b = genometools::Base::min; b < genometools::Base::max; ++b) {
-			if (b != majorAllele && b != RefAllele && AlleleCounts[b] > AlleleCounts[RefAllele]) {
-				DEVERROR(": reference allele (", RefAllele, ") is not major (", majorAllele, ") nor minor (",
-						 AlleleCounts[b], ") allele!");
-			}
-		}
-		return std::make_pair(majorAllele, RefAllele);
-	}
+	_vcf = std::make_unique<genometools::TVcfWriter>(filename, "ATLAS_simulations", sampleNames, usePhredLikelihoods);
 }
 
 void TVCFSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome, TSimulatorHaplotypes &Haplotypes, size_t avgDepth) {
@@ -565,7 +484,7 @@ void TVCFSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome
 	for (size_t l = 0; l < Chromosome.length(); ++l) {
 
 		// prepare storage
-		GLF::TMultiGLFDataOneAllelicCombination genotypeLikelihoods(_haploSimulator->sampleSize());
+		genometools::TMultiGLFDataOneAllelicCombination genotypeLikelihoods(_haploSimulator->sampleSize());
 		std::vector<size_t> depths(_haploSimulator->sampleSize(), 0);
 		coretools::TStrongArray<size_t, genometools::Base, 4> alleleCounts({0, 0, 0, 0});
 		const bool isDiploid = Chromosome.ploidy() == 2;
@@ -576,7 +495,7 @@ void TVCFSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome
 			const auto hap2 = Haplotypes(i, 1, l);
 
 			// simulate depth and genotype likelihoods
-			auto [depth, GTL] = _simulateDepthAndGTL(hap1, hap2, _reference[l], isDiploid, avgDepth);
+			auto [depth, GTL] = _vcf->simulateDepthAndGTL(hap1, hap2, _reference[l], isDiploid, avgDepth);
 
 			// store
 			genotypeLikelihoods[i] = GTL;
@@ -587,7 +506,7 @@ void TVCFSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome
 
 		// find major and minor allele
 		const auto refAllele                  = _reference[l];
-		const auto [majorAllele, minorAllele] = _findMajorMinorAllele(alleleCounts, refAllele);
+		const auto [majorAllele, minorAllele] = _vcf->findMajorMinorAllele(alleleCounts, refAllele);
 		// quick check if ref allele is either major or minor allele. Should always be true if _findMajorMinorAllele is
 		// working
 		if (refAllele != majorAllele && refAllele != minorAllele) {

@@ -13,7 +13,6 @@
 #include <iterator>
 #include <memory>
 #include <numeric>
-#include "TBgzWriter.h"
 #include "coretools/Files/TGzWriter.h"
 #include "coretools/Files/TWriter.h"
 #include "coretools/Main/TError.h"
@@ -67,29 +66,6 @@ void _checkChromosomeInfo(const TGlfChromosome & _curChr, const std::vector<TGlf
 };
 
 } // namespace impl
-
-TMultiGLFDataOneAllelicCombination fill(coretools::TConstView<GLF::TMultiGLFDataSample> samples,
-		  genometools::AllelicCombination alleleicCombination) {
-	TMultiGLFDataOneAllelicCombination storage;
-	storage.reserve(samples.size());
-	for (const auto &s : samples) {
-		if (!s.hasData()) {
-			continue;
-		}
-		if (s.isHaploid())
-			storage.emplace_back(s[first(alleleicCombination)],
-								 s[second(alleleicCombination)]);
-		else
-			storage.emplace_back(s[homoFirst(alleleicCombination)],
-								 s[het(alleleicCombination)],
-								 s[homoSecond(alleleicCombination)]);
-	}
-	return storage;
-};
-
-uint32_t totalDepth(const TMultiGLFData &samples) noexcept {
-	return std::accumulate(samples.begin(), samples.end(), uint32_t{}, [](auto tot, auto s) {return tot + s.depth();});
-};
 
 //----------------------------------------------------
 // TGlfMultiReader

@@ -33,71 +33,12 @@
 
 #include "TGLF.h"
 #include "genometools/TFastaReader.h"
+#include "genometools/VCF/TVcfWriter.h"
+
+using TMultiGLFDataOneAllelicCombination = std::vector<genometools::TMultiGLFDataSampleOneAllelicCombination>;
+using TMultiGLFData                      = std::vector<genometools::TMultiGLFDataSample>;
 
 namespace GLF {
-
-//----------------------------------------------------
-// TMultiGLFDataSample
-//----------------------------------------------------
-class TMultiGLFDataSample {
-private:
-	TGLFLikelihoods _glf;//{{genometools::HighPrecisionPhredIntProbability::highest()}};
-	size_t _depth = 0;
-public:
-	TMultiGLFDataSample(bool isHaploid = true)
-		: _glf(genometools::HighPrecisionPhredIntProbability::highest(), Ploidy((!isHaploid))) {}
-	constexpr TMultiGLFDataSample(const TGLFLikelihoods &GLs, uint16_t Depth) : _glf(GLs), _depth{Depth} {};
-
-	constexpr bool hasData() const noexcept { return _depth > 0; };
-	constexpr size_t depth() const noexcept { return _depth; };
-	constexpr bool isHaploid() const noexcept { return _glf.isType(Ploidy::haploid); };
-
-	constexpr genometools::HighPrecisionPhredIntProbability operator[](genometools::Genotype G) const noexcept {
-		return _glf[G]; // asserts if diploid
-	};
-
-	constexpr genometools::HighPrecisionPhredIntProbability operator[](genometools::Base B) const noexcept {
-		return _glf[B]; // asserts if diploid
-	};
-};
-
-//-------------------------------------
-// TGenotypeLikelihoodsOneAllelicCombination
-//-------------------------------------
-class TMultiGLFDataSampleOneAllelicCombination {
-private:
-	enum : uint8_t {NOTMISSING_DIPLOID = 0, MISSING_DIPLOID = 1, NOTMISSING_HAPLOID = 2, MISSING_HAPLOID = 3};
-
-	coretools::TBitSet<2> _flags{MISSING_DIPLOID};
-	std::array<coretools::Probability, 3> _GLs{coretools::Probability::highest(), coretools::Probability::highest(), coretools::Probability::highest()};
-
-public:
-	constexpr TMultiGLFDataSampleOneAllelicCombination(bool isHaploid=false) : _flags(MISSING_DIPLOID | isHaploid * MISSING_HAPLOID){}
-
-	TMultiGLFDataSampleOneAllelicCombination(genometools::HighPrecisionPhredIntProbability homoFirst,
-							   genometools::HighPrecisionPhredIntProbability het,
-							   genometools::HighPrecisionPhredIntProbability homoSecond)
-		: _flags(NOTMISSING_DIPLOID), _GLs({coretools::Probability(homoFirst), coretools::Probability(het), coretools::Probability(homoSecond)})  {}
-
-	TMultiGLFDataSampleOneAllelicCombination(genometools::HighPrecisionPhredIntProbability first,
-							   genometools::HighPrecisionPhredIntProbability second)
-		:  _flags(NOTMISSING_HAPLOID), _GLs({coretools::Probability(first), coretools::Probability(second), coretools::Probability::highest()})  {}
-
-	constexpr bool isMissing() const noexcept { return _flags.get<0>();}
-	constexpr bool isHaploid() const noexcept { return _flags.get<1>();}
-
-	constexpr coretools::Probability
-	operator[](genometools::BiallelicGenotype Genotype) const noexcept {
-		assert(isHaploid() == genometools::isHaploid(Genotype));
-		return _GLs[genometools::altAlleleCounts(Genotype)];
-	};
-};
-
-using TMultiGLFDataOneAllelicCombination = std::vector<TMultiGLFDataSampleOneAllelicCombination>;
-using TMultiGLFData                      = std::vector<TMultiGLFDataSample>;
-
-TMultiGLFDataOneAllelicCombination fill(coretools::TConstView<GLF::TMultiGLFDataSample> samples,
-										genometools::AllelicCombination alleleicCombination);
 
 //----------------------------------------------------
 // TGlfMultiReader

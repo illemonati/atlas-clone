@@ -21,6 +21,7 @@
 #include <vector>
 
 #include "TGlfMultiReader.h"
+#include "TBgzWriter.h"
 #include "coretools/Containers/TDualArray.h"
 #include "coretools/Containers/TDualStrongArray.h"
 #include "coretools/Containers/TStrongArray.h"
@@ -39,6 +40,7 @@
 #include "genometools/GenotypeTypes.h"
 #include "genometools/PhredProbabilityTypes.h"
 #include "genometools/TGenotypeFrequencies.h"
+#include "genometools/VCF/TVcfWriter.h"
 
 #ifdef _OPENMP
 #include "omp.h"
@@ -60,7 +62,7 @@ using coretools::TConstView;
 using coretools::Log10Probability;
 using coretools::TStrongArray;
 using coretools::TDualStrongArray;
-using GLF::TMultiGLFData;
+using genometools::TMultiGLFData;
 //---------------------------------------------------
 // TMajorMinorEstimatorBase
 //---------------------------------------------------
@@ -290,7 +292,7 @@ class TSkotte {
 	}
 
 public:
-	static TMMData estimate(coretools::TConstView<GLF::TMultiGLFDataSample> data, double maxF, genometools::Base base, Probability minMAF, genometools::PhredIntProbability minVariantQuality) {
+	static TMMData estimate(coretools::TConstView<genometools::TMultiGLFDataSample> data, double maxF, genometools::Base base, Probability minMAF, genometools::PhredIntProbability minVariantQuality) {
 		std::vector<coretools::TDualStrongArray<Probability, Base, Genotype>> glfs;
 		glfs.reserve(data.size());
 
@@ -369,7 +371,7 @@ public:
 };
 
 struct TMLE {
-	static TMMData estimate(coretools::TConstView<GLF::TMultiGLFDataSample> data, double maxF, genometools::Base base, Probability minMAF, genometools::PhredIntProbability minVariantQuality) {
+	static TMMData estimate(coretools::TConstView<genometools::TMultiGLFDataSample> data, double maxF, genometools::Base base, Probability minMAF, genometools::PhredIntProbability minVariantQuality) {
 		// calculate L10L for each allelic combination
 		const auto used = impl::useAllelicCombinationsThatContain(base);
 
@@ -534,8 +536,14 @@ template<typename Estimator> void iterate(double maxF) {
 	coretools::instances::logfile().list("Not running in parallel");
 #endif
 
+	genometools::TVcfWriter vcf;
+
 	// open vcf file
-	GLF::TGlfMultiReaderVcf vcf(outname + ".vcf.gz", "ATLAS_GLF_Caller", sampleNames, usePhredLikelihoods);
+	if (coretools::instances::parameters().parameterExists("bgz")) {
+		vcf = genometools::TVcfWriter(new GLF::TBGzWriter (outname + ".vcf.gz"), "ATLAS_GLF_Caller", sampleNames, usePhredLikelihoods);
+	} else {
+		vcf = genometools::TVcfWriter(outname + ".vcf.gz", "ATLAS_GLF_Caller", sampleNames, usePhredLikelihoods);
+	}
 
 	// vars
 	logfile().startIndent("Parsing through glf files:");
