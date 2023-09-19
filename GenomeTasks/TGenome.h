@@ -14,6 +14,7 @@
 #include <string>
 #include <vector>
 
+#include "TReadGroupInfo.h"
 #include "genometools/BED/TBed.h"
 #include "TAlignment.h"
 #include "TBamFile.h"
@@ -49,12 +50,13 @@ class TGenome_basic {
 protected:
 	BAM::TBamFile _bamFile;
 	std::string _outputName;
+	BAM::RGInfo::TReadGroupInfo _rgInfo;
 
 	void _openBamForWriting(const std::string &Filename, BAM::TOutputBamFile &OutBam);
 
 public:
 	TGenome_basic();
-	virtual ~TGenome_basic() = default;
+	virtual ~TGenome_basic();
 };
 
 //---------------------------------------------------------------

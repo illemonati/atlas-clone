@@ -14,6 +14,7 @@
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/Types/commonWeakTypes.h"
+#include "coretools/enum.h"
 
 using coretools::instances::parameters;
 using coretools::instances::logfile;
@@ -140,6 +141,14 @@ void TReadGroupInfo::_createReadGroupInfoEntries(const BAM::TReadGroups & ReadGr
 	_parsed.set<InfoType::RGName>();
 }
 
+bool TReadGroupInfo::isParsed() const {
+	// Not counting RGName
+	for (auto info_t = coretools::next(InfoType::min); info_t < InfoType::max; ++info_t) {
+		if (_parsed[info_t]) return true;
+	}
+	return false;
+}
+
 void TReadGroupInfo::_parse(const InfoType Info){
 	if(!_parsed[Info]){
 		logfile().listFlush(coretools::str::capitalizeFirst(infos[Info].description), ": ");
@@ -160,7 +169,7 @@ void TReadGroupInfo::_parse(const InfoType Info){
 	}
 }
 
-TReadGroupInfo::TReadGroupInfo(const BAM::TReadGroups & ReadGroups){
+TReadGroupInfo::TReadGroupInfo(const BAM::TReadGroups & ReadGroups) {
 	_createReadGroupInfoEntries(ReadGroups);
 	if (parameters().parameterExists(RGInfoArgument)) {
 		_readFile(parameters().getParameter<std::string>(RGInfoArgument, true));

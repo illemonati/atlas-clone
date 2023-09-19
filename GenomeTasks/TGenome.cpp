@@ -37,20 +37,15 @@ using namespace coretools::str;
 // A base class without filters and genotype likelihoods
 //---------------------------------------------------------------
 
-TGenome_basic::TGenome_basic() {
-	// open bam file
-	// TODO: deal with index in better way: let tasks decide if they need an index or not
-	_bamFile.open(parameters().getParameter<std::string>("bam"));
-	_bamFile.setLimits();
-
+TGenome_basic::TGenome_basic()
+	: _bamFile(parameters().getParameter<std::string>("bam")), _rgInfo(_bamFile.readGroups()) {
 	// outputname
 	if (parameters().parameterExists("out")) {
 		_outputName = parameters().getParameter<std::string>("out");
 		logfile().list("Writing output files with prefix '" + _outputName + "'. (parameter 'out')");
 	} else {
 		// guess from BAM filename.
-		_outputName = _bamFile.filename();
-		_outputName = extractBeforeLast(_outputName, ".");
+		_outputName = readBeforeLast(_bamFile.filename(), ".");
 		logfile().list("Writing output files with prefix '" + _outputName + "'. (specify with 'out')");
 	}
 };
@@ -59,6 +54,10 @@ void TGenome_basic::_openBamForWriting(const std::string &Filename, BAM::TOutput
 	logfile().list("Writing alignments to the new BAM file '" + Filename + "'.");
 	OutBam.open(Filename, _bamFile);
 };
+
+TGenome_basic::~TGenome_basic() {
+	if (_rgInfo.isParsed()) _rgInfo.write(_outputName + "_RGInfo.json");
+}
 
 //---------------------------------------------------------------
 // TGenome_filtered

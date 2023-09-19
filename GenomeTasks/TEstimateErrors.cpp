@@ -68,7 +68,7 @@ void TEstimateErrors::run() {
 	if (_onlyLL)
 		_errors.calcLL();
 	else
-		_errors.estimate(_outputName);
+		_errors.estimate(_rgInfo);
 };
 
 }; // namespace GenomeTasks

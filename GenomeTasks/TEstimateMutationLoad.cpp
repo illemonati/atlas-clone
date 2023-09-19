@@ -158,6 +158,11 @@ void TEstimateMutationLoad::run()
 
 	std::vector<MutationLoad::LengthType> chunkEnds = {_sites.size()};
 	EM.runEM(chunkEnds);
+
+	//write output file
+	std::string filename = _outputName + "_mutationLoad.txt";
+	coretools::TOutputFile out(filename, {"BAM", "Alleles", "Pi_rr", "Pi_ra", "Pi_aa", "Pi_ab"});
+	out.writeln(_bamFile.filename(), _subsetMonomorphic->filename(), prior.getPi());
 }
 
 } // end namespace GenomeTasks
