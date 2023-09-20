@@ -90,21 +90,6 @@ public:
 };
 
 //---------------------------------------------------------
-// TVCFWriterSimulation
-//---------------------------------------------------------
-
-/*class TVCFWriterSimulation : public GLF::TGlfMultiReaderVcf {
-public:
-	TVCFWriterSimulation(const std::string &Filename, const std::string &Source,
-	                     const std::vector<std::string> &SampleNames, bool UsePhredScaledLikelihoods);
-
-	void writeSite(const std::string &ChrName, size_t Position, genometools::PhredIntProbability VariantQuality,
-	               genometools::Base RefAllele, genometools::Base AltAllele, size_t TotalDepth, bool IsDiploid,
-	               const GLF::TMultiGLFDataOneAllelicCombination &GenotypeLikelihoods,
-	               const std::vector<size_t> &Depths);
-};*/
-
-//---------------------------------------------------------
 // TVCFSimulator
 //---------------------------------------------------------
 

@@ -14,6 +14,7 @@
 #include "genometools/PhredProbabilityTypes.h"
 #include "SFS.h"
 #include "TGlfMultiReader.h"
+#include "genometools/VCF/TVcfWriter.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/Main/TRandomGenerator.h"
 #include "coretools/Containers/TStrongArray.h"
@@ -26,34 +27,19 @@ using namespace Simulations;
 // TVCFSimulator
 //-------------------------------------------
 
-class TVCFSimulatorBridge : public TVCFSimulator {
-	// make protected functions public
-public:
-	TVCFSimulatorBridge() : TVCFSimulator("HW") {}
-
-	GLF::TMultiGLFDataSampleOneAllelicCombination _calculateGenotypeLikelihoods(size_t NumRef, size_t NumAlt,
-	                                                                            bool IsDiploid) {
-		return TVCFSimulator::_calculateGenotypeLikelihoods(NumRef, NumAlt, IsDiploid);
-	}
-	auto _findMajorMinorAllele(coretools::TStrongArray<size_t, genometools::Base, 4> AlleleCounts,
-	                           genometools::Base RefAllele) {
-		return TVCFSimulator::_findMajorMinorAllele(AlleleCounts, RefAllele);
-	}
-};
-
 TEST(TVCFSimulator, findMajorMinorAllele_1) {
-	TVCFSimulatorBridge vcfSimulator;
+	TVcfWriter vcfSimulator;
 
 	// 1) ref is unique major allele, and there is a unique minor allele
 	coretools::TStrongArray<size_t, genometools::Base, 4> alleleCounts({10, 20, 5, 15});
 	auto ref            = genometools::Base::C;
-	auto [major, minor] = vcfSimulator._findMajorMinorAllele(alleleCounts, ref);
+	auto [major, minor] = vcfSimulator.findMajorMinorAllele(alleleCounts, ref);
 	EXPECT_EQ(major, ref);
 	EXPECT_EQ(minor, genometools::Base::T);
 }
 
 TEST(TVCFSimulator, findMajorMinorAllele_2) {
-	TVCFSimulatorBridge vcfSimulator;
+	TVcfWriter vcfSimulator;
 
 	// 2) ref is unique major allele, and there are multiple minor alleles
 	//    -> chose randomly among minor alleles
@@ -63,7 +49,7 @@ TEST(TVCFSimulator, findMajorMinorAllele_2) {
 	size_t N = 1e04;
 	coretools::TStrongArray<size_t, genometools::Base, 4> counter{};
 	for (size_t i = 0; i < N; ++i) {
-		auto [major, minor] = vcfSimulator._findMajorMinorAllele(alleleCounts, ref);
+		auto [major, minor] = vcfSimulator.findMajorMinorAllele(alleleCounts, ref);
 		EXPECT_EQ(major, ref);
 		counter[minor]++;
 	}
@@ -74,17 +60,17 @@ TEST(TVCFSimulator, findMajorMinorAllele_2) {
 }
 
 TEST(TVCFSimulator, findMajorMinorAllele_3) {
-	TVCFSimulatorBridge vcfSimulator;
+	TVcfWriter vcfSimulator;
 
 	// 3) there are multiple major alleles, but ref is none of them
 	//    -> this should never happen for bi-allelic simulators!
 	coretools::TStrongArray<size_t, genometools::Base, 4> alleleCounts({10, 0, 10, 0});
 	auto ref = genometools::Base::C;
-	EXPECT_ANY_THROW(vcfSimulator._findMajorMinorAllele(alleleCounts, ref));
+	EXPECT_ANY_THROW(vcfSimulator.findMajorMinorAllele(alleleCounts, ref));
 }
 
 TEST(TVCFSimulator, findMajorMinorAllele_4) {
-	TVCFSimulatorBridge vcfSimulator;
+	TVcfWriter vcfSimulator;
 
 	// 4) there are multiple major alleles, one of them is ref
 	//    -> chose randomly among major alleles; if ref is not major allele, then it must be the minor allele
@@ -95,7 +81,7 @@ TEST(TVCFSimulator, findMajorMinorAllele_4) {
 	coretools::TStrongArray<size_t, genometools::Base, 4> counterMajor{};
 	coretools::TStrongArray<size_t, genometools::Base, 4> counterMinor{};
 	for (size_t i = 0; i < N; ++i) {
-		auto [major, minor] = vcfSimulator._findMajorMinorAllele(alleleCounts, ref);
+		auto [major, minor] = vcfSimulator.findMajorMinorAllele(alleleCounts, ref);
 		EXPECT_TRUE((major == ref || minor == ref));  // must be either major or minor
 		EXPECT_FALSE((major == ref && minor == ref)); // can not be both at once
 		counterMajor[major]++;
@@ -116,21 +102,21 @@ TEST(TVCFSimulator, findMajorMinorAllele_4) {
 	EXPECT_TRUE(counterMinor[genometools::Base::C] > 0);
 }
 
-TEST(TVCFSimulator, _calculateGenotypeLikelihoods_diploid) {
+TEST(TVCFSimulator, calculateGenotypeLikelihoods_diploid) {
 	coretools::instances::parameters().addParameter("error", 0.05);
-	TVCFSimulatorBridge vcfSimulator;
+	TVcfWriter vcfSimulator;
 
-	auto GTL = vcfSimulator._calculateGenotypeLikelihoods(10, 20, true);
+	auto GTL = vcfSimulator.calculateGenotypeLikelihoods(10, 20, true);
 	EXPECT_EQ(HighPrecisionPhredIntProbability(GTL[genometools::BiallelicGenotype::homoFirst]), 26243);
 	EXPECT_EQ(HighPrecisionPhredIntProbability(GTL[genometools::BiallelicGenotype::het]), 9031);
 	EXPECT_EQ(HighPrecisionPhredIntProbability(GTL[genometools::BiallelicGenotype::homoSecond]), 13456);
 }
 
-TEST(TVCFSimulator, _calculateGenotypeLikelihoods_haploid) {
+TEST(TVCFSimulator, calculateGenotypeLikelihoods_haploid) {
 	coretools::instances::parameters().addParameter("error", 0.05);
-	TVCFSimulatorBridge vcfSimulator;
+	TVcfWriter vcfSimulator;
 
-	auto GTL = vcfSimulator._calculateGenotypeLikelihoods(10, 20, false);
+	auto GTL = vcfSimulator.calculateGenotypeLikelihoods(10, 20, false);
 	EXPECT_EQ(HighPrecisionPhredIntProbability(GTL[genometools::BiallelicGenotype::haploidFirst]), 26243);
 	EXPECT_EQ(HighPrecisionPhredIntProbability(GTL[genometools::BiallelicGenotype::haploidSecond]), 13456);
 }

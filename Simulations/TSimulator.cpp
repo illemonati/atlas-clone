@@ -24,6 +24,7 @@
 #include "genometools/GenomePositions/TChromosomes.h"
 #include "coretools/Files/TFile.h"
 #include "genometools/TGenotypeFrequencies.h"
+#include "genometools/GenotypeTypes.h"
 #include "THaplotypeSimulator.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
@@ -358,46 +359,12 @@ void TBAMSimulator::_simulateReadsFromHaplotypes(const genometools::TChromosome 
 }
 
 //-------------------------------------------
-// TVCFSimulationWriter
-//-------------------------------------------
-
-/*TVCFWriterSimulation::TVCFWriterSimulation(const std::string &Filename, const std::string &Source,
-                                           const std::vector<std::string> &SampleNames, bool UsePhredScaledLikelihoods)
-    : GLF::TGlfMultiReaderVcf(Filename, Source, SampleNames, UsePhredScaledLikelihoods) {}
-
-void TVCFWriterSimulation::writeSite(const std::string &ChrName, size_t Position,
-									 genometools::PhredIntProbability VariantQuality, genometools::Base RefAllele,
-									 genometools::Base AltAllele, size_t TotalDepth, bool IsDiploid,
-									 const GLF::TMultiGLFDataOneAllelicCombination &GenotypeLikelihoods,
-									 const std::vector<size_t> &Depths) {
-	_setMajorMinor(RefAllele, AltAllele);
-	_writeSiteInformation(ChrName, Position, VariantQuality, TotalDepth);
-
-	for (size_t i = 0; i < GenotypeLikelihoods.size(); ++i) {
-		const bool isMissing = (Depths[i] == 0);
-		if (IsDiploid) {
-			_writeCell<3>(isMissing, Depths[i],
-			              {HighPrecisionPhredIntProbability(GenotypeLikelihoods[i][genometools::BiallelicGenotype::homoFirst]),
-			               HighPrecisionPhredIntProbability(GenotypeLikelihoods[i][genometools::BiallelicGenotype::het]),
-			               HighPrecisionPhredIntProbability(GenotypeLikelihoods[i][genometools::BiallelicGenotype::homoSecond])});
-		} else {
-			_writeCell<2>(isMissing, Depths[i],
-			              {HighPrecisionPhredIntProbability(GenotypeLikelihoods[i][genometools::BiallelicGenotype::haploidFirst]),
-			               HighPrecisionPhredIntProbability(GenotypeLikelihoods[i][genometools::BiallelicGenotype::haploidSecond])});
-		}
-	}
-
-	// end of line
-	_vcf.endln();
-}*/
-
-//-------------------------------------------
 // Helper functions
 //-------------------------------------------
 
 namespace /* anonymous */ {
 
-auto calculateLog10ProbThisAllelicCombination(const genometools::TMultiGLFDataOneAllelicCombination &GenotypeLikelihoods) {
+auto calculateLog10ProbThisAllelicCombination(const genometools::TGenotypeLikelihoodsOneAllelicCombinationVector &GenotypeLikelihoods) {
 	// estimate genotype frequencies
 	genometools::TGenotypeFrequencies genotypeFrequencies;
 	genotypeFrequencies.estimate<true>(GenotypeLikelihoods, GenotypeLikelihoods.size(), 0.0000001);
@@ -416,7 +383,7 @@ auto getRelevantBiallelicGenotype(genometools::Base Major, genometools::Base Ref
 	}
 }
 
-auto calculateLog10ProbFixed(const genometools::TMultiGLFDataOneAllelicCombination &GenotypeLikelihoods,
+auto calculateLog10ProbFixed(const genometools::TGenotypeLikelihoodsOneAllelicCombinationVector &GenotypeLikelihoods,
                              genometools::Base Major, genometools::Base Ref, bool IsDiploid) {
 	using coretools::Log10Probability;
 
@@ -429,7 +396,7 @@ auto calculateLog10ProbFixed(const genometools::TMultiGLFDataOneAllelicCombinati
 	return LL_fixed_glfPhred;
 }
 
-auto calculateVariantQuality(const genometools::TMultiGLFDataOneAllelicCombination &GenotypeLikelihoods,
+auto calculateVariantQuality(const genometools::TGenotypeLikelihoodsOneAllelicCombinationVector &GenotypeLikelihoods,
                              genometools::Base Major, genometools::Base Ref, bool IsDiploid) {
 	using coretools::Log10Probability;
 	const auto LL_allelicCombination = calculateLog10ProbThisAllelicCombination(GenotypeLikelihoods);
@@ -484,7 +451,7 @@ void TVCFSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome
 	for (size_t l = 0; l < Chromosome.length(); ++l) {
 
 		// prepare storage
-		genometools::TMultiGLFDataOneAllelicCombination genotypeLikelihoods(_haploSimulator->sampleSize());
+		genometools::TGenotypeLikelihoodsOneAllelicCombinationVector genotypeLikelihoods(_haploSimulator->sampleSize());
 		std::vector<size_t> depths(_haploSimulator->sampleSize(), 0);
 		coretools::TStrongArray<size_t, genometools::Base, 4> alleleCounts({0, 0, 0, 0});
 		const bool isDiploid = Chromosome.ploidy() == 2;
@@ -495,7 +462,7 @@ void TVCFSimulator::_simulateAndWrite(const genometools::TChromosome &Chromosome
 			const auto hap2 = Haplotypes(i, 1, l);
 
 			// simulate depth and genotype likelihoods
-			auto [depth, GTL] = _vcf->simulateDepthAndGTL(hap1, hap2, _reference[l], isDiploid, avgDepth);
+			auto [depth, GTL] = _vcf->simulateDepthAndGTL(genometools::biallelicGenotype(hap1, hap2, _reference[l], isDiploid), avgDepth);
 
 			// store
 			genotypeLikelihoods[i] = GTL;

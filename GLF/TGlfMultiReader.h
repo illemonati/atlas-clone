@@ -35,8 +35,8 @@
 #include "genometools/TFastaReader.h"
 #include "genometools/VCF/TVcfWriter.h"
 
-using TMultiGLFDataOneAllelicCombination = std::vector<genometools::TMultiGLFDataSampleOneAllelicCombination>;
-using TMultiGLFData                      = std::vector<genometools::TMultiGLFDataSample>;
+using TGenotypeLikelihoodsOneAllelicCombinationVector = std::vector<genometools::TGenotypeLikelihoodsOneAllelicCombination>;
+using TGenotypeLikelihoodsAllCombinationsVector                      = std::vector<genometools::TGenotypeLikelihoodsAllCombinations>;
 
 namespace GLF {
 
@@ -62,7 +62,7 @@ private:
 	uint32_t _minDepth = 0;
 	size_t _windowStart = 0;
 	size_t _windowSize  = 64;
-	std::vector<TMultiGLFData> _dataWindow;
+	std::vector<TGenotypeLikelihoodsAllCombinationsVector> _dataWindow;
 	std::vector<size_t> _numActive;
 
 	// reference
@@ -78,7 +78,7 @@ private:
 	bool _moveToNextChromosome();
 
 public:
-	const TMultiGLFData& data(size_t iWindow) const noexcept {return _dataWindow[iWindow];};
+	const TGenotypeLikelihoodsAllCombinationsVector& data(size_t iWindow) const noexcept {return _dataWindow[iWindow];};
 
 	TGlfMultiReader();
 

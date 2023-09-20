@@ -62,7 +62,7 @@ using coretools::TConstView;
 using coretools::Log10Probability;
 using coretools::TStrongArray;
 using coretools::TDualStrongArray;
-using genometools::TMultiGLFData;
+using genometools::TGenotypeLikelihoodsAllCombinationsVector;
 //---------------------------------------------------
 // TMajorMinorEstimatorBase
 //---------------------------------------------------
@@ -292,7 +292,7 @@ class TSkotte {
 	}
 
 public:
-	static TMMData estimate(coretools::TConstView<genometools::TMultiGLFDataSample> data, double maxF, genometools::Base base, Probability minMAF, genometools::PhredIntProbability minVariantQuality) {
+	static TMMData estimate(coretools::TConstView<genometools::TGenotypeLikelihoodsAllCombinations> data, double maxF, genometools::Base base, Probability minMAF, genometools::PhredIntProbability minVariantQuality) {
 		std::vector<coretools::TDualStrongArray<Probability, Base, Genotype>> glfs;
 		glfs.reserve(data.size());
 
@@ -371,7 +371,7 @@ public:
 };
 
 struct TMLE {
-	static TMMData estimate(coretools::TConstView<genometools::TMultiGLFDataSample> data, double maxF, genometools::Base base, Probability minMAF, genometools::PhredIntProbability minVariantQuality) {
+	static TMMData estimate(coretools::TConstView<genometools::TGenotypeLikelihoodsAllCombinations> data, double maxF, genometools::Base base, Probability minMAF, genometools::PhredIntProbability minVariantQuality) {
 		// calculate L10L for each allelic combination
 		const auto used = impl::useAllelicCombinationsThatContain(base);
 
