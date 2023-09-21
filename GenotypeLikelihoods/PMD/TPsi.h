@@ -10,7 +10,7 @@
 #include "TSequencedBase.h"
 #include "coretools/Containers/TStrongArray.h"
 #include "coretools/Types/probability.h"
-#include "coretools/devtools.h"
+#include "genometools/GenotypeTypes.h"
 #include <vector>
 
 namespace BAM { class TSequencedBase; }
@@ -19,6 +19,9 @@ namespace GenotypeLikelihoods::PMD {
 
 enum class Type : size_t {min, CT=min, GA, max};
 enum class End : size_t {min, from5=min, from3, max};
+using TBaseBaseProbabilities =
+	coretools::TStrongArray<coretools::TStrongArray<coretools::Probability, genometools::Base>, genometools::Base>;
+
 class TPsi {
 	static constexpr coretools::TStrongArray<Type, Type> _flip{{Type::GA, Type::CT}};
 	static constexpr coretools::TStrongArray<genometools::Base, Type> _from{{genometools::Base::C, genometools::Base::G}};
@@ -47,8 +50,8 @@ class TPsi {
 	void _fromString(std::string_view Psi);
 
 	template<Type From_To>
-	void _add(const BAM::TSequencedBase &data, const TGenotypeLikelihoods &P_g_I_dij,
-			  const TBaseProbabilities &P_bbar_I_From) {
+	void _add(const BAM::TSequencedBase &data, coretools::Probability &P_g_I_di,
+			  const TBaseBaseProbabilities &P_b_bbar_I_gdij) {
 		using genometools::Base;
 		constexpr auto From = _from[From_To];
 		constexpr auto To   = _to[From_To];
@@ -60,12 +63,12 @@ class TPsi {
 		auto &tSum          = _tableSums[end][realType];
 		// tSum has already the correct size
 
-		for (auto a = Base::min; a < Base::max; ++a) {
-			const auto g = genometools::genotype(From, a);
-			tSum[pos].numDenom.num   += P_bbar_I_From[To] * P_g_I_dij[g];
-			tSum[pos].numDenom.denom += (P_bbar_I_From[To] + P_bbar_I_From[From]) * P_g_I_dij[g];
-		}
+		if (pos >= tSum.size()) return; // Not enough data or wrong pattern
+
+		tSum[pos].numDenom.num += P_b_bbar_I_gdij[From][To] * P_g_I_di;
+		tSum[pos].numDenom.denom += (P_b_bbar_I_gdij[From][To] + P_b_bbar_I_gdij[From][From]) * P_g_I_di;
 	}
+
 	template<Type From_To>
 	void _add(const BAM::TSequencedBase &data, genometools::Base ref) {
 		using genometools::Base;
@@ -81,15 +84,16 @@ class TPsi {
 		if (tSum.size() <= pos) tSum.resize(pos + 1, {{{0,0,0,0}}});
 
 		if (ref == From) {
-			if (base == To) tSum[pos].fromTo.fromTo += 1;
+			if (base == To) tSum[pos].fromTo.fromTo += 1.;
 			tSum[pos].fromTo.fromSum += 1.;
 		} else if (ref == To) {
-			if (base == From) tSum[pos].fromTo.toFrom += 1;
+			if (base == From) tSum[pos].fromTo.toFrom += 1.;
 			tSum[pos].fromTo.toSum += 1.;
 		} 
 	}
 
 public:
+
 	TPsi(std::string_view Psi); 
 	TPsi(const BAM::RGInfo::TInfo & info);
 
@@ -106,10 +110,14 @@ public:
 		return table[pos];
 	}
 
-	void add(const BAM::TSequencedBase &data, const TGenotypeLikelihoods &P_g_I_dij,
-			 const TBaseProbabilities &P_bbar_I_C, const TBaseProbabilities &P_bbar_I_G) noexcept {
-		_add<Type::CT>(data, P_g_I_dij, P_bbar_I_C);
-		_add<Type::GA>(data, P_g_I_dij, P_bbar_I_G);
+	void addGA(const BAM::TSequencedBase &data, coretools::Probability P_g_I_di,
+			 const TBaseBaseProbabilities& bbProbs) noexcept {
+		_add<Type::GA>(data, P_g_I_di, bbProbs);
+	}
+
+	void addCT(const BAM::TSequencedBase &data, coretools::Probability P_g_I_di,
+			 const TBaseBaseProbabilities& bbProbs) noexcept {
+		_add<Type::CT>(data, P_g_I_di, bbProbs);
 	}
 
 	void add(const BAM::TSequencedBase &data, genometools::Base ref) noexcept {
@@ -120,7 +128,7 @@ public:
 	void estimate() noexcept;
 	void estimateInit() noexcept;
 
-	std::string definition() const noexcept;
+	void log() const noexcept;
 };
 } // namespace GenotypeLikelihoods::PMD
 

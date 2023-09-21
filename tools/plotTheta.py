@@ -11,61 +11,87 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Plot theta data(s)")
     parser.add_argument("files", nargs='*', help="Data")
     parser.add_argument("--title", default="theta")
-    parser.add_argument("--depth0", type=float, default=10.)
+    parser.add_argument("--dMin", type=float, default=0.)
 
     args = parser.parse_args()
     # get header and cols
     for i, file in enumerate(args.files):
-        f     = gzip.open(file)
-        probs = {}
+        label = file.split("_theta.txt.gz")[0]
+        f      = gzip.open(file)
+        ithetas  = {} 
+        idepths = {}
         for j, key in enumerate(f.readline().split()):
             key = key.decode()
+            if "depth" in key:
+                if key[0] == "p":
+                    p = float(key[1:].split("_")[0])
+                else:
+                    p = 1.
+                if not p in idepths:
+                    idepths[p] = []
+                idepths[p].append(j)
             if "theta_MLE" in key:
                 if key[0] == "p":
                     p = float(key[1:].split("_")[0])
                 else:
                     p = 1.
-                if not p in probs:
-                    probs[p] = []
-                probs[p].append(j)
+                if not p in ithetas:
+                    ithetas[p] = []
+                ithetas[p].append(j)
         f.close()
 
         # get average and std
         data = genfromtxt(file, skip_header=1)
         if len(data.shape) == 1:
             data = array([data])
-        means = []
-        stds = []
-        for p in probs.keys():
+        
+        thetas  = []
+        sthetas = []
+        depths  = []
+        sdepths = []
+        for p in ithetas.keys():
             d = []
-            for c in probs[p]:
+            for c in ithetas[p]:
                 d = r_[d, data[:, c]]
-            print(d)
-            means.append(nanmean(d))
-            stds.append(nanstd(d))
+            thetas.append(nanmean(d))
+            sthetas.append(nanstd(d))
+            d = []
+            for c in idepths[p]:
+                d = r_[d, data[:, c]]
+            depths.append(nanmean(d))
+            sdepths.append(nanstd(d))
 
-        depths = r_[list(probs.keys())]*args.depth0
-        means = r_[means]
-        stds  = r_[stds]
+        depths  = r_[depths]
+        iis = where(depths[argsort(depths)[::-1]] > args.dMin)
 
-        print(file, depths, means, stds)
+        depths  = depths[iis]
+        thetas  = r_[thetas][iis]
+        sthetas = r_[sthetas][iis]
+        sdepths = r_[sdepths][iis]
+
+
+
+        print(file, ":");
+        s = "depth = ["
+        for j in range(len(depths)):
+            s += "%4.4f +- %4.4f, "%(depths[j], sdepths[j])
+        print(s[:-2] + "]")
+        s = "theta = ["
+        for j in range(len(thetas)):
+            s += "%8.6f +- %8.6f, "%(thetas[j], sthetas[j])
+        print(s[:-2] + "]")
+
 
         fmts= ["o-", "s-", "X-", "d-", "p-", "<-", "^-", ">-"]
         mks = [10, 9, 8, 7, 6, 5, 4, 3, 2]
 
-        ax1 = plt.subplot(211)
-        plt.errorbar(depths, means, yerr=stds, fmt=fmts[i], markersize=8,linewidth=2, capsize=6, label=file)
-        #plt.xscale("log")
+        plt.errorbar(depths, thetas, xerr=sdepths, yerr=sthetas, fmt=fmts[i], markersize=8,linewidth=2, capsize=6, label=label)
+        plt.xscale("log")
         plt.yscale("log")
-        plt.hlines(means[0], 0, 1.1*args.depth0, "k", "dashed")
-        plt.subplot(212, sharex=ax1)
-        plt.errorbar(depths, means/means[0], yerr=stds, fmt=fmts[i], markersize=8,linewidth=2, capsize=6, label=file)
-        #plt.xscale("log")
-        plt.ylabel(r"$\theta/\theta_0$")
-        plt.hlines(1, 0, 1.1*args.depth0, "k", "dashed")
+        plt.hlines(thetas[0], 0, depths[0], "k", "dashed")
         plt.xlabel(r"Depth")
+        plt.ylabel(r"$\theta/\theta_0$")
 
-    plt.subplot(211)
     #plt.ylim(5e-4, 2e-3)
     #plt.xlim(min(depths)/1.1, max(depths)*1.1)
     plt.legend()

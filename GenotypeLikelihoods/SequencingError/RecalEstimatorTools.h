@@ -58,9 +58,9 @@ public:
 	TRecalDataTables() = default;
 	TRecalDataTables(const BAM::TReadGroupMap &ReadGroupMapObject)
 	    : _readGroupMap(&ReadGroupMapObject), _tables(_readGroupMap->numReadGroupsInUse()){};
-	TRecalDataTables(const BAM::TReadGroupMap &ReadGroupMapObject, const std::vector<TSite> & sites)
+	TRecalDataTables(const BAM::TReadGroupMap &ReadGroupMapObject, const std::vector<std::vector<TSite>> & sites)
 	    : _readGroupMap(&ReadGroupMapObject), _tables(_readGroupMap->numReadGroupsInUse()){
-		add(sites);
+		for (const auto& s: sites) add(s);
 	};
 
 	void initialize(const BAM::TReadGroupMap* ReadGroupMapObject);

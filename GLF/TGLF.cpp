@@ -106,7 +106,7 @@ void TGlfWriter::newChromosome(const genometools::TChromosome &chromosome) {
 };
 
 void TGlfWriter::writeSite(long pos, uint32_t depth, uint8_t RMS_mappingQual,
-			   GenotypeLikelihoods::TGenotypeLikelihoods &genotypeLikelihoods) {
+			   const GenotypeLikelihoods::TGenotypeLikelihoods &genotypeLikelihoods) {
 	using genometools::Genotype;
 	using coretools::Probability;
 	const uint8_t _recordType1 = 1 << 4;

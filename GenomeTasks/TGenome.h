@@ -80,7 +80,6 @@ class TGenome_parsed : public TGenome_basic {
 protected:
 	BAM::TAlignment _alignment;
 	GenotypeLikelihoods::TGenotypeLikelihoodCalculator _genotypeLikelihoodCalculator;
-	GenotypeLikelihoods::TGenotypeLikelihoods _genoLik;
 
 	// reference
 	genometools::TFastaReader _reference;

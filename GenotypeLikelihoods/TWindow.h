@@ -43,7 +43,7 @@ namespace GenotypeLikelihoods {
 // TWindow
 //---------------------------------------------------------------
 class TWindow : public genometools::TGenomeWindow {
-protected:
+private:
 	// alignment stacks and sites
 	std::vector<BAM::TAlignment> usedAlignments;
 	std::vector<TSite> _sites;
@@ -56,10 +56,11 @@ protected:
 	bool _depthCalculated;
 	double _depth, _fractionSitesNoData, _fractionDepthAtLeastTwo, _fractionRefIsN;
 	size_t _numSitesWithData;
-	void _calcDepth();
 
 	bool _passedFilters;
-	bool referenceBaseAdded;
+	bool _referenceBaseAdded;
+
+	void _calcDepth();
 
 	// fill sites and clean
 	size_t _findFirstPositionWithinWindow(const BAM::TAlignment &alignment);
@@ -168,14 +169,14 @@ public:
 	
 	template<typename SiteSubsetType>
 	void addReferenceBaseToSites(const SiteSubsetType &subset) {
-		if (!referenceBaseAdded && subset.hasPositionsInWindow(*this)) {
+		if (!_referenceBaseAdded && subset.hasPositionsInWindow(*this)) {
 			// now only run over sites listed in that window
 			const auto thesePositions = subset.getPositionInWindow(*this);
 			for (auto &it : thesePositions) {
 				size_t pos          = it - _from;
 				_sites[pos].refBase = it.ref();
 			}
-			referenceBaseAdded = true;
+			_referenceBaseAdded = true;
 		}
 	};
 	void addReferenceBaseToSites(const genometools::TFastaReader &reference);

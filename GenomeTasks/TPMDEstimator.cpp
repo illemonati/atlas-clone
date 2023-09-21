@@ -22,7 +22,6 @@
 #include "TReadGroups.h"
 
 namespace GenomeTasks{
-using coretools::instances::logfile;
 using coretools::instances::parameters;
 
 //----------------------------------------
@@ -30,22 +29,15 @@ using coretools::instances::parameters;
 //----------------------------------------
 TPMDEstimator::TPMDEstimator()
 	: TGenome_parsed(),
-	  _readGroupMap(_bamFile.readGroups(), parameters().getParameter<std::string>("poolReadGroups", false)),
-	  _pmd(&_genotypeLikelihoodCalculator.postMortemDamageModels()) {
-	// make sure there is pmd
-	if (_genotypeLikelihoodCalculator.postMortemDamageModels().hasPMD()) {
-		logfile().list("PMD model already exists, will reestimate it.");
-	}
-	if (!_genotypeLikelihoodCalculator.postMortemDamageModels().hasPMD()) {
-		_pmd->initialize(parameters().getParameterWithDefault("pmd", "doubleStrand:Empiric:Empiric"),
-						 _bamFile.readGroups());
-	}
+	  _readGroupMap(_bamFile.readGroups(), parameters().getParameter<std::string>("poolReadGroups", false)) {
+	_pmd.initialize(parameters().getParameterWithDefault("pmdModel", "doubleStrand:Empiric:Empiric"),
+					 _bamFile.readGroups());
 
-	//make sure it has a reference
+	// make sure it has a reference
 	_openReference(true);
 
-	//create PMD tables
-	_pmd->resize(_readGroupMap);
+	// create PMD tables
+	_pmd.resize(_readGroupMap);
 };
 
 void TPMDEstimator::_handleAlignment() {
@@ -53,15 +45,15 @@ void TPMDEstimator::_handleAlignment() {
 		if (_alignment.isAlignedAtInternalPos(d)) {
 			const auto data = _alignment[d];
 			const auto from = _alignment.referenceAtInternalPos(d);
-			_pmd->add(_readGroupMap, from, data);
+			_pmd.add(_readGroupMap, from, data);
 		}
 	}
 };
 
 void TPMDEstimator::run(){
 	_traverseBAMPassedQC();
-	_pmd->estimate(_readGroupMap);
-	_pmd->writeToFile(_bamFile.readGroups(), _readGroupMap, _outputName);
+	_pmd.estimate(_readGroupMap);
+	_pmd.writeToFile(_bamFile.readGroups(), _readGroupMap, _outputName);
 };
 
 }; // end namespace

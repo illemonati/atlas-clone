@@ -3,7 +3,7 @@
 
 namespace GenotypeLikelihoods::PMD {
 void TModels::initialize(size_t NReadGroups, std::string_view PMDString) {
-	if (PMDString.empty() || PMDString == "-" || PMDString == "defaul") {
+	if (PMDString.empty() || PMDString == "-" || PMDString == "default") {
 		for (size_t i = 0; i < NReadGroups; ++i) { _pModels.push_back(&_noPMD); }
 	} else {
 		_withPMD.reserve(NReadGroups);
@@ -15,7 +15,7 @@ void TModels::initialize(size_t NReadGroups, std::string_view PMDString) {
 }
 
 
-void TModels::initialize(BAM::RGInfo::TReadGroupInfo & RgInfo) {
+void TModels::initialize(const BAM::RGInfo::TReadGroupInfo & RgInfo) {
 	using BAM::RGInfo::InfoType;
 	std::vector<int> iis(RgInfo.size(), -1);
 	for (size_t rg = 0; rg < RgInfo.size(); ++rg) {

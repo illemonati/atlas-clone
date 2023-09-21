@@ -22,65 +22,16 @@
 
 namespace GenotypeLikelihoods{
 
-using coretools::instances::parameters;
-using coretools::instances::logfile;
-
-TGenotypeLikelihoodCalculator::TGenotypeLikelihoodCalculator(const BAM::TReadGroups* ReadGroups){
-	//initialize PMD
-	//--------------
-	if(parameters().parameterExists("pmd")){
-		std::vector<size_t> readGroupsWithoutDef = _pmdModels.initialize(parameters().getParameter<std::string>("pmd"), *ReadGroups);
-
-		//Warn if some read groups have no PMD definition
-		if(readGroupsWithoutDef.size() > 0){
-			logfile().warning("The following read groups do not have PMD definitions: ",
-					         coretools::str::concatenateString(ReadGroups->getNames(readGroupsWithoutDef), ", ")
-							 + "!");
-			if(!parameters().parameterExists("allowReadGroupsWithoutPMD")){
-				UERROR("PMD is only defined for a subset of read groups. Did you use the wrong PMD file? (use allowReadGroupsWithoutPMD to ignore)");
-			}
-		}
-	} else {
-		logfile().list("Assuming there is no PMD in the data. (use 'pmd' to add PMD definitions)");
-	}
-
-	//initialize sequencing errors
-	//----------------------------
-	if (parameters().parameterExists(BAM::RGInfo::TReadGroupInfo::RGInfoArgument)) {
-		BAM::RGInfo::TReadGroupInfo RGinfo(*ReadGroups, parameters().getParameter(BAM::RGInfo::TReadGroupInfo::RGInfoArgument));
-		_sequencingErrorModels.initialize(RGinfo);
-	} else if(parameters().parameterExists("recal")){
-		std::string recalString = parameters().getParameter<std::string>("recal");
-
-		//check if it is recal string
-
-		if (std::filesystem::exists(recalString)) {
-			UERROR("Initializing recal with recal-file is not supported anymore. Use Readgroup Info File in json-format instead!");
-		}
-		else {
-			//assume it is a model string
-			logfile().startIndent("Parsing common recal model for all read groups:");
-			logfile().list("Provided model (parameter 'recal'): " + recalString);
-
-			std::string rhoString = parameters().getParameterWithDefault<std::string>("rho", "default");
-			if(parameters().parameterExists("rho")){
-				logfile().list("Provided rho (parameter 'rho'): " + rhoString);
-			} else {
-				logfile().list("Will use default rho. (use 'rho' to change)");
-			}
-			_sequencingErrorModels.initialize(ReadGroups->size(), recalString, rhoString);
-		}
-	} else {
-		_sequencingErrorModels.initialize(ReadGroups->size());
-		logfile().list("Assuming that error rates in BAM files are correct. (use 'recal' to add recalibration)");
-	}
+TGenotypeLikelihoodCalculator::TGenotypeLikelihoodCalculator(const BAM::RGInfo::TReadGroupInfo& RGInfo) {
+		_pmd.initialize(RGInfo);
+		_recal.initialize(RGInfo);
 };
 
 coretools::Probability TGenotypeLikelihoodCalculator::errorWithPMD(const BAM::TSequencedBase &base) const {
 	if (base.base == genometools::Base::N) { return coretools::Probability::highest(); }
 	// calculate base likelihoods with PMD
 
-	return _pmdModels.P_dij(base, _sequencingErrorModels.P_dij(base))[base.base].complement();
+	return _pmd.P_dij(base, _recal.P_dij(base))[base.base].complement();
 };
 
 genometools::PhredIntProbability TGenotypeLikelihoodCalculator::phredIntWithPMD(const BAM::TSequencedBase & base) const{
@@ -103,9 +54,9 @@ void TGenotypeLikelihoodCalculator::recalibrateWithPMD(BAM::TAlignment& aln) con
 
 double TGenotypeLikelihoodCalculator::calculateLogPMDS(const BAM::TSequencedBase & base, const genometools::Base & ref, const coretools::Probability & pi) const{
 	//get base likelihoods
-	const TBaseLikelihoods baseLikelihoodsNoPMD = _sequencingErrorModels.P_dij(base);
+	const TBaseLikelihoods baseLikelihoodsNoPMD = _recal.P_dij(base);
 
-	const TBaseLikelihoods baseLikelihoods = _pmdModels.P_dij(base, baseLikelihoodsNoPMD);
+	const TBaseLikelihoods baseLikelihoods = _pmd.P_dij(base, baseLikelihoodsNoPMD);
 
 	//calculate PMDS: true base in read == ref with prob. (1-pi) and different with prob. pi/3
 	const TBaseLikelihoods tmpBaseData = fromError(ref, pi);
@@ -119,7 +70,7 @@ TGenotypeLikelihoods TGenotypeLikelihoodCalculator::calculateGenotypeLikelihoods
 		baseLikelihoods.reserve(site.depth());
 		// calculate base likelihoods P(d|b, D, epsilon) = \sum_{\bar{b}} P(\bar{b}|b, D)P(d|\bar{b}, \epsilon)
 		for (const auto &d : site) {
-			baseLikelihoods.push_back(_pmdModels.P_dij(d, _sequencingErrorModels.P_dij(d)));
+			baseLikelihoods.push_back(_pmd.P_dij(d, _recal.P_dij(d)));
 		}
 
 		// calculate genotype likelihoods

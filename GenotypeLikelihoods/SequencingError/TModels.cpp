@@ -84,7 +84,7 @@ void TModels::initialize(size_t NReadGroups, std::string_view RecalString, std::
 	}
 }
 
-void TModels::initialize(BAM::RGInfo::TReadGroupInfo &RgInfo) {
+void TModels::initialize(const BAM::RGInfo::TReadGroupInfo &RgInfo) {
 	using BAM::RGInfo::InfoType;
 	std::vector<coretools::TStrongArray<int, Mate>> iis(RgInfo.size(), {{-1, -1}});
 	for (size_t rg = 0; rg < RgInfo.size(); ++rg) {

@@ -33,7 +33,7 @@ namespace GenomeTasks {
 class TPMDEstimator : public TGenome_parsed {
 private:
 	BAM::TReadGroupMap _readGroupMap;
-	GenotypeLikelihoods::oldPMD::TModels* _pmd;
+	GenotypeLikelihoods::oldPMD::TModels _pmd;
 	void _handleAlignment();
 
 public:

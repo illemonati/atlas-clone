@@ -32,7 +32,7 @@ struct TFunctions {
 	virtual void reject() noexcept                                                              = 0;
 	virtual void propose(double lambda, const arma::mat &_JxF) noexcept                         = 0;
 	virtual void adjust() noexcept                                                              = 0;
-	virtual std::string definition() const noexcept                                             = 0;
+	virtual void log() const                                                                    = 0;
 	virtual BAM::RGInfo::TInfo info() const                                                     = 0;
 };
 TFunctions *makeFunctions(std::string_view Def);

@@ -26,6 +26,7 @@
 namespace GenotypeLikelihoods {
 using genometools::Base;
 using genometools::Genotype;
+	using coretools::instances::logfile;
 
 namespace impl {
 using coretools::TStrongArray;
@@ -64,6 +65,34 @@ double Q(double mu, double theta_r, double theta_g,
 		return Q;
 	} catch (...) { return std::numeric_limits<double>::lowest(); }
 }
+
+TStrongArray<TBaseProbabilities, genometools::Base>	piTable(double mu, double theta) {
+	using coretools::index;
+
+	const arma::mat::fixed<4,4> l = {{-2 - mu, 1, mu, 1}, {1, -2 - mu, 1, mu}, {mu, 1, -2 - mu, 1}, {1, mu, 1, -2 - mu}};
+	const arma::mat::fixed<4,4> P = arma::expmat(theta*l);
+	coretools::TStrongArray<TBaseProbabilities, genometools::Base> pi;
+
+	for (auto r = Base::min; r < Base::max; ++r) {
+		TBaseData pi_r;
+		for (auto b = Base::min; b < Base::max; ++b) {
+			pi_r[b] = coretools::Probability(P(index(r), index(b)));
+		}
+		pi[r] = TBaseProbabilities::normalize(pi_r);
+	}
+	return pi;
+}
+
+double Q(double mu, double theta, const coretools::TStrongArray<TBaseData, genometools::Base> &lkhSum) {
+	try {
+		const auto pi = impl::piTable(mu, theta);
+		double Q      = 0;
+		for (auto r = Base::min; r < Base::max; ++r) {
+			for (auto b = Base::min; b < Base::max; ++b) { Q += std::log(pi[r][b]) * lkhSum[r][b]; }
+		}
+		return Q;
+	} catch (...) { return std::numeric_limits<double>::lowest(); }
+}
 } // namespace impl
 
 TGenotypeLikelihoods THaploidDistribution::P_dij(const TBaseLikelihoods &baseLikelihoods) const {
@@ -98,12 +127,8 @@ void THaploidDistribution::estimate() {
 	_piSum.fill(0.);
 }
 
-std::string THaploidDistribution::definition() const noexcept {
-	using coretools::str::toString;
-	return std::string("AA: ").append(toString(_pi[Base::A]))
-		.append(", CC: ").append(toString(_pi[Base::C]))
-		.append(", GG: ").append(toString(_pi[Base::G]))
-		.append(", TT: ").append(toString(_pi[Base::T]));
+void THaploidDistribution::log() const {
+	logfile().list("AA: ", _pi[Base::A], ", CC: ", _pi[Base::C], ", GG: ", _pi[Base::G], ", TT: ", _pi[Base::T]);
 }
 
 TGenotypeLikelihoods TDiploidDistribution::P_dij(const TBaseLikelihoods &baseLikelihoods) const {
@@ -152,14 +177,14 @@ void TDiploidDistribution::estimate() {
 	_piSum.fill(0.);
 }
 
-std::string TDiploidDistribution::definition() const noexcept {
+void TDiploidDistribution::log() const {
 	using coretools::str::toString;
 	std::string ret;
 	for (auto g = Genotype::min; g < Genotype::max; ++g) {
 		ret.append(toString(g)).append(": ").append(toString(_pi[g])).append(", ");
 	}
 	ret.resize(ret.size() - 2);
-	return ret;
+	logfile().list(ret);
 }
 
 TGenotypeLikelihoods THKY85::P_dij(const TBaseLikelihoods &baseLikelihoods) const {
@@ -213,8 +238,61 @@ void THKY85::estimate() {
 	_likelihoodSum.fill({});
 }
 
-std::string THKY85::definition() const noexcept {
-	return coretools::str::toString(name, ": mu=", _mu, ", theta_r=", _theta_r, ", theta_g=", _theta_g);
+void THKY85::log() const {
+	logfile().list(name, ": mu=", _mu, ", theta_r=", _theta_r, ", theta_g=", _theta_g);
+}
+
+TGenotypeLikelihoods THKY85_mono::P_dij(const TBaseLikelihoods &baseLikelihoods) const {
+	return TGenotypeLikelihoods({baseLikelihoods[Base::A], 0., 0., 0.,
+			                     baseLikelihoods[Base::C], 0., 0.,
+								 baseLikelihoods[Base::G], 0.,
+								 baseLikelihoods[Base::T]});
+}
+
+coretools::Probability THKY85_mono::getGenotypeLikelihood(const TBaseLikelihoods &baseLikelihoods,
+																   Genotype genotype) const {
+	// if first == second, then 0.5*first + 0.5*first = first
+	return 0.5 * (baseLikelihoods[genometools::first(genotype)] + baseLikelihoods[genometools::second(genotype)]);
+}
+
+double THKY85_mono::normalize_add(TGenotypeLikelihoods &likelihoods, genometools::Base ref) {
+	double sum = 0;
+	// all 10
+	for(auto b = Base::min; b < Base::max; ++b) {
+		const auto g    = genometools::genotype(b, b);
+		likelihoods[g] *= _pi[ref][b];
+		sum            += likelihoods[g];
+	}
+	for(auto b = Base::min; b < Base::max; ++b) {
+		const auto g = genometools::genotype(b, b);
+		_likelihoodSum[ref][b] += likelihoods[g].scale(sum);
+	}
+	return sum;
+}
+
+
+THKY85_mono::THKY85_mono()
+	: _pi(impl::piTable(_mu, _theta)),
+	  _nelderMead([this](auto Vals) { return -impl::Q(std::exp(Vals[0]), std::exp(Vals[1]), _likelihoodSum); }) {
+}
+
+void THKY85_mono::estimate() {
+	// If likelihoodSum is totally off, it is not worth it
+	constexpr size_t AA_CC = 100;
+	const bool isWorthIt = _likelihoodSum[Base::A][Base::A] > AA_CC*_likelihoodSum[Base::A][Base::C];
+
+	if (isWorthIt && _nelderMead.minimize({std::log(_mu), std::log(_theta)},
+							 10.)) {
+		const auto &crds = _nelderMead.coordinates();
+		_mu              = std::exp(crds[0]);
+		_theta           = std::exp(crds[1]);
+		_pi              = impl::piTable(_mu, _theta);
+	}
+	_likelihoodSum.fill({});
+}
+
+void THKY85_mono::log() const {
+	logfile().list(name, ": mu=", _mu, ", theta=", _theta);
 }
 
 }; // namespace GenotypeLikelihoods

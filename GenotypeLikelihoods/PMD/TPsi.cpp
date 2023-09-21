@@ -1,11 +1,13 @@
 #include "TPsi.h"
 #include "coretools/Containers/TStrongArray.h"
+#include "coretools/Main/TLog.h"
 #include "coretools/Strings/fromString.h"
 #include "coretools/Strings/splitters.h"
 #include "coretools/Strings/stringFunctions.h"
 #include "coretools/Types/probability.h"
-#include "coretools/devtools.h"
 #include "genometools/GenotypeTypes.h"
+#include <cmath>
+#include <limits>
 
 namespace GenotypeLikelihoods::PMD {
 using coretools::Probability;
@@ -90,7 +92,7 @@ TPsi::TPsi(const BAM::RGInfo::TInfo &info) {
 			for (auto t = Type::min; t < Type::max; ++t) {
 				auto &v        = _tables[e][t];
 				const auto key = impl::toString(t) + impl::toString(e);
-				if (info[key].empty()) {
+				if (!info.contains(key) || info[key].empty()) {
 					v = {0.};
 				} else {
 					if (info[key].is_string()) {
@@ -100,7 +102,9 @@ TPsi::TPsi(const BAM::RGInfo::TInfo &info) {
 						else
 							v = impl::empiric(sFunction);
 					} else if (info[key].is_array()) {
-						for (auto d : info[key]) { v.emplace_back(d); }
+						for (auto [k, d] : info[key].items()) {
+							v.emplace_back(d);
+						}
 					} else {
 						UERROR("Cannot parse json-token ", info, "!");
 					}
@@ -126,27 +130,22 @@ BAM::RGInfo::TInfo TPsi::info() const {
 
 void TPsi::estimate() noexcept {
 	for (auto e = End::min; e < End::max; ++e) {
-		coretools::TStrongArray<double, Type> sums{};
-		for (auto t = Type::min; t < Type::max; ++t) {
-			auto &table = _tables[e][t];
-			auto &tSum  = _tableSums[e][t];
+		const auto t = _tableSums[e][Type::CT].empty() ? Type::GA : Type::CT;
+		auto &table  = _tables[e][t];
+		auto &tSum   = _tableSums[e][t];
 
-			table.clear();
-			for (auto& ts: tSum) {
-				table.push_back(ts.numDenom.num/ts.numDenom.denom);
-				sums[t] += ts.numDenom.num;
-				ts.numDenom.num = 0.;
-				ts.numDenom.denom = 0.;
-			}
+		table.clear();
+		for (auto &ts : tSum) {
+			table.push_back(ts.numDenom.num / ts.numDenom.denom);
+			ts.numDenom.num   = 0.;
+			ts.numDenom.denom = std::numeric_limits<double>::min(); // preventing any division by 0
 		}
-		if (sums[Type::CT] >= sums[Type::GA]) _tables[e][Type::GA] = {0.};
-		else _tables[e][Type::CT] = {0.};
 	}
 }
 
 void TPsi::estimateInit() noexcept {
 	for (auto e = End::min; e < End::max; ++e) {
-		coretools::TStrongArray<double, Type> sums{};
+		coretools::TStrongArray<size_t, Type> sums{};
 		for (auto t = Type::min; t < Type::max; ++t) {
 			auto &table = _tables[e][t];
 			auto &tSum  = _tableSums[e][t];
@@ -155,33 +154,45 @@ void TPsi::estimateInit() noexcept {
 			for (auto& ts: tSum) {
 				const auto fromTo = double(ts.fromTo.fromTo) / ts.fromTo.fromSum;
 				const auto toFrom = double(ts.fromTo.toFrom) / ts.fromTo.toSum;
-				table.push_back(std::max(0.0, (fromTo - toFrom) / (1.0 - toFrom)));
-				sums[t] += table.back();
+				table.push_back(std::max(1e-4, (fromTo - toFrom) / (1.0 - toFrom))); // once 0, always 0, so add a litle bit
+				sums[t] += std::max(0, ts.fromTo.fromTo - ts.fromTo.toFrom);
 				ts.numDenom.num   = 0.;
-				ts.numDenom.denom = 0.;
+				ts.numDenom.denom = std::numeric_limits<double>::min(); // preventing any division by 0
 			}
 		}
-		if (sums[Type::CT] >= sums[Type::GA]) _tables[e][Type::GA] = {0.};
-		else _tables[e][Type::CT] = {0.};
+		// Either CT or GA
+		const auto worseType = sums[Type::CT] >= sums[Type::GA] ? Type::GA : Type::CT;
+		_tableSums[e][worseType].clear();
+		_tables[e][worseType] = {0.};
 	}
 }
 
-std::string TPsi::definition() const noexcept {
-	std::string ret;
+void TPsi::log() const noexcept {
+	using coretools::instances::logfile;
+	constexpr size_t Nmax = 3;
+
+	bool hasAny = false;
 	for (auto e = End::min; e < End::max; ++e) {
 		for (auto t = Type::min; t < Type::max; ++t) {
 			const auto &v = _tables[e][t];
 			if (v.size() > 1 || v.front() > 0.) {
-				const auto key = impl::toString(t) + impl::toString(e);
-				ret.append(key).append(":[");
-				for (auto p : v) ret.append(toString(p)).append(1, ',');
+				hasAny = true;
+				auto ret = impl::toString(t) + impl::toString(e) + ": [";
+				if (v.size() <= Nmax*2) {
+					for (auto p : v) ret.append(toString(p, ", "));
+				} else {
+					for (size_t i = 0; i < Nmax; ++i) ret.append(toString(v[i] , ", "));
+					ret.append("..., ");
+					const auto iStart = v.size() - 1 - Nmax;
+					for (size_t i = 0; i < Nmax; ++i) ret.append(toString(v[iStart + i], ", "));
+				}
+				ret.pop_back();
 				ret.back() = ']';
-				ret.append(1, ';');
+				logfile().list(ret);
 			}
 		}
 	}
-	ret.resize(ret.size() - 1);
-	return ret;
+	if (!hasAny) logfile().list("[]");
 }
 
 } // namespace GenotypeLikelihoods::PMD

@@ -3,6 +3,7 @@
 #include "TFunction.h"
 #include "TReadGroupInfo.h"
 #include "coretools/Main/TError.h"
+#include "coretools/Main/TLog.h"
 #include "coretools/enum.h"
 #include <memory>
 #include <type_traits>
@@ -342,13 +343,11 @@ public:
 		}
 	}
 
-	std::string definition() const noexcept override {
-		std::string ret = _intercept.modelString();
+	void log() const override {
+		_intercept.log();
 		for (const auto& cov: _covariates) {
-			const auto ms = cov->modelString();
-			if (!ms.empty()) ret.append(1, ';').append(ms);
+			cov->log();
 		}
-		return ret;
 	}
 	BAM::RGInfo::TInfo info() const override {
 		BAM::RGInfo::TInfo in;

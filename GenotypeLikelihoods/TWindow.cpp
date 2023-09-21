@@ -26,7 +26,6 @@
 
 namespace GenotypeLikelihoods{
 
-using coretools::str::toString;
 using coretools::Probability;
 using coretools::instances::logfile;
 using coretools::instances::randomGenerator;
@@ -41,7 +40,7 @@ TWindow::TWindow(){
 	_fractionDepthAtLeastTwo = 0.0;
 	_numSitesWithData = 0;
 	_numReadsInWindow = 0;
-	referenceBaseAdded = false;
+	_referenceBaseAdded = false;
 	_passedFilters = false;
 	_depthCalculated = false;
 };
@@ -179,7 +178,7 @@ void TWindow::clear(){
 	_numSitesWithData = 0;
 	_numReadsInWindow = 0;
 	_fractionRefIsN = -1.0;
-	referenceBaseAdded = false;
+	_referenceBaseAdded = false;
 	_passedFilters = false;
 };
 
@@ -264,10 +263,11 @@ double TWindow::fractionRefIsN(){
 void TWindow::dataSummary(){
 	_calcDepth();
 	using coretools::instances::logfile;
-	logfile().conclude("Read data from " + toString(_numReadsInWindow) + " reads.");
-	logfile().conclude("Sequencing depth is " + toString(_depth) + ".");
-	logfile().conclude(toString(_fractionDepthAtLeastTwo * 100) + "% of all sites are covered at least twice.");
-	logfile().conclude(toString(_fractionSitesNoData * 100) + "% of all sites have no data.");
+	logfile().conclude("Read data from ",  _numReadsInWindow, " reads.");
+	logfile().conclude("Sequencing depth is ", _depth, ".");
+	logfile().conclude(_fractionDepthAtLeastTwo * 100, "% of all sites are covered at least twice.");
+	logfile().conclude(_fractionSitesNoData * 100, "% of all sites have no data.");
+	if (_referenceBaseAdded) logfile().conclude(_fractionRefIsN * 100, "% of all sites have Ref = N.");
 };
 
 //--------------------------------------------
@@ -278,12 +278,12 @@ bool TWindow::filter(const double maxFracMissing, const double maxRefN){
 
 	//filter window
 	if(_fractionSitesNoData > maxFracMissing){
-		logfile().conclude("Level of missing data > threshold of " + toString(maxFracMissing) + " -> skipping this window.");
+		logfile().conclude("Level of missing data > threshold of ", maxFracMissing, " -> skipping this window.");
 		_passedFilters = false;
-	} else if(maxRefN < 1.0 && referenceBaseAdded == true){
-		logfile().conclude(toString(_fractionRefIsN * 100) + "% of all reference bases are 'N'.");
+	} else if(maxRefN < 1.0 && _referenceBaseAdded){
+		logfile().conclude(_fractionRefIsN * 100, "% of all reference bases are 'N'.");
 		if(_fractionRefIsN > maxRefN){
-			logfile().conclude("Fraction of 'N' in reference > threshold of " + toString(maxRefN) + " -> skipping this window.");
+			logfile().conclude("Fraction of 'N' in reference > threshold of ", maxRefN, " -> skipping this window.");
 			_passedFilters = false;
 		}
 	} else {
@@ -294,12 +294,12 @@ bool TWindow::filter(const double maxFracMissing, const double maxRefN){
 };
 
 void TWindow::addReferenceBaseToSites(const genometools::TFastaReader & reference) {
-	if(!referenceBaseAdded && reference.isOpen()){
+	if(!_referenceBaseAdded && reference.isOpen()){
 		const auto view = reference.view(*this);
 		for(size_t i=0; i<size(); ++i){
 			_sites[i].refBase = view[i];
 		}
-		referenceBaseAdded = true;
+		_referenceBaseAdded = true;
 	}
 };
 

@@ -46,7 +46,7 @@ public:
 	TModel &operator[](size_t ReadGroupIndex) noexcept { return *_models[ReadGroupIndex]; }
 
 	std::vector<size_t> initialize(const std::string &pmdString, const BAM::TReadGroups &ReadGroups);
-	void initialize(BAM::RGInfo::TReadGroupInfo & RgInfo);
+	void initialize(const BAM::RGInfo::TReadGroupInfo & RgInfo);
 	void writeToFile(const BAM::TReadGroups &ReadGroups, const BAM::TReadGroupMap &ReadGroupMap,
 	                 std::string_view outputName) const;
 	TBaseLikelihoods P_dij(const BAM::TSequencedBase &data,

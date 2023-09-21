@@ -84,7 +84,7 @@ void TGenome_filtered::_traverseBAMPassedQC() {
 // TGenome_parsed
 // A base class with BAM filters and recalibration
 //---------------------------------------------------------------
-TGenome_parsed::TGenome_parsed() : _genotypeLikelihoodCalculator(&_bamFile.readGroupsMutable()) {
+TGenome_parsed::TGenome_parsed() : _genotypeLikelihoodCalculator(_rgInfo) {
 	// set parsing filters
 	_setReadTrimming();
 	_bamFile.setFilters();

@@ -233,8 +233,8 @@ void TPileup::_handleWindow(){
 				_out << strandCounts[0] << strandCounts[1];
 			}
 			if(_printSettings.get<Likelihoods>()){
-				_genoLik = _genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(site);
-				impl::write(_genoLik, _out);
+				const auto genoLik = _genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(site);
+				impl::write(genoLik, _out);
 			}
 		_out.endln();
 		}

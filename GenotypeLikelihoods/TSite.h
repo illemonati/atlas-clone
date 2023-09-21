@@ -31,8 +31,8 @@ private:
 	std::vector<BAM::TSequencedBase> _bases;
 public:
 	GenotypeLikelihoods::TGenotypeLikelihoods genotypeLikelihoods;
-	genometools::Base refBase = genometools::Base::N;
-	genometools::Genotype genotype  = genometools::Genotype::NN;
+	genometools::Base refBase      = genometools::Base::N;
+	genometools::Genotype genotype = genometools::Genotype::NN;
 
 	void clear() noexcept;
 

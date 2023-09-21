@@ -68,8 +68,8 @@ void TPSMCInput::_handleWindow(){
 		for(size_t i=0; i<_blockSize; ++i){
 			const auto wIndex = blockStart + i;
 			if(wIndex < _window.size() && !_window[wIndex].empty()){
-				_genoLik = _genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(_window[blockStart + 1]);
-				const auto posterior = GenotypeLikelihoods::posterior(_genoLik, prior);
+				const auto genoLik = _genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(_window[blockStart + 1]);
+				const auto posterior = GenotypeLikelihoods::posterior(genoLik, prior);
 				logPHomo += coretools::LogProbability(GenotypeLikelihoods::homozygous(posterior));
 			}
 		}

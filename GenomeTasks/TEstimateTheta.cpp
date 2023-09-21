@@ -46,8 +46,8 @@ void TEstimateThetaLLSurface::_handleWindow() {
 
 	// adding sites to estimator
 	for (auto &s : _window) {
-		_genoLik = _genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(s);
-		_thetaEstimator.add(s, _genoLik);
+		const auto genoLik = _genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(s);
+		_thetaEstimator.add(s, genoLik);
 	}
 
 	// open file
@@ -76,8 +76,8 @@ void TEstimateTheta::_addSites(GenotypeLikelihoods::TWindow &window,
 									GenotypeLikelihoods::TThetaEstimator &thetaEstimator) {
 	logfile().listFlushTime("Calculating genotype likelihoods ...");
 	for (auto &s : window) {
-		_genoLik = _genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(s);
-		thetaEstimator.add(s, _genoLik);
+		const auto genoLik = _genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(s);
+		thetaEstimator.add(s, genoLik);
 	}
 	logfile().doneTime();
 };

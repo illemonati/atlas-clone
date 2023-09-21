@@ -33,7 +33,7 @@ public:
 	virtual double normalize_add(TGenotypeLikelihoods &likelihoods, genometools::Base ref)             = 0;
 	virtual void estimate()                                                                            = 0;
 	virtual std::string_view typeString() const noexcept                                               = 0;
-	virtual std::string definition() const noexcept                                                    = 0;
+	virtual void log() const                                                                           = 0;
 	virtual bool isInvariant() const noexcept                                                          = 0;
 };
 
@@ -49,7 +49,7 @@ public:
 	double normalize_add(TGenotypeLikelihoods &likelihoods, genometools::Base) override;
 	void estimate() override;
 	std::string_view typeString() const noexcept override { return name; }
-	std::string definition() const noexcept override;
+	void log() const override;
 	bool isInvariant() const noexcept override {return true;}
 };
 
@@ -68,7 +68,7 @@ public:
 	double normalize_add(TGenotypeLikelihoods &likelihoods, genometools::Base) override;
 	void estimate() override;
 	std::string_view typeString() const noexcept override { return name; }
-	std::string definition() const noexcept override;
+	void log() const override;
 	bool isInvariant() const noexcept override {return false;}
 };
 
@@ -91,8 +91,30 @@ public:
 	double normalize_add(TGenotypeLikelihoods &likelihoods, genometools::Base) override;
 	void estimate() override;
 	std::string_view typeString() const noexcept override { return name; }
-	std::string definition() const noexcept override;
+	void log() const override;
 	bool isInvariant() const noexcept override {return false;}
+};
+
+class THKY85_mono final : public TGenotypeDistribution {
+	double _mu    = 1;
+	double _theta = 0.0001;
+
+	coretools::TStrongArray<TBaseProbabilities, genometools::Base> _pi;
+	coretools::TStrongArray<TBaseData, genometools::Base> _likelihoodSum{};
+	stattools::TNelderMead<2> _nelderMead;
+
+public:
+	static constexpr std::string_view name = "HKY85_mono";
+	THKY85_mono();
+
+	TGenotypeLikelihoods P_dij(const TBaseLikelihoods &baseLikelihoods) const override;
+	coretools::Probability getGenotypeLikelihood(const TBaseLikelihoods &baseLikelihoods,
+												 genometools::Genotype genotype) const override;
+	double normalize_add(TGenotypeLikelihoods &likelihoods, genometools::Base) override;
+	void estimate() override;
+	std::string_view typeString() const noexcept override { return name; }
+	void log() const override;
+	bool isInvariant() const noexcept override {return true;}
 };
 
 }; // namespace GenotypeLikelihoods

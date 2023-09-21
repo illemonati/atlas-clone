@@ -146,7 +146,7 @@ std::vector<size_t> TModels::initialize(const std::string &pmdString, const BAM:
 	return readGroupsWithoutPMD;
 }
 
-void TModels::initialize(BAM::RGInfo::TReadGroupInfo &RgInfo) {
+void TModels::initialize(const BAM::RGInfo::TReadGroupInfo &RgInfo) {
 	using BAM::RGInfo::InfoType;
 	_models.resize(RgInfo.size());
 

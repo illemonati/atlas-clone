@@ -37,7 +37,7 @@ private:
 
 public:
 	void initialize(size_t NReadGroups, std::string_view RecalString = "", std::string_view RhoString = "");
-	void initialize(BAM::RGInfo::TReadGroupInfo & RgInfo);
+	void initialize(const BAM::RGInfo::TReadGroupInfo & RgInfo);
 
 	void pool(const BAM::TReadGroupMap& rgMap);
 	void reset(size_t rgID, BAM::Mate mate) noexcept { _pModels[rgID][mate] = &_noRecal; }

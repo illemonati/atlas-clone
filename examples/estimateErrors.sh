@@ -7,9 +7,7 @@ recal="intercept[0.0];quality:polynomial[0.9,0.01]"
 pmd="CT5:0.2*exp(-0.3*p)+0.01;GA3:0.5*exp(-0.2*p)+0.01"
 
 # Simulate polynomial model
-. $(dirname $0)/simulate --recal $recal --pmd $pmd #--chrLength 1000000 --depth 2 --ploidy 1
-
-$atlas --task PMD --bam ATLAS_simulations.bam --fasta ATLAS_simulations.fasta --fixedSeed 0 --out pmd --logFile pmd.out
+. $(dirname $0)/simulate --recal $recal --pmd $pmd --chrLength 100000 --depth 2 --ploidy 1 --numReadGroups 1
 
 # estimate recal model using default
 $atlas --task estimateErrors --bam ATLAS_simulations.bam --fasta ATLAS_simulations.fasta --minDeltaLL 1 --fixedSeed 0 --out default --logFile default.out

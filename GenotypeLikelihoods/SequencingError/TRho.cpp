@@ -50,12 +50,13 @@ TRho::TRho(const BAM::RGInfo::TInfo &info) {
 	}
 }
 
-std::string TRho::definition() const noexcept {
+void TRho::log() const {
 	using coretools::str::toString;
-	return "[[-,"s + toString(_rho[Base::A][Base::C]) + ',' + toString(_rho[Base::A][Base::G]) + ',' + toString(_rho[Base::A][Base::T]) + "];["
-		+ toString(_rho[Base::C][Base::A]) + ",-," + toString(_rho[Base::C][Base::G]) + ',' + toString(_rho[Base::C][Base::T]) + "];["
-		+ toString(_rho[Base::G][Base::A]) + ',' + toString(_rho[Base::G][Base::C]) + ",-," + toString(_rho[Base::G][Base::T]) + "];["
-		+ toString(_rho[Base::T][Base::A]) + ',' + toString(_rho[Base::T][Base::C]) + ',' + toString(_rho[Base::T][Base::G]) + ",-]]";
+	using coretools::instances::logfile;
+	logfile().list("[[   -    , ", _rho[Base::A][Base::C], ", ", _rho[Base::A][Base::G], ", ", _rho[Base::A][Base::T], "]");
+	logfile().list(" [", _rho[Base::C][Base::A], ",    -    , ", _rho[Base::C][Base::G], ", ", _rho[Base::C][Base::T], "]");
+	logfile().list(" [", _rho[Base::G][Base::A], ", ", _rho[Base::G][Base::C], ",    -    , ", _rho[Base::G][Base::T], "]");
+	logfile().list(" [", _rho[Base::T][Base::A], ", ", _rho[Base::T][Base::C], ", ", _rho[Base::T][Base::G], ",    -    ]]");
 }
 
 BAM::RGInfo::TInfo TRho::info() const {

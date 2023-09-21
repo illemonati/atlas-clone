@@ -21,6 +21,7 @@
 #include <vector>
 
 #include "TReadGroupInfo.h"
+#include "coretools/Main/TLog.h"
 #include "genometools/PhredProbabilityTypes.h"
 #include "coretools/Math/TProbabilityDistributions.h"
 #include "SequencingError/TCovariate.h"
@@ -32,8 +33,7 @@
 
 #include <armadillo>
 
-namespace GenotypeLikelihoods {
-namespace SequencingError {
+namespace GenotypeLikelihoods::SequencingError {
 
 //--------------------------------------------------------------
 // TCovariateFunction
@@ -67,14 +67,7 @@ public:
 	virtual double adjustParametersPostEstimation() noexcept                = 0;
 	virtual std::string typeString() const noexcept                         = 0;
 	virtual void addInfo(BAM::RGInfo::TInfo &info) const                    = 0;
-	virtual std::string modelString() const {
-		return typeString()
-			.append(1, '[')
-			.append(
-				std::accumulate(begin() + 1, end(), coretools::str::toString(*begin()),
-								[](auto tot, auto b) { return tot.append(1, ',').append(coretools::str::toString(b)); }))
-			.append(1, ']');
-	}
+	virtual void log() const; 
 };
 
 class TNoFunction final : public TFunction{
@@ -98,7 +91,7 @@ public:
 						  std::vector<T2ndDerivative> &) const noexcept override {return 0.;}
 	double adjustParametersPostEstimation() noexcept override {return 0.;}
 	std::string typeString() const noexcept override {return "";}
-	std::string modelString() const noexcept override {return "";}
+	void log() const noexcept  override {}; 
 	void addInfo(BAM::RGInfo::TInfo &) const override {};
 };
 
@@ -132,11 +125,8 @@ public:
 		 info[name] = _beta;
 	}
 
-	std::string modelString() const {
-		return typeString()
-			.append(1, '[')
-			.append(coretools::str::toString(_beta))
-			.append(1, ']');
+	void log() const {
+		coretools::instances::logfile().list(typeString(), ": ", _beta);
 	}
 };
 
@@ -325,11 +315,23 @@ public:
 
 	std::string typeString() const noexcept override {
 		using coretools::str::toString;
-		return std::string(Covariate::name).append(1, ':').append(name).append(1, '0' + O);
+		return toString(Covariate::name, ":", name, O);
 	}
 
 	void addInfo(BAM::RGInfo::TInfo& info) const override {
 		info[Covariate::name] = {{name, _betas}};
+	}
+
+	void log() const override {
+		using coretools::instances::logfile;
+		using coretools::str::toString;
+		const auto var = TCovariate_quality::name.substr(0, 1);
+		auto out = toString(_betas[0], "*", var);
+		for (size_t i = 1; i < _betas.size(); ++i) {
+			if (_betas[i] < 0) out += toString(" - ", -_betas[i], "*", var, "^", i+1);
+			else out += toString(" + ", _betas[i], "*", var, "^", i+1);
+		}
+		logfile().list(typeString(), ": ", out);
 	}
 };
 
@@ -494,25 +496,38 @@ public:
 		info[Covariate::name] = {{name, ar}};
 	}
 
-	std::string modelString() const override {
-		std::string ret = typeString().append(1, '[');
-		bool hasData    = false;
+	void log() const override {
+		using coretools::str::toString;
+		using coretools::instances::logfile;
+		constexpr size_t Nmax = 3;
+
+		std::vector<size_t> iis;
+		iis.reserve(_betas.size());
 		for (size_t i = 0; i < _betas.size(); ++i) {
-			if (!std::isnan(_betas[i])) {
-				hasData = true;
-				ret.append(coretools::str::toString(i))
-					.append(1, ':')
-					.append(coretools::str::toString(_betas[i]))
-					.append(1, ',');
-			}
+			if (!std::isnan(_betas[i])) iis.push_back(i);
 		}
-		if (hasData) ret.back() = ']'; // replace last ',' with ']'
-		else ret.append(1, ']');
-		return ret;
+		if (iis.empty()) {
+			logfile().list(typeString(), ": []");
+			return;
+		}
+
+		std::string ret = "[";
+		if (iis.size() <= 2 * Nmax) {
+			for (auto i : iis) ret.append(toString(i, ": ", _betas[i], ", "));
+		} else {
+			for (size_t j = 0; j < Nmax; ++j)
+				ret.append(toString(iis[j], ": ", _betas[iis[j]], ", "));
+			ret.append("..., ");
+			const auto jStart = iis.size() - 1 - Nmax;
+			for (size_t j = 0; j < Nmax; ++j)
+				ret.append(toString(iis[jStart + j], ": ", _betas[iis[jStart + j]], ", "));
+		}
+		ret.pop_back();
+		ret.back() = ']';
+		logfile().list(typeString(), ": ", ret);
 	}
 };
 
-} // namespace SequencingError
-} // namespace GenotypeLikelihoods
+} // namespace GenotypeLikelihoods::SequencingError
 
 #endif /* GENOTYPELIKELIHOODS_TSEQUENCINGERRORCOVARIATEFUNCTION_H_ */

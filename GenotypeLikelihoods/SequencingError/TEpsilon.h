@@ -68,6 +68,7 @@ class TEpsilon {
 		const double eps_c  = 1. - eps;
 		const double leps   = std::log(eps);
 		const double leps_c = std::log(eps_c);
+
 		for (auto g : _makeGenotype<isInvariant>()) {
 			const double P_bbar_I_gd = P_bbar_I_gds[g];
 			const double P_g_I_d     = P_g_I_ds[g];
@@ -78,6 +79,7 @@ class TEpsilon {
 	template<bool isInvariant>
 	void _addToQJF(const BAM::TSequencedBase &base, const TGenotypeLikelihoods &P_g_I_ds,
 				   const TGenotypeLikelihoods &P_bbar_I_gds) {
+		if (_converged) return;
 		static std::vector<T1stDerivative> der1st;
 		static std::vector<T2ndDerivative> der2nd;
 		der1st.clear();
@@ -136,7 +138,7 @@ public:
 	bool acceptOrReject();
 	void adjust();
 
-	std::string definition() const noexcept;
+	void log() const;
 	BAM::RGInfo::TInfo info() const;
 };
 } // namespace SequencingError

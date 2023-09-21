@@ -97,8 +97,8 @@ void TEpsilon::adjust() {
 	_functions->adjust();
 }
 
-std::string TEpsilon::definition() const noexcept {
-	return _functions->definition();
+void TEpsilon::log() const {
+	_functions->log();
 }
 
 BAM::RGInfo::TInfo TEpsilon::info() const{

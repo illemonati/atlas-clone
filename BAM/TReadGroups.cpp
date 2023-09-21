@@ -328,13 +328,15 @@ std::string TReadGroups::compileSamHeader() const{
 //---------------------------------------------------------------
 //TReadGroupMap
 //---------------------------------------------------------------
-const size_t TReadGroupMap::ReadGroupMapNotInitializedIndex = -1; //largest possible values
-
-TReadGroupMap::TReadGroupMap(const TReadGroups & ReadGroups, std::string_view filename){
-	if(filename.empty()){
-		_fillWithoutPooling(ReadGroups);
+TReadGroupMap::TReadGroupMap(const TReadGroups & ReadGroups, std::string_view Type) {
+	if(Type.empty()){
+		_noPooling(ReadGroups);
+	} else if (std::filesystem::exists(Type)) {
+		_fromFile(ReadGroups, Type);
+	} else if (Type == "all"){
+		_poolAll(ReadGroups);
 	} else {
-		_fillFromFile(ReadGroups, filename);
+		UERROR("Cannot understand readgroup map argument: '", Type, "'!");
 	}
 };
 
@@ -349,14 +351,26 @@ void TReadGroupMap::_markAsInUse(size_t index){
 	_readGroupsInUse.push_back(index);
 };
 
-void TReadGroupMap::_fillWithoutPooling(const TReadGroups & ReadGroups){
+void TReadGroupMap::_noPooling(const TReadGroups & ReadGroups){
+	logfile().list("Not pooling any readgroups");
 	_resize(ReadGroups)	;
 	for(size_t r = 0; r < ReadGroups.size(); ++r){
 		_markAsInUse(r);
 	}
 };
 
-void TReadGroupMap::_fillFromFile(const TReadGroups & ReadGroups, std::string_view filename){
+void TReadGroupMap::_poolAll(const TReadGroups & ReadGroups){
+	const auto pool = 0;
+	logfile().list("Pool all readgroups with ", ReadGroups.getName(pool), ".");
+	_resize(ReadGroups)	;
+	_markAsInUse(pool);
+	for(size_t rg = 1; rg < ReadGroups.size(); ++rg){
+		_readGroupMap[rg] = pool;
+		_reverseReadGroupMap[pool].push_back(rg);
+	}
+}
+
+void TReadGroupMap::_fromFile(const TReadGroups & ReadGroups, std::string_view filename){
 	//set all values to no-initialized
 	_resize(ReadGroups);
 

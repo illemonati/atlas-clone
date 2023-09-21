@@ -1,0 +1,37 @@
+#! /bin/bash
+
+. $(dirname $0)/find_atlas
+
+# see python ../tools/plotRecal.py "0.9*T(x) + 0.01*T(x)**2"
+recal="intercept[0.0];quality:polynomial[0.9,0.01]"
+pmd="CT5:0.2*exp(-0.3*p)+0.01;GA3:0.3*exp(-0.2*p)+0.01"
+
+. $(dirname $0)/simulate --recal $recal --pmd $pmd --chrLength 5000000,1000000 --ploidy 2,1 --depth 10 --numReadGroups 3
+
+echo "readGroup	poolWith" > pool
+echo "SimReadGroup2	SimReadGroup1" >> pool
+
+echo "chr1 0 50000000" > bed1
+echo "chr2 0 10000000" > bed2
+
+bam=ATLAS_simulations.bam
+
+out="thetaNo"
+$atlas --task theta --prob 1,0.5,0.2,0.1,0.05,0.02,0.01 --chr chr1 \
+	   --bam $bam \
+	   --fixedSeed 0 --out $out --logFile $out.out > /dev/null &
+
+out="thetaReal"
+$atlas --task theta --prob 1,0.5,0.2,0.1,0.05,0.02,0.01 --chr chr1 \
+	--bam $bam --recal $recal --pmd $pmd \
+	--fixedSeed 0 --out $out --logFile $out.out > /dev/null &
+
+out="estimateErrors"
+$atlas --task estimateErrors --minDeltaLL 1e-2 --bed bed1,bed2 --ploidy 2,1 \
+	   --bam $bam --fasta ATLAS_simulations.fasta --pool "all" \
+	   --fixedSeed 0 --out $out --logFile $out.out
+
+out="thetaEst"
+$atlas --task theta --prob 1,0.5,0.2,0.1,0.05,0.02,0.01 --chr chr1 \
+	   --bam $bam --RGInfo estimateErrors_RGInfo.json \
+	   --fixedSeed 0 --out $out --logFile $out.out
