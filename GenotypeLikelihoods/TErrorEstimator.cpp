@@ -110,9 +110,9 @@ using genometools::Base;
 	logfile().startIndent("Settings regarding the EM algorithm:");
 
 	_numEMIterations            = parameters().getParameterWithDefault<int>("iterations", 200);
-	_minDeltaLL                 = parameters().getParameterWithDefault<double>("minDeltaLL", 0.000001);
+	_minDeltaLL                 = parameters().getParameterWithDefault<double>("minDeltaLL", 1e-6);
 	_NewtonRaphsonNumIterations = parameters().getParameterWithDefault<int>("NRiterations", 20);
-	_NewtonRaphsonMaxF          = parameters().getParameterWithDefault<double>("maxF", 0.0001);
+	_NewtonRaphsonMaxF          = parameters().getParameterWithDefault<double>("maxF", 1e-6);
 	logfile().list("Will perform at max ", _numEMIterations, " EM iterations. (parameter 'iterations')");
 	logfile().list("Will stop EM when deltaLL < ", _minDeltaLL, ". (parameter 'minDeltaLL')");
 	logfile().list("Will conduct at max ", _NewtonRaphsonNumIterations, " Newton-Raphson iterations. (parameter NRiterations)");
@@ -375,6 +375,7 @@ void TErrorEstimator::_runEM() {
 		const double LL = _calculateLL_updatePg();
 		deltaLL         = LL - oldLL;
 		_writeModels("Current");
+		_rgInfo.write(_outputName + "_restart.json");
 		logfile().conclude("Current Log Likelihood = ", LL);
 		logfile().conclude("delta LL = ", deltaLL);
 
