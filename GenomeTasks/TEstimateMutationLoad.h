@@ -132,6 +132,9 @@ public:
 class TEstimateMutationLoad : public TGenome_windows {
 private:
 	std::vector<MutationLoad::TSiteData> _sites;
+	bool _parseFromBed;
+	std::string _bedFileName;
+	genometools::TBed _bedFile;
 
 	void _handleWindow() override;
 	void _handleAlignment() override {}
