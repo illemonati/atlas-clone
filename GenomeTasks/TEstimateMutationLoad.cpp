@@ -128,12 +128,28 @@ void TEstimateMutationLoad::_handleWindow() {
 	// adding sites to estimator
 	logfile().listFlushTime("Calculating genotype likelihoods and storing data ...");
 	try {
-		auto thesePositions = _subsetMonomorphic->getPositionInWindow(_window);
-		for(auto& it : thesePositions){
-			uint32_t internalPos = it - _window.from();
-			GenotypeLikelihoods::TSite& site = _window[internalPos];
-			GenotypeLikelihoods::TGenotypeLikelihoods genoLik = _genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(site);	
-			_sites.emplace_back(genoLik, it.ref());	
+		if(_parseFromBed){
+			//get sites from bed file and alleles from reference
+			auto it = _bedFile.lower_bound(_window);
+
+			while (it != _bedFile.end() && _window.overlaps(*it)) {
+				for (genometools::TGenomePosition s = std::max(it->from(), _window.from()); s < it->to() && s < _window.to();
+					++s) {
+					GenotypeLikelihoods::TSite& site = _window[s - _window.from()];
+					GenotypeLikelihoods::TGenotypeLikelihoods genoLik = _genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(site);	
+					_sites.emplace_back(genoLik, site.refBase);
+				}
+				++it;
+			}
+		} else {
+			//get sites and alleles from site subset
+			auto thesePositions = _subsetMonomorphic->getPositionInWindow(_window);
+			for(auto& it : thesePositions){
+				uint32_t internalPos = it - _window.from();
+				GenotypeLikelihoods::TSite& site = _window[internalPos];
+				GenotypeLikelihoods::TGenotypeLikelihoods genoLik = _genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(site);	
+				_sites.emplace_back(genoLik, it.ref());	
+			}
 		}
 	} catch (...) {
 		UERROR("Failed to allocate sufficient memory to store the data for so many sites. Consider using fewer sites.");
@@ -142,7 +158,30 @@ void TEstimateMutationLoad::_handleWindow() {
 };
 
 TEstimateMutationLoad::TEstimateMutationLoad() : TGenome_windows() {
-	_openSiteSubset("alleles", false);
+	using coretools::instances::logfile;
+	using coretools::instances::parameters;
+	// Two ways to read positions and preferred alleles:
+	//  1) from an alleles file (chr, pos, allele)
+	//  2) from a BED file and the reference
+	if(parameters().parameterExists("alleles")){
+		_openSiteSubset("alleles", false);
+		_parseFromBed = false;
+	} else if(parameters().parameterExists("bed")){
+		logfile().startIndent("Limiting analysis to sites listed in BED file:");
+		//open reference
+		logfile().list("Will assume that the reference allele is the preferred allele.");
+		_openReference(true);
+		//parse BED
+		_bedFileName = parameters().getParameter("bed");
+		logfile().listFlush("Reading BED file '", _bedFileName, "' (parameter 'bed') ...");
+		_bedFile.add(_bedFileName, _bamFile.chromosomes());
+		logfile().done();
+		logfile().conclude("Read ", _bedFile.size(),  " sites on ", _bedFile.numChromosomesWithWindows(), " chromosomes.");
+		_parseFromBed = true;
+		logfile().endIndent();
+	} else {
+		UERROR("Sites and preferred allele must be specified eithe rusing 'alleles' or 'bed'!");
+	}
 };
 
 void TEstimateMutationLoad::run()
@@ -162,7 +201,11 @@ void TEstimateMutationLoad::run()
 	//write output file
 	std::string filename = _outputName + "_mutationLoad.txt";
 	coretools::TOutputFile out(filename, {"BAM", "Alleles", "Pi_rr", "Pi_ra", "Pi_aa", "Pi_ab"});
-	out.writeln(_bamFile.filename(), _subsetMonomorphic->filename(), prior.getPi());
+	if(_parseFromBed){
+		out.writeln(_bamFile.filename(), _bedFileName, prior.getPi());
+	} else {
+		out.writeln(_bamFile.filename(), _subsetMonomorphic->filename(), prior.getPi());
+	}
 }
 
 } // end namespace GenomeTasks
