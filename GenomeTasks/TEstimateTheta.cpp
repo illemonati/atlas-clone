@@ -288,12 +288,10 @@ TEstimateThetaRatio::TEstimateThetaRatio() : TGenome_windows(), _thetaEstimatorR
 void TEstimateThetaRatio::_initializeRegion(genometools::TBed &region, const int num) {
 	logfile().startIndent((std::string) "Region " + std::to_string(num) + ":");
 	std::string regionsFile = parameters().getParameter<std::string>("region" + std::to_string(num));
-	logfile().list((std::string) "Reading regions " + std::to_string(num) + " from file '" + regionsFile + " (parameter 'region" + std::to_string(num) +
-				   "') ...");
+	logfile().listFlush("Reading regions ", num, " from file '", regionsFile, " (parameter 'region", num, "') ...");
 	region.add(regionsFile, _bamFile.chromosomes());
 	logfile().done();
-	logfile().conclude("Read " + toString(region.size()) + " sites on " + toString(region.numChromosomesWithWindows()) +
-					   " chromosomes.");
+	logfile().conclude("Read ", region.size(),  " sites on ", region.numChromosomesWithWindows(), " chromosomes.");
 };
 
 void TEstimateThetaRatio::_addSites(GenotypeLikelihoods::TThetaEstimatorData &data, genometools::TBed &region) {

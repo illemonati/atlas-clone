@@ -299,6 +299,13 @@ void TGenome_windows::_setMasks() {
 };
 
 void TGenome_windows::_openSiteSubset(const std::string &paramName, bool polymorphic) {
+	//report
+	if(polymorphic){
+		logfile().startIndent("Limiting analysis to sites with known alleles (parameter '", paramName, "'):");
+	} else {
+		logfile().startIndent("Limiting analysis to sites with known allele (parameter '", paramName, "'):");
+	}
+	
 	// only allow for one subset to be active
 	if (_subsetPolymoprhic || _subsetMonomorphic) { DEVERROR("Site subset already initialized!"); }
 
@@ -316,6 +323,7 @@ void TGenome_windows::_openSiteSubset(const std::string &paramName, bool polymor
 	} else {
 		_subsetMonomorphic = std::make_unique<GenotypeLikelihoods::TSiteSubsetMonomorphic>(filename, _bamFile.chromosomes());
 	}	
+	logfile().endIndent();
 };
 
 void TGenome_windows::_setCountersBeginningOfChromosome() {
