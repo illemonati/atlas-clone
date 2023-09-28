@@ -124,6 +124,13 @@ void TMutationLoadLatentVariable::calculateEmissionProbabilities(size_t Index, s
 //------------------------------------------------
 // TEstimateMutationLoad
 //------------------------------------------------
+void TEstimateMutationLoad::_addSite(const GenotypeLikelihoods::TSite& site, const genometools::Base PreferredBase){
+	if(!site.empty()){
+		GenotypeLikelihoods::TGenotypeLikelihoods genoLik = _genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(site);	
+		_sites.emplace_back(genoLik, PreferredBase);
+	}
+}
+
 void TEstimateMutationLoad::_handleWindow() {
 	// adding sites to estimator
 	logfile().listFlushTime("Calculating genotype likelihoods and storing data ...");
@@ -131,13 +138,11 @@ void TEstimateMutationLoad::_handleWindow() {
 		if(_parseFromBed){
 			//get sites from bed file and alleles from reference
 			auto it = _bedFile.lower_bound(_window);
-
 			while (it != _bedFile.end() && _window.overlaps(*it)) {
 				for (genometools::TGenomePosition s = std::max(it->from(), _window.from()); s < it->to() && s < _window.to();
 					++s) {
-					GenotypeLikelihoods::TSite& site = _window[s - _window.from()];
-					GenotypeLikelihoods::TGenotypeLikelihoods genoLik = _genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(site);	
-					_sites.emplace_back(genoLik, site.refBase);
+						const GenotypeLikelihoods::TSite& site = _window[s - _window.from()];
+					_addSite(site, site.refBase);
 				}
 				++it;
 			}
@@ -145,10 +150,7 @@ void TEstimateMutationLoad::_handleWindow() {
 			//get sites and alleles from site subset
 			auto thesePositions = _subsetMonomorphic->getPositionInWindow(_window);
 			for(auto& it : thesePositions){
-				uint32_t internalPos = it - _window.from();
-				GenotypeLikelihoods::TSite& site = _window[internalPos];
-				GenotypeLikelihoods::TGenotypeLikelihoods genoLik = _genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(site);	
-				_sites.emplace_back(genoLik, it.ref());	
+				_addSite(_window[it - _window.from()], it.ref());
 			}
 		}
 	} catch (...) {

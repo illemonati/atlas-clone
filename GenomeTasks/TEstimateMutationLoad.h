@@ -137,7 +137,8 @@ private:
 	genometools::TBed _bedFile;
 
 	void _handleWindow() override;
-	void _handleAlignment() override {}
+	void _handleAlignment() override {};
+	void _addSite(const GenotypeLikelihoods::TSite& site, const genometools::Base PreferredBase);
 public:
 	TEstimateMutationLoad();
 	void run();
