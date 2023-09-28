@@ -90,8 +90,9 @@ class TThetaEstimator_base {
 protected:
 	// data
 	std::unique_ptr<TThetaEstimatorData> _data;
-	bool _useTmpFile;
 	std::string _tmpFileName;
+	bool _useTmpFile    = false;
+	bool _equalBaseFreqs = false;
 
 	// initial theta
 	double _initialTheta              = 0.01;
@@ -130,8 +131,8 @@ private:
 	bool _estimationSuccessful = false;
 	double _expectedHet        = 0.0;
 
-	bool _NRAllParams(const GenotypeLikelihoods::TGenotypeProbabilities &_pGenotype);
-	void _NROnlyTheta();
+	bool _NRAllParams(const GenotypeLikelihoods::TGenotypeProbabilities &pGenotype);
+	void _NROnlyTheta(const GenotypeLikelihoods::TGenotypeProbabilities &pGenotype);
 	void _runEMForTheta();
 	void _estimateConfidenceInterval();
 	void _calcExpectedHet();

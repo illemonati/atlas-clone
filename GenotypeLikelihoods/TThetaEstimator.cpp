@@ -73,7 +73,8 @@ TThetaEstimator_base::TThetaEstimator_base(const TThetaEstimator_base &other) {
 	_minSitesWithData = other._minSitesWithData;
 
 	// extra verbosity
-	_extraVerbose = other._extraVerbose;
+	_extraVerbose   = other._extraVerbose;
+	_equalBaseFreqs = other._equalBaseFreqs;
 };
 
 void TThetaEstimator_base::_initDataStorage() {
@@ -112,7 +113,7 @@ void TThetaEstimator_base::_findGoodStartingTheta(TThetaEstimatorData *thisData,
 	logfile().listFlush("Estimating initial parameters" + tag + " ...");
 
 	// set base frequencies to initial base frequencies
-	thisTheta.baseFreq = thisData->baseFrequencies();
+	thisTheta.baseFreq = _equalBaseFreqs ? TBaseProbabilities{} : thisData->baseFrequencies();
 
 	// variables
 	double initTheta = _initialTheta;
@@ -180,17 +181,27 @@ TThetaEstimator::TThetaEstimator() : TThetaEstimator_base() {
 	_initThetaSearchFactor        = -1;
 	_initThetaNumSearchIterations = -1;
 
-	// parse
+	// EM
+	_equalBaseFreqs = parameters().parameterExists("equalBaseFreqs");
+	if (_equalBaseFreqs) logfile().list("Will assume equal base frequencies. (parameter 'equalBaseFreqs')");
+	else logfile().list("Will estimate base frequencies. (use 'equalBaseFreqs' to assume equal base frequencies)");
+
 	logfile().startIndent("Parameters of EM algorithm to infer theta:");
 	_numIterations = parameters().getParameterWithDefault<int>("iterations", 100);
 	logfile().list("Will run up to " + toString(_numIterations) + " iterations.");
-	_numThetaOnlyUpdates = parameters().getParameterWithDefault<int>("iterationsThetaOnly", 10);
-	logfile().list("In each iteration, theta will be updated " + toString(_numThetaOnlyUpdates) + " times.");
-
+	if (_equalBaseFreqs) {
+		_numThetaOnlyUpdates = _numIterations;
+	} else {
+		_numThetaOnlyUpdates = parameters().getParameterWithDefault<int>("iterationsThetaOnly", 10);
+		logfile().list("In each iteration, theta will be updated " + toString(_numThetaOnlyUpdates) + " times.");
+	}
 	_maxEpsilon = parameters().getParameterWithDefault("maxEps", 0.000001);
 	logfile().list("Will run EM until deltaLL < " + toString(_maxEpsilon) + ".");
+
+	//NR
 	_NewtonRaphsonNumIterations = parameters().getParameterWithDefault<int>("NRiterations", 10);
 	logfile().list("Will run Newton-Raphson algorithm up to " + toString(_NewtonRaphsonNumIterations) + " times.");
+
 	_NewtonRaphsonMaxF = parameters().getParameterWithDefault("maxF", 0.00001);
 	logfile().list("Will run Newton-Raphson algorithm until max(F) < " + toString(_NewtonRaphsonMaxF) + ".");
 	logfile().endIndent();
@@ -215,14 +226,14 @@ void TThetaEstimator::add(const TWindow &window, const TGenotypeLikelihoodCalcul
 	}
 };
 
-bool TThetaEstimator::_NRAllParams(const GenotypeLikelihoods::TGenotypeProbabilities &_pGenotype) {
+bool TThetaEstimator::_NRAllParams(const GenotypeLikelihoods::TGenotypeProbabilities &pGenotype) {
 	using namespace genometools;
 	using coretools::Probability;
 	using coretools::index;
 	// calculate substitution probabilities
 
 	// Calculate all genotype probabilities for all sites
-	const GenotypeLikelihoods::TGenotypeData P_G = _data->P_G(_pGenotype); // see paper
+	const GenotypeLikelihoods::TGenotypeData P_G = _data->P_G(pGenotype); // see paper
 
 	// prepare storage
 	arma::mat::fixed<6,6> Jacobian;
@@ -301,11 +312,11 @@ bool TThetaEstimator::_NRAllParams(const GenotypeLikelihoods::TGenotypeProbabili
 	return true;
 };
 
-void TThetaEstimator::_NROnlyTheta() {
+void TThetaEstimator::_NROnlyTheta(const GenotypeLikelihoods::TGenotypeProbabilities &pGenotype) {
 	using namespace genometools;
 
 	// Calculate all genotype probabilities for all sites
-	const GenotypeLikelihoods::TGenotypeData P_G = _data->P_G(getPGenotype(_theta)); // see paper
+	const GenotypeLikelihoods::TGenotypeData P_G = _data->P_G(pGenotype); // see paper
 
 	double rho = _theta.expMinusTheta / (1.0 - _theta.expMinusTheta);
 
@@ -341,7 +352,7 @@ void TThetaEstimator::_runEMForTheta() {
 	//  this may be the case if initialTheta is smaller than true theta and likelihood is very flat
 	double startingTheta = _initialTheta;
 	_theta.LL             = -9e100;
-	while (!_NRAllParams(getPGenotype(_theta))) {
+	while (!_equalBaseFreqs && !_NRAllParams(getPGenotype(_theta))) {
 		// solve did not work -> start with higher theta!
 		startingTheta *= 2.0;
 		_theta.set(startingTheta);
@@ -356,13 +367,13 @@ void TThetaEstimator::_runEMForTheta() {
 		double oldLL    = _theta.LL;
 		do {
 			oldTheta = _theta.theta;
-			_NROnlyTheta();
+			_NROnlyTheta(getPGenotype(_theta));
 			++i;
 		} while (i < _numThetaOnlyUpdates && _theta.theta != oldTheta);
 
 		// update all params
 		const auto pGenotype = getPGenotype(_theta);
-		_NRAllParams(pGenotype);
+		if (!_equalBaseFreqs) _NRAllParams(pGenotype);
 
 		// e) do we break EM? Check LL
 		_theta.LL = _data->calcLogLikelihood(pGenotype);
