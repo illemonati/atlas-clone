@@ -14,6 +14,8 @@ if __name__ == "__main__":
     parser.add_argument("--dMin", type=float, default=0.)
     parser.add_argument("--vs", default="")
     parser.add_argument("--median",  action="store_true")
+    parser.add_argument("--yMin",  type=float, default=1e-4)
+    parser.add_argument("--yMax",  type=float, default=1e-2)
 
     args = parser.parse_args()
     # get header and cols
@@ -36,7 +38,7 @@ if __name__ == "__main__":
         data = genfromtxt(file, skip_header=1)
         if len(data.shape) == 1:
             data = array([data])
-        
+
         depths = []
         for j in idepths:
             depths.append(data[:, j])
@@ -54,27 +56,29 @@ if __name__ == "__main__":
             u95s.append(data[:, j])
 
         for j in range(len(thetas)):
-            iis = where(u95s[j] - thetas[j] < 1.)
-            #iis = where(l95s[j] > 0.)
+            iis = where(u95s[j] < 1.)
             thetas[j] = thetas[j][iis]
             print(j, len(l95s[j]), len(thetas[j]))
 
         if args.median:
             print("using median")
-            mdepths = [median(d) for d in depths]
-            mthetas = [median(t) for t in thetas]
+            mdepths = [nanmedian(d) for d in depths]
+            mthetas = [nanmedian(t) for t in thetas]
         else:
             print("using mean")
-            mdepths = [mean(d) for d in depths] 
-            mthetas = [mean(t) for t in thetas]
+            mdepths = [nanmean(d) for d in depths]
+            mthetas = [nanmean(t) for t in thetas]
 
-        sdepths = [std(d) for d in depths]
-        sthetas = [std(t) for t in thetas]
+        sdepths = [nanstd(d) for d in depths]
+        sthetas = [nanstd(t) for t in thetas]
 
         fmts= ["o-", "s-", "X-", "d-", "p-", "<-", "^-", ">-"]
         mks = [10, 9, 8, 7, 6, 5, 4, 3, 2]
 
         if not args.vs:
+            print(label)
+            print("depth:", mdepths)
+            print("theta:", mthetas)
             plt.errorbar(mdepths, mthetas, xerr=sdepths, yerr=sthetas, fmt=fmts[i], markersize=mks[i],linewidth=2, capsize=6, label=label)
             plt.xscale("log")
             plt.yscale("log")
@@ -92,7 +96,7 @@ if __name__ == "__main__":
             plt.xlabel(r"$\theta$(depth = %0.2f)"%(mdepths[i1]))
             plt.ylabel(r"$\theta$(downsample)")
 
-    plt.ylim(1e-4, 1e-2)
+    plt.ylim(args.yMin, args.yMax)
     #plt.xlim(min(depths)/1.1, max(depths)*1.1)
     plt.legend()
     plt.title(args.title)

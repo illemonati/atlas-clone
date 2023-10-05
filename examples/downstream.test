@@ -1,0 +1,78 @@
+#! /bin/bash
+
+. $(dirname $0)/find_atlas
+
+simulate() {
+	M=000000
+	$atlas --task simulate --chrLength 20$M,10$M --ploidy 2,1 --depth $depth $2 \
+		--fixedSeed 0 --out $1 --logFile $1.out 2> $1.err
+}
+
+theta() {
+	$atlas --task theta --averageDepth $depth --depth $depths --chr chr1 \
+	   	--bam $1.bam $3 \
+	   	--fixedSeed 0 --out $2 --logFile $2.out 2> $2.err
+}
+estimate() {
+		#--chr chr2 --ploidy 2 \
+	echo "chr1 0 1000000" > bed1
+	echo "chr2 0 1000000" > bed2
+	$atlas --task estimateErrors --maxF 0.0000000001 --minDeltaLL 1e-2 \
+		--chr chr2 --ploidy 1 \
+		--bam $1.bam --fasta $1.fasta \
+		--fixedSeed 0 --out $2 --logFile $2.out 2> $2.err
+
+}
+
+recal="intercept:0.1;quality:polynomial[1.];position:polynomial[-0.01];fragmentLength:polynomial[0.01];mappingQuality:polynomial[0.01];context:empiric[0:1,1:2,2:-2,3:-1,4:-5];"
+pmd="CT5:0.2*exp(-0.3*p)+0.01;GA3:0.5*exp(-0.2*p)+0.01"
+depth="5"
+depths="$depth,2,1,0.5,0.2,0.1,0.05"
+binned="--baseQuality categorical(11,25,37)"
+
+simulate "no" > /dev/null &
+#simulate "noBinned" $binned > /dev/null &
+simulate "recal" "--recal $recal" > /dev/null &
+#simulate "recalBinned" "--recal $recal $binned" > /dev/null &
+#simulate "recalPMD"  "--recal $recal --pmd $pmd" > /dev/null &
+#simulate "recalPMDBinned" "--recal $recal --pmd $pmd --baseQuality categorical(11,25,37)"
+simulate "plei" "--RGInfo ../plei.json $binned --fragmentLength gamma(10,0.2)[11,72] --mappingQuality normal(45,10)[30,60]"
+wait
+
+theta "no" "no_no" > /dev/null &
+#theta "noBinned" "noBinned_no"
+theta "recal" "recal_no" > /dev/null &
+#theta "recalBinned" "recalBinned_no"
+#theta "recalPMD" "recalPMD_no"
+#theta "recalPMDBinned" "recalPMDBinned_no"
+theta "plei" "plei_no"
+wait
+
+theta "recal" "recal_real" "--recal $recal" > /dev/null &
+#theta "recalBinned" "recalBinned_real" "--recal $recal"
+#theta "recalPMD" "recalPMD_real" "--recal $recal --pmd $pmd"
+#theta "recalPMDBinned" "recalPMDBinned_real" "--recal $recal --pmd $pmd"
+theta "plei" "plei_real" "--RGInfo ../plei.json"
+wait
+
+estimate "no" "no_est"
+theta "no" "no_yes" "--RGInfo no_est_RGInfo.json" > /dev/null &
+
+#estimate "noBinned" "noBinned_est"
+#theta "noBinned" "noBinned_yes" "--RGInfo noBinned_est_RGInfo.json" > /dev/null &
+
+estimate "recal" "recal_est"
+theta "recal" "recal_yes" "--RGInfo recal_est_RGInfo.json" > /dev/null &
+
+estimate "plei" "plei_est"
+theta "plei" "plei_yes" "--RGInfo plei_est_RGInfo.json" > /dev/null &
+
+#estimate "recalBinned" "recalBinned_est"
+#theta "recalBinned" "recalBinned_yes" "--RGInfo recalBinned_est_RGInfo.json" > /dev/null &
+
+#estimate "recalPMD" "recalPMD_est"
+#theta "recalPMD" "recalPMD_yes" "--RGInfo recalPMD_est_RGInfo.json" > /dev/null &
+
+#estimate "recalPMDBinned" "recalPMDBinned_est"
+#theta "recalPMDBinned" "recalPMDBinned_yes" "--RGInfo recalPMDBinned_est_RGInfo.json" > /dev/null &
+wait
