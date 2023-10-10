@@ -55,49 +55,57 @@ if __name__ == "__main__":
         for j in iu95s:
             u95s.append(data[:, j])
 
-        for j in range(len(thetas)):
-            iis = where(u95s[j] < 1.)
-            thetas[j] = thetas[j][iis]
-            print(j, len(l95s[j]), len(thetas[j]))
-
-        if args.median:
-            print("using median")
-            mdepths = [nanmedian(d) for d in depths]
-            mthetas = [nanmedian(t) for t in thetas]
-        else:
-            print("using mean")
-            mdepths = [nanmean(d) for d in depths]
-            mthetas = [nanmean(t) for t in thetas]
-
-        sdepths = [nanstd(d) for d in depths]
-        sthetas = [nanstd(t) for t in thetas]
 
         fmts= ["o-", "s-", "X-", "d-", "p-", "<-", "^-", ">-"]
         mks = [10, 9, 8, 7, 6, 5, 4, 3, 2]
 
         if not args.vs:
+            for j in range(len(thetas)):
+                iis = where(u95s[j] < 10.)
+                thetas[j] = thetas[j][iis]
+                print(j, len(l95s[j]), len(thetas[j]))
+
+            if args.median:
+                print("using median")
+                mdepths = [nanmedian(d) for d in depths]
+                mthetas = [nanmedian(t) for t in thetas]
+            else:
+                print("using mean")
+                mdepths = [nanmean(d) for d in depths]
+                mthetas = [nanmean(t) for t in thetas]
+
+            sdepths = [nanstd(d) for d in depths]
+            sthetas = [nanstd(t) for t in thetas]
+
             print(label)
             print("depth:", mdepths)
             print("theta:", mthetas)
             plt.errorbar(mdepths, mthetas, xerr=sdepths, yerr=sthetas, fmt=fmts[i], markersize=mks[i],linewidth=2, capsize=6, label=label)
-            plt.xscale("log")
-            plt.yscale("log")
-            plt.hlines(mthetas[0], 0, mdepths[0], "k", "dashed")
-            plt.xlabel(r"Depth")
-            plt.ylabel(r"$\theta$")
+            plt.hlines(mthetas[0], 0, 1.5*max(mdepths), plt.gca().lines[-1].get_color(), "dashed")
+            print(plt.gca().lines[-1].get_color())
+            if i == 0:
+                plt.xscale("log")
+                plt.yscale("log")
+                plt.xlabel(r"Depth")
+                plt.ylabel(r"$\theta$")
+                plt.xlim(max(mdepths)*1.5, min(mdepths)/1.5)
+                plt.xticks(mdepths, ["%2.2f"%(d) for d in mdepths])
         else:
             s = args.vs.split(",")
             i1 = int(s[0])
             m  = 1.1*max(thetas[i1])
+            depth1 = nanmean(depths[i1])
             plt.plot([0,m],[0,m], "-")
             for si in s[1:]:
                 i2 = int(si)
-                plt.plot(thetas[i1], thetas[i2], ".", label="depth = %0.2f"%(mdepths[i2]))
-            plt.xlabel(r"$\theta$(depth = %0.2f)"%(mdepths[i1]))
+                depth2 = nanmean(depths[i2])
+                plt.plot(thetas[i1], thetas[i2], ".", label="depth = %0.2f"%(depth2))
+            plt.xlabel(r"$\theta$(depth = %0.2f)"%(depth1))
             plt.ylabel(r"$\theta$(downsample)")
+            plt.gca().set_aspect("equal")
 
     plt.ylim(args.yMin, args.yMax)
-    #plt.xlim(min(depths)/1.1, max(depths)*1.1)
+
     plt.legend()
     plt.title(args.title)
     plt.show()
