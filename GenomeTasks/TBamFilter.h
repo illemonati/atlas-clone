@@ -170,11 +170,11 @@ protected:
 public:
 	TGenomeParsedWithAlignmentStorage(){
 		//max distance between mates
-		_maxDistanceBetweenMates = parameters().getParameterWithDefault<int>("acceptedDistance", 2000);
+		_maxDistanceBetweenMates = parameters().get<int>("acceptedDistance", 2000);
 		logfile().list("Mates that are farther than " + toString(_maxDistanceBetweenMates) + " apart will be considered orphans. (parameter 'acceptedDistance')");
 
 		//keep orphans
-		if(parameters().parameterExists("keepOrphans")){
+		if(parameters().exists("keepOrphans")){
 			_keepOrphans = true;
 			logfile().list("Will keep orphaned reads. (parameter 'keepOrphans')");
 		} else {
@@ -183,10 +183,10 @@ public:
 		}
 
 		//recalibrate BAM?
-		if(_genotypeLikelihoodCalculator.sequencingErrorModels().recalibrates() || parameters().parameterExists("incorporatePMD")){
+		if(_genotypeLikelihoodCalculator.sequencingErrorModels().recalibrates() || parameters().exists("incorporatePMD")){
 			_recalibrate = true;
 			logfile().list("Will write recalibrated quality scores.");
-			if(parameters().parameterExists("incorporatePMD")){
+			if(parameters().exists("incorporatePMD")){
 				logfile().list("Probability of PMD will be reflected in new quality scores. (parameter 'incorporatePMD')");
 				_incorporatePMD = true;
 				if(!_genotypeLikelihoodCalculator.postMortemDamageModels().hasPMD()){
@@ -202,11 +202,11 @@ public:
 			_incorporatePMD = false;
 		}
 
-		if (parameters().parameterExists("removeSoftClippedBases")){
+		if (parameters().exists("removeSoftClippedBases")){
 			_removeSoftClippedBases = true;
 			//if parameter is set and a number is given -> use this as max number of softclipped bases, else remove all
-			if(!parameters().getParameter<std::string>("removeSoftClippedBases").empty()){
-				_maxNumberOfSoftClippedBases = parameters().getParameter<size_t>("removeSoftClippedBases");
+			if(!parameters().get<std::string>("removeSoftClippedBases").empty()){
+				_maxNumberOfSoftClippedBases = parameters().get<size_t>("removeSoftClippedBases");
 				logfile().list("Will leave up to " + toString(_maxNumberOfSoftClippedBases) + " softclipped bases per end. (parameter 'removeSoftClippedBases')");
 			} else {
 				_maxNumberOfSoftClippedBases = 0;

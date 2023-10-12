@@ -16,19 +16,19 @@ using coretools::str::toString;
 
 TSexEstimator::TSexEstimator():TGenome_windows() {
 	//add limit to amount of sites that are processed, no limit if siteLimit==0
-	_siteLimit = parameters().getParameterWithDefault<uint32_t>("siteLimit", 0);
+	_siteLimit = parameters().get<uint32_t>("siteLimit", 0);
 	if(_siteLimit == 0){
 		logfile().list("Will not use a site limit. (use 'siteLimit' to do so)");
 	} else {
 		logfile().list("Will only process up to " + std::to_string(_siteLimit) + " sites. (parameter 'siteLimit')");
 	}
 
-	if(parameters().parameterExists("wholeGenome")){
+	if(parameters().exists("wholeGenome")){
 		logfile().list("Will estimate depth of the entire genome. (parameter 'wholeGenome')");
 		_wholeGenome = true;
 	} else {
 		logfile().list("Will estimate depth of the regions given. (use 'wholeGenome' to estimate depth of entire genome)");
-		if(parameters().parameterExists("adaptRegions")){
+		if(parameters().exists("adaptRegions")){
 			logfile().list("Will adapt regions from BED-file to the reference sequence in BAM-file if required. (parameter 'adaptRegions')");
 			_adaptRegions = true;
 		} else {
@@ -40,7 +40,7 @@ TSexEstimator::TSexEstimator():TGenome_windows() {
 	if(_wholeGenome == false) {
 		logfile().startIndent("Reading regions: (parameter 'chromRegions')");
 		std::vector<std::string> regions;
-		parameters().fillParameterIntoContainer("chromRegions", regions, ',');
+		parameters().fill("chromRegions", regions);
 		_regionNum = 0;
 		for (auto &s: regions){
 			_initializeRegion(s, _regionNum);

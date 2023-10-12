@@ -65,8 +65,8 @@ void TQualityDistribution::compileQualityDistribution(){
 //-----------------------------------
 TQualityTransformation::TQualityTransformation():TGenome_parsed(){
 	//check what we compare
-	if(parameters().parameterExists("RGInfo2")){
-		BAM::RGInfo::TReadGroupInfo RGInfo2(_bamFile.readGroups(), parameters().getParameter("RGInfo2"));
+	if(parameters().exists("RGInfo2")){
+		BAM::RGInfo::TReadGroupInfo RGInfo2(_bamFile.readGroups(), parameters().get("RGInfo2"));
 		_otherSeqErrors.initialize(RGInfo2);
 
 		_compareToOtherSeqErrors = true;

@@ -31,7 +31,6 @@
 #include "coretools/Math/counters.h"
 #include "coretools/Strings/stringFunctions.h"
 
-using coretools::instances::logfile;
 using coretools::instances::parameters;
 
 using genometools::Base;
@@ -309,9 +308,9 @@ public:
 
     void read(){
         // first set window size in parameters
-        parameters().addParameter("window", "100");
-        parameters().addParameter("bam", filename);
-        parameters().addParameter("filterReadLength", "[0,20]");
+        parameters().add("window", "100");
+        parameters().add("bam", filename);
+        parameters().add("filterReadLength", "[0,20]");
 
         // create instance of TGenomeWindow
         genomeWindow = std::make_unique<TGenomeWindow_Test>();
@@ -795,13 +794,13 @@ protected:
     void _disableAllFilters(){
         // keep all reads
 		parameters().clear();
-        parameters().addParameter("keepDuplicates");
-        parameters().addParameter("keepImproperPairs");
-        parameters().addParameter("keepUnmappedReads");
-        parameters().addParameter("keepFailedQC");
-        parameters().addParameter("keepSecondaryReads");
-        parameters().addParameter("keepSupplementaryReads");
-        parameters().addParameter("keepReadsLongerThanFragment");
+        parameters().add("keepDuplicates");
+        parameters().add("keepImproperPairs");
+        parameters().add("keepUnmappedReads");
+        parameters().add("keepFailedQC");
+        parameters().add("keepSecondaryReads");
+        parameters().add("keepSupplementaryReads");
+        parameters().add("keepReadsLongerThanFragment");
     }
 
 public:
@@ -830,7 +829,7 @@ public:
 
     void read(){ // called by every test, as parameters (= filters) are different
         // set bam parameters
-        parameters().addParameter("bam", filename);
+        parameters().add("bam", filename);
 
         // create instance of TBamFilter
         bamFilter = std::make_unique<TBamFilter>();
@@ -843,7 +842,7 @@ TEST_F(TBamFilter_Test, maxReadLength){
 
     // 1) filter: maxReadLength
     _disableAllFilters();
-    parameters().addParameter("filterReadLength", "[20,30]");
+    parameters().add("filterReadLength", "[20,30]");
 
     read();
 
@@ -868,7 +867,7 @@ TEST_F(TBamFilter_Test, keepDuplicates){
     write(false);
     _disableAllFilters();
     // 2) do not filter: 'keepDuplicates'
-    parameters().addParameter("keepDuplicates");
+    parameters().add("keepDuplicates");
     read();
 
     EXPECT_EQ(bamFilter->totalReads.counts(), numReads);
@@ -879,12 +878,12 @@ TEST_F(TBamFilter_Test, doNotKeepDuplicates){
     write(false);
 	parameters().clear();
     // 2) filter: do not specify 'keepDuplicates'
-    parameters().addParameter("keepImproperPairs");
-    parameters().addParameter("keepUnmappedReads");
-    parameters().addParameter("keepFailedQC");
-    parameters().addParameter("keepSecondaryReads");
-    parameters().addParameter("keepSupplementaryReads");
-    parameters().addParameter("keepReadsLongerThanFragment");
+    parameters().add("keepImproperPairs");
+    parameters().add("keepUnmappedReads");
+    parameters().add("keepFailedQC");
+    parameters().add("keepSecondaryReads");
+    parameters().add("keepSupplementaryReads");
+    parameters().add("keepReadsLongerThanFragment");
     read();
 
     // count number of duplicates in simulated alignments
@@ -904,7 +903,7 @@ TEST_F(TBamFilter_Test, filterSoftClips){
     write(false);
     _disableAllFilters();
     // 3) filter: 'filterSoftClips'
-    parameters().addParameter("filterSoftClips");
+    parameters().add("filterSoftClips");
     read();
 
     // count number of soft clips in simulated alignments
@@ -932,7 +931,7 @@ TEST_F(TBamFilter_Test, keepImproperPairs){
     write(true);
     _disableAllFilters();
     // 2) do not filter: 'keepImproperPairs'
-    parameters().addParameter("keepImproperPairs");
+    parameters().add("keepImproperPairs");
     read();
 
     EXPECT_EQ(bamFilter->totalReads.counts(), numReads);
@@ -943,12 +942,12 @@ TEST_F(TBamFilter_Test, doNotKeepImproperPairs){
     write(true);
 	parameters().clear();
     // 2) filter: do not specify 'keepImproperPairs'
-    parameters().addParameter("keepDuplicates");
-    parameters().addParameter("keepUnmappedReads");
-    parameters().addParameter("keepFailedQC");
-    parameters().addParameter("keepSecondaryReads");
-    parameters().addParameter("keepSupplementaryReads");
-    parameters().addParameter("keepReadsLongerThanFragment");
+    parameters().add("keepDuplicates");
+    parameters().add("keepUnmappedReads");
+    parameters().add("keepFailedQC");
+    parameters().add("keepSecondaryReads");
+    parameters().add("keepSupplementaryReads");
+    parameters().add("keepReadsLongerThanFragment");
     read();
 
     // count number of improper pairs in simulated alignments
@@ -968,7 +967,7 @@ TEST_F(TBamFilter_Test, keepUnmappedReads){
     write(false);
     _disableAllFilters();
     // 3) do not filter: 'keepUnmappedReads'
-    parameters().addParameter("keepUnmappedReads");
+    parameters().add("keepUnmappedReads");
     read();
 
     EXPECT_EQ(bamFilter->totalReads.counts(), numReads);
@@ -979,12 +978,12 @@ TEST_F(TBamFilter_Test, doNotKeepUnmappedReads){
     write(false);
 	parameters().clear();
     // 3) filter: do not specify 'keepUnmappedReads'
-    parameters().addParameter("keepDuplicates");
-    parameters().addParameter("keepImproperPairs");
-    parameters().addParameter("keepFailedQC");
-    parameters().addParameter("keepSecondaryReads");
-    parameters().addParameter("keepSupplementaryReads");
-    parameters().addParameter("keepReadsLongerThanFragment");
+    parameters().add("keepDuplicates");
+    parameters().add("keepImproperPairs");
+    parameters().add("keepFailedQC");
+    parameters().add("keepSecondaryReads");
+    parameters().add("keepSupplementaryReads");
+    parameters().add("keepReadsLongerThanFragment");
     read();
 
     // count number of unmapped reads in simulated alignments
@@ -1004,7 +1003,7 @@ TEST_F(TBamFilter_Test, keepFailedQC){
     write(false);
     _disableAllFilters();
     // 3) do not filter: 'keepFailedQC'
-    parameters().addParameter("keepFailedQC");
+    parameters().add("keepFailedQC");
     read();
 
     EXPECT_EQ(bamFilter->totalReads.counts(), numReads);
@@ -1015,12 +1014,12 @@ TEST_F(TBamFilter_Test, doNotKeepFailedQC){
     write(false);
 	parameters().clear();
     // 3) filter: do not specify 'keepFailedQC'
-    parameters().addParameter("keepDuplicates");
-    parameters().addParameter("keepImproperPairs");
-    parameters().addParameter("keepUnmappedReads");
-    parameters().addParameter("keepSecondaryReads");
-    parameters().addParameter("keepSupplementaryReads");
-    parameters().addParameter("keepReadsLongerThanFragment");
+    parameters().add("keepDuplicates");
+    parameters().add("keepImproperPairs");
+    parameters().add("keepUnmappedReads");
+    parameters().add("keepSecondaryReads");
+    parameters().add("keepSupplementaryReads");
+    parameters().add("keepReadsLongerThanFragment");
     read();
 
     // count number of failed QC reads in simulated alignments
@@ -1040,7 +1039,7 @@ TEST_F(TBamFilter_Test, keepSecondaryReads){
     write(false);
     _disableAllFilters();
     // 4) do not filter: 'keepSecondaryReads'
-    parameters().addParameter("keepSecondaryReads");
+    parameters().add("keepSecondaryReads");
     read();
 
     EXPECT_EQ(bamFilter->totalReads.counts(), numReads);
@@ -1051,12 +1050,12 @@ TEST_F(TBamFilter_Test, doNotKeepSecondaryReads){
     write(false);
 	parameters().clear();
     // 4) filter: do not specify 'keepSecondaryReads'
-    parameters().addParameter("keepDuplicates");
-    parameters().addParameter("keepImproperPairs");
-    parameters().addParameter("keepUnmappedReads");
-    parameters().addParameter("keepFailedQC");
-    parameters().addParameter("keepSupplementaryReads");
-    parameters().addParameter("keepReadsLongerThanFragment");
+    parameters().add("keepDuplicates");
+    parameters().add("keepImproperPairs");
+    parameters().add("keepUnmappedReads");
+    parameters().add("keepFailedQC");
+    parameters().add("keepSupplementaryReads");
+    parameters().add("keepReadsLongerThanFragment");
     read();
 
     // count number of secondary reads in simulated alignments
@@ -1076,7 +1075,7 @@ TEST_F(TBamFilter_Test, keepSupplementaryReads){
     write(false);
     _disableAllFilters();
     // 5) do not filter: 'keepSupplementaryReads'
-    parameters().addParameter("keepSupplementaryReads");
+    parameters().add("keepSupplementaryReads");
     read();
 
     EXPECT_EQ(bamFilter->totalReads.counts(), numReads);
@@ -1087,12 +1086,12 @@ TEST_F(TBamFilter_Test, doNotKeepSupplementaryReads){
     write(false);
 	parameters().clear();
     // 5) filter: do not specify 'keepSupplementaryReads'
-    parameters().addParameter("keepDuplicates");
-    parameters().addParameter("keepImproperPairs");
-    parameters().addParameter("keepUnmappedReads");
-    parameters().addParameter("keepFailedQC");
-    parameters().addParameter("keepSecondaryReads");
-    parameters().addParameter("keepReadsLongerThanFragment");
+    parameters().add("keepDuplicates");
+    parameters().add("keepImproperPairs");
+    parameters().add("keepUnmappedReads");
+    parameters().add("keepFailedQC");
+    parameters().add("keepSecondaryReads");
+    parameters().add("keepReadsLongerThanFragment");
     read();
 
     // count number of supplementary reads in simulated alignments
@@ -1112,7 +1111,7 @@ TEST_F(TBamFilter_Test, keepReadsLongerThanFragment){
     write(true);
     _disableAllFilters();
     // 6) do not filter: 'keepReadsLongerThanFragment'
-    parameters().addParameter("keepReadsLongerThanFragment");
+    parameters().add("keepReadsLongerThanFragment");
     read();
 
     EXPECT_EQ(bamFilter->totalReads.counts(), numReads);
@@ -1123,13 +1122,13 @@ TEST_F(TBamFilter_Test, filterReadsLongerThanFragment){
     write(true);
 	parameters().clear();
     // 6) filter: do not specify 'keepReadsLongerThanFragment'
-    parameters().addParameter("keepDuplicates");
-    parameters().addParameter("keepImproperPairs");
-    parameters().addParameter("keepUnmappedReads");
-    parameters().addParameter("keepFailedQC");
-    parameters().addParameter("keepSecondaryReads");
-    parameters().addParameter("keepSupplementaryReads");
-    parameters().addParameter("filterReadsLongerThanFragment");
+    parameters().add("keepDuplicates");
+    parameters().add("keepImproperPairs");
+    parameters().add("keepUnmappedReads");
+    parameters().add("keepFailedQC");
+    parameters().add("keepSecondaryReads");
+    parameters().add("keepSupplementaryReads");
+    parameters().add("filterReadsLongerThanFragment");
     read();
 
     // count number of reads that are longer than fragments in simulated alignments
@@ -1151,7 +1150,7 @@ TEST_F(TBamFilter_Test, keepOnlyFwd){
     write(false);
     _disableAllFilters();
     // 7) filter: 'keepOnlyFwd', remove all reverse reads
-    parameters().addParameter("keepOnlyFwd");
+    parameters().add("keepOnlyFwd");
     read();
 
     // count number of reverse reads in simulated alignments
@@ -1170,7 +1169,7 @@ TEST_F(TBamFilter_Test, keepOnlyRev){
     write(false);
     _disableAllFilters();
     // 7) filter: 'keepOnlyRev', remove all forward reads
-    parameters().addParameter("keepOnlyRev");
+    parameters().add("keepOnlyRev");
     read();
 
     // count number of forward reads in simulated alignments
@@ -1189,7 +1188,7 @@ TEST_F(TBamFilter_Test, keepOnlyFirst){
     write(true);
     _disableAllFilters();
     // 8) filter: 'keepOnlyFirst', remove all second mates
-    parameters().addParameter("keepOnlyFirst");
+    parameters().add("keepOnlyFirst");
     read();
 
     // count number of second mates in simulated alignments
@@ -1210,7 +1209,7 @@ TEST_F(TBamFilter_Test, keepOnlySecond){
     write(true);
     _disableAllFilters();
     // 8) filter: 'keepOnlySecond', remove all first mates
-    parameters().addParameter("keepOnlySecond");
+    parameters().add("keepOnlySecond");
     read();
 
     // count number of first mates in simulated alignments
@@ -1239,7 +1238,7 @@ TEST_F(TBamFilter_Test, blacklist){
     }
     blackList.close();
 
-    parameters().addParameter("blacklist", "blacklist.txt");
+    parameters().add("blacklist", "blacklist.txt");
     read();
 
     EXPECT_EQ(bamFilter->totalReads.counts(), numReads - 200);
@@ -1257,7 +1256,7 @@ TEST_F(TBamFilter_Test, MQ){
     write(false);
     _disableAllFilters();
     // 10) filter: 'minMQ' and 'maxMQ'
-    parameters().addParameter("filterMQ", "[80,100]");
+    parameters().add("filterMQ", "[80,100]");
     read();
 
     // count number of reads with lower and higher MQ in simulated alignments
@@ -1279,7 +1278,7 @@ TEST_F(TBamFilter_Test, fragmentLength){
     write(true);
     _disableAllFilters();
     // 11) filter: 'minFragmentLength' and 'maxFragmentLength'
-    parameters().addParameter("filterFragmentLength", "[80,100]");
+    parameters().add("filterFragmentLength", "[80,100]");
     read();
 
 
@@ -1312,7 +1311,7 @@ TEST_F(TBamFilter_Test, readGroups){
     write(false);
     _disableAllFilters();
     // 12) filter: 'readGroup'
-    parameters().addParameter("readGroup", "ReadGroup0,ReadGroup1,ReadGroup2");
+    parameters().add("readGroup", "ReadGroup0,ReadGroup1,ReadGroup2");
     read();
 
     // count number of reads with read group ID 3 or 4 in simulated alignments
@@ -1335,7 +1334,7 @@ TEST_F(TBamFilter_Test, limitReads){
     write(false);
     _disableAllFilters();
     // 13) filter: 'limitReads'
-    parameters().addParameter("limitReads", "50");
+    parameters().add("limitReads", "50");
     read();
 
     EXPECT_TRUE(bamFilter->totalReads.counts() == 50);
@@ -1345,7 +1344,7 @@ TEST_F(TBamFilter_Test, chr){
     write(false);
     _disableAllFilters();
     // 14) filter: 'chr'
-    parameters().addParameter("chr", "Chr1,Chr2");
+    parameters().add("chr", "Chr1,Chr2");
     read();
 
     TCountDistribution writtenRefIDs;
@@ -1371,7 +1370,7 @@ TEST_F(TBamFilter_Test, limitChr){
     write(false);
     _disableAllFilters();
     // 14) filter: 'chr'
-    parameters().addParameter("limitChr", "Chr2");
+    parameters().add("limitChr", "Chr2");
     read();
 
     TCountDistribution writtenRefIDs;
@@ -1397,7 +1396,7 @@ TEST_F(TBamFilter_Test, keepAllReads){
     write(false);
     _disableAllFilters();
     // 14) filter: 'keepAllReads'
-    parameters().addParameter("keepAllReads");
+    parameters().add("keepAllReads");
     read();
 
     EXPECT_EQ(bamFilter->totalReads.counts(), numReads);

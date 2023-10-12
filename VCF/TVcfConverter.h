@@ -351,7 +351,7 @@ public:
 struct TVCFConverter {
 	void run() {
 		using namespace coretools::instances;
-		std::string format = parameters().getParameter<std::string>("format");
+		std::string format = parameters().get<std::string>("format");
 
 		if (format == "beagle") {
 			logfile().startIndent("Converting a VCF to Beagle format, old version (parameter 'format'):");
@@ -369,7 +369,7 @@ struct TVCFConverter {
 			logfile().startIndent("Converting a VCF to LFMM format (parameter 'format'):");
 
 			// posterior or call?
-			std::string genoType = parameters().getParameterWithDefault<std::string>("genotypes", "call");
+			std::string genoType = parameters().get<std::string>("genotypes", "call");
 			if (genoType == "posterior") {
 				TVcfToLFMM<false> vcfToLFMMPostGeno;
 				vcfToLFMMPostGeno.run();

@@ -141,7 +141,7 @@ TAllelicDepth::TAllelicDepth() : TGenome_windows(){
 
 	_counts.resize(_readUpToDepth);
 
-	if(parameters().parameterExists("printAll")){
+	if(parameters().exists("printAll")){
 		_writeEmpty = true;
 		logfile().list("Will write full table, including cells with zero counts. (parameter 'printAll')");
 	} else {

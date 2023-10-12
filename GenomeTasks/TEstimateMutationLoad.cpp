@@ -165,16 +165,16 @@ TEstimateMutationLoad::TEstimateMutationLoad() : TGenome_windows() {
 	// Two ways to read positions and preferred alleles:
 	//  1) from an alleles file (chr, pos, allele)
 	//  2) from a BED file and the reference
-	if(parameters().parameterExists("alleles")){
+	if(parameters().exists("alleles")){
 		_openSiteSubset("alleles", false);
 		_parseFromBed = false;
-	} else if(parameters().parameterExists("bed")){
+	} else if(parameters().exists("bed")){
 		logfile().startIndent("Limiting analysis to sites listed in BED file:");
 		//open reference
 		logfile().list("Will assume that the reference allele is the preferred allele.");
 		_openReference(true);
 		//parse BED
-		_bedFileName = parameters().getParameter("bed");
+		_bedFileName = parameters().get("bed");
 		logfile().listFlush("Reading BED file '", _bedFileName, "' (parameter 'bed') ...");
 		_bedFile.add(_bedFileName, _bamFile.chromosomes());
 		logfile().done();

@@ -122,8 +122,8 @@ TAlleleFreqEstimatorBayes::TAlleleFreqEstimatorBayes(){
 	logfile().startIndent("Initializing Bayesian allele frequency estimator:");
 
 	//prior
-	alpha = parameters().getParameterWithDefault("alpha", 0.7);
-	beta = parameters().getParameterWithDefault("beta", 0.7);
+	alpha = parameters().get("alpha", 0.7);
+	beta = parameters().get("beta", 0.7);
 	alphaMinusOne = alpha - 1.0;
 	betaMinusOne = beta - 1.0;
 
@@ -137,7 +137,7 @@ TAlleleFreqEstimatorBayes::TAlleleFreqEstimatorBayes(){
 	logfile().endIndent();
 
 	//MAP estimation
-	numMAPSIterations = parameters().getParameterWithDefault<int>("MAPIterations", 100);
+	numMAPSIterations = parameters().get<int>("MAPIterations", 100);
 	logfile().list("Will search for the MAP using ", numMAPSIterations, " iterations (MAPIterations).");
 	f_MAP = 0.5;
 	f_CI_lower = 0.0;
@@ -145,9 +145,9 @@ TAlleleFreqEstimatorBayes::TAlleleFreqEstimatorBayes(){
 	logDensity_atMAP = 0.0;
 
 	//prepare initial search grid between 0.0 and 1.0
-	credibleInterval = parameters().getParameterWithDefault("credibleInterval", 0.9);
+	credibleInterval = parameters().get("credibleInterval", 0.9);
 	logfile().list("Will calculate the ", credibleInterval, " Credible Interval (credibleInterval).");
-	initialGridSize = parameters().getParameterWithDefault<int>("initialGridSize", 101);
+	initialGridSize = parameters().get<int>("initialGridSize", 101);
 	logfile().list("Will use an initial grid of size ", initialGridSize, " to identify relevant frequency range (initialGridSize).");
 	if(initialGridSize < 3){
 		UERROR("Initial grid size must be >= 3!");
@@ -162,13 +162,13 @@ TAlleleFreqEstimatorBayes::TAlleleFreqEstimatorBayes(){
 	_initialGrid[initialGridLast].f = maxPriorSupport;
 
 	//final grid
-	gridSize = parameters().getParameterWithDefault<int>("gridSize", 1001);
+	gridSize = parameters().get<int>("gridSize", 1001);
 	logfile().list("Will use a grid of size ", gridSize, " to calculate credible interval (gridSize).");
 	if(gridSize < 10){
 		UERROR("Initial grid size must be >= 10!");
 	}
 	gridLast = gridSize - 1;
-	logGridThreshold = parameters().getParameterWithDefault("logGridThreshold", 14.0);
+	logGridThreshold = parameters().get("logGridThreshold", 14.0);
 	logfile().list("Will use a threshold ", logGridThreshold, " to span the grid (logGridThreshold).");
 	if(logGridThreshold < 1.0){
 		UERROR("grid threshold must be >= 1.0!");
@@ -600,8 +600,8 @@ void TAlleleFreqEstimator::_openVCF() {
 		UERROR("VCF already read!");
 
 	//read samples
-	if(parameters().parameterExists("samples"))
-		samples.readSamples(parameters().getParameter<std::string>("samples"));
+	if(parameters().exists("samples"))
+		samples.readSamples(parameters().get<std::string>("samples"));
 
 	//create reader
 	bool saveAlleleFrequencies = true;
@@ -609,7 +609,7 @@ void TAlleleFreqEstimator::_openVCF() {
 	reader.doEstimateGenotypeFrequencies();
 
 	// open vcf file
-	vcfFilename = parameters().getParameter<std::string>("vcf");
+	vcfFilename = parameters().get<std::string>("vcf");
 	logfile().startIndent("Estimating allele population frequencies from VCF file '" + vcfFilename + "':");
 	reader.openVCF(vcfFilename);
 
@@ -641,7 +641,7 @@ void TAlleleFreqEstimator::estimateAlleleFreq(){
 	//create allele frequency estimators
 	//1) Maximum likelihood HW estimator
 	TAlleleFreqEstimatorHardyWeinberg MLHWEstimator;	
-	double minDeltaF = parameters().getParameterWithDefault("minDeltaF", 0.0000001);
+	double minDeltaF = parameters().get("minDeltaF", 0.0000001);
 	logfile().list("Will EM algorithms until deltaF < ", minDeltaF, ". (parameter 'minDeltaF')");	
 
 	//2) Maximum Likelihood genotype count estimator (use estimates from reader)
@@ -650,7 +650,7 @@ void TAlleleFreqEstimator::estimateAlleleFreq(){
 	//3) Bayesian HW estimator (optional)
 	TAlleleFreqEstimatorBayes* BHWEstimator = nullptr;
 	bool doBayesian = false;
-	if(parameters().parameterExists("doBayesian")){
+	if(parameters().exists("doBayesian")){
 		doBayesian = true;
 		BHWEstimator = new TAlleleFreqEstimatorBayes;
 		logfile().list("Will also run a Bayesian estimation of allele frequencies. (parameter 'doBayesian')");
@@ -658,14 +658,14 @@ void TAlleleFreqEstimator::estimateAlleleFreq(){
 		logfile().list("Will only run MLE estimations of allele frequencies. (request a Bayesian estimation with 'doBayesian')");
 	}
 
-	bool writeGenoFreq = parameters().parameterExists("writeGenoFreq");
+	bool writeGenoFreq = parameters().exists("writeGenoFreq");
 	if(writeGenoFreq){
 		logfile().list("Will write genotype frequencies. (parameter 'writeGenoFreq')");
 	} else {
 		logfile().list("Will not write genotype frequencies. (request with 'writeGenoFreq')");
 	}
 
-	bool writeLikelihoods = parameters().parameterExists("writeLikelihoods");
+	bool writeLikelihoods = parameters().exists("writeLikelihoods");
 	if(writeLikelihoods){
 		logfile().list("Will write likelihoods. (parameter 'writeLikelihoods')");
 	} else {
@@ -674,7 +674,7 @@ void TAlleleFreqEstimator::estimateAlleleFreq(){
 
 	//output file
 	std::string tmp = coretools::str::extractBeforeLast(vcfFilename, ".vcf");
-	std::string outputName = parameters().getParameterWithDefault<std::string>("out", tmp) + "_alleleFreq.txt.gz";
+	std::string outputName = parameters().get<std::string>("out", tmp) + "_alleleFreq.txt.gz";
 	logfile().list("Will write allele frequencies to file '" + outputName + "'.");
 	TOutputFile out(outputName);
 
@@ -748,8 +748,8 @@ void TAlleleFreqEstimator::compareAlleleFreq(){
 	genometools::TGenotypeFrequencies genoFrequencies;
 
 	//variables for MCMC chains
-	int numIterations = parameters().getParameterWithDefault<int>("iterations", 100000);
-	double frac = parameters().getParameterWithDefault("proposalFrac", 3.0);
+	int numIterations = parameters().get<int>("iterations", 100000);
+	double frac = parameters().get("proposalFrac", 3.0);
 	if(numIterations < 1)
 		UERROR("Cannot run MCMC for less than 1 iteration!");
 	if(frac <= 0.0)
@@ -764,14 +764,14 @@ void TAlleleFreqEstimator::compareAlleleFreq(){
 
 	//output file
 	std::string tmp = coretools::str::extractBeforeLast(vcfFilename, ".vcf");
-	std::string outputName = parameters().getParameterWithDefault<std::string>("out", tmp);
+	std::string outputName = parameters().get<std::string>("out", tmp);
 	logfile().list("Will write allele frequencies to file '" + outputName  + "_alleleFreqComparison.txt.gz" + "'.");
 	TOutputFile out(outputName + "_alleleFreqComparison.txt.gz", _composeHeaderAlleleFreqComparison(BHWEstimator));
 
 	//write MCMC to file?
 	TAlleleFreqMCMCOutput traces;
-	if(parameters().parameterExists("writeMCMC")){
-		traces.initialize(parameters().getParameter<std::string>("writeMCMC"), samples, outputName + "_alleleFreq_MCMC_");
+	if(parameters().exists("writeMCMC")){
+		traces.initialize(parameters().get<std::string>("writeMCMC"), samples, outputName + "_alleleFreq_MCMC_");
 	}
 
     //run through VCF file
@@ -784,7 +784,7 @@ void TAlleleFreqEstimator::compareAlleleFreq(){
  		logfile().listFlush("Running estimates for " + reader.chr() + ":" + toString(reader.position()) + " ...");
  		for(size_t p=0; p<samples.numPopulations(); p++){
 			//write num samples with data
-			genoFrequencies.estimate<true>(&storage[samples.startIndex(p)], samples.numSamplesInPop(p), parameters().getParameterWithDefault("epsF", 0.0000001));
+			genoFrequencies.estimate<true>(&storage[samples.startIndex(p)], samples.numSamplesInPop(p), parameters().get("epsF", 0.0000001));
 			out << genoFrequencies.numDiploid();
 			out << genoFrequencies.numHaploid();
 
@@ -818,7 +818,7 @@ void TAlleleFreqEstimator::writeAlleleFrequencyLikelihoods() {
 	_openVCF();
 
 	//get vector of allele frequencies at which to calculate likelihood
-	int numFreq = parameters().getParameterWithDefault<int>("numFreq", 101);
+	int numFreq = parameters().get<int>("numFreq", 101);
 	logfile().list("Will calculate allele frequency likelihoods at " + toString(numFreq) + " uniformly spaced frequencies.");
 	double step = 1.0 / (double) (numFreq - 1);
 	std::vector<double> freq(numFreq);
@@ -830,7 +830,7 @@ void TAlleleFreqEstimator::writeAlleleFrequencyLikelihoods() {
 
 	//output files
 	std::string tmp = coretools::str::extractBeforeLast(vcfFilename, ".vcf");
-	std::string outputName = parameters().getParameterWithDefault<std::string>("out", tmp) + "_alleleFreqLikelihoods";
+	std::string outputName = parameters().get<std::string>("out", tmp) + "_alleleFreqLikelihoods";
 	logfile().list("Will write allele frequencies to files '" + outputName + "[POP].txt.gz'.");
 
 	std::vector<TOutputFile> out(samples.numPopulations());

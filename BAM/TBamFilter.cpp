@@ -139,8 +139,8 @@ bool TBamFileFilterBool::pass(bool state, std::string_view alignmentName, bool i
 //TQualityFilter
 //---------------------------------------------------------------
 TQualityFilter::TQualityFilter() {
-	if(parameters().parameterExists("filterBaseQual")){
-		parameters().fillParameter("filterBaseQual", _range);
+	if(parameters().exists("filterBaseQual")){
+		parameters().fill("filterBaseQual", _range);
 		if (_range.within(genometools::PhredIntProbability(0))){ UERROR("Base quality filter of 0 is not allowed (parameter 'filterBaseQual')"); }
 		logfile().list("Will filter out bases with quality outside the range " + _range.rangeString() + " (parameter 'filterBaseQual')");
 	} else {
@@ -158,9 +158,9 @@ TContextFilter::TContextFilter(){
 
 	_keptContexts.fill(true);
 	_filter = false;
-	if(parameters().parameterExists("ignoreContexts")){
+	if(parameters().exists("ignoreContexts")){
 		std::vector<std::string> contexts;
-		parameters().fillParameterIntoContainer("ignoreContexts", contexts, ',');
+		parameters().fill("ignoreContexts", contexts);
 
 		if(contexts.size() > 0){
 			for(auto& c : contexts){

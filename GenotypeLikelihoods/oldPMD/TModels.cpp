@@ -156,7 +156,7 @@ void TModels::initialize(const BAM::RGInfo::TReadGroupInfo &RgInfo) {
 }
 
 void TModels::resize(const BAM::TReadGroupMap& ReadGroupMap) {
-	_tableSize = coretools::instances::parameters().getParameterWithDefault<int>("length", 50) + 1;
+	_tableSize = coretools::instances::parameters().get<int>("length", 50) + 1;
 	logfile().list("Estimating PMD from the first ", _tableSize - 1, " positions.");
 		for (auto &r : ReadGroupMap.readGroupsInUse()) { _models[r]->resize(_tableSize); }
 	}

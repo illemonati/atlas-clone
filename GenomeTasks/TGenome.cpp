@@ -38,10 +38,10 @@ using namespace coretools::str;
 //---------------------------------------------------------------
 
 TGenome_basic::TGenome_basic()
-	: _bamFile(parameters().getParameter<std::string>("bam")), _rgInfo(_bamFile.readGroups()) {
+	: _bamFile(parameters().get<std::string>("bam")), _rgInfo(_bamFile.readGroups()) {
 	// outputname
-	if (parameters().parameterExists("out")) {
-		_outputName = parameters().getParameter<std::string>("out");
+	if (parameters().exists("out")) {
+		_outputName = parameters().get<std::string>("out");
 		logfile().list("Writing output files with prefix '" + _outputName + "'. (parameter 'out')");
 	} else {
 		// guess from BAM filename.
@@ -92,8 +92,8 @@ TGenome_parsed::TGenome_parsed() : _genotypeLikelihoodCalculator(_rgInfo) {
 
 void TGenome_parsed::_openReference(bool required) {
 	if (!_reference.isOpen()) {
-		if (parameters().parameterExists("fasta")) {
-			std::string fastaFile = parameters().getParameter<std::string>("fasta");
+		if (parameters().exists("fasta")) {
+			std::string fastaFile = parameters().get<std::string>("fasta");
 			logfile().list("Reading reference sequence from '" + fastaFile + "'. (parameter fasta)");
 			_reference.open(fastaFile);
 		} else {
@@ -104,10 +104,10 @@ void TGenome_parsed::_openReference(bool required) {
 
 void TGenome_parsed::_setReadTrimming() {
 	// trimming ends
-	if (parameters().parameterExists("trim3") || parameters().parameterExists("trim5")) {
-		_trimmingLength3Prime = parameters().getParameterWithDefault<int>("trim3", 0);
+	if (parameters().exists("trim3") || parameters().exists("trim5")) {
+		_trimmingLength3Prime = parameters().get<int>("trim3", 0);
 		if (_trimmingLength3Prime < 0) UERROR("trimming distance trim3 must be >= 0!");
-		_trimmingLength5Prime = parameters().getParameterWithDefault<int>("trim5", 0);
+		_trimmingLength5Prime = parameters().get<int>("trim5", 0);
 		if (_trimmingLength5Prime < 0) UERROR("trimming distance trim5 must be >= 0!");
 		if (_trimmingLength3Prime > 0 || _trimmingLength5Prime > 0) {
 			logfile().list("Will trim first " + toString(_trimmingLength3Prime) + " and " +
@@ -169,10 +169,10 @@ TGenome_windows::TGenome_windows() : _chromosomes(_bamFile.chromosomes()) {
 };
 
 void TGenome_windows::_setWindowParameters() {
-	if (!parameters().parameterExists("window") && parameters().parameterExists("windows")) {
+	if (!parameters().exists("window") && parameters().exists("windows")) {
 		logfile().warning("Argument 'windows' specified, but unknown. Did you mean 'window'?");
 	}
-	std::string tmp = parameters().getParameterWithDefault<std::string>("window", "1000000");
+	std::string tmp = parameters().get<std::string>("window", "1000000");
 
 	// check if it is a number
 	if (stringIsProbablyANumber(tmp)) {
@@ -195,12 +195,12 @@ void TGenome_windows::_setWindowParameters() {
 
 void TGenome_windows::_setParsingLimits() {
 	// limit windows
-	_skipWindows = parameters().getParameterWithDefault<int>("skipWindows", 0);
+	_skipWindows = parameters().get<int>("skipWindows", 0);
 	if (_skipWindows > 0)
 		logfile().list("Will skip the first " + toString(_skipWindows) +
 					   " windows per chromosome. (parameter 'skipWindows')");
-	_limitWindows = parameters().getParameterWithDefault<long>("limitWindows", 1000000000);
-	if (parameters().parameterExists("limitWindows"))
+	_limitWindows = parameters().get<long>("limitWindows", 1000000000);
+	if (parameters().exists("limitWindows"))
 		logfile().list("Will limit analysis to the first " + toString(_limitWindows) +
 					   " windows per chromosome. (parameter 'limitWindows')");
 	if (_limitWindows <= _skipWindows) UERROR("limitWindows has to be larger than skipWindows!");
@@ -208,7 +208,7 @@ void TGenome_windows::_setParsingLimits() {
 
 void TGenome_windows::_setWindowFilters() {
 	// filter for missing reference
-	_maxMissing = parameters().getParameterWithDefault<double>("maxMissing", 1.0);
+	_maxMissing = parameters().get<double>("maxMissing", 1.0);
 	if (_maxMissing < 0.0 || _maxMissing > 1.0) UERROR("maxMissing must be within [0, 1]!");
 	if (_maxMissing < 1.0) {
 		logfile().list("Will filter out windows with a missing data fraction > " + toString(_maxMissing) +
@@ -217,7 +217,7 @@ void TGenome_windows::_setWindowFilters() {
 		logfile().list("Will keep windows regardless of missingness. (use 'maxMissing' to filter)");
 	}
 
-	_maxRefN = parameters().getParameterWithDefault<double>("maxRefN", 1.0);
+	_maxRefN = parameters().get<double>("maxRefN", 1.0);
 	if (_maxRefN < 0.0 || _maxRefN > 1.0) UERROR("maxRefN must be within interval [0,1]!");
 	_openReference();
 	if (_maxRefN < 1.0 && !_reference.isOpen())
@@ -229,13 +229,13 @@ void TGenome_windows::_setWindowFilters() {
 
 void TGenome_windows::_setSiteFilters() {
 	// depth filter
-	_readUpToDepth = parameters().getParameterWithDefault<size_t>("readUpToDepth", 1000);
+	_readUpToDepth = parameters().get<size_t>("readUpToDepth", 1000);
 	logfile().list("Will read data up to depth " + toString(_readUpToDepth) +
 				   " and ignore additional bases. (parameter 'readUpToDepth')");
 
 	// depth filter
-	if (parameters().parameterExists("filterDepth")) {
-		parameters().fillParameter("filterDepth", _depthFilter);
+	if (parameters().exists("filterDepth")) {
+		parameters().fill("filterDepth", _depthFilter);
 		_applyDepthFilter = true;
 		logfile().list("Will filter out sites with sequencing depth outside ", _depthFilter,
 					   ". (parameters 'filterDepth')");
@@ -245,7 +245,7 @@ void TGenome_windows::_setSiteFilters() {
 	}
 
 	// downsample?
-	_downsampleDepth = parameters().getParameterWithDefault<int>("downsample", 0);
+	_downsampleDepth = parameters().get<int>("downsample", 0);
 	if (_downsampleDepth > 0) {
 		logfile().list("Will downsample sites to a depth <= ", _downsampleDepth, ". (parameter 'downsample')");
 		if (_depthFilter.larger(_downsampleDepth)) {
@@ -255,7 +255,7 @@ void TGenome_windows::_setSiteFilters() {
 	}
 
 	// CpG filter
-	if (parameters().parameterExists("filterCpG")) {
+	if (parameters().exists("filterCpG")) {
 		_filterCpG = true;
 		logfile().list("Will filter out CpG sites. (parameter 'filterCpG')");
 		_openReference(true);
@@ -267,18 +267,18 @@ void TGenome_windows::_setSiteFilters() {
 
 void TGenome_windows::_setMasks() {
 	// normal mask
-	if (parameters().parameterExists("mask") || parameters().parameterExists("regions")) {
+	if (parameters().exists("mask") || parameters().exists("regions")) {
 		std::string filename;
-		if (parameters().parameterExists("mask")) {
+		if (parameters().exists("mask")) {
 			// mask
-			if (parameters().parameterExists("regions")) UERROR("Cannot use mask and regions at the same time.");
-			filename = parameters().getParameter<std::string>("mask");
+			if (parameters().exists("regions")) UERROR("Cannot use mask and regions at the same time.");
+			filename = parameters().get<std::string>("mask");
 			logfile().startIndent("Will mask all sites listed in BED file '" + filename + "':");
 			_doMasking       = true;
 			_considerRegions = false;
 		} else {
 			// regions
-			filename = parameters().getParameter<std::string>("regions");
+			filename = parameters().get<std::string>("regions");
 			logfile().startIndent("Will limit analysis to sites listed in BED file '" + filename +
 								  "' (parameter 'regions'):");
 			_doMasking       = false;
@@ -316,7 +316,7 @@ void TGenome_windows::_openSiteSubset(const std::string &paramName, bool polymor
 		UERROR("Site subsets (parameter '", paramName,
 			   "') and masks (parameter 'mask') can not be used at the same time!");
 
-	std::string filename = parameters().getParameter<std::string>(paramName, true);
+	const auto filename = parameters().get(paramName);
 
 	if(polymorphic){
 		_subsetPolymoprhic = std::make_unique<GenotypeLikelihoods::TSiteSubsetPolymorphic>(filename, _bamFile.chromosomes());

@@ -52,7 +52,7 @@ bool parseField(std::set<std::string> &fields, const std::string &tag, const std
 // TPileup
 //---------------------------------
 TPileup::TPileup():TGenome_windows(){
-	if(!parameters().parameterExists("onlySummaries")){
+	if(!parameters().exists("onlySummaries")){
 		//open output file
 		const std::string filename = _outputName + "_pileup.txt.gz";
 		logfile().list("Writing pileup to file '" + filename + "'.");
@@ -60,8 +60,8 @@ TPileup::TPileup():TGenome_windows(){
 
 		//parse output fields
 		logfile().startIndent("Will print the following pileup fields (parameter 'fields'):");
-		std::set<std::string> fields;
-		parameters().fillParameterIntoContainerWithDefault("fields", fields, ',', {"depth", "bases", "qualities", "alleles", "mates", "strands", "likelihoods"});
+		const auto tmp = parameters().get<std::vector<std::string>>("fields", {"depth", "bases", "qualities", "alleles", "mates", "strands", "likelihoods"});
+		std::set<std::string> fields(tmp.begin(), tmp.end());
 
 		_printSettings.set<Depth>(impl::parseField(fields, "depth", "Sequencing depth"));
 		_printSettings.set<Bases>(impl::parseField(fields, "bases", "Pileup bases"));
@@ -122,7 +122,7 @@ TPileup::TPileup():TGenome_windows(){
 		_out.writeHeader(header);
 
 		//print all sites, also those without data?
-		if(parameters().parameterExists("printAll")){
+		if(parameters().exists("printAll")){
 			_printSettings.set<OnlySitesWithData>(false);
 			logfile().list("Will print all sites that pass filters, including those without data. (parameter 'printAll')");
 		} else {
@@ -131,10 +131,10 @@ TPileup::TPileup():TGenome_windows(){
 		}
 	}
 
-	if (parameters().parameterExists("histograms") || parameters().parameterExists("onlySummaries")){
+	if (parameters().exists("histograms") || parameters().exists("onlySummaries")){
 		logfile().startIndent("Will print the following histograms (parameter 'histograms'):");
-		std::set<std::string> histograms;
-		parameters().fillParameterIntoContainerWithDefault("histograms", histograms, ',', {"depth", "qualities", "contexts"});
+		const auto tmp = parameters().get<std::vector<std::string>>("histograms", {"depth", "qualities", "contexts"});
+		std::set<std::string> histograms(tmp.begin(), tmp.end());
 
 		if (histograms.empty()){
 			histograms.emplace("depth");
@@ -173,7 +173,7 @@ TPileup::TPileup():TGenome_windows(){
 
 			_counts.resize(_readUpToDepth);
 
-			if(parameters().parameterExists("includeZero")){
+			if(parameters().exists("includeZero")){
 				_writeEmpty = true;
 				logfile().list("Will write full table, including cells with zero counts. (parameter 'includeZero')");
 			} else {
@@ -196,7 +196,7 @@ void TPileup::_handleWindow(){
 	}
 	for (size_t pos = 0; pos < _window.size(); ++pos) {
 		const auto &site = _window[pos];
-		if(!parameters().parameterExists("onlySummaries")){
+		if(!parameters().exists("onlySummaries")){
 			if (_printSettings.get<OnlySitesWithData>() && site.empty()) continue;
 			_out << _window.chrName();
 			_out << _window.positionOnChr(pos) + 1; // positions are zero-based internally

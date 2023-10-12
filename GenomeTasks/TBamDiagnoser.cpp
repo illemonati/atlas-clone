@@ -44,7 +44,7 @@ void TBamDiagnoser::_writeHistogram(const std::vector<TCountDistributionVector<>
 	}
 
     // Should file contain read groups with 0 counts?
-	if (parameters().parameterExists("writeZeroCounts")) {
+	if (parameters().exists("writeZeroCounts")) {
 		distributionPerReadGroup.template writeCombined<true>(out, "allReadGroups");
 		distributionPerReadGroup.template write<true>(out, _readGroupNames);
 	} else {
@@ -124,7 +124,7 @@ void TBamDiagnoser::run(){
 	for (size_t i = 0; i < numRG; i++)
 		_fragmentLength[i].resize(numChrom);
 
-	if(parameters().parameterExists("diagnosticsPerChromosome")){
+	if(parameters().exists("diagnosticsPerChromosome")){
 		_chromStats = true;
 		logfile().list("Will output data per chromosome into diagnostics-file. (parameter 'diagnosticsPerChromosome')");
 	} else {
@@ -133,10 +133,10 @@ void TBamDiagnoser::run(){
 
 	//now parse through bam file
     _traverseBAMPassedQC();
-    if(!parameters().parameterExists("splitMergeInput")){
+    if(!parameters().exists("splitMergeInput")){
     	logfile().list("Will not create input file for splitMerge. (use 'splitMergeInput' to do so).");
     }
-	if(!parameters().parameterExists("printReferenceLength")){
+	if(!parameters().exists("printReferenceLength")){
 		logfile().list("Will not print reference lengths of chromosomes to file. (use 'printReferenceLength' to do so).");
 	}
 	logfile().list("Approximate sequencing depth was estimated at ", (double) sumOverAllReadGroups(_usableLength) / (double) totLengthOfGenome, ".");
@@ -247,7 +247,7 @@ void TBamDiagnoser::run(){
 	out.close();
 	logfile().done();
 
-	if(parameters().parameterExists("splitMergeInput")){
+	if(parameters().exists("splitMergeInput")){
 		//write file used by split merge
 		std::string splitmergename = _outputName + "_splitMergeInput.txt";
 		logfile().listFlush("Outputting input file for splitMerge to '" + splitmergename + "' ...");
@@ -265,7 +265,7 @@ void TBamDiagnoser::run(){
 		logfile().done();
 	}
 
-	if(parameters().parameterExists("printReferenceLength")){
+	if(parameters().exists("printReferenceLength")){
 		//write file with length of all contigs
 		std::string referenceLengthName = _outputName + "_referenceLengths.txt";
 		logfile().listFlush("Outputting reference lengths of all contigs to '" + referenceLengthName + "' ...");

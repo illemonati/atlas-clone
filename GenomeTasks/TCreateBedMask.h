@@ -82,7 +82,7 @@ public:
 struct TMaskCreator {
 	void run() {
 		// which mask?
-		const std::string mask = coretools::instances::parameters().getParameter<std::string>("type");
+		const std::string mask = coretools::instances::parameters().get<std::string>("type");
 		if (mask == "depth") {
 			TCreateDepthBedMask depthMask;
 			depthMask.createDepthMask();

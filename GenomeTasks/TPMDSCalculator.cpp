@@ -32,10 +32,10 @@ using coretools::instances::parameters;
 //TODO: should that filter pairs as in TBamFilter?
 TPMDSCalculator::TPMDSCalculator():TGenome_parsed(){
 	//get parameters
-	_pi = parameters().getParameterWithDefault<coretools::Probability>("pi", coretools::Probability(0.001));
+	_pi = parameters().get<coretools::Probability>("pi", coretools::Probability(0.001));
 	logfile().list("Running PMDS with rate of polymorphism (pi) = " + toString(_pi));
-	if(parameters().parameterExists("filterPMDS")){
-		_filterRange.set(parameters().getParameter("filterPMDS"));
+	if(parameters().exists("filterPMDS")){
+		_filterRange.set(parameters().get("filterPMDS"));
 		_doFilter = true;
 		logfile().list("Filtering out reads with PMDS outside the range " + _filterRange.rangeString() + ".");
 	} else {

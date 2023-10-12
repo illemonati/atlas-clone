@@ -133,9 +133,9 @@ struct TSimulationRunner {
 	void run() {
 		using namespace coretools::instances;
 		// initialize simulator
-		auto method = parameters().getParameterWithDefault<std::string>("type", "one");
+		auto method = parameters().get<std::string>("type", "one");
 
-		if (parameters().parameterExists("vcf")) {
+		if (parameters().exists("vcf")) {
 			logfile().startIndent("Simulating VCF Files:");
 			auto simulator = TVCFSimulator{method};
 			simulator.runSimulations();

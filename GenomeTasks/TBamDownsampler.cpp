@@ -80,12 +80,12 @@ void TBamSample::downsampleRead(BAM::TAlignment & alignment){
 
 void TBamDownsampler_base::_readVectorOfDownsamplingProbabilities(){
     //read downsampling rates
-    if(parameters().parameterExists("prob")) {
-        parameters().fillParameterIntoContainerRepeatIndexes("prob", _probs, ',');
-    } else if(parameters().parameterExists("depth")){
+    if(parameters().exists("prob")) {
+        parameters().fill("prob", _probs);
+    } else if(parameters().exists("depth")){
         std::vector<double> depths;
-        parameters().fillParameterIntoContainerRepeatIndexes("depth", depths, ',');
-        double averageDepth = parameters().getParameter<double>("averageDepth");
+        parameters().fill("depth", depths);
+        double averageDepth = parameters().get<double>("averageDepth");
         for(auto& it : depths){
             if(averageDepth >= it){
                 _probs.push_back(it / averageDepth);
@@ -119,7 +119,7 @@ TBamDownsampler::TBamDownsampler() : TBamDownsampler_base(){
 
 	if (*_probs.begin() == 1.0) logfile().warning("Probability of 1 will result in identical file!");
 	std::string filePrefix;
-	if (parameters().parameterExists("downsampleBases")) {
+	if (parameters().exists("downsampleBases")) {
 		logfile().list("Will downsample by removing bases (i.e. replacing random bases with Ns). (parameter 'downsampleBases')");
 		_writeN = true;
 	} else {
@@ -127,7 +127,7 @@ TBamDownsampler::TBamDownsampler() : TBamDownsampler_base(){
 		_writeN = false;
 	}
 
-	if (!_writeN && parameters().parameterExists("separateReads")) {
+	if (!_writeN && parameters().exists("separateReads")) {
 		filePrefix = _outputName + "_separated_";
 		// report
 		logfile().list("Will separate reads with probabilities (parameter 'prob'): " +

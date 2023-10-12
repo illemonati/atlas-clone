@@ -199,7 +199,7 @@ public:
 
 struct TGLFPrinter {
 	void run() {
-		TGlfReader reader(coretools::instances::parameters().getParameter<std::string>("glf"));
+		TGlfReader reader(coretools::instances::parameters().get<std::string>("glf"));
 		reader.printToEnd();
 	};
 };

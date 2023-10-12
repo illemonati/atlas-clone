@@ -46,14 +46,14 @@ using genometools::Base;
 //---------------------------------------------------------------
 // TErrorEstimator
 //---------------------------------------------------------------
-	TErrorEstimator::TErrorEstimator() : _rgMap(_bamFile.readGroups(), parameters().getParameterWithDefault<std::string>("pool", "")), _onlyLL(parameters().parameterExists("onlyLL")) {
+	TErrorEstimator::TErrorEstimator() : _rgMap(_bamFile.readGroups(), parameters().get<std::string>("pool", "")), _onlyLL(parameters().exists("onlyLL")) {
 	_openReference(true);
 	std::vector<size_t> ploidies;
-	parameters().fillParameterIntoContainerRepeatIndexesWithDefault("ploidy", ploidies, ',', {2});
+	parameters().fill("ploidy", ploidies, {2});
 
-	if (parameters().parameterExists("bed")) {
+	if (parameters().exists("bed")) {
 		std::vector<std::string> beds;
-		parameters().fillParameterIntoContainer("bed", beds, ',');
+		parameters().fill("bed", beds);
 		if (ploidies.size() == 1) ploidies.assign(beds.size(), ploidies.front());
 		if (ploidies.size() != beds.size()) UERROR("You need to give as many ploidies as chromosomes, or only one ploidy!");
 
@@ -68,9 +68,9 @@ using genometools::Base;
 				_genoDist.push_back(std::make_unique<THKY85>());
 			}
 		}
-	} else if (parameters().parameterExists("chr")) {
+	} else if (parameters().exists("chr")) {
 		std::vector<std::string> chrs;
-		parameters().fillParameterIntoContainer("chr", chrs, ',');
+		parameters().fill("chr", chrs);
 		if (ploidies.size() == 1) ploidies.assign(chrs.size(), ploidies.front());
 		if (ploidies.size() != chrs.size()) UERROR("You need to give as many ploidies as chromosomes, or only one ploidy!");
 
@@ -95,8 +95,8 @@ using genometools::Base;
 		}
 	}
 
-	const auto recalModel = parameters().getParameterWithDefault("recalModel", "intercept;quality;position;context;fragmentLength;mappingQuality;");
-	const auto pmdModel   = parameters().getParameterWithDefault("pmdModel", "CT5;GA5;CT3;GA3");
+	const auto recalModel = parameters().get("recalModel", "intercept;quality;position;context;fragmentLength;mappingQuality;");
+	const auto pmdModel   = parameters().get("pmdModel", "CT5;GA5;CT3;GA3");
 
 	logfile().list("Initial recal model: ", recalModel);
 	logfile().list("Initial pmd model: ", pmdModel);
@@ -109,10 +109,10 @@ using genometools::Base;
 	// estimation parameters
 	logfile().startIndent("Settings regarding the EM algorithm:");
 
-	_numEMIterations            = parameters().getParameterWithDefault<int>("iterations", 200);
-	_minDeltaLL                 = parameters().getParameterWithDefault<double>("minDeltaLL", 1e-6);
-	_NewtonRaphsonNumIterations = parameters().getParameterWithDefault<int>("NRiterations", 20);
-	_NewtonRaphsonMaxF          = parameters().getParameterWithDefault<double>("maxF", 1e-6);
+	_numEMIterations            = parameters().get<int>("iterations", 200);
+	_minDeltaLL                 = parameters().get<double>("minDeltaLL", 1e-6);
+	_NewtonRaphsonNumIterations = parameters().get<int>("NRiterations", 20);
+	_NewtonRaphsonMaxF          = parameters().get<double>("maxF", 1e-6);
 	logfile().list("Will perform at max ", _numEMIterations, " EM iterations. (parameter 'iterations')");
 	logfile().list("Will stop EM when deltaLL < ", _minDeltaLL, ". (parameter 'minDeltaLL')");
 	logfile().list("Will conduct at max ", _NewtonRaphsonNumIterations, " Newton-Raphson iterations. (parameter NRiterations)");

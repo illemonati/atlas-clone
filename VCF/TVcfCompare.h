@@ -63,7 +63,7 @@ private:
 	double _minQual = 0.;
 
 public:
-	TVcfComapreVCF(std::string & filename, std::string & sampleName);
+	TVcfComapreVCF(std::string_view filename, std::string_view sampleName);
 
 	void next();
 	void setFilters(const int mindepth, const double minQual);

@@ -39,19 +39,19 @@ TVcfFileConverter::TVcfFileConverter() {
 
 	// read output name
 	auto tmp = coretools::str::readBeforeLast(_vcfName, ".vcf");
-	_outName = parameters().getParameterWithDefault("out", tmp);
+	_outName = parameters().get("out", tmp);
 	logfile().list("Writing output files with prefix '" + _outName + "'. (specify with 'out')");
 }
 
 void TVcfFileConverter::_openVCF() {
-	_vcfName = parameters().getParameterFilename("vcf");
+	_vcfName = parameters().get("vcf");
 	_reader.initialize(false);
 	_reader.openVCF(_vcfName);
 }
 
 void TVcfFileConverter::_readSamples() {
-	if (parameters().parameterExists("samples")) {
-		_samples.readSamples(parameters().getParameter<std::string>("samples"));
+	if (parameters().exists("samples")) {
+		_samples.readSamples(parameters().get<std::string>("samples"));
 	}
 
 	// match samples
@@ -229,9 +229,9 @@ template<typename Range> void skip(Range &range, size_t nGaps = 1) {
 }
 
 void TVcfBeagleNew::run() {
-	const auto inName = parameters().getParameterFilename("vcf");
+	const auto inName = parameters().get("vcf");
 	const auto outName =
-	    parameters().getParameterWithDefault("out", coretools::str::readBeforeLast(inName, ".vcf")) + ".beagle.gz";
+	    parameters().get("out", coretools::str::readBeforeLast(inName, ".vcf")) + ".beagle.gz";
 
 	std::unique_ptr<std::istream> istream;
 	if (coretools::str::readAfterLast(inName, '.') == "gz")
@@ -453,11 +453,11 @@ void TVcfToPosFile::run() {
 
 TVcfToGenotypeTruthSetFile::TVcfToGenotypeTruthSetFile() {
 	// read params
-	_minDistanceToPreviousLocus = parameters().getParameterWithDefault<size_t>("minDistance", 100);
+	_minDistanceToPreviousLocus = parameters().get<size_t>("minDistance", 100);
 	logfile().list("Will keep loci that have a minimal distance of ", _minDistanceToPreviousLocus,
 	               " to previous locus (parameter 'minDistance').");
 	_resetDistance();
-	_numSamplesPerLocus = parameters().getParameterWithDefault<size_t>("numSamples", 5);
+	_numSamplesPerLocus = parameters().get<size_t>("numSamples", 5);
 	logfile().list("Will keep up to ", _numSamplesPerLocus, " individuals per locus (parameter 'numSamples').");
 }
 
