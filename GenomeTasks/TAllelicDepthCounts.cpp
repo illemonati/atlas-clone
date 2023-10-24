@@ -57,8 +57,8 @@ void TAllelicDepthCounts::addSite(const GenotypeLikelihoods::TBaseCounts & allel
 	const auto aT = alleleCounts[Base::T];
 	if (aA < _size && aC < _size && aG < _size && aT < _size) {
 		const auto i = impl::index(aA, aC, aG, aT, _size);
-		if (_counts.size() <= i) _counts.resize(i + 1);
-		++_counts[impl::index(aA, aC, aG, aT, _size)];
+		if (_counts.size() <= i) _counts.resize(i + 1, 0);
+		++_counts[i];
 	}
 };
 
@@ -101,7 +101,7 @@ void TAllelicDepthCounts::write(const std::string &filename, bool printEmpty){
 
 						//find minor
 						if(size > 1){
-							out << tmp[1] << 0;
+							out << tmp[1] << max;
 						} else {
 							//find second
 							size_t second = 0;
