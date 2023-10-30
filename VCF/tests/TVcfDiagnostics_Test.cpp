@@ -59,7 +59,7 @@ public:
 		parameters().clear();
 
 		filename = "test.vcf.gz";
-		parameters().addParameter("vcf", filename);
+		parameters().add("vcf", filename);
 	}
 
 	void writeVcfFile(const std::vector<std::string> &Chromosomes,
@@ -150,9 +150,10 @@ TEST_F(TVCFDiagnosticsTest, vcfToInvariantBed_allAreVariant_oneSample) {
 
 	// check if sites are as expected
 	std::vector<std::string> line;
+	/*
 	size_t c = 0;
 	// TODO: test fails; fix task!
-	/*while (bed.read(line)){
+	while (bed.read(line)){
 		EXPECT_EQ(line[0], "junk_1");
 		EXPECT_EQ(line[1], "0");
 		EXPECT_EQ(line[2], toString(numLoci - 1));

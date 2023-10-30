@@ -26,7 +26,7 @@ using coretools::instances::logfile;
 // TCreateBedMask
 //--------------------------------------
 TCreateBedMask::TCreateBedMask():TGenome_windows(){
-	_minDepth = parameters().getParameterWithDefault<uint32_t>("minDepth", 2);
+	_minDepth = parameters().get<uint32_t>("minDepth", 2);
 	_bed.addChromosomes(_chromosomes);
 };
 
@@ -45,14 +45,14 @@ void TCreateBedMask::_createMask(const std::string fileTag){
 // TCreateDepthBedMask
 //--------------------------------------
 TCreateDepthBedMask::TCreateDepthBedMask():TCreateBedMask(){
-	_maxDepth = parameters().getParameterWithDefault<uint32_t>("maxDepth", 1000000);
+	_maxDepth = parameters().get<uint32_t>("maxDepth", 1000000);
 	logfile().list("Will create a mask for all sites with depth outside the range [" + toString(_minDepth) + ", " + toString(_maxDepth) + "].");
 
 	if(_maxDepth < _minDepth){
 		UERROR("maxDepthForMask must be > minDepthForMask!");
 	}
 
-	if(parameters().parameterExists("maxDepth") || parameters().parameterExists("minDepth"))
+	if(parameters().exists("maxDepth") || parameters().exists("minDepth"))
 		UERROR("Cannot mask sites for sequencing depth (parameters 'minDepth' and 'maxDepth') while creating the mask!");
 };
 

@@ -36,7 +36,7 @@ using coretools::str::toString;
 // TEstimateThetaLLSurface
 //-----------------------------------
 TEstimateThetaLLSurface::TEstimateThetaLLSurface() : TGenome_windows() {
-	_steps = parameters().getParameterWithDefault<int>("steps", 100);
+	_steps = parameters().get<int>("steps", 100);
 	logfile().list("Will calculate the LL-surface at ", _steps, " steps. (parameter 'steps')");
 	if (_steps < 2) { UERROR("Th enumber of steps must be >= 2!"); }
 };
@@ -85,7 +85,7 @@ void TEstimateTheta::_addSites(GenotypeLikelihoods::TWindow &window,
 void TEstimateTheta::_addSites() { _addSites(_window, _thetaEstimator); };
 
 TEstimateTheta::TEstimateTheta() : TGenome_windows() {
-	if (parameters().parameterExists("genomeWide")) {
+	if (parameters().exists("genomeWide")) {
 		_genomeWide = true;
 		logfile().list("Will estimating heterozygosity (theta) genome-wide.");
 
@@ -96,7 +96,7 @@ TEstimateTheta::TEstimateTheta() : TGenome_windows() {
 		}
 
 		// bootstraps
-		_numBootstraps = parameters().getParameterWithDefault<int>("bootstraps", 0);
+		_numBootstraps = parameters().get<int>("bootstraps", 0);
 		if (_numBootstraps > 0) {
 			logfile().list("Will estimate theta fpr ", _numBootstraps,
 						   " bootstrap replicates. (parameter 'bootstraps')");
@@ -104,7 +104,7 @@ TEstimateTheta::TEstimateTheta() : TGenome_windows() {
 			logfile().list("Will not conduct any bootstrap replicates. (use 'bootstraps' to request)");
 		}
 
-		if (parameters().parameterExists("onlyBootstrap")) {
+		if (parameters().exists("onlyBootstrap")) {
 			_onlyBootstraps = true;
 			logfile().list("Will only bootstrap");
 		} else {
@@ -118,12 +118,12 @@ TEstimateTheta::TEstimateTheta() : TGenome_windows() {
 
 	// read downsampling rates
 
-	if (parameters().parameterExists("prob")) {
-		parameters().fillParameterIntoContainerRepeatIndexes("prob", downSampleProbVector, ',');
-	} else if (parameters().parameterExists("depth")) {
+	if (parameters().exists("prob")) {
+		parameters().fill("prob", downSampleProbVector);
+	} else if (parameters().exists("depth")) {
 		std::vector<double> depths;
-		parameters().fillParameterIntoContainerRepeatIndexes("depth", depths, ',');
-		double averageDepth = parameters().getParameter<double>("averageDepth");
+		parameters().fill("depth", depths);
+		double averageDepth = parameters().get<double>("averageDepth");
 		for (auto &it : depths) {
 			if (averageDepth >= it) {
 				downSampleProbVector.push_back(it / averageDepth);
@@ -172,7 +172,7 @@ TEstimateTheta::TEstimateTheta() : TGenome_windows() {
 	_thetaOut.open(filename);
 
 	// print all windows?
-	if (parameters().parameterExists("printAll")) {
+	if (parameters().exists("printAll")) {
 		_printAll = true;
 		logfile().list(
 			"Will print all windows, also those for which no estimation was possible. (parameter 'printAll')");
@@ -287,7 +287,7 @@ TEstimateThetaRatio::TEstimateThetaRatio() : TGenome_windows(), _thetaEstimatorR
 
 void TEstimateThetaRatio::_initializeRegion(genometools::TBed &region, const int num) {
 	logfile().startIndent((std::string) "Region " + std::to_string(num) + ":");
-	std::string regionsFile = parameters().getParameter<std::string>("region" + std::to_string(num));
+	std::string regionsFile = parameters().get<std::string>("region" + std::to_string(num));
 	logfile().listFlush("Reading regions ", num, " from file '", regionsFile, " (parameter 'region", num, "') ...");
 	region.add(regionsFile, _bamFile.chromosomes());
 	logfile().done();

@@ -68,25 +68,25 @@ void TInbreedingEstimatorPrior::initializeInferred() {
 
 void TInbreedingEstimatorPrior::_readCommandLineArguments() {
 	// parameters for model switch of F
-	_q_FModel_To_HWE     = parameters().getParameterWithDefault("probMovingToModelNoF", coretools::Probability(0.1));
+	_q_FModel_To_HWE     = parameters().get("probMovingToModelNoF", coretools::Probability(0.1));
 	_log_q_FModel_To_HWE = log(_q_FModel_To_HWE);
 	logfile().list("Will propose move to model without F with probability ", _q_FModel_To_HWE,
 	               ". (use 'probMovingToModelNoF' to change)");
 
 	// Read lambda for proposing new F
-	_lambdaNewF = parameters().getParameterWithDefault("lambdaF", 100.0);
+	_lambdaNewF = parameters().get("lambdaF", 100.0);
 	logfile().list("Setting lambda of exponential distribution used for the proposal of "
 	               "new F after move to model with F to ",
 	               _lambdaNewF, ". (use 'lambdaF' to change)");
 
 	// parameters for model switch of p
-	_q_PModel_To_NullModel     = parameters().getParameterWithDefault("probMovingToModelP0", 0.1);
+	_q_PModel_To_NullModel     = parameters().get("probMovingToModelP0", 0.1);
 	_log_q_PModel_To_NullModel = log(_q_PModel_To_NullModel);
 	logfile().list("Will propose move to monomorphic model with probability ", _q_PModel_To_NullModel,
 	               ". (use 'probMovingToModelP0' to change)");
 
 	// Read lambda for proposing new p
-	_lambdaNewP = parameters().getParameterWithDefault("lambdaP", 100.0);
+	_lambdaNewP = parameters().get("lambdaP", 100.0);
 	logfile().list("Lambda of exponential distribution used for the proposal of "
 	               "new p after move to polymorphic model is set to ",
 	               _lambdaNewP, ". (use 'lambdaP' to change)");
@@ -408,7 +408,7 @@ TInbreedingEstimatorModel::TInbreedingEstimatorModel(
 void TInbreedingEstimator::_readData() {
 	// read data
 	_likelihoods.doSaveAlleleFrequencies();
-	if (parameters().parameterExists("trueAlleleFreq")) {
+	if (parameters().exists("trueAlleleFreq")) {
 		_likelihoods.doSaveTrueAlleleFrequencies();
 		logfile().list("Will save true allele frequencies for population likelihoods.");
 	}
@@ -417,10 +417,10 @@ void TInbreedingEstimator::_readData() {
 
 void TInbreedingEstimator::run() {
 	// read file names
-	std::string vcfFileName = parameters().getParameter("vcf");
+	std::string vcfFileName = parameters().get("vcf");
 	vcfFileName             = coretools::str::extractBeforeLast(vcfFileName, ".vcf");
-	auto prefix             = parameters().getParameterWithDefault<std::string>("prefix", "");
-	auto filename           = parameters().getParameterWithDefault<std::string>("out", vcfFileName);
+	auto prefix             = parameters().get<std::string>("prefix", "");
+	auto filename           = parameters().get<std::string>("out", vcfFileName);
 
 	// read data
 	_readData();

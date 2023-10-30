@@ -35,7 +35,7 @@ void TAlleleCountFile::openFileToWrite(std::string filename){
 };
 
 void TAlleleCountFile::writeHeader(genometools::TPopulationSamples & samples){
-	bool useLocusName = parameters().parameterExists("useLocusName");
+	bool useLocusName = parameters().exists("useLocusName");
 	if(useLocusName){
 		logfile().list("Will print locus names (rather than chromosome and position).");
 		outFile << "Locus";
@@ -48,7 +48,7 @@ void TAlleleCountFile::writeHeader(genometools::TPopulationSamples & samples){
 };
 
 void TAlleleCountFile::writeHeader(std::vector<std::string> populationNames){
-	bool useLocusName = parameters().parameterExists("useLocusName");
+	bool useLocusName = parameters().exists("useLocusName");
 	if(useLocusName){
 		logfile().list("Will print locus names (rather than chromosome and position).");
 		outFile << "Locus";
@@ -89,7 +89,7 @@ void TAlleleCountFile::endl(){
 //------------------------------
 
 void TAlleleCountFileWithAlleles::writeHeader(genometools::TPopulationSamples & samples){
-	bool useLocusName = parameters().parameterExists("useLocusName");
+	bool useLocusName = parameters().exists("useLocusName");
 	if(useLocusName){
 		logfile().list("Will print locus names (rather than chromosome and position).");
 		outFile << "Locus";
@@ -102,7 +102,7 @@ void TAlleleCountFileWithAlleles::writeHeader(genometools::TPopulationSamples & 
 };
 
 void TAlleleCountFileWithAlleles::writeHeader(std::vector<std::string> populationNames){
-	bool useLocusName = parameters().parameterExists("useLocusName");
+	bool useLocusName = parameters().exists("useLocusName");
 	if(useLocusName){
 		logfile().list("Will print locus names (rather than chromosome and position).");
 		outFile << "Locus";

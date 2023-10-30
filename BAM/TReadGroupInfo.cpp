@@ -58,26 +58,16 @@ void TReadGroupInfo::_setDefault(InfoType Info){
 
 void TReadGroupInfo::_setFromCommandLine(InfoType Info){
 	//read from command line
-	const std::string& arg = infos[Info].argument;
+	const std::string &key = infos[Info].argument;
+	const auto arg         = parameters().get(key, "");
 
-	std::vector<std::string> tmp, argVec;
-	parameters().fillParameterIntoContainer(arg, tmp, true);
-	coretools::str::repeatIndexes(tmp, argVec);
-
-	if (argVec.empty()) {
-		logfile().write("using default for all read groups. (argument '", arg, "')");
+	if (arg.empty()) {
+		logfile().write("using default for all read groups. (parameter '", key, "')");
 		_setAllReadGroups(Info, "");
 	}
-	else if (argVec.size() == 1){
-		logfile().write("using '", argVec[0], "' for all read groups. (argument '", arg, "')");
-		_setAllReadGroups(Info, argVec[0]);
-	} else if (argVec.size() == _info.size()){
-		logfile().write("using read group specific settings provided on the command line. (argument '", arg, "')");
-		for(size_t i = 0; i < _info.size(); ++i){
-			_info[i][Info] = argVec[i];
-		}
-	} else {
-		UERROR("Number of provided values does not match number of read groups!");
+	else {
+		logfile().write("using '", arg, "' for all read groups. (parameter '", key, "')");
+		_setAllReadGroups(Info, arg);
 	}
 }
 
@@ -155,7 +145,7 @@ void TReadGroupInfo::_parse(const InfoType Info){
 		std::string arg = infos[Info].argument;
 
 		//check if info is provided on the command line -> overwrites file
-		if(parameters().parameterExists(arg)){
+		if(parameters().exists(arg)){
 			_setFromCommandLine(Info);
 		} else {
 			//check if provided in file
@@ -171,8 +161,8 @@ void TReadGroupInfo::_parse(const InfoType Info){
 
 TReadGroupInfo::TReadGroupInfo(const BAM::TReadGroups & ReadGroups) {
 	_createReadGroupInfoEntries(ReadGroups);
-	if (parameters().parameterExists(RGInfoArgument)) {
-		_readFile(parameters().getParameter<std::string>(RGInfoArgument, true));
+	if (parameters().exists(RGInfoArgument)) {
+		_readFile(parameters().get(RGInfoArgument));
 	}
 }
 
@@ -201,7 +191,7 @@ BAM::TReadGroups TReadGroupInfo::createReadGroups(std::string_view RgInfoFileNam
 		}
 	} else {
 		// create identical read groups from command line
-		const auto numRG = parameters().getParameterWithDefault<coretools::StrictlyPositive<int>>(numRGArgument, 1);
+		const auto numRG = parameters().get<coretools::StrictlyPositive<int>>(numRGArgument, 1);
 		if (numRG == 1) {
 			logfile().list("Initializing one read group from arguments. (parameter '", numRGArgument, "')");
 		} else {
@@ -297,7 +287,7 @@ void TReadGroupInfo::write(std::string_view Filename){
 //-------------------------------------------
 void TReadGroupInfoTest::run(){
 
-	std::string filename = parameters().getParameter("json");
+	std::string filename = parameters().get("json");
 
 	TReadGroupInfo r;
 	r.createReadGroups(filename);

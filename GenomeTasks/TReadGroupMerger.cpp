@@ -29,7 +29,7 @@ TReadGroupMerger::TReadGroupMerger():TGenome_basic(){
 	BAM::TReadGroups& readGroups = _bamFile.readGroupsMutable();
 
 	//read read groups to be merged
-	std::string filename = parameters().getParameter<std::string>("readGroups");
+	std::string filename = parameters().get<std::string>("readGroups");
 	logfile().startIndent("Reading read groups to be merged from file '" + filename + "':");
 	coretools::TInputFile file(filename.c_str(), coretools::TFile_Filetype::variable);
 

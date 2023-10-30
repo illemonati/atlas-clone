@@ -36,9 +36,9 @@ void TAtlasTest_pileup::setVariables(TParameters & params, TLog* Logfile, TTaskL
 	//variables
 	logfile = Logfile;
 	taskList = TaskList;
-	readLength = params.getParameterWithDefault<int>("pileupTest_readLength", 100);
+	readLength = params.get<int>("pileupTest_readLength", 100);
 	logfile->list("Will simulate reads of length ", readLength, ".");
-	phredError = params.getParameterWithDefault<int>("pileupTest_qual", 50);
+	phredError = params.get<int>("pileupTest_qual", 50);
 	logfile->list("Will test with quality ", phredError, ".");
 	params.fillParameterIntoContainerWithDefault("pileupTest_depths", depths, ',', {2,4,10,20,40});
 	logfile->list("Will test the following depths: " +coretools::str:: concatenateString(depths, ", ") + ".");
@@ -47,7 +47,7 @@ void TAtlasTest_pileup::setVariables(TParameters & params, TLog* Logfile, TTaskL
 	bamFileName = filenameTag + ".bam";
 	fastaName = filenameTag + ".fasta";
 	readGroupName = "TestReadGroup";
-	emissionTolerance = params.getParameterWithDefault<double>("pileupTest_qual", 0.0001);
+	emissionTolerance = params.get<double>("pileupTest_qual", 0.0001);
 	logfile->list("Will allow for a relative error in emission probabilities up to ", emissionTolerance, ".");
 }
 
@@ -62,10 +62,10 @@ bool TAtlasTest_pileup::run(TParameters & parameters, TLog* Logfile, TTaskList *
 
 	//2) Run ATLAS to create pileup
 	//-----------------------------
-	_testParams.addParameter("bam", bamFileName);
-	_testParams.addParameter("fasta", fastaName);
-	_testParams.addParameter("maxReadLength", readLength);
-	_testParams.addParameter("window", 2*readLength);
+	_testParams.add("bam", bamFileName);
+	_testParams.add("fasta", fastaName);
+	_testParams.add("maxReadLength", readLength);
+	_testParams.add("window", 2*readLength);
 
 	if(!runMain("pileup"))
 		return false;
@@ -386,7 +386,7 @@ void TAtlasTest_allelicDepth::setVariables(TParameters & params, TLog* Logfile, 
 	//variables
 	logfile = Logfile;
 	taskList = TaskList;
-	phredError = params.getParameterWithDefault<int>("pileupTest_qual", 50);
+	phredError = params.get<int>("pileupTest_qual", 50);
 	logfile->list("Will test with quality ", phredError, ".");
 	filenameTag = _testingPrefix + _name;
 	bamFileName = filenameTag + ".bam";
@@ -403,8 +403,8 @@ bool TAtlasTest_allelicDepth::run(TParameters & params, TLog* Logfile, TTaskList
 
 	//3) Run ATLAS to create allelicDepthTable
 	//-----------------------------
-	_testParams.addParameter("bam", bamFileName);
-	_testParams.addParameter("maxAllelicDepth", coretools::str::toString(3));
+	_testParams.add("bam", bamFileName);
+	_testParams.add("maxAllelicDepth", coretools::str::toString(3));
 
 	if(!runMain("allelicDepth"))
 		return false;
@@ -609,7 +609,7 @@ TAtlasTest_theta::TAtlasTest_theta():TAtlasTest(){
 
 void TAtlasTest_theta::defineVariables(TParameters & params, TLog* Logfile){
 	logfile = Logfile;
-	simTheta = 	params.getParameterWithDefault<double>("thetaTest_theta", 0.001);
+	simTheta = 	params.get<double>("thetaTest_theta", 0.001);
 };
 
 
@@ -619,11 +619,11 @@ bool TAtlasTest_theta::run(TParameters & params, TLog* Logfile, TTaskList *){
 
 	//2) Run ATLAS to simulate BAM file if not yet existant
 	//-----------------------------
-	_testParams.addParameter("out", filenameTag);
-	_testParams.addParameter("chrLength", "50000000");
-	_testParams.addParameter("simulation_ploidy", "2");
-	_testParams.addParameter("depth", "2");
-	_testParams.addParameter("theta", simTheta);
+	_testParams.add("out", filenameTag);
+	_testParams.add("chrLength", "50000000");
+	_testParams.add("simulation_ploidy", "2");
+	_testParams.add("depth", "2");
+	_testParams.add("theta", simTheta);
 
 	//only simulate BAM if it does not already exist
 	std::string filenameBAM = filenameTag + ".bam";
@@ -643,7 +643,7 @@ bool TAtlasTest_theta::run(TParameters & params, TLog* Logfile, TTaskList *){
 	std::string filenameTheta = filenameTag + "_theta_estimates.txt.gz";
 	gz::igzstream in(filenameTheta.c_str());
 //	if(!in){
-		_testParams.addParameter("bam", bamFileName);
+		_testParams.add("bam", bamFileName);
 		if(!runMain("estimateTheta"))
 			return false;
 //	} else

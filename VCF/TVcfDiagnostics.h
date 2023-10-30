@@ -106,9 +106,9 @@ public:
 	void fixIntAsFloat();
 	void run() {
 		using coretools::instances::parameters; 
-		if (parameters().parameterExists("fixInt")) {
+		if (parameters().exists("fixInt")) {
 			fixIntAsFloat();
-		} else if (parameters().parameterExists("writeBED")) {
+		} else if (parameters().exists("writeBED")) {
 			vcfToInvariantBed();
 		} else {
 			assessAllelicImbalance();

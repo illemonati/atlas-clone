@@ -33,11 +33,11 @@ void TPolymorphicWindowIdentifier::run() {
 	using BG = genometools::BiallelicGenotype;
 	//read samples
 	genometools::TPopulationSamples samples;
-	if(parameters().parameterExists("samples"))
-		samples.readSamples(parameters().getParameter<std::string>("samples"));
+	if(parameters().exists("samples"))
+		samples.readSamples(parameters().get<std::string>("samples"));
 
 	//open VCF reader
-	std::string vcfFilename = parameters().getParameter<std::string>("vcf");
+	std::string vcfFilename = parameters().get<std::string>("vcf");
 	logfile().startIndent("Reading genotype likelihoods from VCF file '" + vcfFilename + "':");
     genometools::TPopulationLikelihoodReaderWindow reader(false);
 	reader.openVCF(vcfFilename);
@@ -51,7 +51,7 @@ void TPolymorphicWindowIdentifier::run() {
 
 	//output file
 	auto tmp = coretools::str::readBeforeLast(vcfFilename, ".vcf");
-	std::string outputName = parameters().getParameterWithDefault("out", tmp) + "_polymorphicWindows.txt.gz";
+	std::string outputName = parameters().get("out", tmp) + "_polymorphicWindows.txt.gz";
 	logfile().list("Will write polymorphic state of windows to file '" + outputName + "'.");
 	coretools::TOutputFile out(outputName);
 

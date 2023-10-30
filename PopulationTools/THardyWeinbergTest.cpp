@@ -320,12 +320,12 @@ void THWPopulations::runTest(TOutputFile & out){
 THardyWeinbergTest::THardyWeinbergTest(){
 
 	//read samples
-	if(parameters().parameterExists("samples")){
-		_samples.readSamples(parameters().getParameter<std::string>("samples"));
+	if(parameters().exists("samples")){
+		_samples.readSamples(parameters().get<std::string>("samples"));
 	}
 
 	//open VCF
-	_vcfFilename = parameters().getParameter<std::string>("vcf");
+	_vcfFilename = parameters().get<std::string>("vcf");
 	logfile().list("Reading vcf from file '" + _vcfFilename + "'.");
 	_vcfFile.openStream(_vcfFilename);
 
@@ -348,12 +348,12 @@ THardyWeinbergTest::THardyWeinbergTest(){
 
 	//get output name
 	std::string tmp = coretools::str::extractBeforeLast(_vcfFilename, ".vcf");
-	_outname = parameters().getParameterWithDefault<std::string>("out", tmp);
+	_outname = parameters().get<std::string>("out", tmp);
 
 	//limit lines?
-	_limitLines = parameters().parameterExists("limitLines");
+	_limitLines = parameters().exists("limitLines");
 	if(_limitLines){
-		_maxNumLines = parameters().getParameter<long>("limitLines");
+		_maxNumLines = parameters().get<long>("limitLines");
 	} else {
 		_maxNumLines = 0;
 	}

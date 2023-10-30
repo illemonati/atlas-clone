@@ -77,13 +77,13 @@ void TSoftClippingStatsFile::write(const BAM::TBamFile &bamFile) {
 //--------------------------------------------------------
 TAssessSoftClipping::TAssessSoftClipping() : TGenome_filtered() {
 	// limit input / output
-	if (parameters().parameterExists("writeReads")) {
+	if (parameters().exists("writeReads")) {
 		_writeAlignments     = true;
 		std::string filename = _outputName + "_softClippingStats.txt.gz";
 		logfile().list("Will write alignments with softclipping to file '" + filename + "'. (parameter 'writeReads')");
 
 		// write all reads?
-		if (parameters().parameterExists("printAll")) {
+		if (parameters().exists("printAll")) {
 			_printAll = true;
 			logfile().list("Writing soft clipping stats for all reads to file. (parameter 'printAll')");
 		} else {
@@ -92,7 +92,7 @@ TAssessSoftClipping::TAssessSoftClipping() : TGenome_filtered() {
 		}
 
 		bool printSequences = false;
-		if (parameters().parameterExists("printSequences")) {
+		if (parameters().exists("printSequences")) {
 			printSequences = true;
 			logfile().list("Writing soft clipped bases to file. (parameter 'printSequences')");
 		} else {

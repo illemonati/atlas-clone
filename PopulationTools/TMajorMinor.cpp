@@ -432,17 +432,17 @@ template<typename Estimator> void iterate(double maxF) {
 	glfReader.setAllActive();
 
 	// add reference, if provided
-	if (parameters().parameterExists("fasta")) {
+	if (parameters().exists("fasta")) {
 		logfile().list("Will only identify the most likely alternative allele (argument: fasta)");
-		const std::string fastaFile = parameters().getParameter<std::string>("fasta");
+		const std::string fastaFile = parameters().get<std::string>("fasta");
 		logfile().list("Reading reference sequence from '" + fastaFile + "'");
 		glfReader.addReference(fastaFile);
 	}
 
 	// estimation method
-	const std::string method = parameters().getParameterWithDefault<std::string>("method", "MLE");
+	const std::string method = parameters().get<std::string>("method", "MLE");
 
-	const bool usePhredLikelihoods = parameters().parameterExists("phredLik");
+	const bool usePhredLikelihoods = parameters().exists("phredLik");
 	if (usePhredLikelihoods) {
 		logfile().list("Will write phred-scaled likelihoods. (parameter phredLik)");
 	} else {
@@ -452,18 +452,18 @@ template<typename Estimator> void iterate(double maxF) {
 	// read filters
 	size_t minSamplesWithData = 1;
 	genometools::PhredIntProbability minVariantQuality{0};
-	if (parameters().parameterExists("printAll")) {
+	if (parameters().exists("printAll")) {
 		logfile().list("Will all sites and samples. (parameter printAll)");
 		minSamplesWithData = 0;
 		minVariantQuality  = 0;
 	} else {
-		minSamplesWithData = parameters().getParameterWithDefault<size_t>("minSamplesWithData", 1);
+		minSamplesWithData = parameters().get<size_t>("minSamplesWithData", 1);
 		if (minSamplesWithData > 0) {
 			logfile().list("Will only print sites for which at least ", minSamplesWithData,
 						   " samples have data. (parameter minSamplesWithData)");
 		}
 
-		minVariantQuality = parameters().getParameterWithDefault<genometools::PhredIntProbability>(
+		minVariantQuality = parameters().get<genometools::PhredIntProbability>(
 			"minVariantQual", genometools::PhredIntProbability::highest());
 		if (minVariantQuality > genometools::PhredIntProbability::highest()) {
 			logfile().list("Will only print sites with variant quality >= ", minVariantQuality,
@@ -472,7 +472,7 @@ template<typename Estimator> void iterate(double maxF) {
 	}
 	glfReader.minSamplesWithData(minSamplesWithData);
 
-	coretools::Probability minMAF = parameters().getParameterWithDefault("minMAF", 0.0);
+	coretools::Probability minMAF = parameters().get("minMAF", 0.0);
 	if (minMAF > 0.0) {
 		logfile().list("Will filter on a minor allele frequency of ", minMAF, ". (parameter 'minMAF')");
 	} else {
@@ -480,18 +480,18 @@ template<typename Estimator> void iterate(double maxF) {
 	}
 
 	// limit input
-	const size_t limitSites = parameters().getParameterWithDefault("limitSites", 0);
+	const size_t limitSites = parameters().get("limitSites", 0);
 	logfile().list("Will stop at input position ", limitSites, ". (parameter 'limitSites')");
 
 	// filename tag
-	const std::string outname = parameters().getParameterWithDefault<std::string>("out", "ATLAS_majorMinor");
+	const std::string outname = parameters().get<std::string>("out", "ATLAS_majorMinor");
 	logfile().list("Will write output files with tag '" + outname + "'. (parameter 'out')");
 
 	// get sample names. Make sure they are unique in the vcf
 	std::vector<std::string> sampleNames;
-	if (parameters().parameterExists("sampleNames")) {
+	if (parameters().exists("sampleNames")) {
 		logfile().startIndent("Using the following sample names (parameter 'sampleNames'):");
-		parameters().fillParameterIntoContainer("sampleNames", sampleNames, ',');
+		parameters().fill("sampleNames", sampleNames);
 
 		if (sampleNames.size() != glfReader.numActiveSamples()) {
 			UERROR("Number of provided sample names does not match number of GLF files!");
@@ -527,7 +527,7 @@ template<typename Estimator> void iterate(double maxF) {
 	}
 
 #ifdef _OPENMP
-	size_t maxThreads = coretools::instances::parameters().getParameterWithDefault("maxThreads", omp_get_max_threads());
+	size_t maxThreads = coretools::instances::parameters().get("maxThreads", omp_get_max_threads());
 	coretools::instances::logfile().list("Running in parallel with a maximum of ", maxThreads,
 										 " threads (argument 'maxThreads')");
 #else
@@ -584,9 +584,9 @@ template<typename Estimator> void iterate(double maxF) {
 // TMajorMinor
 //---------------------------------------------------
 void TMajorMinor::run() {
-	const std::string method = parameters().getParameterWithDefault<std::string>("method", "MLE");
+	const std::string method = parameters().get<std::string>("method", "MLE");
 
-	const double maxF = parameters().getParameterWithDefault("maxF", 0.0000001);
+	const double maxF = parameters().get("maxF", 0.0000001);
 	if (method == "Skotte") {
 		logfile().list("Will estimate major / minor alleles using the Skotte method with maxF ", maxF,
 					   ". (parameters method and maxF)");

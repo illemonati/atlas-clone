@@ -29,8 +29,8 @@ using coretools::instances::parameters;
 //----------------------------------------
 TPMDEstimator::TPMDEstimator()
 	: TGenome_parsed(),
-	  _readGroupMap(_bamFile.readGroups(), parameters().getParameter<std::string>("poolReadGroups", false)) {
-	_pmd.initialize(parameters().getParameterWithDefault("pmdModel", "doubleStrand:Empiric:Empiric"),
+	  _readGroupMap(_bamFile.readGroups(), parameters().get("poolReadGroups", "")) {
+	_pmd.initialize(parameters().get("pmdModel", "doubleStrand:Empiric:Empiric"),
 					 _bamFile.readGroups());
 
 	// make sure it has a reference

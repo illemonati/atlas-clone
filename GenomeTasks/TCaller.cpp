@@ -158,9 +158,9 @@ void TCaller::printGenotypeFields(std::string tags){
 
 void TCaller::initializeOutput(){
 	//info fields
-	if(parameters().parameterExists("infoFields")){
+	if(parameters().exists("infoFields")){
 		logfile().listFlush("Parsing VCF info fields ...");
-		printInfoFields(parameters().getParameter<std::string>("infoFields"));
+		printInfoFields(parameters().get<std::string>("infoFields"));
 		logfile().done();
 	}
 	if(_VCFInfoFields.numUsed() > 0){
@@ -170,9 +170,9 @@ void TCaller::initializeOutput(){
 	}
 
 	//genotype fields
-	if(parameters().parameterExists("formatFields")){
+	if(parameters().exists("formatFields")){
 		logfile().listFlush("Parsing VCF format fields ...");
-		printGenotypeFields(parameters().getParameter<std::string>("formatFields"));
+		printGenotypeFields(parameters().get<std::string>("formatFields"));
 		logfile().done();
 	}
 	if(_VCFGenotypeFields.numUsed() > 0){
@@ -182,7 +182,7 @@ void TCaller::initializeOutput(){
 	}
 
 	//other output options
-	if(parameters().parameterExists("printAll")){
+	if(parameters().exists("printAll")){
 		_printSitesWithNoData = true;
 		logfile().list("Will print all sites, also those without data. (parameter 'printAll')");
 	} else {
@@ -190,7 +190,7 @@ void TCaller::initializeOutput(){
 		logfile().list("Will print only sites with data. (use 'printAll' to print all);");
 	}
 
-	if(parameters().parameterExists("noAltIfHomoRef")){
+	if(parameters().exists("noAltIfHomoRef")){
 		_printAltIfHomoRef = false;
 		logfile().list("Will not print an alternative allele if the call is homozygous reference. (parameter 'noAltIfHomoRef')");
 	} else {
@@ -198,7 +198,7 @@ void TCaller::initializeOutput(){
 		logfile().list("Will print the most likely alternative allele even if the call is homozygous reference. (use 'noAltIfHomoRef' to suppress)");
 	}
 
-	if(parameters().parameterExists("noTriallelic")){
+	if(parameters().exists("noTriallelic")){
 		_allowTriallelicSites = false;
 		logfile().list("Will not call genotypes resulting in two alternative alleles. (parameter 'noTriallelic')");
 	} else {
@@ -206,7 +206,7 @@ void TCaller::initializeOutput(){
 		logfile().list("Will allow for genotypes with two alternative alleles. (use 'noTriallelic' to suppress)");
 	}
 
-	if(parameters().parameterExists("noCallsViolatingBest")){
+	if(parameters().exists("noCallsViolatingBest")){
 		_allowKnownAllelesCallsDifferentFromBestCall = false;
 		logfile().list("Will not call genotypes from known alleles that conflict with best call across all genotypes. (parameter 'noCallsViolatingBest')");
 	} else {
@@ -1192,7 +1192,7 @@ std::string TCallerBayes::_getVCFGenotypeString_GP(const TSite &, const TGenotyp
 TCall::TCall():TGenome_windows(){
 	//initialize caller
 	logfile().startIndent("Initializing caller:");
-	std::string method = parameters().getParameterWithDefault<std::string>("method", "MLE");
+	std::string method = parameters().get<std::string>("method", "MLE");
 	if(method == "randomBase"){
 		_caller = std::make_unique<TCallerRandomBase>();
 	} else if(method == "majorityBase"){
@@ -1223,12 +1223,12 @@ TCall::TCall():TGenome_windows(){
 	_caller->initializeOutput();
 
 	//open output file
-	std::string sampleName = parameters().getParameterWithDefault<std::string>("sampleName", _outputName);
+	std::string sampleName = parameters().get<std::string>("sampleName", _outputName);
 	logfile().list("Will use sample name '" + sampleName + "'. (parameter 'sampleName')");
 	_caller->openVCF(_outputName + "_calls", sampleName);
 
 	//limit to sites with known alleles?
-	if(parameters().parameterExists("alleles")){
+	if(parameters().exists("alleles")){
 		logfile().startIndent("Will limit calls to sites with known alleles (parameter 'alleles'):");
 		_openSiteSubset("alleles");
 		logfile().endIndent();
@@ -1243,15 +1243,15 @@ TCall::TCall():TGenome_windows(){
 void TCall::_initializeGenotypePrior(){
 	logfile().startIndent("Initializing genotype prior:");
 	//read prior from parameters
-	std::string priorMethod = parameters().getParameterWithDefault<std::string>("prior", "theta");
+	std::string priorMethod = parameters().get<std::string>("prior", "theta");
 	if(priorMethod == "unif"){
 		_prior = std::make_unique<TGenotypePriorUniform>();
 		logfile().list("Will use a uniform prior with equal weights for all genotypes.");
 	} else if(priorMethod == "theta"){
-		if(parameters().parameterExists("fixedTheta")){
-			double theta = parameters().getParameter<double>("fixedTheta");
+		if(parameters().exists("fixedTheta")){
+			double theta = parameters().get<double>("fixedTheta");
 			logfile().list("Will use a fixed theta = " + toString(theta));
-			bool equalBaseFreq = parameters().parameterExists("equalBaseFreq");
+			bool equalBaseFreq = parameters().exists("equalBaseFreq");
 			if(equalBaseFreq)
 				logfile().list("Will use equal base frequencies.");
 			else
@@ -1260,8 +1260,8 @@ void TCall::_initializeGenotypePrior(){
 		} else {
 			logfile().list("Will use a prior based on theta and base frequencies estimated individually for each window.");
 			std::string thetaOuputName = _outputName + "_theta_estimates.txt.gz";
-			if(parameters().parameterExists("defaultTheta")){
-				double defaultTheta = parameters().getParameter<double>("defaultTheta");
+			if(parameters().exists("defaultTheta")){
+				double defaultTheta = parameters().get<double>("defaultTheta");
 				logfile().list("Will use a default theta of ", defaultTheta, " for windows with limited data.");
 				_prior = std::make_unique<TGenotypePriorTheta>(thetaOuputName, defaultTheta);
 			} else

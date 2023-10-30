@@ -75,18 +75,13 @@ std::unique_ptr<THaplotypeSimulator> makeHaploSimulator(const std::string &metho
 }
 
 std::vector<size_t> parse(const std::string & Argument, const std::string & Explanation, const std::vector<size_t>& Defaults){
-	if(parameters().parameterExists(Argument)){
-		std::vector<size_t> res;
-		std::vector<std::string> string_vec;
-		parameters().fillParameterIntoContainer(Argument, string_vec, ',');
-
-		coretools::str::repeatIndexes(string_vec, res);
-		if(res.empty()) UERROR("Issue understanding ", Explanation, " '", coretools::str::concatenateString(string_vec, ","), "' (parameter '" + Argument + "')!");
+	if(parameters().exists(Argument)){
+		const auto  res = parameters().get<std::vector<size_t>>(Argument);
+		if(res.empty()) UERROR("Issue understanding ", Explanation, " '", parameters().get(Argument), "' (parameter '" + Argument + "')!");
 
 		if(res.size() == 1){
 			logfile().list("Will use ", Explanation, " of ", res[0], ". (parameter '", Argument, "')");
 		} else {
-			//logfile().list("Will use ", Explanation, "s ", coretools::str::concatenateString(res, ","), ". (parameter '", Argument, "')");
 			logfile().list("Will use ", Explanation, "s of ", res, ". (parameter '", Argument, "')");
 		}
 		return res;
@@ -157,22 +152,22 @@ void makeChromosomes(TChromosomes & chs, std::vector<size_t> & depths){
 TSimulator::TSimulator(const std::string &method){
 	// output settings
 	logfile().startIndent("Output settings:");
-	if(parameters().parameterExists("out")){
-		_outname = parameters().getParameter<std::string>("out");
+	if(parameters().exists("out")){
+		_outname = parameters().get<std::string>("out");
 		logfile().list("Will write output files with tag '" + _outname + "'. (parameter 'out')");
 	} else {
 		_outname = "ATLAS_simulations";
 		logfile().list("Will write output files with tag '" + _outname + "'. (set with 'out')");
 	}
 
-	_writeTrueGenotypes = parameters().parameterExists("writeTrueGenotypes");
+	_writeTrueGenotypes = parameters().exists("writeTrueGenotypes");
 	if(_writeTrueGenotypes){
 		logfile().list("Will write true genotypes to file. (parameter 'writeTrueGenotypes')");
 	} else {
 		logfile().list("Will NOT write true genotypes to file. (request with 'writeTrueGenotypes')");
 	}
 
-	_writeVariantInvariantBedFiles = parameters().parameterExists("writeVariantBED");
+	_writeVariantInvariantBedFiles = parameters().exists("writeVariantBED");
 	if(_writeVariantInvariantBedFiles){
 		logfile().list("Will write BED files with variant and invariant positions. (parameter 'writeVariantBED')");
 	} else {
@@ -255,10 +250,8 @@ void TBAMSimulator::_initializeReadSimulator(){
 	logfile().startIndent("Parameters regarding sequencing:");
 	//read RGInfo files from command line
 	std::vector<std::string> filenames;
-	if(parameters().parameterExists(BAM::RGInfo::TReadGroupInfo::RGInfoArgument)){
-		std::vector<std::string> tmp;
-		parameters().fillParameterIntoContainer(BAM::RGInfo::TReadGroupInfo::RGInfoArgument, tmp, ',');
-		coretools::str::repeatIndexes(tmp, filenames);
+	if(parameters().exists(BAM::RGInfo::TReadGroupInfo::RGInfoArgument)){
+		parameters().fill(BAM::RGInfo::TReadGroupInfo::RGInfoArgument, filenames);
 	} else {
 		filenames.push_back("");
 	}
@@ -456,10 +449,10 @@ TVCFSimulator::TVCFSimulator(const std::string &method) : TSimulator(method) {
 	}
 
 	// read simulation parameters
-	_error = parameters().getParameterWithDefault("error", 0.05);
+	_error = parameters().get("error", 0.05);
 	logfile().list("Will use a per allele genotyping error rate of " + coretools::str::toString(_error) + ".");
 
-	const bool usePhredLikelihoods = parameters().parameterExists("phredLik");
+	const bool usePhredLikelihoods = parameters().exists("phredLik");
 	if (usePhredLikelihoods) {
 		logfile().list("Will write phred-scaled likelihoods. (parameter phredLik)");
 	} else {

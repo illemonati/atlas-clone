@@ -217,8 +217,8 @@ void TAlignmentMergerReadGroupSettings::initialize(BAM::TReadGroups & readGroups
 	_settings.clear();
 
 	//check if we only merge without truncation
-	if(parameters().parameterExists("pairedReadGroups")){
-		std::string pairedRG = parameters().getParameter<std::string>("pairedReadGroups");
+	if(parameters().exists("pairedReadGroups")){
+		std::string pairedRG = parameters().get<std::string>("pairedReadGroups");
 		if(pairedRG == "all"){
 			//mark all as paired
 			for (size_t rg = 0; rg < readGroups.size(); ++rg) { _settings.emplace(rg, ReadGroupType::paired, 0); }
@@ -247,8 +247,8 @@ void TAlignmentMergerReadGroupSettings::initialize(BAM::TReadGroups & readGroups
 		//do we have to ignore read groups present in file?
 		std::vector<std::string> vec;
 		std::set<size_t> readGroupsToIgnore;
-		if(parameters().parameterExists("ignoreReadGroups")){
-			std::string ignoredReadGroupsFile = parameters().getParameter<std::string>("ignoreReadGroups");
+		if(parameters().exists("ignoreReadGroups")){
+			std::string ignoredReadGroupsFile = parameters().get<std::string>("ignoreReadGroups");
 			logfile().listFlush("Reading read groups to ignore from file '" + ignoredReadGroupsFile + "' ...");
 			coretools::TInputFile in(ignoredReadGroupsFile, false);
 			while(in.read(vec)){
@@ -260,7 +260,7 @@ void TAlignmentMergerReadGroupSettings::initialize(BAM::TReadGroups & readGroups
 		}
 
 		//read file with read group settings
-		std::string readGroupSettingsFile = parameters().getParameter<std::string>("readGroupSettings");
+		std::string readGroupSettingsFile = parameters().get<std::string>("readGroupSettings");
 		logfile().listFlush("Reading read groups from file '" + readGroupSettingsFile + "' ...");
 		coretools::TInputFile in(readGroupSettingsFile, {"readGroup", "seqType", "seqCycles"});
 
@@ -619,7 +619,7 @@ TAlignmentSplitMerger::TAlignmentSplitMerger() : TGenomeParsedWithAlignmentStora
 	_rgSettings.initialize(_bamFile.readGroupsMutable());
 
 	//allow for reads to exceed max cycle length?
-	if(_rgSettings.needTruncation() || parameters().parameterExists("allowForLarger")){
+	if(_rgSettings.needTruncation() || parameters().exists("allowForLarger")){
 		_allowForLarger = true;
 		logfile().list("Adding single end reads that are longer than maxCycles to 'truncated' read group without throwing an error. (parameter 'allowForLarger')");
 	} else {
@@ -641,7 +641,7 @@ void TAlignmentSplitMerger::_initializeMerger() {
 
 	//set merging method
 	//TODO: update wiki to reflect change in names
-	std::string method = parameters().getParameterWithDefault<std::string>("mergingMethod", "middle");
+	std::string method = parameters().get<std::string>("mergingMethod", "middle");
 	if(method == "none"){
 		_merger = std::make_unique<TAlignmentMerger>();
 		logfile().list("Merging method: no merging. (parameter 'mergingMethod')");

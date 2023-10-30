@@ -56,9 +56,9 @@ GenotypeLikelihoods::TGenotypeProbabilities getPGenotype(const Theta &thisTheta)
 };
 
 TThetaEstimator_base::TThetaEstimator_base()
-	: _useTmpFile(coretools::instances::parameters().parameterExists("useTmpFile")),
-	  _minSitesWithData(coretools::instances::parameters().getParameterWithDefault<int>("minSitesWithData", 1000)),
-	  _extraVerbose(coretools::instances::parameters().parameterExists("extraVerbose")) {
+	: _useTmpFile(coretools::instances::parameters().exists("useTmpFile")),
+	  _minSitesWithData(coretools::instances::parameters().get<int>("minSitesWithData", 1000)),
+	  _extraVerbose(coretools::instances::parameters().exists("extraVerbose")) {
 	_initDataStorage();
 };
 
@@ -94,13 +94,13 @@ void TThetaEstimator_base::_initDataStorage() {
 void TThetaEstimator_base::_readParametersRegardingInitialSearch() {
 	using coretools::str::toString;
 	logfile().startIndent("Parameters of the initial theta search:");
-	_initialTheta = parameters().getParameterWithDefault("initTheta", 0.01);
+	_initialTheta = parameters().get("initTheta", 0.01);
 	logfile().list("Will start with an initial theta of " + toString(_initialTheta) + ".");
-	_initThetaNumSearchIterations = parameters().getParameterWithDefault("initThetaNumSearchIterations", 10);
+	_initThetaNumSearchIterations = parameters().get("initThetaNumSearchIterations", 10);
 	if (_initThetaNumSearchIterations > 0) {
 		logfile().list("Will run " + toString(_initThetaNumSearchIterations) +
 					   " iterations of a crude search for an initial theta.");
-		_initThetaSearchFactor = parameters().getParameterWithDefault("initThetaSearchFactor", 100);
+		_initThetaSearchFactor = parameters().get("initThetaSearchFactor", 100);
 		logfile().list("The initial search factor will be " + toString(_initThetaSearchFactor) + ".");
 	} else {
 		_initThetaSearchFactor = 0;
@@ -182,27 +182,27 @@ TThetaEstimator::TThetaEstimator() : TThetaEstimator_base() {
 	_initThetaNumSearchIterations = -1;
 
 	// EM
-	_equalBaseFreqs = parameters().parameterExists("equalBaseFreqs");
+	_equalBaseFreqs = parameters().exists("equalBaseFreqs");
 	if (_equalBaseFreqs) logfile().list("Will assume equal base frequencies. (parameter 'equalBaseFreqs')");
 	else logfile().list("Will estimate base frequencies. (use 'equalBaseFreqs' to assume equal base frequencies)");
 
 	logfile().startIndent("Parameters of EM algorithm to infer theta:");
-	_numIterations = parameters().getParameterWithDefault<int>("iterations", 100);
+	_numIterations = parameters().get<int>("iterations", 100);
 	logfile().list("Will run up to " + toString(_numIterations) + " iterations.");
 	if (_equalBaseFreqs) {
 		_numThetaOnlyUpdates = _numIterations;
 	} else {
-		_numThetaOnlyUpdates = parameters().getParameterWithDefault<int>("iterationsThetaOnly", 10);
+		_numThetaOnlyUpdates = parameters().get<int>("iterationsThetaOnly", 10);
 		logfile().list("In each iteration, theta will be updated " + toString(_numThetaOnlyUpdates) + " times.");
 	}
-	_maxEpsilon = parameters().getParameterWithDefault("maxEps", 0.000001);
+	_maxEpsilon = parameters().get("maxEps", 0.000001);
 	logfile().list("Will run EM until deltaLL < " + toString(_maxEpsilon) + ".");
 
 	//NR
-	_NewtonRaphsonNumIterations = parameters().getParameterWithDefault<int>("NRiterations", 10);
+	_NewtonRaphsonNumIterations = parameters().get<int>("NRiterations", 10);
 	logfile().list("Will run Newton-Raphson algorithm up to " + toString(_NewtonRaphsonNumIterations) + " times.");
 
-	_NewtonRaphsonMaxF = parameters().getParameterWithDefault("maxF", 0.00001);
+	_NewtonRaphsonMaxF = parameters().get("maxF", 0.00001);
 	logfile().list("Will run Newton-Raphson algorithm until max(F) < " + toString(_NewtonRaphsonMaxF) + ".");
 	logfile().endIndent();
 
@@ -583,11 +583,11 @@ TThetaEstimatorRatio::TThetaEstimatorRatio() : TThetaEstimator_base() {
 
 	// MCMC params
 	logfile().startIndent("Parameters of MCMC algorithm:");
-	_burnin = parameters().getParameterWithDefault<int>("burnin", 1000);
+	_burnin = parameters().get<int>("burnin", 1000);
 	logfile().list("Will run a burnin of " + toString(_burnin) + " iterations.");
-	_numIterations = parameters().getParameterWithDefault<int>("iterations", 10000);
+	_numIterations = parameters().get<int>("iterations", 10000);
 	logfile().list("Will run MCMC for " + toString(_numIterations) + " iterations.");
-	_thinning = parameters().getParameterWithDefault<int>("thinning", 1);
+	_thinning = parameters().get<int>("thinning", 1);
 	if (_thinning < 1 || _thinning > _numIterations) UERROR("Thinning must be > 1 and < number iterations!");
 	if (_thinning > 1) {
 		if (_thinning == 2)
@@ -600,16 +600,16 @@ TThetaEstimatorRatio::TThetaEstimatorRatio() : TThetaEstimator_base() {
 	}
 
 	// normal prior on ratio phi = log(theta_1 / theta_2)
-	_phiPriorMean          = parameters().getParameterWithDefault("phiPriorMean", 0.0);
-	_phiPriorVar           = parameters().getParameterWithDefault("phiPriorVar", 1.0);
+	_phiPriorMean          = parameters().get("phiPriorMean", 0.0);
+	_phiPriorVar           = parameters().get("phiPriorVar", 1.0);
 	_phiPriorOneOverTwoVar = 1.0 / 2.0 / _phiPriorVar;
 	logfile().list("Will assume a normal prior on phi ~ N(" + toString(_phiPriorMean) + ", " + toString(_phiPriorVar) +
 				   ").");
 
 	// proposal kernel
-	_sdProposalKernelTheta1    = parameters().getParameterWithDefault("sdProposalTheta", 0.1);
+	_sdProposalKernelTheta1    = parameters().get("sdProposalTheta", 0.1);
 	_sdProposalKernelTheta2    = _sdProposalKernelTheta1;
-	_sdProposalKernelBaseFreq1 = parameters().getParameterWithDefault("sdProposalFreq", 0.01);
+	_sdProposalKernelBaseFreq1 = parameters().get("sdProposalFreq", 0.01);
 	_sdProposalKernelBaseFreq2 = _sdProposalKernelBaseFreq1;
 	logfile().list("Will use initial proposal kernel standard deviations of " + toString(_sdProposalKernelTheta1) +
 				   " and " + toString(_sdProposalKernelBaseFreq1) + " for thetas and base frequencies, respectively.");

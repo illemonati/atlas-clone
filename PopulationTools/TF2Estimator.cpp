@@ -33,19 +33,19 @@ void TF2Estimator::run() {
 
 void TF2Estimator::_openVCF() {
 	// open VCF
-	std::string vcfFilename = parameters().getParameterFilename("vcf");
+	std::string vcfFilename = parameters().get("vcf");
 	_reader.initialize(false);
 	_reader.openVCF(vcfFilename);
 
 	// read output name
 	auto tmp = coretools::str::readBeforeLast(vcfFilename, ".vcf");
-	_outname = parameters().getParameterWithDefault("out", tmp);
+	_outname = parameters().get("out", tmp);
 	logfile().list("Writing output files with prefix '", _outname, "'. (specify with 'out')");
 }
 
 void TF2Estimator::_matchSamples() {
-	if (parameters().parameterExists("samples")) {
-		_samples.readSamples(parameters().getParameter<std::string>("samples"));
+	if (parameters().exists("samples")) {
+		_samples.readSamples(parameters().get<std::string>("samples"));
 	}
 
 	if (_samples.hasSamples()) {

@@ -29,18 +29,18 @@ using coretools::instances::parameters;
 // TPSMCInput
 //----------------------------------------
 TPSMCInput::TPSMCInput():TGenome_windows(){
-	_theta = parameters().getParameterWithDefault<double>("theta", 0.001);
+	_theta = parameters().get<double>("theta", 0.001);
 	logfile().list("Using theta = ", _theta, ". (parameter 'theta')");
 
 	_thetaEstimator = std::make_unique<GenotypeLikelihoods::TThetaEstimator>();
 	_thetaEstimator->setTheta(_theta);
 
-	_confidence = parameters().getParameterWithDefault<double>("confidence", 0.99);
+	_confidence = parameters().get<double>("confidence", 0.99);
 	logfile().list("Calling heterozygosity state with confidence > ", _confidence, ". (parameter 'confidence')");
 
 	_logConfidence    = log(_confidence);
 	_logConfidenceHet = log(1.0 - _confidence);
-	_blockSize        = parameters().getParameterWithDefault<int>("block", 100);
+	_blockSize        = parameters().get<int>("block", 100);
 
 	//open output file
 	std::string outputFileName = _outputName + ".psmcfa";
