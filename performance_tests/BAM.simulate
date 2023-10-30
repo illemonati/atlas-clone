@@ -5,6 +5,16 @@
 bname=$(basename $0)
 name=${bname%.simulate}
 out=$name/$name
-zeros="000007"
+zeros="00007"
 
-$atlas --task simulate --chrLength 10$zeros,5$zeros,2$zeros --ploidy 2,1,2 --depth 10,7,2 --baseFreq 0.2,0.23,0.27,0.3 --refDiv 0.5 --seqType paired --seqCycles 200 --fragmentLength 'fixed(500)' --baseQuality 'binomial(95,0.01)[0,93]' --mappingQuality 'normal(60,10)[1,255]' --softClipping 'normal(10,10)[0,20]' --pmd 'doubleStrand:Exponential[10,20,1,2]:Empiric[0.3]' --recal "intercept[0.1];quality:polynomial[0.8,0.2,0.01]" --frequency 0.2 --numReadGroups 2 --fixedSeed 0 --out $out --logFile $out.out 2> $out.err > /dev/null
+$atlas --task simulate \
+	   --chrLength 100$zeros,1$zeros --ploidy 2,1 --depth 10,7 \
+	   --baseFreq 0.2,0.23,0.27,0.3 --refDiv 0.05 --seqType paired \
+	   --frequency 0.2 --numReadGroups 2 \
+	   --seqCycles 100 --fragmentLength 'normal(200,100)[30,500]' \
+	   --baseQuality 'normal(40,10)[0,93]' \
+	   --mappingQuality 'normal(60,10)[1,255]' \
+	   --softClipping 'normal(10,10)[0,20]' \
+	   --pmd 'CT5:0.2*exp(-0.3*p)+0.01' \
+	   --recal "intercept[0.0];quality:polynomial[0.9,0.01]" \
+	   --fixedSeed 0 --out $out --logFile $out.out 2> $out.err > /dev/null

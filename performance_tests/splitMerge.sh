@@ -9,4 +9,6 @@ out=$name/$name
 echo "readGroup seqType seqCycles" > splitMerge/rgs_paired.txt
 echo "SimReadGroup1 paired 200" >> splitMerge/rgs_paired.txt
 
-$atlas --task splitMerge --bam BAM/BAM.bam --readGroupSettings splitMerge/rgs_paired.txt --mergingMethod middle --fixedSeed 0 --out $out --logFile $out.out 2> $out.err > /dev/null 
+$atlas --task splitMerge --mergingMethod middle \
+	   --bam BAM/BAM.bam --readGroupSettings splitMerge/rgs_paired.txt \
+	   --fixedSeed 0 --out $out --logFile $out.out 2> $out.err > /dev/null 
