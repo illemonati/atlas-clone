@@ -486,15 +486,15 @@ void TThetaEstimator::setBaseFreq(const GenotypeLikelihoods::TBaseProbabilities 
 
 void TThetaEstimator::addToHeader(std::vector<std::string> &header, const std::string &prefix) {
 	_data->addToHeader(header, prefix);
-	header.push_back(prefix + "pi(A)");
-	header.push_back(prefix + "pi(C)");
-	header.push_back(prefix + "pi(G)");
-	header.push_back(prefix + "pi(T)");
-	header.push_back(prefix + "theta_MLE");
-	header.push_back(prefix + "theta_C95_l");
-	header.push_back(prefix + "theta_C95_u");
+	header.push_back(prefix + "piA");
+	header.push_back(prefix + "piC");
+	header.push_back(prefix + "piG");
+	header.push_back(prefix + "piT");
+	header.push_back(prefix + "thetaMLE");
+	header.push_back(prefix + "thetaC95l");
+	header.push_back(prefix + "thetaC95u");
 	header.push_back(prefix + "LL");
-	header.push_back(prefix + "expHet_MLE");
+	header.push_back(prefix + "expHetMLE");
 }
 
 void TThetaEstimator::writeEstimateFrequenciesAndTheta(coretools::TOutputFile &out) {

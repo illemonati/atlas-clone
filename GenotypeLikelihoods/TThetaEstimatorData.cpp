@@ -171,18 +171,26 @@ double TThetaEstimatorData::calcLogLikelihood(const GenotypeLikelihoods::TGenoty
 
 void TThetaEstimatorData::addToHeader(std::vector<std::string> &header, const std::string &prefix) {
 	header.push_back(prefix + "depth");
-	header.push_back(prefix + "fracMissing");
-	header.push_back(prefix + "fracTwoOrMore");
+	header.push_back(prefix + "numSitesWithData");
+	header.push_back(prefix + "numSitesUsed");
+	header.push_back(prefix + "numSitesWithDepth2OrMore");
+	header.push_back(prefix + "fracSitesMissing");
+	header.push_back(prefix + "fracSitesWithDepth2OrMore");
 };
 
 void TThetaEstimatorData::writeSite(coretools::TOutputFile &out) {
 	if (_isBootstrapped()) {
-		out << "NA";
+		out << "-";
+		out << "-";
+		out << "_totNumSitesAdded";
+		out << "-";
 		out << (double)(_totNumSitesAdded - _numSitesWithData) / (double)_totNumSitesAdded;
-		out << "NA";
-		// out << "NA"; //TODO: check if this NA is needed.
+		out << "-";
 	} else {
-		out << _cumulativeDepth / (double)_totNumSitesAdded;
+		out << _cumulativeDepth / (double)_totNumSitesAdded; //depth per site
+		out << _numSitesWithData;
+		out << _totNumSitesAdded;
+		out << _numSitesCoveredTwiceOrMore;
 		out << (double)(_totNumSitesAdded - _numSitesWithData) / (double)_totNumSitesAdded;
 		out << (double)_numSitesCoveredTwiceOrMore / (double)_totNumSitesAdded;
 	}
