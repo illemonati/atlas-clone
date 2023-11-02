@@ -94,9 +94,9 @@ bool TThetaEstimatorTemporaryFile::read(GenotypeLikelihoods::TGenotypeLikelihood
 // TThetaEstimatorData
 //-------------------------------------------------------
 TThetaEstimatorData::TThetaEstimatorData() {
-	_numSitesCoveredTwiceOrMore = 0;
-	_totNumSitesAdded           = 0;
-	_numSitesWithData           = 0;
+	_numSites2x = 0;
+	_numSites           = 0;
+	_numSitesData           = 0;
 	_cumulativeDepth            = 0.0;
 	_readState      = false;
 	_curSite        = 0;
@@ -104,9 +104,9 @@ TThetaEstimatorData::TThetaEstimatorData() {
 };
 
 void TThetaEstimatorData::clear() {
-	_numSitesCoveredTwiceOrMore = 0;
-	_totNumSitesAdded           = 0;
-	_numSitesWithData           = 0;
+	_numSites2x = 0;
+	_numSites           = 0;
+	_numSitesData           = 0;
 	_cumulativeDepth            = 0.0;
 	_emptyStorage();
 	_numBootstrapRepsPerEntry.clear();
@@ -116,11 +116,11 @@ void TThetaEstimatorData::clear() {
 void TThetaEstimatorData::add(const GenotypeLikelihoods::TSite &site,
 							  const GenotypeLikelihoods::TGenotypeLikelihoods &genoLik) {
 	// assumes that emission probabilities were calculated!!
-	++_totNumSitesAdded;
+	++_numSites;
 
 	// add if site has data
 	if (!site.empty()) {
-		++_numSitesWithData;
+		++_numSitesData;
 		_cumulativeDepth += site.depth();
 
 		_saveSite(genoLik);
@@ -129,7 +129,7 @@ void TThetaEstimatorData::add(const GenotypeLikelihoods::TSite &site,
 		_baseFreqs.push_back(site.baseFrequencies());
 
 		// count sites covered >=2
-		if (site.depth() > 1) ++_numSitesCoveredTwiceOrMore;
+		if (site.depth() > 1) ++_numSites2x;
 	}
 };
 
@@ -171,29 +171,29 @@ double TThetaEstimatorData::calcLogLikelihood(const GenotypeLikelihoods::TGenoty
 
 void TThetaEstimatorData::addToHeader(std::vector<std::string> &header, const std::string &prefix) {
 	header.push_back(prefix + "depth");
+	header.push_back(prefix + "numSites");
+	header.push_back(prefix + "numSitesData");
+	header.push_back(prefix + "numSites2x+");
 	header.push_back(prefix + "fracMissing");
-	header.push_back(prefix + "fracTwoOrMore");
+	header.push_back(prefix + "frac2x+");
 };
 
 void TThetaEstimatorData::writeSite(coretools::TOutputFile &out) {
 	if (_isBootstrapped()) {
-		out << "NA";
-		out << (double)(_totNumSitesAdded - _numSitesWithData) / (double)_totNumSitesAdded;
-		out << "NA";
+		out.write("NA", _numSites, _numSitesData, "NA", double(_numSites - _numSitesData)/_numSites, "NA");
 		// out << "NA"; //TODO: check if this NA is needed.
 	} else {
-		out << _cumulativeDepth / (double)_totNumSitesAdded;
-		out << (double)(_totNumSitesAdded - _numSitesWithData) / (double)_totNumSitesAdded;
-		out << (double)_numSitesCoveredTwiceOrMore / (double)_totNumSitesAdded;
+		out.write(_cumulativeDepth/_numSites, _numSites, _numSitesData, _numSites2x,
+				  double(_numSites - _numSitesData)/_numSites, double(_numSites2x)/_numSites);
 	}
 };
 
 void TThetaEstimatorData::bootstrap() {
 	// make sure we start empty
-	_numBootstrapRepsPerEntry.assign(_numSitesWithData, 0);
+	_numBootstrapRepsPerEntry.assign(_numSitesData, 0);
 
-	for (size_t _ = 0; _ < _numSitesWithData; ++_) {
-		++_numBootstrapRepsPerEntry[coretools::instances::randomGenerator().sample(_numSitesWithData)];
+	for (size_t _ = 0; _ < _numSitesData; ++_) {
+		++_numBootstrapRepsPerEntry[coretools::instances::randomGenerator().sample(_numSitesData)];
 	}
 };
 
