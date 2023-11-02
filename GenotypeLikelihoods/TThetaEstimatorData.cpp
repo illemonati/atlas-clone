@@ -139,7 +139,7 @@ TBaseProbabilities TThetaEstimatorData::baseFrequencies() {
 	_begin();
 	do {
 		bd += _baseFreqs[_curSite];
-		} while (_next());
+	} while (_next());
 
 	return TBaseProbabilities::normalize(bd);
 };
@@ -154,7 +154,6 @@ GenotypeLikelihoods::TGenotypeData TThetaEstimatorData::P_G(const GenotypeLikeli
 	do {
 		const auto P_g_oneSite = posterior(_GL(), pGenotype);
 		std::transform(P_G.begin(), P_G.end(), P_g_oneSite.begin(), P_G.begin(), std::plus<>());
-
 	} while (_next());
 	return P_G;
 };

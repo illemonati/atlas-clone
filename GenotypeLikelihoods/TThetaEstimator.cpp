@@ -41,8 +41,8 @@ TGenotypeProbabilities getPGenotype(double expTheta, const TBaseProbabilities &b
 	for (Base b = Base::min; b < Base::max; ++b) {
 		// homozygous genotypes
 		Genotype hom = genotype(b, b);
-		lGeno[hom]   = baseFrequencies[b] * (expTheta + baseFrequencies[b].get() * (1.0 - expTheta));
-		// heterozygous genotypes
+		lGeno[hom]   = baseFrequencies[b] * (expTheta + baseFrequencies[b].get() * (1.0 - expTheta));		
+		// heterozygous genotypes: need to multiply by 2.0 as we do not distinguish AC from CA
 		for (Base c = coretools::next(b); c < Base::max; ++c) {
 			Genotype het = genotype(b, c);
 			lGeno[het]   = 2.0 * baseFrequencies[b].get() * baseFrequencies[c].get() * (1.0 - expTheta);
@@ -55,10 +55,26 @@ GenotypeLikelihoods::TGenotypeProbabilities getPGenotype(const Theta &thisTheta)
 	return getPGenotype(thisTheta.expMinusTheta, thisTheta.baseFreq);
 };
 
-TThetaEstimator_base::TThetaEstimator_base()
-	: _useTmpFile(coretools::instances::parameters().exists("useTmpFile")),
-	  _minSitesWithData(coretools::instances::parameters().get<int>("minSitesWithData", 1000)),
-	  _extraVerbose(coretools::instances::parameters().exists("extraVerbose")) {
+TThetaEstimator_base::TThetaEstimator_base(){
+	logfile().startIndent("Parameters regarding theta estimation:");
+
+	_useTmpFile = coretools::instances::parameters().parameterExists("useTmpFile");
+	if(_useTmpFile){
+		logfile().list("Will use a temporar< file to reduce memory usage. (parameter 'useTmpFile')");
+	} else {
+		logfile().list("Will store all required data in memory. (use 'useTmpFile' to write to a file instead)");
+	}
+
+	_minSitesWithData = coretools::instances::parameters().getParameterWithDefault<int>("minSitesWithData", 1000);
+	logfile().list("Will only infer theta for windows with at least ", _minSitesWithData, " sites with data. (parameter 'minSitesWithData')");
+
+	_extraVerbose = coretools::instances::parameters().parameterExists("extraVerbose");
+	if(_extraVerbose){
+		logfile().list("Will write extra information during theta EM runs. (parameter 'extraVerbose')");
+	} else {
+		logfile().list("Will only write minimal output during theta EM runs. (request extra output with 'extraVerbose')");
+	}
+	
 	_initDataStorage();
 };
 
@@ -95,14 +111,14 @@ void TThetaEstimator_base::_readParametersRegardingInitialSearch() {
 	using coretools::str::toString;
 	logfile().startIndent("Parameters of the initial theta search:");
 	_initialTheta = parameters().get("initTheta", 0.01);
-	logfile().list("Will start with an initial theta of " + toString(_initialTheta) + ".");
+	logfile().list("Will start with an initial theta of ", _initialTheta, ". (parameter 'initTheta')");
 	_initThetaNumSearchIterations = parameters().get("initThetaNumSearchIterations", 10);
 	if (_initThetaNumSearchIterations > 0) {
-		logfile().list("Will run " + toString(_initThetaNumSearchIterations) +
-					   " iterations of a crude search for an initial theta.");
+		logfile().list("Will run " , _initThetaNumSearchIterations, " iterations of a crude search for an initial theta. (parameter 'initThetaNumSearchIterations')");
 		_initThetaSearchFactor = parameters().get("initThetaSearchFactor", 100);
-		logfile().list("The initial search factor will be " + toString(_initThetaSearchFactor) + ".");
+		logfile().list("The initial search factor will be ", _initThetaSearchFactor, ". (parameter 'initThetaSearchFactor')");
 	} else {
+		logfile().list("Will not run any crude initial estimation of theta. (parameter 'initThetaNumSearchIterations')");
 		_initThetaSearchFactor = 0;
 	}
 	logfile().endIndent();
@@ -169,8 +185,9 @@ void TThetaEstimator_base::_findGoodStartingTheta(TThetaEstimatorData *thisData,
 
 	// conclude
 	logfile().done();
-	logfile().conclude("Initial base frequencies: " + thisTheta.string());
-	logfile().conclude("Initial theta = ", thisTheta.theta);
+	logfile().conclude("Initial theta: ", thisTheta.theta);
+	logfile().conclude("Initial base frequencies: " + thisTheta.string());	
+	logfile().conclude("LL at initial estimates: ", thisTheta.LL);	
 }
 
 //-------------------------------------------------------
@@ -188,22 +205,22 @@ TThetaEstimator::TThetaEstimator() : TThetaEstimator_base() {
 
 	logfile().startIndent("Parameters of EM algorithm to infer theta:");
 	_numIterations = parameters().get<int>("iterations", 100);
-	logfile().list("Will run up to " + toString(_numIterations) + " iterations.");
+	logfile().list("Will run up to ", _numIterations, " iterations. (parameter 'iterations')");
 	if (_equalBaseFreqs) {
 		_numThetaOnlyUpdates = _numIterations;
 	} else {
 		_numThetaOnlyUpdates = parameters().get<int>("iterationsThetaOnly", 10);
-		logfile().list("In each iteration, theta will be updated " + toString(_numThetaOnlyUpdates) + " times.");
+		logfile().list("In each iteration, theta will be updated ", _numThetaOnlyUpdates, " times. (parameter 'iterationsThetaOnly')");
 	}
 	_maxEpsilon = parameters().get("maxEps", 0.000001);
-	logfile().list("Will run EM until deltaLL < " + toString(_maxEpsilon) + ".");
+	logfile().list("Will run EM until deltaLL < ", _maxEpsilon,  ". (parameter 'maxEps')");
 
 	//NR
 	_NewtonRaphsonNumIterations = parameters().get<int>("NRiterations", 10);
-	logfile().list("Will run Newton-Raphson algorithm up to " + toString(_NewtonRaphsonNumIterations) + " times.");
+	logfile().list("Will run Newton-Raphson algorithm up to ", _NewtonRaphsonNumIterations, " times. (parameter 'NRiterations')");
 
 	_NewtonRaphsonMaxF = parameters().get("maxF", 0.00001);
-	logfile().list("Will run Newton-Raphson algorithm until max(F) < " + toString(_NewtonRaphsonMaxF) + ".");
+	logfile().list("Will run Newton-Raphson algorithm until max(F) < ", _NewtonRaphsonMaxF, ". (parameter 'maxF')");
 	logfile().endIndent();
 
 	// params regarding initial search
@@ -256,6 +273,7 @@ bool TThetaEstimator::_NRAllParams(const GenotypeLikelihoods::TGenotypeProbabili
 					tmpSum += P_G[het];
 				}
 			}
+			// Note: P_G[het] already includes both kl and lk possibilties -> no need to multiply by two in second term (tmpSum)
 			F(coretools::index(k)) =
 				P_G[hom] * (1.0 + baseFreq[k].get() / (rho + baseFreq[k].get())) + tmpSum - mu * baseFreq[k].get();
 			F(4) -= P_G[hom] * (rho + 1.0) / (rho + baseFreq[k].get());
@@ -373,11 +391,24 @@ void TThetaEstimator::_runEMForTheta() {
 
 		// update all params
 		const auto pGenotype = getPGenotype(_theta);
-		if (!_equalBaseFreqs) _NRAllParams(pGenotype);
+		if (!_equalBaseFreqs){
+			if(!_NRAllParams(pGenotype)){
+				// NR may fail if theta is smaller than true theta and likelihood is very flat
+				// increase theta and try again
+				_theta.set(_theta.theta * 2.0);	
+				_theta.LL = _data->calcLogLikelihood(pGenotype);		
+				continue;			
+			}
+		} 
 
 		// e) do we break EM? Check LL
 		_theta.LL = _data->calcLogLikelihood(pGenotype);
-		if ((_theta.LL - oldLL) < _maxEpsilon) break;
+		const double deltaLL = _theta.LL - oldLL;
+		
+		if (_extraVerbose) logfile().list(toString(iter) + ") current theta = " + toString(_theta.theta), ", current LL = ", _theta.LL, ", delta LL = ", deltaLL);
+
+		// break EM if deltaLL < maxEpsilon
+		if (deltaLL < _maxEpsilon) break;
 
 		// maybe theta = 0?
 		if (_theta.theta < 0.1 / (double)_data->size()) {
@@ -395,8 +426,6 @@ void TThetaEstimator::_runEMForTheta() {
 			}
 			break;
 		}
-
-		if (_extraVerbose) logfile().list(toString(iter) + ") current theta = " + toString(_theta.theta));
 	}
 	if (_extraVerbose) logfile().list("EM converged, current theta = " + toString(_theta.theta));
 }

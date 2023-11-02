@@ -856,7 +856,7 @@ void TBamFile::printSummaryNoEndIndent(std::string_view outputName) const {
 		//logfile().newLine();
 		logfile().list("Number of reads filtered from read group: '" + coretools::str::toString(_readGroups.getName(rg)) + "'");
 		logfile().addIndent();
-		if (rg < _numNotAligned.size()) logfile().list("Not aligned: ", _numNotAligned[rg]);
+		if (rg < _numNotAligned.size() && _numNotAligned[rg] > 0) logfile().list("Not aligned: ", _numNotAligned[rg]);
 		_duplicateFilter.summary(numFiltered, rg);
 		_softClippedRatioFilter.summary(numFiltered, rg);
 		_improperPairsFilter.summary(numFiltered, rg);
