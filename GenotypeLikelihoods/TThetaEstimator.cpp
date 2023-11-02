@@ -42,7 +42,7 @@ TGenotypeProbabilities getPGenotype(double expTheta, const TBaseProbabilities &b
 		// homozygous genotypes
 		Genotype hom = genotype(b, b);
 		lGeno[hom]   = baseFrequencies[b] * (expTheta + baseFrequencies[b].get() * (1.0 - expTheta));
-		// heterozygous genotypes
+		// heterozygous genotypes: need to multiply by 2.0 as we do not distinguish AC from CA
 		for (Base c = coretools::next(b); c < Base::max; ++c) {
 			Genotype het = genotype(b, c);
 			lGeno[het]   = 2.0 * baseFrequencies[b].get() * baseFrequencies[c].get() * (1.0 - expTheta);
@@ -185,7 +185,7 @@ void TThetaEstimator_base::_findGoodStartingTheta(TThetaEstimatorData *thisData,
 	logfile().done();
 	logfile().conclude("Initial theta: ", thisTheta.theta);
 	logfile().conclude("Initial base frequencies: ", thisTheta.baseFreq);
-	
+	logfile().conclude("LL at initial estimates: ", thisTheta.LL);	
 }
 
 //-------------------------------------------------------
@@ -261,6 +261,7 @@ bool TThetaEstimator::_NRAllParams(const GenotypeLikelihoods::TGenotypeProbabili
 					tmpSum += P_G[het];
 				}
 			}
+			// Note: P_G[het] already includes both kl and lk possibilties -> no need to multiply by two in second term (tmpSum)
 			F(coretools::index(k)) =
 				P_G[hom] * (1.0 + baseFreq[k].get() / (rho + baseFreq[k].get())) + tmpSum - mu * baseFreq[k].get();
 			F(4) -= P_G[hom] * (rho + 1.0) / (rho + baseFreq[k].get());
@@ -353,16 +354,6 @@ void TThetaEstimator::_NROnlyTheta() {
 };
 
 void TThetaEstimator::_runEMForTheta() {
-	// increase initialTheta if we fail to calculate inverse of Jacobian.
-	//  this may be the case if initialTheta is smaller than true theta and likelihood is very flat
-	double startingTheta = _initialTheta;	
-	while (!_NRAllParams(getPGenotype(_theta))) {
-		// solve did not work -> start with higher theta!
-		startingTheta *= 2.0;
-		_theta.set(startingTheta);		
-		if (startingTheta > 1.0) UERROR("Failed to estimate Theta, issues calculating inverse of Jacobian!");
-	}
-
 	// start EM loop
 	for (int iter = 0; iter < _numIterations; ++iter) {
 		// update only theta: most difficult parameter and it is much faster to update only this one alone.
@@ -376,38 +367,44 @@ void TThetaEstimator::_runEMForTheta() {
 		} while (i < _numThetaOnlyUpdates && _theta.theta != oldTheta);
 
 		// update all params
-		const auto pGenotype = getPGenotype(_theta);
+		auto pGenotype = getPGenotype(_theta);
 		if(!_NRAllParams(pGenotype)){
-			UERROR("Failed to estimate Theta, issues calculating inverse of Jacobian!");
-		}
-
-		// e) do we break EM? Check LL
-		_theta.LL = _data->calcLogLikelihood(pGenotype);		
-		double deltaLL = _theta.LL - oldLL;
-
-		if (_extraVerbose) logfile().list(toString(iter) + ") current theta = " + toString(_theta.theta), ", current LL = ", _theta.LL, ", delta LL = ", deltaLL);
-
-		//decide if we continue or not		
-		if (deltaLL < _maxEpsilon) break;		
-
-		// maybe theta = 0?
-		if (_theta.theta < 0.1 / (double)_data->size()) {
-			//(theta is somewhere between 1/numLoci and 0,
-			oldTheta = _theta.theta;
-
-			// test with theta = 0.0
-			_theta.set(0.0);
-			_theta.LL   = _data->calcLogLikelihood(getPGenotype(_theta));
-
-			// theta is between zero and a very small number -> don't care about exact value
-			if (_theta.LL < oldLL) {
-				_theta.set(oldTheta);
-				_theta.LL = oldLL;
+			// increase theta if we fail to calculate inverse of Jacobian.
+			// this may be the case if theta is smaller than true theta and likelihood is very flat
+			if(_theta.theta >= 0.5){
+				UERROR("Failed to estimate Theta, issues calculating inverse of Jacobian!");
 			}
-			break;
-		}
+			_theta.set(_theta.theta * 2.0);
+			pGenotype = getPGenotype(_theta);
+			_theta.LL = _data->calcLogLikelihood(pGenotype);							
+		} else {
+			// e) do we break EM? Check LL
+			pGenotype = getPGenotype(_theta);
+			_theta.LL = _data->calcLogLikelihood(pGenotype);		
+			double deltaLL = _theta.LL - oldLL;
 
-		
+			if (_extraVerbose) logfile().list(toString(iter) + ") current theta = " + toString(_theta.theta), ", current LL = ", _theta.LL, ", delta LL = ", deltaLL);
+
+			//decide if we continue or not		
+			if (deltaLL < _maxEpsilon) break;		
+
+			// maybe theta = 0?
+			if (_theta.theta < 0.1 / (double)_data->size()) {
+				//(theta is somewhere between 1/numLoci and 0,
+				oldTheta = _theta.theta;
+
+				// test with theta = 0.0
+				_theta.set(0.0);
+				_theta.LL   = _data->calcLogLikelihood(getPGenotype(_theta));
+
+				// theta is between zero and a very small number -> don't care about exact value
+				if (_theta.LL < oldLL) {
+					_theta.set(oldTheta);
+					_theta.LL = oldLL;
+				}
+				break;
+			}
+		}		
 	}
 	if (_extraVerbose) logfile().list("EM converged, current theta = " + toString(_theta.theta));
 }
