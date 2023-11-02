@@ -139,7 +139,7 @@ TBaseProbabilities TThetaEstimatorData::baseFrequencies() {
 	_begin();
 	do {
 		bd += _baseFreqs[_curSite];
-		} while (_next());
+	} while (_next());
 
 	return TBaseProbabilities::normalize(bd);
 };

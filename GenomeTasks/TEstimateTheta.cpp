@@ -180,6 +180,7 @@ TEstimateTheta::TEstimateTheta() : TGenome_windows() {
 		_printAll = false;
 		logfile().list("Will only print windows for which estimation was possible. (use 'printAll' to print all)");
 	}
+	logfile().endIndent();
 };
 
 void TEstimateTheta::_handleWindow() {
