@@ -1,6 +1,6 @@
 #! /bin/bash
 
 . $(dirname $0)/find_atlas
-. $(dirname $0)/simulate
+. $(dirname $0)/simulate --chrLength 1000000
 
-$atlas --task genotypeDistribution --HKY85 --bam ATLAS_simulations.bam --fasta ATLAS_simulations.fasta --out genotypeDistribution --logFile genotypeDistribution.out 
+$atlas --task genotypeDistribution --HKY85 --bam ATLAS_simulations.bam --fasta ATLAS_simulations.fasta --out genotypeDistribution --logFile genotypeDistribution.out --window 100000
