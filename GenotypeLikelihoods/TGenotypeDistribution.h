@@ -10,6 +10,7 @@
 
 #include "coretools/Containers/TMassFunction.h"
 #include "coretools/Containers/TStrongArray.h"
+#include "coretools/Files/TOutputFile.h"
 #include "genometools/GenotypeTypes.h"
 #include "TGenotypeData.h"
 #include "TSequencedBase.h"
@@ -35,6 +36,8 @@ public:
 	virtual std::string_view typeString() const noexcept                                               = 0;
 	virtual void log() const                                                                           = 0;
 	virtual bool isInvariant() const noexcept                                                          = 0;
+	virtual void addHeader(std::vector<std::string> &Header) const                                     = 0;
+	virtual void write(coretools::TOutputFile &Out) const                                              = 0;
 };
 
 class THaploidDistribution final : public TGenotypeDistribution {
@@ -51,6 +54,8 @@ public:
 	std::string_view typeString() const noexcept override { return name; }
 	void log() const override;
 	bool isInvariant() const noexcept override {return true;}
+	virtual void addHeader(std::vector<std::string> &Header) const override;
+	virtual void write(coretools::TOutputFile &Out) const override;
 };
 
 class TDiploidDistribution final : public TGenotypeDistribution {
@@ -70,6 +75,8 @@ public:
 	std::string_view typeString() const noexcept override { return name; }
 	void log() const override;
 	bool isInvariant() const noexcept override {return false;}
+	virtual void addHeader(std::vector<std::string> &Header) const override;
+	virtual void write(coretools::TOutputFile &Out) const override;
 };
 
 class THKY85 final : public TGenotypeDistribution {
@@ -93,6 +100,8 @@ public:
 	std::string_view typeString() const noexcept override { return name; }
 	void log() const override;
 	bool isInvariant() const noexcept override {return false;}
+	virtual void addHeader(std::vector<std::string> &Header) const override;
+	virtual void write(coretools::TOutputFile &Out) const override;
 };
 
 class THKY85_mono final : public TGenotypeDistribution {
@@ -115,6 +124,8 @@ public:
 	std::string_view typeString() const noexcept override { return name; }
 	void log() const override;
 	bool isInvariant() const noexcept override {return true;}
+	virtual void addHeader(std::vector<std::string> &Header) const override;
+	virtual void write(coretools::TOutputFile &Out) const override;
 };
 
 }; // namespace GenotypeLikelihoods

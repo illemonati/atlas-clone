@@ -2,6 +2,7 @@
  * atlas.cpp
  */
 
+#include "TEstimateGenotypeDistribution.h"
 #include "coretools/Main/TMain.h"
 
 //BAM
@@ -75,6 +76,7 @@ void addTaks(coretools::TMain & main) {
 	main.createRegularTask<GenomeTasks::TWriteGLF>("GLF", "Writing genotype likelihoods to a GLF file");
 	main.createRegularTask<GenomeTasks::TSexEstimator>("sexEstimation", "Estimating the distribution of depth among sites and writing depth per window");
 	main.createRegularTask<GenomeTasks::TEstimateMutationLoad>("mutationLoad", "Estimating mutation load across the genome");
+	main.createRegularTask<GenomeTasks::TEstimateGenotypeDistribution>("genotypeDistribution", "Estimating genotype Distribution");
 
 	//Population tools
 	main.createRegularTask<GLF::TGLFPrinter>("printGLF", "Printing a GLF file to screen");

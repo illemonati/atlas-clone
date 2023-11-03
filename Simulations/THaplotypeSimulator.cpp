@@ -463,7 +463,7 @@ void TSimulatorSFS::simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulator
 // TSimulatorHardyWeinberg
 //---------------------------------------------------------
 TSimulatorHW::TSimulatorHW()
-    : THaplotypeSimulator(), _fracPoly(parameters().get("fracPoly", 0.1)),
+    : THaplotypeSimulator(), _fracPoly(parameters().get("fracPoly", coretools::Probability(0.1))),
       _alpha(parameters().get("alpha", 0.5)),
       _beta(parameters().get("beta", 0.5)), _F(parameters().get("F", 0.0)),
       _mutTable(_baseFreq) {
