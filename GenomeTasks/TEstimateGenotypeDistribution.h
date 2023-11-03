@@ -7,6 +7,7 @@
 #define GENOMETASKS_TESTIMATEGENOTYPEDISTRIBUTION_H_
 
 #include "TGenome.h"
+#include "coretools/Files/TOutputFile.h"
 
 namespace GenomeTasks {
 class TEstimateGenotypeDistribution final : public TGenome_windows {
@@ -15,11 +16,12 @@ private:
 	std::vector<GenotypeLikelihoods::TSite> _sites;
 	size_t _numEMIterations;
 	double _minDeltaLL;
+	coretools::TOutputFile _out;
 
 	void _handleWindow() override;
 	void _handleAlignment() override {}
 
-	void _runEM();
+	double _runEM();
 	double _LL();
 
 public:

@@ -131,6 +131,18 @@ void THaploidDistribution::log() const {
 	logfile().list("AA: ", _pi[Base::A], ", CC: ", _pi[Base::C], ", GG: ", _pi[Base::G], ", TT: ", _pi[Base::T]);
 }
 
+void THaploidDistribution::addHeader(std::vector<std::string> &Header) const {
+	Header.push_back("piA");
+	Header.push_back("piC");
+	Header.push_back("piG");
+	Header.push_back("piT");
+}
+
+void THaploidDistribution::write(coretools::TOutputFile &Out) const {
+	Out.write(_pi[Base::A], _pi[Base::C], _pi[Base::G], _pi[Base::T]);
+	
+}
+
 TGenotypeLikelihoods TDiploidDistribution::P_dij(const TBaseLikelihoods &baseLikelihoods) const {
 	return TGenotypeLikelihoods({baseLikelihoods[Base::A], 0.5 * (baseLikelihoods[Base::A] + baseLikelihoods[Base::C]),
 								 0.5 * (baseLikelihoods[Base::A] + baseLikelihoods[Base::G]),
@@ -185,6 +197,24 @@ void TDiploidDistribution::log() const {
 	}
 	ret.resize(ret.size() - 2);
 	logfile().list(ret);
+}
+
+void TDiploidDistribution::addHeader(std::vector<std::string> &Header) const {
+	Header.push_back("piAA");
+	Header.push_back("piAC");
+	Header.push_back("piAG");
+	Header.push_back("piAT");
+	Header.push_back("piCC");
+	Header.push_back("piCG");
+	Header.push_back("piCT");
+	Header.push_back("piGG");
+	Header.push_back("piGT");
+	Header.push_back("piTT");
+}
+
+void TDiploidDistribution::write(coretools::TOutputFile &Out) const {
+	Out.write(_pi[Genotype::AA], _pi[Genotype::AC], _pi[Genotype::AG], _pi[Genotype::AT], _pi[Genotype::CC],
+			  _pi[Genotype::CG], _pi[Genotype::CT], _pi[Genotype::GG], _pi[Genotype::GT], _pi[Genotype::TT]);
 }
 
 TGenotypeLikelihoods THKY85::P_dij(const TBaseLikelihoods &baseLikelihoods) const {
@@ -242,6 +272,16 @@ void THKY85::log() const {
 	logfile().list(name, ": mu=", _mu, ", theta_r=", _theta_r, ", theta_g=", _theta_g);
 }
 
+void THKY85::addHeader(std::vector<std::string> &Header) const {
+	Header.push_back("mu");
+	Header.push_back("theta_r");
+	Header.push_back("theta_g");
+}
+
+void THKY85::write(coretools::TOutputFile &Out) const {
+	Out.write(_mu, _theta_r, _theta_g);
+}
+
 TGenotypeLikelihoods THKY85_mono::P_dij(const TBaseLikelihoods &baseLikelihoods) const {
 	return TGenotypeLikelihoods({baseLikelihoods[Base::A], 0., 0., 0.,
 			                     baseLikelihoods[Base::C], 0., 0.,
@@ -293,6 +333,15 @@ void THKY85_mono::estimate() {
 
 void THKY85_mono::log() const {
 	logfile().list(name, ": mu=", _mu, ", theta=", _theta);
+}
+
+void THKY85_mono::addHeader(std::vector<std::string> &Header) const {
+	Header.push_back("mu");
+	Header.push_back("theta");
+}
+
+void THKY85_mono::write(coretools::TOutputFile &Out) const {
+	Out.write(_mu, _theta);
 }
 
 }; // namespace GenotypeLikelihoods

@@ -35,7 +35,7 @@ double TEstimateGenotypeDistribution::_LL() {
 	return LL.getSum();
 }
 
-void TEstimateGenotypeDistribution::_runEM() {
+double TEstimateGenotypeDistribution::_runEM() {
 	using coretools::str::toString;
 	// run EM
 	logfile().startIndent("Initial values:");
@@ -63,12 +63,12 @@ void TEstimateGenotypeDistribution::_runEM() {
 
 		// check if we break based on LL
 		logfile().endIndent();
+		oldLL = LL;
 		if (i > 0 && deltaLL < _minDeltaLL) {
 			if (deltaLL < 0) logfile().warning("Negative LL!");
 			else logfile().conclude("EM has converged (delta LL < ", _minDeltaLL, ")");
 			break;
 		}
-		oldLL = LL;
 
 		// end loop
 		if (i == _numEMIterations - 1) logfile().warning("EM has not converged after maximum number of iterations!");
@@ -76,6 +76,7 @@ void TEstimateGenotypeDistribution::_runEM() {
 
 	// finalize
 	logfile().endNumbering();
+	return oldLL;
 }
 
 void TEstimateGenotypeDistribution::_handleWindow() {
@@ -87,11 +88,11 @@ void TEstimateGenotypeDistribution::_handleWindow() {
 		nReads += s.depth();
 	}
 
-	logfile().list("Num sites: ", _window.size());
-	logfile().list("Num sites with Data: ", _sites.size());
-	logfile().list("Depth: ", double(nReads)/_sites.size());
-	_runEM();
-	
+	_out.write(_window.chrName(), _window.fromOnChr(), _window.toOnChr(), double(nReads)/_sites.size(),
+			   _window.size(), _sites.size(), double(_window.size() - _sites.size())/_window.size());
+	const auto LL = _runEM();
+	_genoDist->write(_out);
+	_out.writeln(LL);
 }
 
 void TEstimateGenotypeDistribution::run() {
@@ -110,5 +111,11 @@ TEstimateGenotypeDistribution::TEstimateGenotypeDistribution() {
 		_genoDist = std::make_unique<GenotypeLikelihoods::TDiploidDistribution>();
 		logfile().list("Estimating 10 Genotypes. (use 'HKY85' for HKY85 model)");
 	}
+
+	std::vector<std::string> header{"Chr", "Start", "End", "depth", "numSites", "numSitesData", "fracMissing"};
+	_genoDist->addHeader(header);
+	header.push_back("LL");
+	_out.open(_outputName + ".txt.gz");
+	_out.writeHeader(header);
 }
 }
