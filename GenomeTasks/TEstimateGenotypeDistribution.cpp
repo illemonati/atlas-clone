@@ -4,6 +4,7 @@
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
 #include "coretools/devtools.h"
+#include <math.h>
 #include <memory>
 
 
@@ -37,34 +38,31 @@ double TEstimateGenotypeDistribution::_LL() {
 void TEstimateGenotypeDistribution::_runEM() {
 	using coretools::str::toString;
 	// run EM
-	logfile().startNumbering("Running EM algorithm:");
-	logfile().startIndent("Initial model:");
+	logfile().startIndent("Initial values:");
 	_genoDist->log();
-	logfile().endIndent();
 
 	// calculate initial LL
 	double oldLL   = _LL();
 	double deltaLL = abs(oldLL);
-	logfile().conclude("Initial log Likelihood = ", oldLL);
+	logfile().list("log Likelihood = ", oldLL);
+	logfile().endIndent();
 
 	// running iterations
+	logfile().startNumbering("Running EM algorithm:");
 	for (size_t i = 0; i < _numEMIterations; ++i) {
-		logfile().number("EM Iteration:");
 		logfile().addIndent();
-
-		logfile().list("Updating pi");
+		logfile().number("EM Iteration:");
 		_genoDist->estimate();
 
 		const double LL = _LL();
 		deltaLL         = LL - oldLL;
-		logfile().startIndent("Current model:");
-		_genoDist->log();
-		logfile().endIndent();
 
-		logfile().conclude("Current Log Likelihood = ", LL);
-		logfile().conclude("delta LL = ", deltaLL);
+		_genoDist->log();
+		logfile().list("Log Likelihood = ", LL);
+		logfile().list("delta LL = ", deltaLL);
 
 		// check if we break based on LL
+		logfile().endIndent();
 		if (i > 0 && deltaLL < _minDeltaLL) {
 			if (deltaLL < 0) logfile().warning("Negative LL!");
 			else logfile().conclude("EM has converged (delta LL < ", _minDeltaLL, ")");
@@ -73,7 +71,6 @@ void TEstimateGenotypeDistribution::_runEM() {
 		oldLL = LL;
 
 		// end loop
-		logfile().endIndent();
 		if (i == _numEMIterations - 1) logfile().warning("EM has not converged after maximum number of iterations!");
 	}
 
@@ -83,11 +80,16 @@ void TEstimateGenotypeDistribution::_runEM() {
 
 void TEstimateGenotypeDistribution::_handleWindow() {
 	_sites.clear();
+	size_t nReads = 0;
 	for (const auto &s : _window) {
 		if (s.empty() || s.refBase == genometools::Base::N) continue;
 		_sites.emplace_back(s);
+		nReads += s.depth();
 	}
 
+	logfile().list("Num sites: ", _window.size());
+	logfile().list("Num sites with Data: ", _sites.size());
+	logfile().list("Depth: ", double(nReads)/_sites.size());
 	_runEM();
 	
 }

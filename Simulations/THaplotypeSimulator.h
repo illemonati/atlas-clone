@@ -15,6 +15,7 @@
 #include <string>
 #include <vector>
 
+#include "coretools/Types/probability.h"
 #include "genometools/GenotypeTypes.h"
 #include "SFS.h"
 #include "coretools/Files/TFile.h"
@@ -125,7 +126,10 @@ struct TSimulatorHWSite {
 class TSimulatorHW : public THaplotypeSimulator {
 private:
 	int _sampleSize;
-	double _fracPoly, _alpha, _beta, _F;
+	coretools::Probability _fracPoly;
+	double _alpha;
+	double _beta;
+	double _F;
 	double _cumulGenoProb[3];
 	TSimulatorMutationtable _mutTable;
 	bool _writeTrueAlleleFreq = false;
