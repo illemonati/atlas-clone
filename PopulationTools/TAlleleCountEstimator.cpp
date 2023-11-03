@@ -359,6 +359,7 @@ void runCounts() {
 	std::string tmp                   = coretools::str::extractBeforeLast(vcfFilename, ".vcf");
 	std::string outname               = parameters().getParameterWithDefault<std::string>("out", tmp);
 	std::string type                  = parameters().getParameterWithDefault<std::string>("outFormat", "default");
+	logfile().list("Setting outFormat to " + type + ". (parameter 'outFormat')");
 	std::unique_ptr<TAlleleCountFile> alleleCountFile{impl::prepareOutputFile(type, outname)};
 
 	// write header
