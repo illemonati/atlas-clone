@@ -118,6 +118,26 @@ using genometools::Base;
 	logfile().list("Will conduct at max ", _NewtonRaphsonNumIterations, " Newton-Raphson iterations. (parameter NRiterations)");
 	logfile().list("Will stop Newton-Raphson when F < ", _NewtonRaphsonMaxF, ". (parameter maxF)");
 
+	// booleans
+	_writeRestart = parameters().exists("writeRestart");
+	_noPi         = parameters().exists("noPi");
+	_noRho        = parameters().exists("noRho");
+	_noPsi        = parameters().exists("noPsi");
+	_noEpsilon    = parameters().exists("noEpsilon");
+
+	std::string dos;
+	std::string nos;
+	if (_noPi) nos.append("pi, ");
+	else dos.append("pi, ");
+	if (_noRho) nos.append("rho, ");
+	else dos.append("rho, ");
+	if (_noPsi) nos.append("psi, ");
+	else dos.append("psi, ");
+	if (_noEpsilon) nos.append("epsilon, ");
+	else dos.append("epsilon, ");
+	if (!dos.empty()) logfile().list("Will estimate the following parameters: ", dos.substr(0, dos.size() - 2), ".");
+	if (!nos.empty()) logfile().list("Will not estimate the following parameters: ", nos.substr(0, nos.size() - 2), ".");
+
 	logfile().endIndent();
 }
 
@@ -176,7 +196,7 @@ void TErrorEstimator::_initializeModels() {
 	logfile().endIndent();
 }
 
-void TErrorEstimator::_estimatePMD_Rho_updatePbbar() {
+void TErrorEstimator::_updatePbbar() {
 	using genometools::genotype;
 	_P_bbarEdij_I_gdijs.clear();
 	size_t i     = 0;
@@ -220,14 +240,11 @@ void TErrorEstimator::_estimatePMD_Rho_updatePbbar() {
 			}
 		}
 	}
-	for (auto &rho : _rhos) rho->estimate();
-	for (auto& psi: _psis) psi->estimate();
 }
 
 void TErrorEstimator::_updateEpsilon(double deltaLL) {
 	using coretools::str::toString;
-	logfile().startIndent("Updating epsilon");
-	logfile().list("optimizing Q_beta using a Newton-Raphson algorithm.");
+	logfile().list("Optimizing Q_beta using a Newton-Raphson algorithm.");
 	const auto nTot = _epsilons.size();
 
 	for (size_t i = 0; i < _NewtonRaphsonNumIterations; ++i) {
@@ -289,7 +306,6 @@ void TErrorEstimator::_updateEpsilon(double deltaLL) {
 		}
 		logfile().endIndent();
 	}
-	logfile().endIndent();
 }
 
 double TErrorEstimator::_calculateLL_updatePg() {
@@ -337,14 +353,17 @@ void TErrorEstimator::_writeModels(std::string_view Intro) {
 	logfile().startIndent(Intro, " pi");
 	for (const auto& g: _genoDist) g->log();
 	logfile().endIndent();
+
 	logfile().startIndent(Intro, " rho");
 	for (const auto& r: _rhos) r->log();
 	logfile().endIndent();
-	logfile().startIndent(Intro, " epsilon");
-	for (const auto& e: _epsilons) e->log();
-	logfile().endIndent();
+
 	logfile().startIndent(Intro, " psi");
 	for (const auto& p: _psis) p->log();
+	logfile().endIndent();
+
+	logfile().startIndent(Intro, " epsilon");
+	for (const auto& e: _epsilons) e->log();
 	logfile().endIndent();
 }
 
@@ -360,24 +379,48 @@ void TErrorEstimator::_runEM() {
 	logfile().conclude("Initial log Likelihood = ", oldLL);
 
 	// running iterations
-	for (size_t i = 0; i < _numEMIterations; ++i) {
+	size_t i = 0;
+	for (; i < _numEMIterations; ++i) {
 		logfile().number("EM Iteration:");
 		logfile().addIndent();
 
-		logfile().list("Updating pi");
-		for (auto& g: _genoDist) g->estimate();
+		if (!_noPi) {
+			logfile().list("Estimating pi");
+			for (auto &g : _genoDist) g->estimate();
+		}
 
-		logfile().list("Updating rho");
-		_estimatePMD_Rho_updatePbbar();
+		_updatePbbar();
 
-		_updateEpsilon(deltaLL);
+		if (!_noRho) {
+			logfile().list("Estimating rho");
+			for (auto &rho : _rhos) rho->estimate();
+		}
+
+		if (!_noPsi) {
+			logfile().list("Estimating psi");
+			for (auto &psi : _psis) psi->estimate();
+		}
+
+		if (!_noEpsilon) {
+			logfile().startIndent("Estimating epsilon:");
+			_updateEpsilon(deltaLL);
+			logfile().endIndent();
+		}
 
 		const double LL = _calculateLL_updatePg();
 		deltaLL         = LL - oldLL;
 		_writeModels("Current");
-		_rgInfo.write(_outputName + "_restart.json");
+
+		if (_writeRestart) {
+			logfile().list("Writing restart file");
+			_recal.addToRGInfo(_rgInfo);
+			_pmd.addToRGInfo(_rgInfo);
+			_rgInfo.write(_outputName + "_restart.json");
+		}
+
 		logfile().conclude("Current Log Likelihood = ", LL);
 		logfile().conclude("delta LL = ", deltaLL);
+		logfile().endIndent();
 
 		// check if we break based on LL
 		if (i > 0 && deltaLL < _minDeltaLL) {
@@ -386,11 +429,8 @@ void TErrorEstimator::_runEM() {
 			break;
 		}
 		oldLL = LL;
-
-		// end loop
-		logfile().endIndent();
-		if (i == _numEMIterations - 1) logfile().warning("EM has not converged after maximum number of iterations!");
 	}
+	if (i == _numEMIterations - 1) logfile().warning("EM has not converged after maximum number of iterations!");
 
 	// finalize
 	logfile().endNumbering();

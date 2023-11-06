@@ -62,13 +62,19 @@ private:
 	double _minDeltaLL;
 	size_t _NewtonRaphsonNumIterations;
 	double _NewtonRaphsonMaxF;
-	bool _onlyLL;
+
+	bool _writeRestart = false;
+	bool _onlyLL       = false;
+	bool _noPi         = true;
+	bool _noRho        = true;
+	bool _noPsi        = true;
+	bool _noEpsilon    = true;
 
 	void _initializeModels();
 	void _runEM();
 
 	// functions to estimate theta_epsilon (sequencing error rates)
-	void _estimatePMD_Rho_updatePbbar();
+	void _updatePbbar();
 
 	template<bool UpdateJF> void _calculateQ() {
 		size_t i  = 0;
