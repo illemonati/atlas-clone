@@ -46,7 +46,9 @@ using genometools::Base;
 //---------------------------------------------------------------
 // TErrorEstimator
 //---------------------------------------------------------------
-	TErrorEstimator::TErrorEstimator() : _rgMap(_bamFile.readGroups(), parameters().get<std::string>("pool", "")), _onlyLL(parameters().exists("onlyLL")) {
+TErrorEstimator::TErrorEstimator()
+	: _rgMap(_bamFile.readGroups(), parameters().get<std::string>("pool", "")), _dataTables(_rgMap),
+	  _onlyLL(parameters().exists("onlyLL")) {
 	_openReference(true);
 	std::vector<size_t> ploidies;
 	parameters().fill("ploidy", ploidies, {2});
@@ -142,28 +144,28 @@ using genometools::Base;
 }
 
 void TErrorEstimator::_initializeModels() {
+	_dataTables.write(_outputName);
 	using coretools::str::toString;
 	using BAM::Mate;
 	// count data available for recal
 
 	logfile().listFlush("Counting data available for recal ...");
-	const RecalEstimatorTools::TRecalDataTables dataTables(_rgMap, _regionSites);
 	logfile().done();
 
 	logfile().startIndent("Number of sites with data:");
 	for (size_t i = 0; i < _regionSites.size(); ++i) logfile().list("Region ", i + 1, ": ", _regionSites[i].size());
 	logfile().endIndent();
 
-	logfile().conclude("Number of sites with depth > 1: ", dataTables.nSites_g1());
-	logfile().conclude("Number of bases: ", dataTables.size());
-	if (dataTables.nSites_g1() < 100) UERROR("Less than 100 sites with depth >= 2 available - aborting estimation!");
+	logfile().conclude("Number of sites with depth > 1: ", _dataTables.nSites_g1());
+	logfile().conclude("Number of bases: ", _dataTables.size());
+	if (_dataTables.nSites_g1() < 100) UERROR("Less than 100 sites with depth >= 2 available - aborting estimation!");
 	_P_g_I_dis.reserve(std::accumulate(_regionSites.begin(), _regionSites.end(), 0, [](auto x1, auto x2){return x1 + x2.size();}));
-	_P_bbarEdij_I_gdijs.reserve(dataTables.size());
+	_P_bbarEdij_I_gdijs.reserve(_dataTables.size());
 
 	// identify models with data that can be estimated
 	logfile().startIndent("Identifying models to estimate:");
 	for (auto rg : _rgMap.readGroupsInUse()) {
-		if (dataTables[rg][Mate::first].size() == 0 && dataTables[rg][Mate::second].size() > 0) UERROR("Second mate data but no first mate data!");
+		if (_dataTables[rg][Mate::first].size() == 0 && _dataTables[rg][Mate::second].size() > 0) UERROR("Second mate data but no first mate data!");
 
 		const auto& pooledWith = _rgMap.readGroupsPooledWith(rg);
 		logfile().startIndent("Readgroup ", rg, ":");
@@ -171,7 +173,7 @@ void TErrorEstimator::_initializeModels() {
 
 		for (Mate mate = Mate::min; mate < Mate::max; ++mate) {
 			constexpr coretools::TStrongArray<std::string_view, Mate> sMates{{"First", "Second"}};
-			const auto &table = dataTables[rg][mate];
+			const auto &table = _dataTables[rg][mate];
 			logfile().list(sMates[mate], " mate: ", table.size(), " bases.");
 			if (table.size() > 0) {
 				auto &recal = _recal.RGModel(rg)[mate];
@@ -184,7 +186,7 @@ void TErrorEstimator::_initializeModels() {
 				_recal.reset(rg, mate);
 			}
 		}
-		if (dataTables[rg][Mate::second].size() == 0) logfile().list("Assuming single-ended read.");
+		if (_dataTables[rg][Mate::second].size() == 0) logfile().list("Assuming single-ended read.");
 
 		auto &pmd = _pmd.model(rg);
 		if (!pmd.hasPMD()) UERROR("Cannot estimate PMD for readgroup ", rg, "!");
@@ -470,6 +472,7 @@ void TErrorEstimator::_handleSite(const TSite &Site, size_t Region) {
 	if (Site.empty() || Site.refBase == Base::N) return;
 
 	_regionSites[Region].emplace_back(Site);
+	_dataTables.add(Site);
 	for (const auto &data : Site) _pmd.model(data).psi()->add(data, Site.refBase);
 }
 

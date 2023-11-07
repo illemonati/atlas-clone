@@ -20,6 +20,7 @@
 #include <type_traits>
 #include <vector>
 
+#include "SequencingError/RecalEstimatorTools.h"
 #include "TReadGroupInfo.h"
 #include "coretools/Main/TLog.h"
 #include "genometools/PhredProbabilityTypes.h"
@@ -451,9 +452,9 @@ public:
 
 	void init(const RecalEstimatorTools::TRecalDataTable &dataTable, size_t FirstParameterIndex) override {
 		_firstParameterIndex = FirstParameterIndex;
-		_betas.assign(Covariate::N(dataTable), NAN);
+		_betas.assign(Covariate::N(dataTable[Covariate::index]), NAN);
 		for (size_t i = 0; i < _betas.size(); ++i) {
-			if (Covariate::isUsed(dataTable, i)) _betas[i] = 0.;
+			if (Covariate::isUsed(dataTable[Covariate::index], i)) _betas[i] = 0.;
 		}
 	}
 

@@ -50,6 +50,7 @@ private:
 	std::vector<TGenotypeLikelihoods> _P_bbarEdij_I_gdijs;
 
 	BAM::TReadGroupMap _rgMap;
+	RecalEstimatorTools::TRecalDataTables _dataTables;
 	SequencingError::TModels _recal;
 	PMD::TModels _pmd;
 

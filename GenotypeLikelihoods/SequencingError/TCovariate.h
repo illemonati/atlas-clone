@@ -8,7 +8,6 @@
 #ifndef GENOTYPELIKELIHOODS_TSEQUENCINGERRORCOVARIATE_H_
 #define GENOTYPELIKELIHOODS_TSEQUENCINGERRORCOVARIATE_H_
 
-#include "RecalEstimatorTools.h"
 #include "TSequencedBase.h"
 
 namespace GenotypeLikelihoods {
@@ -24,10 +23,10 @@ struct TCovariate_context {
 		return coretools::index(base.previousBase);
 	}
 
-	static size_t N(const RecalEstimatorTools::TRecalDataTable &) noexcept {
+	static size_t N(const std::vector<size_t> &) noexcept {
 		return coretools::index(genometools::Base::N); // N not inclusive
 	}
-	static bool isUsed(const RecalEstimatorTools::TRecalDataTable &, size_t) noexcept {
+	static bool isUsed(const std::vector<size_t> &, size_t) noexcept {
 		return true;
 	}
 };
@@ -38,12 +37,12 @@ struct TCovariate_fragmentLength {
 
 	static uint16_t extract(const BAM::TSequencedBase &base) noexcept { return base.fragmentLength; }
 
-	static size_t N(const RecalEstimatorTools::TRecalDataTable &dataTable) noexcept {
-		return dataTable.fragmentLengths().size();
+	static size_t N(const std::vector<size_t> &fragmentLengths) noexcept {
+		return fragmentLengths.size();
 	}
 
-	static bool isUsed(const RecalEstimatorTools::TRecalDataTable &dataTable, size_t i) noexcept {
-		return dataTable.fragmentLengths()[i];
+	static bool isUsed(const std::vector<size_t> &fragmentLengths, size_t i) noexcept {
+		return fragmentLengths[i];
 	}
 };
 
@@ -53,12 +52,12 @@ struct TCovariate_mappingQuality {
 
 	static uint16_t extract(const BAM::TSequencedBase &base) noexcept { return base.mappingQuality.get(); }
 
-	static size_t N(const RecalEstimatorTools::TRecalDataTable &dataTable) noexcept {
-		return dataTable.mappingQualities().size();
+	static size_t N(const std::vector<size_t>& mappingQualities) noexcept {
+		return mappingQualities.size();
 	}
 
-	static bool isUsed(const RecalEstimatorTools::TRecalDataTable &dataTable, size_t i) noexcept {
-		return dataTable.mappingQualities()[i];
+	static bool isUsed(const std::vector<size_t>& mappingQualities, size_t i) noexcept {
+		return mappingQualities[i];
 	}
 };
 
@@ -68,12 +67,12 @@ struct TCovariate_position {
 
 	static uint16_t extract(const BAM::TSequencedBase &base) noexcept { return base.distFrom5Prime; }
 
-	static size_t N(const RecalEstimatorTools::TRecalDataTable &dataTable) noexcept {
-		return dataTable.positions().size();
+	static size_t N(const std::vector<size_t>& positions) noexcept {
+		return positions.size();
 	}
 
-	static bool isUsed(const RecalEstimatorTools::TRecalDataTable &dataTable, size_t i) noexcept {
-		return dataTable.positions()[i];
+	static bool isUsed(const std::vector<size_t>& positions, size_t i) noexcept {
+		return positions[i];
 	}
 };
 
@@ -85,12 +84,12 @@ struct TCovariate_quality {
 		return base.originalQuality_phredInt.get();
 	}
 
-	static size_t N(const RecalEstimatorTools::TRecalDataTable &dataTable) noexcept {
-		return dataTable.qualities().size();
+	static size_t N(const std::vector<size_t>& qualities) noexcept {
+		return qualities.size();
 	}
 
-	static bool isUsed(const RecalEstimatorTools::TRecalDataTable &dataTable, size_t i) noexcept {
-		return dataTable.qualities()[i];
+	static bool isUsed(const std::vector<size_t>& qualities, size_t i) noexcept {
+		return qualities[i];
 	}
 };
 
