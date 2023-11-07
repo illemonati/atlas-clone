@@ -25,10 +25,10 @@ struct TCovariate_context {
 	}
 
 	static size_t N(const RecalEstimatorTools::TRecalDataTable &) noexcept {
-		return coretools::index(genometools::Base::N) + 1;
+		return coretools::index(genometools::Base::N); // N not inclusive
 	}
-	static bool isUsed(const RecalEstimatorTools::TRecalDataTable &dataTable, size_t i) noexcept {
-		return i < N(dataTable);
+	static bool isUsed(const RecalEstimatorTools::TRecalDataTable &, size_t) noexcept {
+		return true;
 	}
 };
 
