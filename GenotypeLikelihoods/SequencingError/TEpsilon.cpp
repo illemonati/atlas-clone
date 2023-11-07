@@ -23,7 +23,7 @@ namespace SequencingError {
 
 using namespace coretools::str;
 
-TEpsilon::TEpsilon(std::string_view Def) : _functions(makeFunctions(Def)) {
+	TEpsilon::TEpsilon(std::string_view Def) : _functions(std::make_unique<TFunctions>(Def)) {
 	const size_t numParameters = _functions->numParameters();
 
 	// prepare Newton-Raphson variables
@@ -31,7 +31,7 @@ TEpsilon::TEpsilon(std::string_view Def) : _functions(makeFunctions(Def)) {
 	_F.resize(numParameters);
 }
 
-TEpsilon::TEpsilon(const BAM::RGInfo::TInfo &info) : _functions(makeFunctions(info)) {
+TEpsilon::TEpsilon(const BAM::RGInfo::TInfo &Info) : _functions(std::make_unique<TFunctions>(Info)) {
 	const size_t numParameters = _functions->numParameters();
 
 	// prepare Newton-Raphson variables

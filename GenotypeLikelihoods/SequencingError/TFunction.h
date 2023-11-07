@@ -64,7 +64,7 @@ public:
 	virtual double getEta(const BAM::TSequencedBase &base) const noexcept   = 0;
 	virtual double getEta(const BAM::TSequencedBase &base, std::vector<T1stDerivative> &der1,
 						  std::vector<T2ndDerivative> &der2) const noexcept = 0;
-	virtual double adjustParametersPostEstimation() noexcept                = 0;
+	virtual double adjust() noexcept                                        = 0;
 	virtual std::string typeString() const noexcept                         = 0;
 	virtual void addInfo(BAM::RGInfo::TInfo &info) const                    = 0;
 	virtual void log() const; 
@@ -89,7 +89,7 @@ public:
 	double getEta(const BAM::TSequencedBase &) const noexcept override {return 0.;}
 	double getEta(const BAM::TSequencedBase &, std::vector<T1stDerivative> &,
 						  std::vector<T2ndDerivative> &) const noexcept override {return 0.;}
-	double adjustParametersPostEstimation() noexcept override {return 0.;}
+	double adjust() noexcept override {return 0.;}
 	std::string typeString() const noexcept override {return "";}
 	void log() const noexcept  override {}; 
 	void addInfo(BAM::RGInfo::TInfo &) const override {};
@@ -262,7 +262,7 @@ public:
 		_firstParameterIndex = FirstParameterIndex;
 	}
 
-	double adjustParametersPostEstimation() noexcept override { return 0.; }
+	double adjust() noexcept override { return 0.; }
 
 	double getEta(const BAM::TSequencedBase &base) const noexcept override {
 		const double v = Transformer::transform(Covariate::extract(base));
@@ -418,7 +418,7 @@ public:
 		return phiCumul *_betas.front();
 	}
 
-	double adjustParametersPostEstimation() noexcept override { return 0.; }
+	double adjust() noexcept override { return 0.; }
 	std::string typeString() const noexcept override { return std::string(Covariate::name).append(1, ':').append(name); }
 
 	void addInfo(BAM::RGInfo::TInfo& info) const override {
@@ -456,7 +456,7 @@ public:
 		}
 	}
 
-	double adjustParametersPostEstimation() noexcept override {
+	double adjust() noexcept override {
 		double mean = 0.;
 		size_t N    = 0;
 		for (size_t i = 0; i < _betas.size(); ++i) {
