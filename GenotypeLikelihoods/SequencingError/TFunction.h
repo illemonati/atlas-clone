@@ -434,7 +434,6 @@ public:
 template<typename Covariate> class TEmpiric final : public TFunction {
 private:
 	std::vector<double> _betas;    // betas of the model
-	static constexpr bool _isContext = std::is_same_v<Covariate, TCovariate_context>;
 
 public:
 	static constexpr std::string_view name = "empiric";
@@ -459,46 +458,34 @@ public:
 	}
 
 	double adjust() noexcept override {
-		if constexpr (_isContext) {
-			return 0.;
-		} else {
-			double mean = 0.;
-			size_t N    = 0;
-			for (auto bi : _betas) {
-				if (!std::isnan(bi)) {
-					++N;
-					mean += bi;
-				}
+		double mean = 0.;
+		size_t N    = 0;
+		for (auto bi : _betas) {
+			if (!std::isnan(bi)) {
+				++N;
+				mean += bi;
 			}
-			if (N > 1) mean /= N;
-
-			for (auto &bi : _betas) {
-				if (!std::isnan(bi)) { bi -= mean; }
-			}
-			return mean;
 		}
+		if (N > 1) mean /= N;
+
+		for (auto &bi : _betas) {
+			if (!std::isnan(bi)) { bi -= mean; }
+		}
+		return mean;
 	}
 
 	double getEta(const BAM::TSequencedBase &base) const noexcept override {
-		//assert(Covariate::extract(base) < _betas.size());
+		// assert(Covariate::extract(base) < _betas.size());
 		const auto val = Covariate::extract(base);
 		if (val < _betas.size()) return _betas[Covariate::extract(base)];
 
-		if constexpr (_isContext) {
-			return 0.;
-		} else {
-			return _betas.back();
-		}
+		return _betas.back();
 	}
 
 	double getEta(const BAM::TSequencedBase &base, std::vector<T1stDerivative> &der1,
 				  std::vector<T2ndDerivative> &) const noexcept override {
 		const auto val = Covariate::extract(base);
-		if constexpr (_isContext) {
-			if (val >= _betas.size()) return 0.;
-		} else {
-			assert(val < _betas.size());
-		}
+		assert(val < _betas.size());
 
 		der1.emplace_back(firstParameterIndex() + Covariate::extract(base), 1.0);
 		return _betas[val];

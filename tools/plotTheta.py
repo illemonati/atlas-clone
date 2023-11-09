@@ -30,9 +30,9 @@ if __name__ == "__main__":
         for j, key in enumerate(f.readline().split()):
             key = key.decode()
             if key.endswith("depth"): idepths.append(j)
-            elif key.endswith("theta_MLE"): ithetas.append(j)
-            elif key.endswith("theta_C95_l"): il95s.append(j)
-            elif key.endswith("theta_C95_u"): iu95s.append(j)
+            elif key.endswith("thetaMLE"): ithetas.append(j)
+            elif key.endswith("thetaC95l"): il95s.append(j)
+            elif key.endswith("thetaC95u"): iu95s.append(j)
         f.close()
 
         # get average and std

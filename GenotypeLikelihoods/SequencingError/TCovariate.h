@@ -24,7 +24,7 @@ struct TCovariate_context {
 	}
 
 	static size_t N(const std::vector<size_t> &) noexcept {
-		return coretools::index(genometools::Base::N); // N not inclusive
+		return coretools::index(genometools::Base::N) + 1;
 	}
 	static bool isUsed(const std::vector<size_t> &, size_t) noexcept {
 		return true;
