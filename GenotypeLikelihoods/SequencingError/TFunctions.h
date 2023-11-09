@@ -13,6 +13,7 @@
 #include <vector>
 
 #include "RecalEstimatorTools.h"
+#include "SequencingError/TFunction.h"
 #include "TDerivatives.h"
 #include "TReadGroupInfo.h"
 #include "TSequencedBase.h"
@@ -22,21 +23,29 @@
 
 namespace GenotypeLikelihoods::SequencingError {
 
-struct TFunctions {
-	virtual ~TFunctions()                                                                       = default;
-	virtual void init(const RecalEstimatorTools::TRecalDataTable &DataTable)                    = 0;
-	virtual size_t numParameters() const noexcept                                               = 0;
-	virtual coretools::Probability getEpsilon(const BAM::TSequencedBase &base) const            = 0;
-	virtual coretools::Probability getEpsilon(const BAM::TSequencedBase &base, std::vector<T1stDerivative> &der1,
-											  std::vector<T2ndDerivative> &der2) const noexcept = 0;
-	virtual void reject() noexcept                                                              = 0;
-	virtual void propose(double lambda, const arma::mat &_JxF) noexcept                         = 0;
-	virtual void adjust() noexcept                                                              = 0;
-	virtual void log() const                                                                    = 0;
-	virtual BAM::RGInfo::TInfo info() const                                                     = 0;
+class TFunctions {
+	TIntercept _intercept;
+	coretools::TStrongArray<std::unique_ptr<TFunction>, Covariates> _covariates{
+		{nullptr, nullptr, nullptr, nullptr, nullptr}};
+	std::vector<double> _oldBetas;
+
+public:
+	TFunctions(const BAM::RGInfo::TInfo& info);
+	TFunctions(std::string_view Def); 
+
+	void init(const RecalEstimatorTools::TRecalDataTable &DataTable);
+	size_t numParameters() const noexcept;
+
+	coretools::Probability getEpsilon(const BAM::TSequencedBase &base) const noexcept;
+	coretools::Probability getEpsilon(const BAM::TSequencedBase &base, std::vector<T1stDerivative> &der1,
+									  std::vector<T2ndDerivative> &der2) const noexcept;
+	void reject() noexcept;
+	void propose(double lambda, const arma::mat &_JxF) noexcept;
+	void adjust() noexcept;
+
+	void log() const;
+	BAM::RGInfo::TInfo info() const;
 };
-TFunctions *makeFunctions(std::string_view Def);
-TFunctions *makeFunctions(const BAM::RGInfo::TInfo& info);
 } // namespace GenotypeLikelihoods::SequencingError
 
 #endif

@@ -23,16 +23,16 @@ namespace SequencingError {
 
 using namespace coretools::str;
 
-TEpsilon::TEpsilon(std::string_view Def) : _functions(makeFunctions(Def)) {
-	const size_t numParameters = _functions->numParameters();
+	TEpsilon::TEpsilon(std::string_view Def) : _functions(Def) {
+	const size_t numParameters = _functions.numParameters();
 
 	// prepare Newton-Raphson variables
 	_Jacobian.resize(numParameters, numParameters);
 	_F.resize(numParameters);
 }
 
-TEpsilon::TEpsilon(const BAM::RGInfo::TInfo &info) : _functions(makeFunctions(info)) {
-	const size_t numParameters = _functions->numParameters();
+TEpsilon::TEpsilon(const BAM::RGInfo::TInfo &Info) : _functions(Info) {
+	const size_t numParameters = _functions.numParameters();
 
 	// prepare Newton-Raphson variables
 	_Jacobian.resize(numParameters, numParameters);
@@ -40,8 +40,8 @@ TEpsilon::TEpsilon(const BAM::RGInfo::TInfo &info) : _functions(makeFunctions(in
 }
 
 void TEpsilon::init(const RecalEstimatorTools::TRecalDataTable &DataTable) {
-	_functions->init(DataTable);
-	const size_t numParameters = _functions->numParameters();
+	_functions.init(DataTable);
+	const size_t numParameters = _functions.numParameters();
 
 	// prepare Newton-Raphson variables
 	_Jacobian.resize(numParameters, numParameters);
@@ -49,13 +49,13 @@ void TEpsilon::init(const RecalEstimatorTools::TRecalDataTable &DataTable) {
 }
 
 coretools::Probability TEpsilon::calcErrorRate(const BAM::TSequencedBase &base) const noexcept {
-	return _functions->getEpsilon(base);
+	return _functions.getEpsilon(base);
 }
 
 coretools::Probability TEpsilon::_calcErrorRate(const BAM::TSequencedBase &base, std::vector<T1stDerivative> &der1,
 											   std::vector<T2ndDerivative> &der2) const noexcept {
 	// eta = bta[0] + SUM_i f(q[i]), where the functions are implemented as covariate function
-	return _functions->getEpsilon(base, der1, der2);
+	return _functions.getEpsilon(base, der1, der2);
 }
 
 
@@ -80,29 +80,29 @@ void TEpsilon::solveJxF() {
 
 void TEpsilon::propose(double lambda) {
 	if (!_converged) {
-		_functions->propose(lambda, _JxF);
+		_functions.propose(lambda, _JxF);
 		_Q = 0; // reset to recalculate
 	}
 }
 
 bool TEpsilon::acceptOrReject() {
 	_converged = _Q > _oldQ;
-	if (!_converged) _functions->reject();
+	if (!_converged) _functions.reject();
 	return _converged;
 }
 
 void TEpsilon::adjust() {
 	_Q         = 0.;
 	_converged = false;
-	_functions->adjust();
+	_functions.adjust();
 }
 
 void TEpsilon::log() const {
-	_functions->log();
+	_functions.log();
 }
 
 BAM::RGInfo::TInfo TEpsilon::info() const{
-	return _functions->info();
+	return _functions.info();
 }
 
 } // namespace SequencingError

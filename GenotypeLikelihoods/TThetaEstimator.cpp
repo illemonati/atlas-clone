@@ -58,17 +58,17 @@ GenotypeLikelihoods::TGenotypeProbabilities getPGenotype(const Theta &thisTheta)
 TThetaEstimator_base::TThetaEstimator_base(){
 	logfile().startIndent("Parameters regarding theta estimation:");
 
-	_useTmpFile = coretools::instances::parameters().parameterExists("useTmpFile");
+	_useTmpFile = coretools::instances::parameters().exists("useTmpFile");
 	if(_useTmpFile){
 		logfile().list("Will use a temporar< file to reduce memory usage. (parameter 'useTmpFile')");
 	} else {
 		logfile().list("Will store all required data in memory. (use 'useTmpFile' to write to a file instead)");
 	}
 
-	_minSitesWithData = coretools::instances::parameters().getParameterWithDefault<int>("minSitesWithData", 1000);
+	_minSitesWithData = coretools::instances::parameters().get("minSitesWithData", 1000);
 	logfile().list("Will only infer theta for windows with at least ", _minSitesWithData, " sites with data. (parameter 'minSitesWithData')");
 
-	_extraVerbose = coretools::instances::parameters().parameterExists("extraVerbose");
+	_extraVerbose = coretools::instances::parameters().exists("extraVerbose");
 	if(_extraVerbose){
 		logfile().list("Will write extra information during theta EM runs. (parameter 'extraVerbose')");
 	} else {

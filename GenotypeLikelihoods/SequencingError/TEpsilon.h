@@ -24,7 +24,7 @@ namespace GenotypeLikelihoods {
 namespace SequencingError {
 
 class TEpsilon {
-	std::unique_ptr<TFunctions> _functions;
+	TFunctions _functions;
 
 	double _Q       = 0.;
 	double _oldQ    = 0.;

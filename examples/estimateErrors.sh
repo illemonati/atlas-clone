@@ -11,7 +11,7 @@ pmd="CT5:0.2*exp(-0.3*p)+0.01;GA3:0.5*exp(-0.2*p)+0.01"
 
 # estimate recal model using default
 $atlas --task estimateErrors --bam ATLAS_simulations.bam --fasta ATLAS_simulations.fasta --minDeltaLL 1 --fixedSeed 0 --out default --logFile default.out
-$atlas --task estimateErrors --bam ATLAS_simulations.bam --fasta ATLAS_simulations.fasta --recalModel "intercept;quality:polynomial3;position:polynomial3;fragmentLength:polynomial3;mappingQuality:polynomial3;context:empiric" --minDeltaLL 1 --fixedSeed 0 --out poly --logFile poly.out --noRho
+$atlas --task estimateErrors --bam ATLAS_simulations.bam --fasta ATLAS_simulations.fasta --recalModel "intercept;quality:polynomial3;position:polynomial3;fragmentLength:polynomial3;mappingQuality:polynomial3;context;" --minDeltaLL 1e-4 --fixedSeed 0 --out poly --logFile poly.out
 
 #calculate onlyLL
 $atlas --task estimateErrors --onlyLL --bam ATLAS_simulations.bam --fasta ATLAS_simulations.fasta --recalModel $recal --pmdModel $pmd --fixedSeed 0 --out onlyLL --logFile onlyLL.out

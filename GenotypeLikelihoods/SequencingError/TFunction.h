@@ -20,6 +20,7 @@
 #include <type_traits>
 #include <vector>
 
+#include "SequencingError/RecalEstimatorTools.h"
 #include "TReadGroupInfo.h"
 #include "coretools/Main/TLog.h"
 #include "genometools/PhredProbabilityTypes.h"
@@ -64,7 +65,7 @@ public:
 	virtual double getEta(const BAM::TSequencedBase &base) const noexcept   = 0;
 	virtual double getEta(const BAM::TSequencedBase &base, std::vector<T1stDerivative> &der1,
 						  std::vector<T2ndDerivative> &der2) const noexcept = 0;
-	virtual double adjustParametersPostEstimation() noexcept                = 0;
+	virtual double adjust() noexcept                                        = 0;
 	virtual std::string typeString() const noexcept                         = 0;
 	virtual void addInfo(BAM::RGInfo::TInfo &info) const                    = 0;
 	virtual void log() const; 
@@ -89,7 +90,7 @@ public:
 	double getEta(const BAM::TSequencedBase &) const noexcept override {return 0.;}
 	double getEta(const BAM::TSequencedBase &, std::vector<T1stDerivative> &,
 						  std::vector<T2ndDerivative> &) const noexcept override {return 0.;}
-	double adjustParametersPostEstimation() noexcept override {return 0.;}
+	double adjust() noexcept override {return 0.;}
 	std::string typeString() const noexcept override {return "";}
 	void log() const noexcept  override {}; 
 	void addInfo(BAM::RGInfo::TInfo &) const override {};
@@ -262,7 +263,7 @@ public:
 		_firstParameterIndex = FirstParameterIndex;
 	}
 
-	double adjustParametersPostEstimation() noexcept override { return 0.; }
+	double adjust() noexcept override { return 0.; }
 
 	double getEta(const BAM::TSequencedBase &base) const noexcept override {
 		const double v = Transformer::transform(Covariate::extract(base));
@@ -418,7 +419,7 @@ public:
 		return phiCumul *_betas.front();
 	}
 
-	double adjustParametersPostEstimation() noexcept override { return 0.; }
+	double adjust() noexcept override { return 0.; }
 	std::string typeString() const noexcept override { return std::string(Covariate::name).append(1, ':').append(name); }
 
 	void addInfo(BAM::RGInfo::TInfo& info) const override {
@@ -433,6 +434,7 @@ public:
 template<typename Covariate> class TEmpiric final : public TFunction {
 private:
 	std::vector<double> _betas;    // betas of the model
+	static constexpr bool _isContext = std::is_same_v<Covariate, TCovariate_context>;
 
 public:
 	static constexpr std::string_view name = "empiric";
@@ -450,43 +452,61 @@ public:
 
 	void init(const RecalEstimatorTools::TRecalDataTable &dataTable, size_t FirstParameterIndex) override {
 		_firstParameterIndex = FirstParameterIndex;
-		_betas.resize(Covariate::N(dataTable), 0.);
-		for (size_t i = 0; i < Covariate::N(dataTable); ++i) {
-			if (!Covariate::isUsed(dataTable, i)) _betas[i] = NAN;
+		_betas.assign(Covariate::N(dataTable[Covariate::index]), NAN);
+		for (size_t i = 0; i < _betas.size(); ++i) {
+			if (Covariate::isUsed(dataTable[Covariate::index], i)) _betas[i] = 0.;
 		}
 	}
 
-	double adjustParametersPostEstimation() noexcept override {
-		double mean = 0.;
-		size_t N    = 0;
-		for (size_t i = 0; i < _betas.size(); ++i) {
-			if (!std::isnan(_betas[i])) {
-				++N;
-				mean += _betas[i];
+	double adjust() noexcept override {
+		if constexpr (_isContext) {
+			return 0.;
+		} else {
+			double mean = 0.;
+			size_t N    = 0;
+			for (auto bi : _betas) {
+				if (!std::isnan(bi)) {
+					++N;
+					mean += bi;
+				}
 			}
+			if (N > 1) mean /= N;
+
+			for (auto &bi : _betas) {
+				if (!std::isnan(bi)) { bi -= mean; }
+			}
+			return mean;
 		}
-		if (N > 0) mean /= N;
-		for (auto &bi: _betas) bi -= mean; // NaN - number = NaN
-		return mean;
 	}
 
 	double getEta(const BAM::TSequencedBase &base) const noexcept override {
 		//assert(Covariate::extract(base) < _betas.size());
 		const auto val = Covariate::extract(base);
 		if (val < _betas.size()) return _betas[Covariate::extract(base)];
-		return _betas.back();
+
+		if constexpr (_isContext) {
+			return 0.;
+		} else {
+			return _betas.back();
+		}
 	}
 
 	double getEta(const BAM::TSequencedBase &base, std::vector<T1stDerivative> &der1,
-						  std::vector<T2ndDerivative> &) const noexcept override {
+				  std::vector<T2ndDerivative> &) const noexcept override {
 		const auto val = Covariate::extract(base);
-		assert(val < _betas.size());
+		if constexpr (_isContext) {
+			if (val >= _betas.size()) return 0.;
+		} else {
+			assert(val < _betas.size());
+		}
 
 		der1.emplace_back(firstParameterIndex() + Covariate::extract(base), 1.0);
 		return _betas[val];
-		
 	}
-	std::string typeString() const noexcept override { return std::string(Covariate::name).append(1, ':').append(name); }
+
+	std::string typeString() const noexcept override {
+		return std::string(Covariate::name).append(1, ':').append(name);
+	}
 
 	void addInfo(BAM::RGInfo::TInfo &info) const override {
 		BAM::RGInfo::TInfo ar = nlohmann::json::array();
