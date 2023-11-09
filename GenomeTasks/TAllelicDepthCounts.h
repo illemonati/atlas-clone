@@ -33,6 +33,7 @@ public:
 	void addSite(const GenotypeLikelihoods::TBaseCounts & alleleCounts);
 	void addSiteZeroDepth();
 	void write(const std::string &filename, bool printEmpty);
+	size_t size() const noexcept {return _counts.size();}
 };
 
 //------------------------------------------
