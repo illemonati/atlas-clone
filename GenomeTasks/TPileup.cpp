@@ -55,7 +55,7 @@ TPileup::TPileup() : TGenome_windows() {
 		// parse output fields
 		logfile().startIndent("Will print the following pileup fields (parameter 'fields'):");
 		const auto tmp = parameters().get<std::vector<std::string>>(
-			"fields", {"depth", "bases", "qualities", "alleles", "mates", "strands", "likelihoods"});
+		    "fields", {"depth", "bases", "qualities", "alleles", "mates", "strands", "likelihoods"});
 		std::set<std::string> fields(tmp.begin(), tmp.end());
 
 		_printSettings.set<Print::Depth>(impl::parseField(fields, "depth", "Sequencing depth"));
@@ -71,13 +71,13 @@ TPileup::TPileup() : TGenome_windows() {
 		if (!fields.empty()) {
 			if (fields.size() == 1) {
 				UERROR("Unknown field '", *fields.begin(),
-					   "'! Valid fields are 'depth', 'bases', 'qualities', 'alleles', 'mates' and 'strands'.");
+				       "'! Valid fields are 'depth', 'bases', 'qualities', 'alleles', 'mates' and 'strands'.");
 			} else {
 				std::string f;
 				for (auto i : fields) { f += '\'' + i + "', "; }
 				UERROR("Unknown fields: ", f.substr(0, f.size() - 2),
-					   "! Valid fields are 'depth', 'bases', 'qualities', 'alleles', 'mates',  'strands' and "
-					   "'likelihoods'.");
+				       "! Valid fields are 'depth', 'bases', 'qualities', 'alleles', 'mates',  'strands' and "
+				       "'likelihoods'.");
 			}
 		}
 
@@ -120,7 +120,7 @@ TPileup::TPileup() : TGenome_windows() {
 		if (parameters().exists("printAll")) {
 			_printSettings.set<Print::OnlySitesWithData>(false);
 			logfile().list(
-				"Will print all sites that pass filters, including those without data. (parameter 'printAll')");
+			    "Will print all sites that pass filters, including those without data. (parameter 'printAll')");
 		} else {
 			_printSettings.set<Print::OnlySitesWithData>(true);
 			logfile().list("Will print only sites with data. (use 'printAll' to print all)");
@@ -148,12 +148,12 @@ TPileup::TPileup() : TGenome_windows() {
 		if (!histograms.empty()) {
 			if (histograms.size() == 1) {
 				UERROR("Unknown histogram '", *histograms.begin(),
-					   "'! Valid histograms are 'depth', 'qualities', 'allelicDepth' and 'contexts'.");
+				       "'! Valid histograms are 'depth', 'qualities', 'allelicDepth' and 'contexts'.");
 			} else {
 				std::string f;
 				for (auto i : histograms) { f += '\'' + i + "', "; }
 				UERROR("Unknown histograms: ", f.substr(0, f.size() - 2),
-					   "! Valid histograms are 'depth', 'qualities', 'allelicDepth' and 'contexts'.");
+				       "! Valid histograms are 'depth', 'qualities', 'allelicDepth' and 'contexts'.");
 			}
 		}
 		if (_histSettings.get<Hist::Depths>()) {
@@ -163,11 +163,11 @@ TPileup::TPileup() : TGenome_windows() {
 
 		if (_histSettings.get<Hist::AllelicDepth>()) {
 			logfile().list("Will assemble allelic depth up to a max depth of " +
-						   coretools::str::toString(_readUpToDepth) + ". (parameter 'readUpToDepth')");
+			               coretools::str::toString(_readUpToDepth) + ". (parameter 'readUpToDepth')");
 			if (_readUpToDepth > 100) {
 				logfile().warning("Allocating count table for a max depth of " +
-								  coretools::str::toString(_readUpToDepth) +
-								  " uses a lot of memory! Use argument readUpToDepth to limit.");
+				                  coretools::str::toString(_readUpToDepth) +
+				                  " uses a lot of memory! Use argument readUpToDepth to limit.");
 			}
 
 			_counts.resize(_readUpToDepth);
@@ -195,7 +195,7 @@ void TPileup::_handleWindow() {
 		if (!_onlySummary) {
 			if (_printSettings.get<Print::OnlySitesWithData>() && site.empty()) continue;
 			_out.write(_window.chrName(),
-					   _window.positionOnChr(pos) + 1); // positions are zero-based internally
+			           _window.positionOnChr(pos) + 1); // positions are zero-based internally
 
 			if (_reference) { _out.write(site.refBase); }
 			if (_printSettings.get<Print::Depth>()) {
@@ -257,8 +257,8 @@ void TPileup::_handleWindow() {
 	if (_histSettings.get<Hist::Depths>()) {
 		logfile().list("Writing sequencing depth estimates to file ...");
 		_outDepthHistogram
-			.writeNoDelim(_window.chrName(), ':', _window.from().position() + 1, '-', _window.to().position())
-			.writeDelim();
+		    .writeNoDelim(_window.chrName(), ':', _window.from().position() + 1, '-', _window.to().position())
+		    .writeDelim();
 		_outDepthHistogram.writeln(_window.depth());
 		logfile().done();
 		if (_bamFile.chrChanged()) {
@@ -290,6 +290,7 @@ void TPileup::run() {
 		std::vector<std::string> readGroupNames;
 		_bamFile.readGroups().fillVectorWithNames(readGroupNames);
 		// write combined
+		_qualDist.resize(readGroupNames.size()); // make sure it has the right size
 		_qualDist.writeCombined(out, "allReadGroups");
 		_qualDist.write(out, readGroupNames);
 	}
@@ -305,6 +306,7 @@ void TPileup::run() {
 			contextLabels.push_back(genometools::toString(c));
 		}
 
+		_contextDist.resize(contextLabels.size()); // make sure it has the right size
 		_contextDist.writeAsMatrix(outputFileName, "quality", contextLabels);
 	}
 
