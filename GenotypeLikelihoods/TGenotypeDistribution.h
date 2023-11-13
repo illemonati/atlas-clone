@@ -80,9 +80,9 @@ public:
 };
 
 class THKY85 final : public TGenotypeDistribution {
-	double _mu      = 1;
-	double _theta_r = 0.0001;
-	double _theta_g = 0.0001;
+	coretools::Probability _mu = 0.5;
+	double _theta_r            = 0.1;
+	double _theta_g            = 0.1;
 
 	coretools::TStrongArray<TGenotypeProbabilities, genometools::Base> _pi;
 	coretools::TStrongArray<TGenotypeData, genometools::Base> _likelihoodSum{};
@@ -105,8 +105,8 @@ public:
 };
 
 class THKY85_mono final : public TGenotypeDistribution {
-	double _mu    = 1;
-	double _theta = 0.0001;
+	coretools::Probability _mu = 0.5;
+	double _theta              = 0.0001;
 
 	coretools::TStrongArray<TBaseProbabilities, genometools::Base> _pi;
 	coretools::TStrongArray<TBaseData, genometools::Base> _likelihoodSum{};

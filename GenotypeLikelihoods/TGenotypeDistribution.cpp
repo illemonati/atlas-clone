@@ -26,7 +26,7 @@
 namespace GenotypeLikelihoods {
 using genometools::Base;
 using genometools::Genotype;
-	using coretools::instances::logfile;
+using coretools::instances::logfile;
 
 namespace impl {
 using coretools::TStrongArray;
@@ -34,9 +34,10 @@ using coretools::TStrongArray;
 TStrongArray<TGenotypeProbabilities, genometools::Base>	piTable(double mu, double theta_r, double theta_g) {
 	using coretools::index;
 
-	const arma::mat::fixed<4,4> l   = {{-2 - mu, 1, mu, 1}, {1, -2 - mu, 1, mu}, {mu, 1, -2 - mu, 1}, {1, mu, 1, -2 - mu}};
-	const arma::mat::fixed<4,4> P_r = arma::expmat(theta_r*l);
-	const arma::mat::fixed<4,4> P_g = arma::expmat(theta_g*l);
+	const auto z                     = (1. - mu) / 2;
+	const arma::mat::fixed<4, 4> l   = {{-1., z, mu, z}, {z, -1., z, mu}, {mu, z, -1., z}, {z, mu, z, -1.}};
+	const arma::mat::fixed<4, 4> P_g = arma::expmat(theta_g * l);
+	const arma::mat::fixed<4, 4> P_r = arma::expmat(theta_r * l);
 
 	coretools::TStrongArray<TGenotypeProbabilities, genometools::Base> pi;
 	for (auto r = Base::min; r < Base::max; ++r) {
@@ -54,6 +55,7 @@ TStrongArray<TGenotypeProbabilities, genometools::Base>	piTable(double mu, doubl
 	return pi;
 }
 
+
 double Q(double mu, double theta_r, double theta_g,
 		 const coretools::TStrongArray<TGenotypeData, genometools::Base> &lkhSum) {
 	try {
@@ -69,8 +71,9 @@ double Q(double mu, double theta_r, double theta_g,
 TStrongArray<TBaseProbabilities, genometools::Base>	piTable(double mu, double theta) {
 	using coretools::index;
 
-	const arma::mat::fixed<4,4> l = {{-2 - mu, 1, mu, 1}, {1, -2 - mu, 1, mu}, {mu, 1, -2 - mu, 1}, {1, mu, 1, -2 - mu}};
-	const arma::mat::fixed<4,4> P = arma::expmat(theta*l);
+	const auto z                   = (1. - mu) / 2;
+	const arma::mat::fixed<4, 4> l = {{-1., z, mu, z}, {z, -1., z, mu}, {mu, z, -1., z}, {z, mu, z, -1.}};
+	const arma::mat::fixed<4, 4> P = arma::expmat(theta * l);
 	coretools::TStrongArray<TBaseProbabilities, genometools::Base> pi;
 
 	for (auto r = Base::min; r < Base::max; ++r) {
@@ -93,6 +96,19 @@ double Q(double mu, double theta, const coretools::TStrongArray<TBaseData, genom
 		return Q;
 	} catch (...) { return std::numeric_limits<double>::lowest(); }
 }
+
+double het(double mu, double theta) {
+	const auto z                     = (1. - mu) / 2;
+	const arma::mat::fixed<4, 4> l   = {{-1., z, mu, z}, {z, -1., z, mu}, {mu, z, -1., z}, {z, mu, z, -1.}};
+	const arma::mat::fixed<4, 4> P_g = arma::expmat(theta * l);
+
+	double hom = 0.;
+	for (size_t i = 0; i < 4; ++i) {
+		hom += P_g(0, i)*P_g(0, i);
+	}
+	return 1-hom;
+}
+
 } // namespace impl
 
 TGenotypeLikelihoods THaploidDistribution::P_dij(const TBaseLikelihoods &baseLikelihoods) const {
@@ -249,7 +265,7 @@ double THKY85::normalize_add(TGenotypeLikelihoods &likelihoods, genometools::Bas
 
 THKY85::THKY85()
 	: _pi(impl::piTable(_mu, _theta_r, _theta_g)),
-	  _nelderMead([this](auto Vals) { return -impl::Q(std::exp(Vals[0]), std::exp(Vals[1]), std::exp(Vals[2]), _likelihoodSum); }) {
+	  _nelderMead([this](auto Vals) { return -impl::Q(coretools::expit(Vals[0]), std::exp(Vals[1]), std::exp(Vals[2]), _likelihoodSum); }) {
 }
 
 void THKY85::estimate() {
@@ -257,10 +273,10 @@ void THKY85::estimate() {
 	constexpr size_t AA_CC = 100;
 	const bool isWorthIt = _likelihoodSum[Base::A][Genotype::AA] > AA_CC*_likelihoodSum[Base::A][Genotype::CC];
 
-	if (isWorthIt && _nelderMead.minimize({std::log(_mu), std::log(_theta_r), std::log(_theta_g)},
+	if (isWorthIt && _nelderMead.minimize({coretools::logit(_mu), std::log(_theta_r), std::log(_theta_g)},
 							 10.)) {
 		const auto &crds = _nelderMead.coordinates();
-		_mu              = std::exp(crds[0]);
+		_mu              = coretools::expit(crds[0]);
 		_theta_r         = std::exp(crds[1]);
 		_theta_g         = std::exp(crds[2]);
 		_pi              = impl::piTable(_mu, _theta_r, _theta_g);
@@ -276,10 +292,11 @@ void THKY85::addHeader(std::vector<std::string> &Header) const {
 	Header.push_back("mu");
 	Header.push_back("theta_r");
 	Header.push_back("theta_g");
+	Header.push_back("het");
 }
 
 void THKY85::write(coretools::TOutputFile &Out) const {
-	Out.write(_mu, _theta_r, _theta_g);
+	Out.write(_mu, _theta_r, _theta_g, impl::het(_mu, _theta_g));
 }
 
 TGenotypeLikelihoods THKY85_mono::P_dij(const TBaseLikelihoods &baseLikelihoods) const {
@@ -313,7 +330,7 @@ double THKY85_mono::normalize_add(TGenotypeLikelihoods &likelihoods, genometools
 
 THKY85_mono::THKY85_mono()
 	: _pi(impl::piTable(_mu, _theta)),
-	  _nelderMead([this](auto Vals) { return -impl::Q(std::exp(Vals[0]), std::exp(Vals[1]), _likelihoodSum); }) {
+	  _nelderMead([this](auto Vals) { return -impl::Q(coretools::expit(Vals[0]), std::exp(Vals[1]), _likelihoodSum); }) {
 }
 
 void THKY85_mono::estimate() {
@@ -321,10 +338,10 @@ void THKY85_mono::estimate() {
 	constexpr size_t AA_CC = 100;
 	const bool isWorthIt = _likelihoodSum[Base::A][Base::A] > AA_CC*_likelihoodSum[Base::A][Base::C];
 
-	if (isWorthIt && _nelderMead.minimize({std::log(_mu), std::log(_theta)},
+	if (isWorthIt && _nelderMead.minimize({coretools::logit(_mu), std::log(_theta)},
 							 10.)) {
 		const auto &crds = _nelderMead.coordinates();
-		_mu              = std::exp(crds[0]);
+		_mu              = coretools::expit(crds[0]);
 		_theta           = std::exp(crds[1]);
 		_pi              = impl::piTable(_mu, _theta);
 	}
@@ -338,10 +355,11 @@ void THKY85_mono::log() const {
 void THKY85_mono::addHeader(std::vector<std::string> &Header) const {
 	Header.push_back("mu");
 	Header.push_back("theta");
+	Header.push_back("het");
 }
 
 void THKY85_mono::write(coretools::TOutputFile &Out) const {
-	Out.write(_mu, _theta);
+	Out.write(_mu, _theta, impl::het(_mu, _theta));
 }
 
 }; // namespace GenotypeLikelihoods

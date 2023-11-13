@@ -4,3 +4,4 @@
 . $(dirname $0)/simulate --chrLength 1000000
 
 $atlas --task genotypeDistribution --bam ATLAS_simulations.bam --fasta ATLAS_simulations.fasta --out genotypeDistribution --logFile genotypeDistribution.out --window 100000 --HKY85 
+$atlas --task theta --bam ATLAS_simulations.bam --out theta --logFile theta.out --window 100000
