@@ -130,7 +130,7 @@ private:
 	double _alpha;
 	double _beta;
 	double _F;
-	double _cumulGenoProb[3];
+	std::array<double, 3> _cumulGenoProb;
 	TSimulatorMutationtable _mutTable;
 	bool _writeTrueAlleleFreq = false;
 	coretools::TOutputFile _trueFreqFile;

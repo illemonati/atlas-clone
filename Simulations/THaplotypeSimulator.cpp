@@ -15,6 +15,7 @@
 #include <ostream>
 #include <utility>
 
+#include "coretools/Containers/TView.h"
 #include "genometools/GenomePositions/TChromosomes.h"
 #include "TGenotypeData.h"
 #include "coretools/Main/TLog.h"
@@ -42,13 +43,13 @@ std::string toString(const TBaseProbabilities &probs) {
 }
 } // namespace impl
 
-Base sampleBase(const coretools::TStrongArray<double, Base> &cumulProbs) {
-	return genometools::Base(randomGenerator().pickOne(cumulProbs));
-}
-
 Base mutateBase(Base base, const coretools::TStrongArray<double, Base> &cumulProbs) {
 	using namespace genometools;
-	return Base((coretools::index(base) + randomGenerator().pickOne(cumulProbs)) % coretools::index(Base::max));
+	using coretools::index;
+	constexpr auto iMax = index(Base::max);
+	const auto iBase    = index(base);
+	const auto iAdd     = index(randomGenerator().pickOne(cumulProbs));
+	return Base((iBase + iAdd) % iMax);
 }
 
 THaplotypeSimulator::THaplotypeSimulator(){
@@ -110,8 +111,8 @@ void TSimulatorOne::simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulator
 	TSimulatorMutationtable mutTable(_baseFreq, _thetas[chromosome.refID()]);
 
 	for (size_t l = 0; l < chromosome.length(); ++l) {
-		haplotypes(0, 0, l) = sampleBase(_cumulBaseFreq);
-		haplotypes(0, 1, l) = sampleBase(mutTable[haplotypes(0, 0, l)]);
+		haplotypes(0, 0, l) = randomGenerator().pickOne(_cumulBaseFreq);
+		haplotypes(0, 1, l) = randomGenerator().pickOne(mutTable[haplotypes(0, 0, l)]);
 
 		// decide on reference sequence
 		if (haplotypes(0, 0, l) == haplotypes(0, 1, l)) {
@@ -129,7 +130,7 @@ void TSimulatorOne::simulateHaploid(TSimulatorHaplotypes &haplotypes, TSimulator
 
 	// now simulate genotypes
 	for (size_t l = 0; l < chromosome.length(); ++l) {
-		haplotypes(0, 0, l) = sampleBase(_cumulBaseFreq);
+		haplotypes(0, 0, l) = randomGenerator().pickOne(_cumulBaseFreq);
 		haplotypes(0, 1, l) = haplotypes(0, 0, l);
 
 		// decide on ref
@@ -417,8 +418,8 @@ void TSimulatorSFS::simulateHaploid(TSimulatorHaplotypes &haplotypes, TSimulator
 	// now simulate haplotypes
 	for (size_t l = 0; l < chromosome.length(); ++l) {
 		// pick alleles
-		const Base ancestral = sampleBase(_cumulBaseFreq);
-		const Base derived   = sampleBase(_mutTable[ancestral]);
+		const Base ancestral = randomGenerator().pickOne(_cumulBaseFreq);
+		const Base derived   = randomGenerator().pickOne(_mutTable[ancestral]);
 
 		//simulate haplotypes
 		size_t alleleCount = _sfs[chromosome.refID()]->simulateSiteHaploid(l, haplotypes, ancestral, derived);
@@ -441,8 +442,8 @@ void TSimulatorSFS::simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulator
 					       const genometools::TChromosome &chromosome) {
 	for (size_t l = 0; l < chromosome.length(); ++l) {
 		// pick alleles
-		const Base ancestral = sampleBase(_cumulBaseFreq);
-		const Base derived   = sampleBase(_mutTable[ancestral]);
+		const Base ancestral = randomGenerator().pickOne(_cumulBaseFreq);
+		const Base derived   = randomGenerator().pickOne(_mutTable[ancestral]);
 
 		//simulate haplotypes
 		size_t alleleCount = _sfs[chromosome.refID()]->simulateSiteDiploid(l, haplotypes, ancestral, derived);
@@ -597,7 +598,7 @@ void TSimulatorHW::simulateDiploid(TSimulatorHaplotypes &haplotypes, TSimulatorR
 
 			// simulate genotypes
 			for (int i = 0; i < _sampleSize; ++i) {
-				int geno = randomGenerator().pickOne(3, _cumulGenoProb);
+				int geno = randomGenerator().pickOne(_cumulGenoProb);
 				if (geno == 0) {
 					haplotypes(i, 0, l) = site.reference;
 					haplotypes(i, 1, l) = site.reference;

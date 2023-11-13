@@ -113,7 +113,7 @@ TReadSimulators::TReadSimulators(const std::string & RgInfoFileName){
 
 void TReadSimulators::simulate(const genometools::TGenomePosition & Position, const std::vector<Base>& Haplotype, BAM::TOutputBamFile &BamFile){
 	//sample which simulator to use
-	size_t thisSimulator = randomGenerator().pickOne(_cumulSimGroupFrequenies);
+	size_t thisSimulator = _cumulSimGroupFrequenies.size() < 2 ? 0 : randomGenerator().pickOne(_cumulSimGroupFrequenies);
 	_readSimulators[thisSimulator]->simulate(Position, Haplotype, BamFile);
 }
 
