@@ -14,23 +14,27 @@
 #include <set>
 #include <string>
 #include <vector>
-#include "genometools/PhredProbabilityTypes.h"
-#include "TAlignment.h"
-#include "TBamFilter.h"
-#include "genometools/GenomePositions/TChromosomes.h"
-#include "TCigar.h"
-#include "genometools/GenomePositions/TGenomePosition.h"
-#include "coretools/Math/TNumericRange.h"
-#include "TReadGroups.h"
-#include "TSamHeader.h"
-#include "coretools/TTimer.h"
+
 #include "api/BamAlignment.h"
 #include "api/BamAux.h"
 #include "api/BamReader.h"
 #include "api/BamWriter.h"
 #include "api/SamHeader.h"
-#include "coretools/Strings/stringFunctions.h"
+
+#include "coretools/Math/TNumericRange.h"
 #include "coretools/Math/counters.h"
+#include "coretools/Strings/stringFunctions.h"
+#include "coretools/TTimer.h"
+#include "genometools/GenomePositions/TChromosomes.h"
+#include "genometools/GenomePositions/TGenomePosition.h"
+#include "genometools/PhredProbabilityTypes.h"
+
+#include "TAlignment.h"
+#include "TAlignmentList.h"
+#include "TBamFilter.h"
+#include "TCigar.h"
+#include "TReadGroups.h"
+#include "TSamHeader.h"
 
 namespace BAM{
 
@@ -78,25 +82,25 @@ private:
  	bool _keepAll; 	
 	size_t _numNoReadGroup;
 	std::vector<size_t> _numNotAligned;
-	TBamFileFilterRange<> _readLengthFilter{500};
- 	TBamFileFilterRange<> _mappedLengthFilter{500};
- 	TBamFileFilterBool _duplicateFilter;
- 	TBamFileFilterBool _softClippedRatioFilter;
- 	TBamFileFilterBool _improperPairsFilter;
- 	TBamFileFilterBool _unmappedFilter;
- 	TBamFileFilterBool _failedQCFilter;
- 	TBamFileFilterBool _secondaryFilter;
- 	TBamFileFilterBool _supplementaryFilter;
- 	TBamFileFilterBool _longerThanFragmentFilter;
- 	TBamFileFilterBool _readGroupFilter;
- 	TBamFileFilterBool _fwdStrandFilter;
- 	TBamFileFilterBool _revStrandFilter;
- 	TBamFileFilterBool _firstMateFilter;
- 	TBamFileFilterBool _secondMateFilter;
- 	TBamFileFilterBool _blacklistFilter;
- 	TBamFileFilterRange<uint16_t> _mappingQualityFilter;
- 	TBamFileFilterRange<> _fragmentLengthFilter;
- 	TBamFileFilter _externalFilter;
+	TBamFilterRange _readLengthFilter{500};
+ 	TBamFilterRange _mappedLengthFilter{500};
+ 	TBamFilterBool _duplicateFilter;
+ 	TBamFilterBool _softClippedRatioFilter;
+ 	TBamFilterBool _improperPairsFilter;
+ 	TBamFilterBool _unmappedFilter;
+ 	TBamFilterBool _failedQCFilter;
+ 	TBamFilterBool _secondaryFilter;
+ 	TBamFilterBool _supplementaryFilter;
+ 	TBamFilterBool _longerThanFragmentFilter;
+ 	TBamFilterBool _readGroupFilter;
+ 	TBamFilterBool _fwdStrandFilter;
+ 	TBamFilterBool _revStrandFilter;
+ 	TBamFilterBool _firstMateFilter;
+ 	TBamFilterBool _secondMateFilter;
+ 	TBamFilterBool _blacklistFilter;
+ 	TBamFilterRange _mappingQualityFilter;
+ 	TBamFilterRange _fragmentLengthFilter;
+ 	TBamFilter _externalFilter;
 
 	void _fillSamHeader(TSamHeader & SamHeader);
 	void _fillChromosomes(genometools::TChromosomes & chromosomes);
@@ -132,7 +136,6 @@ public:
 	void setFilters();
 	void setLimits();
 	void curFilterOut();
-	void filterOut(std::string_view alignmentName, bool isReverseStrand, size_t readGroup, size_t chromosomeID);
 	void filterOut(const TAlignment & Alignment);
 	void setExternalFilterReason(std::string_view reason);
 	void openBamLog();
@@ -185,7 +188,6 @@ public:
 	size_t curReadLength() const{ return _curCigar.lengthRead(); };
 	size_t curUsableSequence() const{ return _curCigar.lengthSequenced(); };
 	size_t curFragmentLength() const;
-	[[deprecated]] uint16_t curUsableAlignedLength(TQualityFilter & ) const {return 0.;};
 	uint16_t curMappingQuality() const{ return _curBamAlignment.MapQuality; };
 	bool curIsPaired() const{ return _curBamAlignment.IsPaired(); };
 	bool curIsProperPair() const{ return _curBamAlignment.IsProperPair(); };
@@ -213,7 +215,7 @@ public:
 	coretools::TCountDistributionVector<> numAlignmentReadPerReadGroupPerChromosome() { return _numAlignmentReadPerReadGroupPerChromosome; };
 	double positionInFile() const { return (double) _bamReader.Tell() / (double) _fileSize; };
 	size_t numReadGroups() const{ return _readGroups.size(); };
-	TBamFileFilterBool getDuplicateFilter(){return _duplicateFilter; };
+	TBamFilterBool getDuplicateFilter(){return _duplicateFilter; };
 
 	//progress reporting
 	void printSummaryNoEndIndent(std::string_view outputName) const;

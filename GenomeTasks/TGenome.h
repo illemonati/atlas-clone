@@ -14,10 +14,11 @@
 #include <string>
 #include <vector>
 
+#include "TBamFile.h"
+#include "TBaseFilter.h"
 #include "TReadGroupInfo.h"
 #include "genometools/BED/TBed.h"
 #include "TAlignment.h"
-#include "TBamFile.h"
 #include "genometools/GenomePositions/TChromosomes.h"
 #include "genometools/GenomePositions/TGenomePosition.h"
 #include "TGenotypeData.h"
@@ -91,8 +92,8 @@ protected:
 	int _trimmingLength5Prime;
 
 	// filters
-	BAM::TQualityFilter _qualityFilter;
-	BAM::TContextFilter _contextFilter;
+	TQualityFilter _qualityFilter;
+	TContextFilter _contextFilter;
 
 	// functions for initialization
 	void _setReadTrimming();

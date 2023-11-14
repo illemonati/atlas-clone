@@ -117,7 +117,7 @@ protected:
 			_writeAlignment(it);
 		} else {
 			//write reason to bam log
-			_bamFile.filterOut(it->alignment().name(), it->alignment().isSecondMate(), it->alignment().readGroupId(), it->alignment().refID());
+			_bamFile.filterOut(it->alignment());
 			it = _alignmentStorage.erase(it);
 		}
 	}

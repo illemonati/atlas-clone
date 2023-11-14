@@ -240,7 +240,7 @@ void TBamFile::setFilters(){
 
 		//Mapping quality filter
 		if(parameters().exists("filterMQ")){
-			TNumericRange<uint16_t> Range;
+			TNumericRange<size_t> Range;
 			parameters().fill("filterMQ", Range);
 
 			_mappingQualityFilter.filter(Range, "MappingQualityOutside" + Range.rangeString(), numRG, numChrom);
@@ -283,10 +283,6 @@ void TBamFile::setFilters(){
 
 void TBamFile::curFilterOut(){
 	_externalFilter.filterOut(_curBamAlignment.Name, _curBamAlignment.IsReverseStrand(), _curReadGroupID, refID());
-};
-
-void TBamFile::filterOut(std::string_view alignmentName, bool isReverseStrand, size_t readGroup, size_t chromosomeID){
-	_externalFilter.filterOut(alignmentName, isReverseStrand, readGroup, chromosomeID);
 };
 
 void TBamFile::filterOut(const TAlignment & Alignment){

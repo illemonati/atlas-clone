@@ -12,6 +12,7 @@
 #include "genometools/GenotypeTypes.h"
 #include "genometools/PhredProbabilityTypes.h"
 #include "TBamFilter.h"
+#include "TBaseFilter.h"
 #include "TGenotypeLikelihoodCalculator.h"
 #include "coretools/Main/TRandomGenerator.h"
 #include "coretools/Types/strongTypes.h"
@@ -24,6 +25,7 @@
 #include <stdlib.h>
 
 namespace BAM {
+using GenomeTasks::TBaseFilter;
 
 void TAlignment::clear() {
 	TGenomePosition::clear();

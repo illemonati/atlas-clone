@@ -14,6 +14,7 @@
 #include <math.h>
 #include <memory>
 
+#include "TBamFilter.h"
 #include "genometools/BED/TBed.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
