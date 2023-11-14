@@ -27,7 +27,6 @@ class TBamFilter{
 	bool _enabled = false;
 	coretools::TCountDistributionVector<> _counter;
 	std::string _reason; //used for reporting
-	coretools::TOutputFile* _log = nullptr;
 
 public:
 	void enable(std::string_view Reason, size_t numRG, size_t numChrom) {
@@ -38,8 +37,7 @@ public:
 	}
 	void disable() noexcept { _enabled = false; }
 	bool filters() const{ return _enabled; };
-	void setLog(coretools::TOutputFile& Log);
-	void filterOut(std::string_view alignmentName, bool isSecondMate, size_t readGroup, int64_t chromosomeID);
+	void filterOut(std::string_view alignmentName, bool isSecondMate, size_t readGroup, int64_t chromosomeID, coretools::TOutputFile* const log);
 	void summary(size_t total, size_t readGroup) const;
 	void fillHeader(std::vector<std::string> &header) const; 
 	void printCounts(coretools::TOutputFile &out, size_t rg_ID) const;

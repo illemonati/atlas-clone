@@ -21,13 +21,11 @@ namespace BAM {
 
 using coretools::instances::logfile;
 
-void TBamFilter::filterOut(std::string_view alignmentName, bool isSecondMate, size_t readGroup, int64_t chromosomeID) {
+void TBamFilter::filterOut(std::string_view alignmentName, bool isSecondMate, size_t readGroup, int64_t chromosomeID, coretools::TOutputFile* const log) {
 	// counts filtered reads per read group and filter
 	_counter.add(readGroup, chromosomeID);
-	if (_log) { _log->writeln(alignmentName, isSecondMate, _reason); }
+	if (log) { log->writeln(alignmentName, isSecondMate, _reason); }
 }
-
-void TBamFilter::setLog(coretools::TOutputFile &Log) { _log = &Log; }
 
 void TBamFilter::summary(size_t total, size_t readGroup) const {
 	if (filters() && readGroup < _counter.size() && _counter[readGroup].counts() > 0) {

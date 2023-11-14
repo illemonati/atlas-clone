@@ -41,6 +41,7 @@ enum class FilterType : size_t {
 class TBamFilters {
 	coretools::TStrongArray<coretools::TNumericRange<size_t>, FilterType, coretools::index(FilterType::maxRange)> _ranges;
 	coretools::TStrongArray<TBamFilter, FilterType> _counters;
+	coretools::TOutputFile* _log = nullptr;
 
 public:
 
@@ -48,7 +49,7 @@ public:
 			  int64_t chromosomeID) {
 		auto &filter = _counters[Filter];
 		if (filter.filters()) {
-			filter.filterOut(alignmentName, isSecondMate, readGroup, chromosomeID);
+			filter.filterOut(alignmentName, isSecondMate, readGroup, chromosomeID, _log);
 		}
 	}
 
@@ -56,7 +57,7 @@ public:
 			  int64_t chromosomeID) {
 		auto &filter = _counters[Filter];
 		if (filter.filters() && !Pass) {
-			filter.filterOut(alignmentName, isSecondMate, readGroup, chromosomeID);
+			filter.filterOut(alignmentName, isSecondMate, readGroup, chromosomeID, _log);
 			return false;
 		}
 		return true;
@@ -66,7 +67,7 @@ public:
 		assert(Filter < FilterType::maxRange);
 		auto &filter = _counters[Filter];
 		if (filter.filters() && !_ranges[Filter].within(Value)) {
-			filter.filterOut(alignmentName, isSecondMate, readGroup, chromosomeID);
+			filter.filterOut(alignmentName, isSecondMate, readGroup, chromosomeID, _log);
 			return false;
 		}
 		return true;
@@ -95,7 +96,7 @@ public:
 	}
 
 	void setLog(coretools::TOutputFile& Log) {
-		for (auto& f: _counters) f.setLog(Log);
+		_log = &Log;
 	}
 
 	void fillHeader(std::vector<std::string> &Header) const {
