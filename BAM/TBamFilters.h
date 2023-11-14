@@ -43,6 +43,15 @@ class TBamFilters {
 	coretools::TStrongArray<TBamFilter, FilterType> _counters;
 
 public:
+
+	void filterOut(FilterType Filter, std::string_view alignmentName, bool isSecondMate, size_t readGroup,
+			  int64_t chromosomeID) {
+		auto &filter = _counters[Filter];
+		if (filter.filters()) {
+			filter.filterOut(alignmentName, isSecondMate, readGroup, chromosomeID);
+		}
+	}
+
 	bool pass(FilterType Filter, bool Pass, std::string_view alignmentName, bool isSecondMate, size_t readGroup,
 			  int64_t chromosomeID) {
 		auto &filter = _counters[Filter];
@@ -54,7 +63,7 @@ public:
 	}
 	bool pass(FilterType Filter, size_t Value, std::string_view alignmentName, bool isSecondMate, size_t readGroup,
 	          int64_t chromosomeID) {
-		assert(Filter < Type::maxRange);
+		assert(Filter < FilterType::maxRange);
 		auto &filter = _counters[Filter];
 		if (filter.filters() && !_ranges[Filter].within(Value)) {
 			filter.filterOut(alignmentName, isSecondMate, readGroup, chromosomeID);
@@ -80,9 +89,9 @@ public:
 	const TBamFilter& operator[](FilterType t) const noexcept {return _counters[t];}
 	TBamFilter& operator[](FilterType t) noexcept {return _counters[t];}
 
-	const coretools::TNumericRange<size_t>& range(FilterType t) const noexcept {
-		assert(Filter < Type::maxRange);
-		return _ranges[t];
+	const coretools::TNumericRange<size_t>& range(FilterType Filter) const noexcept {
+		assert(Filter < FilterType::maxRange);
+		return _ranges[Filter];
 	}
 
 	void setLog(coretools::TOutputFile& Log) {
@@ -104,7 +113,6 @@ public:
 	void summary(size_t Total, size_t ReadGroup) const {
 		for (auto& f: _counters) f.summary(Total, ReadGroup);
 	}
-
 };
 }
 

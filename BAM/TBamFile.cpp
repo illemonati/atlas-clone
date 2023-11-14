@@ -87,7 +87,6 @@ void TBamFile::setFilters(){
 
 	uint32_t numRG = readGroups().size();
 	uint32_t numChrom = chromosomes().size();
-	_filters[FilterType::External].resizeCounter(numRG, numChrom);
 	_numNotAligned.resize(numRG);
 	
 	//mapping length
@@ -283,16 +282,18 @@ void TBamFile::setFilters(){
 };
 
 void TBamFile::curFilterOut(){
-	_filters[FilterType::External].filterOut(_curBamAlignment.Name, _curBamAlignment.IsReverseStrand(), _curReadGroupID, refID());
+	_filters.filterOut(FilterType::External, _curBamAlignment.Name, _curBamAlignment.IsReverseStrand(), _curReadGroupID, refID());
 };
 
 void TBamFile::filterOut(const TAlignment & Alignment){
-	_filters[FilterType::External].filterOut(Alignment.name(), Alignment.isReverseStrand(), Alignment.readGroupId(), Alignment.refID());
+	_filters.filterOut(FilterType::External, Alignment.name(), Alignment.isReverseStrand(), Alignment.readGroupId(), Alignment.refID());
 
 };
 
 void TBamFile::setExternalFilterReason(std::string_view reason){
-	_filters[FilterType::External].setReason(reason);
+	const auto numRG    = readGroups().size();
+	const auto numChrom = chromosomes().size();
+	_filters.enable(FilterType::External, reason, numRG, numChrom);
 };
 
 void TBamFile::openBamLog(){
