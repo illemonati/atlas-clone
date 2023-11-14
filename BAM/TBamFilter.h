@@ -22,11 +22,11 @@ namespace BAM{
 //-----------------------------------------------------
 //TBamFileFilter
 //-----------------------------------------------------
+
 class TBamFilter{
-private:
 	const coretools::TCountDistributionVector<>& numFiltered() const { return _counter; }
 protected:
-	bool _keep = true;
+	bool _enabled = false;
 	coretools::TCountDistributionVector<> _counter;
 	std::string _reason; //used for reporting
 	coretools::TOutputFile* _log = nullptr;
@@ -34,9 +34,14 @@ protected:
 public:
 	TBamFilter() = default;
 	virtual ~TBamFilter() = default;
-	void keep();
+	void enable(std::string_view Reason, size_t numRG, size_t numChrom) {
+		_enabled = true;
+		_reason  = Reason;
+		resizeCounter(numRG, numChrom);
+	}
+	void disable() noexcept {_enabled = false;}
 	void resizeCounter(size_t numRG, size_t numChrom);
-	bool filters() const{ return !_keep; };
+	bool filters() const{ return _enabled; };
 	void setReason(std::string_view reason);
 	void setLog(coretools::TOutputFile& Log);
 	void filterOut(std::string_view alignmentName, bool isSecondMate, size_t readGroup, int64_t chromosomeID);
@@ -49,45 +54,6 @@ public:
 	size_t getCountsAtReadGroupAndChromosome(size_t rg_ID, size_t ref_ID) const;
 	size_t getCombinedCounts() const;
 	size_t getCounts(size_t rg_ID) const;
-};
-
-//Filters out if pass(false), keeps if pass(true)
-class TBamFilterBool:public TBamFilter{
-public:
-	TBamFilterBool(){};
-	void filter(std::string_view Reason, size_t numRG, size_t numChrom);
-	bool pass(bool state, std::string_view alignmentName, bool isSecondMate, size_t readGroup, int64_t chromosomeID);
-};
-
-class TBamFilterRange:public TBamFilter {
-private:
-	coretools::TNumericRange<size_t> _range;
-public:
-	TBamFilterRange() = default;
-	TBamFilterRange(size_t max): _range(0, true, max, true) {}
-
-	void filter(const coretools::TNumericRange<size_t> & Range, std::string_view Reason, size_t numRG, size_t numChrom){
-		_keep = false;
-		_range = Range;
-		_reason = Reason;
-		resizeCounter(numRG, numChrom);
-	}
-
-	const coretools::TNumericRange<size_t> range() const {
-		return _range;
-	}
-
-	std::string rangeString() const{
-		return _range.rangeString();
-	}
-
-	bool pass(size_t value, std::string_view alignmentName, bool isSecondMate, size_t readGroup, int64_t chromosomeID) {
-		if(!_keep && !_range.within(value)){
-			filterOut(alignmentName, isSecondMate, readGroup, chromosomeID);
-			return false;
-		}
-		return true;
-	}
 };
 
 }; //end namespace

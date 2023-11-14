@@ -17,6 +17,7 @@
 #include <utility>
 #include <vector>
 
+#include "TBamFilters.h"
 #include "coretools/Containers/TStrongArray.h"
 #include "genometools/GenotypeTypes.h"
 #include "genometools/PhredProbabilityTypes.h"
@@ -635,7 +636,7 @@ TAlignmentSplitMerger::TAlignmentSplitMerger() : TGenomeParsedWithAlignmentStora
 void TAlignmentSplitMerger::_initializeMerger() {
 	// check if keepAllReads is turned on
 	// TODO: what is the basic set of filters needed?
-	if(!_bamFile.improperPairsFilterEnabled()){
+	if(!_bamFile.filter(BAM::FilterType::ImproperPairs).filters()){
 		logfile().warning("Improper pairs are kept but will not be merged!");
 	}
 

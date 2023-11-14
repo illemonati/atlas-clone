@@ -12,6 +12,7 @@
 #include <exception>
 #include <filesystem>
 #include <string>
+#include "TBamFilters.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Math/TNumericRange.h"
 #include "coretools/Main/TParameters.h"
@@ -74,9 +75,9 @@ void TBamFile::setLimits(){
 		logfile().startIndent("Will limit analysis to the following read groups:");
 		_readGroups.printReadgroupsInUse();
 		logfile().endIndent();
-		_readGroupFilter.filter("Read group not in use", readGroups().size(), chromosomes().size());
+		_filters.enable(FilterType::ReadGroup, "Read group not in use", readGroups().size(), chromosomes().size());
 	} else {
-		_readGroupFilter.keep();
+		_filters.disable(FilterType::ReadGroup);
 	}
 };
 
@@ -86,7 +87,7 @@ void TBamFile::setFilters(){
 
 	uint32_t numRG = readGroups().size();
 	uint32_t numChrom = chromosomes().size();
-	_externalFilter.resizeCounter(numRG, numChrom);
+	_filters[FilterType::External].resizeCounter(numRG, numChrom);
 	_numNotAligned.resize(numRG);
 	
 	//mapping length
@@ -102,9 +103,9 @@ void TBamFile::setFilters(){
 		mappingLengthRange.set(0, true, 500, true);
 		_allowTooLongReads = parameters().exists("allowTooLongReads");
 	}
-	_mappedLengthFilter.filter(mappingLengthRange, "MappedLengthOutside" + mappingLengthRange.rangeString(), numRG, numChrom);
+	_filters.enable(FilterType::MappedLength, mappingLengthRange, "MappedLengthOutside" + mappingLengthRange.rangeString(), numRG, numChrom);
 	
-	logfile().list("Mapped length: restrict to range " + _mappedLengthFilter.rangeString() + ". (parameter 'filterMappingLength')");
+	logfile().list("Mapped length: restrict to range " + mappingLengthRange.rangeString() + ". (parameter 'filterMappingLength')");
 	if(mappingLengthRange.max() > 100000){
 		logfile().warning("The chosen mapping length filter allows for reads to span >100kb of the reference genome. This may affect performance in case of paired-end reads.");
 	}
@@ -118,16 +119,16 @@ void TBamFile::setFilters(){
 		_keepAll = false;
 		//duplicates
 		if(parameters().exists("keepDuplicates")){
-			_duplicateFilter.keep();
+			_filters.disable(FilterType::Duplicate);
 			logfile().list("Duplicate reads: keep. (parameter 'keepDuplicates')");
 		} else {
-			_duplicateFilter.filter("Duplicate", numRG, numChrom);
+			_filters.enable(FilterType::Duplicate, "Duplicate", numRG, numChrom);
 			logfile().list("Duplicate reads: filter out. (use 'keepDuplicates' to keep)");
 		}
 
 		//soft clips
 		if(parameters().exists("filterSoftClips")){
-			_softClippedRatioFilter.filter("Soft clipped", numRG, numChrom);
+			_filters.enable(FilterType::SoftClippedRation, "Soft clipped", numRG, numChrom);
 			if (parameters().get("filterSoftClips").empty()) {
 				_softClipFilterRatio = 0.;
 				logfile().list("Soft clipped reads: filter out. (parameter 'filterSoftClips')");
@@ -137,93 +138,93 @@ void TBamFile::setFilters(){
 				logfile().list("Soft clipped reads: filter out if softClipLength/readLength > ", _softClipFilterRatio, ". (parameter 'filterSoftClips')");
 			}
 		} else {
-			_softClippedRatioFilter.keep();
+			_filters.disable(FilterType::SoftClippedRation);
 			logfile().list("Soft clipped reads: keep. (use 'filterSoftClips' to filter out)");
 		}
 
 		//improper pairs
 		if(parameters().exists("keepImproperPairs")){
-			_improperPairsFilter.keep();
+			_filters.disable(FilterType::ImproperPairs);
 			logfile().list("Improper pairs: keep. (parameter 'keepImproperPairs')");
 		} else {
-			_improperPairsFilter.filter("ImproperPair", numRG, numChrom);
+			_filters.enable(FilterType::ImproperPairs, "ImproperPair", numRG, numChrom);
 			logfile().list("Improper pairs: filter out. (use 'keepImproperPairs' to keep)");
 		}
 
 		//unmapped reads
 		if(parameters().exists("keepUnmappedReads")){
-			_unmappedFilter.keep();
+			_filters.disable(FilterType::Unmapped);
 			logfile().list("Unmapped reads: keep. (parameter 'keepUnmappedReads')");
 		} else {
-			_unmappedFilter.filter("Unmapped", numRG, numChrom);
+			_filters.enable(FilterType::Unmapped, "Unmapped", numRG, numChrom);
 			logfile().list("Unmapped reads: filter out. (use 'keepUnmappedReads' to keep)");
 		}
 
 		//failed QC
 		if(parameters().exists("keepFailedQC")){
-			_failedQCFilter.keep();
+			_filters.disable(FilterType::FailedQC);
 			logfile().list("Failed QC: keep. (parameter 'keepFailedQC')");
 		} else {
-			_failedQCFilter.filter("FailedQC", numRG, numChrom);
+			_filters.enable(FilterType::FailedQC, "FailedQC", numRG, numChrom);
 			logfile().list("Failed QC: filter out. (use 'keepFailedQC' to keep)");
 		}
 
 		//secondary reads
 		if(parameters().exists("keepSecondaryReads")){
-			_secondaryFilter.keep();
+			_filters.disable(FilterType::Secondary);
 			logfile().list("Secondary reads: keep. (parameter 'keepSecondaryReads')");
 		} else {
-			_secondaryFilter.filter("SecondaryAlignment", numRG, numChrom);
+			_filters.enable(FilterType::Secondary, "SecondaryAlignment", numRG, numChrom);
 			logfile().list("Secondary reads: filter out. (use 'keepSecondaryReads' to keep)");
 		}
 
 		//supplementary reads
 		if(parameters().exists("keepSupplementaryReads")){
-			_supplementaryFilter.keep();
+			_filters.disable(FilterType::Supplementary);
 			logfile().list("Supplementary reads: keep. (parameter 'keepSupplementaryReads')");
 		} else {
-			_supplementaryFilter.filter("SupplementaryAlignment", numRG, numChrom);
+			_filters.enable(FilterType::Supplementary, "SupplementaryAlignment", numRG, numChrom);
 			logfile().list("Supplementary reads: filter out. (use 'keepSupplementaryReads' to keep)");
 		}
 
 		//fragment length
 		if(parameters().exists("filterReadsLongerThanFragment")){
-			_longerThanFragmentFilter.filter("Longer than fragment", numRG, numChrom);
+			_filters.enable(FilterType::LongerThanFragment, "Longer than fragment", numRG, numChrom);
 			logfile().list("Reads longer than fragment size: filter out. (parameter 'filterReadsLongerThanFragment')");
 		} else {
-			_longerThanFragmentFilter.keep();
+			_filters.disable(FilterType::LongerThanFragment);
 			logfile().list("Reads longer than fragment size: keep. (use 'filterReadsLongerThanFragment' to filter out)");
 		}
 
 		//strand
 		if(parameters().exists("keepOnlyFwd")){
-			_fwdStrandFilter.keep();
-			_revStrandFilter.filter("Reverse strand", numRG, numChrom);
+			_filters.disable(FilterType::FwdStrand);
+			_filters.enable(FilterType::RevStrand, "Reverse strand", numRG, numChrom);
 			logfile().list("Strand: keep only forward. (parameter 'keepOnlyFwd')");
 		}
 		else if(parameters().exists("keepOnlyRev")){
-			_fwdStrandFilter.filter("Forward strand", numRG, numChrom);
-			_revStrandFilter.keep();
+			_filters.enable(FilterType::FwdStrand, "Forward strand", numRG, numChrom);
+			_filters.disable(FilterType::RevStrand);
 			logfile().list("Strand: keep only reverse. (parameter 'keepOnlyRev')");
 		} else {
-			_fwdStrandFilter.keep();
-			_revStrandFilter.keep();
+			_filters.disable(FilterType::FwdStrand);
+			_filters.disable(FilterType::RevStrand);
 			logfile().list("Strand: keep forward and reverse. (use 'keepOnlyFwd' or 'keepOnlyRev' to limit)");
 		}
 
 		//mate
 		if(parameters().exists("keepOnlyFirst")){
-			_firstMateFilter.filter("Second mate", numRG, numChrom);
-			_secondMateFilter.keep();
+			_filters.enable(FilterType::FirstMate, "Second mate", numRG, numChrom);
+			_filters.disable(FilterType::SecondMate);
 			logfile().list("Mate: keep only first. (parameter 'keepOnlyFirst')");
 		}
 		else if(parameters().exists("keepOnlySecond")){
-			_firstMateFilter.keep();
-			_secondMateFilter.filter("First mate", numRG, numChrom);
+			_filters.disable(FilterType::FirstMate);
+			_filters.enable(FilterType::SecondMate, "First mate", numRG, numChrom);
 			logfile().list("Mate: keep only second. (parameter 'keepOnlySecond')");
 		} else {
-			_firstMateFilter.keep();
-			_secondMateFilter.keep();
+			_filters.disable(FilterType::FirstMate);
+			_filters.disable(FilterType::SecondMate);
 			logfile().list("Mate: keep first and second. (use 'keepOnlyFirst' or 'keepOnlySecond' to limit)");
 		}
 
@@ -232,9 +233,9 @@ void TBamFile::setFilters(){
 			std::string blacklistFilename = parameters().get("blacklist");
 			logfile().list("Will filter out reads present in the file '" + blacklistFilename + "'. (parameter 'blacklist')");
 			_blacklist.addFromFile(blacklistFilename);
-			_blacklistFilter.filter("Was in provided blacklist", numRG, numChrom);
+			_filters.enable(FilterType::Blacklist, "Was in provided blacklist", numRG, numChrom);
 		} else {
-			_blacklistFilter.keep();
+			_filters.disable(FilterType::Blacklist);
 			logfile().list("Blacklist: keep all. (use 'blacklist' to provide a list and filter specific reads)");
 		}
 
@@ -243,10 +244,10 @@ void TBamFile::setFilters(){
 			TNumericRange<size_t> Range;
 			parameters().fill("filterMQ", Range);
 
-			_mappingQualityFilter.filter(Range, "MappingQualityOutside" + Range.rangeString(), numRG, numChrom);
-			logfile().list("Mapping quality: restrict to range " + _mappingQualityFilter.rangeString() + ". (parameter 'filterMQ')");
+			_filters.enable(FilterType::MappingQuality, Range, "MappingQualityOutside" + Range.rangeString(), numRG, numChrom);
+			logfile().list("Mapping quality: restrict to range " + Range.rangeString() + ". (parameter 'filterMQ')");
 		} else {
-			_mappingQualityFilter.keep();
+			_filters.disable(FilterType::MappingQuality);
 			logfile().list("Mapping quality: keep all. (use 'filterMQ' to limit)");
 		}
 
@@ -255,10 +256,10 @@ void TBamFile::setFilters(){
 			TNumericRange<size_t> Range;
 			parameters().fill("filterReadLength", Range);
 
-			_readLengthFilter.filter(Range, "Read length outside " + Range.rangeString(), numRG, numChrom);
-			logfile().list("Read length: restrict to range " + _readLengthFilter.rangeString() + ". (parameter 'filterReadLength')");
+			_filters.enable(FilterType::ReadLength, Range, "Read length outside " + Range.rangeString(), numRG, numChrom);
+			logfile().list("Read length: restrict to range " + Range.rangeString() + ". (parameter 'filterReadLength')");
 		} else {
-			_readLengthFilter.keep();
+			_filters.disable(FilterType::ReadLength);
 			logfile().list("Read length: keep all. (use 'filterReadLength' to limit)");
 		}
 
@@ -268,10 +269,10 @@ void TBamFile::setFilters(){
 			TNumericRange<size_t> Range;
 			parameters().fill("filterFragmentLength", Range);
 
-			_fragmentLengthFilter.filter(Range, "Fragment length outside " + Range.rangeString(), numRG, numChrom);
-			logfile().list("Fragment length: restrict to range " + _fragmentLengthFilter.rangeString() + ". (parameter 'filterFragmentLength')");
+			_filters.enable(FilterType::FragmentLength, Range, "Fragment length outside " + Range.rangeString(), numRG, numChrom);
+			logfile().list("Fragment length: restrict to range " + Range.rangeString() + ". (parameter 'filterFragmentLength')");
 		} else {
-			_fragmentLengthFilter.keep();
+			_filters.disable(FilterType::FragmentLength);
 			logfile().list("Fragment length: keep all. (use 'filterFragmentLength' to limit)");
 		}
 	}
@@ -282,16 +283,16 @@ void TBamFile::setFilters(){
 };
 
 void TBamFile::curFilterOut(){
-	_externalFilter.filterOut(_curBamAlignment.Name, _curBamAlignment.IsReverseStrand(), _curReadGroupID, refID());
+	_filters[FilterType::External].filterOut(_curBamAlignment.Name, _curBamAlignment.IsReverseStrand(), _curReadGroupID, refID());
 };
 
 void TBamFile::filterOut(const TAlignment & Alignment){
-	_externalFilter.filterOut(Alignment.name(), Alignment.isReverseStrand(), Alignment.readGroupId(), Alignment.refID());
+	_filters[FilterType::External].filterOut(Alignment.name(), Alignment.isReverseStrand(), Alignment.readGroupId(), Alignment.refID());
 
 };
 
 void TBamFile::setExternalFilterReason(std::string_view reason){
-	_externalFilter.setReason(reason);
+	_filters[FilterType::External].setReason(reason);
 };
 
 void TBamFile::openBamLog(){
@@ -306,23 +307,7 @@ void TBamFile::openBamLog(){
 		_bamLog.open(logFilename, 3);
 
 		//_log to filters
-		_duplicateFilter.setLog(_bamLog);
-		_softClippedRatioFilter.setLog(_bamLog);
-		_improperPairsFilter.setLog(_bamLog);
-		_unmappedFilter.setLog(_bamLog);
-		_failedQCFilter.setLog(_bamLog);
-		_secondaryFilter.setLog(_bamLog);
-		_supplementaryFilter.setLog(_bamLog);
-		_longerThanFragmentFilter.setLog(_bamLog);
-		_readGroupFilter.setLog(_bamLog);
-		_fwdStrandFilter.setLog(_bamLog);
-		_revStrandFilter.setLog(_bamLog);
-		_firstMateFilter.setLog(_bamLog);
-		_secondMateFilter.setLog(_bamLog);
-		_blacklistFilter.setLog(_bamLog);
-		_mappingQualityFilter.setLog(_bamLog);
-		_fragmentLengthFilter.setLog(_bamLog);
-		_externalFilter.setLog(_bamLog);
+		_filters.setLog(_bamLog);
 	}
 };
 
@@ -472,9 +457,9 @@ bool TBamFile::_readNextAlignmentFromFile(){
 void TBamFile::_applyFilters(){
 	//check read length
 	//read length is special as it affects our storage
-	if(!_mappedLengthFilter.pass(_curCigar.lengthMapped(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())){
+	if(!_filters.pass(FilterType::MappedLength, _curCigar.lengthMapped(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())){
 		if(!_allowTooLongReads){
-			UERROR("The mapping length of alignment '",  _curBamAlignment.Name, "' is beyond the range ", _mappedLengthFilter.rangeString(), "!\n",
+			UERROR("The mapping length of alignment '",  _curBamAlignment.Name, "' is beyond the range ", _filters.range(FilterType::MappedLength).rangeString(), "!\n",
 				   "You see this error because ", coretools::__GLOBAL_APPLICATION_NAME__, " was run with default mapping length filters. Either set your filters using 'filterMappingLength' or add 'allowTooLongReads' to ignore this error.");
 		} else {
 			_QCFiltersPassed = false;
@@ -484,26 +469,26 @@ void TBamFile::_applyFilters(){
 		_QCFiltersPassed = true;
 	} else {
 		//apply regular filters
-		_QCFiltersPassed =  _duplicateFilter.pass(!_curBamAlignment.IsDuplicate(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
-			&& _softClippedRatioFilter.pass(static_cast<double>(_curCigar.lengthSoftClipped())/_curCigar.lengthRead() <= _softClipFilterRatio, _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
-						 && _improperPairsFilter.pass(!_curBamAlignment.IsPaired() || _curBamAlignment.IsProperPair(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
-						 && _unmappedFilter.pass(_curBamAlignment.IsMapped(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
-						 && _failedQCFilter.pass(!_curBamAlignment.IsFailedQC(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
-						 && _secondaryFilter.pass(_curBamAlignment.IsPrimaryAlignment(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
-						 && _supplementaryFilter.pass(!_curBamAlignment.IsSupplementary(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
-						 && _readGroupFilter.pass(_readGroups.readGroupInUse(_curReadGroupID), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
-						 && _fwdStrandFilter.pass(_curBamAlignment.IsReverseStrand(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
-						 && _revStrandFilter.pass(!_curBamAlignment.IsReverseStrand(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
-						 && _firstMateFilter.pass(_curBamAlignment.IsFirstMate(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
-						 && _secondMateFilter.pass(_curBamAlignment.IsSecondMate(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
-						 && _mappingQualityFilter.pass(_curBamAlignment.MapQuality, _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
-						 && _blacklistFilter.pass(!_blacklist.isInBlacklist(_curBamAlignment.Name), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
-						 && _readLengthFilter.pass(_curCigar.lengthRead(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID());
+		_QCFiltersPassed =  _filters.pass(FilterType::Duplicate, !_curBamAlignment.IsDuplicate(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
+			&& _filters.pass(FilterType::SoftClippedRation, static_cast<double>(_curCigar.lengthSoftClipped())/_curCigar.lengthRead() <= _softClipFilterRatio, _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
+			&& _filters.pass(FilterType::ImproperPairs, !_curBamAlignment.IsPaired() || _curBamAlignment.IsProperPair(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
+			&& _filters.pass(FilterType::Unmapped, _curBamAlignment.IsMapped(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
+			&& _filters.pass(FilterType::FailedQC, !_curBamAlignment.IsFailedQC(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
+			&& _filters.pass(FilterType::Secondary, _curBamAlignment.IsPrimaryAlignment(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
+			&& _filters.pass(FilterType::Supplementary, !_curBamAlignment.IsSupplementary(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
+			&& _filters.pass(FilterType::ReadGroup, _readGroups.readGroupInUse(_curReadGroupID), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
+			&& _filters.pass(FilterType::FwdStrand, _curBamAlignment.IsReverseStrand(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
+			&& _filters.pass(FilterType::RevStrand, !_curBamAlignment.IsReverseStrand(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
+			&& _filters.pass(FilterType::FirstMate, _curBamAlignment.IsFirstMate(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
+			&& _filters.pass(FilterType::SecondMate, _curBamAlignment.IsSecondMate(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
+			&& _filters.pass(FilterType::MappingQuality, (size_t)_curBamAlignment.MapQuality, _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
+			&& _filters.pass(FilterType::Blacklist, !_blacklist.isInBlacklist(_curBamAlignment.Name), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
+			&& _filters.pass(FilterType::ReadLength, _curCigar.lengthRead(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID());
 
 		//fragment length
 		if(_QCFiltersPassed){
-			_QCFiltersPassed = _fragmentLengthFilter.pass(curFragmentLength(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
-				&& _longerThanFragmentFilter.pass(!_curBamAlignment.IsProperPair() || abs(_curBamAlignment.InsertSize) >= static_cast<int32_t>(_curCigar.lengthAligned()), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID());
+			_QCFiltersPassed = _filters.pass(FilterType::FragmentLength, curFragmentLength(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
+				&& _filters.pass(FilterType::LongerThanFragment, !_curBamAlignment.IsProperPair() || abs(_curBamAlignment.InsertSize) >= static_cast<int32_t>(_curCigar.lengthAligned()), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID());
 		}
 	}
 
@@ -762,74 +747,17 @@ void TBamFile::_writeFilteringStats(std::string_view outputName) const {
 	header.push_back("readGroup");
 	header.push_back("No_read_group");
 	header.push_back("Not_aligned");
-	_duplicateFilter.fillHeader(header);
-	_softClippedRatioFilter.fillHeader(header);
-	_improperPairsFilter.fillHeader(header);
-	_unmappedFilter.fillHeader(header);
-	_failedQCFilter.fillHeader(header);
-	_secondaryFilter.fillHeader(header);
-	_supplementaryFilter.fillHeader(header);
-	_longerThanFragmentFilter.fillHeader(header);
-	_readGroupFilter.fillHeader(header);
-	_fwdStrandFilter.fillHeader(header);
-	_revStrandFilter.fillHeader(header);
-	_firstMateFilter.fillHeader(header);
-	_secondMateFilter.fillHeader(header);
-	_blacklistFilter.fillHeader(header);
-	_mappingQualityFilter.fillHeader(header);
-	_fragmentLengthFilter.fillHeader(header);
-	_externalFilter.fillHeader(header);
-	_readLengthFilter.fillHeader(header);
-	_mappedLengthFilter.fillHeader(header);
+	_filters.fillHeader(header);
 	coretools::TOutputFile out(filename, header, "\t");
 
-	out << "allReadGroups";
-	out << _numNoReadGroup;
-	out << coretools::containerSum(_numNotAligned);
-	_duplicateFilter.printCombinedCounts(out);
-	_softClippedRatioFilter.printCombinedCounts(out);
-	_improperPairsFilter.printCombinedCounts(out);
-	_unmappedFilter.printCombinedCounts(out);
-	_failedQCFilter.printCombinedCounts(out);
-	_secondaryFilter.printCombinedCounts(out);
-	_supplementaryFilter.printCombinedCounts(out);
-	_longerThanFragmentFilter.printCombinedCounts(out);
-	_readGroupFilter.printCombinedCounts(out);
-	_fwdStrandFilter.printCombinedCounts(out);
-	_revStrandFilter.printCombinedCounts(out);
-	_firstMateFilter.printCombinedCounts(out);
-	_secondMateFilter.printCombinedCounts(out);
-	_blacklistFilter.printCombinedCounts(out);
-	_mappingQualityFilter.printCombinedCounts(out);
-	_fragmentLengthFilter.printCombinedCounts(out);
-	_externalFilter.printCombinedCounts(out);
-	_readLengthFilter.printCombinedCounts(out);
-	_mappedLengthFilter.printCombinedCounts(out);
+	out.write("allReadGroups", _numNoReadGroup, coretools::containerSum(_numNotAligned));
+	_filters.printCombinedCounts(out);
 	out.endln();
 
 	//writes numbers of removed reads for each applied filter per read group, also lists filters if no reads were removed
 	for (size_t rg = 0; rg < _readGroups.size(); rg++){
-		out << _readGroups.getName(rg);
-		out << 0 << (rg < _numNotAligned.size() ? _numNotAligned[rg]: 0);
-		_duplicateFilter.printCounts(out, rg);
-		_softClippedRatioFilter.printCounts(out, rg);
-		_improperPairsFilter.printCounts(out, rg);
-		_unmappedFilter.printCounts(out, rg);
-		_failedQCFilter.printCounts(out, rg);
-		_secondaryFilter.printCounts(out, rg);
-		_supplementaryFilter.printCounts(out, rg);
-		_longerThanFragmentFilter.printCounts(out, rg);
-		_readGroupFilter.printCounts(out, rg);
-		_fwdStrandFilter.printCounts(out, rg);
-		_revStrandFilter.printCounts(out, rg);
-		_firstMateFilter.printCounts(out, rg);
-		_secondMateFilter.printCounts(out, rg);
-		_blacklistFilter.printCounts(out, rg);
-		_mappingQualityFilter.printCounts(out, rg);
-		_fragmentLengthFilter.printCounts(out, rg);
-		_externalFilter.printCounts(out, rg);
-		_readLengthFilter.printCounts(out, rg);
-		_mappedLengthFilter.printCounts(out, rg);
+		out.write(_readGroups.getName(rg), 0, rg < _numNotAligned.size() ? _numNotAligned[rg]: 0);
+		_filters.printCounts(out, rg);
 		out.endln();
 	}
 	out.close();
@@ -853,25 +781,7 @@ void TBamFile::printSummaryNoEndIndent(std::string_view outputName) const {
 		logfile().list("Number of reads filtered from read group: '" + coretools::str::toString(_readGroups.getName(rg)) + "'");
 		logfile().addIndent();
 		if (rg < _numNotAligned.size() && _numNotAligned[rg] > 0) logfile().list("Not aligned: ", _numNotAligned[rg]);
-		_duplicateFilter.summary(numFiltered, rg);
-		_softClippedRatioFilter.summary(numFiltered, rg);
-		_improperPairsFilter.summary(numFiltered, rg);
-		_unmappedFilter.summary(numFiltered, rg);
-		_failedQCFilter.summary(numFiltered, rg);
-		_secondaryFilter.summary(numFiltered, rg);
-		_supplementaryFilter.summary(numFiltered, rg);
-		_longerThanFragmentFilter.summary(numFiltered, rg);
-		_readGroupFilter.summary(numFiltered, rg);
-		_fwdStrandFilter.summary(numFiltered, rg);
-		_revStrandFilter.summary(numFiltered, rg);
-		_firstMateFilter.summary(numFiltered, rg);
-		_secondMateFilter.summary(numFiltered, rg);
-		_blacklistFilter.summary(numFiltered, rg);
-		_mappingQualityFilter.summary(numFiltered, rg);
-		_fragmentLengthFilter.summary(numFiltered, rg);
-		_externalFilter.summary(numFiltered, rg);
-		_readLengthFilter.summary(numFiltered, rg);
-		_mappedLengthFilter.summary(numFiltered, rg);
+		_filters.summary(numFiltered, rg);
 		logfile().endIndent();
 	}
 

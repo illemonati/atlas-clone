@@ -15,6 +15,7 @@
 #include <string>
 #include <vector>
 
+#include "TBamFilters.h"
 #include "api/BamAlignment.h"
 #include "api/BamAux.h"
 #include "api/BamReader.h"
@@ -82,25 +83,8 @@ private:
  	bool _keepAll; 	
 	size_t _numNoReadGroup;
 	std::vector<size_t> _numNotAligned;
-	TBamFilterRange _readLengthFilter{500};
- 	TBamFilterRange _mappedLengthFilter{500};
- 	TBamFilterBool _duplicateFilter;
- 	TBamFilterBool _softClippedRatioFilter;
- 	TBamFilterBool _improperPairsFilter;
- 	TBamFilterBool _unmappedFilter;
- 	TBamFilterBool _failedQCFilter;
- 	TBamFilterBool _secondaryFilter;
- 	TBamFilterBool _supplementaryFilter;
- 	TBamFilterBool _longerThanFragmentFilter;
- 	TBamFilterBool _readGroupFilter;
- 	TBamFilterBool _fwdStrandFilter;
- 	TBamFilterBool _revStrandFilter;
- 	TBamFilterBool _firstMateFilter;
- 	TBamFilterBool _secondMateFilter;
- 	TBamFilterBool _blacklistFilter;
- 	TBamFilterRange _mappingQualityFilter;
- 	TBamFilterRange _fragmentLengthFilter;
- 	TBamFilter _externalFilter;
+
+	TBamFilters _filters;
 
 	void _fillSamHeader(TSamHeader & SamHeader);
 	void _fillChromosomes(genometools::TChromosomes & chromosomes);
@@ -142,23 +126,7 @@ public:
 	void writeToBamLog(std::string_view alignmentName, bool isReverseStrand, std::string_view reason);
 
 	//get filter status
- 	bool duplicateFilterEnabled() const{ return _duplicateFilter.filters(); };
- 	bool softClippedFilterEnabled() const{ return _softClippedRatioFilter.filters(); };
- 	bool improperPairsFilterEnabled() const{ return _improperPairsFilter.filters(); };
- 	bool unmappedFilterEnabled() const{ return _unmappedFilter.filters(); };
- 	bool failedQCFilterEnabled() const{ return _failedQCFilter.filters(); };
- 	bool secondaryFilterEnabled() const{ return _secondaryFilter.filters(); };
- 	bool supplementaryFilterEnabled() const{ return _supplementaryFilter.filters(); };
- 	bool longerThanFragmentFilterEnabled() const{ return _longerThanFragmentFilter.filters(); };
- 	bool readGroupFilterEnabled() const{ return _readGroupFilter.filters(); };
- 	bool fwdStrandFilterEnabled() const{ return _fwdStrandFilter.filters(); };
- 	bool revStrandFilterEnabled() const{ return _revStrandFilter.filters(); };
- 	bool firstMateFilterEnabled() const{ return _firstMateFilter.filters(); };
- 	bool secondMateFilterEnabled() const{ return _secondMateFilter.filters(); };
- 	bool blacklistFilterEnabled() const{ return _blacklistFilter.filters(); };
- 	bool mappingQualityFilterEnabled() const{ return _mappingQualityFilter.filters(); };
- 	bool fragmentLengthfilterEnabled() const{ return _fragmentLengthFilter.filters(); };
- 	bool externalFilterEnabled() const{ return _externalFilter.filters(); };
+	const TBamFilter& filter(FilterType t) const noexcept {return _filters[t];}
 
 	//reading
 	void open(std::string_view Filename);
@@ -210,12 +178,11 @@ public:
 
 	//other getters
 	std::string filename() const{ return _filename; };
-	size_t maxReadLength(){ return _readLengthFilter.range().max(); };
+	size_t maxReadLength(){ return _filters.range(FilterType::ReadLength).max(); };
 	size_t numAlignmentsRead(){ return _numAlignmentRead; };
 	coretools::TCountDistributionVector<> numAlignmentReadPerReadGroupPerChromosome() { return _numAlignmentReadPerReadGroupPerChromosome; };
 	double positionInFile() const { return (double) _bamReader.Tell() / (double) _fileSize; };
 	size_t numReadGroups() const{ return _readGroups.size(); };
-	TBamFilterBool getDuplicateFilter(){return _duplicateFilter; };
 
 	//progress reporting
 	void printSummaryNoEndIndent(std::string_view outputName) const;

@@ -179,10 +179,6 @@ void TGenome_windows::_setWindowParameters() {
 	if (stringIsProbablyANumber(tmp)) {
 		fromString(tmp, _windowSize);
 		logfile().list("Setting window size to " + toString(_windowSize) + ". (parameter 'window')");
-		if (_windowSize < _bamFile.maxReadLength()) {
-			UERROR("Window size ", tmp, " out of range! Windows must be at least as large as the max read length (",
-				   _bamFile.maxReadLength(), " bp). (use parameter 'filterReadLength' to change)!");
-		}
 	} else {
 		logfile().listFlush("Limiting analysis to windows defined in BED file '" + tmp + "' (parameter window) ...");
 		_predefinedWindows.add(tmp, _chromosomes);
