@@ -11,9 +11,11 @@
 #include <string>
 #include <map>
 
-#include "TGenome.h"
 #include "coretools/Main/TTask.h"
+
 #include "TBamFile.h"
+#include "TGenome.h"
+#include "TOutputBamFile.h"
 
 namespace GenomeTasks{
 

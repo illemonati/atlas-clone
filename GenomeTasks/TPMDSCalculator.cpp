@@ -30,7 +30,7 @@ using coretools::instances::parameters;
 // TPMDSCalculator
 //----------------------------------------------
 //TODO: should that filter pairs as in TBamFilter?
-TPMDSCalculator::TPMDSCalculator():TGenome_parsed(){
+	TPMDSCalculator::TPMDSCalculator():TGenome_parsed(), _outBam(_outputName + "_PMDS.bam", _bamFile) {
 	//get parameters
 	_pi = parameters().get<coretools::Probability>("pi", coretools::Probability(0.001));
 	logfile().list("Running PMDS with rate of polymorphism (pi) = " + toString(_pi));
@@ -78,7 +78,6 @@ void TPMDSCalculator::run(){
 	//parser.add_option("--writesamfield", action="store_true", dest="writesamfield",help="add 'DS:Z:<PMDS>' field to SAM output, will overwrite if already present",default=False)
 
 	//open a bam file for writing
-	_openBamForWriting(_outputName + "_PMDS.bam", _outBam);
 	_bamFile.setExternalFilterReason("PMDS outside range " + _filterRange.rangeString());
 
 	//traverse BAM

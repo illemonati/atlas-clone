@@ -12,11 +12,7 @@
 #include <exception>
 #include <filesystem>
 #include <string>
-#include "TBamFilters.h"
-#include "coretools/Main/TLog.h"
-#include "coretools/Math/TNumericRange.h"
-#include "coretools/Main/TParameters.h"
-#include "TSamFlags.h"
+
 #include "api/BamIndex.h"
 #include "api/SamProgram.h"
 #include "api/SamProgramChain.h"
@@ -24,46 +20,28 @@
 #include "api/SamReadGroupDictionary.h"
 #include "api/SamSequence.h"
 #include "api/SamSequenceDictionary.h"
+
+#include "coretools/Main/TLog.h"
+#include "coretools/Math/TNumericRange.h"
+#include "coretools/Main/TParameters.h"
 #include "coretools/Main/globalConstants.h"
 #include "coretools/Types/strongTypes.h"
+
+#include "TSamFlags.h"
+#include "TBamFilters.h"
+#include "TOutputBamFile.h"
 
 namespace BAM{
 using coretools::TNumericRange;
 using coretools::instances::parameters;
 using coretools::instances::logfile;
-using genometools::BaseQuality;
 
-//-----------------------------------------------------
-//TBamFile
-//-----------------------------------------------------
-TBamFile::TBamFile(){
-	_fileSize = 0;
-	_numAlignmentRead = 0;
-	_numAlignmentsPassedQC = 0;
-	_limitNumReads = false;
-	_maxNumReadsToRead = 0;
-
-	//current alignment
-	_curReadGroupID = 0;
-	_chrChanged = false;
-
-	//set filters to default
-	_QCFiltersPassed = false;
-	_keepAll = true; //by default, keep all reads
-	_allowTooLongReads = false;
-	_numNoReadGroup = 0;
-
-	//progress reporting
-	_progressFrequency = 100000;
-	_lastProgressPrinted = 0;
-};
 
 void TBamFile::setLimits(){
 	//number of reads
 	if(parameters().exists("limitReads")){
 		_maxNumReadsToRead = parameters().get<uint64_t>("limitReads");
 		logfile().list("Will limit the analysis to the first ", _maxNumReadsToRead, " reads in the BAM file.");
-		_limitNumReads = true;
 	}
 
 	//limit chromosomes?
@@ -87,7 +65,6 @@ void TBamFile::setFilters(){
 
 	uint32_t numRG = readGroups().size();
 	uint32_t numChrom = chromosomes().size();
-	_numNotAligned.resize(numRG);
 	
 	//mapping length
 	//--------------
@@ -96,11 +73,9 @@ void TBamFile::setFilters(){
 	TNumericRange<size_t> mappingLengthRange;
 	if(parameters().exists("filterMappingLength")){
 		parameters().fill("filterMappingLength", mappingLengthRange);
-		_allowTooLongReads = true;
 	} else {
 		//set default
 		mappingLengthRange.set(0, true, 500, true);
-		_allowTooLongReads = parameters().exists("allowTooLongReads");
 	}
 	_filters.enable(FilterType::MappedLength, mappingLengthRange, "MappedLengthOutside" + mappingLengthRange.rangeString(), numRG, numChrom);
 	
@@ -112,10 +87,8 @@ void TBamFile::setFilters(){
 	//keep all otherwise?
 	//-------------------
 	if(parameters().exists("keepAllReads")){
-		_keepAll = true;
 		logfile().list("Will keep all reads. (parameter 'keepAllReads', overrules any other QC filter except filterMappingLength)");
 	} else {
-		_keepAll = false;
 		//duplicates
 		if(parameters().exists("keepDuplicates")){
 			_filters.disable(FilterType::Duplicate);
@@ -291,9 +264,7 @@ void TBamFile::filterOut(const TAlignment & Alignment){
 };
 
 void TBamFile::setExternalFilterReason(std::string_view reason){
-	const auto numRG    = readGroups().size();
-	const auto numChrom = chromosomes().size();
-	_filters.enable(FilterType::External, reason, numRG, numChrom);
+	_filters.enable(FilterType::External, reason, readGroups().size(), chromosomes().size());
 };
 
 void TBamFile::openBamLog(){
@@ -312,57 +283,51 @@ void TBamFile::openBamLog(){
 	}
 };
 
-void TBamFile::writeToBamLog(std::string_view alignmentName, bool isReverseStrand, std::string_view reason){
-	if(_bamLog.isOpen()){
-		_bamLog.writeln(alignmentName, isReverseStrand, reason);
-	}
-};
-
-void TBamFile::_fillSamHeader(TSamHeader & SamHeader){
+void TBamFile::_fillSamHeader(){
 	//Note: chromosomes and read groups are in separate objects
-	SamHeader.set(_bamHeader.Version, _bamHeader.SortOrder, _bamHeader.GroupOrder, "none");
+	_samHeader.set(_bamHeader.Version, _bamHeader.SortOrder, _bamHeader.GroupOrder, "none");
 
 	//add programs
 	for(auto it = _bamHeader.Programs.Begin(); it != _bamHeader.Programs.End(); ++it){
-		SamHeader.addProgram(it->ID, it->Name, it->CommandLine, "", it->Version);
+		_samHeader.addProgram(it->ID, it->Name, it->CommandLine, "", it->Version);
 	}
 
 	//add links among programs
 	for(auto it = _bamHeader.Programs.Begin(); it != _bamHeader.Programs.End(); ++it){
 		if(it->HasPreviousProgramID()){
-			SamHeader.addPreviousProgramInChain(it->ID, it->PreviousProgramID);
+			_samHeader.addPreviousProgramInChain(it->ID, it->PreviousProgramID);
 		}
 	}
 
 	//add comments
 	for(auto& c : _bamHeader.Comments){
-		SamHeader.addComment(c);
+		_samHeader.addComment(c);
 	}
 };
 
-void TBamFile::_fillChromosomes(genometools::TChromosomes & Chromosomes){
+void TBamFile::_fillChromosomes(){
 	if(_bamHeader.Sequences.Size() < 1){
 		UERROR("No chromosomes present in BAM header!");
 	}
 
 	//make sure object is empty
-	Chromosomes.clear();
+	_chromosomes.clear();
 
 	//copy from BamHeader
 	for(BamTools::SamSequenceIterator chrIt=_bamHeader.Sequences.Begin(); chrIt!=_bamHeader.Sequences.End(); ++chrIt){
-		Chromosomes.appendChromosome(chrIt->Name, coretools::str::fromString<uint64_t>(chrIt->Length));
+		_chromosomes.appendChromosome(chrIt->Name, coretools::str::fromString<uint64_t>(chrIt->Length));
 	}
 };
 
-void TBamFile::_fillReadGroups(TReadGroups & ReadGroups){
+void TBamFile::_fillReadGroups(){
 	//make sure they are empty
-	ReadGroups.clear();
+	_readGroups.clear();
 
 	//now add one by one
 	//TODO : not nice how it works, but implemented this way to ensure TReadGroups does not depend on bamtools
 	for(auto it = _bamHeader.ReadGroups.Begin(); it != _bamHeader.ReadGroups.End(); ++it){
 		//add read group
-		TReadGroup& rg = ReadGroups.add(it->ID);
+		TReadGroup& rg = _readGroups.add(it->ID);
 
 		//now copy rest
 		rg.description_DS = it->Description;
@@ -382,7 +347,7 @@ void TBamFile::_fillReadGroups(TReadGroups & ReadGroups){
 //--------------------------------------------------------
 // Functions for reading
 //--------------------------------------------------------
-void TBamFile::open(std::string_view Filename){
+TBamFile::TBamFile(std::string_view Filename){
 	_filename = Filename;
 
 	//open BAM file
@@ -412,13 +377,14 @@ void TBamFile::open(std::string_view Filename){
 	//initialize bam stuff
 	_bamHeader = _bamReader.GetHeader();
 
-	_fillSamHeader(_samHeader);
+	_fillSamHeader();
 
 	//initialize read groups
-	_fillReadGroups(_readGroups);
+	_fillReadGroups();
+	_numNotAligned.resize(_readGroups.size());
 
 	//initialize chromosomes and set cur chromosome to end
-	_fillChromosomes(_chromosomes);
+	_fillChromosomes();
 	_curChromosome = _chromosomes.end();
 
 	//resize alignmentCounter
@@ -431,14 +397,11 @@ void TBamFile::open(std::string_view Filename){
 	BamTools::BamAlignment bamAlignment;
 	do {
 	_bamReader.Jump(lastChromRefID, pos);
-	pos -= _stepSizeFindLastAlignment;
+	pos -= _step;
 	} while (!_bamReader.GetNextAlignmentCore(bamAlignment) && pos > 0);
 	_fileSize = _bamReader.Tell();
 	_bamReader.Rewind();
-};
-
-void TBamFile::close(){
-	if (isOpen()) _bamReader.Close();
+	setLimits();
 };
 
 bool TBamFile::_readNextAlignmentFromFile(){
@@ -455,39 +418,51 @@ bool TBamFile::_readNextAlignmentFromFile(){
 	return true;
 }
 
-void TBamFile::_applyFilters(){
-	//check read length
-	//read length is special as it affects our storage
-	if(!_filters.pass(FilterType::MappedLength, _curCigar.lengthMapped(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())){
-		if(!_allowTooLongReads){
-			UERROR("The mapping length of alignment '",  _curBamAlignment.Name, "' is beyond the range ", _filters.range(FilterType::MappedLength).rangeString(), "!\n",
-				   "You see this error because ", coretools::__GLOBAL_APPLICATION_NAME__, " was run with default mapping length filters. Either set your filters using 'filterMappingLength' or add 'allowTooLongReads' to ignore this error.");
-		} else {
-			_QCFiltersPassed = false;
-		}
-	} else if(_keepAll){
-		//keep all?
+void TBamFile::_applyFilters() {
+	// MappedLength filter is always set
+	if (!_filters.pass(FilterType::MappedLength, _curCigar.lengthMapped(), _curBamAlignment.Name,
+					   _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())) {
+		_QCFiltersPassed = false;
+	} else if (!_filters.enabled()) {
 		_QCFiltersPassed = true;
 	} else {
-		//apply regular filters
-		_QCFiltersPassed =  _filters.pass(FilterType::Duplicate, !_curBamAlignment.IsDuplicate(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
-			&& _filters.pass(FilterType::SoftClippedRation, static_cast<double>(_curCigar.lengthSoftClipped())/_curCigar.lengthRead() <= _softClipFilterRatio, _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
-			&& _filters.pass(FilterType::ImproperPairs, !_curBamAlignment.IsPaired() || _curBamAlignment.IsProperPair(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
-			&& _filters.pass(FilterType::Unmapped, _curBamAlignment.IsMapped(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
-			&& _filters.pass(FilterType::FailedQC, !_curBamAlignment.IsFailedQC(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
-			&& _filters.pass(FilterType::Secondary, _curBamAlignment.IsPrimaryAlignment(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
-			&& _filters.pass(FilterType::Supplementary, !_curBamAlignment.IsSupplementary(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
-			&& _filters.pass(FilterType::ReadGroup, _readGroups.readGroupInUse(_curReadGroupID), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
-			&& _filters.pass(FilterType::FwdStrand, _curBamAlignment.IsReverseStrand(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
-			&& _filters.pass(FilterType::RevStrand, !_curBamAlignment.IsReverseStrand(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
-			&& _filters.pass(FilterType::FirstMate, _curBamAlignment.IsFirstMate(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
-			&& _filters.pass(FilterType::SecondMate, _curBamAlignment.IsSecondMate(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
-			&& _filters.pass(FilterType::MappingQuality, (size_t)_curBamAlignment.MapQuality, _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
-			&& _filters.pass(FilterType::Blacklist, !_blacklist.isInBlacklist(_curBamAlignment.Name), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
-			&& _filters.pass(FilterType::ReadLength, _curCigar.lengthRead(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID());
+	// apply regular filters
+	_QCFiltersPassed =
+		_filters.pass(FilterType::Duplicate, !_curBamAlignment.IsDuplicate(), _curBamAlignment.Name,
+		              _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
+		_filters.pass(FilterType::SoftClippedRation,
+		              static_cast<double>(_curCigar.lengthSoftClipped()) / _curCigar.lengthRead() <=
+		                  _softClipFilterRatio,
+		              _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
+		_filters.pass(FilterType::ImproperPairs, !_curBamAlignment.IsPaired() || _curBamAlignment.IsProperPair(),
+		              _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
+		_filters.pass(FilterType::Unmapped, _curBamAlignment.IsMapped(), _curBamAlignment.Name,
+		              _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
+		_filters.pass(FilterType::FailedQC, !_curBamAlignment.IsFailedQC(), _curBamAlignment.Name,
+		              _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
+		_filters.pass(FilterType::Secondary, _curBamAlignment.IsPrimaryAlignment(), _curBamAlignment.Name,
+		              _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
+		_filters.pass(FilterType::Supplementary, !_curBamAlignment.IsSupplementary(), _curBamAlignment.Name,
+		              _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
+		_filters.pass(FilterType::ReadGroup, _readGroups.readGroupInUse(_curReadGroupID), _curBamAlignment.Name,
+		              _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
+		_filters.pass(FilterType::FwdStrand, _curBamAlignment.IsReverseStrand(), _curBamAlignment.Name,
+		              _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
+		_filters.pass(FilterType::RevStrand, !_curBamAlignment.IsReverseStrand(), _curBamAlignment.Name,
+		              _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
+		_filters.pass(FilterType::FirstMate, _curBamAlignment.IsFirstMate(), _curBamAlignment.Name,
+		              _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
+		_filters.pass(FilterType::SecondMate, _curBamAlignment.IsSecondMate(), _curBamAlignment.Name,
+		              _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
+		_filters.pass(FilterType::MappingQuality, (size_t)_curBamAlignment.MapQuality, _curBamAlignment.Name,
+		              _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
+		_filters.pass(FilterType::Blacklist, !_blacklist.isInBlacklist(_curBamAlignment.Name), _curBamAlignment.Name,
+		              _curBamAlignment.IsSecondMate(), _curReadGroupID, refID()) &&
+		_filters.pass(FilterType::ReadLength, _curCigar.lengthRead(), _curBamAlignment.Name,
+		              _curBamAlignment.IsSecondMate(), _curReadGroupID, refID());
 
-		//fragment length
-		if(_QCFiltersPassed){
+	// fragment length
+	if (_QCFiltersPassed) {
 			_QCFiltersPassed = _filters.pass(FilterType::FragmentLength, curFragmentLength(), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID())
 				&& _filters.pass(FilterType::LongerThanFragment, !_curBamAlignment.IsProperPair() || abs(_curBamAlignment.InsertSize) >= static_cast<int32_t>(_curCigar.lengthAligned()), _curBamAlignment.Name, _curBamAlignment.IsSecondMate(), _curReadGroupID, refID());
 		}
@@ -501,7 +476,7 @@ void TBamFile::_applyFilters(){
 
 bool TBamFile::readNextAlignment(){
 	//check if we limit reads
-	if(_limitNumReads && _numAlignmentRead >=_maxNumReadsToRead){
+	if(_numAlignmentRead >=_maxNumReadsToRead){
 		return false;
 	}
 
@@ -646,13 +621,6 @@ bool TBamFile::jump(const genometools::TGenomePosition Position){
 	return _bamReader.Jump(Position.refID(), Position.position());
 };
 
-void TBamFile::rewind(){
-	_bamReader.Rewind();
-	_numAlignmentRead = 0;
-	_numAlignmentsPassedQC = 0;
-	_previousAlignmentPosition.clear();
-};
-
 //--------------------------------------------------------
 // Functions for writing
 //--------------------------------------------------------
@@ -693,7 +661,7 @@ void TBamFile::_openForWriting(BamTools::BamWriter & bamWriter, const std::strin
 };
 
 void TBamFile::writeCurAlignment(TOutputBamFile & out){
-	out._writeAlignment(_curBamAlignment);
+	out.writeAlignment(_curBamAlignment);
 };
 
 //--------------------------------------------------------
@@ -765,7 +733,7 @@ void TBamFile::_writeFilteringStats(std::string_view outputName) const {
 	coretools::instances::logfile().done();
 }
 
-void TBamFile::printSummaryNoEndIndent(std::string_view outputName) const {
+void TBamFile::printSummary(std::string_view outputName) const {
 	logfile().startIndent("Summary of parsed reads from BAM file '" + _filename + "':");
 	logfile().list("Total number of reads read: ", _numAlignmentRead);
 	logfile().list("Reads without read group: ", _numNoReadGroup, " (", coretools::str::toPercentString(_numNoReadGroup, _numAlignmentRead, 3), "%)");
@@ -787,18 +755,10 @@ void TBamFile::printSummaryNoEndIndent(std::string_view outputName) const {
 	}
 
 	logfile().endIndent();
-};
-
-void TBamFile::printSummary(std::string_view outputName) const {
-	printSummaryNoEndIndent(outputName);
 	logfile().endIndent();
 };
 
 void TBamFile::startProgressReporting(size_t Frequency) const {
-	if(!isOpen()){
-		UERROR("Can not start progress reporting of BAM file: BAM file not open!");
-	}
-
 	_progressFrequency = Frequency;
 	_lastProgressPrinted = 0;
 	_timer.start();
@@ -814,281 +774,13 @@ void TBamFile::printProgress() const {
 };
 
 void TBamFile::printEndWithSummary(std::string_view outputName) const {
-	printEndNoEndIndent();
+	logfile().list("Reached end of BAM file in " + _timer.formattedTime() + ':');
+	logfile().conclude("Parsed a total of " + _millionReadsRead() + " million reads in " + _timer.formattedTime() + '.');
 	logfile().endIndent();
 	printSummary(outputName);
 };
 
-void TBamFile::printEndNoEndIndent() const {
-	logfile().list("Reached end of BAM file in " + _timer.formattedTime() + ':');
-	logfile().conclude("Parsed a total of " + _millionReadsRead() + " million reads in " + _timer.formattedTime() + '.');
-};
 
-//------------------------------------------------
-// TQualityAdjusterForWriting
-//------------------------------------------------
-TQualityAdjusterForWriting::TQualityAdjusterForWriting(){
-	_initialized = false;
-	_adjust = false;
-	_binIllumina = false;
-	_limitRange = false;
-	initialize();
-}
-
-void TQualityAdjusterForWriting::initialize(){
-	if(!_initialized){
-		if(parameters().exists("outQual")){
-			TNumericRange<uint8_t> qualRange;
-			parameters().fill("outQual",  qualRange);
-			limitRange(qualRange);
-
-			logfile().list("Will print qualities truncated to ", rangeString(), " (parameter 'outQual')");
-
-
-			if(qualRange.max() > BaseQuality::max().get()){
-				logfile().warning("Truncated quality range to BAM limits!");
-			}
-
-		} else {
-			logfile().list("Will use the full range of quality scores when writing alignments. (use 'outQual' to constrain).");
-		}
-
-		//quality binning
-		if(parameters().exists("writeBinnedQualities")){
-			logfile().list("Will write Illumina-binned quality scores. (parameter 'writeBinnedQualities')");
-
-			if(adjusts()){
-				logfile().warning("If both 'outQual' and 'writeBinnedQualities' are given, qualities will be truncated first, then binned, and may thus fall outside the requested range.");
-			}
-			binQualitiesIllumina();
-		} else {
-			logfile().list("Will write raw quality scores. (use 'writeBinnedQualities' to bin)");
-		}
-		_initialized = true;
-	}
-};
-
-void TQualityAdjusterForWriting::binQualitiesIllumina(){
-	_binIllumina = true;
-	_adjust = true;
-};
-
-void TQualityAdjusterForWriting::limitRange(const BaseQuality & min, const BaseQuality & max){
-	_minQual = min;
-	_maxQual = max;
-	_adjust = true;
-};
-
-void TQualityAdjusterForWriting::limitRange(const TNumericRange<uint8_t> & Range){
-	if(Range.minIncluded()){
-		_minQual = Range.min();
-	} else {
-		_minQual = Range.min() + 1;
-	}
-	if(Range.maxIncluded()){
-		_maxQual = Range.min();
-	} else {
-		_maxQual = Range.min() - 1;
-	}
-	_adjust = true;
-};
-
-std::string TQualityAdjusterForWriting::rangeString(){
-	return "[" + coretools::str::toString(genometools::PhredIntProbability(_minQual)) + "," + coretools::str::toString(genometools::PhredIntProbability(_maxQual)) + "]";
-};
-
-char TQualityAdjusterForWriting::_adjustOneQuality(BaseQuality qual) const {
-	if(qual < _minQual){
-		qual = _minQual;
-	} else if (qual > _maxQual){
-		qual = _maxQual;
-	}
-	if(_binIllumina){
-		qual.makeIllumina();
-	}
-
-	return qual.get();
-};
-
-void TQualityAdjusterForWriting::adjustQualities(std::string & qualities) const {
-	if(_adjust){
-		for(auto& q : qualities){
-			q = _adjustOneQuality(BaseQuality(q));
-		}
-	}
-};
-
-//-----------------------------------------------------
-//TOutputBamFile
-//----------------------------------------------------
-TOutputBamFile::TOutputBamFile(){
-	_openForWriting = false;
-	_readGroups = nullptr;
-}
-
-TOutputBamFile::TOutputBamFile(const TQualityAdjusterForWriting & QualityAdjuster) : _qualityAdjuster(QualityAdjuster){
-	_openForWriting = false;
-	_readGroups = nullptr;
-}
-
-TOutputBamFile::TOutputBamFile(const std::string Filename, const TBamFile & Original){
-	_openForWriting = false;
-	open(Filename, Original.samHeader(), Original.chromosomes(), Original.readGroups());
-}
-
-TOutputBamFile::TOutputBamFile(const std::string Filename, const TSamHeader & Header, const genometools::TChromosomes & Chromosomes, const TReadGroups & ReadGroups){
-	_openForWriting = false;
-	open(Filename, Header, Chromosomes, ReadGroups);
-}
-
-TOutputBamFile::TOutputBamFile(const std::string Filename, const TSamHeader & Header, const genometools::TChromosomes & Chromosomes, const TReadGroups & ReadGroups, const TQualityAdjusterForWriting & QualityAdjuster) : _qualityAdjuster(QualityAdjuster){
-	_openForWriting = false;
-	open(Filename, Header, Chromosomes, ReadGroups);
-}
-
-TOutputBamFile::~TOutputBamFile(){
-	closeNoIndex();
-}
-
-void TOutputBamFile::open(const std::string Filename, const TSamHeader & Header, const genometools::TChromosomes & Chromosomes, const TReadGroups & ReadGroups){
-	closeNoIndex();
-
-	_outputFilename = Filename;
-	_readGroups = &ReadGroups;
-
-	//construct new header /without chromosomes
-	std::string header = Header.compileSamHeader(ReadGroups, Chromosomes);
-
-	//fill bamtools chromosomes
-	BamTools::RefVector ref;
-	for(auto it = Chromosomes.cbegin(); it != Chromosomes.cend(); ++it){
-		ref.emplace_back(it->name(), it->length());
-	}
-
-	//open file for writing
-	if(!_bamWriter.Open(_outputFilename, header, ref)){
-		UERROR("Failed to open BAM file '", _outputFilename, "'!");
-	}
-
-	_openForWriting = true;
-	setQualityAdjusterForWriting();
-};
-
-void TOutputBamFile::open(const std::string Filename, const TBamFile & Original){
-	open(Filename, Original.samHeader(), Original.chromosomes(), Original.readGroups());
-};
-
-void TOutputBamFile::setQualityAdjusterForWriting(){
-
-	_qualityAdjuster.initialize();
-};
-
-void TOutputBamFile::setQualityAdjusterForWriting(const TQualityAdjusterForWriting & QualityAdjuster){
-	_qualityAdjuster = QualityAdjuster;
-};
-
-void TOutputBamFile::close(){
-	if(_openForWriting){
-		//write all future alignments
-		for(auto& a : _futureAlignments){
-			_writeAlignment(a);
-		}
-		_futureAlignments.clear();
-
-		//close
-		_bamWriter.Close();
-		logfile().listFlush("Creating index of BAM file '" + _outputFilename + "' ...");
-
-		// create index of BAM file
-		BamTools::BamReader reader;
-		if(!reader.Open(_outputFilename))
-            UERROR("Failed to open BAM file '", _outputFilename, "' for indexing!");
-		reader.CreateIndex(BamTools::BamIndex::STANDARD);
-
-        //close BAM file
-		reader.Close();
-		logfile().done();
-		_openForWriting = false;
-	}
-};
-
-void TOutputBamFile::closeNoIndex(){
-	if(_openForWriting){
-		_bamWriter.Close();
-		_openForWriting = false;
-	}
-};
-
-void TOutputBamFile::_writeAlignment(BamTools::BamAlignment & alignment){
-	if(!_openForWriting){
-		UERROR("BAM writer is not open!");
-	}
-
-	//adjust qualities for printing
-	_qualityAdjuster.adjustQualities(alignment.Qualities);
-
-	// write alignment
-	if(!_bamWriter.SaveAlignment(alignment))
-		UERROR("Read '", alignment.Name, "' could not be written!");
-};
-
-void TOutputBamFile::_writeAlignment(const TAlignment & alignment){
-	if(!_openForWriting){
-		UERROR("BAM writer is not open!");
-	}
-	//create bamAlignment and then write
-	BamTools::BamAlignment _tmpBamAlignment;
-
-	_tmpBamAlignment.Name = alignment.name();
-	_tmpBamAlignment.AlignmentFlag = alignment.flags();
-	_tmpBamAlignment.RefID = alignment.refID();
-	_tmpBamAlignment.Position = alignment.position();
-	_tmpBamAlignment.InsertSize = alignment.insertSize();
-	_tmpBamAlignment.MapQuality = alignment.mappingQuality().get();
-
-	if(alignment.isPaired()){
-		_tmpBamAlignment.MateRefID = alignment.mateRefID();
-		_tmpBamAlignment.MatePosition = alignment.matePosition();
-	}
-
-	//CIGAR
-	for(const auto& it : alignment.cigar()){
-		_tmpBamAlignment.CigarData.emplace_back(it.type, it.length);
-	}
-
-	//add sequences and qualities
-	_tmpBamAlignment.QueryBases = alignment.sequence();
-	_tmpBamAlignment.Qualities = alignment.qualities();
-
-	//add read group information
-	_tmpBamAlignment.AddTag("RG", "Z", _readGroups->getName(alignment.readGroupId()));
-
-	//and now write
-	if(!_bamWriter.SaveAlignment(_tmpBamAlignment)){
-		UERROR("Read '", _tmpBamAlignment.Name, "' could not be written!");
-	}
-};
-
-void TOutputBamFile::writeAlignment(const TAlignment & alignment){
-	//write alignments BEFORE alignment to write next
-	auto it = _futureAlignments.begin();
-	if(it != _futureAlignments.end()){
-		while(it != _futureAlignments.end() && *it <= alignment){
-			_writeAlignment(*it);
-			++it;
-		}
-
-		//remove written alignments
-		_futureAlignments.erase(_futureAlignments.begin(), it);
-	}
-
-	//write next alignment
-	_writeAlignment(alignment);
-};
-
-void TOutputBamFile::writeAlignmentLater(const TAlignment & alignment){
-	_futureAlignments.insert(alignment);
-}
 
 }; //end namespace
 

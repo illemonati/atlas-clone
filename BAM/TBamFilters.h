@@ -42,8 +42,11 @@ class TBamFilters {
 	coretools::TStrongArray<coretools::TNumericRange<size_t>, FilterType, coretools::index(FilterType::maxRange)> _ranges;
 	coretools::TStrongArray<TBamFilter, FilterType> _counters;
 	coretools::TOutputFile* _log = nullptr;
+	bool _enabled = false;
 
 public:
+
+	bool enabled() const noexcept {return _enabled;}
 
 	void filterOut(FilterType Filter, std::string_view alignmentName, bool isSecondMate, size_t readGroup,
 			  int64_t chromosomeID) {
@@ -75,6 +78,7 @@ public:
 
 	void enable(FilterType Filter, std::string_view Reason, size_t numRG, size_t numChrom) {
 		_counters[Filter].enable(Reason, numRG, numChrom);
+		_enabled = true;
 		
 	}
 	void enable(FilterType Filter, const coretools::TNumericRange<size_t> & Range, std::string_view Reason, size_t numRG, size_t numChrom) {

@@ -17,7 +17,7 @@ namespace GenomeTasks{
 
 using coretools::instances::logfile;
 
-TIlluminaIdentifier::TIlluminaIdentifier():TGenome_basic(){
+	TIlluminaIdentifier::TIlluminaIdentifier():TGenome_basic(), _out(_outputName + "_IlluminaReadGroupsCorrected.bam", _bamFile){
     // initialize TGenome_basic stuff
 	// fill map with platform unit (key) and read group name
 for (size_t i = 0; i < _bamFile.readGroups().size(); i++){
@@ -27,7 +27,6 @@ for (size_t i = 0; i < _bamFile.readGroups().size(); i++){
             logfile().list("Readgroup '" + _bamFile.readGroups()[i].name_ID + "' is not Illumina-sequenced and will therefore not be used.");
         }
     }    
-    _out.open(_outputName + "_IlluminaReadGroupsCorrected.bam", _bamFile);
 };
 
 void TIlluminaIdentifier::_handleAlignment(){

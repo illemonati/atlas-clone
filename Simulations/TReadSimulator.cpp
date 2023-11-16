@@ -9,14 +9,16 @@
 #include <algorithm>
 #include <memory>
 
-#include "PMD/TModel.h"
-#include "SequencingError/TModel.h"
-#include "TSequencedBase.h"
-#include "TSimulatorAuxiliaryTools.h"
 #include "coretools/Main/TRandomGenerator.h"
 #include "coretools/Strings/fromString.h"
 #include "coretools/Strings/stringFunctions.h"
 #include "genometools/PhredProbabilityTypes.h"
+
+#include "PMD/TModel.h"
+#include "SequencingError/TModel.h"
+#include "TOutputBamFile.h"
+#include "TSequencedBase.h"
+#include "TSimulatorAuxiliaryTools.h"
 
 namespace Simulations {
 using genometools::Base;

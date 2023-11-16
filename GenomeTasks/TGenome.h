@@ -53,8 +53,6 @@ protected:
 	std::string _outputName;
 	BAM::RGInfo::TReadGroupInfo _rgInfo;
 
-	void _openBamForWriting(const std::string &Filename, BAM::TOutputBamFile &OutBam);
-
 public:
 	TGenome_basic();
 	virtual ~TGenome_basic();

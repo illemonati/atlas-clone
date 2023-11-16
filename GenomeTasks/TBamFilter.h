@@ -16,6 +16,7 @@
 
 #include "TBamFile.h"
 #include "TGenome.h"
+#include "TOutputBamFile.h"
 #include "coretools/Main/TTask.h"
 #include "coretools/Strings/stringFunctions.h"
 
@@ -161,14 +162,13 @@ protected:
 	void _handleAlignment() override {}
 
 	//pure virtual functions
-	virtual void _openBamFileForWriting() = 0;
 	virtual void _handleMates(BAM::TAlignment & alignment, StorageIteratorType mate) = 0;
 	virtual void _handleSingle(BAM::TAlignment & alignment) = 0;
 	virtual bool _alignmentCanBeWrittenUnchanged() = 0;
 
 
 public:
-	TGenomeParsedWithAlignmentStorage(){
+	TGenomeParsedWithAlignmentStorage(std::string_view OutName) : _outBam(_outputName + std::string(OutName), _bamFile){
 		//max distance between mates
 		_maxDistanceBetweenMates = parameters().get<int>("acceptedDistance", 2000);
 		logfile().list("Mates that are farther than " + toString(_maxDistanceBetweenMates) + " apart will be considered orphans. (parameter 'acceptedDistance')");
@@ -221,7 +221,6 @@ public:
 
 	virtual void traverseBAM(){
 		//open writer
-		_openBamFileForWriting();
 		_bamFile.setExternalFilterReason("Orphan");
 
 		//now parse BAM file
@@ -303,7 +302,6 @@ public:
 
 		//done parsing bam file: report
 		_bamFile.printSummary(_outputName);
-		_bamFile.close();
 		_outBam.close();
 	}
 };
@@ -313,13 +311,12 @@ public:
 //-----------------------------------------
 class TBamFilter final:public TGenomeParsedWithAlignmentStorage<TAlignmentStorage, TAlignmentStorageIterator>{
 protected:
-	void _openBamFileForWriting() override;
 	void _handleMates(BAM::TAlignment & alignment, TAlignmentStorageIterator mate) override;
 	void _handleSingle(BAM::TAlignment & alignment) override;
 	bool _alignmentCanBeWrittenUnchanged() override;
 
 public:
-	TBamFilter() : TGenomeParsedWithAlignmentStorage() {}
+	TBamFilter() : TGenomeParsedWithAlignmentStorage("_filtered.bam") {}
 	void run() {
 		traverseBAM();
 	}

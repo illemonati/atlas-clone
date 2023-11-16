@@ -142,7 +142,9 @@ void TAssessSoftClipping::run() {
 //--------------------------------------------------------
 // TRemoveSoftClippedBases
 //--------------------------------------------------------
-TRemoveSoftClippedBases::TRemoveSoftClippedBases() : TGenome_parsed(){};
+	TRemoveSoftClippedBases::TRemoveSoftClippedBases() : TGenome_parsed(), _outBam(_outputName + "_softClippedBasesRemoved.bam", _bamFile){
+		
+	};
 
 void TRemoveSoftClippedBases::_handleAlignment() {
 	_alignment.removeSoftClippedBases();
@@ -150,9 +152,7 @@ void TRemoveSoftClippedBases::_handleAlignment() {
 };
 
 void TRemoveSoftClippedBases::run() {
-	std::string filename = _outputName + "_softClippedBasesRemoved.bam";
-	logfile().list("Writing reads after soft-clip trimming to file '" + filename + "'.");
-	_openBamForWriting(filename, _outBam);
+	logfile().list("Writing reads after soft-clip trimming to file '", _outputName,  "_softClippedBasesRemoved.bam'.");
 
 	// traverse BAM
 	_traverseBAMPassedQC();

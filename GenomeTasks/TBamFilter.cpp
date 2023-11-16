@@ -109,9 +109,6 @@ void addToContainer(TAlignmentStorageSorted & Storage, BAM::TAlignment* Alignmen
 //-----------------------------------------
 // TBamFilter
 //-----------------------------------------
-void TBamFilter::_openBamFileForWriting(){
-	TGenome_basic::_openBamForWriting(_outputName + "_filtered.bam", _outBam);
-};
 
 void TBamFilter::_handleMates(BAM::TAlignment & alignment, TAlignmentStorageIterator mate){
 	if(!alignment.isProperPair()){

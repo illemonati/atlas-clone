@@ -8,27 +8,20 @@
 #ifndef BAM_TBAMFILE_H_
 #define BAM_TBAMFILE_H_
 
-#include <cstdint>
-#include <functional>
-#include <memory>
-#include <set>
 #include <string>
 #include <vector>
 
 #include "TBamFilters.h"
 #include "api/BamAlignment.h"
-#include "api/BamAux.h"
 #include "api/BamReader.h"
 #include "api/BamWriter.h"
 #include "api/SamHeader.h"
 
 #include "coretools/Math/TNumericRange.h"
 #include "coretools/Math/counters.h"
-#include "coretools/Strings/stringFunctions.h"
 #include "coretools/TTimer.h"
 #include "genometools/GenomePositions/TChromosomes.h"
 #include "genometools/GenomePositions/TGenomePosition.h"
-#include "genometools/PhredProbabilityTypes.h"
 
 #include "TAlignment.h"
 #include "TAlignmentList.h"
@@ -45,50 +38,47 @@ namespace BAM{
 class TOutputBamFile; //forward declaration
 
 class TBamFile{
-	friend class TOutputBamFile;
 private:
+	constexpr static size_t _step = 100;
+
 	//BAM file
 	std::string _filename;
 	BamTools::BamReader _bamReader;
 	BamTools::BamRegion _bamRegion;
- 	BamTools::SamHeader _bamHeader;
-	size_t _stepSizeFindLastAlignment = 100;
- 	size_t _fileSize;
+	BamTools::SamHeader _bamHeader;
+	size_t _fileSize = 0;
 
- 	//header
+	//header
  	genometools::TChromosomes _chromosomes;
  	std::vector<genometools::TChromosome>::iterator _curChromosome;
  	TReadGroups _readGroups;
  	TSamHeader _samHeader;
 
  	//counters
- 	size_t _numAlignmentRead;
  	coretools::TCountDistributionVector<> _numAlignmentReadPerReadGroupPerChromosome;
- 	size_t _numAlignmentsPassedQC;
- 	bool _limitNumReads;
- 	size_t _maxNumReadsToRead;
+	size_t _numAlignmentRead      = 0;
+	size_t _numAlignmentsPassedQC = 0;
+	size_t _maxNumReadsToRead     = -1;
 
- 	//current alignment
+	//current alignment
  	BamTools::BamAlignment _curBamAlignment;
- 	size_t _curReadGroupID;
  	TCigar _curCigar;
  	genometools::TGenomePosition _curAlignmentPosition, _previousAlignmentPosition;
-	bool _chrChanged;
+	size_t _curReadGroupID      = 0;
+	bool _chrChanged            = false;
 	double _softClipFilterRatio = 1;
 
 	//alignment filters
-	bool _QCFiltersPassed;
  	TAlignmentList _blacklist;
- 	bool _allowTooLongReads;
- 	bool _keepAll; 	
-	size_t _numNoReadGroup;
 	std::vector<size_t> _numNotAligned;
+	bool _QCFiltersPassed  = false;
+	size_t _numNoReadGroup = 0;
 
 	TBamFilters _filters;
 
-	void _fillSamHeader(TSamHeader & SamHeader);
-	void _fillChromosomes(genometools::TChromosomes & chromosomes);
-	void _fillReadGroups(TReadGroups & readGroups);
+	void _fillSamHeader();
+	void _fillChromosomes();
+	void _fillReadGroups();
 	bool _readNextAlignmentFromFile();
  	void _applyFilters();
 	void _writeFilteringStats(std::string_view outputName) const;
@@ -98,15 +88,14 @@ private:
 
 	//report progress
 	mutable coretools::TTimer _timer;
-	mutable size_t _progressFrequency;
-	mutable size_t _lastProgressPrinted;
+	mutable size_t _progressFrequency   = 100000;
+	mutable size_t _lastProgressPrinted = 0;
 
 	std::string _millionReadsRead() const { return coretools::str::toStringWithPrecision((double) _numAlignmentRead / 1000000.0, 1); };
 	void _openForWriting(BamTools::BamWriter & bamWriter, const std::string filename);
 
 public:
-	TBamFile();
-	TBamFile(std::string_view Filename) : TBamFile() {open(Filename); setLimits();}
+	TBamFile(std::string_view Filename);
 
 	//access header info READ ONLY
 	const genometools::TChromosomes& chromosomes() const{ return _chromosomes; };
@@ -123,15 +112,11 @@ public:
 	void filterOut(const TAlignment & Alignment);
 	void setExternalFilterReason(std::string_view reason);
 	void openBamLog();
-	void writeToBamLog(std::string_view alignmentName, bool isReverseStrand, std::string_view reason);
 
 	//get filter status
 	const TBamFilter& filter(FilterType t) const noexcept {return _filters[t];}
 
 	//reading
-	void open(std::string_view Filename);
-	bool isOpen() const{ return _bamReader.IsOpen(); };
-	void close();
 	bool readNextAlignment();
 	bool readNextAlignmentThatPassesFilters();
 	bool readNextAlignment(TAlignment & alignment);
@@ -139,7 +124,6 @@ public:
 	void fill(TAlignment & alignment) const;
 
 	bool jump(const genometools::TGenomePosition Position);
-	void rewind();
 
 	//writing
 	void writeCurAlignment(TOutputBamFile & out);
@@ -153,8 +137,6 @@ public:
 	size_t curReadGroupID() const{ return _curReadGroupID; };
 	bool chrChanged() const{ return _chrChanged; };
 	bool curPassedQC() const{ return _QCFiltersPassed; };
-	size_t curReadLength() const{ return _curCigar.lengthRead(); };
-	size_t curUsableSequence() const{ return _curCigar.lengthSequenced(); };
 	size_t curFragmentLength() const;
 	uint16_t curMappingQuality() const{ return _curBamAlignment.MapQuality; };
 	bool curIsPaired() const{ return _curBamAlignment.IsPaired(); };
@@ -172,106 +154,22 @@ public:
 
 	//modify cur alignment
 	void curSetNewReadGroup(const size_t id);
-	void curAddSamField();
 	void curAddSamField(const std::string& tag, const std::string& value);
 	void curAddSamField(const std::string& tag, float value);
 
 	//other getters
-	std::string filename() const{ return _filename; };
-	size_t maxReadLength(){ return _filters.range(FilterType::ReadLength).max(); };
-	size_t numAlignmentsRead(){ return _numAlignmentRead; };
-	coretools::TCountDistributionVector<> numAlignmentReadPerReadGroupPerChromosome() { return _numAlignmentReadPerReadGroupPerChromosome; };
-	double positionInFile() const { return (double) _bamReader.Tell() / (double) _fileSize; };
-	size_t numReadGroups() const{ return _readGroups.size(); };
+	const std::string& filename() const noexcept { return _filename; };
+	size_t maxReadLength() const { return _filters.range(FilterType::ReadLength).max(); };
+	size_t numAlignmentsRead() const { return _numAlignmentRead; };
+	const coretools::TCountDistributionVector<>& numAlignmentReadPerReadGroupPerChromosome() const noexcept { return _numAlignmentReadPerReadGroupPerChromosome; };
+	double positionInFile() const { return (double) _bamReader.Tell()/_fileSize; };
+	size_t numReadGroups() const noexcept { return _readGroups.size(); };
 
 	//progress reporting
-	void printSummaryNoEndIndent(std::string_view outputName) const;
 	void printSummary(std::string_view outputName) const;
 	void startProgressReporting(size_t Frequency=1000000) const;
 	void printProgress() const;
 	void printEndWithSummary(std::string_view outputName) const;
-	void printEndNoEndIndent() const;
-
-	//comparisons
-	bool operator==(const genometools::TGenomePosition & Position) const{ return _curAlignmentPosition == Position; };
-	bool operator<(const genometools::TGenomePosition & Position) const{ return _curAlignmentPosition < Position; };
-	bool operator>(const genometools::TGenomePosition & Position) const{ return _curAlignmentPosition > Position; };
-	bool operator<(const genometools::TGenomeWindow & Window) const{ return _curAlignmentPosition < Window; };
-	bool operator>(const genometools::TGenomeWindow & Window) const{ return _curAlignmentPosition > Window; };
-	bool operator<(const genometools::TChromosome & Chromosome) const{ return _curAlignmentPosition < Chromosome.start(); };
-	bool operator>(const genometools::TChromosome & Chromosome) const{ return _curAlignmentPosition > Chromosome.end(); };
-};
-
-//------------------------------------------------
-// TQualityAdjusterForWriting
-// Manages the printing of quality scores when writing BAM files
-//------------------------------------------------
-class TQualityAdjusterForWriting{
-private:
-	bool _initialized;
-	bool _adjust;
-	bool _binIllumina;
-	bool _limitRange;
-	genometools::BaseQuality _minQual {genometools::BaseQuality::min()};
-	genometools::BaseQuality _maxQual {genometools::BaseQuality::max()};
-
-	char _adjustOneQuality(genometools::BaseQuality qual) const;
-
-public:
-	TQualityAdjusterForWriting();
-
-	void initialize();
-	bool adjusts() const { return _adjust; };
-	void binQualitiesIllumina();
-	void limitRange(const genometools::BaseQuality & min, const genometools::BaseQuality & max);
-	void limitRange(const coretools::TNumericRange<uint8_t> & Range);
-	std::string rangeString();
-	void adjustQualities(std::string & qualities) const;
-};
-
-//----------------------------------------------------
-//TOutputBamFile
-//----------------------------------------------------
-class TOutputBamFile{
-	friend TBamFile;
-
-private:
- 	std::string _outputFilename;
- 	BamTools::BamWriter _bamWriter;
- 	bool _openForWriting;
- 	const TReadGroups* _readGroups;
-
- 	std::multiset<TAlignment, std::less<>> _futureAlignments;
-
- 	//quality output transformations
- 	TQualityAdjusterForWriting _qualityAdjuster;
-
- 	void _writeAlignment(const TAlignment & alignment);
- 	void _writeAlignment(BamTools::BamAlignment & alignment);
-
-public:
- 	TOutputBamFile();
- 	TOutputBamFile(const TQualityAdjusterForWriting & QualityAdjuster);
- 	TOutputBamFile(const std::string Filename, const TBamFile & Original);
- 	TOutputBamFile(const std::string Filename, const TSamHeader & Header, const genometools::TChromosomes & Chromosomes, const TReadGroups & ReadGroups);
- 	TOutputBamFile(const std::string Filename, const TSamHeader & Header, const genometools::TChromosomes & Chromosomes, const TReadGroups & ReadGroups, const TQualityAdjusterForWriting & QualityAdjuster);
-
- 	~TOutputBamFile();
-
- 	TOutputBamFile(const TOutputBamFile&) = default;
- 	TOutputBamFile(TOutputBamFile&&) noexcept = default;
- 	TOutputBamFile& operator=(const TOutputBamFile&) = default;
- 	TOutputBamFile& operator=(TOutputBamFile&&) noexcept = default;
-
- 	void open(const std::string Filename, const TSamHeader & Header, const genometools::TChromosomes & Chromosomes, const TReadGroups & ReadGroups);
-	void open(const std::string Filename, const TBamFile & Original);
-	void setQualityAdjusterForWriting();
-	void setQualityAdjusterForWriting(const TQualityAdjusterForWriting & QualityAdjuster);
-	bool isOpen() const{ return _openForWriting; };
-	void close();
-	void closeNoIndex();
-	void writeAlignment(const TAlignment & alignment);
-	void writeAlignmentLater(const TAlignment & alignment);
 };
 
 }; //end namespace

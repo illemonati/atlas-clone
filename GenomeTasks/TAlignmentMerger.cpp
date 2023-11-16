@@ -615,7 +615,8 @@ size_t TAlignmentMerger_highestQuality::overlapLengthAndMerge(BAM::TAlignment & 
 //-----------------------------------------
 // TAlignmentSplitMerger
 //-----------------------------------------
-TAlignmentSplitMerger::TAlignmentSplitMerger() : TGenomeParsedWithAlignmentStorage() {
+
+TAlignmentSplitMerger::TAlignmentSplitMerger() : TGenomeParsedWithAlignmentStorage("_splitMerged.bam") {
 	//parse read group settings
 	_rgSettings.initialize(_bamFile.readGroupsMutable());
 
@@ -664,10 +665,6 @@ void TAlignmentSplitMerger::_initializeMerger() {
 	} else {
 		UERROR("Unknown merging method ", method, "! Use 'none', 'middle', 'firstMate', 'secondMate', 'randomRead' or 'highestQuality'.");
 	}
-};
-
-void TAlignmentSplitMerger::_openBamFileForWriting(){
-	TGenome_basic::_openBamForWriting(_outputName + "_splitMerged.bam", _outBam);
 };
 
 void TAlignmentSplitMerger::_handleMates(BAM::TAlignment & alignment, TAlignmentStorageSortedIterator mate){
@@ -793,7 +790,6 @@ void TOverlapQuantifier::run(){
 
 	//done parsing bam file: report
 	_bamFile.printSummary(_outputName);
-	_bamFile.close();
 
 	//write distribution
 	std::string filename = _outputName + "_overlapStats.txt";
