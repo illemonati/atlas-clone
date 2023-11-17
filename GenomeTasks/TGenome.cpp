@@ -117,12 +117,9 @@ void TGenome_parsed::_parseAlignment(BAM::TAlignment &alignment) {
 	// parse
 	alignment.parse(_genotypeLikelihoodCalculator.sequencingErrorModels());
 
-	// apply filters
 	if (_trimReads) { alignment.trimRead(_trim3, _trim5); }
-
-	alignment.filter(_qualityFilter);
-	alignment.filter(_contextFilter);
-
+	alignment.filter(_qualityFilter); // always on
+	if (_contextFilter) alignment.filter(_contextFilter);
 	if (_reference.isOpen()) { alignment.addReference(_reference); }
 };
 

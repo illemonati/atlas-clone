@@ -22,10 +22,6 @@
 #include "TSamFlags.h"
 #include "TSequencedBase.h"
 
-namespace GenomeTasks {
-	class TBaseFilter;
-}
-
 namespace GenotypeLikelihoods {
 class TGenotypeLikelihoodCalculator;
 }
@@ -171,7 +167,15 @@ public:
 	size_t size() const noexcept { return _bases.size(); }
 
 	// filters and other functions to modify data
-	void filter(const GenomeTasks::TBaseFilter &Filter);
+	template<typename Filter> void filter(const Filter &F) {
+		// set quality = 0 and base = N if outside quality filter
+		for (auto &b : _bases) {
+			if (!F.pass(b)) {
+				b.base                          = genometools::Base::N;
+				b.recalibratedQualityAsPhredInt = 0;
+			}
+		}
+	}
 	void trimRead(int trimmingLength3Prime, int trimmingLength5Prime);
 	void removeSoftClippedBases();
 	void removeSoftClippedBases(size_t maxNumberOfSoftClippedBases);

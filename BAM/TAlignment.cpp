@@ -25,7 +25,6 @@
 #include <stdlib.h>
 
 namespace BAM {
-using GenomeTasks::TBaseFilter;
 
 void TAlignment::clear() {
 	TGenomePosition::clear();
@@ -391,17 +390,6 @@ std::string TAlignment::qualities() const {
 //--------------------------------------------
 // filters and other functions to modify data
 //--------------------------------------------
-void TAlignment::filter(const TBaseFilter &Filter) {
-	if (Filter) {
-		// set quality = 0 and base = N if outside quality filter
-		for (auto &b : _bases) {
-			if (!Filter.pass(b)) {
-				b.base                          = genometools::Base::N;
-				b.recalibratedQualityAsPhredInt = 0;
-			}
-		}
-	}
-};
 
 void TAlignment::trimRead(int trimmingLength3Prime, int trimmingLength5Prime) {
 	for (auto &b : _bases) {
