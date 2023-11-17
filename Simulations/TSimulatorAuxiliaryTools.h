@@ -17,7 +17,7 @@
 
 #include "genometools/GenotypeTypes.h"
 #include "TAlignment.h"
-#include "TBamFile.h"
+#include "TOutputBamFile.h"
 #include "TGenotypeData.h"
 #include "coretools/Containers/TStrongArray.h"
 #include "coretools/Files/gzstream.h"

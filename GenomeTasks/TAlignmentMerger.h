@@ -128,7 +128,6 @@ private:
 	bool _allowForLarger;
 
 	void _initializeMerger();
-	void _openBamFileForWriting() override;
 	void _handleMates(BAM::TAlignment & alignment, TAlignmentStorageSortedIterator mate) override;
 	void _handleSingle(BAM::TAlignment & alignment) override;
 	bool _alignmentCanBeWrittenUnchanged() override;

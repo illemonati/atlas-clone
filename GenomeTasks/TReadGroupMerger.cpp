@@ -7,19 +7,21 @@
 
 #include "TReadGroupMerger.h"
 
-#include <stddef.h>
 #include <algorithm>
 #include <cstdint>
 #include <exception>
 #include <ios>
 #include <set>
+#include <stddef.h>
 #include <utility>
 
-#include "TBamFile.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
-#include "TReadGroups.h"
 #include "coretools/Strings/stringFunctions.h"
+
+#include "TBamFile.h"
+#include "TOutputBamFile.h"
+#include "TReadGroups.h"
 
 namespace GenomeTasks{
 using coretools::instances::logfile;
@@ -91,8 +93,7 @@ TReadGroupMerger::TReadGroupMerger():TGenome_basic(){
 
 void TReadGroupMerger::run(){
 	//open a bam file for writing
-	BAM::TOutputBamFile outBam;
-	_openBamForWriting(_outputName + "_mergedRG.bam", outBam);
+	BAM::TOutputBamFile outBam(_outputName + "_mergedRG.bam", _bamFile);
 
 	//now parse through bam file and write alignments
 	_bamFile.startProgressReporting();

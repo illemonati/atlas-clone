@@ -12,19 +12,20 @@
 #include <string>
 #include <vector>
 
-#include "genometools/GenotypeTypes.h"
-#include "TCigar.h"
-#include "genometools/GenomePositions/TGenomePosition.h"
-#include "TSamFlags.h"
-#include "TSequencedBase.h"
-
 #include "coretools/Types/probability.h"
+#include "genometools/GenomePositions/TGenomePosition.h"
+#include "genometools/GenotypeTypes.h"
 #include "genometools/PhredProbabilityTypes.h"
 #include "genometools/TFastaReader.h"
 
-namespace BAM {
-class TBaseFilter;
+#include "TCigar.h"
+#include "TSamFlags.h"
+#include "TSequencedBase.h"
+
+namespace GenomeTasks {
+	class TBaseFilter;
 }
+
 namespace GenotypeLikelihoods {
 class TGenotypeLikelihoodCalculator;
 }
@@ -170,7 +171,7 @@ public:
 	size_t size() const noexcept { return _bases.size(); }
 
 	// filters and other functions to modify data
-	void filter(const TBaseFilter &Filter);
+	void filter(const GenomeTasks::TBaseFilter &Filter);
 	void trimRead(int trimmingLength3Prime, int trimmingLength5Prime);
 	void removeSoftClippedBases();
 	void removeSoftClippedBases(size_t maxNumberOfSoftClippedBases);

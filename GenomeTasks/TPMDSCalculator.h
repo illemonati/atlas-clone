@@ -12,6 +12,7 @@
 #include <string>
 
 #include "TBamFile.h"
+#include "TOutputBamFile.h"
 #include "TGenome.h"
 #include "coretools/Main/TTask.h"
 #include "coretools/Types/probability.h"

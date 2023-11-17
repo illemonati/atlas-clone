@@ -63,8 +63,7 @@ public:
 
     void read(){
         //open BAM file for reading
-        inputBam = std::make_unique<BAM::TBamFile>();
-        inputBam->open(_filename);
+        inputBam = std::make_unique<BAM::TBamFile>(_filename);
     }
 
     void SetUp() override{
@@ -715,7 +714,7 @@ public:
     TCountDistribution<> readGroup;
     TCountDistribution<> refIDs;
 
-    BAM::TQualityFilter qualFilter;
+    GenomeTasks::TQualityFilter qualFilter;
     std::vector<std::string> readGroupNames;
 
     void _handleAlignment() override {
@@ -739,7 +738,6 @@ public:
         names.push_back(_bamFile.curName());
 
         readLength.add(curReadGroup, _bamFile.curCIGAR().lengthRead());
-        usableLength.add(curReadGroup, _bamFile.curUsableAlignedLength(qualFilter));
         softClippedLength.add(curReadGroup, _bamFile.curCIGAR().lengthSoftClipped());
         mappingQuality.add(curReadGroup, _bamFile.curMappingQuality());
 

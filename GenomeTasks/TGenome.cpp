@@ -14,6 +14,7 @@
 #include <math.h>
 #include <memory>
 
+#include "TBamFilter.h"
 #include "genometools/BED/TBed.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
@@ -50,11 +51,6 @@ TGenome_basic::TGenome_basic()
 	}
 };
 
-void TGenome_basic::_openBamForWriting(const std::string &Filename, BAM::TOutputBamFile &OutBam) {
-	logfile().list("Writing alignments to the new BAM file '" + Filename + "'.");
-	OutBam.open(Filename, _bamFile);
-};
-
 TGenome_basic::~TGenome_basic() {
 	if (_rgInfo.isParsed()) _rgInfo.write(_outputName + "_RGInfo.json");
 }
@@ -64,7 +60,10 @@ TGenome_basic::~TGenome_basic() {
 // A base class without genotype likelihoods but BAM filters enabled
 //---------------------------------------------------------------
 
-TGenome_filtered::TGenome_filtered() { _bamFile.setFilters(); };
+TGenome_filtered::TGenome_filtered() {
+	const BAM::TBamFilters filters{true};
+	_bamFile.setFilters(filters);
+};
 
 void TGenome_filtered::_traverseBAMPassedQC() {
 	// parse through bam file
@@ -87,7 +86,8 @@ void TGenome_filtered::_traverseBAMPassedQC() {
 TGenome_parsed::TGenome_parsed() : _genotypeLikelihoodCalculator(_rgInfo) {
 	// set parsing filters
 	_setReadTrimming();
-	_bamFile.setFilters();
+	const BAM::TBamFilters filters{true};
+	_bamFile.setFilters(filters);
 };
 
 void TGenome_parsed::_openReference(bool required) {
@@ -178,10 +178,6 @@ void TGenome_windows::_setWindowParameters() {
 	if (stringIsProbablyANumber(tmp)) {
 		fromString(tmp, _windowSize);
 		logfile().list("Setting window size to " + toString(_windowSize) + ". (parameter 'window')");
-		if (_windowSize < _bamFile.maxReadLength()) {
-			UERROR("Window size ", tmp, " out of range! Windows must be at least as large as the max read length (",
-				   _bamFile.maxReadLength(), " bp). (use parameter 'filterReadLength' to change)!");
-		}
 	} else {
 		logfile().listFlush("Limiting analysis to windows defined in BED file '" + tmp + "' (parameter window) ...");
 		_predefinedWindows.add(tmp, _chromosomes);

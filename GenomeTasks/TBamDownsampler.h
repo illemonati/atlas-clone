@@ -37,9 +37,8 @@ private:
 	BAM::TAlignmentList _discard;
 
 public:
-	TBamSample(const coretools::Probability & Prob, const std::string & OutName);
+	TBamSample(const coretools::Probability & Prob, const std::string & OutName, BAM::TBamFile & bamFile);
 
-	void open(BAM::TBamFile & bamFile);
 	void close();
 
 	void sample(BAM::TBamFile & bamfile);

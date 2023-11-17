@@ -25,7 +25,7 @@ namespace GenomeTasks{
 
 class TBamDiagnoser:public TGenome_filtered{
 private:
-	BAM::TQualityFilter _qualFilter;
+	TQualityFilter _qualFilter;
 	std::vector<std::string> _readGroupNames;
 	bool _chromStats = false;
 

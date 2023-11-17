@@ -17,6 +17,7 @@
 #include <utility>
 #include <vector>
 
+#include "TBamFilters.h"
 #include "coretools/Containers/TStrongArray.h"
 #include "genometools/GenotypeTypes.h"
 #include "genometools/PhredProbabilityTypes.h"
@@ -614,7 +615,8 @@ size_t TAlignmentMerger_highestQuality::overlapLengthAndMerge(BAM::TAlignment & 
 //-----------------------------------------
 // TAlignmentSplitMerger
 //-----------------------------------------
-TAlignmentSplitMerger::TAlignmentSplitMerger() : TGenomeParsedWithAlignmentStorage() {
+
+TAlignmentSplitMerger::TAlignmentSplitMerger() : TGenomeParsedWithAlignmentStorage("_splitMerged.bam") {
 	//parse read group settings
 	_rgSettings.initialize(_bamFile.readGroupsMutable());
 
@@ -635,7 +637,7 @@ TAlignmentSplitMerger::TAlignmentSplitMerger() : TGenomeParsedWithAlignmentStora
 void TAlignmentSplitMerger::_initializeMerger() {
 	// check if keepAllReads is turned on
 	// TODO: what is the basic set of filters needed?
-	if(!_bamFile.improperPairsFilterEnabled()){
+	if(!_bamFile.filter(BAM::FilterType::ImproperPairs)){
 		logfile().warning("Improper pairs are kept but will not be merged!");
 	}
 
@@ -663,10 +665,6 @@ void TAlignmentSplitMerger::_initializeMerger() {
 	} else {
 		UERROR("Unknown merging method ", method, "! Use 'none', 'middle', 'firstMate', 'secondMate', 'randomRead' or 'highestQuality'.");
 	}
-};
-
-void TAlignmentSplitMerger::_openBamFileForWriting(){
-	TGenome_basic::_openBamForWriting(_outputName + "_splitMerged.bam", _outBam);
 };
 
 void TAlignmentSplitMerger::_handleMates(BAM::TAlignment & alignment, TAlignmentStorageSortedIterator mate){
@@ -792,7 +790,6 @@ void TOverlapQuantifier::run(){
 
 	//done parsing bam file: report
 	_bamFile.printSummary(_outputName);
-	_bamFile.close();
 
 	//write distribution
 	std::string filename = _outputName + "_overlapStats.txt";

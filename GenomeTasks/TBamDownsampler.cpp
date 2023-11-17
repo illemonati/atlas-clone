@@ -31,14 +31,8 @@ using coretools::str::toString;
 //-----------------------------------------
 // TBamSample
 //-----------------------------------------
-TBamSample::TBamSample(const Probability & Prob, const std::string & OutName){
-	_prob = Prob;
-	_outName = OutName;
-};
-
-void TBamSample::open(BAM::TBamFile & bamFile){
-	_out.open(_outName, bamFile);
-};
+TBamSample::TBamSample(const Probability &Prob, const std::string &OutName, BAM::TBamFile &bamFile)
+	: _prob(Prob), _outName(OutName), _out(_outName, bamFile){};
 
 void TBamSample::close(){
 	_out.close();
@@ -152,13 +146,11 @@ TBamDownsampler::TBamDownsampler() : TBamDownsampler_base(){
 	}
 
 	// create downsampling objects
+	_bamSamples.reserve(_probs.size());
 	for (size_t i = 0; i < _probs.size(); ++i) {
 		std::string filename = filePrefix + _names[i] + ".bam";
-		_bamSamples.emplace_back(_probs[i], filename);
+		_bamSamples.emplace_back(_probs[i], filename, _bamFile);
 	}
-
-	// open bam files for writing
-	for (auto &s : _bamSamples) { s.open(_bamFile); }
 };
 
 void TBamDownsampler::run() {
