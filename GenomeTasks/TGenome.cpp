@@ -60,7 +60,10 @@ TGenome_basic::~TGenome_basic() {
 // A base class without genotype likelihoods but BAM filters enabled
 //---------------------------------------------------------------
 
-TGenome_filtered::TGenome_filtered() { _bamFile.setFilters(); };
+TGenome_filtered::TGenome_filtered() {
+	const BAM::TBamFilters filters{true};
+	_bamFile.setFilters(filters);
+};
 
 void TGenome_filtered::_traverseBAMPassedQC() {
 	// parse through bam file
@@ -83,7 +86,8 @@ void TGenome_filtered::_traverseBAMPassedQC() {
 TGenome_parsed::TGenome_parsed() : _genotypeLikelihoodCalculator(_rgInfo) {
 	// set parsing filters
 	_setReadTrimming();
-	_bamFile.setFilters();
+	const BAM::TBamFilters filters{true};
+	_bamFile.setFilters(filters);
 };
 
 void TGenome_parsed::_openReference(bool required) {

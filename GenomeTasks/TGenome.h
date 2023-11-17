@@ -9,34 +9,22 @@
 #define TGENOME_H_
 
 #include <memory>
-#include <set>
-#include <stdint.h>
 #include <string>
 #include <vector>
 
-#include "TBamFile.h"
-#include "TBaseFilter.h"
-#include "TReadGroupInfo.h"
-#include "genometools/BED/TBed.h"
-#include "TAlignment.h"
-#include "genometools/GenomePositions/TChromosomes.h"
-#include "genometools/GenomePositions/TGenomePosition.h"
-#include "TGenotypeData.h"
-#include "TGenotypeLikelihoodCalculator.h"
 #include "coretools/Math/TNumericRange.h"
 #include "coretools/TTimer.h"
-#include "TWindow.h"
+#include "genometools/BED/TBed.h"
+#include "genometools/GenomePositions/TChromosomes.h"
 #include "genometools/TFastaReader.h"
 
-namespace coretools {
-class TLog;
-}
-namespace coretools {
-class TParameters;
-}
-namespace coretools {
-class TRandomGenerator;
-}
+#include "TAlignment.h"
+#include "TBamFile.h"
+#include "TBaseFilter.h"
+#include "TGenotypeLikelihoodCalculator.h"
+#include "TReadGroupInfo.h"
+#include "TWindow.h"
+
 namespace coretools {
 class TSubsamplePicker;
 }

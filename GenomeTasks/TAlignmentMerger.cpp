@@ -637,7 +637,7 @@ TAlignmentSplitMerger::TAlignmentSplitMerger() : TGenomeParsedWithAlignmentStora
 void TAlignmentSplitMerger::_initializeMerger() {
 	// check if keepAllReads is turned on
 	// TODO: what is the basic set of filters needed?
-	if(!_bamFile.filter(BAM::FilterType::ImproperPairs).filters()){
+	if(!_bamFile.filter(BAM::FilterType::ImproperPairs)){
 		logfile().warning("Improper pairs are kept but will not be merged!");
 	}
 

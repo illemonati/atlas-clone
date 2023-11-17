@@ -9,6 +9,7 @@
 #define BAM_TBAMFILTER_H_
 
 #include <string>
+#include <utility>
 
 #include "coretools/Math/TNumericRange.h"
 #include "coretools/Containers/TStrongArray.h"
@@ -35,9 +36,21 @@ public:
 		_counter.resize(numRG);
 		_counter.resizeDistributions(numChrom);
 	}
+	void clone(const TBamFilter& Filter, size_t numRG, size_t numChrom) {
+		_enabled = Filter._enabled;
+		_reason  = Filter._reason;
+
+		if (_enabled) {
+			_counter.resize(numRG);
+			_counter.resizeDistributions(numChrom);
+		} else {
+			_counter.resize(0);
+		}
+	}
+
 	void disable() noexcept { _enabled = false; }
-	bool filters() const{ return _enabled; };
-	void filterOut(std::string_view alignmentName, bool isSecondMate, size_t readGroup, int64_t chromosomeID, coretools::TOutputFile* const log);
+	operator bool() const noexcept {return _enabled;}
+	void filterOut(std::string_view alignmentName, bool isSecondMate, size_t readGroup, int64_t chromosomeID, coretools::TOutputFile& Log);
 	void summary(size_t total, size_t readGroup) const;
 	void fillHeader(std::vector<std::string> &header) const; 
 	void printCounts(coretools::TOutputFile &out, size_t rg_ID) const;

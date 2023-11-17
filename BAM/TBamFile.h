@@ -44,7 +44,6 @@ private:
 	//BAM file
 	std::string _filename;
 	BamTools::BamReader _bamReader;
-	BamTools::BamRegion _bamRegion;
 	BamTools::SamHeader _bamHeader;
 	size_t _fileSize = 0;
 
@@ -66,15 +65,18 @@ private:
  	genometools::TGenomePosition _curAlignmentPosition, _previousAlignmentPosition;
 	size_t _curReadGroupID      = 0;
 	bool _chrChanged            = false;
-	double _softClipFilterRatio = 1;
 
 	//alignment filters
- 	TAlignmentList _blacklist;
 	std::vector<size_t> _numNotAligned;
 	bool _QCFiltersPassed  = false;
 	size_t _numNoReadGroup = 0;
 
 	TBamFilters _filters;
+
+	//report progress
+	mutable coretools::TTimer _timer;
+	mutable size_t _progressFrequency   = 100000;
+	mutable size_t _lastProgressPrinted = 0;
 
 	void _fillSamHeader();
 	void _fillChromosomes();
@@ -82,17 +84,12 @@ private:
 	bool _readNextAlignmentFromFile();
  	void _applyFilters();
 	void _writeFilteringStats(std::string_view outputName) const;
+	void _setLimits();
 
-	//output filtered reads
-	coretools::TOutputFile _bamLog;
-
-	//report progress
-	mutable coretools::TTimer _timer;
-	mutable size_t _progressFrequency   = 100000;
-	mutable size_t _lastProgressPrinted = 0;
 
 	std::string _millionReadsRead() const { return coretools::str::toStringWithPrecision((double) _numAlignmentRead / 1000000.0, 1); };
 	void _openForWriting(BamTools::BamWriter & bamWriter, const std::string filename);
+
 
 public:
 	TBamFile(std::string_view Filename);
@@ -100,18 +97,16 @@ public:
 	//access header info READ ONLY
 	const genometools::TChromosomes& chromosomes() const{ return _chromosomes; };
 	const TReadGroups& readGroups() const { return _readGroups; };
-	const TSamHeader samHeader() const{ return _samHeader; };
+	const TSamHeader& samHeader() const{ return _samHeader; };
 
 	//modify header info: know what you do!
 	TReadGroups& readGroupsMutable(){ return _readGroups; };
 
 	//filters
-	void setFilters();
-	void setLimits();
+	void setFilters(const TBamFilters& Filters);
 	void curFilterOut();
 	void filterOut(const TAlignment & Alignment);
 	void setExternalFilterReason(std::string_view reason);
-	void openBamLog();
 
 	//get filter status
 	const TBamFilter& filter(FilterType t) const noexcept {return _filters[t];}
@@ -153,16 +148,13 @@ public:
 	std::string curQuerySequence(const size_t start, const size_t length) const;
 
 	//modify cur alignment
-	void curSetNewReadGroup(const size_t id);
-	void curAddSamField(const std::string& tag, const std::string& value);
+	void curSetNewReadGroup(size_t id);
 	void curAddSamField(const std::string& tag, float value);
 
 	//other getters
 	const std::string& filename() const noexcept { return _filename; };
 	size_t maxReadLength() const { return _filters.range(FilterType::ReadLength).max(); };
-	size_t numAlignmentsRead() const { return _numAlignmentRead; };
 	const coretools::TCountDistributionVector<>& numAlignmentReadPerReadGroupPerChromosome() const noexcept { return _numAlignmentReadPerReadGroupPerChromosome; };
-	double positionInFile() const { return (double) _bamReader.Tell()/_fileSize; };
 	size_t numReadGroups() const noexcept { return _readGroups.size(); };
 
 	//progress reporting
