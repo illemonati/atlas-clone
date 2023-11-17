@@ -18,14 +18,9 @@
 #include "genometools/BED/TBed.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
-#include "coretools/Main/TRandomGenerator.h"
 #include "TSiteSubset.h"
 #include "coretools/Math/TSubsamplePicker.h"
 #include "coretools/Strings/stringFunctions.h"
-
-namespace coretools {
-class TRandomGenerator;
-}
 
 namespace GenomeTasks {
 
@@ -85,7 +80,23 @@ void TGenome_filtered::_traverseBAMPassedQC() {
 //---------------------------------------------------------------
 TGenome_parsed::TGenome_parsed() : _genotypeLikelihoodCalculator(_rgInfo) {
 	// set parsing filters
-	_setReadTrimming();
+	if (parameters().exists("trim3") || parameters().exists("trim5")) {
+		_trim3 = parameters().get<int>("trim3", 0);
+		if (_trim3 < 0) UERROR("trimming distance trim3 must be >= 0!");
+		_trim5 = parameters().get<int>("trim5", 0);
+		if (_trim5 < 0) UERROR("trimming distance trim5 must be >= 0!");
+		if (_trim3 > 0 || _trim5 > 0) {
+			logfile().list("Will trim first " + toString(_trim3) + " and " +
+						   toString(_trim5) +
+						   " bases from the 3' and 5' end, respectively. (parameters 'trim3', 'trim5')");
+		}
+		_trimReads = true;
+	} else {
+		_trim3     = 0;
+		_trim5     = 0;
+		_trimReads = false;
+	}
+
 	const BAM::TBamFilters filters{true};
 	_bamFile.setFilters(filters);
 };
@@ -102,32 +113,12 @@ void TGenome_parsed::_openReference(bool required) {
 	}
 };
 
-void TGenome_parsed::_setReadTrimming() {
-	// trimming ends
-	if (parameters().exists("trim3") || parameters().exists("trim5")) {
-		_trimmingLength3Prime = parameters().get<int>("trim3", 0);
-		if (_trimmingLength3Prime < 0) UERROR("trimming distance trim3 must be >= 0!");
-		_trimmingLength5Prime = parameters().get<int>("trim5", 0);
-		if (_trimmingLength5Prime < 0) UERROR("trimming distance trim5 must be >= 0!");
-		if (_trimmingLength3Prime > 0 || _trimmingLength5Prime > 0) {
-			logfile().list("Will trim first " + toString(_trimmingLength3Prime) + " and " +
-						   toString(_trimmingLength5Prime) +
-						   " bases from the 3' and 5' end, respectively. (parameters 'trim3', 'trim5')");
-		}
-		_trimReads = true;
-	} else {
-		_trimmingLength3Prime = 0;
-		_trimmingLength5Prime = 0;
-		_trimReads            = false;
-	}
-};
-
 void TGenome_parsed::_parseAlignment(BAM::TAlignment &alignment) {
 	// parse
 	alignment.parse(_genotypeLikelihoodCalculator.sequencingErrorModels());
 
 	// apply filters
-	if (_trimReads) { alignment.trimRead(_trimmingLength3Prime, _trimmingLength5Prime); }
+	if (_trimReads) { alignment.trimRead(_trim3, _trim5); }
 
 	alignment.filter(_qualityFilter);
 	alignment.filter(_contextFilter);

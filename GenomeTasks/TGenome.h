@@ -64,26 +64,22 @@ public:
 // A base class with BAM filters and a parsed, recalibrated alignment
 //---------------------------------------------------------------
 class TGenome_parsed : public TGenome_basic {
-protected:
-	BAM::TAlignment _alignment;
-	GenotypeLikelihoods::TGenotypeLikelihoodCalculator _genotypeLikelihoodCalculator;
-
-	// reference
-	genometools::TFastaReader _reference;
-	void _openReference(bool required = false);
-
+private:
 	// read trimming
 	bool _trimReads;
-	int _trimmingLength3Prime;
-	int _trimmingLength5Prime;
+	int _trim3;
+	int _trim5;
 
 	// filters
 	TQualityFilter _qualityFilter;
 	TContextFilter _contextFilter;
 
-	// functions for initialization
-	void _setReadTrimming();
+protected:
+	BAM::TAlignment _alignment;
+	GenotypeLikelihoods::TGenotypeLikelihoodCalculator _genotypeLikelihoodCalculator;
+	genometools::TFastaReader _reference;
 
+	void _openReference(bool required = false);
 	void _parseAlignment(BAM::TAlignment &alignment);
 	void _traverseBAMPassedQC();
 	virtual void _handleAlignment() = 0;
