@@ -1271,45 +1271,45 @@ void TCall::_initializeGenotypePrior(){
 	logfile().endIndent();
 };
 
-void TCall::_call(){
+void TCall::_call(GenotypeLikelihoods::TWindow& window){
 	uint32_t pos = 0;
-	for(auto& s : _window){
+	for(auto& s : window){
 		const auto genoLik = _genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(s);
-		_caller->call(_window.chrName(), _window.positionOnChr(pos), s, genoLik);
+		_caller->call(window.chrName(), window.positionOnChr(pos), s, genoLik);
 		++pos;
 	}
 };
 
-void TCall::_callKnwonAlleles(){
+void TCall::_callKnwonAlleles(GenotypeLikelihoods::TWindow& window){
 	//check if we need to process this window
-	if(_subsetPolymoprhic->hasPositionsInWindow(_window)){
+	if(_subsetPolymoprhic->hasPositionsInWindow(window)){
 		//add reference to sites
-		_window.addReferenceBaseToSites(*_subsetPolymoprhic);
+		window.addReferenceBaseToSites(*_subsetPolymoprhic);
 
 		//only run over sites listed in that window
-		auto thesePositions = _subsetPolymoprhic->getPositionInWindow(_window);
+		auto thesePositions = _subsetPolymoprhic->getPositionInWindow(window);
 		for(auto& it : thesePositions){
 			//calculate genotype likelihoods
-			uint32_t internalPos = it - _window.from();
-			TSite& site = _window[internalPos];
+			uint32_t internalPos = it - window.from();
+			TSite& site = window[internalPos];
 			site.refBase = it.ref();
 			const auto genoLik = _genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(site);
-			_caller->call(_window.chrName(), _window.positionOnChr(internalPos), site, genoLik, it.ref(), it.alt());
+			_caller->call(window.chrName(), window.positionOnChr(internalPos), site, genoLik, it.ref(), it.alt());
 		}
 	}
 };
 
-void TCall::_handleWindow(){
-	if(_window.passedFilters() || _caller->printSitesWithNoData()){
+void TCall::_handleWindow(GenotypeLikelihoods::TWindow& window){
+	if(window.passedFilters() || _caller->printSitesWithNoData()){
 		//update genotype prior
-		_prior->update(_window, _genotypeLikelihoodCalculator);
+		_prior->update(window, _genotypeLikelihoodCalculator);
 
 		//call
 		logfile().listFlushTime("Calling genotypes ...");
 		if(_subsetPolymoprhic){
-			_callKnwonAlleles();
+			_callKnwonAlleles(window);
 		} else {
-			_call();
+			_call(window);
 		}
 		logfile().doneTime();
 	}

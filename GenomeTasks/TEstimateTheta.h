@@ -37,8 +37,8 @@ private:
 	size_t _steps;
 
 	void _bootstrapThetaEstimation();
-	void _handleWindow() override;
-	void _handleAlignment() override {}
+	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
+	void _handleAlignment(BAM::TAlignment&) override {}
 
 public:
 	TEstimateThetaLLSurface();
@@ -62,11 +62,10 @@ private:
 	bool _onlyBootstraps    = false;
 	size_t _numBootstraps = 0;
 
-	void _handleWindow() override;
-	void _handleAlignment() override {}
+	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
+	void _handleAlignment(BAM::TAlignment& ) override {}
 
 	void _addSites(GenotypeLikelihoods::TWindow &window, GenotypeLikelihoods::TThetaEstimator &thetaEstimator);
-	void _addSites();
 
 	void _bootstrapThetaEstimation();
 public:
@@ -84,9 +83,9 @@ private:
 	genometools::TBed _region2;
 
 	void _initializeRegion(genometools::TBed &region, const int num);
-	void _addSites(GenotypeLikelihoods::TThetaEstimatorData &data, genometools::TBed &regions);
-	void _handleWindow() override;
-	void _handleAlignment() override {}
+	void _addSites(GenotypeLikelihoods::TWindow &window, GenotypeLikelihoods::TThetaEstimatorData &data, genometools::TBed &regions);
+	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
+	void _handleAlignment(BAM::TAlignment& ) override {}
 
 public:
 	TEstimateThetaRatio();

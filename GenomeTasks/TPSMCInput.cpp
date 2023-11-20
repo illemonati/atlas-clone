@@ -50,25 +50,25 @@ TPSMCInput::TPSMCInput():TGenome_windows(){
 	_nCharOnLine = 0;
 };
 
-void TPSMCInput::_handleWindow(){
+void TPSMCInput::_handleWindow(GenotypeLikelihoods::TWindow& window){
 	logfile().listFlushTime("Estimating heterozygosity status ...");
 
 	//calc prior probabilities on Genotypes
 	const auto prior = _thetaEstimator->pGenotype();
 
 	//estimating base frequencies
-	_thetaEstimator->setBaseFreq( _window.estimateBaseFrequencies() );
+	_thetaEstimator->setBaseFreq( window.estimateBaseFrequencies() );
 
 	//call heterozygosity in blocks
-	const auto nBlocks = _window.size() / _blockSize;
+	const auto nBlocks = window.size() / _blockSize;
 	for(size_t b=0; b<nBlocks; ++b){
 		size_t blockStart = b * _blockSize;
 		coretools::LogProbability logPHomo{0};
 
 		for(size_t i=0; i<_blockSize; ++i){
 			const auto wIndex = blockStart + i;
-			if(wIndex < _window.size() && !_window[wIndex].empty()){
-				const auto genoLik = _genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(_window[blockStart + 1]);
+			if(wIndex < window.size() && !window[wIndex].empty()){
+				const auto genoLik = _genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(window[blockStart + 1]);
 				const auto posterior = GenotypeLikelihoods::posterior(genoLik, prior);
 				logPHomo += coretools::LogProbability(GenotypeLikelihoods::homozygous(posterior));
 			}

@@ -310,10 +310,10 @@ private:
 	std::unique_ptr<GenotypeLikelihoods::TGenotypePrior> _prior;
 
 	void _initializeGenotypePrior();
-	void _call();
-	void _callKnwonAlleles();
-	void _handleWindow() override;
-	void _handleAlignment() override {}
+	void _call(GenotypeLikelihoods::TWindow& window);
+	void _callKnwonAlleles(GenotypeLikelihoods::TWindow& window);
+	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
+	void _handleAlignment(BAM::TAlignment&) override {}
 
 public:
 	TCall();

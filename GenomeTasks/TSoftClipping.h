@@ -62,7 +62,7 @@ public:
 class TRemoveSoftClippedBases : public old::TGenome_parsed {
 private:
 	BAM::TOutputBamFile _outBam;
-	void _handleAlignment() override;
+	void _handleAlignment(BAM::TAlignment& alignment) override;
 
 public:
 	TRemoveSoftClippedBases();

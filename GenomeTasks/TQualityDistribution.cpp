@@ -29,8 +29,8 @@ using coretools::instances::parameters;
 //-----------------------------------
 // TQualityDistribution
 //-----------------------------------
-void TQualityDistribution::_handleAlignment(){
-	for(auto& b : _alignment){
+void TQualityDistribution::_handleAlignment(BAM::TAlignment& alignment){
+	for(auto& b : alignment){
 		if(b.base != genometools::Base::N){
 			_qualDist.add(b.readGroupID, b.recalibratedQualityAsPhredInt.get());
 		}
@@ -80,17 +80,17 @@ TQualityTransformation::TQualityTransformation():TGenome_parsed(){
 	}
 };
 
-void TQualityTransformation::_handleAlignment(){
+void TQualityTransformation::_handleAlignment(BAM::TAlignment& alignment){
 	if(_compareToOtherSeqErrors){
-		for(auto& b : _alignment){
+		for(auto& b : alignment){
 			if(b.base != genometools::Base::N){
-				_transformations[_alignment.readGroupId()].add(b.recalibratedQualityAsPhredInt.get(), _otherSeqErrors.phredInt(b).get());
+				_transformations[alignment.readGroupId()].add(b.recalibratedQualityAsPhredInt.get(), _otherSeqErrors.phredInt(b).get());
 			}
 		}
 	} else {
-		for(auto& b : _alignment){
+		for(auto& b : alignment){
 			if(b.base != genometools::Base::N){
-				_transformations[_alignment.readGroupId()].add(b.originalQuality_phredInt.get(), b.recalibratedQualityAsPhredInt.get());
+				_transformations[alignment.readGroupId()].add(b.originalQuality_phredInt.get(), b.recalibratedQualityAsPhredInt.get());
 			}
 		}
 	}

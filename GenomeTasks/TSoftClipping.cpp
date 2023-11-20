@@ -146,9 +146,9 @@ void TAssessSoftClipping::run() {
 		
 	};
 
-void TRemoveSoftClippedBases::_handleAlignment() {
-	_alignment.removeSoftClippedBases();
-	_outBam.writeAlignment(_alignment);
+void TRemoveSoftClippedBases::_handleAlignment(BAM::TAlignment& alignment) {
+	alignment.removeSoftClippedBases();
+	_outBam.writeAlignment(alignment);
 };
 
 void TRemoveSoftClippedBases::run() {

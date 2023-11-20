@@ -41,18 +41,18 @@ TEstimateThetaLLSurface::TEstimateThetaLLSurface() : TGenome_windows() {
 	if (_steps < 2) { UERROR("Th enumber of steps must be >= 2!"); }
 };
 
-void TEstimateThetaLLSurface::_handleWindow() {
+void TEstimateThetaLLSurface::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 	logfile().startIndent("Calculating likelihood surface for Theta:");
 
 	// adding sites to estimator
-	for (auto &s : _window) {
+	for (auto &s : window) {
 		const auto genoLik = _genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(s);
 		_thetaEstimator.add(s, genoLik);
 	}
 
 	// open file
 	std::string filename =
-		_genome.outputName() + _window.chrName() + "_" + toString(_window.from().position()) + "_LLsurface.txt";
+		_genome.outputName() + window.chrName() + "_" + toString(window.from().position()) + "_LLsurface.txt";
 	logfile().listFlushTime("Writing LL surface to file '" + filename + "' ...");
 	coretools::TOutputFile out(filename);
 
@@ -81,8 +81,6 @@ void TEstimateTheta::_addSites(GenotypeLikelihoods::TWindow &window,
 	}
 	logfile().doneTime();
 };
-
-void TEstimateTheta::_addSites() { _addSites(_window, _thetaEstimator); };
 
 TEstimateTheta::TEstimateTheta() : TGenome_windows() {
 	if (parameters().exists("genomeWide")) {
@@ -182,13 +180,13 @@ TEstimateTheta::TEstimateTheta() : TGenome_windows() {
 	}
 };
 
-void TEstimateTheta::_handleWindow() {
+void TEstimateTheta::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 	// estimate on full data
 	bool pass = false;
 	if (_printFullData) {
 		logfile().startIndent("Using full data:");
 
-		_addSites();
+		_addSites(window, _thetaEstimator);
 		if (!_genomeWide) {
 			logfile().startIndent("Estimating Theta:");
 
@@ -205,7 +203,7 @@ void TEstimateTheta::_handleWindow() {
 		logfile().startIndent("Using downsampled data (p = ", p, "):");
 
 		logfile().listFlush("Downsampling reads ...");		
-		destination.downsampleFromOther(_window, _readUpToDepth, p);
+		destination.downsampleFromOther(window, _readUpToDepth, p);
 		logfile().done();
 
 		_applyWindowFilters(destination);
@@ -221,7 +219,7 @@ void TEstimateTheta::_handleWindow() {
 
 	// write output & clear
 	if (!_genomeWide) {
-		if (pass || _printAll) _thetaOut.write(_window);
+		if (pass || _printAll) _thetaOut.write(window);
 
 		_thetaEstimator.clear();
 		for (auto &e : estimators) { e.clear(); }
@@ -294,26 +292,26 @@ void TEstimateThetaRatio::_initializeRegion(genometools::TBed &region, const int
 	logfile().conclude("Read ", region.size(),  " sites on ", region.numChromosomesWithWindows(), " chromosomes.");
 };
 
-void TEstimateThetaRatio::_addSites(GenotypeLikelihoods::TThetaEstimatorData &data, genometools::TBed &region) {
-	auto it = region.lower_bound(_window);
+void TEstimateThetaRatio::_addSites(GenotypeLikelihoods::TWindow& window, GenotypeLikelihoods::TThetaEstimatorData &data, genometools::TBed &region) {
+	auto it = region.lower_bound(window);
 
-	while (it != region.end() && _window.overlaps(*it)) {
-		for (genometools::TGenomePosition s = std::max(it->from(), _window.from()); s < it->to() && s < _window.to();
+	while (it != region.end() && window.overlaps(*it)) {
+		for (genometools::TGenomePosition s = std::max(it->from(), window.from()); s < it->to() && s < window.to();
 			 ++s) {
 			GenotypeLikelihoods::TGenotypeLikelihoods genoLik;
-			genoLik = _genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(_window[s - _window.from()]);
-			data.add(_window[s - _window.from()], genoLik);
+			genoLik = _genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(window[s - window.from()]);
+			data.add(window[s - window.from()], genoLik);
 		}
 		++it;
 	}
 };
 
-void TEstimateThetaRatio::_handleWindow() {
+void TEstimateThetaRatio::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 	// adding sites to estimator
 	logfile().listFlushTime("Calculating genotype likelihoods ...");
 	try {
-		_addSites(*_thetaEstimatorRatio.pointerToDataContainer(), _region1);
-		_addSites(*_thetaEstimatorRatio.pointerToDataContainer2(), _region2);
+		_addSites(window, *_thetaEstimatorRatio.pointerToDataContainer(), _region1);
+		_addSites(window, *_thetaEstimatorRatio.pointerToDataContainer2(), _region2);
 	} catch (...) {
 		UERROR("Failed to allocate sufficient memory to store the data for so many sites. Consider selecting fewer "
 			   "regions or limiting to sites with a minimal depth (>=2 recommended).");

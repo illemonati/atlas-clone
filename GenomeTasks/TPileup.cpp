@@ -185,17 +185,17 @@ TPileup::TPileup() : TGenome_windows() {
 	}
 }
 
-void TPileup::_handleWindow() {
+void TPileup::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 	using genometools::Base;
 	logfile().list("Writing pileup ...");
 
 	if (_histSettings.get<Hist::AllelicDepth>()) { logfile().list("Adding sites to allelic depth table ..."); }
-	for (size_t pos = 0; pos < _window.size(); ++pos) {
-		const auto &site = _window[pos];
+	for (size_t pos = 0; pos < window.size(); ++pos) {
+		const auto &site = window[pos];
 		if (!_onlySummary) {
 			if (_printSettings.get<Print::OnlySitesWithData>() && site.empty()) continue;
-			_out.write(_window.chrName(),
-			           _window.positionOnChr(pos) + 1); // positions are zero-based internally
+			_out.write(window.chrName(),
+			           window.positionOnChr(pos) + 1); // positions are zero-based internally
 
 			if (_reference) { _out.write(site.refBase); }
 			if (_printSettings.get<Print::Depth>()) {
@@ -257,12 +257,12 @@ void TPileup::_handleWindow() {
 	if (_histSettings.get<Hist::Depths>()) {
 		logfile().list("Writing sequencing depth estimates to file ...");
 		_outDepthHistogram
-		    .writeNoDelim(_window.chrName(), ':', _window.from().position() + 1, '-', _window.to().position())
+		    .writeNoDelim(window.chrName(), ':', window.from().position() + 1, '-', window.to().position())
 		    .writeDelim();
-		_outDepthHistogram.writeln(_window.depth());
+		_outDepthHistogram.writeln(window.depth());
 		logfile().done();
 		if (_genome.bamFile().chrChanged()) {
-			_outDepthPerChromosome.writeln(_window.chrName(), _depthPerSitePerChromosome.mean());
+			_outDepthPerChromosome.writeln(window.chrName(), _depthPerSitePerChromosome.mean());
 			_depthPerSitePerChromosome.clear();
 		}
 	}
@@ -277,7 +277,7 @@ void TPileup::run() {
 		logfile().list("Writing average depth per window to file '", _genome.outputName(), "_depthPerWindow.txt.gz'");
 		logfile().list("Writing average depth per chromosome to file '", _genome.outputName(), "_depthPerChromosome.txt.gz'");
 		_depthPerSite.write(_genome.outputName() + "_depthPerSiteHistogram.txt.gz", "depth");
-		_outDepthPerChromosome.writeln(_window.chrName(), _depthPerSitePerChromosome.mean());
+		_outDepthPerChromosome.writeln(_genome.bamFile().curChromosome().name(), _depthPerSitePerChromosome.mean());
 	}
 
 	if (_histSettings.get<Hist::Quality>()) {

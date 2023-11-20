@@ -39,11 +39,11 @@ TPMDEstimator::TPMDEstimator()
 	_pmd.resize(_readGroupMap);
 };
 
-void TPMDEstimator::_handleAlignment() {
-	for (size_t d = 0; d < _alignment.size(); ++d) {
-		if (_alignment.isAlignedAtInternalPos(d)) {
-			const auto data = _alignment[d];
-			const auto from = _alignment.referenceAtInternalPos(d);
+void TPMDEstimator::_handleAlignment(BAM::TAlignment& alignment) {
+	for (size_t d = 0; d < alignment.size(); ++d) {
+		if (alignment.isAlignedAtInternalPos(d)) {
+			const auto data = alignment[d];
+			const auto from = alignment.referenceAtInternalPos(d);
 			_pmd.add(_readGroupMap, from, data);
 		}
 	}

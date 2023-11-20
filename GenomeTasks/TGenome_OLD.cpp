@@ -14,7 +14,6 @@
 #include <math.h>
 #include <memory>
 
-#include "TBamFilter.h"
 #include "genometools/BED/TBed.h"
 #include "coretools/Main/TLog.h"
 #include "coretools/Main/TParameters.h"
@@ -105,12 +104,14 @@ void TGenome_parsed::_parseAlignment(BAM::TAlignment &alignment) {
 void TGenome_parsed::_traverseBAMPassedQC() {
 	// parse through bam file
 	_genome.bamFile().startProgressReporting();
-	while (_genome.bamFile().readNextAlignmentThatPassesFilters(_alignment)) {
+	BAM::TAlignment alignment;
+	while (_genome.bamFile().readNextAlignmentThatPassesFilters()) {
 		// parse
-		_parseAlignment(_alignment);
+		_genome.bamFile().fill(alignment);
+		_parseAlignment(alignment);
 
 		// handle alignment by derived classes
-		_handleAlignment();
+		_handleAlignment(alignment);
 
 		// report
 		_genome.bamFile().printProgress();
@@ -468,8 +469,9 @@ bool TGenome_windows::_readDataInNextWindow(GenotypeLikelihoods::TWindow &window
 };
 
 bool TGenome_windows::_readAndParseAlignment() {
-	if (!_genome.bamFile().readNextAlignmentThatPassesFilters(_curAlignment)) { return false; }
+	if (!_genome.bamFile().readNextAlignmentThatPassesFilters()) return false;
 
+	_genome.bamFile().fill(_curAlignment);
 	_parseAlignment(_curAlignment);
 	return true;
 };
@@ -548,10 +550,11 @@ void TGenome_windows::_traverseBAMWindows() {
 	_curAlignment.clear();
 
 	// iterate through windows
-	while (_readDataInNextWindow(_window)) {
-		if (_window.passedFilters()) {
+	GenotypeLikelihoods::TWindow window;
+	while (_readDataInNextWindow(window)) {
+		if (window.passedFilters()) {
 			// do stuff in derived classes
-			_handleWindow();
+			_handleWindow(window);
 
 			// report end of window calculations
 			logfile().list("Total computation time for this window was ", _windowTimer.formattedTime(), ".");

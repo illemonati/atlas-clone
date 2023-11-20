@@ -386,23 +386,6 @@ void TBamFile::fill(TAlignment & alignment) const{
 				   _curReadGroupID);
 };
 
-bool TBamFile::readNextAlignment(TAlignment & alignment){
-	if(!readNextAlignment()){
-		return false;
-	}
-
-	fill(alignment);
-	return true;
-};
-
-bool TBamFile::readNextAlignmentThatPassesFilters(TAlignment & alignment){
-	if(!readNextAlignmentThatPassesFilters()){
-		return false;
-	}
-	fill(alignment);
-	return true;
-};
-
 bool TBamFile::jump(const genometools::TGenomePosition Position){
 	_previousAlignmentPosition.clear();
 	_curAlignmentPosition.clear();

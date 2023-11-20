@@ -150,9 +150,9 @@ TAllelicDepth::TAllelicDepth() : TGenome_windows(){
 	}
 };
 
-void TAllelicDepth::_handleWindow(){
+void TAllelicDepth::_handleWindow(GenotypeLikelihoods::TWindow& window){
 	logfile().listFlushTime("Adding sites to allelic depth table ...");
-	for(auto& s : _window){
+	for(auto& s : window){
 		const auto alleleCounts = s.countAlleles();
 		_counts.addSite(alleleCounts);
 	}

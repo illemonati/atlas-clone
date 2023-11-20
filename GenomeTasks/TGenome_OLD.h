@@ -63,14 +63,13 @@ private:
 
 protected:
 	TGenome _genome;
-	BAM::TAlignment _alignment;
 	GenotypeLikelihoods::TGenotypeLikelihoodCalculator _genotypeLikelihoodCalculator;
 	genometools::TFastaReader _reference;
 
 	void _openReference(bool required = false);
 	void _parseAlignment(BAM::TAlignment &alignment);
 	void _traverseBAMPassedQC();
-	virtual void _handleAlignment() = 0;
+	virtual void _handleAlignment(BAM::TAlignment& alignment) = 0;
 
 public:
 	TGenome_parsed();
@@ -133,7 +132,6 @@ protected:
 	void _openSiteSubset(const std::string &filename, bool polymoprhic = true);
 
 	// functions to traverse BAM in windows
-	GenotypeLikelihoods::TWindow _window;
 	void _jumpToEnd();
 	void _setCountersBeginningOfChromosome();
 	bool _incrementWindow(GenotypeLikelihoods::TWindow &window);
@@ -148,7 +146,7 @@ protected:
 	bool _readDataInNextWindow(GenotypeLikelihoods::TWindow &window);
 
 	void _traverseBAMWindows();
-	virtual void _handleWindow() = 0;
+	virtual void _handleWindow(GenotypeLikelihoods::TWindow& window) = 0;
 
 public:
 	TGenome_windows();

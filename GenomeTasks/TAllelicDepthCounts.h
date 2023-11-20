@@ -44,8 +44,8 @@ private:
 	TAllelicDepthCounts _counts;
 	bool _writeEmpty;
 
-	void _handleWindow() override;
-	void _handleAlignment() override {}
+	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
+	void _handleAlignment(BAM::TAlignment&) override {}
 
 public:
 	TAllelicDepth();

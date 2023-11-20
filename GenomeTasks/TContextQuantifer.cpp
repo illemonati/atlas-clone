@@ -26,8 +26,8 @@ TContextQuantifier::TContextQuantifier():TGenome_parsed(){
 
 };
 
-void TContextQuantifier::_handleAlignment(){
-	for(auto& b : _alignment){
+void TContextQuantifier::_handleAlignment(BAM::TAlignment& alignment){
+	for(auto& b : alignment){
 		genometools::BaseContext context = b.context();
 		if(context != genometools::BaseContext::NN){					
 			_contextCounts.add(b.readGroupID, coretools::index(context));

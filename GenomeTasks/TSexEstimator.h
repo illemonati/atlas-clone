@@ -30,8 +30,8 @@ private:
 	bool _wholeGenome  = false;
 
 	void _initializeRegion(std::string_view regionsFile, int regionNum);
-	void _handleWindow() override;
-	void _handleAlignment() override {};
+	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
+	void _handleAlignment(BAM::TAlignment&) override {};
 	void _writeDepthPerWindow(coretools::TOutputFile &out, int num);
 	void _writeHistogram(size_t regionNum);
 	void _writeDepthPerChromosome(size_t regionNum);

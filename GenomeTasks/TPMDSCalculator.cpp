@@ -45,21 +45,21 @@ using coretools::instances::parameters;
 	_openReference(true);
 };
 
-double TPMDSCalculator::_calculatePMDS(){
+double TPMDSCalculator::_calculatePMDS(BAM::TAlignment& alignment){
 	//calculate PMDS (is in log)
 	double PMDS = 0.0;
-	for (size_t d = 0; d < _alignment.size(); ++d) {
-		if (_alignment.isAlignedAtInternalPos(d)) {
-			PMDS += _genotypeLikelihoodCalculator.calculateLogPMDS(_alignment[d], _alignment.referenceAtInternalPos(d),
+	for (size_t d = 0; d < alignment.size(); ++d) {
+		if (alignment.isAlignedAtInternalPos(d)) {
+			PMDS += _genotypeLikelihoodCalculator.calculateLogPMDS(alignment[d], alignment.referenceAtInternalPos(d),
 																   _pi);
 		}
 	}
 	return PMDS;
 };
 
-void TPMDSCalculator::_handleAlignment(){
+void TPMDSCalculator::_handleAlignment(BAM::TAlignment& alignment){
 	//calc PMD
-	const auto PMDS = _calculatePMDS();
+	const auto PMDS = _calculatePMDS(alignment);
 
 	//filter
 	if(_doFilter && !_filterRange.within(PMDS)){

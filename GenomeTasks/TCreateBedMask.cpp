@@ -56,11 +56,11 @@ TCreateDepthBedMask::TCreateDepthBedMask():TCreateBedMask(){
 		UERROR("Cannot mask sites for sequencing depth (parameters 'minDepth' and 'maxDepth') while creating the mask!");
 };
 
-void TCreateDepthBedMask::_handleWindow(){
+void TCreateDepthBedMask::_handleWindow(GenotypeLikelihoods::TWindow& window){
 	uint32_t p = 0;
-	for(auto& s : _window){
+	for(auto& s : window){
 		if(s.depth() < _minDepth || s.depth() > _maxDepth){
-			_bed.add(_window.from() + p);
+			_bed.add(window.from() + p);
 		}
 		++p;
 	}
@@ -81,13 +81,13 @@ TCreateInvariantBedMask::TCreateInvariantBedMask():TCreateBedMask(){
 	}
 };
 
-void TCreateInvariantBedMask::_handleWindow(){
+void TCreateInvariantBedMask::_handleWindow(GenotypeLikelihoods::TWindow& window){
 	uint32_t p = 0;
-	for(auto& s : _window){
+	for(auto& s : window){
 		if(s.depth() >= _minDepth){
 			const auto bCounts = s.countAlleles();
 			if(coretools::numNonZero(bCounts) == 1){
-				_bed.add(_window.from() + p);
+				_bed.add(window.from() + p);
 			}
 		}
 		++p;
@@ -109,13 +109,13 @@ TCreateVariantBedMask::TCreateVariantBedMask():TCreateBedMask(){
 	}
 };
 
-void TCreateVariantBedMask::_handleWindow(){
+void TCreateVariantBedMask::_handleWindow(GenotypeLikelihoods::TWindow& window){
 	uint32_t p = 0;
-	for(auto& s : _window){
+	for(auto& s : window){
 		if(s.depth() >= _minDepth){
 			const auto bCounts = s.countAlleles();
 			if(coretools::numNonZero(bCounts) > 1){
-				_bed.add(_window.from() + p);
+				_bed.add(window.from() + p);
 			}
 		}
 		++p;
@@ -139,12 +139,12 @@ TCreateNonRefBedMask::TCreateNonRefBedMask():TCreateBedMask(){
 	_openReference(true);
 };
 
-void TCreateNonRefBedMask::_handleWindow(){
+void TCreateNonRefBedMask::_handleWindow(GenotypeLikelihoods::TWindow& window){
 	uint32_t p = 0;
-	for(auto& s : _window){
+	for(auto& s : window){
 		if(s.depth() >= _minDepth){
 			if(s.refDepth() < s.depth()){
-				_bed.add(_window.from() + p);
+				_bed.add(window.from() + p);
 			}
 		}
 		++p;

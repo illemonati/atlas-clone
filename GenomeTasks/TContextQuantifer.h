@@ -23,7 +23,7 @@ class TContextQuantifier:public old::TGenome_parsed {
 private:
 	coretools::TCountDistributionVector<> _contextCounts;
 
-	void _handleAlignment();
+	void _handleAlignment(BAM::TAlignment& alignment) override;
 public:
 	TContextQuantifier();
 	void quantifyContexts();

@@ -30,8 +30,8 @@ private:
 	coretools::TNumericRange<double> _filterRange;
 	BAM::TOutputBamFile _outBam;
 
-	double _calculatePMDS();
-	void _handleAlignment() override;
+	double _calculatePMDS(BAM::TAlignment& alignment);
+	void _handleAlignment(BAM::TAlignment& alignment) override;
 
 public:
 	TPMDSCalculator();

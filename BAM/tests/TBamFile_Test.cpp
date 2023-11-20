@@ -128,7 +128,8 @@ TEST_F(TBamFile_Test_ReadWrite, alignments){
     // read
     BAM::TAlignment alignmentRead;
     auto alignmentWritten = outputBam->beginWrittenAlignments();
-    while (inputBam->readNextAlignment(alignmentRead)){
+    while (inputBam->readNextAlignment()){
+		inputBam->fill(alignmentRead);
     	alignmentRead.parse();
 
         // basic attributes of TAlignment
@@ -206,22 +207,22 @@ class TGenomeWindow_Test : public GenomeTasks::old::TGenome_windows {
 protected:
     std::vector<genometools::TGenomeWindow> _windows_visited;
 
-    void _handleWindow() override{
+    void _handleWindow(GenotypeLikelihoods::TWindow& window) override{
         // store sites
         std::vector<GenotypeLikelihoods::TSite> tmp;
-        for (auto & it : _window)
+        for (auto & it : window)
             tmp.emplace_back(it);
         sites.emplace_back(tmp);
         // store genometools::TGenomeWindow
-        _windows_visited.emplace_back(this->_window);
+        _windows_visited.emplace_back(window);
         // store GenotypeLikelihoods::TWindow attributes
-        depth.emplace_back(_window.depth());
-        fractionSitesNoData.emplace_back(_window.fractionSitesNoData());
-        fractionDepthAtLeastTwo.emplace_back(_window.fractionDepthAtLeastTwo());
-        numSitesWithData.emplace_back(_window.numSitesWithData());
-        numReadsInWindow.emplace_back(_window.numReadsInWindow());
+        depth.emplace_back(window.depth());
+        fractionSitesNoData.emplace_back(window.fractionSitesNoData());
+        fractionDepthAtLeastTwo.emplace_back(window.fractionDepthAtLeastTwo());
+        numSitesWithData.emplace_back(window.numSitesWithData());
+        numReadsInWindow.emplace_back(window.numReadsInWindow());
     };
-	virtual void _handleAlignment() override {}
+	virtual void _handleAlignment(BAM::TAlignment&) override {}
 
 public:
     // storage

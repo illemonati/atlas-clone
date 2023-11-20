@@ -34,7 +34,7 @@ class TPMDEstimator : public old::TGenome_parsed {
 private:
 	BAM::TReadGroupMap _readGroupMap;
 	GenotypeLikelihoods::oldPMD::TModels _pmd;
-	void _handleAlignment();
+	void _handleAlignment(BAM::TAlignment& alignment) override;
 
 public:
 	TPMDEstimator();

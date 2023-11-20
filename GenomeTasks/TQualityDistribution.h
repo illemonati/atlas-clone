@@ -25,7 +25,7 @@ class TQualityDistribution:public old::TGenome_parsed{
 private:
 	coretools::TCountDistributionVector<> _qualDist;
 
-	void _handleAlignment();
+	void _handleAlignment(BAM::TAlignment& alignment) override;
 
 public:
 	void compileQualityDistribution();
@@ -41,7 +41,7 @@ private:
 	std::string _label1, _label2;
 	GenotypeLikelihoods::SequencingError::TModels _otherSeqErrors;
 
-	void _handleAlignment();
+	void _handleAlignment(BAM::TAlignment& alignment) override;
 
 public:
 	TQualityTransformation();

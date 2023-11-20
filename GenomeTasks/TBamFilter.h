@@ -159,7 +159,7 @@ protected:
 	}
 
 	//overriding _handleAligment from TGenome to do nothing
-	void _handleAlignment() override {}
+	void _handleAlignment(BAM::TAlignment&) override {}
 
 	//pure virtual functions
 	virtual void _handleMates(BAM::TAlignment & alignment, StorageIteratorType mate) = 0;

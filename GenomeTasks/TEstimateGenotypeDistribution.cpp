@@ -79,17 +79,17 @@ double TEstimateGenotypeDistribution::_runEM() {
 	return oldLL;
 }
 
-void TEstimateGenotypeDistribution::_handleWindow() {
+void TEstimateGenotypeDistribution::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 	_sites.clear();
 	size_t nReads = 0;
-	for (const auto &s : _window) {
+	for (const auto &s : window) {
 		if (s.empty() || s.refBase == genometools::Base::N) continue;
 		_sites.emplace_back(s);
 		nReads += s.depth();
 	}
 
-	_out.write(_window.chrName(), _window.fromOnChr(), _window.toOnChr(), double(nReads)/_sites.size(),
-			   _window.size(), _sites.size(), double(_window.size() - _sites.size())/_window.size());
+	_out.write(window.chrName(), window.fromOnChr(), window.toOnChr(), double(nReads)/_sites.size(),
+			   window.size(), _sites.size(), double(window.size() - _sites.size())/window.size());
 	const auto LL = _runEM();
 	_genoDist->write(_out);
 	_out.writeln(LL);

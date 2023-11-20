@@ -20,14 +20,14 @@ using coretools::instances::logfile;
 //----------------------------------------
 // TDepthWriter
 //----------------------------------------
-void TDepthWriter::_handleWindow(){
+void TDepthWriter::_handleWindow(GenotypeLikelihoods::TWindow& window){
 	logfile().listFlush("Writing sequencing depth estimates to file ...");
-	_out.writeNoDelim(_window.chrName(), ':', _window.from().position() + 1, '-', _window.to().position()).writeDelim();
-	_out.writeln(_window.depth());
+	_out.writeNoDelim(window.chrName(), ':', window.from().position() + 1, '-', window.to().position()).writeDelim();
+	_out.writeln(window.depth());
 	logfile().done();
 
 	logfile().listFlush("Adding per site depth to distribution ...");
-	for(auto& s : _window){
+	for(auto& s : window){
 		_distPerSite.add(s.depth());
 	}
 	logfile().done();

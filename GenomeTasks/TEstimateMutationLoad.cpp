@@ -126,25 +126,25 @@ void TEstimateMutationLoad::_addSite(const GenotypeLikelihoods::TSite &site, con
 	}
 }
 
-void TEstimateMutationLoad::_handleWindow() {
+void TEstimateMutationLoad::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 	// adding sites to estimator
 	logfile().listFlushTime("Calculating genotype likelihoods and storing data ...");
 	try {
 		if (_parseFromBed) {
 			// get sites from bed file and alleles from reference
-			auto it = _bedFile.lower_bound(_window);
-			while (it != _bedFile.end() && _window.overlaps(*it)) {
-				for (genometools::TGenomePosition s = std::max(it->from(), _window.from());
-				     s < it->to() && s < _window.to(); ++s) {
-					const GenotypeLikelihoods::TSite &site = _window[s - _window.from()];
+			auto it = _bedFile.lower_bound(window);
+			while (it != _bedFile.end() && window.overlaps(*it)) {
+				for (genometools::TGenomePosition s = std::max(it->from(), window.from());
+				     s < it->to() && s < window.to(); ++s) {
+					const GenotypeLikelihoods::TSite &site = window[s - window.from()];
 					_addSite(site, site.refBase);
 				}
 				++it;
 			}
 		} else {
 			// get sites and alleles from site subset
-			auto thesePositions = _subsetMonomorphic->getPositionInWindow(_window);
-			for (auto &it : thesePositions) { _addSite(_window[it - _window.from()], it.ref()); }
+			auto thesePositions = _subsetMonomorphic->getPositionInWindow(window);
+			for (auto &it : thesePositions) { _addSite(window[it - window.from()], it.ref()); }
 		}
 	} catch (...) {
 		UERROR("Failed to allocate sufficient memory to store the data for so many sites. Consider using fewer sites.");
