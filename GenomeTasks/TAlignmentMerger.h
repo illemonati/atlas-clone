@@ -142,13 +142,14 @@ public:
 //-----------------------------------------
 // TOverlapQuantifier
 //-----------------------------------------
-class TOverlapQuantifier:public old::TGenome_filtered{
+class TOverlapQuantifier{
 private:
+	TGenome _genome;
 	TAlignmentMerger _merger;
 	TAlignmentStorage _alignmentStorage;
-	void _handleAlignment() override {};
 
 public:
+	TOverlapQuantifier();
 	void run();
 };
 

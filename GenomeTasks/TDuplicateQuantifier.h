@@ -24,6 +24,7 @@ namespace GenomeTasks{
 //----------------------------------------------
 class TDuplicateQuantifier:public old::TGenome_filtered{
 private:
+	TGenome _genome;
 	coretools::TCountDistributionVector<> _countsPerReadGroup;
 	coretools::TCountDistribution<> _countsCombined;
 
@@ -32,11 +33,9 @@ private:
     genometools::TGenomePosition _curChrEnd;
 
 	void _addCurCounts(const genometools::TGenomePosition & nextPos);
-	void _handleAlignments();
-	void _handleAlignment() override {};
+	void _handleAlignment() override;
 
 public:
-	TDuplicateQuantifier();
 	void estimateDuplicationCounts();
 };
 

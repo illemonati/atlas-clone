@@ -740,6 +740,11 @@ bool TAlignmentSplitMerger::_alignmentCanBeWrittenUnchanged(){
 // TOverlapQuantifier
 //-----------------------------------------
 
+TOverlapQuantifier::TOverlapQuantifier() {
+	// filter bamFile
+	_genome.bamFile().setFilters(BAM::TBamFilters{true});
+}
+
 void TOverlapQuantifier::run(){
 	//prepare counter
 	coretools::TCountDistributionVector overlapDist;

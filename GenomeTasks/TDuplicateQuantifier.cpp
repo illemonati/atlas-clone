@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <cstdint>
 #include "TBamFile.h"
+#include "TBamFilters.h"
 #include "genometools/GenomePositions/TChromosomes.h"
 #include "coretools/Files/TFile.h"
 #include "coretools/Main/TLog.h"
@@ -23,7 +24,6 @@ namespace GenomeTasks{
 //----------------------------------------------
 // TDuplicateQuantifyer
 //----------------------------------------------
-TDuplicateQuantifier::TDuplicateQuantifier():TGenome_filtered(){};
 
 void TDuplicateQuantifier::_addCurCounts(const genometools::TGenomePosition & nextPos){
 	//add current counts and zero for all positions until nextPos
@@ -38,7 +38,7 @@ void TDuplicateQuantifier::_addCurCounts(const genometools::TGenomePosition & ne
 	_countsCombined.add(sum, steps);
 };
 
-void TDuplicateQuantifier::_handleAlignments(){
+void TDuplicateQuantifier::_handleAlignment(){
 	//add to counts
 	if(_genome.bamFile().chrChanged()){
 		if(_curChrEnd.position() > 0){
