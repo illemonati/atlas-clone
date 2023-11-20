@@ -177,7 +177,7 @@ void TSimulatorBamFiles::_createBamFile(const std::string & Filename,
 
 void TSimulatorBamFiles::close() {
 	logfile().startIndent("Indexing BAM files:");
-	for (auto &f : _files) { f.close(); }
+	_files.clear();
 	logfile().endIndent();
 }
 

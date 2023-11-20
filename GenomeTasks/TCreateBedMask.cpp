@@ -34,7 +34,7 @@ void TCreateBedMask::_createMask(const std::string fileTag){
 	_traverseBAMWindows();
 
 	//write mask
-	std::string filename = _outputName + "_minDepth"+ toString(_minDepth) + "_" + fileTag + ".bed";
+	std::string filename = _genome.outputName() + "_minDepth"+ toString(_minDepth) + "_" + fileTag + ".bed";
 	logfile().listFlush("Writing mask to BED file '" + filename + "' ...");
 
 	_bed.write(filename);

@@ -118,7 +118,7 @@ protected:
 			_writeAlignment(it);
 		} else {
 			//write reason to bam log
-			_bamFile.filterOut(it->alignment());
+			_genome.bamFile().filterOut(it->alignment());
 			it = _alignmentStorage.erase(it);
 		}
 	}
@@ -147,7 +147,7 @@ protected:
 
 	BAM::TAlignment* _parseIntoNewAlignment(){
 		BAM::TAlignment* alignment = new BAM::TAlignment;
-		_bamFile.fill(*alignment);
+		_genome.bamFile().fill(*alignment);
 		if(_recalibrate){
 			if(_incorporatePMD){
 				alignment->recalibrateWithPMD(_genotypeLikelihoodCalculator);
@@ -168,7 +168,7 @@ protected:
 
 
 public:
-	TGenomeParsedWithAlignmentStorage(std::string_view OutName) : _outBam(_outputName + std::string(OutName), _bamFile){
+	TGenomeParsedWithAlignmentStorage(std::string_view OutName) : _outBam(_genome.outputName() + std::string(OutName), _genome.bamFile()){
 		//max distance between mates
 		_maxDistanceBetweenMates = parameters().get<int>("acceptedDistance", 2000);
 		logfile().list("Mates that are farther than " + toString(_maxDistanceBetweenMates) + " apart will be considered orphans. (parameter 'acceptedDistance')");
@@ -221,26 +221,26 @@ public:
 
 	virtual void traverseBAM(){
 		//open writer
-		_bamFile.setExternalFilterReason("Orphan");
+		_genome.bamFile().setExternalFilterReason("Orphan");
 
 		//now parse BAM file
-		_bamFile.startProgressReporting(1000000);
-		while(_bamFile.readNextAlignment()){
+		_genome.bamFile().startProgressReporting(1000000);
+		while(_genome.bamFile().readNextAlignment()){
 			//if on new chromosome, empty storage
-			if(_bamFile.chrChanged()){
+			if(_genome.bamFile().chrChanged()){
 				//write all ready currently in storage
 				_writeAll();
 			}
 
 			//check if first alignment in storage is too far away from current alignment
 			//if yes, first alignment in storage is considered an orphan
-			_writeUpTo(_bamFile.curPosition());
+			_writeUpTo(_genome.bamFile().curPosition());
 			
 			//check if read passed filters
-			if(_bamFile.curPassedQC()){
+			if(_genome.bamFile().curPassedQC()){
 				//if single end, unchanged and storage is empty: write directly
 				if(_alignmentCanBeWrittenUnchanged()){
-					_bamFile.writeCurAlignment(_outBam);
+					_genome.bamFile().writeCurAlignment(_outBam);
 				} else {
 					//parse alignment
 					BAM::TAlignment* alignment = _parseIntoNewAlignment();
@@ -288,21 +288,20 @@ public:
 			} else {
 				//Did not pass QC: filter out
 				//need to store in blacklist if it was paired
-				if(_bamFile.curIsProperPair()){
-					_blacklist.add(_bamFile.curName());
+				if(_genome.bamFile().curIsProperPair()){
+					_blacklist.add(_genome.bamFile().curName());
 				}
 			}
 
 			//report
-			_bamFile.printProgress();
+			_genome.bamFile().printProgress();
 		}
 
 		//write reads still in storage
 		_writeAll();
 
 		//done parsing bam file: report
-		_bamFile.printSummary(_outputName);
-		_outBam.close();
+		_genome.bamFile().printSummary(_genome.outputName());
 	}
 };
 

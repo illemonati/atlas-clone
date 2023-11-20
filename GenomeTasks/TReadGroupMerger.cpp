@@ -27,8 +27,8 @@ namespace GenomeTasks{
 using coretools::instances::logfile;
 using coretools::instances::parameters;
 
-TReadGroupMerger::TReadGroupMerger():TGenome_basic(){
-	BAM::TReadGroups& readGroups = _bamFile.readGroupsMutable();
+TReadGroupMerger::TReadGroupMerger() {
+	BAM::TReadGroups& readGroups = _genome.bamFile().readGroupsMutable();
 
 	//read read groups to be merged
 	std::string filename = parameters().get<std::string>("readGroups");
@@ -93,21 +93,18 @@ TReadGroupMerger::TReadGroupMerger():TGenome_basic(){
 
 void TReadGroupMerger::run(){
 	//open a bam file for writing
-	BAM::TOutputBamFile outBam(_outputName + "_mergedRG.bam", _bamFile);
+	BAM::TOutputBamFile outBam(_genome.outputName() + "_mergedRG.bam", _genome.bamFile());
 
 	//now parse through bam file and write alignments
-	_bamFile.startProgressReporting();
-	while(_bamFile.readNextAlignmentThatPassesFilters()){
-		_bamFile.curSetNewReadGroup(readGroupMap[_bamFile.curReadGroupID()]);
-		_bamFile.writeCurAlignment(outBam);
+	_genome.bamFile().startProgressReporting();
+	while(_genome.bamFile().readNextAlignmentThatPassesFilters()){
+		_genome.bamFile().curSetNewReadGroup(readGroupMap[_genome.bamFile().curReadGroupID()]);
+		_genome.bamFile().writeCurAlignment(outBam);
 
 		//report
-		_bamFile.printProgress();
+		_genome.bamFile().printProgress();
 	}
-	_bamFile.printEndWithSummary(_outputName);
-
-	//close bam writer
-	outBam.close();
+	_genome.bamFile().printEndWithSummary(_genome.outputName());
 };
 
 }; // end namespace

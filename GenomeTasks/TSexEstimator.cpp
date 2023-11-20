@@ -130,14 +130,14 @@ void TSexEstimator::_handleWindow() {
 }
 
 void TSexEstimator::_writeDepthPerWindow(coretools::TOutputFile &out, int num){
-	std::string filename = _outputName + "_depthPerWindow_" + std::to_string(num) + ".txt.gz";
+	const auto filename = _genome.outputName() + "_depthPerWindow_" + std::to_string(num) + ".txt.gz";
 	logfile().list("Writing per window depth estimates to '" + filename + "'.");
 	const std::vector<std::string> header = {"window", "depth"};
 	out.open(filename, header);
 }
 
 void TSexEstimator::_writeDepthPerChromosome(size_t regionNum){
-	std::string filename = _outputName + "_depthPerChromosome_" + std::to_string(regionNum+1) + ".txt";
+	std::string filename = _genome.outputName() + "_depthPerChromosome_" + std::to_string(regionNum+1) + ".txt";
 	logfile().list("Writing per chromosome depth estimates to '" + filename + "'.");
 	const std::vector<std::string> header = {"chromosome", "mean depth"};
 
@@ -152,7 +152,7 @@ void TSexEstimator::_writeDepthPerChromosome(size_t regionNum){
 }
 
 void TSexEstimator::_writeHistogram(size_t regionNum){
-	std::string filename = _outputName + "_depthPerSiteHistogram_" + std::to_string(regionNum+1) + ".txt";
+	std::string filename = _genome.outputName() + "_depthPerSiteHistogram_" + std::to_string(regionNum+1) + ".txt";
 	logfile().list("Writing depth per site distribution to file '" + filename + "' ...");
 	_distPerSites[regionNum].write(filename, "depth");
 }
@@ -172,7 +172,7 @@ void TSexEstimator::run(){
 			logfile().list("Ratio of region1_meanDepth/region" + std::to_string(i+1) + "_meanDepth: " + std::to_string(_distPerSites[0].mean()/_distPerSites[i].mean()));
 	} else {
 		_writeHistogram(0);
-		std::string filename = _outputName + "_meanDepth.txt";
+		std::string filename = _genome.outputName() + "_meanDepth.txt";
 		coretools::TOutputFile out;
 		out.open(filename, "mean depth");
 		out.writeln(_distPerSites[0].mean());

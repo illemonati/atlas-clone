@@ -28,27 +28,6 @@ using coretools::instances::logfile;
 using coretools::instances::parameters;
 using namespace coretools::str;
 
-//---------------------------------------------------------------
-// TGenome_basic
-// A base class without filters and genotype likelihoods
-//---------------------------------------------------------------
-
-TGenome_basic::TGenome_basic()
-	: _bamFile(parameters().get<std::string>("bam")), _rgInfo(_bamFile.readGroups()) {
-	// outputname
-	if (parameters().exists("out")) {
-		_outputName = parameters().get<std::string>("out");
-		logfile().list("Writing output files with prefix '" + _outputName + "'. (parameter 'out')");
-	} else {
-		// guess from BAM filename.
-		_outputName = readBeforeLast(_bamFile.filename(), ".");
-		logfile().list("Writing output files with prefix '" + _outputName + "'. (specify with 'out')");
-	}
-};
-
-TGenome_basic::~TGenome_basic() {
-	if (_rgInfo.isParsed()) _rgInfo.write(_outputName + "_RGInfo.json");
-}
 
 //---------------------------------------------------------------
 // TGenome_filtered
@@ -57,28 +36,28 @@ TGenome_basic::~TGenome_basic() {
 
 TGenome_filtered::TGenome_filtered() {
 	const BAM::TBamFilters filters{true};
-	_bamFile.setFilters(filters);
+	_genome.bamFile().setFilters(filters);
 };
 
 void TGenome_filtered::_traverseBAMPassedQC() {
 	// parse through bam file
-	_bamFile.startProgressReporting();
-	while (_bamFile.readNextAlignmentThatPassesFilters()) {
+	_genome.bamFile().startProgressReporting();
+	while (_genome.bamFile().readNextAlignmentThatPassesFilters()) {
 		// handle alignment by derived classes
 		_handleAlignment();
 
 		// report
-		_bamFile.printProgress();
+		_genome.bamFile().printProgress();
 	}
 	// report
-	_bamFile.printEndWithSummary(_outputName);
+	_genome.bamFile().printEndWithSummary(_genome.outputName());
 };
 
 //---------------------------------------------------------------
 // TGenome_parsed
 // A base class with BAM filters and recalibration
 //---------------------------------------------------------------
-TGenome_parsed::TGenome_parsed() : _genotypeLikelihoodCalculator(_rgInfo) {
+TGenome_parsed::TGenome_parsed() : _genotypeLikelihoodCalculator(_genome.rgInfo()) {
 	// set parsing filters
 	if (parameters().exists("trim3") || parameters().exists("trim5")) {
 		_trim3 = parameters().get<int>("trim3", 0);
@@ -98,7 +77,7 @@ TGenome_parsed::TGenome_parsed() : _genotypeLikelihoodCalculator(_rgInfo) {
 	}
 
 	const BAM::TBamFilters filters{true};
-	_bamFile.setFilters(filters);
+	_genome.bamFile().setFilters(filters);
 };
 
 void TGenome_parsed::_openReference(bool required) {
@@ -125,8 +104,8 @@ void TGenome_parsed::_parseAlignment(BAM::TAlignment &alignment) {
 
 void TGenome_parsed::_traverseBAMPassedQC() {
 	// parse through bam file
-	_bamFile.startProgressReporting();
-	while (_bamFile.readNextAlignmentThatPassesFilters(_alignment)) {
+	_genome.bamFile().startProgressReporting();
+	while (_genome.bamFile().readNextAlignmentThatPassesFilters(_alignment)) {
 		// parse
 		_parseAlignment(_alignment);
 
@@ -134,18 +113,18 @@ void TGenome_parsed::_traverseBAMPassedQC() {
 		_handleAlignment();
 
 		// report
-		_bamFile.printProgress();
+		_genome.bamFile().printProgress();
 	}
 
 	// report
-	_bamFile.printEndWithSummary(_outputName);
+	_genome.bamFile().printEndWithSummary(_genome.outputName());
 };
 
 //---------------------------------------------------------------
 // TGenome_windows
 // A base class to traverse a BAM file in windows
 //---------------------------------------------------------------
-TGenome_windows::TGenome_windows() : _chromosomes(_bamFile.chromosomes()) {
+TGenome_windows::TGenome_windows() : _chromosomes(_genome.bamFile().chromosomes()) {
 	// reading parameters regarding windows
 	logfile().startIndent("Parsing window settings:");
 	_setWindowParameters();
@@ -303,9 +282,9 @@ void TGenome_windows::_openSiteSubset(const std::string &paramName, bool polymor
 	const auto filename = parameters().get(paramName);
 
 	if(polymorphic){
-		_subsetPolymoprhic = std::make_unique<GenotypeLikelihoods::TSiteSubsetPolymorphic>(filename, _bamFile.chromosomes());
+		_subsetPolymoprhic = std::make_unique<GenotypeLikelihoods::TSiteSubsetPolymorphic>(filename, _genome.bamFile().chromosomes());
 	} else {
-		_subsetMonomorphic = std::make_unique<GenotypeLikelihoods::TSiteSubsetMonomorphic>(filename, _bamFile.chromosomes());
+		_subsetMonomorphic = std::make_unique<GenotypeLikelihoods::TSiteSubsetMonomorphic>(filename, _genome.bamFile().chromosomes());
 	}	
 	logfile().endIndent();
 };
@@ -426,15 +405,15 @@ bool TGenome_windows::_moveToNextPredefinedWindow(GenotypeLikelihoods::TWindow &
 	window.move(*_curPredefinedWindow, _curChromosome->name());
 
 	// move in BAM: should we jump or are we already close enough to next window
-	if (_bamFile.refID() == window.refID()) {
+	if (_genome.bamFile().refID() == window.refID()) {
 		// same chromosome: jump only if we are far away
-		if (_bamFile.curPosition() > window.from() ||
-			_bamFile.curPosition() < window.from() - _bamFile.maxReadLength()) {
-			_bamFile.jump(window.from() - _bamFile.maxReadLength());
+		if (_genome.bamFile().curPosition() > window.from() ||
+			_genome.bamFile().curPosition() < window.from() - _genome.bamFile().maxReadLength()) {
+			_genome.bamFile().jump(window.from() - _genome.bamFile().maxReadLength());
 		}
 	} else {
 		// different chromosome: jump
-		_bamFile.jump(window.from() - _bamFile.maxReadLength());
+		_genome.bamFile().jump(window.from() - _genome.bamFile().maxReadLength());
 	}
 
 	// return true as we continue reading
@@ -489,7 +468,7 @@ bool TGenome_windows::_readDataInNextWindow(GenotypeLikelihoods::TWindow &window
 };
 
 bool TGenome_windows::_readAndParseAlignment() {
-	if (!_bamFile.readNextAlignmentThatPassesFilters(_curAlignment)) { return false; }
+	if (!_genome.bamFile().readNextAlignmentThatPassesFilters(_curAlignment)) { return false; }
 
 	_parseAlignment(_curAlignment);
 	return true;
@@ -583,7 +562,7 @@ void TGenome_windows::_traverseBAMWindows() {
 	logfile().endIndent();
 
 	// report
-	_bamFile.printEndWithSummary(_outputName);
+	_genome.bamFile().printEndWithSummary(_genome.outputName());
 };
 
 }; // namespace GenomeTasks

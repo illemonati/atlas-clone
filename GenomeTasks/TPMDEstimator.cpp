@@ -28,9 +28,9 @@ using coretools::instances::parameters;
 //----------------------------------------
 TPMDEstimator::TPMDEstimator()
 	: old::TGenome_parsed(),
-	  _readGroupMap(_bamFile.readGroups(), parameters().get("poolReadGroups", "")) {
+	  _readGroupMap(_genome.bamFile().readGroups(), parameters().get("poolReadGroups", "")) {
 	_pmd.initialize(parameters().get("pmdModel", "doubleStrand:Empiric:Empiric"),
-					 _bamFile.readGroups());
+					 _genome.bamFile().readGroups());
 
 	// make sure it has a reference
 	_openReference(true);
@@ -52,7 +52,7 @@ void TPMDEstimator::_handleAlignment() {
 void TPMDEstimator::run(){
 	_traverseBAMPassedQC();
 	_pmd.estimate(_readGroupMap);
-	_pmd.writeToFile(_bamFile.readGroups(), _readGroupMap, _outputName);
+	_pmd.writeToFile(_genome.bamFile().readGroups(), _readGroupMap, _genome.outputName());
 };
 
 }; // end namespace

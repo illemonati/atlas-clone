@@ -43,7 +43,7 @@ void TContextQuantifier::quantifyContexts(){
 	_traverseBAMPassedQC();
 
 	//write counts
-	std::string outputFileName = _outputName + "_contextInformation.txt.gz";
+	std::string outputFileName = _genome.outputName() + "_contextInformation.txt.gz";
 	logfile().list("Writing context information to file '" + outputFileName + "'.");
 
 	std::vector<std::string> contextLabels;

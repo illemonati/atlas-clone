@@ -163,7 +163,7 @@ void TAllelicDepth::run(){
 	_traverseBAMWindows();
 
 	//write to file
-	std::string outputFileName = _outputName + "_allelicDepth.txt.gz";
+	std::string outputFileName = _genome.outputName() + "_allelicDepth.txt.gz";
 	logfile().listFlush("Writing allelic depth table to '" + outputFileName + "' ...");
 	_counts.write(outputFileName, _writeEmpty);
 	logfile().done();

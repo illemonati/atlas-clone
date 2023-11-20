@@ -11,16 +11,17 @@
 #include <string>
 #include <map>
 
+#include "TGenome.h"
 #include "coretools/Main/TTask.h"
 
 #include "TBamFile.h"
-#include "TGenome_OLD.h"
 #include "TOutputBamFile.h"
 
 namespace GenomeTasks{
 
-class TIlluminaIdentifier : public old::TGenome_basic {
+class TIlluminaIdentifier {
 private:
+	TGenome _genome;
 	size_t _counter = 0;
 	std::map<std::string, std::string> rgPU_rgID;
 	BAM::TOutputBamFile _out;

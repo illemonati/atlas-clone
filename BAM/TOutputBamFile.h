@@ -58,7 +58,6 @@ public:
 	TOutputBamFile(TOutputBamFile &&) noexcept            = default;
 	TOutputBamFile &operator=(TOutputBamFile &&) noexcept = default;
 
-	void close();
 	void writeAlignment(const TAlignment &alignment);
 	void writeAlignment(BamTools::BamAlignment &alignment);
 	void writeAlignmentLater(const TAlignment &alignment);

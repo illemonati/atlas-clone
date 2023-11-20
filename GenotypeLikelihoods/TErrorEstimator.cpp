@@ -47,7 +47,7 @@ using genometools::Base;
 // TErrorEstimator
 //---------------------------------------------------------------
 TErrorEstimator::TErrorEstimator()
-	: _rgMap(_bamFile.readGroups(), parameters().get<std::string>("pool", "")), _dataTables(_rgMap),
+	: _rgMap(_genome.bamFile().readGroups(), parameters().get<std::string>("pool", "")), _dataTables(_rgMap),
 	  _onlyLL(parameters().exists("onlyLL")) {
 	_openReference(true);
 	std::vector<size_t> ploidies;
@@ -144,7 +144,7 @@ TErrorEstimator::TErrorEstimator()
 }
 
 void TErrorEstimator::_initializeModels() {
-	_dataTables.write(_outputName);
+	_dataTables.write(_genome.outputName());
 	using coretools::str::toString;
 	using BAM::Mate;
 	// count data available for recal
@@ -415,9 +415,9 @@ void TErrorEstimator::_runEM() {
 
 		if (_writeRestart) {
 			logfile().list("Writing restart file");
-			_recal.addToRGInfo(_rgInfo);
-			_pmd.addToRGInfo(_rgInfo);
-			_rgInfo.write(_outputName + "_restart.json");
+			_recal.addToRGInfo(_genome.rgInfo());
+			_pmd.addToRGInfo(_genome.rgInfo());
+			_genome.rgInfo().write(_genome.outputName() + "_restart.json");
 		}
 
 		logfile().conclude("Current Log Likelihood = ", LL);
@@ -446,8 +446,8 @@ void TErrorEstimator::estimate() {
 	_runEM();
 
 	// writing final estimates
-	_recal.addToRGInfo(_rgInfo);
-	_pmd.addToRGInfo(_rgInfo);
+	_recal.addToRGInfo(_genome.rgInfo());
+	_pmd.addToRGInfo(_genome.rgInfo());
 }
 
 void TErrorEstimator::calcLL() {

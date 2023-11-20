@@ -618,7 +618,7 @@ size_t TAlignmentMerger_highestQuality::overlapLengthAndMerge(BAM::TAlignment & 
 
 TAlignmentSplitMerger::TAlignmentSplitMerger() : TGenomeParsedWithAlignmentStorage("_splitMerged.bam") {
 	//parse read group settings
-	_rgSettings.initialize(_bamFile.readGroupsMutable());
+	_rgSettings.initialize(_genome.bamFile().readGroupsMutable());
 
 	//allow for reads to exceed max cycle length?
 	if(_rgSettings.needTruncation() || parameters().exists("allowForLarger")){
@@ -637,7 +637,7 @@ TAlignmentSplitMerger::TAlignmentSplitMerger() : TGenomeParsedWithAlignmentStora
 void TAlignmentSplitMerger::_initializeMerger() {
 	// check if keepAllReads is turned on
 	// TODO: what is the basic set of filters needed?
-	if(!_bamFile.filter(BAM::FilterType::ImproperPairs)){
+	if(!_genome.bamFile().filter(BAM::FilterType::ImproperPairs)){
 		logfile().warning("Improper pairs are kept but will not be merged!");
 	}
 
@@ -671,7 +671,7 @@ void TAlignmentSplitMerger::_handleMates(BAM::TAlignment & alignment, TAlignment
 	ReadGroupType type = _rgSettings.getType(alignment.readGroupId());
 
 	if(type == ReadGroupType::single){
-		UERROR("Paired reads found in single-end read group '", _bamFile.readGroups().getName(alignment.readGroupId()), "'! Is this a 'mixed' read group?");
+		UERROR("Paired reads found in single-end read group '", _genome.bamFile().readGroups().getName(alignment.readGroupId()), "'! Is this a 'mixed' read group?");
 	} else if(!alignment.isProperPair()){
 		//not a proper pair: mark mate as as improper too
 		mate->setAsNonProperPair();
@@ -724,16 +724,16 @@ void TAlignmentSplitMerger::_handleSingle(BAM::TAlignment & alignment){
 			addToContainer(_alignmentStorage, &alignment, true);
 		} else {
 			//filter out (ignore) but write reason to bam log
-			_bamFile.filterOut(alignment);
+			_genome.bamFile().filterOut(alignment);
 		}
 	}
 };
 
 bool TAlignmentSplitMerger::_alignmentCanBeWrittenUnchanged(){
 	return  !_recalibrate &&
-			!_bamFile.curIsPaired() &&
+			!_genome.bamFile().curIsPaired() &&
 			_alignmentStorage.empty() &&
-			_rgSettings.getType(_bamFile.curReadGroupID())==ReadGroupType::unchanged;
+			_rgSettings.getType(_genome.bamFile().curReadGroupID())==ReadGroupType::unchanged;
 }
 
 //-----------------------------------------
@@ -744,10 +744,10 @@ void TOverlapQuantifier::run(){
 	//prepare counter
 	coretools::TCountDistributionVector overlapDist;
 	//parse BAM file
-	_bamFile.startProgressReporting(1000000);
-	while(_bamFile.readNextAlignment()){
+	_genome.bamFile().startProgressReporting(1000000);
+	while(_genome.bamFile().readNextAlignment()){
 		//if on new chromosome, empty storage
-		if(_bamFile.chrChanged()){
+		if(_genome.bamFile().chrChanged()){
 			//clear storage
 			_alignmentStorage.clear();
 		}
@@ -755,15 +755,15 @@ void TOverlapQuantifier::run(){
 		//check if first alignment in storage is too far away from current alignment
 		//if yes, first alignment in storage is considered an orphan
 		auto it = _alignmentStorage.begin();
-		while(it != _alignmentStorage.end() && (_bamFile.curPosition() - it->alignment()) > _bamFile.maxReadLength()){
+		while(it != _alignmentStorage.end() && (_genome.bamFile().curPosition() - it->alignment()) > _genome.bamFile().maxReadLength()){
 			it = _alignmentStorage.erase(it);
 		}
 
 		//check if read passed filters and is proper pair
-		if(_bamFile.curPassedQC() && _bamFile.curIsProperPair()){
+		if(_genome.bamFile().curPassedQC() && _genome.bamFile().curIsProperPair()){
 			//parse alignment
 			std::unique_ptr<BAM::TAlignment> alignment = std::make_unique<BAM::TAlignment>();
-			_bamFile.fill(*alignment.get());
+			_genome.bamFile().fill(*alignment.get());
 
 			//check if mate is in storage.
 			auto mate = findInStorage(_alignmentStorage, alignment->name());
@@ -785,14 +785,14 @@ void TOverlapQuantifier::run(){
 		}
 
 		//report
-		_bamFile.printProgress();
+		_genome.bamFile().printProgress();
 	}
 
 	//done parsing bam file: report
-	_bamFile.printSummary(_outputName);
+	_genome.bamFile().printSummary(_genome.outputName());
 
 	//write distribution
-	std::string filename = _outputName + "_overlapStats.txt";
+	std::string filename = _genome.outputName() + "_overlapStats.txt";
 	logfile().listFlush("Writing distribution of fragment length and overlap to file '" + filename + "' ...");
 	const std::vector<std::string> header = {"fragmentLength", "overlap", "count"};
 	coretools::TOutputFile out(filename, header);

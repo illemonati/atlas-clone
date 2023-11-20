@@ -30,7 +30,7 @@ using coretools::instances::parameters;
 // TPMDSCalculator
 //----------------------------------------------
 //TODO: should that filter pairs as in TBamFilter?
-	TPMDSCalculator::TPMDSCalculator():TGenome_parsed(), _outBam(_outputName + "_PMDS.bam", _bamFile) {
+	TPMDSCalculator::TPMDSCalculator():TGenome_parsed(), _outBam(_genome.outputName() + "_PMDS.bam", _genome.bamFile()) {
 	//get parameters
 	_pi = parameters().get<coretools::Probability>("pi", coretools::Probability(0.001));
 	logfile().list("Running PMDS with rate of polymorphism (pi) = " + toString(_pi));
@@ -63,12 +63,12 @@ void TPMDSCalculator::_handleAlignment(){
 
 	//filter
 	if(_doFilter && !_filterRange.within(PMDS)){
-		_bamFile.curFilterOut();
+		_genome.bamFile().curFilterOut();
 	} else {
 		//update and write
 		//TODO: discuss if DS is the right tag. User-defined tags should have lower case letters, but we need to maintain consistency with other tools
-		_bamFile.curAddSamField("DS", PMDS);
-		_bamFile.writeCurAlignment(_outBam);
+		_genome.bamFile().curAddSamField("DS", PMDS);
+		_genome.bamFile().writeCurAlignment(_outBam);
 	}
 };
 
@@ -78,13 +78,10 @@ void TPMDSCalculator::run(){
 	//parser.add_option("--writesamfield", action="store_true", dest="writesamfield",help="add 'DS:Z:<PMDS>' field to SAM output, will overwrite if already present",default=False)
 
 	//open a bam file for writing
-	_bamFile.setExternalFilterReason("PMDS outside range " + _filterRange.rangeString());
+	_genome.bamFile().setExternalFilterReason("PMDS outside range " + _filterRange.rangeString());
 
 	//traverse BAM
 	_traverseBAMPassedQC();
-
-	//report
-	_outBam.close();
 };
 
 }; // end namespace

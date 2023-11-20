@@ -43,7 +43,7 @@ TPSMCInput::TPSMCInput():TGenome_windows(){
 	_blockSize        = parameters().get<int>("block", 100);
 
 	//open output file
-	std::string outputFileName = _outputName + ".psmcfa";
+	std::string outputFileName = _genome.outputName() + ".psmcfa";
 	logfile().list("Writing PSMC input file to '" + outputFileName + "'.");
 	_out.open(outputFileName.c_str());
 	if(!_out) UERROR("Failed to open output file '", outputFileName, "'!");

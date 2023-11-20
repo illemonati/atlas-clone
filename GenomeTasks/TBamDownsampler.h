@@ -13,7 +13,7 @@
 
 #include "TBamFile.h"
 #include "TBamFilter.h"
-#include "TGenome_OLD.h"
+#include "TGenome.h"
 #include "coretools/Main/TTask.h"
 #include "coretools/Types/probability.h"
 
@@ -39,8 +39,6 @@ private:
 public:
 	TBamSample(const coretools::Probability & Prob, const std::string & OutName, BAM::TBamFile & bamFile);
 
-	void close();
-
 	void sample(BAM::TBamFile & bamfile);
 	void downsampleRead(BAM::TAlignment & alignment);
 	
@@ -48,46 +46,26 @@ friend class TBamDownsampler;
 };
 
 //-----------------------------------------
-// TBamDownsampler_base
-//-----------------------------------------
-class TBamDownsampler_base:public old::TGenome_basic{
-protected:
-	std::vector<coretools::Probability> _probs;
-	std::vector<std::string> _names;
-
-	void _readVectorOfDownsamplingProbabilities();
-};
-
-
-//-----------------------------------------
 // TBamDownsampler
 //-----------------------------------------
-class TBamDownsampler:public TBamDownsampler_base{
-private:
+class TBamDownsampler {
+	TGenome _genome;
 	bool separateReads = false;
 	bool _writeN        = false;
 	std::vector<double> _cumulProbs;
 	//lists to keep track of mates
 	std::map<std::string, uint16_t> _mateWasWritten;
 	BAM::TAlignmentList _discard;
-
-protected:
+	std::vector<coretools::Probability> _probs;
+	std::vector<std::string> _names;
 	std::vector<TBamSample> _bamSamples;
+
+	void _readVectorOfDownsamplingProbabilities();
+
 public:
 	TBamDownsampler();
 	virtual void run();
 	void sample();
-};
-
-//-----------------------------------------
-// TBamSeparator
-//-----------------------------------------
-class TBamSeparator:public TBamDownsampler_base{
-private:
-	std::vector<double> _cumulProbs;
-public:
-	TBamSeparator();
-	void run();
 };
 
 }; // end namespace

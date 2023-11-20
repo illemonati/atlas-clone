@@ -12,6 +12,7 @@
 #include <string>
 #include <vector>
 
+#include "TGenome.h"
 #include "coretools/Math/TNumericRange.h"
 #include "coretools/TTimer.h"
 #include "genometools/BED/TBed.h"
@@ -32,26 +33,12 @@ class TSubsamplePicker;
 namespace GenomeTasks::old {
 
 //---------------------------------------------------------------
-// TGenome_basic
-// A base class without filters and genotype likelihoods
-//---------------------------------------------------------------
-class TGenome_basic {
-protected:
-	BAM::TBamFile _bamFile;
-	std::string _outputName;
-	BAM::RGInfo::TReadGroupInfo _rgInfo;
-
-public:
-	TGenome_basic();
-	virtual ~TGenome_basic();
-};
-
-//---------------------------------------------------------------
 // TGenome_filtered
 // A base class without recalibration but BAM filters enabled
 //---------------------------------------------------------------
-class TGenome_filtered : public TGenome_basic {
+class TGenome_filtered  {
 protected:
+	TGenome _genome;
 	void _traverseBAMPassedQC();
 	virtual void _handleAlignment() = 0;
 
@@ -63,7 +50,7 @@ public:
 // TGenome_parsed
 // A base class with BAM filters and a parsed, recalibrated alignment
 //---------------------------------------------------------------
-class TGenome_parsed : public TGenome_basic {
+class TGenome_parsed  {
 private:
 	// read trimming
 	bool _trimReads;
@@ -75,6 +62,7 @@ private:
 	TContextFilter _contextFilter;
 
 protected:
+	TGenome _genome;
 	BAM::TAlignment _alignment;
 	GenotypeLikelihoods::TGenotypeLikelihoodCalculator _genotypeLikelihoodCalculator;
 	genometools::TFastaReader _reference;

@@ -34,15 +34,15 @@ void TDepthWriter::_handleWindow(){
 };
 
 void TDepthWriter::writeDepth(){
-	const std::string filename = _outputName + "_depthPerWindow.txt.gz";
+	const std::string filename = _genome.outputName() + "_depthPerWindow.txt.gz";
 	logfile().list("Writing per window depth estimates to '", filename, "'.");
 	_out.open(filename, {"window", "depth"});
 
 	_traverseBAMWindows();
 
 	//write distribution
-	logfile().list("Writing depth per site distribution to file '", _outputName, "_depthPerSiteHistogram.txt' ...");
-	_distPerSite.write(_outputName + "_depthPerSiteHistogram.txt", "depth");
+	logfile().list("Writing depth per site distribution to file '", _genome.outputName(), "_depthPerSiteHistogram.txt' ...");
+	_distPerSite.write(_genome.outputName() + "_depthPerSiteHistogram.txt", "depth");
 };
 
 

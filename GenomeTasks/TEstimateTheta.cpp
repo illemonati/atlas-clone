@@ -52,7 +52,7 @@ void TEstimateThetaLLSurface::_handleWindow() {
 
 	// open file
 	std::string filename =
-		_outputName + _window.chrName() + "_" + toString(_window.from().position()) + "_LLsurface.txt";
+		_genome.outputName() + _window.chrName() + "_" + toString(_window.from().position()) + "_LLsurface.txt";
 	logfile().listFlushTime("Writing LL surface to file '" + filename + "' ...");
 	coretools::TOutputFile out(filename);
 
@@ -153,7 +153,7 @@ TEstimateTheta::TEstimateTheta() : TGenome_windows() {
 	}
 
 	// open output
-	std::string filename = _outputName + "_theta.txt.gz";
+	std::string filename = _genome.outputName() + "_theta.txt.gz";
 	if (_printFullData) {
 		const std::string prefix = downSampleProbVector.empty()? "" : "p1.0_";
 		_thetaOut.addEstimator(&_thetaEstimator, prefix);
@@ -260,7 +260,7 @@ void TEstimateTheta::run() {
 			_thetaEstimator.estimateTheta();
 			for (auto& e: estimators) e.estimateTheta();
 			// write estimates
-			//std::string filename = _outputName + "_thetaGenomeWide.txt.gz";
+			//std::string filename = _genome.outputName() + "_thetaGenomeWide.txt.gz";
 			//_thetaOut.open(&_thetaEstimator, filename);
 			if (_considerRegions) {
 				_thetaOut.write("regions", "-", "-");
@@ -289,7 +289,7 @@ void TEstimateThetaRatio::_initializeRegion(genometools::TBed &region, const int
 	logfile().startIndent((std::string) "Region " + std::to_string(num) + ":");
 	std::string regionsFile = parameters().get<std::string>("region" + std::to_string(num));
 	logfile().listFlush("Reading regions ", num, " from file '", regionsFile, " (parameter 'region", num, "') ...");
-	region.add(regionsFile, _bamFile.chromosomes());
+	region.add(regionsFile, _genome.bamFile().chromosomes());
 	logfile().done();
 	logfile().conclude("Read ", region.size(),  " sites on ", region.numChromosomesWithWindows(), " chromosomes.");
 };
@@ -323,7 +323,7 @@ void TEstimateThetaRatio::_handleWindow() {
 
 void TEstimateThetaRatio::run() {
 	_traverseBAMWindows();
-	_thetaEstimatorRatio.estimateRatio(_outputName);
+	_thetaEstimatorRatio.estimateRatio(_genome.outputName());
 };
 
 }; // namespace GenomeTasks

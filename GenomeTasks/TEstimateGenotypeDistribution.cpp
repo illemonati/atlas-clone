@@ -115,7 +115,7 @@ TEstimateGenotypeDistribution::TEstimateGenotypeDistribution() {
 	std::vector<std::string> header{"Chr", "Start", "End", "depth", "numSites", "numSitesData", "fracMissing"};
 	_genoDist->addHeader(header);
 	header.push_back("LL");
-	_out.open(_outputName + ".txt.gz");
+	_out.open(_genome.outputName() + ".txt.gz");
 	_out.writeHeader(header);
 }
 }

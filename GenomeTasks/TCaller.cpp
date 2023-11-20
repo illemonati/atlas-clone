@@ -1223,9 +1223,9 @@ TCall::TCall():TGenome_windows(){
 	_caller->initializeOutput();
 
 	//open output file
-	std::string sampleName = parameters().get<std::string>("sampleName", _outputName);
+	std::string sampleName = parameters().get<std::string>("sampleName", _genome.outputName());
 	logfile().list("Will use sample name '" + sampleName + "'. (parameter 'sampleName')");
-	_caller->openVCF(_outputName + "_calls", sampleName);
+	_caller->openVCF(_genome.outputName() + "_calls", sampleName);
 
 	//limit to sites with known alleles?
 	if(parameters().exists("alleles")){
@@ -1259,7 +1259,7 @@ void TCall::_initializeGenotypePrior(){
 			_prior = std::make_unique<TGenotypePriorFixedTheta>(theta, equalBaseFreq);
 		} else {
 			logfile().list("Will use a prior based on theta and base frequencies estimated individually for each window.");
-			std::string thetaOuputName = _outputName + "_theta_estimates.txt.gz";
+			std::string thetaOuputName = _genome.outputName() + "_theta_estimates.txt.gz";
 			if(parameters().exists("defaultTheta")){
 				double defaultTheta = parameters().get<double>("defaultTheta");
 				logfile().list("Will use a default theta of ", defaultTheta, " for windows with limited data.");

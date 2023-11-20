@@ -169,7 +169,7 @@ TEstimateMutationLoad::TEstimateMutationLoad() : TGenome_windows() {
 		// parse BED
 		_bedFileName = parameters().get("bed");
 		logfile().listFlush("Reading BED file '", _bedFileName, "' (parameter 'bed') ...");
-		_bedFile.add(_bedFileName, _bamFile.chromosomes());
+		_bedFile.add(_bedFileName, _genome.bamFile().chromosomes());
 		logfile().done();
 		logfile().conclude("Read ", _bedFile.size(), " sites on ", _bedFile.numChromosomesWithWindows(),
 		                   " chromosomes.");
@@ -198,12 +198,12 @@ void TEstimateMutationLoad::run() {
 	EM.runEM(chunkEnds);
 
 	// write output file
-	std::string filename = _outputName + "_mutationLoad.txt";
+	std::string filename = _genome.outputName() + "_mutationLoad.txt";
 	coretools::TOutputFile out(filename, {"BAM", "Alleles", "Pi_rr", "Pi_ra", "Pi_aa", "Pi_ab"});
 	if (_parseFromBed) {
-		out.writeln(_bamFile.filename(), _bedFileName, prior.getPi());
+		out.writeln(_genome.bamFile().filename(), _bedFileName, prior.getPi());
 	} else {
-		out.writeln(_bamFile.filename(), _subsetMonomorphic->filename(), prior.getPi());
+		out.writeln(_genome.bamFile().filename(), _subsetMonomorphic->filename(), prior.getPi());
 	}
 }
 
