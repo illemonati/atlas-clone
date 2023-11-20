@@ -45,7 +45,6 @@ private:
 	bool _writeEmpty;
 
 	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
-	void _handleAlignment(BAM::TAlignment&) override {}
 
 public:
 	TAllelicDepth();

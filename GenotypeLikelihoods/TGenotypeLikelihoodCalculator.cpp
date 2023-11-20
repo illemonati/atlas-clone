@@ -22,19 +22,19 @@
 
 namespace GenotypeLikelihoods{
 
-TGenotypeLikelihoodCalculator::TGenotypeLikelihoodCalculator(const BAM::RGInfo::TReadGroupInfo& RGInfo) {
+TErrorModels::TErrorModels(const BAM::RGInfo::TReadGroupInfo& RGInfo) {
 		_pmd.initialize(RGInfo);
 		_recal.initialize(RGInfo);
 };
 
-coretools::Probability TGenotypeLikelihoodCalculator::errorWithPMD(const BAM::TSequencedBase &base) const {
+coretools::Probability TErrorModels::errorWithPMD(const BAM::TSequencedBase &base) const {
 	if (base.base == genometools::Base::N) { return coretools::Probability::highest(); }
 	// calculate base likelihoods with PMD
 
 	return _pmd.P_dij(base, _recal.P_dij(base))[base.base].complement();
 };
 
-genometools::PhredIntProbability TGenotypeLikelihoodCalculator::phredIntWithPMD(const BAM::TSequencedBase & base) const{
+genometools::PhredIntProbability TErrorModels::phredIntWithPMD(const BAM::TSequencedBase & base) const{
 	if(base.base == genometools::Base::N){
 		return genometools::PhredIntProbability::min();
 	} else {
@@ -42,17 +42,17 @@ genometools::PhredIntProbability TGenotypeLikelihoodCalculator::phredIntWithPMD(
 	}
 };
 
-void TGenotypeLikelihoodCalculator::recalibrateWithPMD(BAM::TSequencedBase & base) const{
+void TErrorModels::recalibrateWithPMD(BAM::TSequencedBase & base) const{
 	base.recalibratedQualityAsPhredInt = phredIntWithPMD(base);
 };
 
-void TGenotypeLikelihoodCalculator::recalibrateWithPMD(BAM::TAlignment& aln) const{
+void TErrorModels::recalibrateWithPMD(BAM::TAlignment& aln) const{
 	for(auto& b : aln){
 		recalibrateWithPMD(b);
 	}
 };
 
-double TGenotypeLikelihoodCalculator::calculateLogPMDS(const BAM::TSequencedBase & base, const genometools::Base & ref, const coretools::Probability & pi) const{
+double TErrorModels::calculateLogPMDS(const BAM::TSequencedBase & base, const genometools::Base & ref, const coretools::Probability & pi) const{
 	//get base likelihoods
 	const TBaseLikelihoods baseLikelihoodsNoPMD = _recal.P_dij(base);
 
@@ -64,7 +64,7 @@ double TGenotypeLikelihoodCalculator::calculateLogPMDS(const BAM::TSequencedBase
 	return log(weightedSum(baseLikelihoods, tmpBaseData) / weightedSum(baseLikelihoodsNoPMD, tmpBaseData));
 };
 
-TGenotypeLikelihoods TGenotypeLikelihoodCalculator::calculateGenotypeLikelihoods(const TSite &site) const {
+TGenotypeLikelihoods TErrorModels::calculateGenotypeLikelihoods(const TSite &site) const {
 		if (site.empty()) { return TGenotypeLikelihoods{1.}; }
 		std::vector<TBaseLikelihoods> baseLikelihoods;
 		baseLikelihoods.reserve(site.depth());

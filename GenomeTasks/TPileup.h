@@ -42,7 +42,6 @@ private:
 	bool _onlySummary;
 
 	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
-	void _handleAlignment(BAM::TAlignment&) override {}
 public:
 	TPileup();
 	void run();

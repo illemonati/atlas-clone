@@ -34,7 +34,6 @@ private:
 	std::unique_ptr<GenotypeLikelihoods::TThetaEstimator> _thetaEstimator;
 
 	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
-	void _handleAlignment(BAM::TAlignment&) override {}
 public:
 	TPSMCInput();
 	void run();

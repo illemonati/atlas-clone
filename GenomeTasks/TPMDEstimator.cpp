@@ -33,7 +33,7 @@ TPMDEstimator::TPMDEstimator()
 					 _genome.bamFile().readGroups());
 
 	// make sure it has a reference
-	_openReference(true);
+	_parser.openReference(true);
 
 	// create PMD tables
 	_pmd.resize(_readGroupMap);

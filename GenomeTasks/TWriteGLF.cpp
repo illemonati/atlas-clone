@@ -44,7 +44,7 @@ void TWriteGLF::_handleWindow(GenotypeLikelihoods::TWindow& window){
 	uint32_t pos = 0;
 	for(auto& s : window){
 		if(!s.empty() || _printAll){
-			const auto genoLik = _genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(s);
+			const auto genoLik = _parser.errorModels().calculateGenotypeLikelihoods(s);
 			_writer.writeSite(window.positionOnChr(pos), s.depth(), 0, genoLik);
 		}
 		++pos;

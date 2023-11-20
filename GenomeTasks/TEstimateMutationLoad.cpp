@@ -121,7 +121,7 @@ void TMutationLoadLatentVariable::calculateEmissionProbabilities(
 void TEstimateMutationLoad::_addSite(const GenotypeLikelihoods::TSite &site, const genometools::Base PreferredBase) {
 	if (!site.empty()) {
 		GenotypeLikelihoods::TGenotypeLikelihoods genoLik =
-		    _genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(site);
+		    _parser.errorModels().calculateGenotypeLikelihoods(site);
 		_sites.emplace_back(genoLik, PreferredBase);
 	}
 }
@@ -165,7 +165,7 @@ TEstimateMutationLoad::TEstimateMutationLoad() : TGenome_windows() {
 		logfile().startIndent("Limiting analysis to sites listed in BED file:");
 		// open reference
 		logfile().list("Will assume that the reference allele is the preferred allele.");
-		_openReference(true);
+		_parser.openReference(true);
 		// parse BED
 		_bedFileName = parameters().get("bed");
 		logfile().listFlush("Reading BED file '", _bedFileName, "' (parameter 'bed') ...");

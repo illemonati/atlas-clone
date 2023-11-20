@@ -237,7 +237,7 @@ void TThetaEstimator::add(const GenotypeLikelihoods::TSite &site,
 	_data->add(site, genotypeLikelihoods);
 };
 
-void TThetaEstimator::add(const TWindow &window, const TGenotypeLikelihoodCalculator &glCalculator) {
+void TThetaEstimator::add(const TWindow &window, const TErrorModels &glCalculator) {
 	for (std::vector<TSite>::const_iterator it = window.cbegin(); it != window.cend(); ++it) {
 		add(*it, glCalculator.calculateGenotypeLikelihoods(*it));
 	}

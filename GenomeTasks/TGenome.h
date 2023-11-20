@@ -66,7 +66,7 @@ class TParsed {
 	TQualityFilter _qualityFilter;
 	TContextFilter _contextFilter;
 
-	GenotypeLikelihoods::TGenotypeLikelihoodCalculator _genotypeLikelihoodCalculator;
+	GenotypeLikelihoods::TErrorModels _genotypeLikelihoodCalculator;
 	genometools::TFastaReader _reference;
 
 	void _parse(BAM::TAlignment& alignment) {

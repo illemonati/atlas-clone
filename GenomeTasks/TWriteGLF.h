@@ -24,7 +24,6 @@ private:
 	GLF::TGlfWriter _writer;
 	bool _printAll;
 	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
-	void _handleAlignment(BAM::TAlignment&) override {}
 
 public:
 	TWriteGLF();

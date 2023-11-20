@@ -313,7 +313,6 @@ private:
 	void _call(GenotypeLikelihoods::TWindow& window);
 	void _callKnwonAlleles(GenotypeLikelihoods::TWindow& window);
 	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
-	void _handleAlignment(BAM::TAlignment&) override {}
 
 public:
 	TCall();

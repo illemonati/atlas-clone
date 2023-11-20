@@ -25,7 +25,7 @@
 #include "coretools/Strings/stringFunctions.h"
 
 namespace GenotypeLikelihoods {
-class TGenotypeLikelihoodCalculator;
+class TErrorModels;
 }
 namespace GenotypeLikelihoods {
 class TSite;
@@ -142,7 +142,7 @@ public:
 
 	void clear();
 	void add(const TSite &site, const GenotypeLikelihoods::TGenotypeLikelihoods &genotypeLikelihoods);
-	void add(const TWindow &window, const TGenotypeLikelihoodCalculator &glCalculator);
+	void add(const TWindow &window, const TErrorModels &glCalculator);
 	long sizeWithData() { return _data->sizeWithData(); };
 	bool estimateTheta();
 	void setTheta(const double Theta);

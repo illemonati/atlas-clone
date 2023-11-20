@@ -23,7 +23,7 @@
 #include "TSequencedBase.h"
 
 namespace GenotypeLikelihoods {
-class TGenotypeLikelihoodCalculator;
+class TErrorModels;
 }
 namespace GenotypeLikelihoods {
 namespace SequencingError {
@@ -180,7 +180,7 @@ public:
 	void removeSoftClippedBases();
 	void removeSoftClippedBases(size_t maxNumberOfSoftClippedBases);
 	void binQualityScoresIllumina();
-	void recalibrateWithPMD(const GenotypeLikelihoods::TGenotypeLikelihoodCalculator &GLCalculator);
+	void recalibrateWithPMD(const GenotypeLikelihoods::TErrorModels &GLCalculator);
 	void setIsProperPair(const bool &ok);
 	void downsampleAlignment(const coretools::Probability &fraction);
 	void merge(uint16_t overlapLength, size_t &mappedBasesClipped);

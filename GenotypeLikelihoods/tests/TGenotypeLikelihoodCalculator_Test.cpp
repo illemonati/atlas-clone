@@ -22,7 +22,7 @@ using genometools::Genotype;
 TEST(TGenotypeLikelihoodCalculator_test, calculateGenotypeLikelihoods_emptySite){
     TSite site;
 	BAM::RGInfo::TReadGroupInfo rgi;
-    TGenotypeLikelihoodCalculator calculator(rgi);
+    TErrorModels calculator(rgi);
 
 	const auto genotypeLikelihoods = calculator.calculateGenotypeLikelihoods(site);
 
@@ -43,7 +43,7 @@ TEST(TGenotypeLikelihoodCalculator_test, calculateGenotypeLikelihoods_noPMDnoRec
 	BAM::TReadGroups rg;
 	rg.add("test");
 	BAM::RGInfo::TReadGroupInfo rgi(rg);
-    TGenotypeLikelihoodCalculator calculator(rgi);
+    TErrorModels calculator(rgi);
 
     BAM::TSequencedBase base;
     base.originalQuality_phredInt = 20;

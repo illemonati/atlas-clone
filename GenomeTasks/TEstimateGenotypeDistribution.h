@@ -19,7 +19,6 @@ private:
 	coretools::TOutputFile _out;
 
 	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
-	void _handleAlignment(BAM::TAlignment&) override {}
 
 	double _runEM();
 	double _LL();

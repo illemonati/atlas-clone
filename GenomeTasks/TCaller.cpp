@@ -1235,7 +1235,7 @@ TCall::TCall():TGenome_windows(){
 	} else {
 		logfile().list("Will call without prior knowledge on alleles. (use 'alleles' to provide known alleles)");
 		//make sure FASTA is open unless alleles are provided
-		_openReference(true);
+		_parser.openReference(true);
 	}
 	logfile().endIndent();
 };
@@ -1274,7 +1274,7 @@ void TCall::_initializeGenotypePrior(){
 void TCall::_call(GenotypeLikelihoods::TWindow& window){
 	uint32_t pos = 0;
 	for(auto& s : window){
-		const auto genoLik = _genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(s);
+		const auto genoLik = _parser.errorModels().calculateGenotypeLikelihoods(s);
 		_caller->call(window.chrName(), window.positionOnChr(pos), s, genoLik);
 		++pos;
 	}
@@ -1293,7 +1293,7 @@ void TCall::_callKnwonAlleles(GenotypeLikelihoods::TWindow& window){
 			uint32_t internalPos = it - window.from();
 			TSite& site = window[internalPos];
 			site.refBase = it.ref();
-			const auto genoLik = _genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(site);
+			const auto genoLik = _parser.errorModels().calculateGenotypeLikelihoods(site);
 			_caller->call(window.chrName(), window.positionOnChr(internalPos), site, genoLik, it.ref(), it.alt());
 		}
 	}
@@ -1302,7 +1302,7 @@ void TCall::_callKnwonAlleles(GenotypeLikelihoods::TWindow& window){
 void TCall::_handleWindow(GenotypeLikelihoods::TWindow& window){
 	if(window.passedFilters() || _caller->printSitesWithNoData()){
 		//update genotype prior
-		_prior->update(window, _genotypeLikelihoodCalculator);
+		_prior->update(window, _parser.errorModels());
 
 		//call
 		logfile().listFlushTime("Calling genotypes ...");

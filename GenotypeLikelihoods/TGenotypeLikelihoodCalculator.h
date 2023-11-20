@@ -23,13 +23,13 @@ namespace BAM { class TSequencedBase; }
 
 namespace GenotypeLikelihoods{
 
-class TGenotypeLikelihoodCalculator{
+class TErrorModels{
 private:
 	PMD::TModels _pmd;
 	SequencingError::TModels _recal;
 
 public:
-	TGenotypeLikelihoodCalculator(const BAM::RGInfo::TReadGroupInfo& RGInfo);
+	TErrorModels(const BAM::RGInfo::TReadGroupInfo& RGInfo);
 
 	const SequencingError::TModels& sequencingErrorModels() const { return _recal; };
 	SequencingError::TModels& sequencingErrorModels() { return _recal; };

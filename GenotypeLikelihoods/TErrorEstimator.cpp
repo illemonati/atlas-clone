@@ -49,7 +49,7 @@ using genometools::Base;
 TErrorEstimator::TErrorEstimator()
 	: _rgMap(_genome.bamFile().readGroups(), parameters().get<std::string>("pool", "")), _dataTables(_rgMap),
 	  _onlyLL(parameters().exists("onlyLL")) {
-	_openReference(true);
+	_parser.openReference(true);
 	std::vector<size_t> ploidies;
 	parameters().fill("ploidy", ploidies, {2});
 

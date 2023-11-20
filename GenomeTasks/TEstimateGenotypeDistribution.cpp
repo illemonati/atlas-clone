@@ -20,8 +20,8 @@ double TEstimateGenotypeDistribution::_LL() {
 		TGenotypeLikelihoods P_g_I_di(1.);
 		size_t counter = 0;
 		for (auto &d_ij : site) {
-			const auto P_dij_I_bbar = _genotypeLikelihoodCalculator.sequencingErrorModels().P_dij(d_ij);
-			const auto P_dij_I_b    = _genotypeLikelihoodCalculator.postMortemDamageModels().P_dij(d_ij, P_dij_I_bbar);
+			const auto P_dij_I_bbar = _parser.errorModels().sequencingErrorModels().P_dij(d_ij);
+			const auto P_dij_I_b    = _parser.errorModels().postMortemDamageModels().P_dij(d_ij, P_dij_I_bbar);
 			const auto P_dij_I_g    = _genoDist->P_dij(P_dij_I_b);
 			P_g_I_di *= P_dij_I_g;
 			if (++counter > 10) {
@@ -101,7 +101,7 @@ void TEstimateGenotypeDistribution::run() {
 
 
 TEstimateGenotypeDistribution::TEstimateGenotypeDistribution() {
-	_openReference(true);
+	_parser.openReference(true);
 	_numEMIterations = parameters().get<int>("iterations", 200);
 	_minDeltaLL      = parameters().get<double>("minDeltaLL", 1e-6);
 	if (parameters().exists("HKY85")) {

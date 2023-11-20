@@ -42,7 +42,7 @@ using coretools::instances::parameters;
 		_doFilter = true;
 		logfile().list("Not applying any filter on PMDs when writing BAM file. (use 'filterPMDS' to filter)");
 	}
-	_openReference(true);
+	_parser.openReference(true);
 };
 
 double TPMDSCalculator::_calculatePMDS(BAM::TAlignment& alignment){
@@ -50,7 +50,7 @@ double TPMDSCalculator::_calculatePMDS(BAM::TAlignment& alignment){
 	double PMDS = 0.0;
 	for (size_t d = 0; d < alignment.size(); ++d) {
 		if (alignment.isAlignedAtInternalPos(d)) {
-			PMDS += _genotypeLikelihoodCalculator.calculateLogPMDS(alignment[d], alignment.referenceAtInternalPos(d),
+			PMDS += _parser.errorModels().calculateLogPMDS(alignment[d], alignment.referenceAtInternalPos(d),
 																   _pi);
 		}
 	}

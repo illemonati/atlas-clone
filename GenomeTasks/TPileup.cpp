@@ -83,10 +83,10 @@ TPileup::TPileup() : TGenome_windows() {
 
 		// compile header
 		std::vector<std::string> header = {"chromosome", "position"};
-		if (_reference) { header.push_back("reference"); }
+		if (_parser.reference()) { header.push_back("reference"); }
 		if (_printSettings.get<Print::Depth>()) {
 			header.push_back("depth");
-			if (_reference) { header.push_back("refDepth"); }
+			if (_parser.reference()) { header.push_back("refDepth"); }
 		}
 		if (_printSettings.get<Print::Bases>()) { header.push_back("bases"); }
 		if (_printSettings.get<Print::Qualities>()) { header.push_back("qualities"); }
@@ -95,7 +95,7 @@ TPileup::TPileup() : TGenome_windows() {
 			header.push_back("numC");
 			header.push_back("numG");
 			header.push_back("numT");
-			if (_reference) {
+			if (_parser.reference()) {
 				header.push_back("numRef");
 				header.push_back("numNonRef");
 			}
@@ -197,17 +197,17 @@ void TPileup::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 			_out.write(window.chrName(),
 			           window.positionOnChr(pos) + 1); // positions are zero-based internally
 
-			if (_reference) { _out.write(site.refBase); }
+			if (_parser.reference()) { _out.write(site.refBase); }
 			if (_printSettings.get<Print::Depth>()) {
 				_out.write(site.depth());
-				if (_reference) { _out.write(site.refDepth()); }
+				if (_parser.reference()) { _out.write(site.refDepth()); }
 			}
 			if (_printSettings.get<Print::Bases>()) { _out.write(site.getBases()); }
 			if (_printSettings.get<Print::Qualities>()) { _out.write(site.getQualities()); }
 			if (_printSettings.get<Print::Alleles>()) {
 				const auto alleleCounts = site.countAlleles();
 				_out.write(alleleCounts[Base::A], alleleCounts[Base::C], alleleCounts[Base::G], alleleCounts[Base::T]);
-				if (_reference) {
+				if (_parser.reference()) {
 					_out.write(alleleCounts[site.refBase], alleleCounts.size() - alleleCounts[site.refBase]);
 				}
 				_out.write((int)coretools::numNonZero(alleleCounts));
@@ -221,7 +221,7 @@ void TPileup::_handleWindow(GenotypeLikelihoods::TWindow& window) {
 				_out.write(strandCounts);
 			}
 			if (_printSettings.get<Print::Likelihoods>()) {
-				const auto genoLik = _genotypeLikelihoodCalculator.calculateGenotypeLikelihoods(site);
+				const auto genoLik = _parser.errorModels().calculateGenotypeLikelihoods(site);
 				_out.write(genoLik);
 			}
 			_out.endln();

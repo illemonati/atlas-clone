@@ -24,13 +24,13 @@ protected:
 public:
 	virtual ~TGenotypePrior() = default;
 
-	virtual void update(const TWindow &window, const TGenotypeLikelihoodCalculator &) = 0;
+	virtual void update(const TWindow &window, const TErrorModels &) = 0;
 	TGenotypeProbabilities *getPointerToPrior() { return &genotypePrior; };
 	coretools::Probability operator[](const genometools::Genotype &genotype) { return genotypePrior[genotype]; };
 };
 
 class TGenotypePriorUniform : public TGenotypePrior {
-	virtual void update(const TWindow &, const TGenotypeLikelihoodCalculator &) override {};
+	virtual void update(const TWindow &, const TErrorModels &) override {};
 };
 
 class TGenotypePriorFixedTheta : public TGenotypePrior {
@@ -51,7 +51,7 @@ public:
 
 	~TGenotypePriorFixedTheta() { delete thetaEstimator; };
 
-	void update(const TWindow &window, const TGenotypeLikelihoodCalculator &) override {
+	void update(const TWindow &window, const TErrorModels &) override {
 		using genometools::Base;
 		using coretools::instances::logfile;
 		if (!equalBaseFreq) {
@@ -100,7 +100,7 @@ public:
 		delete thetaEstimator;
 	};
 
-	void update(const TWindow &window, const TGenotypeLikelihoodCalculator &glCalculator) override {
+	void update(const TWindow &window, const TErrorModels &glCalculator) override {
 		using coretools::instances::logfile;
 		logfile().startIndent("Estimating theta for prior:");
 		// clear theta estimator

@@ -27,6 +27,45 @@ using coretools::instances::logfile;
 using coretools::instances::parameters;
 using namespace coretools::str;
 
+TParser::TParser(TGenome& genome) : _errorModels(genome.rgInfo()) {
+	if (parameters().exists("trim3") || parameters().exists("trim5")) {
+		_trim3 = parameters().get<int>("trim3", 0);
+		if (_trim3 < 0) UERROR("trimming distance trim3 must be >= 0!");
+		_trim5 = parameters().get<int>("trim5", 0);
+		if (_trim5 < 0) UERROR("trimming distance trim5 must be >= 0!");
+		if (_trim3 > 0 || _trim5 > 0) {
+			logfile().list("Will trim first " + toString(_trim3) + " and " + toString(_trim5) +
+						   " bases from the 3' and 5' end, respectively. (parameters 'trim3', 'trim5')");
+		}
+		_trimReads = true;
+	} else {
+		_trim3     = 0;
+		_trim5     = 0;
+		_trimReads = false;
+	}
+}
+
+void TParser::openReference(bool required) {
+	if (!_reference.isOpen()) {
+		if (parameters().exists("fasta")) {
+			std::string fastaFile = parameters().get<std::string>("fasta");
+			logfile().list("Reading reference sequence from '" + fastaFile + "'. (parameter fasta)");
+			_reference.open(fastaFile);
+		} else {
+			if (required) { UERROR("No reference provided! (Use parameter fasta to provide a reference)"); }
+		}
+	}
+};
+
+void TParser::operator()(BAM::TAlignment &alignment) {
+	// parse
+	alignment.parse(_errorModels.sequencingErrorModels());
+
+	if (_trimReads) { alignment.trimRead(_trim3, _trim5); }
+	alignment.filter(_qualityFilter); // always on
+	if (_contextFilter) alignment.filter(_contextFilter);
+	if (_reference.isOpen()) { alignment.addReference(_reference); }
+};
 
 //---------------------------------------------------------------
 // TGenome_filtered
@@ -56,50 +95,13 @@ void TGenome_filtered::_traverseBAMPassedQC() {
 // TGenome_parsed
 // A base class with BAM filters and recalibration
 //---------------------------------------------------------------
-TGenome_parsed::TGenome_parsed() : _genotypeLikelihoodCalculator(_genome.rgInfo()) {
+TGenome_parsed::TGenome_parsed() : _parser(_genome) {
 	// set parsing filters
-	if (parameters().exists("trim3") || parameters().exists("trim5")) {
-		_trim3 = parameters().get<int>("trim3", 0);
-		if (_trim3 < 0) UERROR("trimming distance trim3 must be >= 0!");
-		_trim5 = parameters().get<int>("trim5", 0);
-		if (_trim5 < 0) UERROR("trimming distance trim5 must be >= 0!");
-		if (_trim3 > 0 || _trim5 > 0) {
-			logfile().list("Will trim first " + toString(_trim3) + " and " +
-						   toString(_trim5) +
-						   " bases from the 3' and 5' end, respectively. (parameters 'trim3', 'trim5')");
-		}
-		_trimReads = true;
-	} else {
-		_trim3     = 0;
-		_trim5     = 0;
-		_trimReads = false;
-	}
 
 	const BAM::TBamFilters filters{true};
 	_genome.bamFile().setFilters(filters);
 };
 
-void TGenome_parsed::_openReference(bool required) {
-	if (!_reference.isOpen()) {
-		if (parameters().exists("fasta")) {
-			std::string fastaFile = parameters().get<std::string>("fasta");
-			logfile().list("Reading reference sequence from '" + fastaFile + "'. (parameter fasta)");
-			_reference.open(fastaFile);
-		} else {
-			if (required) { UERROR("No reference provided! (Use parameter fasta to provide a reference)"); }
-		}
-	}
-};
-
-void TGenome_parsed::_parseAlignment(BAM::TAlignment &alignment) {
-	// parse
-	alignment.parse(_genotypeLikelihoodCalculator.sequencingErrorModels());
-
-	if (_trimReads) { alignment.trimRead(_trim3, _trim5); }
-	alignment.filter(_qualityFilter); // always on
-	if (_contextFilter) alignment.filter(_contextFilter);
-	if (_reference.isOpen()) { alignment.addReference(_reference); }
-};
 
 void TGenome_parsed::_traverseBAMPassedQC() {
 	// parse through bam file
@@ -108,7 +110,7 @@ void TGenome_parsed::_traverseBAMPassedQC() {
 	while (_genome.bamFile().readNextAlignmentThatPassesFilters()) {
 		// parse
 		_genome.bamFile().fill(alignment);
-		_parseAlignment(alignment);
+		_parser(alignment);
 
 		// handle alignment by derived classes
 		_handleAlignment(alignment);
@@ -125,7 +127,10 @@ void TGenome_parsed::_traverseBAMPassedQC() {
 // TGenome_windows
 // A base class to traverse a BAM file in windows
 //---------------------------------------------------------------
-TGenome_windows::TGenome_windows() : _chromosomes(_genome.bamFile().chromosomes()) {
+	TGenome_windows::TGenome_windows() : _parser(_genome), _chromosomes(_genome.bamFile().chromosomes()) {
+
+	const BAM::TBamFilters filters{true};
+	_genome.bamFile().setFilters(filters);
 	// reading parameters regarding windows
 	logfile().startIndent("Parsing window settings:");
 	_setWindowParameters();
@@ -183,8 +188,8 @@ void TGenome_windows::_setWindowFilters() {
 
 	_maxRefN = parameters().get<double>("maxRefN", 1.0);
 	if (_maxRefN < 0.0 || _maxRefN > 1.0) UERROR("maxRefN must be within interval [0,1]!");
-	_openReference();
-	if (_maxRefN < 1.0 && !_reference.isOpen())
+	_parser.openReference();
+	if (_maxRefN < 1.0 && !_parser.reference().isOpen())
 		UERROR("Can only calculate percentage of reference bases that are 'N' in window if reference file is provided! "
 			   "(use 'fasta' to provide a reference)");
 	logfile().list("Will filter out windows with a fraction of 'N' in reference > " + toString(_maxRefN) +
@@ -222,7 +227,7 @@ void TGenome_windows::_setSiteFilters() {
 	if (parameters().exists("filterCpG")) {
 		_filterCpG = true;
 		logfile().list("Will filter out CpG sites. (parameter 'filterCpG')");
-		_openReference(true);
+		_parser.openReference(true);
 	} else {
 		_filterCpG = false;
 		logfile().list("Will keep CpG sites. (use 'filterCpG' to remove)");
@@ -472,7 +477,7 @@ bool TGenome_windows::_readAndParseAlignment() {
 	if (!_genome.bamFile().readNextAlignmentThatPassesFilters()) return false;
 
 	_genome.bamFile().fill(_curAlignment);
-	_parseAlignment(_curAlignment);
+	_parser(_curAlignment);
 	return true;
 };
 
@@ -500,7 +505,7 @@ void TGenome_windows::_readAlignmentsIntoWindow(GenotypeLikelihoods::TWindow &wi
 		window.addReferenceBaseToSites(*_subsetMonomorphic);
 	} else {
 		window.fillSites(_readUpToDepth);
-		window.addReferenceBaseToSites(_reference);
+		window.addReferenceBaseToSites(_parser.reference());
 	}
 
 	// report
@@ -526,7 +531,7 @@ void TGenome_windows::_applyWindowFilters(GenotypeLikelihoods::TWindow &window) 
 
 		// filter sites
 		if (_applyDepthFilter) { window.applyDepthFilter(_depthFilter); }
-		if (_filterCpG) { window.maskCpG(_reference); }
+		if (_filterCpG) { window.maskCpG(_parser.reference()); }
 		if (_downsampleDepth > 0) { window.downsample(_downsampleDepth, *subsamplePicker); };
 	}
 

@@ -26,9 +26,6 @@
 #include "TReadGroupInfo.h"
 #include "TWindow.h"
 
-namespace coretools {
-class TSubsamplePicker;
-}
 
 namespace GenomeTasks::old {
 
@@ -46,13 +43,7 @@ public:
 	TGenome_filtered();
 };
 
-//---------------------------------------------------------------
-// TGenome_parsed
-// A base class with BAM filters and a parsed, recalibrated alignment
-//---------------------------------------------------------------
-class TGenome_parsed  {
-private:
-	// read trimming
+class TParser {
 	bool _trimReads;
 	int _trim3;
 	int _trim5;
@@ -61,13 +52,26 @@ private:
 	TQualityFilter _qualityFilter;
 	TContextFilter _contextFilter;
 
+	genometools::TFastaReader _reference;
+	GenotypeLikelihoods::TErrorModels _errorModels;
+public:
+	TParser(TGenome& genome);
+
+	void operator()(BAM::TAlignment &alignment);
+	void openReference(bool required = false);
+	const genometools::TFastaReader& reference() const noexcept {return _reference;};
+	const GenotypeLikelihoods::TErrorModels& errorModels() const noexcept {return _errorModels;};
+};
+
+//---------------------------------------------------------------
+// TGenome_parsed
+// A base class with BAM filters and a parsed, recalibrated alignment
+//---------------------------------------------------------------
+class TGenome_parsed  {
 protected:
 	TGenome _genome;
-	GenotypeLikelihoods::TGenotypeLikelihoodCalculator _genotypeLikelihoodCalculator;
-	genometools::TFastaReader _reference;
+	TParser _parser;
 
-	void _openReference(bool required = false);
-	void _parseAlignment(BAM::TAlignment &alignment);
 	void _traverseBAMPassedQC();
 	virtual void _handleAlignment(BAM::TAlignment& alignment) = 0;
 
@@ -79,8 +83,10 @@ public:
 // TGenome_windows
 // A base class to traverse a BAM file in windows
 //---------------------------------------------------------------
-class TGenome_windows : public TGenome_parsed {
+class TGenome_windows {
 protected:
+	TGenome _genome;
+	TParser _parser;
 	const genometools::TChromosomes &_chromosomes;
 	std::vector<genometools::TChromosome>::const_iterator _curChromosome;
 

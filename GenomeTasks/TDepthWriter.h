@@ -26,7 +26,6 @@ private:
 	coretools::TCountDistribution<> _distPerSite;
 
 	void _handleWindow(GenotypeLikelihoods::TWindow& window) override;
-	void _handleAlignment(BAM::TAlignment&) override {}
 public:
 	void writeDepth();
 };

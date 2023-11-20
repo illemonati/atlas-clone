@@ -24,7 +24,6 @@ namespace GenomeTasks{
 //--------------------------------------
 	class TCreateBedMask:public old::TGenome_windows{
 protected:
-	void _handleAlignment(BAM::TAlignment&) override {}
 	genometools::TBed _bed;
 	uint32_t _minDepth;
 

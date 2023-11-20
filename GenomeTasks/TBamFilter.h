@@ -150,9 +150,9 @@ protected:
 		_genome.bamFile().fill(*alignment);
 		if(_recalibrate){
 			if(_incorporatePMD){
-				alignment->recalibrateWithPMD(_genotypeLikelihoodCalculator);
+				alignment->recalibrateWithPMD(_parser.errorModels());
 			} else {
-				alignment->parse(_genotypeLikelihoodCalculator.sequencingErrorModels());
+				alignment->parse(_parser.errorModels().sequencingErrorModels());
 			}
 		}
 		return alignment;
@@ -183,13 +183,13 @@ public:
 		}
 
 		//recalibrate BAM?
-		if(_genotypeLikelihoodCalculator.sequencingErrorModels().recalibrates() || parameters().exists("incorporatePMD")){
+		if(_parser.errorModels().sequencingErrorModels().recalibrates() || parameters().exists("incorporatePMD")){
 			_recalibrate = true;
 			logfile().list("Will write recalibrated quality scores.");
 			if(parameters().exists("incorporatePMD")){
 				logfile().list("Probability of PMD will be reflected in new quality scores. (parameter 'incorporatePMD')");
 				_incorporatePMD = true;
-				if(!_genotypeLikelihoodCalculator.postMortemDamageModels().hasPMD()){
+				if(!_parser.errorModels().postMortemDamageModels().hasPMD()){
 					UERROR("No PMD probabilities provided! Provide PMD probabilities or remove parameter 'incorporatePMD'.");
 				}
 			} else {
